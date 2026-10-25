@@ -1,12 +1,18 @@
 /**
- * Depth to 200 (25 Oct 2026, docs/depth/d3-speed-attention.md), server only: the twelve Speed and Attention
- * games' new revisions grade here, after the game's own case in grade.ts and instead of puzzleScoreRev 2 / 3's
- * mapping (which caps at 150). A game's grader applies only to puzzles stamped with its new revision; every older
- * round returns null and grades exactly as before. Engine games (Bonk, Pull!, Mixed Signals) score inside their
- * sims and need nothing here.
+ * Depth to 200, server only: the one depth path (gradeAnswer calls it once, after the game's own grade and
+ * today's puzzleScoreRev 2 / 3 mapping, which caps at 150). Each stamped puzzle is routed to its game's depth
+ * grader: the twelve Speed and Attention games (D3, docs/depth/d3-speed-attention.md) grade from the game's own
+ * grade; the Number games (depthRev 1, numberDepth.server.ts, docs/depth/d2-number.md) from today's grade. A
+ * grader applies only to puzzles stamped with its game's depth revision; every older round returns null and grades
+ * exactly as before. Engine games score inside their sims and need nothing here.
  */
 import type { Graded } from "./grade";
 import type { PuzzleData, PuzzleType } from "./types";
+import { puzzleScoreRevOf } from "./puzzleScoreRev";
+import { PUZZLE_SCORE_REV_BANDS, rev2Applies } from "./puzzleScoreRev2";
+import { PUZZLE_SCORE_REV_HELPER, rev3Applies } from "./puzzleScoreRev3";
+import { NUMBER_DEPTH_GAMES, usesNumberDepth } from "./numberDepth";
+import { withNumberDepth } from "./numberDepth.server";
 import { flashDepth } from "./depth/flash.server";
 import { ascendDepth } from "./depth/ascend.server";
 import { bangOnDepth } from "./depth/bangOn.server";
@@ -22,6 +28,8 @@ export interface DepthGradeInput {
   answer: string;
   /** The game's own grade (grade.ts, rev-1 shape with its breakdown in `extra.parts`). */
   graded: Graded;
+  /** Today's grade (puzzleScoreRev 3's helper or rev 2's knots over `graded`), worked out on first call. */
+  today: () => Graded;
   receivedMsRemaining?: number | undefined;
 }
 
@@ -31,7 +39,20 @@ export interface DepthGrader {
   grade(input: DepthGradeInput): Graded;
 }
 
+/**
+ * Number depth (depthRev 1): applies where today's rev-3 / rev-2 mapping applies (as when it ran inside those
+ * branches), and adds its stretch or feature to today's grade.
+ */
+const numberDepth: DepthGrader = {
+  applies: (puzzle) => {
+    const rev = puzzleScoreRevOf(puzzle);
+    return usesNumberDepth(puzzle) && ((rev >= PUZZLE_SCORE_REV_HELPER && rev3Applies(puzzle.type)) || (rev >= PUZZLE_SCORE_REV_BANDS && rev2Applies(puzzle.type)));
+  },
+  grade: ({ puzzle, answer, today }) => withNumberDepth(puzzle, answer, today()),
+};
+
 const GRADERS: Partial<Record<PuzzleType, DepthGrader>> = {
+  ...Object.fromEntries(Object.keys(NUMBER_DEPTH_GAMES).map((type) => [type, numberDepth])),
   reaction: flashDepth,
   numhunt: ascendDepth,
   stopwatch: bangOnDepth,

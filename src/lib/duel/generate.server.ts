@@ -10,6 +10,7 @@ import { PUZZLE_SCORE_REV_BANDS, rev2Applies, rev2Grade, rev2ResultOf } from "./
 import { PUZZLE_SCORE_REV_HELPER, rev3Applies, rev3Efficiency, rev3Finish, rev3Unfinished } from "./puzzleScoreRev3";
 import { rev3EfficiencyOverride, rev3Progress } from "./puzzleProgress";
 import { gradeDepth200 } from "./depth200.server";
+import { stampNumberDepth } from "./numberDepth.server";
 import { puzzleTimeLimitMs } from "./registry";
 import { WORDHUNT_REV_TARGET, WORDSMITH_REV_TARGET } from "./scoring";
 import { stampMoveLimits } from "./moveLimits.server";
@@ -121,7 +122,8 @@ export interface GenerateContext {
 export function generatePuzzle(type: PuzzleType, context: GenerateContext = {}): PuzzleData {
   // The seven games with a 13 Oct 2026 limit or count-range revision carry their own stamp (moveLimits.ts).
   const made = stampMoveLimits(generateUnstamped(type, context));
-  return { ...(made as object), speedPar: SPEED_PAR_VERSION, puzzleScoreRev: dealtPuzzleScoreRev() } as unknown as PuzzleData;
+  // Number puzzles to 200 (numberDepth.ts) carry depthRev 1 on puzzleScoreRev 3.
+  return stampNumberDepth({ ...(made as object), speedPar: SPEED_PAR_VERSION, puzzleScoreRev: dealtPuzzleScoreRev() } as unknown as PuzzleData);
 }
 
 function generateUnstamped(type: PuzzleType, context: GenerateContext): PuzzleData {
@@ -258,9 +260,15 @@ export function gradeAnswer(
     if (puzzle.type === "wordhunt") return gradeWordHunt(puzzle, answer, msRemaining);
     return gradeSubmission(puzzle, answer, msRemaining, extra, receivedMsRemaining);
   });
-  // Depth to 200 (25 Oct 2026, depth200.server.ts): a game's own new revision scores to 200 in place of rev 2 / 3.
-  const deep = gradeDepth200({ puzzle, answer, graded, receivedMsRemaining });
-  if (deep) return deep;
+  let todayGrade: Graded | null = null;
+  const today = () => (todayGrade ??= gradeToday(puzzle, answer, graded, receivedMsRemaining));
+  // Depth to 200 (depth200.server.ts, the one depth path): a puzzle stamped with its game's depth revision scores to
+  // 200 through that game's grader (from the game's own grade or today's); every other puzzle keeps today's grade.
+  return gradeDepth200({ puzzle, answer, graded, today, receivedMsRemaining }) ?? today();
+}
+
+/** Today's grade before any depth revision: puzzleScoreRev 3's helper or rev 2's knots over the game's own grade. */
+function gradeToday(puzzle: PuzzleData, answer: string, graded: Graded, receivedMsRemaining?: number): Graded {
   const rev = puzzleScoreRevOf(puzzle);
   // puzzleScoreRev 3 (the shared helper, puzzleScoreRev3.ts): finish puzzles score progress, time and mistakes.
   if (rev >= PUZZLE_SCORE_REV_HELPER && rev3Applies(puzzle.type)) return withRev3(puzzle, answer, graded, receivedMsRemaining);

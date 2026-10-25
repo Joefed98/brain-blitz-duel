@@ -63,6 +63,13 @@ export const NUMBER_TUNING_PRESENTATION = "oct14-number-tuning";
 export const WORD_BATCH_DEMOS = new Set(["strikeout", "wordsearch", "letterwheel", "codeword"]);
 export const WORD_BATCH_PRESENTATION = "oct14-word-batch";
 /**
+ * Number depth to 200 (25 Oct 2026, depthRev 1): Exact deals targets with a five- and a six-number answer and
+ * Checkout's boards take a big finish, so both fixed intro examples change; older coordinate demos would tap the
+ * wrong numbers and wedges, so they are rejected (the intro shows the game's still) until re-recorded.
+ */
+export const NUMBER_DEPTH_DEMOS = new Set(["target", "checkout"]);
+export const NUMBER_DEPTH_PRESENTATION = "oct25-number-depth";
+/**
  * Depth to 200, Double Take spotRev 2 (25 Oct 2026, docs/depth/d3-speed-attention.md): the intro example now deals
  * the hidden seventh difference and a star in the counter row, so older coordinate demos are rejected until
  * re-recorded (the intro shows its still). Labyrinth mazeRev 1 (same day): a 19 × 23 maze with detour stars, so
@@ -78,6 +85,7 @@ export const DEPTH_D3_ATTENTION_PRESENTATION = "oct25-depth-d3-attention";
 export const DEPTH_D3_SPEED_DEMOS = new Set(["reaction", "stopwatch", "numhunt"]);
 export const DEPTH_D3_SPEED_PRESENTATION = "oct25-depth-d3-speed";
 export function puzzlePresentation(type: string): string {
+  if (NUMBER_DEPTH_DEMOS.has(type)) return NUMBER_DEPTH_PRESENTATION;
   if (DEPTH_D3_SPEED_DEMOS.has(type)) return DEPTH_D3_SPEED_PRESENTATION;
   if (DEPTH_D3_ATTENTION_DEMOS.has(type)) return DEPTH_D3_ATTENTION_PRESENTATION;
   if (OCT14_BATCH_DEMOS.has(type)) return OCT14_BATCH_PRESENTATION;
@@ -93,7 +101,7 @@ export function puzzlePresentation(type: string): string {
   if (NUMBER_POLISH_DEMOS.has(type)) return NUMBER_POLISH_PRESENTATION;
   return type === "letterwheel" ? ROUNDABOUT_PRESENTATION : POLISH_B_DEMOS.has(type) ? POLISH_B_PRESENTATION : POLISH_A_DEMOS.has(type) ? POLISH_A_PRESENTATION : type === "wordsmith" ? WORDSMITH_PRESENTATION : type === "balance" ? BALANCE_PRESENTATION : PUZZLE_INPUT_PRESENTATION;
 }
-export const REVISED_PUZZLE_DEMOS = new Set([...DEPTH_D3_SPEED_DEMOS, ...DEPTH_D3_ATTENTION_DEMOS, ...OCT14_BATCH_DEMOS, ...WORD_BATCH_DEMOS, ...ATTENTION_REWORK_DEMOS, ...SPEED_TUNING_DEMOS, ...NUMBER_TUNING_DEMOS, ...MOVE_LIMIT_DEMOS, ...POLISH_A_DEMOS, ...POLISH_B_DEMOS, ...WORD_POLISH_DEMOS, ...LOGIC_POLISH_DEMOS, ...NUMBER_POLISH_DEMOS, ...PATTERN_POLISH_DEMOS, ...SPEED_POLISH_DEMOS, "wordsmith", "wordhunt", "target", "lightsout", "maze", "rings", "flood", "balance"]);
+export const REVISED_PUZZLE_DEMOS = new Set([...NUMBER_DEPTH_DEMOS, ...DEPTH_D3_SPEED_DEMOS, ...DEPTH_D3_ATTENTION_DEMOS, ...OCT14_BATCH_DEMOS, ...WORD_BATCH_DEMOS, ...ATTENTION_REWORK_DEMOS, ...SPEED_TUNING_DEMOS, ...NUMBER_TUNING_DEMOS, ...MOVE_LIMIT_DEMOS, ...POLISH_A_DEMOS, ...POLISH_B_DEMOS, ...WORD_POLISH_DEMOS, ...LOGIC_POLISH_DEMOS, ...NUMBER_POLISH_DEMOS, ...PATTERN_POLISH_DEMOS, ...SPEED_POLISH_DEMOS, "wordsmith", "wordhunt", "target", "lightsout", "maze", "rings", "flood", "balance"]);
 export const BALANCE_PRESENTATION = "oct9b-tall-beam";
 export const PUZZLE_INPUT_PRESENTATION = "oct6-ring-controls";
 export function puzzleInputDemoCompatible(type: string, log: unknown): boolean {

@@ -1,4 +1,5 @@
 import { gameDisplayName } from "./gameNames";
+import { numberDepthDealt } from "./numberDepth";
 import { pick, randInt, shuffled } from "./random";
 import type { Operator, TargetNumberPuzzleData, TargetStep } from "./types";
 
@@ -200,10 +201,32 @@ export function solveWithAtLeastFiveTiles(tiles: number[], target: number): Targ
   return solveTargetWithUsage(tiles, target, (used) => used >= 5);
 }
 
+/** An answer that uses all six tiles (the depth stamp's non-elegant route; the tuning players use it). */
+export function solveWithAllSixTiles(tiles: number[], target: number): TargetStep[] | null {
+  return solveTargetWithUsage(tiles, target, (used) => used === 6);
+}
+
 /** A target only counts as good when it needs five or six tiles and cannot be shortcut with four or fewer. */
 function findFiveTileTarget(tiles: number[], target: number): TargetStep[] | null {
   if (hasSolutionWithAtMostFourTiles(tiles, target)) return null;
   return solveWithAtLeastFiveTiles(tiles, target);
+}
+
+/**
+ * depthRev 1 (numberDepth.ts, the elegance bonus): the target needs five or six tiles as before, and has both a
+ * five-number answer (the elegant one, stored as the solution) and a six-number one, so hitting it with five is a
+ * choice the player makes, never the only way.
+ */
+function findElegantTarget(tiles: number[], target: number): TargetStep[] | null {
+  if (hasSolutionWithAtMostFourTiles(tiles, target)) return null;
+  // With no answer from four or fewer, any answer from five of the tiles uses all five.
+  let five: TargetStep[] | null = null;
+  for (const indices of combinations(tiles.length, 5)) {
+    five = solveTarget(indices.map((i) => tiles[i]!), target);
+    if (five) break;
+  }
+  if (!five) return null;
+  return solveTargetWithUsage(tiles, target, (used) => used === 6) ? five : null;
 }
 
 /**
@@ -212,10 +235,11 @@ function findFiveTileTarget(tiles: number[], target: number): TargetStep[] | nul
  * shipping a fixed fallback that might not actually obey the five-tile rule.
  */
 function buildFallbackPuzzle(): TargetNumberPuzzleData {
+  const find = numberDepthDealt() ? findElegantTarget : findFiveTileTarget;
   for (let attempt = 0; attempt < 2000; attempt++) {
     const tiles = rollTiles();
     const target = randInt(100, 999);
-    const solution = findFiveTileTarget(tiles, target);
+    const solution = find(tiles, target);
     if (solution) return { type: "target", tiles, target, solution };
   }
   throw new Error(`Unable to construct a valid ${gameDisplayName("target")} puzzle`);
@@ -226,11 +250,13 @@ function buildFallbackPuzzle(): TargetNumberPuzzleData {
  * six tiles, with no shortcut using four or fewer — otherwise it re-rolls.
  */
 export function generateTargetPuzzle(): TargetNumberPuzzleData {
+  // depthRev 1 deals targets with a five- and a six-number answer (findElegantTarget); older rounds were stored.
+  const find = numberDepthDealt() ? findElegantTarget : findFiveTileTarget;
   for (let attempt = 0; attempt < 40; attempt++) {
     const tiles = rollTiles();
     for (let tries = 0; tries < 15; tries++) {
       const target = randInt(101, 999);
-      const solution = findFiveTileTarget(tiles, target);
+      const solution = find(tiles, target);
       if (solution) {
         return { type: "target", tiles, target, solution };
       }
