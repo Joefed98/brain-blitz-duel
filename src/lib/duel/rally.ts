@@ -8,7 +8,6 @@ import type { InputDiag } from "@/lib/arcade/engine";
 
 import {
   rallyCheckpoint,
-  rallyGame,
   rallyGameFor,
   rallyPaddleW,
   rallySurvived,
@@ -124,18 +123,21 @@ export function replayRallyRun(seed: number, raw: string, rev?: number | null): 
   const run = decodeRallyRun(raw);
   const endTick = run.endTick && run.endTick > 0 ? Math.min(run.endTick, RALLY_RUN_TICKS) : 0;
   const clientLag = endTick > 0 && endTick < RALLY_RUN_TICKS;
-  const check = checkInputEvents(run.events, RALLY_RUN_TICKS, RALLY_INPUT_RANGES);
+  // The revision's own game (rallyRev 9 has its own step and its wider court's input range; every earlier
+  // revision shares rallyGame's step, so this is the same sim they always replayed on).
+  const game = rallyGameFor(rev);
+  const check = checkInputEvents(run.events, RALLY_RUN_TICKS, game.inputRanges ?? RALLY_INPUT_RANGES);
   const events = new Map<number, ArcadeInputEvent>();
   for (const event of check.events) events.set(event.t, event);
   const lastTick = clientLag ? endTick : RALLY_RUN_TICKS;
   const clientCheckpoints = new Map((run.checkpoints ?? []).map((item) => [item.tick, item]));
 
-  let state = rallyGameFor(rev).init(seed);
+  let state = game.init(seed);
   let reached = 0;
   let desyncTick: number | null = null;
   const serverCheckpoints: RallyCheckpoint[] = [];
   for (let tick = 1; tick <= lastTick; tick++) {
-    state = rallyGame.step(state, events.get(tick) ?? null);
+    state = game.step(state, events.get(tick) ?? null);
     reached = tick;
     if (state.tick % RALLY_CHECKPOINT_INTERVAL === 0) {
       const serverState = rallyCheckpoint(state);
@@ -150,10 +152,10 @@ export function replayRallyRun(seed: number, raw: string, rev?: number | null): 
         });
       }
     }
-    if (rallyGame.isOver(state)) break;
+    if (game.isOver(state)) break;
   }
 
-  const replayScore = rallyGame.score(state);
+  const replayScore = game.score(state);
   const mismatch = run.claimedScore !== replayScore || run.seed !== seed;
   const result: RallyResult = {
     hits: state.hits,

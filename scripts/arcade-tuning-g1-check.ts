@@ -106,7 +106,7 @@ import {
   type BurstState,
 } from "../src/lib/arcade/burst";
 import { generateBreaker, generateBurst, generateRally, generateWavefront } from "../src/lib/duel/arcade.server";
-import { playRevOf } from "./scoring-targets-revs";
+import { beforeExpansion, playRevOf } from "./scoring-targets-revs";
 
 const failures: string[] = [];
 let checks = 0;
@@ -159,8 +159,8 @@ for (const [file, label] of [["scripts/fixtures/arcade-tuning-g1-legacy.json", "
 /* ============================== 2. New rounds ============================== */
 section("New rounds: stamps, start states, checksums, worlds by revision");
 {
-  ok(playRevOf("breaker", generateBreaker().brkRev) === BRK_REV_TALL, "rooms deal brkRev 6");
-  ok(playRevOf("rally", generateRally().rallyRev) === RALLY_REV_TALL, "rooms deal rallyRev 6");
+  ok(playRevOf("breaker", beforeExpansion("breaker", generateBreaker().brkRev)) === BRK_REV_TALL, "rooms deal brkRev 6");
+  ok(playRevOf("rally", beforeExpansion("rally", generateRally().rallyRev)) === RALLY_REV_TALL, "rooms deal rallyRev 6");
   ok(playRevOf("wavefront", generateWavefront().wavRev) === WAV_REV_TALL, "rooms deal wavRev 6");
   ok(playRevOf("burst", generateBurst().burstRev) === BURST_REV_TALL, "rooms deal burstRev 4");
 
@@ -347,8 +347,8 @@ section("Refitted curves keep the band rules; 150 is reachable");
 section("Intro demos stay stopped until re-recorded on the taller revision");
 {
   const src = read("src/lib/duel/introDemo.functions.ts");
-  ok(/data\.type === "breaker" && demo\?\.puzzle\.type === "breaker" && demo\.puzzle\.brkRev !== BRK_REV_TALL\) return null/.test(src), "Breaker's demo plays only on brkRev 6");
-  ok(/data\.type === "rally" && demo\?\.puzzle\.type === "rally" && demo\.puzzle\.rallyRev !== RALLY_REV_TALL\) return null/.test(src), "Rally's demo plays only on rallyRev 6");
+  ok(/data\.type === "breaker" && demo\?\.puzzle\.type === "breaker" && demo\.puzzle\.brkRev !== (BRK_REV_TALL|BRK_REV_DEEP)\) return null/.test(src), "Breaker's demo plays only on brkRev 6 (brkRev 9 since expansion E3)");
+  ok(/data\.type === "rally" && demo\?\.puzzle\.type === "rally" && demo\.puzzle\.rallyRev !== (RALLY_REV_TALL|RALLY_REV_DEEP)\) return null/.test(src), "Rally's demo plays only on rallyRev 6 (rallyRev 9 since expansion E3)");
   ok(/data\.type === "wavefront" && demo\?\.puzzle\.type === "wavefront" && demo\.puzzle\.wavRev !== WAV_REV_TALL\) return null/.test(src), "Wavefront's demo plays only on wavRev 6");
   ok(/data\.type === "burst" && demo\?\.puzzle\.type === "burst" && demo\.puzzle\.burstRev !== BURST_REV_TALL\) return null/.test(src), "Fission's demo plays only on burstRev 4");
 }

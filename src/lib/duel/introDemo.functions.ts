@@ -2,8 +2,8 @@ import { SWING_REV_TALL } from "@/lib/arcade/swing";
 import { INK_REV3, INK_REV4, INK_REV_BAND, INK_REV_TUNEC } from "@/lib/arcade/inkBridge";
 import { CLAY_REV } from "@/lib/arcade/clayShoot";
 import { WORDFALL_REV } from "@/lib/arcade/wordfall";
-import { BRK_REV_TALL } from "@/lib/arcade/breaker";
-import { RALLY_REV_TALL } from "@/lib/arcade/rally";
+import { BRK_REV_DEEP } from "@/lib/arcade/breaker";
+import { RALLY_REV_DEEP } from "@/lib/arcade/rally";
 import { WAV_REV_TALL } from "@/lib/arcade/wavefront";
 import { BURST_REV_TALL } from "@/lib/arcade/burst";
 import { BEAT_REV_TALL } from "@/lib/arcade/beat";
@@ -83,8 +83,10 @@ export const getIntroDemoFn = createServerFn({ method: "GET" })
     if (data.type === "wordfall" && demo?.puzzle.type === "wordfall" && demo.puzzle.wordfallRev !== WORDFALL_REV) return null;
     // Taller worlds batch 1 (16 Oct 2026): a demo recorded on an older revision would show the short world (and its
     // touches would land on the old paddle, ship or floor line), so these four stay stopped until one is recorded on the tall revision.
-    if (data.type === "breaker" && demo?.puzzle.type === "breaker" && demo.puzzle.brkRev !== BRK_REV_TALL) return null;
-    if (data.type === "rally" && demo?.puzzle.type === "rally" && demo.puzzle.rallyRev !== RALLY_REV_TALL) return null;
+    // The 200-point expansion (25 Oct 2026, docs/expansions/e3.md): Breaker brkRev 9 and Rally rallyRev 9 play on a wider,
+    // taller court with new features, so their demos stay stopped (the intro shows its still) until one is recorded there.
+    if (data.type === "breaker" && demo?.puzzle.type === "breaker" && demo.puzzle.brkRev !== BRK_REV_DEEP) return null;
+    if (data.type === "rally" && demo?.puzzle.type === "rally" && demo.puzzle.rallyRev !== RALLY_REV_DEEP) return null;
     if (data.type === "wavefront" && demo?.puzzle.type === "wavefront" && demo.puzzle.wavRev !== WAV_REV_TALL) return null;
     if (data.type === "burst" && demo?.puzzle.type === "burst" && demo.puzzle.burstRev !== BURST_REV_TALL) return null;
     // Taller worlds batch 2 (16 Oct 2026): the same for Tempo, Slice, Coral Pop and Mixed Signals (Pull! above), each stopped

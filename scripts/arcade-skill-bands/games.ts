@@ -23,7 +23,7 @@ import { bubCheckpoint, bubbleGameFor, BUB_REV, BUB_REV_BAND, BUB_REV_TALL, BUB_
 import { encodeBubbleRun, replayBubbleRun } from "../../src/lib/duel/bubble";
 import { crossCheckpoint, crossGameFor, CROSS_REV, CROSS_REV_BAND, CROSS_REV_SMALL } from "../../src/lib/arcade/cross";
 import { encodeCrossRun, replayCrossRun } from "../../src/lib/duel/cross";
-import { rallyCheckpoint, rallyGameFor, RALLY_REV, RALLY_REV_BAND, RALLY_REV_TALL, RALLY_REV_TUNED, RALLY_REV_TUNEF } from "../../src/lib/arcade/rally";
+import { rallyCheckpoint, rallyGameFor, RALLY_REV, RALLY_REV_BAND, RALLY_REV_TALL, RALLY_REV_TUNED, RALLY_REV_TUNEF, RALLY_REV_STRICT, RALLY_REV_DEEP } from "../../src/lib/arcade/rally";
 import { encodeRallyRun, replayRallyRun } from "../../src/lib/duel/rally";
 import { snakeCheckpoint, snakeGameFor, SNAKE_REV, SNAKE_REV_BAND, SNAKE_REV_TALL, SNAKE_REV_ROCKS } from "../../src/lib/arcade/snake";
 import { encodeSnakeRun, replaySnakeRun } from "../../src/lib/duel/snake";
@@ -37,7 +37,7 @@ import { skylineCheckpoint, skylineGameFor, SKYLINE_REV, SKYLINE_REV_BAND, SKYLI
 import { encodeSkylineRun, replaySkylineRun } from "../../src/lib/duel/skyline";
 import { juncCheckpoint, junctionGameFor, JUNC_REV, JUNC_REV_BAND } from "../../src/lib/arcade/junction";
 import { encodeJunctionRun, replayJunctionRun } from "../../src/lib/duel/junction";
-import { brkCheckpoint, breakerGameFor, BRK_REV, BRK_REV_BAND, BRK_REV_TALL, BRK_REV_TUNED, BRK_REV_TUNEF } from "../../src/lib/arcade/breaker";
+import { brkCheckpoint, breakerGameFor, BRK_REV, BRK_REV_BAND, BRK_REV_TALL, BRK_REV_TUNED, BRK_REV_TUNEF, BRK_REV_STRICT, BRK_REV_DEEP } from "../../src/lib/arcade/breaker";
 import { encodeBreakerRun, replayBreakerRun } from "../../src/lib/duel/breaker";
 import { tiltCheckpoint, tiltGameFor, TILT_REV, TILT_REV_BAND, TILT_REV_TUNEC } from "../../src/lib/arcade/tilt";
 import { encodeTiltRun, replayTiltRun } from "../../src/lib/duel/tilt";
@@ -88,6 +88,9 @@ export interface GameSpec {
   tuneg2?: number;
   /** The taller-worlds batch 3 revision (Oct 2026: Grappler, Orbit, Ball Tracker), measured with `--rev=g3` against liveBeforeG1(spec). */
   tuneg3?: number;
+  /** A 200-point expansion's revision (Oct 2026) and the one rooms dealt before it, measured with `--rev=x`. */
+  expand?: number;
+  expandFrom?: number;
   /** The seed a live room would store for the n-th sample. */
   seedFor: (n: number) => number;
   /** The game (sim + score) for a revision and stored seed. */
@@ -152,14 +155,14 @@ export const GAMES: GameSpec[] = [
   { ...simple("matchup", MATCHUP_REV, MATCHUP_REV_BAND, matchupGameFor, matchupCheckpoint, encodeMatchupRun, replayMatchupRun), tunec: MATCHUP_REV_WAIT, tunef: MATCHUP_REV_PAR },
   { ...simple("bubble", BUB_REV, BUB_REV_BAND, bubbleGameFor, bubCheckpoint, encodeBubbleRun, replayBubbleRun), tunef: BUB_REV_TORPEDO, tuneg2: BUB_REV_TALL },
   { ...simple("cross", CROSS_REV, CROSS_REV_BAND, crossGameFor, crossCheckpoint, encodeCrossRun, replayCrossRun), tunef: CROSS_REV_SMALL },
-  { ...simple("rally", RALLY_REV, RALLY_REV_BAND, rallyGameFor, rallyCheckpoint, encodeRallyRun, replayRallyRun), current: RALLY_REV_TUNED, tunef: RALLY_REV_TUNEF, tuneg: RALLY_REV_TALL },
+  { ...simple("rally", RALLY_REV, RALLY_REV_BAND, rallyGameFor, rallyCheckpoint, encodeRallyRun, replayRallyRun), current: RALLY_REV_TUNED, tunef: RALLY_REV_TUNEF, tuneg: RALLY_REV_TALL, expandFrom: RALLY_REV_STRICT, expand: RALLY_REV_DEEP },
   { ...simple("snake", SNAKE_REV, SNAKE_REV_BAND, snakeGameFor, snakeCheckpoint, encodeSnakeRun, replaySnakeRun), tunee: SNAKE_REV_TALL, tunef: SNAKE_REV_ROCKS },
   simple("bintoss", BINTOSS_REV3, BINTOSS_REV_BAND, binTossGameFor, binTossCheckpoint, encodeBinTossRun, replayBinTossRun),
   { ...simple("snip", SNIP_REV3, SNIP_REV_BAND, snipGameFor, snipCheckpoint, encodeSnipRun, replaySnipRun), tunee: SNIP_REV_TALL, bank: SNIP_REV_BANK6, tunef: SNIP_REV_PROVEN },
   { ...simple("hover", HOVER_REV, HOVER_REV_BAND, hoverGameFor, hoverCheckpoint, encodeHoverRun, replayHoverRun, true), tunec: HOVER_REV_TUNEC, tunee: HOVER_REV_TALL },
   { ...simple("skyline", SKYLINE_REV, SKYLINE_REV_BAND, skylineGameFor, skylineCheckpoint, encodeSkylineRun, replaySkylineRun, true), tunee: SKYLINE_REV_TALL },
   simple("junction", JUNC_REV, JUNC_REV_BAND, junctionGameFor, juncCheckpoint, encodeJunctionRun, replayJunctionRun),
-  { ...simple("breaker", BRK_REV, BRK_REV_BAND, breakerGameFor, brkCheckpoint, encodeBreakerRun, replayBreakerRun), current: BRK_REV_TUNED, tunef: BRK_REV_TUNEF, tuneg: BRK_REV_TALL },
+  { ...simple("breaker", BRK_REV, BRK_REV_BAND, breakerGameFor, brkCheckpoint, encodeBreakerRun, replayBreakerRun), current: BRK_REV_TUNED, tunef: BRK_REV_TUNEF, tuneg: BRK_REV_TALL, expandFrom: BRK_REV_STRICT, expand: BRK_REV_DEEP },
   { ...simple("tilt", TILT_REV, TILT_REV_BAND, tiltGameFor, tiltCheckpoint, encodeTiltRun, replayTiltRun), tunec: TILT_REV_TUNEC },
   {
     type: "orbit",

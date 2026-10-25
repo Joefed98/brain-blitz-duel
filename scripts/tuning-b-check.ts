@@ -76,7 +76,7 @@ import {
 } from "../src/lib/arcade/rally";
 import { generateBreaker, generateBullseye, generateRally } from "../src/lib/duel/arcade.server";
 import { BURST_INPUT_FIRE, BURST_INPUT_RANGES } from "../src/lib/arcade/burst";
-import { playRevOf } from "./scoring-targets-revs";
+import { beforeExpansion, playRevOf } from "./scoring-targets-revs";
 
 let checks = 0;
 const ok = (value: unknown, message: string) => {
@@ -221,7 +221,7 @@ section("Breaker brkRev 4 (3.5 s Fireball)");
 {
   // Tuning F (Oct 2026) moved rooms on to brkRev 5 (2.5 s Fireball); arcade-tuning-f-check covers it.
   // Taller worlds batch 1 (16 Oct 2026) moved rooms on to brkRev 6 (the taller court); arcade-tuning-g1-check covers it.
-  ok(playRevOf("breaker", generateBreaker().brkRev) === BRK_REV_TUNEF + 1, "new rounds are stamped brkRev 6 (brkRev 5 rules on the taller court)");
+  ok(playRevOf("breaker", beforeExpansion("breaker", generateBreaker().brkRev)) === BRK_REV_TUNEF + 1, "new rounds are stamped brkRev 6 (brkRev 5 rules on the taller court)");
   ok(BRK_FIRE_TICKS_V4 === 210 && BRK_FIRE_TICKS === 300, "Fireball 3.5 s (210 ticks), was 5 s");
   for (const [rev, want] of [[BRK_REV_TUNED, BRK_FIRE_TICKS_V4], [BRK_REV_BAND, BRK_FIRE_TICKS]] as const) {
     const game = breakerGameFor(rev);
@@ -238,7 +238,7 @@ section("Breaker brkRev 4 (3.5 s Fireball)");
 section("Rally rallyRev 4 (pads never overlap)");
 {
   // Tuning F (Oct 2026) moved rooms on to rallyRev 5 (a second bumper); arcade-tuning-f-check covers it.
-  ok(playRevOf("rally", generateRally().rallyRev) === RALLY_REV_TUNEF + 1, "new rounds are stamped rallyRev 6 (rallyRev 5 pads and bumpers on the taller court)");
+  ok(playRevOf("rally", beforeExpansion("rally", generateRally().rallyRev)) === RALLY_REV_TUNEF + 1, "new rounds are stamped rallyRev 6 (rallyRev 5 pads and bumpers on the taller court)");
   const half = Math.trunc(RALLY_WORLD_W / 2);
   const overlap = (s: RallyState) => {
     const [p, q] = (s.live ?? []).map((spot) => rallyTargetLeft(s.spots ?? [], spot));

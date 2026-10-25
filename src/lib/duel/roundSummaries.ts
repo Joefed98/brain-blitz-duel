@@ -990,8 +990,9 @@ const breakerSummary: SummaryBuilder = (result) => {
   return {
     summary: cleared
       ? `Cleared at ${ended.toFixed(1)}s`
-      : `${Number(result.extra?.["destroyed"] ?? 80 - left)} / 80 bricks · ${hits} hits · ${powerUps} power-up${powerUps === 1 ? "" : "s"}`,
-    detail: [`${Number(result.extra?.["losses"] ?? 0)} relaunches`],
+      : `${Number(result.extra?.["destroyed"] ?? 80 - left)} / ${Number(result.extra?.["wall"] ?? 80)} bricks · ${hits} hits · ${powerUps} power-up${powerUps === 1 ? "" : "s"}`,
+    // brkRev 9: the skill points too.
+    detail: [`${Number(result.extra?.["losses"] ?? 0)} relaunches`, ...(result.extra?.["wall"] !== undefined ? [`${Number(result.extra?.["goldBroken"] ?? 0)} gold · combo ${Number(result.extra?.["comboPts"] ?? 0)} · skill +${Number(result.extra?.["skill"] ?? 0)}`] : [])],
   };
 };
 
@@ -1023,7 +1024,8 @@ const rallySummary: SummaryBuilder = (result, puzzle) => {
     summary: survived
       ? `${gold} · ${hits} blue returns · survived`
       : `${gold} · ${hits} blue returns · lost at ${ended.toFixed(1)}s`,
-    detail: [survived ? "Kept the rally alive" : "Lost the ball"],
+    // rallyRev 9: the skill points too.
+    detail: [survived ? "Kept the rally alive" : "Lost the ball", ...(result.extra?.["deep"] !== undefined ? [`${Number(result.extra?.["milestones"] ?? 0)} milestones · ${Number(result.extra?.["spinHits"] ?? 0)} spin · skill +${Number(result.extra?.["skill"] ?? 0)}`] : [])],
   };
 };
 

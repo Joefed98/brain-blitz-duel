@@ -13,12 +13,12 @@ import { JUNC_REV_BAND } from "@/lib/arcade/junction";
 import { BINTOSS_REV_TARGET, BINTOSS_REV_STRICT } from "@/lib/arcade/binToss";
 import { SWING_REV_TALL, SWING_REV_TARGET, SWING_REV_STRICT } from "@/lib/arcade/swing";
 import { BURST_REV_TARGET, BURST_REV_STRICT } from "@/lib/arcade/burst";
-import { BRK_REV_TARGET, BRK_REV_STRICT } from "@/lib/arcade/breaker";
+import { BRK_REV_DEEP } from "@/lib/arcade/breaker";
 import { PIN_REV_TARGET, PIN_REV_STRICT } from "@/lib/arcade/pinball";
 import { WHACK_REV_BANDS } from "@/lib/arcade/whack";
 import { WAV_REV_TARGET, WAV_REV_STRICT } from "@/lib/arcade/wavefront";
 import { ORBIT_REV_TARGET, ORBIT_REV_STRICT } from "@/lib/arcade/orbit";
-import { RALLY_REV_TARGET, RALLY_REV_STRICT } from "@/lib/arcade/rally";
+import { RALLY_REV_DEEP } from "@/lib/arcade/rally";
 import { BEAT_REV_TARGET, BEAT_REV_STRICT } from "@/lib/arcade/beat";
 import { orbitHolesForBankSeed, orbitRev3BankEntryForSeed, orbitRev3PlanetsForSeed, encodeRev3Planets } from "./orbitRev3Course.server";
 import { proveSwingSeed } from "./swingProof.server";
@@ -113,7 +113,7 @@ export function generateRicochet(): RicoPuzzleData {
 }
 
 export function generateBreaker(): BreakerPuzzleData {
-  return { type: "breaker", seed: arcadeSeed(), brkRev: BRK_REV_STRICT };
+  return { type: "breaker", seed: arcadeSeed(), brkRev: BRK_REV_DEEP };
 }
 
 export function generatePinball(): PinballPuzzleData {
@@ -121,7 +121,7 @@ export function generatePinball(): PinballPuzzleData {
 }
 
 export function generateRally(): RallyPuzzleData {
-  return { type: "rally", seed: arcadeSeed(), rallyRev: RALLY_REV_STRICT };
+  return { type: "rally", seed: arcadeSeed(), rallyRev: RALLY_REV_DEEP };
 }
 
 export function generateSteady(): SteadyPuzzleData {

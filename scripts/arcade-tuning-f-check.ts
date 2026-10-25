@@ -80,7 +80,7 @@ import { ORBIT_HOLE_BANK } from "../src/lib/duel/orbitHoleBank.server";
 import { ORBIT_REV3_BANK } from "../src/lib/duel/orbitRev3Bank.server";
 import { generateBeat, generateBreaker, generateOrbit, generateRally, generateSnake } from "../src/lib/duel/arcade.server";
 import { PUZZLE_INSTRUCTIONS } from "../src/lib/duel/instructions";
-import { playRevOf } from "./scoring-targets-revs";
+import { beforeExpansion, playRevOf } from "./scoring-targets-revs";
 
 /** A flawless player for best-score proofs: quick, never lapses, no timing, aim or judgement error. */
 const PERFECT: SkillProfile = { reactionMs: [120, 0], lapse: 0, timingSdMs: 0, aimSdPx: 0, powerSd: 0, mistake: 0, thinkScale: 0.3, judgement: 0, trackLagMs: 30 };
@@ -155,8 +155,8 @@ section("New rounds carry the Tuning F stamps and score on the bands");
 {
   const stamps: [string, string, number | undefined, number, number][] = [
     // Taller worlds batch 1 (16 Oct 2026) moved Breaker and Rally on to their taller courts (brkRev 6, rallyRev 6); arcade-tuning-g1-check covers them.
-    ["breaker", "brkRev", playRevOf("breaker", generateBreaker().brkRev), BRK_REV_TUNEF + 1, 6],
-    ["rally", "rallyRev", playRevOf("rally", generateRally().rallyRev), RALLY_REV_TUNEF + 1, 6],
+    ["breaker", "brkRev", playRevOf("breaker", beforeExpansion("breaker", generateBreaker().brkRev)), BRK_REV_TUNEF + 1, 6],
+    ["rally", "rallyRev", playRevOf("rally", beforeExpansion("rally", generateRally().rallyRev)), RALLY_REV_TUNEF + 1, 6],
     // Taller worlds batch 2 (16 Oct 2026) moved Tempo on to its taller lanes (beatRev 6); arcade-tuning-g2-check covers it.
     ["beat", "beatRev", playRevOf("beat", generateBeat().beatRev), BEAT_REV_TUNEF + 1, 6],
     ["snake", "snakeRev", playRevOf("snake", generateSnake().snakeRev), SNAKE_REV_ROCKS, 6],
@@ -510,7 +510,7 @@ section("Intro and \"?\" help");
 {
   const help = (type: keyof typeof PUZZLE_INSTRUCTIONS) => JSON.stringify(PUZZLE_INSTRUCTIONS[type]);
   if (want("breaker")) ok(help("breaker").includes("2.5 seconds") && !help("breaker").includes("3.5 seconds"), "Breaker: the Fireball lasts 2.5 seconds");
-  if (want("rally")) ok(/second bumper/.test(help("rally")) && /45 s/.test(help("rally")) && PUZZLE_INSTRUCTIONS.rally.score.includes("150 at 220. A good run (100 points) counts 103") && /5 a paddle hit/.test(help("rally")) && /counts 6/.test(help("rally")) && !/\+3|scores 3/.test(help("rally")), "Rally: the second bumper from 45 s, the top and a good run new rooms score on (rallyRev 6) and one value each for a gold hit (5) and a pink pad (6)");
+  if (want("rally")) ok(/second bumper/.test(help("rally")) && /45 s/.test(help("rally")) && PUZZLE_INSTRUCTIONS.rally.score.includes("150 at 220. A good run (100 points) counts ") && /5 a (paddle )?hit/.test(help("rally")) && /counts 6/.test(help("rally")) && !/\+3|scores 3/.test(help("rally")), "Rally: the second bumper from 45 s, the top and a good run new rooms score on (rallyRev 6) and one value each for a gold hit (5) and a pink pad (6)");
   if (want("beat")) ok(PUZZLE_INSTRUCTIONS.beat.score.includes("A good run (100 points) reaches 868"), "Tempo: a good run on the curve rooms deal (beatRev 6 keeps beatRev 5's)");
   if (want("snake")) ok(/length 9/.test(help("snake")) && /every 4 stars, up to 11/.test(help("snake")) && /at most 14 rocks/.test(help("snake")) && PUZZLE_INSTRUCTIONS.snake.score.includes("150 at 33"), "Meteor: rocks from length 9, every 4 stars, up to 11 (14 with the shower), and the snakeRev 6 top");
   if (want("orbit")) ok(/Any black hole ahead/.test(help("orbit")) && /any part of the rocket/.test(help("orbit")), "Orbit: any black hole ahead swallows any part of the rocket");

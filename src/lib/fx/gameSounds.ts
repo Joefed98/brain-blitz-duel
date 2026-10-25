@@ -389,6 +389,11 @@ export function breakerSounds(): GameSounds<BrkState> {
         if (paddleHit) sfx("breaker.paddle", "arc_retro_blip", 0.8, 1, true);
         // A ball off a side wall or the ceiling: turned back with no brick hit and no paddle return.
         else if (state.hits === prev.hits && state.balls.length === prev.balls.length && state.balls.some((ball, i) => turnedBack(prev!.balls[i], ball))) effectCue("breaker.wallBounce");
+        // brkRev 9 (the expansion, existing sounds only): a gold brick broken chimes, a bounce off gold clinks,
+        // a combo stepping up to ×2 or ×3 rings the pickup a little higher.
+        if ((state.goldBroken ?? 0) > (prev.goldBroken ?? 0)) sfx("breaker.fireballLit", "arc_retro_coin", 0.9, 1.25);
+        else if ((state.clinks ?? 0) > (prev.clinks ?? 0)) effectCue("breaker.wallBounce", 0, 1.4);
+        if ((state.comboUps ?? 0) > (prev.comboUps ?? 0)) sfx("breaker.powerUp", "arc_retro_pickup", 0.7, 1.2);
       }
       prev = state;
     },
@@ -458,6 +463,10 @@ export function rallySounds(): GameSounds<RallyState> {
         const crossed = (at: number) => prev!.tick < at && state.tick >= at;
         if ((state.bumper && crossed(RALLY_BUMPER_FROM - 120)) || (state.bumper2 && crossed(RALLY_BUMPER2_FROM - 120))) effectCue("rally.bumperWarn");
         if ((state.bumper && crossed(RALLY_BUMPER_FROM)) || (state.bumper2 && crossed(RALLY_BUMPER2_FROM))) effectCue("rally.bumperIn");
+        // rallyRev 9 (the expansion, existing sounds only): the twin ball released, a twin return, a spin target.
+        if ((state.multiUsed ?? 0) > (prev.multiUsed ?? 0)) effectCue("rally.bumperIn");
+        if ((state.twinHits ?? 0) > (prev.twinHits ?? 0)) sfx("rally.hit", "arc_retro_blip", 0.8, 1.3);
+        if ((state.spinHits ?? 0) > (prev.spinHits ?? 0)) sfx("rally.goldHit", "arc_retro_note", 0.9, 1.5);
       }
       prev = state;
     },

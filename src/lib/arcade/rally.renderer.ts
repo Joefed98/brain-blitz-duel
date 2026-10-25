@@ -1,4 +1,5 @@
 import { reducedMotion } from "./art.renderer";
+import { arcadeReducedEffects } from "@/lib/fx/lowEnd";
 import { arcadeFx, drawFxGlow } from "./arcadeFx.renderer";
 import { rallyFxFor } from "./arcadeFxGames.renderer";
 import { artCanvas, artContext, type ArtCanvas } from "./cache.renderer";
@@ -22,6 +23,14 @@ import {
   RALLY_TARGET_W,
   RALLY_WALL,
   RALLY_WORLD_W,
+  RALLY_V9_MULTI_W,
+  RALLY_V9_SKILL_MAX,
+  RALLY_V9_TWIN_TICKS,
+  rallyDeepPadLeft,
+  rallyDoubleOn,
+  rallySkillPoints,
+  rallyWorldW,
+  type RallyBall,
   type RallyState,
 } from "./rally";
 import { px, type ArcadeGame, type ArcadeInputEvent, type CanvasSize } from "./engine";
@@ -55,12 +64,13 @@ const PAD = "#FF6FD8";
 const BUMPER = "#B49CFF";
 
 function draw(ctx: CanvasRenderingContext2D, state: RallyState, size: CanvasSize): void {
-  retroScreen(ctx, size, RALLY_WORLD_W, rallyWorldH(state), "stretch", (c) => arcadeFx(c, rallyFxFor(state), state, () => drawWorld(c, state, ctx)));
+  retroScreen(ctx, size, rallyWorldW(state), rallyWorldH(state), "stretch", (c) => arcadeFx(c, rallyFxFor(state), state, () => drawWorld(c, state, ctx)));
 }
 function drawReveal(ctx: CanvasRenderingContext2D, state: RallyState, size: CanvasSize): void {
-  retroScreen(ctx, size, RALLY_WORLD_W, rallyWorldH(state), "stretch", (c) => arcadeFx(c, rallyFxFor(state), state, () => drawWorld(c, state, ctx, false)));
+  retroScreen(ctx, size, rallyWorldW(state), rallyWorldH(state), "stretch", (c) => arcadeFx(c, rallyFxFor(state), state, () => drawWorld(c, state, ctx, false)));
 }
 
+const TWIN = "#3DFFE0";
 /**
  * The arena floor and markings, drawn once per canvas size into a cached layer:
  * a checkered pixel floor, a neon grid, the centre line and circle, service
@@ -68,12 +78,12 @@ function drawReveal(ctx: CanvasRenderingContext2D, state: RallyState, size: Canv
  * here is something a ball can hit.
  */
 const courts = new WeakMap<CanvasRenderingContext2D, { key: string; layer: ArtCanvas }>();
-function courtLayer(ctx: CanvasRenderingContext2D, RALLY_WORLD_H: number): ArtCanvas | null {
+function courtLayer(ctx: CanvasRenderingContext2D, RALLY_WORLD_H: number, RALLY_WORLD_W = 390): ArtCanvas | null {
   const t = ctx.getTransform();
   const sx = Math.max(1, Math.abs(t.a));
   const sy = Math.max(1, Math.abs(t.d));
   // rallyRev 6: the court's height is part of the key (the taller court has its own layer).
-  const key = `${sx.toFixed(3)}x${sy.toFixed(3)}:${RALLY_WORLD_H}`;
+  const key = `${sx.toFixed(3)}x${sy.toFixed(3)}:${RALLY_WORLD_W}x${RALLY_WORLD_H}`;
   const RALLY_PADDLE_Y = rallyPaddleY({ worldH: RALLY_WORLD_H });
   const old = courts.get(ctx);
   if (old && old.key === key) return old.layer;
@@ -138,7 +148,7 @@ function courtLayer(ctx: CanvasRenderingContext2D, RALLY_WORLD_H: number): ArtCa
 }
 
 /** Side walls as neon tubes with running lights (presentation clock; still under reduced motion). */
-function drawWalls(ctx: CanvasRenderingContext2D, colour: string, _bloom: number, RALLY_WORLD_H: number): void {
+function drawWalls(ctx: CanvasRenderingContext2D, colour: string, _bloom: number, RALLY_WORLD_H: number, RALLY_WORLD_W = 390, deep = false): void {
   const top = RALLY_HUD_H + RALLY_WALL;
   // The walls are real (the ball bounces off them): soft edges, not neon tubes round the court
   // (17 Oct 2026, display only); they still turn gold on a milestone.
@@ -152,9 +162,11 @@ function drawWalls(ctx: CanvasRenderingContext2D, colour: string, _bloom: number
   pixelRect(ctx, 0, RALLY_HUD_H, RALLY_WORLD_W, RALLY_WALL - 2, COURT_DIM);
   const t = retroClock();
   const run = t === 0 ? -1 : Math.floor(t / 90) % 24;
-  for (let i = 0; i < 24; i++) {
+  // rallyRev 9: lights the whole of its longer walls, and every other one lit through a milestone flash.
+  const lights = deep ? Math.ceil((RALLY_WORLD_H - top) / 24) : 24;
+  for (let i = 0; i < lights; i++) {
     const y = top + 10 + i * 24;
-    const lit = i === run || i === (run + 12) % 24;
+    const lit = i === run || i === (run + 12) % 24 || (deep && colour === GOLD && i % 2 === 0);
     if (lit) {
       // Polish A1: the running lights glow as they pass.
       glow(ctx, GOLD, 3, y + 2, 8, 10, 0.7);
@@ -166,13 +178,13 @@ function drawWalls(ctx: CanvasRenderingContext2D, colour: string, _bloom: number
 }
 
 /** Rev 2: a target pad set into the far wall; the ball scores it by touching the wall within its span. */
-function drawPad(ctx: CanvasRenderingContext2D, left: number, bloom: number, blink: boolean): void {
+function drawPad(ctx: CanvasRenderingContext2D, left: number, bloom: number, blink: boolean, label = `+${RALLY_TARGET_POINTS}`): void {
   const top = RALLY_HUD_H + RALLY_WALL;
   // Polish A1: a soft magenta light under the pad.
   glow(ctx, PAD, left + RALLY_TARGET_W / 2, top - 2, RALLY_TARGET_W * 0.8, 14, 0.55);
   pixelRect(ctx, left, top - 6, RALLY_TARGET_W, 6, blink ? RETRO_WHITE : PAD, bloom);
   pixelRect(ctx, left + 4, top - 4, RALLY_TARGET_W - 8, 2, "#5A1050");
-  retroText(ctx, `+${RALLY_TARGET_POINTS}`, left + RALLY_TARGET_W / 2, top + 4, 8, PAD, "center");
+  retroText(ctx, label, left + RALLY_TARGET_W / 2, top + 4, 8, PAD, "center");
 }
 
 /** Rev 2: the round bumper post, drawn exactly as its bounce circle. */
@@ -200,15 +212,21 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: RallyState, key: Canvas
   // rallyRev 6: the taller court's height and paddle line (the original 620 / 560 otherwise).
   const RALLY_WORLD_H = rallyWorldH(state);
   const RALLY_PADDLE_Y = rallyPaddleY(state);
+  // rallyRev 9: the wider court (390 otherwise).
+  const RALLY_WORLD_W = rallyWorldW(state);
+  const deep = !!state.deep;
   const reward=successFrame(ctx,{id:'rally',tick:state.tick,count:rallyTotalHits(state),every:10,colour:GOLD,width:RALLY_WORLD_W,height:RALLY_WORLD_H,point:{x:px(state.x),y:RALLY_PADDLE_Y-4,shape:'spark'},hud:{x:14,y:26,text:`RALLY ${state.hits}`}});
   const heat=reward.chain>=20?SUCCESS_ACCENTS.orange:reward.chain>=10?GOLD:RETRO_WHITE;
   const bloom = retroBloom();
-  const layer = courtLayer(ctx, RALLY_WORLD_H);
+  const layer = courtLayer(ctx, RALLY_WORLD_H, RALLY_WORLD_W);
   if (layer) ctx.drawImage(layer as CanvasImageSource, 0, 0, RALLY_WORLD_W, RALLY_WORLD_H);
-  drawWalls(ctx, !reducedMotion() && reward.milestoneAge < 30 ? GOLD : COURT, bloom, RALLY_WORLD_H);
+  // rallyRev 9: the court lights flash gold on a milestone (every 10 returns in a row), not every tenth return.
+  const flashWalls = deep ? retroEventAge(key, "rally-milestone", false) < 700 : reward.milestoneAge < 30;
+  drawWalls(ctx, !reducedMotion() && flashWalls ? GOLD : COURT, bloom, RALLY_WORLD_H, RALLY_WORLD_W, deep);
 
+  if (deep) drawDeepWall(ctx, state, bloom);
+  else if (state.rev === RALLY_REV) for (const spot of state.live ?? []) drawPad(ctx, rallyTargetLeft(state.spots ?? [], spot), bloom, false);
   if (state.rev === RALLY_REV) {
-    for (const spot of state.live ?? []) drawPad(ctx, rallyTargetLeft(state.spots ?? [], spot), bloom, false);
     // The pad that was just struck flashes where it was, under a fading pink light.
     if ((state.struckTick ?? 0) > 0 && state.tick - (state.struckTick ?? 0) < 18 && !reducedMotion()) {
       const left = state.struckLeft ?? 0;
@@ -250,7 +268,9 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: RallyState, key: Canvas
     drawRetroTrail(ctx, retroTrail(key, state.tick, `g${i}`, x, y, 6), RALLY_BALL_R, GOLD);
     glow(ctx, GOLD, x, y, RALLY_BALL_R + 9, RALLY_BALL_R + 9, 0.6);
     retroBall(ctx, x, y, RALLY_BALL_R, GOLD, GOLD);
+    if (deep && ball.spun) drawSpin(ctx, x, y, ball.spin ?? 0, state.tick, RETRO_WHITE);
   });
+  if (deep && state.twin) drawTwin(ctx, state.twin, state, key);
 
   const bx = px(state.x);
   const by = px(state.y);
@@ -259,6 +279,7 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: RallyState, key: Canvas
     glow(ctx, heat, bx, by, RALLY_BALL_R + 8, RALLY_BALL_R + 8, 0.45);
   }
   retroBall(ctx, bx, by, RALLY_BALL_R, state.dead && crashIndicator ? "#FF3B5C" : heat);
+  if (deep && state.spun && !state.dead) drawSpin(ctx, bx, by, state.spin ?? 0, state.tick, GOLD);
   // Polish A1: "RALLY ×n" above the paddle on each return from the second (the shared layer already
   // calls every tenth), on the presentation clock; a rewind clears it.
   if (crashIndicator) {
@@ -268,9 +289,13 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: RallyState, key: Canvas
   }
 
   successHud(ctx,'rally',state.tick,14,26,()=>{retroReadout(ctx, 14, 8, `RALLY ${state.hits}`, RETRO_WHITE);});
+  if (deep) drawDeepHud(ctx, state);
   // rallyRev 3+ (band-stamped, `band`) score on the band curve, so the HUD shows the counts only (17 Oct
   // 2026, display only); unstamped and rallyRev 2 rounds keep their points readout in replays.
-  if ((state as RallyState & BandFields).band) {
+  if (deep) {
+    // rallyRev 9: the counts and the skill points stacked on the right, clear of the RALLY readout.
+    retroText(ctx, `GOLD ${state.goldHits} · PADS ${state.targetHits ?? 0}`, RALLY_WORLD_W - 14, 9, 12, GOLD, "right");
+  } else if ((state as RallyState & BandFields).band) {
     retroText(ctx, `GOLD ${state.goldHits} · PADS ${state.targetHits ?? 0}`, RALLY_WORLD_W - 14, 21, 13, GOLD, "right");
   } else {
     const points = state.rev === RALLY_REV
@@ -283,6 +308,77 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: RallyState, key: Canvas
     ctx.fillStyle = "rgba(255,59,92,0.2)";
     ctx.fillRect(0, 0, RALLY_WORLD_W, RALLY_WORLD_H);
   }
+}
+
+/** rallyRev 9: the gliding pink pads (a faint rail shows each one's half), the multi-ball pad and its warning. */
+function drawDeepWall(ctx: CanvasRenderingContext2D, state: RallyState, bloom: number): void {
+  const top = RALLY_HUD_H + RALLY_WALL;
+  for (let k = 0; k < (state.live ?? []).length; k++) {
+    const left = rallyDeepPadLeft(state, k, state.tick);
+    const before = rallyDeepPadLeft(state, k, Math.max(0, state.tick - 6));
+    const lo = k % 2 === 0 ? RALLY_WALL : Math.trunc(rallyWorldW(state) / 2) + 4;
+    pixelRect(ctx, lo, top + 12, Math.trunc(rallyWorldW(state) / 2) - RALLY_WALL - 4, 2, "rgba(255,111,216,0.12)");
+    // rallyRev 9: a pad counts 6 units (the band help's figure).
+    drawPad(ctx, left, bloom, false, "+6");
+    // Which way it glides: two small chevrons trailing it.
+    if (left !== before && !reducedMotion() && !arcadeReducedEffects()) {
+      const dir = left > before ? 1 : -1;
+      const x = dir > 0 ? left - 6 : left + RALLY_TARGET_W + 4;
+      for (const off of [0, 5]) pixelRect(ctx, x - dir * off, top - 4, 2, 2, "rgba(255,111,216,0.6)");
+    }
+  }
+  const at = state.multiAt ?? 0;
+  if (at <= 0 || state.twin) return;
+  const left = (state.mspots ?? [])[(state.multiSpot ?? 0) % 12] ?? RALLY_WALL + 40;
+  const until = at - state.tick;
+  if (until > 60) return;
+  // A second's warning (blinking), then the pad is live.
+  if (until > 0 && !reducedMotion() && Math.floor(until / 8) % 2 === 1) return;
+  const live = until <= 0;
+  glow(ctx, TWIN, left + RALLY_V9_MULTI_W / 2, top - 2, RALLY_V9_MULTI_W * 0.9, 16, live ? 0.6 : 0.25);
+  pixelRect(ctx, left, top - 6, RALLY_V9_MULTI_W, 6, live ? TWIN : `${TWIN}66`, bloom);
+  pixelRect(ctx, left + 4, top - 4, RALLY_V9_MULTI_W - 8, 2, "#0E4A44");
+  retroText(ctx, "×2 BALL", left + RALLY_V9_MULTI_W / 2, top + 4, 8, TWIN, "center");
+}
+
+/** rallyRev 9: the twin ball (teal, with a ring that empties over its ten seconds). */
+function drawTwin(ctx: CanvasRenderingContext2D, twin: RallyBall, state: RallyState, key: CanvasRenderingContext2D): void {
+  const x = px(twin.x);
+  const y = px(twin.y);
+  drawRetroTrail(ctx, retroTrail(key, state.tick, "twin", x, y, 6), RALLY_BALL_R, TWIN);
+  glow(ctx, TWIN, x, y, RALLY_BALL_R + 9, RALLY_BALL_R + 9, 0.55);
+  retroBall(ctx, x, y, RALLY_BALL_R, TWIN, TWIN);
+  const left = (state.twinLeft ?? 0) / RALLY_V9_TWIN_TICKS;
+  ctx.save();
+  ctx.strokeStyle = TWIN;
+  ctx.globalAlpha = 0.7;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.arc(x, y, RALLY_BALL_R + 4, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * left);
+  ctx.stroke();
+  ctx.restore();
+}
+
+/** rallyRev 9: a spun ball's curl: two small dots circling it the way it bends (presentation only). */
+function drawSpin(ctx: CanvasRenderingContext2D, x: number, y: number, spin: number, tick: number, colour: string): void {
+  const turn = reducedMotion() || arcadeReducedEffects() ? 0 : (tick / 6) * (spin >= 0 ? 1 : -1);
+  for (let i = 0; i < 2; i++) {
+    const a = turn + i * Math.PI;
+    pixelRect(ctx, Math.round(x + Math.cos(a) * (RALLY_BALL_R + 3)) - 1, Math.round(y + Math.sin(a) * (RALLY_BALL_R + 3)) - 1, 2, 2, colour);
+  }
+}
+
+/** rallyRev 9's HUD: the skill points (top right, under the counts), the streak towards the next milestone, and the double badge. */
+function drawDeepHud(ctx: CanvasRenderingContext2D, state: RallyState): void {
+  const W = rallyWorldW(state);
+  const skill = rallySkillPoints(state);
+  retroText(ctx, `SKILL ${skill}/${RALLY_V9_SKILL_MAX}`, W - 14, 27, 11, skill >= RALLY_V9_SKILL_MAX ? RETRO_WHITE : TWIN, "right");
+  const y = rallyPaddleY(state) + RALLY_PADDLE_H + 24;
+  const streak = state.streak ?? 0;
+  // Ten pips: returns in a row towards the next milestone.
+  const into = streak % 10;
+  for (let i = 0; i < 10; i++) pixelRect(ctx, W / 2 - 50 + i * 10, y, 6, 4, i < into ? GOLD : "rgba(255,216,74,0.18)");
+  if (rallyDoubleOn(state)) retroText(ctx, "RETURNS ×2", W / 2, y + 8, 9, TWIN, "center");
 }
 
 /** A soft additive light from the shared glow sprite; drawing only. */
@@ -298,6 +394,7 @@ function lightUp(ctx: CanvasRenderingContext2D, x: number, y: number, colour: st
 /** Marks bumper bounces and paddle hits on the presentation clock so they flash (render memory only). */
 const lastBounces = new WeakMap<CanvasRenderingContext2D, number>();
 const lastHits = new WeakMap<CanvasRenderingContext2D, { tick: number; hits: number }>();
+const lastMilestones = new WeakMap<CanvasRenderingContext2D, { tick: number; n: number }>();
 function drawTracked(ctx: CanvasRenderingContext2D, state: RallyState, size: CanvasSize): void {
   const before = lastBounces.get(ctx) ?? state.bounces ?? 0;
   lastBounces.set(ctx, state.bounces ?? 0);
@@ -307,6 +404,10 @@ function drawTracked(ctx: CanvasRenderingContext2D, state: RallyState, size: Can
   // A rewind (new run or replay) or the first frame never fires.
   lastHits.set(ctx, { tick: state.tick, hits });
   retroEventAge(ctx, "rally-hit", !!seen && state.tick > seen.tick && hits > seen.hits);
+  // rallyRev 9: a milestone flashes the court lights.
+  const ms = lastMilestones.get(ctx);
+  lastMilestones.set(ctx, { tick: state.tick, n: state.milestones ?? 0 });
+  retroEventAge(ctx, "rally-milestone", !!ms && state.tick > ms.tick && (state.milestones ?? 0) > ms.n);
   draw(ctx, state, size);
 }
 

@@ -41,8 +41,10 @@ import { decodeSwerveRun, replaySwerveRun } from "./swerve";
 import { decodeSkylineRun, replaySkylineRun } from "./skyline";
 import { decodeSnakeRun, replaySnakeRun } from "./snake";
 import { decodeBreakerRun, replayBreakerRun } from "./breaker";
+import { brkSkillPoints, brkWallSize } from "@/lib/arcade/breaker";
 import { decodePinballRun, replayPinballRun } from "./pinball";
 import { decodeRallyRun, replayRallyRun } from "./rally";
+import { rallySkillPoints } from "@/lib/arcade/rally";
 import { decodeSteadyRun, replaySteadyRun } from "./steady";
 import { decodeSliceRun, replaySliceRun } from "./slice";
 import { decodeBubbleRun, replayBubbleRun } from "./bubble";
@@ -1236,6 +1238,8 @@ function gradeUnderRev(
         losses: run.losses,
         powerUps: run.powerUps,
         ...(puzzle.brkRev ? { brkRev: puzzle.brkRev, fireballs: run.fireballs } : {}),
+        // brkRev 9 (the expansion): its wall size and skill points, for the reveal.
+        ...(run.state.deep ? { wall: brkWallSize(run.state), goldBroken: run.state.goldBroken ?? 0, comboPts: run.state.comboPts ?? 0, bestChain: run.state.bestChain ?? 0, skill: brkSkillPoints(run.state) } : {}),
         cleared: run.cleared,
         endedSeconds: run.endedSeconds,
         flagged: run.flagged,
@@ -1296,6 +1300,8 @@ function gradeUnderRev(
         goldHits: run.goldHits,
         targetHits: run.targetHits,
         rallyRev: run.rallyRev,
+        // rallyRev 9 (the expansion): the stored stamp and the skill points, for the reveal.
+        ...(run.state.deep ? { deep: puzzle.rallyRev ?? 0, milestones: run.state.milestones ?? 0, spinHits: run.state.spinHits ?? 0, dblPts: run.state.dblPts ?? 0, twinHits: run.state.twinHits ?? 0, bestStreak: run.state.bestStreak ?? 0, skill: rallySkillPoints(run.state) } : {}),
         paddleWidth: run.paddleWidth,
         survived: run.survived,
         endedSeconds: run.endedSeconds,

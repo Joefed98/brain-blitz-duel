@@ -38,6 +38,13 @@ import {
   brkDestroyed,
   brkWorldH,
   brkRowOffset,
+  brkCols,
+  brkComboMultiplier,
+  brkIsGold,
+  brkRowsOf,
+  brkWorldW,
+  BRK_V9_H,
+  BRK_V9_W,
   type BrkState,
 } from "./breaker";
 
@@ -48,7 +55,7 @@ function brkSlideDestroyed(s: BrkState): number {
   return n;
 }
 import { PINBALL_IN_ROOMS, PIN_BUMPERS, PIN_LANE_POSTS, PIN_LANE_SENSOR_Y, PIN_LEFT_WALL, PIN_ORBIT_INNER, PIN_SPINNER_Y, PIN_TARGET_XS, PIN_TARGET_Y, PIN_WORLD_H, PIN_WORLD_W, type PinState } from "./pinball";
-import { rallyPaddleY, rallyWorldH, RALLY_SPEED_CAP, RALLY_SPEED_START, RALLY_TALL_H, RALLY_WORLD_H, RALLY_WORLD_W, type RallyState } from "./rally";
+import { RALLY_V9_H, RALLY_V9_MILESTONE_PTS, RALLY_V9_SPIN_PTS, RALLY_V9_W, rallyPaddleY, rallyWorldH, RALLY_SPEED_CAP, RALLY_SPEED_START, RALLY_TALL_H, RALLY_WORLD_H, RALLY_WORLD_W, type RallyState } from "./rally";
 import { BEAT_TALL_H, BEAT_WORLD_H, BEAT_WORLD_W, beatHitLineY, beatLaneX, beatWorldH, type BeatState } from "./beat";
 import {
   SNAKE_BOARD_X,
@@ -1287,10 +1294,101 @@ export const snipFxFor = (s: SnipState): ArcadeFxSpec<SnipState> => fxSpecAt(SNI
 export const SNIP_FX_TALL = fxSpecAt(SNIP_FX, SNIP_TALL_H);
 export const SKYLINE_FX_TALL = fxSpecAt(SKYLINE_FX, SKYLINE_TALL_H);
 /** Taller worlds batch 1 (Oct 2026): Breaker brkRev 6, Rally rallyRev 6, Wavefront wavRev 6, Fission burstRev 4. */
-export const breakerFxFor = (s: BrkState): ArcadeFxSpec<BrkState> => fxSpecAt(BREAKER_FX, brkWorldH(s));
 export const BREAKER_FX_TALL = fxSpecAt(BREAKER_FX, BRK_TALL_H);
-export const rallyFxFor = (s: RallyState): ArcadeFxSpec<RallyState> => fxSpecAt(RALLY_FX, rallyWorldH(s));
 export const RALLY_FX_TALL = fxSpecAt(RALLY_FX, RALLY_TALL_H);
+
+/* Expansion E3 (25 Oct 2026, docs/expansions/e3.md): brkRev 9 and rallyRev 9's 420 × 784 courts. */
+const E3_GOLD = "#FFD84A";
+const E3_TWIN = "#3DFFE0";
+function deepRows(s: BrkState): number[][] {
+  const cols = brkCols(s);
+  return Array.from({ length: brkRowsOf(s) }, (_, r) => Array.from({ length: cols }, (_, c) => r * cols + c));
+}
+const deepRowClear = (s: BrkState, row: number[]) => row.every((i) => (s.bricks[i] ?? 0) <= 0 || brkIsGold(s, i));
+/** brkRev 9: the wider court, its 9 × 12 wall's rows and sliding rows, and the gold and combo moments. */
+export const BREAKER_FX_DEEP: ArcadeFxSpec<BrkState> = {
+  ...BREAKER_FX,
+  width: BRK_V9_W,
+  height: BRK_V9_H,
+  events: [
+    ...BREAKER_FX.events.map((e) => {
+      if (e.kind === "clear")
+        return {
+          ...e,
+          count: (s: BrkState) => deepRows(s).filter((row) => deepRowClear(s, row)).length,
+          at: (s: BrkState) => {
+            const rows = deepRows(s);
+            for (let r = rows.length - 1; r >= 0; r--) if (deepRowClear(s, rows[r]!)) return { x: brkWorldW(s) / 2, y: BRK_WALL_Y + r * BRK_ROW_PITCH + BRK_BRICK_H / 2 };
+            return { x: brkWorldW(s) / 2, y: BRK_WALL_Y };
+          },
+        };
+      if (e.count === brkSlideDestroyed)
+        return {
+          ...e,
+          count: (s: BrkState) => (s.slide ?? []).reduce((n, row) => n + (deepRows(s)[row] ?? []).filter((i) => (s.bricks[i] ?? 0) <= 0).length, 0),
+          at: (s: BrkState) => ({ x: brkWorldW(s) / 2 + brkRowOffset(s, (s.slide ?? [])[0] ?? 0, s.tick), y: BRK_WALL_Y + ((s.slide ?? [])[0] ?? 0) * BRK_ROW_PITCH + BRK_BRICK_H / 2 }),
+        };
+      return e;
+    }),
+    {
+      kind: "perfect",
+      count: (s) => s.goldBroken ?? 0,
+      at: (s) => ({ x: s.paddleX, y: brkWorldH(s) - 110 }),
+      label: () => "GOLD BRICK!",
+      ...BREAKER_TEXT,
+      colour: () => E3_GOLD,
+      bulbs: { pattern: "chase", colours: [E3_GOLD, "#FFF3B0", "#B8860B"] },
+    },
+    {
+      kind: "pop",
+      count: (s) => s.comboUps ?? 0,
+      at: (s) => ({ x: s.paddleX, y: brkWorldH(s) - 130 }),
+      label: (s) => `COMBO ×${brkComboMultiplier(s.chain ?? 0)}`,
+      ...BREAKER_TEXT,
+      colour: () => E3_GOLD,
+    },
+  ],
+};
+/**
+ * rallyRev 9: the wider court; a milestone (every 10 returns in a row) takes the place of the every-tenth-return
+ * banner and flashes the court lights strongly; spin targets and the twin ball get theirs.
+ */
+export const RALLY_FX_DEEP: ArcadeFxSpec<RallyState> = {
+  ...RALLY_FX,
+  width: RALLY_V9_W,
+  height: RALLY_V9_H,
+  events: [
+    ...RALLY_FX.events.filter((e) => !(e.kind === "streak" && e.every === 10)),
+    {
+      kind: "streak",
+      count: (s) => s.milestones ?? 0,
+      at: (s) => ({ x: s.paddleX, y: rallyPaddleY(s) - 30 }),
+      label: (s) => `${Math.trunc((s.streak ?? 0) / 10) * 10} IN A ROW +${RALLY_V9_MILESTONE_PTS}`,
+      textOnly: true,
+      bulbs: { pattern: "flash", colours: [E3_GOLD, "#FFF3B0", E3_GOLD], heat: rallyHeat, strong: true },
+    },
+    {
+      kind: "perfect",
+      count: (s) => s.spinHits ?? 0,
+      at: (s) => ({ x: (s.struckLeft ?? RALLY_V9_W / 2) + 22, y: 92 }),
+      label: () => `SPIN +${RALLY_V9_SPIN_PTS}`,
+      textOnly: true,
+      colour: () => "#FFFFFF",
+    },
+    {
+      kind: "pop",
+      count: (s) => s.multiUsed ?? 0,
+      at: (s) => ({ x: s.twin ? px(s.twin.x) : RALLY_V9_W / 2, y: 96 }),
+      label: () => "MULTI-BALL!",
+      textOnly: true,
+      colour: () => E3_TWIN,
+      bulbs: { pattern: "chase", colours: [E3_TWIN, "#FFFFFF", E3_TWIN] },
+    },
+  ],
+};
+/** The spec a stored round draws with: the expansion's own, else the stored height's. */
+export const breakerFxFor = (s: BrkState): ArcadeFxSpec<BrkState> => (s.deep ? BREAKER_FX_DEEP : fxSpecAt(BREAKER_FX, brkWorldH(s)));
+export const rallyFxFor = (s: RallyState): ArcadeFxSpec<RallyState> => (s.deep ? RALLY_FX_DEEP : fxSpecAt(RALLY_FX, rallyWorldH(s)));
 export const wavefrontFxFor = (s: WavState): ArcadeFxSpec<WavState> => fxSpecAt(WAVEFRONT_FX, wavWorldH(s));
 export const WAVEFRONT_FX_TALL = fxSpecAt(WAVEFRONT_FX, WAV_TALL_H);
 export const burstFxFor = (s: BurstState): ArcadeFxSpec<BurstState> => fxSpecAt(BURST_FX, burstFloorY(s));
@@ -1351,8 +1449,8 @@ export const PINBALL_FX: ArcadeFxSpec<PinState> = {
 
 export const ARCADE_FX_SPECS = {
   hover: HOVER_FX_TALL,
-  breaker: BREAKER_FX_TALL,
-  rally: RALLY_FX_TALL,
+  breaker: BREAKER_FX_DEEP,
+  rally: RALLY_FX_DEEP,
   beat: BEAT_FX_TALL,
   snake: SNAKE_FX_TALL,
   burst: BURST_FX_TALL,

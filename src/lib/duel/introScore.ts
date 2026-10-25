@@ -2,7 +2,6 @@ import { CLASH_QUEUE } from "@/lib/arcade/colourClash";
 import { BULLSEYE_INNER_BULL_POINTS, BULLSEYE_RING_VALUES } from "@/lib/arcade/bullseye";
 import { BT_BALLS } from "@/lib/arcade/ballTrack";
 import { BINTOSS_THROWS } from "@/lib/arcade/binToss";
-import { BRK_BRICKS } from "@/lib/arcade/breaker";
 import { INK_LEVELS } from "@/lib/arcade/inkBridge";
 import { SNIP_CONFIG } from "@/lib/arcade/snip";
 import { SWING_FINISH_M } from "@/lib/arcade/swing";
@@ -95,8 +94,8 @@ function introScoreTemplates(): Record<PuzzleType, string> {
     matchup: "Match lines of three or more; longer lines score far more. Up to {max}.",
     snake: "Points for each star you eat. Up to {max}.",
     cross: "Points for each lane crossed, more for each full crossing. Up to {max}.",
-    breaker: `Points for each brick. Clear all ${BRK_BRICKS} quickly for up to {max}.`,
-    rally: "Points for each gold-ball hit and pink target. Blue scores nothing. Up to {max}.",
+    breaker: "Bricks score; gold and combos add up to 50. Clear all 105 quickly for up to {max}.",
+    rally: "Gold hits and pink targets score; twin balls, spin and streaks add up to 50. Up to {max}.",
     pinball: "Table points from bumpers, targets, the spinner and lit lanes. Up to {max}.",
     bubble: "Points for each bubble cleared. Clear the whole field quickly for up to {max}.",
     slice: "Points for each food sliced; cut several at once for more. Chilli: lose 10. Up to {max}.",

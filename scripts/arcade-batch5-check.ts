@@ -88,7 +88,8 @@ import { encodeOrbitRun, replayOrbitRun } from "../src/lib/duel/orbit";
 import { clearSpot, holeDelays, holeFork, HOLE_WINDOW_MAX, HOLE_WINDOW_MIN } from "./orbit-hole-lib";
 import { INTRO_SCORE } from "../src/lib/duel/introScore";
 import { PUZZLE_INSTRUCTIONS } from "../src/lib/duel/instructions";
-import { playRevOf } from "./scoring-targets-revs";
+import { roundMaxFor } from "../src/lib/duel/roundMax";
+import { beforeExpansion, playRevOf } from "./scoring-targets-revs";
 
 let checks = 0;
 const ok = (value: unknown, message: string) => {
@@ -233,7 +234,7 @@ if (want("bullseye")) {
 if (want("rally")) {
   section("Rally rallyRev 2 (far-wall targets, bumper from 30 s)");
   const game = rallyGameFor(RALLY_REV);
-  ok(playRevOf("rally", generateRally().rallyRev) === RALLY_REV_TUNEF + 1 && RALLY_REV_TUNED === 4 && RALLY_REV_BAND === 3, "new rounds are stamped rallyRev 6 (the taller court, arcade-tuning-g1-check; rallyRev 5 = Tuning F second bumper, arcade-tuning-f-check; rallyRev 4 = Tuning B pads in their own halves; rallyRev 3 = rev 2 play on the score bands)");
+  ok(playRevOf("rally", beforeExpansion("rally", generateRally().rallyRev)) === RALLY_REV_TUNEF + 1 && RALLY_REV_TUNED === 4 && RALLY_REV_BAND === 3, "new rounds are stamped rallyRev 6 (the taller court, arcade-tuning-g1-check; rallyRev 5 = Tuning F second bumper, arcade-tuning-f-check; rallyRev 4 = Tuning B pads in their own halves; rallyRev 3 = rev 2 play on the score bands)");
   ok(rallyGameFor(undefined) === rallyGame && rallyGame.init(5).spots === undefined, "unstamped rounds keep the original game");
   for (const seed of SEEDS(200, 7919)) {
     const a = game.init(seed);
@@ -269,7 +270,8 @@ if (want("rally")) {
   console.log(`  ${runs} tracking-bot runs: ${reached} reach 150; ${targets} targets struck, ${bounces} bumper bounces`);
   ok(reached > 0, "150 is reachable on rev 2 through the server replay");
   ok(targets > 0 && bounces > 0, "targets and the bumper come into play");
-  ok(/up to 150/i.test(INTRO_SCORE.rally) && INTRO_SCORE.rally.includes("pink target"), "Rally intro states gold hits, targets and the 150 cap (score bands)");
+  // rallyRev 9 (expansion E3): the top is the game's maximum, 200.
+  ok(new RegExp(`up to ${roundMaxFor("rally")}`, "i").test(INTRO_SCORE.rally) && INTRO_SCORE.rally.includes("pink target"), "Rally intro states gold hits, targets and its maximum (score bands)");
 }
 
 /* ================================ 2d. Tempo ================================ */

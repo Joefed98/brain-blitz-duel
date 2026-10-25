@@ -154,7 +154,9 @@ export const BRK_RELAUNCH_TICKS = 3 * TICKS_PER_SECOND;
 
 /** 130 × destroyed ÷ 80; all 80 = 130 + round(20 × ticks left ÷ run). */
 export const BRK_BRICK_SCORE = 130;
-export function brkDestroyed(state: { bricks: number[] }): number {
+export function brkDestroyed(state: { bricks: number[]; gild?: number[] }): number {
+  // brkRev 9: gold bricks are not part of the wall (counted apart as goldBroken).
+  if (state.gild) return brkWallDestroyed(state);
   return state.bricks.reduce((n, left) => (left <= 0 ? n + 1 : n), 0);
 }
 /** Hits needed to clear this board's whole wall. */
@@ -194,6 +196,8 @@ export interface BrkBall {
   vy: number;
   /** 1 for a spam ball, which vanishes on its first wall bounce. */
   spam: number;
+  /** brkRev 9 only: 1 while the ball has touched no brick since it left the paddle (a direct hit can break gold). */
+  d?: number;
 }
 
 export interface BrkCapsule {
@@ -215,6 +219,20 @@ export interface BrkState extends BandFields {
   tune?: number;
   /** brkRev 6 only (taller worlds): the world height in px (BRK_TALL_H). Absent = BRK_WORLD_H. */
   worldH?: number;
+  /** brkRev 9 only (the expansion): the marker, the court's width (420), the wall's columns (9), the gold
+   * bricks (1 per gold place), gold bricks broken, bounces off gold, the no-touch chain (wall bricks a ball
+   * destroyed since the last paddle touch), its longest, and the combo points. Absent on every earlier round. */
+  deep?: number;
+  worldW?: number;
+  cols?: number;
+  gild?: number[];
+  goldBroken?: number;
+  clinks?: number;
+  chain?: number;
+  bestChain?: number;
+  comboPts?: number;
+  /** brkRev 9, display only (never scored): times a chain stepped up to a new multiplier. */
+  comboUps?: number;
   tick: number;
   rng: number;
   /** Hits left in each brick: 0 gone, otherwise 1–3. */
@@ -248,6 +266,8 @@ export interface BrkState extends BandFields {
 }
 
 export function brkBricksLeft(state: BrkState): number {
+  // brkRev 9: the wall bricks left (gold bricks apart).
+  if (state.gild) return brkWallSize(state) - brkWallDestroyed(state);
   let left = 0;
   for (const hits of state.bricks) if (hits > 0) left += 1;
   return left;
@@ -716,6 +736,8 @@ export function brkCheckpoint(state: BrkState): BrkCheckpoint {
   if (state.tune !== undefined) values.push(state.tune);
   // brkRev 6 (taller worlds): the world height, last.
   if (state.worldH) values.push(state.worldH);
+  // brkRev 9 (the expansion): its own counters, last.
+  if (state.deep) values.push(state.deep, state.worldW ?? 0, state.goldBroken ?? 0, state.clinks ?? 0, state.chain ?? 0, state.comboPts ?? 0);
   for (const value of values) {
     checksum ^= value | 0;
     checksum = Math.imul(checksum, 0x01000193) >>> 0;
@@ -895,6 +917,7 @@ const breakerGameV2: ArcadeGame<BrkState, ArcadeInputEvent | null> = { ...breake
 
 /** The game for a stored brkRev (absent = the original board and power-ups). */
 export function breakerGameFor(rev?: number | null): ArcadeGame<BrkState, ArcadeInputEvent | null> {
+  if (rev === BRK_REV_DEEP) return breakerDeepGame;
   if (rev === BRK_REV_STRICT) return breakerStrictGame;
   if (rev === BRK_REV_TARGET) return breakerTargetGame;
   if (rev === BRK_REV_TALL) return breakerTallGame;
@@ -911,6 +934,7 @@ export const BRK_REV_BAND = 3;
 /** Bricks destroyed; 140 at all 80 (the 130 cap is gone); clearing the wall adds up to 10 for speed. */
 export const BRK_BAND_CURVE = bandCurve([0, 60, 67, 76, 79, 80], [0, 70, 100, 125, 138, 140]);
 export function breakerBandParts(state: BrkState): BandParts {
+  if (state.deep) return breakerDeepParts(state);
   const units = brkDestroyed(state);
   const finished = brkDestroyed(state) >= BRK_BRICKS;
   return { units, points: bandPoints(bandCurveOf(state, state.worldH ? BRK_V6_BAND_CURVE : BRK_BAND_CURVE), units), bonus: finished ? speedBonusCurve(BAND_FINISH_BONUS, BRK_RUN_TICKS - clampInt(state.endedTick, 0, BRK_RUN_TICKS), BRK_RUN_TICKS) : 0, penalty: 0, finished, text: `${brkDestroyed(state)} / ${BRK_BRICKS} bricks`, bonusText: "Wall cleared" };
@@ -982,7 +1006,13 @@ export const breakerTallGame: ArcadeGame<BrkState, ArcadeInputEvent | null> = {
 
 /** The world height (px) a stored round's brkRev plays in. */
 export function breakerWorldHFor(rev?: number | null): number {
+  if (rev === BRK_REV_DEEP) return BRK_V9_H;
   return rev === BRK_REV_TALL || rev === BRK_REV_TARGET || rev === BRK_REV_STRICT ? BRK_TALL_H : BRK_WORLD_H;
+}
+
+/** The court width (px) a stored round's brkRev plays in. */
+export function breakerWorldWFor(rev?: number | null): number {
+  return rev === BRK_REV_DEEP ? BRK_V9_W : BRK_WORLD_W;
 }
 
 /* ================= Scoring targets (brkRev 7, 18 Oct 2026) ================= */
@@ -1009,3 +1039,497 @@ export const BRK_REV_STRICT = 8;
 export const breakerStrictGame = bandStrictGame(breakerTargetGame);
 /** The curve new rounds score on: BRK_V6_BAND_CURVE's strict curve (what bandCurveOf gives a band-3 state). */
 export const BRK_V8_BAND_CURVE = bandStrict(BRK_V6_BAND_CURVE);
+
+/* ================= Expansion (brkRev 9, 25 Oct 2026) ================= */
+
+/**
+ * brkRev 9 (the 200-point expansion, docs/expansions/e3.md): a bigger court and two skill features,
+ * scored to 200 (roundMax.ts). Every earlier revision keeps its own step, board and scoring.
+ *
+ *  - More world: a 420 × 784 court (the iPhone 11 play box's shape, so the world still fills it edge to
+ *    edge, 8 % more of it each way), 9 columns and 12 rows of bricks (108 places), the paddle
+ *    BRK_PADDLE_LIFT above the new bottom, so the ball travels further.
+ *  - Gold bricks (BRK_V9_GOLD of them, rows 0–2, one in each third of the wall, each with an
+ *    armoured 3-hit brick under it): a gold brick breaks only on a direct hit, a ball's first brick
+ *    since it left the paddle. Fireball balls, the laser (the beam stops at it) and the ×3 shots bounce
+ *    off or stop; so does any ball that has touched a brick since the paddle. Gold bricks are not part
+ *    of the wall: clearing the other 105 finishes the run.
+ *  - No-touch combo: bricks a ball destroys between paddle touches build a multiplier, ×2 from the
+ *    BRK_V9_COMBO_X2-th, ×3 from the BRK_V9_COMBO_X3-th; each brick under a multiplier m scores m − 1
+ *    combo points. Any paddle touch or a lost ball ends the chain; bricks the Fireball smashes, the laser
+ *    and the ×3 shots never count (and do not end it either).
+ *
+ * Score: the destroyed wall bricks on BRK_V9_BAND_CURVE (to 140) plus up to 10 for a speedy clear, as
+ * before, plus the skill points (BRK_V9_GOLD_POINTS a gold brick, plus the combo points up to
+ * BRK_V9_COMBO_MAX), at most
+ * BRK_V9_SKILL_MAX: 200 in all. States carry `deep: 1`, folded into the checkpoint last.
+ */
+export const BRK_REV_DEEP = 9;
+export const BRK_V9_W = 420;
+export const BRK_V9_H = 784;
+export const BRK_V9_COLS = 9;
+export const BRK_V9_ROWS = 12;
+export const BRK_V9_WALL_X = 12;
+export const BRK_V9_GOLD = 3;
+export const BRK_V9_GOLD_ROWS: readonly [number, number] = [0, 2];
+export const BRK_V9_GOLD_POINTS = 10;
+export const BRK_V9_COMBO_X2 = 8;
+export const BRK_V9_COMBO_X3 = 16;
+/** At most this many of the skill points come from combos (the rest only from gold bricks). */
+export const BRK_V9_COMBO_MAX = 30;
+export const BRK_V9_SKILL_MAX = 50;
+/** brkRev 9's round maximum (ROUND_MAX.breaker, roundMax.ts). */
+export const BRK_V9_MAX = 200;
+export const BRK_V9_HP3: readonly [number, number] = [12, 18];
+export const BRK_V9_HP2: readonly [number, number] = [24, 36];
+export const BRK_V9_LASER_ROWS: readonly [number, number] = [0, 3];
+export const BRK_V9_SPAM_ROWS: readonly [number, number] = [0, 5];
+export const BRK_V9_MULTI_ROWS: readonly [number, number] = [8, 11];
+export const BRK_V9_FIRE_ROWS: readonly [number, number] = [3, 8];
+export const BRK_V9_SLIDE_ROWS: readonly [number, number] = [4, 9];
+export const BRK_V9_INPUT_RANGES: readonly InputRange[] = [
+  inputRange(ARCADE_INPUT_DRAG, [0, BRK_V9_W]),
+  inputRange(ARCADE_INPUT_BUTTON, [0, 1]),
+];
+
+/** The court's width (px) a state plays in: brkRev 9's 420, or the original 390. */
+export function brkWorldW(state: { worldW?: number }): number {
+  return state.worldW ?? BRK_WORLD_W;
+}
+/** Brick columns of a state's wall (brkRev 9: 9). */
+export function brkCols(state: { cols?: number }): number {
+  return state.cols ?? BRK_COLS;
+}
+/** Brick rows of a state's wall (brkRev 9: 12). */
+export function brkRowsOf(state: { cols?: number; bricks: number[] }): number {
+  return Math.trunc(state.bricks.length / brkCols(state));
+}
+/** The wall's left edge (px) in a state's court. */
+export function brkWallXOf(state: { deep?: number }): number {
+  return state.deep ? BRK_V9_WALL_X : BRK_WALL_X;
+}
+/** brkRev 9: whether brick `index` is a gold brick. */
+export function brkIsGold(state: { gild?: number[] }, index: number): boolean {
+  return (state.gild?.[index] ?? 0) === 1;
+}
+/** The wall's size: every brick but the gold ones (80 before brkRev 9, 105 on it). */
+export function brkWallSize(state: { gild?: number[]; bricks: number[] }): number {
+  if (!state.gild) return BRK_BRICKS;
+  let n = 0;
+  for (let i = 0; i < state.bricks.length; i++) if (!brkIsGold(state, i)) n += 1;
+  return n;
+}
+/** Wall bricks destroyed (gold bricks are counted apart, on brkRev 9). */
+export function brkWallDestroyed(state: { gild?: number[]; bricks: number[] }): number {
+  let n = 0;
+  for (let i = 0; i < state.bricks.length; i++) if ((state.bricks[i] ?? 0) <= 0 && !brkIsGold(state, i)) n += 1;
+  return n;
+}
+/** brkRev 9: the combo multiplier a chain of `chain` destroyed bricks has reached. */
+export function brkComboMultiplier(chain: number): number {
+  return chain >= BRK_V9_COMBO_X3 ? 3 : chain >= BRK_V9_COMBO_X2 ? 2 : 1;
+}
+/** brkRev 9: the skill points a state has earned (gold bricks, and combo points up to 30; at most 50). */
+export function brkSkillPoints(state: { goldBroken?: number; comboPts?: number }): number {
+  return Math.min(BRK_V9_SKILL_MAX, BRK_V9_GOLD_POINTS * (state.goldBroken ?? 0) + Math.min(BRK_V9_COMBO_MAX, state.comboPts ?? 0));
+}
+
+/** A brick's top-left (px) on brkRev 9's wall at a tick (sliding rows shifted). */
+export function brkDeepBrickXY(state: BrkState, index: number, tick = state.tick): { x: number; y: number } {
+  const row = Math.trunc(index / BRK_V9_COLS);
+  return {
+    x: BRK_V9_WALL_X + (index % BRK_V9_COLS) * BRK_BRICK_W + brkRowOffset(state, row, tick),
+    y: BRK_WALL_Y + row * BRK_ROW_PITCH,
+  };
+}
+
+/** brkRev 9: the brick under a point, sliding rows shifted by their offset at `tick`. */
+export function brkBrickAtDeep(state: { slide?: number[] }, xPx: number, yPx: number, tick: number): number {
+  if (yPx < BRK_WALL_Y) return -1;
+  const row = Math.trunc((yPx - BRK_WALL_Y) / BRK_ROW_PITCH);
+  if (row < 0 || row >= BRK_V9_ROWS) return -1;
+  const withinRow = yPx - (BRK_WALL_Y + row * BRK_ROW_PITCH);
+  if (withinRow < 0 || withinRow > BRK_BRICK_H) return -1;
+  const local = xPx - BRK_V9_WALL_X - brkRowOffset(state, row, tick);
+  if (local < 0) return -1;
+  const col = Math.trunc(local / BRK_BRICK_W);
+  if (col >= BRK_V9_COLS) return -1;
+  return row * BRK_V9_COLS + col;
+}
+
+function initDeep(seed: number): BrkState {
+  // Its own stream (keyed by the seed), so no earlier revision's board is reused by accident.
+  let rng = (seed ^ 0x42524b39) | 0;
+  const count = BRK_V9_COLS * BRK_V9_ROWS;
+  const bricks = new Array<number>(count).fill(1);
+  const gold = new Array<number>(count).fill(0);
+  const gild = new Array<number>(count).fill(0);
+  const draw = (bound: number): number => {
+    const d = rngBelow(rng, bound);
+    rng = d.state;
+    return d.value;
+  };
+
+  // Gold bricks: one in each third of the wall, rows 0–2, each with an armoured brick under it.
+  const third = BRK_V9_COLS / BRK_V9_GOLD;
+  for (let g = 0; g < BRK_V9_GOLD; g++) {
+    const row = BRK_V9_GOLD_ROWS[0] + draw(BRK_V9_GOLD_ROWS[1] - BRK_V9_GOLD_ROWS[0] + 1);
+    const col = g * third + draw(third);
+    gild[row * BRK_V9_COLS + col] = 1;
+  }
+  const free = (index: number) => gold[index] === 0 && gild[index] === 0;
+  const placePower = (kind: number, rows: readonly [number, number]): void => {
+    const span = (rows[1] - rows[0] + 1) * BRK_V9_COLS;
+    for (let guard = 0; guard < 400; guard++) {
+      const index = rows[0] * BRK_V9_COLS + draw(span);
+      // Never directly under a gold brick (that one is its armour).
+      if (free(index) && !(index >= BRK_V9_COLS && gild[index - BRK_V9_COLS] === 1)) {
+        gold[index] = kind + 1;
+        return;
+      }
+    }
+  };
+  placePower(BRK_POWER_LASER, BRK_V9_LASER_ROWS);
+  placePower(BRK_POWER_SPAM, BRK_V9_SPAM_ROWS);
+  placePower(BRK_POWER_MULTI, BRK_V9_MULTI_ROWS);
+  placePower(BRK_POWER_FIRE, BRK_V9_FIRE_ROWS);
+  // Each gold brick's armour: the brick under it takes three hits.
+  for (let i = 0; i < count; i++) if (gild[i] === 1 && i + BRK_V9_COLS < count) bricks[i + BRK_V9_COLS] = 3;
+  const placeHp = (hp: number, range: readonly [number, number]): void => {
+    let left = range[0] + draw(range[1] - range[0] + 1);
+    for (let guard = 0; guard < 3_000 && left > 0; guard++) {
+      const index = draw(count);
+      if (bricks[index] === 1 && free(index)) {
+        bricks[index] = hp;
+        left -= 1;
+      }
+    }
+  };
+  placeHp(3, BRK_V9_HP3);
+  placeHp(2, BRK_V9_HP2);
+  const maxHp = bricks.slice();
+
+  const span = BRK_V9_SLIDE_ROWS[1] - BRK_V9_SLIDE_ROWS[0] + 1;
+  const a = draw(span);
+  const b = draw(span - 1);
+  const slide = [BRK_V9_SLIDE_ROWS[0] + a, BRK_V9_SLIDE_ROWS[0] + (b >= a ? b + 1 : b)];
+
+  const paddleX = Math.round(BRK_V9_W / 2);
+  const first = launch(rng, BRK_SPEED_START);
+  const paddleYFp = (BRK_V9_H - BRK_PADDLE_LIFT - BRK_PADDLE_H) * 256;
+  return bandInit({
+    rev: BRK_REV,
+    slide,
+    fire: 0,
+    fireballs: 0,
+    tune: BRK_TUNE_F,
+    worldH: BRK_V9_H,
+    worldW: BRK_V9_W,
+    cols: BRK_V9_COLS,
+    deep: 1,
+    gild,
+    goldBroken: 0,
+    clinks: 0,
+    chain: 0,
+    bestChain: 0,
+    comboPts: 0,
+    comboUps: 0,
+    tick: 0,
+    rng: first.rng,
+    bricks,
+    maxHp,
+    gold,
+    hits: 0,
+    losses: 0,
+    powerUps: 0,
+    balls: [{ x: paddleX * 256, y: paddleYFp - BRK_BALL_R_FP, vx: first.vx, vy: first.vy, spam: 0, d: 1 }],
+    capsules: [],
+    held: 0,
+    charges: 0,
+    beam: 0,
+    aimX: paddleX,
+    paddleX,
+    speed: BRK_SPEED_START,
+    pause: 0,
+    cleared: false,
+    endedTick: 0,
+  });
+}
+
+function isOverDeep(state: BrkState): boolean {
+  return state.cleared || state.tick >= BRK_RUN_TICKS;
+}
+
+function stepDeep(state: BrkState, input: ArcadeInputEvent | null): BrkState {
+  if (isOverDeep(state)) return state;
+  const tick = state.tick + 1;
+  const W = BRK_V9_W;
+
+  let aimX = state.aimX;
+  let press: number | null = null;
+  if (input) {
+    if (input.k === ARCADE_INPUT_DRAG) aimX = clampInt(input.a, 0, W);
+    else if (input.k === ARCADE_INPUT_BUTTON) press = clampInt(input.a, 0, 1);
+  }
+  const paddleX = clampInt(aimX, BRK_WALL + BRK_PADDLE_W / 2, W - BRK_WALL - BRK_PADDLE_W / 2);
+
+  const next: BrkState = { ...state, tick, aimX, paddleX };
+  const bricks = state.bricks.slice();
+  let balls = state.balls.map((ball) => ({ ...ball }));
+  let capsules = state.capsules.map((capsule) => ({ ...capsule }));
+  let { hits, losses, powerUps, held, charges, rng } = next;
+  let beam = Math.max(0, state.beam - 1);
+  let fire = Math.max(0, (state.fire ?? 0) - 1);
+  let fireballs = state.fireballs ?? 0;
+  let goldBroken = state.goldBroken ?? 0;
+  let clinks = state.clinks ?? 0;
+  let chain = state.chain ?? 0;
+  let bestChain = state.bestChain ?? 0;
+  let comboPts = state.comboPts ?? 0;
+  let comboUps = state.comboUps ?? 0;
+  let speed = brkSpeedFp(hits, tick);
+  const worldHFp = BRK_V9_H * 256;
+  const paddleYFp = (BRK_V9_H - BRK_PADDLE_LIFT - BRK_PADDLE_H) * 256;
+
+  /** One hit on a wall brick; `combo` when a ball (not the laser or a ×3 shot) did it. */
+  const breakBrick = (index: number, combo: boolean): void => {
+    const left = bricks[index] ?? 0;
+    if (left <= 0 || brkIsGold(state, index)) return;
+    bricks[index] = left - 1;
+    hits += 1;
+    speed = brkSpeedFp(hits, tick);
+    if (bricks[index] === 0) {
+      if (combo) {
+        chain += 1;
+        if (chain > bestChain) bestChain = chain;
+        comboPts += brkComboMultiplier(chain) - 1;
+        if (chain === BRK_V9_COMBO_X2 || chain === BRK_V9_COMBO_X3) comboUps += 1;
+      }
+      const kind = (state.gold[index] ?? 0) - 1;
+      if (kind >= 0) {
+        const at = brkDeepBrickXY(state, index, tick);
+        capsules.push({ x: (at.x + Math.trunc(BRK_BRICK_W / 2)) * 256, y: (at.y + Math.trunc(BRK_BRICK_H / 2)) * 256, kind });
+      }
+    }
+  };
+
+  if (press !== null && held === BRK_POWER_LASER + 1) {
+    // The beam rises from the paddle centre, stops after four bricks, or at a gold brick it cannot break.
+    let struck = 0;
+    let top = BRK_HUD_H + BRK_WALL;
+    for (let row = BRK_V9_ROWS - 1; row >= 0 && struck < BRK_V2_LASER_BRICKS; row--) {
+      const index = brkBrickAtDeep(state, paddleX, BRK_WALL_Y + row * BRK_ROW_PITCH + Math.trunc(BRK_BRICK_H / 2), tick);
+      if (index < 0 || (bricks[index] ?? 0) <= 0) continue;
+      if (brkIsGold(state, index)) {
+        top = BRK_WALL_Y + row * BRK_ROW_PITCH + BRK_BRICK_H;
+        clinks += 1;
+        break;
+      }
+      breakBrick(index, false);
+      struck += 1;
+      if (struck === BRK_V2_LASER_BRICKS) top = BRK_WALL_Y + row * BRK_ROW_PITCH;
+    }
+    next.beamX = paddleX;
+    next.beamTop = top;
+    held = 0;
+    charges = 0;
+    beam = 12;
+  } else if (press !== null && held === BRK_POWER_SPAM + 1 && charges > 0 && balls.length < BRK_MAX_BALLS) {
+    balls.push({ x: paddleX * 256, y: paddleYFp - BRK_BALL_R_FP, vx: 0, vy: -speed, spam: 1, d: 0 });
+    charges -= 1;
+    if (charges === 0) held = 0;
+  }
+
+  if (next.pause > 0) {
+    next.pause -= 1;
+    const resting: BrkBall = { x: paddleX * 256, y: paddleYFp - BRK_BALL_R_FP, vx: 0, vy: 0, spam: 0, d: 1 };
+    if (next.pause === 0) {
+      const again = launch(rng, speed);
+      rng = again.rng;
+      resting.vx = again.vx;
+      resting.vy = again.vy;
+    }
+    balls = [resting];
+  } else {
+    const top = (BRK_HUD_H + BRK_WALL) * 256;
+    const leftWall = BRK_WALL * 256;
+    const rightWall = (W - BRK_WALL) * 256;
+    const survivors: BrkBall[] = [];
+
+    for (const ball of balls) {
+      let { x, y, vx, vy } = ball;
+      let d = ball.d ?? 0;
+      const spam = ball.spam;
+      let gone = false;
+
+      for (let sub = 0; sub < 4 && !gone; sub++) {
+        const sx = sub === 3 ? vx - 3 * Math.trunc(vx / 4) : Math.trunc(vx / 4);
+        const sy = sub === 3 ? vy - 3 * Math.trunc(vy / 4) : Math.trunc(vy / 4);
+
+        x += sx;
+        if (x - BRK_BALL_R_FP < leftWall) {
+          x = leftWall + BRK_BALL_R_FP;
+          vx = -vx;
+          if (spam === 1) gone = true;
+        } else if (x + BRK_BALL_R_FP > rightWall) {
+          x = rightWall - BRK_BALL_R_FP;
+          vx = -vx;
+          if (spam === 1) gone = true;
+        }
+        if (gone) break;
+
+        y += sy;
+        if (y - BRK_BALL_R_FP < top) {
+          y = top + BRK_BALL_R_FP;
+          vy = -vy;
+          if (spam === 1) {
+            gone = true;
+            break;
+          }
+        }
+
+        const brick = brkBrickAtDeep(state, px(x), px(y), tick);
+        if (brick >= 0 && (bricks[brick] ?? 0) > 0) {
+          if (brkIsGold(state, brick)) {
+            // Only a direct hit from a plain ball breaks gold; everything else bounces off it.
+            if (d === 1 && spam === 0 && fire === 0) {
+              bricks[brick] = 0;
+              goldBroken += 1;
+              chain += 1;
+              if (chain > bestChain) bestChain = chain;
+            } else clinks += 1;
+            const rescaled = setLength(vx, -vy, speed);
+            vx = rescaled.vx;
+            vy = rescaled.vy;
+          } else if (fire > 0 && spam === 0) {
+            while ((bricks[brick] ?? 0) > 0) breakBrick(brick, false);
+          } else {
+            breakBrick(brick, spam === 0);
+            const rescaled = setLength(vx, -vy, speed);
+            vx = rescaled.vx;
+            vy = rescaled.vy;
+          }
+          d = 0;
+        }
+
+        if (vy > 0 && y + BRK_BALL_R_FP >= paddleYFp && y < paddleYFp + 4 * 256) {
+          const offset = px(x) - paddleLeftOf(paddleX);
+          if (offset >= -BRK_BALL_R && offset <= BRK_PADDLE_W + BRK_BALL_R) {
+            const zone = clampInt(Math.trunc((clampInt(Math.round(offset), 0, BRK_PADDLE_W - 1) * 5) / BRK_PADDLE_W), 0, 4);
+            const dir = BRK_ZONES[zone] ?? BRK_ZONES[2]!;
+            const launched = setLength(dir[0], dir[1], speed);
+            vx = launched.vx;
+            vy = launched.vy;
+            y = paddleYFp - BRK_BALL_R_FP;
+            d = 1;
+            // A paddle touch ends the no-touch chain (a ×3 shot never touches the paddle).
+            if (spam === 0) chain = 0;
+          }
+        }
+
+        if (y - BRK_BALL_R_FP > worldHFp) gone = true;
+      }
+
+      if (!gone) survivors.push({ x, y, vx, vy, spam, d });
+    }
+
+    balls = survivors;
+    const wallGone = bricks.every((left, i) => left <= 0 || brkIsGold(state, i));
+    if (balls.length === 0 && !wallGone) {
+      losses += 1;
+      chain = 0;
+      next.pause = BRK_RELAUNCH_TICKS;
+      balls = [{ x: paddleX * 256, y: paddleYFp - BRK_BALL_R_FP, vx: 0, vy: 0, spam: 0, d: 1 }];
+    }
+  }
+
+  const keptCapsules: BrkCapsule[] = [];
+  for (const capsule of capsules) {
+    const y = capsule.y + BRK_CAPSULE_FALL;
+    const caught =
+      y + (BRK_CAPSULE_H / 2) * 256 >= paddleYFp &&
+      y <= paddleYFp + BRK_PADDLE_H * 256 &&
+      Math.abs(px(capsule.x) - paddleX) <= BRK_PADDLE_W / 2 + BRK_CAPSULE_W / 2;
+    if (caught) {
+      powerUps += 1;
+      if (capsule.kind === BRK_POWER_MULTI) {
+        const extra: BrkBall[] = [];
+        for (const ball of balls) {
+          if (balls.length + extra.length >= BRK_MAX_BALLS) break;
+          extra.push({ x: ball.x, y: ball.y, vx: -ball.vx, vy: ball.vy, spam: ball.spam, d: 0 });
+        }
+        balls = balls.concat(extra);
+      } else if (capsule.kind === BRK_POWER_SPAM) {
+        held = BRK_POWER_SPAM + 1;
+        charges = BRK_V2_SPAM_SHOTS;
+      } else if (capsule.kind === BRK_POWER_FIRE) {
+        fire = BRK_FIRE_TICKS_V5;
+        fireballs += 1;
+      } else {
+        held = BRK_POWER_LASER + 1;
+        charges = 1;
+      }
+      continue;
+    }
+    if (y > worldHFp) continue;
+    keptCapsules.push({ x: capsule.x, y, kind: capsule.kind });
+  }
+  capsules = keptCapsules;
+
+  next.bricks = bricks;
+  next.balls = balls;
+  next.capsules = capsules;
+  next.hits = hits;
+  next.losses = losses;
+  next.powerUps = powerUps;
+  next.held = held;
+  next.charges = charges;
+  next.beam = beam;
+  next.rng = rng;
+  next.speed = speed;
+  next.fire = fire;
+  next.fireballs = fireballs;
+  next.goldBroken = goldBroken;
+  next.clinks = clinks;
+  next.chain = chain;
+  next.bestChain = bestChain;
+  next.comboPts = comboPts;
+  next.comboUps = comboUps;
+  next.cleared = bricks.every((left, i) => left <= 0 || brkIsGold(state, i));
+  if (next.cleared || tick >= BRK_RUN_TICKS) next.endedTick = tick;
+  return next;
+}
+
+/**
+ * brkRev 9 band knots (wall bricks destroyed, of 105): fitted with scripts/arcade-skill-bands.ts so the
+ * simulated players' wall points plus their incidental skill points land where brkRev 8 put them
+ * (docs/expansions/e3.md); 140 at all 105, a speedy clear adds up to 10, skill up to 50 more.
+ */
+export const BRK_V9_BAND_CURVE = bandCurve([0, 30, 42, 52, 62, 86, 105], [0, 55, 74, 88, 100, 110, 140]);
+
+export function breakerDeepParts(state: BrkState): BandParts {
+  const units = brkWallDestroyed(state);
+  const size = brkWallSize(state);
+  const finished = units >= size;
+  const speedBonus = finished ? speedBonusCurve(BAND_FINISH_BONUS, BRK_RUN_TICKS - clampInt(state.endedTick, 0, BRK_RUN_TICKS), BRK_RUN_TICKS) : 0;
+  const skill = brkSkillPoints(state);
+  const words = [`gold ${state.goldBroken ?? 0}`, `combo ${state.comboPts ?? 0}`];
+  return {
+    units,
+    points: bandPoints(BRK_V9_BAND_CURVE, units),
+    bonus: speedBonus + skill,
+    penalty: 0,
+    finished,
+    text: `${units} / ${size} bricks`,
+    bonusText: finished ? `Wall cleared +${speedBonus} · ${words.join(" · ")}` : `Skill: ${words.join(" · ")}`,
+  };
+}
+
+export const breakerDeepGame: ArcadeGame<BrkState, ArcadeInputEvent | null> = {
+  ...breakerGame,
+  init: initDeep,
+  step: bandStep(stepDeep),
+  isOver: isOverDeep,
+  score: (state) => bandTotal(breakerDeepParts(state), Boolean(state.acted), BRK_V9_MAX),
+  inputRanges: BRK_V9_INPUT_RANGES,
+};

@@ -12,8 +12,10 @@ import { binTossArtGame as binTossGame } from "./binTossArt.renderer";
 import { drawBullseye } from "./bullseye.renderer";
 import { matchupArtGame as matchupGame } from "./matchup.renderer";
 import { breakerArtGameFor } from "./breaker.renderer";
-import { breakerWorldHFor } from "./breaker";
-import { rallyWorldHFor } from "./rally";
+import { breakerWorldHFor, breakerWorldWFor } from "./breaker";
+import { rallyWorldHFor, rallyWorldWFor } from "./rally";
+/** A stored round's world height in the reveal's 390-wide box: the 420-wide expansion courts (brkRev 9, rallyRev 9) scale down whole. */
+const in390 = (w: number, h: number) => (w === 390 ? h : Math.round((h * 390) / w));
 import { pinballArtGameFor } from "./pinball.renderer";
 import { PIN_WORLD_H, PIN_WORLD_W } from "./pinball";
 import { rallyArtGame as rallyGame, rallyRevealGame } from "./rally.renderer";
@@ -159,15 +161,15 @@ export const ARCADE_REVEAL_RENDERERS: Record<string, ArcadeRevealRenderer> = {
     accent: GOLD,
     worldW: 390,
     worldH: 620,
-    heightFor: (p) => breakerWorldHFor(p.type === "breaker" ? p.brkRev : undefined),
+    heightFor: (p) => in390(breakerWorldWFor(p.type === "breaker" ? p.brkRev : undefined), breakerWorldHFor(p.type === "breaker" ? p.brkRev : undefined)),
     drawFinal: (ctx, p, a) => {
       const rev = p.type === "breaker" ? p.brkRev : undefined;
-      breakerArtGameFor(rev).draw(ctx, replayBreakerRun(seedOf(p), a, rev).state, { width: 390, height: breakerWorldHFor(rev) });
+      breakerArtGameFor(rev).draw(ctx, replayBreakerRun(seedOf(p), a, rev).state, { width: 390, height: in390(breakerWorldWFor(rev), breakerWorldHFor(rev)) });
       return null;
     },
   },
   pinball: simple("#FF4DFF", PIN_WORLD_W, PIN_WORLD_H, pinballArtGameFor(1), (p, a) => replayPinballRun(seedOf(p), a, p.type === "pinball" ? p.pinRev : undefined)),
-  rally: simple("#4D8CFF", 390, 620, rallyGame, (p, a) => replayRallyRun(seedOf(p), a, p.type === "rally" ? p.rallyRev : undefined), undefined, rallyRevealGame, (p) => rallyWorldHFor(p.type === "rally" ? p.rallyRev : undefined)),
+  rally: simple("#4D8CFF", 390, 620, rallyGame, (p, a) => replayRallyRun(seedOf(p), a, p.type === "rally" ? p.rallyRev : undefined), undefined, rallyRevealGame, (p) => in390(rallyWorldWFor(p.type === "rally" ? p.rallyRev : undefined), rallyWorldHFor(p.type === "rally" ? p.rallyRev : undefined))),
   slice: simple("#C9CED6", 390, 620, sliceArtGame, (p, a) => replaySliceRun(seedOf(p), a, p.type === "slice" ? p.sliceRev : undefined), undefined, undefined, (p) => sliceWorldHFor(p.type === "slice" ? p.sliceRev : undefined)),
   bubble: simple(GOLD, 390, 620, bubbleGame, (p, a) => replayBubbleRun(seedOf(p), a, p.type === "bubble" ? p.bubbleRev : undefined), undefined, undefined, (p) => bubbleWorldHFor(p.type === "bubble" ? p.bubbleRev : undefined)),
   beat: simple(GOLD, 390, 620, beatGame, (p, a) => replayBeatRun(seedOf(p), a, p.type === "beat" ? p.beatRev : undefined), undefined, undefined, (p) => beatWorldHFor(p.type === "beat" ? p.beatRev : undefined)),

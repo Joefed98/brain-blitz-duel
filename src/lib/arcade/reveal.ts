@@ -137,10 +137,14 @@ const BUILDERS: Record<string, Builder> = {
   }),
   breaker: (r, s) => {
     const done = b(r, "cleared");
+    // brkRev 9: a 105-brick wall, and the skill points (gold bricks, combos) as their own line and tiles.
+    const wall = n(r, "wall") || 80;
+    const deep = n(r, "wall") > 0;
     return {
-      axis: { value: n(r, "destroyed"), max: 80, label: "Bricks destroyed" },
-      lines: [head(`${n(r, "destroyed")} / 80 bricks`, s, done)],
+      axis: { value: n(r, "destroyed"), max: wall, label: "Bricks destroyed" },
+      lines: [head(`${n(r, "destroyed")} / ${wall} bricks`, s, done), ...(deep ? [`Skill +${n(r, "skill")}: ${n(r, "goldBroken")} gold · ${n(r, "comboPts")} combo`] : [])],
       tiles: [
+        ...(deep ? [{ label: "Gold bricks", value: String(n(r, "goldBroken")) }, { label: "Best combo", value: String(n(r, "bestChain")) }] : []),
         { label: "Power-ups", value: String(n(r, "powerUps")) },
         { label: "Balls lost", value: String(n(r, "losses")) },
         // Hits this run landed (was the wall's total hit points, e.g. 130 for 6 bricks destroyed).
@@ -162,11 +166,15 @@ const BUILDERS: Record<string, Builder> = {
   }),
   rally: (r, s) => ({
     axis: { value: n(r, "goldHits"), max: null, label: "Gold-ball hits" },
-    lines:
-      n(r, "rallyRev") === 2
+    lines: [
+      ...(n(r, "rallyRev") === 2
         ? [`${n(r, "hits")} hits · ${n(r, "goldHits")} gold · ${n(r, "targetHits")} targets → ${s}`]
-        : [`${n(r, "hits")} hits · ${n(r, "goldHits")} gold → ${s}`],
+        : [`${n(r, "hits")} hits · ${n(r, "goldHits")} gold → ${s}`]),
+      // rallyRev 9: the skill points, on their own line.
+      ...(n(r, "deep") > 0 ? [`Skill +${n(r, "skill")}: ${n(r, "milestones")} milestones · ${n(r, "spinHits")} spin · ${n(r, "dblPts")} doubled`] : []),
+    ],
     tiles: [
+      ...(n(r, "deep") > 0 ? [{ label: "Best streak", value: String(n(r, "bestStreak")) }] : []),
       { label: "Gold hits", value: String(n(r, "goldHits")) },
       ...(n(r, "rallyRev") === 2 ? [{ label: "Targets", value: String(n(r, "targetHits")) }] : []),
       { label: "All hits", value: String(n(r, "hits")) },

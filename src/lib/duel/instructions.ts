@@ -58,6 +58,8 @@ import {
 } from "@/lib/arcade/pinball";
 import { BULLSEYE_INNER_BULL_POINTS, BULLSEYE_RING_VALUES } from "@/lib/arcade/bullseye";
 import { liveBandHelp } from "@/lib/arcade/liveBands";
+import { BRK_V9_COLS, BRK_V9_COMBO_MAX, BRK_V9_COMBO_X2, BRK_V9_COMBO_X3, BRK_V9_GOLD, BRK_V9_GOLD_POINTS, BRK_V9_ROWS, BRK_V9_SKILL_MAX } from "@/lib/arcade/breaker";
+import { RALLY_V9_DOUBLE_PTS, RALLY_V9_MILESTONE_PTS, RALLY_V9_MULTI_FROM, RALLY_V9_SKILL_MAX, RALLY_V9_SPIN_PTS, RALLY_V9_TWIN_TICKS } from "@/lib/arcade/rally";
 import { fillMax, liveRecord } from "./roundMax";
 import type { PuzzleType } from "./types";
 
@@ -604,11 +606,12 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
       score: "The longer both survive, the more you score: all 60 seconds = 150, 45 s ≈ 84, 30 s ≈ 37.",
     },
     breaker: {
-      goal: "Clear the wall.",
+      goal: "Clear the wall; break the gold.",
       how: [
         { action: "Drag the paddle;", detail: "tap to fire a power-up." },
-        { action: "Catch power-ups:", detail: "laser, ×3, ×2, Fireball." },
-        { action: "From 30 s, two rows", detail: "slide side to side." },
+        { action: "Gold bricks:", detail: "break only on a direct hit." },
+        { action: "Combo ×2, ×3:", detail: "bricks with no paddle touch." },
+        { action: "Catch power-ups:", detail: "laser, ×3, ×2, Fireball.", helpOnly: true },
         { action: "Keep the ball up", detail: "– it gets faster with bricks and with time. Losing the last ball costs 3 seconds.", helpOnly: true },
         { action: "Cracked bricks take 2 or 3 hits", detail: "– each hit cracks them further.", helpOnly: true },
         { action: "Four starred bricks drop a capsule.", detail: "Tap anywhere to fire a laser or ×3 you've caught; any longer touch moves the paddle.", helpOnly: true },
@@ -617,9 +620,12 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Bronze ×2 = double balls", detail: "at once. There is one per board.", helpOnly: true },
         { action: "Orange flame = Fireball:", detail: "for 2.5 seconds your balls smash straight through bricks without bouncing.", helpOnly: true },
         { action: "Sliding rows:", detail: "one row starts at 30 s and another at 60 s, half a brick each way, slowly and always the same.", helpOnly: true },
+        { action: `${BRK_V9_GOLD} gold bricks`, detail: "sit near the top, each behind an armoured brick. Only a ball that has touched no brick since your paddle breaks one; Fireball balls, the laser and ×3 shots bounce off. They glint while a ball is on a direct line.", helpOnly: true },
+        { action: "Combo:", detail: `a ball that breaks bricks without touching the paddle goes ×2 from its ${BRK_V9_COMBO_X2}th brick and ×3 from its ${BRK_V9_COMBO_X3}th. A paddle touch or a lost ball ends it; Fireball, laser and ×3 bricks don't count.`, helpOnly: true },
       ],
-      score: liveBandHelp("breaker", "Each brick destroyed counts 1.", { more: "More bricks", good: (u) => `clears ${u} bricks`, finish: "Clearing all 80 adds up to 10 for speed: the full 10 with at least half the time left, falling to 0 at the buzzer." }),
+      score: liveBandHelp("breaker", "Each brick destroyed counts 1.", { more: "More bricks", good: (u) => `clears ${u} bricks`, finish: `Clearing all ${BRK_V9_COLS * BRK_V9_ROWS - BRK_V9_GOLD} adds up to 10 for speed: the full 10 with at least half the time left, falling to 0 at the buzzer. Skill adds up to ${BRK_V9_SKILL_MAX} more: ${BRK_V9_GOLD_POINTS} a gold brick, and 1 for each ×2 combo brick and 2 for each ×3 (up to ${BRK_V9_COMBO_MAX}).` }),
     },
+
     pinball: {
       goal: "Keep the ball in play and rack up table points.",
       how: [
@@ -641,18 +647,22 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
       goal: "Keep the rally going.",
       how: [
         { action: "Drag the paddle.", detail: "Miss the blue ball: over." },
-        { action: "Only gold balls score:", detail: "5 a paddle hit." },
-        { action: "Gold on a pink wall pad:", detail: "6 a hit." },
+        { action: "Gold balls score:", detail: "5 a hit, 6 a pink pad." },
+        { action: "Teal pad: twin ball.", detail: "Move as you hit: spin." },
         { action: "Drag to move the paddle", detail: "along the bottom.", helpOnly: true },
         { action: "Every hit", detail: "makes the paddle smaller and the ball faster.", helpOnly: true },
         { action: "A gold ball drops in", detail: "every ten seconds – only gold balls score.", helpOnly: true },
-        { action: "Two pink target pads", detail: "sit on the far wall, one in each half. A gold ball that hits one counts 6, and the pad moves somewhere new in its own half, so the two never overlap.", helpOnly: true },
+        { action: "Two pink target pads", detail: "glide along the far wall, one in each half. A gold ball that hits one counts 6, and the pad moves on to a new spot in its own half.", helpOnly: true },
         { action: "From 30 seconds a bumper", detail: "appears mid-court (it blinks a warning first). Balls bounce off it like a mirror, at the same speed.", helpOnly: true },
         { action: "For the last 15 seconds", detail: "a second bumper joins it (from 45 s, with the same blinking warning), always far enough away for a ball to pass between them.", helpOnly: true },
+        { action: "The teal ×2 BALL pad", detail: `lights from ${RALLY_V9_MULTI_FROM / 60} s. Hit it with the blue or a gold ball for a twin ball for ${RALLY_V9_TWIN_TICKS / 60} seconds: while both are up every return counts double. Losing the twin costs nothing.`, helpOnly: true },
+        { action: "Spin:", detail: "moving the paddle as the ball lands curves its flight. A spun gold ball that hits a pink pad scores a spin bonus.", helpOnly: true },
+        { action: "Every 10 returns in a row", detail: "is a milestone: a bonus and the court lights flash. A missed gold ball starts the count again.", helpOnly: true },
         { action: "Miss the blue ball", detail: "and the run is over.", helpOnly: true },
       ],
-      score: liveBandHelp("rally", "Each gold-ball hit counts 5 and each pink target 6. The blue ball scores nothing; losing it ends the run.", { more: "More gold hits and pink targets", good: (u) => `counts ${u} – about ${Math.round(u / 5)} gold-ball hits` }),
+      score: `${liveBandHelp("rally", "Each gold-ball hit counts 5 and each pink target 6. The blue ball scores nothing; losing it ends the run.", { more: "More gold hits and pink targets", good: (u) => `counts ${u} – about ${Math.round(u / 5)} gold-ball hits` })} Skill adds up to ${RALLY_V9_SKILL_MAX} more: ${RALLY_V9_DOUBLE_PTS} a return while the twin is up, ${RALLY_V9_SPIN_PTS} a spun gold ball on a pink pad, ${RALLY_V9_MILESTONE_PTS} every 10 in a row. Up to {max}.`,
     },
+
 
     steady: {
       goal: "Stay inside the track.",

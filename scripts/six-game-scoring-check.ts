@@ -136,7 +136,7 @@ eq(inkRev4Score(INK_LEVELS - 1, INK_STAR_LEVELS, 0), SPLIT_PARTIAL_MAX.inkbridge
 for (const game of [orbitGame, orbitRev3Game] as const) {
   eq(game.score({ ...game.init(1), best: ORBIT_TOTAL - 1, finished: 0 } as never), SPLIT_PARTIAL_MAX.orbit, "Orbit partial max");
 }
-for (const [type, goal] of [["balltrack", "Get all 30 home quickly for up to 150"], ["bintoss", "All 10 in for 10 more"], ["breaker", "Clear all 80 quickly for up to 150"], ["inkbridge", "All 10 levels quickly: up to 150"], ["swing", "Reach 500 metres for 10 more"], ["tilt", "All 4 quickly: up to 150"]] as const) {
+for (const [type, goal] of [["balltrack", "Get all 30 home quickly for up to 150"], ["bintoss", "All 10 in for 10 more"], ["breaker", "Clear all 105 quickly for up to 200"], ["inkbridge", "All 10 levels quickly: up to 150"], ["swing", "Reach 500 metres for 10 more"], ["tilt", "All 4 quickly: up to 150"]] as const) {
   eq(INTRO_SCORE[type].includes(goal), true, `${type} intro goal`);
 }
 // Scrumper and Mixed Signals are not on the split: no partial cap at 130.
@@ -187,5 +187,5 @@ for (const type of ["matchup", "junction", "skyline", "bullseye"]) eq(demoGuard.
 // Taller worlds batch 1 (16 Oct 2026) deliberately stops Rally's intro demo: a demo recorded before rallyRev 6 shows the
 // 620 px court, so only a rallyRev 6 demo plays (arcade-tuning-g1-check). This flips back to "not invalidated" (and the
 // guard comes out of introDemo.functions.ts) once Rally's demo is re-recorded on rallyRev 6.
-eq(demoGuard.includes('data.type === "rally" && demo?.puzzle.type === "rally" && demo.puzzle.rallyRev !== RALLY_REV_TALL) return null'), true, "rally demo stopped until re-recorded on rallyRev 6");
+eq(demoGuard.includes('data.type === "rally" && demo?.puzzle.type === "rally" && demo.puzzle.rallyRev !== RALLY_REV_DEEP) return null'), true, "rally demo stopped until re-recorded on rallyRev 9 (expansion E3)");
 console.log(`Six-game scoring: ${checks} formula/schedule/intro/reveal/demo checks passed (legacy rules and the Oct 2026 score bands); Bullseye anchors 100→150, 90→133, 70→99, 50→65; band 110→150, 72→70`);

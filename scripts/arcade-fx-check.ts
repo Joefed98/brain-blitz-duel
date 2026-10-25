@@ -57,7 +57,8 @@ const { hoverRev2Game } = await import("../src/lib/arcade/hover");
 const { breakerArtGameFor } = await import("../src/lib/arcade/breaker.renderer");
 const { pinballArtGame } = await import("../src/lib/arcade/pinball.renderer");
 const { rallyArtGame } = await import("../src/lib/arcade/rally.renderer");
-const { rallyRev2Game } = await import("../src/lib/arcade/rally");
+const { rallyGameFor, RALLY_REV_DEEP } = await import("../src/lib/arcade/rally");
+const { BRK_REV_DEEP } = await import("../src/lib/arcade/breaker");
 const { beatArtGame } = await import("../src/lib/arcade/beat.renderer");
 const { beatRev2Game } = await import("../src/lib/arcade/beat");
 const { snakeArtGame } = await import("../src/lib/arcade/snake.renderer");
@@ -109,8 +110,9 @@ const course = BALL_TRACK_BANK[0]!.course;
 const btGame = makeBallTrackGame(course, 2);
 const GAMES: Record<string, AnyGame> = {
   hover: { ...hoverArtGame, init: hoverRev2Game.init } as AnyGame,
-  breaker: breakerArtGameFor(2) as AnyGame,
-  rally: { ...rallyArtGame, init: rallyRev2Game.init } as AnyGame,
+  // Expansion E3: rooms deal brkRev 9 and rallyRev 9 (ARCADE_FX_SPECS lists their 420 × 784 specs).
+  breaker: breakerArtGameFor(BRK_REV_DEEP) as AnyGame,
+  rally: { ...rallyGameFor(RALLY_REV_DEEP), draw: rallyArtGame.draw } as AnyGame,
   beat: { ...beatArtGame, init: beatRev2Game.init } as AnyGame,
   snake: { ...snakeArtGame, init: snakeRev3Game.init } as AnyGame,
   burst: burstArtGameFor(2) as AnyGame,
@@ -249,23 +251,29 @@ const BUMPS: Record<string, ((s: any) => any)[]> = {
     (s) => ({ ...s, gates: 24 }),
     (s) => ({ ...s, gates: s.totalGates }),
   ],
+  // brkRev 9: a 9-column wall (gold bricks apart), then the gold-brick and combo moments.
   breaker: [
     (s) => ({ ...s, powerUps: s.powerUps + 1 }),
-    (s) => ({ ...s, bricks: s.bricks.map((b: number, i: number) => (i < 10 ? 0 : b)) }),
+    (s) => ({ ...s, bricks: s.bricks.map((b: number, i: number) => (i < 20 ? 0 : b)) }),
     (s) => ({ ...s, fireballs: (s.fireballs ?? 0) + 1, fire: 300 }),
-    (s) => ({ ...s, bricks: s.bricks.map((b: number, i: number) => (Math.trunc(i / 8) === (s.slide ?? [3])[0] && i % 8 === 0 ? 0 : b)) }),
+    (s) => ({ ...s, bricks: s.bricks.map((b: number, i: number) => (Math.trunc(i / 9) === (s.slide ?? [4])[0] && i % 9 === 0 ? 0 : b)) }),
     (s) => ({
       ...s,
-      bricks: s.bricks.map((b: number, i: number) => (i >= s.bricks.length - 8 ? 0 : b)),
+      bricks: s.bricks.map((b: number, i: number) => (i >= s.bricks.length - 9 ? 0 : b)),
     }),
     (s) => ({ ...s, cleared: true }),
+    (s) => ({ ...s, goldBroken: (s.goldBroken ?? 0) + 1 }),
+    (s) => ({ ...s, comboUps: (s.comboUps ?? 0) + 1, chain: 8 }),
   ],
+  // rallyRev 9: the every-tenth-return banner gives way to milestones; then spin targets and the twin ball.
   rally: [
-    (s) => ({ ...s, hits: s.hits + 10 }),
     (s) => ({ ...s, goldHits: s.goldHits + 1 }),
     (s) => ({ ...s, targetHits: (s.targetHits ?? 0) + 1, struckLeft: 60, struckTick: s.tick + 1 }),
     (s) => ({ ...s, bounces: (s.bounces ?? 0) + 1 }),
     (s) => ({ ...s, hits: s.hits + 1 }),
+    (s) => ({ ...s, milestones: (s.milestones ?? 0) + 1, streak: 10 }),
+    (s) => ({ ...s, spinHits: (s.spinHits ?? 0) + 1, struckLeft: 60 }),
+    (s) => ({ ...s, multiUsed: (s.multiUsed ?? 0) + 1 }),
   ],
   beat: [(s) => ({ ...s, combo: s.combo + 10 }), (s) => ({ ...s, swipesHit: (s.swipesHit ?? 0) + 1, lastLane: 2 }), (s) => ({ ...s, maxCombo: s.chart.ticks.length })],
   snake: [
