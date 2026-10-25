@@ -1,4 +1,5 @@
 import { SWING_REV_TALL } from "@/lib/arcade/swing";
+import { HOVER_REV_EXPAND } from "@/lib/arcade/hover";
 import { INK_REV3, INK_REV4, INK_REV_BAND, INK_REV_TUNEC } from "@/lib/arcade/inkBridge";
 import { CLAY_REV } from "@/lib/arcade/clayShoot";
 import { WORDFALL_REV } from "@/lib/arcade/wordfall";
@@ -99,6 +100,9 @@ export const getIntroDemoFn = createServerFn({ method: "GET" })
     if (data.type === "swing" && demo?.puzzle.type === "swing" && demo.puzzle.swingRev !== SWING_REV_TALL) return null;
     if (data.type === "orbit" && demo?.puzzle.type === "orbit" && demo.puzzle.orbitRev !== ORBIT_REV_TALL) return null;
     if (data.type === "balltrack" && demo?.puzzle.type === "balltrack" && demo.puzzle.btRev !== BT_REV_TALL) return null;
+    // Expansion E1 (25 Oct 2026): Hover's hoverRev 8 adds tight gates, star chains and shields in a 727 px world; an older
+    // demo would show none of them, so it stays stopped (the intro shows its still) until one is recorded on hoverRev 8.
+    if (data.type === "hover" && demo?.puzzle.type === "hover" && demo.puzzle.hoverRev !== HOVER_REV_EXPAND) return null;
     return demo;
   });
 

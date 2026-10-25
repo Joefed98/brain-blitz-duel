@@ -42,7 +42,7 @@ import {
 } from "@/lib/arcade/tilt";
 import { BUB_SPECIAL_BLOCK, BUB_TORPEDO_HITS, BUB_V3_JOKER_BLOCK } from "@/lib/arcade/bubble";
 import { MATCHUP_V3_PAR_RAW } from "@/lib/arcade/matchup";
-import { HOVER_REACHABLE_GATES, HOVER_STARS, HOVER_V2_GATES_SCORE, HOVER_V2_STARS_SCORE } from "@/lib/arcade/hover";
+import { HOVER_CHAIN_POINTS, HOVER_CHAINS, HOVER_REACHABLE_GATES, HOVER_STARS, HOVER_TIGHT_GATES, HOVER_TIGHT_POINTS, HOVER_V2_GATES_SCORE, HOVER_V2_STARS_SCORE } from "@/lib/arcade/hover";
 import { WAV_BOSS_HP } from "@/lib/arcade/wavefront";
 import { SNAKE_COLS, SNAKE_TALL_ROWS } from "@/lib/arcade/snake";
 import {
@@ -455,12 +455,17 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Tap to hover up;", detail: "let go to drop." },
         { action: "Touch gold stars", detail: "in tight gaps for a bonus." },
         { action: "Later barriers", detail: "have two gaps, or slide." },
+        { action: "Thread a gold-rimmed tight gate", detail: "or sweep a whole star chain for a bonus." },
+        { action: "Grab a shield bubble:", detail: "it takes one crash for you." },
         { action: "Hit anything", detail: "and the run ends. Gold stars sit near the edge of a gap, so they are risky.", helpOnly: true },
         { action: "Two-gap barriers:", detail: "fly through either gap. Sliding barriers move slowly and steadily up and down.", helpOnly: true },
         { action: "Taller sky:", detail: "the flight area fills your screen, and gaps sit anywhere from near the top to near the bottom. The faint stars behind are scenery only.", helpOnly: true },
+        { action: "Tight gates:", detail: `${HOVER_TIGHT_GATES} barriers have a second, narrow gap with gold rims. Flying through it scores ${HOVER_TIGHT_POINTS}.`, helpOnly: true },
+        { action: "Star chains:", detail: `${HOVER_CHAINS} arcs of stars float between barriers, each one flap long. Collect every star of a chain for ${HOVER_CHAIN_POINTS}.`, helpOnly: true },
+        { action: "Shields:", detail: "a bubble you hold until you crash. It breaks instead of your saucer, and you fly on, untouchable for a moment.", helpOnly: true },
         { action: "Everyone flies", detail: `the same course for sixty seconds: ${HOVER_REACHABLE_GATES} barriers in a clean run and ${HOVER_STARS} gold stars.`, helpOnly: true },
       ],
-      score: liveBandHelp("hover", `Each of the ${HOVER_REACHABLE_GATES} barriers counts 3 and each gold star 2.`, { more: "More barriers and stars", good: (u) => `counts ${u} – about ${Math.round(u / 3)} barriers`, finish: "Lasting the minute adds 10." }),
+      score: liveBandHelp("hover", `Each of the ${HOVER_REACHABLE_GATES} barriers counts 3 and each gold star 2.`, { more: "More barriers and stars", good: (u) => `counts ${u} – about ${Math.round(u / 3)} barriers`, finish: `Lasting the minute adds 10. Tight gates and full star chains add up to ${HOVER_TIGHT_GATES * HOVER_TIGHT_POINTS + HOVER_CHAINS * HOVER_CHAIN_POINTS} more.` }),
     },
     swerve: {
       goal: "Collect coins while dodging the blocks.",

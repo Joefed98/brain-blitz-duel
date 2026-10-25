@@ -280,6 +280,14 @@ export function hoverSounds(): GameSounds<HoverState> {
           if (state.gates > prev.gates) sfx("hover.gate", "arc_retro_note");
           // hoverRev 2: a gold star collected.
           if ((state.stars ?? 0) > (prev.stars ?? 0)) sfx("hover.star", "arc_retro_coin", 0.8);
+          // hoverRev 8: a chain star (a quieter coin), a whole chain or a tight gate (the coin, full), a shield picked up
+          // and a shield breaking in place of a crash. Existing cues only.
+          if (state.xp) {
+            if ((state.chainsDone ?? 0) > (prev.chainsDone ?? 0) || (state.tight ?? 0) > (prev.tight ?? 0)) sfx("hover.star", "arc_retro_coin", 1, 1.25);
+            else if ((state.chainHits?.length ?? 0) > (prev.chainHits?.length ?? 0)) sfx("hover.star", "arc_retro_coin", 0.5, 1.12);
+            if ((state.pickupsTaken?.length ?? 0) > (prev.pickupsTaken?.length ?? 0)) sfx("hover.star", "arc_retro_pickup", 0.8);
+            if ((state.shieldBreaks ?? 0) > (prev.shieldBreaks ?? 0)) sfx("burst.shieldBreak", "arc_retro_hit", 0.9);
+          }
           // hoverRev 2: the first two-gap and the first moving barrier scroll into view.
           if (state.rev) {
             const onScreen = (p: HoverPillar | undefined, distance: number) => !!p && p.x0 - distance <= HOVER_WORLD_W * 256;

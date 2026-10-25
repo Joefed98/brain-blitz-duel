@@ -30,10 +30,36 @@ export interface HoverFixtureRun {
   checksums: number[];
 }
 
+/**
+ * A flawless player for the 200 proof: the near-perfect profile with no timing error, lag, slip
+ * or misjudgement, who goes for every star, tight gate, chain and shield.
+ */
+export class PerfectHuman extends Human {
+  readonly flawless = true;
+  constructor(seed: number) {
+    super("hover", seed, "near");
+  }
+  override chance(): boolean {
+    return true;
+  }
+  override slip(): boolean {
+    return false;
+  }
+  override timingTicks(): number {
+    return 0;
+  }
+  override lagTicks(): number {
+    return 0;
+  }
+  override normal(): number {
+    return 0;
+  }
+}
+
 /** Plays one bot run on a revision and returns its encoded answer (the phone's log, checkpoints and claim). */
-export function botRun(rev: number | null, level: (typeof LEVELS)[number], seed: number): string {
+export function botRun(rev: number | null, level: (typeof LEVELS)[number] | "perfect", seed: number): string {
   const game = hoverGameFor(rev);
-  const human = new Human("hover", seed, level);
+  const human = level === "perfect" ? new PerfectHuman(seed) : new Human("hover", seed, level);
   const out = bot({ game, seed, rev, human });
   const taps = new Set(out.taps ?? []);
   let state = game.init(seed);
