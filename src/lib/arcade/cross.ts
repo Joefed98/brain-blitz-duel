@@ -173,8 +173,8 @@ export const CROSS_X_COINS_PER_HALF = 2;
 export const CROSS_X_COIN_POINTS = 3;
 /** The streak multiplier: ×1 on the first crossing without a hit, then ×2, ×3, ×4 at most. */
 export const CROSS_X_MULT_MAX = 4;
-/** Each crossing without a hit adds this × (multiplier − 1) to the streak pool. */
-export const CROSS_X_STREAK_POINTS = 2;
+/** Each crossing without a hit adds this × (multiplier − 1) to the streak pool (1: ×2 pays 1, ×3 pays 2, ×4 pays 3). */
+export const CROSS_X_STREAK_POINTS = 1;
 /** Coins and the streak together add at most this. */
 export const CROSS_X_BONUS_MAX = 50;
 
@@ -1298,7 +1298,7 @@ export const CROSS_V7_BAND_CURVE = bandStrict(CROSS_BAND_CURVE);
  * per crossing, so a full crossing counts 16. Fitted (scripts/cross-expand-bands.ts) so each
  * simulated skill level's play scores what it did on crossRev 7, before any bonus.
  */
-export const CROSS_V8_BAND_CURVE = bandCurve([0, 40, 50, 58, 66, 74, 82], [0, 60, 72, 95, 120, 142, 150]);
+export const CROSS_V8_BAND_CURVE = bandCurve([0, 40, 50, 58, 66, 74, 82], [0, 57, 68, 89, 113, 136, 150]);
 
 /** crossRev 8's bonus: coins and the streak pool, at most CROSS_X_BONUS_MAX. */
 export function crossBonusOf(state: Pick<CrossState, "coinTotal" | "streakPts">): number {

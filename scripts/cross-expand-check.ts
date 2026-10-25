@@ -8,7 +8,7 @@
  *  3. Courses: 14 rows with the island at row 7, buses from crossing 2 and motorbikes from 3, four
  *     coins in the fastest lanes off the middle, every crossing proved passable (and fair on 1–2).
  *  4. Features: a coin is collected exactly when the walker stands on its cell; reaching the island
- *     banks it and a later hit in that crossing restarts there; the streak pays 2 × (multiplier − 1)
+ *     banks it and a later hit in that crossing restarts there; the streak pays 1 × (multiplier − 1)
  *     for each crossing without a hit (×1…×4) and a hit ends it; a scripted run collects a coin.
  *  5. Bounds: buses and motorbikes are drawn within 2 px of their collision boxes.
  *  6. Scores: never above 200; the play part never above 150, so 200 needs the full 50 bonus; the
