@@ -94,6 +94,9 @@ import {
 import {
   flipCrackTick,
   flipStarsTaken,
+  flipRunnerPoint,
+  flipTrailStars,
+  FLIP_V7_WORLD_H,
   FLIP_CRUMBLE_TICKS,
   FLIP_STARS,
   FLIP_WORLD_H,
@@ -102,6 +105,14 @@ import {
 } from "./flip";
 
 /** Rev 2: crumble tiles the runner touched that broke with it safely elsewhere. */
+/** flipRev 7: speed zones the run has entered (0 on every earlier round). */
+function flipZonesEntered(s: FlipState): number {
+  const z = s.v7?.zones;
+  if (!z || s.ended === 2) return 0;
+  let n = 0;
+  for (let i = 0; i < z.length; i += 2) if (s.tick > z[i]!) n += 1;
+  return n;
+}
 function flipEscapes(s: FlipState): number {
   if (s.ended === 2) return 0;
   const cracks = s.cracks ?? [];
@@ -1070,9 +1081,23 @@ export const FLIP_FX: ArcadeFxSpec<FlipState> = {
       label: () => "ALL 10 STARS!",
     },
     { kind: "pop", count: flipEscapes, at: () => ({ x: 90, y: FLIP_WORLD_H / 2 + 30 }), label: () => "JUST IN TIME!" },
+    // flipRev 7 only (every earlier round keeps these counters at 0).
+    { kind: "pop", count: (s) => flipTrailStars(s).stars, at: (s) => flipRunnerPoint(s), label: () => null },
+    { kind: "perfect", count: (s) => flipTrailStars(s).full, at: (s) => flipRunnerPoint(s), label: () => "STAR TRAIL!" },
+    {
+      kind: "combo",
+      count: (s) => s.combos ?? 0,
+      at: (s) => flipRunnerPoint(s),
+      label: (s) => ((s.chain ?? 0) <= 1 ? "DOUBLE FLIP!" : (s.chain ?? 0) === 2 ? "TRIPLE FLIP!" : `FLIP ×${(s.chain ?? 0) + 1}`),
+    },
+    { kind: "streak", count: (s) => s.cpPassed ?? 0, label: () => "CHECKPOINT" },
+    { kind: "pop", count: (s) => s.saves ?? 0, at: (s) => flipRunnerPoint(s), label: () => "SAVED!" },
+    { kind: "streak", count: flipZonesEntered, label: () => "SPEED ZONE!" },
   ],
   misses: [{ count: (s) => (s.ended === 2 ? 1 : 0) }],
 };
+/** Rev 7's taller cave draws its effects on the 730 px world. */
+export const flipFxFor = (s: FlipState): ArcadeFxSpec<FlipState> => (s.exp ? fxSpecAt(FLIP_FX, FLIP_V7_WORLD_H) : FLIP_FX);
 
 export const SWING_FX: ArcadeFxSpec<SwingState> = {
   game: "swing",

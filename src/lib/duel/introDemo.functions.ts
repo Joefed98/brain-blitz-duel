@@ -9,6 +9,7 @@ import { BURST_REV_TALL } from "@/lib/arcade/burst";
 import { BEAT_REV_TALL } from "@/lib/arcade/beat";
 import { SLICE_REV_TALL } from "@/lib/arcade/slice";
 import { BUB_REV_TALL } from "@/lib/arcade/bubble";
+import { FLIP_REV_EXPAND } from "@/lib/arcade/flip";
 import { chainDemoCompatible } from "./chain";
 import { STRIKEOUT_REV4 } from "./strikeout";
 import { createServerFn } from "@tanstack/react-start";
@@ -98,6 +99,10 @@ export const getIntroDemoFn = createServerFn({ method: "GET" })
     // until one is recorded on its tall revision.
     if (data.type === "swing" && demo?.puzzle.type === "swing" && demo.puzzle.swingRev !== SWING_REV_TALL) return null;
     if (data.type === "orbit" && demo?.puzzle.type === "orbit" && demo.puzzle.orbitRev !== ORBIT_REV_TALL) return null;
+    // flipRev 7 (the expansion, 25 Oct 2026): a taller cave whose height changes, moving spikes, trails, checkpoints
+    // and speed zones. An older demo would show the short corridor (and none of them), so Roofbound's stays stopped
+    // until one is recorded on rev 7.
+    if (data.type === "flip" && demo?.puzzle.type === "flip" && demo.puzzle.flipRev !== FLIP_REV_EXPAND) return null;
     if (data.type === "balltrack" && demo?.puzzle.type === "balltrack" && demo.puzzle.btRev !== BT_REV_TALL) return null;
     return demo;
   });

@@ -12,7 +12,7 @@ import { bandHelp, type BandCurve, type BandHelpWords } from "./scoreBands";
 import { roundMaxFor } from "../duel/roundMax";
 import { BT_REV_STRICT, BT_V6_BAND_CURVE } from "./ballTrack";
 import { WAV_REV_STRICT, WAV_V8_BAND_CURVE } from "./wavefront";
-import { FLIP_REV_STRICT, FLIP_V6_BAND_CURVE } from "./flip";
+import { FLIP_REV_EXPAND, FLIP_V7_BAND_CURVE } from "./flip";
 import { INK_REV_STRICT, INK_V8_BAND_CURVE } from "./inkBridge";
 import { MATCHUP_REV_STRICT, MATCHUP_V8_BAND_CURVE } from "./matchup";
 import { BUB_REV_STRICT, BUB_V7_BAND_CURVE } from "./bubble";
@@ -45,7 +45,7 @@ export interface LiveBand {
 export const LIVE_BANDS = {
   balltrack: { field: "btRev", rev: BT_REV_STRICT, curve: BT_V6_BAND_CURVE },
   wavefront: { field: "wavRev", rev: WAV_REV_STRICT, curve: WAV_V8_BAND_CURVE },
-  flip: { field: "flipRev", rev: FLIP_REV_STRICT, curve: FLIP_V6_BAND_CURVE },
+  flip: { field: "flipRev", rev: FLIP_REV_EXPAND, curve: FLIP_V7_BAND_CURVE },
   inkbridge: { field: "inkRev", rev: INK_REV_STRICT, curve: INK_V8_BAND_CURVE },
   matchup: { field: "matchupRev", rev: MATCHUP_REV_STRICT, curve: MATCHUP_V8_BAND_CURVE },
   bubble: { field: "bubbleRev", rev: BUB_REV_STRICT, curve: BUB_V7_BAND_CURVE },

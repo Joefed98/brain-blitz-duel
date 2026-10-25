@@ -12,6 +12,13 @@
  * and flipping off in time. Gold stars: on first sight the player decides
  * whether to go for one; if a route over the known stretch takes it, they
  * plan for that, otherwise they let it go. Slips: a flip well off its moment.
+ *
+ * flipRev 7 (the expansion): the same player, on the course's own tick-by-tick x. Star
+ * trails are planned like stars (decided on first sight, kept only while a route takes all
+ * five; the window that takes them is narrow, so timing jitter costs trail stars). Double
+ * flips are tried after a landing next to a hazard (more often the better the player, after
+ * a short delay drawn per try) when a quick flip there keeps a route alive. Checkpoint saves
+ * and speed zones need nothing extra: the sim handles them.
  */
 import {
   FLIP_INPUT_TAP,
@@ -29,6 +36,10 @@ const VIEW_AHEAD = (FLIP_WORLD_W - 90) * FP;
 const HALF = FLIP_RUNNER_HALF_PX_V2 * FP;
 /** Chance of deciding to go for a star when it comes into view. */
 const STAR_TRY: Record<string, number> = { average: 0.5, good: 0.7, great: 0.85, near: 0.95 };
+/** Rev 7: chance of going for a star trail, and of trying a double flip after a landing near a hazard. */
+const TRAIL_TRY: Record<string, number> = { average: 0.35, good: 0.6, great: 0.8, near: 0.95 };
+const COMBO_TRY: Record<string, number> = { average: 0.1, good: 0.3, great: 0.55, near: 0.8 };
+const FULL_TRAIL = 31;
 const TAP = { k: FLIP_INPUT_TAP, a: 0, b: 0, c: 0, d: 0 };
 
 export const bot: SkillBot = ({ game, seed, human }) => {
@@ -47,6 +58,13 @@ export const bot: SkillBot = ({ game, seed, human }) => {
   /** When the plan's known stretch runs short, it is looked at again. */
   let replanAt = 0;
   let lastFlipT = 0;
+  const v7 = init.v7 ?? null;
+  const trails = v7?.trails ?? [];
+  const trailReady: number[] = [];
+  const trailWant: boolean[] = [];
+  /** Rev 7: the tick a double flip is tried at, after a landing. */
+  let comboAt: number | null = null;
+  const stepX = (tick: number) => (v7 ? v7.xs[tick]! - v7.xs[tick - 1]! : flipSpeed(tick));
 
   /**
    * Exact feasibility over the known stretch: from state s (tick t-1), layer k holds the
@@ -58,7 +76,10 @@ export const bot: SkillBot = ({ game, seed, human }) => {
     t: number,
     H: number,
     star: number,
-  ): { idle: boolean; win: [number, number] | null } => {
+    trail = -1,
+  ): { idle: boolean; win: [number, number] | null; alive: boolean } => {
+    const goal = (st: FlipState) =>
+      (star < 0 || ((st.got ?? 0) & (1 << star)) !== 0) && (trail < 0 || (st.trailGot?.[trail] ?? 0) === FULL_TRAIL);
     type Node = { s: FlipState; kids: [number, number] };
     const layers: Node[][] = [[{ s, kids: [-1, -1] }]];
     for (let k = 0; k < H; k++) {
@@ -69,9 +90,11 @@ export const bot: SkillBot = ({ game, seed, human }) => {
         for (const tap of [0, 1]) {
           if (tap && node.s.flipT !== 0) continue;
           const ns = game.step(node.s, tap ? { ...TAP, t: t + k } : null) as FlipState;
-          if (ns.ended === 2) continue;
+          // Rev 7: a checkpoint's save is a crash too (the player never plans one).
+          if (ns.ended === 2 || (ns.saves ?? 0) > (s.saves ?? 0)) continue;
           const c = ns.cracks ?? [];
-          const key = `${ns.side}:${ns.flipT}:${c.at(-2)}:${c.at(-1)}:${star >= 0 ? (ns.got ?? 0) & (1 << star) : 0}:${ns.ended}`;
+          const key = `${ns.side}:${ns.flipT}:${c.at(-2)}:${c.at(-1)}:${star >= 0 ? (ns.got ?? 0) & (1 << star) : 0}:${ns.ended}` +
+            (v7 ? `:${ns.arcN}:${trail >= 0 ? ns.trailGot![trail] : 0}:${ns.inv}:${ns.save}` : "");
           let at = idx.get(key);
           if (at === undefined) {
             at = next.length;
@@ -92,7 +115,7 @@ export const bot: SkillBot = ({ game, seed, human }) => {
           node.s.ended === 1 ||
           (k === layers.length - 1 &&
             layers.length === H + 1 &&
-            (star < 0 || ((node.s.got ?? 0) & (1 << star)) !== 0));
+            goal(node.s));
         alive[k]![i] = ok || node.kids.some((c) => c >= 0 && alive[k + 1]![c]!);
       });
     }
@@ -124,7 +147,7 @@ export const bot: SkillBot = ({ game, seed, human }) => {
       }
       ci = n;
     }
-    return { idle, win };
+    return { idle, win, alive: alive[0]![0] ?? false };
   };
 
   return driveEvents(
@@ -146,7 +169,12 @@ export const bot: SkillBot = ({ game, seed, human }) => {
         starReady.push(t + human.reactTicks());
         starWant.push(human.chance(STAR_TRY[level]!));
       }
+      for (let i = trailReady.length; i < trails.length && trails[i]!.launch <= edge; i++) {
+        trailReady.push(t + human.reactTicks());
+        trailWant.push(human.chance(TRAIL_TRY[level]!));
+      }
       for (let i = 0; i < segReady.length; i++) if (segReady[i] === t) dirty = true;
+      if (v7 && s.flipT === 0 && lastFlipT > 0 && human.chance(COMBO_TRY[level]!)) comboAt = t + human.int(1, 6);
       if ((s.flipT === 0 && lastFlipT > 0) || t >= replanAt) dirty = true;
       lastFlipT = s.flipT;
 
@@ -166,10 +194,10 @@ export const bot: SkillBot = ({ game, seed, human }) => {
         while (
           H < 120 &&
           s.tick + H < FLIP_RUN_TICKS &&
-          x + flipSpeed(s.tick + H + 1) + HALF < known
+          x + stepX(s.tick + H + 1) + HALF < known
         ) {
           H++;
-          x += flipSpeed(s.tick + H);
+          x += stepX(s.tick + H);
         }
         // The next wanted star (processed, ahead, not taken) inside the known stretch.
         let star = -1;
@@ -179,8 +207,20 @@ export const bot: SkillBot = ({ game, seed, human }) => {
           if (stars[i]!.x <= known) star = i;
           break;
         }
+        // Rev 7: the next wanted trail (processed, not passed, its stars inside the known stretch).
+        let trail = -1;
+        for (let i = 0; i < trails.length; i++) {
+          if (!trailWant[i] || (trailReady[i] ?? Infinity) > t || s.tick > trails[i]!.t1) continue;
+          if ((s.trailGot?.[i] ?? 0) === FULL_TRAIL) continue;
+          if (trails[i]!.x[4]! + HALF <= known) trail = i;
+          break;
+        }
         replanAt = t + Math.max(4, Math.floor(H / 3));
-        let plan = solve(s, t, H, star);
+        let plan = solve(s, t, H, star, trail);
+        if (trail >= 0 && !plan.idle && !plan.win) {
+          trailWant[trail] = false;
+          plan = solve(s, t, H, star);
+        }
         if (star >= 0 && !plan.idle && !plan.win) {
           starWant[star] = false;
           plan = solve(s, t, H, -1);
@@ -189,6 +229,27 @@ export const bot: SkillBot = ({ game, seed, human }) => {
         if (!plan.idle && !plan.win) window = null;
       }
 
+      // Rev 7 double flip: a quick flip after landing, if one here counts and keeps a route alive.
+      if (v7 && comboAt !== null && t >= comboAt) {
+        const at = comboAt;
+        comboAt = null;
+        if (pending === null && s.flipT === 0 && t <= at + 1) {
+          const next = game.step(s, { ...TAP, t }) as FlipState;
+          if (next.ended !== 2 && (next.combos ?? 0) > (s.combos ?? 0)) {
+            let H = 0;
+            let x = next.x;
+            while (H < 60 && next.tick + H < FLIP_RUN_TICKS && x + stepX(next.tick + H + 1) + HALF < s.x + VIEW_AHEAD) {
+              H++;
+              x += stepX(next.tick + H);
+            }
+            if (solve(next, t + 1, H, -1).alive) {
+              window = null;
+              dirty = true;
+              return TAP;
+            }
+          }
+        }
+      }
       if (pending === null && window && s.flipT === 0) {
         const a = Math.max(window[0], t);
         const b = window[1];

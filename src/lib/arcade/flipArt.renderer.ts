@@ -1,13 +1,14 @@
 import { successFrame, SUCCESS_ACCENTS } from "./success.renderer";
 import { arcadeReducedEffects } from "@/lib/fx/lowEnd";
 import { arcadeFx } from "./arcadeFx.renderer";
-import { FLIP_FX } from "./arcadeFxGames.renderer";
+import { flipFxFor } from "./arcadeFxGames.renderer";
 /** Lava-tube artwork only. Never mutates the simulation or changes its geometry. */
 import type { CanvasSize } from "./engine";
 import {
   flipCrackTick, flipGame, flipSpeed, flipGameFor, flipWarpAt, FLIP_ARC_TICKS, FLIP_CEIL_Y, FLIP_CRUMBLE, FLIP_CRUMBLE_TICKS,
   FLIP_FLOOR_Y, FLIP_GAP, FLIP_RED, FLIP_REV, FLIP_RUNNER_H_PX, FLIP_RUNNER_H_PX_V2, FLIP_RUNNER_HALF_PX,
   FLIP_RUNNER_HALF_PX_V2, FLIP_SPIKE, FLIP_STAR_R, FLIP_WORLD_H, FLIP_WORLD_W,
+  FLIP_V7_CHECKPOINTS, FLIP_V7_TRAIL_STARS, FLIP_V7_WORLD_H, flipWorldHFor, flipRunnerBaseY, flipSegShift, flipSurfaceBase, flipV7InZone, flipWorldH,
   type FlipSeg, type FlipState,
 } from "./flip";
 import { flipSurfaceLine } from "./flip.renderer";
@@ -66,12 +67,9 @@ export function flipPoolSink(ctx: CanvasRenderingContext2D, state: FlipState, st
   return Math.max(0, Math.min(1, (now - frame.startedAt) / SINK_MS));
 }
 
-function runnerY(side: number, flipT: number, lift = 14): number {
-  const target = side === 0 ? FLIP_FLOOR_Y - lift : FLIP_CEIL_Y + lift;
-  if (flipT <= 0) return target;
-  const from = side === 0 ? FLIP_CEIL_Y + lift : FLIP_FLOOR_Y - lift;
-  const f = 1 - Math.min(FLIP_ARC_TICKS, flipT) / FLIP_ARC_TICKS;
-  return from + (target - from) * f * f * (3 - 2 * f);
+/** The runner's drawn y before the bend (flipRunnerBaseY: the fixed corridor, or rev 7's cave at the runner). */
+function runnerY(state: FlipState, side: number, flipT: number, lift = 14): number {
+  return flipRunnerBaseY(state, side, flipT, lift);
 }
 
 /** Reverse sampling closes curved regions without a diagonal across the band. */
@@ -80,6 +78,8 @@ function reverseLine(ctx: CanvasRenderingContext2D, at: Surface, a: number, b: n
   for (let x = Math.floor(b / 3) * 3; x > a; x -= 3) ctx.lineTo(x, at(x));
   ctx.lineTo(a, at(a));
 }
+/** The world's height this frame (rev 7's taller cave, else the original 620). */
+let worldH = FLIP_WORLD_H;
 function bandPath(ctx: CanvasRenderingContext2D, ceilAt: Surface, floorAt: Surface): void {
   ctx.beginPath();
   flipSurfaceLine(ctx, ceilAt, 0, FLIP_WORLD_W);
@@ -88,7 +88,7 @@ function bandPath(ctx: CanvasRenderingContext2D, ceilAt: Surface, floorAt: Surfa
 }
 /** Background decoration and rail glow are clipped to rock, never the tunnel. */
 function rockPath(ctx: CanvasRenderingContext2D, side: number, at: Surface): void {
-  const edge = side === 0 ? FLIP_WORLD_H : 0;
+  const edge = side === 0 ? worldH : 0;
   ctx.beginPath();
   ctx.moveTo(0, edge);
   ctx.lineTo(FLIP_WORLD_W, edge);
@@ -217,23 +217,33 @@ function drawCave(ctx: CanvasRenderingContext2D, state: FlipState, side: number,
   rockPath(ctx, side, at);
   ctx.clip();
   const tile = rockTile(ctx);
-  const edge = side === 0 ? FLIP_FLOOR_Y - 24 : FLIP_CEIL_Y + 24;
+  const tall = Boolean(state.exp);
+  // Rev 7's taller cave: the rock edge follows the cave's height at the runner and the tile repeats
+  // outwards (deeper, darker rock first underneath) so the rock reaches the world's edge.
+  const edge = side === 0 ? flipSurfaceBase(state, 0, state.x) - 24 - (tall ? 145 : 0) : flipSurfaceBase(state, 1, state.x) + 24 + (tall ? 145 : 0);
   if (tile) {
+    if (tall) {
+      ctx.fillStyle = "#111115";
+      ctx.fillRect(0, 0, FLIP_WORLD_W, worldH);
+    }
     const off = (still ? 0 : cam * 0.4) % ROCK_TILE_W;
+    const rows = tall ? 2 : 1;
     for (let x = -off; x < FLIP_WORLD_W; x += ROCK_TILE_W) {
-      if (side === 0) ctx.drawImage(tile as CanvasImageSource, x, edge, ROCK_TILE_W, ROCK_TILE_H);
-      else {
-        ctx.save();
-        ctx.translate(0, edge);
-        ctx.scale(1, -1);
-        ctx.drawImage(tile as CanvasImageSource, x + ROCK_TILE_W * 0.37, 0, ROCK_TILE_W, ROCK_TILE_H);
-        ctx.drawImage(tile as CanvasImageSource, x + ROCK_TILE_W * 0.37 - ROCK_TILE_W, 0, ROCK_TILE_W, ROCK_TILE_H);
-        ctx.restore();
+      for (let r = 0; r < rows; r++) {
+        if (side === 0) ctx.drawImage(tile as CanvasImageSource, x, edge + r * ROCK_TILE_H, ROCK_TILE_W, ROCK_TILE_H);
+        else {
+          ctx.save();
+          ctx.translate(0, edge - r * ROCK_TILE_H);
+          ctx.scale(1, -1);
+          ctx.drawImage(tile as CanvasImageSource, x + ROCK_TILE_W * 0.37, 0, ROCK_TILE_W, ROCK_TILE_H);
+          ctx.drawImage(tile as CanvasImageSource, x + ROCK_TILE_W * 0.37 - ROCK_TILE_W, 0, ROCK_TILE_W, ROCK_TILE_H);
+          ctx.restore();
+        }
       }
     }
   } else {
     ctx.fillStyle = MATERIAL.basalt;
-    ctx.fillRect(0, 0, FLIP_WORLD_W, FLIP_WORLD_H);
+    ctx.fillRect(0, 0, FLIP_WORLD_W, worldH);
   }
   // Reduced effects (lib/fx/lowEnd.ts, slow devices only): the rock wall keeps its tiled texture;
   // the near outcrops, lava spouts and drifting dust behind the action are skipped.
@@ -494,7 +504,7 @@ export function drawRunnerHero(ctx: CanvasRenderingContext2D, state: FlipState, 
   // World velocity (px a tick): the run to the right, plus the flip's arc between surfaces.
   const lift = runnerBox(state).h / 2;
   const vx = dead ? 0 : flipSpeed(state.tick) / FP;
-  const vy = dead || state.flipT <= 0 ? 0 : runnerY(state.side, state.flipT - 1, lift) - runnerY(state.side, state.flipT, lift);
+  const vy = dead || state.flipT <= 0 ? 0 : runnerY(state, state.side, state.flipT - 1, lift) - runnerY(state, state.side, state.flipT, lift);
   const cos = Math.cos(angle);
   const sin = Math.sin(angle);
   h.moveX = vx * cos + vy * sin;
@@ -618,17 +628,19 @@ function drawCrumble(ctx: CanvasRenderingContext2D, state: FlipState, index: num
  * Polish A4: a far city skyline rising from below the floor between the roofs, very dark and
  * slow (a sixth of the run's speed), with a few warm windows lit. Seeded by building index.
  */
-function drawFarCity(ctx: CanvasRenderingContext2D, run: number): void {
+function drawFarCity(ctx: CanvasRenderingContext2D, run: number, floorY: (x: number) => number = () => FLIP_FLOOR_Y, count = 1): void {
   const par = run / 6;
   const stride = 34;
   const k0 = Math.floor(par / stride) - 1;
   for (let k = k0; k < k0 + Math.ceil(FLIP_WORLD_W / stride) + 3; k++) {
-    const h = artHash(k, 1709);
-    const x = k * stride - par;
+    for (let row = 0; row < count; row++) {
+    const h = artHash(k + row * 7919, 1709);
+    const x = k * stride - par + row * (stride / 2);
     const w = stride - 4 - (h % 8);
-    const top = FLIP_FLOOR_Y - 60 - (h >>> 5) % 110;
-    ctx.fillStyle = h % 3 === 0 ? "rgba(6,6,9,0.48)" : "rgba(9,9,13,0.42)";
-    ctx.fillRect(x, top, w, FLIP_FLOOR_Y + 40 - top);
+    const base = floorY(x + w / 2);
+    const top = base - 60 - (h >>> 5) % (110 + row * 60) - row * 40;
+    ctx.fillStyle = row ? "rgba(5,5,8,0.36)" : h % 3 === 0 ? "rgba(6,6,9,0.48)" : "rgba(9,9,13,0.42)";
+    ctx.fillRect(x, top, w, base + 40 - top);
     if (h % 5 === 0) ctx.fillRect(x + w * 0.4, top - 10, 2, 10);
     // Two or three lit windows a building, the rest dark.
     for (let n = 0; n < 3; n++) {
@@ -636,21 +648,23 @@ function drawFarCity(ctx: CanvasRenderingContext2D, run: number): void {
       if (wh % 3 === 0) continue;
       const wx = x + 4 + (wh % Math.max(1, w - 8));
       const wy = top + 8 + ((wh >>> 7) % 9) * 9;
-      if (wy > FLIP_FLOOR_Y - 6) continue;
+      if (wy > base - 6) continue;
       ctx.fillStyle = wh % 4 === 0 ? "rgba(255,190,110,0.5)" : "rgba(255,214,150,0.32)";
       ctx.fillRect(Math.round(wx), Math.round(wy), 2, 3);
+    }
     }
   }
 }
 
 /** Polish A4: embers drifting slowly up through the tunnel, each with a faint glow; still under reduced motion. */
-function drawTunnelEmbers(ctx: CanvasRenderingContext2D, tick: number, still: boolean): void {
+function drawTunnelEmbers(ctx: CanvasRenderingContext2D, tick: number, still: boolean,
+  floorY: (x: number) => number = () => FLIP_FLOOR_Y, ceilY: (x: number) => number = () => FLIP_CEIL_Y): void {
   for (let k = 0; k < 14; k++) {
     const h = artHash(k, 2203);
     const life = 240 + (h % 160);
     const age = still ? (h >>> 3) % life : (tick + (h % life)) % life;
     const x = ((((h >>> 6) % FLIP_WORLD_W) - age * 0.25) % FLIP_WORLD_W + FLIP_WORLD_W) % FLIP_WORLD_W + (still ? 0 : Math.sin((tick + k * 37) / 40) * 6);
-    const y = FLIP_FLOOR_Y - 6 - age * ((FLIP_FLOOR_Y - FLIP_CEIL_Y) / life);
+    const y = floorY(x) - 6 - age * ((floorY(x) - ceilY(x)) / life);
     const fade = Math.sin((age / life) * Math.PI);
     ctx.globalAlpha = fade * 0.3;
     ctx.fillStyle = "#FF6A2A";
@@ -666,12 +680,14 @@ function drawTunnelEmbers(ctx: CanvasRenderingContext2D, tick: number, still: bo
 
 /** The game's drawing through the shared success layer (presentation only). */
 export function drawFlipArt(ctx: CanvasRenderingContext2D, state: FlipState, size: CanvasSize): void {
-  arcadeFx(ctx, FLIP_FX, state, () => drawFlipArtWorld(ctx, state, size), size);
+  arcadeFx(ctx, flipFxFor(state), state, () => drawFlipArtWorld(ctx, state, size), size);
 }
 
 function drawFlipArtWorld(ctx: CanvasRenderingContext2D, state: FlipState, size: CanvasSize): void {
   const still = reducedMotion();
   const pulse = still ? 0.5 : 0.5 + 0.5 * Math.sin(state.tick / 10);
+  worldH = flipWorldH(state);
+  const FLIP_WORLD_H = worldH;
   const scale = Math.min(size.width / FLIP_WORLD_W, size.height / FLIP_WORLD_H);
   ctx.save();
   ctx.clearRect(0, 0, size.width, size.height);
@@ -684,18 +700,21 @@ function drawFlipArtWorld(ctx: CanvasRenderingContext2D, state: FlipState, size:
   ctx.textBaseline = "top";
   ctx.textAlign = "left";
   ctx.fillText(`${flipGame.score(state)}`, 14, 14);
+  if (state.exp) drawSaveBadge(ctx, state, 14 + ctx.measureText(`${flipGame.score(state)}`).width + 10, 14);
   ctx.beginPath();
   ctx.rect(0, 0, FLIP_WORLD_W, FLIP_WORLD_H);
   ctx.clip();
   const toScreen = (wx: number) => RUNNER_X + (wx - state.x) / FP;
   const toWorld = (x: number) => state.x + (x - RUNNER_X) * FP;
-  const floorAt = (x: number) => FLIP_FLOOR_Y + flipWarpAt(state, 0, toWorld(x));
-  const ceilAt = (x: number) => FLIP_CEIL_Y + flipWarpAt(state, 1, toWorld(x));
+  const floorBase = (x: number) => flipSurfaceBase(state, 0, toWorld(x));
+  const ceilBase = (x: number) => flipSurfaceBase(state, 1, toWorld(x));
+  const floorAt = (x: number) => floorBase(x) + flipWarpAt(state, 0, toWorld(x));
+  const ceilAt = (x: number) => ceilBase(x) + flipWarpAt(state, 1, toWorld(x));
   drawCave(ctx, state, 0, floorAt, still);
   drawCave(ctx, state, 1, ceilAt, still);
   bandPath(ctx, ceilAt, floorAt);
   // Polish G: the tunnel air is darkest in the middle and warmed by the lava rails at both edges.
-  const air = ctx.createLinearGradient(0, FLIP_CEIL_Y - 30, 0, FLIP_FLOOR_Y + 30);
+  const air = ctx.createLinearGradient(0, ceilBase(RUNNER_X) - 30, 0, floorBase(RUNNER_X) + 30);
   air.addColorStop(0, "#2A1714");
   air.addColorStop(0.18, "#161518");
   air.addColorStop(0.5, MATERIAL.tunnel);
@@ -709,10 +728,12 @@ function drawFlipArtWorld(ctx: CanvasRenderingContext2D, state: FlipState, size:
     ctx.save();
     bandPath(ctx, ceilAt, floorAt);
     ctx.clip();
-    drawFarCity(ctx, still ? 0 : state.x / FP);
-    drawTunnelEmbers(ctx, state.tick, still);
+    drawFarCity(ctx, still ? 0 : state.x / FP, floorBase, state.exp ? 2 : 1);
+    drawTunnelEmbers(ctx, state.tick, still, floorBase, ceilBase);
     ctx.restore();
   }
+  // Rev 7: speed zones light the tunnel air and the rails rush past.
+  if (state.exp) drawSpeedZones(ctx, state, toScreen, ceilAt, floorAt, still);
 
   for (const [side, at] of [[0, floorAt], [1, ceilAt]] as const) {
     const rail = () => {
@@ -760,7 +781,7 @@ function drawFlipArtWorld(ctx: CanvasRenderingContext2D, state: FlipState, size:
     ctx.stroke();
   }
 
-  const y = runnerY(state.side, state.flipT, runnerBox(state).h / 2) + state.warpY;
+  const y = runnerY(state, state.side, state.flipT, runnerBox(state).h / 2) + state.warpY;
   const sink = flipPoolSink(ctx, state, still);
   // Headlamp and tiny flip sparks are non-colliding light, behind solid objects.
   ctx.save();
@@ -786,7 +807,7 @@ function drawFlipArtWorld(ctx: CanvasRenderingContext2D, state: FlipState, size:
     for (let k = 1; k <= 6; k++) {
       ctx.globalAlpha = 0.45 * (1 - k / 7);
       ctx.fillStyle = MATERIAL.hot;
-      const previousY = runnerY(state.side, Math.min(FLIP_ARC_TICKS, state.flipT + k), runnerBox(state).h / 2) + state.warpY;
+      const previousY = runnerY(state, state.side, Math.min(state.exp ? state.arcN || FLIP_ARC_TICKS : FLIP_ARC_TICKS, state.flipT + k), runnerBox(state).h / 2) + state.warpY;
       ctx.fillRect(RUNNER_X - 7 - k * 3, previousY + (k % 3 - 1) * 2, 1.3, 1.3);
     }
   }
@@ -796,10 +817,19 @@ function drawFlipArtWorld(ctx: CanvasRenderingContext2D, state: FlipState, size:
     if (!seg) continue;
     const a = toScreen(seg.x0);
     const b = toScreen(seg.x1);
-    if (a > FLIP_WORLD_W) break;
-    if (b < 0) continue;
+    // Rev 7's moving spikes reach up to 70 px either side of their place, so the scan runs that much past the edge.
+    if (a > FLIP_WORLD_W + (state.exp ? 72 : 0)) break;
+    if (a > FLIP_WORLD_W && !seg.amp) continue;
+    if (b + (seg.amp ?? 0) / FP < 0) continue;
     const inward = seg.side === 0 ? -1 : 1;
     const at = seg.side === 0 ? floorAt : ceilAt;
+    if (seg.amp) {
+      // Rev 7 moving spike: its groove (the stretch it slides along) under the rock, then the spike where the sim has it.
+      const shift = flipSegShift(seg, state.tick) / FP;
+      drawSlideGroove(ctx, a - seg.amp / FP, b + seg.amp / FP, inward, at, pulse);
+      drawRockObstacle(ctx, a + shift, b + shift, inward, at, SPIKE_HEIGHT, seg.x0 ^ state.warpFloor, pulse);
+      continue;
+    }
     if (seg.kind === FLIP_CRUMBLE) drawCrumble(ctx, state, i, seg, a, b, inward, at, still);
     else if (seg.kind === FLIP_GAP) drawFlipPool(ctx, a, b, inward, at, still ? 0 : state.tick / 60, seg.x0);
     else drawRockObstacle(ctx, a, b, inward, at, seg.kind === FLIP_SPIKE ? SPIKE_HEIGHT : OVERHANG_DEPTH, seg.x0 ^ state.warpFloor, pulse);
@@ -815,12 +845,260 @@ function drawFlipArtWorld(ctx: CanvasRenderingContext2D, state: FlipState, size:
       drawStar(ctx, x, surface, state.tick, still);
     });
   }
+  // Rev 7: checkpoint gates and the star trails (light and pickups only; nothing here collides).
+  if (state.exp) {
+    drawCheckpoints(ctx, state, toScreen, ceilAt, floorAt, pulse, still);
+    drawTrails(ctx, state, toScreen, ceilAt, floorAt, still);
+  }
   ctx.save();
   // Pool deaths sink behind the opening; no new player or hazard geometry.
   if (sink !== null) { bandPath(ctx, ceilAt, floorAt); ctx.clip(); }
   drawRunnerHero(ctx, state, y, still, sink);
-  successFrame(ctx,{id:'flip',tick:state.tick,count:0,eventTick:state.flipT>0?state.tick-(FLIP_ARC_TICKS-state.flipT):0,enabled:state.ended===0,colour:MATERIAL.hot,width:FLIP_WORLD_W,height:FLIP_WORLD_H,point:{x:RUNNER_X,y:y+(state.side===0?-1:1)*runnerBox(state).h/2,shape:'pixel'}});
+  if (state.exp && (state.inv ?? 0) > 0 && state.ended === 0) drawShield(ctx, state, y, still);
+  successFrame(ctx,{id:'flip',tick:state.tick,count:0,eventTick:state.flipT>0?state.tick-((state.exp?state.arcN||FLIP_ARC_TICKS:FLIP_ARC_TICKS)-state.flipT):0,enabled:state.ended===0,colour:MATERIAL.hot,width:FLIP_WORLD_W,height:FLIP_WORLD_H,point:{x:RUNNER_X,y:y+(state.side===0?-1:1)*runnerBox(state).h/2,shape:'pixel'}});
   ctx.restore();
+  ctx.restore();
+}
+
+/* ====================== flipRev 7 features (art only) ====================== */
+
+/** The stretch a moving spike slides along: a faint hot groove in the rail with stops at both ends. */
+function drawSlideGroove(ctx: CanvasRenderingContext2D, a: number, b: number, inward: number, at: Surface, pulse: number): void {
+  if (b <= a) return;
+  ctx.save();
+  ctx.globalAlpha = 0.35 + pulse * 0.2;
+  ctx.strokeStyle = MATERIAL.hot;
+  ctx.lineWidth = 1.4;
+  ctx.setLineDash([5, 4]);
+  ctx.beginPath();
+  flipSurfaceLine(ctx, (x) => at(x) - inward * 4, a, b);
+  ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.globalAlpha = 0.8;
+  ctx.strokeStyle = MATERIAL.lava;
+  ctx.lineWidth = 2;
+  for (const x of [a, b]) {
+    ctx.beginPath();
+    ctx.moveTo(x, at(x) - inward * 1);
+    ctx.lineTo(x, at(x) - inward * 8);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+/** Speed zones: warm air and rushing light between the zone's two glowing gates. */
+function drawSpeedZones(ctx: CanvasRenderingContext2D, state: FlipState, toScreen: (wx: number) => number,
+  ceilAt: Surface, floorAt: Surface, still: boolean): void {
+  const v7 = state.v7;
+  if (!v7) return;
+  const z = v7.zones;
+  const live = flipV7InZone(v7, state.tick) && state.ended === 0;
+  ctx.save();
+  bandPath(ctx, ceilAt, floorAt);
+  ctx.clip();
+  for (let i = 0; i < z.length; i += 2) {
+    const xa = toScreen(v7.xs[z[i]!]!);
+    const xb = toScreen(v7.xs[z[i + 1]!]!);
+    if (xb < -20 || xa > FLIP_WORLD_W + 20) continue;
+    const a = Math.max(-4, xa);
+    const b = Math.min(FLIP_WORLD_W + 4, xb);
+    ctx.fillStyle = "rgba(255,170,70,0.07)";
+    ctx.fillRect(a, 0, b - a, worldH);
+    // Chevrons down the middle of the zone, fixed to the tunnel (so they rush past at the zone's speed).
+    ctx.strokeStyle = "rgba(255,214,150,0.32)";
+    ctx.lineWidth = 2;
+    const first = Math.ceil((a - xa) / 46) * 46 + xa;
+    for (let x = first; x < b; x += 46) {
+      const mid = (ceilAt(x) + floorAt(x)) / 2;
+      for (const dy of [-34, 34]) {
+        ctx.beginPath();
+        ctx.moveTo(x - 6, mid + dy - 8);
+        ctx.lineTo(x + 4, mid + dy);
+        ctx.lineTo(x - 6, mid + dy + 8);
+        ctx.stroke();
+      }
+    }
+    // The gates: a bright lava-gold line across the tunnel where the zone starts and ends.
+    for (const [x, strong] of [[xa, true], [xb, false]] as const) {
+      if (x < -6 || x > FLIP_WORLD_W + 6) continue;
+      const g = ctx.createLinearGradient(x - 6, 0, x + 6, 0);
+      g.addColorStop(0, "rgba(255,170,70,0)");
+      g.addColorStop(0.5, strong ? "rgba(255,214,150,0.55)" : "rgba(255,170,70,0.3)");
+      g.addColorStop(1, "rgba(255,170,70,0)");
+      ctx.fillStyle = g;
+      ctx.fillRect(x - 6, ceilAt(x) - 2, 12, floorAt(x) - ceilAt(x) + 4);
+    }
+  }
+  // Inside a zone: thin speed streaks through the air, faster than the scroll (skipped under reduced effects).
+  if (live && !arcadeReducedEffects()) {
+    for (let k = 0; k < 9; k++) {
+      const h = artHash(k, 3301);
+      const len = 30 + (h % 40);
+      const x = still ? h % FLIP_WORLD_W : FLIP_WORLD_W - ((state.tick * (11 + (h % 6)) + h) % (FLIP_WORLD_W + len));
+      const t = ((h >>> 8) % 100) / 100;
+      const y = ceilAt(x) + (floorAt(x) - ceilAt(x)) * (0.12 + t * 0.76);
+      ctx.strokeStyle = k % 3 ? "rgba(255,214,150,0.22)" : "rgba(255,240,200,0.35)";
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+      ctx.lineTo(x + len, y);
+      ctx.stroke();
+    }
+  }
+  ctx.restore();
+}
+
+/** Checkpoint gates: two obsidian posts with hot caps and a light curtain; lit gold once passed. */
+function drawCheckpoints(ctx: CanvasRenderingContext2D, state: FlipState, toScreen: (wx: number) => number,
+  ceilAt: Surface, floorAt: Surface, pulse: number, still: boolean): void {
+  const v7 = state.v7;
+  if (!v7) return;
+  FLIP_V7_CHECKPOINTS.forEach((tick, i) => {
+    const x = toScreen(v7.xs[tick]!);
+    if (x < -20 || x > FLIP_WORLD_W + 20) return;
+    const passed = (state.cpPassed ?? 0) > i;
+    const top = ceilAt(x);
+    const bottom = floorAt(x);
+    ctx.save();
+    // Light curtain (no collision): shimmering gold dashes from roof to floor.
+    ctx.globalAlpha = passed ? 0.3 : 0.45 + pulse * 0.25;
+    ctx.strokeStyle = passed ? MATERIAL.figure : MATERIAL.lamp;
+    ctx.lineWidth = 2;
+    ctx.setLineDash([6, 5]);
+    ctx.lineDashOffset = still ? 0 : -state.tick * 0.6;
+    ctx.beginPath();
+    ctx.moveTo(x, top + 14);
+    ctx.lineTo(x, bottom - 14);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.globalAlpha = 1;
+    // Posts on both rails.
+    for (const [y, dir] of [[top, 1], [bottom, -1]] as const) {
+      ctx.fillStyle = MATERIAL.obsidian;
+      ctx.fillRect(x - 3, Math.min(y, y + dir * 14), 6, 14);
+      ctx.fillStyle = passed ? MATERIAL.figure : MATERIAL.hot;
+      ctx.fillRect(x - 3, y + dir * 12 - (dir < 0 ? 2 : 0), 6, 2);
+    }
+    // A pennant on the top post: gold once passed, else hot orange.
+    ctx.fillStyle = passed ? MATERIAL.figure : MATERIAL.lava;
+    ctx.beginPath();
+    ctx.moveTo(x + 3, top + 14);
+    ctx.lineTo(x + 15, top + 18);
+    ctx.lineTo(x + 3, top + 22);
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+  });
+}
+
+/** A bonus trail: small pale-gold stars on a flip's arc, a dotted guide and a launch chevron on its surface. */
+function drawTrails(ctx: CanvasRenderingContext2D, state: FlipState, toScreen: (wx: number) => number,
+  ceilAt: Surface, floorAt: Surface, still: boolean): void {
+  const v7 = state.v7;
+  if (!v7) return;
+  const lift = runnerBox(state).h / 2;
+  const yAt = (x: number, f: number) => {
+    const low = floorAt(x) - lift;
+    const high = ceilAt(x) + lift;
+    return low + ((high - low) * f) / 1000;
+  };
+  v7.trails.forEach((trail, i) => {
+    const bits = state.trailGot?.[i] ?? 0;
+    if (bits === (1 << FLIP_V7_TRAIL_STARS) - 1) return;
+    const lx = toScreen(trail.launch);
+    const last = toScreen(trail.x[FLIP_V7_TRAIL_STARS - 1]!);
+    if (last < -20 || lx > FLIP_WORLD_W + 20) return;
+    const missed = state.tick > trail.t1;
+    ctx.save();
+    // Dotted guide through the stars (from the launch point).
+    ctx.globalAlpha = missed ? 0.12 : 0.3;
+    ctx.strokeStyle = MATERIAL.lamp;
+    ctx.lineWidth = 1.2;
+    ctx.setLineDash([2, 5]);
+    ctx.beginPath();
+    ctx.moveTo(lx, yAt(lx, trail.from === 0 ? 0 : 1000));
+    trail.x.forEach((wx, k) => ctx.lineTo(toScreen(wx), yAt(toScreen(wx), trail.f[k]!)));
+    ctx.stroke();
+    ctx.setLineDash([]);
+    // Launch chevron on the surface the trail rises from.
+    ctx.globalAlpha = missed ? 0.25 : 0.9;
+    ctx.fillStyle = MATERIAL.hot;
+    const sy = trail.from === 0 ? floorAt(lx) : ceilAt(lx);
+    const dir = trail.from === 0 ? -1 : 1;
+    ctx.beginPath();
+    ctx.moveTo(lx - 7, sy + dir * 2);
+    ctx.lineTo(lx, sy + dir * 9);
+    ctx.lineTo(lx + 7, sy + dir * 2);
+    ctx.lineTo(lx, sy + dir * 5);
+    ctx.closePath();
+    ctx.fill();
+    // The stars not yet taken.
+    ctx.globalAlpha = missed ? 0.3 : 1;
+    trail.x.forEach((wx, k) => {
+      if (bits & (1 << k)) return;
+      const x = toScreen(wx);
+      if (x < -10 || x > FLIP_WORLD_W + 10) return;
+      drawTrailStar(ctx, x, yAt(x, trail.f[k]!), state.tick + k * 9, still);
+    });
+    ctx.restore();
+  });
+}
+
+function drawTrailStar(ctx: CanvasRenderingContext2D, x: number, y: number, tick: number, still: boolean): void {
+  const r = 6;
+  const pulse = still ? 0.5 : 0.5 + 0.5 * Math.sin(tick / 7);
+  if (!arcadeReducedEffects()) {
+    const glow = ctx.createRadialGradient(x, y, 0.5, x, y, r * 2);
+    glow.addColorStop(0, `rgba(255,244,190,${0.35 + pulse * 0.25})`);
+    glow.addColorStop(1, "rgba(255,244,190,0)");
+    ctx.fillStyle = glow;
+    ctx.fillRect(x - r * 2, y - r * 2, r * 4, r * 4);
+  }
+  ctx.beginPath();
+  for (let k = 0; k < 10; k++) {
+    const reach = k % 2 === 0 ? r : r * 0.45;
+    const a = -Math.PI / 2 + (k * Math.PI) / 5;
+    if (k === 0) ctx.moveTo(x + Math.cos(a) * reach, y + Math.sin(a) * reach);
+    else ctx.lineTo(x + Math.cos(a) * reach, y + Math.sin(a) * reach);
+  }
+  ctx.closePath();
+  ctx.fillStyle = "#FFF1A8";
+  ctx.fill();
+  ctx.strokeStyle = "#FFFBE0";
+  ctx.lineWidth = 0.8;
+  ctx.stroke();
+}
+
+/** A checkpoint's save in use: the runner box outlined in flickering gold while the shield lasts. */
+function drawShield(ctx: CanvasRenderingContext2D, state: FlipState, y: number, still: boolean): void {
+  const box = runnerBox(state);
+  ctx.save();
+  ctx.globalAlpha = still ? 0.7 : 0.45 + 0.4 * Math.abs(Math.sin(state.tick / 3));
+  ctx.strokeStyle = MATERIAL.lamp;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.roundRect(RUNNER_X - box.half + 1, y - box.h / 2 + 1, box.half * 2 - 2, box.h - 2, 8);
+  ctx.stroke();
+  ctx.restore();
+}
+
+/** HUD: a small gold shield beside the score while a checkpoint's save is ready. */
+function drawSaveBadge(ctx: CanvasRenderingContext2D, state: FlipState, x: number, y: number): void {
+  if (!state.save) return;
+  ctx.save();
+  ctx.fillStyle = "rgba(245,184,46,0.25)";
+  ctx.strokeStyle = MATERIAL.figure;
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(x + 7, y + 1);
+  ctx.lineTo(x + 13, y + 3.5);
+  ctx.lineTo(x + 12, y + 10);
+  ctx.lineTo(x + 7, y + 15);
+  ctx.lineTo(x + 2, y + 10);
+  ctx.lineTo(x + 1, y + 3.5);
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
   ctx.restore();
 }
 
@@ -846,8 +1124,7 @@ export function flipArtGameFor(rev?: number | null): typeof flipArtGame {
  * strata and speckle. No lava rails, pools, spikes, stars or tunnel air, so the run
  * corridor ends where it always did. Beside the world (a wide screen) it is all rock.
  */
-export function flipArenaScene(ctx: CanvasRenderingContext2D, view: ArenaSceneView): void {
-  const H = FLIP_WORLD_H;
+export function flipArenaScene(ctx: CanvasRenderingContext2D, view: ArenaSceneView, H = FLIP_WORLD_H): void {
   const paintRock = (r: { x: number; y: number; w: number; h: number }, seed: number) => {
     ctx.save();
     ctx.beginPath();
@@ -901,4 +1178,13 @@ export function flipArenaScene(ctx: CanvasRenderingContext2D, view: ArenaSceneVi
   if (!below) return;
   sceneFill(ctx, below, H, view.bottom, [[0, "#121216"], [Math.min(1, 160 / below.h), "#100F13"], [1, "#0F0E12"]]);
   paintRock(below, 907);
+}
+
+/** flipRev 7's taller cave: the same bedrock scene under its 730 px world. */
+export function flipArenaSceneTall(ctx: CanvasRenderingContext2D, view: ArenaSceneView): void {
+  flipArenaScene(ctx, view, FLIP_V7_WORLD_H);
+}
+/** The arena scene for a stored puzzle.flipRev (one function per world height, so the stage keeps its identity). */
+export function flipArenaSceneFor(rev?: number | null): (ctx: CanvasRenderingContext2D, view: ArenaSceneView) => void {
+  return flipWorldHFor(rev) === FLIP_V7_WORLD_H ? flipArenaSceneTall : flipArenaScene;
 }
