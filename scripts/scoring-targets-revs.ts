@@ -6,7 +6,7 @@
  * with N, so they keep proving the play they were written for;
  * scoring-targets-check proves the new revisions themselves.
  */
-import { LIVE_BANDS, type LiveBandGame } from "../src/lib/arcade/liveBands";
+import { LIVE_BANDS, liveStrictRev, type LiveBandGame } from "../src/lib/arcade/liveBands";
 
 /**
  * type → [the target revision (18 Oct 2026), the revision whose play it keeps]. Rooms now deal the score-bands
@@ -15,12 +15,12 @@ import { LIVE_BANDS, type LiveBandGame } from "../src/lib/arcade/liveBands";
 export const TARGET_REVS: Partial<Record<LiveBandGame, readonly [target: number, play: number]>> = Object.fromEntries(
   (Object.keys(LIVE_BANDS) as LiveBandGame[])
     .filter((type) => type !== "junction")
-    .map((type) => [type, [LIVE_BANDS[type].rev - 1, LIVE_BANDS[type].rev - 2] as const]),
+    .map((type) => [type, [liveStrictRev(type) - 1, liveStrictRev(type) - 2] as const]),
 );
 
-/** The score-bands revision rooms deal (19 Oct 2026), the same play as the target revision. */
+/** The score-bands revision rooms deal (19 Oct 2026), the same play as the target revision (an expanded game's `strictRev`, docs/scoring-200.md). */
 export const STRICT_REVS: Partial<Record<LiveBandGame, number>> = Object.fromEntries(
-  (Object.keys(LIVE_BANDS) as LiveBandGame[]).filter((type) => type !== "junction").map((type) => [type, LIVE_BANDS[type].rev]),
+  (Object.keys(LIVE_BANDS) as LiveBandGame[]).filter((type) => type !== "junction").map((type) => [type, liveStrictRev(type)]),
 );
 
 /**

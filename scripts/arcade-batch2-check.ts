@@ -97,6 +97,7 @@ import {
 import { encodeMatchupRun, replayMatchupRun } from "../src/lib/duel/matchup";
 import { playBubble, playMatchup } from "./arcade-batch2-bots";
 import { INTRO_SCORE } from "../src/lib/duel/introScore";
+import { roundMaxFor } from "../src/lib/duel/roundMax";
 import { PUZZLE_INSTRUCTIONS } from "../src/lib/duel/instructions";
 
 let checks = 0;
@@ -496,7 +497,8 @@ if (want("bubble")) {
     const s = game.init(1);
     const last = s.grid.findIndex((v) => v > 0);
     ok(game.score({ ...s, grid: s.grid.map((v, i) => (i === last ? v : 0)) }) === BUB_V2_PARTIAL_MAX, `a part-cleared field scores up to ${BUB_V2_PARTIAL_MAX}`);
-    ok(/up to 150/.test(INTRO_SCORE.bubble) && !/\b99\b/.test(INTRO_SCORE.bubble), "the intro states 150 and no 99 cap (score bands, bubbleRev 3; stored rev-2 rounds keep 99)");
+    // The top is the game's maximum (200 since expansion E6's bubbleRev 8, docs/scoring-200.md).
+    ok(new RegExp(`up to ${roundMaxFor("bubble")}`, "i").test(INTRO_SCORE.bubble) && !/\b99\b/.test(INTRO_SCORE.bubble), "the intro states its maximum and no 99 cap (score bands, bubbleRev 3; stored rev-2 rounds keep 99)");
     ok(game.score({ ...s, cleared: true, endedTick: 1 }) === 150, "a full clear early scores 150");
   }
   // Real play: replay identity, balance against the original, and a 150 through the server replay.
@@ -632,6 +634,6 @@ for (const type of (["matchup", "bubble", "snake", "hover"] as const).filter(wan
   ok(INTRO_SCORE[type].length <= 90, `${type}: intro SCORE within 90 characters`);
   ok(!/pellet/i.test(JSON.stringify(help) + INTRO_SCORE[type]), `${type}: no "pellet" wording`);
 }
-ok(/up to 150/i.test(INTRO_SCORE.snake), "Meteor intro states the 150 maximum the bot reaches");
+ok(new RegExp(`up to ${roundMaxFor("snake")}\\b`, "i").test(INTRO_SCORE.snake), "Meteor intro states its maximum (150 today, the maximum the bot reaches)");
 
 console.log(`arcade batch 2: ${checks} checks passed`);

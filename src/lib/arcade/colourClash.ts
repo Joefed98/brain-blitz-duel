@@ -51,6 +51,7 @@ export const CLASH_REV3_RUN_TICKS = 75 * TICKS_PER_SECOND;
 export const CLASH_REV3_FALL_TICKS = [107, 95, 83, 71, 59] as const;
 /** Variant key: 5 = the taller board (clashRev 5), 4 = rev-3 play with the puzzle score shape, 3 = 75 s rev 3, 2 = 52-word/60 s, 1 = 18-word, 0 = legacy stream. */
 export function clashVariantOf(p: { queue?: number | null; clashRev?: number | null } | null | undefined): number {
+  if (p?.clashRev === CLASH_REV_DEPTH) return 8;
   if (p?.clashRev === CLASH_REV_GREAT) return 7;
   if (p?.clashRev === CLASH_REV_BANDS) return 6;
   if (p?.clashRev === CLASH_REV_TALL) return 5;
@@ -69,7 +70,11 @@ export const CLASH_INPUT_RANGES: readonly InputRange[] = [inputRange(CLASH_INPUT
 export const CLASH_NAMES = ["RED", "BLUE", "GREEN", "PURPLE", "PINK", "ORANGE", "BROWN", "YELLOW"] as const;
 export const CLASH_COLOURS = ["#FF4D4D", "#4D8CFF", "#3DDC84", "#B26BFF", "#FF6BD6", "#FF8A3D", "#8B5A2B", "#FFE600"] as const;
 
-export interface ClashItem { spawn: number; word: number; ink: number; fallTicks: number }
+export interface ClashItem {
+  spawn: number; word: number; ink: number; fallTicks: number;
+  /** clashRev 8 only: 1 = a "don't sort" word (grey ink, dashed border: let it fall), 2 = a gold word. Absent = a plain word. */
+  kind?: 1 | 2;
+}
 export interface ClashGateChange { tick: number; gates: number[] }
 export interface ClashRuleChange { tick: number; rule: 0 | 1 }
 export interface ClashState {
@@ -95,6 +100,8 @@ export interface ClashState {
   rev?: number;
   /** clashRev 5 only (taller worlds batch 2): the board's height in px (CLASH_TALL_H). Absent = CLASH_WORLD_H. */
   worldH?: number;
+  /** clashRev 8 only (depth to 200): the depth play's own counters (ClashDepth). Absent on every older round. */
+  depth?: ClashDepth;
 }
 
 export function clashLaneCount(tick: number): number { return tick >= CLASH_LANE_EXPAND_TICK ? CLASH_EXPANDED_LANES : CLASH_INITIAL_LANES; }
@@ -155,10 +162,14 @@ function nextItem(state: ClashState, spawn: number): ClashState {
   const other = otherPool[draw(otherPool.length)]!;
   const word = rule === 0 ? other : answer;
   const ink = rule === 0 ? answer : other;
-  const item = { spawn, word, ink, fallTicks: clashFallTicks(spawn, state.queue, state.rev) };
+  const kind = state.depth ? clashDepthKindAt(state.depth, state.items.length) : 0;
+  const item: ClashItem = kind ? { spawn, word, ink, fallTicks: clashFallTicks(spawn, state.queue, state.rev), kind } : { spawn, word, ink, fallTicks: clashFallTicks(spawn, state.queue, state.rev) };
   // Draw before storing rng so the spawn lane and future draws replay identically.
   const lane = draw(clashLaneCount(spawn));
-  return { ...state, rng, items: [...state.items, item], lane, itemY: START_Y, dropping: 0 };
+  const next: ClashState = { ...state, rng, items: [...state.items, item], lane, itemY: START_Y, dropping: 0 };
+  // clashRev 8: a new word starts untouched.
+  if (state.depth?.spoiled) next.depth = { ...state.depth, spoiled: 0 };
+  return next;
 }
 
 function initWith(seed: number, queue: number, rev = 0): ClashState {
@@ -189,9 +200,15 @@ function land(state: ClashState, tick: number): ClashState {
   const wanted = clashRuleAt(state, tick) === 0 ? item.ink : item.word;
   const correct = gates[lane] === wanted;
   const landed = { ...state, correct: state.correct + (correct ? 1 : 0), wrong: state.wrong + (correct ? 0 : 1) };
+  if (state.depth) landed.depth = clashDepthAfter(state.depth, correct, item.kind === 2);
+  return settled(landed, tick);
+}
+
+/** After a word is judged: the fixed queue ends on its last word, otherwise the next word spawns. */
+function settled(landed: ClashState, tick: number): ClashState {
   // Fixed queue: the run ends the moment the last queued item is sorted.
   if (landed.queue > 0 && landed.correct + landed.wrong >= landed.queue) return { ...landed, ended: 1, finishTick: tick };
-  return tick < clashRunTicksOf(state) ? nextItem(landed, tick) : landed;
+  return tick < clashRunTicksOf(landed) ? nextItem(landed, tick) : landed;
 }
 
 function step(state: ClashState, input: ArcadeInputEvent | null): ClashState {
@@ -202,6 +219,19 @@ function step(state: ClashState, input: ArcadeInputEvent | null): ClashState {
   if (item && item.spawn <= tick) {
     const lanes = clashLaneCount(tick);
     if (next.lane >= lanes) next.lane = lanes - 1;
+    if (item.kind === 1 && next.depth) {
+      // clashRev 8: a "don't sort" word falls at its own pace whatever the player does. Any input after the first
+      // CLASH_SKIP_GRACE_TICKS touches it (it falls on, spoiled, and lands as a wrong word); inputs before that, or
+      // once it is touched, are ignored.
+      if (input?.k === CLASH_INPUT_LANE && tick - item.spawn > CLASH_SKIP_GRACE_TICKS && !next.depth.spoiled) next.depth = { ...next.depth, spoiled: 1 };
+      next.itemY += Math.max(1, Math.trunc((clashGateYFp(next) - START_Y) / item.fallTicks));
+      if (next.itemY >= clashGateYFp(next)) {
+        // Let fall: it passes the gates without being judged by them and counts as sorted right.
+        next = next.depth!.spoiled
+          ? settled({ ...next, wrong: next.wrong + 1, depth: clashDepthAfter(next.depth!, false, false, true) }, tick)
+          : settled({ ...next, correct: next.correct + 1, depth: { ...clashDepthAfter(next.depth!, true, false), passed: next.depth!.passed + 1 } }, tick);
+      }
+    } else {
     if (input?.k === CLASH_INPUT_LANE) {
       const action = clampInt(input.a, 0, 3);
       if (action === CLASH_MOVE_LEFT) next.lane = Math.max(0, next.lane - 1);
@@ -214,6 +244,7 @@ function step(state: ClashState, input: ArcadeInputEvent | null): ClashState {
     const speed = next.dropping ? clashDropFp(next) : Math.max(1, Math.trunc((gate - START_Y) / item.fallTicks));
     next.itemY += speed;
     if (next.itemY >= gate) next = land(next, tick);
+    }
   }
   if (next.ended === 0 && tick >= clashRunTicksOf(next)) {
     if (next.items.length > next.correct + next.wrong) next.missed += 1;
@@ -252,6 +283,7 @@ export function clashRev4ScoreOf(correct: number, wrong: number, queue: number, 
   return clampInt(Math.round((110 * correct) / Math.max(1, queue)) - 2 * wrong, 0, 110);
 }
 function score(state: ClashState): number {
+  if (state.depth) return clashDepthScoreOf(state).total;
   if (state.sb) return bandMapTotal(state.sb === CLASH_SB_GREAT ? CLASH_GREAT_MAP : CLASH_BANDS_MAP, clashRev5ScoreOf(state.correct, state.wrong, state.queue, state.finishTick, clashRunTicksOf(state)));
   if (state.rev === CLASH_REV_TALL) return clashRev5ScoreOf(state.correct, state.wrong, state.queue, state.finishTick, clashRunTicksOf(state));
   if (state.rev === CLASH_REV) return clashRev4ScoreOf(state.correct, state.wrong, state.queue, state.finishTick, clashRunTicksOf(state));
@@ -265,7 +297,9 @@ export function clashCheckpoint(state: ClashState): ClashCheckpoint {
   const snap = { tick: state.tick, lane: state.lane, itemY: state.itemY, dropping: state.dropping, correct: state.correct, wrong: state.wrong, missed: state.missed, ended: state.ended, rng: state.rng | 0 };
   let checksum = 0x811c9dc5;
   // clashRev 5 (taller worlds): the board's height, last.
-  for (const value of [...Object.values(snap), ...state.items.flatMap((item) => [item.spawn, item.word, item.ink, item.fallTicks]), ...(state.worldH ? [state.worldH] : [])]) { checksum ^= value | 0; checksum = Math.imul(checksum, 0x01000193) >>> 0; }
+  // clashRev 8 (depth): each word's kind and the depth counters, after everything else.
+  const depth = state.depth ? [...state.items.map((item) => item.kind ?? 0), state.depth.streak, state.depth.best, state.depth.golds, state.depth.goldPts, state.depth.touched, state.depth.passed, state.depth.spoiled] : [];
+  for (const value of [...Object.values(snap), ...state.items.flatMap((item) => [item.spawn, item.word, item.ink, item.fallTicks]), ...(state.worldH ? [state.worldH] : []), ...depth]) { checksum ^= value | 0; checksum = Math.imul(checksum, 0x01000193) >>> 0; }
   return { ...snap, checksum };
 }
 
@@ -315,6 +349,7 @@ export const colourClashRev3Game: ArcadeGame<ClashState, ArcadeInputEvent | null
 export const colourClashRev4Game: ArcadeGame<ClashState, ArcadeInputEvent | null> = { ...colourClashGame, runTicks: CLASH_REV3_RUN_TICKS, init: initRev4 };
 /** Takes a clashVariantOf key. */
 export function colourClashGameFor(variant: number): ArcadeGame<ClashState, ArcadeInputEvent | null> {
+  if (variant === 8) return colourClashDepthGame;
   if (variant === 7) return colourClashGreatGame;
   if (variant === 6) return colourClashBandsGame;
   if (variant === 5) return colourClashRev5Game;
@@ -390,7 +425,7 @@ export const colourClashRev5Game: ArcadeGame<ClashState, ArcadeInputEvent | null
 
 /** The board height (px) a stored round plays in, by its clashVariantOf key. */
 export function clashWorldHFor(variant: number): number {
-  return variant === 5 || variant === 6 || variant === 7 ? CLASH_TALL_H : CLASH_WORLD_H;
+  return variant === 5 || variant === 6 || variant === 7 || variant === 8 ? CLASH_TALL_H : CLASH_WORLD_H;
 }
 
 /* ================= Score bands (clashRev 6, 19 Oct 2026) ================= */
@@ -419,3 +454,176 @@ export const CLASH_REV_GREAT = 7;
 export const CLASH_SB_GREAT = 2;
 export const CLASH_GREAT_MAP = bandCurve([0, 70, 103, 110, 120, 144, 150], [0, 70, 100, 110, 120, 140, 150]);
 export const colourClashGreatGame: ArcadeGame<ClashState, ArcadeInputEvent | null> = { ...colourClashRev5Game, init: (seed) => ({ ...initRev5(seed), sb: CLASH_SB_GREAT }) };
+
+/* ================= Depth to 200 (clashRev 8, 25 Oct 2026) ================= */
+
+/**
+ * clashRev 8 (depth to 200, docs/depth/d3-speed-attention.md): clashRev 5 play on the taller board (the state keeps
+ * rev 5: the same 52-word queue, gates, rule swaps, lane shuffles, 75 s and fall-speed ramp) with three new kinds of
+ * play, planned once from the seed at the start (the same for every player):
+ *   - a sort streak: words sorted right in a row (a wrong gate or a touched "don't sort" word resets it);
+ *   - "don't sort" words (CLASH_SKIPS): grey ink in a dashed frame, falling at the phase's own pace whatever the
+ *     player does. Let it fall: it slides through the gates and counts as sorted right. Any input on it after
+ *     CLASH_SKIP_GRACE_TICKS touches it: it falls on, spoiled, and lands as a wrong word;
+ *   - gold words (CLASH_GOLDS): gold-bordered; sorted right they add CLASH_GOLD_POINTS, doubled while the streak
+ *     before it is CLASH_GOLD_STREAK or more.
+ * Score (to 200, fitted on the puzzle-fairness kit's players: average / good / great / near-perfect stay within a few
+ * points of clashRev 7's medians, the elite player reaches about 190): clashRev 7's score of the run (CLASH_GREAT_MAP
+ * over the clashRev 5 shape; a touch counts as a wrong gate; a finish allows CLASH_DEPTH_MAX_WRONG wrong, one more
+ * than before for the five traps; each word let fall is timed as a quick sort, CLASH_SKIP_PACE_TICKS), and on a
+ * finish:
+ *   - gold: 2 a gold word, 4 on a streak of 5+ (20 for all five), × pace;
+ *   - streak: CLASH_STREAK_POINTS × share² × pace, share = (longest streak − 12) ÷ 40 (20 for all 52 in a row);
+ *   - stretch: a clean finish (no wrong word) quicker than par, CLASH_STRETCH_POINTS × (par − finish) ÷ (par −
+ *     CLASH_ELITE_TICK), par = half the run (where clashRev 7's speed part tops out);
+ *   pace = 1 by par, falling evenly to 0 at CLASH_PACE_ZERO_TICK. A word lands about 0.7 s after it appears at best,
+ *   so the game's pace barely goes below par: the extra 50 is mostly clean, quick play through the new words.
+ * An unfinished run scores clashRev 7's (at most 110), a finish at least 120.
+ */
+export const CLASH_REV_DEPTH = 8;
+export const CLASH_SKIPS = 5;
+export const CLASH_GOLDS = 5;
+/**
+ * A "don't sort" word falls at its phase's own pace (1.8 s down to 1.0 s); the speed parts measure a finish with
+ * each one counted at 42 ticks (0.7 s, a quick sort), so waiting for it never costs speed points.
+ */
+export const CLASH_SKIP_PACE_TICKS = 42;
+/** Inputs on a "don't sort" word in its first 0.1 s are ignored, never a touch. */
+export const CLASH_SKIP_GRACE_TICKS = 6;
+export const CLASH_GOLD_POINTS = 2;
+export const CLASH_GOLD_STREAK = 5;
+/** The streak bonus: CLASH_STREAK_POINTS × (longest streak − CLASH_STREAK_FROM) ÷ (queue − CLASH_STREAK_FROM), all at a whole run without a slip. */
+export const CLASH_STREAK_POINTS = 20;
+export const CLASH_STREAK_FROM = 12;
+export const CLASH_STRETCH_POINTS = 10;
+/** A finish's pace share for the gold and streak points: 1 by par (37.5 s), falling evenly to 0 at 40 s. */
+export const CLASH_PACE_ZERO_TICK = 40 * TICKS_PER_SECOND;
+/** The clean finish that earns the whole speed stretch (36.5 s into the run; clashRev 7's speed part tops out at 37.5 s). */
+export const CLASH_ELITE_TICK = 2190;
+export const CLASH_UNFINISHED_TOP = 110;
+/** The first word that can be special, and the size of the blocks the specials are spread over (one of each per block). */
+const CLASH_SPECIAL_FROM = 4;
+
+export interface ClashDepth {
+  /** Item indices of the "don't sort" words and of the gold words, ascending. */
+  skips: number[];
+  goldAt: number[];
+  /** Words right in a row now, and the longest such run. */
+  streak: number;
+  best: number;
+  /** Gold words sorted right, and the points they earned. */
+  golds: number;
+  goldPts: number;
+  /** "Don't sort" words touched, and let fall. */
+  touched: number;
+  passed: number;
+  /** 1 while the falling "don't sort" word has been touched (it lands as a wrong word). */
+  spoiled: number;
+}
+
+/** The plan: one "don't sort" and one gold word in each of five blocks of the queue from word 5, never side by side. */
+function clashDepthPlan(rng: number): { depth: ClashDepth; rng: number } {
+  let state = rng | 0;
+  const drawN = (bound: number) => { const r = rngBelow(state, bound); state = r.state; return r.value; };
+  const block = Math.floor((CLASH_QUEUE - CLASH_SPECIAL_FROM) / CLASH_SKIPS);
+  const skips: number[] = [];
+  const goldAt: number[] = [];
+  for (let b = 0; b < CLASH_SKIPS; b += 1) {
+    const from = CLASH_SPECIAL_FROM + b * block;
+    // Two slots, at least two apart, from offsets 1–7 of the 9-word block (so specials never sit side by side).
+    const a = 1 + drawN(block - 2);
+    const options = Array.from({ length: block - 2 }, (_, i) => i + 1).filter((o) => Math.abs(o - a) >= 2);
+    const g = options[drawN(options.length)]!;
+    if (drawN(2) === 0) { skips.push(from + a); goldAt.push(from + g); } else { skips.push(from + g); goldAt.push(from + a); }
+  }
+  skips.sort((x, y) => x - y);
+  goldAt.sort((x, y) => x - y);
+  return { depth: { skips, goldAt, streak: 0, best: 0, golds: 0, goldPts: 0, touched: 0, passed: 0, spoiled: 0 }, rng: state };
+}
+
+/** The kind of the item at queue index `index` on a depth plan (0 plain, 1 "don't sort", 2 gold). */
+export function clashDepthKindAt(depth: ClashDepth, index: number): 0 | 1 | 2 {
+  return depth.skips.includes(index) ? 1 : depth.goldAt.includes(index) ? 2 : 0;
+}
+
+/** The counters after one word is judged: right or wrong, a gold word, a touched "don't sort" word. */
+function clashDepthAfter(d: ClashDepth, right: boolean, gold: boolean, touched = false): ClashDepth {
+  const streak = right ? d.streak + 1 : 0;
+  const goldPts = right && gold ? CLASH_GOLD_POINTS * (d.streak >= CLASH_GOLD_STREAK ? 2 : 1) : 0;
+  return {
+    ...d,
+    streak,
+    best: Math.max(d.best, streak),
+    golds: d.golds + (right && gold ? 1 : 0),
+    goldPts: d.goldPts + goldPts,
+    touched: d.touched + (touched ? 1 : 0),
+    passed: d.passed,
+  };
+}
+
+export interface ClashDepthScore {
+  /** clashRev 7's score of the same run (a touch counts as a wrong gate). */
+  base: number;
+  gold: number;
+  streak: number;
+  stretch: number;
+  total: number;
+  finished: boolean;
+}
+
+/** clashRev 8: a finish is every word sorted (or let fall) with at most CLASH_DEPTH_MAX_WRONG wrong. */
+export const CLASH_DEPTH_MAX_WRONG = 3;
+export function clashDepthFinished(correct: number, wrong: number, queue: number, finishTick: number): boolean {
+  return queue > 0 && finishTick > 0 && correct + wrong >= queue && wrong <= CLASH_DEPTH_MAX_WRONG;
+}
+
+/** The finish tick the speed parts measure (CLASH_SKIP_PACE_TICKS); 0 for a run that did not finish. */
+export function clashDepthPaceTick(state: ClashState): number {
+  if (!(state.finishTick > 0)) return state.finishTick;
+  let credit = 0;
+  for (const item of state.items) if (item.kind === 1) credit += Math.max(0, item.fallTicks + 1 - CLASH_SKIP_PACE_TICKS);
+  return Math.max(1, state.finishTick - credit);
+}
+
+/** clashRev 8's score and its parts. */
+export function clashDepthScoreOf(state: ClashState): ClashDepthScore {
+  const run = clashRunTicksOf(state);
+  const finished = clashDepthFinished(state.correct, state.wrong, state.queue, state.finishTick);
+  const finishTick = clashDepthPaceTick(state);
+  // clashRev 7's score with the depth finish (one more wrong word allowed, for the five "don't sort" words).
+  const rev5 = finished
+    ? clampInt(120 + Math.max(0, speedBonusCurve(30, run - finishTick, run) - 5 * state.wrong), 0, 150)
+    : clampInt(clashV5UnfinishedOf(state.correct, state.wrong), 0, 110);
+  const base = bandMapTotal(CLASH_GREAT_MAP, rev5);
+  const par = Math.floor(run / 2);
+  // The pace share (finishes only): gold and streak points are worth the most on a quick run.
+  const pace = finished ? clampInt(CLASH_PACE_ZERO_TICK - Math.max(par, finishTick), 0, CLASH_PACE_ZERO_TICK - par) / (CLASH_PACE_ZERO_TICK - par) : 0;
+  const gold = Math.round((state.depth?.goldPts ?? 0) * pace);
+  const span = Math.max(1, state.queue - CLASH_STREAK_FROM);
+  const share = clampInt((state.depth?.best ?? 0) - CLASH_STREAK_FROM, 0, span) / span;
+  const streak = finished ? Math.round(CLASH_STREAK_POINTS * share * share * pace) : 0;
+  if (!finished) {
+    // Unfinished: clashRev 7's score alone (at most 110), so every finish still scores more.
+    return { base, gold: 0, streak: 0, stretch: 0, total: clampInt(base, 0, CLASH_UNFINISHED_TOP), finished };
+  }
+  const clean = state.wrong === 0;
+  const stretch = clean ? Math.round((CLASH_STRETCH_POINTS * clampInt(par - finishTick, 0, par - CLASH_ELITE_TICK)) / (par - CLASH_ELITE_TICK)) : 0;
+  return { base, gold, streak, stretch, total: clampInt(base + gold + streak + stretch, 0, 200), finished };
+}
+
+function initDepth(seed: number): ClashState {
+  // The gates as clashRev 5, then the depth plan from the same stream, then the first word.
+  const phases = 5;
+  const plan = buildGates(seed, phases);
+  const depth = clashDepthPlan(plan.rng);
+  const base: ClashState = {
+    tick: 0, rng: depth.rng, items: [], gates: plan.gates,
+    rules: Array.from({ length: phases }, (_, phase) => phase).map((phase) => ({ tick: phase * 15 * TICKS_PER_SECOND, rule: (phase % 2) as 0 | 1 })),
+    lane: 1, itemY: START_Y, dropping: 0, correct: 0, wrong: 0, missed: 0, ended: 0, queue: CLASH_QUEUE, finishTick: 0,
+    rev: CLASH_REV_TALL, worldH: CLASH_TALL_H, depth: depth.depth,
+  };
+  return nextItem(base, 0);
+}
+
+/** clashRev 8: depth to 200 on the taller board. */
+export const colourClashDepthGame: ArcadeGame<ClashState, ArcadeInputEvent | null> = { ...colourClashRev5Game, init: initDepth };

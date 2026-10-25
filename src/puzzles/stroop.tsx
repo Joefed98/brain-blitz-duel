@@ -7,7 +7,8 @@ import { ArcadeCanvasStage } from "@/components/puzzles/ArcadeCanvasStage";
 import { stroopFill } from "@/lib/arcade/arenaFills.renderer";
 import { ArrowPad } from "@/components/puzzles/GridDrag";
 import { clashTapPayload } from "@/components/puzzles/tapMapping";
-import { CLASH_QUEUE, CLASH_REV_TALL, clashVariantOf, clashWorldHFor, CLASH_CHECKPOINT_INTERVAL, CLASH_DROP, CLASH_INPUT_LANE, CLASH_MOVE_LEFT, CLASH_MOVE_RIGHT, CLASH_WORLD_W, clashCheckpoint, type ClashState } from "@/lib/arcade/colourClash";
+import { playTone } from "@/lib/sound";
+import { CLASH_QUEUE, CLASH_REV_DEPTH, CLASH_GOLD_STREAK, clashVariantOf, clashWorldHFor, CLASH_CHECKPOINT_INTERVAL, CLASH_DROP, CLASH_INPUT_LANE, CLASH_MOVE_LEFT, CLASH_MOVE_RIGHT, CLASH_WORLD_W, clashCheckpoint, type ClashState } from "@/lib/arcade/colourClash";
 import { encodeColourClashRun, replayColourClashRun } from "@/lib/duel/colourClash";
 import type { StroopPuzzleData } from "@/lib/duel/types";
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
@@ -21,6 +22,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const column = useRef<HTMLDivElement | null>(null);
   const last = useRef<ClashState | null>(null);
   const counts = useRef(-1);
+  const prev = useRef<ClashState | null>(null);
   /** Finish effect over the arena: every gate flashes in its own colour (presentation only). */
   const fireFinish = () => {
     const arena = column.current?.querySelector("[data-game-arena]");
@@ -36,13 +38,25 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const sounds = useRef(() => {
     const base = colourClashSounds();
     counts.current = -1;
+    prev.current = null;
     return {
       frame(state: ClashState, running: boolean) {
         base.frame(state, running);
         last.current = state;
         const sorted = state.correct + state.wrong;
-        if (counts.current >= 0 && sorted > counts.current) soundCue("stroop.gatePulse");
+        if (counts.current >= 0 && sorted > counts.current) {
+          soundCue("stroop.gatePulse");
+          // clashRev 8: each lane plays its own note when a word is sorted into it, so a quick streak plays a little
+          // tune; a gold word adds a high sparkle. Synthesised on the effects channel (mute and the Effects slider apply).
+          const before = prev.current;
+          if (state.depth && before && state.correct > before.correct && before.items.at(-1)?.kind !== 1) {
+            const lift = state.depth.streak >= CLASH_GOLD_STREAK ? 0.05 : 0;
+            playTone(LANE_NOTES[Math.min(LANE_NOTES.length - 1, Math.max(0, before.lane))]!, 150, "triangle", 0.16 + lift);
+            if (before.items.at(-1)?.kind === 2) playTone(1568, 110, "sine", 0.12, 2093);
+          }
+        }
         counts.current = sorted;
+        prev.current = state;
       },
       stop: () => base.stop(),
     };
@@ -60,8 +74,16 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   if (puzzle.type !== "stroop") return null;
   let replay: ReturnType<typeof replayColourClashRun> | null = null;
   try { replay = replayColourClashRun(puzzle.seed, myAnswer ?? "", clashVariantOf(puzzle)); } catch { /* historic/empty row */ }
-  return <p className="text-center font-mono text-2xl font-bold text-primary">{replay ? `${replay.correct} / ${replay.total} · ${replay.wrong} wrong` : "No run"}</p>;
+  const d = replay?.depth;
+  return <div className="flex flex-col items-center gap-1">
+    <p className="text-center font-mono text-2xl font-bold text-primary">{replay ? `${replay.correct} / ${replay.total} · ${replay.wrong} wrong` : "No run"}</p>
+    {d ? <p data-stroop-depth className="text-center font-mono text-[13px] font-semibold text-[var(--ap-text-2)]">{`Best streak ${d.best} · Gold ${d.golds}/${d.goldWords} · Let fall ${d.passed}/${d.skips}`}</p> : null}
+    {d && d.finished ? <p className="text-center font-mono text-[13px] font-semibold text-[var(--ap-text-2)]">{`${d.base} + ${d.gold} gold + ${d.streak} streak + ${d.stretch} speed`}</p> : null}
+  </div>;
 }
 
-export function buildStroop(): StroopPuzzleData { return { type: "stroop", seed: Math.floor(Math.random() * 0x7ffffffe) + 1, queue: CLASH_QUEUE, clashRev: CLASH_REV_TALL }; }
+/** clashRev 8: one note per lane (C, E, G, A), so a quick streak across the lanes plays a little pentatonic tune. */
+const LANE_NOTES = [523.25, 659.25, 783.99, 880] as const;
+
+export function buildStroop(): StroopPuzzleData { return { type: "stroop", seed: Math.floor(Math.random() * 0x7ffffffe) + 1, queue: CLASH_QUEUE, clashRev: CLASH_REV_DEPTH }; }
 export const stroopPuzzle: PuzzleDefinition = { key: "stroop", name: gameDisplayName("stroop"), category: "attention", timeLimitMs: 78_000, arcadeRun: true, generate: buildStroop, check: () => false, IntroExample, Stage, Reveal };

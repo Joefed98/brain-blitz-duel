@@ -21,6 +21,8 @@ import {
   WS_SIZE,
   WS_TIME_MS,
   type SlideShift,
+  WORD_SLIDE_REV_PAR,
+  wordSlideRevOf,
 } from "@/lib/duel/wordSlide";
 import { playSound } from "@/lib/sound";
 import { fx } from "@/lib/fx";
@@ -171,6 +173,9 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, c
   const replay = useMemo(() => (data ? replayWordSlide(data.grid, tokens) : null), [data, tokens]);
   const encoded = tokens.join(",");
   const lockedRows = new Set(replay?.locked ?? []);
+  // Par moves (word depth d1): the phone shows the public par beside the moves; the server scores the bonus.
+  const parOn = wordSlideRevOf(data) >= WORD_SLIDE_REV_PAR;
+  const withinPar = !!data && !!replay && replay.moves <= data.par;
 
   useEffect(() => {
     onDraftAnswer?.(encoded);
@@ -326,7 +331,14 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, c
         <span data-live-summary="wordslide" className="whitespace-nowrap font-sans text-[13px] font-semibold normal-case tracking-normal tabular-nums text-[#a09da6]">
           <b className="font-extrabold text-[#f3f1ec]">{good.size}</b> / {WS_MARKED_ROWS.length} words<span className="text-[#5d5a63]"> · </span>
           <b className="font-extrabold text-[#f3f1ec]">{lockedRows.size}</b> locked<span className="text-[#5d5a63]"> · </span>
-          Moves <span className="text-primary">{replay.moves}</span>
+          Moves <span data-par-moves={parOn ? (withinPar ? "within" : "over") : undefined} className={parOn && !withinPar ? "text-[#f3f1ec]" : "text-primary"}>{replay.moves}</span>
+          {/* Par moves (wordSlideRev 1): gold while the moves are still within par, the par dimmed once past it. */}
+          {parOn ? (
+            <>
+              <span className="text-[#5d5a63]"> · </span>
+              <span data-par-label="" className={withinPar ? "font-extrabold text-primary" : "text-[#5d5a63] line-through"}>Par {data?.par}</span>
+            </>
+          ) : null}
         </span>
       </div>
       <div data-game-controls="actions" className="flex shrink-0 gap-3 px-2">

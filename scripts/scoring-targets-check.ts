@@ -26,7 +26,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { readFileSync } from "node:fs";
 import { gunzipSync } from "node:zlib";
-import { LIVE_BANDS, type LiveBandGame } from "../src/lib/arcade/liveBands";
+import { LIVE_BANDS, liveStrictRev, type LiveBandGame } from "../src/lib/arcade/liveBands";
 import { BAND_SPECS } from "../src/lib/arcade/bandParts";
 import { BAND_TARGET_MAP, BAND_TARGET_MARK, bandPoints, bandRetarget, bandTop, type BandCurve } from "../src/lib/arcade/scoreBands";
 import { WAV_V6_BAND_CURVE, WAV_V7_BAND_CURVE } from "../src/lib/arcade/wavefront";
@@ -59,6 +59,9 @@ import { BURST_V4_BAND_CURVE } from "../src/lib/arcade/burst";
 import { SWING_V9_BAND_CURVE } from "../src/lib/arcade/swing";
 import { BULLSEYE_V4_BAND_CURVE } from "../src/lib/arcade/bullseye";
 import { PIN_BAND_CURVE } from "../src/lib/arcade/pinball";
+import { pinPreDepth } from "../src/lib/duel/wordDepth";
+// Word depth (25 Oct 2026): this check proves the pre-depth stamps; new deals of the nine word games are pinned to them.
+pinPreDepth(true);
 
 let checks = 0;
 const failures: string[] = [];
@@ -130,7 +133,7 @@ for (const [type, live] of Object.entries(LIVE_BANDS) as [LiveBandGame, (typeof 
   const dealt = (generatePuzzle(type as PuzzleType) as unknown as Record<string, unknown>)[live.field];
   ok(dealt === live.rev, `${type}: rooms deal ${live.field} ${live.rev} (got ${String(dealt)})`);
   if (type === "junction") continue;
-  ok(TARGET_REVS[type]?.[0] === live.rev - 1 && TARGET_REVS[type]?.[1] === live.rev - 2, `${type}: the target revision follows the one rooms dealt before it (and the score-bands revision follows it)`);
+  ok(TARGET_REVS[type]?.[0] === liveStrictRev(type) - 1 && TARGET_REVS[type]?.[1] === liveStrictRev(type) - 2, `${type}: the target revision follows the one rooms dealt before it (and the score-bands revision follows it)`);
   ok(BAND_SPECS[type] !== undefined, `${type}: a band game`);
 }
 {

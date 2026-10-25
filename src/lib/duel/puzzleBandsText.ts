@@ -96,7 +96,7 @@ export function bandsFigures(type: PuzzleType): { half: number; buzzer: number; 
  * import this text); scoring-rev3-check compares it with the clock of freshly dealt puzzles.
  */
 export const DEALT_LIMIT_S: Partial<Record<PuzzleType, number>> = {
-  tilegrid: 100, wordslide: 100, wordsearch: 120, letterwheel: 100, strikeout: 100, codeword: 120, swapword: 120, target: 75, equation: 90, balance: 120, numpyramid: 120, trail: 120, measure: 120, checkout: 90, numhunt: 60, chain: 45, symscan: 30, spotdiff: 60, countup: 60, maze: 60, pairmatch: 90, unblock: 60, blockparty: 60, iceslide: 90, gravity: 90, tiles: 90, rings: 60, laser: 60, pipes: 120, lightsout: 75, sudoku: 90, flow: 75, push: 120, tower: 90, tubes: 90, safe: 75, bomb: 90, nonogram: 120, flood: 60, tents: 90, shikaku: 90, lightup: 90,
+  tilegrid: 100, wordslide: 100, wordsearch: 120, letterwheel: 100, strikeout: 100, codeword: 120, swapword: 120, target: 75, equation: 90, balance: 120, numpyramid: 120, trail: 120, measure: 120, checkout: 90, numhunt: 60, chain: 45, symscan: 30, spotdiff: 60, countup: 60, maze: 60, pairmatch: 90, unblock: 60, blockparty: 60, iceslide: 90, gravity: 120, tiles: 120, rings: 60, laser: 60, pipes: 120, lightsout: 75, sudoku: 90, flow: 75, push: 120, tower: 90, tubes: 90, safe: 75, bomb: 90, nonogram: 120, flood: 60, tents: 90, shikaku: 90, lightup: 90,
 };
 
 /** The round's clock as rooms deal it today (ms). */

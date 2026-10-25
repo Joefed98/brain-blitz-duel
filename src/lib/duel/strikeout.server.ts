@@ -15,6 +15,7 @@ import {
   STRIKEOUT_REV2,
   STRIKEOUT_REV3,
   STRIKEOUT_REV4,
+  STRIKEOUT_REV5,
   decodeStrikeout,
   decodeStrikeout2,
   replayStrikeout,
@@ -177,6 +178,8 @@ export function strikeout2RuleBreak(words: readonly string[], givens: readonly s
  *
  * Rev 4 (the default since 19 Oct 2026): rev 3's draw exactly (same words and
  * starting letters for a seed), stamped 4 for twelve strikes (so2Rules).
+ *
+ * Rev 5 (25 Oct 2026, word depth to 200): rev 4's draw exactly, stamped 5 (scored to 200 with the early-solve bonus).
  */
 export function generateStrikeout(seed: number, rev: number = STRIKEOUT_REV4): StrikeoutPuzzleData {
   const rng = seededRng(seed);
@@ -208,7 +211,7 @@ export function generateStrikeout(seed: number, rev: number = STRIKEOUT_REV4): S
       if (!placed) { ok = false; break; }
     }
     if (ok && strikeout2RuleBreak(words, givens, rev3 ? STRIKEOUT_REV3 : STRIKEOUT_REV2) === null) {
-      const stamp = rev >= STRIKEOUT_REV4 ? STRIKEOUT_REV4 : rev3 ? STRIKEOUT_REV3 : STRIKEOUT_REV2;
+      const stamp = rev >= STRIKEOUT_REV5 ? STRIKEOUT_REV5 : rev >= STRIKEOUT_REV4 ? STRIKEOUT_REV4 : rev3 ? STRIKEOUT_REV3 : STRIKEOUT_REV2;
       return { type: "strikeout", strikeoutRev: stamp, rows: SO2_WORDS, length: SO2_MAX_LEN, givens, words };
     }
   }

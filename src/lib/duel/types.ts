@@ -145,6 +145,8 @@ export interface TargetStep {
 
 export interface TargetNumberPuzzleData {
   type: "target";
+  /** Number depth to 200 (numberDepth.ts, 25 Oct 2026): 1 = scored to 200; absent on rounds dealt before. */
+  depthRev?: number;
   /** The six starting tiles, in the order both players see them. */
   tiles: number[];
   /** The three-digit number to reach exactly. */
@@ -165,9 +167,11 @@ export interface SpotShape {
   rot?: number;
   /** Mirrored horizontally (arrows and triangles only). */
   flip?: boolean;
+  /** spotRev 2: drawn a little smaller (the hidden seventh difference; depth/doubleTake.ts). */
+  small?: boolean;
 }
 
-export type SpotDifferenceKind = "colour" | "turn" | "kind";
+export type SpotDifferenceKind = "colour" | "turn" | "kind" | "size";
 
 export interface SpotDifference {
   kind: SpotDifferenceKind;
@@ -194,6 +198,11 @@ export interface SpotPuzzleData {
   reef?: { top: SpotShape[]; bottom: SpotShape[] };
   /** spotRev 1 carries its own 60 s clock; stored rounds use SPOT_TIME_MS. */
   timeLimitMs?: number;
+  /**
+   * spotRev 2: the hidden seventh difference (a shape drawn smaller in one panel), in one of the two pictures
+   * (`scene`). Server-side only until the reveal, like `differences`; never counted in the twelve.
+   */
+  bonus?: SpotDifference;
 }
 
 export interface ReactionPuzzleData {
@@ -219,6 +228,8 @@ export interface EquationStage {
 
 export interface EquationPuzzleData {
   type: "equation";
+  /** Number depth to 200 (numberDepth.ts, 25 Oct 2026): 1 = scored to 200; absent on rounds dealt before. */
+  depthRev?: number;
   /** Four equations of three, four, five and five numbers. */
   stages: EquationStage[];
   /** Server-side only until reveal: the one operator set per stage. */
@@ -254,7 +265,7 @@ export interface StroopPuzzleData {
   seed: number;
   /** Fixed queue length (current rounds); absent = legacy open-ended 60 s stream. */
   queue?: number;
-  /** Rules revision (3 = 75 s, five phases; 4 = the puzzle score shape; 5 = the taller 390 × 650 board and the gentler finish); absent = older rules by queue. */
+  /** Rules revision (3 = 75 s, five phases; 4 = the puzzle score shape; 5 = the taller 390 × 650 board and the gentler finish; 6–7 score maps; 8 = depth to 200: streak, "don't sort" and gold words); absent = older rules by queue. */
   clashRev?: number;
 }
 
@@ -704,6 +715,15 @@ export const COUNTUP_MAX_COUNT = 12;
 
 export const WORDHUNT_COLS = 5;
 export const WORDHUNT_CELLS = WORDHUNT_COLS * WORDHUNT_COLS;
+/** wordHuntRev 3 (word depth, 25 Oct 2026): a 6×6 board (wordHunt.ts). */
+export const WORDHUNT_COLS_DEPTH = 6;
+/**
+ * A stored board's side: 6 for wordHuntRev 3's 36 tiles, else WORDHUNT_COLS (every older board, whatever its
+ * length, keeps the 5-column rules it was graded under).
+ */
+export function wordHuntCols(grid: readonly unknown[] | null | undefined): number {
+  return grid?.length === WORDHUNT_COLS_DEPTH * WORDHUNT_COLS_DEPTH ? WORDHUNT_COLS_DEPTH : WORDHUNT_COLS;
+}
 export const WORDHUNT_TIME_MS = 100_000;
 export const WORDHUNT_MIN_LENGTH = 4;
 /** A board is only used when the dictionary finds at least this many words. */
@@ -726,14 +746,19 @@ export interface WordHuntWord {
 
 export interface WordHuntPuzzleData {
   type: "wordhunt";
-  /** Sixteen tiles, row-major; a Q tile always reads "QU". */
+  /** 25 tiles (5×5; 36 on wordHuntRev 3), row-major; a Q tile always reads "QU". */
   grid: string[];
   /** Server-side only until the reveal: every word the board allows. */
   words?: WordHuntWord[];
   totalPoints?: number;
   par?: number;
-  /** Scoring targets (18 Oct 2026): 1 = word points on WORDHUNT_V1_CURVE; absent = 2 × points. */
+  /**
+   * Scoring targets (18 Oct 2026): 1 = word points on WORDHUNT_V1_CURVE; absent = 2 × points; 2 = misses cost
+   * (20 Oct 2026); 3 = the 6×6 board, long-word multiplier and golden tile (wordHunt.ts, 25 Oct 2026).
+   */
   wordHuntRev?: number;
+  /** wordHuntRev 3: the golden tile's index (public; a word traced through it scores double). */
+  golden?: number;
 }
 
 /* -------------------------------------------------------------------------- */
@@ -1249,6 +1274,14 @@ export interface MazePuzzleData {
   exit: number;
   /** Server-side only: the one route from the start to the exit. */
   solution?: number[];
+  /**
+   * `mazeRev: 1` (depth to 200, 25 Oct 2026; src/lib/duel/depth/labyrinth.ts): a 19 × 23 board (`cols`, `rows`),
+   * detour stars (`stars`, cells off the route) and a trail answer. Absent: the 19 × 19 board and path answer.
+   */
+  mazeRev?: number;
+  cols?: number;
+  rows?: number;
+  stars?: number[];
 }
 
 /* ============================ Sort the Tubes ============================ */
@@ -1426,6 +1459,21 @@ export interface GravityPuzzleData {
   gravityRev?: number;
   /** Tilts allowed (gravityRev 1); public, rounded so it never shows the minimum. */
   tiltLimit?: number;
+  /**
+   * gravityRev 3 (25 Oct 2026, the remodel, topsy.ts): the round's boards (10×10, six balls with their own
+   * holes, stars), played in order. `walls` / `starts` / `targets` then repeat board 1's blocks, starts and holes.
+   */
+  boards?: import("./topsy").TopsyBoard[];
+  /** gravityRev 3: the round's own clock (120 s). */
+  timeLimitMs?: number;
+  /** gravityRev 3: each board's tilt limit (public; topsyTiltLimit of its minimum). */
+  tiltLimits?: number[];
+  /** Server-side only (gravityRev 3): each board's fewest tilts to get every ball home. */
+  boardMins?: number[];
+  /** Server-side only (gravityRev 3): each board's fewest tilts home with every star. */
+  boardStarMins?: number[];
+  /** Server-side only (gravityRev 3): one shortest all-stars tilt list per board. */
+  boardSolutions?: string[];
 }
 
 /* ======================= Don't Break the Chain ========================== */
@@ -1511,6 +1559,8 @@ export interface ChainPuzzleData {
   chainTimeRev?: number;
   /** CHAIN_CYCLE_REV: five-symbol cycles and the reversed board from link 20; absent = three-symbol cycles. */
   chainCycleRev?: number;
+  /** Depth to 200 (25 Oct 2026, depth/chain.ts CHAIN_DEPTH_REV): milestones at 10 / 20 / 30 links and the stretched finish, up to 200; absent = 150. */
+  chainDepthRev?: number;
   /** The repeating three-item rule: shape and colour must both match. */
   cycle: ChainRuleItem[];
   /** Seeded rule per five-link board; absent on legacy single-cycle puzzles. */
@@ -1574,6 +1624,10 @@ export interface PairPuzzleData {
   type: "pairmatch";
   /** The shuffled board — identical on every phone in the room. */
   cards: PairCard[];
+  /** Depth to 200 (25 Oct 2026, depth/matchmaker.ts PAIR_DEPTH_REV): the match streak and the gold pair, up to 200; absent = 150. */
+  pairRev?: number;
+  /** pairRev 1: the gold pair's face (one of the fifteen), dealt on the server. */
+  gold?: PairCard;
 }
 
 /* ============================= Colour Flood ============================= */
@@ -1637,8 +1691,13 @@ export interface TilesPuzzleData {
    * the extra cell on tilesRev 1.
    */
   frame: number[];
-  /** 1 = the extra-cell board (tiles.ts); absent on stored 3×3 rounds. */
-  tilesRev?: 1 | 2;
+  /**
+   * 1 = the extra-cell board (tiles.ts); absent on stored 3×3 rounds. 3 (25 Oct 2026, the remodel,
+   * jumbled.ts) = the 5×5 colour gradient with row and column slides; `frame` is then 25 tiles.
+   */
+  tilesRev?: 1 | 2 | 3;
+  /** tilesRev 3: par moves, shown on the phone (the proved minimum + JUMBLED_PAR_SLACK). */
+  par?: number;
   /** tilesRev 2: the round's own clock (90 s); absent = TILES_TIME_MS. */
   timeLimitMs?: number;
   /** tilesRev 1: where the extra cell sits. */
@@ -1852,7 +1911,10 @@ export interface TenDropPuzzleData {
   type: "tendrop";
   /** Draws every target and tile queue — identical for everyone. */
   seed: number;
-  /** Score revision (1 = the Oct 2026 puzzle shape: 120 + speed, 110 for nine). Absent = 13 per target. */
+  /**
+   * Score revision (1 = the Oct 2026 puzzle shape: 120 + speed, 110 for nine; 2 = mapped bands; 3 = raw; 4 = gold
+   * tiles and a finish to 200, docs/depth/d2-number-tenfall.md). Absent = 13 per target.
+   */
   tenRev?: number;
 }
 
@@ -1873,7 +1935,7 @@ export interface ClayShootPuzzleData {
   type: "clayshoot";
   /** Draws the whole launch schedule — identical for everyone. */
   seed: number;
-  /** 2 = seeded white birds and bird-hit penalties; 3 = 10–12 birds; 4 = empty shots cost beyond 30; 5 = 14–16 birds; 6 = the taller 360 × 680 sky. Absent = original clay-only run. */
+  /** 2 = seeded white birds and bird-hit penalties; 3 = 10–12 birds; 4 = empty shots cost beyond 30; 5 = 14–16 birds; 6 = the taller 360 × 680 sky; 7 score bands; 8 quick shots; 9 depth to 200 (doubles and the hit streak). Absent = original clay-only run. */
   clayRev?: number;
 }
 
@@ -1881,7 +1943,7 @@ export interface WhackPuzzleData {
   type: "whack";
   /** Draws the whole pop schedule — identical for everyone. */
   seed: number;
-  /** Scoring targets (18 Oct 2026): 1 = the score lifted through WHACK_TARGET_LIFT; absent = the original score. */
+  /** Scoring targets (18 Oct 2026): 1 = the score lifted through WHACK_TARGET_LIFT; 2 score bands; 3 depth to 200 (the gold combo and diamonds); absent = the original score. */
   whackRev?: number;
 }
 
@@ -1931,6 +1993,8 @@ export interface TileGridPuzzleData {
   tray: string[];
   /** Server-side only until reveal: one reference grid, 49 cells, "" for empty. */
   solution?: string[];
+  /** Word depth (25 Oct 2026): 1 = scored to 200 by the stretch curve (depth/tilegrid.server.ts). Absent on older rounds. */
+  tileGridRev?: number;
 }
 
 /* ============================== Word Slide ============================== */
@@ -1943,6 +2007,8 @@ export interface WordSlidePuzzleData {
   par: number;
   /** Server-side only until reveal: the five intended words. */
   words?: string[];
+  /** Par moves (25 Oct 2026, word depth d1): 1 = a finish within par adds the par bonus, up to 200. Absent on older rounds. */
+  wordSlideRev?: number;
 }
 
 /* ================================ Balance =============================== */
@@ -1958,6 +2024,8 @@ export interface BalanceScale {
 
 export interface BalancePuzzleData {
   type: "balance";
+  /** Number depth to 200 (numberDepth.ts, 25 Oct 2026): 1 = scored to 200; absent on rounds dealt before. */
+  depthRev?: number;
   scales: BalanceScale[];
   /** Server-side only until reveal: one balanced peg per tray weight, per scale. */
   solutions?: number[][];
@@ -2112,6 +2180,8 @@ export interface NumberPyramidBoardData {
 
 export interface NumberPyramidPuzzleData {
   type: "numpyramid";
+  /** Number depth to 200 (numberDepth.ts, 25 Oct 2026): 1 = scored to 200; absent on rounds dealt before. */
+  depthRev?: number;
   pyramids: NumberPyramidBoardData[];
   /** Every board's values — private until the reveal. */
   solutions?: number[][];
@@ -2122,6 +2192,8 @@ export const TRAIL_TIME_MS = 120_000;
 
 export interface TrailPuzzleData {
   type: "trail";
+  /** Number depth to 200 (numberDepth.ts, 25 Oct 2026): 1 = scored to 200; absent on rounds dealt before. */
+  depthRev?: number;
   /** 36 cells row by row; the step number for given cells, else null. */
   givens: (number | null)[];
   /** Cell index for each step 1–36 — private until the reveal. */
@@ -2146,6 +2218,8 @@ export interface MeasureBoardData {
 
 export interface MeasurePuzzleData {
   type: "measure";
+  /** Number depth to 200 (numberDepth.ts, 25 Oct 2026): 1 = scored to 200; absent on rounds dealt before. */
+  depthRev?: number;
   /** Rules revision; 1 = the first rules; 2 = a per-board move limit (`moveLimits`, moveLimits.ts, 13 Oct 2026). */
   measureRev: number;
   /** Moves allowed per board (measureRev 2); public, rounded so it never shows the minimum. */
@@ -2153,6 +2227,8 @@ export interface MeasurePuzzleData {
   boards: MeasureBoardData[];
   /** Breadth-first minimum moves per board — private until the reveal. */
   minMoves?: number[];
+  /** depthRev 1: each board's par pours (its fewest actions, public: the par-pours bonus aims at it). */
+  par?: number[];
   /** One shortest action list per board — private until the reveal. */
   solutions?: string[];
 }
@@ -2173,10 +2249,17 @@ export interface CheckoutStageData {
   finish: 2 | 3;
   /** True when the board has a thin x4 ring. */
   quad?: boolean;
+  /**
+   * checkoutRev 2 (depthRev 1): the stage may also check out on a big finish, the Bull or (on a double-finish
+   * board) a treble, for the big-finish bonus (numberDepth.ts isBigFinishDart).
+   */
+  bigFinish?: boolean;
 }
 
 export interface CheckoutPuzzleData {
   type: "checkout";
+  /** Number depth to 200 (numberDepth.ts, 25 Oct 2026): 1 = scored to 200; absent on rounds dealt before. */
+  depthRev?: number;
   /** Rules revision; 1 = the first rules. */
   checkoutRev: number;
   stages: CheckoutStageData[];
@@ -2207,6 +2290,8 @@ export interface NumlineStageData {
 
 export interface NumlinePuzzleData {
   type: "numline";
+  /** Number depth to 200 (numberDepth.ts, 25 Oct 2026): 1 = scored to 200; absent on rounds dealt before. */
+  depthRev?: number;
   /** Rules revision; 1 = the first rules, 2 = 90 s and the rev-2 item curve (numline.ts). */
   numlineRev: number;
   /** numlineRev 2: the round clock (90,000 ms). Absent on stored rounds, which keep the registry's 75 s. */
@@ -2275,8 +2360,13 @@ export interface LetterWheelPuzzleData {
   slots: LetterWheelSlot[];
   /** Word for each slot — private until the reveal. */
   words?: string[];
-  /** 1 (14 Oct 2026): 11–14 word bank and the attempt-log answer (letterWheel.ts); absent = original rules. */
+  /**
+   * 1 (14 Oct 2026): 11–14 word bank and the attempt-log answer (letterWheel.ts); absent = original rules.
+   * 2 (25 Oct 2026, word depth): rev 1 plus the bonus jar (real non-crossword words fill it; up to 50 more).
+   */
   wheelRev?: number;
+  /** wheelRev 2: the jar's size in drops (public; LW_JAR_DROPS unless the board's bonus words hold fewer). */
+  jarSize?: number;
 }
 
 /** Strikeout: reveal five hidden five-letter words a letter at a time; five strikes end it. */
@@ -2287,7 +2377,8 @@ export interface StrikeoutPuzzleData {
   /**
    * Rules revision (1 = five five-letter words at once; 2 = five 7–8 letter words one at a time, 14 Oct 2026;
    * 3 = rev 2 with ten strikes, three vowel guesses per word, one more starting letter on words 1–3 and
-   * 1.5 per strike left, 15 Oct 2026; 4 = rev 3 with twelve strikes and 1.25 per strike left, 19 Oct 2026).
+   * 1.5 per strike left, 15 Oct 2026; 4 = rev 3 with twelve strikes and 1.25 per strike left, 19 Oct 2026;
+   * 5 = rev 4's rules scored to 200 with the early-solve bonus, 25 Oct 2026).
    */
   strikeoutRev: number;
   rows: number;
@@ -2304,7 +2395,7 @@ export const CODEWORD_TIME_MS = 120_000;
 
 export interface CodewordPuzzleData {
   type: "codeword";
-  /** Rules revision (1 = first release, four givens; 2 = five givens, 14 Oct 2026; 3 = six givens, the sixth leaving the most words one number from done, 19 Oct 2026). */
+  /** Rules revision (1 = first release, four givens; 2 = five givens, 14 Oct 2026; 3 = six givens, the sixth leaving the most words one number from done, 19 Oct 2026; 4 = rev 3's board scored to 200, 25 Oct 2026). */
   codewordRev: number;
   size: number;
   /** size × size cells, row by row: 0 = black square, otherwise the cell's number (1…numbers). */
@@ -2346,12 +2437,14 @@ export interface WordSearchPuzzleData {
   grid: string;
   category: string;
   wordCount: number;
-  /** Lookout rev (14 Oct 2026): 1 = wider bank (76 themes) and public word lengths. Absent on stored rounds. */
+  /** Lookout rev (14 Oct 2026): 1 = wider bank (76 themes) and public word lengths; 2 = no theme-name words; 3 = a hidden bonus word (25 Oct 2026). Absent on stored rounds. */
   wordSearchRev?: number;
   /** Rev 1: each hidden word's letter count, in placement order (public: the chips show it before a word is found). */
   wordLengths?: number[];
   /** Where each hidden word lies — private until the reveal. */
   placements?: WordSearchPlacement[];
+  /** Rev 3 (25 Oct 2026, word depth): the unlisted on-theme bonus word and where it lies — private until the reveal. */
+  bonus?: WordSearchPlacement;
 }
 
 export interface ShikakuPuzzleData {

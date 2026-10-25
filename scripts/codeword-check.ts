@@ -58,6 +58,10 @@ import { CODEWORD_TIME_MS, type CodewordPuzzleData, type PuzzleData } from "../s
 import { wordGameSeed } from "../src/lib/duel/wordSeed.server";
 import { buildEntry } from "./codeword-bank";
 import { pinDealtPuzzleScoreRev } from "../src/lib/duel/puzzleScoreRev";
+import { pinPreDepth } from "../src/lib/duel/wordDepth";
+
+// Word depth (25 Oct 2026): this check proves the pre-depth stamps (new deals pinned to them); depth-codeword-check proves the depth stamp.
+pinPreDepth(true);
 
 // Written for the rev-1 puzzle shape: new puzzles here carry puzzleScoreRev 1 (rooms deal rev 2 since 19 Oct 2026, scoring-bands-check).
 pinDealtPuzzleScoreRev(1);

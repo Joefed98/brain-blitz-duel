@@ -11,6 +11,7 @@ import { skylineArtGame as skylineGame, skylineRevealGame } from "./skyline.rend
 import { binTossArtGame as binTossGame } from "./binTossArt.renderer";
 import { drawBullseye } from "./bullseye.renderer";
 import { matchupArtGame as matchupGame } from "./matchup.renderer";
+import { matchupWorldHFor } from "./matchup";
 import { breakerArtGameFor } from "./breaker.renderer";
 import { breakerWorldHFor } from "./breaker";
 import { rallyWorldHFor } from "./rally";
@@ -154,7 +155,7 @@ export const ARCADE_REVEAL_RENDERERS: Record<string, ArcadeRevealRenderer> = {
   bullseye: simple(GOLD, 390, 560, { draw: drawBullseye }, (p, a) =>
     replayBullseyeRun(seedOf(p), a, p.type === "bullseye" ? p.winds : [], p.type === "bullseye" ? p.bullRev : undefined),
   ),
-  matchup: simple(GOLD, 390, 560, matchupGame, (p, a) => replayMatchupRun(seedOf(p), a, p.type === "matchup" ? p.matchupRev : undefined)),
+  matchup: simple(GOLD, 390, 560, matchupGame, (p, a) => replayMatchupRun(seedOf(p), a, p.type === "matchup" ? p.matchupRev : undefined), undefined, undefined, (p) => matchupWorldHFor(p.type === "matchup" ? p.matchupRev : undefined)),
   breaker: {
     accent: GOLD,
     worldW: 390,
@@ -277,7 +278,8 @@ export const ARCADE_REVEAL_RENDERERS: Record<string, ArcadeRevealRenderer> = {
     },
   },
   // Tenfall's polished board (tenDrop.renderer.ts), as in play; it draws in device px from the context's scale.
-  tendrop: simple(GOLD, TD_W, TD_H, { draw: drawTenDropArt }, (p, a) => replayTenDropRun(seedOf(p), a)),
+  // tenRev 4 (gold tiles) rides in the start state, so the final board shows its gold tiles.
+  tendrop: simple(GOLD, TD_W, TD_H, { draw: drawTenDropArt }, (p, a) => replayTenDropRun(seedOf(p), a, p.type === "tendrop" ? p.tenRev : undefined)),
   wordfall: {
     accent: "#D4A84A",
     worldW: WF_W,

@@ -62,6 +62,8 @@ function stampLimitsOnly(puzzle: PuzzleData): PuzzleData {
         pourLimit: upTo5(puzzle.minMoves + TUBES_SPARE_POURS),
       };
     case "gravity":
+      // gravityRev 3 (the remodel, topsy.ts) carries its own stamp and has no tilt limit.
+      if ((puzzle.gravityRev ?? 0) >= 3) return puzzle;
       if (!(puzzle.minMoves && puzzle.minMoves > 0)) return puzzle;
       return {
         ...puzzle,

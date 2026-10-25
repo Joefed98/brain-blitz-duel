@@ -1,29 +1,46 @@
 import { bandsHelp, openBandsLine } from "./puzzleBandsText";
-import { depthHelp } from "./logicDepthText";
+import { depthHelp as logicDepthHelp } from "./logicDepthText";
+import { wordSearchBonusHelp } from "./wordSearchText";
+import { letterWheelJarHelp } from "./letterWheelText";
+import { CODEWORD_STRETCH, TILEGRID_STRETCH, stretchHelp, strikeoutDepthHelp } from "./depth/stretchShapes";
+import { parBonusHelp } from "./parBonusText";
+import { SLIDE_PAR_BONUS } from "./wordSlide";
+import { SWAP_PAR_BONUS } from "./swapword";
+import { doubleTakeDepthHelp, eagleEyeDepthHelp, tallyDepthHelp } from "./depth/attentionTexts";
+import { depthHelp } from "./numberDepthText";
 import {
-  scoreReaction,
-  scoreStopWatch,
   scoreWordHunt,
-  scoreWordsmith,
   WORDHUNT_FREE_MISSES,
   WORDHUNT_FREE_MISSES_PER_WORD,
   WORDHUNT_MISS_COST_PCT,
   WORDHUNT_REV_TARGET,
-  WORDSMITH_REV_TARGET,
-  WORDSMITH_V2_CAP,
+  WORDSMITH_V3_CAP,
+  WORDSMITH_V3_PANGRAM_BONUS,
+  wordsmithV3Words,
 } from "./scoring";
 import { withPuzzleScoreRev } from "./puzzleScoreRev";
-import { FLASH_DECOY_FREE_SHARE_PCT, TAP_REV_ONE_CURVE } from "./tapLog";
-import { bandMapTotal } from "@/lib/arcade/scoreBands";
-import { TD_REV3_FREE_RESETS, TD_REV3_RESET_COST, TD_RUN_TICKS, TEN_DROP_RAW_REV, tenDropScore } from "@/lib/arcade/tenDrop";
-import { CLASH_GREAT_MAP } from "@/lib/arcade/colourClash";
-import { WHACK_BANDS_MAP } from "@/lib/arcade/whack";
-import { CLAY_QUICK_HIT_MAP, CLAY_QUICK_POINTS } from "@/lib/arcade/clayShoot";
+import { WORDHUNT_DEPTH_BASE_MAX, WORDHUNT_DEPTH_BONUS_MAX, WORDHUNT_V3_BASE_CURVE, WORDHUNT_V3_BONUS_CURVE } from "./wordHunt";
+import { ascendDepthHelp, bangOnDepthHelp, flashDepthHelp } from "./depth/speedTexts";
+import { bandMapTotal, bandOpen, bandUnitsFor } from "@/lib/arcade/scoreBands";
+import { TD_GOLD_MAX, TD_GOLD_POINTS, TD_REV3_FREE_RESETS, TD_REV3_RESET_COST, TD_RUN_TICKS, TD_STRETCH_FROM, TD_STRETCH_SPAN, TEN_DROP_DEPTH_REV, TEN_DROP_RAW_REV, tenDropScore } from "@/lib/arcade/tenDrop";
+import { CLASH_DEPTH_MAX_WRONG, CLASH_GOLD_POINTS, CLASH_GOLD_STREAK, CLASH_GOLDS, CLASH_GREAT_MAP, CLASH_PACE_ZERO_TICK, CLASH_REV3_RUN_TICKS, CLASH_STREAK_POINTS, CLASH_STRETCH_POINTS } from "@/lib/arcade/colourClash";
+import { WHACK_BANDS_MAP, WHACK_COMBO_POINTS, WHACK_DIAMOND_POINTS, WHACK_DIAMONDS, WHACK_QUICK_ZERO_TICKS } from "@/lib/arcade/whack";
+import { CLAY_DOUBLE_POINTS, CLAY_DOUBLES, CLAY_QUICK_HIT_MAP, CLAY_QUICK_POINTS, CLAY_STREAK_POINTS } from "@/lib/arcade/clayShoot";
 import { WORDFALL_BANDS_MAP } from "@/lib/arcade/wordfall";
 
-/** Search ranges for the open games' help numbers (word points rising; milliseconds falling). */
+/** Nucleus wordsmithRev 3's help numbers: the word points that first reach each score, then the curve's top. */
+function wordsmithV3Line(): string {
+  const first = (p: number) => RANGE_0_200.find((x) => wordsmithV3Words(x) >= p) ?? null;
+  const parts = [70, 100, 130, 150, 165].map((p) => {
+    const x = first(p);
+    return x === null ? null : `${x} points ≈ ${wordsmithV3Words(x)}`;
+  }).filter(Boolean);
+  return `${parts.join(", ")}, up to ${WORDSMITH_V3_CAP} at ${first(WORDSMITH_V3_CAP)} points`;
+}
+const RANGE_0_200 = Array.from({ length: 201 }, (_, i) => i);
+
+/** Search range for the open games' help numbers (word points rising). */
 const RANGE_0_80 = Array.from({ length: 81 }, (_, i) => i);
-const MS_DOWN = Array.from({ length: 160 }, (_, i) => 800 - 5 * i);
 import { CLASH_QUEUE } from "@/lib/arcade/colourClash";
 import {
   SKYLINE_STREAK_FROM,
@@ -41,8 +58,9 @@ import {
   TILT_V2_PARTIAL_MAX,
   TILT_V2_STAR_POINTS,
 } from "@/lib/arcade/tilt";
-import { BUB_SPECIAL_BLOCK, BUB_TORPEDO_HITS, BUB_V3_JOKER_BLOCK } from "@/lib/arcade/bubble";
-import { MATCHUP_V3_PAR_RAW } from "@/lib/arcade/matchup";
+import { BUB_SPECIAL_BLOCK, BUB_TORPEDO_HITS, BUB_V3_JOKER_BLOCK, BUB_V8_CHESTS, BUB_V8_CHEST_FP, BUB_V8_FEATURE_MAX } from "@/lib/arcade/bubble";
+import { MATCHUP_V3_PAR_RAW, MATCHUP_V9_FEATURE_MAX } from "@/lib/arcade/matchup";
+import { BT_V7_BALLS, BT_V7_BOOST_STEPS, BT_V7_FEATURE_MAX, BT_V7_LAST_LAND_MIN } from "@/lib/arcade/ballTrack";
 import { HOVER_REACHABLE_GATES, HOVER_STARS, HOVER_V2_GATES_SCORE, HOVER_V2_STARS_SCORE } from "@/lib/arcade/hover";
 import { WAV_BOSS_HP } from "@/lib/arcade/wavefront";
 import { SNAKE_COLS, SNAKE_TALL_ROWS } from "@/lib/arcade/snake";
@@ -59,7 +77,13 @@ import {
 } from "@/lib/arcade/pinball";
 import { BULLSEYE_INNER_BULL_POINTS, BULLSEYE_RING_VALUES } from "@/lib/arcade/bullseye";
 import { liveBandHelp } from "@/lib/arcade/liveBands";
-import { fillMax, liveRecord } from "./roundMax";
+import { fillMax, liveRecord, roundMaxFor } from "./roundMax";
+import { chainDepthHelp } from "./depth/chain";
+import { pairDepthHelp } from "./depth/matchmaker";
+import { labyrinthDepthHelp } from "./depth/labyrinth";
+import { rev3UnfinishedScore } from "./puzzleScoreRev3";
+import { topsyHelpScore } from "./topsy";
+import { jumbledHelpScore } from "./jumbled";
 import type { PuzzleType } from "./types";
 
 export interface PuzzleInstructionLine {
@@ -83,12 +107,12 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Tap letters,", detail: "then Enter. 4+ letters a word." },
         { action: "Use each tile once.", detail: "No plurals." },
         { action: "Shuffle", detail: "is free; the centre stays put." },
-        { action: "There's always a word", detail: "using every tile.", helpOnly: true },
+        { action: "Pangram bonus:", detail: `the word using every tile adds ${WORDSMITH_V3_PANGRAM_BONUS}. There's always one.`, helpOnly: true },
         { action: "Tap a selected letter again", detail: "to remove it. Clear empties the word; Enter checks it.", helpOnly: true },
         { action: "No plurals", detail: "or -s verb forms (FINDS, BOXES); words like GLASS are fine.", helpOnly: true },
         { action: "Words are checked", detail: "against a standard British English dictionary.", helpOnly: true },
       ],
-      score: `Word points: 4 letters 1, 5 → 2, 6 → 4, 7 → 7, 8 → 11, 9+ → 15. More points, higher score: ${openBandsLine("wordsmith", RANGE_0_80, (x) => withPuzzleScoreRev(1, () => scoreWordsmith(x, WORDSMITH_REV_TARGET)), (x) => `${x} points`)}; ${WORDSMITH_V2_CAP} at most unless you find the word that uses every tile, {max} only with it. The counter shows word points.`,
+      score: `Word points: 4 letters 1, 5 → 2, 6 → 4, 7 → 7, 8 → 11, 9+ → 15. More points, higher score: ${wordsmithV3Line()}. The word that uses every tile (the pangram) adds ${WORDSMITH_V3_PANGRAM_BONUS}: {max} only with it. The counter shows word points.`,
     },
     tilegrid: {
       goal: "Build a mini crossword from your tiles.",
@@ -100,7 +124,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Red runs", detail: "need fixing.", helpOnly: true },
         { action: "Words are checked", detail: "against a standard British English dictionary.", helpOnly: true },
       ],
-      score: bandsHelp("tilegrid"),
+      score: stretchHelp("tilegrid", TILEGRID_STRETCH),
     },
     balance: {
       goal: "Balance each of the four scales.",
@@ -113,18 +137,19 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "The fourth scale", detail: "is wider: 10 notches, 5 each side, and five weights to hang.", helpOnly: true },
         { action: "Hangs are limited:", detail: "6 / 8 / 10 / 12 hangs on the four scales (the counter). Out of hangs, the scale ends unbalanced and the next one starts.", helpOnly: true },
       ],
-      score: bandsHelp("balance"),
+      score: depthHelp("balance"),
     },
     wordslide: {
       goal: "Slide rows and columns until every row is a word.",
       how: [
         { action: "Swipe a row or column;", detail: "letters wrap round." },
         { action: "Lock a finished word", detail: "with its padlock." },
-        { action: "Undo and Reset", detail: "still count as moves." },
+        { action: "Finish within par", detail: "moves for a bonus; Undo and Reset count." },
+        { action: "Par", detail: "is the number of slides that scrambled the board, shown beside your moves (gold while you are within it).", helpOnly: true },
         { action: "Words are 5 letters.", detail: "Column swipes go around a locked row.", helpOnly: true },
         { action: "Words are checked", detail: "against a standard British English dictionary.", helpOnly: true },
       ],
-      score: bandsHelp("wordslide"),
+      score: parBonusHelp("wordslide", SLIDE_PAR_BONUS, "moves", "the par moves"),
     },
     target: {
       goal: "Use the six numbers to make the target.",
@@ -132,8 +157,9 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Tap two numbers,", detail: "then + − × or ÷." },
         { action: "Use each number", detail: "once at most." },
         { action: "Every step", detail: "must be a whole number." },
+        { action: "Elegance bonus:", detail: "hit the target with 5 numbers, not all 6." },
       ],
-      score: bandsHelp("target"),
+      score: depthHelp("target"),
     },
     equation: {
       goal: "Fill the gaps so each equation is true.",
@@ -145,7 +171,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "The last one", detail: "uses division in a harder mix. 90 seconds for all four.", helpOnly: true },
         { action: "3 tries each:", detail: "every full set of signs is a try. After the third wrong one the equation locks; tap Next.", helpOnly: true },
       ],
-      score: bandsHelp("equation"),
+      score: depthHelp("equation"),
     },
     reaction: {
       goal: "Tap the instant the screen turns gold.",
@@ -153,10 +179,12 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Wait for gold;", detail: "it comes 5 to 8 times." },
         { action: "Only a full gold screen", detail: "counts: the rest are traps." },
         { action: "Don't guess:", detail: "early taps are false starts." },
+        { action: "Steady hand:", detail: "every reaction close together scores extra." },
         { action: "Traps:", detail: "teal, red or blue; near-gold amber; a gold border only; the word GOLD on a dark screen; half the screen gold.", helpOnly: true },
         { action: "False starts:", detail: "a tap on a trap or the dark screen, or within 0.1 s of the gold (too fast to be real).", helpOnly: true },
       ],
-      score: `Faster average reactions score more: ${openBandsLine("reaction", MS_DOWN, (ms) => withPuzzleScoreRev(1, () => scoreReaction(ms, 0, TAP_REV_ONE_CURVE)), (ms) => `${ms} ms`)}; misses count 1,200 ms; false starts −8 each for the first two, −11 each after that. Tap more than ${FLASH_DECOY_FREE_SHARE_PCT} % of the decoys and every reaction counts slower; tap them all and none counts.`,
+      // Depth to 200 (tapRev 5): the stretched curve and the steady hand (depth/speedTexts.ts).
+      score: flashDepthHelp(),
     },
     numhunt: {
       goal: "Tap all 24 numbers from smallest to largest.",
@@ -164,9 +192,10 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Find the smallest", detail: "number left and tap it." },
         { action: "Keep going", detail: "until every number is gone." },
         { action: "Untapped numbers", detail: "move every 15 seconds." },
+        { action: "Flow:", detail: "quick right taps in a row build a bonus multiplier." },
         { action: "The timer above the board", detail: "counts up to 15 s, then the numbers move and it starts again from 0.", helpOnly: true },
       ],
-      score: bandsHelp("numhunt"),
+      score: ascendDepthHelp(),
     },
     stroop: {
       goal: "Steer each falling word into the right gate.",
@@ -175,9 +204,12 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Swipe down or ▼", detail: "to drop it fast." },
         { action: "Watch the banner:", detail: "the rule swaps every 15 s." },
         { action: "The rule", detail: "is either the ink colour or what the word says.", helpOnly: true },
+        { action: "Grey word in a dashed frame:", detail: "don't touch it – let it fall." },
+        { action: "Gold-bordered word:", detail: "sort it right for a bonus, doubled on a streak." },
+        { action: "Streak:", detail: "words right in a row; the lanes glow brighter as it grows.", helpOnly: true },
         { action: "Sort the last word", detail: `to finish – the run ends when all ${CLASH_QUEUE} are sorted, or at 75 seconds.`, helpOnly: true },
       ],
-      score: `All 52 sorted with at most 2 wrong gates is a finish: ${bandMapTotal(CLASH_GREAT_MAP, 120)} as time runs out, rising with the time left (5 off the speed part per wrong gate); {max} only for a quick finish with no wrong gate. Otherwise words right less words wrong, ${bandMapTotal(CLASH_GREAT_MAP, 110)} at most: 20 scores ${bandMapTotal(CLASH_GREAT_MAP, 70)}, 40 scores ${bandMapTotal(CLASH_GREAT_MAP, 100)}, 46 or more ${bandMapTotal(CLASH_GREAT_MAP, 110)}.`,
+      score: `All ${CLASH_QUEUE} sorted (or let fall) with at most ${CLASH_DEPTH_MAX_WRONG} wrong is a finish: ${bandMapTotal(CLASH_GREAT_MAP, 120)} as time runs out, rising with the time left (5 off the speed part per wrong word; touching a grey word counts as wrong) to 150 for a quick finish with none wrong. A finish adds up to ${CLASH_GOLDS * CLASH_GOLD_POINTS * 2} for gold words (${CLASH_GOLD_POINTS} each, ${CLASH_GOLD_POINTS * 2} on a streak of ${CLASH_GOLD_STREAK}+), up to ${CLASH_STREAK_POINTS} for your longest streak (all ${CLASH_QUEUE} in a row for the lot) and up to ${CLASH_STRETCH_POINTS} for a clean finish quicker than ${CLASH_REV3_RUN_TICKS / 120} s; the gold and streak points count in full by ${CLASH_REV3_RUN_TICKS / 120} s and fade to none at ${CLASH_PACE_ZERO_TICK / 60} s. {max} only for a quick, clean run with every gold word on a streak. Otherwise words right less words wrong, ${bandMapTotal(CLASH_GREAT_MAP, 110)} at most: 20 scores ${bandMapTotal(CLASH_GREAT_MAP, 70)}, 40 scores ${bandMapTotal(CLASH_GREAT_MAP, 100)}, 46 or more ${bandMapTotal(CLASH_GREAT_MAP, 110)}.`,
     },
     symscan: {
       goal: "Find every eagle that matches the target.",
@@ -187,7 +219,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Three grids,", detail: "each bigger, in 30 seconds." },
         { action: "Grid 3 has two targets:", detail: "tap every eagle facing either one.", helpOnly: true },
       ],
-      score: bandsHelp("symscan"),
+      score: eagleEyeDepthHelp(),
     },
     spotdiff: {
       goal: "Find six differences in each of two pictures.",
@@ -195,9 +227,10 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Compare", detail: "the two panels." },
         { action: "Tap a difference", detail: "in either panel." },
         { action: "Sweet shop first,", detail: "then the rock pool; 60 seconds for both." },
+        { action: "One picture hides a 7th:", detail: "a shape drawn smaller. Find it before the 6th for a bonus." },
         { action: "Next picture", detail: "moves on early; you can't go back.", helpOnly: true },
       ],
-      score: bandsHelp("spotdiff"),
+      score: doubleTakeDepthHelp(),
     },
     stopwatch: {
       goal: "Stop the marker in the gold zone, ten times.",
@@ -205,12 +238,14 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Tap", detail: "to stop the marker." },
         { action: "Black blind spots", detail: "hide the marker: keep its rhythm." },
         { action: "Each watch", detail: "is a little trickier." },
+        { action: "Hit the bright centre line", detail: "for extra; zone stops in a row add more." },
         { action: "From Watch 2:", detail: "blind spots (wider on later watches), some slower sweeps, and two watches run corner to corner.", helpOnly: true },
         { action: "Some targets move:", detail: "stop when they line up. Some watches hide the last third, turn vertical or speed up.", helpOnly: true },
         { action: "The counter drops at the right edge", detail: "from 2 on Watch 1 to 11 on Watch 10.", helpOnly: true },
         { action: "Watches 8-10 wrap", detail: "from the right edge back to the left.", helpOnly: true },
       ],
-      score: `Closer average stops score more: ${openBandsLine("stopwatch", MS_DOWN, (ms) => withPuzzleScoreRev(1, () => scoreStopWatch(ms, TAP_REV_ONE_CURVE)), (ms) => `${ms} ms off`)}; misses count 500 ms.`,
+      // Depth to 200 (tapRev 5): tapRev 4's curve plus the dead-centre line and the zone streak (depth/speedTexts.ts).
+      score: bangOnDepthHelp(),
     },
     countup: {
       goal: "Count the shapes each question asks for.",
@@ -221,19 +256,22 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Four trays", detail: "share 60 seconds.", helpOnly: true },
         { action: "Colours", detail: "are red, blue, green, purple, pink, orange and white.", helpOnly: true },
       ],
-      score: bandsHelp("countup"),
+      score: tallyDepthHelp(),
     },
     wordhunt: {
       goal: "Find as many words as you can.",
       how: [
         { action: "Drag or tap", detail: "through touching letters." },
         { action: "Words are 4+ letters;", detail: "plurals count." },
-        { action: "Let go or tap Submit", detail: "to enter a word." },
+        { action: "6+ letters and the gold tile", detail: "multiply a word's points." },
+        { action: "Let go or tap Submit", detail: "to enter a word.", helpOnly: true },
+        { action: "Long words:", detail: "6 letters ×1.5, 7 or more ×2. A word through the glowing gold tile scores double (both can stack).", helpOnly: true },
         { action: "Diagonals count.", detail: "Don't reuse a tile in one word.", helpOnly: true },
         { action: "Tapping the last letter again", detail: "also submits the word.", helpOnly: true },
         { action: "Words are checked", detail: "against a standard British English dictionary.", helpOnly: true },
       ],
-      score: `Word points: 4 letters 1, 5 → 2, 6 → 4, 7 → 7, 8+ → 11. More points, higher score: ${openBandsLine("wordhunt", RANGE_0_80, (x) => withPuzzleScoreRev(1, () => scoreWordHunt(x, WORDHUNT_REV_TARGET)), (x) => `${x} points`)}. Tracing lots of non-words costs: ${WORDHUNT_FREE_MISSES} plus ${WORDHUNT_FREE_MISSES_PER_WORD} per word found are free, then ${WORDHUNT_MISS_COST_PCT} % off each. The counter shows word points.`,
+      // wordHuntRev 3 (word depth, 25 Oct 2026; wordHunt.ts): base points on their curve, the features' extras on theirs.
+      score: `Word points: 4 letters 1, 5 → 2, 6 → 4, 7 → 7, 8+ → 11. Base points score up to ${WORDHUNT_DEPTH_BASE_MAX}: ${[18, 27, 44].map((u) => `${u} points ≈ ${bandOpen(WORDHUNT_V3_BASE_CURVE, u)}`).join(", ")}, ${WORDHUNT_DEPTH_BASE_MAX} at ${bandUnitsFor(WORDHUNT_V3_BASE_CURVE, WORDHUNT_DEPTH_BASE_MAX)}. What long words and the gold tile add (6 letters ×1.5, 7+ ×2, through the gold tile ×2) scores up to ${WORDHUNT_DEPTH_BONUS_MAX} more: ${[17, 48].map((u) => `${u} extra ≈ ${bandOpen(WORDHUNT_V3_BONUS_CURVE, u, WORDHUNT_DEPTH_BONUS_MAX)}`).join(", ")}, ${WORDHUNT_DEPTH_BONUS_MAX} at ${bandUnitsFor(WORDHUNT_V3_BONUS_CURVE, WORDHUNT_DEPTH_BONUS_MAX)}; {max} only with both. Tracing lots of non-words costs: ${WORDHUNT_FREE_MISSES} plus ${WORDHUNT_FREE_MISSES_PER_WORD} per word found are free, then ${WORDHUNT_MISS_COST_PCT} % off each. The counter shows word points with their multipliers.`,
     },
     unblock: {
       goal: "Slide the gold block out through the exit.",
@@ -261,7 +299,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Par:", detail: "all off in the fewest presses scores a bonus." },
         { action: "Neighbours", detail: "are the four lights above, below, left and right.", helpOnly: true },
       ],
-      score: depthHelp("lightsout"),
+      score: logicDepthHelp("lightsout"),
     },
     pipes: {
       goal: "Connect every pipe to the source.",
@@ -280,7 +318,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Pencil marks", detail: "are for notes." },
         { action: "13 to 15 numbers", detail: "are given, and only one grid fits them.", helpOnly: true },
       ],
-      score: depthHelp("sudoku"),
+      score: logicDepthHelp("sudoku"),
     },
     flow: {
       goal: "Join every colour pair and fill every square.",
@@ -332,7 +370,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Perfect solve:", detail: "the fewest moves (Par) scores a bonus." },
         { action: "Colour shows size.", detail: "Each puzzle has 3 or 4 posts.", helpOnly: true },
       ],
-      score: depthHelp("tower"),
+      score: logicDepthHelp("tower"),
     },
     maze: {
       goal: "Draw a path from the start to the exit.",
@@ -340,9 +378,11 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Drag", detail: "through the passages." },
         { action: "Walls", detail: "block your way." },
         { action: "Reach the exit", detail: "to finish." },
+        { action: "Stars", detail: "on side paths add points if you finish fast." },
         { action: "The path", detail: "moves one neighbouring cell at a time.", helpOnly: true },
       ],
-      score: bandsHelp("maze"),
+      // Depth to 200 (mazeRev 1): depth/labyrinth.ts.
+      score: labyrinthDepthHelp(rev3UnfinishedScore("maze", 0.5)),
     },
     tubes: {
       goal: "Sort the potions so each flask is one colour.",
@@ -355,7 +395,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "A full one-colour flask", detail: "gets a cork.", helpOnly: true },
         { action: "Pours are limited", detail: "(the counter). Undo and Reset don't give a pour back; out of pours, the board ends.", helpOnly: true },
       ],
-      score: depthHelp("tubes"),
+      score: logicDepthHelp("tubes"),
     },
     safe: {
       goal: "Find the four-digit code that fits every clue.",
@@ -365,7 +405,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Only one code", detail: "fits every clue." },
         { action: "Clean crack:", detail: "open it with tries to spare for a bonus." },
       ],
-      score: depthHelp("safe"),
+      score: logicDepthHelp("safe"),
     },
     bomb: {
       goal: "Defuse the bomb in six steps.",
@@ -377,18 +417,20 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Only one order fits", detail: "the clues together allow exactly one six-step sequence, and every clue is needed.", helpOnly: true },
         { action: "Wires", detail: "are numbered 1-7 from the left.", helpOnly: true },
       ],
-      score: depthHelp("bomb"),
+      score: logicDepthHelp("bomb"),
     },
     gravity: {
-      goal: "Tilt to park each ball on its own target.",
+      // gravityRev 3 (the remodel, topsy.ts); stored older rounds keep their own reveal.
+      goal: "Tilt to roll every ball into its own hole, three boards in a row.",
       how: [
         { action: "Use the arrows", detail: "to tilt the board." },
-        { action: "Every ball slides", detail: "until it hits something." },
-        { action: "A ball on its target", detail: "locks and becomes a wall." },
-        { action: "A locked ball", detail: "can help or block the others.", helpOnly: true },
-        { action: "Tilts are limited", detail: "(the counter). Undo and Reset don't give a tilt back; out of tilts, the board ends.", helpOnly: true },
+        { action: "Every ball rolls", detail: "until it hits a block, the edge or a ball." },
+        { action: "A ball drops home", detail: "as it rolls over its own colour's hole." },
+        { action: "Roll through a star", detail: "for bonus points." },
+        { action: "The rings", detail: "above the board fill as balls go home; a clear board brings the next.", helpOnly: true },
+        { action: "Tilts are limited", detail: "on each board (the counter). Undo and Reset don't give a tilt back; out of tilts, the next board comes.", helpOnly: true },
       ],
-      score: bandsHelp("gravity"),
+      score: topsyHelpScore(),
     },
     chain: {
       goal: "Tap 40 charms, following the cycle.",
@@ -401,8 +443,10 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Every 5 links", detail: "the board reshuffles with five new charms.", helpOnly: true },
         { action: "Reverse:", detail: "a banner warns from link 17; links 21-25 run last to first (the arrows point back).", helpOnly: true },
         { action: "Watch for look-alikes:", detail: "right shape, wrong colour.", helpOnly: true },
+        // Depth to 200 (chainDepthRev 1): the milestones, one short line.
+        { action: "Milestones:", detail: "10, 20 and 30 links in a row score extra when quick." },
       ],
-      score: bandsHelp("chain"),
+      score: chainDepthHelp(rev3UnfinishedScore("chain", 0.5)),
     },
     nonogram: {
       goal: "Fill cells so every line matches its numbers.",
@@ -411,7 +455,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "The numbers", detail: "are the filled runs, in order." },
         { action: "A line dims", detail: "once it matches." },
       ],
-      score: depthHelp("nonogram"),
+      score: logicDepthHelp("nonogram"),
     },
     pairmatch: {
       goal: "Find all fifteen pairs.",
@@ -419,8 +463,10 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Tap two cards", detail: "to turn them over." },
         { action: "A match stays up;", detail: "a miss flips back." },
         { action: "Remember", detail: "where each card was." },
+        // Depth to 200 (pairRev 1): the streak and the gold pair, one short line.
+        { action: "Bonus:", detail: "match in a row for a streak; find the gold pair early." },
       ],
-      score: bandsHelp("pairmatch"),
+      score: pairDepthHelp(bandsHelp("pairmatch"), roundMaxFor("pairmatch")),
     },
     flood: {
       goal: "Flood the whole board with one colour.",
@@ -430,18 +476,19 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "You start", detail: "from the top-left corner." },
         { action: "Moves are limited:", detail: "par + 2 (the counter). Out of moves, the board ends and scores 0.", helpOnly: true },
       ],
-      score: depthHelp("flood"),
+      score: logicDepthHelp("flood"),
     },
     tiles: {
-      goal: "Slide the tiles into order, 1 to 9.",
+      // tilesRev 3 (the remodel, jumbled.ts).
+      goal: "Slide rows and columns to rebuild the colour gradient.",
       how: [
-        { action: "Tap a tile", detail: "next to the gap to slide it." },
-        { action: "One extra cell", detail: "sits beside the 3 × 3, so one row or column has four." },
-        { action: "Finish in reading order,", detail: "row by row, with the gap in the last cell.", helpOnly: true },
-        { action: "Undo or Reset", detail: "takes slides back." },
-        { action: "Every slide counts", detail: "as a move, undone ones too.", helpOnly: true },
+        { action: "Swipe a row", detail: "left or right, or a column up or down." },
+        { action: "Tiles wrap round", detail: "the line; there is no gap." },
+        { action: "The four corners", detail: "(dotted) never move: their lines slide round them." },
+        { action: "Tiles in place", detail: "glow softly.", helpOnly: true },
+        { action: "Par", detail: "is shown with your moves; every slide counts, undone ones too.", helpOnly: true },
       ],
-      score: bandsHelp("tiles"),
+      score: jumbledHelpScore(),
     },
     rings: {
       goal: "Turn the rings until every spoke is one colour.",
@@ -555,18 +602,23 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
       score: liveBandHelp("bullseye", `Your dart total: rings ${BULLSEYE_RING_VALUES.join(" / ")} from the centre out (the inner bull ${BULLSEYE_INNER_BULL_POINTS}), plus +1, +2 or +3 for each balloon popped on the way in.`, { more: "A higher dart total", good: (u) => `totals ${u}` }),
     },
     matchup: {
-      goal: "Line up three or more gems.",
+      goal: "Match gems to meet each goal.",
       how: [
-        { action: "Swap neighbours;", detail: "wait for gems to fall in." },
-        { action: "4, 5 or an L / T", detail: "makes a bomb or a star." },
-        { action: "5 plus an L / T in one swap:", detail: "a jackpot!" },
+        { action: "Swap neighbours;", detail: "collect the goal's colours." },
+        { action: "Match on frozen gems", detail: "to break the ice." },
+        { action: "Clear below treasure", detail: "to bring it down." },
+        { action: "4, 5 or an L / T", detail: "makes a bomb or a star; 5 plus an L / T in one swap makes a jackpot.", helpOnly: true },
+        { action: "Each level", detail: "asks for a count of two or three colours (shown under the board); meet it and the next level starts, with more ice.", helpOnly: true },
+        { action: "A frozen gem", detail: "can't be swapped. Clear it in a line, a cascade or a blast and the ice breaks.", helpOnly: true },
+        { action: "A treasure gem", detail: "can't be matched, swapped or blasted: it falls as the gems under it clear and is collected on the bottom row.", helpOnly: true },
+        { action: "Cascades multiply:", detail: "each step after a swap's own clear counts ×2, ×3 and so on.", helpOnly: true },
         { action: "Drag one gem onto its neighbour", detail: "to swap them. Matched gems clear and new ones fall in; your next swap waits until the board has settled.", helpOnly: true },
         { action: "Line of 4: a bomb", detail: "(clears around it). Line of 5: a white four-point star (its row and column). An L or T: a six-point star (both diagonals).", helpOnly: true },
         { action: "A line of 5 and an L / T in one swap", detail: "makes a jackpot gem: it clears every gem of its colour plus its row and column.", helpOnly: true },
         { action: "Specials", detail: "go off when you swap them or match next to them, and set each other off.", helpOnly: true },
         { action: "Sixty seconds", detail: "on the same board for everyone; new gems drop from the same fixed queues.", helpOnly: true },
       ],
-      score: liveBandHelp("matchup", "Match points: longer lines, cascades and special gems score more.", { more: "More match points", good: (u) => `scores ${u.toLocaleString("en-GB")} match points` }),
+      score: liveBandHelp("matchup", `Match points: longer lines, cascades and special gems score more. Goals met, ice broken, treasure collected and the cascade multiplier add up to ${MATCHUP_V9_FEATURE_MAX} more.`, { more: "More match points", good: (u) => `scores ${u.toLocaleString("en-GB")} match points` }),
     },
     snake: {
       goal: "Eat the stars; don't crash.",
@@ -684,18 +736,21 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
       score: liveBandHelp("slice", "Combo-weighted slices out of the most the run offers (every food at ×3), in thousandths. Each chilli then costs 10 and ends the combo.", { more: "More combo slices", good: (u) => `reaches ${u}` }),
     },
     bubble: {
-      goal: "Pop bubbles in threes.",
+      goal: "Pop threes and free the treasure.",
       how: [
         { action: "Drag to aim,", detail: "let go to shoot." },
-        { action: "Crown Joker", detail: "matches any colour." },
-        { action: "Mines blast;", detail: "torpedoes drill where aimed." },
+        { action: "Chests pay", detail: "only when they fall with a cluster." },
+        { action: "Bank off walls;", detail: "pop back to back for combos." },
+        { action: "Crown Joker", detail: "matches any colour. Mines blast; torpedoes drill where aimed.", helpOnly: true },
+        { action: `${BUB_V8_CHESTS} treasure chests`, detail: "sit in the reef. Nothing matches a chest: cut what holds it up so it falls. A mine or torpedo that destroys one pays nothing.", helpOnly: true },
+        { action: "A bank shot", detail: "comes off a wall before it pops anything; every popping shot straight after another is a combo.", helpOnly: true },
         { action: "Three of a colour pop", detail: "when they touch; bubbles left hanging fall. Bounce shots off the walls.", helpOnly: true },
         { action: "The Joker (a black bubble with a gold crown and a rainbow rim)", detail: "joins every colour it touches and pops each group that reaches three. A mine clears the bubbles around it.", helpOnly: true },
         { action: "A torpedo never sticks:", detail: `it flies where you aim it, bank shots included, and destroys up to ${BUB_TORPEDO_HITS} bubbles it runs into on the way up. Bubbles left hanging then fall.`, helpOnly: true },
         { action: "Specials come in the queue:", detail: `a Joker every ${BUB_V3_JOKER_BLOCK} shots or so, and one mine or torpedo somewhere in the first ${BUB_SPECIAL_BLOCK}.`, helpOnly: true },
         { action: "Ninety seconds", detail: "on the same field and queue for everyone.", helpOnly: true },
       ],
-      score: liveBandHelp("bubble", "Each bubble cleared from the field counts 1.", { more: "More bubbles cleared", good: (u) => `clears ${u} bubbles`, finish: "Clearing the field adds up to 10 for speed: the full 10 with at least half the time left, falling to 0 at the buzzer." }),
+      score: liveBandHelp("bubble", "Each bubble cleared from the reef counts 1.", { more: "More bubbles cleared", good: (u) => `clears ${u} bubbles`, finish: `Clearing the reef adds up to 10 for speed. Chests that fall (${BUB_V8_CHEST_FP} each), bank shots and combos add up to ${BUB_V8_FEATURE_MAX} more.` }),
     },
     beat: {
       goal: "Tap the notes in time.",
@@ -741,10 +796,12 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Tap falling tiles", detail: "to apply them to the total." },
         { action: "×2, ÷2, ÷3 and −N", detail: "change the total." },
         { action: "Overshoot", detail: "and the total drops to 0." },
+        { action: "Gold tiles:", detail: "hit a target with one for bonus points." },
         { action: "Tiles apply", detail: "in the order you tap them.", helpOnly: true },
         { action: "A ÷ that doesn't divide exactly", detail: "is refused.", helpOnly: true },
       ],
-      score: `Unfinished: targets hit, about ${tenDropScore(1, TD_RUN_TICKS, TEN_DROP_RAW_REV)} for the first and ${tenDropScore(9, TD_RUN_TICKS, TEN_DROP_RAW_REV)} for nine (−${TD_REV3_RESET_COST} per reset after the first ${TD_REV3_FREE_RESETS}). All ten: ${tenDropScore(10, TD_RUN_TICKS, TEN_DROP_RAW_REV)} if the last clears as time runs out, rising the earlier it clears; {max} only with at least half the time left.`,
+      // tenRev 4 (the dealt stamp): tenRev 3's unfinished score; a finish to the game's maximum.
+      score: `Unfinished: targets hit, about ${tenDropScore(1, TD_RUN_TICKS, TEN_DROP_DEPTH_REV)} for the first and ${tenDropScore(9, TD_RUN_TICKS, TEN_DROP_DEPTH_REV)} for nine (−${TD_REV3_RESET_COST} per reset after the first ${TD_REV3_FREE_RESETS}). All ten: ${tenDropScore(10, TD_RUN_TICKS, TEN_DROP_DEPTH_REV)} if the last clears as time runs out, rising the earlier it clears: ${tenDropScore(10, TD_RUN_TICKS - TD_STRETCH_FROM, TEN_DROP_DEPTH_REV)} at ${Math.round((TD_RUN_TICKS - TD_STRETCH_FROM) / 60)} s, ${tenDropScore(10, TD_RUN_TICKS - TD_STRETCH_FROM - TD_STRETCH_SPAN, TEN_DROP_DEPTH_REV)} at ${Math.round((TD_RUN_TICKS - TD_STRETCH_FROM - TD_STRETCH_SPAN) / 60)} s, ${tenDropScore(10, TD_RUN_TICKS / 2, TEN_DROP_DEPTH_REV)} by ${TD_RUN_TICKS / 120} s. Each target hit exactly with a gold tile adds ${TD_GOLD_POINTS} on a finish (up to ${TD_GOLD_MAX}), so {max} takes all ten by ${TD_RUN_TICKS / 120} s and ${TD_GOLD_MAX / TD_GOLD_POINTS} gold targets.`,
     },
     clayshoot: {
       goal: "Shoot all 25 clays without hitting a bird.",
@@ -756,8 +813,10 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Later on, two fly at once", detail: "– keep watching both edges.", helpOnly: true },
         { action: "Each bird hit", detail: "costs 10.", helpOnly: true },
         { action: "Aim, don't spray:", detail: "30 shots that hit nothing are free, then every 20 more cost 1.", helpOnly: true },
+        { action: "Doubles and streaks:", detail: "hit both clays of a pair, and clays in a row, for bonuses." },
+        { action: "The hit streak", detail: "grows ×2 from the 5th clay in a row, ×3 from the 10th, ×4 from the 15th; a clay that gets away or a bird ends it.", helpOnly: true },
       ],
-      score: `5 per orange, 10 per gold, −10 per bird, −1 per 20 shots that hit nothing after the first 30; all 25 with zero birds hit adds 10. That total gives up to ${bandMapTotal(CLAY_QUICK_HIT_MAP, 150)}: 88 gives ${bandMapTotal(CLAY_QUICK_HIT_MAP, 88)}, 125 gives ${bandMapTotal(CLAY_QUICK_HIT_MAP, 125)}. Quick hits add up to ${CLAY_QUICK_POINTS} more: a clay hit within a quarter of a second of its launch earns its full share, none after about 0.37 s. {max} only for a perfect, quick run.`,
+      score: `5 per orange, 10 per gold, −10 per bird, −1 per 20 shots that hit nothing after the first 30; all 25 with zero birds hit adds 10. That total gives up to ${bandMapTotal(CLAY_QUICK_HIT_MAP, 150)}: 88 gives ${bandMapTotal(CLAY_QUICK_HIT_MAP, 88)}, 125 gives ${bandMapTotal(CLAY_QUICK_HIT_MAP, 125)}. Quick hits add up to ${CLAY_QUICK_POINTS} more: a clay hit within a quarter of a second of its launch earns its full share, none after about 0.37 s; a perfect, quick run is 150. Past that: up to ${CLAY_DOUBLE_POINTS * CLAY_DOUBLES} for the ${CLAY_DOUBLES} doubles and ${CLAY_STREAK_POINTS} for one streak through all 25, both paid by how quick your hits were. {max} only for a perfect, quick run with every double and an unbroken streak.`,
     },
     whack: {
       goal: "Bonk gophers whose hats match the banner.",
@@ -767,8 +826,10 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Never tap", detail: "a hedgehog." },
         { action: "Gophers pop up briefly", detail: "– the window shrinks as the run goes on.", helpOnly: true },
         { action: "Hedgehogs cost 5;", detail: "a wrong-colour hat or an empty burrow costs 3.", helpOnly: true },
+        { action: "Combo and diamonds:", detail: "right hits in a row multiply; tap the rare diamond fast." },
+        { action: "The gold combo", detail: "grows ×2 from the 6th right hit in a row, ×3 from the 11th, ×4 from the 16th; a wrong hat, a hedgehog or an empty burrow ends it (a gopher left to sink does not).", helpOnly: true },
       ],
-      score: `Up to 135 for the share of targets hit, −3 per wrong hat, −5 per hedgehog, −3 per empty tap, +15 for hitting every target; that total then sets the score: 62 scores ${bandMapTotal(WHACK_BANDS_MAP, 62)}, 102 scores ${bandMapTotal(WHACK_BANDS_MAP, 102)}, 118 scores ${bandMapTotal(WHACK_BANDS_MAP, 118)}, 133 scores ${bandMapTotal(WHACK_BANDS_MAP, 133)}. Only a perfect 150 is {max}.`,
+      score: `Up to 135 for the share of targets hit, −3 per wrong hat, −5 per hedgehog, −3 per empty tap, +15 for hitting every target; that total sets the first 150: 62 scores ${bandMapTotal(WHACK_BANDS_MAP, 62)}, 102 scores ${bandMapTotal(WHACK_BANDS_MAP, 102)}, 118 scores ${bandMapTotal(WHACK_BANDS_MAP, 118)}, 133 scores ${bandMapTotal(WHACK_BANDS_MAP, 133)}, a perfect run 150. The combo adds up to ${WHACK_COMBO_POINTS} for long unbroken runs of very quick hits (slower hits count less, none after about ${Math.round((WHACK_QUICK_ZERO_TICKS * 1000) / 60)} ms); each of the ${WHACK_DIAMONDS} diamonds adds ${WHACK_DIAMOND_POINTS}. {max} only for a perfect, very fast run with an unbroken combo and both diamonds.`,
     },
     wavefront: {
       goal: "Five waves and a boss in 90 s.",
@@ -937,7 +998,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Each number", detail: "is its rectangle's size." },
         { action: "Cover", detail: "every square." },
       ],
-      score: depthHelp("shikaku"),
+      score: logicDepthHelp("shikaku"),
     },
     dig: {
       goal: "Dig a path so the water reaches the drain.",
@@ -958,7 +1019,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Ten dark numbers are fixed", detail: "– the path must reach each one at exactly that step. You fill the other 26.", helpOnly: true },
         { action: "Undo removes your last square; Reset clears your path.", detail: "Tapping your last square or dragging back along the path also undoes.", helpOnly: true },
       ],
-      score: bandsHelp("trail"),
+      score: depthHelp("trail"),
     },
     measure: {
       goal: "Measure out exactly the target amount.",
@@ -966,12 +1027,13 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Tap a jug, then another", detail: "to pour." },
         { action: "Fill and Empty", detail: "use the tap and drain." },
         { action: "Every action", detail: "is a move." },
+        { action: "Par pours:", detail: "solve a puzzle in its fewest moves for a bonus." },
         { action: "A pour", detail: "stops when the first jug is empty or the second is full.", helpOnly: true },
         { action: "Puzzle 4", detail: "has no tap or drain: make the split shown on the jugs.", helpOnly: true },
         { action: "Reset", detail: "starts the puzzle again; moves keep counting.", helpOnly: true },
         { action: "Moves are limited", detail: "to about 3× the fewest (the counter). Out of moves, the run ends there.", helpOnly: true },
       ],
-      score: bandsHelp("measure"),
+      score: depthHelp("measure"),
     },
     checkout: {
       goal: "Score exactly the target with your darts.",
@@ -979,11 +1041,12 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Tap a number,", detail: "then x1, x2 or x3." },
         { action: "Hit zero exactly", detail: "and finish in the ring shown." },
         { action: "Tap Throw", detail: "to check." },
+        { action: "Big finish:", detail: "end on the Bull or a treble for a bonus." },
         { action: "Outer bull = 25,", detail: "inner bull = 50 (a double).", helpOnly: true },
         { action: "The ring shown", detail: "is a double or a treble.", helpOnly: true },
         { action: "Every board is different.", detail: "Solve the five in any order; a wrong throw only costs time. Undo takes a dart back.", helpOnly: true },
       ],
-      score: bandsHelp("checkout"),
+      score: depthHelp("checkout"),
     },
     numline: {
       goal: "Place each number on the line.",
@@ -991,11 +1054,12 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Drag the marker,", detail: "then tap Place." },
         { action: "Only the ends", detail: "are labelled." },
         { action: "Estimate:", detail: "no calculator needed." },
+        { action: "Bullseye streak:", detail: "land within a hair of exact, in a row, for a bonus." },
         { action: "A magnifier", detail: "shows where your finger is.", helpOnly: true },
         { action: "Placed numbers are locked.", detail: "Five numbers on each of three lines.", helpOnly: true },
         { action: "Numbers include", detail: "fractions, percentages, powers and roots.", helpOnly: true },
       ],
-      score: "Up to 8 per number: full 8 within 1% of the line, falling evenly to 0 at 10% away; 25% or more away costs 1. Place all 15 for more, the quicker and the more of them within 1% the better. That total maps to the score bands: about 70 for an average round, 100 good, 120 great; {max} only for a perfect one.",
+      score: depthHelp("numline"),
     },
     numpyramid: {
       goal: "Each cell is the sum of the two below it.",
@@ -1006,43 +1070,51 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Four pyramids", detail: "to complete, one after another.", helpOnly: true },
         { action: "Double-tap a placed tile", detail: "to return it to the tray; drag it onto another cell to swap.", helpOnly: true },
       ],
-      score: bandsHelp("numpyramid"),
+      score: depthHelp("numpyramid"),
     },
     balltrack: {
       goal: "Steer every marble into the cup of its colour.",
       how: [
         { action: "Tap a gold tube", detail: "to turn it." },
-        { action: "Tubes turn with a marble inside;", detail: "it rolls out of the new end." },
-        { action: "Tap a cup's drop", detail: "to close it; tap again to open." },
+        { action: "Gold marbles", detail: "and home streaks score extra." },
+        { action: "Chevrons boost;", detail: "marbles meeting on an X fall." },
+        { action: "Tap a cup's drop", detail: "to close it; tap again to open.", helpOnly: true },
+        { action: "Tubes turn with a marble inside;", detail: "it rolls out of the new end.", helpOnly: true },
+        { action: "A gold marble", detail: "still goes to the cup of its colour; home, it's worth more. Every marble home from the third in a row is a combo.", helpOnly: true },
+        { action: "A speed booster (orange chevrons)", detail: `sends a marble on at double speed for ${BT_V7_BOOST_STEPS} tiles: set the tubes ahead sooner.`, helpOnly: true },
+        { action: "A crossover (X)", detail: "lets a marble from above drop straight through and one along the row roll straight on. If two meet in it from different ways, both are knocked out.", helpOnly: true },
         { action: "A marble rolling into an upright tube", detail: "drops a row.", helpOnly: true },
         { action: "A closed drop on the bottom row", detail: "sends marbles rolling past it (gold →).", helpOnly: true },
-        { action: "A marble drops about every two seconds", detail: "until 50 seconds; the run lasts a minute.", helpOnly: true },
+        { action: `${BT_V7_BALLS} marbles drop, one about every 1.4 seconds`, detail: "until 49 seconds; the run lasts a minute.", helpOnly: true },
         { action: "Mid-round the bottom row moves and the cups swap colours;", detail: "a countdown warns you.", helpOnly: true },
       ],
-      score: liveBandHelp("balltrack", "Each marble home counts 1.", { more: "More marbles home", good: (u) => `gets ${u} marbles home`, finish: "All 30 home adds up to 10 for speed: the full 10 if the last marble lands by 56.5 s, falling to 0 at the buzzer." }),
+      score: liveBandHelp("balltrack", "Each marble home counts 1.", { more: "More marbles home", good: (u) => `gets ${u} marbles home`, finish: `All ${BT_V7_BALLS} home adds up to 10 for speed: the full 10 if the last marble lands by ${((BT_V7_LAST_LAND_MIN + (3600 - BT_V7_LAST_LAND_MIN) / 2) / 60).toFixed(1)} s, falling to 0 at the buzzer. Gold marbles, boosted marbles and combos add up to ${BT_V7_FEATURE_MAX} more.` }),
     },
     wordsearch: {
       goal: "Find the six hidden words in the category.",
       how: [
         { action: "Drag in a straight line", detail: "through the letters." },
         { action: "Words run", detail: "any way, backwards too." },
-        { action: "A found word", detail: "is struck through." },
+        { action: "A seventh theme word hides unlisted:", detail: "find it for a bonus." },
+        { action: "A found word", detail: "is struck through.", helpOnly: true },
         { action: "Each chip shows", detail: "a hidden word's letter count until you find it; the word then fills it.", helpOnly: true },
+        { action: "The bonus word", detail: "fills the gold star chip. Find it before the sixth word: the sixth ends the round.", helpOnly: true },
       ],
-      score: bandsHelp("wordsearch"),
+      score: wordSearchBonusHelp(),
     },
     letterwheel: {
       goal: "Fill the crossword from the letter wheel.",
       how: [
         { action: "Drag across the letters", detail: "and let go." },
         { action: "Crossword words", detail: "fill gold. 3+ letters." },
-        { action: "Lift off the wheel or ×", detail: "to drop a trace." },
+        { action: "Other real words", detail: "fill the bonus jar." },
+        { action: "Lift off the wheel or ×", detail: "to drop a trace.", helpOnly: true },
         { action: "Or tap letters", detail: "then Submit.", helpOnly: true },
-        { action: "Other real words", detail: "are not in this puzzle, and free.", helpOnly: true },
+        { action: "The bonus jar", detail: "fills by word length; a full jar adds the top 50 points. Misses after the first 5 spill a drop each.", helpOnly: true },
         { action: "A trace that is not a word", detail: "is a miss: the first 5 are free, then each costs 3.", helpOnly: true },
         { action: "Shuffle", detail: "rearranges the wheel without changing the crossword.", helpOnly: true },
       ],
-      score: bandsHelp("letterwheel"),
+      score: letterWheelJarHelp(),
     },
     strikeout: {
       goal: "Reveal five long words, one at a time, before twelve strikes.",
@@ -1050,13 +1122,14 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Tap a letter", detail: "to fill every matching tile in the word." },
         { action: "Three vowel guesses", detail: "per word (the dots)." },
         { action: "Vowels are A E I O U;", detail: "the keypad resets for each word.", helpOnly: true },
-        { action: "Tap Solve", detail: "to guess the word; a wrong guess is a strike." },
+        { action: "Tap Solve", detail: "to guess the word; early earns more, wrong is a strike." },
+        { action: "Early solves:", detail: "the more letters still hidden when you Solve a word, the bigger its bonus.", helpOnly: true },
         { action: "Starting letters", detail: "show from the start (every copy; one more on words 1–3) and earn nothing.", helpOnly: true },
         { action: "Solve:", detail: "type the missing letters, then Solve. It must be a real word (others are refused for free).", helpOnly: true },
         { action: "A word is solved", detail: "once all its letters show; the next word starts.", helpOnly: true },
         { action: "Twelve strikes", detail: "in total (misses and wrong solves, over all five words) end the round.", helpOnly: true },
       ],
-      score: bandsHelp("strikeout"),
+      score: strikeoutDepthHelp(),
     },
     codeword: {
       goal: "Crack the code: each number is one letter.",
@@ -1068,19 +1141,20 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "The strip above the keys", detail: "shows what you have decoded.", helpOnly: true },
         { action: "The grid completes", detail: "the moment every number is right.", helpOnly: true },
       ],
-      score: bandsHelp("codeword"),
+      score: stretchHelp("codeword", CODEWORD_STRETCH),
     },
     swapword: {
       goal: "Swap tiles until all six words read correctly.",
       how: [
         { action: "Drag a tile onto another", detail: "to swap." },
         { action: "Gold", detail: "is in place; teal belongs elsewhere." },
-        { action: "Swaps are limited.", detail: "Running out ends the round." },
-        { action: "The budget", detail: "is 8 more than the fewest swaps that solve the board.", helpOnly: true },
+        { action: "Finish in par swaps", detail: "for a bonus. Swaps are limited." },
+        { action: "Par", detail: "is the fewest swaps that solve the board, shown beside your swaps (gold while you are within it).", helpOnly: true },
+        { action: "The budget", detail: "is 8 more than par; running out ends the round.", helpOnly: true },
         { action: "Or tap one tile", detail: "then the other.", helpOnly: true },
         { action: "Teal tiles", detail: "belong elsewhere in a word through them; grey tiles fit neither word. A letter shows teal only as often as it is still needed.", helpOnly: true },
       ],
-      score: bandsHelp("swapword"),
+      score: parBonusHelp("swapword", SWAP_PAR_BONUS, "swaps", "par swaps (the fewest that solve the board)"),
     },
     lightup: {
       goal: "Place bulbs so every white square is lit.",
@@ -1090,7 +1164,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "A wall's number", detail: "is how many bulbs touch it." },
         { action: "A number on a wall", detail: "says exactly how many bulbs touch that wall's four sides.", helpOnly: true },
       ],
-      score: depthHelp("lightup"),
+      score: logicDepthHelp("lightup"),
     },
     tents: {
       goal: "Pitch one tent beside every tree.",
@@ -1100,7 +1174,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Signposts", detail: "give each row's and column's tents." },
         { action: "Tap a third time", detail: "to clear the cell.", helpOnly: true },
       ],
-      score: depthHelp("tents"),
+      score: logicDepthHelp("tents"),
     },
   };
 }

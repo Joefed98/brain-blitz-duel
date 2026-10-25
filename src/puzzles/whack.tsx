@@ -28,11 +28,20 @@ import {
   WHACK_RED,
   type WhackState,
   WHACK_STATUS_RETIRED,
+  WHACK_STATUS_UP,
+  whackComboMultiplier,
 } from "@/lib/arcade/whack";
-import { encodeWhackRun, replayWhackRun } from "@/lib/duel/whack";
+import { encodeWhackRun, replayWhackRun, whackDepthDetail } from "@/lib/duel/whack";
 import { WHACK_TIME_MS, type WhackPuzzleData } from "@/lib/duel/types";
 import { playCorrect, playTick, playWrong } from "@/lib/sound";
 import { momentFrame } from "@/lib/fx/momentCues";
+import { soundCue as dispatchPitched } from "@/lib/fx/soundCues";
+import { demoHushed } from "@/lib/sound";
+
+/** A cue at a pitch (speedFx's soundCue has none), hushed in intro demos as it is. */
+function pitchedCue(cue: string, rate: number): void {
+  if (!demoHushed()) dispatchPitched(cue, rate);
+}
 import { gridCellAt } from "@/components/puzzles/GridDrag";
 import { NO_SCROLL_STYLE, useNoTouchScroll } from "@/components/puzzles/noScroll";
 
@@ -83,7 +92,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const checkpoints = useRef<ReturnType<typeof whackCheckpoint>[]>([]);
   const pending = useRef<ArcadeInputEvent[]>([]);
   const submitted = useRef(false);
-  const [hud, setHud] = useState({ hits: 0, wrong: 0, next: 0, red: false, flash: false });
+  const [hud, setHud] = useState({ hits: 0, wrong: 0, next: 0, red: false, flash: false, combo: 1, diamonds: 0 });
   useNoTouchScroll(wrap);
 
   /** End-of-run finale over the board (presentation only; never delays the submit). */
@@ -150,7 +159,11 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     let empty = state.current.empty;
     let sunk = 0;
     let flashUntil = 0;
-    let shown = { hits: -1, wrong: -1, next: -1, red: false, flash: false };
+    let shown = { hits: -1, wrong: -1, next: -1, red: false, flash: false, combo: 1, diamonds: 0 };
+    // whackRev 3: the combo's multiplier and the diamonds (rising, taken).
+    let multiplier = 1;
+    let diamondsUp = 0;
+    let diamondHits = 0;
 
     const loop = (time: number) => {
       frameTiming.begin(time);
@@ -211,19 +224,37 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         wrong = state.current.wrong;
         playWrong();
       }
+      const dp = state.current.dp;
+      if (dp) {
+        const live = !whackGame.isOver(state.current);
+        const up = dp.status.filter((status) => status === WHACK_STATUS_UP).length + dp.hits;
+        if (up > diamondsUp && live) pitchedCue("whack.popUp", 1.6);
+        diamondsUp = Math.max(diamondsUp, up);
+        if (dp.hits > diamondHits) {
+          diamondHits = dp.hits;
+          pitchedCue("whack.cleanTwenty", 1.25);
+        }
+        const m = whackComboMultiplier(dp.combo);
+        if (m > multiplier && live) pitchedCue("whack.bonkStreak", 1 + 0.08 * m);
+        multiplier = m;
+      }
       const next = {
         hits,
         wrong,
         next: state.current.next,
         red: whackRule(state.current.schedule.flips, state.current.tick) === WHACK_RED,
         flash: time < flashUntil,
+        combo: multiplier,
+        diamonds: diamondHits,
       };
       if (
         next.hits !== shown.hits ||
         next.wrong !== shown.wrong ||
         next.next !== shown.next ||
         next.red !== shown.red ||
-        next.flash !== shown.flash
+        next.flash !== shown.flash ||
+        next.combo !== shown.combo ||
+        next.diamonds !== shown.diamonds
       ) {
         shown = next;
         setHud(next);
@@ -273,10 +304,19 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   return (
     <div ref={wrap} data-stage-column="2" data-polish="whack" className="flex min-h-0 w-full flex-1 flex-col gap-2" style={NO_SCROLL_STYLE}>
       <Banner red={hud.red} flash={hud.flash} />
-      <p className="text-center font-mono text-sm text-muted-foreground">
-        Hits <span className="text-primary">{hud.hits}</span> / {total} · Wrong{" "}
-        <span className="text-destructive">{hud.wrong}</span>
-      </p>
+      {data.whackRev === 3 ? (
+        // whackRev 3: the same one line, with the gold combo's multiplier and the diamonds taken.
+        <p data-bonk-depth className="whitespace-nowrap text-center font-mono text-sm text-muted-foreground">
+          Hits <span className="text-primary">{hud.hits}</span>/{total} · Wrong <span className="text-destructive">{hud.wrong}</span> · Combo{" "}
+          <span data-bonk-combo={hud.combo} className={hud.combo > 1 ? "font-bold text-primary" : "text-foreground"}>×{hud.combo}</span> ·{" "}
+          <span data-bonk-diamonds className={hud.diamonds > 0 ? "font-bold text-sky-300" : undefined}>◆{hud.diamonds}</span>
+        </p>
+      ) : (
+        <p className="text-center font-mono text-sm text-muted-foreground">
+          Hits <span className="text-primary">{hud.hits}</span> / {total} · Wrong{" "}
+          <span className="text-destructive">{hud.wrong}</span>
+        </p>
+      )}
       {/* The square board at the largest fit, top-anchored (15 Oct 2026, display only; gridCellAt maps through the board). */}
       <ArcadeArenaSlot width={1} height={1} scene={bonkArenaScene} playCentre>
       <div data-game-arena="board" className="flex min-h-0 flex-1 items-center justify-center">
@@ -315,11 +355,17 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
 function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   if (puzzle.type !== "whack") return null;
   const result = replayWhackRun(puzzle.seed, myAnswer ?? "", puzzle.whackRev);
+  const depth = result.state.dp ? whackDepthDetail(result.state) : null;
   return (
     <div className="flex w-full flex-col items-center gap-3">
       <p className="text-center font-mono text-lg font-bold text-foreground">
         Hits {result.hits} / {result.totalTargets} · Wrong {result.wrong}
       </p>
+      {depth ? (
+        <p data-bonk-depth-reveal className="text-center text-sm text-muted-foreground">
+          {depth.base} for hits + {depth.combo} combo (best run {depth.comboBest}) + {depth.diamonds} for {depth.diamondHits} of {depth.diamondTotal} diamonds
+        </p>
+      ) : null}
       <p className="text-center text-base text-muted-foreground">Same targets for everyone</p>
     </div>
   );

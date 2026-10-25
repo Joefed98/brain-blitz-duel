@@ -4,6 +4,8 @@
  * Dictionary checks happen only on the server.
  */
 import { finishParts, partialParts, scoreRev1 } from "./puzzleScoreRev";
+import { dealtDepthRev } from "./wordDepth";
+import type { TileGridPuzzleData } from "./types";
 
 
 export const TG_SIZE = 7;
@@ -11,6 +13,15 @@ export const TG_CELLS = TG_SIZE * TG_SIZE;
 export const TG_TILES = 15;
 export const TG_TIME_MS = 100_000;
 export const TG_REVEAL_MS = 8_000;
+
+/** Word depth to 200 (25 Oct 2026): Interlock's stretch stamp; the board and rules are unchanged (depth/tilegrid.server.ts). */
+export const TILE_GRID_DEPTH_REV = 1;
+
+/** New rounds carry tileGridRev 1 (none while a check pins the pre-depth stamps). */
+export function stampTileGridRev(puzzle: TileGridPuzzleData): TileGridPuzzleData {
+  const rev = dealtDepthRev<number | undefined>(TILE_GRID_DEPTH_REV, undefined);
+  return rev === undefined ? puzzle : { ...puzzle, tileGridRev: rev };
+}
 
 export interface TileRun {
   word: string;

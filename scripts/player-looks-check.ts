@@ -54,7 +54,8 @@ import {
 import { PLAYER_ICON_ART } from "../src/components/duel/playerIcons";
 import { COMEBACK_MAX_FINAL_PLACE, COMEBACK_MIN_PLACES, FASTEST_MAX_SHARE, FASTEST_MIN_SCORE, podiumAwards, type AwardRound, type PodiumAward } from "../src/lib/duel/podiumAwards";
 import { isGenuinelyClose, nearMissInfo } from "../src/lib/duel/nearMiss";
-import { MAX_ROUND_SCORE, standings } from "../src/lib/duel/scoring";
+import { standings } from "../src/lib/duel/scoring";
+import { roundMaxFor, scaledToMax } from "../src/lib/duel/roundMax";
 import type { DuelPlayerRow, RoundResultRow } from "../src/lib/duel/types";
 
 const failures: string[] = [];
@@ -539,24 +540,31 @@ const result = (slot: number, round: number, score: number, extra: Partial<Round
 const PUZZLE: AwardRound = { type: "sudoku", name: "Box Six", timeLimitMs: 60_000, timed: true };
 const HOVER: AwardRound = { type: "hover", name: "Hover", timeLimitMs: 75_000, timed: false };
 const find = (awards: PodiumAward[], id: string) => awards.find((a) => a.id === id);
+/**
+ * Figures below are written on the 150 scale and follow each game's own maximum (roundMax.ts): a perfect
+ * is the game's maximum (150 today, 200 once its expansion raises it), a threshold scales with it.
+ */
+const PMAX = roundMaxFor(PUZZLE.type);
+const HMAX = roundMaxFor(HOVER.type);
+const ps = (onScale150: number) => scaledToMax(PUZZLE.type, onScale150);
 
-// Perfectionist: needs a 150; the most 150s wins it; on equal counts, someone who didn't win.
+// Perfectionist: needs a perfect (the game's maximum); the most perfects wins it; on equal counts, someone who didn't win.
 {
   const players = [1, 2, 3].map((s) => player(s));
-  const none = podiumAwards(players, [result(1, 1, 149), result(2, 1, 120), result(3, 1, 90)], [PUZZLE]);
-  check(!find(none, "perfect"), "Perfectionist without a 150");
-  const winnerOnly = podiumAwards(players, [result(1, 1, 150), result(2, 1, 120), result(3, 1, 90)], [PUZZLE]);
-  check(find(winnerOnly, "perfect")?.slot === 1, "Perfectionist: only the winner has a 150, so the winner gets it");
+  const none = podiumAwards(players, [result(1, 1, PMAX - 1), result(2, 1, 120), result(3, 1, 90)], [PUZZLE]);
+  check(!find(none, "perfect"), `Perfectionist without a ${PMAX}`);
+  const winnerOnly = podiumAwards(players, [result(1, 1, PMAX), result(2, 1, 120), result(3, 1, 90)], [PUZZLE]);
+  check(find(winnerOnly, "perfect")?.slot === 1, `Perfectionist: only the winner has a ${PMAX}, so the winner gets it`);
   const both = podiumAwards(players, [
-    result(1, 1, 150), result(1, 2, 150), result(1, 3, 150),
-    result(2, 1, 150), result(2, 2, 40), result(2, 3, 40),
-    result(3, 1, 150), result(3, 2, 30), result(3, 3, 30),
+    result(1, 1, PMAX), result(1, 2, PMAX), result(1, 3, PMAX),
+    result(2, 1, PMAX), result(2, 2, 40), result(2, 3, 40),
+    result(3, 1, PMAX), result(3, 2, 30), result(3, 3, 30),
   ], [PUZZLE, PUZZLE, PUZZLE]);
   check(find(both, "perfect")?.slot === 1, `Perfectionist: 3 perfects must beat 1 (got ${find(both, "perfect")?.slot})`);
   const level = podiumAwards(players, [
-    result(1, 1, 150), result(1, 2, 100),
-    result(2, 1, 150), result(2, 2, 40),
-    result(3, 1, 150), result(3, 2, 30),
+    result(1, 1, PMAX), result(1, 2, 100),
+    result(2, 1, PMAX), result(2, 2, 40),
+    result(3, 1, PMAX), result(3, 2, 30),
   ], [PUZZLE, PUZZLE]);
   check(find(level, "perfect")?.slot === 2, `Perfectionist: equal counts go to a non-winner, then the better final place (got ${find(level, "perfect")?.slot})`);
 }
@@ -606,11 +614,12 @@ const find = (awards: PodiumAward[], id: string) => awards.find((a) => a.id === 
   const metres = (m: number) => podiumAwards(players, [1, 2, 3].map((s) => result(s, 1, 40 * s, { extra: s === 2 ? { metres: m } : null })), [SWING]);
   check(!find(metres(300), "close"), "So Close for 200 m short of 500");
   check(find(metres(460), "close")?.slot === 2, "So Close: 40 m short of 500 not awarded");
-  // A 150 is never a near miss.
-  const full = podiumAwards(players, [1, 2, 3].map((s) => result(s, 1, s === 2 ? 150 : 40, { extra: s === 2 ? { gates: 19, totalGates: 20 } : null })), [HOVER]);
-  check(!find(full, "close"), "So Close on a 150");
+  // A perfect (the game's maximum) is never a near miss.
+  const full = podiumAwards(players, [1, 2, 3].map((s) => result(s, 1, s === 2 ? HMAX : 40, { extra: s === 2 ? { gates: 19, totalGates: 20 } : null })), [HOVER]);
+  check(!find(full, "close"), `So Close on a ${HMAX}`);
 }
-// Fastest Finger: a full solve scoring 110+ (FASTEST_MIN_SCORE) in at most half the clock; arcade runs and reactions never.
+// Fastest Finger: a full solve scoring 110+ (FASTEST_MIN_SCORE, on the 150 scale: scaled to the game's maximum) in at
+// most half the clock; arcade runs and reactions never.
 {
   const players = [1, 2, 3].map((s) => player(s));
   const arcade = podiumAwards(players, [1, 2, 3].map((s) => result(s, 1, 150, { ms_remaining: 70_000 })), [HOVER]);
@@ -620,23 +629,25 @@ const find = (awards: PodiumAward[], id: string) => awards.find((a) => a.id === 
   const zero = podiumAwards(players, [1, 2, 3].map((s) => result(s, 1, 0, { is_correct: false, ms_remaining: 50_000 })), [PUZZLE]);
   check(!find(zero, "fastest"), "Fastest Finger with no correct or scoring finish");
   const timed = podiumAwards(players, [
-    result(1, 1, 150, { ms_remaining: 50_000 }), // the winner, fastest of all
-    result(2, 1, 120, { ms_remaining: 30_000 }),
-    result(3, 1, 130, { ms_remaining: 40_000 }),
+    result(1, 1, ps(150), { ms_remaining: 50_000 }), // the winner, fastest of all
+    result(2, 1, ps(120), { ms_remaining: 30_000 }),
+    result(3, 1, ps(130), { ms_remaining: 40_000 }),
   ], [PUZZLE]);
   check(find(timed, "fastest")?.slot === 1, `Fastest Finger: the quickest solve wins it, winner or not (got ${find(timed, "fastest")?.slot})`);
   check(find(timed, "fastest")?.line === "Box Six in 10.0s", `Fastest Finger line: ${find(timed, "fastest")?.line}`);
   // Speed alone is not enough: a quick unsolved answer, a solve below 110, a solve using over half the clock.
-  const quickWrong = podiumAwards(players, [1, 2, 3].map((s) => result(s, 1, s === 2 ? 110 : 60, { is_correct: false, ms_remaining: 55_000 })), [PUZZLE]);
+  const quickWrong = podiumAwards(players, [1, 2, 3].map((s) => result(s, 1, s === 2 ? ps(110) : 60, { is_correct: false, ms_remaining: 55_000 })), [PUZZLE]);
   check(!find(quickWrong, "fastest"), "Fastest Finger for a quick round-topping answer that was not a solve");
   check(FASTEST_MIN_SCORE === 110, `Fastest Finger's threshold is ${FASTEST_MIN_SCORE}, not 110`);
-  const lowScore = podiumAwards(players, [1, 2, 3].map((s) => result(s, 1, s === 2 ? 109 : 60, { is_correct: s === 2, ms_remaining: 55_000 })), [PUZZLE]);
-  check(!find(lowScore, "fastest"), "Fastest Finger for a solve scoring under 110");
-  const atThreshold = podiumAwards(players, [1, 2, 3].map((s) => result(s, 1, s === 2 ? 110 : 60, { is_correct: s === 2, ms_remaining: 55_000 })), [PUZZLE]);
-  check(find(atThreshold, "fastest")?.slot === 2, "No Fastest Finger for a quick full solve scoring exactly 110");
-  const slow = podiumAwards(players, [1, 2, 3].map((s) => result(s, 1, s === 2 ? 125 : 60, { is_correct: s === 2, ms_remaining: 25_000 })), [PUZZLE]);
+  // The threshold for this game, worked out here: 110 of 150 scaled to its maximum (110 at 150, 147 at 200).
+  const FMIN = Math.round((FASTEST_MIN_SCORE * PMAX) / 150);
+  const lowScore = podiumAwards(players, [1, 2, 3].map((s) => result(s, 1, s === 2 ? FMIN - 1 : 60, { is_correct: s === 2, ms_remaining: 55_000 })), [PUZZLE]);
+  check(!find(lowScore, "fastest"), `Fastest Finger for a solve scoring under ${FMIN}`);
+  const atThreshold = podiumAwards(players, [1, 2, 3].map((s) => result(s, 1, s === 2 ? FMIN : 60, { is_correct: s === 2, ms_remaining: 55_000 })), [PUZZLE]);
+  check(find(atThreshold, "fastest")?.slot === 2, `No Fastest Finger for a quick full solve scoring exactly ${FMIN}`);
+  const slow = podiumAwards(players, [1, 2, 3].map((s) => result(s, 1, s === 2 ? ps(125) : 60, { is_correct: s === 2, ms_remaining: 25_000 })), [PUZZLE]);
   check(!find(slow, "fastest"), "Fastest Finger for a solve using over half the clock");
-  const unknown = podiumAwards(players, [1, 2, 3].map((s) => result(s, 1, s === 2 ? 140 : 60, { is_correct: s === 2, ms_remaining: 0 })), [PUZZLE]);
+  const unknown = podiumAwards(players, [1, 2, 3].map((s) => result(s, 1, s === 2 ? ps(140) : 60, { is_correct: s === 2, ms_remaining: 0 })), [PUZZLE]);
   check(!find(unknown, "fastest"), "Fastest Finger with no stored finishing time");
 }
 // Too few players or rounds: nothing.
@@ -662,7 +673,8 @@ for (let r = 0; r < 300; r++) {
   rounds.forEach((round, index) =>
     players.forEach((p) => {
       if (rand() < 0.08) return; // no answer
-      const score = rand() < 0.15 ? MAX_ROUND_SCORE : int(MAX_ROUND_SCORE);
+      const max = roundMaxFor(round.type);
+      const score = rand() < 0.15 ? max : int(max);
       results.push(
         result(p.player_slot, index + 1, score, {
           ms_remaining: int(round.timeLimitMs),
@@ -684,15 +696,17 @@ for (let r = 0; r < 300; r++) {
     awardCounts[award.id] = (awardCounts[award.id] ?? 0) + 1;
     const mine = results.filter((x) => x.player_slot === award.slot);
     if (award.id === "perfect") {
-      const n = mine.filter((x) => x.score >= MAX_ROUND_SCORE).length;
-      check(n >= 1, `room ${r}: Perfectionist with no 150`);
-      const best = Math.max(...players.map((p) => results.filter((x) => x.player_slot === p.player_slot && x.score >= MAX_ROUND_SCORE).length));
-      check(n === best, `room ${r}: Perfectionist not the most 150s in the room`);
+      // A perfect is the round's game's maximum (150 today, 200 once raised).
+      const perfect = (x: RoundResultRow) => x.score >= roundMaxFor(rounds[x.round_number - 1]!.type);
+      const n = mine.filter(perfect).length;
+      check(n >= 1, `room ${r}: Perfectionist with no perfect score`);
+      const best = Math.max(...players.map((p) => results.filter((x) => x.player_slot === p.player_slot && perfect(x)).length));
+      check(n === best, `room ${r}: Perfectionist not the most perfect scores in the room`);
     }
     if (award.id === "close") {
       const n = rounds.filter((round, i) => {
         const row = mine.find((x) => x.round_number === i + 1);
-        return row && row.score < MAX_ROUND_SCORE && isGenuinelyClose(nearMissInfo(round.type as never, row.extra as Record<string, unknown> | null));
+        return row && row.score < roundMaxFor(round.type) && isGenuinelyClose(nearMissInfo(round.type as never, row.extra as Record<string, unknown> | null));
       }).length;
       check(n >= 1, `room ${r}: So Close with no genuinely close near miss`);
     }

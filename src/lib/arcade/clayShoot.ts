@@ -138,12 +138,12 @@ export const CLAY_BIRD_OVERLAP_OFFSET_SPAN = 60;
 export const CLAY_BIRD_VARIETY_ROLL = 5;
 
 export function clayHasBirds(rev?: number | null): boolean {
-  return rev === CLAY_REV2 || rev === CLAY_REV3 || rev === CLAY_REV4 || rev === CLAY_REV5 || rev === CLAY_REV_TALL || rev === CLAY_REV_BANDS || rev === CLAY_REV_QUICK;
+  return rev === CLAY_REV2 || rev === CLAY_REV3 || rev === CLAY_REV4 || rev === CLAY_REV5 || rev === CLAY_REV_TALL || rev === CLAY_REV_BANDS || rev === CLAY_REV_QUICK || rev === CLAY_REV_DEPTH;
 }
 
 /** rev 4 and later: shots that hit nothing cost points beyond the free allowance. */
 export function clayChargesEmptyShots(rev?: number | null): boolean {
-  return rev === CLAY_REV4 || rev === CLAY_REV5 || rev === CLAY_REV_TALL || rev === CLAY_REV_BANDS || rev === CLAY_REV_QUICK;
+  return rev === CLAY_REV4 || rev === CLAY_REV5 || rev === CLAY_REV_TALL || rev === CLAY_REV_BANDS || rev === CLAY_REV_QUICK || rev === CLAY_REV_DEPTH;
 }
 
 /** rev 4: shots that hit nothing (no clay, no bird). Every shot hits one clay, one bird or nothing. */
@@ -416,6 +416,8 @@ export interface ClayState {
   sb?: number;
   /** clayRev 8 only: the hits' quick credit, CLAY_QUICK_STEPS for a clay hit within CLAY_QUICK_FULL_TICKS of its launch. */
   qk?: number;
+  /** clayRev 9 only (depth to 200): the hit streak (ClayDepth); doubles are read from the clays' status. Absent on older rounds. */
+  dp?: ClayDepth;
   tick: number;
   rng: number;
   schedule: ClaySchedule;
@@ -618,6 +620,7 @@ function step(state: ClayState, input: ArcadeInputEvent | null): ClayState {
       next.shotHit = 1;
       next.log = pushLog(next.log, tick, CLAY_LOG_HIT, best);
       if (state.sb === CLAY_SB_QUICK) next.qk = (state.qk ?? 0) + clayQuickCredit(tick - state.schedule.launch[best]!);
+      if (state.dp) next.dp = clayStreakHit(next.dp ?? state.dp);
     } else {
       next.shotHit = 0;
       next.log = pushLog(next.log, tick, CLAY_LOG_MISS_SHOT, 0);
@@ -642,6 +645,8 @@ function step(state: ClayState, input: ArcadeInputEvent | null): ClayState {
         birdDoneTick[birdBest] = tick;
         next.birdHits = (state.birdHits ?? 0) + 1;
         next.log = pushLog(next.log, tick, CLAY_LOG_BIRD, birdBest);
+        // clayRev 9: a startled bird ends the hit streak.
+        if (state.dp) next.dp = { ...(next.dp ?? state.dp), streak: 0 };
       }
     }
   }
@@ -659,6 +664,8 @@ function step(state: ClayState, input: ArcadeInputEvent | null): ClayState {
       doneTick[i] = tick;
       next.missed += 1;
       next.log = pushLog(next.log, tick, CLAY_LOG_ESCAPED, i);
+      // clayRev 9: a clay that gets away ends the hit streak.
+      if (state.dp) next.dp = { ...(next.dp ?? state.dp), streak: 0 };
     }
   }
   if (birds && birdX && birdY && birdStatus) {
@@ -689,6 +696,7 @@ export function clayScore(orangeHits: number, goldHits: number, birdHits = 0, re
 
 function score(state: ClayState): number {
   const birdHits = state.birdHits ?? 0;
+  if (state.dp) return clayDepthScore(state).score;
   if (state.sb === CLAY_SB_QUICK) return clayQuickScore(clayScore(state.orangeHits, state.goldHits, birdHits, state.rev, clayEmptyShots(state.shots, state.hits, birdHits)), state.qk ?? 0);
   if (state.sb) return bandMapTotal(CLAY_BANDS_MAP, clayScore(state.orangeHits, state.goldHits, birdHits, state.rev, clayEmptyShots(state.shots, state.hits, birdHits)));
   return clayScore(state.orangeHits, state.goldHits, birdHits, state.rev, clayEmptyShots(state.shots, state.hits, birdHits));
@@ -743,8 +751,8 @@ export function clayCheckpoint(state: ClayState): ClayCheckpoint {
     snapshot.birdPosHash = birdPosHash;
   }
   let checksum = 0x811c9dc5;
-  // clayRev 6 (taller worlds): the sky's height, last (it is in no encoded field).
-  for (const value of [...Object.values(snapshot), ...(state.worldH ? [state.worldH] : [])]) {
+  // clayRev 6 (taller worlds): the sky's height, last (it is in no encoded field); clayRev 9: the streak after it.
+  for (const value of [...Object.values(snapshot), ...(state.worldH ? [state.worldH] : []), ...(state.dp ? [state.dp.streak, state.dp.best, state.dp.pips] : [])]) {
     checksum ^= value | 0;
     checksum = Math.imul(checksum, 0x01000193) >>> 0;
   }
@@ -872,6 +880,7 @@ export const clayRev4Game: ArcadeGame<ClayState, ArcadeInputEvent | null> = { ..
 export const clayRev5Game: ArcadeGame<ClayState, ArcadeInputEvent | null> = { ...clayGame, init: (seed) => initRev3(seed, CLAY_REV5) };
 
 export function clayGameFor(rev?: number | null): ArcadeGame<ClayState, ArcadeInputEvent | null> {
+  if (rev === CLAY_REV_DEPTH) return clayDepthGame;
   if (rev === CLAY_REV_QUICK) return clayQuickGame;
   if (rev === CLAY_REV_BANDS) return clayBandsGame;
   if (rev === CLAY_REV_TALL) return clayTallGame;
@@ -929,7 +938,7 @@ export const clayTallGame: ArcadeGame<ClayState, ArcadeInputEvent | null> = {
 
 /** The sky's height (px) a stored round's clayRev plays in. */
 export function clayWorldHFor(rev?: number | null): number {
-  return rev === CLAY_REV_TALL || rev === CLAY_REV_BANDS || rev === CLAY_REV_QUICK ? CLAY_TALL_H : CLAY_H;
+  return rev === CLAY_REV_TALL || rev === CLAY_REV_BANDS || rev === CLAY_REV_QUICK || rev === CLAY_REV_DEPTH ? CLAY_TALL_H : CLAY_H;
 }
 
 /* ================= Score bands (clayRev 7, 19 Oct 2026) ================= */
@@ -981,3 +990,98 @@ export function clayQuickScore(total: number, qk: number): number {
 }
 
 export const clayQuickGame: ArcadeGame<ClayState, ArcadeInputEvent | null> = { ...clayTallGame, init: (seed) => ({ ...clayTallGame.init(seed), sb: CLAY_SB_QUICK, qk: 0 }) };
+
+/* ================= Depth to 200 (clayRev 9, 25 Oct 2026) ================= */
+
+/**
+ * clayRev 9 (docs/depth/d3-speed-attention.md): clayRev 8 play, schedule and score (0–150, the base: the state
+ * keeps rev 6 and the quick part), plus two features that are the only way past 150 (round maximum 200):
+ *
+ *   - doubles: the round's last fourteen clays fly as seven pairs, one from each side, both in the sky together
+ *     (CLAY_CONFIG.singles); hitting both clays of a pair is worth CLAY_DOUBLE_POINTS;
+ *   - the hit streak: clays hit in a row, with no clay getting away and no bird startled between them (a shot that
+ *     hits nothing only costs as before), raise a multiplier, ×1 for hits 1–4, ×2 from the 5th, ×3 from the 10th,
+ *     ×4 from the 15th; each hit adds (multiplier − 1) streak pips and the streak part is CLAY_STREAK_POINTS × pips
+ *     ÷ the pips of one streak through all 25 clays.
+ *
+ * 200 needs a perfect quick base, every double and one unbroken streak through every clay.
+ */
+export const CLAY_REV_DEPTH = 9;
+export const CLAY_DOUBLE_POINTS = 2;
+export const CLAY_DOUBLES = Math.floor((CLAY_CONFIG.clays - CLAY_CONFIG.singles) / 2);
+export const CLAY_STREAK_POINTS = 150 + 50 - 150 - CLAY_DOUBLE_POINTS * CLAY_DOUBLES;
+export const CLAY_STREAK_STEP = 5;
+/** The most quick credit a run can hold (every clay hit within CLAY_QUICK_FULL_TICKS). */
+export const CLAY_QUICK_MAX = CLAY_QUICK_STEPS * CLAY_CONFIG.clays;
+export const CLAY_STREAK_TOP = 4;
+
+export interface ClayDepth {
+  /** Clays hit in a row now, the best run, and the streak pips earned. */
+  streak: number;
+  best: number;
+  pips: number;
+}
+
+/** The multiplier for the `streak`-th clay hit in a row (1-based). */
+export function clayStreakMultiplier(streak: number): number {
+  if (streak <= 0) return 1;
+  return Math.min(CLAY_STREAK_TOP, 1 + Math.floor(streak / CLAY_STREAK_STEP));
+}
+
+/** Streak pips of one unbroken run through every clay. */
+export const CLAY_STREAK_MAX_PIPS = (() => {
+  let pips = 0;
+  for (let n = 1; n <= CLAY_CONFIG.clays; n++) pips += clayStreakMultiplier(n) - 1;
+  return pips;
+})();
+
+function clayStreakHit(dp: ClayDepth): ClayDepth {
+  const streak = dp.streak + 1;
+  return { streak, best: Math.max(dp.best, streak), pips: dp.pips + clayStreakMultiplier(streak) - 1 };
+}
+
+/** The pair (0–6) a clay belongs to, or -1 for the singles. */
+export function clayPairOf(clay: number): number {
+  return clay < CLAY_CONFIG.singles ? -1 : Math.floor((clay - CLAY_CONFIG.singles) / 2);
+}
+
+/** Pairs whose two clays were both hit. */
+export function clayDoublesHit(state: { status: readonly number[] }): number {
+  let n = 0;
+  for (let p = 0; p < CLAY_DOUBLES; p++) {
+    const a = CLAY_CONFIG.singles + 2 * p;
+    if (state.status[a] === CLAY_HIT && state.status[a + 1] === CLAY_HIT) n += 1;
+  }
+  return n;
+}
+
+export interface ClayDepthScore {
+  base: number;
+  doubles: number;
+  streak: number;
+  score: number;
+}
+
+/** clayRev 9's score: the clayRev 8 base, the doubles and the streak part, 0–200. */
+export function clayDepthScore(state: ClayState): ClayDepthScore {
+  const birdHits = state.birdHits ?? 0;
+  const base = clayQuickScore(clayScore(state.orangeHits, state.goldHits, birdHits, state.rev, clayEmptyShots(state.shots, state.hits, birdHits)), state.qk ?? 0);
+  // Both features are paid in proportion to the run's quick credit (clayRev 8's measure), so quick, clean
+  // shooting is what reaches the top: a slow perfect run earns little of either.
+  // As the quick part, they are also scaled by the clayRev 6 total ÷ 150, so birds and empty shots cut them and
+  // mashing on movers (a total of 0) earns none.
+  const total = clampInt(clayScore(state.orangeHits, state.goldHits, birdHits, state.rev, clayEmptyShots(state.shots, state.hits, birdHits)), 0, 150);
+  const qk = clampInt(state.qk ?? 0, 0, CLAY_QUICK_MAX);
+  const pairs = clayDoublesHit(state);
+  const q2 = qk * qk * total;
+  const Q2 = CLAY_QUICK_MAX * CLAY_QUICK_MAX * 150;
+  const doubles = Math.floor((CLAY_DOUBLE_POINTS * pairs * q2) / Q2);
+  const pips = Math.min(state.dp?.pips ?? 0, CLAY_STREAK_MAX_PIPS);
+  const streak = Math.floor((CLAY_STREAK_POINTS * pips * pips * q2) / (CLAY_STREAK_MAX_PIPS * CLAY_STREAK_MAX_PIPS * Q2));
+  return { base, doubles, streak, score: clampInt(base + doubles + streak, 0, 200) };
+}
+
+export const clayDepthGame: ArcadeGame<ClayState, ArcadeInputEvent | null> = {
+  ...clayTallGame,
+  init: (seed) => ({ ...clayQuickGame.init(seed), dp: { streak: 0, best: 0, pips: 0 } }),
+};

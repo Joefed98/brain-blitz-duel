@@ -25,6 +25,7 @@ import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./ty
 import { useBeforePaint } from "@/components/puzzles/useBeforePaint";
 import { GoalLineContext } from "@/components/duel/GameFrame";
 import { LiveSummary } from "@/components/puzzles/batchW/LiveSummary";
+import { usesNumberDepth } from "@/lib/duel/numberDepth";
 import "@/polish-layout/batch-w-measure.css";
 
 /** iOS: no text selection or callout on long presses anywhere in the game. */
@@ -113,6 +114,7 @@ const MEASURE_CSS = `
 [data-polish="measure"] .mj-cap { font-size: 14px; color: rgba(220, 228, 240, 0.78); }
 [data-polish="measure"] .mj-row { border-left: 3px solid var(--measure-water); background: rgba(120, 175, 255, 0.05); }
 [data-polish="measure"] .mj-row[data-solved] { border-left-color: var(--primary); }
+[data-polish="measure"] .mj-par { color: #F5B82E; font-weight: 700; }
 [data-polish="measure"] .mj-dim { color: rgba(220, 228, 240, 0.8); }
 @media (prefers-reduced-motion: reduce) {
   [data-polish="measure"] .mj-water, [data-polish="measure"] .mj-surface, [data-polish="measure"] .mj-glass { transition: none; }
@@ -440,6 +442,8 @@ function Stage({
   // measureRev 2 (moveLimits.ts): a generous visible move limit per puzzle; running out ends the run unfinished.
   const moveLimit = data ? (measureMoveLimits(data)?.[Math.min(stage, MEASURE_BOARDS - 1)] ?? null) : null;
   const replay = useMemo(() => (board ? replayMeasure(board, actions, moveLimit) : null), [board, actions, moveLimit]);
+  // depthRev 1, par pours: this puzzle's fewest moves (public on the depth stamp); at or under it is a par solve.
+  const par = data && usesNumberDepth(data) ? (data.par?.[Math.min(stage, MEASURE_BOARDS - 1)] ?? null) : null;
   const encoded = encodeMeasureRound(allActions);
 
   useEffect(() => {
@@ -591,6 +595,11 @@ function Stage({
           <span className={outOfMoves ? "text-warn" : "text-primary"} data-move-limit={moveLimit ?? undefined}>
             {moveLimit !== null ? limitText(replay.moves, moveLimit) : replay.moves}
           </span>
+          {par !== null && (
+            <span data-par={par} className={replay.moves > par ? "mj-dim" : "mj-par"}>
+              {" · "}{replay.solved && replay.moves <= par ? "★ Par" : `Par ${par}`}
+            </span>
+          )}
         </p>
         <p className="font-display text-sm font-bold text-primary" data-measure-goal>
           {goalText(board)}
@@ -715,7 +724,11 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
                 className={`ml-auto whitespace-nowrap ${mine?.solved ? "font-bold text-primary" : "text-warn"}`}
               >
                 {mine?.solved ? `✓ ${mine.moves} moves` : mine ? (mine.outOfMoves ? "✗ out of moves" : "✗ unsolved") : "—"}
-                <span className="mj-dim"> · best {min ?? "?"}</span>
+                {usesNumberDepth(puzzle) && mine?.solved && min !== undefined && mine.moves <= min ? (
+                  <span className="mj-par"> · ★ par</span>
+                ) : (
+                  <span className="mj-dim"> · best {min ?? "?"}</span>
+                )}
               </span>
             </div>
             {puzzle.solutions?.[index] ? (

@@ -100,6 +100,7 @@ import {
 } from "../src/lib/arcade/slice";
 import { encodeSliceRun, replaySliceRun } from "../src/lib/duel/slice";
 import { INTRO_SCORE } from "../src/lib/duel/introScore";
+import { roundMaxFor } from "../src/lib/duel/roundMax";
 import { PUZZLE_INSTRUCTIONS } from "../src/lib/duel/instructions";
 
 let checks = 0;
@@ -253,7 +254,7 @@ for (const seed of CROSS_SEEDS.slice(0, 12)) {
 }
 console.log(`  150 reached through the server replay on ${best150} of 12 seeds (planner never loses a life)`);
 const crossIntro = INTRO_SCORE.cross;
-ok(/Up to 150/.test(crossIntro) && /each lane crossed/.test(crossIntro) && /full crossing/.test(crossIntro), "Jaywalk intro states lanes, crossings, up to 150 (score bands, crossRev 4)");
+ok(crossIntro.includes(`Up to ${roundMaxFor("cross")}`) && /each lane crossed/.test(crossIntro) && /full crossing/.test(crossIntro), "Jaywalk intro states lanes, crossings, up to its maximum (score bands, crossRev 4)");
 }
 
 /* =============================== 2b. Roofbound =============================== */
@@ -454,7 +455,8 @@ section("Ball Tracker btRev 2");
   const earliest = lastRelease + BT_STEP_TICKS * (minMoves + 1);
   ok(earliest === BT_LAST_LAND_MIN, `the last marble lands no earlier than tick ${earliest}`);
   ok(btScoreOfV2(BT_BALLS, earliest) === 150 && btScoreOf(BT_BALLS, 0, earliest) === BT_LEGACY_PERFECT_MAX, "rev 2 perfect max 150; original stays 135");
-  ok(INTRO_SCORE.balltrack.includes("up to 150") && !/otherwise up to/.test(INTRO_SCORE.balltrack), "Ball Tracker intro states 150 and no partial cap (score bands, btRev 3)");
+  // The top is the game's maximum (200 since expansion E6's btRev 7, docs/scoring-200.md).
+  ok(new RegExp(`up to ${roundMaxFor("balltrack")}`, "i").test(INTRO_SCORE.balltrack) && !/otherwise up to/.test(INTRO_SCORE.balltrack), "Ball Tracker intro states its maximum and no partial cap (score bands, btRev 3)");
   console.log(`  occupied turns and switch points work; ${Math.ceil(BALL_TRACK_BANK.length / 4)} banked playbooks still prove their courses (perfect runs score ${minScore}–${maxScore} under rev 2; earliest last landing tick ${BT_LAST_LAND_MIN}, last release ${lastRelease})`);
 }
 }
@@ -599,7 +601,7 @@ ok(totals.v2.filter((x) => x === 150).length <= totals.v1.filter((x) => x === 15
   ok(after1.bombsHit === 1 && after1.comboLive === 1, "original: a chilli only costs points");
 }
 ok(SLICE_MAYO_TICKS > 60 && SLICE_MAYO_TICKS < 90, "the squeeze lasts just over a second");
-ok(/Up to 150/.test(INTRO_SCORE.slice) && /lose 10/.test(INTRO_SCORE.slice), "Slice intro: up to 150, chilli loses 10");
+ok(INTRO_SCORE.slice.includes(`Up to ${roundMaxFor("slice")}`) && /lose 10/.test(INTRO_SCORE.slice), "Slice intro: up to its maximum, chilli loses 10");
 }
 
 /* ============================ 3. Intro rules ============================ */
