@@ -189,7 +189,8 @@ const EXTRACT = String.raw`
       break;
     case "snip": P.push(["candy", fp(s.sx), fp(s.sy)]); reset = s.eaten + ":" + s.level; break;
     case "tilt": P.push(["ball", fp(s.x), fp(s.y)]); reset = s.level + ":" + s.mazes + ":" + s.caught; break;
-    case "snake": { const head = s.body[0] ?? 0; P.push(["head", m.snake.snakeCol(head) * m.snake.SNAKE_CELL, m.snake.snakeRow(head) * m.snake.SNAKE_CELL]); reset = s.dead; break; }
+    // snakeRev 9 (expansion E2): the wider grid's columns, and a wormhole trip is a jump by the rules.
+    case "snake": { const head = s.body[0] ?? 0; const cols = m.snake.snakeColsOf(s); P.push(["head", m.snake.snakeCol(head, cols) * m.snake.SNAKE_CELL, m.snake.snakeRow(head, cols) * m.snake.SNAKE_CELL]); reset = s.dead + ":" + (s.warpsUsed ?? 0); break; }
     case "junction": for (const c of s.cars) P.push(["car" + c.id, fp(c.s), 0]); break;
     case "cross": {
       const C = m.cross;

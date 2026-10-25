@@ -85,19 +85,32 @@ function shoot(name: string, w: number, h: number, draw: (ctx: Any, size: { widt
   const game = burstArtGameFor(BURST_REV_200);
   for (let n = 0; n < 16 && pick < 0; n++) {
     frames = await states("burst", BURST_REV_200, n);
-    pick = frames.findIndex((s) => (s.rings?.length ?? 0) > 0 && s.goldAtom && (s.double ?? 0) > 0);
-    if (pick < 0) pick = frames.findIndex((s) => (s.rings?.length ?? 0) > 0 && s.goldAtom);
+    const grown = (s: Any) => (s.rings ?? []).some((r: Any) => r.r >= 24 * 256);
+    pick = frames.findIndex((s) => grown(s) && s.goldAtom && (s.double ?? 0) > 0);
+    if (pick < 0) pick = frames.findIndex((s) => grown(s) && s.goldAtom);
   }
   shoot("fission-features", 414, 688, (ctx, s) => game.draw(ctx, s, { width: 414, height: 688 }), frames, pick);
   const chain = frames.findIndex((s) => (s.chain ?? 0) >= 2);
-  if (process.argv.includes("--ring")) { const f = await states("burst", BURST_REV_200, 0); shoot("fission-ring-test", 414, 688, (ctx, s) => game.draw(ctx, s, { width: 414, height: 688 }), f, 110); }
-  if (chain > 0) shoot("fission-chain", 414, 688, (ctx, s) => game.draw(ctx, s, { width: 414, height: 688 }), frames, chain + 2);
+  if (chain > 0) shoot("fission-chain", 414, 688, (ctx, s) => game.draw(ctx, s, { width: 414, height: 688 }), frames, chain + 5);
+  for (let n = 0; n < 16; n++) {
+    const runs = await states("burst", BURST_REV_200, n);
+    const double = runs.findIndex((s) => (s.double ?? 0) > 0 && s.shots.length >= 2 && s.shots.every((shot: Any) => !shot.short));
+    if (double > 0) {
+      shoot("fission-double-beam", 414, 688, (ctx, s) => game.draw(ctx, s, { width: 414, height: 688 }), runs, double + 6);
+      break;
+    }
+  }
 }
 // Tempo: five lanes, fever on, a golden note and a double tap in view.
 {
-  const frames = await states("beat", BEAT_REV_200, 0);
   const visible = (s: Any, test: (i: number) => boolean) => s.chart.ticks.some((t: number, i: number) => t - s.tick > 10 && t - s.tick < 80 && test(i));
-  let pick = frames.findIndex((s) => s.tick > 2500 && (s.fever ?? 0) > 60 && visible(s, (i) => s.chart.golds[i]) && visible(s, (i) => s.chart.pairs[i] >= 0));
+  let frames: Any[] = [];
+  let pick = -1;
+  for (let n = 0; n < 12 && pick < 0; n++) {
+    frames = await states("beat", BEAT_REV_200, n);
+    pick = frames.findIndex((s) => s.tick > 2500 && (s.fever ?? 0) > 60 && visible(s, (i) => s.chart.golds[i]) && visible(s, (i) => s.chart.pairs[i] >= 0));
+  }
+  if (pick < 0) frames = await states("beat", BEAT_REV_200, 0);
   if (pick < 0) pick = frames.findIndex((s) => s.tick > 2500 && (s.fever ?? 0) > 60 && visible(s, (i) => s.chart.golds[i] || s.chart.pairs[i] >= 0));
   if (pick < 0) pick = frames.findIndex((s) => s.tick > 2500 && (s.fever ?? 0) > 60);
   shoot("tempo-features", 414, 772, (ctx, s) => beatArtGame.draw(ctx, s, { width: 414, height: 772 }), frames, pick);

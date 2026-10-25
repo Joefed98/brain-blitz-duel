@@ -420,6 +420,7 @@ export function burstArtGameFor(rev?: number | null): ArcadeGame<BurstState, Arc
 /* ================= burstRev 7 features (display only) ================= */
 
 const GOLD_ATOM = "#FFD84A";
+const GOLDEN_BODY = "#FFF6D5";
 const SHOCK = "#FFB43A";
 const DOUBLE_ICON = ["XXXXXXXX", "X.X..X.X", "X.X..X.X", "X.X..X.X", "X.X..X.X", "X.X..X.X", "X.X..X.X", "XXXXXXXX"];
 type V7Memo = { tick: number; chain: number; golds: number; cleared: number; doubles: number };
@@ -460,9 +461,16 @@ function drawV7(ctx: CanvasRenderingContext2D, state: BurstState, key: object): 
   const atom = state.goldAtom;
   if (atom) {
     const x = atom.x / FP, y = atom.y / FP;
-    glow(ctx, GOLD_ATOM, x, y, BURST_GOLD_R + 4, BURST_GOLD_R + 4, 0.6);
-    const stamp = cachedArt("atom:gold", BURST_GOLD_R * 2, BURST_GOLD_R * 2, GOLD_ATOM, 0, (c) => paintAtom(c, BURST_GOLD_R, GOLD_ATOM, 3));
+    // White-gold (the smallest atoms are gold), with a wide halo and four sparkles turning on its rim (within the 2 px bounds rule).
+    glow(ctx, GOLD_ATOM, x, y, BURST_GOLD_R + 10, BURST_GOLD_R + 10, 0.75);
+    const stamp = cachedArt("atom:golden", BURST_GOLD_R * 2, BURST_GOLD_R * 2, GOLDEN_BODY, 0, (c) => paintAtom(c, BURST_GOLD_R, GOLDEN_BODY, 3));
     if (stamp) blit(ctx, stamp, x - BURST_GOLD_R, y - BURST_GOLD_R);
+    const turn = still ? 0 : state.tick * 0.12;
+    ctx.fillStyle = RETRO_WHITE;
+    for (let i = 0; i < 4; i++) {
+      const a = turn + (i * Math.PI) / 2;
+      ctx.fillRect(Math.round(x + Math.cos(a) * BURST_GOLD_R) - 1, Math.round(y + Math.sin(a) * BURST_GOLD_R) - 1, 3, 3);
+    }
     if (!still) {
       // A short sparkle trail behind it (three pixels).
       ctx.fillStyle = GOLD_ATOM;
