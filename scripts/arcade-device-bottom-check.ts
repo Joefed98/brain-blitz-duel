@@ -96,6 +96,16 @@ const opt = (name: string) => args.find((a) => a.startsWith(`--${name}=`))?.slic
 const VERBOSE = args.includes("--verbose");
 const CHROMIUM = process.env.PLAYWRIGHT_CHROMIUM ?? "/opt/pw-browsers/chromium";
 const PORT = 5197;
+/**
+ * The check's own time limit (25 Oct 2026): a stall (a page that never loads, a wait that never resolves, a
+ * browser that stops answering) fails fast with the step it was on, stops its browser and dev server, and
+ * exits, instead of hanging a CI job (PR #139's play8 sat 37 min on this check's part 5 before it was
+ * cancelled; the same code had passed in 6 min half an hour earlier). Under run-checks' 300 s, so this
+ * message, not a bare kill, is what a stall prints. Each part takes 40-190 s locally.
+ */
+const WATCHDOG_MS = Number(opt("watchdog-ms") ?? 270_000);
+/** The step the check is on, for the watchdog's message. */
+let phase = "starting the dev server";
 /** The play column and its lowest control end exactly this far above the physical bottom. */
 const BOTTOM_PX = 16;
 
@@ -690,7 +700,24 @@ async function main() {
     }
     console.log(`part ${k}/${n}: ${[...games, ...meteorModes.map((m) => `snake bottom edge (${m})`)].join(", ")}`);
   }
-  const { origin, proc } = await startServer();
+  let proc: ChildProcess | null = null;
+  const stopServer = (signal: NodeJS.Signals = "SIGTERM") => {
+    try {
+      if (proc?.pid) process.kill(-proc.pid, signal);
+    } catch {
+      /* already gone (a port another server held, or a stall's cleanup) */
+    }
+  };
+  const watchdog = setTimeout(() => {
+    console.log(`FAIL: arcade-device-bottom-check stalled: no result after ${WATCHDOG_MS / 1000} s (last step: ${phase}); stopping its browser and dev server`);
+    // SIGKILL to the whole group: the process exits at once, so npm gets no time to pass a SIGTERM on to vite.
+    stopServer("SIGKILL");
+    process.exit(1);
+  }, WATCHDOG_MS);
+  const started = await startServer();
+  proc = started.proc;
+  const origin = started.origin;
+  phase = "launching Chromium";
   const { chromium } = await import("playwright");
   const browser = await chromium.launch({ executablePath: CHROMIUM });
   const failures: string[] = [];
@@ -701,6 +728,7 @@ async function main() {
     if (first)
       await warmUp(browser, `${origin}/practice`, (page) => page.getByRole("button", { name: gameDisplayName(first), exact: true }).first().waitFor({ timeout: 180_000 }), { verbose: VERBOSE });
     for (const game of games) {
+      phase = `${game}'s layout pass`;
       const context = await browser.newContext({ viewport: { width: 375, height: 667 } });
       await context.addInitScript(SEED_INIT);
       await context.addInitScript(DEVICE_INIT);
@@ -779,10 +807,15 @@ async function main() {
       const mine = failures.length - before;
       console.log(`${mine ? "FAIL" : "PASS"} ${game} (${gameDisplayName(game)}): ${mine ? `${mine} problem(s)` : `column and lowest control (or box) ${BOTTOM_PX}px above the bottom of the screen, nothing clipped, in all ${CONFIGS.length} configurations; stable for ${STABLE_MS / 1000} s as an iPhone 11 home-screen app`}`);
     }
-    for (const mode of meteorModes) await meteorEdgePass(browser, origin, failures, mode);
+    for (const mode of meteorModes) {
+      phase = `Meteor's bottom-edge pass (${mode})`;
+      await meteorEdgePass(browser, origin, failures, mode);
+    }
+    phase = "closing Chromium";
   } finally {
     await browser.close();
-    if (proc?.pid) process.kill(-proc.pid);
+    stopServer();
+    clearTimeout(watchdog);
   }
   const json = opt("json");
   if (json) writeFileSync(json, JSON.stringify(rows, null, 1));

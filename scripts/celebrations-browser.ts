@@ -231,10 +231,22 @@ async function fire(page: Page, body: string) {
   await page.evaluate(`import("/src/lib/fx/celebrations.ts").then((C) => { const scope = C.celebrationScope(); ${body} })`);
 }
 
+/**
+ * Calendar dates taken out too (25 Oct 2026): the screen harness schedules its public games days ahead
+ * of the real clock (theme-screens.ts `day(2)`), so the Play tab's "Next public game" card read "Mon 26
+ * Oct" when main's copy was recorded on 24 Oct and "Tue 27 Oct" a day later, on main as on any branch.
+ * Applied to the recorded copy as well (idempotent), so it needs no re-recording.
+ */
+const undate = (html: string) =>
+  html
+    .replace(/>(Mon|Tue|Wed|Thu|Fri|Sat|Sun)</g, ">#day<")
+    .replace(/(class="ap-date-num">)\d{1,2}</g, "$1#<")
+    .replace(/\b(Mon|Tue|Wed|Thu|Fri|Sat|Sun) \d{1,2} (Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\b/g, "#date");
+
 /** The screen's markup, with the clock's own figures taken out (both runs draw them at different moments). */
 async function markup(page: Page): Promise<string> {
   const html = await page.evaluate(() => document.getElementById("root")?.innerHTML ?? "");
-  return html
+  return undate(html)
     .replace(/\d+(\.\d+)?\s?s\b/g, "#s")
     .replace(/(in |closes in )\d+[^<]*/g, "$1#")
     .replace(/\d{1,2}:\d{2}/g, "#:#")
@@ -260,7 +272,8 @@ try {
     process.exit(0);
   }
 
-  const before = existsSync(FIXTURE) ? (JSON.parse(readFileSync(FIXTURE, "utf8")) as Record<string, string>) : null;
+  const recorded = existsSync(FIXTURE) ? (JSON.parse(readFileSync(FIXTURE, "utf8")) as Record<string, string>) : null;
+  const before = recorded ? Object.fromEntries(Object.entries(recorded).map(([k, v]) => [k, undate(v)])) : null;
   check(!!before, `${FIXTURE} missing (record it on main with --record-off)`);
 
   // Switched off: no layer, meter, charge or request, and today's markup.
