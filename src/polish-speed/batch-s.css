@@ -1,0 +1,262 @@
+/* Polish batch S (25 Oct 2026): Speed and Attention puzzles, display only. "Same game, enhanced":
+   depth, light, glow and size on each game's own pieces, in their own colours, with the frame's
+   category colour (--category-accent) for active glows. docs/polish-batches/batch-s-speed-attention.md
+   lists every change. Rules that change a size are scoped to a live round's frame ([data-puzzle-play]),
+   so intros, demos and reveals keep their layout (and every recorded demo touch its target). Nothing
+   here moves after the first paint: no transitions on size, no late classes on layout. */
+
+/* ============================================================ shared one-line summaries */
+/* The live summary lines the games already had (Flash's new one included): the goal line's type. */
+[data-puzzle-play] :is(.flash-summary, .eye-summary),
+[data-puzzle-play] [data-polish="pairmatch"] > [data-game-controls="status"],
+[data-puzzle-play] [data-polish="maze"] > p:first-child,
+[data-puzzle-play] [data-polish="numhunt"] > :first-child > span:not([data-ascend-timer]) {
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 18px;
+  color: #a09da6;
+}
+
+/* ============================================================ Flash (reaction) */
+/* The screen: a lit glass panel with a neutral rim light and a deep cast shadow. Neutral greys only
+   inside the screen, so nothing here can read as a cue; the gold and decoy surfaces are unchanged. */
+[data-puzzle-play] .flash-arena {
+  border-color: rgba(255, 255, 255, 0.12);
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.5),
+    0 1px 0 1px rgba(255, 255, 255, 0.05),
+    0 22px 44px rgba(0, 0, 0, 0.55);
+}
+[data-puzzle-play] .flash-arena[data-flash-cue="idle"] .flash-art {
+  background:
+    linear-gradient(168deg, rgba(255, 255, 255, 0.07) 0%, rgba(255, 255, 255, 0.025) 22%, rgba(255, 255, 255, 0) 40%),
+    radial-gradient(ellipse 70% 52% at 50% 48%, rgba(255, 255, 255, 0.075), rgba(255, 255, 255, 0) 72%),
+    radial-gradient(ellipse 120% 100% at 50% 50%, rgba(0, 0, 0, 0) 45%, rgba(0, 0, 0, 0.6) 100%),
+    repeating-linear-gradient(to bottom, rgba(255, 255, 255, 0.02) 0 1px, rgba(255, 255, 255, 0) 1px 4px);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.1),
+    inset 0 0 0 1px rgba(0, 0, 0, 0.35),
+    inset 0 0 0 7px rgba(255, 255, 255, 0.018),
+    inset 0 22px 48px rgba(0, 0, 0, 0.5);
+}
+/* The readout: bigger and lit in its own colour (gold, or the warning colour for a false start). */
+[data-puzzle-play] .flash-readout {
+  font-size: clamp(3.25rem, 16vw, 4.75rem);
+  line-height: 1;
+  text-shadow:
+    0 0 22px color-mix(in srgb, currentColor 55%, transparent),
+    0 0 6px color-mix(in srgb, currentColor 40%, transparent),
+    0 3px 12px rgba(0, 0, 0, 0.6);
+}
+[data-puzzle-play] .flash-wait {
+  font-size: clamp(1.9rem, 9vw, 2.4rem);
+  color: #c9c6ce;
+  text-shadow: 0 0 18px rgba(255, 255, 255, 0.12), 0 1px 0 rgba(0, 0, 0, 0.6);
+}
+.flash-summary { letter-spacing: 0.08em; }
+
+/* ============================================================ Ascend (numhunt) */
+/* The board: the category's light from the top, a fine grid and a deep inner rim. */
+[data-puzzle-play] .ascend-board {
+  border-color: color-mix(in srgb, var(--category-accent) 22%, rgba(255, 255, 255, 0.08));
+  background:
+    radial-gradient(120% 55% at 50% 0%, color-mix(in srgb, var(--category-accent) 14%, transparent), transparent 70%),
+    radial-gradient(ellipse 120% 100% at 50% 45%, rgba(0, 0, 0, 0) 55%, rgba(0, 0, 0, 0.5) 100%),
+    linear-gradient(rgba(255, 255, 255, 0.025) 1px, transparent 1px) 0 0 / 100% 28px,
+    linear-gradient(90deg, rgba(255, 255, 255, 0.025) 1px, transparent 1px) 0 0 / 28px 100%,
+    linear-gradient(to bottom, #15151b, #0c0c10);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.07),
+    inset 0 3px 14px rgba(0, 0, 0, 0.6),
+    0 14px 30px rgba(0, 0, 0, 0.45);
+}
+/* Discs: glass domes (same 44px footprint and border), a deeper cast shadow and a crisper gloss. */
+[data-puzzle-play] .ascend-disc[data-disc="todo"] {
+  background: radial-gradient(circle at 35% 26%, #5a5a66 0%, #2b2b33 46%, #141418 100%);
+  border-color: rgba(255, 255, 255, 0.28);
+  box-shadow:
+    0 5px 10px rgba(0, 0, 0, 0.6),
+    0 1px 0 rgba(255, 255, 255, 0.06),
+    inset 0 -3px 5px rgba(0, 0, 0, 0.45),
+    inset 0 1px 1px rgba(255, 255, 255, 0.18);
+}
+[data-puzzle-play] .ascend-disc[data-disc="done"] {
+  box-shadow:
+    0 0 12px color-mix(in srgb, var(--primary) 40%, transparent),
+    0 3px 6px rgba(0, 0, 0, 0.45),
+    inset 0 -2px 3px rgba(120, 70, 0, 0.35);
+}
+[data-puzzle-play] .ascend-disc::after {
+  background: linear-gradient(to bottom, rgba(255, 255, 255, 0.34), rgba(255, 255, 255, 0));
+}
+/* The move timer's bar glows in its colour. */
+[data-puzzle-play] .ascend-move-timer > span:last-child > span { box-shadow: 0 0 8px currentColor; color: var(--primary); }
+
+/* ============================================================ Bang On (stopwatch) */
+/* A bigger watch: the face 148px tall (112 before; the marker runs the same fraction of its width,
+   and the whole stage is still the tap target), the vertical face wider, the diagonal one larger. */
+[data-puzzle-play] [data-polish="stopwatch"] .bangon-face:not([data-vertical]):not(.bangon-face-diagonal) { height: 148px; }
+[data-puzzle-play] [data-polish="stopwatch"] .bangon-face[data-vertical] { width: 62%; }
+[data-puzzle-play] [data-polish="stopwatch"] .bangon-diagonal { max-width: min(100%, 360px); }
+[data-puzzle-play] [data-polish="stopwatch"] .bangon-face.bangon-face-diagonal { height: 88px; }
+/* Lit: a soft halo in the category colour round the bezel, a brighter gold zone and a glowing marker. */
+[data-puzzle-play] [data-polish="stopwatch"] .bangon-face {
+  box-shadow:
+    0 0 0 3px #3a3a46,
+    0 0 0 4px rgba(255, 255, 255, 0.18),
+    0 -1px 0 4px rgba(255, 255, 255, 0.08),
+    0 0 46px color-mix(in srgb, var(--category-accent) 20%, transparent),
+    0 12px 26px rgba(0, 0, 0, 0.6),
+    inset 0 4px 10px rgba(0, 0, 0, 0.65);
+}
+[data-puzzle-play] [data-polish="stopwatch"] .bangon-target {
+  box-shadow:
+    inset 1px 0 0 color-mix(in oklab, var(--primary) 90%, transparent),
+    inset -1px 0 0 color-mix(in oklab, var(--primary) 90%, transparent),
+    inset 0 0 18px color-mix(in oklab, var(--primary) 45%, transparent);
+}
+[data-puzzle-play] [data-polish="stopwatch"] .bangon-face[data-vertical] .bangon-target {
+  box-shadow:
+    inset 0 1px 0 color-mix(in oklab, var(--primary) 90%, transparent),
+    inset 0 -1px 0 color-mix(in oklab, var(--primary) 90%, transparent),
+    inset 0 0 18px color-mix(in oklab, var(--primary) 45%, transparent);
+}
+[data-puzzle-play] [data-polish="stopwatch"] .bangon-marker {
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.45), 0 0 10px rgba(255, 255, 255, 0.6), 0 0 22px rgba(255, 255, 255, 0.25);
+}
+[data-puzzle-play] [data-polish="stopwatch"] .bangon-face > [aria-label$="passes left"] { font-size: 18px; top: 10px; right: 12px; }
+/* The result: larger and lit in its colour; the recent results are glass cards. */
+[data-puzzle-play] [data-polish="stopwatch"] > [data-game-controls="status"] {
+  font-size: 2.5rem;
+  line-height: 1.1;
+}
+[data-puzzle-play] [data-polish="stopwatch"] > [data-game-controls="status"]:not(.text-muted-foreground) {
+  text-shadow: 0 0 20px color-mix(in srgb, currentColor 40%, transparent), 0 2px 8px rgba(0, 0, 0, 0.5);
+}
+[data-puzzle-play] [data-polish="stopwatch"] .bangon-card {
+  border-color: rgba(255, 255, 255, 0.11);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.035));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2), 0 6px 14px rgba(0, 0, 0, 0.5);
+  border-radius: 12px;
+}
+
+/* ============================================================ Don't Break the Chain (chain) */
+/* Charms: a deeper cast shadow and a touch more colour; the counter lit in gold. */
+[data-puzzle-play] svg.chain-charm {
+  filter: drop-shadow(0 3px 2px rgba(0, 0, 0, 0.6)) drop-shadow(0 0 0.5px rgba(0, 0, 0, 0.7)) saturate(1.12) brightness(1.04);
+}
+[data-puzzle-play] [data-polish="chain"] > p.font-mono .text-primary {
+  text-shadow: 0 0 16px color-mix(in srgb, var(--primary) 45%, transparent);
+}
+/* The board: the category's light from the top and a deeper rim. */
+[data-puzzle-play] [data-polish="chain"] > [data-play-area] {
+  background:
+    radial-gradient(120% 60% at 50% 0%, color-mix(in srgb, var(--category-accent) 12%, transparent), transparent 62%),
+    radial-gradient(140% 100% at 50% 50%, transparent 55%, rgba(0, 0, 0, 0.42)),
+    repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.018) 0 2px, transparent 2px 6px),
+    #121117;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.06),
+    inset 0 -14px 30px rgba(0, 0, 0, 0.4),
+    inset 0 4px 12px rgba(0, 0, 0, 0.35);
+}
+
+/* ============================================================ Eagle Eye (symscan) */
+/* Cells: lifted sky tiles; a marked cell keeps its gold and adds a soft glow in the category colour. */
+[data-puzzle-play] .eye-cell {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.12),
+    inset 0 -3px 5px rgba(0, 0, 0, 0.35),
+    0 3px 6px rgba(0, 0, 0, 0.45);
+}
+[data-puzzle-play] .eye-cell.eye-cell[data-eye-state="selected"] {
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--primary) 60%, transparent),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2),
+    0 0 12px color-mix(in srgb, var(--primary) 35%, transparent),
+    0 0 18px color-mix(in srgb, var(--category-accent) 30%, transparent);
+}
+[data-puzzle-play] .eye-target { box-shadow: 0 0 14px color-mix(in srgb, var(--primary) 38%, transparent), inset 0 1px 0 rgba(255, 255, 255, 0.18); }
+
+/* ============================================================ Double Take (spotdiff) */
+[data-puzzle-play] .dt-arena {
+  border-color: rgba(255, 255, 255, 0.1);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), inset 0 0 0 1px rgba(0, 0, 0, 0.35), 0 14px 30px rgba(0, 0, 0, 0.45);
+}
+[data-puzzle-play] .dt-panel { filter: saturate(1.06); }
+[data-puzzle-play] .dt-ring-found { filter: drop-shadow(0 0 2px var(--primary)) drop-shadow(0 0 5px color-mix(in srgb, var(--primary) 60%, transparent)) !important; }
+[data-puzzle-play] [data-polish="spotdiff"] > :first-child { font-size: 13px; font-weight: 600; }
+
+/* ============================================================ Tally (countup) */
+/* Edges in the frame's tray: the field nests in the tray's 26px corners (an 18px radius) and loses the
+   old shelf lip, whose second edge ran just above the tray's own; its 10px goes back to the field. */
+[data-puzzle-play] .tally-tray.tally-tray-in {
+  height: 100% !important;
+  margin-bottom: 0;
+  border-radius: 18px;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.18),
+    inset 0 0 0 3px rgba(0, 0, 0, 0.28),
+    inset 0 0 0 4px rgba(255, 255, 255, 0.05),
+    inset 0 -10px 20px rgba(0, 0, 0, 0.3),
+    0 8px 18px -6px rgba(0, 0, 0, 0.55);
+}
+[data-puzzle-play] [data-polish="countup"] [data-game-arena="countup"] > p:first-child {
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  color: #c9c6ce;
+}
+/* The keypad: glass keys, a sunk entry well and a lit Enter (sizes unchanged). */
+[data-puzzle-play] [data-polish="countup"] [data-game-controls="input"] .grid > button {
+  border-color: rgba(255, 255, 255, 0.11);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.035));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2), 0 4px 10px rgba(0, 0, 0, 0.45);
+}
+[data-puzzle-play] [data-polish="countup"] [data-game-controls="input"] input {
+  border-color: rgba(255, 255, 255, 0.06);
+  background: rgba(0, 0, 0, 0.35);
+  box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.6);
+}
+[data-puzzle-play] [data-polish="countup"] [data-game-controls="input"] input:focus { border-color: var(--primary); }
+[data-puzzle-play] [data-polish="countup"] [data-game-controls="input"] button.bg-primary:not(:disabled) {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35), 0 0 14px color-mix(in srgb, var(--primary) 40%, transparent);
+}
+
+/* ============================================================ Labyrinth (maze) */
+[data-puzzle-play] .maze-board {
+  background: linear-gradient(160deg, #2e3540, #151a20);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.1),
+    inset 0 0 0 1px rgba(0, 0, 0, 0.4),
+    inset 0 6px 16px rgba(0, 0, 0, 0.45),
+    0 14px 30px rgba(0, 0, 0, 0.5);
+}
+[data-puzzle-play] [data-polish="maze"] > p:first-child .text-primary { text-shadow: 0 0 10px color-mix(in srgb, var(--primary) 45%, transparent); }
+
+/* ============================================================ Matchmaker (pairmatch) */
+/* Bigger cards: the board may run to 400px (340 before) on a live round; still centred in its column. */
+[data-puzzle-play] [data-polish="pairmatch"] > [data-game-arena="fixed"] { max-width: 400px; }
+/* Backs: the same lattice and medallion with a lit bevel and a deeper cast shadow. */
+[data-puzzle-play] .pairmatch-face.pairmatch-card-back {
+  box-shadow:
+    inset 0 0 0 3px color-mix(in oklab, var(--category-accent) 25%, #15131a),
+    inset 0 0 0 4px color-mix(in oklab, var(--category-accent) 60%, transparent),
+    inset 0 1px 0 4px rgba(255, 255, 255, 0.1),
+    inset 0 -6px 10px rgba(0, 0, 0, 0.3),
+    0 5px 10px rgba(0, 0, 0, 0.5);
+}
+/* Faces: glass. */
+[data-puzzle-play] .pairmatch-face-front:not(.is-matched) {
+  border-color: rgba(255, 255, 255, 0.14);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--card) 80%, white), var(--card));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2), inset 0 -4px 8px rgba(0, 0, 0, 0.25), 0 5px 10px rgba(0, 0, 0, 0.5);
+}
+/* Matched pairs glow in gold (the game's own match colour), brighter than before. */
+[data-puzzle-play] .pairmatch-face-front.is-matched {
+  box-shadow:
+    inset 0 0 12px color-mix(in oklab, var(--primary) 38%, transparent),
+    0 0 14px color-mix(in oklab, var(--primary) 50%, transparent),
+    0 4px 8px rgba(0, 0, 0, 0.45);
+}

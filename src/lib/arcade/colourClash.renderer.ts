@@ -27,6 +27,7 @@ import {
 } from "./colourClash";
 import { TICKS_PER_SECOND, type ArcadeGame, type ArcadeInputEvent, type CanvasSize } from "./engine";
 import { artCanvas, artContext, type ArtCanvas } from "./cache.renderer";
+import { arcadeFx, type ArcadeFxSpec } from "./arcadeFx.renderer";
 
 type Ctx = CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D;
 const FP = 256;
@@ -133,6 +134,21 @@ export function paintGate(c: Ctx, colour: string, w: number): void {
   c.restore();
 }
 
+/**
+ * Lane glow (Polish batch S, 25 Oct 2026, display only): each lane well lit faintly from its gate, in
+ * the gate's colour, fading up the lane, with lit rails. Painted once per colour and size into a cached
+ * layer, under the falling word's neutral plate (so its ink is never tinted).
+ */
+function paintLaneGlow(c: Ctx, colour: string, w: number, h: number): void {
+  const g = c.createLinearGradient(0, 0, 0, h);
+  g.addColorStop(0, "rgba(0,0,0,0)");
+  g.addColorStop(0.55, "rgba(0,0,0,0)");
+  g.addColorStop(1, colour);
+  c.globalAlpha = 0.11; c.fillStyle = g; c.fillRect(0, 0, w, h);
+  c.globalAlpha = 0.3; c.fillRect(0, 0, 1, h); c.fillRect(w - 1, 0, 1, h);
+  c.globalAlpha = 1;
+}
+
 /** Selected lane: a lit well with corner brackets. */
 function paintSelected(c: Ctx, w: number, h: number): void {
   const g = c.createLinearGradient(0, 0, 0, h);
@@ -195,6 +211,11 @@ function draw(ctx: CanvasRenderingContext2D, state: ClashState, size: CanvasSize
   if (!blit(ctx, `sel-${lanes}-${low}`, sel.x, WELL_TOP, sel.w, GATE_Y - WELL_TOP, (c) => paintSelected(c, sel.w, GATE_Y - WELL_TOP))) { ctx.fillStyle = "rgba(255,255,255,0.08)"; ctx.fillRect(sel.x, WELL_TOP, sel.w, GATE_Y - WELL_TOP); }
   for (let lane = 0; lane < lanes; lane += 1) {
     const colour = gates[lane]!;
+    const well = clashLaneRect(lane, lanes);
+    blit(ctx, `lane-${colour}-${lanes}-${low}`, well.x, WELL_TOP, well.w, GATE_Y - WELL_TOP, (c) => paintLaneGlow(c, CLASH_COLOURS[colour]!, well.w, GATE_Y - WELL_TOP));
+  }
+  for (let lane = 0; lane < lanes; lane += 1) {
+    const colour = gates[lane]!;
     const g = clashGateRect(lane, lanes, low);
     if (!blit(ctx, `gate-${colour}-${lanes}`, g.x - GLOW, g.y - WASH, g.w + GLOW * 2, GATE_H + WASH + GLOW, (c) => paintGate(c, CLASH_COLOURS[colour]!, g.w))) { ctx.fillStyle = CLASH_COLOURS[colour]!; ctx.fillRect(g.x, g.y, g.w, g.h); }
     ctx.fillStyle = "#FFFFFF"; ctx.font = "bold 12px ui-monospace, monospace"; ctx.fillText(CLASH_NAMES[colour]!, LEFT + (lane + 0.5) * laneW, 512 + low);
@@ -224,11 +245,39 @@ function draw(ctx: CanvasRenderingContext2D, state: ClashState, size: CanvasSize
   ctx.restore();
 }
 
+/**
+ * Mixed Signals' miss moment (Polish batch S, 25 Oct 2026, display only): the shared arcade layer's faint
+ * red edge pulse on a wrong sort (the moment stroop.wrong plays), with a puff on the gate it landed in.
+ * Read only from counters the sim keeps; the world is mapped as draw maps it (centred, uniform).
+ */
+const clashSpecs = new Map<number, ArcadeFxSpec<ClashState>>();
+function clashSpec(worldH: number, low: number): ArcadeFxSpec<ClashState> {
+  let spec = clashSpecs.get(worldH);
+  if (!spec) {
+    spec = {
+      game: "stroop", world: "retro", width: CLASH_WORLD_W, height: worldH, events: [], shake: false,
+      misses: [{
+        count: (s) => s.wrong,
+        at: (s, before) => {
+          const lanes = clashLaneCount(before?.tick ?? s.tick);
+          const g = clashGateRect(Math.min(lanes - 1, Math.max(0, (before ?? s).lane)), lanes, low);
+          return { x: g.x + g.w / 2, y: g.y + g.h / 2 };
+        },
+      }],
+    };
+    clashSpecs.set(worldH, spec);
+  }
+  return spec;
+}
+function drawWithFx(ctx: CanvasRenderingContext2D, state: ClashState, size: CanvasSize): void {
+  arcadeFx(ctx, clashSpec(clashWorldH(state), clashDrop(state)), state, () => draw(ctx, state, size), size);
+}
+
 const artGames = new Map<number, ArcadeGame<ClashState, ArcadeInputEvent | null>>();
 /** The sim game for a clashVariantOf key with this art (one stable object per variant). */
 export function colourClashArtGameFor(variant: number): ArcadeGame<ClashState, ArcadeInputEvent | null> {
   let game = artGames.get(variant);
-  if (!game) { game = { ...colourClashGameFor(variant), draw }; artGames.set(variant, game); }
+  if (!game) { game = { ...colourClashGameFor(variant), draw: drawWithFx }; artGames.set(variant, game); }
   return game;
 }
 

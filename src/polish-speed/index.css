@@ -6,9 +6,11 @@
      chain-countup-pairmatch     Don't Break the Chain, Tally, Matchmaker
      clayshoot                   Pull!
      whack-stroop                Bonk (and the 14 Oct speed tuning), Mixed Signals
-     symscan-spotdiff-maze       Eagle Eye, Double Take, Labyrinth */
+     symscan-spotdiff-maze       Eagle Eye, Double Take, Labyrinth
+     batch-s                     Polish batch S (25 Oct 2026): all twelve, on a live round's frame */
 @import "./reaction-stopwatch-numhunt.css";
 @import "./chain-countup-pairmatch.css";
 @import "./clayshoot.css";
 @import "./whack-stroop.css";
 @import "./symscan-spotdiff-maze.css";
+@import "./batch-s.css";

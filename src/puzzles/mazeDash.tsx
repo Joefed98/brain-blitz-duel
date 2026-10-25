@@ -70,9 +70,11 @@ const MazeWalls = memo(function MazeWalls({ cells, cols, rows }: { cells: number
         </pattern>
       </defs>
       <rect width={cols} height={rows} fill={`url(#maze-floor-${id})`} />
+      {/* Polish batch S: a wide, faint ambient shadow under every wall for depth (display only). */}
+      <path d={d} transform="translate(0.09 0.13)" stroke="rgba(0,0,0,0.28)" strokeWidth={0.3} strokeLinecap="round" fill="none" />
       <path d={d} transform="translate(0.05 0.07)" stroke="var(--maze-wall-shadow)" strokeWidth={0.17} strokeLinecap="square" fill="none" />
       <path d={d} stroke="var(--maze-wall)" strokeWidth={0.13} strokeLinecap="square" fill="none" />
-      <path d={d} transform="translate(-0.018 -0.025)" stroke="var(--maze-wall-top)" strokeWidth={0.04} strokeLinecap="square" fill="none" opacity={0.75} />
+      <path d={d} transform="translate(-0.018 -0.025)" stroke="var(--maze-wall-top)" strokeWidth={0.04} strokeLinecap="square" fill="none" opacity={0.85} />
     </g>
   );
 });
@@ -100,6 +102,7 @@ function MazeBoard({
 }) {
   const rows = Math.ceil(cells.length / cols) || cols;
   const box = useRef<HTMLDivElement | null>(null);
+  const gid = useId().replace(/:/g, "");
 
   // Measured from the live board on every event, so the finger tracks the corridor.
   const cellAt = (clientX: number, clientY: number): number | null =>
@@ -133,6 +136,23 @@ function MazeBoard({
       onPointerCancel={() => onRelease?.()}
     >
       <svg viewBox={`0 0 ${cols} ${rows}`} className="h-full w-full" aria-hidden="true">
+        {/* Polish batch S (display only): the glossy ball, the exit's glow and the star's light. */}
+        <defs>
+          <radialGradient id={`maze-ball-${gid}`} cx="0.36" cy="0.32" r="0.75">
+            <stop offset="0" stopColor="#FFF6D8" />
+            <stop offset="0.35" stopColor="var(--primary)" />
+            <stop offset="1" stopColor="#9A6508" />
+          </radialGradient>
+          <radialGradient id={`maze-halo-${gid}`}>
+            <stop offset="0" stopColor="var(--primary)" stopOpacity="0.55" />
+            <stop offset="1" stopColor="var(--primary)" stopOpacity="0" />
+          </radialGradient>
+          <linearGradient id={`maze-star-${gid}`} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stopColor="#FFF1C2" />
+            <stop offset="0.55" stopColor="var(--primary)" />
+            <stop offset="1" stopColor="#C98A12" />
+          </linearGradient>
+        </defs>
         <MazeWalls cells={cells} cols={cols} rows={rows} />
         {/* Start pad and exit tile: clear ends, drawn on the floor under the route. */}
         <rect x={(start % cols) + 0.08} y={Math.floor(start / cols) + 0.08} width={0.84} height={0.84} rx={0.16} fill="var(--maze-start-floor)" stroke="var(--maze-start)" strokeWidth={0.05} />
@@ -165,24 +185,40 @@ function MazeBoard({
           r={0.18}
           fill="var(--maze-start)"
         />
-        {/* Goal: a gold star flag marking the exit cell. */}
+        {/* Goal: a gold star flag marking the exit cell, lit by a soft halo inside its cell. */}
+        <circle
+          className="maze-exit-glow"
+          cx={(exit % cols) + 0.5}
+          cy={Math.floor(exit / cols) + 0.5}
+          r={0.5}
+          fill={`url(#maze-halo-${gid})`}
+        />
         <polygon
           points={starPoints((exit % cols) + 0.5, Math.floor(exit / cols) + 0.5, 0.32, 0.14)}
-          fill={GOLD}
-          stroke="var(--card)"
-          strokeWidth={0.02}
+          fill={`url(#maze-star-${gid})`}
+          stroke="#7A4E06"
+          strokeWidth={0.025}
+          strokeLinejoin="round"
+          style={{ filter: "drop-shadow(0 0 0.12px var(--primary))" }}
         />
         {/* Player: current route head, a larger glowing gold dot. */}
         {(() => {
           const head = path.length ? path[path.length - 1]! : start;
           return (
-            <circle
-              cx={(head % cols) + 0.5}
-              cy={Math.floor(head / cols) + 0.5}
-              r={0.24}
-              fill={GOLD}
-              style={{ filter: "drop-shadow(0 0 0.14px var(--primary)) drop-shadow(0 0 0.28px var(--primary))" }}
-            />
+            <g data-maze-ball="">
+              <circle cx={(head % cols) + 0.5} cy={Math.floor(head / cols) + 0.5} r={0.42} fill={`url(#maze-halo-${gid})`} />
+              <ellipse cx={(head % cols) + 0.53} cy={Math.floor(head / cols) + 0.7} rx={0.2} ry={0.07} fill="rgba(0,0,0,0.45)" />
+              <circle
+                cx={(head % cols) + 0.5}
+                cy={Math.floor(head / cols) + 0.5}
+                r={0.24}
+                fill={`url(#maze-ball-${gid})`}
+                stroke="rgba(90,55,0,0.6)"
+                strokeWidth={0.02}
+                style={{ filter: "drop-shadow(0 0 0.14px var(--primary)) drop-shadow(0 0 0.28px var(--primary))" }}
+              />
+              <ellipse cx={(head % cols) + 0.43} cy={Math.floor(head / cols) + 0.41} rx={0.08} ry={0.05} fill="rgba(255,255,255,0.85)" />
+            </g>
           );
         })()}
       </svg>

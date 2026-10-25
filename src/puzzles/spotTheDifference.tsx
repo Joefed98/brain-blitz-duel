@@ -1,5 +1,6 @@
 import { SWEET_NAMES } from "@/components/puzzles/refreshIcons";
 import { registerFxPreview, soundCue } from "@/components/puzzles/speedFx";
+import { useGoalProgress } from "@/components/duel/GameFrame";
 import { gameDisplayName } from "@/lib/duel/gameNames";
 import { playCorrect, playWrong } from "@/lib/sound";
 import { useGameKeys } from "@/lib/desktop";
@@ -416,6 +417,9 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer }:
     return true;
   });
 
+  // Polish batch S: "Picture n of 2" goes to the frame's goal line on a live round (display only).
+  const framed = useGoalProgress({ done: scene, total: scenes.length, text: twoPictures ? `Picture ${scene + 1} of ${scenes.length}` : "" });
+
   if (!data) return null;
   const current = scenes[scene]!;
   const sceneFinished = foundGroups.length >= total;
@@ -446,7 +450,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer }:
   return (
     <div data-stage-column="2" data-polish="spotdiff" className="spot-difference-stage flex min-h-0 flex-1 flex-col items-center gap-2">
       <div className="flex w-full shrink-0 items-center justify-center gap-3 font-mono text-sm uppercase tracking-widest">
-        {twoPictures ? <span className="text-muted-foreground" data-dt-picture={scene + 1}>Picture {scene + 1} / {scenes.length}</span> : null}
+        {twoPictures && !framed ? <span className="text-muted-foreground" data-dt-picture={scene + 1}>Picture {scene + 1} / {scenes.length}</span> : null}
         <span className="text-primary">{foundGroups.length} / {total} found</span>
         {twoPictures ? (
           <span className={misses > SPOT_TWO_WRONG_LIMIT ? "text-warn" : "text-muted-foreground"} data-dt-misses={misses}>
