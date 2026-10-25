@@ -873,11 +873,11 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
     snip: {
       goal: "Feed every fruit down the tall orchard into the basket.",
       how: [
-        { action: "Swipe across a rope", detail: "to cut it. Order and timing matter." },
-        { action: "Pegs and rings catch falling fruit:", detail: "cut the vine to drop it on." },
-        { action: "Golden apples, wind and cuts:", detail: "feed the gold one within 7 s, time cuts with the wind's swing, use no more cuts than the level's par." },
-        { action: "6 levels,", detail: "up to 14 s each; 1–3 fruits a level." },
-        { action: "Each level opens with a look down the course", detail: "from the basket up to the fruit; then the camera follows the fruit. The map at the side shows the whole course with your view boxed.", helpOnly: true },
+        { action: "Swipe a rope", detail: "to cut it; crooks catch fruit." },
+        { action: "Feed every fruit;", detail: "golden ones within 7 s." },
+        { action: "Fewest cuts:", detail: "match each level's par." },
+        { action: "6 levels,", detail: "up to 14 s each; 1–3 fruits a level. Pegs and rings catch falling fruit: cut the vine to drop it on.", helpOnly: true },
+        { action: "Taller courses:", detail: "each level opens with a look down the course from the basket up to the fruit; then the camera follows the fruit. The map at the side shows the whole course with your view boxed.", helpOnly: true },
         { action: "Pegs:", detail: "a wooden pole with an iron hook open at the top. It snags a fruit only when it falls freely down past the hook from above. Rings snag a free fruit that passes through their middle from any side. Each catches once and holds the fruit on a green vine.", helpOnly: true },
         { action: "Orchard pieces:", detail: "fruit rolls along sloped planks and down tin gutters and chutes, bounces hard off springy green branches, and a touch on a wasp nest loses it. Some baskets slide slowly side to side.", helpOnly: true },
         { action: "Wind:", detail: "the windsock and the drifting leaves show it. It swings the ropes and the fruit they hold back and forth; a falling fruit is not blown.", helpOnly: true },
