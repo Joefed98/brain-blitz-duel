@@ -147,7 +147,8 @@ section("New rounds carry the Tuning F stamps; runs on them replay unchanged");
     ["snip", "snipRev", playRevOf("snip", generateSnip().snipRev), SNIP_REV_PROVEN],
   ];
   // Taller worlds batch 3 (16 Oct 2026) moved Grappler on to its taller cavern (swingRev 9); arcade-tuning-g3-check covers it.
-  const movedOn: Record<string, number> = { slice: SLICE_REV_LONG + 1, bubble: BUB_REV_TORPEDO + 1, swing: SWING_REV_SPREAD + 1 };
+  // Expansion E6 (25 Oct 2026) moved Coral Pop on to bubbleRev 8 and Gemstone on to matchupRev 9; e6-check covers them.
+  const movedOn: Record<string, number> = { slice: SLICE_REV_LONG + 1, bubble: BUB_REV_TORPEDO + 4, swing: SWING_REV_SPREAD + 1, matchup: 9 };
   for (const [type, field, got, rev] of stamps) {
     if (!want(type)) continue;
     ok(got === (movedOn[type] ?? rev), `${type}: new rounds stamped ${movedOn[type] ?? rev} (got ${got})`);
@@ -285,7 +286,8 @@ if (want("matchup")) {
     bestRaw = Math.max(bestRaw, s.raw);
   }
   ok(best === 150, `150 is reachable through the server replay (best ${best}, ${bestRaw} match points)`);
-  ok(PUZZLE_INSTRUCTIONS.matchup.score.includes("2,800"), "the \"?\" help shows 150 at 2,800");
+  // Expansion E6's matchupRev 9 scores on its own curve (150 at 3,200 before its feature bonus); e6-check covers it.
+  ok(PUZZLE_INSTRUCTIONS.matchup.score.includes("3,200"), "the \"?\" help shows the curve rooms deal (150 at 3,200)");
 }
 
 console.log(failures.length === 0 ? `PASS arcade-tuning-f2-check (${checks} checks)` : `FAIL arcade-tuning-f2-check: ${failures.length} of ${checks} failed`);

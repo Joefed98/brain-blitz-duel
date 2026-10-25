@@ -85,6 +85,7 @@ import {
   bubSpeed,
   BUB_R,
   BUB_REV_TALL,
+  BUB_REV_REEF,
   BUB_REV_TORPEDO,
   BUB_SHOOTER_LINE,
   BUB_SHOOTER_Y,
@@ -205,7 +206,8 @@ section("New rounds: stamps, start states, checksums, worlds by revision");
 {
   ok(playRevOf("beat", generateBeat().beatRev) === BEAT_REV_TALL, "rooms deal beatRev 6");
   ok(playRevOf("slice", generateSlice().sliceRev) === SLICE_REV_TALL, "rooms deal sliceRev 6");
-  ok(playRevOf("bubble", generateBubble().bubbleRev) === BUB_REV_TALL, "rooms deal bubbleRev 5");
+  // Expansion E6 (25 Oct 2026) moved Coral Pop on to its deeper reef (bubbleRev 8, the same tank); e6-check covers it.
+  ok(generateBubble().bubbleRev === BUB_REV_TALL + 3, "rooms deal bubbleRev 8 (expansion E6, after bubbleRev 5)");
   // Rooms deal the score-bands stamps after these (clashRev 6, clayRev 7: the same play, scoring-bands-check), and since
   // 20 Oct 2026 scoring report batch 2's (clashRev 7, clayRev 8: the same play again, scoring-batch2-check).
   // Depth to 200 (25 Oct 2026): clashRev 8 (clashRev 5 play on the taller board plus the streak, "don't sort" and gold
@@ -526,7 +528,8 @@ section("Intro demos stay stopped until re-recorded on the taller revision");
   const src = read("src/lib/duel/introDemo.functions.ts");
   ok(/data\.type === "beat" && demo\?\.puzzle\.type === "beat" && demo\.puzzle\.beatRev !== BEAT_REV_TALL\) return null/.test(src), "Tempo's demo plays only on beatRev 6");
   ok(/data\.type === "slice" && demo\?\.puzzle\.type === "slice" && demo\.puzzle\.sliceRev !== SLICE_REV_TALL\) return null/.test(src), "Slice's demo plays only on sliceRev 6");
-  ok(/data\.type === "bubble" && demo\?\.puzzle\.type === "bubble" && demo\.puzzle\.bubbleRev !== BUB_REV_TALL\) return null/.test(src), "Coral Pop's demo plays only on bubbleRev 5");
+  // Expansion E6: Coral Pop's demo now plays only on bubbleRev 8 (e6-check).
+  ok(/data\.type === "bubble" && demo\?\.puzzle\.type === "bubble" && demo\.puzzle\.bubbleRev !== BUB_REV_REEF\) return null/.test(src), "Coral Pop's demo plays only on bubbleRev 8");
   ok(/data\.type === "stroop" && demo\?\.puzzle\.type === "stroop" && demo\.puzzle\.clashRev !== CLASH_REV_DEPTH\) return null/.test(src), "Mixed Signals' demo plays only on clashRev 8 (depth to 200)");
   ok(/data\.type === "clayshoot" && demo\?\.puzzle\.type === "clayshoot" && demo\.puzzle\.clayRev !== CLAY_REV_DEPTH\) return null/.test(src) && CLAY_REV === CLAY_REV_TALL, "Pull!'s demo plays only on clayRev 9 (depth to 200)");
 }

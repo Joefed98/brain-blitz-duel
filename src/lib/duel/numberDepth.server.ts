@@ -12,13 +12,15 @@ import {
   ballparkSpeedPoints,
   ballparkStreak,
   ballparkStreakPoints,
+  dealtDepthRev,
   depthFeaturePoints,
+  depthFeaturePointsRev2,
+  depthRevOf,
   depthStretchPoints,
   EXACT_ELEGANT_TILES,
   isBigFinishDart,
   NUMBER_DEPTH_GAMES,
   NUMBER_DEPTH_MAX,
-  NUMBER_DEPTH_REV,
   numberDepthDealt,
   usesNumberDepth,
 } from "./numberDepth";
@@ -30,13 +32,13 @@ import { applyOperation, decodeSteps } from "./target";
 import type { CheckoutPuzzleData, MeasurePuzzleData, PuzzleData, TargetNumberPuzzleData } from "./types";
 
 /**
- * Stamps a newly generated Number puzzle with depthRev 1 (when rooms deal it: puzzleScoreRev 3, not pinned by a
+ * Stamps a newly generated Number puzzle with depthRev 1 (Exact, Brimful and Checkout: depthRev 2) (when rooms deal it: puzzleScoreRev 3, not pinned by a
  * check). Brimful also gets its public par pours. Exact and Checkout build their depth content in their own
  * generators (numberDepthDealt()).
  */
 export function stampNumberDepth<T extends PuzzleData>(puzzle: T): T {
   if (!numberDepthDealt() || !(puzzle.type in NUMBER_DEPTH_GAMES)) return puzzle;
-  const stamped = { ...(puzzle as object), depthRev: NUMBER_DEPTH_REV } as T;
+  const stamped = { ...(puzzle as object), depthRev: dealtDepthRev(puzzle.type) } as T;
   if (puzzle.type === "measure") {
     const m = stamped as unknown as MeasurePuzzleData;
     if (m.minMoves) m.par = [...m.minMoves];
@@ -133,7 +135,8 @@ export function withNumberDepth(puzzle: PuzzleData, answer: string, graded: Grad
     return { ...graded, score, extra: { ...extra, parts: depthParts, depth: { stretch } } };
   }
 
-  // Features: the share of the feature earned, paid in full at the fast share of the clock.
+  // Features: the share of the feature earned; rev 1 pays it in full at the fast share of the clock, rev 2 only
+  // part there and the rest by the game's elite share.
   let share = 0;
   let measure = "bonus";
   let detail: Record<string, unknown> = {};
@@ -153,7 +156,9 @@ export function withNumberDepth(puzzle: PuzzleData, answer: string, graded: Grad
     measure = "big finish";
     detail = { bigFinishes: big };
   }
-  const bonus = depthFeaturePoints(share, left, fast);
+  const bonus = depthRevOf(puzzle) >= 2
+    ? depthFeaturePointsRev2(share, left, fast, game.featureElite ?? 1, game.featureBase ?? 1)
+    : depthFeaturePoints(share, left, fast);
   const score = Math.min(NUMBER_DEPTH_MAX, graded.score + bonus);
   const depthParts: ScoreParts = { kind: "finish", base: parts.base, efficiency: bonus, measure, speed };
   return { ...graded, score, extra: { ...extra, parts: depthParts, depth: { ...detail, bonus } } };

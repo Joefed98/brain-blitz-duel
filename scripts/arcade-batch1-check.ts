@@ -455,7 +455,8 @@ section("Ball Tracker btRev 2");
   const earliest = lastRelease + BT_STEP_TICKS * (minMoves + 1);
   ok(earliest === BT_LAST_LAND_MIN, `the last marble lands no earlier than tick ${earliest}`);
   ok(btScoreOfV2(BT_BALLS, earliest) === 150 && btScoreOf(BT_BALLS, 0, earliest) === BT_LEGACY_PERFECT_MAX, "rev 2 perfect max 150; original stays 135");
-  ok(INTRO_SCORE.balltrack.includes(`up to ${roundMaxFor("balltrack")}`) && !/otherwise up to/.test(INTRO_SCORE.balltrack), "Ball Tracker intro states its maximum and no partial cap (score bands, btRev 3)");
+  // The top is the game's maximum (200 since expansion E6's btRev 7, docs/scoring-200.md).
+  ok(new RegExp(`up to ${roundMaxFor("balltrack")}`, "i").test(INTRO_SCORE.balltrack) && !/otherwise up to/.test(INTRO_SCORE.balltrack), "Ball Tracker intro states its maximum and no partial cap (score bands, btRev 3)");
   console.log(`  occupied turns and switch points work; ${Math.ceil(BALL_TRACK_BANK.length / 4)} banked playbooks still prove their courses (perfect runs score ${minScore}–${maxScore} under rev 2; earliest last landing tick ${BT_LAST_LAND_MIN}, last release ${lastRelease})`);
 }
 }

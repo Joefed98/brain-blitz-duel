@@ -69,8 +69,9 @@ for (const home of [0, 15, 29, 30]) {
 }
 eq(buildArcadeReveal("matchup", { raw: 2500 }, 150)?.axis.max, 2500, "Matchup reveal par");
 // Oct 2026 score bands: intros describe the band rules in plain words (the "?" help gives the top and a good run).
-for (const [type, text] of [["balltrack", "all 30 home"], ["junction", "± for ambulances"], ["rally", "pink target"], ["skyline", "perfects in a row"]] as const) eq(INTRO_SCORE[type].includes(text), true, `${type} intro`);
-for (const [type, text] of [["matchup", "2,800"], ["bullseye", "plus +1, +2 or +3 for each balloon"], ["junction", "one stopped takes 4 off"], ["skyline", "perfect drop counts 5"], ["rally", "gold-ball hit counts 5"], ["balltrack", "56.5 s"]] as const) eq(PUZZLE_INSTRUCTIONS[type].score.includes(text), true, `${type} help`);
+// Expansion E6 (25 Oct 2026): Ball Tracker's intro names btRev 7's features; e6-check covers the new rules.
+for (const [type, text] of [["balltrack", "gold, boosted and in-a-row marbles"], ["junction", "± for ambulances"], ["rally", "pink target"], ["skyline", "perfects in a row"]] as const) eq(INTRO_SCORE[type].includes(text), true, `${type} intro`);
+for (const [type, text] of [["matchup", "3,200"], ["bullseye", "plus +1, +2 or +3 for each balloon"], ["junction", "one stopped takes 4 off"], ["skyline", "perfect drop counts 5"], ["rally", "gold-ball hit counts 5"], ["balltrack", "56.6 s"]] as const) eq(PUZZLE_INSTRUCTIONS[type].score.includes(text), true, `${type} help`);
 // The 11 Oct 130 / 150 split is gone from every intro: no partial cap is stated any more.
 for (const type of ["balltrack", "bintoss", "breaker", "bubble", "inkbridge", "orbit", "swing", "tilt"] as const) eq(/otherwise up to \d+/.test(INTRO_SCORE[type]), false, `${type} intro has no partial cap`);
 // The legacy split figures still hold for stored rounds (they replay on their original rules).
@@ -137,8 +138,8 @@ eq(inkRev4Score(INK_LEVELS - 1, INK_STAR_LEVELS, 0), SPLIT_PARTIAL_MAX.inkbridge
 for (const game of [orbitGame, orbitRev3Game] as const) {
   eq(game.score({ ...game.init(1), best: ORBIT_TOTAL - 1, finished: 0 } as never), SPLIT_PARTIAL_MAX.orbit, "Orbit partial max");
 }
-// "{max}" is the game's own maximum (roundMax.ts: 150 today, 200 once its expansion raises it).
-for (const [type, goal] of [["balltrack", "Get all 30 home quickly for up to {max}"], ["bintoss", "All 10 in for 10 more"], ["breaker", "Clear all 80 quickly for up to {max}"], ["inkbridge", "All 10 levels quickly: up to {max}"], ["swing", "Reach 500 metres for 10 more"], ["tilt", "All 4 quickly: up to {max}"]] as const) {
+// Expansion E6: Ball Tracker's btRev 7 intro names its features. "{max}" is the game's own maximum (roundMax.ts: 150 today, 200 once its expansion raises it).
+for (const [type, goal] of [["balltrack", "in-a-row marbles add more. Up to {max}"], ["bintoss", "All 10 in for 10 more"], ["breaker", "Clear all 80 quickly for up to {max}"], ["inkbridge", "All 10 levels quickly: up to {max}"], ["swing", "Reach 500 metres for 10 more"], ["tilt", "All 4 quickly: up to {max}"]] as const) {
   eq(INTRO_SCORE[type].includes(goal.replace("{max}", String(roundMaxFor(type)))), true, `${type} intro goal`);
 }
 // Scrumper and Mixed Signals are not on the split: no partial cap at 130.
@@ -184,8 +185,10 @@ const b0 = bBand.init(1);
 for (let total = 0; total <= 120; total++) eq(bBand.score({ ...b0, ...acted, total }), clamp(line([0, 72, 82, 94, 102, 110], [0, 70, 100, 125, 145, 150], total)), "Flightpath band");
 for (const [score, total] of [[150, 110], [70, 72]] as const) eq(bBand.score({ ...b0, ...acted, total }), score, "Flightpath band anchor");
 const demoGuard = readFileSync("src/lib/duel/introDemo.functions.ts", "utf8");
-eq(demoGuard.includes('data.type === "balltrack"') && demoGuard.includes("course.balls.length !== BT_BALLS"), true, "Old Ball Track demo rejected");
-for (const type of ["matchup", "junction", "skyline", "bullseye"]) eq(demoGuard.includes(`data.type === "${type}"`), false, `${type} demo not invalidated`);
+// Expansion E6 (25 Oct 2026): a btRev 7 demo carries 36 marbles; every older one 30.
+eq(demoGuard.includes('data.type === "balltrack"') && demoGuard.includes("course.balls.length !== (demo.puzzle.btRev === BT_REV_RUSH ? BT_V7_BALLS : BT_BALLS)"), true, "Old Ball Track demo rejected");
+// Expansion E6 deliberately stops Gemstone's demo until one is recorded on matchupRev 9 (e6-check).
+for (const type of ["junction", "skyline", "bullseye"]) eq(demoGuard.includes(`data.type === "${type}"`), false, `${type} demo not invalidated`);
 // Taller worlds batch 1 (16 Oct 2026) deliberately stops Rally's intro demo: a demo recorded before rallyRev 6 shows the
 // 620 px court, so only a rallyRev 6 demo plays (arcade-tuning-g1-check). This flips back to "not invalidated" (and the
 // guard comes out of introDemo.functions.ts) once Rally's demo is re-recorded on rallyRev 6.
