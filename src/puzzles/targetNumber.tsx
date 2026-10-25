@@ -30,6 +30,7 @@ import { LiveSummary } from "@/components/puzzles/batchW/LiveSummary";
 import { wrongMoveFlash } from "@/lib/fx/gameToolkit";
 import "@/polish-layout/batch-w-target.css";
 import { fastFinishSeconds } from "@/lib/duel/puzzleBandsText";
+import { EXACT_ELEGANT_TILES, usesNumberDepth } from "@/lib/duel/numberDepth";
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
 /* -------------------------------------------------------------------------- */
@@ -78,6 +79,7 @@ const EXACT_CSS = `
 [data-polish="target"] .exact-tile[data-hit="true"] { color: #1a1406; background: linear-gradient(180deg, #ffd56a, #F5B82E 60%, #d99a14); box-shadow: inset 0 0 0 1px #ffe69a, inset 0 -4px 0 rgba(120,80,0,.35), 0 0 18px rgba(245,184,46,.55); }
 [data-polish="target"][data-locked="true"] .exact-tile:not([data-hit="true"]):not([data-state="consumed"]) { opacity: .5; }
 [data-polish="target"] .exact-face { position: relative; display: inline-block; }
+[data-polish="target"] .exact-elegant { color: #F5B82E; }
 [data-polish="target"] .exact-face[data-pop="true"] { animation: exact-pop 240ms cubic-bezier(.2,1.5,.4,1) both; }
 [data-polish="target"] .exact-ring { position: absolute; inset: 3px; border-radius: 13px; box-shadow: inset 0 0 0 2px #F5B82E; pointer-events: none; animation: exact-ring 260ms ease-out both; }
 @keyframes exact-pop { 0% { scale: .7; opacity: .4; } 60% { scale: 1.14; opacity: 1; } 100% { scale: 1; } }
@@ -164,6 +166,8 @@ interface Tile {
   id: number;
   value: number;
   active: boolean;
+  /** depthRev 1: how many starting numbers fed this one (1 for a starting number; absent on older saved state). */
+  uses?: number;
 }
 
 interface HistoryEntry {
@@ -173,7 +177,7 @@ interface HistoryEntry {
 
 function Stage(props: PuzzleStageProps) {
   if (props.puzzle.type !== "target") return null;
-  return <TargetStage {...props} tiles={props.puzzle.tiles} target={props.puzzle.target} />;
+  return <TargetStage {...props} tiles={props.puzzle.tiles} target={props.puzzle.target} depth={usesNumberDepth(props.puzzle)} />;
 }
 
 interface SolveFlight {
@@ -193,7 +197,8 @@ function TargetStage({
   onSubmit,
   onDraftAnswer,
   stateKey,
-}: PuzzleStageProps & { tiles: number[]; target: number }) {
+  depth = false,
+}: PuzzleStageProps & { tiles: number[]; target: number; depth?: boolean }) {
   const column = useGameColumnLayout();
   // The board belongs to the round (stageState.ts), so a re-mount, or in a room a reload, keeps it.
   const roundKey = stateKey ?? "target";
@@ -286,7 +291,7 @@ function TargetStage({
     const nextHistory = [...history, { step, before }];
     setPool((current) =>
       current.map((entry) => {
-        if (entry.id === first.id) return { ...entry, value: result, active: true };
+        if (entry.id === first.id) return { ...entry, value: result, active: true, uses: (first.uses ?? 1) + (tile.uses ?? 1) };
         if (entry.id === tile.id) return { ...entry, active: false };
         return entry;
       }),
@@ -336,6 +341,9 @@ function TargetStage({
       null,
     );
   const away = closest === null ? null : Math.abs(closest - target);
+  // depthRev 1, the elegance bonus: the number on target and how many starting numbers it used.
+  const onTarget = depth ? pool.find((t) => t.active && t.value === target) : undefined;
+  const elegant = onTarget !== undefined && (onTarget.uses ?? 1) <= EXACT_ELEGANT_TILES;
   const isLockedNow = locked || lockedHere;
   const hitId = flight ? (combine?.id ?? null) : null;
 
@@ -402,9 +410,11 @@ function TargetStage({
         <LiveSummary
           testId="target"
           parts={[
-            <><b>{pool.filter((t) => t.active).length}</b> numbers left</>,
-            <><b>{steps.length}</b> step{steps.length === 1 ? "" : "s"}</>,
-            closest !== null && (away === 0 ? <b>On target</b> : <>Closest <b>{closest}</b> · {away} away</>),
+            <><b>{pool.filter((t) => t.active).length}</b> {depth ? "left" : "numbers left"}</>,
+            !depth && <><b>{steps.length}</b> step{steps.length === 1 ? "" : "s"}</>,
+            // depthRev 1: the distance stays on the Lock button, so the line has room for the elegance bonus.
+            closest !== null && (away === 0 ? <b>On target</b> : depth ? <>Closest <b>{closest}</b></> : <>Closest <b>{closest}</b> · {away} away</>),
+            depth && (onTarget ? (elegant ? <b className="exact-elegant">✦ Elegant</b> : <>{onTarget.uses ?? 1} numbers used</>) : <span className="exact-elegant">✦ Elegant: {EXACT_ELEGANT_TILES} numbers</span>),
           ]}
         />
       </div>
@@ -524,6 +534,9 @@ function TargetReveal({
     [puzzle.tiles, puzzle.target, myAnswer],
   );
   const away = replay.distance;
+  // depthRev 1: the hit's numbers, for the elegance line.
+  const depth = usesNumberDepth(puzzle);
+  const used = depth && away === 0 ? exactTilesUsedPhone(puzzle.tiles, puzzle.target, myAnswer ?? "") : null;
   return (
     <div className="exact-reveal">
       <PolishStyle id="target-reveal" css={EXACT_REVEAL_CSS} />
@@ -532,12 +545,31 @@ function TargetReveal({
         <p className="exact-reveal-target">Target {puzzle.target}</p>
         <p className="exact-reveal-value">{replay.value ?? "—"}</p>
         <p className="exact-reveal-verdict">{myCorrect || away === 0 ? "Target hit!" : away === null ? "No number locked" : `${away} away from the target`}</p>
+        {used !== null && (
+          <p className="exact-reveal-target" style={used <= EXACT_ELEGANT_TILES ? { color: "#F5B82E" } : undefined}>
+            {used <= EXACT_ELEGANT_TILES ? `✦ Elegant: ${used} numbers` : `${used} numbers used (${EXACT_ELEGANT_TILES} is elegant)`}
+          </p>
+        )}
       </div>
       {(puzzle.solution ?? []).length > 0 && (
-        <div className="exact-reveal-way"><p>One way:</p>{puzzle.solution.map((step, index) => <p key={index}>{formatStep(step)}</p>)}</div>
+        <div className="exact-reveal-way"><p>{depth ? `An elegant way (${EXACT_ELEGANT_TILES} numbers):` : "One way:"}</p>{puzzle.solution.map((step, index) => <p key={index}>{formatStep(step)}</p>)}</div>
       )}
     </div>
   );
+}
+
+/** The starting numbers that fed the number on target (display only; the server counts its own). */
+function exactTilesUsedPhone(tiles: number[], target: number, answer: string): number | null {
+  let pool = tiles.map((value) => ({ value, uses: 1 }));
+  for (const step of replayTargetSteps(tiles, target, decodeSteps(answer)).steps) {
+    const first = pool.findIndex((t) => t.value === step.a);
+    if (first < 0) break;
+    const rest = pool.filter((_, i) => i !== first);
+    const second = rest.findIndex((t) => t.value === step.b);
+    if (second < 0) break;
+    pool = [...rest.filter((_, i) => i !== second), { value: step.result, uses: pool[first]!.uses + rest[second]!.uses }];
+  }
+  return pool.find((t) => t.value === target)?.uses ?? null;
 }
 
 export const targetNumberPuzzle: PuzzleDefinition = {

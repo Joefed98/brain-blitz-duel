@@ -265,13 +265,13 @@ const BUMPS: Record<string, ((s: any) => any)[]> = {
     (s) => ({ ...s, goldBroken: (s.goldBroken ?? 0) + 1 }),
     (s) => ({ ...s, comboUps: (s.comboUps ?? 0) + 1, chain: 8 }),
   ],
-  // rallyRev 9: the every-tenth-return banner gives way to milestones; then spin targets and the twin ball.
+  // rallyRev 9: event 0 is the milestone banner (every 10 returns in a row); then spin targets and the twin ball.
   rally: [
+    (s) => ({ ...s, milestones: (s.milestones ?? 0) + 1, streak: 10 }),
     (s) => ({ ...s, goldHits: s.goldHits + 1 }),
     (s) => ({ ...s, targetHits: (s.targetHits ?? 0) + 1, struckLeft: 60, struckTick: s.tick + 1 }),
     (s) => ({ ...s, bounces: (s.bounces ?? 0) + 1 }),
     (s) => ({ ...s, hits: s.hits + 1 }),
-    (s) => ({ ...s, milestones: (s.milestones ?? 0) + 1, streak: 10 }),
     (s) => ({ ...s, spinHits: (s.spinHits ?? 0) + 1, struckLeft: 60 }),
     (s) => ({ ...s, multiUsed: (s.multiUsed ?? 0) + 1 }),
   ],

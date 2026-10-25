@@ -197,7 +197,8 @@ section("New rounds: stamps, start states, checksums, worlds by revision");
 
   // Effects: the tall specs in ARCADE_FX_SPECS, older rounds at their own height, through fxSpecAt.
   const fx = ARCADE_FX_SPECS as Record<string, { height: number }>;
-  ok(fx.breaker!.height === 730 && fx.rally!.height === 730 && fx.wavefront!.height === 730 && fx.burst!.height === 650, "ARCADE_FX_SPECS hold the taller heights rooms deal");
+  // Expansion E3 (rallyRev 9, brkRev 9) moved Rally and Breaker on to its 784-high courts: the height rooms deal now.
+  ok(fx.breaker!.height === breakerWorldHFor(generateBreaker().brkRev) && fx.rally!.height === rallyWorldHFor(generateRally().rallyRev) && fx.wavefront!.height === 730 && fx.burst!.height === 650, "ARCADE_FX_SPECS hold the taller heights rooms deal");
   ok(breakerFxFor({ worldH: 730 } as BrkState).height === 730 && breakerFxFor({} as BrkState) === BREAKER_FX, "Breaker effects by state height");
   ok(rallyFxFor({ worldH: 730 } as RallyState).height === 730 && rallyFxFor({} as RallyState) === RALLY_FX, "Rally effects by state height");
   ok(wavefrontFxFor({ worldH: 730 } as WavState).height === 730 && wavefrontFxFor({} as WavState) === WAVEFRONT_FX, "Wavefront effects by state height");

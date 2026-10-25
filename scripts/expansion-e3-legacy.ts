@@ -75,7 +75,7 @@ if (import.meta.main) {
         }
     });
   }
-  // --after: each game's best near-perfect run over its first 20 seeds (Rally reaches 200, Breaker 199), the top's proof.
+  // --after: each game's best near-perfect run over its first 20 seeds (both reach 200), the top's proof.
   const top: E3Record[] = [];
   if (after)
     for (const [type, revs] of E3_AFTER) {

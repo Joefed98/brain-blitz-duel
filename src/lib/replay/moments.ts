@@ -77,6 +77,9 @@ export const MOMENT_TABLE: readonly MomentRow[] = [
   fx("breaker", 3, "pop", "moving-target", 25, "Brick out of a sliding row"),
   fx("breaker", 4, "clear", "row-clear", 35, "Row cleared"),
   fx("breaker", 5, "final", "wall-cleared", 95, "Wall cleared", "finish"),
+  // brkRev 9 (expansion E3): fire on brkRev 9 rounds only.
+  fx("breaker", 6, "perfect", "gold-brick", 55, "Gold brick broken by a direct hit"),
+  fx("breaker", 7, "pop", "combo", 30, "No-touch combo stepped up (×2, ×3)"),
   // Pinball
   fx("pinball", 0, "pop", "bumper", 0, "Bumper hit (border ripple only)"),
   fx("pinball", 1, "perfect", "target", 15, "Drop target knocked down"),
@@ -90,6 +93,9 @@ export const MOMENT_TABLE: readonly MomentRow[] = [
   fx("rally", 2, "perfect", "target", 45, "Far-wall target struck"),
   fx("rally", 3, "pop", "bumper", 10, "Off the bumper"),
   fx("rally", 4, "pop", "hit", 0, "Paddle hit (court lights only)"),
+  // rallyRev 9 (expansion E3): fire on rallyRev 9 rounds only (its event 0 is the milestone banner there).
+  fx("rally", 5, "perfect", "spin-target", 50, "Spun gold ball onto a pink pad"),
+  fx("rally", 6, "pop", "multi-ball", 30, "Twin ball released"),
   // Tempo
   fx("beat", 0, "combo", "combo", 30, "Combo (every 10)"),
   fx("beat", 1, "pop", "swipe", 15, "Swipe note hit"),

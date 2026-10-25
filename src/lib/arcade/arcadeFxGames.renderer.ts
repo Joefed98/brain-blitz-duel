@@ -1305,7 +1305,12 @@ function deepRows(s: BrkState): number[][] {
   return Array.from({ length: brkRowsOf(s) }, (_, r) => Array.from({ length: cols }, (_, c) => r * cols + c));
 }
 const deepRowClear = (s: BrkState, row: number[]) => row.every((i) => (s.bricks[i] ?? 0) <= 0 || brkIsGold(s, i));
-/** brkRev 9: the wider court, its 9 × 12 wall's rows and sliding rows, and the gold and combo moments. */
+/**
+ * brkRev 9: the wider court. The live spec (ARCADE_FX_SPECS) serves every revision's replay moments and moment cues
+ * (src/lib/replay/moments.ts), so the original events keep their order and read older states exactly as before;
+ * the row and sliding-row counts read the 9-column wall only on brkRev 9 states, and the gold-brick and combo
+ * moments come after them.
+ */
 export const BREAKER_FX_DEEP: ArcadeFxSpec<BrkState> = {
   ...BREAKER_FX,
   width: BRK_V9_W,
@@ -1315,8 +1320,9 @@ export const BREAKER_FX_DEEP: ArcadeFxSpec<BrkState> = {
       if (e.kind === "clear")
         return {
           ...e,
-          count: (s: BrkState) => deepRows(s).filter((row) => deepRowClear(s, row)).length,
+          count: (s: BrkState) => (s.deep ? deepRows(s).filter((row) => deepRowClear(s, row)).length : e.count(s)),
           at: (s: BrkState) => {
+            if (!s.deep) return e.at?.(s) ?? null;
             const rows = deepRows(s);
             for (let r = rows.length - 1; r >= 0; r--) if (deepRowClear(s, rows[r]!)) return { x: brkWorldW(s) / 2, y: BRK_WALL_Y + r * BRK_ROW_PITCH + BRK_BRICK_H / 2 };
             return { x: brkWorldW(s) / 2, y: BRK_WALL_Y };
@@ -1325,8 +1331,8 @@ export const BREAKER_FX_DEEP: ArcadeFxSpec<BrkState> = {
       if (e.count === brkSlideDestroyed)
         return {
           ...e,
-          count: (s: BrkState) => (s.slide ?? []).reduce((n, row) => n + (deepRows(s)[row] ?? []).filter((i) => (s.bricks[i] ?? 0) <= 0).length, 0),
-          at: (s: BrkState) => ({ x: brkWorldW(s) / 2 + brkRowOffset(s, (s.slide ?? [])[0] ?? 0, s.tick), y: BRK_WALL_Y + ((s.slide ?? [])[0] ?? 0) * BRK_ROW_PITCH + BRK_BRICK_H / 2 }),
+          count: (s: BrkState) => (s.deep ? (s.slide ?? []).reduce((n, row) => n + (deepRows(s)[row] ?? []).filter((i) => (s.bricks[i] ?? 0) <= 0).length, 0) : brkSlideDestroyed(s)),
+          at: (s: BrkState) => (s.deep ? { x: brkWorldW(s) / 2 + brkRowOffset(s, (s.slide ?? [])[0] ?? 0, s.tick), y: BRK_WALL_Y + ((s.slide ?? [])[0] ?? 0) * BRK_ROW_PITCH + BRK_BRICK_H / 2 } : (e.at?.(s) ?? null)),
         };
       return e;
     }),
@@ -1350,23 +1356,27 @@ export const BREAKER_FX_DEEP: ArcadeFxSpec<BrkState> = {
   ],
 };
 /**
- * rallyRev 9: the wider court; a milestone (every 10 returns in a row) takes the place of the every-tenth-return
- * banner and flashes the court lights strongly; spin targets and the twin ball get theirs.
+ * rallyRev 9: the wider court. As Breaker's, the original events keep their order and read older states as before;
+ * on rallyRev 9 the every-tenth-return banner (event 0) becomes the milestone banner (every 10 returns in a row: its
+ * count is milestones × 10, so the event's "every 10" fires once a milestone), and the spin-target and multi-ball
+ * moments come after the original events.
  */
 export const RALLY_FX_DEEP: ArcadeFxSpec<RallyState> = {
   ...RALLY_FX,
   width: RALLY_V9_W,
   height: RALLY_V9_H,
   events: [
-    ...RALLY_FX.events.filter((e) => !(e.kind === "streak" && e.every === 10)),
-    {
-      kind: "streak",
-      count: (s) => s.milestones ?? 0,
-      at: (s) => ({ x: s.paddleX, y: rallyPaddleY(s) - 30 }),
-      label: (s) => `${Math.trunc((s.streak ?? 0) / 10) * 10} IN A ROW +${RALLY_V9_MILESTONE_PTS}`,
-      textOnly: true,
-      bulbs: { pattern: "flash", colours: [E3_GOLD, "#FFF3B0", E3_GOLD], heat: rallyHeat, strong: true },
-    },
+    ...RALLY_FX.events.map((e, i) =>
+      i === 0 && e.kind === "streak"
+        ? {
+            ...e,
+            count: (s: RallyState) => (s.deep ? (s.milestones ?? 0) * 10 : e.count(s)),
+            at: (s: RallyState) => (s.deep ? { x: s.paddleX, y: rallyPaddleY(s) - 30 } : (e.at?.(s) ?? null)),
+            // The k-th milestone of a streak scores k × RALLY_V9_MILESTONE_PTS.
+            label: (s: RallyState, n: number, d: number) => (s.deep ? `${Math.trunc((s.streak ?? 0) / 10) * 10} IN A ROW +${Math.trunc((s.streak ?? 0) / 10) * RALLY_V9_MILESTONE_PTS}` : (e.label?.(s, n, d) ?? null)),
+          }
+        : e,
+    ),
     {
       kind: "perfect",
       count: (s) => s.spinHits ?? 0,

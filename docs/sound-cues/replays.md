@@ -52,10 +52,14 @@ game the round was.
 | `breaker.moving-target` | Brick out of a sliding row: the clip reaches the moment's key tick | instant (the moment lands; about 0.5 s of half-speed play follows) |
 | `breaker.row-clear` | Row cleared: the clip reaches the moment's key tick | instant (the moment lands; about 0.5 s of half-speed play follows) |
 | `breaker.wall-cleared` | Wall cleared: the clip reaches the moment's key tick | instant (the moment lands; about 0.5 s of half-speed play follows) |
+| `breaker.gold-brick` | Gold brick broken by a direct hit (brkRev 9): the clip reaches the moment's key tick | instant (the moment lands; about 0.5 s of half-speed play follows) |
+| `breaker.combo` | No-touch combo stepped up (×2, ×3; brkRev 9): the clip reaches the moment's key tick | instant (the moment lands; about 0.5 s of half-speed play follows) |
 | `rally.long-rally` | Long rally (every 10 returns): the clip reaches the moment's key tick | instant (the moment lands; about 0.5 s of half-speed play follows) |
 | `rally.gold` | Gold ball returned: the clip reaches the moment's key tick | instant (the moment lands; about 0.5 s of half-speed play follows) |
 | `rally.target` | Far-wall target struck: the clip reaches the moment's key tick | instant (the moment lands; about 0.5 s of half-speed play follows) |
 | `rally.bumper` | Off the bumper: the clip reaches the moment's key tick | instant (the moment lands; about 0.5 s of half-speed play follows) |
+| `rally.spin-target` | Spun gold ball onto a pink pad (rallyRev 9): the clip reaches the moment's key tick | instant (the moment lands; about 0.5 s of half-speed play follows) |
+| `rally.multi-ball` | Twin ball released (rallyRev 9): the clip reaches the moment's key tick | instant (the moment lands; about 0.5 s of half-speed play follows) |
 | `beat.combo` | Combo (every 10): the clip reaches the moment's key tick | instant (the moment lands; about 0.5 s of half-speed play follows) |
 | `beat.swipe` | Swipe note hit: the clip reaches the moment's key tick | instant (the moment lands; about 0.5 s of half-speed play follows) |
 | `beat.full-combo` | Full combo: the clip reaches the moment's key tick | instant (the moment lands; about 0.5 s of half-speed play follows) |

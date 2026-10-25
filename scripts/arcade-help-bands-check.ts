@@ -15,6 +15,7 @@
  *   bun scripts/arcade-help-bands-check.ts
  */
 import { LIVE_BANDS, type LiveBandGame } from "../src/lib/arcade/liveBands";
+import { roundMaxFor } from "../src/lib/duel/roundMax";
 import { BAND_SPECS } from "../src/lib/arcade/bandParts";
 import {
   BAND_GOOD_POINTS,
@@ -24,7 +25,6 @@ import {
   type BandCurve,
 } from "../src/lib/arcade/scoreBands";
 import { PUZZLE_INSTRUCTIONS } from "../src/lib/duel/instructions";
-import { roundMaxFor } from "../src/lib/duel/roundMax";
 import { generatePuzzle } from "../src/lib/duel/generate.server";
 import type { PuzzleType } from "../src/lib/duel/types";
 
@@ -128,8 +128,8 @@ for (const [type, live] of Object.entries(LIVE_BANDS) as [
     );
   else
     ok(
-      score.includes(`– up to ${top}.`) && score.endsWith(`Up to ${roundMaxFor(type as PuzzleType)}.`),
-      `${type}: finish game states up to ${top} then up to its maximum (${roundMaxFor(type as PuzzleType)})`,
+      score.includes(`– up to ${top}.`) && score.endsWith(`Up to ${roundMaxFor(type)}.`),
+      `${type}: finish game states up to ${top} then up to its maximum (${roundMaxFor(type)})`,
     );
   ok(!/→|Points follow|straight lines/.test(score), `${type}: no knot list in the help`);
 }

@@ -196,6 +196,8 @@ export interface RallyState extends BandFields {
   streak?: number;
   bestStreak?: number;
   milestones?: number;
+  /** rallyRev 9: the milestone points (2 at 10 in a row, 4 at 20, 6 at 30… within one streak). */
+  msPts?: number;
   dblPts?: number;
   spinHits?: number;
 }
@@ -499,7 +501,7 @@ export function rallyCheckpoint(state: RallyState): RallyCheckpoint {
   // rallyRev 6 (taller worlds): the court's height, last.
   if (state.worldH) values.push(state.worldH);
   // rallyRev 9 (the expansion): its own counters, last.
-  if (state.deep) values.push(state.deep, state.worldW ?? 0, state.twinHits ?? 0, state.twinLeft ?? 0, state.streak ?? 0, state.milestones ?? 0, state.dblPts ?? 0, state.spinHits ?? 0, state.spin ?? 0, state.multiUsed ?? 0);
+  if (state.deep) values.push(state.deep, state.worldW ?? 0, state.twinHits ?? 0, state.twinLeft ?? 0, state.streak ?? 0, state.milestones ?? 0, state.dblPts ?? 0, state.spinHits ?? 0, state.spin ?? 0, state.multiUsed ?? 0, state.msPts ?? 0);
   for (const value of values) {
     checksum ^= value | 0;
     checksum = Math.imul(checksum, 0x01000193) >>> 0;
@@ -806,8 +808,9 @@ export const RALLY_V8_BAND_CURVE = bandStrict(RALLY_V6_BAND_CURVE);
  *  - Spin shots: the paddle's movement at contact (smoothed over a few ticks) curves the return; a
  *    gold ball off a spin return that strikes a pink pad (before any other far-wall touch) scores
  *    RALLY_V9_SPIN_PTS more.
- *  - Rally milestones: every 10 returns in a row scores RALLY_V9_MILESTONE_PTS and flashes the court
- *    lights; a lost gold ball (a miss) resets the streak (the twin never does).
+ *  - Rally milestones: every 10 returns in a row flashes the court lights and scores; the k-th milestone of
+ *    one unbroken streak scores k × RALLY_V9_MILESTONE_PTS (2 at 10 in a row, 4 at 20, 6 at 30…). A lost
+ *    gold ball (a miss) resets the streak (the twin never does).
  *
  * Score: gold hits (5) and pink pads (6) on RALLY_V9_BAND_CURVE (to 150), as before, plus the skill
  * points, at most RALLY_V9_SKILL_MAX: 200 in all. States carry `deep: 1`, folded into the checkpoint last.
@@ -823,10 +826,11 @@ export const RALLY_V9_MULTI_AGAIN = 10 * TICKS_PER_SECOND;
 export const RALLY_V9_MULTI_W = 40;
 export const RALLY_V9_DOUBLE_PTS = 1;
 export const RALLY_V9_MILESTONE = 10;
-export const RALLY_V9_MILESTONE_PTS = 4;
-export const RALLY_V9_SPIN_PTS = 5;
+/** The k-th milestone of one unbroken streak (10, 20, 30… in a row) scores k × this: long streaks are the skill. */
+export const RALLY_V9_MILESTONE_PTS = 2;
+export const RALLY_V9_SPIN_PTS = 10;
 /** Paddle speed (1/256 px a tick, smoothed) below which a return has no spin, the spin per unit of it, and the cap. */
-export const RALLY_V9_SPIN_MIN = 4 * 256;
+export const RALLY_V9_SPIN_MIN = 2 * 256;
 export const RALLY_V9_SPIN_K = 3;
 export const RALLY_V9_SPIN_CAP = 24;
 /** A spin's bend decays by 1/16 a tick and stops under this; the shot stays "spun" until it next meets the far wall or the paddle. */
@@ -861,8 +865,8 @@ export function rallyDeepPadLeft(state: Pick<RallyState, "spots" | "live" | "pad
 }
 
 /** rallyRev 9: the skill points a state has earned (doubled returns, spin targets and milestones, at most 50). */
-export function rallySkillPoints(state: Pick<RallyState, "dblPts" | "spinHits" | "milestones">): number {
-  return Math.min(RALLY_V9_SKILL_MAX, (state.dblPts ?? 0) + RALLY_V9_SPIN_PTS * (state.spinHits ?? 0) + RALLY_V9_MILESTONE_PTS * (state.milestones ?? 0));
+export function rallySkillPoints(state: Pick<RallyState, "dblPts" | "spinHits" | "msPts">): number {
+  return Math.min(RALLY_V9_SKILL_MAX, (state.dblPts ?? 0) + RALLY_V9_SPIN_PTS * (state.spinHits ?? 0) + (state.msPts ?? 0));
 }
 
 /** rallyRev 9: whether the twin ball and the blue ball are both in play (returns count double). */
@@ -955,6 +959,7 @@ function initDeep(seed: number): RallyState {
     streak: 0,
     bestStreak: 0,
     milestones: 0,
+    msPts: 0,
     dblPts: 0,
     spinHits: 0,
   });
@@ -996,6 +1001,7 @@ function stepDeep(state: RallyState, input: ArcadeInputEvent | null): RallyState
   let streak = state.streak ?? 0;
   let bestStreak = state.bestStreak ?? 0;
   let milestones = state.milestones ?? 0;
+  let msPts = state.msPts ?? 0;
   let dblPts = state.dblPts ?? 0;
   let spinHits = state.spinHits ?? 0;
   let release = null as { x: number } | null;
@@ -1118,7 +1124,11 @@ function stepDeep(state: RallyState, input: ArcadeInputEvent | null): RallyState
           streak += doubled ? 2 : 1;
           if (doubled) dblPts += RALLY_V9_DOUBLE_PTS;
           if (streak > bestStreak) bestStreak = streak;
-          milestones += Math.trunc(streak / RALLY_V9_MILESTONE) - Math.trunc(before / RALLY_V9_MILESTONE);
+          // Each milestone crossed in this streak: the k-th scores k × RALLY_V9_MILESTONE_PTS.
+          for (let k = Math.trunc(before / RALLY_V9_MILESTONE) + 1; k <= Math.trunc(streak / RALLY_V9_MILESTONE); k++) {
+            milestones += 1;
+            msPts += k * RALLY_V9_MILESTONE_PTS;
+          }
         }
       }
 
@@ -1187,6 +1197,7 @@ function stepDeep(state: RallyState, input: ArcadeInputEvent | null): RallyState
   next.streak = streak;
   next.bestStreak = bestStreak;
   next.milestones = milestones;
+  next.msPts = msPts;
   next.dblPts = dblPts;
   next.spinHits = spinHits;
   if (next.dead || tick >= RALLY_RUN_TICKS) next.endedTick = tick;
@@ -1198,7 +1209,7 @@ function stepDeep(state: RallyState, input: ArcadeInputEvent | null): RallyState
  * simulated players' points plus their incidental skill points land where rallyRev 8 put them
  * (docs/expansions/e3.md); 150 at 220, the skill points add up to 50 more.
  */
-export const RALLY_V9_BAND_CURVE = bandCurve([0, 60, 90, 105, 125, 160, 220], [0, 40, 64, 84, 97, 118, 150]);
+export const RALLY_V9_BAND_CURVE = bandCurve([0, 80, 102, 127, 140, 152, 220], [0, 55, 64, 80, 112, 132, 150]);
 
 export function rallyDeepParts(state: RallyState): BandParts {
   const units = rallyBandUnits(state.goldHits, state.targetHits ?? 0);

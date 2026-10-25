@@ -1072,11 +1072,11 @@ export const BRK_V9_ROWS = 12;
 export const BRK_V9_WALL_X = 12;
 export const BRK_V9_GOLD = 3;
 export const BRK_V9_GOLD_ROWS: readonly [number, number] = [0, 2];
-export const BRK_V9_GOLD_POINTS = 10;
-export const BRK_V9_COMBO_X2 = 8;
-export const BRK_V9_COMBO_X3 = 16;
+export const BRK_V9_GOLD_POINTS = 15;
+export const BRK_V9_COMBO_X2 = 10;
+export const BRK_V9_COMBO_X3 = 20;
 /** At most this many of the skill points come from combos (the rest only from gold bricks). */
-export const BRK_V9_COMBO_MAX = 30;
+export const BRK_V9_COMBO_MAX = 40;
 export const BRK_V9_SKILL_MAX = 50;
 /** brkRev 9's round maximum (ROUND_MAX.breaker, roundMax.ts). */
 export const BRK_V9_MAX = 200;
@@ -1091,6 +1091,16 @@ export const BRK_V9_INPUT_RANGES: readonly InputRange[] = [
   inputRange(ARCADE_INPUT_DRAG, [0, BRK_V9_W]),
   inputRange(ARCADE_INPUT_BUTTON, [0, 1]),
 ];
+
+/**
+ * brkRev 9's ball speed: the bigger court and wall (105 bricks, was 80) play 15 % faster, so a strong player gets
+ * as far through the wall in the 90 s as before. 4.6 px a tick, +0.1 a brick, +0.2 every ten seconds, capped at 8.6.
+ */
+export const BRK_V9_SPEED_START = 1178;
+export const BRK_V9_SPEED_CAP = 2208;
+export function brkDeepSpeedFp(hits: number, tick: number): number {
+  return Math.min(BRK_V9_SPEED_CAP, BRK_V9_SPEED_START + BRK_SPEED_STEP * hits + BRK_SPEED_TIME_STEP * Math.trunc(tick / BRK_SPEED_TIME_TICKS));
+}
 
 /** The court's width (px) a state plays in: brkRev 9's 420, or the original 390. */
 export function brkWorldW(state: { worldW?: number }): number {
@@ -1128,6 +1138,10 @@ export function brkWallDestroyed(state: { gild?: number[]; bricks: number[] }): 
 /** brkRev 9: the combo multiplier a chain of `chain` destroyed bricks has reached. */
 export function brkComboMultiplier(chain: number): number {
   return chain >= BRK_V9_COMBO_X3 ? 3 : chain >= BRK_V9_COMBO_X2 ? 2 : 1;
+}
+/** brkRev 9: the combo points one destroyed brick earns under a multiplier: ×2 pays 1, ×3 pays 3 (long chains are the skill). */
+export function brkComboPoints(multiplier: number): number {
+  return multiplier >= 3 ? 3 : multiplier === 2 ? 1 : 0;
 }
 /** brkRev 9: the skill points a state has earned (gold bricks, and combo points up to 30; at most 50). */
 export function brkSkillPoints(state: { goldBroken?: number; comboPts?: number }): number {
@@ -1215,7 +1229,7 @@ function initDeep(seed: number): BrkState {
   const slide = [BRK_V9_SLIDE_ROWS[0] + a, BRK_V9_SLIDE_ROWS[0] + (b >= a ? b + 1 : b)];
 
   const paddleX = Math.round(BRK_V9_W / 2);
-  const first = launch(rng, BRK_SPEED_START);
+  const first = launch(rng, BRK_V9_SPEED_START);
   const paddleYFp = (BRK_V9_H - BRK_PADDLE_LIFT - BRK_PADDLE_H) * 256;
   return bandInit({
     rev: BRK_REV,
@@ -1249,7 +1263,7 @@ function initDeep(seed: number): BrkState {
     beam: 0,
     aimX: paddleX,
     paddleX,
-    speed: BRK_SPEED_START,
+    speed: BRK_V9_SPEED_START,
     pause: 0,
     cleared: false,
     endedTick: 0,
@@ -1287,7 +1301,7 @@ function stepDeep(state: BrkState, input: ArcadeInputEvent | null): BrkState {
   let bestChain = state.bestChain ?? 0;
   let comboPts = state.comboPts ?? 0;
   let comboUps = state.comboUps ?? 0;
-  let speed = brkSpeedFp(hits, tick);
+  let speed = brkDeepSpeedFp(hits, tick);
   const worldHFp = BRK_V9_H * 256;
   const paddleYFp = (BRK_V9_H - BRK_PADDLE_LIFT - BRK_PADDLE_H) * 256;
 
@@ -1297,12 +1311,12 @@ function stepDeep(state: BrkState, input: ArcadeInputEvent | null): BrkState {
     if (left <= 0 || brkIsGold(state, index)) return;
     bricks[index] = left - 1;
     hits += 1;
-    speed = brkSpeedFp(hits, tick);
+    speed = brkDeepSpeedFp(hits, tick);
     if (bricks[index] === 0) {
       if (combo) {
         chain += 1;
         if (chain > bestChain) bestChain = chain;
-        comboPts += brkComboMultiplier(chain) - 1;
+        comboPts += brkComboPoints(brkComboMultiplier(chain));
         if (chain === BRK_V9_COMBO_X2 || chain === BRK_V9_COMBO_X3) comboUps += 1;
       }
       const kind = (state.gold[index] ?? 0) - 1;
@@ -1505,7 +1519,7 @@ function stepDeep(state: BrkState, input: ArcadeInputEvent | null): BrkState {
  * simulated players' wall points plus their incidental skill points land where brkRev 8 put them
  * (docs/expansions/e3.md); 140 at all 105, a speedy clear adds up to 10, skill up to 50 more.
  */
-export const BRK_V9_BAND_CURVE = bandCurve([0, 30, 42, 52, 62, 86, 105], [0, 55, 74, 88, 100, 110, 140]);
+export const BRK_V9_BAND_CURVE = bandCurve([0, 34, 48, 58, 70, 86, 98, 105], [0, 66, 80, 86, 98, 129, 137, 140]);
 
 export function breakerDeepParts(state: BrkState): BandParts {
   const units = brkWallDestroyed(state);

@@ -11,7 +11,7 @@
  * they are steering at a pad lands, so it curves and earns the spin bonus.
  */
 import { ARCADE_INPUT_DRAG } from "../../../src/lib/arcade/engine";
-import { rallyDeepPadLeft, rallyPaddleW, rallyTotalHits, rallyTargetLeft, rallyWorldW, RALLY_BALL_R, rallyPaddleY, RALLY_TARGET_W, RALLY_V9_MULTI_W, RALLY_WALL, type RallyBall, type RallyState } from "../../../src/lib/arcade/rally";
+import { rallyDeepPadLeft, rallyPaddleW, rallyTotalHits, rallyTargetLeft, rallyWorldW, RALLY_BALL_R, RALLY_HUD_H, rallyPaddleY, RALLY_TARGET_W, RALLY_V9_MULTI_W, RALLY_WALL, type RallyBall, type RallyState } from "../../../src/lib/arcade/rally";
 import { driveEvents, type SkillBot } from "../bot";
 
 /** Finger top speed, px a tick (world px are phone px here). */
@@ -96,7 +96,13 @@ export const bot: SkillBot = ({ game, seed, human }) => {
       let off = 0;
       let goal: number | null = null;
       if (r.steer === 1 && s.live && s.spots) {
-        goal = (deep ? rallyDeepPadLeft(s, 0, s.tick) : rallyTargetLeft(s.spots, s.live[0] ?? 0)) + RALLY_TARGET_W / 2;
+        // On rallyRev 9 the pads glide: lead the pad, aiming where it will be when the return reaches the far wall
+        // (the ball's flight up the court at the rally's speed), at whichever of the two pads is nearer then.
+        if (deep) {
+          const arrive = s.tick + Math.round(aim.t + ((PADDLE_Y - RALLY_HUD_H - RALLY_WALL) * 256) / Math.max(1, s.speed));
+          const pads = [0, 1].map((k) => rallyDeepPadLeft(s, k, arrive) + RALLY_TARGET_W / 2);
+          goal = Math.abs(pads[0]! - aim.x) <= Math.abs(pads[1]! - aim.x) ? pads[0]! : pads[1]!;
+        } else goal = rallyTargetLeft(s.spots, s.live[0] ?? 0) + RALLY_TARGET_W / 2;
       } else if (r.steer === 2 && s.mspots && (s.multiAt ?? 0) > 0 && s.tick + aim.t >= (s.multiAt ?? 0)) {
         goal = (s.mspots[(s.multiSpot ?? 0) % 12] ?? WORLD_W / 2) + RALLY_V9_MULTI_W / 2;
       }
@@ -108,8 +114,9 @@ export const bot: SkillBot = ({ game, seed, human }) => {
       // The flick is timed on the player's own anticipation of contact (the field is seen `lag` ticks late).
       const contact = aim.t - lag;
       if (r.flick && goal !== null && contact < 14) {
-        const v = Math.min(FINGER[level]!, 18);
-        target -= (goal < aim.x ? -1 : 1) * v * Math.max(0, Math.min(contact, 3));
+        // A short, gentle sweep: spin needs only 2 px a tick of paddle movement at contact.
+        const v = 8;
+        target -= (goal < aim.x ? -1 : 1) * v * Math.max(0, Math.min(contact, 2));
       }
       if (human.slip(0.02)) target += human.normal() * half * 2;
     }

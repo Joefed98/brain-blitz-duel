@@ -12,8 +12,8 @@
  *  4. Rally: gliding pads that stay in their halves, the multi-ball pad and its twin (cost-free), doubled
  *     returns, spin (none from a still paddle, a bonus only for a spun gold ball on a pad), milestones (reset by
  *     a missed gold ball, never by the twin), the skill cap and the 200 cap.
- *  5. 200 is reachable through the server replay: a tracking run reaches 200 in Rally, a skill-band run in
- *     Breaker (scripts/fixtures/expansion-e3-runs.json's `top` runs).
+ *  5. 200 is reachable through the server replay: a tracking run reaches 200 in Rally, and a near-perfect
+ *     skill-band run in each game (scripts/fixtures/expansion-e3-runs.json's `top` runs).
  *
  *   bun scripts/expansion-e3-check.ts      (~5 s)
  */
@@ -30,6 +30,7 @@ import {
   breakerWorldWFor,
   brkCheckpoint,
   brkComboMultiplier,
+  brkComboPoints,
   brkDeepBrickXY,
   brkIsGold,
   brkSkillPoints,
@@ -108,6 +109,28 @@ for (const [file, label] of [["scripts/fixtures/expansion-e3-legacy.json", "befo
   }
   ok(fixture.runs.length === (label === "before" ? 72 : 16), `${label}: ${fixture.runs.length} stored runs`);
   console.log(`  ${label}: ${fixture.runs.length + (fixture.top?.length ?? 0)} runs (${[...per].map(([k, v]) => `${k}: ${v}`).join(", ")})`);
+}
+
+/* ====== 1b. The live effect specs read older rounds exactly as before (replay moments, moment cues) ====== */
+section("The live effect specs count older rounds' moments as before");
+{
+  const { BREAKER_FX, BREAKER_FX_DEEP, RALLY_FX, RALLY_FX_DEEP, ARCADE_FX_SPECS } = await import("../src/lib/arcade/arcadeFxGames.renderer");
+  ok(ARCADE_FX_SPECS.breaker === BREAKER_FX_DEEP && ARCADE_FX_SPECS.rally === RALLY_FX_DEEP, "the live specs are the expansion's");
+  ok(BREAKER_FX_DEEP.events.length === BREAKER_FX.events.length + 2 && RALLY_FX_DEEP.events.length === RALLY_FX.events.length + 2, "the expansion's moments come after the original events");
+  const fixture = JSON.parse(read("scripts/fixtures/expansion-e3-legacy.json")) as { runs: E3Record[] };
+  let compared = 0;
+  for (const run of fixture.runs) {
+    const spec = GAME_BY_TYPE.get(run.type as never)!;
+    const state = spec.replay(run.seed, gunzipSync(Buffer.from(run.raw, "base64")).toString(), run.rev).state;
+    const [old, live] = run.type === "rally" ? [RALLY_FX, RALLY_FX_DEEP] : [BREAKER_FX, BREAKER_FX_DEEP];
+    (old.events as readonly any[]).forEach((e, i) => {
+      const l = (live.events as readonly any[])[i];
+      ok(l.kind === e.kind && l.count(state) === e.count(state), `${run.type} rev ${run.rev}: event ${i} counts ${l.count(state)}, was ${e.count(state)}`);
+      compared++;
+    });
+    (live.events as readonly any[]).slice(old.events.length).forEach((e, i) => ok(e.count(state) === 0, `${run.type} rev ${run.rev}: expansion moment ${i} fires on an old round`));
+  }
+  console.log(`  ${compared} event counts on ${fixture.runs.length} older runs`);
 }
 
 /* ============================== 2. New rounds ============================== */
@@ -196,8 +219,8 @@ const noInput = (s: BrkState, n: number) => {
     const after = brk.step(laser, { t: laser.tick + 1, k: ARCADE_INPUT_BUTTON, a: 1, b: 0, c: 0, d: 0 });
     ok((after.bricks[gold] ?? 0) === 1 && (after.beamTop ?? 0) === at.y + BRK_BRICK_H, "the laser stops at a gold brick and never breaks it");
   }
-  ok(brkComboMultiplier(BRK_V9_COMBO_X2 - 1) === 1 && brkComboMultiplier(BRK_V9_COMBO_X2) === 2 && brkComboMultiplier(BRK_V9_COMBO_X3) === 3, "×2 from the 8th brick, ×3 from the 16th");
-  ok(brkSkillPoints({ goldBroken: 3, comboPts: 100 }) === BRK_V9_SKILL_MAX && brkSkillPoints({ goldBroken: 0, comboPts: 100 }) === BRK_V9_COMBO_MAX, "skill tops out at 50, combos at 30");
+  ok(brkComboMultiplier(BRK_V9_COMBO_X2 - 1) === 1 && brkComboMultiplier(BRK_V9_COMBO_X2) === 2 && brkComboMultiplier(BRK_V9_COMBO_X3) === 3 && brkComboPoints(2) === 1 && brkComboPoints(3) === 3 && brkComboPoints(1) === 0, "×2 from the 10th brick, ×3 from the 20th; ×2 pays 1 and ×3 pays 3");
+  ok(brkSkillPoints({ goldBroken: 3, comboPts: 100 }) === BRK_V9_SKILL_MAX && brkSkillPoints({ goldBroken: 0, comboPts: 100 }) === BRK_V9_COMBO_MAX, `skill tops out at 50, combos at ${BRK_V9_COMBO_MAX}`);
   // Real play: the chain only ever grows by ball breaks and drops to 0 on a paddle touch or a lost ball.
   const spec = GAME_BY_TYPE.get("breaker" as never)!;
   const { bot } = await import("./arcade-skill-bands/bots/breaker.ts");
@@ -217,7 +240,7 @@ const noInput = (s: BrkState, n: number) => {
         chainsSeen++;
         ok(s.hits > prev.hits || (s.goldBroken ?? 0) > (prev.goldBroken ?? 0), `breaker seed ${seed} tick ${s.tick}: the chain grew without a break`);
         let pts = 0;
-        for (let k = before + 1; k <= chain; k++) pts += brkComboMultiplier(k) - 1;
+        for (let k = before + 1; k <= chain; k++) pts += brkComboPoints(brkComboMultiplier(k));
         ok((s.comboPts ?? 0) - (prev.comboPts ?? 0) <= pts, `breaker seed ${seed} tick ${s.tick}: combo points beyond the multiplier`);
       }
       if (s.losses > prev.losses) ok(chain === 0, `breaker seed ${seed}: a lost ball ends the chain`);
@@ -305,8 +328,11 @@ const rally = rallyGameFor(RALLY_REV_DEEP);
   ok(goldOut.streak === 0, "a missed gold ball ends the streak");
   // Doubled returns: with the twin up a return counts 2 towards the streak and 1 skill point.
   const dbl = rally.step({ ...released, ...{ x: 210 * 256, y: (RALLY_V9_H - RALLY_PADDLE_LIFT - RALLY_BALL_R - 2) * 256, vx: 0, vy: 900, streak: 9, milestones: 0 } }, null);
-  ok(dbl.streak === 11 && dbl.milestones === 1 && (dbl.dblPts ?? 0) === 1, "a doubled return counts 2 and crosses a milestone");
-  ok(rallySkillPoints({ milestones: 1 }) === RALLY_V9_MILESTONE_PTS && rallySkillPoints({ spinHits: 1 }) === RALLY_V9_SPIN_PTS && rallySkillPoints({ milestones: 99 }) === RALLY_V9_SKILL_MAX, "skill points and their 50 cap");
+  ok(dbl.streak === 11 && dbl.milestones === 1 && dbl.msPts === RALLY_V9_MILESTONE_PTS && (dbl.dblPts ?? 0) === 1, "a doubled return counts 2 and crosses a milestone");
+  // Milestones escalate within one streak: the 2nd scores 2 × RALLY_V9_MILESTONE_PTS, the 3rd 3 ×.
+  const second = rally.step({ ...dbl, x: 210 * 256, y: (RALLY_V9_H - RALLY_PADDLE_LIFT - RALLY_BALL_R - 2) * 256, vx: 0, vy: 900, streak: 19, twin: null }, null);
+  ok(second.milestones === 2 && second.msPts === 3 * RALLY_V9_MILESTONE_PTS, "the second milestone of a streak scores double");
+  ok(rallySkillPoints({ msPts: 6 }) === 6 && rallySkillPoints({ spinHits: 1 }) === RALLY_V9_SPIN_PTS && rallySkillPoints({ msPts: 99 }) === RALLY_V9_SKILL_MAX, "skill points and their 50 cap");
   // A spun gold ball on a pad scores the spin bonus; an unspun one does not.
   s = rally.init(31);
   const padLeft = rallyDeepPadLeft(s, 0, s.tick + 1);
@@ -323,7 +349,7 @@ section("200 is reachable");
 {
   const fixture = JSON.parse(read("scripts/fixtures/expansion-e3-runs.json")) as { top?: E3Record[] };
   const top = new Map((fixture.top ?? []).map((r) => [r.type, r]));
-  ok(top.has("breaker") && top.get("breaker")!.score >= 199, `a Breaker skill-band run at the top (${top.get("breaker")?.score})`);
+  ok(top.get("breaker")?.score === 200 && top.get("rally")?.score === 200, `a near-perfect skill-band run reaches 200 in both games (Breaker ${top.get("breaker")?.score}, Rally ${top.get("rally")?.score})`);
   ok(GAME_BY_TYPE.get("breaker" as never)!.replay(top.get("breaker")!.seed, gunzipSync(Buffer.from(top.get("breaker")!.raw, "base64")).toString(), BRK_REV_DEEP).score === top.get("breaker")!.score, "it replays to the same score");
 }
 

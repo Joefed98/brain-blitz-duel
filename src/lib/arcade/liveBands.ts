@@ -17,14 +17,14 @@ import { INK_REV_STRICT, INK_V8_BAND_CURVE } from "./inkBridge";
 import { MATCHUP_REV_STRICT, MATCHUP_V8_BAND_CURVE } from "./matchup";
 import { BUB_REV_STRICT, BUB_V7_BAND_CURVE } from "./bubble";
 import { CROSS_REV_STRICT, CROSS_V7_BAND_CURVE } from "./cross";
-import { RALLY_REV_DEEP, RALLY_V9_BAND_CURVE } from "./rally";
+import { RALLY_REV_DEEP, RALLY_REV_STRICT, RALLY_V9_BAND_CURVE } from "./rally";
 import { SNAKE_REV_STRICT, SNAKE_V8_BAND_CURVE } from "./snake";
 import { BINTOSS_REV_STRICT, BINTOSS_V6_BAND_CURVE } from "./binToss";
 import { SNIP_REV_STRICT, SNIP_V9_BAND_CURVE } from "./snip";
 import { HOVER_REV_STRICT, HOVER_V7_BAND_CURVE } from "./hover";
 import { SKYLINE_REV_STRICT, SKYLINE_V6_BAND_CURVE } from "./skyline";
 import { JUNC_REV_BAND, JUNC_BAND_CURVE } from "./junction";
-import { BRK_REV_DEEP, BRK_V9_BAND_CURVE } from "./breaker";
+import { BRK_REV_DEEP, BRK_REV_STRICT, BRK_V9_BAND_CURVE } from "./breaker";
 import { TILT_REV_STRICT, TILT_V6_BAND_CURVE } from "./tilt";
 import { ORBIT_REV_STRICT } from "./orbit";
 import { ORBIT_V10_BAND_CURVE } from "./orbitRev3";
@@ -40,6 +40,12 @@ export interface LiveBand {
   field: string;
   rev: number;
   curve: BandCurve;
+  /**
+   * A game raised to 200 by its expansion (docs/scoring-200.md): the score-band revision (band 3, its strict
+   * curve) rooms dealt before it. `rev` and `curve` are then the expansion's revision and base curve (which
+   * scores to 150 before the expansion's feature bonus); the strict-curve checks read this revision.
+   */
+  strictRev?: number;
 }
 
 export const LIVE_BANDS = {
@@ -50,14 +56,14 @@ export const LIVE_BANDS = {
   matchup: { field: "matchupRev", rev: MATCHUP_REV_STRICT, curve: MATCHUP_V8_BAND_CURVE },
   bubble: { field: "bubbleRev", rev: BUB_REV_STRICT, curve: BUB_V7_BAND_CURVE },
   cross: { field: "crossRev", rev: CROSS_REV_STRICT, curve: CROSS_V7_BAND_CURVE },
-  rally: { field: "rallyRev", rev: RALLY_REV_DEEP, curve: RALLY_V9_BAND_CURVE },
+  rally: { field: "rallyRev", rev: RALLY_REV_DEEP, curve: RALLY_V9_BAND_CURVE, strictRev: RALLY_REV_STRICT },
   snake: { field: "snakeRev", rev: SNAKE_REV_STRICT, curve: SNAKE_V8_BAND_CURVE },
   bintoss: { field: "binRev", rev: BINTOSS_REV_STRICT, curve: BINTOSS_V6_BAND_CURVE },
   snip: { field: "snipRev", rev: SNIP_REV_STRICT, curve: SNIP_V9_BAND_CURVE },
   hover: { field: "hoverRev", rev: HOVER_REV_STRICT, curve: HOVER_V7_BAND_CURVE },
   skyline: { field: "skylineRev", rev: SKYLINE_REV_STRICT, curve: SKYLINE_V6_BAND_CURVE },
   junction: { field: "junctionRev", rev: JUNC_REV_BAND, curve: JUNC_BAND_CURVE },
-  breaker: { field: "brkRev", rev: BRK_REV_DEEP, curve: BRK_V9_BAND_CURVE },
+  breaker: { field: "brkRev", rev: BRK_REV_DEEP, curve: BRK_V9_BAND_CURVE, strictRev: BRK_REV_STRICT },
   tilt: { field: "tiltRev", rev: TILT_REV_STRICT, curve: TILT_V6_BAND_CURVE },
   orbit: { field: "orbitRev", rev: ORBIT_REV_STRICT, curve: ORBIT_V10_BAND_CURVE },
   beat: { field: "beatRev", rev: BEAT_REV_STRICT, curve: BEAT_V8_BAND_CURVE },
@@ -69,6 +75,12 @@ export const LIVE_BANDS = {
 } as const satisfies Record<string, LiveBand>;
 
 export type LiveBandGame = keyof typeof LIVE_BANDS;
+
+/** The score-band (strict curve) revision of a game: its `strictRev` once an expansion moved rooms past it, else the dealt one. */
+export function liveStrictRev(game: LiveBandGame): number {
+  const live: LiveBand = LIVE_BANDS[game];
+  return live.strictRev ?? live.rev;
+}
 
 /** The "?" help SCORE text for a band game, its numbers from the curve new rounds are dealt on. */
 export function liveBandHelp(game: LiveBandGame, units: string, words: BandHelpWords): string {

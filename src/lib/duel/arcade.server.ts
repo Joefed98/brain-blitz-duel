@@ -1,4 +1,4 @@
-import { TEN_DROP_RAW_REV } from "@/lib/arcade/tenDrop";
+import { TEN_DROP_DEPTH_REV } from "@/lib/arcade/tenDrop";
 import { SLICE_REV_TARGET, SLICE_REV_STRICT } from "@/lib/arcade/slice";
 import { FLIP_REV_TARGET, FLIP_REV_STRICT } from "@/lib/arcade/flip";
 import { CROSS_REV_TARGET, CROSS_REV_STRICT } from "@/lib/arcade/cross";
@@ -141,7 +141,7 @@ export function generateBeat(): BeatPuzzleData {
 }
 
 export function generateTenDrop(): TenDropPuzzleData {
-  return { type: "tendrop", seed: arcadeSeed(), tenRev: TEN_DROP_RAW_REV };
+  return { type: "tendrop", seed: arcadeSeed(), tenRev: TEN_DROP_DEPTH_REV };
 }
 
 /** Letterfall: the seed draws the letter queue and drop columns; stamped WORDFALL_REV_BANDS (3: rev-2 play on the score bands) and speed-par 1. */

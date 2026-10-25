@@ -2,7 +2,7 @@
  * The shared signature beat (13 Oct 2026): which completions earn it, its two
  * tiers, its timing (SIGNATURE_DELAY_MS after the solve moment, SIGNATURE_MS
  * long, never when the verdict is too late), its named sound cues, the reveal's
- * perfect-150 burst, reduced motion, and that it never takes taps. Presentation
+ * perfect-score burst, reduced motion, and that it never takes taps. Presentation
  * only: no game state, recorded time or score is touched (the module imports no
  * grading or room code, and the beat's layer has pointer-events none).
  */
@@ -36,12 +36,14 @@ window.addEventListener("duelz-sound", (event) =>
 
 const sig = await import("../src/lib/fx/signature");
 const { BAND_SPECS } = await import("../src/lib/arcade/bandParts");
+const { DEFAULT_ROUND_MAX, roundMaxFor } = await import("../src/lib/duel/roundMax");
 const {
   NO_FINISH_TYPES,
   PERFECT_CUE,
   SIGNATURE_CUES,
   SIGNATURE_DELAY_MS,
   SIGNATURE_LATE_MS,
+  SIGNATURE_MIN_SCORE,
   SIGNATURE_MS,
   noteSignatureSubmit,
   perfectBurst,
@@ -83,15 +85,18 @@ ok(
   "unsolved puzzle → no beat, whatever its partial score",
 );
 ok(v({ type: "orbit", arcade: true }) === null, "arcade beats come from the run, not the verdict");
-// Non-arcade games with no finish state: 120 or more at the end of the run.
+// Non-arcade games with no finish state: 120 of 150 or more at the end of the run, scaled to the
+// game's own maximum (roundMax.ts: 120 at 150, 160 at 200), worked out here from roundMaxFor.
+ok(SIGNATURE_MIN_SCORE === 120, "the no-finish threshold is 120 on the 150 scale");
 for (const type of NO_FINISH_TYPES) {
+  const min = Math.round((SIGNATURE_MIN_SCORE * roundMaxFor(type)) / DEFAULT_ROUND_MAX);
   ok(
-    v({ type, correct: true, score: 119, msRemaining: 60_000 }) === null,
-    `${type}: 119 → no beat`,
+    v({ type, correct: true, score: min - 1, msRemaining: 60_000 }) === null,
+    `${type}: ${min - 1} → no beat`,
   );
   ok(
-    v({ type, correct: false, score: 120, msRemaining: 0 }) === "solve",
-    `${type}: 120 at the end → solve`,
+    v({ type, correct: false, score: min, msRemaining: 0 }) === "solve",
+    `${type}: ${min} at the end → solve`,
   );
 }
 
@@ -217,7 +222,7 @@ timers.forEach((t) => t.fn());
 timers.length = 0;
 reduced = false;
 
-// The reveal's 150: one gold burst with its cue.
+// The reveal's perfect score (the game's maximum): one gold burst with its cue.
 cues.length = 0;
 const score = document.createElement("p");
 document.body.appendChild(score);
@@ -272,5 +277,5 @@ if (failures.length) {
   process.exit(1);
 }
 console.log(
-  `PASS: signature beat: solve/fast tiers for puzzles, 120+ for ${NO_FINISH_TYPES.size} no-finish games, arcade finish and open-run rules, 1.0 s delay and 0.6 s length, late verdicts skipped, game-region placement with no taps taken, app-logo asset, reduced motion, shared.* cues, perfect-150 burst, and one common firing point`,
+  `PASS: signature beat: solve/fast tiers for puzzles, 120 of 150 (scaled to each game's maximum) for ${NO_FINISH_TYPES.size} no-finish games, arcade finish and open-run rules, 1.0 s delay and 0.6 s length, late verdicts skipped, game-region placement with no taps taken, app-logo asset, reduced motion, shared.* cues, perfect-score burst, and one common firing point`,
 );
