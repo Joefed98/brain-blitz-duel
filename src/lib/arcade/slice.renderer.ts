@@ -32,7 +32,7 @@ function sprite(key:string,size:number,paint:(c:CanvasRenderingContext2D,s:numbe
   const canvas=artCanvas(px,px); const c=canvas ? artContext(canvas):null;
   if(!canvas || !c) return null;
   if(cache.size>=96) cache.clear();
-  paint(c as CanvasRenderingContext2D,px);if(key!=='chilli-glow')shadeSprite(c as CanvasRenderingContext2D,px);cache.set(id,canvas);return canvas;
+  paint(c as CanvasRenderingContext2D,px);if(key!=='chilli-glow'&&key!=='food-shadow')shadeSprite(c as CanvasRenderingContext2D,px);cache.set(id,canvas);return canvas;
 }
 /**
  * Polish G: kitchen light on every round stamp, only over pixels already painted
@@ -45,7 +45,12 @@ function shadeSprite(c:CanvasRenderingContext2D,size:number):void {
   const g=c.createRadialGradient(r*.62,r*.55,r*.05,r,r,r*1.05);
   g.addColorStop(0,'rgba(255,250,235,0.26)');g.addColorStop(.55,'rgba(255,250,235,0)');g.addColorStop(1,'rgba(40,20,8,0.28)');
   c.fillStyle=g;c.fillRect(0,0,size,size);
-  c.fillStyle='rgba(255,255,255,0.55)';c.beginPath();c.ellipse(r*.6,r*.48,r*.16,r*.08,-.6,0,Math.PI*2);c.fill();
+  // Polish A3: a glossy shine (soft sheen, bright glint, second small glint) and a warm rim light lower right.
+  const sheen=c.createRadialGradient(r*.62,r*.5,0,r*.62,r*.5,r*.45);sheen.addColorStop(0,'rgba(255,255,255,0.32)');sheen.addColorStop(1,'rgba(255,255,255,0)');
+  c.fillStyle=sheen;c.fillRect(0,0,size,size);
+  c.fillStyle='rgba(255,255,255,0.75)';c.beginPath();c.ellipse(r*.6,r*.48,r*.17,r*.085,-.6,0,Math.PI*2);c.fill();
+  c.fillStyle='rgba(255,255,255,0.5)';c.beginPath();c.arc(r*.86,r*.36,r*.045,0,Math.PI*2);c.fill();
+  c.strokeStyle='rgba(255,214,150,0.35)';c.lineWidth=r*.07;c.beginPath();c.arc(r,r,r*.86,.15,1.35);c.stroke();
   c.restore();
 }
 function circle(c:CanvasRenderingContext2D,x:number,y:number,r:number,fill:string) {
@@ -130,53 +135,95 @@ function paintChilli(c:CanvasRenderingContext2D,size:number) {
   c.strokeStyle=K.white;c.lineWidth=r*.09;c.lineCap='round';c.beginPath();c.moveTo(r*.5,-r*.4);c.quadraticCurveTo(r*.72,0,r*.45,r*.3);c.stroke();
   c.strokeStyle=K.leaf;c.lineWidth=r*.17;c.beginPath();c.moveTo(0,-r*.68);c.quadraticCurveTo(r*.24,-r*.5,r*.3,-r*.84);c.stroke();
 }
+/** A soft round shadow (painted once per size; drawn under a food, offset toward the board's lower right). */
+function paintShadow(c:CanvasRenderingContext2D,size:number) {
+  const r=size/2,g=c.createRadialGradient(r,r,r*.35,r,r,r);g.addColorStop(0,'rgba(40,18,4,0.34)');g.addColorStop(.65,'rgba(40,18,4,0.16)');g.addColorStop(1,'rgba(40,18,4,0)');c.fillStyle=g;c.fillRect(0,0,size,size);
+}
 function paintGlow(c:CanvasRenderingContext2D,size:number) {
   const r=size/2,g=c.createRadialGradient(r,r,r*.72,r,r,r);g.addColorStop(0,'rgba(255,38,45,0)');g.addColorStop(.84,K.glow);g.addColorStop(1,'rgba(255,38,45,0)');c.fillStyle=g;c.fillRect(0,0,size,size);
 }
+/** A fixed hash for the board's scattered details (art only, never a sim's PRNG). */
+const bh=(i:number,salt:number)=>{let h=(i*374761393+salt*668265263)>>>0;h=Math.imul(h^(h>>>13),1274126177)>>>0;return ((h^(h>>>16))>>>0)/4294967296;};
+/** Polish A3: three oiled planks, each with its own tone and flowing grain. */
+const PLANKS=['#A87448','#B88554','#A06B42'] as const;
 function paintBackground(c:CanvasRenderingContext2D,H:number) {
-  const W=SLICE_WORLD_W;
+  const W=SLICE_WORLD_W,T=SLICE_HUD_H,PW=W/3;
   c.fillStyle=K.board;c.fillRect(0,0,W,H);
-  // End-grain planks: three glued strips with slightly different tones and seams.
-  for(let p=0;p<3;p++){c.fillStyle=p===1?'rgba(255,230,190,0.06)':'rgba(60,30,10,0.05)';c.fillRect(p*W/3,SLICE_HUD_H,W/3,H-SLICE_HUD_H);}
-  c.strokeStyle='rgba(70,40,20,0.35)';c.lineWidth=1;for(let p=1;p<3;p++){c.beginPath();c.moveTo(p*W/3,SLICE_HUD_H);c.lineTo(p*W/3,H);c.stroke();}
-  c.strokeStyle=K.grain;c.lineWidth=.7;
-  for(let i=0;i<60+Math.ceil((H-620)/10);i++){const y=SLICE_HUD_H+10+i*10;c.beginPath();c.moveTo(0,y);c.bezierCurveTo(W*.3,y+Math.sin(i)*4,W*.7,y-3,W,y+2);c.stroke();}
-  // Knots with rings, fixed positions.
-  for(const [x,y,rr] of [[W*.22,SLICE_HUD_H+150,9],[W*.74,SLICE_HUD_H+330,7],[W*.48,H-90,6]] as const){
-    c.fillStyle=K.knot;c.beginPath();c.ellipse(x,y,rr,rr*.6,0,0,Math.PI*2);c.fill();
-    c.strokeStyle='rgba(110,68,40,0.55)';c.lineWidth=.8;for(const k of [1.6,2.3,3.1]){c.beginPath();c.ellipse(x,y,rr*k,rr*.6*k,0,0,Math.PI*2);c.stroke();}
+  for(let p=0;p<3;p++){
+    const x0=p*PW;c.save();c.beginPath();c.rect(x0,T,PW,H-T);c.clip();
+    // Plank base: its own tone, a little lighter along its middle (a slightly crowned face).
+    const base=c.createLinearGradient(x0,0,x0+PW,0);base.addColorStop(0,'rgba(60,30,10,0.10)');base.addColorStop(.45,'rgba(255,230,190,0.05)');base.addColorStop(1,'rgba(60,30,10,0.12)');
+    c.fillStyle=PLANKS[p]!;c.fillRect(x0,T,PW,H-T);c.fillStyle=base;c.fillRect(x0,T,PW,H-T);
+    // Long grain: wavy lines running the plank's length, closer and darker in bands.
+    const lines=34;
+    for(let i=0;i<lines;i++){
+      const gx=x0+4+(i+bh(i,p+1)*.8)*(PW-8)/lines,amp=2+bh(i,p+11)*5,ph=bh(i,p+21)*6.28,dark=bh(i,p+31);
+      c.strokeStyle=dark>.6?'rgba(98,58,30,0.42)':dark>.25?'rgba(120,74,40,0.26)':'rgba(255,228,186,0.12)';
+      c.lineWidth=dark>.8?1.1:.6;c.beginPath();c.moveTo(gx,T);
+      for(let y=T;y<=H+40;y+=40)c.quadraticCurveTo(gx+Math.sin(ph+y/90)*amp*1.6,y+20,gx+Math.sin(ph+(y+40)/90)*amp,y+40);
+      c.stroke();
+    }
+    // Tone streaks along the grain.
+    for(let i=0;i<14;i++){const y=T+bh(i,p+41)*(H-T),x=x0+bh(i,p+51)*PW,l=80+bh(i,p+61)*180;
+      c.fillStyle=i%3?'rgba(70,36,14,0.08)':'rgba(255,226,180,0.07)';c.fillRect(x-1.5,y-l/2,3+(i%3),l);}
+    c.restore();
   }
-  // Knife scores: pale short scratches.
-  c.strokeStyle='rgba(255,236,205,0.22)';c.lineWidth=.9;
-  for(let i=0;i<26;i++){const x=(i*97)%W,y=SLICE_HUD_H+40+((i*151)%(H-SLICE_HUD_H-80)),a=((i*37)%60-30)*Math.PI/180,l=14+(i*13)%22;
-    c.beginPath();c.moveTo(x,y);c.lineTo(x+Math.cos(a)*l,y+Math.sin(a)*l);c.stroke();}
+  // Plank seams: a dark glue line with a lit lip on its right.
+  for(let p=1;p<3;p++){const x=p*PW;c.fillStyle='rgba(48,24,8,0.55)';c.fillRect(x-1,T,2,H-T);c.fillStyle='rgba(255,232,196,0.2)';c.fillRect(x+1,T,1,H-T);}
+  // Knots: a dark heart, rings, and the grain bending round them.
+  for(const [x,y,rr] of [[W*.22,T+150,9],[W*.74,T+330,7],[W*.48,H-90,6],[W*.86,T+70,5],[W*.14,T+470,6]] as const){
+    if(y>H-30)continue;
+    for(const k of [3.6,2.8,2.1,1.5]){c.strokeStyle=`rgba(96,58,30,${0.18+0.12*(3.6-k)})`;c.lineWidth=.9;c.beginPath();c.ellipse(x,y,rr*k*.62,rr*k,0,0,Math.PI*2);c.stroke();}
+    const g=c.createRadialGradient(x-rr*.2,y-rr*.3,1,x,y,rr);g.addColorStop(0,'#3E2312');g.addColorStop(.7,K.knot);g.addColorStop(1,'rgba(110,68,40,0.6)');
+    c.fillStyle=g;c.beginPath();c.ellipse(x,y,rr*.62,rr,0,0,Math.PI*2);c.fill();
+    c.fillStyle='rgba(30,14,4,0.55)';c.beginPath();c.ellipse(x+rr*.08,y+rr*.15,rr*.18,rr*.32,0,0,Math.PI*2);c.fill();
+  }
+  // Knife scratches: pale scores, each with a dark lower lip (light from above).
+  c.lineCap='round';
+  for(let i=0;i<44;i++){
+    const x=14+bh(i,71)*(W-28),y=T+30+bh(i,72)*(H-T-70),a=(bh(i,73)*70-35)*Math.PI/180+(i%4===0?Math.PI/2:0),l=10+bh(i,74)*30;
+    const dx=Math.cos(a)*l,dy=Math.sin(a)*l;
+    c.strokeStyle='rgba(60,30,12,0.24)';c.lineWidth=1;c.beginPath();c.moveTo(x+.6,y+.8);c.lineTo(x+dx+.6,y+dy+.8);c.stroke();
+    c.strokeStyle=i%5===0?'rgba(255,238,210,0.34)':'rgba(255,236,205,0.2)';c.lineWidth=.7;c.beginPath();c.moveTo(x,y);c.lineTo(x+dx,y+dy);c.stroke();
+  }
+  // End-grain flecks.
+  c.fillStyle='rgba(60,32,14,0.22)';for(let i=0;i<160;i++){c.fillRect(bh(i,81)*W,T+bh(i,82)*(H-T),1.4,.8);}
   // Juice groove round the board's edge, and a hanging hole at the bottom.
-  c.strokeStyle=K.groove;c.lineWidth=3;c.beginPath();c.roundRect(9,SLICE_HUD_H+9,W-18,H-SLICE_HUD_H-18,14);c.stroke();
-  c.strokeStyle='rgba(255,236,205,0.18)';c.lineWidth=1;c.beginPath();c.roundRect(10.5,SLICE_HUD_H+10.5,W-21,H-SLICE_HUD_H-21,13);c.stroke();
-  c.fillStyle=K.edge;c.beginPath();c.ellipse(W/2,H-22,14,5,0,0,Math.PI*2);c.fill();
-  // Tiles and kitchen objects live behind the existing HUD, not in a newly reserved arena.
-  c.fillStyle=K.tile;c.fillRect(0,0,W,SLICE_HUD_H);
-  c.strokeStyle=K.grout;c.lineWidth=1;for(let x=0;x<W;x+=48)c.strokeRect(x,0,48,SLICE_HUD_H);
-  c.fillStyle=K.counter;c.fillRect(0,H-4,W,4);c.fillStyle=K.edge;c.fillRect(0,SLICE_HUD_H,W,2);
+  c.strokeStyle='rgba(90,54,28,0.75)';c.lineWidth=3;c.beginPath();c.roundRect(9,T+9,W-18,H-T-18,14);c.stroke();
+  c.strokeStyle='rgba(255,236,205,0.22)';c.lineWidth=1;c.beginPath();c.roundRect(10.5,T+10.5,W-21,H-T-21,13);c.stroke();
+  const hole=c.createRadialGradient(W/2,H-23,1,W/2,H-22,14);hole.addColorStop(0,'#3A2212');hole.addColorStop(1,K.edge);
+  c.fillStyle=hole;c.beginPath();c.ellipse(W/2,H-22,14,5,0,0,Math.PI*2);c.fill();
+  c.strokeStyle='rgba(255,232,196,0.25)';c.lineWidth=.8;c.beginPath();c.ellipse(W/2,H-21.4,14,5,0,.2,Math.PI-.2);c.stroke();
+  // Warm overhead light: a lamp above the board's upper middle, falling off to the corners.
+  const lamp=c.createRadialGradient(W*.5,T+H*.22,10,W*.5,T+H*.3,Math.max(W,H)*.7);
+  lamp.addColorStop(0,'rgba(255,214,150,0.22)');lamp.addColorStop(.45,'rgba(255,200,130,0.08)');lamp.addColorStop(1,'rgba(255,200,130,0)');
+  c.fillStyle=lamp;c.fillRect(0,T,W,H-T);
+  const vig=c.createRadialGradient(W/2,(H+T)/2,Math.min(W,H)*.35,W/2,(H+T)/2,Math.max(W,H)*.7);
+  vig.addColorStop(0,'rgba(40,20,6,0)');vig.addColorStop(1,'rgba(40,20,6,0.3)');c.fillStyle=vig;c.fillRect(0,T,W,H-T);
+  // Bevelled edge: lit top and left faces, shaded right and bottom (soft ramps, no hard rule).
+  const bev=(x0:number,y0:number,x1:number,y1:number,col:string,rx:number,ry:number,rw:number,rh:number)=>{const g=c.createLinearGradient(x0,y0,x1,y1);g.addColorStop(0,col);g.addColorStop(1,col.replace(/[\d.]+\)$/,'0)'));c.fillStyle=g;c.fillRect(rx,ry,rw,rh);};
+  bev(0,T+2,0,T+12,'rgba(255,236,200,0.30)',0,T+2,W,10);
+  bev(0,0,8,0,'rgba(255,236,200,0.24)',0,T,8,H-T);
+  bev(W,0,W-9,0,'rgba(36,18,6,0.34)',W-9,T,9,H-T);
+  bev(0,H-4,0,H-16,'rgba(36,18,6,0.30)',0,H-16,W,12);
+  // The kitchen wall behind the HUD: glazed subway tiles in a running bond.
+  const TH=T/2,TW=39;
+  c.fillStyle=K.grout;c.fillRect(0,0,W,T);
+  for(let row=0;row<2;row++)for(let x=row?-TW/2:0;x<W;x+=TW){
+    const y=row*TH,g=c.createLinearGradient(0,y,0,y+TH);g.addColorStop(0,'#EEF6F4');g.addColorStop(.5,K.tile);g.addColorStop(1,'#C4D6D2');
+    c.fillStyle=g;c.beginPath();c.roundRect(x+1,y+1,TW-2,TH-2,3);c.fill();
+    c.fillStyle='rgba(255,255,255,0.55)';c.fillRect(x+4,y+2.5,TW-12,1.5);
+  }
+  // Warm lamp glow on the wall too.
+  const wl=c.createRadialGradient(W*.5,-10,4,W*.5,-10,W*.6);wl.addColorStop(0,'rgba(255,214,150,0.25)');wl.addColorStop(1,'rgba(255,214,150,0)');c.fillStyle=wl;c.fillRect(0,0,W,T);
+  c.fillStyle=K.counter;c.fillRect(0,H-4,W,4);c.fillStyle=K.edge;c.fillRect(0,T,W,2);
   // Small cropped towel on outer margin, knife block and utensils in background header.
-  c.fillStyle=K.white;c.fillRect(W-7,SLICE_HUD_H+6,7,50);c.strokeStyle=K.counter;c.lineWidth=1;
-  for(let y=SLICE_HUD_H+10;y<SLICE_HUD_H+56;y+=7){c.beginPath();c.moveTo(W-7,y);c.lineTo(W,y);c.stroke();}
-  c.fillStyle=K.edge;c.fillRect(W-45,8,31,28);c.strokeStyle=K.silver;c.lineWidth=3;
+  c.fillStyle=K.white;c.fillRect(W-7,T+6,7,50);c.strokeStyle=K.counter;c.lineWidth=1;
+  for(let y=T+10;y<T+56;y+=7){c.beginPath();c.moveTo(W-7,y);c.lineTo(W,y);c.stroke();}
+  const kb=c.createLinearGradient(W-45,0,W-14,0);kb.addColorStop(0,'#8A5A36');kb.addColorStop(1,K.edge);
+  c.fillStyle=kb;c.fillRect(W-45,8,31,28);c.strokeStyle=K.silver;c.lineWidth=3;
   for(let x=W-39;x<W-15;x+=9){c.beginPath();c.moveTo(x,8);c.lineTo(x-3,0);c.stroke();}
   c.strokeStyle=K.ink;c.lineWidth=2;c.beginPath();c.moveTo(10,5);c.lineTo(10,32);c.stroke();circle(c,10,5,4,K.silver);
-  const light=c.createLinearGradient(0,0,W,H);light.addColorStop(0,'rgba(255,249,220,0.14)');light.addColorStop(1,'rgba(255,249,220,0)');c.fillStyle=light;c.fillRect(0,SLICE_HUD_H,W,H-SLICE_HUD_H);
-  // Polish G: oiled-wood depth: long tone streaks along the grain, end-grain flecks,
-  // a few deeper crossing knife cuts, and a soft vignette towards the board's edges.
-  for(let i=0;i<38;i++){const y=SLICE_HUD_H+12+((i*53)%(H-SLICE_HUD_H-24)),x=(i*131)%W,l=60+(i*29)%140;
-    c.fillStyle=i%3?'rgba(70,36,14,0.07)':'rgba(255,226,180,0.06)';c.fillRect(x-l/2,y,l,2+(i%3));}
-  c.fillStyle='rgba(60,32,14,0.22)';for(let i=0;i<120;i++){const x=(i*67)%W,y=SLICE_HUD_H+((i*113)%(H-SLICE_HUD_H));c.fillRect(x,y,1.4,.8);}
-  c.lineCap='round';for(let i=0;i<9;i++){const x=40+(i*83)%(W-80),y=SLICE_HUD_H+70+((i*197)%(H-SLICE_HUD_H-140)),a=((i*53)%120-60)*Math.PI/180,l=26+(i*11)%24;
-    c.strokeStyle='rgba(60,30,12,0.28)';c.lineWidth=1.1;c.beginPath();c.moveTo(x,y);c.lineTo(x+Math.cos(a)*l,y+Math.sin(a)*l);c.stroke();
-    c.strokeStyle='rgba(255,236,205,0.2)';c.lineWidth=.6;c.beginPath();c.moveTo(x+.8,y+.8);c.lineTo(x+Math.cos(a)*l+.8,y+Math.sin(a)*l+.8);c.stroke();}
-  const vig=c.createRadialGradient(W/2,(H+SLICE_HUD_H)/2,Math.min(W,H)*.35,W/2,(H+SLICE_HUD_H)/2,Math.max(W,H)*.7);
-  vig.addColorStop(0,'rgba(40,20,6,0)');vig.addColorStop(1,'rgba(40,20,6,0.28)');c.fillStyle=vig;c.fillRect(0,SLICE_HUD_H,W,H-SLICE_HUD_H);
-  // Glazed tiles behind the HUD: a highlight on each tile's top edge.
-  c.fillStyle='rgba(255,255,255,0.35)';for(let x=0;x<W;x+=48)c.fillRect(x+2,2,44,2);
 }
 function background(H:number):ArtCanvas|null {
   // sliceRev 6: one board per world height (the taller board's plank lines run its whole height).
@@ -243,6 +290,7 @@ function drawSliceArtWorld(ctx:CanvasRenderingContext2D,state:SliceState,size:Ca
       ctx.globalAlpha=1;continue;
     }
     const at=sliceObjectAt(o,state.tick,state.slowFrom,state.mayo);if(!at)continue;const cx=at.x/256,cy=at.y/256;
+    const shade=sprite('food-shadow',px*1.3,paintShadow);if(shade)ctx.drawImage(shade as CanvasImageSource,cx-r*1.15+3,cy-r*1.15+5,2.3*r,2.3*r);
     // Art pilot (Kitchen): food sprites fill the collision circle's square; code art when absent or for chillies.
     if(o.bomb||!drawArtSprite(ctx,'kitchen',kind,cx-r,cy-r,2*r,2*r))ctx.drawImage(stamp as CanvasImageSource,cx-r,cy-r,2*r,2*r);
     if(o.special){const tint=mayo?K.white:o.special===SLICE_SPECIAL_SLOW?K.silver:SLICE_RAINBOW[Math.floor((still?0:now/110))%SLICE_RAINBOW.length]??K.tomato;
@@ -262,8 +310,14 @@ function drawSliceArtWorld(ctx:CanvasRenderingContext2D,state:SliceState,size:Ca
   ctx.globalAlpha=1;if(state.swipe){const[x1,y1,x2,y2]=state.swipe;ctx.strokeStyle=K.silver;ctx.lineWidth=state.tunec?2*SLICE_BLADE_V4:3;ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke();ctx.strokeStyle=K.white;ctx.lineWidth=.8;ctx.stroke();}
   if(state.flash>0){ctx.fillStyle=`rgba(224,80,60,${state.flash/SLICE_FLASH_TICKS*.45})`;ctx.fillRect(0,0,SLICE_WORLD_W,SLICE_WORLD_H);}
   drawSliceComboMeter(ctx,state);
-  ctx.fillStyle='rgba(18,12,8,0.78)';ctx.fillRect(0,0,SLICE_WORLD_W,SLICE_HUD_H);
-  ctx.fillStyle='#F6EEE2';ctx.font='bold 20px ui-monospace, monospace';ctx.textBaseline='middle';ctx.textAlign='left';successHud(ctx,'slice',state.tick,20,SLICE_HUD_H/2,()=>ctx.fillText(`Sliced ${state.slices}`,20,SLICE_HUD_H/2));ctx.textAlign='center';
+  // Polish A3: the tiled wall shows through a light veil; the words sit on dark plates.
+  ctx.fillStyle='rgba(18,12,8,0.3)';ctx.fillRect(0,0,SLICE_WORLD_W,SLICE_HUD_H);
+  ctx.font='bold 20px ui-monospace, monospace';ctx.textBaseline='middle';
+  const plate=(x:number,w:number)=>{ctx.fillStyle='rgba(22,14,9,0.72)';ctx.beginPath();ctx.roundRect(x,7,w,SLICE_HUD_H-14,8);ctx.fill();ctx.fillStyle='rgba(255,236,205,0.10)';ctx.fillRect(x+6,8,w-12,1);};
+  const label=sliceFrenzyOn(state,state.tick)?'SAUCY':sliceSlowOn(state,state.tick)?'SIMMER':sliceMayoOn(state,state.tick)?'SQUEEZE':'';
+  plate(10,ctx.measureText(`Sliced ${state.slices}`).width+20);
+  if(label){const w=ctx.measureText(label).width+24;plate(SLICE_WORLD_W/2-w/2,w);}
+  ctx.fillStyle='#F6EEE2';ctx.textAlign='left';successHud(ctx,'slice',state.tick,20,SLICE_HUD_H/2,()=>ctx.fillText(`Sliced ${state.slices}`,20,SLICE_HUD_H/2));ctx.textAlign='center';
   if(sliceFrenzyOn(state,state.tick))ctx.fillText('SAUCY',SLICE_WORLD_W/2,SLICE_HUD_H/2);else if(sliceSlowOn(state,state.tick))ctx.fillText('SIMMER',SLICE_WORLD_W/2,SLICE_HUD_H/2);
   else if(sliceMayoOn(state,state.tick))ctx.fillText('SQUEEZE',SLICE_WORLD_W/2,SLICE_HUD_H/2);
   if(!still&&state.comboFlash>0){ctx.strokeStyle=K.gold;ctx.globalAlpha=state.comboFlash/SLICE_COMBO_FLASH_TICKS;ctx.lineWidth=6;ctx.strokeRect(3,3,SLICE_WORLD_W-6,SLICE_WORLD_H-6);}
@@ -300,7 +354,7 @@ export function drawSliceComboMeter(ctx:CanvasRenderingContext2D,state:SliceStat
   const filled=state.comboLive&&left>0?Math.max(0,Math.min(3,state.streak)):0;
   const shown=Math.min(3,filled+1),remaining=Math.min(1,left/SLICE_COMBO_TICKS);
   const x0=14,y=SLICE_HUD_H+14,w=30,h=14,gap=4;
-  ctx.save();ctx.fillStyle='rgba(18,12,8,0.62)';ctx.beginPath();ctx.roundRect(x0-6,y-6,3*(w+gap)-gap+12,h+44,8);ctx.fill();ctx.lineWidth=1.5;ctx.strokeStyle=K.gold;
+  ctx.save();drawComboTag(ctx,x0-6,y-6,3*(w+gap)-gap+12,h+44);ctx.lineWidth=1.5;ctx.strokeStyle=K.gold;
   ctx.font="bold 14px 'JetBrains Mono', monospace";ctx.textAlign='center';ctx.textBaseline='top';
   for(let i=0;i<shown;i++){
     const x=x0+i*(w+gap),amount=Math.max(0,Math.min(1,filled*remaining-i));
@@ -310,6 +364,18 @@ export function drawSliceComboMeter(ctx:CanvasRenderingContext2D,state:SliceStat
   if(filled>0){ctx.save();ctx.fillStyle=K.chilli;ctx.beginPath();ctx.moveTo(x0+98,y+18);ctx.quadraticCurveTo(x0+85,y+8,x0+96,y-3);ctx.quadraticCurveTo(x0+96,y+6,x0+104,y+10);ctx.quadraticCurveTo(x0+111,y+18,x0+98,y+18);ctx.fill();ctx.fillStyle=K.mustard;circle(ctx,x0+99,y+12,3,K.mustard);ctx.restore();}
   if(filled>0){ctx.font="14px 'JetBrains Mono', monospace";ctx.fillText(`${Math.ceil(left/TICKS_PER_SECOND)}s`,x0+(shown*(w+gap)-gap)/2,y+h+21);}
   ctx.restore();
+}
+
+/** Polish A3: the combo meter's dark walnut tag (grain, a lit top edge, two brass pins); same box as before. */
+function drawComboTag(ctx:CanvasRenderingContext2D,x:number,y:number,w:number,h:number):void {
+  ctx.save();ctx.beginPath();ctx.roundRect(x,y,w,h,8);
+  const g=ctx.createLinearGradient(0,y,0,y+h);g.addColorStop(0,'#4E301B');g.addColorStop(1,'#2A170B');ctx.fillStyle=g;ctx.fill();
+  ctx.clip();ctx.lineWidth=.7;
+  for(let i=0;i<7;i++){const gy=y+5+i*h/7;ctx.strokeStyle=i%2?'rgba(20,10,4,0.45)':'rgba(140,90,50,0.22)';ctx.beginPath();ctx.moveTo(x,gy);ctx.bezierCurveTo(x+w*.3,gy+(i%3)-1,x+w*.6,gy+2,x+w,gy-1);ctx.stroke();}
+  ctx.fillStyle='rgba(255,226,180,0.16)';ctx.fillRect(x,y,w,1.5);ctx.fillStyle='rgba(0,0,0,0.3)';ctx.fillRect(x,y+h-2,w,2);
+  ctx.restore();
+  ctx.strokeStyle='rgba(0,0,0,0.45)';ctx.lineWidth=1;ctx.beginPath();ctx.roundRect(x+.5,y+.5,w-1,h-1,8);ctx.stroke();
+  for(const px of [x+4,x+w-4]){circle(ctx,px,y+4,1.8,'#C9A04A');circle(ctx,px-.5,y+3.5,.7,'#FFF0C0');}
 }
 
 /** Fixed worked example uses the same cached food painters; never creates gameplay state. */
