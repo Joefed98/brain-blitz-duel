@@ -1752,7 +1752,7 @@ export interface CrossPuzzleData {
   type: "cross";
   /** Draws every crossing's traffic — identical for everyone in the room. */
   seed: number;
-  /** Course revision (2 = fair early gaps, cyclists, roadworks); absent = original traffic. */
+  /** Course revision (2 = fair early gaps, cyclists, roadworks; … 7 = score bands; 8 = the expansion: 13 lanes, island, coins, buses, motorbikes, streak, scored to 200); absent = original traffic. */
   crossRev?: number;
 }
 

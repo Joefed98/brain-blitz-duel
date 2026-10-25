@@ -1,7 +1,7 @@
 import { successHud, successFrame, SUCCESS_ACCENTS } from "./success.renderer";
 import { drawArtSprite } from "./sprites.renderer";
 import { arcadeFx } from "./arcadeFx.renderer";
-import { CROSS_FX } from "./arcadeFxGames.renderer";
+import { crossFxFor } from "./arcadeFxGames.renderer";
 import { drawHero, heroPose, type HeroPose } from "./hero.renderer";
 /**
  * Cross art pass. Render only: reads CrossState and never mutates it. Vehicles
@@ -17,6 +17,13 @@ import {
   CROSS_COLS,
   CROSS_KIND_CYCLE,
   CROSS_KIND_ROADWORKS,
+  CROSS_KIND_ISLAND,
+  CROSS_KIND_BUS,
+  CROSS_KIND_MOTO,
+  crossGeomOf,
+  crossNextMultiplier,
+  crossStartTop,
+  type CrossGeom,
   type CrossLane,
   crossGame,
   crossGameFor,
@@ -29,15 +36,10 @@ import {
   CROSS_BOARD_X,
   CROSS_HOP_TICKS,
   CROSS_HUD_H,
-  CROSS_KERB_H,
-  CROSS_LANE_H,
-  CROSS_LANES,
-  CROSS_LANES_Y,
   CROSS_LIVES,
   CROSS_PAUSE_TICKS,
   CROSS_PLAYER,
   crossPlayerR,
-  CROSS_WORLD_H,
   CROSS_WORLD_W,
   type CrossState,
 } from "./cross";
@@ -74,6 +76,9 @@ interface Memory {
   pulseTick: number;
   lastX: number;
   lastY: number;
+  /** crossRev 8: the tick the island was banked (its flag lights), and the coin count seen. */
+  bankTick: number;
+  banked: number;
 }
 const memories = new WeakMap<object, Memory>();
 
@@ -81,7 +86,8 @@ function remember(state: CrossState, x: number, y: number): Memory {
   let m = memories.get(state.courses);
   if (!m || state.tick < m.tick) {
     m = { tick: state.tick, lane: state.lane, col: state.col, hop: state.hop, facing: 0, steps: 0,
-      hitTick: state.hitTick, hitX: x, hitY: y, clean: state.clean, pulseTick: -100, lastX: x, lastY: y };
+      hitTick: state.hitTick, hitX: x, hitY: y, clean: state.clean, pulseTick: -100, lastX: x, lastY: y,
+      bankTick: -100, banked: state.banked ?? 0 };
     memories.set(state.courses, m);
   }
   if (state.tick !== m.tick) {
@@ -100,6 +106,8 @@ function remember(state: CrossState, x: number, y: number): Memory {
     }
     if (state.clean > m.clean) m.pulseTick = state.tick;
     m.clean = state.clean;
+    if ((state.banked ?? 0) > m.banked) m.bankTick = state.tick;
+    m.banked = state.banked ?? 0;
     m.tick = state.tick;
     m.lane = state.lane;
     m.col = state.col;
@@ -310,16 +318,16 @@ function drawRider(ctx: CanvasRenderingContext2D, x: number, y: number, w: numbe
 const RIDER_COLOURS = ["#C6F432", "#FF8A3C", "#F080AB", "#7FD8FF"] as const;
 
 /** Green cycle lane: tinted surface, solid edge lines and painted bike symbols. */
-function drawCycleLane(ctx: CanvasRenderingContext2D, top: number): void {
+function drawCycleLane(ctx: CanvasRenderingContext2D, top: number, laneH: number): void {
   ctx.fillStyle = "rgba(46, 160, 96, 0.42)";
-  ctx.fillRect(CROSS_BOARD_X, top, CROSS_BOARD_W, CROSS_LANE_H);
+  ctx.fillRect(CROSS_BOARD_X, top, CROSS_BOARD_W, laneH);
   ctx.fillStyle = "rgba(250,250,250,0.85)";
   ctx.fillRect(CROSS_BOARD_X, top + 2, CROSS_BOARD_W, 2);
-  ctx.fillRect(CROSS_BOARD_X, top + CROSS_LANE_H - 4, CROSS_BOARD_W, 2);
+  ctx.fillRect(CROSS_BOARD_X, top + laneH - 4, CROSS_BOARD_W, 2);
   ctx.strokeStyle = "rgba(250,250,250,0.5)";
   ctx.lineWidth = 1.5;
   for (let x = CROSS_BOARD_X + 40; x < CROSS_BOARD_X + CROSS_BOARD_W - 20; x += 120) {
-    const cy = top + CROSS_LANE_H / 2 + 4;
+    const cy = top + laneH / 2 + 4;
     ctx.beginPath();
     ctx.arc(x - 8, cy, 5, 0, Math.PI * 2);
     ctx.arc(x + 8 + 5, cy, 5, 0, Math.PI * 2);
@@ -332,14 +340,14 @@ function drawCycleLane(ctx: CanvasRenderingContext2D, top: number): void {
 }
 
 /** Closed lane: hatched surface, striped barriers over each closed run, a cone on every closed column. */
-function drawRoadworks(ctx: CanvasRenderingContext2D, top: number, lane: CrossLane): void {
+function drawRoadworks(ctx: CanvasRenderingContext2D, top: number, lane: CrossLane, laneH: number): void {
   const closed = new Set(lane.closed ?? []);
   ctx.save();
   ctx.beginPath();
-  ctx.rect(CROSS_BOARD_X, top, CROSS_BOARD_W, CROSS_LANE_H);
+  ctx.rect(CROSS_BOARD_X, top, CROSS_BOARD_W, laneH);
   ctx.clip();
   ctx.fillStyle = "rgba(255,170,40,0.12)";
-  ctx.fillRect(CROSS_BOARD_X, top, CROSS_BOARD_W, CROSS_LANE_H);
+  ctx.fillRect(CROSS_BOARD_X, top, CROSS_BOARD_W, laneH);
   ctx.restore();
   const centre = (col: number) => px(crossColumnCentreFp(col));
   // A closed column means the walker's centre cannot stand there: barrier edges sit
@@ -351,7 +359,7 @@ function drawRoadworks(ctx: CanvasRenderingContext2D, top: number, lane: CrossLa
     while (closed.has(end + 1)) end += 1;
     const x0 = col === 0 ? CROSS_BOARD_X : centre(col) - edge;
     const x1 = end === CROSS_COLS - 1 ? CROSS_BOARD_X + CROSS_BOARD_W : centre(end) + edge;
-    const by = top + CROSS_LANE_H / 2 - 7;
+    const by = top + laneH / 2 - 7;
     if (!drawArtSprite(ctx, "realworld", "barrier", x0, by, x1 - x0, 14)) {
       ctx.save();
       roundRect(ctx, x0, by, x1 - x0, 14, 3);
@@ -372,7 +380,7 @@ function drawRoadworks(ctx: CanvasRenderingContext2D, top: number, lane: CrossLa
     }
     for (let c = col; c <= end; c++) {
       const cx = centre(c);
-      const base = top + CROSS_LANE_H - 7;
+      const base = top + laneH - Math.round(laneH * 7 / 52);
       if (drawArtSprite(ctx, "realworld", "cone", cx - 8, base - 20, 16, 20)) continue;
       ctx.fillStyle = "#FF7A1A";
       ctx.beginPath();
@@ -458,9 +466,9 @@ function lamp(): ArtCanvas | null {
   return lampSprite;
 }
 /** A sheen over the vehicle's upper half (inside its box) and a headlight glow at each front corner. */
-function vehicleLight(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, dir: number): void {
+function vehicleLight(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, dir: number, single = false): void {
   const s = sheen();
-  if (s) {
+  if (s && !single) {
     ctx.save();
     roundRect(ctx, x, y, w, h, Math.min(12, h / 2));
     ctx.clip();
@@ -470,7 +478,293 @@ function vehicleLight(ctx: CanvasRenderingContext2D, x: number, y: number, w: nu
   const l = lamp();
   if (!l) return;
   const fx = dir > 0 ? x + w - 3 : x + 3;
+  // A motorbike has one headlamp, low on its front fork.
+  if (single) {
+    ctx.drawImage(l as CanvasImageSource, fx - 6, y + h * 0.62 - 6, 12, 12);
+    return;
+  }
   for (const ly of [y + 6, y + h - 6]) ctx.drawImage(l as CanvasImageSource, fx - 7, ly - 7, 14, 14);
+}
+
+/* ------------------------------ crossRev 8: buses, motorbikes, coins, the island ------------------------------ */
+
+const BUS_COLOURS = ["#D7322B", "#2F6FD6", "#2A9D6A"] as const;
+const MOTO_COLOURS = ["#F25C54", "#2ED3B7", "#FF8A3C", "#4F9CF9"] as const;
+
+/**
+ * A long bus filling exactly its collision box (seen from the side, like the cars): a rounded
+ * body, a row of dark windows with a cream band under them, the driver's windscreen at the front,
+ * a destination blind, doors and two wheel arches, white headlights and red tail lights.
+ */
+export function drawBus(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, dir: number, colour: string): void {
+  const front = dir > 0 ? x + w : x;
+  const back = dir > 0 ? x : x + w;
+  ctx.fillStyle = colour;
+  roundRect(ctx, x, y, w, h, 6);
+  ctx.fill();
+  // Roof light band and a darker skirt.
+  ctx.fillStyle = "rgba(255,255,255,0.16)";
+  ctx.fillRect(x + 4, y + 2, w - 8, 2);
+  ctx.fillStyle = "rgba(0,0,0,0.2)";
+  ctx.fillRect(x + 3, y + h - 5, w - 6, 3);
+  // Cream band under the windows.
+  ctx.fillStyle = "rgba(255,244,214,0.7)";
+  ctx.fillRect(x + 4, y + h * 0.62, w - 8, 2);
+  // Passenger windows: a row of dark panes.
+  const winTop = y + h * 0.18;
+  const winH = h * 0.38;
+  const pane = 15;
+  ctx.fillStyle = "rgba(11,11,15,0.58)";
+  for (let k = 0; ; k++) {
+    const px0 = dir > 0 ? x + 10 + k * (pane + 3) : x + w - 10 - (k + 1) * (pane + 3) + 3;
+    if (dir > 0 ? px0 + pane > x + w - 26 : px0 < x + 26) break;
+    ctx.fillRect(px0, winTop, pane, winH);
+  }
+  // The driver's windscreen, wider and lower at the front, and the destination blind above it.
+  ctx.fillStyle = "rgba(11,11,15,0.62)";
+  ctx.fillRect(dir > 0 ? x + w - 20 : x + 4, winTop - 1, 16, winH + 4);
+  ctx.fillStyle = "#FFD45C";
+  ctx.fillRect(dir > 0 ? x + w - 19 : x + 5, y + 2.5, 14, 3);
+  // Doors: two glazed doors (behind the driver and in the middle), each split down its centre.
+  for (const at of [dir > 0 ? x + w - 36 : x + 24, x + w / 2 - 6]) {
+    const dx = Math.round(at);
+    ctx.fillStyle = "rgba(11,11,15,0.5)";
+    ctx.fillRect(dx, winTop, 12, y + h - 5 - winTop);
+    ctx.fillStyle = "rgba(255,255,255,0.4)";
+    ctx.fillRect(dx + 5.5, winTop, 1, y + h - 5 - winTop);
+  }
+  // Wheel arches (inside the box).
+  ctx.fillStyle = "#14171C";
+  for (const at of [x + w * 0.18, x + w * 0.8]) {
+    ctx.beginPath();
+    ctx.arc(at, y + h - 1, Math.min(6, h * 0.2), Math.PI, 0);
+    ctx.fill();
+  }
+  // Lights: white at the front, red at the back.
+  ctx.fillStyle = "#FFFFFF";
+  const hx = front - dir * 3;
+  ctx.beginPath();
+  ctx.arc(hx, y + 6, 2.4, 0, Math.PI * 2);
+  ctx.arc(hx, y + h - 7, 2.4, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = "#FF3B3B";
+  const tx = back + dir * 2;
+  ctx.fillRect(tx - 1.5, y + 3, 3, 5);
+  ctx.fillRect(tx - 1.5, y + h - 9, 3, 5);
+}
+
+/**
+ * A motorbike and rider filling exactly their collision box (side-on, like the cyclists): two
+ * chunky wheels, a coloured tank and fairing, an exhaust, and a leaning rider in a gold-visored helmet.
+ */
+export function drawMotorbike(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, dir: number, colour: string): void {
+  const wheelR = Math.min(w * 0.2, h * 0.2);
+  const groundY = y + h - wheelR;
+  const rear = dir > 0 ? x + wheelR : x + w - wheelR;
+  const front = dir > 0 ? x + w - wheelR : x + wheelR;
+  const mid = (rear + front) / 2;
+  ctx.save();
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
+  for (const cx of [rear, front]) {
+    ctx.fillStyle = "#101216";
+    ctx.beginPath();
+    ctx.arc(cx, groundY, wheelR, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = "#AEB6C2";
+    ctx.beginPath();
+    ctx.arc(cx, groundY, wheelR * 0.42, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  // Exhaust along the back, then the body: tank and fairing in the bike's colour.
+  ctx.strokeStyle = "#C9CED6";
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(mid, groundY - 1);
+  ctx.lineTo(rear - dir * wheelR * 0.6, groundY - 3);
+  ctx.stroke();
+  ctx.fillStyle = colour;
+  ctx.beginPath();
+  ctx.moveTo(rear + dir * wheelR * 0.4, groundY - wheelR * 1.1);
+  ctx.lineTo(mid + dir * wheelR * 0.6, groundY - wheelR * 1.9);
+  ctx.lineTo(front - dir * wheelR * 0.1, groundY - wheelR * 1.5);
+  ctx.lineTo(front - dir * wheelR * 0.6, groundY - wheelR * 0.4);
+  ctx.lineTo(mid - dir * wheelR * 0.4, groundY - wheelR * 0.3);
+  ctx.closePath();
+  ctx.fill();
+  ctx.fillStyle = "rgba(255,255,255,0.3)";
+  ctx.fillRect(Math.min(mid, mid + dir * wheelR * 0.8), groundY - wheelR * 1.75, wheelR * 0.8, 1.5);
+  // The rider: leaning torso to the bars, a leg on the peg, and a dark helmet with a gold visor.
+  const hipX = mid - dir * wheelR * 0.5;
+  const hipY = groundY - wheelR * 1.9;
+  const shoulderX = mid + dir * wheelR * 0.9;
+  const shoulderY = y + h * 0.3;
+  ctx.strokeStyle = "#20242C";
+  ctx.lineWidth = 4;
+  ctx.beginPath();
+  ctx.moveTo(hipX, hipY);
+  ctx.lineTo(shoulderX, shoulderY);
+  ctx.stroke();
+  ctx.lineWidth = 2.4;
+  ctx.beginPath();
+  ctx.moveTo(shoulderX, shoulderY);
+  ctx.lineTo(front - dir * wheelR * 0.5, groundY - wheelR * 1.6);
+  ctx.moveTo(hipX, hipY);
+  ctx.lineTo(mid, groundY - wheelR * 0.6);
+  ctx.stroke();
+  const headR = Math.max(3.5, h * 0.13);
+  const headX = shoulderX + dir * 2;
+  const headY = Math.max(y + headR, shoulderY - headR - 1);
+  ctx.fillStyle = "#16181D";
+  ctx.beginPath();
+  ctx.arc(headX, headY, headR, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = "#F5B82E";
+  ctx.fillRect(dir > 0 ? headX : headX - headR, headY - 1, headR, 2);
+  ctx.restore();
+}
+
+let coinSprite: ArtCanvas | null | undefined;
+let coinGlowSprite: ArtCanvas | null | undefined;
+/** The gold coin, painted once (rim, face, embossed bolt and a highlight) at 4× for crisp scaling. */
+function coinArt(): ArtCanvas | null {
+  if (coinSprite !== undefined) return coinSprite;
+  const S = 64;
+  const layer = artCanvas(S, S);
+  const c = layer && artContext(layer);
+  if (layer && c) {
+    const r = S / 2 - 2;
+    const rim = c.createLinearGradient(0, 0, S, S);
+    rim.addColorStop(0, "#FFE58A");
+    rim.addColorStop(0.5, "#E0A526");
+    rim.addColorStop(1, "#9C6B12");
+    c.fillStyle = rim;
+    c.beginPath();
+    c.arc(S / 2, S / 2, r, 0, Math.PI * 2);
+    c.fill();
+    const face = c.createRadialGradient(S * 0.4, S * 0.38, 2, S / 2, S / 2, r * 0.8);
+    face.addColorStop(0, "#FFF2B8");
+    face.addColorStop(0.55, "#F5C443");
+    face.addColorStop(1, "#D99A1E");
+    c.fillStyle = face;
+    c.beginPath();
+    c.arc(S / 2, S / 2, r * 0.78, 0, Math.PI * 2);
+    c.fill();
+    // An embossed bolt (the Joulz mark), dark edge then light face.
+    const bolt = (dx: number, dy: number, colour: string) => {
+      c.fillStyle = colour;
+      c.beginPath();
+      c.moveTo(S * 0.56 + dx, S * 0.22 + dy);
+      c.lineTo(S * 0.36 + dx, S * 0.54 + dy);
+      c.lineTo(S * 0.5 + dx, S * 0.54 + dy);
+      c.lineTo(S * 0.44 + dx, S * 0.8 + dy);
+      c.lineTo(S * 0.66 + dx, S * 0.44 + dy);
+      c.lineTo(S * 0.52 + dx, S * 0.44 + dy);
+      c.closePath();
+      c.fill();
+    };
+    bolt(1.5, 1.5, "rgba(140,92,10,0.75)");
+    bolt(0, 0, "#FFF6CF");
+    c.fillStyle = "rgba(255,255,255,0.55)";
+    c.beginPath();
+    c.ellipse(S * 0.36, S * 0.3, S * 0.12, S * 0.06, -0.6, 0, Math.PI * 2);
+    c.fill();
+  }
+  coinSprite = layer && c ? layer : null;
+  return coinSprite;
+}
+/** A soft warm glow behind a coin, painted once. */
+function coinGlow(): ArtCanvas | null {
+  if (coinGlowSprite !== undefined) return coinGlowSprite;
+  const layer = artCanvas(48, 48);
+  const c = layer && artContext(layer);
+  if (layer && c) {
+    const g = c.createRadialGradient(24, 24, 4, 24, 24, 24);
+    g.addColorStop(0, "rgba(255,214,92,0.55)");
+    g.addColorStop(0.5, "rgba(255,200,60,0.2)");
+    g.addColorStop(1, "rgba(255,200,60,0)");
+    c.fillStyle = g;
+    c.fillRect(0, 0, 48, 48);
+  }
+  coinGlowSprite = layer && c ? layer : null;
+  return coinGlowSprite;
+}
+const CROSS_COIN_R = 8;
+/** One coin (8 px radius) at a cell's centre; `shine` 0…119 sweeps a glint across it now and then. */
+function drawCoin(ctx: CanvasRenderingContext2D, x: number, y: number, lite: boolean, shine: number): void {
+  const glow = lite ? null : coinGlow();
+  if (glow) ctx.drawImage(glow as CanvasImageSource, x - 16, y - 16, 32, 32);
+  const art = coinArt();
+  if (art) ctx.drawImage(art as CanvasImageSource, x - CROSS_COIN_R, y - CROSS_COIN_R, CROSS_COIN_R * 2, CROSS_COIN_R * 2);
+  else {
+    ctx.fillStyle = "#F5C443";
+    ctx.beginPath();
+    ctx.arc(x, y, CROSS_COIN_R, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  if (!lite && shine < 14) {
+    const t = shine / 14;
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(x, y, CROSS_COIN_R - 1, 0, Math.PI * 2);
+    ctx.clip();
+    ctx.fillStyle = "rgba(255,255,255,0.55)";
+    ctx.translate(x - CROSS_COIN_R + t * CROSS_COIN_R * 2, y);
+    ctx.rotate(0.5);
+    ctx.fillRect(-1.5, -CROSS_COIN_R * 1.5, 3, CROSS_COIN_R * 3);
+    ctx.restore();
+  }
+}
+
+/** The island's checkpoint flag at its right end: grey until banked, then gold with a brief glow. */
+function drawIslandFlag(ctx: CanvasRenderingContext2D, top: number, h: number, banked: boolean, age: number, still: boolean, lite: boolean): void {
+  const poleX = CROSS_BOARD_X + CROSS_BOARD_W - 5;
+  const base = top + h - 6;
+  const tip = top + 6;
+  ctx.fillStyle = "#E6E8EC";
+  ctx.fillRect(poleX - 0.75, tip, 1.5, base - tip);
+  const wave = still ? 0 : Math.sin(age / 6) * 1.2;
+  ctx.fillStyle = banked ? CROSS_PLAYER : "rgba(230,232,236,0.85)";
+  ctx.beginPath();
+  ctx.moveTo(poleX - 0.75, tip);
+  ctx.lineTo(poleX - 14, tip + 5.5 + wave);
+  ctx.lineTo(poleX - 0.75, tip + 12);
+  ctx.closePath();
+  ctx.fill();
+  if (banked && !lite && age >= 0 && age < 40) {
+    const glow = coinGlow();
+    if (glow) {
+      ctx.globalAlpha = 1 - age / 40;
+      ctx.drawImage(glow as CanvasImageSource, poleX - 22, tip - 12, 32, 32);
+      ctx.globalAlpha = 1;
+    }
+  }
+}
+
+/** crossRev 8 HUD, after the crossings pill: the coin count, then the streak multiplier the crossing under way pays (from ×2). */
+function drawExpandHud(ctx: CanvasRenderingContext2D, state: CrossState, x: number, lite: boolean): void {
+  ctx.font = "600 16px 'JetBrains Mono', ui-monospace, monospace";
+  const count = String(state.coinTotal ?? 0);
+  const coinW = 30 + Math.ceil(ctx.measureText(count).width) + 8;
+  hudPill(ctx, x, 4, coinW, 28);
+  drawCoin(ctx, x + 15, 18, lite, 999);
+  ctx.textBaseline = "top";
+  ctx.textAlign = "left";
+  ctx.lineJoin = "round";
+  ctx.strokeStyle = REAL_INK;
+  ctx.lineWidth = 3.5;
+  ctx.fillStyle = "#FFFFFF";
+  ctx.strokeText(count, x + 28, 10);
+  ctx.fillText(count, x + 28, 10);
+  const mult = crossNextMultiplier(state);
+  if (mult < 2) return;
+  const label = `×${mult}`;
+  const mx = x + coinW + 6;
+  const mw = Math.ceil(ctx.measureText(label).width) + 18;
+  hudPill(ctx, mx, 4, mw, 28);
+  ctx.strokeText(label, mx + 9, 10);
+  ctx.fillStyle = CROSS_PLAYER;
+  ctx.fillText(label, mx + 9, 10);
 }
 
 /* ------------------------------ Cached road layer ------------------------------ */
@@ -527,13 +821,15 @@ function paintGrass(c: CanvasRenderingContext2D, x: number, y: number, w: number
 }
 
 /** The static scene for one crossing, in world units. */
-function paintRoad(c: CanvasRenderingContext2D, course: ReturnType<typeof crossCourse>, tex: ReturnType<typeof texture>): void {
-  paintGrass(c, 0, 0, CROSS_WORLD_W, CROSS_WORLD_H);
+function paintRoad(c: CanvasRenderingContext2D, course: ReturnType<typeof crossCourse>, tex: ReturnType<typeof texture>, g: CrossGeom): void {
+  paintGrass(c, 0, 0, CROSS_WORLD_W, g.worldH);
+  const lanesY = CROSS_HUD_H + g.goalH;
   // Pavements: paving slabs with a kerb stone along the road edge.
   const pavement = (top: number, finish: boolean) => {
+    const height = finish ? g.goalH : g.startH;
     c.fillStyle = tex.paving ?? "#BCC1C8";
-    c.fillRect(CROSS_BOARD_X, top, CROSS_BOARD_W, CROSS_KERB_H);
-    const kerbY = finish ? top + CROSS_KERB_H - 5 : top;
+    c.fillRect(CROSS_BOARD_X, top, CROSS_BOARD_W, height);
+    const kerbY = finish ? top + height - 5 : top;
     c.fillStyle = REAL_KERB;
     c.fillRect(CROSS_BOARD_X, kerbY, CROSS_BOARD_W, 5);
     c.fillStyle = "rgba(255,255,255,0.45)";
@@ -554,28 +850,35 @@ function paintRoad(c: CanvasRenderingContext2D, course: ReturnType<typeof crossC
     c.fillRect(CROSS_BOARD_X, finish ? kerbY + 3 : kerbY, CROSS_BOARD_W, 1);
     // Grass edge shadow onto the pavement's outer side.
     c.fillStyle = "rgba(30,50,20,0.18)";
-    c.fillRect(CROSS_BOARD_X, finish ? top : top + CROSS_KERB_H - 2, CROSS_BOARD_W, 2);
+    c.fillRect(CROSS_BOARD_X, finish ? top : top + height - 2, CROSS_BOARD_W, 2);
   };
   pavement(CROSS_HUD_H, true);
-  pavement(CROSS_LANES_Y + CROSS_LANES * CROSS_LANE_H, false);
+  pavement(crossStartTop(g), false);
 
-  for (let lane = 1; lane <= CROSS_LANES; lane++) {
-    const top = crossLaneTop(lane);
+  for (let lane = 1; lane <= g.rows; lane++) {
+    const top = crossLaneTop(lane, g);
+    const laneDef = course.lanes[lane - 1];
+    if (laneDef?.kind === CROSS_KIND_ISLAND) {
+      paintIsland(c, top, g.laneH);
+      continue;
+    }
     c.fillStyle = tex.asphalt ?? REAL_ASPHALT;
-    c.fillRect(CROSS_BOARD_X, top, CROSS_BOARD_W, CROSS_LANE_H);
+    c.fillRect(CROSS_BOARD_X, top, CROSS_BOARD_W, g.laneH);
     // Wheel tracks: two faint darker bands where the tyres run.
     c.fillStyle = "rgba(20,24,30,0.1)";
-    c.fillRect(CROSS_BOARD_X, top + 10, CROSS_BOARD_W, 6);
-    c.fillRect(CROSS_BOARD_X, top + CROSS_LANE_H - 16, CROSS_BOARD_W, 6);
+    const track = Math.round((g.laneH * 10) / 52);
+    c.fillRect(CROSS_BOARD_X, top + track, CROSS_BOARD_W, 6);
+    c.fillRect(CROSS_BOARD_X, top + g.laneH - track - 6, CROSS_BOARD_W, 6);
     // Patch repairs and cracks, fixed per lane.
     for (let k = 0; k < 2; k++) {
       const r = artHash(lane, k + 7);
       const x = CROSS_BOARD_X + (r % (CROSS_BOARD_W - 40));
       c.fillStyle = "rgba(30,34,40,0.08)";
-      c.fillRect(x, top + 6 + ((r >>> 9) % 20), 22 + ((r >>> 14) % 18), 12);
+      c.fillRect(x, top + 6 + ((r >>> 9) % (g.laneH - 32)), 22 + ((r >>> 14) % 18), 12);
     }
-    // Dashed lane marking on the upper edge (Polish A2: snapped to the layer's own pixels, so crisp).
-    if (lane < CROSS_LANES) {
+    // Dashed lane marking on the upper edge (Polish A2: snapped to the layer's own pixels, so crisp);
+    // none against the island, which has its own kerbs.
+    if (lane < g.rows && course.lanes[lane]?.kind !== CROSS_KIND_ISLAND) {
       const k = c.getTransform ? c.getTransform().d || 1 : 1;
       const y0 = Math.round((top - 1) * k) / k;
       const dh = Math.max(1, Math.round(2 * k)) / k;
@@ -586,17 +889,54 @@ function paintRoad(c: CanvasRenderingContext2D, course: ReturnType<typeof crossC
         c.fillRect(x0, y0, x1 - x0, dh);
       }
     }
-    const laneDef = course.lanes[lane - 1];
     if (!laneDef) continue;
-    if (laneDef.kind === CROSS_KIND_ROADWORKS) drawRoadworks(c, top, laneDef);
-    else if (laneDef.kind === CROSS_KIND_CYCLE) drawCycleLane(c, top);
+    if (laneDef.kind === CROSS_KIND_ROADWORKS) drawRoadworks(c, top, laneDef, g.laneH);
+    else if (laneDef.kind === CROSS_KIND_CYCLE) drawCycleLane(c, top, g.laneH);
+    else if (laneDef.kind === CROSS_KIND_BUS) drawBusLane(c, top, g.laneH);
   }
   // Solid edge lines at the kerbs.
   c.fillStyle = "rgba(250,250,250,0.85)";
-  c.fillRect(CROSS_BOARD_X, CROSS_LANES_Y + 1, CROSS_BOARD_W, 2);
-  c.fillRect(CROSS_BOARD_X, CROSS_LANES_Y + CROSS_LANES * CROSS_LANE_H - 3, CROSS_BOARD_W, 2);
+  c.fillRect(CROSS_BOARD_X, lanesY + 1, CROSS_BOARD_W, 2);
+  c.fillRect(CROSS_BOARD_X, crossStartTop(g) - 3, CROSS_BOARD_W, 2);
   // Polish A2: low hedges along both verges, from the HUD band down (background only; no lane reaches them).
-  for (const x of [0, CROSS_BOARD_X + CROSS_BOARD_W]) paintHedge(c, x, CROSS_HUD_H, CROSS_BOARD_X, CROSS_WORLD_H - CROSS_HUD_H);
+  for (const x of [0, CROSS_BOARD_X + CROSS_BOARD_W]) paintHedge(c, x, CROSS_HUD_H, CROSS_BOARD_X, g.worldH - CROSS_HUD_H);
+}
+
+/**
+ * crossRev 8's checkpoint island: a grass strip between kerb stones in the polished grass of the
+ * verges (mown stripes, clover, tiny daisies and buttercups), with a low trimmed hedge at each end
+ * (outside every column the walker stands on) and white edge lines on the road either side.
+ */
+function paintIsland(c: CanvasRenderingContext2D, top: number, h: number): void {
+  paintGrass(c, CROSS_BOARD_X, top, CROSS_BOARD_W, h);
+  for (const [y, lit] of [[top, true], [top + h - 4, false]] as const) {
+    c.fillStyle = REAL_KERB;
+    c.fillRect(CROSS_BOARD_X, y, CROSS_BOARD_W, 4);
+    c.fillStyle = lit ? "rgba(255,255,255,0.6)" : "rgba(30,38,48,0.35)";
+    c.fillRect(CROSS_BOARD_X, lit ? y : y + 3, CROSS_BOARD_W, 1);
+    c.fillStyle = "rgba(60,66,76,0.3)";
+    for (let x = CROSS_BOARD_X + CROSS_COL_W; x < CROSS_BOARD_X + CROSS_BOARD_W; x += CROSS_COL_W * 2) c.fillRect(x, y, 1, 4);
+  }
+  // A soft shadow under the upper kerb onto the grass.
+  c.fillStyle = "rgba(30,50,20,0.2)";
+  c.fillRect(CROSS_BOARD_X, top + 4, CROSS_BOARD_W, 2);
+  // Low hedges at both ends, clear of the outer columns (column 0's centre is 26 px in).
+  const hedgeW = 9;
+  paintHedge(c, CROSS_BOARD_X, top + 6, hedgeW, h - 12);
+  paintHedge(c, CROSS_BOARD_X + CROSS_BOARD_W - hedgeW, top + 6, hedgeW, h - 12);
+  // Edge lines on the road above and below the island.
+  c.fillStyle = "rgba(250,250,250,0.85)";
+  c.fillRect(CROSS_BOARD_X, top - 3, CROSS_BOARD_W, 2);
+  c.fillRect(CROSS_BOARD_X, top + h + 1, CROSS_BOARD_W, 2);
+}
+
+/** crossRev 8 bus lane: a faint red-tinted surface between two solid white edge lines (no text: the layer is cached). */
+function drawBusLane(c: CanvasRenderingContext2D, top: number, laneH: number): void {
+  c.fillStyle = "rgba(196, 52, 46, 0.18)";
+  c.fillRect(CROSS_BOARD_X, top, CROSS_BOARD_W, laneH);
+  c.fillStyle = "rgba(250,250,250,0.8)";
+  c.fillRect(CROSS_BOARD_X, top + 1, CROSS_BOARD_W, 2);
+  c.fillRect(CROSS_BOARD_X, top + laneH - 3, CROSS_BOARD_W, 2);
 }
 
 /** A trimmed hedge filling a narrow verge: dark leafy body, lighter rounded tops, a few highlights. */
@@ -623,38 +963,40 @@ function paintHedge(c: CanvasRenderingContext2D, x: number, y: number, w: number
 }
 
 /** Draws the crossing's cached scene (or paints it directly where no offscreen canvas exists); returns the layer. */
-function roadLayer(ctx: CanvasRenderingContext2D, course: ReturnType<typeof crossCourse>, tex: ReturnType<typeof texture>): ArtCanvas | null {
+function roadLayer(ctx: CanvasRenderingContext2D, course: ReturnType<typeof crossCourse>, tex: ReturnType<typeof texture>, g: CrossGeom): ArtCanvas | null {
   const t = typeof ctx.getTransform === "function" ? ctx.getTransform() : null;
   const k = t ? Math.max(0.1, Math.hypot(t.a, t.b)) : 1;
   const pw = Math.max(1, Math.round(CROSS_WORLD_W * k));
-  const ph = Math.max(1, Math.round(CROSS_WORLD_H * k));
+  const ph = Math.max(1, Math.round(g.worldH * k));
   const key = `${pw}x${ph}|${tex.asphalt ? 1 : 0}`;
   let found = roadLayers.get(course);
   if (!found || found.key !== key) {
     const canvas = artCanvas(pw, ph);
     const c = canvas ? artContext(canvas) : null;
     if (canvas && c) {
-      c.scale(pw / CROSS_WORLD_W, ph / CROSS_WORLD_H);
-      paintRoad(c as CanvasRenderingContext2D, course, texture(c as CanvasRenderingContext2D));
+      c.scale(pw / CROSS_WORLD_W, ph / g.worldH);
+      paintRoad(c as CanvasRenderingContext2D, course, texture(c as CanvasRenderingContext2D), g);
     }
     found = { key, canvas: canvas && c ? canvas : null };
     roadLayers.set(course, found);
   }
-  if (found.canvas) ctx.drawImage(found.canvas as CanvasImageSource, 0, 0, CROSS_WORLD_W, CROSS_WORLD_H);
-  else paintRoad(ctx, course, tex);
+  if (found.canvas) ctx.drawImage(found.canvas as CanvasImageSource, 0, 0, CROSS_WORLD_W, g.worldH);
+  else paintRoad(ctx, course, tex, g);
   return found.canvas;
 }
 
 /** The game's drawing through the shared success layer (presentation only). */
 export function drawCrossArt(ctx: CanvasRenderingContext2D, state: CrossState, size: CanvasSize, crashIndicator = true, pavedFoot = false): void {
-  arcadeFx(ctx, CROSS_FX, state, () => drawCrossArtWorld(ctx, state, size, crashIndicator, pavedFoot), size);
+  arcadeFx(ctx, crossFxFor(state), state, () => drawCrossArtWorld(ctx, state, size, crashIndicator, pavedFoot), size);
 }
 
 function drawCrossArtWorld(ctx: CanvasRenderingContext2D, state: CrossState, size: CanvasSize, crashIndicator = true, pavedFoot = false): void {
   const still = reducedMotion();
-  const scale = Math.min(size.width / CROSS_WORLD_W, size.height / CROSS_WORLD_H);
+  const g = crossGeomOf(state);
+  const worldH = g.worldH;
+  const scale = Math.min(size.width / CROSS_WORLD_W, size.height / worldH);
   const offsetX = (size.width - CROSS_WORLD_W * scale) / 2;
-  const offsetY = (size.height - CROSS_WORLD_H * scale) / 2;
+  const offsetY = (size.height - worldH * scale) / 2;
   const rel = state.tick - state.crossStart;
   const course = crossCourse(state);
   const tex = texture(ctx);
@@ -666,35 +1008,55 @@ function drawCrossArtWorld(ctx: CanvasRenderingContext2D, state: CrossState, siz
   ctx.translate(offsetX, offsetY);
   ctx.scale(scale, scale);
 
-  const from = crossLaneCentre(state.lane);
-  const to = crossLaneCentre(state.lane + state.hopDir);
+  const from = crossLaneCentre(state.lane, g);
+  const to = crossLaneCentre(state.lane + state.hopDir, g);
   const done = state.hop > 0 ? (CROSS_HOP_TICKS - state.hop) / CROSS_HOP_TICKS : 0;
   const cy = state.hop > 0 ? from + (to - from) * done : from;
   const cx = px(crossColumnCentreFp(state.col));
   const memory = remember(state, cx, cy);
 
   // Verges, pavements, road surface, markings and roadworks: one cached layer per crossing.
-  const layer = roadLayer(ctx, course, tex);
+  const layer = roadLayer(ctx, course, tex, g);
   // The play screen's arena scene (crossArenaScene) widens the start pavement downwards: the
   // grass strip under it is paved too, so pavement runs on unbroken past the world's edge.
   if (pavedFoot) {
-    const foot = CROSS_LANES_Y + CROSS_LANES * CROSS_LANE_H + CROSS_KERB_H - 2;
+    const foot = crossStartTop(g) + g.startH - 2;
     ctx.fillStyle = tex.paving ?? "#BCC1C8";
-    ctx.fillRect(CROSS_BOARD_X, foot, CROSS_BOARD_W, CROSS_WORLD_H - foot);
+    ctx.fillRect(CROSS_BOARD_X, foot, CROSS_BOARD_W, worldH - foot);
   }
   // Finish pavement pulse after a clean crossing.
   const age = state.tick - memory.pulseTick;
   if (age >= 0 && age < 45) {
     const p = age / 45;
     ctx.fillStyle = `rgba(245,184,46,${(still ? 0.35 : 0.5 * Math.sin(p * Math.PI * 3) ** 2) * (1 - p)})`;
-    ctx.fillRect(CROSS_BOARD_X, CROSS_HUD_H, CROSS_BOARD_W, CROSS_KERB_H);
+    ctx.fillRect(CROSS_BOARD_X, CROSS_HUD_H, CROSS_BOARD_W, g.goalH);
+  }
+  // crossRev 8: the island's checkpoint flag (gold once banked, with a short glow when it is) and
+  // this crossing's uncollected coins, under the traffic.
+  if (g.island) {
+    const top = crossLaneTop(g.island, g);
+    drawIslandFlag(ctx, top, g.laneH, !!state.banked, state.tick - memory.bankTick, still, fxLite);
+  }
+  if (course.coins) {
+    const bob = still ? 0 : Math.sin(state.tick / 9) * 1.2;
+    course.coins.forEach((cell, i) => {
+      if ((state.coins ?? 0) & (1 << i)) return;
+      const lane = cell >> 4;
+      const x = px(crossColumnCentreFp(cell & 15));
+      const y = crossLaneTop(lane, g) + g.laneH / 2;
+      drawCoin(ctx, x, y + bob, fxLite, still ? 0 : (state.tick + i * 23) % 120);
+    });
   }
 
-  for (let lane = 1; lane <= CROSS_LANES; lane++) {
-    const top = crossLaneTop(lane);
+  for (let lane = 1; lane <= g.rows; lane++) {
+    const top = crossLaneTop(lane, g);
     const laneDef = course.lanes[lane - 1];
-    if (!laneDef || laneDef.kind === CROSS_KIND_ROADWORKS) continue;
+    if (!laneDef || laneDef.kind === CROSS_KIND_ROADWORKS || laneDef.kind === CROSS_KIND_ISLAND) continue;
     const cycle = laneDef.kind === CROSS_KIND_CYCLE;
+    const moto = laneDef.kind === CROSS_KIND_MOTO;
+    const bus = laneDef.kind === CROSS_KIND_BUS;
+    const vy = top + g.inset;
+    const vh = g.laneH - 2 * g.inset;
     const start = mod(laneDef.dir * laneDef.speed * rel + laneDef.phase, laneDef.period);
     const count = Math.ceil((CROSS_BOARD_W * 256) / laneDef.period) + 2;
     // Lorries: the fastest third of this crossing's car lanes (cyclist lanes and roadworks excluded).
@@ -702,37 +1064,52 @@ function drawCrossArtWorld(ctx: CanvasRenderingContext2D, state: CrossState, siz
     const lorry = laneDef.speed >= (speeds[Math.floor((speeds.length * 2) / 3)] ?? Infinity);
     for (let index = -1; index <= count; index++) {
       const x = px(start + index * laneDef.period);
-      if (cycle) {
-        // crossRev 3 lanes hold a few riders at uneven offsets within one long period.
+      if (cycle || moto) {
+        // crossRev 3 lanes (and crossRev 8 motorbikes) hold a few riders at uneven offsets within one long period.
         const offsets = laneDef.offsets ?? [0];
         offsets.forEach((offset, k) => {
           const rx = px(start + index * laneDef.period + offset);
-          if (rx > CROSS_BOARD_X + CROSS_BOARD_W || rx + px(laneDef.blockW) < CROSS_BOARD_X) return;
+          const rw = px(laneDef.blockW);
+          if (rx > CROSS_BOARD_X + CROSS_BOARD_W || rx + rw < CROSS_BOARD_X) return;
+          if (moto) {
+            if (!fxLite) {
+              ctx.fillStyle = "rgba(10,14,20,0.26)";
+              roundRect(ctx, rx + 2, vy + vh * 0.55 + 2, rw, vh * 0.45, vh * 0.2);
+              ctx.fill();
+            }
+            drawMotorbike(ctx, rx, vy, rw, vh, laneDef.dir, MOTO_COLOURS[(lane + index * 3 + k + 8) % MOTO_COLOURS.length] ?? MOTO_COLOURS[0]);
+            if (!fxLite) vehicleLight(ctx, rx, vy, rw, vh, laneDef.dir, true);
+            return;
+          }
           const jersey = RIDER_COLOURS[(lane + index * 3 + k + 8) % RIDER_COLOURS.length] ?? RIDER_COLOURS[0];
-          drawRider(ctx, rx, top + 7, px(laneDef.blockW), CROSS_LANE_H - 14, laneDef.dir, jersey);
+          drawRider(ctx, rx, vy, rw, vh, laneDef.dir, jersey);
         });
         continue;
       }
       const colour = CROSS_BLOCK_COLOURS[(lane + index + 8) % CROSS_BLOCK_COLOURS.length] ?? CROSS_BLOCK;
       const vw = px(laneDef.blockW);
-      const vh = CROSS_LANE_H - 14;
       if (x > CROSS_BOARD_X + CROSS_BOARD_W || x + vw < CROSS_BOARD_X) continue;
       // Polish A2: a soft shadow on the road under the vehicle (2 px down and right), then the vehicle,
       // then a light sheen on its upper half and two small headlight glows at its front.
       if (!fxLite) {
         ctx.fillStyle = "rgba(10,14,20,0.28)";
-        roundRect(ctx, x + 2, top + 9, vw, vh, Math.min(12, vh / 2));
+        roundRect(ctx, x + 2, vy + 2, vw, vh, Math.min(bus ? 6 : 12, vh / 2));
         ctx.fill();
       }
+      if (bus) {
+        drawBus(ctx, x, vy, vw, vh, laneDef.dir, BUS_COLOURS[(lane + index + 8) % BUS_COLOURS.length] ?? BUS_COLOURS[0]);
+        if (!fxLite) vehicleLight(ctx, x, vy, vw, vh, laneDef.dir);
+        continue;
+      }
       // Daylight: no headlight beams, so nothing drawn reaches past the collision box.
-      drawVehicle(ctx, x, top + 7, vw, vh, laneDef.dir, colour, lorry, false);
-      if (!fxLite) vehicleLight(ctx, x, top + 7, vw, vh, laneDef.dir);
+      drawVehicle(ctx, x, vy, vw, vh, laneDef.dir, colour, lorry, false);
+      if (!fxLite) vehicleLight(ctx, x, vy, vw, vh, laneDef.dir);
     }
   }
 
   // Verges either side of the board, over any vehicle overhanging the road ends.
   const sideW = CROSS_BOARD_X;
-  const sideH = CROSS_WORLD_H - CROSS_HUD_H;
+  const sideH = worldH - CROSS_HUD_H;
   for (const x of [0, CROSS_BOARD_X + CROSS_BOARD_W]) {
     if (layer) {
       const k = layer.width / CROSS_WORLD_W;
@@ -770,7 +1147,9 @@ function drawCrossArtWorld(ctx: CanvasRenderingContext2D, state: CrossState, siz
 
   // Polish A2: the HUD on soft dark pills (the count and the lives).
   ctx.font = "600 16px 'JetBrains Mono', ui-monospace, monospace";
-  hudPill(ctx, 6, 4, Math.ceil(ctx.measureText(`Crossings ${state.crossings}`).width) + 18, 28);
+  const crossingsW = Math.ceil(ctx.measureText(`Crossings ${state.crossings}`).width) + 18;
+  hudPill(ctx, 6, 4, crossingsW, 28);
+  if (state.wide) drawExpandHud(ctx, state, 6 + crossingsW + 6, fxLite);
   hudPill(ctx, CROSS_WORLD_W - 22 - (CROSS_LIVES - 1) * 18 - 14, 4, (CROSS_LIVES - 1) * 18 + 28, 28);
   for (let i = 0; i < CROSS_LIVES; i++) {
     ctx.fillStyle = i < state.lives ? CROSS_PLAYER : "rgba(255,255,255,0.22)";
@@ -792,23 +1171,23 @@ function drawCrossArtWorld(ctx: CanvasRenderingContext2D, state: CrossState, siz
   ctx.lineJoin = "round";
   successHud(ctx,'cross',state.tick,14,10,()=>{ctx.strokeText(`Crossings ${state.crossings}`,14,10);ctx.fillText(`Crossings ${state.crossings}`,14,10);});
 
-  successFrame(ctx,{id:'cross',tick:state.tick,count:state.crossings,misses:CROSS_LIVES-state.lives,colour:CROSS_PLAYER,width:CROSS_WORLD_W,height:CROSS_WORLD_H,point:{x:cx,y:CROSS_HUD_H+CROSS_KERB_H/2,shape:'line',radius:24,label:'+1'},hud:{x:14,y:10,text:`Crossings ${state.crossings}`}});
+  successFrame(ctx,{id:'cross',tick:state.tick,count:state.crossings,misses:CROSS_LIVES-state.lives,colour:CROSS_PLAYER,width:CROSS_WORLD_W,height:worldH,point:{x:cx,y:CROSS_HUD_H+g.goalH/2,shape:'line',radius:24,label:'+1'},hud:{x:14,y:10,text:`Crossings ${state.crossings}`}});
   if (hitAge < 20 && !state.dead && crashIndicator) {
     ctx.fillStyle = `rgba(255, 77, 77, ${0.25 * (1 - hitAge / 20)})`;
-    ctx.fillRect(0, 0, CROSS_WORLD_W, CROSS_WORLD_H);
+    ctx.fillRect(0, 0, CROSS_WORLD_W, worldH);
   }
   if (crossPaused(state) && hitAge >= CROSS_PAUSE_TICKS) {
     ctx.fillStyle = "rgba(11, 11, 15, 0.55)";
-    ctx.fillRect(CROSS_BOARD_X, CROSS_WORLD_H / 2 - 30, CROSS_BOARD_W, 60);
+    ctx.fillRect(CROSS_BOARD_X, worldH / 2 - 30, CROSS_BOARD_W, 60);
     ctx.fillStyle = CROSS_PLAYER;
     ctx.font = "700 24px 'JetBrains Mono', ui-monospace, monospace";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    ctx.fillText(`Crossing ${state.crossings + 1}`, CROSS_WORLD_W / 2, CROSS_WORLD_H / 2);
+    ctx.fillText(`Crossing ${state.crossings + 1}`, CROSS_WORLD_W / 2, worldH / 2);
   }
   if (state.dead && crashIndicator) {
     ctx.fillStyle = "rgba(255, 77, 77, 0.22)";
-    ctx.fillRect(0, 0, CROSS_WORLD_W, CROSS_WORLD_H);
+    ctx.fillRect(0, 0, CROSS_WORLD_W, worldH);
   }
   ctx.restore();
 }

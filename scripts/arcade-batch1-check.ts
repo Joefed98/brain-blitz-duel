@@ -101,6 +101,7 @@ import {
 import { encodeSliceRun, replaySliceRun } from "../src/lib/duel/slice";
 import { INTRO_SCORE } from "../src/lib/duel/introScore";
 import { PUZZLE_INSTRUCTIONS } from "../src/lib/duel/instructions";
+import { roundMaxFor } from "../src/lib/duel/roundMax";
 
 let checks = 0;
 const ok = (value: unknown, message: string) => {
@@ -253,7 +254,8 @@ for (const seed of CROSS_SEEDS.slice(0, 12)) {
 }
 console.log(`  150 reached through the server replay on ${best150} of 12 seeds (planner never loses a life)`);
 const crossIntro = INTRO_SCORE.cross;
-ok(/Up to 150/.test(crossIntro) && /each lane crossed/.test(crossIntro) && /full crossing/.test(crossIntro), "Jaywalk intro states lanes, crossings, up to 150 (score bands, crossRev 4)");
+// The intro follows the revision rooms deal: crossRev 8 (Expansion E1) states rows, crossings, coins and streaks, up to its maximum.
+ok(new RegExp(`Up to ${roundMaxFor("cross")}`).test(crossIntro) && /rows/.test(crossIntro) && /crossings/.test(crossIntro) && /coins/.test(crossIntro), "Jaywalk intro states rows, crossings, coins, up to the game's maximum (crossRev 8)");
 }
 
 /* =============================== 2b. Roofbound =============================== */

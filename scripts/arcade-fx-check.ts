@@ -117,7 +117,8 @@ const GAMES: Record<string, AnyGame> = {
   wavefront: wavefrontArtGameFor(2) as AnyGame,
   orbit: orbitArtGame as AnyGame,
   skyline: { ...skylineArtGame, init: skylineRev2Game.init } as AnyGame,
-  cross: crossArtGameFor(3) as AnyGame,
+  // The revision rooms deal (crossRev 8, Expansion E1: the island, coins and streak events too).
+  cross: crossArtGameFor(8) as AnyGame,
   junction: junctionArtGame as AnyGame,
   inkbridge: inkBridgeArtGameFor(4) as AnyGame,
   slice: sliceArtGameFor(2) as AnyGame,
@@ -299,6 +300,9 @@ const BUMPS: Record<string, ((s: any) => any)[]> = {
     (s) => ({ ...s, crossings: s.crossings + 1 }),
     (s) => ({ ...s, crossings: 3, reached: 0 }),
     (s) => ({ ...s, crossings: 4, reached: 0 }),
+    (s) => ({ ...s, coinTotal: (s.coinTotal ?? 0) + 1 }),
+    (s) => ({ ...s, reached: 7, lane: 7, banked: 1 }),
+    (s) => ({ ...s, streak: 2, streakPts: (s.streakPts ?? 0) + 2 }),
   ],
   junction: [
     (s) => ({ ...s, ambThrough: s.ambThrough + 1 }),

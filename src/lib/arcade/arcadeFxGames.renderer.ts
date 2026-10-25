@@ -67,11 +67,15 @@ import { burstFloorY, BURST_FLOOR_Y, BURST_LIVES, BURST_TALL_H, BURST_WORLD_W, t
 import { SKYLINE_STREAK_FROM, SKYLINE_TALL_H, SKYLINE_WIND_FROM, SKYLINE_WORLD_H, SKYLINE_WORLD_W, skylineWorldH, type SkylineState } from "./skyline";
 import {
   crossColumnCentreFp,
+  crossGeomOf,
   crossKindCrossed,
   crossLaneCentre,
+  crossMultiplierFor,
   CROSS_HUD_H,
   CROSS_KIND_CYCLE,
+  CROSS_KIND_ISLAND,
   CROSS_KIND_ROADWORKS,
+  CROSS_X_WORLD_H,
   CROSS_WORLD_H,
   CROSS_WORLD_W,
   type CrossState,
@@ -787,18 +791,37 @@ export const CROSS_FX: ArcadeFxSpec<CrossState> = {
     {
       kind: "pop",
       count: (s) => crossKindCrossed(s, CROSS_KIND_CYCLE),
-      at: (s) => ({ x: px(crossColumnCentreFp(s.col)), y: crossLaneCentre(s.lane) - 20 }),
+      at: (s) => ({ x: px(crossColumnCentreFp(s.col)), y: crossLaneCentre(s.lane, crossGeomOf(s)) - 20 }),
       label: () => "PAST THE BIKES!",
     },
     {
       kind: "pop",
       count: (s) => crossKindCrossed(s, CROSS_KIND_ROADWORKS),
-      at: (s) => ({ x: px(crossColumnCentreFp(s.col)), y: crossLaneCentre(s.lane) - 20 }),
+      at: (s) => ({ x: px(crossColumnCentreFp(s.col)), y: crossLaneCentre(s.lane, crossGeomOf(s)) - 20 }),
       label: () => "THROUGH THE CONES!",
+    },
+    // crossRev 8 (counts stay 0 on every earlier round): a coin collected, the island reached, the streak paying.
+    {
+      kind: "pop",
+      count: (s) => s.coinTotal ?? 0,
+      at: (s) => ({ x: px(crossColumnCentreFp(s.col)), y: crossLaneCentre(s.lane, crossGeomOf(s)) - 20 }),
+      label: () => "COIN!",
+    },
+    {
+      kind: "pop",
+      count: (s) => (s.wide ? crossKindCrossed(s, CROSS_KIND_ISLAND) : 0),
+      at: (s) => ({ x: px(crossColumnCentreFp(s.col)), y: crossLaneCentre(s.lane, crossGeomOf(s)) - 20 }),
+      label: () => "CHECKPOINT!",
+    },
+    {
+      kind: "streak",
+      count: (s) => s.streakPts ?? 0,
+      at: () => ({ x: CROSS_WORLD_W / 2, y: CROSS_HUD_H + 60 }),
+      label: (s) => `STREAK ×${crossMultiplierFor(s.streak ?? 0)}`,
     },
   ],
   // Where the walker was hit (the frame before it went back to the kerb).
-  misses: [{ count: (s) => -s.lives, at: (s, before) => { const w = before ?? s; return { x: px(crossColumnCentreFp(w.col)), y: crossLaneCentre(w.lane) }; } }],
+  misses: [{ count: (s) => -s.lives, at: (s, before) => { const w = before ?? s; return { x: px(crossColumnCentreFp(w.col)), y: crossLaneCentre(w.lane, crossGeomOf(w)) }; } }],
 };
 
 export const JUNCTION_FX: ArcadeFxSpec<JuncState> = {
@@ -1278,6 +1301,9 @@ export function fxSpecAt<S>(spec: ArcadeFxSpec<S>, height: number): ArcadeFxSpec
   return hit;
 }
 export const hoverFxFor = (s: HoverState): ArcadeFxSpec<HoverState> => fxSpecAt(HOVER_FX, hoverWorldH(s));
+/** Jaywalk: crossRev 8's taller world (the spec rooms deal today); earlier rounds draw through CROSS_FX. */
+export const crossFxFor = (s: CrossState): ArcadeFxSpec<CrossState> => fxSpecAt(CROSS_FX, crossGeomOf(s).worldH);
+export const CROSS_FX_TALL = fxSpecAt(CROSS_FX, CROSS_X_WORLD_H);
 /** The specs live rooms deal today (Tuning E's taller worlds); stored rounds draw through fxSpecAt. */
 export const HOVER_FX_TALL = fxSpecAt(HOVER_FX, HOVER_TALL_H);
 export const skylineFxFor = (s: SkylineState): ArcadeFxSpec<SkylineState> => fxSpecAt(SKYLINE_FX, skylineWorldH(s));
@@ -1360,7 +1386,7 @@ export const ARCADE_FX_SPECS = {
   // The live round's view (orbitRev 8); rev 1/2 rounds draw through ORBIT_FX and rev 3–7 through ORBIT3_FX.
   orbit: fxSpecAt(ORBIT_FX, ORBIT_TALL_VIEW_H),
   skyline: SKYLINE_FX_TALL,
-  cross: CROSS_FX,
+  cross: CROSS_FX_TALL,
   junction: JUNCTION_FX,
   inkbridge: INKBRIDGE_FX,
   slice: SLICE_FX_TALL,

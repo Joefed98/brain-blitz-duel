@@ -1,3 +1,4 @@
+import { CROSS_REV_EXPAND } from "@/lib/arcade/cross";
 import { SWING_REV_TALL } from "@/lib/arcade/swing";
 import { INK_REV3, INK_REV4, INK_REV_BAND, INK_REV_TUNEC } from "@/lib/arcade/inkBridge";
 import { CLAY_REV } from "@/lib/arcade/clayShoot";
@@ -99,6 +100,9 @@ export const getIntroDemoFn = createServerFn({ method: "GET" })
     if (data.type === "swing" && demo?.puzzle.type === "swing" && demo.puzzle.swingRev !== SWING_REV_TALL) return null;
     if (data.type === "orbit" && demo?.puzzle.type === "orbit" && demo.puzzle.orbitRev !== ORBIT_REV_TALL) return null;
     if (data.type === "balltrack" && demo?.puzzle.type === "balltrack" && demo.puzzle.btRev !== BT_REV_TALL) return null;
+    // Expansion E1 (25 Oct 2026): Jaywalk crossRev 8's taller 13-lane world with the island, coins, buses and motorbikes;
+    // an older demo would show the 9-lane road, so it stays stopped until one is recorded on crossRev 8.
+    if (data.type === "cross" && demo?.puzzle.type === "cross" && demo.puzzle.crossRev !== CROSS_REV_EXPAND) return null;
     return demo;
   });
 
