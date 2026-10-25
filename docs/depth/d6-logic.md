@@ -14,19 +14,19 @@ three routes (`src/lib/duel/logicDepth.ts`):
 | Route | Games | The extra 50 |
 | --- | --- | --- |
 | Stretch | Box Six, Bomb Defusal, Mosaic, Colour Flood, Tents and Trees, Shikaku, Lamplighter | 50 × ((left − fast) ÷ (elite − fast))^power × efficiency²: nothing at today's 150 pace, all of it only at the elite pace with no mistakes. Colour Flood's needs the par moves (half of it one move over). |
-| Par | Blackout (par presses), Hanoi (perfect solve), Polypotions (par pours) | Finishing in par (the stored minimum, shown on the board) adds 20 plus up to 30 by the same speed share: par at the fast pace is 200, par at the buzzer 140, one over par at most 150. |
+| Par | Blackout (par presses), Hanoi (perfect solve), Polypotions (par pours) | Finishing in par (the stored minimum, shown on the board) adds a fixed 20, plus up to 30 on the stretch games' curve (nothing at today's 150 pace, all of it at the elite pace): par at the buzzer is 140, par at the 150 pace 170, par at the elite pace 200; one over par at most 150. |
 | Clean crack | Safe Cracker | The stretch, scaled by the tries to spare: all of it on the first try, half on the second, none on the third. |
 
 Per game (`DEPTH_GAMES`): `fast` is rev 3's fastShare where the board is unchanged and refitted for the four bigger
-boards; `elite` is the elite kit's median time-left share; `power` 1.5 (1.8 for Box Six, Mosaic and Shikaku, whose
-150s ran close to elite).
+boards; `elite` is the elite kit's median time-left share (Safe Cracker's set so its elite median is about 194); `power` 1.5
+(1.8 for Box Six, Mosaic and Shikaku, whose 150s ran close to elite; 1 on the par games; 1.2 for Safe Cracker).
 
 | Game | Route | fast | elite | power | 150 by | 200 by |
 | --- | --- | --- | --- | --- | --- | --- |
-| Blackout | Par | 0.66 | – | – | 25 s of 75 | par in 25 s |
-| Hanoi | Par | 0.69 | – | – | 28 s of 90 | par in 28 s |
-| Polypotions | Par | 0.67 | – | – | 30 s of 90 | par in 30 s |
-| Safe Cracker | Clean crack | 0.74 | 0.79 | 1.5 | 20 s of 75 | 16 s, first try |
+| Blackout | Par | 0.66 | 0.7 | 1 | 25 s of 75 | par in 23 s |
+| Hanoi | Par | 0.69 | 0.77 | 1 | 28 s of 90 | par in 21 s |
+| Polypotions | Par | 0.67 | 0.78 | 1 | 30 s of 90 | par in 20 s |
+| Safe Cracker | Clean crack | 0.74 | 0.772 | 1.2 | 20 s of 75 | 17 s, first try |
 | Box Six | Stretch | 0.59 | 0.69 | 1.8 | 37 s of 90 | 28 s |
 | Bomb Defusal | Stretch | 0.75 | 0.85 | 1.5 | 23 s of 90 | 14 s |
 | Mosaic | Stretch | 0.65 | 0.77 | 1.8 | 42 s of 120 | 28 s |
@@ -102,10 +102,10 @@ the population is 40 players a seed (pace log-normal around a good player's, mis
 
 | Game | Good old → new | Great | Near-perfect | Elite | Population median | Top 10 % | Best | Old 150s now (median, max) |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| Blackout | 110 → 110 | 137 → 174 | 146 → 192 | 150 → 200 | 110 → 110 | 140 → 178 | 150 → 200 | 200, 200 (6) |
-| Hanoi | 129 → 129 | 139 → 142 | 148 → 196 | 150 → 200 | 127 → 128 | 143 → 182 | 150 → 200 | 200, 200 (6) |
-| Polypotions | 125 → 125 | 139 → 139 | 148 → 196 | 150 → 200 | 124 → 124 | 141 → 147 | 150 → 200 | 200, 200 (3) |
-| Safe Cracker | 138 → 138 | 143 → 143 | 149 → 149 | 150 → 172 | 137 → 137 | 147 → 147 | 150 → 200 | 155, 200 (17) |
+| Blackout | 110 → 110 | 137 → 157 | 146 → 166 | 150 → 192 | 110 → 110 | 140 → 159 | 150 → 200 | 186, 200 (6) |
+| Hanoi | 129 → 129 | 139 → 142 | 148 → 168 | 150 → 194 | 127 → 128 | 143 → 161 | 150 → 200 | 193, 200 (6) |
+| Polypotions | 125 → 125 | 139 → 139 | 148 → 168 | 150 → 191 | 124 → 124 | 141 → 147 | 150 → 180 | 179, 180 (3) |
+| Safe Cracker | 138 → 138 | 143 → 143 | 149 → 149 | 150 → 194 | 137 → 137 | 147 → 147 | 150 → 200 | 164, 200 (17) |
 | Box Six | 122 → 122 | 136 → 136 | 147 → 147 | 150 → 188 | 122 → 122 | 140 → 140 | 150 → 194 | 170, 194 (8) |
 | Bomb Defusal | 138 → 138 | 147 → 147 | 150 → 160 | 150 → 200 | 139 → 139 | 149 → 149 | 150 → 185 | 157, 185 (38) |
 | Mosaic | 137 → 130 | 146 → 142 | 150 → 156 | 150 → 200 | 139 → 131 | 148 → 146 | 150 → 200 | 155, 200 (29) |
@@ -117,8 +117,9 @@ the population is 40 players a seed (pace log-normal around a good player's, mis
 Reading it: the good level and the population median stay within about ±10 % (the bigger boards cost a few points
 at the good level: Mosaic −5 %, Tents −5 %, Shikaku −9 %, whose population median is unchanged). Today's 150s land
 about 150–165 on the stretch games (Box Six's sample of eight runs is the exception), and only the elite level reaches
-190–200. On the par games a near-perfect player who also finds par scores near 200: the kits play from the stored
-solution, so they find par far more often than people will.
+190–200. On the par games (retuned 25 Oct 2026, Joe's review) a near-perfect player at par lands 166–168 and only the
+elite level reaches 191–194; Safe Cracker's elite median is 194. The kits play from the stored solution, so they
+find par more often than people will.
 
 ## Demos
 

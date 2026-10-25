@@ -4,7 +4,7 @@
  * (roundMax.ts) so they follow it. The help explains the feature in one short sentence; the intro stays within two
  * phone lines with no scoring terms (intro-score-text-check: no "par").
  */
-import { DEPTH_TOP_POINTS, depthEliteSeconds, depthFastSeconds, depthGame } from "./logicDepth";
+import { DEPTH_PAR_BASE, DEPTH_TOP_POINTS, depthEliteSeconds, depthFastSeconds, depthGame } from "./logicDepth";
 import { dealtLimitMs, EFFICIENCY_WORD, PROGRESS_MEASURE, PROGRESS_SHORT } from "./puzzleBandsText";
 import { rev3UnfinishedScore } from "./puzzleScoreRev3";
 import { roundMaxFor } from "./roundMax";
@@ -26,7 +26,7 @@ export function depthHelp(type: PuzzleType): string {
   const route = depthGame(type).route;
   if (route === "par") {
     const word = PAR_WORD[type] ?? "moves";
-    return `${head} ${base} Par is the fewest ${word} the puzzle can be solved in: finish in par for ${DEPTH_TOP_POINTS} more at that speed (20 at the buzzer), so ${max} is par in about ${fast} s.`;
+    return `${head} ${base} Par is the fewest ${word} the puzzle can be solved in: finish in par for ${DEPTH_PAR_BASE} more, and up to ${DEPTH_TOP_POINTS - DEPTH_PAR_BASE} more for finishing faster still, so ${max} is par in about ${elite} s.`;
   }
   if (route === "clean") {
     return `${head} ${base} A clean crack, opening it with tries to spare, adds up to ${DEPTH_TOP_POINTS} for finishing faster still: all of it on the first try, half on the second, so ${max} is the first try in about ${elite} s.`;

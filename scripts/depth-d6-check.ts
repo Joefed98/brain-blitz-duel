@@ -105,12 +105,16 @@ for (const type of DEPTH_TYPES) {
   }
   ok(depthFinish(type, { left: g.fast, efficiency: 1, moves: 12, par: 11, openedOn: 3 }).score === 150, `${type}: the fast share with no mistakes is 150 off the top route`);
   if (g.route === "par") {
-    ok(depthFinish(type, { left: g.fast, efficiency: 1, moves: 10, par: 10 }).score === 200, `${type}: par at the fast share is 200`);
+    // The par bonus is 20, plus 30 on the stretch: par at today's 150 pace is 170, par at the elite pace 200.
+    ok(depthFinish(type, { left: g.fast, efficiency: 1, moves: 10, par: 10 }).score === 170, `${type}: par at the fast share is 170`);
+    ok(depthFinish(type, { left: g.elite, efficiency: 1, moves: 10, par: 10 }).score === 200, `${type}: par at the elite share is 200`);
+    ok(depthFinish(type, { left: (g.fast + g.elite) / 2, efficiency: 1, moves: 10, par: 10 }).score <= 186, `${type}: par halfway to elite is at most 186`);
+    ok(g.elite > g.fast && depthStretchShare(type, g.fast) === 0, `${type}: the par stretch starts at the fast share`);
     ok(depthFinish(type, { left: 1, efficiency: 1, moves: 11, par: 10 }).score <= 150, `${type}: one over par is at most 150`);
     ok(depthFinish(type, { left: 0, efficiency: 1, moves: 10, par: 10 }).score === 140, `${type}: par at the buzzer is 140`);
   } else {
     ok(depthFinish(type, { left: g.elite, efficiency: 1, moves: 10, par: 10, openedOn: 1 }).score === 200, `${type}: the elite share with no mistakes is 200`);
-    ok(depthFinish(type, { left: (g.fast + g.elite) / 2, efficiency: 1, moves: 10, par: 10, openedOn: 1 }).score <= 170, `${type}: halfway to elite is at most 170`);
+    ok(depthFinish(type, { left: (g.fast + g.elite) / 2, efficiency: 1, moves: 10, par: 10, openedOn: 1 }).score <= 151 + Math.ceil(50 * Math.pow(0.5, g.power)), `${type}: halfway to elite earns the curve's half-way share at most`);
     ok(depthStretchShare(type, g.fast) === 0, `${type}: the stretch starts at the fast share`);
     if (g.route === "stretch" && type !== "flood") ok(depthFinish(type, { left: 1, efficiency: 0.8 }).score < 200 - 10, `${type}: mistakes cut the top`);
   }
@@ -141,10 +145,10 @@ for (const type of ["lightsout", "nonogram", "tents", "shikaku", "lightup"] as P
   const answer = solutionAnswer(p)!;
   const limit = puzzleTimeLimitMs(p);
   const g = depthGame(type);
-  const atTop = gradeAnswer(p, answer, Math.ceil(limit * (g.route === "par" ? g.fast : g.elite)) + 1);
+  const atTop = gradeAnswer(p, answer, Math.ceil(limit * g.elite) + 1);
   ok(atTop.isCorrect && atTop.score === 200, `${type}: the solution at the top pace grades 200 (${atTop.score})`);
   const atFast = gradeAnswer(p, answer, Math.ceil(limit * g.fast) + 1);
-  ok(atFast.score === (g.route === "par" ? 200 : 150), `${type}: the solution at the fast pace grades ${g.route === "par" ? 200 : 150} (${atFast.score})`);
+  ok(atFast.score === (g.route === "par" ? 170 : 150), `${type}: the solution at the fast pace grades ${g.route === "par" ? 170 : 150} (${atFast.score})`);
   const atBuzzer = gradeAnswer(p, answer, 0);
   ok(atBuzzer.score === (g.route === "par" ? 140 : 120), `${type}: the solution at the buzzer grades ${g.route === "par" ? 140 : 120} (${atBuzzer.score})`);
   for (const graded of [atTop, atFast, atBuzzer]) {
@@ -198,7 +202,7 @@ ok(LIGHTUP_BANK.slice(0, 40).every((p) => verifyLightUpPuzzle(p) === null), "the
 for (const type of DEPTH_TYPES) {
   ok(ROUND_MAX[type] === 200 && roundMaxFor(type) === 200, `${type}: ROUND_MAX is 200`);
   ok(/\b200\b/.test(INTRO_SCORE[type]) && INTRO_SCORE[type].length <= 90 && !/\bpar\b/i.test(INTRO_SCORE[type]), `${type}: the intro states 200 in two lines without "par" ("${INTRO_SCORE[type]}")`);
-  ok(/120 to 200/.test(PUZZLE_INSTRUCTIONS[type].score) && /50 more|up to 50/.test(PUZZLE_INSTRUCTIONS[type].score), `${type}: the help states the 200 top and what earns it`);
+  ok(/120 to 200/.test(PUZZLE_INSTRUCTIONS[type].score) && (depthGame(type).route === "par" ? /for 20 more, and up to 30 more/ : /50 more|up to 50/).test(PUZZLE_INSTRUCTIONS[type].score), `${type}: the help states the 200 top and what earns it`);
 }
 ok(Object.keys(DEPTH_GAMES).length === 11, "eleven depth games");
 for (const t of ["nonogram", "tents", "shikaku", "lightup", "lightsout", "tower", "tubes", "safe"]) ok(DEPTH_DEMO_STOPS.has(t), `${t}: an older intro demo is stopped`);

@@ -11,8 +11,8 @@
  *     little faster about 150–165, and only a very fast, clean finish reaches 190–200. Colour Flood's stretch needs
  *     the par moves (one over earns half).
  *   - "par" (Blackout, Hanoi, Polypotions): finishing in the puzzle's minimum (its par, shown on the board) adds
- *     20 plus up to 30 by the same speed share, so a par finish at the fast pace is 200 and the extra 50 is only
- *     reachable at par.
+ *     20, plus up to 30 on the stretch games' curve (nothing at `fast`, all of it at `elite`), so par at today's 150
+ *     pace is about 170, par at the elite pace 200, and the extra 50 is only reachable at par.
  *   - "clean" (Safe Cracker): the stretch, scaled by the tries to spare: all of it on the first try, half on the
  *     second, none on the last.
  *
@@ -38,13 +38,14 @@ export interface DepthGame {
 /**
  * Per game. `fast` is puzzleScoreRev 3's figure for the games whose board is unchanged and the refit for the four
  * bigger boards (scripts/depth-d6-bands.ts); `elite` and `power` are fitted by the same script so that the
- * near-perfect kit (today's 150s) lands about 150–165 and the elite kit about 190–200.
+ * near-perfect kit (today's 150s) lands about 150–165 (about 165–175 at par on the par games) and the elite kit's
+ * median about 190–200.
  */
 export const DEPTH_GAMES: Readonly<Partial<Record<PuzzleType, DepthGame>>> = {
-  lightsout: { route: "par", fast: 0.66, elite: 1, power: 1 },
-  tower: { route: "par", fast: 0.69, elite: 1, power: 1 },
-  tubes: { route: "par", fast: 0.67, elite: 1, power: 1 },
-  safe: { route: "clean", fast: 0.74, elite: 0.79, power: 1.5 },
+  lightsout: { route: "par", fast: 0.66, elite: 0.7, power: 1 },
+  tower: { route: "par", fast: 0.69, elite: 0.77, power: 1 },
+  tubes: { route: "par", fast: 0.67, elite: 0.78, power: 1 },
+  safe: { route: "clean", fast: 0.74, elite: 0.772, power: 1.2 },
   sudoku: { route: "stretch", fast: 0.59, elite: 0.69, power: 1.8 },
   bomb: { route: "stretch", fast: 0.75, elite: 0.85, power: 1.5 },
   nonogram: { route: "stretch", fast: 0.65, elite: 0.77, power: 1.8 },
@@ -68,7 +69,7 @@ export const DEPTH_FINISH_BASE = 120;
 export const DEPTH_SPEED_POINTS = 30;
 /** The top: what a depth game adds above 150. */
 export const DEPTH_TOP_POINTS = 50;
-/** Par route: a par finish's fixed part; the rest (30) follows the speed share. */
+/** Par route: a par finish's fixed part; the rest (30) follows the stretch, nothing at `fast`, all of it at `elite`. */
 export const DEPTH_PAR_BASE = 20;
 /** Clean crack: the stretch's share by try (1st, 2nd, 3rd). */
 export const DEPTH_CLEAN_SHARE = [1, 0.5, 0] as const;
@@ -145,7 +146,7 @@ export function depthFinish(type: PuzzleType, input: DepthFinishInput): DepthFin
   let atPar: boolean | undefined;
   if (g.route === "par") {
     atPar = input.par !== undefined && input.par > 0 && input.moves !== undefined && input.moves <= input.par;
-    top = atPar ? DEPTH_PAR_BASE + Math.round((DEPTH_TOP_POINTS - DEPTH_PAR_BASE) * Math.min(1, clamp(input.left, 0, 1) / g.fast)) : 0;
+    top = atPar ? DEPTH_PAR_BASE + Math.round((DEPTH_TOP_POINTS - DEPTH_PAR_BASE) * depthStretchShare(type, input.left)) : 0;
     topLabel = "par";
   } else if (g.route === "clean") {
     const share = DEPTH_CLEAN_SHARE[clamp(Math.round(input.openedOn ?? 3), 1, 3) - 1] ?? 0;
