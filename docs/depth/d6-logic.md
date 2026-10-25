@@ -100,6 +100,8 @@ Levels are the kit players (good, great, near-perfect) plus an elite level (pace
 the population is 40 players a seed (pace log-normal around a good player's, mistakes rising with pace): median, top
 10 % and best. "Old 150s now" is what the runs that scored 150 on the old board score on the new (median, best, count).
 
+| Game | Good old → new | Great | Near-perfect | Elite | Population median | Top 10 % | Best | Old 150s now (median, max) |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | Blackout | 110 → 110 | 137 → 174 | 146 → 192 | 150 → 200 | 110 → 110 | 140 → 178 | 150 → 200 | 200, 200 (6) |
 | Hanoi | 129 → 129 | 139 → 142 | 148 → 196 | 150 → 200 | 127 → 128 | 143 → 182 | 150 → 200 | 200, 200 (6) |
 | Polypotions | 125 → 125 | 139 → 139 | 148 → 196 | 150 → 200 | 124 → 124 | 141 → 147 | 150 → 200 | 200, 200 (3) |
@@ -111,8 +113,6 @@ the population is 40 players a seed (pace log-normal around a good player's, mis
 | Tents and Trees | 133 → 126 | 142 → 143 | 150 → 150 | 150 → 197 | 129 → 126 | 147 → 146 | 150 → 200 | 157, 200 (26) |
 | Shikaku | 121 → 110 | 139 → 136 | 150 → 148 | 150 → 190 | 121 → 120 | 143 → 143 | 150 → 200 | 164, 200 (13) |
 | Lamplighter | 127 → 125 | 141 → 139 | 148 → 159 | 150 → 200 | 127 → 124 | 144 → 144 | 150 → 200 | 155, 200 (22) |
-| Game | Good old → new | Great | Near-perfect | Elite | Population median | Top 10 % | Best | Old 150s now (median, max) |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- |
 
 Reading it: the good level and the population median stay within about ±10 % (the bigger boards cost a few points
 at the good level: Mosaic −5 %, Tents −5 %, Shikaku −9 %, whose population median is unchanged). Today's 150s land
