@@ -173,7 +173,8 @@ section("New rounds carry the Tuning C stamps; Junction is practice only");
     ["beat", playRevOf("beat", generateBeat().beatRev), BEAT_REV_TUNEF + 1],
     // Taller worlds batch 1 (16 Oct 2026) moved Wavefront on to its taller world (wavRev 6); arcade-tuning-g1-check covers it.
     ["wavefront", playRevOf("wavefront", generateWavefront().wavRev), WAV_REV_TUNEC + 1],
-    ["tilt", playRevOf("tilt", generateTilt().tiltRev), TILT_REV_TUNEC],
+    // The expansion (25 Oct 2026) moved Tilt on to tiltRev 7 (bigger mazes, ice, keys, quick stars); tilt-expand-check covers it.
+    ["tilt", playRevOf("tilt", generateTilt().tiltRev), TILT_REV_TUNEC + 3],
     ["slice", playRevOf("slice", generateSlice().sliceRev), SLICE_REV_LONG + 1],
   ];
   const field: Record<string, string> = { matchup: "matchupRev", swing: "swingRev", hover: "hoverRev", inkbridge: "inkRev", flip: "flipRev", beat: "beatRev", wavefront: "wavRev", tilt: "tiltRev", slice: "sliceRev" };

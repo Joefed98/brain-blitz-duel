@@ -10,7 +10,7 @@
  */
 import { readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { gzipSync } from "node:zlib";
-import { replayTiltRun } from "../src/lib/duel/tilt";
+import { decodeTiltRun, encodeTiltRun, replayTiltRun } from "../src/lib/duel/tilt";
 
 export function tiltStateDigest(state: object): string {
   const { list: _list, ...rest } = state as Record<string, unknown>;
@@ -34,9 +34,14 @@ if (import.meta.main) {
       } catch {
         continue;
       }
-      const raw = text.trim();
+      let raw = text.trim();
       const seed = Number(raw.split("|")[0]);
-      const r = replayTiltRun(seed, raw, rev);
+      let r = replayTiltRun(seed, raw, rev);
+      if (mode !== "--legacy" && r.desyncTick === null && r.reason === "score did not match the replay") {
+        // A log played before the curve's last refit: the same inputs, claiming today's score.
+        raw = encodeTiltRun({ ...decodeTiltRun(raw)!, claimedScore: r.score });
+        r = replayTiltRun(seed, raw, rev);
+      }
       if (r.flagged || r.desyncTick !== null) throw new Error(`${level} #${n}: replay flagged (${r.reason ?? ""})`);
       // Legacy: the same log on every older revision too (whatever it does there), so each one's play is pinned.
       const older: Record<string, [number, string]> = {};

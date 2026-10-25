@@ -614,6 +614,9 @@ export function tiltSounds(): GameSounds<TiltState> {
         if (state.mazes > prev.mazes) sfx("tilt.mazeDone", "arc_marble_clink");
         else if ((state.cupped ?? 0) > (prev.cupped ?? 0)) sfx("tilt.cup", "arc_marble_clink", 0.7);
         if ((state.stars ?? 0) > (prev.stars ?? 0)) sfx("tilt.starTaken", "arc_leaf_collect", 0.8);
+        // tiltRev 7: a quick star is the star's chime a little higher; a key opens its gate with the latch.
+        if ((state.quickTaken ?? 0) > (prev.quickTaken ?? 0)) sfx("tilt.starTaken", "arc_leaf_collect", 0.8, 1.25);
+        if ((state.keysTaken ?? 0) > (prev.keysTaken ?? 0)) sfx("tilt.gate", "arc_latch");
         if (state.mazes === prev.mazes && state.level === prev.level) {
           if (state.gate && !prev.gate) sfx("tilt.gate", "arc_latch");
           const hitX = Math.abs(prev.vx) > TILT_KNOCK_SPEED && state.vx === 0;

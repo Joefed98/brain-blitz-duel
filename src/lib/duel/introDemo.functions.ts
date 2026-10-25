@@ -17,6 +17,7 @@ import type { PuzzleData } from "./types";
 import type { PuzzleDemoLog } from "./puzzleDemo";
 import { ORBIT_BELT_PERIOD_TICKS, ORBIT_BELT_REVISION, ORBIT_REV3, ORBIT_REV4, ORBIT_REV_BAND, ORBIT_REV_TALL, ORBIT_REV_TUNED } from "@/lib/arcade/orbit";
 import { BT_BALLS, BT_REV_TALL } from "@/lib/arcade/ballTrack";
+import { TILT_REV_EXPAND } from "@/lib/arcade/tilt";
 import { clashPlays3, CLASH_REV_TALL } from "@/lib/arcade/colourClash";
 
 export interface IntroDemoRow {
@@ -99,6 +100,9 @@ export const getIntroDemoFn = createServerFn({ method: "GET" })
     if (data.type === "swing" && demo?.puzzle.type === "swing" && demo.puzzle.swingRev !== SWING_REV_TALL) return null;
     if (data.type === "orbit" && demo?.puzzle.type === "orbit" && demo.puzzle.orbitRev !== ORBIT_REV_TALL) return null;
     if (data.type === "balltrack" && demo?.puzzle.type === "balltrack" && demo.puzzle.btRev !== BT_REV_TALL) return null;
+    // Tilt's expansion (tiltRev 7, 25 Oct 2026): three bigger mazes under a camera, keys, ice and quick stars. An older
+    // demo would show the small disc, so the intro shows its still until a demo is recorded on tiltRev 7.
+    if (data.type === "tilt" && demo?.puzzle.type === "tilt" && demo.puzzle.tiltRev !== TILT_REV_EXPAND) return null;
     return demo;
   });
 
