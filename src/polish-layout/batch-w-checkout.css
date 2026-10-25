@@ -1,35 +1,75 @@
 /* Polish batch W (25 Oct 2026, display only): Checkout. Imported only from src/puzzles/checkout.tsx.
-   The fairground palette stays; the pieces get a light top edge and a soft drop shadow. */
+   The fairground palette stays; tabs, ring buttons and Undo / Throw are lit from above (a light top edge,
+   a body about a fifth lighter at the top, a drop shadow), the aimed wedge glows and the stall stands off
+   the tray. Live play area only ([data-play-area]). */
+
+[data-checkout-root][data-play-area] :is(.co-tabs, [data-game-controls="rings"]) > button {
+  position: relative;
+  isolation: isolate;
+}
+[data-checkout-root][data-play-area] :is(.co-tabs, [data-game-controls="rings"]) > button::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  pointer-events: none;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.24), rgba(255, 255, 255, 0) 48%, rgba(0, 0, 0, 0.22));
+}
 
 [data-checkout-root][data-play-area] .co-tabs > button {
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.16),
-    0 4px 10px rgba(0, 0, 0, 0.45);
+    inset 0 2px 0 rgba(255, 255, 255, 0.2),
+    0 6px 12px rgba(0, 0, 0, 0.55);
 }
-/* The board being played: its gold label, with a soft glow in the category colour. */
+/* The board being played: its gold label, with a clear glow in the category colour. */
 [data-checkout-root][data-play-area] .co-tabs > button[aria-selected="true"]:not([data-solved="true"]) {
   border-color: var(--category-accent);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.18),
+    inset 0 2px 0 rgba(255, 255, 255, 0.2),
     0 0 0 1px var(--category-accent),
-    0 0 14px -2px color-mix(in srgb, var(--category-accent) 65%, transparent);
+    0 0 14px 3px color-mix(in srgb, var(--category-accent) 60%, transparent);
 }
 [data-checkout-root][data-play-area] .co-tabs > button[data-solved="true"] {
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.45),
-    inset 0 -2px 0 rgba(0, 0, 0, 0.2),
-    0 4px 10px rgba(0, 0, 0, 0.45);
+    inset 0 2px 0 rgba(255, 255, 255, 0.5),
+    inset 0 -2px 0 rgba(0, 0, 0, 0.22),
+    0 6px 12px rgba(0, 0, 0, 0.55);
 }
 [data-checkout-root][data-play-area] .co-ring:not(:disabled) {
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.28),
-    inset 0 -2px 0 rgba(0, 0, 0, 0.25),
-    0 4px 10px rgba(0, 0, 0, 0.45);
+    inset 0 2px 0 rgba(255, 255, 255, 0.34),
+    inset 0 -3px 0 rgba(0, 0, 0, 0.28),
+    0 6px 12px rgba(0, 0, 0, 0.55);
 }
+/* Undo / Throw: the same light as a background layer (no ::before: the shared stylesheet draws Undo's
+   arrow with it). */
 [data-checkout-root][data-play-area] [data-game-controls="actions"] > button {
+  background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.24), rgba(255, 255, 255, 0) 48%, rgba(0, 0, 0, 0.22));
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.2),
-    0 4px 10px rgba(0, 0, 0, 0.45);
+    inset 0 2px 0 rgba(255, 255, 255, 0.26),
+    inset 0 -3px 0 rgba(0, 0, 0, 0.22),
+    0 6px 12px rgba(0, 0, 0, 0.55);
+}
+
+/* The aimed wedge's gold outline glows in the category colour. */
+[data-checkout-root][data-play-area] .co-sel {
+  filter: drop-shadow(0 0 5px var(--category-accent)) drop-shadow(0 0 10px color-mix(in srgb, var(--category-accent) 60%, transparent));
+}
+
+/* The stall stands off the tray; the chalk scoreboard is sunk into its wooden frame. */
+[data-checkout-root][data-play-area] .co-arena {
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.08),
+    inset 0 2px 0 rgba(255, 255, 255, 0.08),
+    inset 0 -18px 30px -18px rgba(0, 0, 0, 0.55),
+    0 14px 28px rgba(0, 0, 0, 0.55);
+}
+[data-checkout-root][data-play-area] .co-score {
+  box-shadow:
+    inset 0 0 0 1px #3d2414,
+    inset 0 4px 10px rgba(0, 0, 0, 0.6),
+    0 1px 0 rgba(255, 255, 255, 0.08);
 }
 [data-checkout-root] .co-darts {
   opacity: 0.72;

@@ -581,11 +581,12 @@ function Stage2({ puzzle, locked, onSubmit, onDraftAnswer, checkMoves, stateKey 
   };
 
   // One row of up to eight tiles, as large as the arena allows: batch W (display only) fills the tray's
-  // width with the word's own length (4px gaps, 8px for the row's ring) and stands each tile a fifth
-  // taller than wide, never smaller than before (the height limit is the old one).
+  // width with the word's own length (4px gaps, 8px for the row's ring) and stands each tile taller
+  // than wide, 72–80px where the arena has the height, never smaller than before (the old height,
+  // min(1.2 × width, (arena − 56) / 1.6), is always within the new limits).
   const tileCount = Math.max(1, pattern.length || 8);
   const tileSize = `min(64px, calc((100cqw - ${8 + (tileCount - 1) * 4}px) / ${tileCount}), calc((100cqh - 56px) / 1.6))`;
-  const tileHeight = "min(calc(var(--so-tile) * 1.2), calc((100cqh - 56px) / 1.6))";
+  const tileHeight = "min(max(calc(var(--so-tile) * 1.45), 72px), 80px, calc((100cqh - 40px) / 1.25))";
   let k = 0;
   const letters = [...shown].map((ch) => (ch === "_" ? (isSolving ? (typed[k++] ?? "") : "") : ch));
   k = 0;

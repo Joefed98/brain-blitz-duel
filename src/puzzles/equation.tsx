@@ -135,6 +135,8 @@ const OPERATOR_CSS = `
 /** The equation's design size and the least it may shrink to (a wide equation on the narrowest phone). */
 const OP_EQUATION_PX = 32;
 const OP_EQUATION_MIN_PX = 16;
+/** In a live round's frame (polish batch W) the equation starts larger, using the board's spare room; it still shrinks to fit. */
+const OP_EQUATION_FRAME_PX = 46;
 
 function useFitOneLine(box: RefObject<HTMLElement | null>, line: RefObject<HTMLElement | null>, basePx: number, minPx: number, key: unknown) {
   useBeforePaint(() => {
@@ -274,7 +276,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "equation" 
   // The equation stays on one line (useFitOneLine): refitted per equation.
   const equationBox = useRef<HTMLDivElement>(null);
   const equationLine = useRef<HTMLSpanElement>(null);
-  useFitOneLine(equationBox, equationLine, OP_EQUATION_PX, OP_EQUATION_MIN_PX, `${stage}:${current?.numbers.join(",")}=${current?.target}`);
+  useFitOneLine(equationBox, equationLine, inFrame ? OP_EQUATION_FRAME_PX : OP_EQUATION_PX, OP_EQUATION_MIN_PX, `${stage}:${current?.numbers.join(",")}=${current?.target}`);
   if (!data || !current) return null;
   const frozen = locked || done.current || holding;
   // Out of tries: the equation is over; only Next (or Submit) is left.

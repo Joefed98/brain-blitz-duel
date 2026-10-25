@@ -7,12 +7,27 @@
   padding-bottom: 0;
 }
 
-/* The number card: a light top edge and a deeper soft shadow, in its own colours. */
+/* The number card: taller with a bigger number in a live round (the line is width-limited and the card
+   used to leave the height empty), lit from above in its own colours with a soft category glow behind
+   the number. Input maps only x across the whole arena, so nothing about touches changes. */
 [data-puzzle-play] [data-polish="numline"] .numline-card {
+  height: clamp(104px, 19cqh, 150px);
+  font-size: clamp(52px, 10cqh, 80px);
+  border-color: color-mix(in srgb, var(--category-accent) 28%, rgba(255, 255, 255, 0.12));
+  background-image:
+    radial-gradient(60% 70% at 50% 55%, color-mix(in srgb, var(--category-accent) 20%, transparent), transparent 75%),
+    linear-gradient(180deg, color-mix(in oklab, var(--card) 78%, white 14%), color-mix(in oklab, var(--card) 92%, black 8%));
   box-shadow:
-    inset 0 1px 0 color-mix(in oklab, white 16%, transparent),
-    inset 0 -2px 0 rgb(0 0 0 / 0.25),
-    0 8px 18px -8px rgb(0 0 0 / 0.75);
+    inset 0 2px 0 rgba(255, 255, 255, 0.2),
+    inset 0 -3px 0 rgb(0 0 0 / 0.3),
+    0 12px 24px -8px rgb(0 0 0 / 0.8);
+}
+[data-puzzle-play] [data-polish="numline"] .numline-card > span {
+  text-shadow: 0 0 18px color-mix(in srgb, var(--category-accent) 55%, transparent), 0 2px 0 rgba(0, 0, 0, 0.5);
+}
+/* More air between the card and the line. */
+[data-puzzle-play] [data-polish="numline"] .numline-line-in {
+  margin-top: 22px;
 }
 
 /* Place: a light top edge and a soft glow in the category colour while a marker is ready. */
@@ -20,5 +35,5 @@
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.35),
     0 4px 10px rgba(0, 0, 0, 0.45),
-    0 0 16px color-mix(in srgb, var(--category-accent) 40%, transparent);
+    0 0 14px 4px color-mix(in srgb, var(--category-accent) 50%, transparent);
 }

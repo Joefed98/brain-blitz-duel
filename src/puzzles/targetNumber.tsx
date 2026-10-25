@@ -380,6 +380,8 @@ function TargetStage({
         </div>
 
         <div ref={historyRef} data-scrollable className="target-history exact-history">
+          {/* The steps card (polish batch W): painted only round the lines it holds, so no half-empty panel. */}
+          <div className="exact-history-card">
           {steps.length === 0 ? (
             <p className="exact-history-empty">No steps yet</p>
           ) : (
@@ -394,6 +396,7 @@ function TargetStage({
               </p>
             ))
           )}
+          </div>
         </div>
         {/* The live summary (polish batch W): numbers left, steps, the closest number so far. */}
         <LiveSummary

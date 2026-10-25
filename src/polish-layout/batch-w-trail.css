@@ -1,27 +1,65 @@
 /* Polish batch W (25 Oct 2026, display only): Trail. Imported only from src/puzzles/trail.tsx. */
 
-/* Empty ground squares sink a little deeper (a well in the game's own moss), milestones stand up. */
-[data-polish="trail"] [data-game-arena] .tr-ground {
+/* The board's surface: a moss bed lit from above with an inner shade at its edges, behind the squares (it
+   shows in the gaps). It also paints the grid's whole box, so the frame's tray hugs all six rows (empty
+   rows painted nothing, and the tray used to miss the top row). */
+[data-polish="trail"] [data-game-arena] > .relative {
+  border-radius: 8px;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--category-accent) 16%, #141b12), #0c110b);
   box-shadow:
-    inset 0 2px 5px rgba(0, 0, 0, 0.5),
-    inset 0 -1px 0 rgba(190, 220, 150, 0.06);
-}
-[data-polish="trail"] [data-game-arena] .tr-milestone {
-  box-shadow:
-    inset 2px 2px 0 rgba(255, 255, 255, 0.2),
-    inset -2px -3px 0 rgba(0, 0, 0, 0.36),
-    0 3px 6px rgba(0, 0, 0, 0.5);
+    0 0 0 4px #0f150d,
+    0 0 0 5px color-mix(in srgb, var(--category-accent) 26%, transparent),
+    inset 0 0 14px rgba(0, 0, 0, 0.7),
+    0 14px 30px rgba(0, 0, 0, 0.5);
 }
 
-/* The trail's head (the last stone or milestone) glows softly in the category colour. */
+/* Empty ground squares: clearly sunk into the bed. */
+[data-polish="trail"] [data-game-arena] .tr-ground {
+  box-shadow:
+    inset 0 4px 8px rgba(0, 0, 0, 0.62),
+    inset 0 -1px 0 rgba(190, 220, 150, 0.12),
+    0 1px 0 rgba(255, 255, 255, 0.04);
+  filter: brightness(0.86);
+}
+
+/* Milestones: a light top bevel, a body lighter at the top, a drop shadow. */
+[data-polish="trail"] [data-game-arena] .tr-milestone {
+  isolation: isolate;
+  box-shadow:
+    inset 0 2px 0 rgba(255, 255, 255, 0.36),
+    inset 2px 0 0 rgba(255, 255, 255, 0.1),
+    inset -2px -3px 0 rgba(0, 0, 0, 0.42),
+    0 5px 9px rgba(0, 0, 0, 0.6);
+}
+[data-polish="trail"] [data-game-arena] .tr-milestone::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  pointer-events: none;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0) 45%, rgba(0, 0, 0, 0.24));
+}
+
+/* Path stones (the cream discs): a brighter top edge and a softer, longer shadow. */
+[data-polish="trail"] [data-game-arena] .tr-step:not(.tr-wrong):not(.tr-end) {
+  box-shadow:
+    inset 0 2px 0 rgba(255, 255, 255, 0.75),
+    inset -1px -3px 0 rgba(80, 64, 40, 0.4),
+    0 4px 7px rgba(0, 0, 0, 0.55);
+}
+
+/* The trail's head (the last stone or milestone): a clear glow in the category colour. */
 [data-polish="trail"] .tr-step.tr-end {
   box-shadow:
     0 0 0 2px var(--background),
     0 0 0 4px var(--category-accent),
-    0 0 16px 2px color-mix(in srgb, var(--category-accent) 55%, transparent);
+    0 0 14px 4px color-mix(in srgb, var(--category-accent) 65%, transparent),
+    inset 0 2px 0 rgba(255, 255, 255, 0.75);
 }
 [data-polish="trail"] .tr-cell.tr-end {
   box-shadow:
     inset 0 0 0 2px var(--category-accent),
-    0 0 14px color-mix(in srgb, var(--category-accent) 50%, transparent);
+    0 0 14px 4px color-mix(in srgb, var(--category-accent) 60%, transparent),
+    inset 0 2px 0 rgba(255, 255, 255, 0.36);
 }

@@ -334,9 +334,10 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, s
       aria-label={`Select weight ${scale.tray[i] ?? 0}`}
       data-selected={selected === i}
       onClick={() => tapWeight(i)}
-      className="bal-tray-cup h-14 w-14 p-0"
+      className={`bal-tray-cup ${inFrame ? "h-16 w-16" : "h-14 w-14"} p-0`}
     >
-      <Disc value={scale.tray[i] ?? 0} fixed={false} width={44} height={52} />
+      {/* A live round's cups are a size up (polish batch W); intros and demos keep main's. */}
+      <Disc value={scale.tray[i] ?? 0} fixed={false} width={inFrame ? 50 : 44} height={inFrame ? 59 : 52} />
     </Button>
   ));
 

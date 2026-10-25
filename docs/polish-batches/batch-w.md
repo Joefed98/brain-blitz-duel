@@ -48,6 +48,39 @@ Before / after (414 × 896, main beside this branch): `screenshots/polish-batch-
 | Checkout | Tabs, ring buttons and Undo / Throw get a top edge and shadow; the board in play glows round its label; palette unchanged. | On the chalk scoreboard: "2/3 darts" beside the remaining total |
 | Ballpark | "Line n of 3" dropped in the frame (the goal line shows it); padding fix: Place's own 16 px bottom pad doubled the dock's, removed in a live round only (demos keep it); the number card is deeper; Place glows when ready. | "2 of 5 placed · touch the line" |
 
+## Second pass: a lift that reads at a glance (25 Oct 2026)
+
+Joe's review of the first sheets: the lift was too subtle. The second pass keeps everything above and,
+for all 18 games, makes depth and glow clearly visible, uses spare height and lights the board panels.
+All of it is scoped to the live round (intros, demos and reveals keep main's geometry, so recorded demo
+touches still land; intro-demo-check and presentation-geometry-check pass).
+
+- **Depth:** pieces have a bright top edge, a body about 15–20 % lighter at the top than the bottom, a dark
+  lower lip and a 6–12 px drop shadow, in each game's own colours and materials (Integer Pyramid's stone and
+  sand, Counterweight's wood and gold, Tenfall's oak). Empty slots are clearly sunken (darker top, inner shadow).
+- **Glow:** selected or active pieces get an 8–14 px outer glow in the category colour (Nucleus's word tiles,
+  Interlock's picked tile, Forage's trace, Lookout's drag, Roundabout's traced letters, Cryptogrid's number,
+  Swapword's pick, Exact's picks, Operator's next slot, Counterweight's cup, Trail's head, Brimful's jug,
+  Checkout's tab and wedge, Ballpark's Place). Key numbers glow: Exact's target (now up to about 104 px),
+  Operator's "= target", Tenfall's target plaque, Ballpark's number card.
+- **Spare height used** (boards only ever bigger; main → now at 414 × 896): Integer Pyramid 399×333 → 399×458
+  (bricks up to 1.15 × their width, 63 → 86 px); Strikeout 341×45 → 398×78 (tiles about 77 px tall, the word
+  moved down so the band above the keyboard is about 80 px, not 200); Brimful 590 → 616 tall (jugs 40 px a
+  litre, 124 px wide); Ballpark 271 → 341 tall (card 104 → 146 px, number 50 → 80 px); Trail 331 → 398
+  (the tray now covers all six rows: empty rows painted nothing, so the tray missed the top row on main too);
+  Counterweight 622 → 648 (cups 56 → 64 px); Exact's steps panel is painted only round its lines and its tiles
+  grow 64 → 72 px; Operator's equation starts at 46 px (was 32) and its keys 64 → 74 px; Cryptogrid's keypad
+  keys 42 → 50 px and clue letters 18 px on screens at least 820 px tall (shorter screens keep pass 1's sizes).
+  Square or full-width boards (Nucleus, Interlock, Slider, Forage, Lookout, Swapword, Checkout) were already
+  at the column's width and keep their size.
+- **Lit surfaces:** flat board panels get a low-strength category-colour gradient, brighter at the top, with
+  an inner shade at the edges: Nucleus's disc, Interlock, Slider, Forage and Lookout's grids, Roundabout's
+  wheel dome, Cryptogrid's grid, Exact and Operator's boards, Counterweight's wall spotlight, Trail's moss bed,
+  Brimful's bench and glass shelf, Integer Pyramid's light pool.
+- **Tenfall:** the tile sprite gets a gloss over its top 45 % and a low shade, a stronger lip and contact
+  shadow, deeper lane grooves and a lit HUD (all inside the 2 px bounds allowance; the sim is untouched).
+  These draw functions are shared with Tenfall's reveal, replays and game icon, which pick up the new light.
+
 ## Assumptions
 
 - "Live round" means inside the frame's `GoalLineContext`; outside it every game looks as on main.
@@ -59,18 +92,21 @@ Before / after (414 × 896, main beside this branch): `screenshots/polish-batch-
 - The Word batch 13 Oct coordinate demos: Roundabout's wheel and Strikeout's row moved. No demo
   recordings are in the repo; any in the database are on `WORD_BATCH_DEMOS`' revision (see Shared requests).
 
-## Checks (run locally)
+## Checks (run locally, second pass)
 
-- Board size: `bun scripts/shots/frame-probe.ts <18 games> --compare=scripts/fixtures/board-sizes-main.json`: PASS
-  (every board at least main's size, every tray within 24 px; Operator first failed by 18 px and was fixed
-  by moving its summary inside the board).
-- first-paint-check (the 18 games, practice, room and standalone late passes): PASS for all 17 puzzles.
-  Tenfall, not in the check's own list (an arcade-stage game with no geometry hold), fails its standalone
-  late pass when the insets arrive late; its layout code is unchanged (only the draw call), so main fails the same way.
-- no-wrap-check "answer reveal": PASS.
-- Game checks: codeword, letterwheel, strikeout, swapword, word-polish, word-game-tuning, wordsearch,
-  wordsmith-variable, tile-grid-word-count, move-limits, number-batch, number-pyramid, trail, tendrop,
-  arcade-fx: PASS. Typecheck: clean.
+- Board size: `bun scripts/shots/frame-probe.ts <17 puzzles> --compare=scripts/fixtures/board-sizes-main.json`:
+  PASS (every board at least main's size, every tray within 24 px, no cut header or goal-line text).
+- first-paint-check (the 17 puzzles and Tenfall): every practice and room first-paint pass PASS. The
+  standalone late pass is flaky for Lookout on main as well (main failed 1 run in 4, the branch 2 in 4; see
+  Shared requests), and it failed once for Interlock (it passed when run again). Tenfall's late pass fails on
+  main the same way (an arcade-stage game, not in the check's own list). Lookout's grid surface uses one
+  fixed-colour layer and its cell sheen is a background layer (no pseudo-element per cell), to keep the first
+  frames cheap.
+- no-wrap-check "answer reveal": PASS (first pass; the reveal screens are not changed).
+- Game checks, all PASS: codeword, letterwheel, strikeout, swapword, word-polish, word-game-tuning,
+  wordsearch, wordsmith-variable, tile-grid-word-count, move-limits, number-batch, number-pyramid, trail,
+  tendrop, arcade-fx; also intro-demo-check and presentation-geometry-check. Typecheck: clean.
+- `bun scripts/practice-stamps.ts`: no change. `bun.lock`: unchanged.
 
 ## Shared requests
 
@@ -84,3 +120,10 @@ Before / after (414 × 896, main beside this branch): `screenshots/polish-batch-
   (today the spec lives in `tenDrop.renderer.ts`).
 - Optional: add Counterweight to `GOAL_BAR_GAMES` so its "Scale n of N" gets the pip bar (needs the goal
   line's 28 px height, a shared change).
+- first-paint-check's standalone late pass races the shared geometry hold (`useGeometryHold`, PhoneShell):
+  the check sends the insets and the 848 px viewport as two CDP calls, and the hold releases once the insets
+  read stable for 3 frames, which can land between the two; the stage then shrinks 48 px in view. Seen on
+  main for Lookout (1 run in 4). Requiring the viewport to settle too (or the check sending both at once)
+  would make it deterministic.
+- `boardBox` stops at the first painted cell, so a grid whose top rows are empty (Trail) gets a tray that
+  misses them; counting a grid's empty cells would fix it for every game (Trail now paints its bed).

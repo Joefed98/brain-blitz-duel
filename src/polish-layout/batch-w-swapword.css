@@ -5,16 +5,20 @@
  * this lays a light top edge and a soft shadow over them and a category glow on the picked tile.
  */
 [data-word-polish="swapword"][data-word-polish] [data-sw-tile] {
-  background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0) 55%, rgba(0, 0, 0, 0.08)) !important;
+  /* A body about a fifth lighter at the top than the foot over the tile's own colour, a bright top edge
+     and a soft drop shadow. */
+  background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.3), rgba(255, 255, 255, 0.06) 45%, rgba(0, 0, 0, 0.18)) !important;
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.35),
-    0 5px 12px rgba(0, 0, 0, 0.45);
+    inset 0 2px 0 rgba(255, 255, 255, 0.5),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.12),
+    0 8px 16px rgba(0, 0, 0, 0.55),
+    0 2px 4px rgba(0, 0, 0, 0.45);
 }
 [data-word-polish="swapword"][data-word-polish] [data-sw-tile].ring-2 {
   box-shadow:
     0 0 0 2px var(--foreground),
-    0 0 16px color-mix(in srgb, var(--category-accent) 60%, transparent),
-    inset 0 1px 0 rgba(255, 255, 255, 0.35);
+    0 0 14px 4px color-mix(in srgb, var(--category-accent) 75%, transparent),
+    inset 0 2px 0 rgba(255, 255, 255, 0.5);
 }
 [data-word-polish="swapword"][data-word-polish] [data-sw-tile][data-move-flash="right"] {
   box-shadow:

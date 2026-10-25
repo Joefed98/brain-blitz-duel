@@ -39,6 +39,7 @@ import { playCorrect, playTick, playWrong } from "@/lib/sound";
 import { NO_SCROLL_STYLE, useNoTouchScroll } from "@/components/puzzles/noScroll";
 import { PolishStyle, soundCue, useSolveFx } from "@/components/puzzles/numberPolish";
 import { drawTenDropLive, tenDropArenaScene } from "@/lib/arcade/tenDrop.renderer";
+import "@/polish-layout/batch-w-tendrop.css";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 import { arcadeCanvasRatio } from "@/lib/fx/lowEnd";

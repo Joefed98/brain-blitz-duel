@@ -1,6 +1,95 @@
-/* Polish batch W (25 Oct 2026, display only): Exact. Imported only from src/puzzles/targetNumber.tsx. */
+/* Polish batch W (25 Oct 2026, display only): Exact. Imported only from src/puzzles/targetNumber.tsx.
+   The second pass (stronger depth, glow and a lit surface) applies on a live round's game screen
+   ([data-puzzle-play]); intros and demos keep main's sizes so recorded touches still land. */
 
-/* The picked number and the picked operator keep their gold ring and gain a soft glow in the category colour. */
+/* The board: a lit surface in the category colour, an inner shade at its edges, the faint grid kept. */
+[data-puzzle-play] [data-polish="target"][data-stage-column] .exact-board {
+  background:
+    radial-gradient(90% 48% at 50% 22%, rgba(245, 184, 46, 0.16), transparent 70%),
+    repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.022) 0 1px, transparent 1px 22px),
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.022) 0 1px, transparent 1px 22px),
+    linear-gradient(180deg, color-mix(in srgb, var(--category-accent) 16%, #1b1b24) 0%, #14141b 55%, color-mix(in srgb, var(--category-accent) 7%, #0e0e13) 100%);
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--category-accent) 30%, transparent),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1),
+    inset 0 0 28px rgba(0, 0, 0, 0.55),
+    0 10px 24px rgba(0, 0, 0, 0.45);
+}
+
+/* The target: bigger, with a soft gold glow behind it. */
+[data-puzzle-play] [data-polish="target"] .exact-plaque::before {
+  content: "";
+  position: absolute;
+  inset: -18% -10%;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, rgba(245, 184, 46, 0.3), rgba(245, 184, 46, 0.1) 55%, transparent);
+  filter: blur(6px);
+  pointer-events: none;
+}
+[data-puzzle-play] .game-column [data-polish="target"] .exact-number {
+  font-size: clamp(56px, min(23cqw, 19cqh), 104px);
+  color: #ffc844;
+  text-shadow:
+    0 0 22px rgba(245, 184, 46, 0.55),
+    0 0 4px rgba(255, 224, 138, 0.5),
+    0 3px 0 rgba(0, 0, 0, 0.5);
+}
+[data-puzzle-play] [data-polish="target"] .exact-label {
+  color: #d6d3dc;
+}
+
+/* The steps: the box keeps its height (so nothing moves as steps arrive), but only a card round the
+   lines is painted, so there is no half-empty panel. */
+[data-puzzle-play] [data-polish="target"] .exact-history {
+  background: none;
+  box-shadow: none;
+  padding: 0 8px;
+  justify-content: flex-start;
+}
+/* Outside a live round the card is not a box at all, so intros and demos lay out exactly as main. */
+[data-polish="target"] .exact-history-card {
+  display: contents;
+}
+[data-puzzle-play] [data-polish="target"] .exact-history-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  min-width: 70%;
+  padding: 6px 18px;
+  border-radius: 12px;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.42), rgba(0, 0, 0, 0.26));
+  box-shadow:
+    inset 0 2px 6px rgba(0, 0, 0, 0.6),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.06),
+    0 1px 0 rgba(255, 255, 255, 0.06);
+}
+[data-puzzle-play] [data-polish="target"] .exact-history-empty {
+  margin: 0;
+}
+
+/* Number tiles: taller (the board keeps more than main's height), with a light top edge, a body 18 %
+   lighter at the top than the bottom and a soft drop shadow. */
+[data-puzzle-play] [data-polish="target"] .exact-tile {
+  height: 72px;
+  font-size: 28px;
+  background: linear-gradient(180deg, #3b3b48 0%, #2a2a35 50%, #1f1f28 100%);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.12),
+    inset 0 1.5px 0 rgba(255, 255, 255, 0.3),
+    inset 0 -4px 0 rgba(0, 0, 0, 0.35),
+    0 6px 12px rgba(0, 0, 0, 0.5);
+}
+[data-puzzle-play] [data-polish="target"] .exact-tile[data-large="true"] {
+  background: linear-gradient(180deg, #4d4529 0%, #353020 50%, #24211a 100%);
+  box-shadow:
+    inset 0 0 0 1px rgba(245, 184, 46, 0.38),
+    inset 0 1.5px 0 rgba(255, 236, 170, 0.32),
+    inset 0 -4px 0 rgba(0, 0, 0, 0.35),
+    0 6px 12px rgba(0, 0, 0, 0.5);
+}
+
+/* The picked number and the picked operator keep their gold ring and glow in the category colour. */
 [data-polish="target"] .exact-tile[data-state="selected"] {
   box-shadow:
     inset 0 0 0 2px #f5b82e,
@@ -9,18 +98,53 @@
     0 0 16px color-mix(in srgb, var(--category-accent) 50%, transparent),
     0 4px 8px rgba(0, 0, 0, 0.4);
 }
+[data-puzzle-play] [data-polish="target"] .exact-tile[data-state="selected"] {
+  background: linear-gradient(180deg, #5e4d1c 0%, #3c3011 55%, #2c240c 100%);
+  box-shadow:
+    inset 0 0 0 2px #f5b82e,
+    inset 0 1.5px 0 rgba(255, 236, 170, 0.4),
+    inset 0 -4px 0 rgba(0, 0, 0, 0.3),
+    0 0 0 2px color-mix(in srgb, var(--category-accent) 80%, transparent),
+    0 0 14px 2px color-mix(in srgb, var(--category-accent) 65%, transparent),
+    0 8px 14px rgba(0, 0, 0, 0.5);
+}
 [data-polish="target"] .exact-op[data-on="true"] {
   box-shadow:
     inset 0 0 0 2px #f5b82e,
     inset 0 -3px 0 rgba(0, 0, 0, 0.3),
     0 0 12px color-mix(in srgb, var(--category-accent) 45%, transparent);
 }
+[data-puzzle-play] [data-polish="target"] .exact-op {
+  background: linear-gradient(180deg, #363642 0%, #262630 50%, #1c1c24 100%);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.1),
+    inset 0 1.5px 0 rgba(255, 255, 255, 0.26),
+    inset 0 -3px 0 rgba(0, 0, 0, 0.35),
+    0 5px 10px rgba(0, 0, 0, 0.45);
+}
+[data-puzzle-play] [data-polish="target"] .exact-op[data-on="true"] {
+  background: linear-gradient(180deg, #54451d, #2d2510);
+  box-shadow:
+    inset 0 0 0 2px #f5b82e,
+    inset 0 1.5px 0 rgba(255, 236, 170, 0.35),
+    inset 0 -3px 0 rgba(0, 0, 0, 0.3),
+    0 0 14px 2px color-mix(in srgb, var(--category-accent) 60%, transparent);
+}
+
 /* Used numbers sink into wells. */
 [data-polish="target"] .exact-tile[data-state="consumed"] {
   background: rgba(0, 0, 0, 0.35);
   box-shadow:
     inset 0 0 0 1px rgba(255, 255, 255, 0.06),
     inset 0 2px 6px rgba(0, 0, 0, 0.6);
+}
+[data-puzzle-play] [data-polish="target"] .exact-tile[data-state="consumed"] {
+  opacity: 0.55;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.35));
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.07),
+    inset 0 4px 10px rgba(0, 0, 0, 0.85),
+    0 1px 0 rgba(255, 255, 255, 0.06);
 }
 /* The live summary sits at the board's foot, above the number dock. */
 [data-polish="target"] .exact-board > .bw-summary {

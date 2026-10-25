@@ -68,6 +68,18 @@ const NP_CSS = `
 .np-ghost { box-shadow: 0 10px 18px rgba(0,0,0,.55), inset 2px 2px 0 rgba(255,250,235,.55) !important; }
 .game-column [data-polish="numpyramid"] > .np-spacer { flex: 1 1 0 !important; min-height: 0; margin: 0 !important; }
 .np-reveal-label { color: #d9d2c4; }
+/* Polish batch W (25 Oct 2026, display only; live round only, [data-bw-live]): the same stone and sand, lit. A
+   light top bevel, a body about a fifth lighter at the top than the bottom, a shadow under each brick; sockets
+   sunk deeper; a soft pool of light behind the pyramid. */
+[data-bw-live] .np-row { background: transparent; box-shadow: none; }
+[data-bw-live] .np-given { isolation: isolate; background-image: linear-gradient(180deg, rgba(255,255,255,.2) 0%, rgba(255,255,255,0) 42%, rgba(0,0,0,.24) 100%), ${SPECKLE}, linear-gradient(165deg, #847e74 0%, #625d56 52%, #45403a 100%); box-shadow: inset 0 2px 0 rgba(255,255,255,.34), inset 2px 0 0 rgba(255,255,255,.1), inset -2px -3px 0 rgba(0,0,0,.42), 0 5px 8px rgba(0,0,0,.6), 0 1px 0 rgba(0,0,0,.6); }
+[data-bw-live] .np-socket { background-image: ${SPECKLE}, linear-gradient(180deg, #0b0a08, #1d1a16 70%, #26221c); box-shadow: inset 0 5px 10px rgba(0,0,0,.9), inset 0 -1px 0 rgba(222,196,150,.14), inset 0 0 0 1px rgba(222,196,150,.2), 0 1px 0 rgba(255,255,255,.06); }
+[data-bw-live] .np-block, [data-bw-live] .np-loose, [data-puzzle-surface] [data-bw-live] .pyramid-tray-tile.np-loose { background-image: linear-gradient(180deg, rgba(255,255,255,.26) 0%, rgba(255,255,255,0) 42%, rgba(70,40,10,.22) 100%), ${SANDSTONE} !important; }
+[data-bw-live] .np-block { box-shadow: inset 0 2px 0 rgba(255,250,235,.7), inset 2px 0 0 rgba(255,250,235,.3), inset -2px -3px 0 rgba(96,62,22,.45), 0 5px 8px rgba(0,0,0,.6); }
+[data-puzzle-surface] [data-bw-live] .pyramid-tray-tile.np-loose:not(.np-picked), [data-bw-live] .pyramid-tray-tile.np-loose:not(.np-picked) { box-shadow: inset 0 2px 0 rgba(255,250,235,.7), inset 2px 0 0 rgba(255,250,235,.3), inset -2px -3px 0 rgba(96,62,22,.45), 0 5px 9px rgba(0,0,0,.6) !important; }
+[data-bw-live] [data-game-arena="board"] > .relative { isolation: isolate; }
+[data-bw-live] [data-game-arena="board"] > .relative::before { content: ""; position: absolute; inset: -18% -6% -10%; z-index: -1; pointer-events: none; background: radial-gradient(60% 55% at 50% 52%, color-mix(in srgb, var(--category-accent) 30%, transparent), transparent 72%); }
+[data-bw-live] .np-quarry { background-image: ${SPECKLE}, linear-gradient(180deg, #100e0c, #221e19 60%, #2a251f); box-shadow: inset 0 4px 10px rgba(0,0,0,.8), inset 0 0 0 1px rgba(222,196,150,.2), 0 1px 0 rgba(255,255,255,.06); }
 @media (prefers-reduced-motion: reduce) {
   .np-set, .np-loose { animation: none; transition: none; }
   .np-glow { animation: none; opacity: .7; transform: none; }
@@ -253,8 +265,10 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
   const trayW = Math.max(44, Math.floor((size.width - 16 - 5 * 6) / 6));
   const trayRows = Math.ceil(board.tray.length / 6);
   const heightFit = Math.floor((size.height - 132 - trayRows * 50 - (board.rows - 1) * 4) / board.rows);
-  const cellH = Math.max(44, Math.min(Math.round(cellW * 0.82), heightFit));
-  const fontSize = Math.round(Math.min(cellH * 0.5, cellW * 0.36));
+  // Batch W: in a live round the width-limited bricks grow into the spare height (up to 1.15 × their width), never shorter than main's.
+  const mainH = Math.max(44, Math.min(Math.round(cellW * 0.82), heightFit));
+  const cellH = framed ? Math.max(mainH, Math.min(Math.round(cellW * 1.15), heightFit)) : mainH;
+  const fontSize = Math.round(Math.min(cellH * 0.5, cellW * (framed ? 0.4 : 0.36)));
 
   const drop = (tray: number, from: number | null, cell: number | null) => {
     if (busy) return;
@@ -312,7 +326,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
   const tileClass = (tray: number) => `pyramid-tray-tile np-stone np-loose${selected?.tray === tray ? " np-picked" : ""}`;
 
   return (
-    <div ref={box} data-polish="numpyramid" data-play-area data-stage-column="1" className="flex min-h-0 w-full flex-1 flex-col items-center gap-1 py-0.5 select-none" style={NO_TOUCH} onPointerMove={move} onPointerUp={(e) => (drag ? end(e) : tapEmpty(e))} onPointerCancel={() => setDrag(null)}>
+    <div ref={box} data-polish="numpyramid" data-bw-live={framed ? "" : undefined} data-play-area data-stage-column="1" className="flex min-h-0 w-full flex-1 flex-col items-center gap-1 py-0.5 select-none" style={NO_TOUCH} onPointerMove={move} onPointerUp={(e) => (drag ? end(e) : tapEmpty(e))} onPointerCancel={() => setDrag(null)}>
       {column && <div className="np-spacer" aria-hidden />}
       <StageProgress stage={stage} total={NP_SET_SIZE} />
       <div className="flex h-11 w-full shrink-0 items-center justify-between">

@@ -566,10 +566,11 @@ function Stage({
   const maxCap = Math.max(...board.caps);
   const jugWidth = Math.max(
     54,
-    Math.min(96, Math.floor((size.width - 24) / (board.caps.length * 1.35))),
+    Math.min(framed ? 124 : 96, Math.floor((size.width - 24) / (board.caps.length * 1.35))),
   );
-  // Height-fitted: the stream room above (22 px) and the amount label below (26 px).
-  const litre = Math.max(6, Math.min(30, Math.floor((size.height - 56) / maxCap)));
+  // Height-fitted: the stream room above (22 px) and the amount label below (26 px). Batch W: in a live
+  // round the jugs may grow further into the free height (40 px a litre, 124 px wide, never smaller).
+  const litre = Math.max(6, Math.min(framed ? 40 : 30, Math.floor((size.height - 56) / maxCap)));
   const atStart = replay.amounts.every((v, i) => v === board.start[i]);
   const button =
     "gf-glass h-11 min-w-[72px] flex-1 rounded-xl border border-border font-mono text-xs uppercase tracking-widest text-foreground disabled:opacity-40";
