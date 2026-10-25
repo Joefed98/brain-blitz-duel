@@ -35,7 +35,7 @@ export interface D4Game {
 
 export const D4_GAMES: Record<D4Type, D4Game> = {
   // FEATURE games: a fixed part of the feature at today's pace, the rest of the 50 only at elite pace.
-  unblock: { stretch: 0, feature: 50, featureBase: 15, elite: 0.78, measure: "par" },
+  unblock: { stretch: 0, feature: 50, featureBase: 25, elite: 0.78, measure: "par" },
   iceslide: { stretch: 0, feature: 50, featureBase: 30, elite: 0.69, measure: "gems" },
   push: { stretch: 0, feature: 50, featureBase: 15, elite: 0.7, measure: "gold crate" },
   blockparty: { stretch: 50, feature: 0, elite: 0.72, measure: "" },

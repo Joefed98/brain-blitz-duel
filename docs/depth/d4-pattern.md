@@ -52,7 +52,7 @@ score exactly as today.
 
 | Game | Stretch S | Feature F | Base B (at 150 pace) | Fast share (rev 3) | Elite share | Feature share |
 | --- | ---: | ---: | ---: | ---: | ---: | --- |
-| Gridlock | 0 | 50 | 15 | 0.68 | 0.78 | 1 at or under par, a third less per move over |
+| Gridlock | 0 | 50 | 25 | 0.68 | 0.78 | 1 at or under par, an eighth less per move over |
 | Skid | 0 | 50 | 30 (10 a gem) | 0.63 | 0.69 | gems collected ÷ gems |
 | Heave | 0 | 50 | 15 | 0.64 | 0.70 | 1 when the gold crate ends on the gold mark |
 | Tessellate | 50 | 0 | – | 0.59 | 0.72 | – |
@@ -70,17 +70,23 @@ score exactly as today.
 
 ## Tuning table
 
+**Gridlock retune (merge, 26 Oct 2026; unblockRev 1 is not live, so the stamp is kept).** The near-perfect players find a
+fewest-moves plan only a quarter of the time and otherwise finish 2–6 moves over par, where a third less per move paid
+nothing, so near-perfect sat at today's 150. The fixed part at today's 150 pace is now 25 (from 15) and each move over
+par costs an eighth of the par bonus (from a third; nothing from 8 over): good 130 → 139 (+7 %), near-perfect 165 (top
+10 % 179), elite 198. The rest of the 50 is still paid only on the elite stretch.
+
 Simulated players (the fairness kits at the audit's four levels plus an elite level: pace 0.32, 0.4 % mistakes),
 60 room seeds a game, every answer graded by `gradeAnswer`. "Old" is the same seed dealt on the old stamps.
 `bun scripts/depth4-tune.ts --seeds=60` reproduces it.
 
 | Game | Level | Old median | Old top 10 % | Old best | New median | New top 10 % | New best | Solved old → new |
 | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | --- |
-| Gridlock | average | 47 | 76 | 123 | 47 | 76 | 124 | 3 % → 3 % |
-| Gridlock | good | 130 | 136 | 143 | 130 | 139 | 143 | 77 % → 77 % |
-| Gridlock | great | 139 | 146 | 149 | 143 | 149 | 158 | 100 % → 100 % |
-| Gridlock | near | 148 | 150 | 150 | 150 | 167 | 191 | 100 % → 100 % |
-| Gridlock | elite | 150 | 150 | 150 | 197 | 200 | 200 | 100 % → 100 % |
+| Gridlock | average | 47 | 76 | 123 | 47 | 76 | 128 | 3 % → 3 % |
+| Gridlock | good | 130 | 136 | 143 | 139 | 147 | 152 | 77 % → 77 % |
+| Gridlock | great | 139 | 146 | 149 | 152 | 161 | 167 | 100 % → 100 % |
+| Gridlock | near | 148 | 150 | 150 | 165 | 179 | 194 | 100 % → 100 % |
+| Gridlock | elite | 150 | 150 | 150 | 198 | 200 | 200 | 100 % → 100 % |
 | Tessellate | average | 69 | 83 | 83 | 69 | 83 | 96 | 0 % → 0 % |
 | Tessellate | good | 125 | 130 | 132 | 125 | 130 | 132 | 73 % → 72 % |
 | Tessellate | great | 137 | 142 | 148 | 137 | 142 | 148 | 100 % → 100 % |

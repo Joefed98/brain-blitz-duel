@@ -14,7 +14,7 @@ import { isDepth4, isD4Type, type D4Type } from "./stamps";
 
 /** Each move over par costs this share of the par bonus. */
 export const D4_PAR_STEP: Record<"unblock" | "rings" | "pipes" | "laser", number> = {
-  unblock: 1 / 3,
+  unblock: 1 / 8,
   rings: 1 / 3,
   pipes: 0.1,
   laser: 0.5,
