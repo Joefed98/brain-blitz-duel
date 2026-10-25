@@ -32,7 +32,7 @@ function sprite(key:string,size:number,paint:(c:CanvasRenderingContext2D,s:numbe
   const canvas=artCanvas(px,px); const c=canvas ? artContext(canvas):null;
   if(!canvas || !c) return null;
   if(cache.size>=96) cache.clear();
-  paint(c as CanvasRenderingContext2D,px);if(key!=='chilli-glow'&&key!=='food-shadow')shadeSprite(c as CanvasRenderingContext2D,px);cache.set(id,canvas);return canvas;
+  paint(c as CanvasRenderingContext2D,px);if(key!=='chilli-glow')shadeSprite(c as CanvasRenderingContext2D,px);cache.set(id,canvas);return canvas;
 }
 /**
  * Polish G: kitchen light on every round stamp, only over pixels already painted
@@ -135,9 +135,19 @@ function paintChilli(c:CanvasRenderingContext2D,size:number) {
   c.strokeStyle=K.white;c.lineWidth=r*.09;c.lineCap='round';c.beginPath();c.moveTo(r*.5,-r*.4);c.quadraticCurveTo(r*.72,0,r*.45,r*.3);c.stroke();
   c.strokeStyle=K.leaf;c.lineWidth=r*.17;c.beginPath();c.moveTo(0,-r*.68);c.quadraticCurveTo(r*.24,-r*.5,r*.3,-r*.84);c.stroke();
 }
-/** A soft round shadow (painted once per size; drawn under a food, offset toward the board's lower right). */
-function paintShadow(c:CanvasRenderingContext2D,size:number) {
-  const r=size/2,g=c.createRadialGradient(r,r,r*.35,r,r,r);g.addColorStop(0,'rgba(40,18,4,0.34)');g.addColorStop(.65,'rgba(40,18,4,0.16)');g.addColorStop(1,'rgba(40,18,4,0)');c.fillStyle=g;c.fillRect(0,0,size,size);
+/**
+ * A soft oval cast shadow (painted once per size, on its own wide surface, never a square stamp: it is
+ * scenery, not a collision silhouette; drawn under a whole food, offset toward the board's lower right).
+ */
+const SHADOW_SQUASH=.7;
+function shadowSprite(size:number):ArtCanvas|null {
+  const w=Math.max(4,Math.round(size)),h=Math.max(3,Math.round(w*SHADOW_SQUASH)),id=`food-shadow@${w}x${h}`;
+  const old=cache.get(id); if(old) return old;
+  const canvas=artCanvas(w,h); const c=canvas ? artContext(canvas):null;
+  if(!canvas || !c) return null;
+  if(cache.size>=96) cache.clear();
+  const r=w/2;c.save();c.scale(1,h/w);const g=c.createRadialGradient(r,r,r*.35,r,r,r);g.addColorStop(0,'rgba(40,18,4,0.34)');g.addColorStop(.65,'rgba(40,18,4,0.16)');g.addColorStop(1,'rgba(40,18,4,0)');
+  c.fillStyle=g;c.fillRect(0,0,w,w);c.restore();cache.set(id,canvas);return canvas;
 }
 function paintGlow(c:CanvasRenderingContext2D,size:number) {
   const r=size/2,g=c.createRadialGradient(r,r,r*.72,r,r,r);g.addColorStop(0,'rgba(255,38,45,0)');g.addColorStop(.84,K.glow);g.addColorStop(1,'rgba(255,38,45,0)');c.fillStyle=g;c.fillRect(0,0,size,size);
@@ -290,7 +300,7 @@ function drawSliceArtWorld(ctx:CanvasRenderingContext2D,state:SliceState,size:Ca
       ctx.globalAlpha=1;continue;
     }
     const at=sliceObjectAt(o,state.tick,state.slowFrom,state.mayo);if(!at)continue;const cx=at.x/256,cy=at.y/256;
-    const shade=sprite('food-shadow',px*1.3,paintShadow);if(shade)ctx.drawImage(shade as CanvasImageSource,cx-r*1.15+3,cy-r*1.15+5,2.3*r,2.3*r);
+    const shade=shadowSprite(px*1.3);if(shade)ctx.drawImage(shade as CanvasImageSource,cx-r*1.15+3,cy-r*1.15*SHADOW_SQUASH+6,2.3*r,2.3*r*SHADOW_SQUASH);
     // Art pilot (Kitchen): food sprites fill the collision circle's square; code art when absent or for chillies.
     if(o.bomb||!drawArtSprite(ctx,'kitchen',kind,cx-r,cy-r,2*r,2*r))ctx.drawImage(stamp as CanvasImageSource,cx-r,cy-r,2*r,2*r);
     if(o.special){const tint=mayo?K.white:o.special===SLICE_SPECIAL_SLOW?K.silver:SLICE_RAINBOW[Math.floor((still?0:now/110))%SLICE_RAINBOW.length]??K.tomato;
