@@ -1,6 +1,7 @@
 import { gameDisplayName } from "@/lib/duel/gameNames";
 import { solutionProgress } from "@/lib/duel/progressFigures";
 import { puzzleReject } from "@/lib/fx/puzzleReject";
+import { LiveSummary, SummaryItem, useFrameProgress } from "@/components/puzzles/batchP/LiveSummary";
 import { useCallback, useEffect, useMemo, useRef } from "react";
 
 import { gridCellCentre, useGridMetrics, useGridPointer } from "@/components/puzzles/GridDrag";
@@ -194,6 +195,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "flow" }: P
   const walls = puzzle.type === "flow" ? (puzzle.walls ?? []) : [];
   const verdict = useMemo(() => verifyFlow(pairs, paths, walls), [pairs, paths, walls]);
   const filled = flowFilledCells(paths);
+  const inFrame = useFrameProgress(verdict.pairsJoined, pairs.length, "pairs");
 
   useEffect(() => {
     onDraftAnswer?.(encodeFlowPaths(paths));
@@ -294,10 +296,12 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "flow" }: P
 
   return (
     <div data-polish="flow" data-stage-column="3" className="flex min-h-0 flex-1 flex-col gap-3">
-      <p className="text-center font-mono text-xs uppercase tracking-widest text-muted-foreground">
-        cells filled <span className="text-primary">{filled}</span> / {FLOW_CELLS - walls.length} ·{" "}
-        {verdict.pairsJoined} / {pairs.length} pairs
-      </p>
+      {inFrame ? null : (
+        <p className="text-center font-mono text-xs uppercase tracking-widest text-muted-foreground">
+          cells filled <span className="text-primary">{filled}</span> / {FLOW_CELLS - walls.length} ·{" "}
+          {verdict.pairsJoined} / {pairs.length} pairs
+        </p>
+      )}
       <div data-game-arena="board" className="flex min-h-0 flex-1 items-center justify-center">
         <FlowBoard
           pairs={pairs}
@@ -309,6 +313,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "flow" }: P
           solved={verdict.solved}
         />
       </div>
+      <LiveSummary items={[<SummaryItem key="cells" label="Filled" value={`${filled} / ${FLOW_CELLS - walls.length}`} />]} />
     </div>
   );
 }

@@ -17,6 +17,7 @@ import { gravityTiltLimit, limitText } from "@/lib/duel/moveLimits";
 import { GRAV_TIME_MS, type GravityDir, type GravityPuzzleData } from "@/lib/duel/types";
 import { buzz } from "@/lib/motion";
 import { playCorrect, playLock, playSound } from "@/lib/sound";
+import { LiveSummary, SummaryItem, useFrameProgress } from "@/components/puzzles/batchP/LiveSummary";
 import { soundCue, useSolveMoment } from "@/lib/fx/patternFx";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
@@ -86,6 +87,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "gravity" }
   }, [replay?.solved, replay?.outOfTilts, tilts, locked, onSubmit]);
 
   const solving = useSolveMoment(Boolean(replay?.solved), "gravity.solve");
+  const inFrame = useFrameProgress(replay?.locked ?? 0, 4, "locked");
 
   const undo = () => setTilts((current) => [...current, "X"]);
   const reset = () => setTilts((current) => [...current, "Y"]);
@@ -116,10 +118,12 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "gravity" }
 
   return (
     <div data-stage-column="2" data-polish="gravity" className="flex min-h-0 flex-1 flex-col gap-2">
-      <p className="shrink-0 text-center font-mono text-xs uppercase tracking-widest text-muted-foreground">
-        tilts <span className={replay.outOfTilts ? "text-warn" : "text-primary"} data-move-limit={tiltLimit ?? undefined}>{tiltLimit !== null ? limitText(replay.tilts, tiltLimit) : replay.tilts}</span> · locked{" "}
-        <span className="text-primary">{replay.locked} / 4</span>
-      </p>
+      {inFrame ? null : (
+        <p className="shrink-0 text-center font-mono text-xs uppercase tracking-widest text-muted-foreground">
+          tilts <span className={replay.outOfTilts ? "text-warn" : "text-primary"} data-move-limit={tiltLimit ?? undefined}>{tiltLimit !== null ? limitText(replay.tilts, tiltLimit) : replay.tilts}</span> · locked{" "}
+          <span className="text-primary">{replay.locked} / 4</span>
+        </p>
+      )}
 
       <div ref={boardSpaceRef} data-game-arena="board" className="flex min-h-0 flex-1 items-center justify-center">
         {boardSpace ? (
@@ -133,6 +137,16 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "gravity" }
         ) : null}
       </div>
 
+      <LiveSummary
+        items={[
+          <SummaryItem
+            key="tilts"
+            label="Tilts"
+            value={<span data-move-limit={tiltLimit ?? undefined}>{tiltLimit !== null ? limitText(replay.tilts, tiltLimit) : replay.tilts}</span>}
+            warn={replay.outOfTilts}
+          />,
+        ]}
+      />
       <div data-game-controls="pad" className="flex shrink-0 flex-col items-center gap-3">
         <ArrowPad onPress={press} disabled={locked || replay.solved || replay.outOfTilts} />
         <div data-game-controls="actions" className="flex gap-3 px-2">

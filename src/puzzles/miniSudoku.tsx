@@ -14,6 +14,7 @@ import { buzz } from "@/lib/motion";
 import { directionOf, useGameKeys } from "@/lib/desktop";
 
 import { soundCue, useSolveFx } from "./logicFx";
+import { useFrameProgress } from "@/components/puzzles/batchP/LiveSummary";
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
 const DIGITS = [1, 2, 3, 4, 5, 6];
@@ -160,6 +161,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   }, [grid, onDraftAnswer]);
 
   const solving = useSolveFx("sudoku", puzzle.type === "sudoku" && sudokuSolved(grid, givens));
+  const inFrame = useFrameProgress(grid.filter(Boolean).length, SUDOKU_CELLS, "filled");
 
   useEffect(() => {
     if (locked || submitted.current) return;
@@ -254,7 +256,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
               type="button"
               onClick={() => tapDigit(digit)}
               disabled={locked}
-              className="logic-sudoku-key press tap-target rounded-lg border border-border bg-card py-2 font-display text-lg font-bold text-foreground disabled:opacity-40"
+              className={`logic-sudoku-key press tap-target rounded-lg py-2 font-display text-lg font-bold text-foreground disabled:opacity-40 ${inFrame ? "gf-glass" : "border border-border bg-card"}`}
             >
               {digit}
             </button>

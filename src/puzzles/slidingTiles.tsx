@@ -22,6 +22,7 @@ import {
   type TilesPuzzleData,
 } from "@/lib/duel/types";
 import { useSolveMoment } from "@/lib/fx/patternFx";
+import { LiveSummary, SummaryItem, useFrameProgress } from "@/components/puzzles/batchP/LiveSummary";
 import { playLock } from "@/lib/sound";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
@@ -106,6 +107,7 @@ function Stage({
   const layout = useMemo(() => (data ? tilesLayout(data) : null), [data]);
   const replay = useMemo(() => (data && layout ? replayTiles(data.frame, moves, layout) : null), [data, layout, moves]);
   const celebrate = useSolveMoment(replay?.solved ?? false, "tiles.solve");
+  const inFrame = useFrameProgress(replay?.inPlace ?? 0, layout?.count ?? 0, "in place");
 
   useEffect(() => {
     onDraftAnswer?.(encodeTileMoves(moves));
@@ -146,7 +148,10 @@ function Stage({
     if (locked || submitted.current || replay.solved) return;
     const next = [...moves, tile];
     const after = replayTiles(data.frame, next, layout);
-    if (after.moves === replay.moves) return puzzleReject();
+    // Batch P (display only): in the frame the tapped tile itself shakes; elsewhere the board, as before.
+    if (after.moves === replay.moves) {
+      return puzzleReject(inFrame ? document.querySelector(`[data-game-stage] [data-tile-value="${tile}"]`) : undefined);
+    }
     hapticTick();
     setMoves(next);
     if (after.solved) {
@@ -166,11 +171,15 @@ function Stage({
   return (
     <div data-stage-column="3" data-polish="tiles" className="flex min-h-0 flex-1 flex-col items-center justify-center gap-3">
       <div data-game-arena="board" className="tiles-arena">
-        <TilesFrame frame={replay.frame} onTile={slide} celebrate={celebrate} layout={layout} />
+        <TilesFrame frame={replay.frame} onTile={slide} celebrate={celebrate} layout={layout} showHome={inFrame} />
       </div>
-      <p data-after-arena data-game-controls="status" className="shrink-0 font-mono text-xs uppercase tracking-widest text-muted-foreground">
-        moves <span className="text-primary">{replay.moves}</span>
-      </p>
+      {inFrame ? (
+        <LiveSummary items={[<SummaryItem key="moves" label="Moves" value={replay.moves} />]} />
+      ) : (
+        <p data-after-arena data-game-controls="status" className="shrink-0 font-mono text-xs uppercase tracking-widest text-muted-foreground">
+          moves <span className="text-primary">{replay.moves}</span>
+        </p>
+      )}
       <div data-game-controls="actions" className="flex shrink-0 gap-3 px-2">
         <button
           type="button"

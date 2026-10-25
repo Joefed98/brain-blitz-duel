@@ -22,6 +22,7 @@ import {
   type RingsPuzzleData,
 } from "@/lib/duel/types";
 import { useSolveMoment } from "@/lib/fx/patternFx";
+import { LiveSummary, SummaryItem, useFrameProgress } from "@/components/puzzles/batchP/LiveSummary";
 import { playLock } from "@/lib/sound";
 import { directionOf, useGameKeys } from "@/lib/desktop";
 
@@ -79,6 +80,7 @@ function Stage({
   const submitted = useRef(false);
   const replay = useMemo(() => (data ? replayRings(data.segments, data.pattern, taps) : null), [data, taps]);
   const celebrate = useSolveMoment(replay?.solved ?? false, "rings.solve");
+  const inFrame = useFrameProgress(replay?.aligned ?? 0, RINGS_SEGMENTS, "spokes");
 
   useEffect(() => {
     onDraftAnswer?.(encodeRingTaps(taps));
@@ -135,13 +137,22 @@ function Stage({
         />
         </div>
       </div>
-      <p data-game-controls="status" className="shrink-0 font-mono text-xs uppercase tracking-widest text-muted-foreground">
-        ring {selectedRing + 1} selected · turns{" "}
-        <span className="text-primary">{replay.moves}</span> · spokes{" "}
-        <span className="text-primary">
-          {replay.aligned} / {RINGS_SEGMENTS}
-        </span>
-      </p>
+      {inFrame ? (
+        <LiveSummary
+          items={[
+            <SummaryItem key="ring" label="Ring" value={selectedRing + 1} after="selected" />,
+            <SummaryItem key="turns" label="Turns" value={replay.moves} />,
+          ]}
+        />
+      ) : (
+        <p data-game-controls="status" className="shrink-0 font-mono text-xs uppercase tracking-widest text-muted-foreground">
+          ring {selectedRing + 1} selected · turns{" "}
+          <span className="text-primary">{replay.moves}</span> · spokes{" "}
+          <span className="text-primary">
+            {replay.aligned} / {RINGS_SEGMENTS}
+          </span>
+        </p>
+      )}
       <div data-game-controls="actions" className="grid h-[52px] w-full shrink-0 grid-cols-2 gap-3 px-2">
         <Button
           type="button"

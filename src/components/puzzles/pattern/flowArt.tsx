@@ -4,7 +4,7 @@
  * draft answer or the submission. Every tube runs through measured cell
  * centres, so it stays inside the cells the grader counts.
  */
-import { useEffect, useRef } from "react";
+import { useEffect, useId, useRef } from "react";
 
 import { soundCue } from "@/lib/fx/patternFx";
 
@@ -48,14 +48,22 @@ export function FlowTubes({
   solved: boolean;
 }) {
   const step = tubes.length > 1 ? Math.min(40, 300 / (tubes.length - 1)) : 0;
+  const neon = `flow-neon-${useId().replace(/[^a-zA-Z0-9_-]/g, "")}`;
   return (
     <g fill="none" strokeLinecap="round" strokeLinejoin="round">
+      {/* Batch P (live round only): a blurred copy under each path, so the lines glow like neon. */}
+      <defs>
+        <filter id={neon} x="-20%" y="-20%" width="140%" height="140%">
+          <feGaussianBlur stdDeviation={Math.max(2, width * 0.45)} />
+        </filter>
+      </defs>
       {tubes.map((tube, index) => {
         if (tube.points.length < 2) return null;
         const d = pathData(tube.points);
         const end = tube.points[tube.points.length - 1]!;
         return (
           <g key={index} className="flow-tube">
+            <path d={d} className="flow-halo" stroke={tube.colour} strokeOpacity={tube.joined ? 0.95 : 0.55} strokeWidth={width * 1.5} filter={`url(#${neon})`} />
             <path d={d} stroke={shadeHex(tube.colour, -0.55)} strokeOpacity={0.85} strokeWidth={width + 3} />
             <path d={d} stroke={tube.colour} strokeWidth={width} />
             <path d={d} stroke={shadeHex(tube.colour, 0.6)} strokeOpacity={0.55} strokeWidth={Math.max(1, width * 0.3)} />

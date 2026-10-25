@@ -21,6 +21,7 @@ import {
 import { buzz } from "@/lib/motion";
 import { playCorrect, playWrong } from "@/lib/sound";
 import { puzzleReject } from "@/lib/fx/puzzleReject";
+import { LiveSummary, SummaryItem, useInFrame } from "@/components/puzzles/batchP/LiveSummary";
 import { useSolveMoment } from "@/lib/fx/patternFx";
 import { IceBoard as Board, IceTrail, useIceSlideFx } from "@/components/puzzles/pattern/iceSlideBoard";
 
@@ -74,6 +75,7 @@ function Stage({
   const [flash, setFlash] = useState(false);
   const fallsSeen = useRef(0);
   const reducedMotion = usePrefersReducedMotion();
+  const inFrame = useInFrame();
   const [animating, setAnimating] = useState(false);
   const [visualBall, setVisualBall] = useState<{ cell: number; jump: boolean } | null>(null);
   const slideTimers = useRef<ReturnType<typeof setTimeout>[]>([]);
@@ -161,10 +163,12 @@ function Stage({
 
   return (
     <div data-stage-column="2" data-polish="iceslide" className="flex min-h-0 flex-1 flex-col gap-2">
-      <p className="text-center font-mono text-xs uppercase tracking-widest text-muted-foreground">
-        moves <span className="text-primary">{replay.moves}</span>
-        {replay.falls > 0 ? ` · ${replay.falls} fall${replay.falls === 1 ? "" : "s"}` : ""}
-      </p>
+      {inFrame ? null : (
+        <p className="text-center font-mono text-xs uppercase tracking-widest text-muted-foreground">
+          moves <span className="text-primary">{replay.moves}</span>
+          {replay.falls > 0 ? ` · ${replay.falls} fall${replay.falls === 1 ? "" : "s"}` : ""}
+        </p>
+      )}
       <div
         data-game-arena="board" className="flex min-h-0 flex-1 items-center justify-center touch-none rounded-lg transition-colors"
         style={{
@@ -217,6 +221,12 @@ function Stage({
           )}
         </div>
       </div>
+      <LiveSummary
+        items={[
+          <SummaryItem key="moves" label="Moves" value={replay.moves} />,
+          replay.falls > 0 ? <SummaryItem key="falls" value={replay.falls} after={replay.falls === 1 ? "fall" : "falls"} warn /> : null,
+        ]}
+      />
       <ArrowPad onPress={slide} disabled={locked || replay.solved || animating} />
       <div data-game-controls="actions" className="flex shrink-0 justify-center gap-3 px-2">
         <button
