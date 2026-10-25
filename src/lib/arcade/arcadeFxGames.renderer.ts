@@ -1308,6 +1308,8 @@ export const HOVER_FX_TALL = fxSpecAt(HOVER_FX, HOVER_TALL_H);
 export const skylineFxFor = (s: SkylineState): ArcadeFxSpec<SkylineState> => fxSpecAt(SKYLINE_FX, skylineWorldH(s));
 export const snakeFxFor = (s: SnakeState): ArcadeFxSpec<SnakeState> => fxSpecAt(SNAKE_FX, snakeWorldHFor(snakeRowsOf(s)));
 export const SNAKE_FX_TALL = fxSpecAt(SNAKE_FX, SNAKE_TALL_H);
+/** Roofbound flipRev 7's 730 px cave (the spec rooms deal today; earlier rounds draw through flipFxFor). */
+export const FLIP_FX_TALL = fxSpecAt(FLIP_FX, FLIP_V7_WORLD_H);
 export const snipFxFor = (s: SnipState): ArcadeFxSpec<SnipState> => fxSpecAt(SNIP_FX, snipWorldH(s));
 export const SNIP_FX_TALL = fxSpecAt(SNIP_FX, SNIP_TALL_H);
 export const SKYLINE_FX_TALL = fxSpecAt(SKYLINE_FX, SKYLINE_TALL_H);
@@ -1392,7 +1394,7 @@ export const ARCADE_FX_SPECS = {
   bintoss: BINTOSS_FX,
   bullseye: BULLSEYE_FX,
   bubble: BUBBLE_FX_TALL,
-  flip: FLIP_FX,
+  flip: FLIP_FX_TALL,
   swing: SWING_FX_TALL,
   snip: SNIP_FX_TALL,
   tilt: TILT_FX,

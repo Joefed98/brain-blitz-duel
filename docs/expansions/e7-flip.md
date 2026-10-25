@@ -86,9 +86,31 @@ passes already were.
   checkpoint and proves no rev-7 field appears on them.
 - `scripts/fixtures/replay-runs.json`: one great-bot run on flipRev 7 appended (`bun scripts/replay-fixtures.ts --add=flip`).
 
-## Checks
+## Checks (local, 25 Oct 2026)
 
-See the PR description for the run (each check by name).
+PASS: flip-rev7-check (290 checks, 200 via the server replay on 3 of 3 planned routes), flip-bend-check,
+hotfloor-flip-check, arcade-batch1-check, arcade-tuning-c-check, bullseye-cross-flip-tuning-check, scoring-bands-check,
+scoring-targets-check, arcade-score-bands-check, arcade-help-bands-check, intro-score-text-check, sound-manifest-check,
+replay-check, reveal-score-check, arcade-fx-check, arcade-self-replay-check, arcade-play-check flip (frame 19.1 ms vs
+17.0 baseline on a loaded machine, within limits), arcade-fill-check flip, demo-intro-check flip, intro-demo-check,
+first-paint-check flip (practice and room passes).
+
+Expected / not mine:
+- round-max-check FAILS on flip's lines (its "every game is 150" table and the flip intro/help text comparison): left
+  for the merge, as agreed.
+- practice-bests-check FAILS until `bun scripts/practice-stamps.ts` is re-run after the merge.
+- first-paint-check's standalone *late* pass, when flip is named, fails (the stage moves 48 px as the late insets
+  land). That pass covers puzzle screens only (the geometry hold is puzzle-only by design); any arcade game named there
+  does the same, so it is not a flipRev 7 regression.
+- arcade-lowend-check does not cover Roofbound (Tilt, Ball Tracker, Ink Bridge, Grappler, Orbit).
+
+## Screenshots
+
+`screenshots/e7-oct-2026/flip-*.png` (414 × 896, DPR 2, a real practice run driven tick by tick by
+`scripts/shots/flip-e7-shots.ts`): double flip, tight cave, tall cave, moving spike, speed zone, star trail,
+checkpoint gate, saved crash. The saved-crash frame comes from an earlier run of the tool, before the rock-tile seam
+fix and the mid-tunnel save badge (later runs crashed before reaching it: the stepped-clock driver sometimes lands a tap
+a tick late).
 
 ## Shared changes made (small, game-agnostic) and shared requests
 

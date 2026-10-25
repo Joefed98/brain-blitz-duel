@@ -16,7 +16,7 @@ const ORIGIN = opt("url") ?? "http://127.0.0.1:5301";
 const OUT = opt("out") ?? "screenshots/e7-oct-2026";
 mkdirSync(OUT, { recursive: true });
 
-type Info = { tick: number; combos: number; saves: number; ended: number; cpPassed: number; inZone: boolean; height: number; trailLive: number; moverInView: boolean };
+type Info = { launched: boolean; tick: number; combos: number; saves: number; ended: number; cpPassed: number; inZone: boolean; height: number; trailLive: number; moverInView: boolean };
 
 async function info(page: Page): Promise<Info> {
   return page.evaluate(() => {
@@ -26,7 +26,7 @@ async function info(page: Page): Promise<Info> {
     const v7 = s.v7;
     const trailLive = v7.trails.findIndex((t: any) => s.tick >= t.t1 - 30 && s.tick <= t.t1 - 6);
     const moverInView = s.segs.some((g: any) => g.amp && (g.x0 - s.x) / 256 > 60 && (g.x0 - s.x) / 256 < 260);
-    return { tick: s.tick, combos: s.combos ?? 0, saves: s.saves ?? 0, ended: s.ended, cpPassed: s.cpPassed ?? 0, inZone: F.flipV7InZone(v7, s.tick), height: F.flipV7HeightAt(v7, s.x), trailLive, moverInView };
+    return { launched: s.flipT > 0 && s.flipT === s.arcN, tick: s.tick, combos: s.combos ?? 0, saves: s.saves ?? 0, ended: s.ended, cpPassed: s.cpPassed ?? 0, inZone: F.flipV7InZone(v7, s.tick), height: F.flipV7HeightAt(v7, s.x), trailLive, moverInView };
   });
 }
 
@@ -71,7 +71,8 @@ async function main() {
     }, stopAfter);
   let taps: number[] = [];
   const plan = async (t: number) => {
-    await replan(3600 + 0 * t);
+    void t;
+    await replan(3600);
     taps = await page.evaluate(() => (window as unknown as { __taps: number[] }).__taps);
   };
   let s = await info(page);
@@ -85,7 +86,8 @@ async function main() {
   const tick = 1000 / 60;
   while (s.ended === 0 && s.tick < 3590) {
     const next = taps.find((t) => t > s.tick);
-    if (tapping && next === s.tick + 1) {
+    const tapNow = tapping && next === s.tick + 1;
+    if (tapNow) {
       await page.mouse.move(arena.x + arena.width / 2, arena.y + arena.height / 2);
       await page.mouse.down();
       await page.clock.runFor(tick);
@@ -93,7 +95,9 @@ async function main() {
     } else await page.clock.runFor(tick);
     const was = s;
     s = await info(page);
-    if (s.tick !== was.tick + 1 && tapping) await plan(s.tick); // the stage skipped or held a tick: plan again from here
+    // The stage skipped or held a tick, or the tap landed on another tick than planned: plan again from here.
+    const landed = s.launched && s.tick === was.tick + 1;
+    if (tapping && (s.tick !== was.tick + 1 || tapNow !== landed)) await plan(s.tick);
     if (s.combos > lastCombos) comboAt = s.tick;
     lastCombos = s.combos;
     if (s.saves > was.saves) savedAt = s.tick;
