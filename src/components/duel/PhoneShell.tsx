@@ -2,8 +2,8 @@ import { createContext, useContext, useEffect, useLayoutEffect, useRef, type Rea
 
 import { MuteToggle } from "./MuteToggle";
 import { BOARD_FILL, CATEGORY_NAMES, GoalLine, useBoardTray } from "./GameFrame";
-import { Wordmark } from "./Wordmark";
 import { AppHeader } from "@/components/app/AppHeader";
+import { AppWordmark } from "@/components/brand/AppWordmark";
 import { FxLayer } from "./FxLayer";
 import type { PuzzleType } from "@/lib/duel/types";
 import { puzzleDef } from "@/lib/duel/registry";
@@ -426,7 +426,7 @@ export function PhoneShell({ children, bare = false, constrained = false, gameSc
         {/* The four tab screens: their own header (Prompt R); every other screen keeps the top bar. */}
         {tabs && !gameScreen ? <AppHeader /> : !bare && !framePlay && (
           <div data-game-topbar={gameScreen ? "" : undefined} className="mb-2 grid h-9 shrink-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-2" style={gameScreen ? NO_SELECT_STYLE : undefined}>
-            <div className="min-w-0">{gameHeader ?? <Wordmark />}</div>
+            <div className="min-w-0">{gameHeader ?? <AppWordmark />}</div>
             <div className="flex shrink-0 items-center">{topAction}<MuteToggle /></div>
           </div>
         )}

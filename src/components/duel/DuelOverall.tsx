@@ -1,11 +1,12 @@
 import type { PlayerLooks } from "@/lib/duel/playerLook";
 import type { Standing } from "@/lib/duel/scoring";
+import { tieMarks } from "@/lib/duel/tieDisplay";
 import { TOTAL_ROUNDS } from "@/lib/duel/types";
-import { positionChange } from "@/lib/duel/resultPresentation";
 import { AnimatedScore } from "./AnimatedScore";
 import { ContinueFooter, type ContinueState } from "./ContinueFooter";
 import { Medal } from "./Medal";
 import { PlayerBadge } from "./PlayerBadge";
+import { Arrow, NextRoundCard, RoundWinnerCard, youStyle, type StandingsExtras } from "./Standings";
 
 interface DuelOverallProps {
   round: number;
@@ -17,8 +18,11 @@ interface DuelOverallProps {
   mySlot: number;
   autoSeconds: number;
   continueState: ContinueState;
+  /** The round's winner and the next round's game, above Continue. */
+  extras?: StandingsExtras | undefined;
 }
 
+/** The two-player standings between rounds: the same rows as a bigger room's (Polish batch R). */
 export function DuelOverall({
   round,
   totalRounds = TOTAL_ROUNDS,
@@ -27,49 +31,61 @@ export function DuelOverall({
   mySlot,
   autoSeconds,
   continueState,
+  extras,
 }: DuelOverallProps) {
   const ordered = [...rows].sort((a, b) => a.position - b.position || a.slot - b.slot);
+  const marks = tieMarks(ordered.map((row) => ({ slot: row.slot, points: row.total, position: row.position })));
   return (
-    <div className="flex flex-1 flex-col justify-between gap-6 pt-8 animate-phase-in">
-      <div>
-        <header className="relative px-12 text-center">
-          <p className="th-kicker text-primary">Overall standings</p>
-          <h1 className="mt-1 font-display text-lg font-bold text-foreground">
-            After round {round} of {totalRounds}
-          </h1>
-          <span className="th-kicker absolute right-0 top-0 whitespace-nowrap text-[10px] tracking-[0.06em] text-muted-foreground">
-            Overall
-          </span>
-        </header>
-        <div className="mt-12 flex items-center gap-3">
-          {ordered.map((row, index) => {
-            const isMe = row.slot === mySlot;
-            return (
-              <div
-                key={row.slot}
-                data-tint={isMe ? "me" : undefined}
-                className={`th-card min-w-0 flex-1 rounded-xl border p-4 text-center ${isMe ? "border-primary/70 bg-primary/10" : "border-border bg-card"} ${row.status === "inactive" ? "opacity-40" : ""}`}
-              >
-                <p className="flex min-w-0 items-center justify-center gap-1.5 text-sm text-foreground">
-                  <PlayerBadge look={looks?.get(row.slot)} name={row.name} size={24} />
-                  <span className="th-name min-w-0 truncate">{row.name}</span>
-                </p>
-                <p
-                  className={`th-score mt-3 font-mono text-4xl font-bold tabular-nums ${index === 0 && row.total > 0 ? "th-score-top text-primary" : "text-foreground"}`}
-                >
+    <div className="flex min-h-0 flex-1 flex-col gap-3 pt-1 text-left animate-phase-in">
+      <header className="rs-head shrink-0">
+        <h1 className="rs-title">Standings</h1>
+        <span className="rs-meta">
+          After round {round} of {totalRounds}
+        </span>
+      </header>
+      <ul className="rs-list shrink-0">
+        {ordered.map((row) => {
+          const isMe = row.slot === mySlot;
+          const mark = marks.get(row.slot);
+          const look = looks?.get(row.slot);
+          return (
+            <li
+              key={row.slot}
+              data-you={isMe ? "" : undefined}
+              style={isMe ? youStyle(look) : undefined}
+              className={`rs-row min-h-[60px] ${row.status === "inactive" ? "opacity-40" : ""}`}
+            >
+              <div className="grid w-full grid-cols-[1.5rem_1.375rem_minmax(0,1fr)_auto_3.75rem] items-center gap-x-2">
+                <Medal place={row.position} shared={mark?.shared} />
+                <Arrow standing={row} />
+                <span className="flex min-w-0 items-center gap-2">
+                  <PlayerBadge look={look} name={row.name} size={30} />
+                  <span className="flex min-w-0 flex-col">
+                    <span className="flex min-w-0 items-baseline gap-1">
+                      <span className="rs-name th-name">{row.name}</span>
+                      {isMe ? <span className="rs-you shrink-0 text-[13px]">(you)</span> : null}
+                    </span>
+                  </span>
+                </span>
+                <span className="whitespace-nowrap text-[13px] font-semibold tabular-nums text-[var(--ap-text-2)]">
+                  +{row.roundScore}
+                </span>
+                <span className="th-score rs-total text-right text-[26px]">
                   <AnimatedScore value={row.total} />
-                </p>
-                <p className="mt-2 whitespace-nowrap font-mono text-xs text-muted-foreground">
-                  +{row.roundScore} this round · {positionChange(row)}
-                </p>
-                <p className="mt-3 flex justify-center">
-                  <Medal place={index + 1} />
-                </p>
+                </span>
+                {mark?.note ? <span data-tie-note className="rs-sub rs-tie-note">{mark.note}</span> : null}
               </div>
-            );
-          })}
+            </li>
+          );
+        })}
+      </ul>
+      {extras ? (
+        <div className="flex shrink-0 flex-col gap-2">
+          <RoundWinnerCard round={round} extras={extras} looks={looks} />
+          {extras.next ? <NextRoundCard round={round} totalRounds={totalRounds} next={extras.next} /> : null}
         </div>
-      </div>
+      ) : null}
+      <div className="min-h-0 flex-1" />
       <ContinueFooter next="Next round" autoSeconds={autoSeconds} state={continueState} />
     </div>
   );

@@ -1,4 +1,5 @@
 import { gameDisplayName } from "@/lib/duel/gameNames";
+import { roundMaxFor } from "@/lib/duel/roundMax";
 import { WordHuntBoard, WordHuntPuzzle } from "@/components/puzzles/WordHuntPuzzle";
 import { WORDHUNT_TIME_MS, wordHuntPoints, type WordHuntPuzzleData } from "@/lib/duel/types";
 
@@ -32,7 +33,7 @@ function IntroExample() {
           ))}
         </ul>
       </div>
-      <p className="text-xs text-muted-foreground">Word points × 2 = round score (max 150). Plurals count. You have 100 seconds.</p>
+      <p className="text-xs text-muted-foreground">Word points × 2 = round score (max {roundMaxFor("wordhunt")}). Plurals count. You have 100 seconds.</p>
     </div>
   );
 }

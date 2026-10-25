@@ -1,6 +1,7 @@
 import { useState } from "react";
 
 import { ConfirmDialog } from "./ConfirmDialog";
+import { RoomMenu } from "./RoomFooter";
 
 /**
  * Shown when everyone else has left or dropped out of a game in progress.
@@ -59,7 +60,7 @@ export function DropoutBanner({
         type="button"
         disabled={busy}
         onClick={() => setConfirming(true)}
-        className="press tap-target shrink-0 rounded-md bg-primary px-3 font-display text-xs font-bold uppercase text-primary-foreground disabled:opacity-50"
+        className="press tap-target shrink-0 rounded-xl bg-primary px-3 text-sm font-bold text-primary-foreground disabled:opacity-50"
       >
         Finish now
       </button>
@@ -76,18 +77,13 @@ export function DropoutBanner({
   );
 }
 
-/** A guest's way out of a game in progress, with a confirm. */
+/** A guest's way out (the "⋯" menu's Leave) of a game in progress, with a confirm. */
 export function LeaveGameButton({ onLeave }: { onLeave: () => Promise<void> }) {
   const [confirming, setConfirming] = useState(false);
   return (
     <>
-      <button
-        type="button"
-        onClick={() => setConfirming(true)}
-        className="press mr-1 h-9 rounded-md px-2 font-display text-xs font-semibold uppercase tracking-wide text-muted-foreground"
-      >
-        Leave
-      </button>
+      {/* In the header's "⋯" menu (Polish batch R). */}
+      <RoomMenu items={[{ label: "Leave", onSelect: () => setConfirming(true), danger: true }]} />
       {confirming && (
         <ConfirmDialog
           title="Leave this game?"

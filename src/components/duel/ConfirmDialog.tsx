@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 
-/** One confirm sheet for room actions that can't be undone (leave, disband, finish). */
+/** One confirm sheet for room actions that can't be undone (leave, disband, finish). Neutral: none of them plays (the gold rule). */
 export function ConfirmDialog({
   title,
   body,
@@ -22,7 +22,7 @@ export function ConfirmDialog({
       className="th-scrim fixed inset-0 z-[70] flex items-center justify-center bg-background/90 p-6"
     >
       <div className="th-sheet w-full max-w-sm space-y-4 rounded-2xl border border-border bg-card p-5 text-center">
-        <p className="whitespace-nowrap font-display text-lg font-bold uppercase tracking-[0.03em]">
+        <p className="whitespace-nowrap text-lg font-extrabold">
           {title}
         </p>
         <p className="text-sm text-muted-foreground">{body}</p>
@@ -30,14 +30,14 @@ export function ConfirmDialog({
           <button
             type="button"
             onClick={onCancel}
-            className="th-btn-ghost press tap-target flex-1 rounded-xl border border-border font-display text-sm font-bold uppercase tracking-wide"
+            className="rs-btn press tap-target flex-1"
           >
             Cancel
           </button>
           <button
             type="button"
             onClick={onConfirm}
-            className="th-btn-gold press tap-target flex-1 rounded-xl bg-primary font-display text-sm font-extrabold uppercase tracking-wide text-primary-foreground"
+            className="press tap-target flex-1 rounded-[14px] bg-[var(--ap-text)] text-[15px] font-bold text-[var(--ap-bg)]"
           >
             {confirmLabel}
           </button>

@@ -1,4 +1,5 @@
 import { gameDisplayName } from "@/lib/duel/gameNames";
+import { roundMaxFor } from "@/lib/duel/roundMax";
 import { WordsmithRing } from "@/components/puzzles/WordsmithRing";
 import { WordsmithPuzzle } from "@/components/puzzles/WordsmithPuzzle";
 import { wordsmithPoints, type WordsmithPuzzleData } from "@/lib/duel/types";
@@ -29,7 +30,7 @@ function IntroExample() {
           ))}
         </ul>
       </div>
-      <p className="text-xs text-muted-foreground">No plurals. Longer words score more: 9+ letters is 15 word points. More word points, higher score: 140 at most, 150 only with the word that uses every tile. You have 100 seconds.</p>
+      <p className="text-xs text-muted-foreground">No plurals. Longer words score more: 9+ letters is 15 word points. More word points, higher score: 140 at most, {roundMaxFor("wordsmith")} only with the word that uses every tile. You have 100 seconds.</p>
     </div>
   );
 }

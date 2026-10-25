@@ -235,7 +235,7 @@ function Backdrop({ puzzle, answer, outcome }: { puzzle: PuzzleData; answer: str
       <canvas
         ref={canvas}
         className="h-full w-full object-cover"
-        style={{ filter: "brightness(0.4) blur(2px)", transform: "scale(1.04)" }}
+        style={{ filter: "brightness(0.26) blur(3px)", transform: "scale(1.04)" }}
       />
       {ring ? (
         <svg
@@ -320,7 +320,7 @@ export function ArcadeReveal({ puzzle, myAnswer, myScore, myReveal, players, nea
             <p
               ref={scoreRef}
               data-reveal-score={myScore}
-              className={`font-mono text-6xl font-bold tabular-nums leading-none text-primary${celebration ? " arcade-score-celebrate" : ""}`}
+              className={`font-mono text-6xl font-bold tabular-nums leading-none text-foreground${celebration ? " arcade-score-celebrate" : ""}`}
               aria-label={`${myScore} points`}
             >
               {shownScore}
@@ -330,13 +330,16 @@ export function ArcadeReveal({ puzzle, myAnswer, myScore, myReveal, players, nea
           {shown
             ? shown.lines.map((line) => <FitLine key={line} text={line} className="text-foreground animate-fade-in" />)
             : null}
-          {myScore !== null && nearMissLine ? <FitLine text={nearMissLine} className="text-primary" /> : null}
+          {myScore !== null && nearMissLine ? <FitLine text={nearMissLine} className="text-foreground" /> : null}
         </div>
 
-        <ArcadeScoreChart
-          players={players.map((p) => ({ slot: p.slot, name: p.name, isMe: p.isMe, look: p.look, score: p.isMe ? myScore : p.score }))}
-          type={puzzle.type}
-        />
+        {/* The chart in a clean panel over the darkened world, never over the busy board itself. */}
+        <div data-chart-panel className="flex min-h-0 w-full flex-1 flex-col rounded-[18px] bg-[#17171B] px-2.5 py-2.5">
+          <ArcadeScoreChart
+            players={players.map((p) => ({ slot: p.slot, name: p.name, isMe: p.isMe, look: p.look, score: p.isMe ? myScore : p.score }))}
+            type={puzzle.type}
+          />
+        </div>
 
         {shown && shown.tiles.length + costRows.length > 0 ? (
           // One full-width row per stored tile (label left, value right), so a label as

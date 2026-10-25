@@ -5,6 +5,8 @@ import { Medal } from "@/components/duel/Medal";
 import { PlayerBadge } from "@/components/duel/PlayerBadge";
 import { rankLine, type DailyBoardView } from "@/lib/duel/daily";
 import { ordinal } from "@/lib/duel/ordinal";
+import { tieMarks } from "@/lib/duel/tieDisplay";
+import { youStyle } from "@/components/duel/Standings";
 import { isPlayerColour, isPlayerIcon, type PlayerLook } from "@/lib/duel/playerLook";
 
 /** A board row's badge: the player's stored colour and icon (an initial on gold without one). */
@@ -33,23 +35,27 @@ export function DailyBoard({
   share?: ReactNode;
 }) {
   const me = board.me;
+  // Ties (tieDisplay.ts): the board breaks a tie on points by time used; level on both shares the rank.
+  const marks = tieMarks(board.rows.map((row, i) => ({ slot: i, points: row.total, position: row.rank })));
+  const you = youStyle(look);
   return (
     <div data-daily-board={board.open ? "open" : "locked"} className="flex flex-col gap-2">
       {me ? (
         <section
           aria-label="You"
-          data-tint="me"
+          data-you=""
           data-daily-me
-          className="th-card flex flex-col gap-2 rounded-xl border border-primary/70 bg-primary/10 px-3 py-2.5"
+          style={you}
+          className="th-card flex flex-col gap-2 rounded-[18px] border px-3.5 py-3"
         >
           <div className="flex items-center gap-2">
             <PlayerBadge look={look} name={me.name} size={28} />
             <span className="flex min-w-0 flex-1 flex-col">
-              <span className="th-name truncate text-sm leading-tight text-foreground">
-                {me.name}
+              <span className="th-name truncate text-[15px] font-semibold leading-tight text-foreground">
+                {me.name} <span className="rs-you">(you)</span>
               </span>
               <span
-                className="whitespace-nowrap font-display text-xs font-bold uppercase tracking-wide text-primary"
+                className="whitespace-nowrap text-[13px] font-semibold text-[var(--ap-text-2)]"
                 data-daily-rank
               >
                 {me.finished || board.open
@@ -57,7 +63,7 @@ export function DailyBoard({
                   : "You · Not finished"}
               </span>
             </span>
-            <span className="th-score th-score-top shrink-0 font-mono text-3xl font-bold tabular-nums text-primary">
+            <span className="th-score shrink-0 text-3xl tabular-nums text-foreground">
               {me.total}
             </span>
           </div>
@@ -69,12 +75,12 @@ export function DailyBoard({
             {me.rounds.map((score, i) => (
               <span
                 key={i}
-                className="flex min-w-0 flex-col items-center rounded-md border border-border/70 bg-background/60 py-0.5"
+                className="flex min-w-0 flex-col items-center rounded-lg bg-[var(--ap-input)] py-1"
               >
-                <span className="font-mono text-[10px] leading-tight text-muted-foreground">
+                <span className="text-[10.5px] leading-tight text-muted-foreground">
                   R{i + 1}
                 </span>
-                <span className="font-mono text-sm font-bold tabular-nums leading-tight text-foreground">
+                <span className="text-sm font-bold tabular-nums leading-tight text-foreground">
                   {score ?? "–"}
                 </span>
               </span>
@@ -86,38 +92,39 @@ export function DailyBoard({
 
       {board.open ? (
         board.rows.length === 0 ? (
-          <p className="th-empty rounded-xl border border-dashed border-border px-4 py-6 text-center text-sm text-muted-foreground">
+          <p className="ap-panel px-4 py-6 text-center text-sm text-muted-foreground">
             No one finished this day.
           </p>
         ) : (
-          <ol className="flex flex-col gap-1.5" aria-label="Leaderboard">
-            {board.rows.map((row, i) => (
-              <li
-                key={`${row.rank}-${i}`}
-                data-tint={row.isMe ? "me" : undefined}
-                data-daily-row={row.rank}
-                className={`th-card grid min-h-[44px] grid-cols-[1.375rem_auto_minmax(0,1fr)_auto] items-center gap-x-2 rounded-lg border px-2 py-1 ${
-                  row.isMe ? "border-primary/70 bg-primary/10" : "border-border bg-card"
-                }`}
-              >
-                <Medal place={row.rank} />
-                <PlayerBadge look={lookOf(row.colour, row.icon)} name={row.name} size={24} />
-                <span className="th-name min-w-0 truncate text-sm leading-tight text-foreground">
-                  {row.name}
-                  {row.isMe ? <span className="sr-only"> (you)</span> : null}
-                </span>
-                <span
-                  className={`th-score w-14 text-right font-mono text-xl font-bold tabular-nums ${row.rank === 1 ? "th-score-top text-primary" : "text-foreground"}`}
+          <ol className="rs-list" aria-label="Leaderboard">
+            {board.rows.map((row, i) => {
+              const mark = marks.get(i);
+              return (
+                <li
+                  key={`${row.rank}-${i}`}
+                  data-you={row.isMe ? "" : undefined}
+                  data-daily-row={row.rank}
+                  style={row.isMe ? you : undefined}
+                  className="rs-row"
                 >
-                  {row.total}
-                </span>
-              </li>
-            ))}
+                  <Medal place={row.rank} shared={mark?.shared} />
+                  <PlayerBadge look={lookOf(row.colour, row.icon)} name={row.name} size={28} />
+                  <span className="flex min-w-0 flex-1 flex-col">
+                    <span className="th-name rs-name leading-tight">
+                      {row.name}
+                      {row.isMe ? <span className="rs-you"> (you)</span> : null}
+                    </span>
+                    {mark?.note ? <span data-tie-note className="rs-sub">{mark.note}</span> : null}
+                  </span>
+                  <span className="th-score rs-total w-14 text-right text-xl">{row.total}</span>
+                </li>
+              );
+            })}
           </ol>
         )
       ) : (
         <p
-          className="th-empty flex items-center gap-2 rounded-xl border border-dashed border-border px-4 py-5 text-sm text-muted-foreground"
+          className="ap-panel flex items-center gap-2 px-4 py-5 text-sm text-muted-foreground"
           data-daily-locked
         >
           <Lock aria-hidden="true" className="h-4 w-4 shrink-0" />
@@ -126,7 +133,7 @@ export function DailyBoard({
       )}
       {board.count !== null ? (
         <p
-          className="text-center font-mono text-[11px] uppercase tracking-[0.12em] text-muted-foreground"
+          className="text-center text-[13px] text-muted-foreground"
           data-daily-count
         >
           {board.count} players

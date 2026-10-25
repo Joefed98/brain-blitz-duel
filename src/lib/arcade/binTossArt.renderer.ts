@@ -51,9 +51,42 @@ export function drawRubberBall(ctx: CanvasRenderingContext2D, x: number, y: numb
   ctx.beginPath();
   ctx.arc(x, y, r, 0, Math.PI * 2);
   ctx.fill();
-  ctx.fillStyle = "rgba(255,255,255,0.85)";
+  // Polish A3: a warm sunset rim along the lower right and a soft second sheen (all inside r).
+  const rim = ctx.createRadialGradient(x - r * 0.3, y - r * 0.3, r * 0.55, x, y, r);
+  rim.addColorStop(0, "rgba(255,170,100,0)");
+  rim.addColorStop(0.82, "rgba(255,170,100,0)");
+  rim.addColorStop(1, "rgba(255,170,100,0.45)");
+  ctx.fillStyle = rim;
+  ctx.beginPath();
+  ctx.arc(x, y, r, -Math.PI * 0.15, Math.PI * 0.85);
+  ctx.closePath();
+  ctx.fill();
+  ctx.fillStyle = "rgba(255,255,255,0.22)";
+  ctx.beginPath();
+  ctx.ellipse(x - r * 0.28, y - r * 0.36, r * 0.42, r * 0.24, -0.6, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = "rgba(255,255,255,0.9)";
   ctx.beginPath();
   ctx.arc(x - r * 0.38, y - r * 0.42, r * 0.18, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+}
+
+/** Polish A3: a soft contact shadow on the counter, smaller and fainter the higher its caster is. */
+function counterShadow(ctx: CanvasRenderingContext2D, x: number, y: number, rx: number, height: number): void {
+  const lift = Math.max(0, Math.min(1, height / 320));
+  const w = rx * (1.25 - 0.55 * lift);
+  ctx.save();
+  ctx.globalAlpha = 0.42 * (1 - 0.8 * lift);
+  const g = ctx.createRadialGradient(x, y, 0, x, y, w);
+  g.addColorStop(0, "rgba(28,14,6,1)");
+  g.addColorStop(1, "rgba(28,14,6,0)");
+  ctx.fillStyle = g;
+  ctx.translate(x, y);
+  ctx.scale(1, 0.24);
+  ctx.translate(-x, -y);
+  ctx.beginPath();
+  ctx.arc(x, y, w, 0, Math.PI * 2);
   ctx.fill();
   ctx.restore();
 }
@@ -132,6 +165,14 @@ function drawBucket(ctx: CanvasRenderingContext2D, centre: number, half: number,
   foot.addColorStop(1, "rgba(20,22,28,0.3)");
   ctx.fillStyle = foot;
   ctx.fillRect(-half, -h * 0.3, half * 2, h * 0.3);
+  // Polish A3: the sunset caught along the far edge, and a dark band under the rim.
+  ctx.fillStyle = "rgba(255,160,96,0.22)";
+  ctx.fillRect(half * 0.72, -h, Math.max(1.5, half * 0.1), h);
+  const lip = ctx.createLinearGradient(0, -h, 0, -h + 7);
+  lip.addColorStop(0, "rgba(20,22,28,0.35)");
+  lip.addColorStop(1, "rgba(20,22,28,0)");
+  ctx.fillStyle = lip;
+  ctx.fillRect(-half, -h, half * 2, 7);
   ctx.fillStyle = "#5E6469";
   for (const f of [0.12, 0.36, 0.64, 0.9]) {
     const ry = -h * (1 - f);
@@ -166,6 +207,17 @@ function drawBucket(ctx: CanvasRenderingContext2D, centre: number, half: number,
   ctx.lineWidth = 0.8;
   ctx.beginPath();
   ctx.ellipse(0, -h - 0.3, half - 1, 3.2, 0, Math.PI * 0.55, Math.PI * 0.95);
+  ctx.stroke();
+  // Polish A3: the rim glows warm in the stall lights (a soft halo within 2 px of the rim, a lit front lip).
+  ctx.strokeStyle = "rgba(255,206,130,0.22)";
+  ctx.lineWidth = 4;
+  ctx.beginPath();
+  ctx.ellipse(0, -h, half - 1, 3.2, 0, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.strokeStyle = "rgba(255,222,160,0.85)";
+  ctx.lineWidth = 0.9;
+  ctx.beginPath();
+  ctx.ellipse(0, -h + 0.2, half - 1, 3.2, 0, Math.PI * 0.08, Math.PI * 0.92);
   ctx.stroke();
   ctx.restore();
 }
@@ -346,7 +398,10 @@ function draw(ctx: CanvasRenderingContext2D, state: BinTossState, size: CanvasSi
     const since = state.tick - state.wobbleTick;
     let lean = state.wobbleTick > 0 && since >= 0 && since < 24 ? (since % 8 < 4 ? 2 : -2) : 0;
     if (!reducedMotion() && basketAge < 500) lean = Math.sin(basketAge / 45) * 2 * (1 - basketAge / 500);
-    drawBucket(ctx, centre, half, lean, index >= BINTOSS_SLIDE_FROM);
+    const slides = index >= BINTOSS_SLIDE_FROM;
+    counterShadow(ctx, centre, slides ? FLOOR + 12 : FLOOR + 1, half + 6, 0);
+    if (state.resolved < BINTOSS_THROWS) counterShadow(ctx, px(state.x), FLOOR + 1, px(BINTOSS_BALL_R) * 1.4, FLOOR - px(state.y));
+    drawBucket(ctx, centre, half, lean, slides);
     // Rev 3: the hoop (glowing briefly after a swish) and the spinner.
     const hoop = state.throwIndex < BINTOSS_THROWS ? (state.hoops?.[index] ?? null) : null;
     const swishAge = fairChangeAge(ctx, "bintoss-swishes", state.swishes ?? 0);

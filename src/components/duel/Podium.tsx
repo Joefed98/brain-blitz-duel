@@ -5,7 +5,10 @@ import { puzzleName } from "@/lib/duel/registry";
 import type { Standing } from "@/lib/duel/scoring";
 import type { PlayerLooks } from "@/lib/duel/playerLook";
 import type { PodiumAward } from "@/lib/duel/podiumAwards";
-import type { RoundResultRow, StoredPuzzleType } from "@/lib/duel/types";
+import type { PuzzleType, RoundResultRow, StoredPuzzleType } from "@/lib/duel/types";
+import { tieMarks } from "@/lib/duel/tieDisplay";
+import { GameIcon, hasGameIcon } from "@/components/app/GameIcon";
+import { ChevronDown } from "lucide-react";
 import { playerBreakdown } from "@/lib/duel/scoring";
 import { buzz } from "@/lib/motion";
 import { playVoice } from "@/lib/sound";
@@ -23,7 +26,6 @@ import { previousStandingOrder } from "@/lib/duel/resultPresentation";
 import { useCelebrationScope, useCelebrationsOn, useCountUpClimbs, useTapToSkip } from "@/components/fx/useCelebration";
 import { useFlipRows } from "@/components/fx/useFlipRows";
 
-import { CHAT_BAR_HEIGHT } from "@/lib/duel/chatConstants";
 
 import { FeedbackLink } from "@/components/beta/FeedbackLink";
 
@@ -33,13 +35,11 @@ import { Dots } from "./Dots";
 import { Medal } from "./Medal";
 import { PlayerBadge } from "./PlayerBadge";
 import { PodiumAwards } from "./PodiumAwards";
+import { RoomFooter } from "./RoomFooter";
+import { youStyle } from "./Standings";
 
-/** Gold, silver-grey and bronze-amber blocks (podium tokens in styles.css). */
-const PLINTH = [
-  { height: "h-20", tone: "border-podium-gold bg-podium-gold/25 text-podium-gold" },
-  { height: "h-14", tone: "border-podium-silver/80 bg-podium-silver/15 text-podium-silver" },
-  { height: "h-10", tone: "border-podium-bronze/80 bg-podium-bronze/20 text-podium-bronze" },
-];
+/** The steps: flat panels, the top one tallest, each with its medal (Polish batch R: a compact podium). */
+const STEP_HEIGHT = ["h-[46px]", "h-[34px]", "h-[26px]"];
 
 /** Every total on the podium counts up from 0 over this long (celebrations: from the round before). */
 const COUNT_UP_MS = 1200;
@@ -52,18 +52,20 @@ function Plinth({
   looks,
   celebrate,
   skip,
+  shared,
 }: {
   standing: Standing | undefined;
   place: number;
   looks: PlayerLooks;
   celebrate: boolean;
   skip: boolean;
+  shared: boolean;
 }) {
   if (!standing) return <div className="flex-1" />;
-  const style = PLINTH[place - 1];
-  if (!style) return null;
+  const height = STEP_HEIGHT[place - 1];
+  if (!height) return null;
   return (
-    <div className="relative flex min-w-0 flex-1 flex-col items-center justify-end gap-1" data-podium-place={place}>
+    <div className="relative flex min-w-0 flex-1 flex-col items-center justify-end gap-0.5" data-podium-place={place}>
       {place === 1 && (
         // The winner moment: one confetti burst over the gold block (outside
         // the block's pop-in scale, so the canvas measures its full size).
@@ -71,24 +73,27 @@ function Plinth({
           <ConfettiBurst world="gem" />
         </div>
       )}
-      <PlayerBadge look={looks.get(standing.slot)} name={standing.name} size={26} />
-      <span className="th-name max-w-full truncate text-xs text-foreground">
-        {standing.name}
-      </span>
-      <AnimatedScore
-        value={standing.total}
-        from={celebrate ? countUpFrom(standing) : 0}
-        durationMs={COUNT_UP_MS}
-        quiet
-        skip={skip}
-        countSound={celebrate}
-        className={`th-score font-mono text-xl font-bold tabular-nums ${place === 1 ? "th-score-top text-primary" : "text-foreground"}`}
-      />
+      {/* The winner's name and total keep to the step's left part, so the hero on its right end is clear. */}
+      <div className={`flex w-full min-w-0 flex-col items-center gap-0.5 ${place === 1 && celebrate ? "pr-9" : ""}`}>
+        <PlayerBadge look={looks.get(standing.slot)} name={standing.name} size={place === 1 ? 30 : 26} />
+        <span className="th-name max-w-full truncate text-[13px] font-semibold text-foreground">
+          {standing.name}
+        </span>
+        <AnimatedScore
+          value={standing.total}
+          from={celebrate ? countUpFrom(standing) : 0}
+          durationMs={COUNT_UP_MS}
+          quiet
+          skip={skip}
+          countSound={celebrate}
+          className="th-score text-[19px] tabular-nums text-foreground"
+        />
+      </div>
       <div
         data-podium-step={celebrate ? place : undefined}
-        className={`flex w-full animate-pop-in items-start justify-center rounded-t-xl border pt-2 font-mono text-sm font-bold ${style.height} ${style.tone}`}
+        className={`mt-1 flex w-full animate-pop-in items-start justify-center rounded-t-[14px] bg-[var(--ap-panel)] pt-2 ${height}`}
       >
-        {place}
+        <Medal place={place} shared={shared} />
       </div>
     </div>
   );
@@ -106,7 +111,8 @@ interface PodiumProps {
   isHost: boolean;
   busy: boolean;
   onPlayAgain: () => void;
-  onLeave: () => void;
+  /** Leave: the header's "⋯" menu (the room route draws it, Polish batch R). */
+  onLeave?: () => void;
   /** Replays: the play of the game panel (display only; never blocks Play again or Leave). */
   playOfTheGame?: ReactNode;
   /** The Share button (RoomShareButton), beside Play again. */
@@ -131,7 +137,6 @@ export function Podium({
   isHost,
   busy,
   onPlayAgain,
-  onLeave,
   playOfTheGame,
   share,
   challenge,
@@ -164,7 +169,7 @@ export function Podium({
       if (step) {
         podiumHero(scope, step);
         const box = step.getBoundingClientRect();
-        sparkBurst(scope, box.right - 17, box.bottom - 30, { count: 44 });
+        sparkBurst(scope, box.right - 20, box.top - 28, { count: 44 });
         // The hero takes his pose: the sting on every phone (the winner's and everyone watching).
         celebrationSound("victory");
       }
@@ -185,100 +190,107 @@ export function Podium({
     if (won) buzz([25, 50, 25]);
   }, [won, sharedFirst]);
 
+  const marks = tieMarks(rows.map((row) => ({ slot: row.slot, points: row.total, position: row.position })));
+  const sharedAt = (place: number) => rows.filter((r) => r.position === place).length > 1;
+
   return (
-    <div ref={root} className="relative flex flex-1 flex-col gap-4 pt-2 animate-phase-in">
+    <div ref={root} className="relative flex flex-1 flex-col gap-2.5 text-left animate-phase-in">
       {won ? (
-        <h1 className="text-center font-display text-4xl font-bold text-podium-gold animate-word-scale-in">
-          1st
+        <h1 className="text-center text-[30px] font-extrabold leading-tight text-foreground animate-word-scale-in">
+          {sharedFirst ? "Joint winner!" : "You win!"}
         </h1>
       ) : (
-        <h1 className="whitespace-nowrap text-center font-display text-[22px] font-bold text-foreground animate-word-scale-in">
+        <h1 className="whitespace-nowrap text-center text-[22px] font-extrabold text-foreground animate-word-scale-in">
           You finished {ordinal(mine?.position ?? rows.length)} of {rows.length}
         </h1>
       )}
 
-      <div className="flex items-end gap-2">
-        <Plinth standing={rows.find((r) => r.position === 2)} place={2} looks={looks} celebrate={celebrate} skip={skipped} />
-        <Plinth standing={rows.find((r) => r.position === 1)} place={1} looks={looks} celebrate={celebrate} skip={skipped} />
-        <Plinth standing={rows.find((r) => r.position === 3)} place={3} looks={looks} celebrate={celebrate} skip={skipped} />
+      <div className="flex items-end gap-2 px-1">
+        <Plinth standing={rows.find((r) => r.position === 2)} place={2} looks={looks} celebrate={celebrate} skip={skipped} shared={sharedAt(2)} />
+        <Plinth standing={rows.find((r) => r.position === 1)} place={1} looks={looks} celebrate={celebrate} skip={skipped} shared={sharedAt(1)} />
+        <Plinth standing={rows.find((r) => r.position === 3)} place={3} looks={looks} celebrate={celebrate} skip={skipped} shared={sharedAt(3)} />
       </div>
+
+      <ul className="rs-list">
+        {listRows.map((row) => {
+          const isMe = row.slot === mySlot;
+          const mark = marks.get(row.slot);
+          const look = looks.get(row.slot);
+          return (
+            <li key={row.slot} ref={celebrate ? rowRef(row.slot) : undefined} className="rs-row flex-col items-stretch gap-0 p-0">
+              <button
+                type="button"
+                aria-expanded={open === row.slot}
+                aria-label={`${row.name}: ${row.total} points. Show round scores`}
+                onClick={() => setOpen((current) => (current === row.slot ? null : row.slot))}
+                data-you={isMe ? "" : undefined}
+                style={isMe ? youStyle(look) : undefined}
+                className={`flex min-h-12 w-full items-center gap-2.5 py-1 pl-3.5 pr-2 text-left ${row.status === "inactive" ? "opacity-40" : ""}`}
+              >
+                <Medal place={row.position} shared={mark?.shared} />
+                <PlayerBadge look={look} name={row.name} size={28} />
+                <span className="flex min-w-0 flex-1 flex-col">
+                  <span className="flex min-w-0 items-baseline gap-1">
+                    <span className="rs-name th-name">{row.name}</span>
+                    {isMe ? <span className="rs-you shrink-0 text-[13px]">(you)</span> : null}
+                  </span>
+                  {mark?.note ? <span data-tie-note className="rs-sub">{mark.note}</span> : null}
+                </span>
+                <AnimatedScore
+                  value={row.total}
+                  from={celebrate ? countUpFrom(row) : 0}
+                  durationMs={COUNT_UP_MS}
+                  quiet
+                  skip={skipped}
+                  countSound={celebrate}
+                  className="th-score rs-total"
+                />
+                <ChevronDown aria-hidden="true" className={`h-5 w-5 shrink-0 text-[var(--ap-faint)] transition-transform ${open === row.slot ? "rotate-180" : ""}`} />
+              </button>
+              {open === row.slot && (
+                <div className="border-t border-border px-3.5 py-1.5">
+                  {playerBreakdown(results, row.slot, roundOrder.length || undefined).map((entry) => {
+                    const type = roundOrder[entry.round - 1] ?? "wordsmith";
+                    return (
+                      <div key={entry.round} className="flex min-h-9 items-center gap-2.5 py-0.5 text-[13px]">
+                        {hasGameIcon(type) ? <GameIcon type={type as PuzzleType} size={26} /> : <span className="h-[26px] w-[26px]" />}
+                        <span className="min-w-0 flex-1 truncate text-[var(--ap-text-2)]">{puzzleName(type)}</span>
+                        <span className="font-semibold tabular-nums">{entry.score}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </li>
+          );
+        })}
+      </ul>
 
       <PodiumAwards awards={awards} looks={looks} names={new Map(rows.map((r) => [r.slot, r.name]))} mySlot={mySlot} />
 
       {playOfTheGame}
 
-      <p className="-mb-2 whitespace-nowrap text-center text-[11px] text-muted-foreground">Tap a player for their round scores</p>
-      <ul className="flex flex-col gap-1">
-        {listRows.map((row) => (
-          <li key={row.slot} ref={celebrate ? rowRef(row.slot) : undefined} data-tint={row.slot === mySlot ? "me" : undefined} className="th-card overflow-hidden rounded-xl border border-border bg-card">
-            <button
-              type="button"
-              aria-expanded={open === row.slot}
-              aria-label={`${row.name}: ${row.total} points. Show round scores`}
-              onClick={() => setOpen((current) => (current === row.slot ? null : row.slot))}
-              className={`flex min-h-11 w-full items-center gap-3 px-3 py-2 text-left ${
-                row.slot === mySlot ? "bg-primary/10" : ""
-              } ${row.status === "inactive" ? "opacity-40" : ""}`}
-            >
-              <Medal place={row.position} />
-              <PlayerBadge look={looks.get(row.slot)} name={row.name} size={24} />
-              <span className="th-name min-w-0 flex-1 truncate text-sm">{row.name}</span>
-              <AnimatedScore
-                value={row.total}
-                from={celebrate ? countUpFrom(row) : 0}
-                durationMs={COUNT_UP_MS}
-                quiet
-                skip={skipped}
-                countSound={celebrate}
-                className={`th-score font-mono text-xl font-bold tabular-nums ${row.position === 1 ? "th-score-top text-primary" : ""}`}
-              />
-              <span aria-hidden="true" className="w-3 text-center font-mono text-xs text-muted-foreground">
-                {open === row.slot ? "▴" : "▾"}
-              </span>
-            </button>
-            {open === row.slot && (
-              <div className="border-t border-border px-3 py-2">
-                {playerBreakdown(results, row.slot, roundOrder.length || undefined).map((entry) => (
-                  <div
-                    key={entry.round}
-                    className="flex items-center justify-between py-1 text-[11px]"
-                  >
-                    <span className="th-kicker truncate text-[11px] tracking-[0.08em] text-muted-foreground">
-                      {puzzleName(roundOrder[entry.round - 1] ?? "wordsmith")}
-                    </span>
-                    <span className="font-mono tabular-nums">{entry.score}</span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </li>
-        ))}
-      </ul>
+      {challenge}
 
       {/* SEND FEEDBACK (the beta's form; nothing while TALLY_URL is empty). */}
       <FeedbackLink small />
 
-      {/* Pinned flush on the chat bar, solid, so Play again and Leave never need a scroll and no row shows through. */}
-      <div
-        data-podium-actions
-        className="room-sticky-footer sticky z-30 mt-auto flex flex-col gap-2 bg-background pb-2 pt-2"
-        style={{ bottom: actions ? "0px" : `calc(${CHAT_BAR_HEIGHT}px + env(safe-area-inset-bottom, 0px))` }}
-      >
-        {actions ?? (
-        <>
-        {!isHost && (
-          <p className="text-center font-mono text-xs uppercase tracking-widest text-muted-foreground">
-            Waiting for host…
-          </p>
-        )}
-        {(isHost || share) && (
-          <div className="flex gap-2">
-            {isHost && (
+      {actions ? (
+        // A friend challenge's own buttons, pinned to the screen's bottom (no chat under it).
+        <div data-podium-actions className="room-sticky-footer sticky bottom-0 z-30 mt-auto flex flex-col gap-2 bg-background pb-2 pt-2">
+          {actions}
+        </div>
+      ) : (
+        // The room footer: the chat button, Share (secondary) and Play again (gold, the host's). Leave is
+        // in the header's "⋯" menu.
+        <RoomFooter className="mt-auto">
+          <div data-podium-actions className="flex min-w-0 flex-1 items-center gap-2">
+            {isHost ? (
               <button
                 type="button"
                 onClick={onPlayAgain}
                 disabled={busy}
-                className="th-btn-gold press tap-target flex min-w-0 flex-1 items-center justify-center gap-2 whitespace-nowrap rounded-xl bg-primary font-display text-base font-extrabold uppercase tracking-wide text-primary-foreground"
+                className="th-btn-gold ap-btn-gold rs-btn-gold press tap-target h-[52px]"
               >
                 {busy ? (
                   <>
@@ -289,21 +301,13 @@ export function Podium({
                   "Play again"
                 )}
               </button>
+            ) : (
+              <p className="rs-status h-[52px]">Waiting for host…</p>
             )}
             {share}
           </div>
-        )}
-        {challenge}
-        <button
-          type="button"
-          onClick={onLeave}
-          className="th-btn-ghost press tap-target w-full rounded-xl border border-border font-display text-base font-semibold uppercase tracking-wide text-muted-foreground"
-        >
-          Leave
-        </button>
-        </>
-        )}
-      </div>
+        </RoomFooter>
+      )}
     </div>
   );
 }

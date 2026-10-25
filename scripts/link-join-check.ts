@@ -76,8 +76,8 @@ assert.match(route, /navigator\.clipboard\.writeText\(text\)/);
 assert.match(route, /typeof navigator\.share !== "function"\) \{\s*await copy\(\);/);
 
 // Guests can leave the lobby and between rounds, both behind a confirm.
-const lobby = readFileSync("src/components/duel/RoomLobby.tsx", "utf8");
-assert.match(lobby, /onClick=\{onLeave\}[\s\S]{0,300}Leave room/);
+// Polish batch R: Leave room is in the lobby header's "⋯" menu (the route), still behind the confirm.
+assert.match(route, /label: "Leave room", danger: true, onSelect: \(\) => setConfirmLeave\(true\)/);
 assert.match(route, /onLeave=\{\(\) => setConfirmLeave\(true\)\}/);
 assert.match(route, /confirmLeave && \(\s*<ConfirmDialog/);
 assert.match(

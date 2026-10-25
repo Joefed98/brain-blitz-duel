@@ -1,9 +1,10 @@
 import { useEffect, useRef, type ReactNode } from "react";
 
 import { puzzleName } from "@/lib/duel/registry";
-import type { StoredPuzzleType } from "@/lib/duel/types";
+import type { PuzzleType, StoredPuzzleType } from "@/lib/duel/types";
+import { GameIcon, hasGameIcon } from "@/components/app/GameIcon";
 import type { Outcome } from "@/lib/duel/scoring";
-import type { PlayerLook, PlayerLooks } from "@/lib/duel/playerLook";
+import { PLAYER_COLOURS, type PlayerLook, type PlayerLooks } from "@/lib/duel/playerLook";
 import type { PodiumAward } from "@/lib/duel/podiumAwards";
 import { buzz } from "@/lib/motion";
 import { playVoice } from "@/lib/sound";
@@ -17,6 +18,7 @@ import { AnimatedScore } from "./AnimatedScore";
 import { Dots } from "./Dots";
 import { PlayerBadge } from "./PlayerBadge";
 import { PodiumAwards } from "./PodiumAwards";
+import { RoomFooter } from "./RoomFooter";
 
 interface FinalResultProps {
   outcome: Outcome;
@@ -38,7 +40,8 @@ interface FinalResultProps {
   busy: boolean;
   onPlayAgain: () => void;
   isHost: boolean;
-  onHome: () => void;
+  /** Leave: the header's "⋯" menu (the room route, Polish batch R). */
+  onHome?: () => void;
   /** Replays: the play of the game panel (display only; never blocks Play again or Home). */
   playOfTheGame?: ReactNode;
   /** The Share button (RoomShareButton), beside Play again. */
@@ -65,14 +68,14 @@ export function FinalResult({
   busy,
   onPlayAgain,
   isHost,
-  onHome,
   playOfTheGame,
   share,
   challenge,
 }: FinalResultProps) {
-  const headline = outcome === "win" ? "WIN" : outcome === "loss" ? "LOSS" : "DRAW";
-  const headlineColor =
-    outcome === "win" ? "text-me" : outcome === "loss" ? "text-warn" : "text-foreground";
+  // Large and in white, not all caps (Polish batch R): "You win!", "Priya wins", "Draw".
+  const headline = outcome === "win" ? "You win!" : outcome === "loss" ? `${opponentName} wins` : "Draw";
+  const myColour = colourOf(myLook);
+  const theirColour = colourOf(opponentLook);
   const cued = useRef(false);
   // Celebrations (src/lib/fx/celebrations.ts): both totals count up from the round before; a tap skips.
   const celebrate = useCelebrationsOn();
@@ -98,109 +101,97 @@ export function FinalResult({
     }
   }, [outcome]);
 
+  const side = (name: string, look: PlayerLook | undefined, colour: string, total: number, from: number | undefined, you: boolean) => (
+    <div className="flex min-w-0 flex-1 flex-col items-center text-center">
+      <PlayerBadge look={look} name={name} size={30} className="mb-1" />
+      <p className="flex min-w-0 max-w-full items-baseline justify-center gap-1 text-sm">
+        <span className="th-name truncate font-semibold">{name}</span>
+        {you ? <span className="rs-you shrink-0">(you)</span> : null}
+      </p>
+      {/* Each player's total underlined in their own colour. */}
+      <p style={hold(total)} className="th-score mt-0.5 text-[40px] leading-none tabular-nums text-foreground">
+        <AnimatedScore value={total} {...countUp(total, from)} />
+      </p>
+      <span aria-hidden="true" className="mt-2 block h-[3px] w-14 rounded-full" style={{ background: colour }} />
+    </div>
+  );
+
   return (
-    <div className="relative flex flex-1 flex-col justify-between gap-8 pt-8 animate-phase-in">
-      <div className="flex flex-col gap-8">
-        <h1
-          className={`relative text-center font-display text-6xl font-bold animate-word-scale-in ${headlineColor}`}
-        >
-          {headline}
-        </h1>
-        {note && (
-          <p data-forfeit-note className="-mt-6 text-center text-sm text-foreground/80">
-            {note}
-          </p>
-        )}
+    <div className="relative flex flex-1 flex-col gap-5 pt-4 text-left animate-phase-in">
+      <h1 data-names className="relative truncate text-center text-[40px] font-extrabold leading-tight text-foreground animate-word-scale-in">
+        {headline}
+      </h1>
+      {note && (
+        <p data-forfeit-note className="-mt-3 text-center text-sm text-foreground/80">
+          {note}
+        </p>
+      )}
 
-        <div className="flex items-end justify-center gap-4">
-          <div className="text-center">
-            <PlayerBadge look={myLook} name={myName} size={28} className="mx-auto mb-1" />
-            <p className="th-name max-w-[110px] truncate text-sm text-me">
-              {myName}
-            </p>
-            <p style={hold(myTotal)} className={`th-score font-mono text-4xl font-bold tabular-nums text-me ${myTotal > opponentTotal ? "th-score-top" : ""}`}>
-              <AnimatedScore value={myTotal} {...countUp(myTotal, last?.mine)} />
-            </p>
-          </div>
-          <span className="pb-2 font-mono text-2xl text-muted-foreground">–</span>
-          <div className="text-center">
-            <PlayerBadge look={opponentLook} name={opponentName} size={28} className="mx-auto mb-1" />
-            <p className="th-name max-w-[110px] truncate text-sm text-opponent">
-              {opponentName}
-            </p>
-            <p style={hold(opponentTotal)} className="th-score font-mono text-4xl font-bold tabular-nums text-opponent">
-              <AnimatedScore value={opponentTotal} {...countUp(opponentTotal, last?.theirs)} />
-            </p>
-          </div>
-        </div>
+      <div className="flex items-start justify-center gap-3">
+        {side(myName, myLook, myColour, myTotal, last?.mine, true)}
+        <span className="pt-14 text-2xl text-muted-foreground">–</span>
+        {side(opponentName, opponentLook, theirColour, opponentTotal, last?.theirs, false)}
+      </div>
 
-        <PodiumAwards awards={awards} looks={looks} names={names} mySlot={mySlot} />
-
-        {playOfTheGame}
-
-        <div className="th-card overflow-hidden rounded-2xl border border-border bg-card">
-          {breakdown.map((row, i) => (
-            <div
+      <ul className="rs-list" aria-label="Rounds">
+        {breakdown.map((row, i) => {
+          const type = roundOrder[row.round - 1] ?? "wordsmith";
+          return (
+            <li
               key={row.round}
-              className="flex items-center justify-between border-b border-border px-4 py-3 last:border-b-0 animate-row-stagger"
+              className="rs-row min-h-[52px] animate-row-stagger"
               style={{ animationDelay: `${240 + i * 110}ms` }}
             >
-              <span className="th-kicker min-w-0 truncate text-xs tracking-[0.08em] text-muted-foreground">
-                {puzzleName(roundOrder[row.round - 1] ?? "wordsmith")}
+              {hasGameIcon(type) ? <GameIcon type={type as PuzzleType} size={34} /> : <span className="h-[34px] w-[34px]" />}
+              <span className="rs-name min-w-0 flex-1 text-[14px]">{puzzleName(type)}</span>
+              {/* The winning score bright, the losing one grey. */}
+              <span className="th-score shrink-0 whitespace-nowrap text-[17px] tabular-nums">
+                <span className={row.mine >= row.theirs ? "text-foreground" : "text-[var(--ap-faint)]"}>{row.mine}</span>
+                <span className="mx-2 text-[var(--ap-faint)]">–</span>
+                <span className={row.theirs >= row.mine ? "text-foreground" : "text-[var(--ap-faint)]"}>{row.theirs}</span>
               </span>
-              <span className="th-score shrink-0 whitespace-nowrap font-mono text-base font-bold tabular-nums">
-                <span className={row.mine > row.theirs ? "text-me" : "text-muted-foreground"}>
-                  {row.mine}
-                </span>
-                <span className="mx-2 text-muted-foreground">–</span>
-                <span className={row.theirs > row.mine ? "text-opponent" : "text-muted-foreground"}>
-                  {row.theirs}
-                </span>
-              </span>
-            </div>
-          ))}
-        </div>
-      </div>
+            </li>
+          );
+        })}
+      </ul>
 
-      <div className="flex flex-col gap-3">
-        {!isHost && (
-          <p className="text-center text-sm text-muted-foreground">
-            Waiting for the host to play again
-          </p>
-        )}
-        {(isHost || share) && (
-          <div className="flex gap-2">
-            {isHost && (
-              <button
-                type="button"
-                onClick={onPlayAgain}
-                disabled={busy}
-                className="th-btn-gold press tap-target flex min-w-0 flex-1 items-center justify-center gap-2 whitespace-nowrap rounded-xl bg-primary font-display text-base font-extrabold uppercase tracking-wide text-primary-foreground"
-              >
-                {busy ? (
-                  <>
-                    <span>Setting up</span>
-                    <Dots className="bg-primary-foreground" />
-                  </>
-                ) : (
-                  "Play again"
-                )}
-              </button>
-            )}
+      <PodiumAwards awards={awards} looks={looks} names={names} mySlot={mySlot} />
+
+      {playOfTheGame}
+
+      {challenge}
+
+      {/* SEND FEEDBACK (the beta's form; nothing while TALLY_URL is empty). */}
+      <FeedbackLink small />
+
+      {/* The room footer: chat, Share (secondary) and Play again (gold, the host's). Leave is in the "⋯" menu. */}
+      <RoomFooter className="mt-auto">
+        <div data-podium-actions className="flex min-w-0 flex-1 items-center gap-2">
+          {isHost ? (
+            <button
+              type="button"
+              onClick={onPlayAgain}
+              disabled={busy}
+              className="th-btn-gold ap-btn-gold rs-btn-gold press tap-target h-[52px]"
+            >
+              {busy ? (
+                <>
+                  <span>Setting up</span>
+                  <Dots className="bg-primary-foreground" />
+                </>
+              ) : (
+                "Play again"
+              )}
+            </button>
+          ) : (
+            <p className="rs-status h-[52px]">Waiting for the host</p>
+          )}
             {share}
-          </div>
-        )}
-        {challenge}
-        <button
-          type="button"
-          onClick={onHome}
-          className="th-btn-ghost press tap-target w-full rounded-xl border border-border font-display text-base font-semibold uppercase tracking-wide text-muted-foreground"
-        >
-          Home
-        </button>
-        {/* SEND FEEDBACK (the beta's form; nothing while TALLY_URL is empty). */}
-        <FeedbackLink small />
-      </div>
+        </div>
+      </RoomFooter>
     </div>
   );
 }
+
+/** A player's own colour; neutral without one. */
+const colourOf = (look: PlayerLook | undefined) => (look ? PLAYER_COLOURS[look.colour]?.hex : undefined) ?? "var(--ap-text-2)";

@@ -1,13 +1,15 @@
 import { storedScoreParts } from "@/lib/duel/puzzleScoreRev";
 import { devDiagnosticsOn, type ArcadeDiag } from "@/lib/arcade/diagnostics";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 
 import { WaitingLine } from "@/components/duel/Dots";
 import { ArcadeReveal, storedCostRows, type RevealPlayer } from "@/components/duel/ArcadeReveal";
+import { PlayerBadge } from "@/components/duel/PlayerBadge";
 import type { ArcadeRevealData } from "@/lib/arcade/reveal";
 import { ARCADE_REVEAL_RENDERERS } from "@/lib/arcade/revealRenderers";
 
 import { puzzleDef, puzzleName, puzzleRevealMs, puzzleTimeLimitMs } from "@/lib/duel/registry";
+import { boardBox } from "@/lib/boardBox";
 import { isRemovedType } from "@/lib/duel/removedGames";
 import { TOTAL_ROUNDS, type PuzzleData, type PuzzleType } from "@/lib/duel/types";
 import { buzz } from "@/lib/motion";
@@ -117,6 +119,85 @@ function useRevealLabels(ref: { current: HTMLElement | null }) {
   }, [ref]);
 }
 
+const useIsoLayoutEffect = typeof window === "undefined" ? useEffect : useLayoutEffect;
+
+/**
+ * The reveal board's tray (Polish batch R, display only): placed behind the board's drawn box (boardBox,
+ * the game frame's measure) plus 10 px, before the first paint and whenever the board's boxes change, so
+ * the board sits in a tray that hugs it instead of a tall tinted panel. The board's own layout is untouched.
+ */
+function useRevealTray(board: { current: HTMLElement | null }, tray: { current: HTMLElement | null }) {
+  useIsoLayoutEffect(() => {
+    const b = board.current;
+    const t = tray.current;
+    if (!b || !t) return;
+    let frame = 0;
+    const place = () => {
+      frame = 0;
+      // Measured against the board's own box, so its entrance (a translate) moves the tray with it.
+      const box = boardBox(b);
+      const r = b.getBoundingClientRect();
+      const pad = 10;
+      const left = Math.max(0, box.left - r.left - pad);
+      const right = Math.min(b.clientWidth, box.right - r.left + pad);
+      const top = Math.max(0, box.top - r.top + b.scrollTop - pad);
+      const bottom = box.bottom - r.top + b.scrollTop + pad;
+      if (right - left < 24 || bottom - top < 24) {
+        t.style.display = "none";
+        return;
+      }
+      t.style.display = "";
+      t.style.left = `${left}px`;
+      t.style.top = `${top}px`;
+      t.style.width = `${right - left}px`;
+      t.style.height = `${bottom - top}px`;
+    };
+    place();
+    const later = () => {
+      if (!frame) frame = requestAnimationFrame(place);
+    };
+    const resize = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(later);
+    resize?.observe(b);
+    for (const child of Array.from(b.children)) resize?.observe(child);
+    const mutations = new MutationObserver(later);
+    mutations.observe(b, { childList: true, subtree: true });
+    return () => {
+      cancelAnimationFrame(frame);
+      resize?.disconnect();
+      mutations.disconnect();
+    };
+  }, []);
+}
+
+/** The verdict in sentence case, so units stay lowercase: "Solved in 53.2 s", "Partly solved", "Not solved". */
+function verdictLine(correct: boolean, score: number | null, msRemaining: number | undefined, limitMs: number): string {
+  if (score === null && !correct) return "Scoring…";
+  if (correct) {
+    const used = Math.max(0, limitMs - (msRemaining ?? 0));
+    return msRemaining === undefined || used <= 0 ? "Solved" : `Solved in ${(used / 1000).toFixed(1)} s`;
+  }
+  return score !== null && score > 0 ? "Partly solved" : "Not solved";
+}
+
+/** Who else is in (a room's reveal): everyone's badge, "n of N finished" and when the results arrive. */
+function RevealPlayers({ players, secondsLeft }: { players: RevealPlayer[]; secondsLeft: number }) {
+  const finished = players.filter((p) => p.score !== null).length;
+  return (
+    <div data-reveal-players className="flex shrink-0 items-center gap-2.5 pb-1">
+      <span className="flex shrink-0 -space-x-1.5">
+        {players.slice(0, 10).map((p) => (
+          <span key={p.slot} className={`rounded-full ring-2 ring-[var(--ap-bg)] ${p.score === null ? "opacity-40" : ""}`}>
+            <PlayerBadge look={p.look} name={p.name} size={22} />
+          </span>
+        ))}
+      </span>
+      <span className="min-w-0 flex-1 truncate text-[13px] font-semibold text-[var(--ap-text-2)]">
+        {finished} of {players.length} finished · results in {secondsLeft}s
+      </span>
+    </div>
+  );
+}
+
 /** The only score on the reveal: the server's stored number, never a local calculation. */
 export function StoredScore({ score, type }: { score: number | null; type: PuzzleType }) {
   const scoreRef = useRef<HTMLParagraphElement>(null);
@@ -129,7 +210,7 @@ export function StoredScore({ score, type }: { score: number | null; type: Puzzl
     );
   }
   return (
-    <p ref={scoreRef} data-reveal-score={score} className="th-score th-score-top shrink-0 font-mono text-2xl font-bold tabular-nums text-primary animate-pop-in">
+    <p ref={scoreRef} data-reveal-score={score} className="th-score shrink-0 whitespace-nowrap text-2xl tabular-nums text-foreground animate-pop-in">
       {score} points
     </p>
   );
@@ -142,26 +223,26 @@ export function StoredScore({ score, type }: { score: number | null; type: Puzzl
  */
 function Verdict({ correct, score }: { correct: boolean; score: number | null }) {
   if (!correct && score === null) {
-    return <div data-verdict="pending" className="h-14 w-14 rounded-full border-2 border-border" aria-hidden="true" />;
+    return <div data-verdict="pending" className="h-11 w-11 shrink-0 rounded-full border-2 border-border" aria-hidden="true" />;
   }
   if (!correct && score !== null && score > 0) {
     return (
       <div data-verdict="partial" className="flex flex-col items-center gap-1 animate-pop-in">
-        <div className="flex h-14 w-14 items-center justify-center rounded-full border-2 border-timer-orange text-timer-orange">
+        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border-2 border-timer-orange text-timer-orange">
           <svg viewBox="0 0 24 24" className="h-7 w-7" aria-hidden="true">
             <circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" strokeWidth="2.4" />
             <path d="M12 4a8 8 0 0 1 0 16Z" fill="currentColor" />
           </svg>
         </div>
-        <p className="font-display text-sm font-bold text-timer-orange">Partly solved</p>
+
       </div>
     );
   }
   return (
     <div
       data-verdict={correct ? "correct" : "wrong"}
-      className={`flex h-14 w-14 items-center justify-center rounded-full border-2 animate-pop-in ${
-        correct ? "border-me text-me" : "border-warn text-warn"
+      className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full border-2 animate-pop-in ${
+        correct ? "border-category-accent text-category-accent" : "border-warn text-warn"
       }`}
     >
       <svg
@@ -260,6 +341,8 @@ function LiveAnswerReveal({
   const solvedBoard = useRef<HTMLDivElement>(null);
   useSolveFlourish(solvedBoard, puzzle.type, answersReady && myScore !== null && myCorrect);
   useRevealLabels(solvedBoard);
+  const trayRef = useRef<HTMLDivElement>(null);
+  useRevealTray(solvedBoard, trayRef);
 
   useEffect(() => {
     if (myScore === null || cued.current === round) return;
@@ -295,15 +378,14 @@ function LiveAnswerReveal({
   }, [celebrate, myScore, round, startedAt]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
-    <div data-skin="room" className="relative flex min-h-0 flex-1 flex-col gap-2 animate-phase-in">
+    <div data-skin="room" data-answer-reveal className="relative flex min-h-0 flex-1 flex-col gap-2.5 px-3 text-left animate-phase-in">
       {/* Practice's new best (arcade too); rooms keep ArcadeReveal's room-best record. */}
       {practice && personalBest && myScore !== null ? <NewBestMoment /> : null}
-      <div className="flex items-center justify-between gap-2">
-        <span className="shrink-0 font-mono text-xs uppercase tracking-widest text-muted-foreground">
-          {practice ? "Practice" : `Round ${round} of ${totalRounds}`}
+      <div className="rs-head shrink-0">
+        <span className="min-w-0 truncate text-[15px] font-bold text-foreground">{def.name}</span>
+        <span className="rs-meta">
+          {practice ? "Practice" : `Round ${round} of ${totalRounds}`} · {secondsLeft}s
         </span>
-        <span className="min-w-0 flex-1 whitespace-normal break-words text-center font-display text-sm font-bold leading-none text-foreground">{def.name}</span>
-        <span className="shrink-0 font-mono text-xs text-muted-foreground">{secondsLeft}s</span>
       </div>
 
       {ARCADE_REVEAL_RENDERERS[puzzle.type] ? (
@@ -323,19 +405,29 @@ function LiveAnswerReveal({
           }
         />
       ) : (
-      <div className="flex min-h-0 w-full flex-1 flex-col items-center gap-2">
-        {!puzzleOwnsRevealLayout ? <Verdict correct={myCorrect} score={myScore} /> : null}
-        {!puzzleOwnsRevealLayout ? (
-          <p data-reveal-heading className="th-answer-correct whitespace-nowrap text-base">
-            {def.revealHeading ?? "The answer was"}
-          </p>
-        ) : null}
-        <StoredScore score={myScore} type={puzzle.type} />
+      <div className="flex min-h-0 w-full flex-1 flex-col items-stretch gap-2.5">
+        {/* The verdict row: the mark in the category colour, "Solved in 53.2 s" in sentence case, the score in white. */}
+        <div data-verdict-row className="flex shrink-0 items-center gap-3">
+          {!puzzleOwnsRevealLayout ? <Verdict correct={myCorrect} score={myScore} /> : null}
+          <span className="flex min-w-0 flex-1 flex-col">
+            <span className="truncate text-[16px] font-bold text-foreground">
+              {verdictLine(myCorrect, myScore, myMsRemaining, puzzleTimeLimitMs(puzzle))}
+            </span>
+            {!puzzleOwnsRevealLayout ? (
+              <span data-reveal-heading className="truncate text-[13px] text-[var(--ap-text-2)]">
+                {def.revealHeading ?? "The answer was"}
+              </span>
+            ) : null}
+          </span>
+          <StoredScore score={myScore} type={puzzle.type} />
+        </div>
         {/* Shared near-miss line; nearMiss() returns null for every puzzle type without one. */}
         {myScore !== null && nearMiss(puzzle.type, myExtra) ? (
-          <p className="shrink-0 text-center font-mono text-sm text-primary">{nearMiss(puzzle.type, myExtra)}</p>
+          <p className="shrink-0 text-center text-sm font-semibold text-foreground">{nearMiss(puzzle.type, myExtra)}</p>
         ) : null}
-        <div ref={solvedBoard} data-skin-off className="answer-reveal-content th-answer-board flex w-full min-h-0 flex-1 flex-col items-center justify-start overflow-x-hidden overflow-y-auto text-base animate-rise-settle">
+        {/* The board keeps its box (flex-1, as before); the tray behind it hugs what it draws (useRevealTray). */}
+        <div ref={solvedBoard} data-skin-off className="answer-reveal-content relative isolate flex w-full min-h-0 flex-1 flex-col items-center justify-start overflow-x-hidden overflow-y-auto text-base animate-rise-settle">
+          <div ref={trayRef} aria-hidden="true" data-reveal-tray className="reveal-tray" />
           {answersReady ? (
             <Reveal
               puzzle={puzzle}
@@ -354,6 +446,7 @@ function LiveAnswerReveal({
             </div>
           )}
         </div>
+        {players && players.length > 1 ? <RevealPlayers players={players} secondsLeft={secondsLeft} /> : null}
       </div>
       )}
       <DevDiagnostics extra={myExtra ?? null} />

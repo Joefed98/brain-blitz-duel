@@ -3,14 +3,17 @@ import { INTRO_COUNTDOWN_MS, INTRO_MS, TOTAL_ROUNDS, type PuzzleType } from "@/l
 import type { Outcome } from "@/lib/duel/scoring";
 import type { PuzzleData } from "@/lib/duel/types";
 import { Button } from "@/components/ui/button";
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useContext, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
+import { ChevronLeft } from "lucide-react";
 import { fx } from "@/lib/fx";
 import { roundMusicFor } from "@/lib/fx/theme";
 import { prepareRoundMusic, startMusic, stopMusic, stopMusicIf } from "@/lib/sound";
 import { preloadGameArt } from "@/lib/arcade/gameArt.renderer";
 import { preloadGameData, useGameDataReady } from "@/lib/duel/gamePreload";
 
-import { RoundPips } from "./RoundPips";
+import { CATEGORY_NAMES } from "./GameFrame";
+import { MuteToggle } from "./MuteToggle";
+import { RoomChatSlot } from "./RoomFooter";
 import { Dots } from "./Dots";
 import { PuzzleInstructions } from "./PuzzleInstructions";
 import { hasIntroDemo, IntroDemo, introDemoAspect, useArcadeIntroDemo } from "./IntroDemo";
@@ -58,6 +61,8 @@ interface RoundIntroProps {
    * clock): no "auto-start in" line. Rooms and practice keep it.
    */
   autoStart?: boolean;
+  /** A control in the header before the sound button (a room guest's or the daily's "⋯" menu). */
+  topAction?: ReactNode;
 }
 
 export function RoundIntro({
@@ -65,7 +70,6 @@ export function RoundIntro({
   type,
   startedAt,
   now,
-  outcomes,
   totalRounds = TOTAL_ROUNDS,
   ready = false,
   readyCount = 0,
@@ -76,7 +80,10 @@ export function RoundIntro({
   onBack,
   puzzle = null,
   autoStart = true,
+  topAction,
 }: RoundIntroProps) {
+  // In a room, the footer's chat button (RoomChatSlot), beside the countdown and Ready.
+  const chatButton = useContext(RoomChatSlot);
   const elapsed = Math.max(0, now - startedAt);
   const remaining = Math.max(0, INTRO_MS - elapsed);
   const counting = remaining <= INTRO_COUNTDOWN_MS;
@@ -187,37 +194,46 @@ export function RoundIntro({
 
   return (
     <div data-compact={compact} className="round-intro flex min-h-0 flex-1 flex-col gap-2 overflow-hidden animate-round-in">
-      <div className="category-header flex items-start justify-between">
+      {/* The game frame's 60 px header (Polish batch R): back (practice), the name over the category dot and
+          "{Category} · Practice / Round n of N", the best (practice), the room's "⋯" menu and sound. */}
+      <div data-intro-header className="intro-header" style={NO_SELECT}>
         {practice && onBack ? (
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={onBack}
-            className="press h-8 shrink-0 px-2.5"
-          >
-            ← Back
-          </Button>
+          <button type="button" onClick={onBack} aria-label="Back" className="intro-back press">
+            <ChevronLeft aria-hidden="true" className="h-6 w-6" />
+          </button>
         ) : null}
-        <div className="flex flex-col gap-0.5">
-          <span className="font-mono text-xs uppercase tracking-widest text-muted-foreground">
-            {practice ? "Practice" : `Round ${round} of ${totalRounds}`}{" "}
-            <span className="category-tag">· {theme.accent}</span>
+        <div className="game-frame-left">
+          <h1
+            className="round-intro-title game-frame-name"
+            data-long={puzzleName(type).length > 15 ? "" : undefined}
+            style={{ ["--name-len" as string]: Math.max(6, puzzleName(type).length) }}
+          >
+            {puzzleName(type)}
+          </h1>
+          <span className="game-frame-context">
+            <span aria-hidden="true" className="game-frame-dot" />
+            <span className="game-frame-context-text">
+              {CATEGORY_NAMES[puzzleDef(type).category]} · {practice ? "Practice" : `Round ${round} of ${totalRounds}`}
+            </span>
           </span>
-          {!counting && onReady && autoStart ? (
-            <span className="font-mono text-[0.7rem] text-foreground/70">
-              auto-start in {autoSeconds}s
+        </div>
+        <div className="intro-header-right">
+          {practice ? (
+            <span data-intro-best className="intro-best">
+              {deviceBest === null ? (
+                "No best yet"
+              ) : (
+                <>
+                  <span className="intro-best-label">Best</span>
+                  <span className="intro-best-value">{deviceBest}</span>
+                </>
+              )}
             </span>
           ) : null}
+          {topAction}
+          <MuteToggle variant="frame" />
         </div>
-        {!practice && <RoundPips currentRound={round} outcomes={outcomes} totalRounds={totalRounds} />}
       </div>
-
-      <h1 className="round-intro-title w-full min-w-0 whitespace-normal break-words text-center font-display text-[2.25rem] font-bold leading-none animate-pop-in sm:text-[2.75rem]">
-        {puzzleName(type)}
-      </h1>
-      {practice ? <p className="text-center font-mono text-xs text-muted-foreground">Best: {deviceBest ?? "—"} · this device</p> : null}
-
       {counting ? (
         <div className="flex flex-1 items-center justify-center" aria-live="polite">
           <p
@@ -253,7 +269,7 @@ export function RoundIntro({
               }
             />
             {introLine ? (
-              <p className="shrink-0 font-mono text-sm font-bold uppercase tracking-widest text-primary">
+              <p className="shrink-0 text-sm font-bold text-foreground">
                 {introLine}
               </p>
             ) : null}
@@ -263,32 +279,38 @@ export function RoundIntro({
             </p>
           </div>
 
-          <div className="sticky bottom-0 z-10 flex shrink-0 flex-col items-center gap-2 bg-background pt-1">
-            <Button
-              type="button"
-              disabled={ready || !dataReady}
-              onClick={onReady}
-              className={`press h-[60px] w-full rounded-2xl font-display text-2xl font-bold uppercase tracking-[0.12em] disabled:opacity-100 ${
-                ready ? "bg-opponent text-primary-foreground" : "bg-primary text-primary-foreground"
-              }`}
-            >
-              {!dataReady ? "Loading words…" : ready ? "Ready ✓" : "Ready"}
-            </Button>
+          {/* The footer: in a room the chat button, then the auto-start countdown as a ring in the category
+              colour, then Ready in gold. */}
+          <div className="intro-footer sticky bottom-0 z-10 flex shrink-0 flex-col items-stretch gap-1.5 pt-1">
+            <div className="flex h-[52px] items-center gap-2">
+              {chatButton}
+              {!counting && onReady && autoStart ? (
+                <AutoStartRing seconds={autoSeconds} total={Math.round((INTRO_MS - INTRO_COUNTDOWN_MS) / 1000)} />
+              ) : null}
+              <Button
+                type="button"
+                disabled={ready || !dataReady}
+                onClick={onReady}
+                className={`press h-[52px] min-w-0 flex-1 rounded-[14px] text-[18px] font-extrabold disabled:opacity-100 ${
+                  ready ? "intro-ready-done" : "ap-btn-gold"
+                }`}
+              >
+                {!dataReady ? "Loading words…" : ready ? "Ready ✓" : "Ready"}
+              </Button>
+            </div>
 
             {/* The ready count only takes a row when there is someone to wait for. */}
             {activeCount > 1 ? (
-            <p className="flex h-5 items-center gap-1.5 font-mono text-xs text-muted-foreground">
-              {activeCount > 1 ? (
-                ready && twoPlayer && readyCount < activeCount ? (
-                  <>
-                    Waiting for opponent <Dots />
-                  </>
-                ) : (
-                  <>
-                    {readyCount} of {activeCount} ready
-                  </>
-                )
-              ) : null}
+            <p className="flex h-5 items-center justify-center gap-1.5 text-[13px] text-muted-foreground">
+              {ready && twoPlayer && readyCount < activeCount ? (
+                <>
+                  Waiting for opponent <Dots />
+                </>
+              ) : (
+                <>
+                  {readyCount} of {activeCount} ready
+                </>
+              )}
             </p>
             ) : null}
           </div>
@@ -314,5 +336,34 @@ function DesktopKeys({ type }: { type: PuzzleType }) {
         </span>
       ))}
     </p>
+  );
+}
+
+const NO_SELECT = { userSelect: "none", WebkitUserSelect: "none" } as const;
+
+/** The auto-start countdown: a 44 px ring in the category colour, the seconds inside (display only). */
+function AutoStartRing({ seconds, total }: { seconds: number; total: number }) {
+  const r = 19;
+  const c = 2 * Math.PI * r;
+  const share = total > 0 ? Math.max(0, Math.min(1, seconds / total)) : 0;
+  return (
+    <span data-auto-start={seconds} role="timer" aria-label={`Auto-start in ${seconds}s`} className="intro-ring">
+      <svg viewBox="0 0 44 44" width="44" height="44" aria-hidden="true">
+        <circle cx="22" cy="22" r={r} fill="none" stroke="#26262C" strokeWidth="3.5" />
+        <circle
+          cx="22"
+          cy="22"
+          r={r}
+          fill="none"
+          stroke="var(--category-accent)"
+          strokeWidth="3.5"
+          strokeLinecap="round"
+          strokeDasharray={c}
+          strokeDashoffset={c * (1 - share)}
+          transform="rotate(-90 22 22)"
+        />
+      </svg>
+      <span aria-hidden="true">{seconds}</span>
+    </span>
   );
 }

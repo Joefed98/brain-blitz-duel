@@ -865,9 +865,11 @@ else {
               geo.left >= (geo.againRight ?? 0),
             `${where}: Share is not beside Play again (${geo.againTop} vs ${geo.top})`,
           );
+          // Polish batch R: Share is a secondary button in sentence case (th-btn-teal is drawn as the room
+          // look's neutral outline, room-screens.css).
           check(
-            /\bth-btn-teal\b/.test(geo.cls) && geo.transform === "uppercase",
-            `${where}: Share is not the skin's uppercase teal button`,
+            /\bth-btn-teal\b/.test(geo.cls) && geo.transform === "none",
+            `${where}: Share is not the room look's sentence-case secondary button`,
           );
           check(
             geo.lines === 1 && !geo.overflow && geo.text === "Share",

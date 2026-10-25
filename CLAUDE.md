@@ -512,10 +512,19 @@ Lovable still hosts and publishes the app (https://brain-blitz-duel.lovable.app)
   Toolkit for the category batches: `.gf-glass`, `.gf-well`, `.gf-glow`, `.gf-alert`, `gameToolkit.ts`,
   `ArcadeAtmosphere`. Tools: `bun scripts/shots/before-after.ts` (main beside the branch, `screenshots/before-after/`)
   and `bun scripts/shots/frame-probe.ts` (cut text, tray overflow, dock heights at 414×896 and 375×667).
+- **Polish batch R: room and other screens** (25 Oct 2026; presentation only, no stamps;
+  `docs/polish-batches/room-screens.md`, `src/polish-layout/room-screens.css`, design-system.md "Room and other
+  screens"): every non-tab skinned screen (lobby, link join, round results, standings, podium and final, the
+  answer reveal's chrome, daily and challenge screens, terms, settings, chat sheet, dialogs, first-time intro)
+  takes the tab pages' look, gold only on the action that plays; one room footer row (`RoomFooter`: chat
+  button and the main action; Disband / Leave in the header's "⋯" `RoomMenu`); intros draw the game frame's
+  header (`bare` PhoneShell); ties shown with `tieDisplay.ts` (tie-display-check); one error layout
+  (`ErrorState`) for the 404, room not found and challenge not found; `Wordmark.tsx` retired for
+  `AppWordmark`. celebrations-off.json was re-recorded on the branch (switch set off).
 - **Per-game round maximum** (25 Oct 2026, the 200-point foundation; `docs/scoring-200.md`; no game's scoring changed):
   `src/lib/duel/roundMax.ts` (`ROUND_MAX`, 150 for every game today; `SCORE_CEILING` 200; `roundMaxFor`) is what the
   perfect moment and `shared.perfect`, the signature beat's no-finish threshold, the arcade reveal chart's axis, the intro
-  and "?" help texts (`{max}`), Perfectionist / So Close / Fastest Finger, the results' top score and the onboarding read.
+  and "?" help texts (`{max}`), Perfectionist / So Close / Fastest Finger, the round result's bars and the onboarding read.
   An expansion raises its own line to 200 plus its stamped scoring. Practice bests moved to `duelz-practice-best:v3:` and room
   arcade bests (`arcadeBest.ts`) to `duelz-arcade-room-best:v2:` (fresh once; old records kept, never read). round-max-check (~1 s) proves it.
 - `src/components/duel/` — room/round screens (PhoneShell, RoundIntro, TimerBar,

@@ -23,10 +23,10 @@ function agreedDay(iso: string): string {
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <section className="flex flex-col gap-1">
-      <h2 className="whitespace-nowrap font-display text-base font-bold text-foreground">
+      <h2 className="whitespace-nowrap text-[17px] font-bold text-foreground">
         {title}
       </h2>
-      <div className="flex flex-col gap-1 text-sm leading-relaxed text-muted-foreground">
+      <div className="flex flex-col gap-1.5 text-[15px] leading-relaxed text-[#D6D3DC]">
         {children}
       </div>
     </section>
@@ -44,7 +44,7 @@ const OPERATOR = "Joulz";
 export function TermsContent() {
   const contact = betaValue("CONTACT_EMAIL");
   return (
-    <div data-terms-content className="flex flex-col gap-4">
+    <div data-terms-content className="flex flex-col gap-5">
       <Section title="An early-access beta">
         <p>
           {`${OPERATOR} ("we", "us") runs this early-access beta of ${APP_NAME}. It's free to play. Games, scores and features may change, break or be reset while we test.`}
@@ -77,7 +77,7 @@ export function TermsContent() {
             Contact:{" "}
             <a
               href={`mailto:${contact}`}
-              className="font-semibold text-primary underline-offset-2 hover:underline"
+              className="font-semibold text-foreground underline underline-offset-2"
             >
               {contact}
             </a>
@@ -98,11 +98,12 @@ export function TermsScreen({ onAgree, onBack }: { onAgree?: () => void; onBack?
     <PhoneShell skin="profile">
       <div data-terms className="flex flex-1 flex-col gap-5">
         <div>
-          <p className="th-kicker text-primary">Before you play</p>
-          <h1 className="whitespace-nowrap font-display text-2xl font-bold">Beta terms</h1>
-          <p className="mt-1 text-sm text-muted-foreground">The short version, in plain English.</p>
+          <p className="th-kicker">Before you play</p>
+          <h1 className="ap-title mt-1 whitespace-nowrap text-[28px]">Beta terms</h1>
+          <p className="ap-sub mt-1">The short version, in plain English.</p>
         </div>
-        <div data-tint="gold" className="th-card rounded-2xl border border-border bg-card/80 p-4">
+        {/* Readable text on the page itself (Polish batch R): no bordered card. */}
+        <div className="px-1">
           <TermsContent />
         </div>
         <div
@@ -114,7 +115,7 @@ export function TermsScreen({ onAgree, onBack }: { onAgree?: () => void; onBack?
             <>
               <p
                 data-terms-agreed
-                className="whitespace-nowrap text-center font-mono text-xs text-muted-foreground"
+                className="whitespace-nowrap text-center text-[13px] text-muted-foreground"
               >
                 You agreed on {agreedDay(agreement.agreedAt)}
               </p>
@@ -122,7 +123,7 @@ export function TermsScreen({ onAgree, onBack }: { onAgree?: () => void; onBack?
                 <button
                   type="button"
                   onClick={onBack}
-                  className="th-btn-ghost press tap-target w-full whitespace-nowrap rounded-xl border border-border font-display text-sm font-semibold uppercase tracking-widest text-muted-foreground"
+                  className="rs-btn press tap-target h-[52px] w-full"
                 >
                   Back
                 </button>
@@ -137,7 +138,7 @@ export function TermsScreen({ onAgree, onBack }: { onAgree?: () => void; onBack?
                 setAgreement(agreeToTerms());
                 onAgree?.();
               }}
-              className="th-btn-gold press tap-target w-full whitespace-nowrap rounded-xl bg-primary py-4 font-display text-lg font-extrabold uppercase tracking-wide text-primary-foreground"
+              className="th-btn-gold ap-btn-gold press tap-target h-[52px] w-full whitespace-nowrap rounded-[14px] text-[17px]"
             >
               I agree
             </button>

@@ -1,5 +1,6 @@
 import { useEffect, useState, type ReactNode } from "react";
 
+import { ChevronDown } from "lucide-react";
 import { GameIcon } from "@/components/app/GameIcon";
 import { AnswerReveal } from "@/components/duel/AnswerReveal";
 import { WaitingLine } from "@/components/duel/Dots";
@@ -9,7 +10,6 @@ import { ReplayBoundary } from "@/components/replay/ReplayBoundary";
 import { asyncReveal, type AsyncReveal } from "@/lib/duel/asyncApi";
 import type { AsyncAttemptView } from "@/lib/duel/asyncRoom";
 import { puzzleName } from "@/lib/duel/registry";
-import { isPerfectScore } from "@/lib/duel/roundMax";
 import {
   VERDICT_LABEL,
   VERDICT_TONE,
@@ -100,7 +100,7 @@ export function AsyncResults({
           type="button"
           data-async-back
           onClick={() => setRevealing(null)}
-          className="th-btn-ghost press tap-target mx-auto mt-2 w-full max-w-xs shrink-0 whitespace-nowrap rounded-xl border border-border bg-card font-display text-xs font-semibold uppercase tracking-widest text-muted-foreground"
+          className="rs-btn press tap-target mx-auto mt-2 w-full max-w-xs shrink-0"
         >
           Back to results
         </button>
@@ -112,19 +112,19 @@ export function AsyncResults({
     <PhoneShell skin="play">
       <div data-async-results className="flex flex-1 flex-col gap-4 animate-phase-in">
         <header className="flex flex-col items-center gap-1 text-center">
-          <p className="th-kicker text-primary">{title} · Results</p>
-          <p className="th-score th-score-top font-mono text-6xl font-bold tabular-nums text-primary animate-pop-in">
+          <p className="th-kicker">{title} · Results</p>
+          <p className="th-score text-6xl tabular-nums text-foreground animate-pop-in">
             {view.total}
           </p>
           <p
-            className="whitespace-nowrap font-display text-sm font-bold uppercase tracking-wide text-foreground"
+            className="whitespace-nowrap text-[15px] font-semibold text-foreground"
             data-async-place
           >
             {placeLine ?? " "}
           </p>
         </header>
 
-        <ol className="flex flex-col gap-1.5">
+        <ol className="rs-list">
           {view.rounds.map((round, index) => {
             const reveal = reveals[index];
             const type = round.type as PuzzleType;
@@ -159,22 +159,20 @@ export function AsyncResults({
                   }
                 : null;
             return (
-              <li key={round.round} data-async-round={round.round}>
+              <li key={round.round} data-async-round={round.round} className="rs-row block p-0">
                 <button
                   type="button"
                   aria-expanded={expanded}
                   onClick={() => setOpen((value) => (value === round.round ? null : round.round))}
-                  className="th-card grid min-h-[52px] w-full grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-2.5 rounded-lg border border-border bg-card px-2 py-1.5 text-left"
+                  className="grid min-h-[56px] w-full grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-2.5 py-1.5 pl-3 pr-2 text-left"
                 >
                   <GameIcon type={type} size={36} />
                   <span className="flex min-w-0 flex-col">
-                    <span className="th-name truncate text-sm leading-tight text-foreground">
-                      {round.round}. {puzzleName(type)}
-                    </span>
+                    <span className="rs-name leading-tight">{puzzleName(type)}</span>
                     <span
                       data-ellipsis
                       data-row-line
-                      className="block truncate font-mono text-[11px] leading-tight text-muted-foreground"
+                      className="block truncate text-[12.5px] leading-tight text-muted-foreground"
                     >
                       {reveal === undefined ? (
                         "…"
@@ -193,24 +191,19 @@ export function AsyncResults({
                   </span>
                   <span className="flex items-center gap-1">
                     <span
-                      className={`th-score w-14 text-right font-mono text-2xl font-bold tabular-nums ${isPerfectScore(type, score) ? "th-score-top text-primary" : "text-foreground"}`}
+                      className="th-score rs-total w-12 text-right"
                     >
                       {score}
                     </span>
-                    <span
-                      aria-hidden="true"
-                      className="w-3 text-center font-mono text-[11px] text-muted-foreground"
-                    >
-                      {expanded ? "▴" : "▾"}
-                    </span>
+                    <ChevronDown aria-hidden="true" className={`h-5 w-5 shrink-0 text-[var(--ap-faint)] transition-transform ${expanded ? "rotate-180" : ""}`} />
                   </span>
                 </button>
                 {expanded ? (
-                  <div className="mt-1.5 flex flex-col gap-2 rounded-lg border border-border/60 bg-card/60 p-2">
+                  <div className="flex flex-col gap-2 border-t border-border px-3 py-2">
                     {reveal ? (
                       <>
                         {reveal.detail.length > 0 ? (
-                          <p className="font-mono text-[11px] text-muted-foreground">
+                          <p className="text-[12.5px] text-muted-foreground">
                             {reveal.detail.join(" · ")}
                           </p>
                         ) : null}
@@ -223,7 +216,7 @@ export function AsyncResults({
                           type="button"
                           data-async-reveal={round.round}
                           onClick={() => setRevealing(round.round)}
-                          className="th-btn-outline-gold press tap-target w-full whitespace-nowrap rounded-xl border border-primary/70 bg-primary/10 font-display text-xs font-bold uppercase tracking-widest text-primary"
+                          className="rs-btn press tap-target w-full"
                         >
                           See the reveal
                         </button>
@@ -244,7 +237,7 @@ export function AsyncResults({
               type="button"
               data-async-board
               onClick={onBoard}
-              className="th-btn-gold press tap-target min-w-0 flex-1 whitespace-nowrap rounded-xl bg-primary px-4 py-3 font-display text-base font-extrabold uppercase tracking-wide text-primary-foreground"
+              className="rs-btn press tap-target h-[52px] min-w-0 flex-1"
             >
               {boardLabel}
             </button>

@@ -24,8 +24,7 @@ version stamps.
     `puzzleBandsText.ts`, `liveBandHelp`): every "up to 150", "150 is perfect", "150 only for …"
     is written `{max}` or reads `roundMaxFor`;
   - the podium's Perfectionist ("A perfect 200 in Tempo"), So Close and Fastest Finger's 110
-    (scaled), the daily / challenge results' top-score highlight, the two-player round
-    result's bars, the onboarding's top score ("Games score up to 200" once games differ).
+    (scaled), the two-player round result's bars, the onboarding's top score ("Games score up to 200" once games differ).
 - **What does not follow** (scoring, on purpose): every sim, grader and score formula keeps its
   own caps and curves, so a stored round always scores as it did. `MAX_ROUND_SCORE` in
   `scoring.ts` is the old formulas' clamp. The shared band clamps (`bandOpen`, `bandFinishFlat`,

@@ -409,7 +409,8 @@ for (const mineFirst of [true, false]) {
   check(!!pill.host.querySelector("[data-new-best] .new-best-moment"), "off: the new best pill is gone");
   const meterless = readFileSync("src/components/duel/RoomLobby.tsx", "utf8");
   check(
-    /\{celebrate \? \([\s\S]*?<ChargeMeter players=\{players\.length\} \/>[\s\S]*?\) : \(\s*<p className="th-kicker text-center text-muted-foreground">\s*\{players\.length\} of \{MAX_PLAYERS\} players\s*<\/p>\s*\)\}/.test(meterless) &&
+    // Polish batch R: the "Players · n of 10" line is drawn either way; off, a plain neutral bar (no charge).
+    /\{players\.length\} of \{MAX_PLAYERS\}[\s\S]{0,80}\{celebrate \? \(\s*<ChargeMeter players=\{players\.length\} \/>\s*\) : \(\s*<div className="rs-meter" aria-hidden="true">/.test(meterless) &&
       (meterless.match(/<ChargeMeter /g) ?? []).length === 1,
     "off: the lobby still draws the meter, or its count line changed",
   );

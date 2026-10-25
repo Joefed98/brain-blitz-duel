@@ -93,16 +93,17 @@ const SCREENS = ONLY.length
   ? THEME_SCREENS.filter((s) => ONLY.some((o) => s.name.includes(o)))
   : THEME_SCREENS;
 const VIEWPORT = VIEWPORTS[0]!;
-/** The screens drawn with the tab screens' Archivo (data-app-page). */
-const TAB_SCREEN_MODES = new Set(["home", "practice", "tournaments", "profile"]);
 
 /** In-page: fonts, tokens, text to measure and controls. */
 function themeProbe(families: { head: string; body: string; mono: string; app: string }) {
   const NOT_JUDGED = "[data-skin-off]";
   // The four tab screens' pages (data-app-page, Prompt R) use one family, Archivo, for everything.
   // (The share welcome card on Play keeps the skin's type, as share-check pins it.)
+  // Polish batch R (25 Oct 2026): every other skinned screen (rooms, daily, challenge, terms, sheets) takes
+  // the tab pages' Archivo too (polish-layout/room-screens.css).
+  const roomLook = (el: Element) => !!el.closest("[data-skin]:not([data-tab-screen])");
   const familyFor = (el: Element, kind: "head" | "mono") =>
-    el.closest("[data-app-page]") && !el.closest("[data-share-welcome]") ? families.app : families[kind];
+    (el.closest("[data-app-page]") || roomLook(el)) && !el.closest("[data-share-welcome]") ? families.app : families[kind];
   const visible = (el: Element) => {
     const r = el.getBoundingClientRect();
     if (r.width < 1 || r.height < 1) return false;
@@ -141,7 +142,7 @@ function themeProbe(families: { head: string; body: string; mono: string; app: s
   };
   const skins = [...document.querySelectorAll("[data-skin]")].filter(visible);
   const fades: { left: number; right: number; top: number; bottom: number }[] = [
-    ...[...document.querySelectorAll(".room-sticky-footer")].map((f) => f.getBoundingClientRect()),
+    ...[...document.querySelectorAll(".room-sticky-footer, .room-footer")].map((f) => f.getBoundingClientRect()),
     // Under the chat bar, its home-bar strip (::after, pointer-events: none) is solid black.
     ...[...document.querySelectorAll(".room-chat-bar")].map((f) => {
       const r = f.getBoundingClientRect();
@@ -215,11 +216,19 @@ function themeProbe(families: { head: string; body: string; mono: string; app: s
         texts.push({ text: text.slice(0, 40), color: rgba(cs.color), points, where: describe(el) });
     }
     const skin = getComputedStyle(root);
-    const want: [string, string][] = [
-      ["--background", "#07070A"],
-      ["--foreground", "#F5F5F7"],
-      ["--primary", "#F2C75C"],
-    ];
+    // The room look (Polish batch R): the tab pages' palette, --primary neutral (gold only on play actions).
+    const room = !root.hasAttribute("data-tab-screen");
+    const want: [string, string][] = room
+      ? [
+          ["--background", "#0D0D0F"],
+          ["--foreground", "#F3F1EC"],
+          ["--primary", "#F3F1EC"],
+        ]
+      : [
+          ["--background", "#07070A"],
+          ["--foreground", "#F5F5F7"],
+          ["--primary", "#F2C75C"],
+        ];
     const norm = (v: string) => v.trim().toUpperCase();
     for (const [token, value] of want) {
       // The tokens resolve through var(--th-…): compare the resolved colour.
@@ -237,8 +246,9 @@ function themeProbe(families: { head: string; body: string; mono: string; app: s
           `[data-skin="${root.getAttribute("data-skin")}"] ${token} is ${hex}, not ${value}`,
         );
     }
-    if (first(skin.fontFamily) !== families.body)
-      problems.push(`[data-skin] body text is ${first(skin.fontFamily)}, not ${families.body}`);
+    const bodyFamily = room ? families.app : families.body;
+    if (first(skin.fontFamily) !== bodyFamily)
+      problems.push(`[data-skin] body text is ${first(skin.fontFamily)}, not ${bodyFamily}`);
   }
   for (const h of document.querySelectorAll("[data-skin] :is(h1, h2, h3)")) {
     if (h.closest(NOT_JUDGED) || !visible(h)) continue;
@@ -304,7 +314,8 @@ function themeProbe(families: { head: string; body: string; mono: string; app: s
   return {
     skins: skins.length,
     // The tab pages' panels (Prompt R) and Practice's game tiles (shelves and grid, follow-up to #129) are its cards.
-    cards: document.querySelectorAll("[data-skin] .th-card, [data-skin] .th-sheet, [data-skin] .ap-panel, [data-skin] .ap-tile").length,
+    // Polish batch R: the room screens' panels and lists (.rs-list), the error layout and the terms' page text.
+    cards: document.querySelectorAll("[data-skin] .th-card, [data-skin] .th-sheet, [data-skin] .ap-panel, [data-skin] .ap-tile, [data-skin] .rs-list, [data-skin] [data-error-screen], [data-skin] [data-terms]").length,
     // The round leaderboard's closed rows: each shows its verdict line under the name.
     rowLines: [...document.querySelectorAll("[data-skin] [aria-expanded='false'] [data-row-line]")].map((line) => ({
       shown: visible(line) && !!line.querySelector("[data-verdict]") && visible(line.querySelector("[data-verdict]")!),
@@ -440,8 +451,10 @@ try {
   await browser.close();
   await server.close();
 }
+// Polish batch R: every skinned screen now uses Archivo (the tab pages' family); the skin's Saira, Manrope and
+// Duelz Mono stay only for the share welcome card, which these screens don't draw.
 if (!ONLY.length)
-  for (const family of [...Object.values(THEME_FAMILIES), ...(SCREENS.some((s) => TAB_SCREEN_MODES.has(s.mode)) ? [APP_PAGE_FAMILY] : [])])
+  for (const family of [APP_PAGE_FAMILY])
     if (!familiesUsed.has(family) || !familiesLoaded.has(family))
       fail(`${family} is never used and loaded on the skinned screens`);
 

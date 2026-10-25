@@ -15,7 +15,6 @@ import {
 import { MAX_PLAYERS, MIN_PLAYERS, type DuelPlayerRow } from "@/lib/duel/types";
 import type { PuzzleCategory } from "@/lib/duel/types";
 import { CATEGORY_ORDER, PUZZLE_CATEGORIES, STANDARD_CATEGORIES } from "@/lib/duel/categories";
-import { CHAT_BAR_HEIGHT } from "@/lib/duel/chatConstants";
 import { typesInCategory } from "@/lib/duel/registry";
 import { roomRoundCount } from "@/lib/duel/selection";
 
@@ -25,19 +24,8 @@ import { useCelebrationsOn } from "@/components/fx/useCelebration";
 import { Dots, WaitingLine } from "./Dots";
 import { PlayerBadge } from "./PlayerBadge";
 import { PLAYER_ICON_ART } from "./playerIcons";
-
-function Crown() {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      aria-hidden="true"
-      className="h-3.5 w-3.5 shrink-0 fill-primary"
-      focusable="false"
-    >
-      <path d="M3 8l4 3 5-6 5 6 4-3-2 10H5L3 8z" />
-    </svg>
-  );
-}
+import { ConfirmDialog } from "./ConfirmDialog";
+import { RoomFooter, RoomMenu } from "./RoomFooter";
 
 interface RoomLobbyProps {
   categories: PuzzleCategory[];
@@ -52,9 +40,10 @@ interface RoomLobbyProps {
   onRemove: (slot: number) => void;
   /** Host only: mute or unmute a player's chat and reactions for everyone. */
   onMuteForEveryone: (slot: number, muted: boolean) => void;
-  onDisband: () => void;
+  /** Host only: disband (the header's "⋯" menu, drawn by the room route). */
+  onDisband?: () => void;
   /** Guests only: leave the lobby (the caller confirms first). */
-  onLeave: () => void;
+  onLeave?: () => void;
   tournamentHistory: { winner: string; date: string; forfeit?: boolean }[];
   /** Everyone's colour and icon (resolvePlayerLooks over every row, left players included). */
   looks: PlayerLooks;
@@ -190,8 +179,6 @@ export function RoomLobby({
   onStart,
   onRemove,
   onMuteForEveryone,
-  onDisband,
-  onLeave,
   tournamentHistory,
   looks,
   allPlayers,
@@ -236,183 +223,133 @@ export function RoomLobby({
     return () => window.clearTimeout(timer);
   }, [pending, storedLook?.colour, storedLook?.icon]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  const presetOn = (values: readonly PuzzleCategory[]) =>
+    categories.length === values.length && categories.every((category) => values.includes(category));
+  const preset = PRESETS.find(({ values }) => presetOn(values));
+  const removingPlayer = removing === null ? null : players.find((p) => p.player_slot === removing) ?? null;
+
   return (
-    <div className="flex w-full flex-col gap-4">
-      {isHost && (
-        <div className="flex flex-col items-center gap-1 text-center" data-host-label>
-          <span className="th-btn-outline-gold whitespace-nowrap rounded-full border border-primary/70 bg-primary/10 px-3 py-1 font-display text-xs font-bold uppercase tracking-widest text-primary">
-            You're the host
+    <div className="flex w-full flex-1 flex-col gap-5 text-left">
+      <section aria-label="Players" className="flex flex-col gap-2">
+        {/* "Players" with "n of 10", then the neutral meter (the charge meter with celebrations on). */}
+        <div className="rs-head">
+          <h2 className="ap-section-title">Players</h2>
+          <span className="rs-meta">
+            {players.length} of {MAX_PLAYERS}
           </span>
-          <p className="text-sm text-muted-foreground">
-            {canStart
-              ? "Choose categories, then start."
-              : "Send this link to friends. Start when everyone's in."}
-          </p>
         </div>
-      )}
-      {celebrate ? (
-        // Celebrations' charge meter (lib/fx/celebrations.ts) directly under the count it fills to; its
-        // 20 px are there from the first frame.
-        <div className="flex flex-col gap-1.5">
-          <p className="th-kicker text-center text-muted-foreground">
-            {players.length} of {MAX_PLAYERS} players
-          </p>
+        {celebrate ? (
           <ChargeMeter players={players.length} />
-        </div>
-      ) : (
-        <p className="th-kicker text-center text-muted-foreground">
-          {players.length} of {MAX_PLAYERS} players
-        </p>
-      )}
-      {canChooseLook && me && (
-        <p className="-mt-2 text-center text-xs font-semibold text-primary" data-look-hint>
-          Tap your name to choose your colour{PLAYER_ICONS_ENABLED ? " and icon" : ""}
-        </p>
-      )}
-      {isHost && players.length > 1 && (
-        <p className="text-center text-[11px] text-muted-foreground">
-          🔊 Chat: mute that player's chat for everyone · ×: remove them
-        </p>
-      )}
-
-      <ul className="flex flex-col gap-2">
-        {players.map((player) => {
-          const isMe = player.user_id === meUserId;
-          const nameLine = (
-            <>
-              <PlayerBadge look={lookFor(player.player_slot)} name={player.display_name} size={24} />
-              {player.user_id === hostUserId && <Crown />}
-              <span className="th-name flex-1 truncate text-sm text-foreground">
-                {player.display_name}
-              </span>
-            </>
-          );
-          return (
-            <li key={player.id} className="flex flex-col gap-2">
-            <div
-              data-tint={isMe ? "me" : undefined}
-              className={`th-card flex animate-pop-in items-center gap-3 rounded-xl border px-4 py-3 text-left ${
-                isMe ? "border-primary/70 bg-primary/10" : "border-border bg-card"
-              }`}
-            >
-              {isMe && canChooseLook ? (
-                <button
-                  type="button"
-                  data-look-toggle
-                  aria-expanded={picking}
-                  aria-label={`${player.display_name}: change your colour${PLAYER_ICONS_ENABLED ? " and icon" : ""}`}
-                  onClick={() => setPicking((open) => !open)}
-                  className="press -my-3 -ml-4 flex min-h-11 min-w-0 flex-1 items-center gap-3 py-3 pl-4 text-left"
-                >
-                  {nameLine}
-                  <span
-                    aria-hidden="true"
-                    className="shrink-0 whitespace-nowrap rounded-full border border-primary/60 px-2 py-0.5 font-display text-[10px] font-bold uppercase tracking-wide text-primary"
+        ) : (
+          <div className="rs-meter" aria-hidden="true">
+            <span style={{ width: `${(players.length / MAX_PLAYERS) * 100}%` }} />
+          </div>
+        )}
+        <ul className="rs-list">
+          {players.map((player) => {
+            const isMe = player.user_id === meUserId;
+            const look = lookFor(player.player_slot);
+            const you = look ? PLAYER_COLOURS[look.colour]?.hex : undefined;
+            const sub = isMe && canChooseLook
+              ? <span className="rs-sub" data-look-hint>Tap to change your colour{PLAYER_ICONS_ENABLED ? " and icon" : ""}</span>
+              : player.muted_by_host
+                ? <span className="rs-sub">Chat muted</span>
+                : null;
+            const nameLine = (
+              <>
+                <PlayerBadge look={look} name={player.display_name} size={30} />
+                <span className="flex min-w-0 flex-1 flex-col">
+                  <span className="flex min-w-0 items-baseline gap-1">
+                    <span className="rs-name th-name">{player.display_name}</span>
+                    {isMe ? <span className="rs-you shrink-0 text-[14px]">(you)</span> : null}
+                  </span>
+                  {sub}
+                </span>
+              </>
+            );
+            return (
+              <li
+                key={player.id}
+                data-you={isMe ? "" : undefined}
+                style={isMe && you ? ({ ["--you" as string]: you }) : undefined}
+                className="rs-row animate-pop-in flex-wrap"
+              >
+                {isMe && canChooseLook ? (
+                  <button
+                    type="button"
+                    data-look-toggle
+                    aria-expanded={picking}
+                    aria-label={`${player.display_name}: change your colour${PLAYER_ICONS_ENABLED ? " and icon" : ""}`}
+                    onClick={() => setPicking((open) => !open)}
+                    className="press -my-1.5 flex min-h-11 min-w-0 flex-1 items-center gap-2.5 text-left"
                   >
-                    {picking ? "Done ▴" : "Change ▾"}
-                  </span>
-                </button>
-              ) : (
-                nameLine
-              )}
-              {player.user_id === hostUserId && (
-                <span className="th-kicker text-[10px] tracking-[0.1em] text-muted-foreground">Host</span>
-              )}
-              {isMe && (
-                <span className="th-kicker text-[10px] tracking-[0.1em] text-primary">You</span>
-              )}
-              {isHost && !isMe && (
-                <button
-                  type="button"
-                  aria-label={
-                    player.muted_by_host
-                      ? `Unmute ${player.display_name} for everyone`
-                      : `Mute ${player.display_name} for everyone`
-                  }
-                  onClick={() => onMuteForEveryone(player.player_slot, !player.muted_by_host)}
-                  className={`press flex h-11 w-12 flex-col items-center justify-center rounded-lg leading-none ${
-                    player.muted_by_host ? "text-warn" : "text-muted-foreground"
-                  }`}
-                >
-                  <span className="text-sm" aria-hidden="true">{player.muted_by_host ? "🔇" : "🔊"}</span>
-                  <span className="mt-0.5 text-[9px] uppercase tracking-wide" aria-hidden="true">
-                    {player.muted_by_host ? "Muted" : "Chat"}
-                  </span>
-                </button>
-              )}
-              {isHost && !isMe && (
-                <button
-                  type="button"
-                  aria-label={
-                    removing === player.player_slot
-                      ? `Confirm removing ${player.display_name}`
-                      : `Remove ${player.display_name}`
-                  }
-                  onClick={() => {
-                    if (removing === player.player_slot) {
-                      setRemoving(null);
-                      onRemove(player.player_slot);
-                    } else setRemoving(player.player_slot);
-                  }}
-                  onBlur={() => setRemoving((slot) => (slot === player.player_slot ? null : slot))}
-                  className={`press flex h-11 items-center justify-center rounded-lg ${
-                    removing === player.player_slot
-                      ? "w-auto bg-warn/15 px-2 font-display text-xs font-bold uppercase text-warn"
-                      : "w-11 text-lg text-muted-foreground"
-                  }`}
-                >
-                  {removing === player.player_slot ? "Remove?" : "×"}
-                </button>
-              )}
-            </div>
-            {isMe && picking && canChooseLook && myLook && (
-              <LookPicker
-                look={myLook}
-                name={player.display_name}
-                taken={takenColours(allPlayers, player.player_slot)}
-                takenIconSlots={takenIcons(allPlayers, player.player_slot)}
-                takenBy={nameOf}
-                onChange={changeLook}
-              />
-            )}
-            {isMe && lookError && (
-              <p role="alert" className="text-center text-xs text-warn">
-                {lookError}
-              </p>
-            )}
-            </li>
-          );
-        })}
-      </ul>
+                    {nameLine}
+                    <span aria-hidden="true" className="rs-pill">
+                      {picking ? "Done ▴" : "Change ▾"}
+                    </span>
+                  </button>
+                ) : (
+                  <span className="flex min-w-0 flex-1 items-center gap-2.5">{nameLine}</span>
+                )}
+                {player.user_id === hostUserId && (
+                  <span className="rs-pill" data-host-label>Host</span>
+                )}
+                {isHost && !isMe && (
+                  <RoomMenu
+                    label={`Options for ${player.display_name}`}
+                    items={[
+                      {
+                        label: player.muted_by_host
+                          ? `Unmute ${player.display_name} for everyone`
+                          : `Mute ${player.display_name} for everyone`,
+                        onSelect: () => onMuteForEveryone(player.player_slot, !player.muted_by_host),
+                      },
+                      { label: `Remove ${player.display_name}`, danger: true, onSelect: () => setRemoving(player.player_slot) },
+                    ]}
+                  />
+                )}
+                {isMe && picking && canChooseLook && myLook && (
+                  <div className="w-full pb-1.5 pt-1">
+                    <LookPicker
+                      look={myLook}
+                      name={player.display_name}
+                      taken={takenColours(allPlayers, player.player_slot)}
+                      takenIconSlots={takenIcons(allPlayers, player.player_slot)}
+                      takenBy={nameOf}
+                      onChange={changeLook}
+                    />
+                  </div>
+                )}
+                {isMe && lookError && (
+                  <p role="alert" className="w-full pb-1 text-xs text-warn">
+                    {lookError}
+                  </p>
+                )}
+              </li>
+            );
+          })}
+        </ul>
+        {isHost && !canStart ? (
+          <p className="text-[13px] leading-snug text-[var(--ap-text-2)]">Send the link to friends. Start when everyone's in.</p>
+        ) : null}
+      </section>
 
-      <div className="w-full space-y-3 text-left">
-        <p className="th-kicker text-foreground">Categories</p>
+      <section aria-label="Game mix" className="flex flex-col gap-2.5">
+        <h2 className="ap-section-title">Game mix</h2>
         {isHost && (
-          <div className="flex flex-wrap gap-2">
+          <div className="rs-seg" role="group" aria-label="Game mix">
             {PRESETS.map(({ label, values }) => (
               <button
                 key={label}
                 type="button"
                 onClick={() => onCategoriesChange([...values])}
-                aria-pressed={
-                  categories.length === values.length &&
-                  categories.every((category) => values.includes(category))
-                }
-                className="th-chip press min-h-11 whitespace-nowrap rounded-md border border-border bg-card px-3 py-2 font-display text-xs font-bold uppercase text-foreground aria-pressed:border-primary aria-pressed:text-primary"
+                aria-pressed={presetOn(values)}
+                className="press"
               >
                 {label}
               </button>
             ))}
           </div>
-        )}
-        {isHost && (
-          <p className="text-xs text-muted-foreground">
-            {PRESETS.find(
-              ({ values }) =>
-                categories.length === values.length &&
-                categories.every((category) => values.includes(category)),
-            )?.description ?? "Custom: at least six rounds, shared between the categories you pick."}
-          </p>
         )}
         {isHost ? (
           <div className="flex flex-wrap gap-2">
@@ -440,102 +377,105 @@ export function RoomLobby({
                   )
                 }
                 data-cat={category}
-                className="th-chip press inline-flex min-h-11 items-center gap-1.5 whitespace-nowrap rounded-md border border-border bg-card px-3 py-2 font-display text-xs font-bold uppercase text-muted-foreground aria-pressed:border-primary aria-pressed:bg-primary/10 aria-pressed:text-primary disabled:opacity-70"
+                className="rs-cat press"
               >
-                <span aria-hidden="true" className="th-chip-dot" />
-                {category}
+                <span aria-hidden="true" className="rs-cat-dot" />
+                {CATEGORY_LABEL[category]}
               </button>
             ))}
           </div>
-        ) : null}
-        {isHost && (
-          <p className="text-xs text-muted-foreground">
-            {hasEmptyCategory ? "Faded categories have no games yet. " : ""}Keep at least one category.
-          </p>
+        ) : (
+          <div className="flex flex-wrap gap-2" aria-label="Categories">
+            {categories.map((category) => (
+              <span key={category} data-cat={category} aria-pressed="true" className="rs-cat">
+                <span aria-hidden="true" className="rs-cat-dot" />
+                {CATEGORY_LABEL[category]}
+              </span>
+            ))}
+          </div>
         )}
-        {isHost ? null : (
-          <p className="text-sm text-muted-foreground">
-            Categories:{" "}
-            {categories
-              .map((category) => category.charAt(0).toUpperCase() + category.slice(1))
-              .join(" · ")}
-          </p>
-        )}
-        <p className="text-xs text-muted-foreground" data-lobby-rounds>
-          {roundsLine(categories)}
+        <p className="text-[13px] leading-snug text-[var(--ap-text-2)]">
+          {isHost ? (
+            <>
+              {preset?.description ?? "Custom: at least six rounds, shared between the categories you pick."}{" "}
+              {hasEmptyCategory ? "Faded categories have no games yet. " : ""}Keep at least one category.{" "}
+            </>
+          ) : null}
+          <span data-lobby-rounds>{roundsLine(categories)}</span>
         </p>
-      </div>
+      </section>
 
       {tournamentHistory.length > 0 && (
-        <div className="space-y-1 border-t border-border pt-3">
-          <p className="th-kicker text-muted-foreground">Previous games</p>
+        <section aria-label="Previous games" className="flex flex-col gap-1">
+          <h2 className="ap-section-title text-[15px]">Previous games</h2>
           {tournamentHistory
             .slice(-3)
             .reverse()
             .map((entry, index) => (
-              <p key={`${entry.date}-${index}`} className="text-xs text-muted-foreground">
+              <p key={`${entry.date}-${index}`} className="text-[13px] text-[var(--ap-text-2)]">
                 {entry.winner} won{entry.forfeit ? " (others left)" : ""} ·{" "}
                 {new Date(entry.date).toLocaleDateString()}
               </p>
             ))}
-        </div>
+        </section>
       )}
 
-      {/* Pinned flush on the chat bar, solid, so Start / Waiting stay on screen with ten players
-          and nothing shows through or between the two bars. */}
-      <div
-        data-lobby-footer
-        className="room-sticky-footer sticky z-30 -mx-1 flex flex-col gap-2 bg-background px-1 pb-2 pt-2"
-        style={{ bottom: `calc(${CHAT_BAR_HEIGHT}px + env(safe-area-inset-bottom, 0px))` }}
-      >
+      {removingPlayer && (
+        <ConfirmDialog
+          title={`Remove ${removingPlayer.display_name}?`}
+          body="They leave the lobby and can join again with the link."
+          confirmLabel="Remove"
+          onCancel={() => setRemoving(null)}
+          onConfirm={() => {
+            setRemoving(null);
+            onRemove(removingPlayer.player_slot);
+          }}
+        />
+      )}
+
+      {/* The room footer: the chat button, then Start game (gold) or the waiting line. Disband and Leave
+          are in the header's "⋯" menu. */}
+      <RoomFooter className="mt-auto">
         {isHost ? (
-          <>
-            {canStart || starting ? (
-              <button
-                type="button"
-                onClick={onStart}
-                disabled={starting}
-                className="th-btn-gold press tap-target flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-4 font-display text-lg font-extrabold uppercase tracking-wide text-primary-foreground disabled:opacity-40"
-              >
-                {starting ? (
-                  <>
-                    <span>Starting</span>
-                    <Dots className="bg-primary-foreground" />
-                  </>
-                ) : (
-                  "Start game"
-                )}
-              </button>
-            ) : (
-              // Not a disabled button: a status line, so the share link above is the call to action.
-              <p data-lobby-waiting className="flex min-h-11 items-center justify-center text-center text-sm text-foreground" role="status">
-                Waiting for {playersNeeded} more {playersNeeded === 1 ? "player" : "players"} to join
-              </p>
-            )}
+          canStart || starting ? (
             <button
               type="button"
-              onClick={onDisband}
-              className="press min-h-11 text-sm text-muted-foreground underline decoration-border underline-offset-4"
+              onClick={onStart}
+              disabled={starting}
+              className="th-btn-gold ap-btn-gold rs-btn-gold press tap-target"
             >
-              Disband room
+              {starting ? (
+                <>
+                  <span>Starting</span>
+                  <Dots className="bg-primary-foreground" />
+                </>
+              ) : (
+                "Start game"
+              )}
             </button>
-          </>
+          ) : (
+            // Not a disabled button: a status line, so the share link above is the call to action.
+            <p data-lobby-waiting className="rs-status" role="status">
+              Waiting for {playersNeeded} more {playersNeeded === 1 ? "player" : "players"} to join
+            </p>
+          )
         ) : (
-          <>
-            <WaitingLine
-              className="min-h-11"
-              label={hostName ? `Waiting for ${hostName} (host) to start` : "Waiting for the host to start"}
-            />
-            <button
-              type="button"
-              onClick={onLeave}
-              className="th-btn-ghost press tap-target w-full rounded-xl border border-border font-display text-sm font-semibold uppercase tracking-wide text-muted-foreground"
-            >
-              Leave room
-            </button>
-          </>
+          <WaitingLine
+            className="rs-status"
+            label={hostName ? `Waiting for ${hostName} (host) to start` : "Waiting for the host to start"}
+          />
         )}
-      </div>
+      </RoomFooter>
     </div>
   );
 }
+
+const CATEGORY_LABEL: Record<PuzzleCategory, string> = {
+  word: "Word",
+  number: "Number",
+  speed: "Speed",
+  attention: "Attention",
+  pattern: "Pattern",
+  logic: "Logic",
+  arcade: "Arcade",
+};

@@ -129,7 +129,7 @@ ok(/usePerfectBurst\(scoreRef, myScore, puzzle\.type\)/.test(read("src/component
   const chart = read("src/components/duel/ArcadeScoreChart.tsx");
   ok(/const max = roundMaxFor\(type\)/.test(chart) && /lengthTo\(max\)/.test(chart) && /chartLabels\(max\)/.test(chart) && /chartPoint\(score, max\)/.test(chart) && !/\b150\b/.test(chart.replace(/MAX_EXTRA = 150/, "").replace(/\/\*[\s\S]*?\*\/|\/\/.*$/gm, "")), "the chart draws on its game's scale, no 150 written in");
 }
-ok(/isPerfectScore\(type, score\)/.test(read("src/components/async/AsyncResults.tsx")), "the daily and challenge results' top score reads the game's maximum");
+ok(!/\b150\b|MAX_ROUND_SCORE/.test(read("src/components/async/AsyncResults.tsx")), "the daily and challenge results write in no 150 (batch R dropped their top-score highlight)");
 ok(/roundMaxFor\(gameType\)/.test(read("src/components/duel/RoundResult.tsx")) && /gameType=\{puzzle\?\.type\}/.test(read("src/routes/duel.$code.tsx")), "the two-player round result's bars run to the game's maximum");
 ok(/topRoundMax\(\)/.test(read("src/components/duel/Onboarding.tsx")) && !/\b150\b/.test(read("src/components/duel/Onboarding.tsx")), "the onboarding states the games' top, no 150 written in");
 ok(!/MAX_ROUND_SCORE|\b150\b/.test(read("src/lib/duel/podiumAwards.ts").replace(/\/\*[\s\S]*?\*\/|\/\/.*$/gm, "")), "podium awards write in no 150");

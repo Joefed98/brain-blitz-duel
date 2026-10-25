@@ -1,6 +1,5 @@
-import { Button } from "@/components/ui/button";
-
 import { Dots } from "./Dots";
+import { RoomFooter } from "./RoomFooter";
 
 export interface ContinueState {
   /** This player has tapped Continue on the current screen. */
@@ -14,7 +13,8 @@ export interface ContinueState {
 
 /**
  * Everyone's button on the between-round screens. The screen moves on when
- * every connected player has tapped it, or when its timer runs out.
+ * every connected player has tapped it, or when its timer runs out. Drawn in the room footer
+ * (RoomFooter, Polish batch R): the chat button, then Continue in gold.
  */
 export function ContinueFooter({
   next,
@@ -28,26 +28,28 @@ export function ContinueFooter({
 }) {
   const { continued, continuedCount, waitingCount, onContinue } = state;
   return (
-    <footer className="shrink-0 pt-1" data-continue-footer>
-      {continued ? (
-        <p className="flex h-10 items-center justify-center gap-2 whitespace-nowrap text-center font-mono text-xs uppercase text-foreground/80">
-          <span>
-            {continuedCount} of {waitingCount} ready · {next} in{" "}
-            <span className="normal-case">{autoSeconds}s</span>
-          </span>
-          <Dots />
-        </p>
-      ) : (
-        <Button
-          className="th-btn-gold press tap-target w-full font-display font-extrabold uppercase tracking-wide"
-          onClick={onContinue}
-        >
-          {/* One flex item, so the button's gap doesn't widen the space; "(5s)" not uppercased to "5S". */}
-          <span>
-            Continue <span className="normal-case">({autoSeconds}s)</span>
-          </span>
-        </Button>
-      )}
-    </footer>
+    <RoomFooter>
+      <div className="flex min-w-0 flex-1" data-continue-footer>
+        {continued ? (
+          <p className="rs-status h-[52px] whitespace-nowrap">
+            <span>
+              {continuedCount} of {waitingCount} ready · {next} in {autoSeconds}s
+            </span>
+            <Dots />
+          </p>
+        ) : (
+          <button
+            type="button"
+            className="th-btn-gold ap-btn-gold rs-btn-gold press tap-target h-[52px]"
+            onClick={onContinue}
+          >
+            {/* One flex item, so the button's gap doesn't widen the space. */}
+            <span>
+              Continue ({autoSeconds}s)
+            </span>
+          </button>
+        )}
+      </div>
+    </RoomFooter>
   );
 }

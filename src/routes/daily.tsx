@@ -104,12 +104,8 @@ function Segmented<T extends string>({
   onChange: (value: T) => void;
 }) {
   return (
-    <div
-      role="group"
-      aria-label={label}
-      className="grid grid-flow-col gap-1.5"
-      style={{ gridAutoColumns: "minmax(0, 1fr)" }}
-    >
+    // A neutral segmented control (Polish batch R): the selected segment a light fill, never gold.
+    <div role="group" aria-label={label} className="rs-seg">
       {options.map((option) => (
         <button
           key={option.value}
@@ -117,9 +113,7 @@ function Segmented<T extends string>({
           aria-pressed={value === option.value}
           data-daily-tab={option.value}
           onClick={() => onChange(option.value)}
-          className={`th-chip th-hit press tap-target inline-flex items-center justify-center whitespace-nowrap rounded-full border px-3 font-display text-xs font-bold uppercase tracking-wide ${
-            value === option.value ? "text-primary" : "text-muted-foreground"
-          }`}
+          className="press"
         >
           {option.label}
         </button>
@@ -195,7 +189,7 @@ function DailyScreen() {
     <button
       type="button"
       onClick={() => setMode({ kind: "board" })}
-      className="press tap-target -ml-2 flex items-center gap-1 px-2 font-display text-xs font-semibold uppercase tracking-widest text-muted-foreground"
+      className="press tap-target -ml-2 flex items-center gap-1 px-2 text-[15px] font-semibold text-[var(--ap-link)]"
     >
       <ChevronLeft aria-hidden="true" className="h-4 w-4" /> Daily
     </button>
@@ -314,14 +308,12 @@ function DailyScreen() {
       <button
         type="button"
         onClick={back}
-        className="press tap-target -ml-2 flex items-center gap-1 px-2 font-display text-xs font-semibold uppercase tracking-widest text-muted-foreground"
+        className="press tap-target -ml-2 flex items-center gap-1 px-2 text-[15px] font-semibold text-[var(--ap-link)]"
       >
         <ChevronLeft aria-hidden="true" className="h-4 w-4" /> Play
       </button>
       {status.available ? (
-        <span data-tone="gold" className="th-pill shrink-0 whitespace-nowrap">
-          {closesIn(status.closesAt - now)}
-        </span>
+        <span className="rs-pill shrink-0">{closesIn(status.closesAt - now)}</span>
       ) : null}
     </div>
   );
@@ -331,8 +323,8 @@ function DailyScreen() {
       <PhoneShell skin="play">
         <div className="flex flex-1 flex-col gap-5">
           {header}
-          <h1 className="font-display text-2xl font-bold uppercase">Daily challenge</h1>
-          <p className="th-empty rounded-xl border border-dashed border-border px-4 py-6 text-center text-sm text-muted-foreground">
+          <h1 className="ap-title text-[28px]">Daily challenge</h1>
+          <p className="ap-panel px-4 py-6 text-center text-sm text-muted-foreground">
             The daily challenge is coming soon.
           </p>
         </div>
@@ -347,9 +339,7 @@ function DailyScreen() {
       <div data-daily-screen className="flex flex-1 flex-col gap-4">
         {header}
         <div>
-          <h1 className="whitespace-nowrap font-display text-2xl font-bold uppercase">
-            Daily challenge
-          </h1>
+          <h1 className="ap-title whitespace-nowrap text-[28px]">Daily challenge</h1>
           <p className="mt-1 text-sm text-muted-foreground">
             Same games for everyone. One go each. New at midnight UK time.
           </p>
@@ -368,13 +358,12 @@ function DailyScreen() {
         {day === "today" ? (
           <section
             aria-label={`Today's ${DAILY_TITLE[kind]}`}
-            data-tint="gold"
             data-daily-state={state.state}
-            className="th-card flex flex-col gap-3 rounded-2xl border border-border bg-card/80 p-4"
+            className="th-card flex flex-col gap-3 rounded-[18px] border p-4"
           >
             <div className="flex items-baseline justify-between gap-2">
               <p className="th-kicker text-primary">Today · {DAILY_TITLE[kind]}</p>
-              <p className="whitespace-nowrap font-mono text-xs text-muted-foreground">
+              <p className="whitespace-nowrap text-[13px] text-muted-foreground">
                 {stateLine(kind, state, state.state === "done" ? state.count : null)}
               </p>
             </div>
@@ -404,7 +393,7 @@ function DailyScreen() {
                 <button
                   type="button"
                   onClick={() => setEditingName(true)}
-                  className="press tap-target shrink-0 px-2 font-display text-xs font-semibold uppercase tracking-widest text-primary"
+                  className="press tap-target shrink-0 px-2 text-sm font-semibold text-[var(--ap-link)]"
                 >
                   Change name
                 </button>
@@ -416,9 +405,9 @@ function DailyScreen() {
                 data-daily-results
                 disabled={busy}
                 onClick={() => void openResults()}
-                className="th-btn-outline-gold press tap-target w-full whitespace-nowrap rounded-xl border border-primary/70 bg-primary/10 font-display text-sm font-bold uppercase tracking-wide text-primary"
+                className="rs-btn press tap-target w-full"
               >
-                {busy ? <Dots className="bg-primary" /> : "Your results"}
+                {busy ? <Dots /> : "Your results"}
               </button>
             ) : (
               <button
@@ -426,7 +415,7 @@ function DailyScreen() {
                 data-daily-play
                 disabled={busy}
                 onClick={() => void play()}
-                className="th-btn-gold press tap-target flex w-full items-center justify-center gap-2 whitespace-nowrap rounded-xl bg-primary py-4 font-display text-lg font-extrabold uppercase tracking-wide text-primary-foreground"
+                className="th-btn-gold ap-btn-gold press tap-target flex h-[52px] w-full items-center justify-center gap-2 whitespace-nowrap rounded-[14px] text-[17px]"
               >
                 {busy ? (
                   <Dots className="bg-primary-foreground" />
@@ -447,9 +436,7 @@ function DailyScreen() {
 
         <div className="flex flex-col gap-2">
           <div className="flex items-baseline justify-between gap-2">
-            <h2 className="whitespace-nowrap font-display text-lg font-bold uppercase">
-              Leaderboard
-            </h2>
+            <h2 className="ap-section-title">Leaderboard</h2>
           </div>
           <Segmented
             label="Day"
