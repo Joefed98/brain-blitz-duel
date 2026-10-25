@@ -236,7 +236,19 @@ const NOW = at("2026-10-27T12:00:00Z");
   // A stored daily keeps its games when a game later moves category (or retires), the same rule as stored
   // rounds: the deal stores types and puzzles only, and nothing after it reads a category.
   const before = JSON.stringify(db.tables.async_rooms!.find((r) => r.id === r1.id));
-  check(!/categor/i.test(before), "a stored daily holds its games' types and puzzles, no category");
+  // The room row outside its puzzles names no category, and no stored puzzle carries a game category
+  // (a value from the registry's categories). A puzzle's own content may use the word: Lookout stores its
+  // theme as `category` ("Drinks"), so testing the whole row for "categor" failed whenever the
+  // random daily seed dealt Lookout (about one run in eight).
+  const storedRow = db.tables.async_rooms!.find((r) => r.id === r1.id) as unknown as AsyncRoomRow;
+  const gameCategories = new Set(Object.values(PUZZLE_REGISTRY).map((d) => (d as { category: string }).category));
+  check(
+    !/categor/i.test(JSON.stringify({ ...storedRow, puzzles_public: [] })) &&
+      storedRow.puzzles_public.every(
+        (p) => !Object.values(p as Record<string, unknown>).some((v) => typeof v === "string" && gameCategories.has(v) && v !== (p as { type: string }).type),
+      ),
+    "a stored daily holds its games' types and puzzles, no category",
+  );
   const moved = r1.round_order.map((t) => [t, PUZZLE_REGISTRY[t as never].category, PUZZLE_REGISTRY[t as never].retired] as const);
   for (const [t] of moved) {
     const def = PUZZLE_REGISTRY[t as never] as { category: string; retired: boolean };
