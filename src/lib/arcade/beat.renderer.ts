@@ -12,6 +12,7 @@ import {
   BEAT_JUDGE_MISS,
   BEAT_JUDGE_NONE,
   BEAT_JUDGE_PENDING,
+  BEAT_JUDGE_PERFECT,
   BEAT_JUDGE_TEXT,
   BEAT_LANE_COLOURS,
   BEAT_LANES,
@@ -24,6 +25,7 @@ import {
   type BeatState,
 } from "./beat";
 import type { ArcadeGame, ArcadeInputEvent, CanvasSize } from "./engine";
+import { blob, glow, linear } from "./polishA1.renderer";
 import { pixelRect, retroBloom, retroNeon, retroReadout, retroScreen, retroText, RETRO_RED, RETRO_WHITE } from "./retro.renderer";
 
 const NEON = BEAT_LANE_COLOURS.map(retroNeon);
@@ -71,6 +73,13 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: BeatState): void {
   }
 
   pixelRect(ctx, 0, BEAT_HIT_LINE_Y - 2, BEAT_WORLD_W, 4, RETRO_WHITE, bloom);
+  // Polish A1: each lane's marker on the hit line, in its colour, with a soft glow.
+  for (let lane = 0; lane < BEAT_LANES; lane++) {
+    const cx = beatLaneX(lane), colour = NEON[lane]!;
+    glow(ctx, colour, cx, BEAT_HIT_LINE_Y, 30, 9, 0.55);
+    pixelRect(ctx, cx - 14, BEAT_HIT_LINE_Y - 3, 28, 6, colour);
+    pixelRect(ctx, cx - 10, BEAT_HIT_LINE_Y - 1, 20, 2, RETRO_WHITE);
+  }
 
   const travel = BEAT_HIT_LINE_Y - BEAT_HUD_H;
   const yAt = (remaining: number) => BEAT_HUD_H + (travel * (BEAT_FALL_TICKS - remaining)) / BEAT_FALL_TICKS;
@@ -105,6 +114,25 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: BeatState): void {
     const sizePx = Math.min(22, 14 + tier * 3 + Math.floor(Math.min(state.combo, 40) / 10));
     const colour = tier >= 3 ? GOLD : tier === 2 ? NEON[2]! : tier === 1 ? NEON[0]! : RETRO_WHITE;
     retroText(ctx, `${state.combo}x`, BEAT_WORLD_W - 8, BEAT_HIT_LINE_Y + 10, sizePx, colour, "right", bloom);
+  }
+
+  // Polish A1: a PERFECT bursts in its lane's colour at the hit line (pixel rays and a flash, kept
+  // inside the lane, timed by the sim tick like the word itself).
+  if (state.lastJudge === BEAT_JUDGE_PERFECT && state.judgeAge < 14 && state.lastLane >= 0 && !reducedMotion()) {
+    const lane = state.lastLane, colour = NEON[lane % NEON.length]!;
+    const cx = beatLaneX(lane), p = state.judgeAge / 14;
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(lane * laneW, BEAT_HUD_H, laneW, BEAT_WORLD_H - BEAT_HUD_H);
+    ctx.clip();
+    glow(ctx, colour, cx, BEAT_HIT_LINE_Y, laneW * 0.55, 26 + 20 * p, 0.8 * (1 - p));
+    ctx.globalAlpha = 1 - p;
+    for (let i = 0; i < 10; i++) {
+      const a = Math.PI + (i / 9) * Math.PI;
+      const d = 8 + 46 * p * (0.7 + ((i * 7) % 5) / 10);
+      pixelRect(ctx, cx + Math.cos(a) * d - 2, BEAT_HIT_LINE_Y + Math.sin(a) * d * 0.8 - 2, 4, 4, i % 3 === 0 ? RETRO_WHITE : colour);
+    }
+    ctx.restore();
   }
 
   // Judgement word pops at the hit line.
@@ -176,7 +204,10 @@ export function paintNote(c: CanvasRenderingContext2D, colour: string, w: number
   c.fillRect(-1, -1, w + 2, BEAT_NOTE_H + 2);
   c.fillStyle = colour;
   c.fillRect(0, 0, w, BEAT_NOTE_H);
-  c.fillStyle = "rgba(255,255,255,0.55)";
+  // Polish A1: a bright top edge, then the lit row under it.
+  c.fillStyle = "rgba(255,255,255,0.8)";
+  c.fillRect(1, 0, w - 2, 2);
+  c.fillStyle = "rgba(255,255,255,0.4)";
   c.fillRect(2, 2, w - 4, 2);
   c.fillStyle = "rgba(0,0,0,0.3)";
   c.fillRect(0, BEAT_NOTE_H - 2, w, 2);
@@ -207,6 +238,9 @@ function noteSprite(colour: string, width: number): ArtCanvas | null {
  * deepening towards the hit line, double neon rails, a retro floor grid, the
  * darker strip below the hit line and a target pad outline per lane where the
  * notes land. Flat paint only.
+ * Polish A1 (display only): a purple synthwave sky with a magenta glow on the hit line's horizon, each
+ * lane's tint brighter towards the bottom, glowing inner dividers and a soft tap zone per lane under
+ * the line; the world's very edges stay as dark as before, where the screen fill takes over.
  */
 function paintStage(c: CanvasRenderingContext2D, BEAT_WORLD_H: number): void {
   const BEAT_HIT_LINE_Y = beatHitLineY({ worldH: BEAT_WORLD_H });
@@ -214,16 +248,41 @@ function paintStage(c: CanvasRenderingContext2D, BEAT_WORLD_H: number): void {
   const h = BEAT_WORLD_H - BEAT_HUD_H;
   c.fillStyle = "#0B0A10";
   c.fillRect(0, 0, BEAT_WORLD_W, BEAT_WORLD_H);
+  // The synthwave sky: deep purple at the top, warming to violet at the hit line, dark again below.
+  c.fillStyle = linear(c, 0, BEAT_HUD_H, 0, BEAT_WORLD_H, [
+    [0, "#0D0619"],
+    [Math.max(0.05, (BEAT_HIT_LINE_Y - BEAT_HUD_H) / h - 0.25), "#1A0A33"],
+    [(BEAT_HIT_LINE_Y - BEAT_HUD_H) / h, "#2A0E4A"],
+    [Math.min(0.97, (BEAT_HIT_LINE_Y - BEAT_HUD_H) / h + 0.06), "#160A26"],
+    [1, "#0D0A14"],
+  ]);
+  c.fillRect(0, BEAT_HUD_H, BEAT_WORLD_W, h);
+  blob(c, BEAT_WORLD_W / 2, BEAT_HIT_LINE_Y, BEAT_WORLD_W * 0.62, "#C23CFF", 0.22, 0.42);
+  blob(c, BEAT_WORLD_W / 2, BEAT_HIT_LINE_Y, BEAT_WORLD_W * 0.3, "#FF5FD0", 0.14, 0.35);
+  // Darker towards the world's sides, so its edges meet the screen fill as before.
+  for (const [x, x0, x1] of [[0, 0, 40], [BEAT_WORLD_W - 40, BEAT_WORLD_W, BEAT_WORLD_W - 40]] as const) {
+    c.fillStyle = linear(c, x0, 0, x1, 0, [[0, "rgba(11,10,16,0.75)"], [1, "rgba(11,10,16,0)"]]);
+    c.fillRect(x, BEAT_HUD_H, 40, h);
+  }
   for (let lane = 0; lane < BEAT_LANES; lane++) {
     const x = lane * laneW;
     const colour = NEON[lane]!;
     const tint = c.createLinearGradient(0, BEAT_HUD_H, 0, BEAT_HIT_LINE_Y);
-    tint.addColorStop(0, `${colour}08`);
-    tint.addColorStop(1, `${colour}26`);
+    tint.addColorStop(0, `${colour}05`);
+    tint.addColorStop(0.6, `${colour}14`);
+    tint.addColorStop(1, `${colour}3A`);
     c.fillStyle = tint;
     c.fillRect(x, BEAT_HUD_H, laneW, BEAT_HIT_LINE_Y - BEAT_HUD_H);
+    // The lane's own glow, rising from the hit line.
+    c.fillStyle = linear(c, 0, BEAT_HIT_LINE_Y, 0, BEAT_HIT_LINE_Y - 90, [[0, `${colour}30`], [1, `${colour}00`]]);
+    c.fillRect(x + 4, BEAT_HIT_LINE_Y - 90, laneW - 8, 90);
     c.fillStyle = `${colour}10`;
     c.fillRect(x, BEAT_HIT_LINE_Y, laneW, BEAT_WORLD_H - BEAT_HIT_LINE_Y);
+    // Inner dividers glow softly (the world's outer edges stay plain).
+    if (lane > 0) {
+      c.fillStyle = linear(c, x - 8, 0, x + 8, 0, [[0, `${NEON[lane - 1]!}00`], [0.5, `${NEON[lane - 1]!}2A`], [0.5, `${colour}2A`], [1, `${colour}00`]]);
+      c.fillRect(x - 8, BEAT_HUD_H, 16, h);
+    }
     c.fillStyle = `${colour}A0`;
     c.fillRect(Math.round(x + 2), BEAT_HUD_H, 2, h);
     c.fillRect(Math.round(x + laneW - 4), BEAT_HUD_H, 2, h);
@@ -243,13 +302,27 @@ function paintStage(c: CanvasRenderingContext2D, BEAT_WORLD_H: number): void {
     for (const [cx, cy] of [[px, py], [px + pw - 3, py], [px, py + BEAT_NOTE_H - 3], [px + pw - 3, py + BEAT_NOTE_H - 3]] as const) c.fillRect(cx, cy, 3, 3);
   }
   // Retro floor grid: rows closing up towards the top of the lanes.
-  c.fillStyle = "rgba(180,140,255,0.07)";
+  c.fillStyle = "rgba(200,140,255,0.08)";
   for (let k = 1; k < 18; k++) {
     const y = Math.round(BEAT_HIT_LINE_Y - (BEAT_HIT_LINE_Y - BEAT_HUD_H) * (1 - Math.pow(1 - k / 18, 1.7)));
     c.fillRect(0, y, BEAT_WORLD_W, 1);
   }
   c.fillStyle = "rgba(0,0,0,0.35)";
   c.fillRect(0, BEAT_HIT_LINE_Y + 2, BEAT_WORLD_W, BEAT_WORLD_H - BEAT_HIT_LINE_Y - 2);
+  // Soft tap zones under the line: a lane-coloured pad fading down, its top edge lit.
+  const zoneTop = BEAT_HIT_LINE_Y + 12;
+  const zoneH = Math.max(0, BEAT_WORLD_H - zoneTop - 14);
+  for (let lane = 0; lane < BEAT_LANES && zoneH > 8; lane++) {
+    const colour = NEON[lane]!;
+    const x = Math.round(lane * laneW + 12), w = Math.round(laneW - 24);
+    c.fillStyle = linear(c, 0, zoneTop, 0, zoneTop + zoneH, [[0, `${colour}2E`], [0.55, `${colour}10`], [1, `${colour}00`]]);
+    c.fillRect(x, zoneTop, w, zoneH);
+    c.fillStyle = `${colour}55`;
+    c.fillRect(x + 2, zoneTop, w - 4, 1);
+    c.fillStyle = `${colour}22`;
+    c.fillRect(x, zoneTop + 1, 1, Math.round(zoneH * 0.5));
+    c.fillRect(x + w - 1, zoneTop + 1, 1, Math.round(zoneH * 0.5));
+  }
 }
 
 const stages = new WeakMap<CanvasRenderingContext2D, { key: string; layer: ArtCanvas | null }>();
