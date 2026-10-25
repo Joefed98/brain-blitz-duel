@@ -1322,8 +1322,8 @@ export const SNIP_V9_BAND_CURVE = bandStrict(SNIP_V5_BAND_CURVE);
  *  - Pegs are the picker's crooks (they snag a free fruit falling past from above); rings snag a free
  *    fruit that passes through their middle from any direction; both re-hang it on a vine to cut.
  *    Slopes are planks and gutters, bouncers springy branches, as before.
- *  - Fewest cuts: a level counts strokes (cut inputs on consecutive ticks are one stroke; a stroke
- *    counts once it cuts a rope); every fruit fed in at most the course's `par` strokes is a par level.
+ *  - Fewest cuts: a level counts strokes (swipe inputs on consecutive ticks are one stroke; a missed
+ *    swipe counts too); every fruit fed in at most the course's `par` strokes is a par level.
  *  - Falling fruit is capped at SNIP_X_MAX_SPEED (air drag), so nothing tunnels through a thin plank.
  *
  * A level's deal comes from the seed: a level-wide pin shift (SNIP_X_WOBBLES), the wind preset and the
@@ -1346,6 +1346,8 @@ export const SNIP_X_RING_R = 20;
 export const SNIP_X_WOBBLES: readonly number[] = [-10, 0, 10];
 /** Levels (0-based) with a golden fruit. */
 export const SNIP_X_GOLD_LEVELS: readonly number[] = [1, 3, 5];
+/** A golden apple counts only when fed by this level tick (7 s in, the pan included); then it ripens. */
+export const SNIP_X_GOLD_TICKS = 7 * TICKS_PER_SECOND;
 export const SNIP_X_LEVEL_PLAN = [2, 2, 2] as const;
 /** A level's fruit credit (shared by its fruits) and a star taken. */
 export const SNIP_X_FEED_UNITS = 18;
@@ -1391,6 +1393,8 @@ export interface SnipCourse {
   stars: readonly (readonly [number, number])[];
   /** Three wind presets: amplitude (1/256 px a tick²), period and phase (ticks). */
   winds: readonly (readonly [number, number, number])[];
+  /** The fruits a golden level may make golden (every deal has a perfect plan feeding it in time); all when absent. */
+  golds?: readonly number[];
   /** Fewest strokes that feed every fruit (the stored plans' best). */
   par: number;
 }
@@ -1501,9 +1505,11 @@ function buildCourseLevel(state: SnipState, level: number): SnipState {
   rng = wd.state;
   let gold = -1;
   if (SNIP_X_GOLD_LEVELS.includes(level)) {
-    const g = rngBelow(rng, course.fruits.length);
+    // Among the fruits whose every deal has a stored plan feeding it golden at par with both leaves.
+    const golds = course.golds ?? course.fruits.map((_, k) => k);
+    const g = rngBelow(rng, golds.length);
     rng = g.state;
-    gold = g.value;
+    gold = golds[g.value]!;
   }
   return snipCourseDeal({ ...state, rng }, level, SNIP_X_WOBBLES[w.value]!, wd.value, gold);
 }
@@ -1630,6 +1636,9 @@ function stepCourse(state: SnipState, input: ArcadeInputEvent | null): SnipState
       next.cutLog = log.length > 16 ? log.slice(log.length - 16) : log;
     }
   }
+
+  // A golden apple stays golden until SNIP_X_GOLD_TICKS into the level, then ripens (gold 2: an ordinary fruit).
+  if (levelTick > SNIP_X_GOLD_TICKS) for (const f of fruits) if (f.gold === 1 && f.st === SNIP_X_PLAY) f.gold = 2;
 
   if (!panning) {
     const wind = snipWindAt(state, levelTick);
@@ -1803,7 +1812,7 @@ function stepCourse(state: SnipState, input: ArcadeInputEvent | null): SnipState
         f.st = SNIP_X_FED;
         next.eaten += 1;
         next.fedTick = tick;
-        if (f.gold) next.golden = (next.golden ?? 0) + 1;
+        if (f.gold === 1) next.golden = (next.golden ?? 0) + 1;
       } else if (course.nests && courseTouchesNest(course, f.x, f.y)) f.st = SNIP_STUNG;
       else if (f.y > (course.h + c.sweetRadius * 2) * 256 || f.y < -c.sweetRadius * 2 * 256) f.st = SNIP_LOST;
       else if (f.rest >= c.restTicks) f.st = SNIP_LANDED;

@@ -93,6 +93,8 @@ export interface XPlay {
   paths?: [number, number][][];
   /** Vines a peg or ring hung: [rope index, level tick, fruit]. */
   vines: [number, number, number][];
+  /** Level tick each fruit was fed (−1 if not). */
+  fedAt: number[];
 }
 
 /** Plays one level of a course (an index, or a candidate put in the spare slot) on a deal. */
@@ -106,6 +108,7 @@ export function xPlayLevel(course: number | SnipCourse, wob: number, wind: numbe
     let lastCut: { t: number; x: number; y: number } | null = null;
     const paths: [number, number][][] = (s.fruits ?? []).map(() => []);
     const vines: [number, number, number][] = [];
+    const fedAt: number[] = (s.fruits ?? []).map(() => -1);
     for (let k = 0; k < SNIP_X_LEVEL_TICKS + 2; k++) {
       const at = s.levelTick + 1;
       const due = plan.find(([, t]) => t === at);
@@ -123,6 +126,7 @@ export function xPlayLevel(course: number | SnipCourse, wob: number, wind: numbe
       const prev = s;
       s = snipExpandGame.step(s, inputAt(log, s.tick + 1));
       if (s.level === prev.level && s.ropes.length > prev.ropes.length) vines.push([s.ropes.length - 1, at, s.ropes.at(-1)!.f ?? 0]);
+      (s.fruits ?? []).forEach((f, i) => { if (f.st === SNIP_X_FED && fedAt[i]! < 0) fedAt[i] = at; });
       if (trace && s.level === 0) (s.fruits ?? []).forEach((f, i) => { if (s.levelTick % 4 === 0 && f.st === 0) paths[i]!.push([f.x / 256, f.y / 256]); });
       if (s.level !== prev.level) {
         const fruits = s.fruits ?? [];
@@ -139,6 +143,7 @@ export function xPlayLevel(course: number | SnipCourse, wob: number, wind: numbe
           perfect: (s.perfect ?? 0) > 0,
           golden: s.golden ?? 0,
           vines,
+          fedAt,
           ...(trace ? { paths } : {}),
         };
       }
@@ -154,8 +159,20 @@ export function xDeals(course: SnipCourse): [number, number][] {
   return SNIP_X_WOBBLES.flatMap((w) => course.winds.map((_, k) => [w, k] as [number, number]));
 }
 
-/** The stored proofs (scripts/fixtures/snip-expand-proofs.json): per course, per deal "wob:wind", a win and a best plan. */
-export type XProofs = Record<string, { name: string; deals: Record<string, { win: XPlan; best: XPlan }> }>;
+/**
+ * The stored proofs (scripts/fixtures/snip-expand-proofs.json): per course, per deal "wob:wind", a win plan
+ * and, per fruit that may be golden, a best (perfect: every fruit, par, both leaves, that fruit golden) plan.
+ */
+export type XProofs = Record<string, { name: string; deals: Record<string, { win: XPlan; best: Record<string, XPlan> }> }>;
+
+/** A level's stored plan: its win plan, or the perfect plan for its golden fruit (any, on a level with none). */
+export function xPlanFor(proofs: XProofs, s: SnipState, which: "best" | "win"): XPlan | undefined {
+  const d = proofs[String(s.template)]?.deals[xDealKey(s)];
+  if (!d) return undefined;
+  if (which === "win") return d.win;
+  const gold = (s.fruits ?? []).findIndex((f) => f.gold === 1);
+  return d.best[String(gold)] ?? Object.values(d.best)[0];
+}
 
 /** The deal key of the level a state is on. */
 export function xDealKey(s: SnipState): string {
@@ -175,7 +192,7 @@ export function xPlannedRun(seed: number, proofs: XProofs, which: "best" | "win"
   while (!game.isOver(s)) {
     if (s.level !== level) {
       level = s.level;
-      plan = proofs[String(s.template)]?.deals[xDealKey(s)]?.[which] ?? [];
+      plan = xPlanFor(proofs, s, which) ?? [];
     }
     const due = plan.find(([, t]) => t === s.levelTick + 1);
     if (due && s.ropes[due[0]]?.alive) recordInput(events, { ...xCutFor(s, due[0]), t: s.tick + 1 }, game.inputRanges);

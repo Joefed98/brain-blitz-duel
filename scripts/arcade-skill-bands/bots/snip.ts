@@ -331,7 +331,7 @@ export const bot: SkillBot = (ctx) => {
  * sim from when the player is ready, then executed with reading, timing and aim error, a missed swipe
  * retried one reaction later and the rest re-timed after each cut.
  */
-const X_PROOFS: Record<string, { deals: Record<string, { win: Plan; best: Plan }> }> = (() => {
+const X_PROOFS: Record<string, { deals: Record<string, { win: Plan; best: Record<string, Plan> }> }> = (() => {
   try {
     return JSON.parse(readFileSync(new URL("../../fixtures/snip-expand-proofs.json", import.meta.url), "utf8"));
   } catch {
@@ -423,7 +423,10 @@ function courseBot({ game, seed, human }: Parameters<SkillBot>[0]): ReturnType<S
     const wind = course.winds.findIndex(([a, p, ph]) => a === (s.windA ?? 0) && p === (s.windP ?? 0) && ph === (s.windPh ?? 0));
     const proof = X_PROOFS[String(s.template)]?.deals[`${s.wob ?? 0}:${Math.max(0, wind)}`];
     wantBest = !!proof && human.chance(BEST_GO[level]);
-    let shape: Plan = ((wantBest ? proof!.best : proof?.win) ?? Array.from({ length: ropes }, (_, i) => [i, 90 + 30 * i] as [number, number])).map(([r, at]) => [r, at] as [number, number]);
+    const gold = (s.fruits ?? []).findIndex((f) => f.gold === 1);
+    const bestPlan = proof ? (proof.best[String(gold)] ?? Object.values(proof.best)[0]) : undefined;
+    wantBest = wantBest && !!bestPlan;
+    let shape: Plan = ((wantBest ? bestPlan : proof?.win) ?? Array.from({ length: ropes }, (_, i) => [i, 90 + 30 * i] as [number, number])).map(([r, at]) => [r, at] as [number, number]);
     // A combined stroke a weaker hand splits into separate swipes.
     {
       const st = toStrokes(shape);

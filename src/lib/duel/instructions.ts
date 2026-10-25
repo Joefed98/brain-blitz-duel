@@ -881,7 +881,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Pegs:", detail: "a wooden pole with an iron hook open at the top. It snags a fruit only when it falls freely down past the hook from above. Rings snag a free fruit that passes through their middle from any side. Each catches once and holds the fruit on a green vine.", helpOnly: true },
         { action: "Orchard pieces:", detail: "fruit rolls along sloped planks and down tin gutters and chutes, bounces hard off springy green branches, and a touch on a wasp nest loses it. Some baskets slide slowly side to side.", helpOnly: true },
         { action: "Wind:", detail: "the windsock and the drifting leaves show it. It swings the ropes and the fruit they hold back and forth; a falling fruit is not blown.", helpOnly: true },
-        { action: "Fewest cuts:", detail: "one swipe that cuts several ropes counts as one cut. Feed every fruit in no more cuts than the level's par (shown at the top left).", helpOnly: true },
+        { action: "Fewest cuts:", detail: "every swipe counts as a cut, a miss too; one swipe across several ropes is one cut. Feed every fruit in no more cuts than the level's par (shown at the top left).", helpOnly: true },
         { action: "Golden leaves:", detail: "two along each course; the first counts 2, the second is a bonus.", helpOnly: true },
         { action: "Don't let fruit settle", detail: "on a ledge or plank, or fly out the top or bottom.", helpOnly: true },
         { action: "Everyone", detail: "gets the same six courses, wind and golden apples in the same order.", helpOnly: true },

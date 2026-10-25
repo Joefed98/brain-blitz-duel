@@ -11,7 +11,7 @@
  *   bun scripts/snip-expand-design.ts --write easy.json medium.json hard.json   (writes snipCourses.data.ts)
  */
 import { readFileSync, writeFileSync } from "node:fs";
-import { SNIP_X_W, SNIP_X_LEVEL_TICKS, type SnipCourse } from "../src/lib/arcade/snip";
+import { SNIP_X_W, SNIP_X_GOLD_TICKS, SNIP_X_LEVEL_TICKS, type SnipCourse } from "../src/lib/arcade/snip";
 import { xDeals, xPaced, xPlayLevel, xStrokes, X_FIRST_CUT, X_STROKE_GAP, type XPlan, type XPlay } from "./snip-expand-lib";
 
 type Seg = [number, number, number, number];
@@ -94,7 +94,7 @@ function build(band: 0 | 1 | 2, r: ReturnType<typeof rng>): Built | null {
     hooks: [],
     rings: [],
     stars: [],
-    winds: band === 0 ? [[0, 0, 0], [3, r.int(200, 300), r.int(0, 100)], [5, r.int(200, 300), r.int(0, 100)]] : band === 1 ? [[3, r.int(180, 280), r.int(0, 100)], [6, r.int(180, 280), r.int(0, 100)], [8, r.int(180, 280), r.int(0, 100)]] : [[5, r.int(160, 260), r.int(0, 100)], [8, r.int(160, 260), r.int(0, 100)], [11, r.int(160, 260), r.int(0, 100)]],
+    winds: band === 0 ? [[0, 0, 0], [4, r.int(200, 300), r.int(0, 100)], [7, r.int(200, 300), r.int(0, 100)]] : band === 1 ? [[5, r.int(170, 260), r.int(0, 100)], [8, r.int(170, 260), r.int(0, 100)], [11, r.int(170, 260), r.int(0, 100)]] : [[8, r.int(150, 240), r.int(0, 100)], [11, r.int(150, 240), r.int(0, 100)], [14, r.int(150, 240), r.int(0, 100)]],
     par: 1,
   };
   const cols = nFruit === 1 ? [r.int(90, 270)] : nFruit === 2 ? [r.int(70, 150), r.int(210, 290)] : [r.int(50, 100), r.int(155, 205), r.int(260, 310)];
@@ -103,7 +103,7 @@ function build(band: 0 | 1 | 2, r: ReturnType<typeof rng>): Built | null {
     const two = band > 0 && r.u() < (band === 1 ? 0.3 : 0.5);
     const pins: [number, number, number][] = two
       ? [[clampX(x - r.int(50, 90), 14), r.int(36, 70), 0], [clampX(x + r.int(50, 90), 14), r.int(36, 70), 0]]
-      : [[clampX(x + r.int(-60, 60), 14), r.int(36, 70), 0]];
+      : [[clampX(x + r.pick([-1, 1]) * r.int(band === 0 ? 10 : 30, band === 0 ? 60 : 90), 14), r.int(36, 70), 0]];
     course.fruits.push({ sweet: [x, y], pins });
   }
   let plan = referencePlan(course, r);
@@ -118,9 +118,12 @@ function build(band: 0 | 1 | 2, r: ReturnType<typeof rng>): Built | null {
   };
   // A hopper over the basket on most courses: two planks sloping into a gap above it.
   const hopperY = MOUTH_Y - 170;
-  const hopper = nFruit > 1 || r.u() < 0.5;
-  // A wooden chute: two boards sloping in, then two upright boards down to just above the basket.
-  if (hopper) course.planks!.push([clampX(mouthX - 120, 4), hopperY, mouthX - 26, hopperY + 60], [clampX(mouthX + 120, 4), hopperY, mouthX + 26, hopperY + 60], [mouthX - 26, hopperY + 60, mouthX - 26, MOUTH_Y - 44], [mouthX + 26, hopperY + 60, mouthX + 26, MOUTH_Y - 44]);
+  // A narrow wooden chute on most easy courses and some medium ones (two boards sloping in, two upright).
+  const hopper = r.u() < (band === 0 ? 0.7 : band === 1 ? 0.25 : 0);
+  const span = band === 0 ? 80 : 66;
+  if (hopper) course.planks!.push([clampX(mouthX - span, 4), hopperY + 20, mouthX - 26, hopperY + 60], [clampX(mouthX + span, 4), hopperY + 20, mouthX + 26, hopperY + 60], [mouthX - 26, hopperY + 60, mouthX - 26, MOUTH_Y - 44], [mouthX + 26, hopperY + 60, mouthX + 26, MOUTH_Y - 44]);
+  // Some medium and hard baskets slide (set once the fruit are steered in, see below).
+  const slide = !hopper && r.u() < (band === 1 ? 0.3 : band === 2 ? 0.5 : 0) ? ([r.int(30, 55), r.int(200, 300)] as [number, number]) : null;
   const kinds = band === 0 ? ["plank", "plank", "gutter", "spring"] : band === 1 ? ["plank", "gutter", "spring", "hook", "ring"] : ["plank", "gutter", "spring", "hook", "ring", "ring"];
 
   // Each fruit in turn: lay elements along its fall, from the top down, then steer it into the basket.
@@ -193,12 +196,14 @@ function build(band: 0 | 1 | 2, r: ReturnType<typeof rng>): Built | null {
   const play = play0();
   if (!play.all) return fail("183");
   const pts = (play.paths ?? []).flat();
-  const nests = band === 0 ? 0 : band === 1 ? r.int(1, 2) : r.int(2, 3);
-  for (let n = 0, tries = 0; n < nests && tries < 60; tries++) {
+  const nests = band === 0 ? r.int(0, 1) : band === 1 ? r.int(2, 3) : r.int(3, 4);
+  for (let n = 0, tries = 0; n < nests && tries < 80; tries++) {
     const x = r.int(40, 320);
     const y = r.int(320, MOUTH_Y - 120);
     const rad = r.int(18, 24);
-    if (pts.some(([px, py]) => Math.hypot(px - x, py - y) < rad + 12 + 34)) continue;
+    // Close beside a path (a swing or a bounce off the line meets it), never on it.
+    const near = Math.min(...pts.map(([px, py]) => Math.hypot(px - x, py - y)));
+    if (near < rad + 12 + (band === 0 ? 34 : 16) || near > rad + 12 + 70) continue;
     if (Math.hypot(x - mouthX, y - MOUTH_Y) < 90) continue;
     course.nests!.push([x, y, rad]);
     n++;
@@ -207,9 +212,22 @@ function build(band: 0 | 1 | 2, r: ReturnType<typeof rng>): Built | null {
   const first = lanes[0] ?? [];
   const last = lanes[lanes.length - 1] ?? first;
   const s1 = at(first, 330 + r.int(0, 120));
-  const s2 = at(last, 650 + r.int(0, 200));
-  if (!s1 || !s2) return fail("200");
+  // The second leaf lies on another timing's path, well off the plain one: it takes a deliberate cut.
+  let s2: [number, number] | null = null;
+  for (const d of [24, -24, 36, -36, 16, -16, 48]) {
+    const v = plan.map(([ri, t]) => [ri, t + d] as [number, number]);
+    if (!xPaced(v)) continue;
+    const res = xPlayLevel(course as SnipCourse, 0, 0, -1, v, true);
+    if (!res.all) continue;
+    const cand = (res.paths ?? []).flat().filter(([x, y]) => y > 560 && y < MOUTH_Y - 160 && Math.min(...pts.map(([px, py]) => Math.hypot(px - x, py - y))) > 44);
+    if (cand.length) {
+      s2 = cand[r.int(0, cand.length - 1)]!;
+      break;
+    }
+  }
+  if (!s1 || !s2) return fail("leaf2");
   course.stars = [[Math.round(s1[0]), Math.round(s1[1])], [Math.round(s2[0]), Math.round(s2[1])]];
+  if (slide) course.slide = slide;
   for (const key of ["planks", "gutters", "springs", "nests", "hooks", "rings"] as const) if (!course[key]!.length) delete course[key];
   return { course, plan };
 }
@@ -247,43 +265,78 @@ function merges(plan: XPlan): XPlan[] {
 }
 
 export interface XDealProof {
-  /** The fastest plan that feeds every fruit, and the best one (fewest strokes, then both leaves). */
+  /** The fastest plan that feeds every fruit, and per golden-eligible fruit the best (fewest cuts) perfect one. */
   win: XPlan;
-  best: XPlan;
+  best: Record<string, XPlan>;
   bestStrokes: number;
-  bestStars: number;
   winTick: number;
 }
 
-function score(play: XPlay): number {
-  return (play.all ? 1000 : 0) + (play.stars >= 2 ? 100 : 0) - play.strokes * 10;
+/** How forgiving a course is: the share of start-time shifts (±24 ticks) at which its win plan still feeds every fruit. */
+export function tolerance(course: SnipCourse, plan: XPlan, wob = 0, wind = 1): number {
+  let ok = 0;
+  let n = 0;
+  for (let d = -24; d <= 24; d += 3) {
+    const v = plan.map(([r, t]) => [r, t + d] as [number, number]);
+    if (!xPaced(v)) continue;
+    n++;
+    const res = xPlayLevel(course, wob, wind, -1, v);
+    if (res.valid && res.all) ok++;
+  }
+  return n ? ok / n : 0;
 }
 
-/** Every deal's proof, or null when some deal has no plan that feeds every fruit. */
-export function proveCourse(course: SnipCourse, plan: XPlan): Record<string, XDealProof> | null {
+/**
+ * Every deal's proof, and the fruits that may be golden (those with a perfect plan, golden in time, at
+ * every deal); null when some deal has no plan that feeds every fruit or no fruit can be golden.
+ */
+export function proveCourse(course: SnipCourse, plan: XPlan): { proofs: Record<string, XDealProof>; golds: number[] } | null {
   const out: Record<string, XDealProof> = {};
   const pool = [...variants(plan), ...merges(plan).flatMap((m) => [m, ...variants(m).slice(1, 8)])];
+  const n = course.fruits.length;
+  let golds = Array.from({ length: n }, (_, k) => k);
   for (const [wob, wind] of xDeals(course)) {
     let win: { plan: XPlan; tick: number } | null = null;
-    let best: { plan: XPlan; play: XPlay } | null = null;
+    const best: (null | { plan: XPlan; play: XPlay })[] = Array.from({ length: n }, () => null);
     for (const cand of pool) {
-      const play = xPlayLevel(course, wob, wind, 0, cand);
+      const play = xPlayLevel(course, wob, wind, -1, cand);
       if (!play.valid || !play.all) continue;
       if (!win || play.tick < win.tick) win = { plan: cand, tick: play.tick };
-      if (!best || score(play) > score(best.play) || (score(play) === score(best.play) && play.tick < best.play.tick)) best = { plan: cand, play };
+      if (play.stars < 2) continue;
+      for (let g = 0; g < n; g++) {
+        if (play.fedAt[g]! < 0 || play.fedAt[g]! > SNIP_X_GOLD_TICKS) continue;
+        const b = best[g];
+        if (!b || play.strokes < b.play.strokes || (play.strokes === b.play.strokes && play.tick < b.play.tick)) best[g] = { plan: cand, play };
+      }
     }
-    if (!win || !best) return null;
-    out[`${wob}:${wind}`] = { win: win.plan, best: best.plan, bestStrokes: best.play.strokes, bestStars: best.play.stars, winTick: win.tick };
+    if (!win) return null;
+    golds = golds.filter((g) => best[g]);
+    if (!golds.length) return null;
+    out[`${wob}:${wind}`] = {
+      win: win.plan,
+      best: Object.fromEntries(best.map((b, g) => [String(g), b?.plan]).filter(([, p]) => p)),
+      bestStrokes: 0,
+      winTick: win.tick,
+    };
   }
-  return out;
+  // Par: the most cuts any deal's perfect plan needs, over the golden-eligible fruits.
+  let par = 0;
+  for (const p of Object.values(out)) {
+    for (const g of Object.keys(p.best)) if (!golds.includes(Number(g))) delete p.best[g];
+    for (const plan of Object.values(p.best)) par = Math.max(par, xStrokes(plan));
+    p.bestStrokes = Math.max(...Object.values(p.best).map(xStrokes));
+  }
+  return { proofs: out, golds };
 }
 
 if (import.meta.main) {
   const args = process.argv.slice(2);
   const opt = (n: string) => args.find((a) => a.startsWith(`--${n}=`))?.slice(n.length + 3);
   if (args[0] === "--write") {
-    const all: { course: SnipCourse; proofs: Record<string, XDealProof> }[] = args.slice(1).flatMap((f) => JSON.parse(readFileSync(f, "utf8")));
-    // Unique names across the bank.
+    type Kept = { course: SnipCourse; proofs: Record<string, XDealProof>; tol: number };
+    const all: Kept[] = args.slice(1).flatMap((f) => JSON.parse(readFileSync(f, "utf8")));
+    // Easy courses first, then medium, then hard; unique names across the bank.
+    all.sort((a, b) => a.course.band - b.course.band);
     const seen = new Map<string, number>();
     for (const { course } of all) {
       const n = (seen.get(course.name) ?? 0) + 1;
@@ -295,30 +348,35 @@ if (import.meta.main) {
     writeFileSync("src/lib/arcade/snipCourses.data.ts", `${head}export const SNIP_COURSES: readonly SnipCourse[] = [\n${lines.join("\n")}\n];\n`);
     const proofs = Object.fromEntries(all.map(({ course, proofs: p }, i) => [String(i), { name: course.name, deals: Object.fromEntries(Object.entries(p).map(([k, v]) => [k, { win: v.win, best: v.best }])) }]));
     writeFileSync("scripts/fixtures/snip-expand-proofs.json", JSON.stringify(proofs));
-    console.error(`${all.length} courses and their proofs written`);
+    console.error(`${all.length} courses and their proofs written (tolerance ${all.map((k) => k.tol.toFixed(2)).join(" ")})`);
   } else {
     const band = Number(opt("band") ?? 0) as 0 | 1 | 2;
     const count = Number(opt("count") ?? 10);
+    /** A candidate's band is its forgiveness: the share of ±24-tick shifts its win plan survives. */
+    const tolMax = [1.01, 0.62, 0.4][band]!;
+    const tolMin = [0.45, 0.2, 0][band]!;
     const r = rng(Number(opt("seed") ?? 1) * 7919 + band);
-    const kept: { course: SnipCourse; plan: XPlan; proofs: Record<string, XDealProof> }[] = [];
-    for (let tries = 0; kept.length < count && tries < count * 60; tries++) {
+    const kept: { course: SnipCourse; plan: XPlan; proofs: Record<string, XDealProof>; tol: number }[] = [];
+    for (let tries = 0; kept.length < count && tries < count * 80; tries++) {
       const b = build(band, r);
       if (!b) continue;
-      const proofs = proveCourse(b.course as SnipCourse, b.plan);
-      if (!proofs) {
+      const tol = tolerance(b.course as SnipCourse, b.plan);
+      if (tol < tolMin || tol > tolMax) {
+        FAILS[`tolerance`] = (FAILS[`tolerance`] ?? 0) + 1;
+        continue;
+      }
+      const proved = proveCourse(b.course as SnipCourse, b.plan);
+      if (!proved) {
         console.error(`  try ${tries}: ${b.course.name} lost a deal`);
         continue;
       }
-      const values = Object.values(proofs);
-      b.course.par = Math.max(...values.map((p) => p.bestStrokes));
+      const values = Object.values(proved.proofs);
       const worst = Math.max(...values.map((p) => p.winTick));
       if (worst > SNIP_X_LEVEL_TICKS - 120) continue;
-      // Both leaves at every deal (with par strokes), so a perfect level is open on every seed; slow perfect plans are out.
-      if (values.some((p) => p.bestStars < 2)) continue;
-      if (kept.some((k) => k.course.name === b.course.name)) b.course.name = `${b.course.name} ${["II", "III", "IV", "V"][kept.filter((k) => k.course.name.startsWith(b.course.name)).length - 1] ?? kept.length}`;
-      b.course.name = `${b.course.name}`;
-      kept.push({ course: b.course as SnipCourse, plan: b.plan, proofs });
-      console.error(`kept ${kept.length}/${count} (try ${tries}): ${b.course.name} · ${b.course.fruits.length} fruit · par ${b.course.par} · strokes ${xStrokes(b.plan)} · worst ${worst} ticks · two leaves at ${values.filter((p) => p.bestStars >= 2).length}/9 deals`);
+      b.course.par = Math.max(...values.map((p) => p.bestStrokes));
+      if (proved.golds.length < b.course.fruits.length) b.course.golds = proved.golds;
+      kept.push({ course: b.course as SnipCourse, plan: b.plan, proofs: proved.proofs, tol });
+      console.error(`kept ${kept.length}/${count} (try ${tries}): ${b.course.name} · ${b.course.fruits.length} fruit · golds ${proved.golds.join(",")} · par ${b.course.par} · strokes ${xStrokes(b.plan)} · tolerance ${tol.toFixed(2)} · worst ${worst} ticks`);
     }
     console.error(`fails ${JSON.stringify(FAILS)}`);
     console.log(JSON.stringify(kept));

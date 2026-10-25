@@ -89,13 +89,22 @@ SNIP_COURSES.forEach((course, t) => {
       ok(false, `course ${t} deal ${wob}:${wind}: no plan`);
       continue;
     }
-    ok(xPaced(d.win) && xPaced(d.best), `course ${t} deal ${wob}:${wind}: plans keep human pace`);
-    const win = xPlayLevel(t, wob, wind, 0, d.win);
+    ok(xPaced(d.win), `course ${t} deal ${wob}:${wind}: the win plan keeps human pace`);
+    const win = xPlayLevel(t, wob, wind, -1, d.win);
     ok(win.valid && win.all, `course ${t} deal ${wob}:${wind}: the win plan feeds every fruit (${win.fed}/${win.fruits})`);
-    const gold = course.fruits.length - 1;
-    const best = xPlayLevel(t, wob, wind, gold, d.best);
-    ok(best.valid && best.all && best.stars >= 2 && best.strokes <= course.par && best.perfect, `course ${t} deal ${wob}:${wind}: the best plan is a perfect level (${best.fed}/${best.fruits}, ${best.stars} leaves, ${best.strokes}/${course.par} cuts)`);
-    ok(best.golden === 1, `course ${t} deal ${wob}:${wind}: the golden fruit is fed like any other`);
+    // Every fruit the deal may make golden has a perfect plan: every fruit fed, par, both leaves, golden in time.
+    const golds = course.golds ?? course.fruits.map((_, k) => k);
+    ok(golds.length >= 1 && golds.every((g) => g >= 0 && g < course.fruits.length), `course ${t}: golden fruits listed`);
+    for (const g of golds) {
+      const plan = d.best[String(g)];
+      if (!plan) {
+        ok(false, `course ${t} deal ${wob}:${wind}: no perfect plan with fruit ${g} golden`);
+        continue;
+      }
+      ok(xPaced(plan), `course ${t} deal ${wob}:${wind} gold ${g}: keeps human pace`);
+      const best = xPlayLevel(t, wob, wind, g, plan);
+      ok(best.valid && best.all && best.stars >= 2 && best.strokes <= course.par && best.perfect && best.golden === 1, `course ${t} deal ${wob}:${wind} gold ${g}: a perfect level (${best.fed}/${best.fruits}, ${best.stars} leaves, ${best.strokes}/${course.par} cuts, golden ${best.golden})`);
+    }
   }
 });
 
