@@ -25,15 +25,15 @@ export const DEFAULT_ROUND_MAX = 150;
 /** Each game's round maximum. An expansion PR changes its own game's line (and its scoring). */
 export const ROUND_MAX: Readonly<Record<PuzzleType, number>> = {
   // Word
-  wordsmith: 150,
-  wordhunt: 150,
-  wordslide: 150,
-  tilegrid: 150,
-  letterwheel: 150,
-  strikeout: 150,
-  codeword: 150,
-  swapword: 150,
-  wordsearch: 150,
+  wordsmith: 200,
+  wordhunt: 200,
+  wordslide: 200,
+  tilegrid: 200,
+  letterwheel: 200,
+  strikeout: 200,
+  codeword: 200,
+  swapword: 200,
+  wordsearch: 200,
   wordfall: 150,
   // Number
   target: 150,

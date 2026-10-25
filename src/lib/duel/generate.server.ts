@@ -13,6 +13,7 @@ import { puzzleTimeLimitMs } from "./registry";
 import { WORDHUNT_REV_TARGET, WORDSMITH_REV_TARGET } from "./scoring";
 import { stampMoveLimits } from "./moveLimits.server";
 import { stampTieRev } from "./tieBreak";
+import { wordDepthGrader } from "./wordDepth.server";
 import { generateBlockParty } from "./blockParty.server";
 import { gradeSubmission, latestTapMs, type Graded, type SubmitExtra } from "./grade";
 import { newRoomSeed, pickRoundOrder, type RoundSelectionOptions } from "./selection";
@@ -257,6 +258,13 @@ export function gradeAnswer(
     if (puzzle.type === "wordhunt") return gradeWordHunt(puzzle, answer, msRemaining);
     return gradeSubmission(puzzle, answer, msRemaining, extra, receivedMsRemaining);
   });
+  const today = gradeToday(puzzle, answer, graded, receivedMsRemaining);
+  // Word depth to 200 (25 Oct 2026, wordDepth.server.ts): only puzzles carrying their game's depth stamp.
+  const depth = wordDepthGrader(puzzle);
+  return depth ? depth.grade({ puzzle, answer, graded, today, receivedMsRemaining }) : today;
+}
+
+function gradeToday(puzzle: PuzzleData, answer: string, graded: Graded, receivedMsRemaining?: number): Graded {
   const rev = puzzleScoreRevOf(puzzle);
   // puzzleScoreRev 3 (the shared helper, puzzleScoreRev3.ts): finish puzzles score progress, time and mistakes.
   if (rev >= PUZZLE_SCORE_REV_HELPER && rev3Applies(puzzle.type)) return withRev3(puzzle, answer, graded, receivedMsRemaining);
