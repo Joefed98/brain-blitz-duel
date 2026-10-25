@@ -9,6 +9,7 @@
 
 import { randInt } from "./random";
 import { chainRequired } from "./chain";
+import { CHAIN_DEPTH_REV } from "./depth/chain";
 import {
   CHAIN_BLOCK,
   CHAIN_RULES_VERSION,
@@ -216,6 +217,8 @@ function generateLongChain(seed: number): ChainPuzzleData {
     rulesVersion: CHAIN_RULES_VERSION,
     chainTimeRev: CHAIN_TIME_REV,
     chainCycleRev: CHAIN_CYCLE_REV,
+    // Depth to 200 (25 Oct 2026): milestones and the stretched finish (depth/chain.ts); the board is unchanged.
+    chainDepthRev: CHAIN_DEPTH_REV,
     seed,
     cycle: cycles[0] ?? [],
     cycles,

@@ -9,12 +9,12 @@ import { dealtPuzzleScoreRev, puzzleScoreRevOf, storedScoreParts } from "./puzzl
 import { PUZZLE_SCORE_REV_BANDS, rev2Applies, rev2Grade, rev2ResultOf } from "./puzzleScoreRev2";
 import { PUZZLE_SCORE_REV_HELPER, rev3Applies, rev3Efficiency, rev3Finish, rev3Unfinished } from "./puzzleScoreRev3";
 import { rev3EfficiencyOverride, rev3Progress } from "./puzzleProgress";
-import { stampNumberDepth, withNumberDepth } from "./numberDepth.server";
+import { gradeDepth200 } from "./depth200.server";
+import { stampNumberDepth } from "./numberDepth.server";
 import { puzzleTimeLimitMs } from "./registry";
 import { WORDHUNT_REV_TARGET, WORDSMITH_REV_DEPTH, WORDSMITH_REV_TARGET } from "./scoring";
 import { stampMoveLimits } from "./moveLimits.server";
 import { stampTieRev } from "./tieBreak";
-import { wordDepthGrader } from "./wordDepth.server";
 import { dealtDepthRev } from "./wordDepth";
 import { stampTileGridRev } from "./tileGrid";
 import { STRIKEOUT_REV4, STRIKEOUT_REV5 } from "./strikeout";
@@ -42,11 +42,14 @@ import { generateTubes } from "./tubes.server";
 import { generateSafe } from "./safe.server";
 import { generateBomb } from "./bomb.server";
 import { generateGravity } from "./gravity.server";
+import { generateTiles } from "./tiles.server";
+import { dealsD5Remodels } from "./d5Remodels";
+import { generateTopsy } from "./topsy.server";
+import { generateJumbled } from "./jumbled.server";
 import { generateChain } from "./chain.server";
 import { generateNonogram } from "./nonogram.server";
 import { generatePairMatch } from "./pairmatch.server";
 import { generateFlood } from "./flood.server";
-import { generateTiles } from "./tiles.server";
 import { generateRings } from "./rings.server";
 import { generateHover } from "./hover.server";
 import {
@@ -131,6 +134,10 @@ export function generatePuzzle(type: PuzzleType, context: GenerateContext = {}):
 }
 
 function generateUnstamped(type: PuzzleType, context: GenerateContext): PuzzleData {
+  // The D5 remodels are dealt live (Topsy-Turvy's old bank stays for its checks and stored rounds; checks written
+  // for the previous versions pin the old deal, d5Remodels.ts).
+  if (type === "gravity" && dealsD5Remodels()) return generateTopsy();
+  if (type === "tiles" && dealsD5Remodels()) return generateJumbled();
   if (context.bankSeed !== undefined && isBankedType(type))
     return drawBankedPuzzle(type, context.bankSeed, context.recentBankKeys);
   if (type === "stroop") return generateColourClash();
@@ -268,22 +275,14 @@ export function gradeAnswer(
     if (puzzle.type === "wordhunt") return gradeWordHunt(puzzle, answer, msRemaining);
     return gradeSubmission(puzzle, answer, msRemaining, extra, receivedMsRemaining);
   });
-  const today = gradeToday(puzzle, answer, graded, receivedMsRemaining);
-  // Depth to 200 (25 Oct 2026): a puzzle carrying its game's depth stamp goes to that game's depth grader, once.
-  // Word games (wordDepth.server.ts) by their own stamps; Number games (numberDepth.server.ts) by depthRev 1, on a grade
-  // rev 2 / rev 3 made. Puzzles without a depth stamp grade as today.
-  const word = wordDepthGrader(puzzle);
-  if (word) return word.grade({ puzzle, answer, graded, today, receivedMsRemaining });
-  return gradedOnBands(puzzle) ? withNumberDepth(puzzle, answer, today) : today;
+  let todayGrade: Graded | null = null;
+  const today = () => (todayGrade ??= gradeToday(puzzle, answer, graded, receivedMsRemaining));
+  // Depth to 200 (depth200.server.ts, the one depth path): a puzzle stamped with its game's depth revision scores to
+  // 200 through that game's grader (from the game's own grade or today's); every other puzzle keeps today's grade.
+  return gradeDepth200({ puzzle, answer, graded, today, receivedMsRemaining }) ?? today();
 }
 
-/** True when today's grade came through rev 3's helper or rev 2's curve (not the game's own grade as is). */
-function gradedOnBands(puzzle: PuzzleData): boolean {
-  const rev = puzzleScoreRevOf(puzzle);
-  return (rev >= PUZZLE_SCORE_REV_HELPER && rev3Applies(puzzle.type)) || (rev >= PUZZLE_SCORE_REV_BANDS && rev2Applies(puzzle.type));
-}
-
-/** The grade today's stamps give: rev 3's helper, rev 2's curve, or the game's own grade (at most 150). */
+/** Today's grade before any depth revision: puzzleScoreRev 3's helper or rev 2's knots over the game's own grade. */
 function gradeToday(puzzle: PuzzleData, answer: string, graded: Graded, receivedMsRemaining?: number): Graded {
   const rev = puzzleScoreRevOf(puzzle);
   // puzzleScoreRev 3 (the shared helper, puzzleScoreRev3.ts): finish puzzles score progress, time and mistakes.

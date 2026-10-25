@@ -1,0 +1,52 @@
+/* Depth to 200 (25 Oct 2026, docs/depth/d3-speed-attention.md): Flash, Bang On and Ascend's new pieces on
+   tapRev 5, in batch S's look. Colour, light and glow only: nothing here changes a size or moves after the
+   first paint. Glows hold still under prefers-reduced-motion and reduced effects (no pulse). */
+
+/* Flash: the steady-hand spread in the summary line, gold while tight. */
+.flash-summary[data-flash-steady="tight"] { color: var(--primary) !important; text-shadow: 0 0 10px color-mix(in oklab, var(--primary) 55%, transparent); }
+.flash-summary[data-flash-steady="loose"] { color: color-mix(in oklab, var(--primary) 70%, #b4b1ba) !important; }
+
+/* Bang On: the dead-centre line, a bright white-gold core in the gold zone. */
+.bangon-dead-centre {
+  background: linear-gradient(to bottom, #fffbe8, #ffe9a6);
+  box-shadow: 0 0 0 1px color-mix(in oklab, var(--primary) 85%, transparent), 0 0 8px #fff3c8, 0 0 16px var(--primary);
+}
+[data-puzzle-play] [data-polish="stopwatch"] .bangon-target > .bangon-dead-centre {
+  box-shadow: 0 0 0 1px color-mix(in oklab, var(--primary) 85%, transparent), 0 0 8px #fff3c8, 0 0 18px var(--primary);
+}
+/* The zone streak chip: dim off a streak, gold and lit on one. */
+.bangon-streak-chip { color: #b4b1ba; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6); }
+.bangon-streak-chip[data-bangon-streak="on"] { color: var(--primary); text-shadow: 0 0 10px color-mix(in oklab, var(--primary) 70%, transparent), 0 1px 2px rgba(0, 0, 0, 0.6); }
+[data-puzzle-play] [data-polish="stopwatch"] .bangon-streak-chip { font-size: 18px; top: 10px; left: 12px; }
+/* "Dead centre" inside the face after a stop on the line. */
+.bangon-dead-hit { color: #fffbe8; text-shadow: 0 0 10px var(--primary), 0 0 2px #000; }
+/* History cards: a gold rim on a zone stop, a bright one on a dead-centre stop. */
+[data-polish="stopwatch"] .bangon-card[data-bangon-mark="zone"] { border-color: color-mix(in oklab, var(--primary) 60%, transparent); }
+[data-polish="stopwatch"] .bangon-card[data-bangon-mark="centre"] {
+  border-color: #ffe9a6;
+  box-shadow: 0 0 14px color-mix(in oklab, var(--primary) 65%, transparent), inset 0 1px 0 rgba(255, 255, 255, 0.35);
+}
+[data-puzzle-play] [data-polish="stopwatch"] .bangon-card[data-bangon-mark="zone"] { border-color: color-mix(in oklab, var(--primary) 60%, transparent); }
+[data-puzzle-play] [data-polish="stopwatch"] .bangon-card[data-bangon-mark="centre"] {
+  border-color: #ffe9a6;
+  box-shadow: 0 0 14px color-mix(in oklab, var(--primary) 65%, transparent), 0 8px 18px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.35);
+}
+/* The reveal: a gold dot after a zone stop, a bright one after a dead-centre stop. */
+p[data-bangon-mark="zone"]::after,
+p[data-bangon-mark="centre"]::after { content: ""; display: inline-block; width: 7px; height: 7px; margin-left: 8px; border-radius: 9999px; vertical-align: 2px; background: color-mix(in oklab, var(--primary) 70%, transparent); }
+p[data-bangon-mark="centre"]::after { background: #fff3c8; box-shadow: 0 0 6px var(--primary); }
+
+/* Ascend: the flow chip, dim at ×1, gold and brighter at ×2–×4. */
+.ascend-flow-chip { color: #b4b1ba; background: rgba(255, 255, 255, 0.06); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12); }
+.ascend-flow-chip:not([data-ascend-flow="1"]) {
+  color: var(--primary-foreground);
+  background: linear-gradient(to bottom, #ffe08a, var(--primary));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.55), 0 0 10px color-mix(in oklab, var(--primary) 60%, transparent);
+}
+.ascend-flow-chip[data-ascend-flow="4"] { box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6), 0 0 16px var(--primary), 0 0 4px #fff3c8; }
+.ascend-flow-dot { display: inline-block; width: 4px; height: 4px; border-radius: 9999px; background: currentColor; opacity: 0.3; }
+.ascend-flow-dot[data-on] { opacity: 1; }
+.ascend-flow-chip:not([data-ascend-flow="1"]) { animation: ascend-flow-glow 900ms ease-in-out infinite alternate; }
+@keyframes ascend-flow-glow { from { filter: brightness(1); } to { filter: brightness(1.18); } }
+@media (prefers-reduced-motion: reduce) { .ascend-flow-chip { animation: none !important; } }
+html[data-reduced-effects] .ascend-flow-chip { animation: none !important; }

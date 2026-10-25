@@ -24,6 +24,7 @@
  * 4. Colour Flood floodRev 2 rules: the par route solves, a run that uses every
  *    tap without flooding scores 0, credit falls from full at par to 0 at the limit.
  */
+import { pinD5LegacyDeal } from "../src/lib/duel/d5Remodels";
 import { readFileSync } from "node:fs";
 import { gunzipSync } from "node:zlib";
 import { generatePuzzle, gradeAnswer } from "../src/lib/duel/generate.server";
@@ -50,6 +51,10 @@ import { OCT14_FIXTURE } from "./pattern-logic-oct14-record";
 import { OCT14_LEGACY_FIXTURE } from "./pattern-logic-oct14-legacy-record";
 import { pinDealtPuzzleScoreRev } from "../src/lib/duel/puzzleScoreRev";
 import { puzzleTimeLimitMs } from "../src/lib/duel/registry";
+
+// This check proves the versions before the D5 remodels (Topsy-Turvy gravityRev 2, Jumbled tilesRev 2): it pins
+// that deal (d5Remodels.ts). The remodels are proved by d5-remodels-check.
+pinD5LegacyDeal(true);
 
 // Written for the rev-1 puzzle shape: new puzzles here carry puzzleScoreRev 1 (rooms deal rev 2 since 19 Oct 2026, scoring-bands-check).
 pinDealtPuzzleScoreRev(1);

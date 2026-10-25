@@ -34,7 +34,7 @@ export interface DepthGrader {
   grade(ctx: DepthContext): Graded;
 }
 
-const DEPTH: Partial<Record<PuzzleType, DepthGrader>> = {
+export const WORD_DEPTH_GRADERS: Partial<Record<PuzzleType, DepthGrader>> = {
   wordsmith: wordsmithDepth,
   tilegrid: tilegridDepth,
   wordslide: wordslideDepth,
@@ -48,6 +48,6 @@ const DEPTH: Partial<Record<PuzzleType, DepthGrader>> = {
 
 /** The depth grader for a stored puzzle, or null when it carries no depth stamp. */
 export function wordDepthGrader(puzzle: PuzzleData): DepthGrader | null {
-  const grader = DEPTH[puzzle.type];
+  const grader = WORD_DEPTH_GRADERS[puzzle.type];
   return grader && grader.applies(puzzle) ? grader : null;
 }

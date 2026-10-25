@@ -20,7 +20,8 @@ import {
   type SymbolScanStage,
 } from "@/lib/duel/types";
 
-import { SCAN_REV, scanRev1StageResult, scanStageMatches, usesScanRev1 } from "@/lib/duel/attentionRev";
+import { scanRev1StageResult, scanStageMatches, usesScanRev1 } from "@/lib/duel/attentionRev";
+import { SCAN_DEPTH_REV, scanCorrections, usesScanDepth } from "@/lib/duel/depth/eagleEye";
 import { EagleArt as EagleIcon, playEagleTakeoff } from "./eagleEyeArt";
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 import { useBeforePaint } from "@/components/puzzles/useBeforePaint";
@@ -168,7 +169,14 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "symscan" }
     return () => observer.disconnect();
   }, []);
 
-  const draft = joinStages(selections.map((sel) => [...sel].sort((a, b) => a - b).join(",")));
+  // scanRev 2: taps taken back (marked, then unmarked) ride as a fourth part; they only cut the score above the old 150.
+  const [corrections, setCorrections] = useStageState<number>(stateKey, "scanUndo", () => 0);
+  const depth = data !== null && usesScanDepth(data);
+  const encode = (all: number[][], undo: number) => {
+    const grids = joinStages(all.map((sel) => [...sel].sort((a, b) => a - b).join(",")));
+    return depth ? `${grids}|${undo}` : grids;
+  };
+  const draft = encode(selections, corrections);
   useEffect(() => {
     onDraftAnswer?.(draft);
   }, [draft, onDraftAnswer]);
@@ -205,7 +213,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "symscan" }
     if (stage >= STAGE_COUNT - 1) {
       done.current = true;
       takeoff.current();
-      onSubmit(joinStages(all.map((sel) => [...sel].sort((a, b) => a - b).join(","))));
+      onSubmit(encode(all, corrections));
       return;
     }
     setStage(stage + 1);
@@ -215,6 +223,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "symscan" }
     if (frozen) return;
     const nextSel = selected.includes(index) ? selected.filter((i) => i !== index) : [...selected, index];
     soundCue(selected.includes(index) ? "symscan.unmark" : "symscan.mark");
+    if (selected.includes(index)) setCorrections(corrections + 1);
     const all = selections.map((sel, i) => (i === stage ? nextSel : sel));
     setSelections(all);
   };
@@ -322,6 +331,11 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
           </button>
         ))}
       </div>
+      {usesScanDepth(puzzle) && scanCorrections(myAnswer) > 0 ? (
+        <p data-eye-undone="" className="text-center font-mono text-xs text-muted-foreground">
+          {scanCorrections(myAnswer)} {scanCorrections(myAnswer) === 1 ? "tap" : "taps"} taken back
+        </p>
+      ) : null}
     </div>
   );
 }
@@ -381,7 +395,8 @@ function buildTwoTargetStage(cols: number): { stage: SymbolScanStage; targets: n
 export function buildSymbolScan(): SymbolScanPuzzleData {
   // scanRev 1 (14 Oct 2026): the third grid has two target directions.
   const built = SYMSCAN_STAGE_COLS.map((cols, i) => (i === SYMSCAN_STAGE_COLS.length - 1 ? buildTwoTargetStage(cols) : buildStage(cols)));
-  return { type: "symscan", stages: built.map((b) => b.stage), targets: built.map((b) => b.targets), scanRev: SCAN_REV };
+  // scanRev 2 (25 Oct 2026, depth/eagleEye.ts): the same grids, scored to {max}; the answer adds the taps taken back.
+  return { type: "symscan", stages: built.map((b) => b.stage), targets: built.map((b) => b.targets), scanRev: SCAN_DEPTH_REV };
 }
 
 export const symbolScanPuzzle: PuzzleDefinition = {

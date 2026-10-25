@@ -6,14 +6,15 @@
 import { arcadeReducedEffects } from "@/lib/fx/lowEnd";
 import type { CanvasSize } from "./engine";
 import { arcadeFx } from "./arcadeFx.renderer";
-import { MATCHUP_FX } from "./arcadeFxGames.renderer";
+import { MATCHUP_FX, fxSpecAt } from "./arcadeFxGames.renderer";
 import type { SoundId } from "@/lib/fx/manifest";
 import {
-  matchupFindSwap, matchupGame, matchupIndex, matchupShowHint, matchupTransform,
-  MATCHUP_BOARD_H, MATCHUP_BOARD_W, MATCHUP_BOARD_X, MATCHUP_BOARD_Y, MATCHUP_BOMB, MATCHUP_CELL_PX,
+  matchupGame, matchupIndex, matchupShowHint, matchupTransform,
+  MATCHUP_BOARD_W, MATCHUP_BOARD_X, MATCHUP_BOARD_Y, MATCHUP_BOMB, MATCHUP_CELL_PX,
   MATCHUP_CLEAR_MS, MATCHUP_COLOURS, MATCHUP_CROSS, MATCHUP_DETONATE_MS, MATCHUP_DROP_MS, MATCHUP_GOLD,
   MATCHUP_NEXT_H, MATCHUP_NEXT_Y, MATCHUP_QUEUE_LEN, MATCHUP_ROWS, MATCHUP_SHAPES, MATCHUP_SIZE, MATCHUP_STAR,
   MATCHUP_SYMBOL_PCT, MATCHUP_TEXT, MATCHUP_JACKPOT, MATCHUP_WORLD_H, MATCHUP_WORLD_W, matchupIsJackpot, matchupPending, matchupStepTiming,
+  matchupHintSwap, matchupRowsOf, matchupWorldH, MATCHUP_TREASURE, MATCHUP_V9_PANEL_Y, MATCHUP_V9_TREASURES,
   type MatchupAnimStep, type MatchupState,
 } from "./matchup";
 import { artHash, reducedMotion } from "./art.renderer";
@@ -24,6 +25,19 @@ import { successHud } from "./success.renderer";
 /** Nine frames at 60 Hz, independent of simulation ticks. */
 export const MATCHUP_SWAP_MS = 150;
 const RADIUS = (MATCHUP_CELL_PX * MATCHUP_SYMBOL_PCT) / 200;
+
+/**
+ * The board this frame draws (matchupRev 9: ten rows in a 390 × 720 world; eight in 390 × 560 before it). Set
+ * from the state at the start of every draw call; render only.
+ */
+interface BoardLayout { rows: number; boardH: number; worldH: number }
+const layoutOf = (rows: number, worldH: number): BoardLayout => ({ rows, boardH: rows * MATCHUP_CELL_PX, worldH });
+const LAYOUT_8 = layoutOf(MATCHUP_ROWS, MATCHUP_WORLD_H);
+let L: BoardLayout = LAYOUT_8;
+function useLayout(state: MatchupState): void {
+  const rows = matchupRowsOf(state.cells);
+  L = rows === MATCHUP_ROWS ? LAYOUT_8 : L.rows === rows ? L : layoutOf(rows, matchupWorldH(state));
+}
 const SPECIAL_WHITE = "#FFFFFF";
 const BOMB_OUTLINE = "#D5D7DF";
 
@@ -285,6 +299,27 @@ export function paintMatchupGem(ctx: CanvasRenderingContext2D, kind: number, cx:
     ctx.beginPath();
     ctx.arc(cx, cy, radius - 0.8, 0, Math.PI * 2);
     ctx.stroke();
+  } else if (kind === MATCHUP_TREASURE) {
+    // matchupRev 9's treasure gem: a gold octagon medallion (no colour gem's cut) round a ruby, in a bright rim.
+    const pts: Array<[number, number]> = [];
+    for (let k = 0; k < 8; k++) {
+      const a = -Math.PI / 2 + Math.PI / 8 + (k * Math.PI) / 4;
+      pts.push([cx + Math.cos(a) * radius, cy + Math.sin(a) * radius]);
+    }
+    facetedGem(ctx, pts, cx, cy, radius, "#FFCF4A");
+    pathOf(ctx, pts);
+    ctx.strokeStyle = "#FFF4C2";
+    ctx.lineWidth = 1.4;
+    ctx.stroke();
+    const ruby = cutPoints("circle", cx, cy, radius * 0.42);
+    facetedGem(ctx, ruby, cx, cy, radius * 0.42, "#E0245E");
+    ctx.fillStyle = "#7A4A00";
+    for (let k = 0; k < 4; k++) {
+      const a = -Math.PI / 4 + (k * Math.PI) / 2;
+      ctx.beginPath();
+      ctx.arc(cx + Math.cos(a) * radius * 0.68, cy + Math.sin(a) * radius * 0.68, radius * 0.07, 0, Math.PI * 2);
+      ctx.fill();
+    }
   } else if (kind === MATCHUP_STAR) {
     const pts = cutPoints("star", cx, cy, radius);
     facetedGem(ctx, pts, cx, cy, radius, SPECIAL_WHITE);
@@ -310,7 +345,7 @@ export function drawMatchupGem(ctx: CanvasRenderingContext2D, kind: number, cx: 
  if (stamp) ctx.drawImage(stamp, cx-radius-1, cy-radius-1, stamp.width/2, stamp.height/2);
  else paintMatchupGem(ctx, kind, cx, cy, radius, time);
 }
-const boardLayers = new WeakMap<CanvasRenderingContext2D, { canvas: ArtCanvas; cells: number[]; k: number }>();
+const boardLayers = new WeakMap<CanvasRenderingContext2D, { canvas: ArtCanvas; cells: number[]; k: number; rows: number }>();
 
 /* ================================ Board =============================== */
 
@@ -360,7 +395,7 @@ function drawFrame(ctx: CanvasRenderingContext2D): void {
   const x = MATCHUP_BOARD_X - 5;
   const y = MATCHUP_BOARD_Y - 5;
   const w = MATCHUP_BOARD_W + 10;
-  const h = MATCHUP_BOARD_H + 10;
+  const h = L.boardH + 10;
   ctx.beginPath();
   ctx.roundRect(x, y, w, h, 10);
   const bevel = ctx.createLinearGradient(0, y, 0, y + h);
@@ -391,14 +426,14 @@ function drawFrame(ctx: CanvasRenderingContext2D): void {
 }
 
 function drawGrid(ctx: CanvasRenderingContext2D): void {
-  for (let row = 0; row < MATCHUP_ROWS; row++) {
+  for (let row = 0; row < L.rows; row++) {
     for (let col = 0; col < MATCHUP_SIZE; col++) {
       drawSocket(ctx, MATCHUP_BOARD_X + col * MATCHUP_CELL_PX, MATCHUP_BOARD_Y + row * MATCHUP_CELL_PX, (row + col) % 2);
     }
   }
   ctx.strokeStyle = "rgba(0,0,0,0.5)";
   ctx.lineWidth = 2;
-  ctx.strokeRect(MATCHUP_BOARD_X + 1, MATCHUP_BOARD_Y + 1, MATCHUP_BOARD_W - 2, MATCHUP_BOARD_H - 2);
+  ctx.strokeRect(MATCHUP_BOARD_X + 1, MATCHUP_BOARD_Y + 1, MATCHUP_BOARD_W - 2, L.boardH - 2);
 }
 
 /**
@@ -407,14 +442,14 @@ function drawGrid(ctx: CanvasRenderingContext2D): void {
  * behind the board and faint gem-coloured sparkles in the margins. No text.
  */
 function paintBackdrop(c: CanvasRenderingContext2D): void {
-  const W = MATCHUP_WORLD_W, H = MATCHUP_WORLD_H;
+  const W = MATCHUP_WORLD_W, H = L.worldH;
   const g = c.createLinearGradient(0, 0, 0, H);
   g.addColorStop(0, "#1B1131");
   g.addColorStop(0.55, "#130E21");
   g.addColorStop(1, "#0B0B0F");
   c.fillStyle = g;
   c.fillRect(0, 0, W, H);
-  const glow = c.createRadialGradient(W / 2, MATCHUP_BOARD_Y + MATCHUP_BOARD_H * 0.45, 40, W / 2, MATCHUP_BOARD_Y + MATCHUP_BOARD_H * 0.45, W * 0.75);
+  const glow = c.createRadialGradient(W / 2, MATCHUP_BOARD_Y + L.boardH * 0.45, 40, W / 2, MATCHUP_BOARD_Y + L.boardH * 0.45, W * 0.75);
   glow.addColorStop(0, "rgba(120,80,200,0.22)");
   glow.addColorStop(1, "rgba(120,80,200,0)");
   c.fillStyle = glow;
@@ -438,7 +473,7 @@ function paintBackdrop(c: CanvasRenderingContext2D): void {
   c.restore();
   paintTray(c);
   // Sparkles in the margins only (never behind a gem).
-  const boardTop = TRAY_Y - 4, boardBottom = TRAY_Y + TRAY_H + 6;
+  const boardTop = TRAY_Y - 4, boardBottom = TRAY_Y + trayH() + 6;
   for (let k = 0; k < 46; k++) {
     const h = artHash(k, 431);
     const x = h % W;
@@ -473,28 +508,29 @@ function paintBackdrop(c: CanvasRenderingContext2D): void {
 const TRAY_X = MATCHUP_BOARD_X - 13;
 const TRAY_Y = MATCHUP_NEXT_Y - 9;
 const TRAY_W = MATCHUP_BOARD_W + 26;
-const TRAY_H = MATCHUP_BOARD_Y + MATCHUP_BOARD_H + 13 - TRAY_Y;
+/** The tray's height for the board being drawn. */
+const trayH = () => MATCHUP_BOARD_Y + L.boardH + 13 - TRAY_Y;
 function paintTray(c: CanvasRenderingContext2D): void {
   const cx = TRAY_X + TRAY_W / 2;
   // The glow: wide and soft, strongest under the tray's lower half.
-  const glow = c.createRadialGradient(cx, TRAY_Y + TRAY_H * 0.62, TRAY_W * 0.2, cx, TRAY_Y + TRAY_H * 0.62, TRAY_H * 0.72);
+  const glow = c.createRadialGradient(cx, TRAY_Y + trayH() * 0.62, TRAY_W * 0.2, cx, TRAY_Y + trayH() * 0.62, trayH() * 0.72);
   glow.addColorStop(0, "rgba(150,90,255,0.30)");
   glow.addColorStop(0.55, "rgba(130,70,230,0.12)");
   glow.addColorStop(1, "rgba(120,60,220,0)");
   c.fillStyle = glow;
-  c.fillRect(0, 0, MATCHUP_WORLD_W, MATCHUP_WORLD_H);
+  c.fillRect(0, 0, MATCHUP_WORLD_W, L.worldH);
   // A soft drop shadow under the tray.
   c.save();
   c.beginPath();
-  c.roundRect(TRAY_X + 2, TRAY_Y + 6, TRAY_W - 4, TRAY_H, 16);
+  c.roundRect(TRAY_X + 2, TRAY_Y + 6, TRAY_W - 4, trayH(), 16);
   c.fillStyle = "rgba(4,2,10,0.45)";
   c.fill();
   c.restore();
   // The velvet: deep plum, lit from above, with a fine nap.
   c.save();
   c.beginPath();
-  c.roundRect(TRAY_X, TRAY_Y, TRAY_W, TRAY_H, 16);
-  const velvet = c.createLinearGradient(0, TRAY_Y, 0, TRAY_Y + TRAY_H);
+  c.roundRect(TRAY_X, TRAY_Y, TRAY_W, trayH(), 16);
+  const velvet = c.createLinearGradient(0, TRAY_Y, 0, TRAY_Y + trayH());
   velvet.addColorStop(0, "#3A2160");
   velvet.addColorStop(0.18, "#2A1748");
   velvet.addColorStop(0.75, "#1E1036");
@@ -506,27 +542,27 @@ function paintTray(c: CanvasRenderingContext2D): void {
   sheenV.addColorStop(0, "rgba(200,150,255,0.18)");
   sheenV.addColorStop(1, "rgba(200,150,255,0)");
   c.fillStyle = sheenV;
-  c.fillRect(TRAY_X, TRAY_Y, TRAY_W, TRAY_H);
+  c.fillRect(TRAY_X, TRAY_Y, TRAY_W, trayH());
   for (let k = 0; k < 900; k++) {
     const h = artHash(k, 613);
     c.fillStyle = h % 2 ? "rgba(255,230,255,0.035)" : "rgba(0,0,0,0.10)";
-    c.fillRect(TRAY_X + (h % TRAY_W), TRAY_Y + ((h >>> 10) % TRAY_H), 1, 1);
+    c.fillRect(TRAY_X + (h % TRAY_W), TRAY_Y + ((h >>> 10) % trayH()), 1, 1);
   }
   // Inner shadow round the rim, so the tray reads as padded.
   c.lineWidth = 6;
   c.strokeStyle = "rgba(0,0,0,0.28)";
   c.beginPath();
-  c.roundRect(TRAY_X + 1, TRAY_Y + 3, TRAY_W - 2, TRAY_H - 2, 15);
+  c.roundRect(TRAY_X + 1, TRAY_Y + 3, TRAY_W - 2, trayH() - 2, 15);
   c.stroke();
   c.restore();
   // Piping: a lit top lip and a thin gold cord.
   c.beginPath();
-  c.roundRect(TRAY_X + 0.5, TRAY_Y + 0.5, TRAY_W - 1, TRAY_H - 1, 16);
+  c.roundRect(TRAY_X + 0.5, TRAY_Y + 0.5, TRAY_W - 1, trayH() - 1, 16);
   c.strokeStyle = "rgba(210,170,255,0.30)";
   c.lineWidth = 1;
   c.stroke();
   c.beginPath();
-  c.roundRect(TRAY_X + 3.5, TRAY_Y + 3.5, TRAY_W - 7, TRAY_H - 7, 13);
+  c.roundRect(TRAY_X + 3.5, TRAY_Y + 3.5, TRAY_W - 7, trayH() - 7, 13);
   c.strokeStyle = "rgba(245,184,46,0.22)";
   c.stroke();
 }
@@ -536,10 +572,10 @@ function drawBackdrop(ctx: CanvasRenderingContext2D): void {
   const t = typeof ctx.getTransform === "function" ? ctx.getTransform() : null;
   // Reduced effects (lib/fx/lowEnd.ts, slow devices only): at the canvas's own scale even below 1, so it is copied 1:1.
   const scale = Math.min(3, Math.max(arcadeReducedEffects() ? 0.25 : 1, t ? Math.hypot(t.a, t.b) : 1));
-  const key = scale.toFixed(3);
+  const key = `${scale.toFixed(3)}:${L.rows}`;
   let cached = backdrops.get(ctx);
   if (!cached || cached.key !== key) {
-    const layer = artCanvas(Math.ceil(MATCHUP_WORLD_W * scale), Math.ceil(MATCHUP_WORLD_H * scale));
+    const layer = artCanvas(Math.ceil(MATCHUP_WORLD_W * scale), Math.ceil(L.worldH * scale));
     const native = layer && artContext(layer);
     if (!layer || !native) {
       paintBackdrop(ctx);
@@ -549,7 +585,7 @@ function drawBackdrop(ctx: CanvasRenderingContext2D): void {
     paintBackdrop(native as CanvasRenderingContext2D);
     backdrops.set(ctx, (cached = { key, layer }));
   }
-  ctx.drawImage(cached.layer as CanvasImageSource, 0, 0, MATCHUP_WORLD_W, MATCHUP_WORLD_H);
+  ctx.drawImage(cached.layer as CanvasImageSource, 0, 0, MATCHUP_WORLD_W, L.worldH);
 }
 
 function drawNextStrip(ctx: CanvasRenderingContext2D, state: MatchupState, time: number): void {
@@ -583,14 +619,14 @@ function drawSettled(ctx: CanvasRenderingContext2D, cells: readonly number[], ti
   const t=typeof ctx.getTransform==="function"&&arcadeReducedEffects()?ctx.getTransform():null;
   const k=t?Math.round(Math.max(0.25,Math.min(2,Math.hypot(t.a,t.b)))*1000)/1000:2;
   let layer=boardLayers.get(ctx);
-  if (!layer||layer.k!==k) { const canvas=artCanvas(Math.round(MATCHUP_BOARD_W*k),Math.round(MATCHUP_BOARD_H*k)); layer=undefined; if(canvas){layer={canvas,cells:[],k};boardLayers.set(ctx,layer);} }
+  if (!layer||layer.k!==k||layer.rows!==L.rows) { const canvas=artCanvas(Math.round(MATCHUP_BOARD_W*k),Math.round(L.boardH*k)); layer=undefined; if(canvas){layer={canvas,cells:[],k,rows:L.rows};boardLayers.set(ctx,layer);} }
   const native=layer&&artContext(layer.canvas);
-  if(layer&&native){const c=native as CanvasRenderingContext2D;c.save();c.scale(layer.canvas.width/MATCHUP_BOARD_W,layer.canvas.height/MATCHUP_BOARD_H);
+  if(layer&&native){const c=native as CanvasRenderingContext2D;c.save();c.scale(layer.canvas.width/MATCHUP_BOARD_W,layer.canvas.height/L.boardH);
    for(let i=0;i<cells.length;i++){if(layer.cells[i]===cells[i])continue;const x=(i%MATCHUP_SIZE)*MATCHUP_CELL_PX,y=Math.floor(i/MATCHUP_SIZE)*MATCHUP_CELL_PX;
     c.clearRect(x,y,MATCHUP_CELL_PX,MATCHUP_CELL_PX);drawSocket(c,x,y,(Math.floor(i/MATCHUP_SIZE)+i%MATCHUP_SIZE)%2);
     drawMatchupGem(c,cells[i]??0,x+MATCHUP_CELL_PX/2,y+MATCHUP_CELL_PX/2,RADIUS,time);layer.cells[i]=cells[i]??0;
-   }c.restore();ctx.drawImage(layer.canvas,MATCHUP_BOARD_X,MATCHUP_BOARD_Y,MATCHUP_BOARD_W,MATCHUP_BOARD_H);
-   ctx.strokeStyle="rgba(0,0,0,0.5)";ctx.lineWidth=2;ctx.strokeRect(MATCHUP_BOARD_X+1,MATCHUP_BOARD_Y+1,MATCHUP_BOARD_W-2,MATCHUP_BOARD_H-2);return;
+   }c.restore();ctx.drawImage(layer.canvas,MATCHUP_BOARD_X,MATCHUP_BOARD_Y,MATCHUP_BOARD_W,L.boardH);
+   ctx.strokeStyle="rgba(0,0,0,0.5)";ctx.lineWidth=2;ctx.strokeRect(MATCHUP_BOARD_X+1,MATCHUP_BOARD_Y+1,MATCHUP_BOARD_W-2,L.boardH-2);return;
   }
  }
   drawGrid(ctx);
@@ -653,7 +689,7 @@ function drawDetonations(ctx: CanvasRenderingContext2D, step: MatchupAnimStep, p
       const colour = MATCHUP_COLOURS[kind - MATCHUP_JACKPOT] ?? MATCHUP_GOLD;
       ctx.fillStyle = "rgba(255,255,255,0.35)";
       ctx.fillRect(MATCHUP_BOARD_X, y - 5, MATCHUP_BOARD_W, 10);
-      ctx.fillRect(x - 5, MATCHUP_BOARD_Y, 10, MATCHUP_BOARD_H);
+      ctx.fillRect(x - 5, MATCHUP_BOARD_Y, 10, L.boardH);
       ctx.strokeStyle = colour;
       ctx.lineWidth = 3;
       for (let target = 0; target < step.before.length; target++) {
@@ -684,7 +720,7 @@ function drawDetonations(ctx: CanvasRenderingContext2D, step: MatchupAnimStep, p
       const spread = MATCHUP_CELL_PX * (0.5 + progress * MATCHUP_SIZE);
       ctx.fillStyle = "rgba(245, 184, 46, 0.18)";
       ctx.fillRect(MATCHUP_BOARD_X, y - 3, MATCHUP_BOARD_W, 6);
-      ctx.fillRect(x - 3, MATCHUP_BOARD_Y, 6, MATCHUP_BOARD_H);
+      ctx.fillRect(x - 3, MATCHUP_BOARD_Y, 6, L.boardH);
       ctx.beginPath();
       ctx.moveTo(x - spread, y);
       ctx.lineTo(x + spread, y);
@@ -715,7 +751,7 @@ function drawAnimated(ctx: CanvasRenderingContext2D, state: MatchupState, elapse
     if (remaining < clearMs) {
       const p = remaining / clearMs;
       drawGrid(ctx);
-      for (let index = 0; index < MATCHUP_ROWS * MATCHUP_SIZE; index++) {
+      for (let index = 0; index < L.rows * MATCHUP_SIZE; index++) {
         if (cleared.has(index)) continue;
         const { x, y } = centre(index);
         drawMatchupGem(ctx, animatedKind(step, index), x, y, RADIUS, time);
@@ -728,7 +764,7 @@ function drawAnimated(ctx: CanvasRenderingContext2D, state: MatchupState, elapse
     }
     const p = Math.min(1, (remaining - clearMs) / dropMs);
     drawGrid(ctx);
-    for (let row = 0; row < MATCHUP_ROWS; row++) {
+    for (let row = 0; row < L.rows; row++) {
       for (let col = 0; col < MATCHUP_SIZE; col++) {
         const index = matchupIndex(row, col);
         if (cleared.has(index)) continue;
@@ -739,7 +775,7 @@ function drawAnimated(ctx: CanvasRenderingContext2D, state: MatchupState, elapse
     }
     ctx.save();
     ctx.beginPath();
-    ctx.rect(MATCHUP_BOARD_X, MATCHUP_BOARD_Y, MATCHUP_BOARD_W, MATCHUP_BOARD_H);
+    ctx.rect(MATCHUP_BOARD_X, MATCHUP_BOARD_Y, MATCHUP_BOARD_W, L.boardH);
     ctx.clip();
     for (const move of step.moves) {
       const from = centre(matchupIndex(move.fromRow, move.fromCol));
@@ -829,6 +865,159 @@ function drawCollection(ctx: CanvasRenderingContext2D, state: MatchupState, time
   ctx.restore();
 }
 
+/* ============================ matchupRev 9: ice, goals, banners ============================ */
+
+/** A frozen cell: pale frosted glass over the gem, a white rim, two cracks and frost in the corners. */
+function paintIce(c: CanvasRenderingContext2D, s: number): void {
+  const inset = 2.5;
+  c.beginPath();
+  c.roundRect(inset, inset, s - inset * 2, s - inset * 2, 7);
+  const glass = c.createLinearGradient(0, 0, s, s);
+  glass.addColorStop(0, "rgba(220,245,255,0.52)");
+  glass.addColorStop(0.5, "rgba(170,225,255,0.30)");
+  glass.addColorStop(1, "rgba(140,205,255,0.42)");
+  c.fillStyle = glass;
+  c.fill();
+  c.strokeStyle = "rgba(240,252,255,0.9)";
+  c.lineWidth = 1.5;
+  c.stroke();
+  c.strokeStyle = "rgba(255,255,255,0.75)";
+  c.lineWidth = 1;
+  c.beginPath();
+  c.moveTo(s * 0.18, s * 0.3);
+  c.lineTo(s * 0.4, s * 0.46);
+  c.lineTo(s * 0.36, s * 0.66);
+  c.moveTo(s * 0.4, s * 0.46);
+  c.lineTo(s * 0.62, s * 0.4);
+  c.moveTo(s * 0.7, s * 0.72);
+  c.lineTo(s * 0.84, s * 0.6);
+  c.stroke();
+  c.fillStyle = "rgba(255,255,255,0.85)";
+  for (const [x, y] of [[0.16, 0.16], [0.84, 0.16], [0.16, 0.84], [0.84, 0.84]] as const) {
+    c.beginPath();
+    c.arc(s * x, s * y, 1.6, 0, Math.PI * 2);
+    c.fill();
+  }
+  c.fillStyle = "rgba(255,255,255,0.35)";
+  c.fillRect(inset + 4, inset + 3, s * 0.36, 2);
+}
+
+let iceSprite: ArtCanvas | null = null;
+function drawIce(ctx: CanvasRenderingContext2D, ice: readonly number[] | undefined): void {
+  if (!ice) return;
+  if (!iceSprite) {
+    const canvas = artCanvas(MATCHUP_CELL_PX * 2, MATCHUP_CELL_PX * 2);
+    const native = canvas && artContext(canvas);
+    if (canvas && native) {
+      native.scale(2, 2);
+      paintIce(native as CanvasRenderingContext2D, MATCHUP_CELL_PX);
+      iceSprite = canvas;
+    }
+  }
+  for (let index = 0; index < ice.length; index++) {
+    if (!ice[index]) continue;
+    const x = MATCHUP_BOARD_X + (index % MATCHUP_SIZE) * MATCHUP_CELL_PX;
+    const y = MATCHUP_BOARD_Y + Math.floor(index / MATCHUP_SIZE) * MATCHUP_CELL_PX;
+    if (iceSprite) ctx.drawImage(iceSprite as CanvasImageSource, x, y, MATCHUP_CELL_PX, MATCHUP_CELL_PX);
+    else {
+      ctx.save();
+      ctx.translate(x, y);
+      paintIce(ctx, MATCHUP_CELL_PX);
+      ctx.restore();
+    }
+  }
+}
+
+/** The goals panel under the board: the level, each goal colour's gems still to collect, ice left and treasure found. */
+function drawGoalsPanel(ctx: CanvasRenderingContext2D, state: MatchupState, time: number): void {
+  const x = MATCHUP_BOARD_X - 5, y = MATCHUP_V9_PANEL_Y, w = MATCHUP_BOARD_W + 10, h = 84;
+  ctx.save();
+  ctx.beginPath();
+  ctx.roundRect(x, y, w, h, 12);
+  const tray = ctx.createLinearGradient(0, y, 0, y + h);
+  tray.addColorStop(0, "rgba(10,8,16,0.78)");
+  tray.addColorStop(1, "rgba(60,48,84,0.5)");
+  ctx.fillStyle = tray;
+  ctx.fill();
+  ctx.strokeStyle = "rgba(245,184,46,0.35)";
+  ctx.lineWidth = 1;
+  ctx.stroke();
+  ctx.textBaseline = "middle";
+  ctx.textAlign = "left";
+  ctx.font = "700 12px 'JetBrains Mono', ui-monospace, monospace";
+  ctx.fillStyle = MATCHUP_GOLD;
+  ctx.fillText(`LEVEL ${(state.level ?? 0) + 1}`, x + 12, y + 17);
+  ctx.fillStyle = "rgba(247,247,248,0.62)";
+  ctx.fillText("COLLECT", x + 12, y + 33);
+  // Goal gems: a gem, then the count still needed (a tick once done).
+  const goal = state.goalLeft ?? [];
+  const need = state.plan?.need[Math.min(state.level ?? 0, (state.plan?.need.length ?? 1) - 1)] ?? 0;
+  const colours = goal.flatMap((left, kind) => ((state.plan?.colours[Math.min(state.level ?? 0, (state.plan?.colours.length ?? 1) - 1)] ?? []).includes(kind) ? [{ kind, left }] : []));
+  colours.forEach(({ kind, left }, i) => {
+    const gx = x + 96 + i * 66;
+    drawMatchupGem(ctx, kind, gx, y + 25, 11, time);
+    ctx.font = "700 15px 'JetBrains Mono', ui-monospace, monospace";
+    ctx.fillStyle = left === 0 ? "#7CF5A4" : MATCHUP_TEXT;
+    ctx.fillText(left === 0 ? "✓" : `${left}`, gx + 15, y + 26);
+    const bw = 50;
+    ctx.fillStyle = "rgba(0,0,0,0.45)";
+    ctx.fillRect(gx - 11, y + 41, bw, 3);
+    ctx.fillStyle = MATCHUP_COLOURS[kind] ?? MATCHUP_GOLD;
+    ctx.fillRect(gx - 11, y + 41, need > 0 ? (bw * (need - left)) / need : 0, 3);
+  });
+  // Bottom line: ice still on the board, treasure collected, the cascade multiplier's extra points.
+  const iceLeft = (state.ice ?? []).reduce((n, v) => n + (v ? 1 : 0), 0);
+  ctx.font = "600 12px 'JetBrains Mono', ui-monospace, monospace";
+  ctx.fillStyle = "rgba(247,247,248,0.8)";
+  if (iceSprite) ctx.drawImage(iceSprite as CanvasImageSource, x + 12, y + 54, 20, 20);
+  ctx.fillText(`${iceLeft} left`, x + 37, y + 64);
+  drawMatchupGem(ctx, MATCHUP_TREASURE, x + 120, y + 64, 9, time);
+  ctx.fillText(`${state.treasures ?? 0}/${MATCHUP_V9_TREASURES}`, x + 134, y + 64);
+  ctx.fillStyle = MATCHUP_GOLD;
+  ctx.textAlign = "right";
+  ctx.fillText(`cascades +${state.cascadeExtra ?? 0}`, x + w - 12, y + 64);
+  ctx.restore();
+}
+
+/**
+ * Banners for a goal met and a treasure collected (memory per canvas, keyed by the sim's counters; render only).
+ * A deep cascade's multiplier already has the shared layer's "CASCADE ×n" banner.
+ */
+interface BannerMemory { tick: number; levels: number; treasures: number; mult: number; banners: { text: string; tick: number; gold: boolean }[] }
+const bannerMemories = new WeakMap<CanvasRenderingContext2D, BannerMemory>();
+function drawBanners(ctx: CanvasRenderingContext2D, state: MatchupState): void {
+  let m = bannerMemories.get(ctx);
+  if (!m || state.tick < m.tick) {
+    m = { tick: state.tick, levels: state.levels ?? 0, treasures: state.treasures ?? 0, mult: state.swaps, banners: [] };
+    bannerMemories.set(ctx, m);
+  }
+  if ((state.levels ?? 0) > m.levels) m.banners.push({ text: "GOAL!", tick: state.tick, gold: false });
+  if ((state.treasures ?? 0) > m.treasures) m.banners.push({ text: "TREASURE!", tick: state.tick, gold: true });
+  m.levels = state.levels ?? 0;
+  m.treasures = state.treasures ?? 0;
+  m.mult = state.swaps;
+  m.tick = state.tick;
+  const still = reducedMotion();
+  const life = 60;
+  m.banners = m.banners.filter((b) => state.tick - b.tick < life).slice(-2);
+  m.banners.forEach((b, i) => {
+    const p = (state.tick - b.tick) / life;
+    const cy = MATCHUP_BOARD_Y + L.boardH * 0.42 + i * 34 - (still ? 0 : p * 14);
+    ctx.save();
+    ctx.globalAlpha = Math.min(1, (1 - p) * 3);
+    ctx.font = "800 26px Archivo, ui-sans-serif, sans-serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.lineJoin = "round";
+    ctx.strokeStyle = "rgba(8,4,16,0.85)";
+    ctx.lineWidth = 6;
+    ctx.strokeText(b.text, MATCHUP_WORLD_W / 2, cy);
+    ctx.fillStyle = b.gold ? MATCHUP_GOLD : "#BFE9FF";
+    ctx.fillText(b.text, MATCHUP_WORLD_W / 2, cy);
+    ctx.restore();
+  });
+}
+
 /**
  * Cascade labels (presentation only): each clear (a swap's or a cascade
  * step's) labels its chain count on the first cell it cleared, read from the
@@ -865,7 +1054,7 @@ function drawClearBursts(ctx: CanvasRenderingContext2D, state: MatchupState): vo
   if (m.bursts.length === 0) return;
   ctx.save();
   ctx.beginPath();
-  ctx.rect(MATCHUP_BOARD_X, MATCHUP_BOARD_Y, MATCHUP_BOARD_W, MATCHUP_BOARD_H);
+  ctx.rect(MATCHUP_BOARD_X, MATCHUP_BOARD_Y, MATCHUP_BOARD_W, L.boardH);
   ctx.clip();
   for (const burst of m.bursts) {
     const p = (state.tick - burst.tick) / life;
@@ -886,12 +1075,14 @@ function drawClearBursts(ctx: CanvasRenderingContext2D, state: MatchupState): vo
 
 /** The board drawing through the shared success layer (presentation only). */
 function drawScene(ctx: CanvasRenderingContext2D, state: MatchupState, size: CanvasSize, options: SceneOptions = {}): void {
-  arcadeFx(ctx, MATCHUP_FX, state, () => drawSceneWorld(ctx, state, size, options), size);
+  // matchupRev 9: the shared layer spans the taller world (fxSpecAt, as the other taller worlds do).
+  arcadeFx(ctx, fxSpecAt(MATCHUP_FX, matchupWorldH(state)), state, () => drawSceneWorld(ctx, state, size, options), size);
 }
 
 function drawSceneWorld(ctx: CanvasRenderingContext2D, state: MatchupState, size: CanvasSize, options: SceneOptions = {}): void {
   const time = reducedMotion() ? 0 : state.tick / 60;
-  const { scale, offsetX, offsetY } = matchupTransform(size);
+  useLayout(state);
+  const { scale, offsetX, offsetY } = matchupTransform(size, L.worldH);
   ctx.save();
   ctx.clearRect(0, 0, size.width, size.height);
   ctx.fillStyle = "rgba(11,11,15,0.6)";
@@ -905,9 +1096,14 @@ function drawSceneWorld(ctx: CanvasRenderingContext2D, state: MatchupState, size
   const animating = animationMs != null && state.lastAnimation.length > 0;
   if (animating && animationMs != null) drawAnimated(ctx, state, animationMs, time);
   else drawSettled(ctx, options.cells ?? state.cells, time, options.skip);
+  // matchupRev 9: frozen cells over the gems, and the goals panel under the board.
+  if (state.goals) {
+    drawIce(ctx, state.ice);
+    drawGoalsPanel(ctx, state, time);
+  }
 
   if (!animating && !options.cells && !matchupPending(state) && matchupShowHint(state)) {
-    const hint = matchupFindSwap(state.cells);
+    const hint = matchupHintSwap(state);
     if (hint) {
       ctx.strokeStyle = MATCHUP_GOLD;
       ctx.globalAlpha = 0.5;
@@ -936,6 +1132,7 @@ function drawSceneWorld(ctx: CanvasRenderingContext2D, state: MatchupState, size
   });
   drawCollection(ctx, state, time);
   if (!options.cells) drawClearBursts(ctx, state);
+  if (state.goals && !options.cells) drawBanners(ctx, state);
   ctx.restore();
 }
 
@@ -949,7 +1146,7 @@ export function drawMatchupArtAnimated(ctx: CanvasRenderingContext2D, state: Mat
 
 /** Selected gem glows gold. */
 export function drawMatchupArtSelection(ctx: CanvasRenderingContext2D, size: CanvasSize, row: number, col: number): void {
-  const { scale, offsetX, offsetY } = matchupTransform(size);
+  const { scale, offsetX, offsetY } = matchupTransform(size, L.worldH);
   ctx.save();
   ctx.translate(offsetX, offsetY);
   ctx.scale(scale, scale);
@@ -996,9 +1193,9 @@ export function drawMatchupSwap(
   const options = { cells: tween.before.cells, skip: new Set([tween.a, tween.b]) };
   // The two sliding gems are part of the world, so the shared layer's effects (a refused swap's
   // miss puff, Polish 1) paint over them, as over every other gem.
-  arcadeFx(ctx, MATCHUP_FX, scene, () => {
+  arcadeFx(ctx, fxSpecAt(MATCHUP_FX, matchupWorldH(state)), scene, () => {
     drawSceneWorld(ctx, scene, size, options);
-    const { scale, offsetX, offsetY } = matchupTransform(size);
+    const { scale, offsetX, offsetY } = matchupTransform(size, L.worldH);
     ctx.save();
     ctx.translate(offsetX, offsetY);
     ctx.scale(scale, scale);
@@ -1020,7 +1217,7 @@ export const matchupArtGame = { ...matchupGame, draw: drawMatchupArt };
  * bottom colour, with faint margin sparkles. No gems, sockets or anything that moves.
  */
 export function matchupArenaScene(ctx: CanvasRenderingContext2D, view: ArenaSceneView): void {
-  const W = MATCHUP_WORLD_W, H = MATCHUP_WORLD_H;
+  const W = MATCHUP_WORLD_W, H = view.worldH;
   for (const side of sceneSides(view))
     sceneFill(ctx, side, 0, H, [[0, "#1B1131"], [0.55, "#130E21"], [1, "#0B0B0F"]]);
   const below = sceneBelow(view);

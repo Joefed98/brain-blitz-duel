@@ -50,6 +50,10 @@ import { pinPreDepth, WORD_DEPTH_GAMES } from "../src/lib/duel/wordDepth";
 
 // Word depth (25 Oct 2026): this check proves the pre-depth stamps; new deals of the nine word games are pinned to them.
 pinPreDepth(true);
+import { pinPreDepthTapRev } from "../src/lib/duel/tapLog";
+import { roundMaxFor } from "../src/lib/duel/roundMax";
+// Flash, Bang On and Ascend deal tapRev 5 (Depth to 200, depth-*-check proves it); this check proves rev 3 on the stamps before it.
+pinPreDepthTapRev(true);
 
 let checks = 0;
 const failures: string[] = [];
@@ -271,6 +275,8 @@ for (const type of Object.keys(REV3_GAMES) as PuzzleType[]) {
   ok(rev3Help(type).includes(`about ${n} s with no mistakes`), `${type}: the rev-3 help states its numbers`);
   // Word depth (25 Oct 2026): the nine word games state their depth curves (proved by their depth-<game>-checks).
   if (WORD_DEPTH_GAMES.includes(type)) continue;
+  // A D3 game raised to 200 (Depth to 200, docs/depth/) writes its own help and intro on its new stamp; its depth check proves them.
+  if (roundMaxFor(type) > 150 && !isNumberDepthType(type)) continue;
   // The Number puzzles to 200 (depthRev 1) keep rev 3's numbers inside their own text (numberDepthText.ts).
   const help = isNumberDepthType(type) ? depthHelp(type) : rev3Help(type);
   const intro = isNumberDepthType(type) ? fillMax(depthIntro(type), type) : rev3Intro(type);

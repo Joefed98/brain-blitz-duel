@@ -156,6 +156,8 @@ export function spotTwoResult(p: SpotPuzzleData, answer: string | null | undefin
     const own = differences.filter((d) => (d.scene ?? 0) === scene);
     const tapped = taps[scene] ?? [];
     const cells = new Set(own.flatMap((d) => d.cells));
+    // spotRev 2: the hidden seventh difference is never a wrong tap (depth/doubleTake.ts); stored rounds have none.
+    if ((p.spotRev ?? 0) >= 2 && p.bonus && (p.bonus.scene ?? 0) === scene) p.bonus.cells.forEach((c) => cells.add(c));
     found.push(own.filter((d) => d.cells.some((c) => tapped.includes(c))).length);
     wrong.push(tapped.filter((c) => !cells.has(c)).length);
   }

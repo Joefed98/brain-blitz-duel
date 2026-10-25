@@ -26,6 +26,7 @@
  *
  *   bun scripts/move-limits-check.ts
  */
+import { pinD5LegacyDeal } from "../src/lib/duel/d5Remodels";
 import { readFileSync } from "node:fs";
 import { gunzipSync } from "node:zlib";
 import { createElement } from "react";
@@ -69,6 +70,10 @@ import { hashText, makeRng } from "./puzzle-fairness/kit";
 import { roomPuzzle } from "./puzzle-fairness/run";
 import type { PuzzleData, PuzzleType } from "../src/lib/duel/types";
 import { pinDealtPuzzleScoreRev } from "../src/lib/duel/puzzleScoreRev";
+
+// This check proves the versions before the D5 remodels (Topsy-Turvy gravityRev 2, Jumbled tilesRev 2): it pins
+// that deal (d5Remodels.ts). The remodels are proved by d5-remodels-check.
+pinD5LegacyDeal(true);
 
 // Written for the rev-1 puzzle shape: new puzzles here carry puzzleScoreRev 1 (rooms deal rev 2 since 19 Oct 2026, scoring-bands-check).
 pinDealtPuzzleScoreRev(1);

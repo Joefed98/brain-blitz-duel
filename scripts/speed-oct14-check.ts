@@ -51,6 +51,10 @@ import { stableExtra, type LegacyCase } from "./puzzle-score-legacy-record";
 import { roomPuzzle as dealtRoomPuzzle } from "./puzzle-fairness/run";
 import { bands, CARELESS_LINE, median, NAMES, SPEED_BAND_TYPES } from "./speed-bands-oct14";
 import { pinDealtPuzzleScoreRev } from "../src/lib/duel/puzzleScoreRev";
+import { pinPreDepthTapRev } from "../src/lib/duel/tapLog";
+
+// Flash, Bang On and Ascend deal tapRev 5 (Depth to 200, depth-*-check proves it); this check proves the stamps before it.
+pinPreDepthTapRev(true);
 
 // Written for the rev-1 puzzle shape: new puzzles here carry puzzleScoreRev 1 (rooms deal rev 2 since 19 Oct 2026, scoring-bands-check).
 pinDealtPuzzleScoreRev(1);
@@ -86,7 +90,8 @@ for (const file of ["speed-oct14-legacy", "speed-oct14-rounds"]) {
 function roomPuzzle(type: PuzzleData["type"], seed: number): PuzzleData {
   const p = dealtRoomPuzzle(type, seed) as unknown as Record<string, unknown>;
   if ((type === "reaction" || type === "stopwatch") && p["tapRev"] === TAP_REV_ONE_CURVE) return { ...p, tapRev: TAP_REV_SPEED_TUNING } as unknown as PuzzleData;
-  if (type === "clayshoot" && p["clayRev"] === CLAY_REV_QUICK) return { ...p, clayRev: 7 } as unknown as PuzzleData;
+  // Depth to 200 (25 Oct 2026): clayRev 9 plays clayRev 8 (clayRev 6 play); depth-pull-check covers its score.
+  if (type === "clayshoot" && (p["clayRev"] === CLAY_REV_QUICK || p["clayRev"] === CLAY_REV_QUICK + 1)) return { ...p, clayRev: 7 } as unknown as PuzzleData;
   return p as unknown as PuzzleData;
 }
 

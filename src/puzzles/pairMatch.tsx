@@ -19,7 +19,8 @@ import {
   type PairPuzzleData,
 } from "@/lib/duel/types";
 import { buzz } from "@/lib/motion";
-import { playCorrect, playWrong } from "@/lib/sound";
+import { playCorrect, playCueSlot, playTone, playWrong } from "@/lib/sound";
+import { isGoldCard, pairDepthReplay, pairUsesDepth } from "@/lib/duel/depth/matchmaker";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
@@ -59,6 +60,7 @@ function Board({
   glyph = 34,
   onCard,
   compact = false,
+  gold,
 }: {
   cards: PairCard[];
   faceUp: Set<number>;
@@ -67,6 +69,8 @@ function Board({
   glyph?: number;
   onCard?: ((index: number, card?: Element | null) => void) | undefined;
   compact?: boolean;
+  /** pairRev 1: the gold pair's face; its cards show gold foil once turned over. */
+  gold?: PairCard | undefined;
 }) {
   return (
     <div
@@ -75,12 +79,13 @@ function Board({
     >
       {cards.map((card, index) => {
         const open = faceUp.has(index) || matched.has(index);
+        const golden = !!gold && sameCard(gold, card);
         return (
           <button
             key={index}
             type="button"
             data-pair-card=""
-            aria-label={open ? `${card.colour} ${card.shape}` : "Face-down card"}
+            aria-label={open ? `${golden ? "gold " : ""}${card.colour} ${card.shape}` : "Face-down card"}
             onPointerDown={onCard ? (event) => onCard(index, event.currentTarget) : undefined}
             className="pairmatch-card relative aspect-square rounded-lg border-0 bg-transparent p-0 [-webkit-tap-highlight-color:transparent]"
           >
@@ -92,11 +97,13 @@ function Board({
             >
               <span className="pairmatch-face pairmatch-card-back rounded-lg border-2 border-border" />
               <span
+                data-pair-gold={golden && open ? "" : undefined}
                 className={`pairmatch-face pairmatch-face-front flex items-center justify-center rounded-lg border-2 ${
                   matched.has(index) ? "is-matched border-primary bg-primary/10" : "border-border bg-card"
-                }`}
+                }${golden && open ? " is-gold" : ""}`}
               >
                 {open ? <CardFace card={card} size={glyph} /> : null}
+                {golden && open ? <span className="pairmatch-gold-tag" aria-hidden="true">★</span> : null}
               </span>
             </span>
           </button>
@@ -125,6 +132,7 @@ function IntroExample() {
           cols={2}
           glyph={26}
           compact
+          gold={EXAMPLE_CARDS[0]}
         />
       </div>
       <p className="text-center text-xs text-muted-foreground">Match all fifteen pairs.</p>
@@ -151,6 +159,8 @@ function Stage({
 
   const replay = data ? replayPairs(data.cards, flips) : null;
   const matched = new Set(replay?.matched ?? []);
+  // pairRev 1 (Depth to 200): the streak multiplier and the gold pair, walked from the same flips as the server.
+  const depth = data && pairUsesDepth(data) ? pairDepthReplay(data, flips) : null;
 
   useEffect(() => {
     onDraftAnswer?.(encodePairFlips(flips));
@@ -186,6 +196,12 @@ function Stage({
     if (sameCard(data.cards[first], data.cards[second])) {
       playCorrect();
       rightMoveFlash(card);
+      if (pairUsesDepth(data)) {
+        const after = pairDepthReplay(data, nextFlips);
+        // The streak's pip climbs with the multiplier; the gold pair plays the board's own wave.
+        if (after.streak >= 2) playTone(523 * Math.pow(2, (2 * (Math.min(after.streak, 5) - 2)) / 12), 90, "triangle", 0.16);
+        if (isGoldCard(data, data.cards[second])) playCueSlot("pairmatch.cardWave", 0.6);
+      }
       setOpen([]);
       if (replayPairs(data.cards, nextFlips).solved) {
         submitted.current = true;
@@ -211,11 +227,26 @@ function Stage({
           matched={matched}
           glyph={30}
           compact
+          gold={depth ? data.gold : undefined}
           onCard={open.length >= 2 ? undefined : tap}
         />
       </div>
       <p data-game-controls="status" className="shrink-0 text-center font-mono text-xs text-muted-foreground">
         {framed ? `${replay.flips} flips` : `pairs ${replay.pairs} / ${PAIR_PAIRS} · flips ${replay.flips}`}
+        {depth ? (
+          <>
+            {" · "}
+            <span key={depth.multiplier} data-pair-streak={depth.multiplier} className={`pairmatch-streak ${depth.multiplier >= 2 ? "is-live animate-scale-in" : ""}`}>
+              streak ×{depth.multiplier}
+            </span>
+            {depth.goldTry !== null ? (
+              <>
+                {" · "}
+                <span data-pair-gold-found="" className="pairmatch-gold-found">gold +{depth.goldBonus}</span>
+              </>
+            ) : null}
+          </>
+        ) : null}
       </p>
     </div>
   );
@@ -224,6 +255,7 @@ function Stage({
 function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProps) {
   if (puzzle.type !== "pairmatch") return null;
   const replay = replayPairs(puzzle.cards, decodePairFlips(myAnswer ?? ""));
+  const depth = pairUsesDepth(puzzle) ? pairDepthReplay(puzzle, decodePairFlips(myAnswer ?? "")) : null;
   const elapsed =
     myMsRemaining === undefined ? null : Math.round((timeLimitMs - myMsRemaining) / 100) / 10;
   const everything = new Set(Array.from({ length: PAIR_CARDS }, (_, index) => index));
@@ -231,7 +263,7 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: Puz
   return (
     <div className="flex min-h-0 w-full flex-1 flex-col items-center justify-start gap-3 overflow-y-auto">
       <div className="w-full max-w-[288px] shrink-0">
-        <Board cards={puzzle.cards} faceUp={everything} matched={new Set()} glyph={22} compact />
+        <Board cards={puzzle.cards} faceUp={everything} matched={new Set()} glyph={22} compact gold={depth ? puzzle.gold : undefined} />
       </div>
       <p
         className={`whitespace-normal break-words text-center font-mono text-base font-bold ${myCorrect ? "text-primary" : "text-foreground"}`}
@@ -239,6 +271,11 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: Puz
         {replay.pairs} / {PAIR_PAIRS} · {replay.flips} flips
         {elapsed !== null ? ` · ${elapsed.toFixed(1)}s` : ""}
       </p>
+      {depth ? (
+        <p data-pair-reveal-bonus="" className="text-center font-mono text-xs text-muted-foreground">
+          Best streak {depth.bestStreak} · streak +{depth.streakBonus} · gold {depth.goldTry !== null ? `try ${depth.goldTry}, +${depth.goldBonus}` : "not found"}
+        </p>
+      ) : null}
     </div>
   );
 }

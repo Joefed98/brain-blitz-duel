@@ -1,0 +1,89 @@
+/* Topsy-Turvy gravityRev 3 (the remodel, 25 Oct 2026; docs/depth/d5-remodels.md). Presentation only.
+   Builds on the polished tray, felt, blocks and balls (gravity.css, batch-p.css): a 10 × 10 grid, holes with
+   their ball's mark, stars, balls that drop into their hole, and the ring row. */
+
+.topsy-grid { gap: 1.5px; }
+/* A thinner tray rim than the 9 × 9 board, so the ten cells get the width (about 40 px at 414). */
+.grav-tray.topsy-tray { padding: 1.6%; }
+
+/* Holes: the socket in the ball's colour, darker inside, the ball's mark faint in the middle. */
+.topsy-hole { width: 86%; height: 86%; display: grid; place-items: center; }
+.topsy-hole .topsy-mark { width: 52%; height: 52%; fill: color-mix(in srgb, var(--ball) 70%, transparent); opacity: 0.8; }
+.topsy-hole.is-home {
+  background: radial-gradient(circle at 36% 30%, #fff 0 6%, color-mix(in srgb, var(--ball) 60%, #fff) 14%, var(--ball) 46%, color-mix(in srgb, var(--ball) 50%, #000) 100%);
+}
+.topsy-hole.is-home .topsy-mark { fill: rgba(10, 12, 18, 0.7); opacity: 1; }
+
+/* Balls: the shaded sphere with its mark; a ball home rolls to its hole and sinks into it. */
+.topsy-ball { display: grid; place-items: center; }
+.topsy-ball .topsy-mark { width: 50%; height: 50%; fill: rgba(10, 12, 18, 0.62); }
+.topsy-ball.is-home {
+  opacity: 0;
+  transition: transform 260ms cubic-bezier(0.3, 0.8, 0.35, 1.1), opacity 160ms ease-in 200ms;
+}
+
+/* Stars: a small gold star on the felt; taken, it pops and is gone. */
+.topsy-star {
+  position: absolute;
+  width: 56%;
+  height: 56%;
+  background: linear-gradient(180deg, #ffe58a, #f2c75c 55%, #c9952c);
+  clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
+  filter: drop-shadow(0 0 3px rgba(242, 199, 92, 0.75));
+  pointer-events: none;
+}
+.grav-floor { position: relative; }
+.topsy-star.is-taken { animation: topsy-star-pop 320ms ease-out both; }
+@keyframes topsy-star-pop {
+  0% { opacity: 1; transform: scale(1); }
+  45% { opacity: 1; transform: scale(1.5); }
+  100% { opacity: 0; transform: scale(1.8); }
+}
+
+/* The ring row just above the board: one ring per ball, filled once it is home. A fixed 24 px row, 8 px above the board. */
+.topsy-head { display: flex; align-items: center; justify-content: center; gap: 10px; height: 24px; flex: 0 0 24px; margin-bottom: 8px; }
+.topsy-head-count { font: 600 12px/1 var(--font-mono, monospace); letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted-foreground); }
+.topsy-rings { display: flex; gap: 8px; align-items: center; }
+.topsy-ring {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  box-shadow: inset 0 0 0 2px var(--ball);
+  transition: background-color 200ms ease, box-shadow 200ms ease;
+}
+.topsy-ring .topsy-mark { width: 60%; height: 60%; fill: color-mix(in srgb, var(--ball) 60%, transparent); }
+.topsy-ring.is-home { background: var(--ball); box-shadow: inset 0 0 0 2px var(--ball), 0 0 8px color-mix(in srgb, var(--ball) 70%, transparent); }
+.topsy-ring.is-home .topsy-mark { fill: rgba(10, 12, 18, 0.7); }
+
+/* "Out of tilts" over the board while it holds before the next one. */
+.topsy-arena { position: relative; }
+.topsy-banner {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  padding: 8px 16px;
+  border-radius: 999px;
+  background: rgba(10, 12, 18, 0.86);
+  color: var(--warn, #ff8a6b);
+  font: 700 14px/1 var(--font-display, sans-serif);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  pointer-events: none;
+}
+
+.topsy-routes { display: flex; flex-direction: column; gap: 2px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .topsy-ball.is-home { transition: none; }
+  .topsy-star.is-taken { animation: none; opacity: 0; }
+  .topsy-ring { transition: none; }
+}
+html[data-reduced-effects] .topsy-star.is-taken { animation: none; opacity: 0; }
+html[data-reduced-effects] .topsy-ball.is-home { transition: none; }
+
+/* The arena holds the ring row and the board: no width cap on its height, so the board keeps the column's full
+   width wherever the height allows (the ring row comes out of the spare height, not the board). */
+.game-column [data-polish="gravity"][data-topsy][data-stage-column] > [data-game-arena="board"] { max-height: none; }

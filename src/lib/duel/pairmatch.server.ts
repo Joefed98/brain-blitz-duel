@@ -4,7 +4,8 @@
  * stored, so every phone in the room deals the same board.
  */
 
-import { shuffled } from "./random";
+import { randomBelow, shuffled } from "./random";
+import { PAIR_DEPTH_REV } from "./depth/matchmaker";
 import {
   PAIR_SHAPES,
   PAIR_PAIRS,
@@ -28,5 +29,7 @@ export function generatePairMatch(): PairPuzzleData {
   // Distinct combinations only — two pairs never share both shape and colour.
   const chosen = shuffled(pairCombinations()).slice(0, PAIR_PAIRS);
   const cards = shuffled(chosen.flatMap((card) => [card, { ...card }]));
-  return { type: "pairmatch", cards };
+  // Depth to 200 (25 Oct 2026, depth/matchmaker.ts): one pair is gold, drawn after the deal so the board is as before.
+  const gold = chosen[randomBelow(PAIR_PAIRS)]!;
+  return { type: "pairmatch", cards, pairRev: PAIR_DEPTH_REV, gold: { ...gold } };
 }
