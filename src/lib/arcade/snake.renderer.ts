@@ -13,6 +13,7 @@ import { artCanvas, artContext, type ArtCanvas } from "./cache.renderer";
 import { retroClock, retroScreen, retroText, RETRO_BLACK, RETRO_RED, RETRO_WHITE } from "./retro.renderer";
 import { arcadeReducedEffects } from "../fx/lowEnd";
 import { FX_PARTICLE_LIMIT } from "../fx/limits";
+import { addPop, backdrop, blob, drawPops, glow, linear, pixelStars } from "./polishA1.renderer";
 
 // Meteor-only art roles; the grid and pellet retain their Retro palette.
 const ACCENT = "#FF8A28";
@@ -22,6 +23,14 @@ const HOT = "#FFF4D2";
 const ROCK = "#29282D";
 const ROCK_FLECK = "#77747B";
 const SMOKE = "#85818B";
+/** Polish A1: the asteroids' orange shades, lit top left. */
+const ROCK_LIT = "#FFB060";
+const ROCK_MID = "#F07A2C";
+const ROCK_BASE = "#C2561E";
+const ROCK_DARK = "#8A3614";
+const ROCK_SPECK = "#FFD08A";
+/** Polish A1: the stars' white-gold glow. */
+const STAR_GLOW = "#FFE9A8";
 const PICKUP_TAILS=["#FF6545","#FFD84A","#3DFFE0"] as const;
 const PELLET = "#FFD84A";
 const EYE = RETRO_BLACK;
@@ -60,21 +69,28 @@ export function stamp(kind: "bead" | "head" | "star" | "rock", level = 0, dir = 
 export function paintStamp(c: CanvasRenderingContext2D, kind: "bead" | "head" | "star" | "rock", level: number, dir: number, tail: number, ratio: number): void {
   const middle = SNAKE_CELL / 2;
   if (kind === "rock") {
-    // A landed asteroid: a pixel boulder filling the cell (the head's whole collision square).
+    // A landed asteroid (Polish A1: shaded orange, lit from the top left, no tail): a pixel boulder
+    // filling the cell (the head's whole collision square).
     for (let y = 0; y < SNAKE_CELL; y += 2) {
       for (let x = 0; x < SNAKE_CELL; x += 2) {
         const dx = x + 1 - middle, dy = y + 1 - middle;
         const lumpy = middle - 1 + (((x * 7 + y * 3) >> 2) % 3 === 0 ? -1 : 0);
         if (dx * dx + dy * dy > lumpy * lumpy) continue;
-        const lit = dx + dy < -6;
+        const light = -(dx + dy) / (middle * 2);
         const crater = (dx - 3) * (dx - 3) + (dy + 2) * (dy + 2) < 10 || (dx + 4) * (dx + 4) + (dy - 4) * (dy - 4) < 6;
-        c.fillStyle = crater ? "#1B1A1F" : lit ? ROCK_FLECK : (x + y) % 6 === 0 ? "#3A383F" : "#4A4750";
+        const rim = dx * dx + dy * dy > (lumpy - 2) * (lumpy - 2);
+        c.fillStyle = crater
+          ? (dx + dy < 0 ? "#6A2A10" : "#4A1C0C")
+          : light > 0.32 ? ROCK_LIT : light > 0.05 ? ROCK_MID : light > -0.3 ? ROCK_BASE : ROCK_DARK;
+        if (rim && light < -0.1) c.fillStyle = "#3E170A";
+        if (!crater && (x + y) % 10 === 0 && light > -0.3) c.fillStyle = ROCK_SPECK;
         c.fillRect(x, y, 2, 2);
       }
     }
-    c.fillStyle = RETRO_WHITE;
-    c.globalAlpha = 0.5;
+    c.fillStyle = "#FFE2B8";
+    c.globalAlpha = 0.75;
     c.fillRect(middle - 6, middle - 7, 2, 2);
+    c.fillRect(middle - 4, middle - 7, 2, 2);
     c.globalAlpha = 1;
   } else if (kind === "star") {
     c.fillStyle = PELLET;
@@ -85,6 +101,10 @@ export function paintStamp(c: CanvasRenderingContext2D, kind: "bead" | "head" | 
     c.fillRect(middle - 6, middle - 1, 12, 2);
     c.fillRect(middle - 3, middle - 3, 6, 6);
     c.shadowBlur = 0;
+    // Polish A1: a white-gold heart, so the star reads as light.
+    c.fillStyle = "#FFF3C4";
+    c.fillRect(middle - 1, middle - 4, 2, 8);
+    c.fillRect(middle - 4, middle - 1, 8, 2);
     c.fillStyle = RETRO_WHITE;
     c.fillRect(middle - 1, middle - 1, 2, 2);
   } else {
@@ -165,7 +185,12 @@ function memory(key: CanvasRenderingContext2D, state: SnakeState, now: number): 
   if (!memo || state.tick < memo.tick || (state.tick === 0 && state.rng !== memo.rng) || state.eaten < memo.eaten) {
     memo = { tick: state.tick, rng: state.rng, eaten: state.eaten, pellet: state.pellet, dead: state.dead, eatAt: -Infinity, eatCell: -1, deathAt: state.dead ? now : -Infinity };
   }
-  if (state.eaten > memo.eaten) { memo.eatAt = now; memo.eatCell = memo.pellet; }
+  if (state.eaten > memo.eaten) {
+    memo.eatAt = now; memo.eatCell = memo.pellet;
+    // Polish A1: a small "+10" where the star was eaten (presentation memory only).
+    const at = point(memo.pellet);
+    addPop(key, at.x, at.y - 6, "+10", STAR_GLOW, 9, 3);
+  }
   if (state.dead && !memo.dead) memo.deathAt = now;
   memo.tick = state.tick; memo.rng = state.rng; memo.eaten = state.eaten; memo.pellet = state.pellet; memo.dead = state.dead;
   memories.set(key, memo);
@@ -186,11 +211,14 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: SnakeState, key: Canvas
   const deathAge = now - memo.deathAt;
   const rows = snakeRowsOf(state);
   const SNAKE_WORLD_H = snakeWorldHFor(rows);
+  backdrop(ctx, "meteor-space", SNAKE_WORLD_W, SNAKE_WORLD_H, (c) => paintSpace(c, rows, SNAKE_WORLD_H));
   drawGrid(ctx, rows);
   // Body decoration cannot spill beyond the playable grid.
   ctx.save();
   ctx.beginPath(); ctx.rect(SNAKE_BOARD_X, SNAKE_BOARD_Y, SNAKE_BOARD_W, rows * SNAKE_CELL); ctx.clip();
   const pellet = point(state.pellet);
+  // Polish A1: the star's white-gold glow, breathing slowly (still under reduced motion), inside its cell.
+  glow(ctx, STAR_GLOW, pellet.x, pellet.y, 12, 12, motion ? 0.5 + 0.18 * Math.sin(now / 380) : 0.55);
   blit(ctx, stamp("star"), pellet.x, pellet.y, PELLET);
   drawRocks(ctx, state, motion);
   const headCell = state.body[0];
@@ -243,6 +271,7 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: SnakeState, key: Canvas
   // Same 1UP readout, without a per-frame text blur.
   const on = Math.floor(retroClock() / 500) % 2 === 0;
   retroText(ctx, "1UP", 14, 10, 8, on ? RETRO_RED : "rgba(255,59,92,0.35)");
+  drawPops(ctx, key, SNAKE_WORLD_W);
   successHud(ctx,'snake',state.tick,14,22,()=>{retroText(ctx, `STARS ${state.eaten}`, 14, 22, 10, RETRO_WHITE);});
   if (state.rev) {
     const rocks = state.rocks?.length ?? 0;
@@ -267,16 +296,15 @@ function drawRocks(ctx: CanvasRenderingContext2D, state: SnakeState, motion: boo
     const left = Math.max(0, landTick - state.tick);
     const k = 1 - Math.min(1, left / SNAKE_ROCK_WARN_TICKS);
     const half = SNAKE_CELL / 2 - 1;
-    ctx.fillStyle = `rgba(255,59,92,${0.16 + 0.34 * k})`;
-    ctx.fillRect(p.x - half, p.y - half, half * 2, half * 2);
-    // Pixel crosshair corners closing in as the rock falls.
-    const blink = motion ? Math.floor(state.tick / (k > 0.6 ? 4 : 9)) % 2 === 0 : true;
-    ctx.fillStyle = blink ? RETRO_RED : "rgba(255,59,92,0.5)";
-    const r = Math.round(half - 3 * (1 - k));
-    for (const [sx, sy] of [[-1, -1], [1, -1], [-1, 1], [1, 1]] as const) {
-      ctx.fillRect(p.x + sx * r - (sx > 0 ? 4 : 0), p.y + sy * r - (sy > 0 ? 2 : 0), 4, 2);
-      ctx.fillRect(p.x + sx * r - (sx > 0 ? 2 : 0), p.y + sy * r - (sy > 0 ? 4 : 0), 2, 4);
-    }
+    // Polish A1: a faint red floor where it lands, under a pulsing dashed pixel ring that tightens and
+    // quickens as the rock falls (the square's tint still deepens over the 2 s, timed by the sim tick).
+    ctx.fillStyle = `rgba(255,59,92,${0.1 + 0.26 * k})`;
+    ctx.fillRect(p.x - half + 2, p.y - half + 2, half * 2 - 4, half * 2 - 4);
+    const beat = motion ? 0.5 + 0.5 * Math.sin(state.tick / (k > 0.6 ? 2.2 : 4.5)) : 1;
+    // Inside the cell (never over the board's border), closing in from 10 px to 8 px as it falls.
+    const ring = half - 1 - 2 * k;
+    dashedRing(ctx, p.x, p.y, ring, 20, motion ? state.tick * 0.03 : 0, RETRO_RED, 0.55 + 0.45 * beat);
+    if (k > 0.5) dashedRing(ctx, p.x, p.y, ring - 4, 12, motion ? -state.tick * 0.05 : 0, "#FF8FA3", (k - 0.5) * 2 * (0.4 + 0.6 * beat));
     // The rock itself, small and high, growing as it nears the ground.
     if (motion && k > 0.35) {
       const sprite = stamp("rock");
@@ -289,7 +317,79 @@ function drawRocks(ctx: CanvasRenderingContext2D, state: SnakeState, motion: boo
   }
   for (const rock of state.rocks ?? []) {
     const p = point(rock);
-    blit(ctx, stamp("rock"), p.x, p.y, ROCK);
+    blit(ctx, stamp("rock"), p.x, p.y, ROCK_BASE);
+  }
+}
+
+/** A dashed ring of 2 px pixels (two on, one off) round (x, y), turned by `turn` radians. */
+function dashedRing(ctx: CanvasRenderingContext2D, x: number, y: number, r: number, dots: number, turn: number, colour: string, alpha: number): void {
+  ctx.globalAlpha = Math.max(0, Math.min(1, alpha));
+  ctx.fillStyle = colour;
+  for (let i = 0; i < dots; i++) {
+    if (i % 3 === 2) continue;
+    const a = turn + (i / dots) * Math.PI * 2;
+    ctx.fillRect(Math.round(x + Math.cos(a) * r) - 1, Math.round(y + Math.sin(a) * r) - 1, 2, 2);
+  }
+  ctx.globalAlpha = 1;
+}
+
+/**
+ * Polish A1: Meteor's deep space, painted once per world size (backdrop): a near-black sky with a
+ * purple and a teal nebula, a pixel starfield and a soft glow round the board's edge, fading to black
+ * at the world's edges so it meets the screen fill without a seam. Static: nothing here moves.
+ */
+function paintSpace(c: CanvasRenderingContext2D, rows: number, worldH: number): void {
+  const W = SNAKE_WORLD_W;
+  const boardH = rows * SNAKE_CELL;
+  c.fillStyle = "#04030A";
+  c.fillRect(0, 0, W, worldH);
+  blob(c, W * 0.22, worldH * 0.26, W * 0.62, "#5B2A9E", 0.42, 1.25);
+  blob(c, W * 0.86, worldH * 0.7, W * 0.58, "#137A78", 0.34, 1.35);
+  blob(c, W * 0.55, worldH * 0.48, W * 0.36, "#7A3FC4", 0.16, 1.1);
+  blob(c, W * 0.12, worldH * 0.84, W * 0.32, "#1FA8A0", 0.14, 1.2);
+  pixelStars(c, 0, 0, W, worldH, 150, 512, ["#FFFFFF", "#CFC4FF", "#9FF5EA", "#FFE9A8"], 0.85);
+  // The board's edge: a soft light just inside and outside the frame (the live border is drawn over it).
+  const bx = SNAKE_BOARD_X, by = SNAKE_BOARD_Y;
+  c.globalAlpha = 1;
+  for (const [x, y, w, h, x0, y0, x1, y1] of [
+    [bx, by, SNAKE_BOARD_W, 10, 0, by, 0, by + 10],
+    [bx, by + boardH - 10, SNAKE_BOARD_W, 10, 0, by + boardH, 0, by + boardH - 10],
+    [bx, by, 10, boardH, bx, 0, bx + 10, 0],
+    [bx + SNAKE_BOARD_W - 10, by, 10, boardH, bx + SNAKE_BOARD_W, 0, bx + SNAKE_BOARD_W - 10, 0],
+  ] as const) {
+    c.fillStyle = linear(c, x0, y0, x1, y1, [[0, "rgba(185,166,255,0.16)"], [1, "rgba(185,166,255,0)"]]);
+    c.fillRect(x, y, w, h);
+  }
+  for (const [x, y, w, h, x0, y0, x1, y1] of [
+    [bx - 6, by - 6, SNAKE_BOARD_W + 12, 6, 0, by, 0, by - 6],
+    [bx - 6, by + boardH, SNAKE_BOARD_W + 12, 6, 0, by + boardH, 0, by + boardH + 6],
+    [bx - 6, by, 6, boardH, bx, 0, bx - 6, 0],
+    [bx + SNAKE_BOARD_W, by, 6, boardH, bx + SNAKE_BOARD_W, 0, bx + SNAKE_BOARD_W + 6, 0],
+  ] as const) {
+    c.fillStyle = linear(c, x0, y0, x1, y1, [[0, "rgba(185,166,255,0.12)"], [1, "rgba(185,166,255,0)"]]);
+    c.fillRect(x, y, w, h);
+  }
+  // The border's own rows and the margin under the board stay pure black, as before: the live border is
+  // drawn at half strength over black (its colour is judged there), and the margin under it must never
+  // light (arcade-device-bottom-check, the Meteor bottom-edge fix).
+  c.globalAlpha = 1;
+  // The board's last cells settle to black too, so the drifting scanlines (a 28 % shade every third
+  // device row) change nothing across the bottom edge: lit there, their drift was the old blink.
+  c.fillStyle = linear(c, 0, by + boardH - 64, 0, by + boardH - 2, [[0, "rgba(0,0,0,0)"], [0.55, "rgba(0,0,0,0.9)"], [1, "rgba(0,0,0,1)"]]);
+  c.fillRect(0, by + boardH - 64, W, 62);
+  c.fillStyle = "#000000";
+  c.fillRect(0, by - 2, W, 4);
+  c.fillRect(0, by + boardH - 2, W, worldH - (by + boardH - 2));
+  // Fade to black over the last few px of the world, where the screen fill (black, with stars) takes over.
+  const edge = 6;
+  for (const [x, y, w, h, x0, y0, x1, y1] of [
+    [0, 0, W, edge, 0, 0, 0, edge],
+    [0, worldH - edge, W, edge, 0, worldH, 0, worldH - edge],
+    [0, 0, edge, worldH, 0, 0, edge, 0],
+    [W - edge, 0, edge, worldH, W, 0, W - edge, 0],
+  ] as const) {
+    c.fillStyle = linear(c, x0, y0, x1, y1, [[0, "rgba(0,0,0,0.9)"], [1, "rgba(0,0,0,0)"]]);
+    c.fillRect(x, y, w, h);
   }
 }
 

@@ -1,0 +1,590 @@
+[
+  {
+    "group": "play",
+    "file": "play-first-time-intro-414x896.jpg",
+    "label": "Fresh install: first-time intro",
+    "vp": "414x896"
+  },
+  {
+    "group": "play",
+    "file": "play-first-time-intro-375x667.jpg",
+    "label": "Fresh install: first-time intro",
+    "vp": "375x667"
+  },
+  {
+    "group": "play",
+    "file": "play-fresh-414x896.jpg",
+    "label": "Fresh install: Play tab",
+    "vp": "414x896"
+  },
+  {
+    "group": "play",
+    "file": "play-fresh-end-414x896.jpg",
+    "label": "Fresh install: Play tab (scrolled to end)",
+    "vp": "414x896"
+  },
+  {
+    "group": "play",
+    "file": "play-fresh-375x667.jpg",
+    "label": "Fresh install: Play tab",
+    "vp": "375x667"
+  },
+  {
+    "group": "play",
+    "file": "play-fresh-end-375x667.jpg",
+    "label": "Fresh install: Play tab (scrolled to end)",
+    "vp": "375x667"
+  },
+  {
+    "group": "play",
+    "file": "play-dailies-done-414x896.jpg",
+    "label": "Both dailies done",
+    "vp": "414x896"
+  },
+  {
+    "group": "play",
+    "file": "play-dailies-done-375x667.jpg",
+    "label": "Both dailies done",
+    "vp": "375x667"
+  },
+  {
+    "group": "play",
+    "file": "play-public-game-414x896.jpg",
+    "label": "Public game coming up",
+    "vp": "414x896"
+  },
+  {
+    "group": "play",
+    "file": "play-public-game-375x667.jpg",
+    "label": "Public game coming up",
+    "vp": "375x667"
+  },
+  {
+    "group": "play",
+    "file": "play-home-hint-414x896.jpg",
+    "label": "Add to Home Screen hint (iPhone Safari)",
+    "vp": "414x896"
+  },
+  {
+    "group": "play",
+    "file": "play-home-hint-375x667.jpg",
+    "label": "Add to Home Screen hint (iPhone Safari)",
+    "vp": "375x667"
+  },
+  {
+    "group": "practice",
+    "file": "practice-all-fresh-414x896.jpg",
+    "label": "All, no bests",
+    "vp": "414x896"
+  },
+  {
+    "group": "practice",
+    "file": "practice-all-fresh-end-414x896.jpg",
+    "label": "All, no bests (scrolled to end)",
+    "vp": "414x896"
+  },
+  {
+    "group": "practice",
+    "file": "practice-all-fresh-375x667.jpg",
+    "label": "All, no bests",
+    "vp": "375x667"
+  },
+  {
+    "group": "practice",
+    "file": "practice-all-fresh-end-375x667.jpg",
+    "label": "All, no bests (scrolled to end)",
+    "vp": "375x667"
+  },
+  {
+    "group": "practice",
+    "file": "practice-all-bests-414x896.jpg",
+    "label": "All, with bests",
+    "vp": "414x896"
+  },
+  {
+    "group": "practice",
+    "file": "practice-all-bests-375x667.jpg",
+    "label": "All, with bests",
+    "vp": "375x667"
+  },
+  {
+    "group": "practice",
+    "file": "practice-category-414x896.jpg",
+    "label": "One category (Logic)",
+    "vp": "414x896"
+  },
+  {
+    "group": "practice",
+    "file": "practice-category-375x667.jpg",
+    "label": "One category (Logic)",
+    "vp": "375x667"
+  },
+  {
+    "group": "practice",
+    "file": "practice-search-414x896.jpg",
+    "label": "Search \"ra\"",
+    "vp": "414x896"
+  },
+  {
+    "group": "practice",
+    "file": "practice-search-375x667.jpg",
+    "label": "Search \"ra\"",
+    "vp": "375x667"
+  },
+  {
+    "group": "practice",
+    "file": "practice-search-empty-414x896.jpg",
+    "label": "Search with no match",
+    "vp": "414x896"
+  },
+  {
+    "group": "practice",
+    "file": "practice-search-empty-375x667.jpg",
+    "label": "Search with no match",
+    "vp": "375x667"
+  },
+  {
+    "group": "tournaments",
+    "file": "tournaments-scheduled-414x896.jpg",
+    "label": "Games scheduled, results",
+    "vp": "414x896"
+  },
+  {
+    "group": "tournaments",
+    "file": "tournaments-scheduled-375x667.jpg",
+    "label": "Games scheduled, results",
+    "vp": "375x667"
+  },
+  {
+    "group": "tournaments",
+    "file": "tournaments-none-414x896.jpg",
+    "label": "None scheduled, no results",
+    "vp": "414x896"
+  },
+  {
+    "group": "tournaments",
+    "file": "tournaments-none-375x667.jpg",
+    "label": "None scheduled, no results",
+    "vp": "375x667"
+  },
+  {
+    "group": "profile",
+    "file": "profile-new-414x896.jpg",
+    "label": "New player",
+    "vp": "414x896"
+  },
+  {
+    "group": "profile",
+    "file": "profile-new-end-414x896.jpg",
+    "label": "New player (scrolled to end)",
+    "vp": "414x896"
+  },
+  {
+    "group": "profile",
+    "file": "profile-new-375x667.jpg",
+    "label": "New player",
+    "vp": "375x667"
+  },
+  {
+    "group": "profile",
+    "file": "profile-new-end-375x667.jpg",
+    "label": "New player (scrolled to end)",
+    "vp": "375x667"
+  },
+  {
+    "group": "profile",
+    "file": "profile-stats-414x896.jpg",
+    "label": "Stats, bests, recent rooms",
+    "vp": "414x896"
+  },
+  {
+    "group": "profile",
+    "file": "profile-stats-end-414x896.jpg",
+    "label": "Stats, bests, recent rooms (scrolled to end)",
+    "vp": "414x896"
+  },
+  {
+    "group": "profile",
+    "file": "profile-stats-375x667.jpg",
+    "label": "Stats, bests, recent rooms",
+    "vp": "375x667"
+  },
+  {
+    "group": "profile",
+    "file": "profile-stats-end-375x667.jpg",
+    "label": "Stats, bests, recent rooms (scrolled to end)",
+    "vp": "375x667"
+  },
+  {
+    "group": "profile",
+    "file": "profile-settings-414x896.jpg",
+    "label": "Settings sheet",
+    "vp": "414x896"
+  },
+  {
+    "group": "profile",
+    "file": "profile-settings-375x667.jpg",
+    "label": "Settings sheet",
+    "vp": "375x667"
+  },
+  {
+    "group": "lobby",
+    "file": "lobby-1-414x896.jpg",
+    "label": "1 player (host alone)",
+    "vp": "414x896"
+  },
+  {
+    "group": "lobby",
+    "file": "lobby-1-375x667.jpg",
+    "label": "1 player (host alone)",
+    "vp": "375x667"
+  },
+  {
+    "group": "lobby",
+    "file": "lobby-3-414x896.jpg",
+    "label": "3 players",
+    "vp": "414x896"
+  },
+  {
+    "group": "lobby",
+    "file": "lobby-3-375x667.jpg",
+    "label": "3 players",
+    "vp": "375x667"
+  },
+  {
+    "group": "lobby",
+    "file": "lobby-10-414x896.jpg",
+    "label": "10 players (room full)",
+    "vp": "414x896"
+  },
+  {
+    "group": "lobby",
+    "file": "lobby-10-end-414x896.jpg",
+    "label": "10 players (room full) (scrolled to end)",
+    "vp": "414x896"
+  },
+  {
+    "group": "lobby",
+    "file": "lobby-10-375x667.jpg",
+    "label": "10 players (room full)",
+    "vp": "375x667"
+  },
+  {
+    "group": "lobby",
+    "file": "lobby-10-end-375x667.jpg",
+    "label": "10 players (room full) (scrolled to end)",
+    "vp": "375x667"
+  },
+  {
+    "group": "intros",
+    "file": "intro-puzzle-demo-414x896.jpg",
+    "label": "Puzzle intro with a demo (Box Six)",
+    "vp": "414x896"
+  },
+  {
+    "group": "intros",
+    "file": "intro-puzzle-demo-375x667.jpg",
+    "label": "Puzzle intro with a demo (Box Six)",
+    "vp": "375x667"
+  },
+  {
+    "group": "intros",
+    "file": "intro-puzzle-still-414x896.jpg",
+    "label": "Puzzle intro with a still (Strikeout)",
+    "vp": "414x896"
+  },
+  {
+    "group": "intros",
+    "file": "intro-puzzle-still-375x667.jpg",
+    "label": "Puzzle intro with a still (Strikeout)",
+    "vp": "375x667"
+  },
+  {
+    "group": "intros",
+    "file": "intro-arcade-414x896.jpg",
+    "label": "Arcade intro with a demo (Gemstone)",
+    "vp": "414x896"
+  },
+  {
+    "group": "intros",
+    "file": "intro-arcade-375x667.jpg",
+    "label": "Arcade intro with a demo (Gemstone)",
+    "vp": "375x667"
+  },
+  {
+    "group": "reveal",
+    "file": "reveal-puzzle-2-414x896.jpg",
+    "label": "Puzzle reveal, 2 players",
+    "vp": "414x896"
+  },
+  {
+    "group": "reveal",
+    "file": "reveal-puzzle-2-375x667.jpg",
+    "label": "Puzzle reveal, 2 players",
+    "vp": "375x667"
+  },
+  {
+    "group": "reveal",
+    "file": "reveal-puzzle-6-414x896.jpg",
+    "label": "Puzzle reveal, 6 players",
+    "vp": "414x896"
+  },
+  {
+    "group": "reveal",
+    "file": "reveal-puzzle-6-375x667.jpg",
+    "label": "Puzzle reveal, 6 players",
+    "vp": "375x667"
+  },
+  {
+    "group": "reveal",
+    "file": "reveal-arcade-2-414x896.jpg",
+    "label": "Arcade chart, 2 players",
+    "vp": "414x896"
+  },
+  {
+    "group": "reveal",
+    "file": "reveal-arcade-2-375x667.jpg",
+    "label": "Arcade chart, 2 players",
+    "vp": "375x667"
+  },
+  {
+    "group": "reveal",
+    "file": "reveal-arcade-6-414x896.jpg",
+    "label": "Arcade chart, 6 players",
+    "vp": "414x896"
+  },
+  {
+    "group": "reveal",
+    "file": "reveal-arcade-6-375x667.jpg",
+    "label": "Arcade chart, 6 players",
+    "vp": "375x667"
+  },
+  {
+    "group": "standings",
+    "file": "points-6-414x896.jpg",
+    "label": "Round results, 6 players",
+    "vp": "414x896"
+  },
+  {
+    "group": "standings",
+    "file": "points-6-375x667.jpg",
+    "label": "Round results, 6 players",
+    "vp": "375x667"
+  },
+  {
+    "group": "standings",
+    "file": "points-swap-414x896.jpg",
+    "label": "Round results after a swap",
+    "vp": "414x896"
+  },
+  {
+    "group": "standings",
+    "file": "points-swap-375x667.jpg",
+    "label": "Round results after a swap",
+    "vp": "375x667"
+  },
+  {
+    "group": "standings",
+    "file": "standings-countup-414x896.jpg",
+    "label": "Standings mid count-up",
+    "vp": "414x896"
+  },
+  {
+    "group": "standings",
+    "file": "standings-countup-375x667.jpg",
+    "label": "Standings mid count-up",
+    "vp": "375x667"
+  },
+  {
+    "group": "standings",
+    "file": "standings-swap-414x896.jpg",
+    "label": "Standings after a place swap",
+    "vp": "414x896"
+  },
+  {
+    "group": "standings",
+    "file": "standings-swap-375x667.jpg",
+    "label": "Standings after a place swap",
+    "vp": "375x667"
+  },
+  {
+    "group": "standings",
+    "file": "standings-tie-414x896.jpg",
+    "label": "Standings with a tie",
+    "vp": "414x896"
+  },
+  {
+    "group": "standings",
+    "file": "standings-tie-375x667.jpg",
+    "label": "Standings with a tie",
+    "vp": "375x667"
+  },
+  {
+    "group": "standings",
+    "file": "standings-2-414x896.jpg",
+    "label": "Standings, 2 players",
+    "vp": "414x896"
+  },
+  {
+    "group": "standings",
+    "file": "standings-2-375x667.jpg",
+    "label": "Standings, 2 players",
+    "vp": "375x667"
+  },
+  {
+    "group": "final",
+    "file": "final-2-414x896.jpg",
+    "label": "Final results, 2 players",
+    "vp": "414x896"
+  },
+  {
+    "group": "final",
+    "file": "final-2-375x667.jpg",
+    "label": "Final results, 2 players",
+    "vp": "375x667"
+  },
+  {
+    "group": "final",
+    "file": "final-2-end-375x667.jpg",
+    "label": "Final results, 2 players (scrolled to end)",
+    "vp": "375x667"
+  },
+  {
+    "group": "final",
+    "file": "podium-6-414x896.jpg",
+    "label": "Podium, 6 players",
+    "vp": "414x896"
+  },
+  {
+    "group": "final",
+    "file": "podium-6-375x667.jpg",
+    "label": "Podium, 6 players",
+    "vp": "375x667"
+  },
+  {
+    "group": "final",
+    "file": "podium-6-end-375x667.jpg",
+    "label": "Podium, 6 players (scrolled to end)",
+    "vp": "375x667"
+  },
+  {
+    "group": "other",
+    "file": "daily-results-414x896.jpg",
+    "label": "Daily results",
+    "vp": "414x896"
+  },
+  {
+    "group": "other",
+    "file": "daily-results-375x667.jpg",
+    "label": "Daily results",
+    "vp": "375x667"
+  },
+  {
+    "group": "other",
+    "file": "daily-board-414x896.jpg",
+    "label": "Daily board after playing",
+    "vp": "414x896"
+  },
+  {
+    "group": "other",
+    "file": "daily-board-375x667.jpg",
+    "label": "Daily board after playing",
+    "vp": "375x667"
+  },
+  {
+    "group": "other",
+    "file": "challenge-podium-414x896.jpg",
+    "label": "Challenge results (podium)",
+    "vp": "414x896"
+  },
+  {
+    "group": "other",
+    "file": "challenge-podium-end-414x896.jpg",
+    "label": "Challenge results (podium) (scrolled to end)",
+    "vp": "414x896"
+  },
+  {
+    "group": "other",
+    "file": "challenge-podium-375x667.jpg",
+    "label": "Challenge results (podium)",
+    "vp": "375x667"
+  },
+  {
+    "group": "other",
+    "file": "challenge-podium-end-375x667.jpg",
+    "label": "Challenge results (podium) (scrolled to end)",
+    "vp": "375x667"
+  },
+  {
+    "group": "other",
+    "file": "challenge-creator-414x896.jpg",
+    "label": "Challenge: creator's results",
+    "vp": "414x896"
+  },
+  {
+    "group": "other",
+    "file": "challenge-creator-375x667.jpg",
+    "label": "Challenge: creator's results",
+    "vp": "375x667"
+  },
+  {
+    "group": "other",
+    "file": "terms-414x896.jpg",
+    "label": "Beta terms",
+    "vp": "414x896"
+  },
+  {
+    "group": "other",
+    "file": "terms-end-414x896.jpg",
+    "label": "Beta terms (scrolled to end)",
+    "vp": "414x896"
+  },
+  {
+    "group": "other",
+    "file": "terms-375x667.jpg",
+    "label": "Beta terms",
+    "vp": "375x667"
+  },
+  {
+    "group": "other",
+    "file": "terms-end-375x667.jpg",
+    "label": "Beta terms (scrolled to end)",
+    "vp": "375x667"
+  },
+  {
+    "group": "other",
+    "file": "error-challenge-not-found-414x896.jpg",
+    "label": "Challenge link not found",
+    "vp": "414x896"
+  },
+  {
+    "group": "other",
+    "file": "error-challenge-not-found-375x667.jpg",
+    "label": "Challenge link not found",
+    "vp": "375x667"
+  },
+  {
+    "group": "other",
+    "file": "error-room-not-found-414x896.jpg",
+    "label": "Room link: room not found",
+    "vp": "414x896"
+  },
+  {
+    "group": "other",
+    "file": "error-room-not-found-375x667.jpg",
+    "label": "Room link: room not found",
+    "vp": "375x667"
+  },
+  {
+    "group": "other",
+    "file": "error-404-414x896.jpg",
+    "label": "404 page",
+    "vp": "414x896"
+  },
+  {
+    "group": "other",
+    "file": "error-404-375x667.jpg",
+    "label": "404 page",
+    "vp": "375x667"
+  }
+]

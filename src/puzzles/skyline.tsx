@@ -1,5 +1,4 @@
 import { useGameKeys } from "@/lib/desktop";
-import { skylineFill } from "@/lib/arcade/arenaFills.renderer";
 import { ArcadeArenaSlot } from "@/components/puzzles/ArcadeArenaSlot";
 import { gameDisplayName } from "@/lib/duel/gameNames";
 import { useArcadeFrameTiming } from "@/components/puzzles/useArcadeFrameTiming";
@@ -31,7 +30,7 @@ import {
 import { decodeSkylineRun, encodeSkylineRun, replaySkylineRun } from "@/lib/duel/skyline";
 import { ARCADE_CRASH_FREEZE_MS, type SkylinePuzzleData } from "@/lib/duel/types";
 import { buzz } from "@/lib/motion";
-import { drawSkylineArt, SKYLINE_ART_BG } from "@/lib/arcade/skyline.renderer";
+import { drawSkylineArt, SKYLINE_ART_BG, skylineRiverFill } from "@/lib/arcade/skyline.renderer";
 import { skylineSounds } from "@/lib/fx/gameSounds";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
@@ -231,7 +230,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   if (!data) return null;
 
   return (
-    <ArcadeArenaSlot width={SKYLINE_WORLD_W} height={skylineWorldHFor(data.skylineRev)} scene={skylineFill}>
+    <ArcadeArenaSlot width={SKYLINE_WORLD_W} height={skylineWorldHFor(data.skylineRev)} scene={skylineRiverFill}>
       <div ref={wrap} data-game-arena="canvas" className="min-h-0 w-full flex-1 overflow-hidden rounded-xl">
         <canvas
           ref={canvas}
