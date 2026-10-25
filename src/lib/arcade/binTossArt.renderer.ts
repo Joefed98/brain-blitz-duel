@@ -1,6 +1,6 @@
 import { BINTOSS_NEXT_DELAY } from "./binToss";
 import { arcadeFx } from "./arcadeFx.renderer";
-import { BINTOSS_FX } from "./arcadeFxGames.renderer";
+import { BINTOSS_FX, BINTOSS_FX_V7 } from "./arcadeFxGames.renderer";
 import { successHud, successFrame, SUCCESS_ACCENTS } from "./success.renderer";
 import type { ArcadeGame, ArcadeInputEvent, CanvasSize } from "./engine";
 import {
@@ -428,7 +428,7 @@ function draw(ctx: CanvasRenderingContext2D, state: BinTossState, size: CanvasSi
   const world = binTossWorldOf(state);
   const expand = world.lift > 0;
   const farAge = expand ? fairChangeAge(ctx, "bintoss-far", state.farIn ?? 0) : Infinity;
-  fairScreen(ctx, size, world.w, world.h, FLOOR + world.lift, () => { if (expand) ctx.translate(0, world.lift); arcadeFx(ctx, BINTOSS_FX, state, () => {
+  fairScreen(ctx, size, world.w, world.h, FLOOR + world.lift, () => { if (expand) ctx.translate(0, world.lift); arcadeFx(ctx, expand ? BINTOSS_FX_V7 : BINTOSS_FX, state, () => {
     const index = Math.min(state.throwIndex, BINTOSS_THROWS - 1);
     const centre = px(binTossCentreAt(state, index, state.tick));
     const half = px(binTossHalf(index, state.rev));

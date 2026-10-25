@@ -1,6 +1,6 @@
 import { successFrame, SUCCESS_ACCENTS } from "./success.renderer";
 import { arcadeFx } from "./arcadeFx.renderer";
-import { BULLSEYE_FX } from "./arcadeFxGames.renderer";
+import { BULLSEYE_FX, BULLSEYE_FX_V7 } from "./arcadeFxGames.renderer";
 /**
  * Bullseye in the Fairground world: painted wooden board on a hay bale,
  * throwing darts, chalk aim line. Render only; reads state, never writes it.
@@ -484,7 +484,7 @@ export function drawBullseye(ctx: CanvasRenderingContext2D, state: BullseyeState
   const world = bullseyeWorldOf(state);
   const expand = world.lift > 0;
   const streakAge = expand ? fairChangeAge(ctx, "bullseye-streak", state.streakPts ?? 0) : Infinity;
-  fairScreen(ctx, size, world.w, world.h, COUNTER_Y + world.lift, () => { if (expand) ctx.translate(0, world.lift); arcadeFx(ctx, BULLSEYE_FX, state, () => {
+  fairScreen(ctx, size, world.w, world.h, COUNTER_Y + world.lift, () => { if (expand) ctx.translate(0, world.lift); arcadeFx(ctx, expand ? BULLSEYE_FX_V7 : BULLSEYE_FX, state, () => {
     const board = bullseyeBoard(state, shown);
     const dx = expand ? bullseyeDxOf(state, shown, state.tick) : bullseyeTargetDx(shown, state.tick, state.driftPhase, state.driftDir);
     drawBoard(ctx, board.scalePct, dx, bullseyeRingValues(state, shown), shown >= BULLSEYE_DRIFT_FROM, board.cy, expand ? COUNTER_Y : 0);

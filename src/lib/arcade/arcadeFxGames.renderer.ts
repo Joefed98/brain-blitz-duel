@@ -1298,6 +1298,9 @@ export const BURST_FX_TALL = fxSpecAt(BURST_FX, BURST_TALL_H);
 /** Taller worlds batch 2 (Oct 2026): Tempo beatRev 6, Slice sliceRev 6, Coral Pop bubbleRev 5. */
 export const beatFxFor = (s: BeatState): ArcadeFxSpec<BeatState> => fxSpecAt(BEAT_FX, beatWorldH(s));
 export const BEAT_FX_TALL = fxSpecAt(BEAT_FX, BEAT_TALL_H);
+/** World expansion E5 (25 Oct 2026, docs/expansions/e5.md): Swish binRev 7 and Flightpath bullRev 7's worlds (their effects in the original sim coordinates, drawn lift px down). */
+export const BINTOSS_FX_V7: ArcadeFxSpec<BinTossState> = { ...BINTOSS_FX, width: 430, height: 728 };
+export const BULLSEYE_FX_V7: ArcadeFxSpec<BullseyeState> = { ...BULLSEYE_FX, height: 728 };
 export const sliceFxFor = (s: SliceState): ArcadeFxSpec<SliceState> => fxSpecAt(SLICE_FX, sliceWorldH(s));
 export const SLICE_FX_TALL = fxSpecAt(SLICE_FX, SLICE_TALL_H);
 export const bubbleFxFor = (s: BubState): ArcadeFxSpec<BubState> => fxSpecAt(BUBBLE_FX, bubWorldH(s));
@@ -1364,8 +1367,8 @@ export const ARCADE_FX_SPECS = {
   junction: JUNCTION_FX,
   inkbridge: INKBRIDGE_FX,
   slice: SLICE_FX_TALL,
-  bintoss: BINTOSS_FX,
-  bullseye: BULLSEYE_FX,
+  bintoss: BINTOSS_FX_V7,
+  bullseye: BULLSEYE_FX_V7,
   bubble: BUBBLE_FX_TALL,
   flip: FLIP_FX,
   swing: SWING_FX_TALL,
