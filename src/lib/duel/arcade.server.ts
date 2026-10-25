@@ -4,8 +4,8 @@ import { FLIP_REV_TARGET, FLIP_REV_STRICT } from "@/lib/arcade/flip";
 import { CROSS_REV_TARGET, CROSS_REV_STRICT } from "@/lib/arcade/cross";
 import { INK_REV_TARGET, INK_REV_STRICT } from "@/lib/arcade/inkBridge";
 import { SNAKE_REV_TARGET, SNAKE_REV_STRICT } from "@/lib/arcade/snake";
-import { BUB_REV_TARGET, BUB_REV_STRICT } from "@/lib/arcade/bubble";
-import { MATCHUP_REV_TARGET, MATCHUP_REV_STRICT } from "@/lib/arcade/matchup";
+import { BUB_REV_REEF } from "@/lib/arcade/bubble";
+import { MATCHUP_REV_GOALS } from "@/lib/arcade/matchup";
 import { SNIP_REV_TARGET, SNIP_REV_STRICT } from "@/lib/arcade/snip";
 import { SKYLINE_REV_TARGET, SKYLINE_REV_STRICT } from "@/lib/arcade/skyline";
 import { tiltSeedCupsReachable, TILT_REV_TARGET, TILT_REV_STRICT } from "@/lib/arcade/tilt";
@@ -93,7 +93,8 @@ export function generateBullseye(): BullseyePuzzleData {
 }
 
 export function generateMatchup(): MatchupPuzzleData {
-  return { type: "matchup", seed: arcadeSeed(), matchupRev: MATCHUP_REV_STRICT };
+  // matchupRev 9 (expansion E6): the taller board with goals, ice and treasure.
+  return { type: "matchup", seed: arcadeSeed(), matchupRev: MATCHUP_REV_GOALS };
 }
 
 export function generateSnake(): SnakePuzzleData {
@@ -133,7 +134,8 @@ export function generateSlice(): SlicePuzzleData {
 }
 
 export function generateBubble(): BubblePuzzleData {
-  return { type: "bubble", seed: arcadeSeed(), bubbleRev: BUB_REV_STRICT };
+  // bubbleRev 8 (expansion E6): the deeper reef with chests, bank shots and combos.
+  return { type: "bubble", seed: arcadeSeed(), bubbleRev: BUB_REV_REEF };
 }
 
 export function generateBeat(): BeatPuzzleData {

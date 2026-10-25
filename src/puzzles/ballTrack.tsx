@@ -22,7 +22,7 @@ import {
   BT_REV,
   BT_REV_BAND,
   BT_REV_TALL,
-  BT_REV_TARGET, BT_REV_STRICT,
+  BT_REV_TARGET, BT_REV_STRICT, BT_REV_RUSH,
   BT_PALETTE,
   BT_TILE,
   BT_W,
@@ -32,7 +32,7 @@ import {
 } from "@/lib/arcade/ballTrack";
 import { encodeBallTrackRun, replayBallTrackRun } from "@/lib/duel/ballTrack";
 import { BALLTRACK_TIME_MS, type BallTrackPuzzleData } from "@/lib/duel/types";
-import { playTick, playWrong } from "@/lib/sound";
+import { playSound, playTick, playWrong } from "@/lib/sound";
 import { NO_SCROLL_STYLE, useNoTouchScroll } from "@/components/puzzles/noScroll";
 import { btArtDraw } from "@/lib/arcade/ballTrackArt.renderer";
 import { TOY_TABLE } from "@/lib/arcade/toybox.renderer";
@@ -106,7 +106,9 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const checkpoints = useRef<BtCheckpoint[]>([]);
   const queue = useRef<Omit<ArcadeInputEvent, "t">[]>([]);
     const submitted = useRef(false);
-  const [hud, setHud] = useState({ home: 0, wrong: 0, left: BT_BALLS });
+  // btRev 7 deals 36 marbles (every earlier course 30).
+  const total = course.balls.length || BT_BALLS;
+  const [hud, setHud] = useState({ home: 0, wrong: 0, left: total, streak: 0, golds: 0 });
   useNoTouchScroll(wrap);
 
   const lockedRef = useRef(locked);
@@ -148,6 +150,9 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     let seenBad = 0;
     let shuffled = 0;
     let shown = "";
+    // btRev 7: the features sound from the shared set (a gold marble's chime, a combo's tick and every fifth its ding,
+    // a booster's zap, a crossover crash's crackle).
+    let r7Seen = { golds: 0, combos: 0, crashes: 0, boosted: 0 };
     const loop = (time: number) => {
       frame = requestAnimationFrame(loop);
       const delta = time - last;
@@ -180,10 +185,18 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         seenBad = s.lost;
         playWrong();
       }
-      const key = `${s.home}|${s.wrong}|${s.next}`;
+      if (s.r7) {
+        const boosted = s.balls.filter((b) => (b.bst ?? 0) > 0).length;
+        if ((s.golds ?? 0) > r7Seen.golds) playSound("shared.celebrate.chime", 0.7);
+        if ((s.combos ?? 0) > r7Seen.combos) playSound((s.streak ?? 0) % 5 === 0 ? "shared.celebrate.countDing" : "shared.celebrate.countTick", 0.55);
+        if ((s.crashes ?? 0) > r7Seen.crashes) playSound("shared.celebrate.crackle1", 0.6);
+        if (boosted > r7Seen.boosted) playSound("shared.celebrate.zap", 0.35);
+        r7Seen = { golds: s.golds ?? 0, combos: s.combos ?? 0, crashes: s.crashes ?? 0, boosted };
+      }
+      const key = `${s.home}|${s.wrong}|${s.next}|${s.streak ?? 0}|${s.golds ?? 0}`;
       if (key !== shown) {
         shown = key;
-        setHud({ home: s.home, wrong: s.wrong, left: BT_BALLS - s.next });
+        setHud({ home: s.home, wrong: s.wrong, left: total - s.next, streak: s.streak ?? 0, golds: s.golds ?? 0 });
       }
       reportArcadeTick(s.tick, game.isOver(s));
       feedback(s, game.isOver(s));
@@ -236,7 +249,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const tapCell = (row: number, col: number) => {
     const cell = row * BT_COLS + col;
     // Rev 2: bottom-row tray drops are switch points (the sim ignores taps where no tray is live).
-    const switchPoint = (rev === BT_REV || rev === BT_REV_BAND || rev === BT_REV_TALL || rev === BT_REV_TARGET || rev === BT_REV_STRICT) && row === BT_ROWS - 1 && col > 0;
+    const switchPoint = (rev === BT_REV || rev === BT_REV_BAND || rev === BT_REV_TALL || rev === BT_REV_TARGET || rev === BT_REV_STRICT || rev === BT_REV_RUSH) && row === BT_ROWS - 1 && col > 0;
     if (!game.rotatable.has(cell) && !switchPoint) return;
     push({ k: BT_K_ROTATE, a: cell, b: 0, c: 0, d: 0 });
   };
@@ -281,8 +294,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         </div>
       </ArcadeArenaSlot>
       <div data-game-controls="status" className="flex h-7 w-full shrink-0 items-center justify-between px-1 font-mono text-xs text-muted-foreground">
-        <span>{hud.home} home{hud.wrong ? ` · ${hud.wrong} wrong` : ""}</span>
-        <span>{hud.left} to drop</span>
+        <span>{hud.home} home{hud.wrong ? ` · ${hud.wrong} wrong` : ""}{rev === BT_REV_RUSH && hud.streak >= 3 ? ` · combo ×${hud.streak}` : ""}</span>
+        <span>{rev === BT_REV_RUSH ? `${hud.golds} gold · ` : ""}{hud.left} to drop</span>
       </div>
     </div>
   );
@@ -296,8 +309,14 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   return (
     <div className="flex w-full flex-col items-center gap-3">
       <p className="text-center font-mono text-lg font-bold text-foreground">
-        {result.home} / {BT_BALLS} home
+        {result.home} / {puzzle.course.balls.length || BT_BALLS} home
       </p>
+      {result.state.r7 ? (
+        <p className="text-center font-mono text-base text-muted-foreground">
+          {result.state.golds ?? 0} gold · {result.state.boosts ?? 0} boosted · best run {result.state.bestStreak ?? 0}
+          {result.state.crashes ? ` · ${result.state.crashes} crash${result.state.crashes === 1 ? "" : "es"}` : ""}
+        </p>
+      ) : null}
       <div className="flex gap-1.5" aria-hidden="true">
         {puzzle.course.trays.map((tray, i) => (
           <span

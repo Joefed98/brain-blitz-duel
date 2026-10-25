@@ -40,8 +40,9 @@ import {
   TILT_V2_PARTIAL_MAX,
   TILT_V2_STAR_POINTS,
 } from "@/lib/arcade/tilt";
-import { BUB_SPECIAL_BLOCK, BUB_TORPEDO_HITS, BUB_V3_JOKER_BLOCK } from "@/lib/arcade/bubble";
-import { MATCHUP_V3_PAR_RAW } from "@/lib/arcade/matchup";
+import { BUB_SPECIAL_BLOCK, BUB_TORPEDO_HITS, BUB_V3_JOKER_BLOCK, BUB_V8_CHESTS, BUB_V8_CHEST_FP, BUB_V8_FEATURE_MAX } from "@/lib/arcade/bubble";
+import { MATCHUP_V3_PAR_RAW, MATCHUP_V9_FEATURE_MAX } from "@/lib/arcade/matchup";
+import { BT_V7_BALLS, BT_V7_BOOST_STEPS, BT_V7_FEATURE_MAX, BT_V7_LAST_LAND_MIN } from "@/lib/arcade/ballTrack";
 import { HOVER_REACHABLE_GATES, HOVER_STARS, HOVER_V2_GATES_SCORE, HOVER_V2_STARS_SCORE } from "@/lib/arcade/hover";
 import { WAV_BOSS_HP } from "@/lib/arcade/wavefront";
 import { SNAKE_COLS, SNAKE_TALL_ROWS } from "@/lib/arcade/snake";
@@ -550,18 +551,23 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
       score: liveBandHelp("bullseye", `Your dart total: rings ${BULLSEYE_RING_VALUES.join(" / ")} from the centre out (the inner bull ${BULLSEYE_INNER_BULL_POINTS}), plus +1, +2 or +3 for each balloon popped on the way in.`, { more: "A higher dart total", good: (u) => `totals ${u}` }),
     },
     matchup: {
-      goal: "Line up three or more gems.",
+      goal: "Match gems to meet each goal.",
       how: [
-        { action: "Swap neighbours;", detail: "wait for gems to fall in." },
-        { action: "4, 5 or an L / T", detail: "makes a bomb or a star." },
-        { action: "5 plus an L / T in one swap:", detail: "a jackpot!" },
+        { action: "Swap neighbours;", detail: "collect the goal's colours." },
+        { action: "Match on frozen gems", detail: "to break the ice." },
+        { action: "Clear below treasure", detail: "to bring it down." },
+        { action: "4, 5 or an L / T", detail: "makes a bomb or a star; 5 plus an L / T in one swap makes a jackpot.", helpOnly: true },
+        { action: "Each level", detail: "asks for a count of two or three colours (shown under the board); meet it and the next level starts, with more ice.", helpOnly: true },
+        { action: "A frozen gem", detail: "can't be swapped. Clear it in a line, a cascade or a blast and the ice breaks.", helpOnly: true },
+        { action: "A treasure gem", detail: "can't be matched, swapped or blasted: it falls as the gems under it clear and is collected on the bottom row.", helpOnly: true },
+        { action: "Cascades multiply:", detail: "each step after a swap's own clear counts ×2, ×3 and so on.", helpOnly: true },
         { action: "Drag one gem onto its neighbour", detail: "to swap them. Matched gems clear and new ones fall in; your next swap waits until the board has settled.", helpOnly: true },
         { action: "Line of 4: a bomb", detail: "(clears around it). Line of 5: a white four-point star (its row and column). An L or T: a six-point star (both diagonals).", helpOnly: true },
         { action: "A line of 5 and an L / T in one swap", detail: "makes a jackpot gem: it clears every gem of its colour plus its row and column.", helpOnly: true },
         { action: "Specials", detail: "go off when you swap them or match next to them, and set each other off.", helpOnly: true },
         { action: "Sixty seconds", detail: "on the same board for everyone; new gems drop from the same fixed queues.", helpOnly: true },
       ],
-      score: liveBandHelp("matchup", "Match points: longer lines, cascades and special gems score more.", { more: "More match points", good: (u) => `scores ${u.toLocaleString("en-GB")} match points` }),
+      score: liveBandHelp("matchup", `Match points: longer lines, cascades and special gems score more. Goals met, ice broken, treasure collected and the cascade multiplier add up to ${MATCHUP_V9_FEATURE_MAX} more.`, { more: "More match points", good: (u) => `scores ${u.toLocaleString("en-GB")} match points` }),
     },
     snake: {
       goal: "Eat the stars; don't crash.",
@@ -679,18 +685,21 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
       score: liveBandHelp("slice", "Combo-weighted slices out of the most the run offers (every food at ×3), in thousandths. Each chilli then costs 10 and ends the combo.", { more: "More combo slices", good: (u) => `reaches ${u}` }),
     },
     bubble: {
-      goal: "Pop bubbles in threes.",
+      goal: "Pop threes and free the treasure.",
       how: [
         { action: "Drag to aim,", detail: "let go to shoot." },
-        { action: "Crown Joker", detail: "matches any colour." },
-        { action: "Mines blast;", detail: "torpedoes drill where aimed." },
+        { action: "Chests pay", detail: "only when they fall with a cluster." },
+        { action: "Bank off walls;", detail: "pop back to back for combos." },
+        { action: "Crown Joker", detail: "matches any colour. Mines blast; torpedoes drill where aimed.", helpOnly: true },
+        { action: `${BUB_V8_CHESTS} treasure chests`, detail: "sit in the reef. Nothing matches a chest: cut what holds it up so it falls. A mine or torpedo that destroys one pays nothing.", helpOnly: true },
+        { action: "A bank shot", detail: "comes off a wall before it pops anything; every popping shot straight after another is a combo.", helpOnly: true },
         { action: "Three of a colour pop", detail: "when they touch; bubbles left hanging fall. Bounce shots off the walls.", helpOnly: true },
         { action: "The Joker (a black bubble with a gold crown and a rainbow rim)", detail: "joins every colour it touches and pops each group that reaches three. A mine clears the bubbles around it.", helpOnly: true },
         { action: "A torpedo never sticks:", detail: `it flies where you aim it, bank shots included, and destroys up to ${BUB_TORPEDO_HITS} bubbles it runs into on the way up. Bubbles left hanging then fall.`, helpOnly: true },
         { action: "Specials come in the queue:", detail: `a Joker every ${BUB_V3_JOKER_BLOCK} shots or so, and one mine or torpedo somewhere in the first ${BUB_SPECIAL_BLOCK}.`, helpOnly: true },
         { action: "Ninety seconds", detail: "on the same field and queue for everyone.", helpOnly: true },
       ],
-      score: liveBandHelp("bubble", "Each bubble cleared from the field counts 1.", { more: "More bubbles cleared", good: (u) => `clears ${u} bubbles`, finish: "Clearing the field adds up to 10 for speed: the full 10 with at least half the time left, falling to 0 at the buzzer." }),
+      score: liveBandHelp("bubble", "Each bubble cleared from the reef counts 1.", { more: "More bubbles cleared", good: (u) => `clears ${u} bubbles`, finish: `Clearing the reef adds up to 10 for speed. Chests that fall (${BUB_V8_CHEST_FP} each), bank shots and combos add up to ${BUB_V8_FEATURE_MAX} more.` }),
     },
     beat: {
       goal: "Tap the notes in time.",
@@ -1007,14 +1016,19 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
       goal: "Steer every marble into the cup of its colour.",
       how: [
         { action: "Tap a gold tube", detail: "to turn it." },
-        { action: "Tubes turn with a marble inside;", detail: "it rolls out of the new end." },
-        { action: "Tap a cup's drop", detail: "to close it; tap again to open." },
+        { action: "Gold marbles", detail: "and home streaks score extra." },
+        { action: "Chevrons boost;", detail: "marbles meeting on an X fall." },
+        { action: "Tap a cup's drop", detail: "to close it; tap again to open.", helpOnly: true },
+        { action: "Tubes turn with a marble inside;", detail: "it rolls out of the new end.", helpOnly: true },
+        { action: "A gold marble", detail: "still goes to the cup of its colour; home, it's worth more. Every marble home from the third in a row is a combo.", helpOnly: true },
+        { action: "A speed booster (orange chevrons)", detail: `sends a marble on at double speed for ${BT_V7_BOOST_STEPS} tiles: set the tubes ahead sooner.`, helpOnly: true },
+        { action: "A crossover (X)", detail: "lets a marble from above drop straight through and one along the row roll straight on. If two meet in it from different ways, both are knocked out.", helpOnly: true },
         { action: "A marble rolling into an upright tube", detail: "drops a row.", helpOnly: true },
         { action: "A closed drop on the bottom row", detail: "sends marbles rolling past it (gold →).", helpOnly: true },
-        { action: "A marble drops about every two seconds", detail: "until 50 seconds; the run lasts a minute.", helpOnly: true },
+        { action: `${BT_V7_BALLS} marbles drop, one about every 1.4 seconds`, detail: "until 49 seconds; the run lasts a minute.", helpOnly: true },
         { action: "Mid-round the bottom row moves and the cups swap colours;", detail: "a countdown warns you.", helpOnly: true },
       ],
-      score: liveBandHelp("balltrack", "Each marble home counts 1.", { more: "More marbles home", good: (u) => `gets ${u} marbles home`, finish: "All 30 home adds up to 10 for speed: the full 10 if the last marble lands by 56.5 s, falling to 0 at the buzzer." }),
+      score: liveBandHelp("balltrack", "Each marble home counts 1.", { more: "More marbles home", good: (u) => `gets ${u} marbles home`, finish: `All ${BT_V7_BALLS} home adds up to 10 for speed: the full 10 if the last marble lands by ${((BT_V7_LAST_LAND_MIN + (3600 - BT_V7_LAST_LAND_MIN) / 2) / 60).toFixed(1)} s, falling to 0 at the buzzer. Gold marbles, boosted marbles and combos add up to ${BT_V7_FEATURE_MAX} more.` }),
     },
     wordsearch: {
       goal: "Find the six hidden words in the category.",
