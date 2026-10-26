@@ -219,8 +219,9 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     <div data-stage-column="1" className="flex min-h-0 w-full flex-1 flex-col gap-1 select-none" style={GAME_ROOT_STYLE}>
       {/* One 20px line under the compact header (15 Oct 2026, display only; it was 32px). */}
       <div data-snip-hud className="flex h-5 shrink-0 items-center justify-between px-2 font-mono text-xs leading-none text-muted-foreground">
-        <span>
-          Level {hud.level}
+        {/* snipRev 11 adds the cuts and par time, so its line is shorter ("Lv", "fed") to fit a 375 px phone. */}
+        <span className="whitespace-nowrap">
+          {hud.par ? "Lv" : "Level"} {hud.level}
           {hud.cuts ? ` · ${hud.cuts}` : ""}
           {hud.par ? (
             <span data-snip-par className={hud.late ? "opacity-40" : undefined}>
@@ -231,8 +232,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         <span className="text-base font-bold text-foreground">
           <span className="text-primary">{hud.score}</span>
         </span>
-        <span>
-          {hud.eaten} picked · {hud.stars} leaves
+        <span className="whitespace-nowrap">
+          {hud.eaten} {hud.par ? "fed" : "picked"} · {hud.stars} leaves
         </span>
       </div>
       <ArcadeArenaSlot width={SNIP_CONFIG.viewW} height={snipWorldHFor(data.snipRev)} scene={snipFill} playCentre>
