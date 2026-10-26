@@ -161,10 +161,11 @@ section("New rounds: stamps, start states, checksums, worlds by revision");
 {
   // Expansion E3 (docs/expansions/e3.md) then moved Breaker on to brkRev 9; expansion-e3-check covers it.
   ok(playRevOf("breaker", generateBreaker().brkRev) === BRK_REV_TALL + 3, "rooms deal brkRev 9 (expansion E3, after brkRev 6)");
-  ok(playRevOf("rally", generateRally().rallyRev) === RALLY_REV_TALL, "rooms deal rallyRev 6");
+  // Expansion E9 (docs/expansions/e9.md) then moved Rally on to rallyRev 10 and Fission on to burstRev 8; expansion-e9-check covers them.
+  ok(playRevOf("rally", generateRally().rallyRev) === RALLY_REV_TALL + 4, "rooms deal rallyRev 10 (expansion E9, after rallyRev 6)");
   // The 200 expansion (26 Oct 2026) moved rooms on to wavRev 10 (wavefront-expand-check); wavRev 6 stays as it was.
   ok(playRevOf("wavefront", generateWavefront().wavRev) === WAV_REV_TALL + 4, "rooms deal wavRev 10 (the expansion, after wavRev 6)");
-  ok(playRevOf("burst", generateBurst().burstRev) === BURST_REV_TALL, "rooms deal burstRev 4");
+  ok(playRevOf("burst", generateBurst().burstRev) === BURST_REV_TALL + 4, "rooms deal burstRev 8 (expansion E9, after burstRev 4)");
 
   ok(breakerWorldHFor(BRK_REV_TALL) === 730 && breakerWorldHFor(BRK_REV_TUNEF) === BRK_WORLD_H && breakerWorldHFor(undefined) === 620, "Breaker world heights by revision");
   ok(rallyWorldHFor(RALLY_REV_TALL) === 730 && rallyWorldHFor(RALLY_REV_TUNEF) === RALLY_WORLD_H && rallyWorldHFor(undefined) === 620, "Rally world heights by revision");
@@ -199,9 +200,9 @@ section("New rounds: stamps, start states, checksums, worlds by revision");
 
   // Effects: the tall specs in ARCADE_FX_SPECS, older rounds at their own height, through fxSpecAt.
   const fx = ARCADE_FX_SPECS as Record<string, { height: number }>;
-  // Expansion E3 (brkRev 9) moved Breaker on to its 784-high court, and the 200 expansion (wavRev 10) Wavefront on to
-  // its 800-high arena: the heights rooms deal now.
-  ok(fx.breaker!.height === breakerWorldHFor(generateBreaker().brkRev) && fx.rally!.height === 730 && fx.wavefront!.height === wavefrontWorldHFor(generateWavefront().wavRev) && fx.wavefront!.height === 800 && fx.burst!.height === 650, "ARCADE_FX_SPECS hold the taller heights rooms deal");
+  // Expansion E3 (brkRev 9) moved Breaker on to its 784-high court, the 200 expansion (wavRev 10) Wavefront on to its
+  // 800-high arena and expansion E9 Rally and Fission on: the heights rooms deal now.
+  ok(fx.breaker!.height === breakerWorldHFor(generateBreaker().brkRev) && fx.rally!.height === rallyWorldHFor(generateRally().rallyRev) && fx.wavefront!.height === wavefrontWorldHFor(generateWavefront().wavRev) && fx.wavefront!.height === 800 && fx.burst!.height === burstWorldHFor(generateBurst().burstRev), "ARCADE_FX_SPECS hold the taller heights rooms deal (Rally's 784-high court since expansion E9)");
   ok(breakerFxFor({ worldH: 730 } as BrkState).height === 730 && breakerFxFor({} as BrkState) === BREAKER_FX, "Breaker effects by state height");
   ok(rallyFxFor({ worldH: 730 } as RallyState).height === 730 && rallyFxFor({} as RallyState) === RALLY_FX, "Rally effects by state height");
   ok(wavefrontFxFor({ worldH: 730 } as WavState).height === 730 && wavefrontFxFor({} as WavState) === WAVEFRONT_FX, "Wavefront effects by state height");
@@ -352,10 +353,10 @@ section("Intro demos stay stopped until re-recorded on the taller revision");
 {
   const src = read("src/lib/duel/introDemo.functions.ts");
   ok(/data\.type === "breaker" && demo\?\.puzzle\.type === "breaker" && demo\.puzzle\.brkRev !== (BRK_REV_TALL|BRK_REV_DEEP)\) return null/.test(src), "Breaker's demo plays only on brkRev 6 (brkRev 9 since expansion E3)");
-  ok(/data\.type === "rally" && demo\?\.puzzle\.type === "rally" && demo\.puzzle\.rallyRev !== RALLY_REV_TALL\) return null/.test(src), "Rally's demo plays only on rallyRev 6");
+  ok(/data\.type === "rally" && demo\?\.puzzle\.type === "rally" && demo\.puzzle\.rallyRev !== (RALLY_REV_TALL|RALLY_REV_BONUS)\) return null/.test(src), "Rally's demo plays only on rallyRev 6 (rallyRev 10 since expansion E9)");
   // The 200 expansion: Wavefront's demo now plays only on wavRev 10 (none is recorded yet, so the intro shows its still).
   ok(/data\.type === "wavefront" && demo\?\.puzzle\.type === "wavefront" && demo\.puzzle\.wavRev !== WAV_REV_EXPAND\) return null/.test(src), "Wavefront's demo plays only on wavRev 10");
-  ok(/data\.type === "burst" && demo\?\.puzzle\.type === "burst" && demo\.puzzle\.burstRev !== BURST_REV_TALL\) return null/.test(src), "Fission's demo plays only on burstRev 4");
+  ok(/data\.type === "burst" && demo\?\.puzzle\.type === "burst" && demo\.puzzle\.burstRev !== (BURST_REV_TALL|BURST_REV_CLEAN)\) return null/.test(src), "Fission's demo plays only on burstRev 4 (burstRev 8 since expansion E9)");
 }
 
 if (failures.length) {
@@ -363,4 +364,4 @@ if (failures.length) {
   for (const f of failures.slice(0, 40)) console.log(`  ✗ ${f}`);
   process.exit(1);
 }
-console.log(`arcade-tuning-g1: ${checks} checks passed — 88 stored runs on every older revision and 32 on the taller ones replay unchanged; rooms deal brkRev 6, rallyRev 6, wavRev 6 and burstRev 4; worlds, reveals and effects by revision; per-game geometry; refitted curves and 150 via the server replay; demos stopped`);
+console.log(`arcade-tuning-g1: ${checks} checks passed — 88 stored runs on every older revision and 32 on the taller ones replay unchanged; rooms dealt brkRev 6, rallyRev 6, wavRev 6 and burstRev 4 (Breaker, Rally and Fission since moved on by their expansions); worlds, reveals and effects by revision; per-game geometry; refitted curves and 150 via the server replay; demos stopped`);

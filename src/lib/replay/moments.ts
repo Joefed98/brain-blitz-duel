@@ -93,6 +93,8 @@ export const MOMENT_TABLE: readonly MomentRow[] = [
   fx("rally", 2, "perfect", "target", 45, "Far-wall target struck"),
   fx("rally", 3, "pop", "bumper", 10, "Off the bumper"),
   fx("rally", 4, "pop", "hit", 0, "Paddle hit (court lights only)"),
+  // rallyRev 10 (expansion E9): fires on rallyRev 10 rounds only.
+  fx("rally", 5, "perfect", "gold-target", 50, "Gold bonus target struck"),
   // Tempo
   fx("beat", 0, "combo", "combo", 30, "Combo (every 10)"),
   fx("beat", 1, "pop", "swipe", 15, "Swipe note hit"),
@@ -107,6 +109,9 @@ export const MOMENT_TABLE: readonly MomentRow[] = [
   fx("burst", 0, "clear", "wave-cleared", 45, "Wave cleared"),
   fx("burst", 1, "perfect", "freeze", 30, "Freeze caught"),
   fx("burst", 2, "final", "flawless", 90, "Flawless finish", "finish"),
+  // burstRev 8 (expansion E9): fire on burstRev 8 rounds only.
+  fx("burst", 3, "perfect", "golden-atom", 45, "Golden atom taken"),
+  fx("burst", 4, "clear", "clean-wave", 40, "Wave cleared without a miss"),
   own("burst", "last-life-wave", 55, "Wave cleared on the last life", "near-miss"),
   // Wavefront
   fx("wavefront", 0, "perfect", "saucer", 55, "Saucer shot down"),

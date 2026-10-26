@@ -6,7 +6,8 @@
  *     every older revision, snakeRev 1–8 and beatRev 1–8, every level) replay through the server path to their
  *     stored score, flag and final state, byte for byte.
  *  2. Rooms deal the new revisions, ROUND_MAX states 200 for the two, the "?" help reads their curves, and
- *     Fission is untouched (burstRev 6, 150, its strict curve).
+ *     Fission was split out of E2 (burstRev 6 stays its score-bands revision; expansion E9 moved rooms on to
+ *     burstRev 8, docs/expansions/e9.md, proved by expansion-e9-check).
  *  3. The new revisions: the same seed builds the same world twice (room-identical); the features exist where
  *     the rules say (wormholes off the border and clear of stars and rocks, lanes, the gold schedule; five lanes only after the break, none inside it, double taps 9 ticks apart in one lane);
  *     a run with no input scores 0.
@@ -26,7 +27,7 @@ import { generatePuzzle } from "../src/lib/duel/generate.server";
 import { ROUND_MAX } from "../src/lib/duel/roundMax";
 import { LIVE_BANDS, liveStrictRev } from "../src/lib/arcade/liveBands";
 import { snakeV9Bonus, snakeRow, snakeCol, SNAKE_REV_200, SNAKE_REV_STRICT, SNAKE_V9_CAPS, SNAKE_V9_COLS, SNAKE_V9_ROWS, SNAKE_V9_BAND_CURVE } from "../src/lib/arcade/snake";
-import { BURST_REV_STRICT, BURST_V6_BAND_CURVE } from "../src/lib/arcade/burst";
+import { BURST_REV_CLEAN, BURST_REV_STRICT, BURST_V6_BAND_CURVE } from "../src/lib/arcade/burst";
 import { beatV9Bonus, BEAT_REV_200, BEAT_REV_STRICT, BEAT_V9_CAPS, BEAT_V9_FIVE_FROM, BEAT_V9_BREAK, BEAT_DOUBLE_GAP, BEAT_V9_BAND_CURVE, BEAT_V9_RUN_TICKS } from "../src/lib/arcade/beat";
 
 const RECORD = process.argv.includes("--record");
@@ -61,7 +62,9 @@ ok((generatePuzzle("beat") as any).beatRev === BEAT_REV_200, "rooms deal beatRev
 ok(ROUND_MAX.snake === 200 && ROUND_MAX.beat === 200, "ROUND_MAX: Meteor and Tempo are 200");
 ok(LIVE_BANDS.snake.curve === SNAKE_V9_BAND_CURVE && LIVE_BANDS.beat.curve === BEAT_V9_BAND_CURVE, "the help reads the new curves");
 ok(liveStrictRev("snake") === SNAKE_REV_STRICT && liveStrictRev("beat") === BEAT_REV_STRICT, "their score-bands revisions are the ones rooms dealt before (strictRev)");
-ok((generatePuzzle("burst") as any).burstRev === BURST_REV_STRICT && ROUND_MAX.burst === 150 && LIVE_BANDS.burst.curve === BURST_V6_BAND_CURVE, "Fission is untouched: burstRev 6, 150, its strict curve");
+// Fission was split out of E2: burstRev 6 stays its score-bands revision on its strict curve; expansion E9 (docs/expansions/e9.md)
+// then moved rooms on to burstRev 8 at 200 (expansion-e9-check covers it).
+ok((generatePuzzle("burst") as any).burstRev === BURST_REV_CLEAN && ROUND_MAX.burst === 200 && liveStrictRev("burst") === BURST_REV_STRICT && BURST_V6_BAND_CURVE.points.at(-1) === 140, "Fission is not E2's: burstRev 6 stays its strict revision (its strict curve, 140 at the top); rooms deal E9's burstRev 8 at 200");
 ok(SNAKE_V9_CAPS.gold + SNAKE_V9_CAPS.combo + SNAKE_V9_CAPS.lane + SNAKE_V9_CAPS.warp === 50, "Meteor's caps add to 50");
 ok(BEAT_V9_CAPS.fever + BEAT_V9_CAPS.gold + BEAT_V9_CAPS.double + BEAT_V9_CAPS.streak === 50, "Tempo's caps add to 50");
 

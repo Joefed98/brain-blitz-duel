@@ -59,6 +59,8 @@ const { pinballArtGame } = await import("../src/lib/arcade/pinball.renderer");
 const { rallyArtGame } = await import("../src/lib/arcade/rally.renderer");
 const { rallyRev2Game } = await import("../src/lib/arcade/rally");
 const { BRK_REV_DEEP } = await import("../src/lib/arcade/breaker");
+const { rallyGameFor, RALLY_REV_BONUS } = await import("../src/lib/arcade/rally");
+const { BURST_REV_CLEAN } = await import("../src/lib/arcade/burst");
 const { beatArtGame } = await import("../src/lib/arcade/beat.renderer");
 const { beatRev2Game } = await import("../src/lib/arcade/beat");
 const { snakeArtGame } = await import("../src/lib/arcade/snake.renderer");
@@ -112,10 +114,11 @@ const GAMES: Record<string, AnyGame> = {
   hover: { ...hoverArtGame, init: hoverRev2Game.init } as AnyGame,
   // Expansion E3: rooms deal brkRev 9 (ARCADE_FX_SPECS lists its 420 × 784 spec).
   breaker: breakerArtGameFor(BRK_REV_DEEP) as AnyGame,
-  rally: { ...rallyArtGame, init: rallyRev2Game.init } as AnyGame,
+  // Expansion E9: rooms deal rallyRev 10 (ARCADE_FX_SPECS lists its 420 × 784 spec) and burstRev 8.
+  rally: { ...rallyGameFor(RALLY_REV_BONUS), draw: rallyArtGame.draw } as AnyGame,
   beat: { ...beatArtGame, init: beatRev2Game.init } as AnyGame,
   snake: { ...snakeArtGame, init: snakeRev3Game.init } as AnyGame,
-  burst: burstArtGameFor(2) as AnyGame,
+  burst: burstArtGameFor(BURST_REV_CLEAN) as AnyGame,
   wavefront: wavefrontArtGameFor(2) as AnyGame,
   orbit: orbitArtGame as AnyGame,
   skyline: { ...skylineArtGame, init: skylineRev2Game.init } as AnyGame,
@@ -272,6 +275,8 @@ const BUMPS: Record<string, ((s: any) => any)[]> = {
     (s) => ({ ...s, targetHits: (s.targetHits ?? 0) + 1, struckLeft: 60, struckTick: s.tick + 1 }),
     (s) => ({ ...s, bounces: (s.bounces ?? 0) + 1 }),
     (s) => ({ ...s, hits: s.hits + 1 }),
+    // rallyRev 10: a gold bonus target struck.
+    (s) => ({ ...s, bonusHit: (s.bonusHit ?? 0) | 1, bonusAt: s.tick + 1 }),
   ],
   beat: [(s) => ({ ...s, combo: s.combo + 10 }), (s) => ({ ...s, swipesHit: (s.swipesHit ?? 0) + 1, lastLane: 2 }), (s) => ({ ...s, maxCombo: s.chart.ticks.length })],
   snake: [
@@ -285,6 +290,9 @@ const BUMPS: Record<string, ((s: any) => any)[]> = {
     (s) => ({ ...s, cleared: s.cleared + 1 }),
     (s) => ({ ...s, freezes: (s.freezes ?? 0) + 1, freeze: 180 }),
     (s) => ({ ...s, ended: 1, lives: 3, cleared: 4 }),
+    // burstRev 8: a golden atom taken, a clean wave.
+    (s) => ({ ...s, goldHit: (s.goldHit ?? 0) | 1, goldAt: s.tick + 1 }),
+    (s) => ({ ...s, cleanWaves: (s.cleanWaves ?? 0) + 1 }),
   ],
   wavefront: [
     (s) => ({ ...s, saucers: s.saucers + 1 }),
