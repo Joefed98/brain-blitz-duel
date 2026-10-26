@@ -81,7 +81,7 @@ import {
   TILT_V4_FINISH_MIN,
   type TiltState,
 } from "../src/lib/arcade/tilt";
-import { sliceGameFor, SLICE_BLADE_V4, SLICE_INPUT_BEGIN, SLICE_INPUT_SWIPE, SLICE_R, SLICE_REV_BAND, SLICE_REV_LONG, SLICE_REV_TUNEC, sliceObjectAt, type SliceState } from "../src/lib/arcade/slice";
+import { SLICE_REV_EXPAND, sliceGameFor, SLICE_BLADE_V4, SLICE_INPUT_BEGIN, SLICE_INPUT_SWIPE, SLICE_R, SLICE_REV_BAND, SLICE_REV_LONG, SLICE_REV_TUNEC, sliceObjectAt, type SliceState } from "../src/lib/arcade/slice";
 import { generateBeat, generateFlip, generateInkBridge, generateMatchup, generateSlice, generateSwing, generateTilt, generateWavefront } from "../src/lib/duel/arcade.server";
 import { generateHover } from "../src/lib/duel/hover.server";
 import { isRetired, typesInCategory } from "../src/lib/duel/registry";
@@ -175,7 +175,8 @@ section("New rounds carry the Tuning C stamps; Junction is practice only");
     // Taller worlds batch 1 (16 Oct 2026) moved Wavefront on to its taller world (wavRev 6); arcade-tuning-g1-check covers it.
     ["wavefront", playRevOf("wavefront", generateWavefront().wavRev), WAV_REV_TUNEC + 1],
     ["tilt", playRevOf("tilt", generateTilt().tiltRev), TILT_REV_TUNEC],
-    ["slice", playRevOf("slice", generateSlice().sliceRev), SLICE_REV_LONG + 1],
+    // World expansion E5 (25 Oct 2026) moved Slice on to its larger board (sliceRev 9); expansion-e5-check covers it.
+    ["slice", playRevOf("slice", generateSlice().sliceRev), SLICE_REV_EXPAND],
   ];
   const field: Record<string, string> = { matchup: "matchupRev", swing: "swingRev", hover: "hoverRev", inkbridge: "inkRev", flip: "flipRev", beat: "beatRev", wavefront: "wavRev", tilt: "tiltRev", slice: "sliceRev" };
   for (const [type, got, rev] of stamps) {

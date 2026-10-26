@@ -22,7 +22,7 @@ import {
 import { withPuzzleScoreRev } from "./puzzleScoreRev";
 import { WORDHUNT_DEPTH_BASE_MAX, WORDHUNT_DEPTH_BONUS_MAX, WORDHUNT_V3_BASE_CURVE, WORDHUNT_V3_BONUS_CURVE } from "./wordHunt";
 import { ascendDepthHelp, bangOnDepthHelp, flashDepthHelp } from "./depth/speedTexts";
-import { bandMapTotal, bandOpen, bandUnitsFor } from "@/lib/arcade/scoreBands";
+import { BAND_GOOD_POINTS, bandMapTotal, bandOpen, bandTop, bandUnitsFor } from "@/lib/arcade/scoreBands";
 import { TD_GOLD_MAX, TD_GOLD_POINTS, TD_REV3_FREE_RESETS, TD_REV3_RESET_COST, TD_RUN_TICKS, TD_STRETCH_FROM, TD_STRETCH_SPAN, TEN_DROP_DEPTH_REV, TEN_DROP_RAW_REV, tenDropScore } from "@/lib/arcade/tenDrop";
 import { CLASH_DEPTH_MAX_WRONG, CLASH_GOLD_POINTS, CLASH_GOLD_STREAK, CLASH_GOLDS, CLASH_GREAT_MAP, CLASH_PACE_ZERO_TICK, CLASH_REV3_RUN_TICKS, CLASH_STREAK_POINTS, CLASH_STRETCH_POINTS } from "@/lib/arcade/colourClash";
 import { WHACK_BANDS_MAP, WHACK_COMBO_POINTS, WHACK_DIAMOND_POINTS, WHACK_DIAMONDS, WHACK_QUICK_ZERO_TICKS } from "@/lib/arcade/whack";
@@ -72,6 +72,8 @@ import {
   PIN_PTS_SPIN_LIT,
   PIN_PTS_TARGET,
 } from "@/lib/arcade/pinball";
+import { SLICE_V9_BAND_CURVE, SLICE_V9_BONUS_CAP, SLICE_V9_DODGE_POINTS, SLICE_V9_GOLD_POINTS, SLICE_V9_TICKET_POINTS, SLICE_V9_VALUE } from "@/lib/arcade/slice";
+import { BINTOSS_FAR_CAP, BINTOSS_FAR_POINTS, BINTOSS_FAR_THROWS, BINTOSS_V7_BAND_CURVE } from "@/lib/arcade/binToss";
 import { P4_PTS_COMBO, P4_PTS_JACKPOT, P4_PTS_JOULZ, P4_PTS_RAMP, P4_PTS_SKILL } from "@/lib/arcade/pinball4";
 import { BULLSEYE_INNER_BULL_POINTS, BULLSEYE_RING_VALUES } from "@/lib/arcade/bullseye";
 import { liveBandHelp } from "@/lib/arcade/liveBands";
@@ -550,7 +552,13 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
       how: [
         { action: "Drag to aim,", detail: "then let go to throw." },
         { action: "Wind 1 = a quarter bucket.", detail: "Aim into the wind." },
-        { action: "Through the hoop, then in:", detail: "+3 bonus." },
+        { action: "Far bucket at the back:", detail: `+${BINTOSS_FAR_POINTS}, and its hoop +3.` },
+        { action: "Through the hoop, then in:", detail: "+3 bonus.", helpOnly: true },
+        {
+          action: "Far buckets:",
+          detail: `on throws 1-${BINTOSS_FAR_THROWS} a narrow bucket stands still further back. Either bucket counts; the far one adds ${BINTOSS_FAR_POINTS} more (up to ${BINTOSS_FAR_CAP} in all). The hoops hang over it.`,
+          helpOnly: true,
+        },
         {
           action: "Each wind point moves the ball a quarter of a bucket width.",
           detail: "Wind 2 to the left? Aim half a bucket width to the right.",
@@ -560,7 +568,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "From throw 7 the bucket slides", detail: "side to side – time your release.", helpOnly: true },
         {
           action: "Hoops:",
-          detail: "on three of throws 2-5 a hoop hangs above the bucket. Go down through it and into the bucket for 3 bonus points. Its gold ends bounce the ball away.",
+          detail: "on three of throws 2-5 a hoop hangs over the far bucket. Go down through it and into a bucket for 3 bonus points. Its gold ends bounce the ball away.",
           helpOnly: true,
         },
         {
@@ -570,7 +578,8 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         },
         { action: "Drag down to the cancel strip", detail: "to put a throw back.", helpOnly: true },
       ],
-      score: liveBandHelp("bintoss", "Each bucket counts 10 and each hoop bonus 3.", { more: "More buckets and hoops", good: (u) => `counts ${u} – about ${Math.round(u / 10)} buckets`, finish: "All ten in adds 10." }),
+      // binRev 7 (docs/expansions/e5.md): binRev 6's units on their own curve, plus the far points.
+      score: `Each bucket counts 10 and each hoop bonus 3. More buckets and hoops, higher score – up to ${BINTOSS_V7_BAND_CURVE.points.at(-1)}. A good run (${BAND_GOOD_POINTS} points) counts ${bandUnitsFor(BINTOSS_V7_BAND_CURVE, BAND_GOOD_POINTS)} – about ${Math.round(bandUnitsFor(BINTOSS_V7_BAND_CURVE, BAND_GOOD_POINTS) / 10)} buckets. All ten in adds 10, and each far bucket ${BINTOSS_FAR_POINTS} (up to ${BINTOSS_FAR_CAP}). Up to {max}.`,
     },
     bullseye: {
       goal: "Hit the centre – ten darts.",
@@ -739,13 +748,20 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
       goal: "Slice the flying food. Don't cut the chillies.",
       how: [
         { action: "Swipe through food.", detail: "3+ in one swipe: combo ×2, ×3." },
-        { action: "Never cut a chilli:", detail: "it costs 10 points and ends your combo." },
-        { action: "Cut a bottle:", detail: "ketchup, mustard or mayo power-up." },
+        { action: "Small is worth more:", detail: "onion 3, golden fruit 5." },
+        { action: "Fill the ticket; skim chillies,", detail: "never cut one." },
+        { action: "Never cut a chilli:", detail: "it costs 10 points and ends your combo.", helpOnly: true },
+        { action: "Cut a bottle:", detail: "ketchup, mustard or mayo power-up.", helpOnly: true },
+        { action: "Food sizes:", detail: `bread is big and worth ${SLICE_V9_VALUE[0]}, cabbage and meat ${SLICE_V9_VALUE[1]}, onions small and worth ${SLICE_V9_VALUE[2]}, golden fruit tiny and worth ${SLICE_V9_VALUE[4]}.`, helpOnly: true },
+        { action: "Golden fruit:", detail: `cut one while a combo is live for +${SLICE_V9_GOLD_POINTS} at ×2 or +${2 * SLICE_V9_GOLD_POINTS} at ×3.`, helpOnly: true },
+        { action: "Order tickets:", detail: `the ticket at the top right asks for one food, 1–3 in a row, before its time runs out (cutting another food starts the count again). Filling it adds ${SLICE_V9_TICKET_POINTS}.`, helpOnly: true },
+        { action: "Dodge streak:", detail: `slice food close past a chilli (it shows DODGE) and let the chilli fall: ${SLICE_V9_DODGE_POINTS}, ${2 * SLICE_V9_DODGE_POINTS}, then ${3 * SLICE_V9_DODGE_POINTS} for each dodge in a row. Cutting a chilli ends the streak.`, helpOnly: true },
         { action: "Bottles:", detail: "ketchup stops chillies, mustard slows time, mayo pulls food together.", helpOnly: true },
         { action: "Saucy (ketchup): 3 chilli-free seconds.", detail: "Simmer (mustard): 4 slow seconds. Squeeze (mayo): nearby food gathers where you cut it.", helpOnly: true },
         { action: "One finger-down-to-up path counts together", detail: "– curves too, up to the full height of the screen. Each combo resets a 10-second timer.", helpOnly: true },
       ],
-      score: liveBandHelp("slice", "Combo-weighted slices out of the most the run offers (every food at ×3), in thousandths. Each chilli then costs 10 and ends the combo.", { more: "More combo slices", good: (u) => `reaches ${u}` }),
+      // sliceRev 9 (docs/expansions/e5.md): the value-weighted share on its curve, plus the bonus points.
+      score: `Combo-weighted food values (bread ${SLICE_V9_VALUE[0]}, cabbage and meat ${SLICE_V9_VALUE[1]}, onion ${SLICE_V9_VALUE[2]}, golden fruit ${SLICE_V9_VALUE[4]}) out of the most the run offers (every food at ×3), in thousandths. More combo slices, higher score – 150 at ${bandTop(SLICE_V9_BAND_CURVE)}. A good run (${BAND_GOOD_POINTS} points) reaches ${bandUnitsFor(SLICE_V9_BAND_CURVE, BAND_GOOD_POINTS)}. Golden fruit in a combo, filled tickets and dodges add up to ${SLICE_V9_BONUS_CAP} more. Each chilli costs 10 and ends the combo. Up to {max}.`,
     },
     bubble: {
       goal: "Pop threes and free the treasure.",

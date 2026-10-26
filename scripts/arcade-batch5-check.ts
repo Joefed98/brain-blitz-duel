@@ -79,6 +79,7 @@ import {
   BINTOSS_RIM_Y,
 } from "../src/lib/arcade/binToss";
 import { encodeBinTossRun, replayBinTossRun } from "../src/lib/duel/binToss";
+import { BINTOSS_REV_EXPAND } from "../src/lib/arcade/binToss";
 import { generateBeat, generateBinToss, generateBullseye, generateInkBridge, generateOrbit, generateRally } from "../src/lib/duel/arcade.server";
 import { orbitCheckpoint, ORBIT_INPUT_CHECKPOINT, ORBIT_INPUT_TAP, ORBIT_REV4, ORBIT_REV_SWEPT, ORBIT_REV_TUNED, ORBIT_TOTAL } from "../src/lib/arcade/orbit";
 import { decodeOrbitHoles, decodeRev3Planets, initRev4From, orbitRev3Game, ORBIT_REV3_WORLD_W, type OrbitRev3State } from "../src/lib/arcade/orbitRev3";
@@ -115,7 +116,7 @@ section("legacy identity");
 if (want("bintoss")) {
   section("Swish binRev 3 (bonus hoops, spinners, wind on today's bucket)");
   const game = binTossGameFor(BINTOSS_REV3);
-  ok(generateBinToss().binRev === BINTOSS_REV_BAND + 2, "new rounds are stamped binRev 6 (rev 4 play with the shorter spinner: binRev 5, scoring-targets-check; on the score bands: binRev 6, scoring-bands-check)");
+  ok([BINTOSS_REV_BAND + 2, BINTOSS_REV_EXPAND].includes(generateBinToss().binRev ?? -1), "new rounds are stamped binRev 6 (rev 4 play with the shorter spinner: binRev 5, scoring-targets-check; on the score bands: binRev 6, scoring-bands-check) or binRev 7 (the world expansion, expansion-e5-check)");
   ok(binTossGameFor(undefined) === binTossGame && binTossGame.init(5).hoops === undefined, "unstamped rounds keep the original game");
   ok(binTossGameFor(BINTOSS_REV2).init(5).hoops === undefined, "rev-2 rounds have no hoops or spinners");
   ok(JSON.stringify(game.init(77)) === JSON.stringify(game.init(77)), "hoops and spinners are seeded");

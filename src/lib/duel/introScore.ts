@@ -1,6 +1,6 @@
 import { CLASH_DEPTH_MAX_WRONG, CLASH_QUEUE } from "@/lib/arcade/colourClash";
 import { BULLSEYE_INNER_BULL_POINTS, BULLSEYE_RING_VALUES } from "@/lib/arcade/bullseye";
-import { BINTOSS_THROWS } from "@/lib/arcade/binToss";
+import { BINTOSS_FAR_POINTS, BINTOSS_THROWS } from "@/lib/arcade/binToss";
 import { BRK_BRICKS } from "@/lib/arcade/breaker";
 import { INK_LEVELS } from "@/lib/arcade/inkBridge";
 import { SNIP_CONFIG } from "@/lib/arcade/snip";
@@ -104,7 +104,7 @@ function introScoreTemplates(): Record<PuzzleType, string> {
     // Arcade
     hover: "Points for each barrier and gold star. Last the whole minute for 10 more.",
     skyline: "Points for blocks, perfects in a row, gold blocks and every 10 floors. Up to {max}.",
-    bintoss: `Points for each bucket and hoop. All ${BINTOSS_THROWS} in for 10 more, up to {max}.`,
+    bintoss: `Buckets, hoops, All ${BINTOSS_THROWS} in for 10 more: up to 150. Far buckets +${BINTOSS_FAR_POINTS} each: up to {max}.`,
     bullseye: `Rings ${BULLSEYE_RING_VALUES.join(" / ")}, inner bull ${BULLSEYE_INNER_BULL_POINTS}; balloons +1 to +3. Up to {max}.`,
     matchup: "Longer lines score more; goals, ice, treasure and cascades add more. Up to {max}.",
     snake: "Points for each star you eat. Up to {max}.",
@@ -113,7 +113,7 @@ function introScoreTemplates(): Record<PuzzleType, string> {
     rally: "Points for each gold-ball hit and pink target. Blue scores nothing. Up to {max}.",
     pinball: "Table points: ramps, J-O-U-L-Z, jackpots and skill shots score big. Up to {max}.",
     bubble: "Clear bubbles; falling chests, bank shots and combos add more. Up to {max}.",
-    slice: "Points for each food sliced; cut several at once for more. Chilli: lose 10. Up to {max}.",
+    slice: "Food by combo; gold fruit, tickets and dodges add more. Chilli: lose 10. Up to {max}.",
     beat: "Points for each note hit in time; every note Perfect for {max}. A miss costs a little.",
     wavefront: "Ships, armour hits, saucers, waves, boss hits. Destroy the boss fast for up to 10 more.",
     flip: "Points for every second you last and each gold star. Last the minute for 10 more.",
