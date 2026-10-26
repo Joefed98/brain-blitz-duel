@@ -40,9 +40,12 @@
  * band-3 revision before it (its `strictRev`): "live" is the band-3 revision, "next" the expansion.
  * --rev=now measures the revision rooms deal today (LIVE_BANDS in src/lib/arcade/liveBands.ts), reported as
  * "live": the scoring-targets audit (18 Oct 2026, docs/scoring-targets.md) ran it before and after.
- * --levels=average,near limits the levels; the tiers weak and elite (human.ts TIERS) and random (the bot
- * module's `randomBot`: inputs at random, no aim) are measured only when named. --from=N starts at seed index N
- * (the expansions' fresh seeds, never tuned on). --save=<dir> writes each run's
+ * --levels=average,near limits the levels (default the four core levels; --levels=all adds weak, elite
+ * and perfect, scripts/arcade-skill-bands/human.ts). --from=N starts the seed samples at n = N (fresh
+ * seeds: --from=10000). Each level plays the same seeds (paired runs). --bots=v1 plays the bots as the
+ * checks pin them (BotCtx.fixes off: no Oct 2026 competence fixes, docs/arcade-bands-elite.md).
+ * --jobs splits the work by game and level. scripts/arcade-bands-elite.ts turns --json files into the
+ * elite report. --save=<dir> writes each run's
  * encoded log (for fixtures). Not a check: it has no pass/fail and is not run
  * by run-checks or CI. One game at 30 seeds × 4 levels takes ~10 s to a few
  * minutes depending on the bot.
@@ -53,10 +56,11 @@ import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { cpus } from "node:os";
 import { appendClientCounters, arcadeCounters } from "../src/lib/arcade/diagnostics";
 import { GAMES, liveBefore, liveBeforeG1, type GameSpec } from "./arcade-skill-bands/games";
-import { Human, LEVELS, LEVEL_LABEL, type SkillTier } from "./arcade-skill-bands/human";
+import { ALL_LEVELS, Human, LEVELS, LEVEL_LABEL, type SkillLevel } from "./arcade-skill-bands/human";
 import type { SkillBot } from "./arcade-skill-bands/bot";
 import { UNITS } from "./arcade-skill-bands/units";
 import { LIVE_BANDS } from "../src/lib/arcade/liveBands";
+import { roundMaxFor } from "../src/lib/duel/roundMax";
 
 const args = process.argv.slice(2);
 const opt = (name: string) => args.find((a) => a.startsWith(`--${name}=`))?.slice(name.length + 3);
@@ -65,10 +69,12 @@ const REV_MODE = (opt("rev") ?? "live") as "live" | "next" | "both" | "current" 
 const JOBS = Number(opt("jobs") ?? 1);
 const JSON_PATH = opt("json");
 const SAVE_DIR = opt("save");
-/** A tier, or "random" (the bot module's randomBot). */
-type RunLevel = SkillTier | "random";
-const LEVEL_LIST = (opt("levels")?.split(",") ?? [...LEVELS]) as RunLevel[];
+/** A level, or "random" (the bot module's `randomBot`: inputs at random, no aim; measured only when named). */
+type RunLevel = SkillLevel | "random";
+const LEVEL_LIST = (opt("levels") === "all" ? [...ALL_LEVELS] : (opt("levels")?.split(",") ?? [...LEVELS])) as RunLevel[];
+const levelLabel = (l: RunLevel) => (l === "random" ? "Random" : LEVEL_LABEL[l]);
 const FROM = Number(opt("from") ?? 0);
+const FIXES = opt("bots") !== "v1";
 const CHILD = args.includes("--child");
 const ONLY = args.filter((a) => !a.startsWith("--"));
 
@@ -77,6 +83,8 @@ export interface RunRecord {
   rev: number | null;
   which: "live" | "next" | "tuned";
   level: RunLevel;
+  /** The sample index (roomSeed(n) and the like): every level plays the same n. */
+  n: number;
   seed: number;
   score: number;
   counters: Record<string, number>;
@@ -98,12 +106,12 @@ async function loadBot(type: string): Promise<{ bot: SkillBot; random?: SkillBot
 
 const CHECKPOINT_EVERY = 300;
 
-function playOne(spec: GameSpec, bot: SkillBot, rev: number | null, which: "live" | "next" | "tuned", level: RunLevel, seed: number): RunRecord & { raw: string } {
+function playOne(spec: GameSpec, bot: SkillBot, rev: number | null, which: "live" | "next" | "tuned", level: RunLevel, n: number, seed: number): RunRecord & { raw: string } {
   const started = performance.now();
   const game = spec.gameFor(rev, seed);
-  // A random player gets the weak tier's Human for its dice; the random bot ignores its profile.
+  // A random player gets the weak level's Human for its dice; the random bot ignores its profile.
   const human = new Human(spec.type, seed, level === "random" ? "weak" : level);
-  const out = bot({ game, seed, rev, human });
+  const out = bot({ game, seed, rev, human, fixes: FIXES });
   // Re-drive the sim from the bot's log alone, exactly as the phone records it.
   let state = game.init(seed);
   const checkpoints: unknown[] = [];
@@ -126,6 +134,7 @@ function playOne(spec: GameSpec, bot: SkillBot, rev: number | null, which: "live
     rev,
     which,
     level,
+    n,
     seed,
     score: result.score,
     counters,
@@ -153,7 +162,9 @@ async function runGame(spec: GameSpec): Promise<RunRecord[]> {
     else revs.push(["live", live.strictRev], ["next", live.rev]);
   } else if (REV_MODE === "now") {
     // The revision rooms deal today (LIVE_BANDS), as "live": the scoring-targets audit (Oct 2026).
-    const now = (LIVE_BANDS as Record<string, { rev: number }>)[spec.type]?.rev;
+    // (A branch whose entry names the revision rooms deal separately, `dealt`, measures that one.)
+    const entry = (LIVE_BANDS as Record<string, { rev: number; dealt?: number }>)[spec.type];
+    const now = entry?.dealt ?? entry?.rev;
     if (now === undefined) console.error(`${spec.type}: no live band`);
     else revs.push(["live", now]);
   } else if (REV_MODE === "x") {
@@ -220,8 +231,9 @@ async function runGame(spec: GameSpec): Promise<RunRecord[]> {
       const bot = level === "random" ? bots.random : bots.bot;
       if (!bot) continue;
       for (let n = FROM; n < FROM + SEEDS; n++) {
+        // A game whose expansion deals from its own bank maps n to a course per revision (Grappler, games.ts).
         const seed = spec.seedForRev?.(n, rev) ?? spec.seedFor(n);
-        const rec = playOne(spec, bot, rev, which, level, seed);
+        const rec = playOne(spec, bot, rev, which, level, n, seed);
         if (SAVE_DIR) {
           mkdirSync(`${SAVE_DIR}/${spec.type}`, { recursive: true });
           writeFileSync(`${SAVE_DIR}/${spec.type}/${which}-${level}-${n}.txt`, rec.raw);
@@ -256,7 +268,7 @@ function printTable(records: RunRecord[]) {
   const rows = summarise(records);
   const types = [...new Set(rows.map((r) => r.type))];
   const whichs = [...new Set(rows.map((r) => r.which))];
-  console.log(`\n${"game".padEnd(10)} ${"rev".padEnd(5)} ${LEVEL_LIST.map((l) => (l === "random" ? "Random" : LEVEL_LABEL[l]).padEnd(20)).join(" ")}`);
+  console.log(`\n${"game".padEnd(10)} ${"rev".padEnd(5)} ${LEVEL_LIST.map((l) => levelLabel(l).padEnd(20)).join(" ")}`);
   console.log(`${"".padEnd(16)} ${LEVEL_LIST.map(() => "median (p10–p90)".padEnd(20)).join(" ")}`);
   for (const type of types)
     for (const which of whichs) {
@@ -288,14 +300,15 @@ async function main() {
       console.error(`${spec.type}: ${recs.length} runs in ${((performance.now() - t0) / 1000).toFixed(1)} s`);
     }
   } else {
-    const queue = [...specs];
-    const passArgs = args.filter((a) => a.startsWith("--") && !a.startsWith("--jobs=") && !a.startsWith("--json="));
+    // One job per game and level (the slow bots' levels run side by side).
+    const queue = specs.flatMap((spec) => LEVEL_LIST.map((level) => ({ spec, level })));
+    const passArgs = args.filter((a) => a.startsWith("--") && !a.startsWith("--jobs=") && !a.startsWith("--json=") && !a.startsWith("--levels="));
     const worker = async () => {
       while (queue.length) {
-        const spec = queue.shift()!;
+        const { spec, level } = queue.shift()!;
         const t0 = performance.now();
         const recs = await new Promise<RunRecord[]>((resolve) => {
-          const child = spawn("bun", [process.argv[1]!, spec.type, "--child", ...passArgs], { stdio: ["ignore", "pipe", "inherit"] });
+          const child = spawn("bun", [process.argv[1]!, spec.type, "--child", `--levels=${level}`, ...passArgs], { stdio: ["ignore", "pipe", "inherit"] });
           let out = "";
           child.stdout.on("data", (d) => (out += d));
           child.on("close", () => {
@@ -304,14 +317,14 @@ async function main() {
           });
         });
         records.push(...recs);
-        console.error(`${spec.type}: ${recs.length} runs in ${((performance.now() - t0) / 1000).toFixed(1)} s`);
+        console.error(`${spec.type} ${level}: ${recs.length} runs in ${((performance.now() - t0) / 1000).toFixed(1)} s`);
       }
     };
     await Promise.all(Array.from({ length: Math.min(JOBS, cpus().length) }, worker));
-    records = specs.flatMap((s) => records.filter((r) => r.type === s.type));
+    records = specs.flatMap((s) => LEVEL_LIST.flatMap((l) => records.filter((r) => r.type === s.type && r.level === l)));
   }
   printTable(records);
-  if (JSON_PATH) writeFileSync(JSON_PATH, JSON.stringify({ seeds: SEEDS, from: FROM, rev: REV_MODE, records, summary: summarise(records) }, null, 1));
+  if (JSON_PATH) writeFileSync(JSON_PATH, JSON.stringify({ seeds: SEEDS, from: FROM, rev: REV_MODE, bots: FIXES ? "v2" : "v1", maxes: Object.fromEntries(specs.map((sp) => [sp.type, roundMaxFor(sp.type)])), records, summary: summarise(records) }, null, 1));
 }
 
 await main();
