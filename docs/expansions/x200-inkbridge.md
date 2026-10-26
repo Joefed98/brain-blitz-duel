@@ -163,9 +163,39 @@ clean. The ceiling over all 260 seeds: `bun scripts/ink-x200-oracle.ts 0 130` an
   skips exactly the segments the full test returns null for; every revision replays identically, proved by the legacy
   fixture, arcade-self-replay, replay-check and the older ink checks).
 
+## Build time (speed only, the same levels)
+
+`bun scripts/ink-x200-build-digest.ts 50` times `inkBridgeGameFor(10).init` on the first 50 skill-band seeds and
+digests each starting state (`--compare=<json>` fails on any difference). Quiet 4-core machine:
+
+| | median | p90 | max | 50 seeds |
+|---|---|---|---|---|
+| inkRev 10 before (6fdc542a) | 1,940 ms | 2,433 ms | 2,914 ms | 97.4 s |
+| inkRev 10 after | 416 ms | 592 ms | 745 ms | 21.6 s |
+| inkRev 8 on main's code | 401 ms | 551 ms | 922 ms | 19.9 s |
+| inkRev 8 with these speed-ups | 190 ms | 281 ms | 381 ms | 9.7 s |
+
+The 50 digests are identical before and after, and so are 200 older-revision starting states (unstamped, inkRev 2–8)
+and 34 tick-by-tick random-input runs on old and new code side by side. Where the time went: most layouts the
+generator tries have no reference line at all (about three in four, as on inkRev 8), and inkRev 10 tries about five
+times as many layouts, so `findReference` dominated. The speed-ups, none of which changes a result:
+
+- **Shared prefixes** (`sharedDrop`, `dropFrom`): the lines through one waypoint share their first leg; the drop on
+  that leg alone is run once, and a candidate uses its result while the coin stays over 50 px from the rest of the line
+  (a later segment can only take part within the coin's 10 px reach, and a tick moves it under 32 px), else picks the
+  drop up from the first tick that does. Used by `findReference`, the steady-reference family and the bonus-line screen.
+- **Moving pots** (`movingRelease`, `stillPrefix`, `dropRun`): every release plays the still pot's ticks until the coin
+  is within 45 px of the rim's height, so the 16 releases resume from there.
+- **Live levels** (`ballsOf`, `stagedFrom`): the staged live-stroke drops resume from the pre-release line's own drop on
+  the tick the stroke turns solid (`findLiveReference`, `handLive`'s screen).
+- **Physics, every revision**: bounding-box quick misses in `capsuleContact`, `clampOut` and the bird test; the pot's
+  position worked out only near its rim; `capsuleContact` takes its earliest touching candidate without a sorted copy;
+  `strokeSegs` builds its own segment list in place; a no-path drop ends once the coin falls below everything it could
+  meet.
+
 ## For the coordinator
 
-- **Level build time**: an inkRev 10 run is built in about 3 s on this shared 4-core machine under load (inkRev 8
+- **Level build time** (26 Oct, follow-up): see "Build time" below; inkRev 10 now builds in about inkRev 8's time on main.
   about 1.5 s the same way); the phone builds it at the start of a round. Worth timing on a phone after the merge.
 - Browser checks not run here: arcade-play-check, arcade-room-practice-check, arcade-lowend-check (Ink Bridge is one of
   its five games), presentation-geometry-check, safe-area-screens-check, play-control-clearance-check,
