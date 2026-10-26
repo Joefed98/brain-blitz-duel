@@ -43,85 +43,123 @@ const pct = (xs: number[], q: number) => {
 };
 
 export interface LevelRow { level: SkillLevel; median: number; top10: number; zeros: number; n: number }
+export interface SetReport {
+  rows: LevelRow[];
+  /** Median of the per-seed difference between each level and the one below it (the same seeds). */
+  steps: { from: SkillLevel; to: SkillLevel; paired: number }[];
+  /** Per-seed ceiling: the best any level (the flawless bot included) scored on that seed. */
+  ceiling: { seeds: number; belowMax: number; lowest: number; median: number };
+  /** Median over seeds of near-perfect's score as a share of the seed's ceiling. */
+  nearShare: number;
+}
 export interface GameReport {
   source: string;
   type: string;
   rev: number | null;
   max: number;
-  tuning: LevelRow[];
-  fresh: LevelRow[];
-  /** Fresh seeds: median of the per-seed difference between each level and the one below it. */
-  steps: { from: SkillLevel; to: SkillLevel; pairedMedian: number; medianGap: number }[];
-  ceiling: { seeds: number; belowMax: number; lowest: number; median: number; flawlessMedian: number };
-  /** Near-perfect's fresh median as a share of the seeds' ceilings (median of per-seed shares). */
-  nearShareOfCeiling: number;
+  tuning: SetReport;
+  fresh: SetReport;
   flags: string[];
 }
 
-function rows(recs: RunRecord[]): LevelRow[] {
-  return ALL_LEVELS.filter((l) => recs.some((r) => r.level === l)).map((level) => {
+const HUMAN: SkillLevel[] = ALL_LEVELS.filter((l) => l !== "perfect");
+
+function setReport(recs: RunRecord[], max: number): SetReport {
+  const rows = ALL_LEVELS.filter((l) => recs.some((r) => r.level === l)).map((level) => {
     const xs = recs.filter((r) => r.level === level).map((r) => r.score);
     return { level, median: pct(xs, 0.5), top10: pct(xs, 0.9), zeros: xs.filter((x) => x === 0).length, n: xs.length };
   });
-}
-
-export function reportGame(source: string, type: string, recs: RunRecord[], max: number): GameReport {
-  const tuning = recs.filter((r) => r.n < FRESH_FROM);
-  const fresh = recs.filter((r) => r.n >= FRESH_FROM);
-  const fr = rows(fresh);
   const byN = new Map<number, Map<SkillLevel, number>>();
   for (const r of recs) {
     if (!byN.has(r.n)) byN.set(r.n, new Map());
     byN.get(r.n)!.set(r.level, r.score);
   }
-  const human = ALL_LEVELS.filter((l) => l !== "perfect" && fr.some((x) => x.level === l));
+  const human = HUMAN.filter((l) => rows.some((x) => x.level === l));
   const steps = human.slice(1).map((to, i) => {
     const from = human[i]!;
-    const diffs = [...byN].filter(([n, m]) => n >= FRESH_FROM && m.has(from) && m.has(to)).map(([, m]) => m.get(to)! - m.get(from)!);
-    return { from, to, pairedMedian: pct(diffs, 0.5), medianGap: fr.find((x) => x.level === to)!.median - fr.find((x) => x.level === from)!.median };
+    const diffs = [...byN.values()].filter((m) => m.has(from) && m.has(to)).map((m) => m.get(to)! - m.get(from)!);
+    return { from, to, paired: pct(diffs, 0.5) };
   });
-  const ceilings = [...byN].filter(([n]) => n >= FRESH_FROM).map(([, m]) => Math.max(...m.values()));
-  const allCeil = [...byN].map(([, m]) => Math.max(...m.values()));
-  const nearShares = [...byN].filter(([n, m]) => n >= FRESH_FROM && m.has("near")).map(([, m]) => m.get("near")! / Math.max(1, Math.max(...m.values())));
-  const flags: string[] = [];
-  const med = (l: SkillLevel) => fr.find((x) => x.level === l)?.median;
-  for (const s of steps) if (!(s.medianGap > 0)) flags.push(`${LEVEL_LABEL[s.to]} median not above ${LEVEL_LABEL[s.from]} (${med(s.from)} → ${med(s.to)})`);
-  const good = med("good");
-  const near = med("near");
-  const elite = med("elite");
-  if (good !== undefined && near !== undefined && near - good < 25) flags.push(`good → near-perfect only ${near - good} (under ~25)`);
-  if (near !== undefined && elite !== undefined && elite - near < 10) flags.push(`near-perfect → elite only ${elite - near} (under ~10)`);
+  const ceilings = [...byN.values()].map((m) => Math.max(...m.values()));
+  const shares = [...byN.values()].filter((m) => m.has("near")).map((m) => (1000 * m.get("near")!) / Math.max(1, Math.max(...m.values())));
   return {
-    source,
-    type,
-    rev: recs[0]?.rev ?? null,
-    max,
-    tuning: rows(tuning),
-    fresh: fr,
+    rows,
     steps,
-    ceiling: { seeds: ceilings.length, belowMax: ceilings.filter((c) => c < max).length, lowest: Math.min(...allCeil), median: pct(ceilings, 0.5), flawlessMedian: med("perfect") ?? NaN },
-    nearShareOfCeiling: pct(nearShares.map((x) => x * 1000), 0.5) / 1000,
-    flags,
+    ceiling: { seeds: ceilings.length, belowMax: ceilings.filter((c) => c < max).length, lowest: ceilings.length ? Math.min(...ceilings) : NaN, median: pct(ceilings, 0.5) },
+    nearShare: pct(shares, 0.5) / 1000,
   };
 }
 
-export function gameMarkdown(g: GameReport): string {
+export const medianOf = (set: SetReport, level: SkillLevel) => set.rows.find((r) => r.level === level)?.median;
+export const top10Of = (set: SetReport, level: SkillLevel) => set.rows.find((r) => r.level === level)?.top10;
+
+export function reportGame(source: string, type: string, recs: RunRecord[], max: number): GameReport {
+  const tuning = setReport(recs.filter((r) => r.n < FRESH_FROM), max);
+  const fresh = setReport(recs.filter((r) => r.n >= FRESH_FROM), max);
+  const flags: string[] = [];
+  for (const [name, set] of [["tuning", tuning], ["fresh", fresh]] as const) {
+    if (!set.rows.length) continue;
+    for (let i = 1; i < HUMAN.length; i++) {
+      const a = medianOf(set, HUMAN[i - 1]!);
+      const b = medianOf(set, HUMAN[i]!);
+      if (a !== undefined && b !== undefined && !(b > a)) flags.push(`${name}: ${LEVEL_LABEL[HUMAN[i]!]} median not above ${LEVEL_LABEL[HUMAN[i - 1]!]} (${a} → ${b})`);
+    }
+  }
+  const good = medianOf(fresh, "good");
+  const near = medianOf(fresh, "near");
+  const elite = medianOf(fresh, "elite");
+  if (good !== undefined && near !== undefined && near - good < 25) flags.push(`fresh: good → near-perfect only ${near - good} (under ~25)`);
+  if (near !== undefined && elite !== undefined && elite - near < 10) flags.push(`fresh: near-perfect → elite only ${elite - near} (under ~10)`);
+  return { source, type, rev: recs[0]?.rev ?? null, max, tuning, fresh, flags };
+}
+
+/** The 200-point merge gates (docs/scoring-200.md, the overnight queue's bar); `before` is the old revision's good median per set. */
+export function gates(g: GameReport, before?: { tuning?: number; fresh?: number }): string[] {
+  const out: string[] = [];
+  for (const [name, set] of [["tuning", g.tuning], ["fresh", g.fresh]] as const) {
+    const good = medianOf(set, "good");
+    const old = before?.[name];
+    if (good !== undefined && old) out.push(`${name} good ${good} vs ${old} before (${good >= old * 0.9 && good <= old * 1.1 ? "within" : "outside"} ±10 %)`);
+    const near = medianOf(set, "near");
+    const nearTop = top10Of(set, "near");
+    if (near !== undefined) out.push(`${name} near-perfect ${near} / top 10 % ${nearTop} (${near >= 165 && near <= 175 && (nearTop ?? 999) <= 185 ? "meets" : "misses"} 165–175, ≤ 185)`);
+    const elite = medianOf(set, "elite");
+    const eliteTop = top10Of(set, "elite");
+    if (elite !== undefined) out.push(`${name} elite ${elite} / top 10 % ${eliteTop} (${elite >= 175 && (eliteTop ?? 0) >= 190 ? "meets" : "misses"} median ≥ 175, top 10 % 190–200)`);
+    const zeros = set.rows.filter((r) => (r.level === "weak" || r.level === "average") && r.zeros > 0).map((r) => `${LEVEL_LABEL[r.level]} ${r.zeros}`);
+    if (set.rows.length) out.push(`${name} zeros (weak/average): ${zeros.length ? zeros.join(", ") : "none"}`);
+  }
+  return out;
+}
+
+function stepsLine(set: SetReport): string {
+  return set.steps.map((s) => `${LEVEL_LABEL[s.from]} → ${LEVEL_LABEL[s.to]} ${s.paired >= 0 ? "+" : ""}${s.paired}`).join(", ");
+}
+
+export function gameMarkdown(g: GameReport, before?: { tuning?: number; fresh?: number }): string {
   const name = gameDisplayName(g.type as never);
-  const out = [`### ${name} (\`${g.type}\`, rev ${g.rev}, max ${g.max}) — ${g.source}`, ""];
-  const t = g.tuning[0]?.n ?? 0;
-  const f = g.fresh[0]?.n ?? 0;
-  out.push(`| Level | Tuning seeds (${t}): median / top 10 % | zeros | Fresh seeds (${f}): median / top 10 % | zeros |`, "|---|---|---|---|---|");
+  const out = [`### ${name} (\`${g.type}\` rev ${g.rev}, max ${g.max}; ${g.source})`, ""];
+  const t = g.tuning.rows[0]?.n ?? 0;
+  const f = g.fresh.rows[0]?.n ?? 0;
+  out.push(`| Level | Tuning (${t} seeds): median / top 10 % | zeros | Fresh (${f} seeds): median / top 10 % | zeros |`, "|---|---|---|---|---|");
   for (const level of ALL_LEVELS) {
-    const a = g.tuning.find((r) => r.level === level);
-    const b = g.fresh.find((r) => r.level === level);
+    const a = g.tuning.rows.find((r) => r.level === level);
+    const b = g.fresh.rows.find((r) => r.level === level);
     if (!a && !b) continue;
     out.push(`| ${LEVEL_LABEL[level]}${level === "perfect" ? " (ceiling bot)" : ""} | ${a ? `${a.median} / ${a.top10}` : "–"} | ${a?.zeros ?? "–"} | ${b ? `${b.median} / ${b.top10}` : "–"} | ${b?.zeros ?? "–"} |`);
   }
   out.push("");
-  out.push(`Paired steps on the fresh seeds (median of per-seed differences): ${g.steps.map((s) => `${LEVEL_LABEL[s.from]} → ${LEVEL_LABEL[s.to]} ${s.pairedMedian >= 0 ? "+" : ""}${s.pairedMedian}`).join(", ")}.`);
-  out.push(`Per-seed ceiling (best of every level on the seed): median ${g.ceiling.median}, lowest ${g.ceiling.lowest}; ${g.ceiling.belowMax} of ${g.ceiling.seeds} fresh seeds below ${g.max}. Near-perfect scores a median ${Math.round(g.nearShareOfCeiling * 100)} % of its seed's ceiling.`);
-  out.push(g.flags.length ? `Flags: ${g.flags.join("; ")}.` : "Flags: none (medians rise level by level, gaps clear).");
+  out.push(`- Paired steps (median of per-seed differences), tuning: ${stepsLine(g.tuning)}; fresh: ${stepsLine(g.fresh)}.`);
+  for (const [nm, set] of [["tuning", g.tuning], ["fresh", g.fresh]] as const)
+    if (set.ceiling.seeds) out.push(`- Ceiling, ${nm} seeds: median ${set.ceiling.median}, lowest ${set.ceiling.lowest}; ${set.ceiling.belowMax} of ${set.ceiling.seeds} seeds below ${g.max}. Near-perfect scores a median ${Math.round(set.nearShare * 100)} % of its seed's ceiling.`);
+  if (g.max > 150) out.push(`- Gates: ${gates(g, before).join("; ")}.`);
+  out.push(`- Flags: ${g.flags.length ? g.flags.join("; ") : "none (medians rise level by level; good → near-perfect ≥ 25, near-perfect → elite ≥ 10)"}.`);
   return out.join("\n");
+}
+
+export function summaryRow(g: GameReport): string {
+  const m = (l: SkillLevel) => medianOf(g.fresh, l) ?? "–";
+  return `| ${gameDisplayName(g.type as never)} | ${g.source} | ${g.max} | ${HUMAN.map(m).join(" / ")} | ${medianOf(g.fresh, "perfect") ?? "–"} | ${g.fresh.ceiling.belowMax} / ${g.fresh.ceiling.lowest} | ${g.flags.length ? g.flags.map((f) => f.replace(/^fresh: |^tuning: /, (x) => x)).join("; ") : "–"} |`;
 }
 
 if (import.meta.main) {
@@ -130,8 +168,19 @@ if (import.meta.main) {
     const types = [...new Set(src.records.map((r) => r.type as string))];
     for (const type of types) reports.push(reportGame(src.name, type, src.records.filter((r) => r.type === type), src.maxes[type] ?? 150));
   }
-  const md = reports.map(gameMarkdown).join("\n\n") + "\n";
+  // "Before" for a parked game's good gate: main's run of the same game (main deals the score-band revision the expansion replaces).
+  const beforeOf = (g: GameReport) => {
+    const m = reports.find((x) => x.source === "main" && x.type === g.type);
+    return g.source !== "main" && m ? { tuning: medianOf(m.tuning, "good"), fresh: medianOf(m.fresh, "good") } : undefined;
+  };
+  const md = [
+    "| Game | Source | Max | Fresh medians: weak / average / good / great / near / elite | Flawless | Seeds below max / lowest ceiling | Flags |",
+    "|---|---|---|---|---|---|---|",
+    ...reports.map(summaryRow),
+    "",
+    ...reports.map((g) => gameMarkdown(g, beforeOf(g)) + "\n"),
+  ].join("\n");
   if (OUT) writeFileSync(OUT, md);
   else console.log(md);
-  if (JSON_OUT) writeFileSync(JSON_OUT, JSON.stringify(reports, null, 1));
+  if (JSON_OUT) writeFileSync(JSON_OUT, JSON.stringify(reports.map((g) => ({ ...g, gates: g.max > 150 ? gates(g, beforeOf(g)) : [] })), null, 1));
 }
