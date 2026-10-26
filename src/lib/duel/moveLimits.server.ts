@@ -20,6 +20,7 @@ import {
   TUBES_PROGRESS_REV,
 } from "./moveLimits";
 import { BAL_REV2, BAL_REV2_SCALES } from "./balance";
+import { stampLogicDepth } from "./logicDepthStamp.server";
 import type { PuzzleData } from "./types";
 
 /** Colour Flood floodRev 1 (stored rounds): par (public) plus this many spare taps. floodRev 2 and 3 get par + FLOOD_REV2_SPARE_MOVES. */
@@ -38,6 +39,11 @@ export const MEASURE_LIMIT_FACTOR = 3;
 const upTo5 = (n: number) => Math.max(5, Math.ceil(n / 5) * 5);
 
 export function stampMoveLimits(puzzle: PuzzleData): PuzzleData {
+  // The eleven Logic games' depth revision (logicDepth.ts, 25 Oct 2026; docs/depth/d6-logic.md) rides on this stamp pass.
+  return stampLogicDepth(stampLimitsOnly(puzzle));
+}
+
+function stampLimitsOnly(puzzle: PuzzleData): PuzzleData {
   switch (puzzle.type) {
     case "flood":
       // floodRev 2 (14 Oct 2026): par + 2 taps, stored on the puzzle. floodRev 3 (19 Oct 2026): the same

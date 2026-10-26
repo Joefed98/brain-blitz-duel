@@ -10,6 +10,7 @@ import {
   countShikakuSolutions,
   rectArea,
   rectCells,
+  SHIKAKU_DEPTH_HEIGHT,
   SHIKAKU_SIZE,
   type ShikakuClue,
   type ShikakuRect,
@@ -32,9 +33,9 @@ export function shikakuEqualAdjacentPairs(rects: readonly ShikakuRect[]): number
   return pairs;
 }
 
-function tryPartition(): ShikakuRect[] | null {
+function tryPartition(height = SHIKAKU_SIZE): ShikakuRect[] | null {
   const size = SHIKAKU_SIZE;
-  const used = new Array<boolean>(size * size).fill(false);
+  const used = new Array<boolean>(size * height).fill(false);
   const rects: ShikakuRect[] = [];
   let ones = 0;
   let twos = 0;
@@ -45,7 +46,7 @@ function tryPartition(): ShikakuRect[] | null {
     const c0 = first % size;
     const options: ShikakuRect[] = [];
     let maxC = size - 1;
-    for (let r1 = r0; r1 < size; r1++) {
+    for (let r1 = r0; r1 < height; r1++) {
       for (let c1 = c0; c1 <= maxC; c1++) {
         if (used[r1 * size + c1]) {
           maxC = c1 - 1;
@@ -85,20 +86,38 @@ function clueCell(rect: ShikakuRect): number {
   return pick(away.length ? away : cells);
 }
 
+/**
+ * The depth revision's slightly bigger grid (depthRev 1, 25 Oct 2026): 10 wide and 11 tall, 17–21 rectangles
+ * (one fewer at most, a little larger on average, so the round's clock still fits a good solve), the same mix rules, and still exactly
+ * one partition.
+ */
 export function generateShikaku(): ShikakuPuzzleData {
+  return buildShikaku(SHIKAKU_DEPTH_HEIGHT, 17, 21) ?? generateLegacyShikaku();
+}
+
+/** The 10 × 10 grid rooms dealt before the depth revision (kept for the calibration and checks). */
+export function generateLegacyShikaku(): ShikakuPuzzleData {
+  const board = buildShikaku(SHIKAKU_SIZE, 18, 22);
+  if (!board) throw new Error("Shikaku generation failed");
+  return board;
+}
+
+function buildShikaku(height: number, minRects: number, maxRects: number): ShikakuPuzzleData | null {
+  const tall = height !== SHIKAKU_SIZE;
   for (let attempt = 0; attempt < 50000; attempt++) {
-    const rects = tryPartition();
-    if (!rects || rects.length < 18 || rects.length > 22) continue;
+    const rects = tryPartition(height);
+    if (!rects || rects.length < minRects || rects.length > maxRects) continue;
     if (rects.filter((rect) => rectArea(rect) >= 6).length < 4) continue;
     if (shikakuEqualAdjacentPairs(rects) < 3) continue;
     const clues: ShikakuClue[] = rects.map((rect) => ({ cell: clueCell(rect), n: rectArea(rect) }));
-    if (countShikakuSolutions(clues, 2) !== 1) continue;
+    if (countShikakuSolutions(clues, 2, SHIKAKU_SIZE, height) !== 1) continue;
     return {
       type: "shikaku",
       size: SHIKAKU_SIZE,
+      ...(tall ? { height } : {}),
       clues: [...clues].sort((a, b) => a.cell - b.cell),
       solution: rects,
     };
   }
-  throw new Error("Shikaku generation failed");
+  return null;
 }

@@ -7,6 +7,7 @@ import { SNIP_CONFIG } from "@/lib/arcade/snip";
 import { SWING_FINISH_M } from "@/lib/arcade/swing";
 import { TILT_MAX_MAZES } from "@/lib/arcade/tilt";
 import { bandsIntro } from "./puzzleBandsText";
+import { depthIntro as logicDepthIntro } from "./logicDepthText";
 import { wordSearchBonusIntro } from "./wordSearchText";
 import { letterWheelJarIntro } from "./letterWheelText";
 import { CODEWORD_STRETCH, TILEGRID_STRETCH, stretchIntro, strikeoutDepthIntro } from "./depth/stretchShapes";
@@ -77,26 +78,26 @@ function introScoreTemplates(): Record<PuzzleType, string> {
 
     // Logic and pattern
     unblock: bandsIntro("unblock"),
-    lightsout: bandsIntro("lightsout"),
+    lightsout: logicDepthIntro("lightsout"),
     pipes: bandsIntro("pipes"),
-    sudoku: bandsIntro("sudoku"),
+    sudoku: logicDepthIntro("sudoku"),
     flow: bandsIntro("flow"),
     iceslide: bandsIntro("iceslide"),
     push: bandsIntro("push"),
     laser: bandsIntro("laser"),
-    tower: bandsIntro("tower"),
-    tubes: bandsIntro("tubes"),
-    safe: bandsIntro("safe"),
-    bomb: bandsIntro("bomb"),
+    tower: logicDepthIntro("tower"),
+    tubes: logicDepthIntro("tubes"),
+    safe: logicDepthIntro("safe"),
+    bomb: logicDepthIntro("bomb"),
     gravity: TOPSY_INTRO_SCORE,
-    nonogram: bandsIntro("nonogram"),
-    flood: bandsIntro("flood"),
+    nonogram: logicDepthIntro("nonogram"),
+    flood: logicDepthIntro("flood"),
     tiles: JUMBLED_INTRO_SCORE,
     rings: bandsIntro("rings"),
     blockparty: bandsIntro("blockparty"),
-    shikaku: bandsIntro("shikaku"),
-    lightup: bandsIntro("lightup"),
-    tents: bandsIntro("tents"),
+    shikaku: logicDepthIntro("shikaku"),
+    lightup: logicDepthIntro("lightup"),
+    tents: logicDepthIntro("tents"),
     dig: "Fill the drain with clean water for 100, more if you're quick and use few digs.",
 
     // Arcade

@@ -844,6 +844,10 @@ export const LIGHTS_MIN_BONUS = 20;
 export const LIGHTS_PARTIAL_POINTS = 60;
 
 export interface LightsOutPuzzleData {
+  /** Depth revision (logicDepth.ts, 25 Oct 2026): 1 = scored to 200. Absent = the old scoring. */
+  depthRev?: number;
+  /** The depth revision's public par: the stored minimum, shown on the board (logicDepthStamp.server.ts). */
+  par?: number;
   type: "lightsout";
   /** Twenty-five lights, true for lit, in the order every player sees them. */
   lights: boolean[];
@@ -902,6 +906,8 @@ export const SUDOKU_REV1_MAX_GIVENS = 15;
 export const SUDOKU_PARTIAL_POINTS = 110;
 
 export interface SudokuPuzzleData {
+  /** Depth revision (logicDepth.ts, 25 Oct 2026): 1 = scored to 200. Absent = the old scoring. */
+  depthRev?: number;
   type: "sudoku";
   /** Thirty-six cells: the fixed digits, 0 where the player must fill in. */
   givens: number[];
@@ -1214,6 +1220,8 @@ export interface TowerStats {
 }
 
 export interface TowerPuzzleData {
+  /** Depth revision (logicDepth.ts, 25 Oct 2026): 1 = scored to 200. Absent = the old scoring. */
+  depthRev?: number;
   type: "tower";
   /** How many discs are in play: eight. */
   discs: number;
@@ -1298,6 +1306,10 @@ export const TUBES_TUBE_POINTS = 22;
 export const TUBES_PARTIAL_POINTS = 60;
 
 export interface TubesPuzzleData {
+  /** Depth revision (logicDepth.ts, 25 Oct 2026): 1 = scored to 200. Absent = the old scoring. */
+  depthRev?: number;
+  /** The depth revision's public par: the stored minimum, shown on the board (logicDepthStamp.server.ts). */
+  par?: number;
   /** Puzzle score shape stamp (puzzleScoreRev.ts; set by generatePuzzle, kept on the banked intro example). */
   puzzleScoreRev?: number;
   type: "tubes";
@@ -1325,6 +1337,8 @@ export const SAFE_TRY_POINTS = [130, 115, 100];
 export const SAFE_DIAL_POINTS = 15;
 
 export interface SafePuzzleData {
+  /** Depth revision (logicDepth.ts, 25 Oct 2026): 1 = scored to 200. Absent = the old scoring. */
+  depthRev?: number;
   type: "safe";
   /** The four clues printed on the card — public from the start. */
   clues: import("./safe").SafeClue[];
@@ -1384,6 +1398,8 @@ export function bombSpecOf(version: 1 | 2): BombSpec {
 }
 
 export interface BombPuzzleData {
+  /** Depth revision (logicDepth.ts, 25 Oct 2026): 1 = scored to 200. Absent = the old scoring. */
+  depthRev?: number;
   type: "bomb";
   wires: import("./bomb").WireColour[];
   buttons: import("./bomb").BombButton[];
@@ -1570,6 +1586,8 @@ export const NONO_WRONG_PENALTY = 5;
 export type NonoMark = 0 | 1 | 2;
 
 export interface NonoPuzzleData {
+  /** Depth revision (logicDepth.ts, 25 Oct 2026): 1 = scored to 200. Absent = the old scoring. */
+  depthRev?: number;
   type: "nonogram";
   /** Run lengths, in order, for each row then each column. */
   rows: number[][];
@@ -1625,6 +1643,8 @@ export const FLOOD_PAR_BONUS = 20;
 export const FLOOD_PARTIAL_POINTS = 110;
 
 export interface FloodPuzzleData {
+  /** Depth revision (logicDepth.ts, 25 Oct 2026): 1 = scored to 200. Absent = the old scoring. */
+  depthRev?: number;
   type: "flood";
   /** Row-major colour indices, 0 … FLOOD_COLOURS - 1. */
   grid: number[];
@@ -1928,6 +1948,10 @@ export interface WhackPuzzleData {
 }
 
 export interface TentsPuzzleData {
+  /** Depth revision (logicDepth.ts, 25 Oct 2026): 1 = scored to 200. Absent = the old scoring. */
+  depthRev?: number;
+  /** Rows when taller than wide (the depth revision's bigger board, 25 Oct 2026); absent = `size` rows. */
+  height?: number;
   type: "tents";
   size: number;
   trees: number[];
@@ -2424,6 +2448,10 @@ export interface WordSearchPuzzleData {
 }
 
 export interface ShikakuPuzzleData {
+  /** Depth revision (logicDepth.ts, 25 Oct 2026): 1 = scored to 200. Absent = the old scoring. */
+  depthRev?: number;
+  /** Rows when taller than wide (the depth revision's bigger board, 25 Oct 2026); absent = `size` rows. */
+  height?: number;
   type: "shikaku";
   size: number;
   clues: { cell: number; n: number }[];
@@ -2432,6 +2460,10 @@ export interface ShikakuPuzzleData {
 }
 
 export interface LightUpPuzzleData {
+  /** Depth revision (logicDepth.ts, 25 Oct 2026): 1 = scored to 200. Absent = the old scoring. */
+  depthRev?: number;
+  /** Rows when taller than wide (the depth revision's bigger board, 25 Oct 2026); absent = `size` rows. */
+  height?: number;
   /** Puzzle score shape stamp (puzzleScoreRev.ts; set by generatePuzzle, kept on the banked intro example). */
   puzzleScoreRev?: number;
   type: "lightup";

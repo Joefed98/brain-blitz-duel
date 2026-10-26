@@ -32,7 +32,7 @@ import { checkBombPlan, decodeBombActions, decodeBombConstraints } from "./bomb"
 import { decodeGravityTilts, replayGravity } from "./gravity";
 import { blockingCars } from "./unblock.server";
 import { decodeChainAnswer, replayChain } from "./chain";
-import { decodeNonoCells, replayNonogram } from "./nonogram";
+import { decodeNonoCells, nonoSizeOf, replayNonogram } from "./nonogram";
 import { decodePairFlips, replayPairs } from "./pairmatch";
 import { decodeFloodMoves, replayFlood } from "./flood";
 import { decodeTileMoves, replayTiles, tilesLayout } from "./tiles";
@@ -69,8 +69,8 @@ import { decodeTiltRun, replayTiltRun } from "./tilt";
 import { decodeHotFloorRun, replayHotFloorRun } from "./hotFloor";
 import { replayColourClashRun } from "./colourClash";
 import { clashRev4Finished, clashVariantOf, CLASH_REV, CLASH_REV_TALL, CLASH_REV_BANDS, CLASH_REV_GREAT } from "@/lib/arcade/colourClash";
-import { decodeTents, scoreTents, tentsLayoutValid } from "./tents";
-import { acceptedRects, decodeShikaku, scoreShikaku, shikakuCovered } from "./shikaku";
+import { decodeTents, scoreTents, tentsHeightOf, tentsLayoutValid } from "./tents";
+import { acceptedRects, decodeShikaku, scoreShikaku, shikakuCovered, shikakuHeightOf } from "./shikaku";
 import { decodeBulbs, lightUpStatus, scoreLightUp } from "./lightUp";
 import { decodeBallTrackRun, replayBallTrackRun } from "./ballTrack";
 import { scoreTrail, trComplete, trCorrectPrefix, trCorrectTiles, trDecode } from "./trail";
@@ -996,7 +996,7 @@ function gradeUnderRev(
     }
     case "nonogram": {
       // The submitted cells are checked against the stored picture, never a client verdict.
-      const replay = replayNonogram(puzzle.pattern ?? [], decodeNonoCells(answer));
+      const replay = replayNonogram(puzzle.pattern ?? [], decodeNonoCells(answer, nonoSizeOf(puzzle)));
       isCorrect = replay.solved;
       correctCount = replay.correct;
       errors = replay.wrong;
@@ -1968,16 +1968,18 @@ function gradeUnderRev(
     }
     case "shikaku": {
       // Rectangles are re-checked against the clues; overlaps and wrong areas don't count.
-      const rects = decodeShikaku(answer, puzzle.size);
+      // The depth revision's grid is 10 × 11 (`height`); older boards are square.
+      const shikakuRows = shikakuHeightOf(puzzle);
+      const rects = decodeShikaku(answer, puzzle.size, shikakuRows);
       const covered = shikakuCovered(rects, puzzle.clues, puzzle.size);
-      const solved = covered === puzzle.size * puzzle.size;
+      const solved = covered === puzzle.size * shikakuRows;
       isCorrect = solved;
       correctCount = covered;
       if (scoreRev1() && !solved && puzzle.solution?.length) {
         // Rev 1: area of rectangles on the (unique) solution, less the area of other accepted rectangles.
         const { right, wrong: wrongArea } = shikakuAreas(puzzle.solution, acceptedRects(rects, puzzle.clues, puzzle.size));
-        score = scoreShikaku(false, ms, timeLimitMs, right - wrongArea);
-      } else score = scoreShikaku(solved, ms, timeLimitMs, covered);
+        score = scoreShikaku(false, ms, timeLimitMs, right - wrongArea, puzzle.size * shikakuRows);
+      } else score = scoreShikaku(solved, ms, timeLimitMs, covered, puzzle.size * shikakuRows);
       extraDetail = { solved, covered, rects: rects.length };
       break;
     }
@@ -2239,7 +2241,7 @@ function gradeUnderRev(
     case "tents": {
       // The layout is re-checked against the rules and the stored solution.
       const treeSet = new Set(puzzle.trees);
-      const tents = decodeTents(answer, puzzle.size).filter((cell) => !treeSet.has(cell));
+      const tents = decodeTents(answer, puzzle.size, tentsHeightOf(puzzle)).filter((cell) => !treeSet.has(cell));
       const solution = new Set(puzzle.solution ?? []);
       const solved = tentsLayoutValid(puzzle, tents);
       const correct = tents.filter((cell) => solution.has(cell)).length;

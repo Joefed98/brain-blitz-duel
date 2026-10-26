@@ -20,6 +20,8 @@ import { playCorrect, playWrong } from "@/lib/sound";
 
 import { soundCue, useSolveFx } from "./logicFx";
 import { LiveSummary, SummaryItem, useFrameProgress } from "@/components/puzzles/batchP/LiveSummary";
+import { ParMeter } from "@/components/puzzles/depth/ParMeter";
+import { usesDepth } from "@/lib/duel/logicDepth";
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
 /** Graduated by size, smallest (light yellow) to largest (sky blue); equal sizes share a colour. */
@@ -267,7 +269,18 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "tower" }: 
             }
           />
         </div>
-        <LiveSummary inArena className="logic-status" items={[<SummaryItem key="moves" label="Moves" value={replay.moves} />]} />
+        <LiveSummary
+          inArena
+          className="logic-status"
+          items={[
+            // depthRev 1: the par line (the fewest moves earns the perfect-solve bonus).
+            puzzle.type === "tower" && usesDepth(puzzle) && puzzle.minMoves > 0 ? (
+              <ParMeter key="moves" label="Moves" moves={replay.moves} par={puzzle.minMoves} />
+            ) : (
+              <SummaryItem key="moves" label="Moves" value={replay.moves} />
+            ),
+          ]}
+        />
       </div>
 
       <div data-game-controls="actions" className="flex shrink-0 justify-center gap-3 px-2">
@@ -318,7 +331,7 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: Puz
           {mine.moves} {myCorrect ? "✓" : "✗"}
         </span>
         <span className="ml-2 font-mono text-base uppercase tracking-widest text-muted-foreground">
-          moves · min {puzzle.minMoves}
+          moves · {usesDepth(puzzle) ? (mine.moves <= puzzle.minMoves && myCorrect ? "perfect solve · par" : "par") : "min"} {puzzle.minMoves}
           {myCorrect && elapsed !== null ? ` · ${elapsed.toFixed(1)}s` : ""}
         </span>
       </p>

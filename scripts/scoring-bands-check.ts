@@ -47,6 +47,8 @@ import { ensureWordfallDict } from "../src/lib/duel/wordfallDict.server";
 import { KNOWN_SPAM } from "./puzzle-fairness";
 import { FIXTURE, type AnswerRun, type ArcadeRun } from "./scoring-bands-record";
 import { roomPuzzle, runSpam } from "./puzzle-fairness/run";
+import { legacyRoomPuzzle, stripDepth } from "./depth-d6-legacy";
+import { isDepthType } from "../src/lib/duel/logicDepth";
 import { KITS } from "./puzzle-fairness/kits";
 import type { FloodPuzzleData, PuzzleData, PuzzleType } from "../src/lib/duel/types";
 import { FLOOD_BANK, FLOOD_BANK_V3 } from "../src/lib/duel/flood.server";
@@ -113,7 +115,7 @@ function floodRev2(p: PuzzleData): PuzzleData {
   return { ...f, grid: [...old.grid], solution: [...(old.solution ?? [])], par: old.par, floodRev: 2, moveLimit: old.par + FLOOD_REV2_SPARE_MOVES } as unknown as PuzzleData;
 }
 function recordedPuzzle(type: PuzzleType, seed: number): PuzzleData {
-  if (type === "flood") return floodRev2(roomPuzzleCached(type, seed));
+  if (type === "flood") return floodRev2(stripDepth(roomPuzzleCached(type, seed)));
   // Labyrinth mazeRev 1 (depth to 200, 25 Oct 2026) deals a bigger maze: the recorded runs played the 19 × 19 one
   // the same seeded draw built before it (depth-labyrinth-check holds mazeRev 1).
   if (type === "maze") {
@@ -121,7 +123,9 @@ function recordedPuzzle(type: PuzzleType, seed: number): PuzzleData {
     const { mazeRev: _r, cols: _c, rows: _w, stars: _s, ...stamps } = roomPuzzleCached(type, seed) as unknown as Record<string, unknown>;
     return { ...stamps, cells, start, exit, solution } as unknown as PuzzleData;
   }
-  const p = roomPuzzleCached(type, seed);
+  // The Logic depth revision (25 Oct 2026): the eleven games' answers were played before it (no depth stamp; Mosaic,
+  // Tents, Shikaku and Lamplighter on their old boards, scripts/depth-d6-legacy.ts).
+  const p = isDepthType(type) ? legacyRoomPuzzle(type, seed) : roomPuzzleCached(type, seed);
   return RECORDED_STAMPS[type] ? ({ ...(p as object), ...RECORDED_STAMPS[type] } as unknown as PuzzleData) : p;
 }
 

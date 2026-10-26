@@ -51,9 +51,9 @@ const ALL_TYPES = Object.keys(GAME_DISPLAY_NAMES) as PuzzleType[];
 /**
  * Games an expansion has raised to the ceiling, one list for every expansion (docs/scoring-200.md: each adds its
  * games here): the Number depth games and Tenfall and Trail (#152), Coral Pop, Gemstone and Ball Tracker (E6,
- * #153), Topsy-Turvy and Jumbled (the D5 remodels, #156), the twelve Speed and Attention games (depth D3, #160) and
- * the nine word puzzles (word depth d1, #157). Checked against ROUND_MAX below, so the list and the maximums can't
- * drift apart.
+ * #153), Topsy-Turvy and Jumbled (the D5 remodels, #156), the twelve Speed and Attention games (depth D3, #160), the
+ * nine word puzzles (word depth d1, #157) and the eleven Logic depth games (d6, #159). Checked against ROUND_MAX
+ * below, so the list and the maximums can't drift apart.
  */
 const RAISED: PuzzleType[] = [
   "target", "equation", "numline", "numpyramid", "balance", "measure", "checkout", "tendrop", "trail", "bubble", "matchup", "balltrack",
@@ -63,6 +63,8 @@ const RAISED: PuzzleType[] = [
   "gravity", "tiles",
   // Word depth d1 (docs/depth/d1-word.md): the nine word puzzles.
   "wordsmith", "wordhunt", "wordslide", "tilegrid", "letterwheel", "strikeout", "codeword", "swapword", "wordsearch",
+  // Logic depth d6 (docs/depth/d6-logic.md): the eleven Logic and Pattern games on depthRev 1.
+  "lightsout", "sudoku", "tower", "tubes", "safe", "bomb", "nonogram", "flood", "tents", "shikaku", "lightup",
 ];
 /** The games still at 150: section 2 raises each of them in turn. */
 const TYPES = ALL_TYPES.filter((t) => ROUND_MAX[t] === DEFAULT_ROUND_MAX);

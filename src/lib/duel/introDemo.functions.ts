@@ -1,3 +1,4 @@
+import { DEPTH_DEMO_STOPS, DEPTH_REV, depthRevOf } from "./logicDepth";
 import { SWING_REV_TALL } from "@/lib/arcade/swing";
 import { INK_REV3, INK_REV4, INK_REV_BAND, INK_REV_TUNEC } from "@/lib/arcade/inkBridge";
 import { CLAY_REV_DEPTH } from "@/lib/arcade/clayShoot";
@@ -122,6 +123,10 @@ export const getIntroDemoFn = createServerFn({ method: "GET" })
     // Tenfall tenRev 4 (25 Oct 2026, depth to 200): gold tiles. An older demo shows no gold tile under the gold-tile
     // help, so Tenfall's intro shows its still until a demo is recorded on tenRev 4.
     if (data.type === "tendrop" && demo?.puzzle.type === "tendrop" && (demo.puzzle.tenRev ?? 0) < TEN_DROP_DEPTH_REV) return null;
+    // Logic depth to 200 (depthRev 1, 25 Oct 2026): Mosaic, Tents and Trees, Shikaku and Lamplighter deal bigger boards, and
+    // Blackout, Hanoi, Polypotions and Safe Cracker show their par line or clean crack: an older demo would show the old
+    // board or no feature, so these stay stopped (the intro shows its still) until one is recorded on depthRev 1.
+    if (DEPTH_DEMO_STOPS.has(data.type) && depthRevOf(demo?.puzzle) < DEPTH_REV) return null;
     return demo;
   });
 

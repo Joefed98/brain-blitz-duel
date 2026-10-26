@@ -17,7 +17,7 @@
  */
 import { decodePlacements, verifyPlacements } from "./blockParty";
 import { decodeFlowPaths, verifyFlow } from "./flow";
-import { acceptedRects, decodeShikaku } from "./shikaku";
+import { acceptedRects, decodeShikaku, shikakuHeightOf } from "./shikaku";
 import { decodeBulbs } from "./lightUp";
 import { decodeTileMoves, replayTiles, tilesLayout } from "./tiles";
 import { decodeJumbled, isJumbledGradient, JUMBLED_MOVABLE, jumbledInPlace, jumbledProgress, replayJumbled } from "./jumbled";
@@ -125,9 +125,10 @@ export function solutionProgress(puzzle: PuzzleData, answer: string, extra?: Rec
     }
     case "shikaku": {
       if (!puzzle.solution?.length) return null;
-      const accepted = acceptedRects(decodeShikaku(answer, puzzle.size), puzzle.clues, puzzle.size);
+      const height = shikakuHeightOf(puzzle);
+      const accepted = acceptedRects(decodeShikaku(answer, puzzle.size, height), puzzle.clues, puzzle.size);
       const { right, wrong } = shikakuAreas(puzzle.solution, accepted);
-      return { text: `${right}/${puzzle.size * puzzle.size} cells right`, cost: wrong > 0 ? `${plural(wrong, "cell")} in other rectangles` : null };
+      return { text: `${right}/${puzzle.size * height} cells right`, cost: wrong > 0 ? `${plural(wrong, "cell")} in other rectangles` : null };
     }
     case "lightup": {
       if (!puzzle.solution?.length) return null;
