@@ -263,12 +263,12 @@ measurement; the fresh numbers above stand.
 **Phase 1: cut timing made more forgiving.** Same stamp, since snipRev 11 was never dealt outside an unmerged PR.
 - *Wider chutes*: each course's two chute boards over the basket reach up to 50 px further out, and 25 px higher.
   Each board goes as far as it can while staying a fruit's width (24 px) from every other piece, nest, leaf, peg and
-  ring (`scripts/snip-x200-chutes.ts`). 59 of the 72 boards got the full 50; the rest 0–25.
+  ring (`scripts/snip-x200-chutes.ts`). 63 of the 72 boards got the full 50; the other nine 0–25.
 - *Larger leaves*: leaves are now drawn at 60 px (they were 48) and taken at `SNIP_X_STAR_REACH` 40 (it was 24).
   That is a fruit touching the drawn leaf.
 - *Re-proved*: `scripts/snip-x200-plans.ts` now also re-finds every deal's win plan and drops a golden choice that
   has no perfect plan. All 324 deals × golden choices still have plans; no golden choice was dropped. Par times
-  were rewritten (5.0–9.0 s), the recorded runs re-recorded, and the ceiling proof still holds: 200 on every bank
+  were rewritten (5.0–8.3 s), the recorded runs re-recorded, and the ceiling proof still holds: 200 on every bank
   deal and on all 260 tuning and fresh seeds.
 - *Effect* (start-time shifts of ±8 ticks around the stored plans, wind preset 0, all courses): plans that still
   feed every fruit went from 10.3 to 11.3 of 17; plans that stay perfect from 6.0 to 7.8 of 17. Deals with fewer
