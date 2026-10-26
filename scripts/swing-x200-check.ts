@@ -276,7 +276,7 @@ ok(best200 !== null, "a stored swingRev 13 run (a strong-play witness, scripts/s
 {
   ok(roundMaxFor("swing") === 200, "Grappler's round maximum is 200");
   const pts = SWING_V13_BAND_CURVE.points;
-  ok(SWING_V13_BAND_CURVE.units.every((u, i) => i === 0 || u > SWING_V13_BAND_CURVE.units[i - 1]!) && pts.every((p, i) => i === 0 || p >= pts[i - 1]!) && pts.at(-1) === 140 && SWING_V13_BAND_CURVE.units.at(-1) === 530, "the base curve rises to 140 at 530 units (500 m and six stars)");
+  ok(SWING_V13_BAND_CURVE.units.every((u, i) => i === 0 || u > SWING_V13_BAND_CURVE.units[i - 1]!) && pts.every((p, i) => i === 0 || p >= pts[i - 1]!) && pts.at(-1) === 140 && SWING_V13_BAND_CURVE.units.at(-1) === 515, "the base curve rises to 140 at 515 units (500 m and three stars)");
   ok(bandPoints(SWING_V13_BAND_CURVE, 550) + 10 === 150 && bandPoints(SWING_V13_BAND_CURVE, 10_000) === 140, "500 m with every star is 150 before skill, and the base never more");
   const payPts = SWING_SKILL_PAY.points;
   ok(payPts.at(-1) === SWING_FEATURE_CAP && payPts.every((p, i) => i === 0 || p >= payPts[i - 1]!) && bandPoints(SWING_SKILL_PAY, 1000) === SWING_FEATURE_CAP, "skill pays on a rising scale, never more than 50");

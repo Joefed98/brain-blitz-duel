@@ -1490,7 +1490,7 @@ export const SWING_SECTION_FROM_M = [22, 80, 145] as const;
  */
 export const SWING_COMBO_CAP = 10;
 export const SWING_LEDGE_POINTS = 15;
-export const SWING_PAR_POINTS = 15;
+export const SWING_PAR_POINTS = 25;
 /**
  * Par times (swingRev 13's new precision feature): each section's par is its proved route's time (the course's own,
  * found when the section was built: every hop's proved release with the press on the tick after each landing, plus
@@ -1506,17 +1506,17 @@ export const SWING_PAR_FULL = 36;
  * The pay scale (raw skill points → paid, at most SWING_FEATURE_CAP), Breaker's rising shape (BRK_V9_SKILL_PAY):
  * light use pays little, the full 50 only near everything a course guarantees (SWING_GUARANTEED_RAW).
  */
-export const SWING_SKILL_PAY = bandCurve([0, 6, 12, 20, 28, 36, 42], [0, 4, 12, 24, 36, 46, 50]);
+export const SWING_SKILL_PAY = bandCurve([0, 10, 20, 26, 34, 42, 46], [0, 4, 12, 20, 28, 38, 50]);
 export const SWING_FEATURE_CAP = 50;
 export const SWING_V13_MAX = 200;
 /**
- * The base part of a rev-13 score (metres + 5 a star, as every band revision): 140 at 500 m with six of the ten
- * stars (530 units; phase 1, 26 Oct 2026: all ten were needed, which no human-paced run managed), plus 10 for
+ * The base part of a rev-13 score (metres + 5 a star, as every band revision): 140 at 500 m with three of the ten
+ * stars (515 units; 26 Oct 2026: all ten were needed, which no human-paced run managed), plus 10 for
  * reaching 500 m, so it tops out at 150 as rev 11 does. The knots were fitted (26 Oct 2026) by matching the weak,
  * average and good skill-band players' unit quantiles on rev 13 to their scores on rev 11 on the same bank courses
  * (60 each, paired), so players who ignore the features keep today's score (docs/expansions/x200-swing.md).
  */
-export const SWING_V13_BAND_CURVE = bandCurve([0, 20, 40, 60, 75, 95, 120, 170, 245, 315, 440, 489, 510, 530], [0, 15, 29, 44, 60, 80, 89, 98, 109, 122, 130, 133, 136, 140]);
+export const SWING_V13_BAND_CURVE = bandCurve([0, 20, 40, 60, 75, 95, 120, 170, 245, 315, 440, 489, 500, 515], [0, 19, 36, 50, 64, 82, 91, 99, 110, 122, 130, 133, 135, 140]);
 
 /** A set-route ledge: its centre x and top (1/256 px), half-width, kind (0 start, 1 landing, 2 finish flag), section, order and whether it collapses. */
 export interface SwingLedge {
