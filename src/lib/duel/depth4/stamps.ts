@@ -37,6 +37,11 @@ export const D4_TYPES = Object.keys(D4_STAMP_FIELD) as D4Type[];
 export const D4_REV_TOPUP = 2;
 export const D4_TOPUP_TYPES: readonly D4Type[] = ["blockparty", "pipes", "laser", "rings", "push"];
 
+/** The stamp the app's texts state (the top-up's for its five games; never pinned by a check). */
+export function liveD4Rev(type: D4Type): number {
+  return D4_TOPUP_TYPES.includes(type) ? D4_REV_TOPUP : D4_REV;
+}
+
 /** The stamp new puzzles of a game are dealt. */
 export function dealtD4Rev(type: D4Type): number {
   return D4_TOPUP_TYPES.includes(type) && !preTopupPinned() ? D4_REV_TOPUP : D4_REV;

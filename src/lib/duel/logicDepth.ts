@@ -123,6 +123,11 @@ export function dealtLogicDepthRev(type: PuzzleType): number {
   return DEPTH_GAMES_TOPUP[type] && !preTopupPinned() ? DEPTH_REV_TOPUP : DEPTH_REV;
 }
 
+/** The depth revision the app's texts state: the top-up's for its four games (never pinned by a check). */
+export function liveLogicDepthRev(type: PuzzleType): number {
+  return DEPTH_GAMES_TOPUP[type] ? DEPTH_REV_TOPUP : DEPTH_REV;
+}
+
 /** The game's curve on a depth revision (by default the one dealt today, which the texts state). */
 export function depthGame(type: PuzzleType, rev = dealtLogicDepthRev(type)): DepthGameTopup {
   if (rev >= DEPTH_REV_TOPUP && DEPTH_GAMES_TOPUP[type]) return DEPTH_GAMES_TOPUP[type]!;

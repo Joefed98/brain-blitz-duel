@@ -4,7 +4,7 @@
  * (roundMax.ts) so they follow it. The help explains the feature in one short sentence; the intro stays within two
  * phone lines with no scoring terms (intro-score-text-check: no "par").
  */
-import { DEPTH_PAR_BASE, DEPTH_TOP_POINTS, depthEliteSeconds, depthFastSeconds, depthGame } from "./logicDepth";
+import { DEPTH_PAR_BASE, DEPTH_TOP_POINTS, depthEliteSeconds, depthFastSeconds, depthGame, liveLogicDepthRev } from "./logicDepth";
 import { dealtLimitMs, EFFICIENCY_WORD, PROGRESS_MEASURE, PROGRESS_SHORT } from "./puzzleBandsText";
 import { rev3UnfinishedScore } from "./puzzleScoreRev3";
 import { roundMaxFor } from "./roundMax";
@@ -17,21 +17,22 @@ const PAR_WORD: Partial<Record<PuzzleType, string>> = { lightsout: "presses", to
 export function depthHelp(type: PuzzleType): string {
   const max = roundMaxFor(type);
   const limit = dealtLimitMs(type);
-  const fast = depthFastSeconds(type, limit);
-  const elite = depthEliteSeconds(type, limit);
+  const rev = liveLogicDepthRev(type);
+  const fast = depthFastSeconds(type, limit, rev);
+  const elite = depthEliteSeconds(type, limit, rev);
   const half = rev3UnfinishedScore(type, 0.5);
   const eff = EFFICIENCY_WORD[type];
   const head = `Progress counts: ${PROGRESS_MEASURE[type] ?? "your progress"}. Unfinished scores up to 110: about ${half} half done, 110 one step short.`;
   const base = `Any finish scores 120 to ${max}: 120 as time runs out, 150 if you finish in about ${fast} s with no mistakes${eff ? ` (extra ${eff} only cut the speed points)` : ""}.`;
-  const route = depthGame(type).route;
+  const route = depthGame(type, rev).route;
   if (route === "par") {
     const word = PAR_WORD[type] ?? "moves";
     return `${head} ${base} Par is the fewest ${word} the puzzle can be solved in: finish in par for ${DEPTH_PAR_BASE} more, and up to ${DEPTH_TOP_POINTS - DEPTH_PAR_BASE} more for finishing faster still, so ${max} is par in about ${elite} s.`;
   }
-  const g = depthGame(type);
+  const g = depthGame(type, rev);
   if (route === "clean" && g.cleanFixed) {
     const quick = Math.round((limit * (1 - (g.cleanFixedFull ?? 0))) / 1000);
-    return `${head} ${base} A clean crack, opening it with tries to spare, adds ${g.cleanFixed} when you open it within about ${quick} s and up to ${DEPTH_TOP_POINTS - g.cleanFixed} more for finishing faster still: all of it on the first try, half on the second, so ${max} is the first try in about ${elite} s.`;
+    return `${head} ${base} A clean crack, opening it with tries to spare, adds up to ${DEPTH_TOP_POINTS}: ${g.cleanFixed} when you open it within about ${quick} s and up to ${DEPTH_TOP_POINTS - g.cleanFixed} more for finishing faster still, all of it on the first try, half on the second, so ${max} is the first try in about ${elite} s.`;
   }
   if (route === "clean") {
     return `${head} ${base} A clean crack, opening it with tries to spare, adds up to ${DEPTH_TOP_POINTS} for finishing faster still: all of it on the first try, half on the second, so ${max} is the first try in about ${elite} s.`;
@@ -47,9 +48,9 @@ export function depthIntro(type: PuzzleType): string {
   const max = roundMaxFor(type);
   const short = PROGRESS_SHORT[type] ?? "progress";
   const lead = `${short[0]!.toUpperCase()}${short.slice(1)}: up to 110.`;
-  const route = depthGame(type).route;
+  const route = depthGame(type, liveLogicDepthRev(type)).route;
   if (route === "par") return `${lead} Finish: 120+, or ${max} in the fewest ${PAR_WORD[type] ?? "moves"}, fast.`;
   if (route === "clean") return `${lead} Open it: 120+, or ${max} on the first try, fast.`;
   if (type === "flood") return `${lead} Finish: 120+, or ${max} in the fewest moves, fast.`;
-  return `${lead} Finish: 120+, or ${max} in about ${depthEliteSeconds(type, dealtLimitMs(type))} s, no mistakes.`;
+  return `${lead} Finish: 120+, or ${max} in about ${depthEliteSeconds(type, dealtLimitMs(type), liveLogicDepthRev(type))} s, no mistakes.`;
 }

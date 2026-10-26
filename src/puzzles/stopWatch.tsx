@@ -31,7 +31,7 @@ import { wrongMoveFlash } from "@/lib/fx/gameToolkit";
 import { playSound } from "@/lib/sound";
 import { bangOnEarnsGoldFaces, fireBangOnGoldFaces, localBangOnScore } from "@/components/puzzles/stopWatchFx";
 import { roundMaxFor } from "@/lib/duel/roundMax";
-import { BANGON_STREAK_MIN, BANGON_TOPUP_CENTRE_POINTS, BANGON_TOPUP_STREAK_TOP, bangOnCentrePoints, bangOnMarks, liveZoneStreak, scoreBangOnDepth, usesBangOnDepth, type WatchMark } from "@/lib/duel/depth/bangOn";
+import { BANGON_STREAK_MIN, BANGON_CENTRE_POINTS, BANGON_TOPUP_CENTRE_POINTS, BANGON_TOPUP_STREAK_TOP, bangOnMarks, liveZoneStreak, scoreBangOnDepth, usesBangOnDepth, type WatchMark } from "@/lib/duel/depth/bangOn";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
@@ -584,7 +584,9 @@ function storedBangOn(extra: Record<string, unknown> | null | undefined) {
 function storedBangOnDepth(extra: Record<string, unknown> | null | undefined) {
   const d = extra?.["depth"] as Record<string, unknown> | undefined;
   if (!d || typeof d["centre"] !== "number" || typeof d["streak"] !== "number" || !Array.isArray(d["zone"]) || !Array.isArray(d["dead"])) return null;
-  return { centre: d["centre"] as number, centreHits: Number(d["centreHits"] ?? 0), streak: d["streak"] as number, zone: d["zone"] as boolean[], dead: d["dead"] as boolean[] };
+  // tapRev 6 stores its dead-centre value (centreEach); tapRev 5 paid BANGON_CENTRE_POINTS.
+  const each = typeof d["centreEach"] === "number" ? (d["centreEach"] as number) : BANGON_CENTRE_POINTS;
+  return { centre: d["centre"] as number, centreHits: Number(d["centreHits"] ?? 0), centreEach: each, streak: d["streak"] as number, zone: d["zone"] as boolean[], dead: d["dead"] as boolean[] };
 }
 
 function Reveal({ puzzle, myAnswer, myExtra }: PuzzleRevealProps) {
@@ -624,7 +626,7 @@ function Reveal({ puzzle, myAnswer, myExtra }: PuzzleRevealProps) {
         <p className="font-mono text-4xl font-bold tabular-nums text-primary">{avg} ms</p>
         {depth ? (
           <p data-bangon-depth="" className="text-center font-mono text-xs text-muted-foreground">
-            Dead centre {depth.centreHits} × {bangOnCentrePoints(tapRevOf(puzzle))} = +{depth.centre} · zone streak +{depth.streak}
+            Dead centre {depth.centreHits} × {depth.centreEach} = +{depth.centre} · zone streak +{depth.streak}
           </p>
         ) : null}
         {curve && avg > curve.kneeMs ? (
