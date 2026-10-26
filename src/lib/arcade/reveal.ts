@@ -427,13 +427,17 @@ const BUILDERS: Record<string, Builder> = {
     };
   },
   tilt: (r, s) => {
-    const done = n(r, "mazes") >= 4;
+    // tiltRev 8 (the expansion, docs/expansions/x200-tilt.md): three mazes and quick stars.
+    const all = n(r, "tiltRev") === 8 ? 3 : 4;
+    const done = n(r, "mazes") >= all;
+    const quick = n(r, "totalQuick") > 0;
     return {
-      axis: { value: n(r, "mazes"), max: 4, label: "Mazes" },
-      lines: [n(r, "tiltRev") > 0 ? `${n(r, "mazes")} / 4 mazes · ${n(r, "stars")} / ${n(r, "totalStars")} stars → ${s}` : head(`${n(r, "mazes")} / 4 mazes`, s, done)],
+      axis: { value: n(r, "mazes"), max: all, label: "Mazes" },
+      lines: [n(r, "tiltRev") > 0 ? `${n(r, "mazes")} / ${all} mazes · ${n(r, "stars")} / ${n(r, "totalStars")} stars${quick ? ` · ${n(r, "quickStars")} / ${n(r, "totalQuick")} quick stars` : ""} → ${s}` : head(`${n(r, "mazes")} / 4 mazes`, s, done)],
       tiles: [
-        { label: "Mazes", value: `${n(r, "mazes")} / 4` },
+        { label: "Mazes", value: `${n(r, "mazes")} / ${all}` },
         ...(n(r, "tiltRev") > 0 ? [{ label: "Stars", value: `${n(r, "stars")} / ${n(r, "totalStars")}` }] : []),
+        ...(quick ? [{ label: "Quick stars", value: `${n(r, "quickStars")} / ${n(r, "totalQuick")}` }] : []),
         { label: b(r, "caught") ? "Caught at" : b(r, "survived") ? "Time" : "Pit at", value: sec(n(r, "survivedSeconds")) },
       ],
       outcome: done ? "finish" : ended(r, false),

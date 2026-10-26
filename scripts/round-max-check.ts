@@ -76,6 +76,8 @@ const RAISED: PuzzleType[] = [
   "breaker",
   // Expansion E2 (docs/expansions/e2.md): Meteor and Tempo.
   "snake", "beat",
+  // Expansion x200 (docs/expansions/x200-tilt.md): Tilt.
+  "tilt",
 ];
 /** The games still at 150: section 2 raises each of them in turn. */
 const TYPES = ALL_TYPES.filter((t) => ROUND_MAX[t] === DEFAULT_ROUND_MAX);

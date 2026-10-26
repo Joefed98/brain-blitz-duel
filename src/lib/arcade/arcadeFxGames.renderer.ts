@@ -142,7 +142,7 @@ function bubSpecialPoint(s: BubState): { x: number; y: number } {
   return { x: bubCellX(row, cell % BUB_COLS), y: bubCellY(row, s.descents) };
 }
 import { SNIP_CONFIG, SNIP_EATEN, SNIP_H, SNIP_TALL_H, snipCamera, snipWorldH, type SnipState } from "./snip";
-import { TILT_MAX_MAZES, TILT_WORLD_H, TILT_WORLD_W, type TiltState } from "./tilt";
+import { TILT_MAX_MAZES, TILT_X_H, TILT_WORLD_H, TILT_WORLD_W, type TiltState } from "./tilt";
 import { btWorldH, BT_BALLS, BT_H, BT_TALL_H, BT_V7_H, BT_W, type BtState } from "./ballTrack";
 import { wfWord, wfWorldH, WF_H, WF_H_V2, WF_PAR, WF_W, WF_WELL_Y, type WordfallState } from "./wordfall";
 import {
@@ -1456,7 +1456,8 @@ export const ARCADE_FX_SPECS = {
   flip: FLIP_FX,
   swing: SWING_FX_TALL,
   snip: SNIP_FX_TALL,
-  tilt: TILT_FX,
+  // The live round's view (tiltRev 8's taller world); its art draws through TILT_X_FX, older rounds through TILT_FX.
+  tilt: fxSpecAt(TILT_FX, TILT_X_H),
   // Expansion E6: the worlds rooms deal now (Ball Tracker's 13-row board, Gemstone's 720 px world).
   balltrack: fxSpecAt(BALLTRACK_FX, BT_V7_H),
   matchup: fxSpecAt(MATCHUP_FX, MATCHUP_V9_WORLD_H),

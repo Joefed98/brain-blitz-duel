@@ -75,6 +75,7 @@ import {
   tiltGameFor,
   tiltStarPoint,
   TILT_REV_BAND,
+  TILT_REV_EXPAND,
   TILT_REV_TUNEC,
   TILT_STARS_PER_MAZE,
   TILT_STAR_MOUTH,
@@ -175,7 +176,8 @@ section("New rounds carry the Tuning C stamps; Junction is practice only");
     ["beat", playRevOf("beat", generateBeat().beatRev), BEAT_REV_TUNEF + 4],
     // Taller worlds batch 1 (16 Oct 2026) moved Wavefront on to its taller world (wavRev 6); arcade-tuning-g1-check covers it.
     ["wavefront", playRevOf("wavefront", generateWavefront().wavRev), WAV_REV_TUNEC + 1],
-    ["tilt", playRevOf("tilt", generateTilt().tiltRev), TILT_REV_TUNEC],
+    // The expansion (x200, 26 Oct 2026) moved Tilt on to tiltRev 8 (bigger mazes, keys, quick stars, par); tilt-expand-check covers it.
+    ["tilt", playRevOf("tilt", generateTilt().tiltRev), TILT_REV_EXPAND],
     // World expansion E5 (25 Oct 2026) moved Slice on to its larger board (sliceRev 9); expansion-e5-check covers it.
     ["slice", playRevOf("slice", generateSlice().sliceRev), SLICE_REV_EXPAND],
   ];
@@ -461,7 +463,8 @@ if (want("tilt")) {
   ok(near === 0, `the amber marble never starts within a maze's width of its cup (${near} of ${twoMarble}; tiltRev 3: ${nearOld})`);
   ok(mouth >= SEEDS * 2 * 1.5, `many stars sit at a hole's mouth (${mouth} of ${SEEDS * 8})`);
   ok(mouthOk, "every mouth star is next to its hole and can be taken without falling in");
-  ok(PUZZLE_INSTRUCTIONS.tilt.how.some((h) => h.action.includes("black holes")), "the intro says where the stars are");
+  // tiltRev 8 (x200) moved the gold stars a step or two off the route; the help names them ("Gold stars:").
+  ok(PUZZLE_INSTRUCTIONS.tilt.how.some((h) => h.action.includes("Gold stars")), "the intro says where the stars are");
   // 150 through the server replay: the checks' scripted Tilt player (scripts/tilt-bot.ts, real-sim lookahead,
   // brisk 4° a tick drags) takes all four mazes and all eight stars fast enough for the full speed bonus.
   let best = 0;

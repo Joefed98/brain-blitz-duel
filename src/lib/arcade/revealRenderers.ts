@@ -84,6 +84,7 @@ import { replayOrbitRun } from "@/lib/duel/orbit";
 import { replaySwingRun } from "@/lib/duel/swing";
 import { replaySnipRun } from "@/lib/duel/snip";
 import { replayTiltRun } from "@/lib/duel/tilt";
+import { tiltWorldHFor } from "./tilt";
 import { replayBallTrackRun } from "@/lib/duel/ballTrack";
 import { replayWhackRun } from "@/lib/duel/whack";
 import { replayClayRun } from "@/lib/duel/clayShoot";
@@ -255,7 +256,8 @@ export const ARCADE_REVEAL_RENDERERS: Record<string, ArcadeRevealRenderer> = {
       return null;
     },
   },
-  tilt: simple("#2EC4B6", 440, 470, tiltGame, (p, a) => replayTiltRun(seedOf(p), a, p.type === "tilt" ? p.tiltRev : undefined)),
+  // tiltRev 8: the taller world (the art draws the expansion's camera from the state).
+  tilt: simple("#2EC4B6", 440, 470, tiltGame, (p, a) => replayTiltRun(seedOf(p), a, p.type === "tilt" ? p.tiltRev : undefined), undefined, tiltGame, (p) => tiltWorldHFor(p.type === "tilt" ? p.tiltRev : undefined)),
   balltrack: {
     accent: GOLD,
     worldW: BT_W,
