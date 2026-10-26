@@ -256,6 +256,10 @@ export const bot: SkillBot = ({ game, seed, human }) => {
         if (sweet >= 0 && !plan.idle && !plan.win) {
           sweetWant[sweet] = false;
           plan = solve(s, t, H, star, trail);
+        } else if (sweet >= 0 && plan.win) {
+          // A sweet landing is never worth a crash: aim for it only while a flip a couple of ticks off still lives.
+          const safe = solve(s, t, H, star, trail);
+          if (safe.win && (plan.win[0] - 2 < safe.win[0] || plan.win[1] + 2 > safe.win[1])) plan = safe;
         }
         if (trail >= 0 && !plan.idle && !plan.win) {
           trailWant[trail] = false;

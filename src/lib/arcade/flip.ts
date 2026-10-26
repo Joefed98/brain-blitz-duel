@@ -954,7 +954,7 @@ export const FLIP_V8_TRAIL_R = 8;
 const V8_MOVERS_FROM = 12 * TICKS_PER_SECOND;
 /** Raw skill points: a full trail, combo points (doubled in a speed zone, capped), a clean zone, a clean checkpoint; the paid total caps at 50. */
 export const FLIP_V8_TRAIL_POINTS = 4;
-export const FLIP_V8_COMBO_CAP = 4;
+export const FLIP_V8_COMBO_CAP = 6;
 export const FLIP_V8_ZONE_POINTS = 3;
 export const FLIP_V8_CP_POINTS = 3;
 export const FLIP_V8_FEATURE_CAP = 50;
@@ -965,9 +965,13 @@ export const FLIP_V8_FEATURE_CAP = 50;
  * raw skill points, once per spot.
  */
 export const FLIP_V8_SWEETS = 8;
-export const FLIP_V8_SWEET_TICKS = 2;
+export const FLIP_V8_SWEET_TICKS = 1;
 export const FLIP_V8_SWEET_POINTS = 4;
 const V8_SWEET_SECONDS = [6.5, 13, 19.5, 26, 32.5, 39, 45.5, 52] as const;
+/** Readability (phase 1): an item is on screen this far ahead of the runner (the 390 px view less the runner's 90), and a
+ * player has read it this many ticks later (a quick human reaction, 200 ms). */
+const V8_VIEW_AHEAD = FLIP_WORLD_W - 90;
+const V8_READ_TICKS = 12;
 /**
  * The skill pay (a rising scale, as Breaker's BRK_V9_SKILL_PAY): the features' raw points (trails 4 each, sweet
  * landings 4 each, clean zones 3 each, clean checkpoints 3 each, combo points up to FLIP_V8_COMBO_CAP) paid so a
@@ -976,9 +980,9 @@ const V8_SWEET_SECONDS = [6.5, 13, 19.5, 26, 32.5, 39, 45.5, 52] as const;
  * (docs/expansions/x200-flip.md), with the base curve.
  */
 export const FLIP_V8_SKILL_FULL = FLIP_V8_TRAILS * FLIP_V8_TRAIL_POINTS + FLIP_V8_SWEETS * FLIP_V8_SWEET_POINTS + 2 * FLIP_V8_ZONE_POINTS + 3 * FLIP_V8_CP_POINTS;
-export const FLIP_V8_SKILL_PAY = bandCurve([0, 12, 32, 49, 57, FLIP_V8_SKILL_FULL], [0, 3, 4, 26, 39, FLIP_V8_FEATURE_CAP]);
+export const FLIP_V8_SKILL_PAY = bandCurve([0, 12, 33, 40, 49, FLIP_V8_SKILL_FULL], [0, 3, 5, 29, 33, FLIP_V8_FEATURE_CAP]);
 /** The rev-8 survival curve: half seconds + 3 per gold star, to 140 (the full minute adds 10, the features up to 50). */
-export const FLIP_V8_BAND_CURVE = bandCurve([0, 40, 105, 130, 140, 146, 150], [0, 16, 56, 65, 69, 127, 140]);
+export const FLIP_V8_BAND_CURVE = bandCurve([0, 40, 105, 130, 140, 146, 150], [0, 13, 47, 62, 68, 119, 140]);
 
 export interface FlipTrail {
   /** Star centres (1/256 px) and heights (per mille of the cave: 0 the floor's runner line, 1000 the ceiling's). */
@@ -1416,6 +1420,32 @@ function placeStarsV8(built: V8Built): { stars: FlipStar[]; sweets: FlipSweet[];
         const bit = target.sweet ? SWEET8 : STAR8;
         const sweet = target.sweet ? { x0: span.x0, x1: span.x1, side } : undefined;
         const star = target.sweet ? undefined : { x, side };
+        // Readable in time (phase 1 of the 200 rule): once the item has been on screen a reaction time
+        // (V8_VIEW_AHEAD px ahead of the runner, then V8_READ_TICKS), every route situation that can still last
+        // past it must be able to take it, so a player who has not seen it yet never has to have planned for it.
+        {
+          const readAt = tickAt(span.x0 - reach - V8_VIEW_AHEAD * FP) + V8_READ_TICKS;
+          let probe = set;
+          let pt = t;
+          while (pt < readAt && X[pt + 1]! < span.x0 - reach && probe.length) {
+            pt += 1;
+            probe = stepRoute(probe, pt);
+          }
+          const takes = (code: number) => {
+            let free = [code & ~bit];
+            let got = [code & ~bit];
+            let tt = pt;
+            while (tt < FLIP_RUN_TICKS && X[tt]! <= span.x1 + reach && free.length) {
+              tt += 1;
+              free = stepRoute(free, tt);
+              got = got.length ? stepRoute(got, tt, star, sweet) : got;
+            }
+            return !free.length || got.some((c) => c & bit);
+          };
+          // Judged from a settled runner (on either surface, free to flip), however it got there.
+          const settled = probe.filter((code) => ((code >> 1) & 31) === 0 && ((code >> 11) & 15) === SOLVER_LANDED);
+          if (!settled.every(takes)) continue;
+        }
         let trySet = set;
         let tt = t;
         while (tt < FLIP_RUN_TICKS && X[tt + 1]! < span.x0 - reach && trySet.length) {
