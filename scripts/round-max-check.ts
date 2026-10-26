@@ -76,6 +76,8 @@ const RAISED: PuzzleType[] = [
   "breaker",
   // Expansion E2 (docs/expansions/e2.md): Meteor and Tempo.
   "snake", "beat",
+  // Expansion E9 (docs/expansions/e9.md): Rally, Fission and Flightpath.
+  "rally", "burst", "bullseye",
 ];
 /** The games still at 150: section 2 raises each of them in turn. */
 const TYPES = ALL_TYPES.filter((t) => ROUND_MAX[t] === DEFAULT_ROUND_MAX);
@@ -83,7 +85,7 @@ const TYPES = ALL_TYPES.filter((t) => ROUND_MAX[t] === DEFAULT_ROUND_MAX);
 const at150 = (preferred: PuzzleType, not?: PuzzleType): PuzzleType =>
   TYPES.includes(preferred) && preferred !== not ? preferred : TYPES.find((t) => t !== not)!;
 /** Expansion E6's games: their intros state the 200 themselves (not only the help). */
-const E6_RAISED: PuzzleType[] = ["bubble", "matchup", "balltrack"];
+const E6_RAISED: PuzzleType[] = ["bubble", "matchup", "balltrack", "rally", "burst", "bullseye"];
 /** Expansion E4's games: their intro and their help both state the 200 and never 150. */
 const E4_RAISED: PuzzleType[] = ["skyline", "pinball"];
 /** A stated 200 (not the 200 in "1,200 ms" or "7,200 points"). */

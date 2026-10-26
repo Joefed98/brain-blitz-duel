@@ -7,7 +7,8 @@
  *     (binRev 6 and 3, bullRev 6 and 4, sliceRev 8 and 6; scripts/fixtures/expansion-e5-legacy.json.gz)
  *     replay unflagged to their stored score and to a byte-identical final state (Flightpath's too).
  *  2. Rooms deal the new stamps; ROUND_MAX is 200 for both games and the "?" help and intro state it;
- *     Flightpath keeps main's bullRev 6 at 150.
+ *     Flightpath was split out of E5 (expansion E9 moved it on to bullRev 8, docs/expansions/e9.md, proved by
+ *     expansion-e9-check; bullRev 6 stays its score-bands revision).
  *  3. Stored runs on the new stamps (scripts/fixtures/expansion-e5-runs.json.gz, the skill-band bots at four
  *     levels, plus each game's best 200 found on the recorded seeds): each replays unflagged to its stored
  *     score; every score is 0–200, scored on the new rules (band 3 and the game's marker from the first tick);
@@ -35,7 +36,7 @@ import { ROUND_MAX, roundMaxFor } from "../src/lib/duel/roundMax";
 import { INTRO_SCORE } from "../src/lib/duel/introScore";
 import { PUZZLE_INSTRUCTIONS } from "../src/lib/duel/instructions";
 import { fillMax } from "../src/lib/duel/roundMax";
-import { BULLSEYE_REV_STRICT } from "../src/lib/arcade/bullseye";
+import { BULLSEYE_REV_EXPAND, BULLSEYE_REV_STRICT } from "../src/lib/arcade/bullseye";
 import {
   BINTOSS_BALL_R,
   BINTOSS_EXPAND,
@@ -134,10 +135,11 @@ for (const type of TYPES) {
   ok(init.band === BAND_STRICT_MARK, `${type}: band ${BAND_STRICT_MARK} from the first tick`);
 }
 {
-  // Flightpath was split out of E5: rooms deal main's bullRev 6 at 150, with no expansion revision.
+  // Flightpath was split out of E5; expansion E9 (docs/expansions/e9.md) then moved rooms on to bullRev 8 at 200, with
+  // bullRev 6 as its score-bands revision (expansion-e9-check covers it).
   const dealt = (generatePuzzle("bullseye") as unknown as Record<string, unknown>).bullRev;
-  ok(dealt === BULLSEYE_REV_STRICT && LIVE_BANDS.bullseye.rev === BULLSEYE_REV_STRICT && !("strictRev" in LIVE_BANDS.bullseye), `bullseye: rooms deal main's bullRev ${BULLSEYE_REV_STRICT} (got ${String(dealt)})`);
-  ok(ROUND_MAX.bullseye === 150, "bullseye: ROUND_MAX stays 150");
+  ok(dealt === BULLSEYE_REV_EXPAND && LIVE_BANDS.bullseye.rev === BULLSEYE_REV_EXPAND && LIVE_BANDS.bullseye.strictRev === BULLSEYE_REV_STRICT, `bullseye: rooms deal E9's bullRev ${BULLSEYE_REV_EXPAND}, after bullRev ${BULLSEYE_REV_STRICT} (got ${String(dealt)})`);
+  ok(ROUND_MAX.bullseye === 200, "bullseye: ROUND_MAX is 200 since expansion E9");
 }
 
 /* ============================== 3. Stored runs on the new stamps ============================== */
@@ -273,7 +275,7 @@ section("Slice sliceRev 9: the larger board, sizes and values, golden fruit, tic
 
 console.log(
   failures.length === 0
-    ? `PASS expansion-e5-check: ${passes} checks — older stamps replay as on main; rooms deal binRev 7 and sliceRev 9 at 200 (Flightpath as on main); stored new-stamp runs and a 200 each; the new rules`
+    ? `PASS expansion-e5-check: ${passes} checks — older stamps replay as on main; rooms deal binRev 7 and sliceRev 9 at 200 (Flightpath split out, then moved on by expansion E9); stored new-stamp runs and a 200 each; the new rules`
     : `FAIL expansion-e5-check: ${failures.length} of ${passes + failures.length} checks failed\n${failures.map((f) => `  ✗ ${f}`).join("\n")}`,
 );
 if (failures.length > 0) process.exit(1);
