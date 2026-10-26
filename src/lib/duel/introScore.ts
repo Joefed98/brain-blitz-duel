@@ -8,7 +8,7 @@ import { bandsIntro } from "./puzzleBandsText";
 import { depthIntro as logicDepthIntro } from "./logicDepthText";
 import { wordSearchBonusIntro } from "./wordSearchText";
 import { letterWheelJarIntro } from "./letterWheelText";
-import { CODEWORD_STRETCH, TILEGRID_STRETCH, stretchIntro, strikeoutDepthIntro } from "./depth/stretchShapes";
+import { CODEWORD_STRETCH, TILEGRID_STRETCH_TOPUP, stretchIntro, strikeoutDepthIntro } from "./depth/stretchShapes";
 import { parBonusIntro } from "./parBonusText";
 import { doubleTakeDepthIntro, eagleEyeDepthIntro, tallyDepthIntro } from "./depth/attentionTexts";
 import { ASCEND_DEPTH_INTRO, BANGON_DEPTH_INTRO, FLASH_DEPTH_INTRO } from "./depth/speedTexts";
@@ -38,7 +38,7 @@ function introScoreTemplates(): Record<PuzzleType, string> {
     // Word
     wordsmith: "Longer words score more. The word using every tile adds a big bonus; {max} only with it.",
     wordhunt: "Longer words score more; 6+ letters and the gold tile add extra. {max} needs both.",
-    tilegrid: stretchIntro("tilegrid", TILEGRID_STRETCH),
+    tilegrid: stretchIntro("tilegrid", TILEGRID_STRETCH_TOPUP),
     wordslide: parBonusIntro("wordslide", "moves"),
     wordsearch: wordSearchBonusIntro(),
     letterwheel: letterWheelJarIntro(),
@@ -114,7 +114,7 @@ function introScoreTemplates(): Record<PuzzleType, string> {
     slice: "Food by combo; gold fruit, tickets and dodges add more. Chilli: lose 10. Up to {max}.",
     beat: "Notes hit in time score; fever, gold notes, double taps and streaks add bonus. Up to {max}.",
     wavefront: "Ships, armour hits, saucers, waves, boss hits. Destroy the boss fast for up to 10 more.",
-    flip: "Time and stars score; trails, sweet spots, double flips, zones and checkpoints: up to {max}.",
+    flip: "Points for every second you last and each gold star. Last the minute for 10 more.",
     junction: "Points for each car and bus through, ± for ambulances. Last the minute for 10 more.",
     inkbridge: `Points for each level and gold star. All ${INK_LEVELS} levels quickly: up to {max}.`,
     burst: "Points for each atom hit; a lost life takes 5 hits off. Last the 90 s for 10 more.",

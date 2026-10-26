@@ -1,6 +1,6 @@
 import { TEN_DROP_DEPTH_REV } from "@/lib/arcade/tenDrop";
 import { SLICE_REV_TARGET, SLICE_REV_STRICT, SLICE_REV_EXPAND } from "@/lib/arcade/slice";
-import { FLIP_REV_TARGET, FLIP_REV_STRICT, FLIP_REV_EXPAND } from "@/lib/arcade/flip";
+import { FLIP_REV_TARGET, FLIP_REV_STRICT } from "@/lib/arcade/flip";
 import { CROSS_REV_TARGET, CROSS_REV_STRICT } from "@/lib/arcade/cross";
 import { INK_REV_TARGET, INK_REV_STRICT } from "@/lib/arcade/inkBridge";
 import { SNAKE_REV_TARGET, SNAKE_REV_200 } from "@/lib/arcade/snake";
@@ -26,7 +26,8 @@ import { SWING_V9_BANK } from "./swingBankV9.server";
 import { SWING_V13_BANK } from "./swingBankV13.server";
 import { CLAY_REV_DEPTH } from "@/lib/arcade/clayShoot";
 import { WORDFALL_REV_BANDS } from "@/lib/arcade/wordfall";
-import { CLASH_QUEUE, CLASH_REV_TALL, CLASH_REV_DEPTH } from "@/lib/arcade/colourClash";
+import { dealtTopupRev } from "./depthTopup";
+import { CLASH_QUEUE, CLASH_REV_TALL, CLASH_REV_DEPTH, CLASH_REV_TOPUP } from "@/lib/arcade/colourClash";
 /**
  * Server-only seeds for the arcade rounds. One seed per round drives the whole
  * course, so everyone in the room plays the identical run; practice draws a
@@ -173,12 +174,11 @@ export function generateRooftop(): RooftopPuzzleData {
 }
 
 export function generateColourClash(): StroopPuzzleData {
-  return { type: "stroop", seed: arcadeSeed(), queue: CLASH_QUEUE, clashRev: CLASH_REV_DEPTH };
+  return { type: "stroop", seed: arcadeSeed(), queue: CLASH_QUEUE, clashRev: dealtTopupRev(CLASH_REV_TOPUP, CLASH_REV_DEPTH) };
 }
 
 export function generateFlip(): FlipPuzzleData {
-  // flipRev 8 (expansion E7, docs/expansions/x200-flip.md): the taller cave, its features and sweet spots, scored to 200.
-  return { type: "flip", seed: arcadeSeed(), flipRev: FLIP_REV_EXPAND };
+  return { type: "flip", seed: arcadeSeed(), flipRev: FLIP_REV_STRICT };
 }
 
 export function generateJunction(): JunctionPuzzleData {

@@ -70,6 +70,11 @@ import { hashText, makeRng } from "./puzzle-fairness/kit";
 import { roomPuzzle } from "./puzzle-fairness/run";
 import type { PuzzleData, PuzzleType } from "../src/lib/duel/types";
 import { pinDealtPuzzleScoreRev } from "../src/lib/duel/puzzleScoreRev";
+import { pinPreTopup } from "../src/lib/duel/depthTopup";
+
+// The puzzle top-up (26 Oct 2026, docs/depth/topup-oct-2026.md) deals newer stamps; this check proves the stamps it was
+// written for, so new deals are pinned to them (depth-topup-check proves the top-up's).
+pinPreTopup(true);
 
 // This check proves the versions before the D5 remodels (Topsy-Turvy gravityRev 2, Jumbled tilesRev 2): it pins
 // that deal (d5Remodels.ts). The remodels are proved by d5-remodels-check.

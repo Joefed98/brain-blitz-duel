@@ -6,7 +6,6 @@ import { WHACK_REV_DEPTH } from "@/lib/arcade/whack";
 import { WORDFALL_REV } from "@/lib/arcade/wordfall";
 import { BRK_REV_DEEP } from "@/lib/arcade/breaker";
 import { SNIP_REV_EXPAND } from "@/lib/arcade/snip";
-import { FLIP_REV_EXPAND } from "@/lib/arcade/flip";
 import { HOVER_REV_EXPAND } from "@/lib/arcade/hover";
 import { RALLY_REV_TALL } from "@/lib/arcade/rally";
 import { WAV_REV_TALL } from "@/lib/arcade/wavefront";
@@ -109,10 +108,6 @@ export const getIntroDemoFn = createServerFn({ method: "GET" })
     // The 200-point expansion (25 Oct 2026, docs/expansions/e3.md): Breaker brkRev 9 plays on a wider, taller court with
     // new features, so its demo stays stopped (the intro shows its still) until one is recorded there.
     if (data.type === "breaker" && demo?.puzzle.type === "breaker" && demo.puzzle.brkRev !== BRK_REV_DEEP) return null;
-    // Roofbound flipRev 8 (expansion E7, docs/expansions/x200-flip.md): a taller cave whose height changes, moving spikes,
-    // trails, checkpoints, speed zones and sweet spots. An older demo would show the short corridor (and none of them),
-    // so Roofbound's stays stopped (the intro shows its still) until one is recorded on flipRev 8.
-    if (data.type === "flip" && demo?.puzzle.type === "flip" && demo.puzzle.flipRev !== FLIP_REV_EXPAND) return null;
     // The 200-point expansion (26 Oct 2026, docs/expansions/x200-hover.md): Hover hoverRev 9 plays in a 390 × 727 world with
     // tight gates, centre lines, star chains and shields, so its demo stays stopped until one is recorded there.
     if (data.type === "hover" && demo?.puzzle.type === "hover" && demo.puzzle.hoverRev !== HOVER_REV_EXPAND) return null;

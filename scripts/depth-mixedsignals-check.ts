@@ -35,6 +35,11 @@ import type { PuzzleData } from "../src/lib/duel/types";
 import { KITS } from "./puzzle-fairness/kits";
 import { roomPuzzle } from "./puzzle-fairness/run";
 import { hashText, makeRng, type Skill } from "./puzzle-fairness/kit";
+import { pinPreTopup } from "../src/lib/duel/depthTopup";
+
+// The puzzle top-up (26 Oct 2026, docs/depth/topup-oct-2026.md) deals newer stamps; this check proves the stamps it was
+// written for, so new deals are pinned to them (depth-topup-check proves the top-up's).
+pinPreTopup(true);
 
 const failures: string[] = [];
 let checks = 0;

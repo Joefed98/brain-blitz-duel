@@ -7,13 +7,13 @@ import {
   FLIP_GOLD,
   FLIP_INPUT_TAP,
   FLIP_RED,
+  FLIP_WORLD_H,
   FLIP_WORLD_W,
-  flipWorldHFor,
 } from "@/lib/arcade/flip";
 import { encodeFlipRun, replayFlipRun } from "@/lib/duel/flip";
 import { FLIP_TIME_MS, type FlipPuzzleData } from "@/lib/duel/types";
 import { ArcadeCanvasStage } from "@/components/puzzles/ArcadeCanvasStage";
-import { flipArenaSceneFor, flipArtGameFor } from "@/lib/arcade/flipArt.renderer";
+import { flipArenaScene, flipArtGameFor } from "@/lib/arcade/flipArt.renderer";
 import { flipSounds } from "@/lib/fx/gameSounds";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
@@ -46,13 +46,13 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       label={gameDisplayName("flip")}
       background={FLIP_BG}
       fitWorld
-      scene={flipArenaSceneFor(data?.flipRev)}
+      scene={flipArenaScene}
       ambient={flipAmbient}
       seed={data?.seed ?? 1}
       enabled={data !== null}
       locked={locked}
       worldW={FLIP_WORLD_W}
-      worldH={flipWorldHFor(data?.flipRev)}
+      worldH={FLIP_WORLD_H}
       game={game}
       sounds={flipSounds}
       checkpoint={flipCheckpoint}

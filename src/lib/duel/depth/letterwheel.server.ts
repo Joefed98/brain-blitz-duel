@@ -21,7 +21,7 @@ export const letterwheelDepth: DepthGrader = {
     // Each miss after the free ones spills a drop (today's own miss count, from the same log).
     const misses = Number(today.extra?.["misses"] ?? 0);
     const kept = lwJarKept(jar.drops, misses);
-    const jarBonus = lwJarBonus(kept, size);
+    const jarBonus = lwJarBonus(kept, size, puzzle.wheelRev ?? 0);
     const finished = today.isCorrect;
     const score = finished ? withBonus(today.score, jarBonus) : Math.min(LW_JAR_UNFINISHED_TOP, withBonus(today.score, jarBonus));
     const before = storedScoreParts(today.extra);

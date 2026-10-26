@@ -184,13 +184,6 @@ export const MOMENT_TABLE: readonly MomentRow[] = [
   fx("flip", 2, "pop", "star", 15, "Star taken"),
   fx("flip", 3, "perfect", "all-stars", 70, "All 10 stars"),
   fx("flip", 4, "pop", "just-in-time", 40, "Off a crumbling tile just in time", "near-miss"),
-  fx("flip", 5, "pop", "trail-star", 10, "Trail star taken (flipRev 8)"),
-  fx("flip", 6, "perfect", "star-trail", 55, "A whole star trail (flipRev 8)"),
-  fx("flip", 7, "combo", "double-flip", 45, "Double flip (flipRev 8)"),
-  fx("flip", 8, "streak", "checkpoint", 15, "Checkpoint passed (flipRev 8)"),
-  fx("flip", 9, "pop", "saved", 35, "A crash saved by a checkpoint (flipRev 8)", "save"),
-  fx("flip", 10, "streak", "speed-zone", 15, "Into a speed zone (flipRev 8)"),
-  fx("flip", 11, "pop", "sweet-spot", 25, "A sweet landing on a roof's sweet spot (flipRev 8)"),
   // Grappler
   fx("swing", 0, "streak", "distance", 30, "Distance (every 100 m)"),
   fx("swing", 1, "perfect", "star", 25, "Star"),

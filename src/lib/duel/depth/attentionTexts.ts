@@ -7,8 +7,8 @@ import { rev3Figures } from "../puzzleBandsText";
 import { roundMaxFor } from "../roundMax";
 import type { StretchCurve } from "../depth200";
 import type { PuzzleType } from "../types";
-import { SCAN_DEPTH_CURVE } from "./eagleEye";
-import { COUNT_DEPTH_CURVE } from "./tally";
+import { SCAN_TOPUP_CURVE as SCAN_DEPTH_CURVE } from "./eagleEye";
+import { COUNT_TOPUP_CURVE as COUNT_DEPTH_CURVE } from "./tally";
 import { DOUBLE_TAKE_BONUS, SPOT_DEPTH_CURVE } from "./doubleTake";
 
 const LIMIT_S: Partial<Record<PuzzleType, number>> = { symscan: 30, spotdiff: 60, countup: 60 };

@@ -19,15 +19,15 @@ effects ([arcade-effects.md](arcade-effects.md)) so a sound can be written for e
 
 | Category | Silent | Placeholder | Recorded | Total |
 |---|---|---|---|---|
-| game event | 35 | 0 | 312 | 347 |
+| game event | 35 | 0 | 306 | 341 |
 | room moment | 1 | 0 | 34 | 35 |
 | music | 12 | 0 | 82 | 94 |
 | UI tap | 10 | 0 | 22 | 32 |
-| fail sting | 4 | 0 | 36 | 40 |
+| fail sting | 4 | 0 | 35 | 39 |
 | success sting | 3 | 0 | 68 | 71 |
 | ambience | 0 | 1 | 8 | 9 |
-| replay | 0 | 0 | 151 | 151 |
-| **all** | 65 | 1 | 713 | 779 |
+| replay | 0 | 0 | 144 | 144 |
+| **all** | 65 | 1 | 699 | 765 |
 
 ## Silent and placeholder cues
 
@@ -623,13 +623,6 @@ Grouped by game or screen.
 | `flip.star` | Star taken: the clip reaches the moment's key tick [replays.md] |  | 0–2 per highlight | recorded sound | `flip.star` | 250 | replay | `flip.star` |
 | `flip.all-stars` | All 10 stars: the clip reaches the moment's key tick [replays.md] |  | 0–2 per highlight | recorded sound | `flip.all-stars` | 250 | replay | `flip.all-stars` |
 | `flip.just-in-time` | Off a crumbling tile just in time: the clip reaches the moment's key tick [replays.md] |  | 0–2 per highlight | recorded sound | `flip.just-in-time` | 250 | replay | `flip.just-in-time` |
-| `flip.trail-star` | Trail star taken: the clip reaches the moment's key tick [replays.md] |  | 0–2 per highlight | recorded sound | `flip.trail-star` | 250 | replay | `flip.trail-star` |
-| `flip.star-trail` | A whole star trail: the clip reaches the moment's key tick [replays.md] |  | 0–2 per highlight | recorded sound | `flip.star-trail` | 250 | replay | `flip.star-trail` |
-| `flip.double-flip` | Double flip: the clip reaches the moment's key tick [replays.md] |  | 0–2 per highlight | recorded sound | `flip.double-flip` | 250 | replay | `flip.double-flip` |
-| `flip.checkpoint` | Checkpoint passed: the clip reaches the moment's key tick [replays.md] |  | 0–2 per highlight | recorded sound | `flip.checkpoint` | 250 | replay | `flip.checkpoint` |
-| `flip.saved` | A crash saved by a checkpoint: the clip reaches the moment's key tick [replays.md] |  | 0–2 per highlight | recorded sound | `flip.saved` | 250 | replay | `flip.saved` |
-| `flip.speed-zone` | Into a speed zone: the clip reaches the moment's key tick [replays.md] |  | 0–2 per highlight | recorded sound | `flip.speed-zone` | 250 | replay | `flip.speed-zone` |
-| `flip.sweet-spot` | A sweet landing on a roof's sweet spot: the clip reaches the moment's key tick [replays.md] |  | 0–2 per highlight | recorded sound | `flip.sweet-spot` | 250 | replay | `flip.sweet-spot` |
 | `swing.distance` | Distance (every 100 m): the clip reaches the moment's key tick [replays.md] |  | 0–2 per highlight | recorded sound | `swing.distance` | 250 | replay | `swing.distance` |
 | `swing.star` | Star: the clip reaches the moment's key tick [replays.md] |  | 0–2 per highlight | recorded sound | `swing.star` | 250 | replay | `swing.star` |
 | `swing.dodged` | Stalactite dodged: the clip reaches the moment's key tick [replays.md] |  | 0–2 per highlight | recorded sound | `swing.dodged` | 250 | replay | `swing.dodged` |
@@ -1417,13 +1410,6 @@ Grouped by game or screen.
 | `flip.justInTime` | Off a crumbling tile just in time [arcade-effects.md] | JUST IN TIME! pop | 0–5 | recorded sound | `flip.justInTime` | 300 | game event | `flip.justInTime` |
 | `flip.crackStart` | A crumble tile is first touched [arcade-effects.md] | Orange cracks grow and the tile shivers | 2–10 | recorded sound | `flip.crackStart` | 250 | game event | `flip.crackStart` |
 | `flip.collapse` | A cracked tile collapses [arcade-effects.md] | A lava pool opens and stone chunks fall | 2–10 | recorded sound | `flip.collapse` | 400 | game event | `flip.collapse` |
-| `flip.trailStar` | A trail star taken in the air (flipRev 8) [arcade-effects.md] | The small star stops being drawn (a sparkle at the runner) | 0–20 | recorded sound | `arc_pickup` (shared) | 200 | game event | `flip.trailStar` |
-| `flip.trailDone` | All five stars of a trail taken (flipRev 8) [arcade-effects.md] | STAR TRAIL! banner | 0–4 | recorded sound | `flip.trailDone` | 600 | game event | `flip.trailDone` |
-| `flip.doubleFlip` | A flip within 8 ticks of landing with a hazard close by (flipRev 8) [arcade-effects.md] | DOUBLE FLIP! / TRIPLE FLIP! combo pop at the runner | 0–25 | recorded sound | `flip.doubleFlip` | 500 | game event | `flip.doubleFlip` |
-| `flip.checkpointPassed` | A checkpoint gate passed at 15, 30 or 45 s (flipRev 8) [arcade-effects.md] | CHECKPOINT banner; the gate's pennant and curtain turn gold | 0–3 | recorded sound | `flip.checkpointPassed` | 600 | game event | `flip.checkpointPassed` |
-| `flip.crashSaved` | A crash saved by a checkpoint (flipRev 8) [arcade-effects.md] | SAVED! pop; the runner box flickers gold for a second | 0–3 | recorded sound | `flip.crashSaved` | 600 | fail sting | `flip.crashSaved` |
-| `flip.speedZone` | Into a speed zone (flipRev 8) [arcade-effects.md] | SPEED ZONE! banner; warm air and streaks between the zone's gates | 0–2 | recorded sound | `flip.speedZone` | 528 | game event | `flip.speedZone` |
-| `flip.sweetLanding` | A flip landed with the runner's centre on a roof's sweet spot (flipRev 8) [arcade-effects.md] | SWEET! pop at the runner; a glint runs along the strip | 0–8 | recorded sound | `flip.sweetLanding` | 600 | game event | `flip.sweetLanding` |
 | `flip.speedUp` | Every third speed step (9, 18, 27, 36 and 45 s; the tunnel still speeds up every 3 s, sound batch 4) [arcade-effects.md] | The scroll speeds up | 5 | recorded sound | `flip.speedUp` | 390 | game event | `flip.speedUp` |
 | `flip.crash` | Roofbound: The run ends in a crash [arcade.md] |  | 0–1 | recorded sound | `arc_crash` (shared) | 200 | fail sting | `flip.crash` |
 | `flip.flip` | Roofbound: Gravity flips [arcade.md] |  | 20–60 | recorded sound | `arc_gravity_flip` (shared) | 330 | game event | `flip.flip` |
@@ -1564,7 +1550,7 @@ loops are not measured there). Files in `public/sounds/` are listed once per slo
 | `reveal_score` | effects | `reveal_score` | 140 |
 | `reaction` | effects | `reaction` | 100 |
 | `arc_crash` | effects | `swing.crash`, `skyline.miss`, `junction.crash`, `orbit.crash`, `flip.crash`, `slice.bomb`, `tilt.pitFall`, `tilt.caught` | 200 |
-| `arc_pickup` | effects | `swing.starTaken`, `orbit.checkpoint`, `flip.starTaken`, `flip.trailStar` | 100 |
+| `arc_pickup` | effects | `swing.starTaken`, `orbit.checkpoint`, `flip.starTaken` | 100 |
 | `arc_space_ambience` | effects | `orbit.ambience` | loop |
 | `arc_thruster` | effects | `orbit.launch` | 160 |
 | `arc_lose_life` | effects | `bubble.reefLost`, `burst.lifeLost`, `cross.lifeLost`, `wavefront.lifeLost` | 220 |
@@ -1815,13 +1801,6 @@ loops are not measured there). Files in `public/sounds/` are listed once per slo
 | `flip.star` | effects | `flip.star` | 486 |
 | `flip.all-stars` | effects | `flip.all-stars` | 486 |
 | `flip.just-in-time` | effects | `flip.just-in-time` | 486 |
-| `flip.trail-star` | effects | `flip.trail-star` | 486 |
-| `flip.star-trail` | effects | `flip.star-trail` | 486 |
-| `flip.double-flip` | effects | `flip.double-flip` | 486 |
-| `flip.checkpoint` | effects | `flip.checkpoint` | 486 |
-| `flip.saved` | effects | `flip.saved` | 486 |
-| `flip.speed-zone` | effects | `flip.speed-zone` | 486 |
-| `flip.sweet-spot` | effects | `flip.sweet-spot` | 486 |
 | `swing.distance` | effects | `swing.distance` | 486 |
 | `swing.star` | effects | `swing.star` | 486 |
 | `swing.dodged` | effects | `swing.dodged` | 486 |
@@ -2053,13 +2032,6 @@ loops are not measured there). Files in `public/sounds/` are listed once per slo
 | `flip.justInTime` | effects | `flip.justInTime` | 528 |
 | `flip.crackStart` | effects | `flip.crackStart` | 528 |
 | `flip.collapse` | effects | `flip.collapse` | 528 |
-| `flip.trailStar` | effects | `flip.trailStar` | 200 |
-| `flip.trailDone` | effects | `flip.trailDone` | 600 |
-| `flip.doubleFlip` | effects | `flip.doubleFlip` | 500 |
-| `flip.checkpointPassed` | effects | `flip.checkpointPassed` | 600 |
-| `flip.crashSaved` | effects | `flip.crashSaved` | 600 |
-| `flip.speedZone` | effects | `flip.speedZone` | 528 |
-| `flip.sweetLanding` | effects | `flip.sweetLanding` | 600 |
 | `inkbridge.goldStar` | effects | `inkbridge.goldStar` | 528 |
 | `inkbridge.allLevels` | effects | `inkbridge.allLevels` | 840 |
 | `inkbridge.release` | effects | `inkbridge.release` | 528 |

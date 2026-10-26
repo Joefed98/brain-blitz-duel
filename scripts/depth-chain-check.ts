@@ -34,6 +34,11 @@ import {
   chainUsesDepth,
 } from "../src/lib/duel/depth/chain";
 import { BOT_LEVELS, botRuns, levelRow, printTable, quantile } from "./depth/chain-pair-bots";
+import { pinPreTopup } from "../src/lib/duel/depthTopup";
+
+// The puzzle top-up (26 Oct 2026, docs/depth/topup-oct-2026.md) deals newer stamps; this check proves the stamps it was
+// written for, so new deals are pinned to them (depth-topup-check proves the top-up's).
+pinPreTopup(true);
 
 let checks = 0;
 const failures: string[] = [];

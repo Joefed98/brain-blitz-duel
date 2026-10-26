@@ -211,13 +211,6 @@ Already sounded: crossing and its banner (`cross.crossed`), hops (`cross.hop`), 
 | `flip.justInTime` | Off a crumbling tile just in time | JUST IN TIME! pop | `pop.perfect.mp3` | 0–5 | 300 ms |
 | `flip.crackStart` | A crumble tile is first touched | Orange cracks grow and the tile shivers | `cave.stoneCrack.mp3` | 2–10 | 250 ms |
 | `flip.collapse` | A cracked tile collapses | A lava pool opens and stone chunks fall | `cave.rockCrumble.mp3` | 2–10 | 400 ms |
-| `flip.trailStar` | A trail star taken in the air (flipRev 8) | The small star stops being drawn (a sparkle at the runner) | `arc_pickup` (shared recording, volume 0.75) | 0–20 | 200 ms |
-| `flip.trailDone` | All five stars of a trail taken (flipRev 8) | STAR TRAIL! banner | `done.chimeSweep.mp3` | 0–4 | 600 ms |
-| `flip.doubleFlip` | A flip within 8 ticks of landing with a hazard close by (flipRev 8) | DOUBLE FLIP! / TRIPLE FLIP! combo pop at the runner | `banner.combo.mp3` (volume 0.85) | 0–25 | 500 ms |
-| `flip.checkpointPassed` | A checkpoint gate passed at 15, 30 or 45 s (flipRev 8) | CHECKPOINT banner; the gate's pennant and curtain turn gold | `done.goldPulse.mp3` (volume 0.85) | 0–3 | 600 ms |
-| `flip.crashSaved` | A crash saved by a checkpoint (flipRev 8) | SAVED! pop; the runner box flickers gold for a second | `done.glowSweep.mp3` | 0–3 | 600 ms |
-| `flip.speedZone` | Into a speed zone (flipRev 8) | SPEED ZONE! banner; warm air and streaks between the zone's gates | `hover.zone.mp3` (volume 0.8) | 0–2 | 528 ms |
-| `flip.sweetLanding` | A flip landed with the runner's centre on a roof's sweet spot (flipRev 8) | SWEET! pop at the runner; a glint runs along the strip | `sfx_spark_chime.mp3` (shared recording, volume 0.6) | 0–8 | 600 ms |
 | `flip.speedUp` | Every third speed step (9, 18, 27, 36 and 45 s; the tunnel still speeds up every 3 s, sound batch 4) | The scroll speeds up | `speed.up.mp3` · own file `flip.tunnelRush.mp3` (sound batch 4, volume 0.6) | 5 | 390 ms |
 
 Already sounded: gravity flip (`flip.flip`), crash into the pool (`flip.crash`).

@@ -212,8 +212,6 @@ const EXTRACT = String.raw`
     }
     case "flip": {
       const lift = s.rev === 2 ? 18 : 14, F = m.flip;
-      // flipRev 8: the cave's height changes along the run, so the drawn point comes from the game's own geometry.
-      if (s.exp) { P.push(["runner", 0, F.flipRunnerPoint(s).y]); break; }
       const target = s.side === 0 ? F.FLIP_FLOOR_Y - lift : F.FLIP_CEIL_Y + lift;
       let y = target;
       if (s.flipT > 0) { const from0 = s.side === 0 ? F.FLIP_CEIL_Y + lift : F.FLIP_FLOOR_Y - lift; const f = 1 - s.flipT / F.FLIP_ARC_TICKS; y = from0 + (target - from0) * f * f * (3 - 2 * f); }

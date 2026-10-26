@@ -1775,8 +1775,6 @@ function gradeUnderRev(
         survivedSeconds: run.survivedSeconds,
         survived: run.survived,
         ...(run.starsTotal > 0 ? { stars: run.stars, starsTotal: run.starsTotal } : {}),
-        // flipRev 8 (the expansion): the features' counts and the skill points paid.
-        ...(run.sweetsTotal > 0 ? { trailStars: run.trailStars, trailTotal: run.trailTotal, combos: run.combos, saves: run.saves, sweets: run.sweets, sweetsTotal: run.sweetsTotal, skill: run.skill } : {}),
         endedSeconds: run.endedSeconds,
         flagged: run.flagged,
         clientLag: run.clientLag,

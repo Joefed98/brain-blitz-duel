@@ -78,8 +78,6 @@ const RAISED: PuzzleType[] = [
   "snip",
   // Expansion E2 (docs/expansions/e2.md): Meteor and Tempo.
   "snake", "beat",
-  // Expansion E7 (docs/expansions/x200-flip.md): Roofbound flipRev 8.
-  "flip",
   // The 200 expansions (docs/expansions/x200-hover.md): Hover.
   "hover",
   // Grappler's 200 expansion (docs/expansions/x200-swing.md): swingRev 13.

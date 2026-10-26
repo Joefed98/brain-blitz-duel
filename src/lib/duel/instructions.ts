@@ -2,10 +2,10 @@ import { bandsHelp, openBandsLine } from "./puzzleBandsText";
 import { depthHelp as logicDepthHelp } from "./logicDepthText";
 import { wordSearchBonusHelp } from "./wordSearchText";
 import { letterWheelJarHelp } from "./letterWheelText";
-import { CODEWORD_STRETCH, TILEGRID_STRETCH, stretchHelp, strikeoutDepthHelp } from "./depth/stretchShapes";
+import { CODEWORD_STRETCH, TILEGRID_STRETCH_TOPUP, stretchHelp, strikeoutDepthHelp } from "./depth/stretchShapes";
 import { parBonusHelp } from "./parBonusText";
-import { SLIDE_PAR_BONUS } from "./wordSlide";
-import { SWAP_PAR_BONUS } from "./swapword";
+import { SLIDE_PAR_BONUS_TOPUP } from "./wordSlide";
+import { SWAP_PAR_BONUS_TOPUP } from "./swapword";
 import { doubleTakeDepthHelp, eagleEyeDepthHelp, tallyDepthHelp } from "./depth/attentionTexts";
 import { depthHelp } from "./numberDepthText";
 import { d4Help } from "./depth4/text";
@@ -16,25 +16,27 @@ import {
   WORDHUNT_MISS_COST_PCT,
   WORDHUNT_REV_TARGET,
   WORDSMITH_V3_CAP,
+  WORDSMITH_REV_TOPUP,
   WORDSMITH_V3_PANGRAM_BONUS,
   wordsmithV3Words,
 } from "./scoring";
 import { withPuzzleScoreRev } from "./puzzleScoreRev";
-import { WORDHUNT_DEPTH_BASE_MAX, WORDHUNT_DEPTH_BONUS_MAX, WORDHUNT_V3_BASE_CURVE, WORDHUNT_V3_BONUS_CURVE } from "./wordHunt";
+import { WORDHUNT_DEPTH_BASE_MAX, WORDHUNT_DEPTH_BONUS_MAX, WORDHUNT_V4_BASE_CURVE, WORDHUNT_V4_BONUS_CURVE } from "./wordHunt";
 import { ascendDepthHelp, bangOnDepthHelp, flashDepthHelp } from "./depth/speedTexts";
 import { BAND_GOOD_POINTS, bandMapTotal, bandOpen, bandPoints, bandTop, bandUnitsFor } from "@/lib/arcade/scoreBands";
 import { TD_GOLD_MAX, TD_GOLD_POINTS, TD_REV3_FREE_RESETS, TD_REV3_RESET_COST, TD_RUN_TICKS, TD_STRETCH_FROM, TD_STRETCH_SPAN, TEN_DROP_DEPTH_REV, TEN_DROP_RAW_REV, tenDropScore } from "@/lib/arcade/tenDrop";
-import { CLASH_DEPTH_MAX_WRONG, CLASH_GOLD_POINTS, CLASH_GOLD_STREAK, CLASH_GOLDS, CLASH_GREAT_MAP, CLASH_PACE_ZERO_TICK, CLASH_REV3_RUN_TICKS, CLASH_STREAK_POINTS, CLASH_STRETCH_POINTS } from "@/lib/arcade/colourClash";
+import { CLASH_DEPTH_MAX_WRONG, CLASH_GOLD_POINTS, CLASH_GOLD_STREAK, CLASH_GOLDS, CLASH_GREAT_MAP, CLASH_TOPUP_PACE_FLOOR, CLASH_TOPUP_PACE_ZERO_TICK, CLASH_REV3_RUN_TICKS, CLASH_STREAK_POINTS, CLASH_STRETCH_POINTS } from "@/lib/arcade/colourClash";
 import { WHACK_BANDS_MAP, WHACK_COMBO_POINTS, WHACK_DIAMOND_POINTS, WHACK_DIAMONDS, WHACK_QUICK_ZERO_TICKS } from "@/lib/arcade/whack";
 import { CLAY_DOUBLE_POINTS, CLAY_DOUBLES, CLAY_QUICK_HIT_MAP, CLAY_QUICK_POINTS, CLAY_STREAK_POINTS } from "@/lib/arcade/clayShoot";
 import { WORDFALL_BANDS_MAP } from "@/lib/arcade/wordfall";
 
 /** Nucleus wordsmithRev 3's help numbers: the word points that first reach each score, then the curve's top. */
 function wordsmithV3Line(): string {
-  const first = (p: number) => RANGE_0_200.find((x) => wordsmithV3Words(x) >= p) ?? null;
+  const words = (x: number) => wordsmithV3Words(x, WORDSMITH_REV_TOPUP);
+  const first = (p: number) => RANGE_0_200.find((x) => words(x) >= p) ?? null;
   const parts = [70, 100, 130, 150, 165].map((p) => {
     const x = first(p);
-    return x === null ? null : `${x} points ≈ ${wordsmithV3Words(x)}`;
+    return x === null ? null : `${x} points ≈ ${words(x)}`;
   }).filter(Boolean);
   return `${parts.join(", ")}, up to ${WORDSMITH_V3_CAP} at ${first(WORDSMITH_V3_CAP)} points`;
 }
@@ -80,7 +82,6 @@ import { BULLSEYE_INNER_BULL_POINTS, BULLSEYE_RING_VALUES } from "@/lib/arcade/b
 import { liveBandHelp } from "@/lib/arcade/liveBands";
 import { SWING_COMBO_CAP, SWING_FEATURE_CAP, SWING_GATES, SWING_GEMS, SWING_LEDGE_POINTS, SWING_PAR_POINTS, SWING_SKILL_PAY } from "@/lib/arcade/swing";
 import { BRK_V9_COLS, BRK_V9_COMBO_MAX, BRK_V9_COMBO_X2, BRK_V9_COMBO_X3, BRK_V9_GOLD, BRK_V9_GOLD_POINTS, BRK_V9_ROWS, BRK_V9_SKILL_MAX, BRK_V9_SKILL_PAY } from "@/lib/arcade/breaker";
-import { FLIP_V8_COMBO_CAP, FLIP_V8_CP_POINTS, FLIP_V8_FEATURE_CAP, FLIP_V8_SKILL_PAY, FLIP_V8_SWEETS, FLIP_V8_SWEET_POINTS, FLIP_V8_TRAILS, FLIP_V8_TRAIL_POINTS, FLIP_V8_TRAIL_STARS, FLIP_V8_ZONE_POINTS } from "@/lib/arcade/flip";
 import { bandCurve, type BandCurve } from "@/lib/arcade/scoreBands";
 import { SNIP_X_FEATURE_MAX, SNIP_X_FEED_UNITS, SNIP_X_GOLD_RAW, SNIP_X_LEVELS, SNIP_X_PAR_MARGIN, SNIP_X_PAR_RAW, SNIP_X_PERFECT_RAW, SNIP_X_QUICK_RAW, SNIP_X_RAW_TOP, SNIP_X_SKILL_PAY, SNIP_X_STAR2_RAW, SNIP_X_STAR_UNITS } from "@/lib/arcade/snip";
 import { fillMax, liveRecord, roundMaxFor } from "./roundMax";
@@ -137,7 +138,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Red runs", detail: "need fixing.", helpOnly: true },
         { action: "Words are checked", detail: "against a standard British English dictionary.", helpOnly: true },
       ],
-      score: stretchHelp("tilegrid", TILEGRID_STRETCH),
+      score: stretchHelp("tilegrid", TILEGRID_STRETCH_TOPUP),
     },
     balance: {
       goal: "Balance each of the four scales.",
@@ -162,7 +163,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Words are 5 letters.", detail: "Column swipes go around a locked row.", helpOnly: true },
         { action: "Words are checked", detail: "against a standard British English dictionary.", helpOnly: true },
       ],
-      score: parBonusHelp("wordslide", SLIDE_PAR_BONUS, "moves", "the par moves"),
+      score: parBonusHelp("wordslide", SLIDE_PAR_BONUS_TOPUP, "moves", "the par moves"),
     },
     target: {
       goal: "Use the six numbers to make the target.",
@@ -222,7 +223,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Streak:", detail: "words right in a row; the lanes glow brighter as it grows.", helpOnly: true },
         { action: "Sort the last word", detail: `to finish – the run ends when all ${CLASH_QUEUE} are sorted, or at 75 seconds.`, helpOnly: true },
       ],
-      score: `All ${CLASH_QUEUE} sorted (or let fall) with at most ${CLASH_DEPTH_MAX_WRONG} wrong is a finish: ${bandMapTotal(CLASH_GREAT_MAP, 120)} as time runs out, rising with the time left (5 off the speed part per wrong word; touching a grey word counts as wrong) to 150 for a quick finish with none wrong. A finish adds up to ${CLASH_GOLDS * CLASH_GOLD_POINTS * 2} for gold words (${CLASH_GOLD_POINTS} each, ${CLASH_GOLD_POINTS * 2} on a streak of ${CLASH_GOLD_STREAK}+), up to ${CLASH_STREAK_POINTS} for your longest streak (all ${CLASH_QUEUE} in a row for the lot) and up to ${CLASH_STRETCH_POINTS} for a clean finish quicker than ${CLASH_REV3_RUN_TICKS / 120} s; the gold and streak points count in full by ${CLASH_REV3_RUN_TICKS / 120} s and fade to none at ${CLASH_PACE_ZERO_TICK / 60} s. {max} only for a quick, clean run with every gold word on a streak. Otherwise words right less words wrong, ${bandMapTotal(CLASH_GREAT_MAP, 110)} at most: 20 scores ${bandMapTotal(CLASH_GREAT_MAP, 70)}, 40 scores ${bandMapTotal(CLASH_GREAT_MAP, 100)}, 46 or more ${bandMapTotal(CLASH_GREAT_MAP, 110)}.`,
+      score: `All ${CLASH_QUEUE} sorted (or let fall) with at most ${CLASH_DEPTH_MAX_WRONG} wrong is a finish: ${bandMapTotal(CLASH_GREAT_MAP, 120)} as time runs out, rising with the time left (5 off the speed part per wrong word; touching a grey word counts as wrong) to 150 for a quick finish with none wrong. A finish adds up to ${CLASH_GOLDS * CLASH_GOLD_POINTS * 2} for gold words (${CLASH_GOLD_POINTS} each, ${CLASH_GOLD_POINTS * 2} on a streak of ${CLASH_GOLD_STREAK}+), up to ${CLASH_STREAK_POINTS} for your longest streak (all ${CLASH_QUEUE} in a row for the lot) and up to ${CLASH_STRETCH_POINTS} for a clean finish quicker than ${CLASH_REV3_RUN_TICKS / 120} s; the gold and streak points count in full by ${CLASH_REV3_RUN_TICKS / 120} s and fade to ${Math.round(CLASH_TOPUP_PACE_FLOOR * 100)} % at ${CLASH_TOPUP_PACE_ZERO_TICK / 60} s. {max} only for a quick, clean run with every gold word on a streak. Otherwise words right less words wrong, ${bandMapTotal(CLASH_GREAT_MAP, 110)} at most: 20 scores ${bandMapTotal(CLASH_GREAT_MAP, 70)}, 40 scores ${bandMapTotal(CLASH_GREAT_MAP, 100)}, 46 or more ${bandMapTotal(CLASH_GREAT_MAP, 110)}.`,
     },
     symscan: {
       goal: "Find every eagle that matches the target.",
@@ -284,7 +285,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Words are checked", detail: "against a standard British English dictionary.", helpOnly: true },
       ],
       // wordHuntRev 3 (word depth, 25 Oct 2026; wordHunt.ts): base points on their curve, the features' extras on theirs.
-      score: `Word points: 4 letters 1, 5 → 2, 6 → 4, 7 → 7, 8+ → 11. Base points score up to ${WORDHUNT_DEPTH_BASE_MAX}: ${[18, 27, 44].map((u) => `${u} points ≈ ${bandOpen(WORDHUNT_V3_BASE_CURVE, u)}`).join(", ")}, ${WORDHUNT_DEPTH_BASE_MAX} at ${bandUnitsFor(WORDHUNT_V3_BASE_CURVE, WORDHUNT_DEPTH_BASE_MAX)}. What long words and the gold tile add (6 letters ×1.5, 7+ ×2, through the gold tile ×2) scores up to ${WORDHUNT_DEPTH_BONUS_MAX} more: ${[17, 48].map((u) => `${u} extra ≈ ${bandOpen(WORDHUNT_V3_BONUS_CURVE, u, WORDHUNT_DEPTH_BONUS_MAX)}`).join(", ")}, ${WORDHUNT_DEPTH_BONUS_MAX} at ${bandUnitsFor(WORDHUNT_V3_BONUS_CURVE, WORDHUNT_DEPTH_BONUS_MAX)}; {max} only with both. Tracing lots of non-words costs: ${WORDHUNT_FREE_MISSES} plus ${WORDHUNT_FREE_MISSES_PER_WORD} per word found are free, then ${WORDHUNT_MISS_COST_PCT} % off each. The counter shows word points with their multipliers.`,
+      score: `Word points: 4 letters 1, 5 → 2, 6 → 4, 7 → 7, 8+ → 11. Base points score up to ${WORDHUNT_DEPTH_BASE_MAX}: ${[18, 27, 44].map((u) => `${u} points ≈ ${bandOpen(WORDHUNT_V4_BASE_CURVE, u)}`).join(", ")}, ${WORDHUNT_DEPTH_BASE_MAX} at ${bandUnitsFor(WORDHUNT_V4_BASE_CURVE, WORDHUNT_DEPTH_BASE_MAX)}. What long words and the gold tile add (6 letters ×1.5, 7+ ×2, through the gold tile ×2) scores up to ${WORDHUNT_DEPTH_BONUS_MAX} more: ${[17, 48].map((u) => `${u} extra ≈ ${bandOpen(WORDHUNT_V4_BONUS_CURVE, u, WORDHUNT_DEPTH_BONUS_MAX)}`).join(", ")}, ${WORDHUNT_DEPTH_BONUS_MAX} at ${bandUnitsFor(WORDHUNT_V4_BONUS_CURVE, WORDHUNT_DEPTH_BONUS_MAX)}; {max} only with both. Tracing lots of non-words costs: ${WORDHUNT_FREE_MISSES} plus ${WORDHUNT_FREE_MISSES_PER_WORD} per word found are free, then ${WORDHUNT_MISS_COST_PCT} % off each. The counter shows word points with their multipliers.`,
     },
     unblock: {
       goal: "Slide the gold block out through the exit.",
@@ -927,23 +928,16 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
       score: "The longer you last, the more you score – the full minute is {max}.",
     },
     flip: {
-      goal: "Run the cave – flip to the other side to dodge, and chain flips for more.",
+      goal: "Run the corridor – flip to the other side to dodge.",
       how: [
-        { action: "Tap to flip sides;", detail: "dodge the spikes (some slide). Flip again right after landing for a double flip." },
-        { action: "Grab gold stars and star trails;", detail: "land a flip on a roof's faint sweet spot for a bonus." },
-        { action: "Checkpoints save one crash.", detail: "Speed zones rush you on; tall caves mean longer flips." },
-        { action: "Spikes or lava on one side?", detail: "Run on the other. Cracked tiles break less than half a second after you touch them: flip off fast.", helpOnly: true },
-        { action: "Moving spikes", detail: "slide to and fro along the groove under them; time your flip to their slide.", helpOnly: true },
-        { action: "The cave changes height:", detail: "in a tall stretch a flip takes longer to cross, in a tight one it is quicker. From 10 seconds the cave bends too, and hazards ride the bends with you.", helpOnly: true },
-        { action: "Double flips:", detail: "flip again within about an eighth of a second of landing with a hazard close by. A triple and longer chains count more, and twice as much in a speed zone.", helpOnly: true },
-        { action: "Star trails:", detail: `${FLIP_V8_TRAILS} arcs of ${FLIP_V8_TRAIL_STARS} small stars, taken in the air. Leave the surface at the chevron and your flip sweeps through them.`, helpOnly: true },
-        { action: "Sweet spots:", detail: `${FLIP_V8_SWEETS} roofs carry a short, faint pale strip. Time a flip so you touch down with your feet inside it for a sweet landing; it glints. Each counts once.`, helpOnly: true },
-        { action: "Checkpoints (15, 30 and 45 s):", detail: "pass one and your next crash is saved – a second of shield, but your survival time pauses for 10 seconds.", helpOnly: true },
+        { action: "Tap to flip sides;", detail: "run on the side without spikes." },
+        { action: "Cracked tiles break;", detail: "flip off fast." },
+        { action: "Grab the gold stars.", detail: "From 10 seconds the corridor bends." },
+        { action: "Spikes or lava on one side?", detail: "Run on the other.", helpOnly: true },
+        { action: "Hazards ride the bends with you,", detail: "so the gap between floor and ceiling never changes.", helpOnly: true },
+        { action: "A tile starts cracking", detail: "the moment you touch it and is gone less than half a second later.", helpOnly: true },
       ],
-      score: liveBandHelp("flip", "Each half second you last counts 1 and each gold star 3.", {
-        more: "More time and stars",
-        finish: `Lasting the full minute adds 10. Skill adds up to ${FLIP_V8_FEATURE_CAP} more: ${FLIP_V8_TRAIL_POINTS} a full star trail, ${FLIP_V8_SWEET_POINTS} a sweet landing, ${FLIP_V8_ZONE_POINTS} a speed zone run through without a save, ${FLIP_V8_CP_POINTS} a checkpoint reached without a crash, and double-flip combo points (up to ${FLIP_V8_COMBO_CAP}). ${skillPayLine(FLIP_V8_SKILL_PAY)}`,
-      }),
+      score: liveBandHelp("flip", "Each half second you last counts 1 and each gold star 3.", { more: "More time and stars", finish: "Lasting the full minute adds 10." }),
     },
     junction: {
       goal: "Keep traffic moving, no crashes.",
@@ -1233,7 +1227,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Or tap one tile", detail: "then the other.", helpOnly: true },
         { action: "Teal tiles", detail: "belong elsewhere in a word through them; grey tiles fit neither word. A letter shows teal only as often as it is still needed.", helpOnly: true },
       ],
-      score: parBonusHelp("swapword", SWAP_PAR_BONUS, "swaps", "par swaps (the fewest that solve the board)"),
+      score: parBonusHelp("swapword", SWAP_PAR_BONUS_TOPUP, "swaps", "par swaps (the fewest that solve the board)"),
     },
     lightup: {
       goal: "Place bulbs so every white square is lit.",

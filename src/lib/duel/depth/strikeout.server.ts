@@ -10,7 +10,7 @@
 import type { DepthGrader } from "../wordDepth.server";
 import type { PuzzleData } from "../types";
 import { isWord } from "../dictionary.server";
-import { decodeStrikeout2, so2EarlySolves, so2Rules, strikeoutRevOf, STRIKEOUT_REV5 } from "../strikeout";
+import { decodeStrikeout2, so2EarlySolves, so2Rules, strikeoutRevOf, STRIKEOUT_REV5, STRIKEOUT_REV_TOPUP } from "../strikeout";
 import { rev3Game } from "../puzzleScoreRev3";
 import { addFinishBonus, finishFigures, stretchPoints } from "./stretch.server";
 import {
@@ -19,11 +19,18 @@ import {
   STRIKEOUT_EARLY_QUICK_POWER,
   STRIKEOUT_PACE_POINTS,
   STRIKEOUT_STRETCH,
+  STRIKEOUT_TOPUP_EARLY_FROM,
+  STRIKEOUT_TOPUP_EARLY_FULL_AT,
+  STRIKEOUT_TOPUP_PACE,
   stretchCurveFor,
 } from "./stretchShapes";
 
-export function strikeoutEarlyPoints(share: number, left: number): number {
+export function strikeoutEarlyPoints(share: number, left: number, rev = STRIKEOUT_REV5): number {
   const s = Math.max(0, Math.min(1, share / STRIKEOUT_EARLY_FULL));
+  if (rev >= STRIKEOUT_REV_TOPUP) {
+    const pace = Math.max(0, Math.min(1, (left - STRIKEOUT_TOPUP_EARLY_FROM) / (STRIKEOUT_TOPUP_EARLY_FULL_AT - STRIKEOUT_TOPUP_EARLY_FROM)));
+    return Math.round(STRIKEOUT_EARLY_POINTS * s * pace);
+  }
   const quick = Math.max(0, Math.min(1, left / rev3Game("strikeout").fastShare));
   return Math.round(STRIKEOUT_EARLY_POINTS * s * Math.pow(quick, STRIKEOUT_EARLY_QUICK_POWER));
 }
@@ -35,8 +42,9 @@ export const strikeoutDepth: DepthGrader = {
     if (!f || ctx.puzzle.type !== "strikeout") return ctx.today;
     const p = ctx.puzzle;
     const early = so2EarlySolves(p.words ?? [], p.givens ?? [], decodeStrikeout2(ctx.answer), isWord, so2Rules(strikeoutRevOf(p)));
-    const pace = stretchPoints(stretchCurveFor("strikeout", STRIKEOUT_STRETCH), f.time, f.efficiency, STRIKEOUT_PACE_POINTS);
-    const earlyPts = strikeoutEarlyPoints(early.share, f.time);
+    const rev = strikeoutRevOf(p);
+    const pace = stretchPoints(stretchCurveFor("strikeout", rev >= STRIKEOUT_REV_TOPUP ? STRIKEOUT_TOPUP_PACE : STRIKEOUT_STRETCH), f.time, f.efficiency, STRIKEOUT_PACE_POINTS);
+    const earlyPts = strikeoutEarlyPoints(early.share, f.time, rev);
     return addFinishBonus(ctx.today, f.parts, pace + earlyPts, "pace and early-solve bonus", {
       paceBonus: pace,
       earlyBonus: earlyPts,
