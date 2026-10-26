@@ -222,6 +222,10 @@ Already sounded: gravity flip (`flip.flip`), crash into the pool (`flip.crash`).
 | `inkbridge.liveLevel` | The live levels (9–10) begin (inkRev 3+) | The no-draw ring appears round the coin | `alert.newHazard.mp3` | 0–1 | 600 ms |
 | `inkbridge.coinLand` | The coin lands on a rainbow (at most one per 150 ms) | The coin meets the line | `arc_marble_clink` (shared recording) | 10–30 | 120 ms |
 | `inkbridge.coinRoll` | While the coin rolls along a rainbow | The coin rolls with its gold trail | `arc_marble_roll` (shared recording) | loop | loop |
+| `inkbridge.cloudBounce` | The coin springs off a bounce cloud (inkRev 10; at most one per 120 ms) | The cloud squashes and springs back (still under reduced motion) | `cross.hop.mp3` | 0–15 | 300 ms |
+| `inkbridge.trickShot` | The coin is potted after bouncing off a cloud (inkRev 10) | A TRICK SHOT! pop over the pot | `sfx_spark_chime.mp3` | 0–5 | 600 ms |
+| `inkbridge.silverCoin` | The coin in flight takes a silver coin (inkRev 10; at most one per 60 ms) | The silver coin goes | `pop.perfect.mp3` (higher, quieter) | 0–25 | 150 ms |
+| `inkbridge.shamrock` | The coin in flight takes the run's shamrock (inkRev 10) | The shamrock goes; a SHAMROCK +20! pop when the coin is potted | `sfx_spark_chime.mp3` (a little higher) | 0–1 | 600 ms |
 
 Already sounded: drawing (`inkbridge.draw`), pot of gold and level clear (`inkbridge.pot`), stopped on a block (`inkbridge.bump`).
 

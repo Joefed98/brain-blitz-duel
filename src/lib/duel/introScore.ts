@@ -1,7 +1,7 @@
 import { CLASH_DEPTH_MAX_WRONG, CLASH_QUEUE } from "@/lib/arcade/colourClash";
 import { BULLSEYE_INNER_BULL_POINTS, BULLSEYE_RING_VALUES } from "@/lib/arcade/bullseye";
 import { BINTOSS_FAR_POINTS, BINTOSS_THROWS } from "@/lib/arcade/binToss";
-import { INK_LEVELS } from "@/lib/arcade/inkBridge";
+import { INK_FEATURE_MAX, INK_LEVELS } from "@/lib/arcade/inkBridge";
 import { SNIP_CONFIG } from "@/lib/arcade/snip";
 import { SWING_FINISH_M } from "@/lib/arcade/swing";
 import { TILT_MAX_MAZES } from "@/lib/arcade/tilt";
@@ -117,7 +117,7 @@ function introScoreTemplates(): Record<PuzzleType, string> {
     wavefront: "Ships, armour hits, saucers, waves, boss hits. Destroy the boss fast for up to 10 more.",
     flip: "Points for every second you last and each gold star. Last the minute for 10 more.",
     junction: "Points for each car and bus through, ± for ambulances. Last the minute for 10 more.",
-    inkbridge: `Points for each level and gold star. All ${INK_LEVELS} levels quickly: up to {max}.`,
+    inkbridge: `Levels score; stars, coins, shamrock: up to ${INK_FEATURE_MAX} more. All ${INK_LEVELS} levels quickly: up to {max}.`,
     burst: "Points for each atom hit; a lost life takes 5 hits off. Last the 90 s for 10 more.",
     orbit: "Points for each planet you reach. Reach the sun quickly for up to {max}.",
     snip: `Points for each apple and leaf. All ${SNIP_CONFIG.levels} apples quickly: up to {max}.`,

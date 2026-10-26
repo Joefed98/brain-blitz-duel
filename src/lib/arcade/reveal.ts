@@ -354,7 +354,9 @@ const BUILDERS: Record<string, Builder> = {
           : [head(`${levels} / ${total} levels${phase}`, s, done)],
       tiles: [
         { label: "Levels", value: String(levels) },
-        ...(starLevels > 0 ? [{ label: "Gold stars", value: `${n(r, "stars")} / ${starLevels}` }] : []),
+        ...(starLevels > 0 ? [{ label: n(r, "silverTotal") > 0 ? "Ink stars" : "Gold stars", value: `${n(r, "stars")} / ${starLevels}` }] : []),
+        // inkRev 10 (x200): silver coins and the shamrock.
+        ...(n(r, "silverTotal") > 0 ? [{ label: "Silver", value: `${n(r, "silver")} / ${n(r, "silverTotal")}` }, { label: "Shamrock", value: n(r, "shamrock") ? "Yes" : "No" }] : []),
         { label: "Fails", value: String(n(r, "fails")) },
       ],
       outcome: done ? "finish" : "time",

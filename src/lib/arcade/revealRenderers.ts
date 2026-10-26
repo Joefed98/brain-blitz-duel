@@ -29,6 +29,7 @@ import { beatArtGame as beatGame } from "./beat.renderer";
 import { beatWorldHFor } from "./beat";
 import { SNAKE_WORLD_H, SNAKE_WORLD_W, snakeWorldHForRev } from "./snake";
 import { hoverWorldHFor } from "./hover";
+import { inkWorldHFor } from "./inkBridge";
 import { skylineWorldHFor } from "./skyline";
 import { snakeArtGame as snakeGame } from "./snake.renderer";
 import { crossArtGame as crossGame, crossRevealGame } from "./cross.renderer";
@@ -192,7 +193,7 @@ export const ARCADE_REVEAL_RENDERERS: Record<string, ArcadeRevealRenderer> = {
   ),
   flip: simple("#FF4D5E", 390, 620, flipGame, (p, a) => replayFlipRun(seedOf(p), a, p.type === "flip" ? p.flipRev : undefined)),
   junction: simple("#22C55E", 390, 620, junctionGame, (p, a) => replayJunctionRun(seedOf(p), a, p.type === "junction" ? p.junctionRev : undefined), undefined, junctionRevealGame),
-  inkbridge: simple("#2ED3B7", 390, 620, inkBridgeGame, (p, a) => replayInkBridgeRun(seedOf(p), a, p.type === "inkbridge" ? p.inkRev : undefined)),
+  inkbridge: simple("#2ED3B7", 390, 620, inkBridgeGame, (p, a) => replayInkBridgeRun(seedOf(p), a, p.type === "inkbridge" ? p.inkRev : undefined), undefined, inkBridgeGame, (p) => inkWorldHFor(p.type === "inkbridge" ? p.inkRev : undefined)),
   burst: {
     accent: "#2ED3B7",
     worldW: 390,

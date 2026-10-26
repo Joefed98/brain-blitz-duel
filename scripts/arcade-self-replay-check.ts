@@ -101,7 +101,7 @@ import { ORBIT_HOLE_BANK } from "@/lib/duel/orbitHoleBank.server";
 import { ORBIT_REV3_BANK } from "@/lib/duel/orbitRev3Bank.server";
 import { orbitRev3PlanetsForSeed } from "@/lib/duel/orbitRev3Course.server";
 import { binTossGameFor, BINTOSS_REV2, BINTOSS_REV3 } from "@/lib/arcade/binToss";
-import { inkBridgeGameFor, INK_REV3, INK_REV4 } from "@/lib/arcade/inkBridge";
+import { inkBridgeGameFor, INK_REV3, INK_REV4, INK_REV_EXPAND } from "@/lib/arcade/inkBridge";
 import { swingGameFor, SWING_REV, SWING_REV_V3 } from "@/lib/arcade/swing";
 import { wordfallCheckpoint, wordfallGame, wordfallGameFor } from "@/lib/arcade/wordfall";
 import { encodeWordfallRun, replayWordfallRun } from "@/lib/duel/wordfall";
@@ -608,6 +608,18 @@ const GAMES: Game[] = [
     encode: (run: any) => encodeBallTrackRun(btCourseTall(run.seed), run, BT_REV_TALL),
     replay: (seed: number, raw: string) => replayBallTrackRun(btCourseTall(seed), seed, raw, BT_REV_TALL),
   },
+  // x200 (26 Oct 2026): Rainbow Bridge inkRev 10 (clouds, wind, ink stars, silver coins, the shamrock), appended so
+  // every earlier entry keeps its index. Eight seeds in turn: a level build takes a few seconds, and the sim caches 16.
+  {
+    key: "ink/v10",
+    game: inkBridgeGameFor(INK_REV_EXPAND),
+    seedFor: (n: number) => 9_000_001 + 7_919 * (n % 8),
+    checkpoint: inkCheckpoint,
+    mode: "events",
+    rate: 400,
+    encode: encodeInkBridgeRun,
+    replay: (seed: number, raw: string) => replayInkBridgeRun(seed, raw, INK_REV_EXPAND),
+  },
 ];
 
 /** A random candidate event, often outside the declared range (a finger off the edge). */
@@ -637,6 +649,8 @@ const ENTRY_COST: Record<number, number> = {
   115: 2.1,
   // Taller worlds batch 3 (16 Oct 2026, measured locally at 40 runs).
   126: 2.2, 128: 0.6,
+  // x200 Rainbow Bridge (26 Oct 2026, measured locally at 40 runs beside #23).
+  129: 14.0,
 };
 
 /** Entry indexes of group k of n (1-based): costliest first onto the lightest group, ties by index. */
