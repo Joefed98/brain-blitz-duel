@@ -811,6 +811,13 @@ export const HOVER_CHAIN_POINTS = 5;
  */
 export const HOVER_CENTRE_TOL = [1_536, 2_560, 3_840] as const;
 export const HOVER_CENTRE_MAX_GRADE = 3;
+/**
+ * Skill points by centre-line grade (0–3): dead centre pays twice a grade 2, so the line separates the elite from the
+ * merely near-perfect (phase 1 of the arcade rule, 26 Oct 2026).
+ */
+export const HOVER_CENTRE_POINTS = [0, 1, 2, 4] as const;
+/** The most one gate's centre line pays. */
+export const HOVER_CENTRE_TOP = HOVER_CENTRE_POINTS[HOVER_CENTRE_MAX_GRADE];
 /** The tight gate's centre line height (fixed-point). */
 export function hoverCentreY(p: HoverPillar): number {
   return (p.tightTop ?? 0) + ((p.tightH ?? 0) >> 1);
@@ -822,20 +829,26 @@ export function hoverCentreGrade(dev: number): number {
 export const HOVER_SKILL_MAX = 50;
 /** hoverRev 9's cap (the round maximum it was built for, roundMax.ts). */
 export const HOVER_V9_MAX = 200;
-export const HOVER_SKILL_RAW_MAX = HOVER_TIGHT_GATES * (HOVER_TIGHT_POINTS + HOVER_CENTRE_MAX_GRADE) + HOVER_CHAINS * HOVER_CHAIN_POINTS;
+export const HOVER_SKILL_RAW_MAX = HOVER_TIGHT_GATES * (HOVER_TIGHT_POINTS + HOVER_CENTRE_TOP) + HOVER_CHAINS * HOVER_CHAIN_POINTS;
+/**
+ * The raw skill that pays the full HOVER_SKILL_MAX: HOVER_SKILL_SLACK short of everything, so a flawless human-paced
+ * run reaches 200 with one slip (a chain lost, or two centre lines off dead centre), but no less.
+ */
+export const HOVER_SKILL_SLACK = 10;
+export const HOVER_SKILL_FULL = HOVER_SKILL_RAW_MAX - HOVER_SKILL_SLACK;
 /**
  * The skill pay scale (raw skill points → paid, as Breaker's BRK_V9_SKILL_PAY): light use pays little and
  * the full HOVER_SKILL_MAX needs every tight gate, chain and dead-centre line.
  */
-export const HOVER_SKILL_PAY = bandCurve([0, 15, 30, 45, 55, HOVER_SKILL_RAW_MAX], [0, 8, 26, 34, 41, HOVER_SKILL_MAX]);
+export const HOVER_SKILL_PAY = bandCurve([0, 15, 30, 45, 52, HOVER_SKILL_FULL], [0, 8, 23, 31, 39, HOVER_SKILL_MAX]);
 /**
- * The base curve: barriers 3 and gold stars 2, 140 at all 42 barriers and 10 stars (plus 10
- * for the minute). hoverRev 7's strict curve with its middle knots a few points lower
+ * The base curve: barriers 3 and gold stars 2 (and the flight unit), 140 at all 42 barriers and 9 of the 10
+ * stars (a flawless human-paced run may lose one; plus 10 for the minute). hoverRev 7's strict curve with its middle knots a few points lower
  * (scripts/arcade-skill-bands.ts --rev=x): the shields and the warm-up gate carry the simulated
  * good player a few barriers further than on hoverRev 7, so its median stays within 10 % of it.
  */
 export const HOVER_V9_BAND_CURVE = bandCurve(
-  [0, 24, 27, 42, 45, 65, 89, 100, 146],
+  [0, 24, 27, 42, 45, 65, 89, 100, 145],
   [0, 68, 70, 97, 101, 112, 118, 139, 140],
 );
 
@@ -1307,7 +1320,7 @@ function stepExpand(state: HoverState, tapped: boolean): HoverState {
       const grade = ctrOn === g ? hoverCentreGrade(ctrDev) : 0;
       if (grade > 0) {
         ctrLog = [...ctrLog, g * 4 + grade];
-        ctrPts += grade;
+        ctrPts += HOVER_CENTRE_POINTS[grade]!;
       }
     }
     if (tightOn === g || tightOn === -2 - g) tightOn = -1;
@@ -1407,11 +1420,11 @@ export function hoverFeatureTotals(state: HoverState): { tight: number; chains: 
 
 /**
  * The skill points before the pay scale: HOVER_TIGHT_POINTS a tight gate, HOVER_CHAIN_POINTS a whole star
- * chain and the centre-line grades (up to HOVER_CENTRE_MAX_GRADE a gate), at most HOVER_SKILL_RAW_MAX.
+ * chain and the centre-line points (HOVER_CENTRE_POINTS by grade, up to HOVER_CENTRE_TOP a gate), at most HOVER_SKILL_RAW_MAX.
  * Every course holds exactly HOVER_TIGHT_GATES tight gates and HOVER_CHAINS chains.
  */
 export function hoverSkillRaw(state: HoverState): number {
-  return HOVER_TIGHT_POINTS * Math.min(HOVER_TIGHT_GATES, state.tight ?? 0) + HOVER_CHAIN_POINTS * Math.min(HOVER_CHAINS, state.chainsDone ?? 0) + Math.min(HOVER_TIGHT_GATES * HOVER_CENTRE_MAX_GRADE, state.ctrPts ?? 0);
+  return HOVER_TIGHT_POINTS * Math.min(HOVER_TIGHT_GATES, state.tight ?? 0) + HOVER_CHAIN_POINTS * Math.min(HOVER_CHAINS, state.chainsDone ?? 0) + Math.min(HOVER_TIGHT_GATES * HOVER_CENTRE_TOP, state.ctrPts ?? 0);
 }
 
 /** The skill points paid (on HOVER_SKILL_PAY, at most HOVER_SKILL_MAX): what the score, HUD and stored run read. */
@@ -1426,9 +1439,18 @@ export function hoverReachedFirst(state: HoverState): boolean {
   return state.gates > 0 || (!!first && state.distance >= first.x0 - (HOVER_DISC_X + HOVER_DISC_R));
 }
 
-/** hoverRev 9's base units: barriers 3, gold stars 2, and 1 for flying up to the first barrier (so a run that tried never scores 0). */
+/**
+ * hoverRev 9's partial credit for flying (so a run that tried never scores 0): 1 unit once the saucer has stayed up
+ * HOVER_FLIGHT_TICKS (half a second) or flown up to the first barrier. With no input it scores 0 anyway (no input).
+ */
+export const HOVER_FLIGHT_TICKS = 30;
+export function hoverFlightUnits(state: HoverState): number {
+  return hoverReachedFirst(state) || state.tick >= HOVER_FLIGHT_TICKS ? 1 : 0;
+}
+
+/** hoverRev 9's base units: barriers 3, gold stars 2, and the flight credit (hoverFlightUnits). */
 export function hoverExpandUnits(state: HoverState): number {
-  return 3 * Math.max(0, state.gates) + 2 * (state.stars ?? 0) + (hoverReachedFirst(state) ? 1 : 0);
+  return 3 * Math.max(0, state.gates) + 2 * (state.stars ?? 0) + hoverFlightUnits(state);
 }
 
 export function hoverExpandParts(state: HoverState): BandParts {

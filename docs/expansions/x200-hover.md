@@ -19,8 +19,8 @@ edge to edge). The course is hoverRev 7's (seeded barriers, gap sizes, two-gap, 
 scroll ramp), drifting over the full height. New on hoverRev 9:
 
 - **Warm-up gate**: the first barrier is a 400 px gap (`HOVER_OPEN_H`) centred on the saucer's start height.
-- **Flying up to the first barrier counts 1 unit** (`hoverReachedFirst`, `hoverExpandUnits`), so a run that tapped never
-  scores 0 (no input still scores 0).
+- **Flight credit, 1 unit** (`hoverFlightUnits`): staying up half a second (30 ticks) or flying up to the first barrier,
+  so a weak-but-trying run never scores 0 (no input still scores 0; random play about 2).
 
 ## Features (all placed by the seed alone, the same for every player)
 
@@ -30,8 +30,9 @@ Laid on the course at init from their own PRNG stream (`seed ^ 0x7e1a5c03`); the
   80 px high, ≥ 56 px of wall from the main gap, within reach of the neighbouring gaps. Threaded cleanly (inside it on
   every tick the saucer overlaps the barrier, not on a broken shield's moment): 5 skill points.
 - **The centre line** (new): a line through the middle of every tight gate. On a clean thread, the furthest the saucer's
-  centre strays from it while within the barrier's columns (the gate's depth) grades the pass: within 6 px **3**, 10 px
-  **2**, 15 px **1** (`HOVER_CENTRE_TOL`, `hoverCentreGrade`). Integer sim; state fields `ctrOn`, `ctrDev` (running
+  centre strays from it while within the barrier's columns (the gate's depth) grades the pass: within 6 px grade 3, 10 px
+  grade 2, 15 px grade 1 (`HOVER_CENTRE_TOL`, `hoverCentreGrade`), paying **4 / 2 / 1** skill points
+  (`HOVER_CENTRE_POINTS`: dead centre pays twice a grade 2, the line is what separates elite from near-perfect). Integer sim; state fields `ctrOn`, `ctrDev` (running
   furthest stray), `ctrLog` (barrier × 4 + grade) and `ctrPts`, folded into the checkpoint checksum last.
   The slowest gate's best arc strays about 4.3 px, so dead centre is open on every gate; generation also guarantees it
   can be flown (below).
@@ -52,13 +53,15 @@ exactly 5 tight gates, 5 chains and 2 shields.
 
 ## Scoring
 
-- Base: `hoverExpandUnits` (barriers 3, gold stars 2, the first barrier reached 1) on `HOVER_V9_BAND_CURVE`
-  (`[0, 24, 27, 42, 45, 65, 89, 100, 146]` → `[0, 68, 70, 97, 101, 112, 118, 139, 140]`: hoverRev 7's strict curve with
-  the middle knots a few points lower, because the shields and the warm-up gate carry players a few barriers further),
-  plus 10 for lasting the minute: at most 150.
-- Skill: raw points `hoverSkillRaw` = 5 a tight gate + 5 a whole chain + the centre grades (at most 25 + 25 + 15 = 65),
-  paid on `HOVER_SKILL_PAY` (`[0, 15, 30, 45, 55, 65]` → `[0, 8, 26, 34, 41, 50]`): the full 50 only for every tight gate,
-  every chain and every centre line dead centre. The score, the reveal, the round summary and the stored run
+- Base: `hoverExpandUnits` (barriers 3, gold stars 2, the flight unit 1) on `HOVER_V9_BAND_CURVE`
+  (`[0, 24, 27, 42, 45, 65, 89, 100, 145]` → `[0, 68, 70, 97, 101, 112, 118, 139, 140]`: hoverRev 7's strict curve with
+  the middle knots a few points lower, because the shields and the warm-up gate carry players a few barriers further;
+  140 at every barrier and 9 of the 10 gold stars), plus 10 for lasting the minute: at most 150.
+- Skill: raw points `hoverSkillRaw` = 5 a tight gate + 5 a whole chain + the centre points (at most 25 + 25 + 20 = 70),
+  paid on `HOVER_SKILL_PAY` (`[0, 15, 30, 45, 52, 60]` → `[0, 8, 23, 31, 39, 50]`): the full 50 from
+  `HOVER_SKILL_FULL` = 60, 10 short of everything (`HOVER_SKILL_SLACK`), so a flawless human-paced run reaches 200 with
+  one slip (a chain lost, or a couple of centre lines a grade off) but the last 8 raw points before it (elite
+  precision) are worth 11. The score, the reveal, the round summary and the stored run
   (`extra.skill`, `tightGates`, `starChains`, `centrePts`, `centreLines`, `shieldBreaks`) read the paid figure.
 - Total: min(200, base + paid skill) (`HOVER_V9_MAX`).
 
@@ -66,12 +69,22 @@ exactly 5 tight gates, 5 chains and 2 shields.
 
 - From the counts: every course offers 42 reachable barriers, 10 gold stars, 5 tight gates with centre lines and 5
   chains (proved on every course `hover-x200-check` builds: 1,500 seeds plus all 260 below), so a perfect run scores
-  140 + 10 + pay(65) = 200.
+  140 + 10 + pay(70) = 200; with one gold star and 10 raw skill points lost it is still 200.
 - Reachability: `scripts/hover-x200-witness.ts` searched, with the course solver (`scripts/hover-x200-solver.ts`, a beam
   search over taps at least 6 ticks apart), a run through every barrier, gold star, tight gate (dead centre) and chain
   on all **60 tuning seeds** (room seeds 0–59) and **200 fresh seeds** (10000–10199). All 260 were found and replay to
   **200 through the server replay** (`scripts/fixtures/hover-x200-witness.json.gz`; hover-x200-check replays them).
   Lowest ceiling on each set: **200**. Hover has no room bank (rooms deal a fresh seed).
+
+## Phase 1 of the arcade rule (26 Oct 2026, evening; same stamp, changed in place: hoverRev 9 was never dealt)
+
+Session A's fixed bots found 194 the top for elite and flawless (no bot above 199), near-perfect's top 10 % at 194 and
+average zeros on 11 of 200 seeds. Changes: the flight credit (above, replacing "reaching the first barrier counts 1"),
+the centre line paying 4 / 2 / 1 (was 3 / 2 / 1), the full skill pay at 60 raw of 70 (was 65 of 65) and the base's 140
+at nine stars (was ten). The course generation is unchanged, so the 260 witness runs still replay to 200. Interim, with
+this branch's bots on the 60 tuning seeds (my harness, not the final tool): average 62 (0 zeros), good 103,
+near-perfect 163 / 184, elite 189 / 197, the parked flawless player 194 / 200 (max 200), random 2 (max 11). The final
+tuning (phase 2) uses Session A's bots; the tables below are from before phase 1.
 
 ## Tuning (bots through the server's encode + replay; old = hoverRev 7, LIVE_BANDS' `strictRev`)
 

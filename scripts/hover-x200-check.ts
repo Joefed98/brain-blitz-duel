@@ -38,6 +38,9 @@ import { gunzipSync } from "node:zlib";
 import { roundMaxFor } from "../src/lib/duel/roundMax";
 import {
   HOVER_CENTRE_MAX_GRADE,
+  HOVER_CENTRE_POINTS,
+  HOVER_CENTRE_TOP,
+  HOVER_SKILL_FULL,
   HOVER_CENTRE_TOL,
   HOVER_CHAIN_POINTS,
   HOVER_CHAINS,
@@ -249,7 +252,7 @@ section("centre line");
     return st;
   };
   const on = fly(() => c);
-  ok(on.tight === 1 && on.ctrPts === 3 && on.ctrLog?.[0] === i * 4 + 3, `held on the line: a tight gate and 3 centre points (${on.tight}, ${on.ctrPts})`);
+  ok(on.tight === 1 && on.ctrPts === 4 && on.ctrLog?.[0] === i * 4 + 3, `held on the line: a tight gate, grade 3 and 4 centre points (${on.tight}, ${on.ctrPts})`);
   const off7 = fly(() => c + 7 * FP);
   ok(off7.tight === 1 && off7.ctrPts === 2, `7 px off the line: 2 (${off7.ctrPts})`);
   const off12 = fly(() => c - 12 * FP);
@@ -276,15 +279,18 @@ section("centre line");
 section("scoring and the ceiling");
 {
   // Caps and the pay scale.
-  ok(HOVER_SKILL_RAW_MAX === HOVER_TIGHT_GATES * (HOVER_TIGHT_POINTS + HOVER_CENTRE_MAX_GRADE) + HOVER_CHAINS * HOVER_CHAIN_POINTS && HOVER_SKILL_RAW_MAX === 65, `raw skill at most 65 (${HOVER_SKILL_RAW_MAX})`);
-  ok(bandPoints(HOVER_SKILL_PAY, HOVER_SKILL_RAW_MAX) === HOVER_SKILL_MAX && HOVER_SKILL_MAX === 50 && bandPoints(HOVER_SKILL_PAY, HOVER_SKILL_RAW_MAX - 1) < HOVER_SKILL_MAX, "the full 50 only at the full raw skill");
+  ok(HOVER_SKILL_RAW_MAX === HOVER_TIGHT_GATES * (HOVER_TIGHT_POINTS + HOVER_CENTRE_TOP) + HOVER_CHAINS * HOVER_CHAIN_POINTS && HOVER_SKILL_RAW_MAX === 70 && HOVER_CENTRE_TOP === 4, `raw skill at most 70, a dead-centre line 4 (${HOVER_SKILL_RAW_MAX})`);
+  ok(JSON.stringify(HOVER_CENTRE_POINTS) === "[0,1,2,4]", "centre-line points by grade: 1, 2, and 4 for dead centre");
+  ok(bandPoints(HOVER_SKILL_PAY, HOVER_SKILL_RAW_MAX) === HOVER_SKILL_MAX && HOVER_SKILL_MAX === 50 && bandPoints(HOVER_SKILL_PAY, HOVER_SKILL_FULL) === HOVER_SKILL_MAX && HOVER_SKILL_FULL === HOVER_SKILL_RAW_MAX - 10 && bandPoints(HOVER_SKILL_PAY, HOVER_SKILL_FULL - 1) < HOVER_SKILL_MAX, "the full 50 from 10 raw short of everything (one slip forgiven), not before");
+  // A flawless human-paced run may lose one gold star: every barrier, nine stars and the flight unit still make the base's 140.
+  ok(bandPoints(HOVER_V9_BAND_CURVE, 3 * HOVER_REACHABLE_GATES + 2 * (HOVER_STARS - 1) + 1) === 140 && bandPoints(HOVER_V9_BAND_CURVE, 3 * HOVER_REACHABLE_GATES + 2 * (HOVER_STARS - 1)) < 140, "base 140 for every barrier and nine of ten stars, not fewer");
   let rising = true;
   for (let u = 1; u <= HOVER_SKILL_RAW_MAX; u++) if (bandPoints(HOVER_SKILL_PAY, u) < bandPoints(HOVER_SKILL_PAY, u - 1)) rising = false;
-  ok(rising && bandPoints(HOVER_SKILL_PAY, 15) <= 8 && bandPoints(HOVER_SKILL_PAY, 30) <= 26 && bandPoints(HOVER_SKILL_PAY, 55) <= 41, "the pay scale rises, light use pays little (15 raw → ≤ 8, 30 → ≤ 26) and the last 10 raw pay 9");
+  ok(rising && bandPoints(HOVER_SKILL_PAY, 15) <= 8 && bandPoints(HOVER_SKILL_PAY, 30) <= 24 && bandPoints(HOVER_SKILL_PAY, HOVER_SKILL_FULL - 8) <= 39, "the pay scale rises, light use pays little (15 raw → ≤ 8, 30 → ≤ 24) and the last 8 raw before the full pay are worth 11 (elite precision)");
   ok(bandPoints(HOVER_V9_BAND_CURVE, 3 * HOVER_REACHABLE_GATES + 2 * HOVER_STARS + 1) + 10 === 150 && bandPoints(HOVER_V9_BAND_CURVE, 3 * HOVER_REACHABLE_GATES + 2 * HOVER_STARS) === 140, "the base tops out at 150 (all barriers and stars, 140, plus the minute)");
   // Ceiling from the counts: every course offers the same features (section 3), so a perfect run scores
   // base 150 + pay(full raw) 50, capped at 200, on every course.
-  const ceiling = Math.min(HOVER_V9_MAX, bandPoints(HOVER_V9_BAND_CURVE, 3 * HOVER_REACHABLE_GATES + 2 * HOVER_STARS + 1) + 10 + bandPoints(HOVER_SKILL_PAY, HOVER_TIGHT_GATES * (HOVER_TIGHT_POINTS + HOVER_CENTRE_MAX_GRADE) + HOVER_CHAINS * HOVER_CHAIN_POINTS));
+  const ceiling = Math.min(HOVER_V9_MAX, bandPoints(HOVER_V9_BAND_CURVE, 3 * HOVER_REACHABLE_GATES + 2 * HOVER_STARS + 1) + 10 + bandPoints(HOVER_SKILL_PAY, HOVER_TIGHT_GATES * (HOVER_TIGHT_POINTS + HOVER_CENTRE_TOP) + HOVER_CHAINS * HOVER_CHAIN_POINTS));
   ok(ceiling === 200, `perfect-play ceiling from the counts: ${ceiling}`);
   // Reachability: a stored witness run on every tuning and fresh seed reaches 200 through the server replay.
   const witness = existsSync(WITNESS_FIXTURE) ? (JSON.parse(gunzipSync(readFileSync(WITNESS_FIXTURE)).toString()) as HoverWitness[]) : [];
@@ -299,7 +305,7 @@ section("scoring and the ceiling");
     }
     const r = replayWitness(w.seed, w.taps);
     const st = r.state as HoverState;
-    if (!r.flagged && r.score === 200 && st.tight === HOVER_TIGHT_GATES && st.chainsDone === HOVER_CHAINS && st.ctrPts === HOVER_TIGHT_GATES * HOVER_CENTRE_MAX_GRADE && st.gates === st.totalGates && st.stars === st.totalStars && r.survived) hit++;
+    if (!r.flagged && r.score === 200 && st.tight === HOVER_TIGHT_GATES && st.chainsDone === HOVER_CHAINS && st.ctrPts === HOVER_TIGHT_GATES * HOVER_CENTRE_TOP && st.gates === st.totalGates && st.stars === st.totalStars && r.survived) hit++;
     else failures.push(`seed index ${n}: witness scores ${r.score}${r.flagged ? " (flagged)" : ""}`);
     lowest = Math.min(lowest, r.score);
   }
@@ -328,7 +334,7 @@ section("scoring and the ceiling");
     const score = game.score(state);
     maxSeen = Math.max(maxSeen, score);
     if (score !== Math.min(200, base + hoverFeatureBonus(state)) || base > 150 || hoverFeatureBonus(state) > 50 || score > 200) formula = false;
-    if (parts.points !== bandPoints(HOVER_V9_BAND_CURVE, hoverExpandUnits(state)) || hoverExpandUnits(state) !== 3 * state.gates + 2 * (state.stars ?? 0) + (hoverReachedFirst(state) ? 1 : 0)) formula = false;
+    if (parts.points !== bandPoints(HOVER_V9_BAND_CURVE, hoverExpandUnits(state)) || hoverExpandUnits(state) !== 3 * state.gates + 2 * (state.stars ?? 0) + (hoverReachedFirst(state) || state.tick >= 30 ? 1 : 0)) formula = false;
     if (hoverFeatureBonus(state) !== bandPoints(HOVER_SKILL_PAY, hoverSkillRaw(state))) formula = false;
   }
   ok(formula && maxSeen <= 200, `60 runs: score = min(200, base ≤ 150 + paid skill ≤ 50) (max ${maxSeen})`);
