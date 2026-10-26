@@ -15,9 +15,20 @@ import { depthClamp } from "../depth200";
 import { scoreStopWatch } from "../scoring";
 import { markerState, targetCentre } from "../stopWatch";
 import { STOPWATCH_MISS_MS, type StopWatchSpec } from "../types";
-import { TAP_REV_DEPTH, type WatchResult } from "../tapLog";
+import { TAP_REV_DEPTH, TAP_REV_TOPUP, type WatchResult } from "../tapLog";
 
 export const BANGON_DEPTH_REV = TAP_REV_DEPTH;
+/**
+ * The puzzle top-up (26 Oct 2026, tapRev 6; docs/depth/topup-oct-2026.md): the same line, zone and marks; a dead-centre
+ * stop +3 (was 2) and the streak from its 2nd watch +2, 3rd +3, then +4 (was +1, +2, +3, +4), the two together at most
+ * BANGON_TOPUP_FEATURE_MAX; and partial credit: never below BANGON_PARTIAL_POINTS per watch stopped within
+ * BANGON_PARTIAL_MS (a player who stops some watches close never scores 0).
+ */
+export const BANGON_TOPUP_REV = TAP_REV_TOPUP;
+export const BANGON_TOPUP_CENTRE_POINTS = 3;
+export const BANGON_TOPUP_FEATURE_MAX = 50;
+export const BANGON_PARTIAL_POINTS = 2;
+export const BANGON_PARTIAL_MS = 100;
 /** A stop this close to the centre line (ms of marker travel) is dead centre. */
 export const BANGON_CENTRE_MS = 12;
 export const BANGON_CENTRE_POINTS = 2;
@@ -27,13 +38,19 @@ export const BANGON_STREAK_TOP = 4;
 export const BANGON_STREAK_MIN = 2;
 
 /** Streak points for the n-th watch in a row stopped in the zone (n from 1). */
-export function streakPointsAt(n: number): number {
+export function streakPointsAt(n: number, tapRev = BANGON_DEPTH_REV): number {
+  if (tapRev >= BANGON_TOPUP_REV) return n >= BANGON_STREAK_MIN ? Math.min(BANGON_STREAK_TOP, n) : 0;
   return Math.max(0, Math.min(BANGON_STREAK_TOP, n - 1));
+}
+
+/** Points per dead-centre stop on a stamp. */
+export function bangOnCentrePoints(tapRev = BANGON_DEPTH_REV): number {
+  return tapRev >= BANGON_TOPUP_REV ? BANGON_TOPUP_CENTRE_POINTS : BANGON_CENTRE_POINTS;
 }
 
 export function usesBangOnDepth(puzzle: unknown): boolean {
   const p = puzzle as { type?: string; tapRev?: number } | null;
-  return p?.type === "stopwatch" && p.tapRev === BANGON_DEPTH_REV;
+  return p?.type === "stopwatch" && (p.tapRev === BANGON_DEPTH_REV || p.tapRev === BANGON_TOPUP_REV);
 }
 
 export interface WatchMark {
@@ -78,9 +95,11 @@ export interface BangOnDepthScore {
   streakWatches: number;
   /** The longest run of zone stops. */
   bestStreak: number;
+  /** tapRev 6: the partial-credit floor (2 per watch stopped within 100 ms). */
+  floor?: number;
 }
 
-export function scoreBangOnDepth(watches: readonly StopWatchSpec[], results: readonly WatchResult[], attempts = watches.length): BangOnDepthScore {
+export function scoreBangOnDepth(watches: readonly StopWatchSpec[], results: readonly WatchResult[], attempts = watches.length, tapRev = BANGON_DEPTH_REV): BangOnDepthScore {
   const count = Math.max(1, attempts);
   let total = 0;
   for (let i = 0; i < count; i++) {
@@ -91,7 +110,12 @@ export function scoreBangOnDepth(watches: readonly StopWatchSpec[], results: rea
   const { marks, streakAt } = bangOnMarks(watches, results.slice(0, count));
   const centreHits = marks.filter((m) => m.centre).length;
   const streakWatches = streakAt.filter((n) => n >= BANGON_STREAK_MIN).length;
-  const centre = BANGON_CENTRE_POINTS * centreHits;
-  const streak = streakAt.reduce((sum, n) => sum + streakPointsAt(n), 0);
-  return { score: depthClamp(curve + centre + streak), curve, centre, centreHits, streak, streakWatches, bestStreak: Math.max(0, ...streakAt) };
+  const centre = bangOnCentrePoints(tapRev) * centreHits;
+  const streak = streakAt.reduce((sum, n) => sum + streakPointsAt(n, tapRev), 0);
+  const bestStreak = Math.max(0, ...streakAt);
+  if (tapRev < BANGON_TOPUP_REV) return { score: depthClamp(curve + centre + streak), curve, centre, centreHits, streak, streakWatches, bestStreak };
+  const close = results.slice(0, count).filter((r) => r.distance !== null && r.distance !== undefined && r.distance <= BANGON_PARTIAL_MS).length;
+  const floor = BANGON_PARTIAL_POINTS * close;
+  const features = Math.min(BANGON_TOPUP_FEATURE_MAX, centre + streak);
+  return { score: depthClamp(Math.max(floor, curve + features)), curve, centre, centreHits, streak, streakWatches, bestStreak, floor };
 }

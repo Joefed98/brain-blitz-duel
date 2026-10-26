@@ -28,6 +28,11 @@ export function depthHelp(type: PuzzleType): string {
     const word = PAR_WORD[type] ?? "moves";
     return `${head} ${base} Par is the fewest ${word} the puzzle can be solved in: finish in par for ${DEPTH_PAR_BASE} more, and up to ${DEPTH_TOP_POINTS - DEPTH_PAR_BASE} more for finishing faster still, so ${max} is par in about ${elite} s.`;
   }
+  const g = depthGame(type);
+  if (route === "clean" && g.cleanFixed) {
+    const quick = Math.round((limit * (1 - (g.cleanFixedFull ?? 0))) / 1000);
+    return `${head} ${base} A clean crack, opening it with tries to spare, adds ${g.cleanFixed} when you open it within about ${quick} s and up to ${DEPTH_TOP_POINTS - g.cleanFixed} more for finishing faster still: all of it on the first try, half on the second, so ${max} is the first try in about ${elite} s.`;
+  }
   if (route === "clean") {
     return `${head} ${base} A clean crack, opening it with tries to spare, adds up to ${DEPTH_TOP_POINTS} for finishing faster still: all of it on the first try, half on the second, so ${max} is the first try in about ${elite} s.`;
   }

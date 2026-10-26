@@ -17,6 +17,8 @@ export interface StretchOptions {
   curve: StretchCurve;
   /** The game's mistake measure for the climb above 150 (1 = clean). */
   keep: number;
+  /** The puzzle top-up: where the stretch starts (a share of the clock left below rev 3's fastShare); the speed part stays rev 3's. */
+  stretchFrom?: number;
   /** Feature points on a finish (Double Take's hidden difference). */
   bonus?: { points: number; measure: string };
 }
@@ -39,7 +41,8 @@ export function attentionStretchGrade({ puzzle, answer, graded, receivedMsRemain
   const curve = { ...opts.curve, fastShare: rev3Game(puzzle.type).fastShare };
   const { speed } = stretchFinishScore(curve, left, eff);
   const keep = Math.max(0, Math.min(1, opts.keep));
-  const { stretch } = stretchFinishScore(curve, left, eff * keep);
+  const stretchCurve = opts.stretchFrom !== undefined ? { ...opts.curve, fastShare: opts.stretchFrom } : curve;
+  const { stretch } = stretchFinishScore(stretchCurve, left, eff * keep);
   const bonus = opts.bonus && opts.bonus.points > 0 ? Math.round(opts.bonus.points) : 0;
   const score = depthClamp(PUZZLE_FINISH_BASE + speed + stretch + bonus);
   const parts: ScoreParts = {

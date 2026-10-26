@@ -3,9 +3,11 @@
  * only: the solution never leaves it before the reveal).
  */
 
+import { dealtTopupRev } from "./depthTopup";
 import { answerWords } from "./dictionary.server";
 import {
   SWAPWORD_REV,
+  SWAPWORD_REV_TOPUP,
   SWAPWORD_REV3,
   SW_SLOTS,
   SW_SLOT_TILES,
@@ -169,7 +171,8 @@ export function swapwordRuleBreak(p: SwapwordPuzzleData): string | null {
 /** Six crossing common words, scrambled to a proven 9–12-swap minimum (rev 3: budget minimum + 8; rev 2's boards). */
 export function generateSwapword(seed: number): SwapwordPuzzleData {
   // Word depth d1: rev 4 (par swaps) deals rev 3's boards and budget; a check pinning the pre-depth stamps gets rev 3.
-  const rev = dealtDepthRev(SWAPWORD_REV, SWAPWORD_REV3);
+  // The puzzle top-up (26 Oct 2026): rev 5 deals rev 4's boards (the stamp only changes the par bonus).
+  const rev = dealtDepthRev(dealtTopupRev(SWAPWORD_REV_TOPUP, SWAPWORD_REV), SWAPWORD_REV3);
   const rng = seededRng(seed);
   for (let attempt = 0; attempt < 200; attempt++) {
     const solution = fillWords(rng);

@@ -10,7 +10,7 @@ import { decodeChainAnswer, replayChain } from "../chain";
 import { storedScoreParts } from "../puzzleScoreRev";
 import { rev3Efficiency, rev3Unfinished } from "../puzzleScoreRev3";
 import { puzzleTimeLimitMs } from "../registry";
-import { CHAIN_DEPTH_UNFINISHED_TOP, CHAIN_STRETCH, chainMilestoneTotal, chainMilestones, chainUsesDepth } from "./chain";
+import { CHAIN_DEPTH_UNFINISHED_TOP, chainDepthRevOf, chainMilestoneTotal, chainMilestones, chainStretchFor, chainUsesDepth } from "./chain";
 
 export const chainDepth: DepthGrader = {
   // Only on puzzleScoreRev 3 (the dealt shape): a check pinning rev 1 / 2 keeps proving that shape.
@@ -20,7 +20,7 @@ export const chainDepth: DepthGrader = {
     const limit = puzzleTimeLimitMs(puzzle);
     const decoded = decodeChainAnswer(answer);
     const replay = replayChain(puzzle, decoded);
-    const milestones = chainMilestones(decoded.taps, replay.links);
+    const milestones = chainMilestones(decoded.taps, replay.links, chainDepthRevOf(puzzle));
     const milestonePoints = chainMilestoneTotal(milestones);
     const parts1 = storedScoreParts(graded.extra);
     const finished = graded.isCorrect && (parts1 === null || parts1.kind === "finish");
@@ -28,7 +28,7 @@ export const chainDepth: DepthGrader = {
     if (finished) {
       const left = limit > 0 ? Math.max(0, Math.min(limit, graded.storedMs)) / limit : 0;
       const efficiency = rev3Efficiency(parts1, graded.storedMs, limit);
-      const f = stretchFinishScore(CHAIN_STRETCH, left, efficiency);
+      const f = stretchFinishScore(chainStretchFor(chainDepthRevOf(puzzle)), left, efficiency);
       const score = depthClamp(f.score + milestonePoints);
       return {
         ...graded,

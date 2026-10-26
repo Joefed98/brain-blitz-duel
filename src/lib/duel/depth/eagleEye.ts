@@ -11,6 +11,14 @@ import type { SymbolScanPuzzleData } from "../types";
 
 export const SCAN_DEPTH_REV = 2;
 export const SCAN_DEPTH_CURVE: StretchCurve = { fastShare: 0.55, eliteShare: 0.76, stretchTop: 50, power: 2.5 };
+/**
+ * The puzzle top-up (26 Oct 2026, scanRev 3; docs/depth/topup-oct-2026.md): the same grids and rules; the climb starts a
+ * little before the old 150 pace (SCAN_TOPUP_STRETCH_FROM of the clock left; the speed part is rev 3's), so today's
+ * near-perfect finish lands about 150–165 and the climb's top is unchanged.
+ */
+export const SCAN_TOPUP_REV = 3;
+export const SCAN_TOPUP_CURVE: StretchCurve = { fastShare: 0.55, eliteShare: 0.76, stretchTop: 50, power: 1.3 };
+export const SCAN_TOPUP_STRETCH_FROM = 0.45;
 /** Each tap taken back keeps this much less of the climb above 150 (squared): 1 → 56 %, 2 → 25 %, 4+ → none. */
 export const SCAN_DEPTH_CORRECTION_STEP = 0.25;
 

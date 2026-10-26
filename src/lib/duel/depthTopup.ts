@@ -13,3 +13,8 @@ export function pinPreTopup(on: boolean): boolean {
 export function preTopupPinned(): boolean {
   return preTopup;
 }
+
+/** The stamp new puzzles are dealt: the top-up's, or the live one before it while a check pins it. */
+export function dealtTopupRev<T>(topupRev: T, liveRev: T): T {
+  return preTopup ? liveRev : topupRev;
+}

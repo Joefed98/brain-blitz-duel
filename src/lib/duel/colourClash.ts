@@ -3,7 +3,7 @@ import { CLASH_BANDS_MAP, CLASH_GREAT_MAP, clashCheckpoint, clashDepthScoreOf, t
 import { makeArcadeRun, type FlatReplay } from "./arcadeRun";
 
 const opts = { tag: "stroop", checkpoint: clashCheckpoint, keys: CLASH_CHECKPOINT_KEYS, interval: CLASH_CHECKPOINT_INTERVAL } as const;
-const runs = [0, 1, 2, 3, 4, 5, 6, 7, 8].map((variant) => makeArcadeRun<ClashState, ClashCheckpoint>({ ...opts, game: colourClashGameFor(variant) }));
+const runs = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9].map((variant) => makeArcadeRun<ClashState, ClashCheckpoint>({ ...opts, game: colourClashGameFor(variant) }));
 export const encodeColourClashRun = runs[3]!.encode;
 export const decodeColourClashRun = runs[3]!.decode;
 export interface ColourClashResult extends FlatReplay<ClashState, ClashCheckpoint> {
@@ -26,7 +26,7 @@ export function replayColourClashRun(seed: number, raw: string, variant: number)
   // clashRev 4 scores a finish (all sorted, at most 2 wrong) as 120 + its speed part, so the bonus
   // is the score above 120; a run with more wrong gates is unfinished and has none.
   // clashRev 5 finishes the same way (its unfinished credit is net words right, `net`).
-  if (variant === 8 && s.depth) {
+  if ((variant === 8 || variant === 9) && s.depth) {
     // clashRev 8: clashRev 7's score (its finish base and speed part) plus the gold points and the speed stretch.
     const parts = clashDepthScoreOf(s);
     const base = bandMapTotal(CLASH_GREAT_MAP, 120);
