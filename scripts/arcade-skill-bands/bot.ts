@@ -11,6 +11,12 @@ export interface BotCtx {
   /** Revision stamped on the puzzle. */
   rev: number | null;
   human: Human;
+  /**
+   * The Oct 2026 competence fixes (docs/arcade-bands-elite.md: bots that under-played, Rainbow
+   * Bridge first). Off unless the band tool sets it, so the checks that run bots keep the bots
+   * they were proved with.
+   */
+  fixes?: boolean;
 }
 
 /** A bot returns the input log the phone would submit: events, or taps for tap-only games. */

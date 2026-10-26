@@ -61,6 +61,11 @@ import { pinPreDepth } from "../src/lib/duel/wordDepth";
 pinPreDepth(true);
 import { roundMaxFor } from "../src/lib/duel/roundMax";
 import { pinPreDepthTapRev } from "../src/lib/duel/tapLog";
+import { pinPreTopup } from "../src/lib/duel/depthTopup";
+
+// The puzzle top-up (26 Oct 2026, docs/depth/topup-oct-2026.md) deals newer stamps; this check proves the stamps it was
+// written for, so new deals are pinned to them (depth-topup-check proves the top-up's).
+pinPreTopup(true);
 
 // Flash, Bang On and Ascend deal tapRev 5 (Depth to 200, depth-*-check proves it); this check proves the stamps before it.
 pinPreDepthTapRev(true);

@@ -26,6 +26,11 @@ import { roundMaxFor } from "../src/lib/duel/roundMax";
 import { INTRO_SCORE } from "../src/lib/duel/introScore";
 import { STOPWATCH_GAP_MS, STOPWATCH_LEAD_IN_MS, type PuzzleData, type StopWatchPuzzleData, type StopWatchSpec } from "../src/lib/duel/types";
 import { DEPTH_LEVELS, distTable, legacyMismatches, makeOk, median, playAnswer, roomPuzzle, SEEDS, spamAnswers, type Dist } from "./depth-speed-lib";
+import { pinPreTopup } from "../src/lib/duel/depthTopup";
+
+// The puzzle top-up (26 Oct 2026, docs/depth/topup-oct-2026.md) deals newer stamps; this check proves the stamps it was
+// written for, so new deals are pinned to them (depth-topup-check proves the top-up's).
+pinPreTopup(true);
 
 const { ok, finish } = makeOk();
 const lines: string[] = [];

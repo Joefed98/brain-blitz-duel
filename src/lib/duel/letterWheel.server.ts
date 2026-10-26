@@ -1,6 +1,7 @@
 import { LETTER_WHEEL_BANK } from "./letterWheelBank.server";
 import { LETTER_WHEEL_BANK_REV1 } from "./letterWheelBankRev1.server";
-import { LW_REV, LW_REV_JAR, lwJarDrops, lwJarSize } from "./letterWheel";
+import { LW_REV, LW_REV_JAR, LW_REV_TOPUP, lwJarDrops, lwJarSize } from "./letterWheel";
+import { dealtTopupRev } from "./depthTopup";
 import { isWord, wordsFrom } from "./dictionary.server";
 import { dealtDepthRev } from "./wordDepth";
 import { rngBelow, seededRng } from "./wordSeed.server";
@@ -13,7 +14,8 @@ import type { LetterWheelPuzzleData } from "./types";
 export function generateLetterWheel(seed: number): LetterWheelPuzzleData {
   const e = LETTER_WHEEL_BANK_REV1[rngBelow(seededRng(seed), LETTER_WHEEL_BANK_REV1.length)]!;
   // Word depth (25 Oct 2026): wheelRev 2 deals the same board plus the bonus jar's size (pinPreDepth deals rev 1).
-  const rev = dealtDepthRev(LW_REV_JAR, LW_REV);
+  // The puzzle top-up (26 Oct 2026): wheelRev 3, the same board and jar, the jar's curve retuned (letterWheel.ts).
+  const rev = dealtDepthRev(dealtTopupRev(LW_REV_TOPUP, LW_REV_JAR), LW_REV);
   return {
     type: "letterwheel",
     wheelRev: rev,

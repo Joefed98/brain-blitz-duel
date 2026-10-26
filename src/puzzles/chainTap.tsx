@@ -21,7 +21,7 @@ import {
   type ChainTap,
 } from "@/lib/duel/chain";
 import { useStageState } from "@/lib/duel/stageState";
-import { CHAIN_MILESTONE_POINTS, CHAIN_MILESTONES, chainMilestones, chainUsesDepth, type ChainMilestone } from "@/lib/duel/depth/chain";
+import { CHAIN_MILESTONE_POINTS, CHAIN_MILESTONES, chainDepthRevOf, chainMilestones, chainUsesDepth, type ChainMilestone } from "@/lib/duel/depth/chain";
 import {
   CHAIN_BLOCK,
   CHAIN_REVERSE_AT,
@@ -342,7 +342,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, phaseStartedAt, stateK
   const left = replay.lastT === null ? 1 : (windowMs - (clock - replay.lastT)) / windowMs;
   const tier = links >= (rules.fasterAt[1] ?? Infinity) ? 2 : links >= (rules.fasterAt[0] ?? Infinity) ? 1 : 0;
   const depth = chainUsesDepth(data);
-  const milestones = depth ? chainMilestones(taps, links) : [];
+  const milestones = depth ? chainMilestones(taps, links, chainDepthRevOf(data)) : [];
   previewRef.current = {
     path: (path.length >= 2 ? path.map((id) => board[id]) : board.slice(0, CHAIN_BLOCK)).filter((n): n is ChainNode => Boolean(n)),
     length: rules.length,
@@ -373,7 +373,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, phaseStartedAt, stateK
       setFaster(true);
       setTimeout(() => setFaster(false), 900);
       if (depth) {
-        const reachedNow = chainMilestones(nextTaps, made).find((m) => m.at === made) ?? null;
+        const reachedNow = chainMilestones(nextTaps, made, chainDepthRevOf(data)).find((m) => m.at === made) ?? null;
         setMilestoneFlash(reachedNow);
         setTimeout(() => setMilestoneFlash((current) => (current === reachedNow ? null : current)), 900);
       }
@@ -530,9 +530,9 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myMsRemaining, myExtra }: Puzzl
       </p>
       {chainUsesDepth(puzzle) ? (
         <div data-chain-reveal-milestones="" className="flex flex-col items-center gap-1">
-          <MilestonePips reached={chainMilestones(answer.taps, replay.links)} compact />
+          <MilestonePips reached={chainMilestones(answer.taps, replay.links, chainDepthRevOf(puzzle))} compact />
           <p className="text-center font-mono text-xs text-muted-foreground">
-            {revealDepthLine(chainMilestones(answer.taps, replay.links), myExtra)}
+            {revealDepthLine(chainMilestones(answer.taps, replay.links, chainDepthRevOf(puzzle)), myExtra)}
           </p>
         </div>
       ) : null}

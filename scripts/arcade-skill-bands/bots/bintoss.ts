@@ -20,6 +20,15 @@
  */
 import { DRAG_FULL_PX, DRAG_MAX_SCALE_256, DRAG_MIN_PX, DRAG_MIN_SCALE_256, type ArcadeGame, type ArcadeInputEvent } from "../../../src/lib/arcade/engine";
 import {
+  binTossAdvance,
+  BINTOSS_BALL_R,
+  BINTOSS_BALL_X,
+  BINTOSS_BALL_Y,
+  BINTOSS_FLOOR_Y,
+  BINTOSS_RIM_Y,
+  BINTOSS_RUN_TICKS,
+  BINTOSS_V7_RIGHT,
+  type BinTossFlight,
   binTossBinCentre,
   binTossCentreAt,
   binTossDragFor,
@@ -38,20 +47,40 @@ import {
   BINTOSS_VX_MAX,
   type BinTossState,
 } from "../../../src/lib/arcade/binToss";
+import type { SkillLevel } from "../human";
 import { driveEvents, type SkillBot } from "../bot";
 
 /** Relative error judging how far a wind point pushes (shared with Flightpath). */
-const WIND_READ: Record<string, number> = { average: 0.3, good: 0.2, great: 0.12, near: 0.06 };
+const WIND_READ: Record<SkillLevel, number> = { weak: 0.4, average: 0.3, good: 0.2, great: 0.12, near: 0.06, elite: 0.035, perfect: 0 };
 /** Chance of waiting for the sliding bucket's turnaround rather than leading it through the middle. */
-const WAIT_END: Record<string, number> = { average: 0.35, good: 0.6, great: 0.85, near: 0.95 };
+const WAIT_END: Record<SkillLevel, number> = { weak: 0.1, average: 0.35, good: 0.6, great: 0.85, near: 0.95, elite: 1, perfect: 1 };
 
 /** binRev 7: the chance of going for the far bucket (on a throw that has one), by level. */
-const GO_FAR: Record<string, number> = { average: 0.12, good: 0.3, great: 0.6, near: 0.9 };
+const GO_FAR: Record<SkillLevel, number> = { weak: 0, average: 0.12, good: 0.3, great: 0.6, near: 0.9, elite: 1, perfect: 1 };
 
 /** The fastest launch a drag can give (a full 220-px drag), with a little room. */
 const maxSpeedOf = (ref: number) => Math.floor((ref * DRAG_MAX_SCALE_256) / 256) - 10;
 
 type Game = ArcadeGame<BinTossState, ArcadeInputEvent | null>;
+
+/**
+ * Oct 2026 fix: binTossPath, but on binRev 7's wider fairground, and carried on past the side edge to the
+ * rim line (a player extrapolates an arc the wall cuts off). binTossPath stops at the original 390-px edge,
+ * so a far-bucket arc's rim crossing was read as that edge and the drag that "sets" it came out wrong (a
+ * full-length flat throw): even the flawless player missed about one far bucket in four.
+ */
+function widePath(vx: number, vy: number, wind: number, acc: number, sub: number): { x: number; y: number }[] {
+  let flight: BinTossFlight = { x: BINTOSS_BALL_X, y: BINTOSS_BALL_Y, vx, vy, windV: 0, windPos: 0 };
+  const points = [{ x: flight.x / 256, y: flight.y / 256 }];
+  for (let tick = 0; tick < BINTOSS_RUN_TICKS; tick++) {
+    flight = binTossAdvance(flight, wind, acc, sub);
+    points.push({ x: flight.x / 256, y: flight.y / 256 });
+    if (flight.vy > 0 && flight.y >= BINTOSS_RIM_Y) break;
+    if (flight.y >= BINTOSS_FLOOR_Y - BINTOSS_BALL_R) break;
+    if (flight.x < -BINTOSS_BALL_R || flight.x > 2 * BINTOSS_V7_RIGHT) break;
+  }
+  return points;
+}
 
 /** Plays a throw from an AIM state on a fork: waits `delay` ticks, flicks, runs to the result. */
 function forkThrow(game: Game, from: BinTossState, delay: number, vx: number, vy: number): BinTossState {
@@ -72,7 +101,7 @@ function dragFor(vx: number, vy: number, ref = BINTOSS_REF_V): { dx: number; dy:
   return { dx: (vx / speed) * len, dy: (vy / speed) * len };
 }
 
-export const bot: SkillBot = ({ game, seed, human }) => {
+export const bot: SkillBot = ({ game, seed, human, fixes }) => {
   const level = human.level;
   const init = game.init(seed) as BinTossState;
   // binRev 7: the stronger throw, and a far bucket on throws 1–6.
@@ -90,8 +119,9 @@ export const bot: SkillBot = ({ game, seed, human }) => {
     const acc = binTossWindAcc(index, s.rev);
     const sub = binTossWindSub(s.rev);
     /** Rim crossing (px) and ticks to it for a launch, under a wind. */
+    const pathOf = (vx: number, vy: number, w: number) => (fixes && expand ? widePath(vx, vy, w, acc, sub) : binTossPath(vx, vy, w, true, acc, sub));
     const cross = (vx: number, vy: number, w: number) => {
-      const path = binTossPath(vx, vy, w, true, acc, sub);
+      const path = pathOf(vx, vy, w);
       return { x: path[path.length - 1]!.x, n: path.length - 1 };
     };
     /** vx whose rim crossing under wind w is at targetPx. */
@@ -160,7 +190,7 @@ export const bot: SkillBot = ({ game, seed, human }) => {
         lines = [];
         for (let vy = -850; vy >= -3_000; vy -= 25) {
           const vx = solve(vy, wind, centre);
-          const path = binTossPath(vx, vy, wind, true, acc, sub);
+          const path = pathOf(vx, vy, wind);
           let miss = Infinity;
           for (let i = 1; i < path.length; i++) {
             if (path[i]!.y > path[i - 1]!.y && path[i - 1]!.y < hoop.y / 256 && path[i]!.y >= hoop.y / 256) miss = Math.abs(path[i]!.x - hoop.x / 256);
@@ -219,7 +249,9 @@ export const bot: SkillBot = ({ game, seed, human }) => {
     const drift = ideal - still;
     const slip = human.slip();
     const vy = Math.round(best.vy * human.power(slip ? 4 : 0.6));
-    const want = still - drift * WIND_READ[level]! * human.normal() + human.aim(1, 1.3);
+    // (An arc the wall cuts off is placed by eye past the wall: half as precise again.)
+    const pastWall = fixes && expand && still * 256 > BINTOSS_V7_RIGHT;
+    const want = still - drift * WIND_READ[level]! * human.normal() + human.aim(1, pastWall ? 2 : 1.3);
     const vx = solve(vy, 0, want);
     const drag = dragFor(vx, vy, ref);
     // Lift-off jitter in finger pixels.

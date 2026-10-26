@@ -23,18 +23,30 @@ import {
   WAV_SHIP_W,
   wavShipY,
   wavBoltSpeedFp,
+  WAV_ARMOUR_CODE,
   WAV_WORLD_W,
   type WavState,
 } from "../../../src/lib/arcade/wavefront";
+import type { SkillLevel } from "../human";
 import { driveEvents, type SkillBot } from "../bot";
 
 /** Finger top speed, px a tick (the world is 390 wide, so world px are phone px). */
-const FINGER: Record<string, number> = { average: 26, good: 32, great: 38, near: 44 };
+const FINGER: Record<SkillLevel, number> = { weak: 20, average: 26, good: 32, great: 38, near: 44, elite: 47, perfect: 47 };
 /** Chance of going for a saucer, and for its power-up drop. */
-const SAUCER: Record<string, number> = { average: 0.4, good: 0.6, great: 0.8, near: 0.9 };
-const DROP: Record<string, number> = { average: 0.5, good: 0.7, great: 0.85, near: 0.95 };
+const SAUCER: Record<SkillLevel, number> = { weak: 0.2, average: 0.4, good: 0.6, great: 0.8, near: 0.9, elite: 1, perfect: 1 };
+const DROP: Record<SkillLevel, number> = { weak: 0.3, average: 0.5, good: 0.7, great: 0.85, near: 0.95, elite: 1, perfect: 1 };
 /** How far ahead (ticks) a player keeps track of incoming bolts when choosing where to stand. */
-const LOOKAHEAD: Record<string, number> = { average: 30, good: 38, great: 44, near: 50 };
+const LOOKAHEAD: Record<SkillLevel, number> = { weak: 22, average: 30, good: 38, great: 44, near: 50, elite: 53, perfect: 53 };
+
+/** Fixes: chance per choice that the player counts the bolts already on their way (no third bolt at a column's last ship). */
+const COUNT_BOLTS: Record<SkillLevel, number> = { weak: 0, average: 0.1, good: 0.3, great: 0.55, near: 0.8, elite: 0.9, perfect: 1 };
+/** Fixes: chance per boss read that the player leads the boss through its turn at a wall. */
+const BOUNCE_READ: Record<SkillLevel, number> = { weak: 0, average: 0.2, good: 0.4, great: 0.6, near: 0.8, elite: 0.9, perfect: 1 };
+/** Fixes: levels that take a saucer only when it passes within SAUCER_NEAR px of the ship (elite policy). */
+const CHEAP_SAUCER: Record<SkillLevel, boolean> = { weak: false, average: false, good: false, great: false, near: false, elite: true, perfect: true };
+const SAUCER_NEAR = 60;
+const BOSS_MIN_X = 12;
+const BOSS_MAX_X = WAV_WORLD_W - 12 - WAV_BOSS_W;
 
 /** The ship's bolt speed, px a tick (set per run: 10 in wavRev 6's taller world). */
 let BOLT_SPEED = 8;
@@ -52,7 +64,7 @@ interface Red {
   noticeAt: number;
 }
 
-export const bot: SkillBot = ({ game, seed, human }) => {
+export const bot: SkillBot = ({ game, seed, human, fixes }) => {
   WAV_SHIP_Y = wavShipY(game.init(seed));
   BOLT_SPEED = wavBoltSpeedFp(game.init(seed)) / 256;
   BOLT_Y0 = WAV_SHIP_Y - 14 - 12;
@@ -82,6 +94,8 @@ export const bot: SkillBot = ({ game, seed, human }) => {
   let dropGo = false;
   let dropAt = 0;
   let bossErr = 0;
+  let bossBounce = false;
+  let countBolts = false;
   let bossAt = -1;
 
   return driveEvents(game, (s: WavState, t) => {
@@ -130,7 +144,10 @@ export const bot: SkillBot = ({ game, seed, human }) => {
         const sx = seen.saucerX / 256 + seen.saucerDir * 2 * lag;
         const aim = sx + lead;
         // Worth it only while it can still be caught up with.
-        if (aim > MIN_X - 10 && aim < MAX_X + 10 && Math.abs(aim - finger) < speed * flight) {
+        // Elite and flawless (fixes): a saucer is one ship's worth; go for it only when it passes close by, so no
+        // shot at the formation or the boss is lost to the chase.
+        const reach = fixes && CHEAP_SAUCER[level] ? Math.min(speed * flight, SAUCER_NEAR) : speed * flight;
+        if (aim > MIN_X - 10 && aim < MAX_X + 10 && Math.abs(aim - finger) < reach) {
           want = aim;
           chasing = true;
         }
@@ -139,10 +156,24 @@ export const bot: SkillBot = ({ game, seed, human }) => {
     if (!chasing && seen.boss) {
       if (bossAt < 0) bossAt = t + human.reactTicks();
       if (t >= bossAt) {
-        if ((t & 63) === 0 || bossErr === 0) bossErr = human.normal();
+        if ((t & 63) === 0 || bossErr === 0) {
+          bossErr = human.normal();
+          if (fixes) bossBounce = human.chance(BOUNCE_READ[level]);
+        }
         const flight = (BOLT_Y0 - 84 - 48) / BOLT_SPEED;
         const centre = seen.boss.x + WAV_BOSS_W / 2 + seen.boss.dir * lag;
         want = centre + seen.boss.dir * flight * (1 + human.p.judgement * bossErr) + bossErr * WAV_BOSS_W * 0.15;
+        if (fixes) {
+          // Fixes: where the boss will be when the bolt arrives, through its turn at a wall for a player who reads it;
+          // the aim's spread is the player's own (v1: 15 % of the boss's width at every level).
+          const ahead = (flight + lag) * (1 + human.p.judgement * bossErr);
+          let x = seen.boss.x + seen.boss.dir * ahead;
+          if (bossBounce) {
+            if (x < BOSS_MIN_X) x = 2 * BOSS_MIN_X - x;
+            if (x > BOSS_MAX_X) x = 2 * BOSS_MAX_X - x;
+          }
+          want = x + WAV_BOSS_W / 2 + bossErr * human.p.aimSdPx * 2.1;
+        }
         chasing = true;
       }
     }
@@ -172,6 +203,20 @@ export const bot: SkillBot = ({ game, seed, human }) => {
           }
           if (low >= 0) live.push({ c, x: wavShapeBox(seen, low * WAV_COLS + c).x + WAV_CELL / 2, low, cell: low * WAV_COLS + c });
         }
+      // Fixes: a column whose ships the bolts already flying will finish is spent (for a player who counts them).
+      if (fixes && countBolts) {
+        const spent = (l: { c: number; x: number }) => {
+          let need = 0;
+          seen.shapes.forEach((code, i) => {
+            if (code === 0) return;
+            const bx = wavShapeBox(seen, i).x + WAV_CELL / 2;
+            if (Math.abs(bx - l.x) < 1) need += code === WAV_ARMOUR_CODE ? 99 : 1;
+          });
+          const flying = seen.bolts.filter((b) => !b.p && Math.abs(b.x / 256 - l.x) < WAV_CELL / 2 - 2).length;
+          return flying >= need;
+        };
+        for (let k = live.length - 1; k >= 0; k--) if (live.length > 1 && spent(live[k]!)) live.splice(k, 1);
+      }
       const colLive = live.some((l) => l.c === col);
       if ((!colLive && col >= 0) || t >= rethinkAt) {
         if (!colLive && col >= 0 && t < rethinkAt) {
@@ -184,6 +229,7 @@ export const bot: SkillBot = ({ game, seed, human }) => {
           const values = live.map((l) => -Math.abs(l.x - finger) / 60 + l.low * depth);
           col = live[human.pick(values)]!.c;
           colErr = human.normal();
+          if (fixes) countBolts = human.chance(COUNT_BOLTS[level]);
           rethinkAt = t + human.thinkTicks(900);
         }
       }
