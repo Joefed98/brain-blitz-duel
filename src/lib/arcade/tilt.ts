@@ -1387,10 +1387,13 @@ export const TILT_V6_BAND_CURVE = bandStrict(TILT_V4_BAND_CURVE);
  *    (tiltCupReachableX);
  *  - stars: every maze has exactly TILT_X_STARS gold star(s), TILT_X_STAR_HOPS cells off a route, and
  *    TILT_X_QUICK quick stars, each TILT_X_QUICK_HOPS cells into its own icy side passage before the gate;
- *  - par: each maze's par (`Maze.par`) is TILT_X_PAR_T0 plus TILT_X_PAR_CELL ticks a cell of its par tour
- *    (both quick stars first, then the shortest walk over the gold star and key to the cup, plus the amber
- *    marble's own route), and each quick star's window (`Maze.quickAt`) is when that tour, at
- *    TILT_X_QUICK_CELL ticks a cell, reaches it, so short and long mazes pay alike;
+ *  - par: each maze's par (`Maze.par`, parX) is a time for the cells and turns of its par tour (both quick
+ *    stars first, then the shortest walk over the gold star and key to the cup, plus the amber marble's own
+ *    route), fitted to the oracle's play (scripts/tilt-oracle.ts), and each quick star's window
+ *    (`Maze.quickAt`) the same for the tour up to it, so short and long mazes pay alike; rooms deal only seeds
+ *    the oracle played to 200 (the bank, src/lib/duel/tiltBank.server.ts);
+ *  - no star, key or ice on the way into a black hole or within two cells of one (every passage can be
+ *    entered and left at speed);
  *  - black holes (dead ends two or more cells off the route): a marble that falls in goes back to its start
  *    and waits TILT_X_FALL_HOLD ticks (stars, keys and progress kept). A fall costs time, never the run
  *    (older revisions end the run).
@@ -1421,11 +1424,18 @@ export const TILT_X_QUICK_HOPS: readonly [number, number] = [3, 5];
 export const TILT_X_KEY_HOPS: readonly [number, number] = [1, 3];
 /** Quick stars' side passages leave the blue route within this share of it (%), before its gate. */
 export const TILT_X_QUICK_REACH = 75;
-/** Par: ticks before the first cell, and ticks a cell of the par tour. */
-export const TILT_X_PAR_T0 = 90;
-export const TILT_X_PAR_CELL = 10;
-/** A quick star's window: ticks a cell of the par tour up to it (a little more than par's: a quick star is taken at speed, early). */
-export const TILT_X_QUICK_CELL = 18;
+/**
+ * Par (fitted to the oracle's times, scripts/tilt-oracle.ts): ticks for a maze's start, for each cell and each
+ * turn of its par tour, and for each cell of the amber route; scaled by TILT_X_PAR_SCALE / 100. A quick star's
+ * window is the same for the tour up to it (from TILT_X_QUICK_T0), scaled by TILT_X_QUICK_SCALE / 100.
+ */
+export const TILT_X_PAR_T0 = 150;
+export const TILT_X_QUICK_T0 = 30;
+export const TILT_X_PAR_CELL_T = 8;
+export const TILT_X_PAR_TURN_T = 6;
+export const TILT_X_PAR_AMBER_T = 14;
+export const TILT_X_PAR_SCALE = 115;
+export const TILT_X_QUICK_SCALE = 125;
 /** A quick star scores in full until its window (`Maze.quickAt`), then less, to 0 this many ticks later (when it is gone). */
 export const TILT_X_QUICK_TAIL = 5 * TICKS_PER_SECOND;
 export const TILT_X_QUICK_POINTS = 5;
@@ -1647,33 +1657,88 @@ export function tiltTourX(m: Maze, from: number, items: readonly number[], to: n
   return 2 * marked.size - dist[to]!;
 }
 
+/** The cells from a to b along the maze's tree (both included). */
+function pathX(m: Maze, a: number, b: number): number[] {
+  const { parent } = bfsFrom(m, a);
+  const out: number[] = [];
+  for (let c = b; c >= 0; c = parent[c]!) out.unshift(c);
+  return out;
+}
+
+/** The shortest walk from `from` over every cell of `items` to `to`, cell by cell (a depth-first walk of the tree). */
+export function tiltTourWalkX(m: Maze, from: number, items: readonly number[], to: number): number[] {
+  const { parent } = bfsFrom(m, from);
+  const marked = new Set<number>([from]);
+  for (const t of [...items, to]) for (let x = t; x >= 0 && !marked.has(x); x = parent[x]!) marked.add(x);
+  const onTo = new Set<number>();
+  for (let x = to; x >= 0; x = parent[x]!) onTo.add(x);
+  const kids = new Map<number, number[]>();
+  for (const c of marked) if (c !== from) kids.set(parent[c]!, [...(kids.get(parent[c]!) ?? []), c]);
+  const walk: number[] = [];
+  const visit = (c: number) => {
+    walk.push(c);
+    // The branch toward `to` last; the others in cell order (deterministic).
+    const ks = (kids.get(c) ?? []).slice().sort((x, y) => Number(onTo.has(x)) - Number(onTo.has(y)) || x - y);
+    for (const k of ks) {
+      visit(k);
+      if (!onTo.has(k)) walk.push(c);
+    }
+  };
+  visit(from);
+  return walk;
+}
+
+/** Turns along a walk of neighbouring cells: a quarter turn counts 1, a turn back 2. */
+export function tiltWalkTurnsX(m: Maze, walk: readonly number[]): number {
+  let turns = 0;
+  for (let i = 2; i < walk.length; i++) {
+    const d1 = walk[i - 1]! - walk[i - 2]!;
+    const d2 = walk[i]! - walk[i - 1]!;
+    if (d1 === d2) continue;
+    turns += d1 === -d2 ? 2 : 1;
+  }
+  return turns;
+}
+
+/** A maze's par tour (quick stars first, then the rest) as walks: the quick legs, then the tour, then the amber route. */
+export function tiltParWalksX(m: Maze): { quick: { star: number; walk: number[] }[]; tour: number[]; amber: number[] } {
+  const quick = m.quick ?? [];
+  let order = quick.slice();
+  if (quick.length === 2) {
+    const a = hopsX(m, m.start, quick[0]!) + hopsX(m, quick[0]!, quick[1]!);
+    const b = hopsX(m, m.start, quick[1]!) + hopsX(m, quick[1]!, quick[0]!);
+    order = b < a ? [quick[1]!, quick[0]!] : [quick[0]!, quick[1]!];
+  }
+  const legs: { star: number; walk: number[] }[] = [];
+  let at = m.start;
+  for (const q of order) {
+    legs.push({ star: q, walk: pathX(m, at, q) });
+    at = q;
+  }
+  const tour = tiltTourWalkX(m, at, [...(m.stars ?? []), ...(m.keys ?? [])], m.exit);
+  const amber = (m.start2 ?? -1) >= 0 ? pathX(m, m.start2!, m.exit2!) : [];
+  return { quick: legs, tour, amber };
+}
+
 /**
- * Par for a decorated maze: the quick stars first (the nearer order), then the shortest tour over the gold
- * stars and keys to the blue cup, plus the amber marble's own route; and each quick star's window, the tick
- * that tour reaches it. Ticks from the maze's start.
+ * Par for a decorated maze, from its par tour (tiltParWalksX: the quick stars first in the nearer order, then the
+ * shortest walk over the gold star and key to the blue cup, then the amber marble's route): a time a tick at a
+ * time for the cells and the turns of the walk (a turn needs the disc swung round), scaled by TILT_X_PAR_SCALE;
+ * each quick star's window is the same for the walk up to it, scaled by TILT_X_QUICK_SCALE. Integer only.
  */
 function parX(m: Maze): { par: number; quickAt: number[] } {
-  const quick = m.quick ?? [];
-  const q0 = quick[0] ?? -1;
-  const q1 = quick[1] ?? -1;
-  let order: number[] = quick.slice();
-  let legs: number[] = [];
-  if (quick.length === 2) {
-    const a = hopsX(m, m.start, q0) + hopsX(m, q0, q1);
-    const b = hopsX(m, m.start, q1) + hopsX(m, q1, q0);
-    order = b < a ? [q1, q0] : [q0, q1];
-    legs = [hopsX(m, m.start, order[0]!), hopsX(m, order[0]!, order[1]!)];
-  } else if (quick.length === 1) legs = [hopsX(m, m.start, q0)];
-  const quickAt = quick.map(() => 0);
-  let cells = 0;
-  order.forEach((q, k) => {
-    cells += legs[k]!;
-    quickAt[quick.indexOf(q)] = TILT_X_PAR_T0 + TILT_X_QUICK_CELL * cells;
-  });
-  const from = order.length ? order[order.length - 1]! : m.start;
-  cells += tiltTourX(m, from, [...(m.stars ?? []), ...(m.keys ?? [])], m.exit) + 1;
-  if ((m.start2 ?? -1) >= 0) cells += hopsX(m, m.start2!, m.exit2!) + 1;
-  return { par: TILT_X_PAR_T0 + TILT_X_PAR_CELL * cells, quickAt };
+  const w = tiltParWalksX(m);
+  const quickAt = (m.quick ?? []).map(() => 0);
+  let upTo: number[] = [];
+  for (const leg of w.quick) {
+    upTo = upTo.length ? [...upTo, ...leg.walk.slice(1)] : leg.walk;
+    const t = TILT_X_QUICK_T0 + TILT_X_PAR_CELL_T * (upTo.length - 1) + TILT_X_PAR_TURN_T * tiltWalkTurnsX(m, upTo);
+    quickAt[(m.quick ?? []).indexOf(leg.star)] = Math.trunc((t * TILT_X_QUICK_SCALE) / 100);
+  }
+  const all = upTo.length ? [...upTo, ...w.tour.slice(1)] : w.tour;
+  const amberCells = Math.max(0, w.amber.length - 1);
+  const t = TILT_X_PAR_T0 + TILT_X_PAR_CELL_T * (all.length - 1) + TILT_X_PAR_TURN_T * tiltWalkTurnsX(m, all) + TILT_X_PAR_AMBER_T * amberCells;
+  return { par: Math.trunc((t * TILT_X_PAR_SCALE) / 100), quickAt };
 }
 
 /** Keys and gates, ice, quick stars and par for one expansion maze (after decorateV4's cups and stars). */
@@ -1701,6 +1766,15 @@ function decorateX(m: Maze, draw: (n: number) => number, level: number): Maze {
     }
     if (x >= 0) branches.push({ c, junction: x, hops });
   }
+  // A star or key is never on the way into a black hole, nor within two cells of one: a marble taking it at speed
+  // (ice keeps its speed) can always stop or turn back (every passage can be entered and left).
+  const nearPit = new Set<number>();
+  for (const p of m.pits) {
+    for (let x = parent[p]!; x >= 0 && !onRoute.has(x); x = parent[x]!) nearPit.add(x);
+    const d = bfsFrom(m, p).dist;
+    for (let c = 0; c < n * n; c++) if (d[c]! >= 0 && d[c]! <= 2) nearPit.add(c);
+  }
+  for (let i = branches.length - 1; i >= 0; i--) if (nearPit.has(branches[i]!.c)) branches.splice(i, 1);
   // Gold stars (in place of decorateV4's): TILT_X_STARS per maze, each TILT_X_STAR_HOPS cells off a route, dead
   // ends first, never two down the same passage (each a similar detour); a seeded pick.
   out.stars = [];
@@ -1796,7 +1870,7 @@ function decorateX(m: Maze, draw: (n: number) => number, level: number): Maze {
     for (let q = 0; q < patch.length && patch.length < TILT_X_ICE_CELLS; q++)
       for (let d = 0; d < 4 && patch.length < TILT_X_ICE_CELLS; d++) {
         const nc = openNeighbour(n, m.inside, m.wallR, m.wallD, patch[q]!, d);
-        if (nc >= 0 && !patch.includes(nc) && !m.pits.includes(nc) && nc !== m.start && nc !== m.start2) patch.push(nc);
+        if (nc >= 0 && !patch.includes(nc) && !m.pits.includes(nc) && !nearPit.has(nc) && nc !== m.start && nc !== m.start2) patch.push(nc);
       }
     for (const c of patch) out.ice![c] = 1;
   }
@@ -2148,4 +2222,24 @@ export function tiltDealSeedX(seed: number): number {
   let s = seed | 0;
   for (let k = 0; k < 400 && !tiltDealableX(s); k++) s = (((Math.imul(s ^ (s >>> 15), 0x2c1b3c6d) + 0x297a2d39) >>> 0) % 0x7ffffffe) + 1;
   return s;
+}
+
+/** Path distance (cells) from every cell to `target` with the gates of keys not in `keysGot` shut (tools and checks read it; -1 where cut off). */
+export function tiltFieldX(m: Maze, target: number, keysGot: number): number[] {
+  const dist = new Array<number>(m.n * m.n).fill(-1);
+  dist[target] = 0;
+  const queue = [target];
+  for (let q = 0; q < queue.length; q++) {
+    const c = queue[q]!;
+    for (let d = 0; d < 4; d++) {
+      const i = (c % m.n) + DX[d]!;
+      const j = Math.trunc(c / m.n) + DY[d]!;
+      if (i < 0 || j < 0 || i >= m.n || j >= m.n || !m.inside[j * m.n + i]) continue;
+      const nc = j * m.n + i;
+      if (dist[nc]! >= 0 || !canPassX(m, c, d, 0, keysGot)) continue;
+      dist[nc] = dist[c]! + 1;
+      queue.push(nc);
+    }
+  }
+  return dist;
 }

@@ -4,15 +4,14 @@
  *  1. Stored rounds keep their play: 32 skill-bot runs recorded on tiltRev 6 before the change
  *     (scripts/fixtures/tilt-expand-legacy.json.gz) replay unflagged to the same score and final state,
  *     and the same logs on every older revision (1–5) give the same score and state as before.
- *  2. tiltRev 8 runs (scripts/fixtures/tilt-expand-runs.json.gz) replay unflagged to their stored score
- *     and state, and stored top runs (scripts/fixtures/tilt-expand-best.json.gz) reach 200 through the
- *     server's replay.
+ *  2. tiltRev 8 runs (scripts/fixtures/tilt-expand-runs.json.gz) replay unflagged to their stored score and state.
  *  3. The deal: rooms deal tiltRev 8; on 3,000 seeds the dealer's rule keeps every key and both cups
  *     reachable, and every dealt maze has exactly one key and gate, TILT_X_STARS gold stars and
  *     TILT_X_QUICK quick stars on ice, each a similar detour, the quick stars before the gate, and pars that
  *     fit the run; the mazes are bigger than tiltRev 6's.
- *  4. The arcade rule's ceiling: on the 260 measured seeds (tuning 0–59, fresh 60–259) every run offers
- *     the same items, and taking them all at par scores 200 (tiltCeilingX).
+ *  4. The arcade rule's ceiling, by play: rooms deal only bank seeds (TILT_BANK), each played to 200 by the
+ *     oracle (scripts/tilt-oracle.ts); every stored oracle log replays to 200 through the server, taking every
+ *     star and key (every passage entered and left). The measured seeds (tuning 0–59, fresh 10000–10199) are bank seeds.
  *  5. Room identity: idle, random, weak-bot and elite-bot logs on the same seed meet the identical mazes,
  *     items, windows and pars (scripts/room-identity/tilt.ts), over every maze both reached.
  *  6. Rules on hand-built states: a fall into a black hole sends the marble back to its start and holds it
@@ -29,7 +28,6 @@ import {
   tiltCheckpoint,
   tiltCupReachableX,
   tiltDealableX,
-  tiltDealSeedX,
   tiltExpandGame,
   tiltGameFor,
   tiltMazesX,
@@ -65,6 +63,36 @@ import { roundMaxFor } from "../src/lib/duel/roundMax";
 import { GAME_BY_TYPE } from "./arcade-skill-bands/games";
 import { tiltStateDigest } from "./tilt-expand-record";
 import { randomLog, roomIdentity, scheduleOf } from "./room-identity/tilt";
+import { TILT_BANK } from "../src/lib/duel/tiltBank.server";
+
+/** Cells on the way into a black hole (between it and the route) or within two cells of one. */
+function nearHoles(m: Maze): Set<number> {
+  const DX = [1, 0, -1, 0];
+  const DY = [0, 1, 0, -1];
+  const out = new Set<number>();
+  const open = (a: number, d: number) => {
+    const i = (a % m.n) + DX[d]!;
+    const j = Math.trunc(a / m.n) + DY[d]!;
+    if (i < 0 || j < 0 || i >= m.n || j >= m.n || !m.inside[j * m.n + i]) return -1;
+    const nc = j * m.n + i;
+    const wall = d === 0 ? m.wallR[a] : d === 1 ? m.wallD[a] : d === 2 ? m.wallR[nc] : m.wallD[nc];
+    return wall ? -1 : nc;
+  };
+  for (const p of m.pits) {
+    const dist = new Map<number, number>([[p, 0]]);
+    const q = [p];
+    for (let k = 0; k < q.length; k++)
+      for (let d = 0; d < 4; d++) {
+        const nc = open(q[k]!, d);
+        if (nc >= 0 && !dist.has(nc)) {
+          dist.set(nc, dist.get(q[k]!)! + 1);
+          q.push(nc);
+        }
+      }
+    for (const [c, d] of dist) if (d <= 2) out.add(c);
+  }
+  return out;
+}
 
 let checks = 0;
 const failures: string[] = [];
@@ -101,19 +129,11 @@ for (const run of runs) {
   ok(r.score === run.score && tiltStateDigest(r.state) === run.digest, `${tag}: stored ${run.score}, replays ${r.score}`);
   ok(r.state.xp === 1 && r.score > 0 && r.score <= 200, `${tag}: an expansion state scoring 1–200 (${r.score})`);
 }
-const best = (JSON.parse(gunzipSync(readFileSync("scripts/fixtures/tilt-expand-best.json.gz")).toString()) as { runs: { seed: number; raw: string; score: number }[] }).runs;
-let twoHundred = 0;
-for (const b of best) {
-  const r = replayTiltRun(b.seed, b.raw, TILT_REV_EXPAND);
-  ok(!r.flagged && r.score === b.score, `top run ${b.seed}: stored ${b.score}, replays ${r.score}`);
-  if (r.score === 200) twoHundred++;
-}
-ok(twoHundred >= 1, `a stored run reaches 200 through the server's replay (${twoHundred})`);
-
 /* 3. The deal. */
 const dealt = generatePuzzle("tilt") as unknown as { tiltRev: number; seed: number };
 ok(dealt.tiltRev === TILT_REV_EXPAND, `rooms deal tiltRev ${TILT_REV_EXPAND} (got ${dealt.tiltRev})`);
-ok(tiltDealableX(dealt.seed), "the dealt seed passes the dealer's rule");
+ok(tiltDealableX(dealt.seed) && TILT_BANK.includes(dealt.seed), "rooms deal a bank seed, which passes the dealer's rule");
+ok(TILT_BANK.length >= 260 && new Set(TILT_BANK).size === TILT_BANK.length, `the bank holds 260 or more distinct seeds (${TILT_BANK.length})`);
 /** Hops from a cell to the nearest cell of a marble's route. */
 function hopsOff(m: Maze, c: number): number {
   const DX = [1, 0, -1, 0];
@@ -174,25 +194,51 @@ for (let k = 0; k < 3000; k++) {
     const items = [...m.pits, ...m.stars!, ...m.quick!, ...m.keys!];
     ok(new Set(items).size === items.length, `${tag}: holes, stars and keys on separate cells`);
     ok(i + 1 < 3 ? (m.start2 ?? -1) < 0 : (m.start2 ?? -1) >= 0, `${tag}: the amber marble only in maze 3`);
+    // Every passage can be entered and left: no star or key on the way into a black hole or within two cells
+    // of one, and no ice there, so a marble that takes one at speed can always stop or turn back.
+    const near = nearHoles(m);
+    ok([...m.stars!, ...m.quick!, ...m.keys!].every((c) => !near.has(c)), `${tag}: no star or key on the way into a hole or within two cells of one`);
+    ok(m.pits.every((p) => hopsOff(m, p) >= 2), `${tag}: every hole two or more cells off the route`);
     cellsX += m.inside.reduce((a, b) => a + b, 0);
   });
   if (k < 300) cells6 += tiltGameFor(TILT_REV_STRICT).init(seed).list.slice(0, 3).reduce((n, m) => n + m.inside.reduce((a, b) => a + b, 0), 0);
 }
-ok(rerolled < 1500, `the dealer re-deals under half of seeds (${rerolled} of 3,000)`);
+ok(rerolled < 1800, `the dealer passes 40 % or more of seeds (${rerolled} of 3,000)`);
 ok(cellsX / (3000 - rerolled) > (1.4 * cells6) / 300, `tiltRev 8's mazes are bigger (${(cellsX / (3000 - rerolled)).toFixed(0)} cells a run vs ${(cells6 / 300).toFixed(0)} in tiltRev 6's first three)`);
 
-/* 4. The ceiling on the measured seeds (the skill-band tool's tuning and fresh seeds). */
+/* 4. The ceiling, by play: every bank seed was played to 200 by the oracle (scripts/tilt-oracle.ts); its stored
+   log replays to 200 through the server. The measured seeds are the bank's first 260 (tuning 0–59, fresh 60–259). */
 const spec = GAME_BY_TYPE.get("tilt" as never)!;
-let lowest = 999;
-for (let n = 0; n < 260; n++) {
-  const seed = spec.seedFor(n);
-  ok(tiltDealableX(seed), `seed index ${n}: a seed rooms could deal`);
-  const c = tiltCeilingX(seed);
-  lowest = Math.min(lowest, c);
-  ok(c >= 200, `seed index ${n}: perfect play reaches ${c}`);
+const proofs = (JSON.parse(gunzipSync(readFileSync("scripts/fixtures/tilt-bank-runs.json.gz")).toString()) as { runs: { seed: number; raw: string }[] }).runs;
+const proofBySeed = new Map(proofs.map((p) => [p.seed, p.raw]));
+ok(TILT_BANK.every((seed) => proofBySeed.has(seed)), "every bank seed has its oracle proof");
+let lowestBank = 999;
+const proofScore = new Map<number, number>();
+for (let n = 0; n < TILT_BANK.length; n++) {
+  const seed = TILT_BANK[n]!;
+  const raw = proofBySeed.get(seed);
+  if (!raw) continue;
+  const r = replayTiltRun(seed, raw, TILT_REV_EXPAND);
+  ok(!r.flagged && r.score === 200, `bank seed ${n} (${seed}): the oracle's run replays to 200 (${r.score}${r.reason ? `, ${r.reason}` : ""})`);
+  ok(r.state.mazes === 3 && r.state.quickTaken === 6 && r.state.stars === 3 && r.state.keysTaken === 3, `bank seed ${n}: every quick star, gold star and key taken, every passage entered and left`);
+  proofScore.set(seed, r.flagged ? -1 : r.score);
+  lowestBank = Math.min(lowestBank, r.score);
 }
-ok(lowest === 200, `the lowest perfect-play ceiling over 260 seeds is 200 (${lowest})`);
-ok(tiltDealSeedX(spec.seedFor(0)) === spec.seedFor(0), "a dealable seed deals itself");
+const lowest = { tuning: 999, fresh: 999 };
+const sets: [keyof typeof lowest, number[]][] = [["tuning", Array.from({ length: 60 }, (_, i) => i)], ["fresh", Array.from({ length: 200 }, (_, i) => 10000 + i)]];
+for (const [set, indices] of sets) {
+  const seen = new Set<number>();
+  for (const n of indices) {
+    const seed = spec.seedFor(n);
+    ok(TILT_BANK.includes(seed) && !seen.has(seed), `${set} seed index ${n}: a bank seed, not repeated in its set`);
+    seen.add(seed);
+    ok(tiltCeilingX(seed) === 200, `${set} seed index ${n}: the items at par add up to 200`);
+    lowest[set] = Math.min(lowest[set], proofScore.get(seed) ?? -1);
+  }
+}
+const tuningSeeds = new Set(sets[0]![1].map((n) => spec.seedFor(n)));
+ok(sets[1]![1].every((n) => !tuningSeeds.has(spec.seedFor(n))), "the fresh seeds share none with the tuning seeds");
+ok(lowest.tuning === 200 && lowest.fresh === 200 && lowestBank === 200, `the oracle reaches 200 on every measured seed (lowest: tuning ${lowest.tuning}, fresh ${lowest.fresh}, whole bank ${lowestBank})`);
 
 /* 5. Room identity. */
 for (const n of [0, 1, 2]) {
