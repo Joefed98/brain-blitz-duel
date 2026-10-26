@@ -135,7 +135,7 @@ ok(dealt.tiltRev === TILT_REV_EXPAND, `rooms deal tiltRev ${TILT_REV_EXPAND} (go
 ok(tiltDealableX(dealt.seed) && TILT_BANK.includes(dealt.seed), "rooms deal a bank seed, which passes the dealer's rule");
 ok(TILT_BANK.length >= 260 && new Set(TILT_BANK).size === TILT_BANK.length, `the bank holds 260 or more distinct seeds (${TILT_BANK.length})`);
 /** Hops from a cell to the nearest cell of a marble's route. */
-function hopsOff(m: Maze, c: number): number {
+function hopsOff(m: Maze, c: number, blueOnly = false): number {
   const DX = [1, 0, -1, 0];
   const DY = [0, 1, 0, -1];
   const open = (a: number, d: number) => {
@@ -164,7 +164,7 @@ function hopsOff(m: Maze, c: number): number {
   const route = new Set<number>();
   const pa = bfs(m.start);
   for (let x = m.exit; x >= 0; x = pa.get(x)!) route.add(x);
-  if ((m.start2 ?? -1) >= 0) {
+  if (!blueOnly && (m.start2 ?? -1) >= 0) {
     const pb = bfs(m.start2!);
     for (let x = m.exit2!; x >= 0; x = pb.get(x)!) route.add(x);
   }
@@ -198,7 +198,8 @@ for (let k = 0; k < 3000; k++) {
     // of one, and no ice there, so a marble that takes one at speed can always stop or turn back.
     const near = nearHoles(m);
     ok([...m.stars!, ...m.quick!, ...m.keys!].every((c) => !near.has(c)), `${tag}: no star or key on the way into a hole or within two cells of one`);
-    ok(m.pits.every((p) => hopsOff(m, p) >= 2), `${tag}: every hole two or more cells off the route`);
+    // Holes are placed off the blue route when a maze is carved (maze 3's amber route is laid later; the oracle proofs below show it is played past them).
+    ok(m.pits.every((p) => hopsOff(m, p, true) >= 2), `${tag}: every hole two or more cells off the blue route`);
     cellsX += m.inside.reduce((a, b) => a + b, 0);
   });
   if (k < 300) cells6 += tiltGameFor(TILT_REV_STRICT).init(seed).list.slice(0, 3).reduce((n, m) => n + m.inside.reduce((a, b) => a + b, 0), 0);

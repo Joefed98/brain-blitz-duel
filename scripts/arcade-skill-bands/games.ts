@@ -93,6 +93,8 @@ export interface GameSpec {
   tuneg3?: number;
   /** The seed a live room would store for the n-th sample. */
   seedFor: (n: number) => number;
+  /** The seed index → seed the older checks' fixtures were recorded with, when `seedFor` has since moved on (Tilt's bank). */
+  fixtureSeedFor?: (n: number) => number;
   /** The game (sim + score) for a revision and stored seed. */
   gameFor: (rev: number | null, seed: number) => ArcadeGame<any, any>;
   checkpoint: (state: any) => unknown;
@@ -165,7 +167,7 @@ export const GAMES: GameSpec[] = [
   { ...simple("breaker", BRK_REV, BRK_REV_BAND, breakerGameFor, brkCheckpoint, encodeBreakerRun, replayBreakerRun), current: BRK_REV_TUNED, tunef: BRK_REV_TUNEF, tuneg: BRK_REV_TALL },
   // Rooms deal tiltRev 8's bank (seeds the oracle played to 200), so every revision is measured on those (paired). The
   // tuning seeds 0–59 are the bank's first 60; the fresh seeds 10000– start at its 61st, so the two sets never share one.
-  { ...simple("tilt", TILT_REV, TILT_REV_BAND, tiltGameFor, tiltCheckpoint, encodeTiltRun, replayTiltRun), tunec: TILT_REV_TUNEC, seedFor: tiltBankSeedFor },
+  { ...simple("tilt", TILT_REV, TILT_REV_BAND, tiltGameFor, tiltCheckpoint, encodeTiltRun, replayTiltRun), tunec: TILT_REV_TUNEC, seedFor: tiltBankSeedFor, fixtureSeedFor: plain },
   {
     type: "orbit",
     live: ORBIT_REV4,

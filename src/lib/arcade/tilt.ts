@@ -1445,7 +1445,7 @@ export const TILT_X_PACE_SLOW = 160;
 /** The most skill points a run can earn (all quick stars in their windows, every maze at par). */
 export const TILT_X_SKILL_RAW = TILT_X_MAZES * (TILT_X_QUICK * TILT_X_QUICK_POINTS + TILT_X_PACE_POINTS);
 /** Skill points → bonus (a rising scale: incidental skill pays little, the full 50 needs every point). */
-export const TILT_X_SKILL_PAY = bandCurve([0, 15, 25, 35, 45, 52, 60], [0, 10, 16, 30, 38, 38, 50]);
+export const TILT_X_SKILL_PAY = bandCurve([0, 15, 25, 35, 45, 52, 60], [0, 8, 12, 35, 35, 48, 50]);
 /** How many cells off a route a gold star sits (each a similar detour). */
 export const TILT_X_STAR_HOPS: readonly [number, number] = [1, 2];
 /** A marble that falls into a black hole waits this long at its start before it rolls again. */
@@ -1464,7 +1464,7 @@ export const TILT_X_KEY_UNITS = 3;
  * any progress at all is worth a point), fitted on the skill-band bots' runs (scripts/arcade-skill-bands.ts tilt
  * --rev=x; docs/expansions/x200-tilt.md).
  */
-export const TILT_V8_BAND_CURVE = bandCurve([0, 2, 40, 80, 100, 120, 130, 140, 150], [0, 2, 19, 43, 55, 60, 79, 110, 140]);
+export const TILT_V8_BAND_CURVE = bandCurve([0, 2, 40, 80, 100, 120, 130, 140, 150], [0, 3, 18, 45, 59, 81, 104, 127, 140]);
 
 /** The world height (px) a stored round's tiltRev plays in. */
 export function tiltWorldHFor(rev?: number | null): number {

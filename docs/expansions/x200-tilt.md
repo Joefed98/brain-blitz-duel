@@ -59,78 +59,85 @@ whose route is nearest 42 / 46 / 40 cells. The amber marble joins in maze 3, as 
 - **Keys and gates**: one gate a maze across the blue route (beyond the quick stars' passages, up to 92 % of the
   way), its key 1–3 cells into a side passage on the start's side. Every key and both cups are proved reachable.
 - **Quick stars** (time-bonus stars): exactly two a maze, each 3–5 cells into its own icy side passage off the first
-  75 % of the blue route, before the gate. Each is worth `TILT_X_QUICK_POINTS` (5) up to its window (`Maze.quickAt`:
-  when a run taking the two in the nearer order at `TILT_X_QUICK_CELL` ticks a cell would reach it, after
-  `TILT_X_PAR_T0`), then less, gone `TILT_X_QUICK_TAIL` (5 s) later.
-- **Par**: each maze's par (`Maze.par`) is `TILT_X_PAR_T0` + `TILT_X_PAR_CELL` (10) ticks a cell of its par tour
-  (both quick stars first, then the shortest walk over the gold star and key to the cup on the maze's tree, plus the
-  amber route). A finished maze's pace pays `TILT_X_PACE_POINTS` (10) at par or quicker, falling to 0 at 1.6× par
-  (`tiltPacePoints`). Long and short mazes pay alike.
+  75 % of the blue route, before the gate. Each is worth `TILT_X_QUICK_POINTS` (5) up to its window (`Maze.quickAt`),
+  then less, gone `TILT_X_QUICK_TAIL` (5 s) later.
+- **Par**: each maze's par (`Maze.par`, `parX`) is a time for its par tour (both quick stars first in the nearer order,
+  then the shortest walk over the gold star and key to the cup on the maze's tree, then the amber route): 150 ticks,
+  8 a cell, 6 a turn (the disc must swing round), 14 a cell of the amber route, all × `TILT_X_PAR_SCALE` (115 %). The
+  quick-star windows are the same for the walk up to each star (from 30 ticks) × `TILT_X_QUICK_SCALE` (125 %). The
+  coefficients are a least-squares fit to the oracle's maze times (below). A finished maze's pace pays
+  `TILT_X_PACE_POINTS` (10) at par or quicker, falling to 0 at 1.6× par. Long and short mazes pay alike.
+- **Every passage can be entered and left** (26 Oct, second round): no star, key or ice on the way into a black hole or
+  within two cells of one, and holes only in dead ends two or more cells off the blue route. Session A found ice
+  corridors that stopped even its flawless bot: a quick star sat in an icy passage that ran on into a hole, so a marble
+  taking it at ice speed could not stop. The oracle's proofs (below) enter and leave every passage of every dealt seed.
 - Kept: two marbles in maze 3, each to its own cup; the camera, the keys' colours and the gate swing.
 
-The dealer (`tiltDealableX`, `generateTilt`) deals only seeds whose three mazes all have their key and gate, one gold
-star, two quick stars and pars that fit the run (about 72 % of raw seeds; it re-deals the rest). The skill-band tool
-measures the dealt seeds (`seedFor` → `tiltDealSeedX`).
+**The bank.** Rooms deal only seeds from `TILT_BANK` (`src/lib/duel/tiltBank.server.ts`, 389 seeds): seeds the dealer's
+rule passes (`tiltDealableX`: every key and cup reachable, one key and gate, one gold star and two quick stars a maze,
+pars that fit the run) **and** that the oracle played to 200 through the server's replay (389 of 492 candidates).
+`bun scripts/tilt-bank.ts --scan … / --write …` builds it; the proof logs are `scripts/fixtures/tilt-bank-runs.json.gz`
+(2.9 MB). The skill-band tool measures bank seeds (`tiltBankSeedFor`: tuning n 0–59 the bank's first 60, fresh n 10000–
+10199 its next 200; the older checks' fixtures keep their room seeds through `fixtureSeedFor`).
+
+**The oracle** (`scripts/tilt-oracle.ts`): a player that knows the maze and plays it through the real sim. It walks
+each maze's par-tour waypoints (the two quick stars, the gold star and key as the tour meets them, the blue cup, then in
+maze 3 the amber cup, either cup first, whichever is quicker) and reaches each by a beam search over held tilts turned
+at 12 px a tick (re-gripping at the screen's edges), never letting the marble it steers fall in. It takes about 4 s a
+seed.
 
 ## Score
 
 Units: 40 a finished maze, up to 39 progress in the maze being played (its key counts 3 of them), 10 a gold star;
-150 units (three mazes and three stars) is 140 on `TILT_V8_BAND_CURVE`. All three mazes add 10. Skill points (quick
-stars up to 30, pace up to 30) are paid on `TILT_X_SKILL_PAY` to 50; the full 50 needs every quick star in its window
+150 units (three mazes and three stars) is 140 on `TILT_V8_BAND_CURVE` (units 0 2 40 80 100 120 130 140 150 → points 0 3
+18 45 59 81 104 127 140). All three mazes add 10. Skill points (quick stars up to 30, pace up to 30) are paid on
+`TILT_X_SKILL_PAY` (raw 15 25 35 45 52 60 → 8 12 35 35 48 50) to 50; the full 50 needs every quick star in its window
 and every maze at par. `bandTotal(…, 200)`; no input scores 0.
 
-## The arcade rule's ceiling
+## The arcade rule's ceiling (by play)
 
-Every dealt seed offers the same: 3 mazes, 3 gold stars, 6 quick stars, 3 pars that fit the run, every item
-reachable. Taking everything at par scores 140 + 10 + 50 = 200 (`tiltCeilingX`). tilt-expand-check proves it on all
-260 measured seeds (tuning 0–59 and fresh 60–259): lowest ceiling 200. (Raw, undealt seeds that lack a quick star
-would top out at 190; the dealer never deals them.) The stored top run (`scripts/fixtures/tilt-expand-best.json.gz`,
-a flawless bot, `bun scripts/tilt-expand-best.ts`) reaches 200 through the server replay.
+Every dealt seed offers the same: 3 mazes, 3 gold stars, 6 quick stars, 3 keys, pars that fit the run. Every one was
+**played to 200 by the oracle** through the server's replay: tilt-expand-check replays all 389 proof logs (each 200,
+every quick star, gold star and key taken), so the lowest ceiling is **200 on the tuning seeds (0–59), 200 on the fresh
+seeds (10000–10199) and 200 on the whole bank**. (Counting alone, `tiltCeilingX`, also gives 200 on every one.)
 
-## Tuning (paired, server replay scores)
+The bots' "perfect" level (Session A's flawless player) does not reach 200: its plan rarely takes all six quick stars
+inside their windows (median 185, best 199 on both sets). The oracle is the ceiling's proof.
 
-`bun scripts/arcade-skill-bands.ts tilt --rev=x --levels=weak,average,good,great,near,elite --seeds=60 --jobs=2`
-and the same with `--from=60 --seeds=200`: "old" is tiltRev 6 (LIVE_BANDS' `strictRev`, max 150), "new" tiltRev 8
-(max 200), the same seeds and the same simulated players. Every run through the server's encode and replay; no
-mismatches, nothing flagged. Median / p90 (max for elite); the old median in brackets.
+## Tuning (paired, server replay scores; Session A's fixed bots, #175)
 
-| Seeds | Weak | Average | Good | Great | Near-perfect | Elite |
-|---|---|---|---|---|---|---|
-| Tuning (0–59) | 59 (55) | 62 (69) | 107 (104), +3 % | 137 (122) | 170 / 188 (124) | 177 / 188, max 192 (128) |
-| Fresh (60–259) | 59 (54) | 70 (68) | 101 (108), −6 % | 144 (119) | 170 / 188 (122) | 177 / 188, max 195 (122) |
+`bun scripts/arcade-skill-bands.ts tilt --rev=x --levels=all --seeds=60 --jobs=2` (tuning) and `--from=10000 --seeds=200`
+(fresh), the fixed bots with their fixes on. "Old" is tiltRev 6 (LIVE_BANDS' `strictRev`, max 150) played by the same
+fixed bots on the same seeds. Median / p90; the old median in brackets. Every run through the server's encode and
+replay. The curves were fitted on the tuning seeds only.
 
-- Zero scores: none at any level on either set (lowest 1–3: a bot stuck all run near a maze's start; the base
-  curve's first knot makes any progress at all worth a point). No-input runs score 0.
-- Paired (same seed): great beats good on 40/60 and 149/200 seeds, near-perfect beats great on 48/60 and 148/200,
-  elite beats near-perfect on 38/60 and 124/200 (ties 5 and 10).
-- Random play (uniform random drags at a human rate, re-grips now and then, 260 seeds): median 2, p90 6, max 21.
-- Lowest perfect-play ceiling: 200 on both sets (every one of the 260 seeds).
+| Seeds | Weak | Average | Good | Great | Near-perfect | Elite | Flawless (median, lowest) |
+|---|---|---|---|---|---|---|---|
+| Tuning (0–59) | 53 / 122 (55) | 77 / 142 (70) | 126 / 169 (129), −2 % | 149 / 185 (132) | 172 / 186 (138) | 177 / 190 (141) | 185, 43 (143) |
+| Fresh (10000–10199) | 48 / 89 (41) | 87 / 139 (75) | 125 / 169 (122), +2 % | 149 / 185 (132) | 172 / 185 (138) | 177 / 194 (140) | 185, 18 (143) |
 
-**The bar.** Good within ±10 % of before: yes (+3 %, −6 %). Near-perfect median 165–175: yes (170, 170). Near-perfect
-p90 at or under about 185: 188 on both sets (just over). Elite median at least about 175: yes (177, 177). Elite top
-10 % reaching 190–200: **not met**, 188 on both sets (best 192 and 195). Great between good and near-perfect, and
-near-perfect above great: yes. No zeros for weak or average play: yes.
+- Zero scores: none at any level on either set (lowest 1–3: a bot stuck all run near a maze's start).
+- Paired: great beats good on 43/60 and 151/200 seeds; near-perfect beats great on 44/60 and 147/200; elite beats
+  near-perfect on 32/60 and 101/200.
+- Random play (uniform random drags, 60 / 200 seeds): median 3, p90 6, max 9 / 11.
+- Lowest ceiling (the oracle, by play): 200 on both sets.
 
-Why the top is short: the elite and near-perfect bots' best runs overlap (both are the same planner; elite has a little
-less lag, a slightly faster finger and goes for every star), so any pay curve that lifts elite's p90 to 190 lifts
-near-perfect's p90 with it (tried: KP [0,10,16,30,38,42,50] gives near 190 / elite 189). 200 needs every quick star
-inside its window and every maze at par: the flawless bot (no lag or aim error) scores median ~185, best 197–198 on
-single runs; the stored 200 was built maze by maze (`--stitch`: each maze replayed from where the last ended until
-one try takes everything at par). Par is the time a tour at 10 ticks a cell takes; the flawless bot's maze time is
-0.7–1.8× par (median 1.16), so par is a stretch target but reachable (the stitched run meets it in all three).
-
+**The bar:** good within ±10 % (−2 %, +2 %): met. Near-perfect median 165–175 (172, 172): met; p90 ≤ ~185 (186, 185):
+met (186 on the tuning set). Elite median ≥ ~175 (177, 177): met; p90 190–200 (190, 194): met. Great between good and
+near-perfect: met. No zeros: met. Random ~0: met. Flawless and oracle reach 200 on every seed: **the oracle does; the
+bots' flawless level does not** (median 185; its plan misses quick-star windows).
 
 ## Checks
 
-Run in this worktree, one process each (no browser checks; the coordinator runs those after the merge):
+Re-run after the merge with main (#175) and the re-tune, one process each (no browser checks):
 
 | Check | Result |
 |---|---|
-| tilt-expand-check (new) | PASS, 51,161 checks |
+| tilt-expand-check (legacy replay, rooms deal the bank, 389 oracle proofs to 200, passable passages, room identity, rules, score) | PASS, 48,385 checks |
 | round-max-check | PASS |
 | scoring-bands-check | PASS |
 | scoring-targets-check | PASS |
-| scoring-rev3-check | PASS |
+| scoring-rev3-check | PASS (a first run under load failed its 250 ms grading-time limit; PASS run alone) |
 | reveal-score-check | PASS |
 | replay-check | PASS |
 | practice-bests-check | PASS |
@@ -148,9 +155,8 @@ Run in this worktree, one process each (no browser checks; the coordinator runs 
 | intro-demo-check | PASS |
 | beta-recording-check | PASS |
 
-Also: `tsc --noEmit` clean; the skill-band bot plays tiltRev 6 and 4 with byte-identical logs to main's bot (12 runs
-compared).
-
+Also `tsc --noEmit` clean; the merged bot plays tiltRev 6 and 4 with logs identical to main's bot (24 logs, fixes on and
+off).
 
 ## Shared files touched (Tilt's lines only)
 
@@ -161,14 +167,16 @@ compared).
   (older demos stopped), `src/lib/duel/roundSummaries.ts`, `src/lib/arcade/reveal.ts`, `src/lib/arcade/revealRenderers.ts`,
   `src/lib/fx/gameSounds.ts` (quick star, key, fall), `src/lib/arcade/arcadeFxGames.renderer.ts` (`ARCADE_FX_SPECS.tilt`
   at the taller world), `src/lib/duel/practiceStamps.data.ts` (regenerated).
-- `scripts/arcade-skill-bands/games.ts`: Tilt's `seedFor` deals as rooms do.
+- `scripts/arcade-skill-bands/games.ts`: Tilt's `seedFor` measures bank seeds; an optional `fixtureSeedFor` on
+  `GameSpec` (Tilt: the room seeds) that `scoring-bands-check` and `scoring-targets-check` read for their recorded runs.
+- `scripts/arcade-skill-bands/bots/tilt.ts`: main's fixed bot (#175) plus Tilt's tiltRev 8 paths, all on tiltRev 8 states.
 - Older checks' Tilt lines: `arcade-tuning-a-check.ts`, `arcade-tuning-c-check.ts` (rooms deal tiltRev 8; the help names
   "Gold stars"), `six-game-scoring-check.ts` (the intro line).
 - `scripts/arcade-self-replay-check.ts`: one entry, `tilt/expand`, appended at the end of its list (other entries keep their PRNG streams).
 - `scripts/fixtures/replay-runs.json`: one Tilt run appended.
-- New: `scripts/tilt-expand-check.ts`, `scripts/tilt-expand-record.ts`, `scripts/tilt-expand-best.ts`,
-  `scripts/room-identity/tilt.ts`, fixtures `tilt-expand-legacy` (from the parked branch, recorded on main's code),
-  `tilt-expand-runs`, `tilt-expand-best`.
+- New: `scripts/tilt-expand-check.ts`, `scripts/tilt-expand-record.ts`, `scripts/tilt-oracle.ts`, `scripts/tilt-bank.ts`,
+  `scripts/room-identity/tilt.ts`, `src/lib/duel/tiltBank.server.ts`, fixtures `tilt-expand-legacy` (from the parked
+  branch, recorded on main's code), `tilt-expand-runs`, `tilt-bank-runs` (2.9 MB: the oracle's proof for every bank seed).
 
 ## Assumptions and notes for the merge
 
