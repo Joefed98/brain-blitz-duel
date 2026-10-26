@@ -28,14 +28,14 @@ import {
   INK_RUN_TICKS,
   INK_TALL_H,
   INK_V10_BAND_CURVE,
+  INK_V10_SPEED_PAR,
   INK_WORLD_W,
   type InkState,
 } from "../src/lib/arcade/inkBridge";
 import { bandPoints, BAND_FINISH_BONUS } from "../src/lib/arcade/scoreBands";
-import { speedBonusCurve } from "../src/lib/duel/speedPar";
 import { encodeInkBridgeRun, replayInkBridgeRun } from "../src/lib/duel/inkBridge";
 import { roomSeed } from "./arcade-skill-bands/games";
-import { Human, BAND_LEVELS, type BandLevel } from "./arcade-skill-bands/human";
+import { Human, ALL_LEVELS as BAND_LEVELS, type SkillLevel as BandLevel } from "./arcade-skill-bands/human";
 import { bot } from "./arcade-skill-bands/bots/inkbridge";
 
 const args = process.argv.slice(2);
@@ -133,7 +133,7 @@ export function randomInkLog(rev: number, seed: number): ArcadeInputEvent[] {
 export function inkRescore(r: InkRow): number {
   if (r.rev !== INK_REV_EXPAND) return r.score;
   const finished = r.levels >= INK_LEVELS;
-  const speed = finished ? speedBonusCurve(BAND_FINISH_BONUS, INK_RUN_TICKS - Math.max(0, Math.min(INK_RUN_TICKS, r.ended)), INK_RUN_TICKS) : 0;
+  const speed = finished ? Math.min(BAND_FINISH_BONUS, Math.round((BAND_FINISH_BONUS * (INK_RUN_TICKS - Math.max(0, Math.min(INK_RUN_TICKS, r.ended)))) / INK_V10_SPEED_PAR)) : 0;
   if (r.score === 0 && r.levels === 0 && r.raw === 0) return 0;
   return Math.max(0, Math.min(INK_EXPAND_MAX, bandPoints(INK_V10_BAND_CURVE, 10 * r.levels) + speed + inkFeaturePaid(r.raw)));
 }
@@ -179,7 +179,7 @@ if (import.meta.main) {
           for (const level of LEVELS) {
             const seed = roomSeed(n);
             const game = inkBridgeGameFor(rev);
-            const res = bot({ game, seed, rev, human: new Human("inkbridge", seed, level) });
+            const res = bot({ game, seed, rev, human: new Human("inkbridge", seed, level), fixes: !process.argv.includes("--bots=v1") });
             const r = replayed(rev, seed, res.events ?? []);
             rows.push(row(rev, level, n, r.state, r.score));
           }

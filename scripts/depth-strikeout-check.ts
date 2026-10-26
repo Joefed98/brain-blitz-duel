@@ -23,6 +23,11 @@ import { puzzleTimeLimitMs } from "../src/lib/duel/registry";
 import { SO4_RULES, encodeStrikeout2, so2EarlySolves, so2Rules, type So2Action } from "../src/lib/duel/strikeout";
 import type { StrikeoutPuzzleData } from "../src/lib/duel/types";
 import { runStretchCheck } from "./depth-stretch-lib";
+import { pinPreTopup } from "../src/lib/duel/depthTopup";
+
+// The puzzle top-up (26 Oct 2026, docs/depth/topup-oct-2026.md) deals newer stamps; this check proves the stamps it was
+// written for, so new deals are pinned to them (depth-topup-check proves the top-up's).
+pinPreTopup(true);
 
 const failures: string[] = [];
 let passes = 0;

@@ -3302,7 +3302,13 @@ export const INK_EXPAND_MAX = 200;
  * good player within 10 % of their inkRev 8 score while all ten levels reach 140. Plus up to 10 for speed: the base
  * is at most 150.
  */
-export const INK_V10_BAND_CURVE = bandCurve([0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100], [0, 22, 32, 40, 47, 54, 61, 72, 88, 110, 140]);
+export const INK_V10_BAND_CURVE = bandCurve([0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100], [0, 22, 36, 54, 64, 74, 85, 97, 111, 125, 140]);
+
+/**
+ * inkRev 10's speed bonus: all BAND_FINISH_BONUS for finishing every level with 45 s left (a flawless run of ten
+ * levels, some on moving pots, takes about 50–70 s), falling evenly to 0 at the buzzer.
+ */
+export const INK_V10_SPEED_PAR = 45 * TICKS_PER_SECOND;
 
 /** inkRev 10: the most the features' raw points can come to (every star, trick shot, silver coin and the shamrock). */
 export const INK_FEATURE_RAW_MAX =
@@ -3311,7 +3317,7 @@ export const INK_FEATURE_RAW_MAX =
  * inkRev 10's skill pay: the features' raw points paid on a rising scale, so a few incidental pickups pay little and
  * the full INK_FEATURE_MAX needs every star, trick shot, silver coin and the shamrock.
  */
-export const INK_V10_SKILL_PAY = bandCurve([0, 20, 40, 60, 80, 100, 115, INK_FEATURE_RAW_MAX], [0, 4, 10, 18, 27, 35, 42, INK_FEATURE_MAX]);
+export const INK_V10_SKILL_PAY = bandCurve([0, 20, 40, 60, 80, 100, 115, INK_FEATURE_RAW_MAX], [0, 4, 10, 17, 25, 31, 37, INK_FEATURE_MAX]);
 
 /** inkRev 10: the features' raw points potted (ink stars 5, trick shots 5, silver coins 2, the shamrock 20). */
 export function inkFeatureRaw(state: Pick<InkState, "stars" | "tricks" | "silver" | "shamrocks">): number {
@@ -3331,7 +3337,8 @@ export function inkFeaturePaid(raw: number): number {
 function inkExpandBandParts(state: InkState): BandParts {
   const units = 10 * clampInt(state.levels, 0, INK_LEVELS);
   const finished = state.levels >= INK_LEVELS;
-  const speed = finished ? speedBonusCurve(BAND_FINISH_BONUS, INK_RUN_TICKS - clampInt(state.endedTick || state.tick, 0, INK_RUN_TICKS), INK_RUN_TICKS) : 0;
+  const left = INK_RUN_TICKS - clampInt(state.endedTick || state.tick, 0, INK_RUN_TICKS);
+  const speed = finished ? Math.min(BAND_FINISH_BONUS, Math.round((BAND_FINISH_BONUS * left) / INK_V10_SPEED_PAR)) : 0;
   const raw = inkFeatureRaw(state);
   const paid = inkFeaturePaid(raw);
   const featureText = `${state.stars ?? 0} stars · ${state.tricks ?? 0} trick shots · ${state.silver ?? 0} silver · ${state.shamrocks ? "shamrock" : "no shamrock"}: ${raw} → ${paid}`;

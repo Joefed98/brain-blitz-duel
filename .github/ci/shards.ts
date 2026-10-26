@@ -109,6 +109,8 @@ export const SHARDS: Record<string, string[]> = {
     "tiles-rings-check.ts",
     "arcade-self-replay-check.ts@1/2",
     "puzzle-bank-check.ts@3/4",
+    // The puzzle top-up (26 Oct 2026): legacy grades, deals and the bar on 40 fresh seeds, ~95 s whole locally, in halves.
+    "depth-topup-check.ts@1/2",
   ],
   // ~282 s of checks on run 38608375501's times.
   b: [
@@ -136,6 +138,7 @@ export const SHARDS: Record<string, string[]> = {
     "replay-access-check.ts",
     // Round replays: fixture replays and moments, the serve-after-close gate, results/podium flow.
     "replay-check.ts",
+    "depth-topup-check.ts@2/2",
     "reveal-window-check.ts",
     "room-continue-check.ts",
     "signature-beat-check.ts",

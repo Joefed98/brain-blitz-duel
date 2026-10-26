@@ -54,7 +54,11 @@ import { decodeActionLog } from "./actionLog";
 import { replayLaserActions } from "./laserLog";
 import { verifyLaser } from "./laser";
 import { decodePairFlips, replayPairs } from "./pairmatch";
-import { decodeSafePending, decodeSafeTries, dialsCorrect } from "./safe";
+import { clueHolds, decodeSafePending, decodeSafeTries, dialsCorrect } from "./safe";
+import { decodeFloodMoves, replayFlood } from "./flood";
+import { floodMoveLimit } from "./moveLimits";
+import { DEPTH_REV_TOPUP, depthRevOf } from "./logicDepth";
+import { D4_REV_TOPUP, d4RevOf } from "./depth4/stamps";
 import { LIGHTS_CELLS, PUSH_COLS, RINGS_COUNT, UNBLOCK_COLS, UNBLOCK_EXIT_ROW, RINGS_SEGMENTS, type PuzzleData, type SlideDir, type UnblockVehicle } from "./types";
 
 /** What the progress measures read from the rev-1 grade. */
@@ -146,7 +150,7 @@ export function rev3Progress(input: ProgressInput): number | null {
       return targetProgress(best, puzzle.target);
     }
     case "rings":
-      return ringsProgress(puzzle.segments, puzzle.pattern, decodeRingTaps(answer), puzzle.minMoves ?? 0);
+      return ringsProgress(puzzle.segments, puzzle.pattern, decodeRingTaps(answer), puzzle.minMoves ?? 0, d4RevOf(puzzle) >= D4_REV_TOPUP ? RINGS_TOPUP_WASTE : MOVE_WASTE_WEIGHT.rings);
     case "unblock":
       return unblockProgress(puzzle.vehicles, decodeMoves(answer), puzzle.minMoves ?? 0);
     case "push":
@@ -176,7 +180,25 @@ export function rev3Progress(input: ProgressInput): number | null {
       const pending = tries.length >= SAFE_TRIES ? [] : [decodeSafePending(answer) ?? []];
       const right = Math.max(0, ...[...tries, ...pending].map((t) => dialsCorrect(t, combination)));
       const share = Math.max(0, right - SAFE_FREE_DIALS) / Math.max(1, combination.length - SAFE_FREE_DIALS);
-      return Math.pow(share, SAFE_CURVE);
+      const dials = Math.pow(share, SAFE_CURVE);
+      if (depthRevOf(puzzle) < DEPTH_REV_TOPUP) return dials;
+      // The top-up (depthRev 2): a try (or the dials as they stand) that keeps all but one or two clues is a misread
+      // card, not a guess; it earns a little whatever its dials, so a player who read the card never scores 0.
+      const n = puzzle.clues.length;
+      const held = Math.max(0, ...[...tries, ...pending].map((t) => (t.length === combination.length ? puzzle.clues.filter((c) => clueHolds(c, t)).length : 0)));
+      const clues = SAFE_CLUE_CREDIT * Math.max(0, held - (n - SAFE_CLUE_SPAN)) / SAFE_CLUE_SPAN;
+      return Math.max(dials, clues);
+    }
+    case "flood": {
+      // The top-up (depthRev 2): a board run out of its moves keeps a little credit for how far it flooded, steeply
+      // (a near-solved board about 25 points; random taps and colour cycling stop far short of it, under 10 points mostly).
+      if (depthRevOf(puzzle) < DEPTH_REV_TOPUP) return null;
+      const limit = floodMoveLimit(puzzle);
+      const replay = replayFlood(puzzle.grid, decodeFloodMoves(answer), undefined, limit);
+      if (!replay.outOfMoves) return null;
+      const start = replayFlood(puzzle.grid, []).region;
+      const share = Math.max(0, replay.region - start) / Math.max(1, puzzle.grid.length - start);
+      return FLOOD_OUT_CREDIT * Math.pow(share, FLOOD_OUT_POWER);
     }
     default:
       return null;
@@ -215,6 +237,20 @@ export const SAFE_CURVE = 0.85;
 export const LASER_CURVE = 1.15;
 /** One dial in the right place is what a guess gives: it earns nothing. */
 const SAFE_FREE_DIALS = 1;
+/** Safe Cracker, depthRev 2: progress for the best try keeping all clues but one (SAFE_CLUE_CREDIT) or two (two thirds of it). */
+export const SAFE_CLUE_CREDIT = 0.25;
+export const SAFE_CLUE_SPAN = 3;
+/**
+ * Turntable, ringsRev 2: each turn that brought the board no closer cancels this much of one that did (1 before), so
+ * a player who found real turns and then went wrong keeps some of them; random turns still waste far more than they
+ * gain and stay at 0.
+ */
+export const RINGS_TOPUP_WASTE = 0.3;
+/** Lightbender, laserRev 2: progress for every piece placed as the stored solution has it (all of them: this much). */
+export const LASER_PIECE_CREDIT = 0.4;
+/** Colour Flood, depthRev 2: progress for a board out of moves, FLOOD_OUT_CREDIT × flooded share ^ FLOOD_OUT_POWER. */
+export const FLOOD_OUT_CREDIT = 0.25;
+export const FLOOD_OUT_POWER = 6;
 
 /* --------------------------------------------------------------------------------- Exact */
 
@@ -476,7 +512,7 @@ function bestCloser<S>(minMoves: number, boards: S[], key: (s: S) => string | nu
 }
 
 /** Turntable: turns commute, so each board's distance is a table lookup (one search per round over 8⁵ offsets). */
-function ringsProgress(segments: number[][], pattern: number, taps: number[], minMoves: number): number {
+function ringsProgress(segments: number[][], pattern: number, taps: number[], minMoves: number, wasteWeight: number): number {
   const boards: number[][] = [freshOffsets()];
   const history: number[][] = [boards[0]!];
   let moves = 0;
@@ -519,7 +555,7 @@ function ringsProgress(segments: number[][], pattern: number, taps: number[], mi
   };
   let closer = 0;
   for (const b of boards) { const d = distance(b); if (Number.isFinite(d)) closer = Math.max(closer, minMoves - d); }
-  return solverShare(minMoves, closer, moves, MOVE_WASTE_WEIGHT.rings);
+  return solverShare(minMoves, closer, moves, wasteWeight);
 }
 
 /** Fewest turns for every displacement of the five rings under a link pattern (cached per pattern). */
@@ -911,11 +947,18 @@ function towerProgress(start: number[][], targetPeg: number, discs: number, move
 function laserProgress(puzzle: Extract<PuzzleData, { type: "laser" }>, answer: string, latestMs: number): number {
   const { actions, diag } = decodeActionLog(answer, latestMs);
   const total = Math.max(1, puzzle.gems.length);
+  const topup = d4RevOf(puzzle) >= D4_REV_TOPUP;
+  const solution = new Set((puzzle.solution ?? []).map((piece) => `${piece.cell}:${piece.kind}`));
   let best = 0;
+  let right = 0;
   for (let i = 1; i <= actions.length; i++) {
     const replay = replayLaserActions(puzzle, actions.slice(0, i), { ...diag });
     const verdict = verifyLaser(puzzle, replay.layout);
     if (!verdict.trace.hitBomb) best = Math.max(best, verdict.gemsLit);
+    if (topup) right = Math.max(right, replay.layout.filter((piece) => solution.has(`${piece.cell}:${piece.kind}`)).length);
   }
-  return Math.pow(Math.min(1, best / total), LASER_CURVE);
+  const gems = Math.pow(Math.min(1, best / total), LASER_CURVE);
+  // The top-up (laserRev 2): pieces placed exactly where and as the stored solution has them earn a little, so a
+  // board built most of the way but never fired is not 0 (a random placement almost never matches one).
+  return topup ? Math.max(gems, LASER_PIECE_CREDIT * Math.min(1, right / Math.max(1, solution.size))) : gems;
 }

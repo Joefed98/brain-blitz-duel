@@ -35,6 +35,9 @@ import { driveEvents, type SkillBot } from "../bot";
 const WINDOW = 45;
 const HORIZON = 150;
 const LOST = 2500;
+const PROTECT = 8000;
+/** Weak only: chance a flip is a reflex at the ball's arrival rather than a chosen shot. */
+const WEAK_REFLEX = 0.7;
 /** The ball counts as reaching the flippers below this line (world px; pinRev 4's lower table sits P4_SHIFT lower). */
 const ARRIVE_PX = 566;
 const shiftOf = (s: PinState) => ((s as Partial<Pin4State>).rev4 ? P4_SHIFT : 0);
@@ -60,7 +63,7 @@ function forward(game: Game, start: PinState, until: number, maskAt: (tick: numb
 }
 
 /** First tick (and side) the ball reaches the flippers in a no-new-flip future, or null. */
-function arrival(game: Game, start: PinState, until: number, maskAt: (tick: number) => number): { tick: number; side: number } | null {
+function arrival(game: Game, start: PinState, until: number, maskAt: (tick: number) => number): { tick: number; side: number; resting?: boolean } | null {
   let s = start;
   let held = s.held;
   while (s.tick < until && !game.isOver(s)) {
@@ -74,7 +77,7 @@ function arrival(game: Game, start: PinState, until: number, maskAt: (tick: numb
     const arriveY = (ARRIVE_PX + shiftOf(s)) * 256;
     // pinRev 4: a ball resting at the flippers (barely moving either way) counts as arrived too.
     const resting = (b: { vy: number }) => shiftOf(s) > 0 && Math.abs(b.vy) < 64;
-    for (const b of ballsOf(s)) if (b.y >= arriveY && (b.vy >= 0 || resting(b))) return { tick: s.tick, side: b.x < PIN_MID_X * 256 ? 0 : 1 };
+    for (const b of ballsOf(s)) if (b.y >= arriveY && (b.vy >= 0 || resting(b))) return { tick: s.tick, side: b.x < PIN_MID_X * 256 ? 0 : 1, resting: resting(b) };
   }
   return null;
 }
@@ -107,7 +110,15 @@ export const bot: SkillBot = ({ game, seed, human }) => {
    * flipper to shift a dark letter onto it (when they think of it: more often the better they are).
    */
   let shift: { left: number; ride: number; until: number } | null = null;
-  const shiftChance = Math.max(0.15, 1 - 2 * human.p.judgement);
+  // Weak (Oct 2026): a first-timer rarely knows the letters shift (5 %) and plunges without aiming at the lit lane.
+  const weak = human.level === "weak";
+  /**
+   * Elite and flawless (Oct 2026): the ball first. A drained ball costs the multiplier, the relaunch and
+   * a third of the run's balls, so a top player values keeping it far above a few thousand table points
+   * (PROTECT); everyone else keeps the old figure (LOST).
+   */
+  const lostValue = human.level === "elite" || human.level === "perfect" ? PROTECT : LOST;
+  const shiftChance = weak ? 0.05 : Math.max(0.15, 1 - 2 * human.p.judgement);
   /** No arrival in view: look again in a few ticks (a glance, not a continuous solve). */
   let lookAt = 0;
 
@@ -123,15 +134,20 @@ export const bot: SkillBot = ({ game, seed, human }) => {
     // Option -1: no flip at all.
     for (const press of [-1, ...Array.from({ length: 12 }, (_, i) => arrive.tick - 10 + 2 * i)]) {
       if (press !== -1 && press < earliest) continue;
+      // Elite and flawless: a ball resting on a flipper is shot, never left lying there.
+      if (press === -1 && arrive.resting && lostValue === PROTECT) continue;
       const hold = 12;
       const bit = 1 << arrive.side;
       const end = forward(g, base, t + HORIZON, (tick) => (press >= 0 && tick >= press && tick < press + hold ? mask | bit : mask & ~bit));
       const lost = end.lost - base.lost;
-      values.push(end.points - base.points - LOST * lost);
+      values.push(end.points - base.points - lostValue * lost);
       options.push(press);
     }
     if (!options.length) return;
-    const pick = options[human.pick(values)]!;
+    // Weak: a first-timer mostly does not aim a flip; they hit the button as the ball gets to the
+    // flipper (often a touch late), whatever it then does.
+    const reflex = weak && options.some((o) => o >= 0) && human.chance(WEAK_REFLEX);
+    const pick = reflex ? Math.max(earliest, arrive.tick + human.int(-1, 5)) : options[human.pick(values)]!;
     if (pick < 0) {
       // Let it go (a sling or post will send it back): look again once it is past the arrival.
       plan = { press: -1, release: arrive.tick, side: arrive.side, checkTick: 0, checkX: 0, checkY: 0 };
@@ -208,7 +224,7 @@ export const bot: SkillBot = ({ game, seed, human }) => {
               // The middle of the lane's zone: the power whose own zone neighbours are the same lane.
               if (p4PlungeLane(power) === lane && p4PlungeLane(power - 4) === lane && p4PlungeLane(power + 4) === lane) target = k;
             }
-            if (target < 0) target = earliest;
+            if (target < 0 || weak) target = earliest + (weak ? human.int(0, 50) : 0);
             let press = t + target + human.timingTicks();
             if (human.slip()) press += human.int(-6, 6);
             plunge = { press: Math.max(t, press), release: Math.max(t, press) + 6 + human.int(0, 4) };

@@ -42,7 +42,7 @@ import { encodeBulbs } from "../src/lib/duel/lightUp";
 import { buildRoomPuzzles, generatePuzzle, gradeAnswer } from "../src/lib/duel/generate.server";
 import { stampMoveLimits } from "../src/lib/duel/moveLimits.server";
 import { dealDepth4 } from "../src/lib/duel/depth4/deal.server";
-import { isD4Type } from "../src/lib/duel/depth4/stamps";
+import { dealtD4Rev, isD4Type } from "../src/lib/duel/depth4/stamps";
 import { BLOCK_D4_BANK } from "../src/lib/duel/depth4/blockD4Bank.server";
 import { d4BankIndex } from "../src/lib/duel/depth4/bankIndex";
 import {
@@ -253,9 +253,10 @@ if (PART === PARTS) {
     const { slideRev, gems, ...slide } = depthDeal("iceslide", seed) as PuzzleData & { slideRev?: number; gems?: number[] };
     if (slideRev !== 1 || !Array.isArray(gems) || JSON.stringify(slide) !== JSON.stringify(ice)) depthOnBank = false;
     const board = BLOCK_D4_BANK[d4BankIndex("blockD4", seed, BLOCK_D4_BANK.length)];
-    // Tessellate's 7×7 boards are stored with their stamp (blockRev 1): the deal is the board exactly.
+    // Tessellate's 7×7 boards are stored with their stamp (blockRev 1): the deal is the board exactly, its stamp the one
+    // rooms deal (the puzzle top-up's blockRev 2 since 26 Oct 2026, docs/depth/topup-oct-2026.md).
     const block = depthDeal("blockparty", seed) as PuzzleData & { blockRev?: number };
-    if (block.blockRev !== 1 || JSON.stringify(block) !== JSON.stringify(board)) depthOnBank = false;
+    if (block.blockRev !== dealtD4Rev("blockparty") || JSON.stringify({ ...block, blockRev: 1 }) !== JSON.stringify(board)) depthOnBank = false;
   }
   check(depthOnBank, "room start: Chroma Lines' and Skid's depth deals are the seed's bank entry with only their stamp (and gems) added, Tessellate's the seed's 7×7 board (stored with its stamp)");
   const categories = ["logic", "pattern"] as const;

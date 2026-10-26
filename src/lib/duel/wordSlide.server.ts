@@ -2,7 +2,8 @@ import { commonWords, isWord } from "./dictionary.server";
 import { pick, randInt, randomBelow } from "./random";
 import type { WordSlidePuzzleData } from "./types";
 import { dealtDepthRev } from "./wordDepth";
-import { applyShift, markedRowWord, WORD_SLIDE_REV_PAR, WS_MARKED_ROWS, WS_SIZE, type SlideShift } from "./wordSlide";
+import { dealtTopupRev } from "./depthTopup";
+import { applyShift, markedRowWord, WORD_SLIDE_REV_PAR, WORD_SLIDE_REV_TOPUP, WS_MARKED_ROWS, WS_SIZE, type SlideShift } from "./wordSlide";
 
 let pool: string[] | null = null;
 function fiveLetterWords(): string[] {
@@ -18,7 +19,7 @@ export function markedRowsSolved(grid: string[]): number {
 /** New boards carry the par-moves stamp (word depth d1); a check pinning the pre-depth stamps gets none. */
 export function generateWordSlide(): WordSlidePuzzleData {
   const made = generateWordSlideBoard();
-  const rev = dealtDepthRev<number | null>(WORD_SLIDE_REV_PAR, null);
+  const rev = dealtDepthRev<number | null>(dealtTopupRev(WORD_SLIDE_REV_TOPUP, WORD_SLIDE_REV_PAR), null);
   return rev === null ? made : { ...made, wordSlideRev: rev };
 }
 

@@ -1,7 +1,11 @@
 /**
  * Simulated human players for the arcade skill bands (scripts/arcade-skill-bands.ts).
  *
- * Four levels, the same in every game. Each bot plays through the real sim and
+ * Four core levels, the same in every game (LEVELS: average, good, great, near-perfect), plus three
+ * the band tool adds (Oct 2026, docs/arcade-bands-elite.md; EXTRA_LEVELS): weak (a casual first
+ * go), elite (a top-1 % human: a little quicker and steadier than near-perfect, never superhuman,
+ * with per-game adjustments in ELITE_BY_GAME) and perfect (no human error at all: the flawless-play
+ * ceiling a seed allows, as far as the bot's own plan can find it). Each bot plays through the real sim and
  * may look at the state the way a player looks at the screen, but every action
  * goes through a Human: it reacts late (reaction time with spread and the odd
  * lapse), times anticipated moments with jitter, aims with pixel and power
@@ -12,26 +16,18 @@
  */
 
 export const LEVELS = ["average", "good", "great", "near"] as const;
-export type SkillLevel = (typeof LEVELS)[number];
+/** Every level, weakest first; the band tool's default list (scripts/arcade-skill-bands.ts). */
+export const ALL_LEVELS = ["weak", "average", "good", "great", "near", "elite", "perfect"] as const;
+export type SkillLevel = (typeof ALL_LEVELS)[number];
 
-/**
- * The 200-point expansions' extra levels (26 Oct 2026, the arcade rule): "weak" (weak but trying, a step
- * below average) and "elite" (a step beyond near-perfect). They are measured only when asked for
- * (`--levels=weak,elite`); a bot's per-level tables read `human.level`, which is the nearest of the four
- * (weak plays average's tables, elite near-perfect's) with the extra level's own motor skill, and a bot may
- * read `human.band` to play an elite's sharper strategy.
- */
-export const BAND_LEVELS = ["weak", "average", "good", "great", "near", "elite"] as const;
-export type BandLevel = (typeof BAND_LEVELS)[number];
-export const TABLE_LEVEL: Record<BandLevel, SkillLevel> = { weak: "average", average: "average", good: "good", great: "great", near: "near", elite: "near" };
-
-export const LEVEL_LABEL: Record<BandLevel, string> = {
+export const LEVEL_LABEL: Record<SkillLevel, string> = {
   weak: "Weak",
   average: "Average",
   good: "Good",
   great: "Great",
   near: "Near-perfect",
   elite: "Elite",
+  perfect: "Flawless",
 };
 
 export interface SkillProfile {
@@ -58,15 +54,29 @@ export interface SkillProfile {
 /**
  * Reaction means follow the brief (300 / 230 / 190 / 160 ms). Other figures are
  * typical touch-screen values: timing sd 45→12 ms, aim sd 9→2.5 px, power sd 7→1.5 %.
+ *
+ * weak: a casual player's first goes (380 ms reactions with frequent lapses, 65 ms timing,
+ * 13 px aim). elite: a top-1 % human (Oct 2026): reactions 145 ± 15 ms (a trained player's
+ * simple-reaction mean on a phone is about 150–180 ms; 140 ms with 8 ms timing and 1.5 px aim, the
+ * figures the expansion merge used, is past what touch screens and fingers deliver run after run),
+ * timing sd 9 ms, aim sd 1.8 px, a lapse one decision in 300, a slip one in 250. perfect: no reaction
+ * beyond the floor, no error, no lapse, no slip: the ceiling, not a player.
  */
-export const PROFILES: Record<BandLevel, SkillProfile> = {
-  weak: { reactionMs: [380, 70], lapse: 0.14, timingSdMs: 65, aimSdPx: 13, powerSd: 0.1, mistake: 0.18, thinkScale: 1.3, judgement: 0.5, trackLagMs: 190 },
+export const PROFILES: Record<SkillLevel, SkillProfile> = {
+  weak: { reactionMs: [380, 70], lapse: 0.14, timingSdMs: 65, aimSdPx: 13, powerSd: 0.1, mistake: 0.17, thinkScale: 1.35, judgement: 0.5, trackLagMs: 190 },
   average: { reactionMs: [300, 55], lapse: 0.08, timingSdMs: 45, aimSdPx: 9, powerSd: 0.07, mistake: 0.1, thinkScale: 1, judgement: 0.35, trackLagMs: 140 },
   good: { reactionMs: [230, 40], lapse: 0.04, timingSdMs: 30, aimSdPx: 6, powerSd: 0.045, mistake: 0.05, thinkScale: 0.75, judgement: 0.2, trackLagMs: 100 },
   great: { reactionMs: [190, 30], lapse: 0.02, timingSdMs: 20, aimSdPx: 4, powerSd: 0.03, mistake: 0.025, thinkScale: 0.55, judgement: 0.1, trackLagMs: 75 },
   near: { reactionMs: [160, 20], lapse: 0.005, timingSdMs: 12, aimSdPx: 2.5, powerSd: 0.015, mistake: 0.008, thinkScale: 0.4, judgement: 0.04, trackLagMs: 55 },
-  elite: { reactionMs: [140, 15], lapse: 0.002, timingSdMs: 8, aimSdPx: 1.5, powerSd: 0.01, mistake: 0.003, thinkScale: 0.3, judgement: 0.02, trackLagMs: 40 },
+  elite: { reactionMs: [145, 15], lapse: 0.003, timingSdMs: 9, aimSdPx: 1.8, powerSd: 0.011, mistake: 0.004, thinkScale: 0.32, judgement: 0.025, trackLagMs: 45 },
+  perfect: { reactionMs: [120, 0], lapse: 0, timingSdMs: 0, aimSdPx: 0, powerSd: 0, mistake: 0, thinkScale: 0.2, judgement: 0, trackLagMs: 17 },
 };
+
+/**
+ * Per-game elite adjustments over PROFILES.elite, where a game's own skill sits in one figure
+ * (docs/arcade-bands-elite.md has why for each). Empty means the shared elite profile.
+ */
+export const ELITE_BY_GAME: Record<string, Partial<SkillProfile>> = {};
 
 const TICK_MS = 1000 / 60;
 
@@ -89,18 +99,14 @@ function hash(text: string): number {
 }
 
 export class Human {
-  /** The level whose tables the bot reads (weak → average, elite → near). */
   readonly level: SkillLevel;
-  /** The level measured, the extra ones included. */
-  readonly band: BandLevel;
   readonly p: SkillProfile;
   private rand: () => number;
   private spare: number | null = null;
 
-  constructor(game: string, seed: number, level: BandLevel) {
-    this.level = TABLE_LEVEL[level];
-    this.band = level;
-    this.p = PROFILES[level];
+  constructor(game: string, seed: number, level: SkillLevel) {
+    this.level = level;
+    this.p = level === "elite" ? { ...PROFILES.elite, ...ELITE_BY_GAME[game] } : PROFILES[level];
     this.rand = mulberry(hash(`${game}:${seed}:${level}`));
   }
 

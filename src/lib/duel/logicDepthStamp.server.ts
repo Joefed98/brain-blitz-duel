@@ -4,7 +4,7 @@
  * and Polypotions also get their par in the open (`par`, the stored minimum): the depth revision shows it on the
  * board as "Presses n · Par p" / "Pours n · Par p". Hanoi's minimum was always public.
  */
-import { DEPTH_REV, isDepthType } from "./logicDepth";
+import { DEPTH_REV, dealtLogicDepthRev, isDepthType } from "./logicDepth";
 import type { PuzzleData } from "./types";
 
 export function stampLogicDepth(puzzle: PuzzleData): PuzzleData {
@@ -14,5 +14,5 @@ export function stampLogicDepth(puzzle: PuzzleData): PuzzleData {
   if (puzzle.type === "tubes" && puzzle.minMoves && puzzle.minMoves > 0) return { ...puzzle, depthRev: DEPTH_REV, par: puzzle.minMoves };
   // A board with no stored minimum (a malformed or placeholder puzzle) stays on the old scoring.
   if (puzzle.type === "lightsout" || puzzle.type === "tubes") return puzzle;
-  return { ...puzzle, depthRev: DEPTH_REV } as PuzzleData;
+  return { ...puzzle, depthRev: dealtLogicDepthRev(puzzle.type) } as PuzzleData;
 }
