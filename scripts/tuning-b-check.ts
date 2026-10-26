@@ -89,7 +89,8 @@ const SEEDS = (count: number, step = 104_729) => Array.from({ length: count }, (
 /* ============================ 1. Flightpath ============================ */
 section("Flightpath bullRev 4 (value balloons across the board)");
 {
-  ok(playRevOf("bullseye", generateBullseye().bullRev) === BULLSEYE_REV_TUNED, "new rounds are stamped bullRev 4");
+  // Expansion E9 (docs/expansions/e9.md) then moved Flightpath on to bullRev 8; expansion-e9-check covers it.
+  ok(playRevOf("bullseye", generateBullseye().bullRev) === BULLSEYE_REV_TUNED + 4, "new rounds are stamped bullRev 8 (expansion E9, after bullRev 4's value balloons)");
   const game = bullseyeGameFor(BULLSEYE_REV_TUNED);
   for (const seed of SEEDS(300, 7919)) {
     const winds = bullseyeWinds(seed);
@@ -239,7 +240,8 @@ section("Breaker brkRev 4 (3.5 s Fireball)");
 section("Rally rallyRev 4 (pads never overlap)");
 {
   // Tuning F (Oct 2026) moved rooms on to rallyRev 5 (a second bumper); arcade-tuning-f-check covers it.
-  ok(playRevOf("rally", generateRally().rallyRev) === RALLY_REV_TUNEF + 1, "new rounds are stamped rallyRev 6 (rallyRev 5 pads and bumpers on the taller court)");
+  // Expansion E9 (docs/expansions/e9.md) then moved Rally on to rallyRev 10; expansion-e9-check covers it.
+  ok(playRevOf("rally", generateRally().rallyRev) === RALLY_REV_TUNEF + 5, "new rounds are stamped rallyRev 10 (expansion E9, after rallyRev 6: rallyRev 5 pads and bumpers on the taller court)");
   const half = Math.trunc(RALLY_WORLD_W / 2);
   const overlap = (s: RallyState) => {
     const [p, q] = (s.live ?? []).map((spot) => rallyTargetLeft(s.spots ?? [], spot));

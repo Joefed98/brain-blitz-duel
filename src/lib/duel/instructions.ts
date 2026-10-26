@@ -641,7 +641,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         },
       ],
       // bullRev 8 (docs/expansions/e9.md): the dart total on its curve, plus the streak and dead-centre points.
-      score: liveBandHelp("bullseye", `Your dart total: rings ${BULLSEYE_RING_VALUES.join(" / ")} from the centre out (the inner bull ${BULLSEYE_INNER_BULL_POINTS}), plus +1, +2 or +3 for each balloon popped on the way in.`, { more: "A higher dart total", good: (u) => `totals ${u}`, finish: `Bull streaks add up to ${BULLSEYE_V8_STREAK_CAP} more and dead-centre darts ${BULLSEYE_V8_DEAD_PTS} each, up to ${BULLSEYE_V8_DEAD_CAP}.` }),
+      score: `${liveBandHelp("bullseye", `Your dart total: rings ${BULLSEYE_RING_VALUES.join(" / ")} from the centre out (the inner bull ${BULLSEYE_INNER_BULL_POINTS}), plus +1, +2 or +3 for each balloon popped on the way in.`, { more: "A higher dart total", good: (u) => `totals ${u}` })} Bull streaks add up to ${BULLSEYE_V8_STREAK_CAP} more and dead-centre darts ${BULLSEYE_V8_DEAD_PTS} each, up to ${BULLSEYE_V8_DEAD_CAP}. Up to {max}.`,
     },
     matchup: {
       goal: "Match gems to meet each goal.",
@@ -766,7 +766,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Miss the blue ball", detail: "and the run is over.", helpOnly: true },
       ],
       // rallyRev 10 (docs/expansions/e9.md): the gold hits and pads on their curve, plus the gold targets.
-      score: liveBandHelp("rally", "Each gold-ball hit counts 5 and each pink target 6. The blue ball scores nothing; losing it ends the run.", { more: "More gold hits and pink targets", good: (u) => `counts ${u} – about ${Math.round(u / 5)} gold-ball hits`, finish: `Each gold target struck adds ${RALLY_V10_BONUS_PTS} (${RALLY_V10_BONUS_COUNT} a round).` }),
+      score: liveBandHelp("rally", "Each gold-ball hit counts 5, each pink target 6 and each blue-ball return 1; losing the blue ball ends the run.", { more: "More gold hits and pink targets", good: (u) => `counts ${u} – about ${Math.round(u / 5)} gold-ball hits`, finish: `Each gold target struck adds ${RALLY_V10_BONUS_PTS} (${RALLY_V10_BONUS_COUNT} a round).` }),
     },
 
     steady: {
@@ -995,7 +995,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Power-ups fall on a fixed schedule", detail: "(the same for everyone): DOUBLE fires two beams a shot for 8 s; FREEZE stops every atom for 3 s. Frozen atoms still hurt if you walk into one. They score nothing themselves.", helpOnly: true },
       ],
       // burstRev 8 (docs/expansions/e9.md): the atoms on their curve, lasting, plus clean waves, fast waves and golden atoms.
-      score: liveBandHelp("burst", "Each atom hit counts 1 unit; each life lost takes 5 units off (never below 0 units).", { more: "More atoms, fewer lives lost", good: (u) => `counts ${u} units`, finish: `Lasting the 90 s adds 10. Clean waves add up to ${BURST_V8_CAPS.clean}, fast waves up to ${BURST_V8_CAPS.clear} and golden atoms up to ${BURST_V8_CAPS.gold}.` }),
+      score: liveBandHelp("burst", "Each atom hit counts 1 unit; each life lost takes 5 units off (never below a quarter of the atoms hit).", { more: "More atoms, fewer lives lost", good: (u) => `counts ${u} units`, finish: `Lasting the 90 s adds 10. Clean waves add up to ${BURST_V8_CAPS.clean}, fast waves up to ${BURST_V8_CAPS.clear} and golden atoms up to ${BURST_V8_CAPS.gold}.` }),
     },
     orbit: {
       goal: "Fly planet to planet to the sun.",

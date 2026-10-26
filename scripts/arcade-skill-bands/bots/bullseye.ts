@@ -165,7 +165,7 @@ export const bot: SkillBot = ({ game, seed, human }) => {
       const fire = Math.max(t, at + human.timingTicks(timeScale));
       release = launch ? { at: fire, a: launch.vx, b: Math.min(0, launch.vy) } : null;
       // A drag too short to throw: the player drags again (plans this dart afresh next tick).
-      if (!launch) planned = -1;
+      if (!launch && expand) planned = -1;
     }
     if (release && t >= release.at && s.flightTick <= 1) {
       const ev = { k: BULLSEYE_INPUT_SHOT, a: release.a, b: release.b, c: 0, d: 0 };

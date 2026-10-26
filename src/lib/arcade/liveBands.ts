@@ -32,7 +32,7 @@ import { BEAT_REV_200, BEAT_REV_STRICT, BEAT_V9_BAND_CURVE } from "./beat";
 import { SLICE_REV_STRICT, SLICE_REV_EXPAND, SLICE_V9_BAND_CURVE } from "./slice";
 import { BURST_REV_CLEAN, BURST_REV_STRICT, BURST_V8_BAND_CURVE } from "./burst";
 import { SWING_REV_STRICT, SWING_V11_BAND_CURVE } from "./swing";
-import { BULLSEYE_REV_EXPAND, BULLSEYE_REV_STRICT, BULLSEYE_V8_BASE_CURVE } from "./bullseye";
+import { BULLSEYE_REV_EXPAND, BULLSEYE_REV_STRICT, BULLSEYE_V8_BAND_CURVE } from "./bullseye";
 import { PIN_REV_EXPAND, PIN_V4_BAND_CURVE } from "./pinball4";
 import { PIN_REV_STRICT } from "./pinball";
 
@@ -71,7 +71,7 @@ export const LIVE_BANDS = {
   slice: { field: "sliceRev", rev: SLICE_REV_EXPAND, curve: SLICE_V9_BAND_CURVE, strictRev: SLICE_REV_STRICT },
   burst: { field: "burstRev", rev: BURST_REV_CLEAN, curve: BURST_V8_BAND_CURVE, strictRev: BURST_REV_STRICT },
   swing: { field: "swingRev", rev: SWING_REV_STRICT, curve: SWING_V11_BAND_CURVE },
-  bullseye: { field: "bullRev", rev: BULLSEYE_REV_EXPAND, curve: BULLSEYE_V8_BASE_CURVE, strictRev: BULLSEYE_REV_STRICT },
+  bullseye: { field: "bullRev", rev: BULLSEYE_REV_EXPAND, curve: BULLSEYE_V8_BAND_CURVE, strictRev: BULLSEYE_REV_STRICT },
   pinball: { field: "pinRev", rev: PIN_REV_EXPAND, curve: PIN_V4_BAND_CURVE, strictRev: PIN_REV_STRICT },
 } as const satisfies Record<string, LiveBand>;
 

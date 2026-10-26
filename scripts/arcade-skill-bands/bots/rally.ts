@@ -144,7 +144,8 @@ export const bot: SkillBot = ({ game, seed, human }) => {
     else if (aim) {
       let r = reads.get(aim.key);
       if (!r) {
-        r = { err: human.normal(), steer: aim.gold && human.chance(STEER[level]!) ? 1 : 0, bonus: bonusOn && human.chance(BONUS[level]!) ? 1 : 0, aimErr: human.normal(), seenAt: t };
+        // (Older revisions draw exactly what they always drew: the err, then the steer.)
+        r = { err: human.normal(), steer: aim.gold && human.chance(STEER[level]!) ? 1 : 0, bonus: bonusOn && human.chance(BONUS[level]!) ? 1 : 0, aimErr: bonusOn ? human.normal() : 0, seenAt: t };
         reads.set(aim.key, r);
       }
       // The read sharpens as the ball comes in, but one reaction late.

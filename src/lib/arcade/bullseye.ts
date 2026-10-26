@@ -1233,7 +1233,7 @@ export function bullseyeInitRev8(seed: number, storedWinds?: readonly number[]):
  * bullRev 8's dart-total curve (rings, inner bulls and balloons; the streak and dead-centre points come on
  * top), fitted with scripts/expansion-e9-bands.ts (docs/expansions/e9.md).
  */
-export const BULLSEYE_V8_BASE_CURVE = bandCurve([0, 54, 69, 81, 92, 100, 102, 112, 118], [0, 52, 64, 92, 117, 132, 139, 147, 150]);
+export const BULLSEYE_V8_BAND_CURVE = bandCurve([0, 54, 69, 81, 92, 100, 102, 112, 118], [0, 52, 64, 92, 117, 132, 139, 147, 150]);
 
 /** bullRev 8's streak points as the score counts them (up to BULLSEYE_V8_STREAK_CAP). */
 export function bullseyeStreakPoints(state: Pick<BullseyeState, "streakPts">): number {
@@ -1246,7 +1246,7 @@ function bullseyeV8Parts(state: BullseyeState): BandParts {
   const dead = bullseyeDeadPoints(state);
   return {
     units,
-    points: bandPoints(BULLSEYE_V8_BASE_CURVE, units),
+    points: bandPoints(BULLSEYE_V8_BAND_CURVE, units),
     bonus: streak + dead,
     penalty: 0,
     finished: false,

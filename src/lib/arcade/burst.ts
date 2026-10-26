@@ -1022,19 +1022,23 @@ function burstFireV8(s: BurstState, floor: number): void {
   s.fired = (s.fired ?? 0) + 1;
 }
 
-/** burstRev 8: a beam has ended, on an atom or golden atom (`hit`) or at the ceiling; its shot resolves when its last beam ends. */
+/**
+ * burstRev 8: a beam has ended, on an atom or golden atom (`hit`) or at the ceiling. A shot counts as hit on its first
+ * beam to hit (at once, so the last atom of a wave counts before the wave clears) and as a miss only when its last
+ * beam ends without any having hit. Only a shot counting for the wave the counter shows moves it.
+ */
 function burstBeamDoneV8(s: BurstState, shot: BurstShot, hit: boolean): void {
   const groups = (s.groups ?? []).map((group) => ({ ...group }));
   const group = groups.find((item) => item.g === shot.g);
   if (!group) return;
-  if (hit) group.hit = 1;
+  const current = group.wave === (s.cw ?? 1);
+  if (hit && !group.hit) {
+    group.hit = 1;
+    if (current) s.landed = (s.landed ?? 0) + 1;
+  }
   group.left -= 1;
   if (group.left <= 0) {
-    // Only a shot counting for the wave the counter shows moves it (a beam left over from a cleared wave doesn't).
-    if (group.wave === (s.cw ?? 1)) {
-      if (group.hit) s.landed = (s.landed ?? 0) + 1;
-      else s.missed = 1;
-    }
+    if (!group.hit && current) s.missed = 1;
     s.groups = groups.filter((item) => item !== group);
   } else s.groups = groups;
 }
