@@ -531,7 +531,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: `${HOVER_PICKUPS} shield bubbles`, detail: "sit at the same places for everyone. Touch one for a shield: your next crash breaks it instead and you fly on, untouchable for a moment.", helpOnly: true },
         { action: "Two-gap barriers:", detail: "fly through either gap. Sliding barriers move slowly and steadily up and down.", helpOnly: true },
         { action: "Taller sky:", detail: "the flight area fills your screen, and gaps sit anywhere from near the top to near the bottom. The faint stars behind are scenery only.", helpOnly: true },
-        { action: "Everyone flies", detail: `the same course for sixty seconds: ${HOVER_REACHABLE_GATES} barriers in a clean run and ${HOVER_STARS} gold stars.`, helpOnly: true },
+        { action: "Everyone flies", detail: `the same course for sixty seconds: ${HOVER_REACHABLE_GATES} barriers in a clean run (the first a wide warm-up gap) and ${HOVER_STARS} gold stars.`, helpOnly: true },
       ],
       score: liveBandHelp("hover", `Each of the ${HOVER_REACHABLE_GATES} barriers counts 3 and each gold star 2; flying up to the first barrier counts 1.`, { more: "More barriers and stars", good: (u) => `counts ${u} – about ${Math.round(u / 3)} barriers`, finish: `Lasting the minute adds 10. Skill adds up to ${HOVER_SKILL_MAX} more: ${HOVER_TIGHT_POINTS} a tight gate, ${HOVER_CHAIN_POINTS} a whole star chain and up to ${HOVER_CENTRE_MAX_GRADE} a centre line. ${skillPayLine(HOVER_SKILL_PAY)}` }),
     },
