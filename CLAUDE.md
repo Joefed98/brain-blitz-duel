@@ -546,6 +546,12 @@ Lovable still hosts and publishes the app (https://brain-blitz-duel.lovable.app)
   and "?" help texts (`{max}`), Perfectionist / So Close / Fastest Finger, the round result's bars and the onboarding read.
   An expansion raises its own line to 200 plus its stamped scoring. Practice bests moved to `duelz-practice-best:v3:` and room
   arcade bests (`arcadeBest.ts`) to `duelz-arcade-room-best:v2:` (fresh once; old records kept, never read). round-max-check (~1 s) proves it.
+- **Skill bands with an elite level** (26 Oct 2026, measurement only; `docs/arcade-bands-elite.md`): the arcade
+  skill-band tool has seven levels (`ALL_LEVELS`: weak, average, good, great, near, elite = a top-1 % human, perfect =
+  no error, used only for each seed's ceiling), paired seeds (`--from=10000` for fresh ones) and the report
+  `scripts/arcade-bands-elite.ts`. The bots' Oct 2026 competence fixes are gated on `BotCtx.fixes` (set only by the
+  band tool; `--bots=v1` and every check play the old bots). Parked branches' copies are patches in
+  `scripts/arcade-skill-bands/parked/`.
 - **Expansion E9: Rally, Fission and Flightpath to 200** (26 Oct 2026, `docs/expansions/e9.md`; Rally `rallyRev 10`,
   Fission `burstRev 8`, Flightpath `bullRev 8`; supersedes #154's Rally, #155's Fission and the parked Flightpath branch).
   The arcade rule agreed with Joe: every feature appears at seeded moments and places from the room seed, fixed at init and
@@ -556,13 +562,13 @@ Lovable still hosts and publishes the app (https://brain-blitz-duel.lovable.app)
   falling on a seeded schedule (atoms drop nothing), six golden atoms at seeded moments and spots (4 s), the fast-wave bonus
   and the clean-wave bonus (a shot is one tap, a double beam's two beams one shot; a beam that hits nothing breaks the wave;
   HUD "CLEAN hit/fired"); lives never take more than three quarters of the atoms hit. Flightpath: the parked rev-7 range
-  (boards at five distances, the bull streak) plus a dead-centre ring at half the bull's radius (`BULLSEYE_V8_DEAD_*`).
-  Tuning: `bun scripts/expansion-e9-bands.ts` (paired old/new on room seeds 0–59 and 60–299, weak to elite, per-feature
+  (boards at five distances, the bull streak) plus a dead-centre ring at a quarter of the bull's radius (`BULLSEYE_V8_DEAD_*`).
+  Tuning: `bun scripts/expansion-e9-bands.ts` (paired old/new on room seeds 0–59 and 10000–10199, weak to flawless, per-feature
   payouts, `--off`, `--random`) and `scripts/expansion-e9-ceiling.ts` (perfect-play ceilings with the oracles in
-  `expansion-e9-oracles.ts`); the skill-band tool has two more levels, `weak` and `elite` (`ALL_LEVELS`, opt-in with
-  `--levels`). expansion-e9-check (~5 s) proves old stamps replay as on main
+  `expansion-e9-oracles.ts`), with the skill-band tool's fixed bots (`fixes`) and its weak, elite and flawless
+  levels. expansion-e9-check (~5 s) proves old stamps replay as on main
   (`scripts/fixtures/expansion-e9-legacy.json.gz`, `bun scripts/expansion-e9-legacy.ts <main checkout>`), identical
-  features for every player whatever they do, the rules, and Flightpath's ceiling on 300 seeds; review frames
+  features for every player whatever they do, the rules, and Flightpath's ceiling on all 260 seeds; review frames
   `bun scripts/shots/e9-shots.ts` (`screenshots/expansion-e9-oct-2026/`). The three intro demos stay stopped until recorded on
   the new stamps.
 - `src/components/duel/` — room/round screens (PhoneShell, RoundIntro, TimerBar,

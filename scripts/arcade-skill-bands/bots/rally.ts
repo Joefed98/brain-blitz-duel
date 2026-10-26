@@ -29,24 +29,26 @@ import {
   type RallyBall,
   type RallyState,
 } from "../../../src/lib/arcade/rally";
+import type { SkillLevel } from "../human";
 import { driveEvents, type SkillBot } from "../bot";
 
 /** Finger top speed, px a tick (world px are phone px here). */
-const FINGER: Record<string, number> = { weak: 22, average: 26, good: 32, great: 38, near: 44, elite: 48 };
+const FINGER: Record<SkillLevel, number> = { weak: 20, average: 26, good: 32, great: 38, near: 44, elite: 47, perfect: 47 };
 /** Landing-read error per tick of remaining flight, px. */
-const READ: Record<string, number> = { weak: 0.3, average: 0.22, good: 0.15, great: 0.1, near: 0.06, elite: 0.04 };
+const READ: Record<SkillLevel, number> = { weak: 0.29, average: 0.22, good: 0.15, great: 0.1, near: 0.06, elite: 0.04, perfect: 0 };
 /** Chance of trying to steer a gold ball to a pad. */
-const STEER: Record<string, number> = { weak: 0, average: 0, good: 0.3, great: 0.6, near: 0.85, elite: 0.9 };
+const STEER: Record<SkillLevel, number> = { weak: 0, average: 0, good: 0.3, great: 0.6, near: 0.85, elite: 0.975, perfect: 1 };
 /** rallyRev 10: chance of going for a gold bonus target with a return, and the aim error on the paddle (px, sd). */
-const BONUS: Record<string, number> = { weak: 0.1, average: 0.25, good: 0.5, great: 0.75, near: 0.9, elite: 1 };
-const BONUS_AIM: Record<string, number> = { weak: 9, average: 7, good: 5, great: 3.6, near: 2.6, elite: 1.6 };
-/**
- * rallyRev 10: chance a player plans two balls at once (takes a gold ball when the blue one lands soon after,
- * if the finger can get from one to the other in time) instead of always leaving the gold one.
- */
+const BONUS: Record<SkillLevel, number> = { weak: 0.1, average: 0.25, good: 0.5, great: 0.75, near: 0.9, elite: 1, perfect: 1 };
+const BONUS_AIM: Record<SkillLevel, number> = { weak: 9, average: 7, good: 5, great: 3.6, near: 2.6, elite: 1.6, perfect: 0 };
 /** rallyRev 10: how far from the paddle's centre (share of its half-width) a player dares take a ball to aim it at a target. */
-const EDGE: Record<string, number> = { weak: 0.4, average: 0.5, good: 0.6, great: 0.7, near: 0.8, elite: 0.85 };
-const BOTH: Record<string, number> = { weak: 0, average: 0, good: 0.25, great: 0.5, near: 0.8, elite: 0.95 };
+const EDGE: Record<SkillLevel, number> = { weak: 0.4, average: 0.5, good: 0.6, great: 0.7, near: 0.8, elite: 0.85, perfect: 0.9 };
+/**
+ * rallyRev 10, without the Oct 2026 fixes: chance a player plans two balls at once (takes a gold ball when the blue
+ * one lands soon after, if the finger can get from one to the other in time) instead of always leaving the gold one.
+ * With the fixes (BotCtx.fixes) every level plans both whenever its finger can (canBoth below).
+ */
+const BOTH: Record<SkillLevel, number> = { weak: 0, average: 0, good: 0.25, great: 0.5, near: 0.8, elite: 0.95, perfect: 1 };
 
 /**
  * Whether the bots play rallyRev 10's gold targets (expansion-e9-bands.ts turns it off to measure each
@@ -97,7 +99,9 @@ function offsetFor(x: number, vx: number, vy: number, speed: number, half: numbe
   return best && best.miss < RALLY_V10_BONUS_R ? { off: best.off, ticks: best.ticks } : null;
 }
 
-export const bot: SkillBot = ({ game, seed, human }) => {
+export const bot: SkillBot = ({ game, seed, human, fixes }) => {
+  /** Oct 2026 competence fixes (BotCtx.fixes): a gold ball is given up for the blue one only when both can't be reached. */
+  const fx = Boolean(fixes);
   const init = game.init(seed) as RallyState;
   PADDLE_Y = rallyPaddleY(init);
   WORLD_W = rallyWorldW(init);
@@ -115,6 +119,19 @@ export const bot: SkillBot = ({ game, seed, human }) => {
   let switchAt = 0;
   let held = finger;
   const plans = new Map<string, boolean>();
+  /** Mean reaction in ticks: the pause before the finger heads for the next ball. */
+  const react = Math.round(human.p.reactionMs[0] / (1000 / 60));
+  /**
+   * Can the finger take `first` and still get to `second` (one reaction to switch, then at top speed, the
+   * paddle's half-width to spare)? A strong player keeps both balls when they can.
+   */
+  const canBoth = (first: { x: number; t: number }, second: { x: number; t: number }, s: RallyState): boolean => {
+    const half = rallyPaddleW(rallyTotalHits(s) + 1) / 2;
+    const step = FINGER[level]!;
+    const reachFirst = Math.max(0, Math.abs(first.x - finger) - half * 0.6) / step;
+    const reachSecond = react + Math.max(0, Math.abs(second.x - first.x) - half * 0.6) / step;
+    return reachFirst <= first.t - lag && reachSecond + 2 <= second.t - first.t;
+  };
   return driveEvents(game, (s: RallyState, t) => {
     history.push(s);
     const seen = history[Math.max(0, history.length - 1 - lag)]!;
@@ -131,12 +148,16 @@ export const bot: SkillBot = ({ game, seed, human }) => {
     // plans both and the finger can get from the gold ball to the blue one in time (with a reaction's margin).
     const blue = cands.find((c) => !c.gold);
     if (aim && aim.gold && blue && blue.t - aim.t < 30) {
-      const key = `both:${aim.key}:${blue.key}`;
-      let both = plans.get(key);
-      if (both === undefined) plans.set(key, (both = tenCourt && human.chance(BOTH[level]!)));
-      const half = rallyPaddleW(rallyTotalHits(s)) / 2;
-      const reach = FINGER[level]! * Math.max(0, blue.t - aim.t - 6) + half * 0.8;
-      if (!both || Math.abs(blue.x - aim.x) > reach) aim = blue;
+      if (fx) {
+        if (!canBoth(aim, blue, s)) aim = blue;
+      } else {
+        const key = `both:${aim.key}:${blue.key}`;
+        let both = plans.get(key);
+        if (both === undefined) plans.set(key, (both = tenCourt && human.chance(BOTH[level]!)));
+        const half = rallyPaddleW(rallyTotalHits(s)) / 2;
+        const reach = FINGER[level]! * Math.max(0, blue.t - aim.t - 6) + half * 0.8;
+        if (!both || Math.abs(blue.x - aim.x) > reach) aim = blue;
+      }
     }
     let target = finger;
     if (aim && aim.id !== focus) {

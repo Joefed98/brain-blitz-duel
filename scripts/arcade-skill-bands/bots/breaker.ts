@@ -17,6 +17,7 @@ import { ARCADE_INPUT_BUTTON, ARCADE_INPUT_DRAG } from "../../../src/lib/arcade/
 import {
   brkCols,
   brkRowsOf,
+  brkSkillPaid,
   brkSkillPoints,
   brkWallXOf,
   brkWorldW,
@@ -34,19 +35,26 @@ import {
   type BrkBall,
   type BrkState,
 } from "../../../src/lib/arcade/breaker";
+import type { SkillLevel } from "../human";
 import { driveEvents, type SkillBot } from "../bot";
 
 /** Finger top speed, px a tick (world px are phone px: the world is 390 wide). */
-const FINGER: Record<string, number> = { average: 26, good: 32, great: 38, near: 44 };
+const FINGER: Record<SkillLevel, number> = { weak: 16, average: 26, good: 32, great: 38, near: 44, elite: 47, perfect: 47 };
 /** Landing-read error per tick of remaining flight, px. */
-const READ: Record<string, number> = { average: 0.22, good: 0.15, great: 0.1, near: 0.06 };
+const READ: Record<SkillLevel, number> = { weak: 0.29, average: 0.22, good: 0.15, great: 0.1, near: 0.06, elite: 0.045, perfect: 0 };
 /** Chance of trying to angle a return towards the bricks (instead of just catching it centrally). */
-const STEER: Record<string, number> = { average: 0.1, good: 0.35, great: 0.6, near: 0.85 };
+const STEER: Record<SkillLevel, number> = { weak: 0, average: 0.1, good: 0.35, great: 0.6, near: 0.85, elite: 0.95, perfect: 1 };
 /** Chance of going for a falling capsule at all. */
-const CAPSULE: Record<string, number> = { average: 0.55, good: 0.75, great: 0.9, near: 0.97 };
+const CAPSULE: Record<SkillLevel, number> = { weak: 0.35, average: 0.55, good: 0.75, great: 0.9, near: 0.97, elite: 1, perfect: 1 };
 /** Tap: finger down-to-up ticks (must stay under 150 ms = 9 ticks), and finger back down and moving again. */
-const TAP: Record<string, number> = { average: 7, good: 6, great: 6, near: 5 };
-const REGRIP: Record<string, number> = { average: 12, good: 10, great: 8, near: 6 };
+const TAP: Record<SkillLevel, number> = { weak: 8, average: 7, good: 6, great: 6, near: 5, elite: 4, perfect: 4 };
+const REGRIP: Record<SkillLevel, number> = { weak: 14, average: 12, good: 10, great: 8, near: 6, elite: 5, perfect: 5 };
+/**
+ * Weak only (Oct 2026): chance per ball segment that a first-timer chases the ball where it is now
+ * instead of reading where it will come down (no side-wall read), so wide angles and wall bounces
+ * catch them out. Zero for every other level (no RNG drawn).
+ */
+const CHASE: Record<SkillLevel, number> = { weak: 0.7, average: 0, good: 0, great: 0, near: 0, elite: 0, perfect: 0 };
 
 const LO = BRK_WALL + BRK_BALL_R;
 /** The court's far wall line, set per run (brkRev 9's court is 420 wide). */
@@ -56,8 +64,16 @@ let WORLD_W = BRK_WORLD_W;
  * brkRev 9: how much a zone's look-ahead values skill points (gold bricks, combo points) against plain
  * hits. Stronger players read the wall for the direct line to a gold brick and the long chains.
  */
-const SKILL: Record<string, number> = { average: 0, good: 0.5, great: 1.5, near: 3 };
+const SKILL: Record<SkillLevel, number> = { weak: 0, average: 0, good: 0.5, great: 1.5, near: 3, elite: 3.75, perfect: 3.75 };
 let SKILL_W = 0;
+/**
+ * Elite and flawless (Oct 2026): rank zones by the points they pay, base first. A wall hit is worth
+ * about 140 points over the ~170 hits a wall takes; skill points count only at what the skill-pay
+ * curve actually pays for them from the run's current total (brkSkillPaid), so a gold brick or a
+ * chain is taken only when it pays more than the wall hits it costs; a dropped ball costs 20 hits.
+ */
+const BASE_PER_HIT = 140 / 170;
+let PAID_VALUE = false;
 /** The paddle line the ball is caught on: set per run from the game's own world (brkRev 6's taller court). */
 let PADDLE_Y = 0;
 let CATCH_Y = 0;
@@ -95,8 +111,12 @@ function zoneValue(game: { step: (s: BrkState, e: unknown) => BrkState; isOver: 
     }
     s = game.step(s, { t: s.tick + 1, k: ARCADE_INPUT_DRAG, a: Math.max(0, Math.min(WORLD_W, a)), b: 0, c: 0, d: 0 });
     if (committed && s.balls.some((b) => b.vy < 0 && b.y > (CATCH_Y - 20) * 256)) committed = false;
-    if (s.losses > start.losses) return s.hits - start.hits - 20 + SKILL_W * (brkSkillPoints(s) - brkSkillPoints(start));
+    if (s.losses > start.losses) {
+      if (PAID_VALUE) return BASE_PER_HIT * (s.hits - start.hits - 20) + brkSkillPaid(s) - brkSkillPaid(start);
+      return s.hits - start.hits - 20 + SKILL_W * (brkSkillPoints(s) - brkSkillPoints(start));
+    }
   }
+  if (PAID_VALUE) return BASE_PER_HIT * (s.hits - start.hits) + (start.deep ? brkSkillPaid(s) - brkSkillPaid(start) : 0);
   return s.hits - start.hits + SKILL_W * (brkSkillPoints(s) - brkSkillPoints(start));
 }
 
@@ -119,6 +139,7 @@ export const bot: SkillBot = ({ game, seed, human }) => {
   WORLD_W = brkWorldW(game.init(seed));
   HI = WORLD_W - BRK_WALL - BRK_BALL_R;
   SKILL_W = game.init(seed).deep ? SKILL[human.level]! : 0;
+  PAID_VALUE = human.level === "elite" || human.level === "perfect";
   CATCH_Y = PADDLE_Y - BRK_BALL_R;
   const level = human.level;
   const speed = FINGER[level]!;
@@ -128,7 +149,7 @@ export const bot: SkillBot = ({ game, seed, human }) => {
   let finger = init.paddleX;
   let sent = init.aimX;
   /** Read per ball segment, fixed once read. */
-  const reads = new Map<string, { err: number; zone: number }>();
+  const reads = new Map<string, { err: number; zone: number; chase?: boolean }>();
   /** Capsules the player has decided about (key: spawn x and spawn tick). */
   const capsuleWill = new Map<string, boolean>();
   let focus = "";
@@ -204,7 +225,13 @@ export const bot: SkillBot = ({ game, seed, human }) => {
           zone = human.pick(values);
         }
         r = { err: human.normal(), zone };
+        if (CHASE[level]! > 0 && aim.ball) r.chase = human.chance(CHASE[level]!);
         reads.set(aim.seg, r);
+      }
+      if (r.chase) {
+        // Following the ball itself (seen late), not its landing point.
+        const b = seen.balls[Number(aim.id.slice(1))];
+        if (b) aim.x = b.x / 256;
       }
       const err = r.err * (READ[level]! * aim.t + human.p.aimSdPx * 0.6);
       // Land the ball on the chosen zone: the paddle centre sits off the ball by the zone's offset.
