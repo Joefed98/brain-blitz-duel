@@ -162,7 +162,8 @@ section("Runs recorded on the new revisions replay unflagged; the previous revis
   for (const run of runs) {
     const spec = GAMES.find((g) => g.type === run.type)!;
     const [target, prev] = TARGET_REVS[run.type as LiveBandGame]!;
-    const seed = spec.seedFor(run.n);
+    // Recorded on the room seeds of their day (fixtureSeedFor: Tilt's measured seeds have since moved to its bank).
+    const seed = (spec.fixtureSeedFor ?? spec.seedFor)(run.n);
     const after = spec.replay(seed, run.raw, target);
     const tag = `${run.type} ${run.level} #${run.n}`;
     ok(!after.flagged && after.desyncTick === null, `${tag}: replays unflagged on ${target} (${after.reason ?? ""})`);

@@ -166,7 +166,8 @@ const fixture = JSON.parse(gunzipSync(readFileSync(FIXTURE)).toString()) as { ar
   const per = new Map<string, number>();
   for (const run of fixture.arcade) {
     const spec = GAMES.find((g) => g.type === run.type)!;
-    const seed = spec.seedFor(run.n);
+    // Recorded on the room seeds of their day (fixtureSeedFor: Tilt's measured seeds have since moved to its bank).
+    const seed = (spec.fixtureSeedFor ?? spec.seedFor)(run.n);
     const tag = `${run.type} ${run.level} #${run.n}`;
     ok(run.rev === liveStrictRev(run.type as LiveBandGame), `${tag}: recorded on the score-bands revision`);
     const now = spec.replay(seed, run.raw, run.rev);
