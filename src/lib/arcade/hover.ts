@@ -832,23 +832,23 @@ export const HOVER_V9_MAX = 200;
 export const HOVER_SKILL_RAW_MAX = HOVER_TIGHT_GATES * (HOVER_TIGHT_POINTS + HOVER_CENTRE_TOP) + HOVER_CHAINS * HOVER_CHAIN_POINTS;
 /**
  * The raw skill that pays the full HOVER_SKILL_MAX: HOVER_SKILL_SLACK short of everything, so a flawless human-paced
- * run reaches 200 with one slip (a chain lost, or two centre lines off dead centre), but no less.
+ * run reaches 200 with one slip (a chain lost and a centre line off dead centre, or three lines a grade off), but no less.
  */
-export const HOVER_SKILL_SLACK = 10;
+export const HOVER_SKILL_SLACK = 12;
 export const HOVER_SKILL_FULL = HOVER_SKILL_RAW_MAX - HOVER_SKILL_SLACK;
 /**
  * The skill pay scale (raw skill points → paid, as Breaker's BRK_V9_SKILL_PAY): light use pays little and
  * the full HOVER_SKILL_MAX needs every tight gate, chain and dead-centre line.
  */
-export const HOVER_SKILL_PAY = bandCurve([0, 15, 30, 45, 52, HOVER_SKILL_FULL], [0, 8, 23, 31, 39, HOVER_SKILL_MAX]);
+export const HOVER_SKILL_PAY = bandCurve([0, 15, 30, 45, 52, HOVER_SKILL_FULL], [0, 8, 23, 30, 37, HOVER_SKILL_MAX]);
 /**
- * The base curve: barriers 3 and gold stars 2 (and the flight unit), 140 at all 42 barriers and 9 of the 10
- * stars (a flawless human-paced run may lose one; plus 10 for the minute). hoverRev 7's strict curve with its middle knots a few points lower
+ * The base curve: barriers 3 and gold stars 2 (and the flight unit), 140 at all 42 barriers and 8 of the 10
+ * stars (a flawless human-paced run may lose two near-lip stars; plus 10 for the minute). hoverRev 7's strict curve with its middle knots a few points lower
  * (scripts/arcade-skill-bands.ts --rev=x): the shields and the warm-up gate carry the simulated
  * good player a few barriers further than on hoverRev 7, so its median stays within 10 % of it.
  */
 export const HOVER_V9_BAND_CURVE = bandCurve(
-  [0, 24, 27, 42, 45, 65, 89, 100, 145],
+  [0, 24, 27, 42, 45, 65, 89, 100, 143],
   [0, 68, 70, 97, 101, 112, 118, 139, 140],
 );
 

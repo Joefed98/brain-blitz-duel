@@ -281,12 +281,12 @@ section("scoring and the ceiling");
   // Caps and the pay scale.
   ok(HOVER_SKILL_RAW_MAX === HOVER_TIGHT_GATES * (HOVER_TIGHT_POINTS + HOVER_CENTRE_TOP) + HOVER_CHAINS * HOVER_CHAIN_POINTS && HOVER_SKILL_RAW_MAX === 70 && HOVER_CENTRE_TOP === 4, `raw skill at most 70, a dead-centre line 4 (${HOVER_SKILL_RAW_MAX})`);
   ok(JSON.stringify(HOVER_CENTRE_POINTS) === "[0,1,2,4]", "centre-line points by grade: 1, 2, and 4 for dead centre");
-  ok(bandPoints(HOVER_SKILL_PAY, HOVER_SKILL_RAW_MAX) === HOVER_SKILL_MAX && HOVER_SKILL_MAX === 50 && bandPoints(HOVER_SKILL_PAY, HOVER_SKILL_FULL) === HOVER_SKILL_MAX && HOVER_SKILL_FULL === HOVER_SKILL_RAW_MAX - 10 && bandPoints(HOVER_SKILL_PAY, HOVER_SKILL_FULL - 1) < HOVER_SKILL_MAX, "the full 50 from 10 raw short of everything (one slip forgiven), not before");
-  // A flawless human-paced run may lose one gold star: every barrier, nine stars and the flight unit still make the base's 140.
-  ok(bandPoints(HOVER_V9_BAND_CURVE, 3 * HOVER_REACHABLE_GATES + 2 * (HOVER_STARS - 1) + 1) === 140 && bandPoints(HOVER_V9_BAND_CURVE, 3 * HOVER_REACHABLE_GATES + 2 * (HOVER_STARS - 1)) < 140, "base 140 for every barrier and nine of ten stars, not fewer");
+  ok(bandPoints(HOVER_SKILL_PAY, HOVER_SKILL_RAW_MAX) === HOVER_SKILL_MAX && HOVER_SKILL_MAX === 50 && bandPoints(HOVER_SKILL_PAY, HOVER_SKILL_FULL) === HOVER_SKILL_MAX && HOVER_SKILL_FULL === HOVER_SKILL_RAW_MAX - 12 && bandPoints(HOVER_SKILL_PAY, HOVER_SKILL_FULL - 1) < HOVER_SKILL_MAX, "the full 50 from 12 raw short of everything (one slip forgiven), not before");
+  // A flawless human-paced run may lose two gold stars: every barrier, eight stars and the flight unit still make the base's 140.
+  ok(bandPoints(HOVER_V9_BAND_CURVE, 3 * HOVER_REACHABLE_GATES + 2 * (HOVER_STARS - 2) + 1) === 140 && bandPoints(HOVER_V9_BAND_CURVE, 3 * HOVER_REACHABLE_GATES + 2 * (HOVER_STARS - 2)) < 140, "base 140 for every barrier and eight of ten stars, not fewer");
   let rising = true;
   for (let u = 1; u <= HOVER_SKILL_RAW_MAX; u++) if (bandPoints(HOVER_SKILL_PAY, u) < bandPoints(HOVER_SKILL_PAY, u - 1)) rising = false;
-  ok(rising && bandPoints(HOVER_SKILL_PAY, 15) <= 8 && bandPoints(HOVER_SKILL_PAY, 30) <= 24 && bandPoints(HOVER_SKILL_PAY, HOVER_SKILL_FULL - 8) <= 39, "the pay scale rises, light use pays little (15 raw → ≤ 8, 30 → ≤ 24) and the last 8 raw before the full pay are worth 11 (elite precision)");
+  ok(rising && bandPoints(HOVER_SKILL_PAY, 15) <= 8 && bandPoints(HOVER_SKILL_PAY, 30) <= 24 && bandPoints(HOVER_SKILL_PAY, HOVER_SKILL_FULL - 8) <= 39, "the pay scale rises, light use pays little (15 raw → ≤ 8, 30 → ≤ 24) and the last 8 raw before the full pay are worth 11 or more (elite precision)");
   ok(bandPoints(HOVER_V9_BAND_CURVE, 3 * HOVER_REACHABLE_GATES + 2 * HOVER_STARS + 1) + 10 === 150 && bandPoints(HOVER_V9_BAND_CURVE, 3 * HOVER_REACHABLE_GATES + 2 * HOVER_STARS) === 140, "the base tops out at 150 (all barriers and stars, 140, plus the minute)");
   // Ceiling from the counts: every course offers the same features (section 3), so a perfect run scores
   // base 150 + pay(full raw) 50, capped at 200, on every course.
