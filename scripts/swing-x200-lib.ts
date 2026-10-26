@@ -11,7 +11,8 @@
  *  - gems and gates: placed by generation on proved flights and proved fast swings (initV13);
  *  - every ledge and every par: `sectionRoute` below plays each section in the real sim from its start ledge's
  *    centre (each press the tick after a landing, each let-go the earliest that lands on the next ledge) and the
- *    route must reach the flag at least SWING_PAR_FULL ticks under par.
+ *    route must reach the flag at least SWING_PAR_FULL ticks under par; and no ledge hangs under a stalactite
+ *    (one standing on it could be crushed however well they play: nine V13 courses were ruled out this way).
  */
 import {
   swingGameFor,
@@ -24,6 +25,7 @@ import {
   SWING_PAR_FULL,
   SWING_PAR_POINTS,
   SWING_REV_EXPAND,
+  SWING_ROCK_HALF_W,
   SWING_SKILL_PAY,
   SWING_STARS,
   SWING_V13_BAND_CURVE,
@@ -88,7 +90,9 @@ export function swingCeiling(seed: number): SwingCeiling {
   const stars = (s0.starSpots ?? []).length;
   const gems = Math.min(SWING_GEMS, (s0.gems ?? []).length);
   const gates = Math.min(SWING_GATES, (s0.gates ?? []).length);
-  const ledgesOk = ids.length >= 2 && routes.every((t) => t > 0);
+  // No ledge under a stalactite (a hero standing on it can be crushed, however well they play).
+  const clear = (s0.ledges ?? []).every((l) => (s0.rocks ?? []).every((r) => Math.abs(r.x - l.x) >= l.half + SWING_ROCK_HALF_W + RADIUS));
+  const ledgesOk = ids.length >= 2 && clear && routes.every((t) => t > 0);
   const parsOk = ledgesOk && routes.every((t, i) => pars[i]! > 0 && pars[i]! - t >= SWING_PAR_FULL);
   const raw = gems + gates + (ledgesOk ? SWING_LEDGE_POINTS : 0) + (parsOk ? SWING_PAR_POINTS : 0);
   const base = stars === SWING_STARS ? bandPoints(SWING_V13_BAND_CURVE, 500 + 5 * SWING_STARS) + BAND_FINISH_BONUS : 0;

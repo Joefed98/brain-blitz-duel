@@ -20,7 +20,7 @@
  *     cleared with its flag under par pays its share scaled by the margin, the full share from SWING_PAR_FULL under;
  *     at or over par, a skipped ledge or no start landing pays nothing.
  *  6. Scores: the base curve (to 140, + 10 for 500 m) never above 150, the skill pay never above 50, the total never
- *     above 200; no input scores 0; random play stays near 0; the stored witness run reaches 200 through the server
+ *     above 200; no input scores 0; random play stays near 0; a stored elite run reaches 200 through the server
  *     replay.
  *  7. The ceiling: every room-bank course's perfect-play ceiling (scripts/swing-x200-lib.ts, recorded by
  *     scripts/swing-x200-ceiling.ts in scripts/fixtures/swing-x200-ceiling.json; a sample recomputed, every course
@@ -45,7 +45,8 @@ import {
   swingWorldHFor,
   swingWorldWFor,
   SWING_COMBO_CAP,
-  SWING_COMBO_EVERY,
+  SWING_COMBO_TIERS,
+  SWING_COMBO_TIER_PAY,
   SWING_COMBO_SPEED,
   SWING_FEATURE_CAP,
   SWING_GATES,
@@ -118,7 +119,7 @@ for (const [file, label] of [["scripts/fixtures/swing-x200-legacy.json", "pre-ch
   }
   console.log(`${label}: ${same} / ${runs.length} stored runs replay to the same score and state`);
 }
-ok(best200 !== null, "a stored swingRev 13 run (a strong-play witness, scripts/swing-x200-witness.ts) reaches 200 through the server replay");
+ok(best200 !== null, "a stored swingRev 13 run (an elite skill-band run) reaches 200 through the server replay");
 
 /* 2. Generator, bank and start state. */
 {
@@ -221,14 +222,14 @@ ok(best200 !== null, "a stored swingRev 13 run (a strong-play witness, scripts/s
   ok(((t.gemsTaken ?? 0) & 1) === 1 && SWING_GEM_TOUCH === 22 * FP, "touching a gem takes it");
   let c: SwingState = { ...s0, chain: 0, comboPts: 0, acted: 1 };
   let links = 0;
-  for (let k = 0; k < 10; k++) {
+  for (let k = 0; k < 16; k++) {
     const target = c.anchors.findIndex((a) => a.x > (c.lastGrabX ?? 0) + 40 * FP);
     const a = c.anchors[target]!;
     c = { ...c, x: a.x - 50 * FP, y: a.y + 40 * FP, rope: -1, vx: SWING_COMBO_SPEED * FP + 64, vy: 0, grabTick: c.tick - 30 };
     c = game.step(c, hold(c, 1));
     if (c.rope === target) links++;
   }
-  ok(links === 10 && c.chain === 10 && c.comboPts === 10 / SWING_COMBO_EVERY, `ten fast quick grabs make a ten-link chain and two combo points (${c.chain}, ${c.comboPts})`);
+  ok(links === 16 && c.chain === 16 && c.comboPts === 10 && c.comboTiers === 3 && SWING_COMBO_TIERS.join() === "5,10,15" && SWING_COMBO_TIER_PAY.join() === "2,3,5", `sixteen fast quick grabs make a 16-link chain: tiers at 5, 10 and 15 pay 2 + 3 + 5 combo points (${c.chain}, ${c.comboPts})`);
   const slow: SwingState = { ...c, x: c.x + 100 * FP, rope: -1, vx: 3 * FP, vy: 0, grabTick: c.tick - 30 };
   const afterSlow = game.step(slow, hold(slow, 1));
   ok(afterSlow.chain === 0 && afterSlow.comboPts === c.comboPts, "a slow grab ends the chain");
@@ -275,7 +276,7 @@ ok(best200 !== null, "a stored swingRev 13 run (a strong-play witness, scripts/s
 {
   ok(roundMaxFor("swing") === 200, "Grappler's round maximum is 200");
   const pts = SWING_V13_BAND_CURVE.points;
-  ok(SWING_V13_BAND_CURVE.units.every((u, i) => i === 0 || u > SWING_V13_BAND_CURVE.units[i - 1]!) && pts.every((p, i) => i === 0 || p >= pts[i - 1]!) && pts.at(-1) === 140, "the base curve rises to 140 at 550 units");
+  ok(SWING_V13_BAND_CURVE.units.every((u, i) => i === 0 || u > SWING_V13_BAND_CURVE.units[i - 1]!) && pts.every((p, i) => i === 0 || p >= pts[i - 1]!) && pts.at(-1) === 140 && SWING_V13_BAND_CURVE.units.at(-1) === 515, "the base curve rises to 140 at 515 units (500 m and three stars)");
   ok(bandPoints(SWING_V13_BAND_CURVE, 550) + 10 === 150 && bandPoints(SWING_V13_BAND_CURVE, 10_000) === 140, "500 m with every star is 150 before skill, and the base never more");
   const payPts = SWING_SKILL_PAY.points;
   ok(payPts.at(-1) === SWING_FEATURE_CAP && payPts.every((p, i) => i === 0 || p >= payPts[i - 1]!) && bandPoints(SWING_SKILL_PAY, 1000) === SWING_FEATURE_CAP, "skill pays on a rising scale, never more than 50");

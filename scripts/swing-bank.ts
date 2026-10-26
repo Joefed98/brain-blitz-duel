@@ -29,7 +29,7 @@
  * SWING_GEMS gems, SWING_GATES gates, ten stars) and the same reference search reaches 500 m with
  * every star, its witness replayed on the real sim (score at least 150), and its perfect-play ceiling is 200
  * (scripts/swing-x200-lib.ts: every section's route played in the real game from its start ledge reaches the flag
- * a full margin under par; a stalactite over a route's last swing rules three courses out); written in bank
+ * a full margin under par; stalactites over a route rule twelve courses out); written in bank
  * order to src/lib/duel/swingBankV13.server.ts, which rooms deal swingRev 13 from:
  *
  *   bun scripts/swing-bank.ts --expand                            # all of it

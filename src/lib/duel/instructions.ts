@@ -1025,7 +1025,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Land each ledge route", detail: "under its par time." },
         { action: "From 200 m a dragon chases you:", detail: "keep going.", helpOnly: true },
         { action: "Touch stars as you fly by", detail: "for bonus points.", helpOnly: true },
-        { action: "Swing combos:", detail: "fly into each grab fast (a strong release) and grab the next anchor ahead within a second of your last grab, and the chain grows; every fifth link in a row is a combo point. A slow grab, hanging on too long or landing on a ledge ends the chain.", helpOnly: true },
+        { action: "Swing combos:", detail: "fly into each grab fast (a strong release) and grab the next anchor ahead within a second of your last grab, and the chain grows; a chain of 5, 10 and 15 in a row pays 2, 3 and 5 combo points as it gets there. A slow grab, hanging on too long or landing on a ledge ends the chain.", helpOnly: true },
         { action: "High route:", detail: `${SWING_GEMS} cyan gems sit at the tops of strong flights, close under the ceiling. Touch one to take it.`, helpOnly: true },
         { action: "Low route:", detail: `${SWING_GATES} speed gates hang under anchors. Grab early for a long rope and swoop through the glowing gap fast; it lights gold.`, helpOnly: true },
         { action: "Set routes:", detail: "before the dragon, two or three runs of ledges hang from the roof: a start ledge, landing ledges and a finish flag. Drop on to a ledge from above to land, then hold to kick off and swing to the next one. A cracked ledge collapses soon after you land on it.", helpOnly: true },
@@ -1037,7 +1037,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Ten stars float along the way,", detail: "spread evenly from start to finish: some high, some low, some on risky lines near the lava. Touch one to take it; they are optional.", helpOnly: true },
         { action: "Don't touch the spikes", detail: "or fall into the lava.", helpOnly: true },
       ],
-      score: liveBandHelp("swing", "Each metre counts 1 (up to 500) and each star 5.", { more: "More metres and stars", finish: `Reaching 500 m adds 10. Skill adds up to ${SWING_FEATURE_CAP} more: a skill point for each gem (${SWING_GEMS}) and lit speed gate (${SWING_GATES}), each combo point (up to ${SWING_COMBO_CAP}), ${SWING_LEDGE_POINTS} shared by the ledges you land and ${SWING_PAR_POINTS} shared by the routes you finish under par. ${skillPayLine(SWING_SKILL_PAY)}` }),
+      score: liveBandHelp("swing", "Each metre counts 1 (up to 500) and each star 5.", { more: "More metres and stars", finish: `Reaching 500 m adds 10. Skill adds up to ${SWING_FEATURE_CAP} more: a skill point for each gem (${SWING_GEMS}) and lit speed gate (${SWING_GATES}), each combo point (up to ${SWING_COMBO_CAP}: 2, 3 and 5 for a chain reaching 5, 10 and 15), ${SWING_LEDGE_POINTS} shared by the ledges you land and ${SWING_PAR_POINTS} shared by the routes you finish under par. ${skillPayLine(SWING_SKILL_PAY)}` }),
     },
     tilt: {
       goal: "Roll each marble into its own cup.",

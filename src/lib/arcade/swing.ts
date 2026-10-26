@@ -459,6 +459,8 @@ export interface SwingState extends Body, BandFields {
   chain?: number;
   lastGrabX?: number;
   comboPts?: number;
+  /** swingRev 13: combo tiers reached (each 5, 10 or 15 links into a chain). */
+  comboTiers?: number;
   bestChain?: number;
   gems?: [number, number][];
   gemsTaken?: number;
@@ -854,7 +856,7 @@ export function swingCheckpoint(state: SwingState): SwingCheckpoint {
     // swingRev 9 (taller worlds): the world height, last.
     if (state.worldH) values.push(state.worldH);
     // swingRev 13: the expansion's state, after every earlier value.
-    if (state.expand) values.push(state.expand, state.ledgeOn ?? -1, state.ledgeHold ?? 0, state.chain ?? 0, state.comboPts ?? 0, state.gemsTaken ?? 0, state.gatesLit ?? 0, ...(state.ledgeTicks ?? []));
+    if (state.expand) values.push(state.expand, state.ledgeOn ?? -1, state.ledgeHold ?? 0, state.chain ?? 0, state.comboPts ?? 0, state.gemsTaken ?? 0, state.gatesLit ?? 0, ...(state.ledgeTicks ?? []), state.comboTiers ?? 0);
   }
   for (const value of values) {
     checksum ^= value | 0;
@@ -1425,8 +1427,8 @@ export const SWING_V11_BAND_CURVE = bandStrict(SWING_V9_BAND_CURVE);
  *    through its opening at that speed; neither ever ends a run.
  *  - Swing combos: a flying grab of an anchor further ahead at SWING_COMBO_SPEED or faster, within
  *    SWING_COMBO_GAP ticks of the last grab, adds one to the chain (a fast grab after a slow one starts
- *    a new chain at 1; a slow grab, a grab from a ledge or a landing ends it). Every fifth link of a
- *    chain is a combo point.
+ *    a new chain at 1; a slow grab, a grab from a ledge or a landing ends it). A chain reaching 5, 10
+ *    and 15 links pays 2, 3 and 5 combo points (SWING_COMBO_TIERS).
  *  - Course sections: three set routes before the dragon (from about 25, 85 and 150 m): a start ledge,
  *    three landing ledges and a finish-flag ledge, each placed where a proved swing from rest on the
  *    ledge before lands (swing, let go, fly, land). Ledges are one-way: falling on to one from above, off
@@ -1458,7 +1460,15 @@ export const SWING_GATE_HALF_W = 6 * FP;
 export const SWING_COMBO_GAP = 60;
 /** A chain link is a flying grab at this speed or more (px a tick). */
 export const SWING_COMBO_SPEED = 7;
+/** The chain length shown gold in the HUD (the first combo tier). */
 export const SWING_COMBO_EVERY = 5;
+/**
+ * Combo tiers (swingRev 13, 26 Oct 2026 phase 1): a chain that reaches 5, 10 and 15 fast regrabs pays 2, 3 and 5 raw
+ * skill points at each tier reached (10 for a full 15-link chain), counted per chain, capped by SWING_COMBO_CAP.
+ * Achievable chains for a strong human, where the old "a point every fifth link" needed 25+ in a row to matter.
+ */
+export const SWING_COMBO_TIERS = [5, 10, 15] as const;
+export const SWING_COMBO_TIER_PAY = [2, 3, 5] as const;
 export const SWING_SECTIONS = 3;
 /** Each section: start, three landings, the finish flag. */
 export const SWING_SECTION_LEDGES = 5;
@@ -1480,7 +1490,7 @@ export const SWING_SECTION_FROM_M = [22, 80, 145] as const;
  */
 export const SWING_COMBO_CAP = 10;
 export const SWING_LEDGE_POINTS = 15;
-export const SWING_PAR_POINTS = 15;
+export const SWING_PAR_POINTS = 25;
 /**
  * Par times (swingRev 13's new precision feature): each section's par is its proved route's time (the course's own,
  * found when the section was built: every hop's proved release with the press on the tick after each landing, plus
@@ -1496,16 +1506,17 @@ export const SWING_PAR_FULL = 36;
  * The pay scale (raw skill points → paid, at most SWING_FEATURE_CAP), Breaker's rising shape (BRK_V9_SKILL_PAY):
  * light use pays little, the full 50 only near everything a course guarantees (SWING_GUARANTEED_RAW).
  */
-export const SWING_SKILL_PAY = bandCurve([0, 6, 12, 20, 28, 36, 42], [0, 4, 12, 24, 36, 46, 50]);
+export const SWING_SKILL_PAY = bandCurve([0, 10, 20, 26, 34, 42, 46], [0, 4, 12, 20, 28, 38, 50]);
 export const SWING_FEATURE_CAP = 50;
 export const SWING_V13_MAX = 200;
 /**
- * The base part of a rev-13 score (metres + 5 a star, as every band revision): 140 at 500 m with every star, plus 10
- * for reaching 500 m, so it tops out at 150 as rev 11 does. The knots were fitted (26 Oct 2026) by matching the weak,
+ * The base part of a rev-13 score (metres + 5 a star, as every band revision): 140 at 500 m with three of the ten
+ * stars (515 units; 26 Oct 2026: all ten were needed, which no human-paced run managed), plus 10 for
+ * reaching 500 m, so it tops out at 150 as rev 11 does. The knots were fitted (26 Oct 2026) by matching the weak,
  * average and good skill-band players' unit quantiles on rev 13 to their scores on rev 11 on the same bank courses
  * (60 each, paired), so players who ignore the features keep today's score (docs/expansions/x200-swing.md).
  */
-export const SWING_V13_BAND_CURVE = bandCurve([0, 20, 40, 60, 75, 95, 120, 170, 245, 315, 440, 489, 515, 550], [0, 15, 29, 44, 60, 80, 89, 98, 109, 122, 130, 133, 135, 140]);
+export const SWING_V13_BAND_CURVE = bandCurve([0, 20, 40, 60, 75, 95, 120, 170, 245, 315, 440, 489, 500, 515], [0, 19, 36, 50, 64, 82, 91, 99, 110, 122, 130, 133, 135, 140]);
 
 /** A set-route ledge: its centre x and top (1/256 px), half-width, kind (0 start, 1 landing, 2 finish flag), section, order and whether it collapses. */
 export interface SwingLedge {
@@ -1542,7 +1553,11 @@ function expand13NoteGrab(s: SwingState, target: number, tick: number, speed2: n
   else s.chain = fast ? 1 : 0;
   if (forward) s.lastGrabX = a.x;
   if (s.chain > (s.bestChain ?? 0)) s.bestChain = s.chain;
-  if (s.chain > 0 && s.chain % SWING_COMBO_EVERY === 0) s.comboPts = (s.comboPts ?? 0) + 1;
+  const tier = (SWING_COMBO_TIERS as readonly number[]).indexOf(s.chain);
+  if (tier >= 0) {
+    s.comboPts = (s.comboPts ?? 0) + SWING_COMBO_TIER_PAY[tier]!;
+    s.comboTiers = (s.comboTiers ?? 0) + 1;
+  }
 }
 
 /** One tick of rev-13 pickups after the body moved from (px, py): a ledge landing, gems, gates. */
@@ -2126,6 +2141,7 @@ function initV13(seed: number): SwingState {
     chain: 0,
     lastGrabX: anchors[deep.rope]!.x,
     comboPts: 0,
+    comboTiers: 0,
     bestChain: 0,
     gems,
     gemsTaken: 0,
