@@ -117,6 +117,37 @@ export const bot: SkillBot = ({ game, seed, human }) => {
       // Nothing of the wanted kind came round: take any hop window seen after ready, else just guess.
       chosen = windows.find((w) => w[2] === "hop" && w[0] + w[1] / 2 >= ready) ?? windows.find((w) => w[2] === "hop") ?? [ready + lap / 2, 1, "hop"];
     }
+    // orbitRev 12, near-perfect and elite: a keen player knows which window's line carries the features (on a
+    // figure-eight or a belted orbit the windows in a lap fly different lines), so they look a little further and
+    // take the usable window whose safe ticks take the most, keeping the first one on a tie.
+    if (s.xp && (elite || level === "near") && chosen[2] !== "hole") {
+      for (let d = kinds.length; d <= maxScan; d++) {
+        const f = fork(s, d);
+        kinds.push(f.kind);
+        flights.push(f.flight);
+        gains.push(f.gain);
+        const prev = kinds[d - 1];
+        if (d > 0 && prev !== "die" && prev !== f.kind) {
+          let a = d - 1;
+          while (a > 0 && kinds[a - 1] === prev) a--;
+          windows.push([a, d - a, prev!]);
+        }
+      }
+      const safeGain = (w: [number, number, Kind]) => {
+        let g = 0;
+        for (let d = w[0]; d < w[0] + w[1]; d++) if (room.every((o) => kinds[d + o] !== undefined && kinds[d + o] !== "die")) g = Math.max(g, gains[d] ?? 0);
+        return g;
+      };
+      let bestGain = safeGain(chosen);
+      for (const w of windows) {
+        if (w[2] !== "hop" || w[0] + w[1] / 2 < ready || w[0] <= chosen[0]) continue;
+        const g = safeGain(w);
+        if (g > bestGain) {
+          bestGain = g;
+          chosen = w;
+        }
+      }
+    }
     const [start, len] = chosen;
     let mid = start + (len - 1) / 2;
     // orbitRev 12: going for the features means aiming at the window's best tick for them (nearest the middle on a tie).

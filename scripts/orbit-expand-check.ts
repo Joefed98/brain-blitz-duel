@@ -130,16 +130,23 @@ for (const [i, entry] of ORBIT_XP_BANK.entries()) {
 ok(fixedCounts === ORBIT_XP_BANK.length, `every course carries exactly ${ORBIT_XP_TRAILS} × ${ORBIT_XP_MOTES} stardust motes, ${ORBIT_XP_MOONS} moons, ${ORBIT_XP_FIELDS} asteroid fields and 3 black holes (${fixedCounts} / ${ORBIT_XP_BANK.length}): the seed decides where, never how many`);
 ok(perfectBank === ORBIT_XP_BANK.length, `every course's witness reaches the sun with every feature taken (${minPerfect}+ perfect orbits) and scores ${ORBIT_XP_MAX} through the server (${perfectBank} / ${ORBIT_XP_BANK.length})`);
 {
-  // The course each seed index deals (as generateOrbit: room seed mod the bank) and its perfect-play ceiling.
+  // Reachability, seed by seed: the puzzle each seed index deals (as generateOrbit: its room seed, the feature-bank
+  // course seed mod the bank, the course's planets, holes and extras) is played by its course's witness player,
+  // and the run is graded by the server's replay on that puzzle's own fields.
   const sets: [string, number, number][] = [["tuning", 0, 60], ["fresh", 60, 260]];
   for (const [name, from, to] of sets) {
-    let min = Infinity;
+    let min = Infinity, played = 0;
     for (let n = from; n < to; n++) {
-      const course = orbitXpCourseForSeed(roomSeed(n))!;
+      const seed = roomSeed(n);
+      const course = orbitXpCourseForSeed(seed)!;
       const entry = ORBIT_XP_BANK.find((e) => JSON.stringify(e.extras) === JSON.stringify(course.extras))!;
-      min = Math.min(min, ceilingOf.get(entry.seed) ?? 0);
+      const puzzle = { type: "orbit" as const, seed, orbitRev: ORBIT_REV_XP, planets: course.planets, holes: course.holes, extras: course.extras };
+      const end = runTaps(orbitStartForPuzzle(puzzle)!(), entry.taps);
+      const server = replayOrbitRun(puzzle.seed, encodeTaps(puzzle.seed, entry.taps, end), puzzle.orbitRev, puzzle.planets, puzzle.holes, puzzle.extras);
+      if (!server.flagged) played++;
+      min = Math.min(min, server.flagged ? 0 : server.score);
     }
-    ok(min === ORBIT_XP_MAX, `perfect-play ceiling on the ${to - from} ${name} seed indices ${from}–${to - 1}: lowest ${min} (every one reaches ${ORBIT_XP_MAX})`);
+    ok(min === ORBIT_XP_MAX && played === to - from, `perfect-play ceiling, played through the server replay on each of the ${to - from} ${name} seed indices ${from}–${to - 1}: lowest ${min} (every one reaches ${ORBIT_XP_MAX})`);
   }
 }
 
