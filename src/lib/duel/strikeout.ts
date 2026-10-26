@@ -276,6 +276,8 @@ export const SO4_RULES: So2Rules = { maxStrikes: SO4_MAX_STRIKES, maxVowels: SO3
 // Rev 5 (25 Oct 2026, word depth to 200; docs/depth/d1-word.md): rev 4's rules exactly, scored to 200 with the
 // early-solve bonus (depth/strikeout.server.ts). so2Rules treats 5 as 4.
 export const STRIKEOUT_REV5 = 5;
+/** The puzzle top-up (26 Oct 2026, docs/depth/topup-oct-2026.md): rev 5's rules and boards, its bonuses retuned (depth/strikeout.server.ts). */
+export const STRIKEOUT_REV_TOPUP = 6;
 
 /** The rules for a stored rev (2, 3, 4 or 5; rev 1 has its own replay). */
 export function so2Rules(rev: number): So2Rules {

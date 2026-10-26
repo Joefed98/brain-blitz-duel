@@ -127,7 +127,8 @@ html:not([data-play-cards~="daily"]) [data-play-slot="daily"],
 html:not([data-play-cards~="challenge"]) [data-play-slot="challenge"],
 html:not([data-play-cards~="rejoin"]) [data-play-slot="rejoin"],
 html:not([data-play-cards~="welcome"]) [data-play-slot="welcome"],
-html:not([data-play-cards~="homescreen"]) [data-play-slot="homescreen"] {
+html:not([data-play-cards~="homescreen"]) [data-play-slot="homescreen"],
+html:not([data-play-cards~="intro"]) [data-play-slot="intro"] {
   display: none;
 }
 @media (prefers-reduced-motion: reduce) {

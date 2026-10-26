@@ -13,7 +13,7 @@
  */
 import { CROSS_INPUT_MOVE, crossCourse, crossGameFor, CROSS_REV_EXPAND, type CrossCourse, type CrossState } from "../../src/lib/arcade/cross";
 import type { ArcadeInputEvent } from "../../src/lib/arcade/engine";
-import { Human, type BandLevel } from "../arcade-skill-bands/human";
+import { Human, type SkillLevel } from "../arcade-skill-bands/human";
 import { bot } from "../arcade-skill-bands/bots/cross";
 
 const KIND = ["car", "bikes", "roadworks", "island", "bus", "motorbikes"];
@@ -74,9 +74,9 @@ export function uniformLog(seed: number, ticks = 3600): ArcadeInputEvent[] {
 }
 
 /** A skill-band bot's log on crossRev 9. */
-export function botLog(seed: number, level: BandLevel): ArcadeInputEvent[] {
+export function botLog(seed: number, level: SkillLevel): ArcadeInputEvent[] {
   const game = crossGameFor(CROSS_REV_EXPAND);
-  return bot({ game, seed, rev: CROSS_REV_EXPAND, human: new Human("cross", seed, level) }).events ?? [];
+  return bot({ game, seed, rev: CROSS_REV_EXPAND, human: new Human("cross", seed, level), fixes: true }).events ?? [];
 }
 
 

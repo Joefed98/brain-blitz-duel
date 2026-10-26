@@ -10,6 +10,14 @@ import type { CountUpPuzzleData } from "../types";
 
 export const COUNT_DEPTH_REV = 3;
 export const COUNT_DEPTH_CURVE: StretchCurve = { fastShare: 0.72, eliteShare: 0.83, stretchTop: 50, power: 1.5 };
+/**
+ * The puzzle top-up (26 Oct 2026, countRev 4; docs/depth/topup-oct-2026.md): the same trays, counts and question; the
+ * climb starts a little before the old 150 pace (COUNT_TOPUP_STRETCH_FROM; the speed part is rev 3's), so today's
+ * near-perfect finish lands about 150–165.
+ */
+export const COUNT_TOPUP_REV = 4;
+export const COUNT_TOPUP_CURVE: StretchCurve = { fastShare: 0.72, eliteShare: 0.83, stretchTop: 50, power: 1.2 };
+export const COUNT_TOPUP_STRETCH_FROM = 0.57;
 
 export function usesCountDepth(p: Pick<CountUpPuzzleData, "countRev">): boolean {
   return (p.countRev ?? 0) >= COUNT_DEPTH_REV;

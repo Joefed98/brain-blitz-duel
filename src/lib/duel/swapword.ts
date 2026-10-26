@@ -36,6 +36,16 @@ export const SWAPWORD_REV3 = 3;
  */
 export const SWAPWORD_REV_PAR = 4;
 export const SWAP_PAR_BONUS: ParBonusCurve = { base: 6, fast: 0.75, elite: 0.89, power: 2 };
+/**
+ * The puzzle top-up (26 Oct 2026, swapwordRev 5; docs/depth/topup-oct-2026.md): rev 4's boards, budget and par;
+ * making par pays a little more at any pace, so today's near-perfect player lands about 165–175.
+ */
+export const SWAPWORD_REV_TOPUP = 5;
+export const SWAP_PAR_BONUS_TOPUP: ParBonusCurve = { base: 15, fast: 0.75, elite: 0.89, power: 2 };
+/** The par bonus a stored round's stamp scores on. */
+export function swapParBonusFor(rev: number): ParBonusCurve {
+  return rev >= SWAPWORD_REV_TOPUP ? SWAP_PAR_BONUS_TOPUP : SWAP_PAR_BONUS;
+}
 export const SW_COLS = 6;
 export const SW_ROWS = 6;
 /** Grid cell (row × 6 + col) of each tile, in reading order. */

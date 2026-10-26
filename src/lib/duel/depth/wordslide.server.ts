@@ -8,7 +8,7 @@ import { parBonusPoints } from "../parBonus";
 import { puzzleTimeLimitMs } from "../registry";
 import { withBonus } from "../wordDepth";
 import type { DepthGrader } from "../wordDepth.server";
-import { SLIDE_PAR_BONUS, WORD_SLIDE_REV_PAR, wordSlideRevOf } from "../wordSlide";
+import { slideParBonusFor, WORD_SLIDE_REV_PAR, wordSlideRevOf } from "../wordSlide";
 import { parGrade } from "./parGrade";
 
 export const wordslideDepth: DepthGrader = {
@@ -18,7 +18,7 @@ export const wordslideDepth: DepthGrader = {
     const moves = Number((today.extra as { moves?: number } | null)?.moves ?? Infinity);
     const atPar = today.isCorrect && moves <= puzzle.par;
     const left = today.storedMs / Math.max(1, puzzleTimeLimitMs(puzzle));
-    const bonus = parBonusPoints(SLIDE_PAR_BONUS, atPar, left);
-    return parGrade(today, withBonus(today.score, bonus), bonus, { atPar, wordSlideRev: WORD_SLIDE_REV_PAR });
+    const bonus = parBonusPoints(slideParBonusFor(wordSlideRevOf(puzzle)), atPar, left);
+    return parGrade(today, withBonus(today.score, bonus), bonus, { atPar, wordSlideRev: wordSlideRevOf(puzzle) });
   },
 };

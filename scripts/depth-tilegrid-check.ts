@@ -14,9 +14,14 @@ import { gradeAnswer } from "../src/lib/duel/generate.server";
 import { INTRO_SCORE } from "../src/lib/duel/introScore";
 import { PUZZLE_INSTRUCTIONS } from "../src/lib/duel/instructions";
 import { rev3Game } from "../src/lib/duel/puzzleScoreRev3";
-import { TILEGRID_STRETCH, stretchSeconds } from "../src/lib/duel/depth/stretchShapes";
+import { TILEGRID_STRETCH, TILEGRID_STRETCH_TOPUP, stretchSeconds } from "../src/lib/duel/depth/stretchShapes";
 import { puzzleTimeLimitMs } from "../src/lib/duel/registry";
 import { runStretchCheck } from "./depth-stretch-lib";
+import { pinPreTopup } from "../src/lib/duel/depthTopup";
+
+// The puzzle top-up (26 Oct 2026, docs/depth/topup-oct-2026.md) deals newer stamps; this check proves the stamps it was
+// written for, so new deals are pinned to them (depth-topup-check proves the top-up's).
+pinPreTopup(true);
 
 const failures: string[] = [];
 let passes = 0;
@@ -35,7 +40,8 @@ await runStretchCheck(
     ok(at(rev3Game("tilegrid").fastShare + 0.03).score <= 160, `a little faster than today's 150 pace stays near 150 (${at(rev3Game("tilegrid").fastShare + 0.03).score})`);
   },
 );
-const s = stretchSeconds("tilegrid", TILEGRID_STRETCH);
+// The intro states the stamp rooms deal: since the puzzle top-up (26 Oct 2026) tileGridRev 2's elite pace.
+const s = stretchSeconds("tilegrid", TILEGRID_STRETCH_TOPUP);
 ok(INTRO_SCORE.tilegrid.includes("200 in about") && INTRO_SCORE.tilegrid.includes(`${s.elite} s`), `the intro states the elite pace: ${INTRO_SCORE.tilegrid}`);
 ok(PUZZLE_INSTRUCTIONS.tilegrid.score.includes("pace bonus") && PUZZLE_INSTRUCTIONS.tilegrid.score.includes("200 if you finish"), "the help explains the pace bonus");
 

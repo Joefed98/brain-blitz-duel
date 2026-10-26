@@ -14,7 +14,7 @@ import { crossCheckpoint, crossGameFor, CROSS_REV_EXPAND, type CrossState } from
 import { encodeCrossRun, replayCrossRun } from "../src/lib/duel/cross";
 import { crossCeilingRun } from "./cross-ceiling";
 import { type ArcadeInputEvent } from "../src/lib/arcade/engine";
-import { BAND_LEVELS, Human, LEVELS, type BandLevel } from "./arcade-skill-bands/human";
+import { ALL_LEVELS, Human, LEVELS, type SkillLevel } from "./arcade-skill-bands/human";
 import { roomSeed } from "./arcade-skill-bands/games";
 import { bot } from "./arcade-skill-bands/bots/cross";
 
@@ -45,10 +45,11 @@ export function crossStateDigest(state: CrossState): number {
   return h;
 }
 
-export function playCrossRun(rev: number | null, seed: number, level: BandLevel): CrossFixtureRun {
+/** `fixes`: the skill-band tool's competent bots (#175; the band tool turns them on). */
+export function playCrossRun(rev: number | null, seed: number, level: SkillLevel, fixes = false): CrossFixtureRun {
   const game = crossGameFor(rev);
   const human = new Human("cross", seed, level);
-  const out = bot({ game, seed, rev, human });
+  const out = bot({ game, seed, rev, human, fixes });
   const events: ArcadeInputEvent[] = out.events ?? [];
   const byTick = new Map(events.map((e) => [e.t, e]));
   let state = game.init(seed) as CrossState;
@@ -68,8 +69,8 @@ if (import.meta.main) {
   const perLevel = legacy ? 5 : 6;
   const runs: CrossFixtureRun[] = [];
   for (const rev of revs)
-    for (const level of legacy ? LEVELS : BAND_LEVELS)
-      for (let n = 0; n < perLevel; n++) runs.push(playCrossRun(rev, roomSeed(1000 + n * 7 + (rev ?? 0)), level));
+    for (const level of legacy ? LEVELS : ALL_LEVELS)
+      for (let n = 0; n < perLevel; n++) runs.push(playCrossRun(rev, roomSeed(1000 + n * 7 + (rev ?? 0)), level, !legacy));
   if (!legacy) {
     // x200: the perfect-play oracle's run (every coin, no hit), which scores 200 through the server replay.
     const seed = roomSeed(1000);

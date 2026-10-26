@@ -51,6 +51,7 @@ export const CLASH_REV3_RUN_TICKS = 75 * TICKS_PER_SECOND;
 export const CLASH_REV3_FALL_TICKS = [107, 95, 83, 71, 59] as const;
 /** Variant key: 5 = the taller board (clashRev 5), 4 = rev-3 play with the puzzle score shape, 3 = 75 s rev 3, 2 = 52-word/60 s, 1 = 18-word, 0 = legacy stream. */
 export function clashVariantOf(p: { queue?: number | null; clashRev?: number | null } | null | undefined): number {
+  if (p?.clashRev === CLASH_REV_TOPUP) return 9;
   if (p?.clashRev === CLASH_REV_DEPTH) return 8;
   if (p?.clashRev === CLASH_REV_GREAT) return 7;
   if (p?.clashRev === CLASH_REV_BANDS) return 6;
@@ -349,6 +350,7 @@ export const colourClashRev3Game: ArcadeGame<ClashState, ArcadeInputEvent | null
 export const colourClashRev4Game: ArcadeGame<ClashState, ArcadeInputEvent | null> = { ...colourClashGame, runTicks: CLASH_REV3_RUN_TICKS, init: initRev4 };
 /** Takes a clashVariantOf key. */
 export function colourClashGameFor(variant: number): ArcadeGame<ClashState, ArcadeInputEvent | null> {
+  if (variant === 9) return colourClashTopupGame;
   if (variant === 8) return colourClashDepthGame;
   if (variant === 7) return colourClashGreatGame;
   if (variant === 6) return colourClashBandsGame;
@@ -425,7 +427,7 @@ export const colourClashRev5Game: ArcadeGame<ClashState, ArcadeInputEvent | null
 
 /** The board height (px) a stored round plays in, by its clashVariantOf key. */
 export function clashWorldHFor(variant: number): number {
-  return variant === 5 || variant === 6 || variant === 7 || variant === 8 ? CLASH_TALL_H : CLASH_WORLD_H;
+  return variant === 5 || variant === 6 || variant === 7 || variant === 8 || variant === 9 ? CLASH_TALL_H : CLASH_WORLD_H;
 }
 
 /* ================= Score bands (clashRev 6, 19 Oct 2026) ================= */
@@ -519,6 +521,8 @@ export interface ClashDepth {
   passed: number;
   /** 1 while the falling "don't sort" word has been touched (it lands as a wrong word). */
   spoiled: number;
+  /** clashRev 9 (the puzzle top-up): the score revision the run is scored on. Absent on clashRev 8 (never in the checkpoint). */
+  scoreRev?: number;
 }
 
 /** The plan: one "don't sort" and one gold word in each of five blocks of the queue from word 5, never side by side. */
@@ -597,7 +601,10 @@ export function clashDepthScoreOf(state: ClashState): ClashDepthScore {
   const base = bandMapTotal(CLASH_GREAT_MAP, rev5);
   const par = Math.floor(run / 2);
   // The pace share (finishes only): gold and streak points are worth the most on a quick run.
-  const pace = finished ? clampInt(CLASH_PACE_ZERO_TICK - Math.max(par, finishTick), 0, CLASH_PACE_ZERO_TICK - par) / (CLASH_PACE_ZERO_TICK - par) : 0;
+  const topup = state.depth?.scoreRev === CLASH_REV_TOPUP;
+  const zero = topup ? CLASH_TOPUP_PACE_ZERO_TICK : CLASH_PACE_ZERO_TICK;
+  const quick = finished ? clampInt(zero - Math.max(par, finishTick), 0, zero - par) / (zero - par) : 0;
+  const pace = finished && topup ? CLASH_TOPUP_PACE_FLOOR + (1 - CLASH_TOPUP_PACE_FLOOR) * quick : quick;
   const gold = Math.round((state.depth?.goldPts ?? 0) * pace);
   const span = Math.max(1, state.queue - CLASH_STREAK_FROM);
   const share = clampInt((state.depth?.best ?? 0) - CLASH_STREAK_FROM, 0, span) / span;
@@ -627,3 +634,18 @@ function initDepth(seed: number): ClashState {
 
 /** clashRev 8: depth to 200 on the taller board. */
 export const colourClashDepthGame: ArcadeGame<ClashState, ArcadeInputEvent | null> = { ...colourClashRev5Game, init: initDepth };
+
+/**
+ * clashRev 9 (the puzzle top-up, 26 Oct 2026, docs/depth/topup-oct-2026.md): clashRev 8's play exactly (the same plan,
+ * words and checkpoints); a finish's gold and streak points keep CLASH_TOPUP_PACE_FLOOR of their value at any finishing
+ * time and the rest falls to nothing at CLASH_TOPUP_PACE_ZERO_TICK (clashRev 8: all of it by 40 s), so today's
+ * near-perfect run lands about 165–175.
+ */
+export const CLASH_REV_TOPUP = 9;
+export const CLASH_TOPUP_PACE_ZERO_TICK = 45 * TICKS_PER_SECOND;
+export const CLASH_TOPUP_PACE_FLOOR = 0.3;
+function initTopup(seed: number): ClashState {
+  const s = initDepth(seed);
+  return { ...s, depth: { ...s.depth!, scoreRev: CLASH_REV_TOPUP } };
+}
+export const colourClashTopupGame: ArcadeGame<ClashState, ArcadeInputEvent | null> = { ...colourClashRev5Game, init: initTopup };

@@ -10,14 +10,14 @@
 import { writeFileSync } from "node:fs";
 import { crossBandParts, crossBonusOf, crossCourse, crossGameFor, CROSS_REV_EXPAND, CROSS_REV_STRICT, type CrossState } from "../src/lib/arcade/cross";
 import { decodeCrossRun, replayCrossRun } from "../src/lib/duel/cross";
-import { BAND_LEVELS, type BandLevel } from "./arcade-skill-bands/human";
+import { ALL_LEVELS, type SkillLevel } from "./arcade-skill-bands/human";
 import { roomSeed } from "./arcade-skill-bands/games";
 import { playCrossRun } from "./cross-expand-record";
 
 const opt = (name: string) => process.argv.find((a) => a.startsWith(`--${name}=`))?.slice(name.length + 3);
 const FROM = Number(opt("from") ?? 0);
 const SEEDS = Number(opt("seeds") ?? 60);
-const LEVEL_LIST = (opt("levels")?.split(",") ?? [...BAND_LEVELS]) as BandLevel[];
+const LEVEL_LIST = (opt("levels")?.split(",") ?? [...ALL_LEVELS]) as SkillLevel[];
 const NO_OLD = process.argv.includes("--no-old");
 
 export interface XRow {
@@ -51,8 +51,8 @@ const t0 = Date.now();
 for (const level of LEVEL_LIST) {
   for (let n = FROM; n < FROM + SEEDS; n++) {
     const seed = roomSeed(n);
-    const old = NO_OLD ? 0 : playCrossRun(CROSS_REV_STRICT, seed, level as never).score;
-    const run = playCrossRun(CROSS_REV_EXPAND, seed, level as never);
+    const old = NO_OLD ? 0 : playCrossRun(CROSS_REV_STRICT, seed, level, true).score;
+    const run = playCrossRun(CROSS_REV_EXPAND, seed, level, true);
     const out = replayCrossRun(seed, run.raw, CROSS_REV_EXPAND);
     if (out.flagged || out.score !== run.score) throw new Error(`replay disagreed: ${level} seed ${seed}`);
     // Walk the run again for per-crossing figures.
