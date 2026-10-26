@@ -827,7 +827,7 @@ export const HOVER_SKILL_RAW_MAX = HOVER_TIGHT_GATES * (HOVER_TIGHT_POINTS + HOV
  * The skill pay scale (raw skill points → paid, as Breaker's BRK_V9_SKILL_PAY): light use pays little and
  * the full HOVER_SKILL_MAX needs every tight gate, chain and dead-centre line.
  */
-export const HOVER_SKILL_PAY = bandCurve([0, 15, 30, 45, 55, HOVER_SKILL_RAW_MAX], [0, 6, 20, 32, 40, HOVER_SKILL_MAX]);
+export const HOVER_SKILL_PAY = bandCurve([0, 15, 30, 45, 55, HOVER_SKILL_RAW_MAX], [0, 8, 26, 34, 41, HOVER_SKILL_MAX]);
 /**
  * The base curve: barriers 3 and gold stars 2, 140 at all 42 barriers and 10 stars (plus 10
  * for the minute). hoverRev 7's strict curve with its middle knots a few points lower

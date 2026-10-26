@@ -278,7 +278,7 @@ section("scoring and the ceiling");
   ok(bandPoints(HOVER_SKILL_PAY, HOVER_SKILL_RAW_MAX) === HOVER_SKILL_MAX && HOVER_SKILL_MAX === 50 && bandPoints(HOVER_SKILL_PAY, HOVER_SKILL_RAW_MAX - 1) < HOVER_SKILL_MAX, "the full 50 only at the full raw skill");
   let rising = true;
   for (let u = 1; u <= HOVER_SKILL_RAW_MAX; u++) if (bandPoints(HOVER_SKILL_PAY, u) < bandPoints(HOVER_SKILL_PAY, u - 1)) rising = false;
-  ok(rising && bandPoints(HOVER_SKILL_PAY, 15) <= 8 && bandPoints(HOVER_SKILL_PAY, 30) <= 22, "the pay scale rises, light use pays little (15 raw → ≤ 8, 30 → ≤ 22)");
+  ok(rising && bandPoints(HOVER_SKILL_PAY, 15) <= 8 && bandPoints(HOVER_SKILL_PAY, 30) <= 26 && bandPoints(HOVER_SKILL_PAY, 55) <= 41, "the pay scale rises, light use pays little (15 raw → ≤ 8, 30 → ≤ 26) and the last 10 raw pay 9");
   ok(bandPoints(HOVER_V9_BAND_CURVE, 3 * HOVER_REACHABLE_GATES + 2 * HOVER_STARS) + 10 === 150, "the base tops out at 150 (all barriers and stars, 140, plus the minute)");
   // Ceiling from the counts: every course offers the same features (section 3), so a perfect run scores
   // base 150 + pay(full raw) 50, capped at 200, on every course.
