@@ -167,7 +167,9 @@ const EXTRACT = String.raw`
     case "breaker": s.balls.forEach((b, i) => P.push(["ball" + i, fp(b.x), fp(b.y)])); reset = s.balls.length + ":" + s.losses + ":" + s.pause; break;
     case "rally": P.push(["ball", fp(s.x), fp(s.y)]); reset = s.dead; break;
     // Pinball: the ball; a drain puts it back in the shooter lane (a reset).
-    case "pinball": P.push(["ball", fp(s.x), fp(s.y)]); reset = s.lost + ":" + s.live; break;
+    // pinRev 4 (E4): a ball riding a ramp or the plunge rail is drawn on the ride (not tracked); a ride, a lock and a
+    // multiball drain that hands play to another ball each put the ball somewhere new (a reset).
+    case "pinball": if (!s.ride) P.push(["ball", fp(s.x), fp(s.y)]); reset = s.lost + ":" + s.live + (s.rev4 ? ":" + s.ride + ":" + s.ramps + ":" + s.locksMade + ":" + s.extras.length : ""); break;
     case "burst": P.push(["player", fp(s.x), 0]); s.balls.forEach((b, i) => P.push(["ball" + i, fp(b.x), fp(b.y)])); reset = s.balls.length + ":" + s.wave + ":" + s.lives; break;
     // The ship is finger-driven (see breaker) and invaders step on a grid; wavRev 2 divers and the boss fly.
     case "wavefront":

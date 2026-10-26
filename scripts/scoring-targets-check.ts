@@ -37,7 +37,7 @@ import type { PuzzleType } from "../src/lib/duel/types";
 import { whackCheckpoint, whackGameFor, whackLift, whackScore, WHACK_HOLES, WHACK_INPUT_TAP, WHACK_REV_TARGET } from "../src/lib/arcade/whack";
 import { encodeWhackRun, replayWhackRun } from "../src/lib/duel/whack";
 import { GAMES } from "./arcade-skill-bands/games";
-import { TARGET_REVS } from "./scoring-targets-revs";
+import { STRICT_REVS, TARGET_REVS } from "./scoring-targets-revs";
 import { BT_V4_BAND_CURVE } from "../src/lib/arcade/ballTrack";
 import { FLIP_V4_BAND_CURVE } from "../src/lib/arcade/flip";
 import { INK_V6_BAND_CURVE } from "../src/lib/arcade/inkBridge";

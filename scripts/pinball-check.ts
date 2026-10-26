@@ -412,7 +412,8 @@ let replayMs = 0;
   ok(PREVIEW_PUZZLE_TYPES.includes("pinball") === !PINBALL_IN_ROOMS, "practice lists Pinball under New while it is practice only");
   ok(RETIRED_ARCADE_GAMES.includes("pinball") === !PINBALL_IN_ROOMS && ACTIVE_ARCADE_GAMES.includes("pinball") === PINBALL_IN_ROOMS && ACTIVE_ARCADE_GAMES.length === 21 + (PINBALL_IN_ROOMS ? 1 : 0), "the active arcade list follows the switch");
   const puzzle = generatePuzzle("pinball") as any;
-  ok(puzzle.type === "pinball" && puzzle.pinRev === PIN_REV_TARGET + 1 && Number.isInteger(puzzle.seed), "the generator stamps pinRev 3 (pinRev 1 play: on the scoring targets pinRev 2, scoring-targets-check; on the score bands pinRev 3, scoring-bands-check)");
+  // pinRev 4 (E4, 25 Oct 2026): the taller table's expansion follows the score-bands pinRev 3 (e4-expansion-check).
+  ok(puzzle.type === "pinball" && puzzle.pinRev === PIN_REV_TARGET + 2 && Number.isInteger(puzzle.seed), "the generator stamps pinRev 4 (the expansion, after pinRev 1 play on the scoring targets pinRev 2, scoring-targets-check, and on the score bands pinRev 3, scoring-bands-check)");
 }
 
 /* ------------------------------------------------------------------ 6 */

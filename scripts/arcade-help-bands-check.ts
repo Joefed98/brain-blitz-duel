@@ -14,6 +14,7 @@
  *
  *   bun scripts/arcade-help-bands-check.ts
  */
+import { roundMaxFor } from "../src/lib/duel/roundMax";
 import { LIVE_BANDS, type LiveBandGame } from "../src/lib/arcade/liveBands";
 import { roundMaxFor } from "../src/lib/duel/roundMax";
 import { BAND_SPECS } from "../src/lib/arcade/bandParts";
@@ -51,7 +52,7 @@ const SIM_MODULES: Record<LiveBandGame, string[]> = {
   burst: ["burst"],
   swing: ["swing"],
   bullseye: ["bullseye"],
-  pinball: ["pinball"],
+  pinball: ["pinball", "pinball4"],
 };
 
 let checks = 0;
@@ -121,10 +122,11 @@ for (const [type, live] of Object.entries(LIVE_BANDS) as [
       new RegExp(`\\b${n(good)}\\b`).test(score.slice(score.indexOf("A good run"))),
     `${type}: a good run at ${n(good)} (live ${live.field} ${live.rev}): ${score}`,
   );
-  if (top === 150)
+  // An open game's curve tops out at its round maximum: 150, or 200 once an expansion raised it (roundMax.ts).
+  if (top === 150 || top === roundMaxFor(type))
     ok(
-      score.includes(`– 150 at ${n(bandTop(curve))}.`),
-      `${type}: open game states 150 at ${n(bandTop(curve))}`,
+      score.includes(`– ${top} at ${n(bandTop(curve))}.`),
+      `${type}: open game states ${top} at ${n(bandTop(curve))}`,
     );
   else
     ok(

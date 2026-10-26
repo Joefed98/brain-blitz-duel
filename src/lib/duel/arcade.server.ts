@@ -7,14 +7,14 @@ import { SNAKE_REV_TARGET, SNAKE_REV_STRICT } from "@/lib/arcade/snake";
 import { BUB_REV_REEF } from "@/lib/arcade/bubble";
 import { MATCHUP_REV_GOALS } from "@/lib/arcade/matchup";
 import { SNIP_REV_TARGET, SNIP_REV_STRICT } from "@/lib/arcade/snip";
-import { SKYLINE_REV_TARGET, SKYLINE_REV_STRICT } from "@/lib/arcade/skyline";
+import { SKYLINE_REV_TARGET, SKYLINE_REV_STRICT, SKYLINE_REV_EXPAND } from "@/lib/arcade/skyline";
 import { tiltSeedCupsReachable, TILT_REV_TARGET, TILT_REV_STRICT } from "@/lib/arcade/tilt";
 import { JUNC_REV_BAND } from "@/lib/arcade/junction";
 import { BINTOSS_REV_TARGET, BINTOSS_REV_STRICT, BINTOSS_REV_EXPAND } from "@/lib/arcade/binToss";
 import { SWING_REV_TALL, SWING_REV_TARGET, SWING_REV_STRICT } from "@/lib/arcade/swing";
 import { BURST_REV_TARGET, BURST_REV_STRICT } from "@/lib/arcade/burst";
 import { BRK_REV_TARGET, BRK_REV_STRICT } from "@/lib/arcade/breaker";
-import { PIN_REV_TARGET, PIN_REV_STRICT } from "@/lib/arcade/pinball";
+import { PIN_REV_TARGET, PIN_REV_STRICT, PIN_REV_EXPAND } from "@/lib/arcade/pinball";
 import { WHACK_REV_DEPTH } from "@/lib/arcade/whack";
 import { WAV_REV_TARGET, WAV_REV_STRICT } from "@/lib/arcade/wavefront";
 import { ORBIT_REV_TARGET, ORBIT_REV_STRICT } from "@/lib/arcade/orbit";
@@ -80,7 +80,7 @@ export function generateSwerve(): SwervePuzzleData {
 }
 
 export function generateSkyline(): SkylinePuzzleData {
-  return { type: "skyline", seed: arcadeSeed(), skylineRev: SKYLINE_REV_STRICT };
+  return { type: "skyline", seed: arcadeSeed(), skylineRev: SKYLINE_REV_EXPAND };
 }
 
 export function generateBinToss(): BinTossPuzzleData {
@@ -118,7 +118,7 @@ export function generateBreaker(): BreakerPuzzleData {
 }
 
 export function generatePinball(): PinballPuzzleData {
-  return { type: "pinball", seed: arcadeSeed(), pinRev: PIN_REV_STRICT };
+  return { type: "pinball", seed: arcadeSeed(), pinRev: PIN_REV_EXPAND };
 }
 
 export function generateRally(): RallyPuzzleData {

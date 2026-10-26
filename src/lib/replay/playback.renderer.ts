@@ -15,7 +15,7 @@ import { binTossArtGame } from "@/lib/arcade/binTossArt.renderer";
 import { drawBullseye } from "@/lib/arcade/bullseye.renderer";
 import { matchupArtGame } from "@/lib/arcade/matchup.renderer";
 import { breakerArtGameFor } from "@/lib/arcade/breaker.renderer";
-import { pinballArtGameFor } from "@/lib/arcade/pinball.renderer";
+import { pinballArtGameForAny } from "@/lib/arcade/pinball4.renderer";
 import { rallyArtGame } from "@/lib/arcade/rally.renderer";
 import { sliceArtGame } from "@/lib/arcade/slice.renderer";
 import { bubbleArtGame } from "@/lib/arcade/bubble.renderer";
@@ -67,7 +67,7 @@ const SIMPLE: Record<string, (p: PuzzleData) => Draw> = {
   bullseye: () => drawBullseye as Draw,
   matchup: () => matchupArtGame.draw as Draw,
   breaker: (p) => breakerArtGameFor(rev(p, "brkRev")).draw as Draw,
-  pinball: (p) => pinballArtGameFor(rev(p, "pinRev")).draw as Draw,
+  pinball: (p) => pinballArtGameForAny(rev(p, "pinRev")).draw as Draw,
   rally: () => rallyArtGame.draw as Draw,
   slice: () => sliceArtGame.draw as Draw,
   bubble: () => bubbleArtGame.draw as Draw,

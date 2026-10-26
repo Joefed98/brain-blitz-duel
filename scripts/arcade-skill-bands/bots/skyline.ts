@@ -15,6 +15,9 @@ import {
   SKYLINE_SPEED_START,
   SKYLINE_WORLD_RIGHT,
   skylineGustAt,
+  skylineKindAt,
+  SKYLINE_KIND_NARROW,
+  SKYLINE_KIND_WIDE,
   skylineSpeed,
   type SkylineState,
 } from "../../../src/lib/arcade/skyline";
@@ -25,7 +28,9 @@ const TICK_MS = 1000 / 60;
 /** Predicted tick (fractional) on which the tap should land so the block sits at the tower's x. */
 function alignTick(seen: SkylineState, from: number): number | null {
   const below = seen.blocks[seen.blocks.length - 1]!;
-  const target = below.x;
+  // skylineRev 7: a narrow or wide block is perfect centred on the top (the preview showed it coming).
+  const kind = skylineKindAt(seen, seen.placed);
+  const target = kind === SKYLINE_KIND_NARROW || kind === SKYLINE_KIND_WIDE ? below.x + (below.w >> 1) - (seen.w >> 1) : below.x;
   const v0 = skylineSpeed(seen.placed);
   const gust = skylineGustAt(seen, seen.tick) * SKYLINE_GUST_SPEED;
   let x = seen.x;

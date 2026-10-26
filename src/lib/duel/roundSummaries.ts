@@ -950,6 +950,8 @@ const skylineSummary: SummaryBuilder = (result) => {
     detail: [
       `${perfects} perfect drop${perfects === 1 ? "" : "s"}`,
       ...(result.extra?.["skylineRev"] ? [`Best streak ${Number(result.extra?.["bestStreak"] ?? 0)} in a row`] : []),
+      // skylineRev 7: the expansion's gold blocks and height milestones.
+      ...(Number(result.extra?.["skylineRev"] ?? 0) >= 7 ? [`${Number(result.extra?.["golds"] ?? 0)} gold · ${Number(result.extra?.["milestones"] ?? 0)} milestones`] : []),
     ],
   };
 };
@@ -1054,7 +1056,12 @@ const pinballSummary: SummaryBuilder = (result) => {
   const left = n("ballsLeft");
   return {
     summary: `${n("points").toLocaleString("en-GB")} table points · ${n("bumps")} bumper hits · ${n("drops")} targets`,
-    detail: [`Multiplier ×${Math.max(1, n("mult"))}`, left > 0 ? `Clock ran out with ${left} ball${left === 1 ? "" : "s"} left` : "All three balls drained"],
+    detail: [
+      `Multiplier ×${Math.max(1, n("mult"))}`,
+      // pinRev 4 (the expansion): ramps, multiball, jackpots and skill shots.
+      ...(n("pinRev") >= 4 ? [`${n("ramps")} ramps · ${n("multiballs")} multiball · ${n("jackpots")} jackpots · ${n("skills")} skill shots`] : []),
+      left > 0 ? `Clock ran out with ${left} ball${left === 1 ? "" : "s"} left` : "All three balls drained",
+    ],
   };
 };
 

@@ -103,7 +103,7 @@ function introScoreTemplates(): Record<PuzzleType, string> {
 
     // Arcade
     hover: "Points for each barrier and gold star. Last the whole minute for 10 more.",
-    skyline: "Points for each block and perfect drop, more for perfects in a row. Up to {max}.",
+    skyline: "Points for blocks, perfects in a row, gold blocks and every 10 floors. Up to {max}.",
     bintoss: `Buckets, hoops, All ${BINTOSS_THROWS} in for 10 more: up to 150. Far buckets +${BINTOSS_FAR_POINTS} each: up to {max}.`,
     bullseye: `Rings ${BULLSEYE_RING_VALUES.join(" / ")}, inner bull ${BULLSEYE_INNER_BULL_POINTS}; balloons +1 to +3. Up to {max}.`,
     matchup: "Longer lines score more; goals, ice, treasure and cascades add more. Up to {max}.",
@@ -111,7 +111,7 @@ function introScoreTemplates(): Record<PuzzleType, string> {
     cross: "Points for each lane crossed, more for each full crossing. Up to {max}.",
     breaker: `Points for each brick. Clear all ${BRK_BRICKS} quickly for up to {max}.`,
     rally: "Points for each gold-ball hit and pink target. Blue scores nothing. Up to {max}.",
-    pinball: "Table points from bumpers, targets, the spinner and lit lanes. Up to {max}.",
+    pinball: "Table points: ramps, J-O-U-L-Z, jackpots and skill shots score big. Up to {max}.",
     bubble: "Clear bubbles; falling chests, bank shots and combos add more. Up to {max}.",
     slice: "Food by combo: Up to 150; gold, tickets, dodges add 50: {max}. Chilli: lose 10.",
     beat: "Points for each note hit in time; every note Perfect for {max}. A miss costs a little.",
