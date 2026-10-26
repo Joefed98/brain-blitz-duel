@@ -102,7 +102,13 @@ old: inkRev 8's median with the same (fixed) bot; zero-score runs new / old; run
 | Elite | 178 / 190 / 200 | 121 | +47 % | 0 / 6 | 185 / 200 |
 
 **Random input** (uniformly random strokes, RELEASE, UNDO and live strokes at a human-ish rate,
-`ink-x200-bands.ts --random`): RANDOM_LINE.
+`ink-x200-bands.ts --random`, all 260 seeds): inkRev 10 median 0, p90 22, best 29 (level 1's free misses let a
+random line pot it now and then); inkRev 8 median 0, best 33.
+
+The official tool agrees: `bun scripts/arcade-skill-bands.ts inkbridge --rev=x --levels=weak,average,good,great,near,elite
+--seeds=60 --jobs=1` gives live (inkRev 8) 33 / 51 / 65 / 91 / 111 / 122 and next (inkRev 10) 32 / 43 / 61 / 118 / 166 (p90
+183) / 178 (p90 190). (Its run order shares the bot's per-seed line cache differently, so single runs can differ by a
+point or two.) Its 200 fresh seeds were stopped by the session's time limit; the fresh table is from ink-x200-bands.
 
 Against the bar: good within about ±10 % of before (−6 % tuning, +11 % fresh); near-perfect median 166 / 166.5 with
 p90 183 / 181; elite median 178 / 178 with p90 193 / 190; no zero for weak or average play (inkRev 8 had 17–71); great
@@ -130,7 +136,12 @@ gives idle, random, weak-bot, elite-bot and perfect logs. ink-x200-check proves 
 
 ## Checks run
 
-RUN_TABLE
+All pass, each run on its own: ink-x200-check (341 checks), round-max-check, intro-score-text-check,
+six-game-scoring-check, arcade-help-bands-check, practice-bests-check, scoring-bands-check, scoring-targets-check,
+scoring-rev3-check, reveal-score-check, replay-check, arcade-fx-check, arcade-self-replay-check (the six ink entries,
+40 runs each), arcade-batch5-check, arcade-tuning-c-check, ink-birds-check, ink-line-check, ink-rainbow-check,
+ink-rev3-fix-check, ink-live-check, ink-live-bottom-check, sound-manifest-check, intro-demo-check; `tsc --noEmit`
+clean. The ceiling over all 260 seeds: `bun scripts/ink-x200-oracle.ts 0 130` and `130 130`.
 
 ## Shared files touched (Rainbow Bridge's lines only)
 
