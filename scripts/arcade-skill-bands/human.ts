@@ -20,10 +20,6 @@ export const LEVELS = ["average", "good", "great", "near"] as const;
 export const ALL_LEVELS = ["weak", "average", "good", "great", "near", "elite", "perfect"] as const;
 export type SkillLevel = (typeof ALL_LEVELS)[number];
 
-/** The x200 expansions' tools (26 Oct 2026) name the measured levels this way: the six human levels. */
-export const BAND_LEVELS = ["weak", "average", "good", "great", "near", "elite"] as const;
-export type BandLevel = SkillLevel;
-
 export const LEVEL_LABEL: Record<SkillLevel, string> = {
   weak: "Weak",
   average: "Average",
@@ -112,11 +108,6 @@ export class Human {
     this.level = level;
     this.p = level === "elite" ? { ...PROFILES.elite, ...ELITE_BY_GAME[game] } : PROFILES[level];
     this.rand = mulberry(hash(`${game}:${seed}:${level}`));
-  }
-
-  /** The measured level (the x200 bots read it to play an elite's sharper strategy; the same as `level`). */
-  get band(): SkillLevel {
-    return this.level;
   }
 
   /** Uniform in [0, 1). */
