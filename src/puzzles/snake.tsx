@@ -28,8 +28,10 @@ import {
   SNAKE_SWIPE_PX,
   type SnakeState,
   snakeWorldHForRev,
-  SNAKE_WORLD_W,
+  snakeWorldWForRev,
+  snakeV9Bonus,
 } from "@/lib/arcade/snake";
+import { expansionSounds } from "@/lib/fx/expansionSounds";
 import { decodeSnakeRun, encodeSnakeRun, replaySnakeRun } from "@/lib/duel/snake";
 import { ARCADE_CRASH_FREEZE_MS, type SnakePuzzleData } from "@/lib/duel/types";
 import { buzz } from "@/lib/motion";
@@ -82,9 +84,14 @@ function IntroExample() {
         <path d="M84 30 L86 34 L91 36 L86 38 L84 42 L82 38 L77 36 L82 34 Z" fill="#FFD84A" />
         <rect x={5 * 24 + 3} y={2 * 24 + 3} width={18} height={18} rx={4} fill="rgba(255,77,77,0.28)" stroke="rgba(255,77,77,0.7)" strokeDasharray="3 2" />
         <rect x={5 * 24 + 2} y={4 * 24 + 2} width={20} height={20} rx={6} fill="#4A4750" stroke="#77747B" />
+        {/* snakeRev 9: a speed lane along the bottom row, a wormhole mouth and a gold star. */}
+        <rect x={0} y={4 * 24} width={4 * 24} height={24} fill="rgba(159,139,255,0.14)" stroke="rgba(159,139,255,0.5)" />
+        <circle cx={0 * 24 + 12} cy={1 * 24 + 12} r={9} fill="#05030C" stroke="#3DFFE0" strokeWidth={2} strokeDasharray="3 2" />
+        <path d="M156 56 L162 60 L156 64 L150 60 Z" fill="#E39A10" />
+        <path d="M156 54 L157 59 L161 60 L157 61 L156 66 L155 61 L151 60 L155 59 Z" fill="#FFF3C4" />
       </svg>
       <p className="text-center text-xs text-muted-foreground">
-        Swipe up for the star. Keep your head off the red shadows: a rock lands there.
+        Swipe up for the star. Keep off the red shadows; wormholes, lanes and gold stars are your shortcuts.
       </p>
     </div>
   );
@@ -157,6 +164,13 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     let draftAt = 0;
     const feedback = arcadeFeedback({ game: "snake" });
     const sounds = snakeSounds();
+    // snakeRev 9's features (older rounds keep every counter at 0, so they stay silent).
+    const featureSounds = expansionSounds<SnakeState>([
+      { count: (s) => s.goldsEaten ?? 0, sound: "chime" },
+      { count: (s) => s.warpsUsed ?? 0, sound: "zap", volume: 0.8 },
+      { count: (s) => ((s.combo ?? 0) >= 3 ? s.comboPts ?? 0 : 0), sound: "ding", volume: 0.7 },
+      { count: (s) => Math.trunc((s.laneCells ?? 0) / 4), sound: "tick", volume: 0.5 },
+    ]);
 
     const finish = () => {
       if (submitted.current) return;
@@ -196,6 +210,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       reportArcadeTick(state.current.tick, snakeGame.isOver(state.current));
       feedback(state.current, snakeGame.isOver(state.current));
       sounds.frame(state.current, !snakeGame.isOver(state.current) && !lockedRef.current);
+      featureSounds(state.current, !snakeGame.isOver(state.current) && !lockedRef.current);
 
       frameTiming.draw();
       const size = sizeCanvas();
@@ -268,7 +283,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   if (!data) return null;
 
   return (
-    <ArcadeArenaSlot width={SNAKE_WORLD_W} height={snakeWorldHForRev(data.snakeRev)} scene={snakeFill} ambient={snakeAmbient} playCentre>
+    <ArcadeArenaSlot width={snakeWorldWForRev(data.snakeRev)} height={snakeWorldHForRev(data.snakeRev)} scene={snakeFill} ambient={snakeAmbient} playCentre>
       <div
         ref={wrap}
         data-game-arena="canvas" className="min-h-0 w-full flex-1 overflow-hidden rounded-xl"
@@ -325,6 +340,11 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
       <p className="shrink-0 text-center font-mono text-base text-muted-foreground">
         {puzzle.snakeRev ? `Same stars and rocks for everyone${result.rocks > 0 ? ` · ${result.rocks} rock${result.rocks === 1 ? "" : "s"} landed` : ""}` : "Same stars for everyone"}
       </p>
+      {result.state.exp ? (
+        <p className="shrink-0 text-center font-mono text-sm text-muted-foreground">
+          {`${result.state.goldsEaten ?? 0} gold · best combo ${result.state.maxCombo ?? 0} · ${result.state.warpsUsed ?? 0} warps · bonus +${snakeV9Bonus(result.state).total}`}
+        </p>
+      ) : null}
     </div>
   );
 }

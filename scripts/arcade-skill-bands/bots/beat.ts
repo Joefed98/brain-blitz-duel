@@ -12,7 +12,7 @@
  * neighbouring lane, flick the wrong way, or tap an arrow note instead of
  * swiping it. The bot never looks at the score; it only plays the chart.
  */
-import { BEAT_INPUT_RELEASE, BEAT_INPUT_SWIPE, BEAT_INPUT_TAP, BEAT_LANES, type BeatState } from "../../../src/lib/arcade/beat";
+import { BEAT_FEVER_FULL, BEAT_INPUT_FEVER, BEAT_INPUT_RELEASE, BEAT_INPUT_SWIPE, BEAT_INPUT_TAP, beatLanesAt, type BeatState } from "../../../src/lib/arcade/beat";
 import { msToTicks } from "../human";
 import { driveEvents, Plan, type SkillBot } from "../bot";
 
@@ -20,6 +20,12 @@ import { driveEvents, Plan, type SkillBot } from "../bot";
  * Notes a second this player reads and plays comfortably (a perception/motor
  * constant). Above about 70 % of it the passage starts to overload them.
  */
+/**
+ * beatRev 9: whether the bots play the expansion's features (fever, golden notes, double taps). The
+ * measuring script (scripts/expansions-e2-bands.ts) turns it off to see where today's play lands.
+ */
+export const beatBotOptions = { features: true };
+
 const CAPACITY: Record<string, number> = { average: 4.5, good: 5.5, great: 6.5, near: 8 };
 
 export const bot: SkillBot = ({ game, seed, human }) => {
@@ -44,9 +50,12 @@ export const bot: SkillBot = ({ game, seed, human }) => {
   type Want = { t: number; k: number; a: number; b: number; order: number; after?: Want; actual?: number };
   const wants: Want[] = [];
   let order = 0;
+  const features = Boolean(init.exp) && beatBotOptions.features;
   for (let i = 0; i < n; i++) {
     const t = chart.ticks[i]!;
     const lane = chart.lanes[i]!;
+    // beatRev 9: a player using the features gives golden notes extra care (double taps are just two notes).
+    const golden = features && Boolean(chart.golds?.[i]);
     const swipe = chart.swipes?.[i] ?? 0;
     const hold = chart.holds[i] ?? 0;
     const chord = chart.ticks[i - 1] === t || chart.ticks[i + 1] === t;
@@ -56,11 +65,12 @@ export const bot: SkillBot = ({ game, seed, human }) => {
     const lapse = p.lapse * 0.3 + over * 0.6 + (chord ? p.mistake * 0.4 : 0);
     if (human.chance(lapse)) continue;
     const scale = 1 + 0.4 * load + (chord ? 0.3 : 0);
-    const err = msToTicks(bias + human.timingMs(scale));
+    const err = msToTicks(bias + human.timingMs(golden ? scale * 0.7 : scale));
     let playLane = lane;
     if (human.slip(0.3)) {
       const d = human.chance(0.5) ? 1 : -1;
-      playLane = lane + d >= 0 && lane + d < BEAT_LANES ? lane + d : lane - d;
+      const lanes = beatLanesAt(init, t);
+      playLane = lane + d >= 0 && lane + d < lanes ? lane + d : lane - d;
     }
     if (swipe) {
       // Reading the arrow: now and then tapped instead of swiped, or flicked the wrong way.
@@ -98,5 +108,18 @@ export const bot: SkillBot = ({ game, seed, human }) => {
   const plan = new Plan();
   // A lift or flick never comes before its own touch (a touch slid late drags them with it).
   for (const w of wants) w.actual = plan.at(Math.max(w.t, (w.after?.actual ?? 0) + 1), { k: w.k, a: w.a, b: w.b, c: 0, d: 0 });
-  return driveEvents(game, (_s: BeatState, t) => plan.take(t), init);
+  // beatRev 9 fever: a player using it taps the meter a reaction (and a moment's thought) after it fills, between notes.
+  let feverAt = -1;
+  return driveEvents(game, (s: BeatState, t) => {
+    const planned = plan.take(t);
+    if (planned) return planned;
+    if (features && (s.meter ?? 0) >= BEAT_FEVER_FULL && (s.fever ?? 0) === 0) {
+      if (feverAt < 0) feverAt = t + human.reactTicks() + human.thinkTicks(250);
+      if (t >= feverAt) {
+        feverAt = -1;
+        return { k: BEAT_INPUT_FEVER, a: 0, b: 0, c: 0, d: 0 };
+      }
+    } else feverAt = -1;
+    return null;
+  }, init);
 };

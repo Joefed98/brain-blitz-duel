@@ -171,7 +171,8 @@ section("New rounds carry the Tuning C stamps; Junction is practice only");
     ["flip", playRevOf("flip", generateFlip().flipRev), FLIP_REV_TUNEC],
     // Tuning F (Oct 2026) moved Tempo on to a thinner chart on the same curve (beatRev 5); arcade-tuning-f-check covers it.
     // Taller worlds batch 2 (16 Oct 2026) moved Tempo and Slice on to their taller worlds (beatRev 6, sliceRev 6); arcade-tuning-g2-check covers them.
-    ["beat", playRevOf("beat", generateBeat().beatRev), BEAT_REV_TUNEF + 1],
+    // Expansion E2 (25 Oct 2026) then moved Tempo on to its five-lane song with fever (beatRev 9); expansion-e2-check covers it.
+    ["beat", playRevOf("beat", generateBeat().beatRev), BEAT_REV_TUNEF + 4],
     // Taller worlds batch 1 (16 Oct 2026) moved Wavefront on to its taller world (wavRev 6); arcade-tuning-g1-check covers it.
     ["wavefront", playRevOf("wavefront", generateWavefront().wavRev), WAV_REV_TUNEC + 1],
     ["tilt", playRevOf("tilt", generateTilt().tiltRev), TILT_REV_TUNEC],
@@ -226,8 +227,8 @@ section("Grappler, Hover, Rainbow Bridge and Tempo: same play, new curves");
     }
   }
   // Hover's help now states its Tuning E curve (arcade-tuning-e-check).
-  // Screen audit Oct 2026: the help gives a good run from the curve rooms deal (swingRev 9, inkRev 6, beatRev 6; arcade-help-bands-check).
-  ok(PUZZLE_INSTRUCTIONS.swing.score.includes("A good run (100 points) counts 166") && PUZZLE_INSTRUCTIONS.inkbridge.score.includes("A good run (100 points) counts 59") && PUZZLE_INSTRUCTIONS.beat.score.includes("A good run (100 points) reaches 868"), "the \"?\" help states a good run on the curves rooms deal");
+  // Screen audit Oct 2026: the help gives a good run from the curve rooms deal (swingRev 9, inkRev 6, beatRev 9 since expansion E2; arcade-help-bands-check).
+  ok(PUZZLE_INSTRUCTIONS.swing.score.includes("A good run (100 points) counts 166") && PUZZLE_INSTRUCTIONS.inkbridge.score.includes("A good run (100 points) counts 59") && PUZZLE_INSTRUCTIONS.beat.score.includes("A good run (100 points) reaches 824"), "the \"?\" help states a good run on the curves rooms deal");
 }
 
 /* ================================ 4a. Gemstone ================================ */

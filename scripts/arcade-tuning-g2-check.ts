@@ -30,6 +30,7 @@
  *   bun scripts/arcade-tuning-g2-check.ts
  */
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { BEAT_REV_200 } from "../src/lib/arcade/beat";
 import { readFileSync } from "node:fs";
 import { gunzipSync } from "node:zlib";
 import { fnv } from "./arcade-tuning-a-legacy";
@@ -206,7 +207,8 @@ for (const [file, label] of [["scripts/fixtures/arcade-tuning-g2-legacy.json", "
 /* ============================== 2. New rounds ============================== */
 section("New rounds: stamps, start states, checksums, worlds by revision");
 {
-  ok(playRevOf("beat", generateBeat().beatRev) === BEAT_REV_TALL, "rooms deal beatRev 6");
+  // Expansion E2 (25 Oct 2026) then moved Tempo on to its five-lane song (beatRev 9, the same lanes); expansion-e2-check covers it.
+  ok(playRevOf("beat", generateBeat().beatRev) === BEAT_REV_TALL + 3, "rooms deal beatRev 9 (expansion E2, after beatRev 6)");
   // World expansion E5 (25 Oct 2026) moved Slice on to its larger board (sliceRev 9); expansion-e5-check covers it.
   ok([SLICE_REV_TALL, SLICE_REV_EXPAND].includes(playRevOf("slice", generateSlice().sliceRev) ?? -1), "rooms deal sliceRev 6 (or sliceRev 9, the expansion)");
   // Expansion E6 (25 Oct 2026) moved Coral Pop on to its deeper reef (bubbleRev 8, the same tank); e6-check covers it.
@@ -530,7 +532,7 @@ section("Mixed Signals clashRev 5: the gentler unfinished credit");
 section("Intro demos stay stopped until re-recorded on the taller revision");
 {
   const src = read("src/lib/duel/introDemo.functions.ts");
-  ok(/data\.type === "beat" && demo\?\.puzzle\.type === "beat" && demo\.puzzle\.beatRev !== BEAT_REV_TALL\) return null/.test(src), "Tempo's demo plays only on beatRev 6");
+  ok(/data\.type === "beat" && demo\?\.puzzle\.type === "beat" && demo\.puzzle\.beatRev !== BEAT_REV_200\) return null/.test(src), "Tempo's demo plays only on beatRev 9 (expansion E2; beatRev 6 before it)");
   ok(/data\.type === "slice" && demo\?\.puzzle\.type === "slice" && demo\.puzzle\.sliceRev !== SLICE_REV_TALL\) return null/.test(src), "Slice's demo plays only on sliceRev 6");
   // Expansion E6: Coral Pop's demo now plays only on bubbleRev 8 (e6-check).
   ok(/data\.type === "bubble" && demo\?\.puzzle\.type === "bubble" && demo\.puzzle\.bubbleRev !== BUB_REV_REEF\) return null/.test(src), "Coral Pop's demo plays only on bubbleRev 8");

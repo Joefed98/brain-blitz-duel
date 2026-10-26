@@ -13,6 +13,7 @@ import {
   beatSwipeCount,
   BEAT_CHECKPOINT_INTERVAL,
   BEAT_RUN_TICKS,
+  BEAT_V9_RUN_TICKS,
   type BeatCheckpoint,
   type BeatState,
 } from "@/lib/arcade/beat";
@@ -66,7 +67,7 @@ export function decodeBeatRun(raw: string): BeatRun {
   const checkpoints = checkpointPart
     .split(",")
     .filter(Boolean)
-    .slice(0, Math.ceil(BEAT_RUN_TICKS / BEAT_CHECKPOINT_INTERVAL))
+    .slice(0, Math.ceil(BEAT_V9_RUN_TICKS / BEAT_CHECKPOINT_INTERVAL))
     .map((encoded) => encoded.split(":").map((part) => Number.parseInt(part, 10)))
     .filter((values) => values.length === 11 && values.every(Number.isInteger))
     .map(([tick, cursor, perfect, good, ok, misses, strays, tenths, combo, holdFold, sum]) => ({
@@ -123,13 +124,15 @@ export interface BeatResult {
 /** The single place a Beat score is worked out. */
 export function replayBeatRun(seed: number, raw: string, rev?: number | null): BeatResult {
   const beatGame = beatGameFor(rev);
+  // beatRev 9's longer song (75 s); every older revision runs BEAT_RUN_TICKS.
+  const RUN_TICKS = beatGame.runTicks;
   const run = decodeBeatRun(raw);
-  const endTick = run.endTick && run.endTick > 0 ? Math.min(run.endTick, BEAT_RUN_TICKS) : 0;
-  const clientLag = endTick > 0 && endTick < BEAT_RUN_TICKS;
-  const check = checkInputEvents(run.events, BEAT_RUN_TICKS, beatGame.inputRanges ?? []);
+  const endTick = run.endTick && run.endTick > 0 ? Math.min(run.endTick, RUN_TICKS) : 0;
+  const clientLag = endTick > 0 && endTick < RUN_TICKS;
+  const check = checkInputEvents(run.events, RUN_TICKS, beatGame.inputRanges ?? []);
   const events = new Map<number, ArcadeInputEvent>();
   for (const event of check.events) events.set(event.t, event);
-  const lastTick = clientLag ? endTick : BEAT_RUN_TICKS;
+  const lastTick = clientLag ? endTick : RUN_TICKS;
   const clientCheckpoints = new Map((run.checkpoints ?? []).map((item) => [item.tick, item]));
 
   let state = beatGame.init(seed);
@@ -170,8 +173,8 @@ export function replayBeatRun(seed: number, raw: string, rev?: number | null): B
     holdsDone: state.holdsDone,
     swipes: beatSwipeCount(state),
     swipesHit: state.swipesHit ?? 0,
-    clean: state.misses === 0 && state.tick >= BEAT_RUN_TICKS,
-    finished: state.tick >= BEAT_RUN_TICKS,
+    clean: state.misses === 0 && state.tick >= RUN_TICKS,
+    finished: state.tick >= RUN_TICKS,
     endedSeconds: Math.round((reached / TICKS_PER_SECOND) * 10) / 10,
     score: replayScore,
     flagged: !check.ok || mismatch || desyncTick !== null,

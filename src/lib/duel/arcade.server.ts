@@ -3,7 +3,7 @@ import { SLICE_REV_TARGET, SLICE_REV_STRICT, SLICE_REV_EXPAND } from "@/lib/arca
 import { FLIP_REV_TARGET, FLIP_REV_STRICT } from "@/lib/arcade/flip";
 import { CROSS_REV_TARGET, CROSS_REV_STRICT } from "@/lib/arcade/cross";
 import { INK_REV_TARGET, INK_REV_STRICT } from "@/lib/arcade/inkBridge";
-import { SNAKE_REV_TARGET, SNAKE_REV_STRICT } from "@/lib/arcade/snake";
+import { SNAKE_REV_TARGET, SNAKE_REV_200 } from "@/lib/arcade/snake";
 import { BUB_REV_REEF } from "@/lib/arcade/bubble";
 import { MATCHUP_REV_GOALS } from "@/lib/arcade/matchup";
 import { SNIP_REV_TARGET, SNIP_REV_STRICT } from "@/lib/arcade/snip";
@@ -19,7 +19,7 @@ import { WHACK_REV_DEPTH } from "@/lib/arcade/whack";
 import { WAV_REV_TARGET, WAV_REV_STRICT } from "@/lib/arcade/wavefront";
 import { ORBIT_REV_TARGET, ORBIT_REV_STRICT } from "@/lib/arcade/orbit";
 import { RALLY_REV_TARGET, RALLY_REV_STRICT } from "@/lib/arcade/rally";
-import { BEAT_REV_TARGET, BEAT_REV_STRICT } from "@/lib/arcade/beat";
+import { BEAT_REV_TARGET, BEAT_REV_200 } from "@/lib/arcade/beat";
 import { orbitHolesForBankSeed, orbitRev3BankEntryForSeed, orbitRev3PlanetsForSeed, encodeRev3Planets } from "./orbitRev3Course.server";
 import { proveSwingSeed } from "./swingProof.server";
 import { SWING_V9_BANK } from "./swingBankV9.server";
@@ -98,7 +98,7 @@ export function generateMatchup(): MatchupPuzzleData {
 }
 
 export function generateSnake(): SnakePuzzleData {
-  return { type: "snake", seed: arcadeSeed(), snakeRev: SNAKE_REV_STRICT };
+  return { type: "snake", seed: arcadeSeed(), snakeRev: SNAKE_REV_200 };
 }
 
 export function generateCross(): CrossPuzzleData {
@@ -139,7 +139,7 @@ export function generateBubble(): BubblePuzzleData {
 }
 
 export function generateBeat(): BeatPuzzleData {
-  return { type: "beat", seed: arcadeSeed(), beatRev: BEAT_REV_STRICT };
+  return { type: "beat", seed: arcadeSeed(), beatRev: BEAT_REV_200 };
 }
 
 export function generateTenDrop(): TenDropPuzzleData {

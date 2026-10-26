@@ -11,6 +11,7 @@
  *
  *   bun scripts/arcade-batch2-check.ts            (BATCH2_ONLY=snake,hover,bubble,matchup)
  */
+import { roundMaxFor } from "../src/lib/duel/roundMax";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 
@@ -634,6 +635,7 @@ for (const type of (["matchup", "bubble", "snake", "hover"] as const).filter(wan
   ok(INTRO_SCORE[type].length <= 90, `${type}: intro SCORE within 90 characters`);
   ok(!/pellet/i.test(JSON.stringify(help) + INTRO_SCORE[type]), `${type}: no "pellet" wording`);
 }
-ok(new RegExp(`up to ${roundMaxFor("snake")}\\b`, "i").test(INTRO_SCORE.snake), "Meteor intro states its maximum (150 today, the maximum the bot reaches)");
+// Expansion E2 (25 Oct 2026) raised Meteor to 200 (snakeRev 9, expansion-e2-check).
+ok(new RegExp(`up to ${roundMaxFor("snake")}\\b`, "i").test(INTRO_SCORE.snake), "Meteor intro states its maximum");
 
 console.log(`arcade batch 2: ${checks} checks passed`);

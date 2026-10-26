@@ -22,7 +22,7 @@ import {
 import { withPuzzleScoreRev } from "./puzzleScoreRev";
 import { WORDHUNT_DEPTH_BASE_MAX, WORDHUNT_DEPTH_BONUS_MAX, WORDHUNT_V3_BASE_CURVE, WORDHUNT_V3_BONUS_CURVE } from "./wordHunt";
 import { ascendDepthHelp, bangOnDepthHelp, flashDepthHelp } from "./depth/speedTexts";
-import { BAND_GOOD_POINTS, bandMapTotal, bandOpen, bandTop, bandUnitsFor } from "@/lib/arcade/scoreBands";
+import { BAND_GOOD_POINTS, bandMapTotal, bandOpen, bandPoints, bandTop, bandUnitsFor } from "@/lib/arcade/scoreBands";
 import { TD_GOLD_MAX, TD_GOLD_POINTS, TD_REV3_FREE_RESETS, TD_REV3_RESET_COST, TD_RUN_TICKS, TD_STRETCH_FROM, TD_STRETCH_SPAN, TEN_DROP_DEPTH_REV, TEN_DROP_RAW_REV, tenDropScore } from "@/lib/arcade/tenDrop";
 import { CLASH_DEPTH_MAX_WRONG, CLASH_GOLD_POINTS, CLASH_GOLD_STREAK, CLASH_GOLDS, CLASH_GREAT_MAP, CLASH_PACE_ZERO_TICK, CLASH_REV3_RUN_TICKS, CLASH_STREAK_POINTS, CLASH_STRETCH_POINTS } from "@/lib/arcade/colourClash";
 import { WHACK_BANDS_MAP, WHACK_COMBO_POINTS, WHACK_DIAMOND_POINTS, WHACK_DIAMONDS, WHACK_QUICK_ZERO_TICKS } from "@/lib/arcade/whack";
@@ -62,7 +62,8 @@ import { MATCHUP_V3_PAR_RAW, MATCHUP_V9_FEATURE_MAX } from "@/lib/arcade/matchup
 import { BT_V7_BALLS, BT_V7_BOOST_STEPS, BT_V7_FEATURE_MAX, BT_V7_LAST_LAND_MIN } from "@/lib/arcade/ballTrack";
 import { HOVER_REACHABLE_GATES, HOVER_STARS, HOVER_V2_GATES_SCORE, HOVER_V2_STARS_SCORE } from "@/lib/arcade/hover";
 import { WAV_BOSS_HP } from "@/lib/arcade/wavefront";
-import { SNAKE_COLS, SNAKE_TALL_ROWS } from "@/lib/arcade/snake";
+import { SNAKE_V9_CAPS, SNAKE_V9_COLS, SNAKE_V9_ROWS } from "@/lib/arcade/snake";
+import { BEAT_V9_CAPS, BEAT_V9_SKILL_PAY } from "@/lib/arcade/beat";
 import {
   PIN_MULT_MAX,
   PIN_PTS_BANK,
@@ -651,15 +652,21 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
       how: [
         { action: "Swipe to turn.", detail: "Stars grow and speed you up." },
         { action: "Red shadow?", detail: "A rock lands there in 2 s." },
-        { action: "At 20 stars,", detail: "a meteor shower drops 3 rocks!" },
+        { action: "Gold stars, lanes, wormholes:", detail: "bonus points." },
+        { action: "Quick stars build a combo;", detail: "wormholes and violet lanes are quick, risky shortcuts.", helpOnly: true },
+        { action: "At 20 stars,", detail: "a meteor shower drops 3 rocks!", helpOnly: true },
+        { action: "Wormholes:", detail: "two pairs of swirling mouths. Go into one and you come straight out of its twin, still heading the same way, so look before you leap. A star eaten within a second of a trip is a warp star (+2).", helpOnly: true },
+        { action: "Gold comet stars:", detail: "about every 7 s a gold star appears for 3.5 s and fades. Eat it for 1 to 5 bonus points, more the sooner you get there. It doesn't make you longer.", helpOnly: true },
+        { action: "Violet speed lanes:", detail: "one row and one column. Travelling along one you move faster; from a ride's sixth square, every 4 squares score 1.", helpOnly: true },
+        { action: "Combo:", detail: "eat stars within 1.25 s of each other; from the third in a row each star adds 1 to 3 bonus points.", helpOnly: true },
         { action: "Rocks hit only your head.", detail: "A rock on your tail does nothing, and your tail passes through rocks.", helpOnly: true },
         { action: "Rocks start at length 9:", detail: "one more every 4 stars, up to 11. Stars never appear on a rock.", helpOnly: true },
         { action: "The meteor shower", detail: "comes once, when you reach 20 stars: three red shadows, then three rocks land together 2 s later. With the shower, at most 14 rocks.", helpOnly: true },
         { action: "Hit a wall, your tail or a rock with your head", detail: "and the run ends.", helpOnly: true },
-        { action: "Taller grid:", detail: `${SNAKE_COLS} squares across and ${SNAKE_TALL_ROWS} down, so stars can be further away.`, helpOnly: true },
+        { action: "Taller and wider field:", detail: `${SNAKE_V9_COLS} squares across and ${SNAKE_V9_ROWS} down, so stars can be further away.`, helpOnly: true },
         { action: "Everyone gets", detail: "the same stars, and every rock lands on the same square at the same moment.", helpOnly: true },
       ],
-      score: liveBandHelp("snake", "Each star eaten counts 1.", { more: "More stars", good: (u) => `eats ${u} stars` }),
+      score: `${liveBandHelp("snake", "Each star eaten counts 1.", { more: "More stars", good: (u) => `eats ${u} stars` })} Gold stars (up to ${SNAKE_V9_CAPS.gold}), combos (up to ${SNAKE_V9_CAPS.combo}), lane rides (up to ${SNAKE_V9_CAPS.lane}) and warp stars (up to ${SNAKE_V9_CAPS.warp}) add up to 50 more, to {max}.`,
     },
     cross: {
       goal: "Get across the traffic as many times as you can.",
@@ -796,15 +803,23 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
       goal: "Tap the notes in time.",
       how: [
         { action: "Tap a lane", detail: "as its note reaches the line." },
-        { action: "Tail notes:", detail: "hold, let go at the end." },
-        { action: "Arrow notes:", detail: "swipe that way on the line." },
+        { action: "Hold tails, swipe arrows,", detail: "tap twin dots twice." },
+        { action: "Full meter? Tap it:", detail: "FEVER doubles notes!" },
+        { action: "Gold notes and Perfect streaks", detail: "score a bonus; five lanes from 40 s.", helpOnly: true },
+        { action: "Tail notes:", detail: "hold, let go at the end.", helpOnly: true },
+        { action: "Arrow notes:", detail: "swipe that way on the line.", helpOnly: true },
+        { action: "A 75-second song:", detail: "from 40 s, after a short break, the lanes become five (a pink fifth lane), and the last section is the busiest.", helpOnly: true },
+        { action: "Fever:", detail: "Perfects (and Goods, half as much) fill the meter at the top; a miss empties it. When it flashes TAP FEVER!, tap it: for 8 seconds every note you hit counts twice.", helpOnly: true },
+        { action: "Golden notes:", detail: "hit one dead on – on the very moment it meets the line – for a bonus point.", helpOnly: true },
+        { action: "Double taps:", detail: "two notes with white dots, close together in one lane. Tap both; both Perfect earns a bonus point.", helpOnly: true },
+        { action: "Perfect streak:", detail: "a bonus point for every 10 Perfects in your longest run of Perfects.", helpOnly: true },
         { action: "Closer is better", detail: "– perfect, good, or just OK.", helpOnly: true },
         { action: "A tap with no note", detail: "costs nothing.", helpOnly: true },
         { action: "Notes with a tail are holds", detail: "– press as the head reaches the line, release as the tail reaches it. Both ends must be Perfect for Perfect, or within Good for Good; otherwise Miss.", helpOnly: true },
         { action: "Swipe notes (from 30 seconds)", detail: "show a left or right arrow. Flick your finger that way in the lane as the note reaches the line. A plain tap won't hit them, and the wrong way is a miss.", helpOnly: true },
         { action: "Keep a combo going", detail: "to light up the lanes at 10, 25 and 50 – a miss resets it.", helpOnly: true },
       ],
-      score: liveBandHelp("beat", "Perfect counts 4, Good 3, OK 1 and a missed note −2, out of 4 a note, in thousandths of the chart.", { more: "More notes, closer to the beat", good: (u) => `reaches ${u}` }),
+      score: `${liveBandHelp("beat", "Perfect counts 4, Good 3, OK 1 and a missed note −2, out of 4 a note, in thousandths of the chart.", { more: "More notes, closer to the beat", good: (u) => `reaches ${u}` })} Fever (up to ${BEAT_V9_CAPS.fever}), golden notes (up to ${BEAT_V9_CAPS.gold}), double taps (up to ${BEAT_V9_CAPS.double}) and the Perfect streak (up to ${BEAT_V9_CAPS.streak}) earn up to 50 skill points, paid on a rising scale (20 pay ${bandPoints(BEAT_V9_SKILL_PAY, 20)}, 40 pay ${bandPoints(BEAT_V9_SKILL_PAY, 40)}, all 50 pay 50), to {max}.`,
     },
 
     ricochet: {

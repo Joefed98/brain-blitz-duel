@@ -27,6 +27,7 @@ import {
 } from "../src/lib/arcade/scoreBands";
 import { PUZZLE_INSTRUCTIONS } from "../src/lib/duel/instructions";
 import { generatePuzzle } from "../src/lib/duel/generate.server";
+import { roundMaxFor } from "../src/lib/duel/roundMax";
 import type { PuzzleType } from "../src/lib/duel/types";
 
 const SIM_MODULES: Record<LiveBandGame, string[]> = {

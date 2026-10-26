@@ -9,7 +9,7 @@
  * reaction later, when the player re-plans. With no route in hand (finding the
  * next star) the player steers away from what is right ahead of the head.
  */
-import { snakeReversal, snakeStepTicks, SNAKE_COLS, SNAKE_INPUT_TURN, snakeRowsOf, type SnakeState } from "../../../src/lib/arcade/snake";
+import { snakeReversal, snakeStepTicks, snakeStepTicksFor, snakeColsOf, snakeWarpExit, SNAKE_INPUT_TURN, snakeRowsOf, SNAKE_GOLD_LIFE, type SnakeState } from "../../../src/lib/arcade/snake";
 import { driveEvents, type SkillBot } from "../bot";
 import type { Human } from "../human";
 
@@ -21,20 +21,34 @@ const FIND_MS = 300;
 const DR = [-1, 0, 1, 0];
 const DC = [0, 1, 0, -1];
 
-/** Rows of the grid being played (Tuning E's taller grid or the original 20); set when a run starts. */
+/** Rows and columns of the grid being played (Tuning E's taller grid, snakeRev 9's bigger one); set when a run starts. */
 let ROWS = 20;
+let COLS = 15;
+/** snakeRev 9 wormholes this player uses (empty: none, or not noticed). */
+let WARPS: number[] = [];
+/** snakeRev 9 speed lanes this player rides on purpose. */
+let LANES = false;
+
+/**
+ * snakeRev 9: whether the bots play the expansion's features (gold stars, lanes, wormholes). The
+ * measuring script (scripts/expansions-e2-bands.ts) turns it off to see where today's play lands.
+ */
+export const snakeBotOptions = { features: true };
 
 function nb(cell: number, dir: number): number {
-  const r = Math.trunc(cell / SNAKE_COLS) + DR[dir]!;
-  const c = (cell % SNAKE_COLS) + DC[dir]!;
-  if (r < 0 || r >= ROWS || c < 0 || c >= SNAKE_COLS) return -1;
-  return r * SNAKE_COLS + c;
+  const r = Math.trunc(cell / COLS) + DR[dir]!;
+  const c = (cell % COLS) + DC[dir]!;
+  if (r < 0 || r >= ROWS || c < 0 || c >= COLS) return -1;
+  const out = r * COLS + c;
+  return WARPS.length ? snakeWarpExit(WARPS, out) : out;
 }
 
 /** Cells the player treats as walls: rocks, plus the shadows they have noticed. */
 function blockedSet(s: SnakeState, shadows: Set<number>): Set<number> {
   const b = new Set<number>(s.rocks ?? []);
   for (const c of shadows) b.add(c);
+  // A player who does not use the wormholes steers round their mouths.
+  if (!WARPS.length) for (const c of s.warps ?? []) b.add(c);
   return b;
 }
 
@@ -99,7 +113,9 @@ function route(s: SnakeState, first: number, goal: number, blocked: Set<number>,
         if (next < 0 || blocked.has(next)) continue;
         if ((freeAt.get(next) ?? 0) > d + 1) continue;
         const nk = key(next, nd, turn ? 1 : Math.min(minRun, run + 1));
-        const nc = cost + 1 + (turn ? 0.4 : 0);
+        // snakeRev 9: a player who uses the speed lanes values a lane square as a quicker one.
+        const lane = LANES && (nd === 1 || nd === 3 ? Math.trunc(cell / COLS) === s.laneRow : cell % COLS === s.laneCol);
+        const nc = cost + (lane ? 0.6 : 1) + (turn ? 0.4 : 0);
         if (nc < (best.get(nk) ?? Infinity)) {
           best.set(nk, nc);
           prev.set(nk, k);
@@ -166,13 +182,28 @@ function turnsOf(s: SnakeState, path: number[]): Turn[] {
 }
 
 /** Ticks until the head arrives on path[i] (path[-1] = the head now: already there). */
-function arrival(s: SnakeState, index: number): number {
-  const step = snakeStepTicks(s.eaten);
-  return s.tick + (step - s.sinceMove) + index * step;
+function arrival(s: SnakeState, index: number, path?: number[]): number {
+  if (!s.exp || !path) {
+    const step = snakeStepTicks(s.eaten);
+    return s.tick + (step - s.sinceMove) + index * step;
+  }
+  // snakeRev 9: each step's length depends on whether it runs along a speed lane (the player sees the lanes).
+  const dirTo = (from: number, to: number) => {
+    for (let d = 0; d < 4; d++) if (nb(from, d) === to) return d;
+    return s.nextDir;
+  };
+  let at = s.tick - s.sinceMove;
+  let from = s.body[0]!;
+  for (let i = 0; i <= index; i++) {
+    const d = dirTo(from, path[i]!);
+    at += snakeStepTicksFor({ ...s, body: [from] } as SnakeState, d);
+    from = path[i]!;
+  }
+  return at;
 }
 
 /** The route the player chooses now: per first direction, the route cost and whether it leaves room. */
-function choose(s: SnakeState, human: Human, shadows: Set<number>, committed: boolean, minRun: number, run0: number): number[] | null {
+function choose(s: SnakeState, human: Human, shadows: Set<number>, committed: boolean, minRun: number, run0: number, goal: number = s.pellet): number[] | null {
   const blocked = blockedSet(s, shadows);
   const freeAt = freeAtMap(s);
   const head = s.body[0]!;
@@ -187,7 +218,7 @@ function choose(s: SnakeState, human: Human, shadows: Set<number>, committed: bo
     let path: number[] | null = null;
     const banned = new Set(blocked);
     for (let tries = 0; tries < 6; tries++) {
-      path = route(s, dir, s.pellet, banned, freeAt, minRun, run0);
+      path = route(s, dir, goal, banned, freeAt, minRun, run0);
       const cross = path ? selfCross(s, path) : -1;
       if (cross < 0) break;
       banned.add(cross);
@@ -257,6 +288,14 @@ export const bot: SkillBot = ({ game, seed, human }) => {
   const gap = SWIPE_GAP[level]!;
   const init = game.init(seed) as SnakeState;
   ROWS = snakeRowsOf(init);
+  COLS = snakeColsOf(init);
+  const features = Boolean(init.exp) && snakeBotOptions.features;
+  WARPS = features ? (init.warps ?? []) : [];
+  LANES = features;
+  /** The gold star this player is going for, and the golds already decided on. */
+  let goldGoal = -1;
+  const goldSeen = new Set<number>();
+  const GOLD_WILL: Record<string, number> = { average: 0.45, good: 0.65, great: 0.8, near: 0.92 };
   /** Swipes planned: tick → direction. */
   const swipes = new Map<number, number>();
   let lastSwipe = -100;
@@ -274,11 +313,14 @@ export const bot: SkillBot = ({ game, seed, human }) => {
 
   const schedule = (s: SnakeState, turns: Turn[], p: number[]) => {
     for (const k of [...swipes.keys()]) if (k > s.tick) swipes.delete(k);
-    const step = snakeStepTicks(s.eaten);
+    const baseStep = snakeStepTicks(s.eaten);
     let earliest = Math.max(s.tick + 1, lastSwipe + gap);
     for (const turn of turns) {
       const index = turn.index;
-      const enter = index < 0 ? s.tick - s.sinceMove : arrival(s, index);
+      const prevDir0 = turns.indexOf(turn) > 0 ? turns[turns.indexOf(turn) - 1]!.dir : s.nextDir;
+      // snakeRev 9: the head's stay on the turn square is shorter along a speed lane (either way out).
+      const step = s.exp ? Math.min(snakeStepTicksFor({ ...s, body: [turn.cell] } as SnakeState, prevDir0), snakeStepTicksFor({ ...s, body: [turn.cell] } as SnakeState, turn.dir)) : baseStep;
+      const enter = index < 0 ? s.tick - s.sinceMove : arrival(s, index, p);
       // Players shift the swipe inside the square's window away from whichever miss would crash:
       // early in the window if carrying on one square too far crashes, late if turning a square
       // early does. The shift leaves about one timing sd of margin.
@@ -330,6 +372,23 @@ export const bot: SkillBot = ({ game, seed, human }) => {
     // Landed shadows become rocks (the shadow set keeps them; harmless).
     for (const c of shadows) if (!warnCells.includes(c) && !(s.rocks ?? []).includes(c)) shadows.delete(c);
 
+    // snakeRev 9: a gold star appears; the player sees it a reaction later and decides whether it is worth the detour.
+    if (features && (s.gold ?? -1) >= 0 && !goldSeen.has(s.goldAt ?? 0)) {
+      goldSeen.add(s.goldAt ?? 0);
+      if (human.chance(GOLD_WILL[level]!)) {
+        const g = s.gold!;
+        const dist = Math.abs(Math.trunc(g / COLS) - Math.trunc(head / COLS)) + Math.abs((g % COLS) - (head % COLS));
+        // Worth it when it can be reached well before it fades.
+        if (dist * snakeStepTicks(s.eaten) + 40 < SNAKE_GOLD_LIFE) {
+          goldGoal = g;
+          replanAt = t + human.reactTicks() + human.thinkTicks(200);
+        }
+      }
+    }
+    if (goldGoal >= 0 && s.gold !== goldGoal) {
+      goldGoal = -1;
+      replanAt = t + human.reactTicks();
+    }
     // A star eaten: the next one has to be found.
     if (s.pellet !== lastPellet) {
       lastPellet = s.pellet;
@@ -359,7 +418,7 @@ export const bot: SkillBot = ({ game, seed, human }) => {
       const step = snakeStepTicks(s.eaten);
       const minRun = Math.ceil(gap / step);
       const run0 = Math.max(0, Math.floor((nextMove - lastSwipe) / step));
-      path = choose(s, human, shadows, nextMove - t < 2 || lastSwipe + gap > nextMove, minRun, run0);
+      path = choose(s, human, shadows, nextMove - t < 2 || lastSwipe + gap > nextMove, minRun, run0, goldGoal >= 0 ? goldGoal : s.pellet);
       pathAt = 0;
       if (path) schedule(s, turnsOf(s, path), path);
     }

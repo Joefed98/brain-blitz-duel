@@ -8,7 +8,8 @@ import { BRK_REV_DEEP } from "@/lib/arcade/breaker";
 import { RALLY_REV_TALL } from "@/lib/arcade/rally";
 import { WAV_REV_TALL } from "@/lib/arcade/wavefront";
 import { BURST_REV_TALL } from "@/lib/arcade/burst";
-import { BEAT_REV_TALL } from "@/lib/arcade/beat";
+import { BEAT_REV_200 } from "@/lib/arcade/beat";
+import { SNAKE_REV_200 } from "@/lib/arcade/snake";
 import { SLICE_REV_EXPAND, SLICE_REV_TALL } from "@/lib/arcade/slice";
 import { BINTOSS_REV_EXPAND } from "@/lib/arcade/binToss";
 import { BUB_REV_REEF } from "@/lib/arcade/bubble";
@@ -108,9 +109,11 @@ export const getIntroDemoFn = createServerFn({ method: "GET" })
     if (data.type === "rally" && demo?.puzzle.type === "rally" && demo.puzzle.rallyRev !== RALLY_REV_TALL) return null;
     if (data.type === "wavefront" && demo?.puzzle.type === "wavefront" && demo.puzzle.wavRev !== WAV_REV_TALL) return null;
     if (data.type === "burst" && demo?.puzzle.type === "burst" && demo.puzzle.burstRev !== BURST_REV_TALL) return null;
+    // Expansion E2 (25 Oct 2026): Meteor and Tempo demos stay stopped until one is recorded on the 200-point revision.
+    if (data.type === "snake" && demo?.puzzle.type === "snake" && demo.puzzle.snakeRev !== SNAKE_REV_200) return null;
     // Taller worlds batch 2 (16 Oct 2026): the same for Tempo, Slice, Coral Pop and Mixed Signals (Pull! above), each stopped
     // until a demo is recorded on its tall revision.
-    if (data.type === "beat" && demo?.puzzle.type === "beat" && demo.puzzle.beatRev !== BEAT_REV_TALL) return null;
+    if (data.type === "beat" && demo?.puzzle.type === "beat" && demo.puzzle.beatRev !== BEAT_REV_200) return null;
     if (data.type === "slice" && demo?.puzzle.type === "slice" && demo.puzzle.sliceRev !== SLICE_REV_TALL) return null;
     // Expansion E6 (25 Oct 2026): Coral Pop's deeper reef (bubbleRev 8) replaces the tall tank's field; a demo stays stopped until one is recorded on it.
     if (data.type === "bubble" && demo?.puzzle.type === "bubble" && demo.puzzle.bubbleRev !== BUB_REV_REEF) return null;
