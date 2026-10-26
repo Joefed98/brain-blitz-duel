@@ -20,7 +20,7 @@
  *     cleared with its flag under par pays its share scaled by the margin, the full share from SWING_PAR_FULL under;
  *     at or over par, a skipped ledge or no start landing pays nothing.
  *  6. Scores: the base curve (to 140, + 10 for 500 m) never above 150, the skill pay never above 50, the total never
- *     above 200; no input scores 0; random play stays near 0; the stored witness run reaches 200 through the server
+ *     above 200; no input scores 0; random play stays near 0; a stored elite run reaches 200 through the server
  *     replay.
  *  7. The ceiling: every room-bank course's perfect-play ceiling (scripts/swing-x200-lib.ts, recorded by
  *     scripts/swing-x200-ceiling.ts in scripts/fixtures/swing-x200-ceiling.json; a sample recomputed, every course
@@ -119,7 +119,7 @@ for (const [file, label] of [["scripts/fixtures/swing-x200-legacy.json", "pre-ch
   }
   console.log(`${label}: ${same} / ${runs.length} stored runs replay to the same score and state`);
 }
-ok(best200 !== null, "a stored swingRev 13 run (a strong-play witness, scripts/swing-x200-witness.ts) reaches 200 through the server replay");
+ok(best200 !== null, "a stored swingRev 13 run (an elite skill-band run) reaches 200 through the server replay");
 
 /* 2. Generator, bank and start state. */
 {
