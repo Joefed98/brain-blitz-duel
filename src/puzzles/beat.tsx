@@ -31,7 +31,20 @@ import {
   BEAT_WORLD_W,
   beatWorldHFor,
   type BeatState,
+  BEAT_HUD_H,
+  BEAT_INPUT_FEVER,
+  BEAT_V9_RUN_TICKS,
+  beatLanesAt,
+  beatV9Bonus,
 } from "@/lib/arcade/beat";
+import { SOUND_MANIFEST } from "@/lib/fx/manifest";
+import { expansionSounds } from "@/lib/fx/expansionSounds";
+
+/**
+ * beatRev 9's song runs past the recorded beat track (60 s): from about 2.5 s before the track's end the
+ * synthesised beat (playBeatStep, the track's own fallback) carries the last section, on the same grid.
+ */
+const TRACK_TICKS = Math.floor(((SOUND_MANIFEST.music_beat.ms / 1000) - 2.5) * TICKS_PER_SECOND);
 import { decodeBeatRun, encodeBeatRun, replayBeatRun } from "@/lib/duel/beat";
 import type { BeatPuzzleData } from "@/lib/duel/types";
 import { beatTrackReady, playBeatStep, stopBeatTrack, syncBeatTrack } from "@/lib/sound";
@@ -71,9 +84,13 @@ function IntroExample() {
         <line x1={8} y1={92} x2={160} y2={92} stroke="rgba(255,255,255,0.4)" strokeWidth={2} />
         <rect x={48} y={86} width={32} height={12} rx={4} fill={BEAT_LANE_COLOURS[1]} />
         <rect x={120} y={40} width={32} height={12} rx={4} fill={BEAT_LANE_COLOURS[3]} />
+        {/* beatRev 9: a golden note and the fever meter. */}
+        <rect x={12} y={30} width={32} height={12} rx={4} fill="#FFF2B0" stroke="#FFD84A" strokeWidth={2} />
+        <rect x={12} y={8} width={144} height={6} rx={3} fill="rgba(255,255,255,0.12)" />
+        <rect x={12} y={8} width={100} height={6} rx={3} fill="#FF4FD8" />
       </svg>
       <p className="text-center text-xs text-muted-foreground">
-        Tap the lane as its note meets the line; arrow notes are swipes.
+        Tap the lane as its note meets the line; fill the meter and tap it for FEVER.
       </p>
     </div>
   );
@@ -140,6 +157,13 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     let draftAt = 0;
     const feedback = arcadeFeedback({ game: "beat" });
     const sounds = beatSounds();
+    // beatRev 9's features (older rounds keep every counter at 0, so they stay silent).
+    const featureSounds = expansionSounds<BeatState>([
+      { count: (s) => s.fevers ?? 0, sound: "zap" },
+      { count: (s) => s.goldsHit ?? 0, sound: "chime", volume: 0.7 },
+      { count: (s) => s.doublesDone ?? 0, sound: "tick", volume: 0.7 },
+      { count: (s) => Math.trunc((s.maxStreak ?? 0) / 10), sound: "ding", volume: 0.6 },
+    ]);
 
     const finish = () => {
       if (submitted.current) return;
@@ -173,7 +197,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
           // Sound is feedback only: the recorded track (syncBeatTrack, below) or, until it has
           // decoded or if it fails, a synthesised bass + hat loop; never required to play.
           if (
-            !beatTrackReady() &&
+            (!beatTrackReady() || (state.current.exp && state.current.tick - BEAT_FIRST_BEAT >= TRACK_TICKS)) &&
             state.current.tick >= BEAT_FIRST_BEAT &&
             (state.current.tick - BEAT_FIRST_BEAT) % BEAT_EIGHTH_TICKS === 0
           ) {
@@ -186,14 +210,16 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
 
       // Tempo's track follows the sim's own clock from the first beat; it stops at the end or a lock-in.
       const live = !beatGame.isOver(state.current) && !lockedRef.current;
+      const pastTrack = state.current.exp && state.current.tick - BEAT_FIRST_BEAT >= TRACK_TICKS;
       syncBeatTrack(
-        live && state.current.tick >= BEAT_FIRST_BEAT ? (state.current.tick - BEAT_FIRST_BEAT) / TICKS_PER_SECOND : null,
-        ((BEAT_RUN_TICKS - state.current.tick) / TICKS_PER_SECOND) * 1000,
+        live && !pastTrack && state.current.tick >= BEAT_FIRST_BEAT ? (state.current.tick - BEAT_FIRST_BEAT) / TICKS_PER_SECOND : null,
+        ((beatGame.runTicks - state.current.tick) / TICKS_PER_SECOND) * 1000,
       );
 
       reportArcadeTick(state.current.tick, beatGame.isOver(state.current));
       feedback(state.current, beatGame.isOver(state.current));
       sounds.frame(state.current, !beatGame.isOver(state.current) && !lockedRef.current);
+      featureSounds(state.current, !beatGame.isOver(state.current) && !lockedRef.current);
 
       frameTiming.draw();
       const size = sizeCanvas();
@@ -241,6 +267,12 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
 
   /** Which lane the finger is in, from the sim's own mapping. */
   const laneAt = (event: React.PointerEvent<HTMLCanvasElement>): number => {
+    // beatRev 9: four or five lanes across the same width, as the stage draws them on the next tick.
+    if (state.current.exp) {
+      const box = event.currentTarget.getBoundingClientRect();
+      const lanes = beatLanesAt(state.current, state.current.tick + 1);
+      return Math.max(0, Math.min(lanes - 1, Math.floor(((event.clientX - box.left) / box.width) * lanes)));
+    }
     return beatLaneAt(event.currentTarget.getBoundingClientRect(), event.clientX);
   };
 
@@ -269,6 +301,14 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
           onPointerDown={(event) => {
             event.preventDefault();
             if (locked || submitted.current || beatGame.isOver(state.current)) return;
+            // beatRev 9: a tap on the fever meter (the HUD strip above the lanes) asks for fever.
+            if (state.current.exp) {
+              const box = event.currentTarget.getBoundingClientRect();
+              if (((event.clientY - box.top) / box.height) * BEAT_WORLD_H < BEAT_HUD_H) {
+                pending.current.push({ t: 0, k: BEAT_INPUT_FEVER, a: 0, b: 0, c: 0, d: 0 });
+                return;
+              }
+            }
             event.currentTarget.setPointerCapture(event.pointerId);
             const lane = laneAt(event);
             fingers.current.set(event.pointerId, lane);
@@ -327,6 +367,11 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
         best combo {result.maxCombo} · {result.holdsDone} / {result.holds} holds
         {result.swipes > 0 ? ` · ${result.swipesHit} / ${result.swipes} swipes` : ""}
       </p>
+      {result.state.exp ? (
+        <p className="shrink-0 text-center font-mono text-sm text-muted-foreground">
+          {`${result.state.fevers ?? 0} fever · ${result.state.goldsHit ?? 0} golden · ${result.state.doublesDone ?? 0} doubles · best streak ${result.state.maxStreak ?? 0} · bonus +${beatV9Bonus(result.state).total}`}
+        </p>
+      ) : null}
     </div>
   );
 }
@@ -336,7 +381,8 @@ export const beatPuzzle: PuzzleDefinition = {
   key: "beat",
   name: gameDisplayName("beat"),
   category: "arcade",
-  timeLimitMs: (BEAT_RUN_TICKS / TICKS_PER_SECOND) * 1000 + 3000,
+  // beatRev 9's 75 s song (older rounds run 60 s and end there; their clock shows the extra 15 s unused).
+  timeLimitMs: (BEAT_V9_RUN_TICKS / TICKS_PER_SECOND) * 1000 + 3000,
   revealMs: 6_000,
   generate: () => ({ type: "beat", seed: 1 }) satisfies BeatPuzzleData,
   check: () => false,

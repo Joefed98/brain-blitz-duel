@@ -28,7 +28,7 @@ revisions keep their own world in reveals and replays.
 | Breaker | 390x730 | 375x591 → 316x591 | 390x624 → 333x624 | 390x768 → 390x730 | 414x772 → 412x772 | 430x856 → 430x805 | 1280x724 → 387x724 | 1.000x | 60px | 0px | 38px | 0px | - |
 | Rally | 390x730 | 375x591 → 316x591 | 390x624 → 333x624 | 390x768 → 390x730 | 414x772 → 412x772 | 430x856 → 430x805 | 1280x724 → 387x724 | 1.000x | 60px | 0px | 38px | 0px | - |
 | Tempo | 390x730 | 375x591 → 316x591 | 390x624 → 333x624 | 390x768 → 390x730 | 414x772 → 412x772 | 430x856 → 430x805 | 1280x724 → 387x724 | 1.000x | 60px | 0px | 38px | 0px | - |
-| Meteor | 390x724 | 375x591 → 318x591 | 390x624 → 336x624 | 390x768 → 390x724 | 414x772 → 414x769 | 430x856 → 430x798 | 1280x724 → 390x724 | 1.000x | 60px | 22px | 22px | 0px | - |
+| Meteor | 468x868 | 375x591 → 319x591 | 390x624 → 336x624 | 390x768 → 390x723 | 414x772 → 414x768 | 430x856 → 430x798 | 1280x724 → 390x724 | 0.833x | 60px | 22px | 22px | 0px | - |
 | Fission | 390x650 | 375x507 → 304x507 | 390x540 → 324x540 | 390x684 → 390x650 | 414x688 → 413x688 | 430x772 → 430x717 | 1280x640 → 384x640 | 1.000x | 60px | 0px | 34px | 0px | Fission's two 76px arrows: 16px |
 | Wavefront | 390x730 | 375x591 → 316x591 | 390x624 → 333x624 | 390x768 → 390x730 | 414x772 → 412x772 | 430x856 → 430x805 | 1280x724 → 387x724 | 1.000x | 60px | 0px | 38px | 0px | - |
 | Orbit | 390x650 | 375x539 → 323x539 | 390x572 → 343x572 | 390x716 → 390x650 | 414x720 → 414x690 | 430x804 → 430x717 | 1280x672 → 403x672 | 1.000x | 60px | 0px | 66px | 0px | Orbit's SET CHECKPOINT (44px row): 16px |
@@ -72,7 +72,7 @@ stars, walkers, lava, reactions) that holds still under reduced motion or reduce
 | Breaker | 375x591 → 316x591 | 390x624 → 333x624 | 390x768 → 390x730 | 414x772 → 412x772 | 430x856 → 430x805 | 1280x724 → 387x724 | the black screen runs on into a dark retro floor (a faint horizon grid) |
 | Rally | 375x591 → 316x591 | 390x624 → 333x624 | 390x768 → 390x730 | 414x772 → 412x772 | 430x856 → 430x805 | 1280x724 → 387x724 | the court's dark floor, five retro lamps lit by Rally's good moments |
 | Tempo | 375x591 → 316x591 | 390x624 → 333x624 | 390x768 → 390x730 | 414x772 → 412x772 | 430x856 → 430x805 | 1280x724 → 387x724 | the four lanes' tints fade into the dark, a few small notes drifting and slowly changing colour |
-| Meteor | 375x591 → 318x591 | 390x624 → 336x624 | 390x768 → 390x724 | 414x772 → 414x769 | 430x856 → 430x798 | 1280x724 → 390x724 | a faint starfield round the board, its stars stepping through the border's colours (world centred) |
+| Meteor | 375x591 → 319x591 | 390x624 → 336x624 | 390x768 → 390x723 | 414x772 → 414x768 | 430x856 → 430x798 | 1280x724 → 390x724 | a faint starfield round the board, its stars stepping through the border's colours (world centred) |
 | Fission | 375x507 → 304x507 | 390x540 → 324x540 | 390x684 → 390x650 | 414x688 → 413x688 | 430x772 → 430x717 | 1280x640 → 384x640 | the black arena runs on under the arrows, small faint reactions drifting together and bursting |
 | Wavefront | 375x591 → 316x591 | 390x624 → 333x624 | 390x768 → 390x730 | 414x772 → 412x772 | 430x856 → 430x805 | 1280x724 → 387x724 | the night sky's stars below and beside the world |
 | Orbit | 375x539 → 323x539 | 390x572 → 343x572 | 390x716 → 390x650 | 414x720 → 414x690 | 430x804 → 430x717 | 1280x672 → 403x672 | deep space with light stars under SET CHECKPOINT |
@@ -108,7 +108,7 @@ than half hidden; Hover's world is cut the same way, its disc at the top).
 | Breaker | 414x724 → 387x724, 64px | 414x772 → 412x772, 16px | world 32px |
 | Rally | 414x724 → 387x724, 64px | 414x772 → 412x772, 16px | world 32px |
 | Tempo | 414x724 → 387x724, 64px | 414x772 → 412x772, 16px | world 32px |
-| Meteor | 414x724 → 390x724, 64px | 414x772 → 414x769, 16px | world 29px |
+| Meteor | 414x724 → 390x724, 64px | 414x772 → 414x768, 16px | world 28px |
 | Fission | 414x640 → 384x640, 64px | 414x688 → 413x688, 16px | world none, Fission's two 76px arrows 32px |
 | Wavefront | 414x724 → 387x724, 64px | 414x772 → 412x772, 16px | world 32px |
 | Orbit | 414x672 → 403x672, 64px | 414x720 → 414x690, 16px | world none, Orbit's SET CHECKPOINT (44px row) 32px |
@@ -144,7 +144,7 @@ bottom; the spare space was the game's arena fill or the page colour. Same arith
 | Breaker | 367x543 → 290x543 | 382x576 → 308x576 | 382x720 → 382x715 | 422x808 → 422x790 | 1272x676 → 361x676 |
 | Rally | 367x543 → 290x543 | 382x576 → 308x576 | 382x720 → 382x715 | 422x808 → 422x790 | 1272x676 → 361x676 |
 | Tempo | 367x543 → 290x543 | 382x576 → 308x576 | 382x720 → 382x715 | 422x808 → 422x790 | 1272x676 → 361x676 |
-| Meteor | 367x543 → 293x543 | 382x576 → 310x576 | 382x720 → 382x709 | 422x808 → 422x783 | 1272x676 → 364x676 |
+| Meteor | 367x543 → 293x543 | 382x576 → 311x576 | 382x720 → 382x708 | 422x808 → 422x783 | 1272x676 → 364x676 |
 | Fission | 367x451 → 271x451 | 382x484 → 290x484 | 382x628 → 377x628 | 422x716 → 422x703 | 1272x584 → 350x584 |
 | Wavefront | 367x543 → 290x543 | 382x576 → 308x576 | 382x720 → 382x715 | 422x808 → 422x790 | 1272x676 → 361x676 |
 | Orbit | 367x455 → 273x455 | 382x488 → 293x488 | 382x632 → 379x632 | 422x720 → 422x703 | 1272x588 → 353x588 |

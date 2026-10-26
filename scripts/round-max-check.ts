@@ -53,7 +53,7 @@ const ALL_TYPES = Object.keys(GAME_DISPLAY_NAMES) as PuzzleType[];
  * games here): the Number depth games and Tenfall and Trail (#152), Coral Pop, Gemstone and Ball Tracker (E6,
  * #153), Topsy-Turvy and Jumbled (the D5 remodels, #156), the twelve Speed and Attention games (depth D3, #160), the
  * nine word puzzles (word depth d1, #157), the eleven Logic depth games (d6, #159), depth batch 4's eight (#158) and
- * High Rise and Pinball (E4, #161). Checked against ROUND_MAX below, so the list and the maximums can't drift apart.
+ * High Rise and Pinball (E4, #161) and Meteor and Tempo (E2). Checked against ROUND_MAX below, so the list and the maximums can't drift apart.
  */
 const RAISED: PuzzleType[] = [
   "target", "equation", "numline", "numpyramid", "balance", "measure", "checkout", "tendrop", "trail", "bubble", "matchup", "balltrack",
@@ -69,6 +69,8 @@ const RAISED: PuzzleType[] = [
   "unblock", "blockparty", "pipes", "flow", "iceslide", "push", "laser", "rings",
   // Expansion E4 (docs/expansions/e4.md): High Rise and Pinball.
   "skyline", "pinball",
+  // Expansion E2 (docs/expansions/e2.md): Meteor and Tempo.
+  "snake", "beat",
 ];
 /** The games still at 150: section 2 raises each of them in turn. */
 const TYPES = ALL_TYPES.filter((t) => ROUND_MAX[t] === DEFAULT_ROUND_MAX);
@@ -97,6 +99,7 @@ for (const type of RAISED) {
   ok(!isPerfectScore(type, 150) && !isPerfectScore(type, 199) && isPerfectScore(type, 200), `${type}: perfect is 200 only`);
   ok(scoreBandFloor(type, "perfect") === 200 && scoreBandFloor(type, "near-perfect") === 173 && scoreBandFloor(type, "great") === 147 && scoreBandFloor(type, "average") === 80 && scoreBandOf(type, 150) === "great", `${type}: bands on the 200 scale`);
   ok(signatureMinScore(type) === 160 && isValidRoundScore(type, 200) && !isValidRoundScore(type, 201), `${type}: the beat needs 160 and valid scores run to 200`);
+  ok(scaledToMax(type, 120) === 160 && isPerfectScore(type, 200) && !isPerfectScore(type, 150), `${type}: raised, its thresholds and perfect are on the 200 scale`);
   ok(chartLabels(roundMaxFor(type)).map((l) => l.text)[3] === "200", `${type}: the chart's top label is 200`);
   ok(TOP200.test(INTRO_SCORE[type] + " " + PUZZLE_INSTRUCTIONS[type].score), `${type}: its intro or help states its 200 maximum`);
   TOP200.lastIndex = 0;

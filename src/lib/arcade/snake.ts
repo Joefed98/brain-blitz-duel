@@ -29,7 +29,7 @@ import {
   type CanvasSize,
   type InputRange,
 } from "./engine";
-import { bandStrictGame, bandStrict, bandRetarget, bandTargetGame, bandCurveOf, bandCurve, bandInit, bandPoints, bandScoreOf, bandStep, bandTotal, type BandFields, type BandParts } from "./scoreBands";
+import { BAND_STRICT_MARK, bandStrictGame, bandStrict, bandRetarget, bandTargetGame, bandCurveOf, bandCurve, bandInit, bandPoints, bandScoreOf, bandStep, bandTotal, type BandFields, type BandParts } from "./scoreBands";
 
 /* ============================== Constants ============================== */
 
@@ -145,6 +145,35 @@ export interface SnakeState extends BandFields {
   rows?: number;
   /** snakeRev 6 only (Tuning F): 1 = more rocks (snakeRocksEarned's Tuning F pace). Absent on every earlier round. */
   tunef?: number;
+  /** snakeRev 9 only (the expansion): every field below is absent on earlier rounds. */
+  exp?: number;
+  /** The wider grid's column count (SNAKE_V9_COLS). Absent = SNAKE_COLS. */
+  cols?: number;
+  /** Wormholes: mouth pairs, flat ([a0, b0, a1, b1]); entering one mouth comes out of the other. */
+  warps?: number[];
+  /** Speed lanes: one row and one column (the head steps faster travelling along them). */
+  laneRow?: number;
+  laneCol?: number;
+  /** Gold comet stars: the room's schedule (square, appearing tick) and how far the run has reached. */
+  golds?: SnakeRockSlot[];
+  goldAt?: number;
+  /** The gold star on the board now (square, or -1) and the tick it fades out. */
+  gold?: number;
+  goldEnd?: number;
+  goldsEaten?: number;
+  goldPts?: number;
+  /** Star combo: the tick of the last star, the run of quick stars and its points. */
+  lastStar?: number;
+  combo?: number;
+  maxCombo?: number;
+  comboPts?: number;
+  /** Speed lanes: the current ride's length in squares and the squares that counted. */
+  laneRun?: number;
+  laneCells?: number;
+  /** Wormholes: trips taken, the tick of the last, and warp stars' points. */
+  warpsUsed?: number;
+  lastWarp?: number;
+  warpPts?: number;
 }
 
 /** Grid rows a state plays on: Tuning E's taller grid, or the original 20. */
@@ -162,16 +191,22 @@ export interface SnakeRockSlot {
   tick: number;
 }
 
-function cellOf(row: number, col: number): number {
-  return row * SNAKE_COLS + col;
+function cellOf(row: number, col: number, cols: number = SNAKE_COLS): number {
+  return row * cols + col;
 }
 
-export function snakeRow(cell: number): number {
-  return Math.trunc(cell / SNAKE_COLS);
+/** A cell's row and column; `cols` is the grid's width (snakeRev 9's wider grid, else SNAKE_COLS). */
+export function snakeRow(cell: number, cols: number = SNAKE_COLS): number {
+  return Math.trunc(cell / cols);
 }
 
-export function snakeCol(cell: number): number {
-  return cell % SNAKE_COLS;
+export function snakeCol(cell: number, cols: number = SNAKE_COLS): number {
+  return cell % cols;
+}
+
+/** Grid columns a state plays on: snakeRev 9's wider grid, or the original 15. */
+export function snakeColsOf(state: { cols?: number }): number {
+  return state.cols ?? SNAKE_COLS;
 }
 
 /** The first queued pellet the snake is not sitting on. */
@@ -189,20 +224,21 @@ function pelletFrom(
   return { cursor: at, pellet: queue[at % SNAKE_QUEUE_LEN] ?? 0 };
 }
 
-function init(seed: number, rows: number = SNAKE_ROWS): SnakeState {
+function init(seed: number, rows: number = SNAKE_ROWS, cols: number = SNAKE_COLS): SnakeState {
   let rng = seed | 0;
   const queue: number[] = [];
   for (let slot = 0; slot < SNAKE_QUEUE_LEN; slot++) {
-    const drawn = rngBelow(rng, rows * SNAKE_COLS);
+    const drawn = rngBelow(rng, rows * cols);
     rng = drawn.state;
     queue.push(drawn.value);
   }
-  const col = SNAKE_COLS >> 1;
+  const col = cols >> 1;
   const row = rows >> 1;
-  const body = [cellOf(row, col), cellOf(row + 1, col), cellOf(row + 2, col)];
+  const body = [cellOf(row, col, cols), cellOf(row + 1, col, cols), cellOf(row + 2, col, cols)];
   const first = pelletFrom(queue, 0, body);
   return {
     ...(rows !== SNAKE_ROWS ? { rows } : {}),
+    ...(cols !== SNAKE_COLS ? { cols } : {}),
     tick: 0,
     rng,
     body,
@@ -224,7 +260,7 @@ function init(seed: number, rows: number = SNAKE_ROWS): SnakeState {
  * (or diagonal to) another slot's square. Drawn from the state's own PRNG after
  * the star queue, so the original queue is untouched.
  */
-function rockSchedule(rngIn: number, queue: readonly number[], rows: number = SNAKE_ROWS): { rng: number; slots: SnakeRockSlot[] } {
+function rockSchedule(rngIn: number, queue: readonly number[], rows: number = SNAKE_ROWS, cols: number = SNAKE_COLS): { rng: number; slots: SnakeRockSlot[] } {
   let rng = rngIn;
   const starCells = new Set(queue);
   const slots: SnakeRockSlot[] = [];
@@ -233,14 +269,14 @@ function rockSchedule(rngIn: number, queue: readonly number[], rows: number = SN
     rng = jitter.state;
     let cell = -1;
     for (let attempt = 0; attempt < 64 && cell < 0; attempt++) {
-      const drawn = rngBelow(rng, (rows - 2) * (SNAKE_COLS - 2));
+      const drawn = rngBelow(rng, (rows - 2) * (cols - 2));
       rng = drawn.state;
-      const row = 1 + Math.trunc(drawn.value / (SNAKE_COLS - 2));
-      const col = 1 + (drawn.value % (SNAKE_COLS - 2));
-      const candidate = cellOf(row, col);
+      const row = 1 + Math.trunc(drawn.value / (cols - 2));
+      const col = 1 + (drawn.value % (cols - 2));
+      const candidate = cellOf(row, col, cols);
       if (starCells.has(candidate)) continue;
       const near = slots.some(
-        (slot) => Math.abs(snakeRow(slot.cell) - row) <= 1 && Math.abs(snakeCol(slot.cell) - col) <= 1,
+        (slot) => Math.abs(snakeRow(slot.cell, cols) - row) <= 1 && Math.abs(snakeCol(slot.cell, cols) - col) <= 1,
       );
       if (!near) cell = candidate;
     }
@@ -249,9 +285,9 @@ function rockSchedule(rngIn: number, queue: readonly number[], rows: number = SN
   return { rng, slots };
 }
 
-function initRev2(seed: number, rows: number = SNAKE_ROWS): SnakeState {
-  const base = init(seed, rows);
-  const schedule = rockSchedule(base.rng, base.queue, rows);
+function initRev2(seed: number, rows: number = SNAKE_ROWS, cols: number = SNAKE_COLS): SnakeState {
+  const base = init(seed, rows, cols);
+  const schedule = rockSchedule(base.rng, base.queue, rows, cols);
   return {
     ...base,
     rng: schedule.rng,
@@ -271,20 +307,20 @@ function initRev2(seed: number, rows: number = SNAKE_ROWS): SnakeState {
  * asteroid square and each other — and its possible moments. Drawn from the PRNG
  * continuing after the asteroids, so the rev-2 schedule is untouched.
  */
-function initRev3(seed: number, rows: number = SNAKE_ROWS): SnakeState {
-  const base = initRev2(seed, rows);
+function initRev3(seed: number, rows: number = SNAKE_ROWS, cols: number = SNAKE_COLS): SnakeState {
+  const base = initRev2(seed, rows, cols);
   let rng = base.rng;
   const stars = new Set(base.queue);
   const taken = (base.rockSlots ?? []).map((slot) => slot.cell);
   const cells: number[] = [];
   for (let attempt = 0; attempt < 400 && cells.length < SNAKE_SHOWER_ROCKS; attempt++) {
-    const drawn = rngBelow(rng, (rows - 2) * (SNAKE_COLS - 2));
+    const drawn = rngBelow(rng, (rows - 2) * (cols - 2));
     rng = drawn.state;
-    const row = 1 + Math.trunc(drawn.value / (SNAKE_COLS - 2));
-    const col = 1 + (drawn.value % (SNAKE_COLS - 2));
-    const candidate = cellOf(row, col);
+    const row = 1 + Math.trunc(drawn.value / (cols - 2));
+    const col = 1 + (drawn.value % (cols - 2));
+    const candidate = cellOf(row, col, cols);
     if (stars.has(candidate)) continue;
-    const near = [...taken, ...cells].some((cell) => Math.abs(snakeRow(cell) - row) <= 1 && Math.abs(snakeCol(cell) - col) <= 1);
+    const near = [...taken, ...cells].some((cell) => Math.abs(snakeRow(cell, cols) - row) <= 1 && Math.abs(snakeCol(cell, cols) - col) <= 1);
     if (!near) cells.push(candidate);
   }
   const slots: number[] = [];
@@ -328,7 +364,22 @@ export function snakeReversal(dir: number, next: number): boolean {
 }
 
 function step(state: SnakeState, input: ArcadeInputEvent | null): SnakeState {
+  if (state.exp) return stepV9(state, input);
   return state.rev === SNAKE_REV2 || state.rev === SNAKE_REV ? stepRev2(state, input) : stepV1(state, input);
+}
+
+/**
+ * The square the head steps into next going `dir`, or -1 past a wall. snakeRev 9: a wormhole mouth
+ * sends the head straight out of its partner (the mouth itself is never occupied).
+ */
+export function snakeTarget(state: SnakeState, dir: number): number {
+  const cols = snakeColsOf(state);
+  const head = state.body[0] ?? 0;
+  const row = snakeRow(head, cols) + (dir === 0 ? -1 : dir === 2 ? 1 : 0);
+  const col = snakeCol(head, cols) + (dir === 1 ? 1 : dir === 3 ? -1 : 0);
+  if (row < 0 || row >= snakeRowsOf(state) || col < 0 || col >= cols) return -1;
+  const cell = cellOf(row, col, cols);
+  return state.warps ? snakeWarpExit(state.warps, cell) : cell;
 }
 
 /** The original rules, byte for byte; snakeRev 2 runs them and then its rocks. */
@@ -343,20 +394,19 @@ function stepV1(state: SnakeState, input: ArcadeInputEvent | null): SnakeState {
   }
 
   const sinceMove = state.sinceMove + 1;
-  if (sinceMove < snakeStepTicks(state.eaten)) {
+  // snakeRev 9: a speed lane steps faster (snakeStepTicksFor); older rounds use the star count alone.
+  if (sinceMove < (state.exp ? snakeStepTicksFor(state, nextDir) : snakeStepTicks(state.eaten))) {
     const next: SnakeState = { ...state, tick, nextDir, sinceMove };
     if (tick >= SNAKE_RUN_TICKS) return { ...next, endedTick: tick };
     return next;
   }
 
-  const head = state.body[0] ?? 0;
-  const row = snakeRow(head) + (nextDir === 0 ? -1 : nextDir === 2 ? 1 : 0);
-  const col = snakeCol(head) + (nextDir === 1 ? 1 : nextDir === 3 ? -1 : 0);
-  if (row < 0 || row >= snakeRowsOf(state) || col < 0 || col >= SNAKE_COLS) {
+  const ahead = snakeTarget(state, nextDir);
+  if (ahead < 0) {
     return { ...state, tick, dir: nextDir, nextDir, sinceMove: 0, dead: true, endedTick: tick };
   }
 
-  const target = cellOf(row, col);
+  const target = ahead;
   const grew = target === state.pellet;
   const body = [target, ...state.body];
   if (!grew) body.pop();
@@ -394,13 +444,10 @@ function stepRev2(state: SnakeState, input: ArcadeInputEvent | null): SnakeState
     const wanted = clampInt(input.a, 0, 3);
     if (!snakeReversal(state.dir, wanted)) nextDir = wanted;
   }
-  const moving = state.sinceMove + 1 >= snakeStepTicks(state.eaten);
+  const moving = state.sinceMove + 1 >= (state.exp ? snakeStepTicksFor(state, nextDir) : snakeStepTicks(state.eaten));
   if (moving && rocks.length > 0) {
-    const head = state.body[0] ?? 0;
-    const row = snakeRow(head) + (nextDir === 0 ? -1 : nextDir === 2 ? 1 : 0);
-    const col = snakeCol(head) + (nextDir === 1 ? 1 : nextDir === 3 ? -1 : 0);
-    const inside = row >= 0 && row < snakeRowsOf(state) && col >= 0 && col < SNAKE_COLS;
-    if (inside && rocks.includes(cellOf(row, col))) {
+    const target = snakeTarget(state, nextDir);
+    if (target >= 0 && rocks.includes(target)) {
       const tick = state.tick + 1;
       return { ...state, tick, dir: nextDir, nextDir, sinceMove: 0, dead: true, endedTick: tick, rockHit: 1 };
     }
@@ -527,6 +574,8 @@ export function snakeCheckpoint(state: SnakeState): SnakeCheckpoint {
   if (state.rows) extra.push(state.rows);
   // snakeRev 6 (Tuning F): its marker after that, so rev-2 to rev-5 checksums are unchanged.
   if (state.tunef) extra.push(state.tunef);
+  // snakeRev 9 (the expansion): its own state, last, so every earlier checksum is unchanged.
+  if (state.exp) extra.push(...snakeV9Fold(state));
   for (const value of [...Object.values(snapshot), ...extra]) {
     checksum ^= value | 0;
     checksum = Math.imul(checksum, 0x01000193) >>> 0;
@@ -645,6 +694,7 @@ export const snakeRev3Game: ArcadeGame<SnakeState, ArcadeInputEvent | null> = { 
 
 /** The game for a stored round: its snakeRev picks the rules (absent = original). */
 export function snakeGameFor(rev?: number | null): ArcadeGame<SnakeState, ArcadeInputEvent | null> {
+  if (rev === SNAKE_REV_200) return snakeV9Game;
   if (rev === SNAKE_REV_STRICT) return snakeStrictGame;
   if (rev === SNAKE_REV_TARGET) return snakeTargetGame;
   if (rev === SNAKE_REV_ROCKS) return snakeRocksGame;
@@ -662,6 +712,7 @@ export const SNAKE_REV_BAND = 4;
 export const SNAKE_BAND_CURVE = bandCurve([0, 14, 24, 30, 35, 38], [0, 70, 100, 125, 145, 150]);
 
 export function snakeBandParts(state: SnakeState): BandParts {
+  if (state.exp) return snakeV9Parts(state);
   const units = Math.max(0, state.eaten);
   return { units, points: bandPoints(bandCurveOf(state, state.tunef ? SNAKE_V6_BAND_CURVE : state.rows ? SNAKE_V5_BAND_CURVE : SNAKE_BAND_CURVE), units), bonus: 0, penalty: 0, finished: false, text: `${units} stars` };
 }
@@ -692,6 +743,7 @@ export const snakeTallGame: ArcadeGame<SnakeState, ArcadeInputEvent | null> = { 
 
 /** The world height (px) a stored round's snakeRev plays in. */
 export function snakeWorldHForRev(rev?: number | null): number {
+  if (rev === SNAKE_REV_200) return SNAKE_V9_H;
   return rev === SNAKE_REV_TALL || rev === SNAKE_REV_ROCKS || rev === SNAKE_REV_TARGET || rev === SNAKE_REV_STRICT ? SNAKE_TALL_H : SNAKE_WORLD_H;
 }
 
@@ -738,3 +790,254 @@ export const SNAKE_REV_STRICT = 8;
 export const snakeStrictGame = bandStrictGame(snakeTargetGame);
 /** The curve new rounds score on: SNAKE_V6_BAND_CURVE's strict curve (what bandCurveOf gives a band-3 state). */
 export const SNAKE_V8_BAND_CURVE = bandStrict(SNAKE_V6_BAND_CURVE);
+
+
+/* ================= The expansion (snakeRev 9, 25 Oct 2026) ================= */
+
+/**
+ * snakeRev 9 (world expansion, docs/expansions/e2.md): a bigger field and four skill features, scored
+ * to 200 (docs/scoring-200.md). Everything is drawn once from the room seed, so every player meets
+ * the same squares at the same moments; nothing is placed relative to a player's meteor.
+ *
+ *  - The field: 19 × 34 squares (was 15 × 28), world 468 × 868, so it fills a phone's arena. The star
+ *    queue, rocks (snakeRev 6's pace) and the shower are drawn exactly as before over the bigger grid.
+ *  - Wormholes: two pairs of mouths, off the border, never on a star, rock, shower square or lane.
+ *    Stepping into a mouth comes straight out of its partner, still heading the same way (a risky
+ *    shortcut: whatever lies past the exit comes up fast). A star eaten within SNAKE_WARP_STAR_TICKS
+ *    of a trip is a warp star (+2).
+ *  - Gold comet stars: from 8 s, about every 7 s a gold star appears on a fixed square for 3.5 s and
+ *    fades. Eating it (the meteor does not grow) is worth 2–6, more the sooner it is eaten.
+ *  - Speed lanes: one row and one column glow. Travelling along a lane the meteor steps 3 ticks
+ *    faster (never under 3); from a ride's third square on, every 4 squares ridden score 1.
+ *  - Combo: a star eaten within SNAKE_COMBO_TICKS of the last raises the combo; each star at combo n
+ *    adds min(n − 1, 3).
+ *
+ * Score: the stars on SNAKE_V9_BAND_CURVE (to 150, fitted so today's play lands where it did) plus
+ * the features' points, each capped (SNAKE_V9_CAPS, 50 in all), to 200. States add `exp: 1` and the
+ * fields above, folded into the checkpoint checksum last.
+ */
+export const SNAKE_REV_200 = 9;
+export const SNAKE_V9_COLS = 19;
+export const SNAKE_V9_ROWS = 34;
+export const SNAKE_V9_WORLD_W = SNAKE_V9_COLS * SNAKE_CELL + 12;
+export const SNAKE_V9_H = snakeWorldHFor(SNAKE_V9_ROWS);
+export const SNAKE_V9_MAX = 200;
+export const SNAKE_WARP_PAIRS = 2;
+export const SNAKE_WARP_STAR_TICKS = TICKS_PER_SECOND;
+export const SNAKE_WARP_STAR_POINTS = 2;
+export const SNAKE_GOLD_FIRST = 8 * TICKS_PER_SECOND;
+export const SNAKE_GOLD_EVERY = 7 * TICKS_PER_SECOND;
+export const SNAKE_GOLD_JITTER = TICKS_PER_SECOND;
+export const SNAKE_GOLD_LIFE = (7 * TICKS_PER_SECOND) >> 1;
+export const SNAKE_GOLD_MIN = 1;
+export const SNAKE_GOLD_SPAN = 4;
+export const SNAKE_LANE_FASTER = 3;
+export const SNAKE_LANE_STEP_MIN = 3;
+/** A ride counts from its SNAKE_LANE_FROM-th square; every SNAKE_LANE_PER counted squares score 1. */
+export const SNAKE_LANE_FROM = 6;
+export const SNAKE_LANE_PER = 4;
+export const SNAKE_COMBO_TICKS = (5 * TICKS_PER_SECOND) >> 2;
+export const SNAKE_COMBO_STEP_MAX = 3;
+/** Each feature's most points, 50 in all. */
+export const SNAKE_V9_CAPS = { gold: 20, combo: 14, lane: 8, warp: 8 } as const;
+
+/** Board left edge and world width (px) a state plays in: snakeRev 9's wider world, or the original. */
+export function snakeBoardXOf(state: { cols?: number }): number {
+  return state.cols ? (SNAKE_V9_WORLD_W - state.cols * SNAKE_CELL) / 2 : SNAKE_BOARD_X;
+}
+export function snakeWorldWOf(state: { cols?: number }): number {
+  return state.cols ? SNAKE_V9_WORLD_W : SNAKE_WORLD_W;
+}
+/** The world width (px) a stored round's snakeRev plays in. */
+export function snakeWorldWForRev(rev?: number | null): number {
+  return rev === SNAKE_REV_200 ? SNAKE_V9_WORLD_W : SNAKE_WORLD_W;
+}
+
+/** The other mouth of a wormhole, or the square itself when it is not a mouth. */
+export function snakeWarpExit(warps: readonly number[], cell: number): number {
+  const at = warps.indexOf(cell);
+  return at < 0 ? cell : warps[at ^ 1]!;
+}
+
+/** Whether a head on `cell` heading `dir` travels along a speed lane. */
+export function snakeOnLane(state: SnakeState, cell: number, dir: number): boolean {
+  if (!state.exp) return false;
+  const cols = snakeColsOf(state);
+  return dir === 1 || dir === 3 ? snakeRow(cell, cols) === state.laneRow : snakeCol(cell, cols) === state.laneCol;
+}
+
+/** Ticks the next step takes on snakeRev 9: the star pace, 3 faster along a speed lane. */
+export function snakeStepTicksFor(state: SnakeState, dir: number): number {
+  const base = snakeStepTicks(state.eaten);
+  return snakeOnLane(state, state.body[0] ?? 0, dir) ? Math.max(SNAKE_LANE_STEP_MIN, base - SNAKE_LANE_FASTER) : base;
+}
+
+/** A gold star's worth if eaten on `tick`: 2–6, falling as it fades. */
+export function snakeGoldWorth(tick: number, end: number): number {
+  const left = clampInt(end - tick, 0, SNAKE_GOLD_LIFE);
+  return SNAKE_GOLD_MIN + Math.trunc((SNAKE_GOLD_SPAN * left + SNAKE_GOLD_LIFE - 1) / SNAKE_GOLD_LIFE);
+}
+
+function initV9(seed: number): SnakeState {
+  const base = { ...initRev3(seed, SNAKE_V9_ROWS, SNAKE_V9_COLS), tunef: 1 };
+  const cols = SNAKE_V9_COLS;
+  const rows = SNAKE_V9_ROWS;
+  let rng = base.rng;
+  const draw = (bound: number) => {
+    const r = rngBelow(rng, bound);
+    rng = r.state;
+    return r.value;
+  };
+  const stars = new Set(base.queue);
+  const rockCells = new Set([...(base.rockSlots ?? []).map((slot) => slot.cell), ...(base.showerCells ?? [])]);
+  // Lanes: a row in the middle half and a column in the middle 3/5, clear of the start column.
+  const laneRow = Math.trunc(rows / 4) + draw(Math.trunc(rows / 2));
+  let laneCol = 4 + draw(cols - 8);
+  if (laneCol === cols >> 1) laneCol += 2;
+  // Wormholes: one pair top ↔ bottom, one pair left ↔ right, 2+ squares off the border.
+  const free = (cell: number, taken: number[]) => {
+    const r = snakeRow(cell, cols);
+    const c = snakeCol(cell, cols);
+    if (stars.has(cell) || rockCells.has(cell) || r === laneRow || c === laneCol) return false;
+    return !taken.some((t) => Math.abs(snakeRow(t, cols) - r) <= 2 && Math.abs(snakeCol(t, cols) - c) <= 2);
+  };
+  const pick = (r0: number, r1: number, c0: number, c1: number, taken: number[]) => {
+    for (let attempt = 0; attempt < 400; attempt++) {
+      const cell = cellOf(r0 + draw(r1 - r0), c0 + draw(c1 - c0), cols);
+      if (free(cell, taken)) return cell;
+    }
+    return -1;
+  };
+  const warps: number[] = [];
+  const third = Math.trunc(rows / 3);
+  const regions: [number, number, number, number][] = [
+    [2, third, 2, cols - 2],
+    [rows - third, rows - 2, 2, cols - 2],
+    [third, rows - third, 2, (cols >> 1) - 2],
+    [third, rows - third, (cols >> 1) + 2, cols - 2],
+  ];
+  for (const [r0, r1, c0, c1] of regions) warps.push(pick(r0, r1, c0, c1, warps));
+  // Gold stars: a fixed schedule over the run, each on a square no star, rock, mouth or lane uses.
+  const golds: SnakeRockSlot[] = [];
+  for (let at = SNAKE_GOLD_FIRST; at + SNAKE_GOLD_JITTER + SNAKE_GOLD_LIFE < SNAKE_RUN_TICKS; at += SNAKE_GOLD_EVERY) {
+    const tick = at - SNAKE_GOLD_JITTER + draw(2 * SNAKE_GOLD_JITTER + 1);
+    const cell = pick(1, rows - 1, 1, cols - 1, [...warps, ...golds.slice(-1).map((g) => g.cell)]);
+    if (cell >= 0) golds.push({ cell, tick });
+  }
+  return {
+    ...base,
+    rng,
+    exp: 1,
+    band: BAND_STRICT_MARK,
+    acted: 0,
+    warps: warps.every((w) => w >= 0) ? warps : [],
+    laneRow,
+    laneCol,
+    golds,
+    goldAt: 0,
+    gold: -1,
+    goldEnd: 0,
+    goldsEaten: 0,
+    goldPts: 0,
+    lastStar: -9999,
+    combo: 0,
+    maxCombo: 0,
+    comboPts: 0,
+    laneRun: 0,
+    laneCells: 0,
+    warpsUsed: 0,
+    lastWarp: -9999,
+    warpPts: 0,
+  };
+}
+
+/** snakeRev 9: snakeRev 3's move, rocks and shower, then the features. */
+function stepV9(state: SnakeState, input: ArcadeInputEvent | null): SnakeState {
+  if (isOver(state)) return state;
+  let next = stepRev2(state, input);
+  if (next === state) return state;
+  const tick = next.tick;
+  const head = next.body[0] ?? 0;
+  const moved = !next.dead && head !== state.body[0];
+  const extra: Partial<SnakeState> = {};
+  if (moved) {
+    const cols = snakeColsOf(state);
+    const from = state.body[0] ?? 0;
+    const warped = Math.abs(snakeRow(from, cols) - snakeRow(head, cols)) + Math.abs(snakeCol(from, cols) - snakeCol(head, cols)) > 1;
+    if (warped) {
+      extra.warpsUsed = (state.warpsUsed ?? 0) + 1;
+      extra.lastWarp = tick;
+    }
+    // A lane ride: squares stepped along a lane in a row; from its third, they count.
+    if (snakeOnLane(state, from, next.dir)) {
+      const run = (state.laneRun ?? 0) + 1;
+      extra.laneRun = run;
+      if (run >= SNAKE_LANE_FROM) extra.laneCells = (state.laneCells ?? 0) + 1;
+    } else extra.laneRun = 0;
+    if (next.eaten > state.eaten) {
+      const quick = tick - (state.lastStar ?? -9999) <= SNAKE_COMBO_TICKS;
+      const combo = quick ? (state.combo ?? 0) + 1 : 1;
+      extra.combo = combo;
+      extra.maxCombo = Math.max(state.maxCombo ?? 0, combo);
+      extra.comboPts = (state.comboPts ?? 0) + clampInt(combo - 2, 0, SNAKE_COMBO_STEP_MAX);
+      extra.lastStar = tick;
+      if (tick - (extra.lastWarp ?? state.lastWarp ?? -9999) <= SNAKE_WARP_STAR_TICKS) extra.warpPts = (state.warpPts ?? 0) + SNAKE_WARP_STAR_POINTS;
+    }
+  }
+  // Gold stars: eaten by the head, faded at their end, the next appears at its tick.
+  let gold = state.gold ?? -1;
+  let goldEnd = state.goldEnd ?? 0;
+  let goldAt = state.goldAt ?? 0;
+  if (gold >= 0 && moved && head === gold) {
+    extra.goldsEaten = (state.goldsEaten ?? 0) + 1;
+    extra.goldPts = (state.goldPts ?? 0) + snakeGoldWorth(tick, goldEnd);
+    gold = -1;
+  }
+  if (gold >= 0 && tick >= goldEnd) gold = -1;
+  const golds = state.golds ?? [];
+  while (goldAt < golds.length && tick >= golds[goldAt]!.tick) {
+    gold = golds[goldAt]!.cell;
+    goldEnd = golds[goldAt]!.tick + SNAKE_GOLD_LIFE;
+    goldAt += 1;
+  }
+  if (gold !== state.gold || goldEnd !== state.goldEnd || goldAt !== state.goldAt) Object.assign(extra, { gold, goldEnd, goldAt });
+  next = { ...next, ...extra };
+  return next;
+}
+
+/** snakeRev 9 checkpoint extras: every feature's state, in a fixed order. */
+function snakeV9Fold(state: SnakeState): number[] {
+  return [
+    state.cols ?? 0, state.gold ?? -1, state.goldEnd ?? 0, state.goldAt ?? 0, state.goldsEaten ?? 0, state.goldPts ?? 0,
+    state.lastStar ?? 0, state.combo ?? 0, state.comboPts ?? 0, state.laneRun ?? 0, state.laneCells ?? 0,
+    state.warpsUsed ?? 0, state.lastWarp ?? 0, state.warpPts ?? 0,
+  ];
+}
+
+/** snakeRev 9's feature points, each capped (SNAKE_V9_CAPS). */
+export function snakeV9Bonus(state: SnakeState): { gold: number; combo: number; lane: number; warp: number; total: number } {
+  const gold = Math.min(SNAKE_V9_CAPS.gold, state.goldPts ?? 0);
+  const combo = Math.min(SNAKE_V9_CAPS.combo, state.comboPts ?? 0);
+  const lane = Math.min(SNAKE_V9_CAPS.lane, Math.trunc((state.laneCells ?? 0) / SNAKE_LANE_PER));
+  const warp = Math.min(SNAKE_V9_CAPS.warp, state.warpPts ?? 0);
+  return { gold, combo, lane, warp, total: gold + combo + lane + warp };
+}
+
+/**
+ * snakeRev 9 band knots: stars eaten on the bigger field, fitted so the simulated players who ignore
+ * the features land where they did on snakeRev 8 (scripts/expansions-e2-bands.ts); 150 at the top.
+ */
+export const SNAKE_V9_BAND_CURVE = bandCurve([0, 8, 16, 21, 24, 27, 31], [0, 35, 76, 98, 120, 138, 150]);
+
+export function snakeV9Parts(state: SnakeState): BandParts {
+  const units = Math.max(0, state.eaten);
+  const b = snakeV9Bonus(state);
+  const bits = [b.gold && `gold ${b.gold}`, b.combo && `combo ${b.combo}`, b.lane && `lanes ${b.lane}`, b.warp && `warps ${b.warp}`].filter(Boolean);
+  return { units, points: bandPoints(SNAKE_V9_BAND_CURVE, units), bonus: b.total, penalty: 0, finished: false, text: `${units} stars`, bonusText: `Skill bonus (${bits.join(" · ")})` };
+}
+
+export const snakeV9Game: ArcadeGame<SnakeState, ArcadeInputEvent | null> = {
+  ...snakeGame,
+  init: initV9,
+  score: (state) => bandTotal(snakeV9Parts(state), Boolean(state.acted), SNAKE_V9_MAX),
+};

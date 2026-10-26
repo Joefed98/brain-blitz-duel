@@ -23,6 +23,7 @@
  *   bun scripts/arcade-tuning-e-check.ts          (TUNING_E_ONLY=hover,snip,…)
  */
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { SNAKE_V9_H, SNAKE_V9_WORLD_W } from "../src/lib/arcade/snake";
 import { readFileSync } from "node:fs";
 import { gunzipSync } from "node:zlib";
 import { fnv } from "./arcade-tuning-a-legacy";
@@ -152,7 +153,8 @@ section("New rounds carry the Tuning E stamps; one world per stored revision");
 {
   const stamps: [string, string, number | undefined, number][] = [
     // Tuning F moved Meteor rooms on to snakeRev 6: the same tall grid with more rocks (arcade-tuning-f-check).
-    ["snake", "snakeRev", playRevOf("snake", generateSnake().snakeRev), SNAKE_REV_ROCKS],
+    // Expansion E2 (25 Oct 2026) then moved Meteor on to its wider, taller field (snakeRev 9); expansion-e2-check covers it.
+    ["snake", "snakeRev", playRevOf("snake", generateSnake().snakeRev), SNAKE_REV_ROCKS + 3],
     // Scrumper rooms moved on to snipRev 6 (the same tall game on a bigger bank; scripts/snip-bank6-check.ts),
     // then snipRev 7 (the same game with every per-pin deal proven; scripts/snip-rev7-check.ts).
     ["snip", "snipRev", playRevOf("snip", generateSnip().snipRev), SNIP_REV_PROVEN],
@@ -172,7 +174,7 @@ section("New rounds carry the Tuning E stamps; one world per stored revision");
   ok(snakeWorldHForRev(SNAKE_REV_TALL) === SNAKE_TALL_H && SNAKE_TALL_H === 724 && snakeWorldHForRev(SNAKE_REV_BAND) === SNAKE_WORLD_H, "Meteor: 390 × 724 on snakeRev 5, 390 × 532 before");
   ok(snipWorldHFor(SNIP_REV_TALL) === SNIP_TALL_H && SNIP_TALL_H === 640 && snipWorldHFor(SNIP_REV_BAND) === SNIP_H, "Scrumper: 360 × 640 on snipRev 5, 360 × 560 before");
   // The arena table (presentation-geometry) uses the worlds rooms deal today.
-  ok(ARCADE_FX_SPECS.hover.height === HOVER_TALL_H && ARCADE_FX_SPECS.skyline.height === skylineWorldHFor(generateSkyline().skylineRev) && skylineWorldHFor(generateSkyline().skylineRev) >= SKYLINE_TALL_H && ARCADE_FX_SPECS.snake.height === SNAKE_TALL_H && ARCADE_FX_SPECS.snip.height === SNIP_TALL_H, "the live arena sizes are the taller worlds");
+  ok(ARCADE_FX_SPECS.hover.height === HOVER_TALL_H && ARCADE_FX_SPECS.skyline.height === skylineWorldHFor(generateSkyline().skylineRev) && skylineWorldHFor(generateSkyline().skylineRev) >= SKYLINE_TALL_H && ARCADE_FX_SPECS.snake.height === SNAKE_V9_H && ARCADE_FX_SPECS.snake.width === SNAKE_V9_WORLD_W && SNAKE_V9_H > SNAKE_TALL_H && ARCADE_FX_SPECS.snip.height === SNIP_TALL_H, "the live arena sizes are the taller worlds (Meteor: snakeRev 9's bigger field since expansion E2)");
   // Effects follow the state's own world; old states keep the old spec object.
   const states = {
     hover: [hoverGameFor(HOVER_REV_TUNEC).init(5), hoverGameFor(HOVER_REV_TALL).init(5)],
@@ -468,7 +470,7 @@ if (want("snip")) {
 }
 // Screen audit Oct 2026: a plain line and a good run from the curve rooms deal (arcade-help-bands-check).
 if (want("hover")) ok(PUZZLE_INSTRUCTIONS.hover.score.includes("A good run (100 points) counts 42 – about 14 barriers"), "Hover's help states a good run on hoverRev 5's curve");
-if (want("snake")) ok(PUZZLE_INSTRUCTIONS.snake.score.includes("150 at 33") && PUZZLE_INSTRUCTIONS.snake.score.includes("A good run (100 points) eats 21 stars"), "Meteor's help states the top and a good run rooms deal (snakeRev 6 since Tuning F, arcade-tuning-f-check)");
+if (want("snake")) ok(PUZZLE_INSTRUCTIONS.snake.score.includes("150 at 31") && PUZZLE_INSTRUCTIONS.snake.score.includes("A good run (100 points) eats 22 stars"), "Meteor's help states the top and a good run rooms deal (snakeRev 9 since expansion E2, expansion-e2-check)");
 
 if (failures.length) {
   console.log(failures.slice(0, 60).join("\n"));
