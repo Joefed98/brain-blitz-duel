@@ -125,6 +125,9 @@ export interface RallyBall {
   y: number;
   vx: number;
   vy: number;
+  /** rallyRev 10 only: the spin curving the ball (1/256 px a tick, a tick), and 1 while a spin return still curves it. */
+  spin?: number;
+  spun?: number;
 }
 
 /** A gold ball's scheduled entry, fixed at init from the seed. */
@@ -170,6 +173,24 @@ export interface RallyState extends BandFields {
   bumped?: number;
   /** rallyRev 6 only (taller worlds): the court's height in px (RALLY_TALL_H). Absent = RALLY_WORLD_H. */
   worldH?: number;
+  /** rallyRev 10 only (the expansion, docs/expansions/e9.md). Absent on every earlier round. The marker and the court's width (420). */
+  exp?: number;
+  worldW?: number;
+  /** Smoothed paddle speed (1/256 px a tick) and the blue ball's spin (spin shots aim; they pay nothing). */
+  pv?: number;
+  spin?: number;
+  spun?: number;
+  /** The gold bonus targets: their seeded schedule, the ones struck (bit n = target n) and the last strike (render only). */
+  bonus?: RallyBonusTarget[];
+  bonusHit?: number;
+  bonusAt?: number;
+}
+
+/** rallyRev 10: one gold bonus target, fixed at init from the seed: when it appears and where (centre, whole px). */
+export interface RallyBonusTarget {
+  tick: number;
+  x: number;
+  y: number;
 }
 
 /** Total returns, which is what shrinks the paddle. */
@@ -470,6 +491,8 @@ export function rallyCheckpoint(state: RallyState): RallyCheckpoint {
   if (state.bumper2) values.push(state.bumper2.x, state.bumper2.y);
   // rallyRev 6 (taller worlds): the court's height, last.
   if (state.worldH) values.push(state.worldH);
+  // rallyRev 10 (the expansion): its own counters, last.
+  if (state.exp) values.push(state.exp, state.worldW ?? 0, state.pv ?? 0, state.spin ?? 0, state.spun ?? 0, state.bonusHit ?? 0, ...(state.live ?? []));
   for (const value of values) {
     checksum ^= value | 0;
     checksum = Math.imul(checksum, 0x01000193) >>> 0;
@@ -585,6 +608,7 @@ export const rallyRev2Game: ArcadeGame<RallyState, ArcadeInputEvent | null> = { 
 
 /** Takes puzzle.rallyRev; anything else is the original game. */
 export function rallyGameFor(rev?: number | null): ArcadeGame<RallyState, ArcadeInputEvent | null> {
+  if (rev === RALLY_REV_BONUS) return rallyBonusGame;
   if (rev === RALLY_REV_STRICT) return rallyStrictGame;
   if (rev === RALLY_REV_TARGET) return rallyTargetGame;
   if (rev === RALLY_REV_TALL) return rallyTallGame;
@@ -606,6 +630,7 @@ export function rallyBandUnits(goldHits: number, targetHits: number): number {
 }
 
 export function rallyBandParts(state: RallyState): BandParts {
+  if (state.exp) return rallyBonusParts(state);
   const units = rallyBandUnits(state.goldHits, state.targetHits ?? 0);
   const curve = bandCurveOf(state, state.worldH ? RALLY_V6_BAND_CURVE : state.bumper2 ? RALLY_V5_BAND_CURVE : state.tune === RALLY_TUNE ? RALLY_V4_BAND_CURVE : RALLY_BAND_CURVE);
   return { units, points: bandPoints(curve, units), bonus: 0, penalty: 0, finished: false, text: `${state.goldHits} gold hits · ${state.targetHits ?? 0} targets` };
@@ -722,7 +747,13 @@ export const rallyTallGame: ArcadeGame<RallyState, ArcadeInputEvent | null> = {
 
 /** The court height (px) a stored round's rallyRev plays on. */
 export function rallyWorldHFor(rev?: number | null): number {
+  if (rev === RALLY_REV_BONUS) return RALLY_V10_H;
   return rev === RALLY_REV_TALL || rev === RALLY_REV_TARGET || rev === RALLY_REV_STRICT ? RALLY_TALL_H : RALLY_WORLD_H;
+}
+
+/** The court width (px) a stored round's rallyRev plays on. */
+export function rallyWorldWFor(rev?: number | null): number {
+  return rev === RALLY_REV_BONUS ? RALLY_V10_W : RALLY_WORLD_W;
 }
 
 /* ================= Scoring targets (rallyRev 7, 18 Oct 2026) ================= */
@@ -749,3 +780,425 @@ export const RALLY_REV_STRICT = 8;
 export const rallyStrictGame = bandStrictGame(rallyTargetGame);
 /** The curve new rounds score on: RALLY_V6_BAND_CURVE's strict curve (what bandCurveOf gives a band-3 state). */
 export const RALLY_V8_BAND_CURVE = bandStrict(RALLY_V6_BAND_CURVE);
+
+
+
+
+/* ================= Expansion (rallyRev 10, 26 Oct 2026) ================= */
+
+/**
+ * rallyRev 10 (the 200-point expansion, docs/expansions/e9.md): a bigger court and a gold bonus target,
+ * scored to 200 (roundMax.ts). Every earlier revision keeps its own step and scoring. Every feature is
+ * placed and timed by the room seed at init, the same for every player, never by how a run has gone.
+ *
+ *  - More world: a 420 × 784 court (the iPhone 11 play box's shape, so it still fills it), the paddle
+ *    RALLY_PADDLE_LIFT above the new bottom: every return travels further. Both bumpers as rallyRev 8.
+ *  - Pink pads as today: two on the far wall, each in its own half; a gold ball striking one scores it
+ *    and the pad jumps to its half's next spot on a seeded list (RALLY_TARGET_SPOTS of them, drawn at init).
+ *  - Spin shots: the paddle's movement at contact (smoothed over a few ticks) curves the return. A way
+ *    to aim; it pays nothing itself.
+ *  - Gold bonus target: RALLY_V10_BONUS_COUNT a round, each at a seeded moment (one in each
+ *    RALLY_V10_BONUS_SLOT window from RALLY_V10_BONUS_FROM) and a seeded place in the upper half of the
+ *    court, clear of the bumpers; small (RALLY_V10_BONUS_R) and up for RALLY_V10_BONUS_LIFE (about two
+ *    returns). Any ball (blue or gold) that touches it scores RALLY_V10_BONUS_PTS; a miss costs nothing.
+ *
+ * Score: gold hits (5), pink pads (6) and blue returns (1, so a run that never reaches a gold ball still
+ * scores a little) on RALLY_V10_BAND_CURVE (to RALLY_V10_BASE_TOP), plus the targets struck, at most 200. States carry `exp: 1`, folded into the checkpoint last.
+ */
+export const RALLY_REV_BONUS = 10;
+export const RALLY_V10_W = 420;
+export const RALLY_V10_H = 784;
+export const RALLY_V10_MAX = 200;
+export const RALLY_V10_BONUS_COUNT = 6;
+/** Target n appears at RALLY_V10_BONUS_FROM + n × RALLY_V10_BONUS_SLOT plus a seeded 0–RALLY_V10_BONUS_JITTER ticks. */
+export const RALLY_V10_BONUS_FROM = 4 * TICKS_PER_SECOND;
+export const RALLY_V10_BONUS_SLOT = 9 * TICKS_PER_SECOND;
+export const RALLY_V10_BONUS_JITTER = 3 * TICKS_PER_SECOND;
+/** Up for 4 s (about two returns), 12 px radius (24 across: about 24 phone px on a 414-wide play box). */
+export const RALLY_V10_BONUS_LIFE = 4 * TICKS_PER_SECOND;
+export const RALLY_V10_BONUS_R = 12;
+/** Each target struck adds this many points on top of the curve. */
+export const RALLY_V10_BONUS_PTS = 6;
+/** The targets' band: the upper half of the court, this far inside the walls, the top wall and the court's middle. */
+export const RALLY_V10_BONUS_MARGIN = 30;
+/** A target's centre is at least this far from either bumper's centre (a ball fits between). */
+export const RALLY_V10_BONUS_CLEAR = RALLY_BUMPER_R + RALLY_V10_BONUS_R + 2 * RALLY_BALL_R + 6;
+/** Paddle speed (1/256 px a tick, smoothed) below which a return has no spin, the spin per unit of it, and the cap. */
+export const RALLY_V10_SPIN_MIN = 2 * 256;
+export const RALLY_V10_SPIN_K = 3;
+export const RALLY_V10_SPIN_CAP = 24;
+/** A spin's bend decays by 1/16 a tick and stops under this. */
+export const RALLY_V10_SPIN_END = 2;
+export const RALLY_V10_INPUT_RANGES: readonly InputRange[] = [inputRange(ARCADE_INPUT_DRAG, [0, RALLY_V10_W])];
+
+/** The court's width (px) a state plays on: rallyRev 10's 420, or the original 390. */
+export function rallyWorldW(state: { worldW?: number }): number {
+  return state.worldW ?? RALLY_WORLD_W;
+}
+
+/** rallyRev 10: the pink pad spots' span in half k % 2 of the far wall: its lowest left edge and how far a spot can be from it. */
+export function rallyBonusPadRange(k: number): { lo: number; span: number } {
+  const half = Math.trunc(RALLY_V10_W / 2);
+  const span = half - RALLY_WALL - RALLY_TARGET_W - 4;
+  return { lo: k % 2 === 0 ? RALLY_WALL : half + 4, span };
+}
+
+/** rallyRev 10: whether bonus target n is up at a tick (appeared, not yet gone, not yet struck). */
+export function rallyBonusLive(state: Pick<RallyState, "bonus" | "bonusHit">, n: number, tick: number): boolean {
+  const t = state.bonus?.[n];
+  if (!t) return false;
+  return tick >= t.tick && tick < t.tick + RALLY_V10_BONUS_LIFE && ((state.bonusHit ?? 0) & (1 << n)) === 0;
+}
+
+/** rallyRev 10: the bonus target up at a tick, or -1 (the slots never overlap). */
+export function rallyBonusNow(state: Pick<RallyState, "bonus" | "bonusHit">, tick: number): number {
+  for (let n = 0; n < (state.bonus ?? []).length; n++) if (rallyBonusLive(state, n, tick)) return n;
+  return -1;
+}
+
+/** rallyRev 10: targets struck so far. */
+export function rallyBonusCount(state: Pick<RallyState, "bonusHit">): number {
+  let n = 0;
+  for (let bits = state.bonusHit ?? 0; bits; bits &= bits - 1) n++;
+  return n;
+}
+
+/** rallyRev 10: the bonus points a state has earned. */
+export function rallyBonusPoints(state: Pick<RallyState, "bonusHit">): number {
+  return RALLY_V10_BONUS_PTS * rallyBonusCount(state);
+}
+
+/** rallyRev 10's bumper band on its court: rallyRev 5's centre band stretched to the longer court. */
+function bonusBumperY(y: number): number {
+  const top = RALLY_HUD_H + RALLY_WALL;
+  const paddleY = RALLY_V10_H - RALLY_PADDLE_LIFT;
+  return top + Math.trunc(((y - top) * (paddleY - top)) / (RALLY_PADDLE_Y - top));
+}
+
+/**
+ * rallyRev 10's start state for a seed: a stream of its own keyed by the seed, drawn in a fixed order
+ * (the opening, the five gold balls, the pad spots, both bumpers, then the six bonus targets).
+ */
+export function rallyBonusInit(seed: number): RallyState {
+  let rng = (seed ^ 0x52414c3a) | 0;
+  const draw = (bound: number): number => {
+    const d = rngBelow(rng, bound);
+    rng = d.state;
+    return d.value;
+  };
+  const W = RALLY_V10_W;
+  const opening = setLength(draw(2 * 160 + 1) - 160, -256, RALLY_SPEED_START);
+  const entries: RallyEntry[] = [];
+  for (let index = 0; index < RALLY_GOLD_COUNT; index++) {
+    const spot = draw(W - 2 * (RALLY_WALL + RALLY_BALL_R));
+    const lane = draw(2 * 160 + 1);
+    const pace = draw(420);
+    const drop = setLength(lane - 160, 256, RALLY_SPEED_START - 180 + pace);
+    entries.push({ tick: (index + 1) * RALLY_GOLD_INTERVAL, x: RALLY_WALL + RALLY_BALL_R + spot, vx: drop.vx, vy: drop.vy });
+  }
+  // Even spots in the left half, odd in the right: the two live pads are always consecutive spots.
+  const spots: number[] = [];
+  for (let i = 0; i < RALLY_TARGET_SPOTS; i++) {
+    const { lo, span } = rallyBonusPadRange(i);
+    spots.push(lo + draw(span + 1));
+  }
+  const bumper = { x: 100 + draw(221), y: bonusBumperY(RALLY_BUMPER_Y_MIN + draw(RALLY_BUMPER_Y_SPAN)) };
+  let bumper2 = { x: bumper.x < 210 ? bumper.x + 110 : bumper.x - 110, y: bumper.y };
+  for (let tries = 0; tries < 16; tries++) {
+    const b = { x: 100 + draw(221), y: bonusBumperY(RALLY_BUMPER_Y_MIN + draw(RALLY_BUMPER_Y_SPAN)) };
+    if ((b.x - bumper.x) ** 2 + (b.y - bumper.y) ** 2 >= RALLY_BUMPER2_GAP * RALLY_BUMPER2_GAP) {
+      bumper2 = b;
+      break;
+    }
+  }
+  const top = RALLY_HUD_H + RALLY_WALL;
+  const paddleY = RALLY_V10_H - RALLY_PADDLE_LIFT;
+  const yLo = top + RALLY_V10_BONUS_MARGIN + RALLY_V10_BONUS_R;
+  const yHi = Math.trunc((top + paddleY) / 2) - RALLY_V10_BONUS_MARGIN;
+  const xLo = RALLY_WALL + RALLY_V10_BONUS_MARGIN + RALLY_V10_BONUS_R;
+  const xHi = W - xLo;
+  const clear = (x: number, y: number) =>
+    [bumper, bumper2].every((b) => (x - b.x) ** 2 + (y - b.y) ** 2 >= RALLY_V10_BONUS_CLEAR * RALLY_V10_BONUS_CLEAR);
+  const bonus: RallyBonusTarget[] = [];
+  for (let n = 0; n < RALLY_V10_BONUS_COUNT; n++) {
+    const tick = RALLY_V10_BONUS_FROM + n * RALLY_V10_BONUS_SLOT + draw(RALLY_V10_BONUS_JITTER + 1);
+    let x = xLo + draw(xHi - xLo + 1);
+    let y = yLo + draw(yHi - yLo + 1);
+    for (let tries = 0; tries < 24 && !clear(x, y); tries++) {
+      x = xLo + draw(xHi - xLo + 1);
+      y = yLo + draw(yHi - yLo + 1);
+    }
+    // Still on a bumper after every try (never seen): the band's top-centre, which no bumper reaches.
+    if (!clear(x, y)) {
+      x = Math.trunc(W / 2);
+      y = yLo;
+    }
+    bonus.push({ tick, x, y });
+  }
+  const paddleX = Math.round(W / 2);
+  return bandInit({
+    tick: 0,
+    rng,
+    aimX: paddleX,
+    paddleX,
+    x: paddleX * 256,
+    y: (RALLY_HUD_H + 140) * 256,
+    vx: opening.vx,
+    vy: opening.vy,
+    speed: RALLY_SPEED_START,
+    hits: 0,
+    goldHits: 0,
+    entries,
+    golds: [],
+    dead: false,
+    endedTick: 0,
+    rev: RALLY_REV,
+    spots,
+    live: [0, 1],
+    targetHits: 0,
+    bumper,
+    bounces: 0,
+    struckTick: 0,
+    struckLeft: 0,
+    tune: RALLY_TUNE,
+    bumper2,
+    bumped: 0,
+    worldH: RALLY_V10_H,
+    worldW: W,
+    exp: 1,
+    pv: 0,
+    spin: 0,
+    spun: 0,
+    bonus,
+    bonusHit: 0,
+    bonusAt: 0,
+  });
+}
+
+/** One return's spin from the smoothed paddle speed: none when slow, then proportional, capped. */
+export function rallySpinFrom(pv: number): number {
+  if (Math.abs(pv) < RALLY_V10_SPIN_MIN) return 0;
+  return clampInt(Math.trunc((pv * RALLY_V10_SPIN_K) / 256), -RALLY_V10_SPIN_CAP, RALLY_V10_SPIN_CAP);
+}
+
+function stepBonus(state: RallyState, input: ArcadeInputEvent | null): RallyState {
+  if (isOver(state)) return state;
+  const tick = state.tick + 1;
+  const W = RALLY_V10_W;
+
+  let aimX = state.aimX;
+  if (input && input.k === ARCADE_INPUT_DRAG) aimX = clampInt(input.a, 0, W);
+  const width = rallyPaddleW(rallyTotalHits(state));
+  const half = Math.trunc(width / 2);
+  const paddleX = clampInt(aimX, RALLY_WALL + half, W - RALLY_WALL - half);
+  // Smoothed paddle speed (1/256 px a tick): what a return's spin is made of.
+  const pv = Math.trunc((3 * (state.pv ?? 0) + 256 * (paddleX - state.paddleX)) / 4);
+
+  const next: RallyState = { ...state, tick, aimX, paddleX, pv };
+  let { speed, hits, goldHits, rng } = next;
+  const spots = state.spots ?? [];
+  const live = [...(state.live ?? [])];
+  let targetHits = state.targetHits ?? 0;
+  let bounces = state.bounces ?? 0;
+  let struckTick = state.struckTick ?? 0;
+  let struckLeft = state.struckLeft ?? 0;
+  let bumped = state.bumped ?? 0;
+  let bonusHit = state.bonusHit ?? 0;
+  let bonusAt = state.bonusAt ?? 0;
+  // The target up this tick (decided before any ball moves, so every ball sees the same one).
+  const up = rallyBonusNow(state, tick);
+  const target = up >= 0 ? state.bonus![up]! : null;
+  const bumpers: { x: number; y: number }[] = [];
+  if (tick >= RALLY_BUMPER_FROM && state.bumper) bumpers.push(state.bumper);
+  if (tick >= RALLY_BUMPER2_FROM && state.bumper2) bumpers.push(state.bumper2);
+  const top = (RALLY_HUD_H + RALLY_WALL) * 256;
+  const leftWall = RALLY_WALL * 256;
+  const rightWall = (W - RALLY_WALL) * 256;
+  const paddleYFp = (RALLY_V10_H - RALLY_PADDLE_LIFT) * 256;
+  const worldHFp = RALLY_V10_H * 256;
+  const reachT = (RALLY_V10_BONUS_R + RALLY_BALL_R) * 256;
+
+  let golds = state.golds.map((ball) => ({ ...ball }));
+  for (const entry of state.entries) {
+    if (entry.tick === tick) golds.push({ x: entry.x * 256, y: top + RALLY_BALL_R_FP, vx: entry.vx, vy: entry.vy });
+  }
+
+  /** Runs one ball for a tick. Returns null when it fell off the bottom. */
+  const move = (ball: RallyBall, gold: boolean): RallyBall | null => {
+    let { x, y, vx, vy } = ball;
+    let spin = ball.spin ?? 0;
+    let spun = ball.spun ?? 0;
+    // A spin bends the flight a little every tick and wears off.
+    if (spin !== 0) {
+      let out = setLength(vx + spin, vy, speed);
+      if (Math.abs(out.vy) < RALLY_MIN_VY) out = setLength(out.vx, out.vy < 0 ? -RALLY_MIN_VY : RALLY_MIN_VY, speed);
+      vx = out.vx;
+      vy = out.vy;
+      spin = Math.trunc((spin * 15) / 16);
+      if (Math.abs(spin) < RALLY_V10_SPIN_END) spin = 0;
+    }
+    for (let sub = 0; sub < 4; sub++) {
+      const sx = sub === 3 ? vx - 3 * Math.trunc(vx / 4) : Math.trunc(vx / 4);
+      const sy = sub === 3 ? vy - 3 * Math.trunc(vy / 4) : Math.trunc(vy / 4);
+
+      x += sx;
+      if (x - RALLY_BALL_R_FP < leftWall || x + RALLY_BALL_R_FP > rightWall) {
+        x = x - RALLY_BALL_R_FP < leftWall ? leftWall + RALLY_BALL_R_FP : rightWall - RALLY_BALL_R_FP;
+        const turned = nudge(rng, speed, -vx, vy);
+        rng = turned.rng;
+        vx = turned.vx;
+        vy = turned.vy;
+        spin = -spin;
+      }
+
+      y += sy;
+      if (y - RALLY_BALL_R_FP < top) {
+        y = top + RALLY_BALL_R_FP;
+        if (gold) {
+          const bx = px(x);
+          for (let k = 0; k < live.length; k++) {
+            const left = rallyTargetLeft(spots, live[k]!);
+            if (bx + RALLY_BALL_R >= left && bx - RALLY_BALL_R <= left + RALLY_TARGET_W) {
+              targetHits += 1;
+              struckTick = tick;
+              struckLeft = left;
+              // The pad jumps to its own half's next seeded spot (the same list for every player).
+              live[k] = live[k]! + RALLY_TARGETS_LIVE;
+              break;
+            }
+          }
+        }
+        const turned = nudge(rng, speed, vx, -vy);
+        rng = turned.rng;
+        vx = turned.vx;
+        vy = turned.vy;
+        spin = 0;
+        spun = 0;
+      }
+
+      // The gold bonus target: a touch scores it (the ball flies on unchanged).
+      if (target && (bonusHit & (1 << up)) === 0) {
+        const dx = x - target.x * 256;
+        const dy = y - target.y * 256;
+        if (Math.abs(dx) < reachT && Math.abs(dy) < reachT && dx * dx + dy * dy <= reachT * reachT) {
+          bonusHit |= 1 << up;
+          bonusAt = tick;
+        }
+      }
+
+      for (let bi = 0; bi < bumpers.length; bi++) {
+        const bumper = bumpers[bi]!;
+        const dx = x - bumper.x * 256;
+        const dy = y - bumper.y * 256;
+        const reach = (RALLY_BUMPER_R + RALLY_BALL_R) * 256;
+        if (Math.abs(dx) < reach && Math.abs(dy) < reach) {
+          const d = isqrt(dx * dx + dy * dy);
+          if (d < reach) {
+            const nx = d > 0 ? Math.trunc((dx * 1024) / d) : 0;
+            const ny = d > 0 ? Math.trunc((dy * 1024) / d) : -1024;
+            x = bumper.x * 256 + Math.trunc((nx * reach) / 1024);
+            y = bumper.y * 256 + Math.trunc((ny * reach) / 1024);
+            const vn = Math.trunc((vx * nx + vy * ny) / 1024);
+            if (vn < 0) {
+              let out = setLength(vx - Math.trunc((2 * vn * nx) / 1024), vy - Math.trunc((2 * vn * ny) / 1024), speed);
+              if (Math.abs(out.vy) < RALLY_MIN_VY) out = setLength(out.vx, out.vy < 0 ? -RALLY_MIN_VY : RALLY_MIN_VY, speed);
+              vx = out.vx;
+              vy = out.vy;
+              bounces += 1;
+              bumped = bi;
+            }
+          }
+        }
+      }
+
+      if (vy > 0 && y + RALLY_BALL_R_FP >= paddleYFp && y < paddleYFp + 4 * 256) {
+        const offset = px(x) - (paddleX - half);
+        if (offset >= -RALLY_BALL_R && offset <= width + RALLY_BALL_R) {
+          if (gold) goldHits += 1;
+          else hits += 1;
+          speed = Math.min(RALLY_SPEED_CAP, Math.trunc((speed * 103) / 100));
+          const fromCentre = Math.round(offset - half);
+          const steered = setLength(Math.trunc((fromCentre * 256) / Math.max(1, half)) + Math.trunc(vx / 4), -Math.max(RALLY_MIN_VY, Math.abs(vy)), speed);
+          vx = steered.vx;
+          vy = steered.vy;
+          y = paddleYFp - RALLY_BALL_R_FP;
+          spin = rallySpinFrom(pv);
+          spun = spin !== 0 ? 1 : 0;
+        }
+      }
+
+      if (y - RALLY_BALL_R_FP > worldHFp) return null;
+    }
+    return { x, y, vx, vy, spin, spun };
+  };
+
+  const main = move({ x: next.x, y: next.y, vx: next.vx, vy: next.vy, spin: state.spin ?? 0, spun: state.spun ?? 0 }, false);
+  if (main === null) next.dead = true;
+  else {
+    next.x = main.x;
+    next.y = main.y;
+    next.vx = main.vx;
+    next.vy = main.vy;
+    next.spin = main.spin ?? 0;
+    next.spun = main.spun ?? 0;
+  }
+
+  const keptGolds: RallyBall[] = [];
+  for (const ball of golds) {
+    const moved = move(ball, true);
+    if (moved !== null) keptGolds.push(moved);
+  }
+  golds = keptGolds;
+
+  next.golds = golds;
+  next.speed = speed;
+  next.hits = hits;
+  next.goldHits = goldHits;
+  next.rng = rng;
+  next.live = live;
+  next.targetHits = targetHits;
+  next.bounces = bounces;
+  next.struckTick = struckTick;
+  next.struckLeft = struckLeft;
+  next.bumped = bumped;
+  next.bonusHit = bonusHit;
+  next.bonusAt = bonusAt;
+  if (next.dead || tick >= RALLY_RUN_TICKS) next.endedTick = tick;
+  return next;
+}
+
+/**
+ * rallyRev 10 base knots (5 a gold-ball hit, 6 a pad), fitted with scripts/expansion-e9-bands.ts on the
+ * skill-band bots (docs/expansions/e9.md); the bonus targets add up to RALLY_V10_BONUS_COUNT ×
+ * RALLY_V10_BONUS_PTS on top.
+ */
+export const RALLY_V10_BAND_CURVE = bandCurve([0, 60, 106, 137, 176, 300], [0, 39, 82, 146, 159, 172]);
+/** The most the base curve pays. */
+export const RALLY_V10_BASE_TOP = 172;
+
+/** rallyRev 10's units: 5 a gold-ball hit, 6 a pink pad and 1 a blue return. */
+export function rallyBonusUnits(state: Pick<RallyState, "goldHits" | "targetHits" | "hits">): number {
+  return rallyBandUnits(state.goldHits, state.targetHits ?? 0) + Math.max(0, state.hits);
+}
+
+export function rallyBonusParts(state: RallyState): BandParts {
+  const units = rallyBonusUnits(state);
+  const bonus = rallyBonusPoints(state);
+  return {
+    units,
+    points: bandPoints(RALLY_V10_BAND_CURVE, units),
+    bonus,
+    penalty: 0,
+    finished: false,
+    text: `${state.goldHits} gold hits · ${state.targetHits ?? 0} targets · ${state.hits} returns`,
+    bonusText: `Gold targets: ${rallyBonusCount(state)} of ${RALLY_V10_BONUS_COUNT}`,
+  };
+}
+
+export const rallyBonusGame: ArcadeGame<RallyState, ArcadeInputEvent | null> = {
+  ...rallyGame,
+  init: rallyBonusInit,
+  step: bandStep(stepBonus),
+  score: (state) => bandTotal(rallyBonusParts(state), Boolean(state.acted), RALLY_V10_MAX),
+  inputRanges: RALLY_V10_INPUT_RANGES,
+};

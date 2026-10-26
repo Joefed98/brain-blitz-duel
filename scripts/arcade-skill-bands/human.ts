@@ -12,13 +12,21 @@
  */
 
 export const LEVELS = ["average", "good", "great", "near"] as const;
-export type SkillLevel = (typeof LEVELS)[number];
+/**
+ * Two more levels (expansion E9, 26 Oct 2026; docs/expansions/e9.md): a weak-but-trying player and an elite
+ * one. Only bots that know them play them (pass `--levels=weak,…,elite`); the default run keeps the four.
+ */
+export const EXTRA_LEVELS = ["weak", "elite"] as const;
+export const ALL_LEVELS = ["weak", "average", "good", "great", "near", "elite"] as const;
+export type SkillLevel = (typeof ALL_LEVELS)[number];
 
 export const LEVEL_LABEL: Record<SkillLevel, string> = {
+  weak: "Weak",
   average: "Average",
   good: "Good",
   great: "Great",
   near: "Near-perfect",
+  elite: "Elite",
 };
 
 export interface SkillProfile {
@@ -47,10 +55,12 @@ export interface SkillProfile {
  * typical touch-screen values: timing sd 45→12 ms, aim sd 9→2.5 px, power sd 7→1.5 %.
  */
 export const PROFILES: Record<SkillLevel, SkillProfile> = {
+  weak: { reactionMs: [380, 70], lapse: 0.14, timingSdMs: 65, aimSdPx: 13, powerSd: 0.1, mistake: 0.18, thinkScale: 1.3, judgement: 0.5, trackLagMs: 190 },
   average: { reactionMs: [300, 55], lapse: 0.08, timingSdMs: 45, aimSdPx: 9, powerSd: 0.07, mistake: 0.1, thinkScale: 1, judgement: 0.35, trackLagMs: 140 },
   good: { reactionMs: [230, 40], lapse: 0.04, timingSdMs: 30, aimSdPx: 6, powerSd: 0.045, mistake: 0.05, thinkScale: 0.75, judgement: 0.2, trackLagMs: 100 },
   great: { reactionMs: [190, 30], lapse: 0.02, timingSdMs: 20, aimSdPx: 4, powerSd: 0.03, mistake: 0.025, thinkScale: 0.55, judgement: 0.1, trackLagMs: 75 },
   near: { reactionMs: [160, 20], lapse: 0.005, timingSdMs: 12, aimSdPx: 2.5, powerSd: 0.015, mistake: 0.008, thinkScale: 0.4, judgement: 0.04, trackLagMs: 55 },
+  elite: { reactionMs: [145, 15], lapse: 0.002, timingSdMs: 8, aimSdPx: 1.6, powerSd: 0.01, mistake: 0.003, thinkScale: 0.32, judgement: 0.02, trackLagMs: 42 },
 };
 
 const TICK_MS = 1000 / 60;

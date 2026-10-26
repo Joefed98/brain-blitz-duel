@@ -1,4 +1,5 @@
 import { reducedMotion } from "./art.renderer";
+import { arcadeReducedEffects } from "@/lib/fx/lowEnd";
 import { arcadeFx, drawFxGlow } from "./arcadeFx.renderer";
 import { rallyFxFor } from "./arcadeFxGames.renderer";
 import { artCanvas, artContext, type ArtCanvas } from "./cache.renderer";
@@ -22,6 +23,13 @@ import {
   RALLY_TARGET_W,
   RALLY_WALL,
   RALLY_WORLD_W,
+  RALLY_V10_BONUS_COUNT,
+  RALLY_V10_BONUS_LIFE,
+  RALLY_V10_BONUS_PTS,
+  RALLY_V10_BONUS_R,
+  rallyBonusCount,
+  rallyBonusNow,
+  rallyWorldW,
   type RallyState,
 } from "./rally";
 import { px, type ArcadeGame, type ArcadeInputEvent, type CanvasSize } from "./engine";
@@ -55,10 +63,10 @@ const PAD = "#FF6FD8";
 const BUMPER = "#B49CFF";
 
 function draw(ctx: CanvasRenderingContext2D, state: RallyState, size: CanvasSize): void {
-  retroScreen(ctx, size, RALLY_WORLD_W, rallyWorldH(state), "stretch", (c) => arcadeFx(c, rallyFxFor(state), state, () => drawWorld(c, state, ctx)));
+  retroScreen(ctx, size, rallyWorldW(state), rallyWorldH(state), "stretch", (c) => arcadeFx(c, rallyFxFor(state), state, () => drawWorld(c, state, ctx)));
 }
 function drawReveal(ctx: CanvasRenderingContext2D, state: RallyState, size: CanvasSize): void {
-  retroScreen(ctx, size, RALLY_WORLD_W, rallyWorldH(state), "stretch", (c) => arcadeFx(c, rallyFxFor(state), state, () => drawWorld(c, state, ctx, false)));
+  retroScreen(ctx, size, rallyWorldW(state), rallyWorldH(state), "stretch", (c) => arcadeFx(c, rallyFxFor(state), state, () => drawWorld(c, state, ctx, false)));
 }
 
 /**
@@ -68,12 +76,12 @@ function drawReveal(ctx: CanvasRenderingContext2D, state: RallyState, size: Canv
  * here is something a ball can hit.
  */
 const courts = new WeakMap<CanvasRenderingContext2D, { key: string; layer: ArtCanvas }>();
-function courtLayer(ctx: CanvasRenderingContext2D, RALLY_WORLD_H: number): ArtCanvas | null {
+function courtLayer(ctx: CanvasRenderingContext2D, RALLY_WORLD_H: number, RALLY_WORLD_W = 390): ArtCanvas | null {
   const t = ctx.getTransform();
   const sx = Math.max(1, Math.abs(t.a));
   const sy = Math.max(1, Math.abs(t.d));
   // rallyRev 6: the court's height is part of the key (the taller court has its own layer).
-  const key = `${sx.toFixed(3)}x${sy.toFixed(3)}:${RALLY_WORLD_H}`;
+  const key = `${sx.toFixed(3)}x${sy.toFixed(3)}:${RALLY_WORLD_W}x${RALLY_WORLD_H}`;
   const RALLY_PADDLE_Y = rallyPaddleY({ worldH: RALLY_WORLD_H });
   const old = courts.get(ctx);
   if (old && old.key === key) return old.layer;
@@ -138,7 +146,7 @@ function courtLayer(ctx: CanvasRenderingContext2D, RALLY_WORLD_H: number): ArtCa
 }
 
 /** Side walls as neon tubes with running lights (presentation clock; still under reduced motion). */
-function drawWalls(ctx: CanvasRenderingContext2D, colour: string, _bloom: number, RALLY_WORLD_H: number): void {
+function drawWalls(ctx: CanvasRenderingContext2D, colour: string, _bloom: number, RALLY_WORLD_H: number, RALLY_WORLD_W = 390, deep = false): void {
   const top = RALLY_HUD_H + RALLY_WALL;
   // The walls are real (the ball bounces off them): soft edges, not neon tubes round the court
   // (17 Oct 2026, display only); they still turn gold on a milestone.
@@ -152,7 +160,9 @@ function drawWalls(ctx: CanvasRenderingContext2D, colour: string, _bloom: number
   pixelRect(ctx, 0, RALLY_HUD_H, RALLY_WORLD_W, RALLY_WALL - 2, COURT_DIM);
   const t = retroClock();
   const run = t === 0 ? -1 : Math.floor(t / 90) % 24;
-  for (let i = 0; i < 24; i++) {
+  // rallyRev 10: lights the whole of its longer walls.
+  const lights = deep ? Math.ceil((RALLY_WORLD_H - top) / 24) : 24;
+  for (let i = 0; i < lights; i++) {
     const y = top + 10 + i * 24;
     const lit = i === run || i === (run + 12) % 24;
     if (lit) {
@@ -200,15 +210,20 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: RallyState, key: Canvas
   // rallyRev 6: the taller court's height and paddle line (the original 620 / 560 otherwise).
   const RALLY_WORLD_H = rallyWorldH(state);
   const RALLY_PADDLE_Y = rallyPaddleY(state);
+  // rallyRev 10: the wider court (390 otherwise).
+  const RALLY_WORLD_W = rallyWorldW(state);
+  const deep = !!state.exp;
   const reward=successFrame(ctx,{id:'rally',tick:state.tick,count:rallyTotalHits(state),every:10,colour:GOLD,width:RALLY_WORLD_W,height:RALLY_WORLD_H,point:{x:px(state.x),y:RALLY_PADDLE_Y-4,shape:'spark'},hud:{x:14,y:26,text:`RALLY ${state.hits}`}});
   const heat=reward.chain>=20?SUCCESS_ACCENTS.orange:reward.chain>=10?GOLD:RETRO_WHITE;
   const bloom = retroBloom();
-  const layer = courtLayer(ctx, RALLY_WORLD_H);
+  const layer = courtLayer(ctx, RALLY_WORLD_H, RALLY_WORLD_W);
   if (layer) ctx.drawImage(layer as CanvasImageSource, 0, 0, RALLY_WORLD_W, RALLY_WORLD_H);
-  drawWalls(ctx, !reducedMotion() && reward.milestoneAge < 30 ? GOLD : COURT, bloom, RALLY_WORLD_H);
+  drawWalls(ctx, !reducedMotion() && reward.milestoneAge < 30 ? GOLD : COURT, bloom, RALLY_WORLD_H, RALLY_WORLD_W, deep);
 
+  // rallyRev 10's pads are today's, drawn as today.
+  if (state.rev === RALLY_REV) for (const spot of state.live ?? []) drawPad(ctx, rallyTargetLeft(state.spots ?? [], spot), bloom, false);
+  if (deep) drawBonusTarget(ctx, state, key, crashIndicator);
   if (state.rev === RALLY_REV) {
-    for (const spot of state.live ?? []) drawPad(ctx, rallyTargetLeft(state.spots ?? [], spot), bloom, false);
     // The pad that was just struck flashes where it was, under a fading pink light.
     if ((state.struckTick ?? 0) > 0 && state.tick - (state.struckTick ?? 0) < 18 && !reducedMotion()) {
       const left = state.struckLeft ?? 0;
@@ -250,6 +265,7 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: RallyState, key: Canvas
     drawRetroTrail(ctx, retroTrail(key, state.tick, `g${i}`, x, y, 6), RALLY_BALL_R, GOLD);
     glow(ctx, GOLD, x, y, RALLY_BALL_R + 9, RALLY_BALL_R + 9, 0.6);
     retroBall(ctx, x, y, RALLY_BALL_R, GOLD, GOLD);
+    if (deep && ball.spun) drawSpin(ctx, x, y, ball.spin ?? 0, state.tick, RETRO_WHITE);
   });
 
   const bx = px(state.x);
@@ -259,6 +275,7 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: RallyState, key: Canvas
     glow(ctx, heat, bx, by, RALLY_BALL_R + 8, RALLY_BALL_R + 8, 0.45);
   }
   retroBall(ctx, bx, by, RALLY_BALL_R, state.dead && crashIndicator ? "#FF3B5C" : heat);
+  if (deep && state.spun && !state.dead) drawSpin(ctx, bx, by, state.spin ?? 0, state.tick, GOLD);
   // Polish A1: "RALLY ×n" above the paddle on each return from the second (the shared layer already
   // calls every tenth), on the presentation clock; a rewind clears it.
   if (crashIndicator) {
@@ -270,7 +287,12 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: RallyState, key: Canvas
   successHud(ctx,'rally',state.tick,14,26,()=>{retroReadout(ctx, 14, 8, `RALLY ${state.hits}`, RETRO_WHITE);});
   // rallyRev 3+ (band-stamped, `band`) score on the band curve, so the HUD shows the counts only (17 Oct
   // 2026, display only); unstamped and rallyRev 2 rounds keep their points readout in replays.
-  if ((state as RallyState & BandFields).band) {
+  if (deep) {
+    // rallyRev 10: the gold targets struck, then the counts under them, clear of the RALLY readout.
+    const struck = rallyBonusCount(state);
+    retroText(ctx, `TARGET ${struck}/${RALLY_V10_BONUS_COUNT}`, RALLY_WORLD_W - 14, 9, 12, GOLD, "right");
+    retroText(ctx, `GOLD ${state.goldHits} · PADS ${state.targetHits ?? 0}`, RALLY_WORLD_W - 14, 27, 10, `${GOLD}B0`, "right");
+  } else if ((state as RallyState & BandFields).band) {
     retroText(ctx, `GOLD ${state.goldHits} · PADS ${state.targetHits ?? 0}`, RALLY_WORLD_W - 14, 21, 13, GOLD, "right");
   } else {
     const points = state.rev === RALLY_REV
@@ -282,6 +304,74 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: RallyState, key: Canvas
   if (state.dead && crashIndicator) {
     ctx.fillStyle = "rgba(255,59,92,0.2)";
     ctx.fillRect(0, 0, RALLY_WORLD_W, RALLY_WORLD_H);
+  }
+}
+
+/**
+ * rallyRev 10's gold bonus target: three gold rings drawn exactly over its touch circle (the ring's outer
+ * edge is RALLY_V10_BONUS_R), a countdown arc round it emptying over its four seconds, "+6" above it; when
+ * struck, a gold burst and "+6" rising where it was (presentation only, from the stored strike tick).
+ */
+function drawBonusTarget(ctx: CanvasRenderingContext2D, state: RallyState, key: CanvasRenderingContext2D, live: boolean): void {
+  const still = reducedMotion() || arcadeReducedEffects();
+  const up = rallyBonusNow(state, state.tick + 1);
+  if (up >= 0) {
+    const t = state.bonus![up]!;
+    const age = state.tick - t.tick;
+    const left = 1 - Math.max(0, age) / RALLY_V10_BONUS_LIFE;
+    const r = RALLY_V10_BONUS_R;
+    const appear = still ? 1 : Math.min(1, (age + 1) / 12);
+    glow(ctx, GOLD, t.x, t.y, r + 14, r + 14, 0.55 * appear);
+    ctx.save();
+    ctx.globalAlpha = appear;
+    ctx.fillStyle = "#2A1E05";
+    ctx.beginPath();
+    ctx.arc(t.x, t.y, r, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = GOLD;
+    ctx.lineWidth = 2;
+    for (const rr of [r - 1, r - 5]) {
+      ctx.beginPath();
+      ctx.arc(t.x, t.y, rr, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+    ctx.fillStyle = GOLD;
+    ctx.beginPath();
+    ctx.arc(t.x, t.y, 3, 0, Math.PI * 2);
+    ctx.fill();
+    // The countdown: an arc just outside the target, emptying clockwise; it reddens in the last second.
+    ctx.strokeStyle = left < 0.25 ? "#FF6B4A" : GOLD;
+    ctx.globalAlpha = 0.85 * appear;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(t.x, t.y, r + 4, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * left);
+    ctx.stroke();
+    ctx.restore();
+    retroText(ctx, `+${RALLY_V10_BONUS_PTS}`, t.x, t.y - r - 14, 8, GOLD, "center");
+  }
+  // The latest strike: a burst and its points rising (render memory never needed: the strike tick is state).
+  const at = state.bonusAt ?? 0;
+  if (at > 0 && state.tick - at < 40 && live) {
+    const n = (state.bonus ?? []).findIndex((t, i) => ((state.bonusHit ?? 0) & (1 << i)) !== 0 && at >= t.tick && at < t.tick + RALLY_V10_BONUS_LIFE);
+    const t = n >= 0 ? state.bonus![n]! : null;
+    if (t) {
+      const p = (state.tick - at) / 40;
+      if (!still) {
+        lightUp(ctx, t.x, t.y, GOLD, 30 + 30 * p, 0.8 * (1 - p));
+        retroBurst(ctx, t.x, t.y, p, GOLD, 26);
+      }
+      retroText(ctx, `+${RALLY_V10_BONUS_PTS}`, t.x, t.y - 10 - (still ? 0 : 18 * p), 12, GOLD, "center");
+    }
+  }
+  void key;
+}
+
+/** rallyRev 10: a spun ball's curl: two small dots circling it the way it bends (presentation only). */
+function drawSpin(ctx: CanvasRenderingContext2D, x: number, y: number, spin: number, tick: number, colour: string): void {
+  const turn = reducedMotion() || arcadeReducedEffects() ? 0 : (tick / 6) * (spin >= 0 ? 1 : -1);
+  for (let i = 0; i < 2; i++) {
+    const a = turn + i * Math.PI;
+    pixelRect(ctx, Math.round(x + Math.cos(a) * (RALLY_BALL_R + 3)) - 1, Math.round(y + Math.sin(a) * (RALLY_BALL_R + 3)) - 1, 2, 2, colour);
   }
 }
 

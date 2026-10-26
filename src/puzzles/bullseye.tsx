@@ -21,13 +21,14 @@ import {
 
   bullseyeGame,
   bullseyeInitFor,
-  bullseyeAimPoint,
-  bullseyeScalePct,
-  bullseyeTransform,
+  bullseyeAimPointFor,
+  bullseyeBoard,
+  bullseyeIsBull,
+  BULLSEYE_REV_EXPAND,
+  BULLSEYE_V8_LIFT,
   BULLSEYE_ARROWS,
   BULLSEYE_BG,
   BULLSEYE_CX,
-  BULLSEYE_CY,
   BULLSEYE_GOLD,
   BULLSEYE_CHECKPOINT_INTERVAL,
   BULLSEYE_OUTER_R,
@@ -40,7 +41,9 @@ import {
   BULLSEYE_WORLD_W,
 } from "@/lib/arcade/bullseye";
 import { decodeBullseyeRun, encodeBullseyeRun, replayBullseyeRun } from "@/lib/duel/bullseye";
-import { bullseyeArenaScene, bullseyeArtAim, drawBullseye } from "@/lib/arcade/bullseye.renderer";
+import { bullseyeArenaScene, bullseyeArenaSceneV8, bullseyeArtAim, drawBullseye } from "@/lib/arcade/bullseye.renderer";
+import { fairTransform } from "@/lib/arcade/fairground.renderer";
+import { bullseyeExtraSounds } from "@/lib/arcade/e5Sounds";
 import { useFairSceneKey } from "@/components/puzzles/useFairSceneKey";
 import { bullseyeSounds } from "@/lib/fx/gameSounds";
 import { ARCADE_CRASH_FREEZE_MS, type BullseyePuzzleData } from "@/lib/duel/types";
@@ -93,6 +96,8 @@ function IntroExample() {
         <text x="58" y="18" fill="#F7F7F8" fontSize="11" fontFamily="monospace">
           2
         </text>
+        {/* bullRev 8: the dead-centre ring inside the bull. */}
+        <circle cx="98" cy="46" r="3" fill="none" stroke="#FFFFFF" strokeWidth="0.8" />
         <circle cx="150" cy="40" r="8" fill="#E8384F" />
         <circle cx="147" cy="37" r="2" fill="#FFFFFF" opacity="0.6" />
         <g stroke={BULLSEYE_GOLD} strokeWidth="2" fill="none">
@@ -102,7 +107,7 @@ function IntroExample() {
         </g>
       </svg>
       <p className="text-center text-xs text-muted-foreground">
-        Touch and drag to aim - the dotted path shows where it will go.
+        Drag to aim. Bulls in a row build a streak; the white dead-centre ring adds more.
       </p>
     </div>
   );
@@ -112,6 +117,9 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const data: BullseyePuzzleData | null = puzzle.type === "bullseye" ? puzzle : null;
   const seed = data?.seed ?? 1;
   const fairSceneKey = useFairSceneKey();
+  // bullRev 8: the taller range (lift px above the original top); every phone draws the stored revision's world.
+  const lift = data?.bullRev === BULLSEYE_REV_EXPAND ? BULLSEYE_V8_LIFT : 0;
+  const worldH = BULLSEYE_WORLD_H + lift;
 
   const wrap = useRef<HTMLDivElement | null>(null);
   const canvas = useRef<HTMLCanvasElement | null>(null);
@@ -194,6 +202,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     let draftAt = 0;
     const feedback = arcadeFeedback({ game: "bullseye" });
     const sounds = bullseyeSounds();
+    const extra = bullseyeExtraSounds();
     let secondAt = last;
     let ticksThisSecond = 0;
 
@@ -236,6 +245,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       reportArcadeTick(state.current.tick, bullseyeGame.isOver(state.current));
       feedback(state.current, bullseyeGame.isOver(state.current));
       sounds.frame(state.current, !bullseyeGame.isOver(state.current));
+      extra(state.current);
 
       const size = sizeCanvas();
       if (size) {
@@ -247,12 +257,13 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
           bullseyeArtAim(
             context,
             size,
-            bullseyeAimPoint(
-              state.current.arrowIndex,
+            bullseyeAimPointFor(
+              state.current,
               state.current.tick + 1,
               aim.current.vx,
               aim.current.vy,
             ),
+            lift,
           );
         }
       }
@@ -305,21 +316,18 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   /** Canvas coordinates to world pixels, using the sim's own mapping. */
   const worldPoint = (event: React.PointerEvent<HTMLCanvasElement>) => {
     const box = event.currentTarget.getBoundingClientRect();
-    const { scale, offsetX, offsetY } = bullseyeTransform({
-      width: box.width,
-      height: box.height,
-    });
+    const { scale, offsetX, offsetY } = fairTransform({ width: box.width, height: box.height }, BULLSEYE_WORLD_W, worldH);
     const divisor = Math.max(scale, 0.0001);
     return {
       x: (event.clientX - box.left - offsetX) / divisor,
-      y: (event.clientY - box.top - offsetY) / divisor,
+      y: (event.clientY - box.top - offsetY) / divisor - lift,
     };
   };
 
   if (!data) return null;
 
   return (
-    <ArcadeArenaSlot width={BULLSEYE_WORLD_W} height={BULLSEYE_WORLD_H} scene={bullseyeArenaScene} sceneKey={fairSceneKey}>
+    <ArcadeArenaSlot width={BULLSEYE_WORLD_W} height={worldH} scene={lift ? bullseyeArenaSceneV8 : bullseyeArenaScene} sceneKey={fairSceneKey}>
       <div ref={wrap} data-game-arena="canvas" className="relative min-h-0 w-full flex-1 overflow-hidden rounded-xl">
         <canvas
           ref={canvas}
@@ -397,9 +405,10 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
         {result.hits.filter((hit) => hit.pop !== 1 || result.tuned === 1).map((hit, index) => {
           // Each hit is shown where it fell relative to the target it hit, so
           // every dart is comparable on one full-size ring set (balloon pops are listed below).
-          const scale = bullseyeScalePct(hit.arrow);
+          const board = bullseyeBoard(result.state, hit.arrow);
+          const scale = board.scalePct;
           const x = size / 2 + ((hit.x - (hit.tdx ?? 0) - BULLSEYE_CX) * 100) / scale;
-          const y = size / 2 + ((hit.y - BULLSEYE_CY) * 100) / scale;
+          const y = size / 2 + ((hit.y - board.cy) * 100) / scale;
           return <circle key={index} cx={x} cy={y} r={5} fill={BULLSEYE_GOLD} stroke="#0B0B0F" />;
         })}
       </svg>
@@ -411,11 +420,27 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
           {result.innerBulls} inner bull{result.innerBulls === 1 ? "" : "s"} · {result.pops} of {result.balloons} balloons{result.tuned ? ` (+${result.balloonPoints})` : ""}
         </p>
       ) : null}
+      {puzzle.bullRev === BULLSEYE_REV_EXPAND ? (
+        <p className="shrink-0 text-center font-mono text-base text-muted-foreground">
+          {result.hits.filter(bullseyeIsBull).length} bulls · best streak ×{bestStreak(result.hits)} · dead-centre {result.hits.filter((hit) => hit.dc === 1).length}
+        </p>
+      ) : null}
       <p className="shrink-0 text-center font-mono text-base text-muted-foreground">
         {shots} of {BULLSEYE_ARROWS} darts
       </p>
     </div>
   );
+}
+
+/** bullRev 8: the longest run of bulls in a row. */
+function bestStreak(hits: readonly Parameters<typeof bullseyeIsBull>[0][]): number {
+  let best = 0;
+  let run = 0;
+  for (const hit of hits) {
+    run = bullseyeIsBull(hit) ? run + 1 : 0;
+    best = Math.max(best, run);
+  }
+  return best;
 }
 
 /** The seed is generated on the server; every run is replayed there for scoring. */

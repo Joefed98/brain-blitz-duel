@@ -3,7 +3,6 @@ import { arcadeFx } from "./arcadeFx.renderer";
 import { burstFxFor } from "./arcadeFxGames.renderer";
 /** Burst in the Retro Arcade world. Render only; the sim and its bounds are untouched. */
 import {
-  burstCeiling,
   burstGame,
   burstGameFor,
   BURST_COLOURS,
@@ -11,7 +10,14 @@ import {
   BURST_REV,
   BURST_REV_BAND,
   burstFloorY,
-  BURST_REV_TALL, BURST_REV_TARGET, BURST_REV_STRICT,
+  BURST_REV_TALL, BURST_REV_TARGET, BURST_REV_STRICT, BURST_REV_CLEAN,
+  burstCeilingOf,
+  burstGoldenNow,
+  BURST_V8_CLEAN_PTS,
+  BURST_V8_GOLDEN_LIFE,
+  BURST_V8_GOLDEN_PTS,
+  BURST_ICON_DOUBLE,
+  BURST_GOLD_R,
   BURST_LIVES,
   BURST_RADIUS,
   BURST_SHORT_LEN,
@@ -196,7 +202,8 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: BurstState, lifeFlash: 
   const tick = state.tick;
   // burstRev 4: the taller arena's floor and its scaled ceiling (560 otherwise).
   const BURST_FLOOR_Y = burstFloorY(state);
-  const ceil = burstCeiling(state.wave, BURST_FLOOR_Y);
+  // burstRev 7: the higher arena's ceiling (burstCeilingOf gives the original's on older rounds).
+  const ceil = burstCeilingOf(state);
   backdrop(ctx, "fission-space", BURST_WORLD_W, BURST_FLOOR_Y, (c) => paintSpace(c, BURST_FLOOR_Y));
 
   // Ceiling and side walls as neon; the ceiling flashes while a ball touches it.
@@ -227,6 +234,11 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: BurstState, lifeFlash: 
     const y = icon.y / FP;
     if (icon.kind === BURST_ICON_FREEZE) {
       sprite(ctx, SNOWFLAKE, x - 7, y - 7, 2, ICE, 8);
+      continue;
+    }
+    if (icon.kind === BURST_ICON_DOUBLE) {
+      // burstRev 7 DOUBLE beam: two green beams in a gold frame.
+      sprite(ctx, DOUBLE_ICON, x - ICON_HALF, y - ICON_HALF, 2, BEAM, 8);
       continue;
     }
     if (icon.kind === 1) {
@@ -277,6 +289,7 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: BurstState, lifeFlash: 
     pixelRect(ctx, 0, BURST_FLOOR_Y - 6, BURST_WORLD_W, 4, ICE);
     ctx.globalAlpha = 1;
   }
+  if (state.exp) drawV8(ctx, state, key);
   successFrame(ctx,{id:'burst',tick:state.tick,count:0,eventTick:state.popSize===3?state.popTick:0,colour:SHIP,width:BURST_WORLD_W,height:BURST_FLOOR_Y,point:{x:state.popX/FP,y:state.popY/FP,shape:'spark'},enabled:state.balls.length<=BURST_FX_ENEMY_THRESHOLD&&state.shots.length<=BURST_FX_SHOT_THRESHOLD});
   particles(ctx, state);
   splitPop(ctx, state, key);
@@ -287,7 +300,8 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: BurstState, lifeFlash: 
     const left = state.x / FP - PLAYER_HALF_W;
     const top = BURST_FLOOR_Y - PLAYER_H;
     const colour = lifeFlash > 0 ? RETRO_RED : SHIP;
-    sprite(ctx, SHIP_ROWS, left, top, 2, lifeFlash > 0 ? RETRO_RED : state.burst ? "#FFF2A8" : colour, state.burst ? 12 : 0);
+    const double = (state.double ?? 0) > 0;
+    sprite(ctx, SHIP_ROWS, left, top, 2, lifeFlash > 0 ? RETRO_RED : state.burst ? "#FFF2A8" : double ? "#C8FFB0" : colour, state.burst || double ? 12 : 0);
     pixelRect(ctx, left + 10, top + 8, 4, 2, "#000000");
   }
   if (state.shield) {
@@ -309,13 +323,27 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: BurstState, lifeFlash: 
     ctx.globalAlpha = 1;
   }
 
-  const score = burstGame.score(state);
+  const score = burstGameFor(state.exp ? BURST_REV_CLEAN : null).score(state);
   const on = Math.floor(retroClock() / 500) % 2 === 0;
+  if (state.exp) {
+    // burstRev 8: one slim line above the higher ceiling (24 px): wave and score, a live power-up, the
+    // clean counter (shots that hit / shots fired this wave; red once one has missed) and the lives.
+    const double = state.double ?? 0;
+    retroText(ctx, `WAVE ${Math.max(1, state.wave)} ${score}`, 10, 7, 8, RETRO_WHITE);
+    if (freeze > 0 || double > 0) {
+      const status = freeze > 0 ? [`FREEZE ${Math.ceil(freeze / 60)}`, ICE] : [`DOUBLE ${Math.ceil(double / 60)}`, BEAM];
+      retroText(ctx, status[0]!, BURST_WORLD_W / 2 - 10, 7, 8, status[1]!, "center");
+    }
+    const missed = (state.missed ?? 0) > 0;
+    retroText(ctx, `CLEAN ${state.landed ?? 0}/${state.fired ?? 0}`, BURST_WORLD_W - 56, 7, 8, missed ? "rgba(255,90,110,0.85)" : CLEAN, "right");
+    for (let i = 0; i < BURST_LIVES; i++) sprite(ctx, SHIP_ROWS, BURST_WORLD_W - 48 + i * 14, 4, 0.75, i < state.lives ? SHIP : "rgba(255,216,74,0.2)");
+  } else {
   retroText(ctx, "1UP", 14, 8, 8, on ? RETRO_RED : "rgba(255,59,92,0.35)");
   retroText(ctx, `WAVE ${Math.max(1, state.wave)} ${score}${state.burst ? " BURST" : ""}`, 14, 20, 10, RETRO_WHITE);
   if (freeze > 0) retroText(ctx, `FREEZE ${Math.ceil(freeze / 60)}`, 14, 34, 10, ICE);
   for (let i = 0; i < BURST_LIVES; i++) {
     sprite(ctx, SHIP_ROWS, BURST_WORLD_W - 100 + i * 16, 14, 0.75, i < state.lives ? SHIP : "rgba(255,216,74,0.2)");
+  }
   }
 }
 
@@ -387,10 +415,71 @@ const burstArtGameTall: ArcadeGame<BurstState, ArcadeInputEvent | null> = { ...b
 const burstArtGameTarget: ArcadeGame<BurstState, ArcadeInputEvent | null> = { ...burstGameFor(BURST_REV_TARGET), draw };
 const burstArtGameStrict: ArcadeGame<BurstState, ArcadeInputEvent | null> = { ...burstGameFor(BURST_REV_STRICT), draw };
 /** The art game for a stored burstRev; cached so the stage sees one object per revision. */
+const burstArtGameV8: ArcadeGame<BurstState, ArcadeInputEvent | null> = { ...burstGameFor(BURST_REV_CLEAN), draw };
 export function burstArtGameFor(rev?: number | null): ArcadeGame<BurstState, ArcadeInputEvent | null> {
+  if (rev === BURST_REV_CLEAN) return burstArtGameV8;
   if (rev === BURST_REV_STRICT) return burstArtGameStrict;
   if (rev === BURST_REV_TARGET) return burstArtGameTarget;
   if (rev === BURST_REV_TALL) return burstArtGameTall;
   if (rev === BURST_REV_BAND) return burstArtGameBand;
   return rev === BURST_REV ? burstArtGameV2 : burstArtGame;
+}
+
+/* ================= burstRev 8 features (display only) ================= */
+
+const GOLD_ATOM = "#FFD84A";
+const GOLDEN_BODY = "#FFF6D5";
+const CLEAN = "#7CFFB0";
+const DOUBLE_ICON = ["XXXXXXXX", "X.X..X.X", "X.X..X.X", "X.X..X.X", "X.X..X.X", "X.X..X.X", "X.X..X.X", "XXXXXXXX"];
+type V8Memo = { tick: number; golds: number; cleared: number; doubles: number; freezes: number; missed: number };
+const v8Memos = new WeakMap<object, V8Memo>();
+
+/**
+ * burstRev 8's golden atom (a gold atom sprite in its 18 px hit disc with a soft glow and a countdown
+ * ring emptying over its four seconds, reddening in the last) and pops for a golden atom ("GOLD +4"), a
+ * fast wave ("FAST +n"), a clean wave ("CLEAN +2"), a missed shot ("MISS") and the power-ups. Under
+ * reduced motion nothing turns; under reduced effects the glows are skipped (glow() does that itself).
+ */
+function drawV8(ctx: CanvasRenderingContext2D, state: BurstState, key: object): void {
+  const still = reducedMotion();
+  const n = burstGoldenNow(state, state.tick + 1);
+  if (n >= 0) {
+    const g = state.goldens![n]!;
+    const x = g.x, y = g.y;
+    const left = 1 - Math.max(0, state.tick - g.tick) / BURST_V8_GOLDEN_LIFE;
+    glow(ctx, GOLD_ATOM, x, y, BURST_GOLD_R + 10, BURST_GOLD_R + 10, 0.75);
+    const stamp = cachedArt("atom:golden", BURST_GOLD_R * 2, BURST_GOLD_R * 2, GOLDEN_BODY, 0, (c) => paintAtom(c, BURST_GOLD_R, GOLDEN_BODY, 3));
+    if (stamp) blit(ctx, stamp, x - BURST_GOLD_R, y - BURST_GOLD_R);
+    const turn = still ? 0 : state.tick * 0.12;
+    ctx.fillStyle = RETRO_WHITE;
+    for (let i = 0; i < 4; i++) {
+      const a = turn + (i * Math.PI) / 2;
+      ctx.fillRect(Math.round(x + Math.cos(a) * BURST_GOLD_R) - 1, Math.round(y + Math.sin(a) * BURST_GOLD_R) - 1, 3, 3);
+    }
+    // The countdown: 2 px pixels round it, the lit share emptying clockwise.
+    const dots = 28;
+    const lit = Math.ceil(dots * left);
+    ctx.fillStyle = left < 0.25 ? "#FF6B4A" : GOLD_ATOM;
+    for (let i = 0; i < lit; i++) {
+      const a = -Math.PI / 2 + (i / dots) * Math.PI * 2;
+      ctx.fillRect(Math.round(x + Math.cos(a) * (BURST_GOLD_R + 5)) - 1, Math.round(y + Math.sin(a) * (BURST_GOLD_R + 5)) - 1, 2, 2);
+    }
+    retroText(ctx, `+${BURST_V8_GOLDEN_PTS}`, x, y - BURST_GOLD_R - 16, 8, GOLD_ATOM, "center");
+  }
+  let golds = 0;
+  for (let bits = state.goldHit ?? 0; bits; bits &= bits - 1) golds++;
+  const now = { tick: state.tick, golds, cleared: state.cleared, doubles: state.doubles ?? 0, freezes: state.freezes ?? 0, missed: state.missed ?? 0 };
+  let memo = v8Memos.get(key);
+  if (!memo || state.tick < memo.tick) memo = now;
+  const px = state.popX / FP, py = state.popY / FP;
+  const floor = burstFloorY(state);
+  if (now.golds > memo.golds) addPop(key, px, py - 12, `GOLD +${BURST_V8_GOLDEN_PTS}`, GOLD_ATOM, 10, 4);
+  if (now.cleared > memo.cleared) {
+    if ((state.lastClean ?? 0) > 0) addPop(key, BURST_WORLD_W / 2, floor / 2 - 16, `CLEAN +${BURST_V8_CLEAN_PTS}`, CLEAN, 10, 4);
+    if ((state.lastClear ?? 0) > 0) addPop(key, BURST_WORLD_W / 2, floor / 2, `FAST +${state.lastClear}`, SHIP, 10, 4);
+  }
+  if (now.missed > memo.missed) addPop(key, state.x / FP, floor - 60, "MISS", "#FF5A6E", 8, 3);
+  if (now.doubles > memo.doubles) addPop(key, state.x / FP, floor - 50, "DOUBLE!", BEAM, 10, 4);
+  if (now.freezes > memo.freezes) addPop(key, state.x / FP, floor - 50, "FREEZE!", ICE, 10, 4);
+  v8Memos.set(key, now);
 }

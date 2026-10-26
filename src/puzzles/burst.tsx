@@ -14,7 +14,10 @@ import {
   BURST_GOLD,
   BURST_INPUT_FIRE,
   BURST_INPUT_MOVE,
-  BURST_REV_TARGET, BURST_REV_STRICT,
+  BURST_REV_CLEAN,
+  BURST_V8_GOLDENS,
+  burstCleanBonus,
+  burstGoldenCount,
   BURST_TEAL,
   BURST_WORLD_W,
   type BurstState,
@@ -23,6 +26,19 @@ import { encodeBurstRun, replayBurstRun } from "@/lib/duel/burst";
 import { BURST_TIME_MS, type BurstPuzzleData } from "@/lib/duel/types";
 import { burstArtGameFor } from "@/lib/arcade/burst.renderer";
 import { burstSounds } from "@/lib/fx/gameSounds";
+import { expansionSounds } from "@/lib/fx/expansionSounds";
+
+/** Fission's sounds plus burstRev 8's features (older rounds keep those counters at 0, so they stay silent). */
+function burstAllSounds() {
+  const base = burstSounds();
+  const features = expansionSounds<BurstState>([
+    { count: (s) => s.doubles ?? 0, sound: "zap" },
+    { count: (s) => burstGoldenCount(s), sound: "chime" },
+    { count: (s) => s.cleanWaves ?? 0, sound: "ding", volume: 0.8 },
+    { count: (s) => s.missed ?? 0, sound: "tick", volume: 0.5 },
+  ]);
+  return { frame: (state: BurstState, running: boolean) => { base.frame(state, running); features(state, running); }, stop: base.stop };
+}
 import { ArcadeCanvasStage, type PointerPayload } from "@/components/puzzles/ArcadeCanvasStage";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
@@ -42,8 +58,12 @@ function IntroExample() {
         <path d="M96 70 L99 74" stroke={BURST_GOLD} strokeWidth={2} />
         <rect x={90} y={102} width={12} height={14} rx={5} fill={BURST_GOLD} />
         <circle cx={96} cy={98} r={3} fill={BURST_GOLD} />
+        {/* burstRev 8: a golden atom with its countdown ring, and the clean counter. */}
+        <circle cx={34} cy={30} r={6} fill="#FFD84A" stroke="#FFF2B0" strokeWidth={1} />
+        <path d="M34 20 A10 10 0 1 1 24 30" fill="none" stroke="#FFD84A" strokeWidth={1.5} strokeDasharray="2 2" />
+        <text x={162} y={10} textAnchor="end" fontSize={8} fontFamily="monospace" fill="#7CFFB0">CLEAN 3/3</text>
       </svg>
-       <p className="text-center text-xs text-muted-foreground">Fire straight up to split the atom.</p>
+       <p className="text-center text-xs text-muted-foreground">Fire straight up to split the atoms; clear a wave without a miss for a bonus.</p>
     </div>
   );
 }
@@ -90,7 +110,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       worldW={BURST_WORLD_W}
       worldH={burstWorldHFor(data?.burstRev)}
       game={burstArtGameFor(data?.burstRev)}
-      sounds={burstSounds}
+      sounds={burstAllSounds}
       checkpoint={burstCheckpoint}
       interval={BURST_CHECKPOINT_INTERVAL}
       encodeRun={encodeBurstRun}
@@ -134,6 +154,11 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
         {burstLine(result)}
       </p>
       <p className="shrink-0 text-center font-mono text-base text-muted-foreground">Same waves for everyone</p>
+      {result.state.exp ? (
+        <p className="shrink-0 text-center font-mono text-sm text-muted-foreground">
+          {`${result.state.cleanWaves ?? 0} clean wave${result.state.cleanWaves === 1 ? "" : "s"} · ${burstGoldenCount(result.state)}/${BURST_V8_GOLDENS} golden · bonus +${burstCleanBonus(result.state).total}`}
+        </p>
+      ) : null}
     </div>
   );
 }
@@ -145,7 +170,7 @@ export const burstPuzzle: PuzzleDefinition = {
   category: "arcade",
   timeLimitMs: BURST_TIME_MS,
   revealMs: 6_000,
-  generate: () => ({ type: "burst", seed: 1, burstRev: BURST_REV_STRICT }) satisfies BurstPuzzleData,
+  generate: () => ({ type: "burst", seed: 1, burstRev: BURST_REV_CLEAN }) satisfies BurstPuzzleData,
   check: () => false,
   revealHeading: "Your run",
   IntroExample,
