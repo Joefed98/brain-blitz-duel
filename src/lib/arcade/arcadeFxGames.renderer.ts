@@ -102,6 +102,10 @@ import {
   swingWorldH,
   SWING_WORLD_W,
   swingMetres,
+  SWING_V13_H,
+  SWING_V13_W,
+  swingFeatureCounts,
+  swingParLabel,
   type SwingState,
 } from "./swing";
 import {
@@ -1389,8 +1393,28 @@ export const SLICE_FX_V9: ArcadeFxSpec<SliceState> = { ...SLICE_FX, width: SLICE
 export const bubbleFxFor = (s: BubState): ArcadeFxSpec<BubState> => fxSpecAt(BUBBLE_FX, bubWorldH(s));
 export const BUBBLE_FX_TALL = fxSpecAt(BUBBLE_FX, BUB_TALL_H);
 /** Taller worlds batch 3 (Oct 2026): Grappler swingRev 9, Orbit orbitRev 8 (its view), Ball Tracker btRev 4. */
-export const swingFxFor = (s: SwingState): ArcadeFxSpec<SwingState> => fxSpecAt(SWING_FX, swingWorldH(s));
 export const SWING_FX_TALL = fxSpecAt(SWING_FX, SWING_TALL_H);
+/**
+ * Grappler swingRev 13 (the 200 expansion, docs/expansions/x200-swing.md): the wider, taller view, plus a pop for
+ * each gem, lit gate and ledge landed, a streak on every combo point, a banner for each cleared set-route section,
+ * and a pop for each section finished under its par time (counters the sim keeps).
+ */
+const swingAt = (s: SwingState, dy = -22) => ({ x: s.x / 256 - s.camX / 256, y: s.y / 256 + dy });
+export const SWING_FX_V13: ArcadeFxSpec<SwingState> = {
+  ...SWING_FX,
+  width: SWING_V13_W,
+  height: SWING_V13_H,
+  events: [
+    ...SWING_FX.events,
+    { kind: "pop", count: (s) => swingFeatureCounts(s).gems, at: (s) => swingAt(s), label: () => "+GEM", colour: () => "#8FF4FF" },
+    { kind: "pop", count: (s) => swingFeatureCounts(s).gates, at: (s) => swingAt(s, 26), label: () => "SPEED GATE!" },
+    { kind: "pop", count: (s) => swingFeatureCounts(s).ledges, at: (s) => swingAt(s, -26), label: () => "LANDED!" },
+    { kind: "streak", count: (s) => s.comboPts ?? 0, at: (s) => swingAt(s, -40), label: (s) => `SWING COMBO ×${s.chain ?? 0}` },
+    { kind: "perfect", count: (s) => swingFeatureCounts(s).sections, at: (s) => swingAt(s, -30), label: () => "SECTION CLEAR!", colour: () => "#FFD84A" },
+    { kind: "pop", count: (s) => swingFeatureCounts(s).parsBeaten, at: (s) => swingAt(s, -54), label: (s) => swingParLabel(s), colour: () => "#FFE9A8" },
+  ],
+};
+export const swingFxFor = (s: SwingState): ArcadeFxSpec<SwingState> => (s.expand ? SWING_FX_V13 : fxSpecAt(SWING_FX, swingWorldH(s)));
 export const orbit3FxFor = (s: OrbitRev3State): ArcadeFxSpec<OrbitRev3State> => fxSpecAt(ORBIT3_FX, orbitViewH(s));
 export const ORBIT3_FX_TALL = fxSpecAt(ORBIT3_FX, ORBIT_TALL_VIEW_H);
 export const balltrackFxFor = (s: BtState): ArcadeFxSpec<BtState> => fxSpecAt(BALLTRACK_FX, btWorldH(s));
@@ -1454,7 +1478,8 @@ export const ARCADE_FX_SPECS = {
   bullseye: BULLSEYE_FX,
   bubble: BUBBLE_FX_TALL,
   flip: FLIP_FX,
-  swing: SWING_FX_TALL,
+  // The live round's view (swingRev 13, the 200 expansion); older rounds draw through swingFxFor.
+  swing: SWING_FX_V13,
   snip: SNIP_FX_TALL,
   tilt: TILT_FX,
   // Expansion E6: the worlds rooms deal now (Ball Tracker's 13-row board, Gemstone's 720 px world).

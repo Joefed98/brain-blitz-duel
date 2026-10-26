@@ -220,7 +220,7 @@ async function runGame(spec: GameSpec): Promise<RunRecord[]> {
       const bot = level === "random" ? bots.random : bots.bot;
       if (!bot) continue;
       for (let n = FROM; n < FROM + SEEDS; n++) {
-        const seed = spec.seedFor(n);
+        const seed = spec.seedForRev?.(n, rev) ?? spec.seedFor(n);
         const rec = playOne(spec, bot, rev, which, level, seed);
         if (SAVE_DIR) {
           mkdirSync(`${SAVE_DIR}/${spec.type}`, { recursive: true });
