@@ -47,6 +47,7 @@ import {
   BUB_INPUT_SHOT,
   BUB_LINE,
   BUB_REV_REEF,
+  BUB_REV_CREDIT,
   BUB_V8_BAND_CURVE,
   BUB_V8_CHESTS,
   BUB_V8_FEATURE_CURVE,
@@ -136,7 +137,7 @@ for (const file of ["scripts/fixtures/e6-legacy.json", "scripts/fixtures/e6-runs
 /* ============================== 2. Stamps ============================== */
 section("Rooms deal the new stamps; the maximum is 200; demos stay stopped");
 const dealt = (type: PuzzleType) => generatePuzzle(type) as unknown as Record<string, unknown>;
-ok(dealt("bubble").bubbleRev === BUB_REV_REEF, "Coral Pop: rooms deal bubbleRev 8");
+ok(dealt("bubble").bubbleRev === BUB_REV_CREDIT, "Coral Pop: rooms deal bubbleRev 9 (bubbleRev 8's reef with burst credit)");
 ok(dealt("matchup").matchupRev === MATCHUP_REV_GOALS, "Gemstone: rooms deal matchupRev 9");
 {
   const bt = dealt("balltrack");
