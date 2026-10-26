@@ -474,8 +474,8 @@ section("bounds rule");
 }
 
 if (failures.length) {
-  for (const f of failures.slice(0, 400)) console.log(`  ✗ ${f}`);
+  for (const f of failures.slice(0, 40)) console.log(`  ✗ ${f}`);
   console.log(`FAIL hover-x200-check: ${failures.length} of ${passes + failures.length} checks failed`);
   process.exit(1);
 }
-console.log(`PASS hover-x200-check: ${passes} checks — hoverRev 9 (390 × 727, tight gates, star chains, shields, up to 200); older revisions replay unchanged`);
+console.log(`PASS hover-x200-check: ${passes} checks — hoverRev 9 (390 × 727, tight gates with centre lines, star chains, shields, up to 200; every tuning and fresh seed reaches 200); older revisions replay unchanged`);

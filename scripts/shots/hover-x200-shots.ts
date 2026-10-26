@@ -59,7 +59,7 @@ await page.route("**/_serverFn/**", async (route) => {
   if (/practiceGenerate/.test(serverFnName(request.url()))) {
     const example = body.replace(/("k":\["type","example"\],"v":\[\{"t":1,"s":"\w+"\},)\{"t":2,"s":3\}/, '$1{"t":2,"s":2}');
     if (example === body) console.log("practiceGenerate: example flag not found in", body.slice(0, 200));
-    const response = await route.fetch({ postData: example });
+    const response = await route.fetch({ postData: example, timeout: 180_000 });
     // The planned course: the practice puzzle's seed set to 1 (display only; this run is never graded).
     const text = (await response.text()).replace(/(\{"t":1,"s":"hover"\},\{"t":0,"s":)\d+\}/, "$11}");
     if (!/\{"t":1,"s":"hover"\},\{"t":0,"s":1\}/.test(text)) console.log("practiceGenerate: seed not set", text.slice(0, 300));
