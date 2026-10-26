@@ -19,13 +19,14 @@ import { snakeStepTicks, type SnakeState } from "@/lib/arcade/snake";
 import { BRK_SLIDE_STARTS, brkDestroyed, brkPaddleY, type BrkState } from "@/lib/arcade/breaker";
 import { RALLY_BUMPER2_FROM, RALLY_BUMPER_FROM, type RallyState } from "@/lib/arcade/rally";
 import { PIN_BALLS, PIN_RUN_TICKS, type PinState } from "@/lib/arcade/pinball";
+import type { Pin4State } from "@/lib/arcade/pinball4";
 import { BURST_RADIUS, burstCeiling, burstFloorY, type BurstState } from "@/lib/arcade/burst";
 import { BEAT_COMBO_TIERS, BEAT_FALL_TICKS, BEAT_JUDGE_PENDING, type BeatState } from "@/lib/arcade/beat";
 import { BINTOSS_AIM, BINTOSS_FLY, BINTOSS_NARROW_FROM, BINTOSS_THROWS, BINTOSS_WAIT, type BinTossState } from "@/lib/arcade/binToss";
 import type { TiltState } from "@/lib/arcade/tilt";
 import { btEventCountdown, type BtCourse, type BtState } from "@/lib/arcade/ballTrack";
 import { JUNC_BUILD_EVERY, JUNC_BUILDS, type JuncState } from "@/lib/arcade/junction";
-import { skylineFlagAt, skylineGustAt, type SkylineState } from "@/lib/arcade/skyline";
+import { skylineFlagAt, skylineGustAt, skylineStreakMult, type SkylineState } from "@/lib/arcade/skyline";
 import { INK_LIVE_PRE_CAP, inkIsLive, type InkState } from "@/lib/arcade/inkBridge";
 import { inkFailedOnBlock } from "@/lib/arcade/inkBridge.renderer";
 import { BULLSEYE_ARROWS, type BullseyeState } from "@/lib/arcade/bullseye";
@@ -405,7 +406,22 @@ export function pinballSounds(): GameSounds<PinState> {
       start(running);
       if (prev && state.tick > prev.tick) {
         // The last ball launched (BALL 3/3); every ball drained before time (its own file stands in for the drain).
-        if (state.launched >= PIN_BALLS && prev.launched < PIN_BALLS) effectCue("pinball.lastBall");
+        // pinRev 4 plunges a new ball for each lock, so its last ball is the one after the second drain.
+        const p4 = state as Partial<Pin4State>;
+        const q4 = prev as Partial<Pin4State>;
+        if (p4.rev4 ? state.lost === PIN_BALLS - 1 && prev.lost < PIN_BALLS - 1 : state.launched >= PIN_BALLS && prev.launched < PIN_BALLS) effectCue("pinball.lastBall");
+        // pinRev 4 (the expansion; existing sounds only): a ramp zaps, a combo crackles, a lock dings,
+        // multiball zaps, a jackpot or a skill shot chimes.
+        if (p4.rev4) {
+          if ((p4.ramps ?? 0) > (q4.ramps ?? 0)) {
+            const combo = p4.combo ?? 1;
+            if (combo > 1) sfx(`shared.celebrate.crackle${Math.min(3, combo - 1)}` as SoundId, "arc_retro_pickup", 0.9);
+            else sfx("shared.celebrate.zap", "arc_retro_pickup", 0.8);
+          }
+          if ((p4.locksMade ?? 0) > (q4.locksMade ?? 0)) sfx("shared.celebrate.countDing", "tick", 0.9);
+          if ((p4.multiballs ?? 0) > (q4.multiballs ?? 0)) sfx("shared.celebrate.zap", "arc_retro_pickup", 1);
+          if ((p4.jackpots ?? 0) > (q4.jackpots ?? 0) || (p4.skills ?? 0) > (q4.skills ?? 0)) sfx("shared.celebrate.chime", "correct", 0.9);
+        }
         const over = state.lost >= PIN_BALLS && prev.lost < PIN_BALLS && state.tick < PIN_RUN_TICKS;
         if (over) effectCue("pinball.gameOver");
         if (state.lost > prev.lost && !(over && cueHasFile("pinball.gameOver"))) sfx("pinball.ballLost", "arc_retro_explode");
@@ -694,6 +710,13 @@ export function skylineSounds(): GameSounds<SkylineState> {
           if (state.perfectTick === state.tick) sfx("skyline.perfect", "correct");
           // skylineRev 2: a streak bonus drop (3rd perfect in a row or later).
           if ((state.streakPoints ?? 0) > (prev.streakPoints ?? 0)) sfx("skyline.streakDrop", "arc_retro_coin", 0.7);
+          // skylineRev 7 (the expansion, existing sounds only): a new streak multiplier tier dings, a gold block
+          // landed perfectly chimes, a height milestone zaps.
+          if (state.expandRev) {
+            if (skylineStreakMult(state.streak ?? 0) > skylineStreakMult(prev.streak ?? 0)) sfx("shared.celebrate.countDing", "tick", 0.8);
+            if ((state.golds ?? 0) > (prev.golds ?? 0)) sfx("shared.celebrate.chime", "correct", 0.9);
+            if ((state.milestones ?? 0) > (prev.milestones ?? 0)) sfx("shared.celebrate.zap", "arc_retro_pickup", 0.9);
+          }
         }
         if (state.missed && !prev.missed) sfx("skyline.miss", "arc_crash");
         else if (skylineGustAt(state, state.tick) !== 0 && skylineGustAt(prev, prev.tick) === 0) effectCue("skyline.gust");

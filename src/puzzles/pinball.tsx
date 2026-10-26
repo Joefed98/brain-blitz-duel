@@ -3,7 +3,9 @@ import { ArcadeArenaSlot } from "@/components/puzzles/ArcadeArenaSlot";
 import { gameDisplayName } from "@/lib/duel/gameNames";
 import { useArcadeFrameTiming } from "@/components/puzzles/useArcadeFrameTiming";
 import { arcadeFeedback } from "@/lib/fx/arcade";
-import { pinballArtGameFor, pinballGlowFill, PIN_COLOURS } from "@/lib/arcade/pinball.renderer";
+import { pinballGlowFill, PIN_COLOURS } from "@/lib/arcade/pinball.renderer";
+import { pinball4GlowFill, pinballArtGameForAny, pinballWorldHFor } from "@/lib/arcade/pinball4.renderer";
+import { pinballGameForAny, pinCheckpointAny, PIN_REV_EXPAND } from "@/lib/arcade/pinball4";
 import { pinballSounds } from "@/lib/fx/gameSounds";
 import { appendClientCounters, arcadeCounters } from "@/lib/arcade/diagnostics";
 import { inputAt, recordInput } from "@/lib/arcade/engine";
@@ -12,14 +14,10 @@ import { useEffect, useRef, useState } from "react";
 
 import { MAX_CATCH_UP_TICKS, TICK_MS, TICKS_PER_SECOND, type ArcadeInputEvent, type CanvasSize } from "@/lib/arcade/engine";
 import {
-  pinballGameFor,
-  pinCheckpoint,
   PIN_BALLS,
   PIN_CHECKPOINT_INTERVAL,
   PIN_INPUT_FLIPPERS,
-  PIN_REV_TARGET, PIN_REV_STRICT,
   PIN_RUN_TICKS,
-  PIN_WORLD_H,
   PIN_WORLD_W,
   type PinState,
 } from "@/lib/arcade/pinball";
@@ -46,7 +44,7 @@ function IntroExample() {
         <line x1={156} y1={70} x2={128} y2={92} stroke={PIN_COLOURS.wall} strokeWidth={3} strokeLinecap="round" />
         <circle cx={70} cy={78} r={5} fill={PIN_COLOURS.ball} />
       </svg>
-      <p className="text-center text-xs text-muted-foreground">Hold the left or right half of the screen to flip.</p>
+      <p className="text-center text-xs text-muted-foreground">Hold the left or right half of the screen to flip. Tap to plunge.</p>
     </div>
   );
 }
@@ -54,15 +52,15 @@ function IntroExample() {
 function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const data: PinballPuzzleData | null = puzzle.type === "pinball" ? puzzle : null;
   const seed = data?.seed ?? 1;
-  const game = pinballGameFor(data?.pinRev);
-  const art = pinballArtGameFor(data?.pinRev);
+  const game = pinballGameForAny(data?.pinRev);
+  const art = pinballArtGameForAny(data?.pinRev);
 
   const wrap = useRef<HTMLDivElement | null>(null);
   const canvas = useRef<HTMLCanvasElement | null>(null);
   const frameTiming = useArcadeFrameTiming(canvas);
   const state = useRef<PinState>(game.init(seed));
   const events = useRef<ArcadeInputEvent[]>([]);
-  const checkpoints = useRef<ReturnType<typeof pinCheckpoint>[]>([]);
+  const checkpoints = useRef<ReturnType<typeof pinCheckpointAny>[]>([]);
   /** Fingers (and keys) down, each holding its own side; several at once (pinballInput.ts). */
   const thumbs = useRef(pinHeldTracker());
   /** The held set the sim was last told about. */
@@ -133,7 +131,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
             if (recordInput(events.current, event, game.inputRanges)) sent.current = mask;
           }
           state.current = game.step(state.current, inputAt(events.current, state.current.tick + 1));
-          if (state.current.tick % PIN_CHECKPOINT_INTERVAL === 0) checkpoints.current.push(pinCheckpoint(state.current));
+          if (state.current.tick % PIN_CHECKPOINT_INTERVAL === 0) checkpoints.current.push(pinCheckpointAny(state.current));
           if (game.isOver(state.current)) break;
         }
       }
@@ -216,7 +214,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   };
 
   return (
-    <ArcadeArenaSlot width={PIN_WORLD_W} height={PIN_WORLD_H} scene={pinballGlowFill} ambient={pinballAmbient} playCentre>
+    <ArcadeArenaSlot width={PIN_WORLD_W} height={pinballWorldHFor(data.pinRev)} scene={data.pinRev === PIN_REV_EXPAND ? pinball4GlowFill : pinballGlowFill} ambient={pinballAmbient} playCentre>
       <div ref={wrap} data-game-arena="canvas" className="relative min-h-0 w-full flex-1 overflow-hidden" style={NO_SCROLL_STYLE}>
         <canvas
           ref={canvas}
@@ -244,6 +242,11 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
       <p className="shrink-0 text-center font-mono text-base text-muted-foreground">
         {result.bumps} bumper hits · {result.drops} targets · {result.spins} spins
       </p>
+      {puzzle.pinRev === PIN_REV_EXPAND ? (
+        <p className="shrink-0 text-center font-mono text-base text-muted-foreground">
+          {result.ramps} ramps · {result.multiballs} multiball · {result.jackpots} jackpots · {result.skills} skill shots
+        </p>
+      ) : null}
       <p className="shrink-0 text-center font-mono text-base text-muted-foreground">
         {result.ballsLeft > 0 ? `${result.ballsLeft} of ${PIN_BALLS} balls left at the buzzer` : `All ${PIN_BALLS} balls drained at ${result.endedSeconds.toFixed(1)}s`}
       </p>
@@ -258,7 +261,7 @@ export const pinballPuzzle: PuzzleDefinition = {
   category: "arcade",
   timeLimitMs: (PIN_RUN_TICKS / TICKS_PER_SECOND) * 1000 + 3000,
   revealMs: 6_000,
-  generate: () => ({ type: "pinball", seed: 1, pinRev: PIN_REV_STRICT }) satisfies PinballPuzzleData,
+  generate: () => ({ type: "pinball", seed: 1, pinRev: PIN_REV_EXPAND }) satisfies PinballPuzzleData,
   check: () => false,
   revealHeading: "Your run",
   IntroExample,

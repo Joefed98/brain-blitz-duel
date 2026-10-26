@@ -249,7 +249,7 @@ function tableSegs(): PinSegDef[] {
 export const PIN_SEGS: readonly PinSegDef[] = tableSegs();
 
 /** Fixed-point segment with its precomputed direction, length and bounding box. */
-interface Seg {
+export interface Seg {
   ax: number;
   ay: number;
   bx: number;
@@ -396,13 +396,13 @@ interface Contact {
   index: number;
 }
 
-const T_ONE = 4096;
-const N_ONE = 1024;
+export const T_ONE = 4096;
+export const N_ONE = 1024;
 /** Within this of touching (1/256 px) a contact is left to the penetration pass. */
-const TOUCH = 64;
+export const TOUCH = 64;
 
 /** Unit normal ×1024 of (dx, dy); (0, -1024) for a zero vector. */
-function unit(dx: number, dy: number): [number, number] {
+export function unit(dx: number, dy: number): [number, number] {
   const len = isqrt(dx * dx + dy * dy);
   if (len <= 0) return [0, -N_ONE];
   return [Math.trunc((dx * N_ONE) / len), Math.trunc((dy * N_ONE) / len)];
@@ -412,7 +412,7 @@ function unit(dx: number, dy: number): [number, number] {
  * Earliest time (4096ths) a point moving P0→P1 comes within rr of the point C,
  * or -1. Starting within touching distance returns -1 (the penetration pass owns it).
  */
-function sweepCircle(x0: number, y0: number, x1: number, y1: number, cx: number, cy: number, rr: number): number {
+export function sweepCircle(x0: number, y0: number, x1: number, y1: number, cx: number, cy: number, rr: number): number {
   const fx = x0 - cx, fy = y0 - cy;
   const dx = x1 - x0, dy = y1 - y0;
   // Out of reach on either axis: no contact (and keeps every product below 2^53, so all of this stays exact integer maths).
@@ -434,7 +434,7 @@ function sweepCircle(x0: number, y0: number, x1: number, y1: number, cx: number,
  * Swept point P0→P1 against a capsule (segment A→B, contact radius rr).
  * Returns the contact (normal from the capsule to the ball) or null.
  */
-function sweepCapsule(
+export function sweepCapsule(
   x0: number, y0: number, x1: number, y1: number,
   ax: number, ay: number, sx: number, sy: number, len: number, len2: number, rr: number,
   oneWayUp = false,
@@ -470,7 +470,7 @@ function sweepCapsule(
 }
 
 /** Closest point on a capsule's segment to P, and the squared distance. */
-function closestOnSeg(px: number, py: number, s: Seg): { qx: number; qy: number; d2: number } {
+export function closestOnSeg(px: number, py: number, s: Seg): { qx: number; qy: number; d2: number } {
   const dot = (px - s.ax) * s.sx + (py - s.ay) * s.sy;
   let qx = s.ax, qy = s.ay;
   if (dot >= s.len2) {
@@ -485,22 +485,22 @@ function closestOnSeg(px: number, py: number, s: Seg): { qx: number; qy: number;
 }
 
 /** Local frame of a flipper at absolute angle φ: ball offset from the pivot rotated by −φ. */
-function toLocal(dx: number, dy: number, cos: number, sin: number): [number, number] {
+export function toLocal(dx: number, dy: number, cos: number, sin: number): [number, number] {
   return [Math.trunc((dx * cos + dy * sin) / TRIG_ONE), Math.trunc((-dx * sin + dy * cos) / TRIG_ONE)];
 }
-function toWorld(lx: number, ly: number, cos: number, sin: number): [number, number] {
+export function toWorld(lx: number, ly: number, cos: number, sin: number): [number, number] {
   return [Math.trunc((lx * cos - ly * sin) / TRIG_ONE), Math.trunc((lx * sin + ly * cos) / TRIG_ONE)];
 }
 
 /** Surface velocity of a flipper point `r` along the arm at angle φ, turning `omega` angle units a tick. */
-function flipSurface(r: number, omega: number, cos: number, sin: number): [number, number] {
+export function flipSurface(r: number, omega: number, cos: number, sin: number): [number, number] {
   // r × ω in radians a tick: 2π / 65536 = 411775 / 2^32.
   const speed = Math.trunc((r * omega * 411775) / 4294967296);
   return [Math.trunc((-speed * sin) / TRIG_ONE), Math.trunc((speed * cos) / TRIG_ONE)];
 }
 
 /** Velocity response: reflect the normal part (relative to a moving surface) with restitution, at least `kick` out. */
-function respond(
+export function respond(
   b: { vx: number; vy: number },
   nx: number, ny: number,
   e: number, kick: number,
@@ -659,7 +659,7 @@ function simulateBall(s: PinState, flipsFrom: number[]): void {
   score(s, hits);
 }
 
-function capSpeed(s: { vx: number; vy: number }): void {
+export function capSpeed(s: { vx: number; vy: number }): void {
   const v2 = s.vx * s.vx + s.vy * s.vy;
   if (v2 <= PIN_MAX_SPEED * PIN_MAX_SPEED) return;
   const v = isqrt(v2);
@@ -996,3 +996,8 @@ export const PIN_REV_STRICT = 3;
 export const pinballStrictGame = bandStrictGame(pinballTargetGame);
 /** The curve new rounds score on: PIN_BAND_CURVE's strict curve (what bandCurveOf gives a band-3 state). */
 export const PIN_V3_BAND_CURVE = bandStrict(PIN_BAND_CURVE);
+
+/* ============ World expansion (pinRev 4, 25 Oct 2026, docs/expansions/e4.md) ============ */
+
+/** The expansion's revision (the taller table, pinball4.ts). */
+export const PIN_REV_EXPAND = 4;
