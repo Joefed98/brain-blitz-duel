@@ -147,11 +147,16 @@ export const bot: SkillBot = ({ game, seed, human, fixes }) => {
    */
   const timeShape = (from: SnipState, shape: Plan, lo: number, span: number, needLeaf: boolean, stepT = 3): Plan | null => {
     const first = shape[0]![1];
+    // Each shift is tried at most once (the scan and steadyMid revisit the same ticks; tryPlan is deterministic).
+    const tried = new Map<number, boolean>();
     const ok = (d: number) => {
+      const hit = tried.get(d);
+      if (hit !== undefined) return hit;
       const plan = shape.map(([r, at]) => [r, at + d] as [number, number]);
-      if (plan.some(([, at]) => at > SNIP_LEVEL_TICKS - 2)) return false;
-      const res = tryPlan(from, plan);
-      return res.fed && (!needLeaf || res.leaf);
+      const res = plan.some(([, at]) => at > SNIP_LEVEL_TICKS - 2) ? null : tryPlan(from, plan);
+      const out = !!res && res.fed && (!needLeaf || res.leaf);
+      tried.set(d, out);
+      return out;
     };
     const d0 = lo - first;
     let start: number | null = null;
