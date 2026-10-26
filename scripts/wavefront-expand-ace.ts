@@ -10,7 +10,7 @@ import { appendFileSync, readFileSync, writeFileSync } from "node:fs";
 import { gunzipSync, gzipSync } from "node:zlib";
 import { ARCADE_INPUT_DRAG, type ArcadeInputEvent } from "../src/lib/arcade/engine";
 import { roomSeed } from "./arcade-skill-bands/games";
-import { wavCheckpoint, wavefrontGameFor, wavSkillRaw, WAV_X_SKILL_CANNON, WAV_X_SKILL_PAY, WAV_X_CORE_DAMAGE, WAV_X_CANNON_HP, WAV_REV_EXPAND, WAV_WORLD_W, type WavState } from "../src/lib/arcade/wavefront";
+import { wavCheckpoint, wavefrontGameFor, wavSkillRaw, WAV_X_SKILL_CANNON, WAV_X_SKILL_CORE, WAV_X_SKILL_SAUCER, WAV_SAUCER_EVERY, WAV_X_SKILL_PAY, WAV_X_CORE_DAMAGE, WAV_X_CANNON_HP, WAV_REV_EXPAND, WAV_WORLD_W, type WavState } from "../src/lib/arcade/wavefront";
 import { encodeWavefrontRun, replayWavefrontRun } from "../src/lib/duel/wavefront";
 
 const args = process.argv.slice(2);
@@ -29,18 +29,35 @@ const SPACING = FAST ? 10 : 6;
 
 /** The skill points that fill the 50 (WAV_X_SKILL_PAY's last knot). */
 const FULL = WAV_X_SKILL_PAY.units[WAV_X_SKILL_PAY.units.length - 1]!;
+/** The plain objective (the run's score, lives first), used when the feature-seeking one stalls on a boss. */
+function plainValue(s: WavState): number {
+  return s.lives * 100_000 + game.score(s) * 200 + (s.bossDmg ?? 0) * 40 + s.shapesDown * 30 + s.armourHits * 30 + wavSkillRaw(s) * 4 + (s.streak ?? 0) + (s.bossKilled ? 20_000 : 0);
+}
+let stalled = false;
 function value(s: WavState): number {
+  if (stalled) return plainValue(s);
   const raw = Math.min(FULL, wavSkillRaw(s));
   // Boss damage that came from neither the open core nor a cannon spends the weak points' chances.
   const partial = (s.boss?.guns ?? []).reduce((n, g) => n + (g > 0 ? WAV_X_CANNON_HP - g : 0), 0);
   const hull = Math.max(0, (s.bossDmg ?? 0) - WAV_X_CORE_DAMAGE * (s.weakHits ?? 0) - WAV_X_CANNON_HP * (s.cannonsDown ?? 0) - partial);
-  // The mothership's kill ends the run: only once the skill points are full (or the clock is nearly out); the
-  // gunship only once both its cannons are down.
-  const end = s.bossKilled ? (raw >= FULL || s.tick > 80 * 60 ? 500_000 : -500_000) : 0;
-  const early = s.midKilled && (s.cannonsDown ?? 0) < 2 ? -200_000 : 0;
+  // The mothership's kill ends the run: only once the skill points are full, or when what is left of the boss
+  // (its standing cannons, the core hits its hit points allow) and the saucers still to come can't fill them
+  // (rootCanFill, judged on the state the decision starts from), or the clock is nearly out.
+  const end = s.bossKilled ? (raw >= FULL || !rootCanFill || s.tick > 80 * 60 ? 500_000 : -500_000) : 0;
   // Hits on a cannon still standing count as progress towards its points.
   const progress = (partial * WAV_X_SKILL_CANNON) / WAV_X_CANNON_HP;
-  return s.lives * 100_000 + (raw + progress) * 3000 + (s.shapesDown + s.armourHits) * 30 + (s.bossDmg ?? 0) * 40 - hull * 60 + (s.streak ?? 0) + end + early;
+  return s.lives * 100_000 + (raw + progress) * 3000 + (s.shapesDown + s.armourHits) * 30 + (s.bossDmg ?? 0) * 40 - hull * 60 + (s.streak ?? 0) + end;
+}
+
+/** Whether the skill points can still be filled from this state (the mothership on screen). */
+let rootCanFill = true;
+function canFill(s: WavState): boolean {
+  if (!s.boss || s.boss.mid) return true;
+  const guns = s.boss.guns ?? [0, 0];
+  const standing = guns.filter((g) => g > 0).length;
+  const coreHits = Math.ceil(Math.max(0, s.boss.hp - guns.reduce((n, g) => n + Math.max(0, g), 0)) / WAV_X_CORE_DAMAGE);
+  const saucers = [1, 2, 3, 4, 5].filter((k) => k * WAV_SAUCER_EVERY > s.tick && k * WAV_SAUCER_EVERY < game.runTicks).length;
+  return wavSkillRaw(s) + standing * WAV_X_SKILL_CANNON + coreHits * WAV_X_SKILL_CORE + saucers * WAV_X_SKILL_SAUCER >= FULL;
 }
 
 function roll(state: WavState, from: number, to: number, ticks: number): WavState {
@@ -64,9 +81,18 @@ export function aceRun(seed: number): { raw: string; score: number } {
     events.push(ev as ArcadeInputEvent);
     s = game.step(s, ev);
   };
+  let lastDmg = -1;
+  let lastProgress = 0;
   while (!game.isOver(s) && s.tick < game.runTicks) {
     let bestTo = x;
     let best = -Infinity;
+    rootCanFill = canFill(s);
+    if ((s.bossDmg ?? 0) !== lastDmg || !s.boss) {
+      lastDmg = s.bossDmg ?? 0;
+      lastProgress = s.tick;
+    }
+    // No boss damage for 4 s: the feature-seeking search is hiding from the boss's fire; play it plainly a while.
+    stalled = s.tick - lastProgress > 240;
     for (let to = 24; to <= WAV_WORLD_W - 24; to += SPACING) {
       if (Math.abs(to - x) > SPEED * AHEAD) continue;
       const v = value(roll(s, x, to, AHEAD));

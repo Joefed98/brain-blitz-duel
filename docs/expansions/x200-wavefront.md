@@ -46,7 +46,11 @@ count on all 260 (the plan's counts, kinds, spacing and timing, then the formula
 
 Reachability: a scripted look-ahead player (`scripts/wavefront-expand-ace.ts`, an oracle, not a human model) plays the
 real sim; the stored seed-0 run scores **200** through the server replay (boss down at 61.6 s, 3 lives). Its coarse
-mode over all 260 seeds: ORACLE_RESULTS.
+mode (`--fast`, a coarser search) over all 260 seeds,
+as a lower bound on what is reachable: it destroys the mothership on **260 / 260** seeds, clears every unit on 243, and
+scores 200 on 132 (32 of 60 tuning, 100 of 200 fresh); lowest 176 (tuning) / 179 (fresh), median 200, ≥ 190 on 58 / 60
+and 187 / 200. Where it falls short it is a few skill points (its 72-tick look-ahead misses a cannon or a core window),
+not a missing opportunity: the counted ceiling is 200 on every seed.
 
 ## Tuning (skill-band bots, paired: the same seeds, every run through the server's encode + replay)
 
@@ -91,7 +95,13 @@ same entries over the ticks both runs lived, and the same ships in every wave bo
 
 ## Checks run
 
-PASS/FAIL list: CHECKS_RESULTS
+Each run by itself (`bun scripts/<name>`), all **PASS**: wavefront-expand-check (1,738 checks), round-max-check,
+scoring-bands-check, scoring-targets-check, scoring-rev3-check (one run failed only its grading-time limit, 484 ms,
+while four cores were busy; PASS on a quiet re-run), reveal-score-check (.tsx), replay-check, practice-bests-check,
+arcade-self-replay-check (wavefront entries), arcade-fx-check, arcade-help-bands-check, intro-score-text-check,
+six-game-scoring-check, arcade-score-bands-check, arcade-batch3-check, arcade-tuning-a-check, arcade-tuning-c-check,
+arcade-tuning-g1-check; `tsc --noEmit` on src clean. Not run (the coordinator's, browser): arcade-play-check,
+arcade-room-practice-check, arcade-lowend-check, arcade-fill-check, bottom-clearance-check, screenshots.
 
 ## Shared files touched (Wavefront lines only)
 
