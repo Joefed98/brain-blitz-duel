@@ -8,7 +8,7 @@ import { BUB_REV_REEF } from "@/lib/arcade/bubble";
 import { MATCHUP_REV_GOALS } from "@/lib/arcade/matchup";
 import { SNIP_REV_TARGET, SNIP_REV_STRICT } from "@/lib/arcade/snip";
 import { SKYLINE_REV_TARGET, SKYLINE_REV_STRICT, SKYLINE_REV_EXPAND } from "@/lib/arcade/skyline";
-import { tiltSeedCupsReachable, TILT_REV_TARGET, TILT_REV_STRICT } from "@/lib/arcade/tilt";
+import { tiltDealableX, TILT_REV_EXPAND } from "@/lib/arcade/tilt";
 import { JUNC_REV_BAND } from "@/lib/arcade/junction";
 import { BINTOSS_REV_TARGET, BINTOSS_REV_STRICT, BINTOSS_REV_EXPAND } from "@/lib/arcade/binToss";
 import { SWING_REV_TALL, SWING_REV_TARGET, SWING_REV_STRICT } from "@/lib/arcade/swing";
@@ -233,11 +233,11 @@ export function generateSwing(): SwingPuzzleData {
 }
 
 export function generateTilt(): TiltPuzzleData {
-  // Every cup reachable: the mazes' spanning-tree carve already guarantees it (tilt-cups-check
-  // proves it on 20,000 seeds); this re-deal only guards against a future maze change.
+  // tiltRev 8 (the expansion): every key and every cup reachable (gates opening as their keys are
+  // taken) and every maze fully decorated; tilt-expand-check proves the deal on thousands of seeds.
   let seed = arcadeSeed();
-  for (let k = 0; k < 20 && !tiltSeedCupsReachable(seed); k++) seed = arcadeSeed();
-  return { type: "tilt", seed, tiltRev: TILT_REV_STRICT };
+  for (let k = 0; k < 40 && !tiltDealableX(seed); k++) seed = arcadeSeed();
+  return { type: "tilt", seed, tiltRev: TILT_REV_EXPAND };
 }
 
 export function generateHotFloor(): HotFloorPuzzleData {
