@@ -5,11 +5,14 @@
  * through the server's encode + replay; the best run is written for wavefront-expand-check.
  *
  *   bun scripts/wavefront-expand-ace.ts [--seeds=0,1,2 | --range=0-259] [--fast] [--out=<file.jsonl>] [--write]
+ *   bun scripts/wavefront-expand-ace.ts --pack=<a.jsonl,b.jsonl,…>   (the full run's logs → scripts/fixtures/wavefront-expand-oracle.json.gz;
+ *                                                                    a seed in several files keeps its best run)
  */
 import { appendFileSync, readFileSync, writeFileSync } from "node:fs";
 import { gunzipSync, gzipSync } from "node:zlib";
 import { ARCADE_INPUT_DRAG, type ArcadeInputEvent } from "../src/lib/arcade/engine";
 import { roomSeed } from "./arcade-skill-bands/games";
+import { wavBossW, wavCannonX, wavShipY, WAV_BOSS_H, WAV_BOSS_Y, WAV_X_BOLT_SPEED } from "../src/lib/arcade/wavefront";
 import { wavCheckpoint, wavefrontGameFor, wavSkillRaw, WAV_X_SKILL_CANNON, WAV_X_SKILL_CORE, WAV_X_SKILL_SAUCER, WAV_SAUCER_EVERY, WAV_X_SKILL_PAY, WAV_X_CORE_DAMAGE, WAV_X_CANNON_HP, WAV_REV_EXPAND, WAV_WORLD_W, type WavState } from "../src/lib/arcade/wavefront";
 import { encodeWavefrontRun, replayWavefrontRun } from "../src/lib/duel/wavefront";
 
@@ -47,6 +50,28 @@ function value(s: WavState): number {
   // Hits on a cannon still standing count as progress towards its points.
   const progress = (partial * WAV_X_SKILL_CANNON) / WAV_X_CANNON_HP;
   return s.lives * 100_000 + (raw + progress) * 3000 + (s.shapesDown + s.armourHits) * 30 + (s.bossDmg ?? 0) * 40 - hull * 60 + (s.streak ?? 0) + end;
+}
+
+/**
+ * Where to stand so the next bolt lands on a boss's weak point centre (each standing cannon, and the core): the
+ * boss's own motion (1 px a tick, turning at the sides) played forward to when that bolt reaches it, ±1 px.
+ */
+function weakPointAims(s: WavState): number[] {
+  const boss = s.boss;
+  if (!boss || (s.enter ?? 0) > 0) return [];
+  const w = wavBossW(boss);
+  const flight = Math.ceil((wavShipY(s) - 14 - 12 - (WAV_BOSS_Y + WAV_BOSS_H)) / WAV_X_BOLT_SPEED);
+  const ahead = Math.max(1, s.fireIn) + flight;
+  let bx = boss.x;
+  let dir = boss.dir;
+  for (let k = 0; k < ahead; k++) {
+    bx += dir;
+    if (bx <= 12 || bx >= WAV_WORLD_W - 12 - w) dir = -dir;
+  }
+  const offsets = [w / 2, ...[0, 1].filter((k) => (boss.guns ?? [0, 0])[k]! > 0).map((k) => wavCannonX(boss, k))];
+  const out: number[] = [];
+  for (const o of offsets) for (const d of [-1, 0, 1]) out.push(Math.max(24, Math.min(WAV_WORLD_W - 24, bx + o + d)));
+  return out;
 }
 
 /** Whether the skill points can still be filled from this state (the mothership on screen). */
@@ -93,7 +118,10 @@ export function aceRun(seed: number): { raw: string; score: number } {
     }
     // No boss damage for 4 s: the feature-seeking search is hiding from the boss's fire; play it plainly a while.
     stalled = s.tick - lastProgress > 240;
-    for (let to = 24; to <= WAV_WORLD_W - 24; to += SPACING) {
+    const tos: number[] = [];
+    for (let to = 24; to <= WAV_WORLD_W - 24; to += SPACING) tos.push(to);
+    tos.push(...weakPointAims(s));
+    for (const to of tos) {
       if (Math.abs(to - x) > SPEED * AHEAD) continue;
       const v = value(roll(s, x, to, AHEAD));
       if (v > best || (v === best && Math.abs(to - x) < Math.abs(bestTo - x))) {
@@ -113,14 +141,33 @@ export function aceRun(seed: number): { raw: string; score: number } {
   return { raw, score: replayWavefrontRun(seed, raw, WAV_REV_EXPAND).score };
 }
 
-if (import.meta.main) {
+const PACK = opt("pack");
+if (import.meta.main && PACK) {
+  // --pack=a.jsonl,b.jsonl: the --out files of a full run (seeds 0–259) into the fixture wavefront-expand-check replays.
+  const runs = PACK.split(",")
+    .flatMap((f) => readFileSync(f, "utf8").trim().split("\n"))
+    .map((l) => JSON.parse(l) as { n: number; seed: number; score: number; log: string })
+    // A seed searched again (without --fast) keeps its best run.
+    .filter((r, _i, all) => all.every((o) => o.n !== r.n || o.score < r.score || o === all.find((x) => x.n === r.n && x.score === r.score)))
+    .map(({ n, seed, log }) => {
+      // The score the run claims is re-stated from today's scoring (the play, events and checkpoints are the same).
+      // (decodeWavefrontRun is the 60 s game's and would keep only its checkpoints, so the field is replaced in place.)
+      const score = replayWavefrontRun(seed, log, WAV_REV_EXPAND).score;
+      const parts = log.split("|");
+      parts[1] = String(score);
+      return { n, seed, log: parts.join("|") };
+    })
+    .sort((a, b) => a.n - b.n);
+  writeFileSync("scripts/fixtures/wavefront-expand-oracle.json.gz", gzipSync(JSON.stringify({ recorded: "wavefront-expand-ace --fast", runs })));
+  console.log(`packed ${runs.length} oracle runs`);
+} else if (import.meta.main) {
   let best: { seed: number; raw: string; score: number } | null = null;
   for (const n of SEEDS) {
     const seed = roomSeed(n);
     const r = aceRun(seed);
     const st = replayWavefrontRun(seed, r.raw, WAV_REV_EXPAND).state as WavState;
-    console.log(`seed #${n} (${seed}): ${r.score} · skill raw ${wavSkillRaw(st)} · streak ${st.bestStreak} (pts ${st.streakPts}) · power-ups ${st.powerups} · saucers ${st.saucers} · cannons ${st.cannonsDown} · core ${st.weakHits} · gunship ${st.midKilled ? "down" : "standing"} · boss ${st.bossKilled ? "down" : "standing"} at ${(st.tick / 60).toFixed(1)} s · lives ${st.lives}`);
-    if (OUT) appendFileSync(OUT, `${JSON.stringify({ n, seed, score: r.score, raw: wavSkillRaw(st), units: st.shapesDown + st.armourHits + 15 * st.wavesCleared + (st.bossDmg ?? 0), killed: st.bossKilled ?? 0, tick: st.tick, lives: st.lives })}\n`);
+    console.log(`seed #${n} (${seed}): ${r.score} · skill raw ${wavSkillRaw(st)} · streak ${st.bestStreak} (pts ${st.streakPts}) · power-ups ${st.powerups} · saucers ${st.saucers} · cannons ${st.cannonsDown} · core ${st.weakHits} · precise ${st.precise} · gunship ${st.midKilled ? "down" : "standing"} · boss ${st.bossKilled ? "down" : "standing"} at ${(st.tick / 60).toFixed(1)} s · lives ${st.lives}`);
+    if (OUT) appendFileSync(OUT, `${JSON.stringify({ n, seed, score: r.score, log: r.raw, raw: wavSkillRaw(st), units: st.shapesDown + st.armourHits + 15 * st.wavesCleared + (st.bossDmg ?? 0), killed: st.bossKilled ?? 0, tick: st.tick, lives: st.lives })}\n`);
     if (!best || r.score > best.score) best = { seed, ...r };
   }
   if (args.includes("--write") && best) {

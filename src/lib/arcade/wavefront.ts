@@ -300,6 +300,8 @@ export interface WavState extends BandFields {
   shield?: number;
   midKilled?: number;
   bossDmg?: number;
+  /** wavRev 10: the precision points of weak-point hits (wavPrecision). */
+  precise?: number;
   /** wavRev 10: the room seed, the run's seeded plan (power-ups, saucer sides) and how many planned power-ups have appeared. */
   seed?: number;
   plan?: WavPlan;
@@ -1040,7 +1042,7 @@ export function wavCheckpoint(state: WavState): WavCheckpoint {
     if (state.worldH) extra.push(state.worldH);
     // wavRev 10 (expansion): its marker and feature state, after everything else.
     if (state.x10) {
-      extra.push(state.x10, state.streak ?? 0, state.streakPts ?? 0, state.weakHits ?? 0, state.cannonsDown ?? 0, state.powerups ?? 0, state.shieldBlocks ?? 0, state.spread ?? 0, state.shield ?? 0, state.midKilled ?? 0, state.bossDmg ?? 0, state.drop?.k ?? -1, state.dropsSeen ?? 0);
+      extra.push(state.x10, state.streak ?? 0, state.streakPts ?? 0, state.weakHits ?? 0, state.cannonsDown ?? 0, state.powerups ?? 0, state.shieldBlocks ?? 0, state.spread ?? 0, state.shield ?? 0, state.midKilled ?? 0, state.bossDmg ?? 0, state.drop?.k ?? -1, state.dropsSeen ?? 0, state.precise ?? 0);
       if (state.boss) extra.push(state.boss.mid ?? 0, ...(state.boss.guns ?? []));
       for (const b of state.bolts) extra.push(b.v ?? 0, b.sd ?? 0, b.h ?? 0);
     }
@@ -1615,6 +1617,16 @@ export const WAV_FORMS_X: readonly (readonly (readonly [number, number])[])[] = 
   return [...form, ...escorts];
 });
 
+/**
+ * wavRev 10 weak-point precision: a hit on a cannon or the open core pays more skill points the nearer its centre
+ * it lands (`d` whole px from the centre): 3 within 1 px, 2 within 3, 1 within 5, else 0.
+ */
+export function wavPrecision(d: number): number {
+  return d <= 1 ? 3 : d <= 3 ? 2 : d <= 5 ? 1 : 0;
+}
+/** wavRev 10: the mothership arrives by this tick of the run clock at the latest (74 s). */
+export const WAV_X_BOSS_BY = 78 * TICKS_PER_SECOND;
+
 /** wavRev 10: a boss's width (the gunship is narrower). */
 export function wavBossW(boss: { mid?: number }): number {
   return boss.mid ? WAV_X_MID_W : WAV_BOSS_W;
@@ -1944,8 +1956,9 @@ function stepX(state: WavState, input: ArcadeInputEvent | null): WavState {
         const side = [0, 1].find((k) => guns[k]! > 0 && Math.abs(bx - wavCannonX(boss, k)) <= WAV_X_CANNON_W / 2);
         let dmg = 1;
         if (side !== undefined) {
-          // A cannon: its own hit points; the boss takes the usual one too.
+          // A cannon: its own hit points; the boss takes the usual one too. Nearer its centre pays more.
           streakHit(s);
+          s.precise = (s.precise ?? 0) + wavPrecision(Math.abs(bx - wavCannonX(boss, side)));
           guns[side] = guns[side]! - 1;
           if (guns[side]! <= 0) {
             s.cannonsDown = (s.cannonsDown ?? 0) + 1;
@@ -1956,6 +1969,7 @@ function stepX(state: WavState, input: ArcadeInputEvent | null): WavState {
           streakHit(s);
           dmg = WAV_X_CORE_DAMAGE;
           s.weakHits = (s.weakHits ?? 0) + 1;
+          s.precise = (s.precise ?? 0) + wavPrecision(Math.abs(bx - w / 2));
         }
         const taken = Math.min(dmg, boss.hp);
         boss.hp -= taken;
@@ -2089,6 +2103,20 @@ function stepX(state: WavState, input: ArcadeInputEvent | null): WavState {
     }
   }
 
+  // wavRev 10: the mothership arrives by WAV_X_BOSS_BY on the run clock at the latest (sooner when wave 5 falls
+  // sooner): whatever is left of the formations, or the gunship, leaves, so every player has its weak points.
+  if (s.x10 && tick === WAV_X_BOSS_BY && !s.bossAt && !s.bossKilled) {
+    s.shapes = s.shapes.map(() => 0);
+    s.divers = [];
+    s.armour = null;
+    s.waveKills = 0;
+    s.wave = wavWaves(s) + 1;
+    s.enter = WAV_BREATHER_TICKS;
+    s.redIn = s.redBase;
+    s.boss = bossX(false, WAV_X_BOSS_HP, tick);
+    s.bossAt = tick;
+  }
+
   // Reached the ship's line?
   let lowest = -1;
   const shapedForm = wavForm(s);
@@ -2137,7 +2165,7 @@ export const WAV_PAR_X = (() => {
  * wavRev 10 knots on the base units (WAV_PAR_X = 140), fitted with the skill-band bots
  * (docs/expansions/x200-wavefront.md) so today's players land where they did on wavRev 8.
  */
-export const WAV_V10_BAND_CURVE = bandCurve([0, 250, 270, 290, 300, 310, 320, WAV_PAR_X], [0, 50, 58, 66, 75, 90, 112, 140]);
+export const WAV_V10_BAND_CURVE = bandCurve([0, 250, 270, 290, 300, 310, 320, WAV_PAR_X], [0, 29, 52, 53, 66, 93, 140, 140]);
 /**
  * wavRev 10 skill points (the features' raw points, `wavSkillRaw`): the streak's points (capped at
  * WAV_X_STREAK_CAP), WAV_X_SKILL_DROP a power-up caught, WAV_X_SKILL_SAUCER a saucer, WAV_X_SKILL_CANNON a
@@ -2149,17 +2177,19 @@ export const WAV_X_SKILL_DROP = 2;
 export const WAV_X_SKILL_SAUCER = 3;
 export const WAV_X_SKILL_CANNON = 8;
 export const WAV_X_SKILL_CORE = 2;
+export const WAV_X_SKILL_PRECISE = 2;
 export function wavSkillRaw(s: WavState): number {
   return (
     Math.min(WAV_X_STREAK_CAP, s.streakPts ?? 0) +
     WAV_X_SKILL_DROP * (s.powerups ?? 0) +
     WAV_X_SKILL_SAUCER * s.saucers +
     WAV_X_SKILL_CANNON * (s.cannonsDown ?? 0) +
-    WAV_X_SKILL_CORE * (s.weakHits ?? 0)
+    WAV_X_SKILL_CORE * (s.weakHits ?? 0) +
+    WAV_X_SKILL_PRECISE * (s.precise ?? 0)
   );
 }
 /** The skill points paid on a rising scale: little for incidental use, the full 50 only for elite play. */
-export const WAV_X_SKILL_PAY = bandCurve([0, 70, 84, 94, 100, 108, 118], [0, 3, 10, 18, 28, 42, 50]);
+export const WAV_X_SKILL_PAY = bandCurve([0, 125, 150, 170, 190, 210], [0, 0, 28, 29, 31, 50]);
 export const WAV_X_EDGE_MAX = 50;
 /** wavRev 10's round maximum (ROUND_MAX's wavefront line; the sim keeps its own figure). */
 export const WAV_X_MAX = 200;

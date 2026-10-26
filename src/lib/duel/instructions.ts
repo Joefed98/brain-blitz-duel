@@ -63,6 +63,9 @@ import { BT_V7_BALLS, BT_V7_BOOST_STEPS, BT_V7_FEATURE_MAX, BT_V7_LAST_LAND_MIN 
 import { HOVER_REACHABLE_GATES, HOVER_STARS, HOVER_V2_GATES_SCORE, HOVER_V2_STARS_SCORE } from "@/lib/arcade/hover";
 import {
   WAV_BOSS_HP,
+  wavPrecision,
+  WAV_X_BOSS_BY,
+  WAV_X_SKILL_PRECISE,
   WAV_X_CANNON_HP,
   WAV_X_CORE_DAMAGE,
   WAV_X_CORE_PERIOD,
@@ -908,7 +911,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
       how: [
         { action: "Drag to move;", detail: "you fire on your own." },
         { action: "Catch power-ups;", detail: "keep a hit streak going." },
-        { action: "Bosses:", detail: "hit the cannons and open core." },
+        { action: "Bosses:", detail: "hit weak points dead centre." },
         { action: "Red bolts and divers cost a life:", detail: "you have 3.", helpOnly: true },
         { action: "The run lasts 90 seconds.", detail: "Each new wave flies in from the top 2 seconds after you clear one. Don't let a formation reach your line.", helpOnly: true },
         { action: "From wave 3, ships peel off and dive at you,", detail: "then fly back to their place. Shoot them on the way; one that rams you costs a life.", helpOnly: true },
@@ -917,11 +920,12 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Power-ups:", detail: `${WAV_X_DROPS} fall from the top at set moments in every run, the same for everyone in a room, ${WAV_X_DROPS / 3} of each. Laser: 5 shots that pierce up to 3 enemies. Spread: ${WAV_X_SPREAD_VOLLEYS} volleys with two extra bolts angled out. Shield: absorbs the next hit (${WAV_X_SHIELD_TICKS / 60} s).`, helpOnly: true },
         { action: "A saucer flies over every 15 seconds:", detail: "shoot it down for skill points.", helpOnly: true },
         { action: "Streak:", detail: `every hit in a row counts; ×2 from ${WAV_X_STREAK_STEP} in a row, ×3 from ${2 * WAV_X_STREAK_STEP} (the most). A shot that flies off without hitting, or a lost life, ends it; spread bolts, shots fired while a wave flies in and hits on a boss's hull don't.`, helpOnly: true },
-        { action: "After wave 3 a gunship flies in; after wave 5, the boss.", detail: `Each has two cannons (${WAV_X_CANNON_HP} hits each; a destroyed one stops firing) and a core that opens for half of every ${WAV_X_CORE_PERIOD / 60} s: a hit on the open core counts ${WAV_X_CORE_DAMAGE}. The boss's bar shows its ${WAV_BOSS_HP} hit points; destroying it ends the run – the sooner after it arrives, the more it scores.`, helpOnly: true },
+        { action: "After wave 3 a gunship flies in; after wave 5, the boss.", detail: `The boss comes ${WAV_X_BOSS_BY / 60} s into the run at the latest (whatever is still flying leaves). Each has two cannons (${WAV_X_CANNON_HP} hits each; a destroyed one stops firing) and a core that opens for half of every ${WAV_X_CORE_PERIOD / 60} s: a hit on the open core counts ${WAV_X_CORE_DAMAGE}. The boss's bar shows its ${WAV_BOSS_HP} hit points; destroying it ends the run – the sooner after it arrives, the more it scores.`, helpOnly: true },
+        { action: "Weak points pay for precision:", detail: "a hit on a cannon or the open core scores more skill points the nearer its centre it lands – most within a pixel or so.", helpOnly: true },
       ],
       score: liveBandHelp("wavefront", "Ships, armour hits and boss hit points count 1, and cleared waves (the gunship too) 15.", {
         more: "More ships, hits and waves",
-        finish: `Destroying the boss adds up to 10 for speed: the full 10 within 20 s of its arrival, falling to 0 at 40 s. Skill adds up to ${WAV_X_EDGE_MAX} more: the streak's points (1 a hit at ×2, 2 at ×3, up to ${WAV_X_STREAK_CAP}), ${WAV_X_SKILL_DROP} a power-up caught, ${WAV_X_SKILL_SAUCER} a saucer, ${WAV_X_SKILL_CANNON} a cannon destroyed and ${WAV_X_SKILL_CORE} an open-core hit. ${skillPayLine(WAV_X_SKILL_PAY)}`,
+        finish: `Destroying the boss adds up to 10 for speed: the full 10 within 20 s of its arrival, falling to 0 at 40 s. Skill adds up to ${WAV_X_EDGE_MAX} more: the streak's points (1 a hit at ×2, 2 at ×3, up to ${WAV_X_STREAK_CAP}), ${WAV_X_SKILL_DROP} a power-up caught, ${WAV_X_SKILL_SAUCER} a saucer, ${WAV_X_SKILL_CANNON} a cannon destroyed, ${WAV_X_SKILL_CORE} an open-core hit, and ${WAV_X_SKILL_PRECISE * wavPrecision(1)} / ${WAV_X_SKILL_PRECISE * wavPrecision(3)} / ${WAV_X_SKILL_PRECISE * wavPrecision(5)} for a weak-point hit within 1 / 3 / 5 px of its centre. ${skillPayLine(WAV_X_SKILL_PAY)}`,
       }),
     },
     bastion: {
