@@ -255,7 +255,7 @@ ok(coinsSeen >= 20, `coins were collected in the runs (${coinsSeen})`);
 ok(islandRespawns >= 3 && startRespawns >= 3, `hits restarted on the island (${islandRespawns}) and on the pavement (${startRespawns})`);
 ok(streakPays >= 10 && streakEnds >= 1, `the streak paid (${streakPays}) and was ended by hits (${streakEnds})`);
 ok(closeSeen >= 10, `close calls were made in the runs (${closeSeen})`);
-ok(crossSkillRaw({ coinTotal: 0, streakPts: 0, closeCalls: 40 }) === CROSS_X_CLOSE_MAX && crossSkillRaw({ coinTotal: 1, streakPts: 2, closeCalls: 3 }) === 3 + 2 + 3, `close calls add ${CROSS_X_CLOSE_POINTS} skill point each, at most ${CROSS_X_CLOSE_MAX} a run`);
+ok(crossSkillRaw({ coinTotal: 0, streakPts: 0, closeCalls: 90 }) === CROSS_X_CLOSE_MAX && crossSkillRaw({ coinTotal: 1, streakPts: 2, closeCalls: 3 }) === 3 + 2 + 3, `close calls add ${CROSS_X_CLOSE_POINTS} skill point each, at most ${CROSS_X_CLOSE_MAX} a run`);
 ok(crossMultiplierFor(1) === 1 && crossMultiplierFor(2) === 2 && crossMultiplierFor(3) === 3 && crossMultiplierFor(4) === 4 && crossMultiplierFor(9) === 4, "the multiplier runs ×1, ×2, ×3, ×4");
 
 // A scripted walker (the oracle's path for one coin, scripts/cross-ceiling.ts): on three seeds, each coin of the
@@ -313,7 +313,7 @@ for (const n of [5, 17, 61]) {
   const full = { ...base, acted: 1, crossings: 9, reached: 0 } as CrossState;
   const top = bandTop(CROSS_V9_SKILL_PAY);
   ok(game.score(full) === 150, `a long run with no coins or streak tops out at 150 (${game.score(full)})`);
-  ok(game.score({ ...full, crossings: 4, reached: 5, coinTotal: 20, streakPts: 30 }) === 200, `the skill cap never binds below 200: ${bandPoints(CROSS_V9_BAND_CURVE, 4 * 16 + 5)} of play and every coin with a long streak make 200 (${game.score({ ...full, crossings: 4, reached: 5, coinTotal: 20, streakPts: 30 })})`);
+  ok(game.score({ ...full, crossings: 5, reached: 0, coinTotal: 20, streakPts: 30 }) === 200, `the skill cap never binds below 200: ${bandPoints(CROSS_V9_BAND_CURVE, 5 * 16)} of play and every coin with a long streak make 200 (${game.score({ ...full, crossings: 5, reached: 0, coinTotal: 20, streakPts: 30 })})`);
   ok(crossSkillRaw({ coinTotal: 20, streakPts: 9 }) === 69, "skill points: 3 a coin plus the streak points");
   ok(game.score({ ...full, coinTotal: 20, streakPts: top - 60 }) === 200, `150 of play and ${top} skill points (every coin and a streak) is 200`);
   ok(game.score({ ...full, coinTotal: 20, streakPts: 60 }) === 200, "the skill pay is capped at 50 and the score at 200");

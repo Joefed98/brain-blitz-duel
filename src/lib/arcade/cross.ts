@@ -190,7 +190,7 @@ export const CROSS_X_BONUS_MAX = 60;
  */
 export const CROSS_X_CLOSE_TICKS = 6;
 export const CROSS_X_CLOSE_POINTS = 1;
-export const CROSS_X_CLOSE_MAX = 12;
+export const CROSS_X_CLOSE_MAX = 40;
 
 /** One world's layout. Every revision before crossRev 9 uses CROSS_GEOM. */
 export interface CrossGeom {
@@ -1369,7 +1369,7 @@ export const CROSS_V7_BAND_CURVE = bandStrict(CROSS_BAND_CURVE);
  * seeds, checked on 200 fresh ones) so good play scores about what it did on crossRev 7 and
  * near-perfect and elite play reach the 200 scale's top bands (docs/expansions/x200-cross.md).
  */
-export const CROSS_V9_BAND_CURVE = bandCurve([0, 40, 50, 58, 66, 72], [0, 53, 76, 91, 132, 150]);
+export const CROSS_V9_BAND_CURVE = bandCurve([0, 37, 52, 68, 76, 90], [0, 52, 76, 114, 138, 150]);
 
 /** crossRev 9's raw skill points: CROSS_X_COIN_POINTS a coin, the streak pool and the close calls (at most CROSS_X_CLOSE_MAX). */
 export function crossSkillRaw(state: Pick<CrossState, "coinTotal" | "streakPts"> & Partial<Pick<CrossState, "closeCalls">>): number {
@@ -1382,7 +1382,7 @@ export function crossSkillRaw(state: Pick<CrossState, "coinTotal" | "streakPts">
  * and a long streak or close calls; above that it keeps rising to CROSS_X_BONUS_MAX, so a perfect run a
  * little short of 150 of play still reaches 200 (where the score stops): the skill cap never binds below 200.
  */
-export const CROSS_V9_SKILL_PAY = bandCurve([0, 15, 30, 45, 60, 72, 90], [0, 6, 27, 39, 46, 50, CROSS_X_BONUS_MAX]);
+export const CROSS_V9_SKILL_PAY = bandCurve([0, 15, 30, 45, 54, 63, 74, 90], [0, 3, 10, 16, 20, 35, 50, CROSS_X_BONUS_MAX]);
 
 /** crossRev 9's bonus: the skill points paid on CROSS_V9_SKILL_PAY, at most CROSS_X_BONUS_MAX. */
 export function crossBonusOf(state: Pick<CrossState, "coinTotal" | "streakPts"> & Partial<Pick<CrossState, "closeCalls">>): number {

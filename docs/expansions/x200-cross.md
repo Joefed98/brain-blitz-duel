@@ -81,7 +81,74 @@ So the 50 of skill pay that 150 of play needs (72 raw) is reached on every seed 
 `cross-x200-check` replays 6 sampled seeds this way and stores one oracle run (seed index 1000) that scores 200
 through the server replay.
 
-## Tuning (paired: the same seeds and the same human for both revisions, every run through the server replay)
+## Final tuning with Session A's fixed bots (#175, 26 Oct 2026) — the current numbers
+
+Main's competent bots (`BotCtx.fixes`; the band tool turns them on) are merged into this branch. The cross bot is
+main's, with the crossRev 9 additions built on its fixed plan (`searchFixed`): it reads the 14 rows (`ROWS`, nine on
+every older stamp), motorbikes like cyclists, and lines up for coins (`coinAhead`: the next coin it goes for in this
+half; the coin route is taken when it costs at most `COIN_DETOUR[level]` ticks over the quickest way into that lane).
+Close calls come from the fixed bot's own landing cushions (elite 3 ticks, perfect 1). Older stamps play exactly as
+main's bots do with fixes on and off (checked: 168 runs, unstamped, crossRev 3 and 7, all seven levels, identical
+input logs). The old-bot path keeps the earlier crossRev 9 coin logic (fixtures and checks use it).
+
+With the fixed bots every level crosses far more (near-perfect 6 crossings), so the curves were refitted on the
+tuning seeds (0–59) and checked on Session A's fresh seeds (n = 10000–10199):
+- play `[0,52,76,114,138,150]` at units `[0,37,52,68,76,90]` (150 at 5 crossings and 10 rows);
+- skill pay `[0,3,10,16,20,35,50,60]` at `[0,15,30,45,54,63,74,90]` skill points (60 at most; the total stops at 200);
+- close calls count up to 40 a run (`CROSS_X_CLOSE_MAX`; still 1 point each, once a lane each crossing): the fixed
+  bots make 4 / 7 / 15 / 22 / 26 (good / great / near / elite / perfect, tuning medians), and with the old cap of 12
+  near-perfect, elite and flawless all hit it, so it no longer told them apart.
+
+"Before" is crossRev 7 with the same fixed bots on the same seeds (`--rev=x`, "live" = `strictRev`).
+
+**Tuning seeds 0–59** (median / p90 / best, lowest in brackets; old median)
+
+| Level | crossRev 9 | old | change | zeros new / old | under 200 |
+|---|---|---|---|---|---|
+| Weak | 52 / 77 / 99 (5) | 52 | 0 % | 0 / 0 | |
+| Average | 78 / 115 / 144 (29) | 74 | +5 % | 0 / 0 | |
+| Good | 116 / 149 / 159 (37) | 119 | −3 % | 0 / 0 | |
+| Great | 147 / 162 / 166 (63) | 142 | +4 % | 0 / 0 | |
+| Near-perfect | **168 / 185** / 197 (103) | 150 | +12 % | 0 / 0 | |
+| Elite | **190 / 200** / 200 (129) | 150 | +27 % | 0 / 0 | 42 of 60 |
+| Flawless (perfect) | **200**, lowest 143 | 150 | | 0 / 0 | 13 of 60 |
+
+**Fresh seeds n = 10000–10199**
+
+| Level | crossRev 9 | old | change | zeros new / old | under 200 |
+|---|---|---|---|---|---|
+| Weak | 53 / 89 / 119 (5) | 50 | +6 % | 0 / 0 | |
+| Average | 80 / 116 / 147 (15) | 82 | −2 % | 0 / 0 | |
+| Good | 117 / 150 / 162 (46) | 120 | −3 % | 0 / 0 | |
+| Great | 146 / 161 / 166 (51) | 144 | +1 % | 0 / 0 | |
+| Near-perfect | **169 / 186** / 200 (67) | 150 | +13 % | 0 / 0 | |
+| Elite | **195 / 200** / 200 (73) | 150 | +30 % | 0 / 0 | 112 of 200 |
+| Flawless (perfect) | **200**, lowest 157 | 150 | | 0 / 0 | 36 of 200 |
+
+Random play (uniform swipes, about 4 a second): median 2, max 5.
+
+**Ceiling by reachability** (the oracle's log through the server replay, scripts/cross-ceiling.ts):
+
+| Seeds | Inputs | Lowest | Below 200 |
+|---|---|---|---|
+| 0–59 | any tick | 200 | 0 |
+| 10000–10199 | any tick | 200 | 0 |
+| 0–59 | ≥ 8 ticks apart | 200 | 0 |
+| 10000–10199 | ≥ 8 ticks apart | 194 | 2 |
+
+(The earlier 60–259 runs were also 200 on every seed at any tick.)
+
+**Verdict.** Met: good within ±10 % (−3 % / −3 %); great between good and near-perfect; near-perfect 168 / 169
+median with p90 185 / 186; elite 190 / 195 median, p90 200; no zeros; random play near 0; the any-tick oracle
+reaches 200 on every tuning and fresh seed. **Not met: the flawless bot reaches 200 on 47 of 60 tuning and 164 of
+200 fresh seeds** (lowest 143 / 157), and the 8-tick oracle misses 2 fresh seeds (lowest 194). The flawless bot's
+short seeds are the ones where its plan makes only 4 crossings (65–73 units, the same depth as good play's median,
+68) with 13–15 coins; giving it 200 there would need 150 of play at good play's depth (good +18 %) or the full skill
+pay at ~64 skill points, where near-perfect's top 10 % sits (near-perfect p90 → 200). Letting the flawless bot go for
+every coin made it worse (25 of 60 short), as it then crossed less. The any-tick oracle shows each of those seeds can
+be played to 200 (it crosses 8–15 times with every coin), so the gap is the flawless bot's plan, not the seed.
+
+## Tuning (paired: the same seeds and the same human for both revisions, every run through the server replay) (earlier rounds, superseded)
 
 `bun scripts/arcade-skill-bands.ts cross --rev=x --levels=weak,average,good,great,near,elite --seeds=60 --jobs=1` and the
 same with `--from=60 --seeds=200`. "Old" is crossRev 7 (rooms' revision before, `strictRev`). The curves were fitted on
