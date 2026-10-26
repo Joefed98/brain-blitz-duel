@@ -281,6 +281,7 @@ const ENTRIES = {
   "cross.coin": { channel: "effects", frequency: 0, ms: 486, url: "/sounds/replay.moment.mp3", volume: 0.84 },
   "cross.checkpoint": { channel: "effects", frequency: 0, ms: 486, url: "/sounds/replay.moment.mp3", volume: 0.84 },
   "cross.streak": { channel: "effects", frequency: 0, ms: 486, url: "/sounds/replay.moment.mp3", volume: 0.84 },
+  "cross.close-call": { channel: "effects", frequency: 0, ms: 486, url: "/sounds/replay.moment.mp3", volume: 0.84 },
   "junction.ambulance": { channel: "effects", frequency: 0, ms: 486, url: "/sounds/replay.moment.mp3", volume: 0.84 },
   "junction.cleared": { channel: "effects", frequency: 0, ms: 486, url: "/sounds/replay.moment.mp3", volume: 0.84 },
   "junction.bus": { channel: "effects", frequency: 0, ms: 486, url: "/sounds/replay.moment.mp3", volume: 0.84 },

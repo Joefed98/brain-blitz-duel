@@ -181,8 +181,16 @@ export const CROSS_X_COIN_POINTS = 3;
 export const CROSS_X_MULT_MAX = 4;
 /** Each crossing without a hit adds this × (multiplier − 1) to the streak pool (1: ×2 pays 1, ×3 pays 2, ×4 pays 3). */
 export const CROSS_X_STREAK_POINTS = 1;
-/** Coins and the streak together add at most this. */
-export const CROSS_X_BONUS_MAX = 50;
+/** Coins, the streak and close calls together add at most this (the score itself stops at 200). */
+export const CROSS_X_BONUS_MAX = 60;
+/**
+ * Close calls (x200 addendum, approved by Joe): a forward hop that lands in a traffic lane within this many ticks of a
+ * vehicle passing that column (a tight near miss) scores CROSS_X_CLOSE_POINTS skill points, once per lane a crossing,
+ * at most CROSS_X_CLOSE_MAX a run.
+ */
+export const CROSS_X_CLOSE_TICKS = 6;
+export const CROSS_X_CLOSE_POINTS = 1;
+export const CROSS_X_CLOSE_MAX = 12;
 
 /** One world's layout. Every revision before crossRev 9 uses CROSS_GEOM. */
 export interface CrossGeom {
@@ -766,6 +774,9 @@ export interface CrossState extends BandFields {
   streak?: number;
   streakPts?: number;
   banked?: number;
+  /** crossRev 9 (x200 second addendum): close calls made, and the lanes (bits) of this crossing that gave one. */
+  closeCalls?: number;
+  closeLanes?: number;
 }
 
 function init(seed: number): CrossState {
@@ -846,6 +857,10 @@ function step(state: CrossState, input: ArcadeInputEvent | null): CrossState {
   let streak = state.streak ?? 0;
   let streakPts = state.streakPts ?? 0;
   let banked = state.banked ?? 0;
+  let closeCalls = state.closeCalls ?? 0;
+  let closeLanes = state.closeLanes ?? 0;
+  /** crossRev 9: a forward hop landed in a lane this tick (a close call is judged on it). */
+  let landed = false;
   // Everything sent while the disc waits on the kerb is dropped, so a swipe at
   // the end of one crossing can never carry into the next.
   const paused = tick < pauseUntil;
@@ -889,6 +904,7 @@ function step(state: CrossState, input: ArcadeInputEvent | null): CrossState {
           }
           coins = 0;
           banked = 0;
+          closeLanes = 0;
         }
         hitThisCrossing = false;
         ghost = false;
@@ -901,7 +917,7 @@ function step(state: CrossState, input: ArcadeInputEvent | null): CrossState {
       } else if (wide && lane === CROSS_X_ISLAND) {
         // crossRev 9: the island banks this crossing's progress.
         banked = 1;
-      }
+      } else if (wide && hopDir > 0 && lane >= 1) landed = true;
     }
   }
 
@@ -914,10 +930,23 @@ function step(state: CrossState, input: ArcadeInputEvent | null): CrossState {
       const lives = state.lives - 1;
       const base = { ...state, tick, lane, hop: 0, hopDir: 1, reached, crossings, crossStart, clean, lives, hitTick: tick };
       // crossRev 9: a hit ends the streak; with the island banked the walker restarts there.
-      const extra = wide ? { coins, coinTotal, streak: 0, streakPts, banked } : {};
+      const extra = wide ? { coins, coinTotal, streak: 0, streakPts, banked, closeCalls, closeLanes } : {};
       if (lives <= 0) return { ...base, ...extra, col, pauseUntil, hitThisCrossing: true, ghost, dead: true, endedTick: tick };
       // Respawn on the start lane of this crossing; keep its progress and traffic clock.
       return { ...base, ...extra, lane: wide && banked ? CROSS_X_ISLAND : 0, col: CROSS_COLS >> 1, pauseUntil: tick + CROSS_PAUSE_TICKS, hitThisCrossing: true, ghost: false };
+    }
+    // crossRev 9: a close call. A forward hop lands just behind a vehicle that has passed this column within the
+    // last CROSS_X_CLOSE_TICKS ticks (a tight near miss); once per lane a crossing.
+    if (wide && landed && laneDef && laneDef.kind !== CROSS_KIND_ROADWORKS && laneDef.kind !== CROSS_KIND_ISLAND && !(closeLanes & (1 << lane))) {
+      const rel = tick - crossStart;
+      const half = crossPlayerHalfFp(state);
+      const centre = crossColumnCentreFp(col);
+      for (let k = 1; k <= CROSS_X_CLOSE_TICKS; k++)
+        if (crossBlocked(laneDef, centre, rel - k, half)) {
+          closeCalls += 1;
+          closeLanes |= 1 << lane;
+          break;
+        }
     }
     // crossRev 9: standing on a coin's cell collects it.
     if (wide && course.coins) {
@@ -943,7 +972,7 @@ function step(state: CrossState, input: ArcadeInputEvent | null): CrossState {
     clean,
     hitThisCrossing,
     ghost,
-    ...(wide ? { coins, coinTotal, streak, streakPts, banked } : {}),
+    ...(wide ? { coins, coinTotal, streak, streakPts, banked, closeCalls, closeLanes } : {}),
   };
   if (tick >= CROSS_RUN_TICKS) return { ...next, endedTick: tick };
   return next;
@@ -1021,7 +1050,7 @@ export function crossCheckpoint(state: CrossState): CrossCheckpoint {
   }
   // crossRev 9 folds its fields in last, only when present.
   if (state.wide) {
-    for (const value of [state.wide, state.coins ?? 0, state.coinTotal ?? 0, state.streak ?? 0, state.streakPts ?? 0, state.banked ?? 0]) {
+    for (const value of [state.wide, state.coins ?? 0, state.coinTotal ?? 0, state.streak ?? 0, state.streakPts ?? 0, state.banked ?? 0, state.closeCalls ?? 0]) {
       checksum ^= value | 0;
       checksum = Math.imul(checksum, 0x01000193) >>> 0;
     }
@@ -1340,22 +1369,23 @@ export const CROSS_V7_BAND_CURVE = bandStrict(CROSS_BAND_CURVE);
  * seeds, checked on 200 fresh ones) so good play scores about what it did on crossRev 7 and
  * near-perfect and elite play reach the 200 scale's top bands (docs/expansions/x200-cross.md).
  */
-export const CROSS_V9_BAND_CURVE = bandCurve([0, 40, 50, 58, 66, 74, 82], [0, 53, 76, 90, 121, 149, 150]);
+export const CROSS_V9_BAND_CURVE = bandCurve([0, 40, 50, 58, 66, 72], [0, 53, 76, 91, 132, 150]);
 
-/** crossRev 9's raw skill points: CROSS_X_COIN_POINTS a coin plus the streak pool. */
-export function crossSkillRaw(state: Pick<CrossState, "coinTotal" | "streakPts">): number {
-  return (state.coinTotal ?? 0) * CROSS_X_COIN_POINTS + (state.streakPts ?? 0);
+/** crossRev 9's raw skill points: CROSS_X_COIN_POINTS a coin, the streak pool and the close calls (at most CROSS_X_CLOSE_MAX). */
+export function crossSkillRaw(state: Pick<CrossState, "coinTotal" | "streakPts"> & Partial<Pick<CrossState, "closeCalls">>): number {
+  return (state.coinTotal ?? 0) * CROSS_X_COIN_POINTS + (state.streakPts ?? 0) + Math.min(CROSS_X_CLOSE_MAX, (state.closeCalls ?? 0) * CROSS_X_CLOSE_POINTS);
 }
 
 /**
- * crossRev 9's skill pay (x200, 26 Oct 2026): the raw skill points paid on a rising scale up to
- * CROSS_X_BONUS_MAX, so a few coins and a short streak pay little and the full 50 needs (nearly)
- * every coin of the run and a long streak.
+ * crossRev 9's skill pay (x200, 26 Oct 2026): the raw skill points paid on a rising scale, so a few
+ * coins and a short streak pay little; 50 (what a run with 150 of play needs) at 72, nearly every coin
+ * and a long streak or close calls; above that it keeps rising to CROSS_X_BONUS_MAX, so a perfect run a
+ * little short of 150 of play still reaches 200 (where the score stops): the skill cap never binds below 200.
  */
-export const CROSS_V9_SKILL_PAY = bandCurve([0, 15, 30, 45, 60, 66], [0, 6, 36, 43, 46, CROSS_X_BONUS_MAX]);
+export const CROSS_V9_SKILL_PAY = bandCurve([0, 15, 30, 45, 60, 72, 90], [0, 6, 27, 39, 46, 50, CROSS_X_BONUS_MAX]);
 
 /** crossRev 9's bonus: the skill points paid on CROSS_V9_SKILL_PAY, at most CROSS_X_BONUS_MAX. */
-export function crossBonusOf(state: Pick<CrossState, "coinTotal" | "streakPts">): number {
+export function crossBonusOf(state: Pick<CrossState, "coinTotal" | "streakPts"> & Partial<Pick<CrossState, "closeCalls">>): number {
   return Math.min(CROSS_X_BONUS_MAX, bandPoints(CROSS_V9_SKILL_PAY, crossSkillRaw(state)));
 }
 
@@ -1375,7 +1405,7 @@ function crossExpandParts(state: CrossState): BandParts {
     penalty: 0,
     finished: false,
     text: `${lanes} rows · ${state.crossings} crossings`,
-    bonusText: `${coins} coin${coins === 1 ? "" : "s"} · streak ${state.streakPts ?? 0}`,
+    bonusText: `${coins} coin${coins === 1 ? "" : "s"} · streak ${state.streakPts ?? 0}${state.closeCalls ? ` · ${state.closeCalls} close call${state.closeCalls === 1 ? "" : "s"}` : ""}`,
   };
 }
 
@@ -1393,5 +1423,7 @@ export const crossExpandGame: ArcadeGame<CrossState, ArcadeInputEvent | null> = 
     streak: 0,
     streakPts: 0,
     banked: 0,
+    closeCalls: 0,
+    closeLanes: 0,
   }),
 };

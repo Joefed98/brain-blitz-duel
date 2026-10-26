@@ -834,6 +834,13 @@ export const CROSS_FX: ArcadeFxSpec<CrossState> = {
       at: () => ({ x: CROSS_WORLD_W / 2, y: CROSS_HUD_H + 60 }),
       label: (s) => `STREAK ×${crossMultiplierFor(s.streak ?? 0)}`,
     },
+    // crossRev 9 (x200 addendum): a close call, a hop landed just behind a passing vehicle.
+    {
+      kind: "pop",
+      count: (s) => s.closeCalls ?? 0,
+      at: (s) => ({ x: px(crossColumnCentreFp(s.col)), y: crossLaneCentre(s.lane, crossGeomOf(s)) - 20 }),
+      label: () => "CLOSE CALL!",
+    },
   ],
   // Where the walker was hit (the frame before it went back to the kerb).
   misses: [{ count: (s) => -s.lives, at: (s, before) => { const w = before ?? s; return { x: px(crossColumnCentreFp(w.col)), y: crossLaneCentre(w.lane, crossGeomOf(w)) }; } }],

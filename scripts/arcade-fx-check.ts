@@ -308,6 +308,7 @@ const BUMPS: Record<string, ((s: any) => any)[]> = {
     (s) => ({ ...s, coinTotal: (s.coinTotal ?? 0) + 1 }),
     (s) => ({ ...s, reached: 7, lane: 7, banked: 1 }),
     (s) => ({ ...s, streak: 2, streakPts: (s.streakPts ?? 0) + 2 }),
+    (s) => ({ ...s, closeCalls: (s.closeCalls ?? 0) + 1 }),
   ],
   junction: [
     (s) => ({ ...s, ambThrough: s.ambThrough + 1 }),

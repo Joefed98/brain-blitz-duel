@@ -69,6 +69,8 @@ const ELITE_MARGIN = 6;
 const MARGIN = 12;
 /** Clear time (ticks) wanted just before landing too, so a hop never lands on a tail. */
 const CUSHION = 8;
+/** x200 (crossRev 9 only): the elite level lands closer behind a passing vehicle (close calls pay). */
+const ELITE_X_CUSHION = Number(process.env.CROSS_ELITE_CUSHION ?? 3);
 /** How far ahead (ticks) a plan looks. */
 const HORIZON = 150;
 /** Ticks a player keeps in hand when leaving a cell (in case the move comes late). */
@@ -88,6 +90,8 @@ export const bot: SkillBot = ({ game, seed, human }) => {
   const lag = human.lagTicks();
   const gap = elite ? ELITE_SWIPE_GAP : SWIPE_GAP[level]!;
   const need = gap + (elite ? ELITE_MARGIN : MARGIN);
+  /** Clear time wanted just before landing (crossRev 9: the elite level cuts it for close calls). */
+  const landCushion = elite && (game.init(seed) as CrossState).wide ? ELITE_X_CUSHION : CUSHION;
   const commitLead = Math.round(human.p.reactionMs[0] / (1000 / 60));
   /** Half-width of the hop window a player wants: two sd of their timing. */
   const half = Math.ceil((2 * human.p.timingSdMs) / (1000 / 60));
@@ -195,7 +199,7 @@ export const bot: SkillBot = ({ game, seed, human }) => {
     const landOk = (c: number, k: number) => {
       if (crossClosed(course, to, c)) return false;
       if (to === 0 || to > ROWS) return true;
-      for (let j = k + HOP - CUSHION; j <= k + HOP + need; j++) if (occ(to, c, j)) return false;
+      for (let j = k + HOP - landCushion; j <= k + HOP + need; j++) if (occ(to, c, j)) return false;
       return true;
     };
     // Leaving a cell at offset k: it should stay clear a little beyond, in case the move is late.

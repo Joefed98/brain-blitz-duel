@@ -26,8 +26,8 @@ effects ([arcade-effects.md](arcade-effects.md)) so a sound can be written for e
 | fail sting | 4 | 0 | 35 | 39 |
 | success sting | 3 | 0 | 68 | 71 |
 | ambience | 0 | 1 | 8 | 9 |
-| replay | 0 | 0 | 134 | 134 |
-| **all** | 65 | 1 | 683 | 749 |
+| replay | 0 | 0 | 135 | 135 |
+| **all** | 65 | 1 | 684 | 750 |
 
 ## Silent and placeholder cues
 
@@ -589,6 +589,7 @@ Grouped by game or screen.
 | `cross.coin` | Gold coin collected (crossRev 9): the clip reaches the moment's key tick [replays.md] |  | 0–2 per highlight | recorded sound | `cross.coin` | 250 | replay | `cross.coin` |
 | `cross.checkpoint` | Checkpoint island reached (crossRev 9): the clip reaches the moment's key tick [replays.md] |  | 0–2 per highlight | recorded sound | `cross.checkpoint` | 250 | replay | `cross.checkpoint` |
 | `cross.streak` | Streak multiplier up (crossRev 9): the clip reaches the moment's key tick [replays.md] |  | 0–2 per highlight | recorded sound | `cross.streak` | 250 | replay | `cross.streak` |
+| `cross.close-call` | Close call (crossRev 9): the clip reaches the moment's key tick [replays.md] |  | 0–2 per highlight | recorded sound | `cross.close-call` | 250 | replay | `cross.close-call` |
 | `junction.ambulance` | Ambulance through: the clip reaches the moment's key tick [replays.md] |  | 0–2 per highlight | recorded sound | `junction.ambulance` | 250 | replay | `junction.ambulance` |
 | `junction.cleared` | Cars cleared (every 10): the clip reaches the moment's key tick [replays.md] |  | 0–2 per highlight | recorded sound | `junction.cleared` | 250 | replay | `junction.cleared` |
 | `junction.bus` | Bus through: the clip reaches the moment's key tick [replays.md] |  | 0–2 per highlight | recorded sound | `junction.bus` | 250 | replay | `junction.bus` |
@@ -1751,6 +1752,7 @@ loops are not measured there). Files in `public/sounds/` are listed once per slo
 | `cross.coin` | effects | `cross.coin` | 486 |
 | `cross.checkpoint` | effects | `cross.checkpoint` | 486 |
 | `cross.streak` | effects | `cross.streak` | 486 |
+| `cross.close-call` | effects | `cross.close-call` | 486 |
 | `junction.ambulance` | effects | `junction.ambulance` | 486 |
 | `junction.cleared` | effects | `junction.cleared` | 486 |
 | `junction.bus` | effects | `junction.bus` | 486 |

@@ -34,6 +34,7 @@ export interface XRow {
   coins: number;
   offered: number;
   streakPts: number;
+  closeCalls: number;
   /** Per crossing started: coins taken in it and whether it ended clean (finished without a hit). */
   perCrossing: { coins: number; offered: number; clean: boolean; finished: boolean }[];
 }
@@ -84,17 +85,18 @@ for (const level of LEVEL_LIST) {
       coins: s.coinTotal ?? 0,
       offered: per.reduce((a, c) => a + c.offered, 0),
       streakPts: s.streakPts ?? 0,
+      closeCalls: s.closeCalls ?? 0,
       perCrossing: per,
     });
   }
 }
 console.log(`Jaywalk crossRev 9, seeds ${FROM}–${FROM + SEEDS - 1}, ${((Date.now() - t0) / 1000).toFixed(0)} s`);
-console.log("level     score med/p90/best  old  zero  cross  clean  lost  coins/offered  streak  base  bonus");
+console.log("level     score med/p90/best  old  zero  cross  clean  lost  coins/offered  streak  close  base  bonus");
 for (const level of LEVEL_LIST) {
   const r = rows.filter((x) => x.level === level);
   const sc = r.map((x) => x.score);
   console.log(
-    `${level.padEnd(9)} ${String(med(sc)).padStart(3)} / ${String(q(sc, 0.9)).padStart(3)} / ${String(Math.max(...sc)).padStart(3)}    ${String(med(r.map((x) => x.old))).padStart(3)}  ${String(sc.filter((v) => v === 0).length).padStart(4)}  ${med(r.map((x) => x.crossings)).toString().padStart(5)}  ${med(r.map((x) => x.clean)).toString().padStart(5)}  ${med(r.map((x) => x.livesLost)).toString().padStart(4)}  ${String(med(r.map((x) => x.coins))).padStart(5)} / ${String(med(r.map((x) => x.offered))).padEnd(6)}  ${String(med(r.map((x) => x.streakPts))).padStart(6)}  ${String(med(r.map((x) => x.base))).padStart(4)}  ${String(med(r.map((x) => x.bonus))).padStart(5)}`,
+    `${level.padEnd(9)} ${String(med(sc)).padStart(3)} / ${String(q(sc, 0.9)).padStart(3)} / ${String(Math.max(...sc)).padStart(3)}    ${String(med(r.map((x) => x.old))).padStart(3)}  ${String(sc.filter((v) => v === 0).length).padStart(4)}  ${med(r.map((x) => x.crossings)).toString().padStart(5)}  ${med(r.map((x) => x.clean)).toString().padStart(5)}  ${med(r.map((x) => x.livesLost)).toString().padStart(4)}  ${String(med(r.map((x) => x.coins))).padStart(5)} / ${String(med(r.map((x) => x.offered))).padEnd(6)}  ${String(med(r.map((x) => x.streakPts))).padStart(6)}  ${String(med(r.map((x) => x.closeCalls))).padStart(5)}  ${String(med(r.map((x) => x.base))).padStart(4)}  ${String(med(r.map((x) => x.bonus))).padStart(5)}`,
   );
 }
 const json = opt("json");

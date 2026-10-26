@@ -13,8 +13,9 @@ with Joe on 26 Oct (fixed opportunities a run; skill headroom on paired seeds).
 | Coins | 4 on every crossing, every crossing (more crossings meant more coins) | **20 a run, whatever the seed**: 4 on each of crossings 1–5, none after (`CROSS_X_COINS_PER_RUN`). The seed only picks lanes and columns |
 | Coin columns | any of 1–2 / 10–11 | column 2 or 10 (the seed picks the side), so every coin is the same four-column detour from the walker's start; only a column the lane below leaves open (a coin above roadworks can always be hopped into from below; some parked coins in a chicane's middle lane could only be reached by hopping back down from above) |
 | Traffic | each car lane's speed, length and gap drawn independently | **one density schedule a crossing**: the crossing's car lanes take speeds, lengths and gaps evenly spread over the usual ranges (one value each), and the seed only deals which lane gets which, directions and phases. Crossing k is equally hard on every run (second iteration, below) |
-| Bonus | `min(50, 3 × coins + streak)`: linear, so a few coins and a short streak filled much of it | the raw skill points (3 a coin plus the streak points) paid on `CROSS_V9_SKILL_PAY`: 15 pay 6, 30 pay 36, 45 pay 43, 60 pay 46, the full 50 needs 66 (every coin and a six-point streak) |
-| Play curve | `[0,57,68,89,113,136,150]` at units `[0,40,50,58,66,74,82]` | `[0,53,76,90,121,149,150]`: refitted with the pay (tuning seeds only) so good play stays near crossRev 7 |
+| Bonus | `min(50, 3 × coins + streak)`: linear, so a few coins and a short streak filled much of it | the raw skill points (3 a coin, the streak points, 1 a close call up to 12) paid on `CROSS_V9_SKILL_PAY`: 15 pay 6, 30 pay 27, 45 pay 39, 60 pay 46, 72 pay 50, rising to 60 at 90; the total stops at 200, so the skill cap never binds below 200 |
+| Close calls | none | a forward hop that lands in a traffic lane within 6 ticks (0.1 s) of a vehicle passing that column: 1 skill point, once a lane each crossing, at most 12 a run (approved by Joe, 26 Oct) |
+| Play curve | `[0,57,68,89,113,136,150]` at units `[0,40,50,58,66,74,82]` | `[0,53,76,91,132,150]` at units `[0,40,50,58,66,72]`: refitted with the pay (tuning seeds only) so good play stays near crossRev 7 |
 | HUD | coins taken | coins taken of the run's twenty ("7/20") |
 | Bot | chased a coin only when it was in the very next lane | lines up for coins ahead (see below); an elite level |
 
@@ -52,8 +53,12 @@ Reaction, timing, lag and slips all still come from `Human`.
 - **Buses and motorbikes**: as parked.
 - **Streak**: each crossing without a hit raises it; the multiplier is min(4, streak), and each such crossing adds
   multiplier − 1 skill points (0, 1, 2, 3, 3, …); a hit ends it.
+- **Close calls**: a forward hop landing in a traffic lane (not the island or roadworks), unhit, with a vehicle over
+  that column on any of the 6 ticks before (`CROSS_X_CLOSE_TICKS`): 1 skill point, once per lane a crossing, at most
+  12 a run (`CROSS_X_CLOSE_MAX`). The traffic is seeded and the same for everyone; "CLOSE CALL!" pop, the
+  `arc_retro_pickup` cue, a replay moment (`cross.close-call`).
 - **Score**: play `bandPoints(CROSS_V9_BAND_CURVE, rows + 2 × crossings)` (≤ 150) + `bandPoints(CROSS_V9_SKILL_PAY,
-  3 × coins + streak points)` (≤ 50), capped at `roundMaxFor("cross")`. No input scores 0.
+  3 × coins + streak points + close calls)` (≤ 60), the total capped at `roundMaxFor("cross")`. No input scores 0.
 
 Every appearance is fixed by the seed: each crossing's course (lanes, speeds, gaps, phases, riders) and its coins are
 laid out at init, and each crossing's traffic runs on that crossing's own clock (from the end of its kerb pause). The
@@ -72,7 +77,7 @@ The path becomes an input log played through the real sim and the server replay.
 | Fresh 60–259 | any tick | **200** | 0 | 20 / 20 | 8 | 18 |
 | All 260 | ≥ 8 ticks apart (about 7 swipes a second) | **200** | 0 | 17 | 5 | 9 |
 
-So the full skill pay (66 raw) is reached on every seed with room to spare (≥ 78 raw), and the play part's 150 too.
+So the 50 of skill pay that 150 of play needs (72 raw) is reached on every seed at the sim's limit (≥ 78 raw, no close calls needed), and the play part's 150 too.
 `cross-x200-check` replays 6 sampled seeds this way and stores one oracle run (seed index 1000) that scores 200
 through the server replay.
 
@@ -82,33 +87,56 @@ through the server replay.
 same with `--from=60 --seeds=200`. "Old" is crossRev 7 (rooms' revision before, `strictRev`). The curves were fitted on
 the 60 tuning seeds only (`scripts/cross-x200-bands.ts`, which also prints crossings, coins and streaks per level).
 
-**Tuning seeds (0–59)**
+**Tuning seeds (0–59)** (third iteration, today's bots; provisional until Session A's bots)
 
 | Level | crossRev 9 median / p90 / best | (old median) | change | zeros new / old |
 |---|---|---|---|---|
-| Weak | 61 / 88 / 117 | (61) | 0 % | 0 / 0 |
-| Average | 75 / 101 / 128 | (74) | +1 % | 0 / 0 |
-| Good | 101 / 152 / 163 | (96) | +5 % | 0 / 0 |
-| Great | 126 / 172 / 185 | (116) | +9 % | 0 / 0 |
-| Near-perfect | **166 / 187** / 193 | (126) | +32 % | 0 / 0 |
-| Elite | **178 / 193** / 195 | (145) | +23 % | 0 / 0 |
+| Weak | 61 / 89 / 126 | (61) | 0 % | 0 / 0 |
+| Average | 75 / 102 / 138 | (74) | +1 % | 0 / 0 |
+| Good | 105 / 153 / 164 | (96) | +9 % | 0 / 0 |
+| Great | 136 / 168 / 177 | (116) | +17 % | 0 / 0 |
+| Near-perfect | **165 / 181** / 189 | (126) | +31 % | 0 / 0 |
+| Elite | **190 / 197** / 200 | (145) | +31 % | 0 / 0 |
 
 **Fresh seeds (60–259)**
 
 | Level | crossRev 9 median / p90 / best | (old median) | change | zeros new / old |
 |---|---|---|---|---|
-| Weak | 61 / 83 / 116 | (59) | +3 % | 0 / 0 |
-| Average | 73 / 97 / 134 | (68) | +7 % | 0 / 0 |
-| Good | 97 / 148 / 186 | (93) | +4 % | 0 / 0 |
-| Great | 133 / 174 / 192 | (111) | +20 % | 0 / 0 |
-| Near-perfect | **159 / 189** / 193 | (130) | +22 % | 0 / 0 |
-| Elite | **183 / 193** / 195 | (145) | +26 % | 0 / 0 |
+| Weak | 61 / 83 / 124 | (59) | +3 % | 0 / 0 |
+| Average | 73 / 101 / 144 | (68) | +7 % | 0 / 0 |
+| Good | 98 / 154 / 181 | (93) | +5 % | 0 / 0 |
+| Great | 142 / 170 / 189 | (111) | +28 % | 0 / 0 |
+| Near-perfect | **161 / 184** / 190 | (130) | +24 % | 0 / 0 |
+| Elite | **191 / 197** / 200 | (145) | +32 % | 0 / 0 |
 
-What the levels do (fresh seeds, medians): crossings 2 / 3 / 3 / 4 / 4 / 4; coins 1 / 1 / 3 / 5 / 8 / 11 of the 20;
-lives lost 2 / 2 / 1 / 1 / 1 / 1.
+What the levels do (fresh seeds, medians): crossings 2 / 3 / 3 / 4 / 4 / 4; coins 1 / 1 / 3 / 5 / 8 / 12 of the 20;
+close calls 0 / 0 / 0 / 0 / 0 / 16 (12 count); lives lost 2 / 2 / 1 / 1 / 1 / 1.
 
 Lowest perfect-play ceiling: 200 on both sets. Random play (uniformly random swipes, about 4 a second, 20 seeds):
 median 2, max 5.
+
+### Third iteration (Joe's addendum, 26 Oct): ceiling by reachability, close calls, near-perfect's top 10 %
+
+- **Reachability**: the ceiling above is a player that plays each seed (the oracle's log through the server replay),
+  on all 260 seeds, at the sim's limit and at a human 8 ticks between inputs; the lowest is 200 everywhere.
+- **The skill cap can't bind below 200**: the skill pay goes on rising past 50 (60 at 90 skill points) and only the
+  total stops at 200, so a run that takes every coin and a long streak reaches 200 with as little as ~141 of play
+  (4 crossings and 5 rows; cross-x200-check proves it). Session A's flawless bot stopped at 180–198 on 27 of 60
+  seeds of the parked version because its 50-point bonus was full while its play was short of 150.
+- **Close calls** (approved): as above. Old states never carry the fields (legacy identity).
+- **Near-perfect's top 10 %**: the play curve now reaches 150 at 72 units (about 4½ crossings) and climbs more
+  steeply between 58 and 72 (where near-perfect's median sits), and the skill pay is lower around 30–40 skill points
+  (where near-perfect's best runs sit) and higher above 60 (elite's coins and close calls). Near-perfect p90 181 / 184.
+- **Bots** (isolated to crossRev 9): only the elite level changes: on crossRev 9 it lands as close as 3 ticks behind
+  a passing vehicle (12 before; `ELITE_X_CUSHION`), which is how a strong player takes close calls. The other levels
+  never aim for close calls (they wait 8 ticks behind a vehicle), so their close calls are 0.
+
+### Against the bar (third iteration, provisional: today's bots)
+
+- Good within ±10 %: yes (+9 % tuning, +5 % fresh). Great between good and near-perfect: yes. Near-perfect above
+  great, elite above near-perfect: yes. No zeros; random play near 0: yes.
+- Near-perfect p90 ≤ ~185: **yes** (181 / 184). Elite median ≥ ~175: yes (190 / 191). Elite p90 190–200: yes (197 / 197).
+- Near-perfect median 165–175: yes on tuning (165), **4 short on fresh (161)**.
 
 ### Second iteration (after the coordinator's review)
 
@@ -123,7 +151,7 @@ and 170 / 193. Tried, gated on crossRev 9, fitted on the tuning seeds and then c
    spread at the top that keeps near-perfect's p90 high comes from runs that lose nothing and take many coins, which a
    cheaper life would not narrow.
 
-### Against the bar
+### Against the bar (second iteration, superseded)
 
 - Good within ±10 % of before: yes (+5 % tuning, +4 % fresh).
 - Great between good and near-perfect, near-perfect above great, elite above near-perfect: yes, on both sets.
@@ -146,7 +174,8 @@ identity (40 runs recorded on main before the expansion, unchanged since the par
 replay (37 runs: six at each of the six levels and the oracle's 200, re-recorded on the second iteration), determinism, server = phone, rooms deal crossRev
 9, courses (14 rows, the island, buses, motorbikes, passable and fair), exactly 20 coins a run on 60 seeds with four on
 each of crossings 1–5 and none later, on open columns, one density schedule per crossing (40 seeds), every coin of
-crossing 1 taken by a walker on three seeds, coin, island and streak rules tick by tick, bounds of buses
+crossing 1 taken by a walker on three seeds, coin, island, streak and close-call rules tick by tick, the skill cap
+not binding below 200, bounds of buses
 and motorbikes (2 px), the skill pay (rising, capped at 50, 15 points pay at most 8), no input scores 0, the
 ceiling, room identity, random play.
 

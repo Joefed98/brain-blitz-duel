@@ -222,6 +222,7 @@ export function crossSounds(): GameSounds<CrossState> {
           if ((state.coinTotal ?? 0) > (prev.coinTotal ?? 0)) sfx("arc_retro_coin", "arc_retro_coin", 0.7);
           if ((state.banked ?? 0) > (prev.banked ?? 0)) sfx("arc_fair_bell", "arc_fair_bell", 0.55);
           if ((state.streakPts ?? 0) > (prev.streakPts ?? 0)) sfx("arc_fair_sting", "arc_fair_sting", 0.7);
+          if ((state.closeCalls ?? 0) > (prev.closeCalls ?? 0)) sfx("arc_retro_pickup", "arc_retro_pickup", 0.6);
         }
       } else if (prev && state.tick < prev.tick) announced.clear();
       prev = state;

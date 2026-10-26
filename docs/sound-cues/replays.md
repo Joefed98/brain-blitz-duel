@@ -88,6 +88,7 @@ game the round was.
 | `cross.coin` | Gold coin collected (crossRev 9): the clip reaches the moment's key tick | instant (the moment lands; about 0.5 s of half-speed play follows) |
 | `cross.checkpoint` | Checkpoint island reached (crossRev 9): the clip reaches the moment's key tick | instant (the moment lands; about 0.5 s of half-speed play follows) |
 | `cross.streak` | Streak multiplier up (crossRev 9): the clip reaches the moment's key tick | instant (the moment lands; about 0.5 s of half-speed play follows) |
+| `cross.close-call` | Close call (crossRev 9): the clip reaches the moment's key tick | instant (the moment lands; about 0.5 s of half-speed play follows) |
 | `junction.ambulance` | Ambulance through: the clip reaches the moment's key tick | instant (the moment lands; about 0.5 s of half-speed play follows) |
 | `junction.cleared` | Cars cleared (every 10): the clip reaches the moment's key tick | instant (the moment lands; about 0.5 s of half-speed play follows) |
 | `junction.bus` | Bus through: the clip reaches the moment's key tick | instant (the moment lands; about 0.5 s of half-speed play follows) |

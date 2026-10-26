@@ -38,6 +38,9 @@ import {
   CROSS_V9_BAND_CURVE,
   CROSS_V9_SKILL_PAY,
   CROSS_X_COIN_CROSSINGS,
+  CROSS_X_CLOSE_MAX,
+  CROSS_X_CLOSE_POINTS,
+  CROSS_X_CLOSE_TICKS,
   CROSS_X_COINS_PER_RUN,
   crossColumnCentreFp,
   crossCourse,
@@ -84,7 +87,7 @@ function ok(cond: boolean, message: string): void {
   else if (failures.length < 40) failures.push(message);
 }
 const load = (path: string) => JSON.parse(gunzipSync(readFileSync(path)).toString()) as CrossFixtureRun[];
-const NEW_FIELDS = ["wide", "coins", "coinTotal", "streak", "streakPts", "banked"];
+const NEW_FIELDS = ["wide", "coins", "coinTotal", "streak", "streakPts", "banked", "closeCalls", "closeLanes"];
 
 /* 1. Legacy identity. */
 const legacy = load("scripts/fixtures/cross-expand-legacy.json.gz");
@@ -196,6 +199,7 @@ let islandRespawns = 0;
 let startRespawns = 0;
 let streakPays = 0;
 let streakEnds = 0;
+let closeSeen = 0;
 const fresh = ["average", "good", "great", "near"].flatMap((level) => [0, 1, 2].map((n) => playCrossRun(CROSS_REV_EXPAND, roomSeed(70 + n), level as never)));
 for (const r of [...runs, ...fresh]) {
   const events = new Map(decodeCrossRun(r.raw).events.map((e) => [e.t, e]));
@@ -229,6 +233,19 @@ for (const r of [...runs, ...fresh]) {
       } else ok(s.streak === 0 && s.streakPts === prev.streakPts, `seed ${r.seed} tick ${s.tick}: a crossing with a hit pays no streak`);
     }
     if (s.lane === CROSS_X_ISLAND && s.hop === 0 && !s.dead) ok(s.banked === 1, `seed ${r.seed} tick ${s.tick}: standing on the island banks it`);
+    // A close call: counted only on the tick a forward hop lands in a traffic lane, unhit, with a vehicle over that
+    // column within the last CROSS_X_CLOSE_TICKS ticks; once per lane a crossing.
+    if (s.crossings === prev.crossings) {
+      const landedHere = prev.hop === 1 && s.hop === 0 && s.lane === prev.lane + 1 && s.lives === prev.lives && s.lane >= 1 && s.lane <= CROSS_X_ROWS;
+      const laneDef = course.lanes[s.lane - 1];
+      let passed = false;
+      if (landedHere && laneDef && laneDef.kind !== CROSS_KIND_ROADWORKS && laneDef.kind !== CROSS_KIND_ISLAND)
+        for (let k = 1; k <= CROSS_X_CLOSE_TICKS && !passed; k++) passed = crossBlocked(laneDef, crossColumnCentreFp(s.col), s.tick - s.crossStart - k, crossPlayerHalfFp(s));
+      const fresh = !((prev.closeLanes ?? 0) & (1 << s.lane));
+      const want = (prev.closeCalls ?? 0) + (passed && fresh ? 1 : 0);
+      ok((s.closeCalls ?? 0) === want, `seed ${r.seed} tick ${s.tick}: close calls ${s.closeCalls} (expected ${want})`);
+      if (want > (prev.closeCalls ?? 0)) closeSeen++;
+    }
   }
   const parts = crossBandParts(s);
   ok(parts.points <= 150 && parts.bonus <= CROSS_X_BONUS_MAX && game.score(s) <= 200, `seed ${r.seed}: play part ${parts.points} ≤ 150, bonus ${parts.bonus} ≤ 50, score ≤ 200`);
@@ -237,6 +254,8 @@ for (const r of [...runs, ...fresh]) {
 ok(coinsSeen >= 20, `coins were collected in the runs (${coinsSeen})`);
 ok(islandRespawns >= 3 && startRespawns >= 3, `hits restarted on the island (${islandRespawns}) and on the pavement (${startRespawns})`);
 ok(streakPays >= 10 && streakEnds >= 1, `the streak paid (${streakPays}) and was ended by hits (${streakEnds})`);
+ok(closeSeen >= 10, `close calls were made in the runs (${closeSeen})`);
+ok(crossSkillRaw({ coinTotal: 0, streakPts: 0, closeCalls: 40 }) === CROSS_X_CLOSE_MAX && crossSkillRaw({ coinTotal: 1, streakPts: 2, closeCalls: 3 }) === 3 + 2 + 3, `close calls add ${CROSS_X_CLOSE_POINTS} skill point each, at most ${CROSS_X_CLOSE_MAX} a run`);
 ok(crossMultiplierFor(1) === 1 && crossMultiplierFor(2) === 2 && crossMultiplierFor(3) === 3 && crossMultiplierFor(4) === 4 && crossMultiplierFor(9) === 4, "the multiplier runs ×1, ×2, ×3, ×4");
 
 // A scripted walker (the oracle's path for one coin, scripts/cross-ceiling.ts): on three seeds, each coin of the
@@ -294,6 +313,7 @@ for (const n of [5, 17, 61]) {
   const full = { ...base, acted: 1, crossings: 9, reached: 0 } as CrossState;
   const top = bandTop(CROSS_V9_SKILL_PAY);
   ok(game.score(full) === 150, `a long run with no coins or streak tops out at 150 (${game.score(full)})`);
+  ok(game.score({ ...full, crossings: 4, reached: 5, coinTotal: 20, streakPts: 30 }) === 200, `the skill cap never binds below 200: ${bandPoints(CROSS_V9_BAND_CURVE, 4 * 16 + 5)} of play and every coin with a long streak make 200 (${game.score({ ...full, crossings: 4, reached: 5, coinTotal: 20, streakPts: 30 })})`);
   ok(crossSkillRaw({ coinTotal: 20, streakPts: 9 }) === 69, "skill points: 3 a coin plus the streak points");
   ok(game.score({ ...full, coinTotal: 20, streakPts: top - 60 }) === 200, `150 of play and ${top} skill points (every coin and a streak) is 200`);
   ok(game.score({ ...full, coinTotal: 20, streakPts: 60 }) === 200, "the skill pay is capped at 50 and the score at 200");
@@ -326,7 +346,7 @@ for (const n of [5, 17, 61]) {
     const r = crossCeilingRun(roomSeed(index));
     min = Math.min(min, r.score);
     ok(r.score === 200 && !r.flagged && r.coins === CROSS_X_COINS_PER_RUN && r.coins === r.coinsOffered, `seed index ${index}: the perfect-play ceiling reaches 200 through the server replay (${r.score}, coins ${r.coins}/${r.coinsOffered}, ${r.crossings} crossings)`);
-    ok(crossSkillRaw({ coinTotal: r.coins, streakPts: r.streakPts }) >= bandTop(CROSS_V9_SKILL_PAY), `seed index ${index}: perfect play earns the full skill pay`);
+    ok(bandPoints(CROSS_V9_SKILL_PAY, crossSkillRaw({ coinTotal: r.coins, streakPts: r.streakPts })) >= 50, `seed index ${index}: perfect play earns the 50 of skill pay that 150 of play needs, without a close call`);
   }
   ceilingMin = min;
 }
