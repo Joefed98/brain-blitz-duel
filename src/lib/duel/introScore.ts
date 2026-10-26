@@ -113,7 +113,7 @@ function introScoreTemplates(): Record<PuzzleType, string> {
     rally: "Points for each gold-ball hit and pink target. Blue scores nothing. Up to {max}.",
     pinball: "Table points: ramps, J-O-U-L-Z, jackpots and skill shots score big. Up to {max}.",
     bubble: "Clear bubbles; falling chests, bank shots and combos add more. Up to {max}.",
-    slice: "Food by combo: Up to 150; gold, tickets, dodges add 50: {max}. Chilli: lose 10.",
+    slice: "Food by combo; gold fruit, tickets and dodges add more. Chilli: lose 10. Up to {max}.",
     beat: "Points for each note hit in time; every note Perfect for {max}. A miss costs a little.",
     wavefront: "Ships, armour hits, saucers, waves, boss hits. Destroy the boss fast for up to 10 more.",
     flip: "Points for every second you last and each gold star. Last the minute for 10 more.",
