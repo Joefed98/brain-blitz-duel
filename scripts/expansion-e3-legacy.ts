@@ -26,6 +26,14 @@ export const E3_AFTER: readonly (readonly [string, readonly (number | null)[]])[
   ["breaker", [9]],
 ];
 const LEVELS = ["average", "good", "great", "near"] as const;
+/**
+ * Where --after looks for a near-perfect run that reaches 200: seed indices [TOP_FROM, TOP_TO), stopping at the first.
+ * After the skill-pay retune (26 Oct 2026) 200 needs the whole wall cleared quickly, every gold brick and a full combo:
+ * the near-perfect bot's first 4,400 seeds top out at 199, and index 21,992 is a 200 (found by a search of 0–24,400),
+ * so the default starts just before it. --top-from=0 searches from the start (about an hour).
+ */
+const TOP_FROM = Number(process.argv.find((a) => a.startsWith("--top-from="))?.slice(11) ?? 21_990);
+const TOP_TO = 30_000;
 
 export interface E3Record {
   type: string;
@@ -72,7 +80,8 @@ if (import.meta.main) {
         }
     });
   }
-  // --after: each game's best near-perfect run over its first 20 seeds (both reach 200), the top's proof.
+  // --after: a near-perfect run that reaches 200 (the best found if none does), searched seed by seed from TOP_FROM:
+  // the top's proof. (Before the skill-pay retune of 26 Oct 2026 the first 20 seeds held one.)
   const top: E3Record[] = [];
   if (after)
     for (const [type, revs] of E3_AFTER) {
@@ -80,7 +89,7 @@ if (import.meta.main) {
       const { bot } = await import(`${root}/scripts/arcade-skill-bands/bots/${type}.ts`);
       const rev = revs[0]!;
       let best: E3Record | null = null;
-      for (let n = 0; n < 20; n++) {
+      for (let n = TOP_FROM; n < TOP_TO && (best?.score ?? 0) < 200; n++) {
         const seed = spec.seedFor(n);
         const game = spec.gameFor(rev, seed);
         const res = bot({ game, seed, rev, human: new Human(spec.type, seed, "near") });

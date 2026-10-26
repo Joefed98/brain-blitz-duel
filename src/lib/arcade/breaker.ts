@@ -1061,7 +1061,7 @@ export const BRK_V8_BAND_CURVE = bandStrict(BRK_V6_BAND_CURVE);
  *
  * Score: the destroyed wall bricks on BRK_V9_BAND_CURVE (to 140) plus up to 10 for a speedy clear, as
  * before, plus the skill points (BRK_V9_GOLD_POINTS a gold brick, plus the combo points up to
- * BRK_V9_COMBO_MAX), at most
+ * BRK_V9_COMBO_MAX) paid on BRK_V9_SKILL_PAY, at most
  * BRK_V9_SKILL_MAX: 200 in all. States carry `deep: 1`, folded into the checkpoint last.
  */
 export const BRK_REV_DEEP = 9;
@@ -1146,6 +1146,23 @@ export function brkComboPoints(multiplier: number): number {
 /** brkRev 9: the skill points a state has earned (gold bricks, and combo points up to 30; at most 50). */
 export function brkSkillPoints(state: { goldBroken?: number; comboPts?: number }): number {
   return Math.min(BRK_V9_SKILL_MAX, BRK_V9_GOLD_POINTS * (state.goldBroken ?? 0) + Math.min(BRK_V9_COMBO_MAX, state.comboPts ?? 0));
+}
+
+/** brkRev 9: the features' own points, before the cap (gold bricks, and combo points up to BRK_V9_COMBO_MAX; at most 85). */
+export function brkSkillRaw(state: { goldBroken?: number; comboPts?: number }): number {
+  return BRK_V9_GOLD_POINTS * (state.goldBroken ?? 0) + Math.min(BRK_V9_COMBO_MAX, state.comboPts ?? 0);
+}
+
+/**
+ * brkRev 9's skill pay (skill-pay retune, 26 Oct 2026; the stamp was not yet live): the features' points on a rising
+ * scale, so one gold brick pays a little, strong play about 42 and the full BRK_V9_SKILL_MAX only every gold brick
+ * with a full combo. Fitted on the skill-band runs (docs/expansions/e3.md).
+ */
+export const BRK_V9_SKILL_PAY = bandCurve([0, 15, 30, 45, 60, 75, BRK_V9_GOLD * BRK_V9_GOLD_POINTS + BRK_V9_COMBO_MAX], [0, 6, 35, 42, 42, 42, BRK_V9_SKILL_MAX]);
+
+/** brkRev 9: the skill points a run is paid (the score's bonus, the HUD's SKILL figure and the stored `skill`). */
+export function brkSkillPaid(state: { goldBroken?: number; comboPts?: number }): number {
+  return bandPoints(BRK_V9_SKILL_PAY, brkSkillRaw(state));
 }
 
 /** A brick's top-left (px) on brkRev 9's wall at a tick (sliding rows shifted). */
@@ -1526,7 +1543,7 @@ export function breakerDeepParts(state: BrkState): BandParts {
   const size = brkWallSize(state);
   const finished = units >= size;
   const speedBonus = finished ? speedBonusCurve(BAND_FINISH_BONUS, BRK_RUN_TICKS - clampInt(state.endedTick, 0, BRK_RUN_TICKS), BRK_RUN_TICKS) : 0;
-  const skill = brkSkillPoints(state);
+  const skill = brkSkillPaid(state);
   const words = [`gold ${state.goldBroken ?? 0}`, `combo ${state.comboPts ?? 0}`];
   return {
     units,

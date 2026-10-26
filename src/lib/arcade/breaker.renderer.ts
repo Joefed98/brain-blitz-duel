@@ -45,7 +45,7 @@ import {
   brkCols,
   brkComboMultiplier,
   brkIsGold,
-  brkSkillPoints,
+  brkSkillPaid,
   brkWallSize,
   brkWallXOf,
   brkWorldW,
@@ -365,7 +365,7 @@ function drawGoldBrick(ctx: CanvasRenderingContext2D, x: number, y: number, glin
 const clinkMemo = new WeakMap<CanvasRenderingContext2D, { clinks: number; at: number; tick: number }>();
 function drawDeepHud(ctx: CanvasRenderingContext2D, state: BrkState, key: CanvasRenderingContext2D): void {
   const W = brkWorldW(state);
-  const skill = brkSkillPoints(state);
+  const skill = brkSkillPaid(state);
   // Right of the BRICKS readout, under the Fireball line and its bar.
   retroText(ctx, `SKILL ${skill}/${BRK_V9_SKILL_MAX}`, W - 14, 31, 11, skill >= BRK_V9_SKILL_MAX ? RETRO_WHITE : GOLD, "right");
   const chain = state.chain ?? 0;
