@@ -14,8 +14,10 @@ import { BINTOSS_REV_EXPAND, BINTOSS_V7_WORLD_H, BINTOSS_V7_WORLD_W } from "./bi
 import { matchupArtGame as matchupGame } from "./matchup.renderer";
 import { matchupWorldHFor } from "./matchup";
 import { breakerArtGameFor } from "./breaker.renderer";
-import { breakerWorldHFor } from "./breaker";
+import { breakerWorldHFor, breakerWorldWFor } from "./breaker";
 import { rallyWorldHFor } from "./rally";
+/** A stored round's world height in the reveal's 390-wide box: the 420-wide expansion court (brkRev 9) scales down whole. */
+const in390 = (w: number, h: number) => (w === 390 ? h : Math.round((h * 390) / w));
 import { drawPinballAny, pinballWorldHFor } from "./pinball4.renderer";
 import { PIN_WORLD_H, PIN_WORLD_W } from "./pinball";
 import { rallyArtGame as rallyGame, rallyRevealGame } from "./rally.renderer";
@@ -163,10 +165,10 @@ export const ARCADE_REVEAL_RENDERERS: Record<string, ArcadeRevealRenderer> = {
     accent: GOLD,
     worldW: 390,
     worldH: 620,
-    heightFor: (p) => breakerWorldHFor(p.type === "breaker" ? p.brkRev : undefined),
+    heightFor: (p) => in390(breakerWorldWFor(p.type === "breaker" ? p.brkRev : undefined), breakerWorldHFor(p.type === "breaker" ? p.brkRev : undefined)),
     drawFinal: (ctx, p, a) => {
       const rev = p.type === "breaker" ? p.brkRev : undefined;
-      breakerArtGameFor(rev).draw(ctx, replayBreakerRun(seedOf(p), a, rev).state, { width: 390, height: breakerWorldHFor(rev) });
+      breakerArtGameFor(rev).draw(ctx, replayBreakerRun(seedOf(p), a, rev).state, { width: 390, height: in390(breakerWorldWFor(rev), breakerWorldHFor(rev)) });
       return null;
     },
   },

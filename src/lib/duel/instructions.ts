@@ -77,6 +77,8 @@ import { BINTOSS_FAR_CAP, BINTOSS_FAR_POINTS, BINTOSS_FAR_THROWS, BINTOSS_V7_BAN
 import { P4_PTS_COMBO, P4_PTS_JACKPOT, P4_PTS_JOULZ, P4_PTS_RAMP, P4_PTS_SKILL } from "@/lib/arcade/pinball4";
 import { BULLSEYE_INNER_BULL_POINTS, BULLSEYE_RING_VALUES } from "@/lib/arcade/bullseye";
 import { liveBandHelp } from "@/lib/arcade/liveBands";
+import { BRK_V9_COLS, BRK_V9_COMBO_MAX, BRK_V9_COMBO_X2, BRK_V9_COMBO_X3, BRK_V9_GOLD, BRK_V9_GOLD_POINTS, BRK_V9_ROWS, BRK_V9_SKILL_MAX, BRK_V9_SKILL_PAY } from "@/lib/arcade/breaker";
+import type { BandCurve } from "@/lib/arcade/scoreBands";
 import { fillMax, liveRecord, roundMaxFor } from "./roundMax";
 import { chainDepthHelp } from "./depth/chain";
 import { pairDepthHelp } from "./depth/matchmaker";
@@ -85,6 +87,13 @@ import { rev3UnfinishedScore } from "./puzzleScoreRev3";
 import { topsyHelpScore } from "./topsy";
 import { jumbledHelpScore } from "./jumbled";
 import type { PuzzleType } from "./types";
+
+/** A skill pay curve in words (E3): "Skill points pay on a rising scale: 15 pay 6, 30 pay 35, …, and the full 50 needs 85." Repeated values are skipped. */
+function skillPayLine(curve: BandCurve): string {
+  const knots = curve.units.map((u, i) => [u, curve.points[i]!] as const).filter(([, p], i, all) => p > 0 && (i === 0 || all[i - 1]![1] !== p));
+  const [topUnits, top] = knots[knots.length - 1]!;
+  return `Skill points pay on a rising scale: ${knots.slice(0, -1).map(([u, p]) => `${u} pay ${p}`).join(", ")}, and the full ${top} needs ${topUnits}.`;
+}
 
 export interface PuzzleInstructionLine {
   action: string;
@@ -678,11 +687,12 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
       score: "The longer both survive, the more you score: all 60 seconds = 150, 45 s ≈ 84, 30 s ≈ 37.",
     },
     breaker: {
-      goal: "Clear the wall.",
+      goal: "Clear the wall; break the gold.",
       how: [
         { action: "Drag the paddle;", detail: "tap to fire a power-up." },
-        { action: "Catch power-ups:", detail: "laser, ×3, ×2, Fireball." },
-        { action: "From 30 s, two rows", detail: "slide side to side." },
+        { action: "Gold bricks:", detail: "break only on a direct hit." },
+        { action: "Combo ×2, ×3:", detail: "bricks with no paddle touch." },
+        { action: "Catch power-ups:", detail: "laser, ×3, ×2, Fireball.", helpOnly: true },
         { action: "Keep the ball up", detail: "– it gets faster with bricks and with time. Losing the last ball costs 3 seconds.", helpOnly: true },
         { action: "Cracked bricks take 2 or 3 hits", detail: "– each hit cracks them further.", helpOnly: true },
         { action: "Four starred bricks drop a capsule.", detail: "Tap anywhere to fire a laser or ×3 you've caught; any longer touch moves the paddle.", helpOnly: true },
@@ -691,8 +701,10 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Bronze ×2 = double balls", detail: "at once. There is one per board.", helpOnly: true },
         { action: "Orange flame = Fireball:", detail: "for 2.5 seconds your balls smash straight through bricks without bouncing.", helpOnly: true },
         { action: "Sliding rows:", detail: "one row starts at 30 s and another at 60 s, half a brick each way, slowly and always the same.", helpOnly: true },
+        { action: `${BRK_V9_GOLD} gold bricks`, detail: "sit near the top, each behind an armoured brick. Only a ball that has touched no brick since your paddle breaks one; Fireball balls, the laser and ×3 shots bounce off. They glint while a ball is on a direct line.", helpOnly: true },
+        { action: "Combo:", detail: `a ball that breaks bricks without touching the paddle goes ×2 from its ${BRK_V9_COMBO_X2}th brick and ×3 from its ${BRK_V9_COMBO_X3}th. A paddle touch or a lost ball ends it; Fireball, laser and ×3 bricks don't count.`, helpOnly: true },
       ],
-      score: liveBandHelp("breaker", "Each brick destroyed counts 1.", { more: "More bricks", good: (u) => `clears ${u} bricks`, finish: "Clearing all 80 adds up to 10 for speed: the full 10 with at least half the time left, falling to 0 at the buzzer." }),
+      score: liveBandHelp("breaker", "Each brick destroyed counts 1.", { more: "More bricks", good: (u) => `clears ${u} bricks`, finish: `Clearing all ${BRK_V9_COLS * BRK_V9_ROWS - BRK_V9_GOLD} adds up to 10 for speed: the full 10 with at least half the time left, falling to 0 at the buzzer. Skill adds up to ${BRK_V9_SKILL_MAX} more: ${BRK_V9_GOLD_POINTS} a gold brick, and 1 for each ×2 combo brick and 3 for each ×3 (up to ${BRK_V9_COMBO_MAX}). ${skillPayLine(BRK_V9_SKILL_PAY)}` }),
     },
     pinball: {
       goal: "Keep the ball in play and rack up table points.",

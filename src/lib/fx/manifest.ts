@@ -245,6 +245,8 @@ const ENTRIES = {
   "breaker.moving-target": { channel: "effects", frequency: 0, ms: 486, url: "/sounds/replay.moment.mp3", volume: 0.84 },
   "breaker.row-clear": { channel: "effects", frequency: 0, ms: 486, url: "/sounds/replay.moment.mp3", volume: 0.84 },
   "breaker.wall-cleared": { channel: "effects", frequency: 0, ms: 486, url: "/sounds/replay.moment.mp3", volume: 0.84 },
+  "breaker.gold-brick": { channel: "effects", frequency: 0, ms: 486, url: "/sounds/replay.moment.mp3", volume: 0.84 },
+  "breaker.combo": { channel: "effects", frequency: 0, ms: 486, url: "/sounds/replay.moment.mp3", volume: 0.84 },
   "rally.long-rally": { channel: "effects", frequency: 0, ms: 486, url: "/sounds/replay.moment.mp3", volume: 0.84 },
   "rally.gold": { channel: "effects", frequency: 0, ms: 486, url: "/sounds/replay.moment.mp3", volume: 0.84 },
   "rally.target": { channel: "effects", frequency: 0, ms: 486, url: "/sounds/replay.moment.mp3", volume: 0.84 },

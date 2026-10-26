@@ -26,8 +26,8 @@ effects ([arcade-effects.md](arcade-effects.md)) so a sound can be written for e
 | fail sting | 4 | 0 | 35 | 39 |
 | success sting | 3 | 0 | 68 | 71 |
 | ambience | 0 | 1 | 8 | 9 |
-| replay | 0 | 0 | 129 | 129 |
-| **all** | 65 | 1 | 678 | 744 |
+| replay | 0 | 0 | 131 | 131 |
+| **all** | 65 | 1 | 680 | 746 |
 
 ## Silent and placeholder cues
 
@@ -553,6 +553,8 @@ Grouped by game or screen.
 | `breaker.moving-target` | Brick out of a sliding row: the clip reaches the moment's key tick [replays.md] |  | 0–2 per highlight | recorded sound | `breaker.moving-target` | 250 | replay | `breaker.moving-target` |
 | `breaker.row-clear` | Row cleared: the clip reaches the moment's key tick [replays.md] |  | 0–2 per highlight | recorded sound | `breaker.row-clear` | 250 | replay | `breaker.row-clear` |
 | `breaker.wall-cleared` | Wall cleared: the clip reaches the moment's key tick [replays.md] |  | 0–2 per highlight | recorded sound | `breaker.wall-cleared` | 250 | replay | `breaker.wall-cleared` |
+| `breaker.gold-brick` | Gold brick broken by a direct hit (brkRev 9): the clip reaches the moment's key tick [replays.md] |  | 0–2 per highlight | recorded sound | `breaker.gold-brick` | 250 | replay | `breaker.gold-brick` |
+| `breaker.combo` | No-touch combo stepped up (×2, ×3; brkRev 9): the clip reaches the moment's key tick [replays.md] |  | 0–2 per highlight | recorded sound | `breaker.combo` | 250 | replay | `breaker.combo` |
 | `rally.long-rally` | Long rally (every 10 returns): the clip reaches the moment's key tick [replays.md] |  | 0–2 per highlight | recorded sound | `rally.long-rally` | 250 | replay | `rally.long-rally` |
 | `rally.gold` | Gold ball returned: the clip reaches the moment's key tick [replays.md] |  | 0–2 per highlight | recorded sound | `rally.gold` | 250 | replay | `rally.gold` |
 | `rally.target` | Far-wall target struck: the clip reaches the moment's key tick [replays.md] |  | 0–2 per highlight | recorded sound | `rally.target` | 250 | replay | `rally.target` |
@@ -1710,6 +1712,8 @@ loops are not measured there). Files in `public/sounds/` are listed once per slo
 | `breaker.moving-target` | effects | `breaker.moving-target` | 486 |
 | `breaker.row-clear` | effects | `breaker.row-clear` | 486 |
 | `breaker.wall-cleared` | effects | `breaker.wall-cleared` | 486 |
+| `breaker.gold-brick` | effects | `breaker.gold-brick` | 486 |
+| `breaker.combo` | effects | `breaker.combo` | 486 |
 | `rally.long-rally` | effects | `rally.long-rally` | 486 |
 | `rally.gold` | effects | `rally.gold` | 486 |
 | `rally.target` | effects | `rally.target` | 486 |

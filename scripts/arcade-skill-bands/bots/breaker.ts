@@ -15,17 +15,19 @@
  */
 import { ARCADE_INPUT_BUTTON, ARCADE_INPUT_DRAG } from "../../../src/lib/arcade/engine";
 import {
+  brkCols,
+  brkRowsOf,
+  brkSkillPoints,
+  brkWallXOf,
+  brkWorldW,
   brkRowOffset,
   BRK_BALL_R,
   BRK_BRICK_W,
-  BRK_COLS,
   BRK_PADDLE_W,
   brkPaddleY,
   BRK_POWER_LASER,
-  BRK_ROWS,
   BRK_ROW_PITCH,
   BRK_WALL,
-  BRK_WALL_X,
   BRK_WALL_Y,
   BRK_WORLD_W,
   BRK_ZONES,
@@ -47,7 +49,15 @@ const TAP: Record<string, number> = { average: 7, good: 6, great: 6, near: 5 };
 const REGRIP: Record<string, number> = { average: 12, good: 10, great: 8, near: 6 };
 
 const LO = BRK_WALL + BRK_BALL_R;
-const HI = BRK_WORLD_W - BRK_WALL - BRK_BALL_R;
+/** The court's far wall line, set per run (brkRev 9's court is 420 wide). */
+let HI = BRK_WORLD_W - BRK_WALL - BRK_BALL_R;
+let WORLD_W = BRK_WORLD_W;
+/**
+ * brkRev 9: how much a zone's look-ahead values skill points (gold bricks, combo points) against plain
+ * hits. Stronger players read the wall for the direct line to a gold brick and the long chains.
+ */
+const SKILL: Record<string, number> = { average: 0, good: 0.5, great: 1.5, near: 3 };
+let SKILL_W = 0;
 /** The paddle line the ball is caught on: set per run from the game's own world (brkRev 6's taller court). */
 let PADDLE_Y = 0;
 let CATCH_Y = 0;
@@ -83,28 +93,32 @@ function zoneValue(game: { step: (s: BrkState, e: unknown) => BrkState; isOver: 
       for (const b of s.balls) if (b.vy > 0 && (!best || b.y > best.y)) best = b;
       a = best ? Math.round(best.x / 256) : s.paddleX;
     }
-    s = game.step(s, { t: s.tick + 1, k: ARCADE_INPUT_DRAG, a: Math.max(0, Math.min(BRK_WORLD_W, a)), b: 0, c: 0, d: 0 });
+    s = game.step(s, { t: s.tick + 1, k: ARCADE_INPUT_DRAG, a: Math.max(0, Math.min(WORLD_W, a)), b: 0, c: 0, d: 0 });
     if (committed && s.balls.some((b) => b.vy < 0 && b.y > (CATCH_Y - 20) * 256)) committed = false;
-    if (s.losses > start.losses) return s.hits - start.hits - 20;
+    if (s.losses > start.losses) return s.hits - start.hits - 20 + SKILL_W * (brkSkillPoints(s) - brkSkillPoints(start));
   }
-  return s.hits - start.hits;
+  return s.hits - start.hits + SKILL_W * (brkSkillPoints(s) - brkSkillPoints(start));
 }
 
 /** Live bricks above the paddle centre, bottom-up (what a laser or a fired ball would meet). */
 function columnBricks(s: BrkState, x: number): number {
   let n = 0;
-  for (let row = BRK_ROWS - 1; row >= 0; row--) {
-    const local = x - BRK_WALL_X - brkRowOffset(s, row, s.tick);
+  const cols = brkCols(s);
+  for (let row = brkRowsOf(s) - 1; row >= 0; row--) {
+    const local = x - brkWallXOf(s) - brkRowOffset(s, row, s.tick);
     if (local < 0) continue;
     const col = Math.trunc(local / BRK_BRICK_W);
-    if (col >= BRK_COLS) continue;
-    if ((s.bricks[row * BRK_COLS + col] ?? 0) > 0) n++;
+    if (col >= cols) continue;
+    if ((s.bricks[row * cols + col] ?? 0) > 0 && !s.gild?.[row * cols + col]) n++;
   }
   return n;
 }
 
 export const bot: SkillBot = ({ game, seed, human }) => {
   PADDLE_Y = brkPaddleY(game.init(seed));
+  WORLD_W = brkWorldW(game.init(seed));
+  HI = WORLD_W - BRK_WALL - BRK_BALL_R;
+  SKILL_W = game.init(seed).deep ? SKILL[human.level]! : 0;
   CATCH_Y = PADDLE_Y - BRK_BALL_R;
   const level = human.level;
   const speed = FINGER[level]!;
@@ -238,7 +252,7 @@ export const bot: SkillBot = ({ game, seed, human }) => {
     }
 
     finger += Math.max(-speed, Math.min(speed, target - finger));
-    const a = Math.max(0, Math.min(BRK_WORLD_W, Math.round(finger)));
+    const a = Math.max(0, Math.min(WORLD_W, Math.round(finger)));
     if (a === sent) return null;
     sent = a;
     return { k: ARCADE_INPUT_DRAG, a, b: 0, c: 0, d: 0 };

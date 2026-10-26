@@ -149,6 +149,12 @@ async function runGame(spec: GameSpec): Promise<RunRecord[]> {
     const now = (LIVE_BANDS as Record<string, { rev: number }>)[spec.type]?.rev;
     if (now === undefined) console.error(`${spec.type}: no live band`);
     else revs.push(["live", now]);
+  } else if (REV_MODE === "x") {
+    // The 200-point expansions (Oct 2026, docs/scoring-200.md): the revision rooms dealt before it ("live")
+    // against the expansion's ("next").
+    const live = (LIVE_BANDS as Record<string, { rev: number; strictRev?: number }>)[spec.type];
+    if (live?.strictRev === undefined) console.error(`${spec.type}: no expansion revision`);
+    else revs.push(["live", live.strictRev], ["next", live.rev]);
   } else if (REV_MODE === "g3") {
     // Taller worlds batch 3: the revision rooms stamped before it ("live") against the taller one ("next").
     const before = liveBeforeG1(spec);

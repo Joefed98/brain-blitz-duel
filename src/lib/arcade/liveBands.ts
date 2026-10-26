@@ -24,7 +24,7 @@ import { SNIP_REV_STRICT, SNIP_V9_BAND_CURVE } from "./snip";
 import { HOVER_REV_STRICT, HOVER_V7_BAND_CURVE } from "./hover";
 import { SKYLINE_REV_EXPAND, SKYLINE_REV_STRICT, SKYLINE_V7_BAND_CURVE } from "./skyline";
 import { JUNC_REV_BAND, JUNC_BAND_CURVE } from "./junction";
-import { BRK_REV_STRICT, BRK_V8_BAND_CURVE } from "./breaker";
+import { BRK_REV_DEEP, BRK_REV_STRICT, BRK_V9_BAND_CURVE } from "./breaker";
 import { TILT_REV_STRICT, TILT_V6_BAND_CURVE } from "./tilt";
 import { ORBIT_REV_STRICT } from "./orbit";
 import { ORBIT_V10_BAND_CURVE } from "./orbitRev3";
@@ -64,7 +64,7 @@ export const LIVE_BANDS = {
   hover: { field: "hoverRev", rev: HOVER_REV_STRICT, curve: HOVER_V7_BAND_CURVE },
   skyline: { field: "skylineRev", rev: SKYLINE_REV_EXPAND, curve: SKYLINE_V7_BAND_CURVE, strictRev: SKYLINE_REV_STRICT },
   junction: { field: "junctionRev", rev: JUNC_REV_BAND, curve: JUNC_BAND_CURVE },
-  breaker: { field: "brkRev", rev: BRK_REV_STRICT, curve: BRK_V8_BAND_CURVE },
+  breaker: { field: "brkRev", rev: BRK_REV_DEEP, curve: BRK_V9_BAND_CURVE, strictRev: BRK_REV_STRICT },
   tilt: { field: "tiltRev", rev: TILT_REV_STRICT, curve: TILT_V6_BAND_CURVE },
   orbit: { field: "orbitRev", rev: ORBIT_REV_STRICT, curve: ORBIT_V10_BAND_CURVE },
   beat: { field: "beatRev", rev: BEAT_REV_STRICT, curve: BEAT_V8_BAND_CURVE },
