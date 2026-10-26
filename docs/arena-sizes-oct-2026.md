@@ -36,7 +36,7 @@ revisions keep their own world in reveals and replays.
 | Jaywalk | 390x580 | 375x591 → 375x558 | 390x624 → 390x580 | 390x768 → 390x580 | 414x772 → 414x616 | 430x856 → 430x639 | 1280x724 → 487x724 | 1.000x | 60px | 0px | 188px | 0px | - |
 | Junction | 390x620 | 375x591 → 372x591 | 390x624 → 390x620 | 390x768 → 390x620 | 414x772 → 414x658 | 430x856 → 430x684 | 1280x724 → 455x724 | 1.000x | 60px | 0px | 148px | 0px | - |
 | Rainbow Bridge | 390x620 | 375x535 → 337x535 | 390x568 → 357x568 | 390x712 → 390x620 | 414x716 → 414x658 | 430x800 → 430x684 | 1280x668 → 420x668 | 1.000x | 60px | 0px | 92px | 0px | Rainbow Bridge's Undo / Reset / Release / Drop again (48px): 16px |
-| Slice | 390x730 | 375x591 → 316x591 | 390x624 → 333x624 | 390x768 → 390x730 | 414x772 → 412x772 | 430x856 → 430x805 | 1280x724 → 387x724 | 1.000x | 60px | 0px | 38px | 0px | - |
+| Slice | 430x805 | 375x591 → 316x591 | 390x624 → 333x624 | 390x768 → 390x730 | 414x772 → 412x772 | 430x856 → 430x805 | 1280x724 → 387x724 | 0.907x | 60px | 0px | 38px | 0px | - |
 | Swish | 430x728 | 375x519 → 307x519 | 390x552 → 326x552 | 390x696 → 390x660 | 414x700 → 413x700 | 430x784 → 430x728 | 1280x652 → 385x652 | 0.907x | 60px | 0px | 36px | 0px | Swish's cancel strip (72px): 16px |
 | Flightpath | 390x560 | 375x591 → 375x538 | 390x624 → 390x560 | 390x768 → 390x560 | 414x772 → 414x594 | 430x856 → 430x617 | 1280x724 → 504x724 | 1.000x | 60px | 0px | 208px | 0px | - |
 | Coral Pop | 390x730 | 375x591 → 316x591 | 390x624 → 333x624 | 390x768 → 390x730 | 414x772 → 412x772 | 430x856 → 430x805 | 1280x724 → 387x724 | 1.000x | 60px | 0px | 38px | 0px | - |
@@ -46,7 +46,7 @@ revisions keep their own world in reveals and replays.
 | Tilt | 440x470 | 375x591 → 375x401 | 390x624 → 390x417 | 390x768 → 390x417 | 414x772 → 414x442 | 430x856 → 430x459 | 1280x724 → 678x724 | 0.886x | 60px | 176px | 176px | 0px | - |
 | Ball Tracker | 700x1400 | 375x555 → 278x555 | 390x588 → 294x588 | 390x732 → 366x732 | 414x736 → 368x736 | 430x820 → 410x820 | 1280x688 → 344x688 | 0.523x | 60px | 0px | -0px | 24px | Ball Tracker's status row (28px): 16px |
 | Gemstone | 390x720 | 375x591 → 320x591 | 390x624 → 338x624 | 390x768 → 390x720 | 414x772 → 414x764 | 430x856 → 430x794 | 1280x724 → 392x724 | 1.000x | 60px | 24px | 24px | 0px | - |
-| Pinball | 390x700 | 375x591 → 329x591 | 390x624 → 348x624 | 390x768 → 390x700 | 414x772 → 414x743 | 430x856 → 430x772 | 1280x724 → 403x724 | 1.000x | 60px | 34px | 34px | 0px | - |
+| Pinball | 390x820 | 375x591 → 281x591 | 390x624 → 297x624 | 390x768 → 365x768 | 414x772 → 367x772 | 430x856 → 407x856 | 1280x724 → 344x724 | 0.937x | 60px | 0px | 0px | 25px | - |
 | Letterfall | 390x700 | 375x591 → 329x591 | 390x624 → 348x624 | 390x768 → 390x700 | 414x772 → 414x743 | 430x856 → 430x772 | 1280x724 → 403x724 | 1.000x | 60px | 0px | 68px | 0px | - |
 | Tenfall | 360x520 | 375x535 → 370x535 | 390x568 → 390x563 | 390x712 → 390x563 | 414x716 → 414x598 | 430x800 → 430x621 | 1280x668 → 462x668 | 1.083x | 116px | 0px | 149px | 0px | - |
 | Bonk | square | 375x491 → 375x375 | 390x524 → 390x390 | 390x668 → 390x390 | 414x672 → 414x414 | 430x756 → 430x430 | 1280x624 → 624x624 | 390.000x | 159.6px | 139px | 139px | 0px | - |
@@ -89,7 +89,7 @@ stars, walkers, lava, reactions) that holds still under reduced motion or reduce
 | Tilt | 375x591 → 375x401 | 390x624 → 390x417 | 390x768 → 390x417 | 414x772 → 414x442 | 430x856 → 430x459 | 1280x724 → 678x724 | the board's oak runs on to the screen's edges, settling darker (no rim) |
 | Ball Tracker | 375x555 → 278x555 | 390x588 → 294x588 | 390x732 → 366x732 | 414x736 → 368x736 | 430x820 → 410x820 | 1280x688 → 344x688 | the wooden board runs on across the sides and to the bottom |
 | Gemstone | 375x591 → 320x591 | 390x624 → 338x624 | 390x768 → 390x720 | 414x772 → 414x764 | 430x856 → 430x794 | 1280x724 → 392x724 | the sparkly purple velvet over the whole screen, behind the header too (world centred) |
-| Pinball | 375x591 → 329x591 | 390x624 → 348x624 | 390x768 → 390x700 | 414x772 → 414x743 | 430x856 → 430x772 | 1280x724 → 403x724 | the dark table, five retro lamps lit by the table's good moments (world centred) |
+| Pinball | 375x591 → 281x591 | 390x624 → 297x624 | 390x768 → 365x768 | 414x772 → 367x772 | 430x856 → 407x856 | 1280x724 → 344x724 | the dark table, five retro lamps lit by the table's good moments (world centred) |
 | Mixed Signals | 375x531 → 319x531 | 390x564 → 338x564 | 390x708 → 390x650 | 414x712 → 414x690 | 430x796 → 430x717 | 1280x664 → 398x664 | the night board runs on under the arrows: its faint dot grid, lifting from the board's black to a soft indigo glow |
 
 ## iPhone 11 home-screen app, before and after the 15 Oct 2026 fix
@@ -126,7 +126,7 @@ than half hidden; Hover's world is cut the same way, its disc at the top).
 | Tilt | 414x724 → 414x442, 64px | 414x772 → 414x442, 16px | world none |
 | Ball Tracker | 414x688 → 344x688, 64px | 414x736 → 368x736, 16px | world none, Ball Tracker's status row (28px) 32px |
 | Gemstone | 414x724 → 392x724, 64px | 414x772 → 414x764, 16px | world 24px |
-| Pinball | 414x724 → 403x724, 64px | 414x772 → 414x743, 16px | world 3px |
+| Pinball | 414x724 → 344x724, 64px | 414x772 → 367x772, 16px | world 32px |
 | Letterfall | 414x724 → 403x724, 64px | 414x772 → 414x743, 16px | world 3px |
 | Tenfall | 414x668 → 414x598, 64px | 414x716 → 414x598, 16px | world none |
 | Bonk | 414x624 → 414x414, 64px | 414x672 → 414x414, 16px | world none |
@@ -162,4 +162,4 @@ bottom; the spare space was the game's arena fill or the page colour. Same arith
 | Tilt | 367x503 → 367x392 | 382x536 → 382x408 | 382x680 → 382x408 | 422x768 → 422x451 | 1272x636 → 595x636 |
 | Ball Tracker | 367x503 → 251x503 | 382x536 → 268x536 | 382x680 → 340x680 | 422x768 → 384x768 | 1272x636 → 318x636 |
 | Gemstone | 367x543 → 294x543 | 382x576 → 312x576 | 382x720 → 382x705 | 422x808 → 422x779 | 1272x676 → 366x676 |
-| Pinball | 367x543 → 303x543 | 382x576 → 321x576 | 382x720 → 382x686 | 422x808 → 422x757 | 1272x676 → 377x676 |
+| Pinball | 367x543 → 258x543 | 382x576 → 274x576 | 382x720 → 342x720 | 422x808 → 384x808 | 1272x676 → 322x676 |
