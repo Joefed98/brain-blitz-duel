@@ -544,7 +544,8 @@ function drawCourseWorld(c:CanvasRenderingContext2D,state:SnipState,size:CanvasS
   c.save();c.fillStyle='rgba(30,50,30,0.18)';c.beginPath();c.ellipse(mouth.x/256+3,mouth.y/256+34,26,5,0,0,Math.PI*2);c.fill();c.restore();
   countryStamp(c,'orchard-basket',64,64,mouth.x/256-32,mouth.y/256-32,basket);
   state.starX.forEach((x,i)=>{const y=state.starY[i];if(state.starGot[i]||y===undefined)return;
-    if(!drawArtSprite(c,'orchard','leaf',x/256-24,y/256-24,48,48))countryStamp(c,'orchard-leaf',48,48,x/256-24,y/256-24,leaf);});
+    // snipRev 11's leaves are drawn 60 px (their art reaching ~28 px round the centre): a fruit touching one takes it (SNIP_X_STAR_REACH 40).
+    if(!drawArtSprite(c,'orchard','leaf',x/256-30,y/256-30,60,60)){c.save();c.translate(x/256-30,y/256-30);c.scale(1.25,1.25);countryStamp(c,'orchard-leaf',48,48,0,0,leaf);c.restore();}});
   const pinRopes=course.fruits.reduce((n,f)=>n+f.pins.length,0);
   state.ropes.forEach((rope,index)=>{const f=state.fruits?.[rope.f??0];const pts:[number,number][]=[];for(let i=0;i<rope.x.length;i++){const x=rope.x[i],y=rope.y[i];if(x!==undefined&&y!==undefined)pts.push([x/256,y/256]);}if(rope.alive&&f)pts.push([f.x/256,f.y/256]);(index>=pinRopes?vine:twine)(c,pts,rope.alive?1:0.6);});
   for(const f of state.fruits??[]){

@@ -1343,6 +1343,12 @@ export const SNIP_X_MAX_SPEED = 12 * 256;
 export const SNIP_X_RING_REACH = 14;
 /** A ring's drawn hoop radius (art; the catch is SNIP_X_RING_REACH). */
 export const SNIP_X_RING_R = 20;
+/**
+ * A leaf is taken when a fruit's centre comes this close to it (snipRev 11, more forgiving than the older levels'
+ * 24: the leaves are drawn larger, 60 px, reaching about 28 px round their centre, and the fruit, radius 12,
+ * touching one takes it). With the wider chutes (scripts/snip-x200-chutes.ts) this widens the cut windows.
+ */
+export const SNIP_X_STAR_REACH = 40;
 export const SNIP_X_WOBBLES: readonly number[] = [-10, 0, 10];
 /** Levels (0-based) with a golden fruit. */
 export const SNIP_X_GOLD_LEVELS: readonly number[] = [1, 3, 5];
@@ -1814,7 +1820,7 @@ function stepCourse(state: SnipState, input: ArcadeInputEvent | null): SnipState
     });
 
     // 5. Stars (any fruit in play), then each fruit's outcome.
-    const reach = c.starReach * 256;
+    const reach = SNIP_X_STAR_REACH * 256;
     const got = [...next.starGot];
     for (let i = 0; i < got.length; i++) {
       if (got[i]) continue;

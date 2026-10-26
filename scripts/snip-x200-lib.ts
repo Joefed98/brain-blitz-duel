@@ -94,6 +94,8 @@ export interface XPlay {
   fedAt: number[];
   /** snipRev 11: the level's par-time credit (ticks under its par time, at most the margin; par levels only). */
   quick: number;
+  /** Each fruit's end state (SNIP_X_FED, or the outcome that lost it). */
+  outcomes: number[];
 }
 
 /** Plays one level of a course (an index, or a candidate put in the spare slot) on a deal. */
@@ -144,6 +146,7 @@ export function xPlayLevel(course: number | SnipCourse, wob: number, wind: numbe
           perfect: (s.perfect ?? 0) > 0,
           golden: s.golden ?? 0,
           quick: s.quickTicks ?? 0,
+          outcomes: (s.fruits ?? []).map((f) => f.st),
           vines,
           fedAt,
           ...(trace ? { paths } : {}),
