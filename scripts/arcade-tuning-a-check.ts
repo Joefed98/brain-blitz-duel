@@ -77,7 +77,7 @@ import { SWING_V4_BANK } from "../src/lib/duel/swingBankV4.server";
 import { proveSwingSeedV4 } from "../src/lib/duel/swingProof.server";
 import { tiltCupReachable, tiltGameFor, tiltSeedCupsReachable, TILT_REV_BAND } from "../src/lib/arcade/tilt";
 import { generateOrbit, generateSkyline, generateSwing, generateTilt, generateWavefront } from "../src/lib/duel/arcade.server";
-import { skylineGameFor, SKYLINE_REV_TALL } from "../src/lib/arcade/skyline";
+import { skylineGameFor, SKYLINE_REV_EXPAND, SKYLINE_REV_TALL } from "../src/lib/arcade/skyline";
 import { APP_FLAG_LOGO_URL } from "../src/lib/brand";
 import { PUZZLE_INSTRUCTIONS as INSTRUCTIONS } from "../src/lib/duel/instructions";
 import { playRevOf } from "./scoring-targets-revs";
@@ -115,7 +115,10 @@ section("Old rounds replay and score exactly as before");
 if (want("skyline")) {
   section("High Rise: logo flag, wind unchanged");
   // Tuning A changed no High Rise play; Tuning E (Oct 2026) later stamps its taller view, skylineRev 4, with the same play and curve.
-  ok(playRevOf("skyline", generateSkyline().skylineRev) === SKYLINE_REV_TALL && skylineGameFor(SKYLINE_REV_TALL).score === skylineGameFor(BAND_STAMPS.skyline![1]).score, "new High Rise rounds keep the band play and curve (Tuning E's taller view only)");
+  // Expansion E4 (25 Oct 2026) moved High Rise rooms on to skylineRev 7 (e4-expansion-check covers it); skylineRev 4, which
+  // stored rounds play, keeps the band play and curve (Tuning E's taller view only).
+  ok(generateSkyline().skylineRev === SKYLINE_REV_EXPAND, "new High Rise rounds are dealt skylineRev 7 (expansion E4)");
+  ok(skylineGameFor(SKYLINE_REV_TALL).score === skylineGameFor(BAND_STAMPS.skyline![1]).score, "High Rise skylineRev 4 keeps the band play and curve (Tuning E's taller view only)");
   // Prompt R (23 Oct 2026): the manifest holds the new icon in three files (192, 512, maskable); the flag draws its
   // 512 px "any" icon (APP_FLAG_LOGO_URL), so the PWA icon and the flag are still one logo file.
   ok(APP_FLAG_LOGO_URL.startsWith("/") && existsSync(`public${APP_FLAG_LOGO_URL}`), `the app logo file ${APP_FLAG_LOGO_URL} exists`);
