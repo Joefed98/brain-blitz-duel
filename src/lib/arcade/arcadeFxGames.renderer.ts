@@ -107,6 +107,10 @@ import {
 import {
   flipCrackTick,
   flipStarsTaken,
+  flipRunnerPoint,
+  flipSweetsTaken,
+  flipTrailStars,
+  FLIP_V8_WORLD_H,
   FLIP_CRUMBLE_TICKS,
   FLIP_STARS,
   FLIP_WORLD_H,
@@ -114,6 +118,14 @@ import {
   type FlipState,
 } from "./flip";
 
+/** flipRev 8: speed zones the run has entered (0 on every earlier round). */
+function flipZonesEntered(s: FlipState): number {
+  const z = s.v8?.zones;
+  if (!z || s.ended === 2) return 0;
+  let n = 0;
+  for (let i = 0; i < z.length; i += 2) if (s.tick > z[i]!) n += 1;
+  return n;
+}
 /** Rev 2: crumble tiles the runner touched that broke with it safely elsewhere. */
 function flipEscapes(s: FlipState): number {
   if (s.ended === 2) return 0;
@@ -1085,9 +1097,25 @@ export const FLIP_FX: ArcadeFxSpec<FlipState> = {
       label: () => "ALL 10 STARS!",
     },
     { kind: "pop", count: flipEscapes, at: () => ({ x: 90, y: FLIP_WORLD_H / 2 + 30 }), label: () => "JUST IN TIME!" },
+    // flipRev 8 only (every earlier round keeps these counters at 0).
+    { kind: "pop", count: (s) => flipTrailStars(s).stars, at: (s) => flipRunnerPoint(s), label: () => null },
+    { kind: "perfect", count: (s) => flipTrailStars(s).full, at: (s) => flipRunnerPoint(s), label: () => "STAR TRAIL!" },
+    {
+      kind: "combo",
+      count: (s) => s.combos ?? 0,
+      at: (s) => flipRunnerPoint(s),
+      label: (s) => ((s.chain ?? 0) <= 1 ? "DOUBLE FLIP!" : (s.chain ?? 0) === 2 ? "TRIPLE FLIP!" : `FLIP ×${(s.chain ?? 0) + 1}`),
+    },
+    { kind: "streak", count: (s) => s.cpPassed ?? 0, label: () => "CHECKPOINT" },
+    { kind: "pop", count: (s) => s.saves ?? 0, at: (s) => flipRunnerPoint(s), label: () => "SAVED!" },
+    { kind: "streak", count: flipZonesEntered, label: () => "SPEED ZONE!" },
+    // flipRev 8's sweet spots: a small pop at the runner's feet on a sweet landing.
+    { kind: "pop", count: flipSweetsTaken, at: (s) => flipRunnerPoint(s), label: () => "SWEET!" },
   ],
   misses: [{ count: (s) => (s.ended === 2 ? 1 : 0) }],
 };
+/** flipRev 8's taller cave draws its effects on the 730 px world. */
+export const flipFxFor = (s: FlipState): ArcadeFxSpec<FlipState> => (s.exp ? fxSpecAt(FLIP_FX, FLIP_V8_WORLD_H) : FLIP_FX);
 
 export const SWING_FX: ArcadeFxSpec<SwingState> = {
   game: "swing",
@@ -1300,6 +1328,8 @@ export const skylineFxFor = (s: SkylineState): ArcadeFxSpec<SkylineState> => fxS
 export const SNAKE_FX_V9: ArcadeFxSpec<SnakeState> = { ...SNAKE_FX, width: SNAKE_V9_WORLD_W, height: SNAKE_V9_H };
 export const snakeFxFor = (s: SnakeState): ArcadeFxSpec<SnakeState> => (s.cols ? SNAKE_FX_V9 : fxSpecAt(SNAKE_FX, snakeWorldHFor(snakeRowsOf(s))));
 export const SNAKE_FX_TALL = fxSpecAt(SNAKE_FX, SNAKE_TALL_H);
+/** Roofbound flipRev 8's 730 px cave (the spec rooms deal today; earlier rounds draw through flipFxFor). */
+export const FLIP_FX_TALL = fxSpecAt(FLIP_FX, FLIP_V8_WORLD_H);
 export const snipFxFor = (s: SnipState): ArcadeFxSpec<SnipState> => fxSpecAt(SNIP_FX, snipWorldH(s));
 export const SNIP_FX_TALL = fxSpecAt(SNIP_FX, SNIP_TALL_H);
 export const SKYLINE_FX_TALL = fxSpecAt(SKYLINE_FX, SKYLINE_TALL_H);
@@ -1453,7 +1483,7 @@ export const ARCADE_FX_SPECS = {
   bintoss: BINTOSS_FX_V7,
   bullseye: BULLSEYE_FX,
   bubble: BUBBLE_FX_TALL,
-  flip: FLIP_FX,
+  flip: FLIP_FX_TALL,
   swing: SWING_FX_TALL,
   snip: SNIP_FX_TALL,
   tilt: TILT_FX,
