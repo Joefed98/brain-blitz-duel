@@ -200,9 +200,9 @@ export const bot: SkillBot = ({ game, seed, human, fixes }) => {
       // New things coming into view: each is processed a reaction after it appears on screen.
       // The later parts of a recognised pattern (an overhang pair, offset spikes) are expected:
       // they only need the tracking lag once the pattern's first part has been processed.
-      const edge = s.x + VIEW_AHEAD;
-      // flipRev 8 announces the course (hazards, gold stars, sweet spots) in a strip at the view's edge FLIP_V8_PREVIEW px early.
-      const itemEdge = v8 ? s.x + FLIP_V8_READ_AHEAD * FP : edge;
+      // flipRev 8 draws the runner further left, so more of the course is on screen ahead of it.
+      const edge = s.x + (v8 ? FLIP_V8_READ_AHEAD * FP : VIEW_AHEAD);
+      const itemEdge = edge;
       for (let i = segReady.length; i < s.segs.length && s.segs[i]!.x0 <= itemEdge; i++) {
         const seg = s.segs[i]!;
         const prev = i > 0 ? s.segs[i - 1]! : null;
@@ -335,7 +335,7 @@ export const bot: SkillBot = ({ game, seed, human, fixes }) => {
           if (next.ended !== 2 && (next.combos ?? 0) > (s.combos ?? 0)) {
             let H = 0;
             let x = next.x;
-            while (H < 60 && next.tick + H < FLIP_RUN_TICKS && x + stepX(next.tick + H + 1) + HALF < s.x + VIEW_AHEAD) {
+            while (H < 60 && next.tick + H < FLIP_RUN_TICKS && x + stepX(next.tick + H + 1) + HALF < edge) {
               H++;
               x += stepX(next.tick + H);
             }

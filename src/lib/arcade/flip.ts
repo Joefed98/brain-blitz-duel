@@ -969,12 +969,14 @@ export const FLIP_V8_SWEET_TICKS = 1;
 export const FLIP_V8_SWEET_POINTS = 4;
 const V8_SWEET_SECONDS = [6.5, 13, 19.5, 26, 32.5, 39, 45.5, 52] as const;
 /**
- * Readability: a gold star or sweet spot is announced this far beyond the right edge of the view (a small marker at the
- * edge, flipRev 8's art; FLIP_V8_PREVIEW px), so it is readable FLIP_V8_PREVIEW + 300 px ahead of the runner (the 390 px
- * view less the runner's 90), and a player has read it V8_READ_TICKS later (a quick human reaction, 200 ms).
+ * Readability (on screen only, Joe's decision of 26 Oct: nothing new drawn): flipRev 8 draws the runner
+ * FLIP_V8_RUNNER_X px from the left of the 390 px view (90 before; display only, the sim's collision is along x and
+ * never reads it), so the course is on screen FLIP_V8_READ_AHEAD px ahead of the runner. The builder places a gold star
+ * or sweet spot only where, V8_READ_TICKS after it comes on screen (a quick human reaction, 200 ms), a route still takes
+ * it from any settled runner.
  */
-export const FLIP_V8_PREVIEW = 180;
-export const FLIP_V8_READ_AHEAD = FLIP_WORLD_W - 90 + FLIP_V8_PREVIEW;
+export const FLIP_V8_RUNNER_X = 50;
+export const FLIP_V8_READ_AHEAD = FLIP_WORLD_W - FLIP_V8_RUNNER_X;
 const V8_VIEW_AHEAD = FLIP_V8_READ_AHEAD;
 const V8_READ_TICKS = 12;
 /** The readability proof lets a player flip again this many ticks after landing (a quick double flip). */
@@ -987,9 +989,9 @@ const V8_READ_LANDED = 6;
  * (docs/expansions/x200-flip.md), with the base curve.
  */
 export const FLIP_V8_SKILL_FULL = FLIP_V8_TRAILS * FLIP_V8_TRAIL_POINTS + FLIP_V8_SWEETS * FLIP_V8_SWEET_POINTS + 2 * FLIP_V8_ZONE_POINTS + 3 * FLIP_V8_CP_POINTS;
-export const FLIP_V8_SKILL_PAY = bandCurve([0, 12, 30, 37, 61, FLIP_V8_SKILL_FULL], [0, 0, 1, 7, 30, FLIP_V8_FEATURE_CAP]);
+export const FLIP_V8_SKILL_PAY = bandCurve([0, 12, 22, 53, 59, FLIP_V8_SKILL_FULL], [0, 3, 13, 21, 34, FLIP_V8_FEATURE_CAP]);
 /** The rev-8 survival curve: half seconds + 3 per gold star, to 140 (the full minute adds 10, the features up to 50). */
-export const FLIP_V8_BAND_CURVE = bandCurve([0, 40, 105, 130, 140, 146, 150], [0, 11, 33, 38, 43, 95, 140]);
+export const FLIP_V8_BAND_CURVE = bandCurve([0, 40, 105, 130, 140, 146, 150], [0, 11, 47, 57, 70, 105, 140]);
 
 export interface FlipTrail {
   /** Star centres (1/256 px) and heights (per mille of the cave: 0 the floor's runner line, 1000 the ceiling's). */
@@ -1431,27 +1433,34 @@ function placeStarsV8(built: V8Built): { stars: FlipStar[]; sweets: FlipSweet[];
         // (V8_VIEW_AHEAD px ahead of the runner, then V8_READ_TICKS), every route situation that can still last
         // past it must be able to take it, so a player who has not seen it yet never has to have planned for it.
         {
-          const readAt = tickAt(span.x0 - reach - V8_VIEW_AHEAD * FP) + V8_READ_TICKS;
+          const seenAt = tickAt(span.x0 - reach - V8_VIEW_AHEAD * FP);
           let probe = set;
           let pt = t;
-          while (pt < readAt && X[pt + 1]! < span.x0 - reach && probe.length) {
-            pt += 1;
-            probe = stepRoute(probe, pt);
-          }
-          const takes = (code: number) => {
-            let free = [code & ~bit];
-            let got = [code & ~bit];
-            let tt = pt;
-            while (tt < FLIP_RUN_TICKS && X[tt]! <= span.x1 + reach && free.length) {
-              tt += 1;
-              free = stepRoute(free, tt, undefined, undefined, V8_READ_LANDED);
-              got = got.length ? stepRoute(got, tt, star, sweet, V8_READ_LANDED) : got;
+          let readable = true;
+          // From a settled runner (on either surface, free to flip), however it got there: the moment the item comes on
+          // screen, and again a reaction time later.
+          for (const at of [seenAt, seenAt + V8_READ_TICKS]) {
+            while (pt < at && X[pt + 1]! < span.x0 - reach && probe.length) {
+              pt += 1;
+              probe = stepRoute(probe, pt);
             }
-            return !free.length || got.some((c) => c & bit);
-          };
-          // Judged from a settled runner (on either surface, free to flip), however it got there.
-          const settled = probe.filter((code) => ((code >> 1) & 31) === 0 && ((code >> 11) & 15) === SOLVER_LANDED);
-          if (!settled.every(takes)) continue;
+            const from = pt;
+            const takes = (code: number) => {
+              let free = [code & ~bit];
+              let got = [code & ~bit];
+              let tt = from;
+              while (tt < FLIP_RUN_TICKS && X[tt]! <= span.x1 + reach && free.length) {
+                tt += 1;
+                free = stepRoute(free, tt, undefined, undefined, V8_READ_LANDED);
+                got = got.length ? stepRoute(got, tt, star, sweet, V8_READ_LANDED) : got;
+              }
+              return !free.length || got.some((c) => c & bit);
+            };
+            const settled = probe.filter((code) => ((code >> 1) & 31) === 0 && ((code >> 11) & 15) === SOLVER_LANDED);
+            if (!settled.every(takes)) readable = false;
+            if (!readable) break;
+          }
+          if (!readable) continue;
         }
         let trySet = set;
         let tt = t;
@@ -1769,7 +1778,12 @@ export function flipRunnerBaseY(state: Pick<FlipState, "exp" | "v8" | "x" | "arc
 /** The runner's drawn centre (px) this tick, the bend included (effects and checks). */
 export function flipRunnerPoint(state: FlipState): { x: number; y: number } {
   const lift = state.rev === FLIP_REV ? FLIP_RUNNER_H_PX_V2 / 2 : FLIP_RUNNER_H_PX / 2;
-  return { x: 90, y: flipRunnerBaseY(state, state.side, state.flipT, lift) + state.warpY };
+  return { x: flipRunnerX(state), y: flipRunnerBaseY(state, state.side, state.flipT, lift) + state.warpY };
+}
+
+/** The runner's drawn x (px) in the view: 90, or FLIP_V8_RUNNER_X on flipRev 8 (display only). */
+export function flipRunnerX(state: Pick<FlipState, "exp">): number {
+  return state.exp ? FLIP_V8_RUNNER_X : 90;
 }
 
 export const flipExpandGame: ArcadeGame<FlipState, ArcadeInputEvent | null> = {

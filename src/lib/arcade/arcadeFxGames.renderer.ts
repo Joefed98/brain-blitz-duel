@@ -112,6 +112,7 @@ import {
   flipCrackTick,
   flipStarsTaken,
   flipRunnerPoint,
+  flipRunnerX,
   flipSweetsTaken,
   flipTrailStars,
   FLIP_V8_WORLD_H,
@@ -1137,13 +1138,13 @@ export const FLIP_FX: ArcadeFxSpec<FlipState> = {
     },
     { kind: "final", count: (s) => (s.ended === 1 ? 1 : 0), label: () => "SURVIVED!" },
     // flipRev 2 only (original rounds have no stars or crumbling tiles).
-    { kind: "pop", count: flipStarsTaken, at: () => ({ x: 90, y: FLIP_WORLD_H / 2 }), label: () => "+STAR" },
+    { kind: "pop", count: flipStarsTaken, at: (s) => ({ x: flipRunnerX(s), y: FLIP_WORLD_H / 2 }), label: () => "+STAR" },
     {
       kind: "perfect",
       count: (s) => (flipStarsTaken(s) >= FLIP_STARS ? 1 : 0),
       label: () => "ALL 10 STARS!",
     },
-    { kind: "pop", count: flipEscapes, at: () => ({ x: 90, y: FLIP_WORLD_H / 2 + 30 }), label: () => "JUST IN TIME!" },
+    { kind: "pop", count: flipEscapes, at: (s) => ({ x: flipRunnerX(s), y: FLIP_WORLD_H / 2 + 30 }), label: () => "JUST IN TIME!" },
     // flipRev 8 only (every earlier round keeps these counters at 0).
     { kind: "pop", count: (s) => flipTrailStars(s).stars, at: (s) => flipRunnerPoint(s), label: () => null },
     { kind: "perfect", count: (s) => flipTrailStars(s).full, at: (s) => flipRunnerPoint(s), label: () => "STAR TRAIL!" },

@@ -8,7 +8,7 @@ import {
   flipCrackTick, flipGame, flipSpeed, flipGameFor, flipWarpAt, FLIP_ARC_TICKS, FLIP_CEIL_Y, FLIP_CRUMBLE, FLIP_CRUMBLE_TICKS,
   FLIP_FLOOR_Y, FLIP_GAP, FLIP_RED, FLIP_REV, FLIP_RUNNER_H_PX, FLIP_RUNNER_H_PX_V2, FLIP_RUNNER_HALF_PX,
   FLIP_RUNNER_HALF_PX_V2, FLIP_SPIKE, FLIP_STAR_R, FLIP_WORLD_H, FLIP_WORLD_W,
-  FLIP_V8_CHECKPOINTS, FLIP_V8_PREVIEW, FLIP_V8_TRAIL_STARS, FLIP_V8_WORLD_H, flipWorldHFor, flipRunnerBaseY, flipSegShift, flipSurfaceBase, flipV8InZone, flipWorldH,
+  FLIP_V8_CHECKPOINTS, FLIP_V8_TRAIL_STARS, flipRunnerX, FLIP_V8_WORLD_H, flipWorldHFor, flipRunnerBaseY, flipSegShift, flipSurfaceBase, flipV8InZone, flipWorldH,
   type FlipSeg, type FlipState,
 } from "./flip";
 import { flipSurfaceLine } from "./flip.renderer";
@@ -18,7 +18,8 @@ import { sceneBelow, sceneFill, sceneSides, type ArenaSceneView } from "./arenaS
 import { drawHero, heroPose, type HeroPose } from "./hero.renderer";
 
 const FP = 256;
-const RUNNER_X = 90;
+/** The runner's x in the view: 90, or flipRev 8's FLIP_V8_RUNNER_X (set per frame from the state; display only). */
+let RUNNER_X = 90;
 const SPIKE_HEIGHT = 22;
 const OVERHANG_DEPTH = 34;
 /** Canvas-only material tokens shared by every part of this renderer. */
@@ -497,6 +498,8 @@ const runnerHero = Object.assign(heroPose(), { headR: 3.4, stick: 2.4 });
  * it hangs towards the surface the runner stands on and stays inside the runner box.
  */
 export function drawRunnerHero(ctx: CanvasRenderingContext2D, state: FlipState, y: number, still: boolean, sink: number | null, pose: HeroPose = runnerHero): void {
+  // Called on its own too (the game icons): the runner's x follows the state it is given.
+  RUNNER_X = flipRunnerX(state);
   const dead = state.ended === 2;
   const progress = state.flipT > 0 ? 1 - state.flipT / FLIP_ARC_TICKS : 1;
   const upright = state.side === 0 ? 0 : Math.PI;
@@ -699,6 +702,7 @@ function drawFlipArtWorld(ctx: CanvasRenderingContext2D, state: FlipState, size:
   const still = reducedMotion();
   const pulse = still ? 0.5 : 0.5 + 0.5 * Math.sin(state.tick / 10);
   worldH = flipWorldH(state);
+  RUNNER_X = flipRunnerX(state);
   const FLIP_WORLD_H = worldH;
   const scale = Math.min(size.width / FLIP_WORLD_W, size.height / FLIP_WORLD_H);
   ctx.save();
@@ -866,7 +870,6 @@ function drawFlipArtWorld(ctx: CanvasRenderingContext2D, state: FlipState, size:
   // Rev 8: checkpoint gates and the star trails (light and pickups only; nothing here collides).
   if (state.exp) {
     drawCheckpoints(ctx, state, toScreen, ceilAt, floorAt, pulse, still);
-    drawPreviews(ctx, state, toScreen, ceilAt, floorAt, runnerBox(state).h / 2);
     drawTrails(ctx, state, toScreen, ceilAt, floorAt, still);
     // The save a checkpoint gives, while it is ready: a small gold shield at the tunnel's left edge, mid-height
     // (hazards stand on the surfaces, so the middle of the tunnel is always clear there).
@@ -883,73 +886,6 @@ function drawFlipArtWorld(ctx: CanvasRenderingContext2D, state: FlipState, size:
 }
 
 /* ====================== flipRev 8 features (art only) ====================== */
-
-/**
- * flipRev 8 announces the course FLIP_V8_PREVIEW px before it comes on screen: the next stretch is shown squeezed into
- * a faint strip along the view's right edge (PREVIEW_STRIP px wide, nearest on its left), with each hazard as a short red
- * mark on its surface, each gold star as a small gold diamond and each sweet spot as a pale notch, so a player can plan
- * a reaction time before they scroll in. Display only; nothing in the strip collides.
- */
-const PREVIEW_STRIP = 30;
-function drawPreviews(ctx: CanvasRenderingContext2D, state: FlipState, toScreen: (wx: number) => number,
-  ceilAt: Surface, floorAt: Surface, lift: number): void {
-  const at = (ahead: number) => FLIP_WORLD_W - PREVIEW_STRIP + (ahead * PREVIEW_STRIP) / FLIP_V8_PREVIEW;
-  const fade = (ahead: number) => 0.6 - 0.35 * (ahead / FLIP_V8_PREVIEW);
-  ctx.save();
-  // The strip itself: a faint dark wash and a hairline at its left edge.
-  ctx.globalAlpha = 0.35;
-  ctx.fillStyle = "#07070D";
-  ctx.fillRect(FLIP_WORLD_W - PREVIEW_STRIP, 0, PREVIEW_STRIP, flipWorldH(state));
-  ctx.globalAlpha = 0.25;
-  ctx.fillStyle = "#F5B82E";
-  ctx.fillRect(FLIP_WORLD_W - PREVIEW_STRIP, 0, 1, flipWorldH(state));
-  for (let i = state.cursor; i < state.segs.length; i++) {
-    const seg = state.segs[i]!;
-    const a0 = toScreen(seg.x0 - (seg.amp ?? 0)) - FLIP_WORLD_W;
-    if (a0 > FLIP_V8_PREVIEW) break;
-    const a1 = toScreen(seg.x1 + (seg.amp ?? 0)) - FLIP_WORLD_W;
-    if (a1 <= 0) continue;
-    const x0 = at(Math.max(0, a0));
-    const x1 = Math.max(x0 + 1.5, at(Math.min(FLIP_V8_PREVIEW, a1)));
-    const surf = seg.side === 0 ? floorAt : ceilAt;
-    const inward = seg.side === 0 ? -1 : 1;
-    ctx.globalAlpha = fade(Math.max(0, a0));
-    ctx.fillStyle = seg.kind === FLIP_GAP ? "#FF8A3D" : FLIP_RED;
-    ctx.fillRect(x0, Math.min(surf(x0), surf(x0) + inward * 7), x1 - x0, 7);
-  }
-  (state.stars ?? []).forEach((st, i) => {
-    if ((state.got ?? 0) & (1 << i)) return;
-    const ahead = toScreen(st.x) - FLIP_WORLD_W;
-    if (ahead <= 0 || ahead > FLIP_V8_PREVIEW) return;
-    const x = at(ahead);
-    const y = st.side === 0 ? floorAt(x) - lift : ceilAt(x) + lift;
-    ctx.globalAlpha = fade(ahead) + 0.25;
-    ctx.fillStyle = "#F5B82E";
-    ctx.beginPath();
-    ctx.moveTo(x, y - 4);
-    ctx.lineTo(x + 3, y);
-    ctx.lineTo(x, y + 4);
-    ctx.lineTo(x - 3, y);
-    ctx.closePath();
-    ctx.fill();
-  });
-  (state.v8?.sweets ?? []).forEach((sw, i) => {
-    if ((state.sweetGot ?? 0) & (1 << i)) return;
-    const ahead = toScreen(sw.x0) - FLIP_WORLD_W;
-    if (ahead <= 0 || ahead > FLIP_V8_PREVIEW) return;
-    const x = at(ahead);
-    const surf = sw.side === 0 ? floorAt : ceilAt;
-    const inward = sw.side === 0 ? -1 : 1;
-    ctx.globalAlpha = fade(ahead) + 0.2;
-    ctx.strokeStyle = "rgba(255,242,204,0.95)";
-    ctx.lineWidth = 1.6;
-    ctx.beginPath();
-    ctx.moveTo(x, surf(x) - inward * 0.5);
-    ctx.lineTo(x, surf(x) - inward * 6);
-    ctx.stroke();
-  });
-  ctx.restore();
-}
 
 /** A sweet landing's glint lasts this many ticks. */
 const SWEET_GLINT_TICKS = 24;
