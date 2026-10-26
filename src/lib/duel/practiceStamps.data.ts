@@ -76,7 +76,7 @@ export const PRACTICE_STAMPS = {
   "trail": "depthRev=1 puzzleScoreRev=3 speedPar=1",
   "tubes": "depthRev=1 puzzleScoreRev=3 speedPar=1 tubesRev=2",
   "unblock": "puzzleScoreRev=3 speedPar=1 unblockRev=1",
-  "wavefront": "puzzleScoreRev=3 speedPar=1 wavRev=8",
+  "wavefront": "puzzleScoreRev=3 speedPar=1 wavRev=10",
   "whack": "puzzleScoreRev=3 speedPar=1 whackRev=3",
   "wordfall": "puzzleScoreRev=3 speedPar=1 wordfallRev=3",
   "wordhunt": "puzzleScoreRev=3 speedPar=1 wordHuntRev=3",

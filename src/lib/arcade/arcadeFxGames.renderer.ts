@@ -91,7 +91,7 @@ import {
 } from "./cross";
 import { JUNC_BUILD_EVERY, JUNC_BUILDS, JUNC_LIGHT_AT_V2, JUNC_WORLD_H, JUNC_WORLD_W, type JuncState } from "./junction";
 import { INK_LEVELS, INK_WORLD_H, INK_WORLD_W, type InkState } from "./inkBridge";
-import { wavShipY, wavWorldH, WAV_TALL_H, WAV_WORLD_H, WAV_WORLD_W, type WavState } from "./wavefront";
+import { wavShipY, wavWorldH, WAV_X_H, WAV_TALL_H, WAV_WORLD_H, WAV_WORLD_W, type WavState } from "./wavefront";
 import { ORBIT_WORLD_H, ORBIT_WORLD_W, type OrbitState } from "./orbit";
 import { orbitViewH, ORBIT_CAM_VIEW_H, ORBIT_CAM_VIEW_W, ORBIT_TALL_VIEW_H } from "./orbitCamera";
 import type { OrbitRev3State } from "./orbitRev3";
@@ -673,7 +673,8 @@ export const WAVEFRONT_FX: ArcadeFxSpec<WavState> = {
       kind: "clear",
       count: (s) => s.wavesCleared,
       at: (s) => ({ x: s.shipX, y: wavShipY(s) - 30 }),
-      label: (_s, n) => `WAVE ${n} CLEARED`,
+      // wavRev 10: the gunship after wave 3 counts as a wave; its banner names it, and the waves after it keep their own numbers.
+      label: (s, n) => (s.x10 && s.midKilled ? (n === 4 ? "GUNSHIP DOWN!" : `WAVE ${n - 1} CLEARED`) : `WAVE ${n} CLEARED`),
       sweep: true,
     },
     // wavRev 2: a diver shot down mid-dive, boss hits every 6, the boss destroyed (the final moment).
@@ -690,7 +691,7 @@ export const WAVEFRONT_FX: ArcadeFxSpec<WavState> = {
       kind: "streak",
       count: (s) => s.bossHits ?? 0,
       every: 6,
-      at: (s) => ({ x: (s.boss?.x ?? 131) + 64, y: 150 }),
+      at: (s) => ({ x: (s.boss?.x ?? 131) + (s.boss?.mid ? 48 : 64), y: 150 }),
       label: (_s, n) => `BOSS HIT ×${n}`,
     },
     {
@@ -1442,7 +1443,8 @@ export const ARCADE_FX_SPECS = {
   beat: BEAT_FX_TALL,
   snake: SNAKE_FX_V9,
   burst: BURST_FX_TALL,
-  wavefront: WAVEFRONT_FX_TALL,
+  // The live round's world (wavRev 10, the 200 expansion); older rounds draw through wavefrontFxFor(state).
+  wavefront: fxSpecAt(WAVEFRONT_FX, WAV_X_H),
   // The live round's view (orbitRev 8); rev 1/2 rounds draw through ORBIT_FX and rev 3–7 through ORBIT3_FX.
   orbit: fxSpecAt(ORBIT_FX, ORBIT_TALL_VIEW_H),
   skyline: SKYLINE_FX_SKY,

@@ -174,7 +174,8 @@ section("New rounds carry the Tuning C stamps; Junction is practice only");
     // Expansion E2 (25 Oct 2026) then moved Tempo on to its five-lane song with fever (beatRev 9); expansion-e2-check covers it.
     ["beat", playRevOf("beat", generateBeat().beatRev), BEAT_REV_TUNEF + 4],
     // Taller worlds batch 1 (16 Oct 2026) moved Wavefront on to its taller world (wavRev 6); arcade-tuning-g1-check covers it.
-    ["wavefront", playRevOf("wavefront", generateWavefront().wavRev), WAV_REV_TUNEC + 1],
+    // The 200 expansion (26 Oct 2026) then moved it on to wavRev 10; wavefront-expand-check covers it.
+    ["wavefront", playRevOf("wavefront", generateWavefront().wavRev), WAV_REV_TUNEC + 5],
     ["tilt", playRevOf("tilt", generateTilt().tiltRev), TILT_REV_TUNEC],
     // World expansion E5 (25 Oct 2026) moved Slice on to its larger board (sliceRev 9); expansion-e5-check covers it.
     ["slice", playRevOf("slice", generateSlice().sliceRev), SLICE_REV_EXPAND],
@@ -367,7 +368,8 @@ if (want("wavefront")) {
   const kill = (fight: number) => wavefrontBandParts({ ...base, shapesDown: 999, armourHits: 99, saucers: 9, wavesCleared: WAV_V5_WAVES, bossHits: WAV_BOSS_HP, bossKilled: 1, bossAt: 3000, tick: 3000 + fight } as WavState).bonus;
   ok(kill(WAV_KILL_WINDOW_V5 / 2) === 10 && kill(WAV_KILL_WINDOW_V5) === 0 && kill((WAV_KILL_WINDOW_V5 * 3) / 4) === 5, "the kill's bonus: 10 within half the window, 5 at three quarters, 0 at the end");
   for (let f = 0; f < WAV_KILL_WINDOW_V5; f += 30) if (kill(f + 30) > kill(f)) ok(false, `a slower kill scores more at ${f} ticks`);
-  ok(PUZZLE_INSTRUCTIONS.wavefront.goal.startsWith("Five waves") && PUZZLE_INSTRUCTIONS.wavefront.score.includes("saucers count 1") && PUZZLE_INSTRUCTIONS.wavefront.score.includes("within 20 s"), "the intro and help say five waves and the timed kill");
+  // The 200 expansion (wavRev 10) made saucers skill points ("3 a saucer") instead of base units.
+  ok(PUZZLE_INSTRUCTIONS.wavefront.goal.startsWith("Five waves") && (PUZZLE_INSTRUCTIONS.wavefront.score.includes("saucers count 1") || /\d+ a saucer/.test(PUZZLE_INSTRUCTIONS.wavefront.score)) && PUZZLE_INSTRUCTIONS.wavefront.score.includes("within 20 s"), "the intro and help say five waves and the timed kill");
   // 150 through the server replay: the skill-band player with a perfect profile (no lapses, no aim or timing error).
   let best = 0;
   for (let n = 0; n < 12 && best < 150; n++) {
