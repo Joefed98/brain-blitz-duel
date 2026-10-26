@@ -11,7 +11,6 @@ import { skylineArtGame as skylineGame, skylineRevealGame } from "./skyline.rend
 import { binTossArtGame as binTossGame } from "./binTossArt.renderer";
 import { drawBullseye } from "./bullseye.renderer";
 import { BINTOSS_REV_EXPAND, BINTOSS_V7_WORLD_H, BINTOSS_V7_WORLD_W } from "./binToss";
-import { BULLSEYE_REV_EXPAND, BULLSEYE_V7_WORLD_H } from "./bullseye";
 import { matchupArtGame as matchupGame } from "./matchup.renderer";
 import { matchupWorldHFor } from "./matchup";
 import { breakerArtGameFor } from "./breaker.renderer";
@@ -158,7 +157,6 @@ export const ARCADE_REVEAL_RENDERERS: Record<string, ArcadeRevealRenderer> = {
     (p) => (p.type === "bintoss" && p.binRev === BINTOSS_REV_EXPAND ? Math.round((390 * BINTOSS_V7_WORLD_H) / BINTOSS_V7_WORLD_W) : 560)),
   bullseye: simple(GOLD, 390, 560, { draw: drawBullseye }, (p, a) =>
     replayBullseyeRun(seedOf(p), a, p.type === "bullseye" ? p.winds : [], p.type === "bullseye" ? p.bullRev : undefined),
-    undefined, undefined, (p) => (p.type === "bullseye" && p.bullRev === BULLSEYE_REV_EXPAND ? BULLSEYE_V7_WORLD_H : 560),
   ),
   matchup: simple(GOLD, 390, 560, matchupGame, (p, a) => replayMatchupRun(seedOf(p), a, p.type === "matchup" ? p.matchupRev : undefined), undefined, undefined, (p) => matchupWorldHFor(p.type === "matchup" ? p.matchupRev : undefined)),
   breaker: {

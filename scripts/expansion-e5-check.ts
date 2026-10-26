@@ -1,18 +1,18 @@
 /**
- * expansion-e5-check (25 Oct 2026, docs/expansions/e5.md): the world expansions of Swish (binRev 7),
- * Flightpath (bullRev 7) and Slice (sliceRev 9), each raised to 200 (docs/scoring-200.md).
+ * expansion-e5-check (25 Oct 2026, docs/expansions/e5.md): the world expansions of Swish (binRev 7) and
+ * Slice (sliceRev 9), each raised to 200 (docs/scoring-200.md). Flightpath was split out of E5 (26 Oct 2026,
+ * parked on claude/flightpath-e5-parked): it stays exactly as on main, which section 2 also proves.
  *
  *  1. Older stamps are untouched: runs recorded on unmodified main on the stamps rooms dealt before
  *     (binRev 6 and 3, bullRev 6 and 4, sliceRev 8 and 6; scripts/fixtures/expansion-e5-legacy.json.gz)
- *     replay unflagged to their stored score and to a byte-identical final state.
- *  2. Rooms deal the new stamps; ROUND_MAX is 200 for the three games and the "?" help and intro state it.
+ *     replay unflagged to their stored score and to a byte-identical final state (Flightpath's too).
+ *  2. Rooms deal the new stamps; ROUND_MAX is 200 for both games and the "?" help and intro state it;
+ *     Flightpath keeps main's bullRev 6 at 150.
  *  3. Stored runs on the new stamps (scripts/fixtures/expansion-e5-runs.json.gz, the skill-band bots at four
  *     levels, plus each game's best 200 found on the recorded seeds): each replays unflagged to its stored
  *     score; every score is 0–200, scored on the new rules (band 3 and the game's marker from the first tick);
  *     each game has a stored 200.
- *  4. The rules: Flightpath's boards (ten, the first three near, every one on the range and in reach, the
- *     drift held inside it), the streak (2, 4, 6 … from the third bull in a row, 50 at most, any other dart
- *     ends it); Swish's far buckets (throws 1–6 only, inside the stall and clear of the main bucket, the hoops
+ *  4. The rules: Swish's far buckets (throws 1–6 only, inside the stall and clear of the main bucket, the hoops
  *     over them on a throw a drag can make, a far basket counted and its points capped at 50); Slice's board
  *     (430 × 805, more throws), sizes and values (bread 26 px worth 1 … golden fruit 10 px worth 5), six golden
  *     fruits, five tickets each fillable from the schedule, the bonus capped at 50, and the dodge rules.
@@ -35,28 +35,7 @@ import { ROUND_MAX, roundMaxFor } from "../src/lib/duel/roundMax";
 import { INTRO_SCORE } from "../src/lib/duel/introScore";
 import { PUZZLE_INSTRUCTIONS } from "../src/lib/duel/instructions";
 import { fillMax } from "../src/lib/duel/roundMax";
-import {
-  BULLSEYE_ARROWS,
-  BULLSEYE_BOW_Y,
-  BULLSEYE_CX,
-  BULLSEYE_EXPAND,
-  BULLSEYE_FLIGHT_DEN,
-  BULLSEYE_OUTER_R,
-  BULLSEYE_REV_EXPAND,
-  BULLSEYE_REF_V,
-  BULLSEYE_V7_FLIGHT_NUM,
-  BULLSEYE_V7_LIFT,
-  BULLSEYE_V7_STREAK_CAP,
-  BULLSEYE_WORLD_W,
-  bullseyeBoard,
-  bullseyeDxOf,
-  bullseyeGameFor,
-  bullseyeInitFor,
-  bullseyeStreakGain,
-  bullseyeStreakPoints,
-  bullseyeWinds,
-  type BullseyeState,
-} from "../src/lib/arcade/bullseye";
+import { BULLSEYE_REV_STRICT } from "../src/lib/arcade/bullseye";
 import {
   BINTOSS_BALL_R,
   BINTOSS_EXPAND,
@@ -94,7 +73,6 @@ import {
   sliceWorldWFor,
   type SliceState,
 } from "../src/lib/arcade/slice";
-import { DRAG_MAX_SCALE_256, DRAG_MIN_SCALE_256 } from "../src/lib/arcade/engine";
 import type { PuzzleType } from "../src/lib/duel/types";
 
 const failures: string[] = [];
@@ -108,8 +86,10 @@ const digest = (state: unknown) => createHash("sha256").update(JSON.stringify(st
 const RECORD = process.argv.includes("--record");
 const LEGACY = "scripts/fixtures/expansion-e5-legacy.json.gz";
 const RUNS = "scripts/fixtures/expansion-e5-runs.json.gz";
-const NEW_REV: Record<"bintoss" | "bullseye" | "slice", number> = { bintoss: BINTOSS_REV_EXPAND, bullseye: BULLSEYE_REV_EXPAND, slice: SLICE_REV_EXPAND };
+const NEW_REV: Record<"bintoss" | "slice", number> = { bintoss: BINTOSS_REV_EXPAND, slice: SLICE_REV_EXPAND };
 const TYPES = Object.keys(NEW_REV) as (keyof typeof NEW_REV)[];
+/** The legacy fixture also holds Flightpath's older stamps, which still replay on main's (unchanged) Flightpath. */
+const LEGACY_TYPES = [...TYPES, "bullseye"];
 const spec = (type: string) => GAMES.find((g) => g.type === type)!;
 
 interface StoredRun {
@@ -134,7 +114,7 @@ section("Older stamps replay exactly as recorded on main");
     ok(replay.score === run.score, `${tag}: replays to its stored ${run.score} (got ${replay.score})`);
     ok(digest(replay.state) === run.digest, `${tag}: final state identical to main's`);
   }
-  for (const type of TYPES) ok(new Set(runs.filter((r) => r.type === type).map((r) => r.rev)).size === 2, `${type}: two older stamps covered`);
+  for (const type of LEGACY_TYPES) ok(new Set(runs.filter((r) => r.type === type).map((r) => r.rev)).size === 2, `${type}: two older stamps covered`);
 }
 
 /* ============================== 2. Stamps, maximum and texts ============================== */
@@ -152,6 +132,12 @@ for (const type of TYPES) {
   const s = spec(type);
   const init = s.gameFor(NEW_REV[type], s.seedFor(0)).init(s.seedFor(0)) as { band?: number };
   ok(init.band === BAND_STRICT_MARK, `${type}: band ${BAND_STRICT_MARK} from the first tick`);
+}
+{
+  // Flightpath was split out of E5: rooms deal main's bullRev 6 at 150, with no expansion revision.
+  const dealt = (generatePuzzle("bullseye") as unknown as Record<string, unknown>).bullRev;
+  ok(dealt === BULLSEYE_REV_STRICT && LIVE_BANDS.bullseye.rev === BULLSEYE_REV_STRICT && !("strictRev" in LIVE_BANDS.bullseye), `bullseye: rooms deal main's bullRev ${BULLSEYE_REV_STRICT} (got ${String(dealt)})`);
+  ok(ROUND_MAX.bullseye === 150, "bullseye: ROUND_MAX stays 150");
 }
 
 /* ============================== 3. Stored runs on the new stamps ============================== */
@@ -210,64 +196,6 @@ if (RECORD) {
 }
 
 /* ============================== 4. The rules ============================== */
-section("Flightpath bullRev 7: boards near and far, all in reach; the bull streak");
-{
-  const maxReach = Math.round(((Math.round((BULLSEYE_REF_V * DRAG_MAX_SCALE_256) / 256)) * BULLSEYE_V7_FLIGHT_NUM) / BULLSEYE_FLIGHT_DEN);
-  const minReach = Math.round(((Math.round((BULLSEYE_REF_V * DRAG_MIN_SCALE_256) / 256)) * BULLSEYE_V7_FLIGHT_NUM) / BULLSEYE_FLIGHT_DEN);
-  for (let n = 0; n < 300; n++) {
-    const seed = 7919 * n + 13;
-    const s = bullseyeInitFor(seed, bullseyeWinds(seed), BULLSEYE_REV_EXPAND);
-    ok(s.expand === BULLSEYE_EXPAND && s.targets?.length === BULLSEYE_ARROWS, `seed ${seed}: ten boards`);
-    for (let arrow = 0; arrow < BULLSEYE_ARROWS; arrow++) {
-      const board = bullseyeBoard(s, arrow);
-      const outer = (BULLSEYE_OUTER_R * board.scalePct) / 100;
-      if (arrow < 3) ok(s.targets![arrow]!.dist <= 2, `seed ${seed} dart ${arrow + 1}: one of the three nearest`);
-      ok(board.cy - outer >= -BULLSEYE_V7_LIFT + 80, `seed ${seed} dart ${arrow + 1}: the board's top below the HUD`);
-      // Straight up, the gold 10 (the board's centre) is in reach of a drag.
-      ok(BULLSEYE_BOW_Y - board.cy <= maxReach - 10 && BULLSEYE_BOW_Y - board.cy >= minReach, `seed ${seed} dart ${arrow + 1}: the centre in reach`);
-      for (let t = 0; t < 400; t += 7) {
-        const dx = bullseyeDxOf(s, arrow, t);
-        ok(BULLSEYE_CX + dx - outer >= 0 && BULLSEYE_CX + dx + outer <= BULLSEYE_WORLD_W, `seed ${seed} dart ${arrow + 1}: the drifting board stays on the range`);
-      }
-    }
-  }
-  ok([1, 2, 3, 4, 5, 6].map(bullseyeStreakGain).join(",") === "0,0,2,4,6,8", "streak points: none for the first two bulls, then 2, 4, 6 …");
-  ok(bullseyeStreakPoints({ streakPts: 120 }) === BULLSEYE_V7_STREAK_CAP && BULLSEYE_V7_STREAK_CAP === 50, "the streak points count up to 50");
-  // A scripted run: bulls in a row, then a miss, then bulls again.
-  const game = bullseyeGameFor(BULLSEYE_REV_EXPAND);
-  const seed = 4242;
-  let s = bullseyeInitFor(seed, bullseyeWinds(seed), BULLSEYE_REV_EXPAND) as BullseyeState;
-  const pattern = [1, 1, 1, 1, 0, 1, 1, 1, 1, 1];
-  for (let arrow = 0; arrow < BULLSEYE_ARROWS; arrow++) {
-    while (s.flightTick > 0) s = game.step(s, null);
-    // Aim straight at the drifting board's centre (or far off it), allowing for the wind and the sway.
-    let shot: { a: number; b: number } | null = null;
-    for (let vy = -1; vy >= -3840 && !shot; vy -= 1) {
-      const t = s.tick + 1;
-      const trial = game.step(s, { t, k: 2, a: 0, b: vy, c: 0, d: 0 });
-      const hit = trial.hits.at(-1)!;
-      const want = pattern[arrow] === 1;
-      if (want ? hit.ring >= 0 && hit.value - (hit.bal ?? 0) >= 10 : hit.ring < 0) shot = { a: 0, b: vy };
-      if (!want && vy < -3000) break;
-    }
-    if (!shot) {
-      // No straight-up bull this tick: try sideways too, from a fixed search.
-      for (let vx = -400; vx <= 400 && !shot; vx += 4)
-        for (let vy = -800; vy >= -3600 && !shot; vy -= 4) {
-          const trial = game.step(s, { t: s.tick + 1, k: 2, a: vx, b: vy, c: 0, d: 0 });
-          const hit = trial.hits.at(-1)!;
-          if (pattern[arrow] === 1 ? hit.ring >= 0 && hit.value - (hit.bal ?? 0) >= 10 : hit.ring < 0) shot = { a: vx, b: vy };
-        }
-    }
-    ok(shot, `scripted dart ${arrow + 1}: a ${pattern[arrow] ? "bull" : "miss"} exists`);
-    s = game.step(s, shot ? { t: s.tick + 1, k: 2, a: shot.a, b: shot.b, c: 0, d: 0 } : null);
-  }
-  while (!game.isOver(s)) s = game.step(s, null);
-  // 4 in a row (0 + 0 + 2 + 4) then a miss, then 5 in a row (0 + 0 + 2 + 4 + 6).
-  ok(s.streakPts === 18 && s.streak === 5, `scripted streaks earn 6 + 12 = 18 (got ${s.streakPts}, streak ${s.streak})`);
-  ok(s.hits[3]!.sk === 4 && s.hits[3]!.skp === 4 && s.hits[4]!.sk === undefined, "each streak bull carries its ×n and points; the miss none");
-}
-
 section("Swish binRev 7: far buckets, hoops over them, far points");
 {
   const game = binTossGameFor(BINTOSS_REV_EXPAND);
@@ -345,7 +273,7 @@ section("Slice sliceRev 9: the larger board, sizes and values, golden fruit, tic
 
 console.log(
   failures.length === 0
-    ? `PASS expansion-e5-check: ${passes} checks — older stamps replay as on main; rooms deal binRev 7, bullRev 7 and sliceRev 9 at 200; stored new-stamp runs and a 200 each; the new rules`
+    ? `PASS expansion-e5-check: ${passes} checks — older stamps replay as on main; rooms deal binRev 7 and sliceRev 9 at 200 (Flightpath as on main); stored new-stamp runs and a 200 each; the new rules`
     : `FAIL expansion-e5-check: ${failures.length} of ${passes + failures.length} checks failed\n${failures.map((f) => `  ✗ ${f}`).join("\n")}`,
 );
 if (failures.length > 0) process.exit(1);

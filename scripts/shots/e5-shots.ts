@@ -1,6 +1,6 @@
 /**
- * Review screenshots for expansion E5 (docs/expansions/e5.md): Swish binRev 7, Flightpath bullRev 7 and
- * Slice sliceRev 9 mid-play at 414×896 (DPR 2), each showing its new features. Not a check.
+ * Review screenshots for expansion E5 (docs/expansions/e5.md): Swish binRev 7 and Slice sliceRev 9
+ * mid-play at 414×896 (DPR 2), each showing its new features. Not a check.
  *
  * Each frame is the game's own renderer (the same art the phone draws) on a state reached by the skill-band
  * bot playing the new stamp, at a moment the features are on screen; the world sits where the play screen
@@ -29,11 +29,9 @@ GlobalFonts.registerFromPath("public/fonts/jetbrains-mono-600-700-latin.woff2", 
 
 const { GAMES } = await import("../arcade-skill-bands/games");
 const { Human } = await import("../arcade-skill-bands/human");
-const { drawBullseye, bullseyeArenaSceneV7 } = await import("../../src/lib/arcade/bullseye.renderer");
 const { binTossArtGame, binTossArenaSceneV7 } = await import("../../src/lib/arcade/binTossArt.renderer");
 const { drawSliceArt } = await import("../../src/lib/arcade/slice.renderer");
 const { sliceFill } = await import("../../src/lib/arcade/arenaFills.renderer");
-const { BULLSEYE_REV_EXPAND } = await import("../../src/lib/arcade/bullseye");
 const { BINTOSS_REV_EXPAND, BINTOSS_FLY } = await import("../../src/lib/arcade/binToss");
 const { SLICE_REV_EXPAND, sliceTicketAt } = await import("../../src/lib/arcade/slice");
 type Any = any; // eslint-disable-line @typescript-eslint/no-explicit-any
@@ -103,15 +101,6 @@ function frame(name: string, sub: string, world: { w: number; h: number }, boxH:
   mkdirSync(OUT, { recursive: true });
   writeFileSync(`${OUT}/${file}`, canvas.toBuffer("image/png"));
   console.log(`  ${OUT}/${file}`);
-}
-
-/* Flightpath: a streak of three or more bulls just landed, on a far (high, small) board. */
-{
-  const hit = await playTo("bullseye", BULLSEYE_REV_EXPAND, (s, prev) => s.flightTick === 0 && (s.streak ?? 0) >= 3 && prev.length > 30 && prev[prev.length - 12]?.flightTick > 0 && (s.targets?.[Math.min(9, s.arrowIndex)]?.dist ?? 0) >= 2);
-  if (hit) {
-    const frames = hit.frames;
-    frame("Flightpath", "Arcade · Practice · bullRev 7", { w: 390, h: 728 }, 772, (ctx, size) => drawBullseye(ctx, frames.shift() ?? hit.state, size), bullseyeArenaSceneV7, [...frames], "flightpath-414x896-streak.png");
-  } else console.log("  flightpath: no moment found");
 }
 
 /* Swish: the ball on its way to the far bucket, a far basket already made, a hoop over it. */

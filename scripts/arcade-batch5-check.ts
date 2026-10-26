@@ -53,7 +53,6 @@ import {
   BULLSEYE_REV,
   BULLSEYE_REV_BAND,
   BULLSEYE_REV_TUNED,
-  BULLSEYE_REV_EXPAND,
 } from "../src/lib/arcade/bullseye";
 import { encodeBullseyeRun, replayBullseyeRun } from "../src/lib/duel/bullseye";
 import {
@@ -179,7 +178,7 @@ if (want("bullseye")) {
   section("Flightpath bullRev 2 (inner bull, drifting balloons)");
   const game = bullseyeGameFor(BULLSEYE_REV);
   const generated = generateBullseye();
-  ok([BULLSEYE_REV_TUNED, BULLSEYE_REV_EXPAND].includes(playRevOf("bullseye", generated.bullRev) ?? -1) && BULLSEYE_REV_BAND === 3, "new rounds are stamped bullRev 4 (Tuning B value balloons; bullRev 3 = rev 2 play on the score bands) or bullRev 7 (the world expansion, expansion-e5-check)");
+  ok(playRevOf("bullseye", generated.bullRev) === BULLSEYE_REV_TUNED && BULLSEYE_REV_BAND === 3, "new rounds are stamped bullRev 4 (Tuning B value balloons; bullRev 3 = rev 2 play on the score bands)");
   ok(bullseyeGameFor(undefined) === bullseyeGame && bullseyeInit(5).balloons === undefined, "unstamped rounds keep the original game");
   for (const seed of SEEDS(200, 7919)) {
     const a = bullseyeInitRev2(seed, bullseyeWinds(seed));

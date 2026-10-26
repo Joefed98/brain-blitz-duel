@@ -78,7 +78,7 @@ import {
 } from "@/lib/arcade/pinball";
 import { SLICE_V9_BAND_CURVE, SLICE_V9_BONUS_CAP, SLICE_V9_DODGE_POINTS, SLICE_V9_GOLD_POINTS, SLICE_V9_TICKET_POINTS, SLICE_V9_VALUE } from "@/lib/arcade/slice";
 import { BINTOSS_FAR_CAP, BINTOSS_FAR_POINTS, BINTOSS_FAR_THROWS, BINTOSS_V7_BAND_CURVE } from "@/lib/arcade/binToss";
-import { BULLSEYE_INNER_BULL_POINTS, BULLSEYE_RING_VALUES, BULLSEYE_V7_BAND_CURVE, BULLSEYE_V7_STREAK_CAP, BULLSEYE_V7_STREAK_STEP } from "@/lib/arcade/bullseye";
+import { BULLSEYE_INNER_BULL_POINTS, BULLSEYE_RING_VALUES } from "@/lib/arcade/bullseye";
 import { liveBandHelp } from "@/lib/arcade/liveBands";
 import { fillMax, liveRecord, roundMaxFor } from "./roundMax";
 import { chainDepthHelp } from "./depth/chain";
@@ -581,12 +581,11 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
       score: `Each bucket counts 10 and each hoop bonus 3. More buckets and hoops, higher score – up to ${BINTOSS_V7_BAND_CURVE.points.at(-1)}. A good run (${BAND_GOOD_POINTS} points) counts ${bandUnitsFor(BINTOSS_V7_BAND_CURVE, BAND_GOOD_POINTS)} – about ${Math.round(bandUnitsFor(BINTOSS_V7_BAND_CURVE, BAND_GOOD_POINTS) / 10)} buckets. All ten in adds 10, and each far bucket ${BINTOSS_FAR_POINTS} (up to ${BINTOSS_FAR_CAP}). Up to {max}.`,
     },
     bullseye: {
-      goal: "Hit the gold 10, near and far.",
+      goal: "Hit the centre – ten darts.",
       how: [
         { action: "Drag to aim,", detail: "let go to throw." },
         { action: "Wind 2?", detail: "Aim two rings into the wind." },
-        { action: "Bulls in a row:", detail: `from the 3rd, +${BULLSEYE_V7_STREAK_STEP}, +${2 * BULLSEYE_V7_STREAK_STEP}, +${3 * BULLSEYE_V7_STREAK_STEP}…` },
-        { action: "Inner bull 12.", detail: "Balloons add +1, +2 or +3.", helpOnly: true },
+        { action: "Inner bull 12.", detail: "Balloons add +1, +2 or +3." },
         {
           action: "Touch and drag to aim:",
           detail: "the dotted path shows where the dart will land.",
@@ -602,12 +601,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
           detail: "Wind 2 to the right? Aim two rings to the left.",
           helpOnly: true,
         },
-        { action: "Every dart's board stands at its own distance:", detail: "near boards low and big, far ones high and small.", helpOnly: true },
-        {
-          action: "Bull streak:",
-          detail: `a dart in the gold 10 (wherever it sits) right after another is a streak ×2, then ×3… From ×3 each bull adds ${BULLSEYE_V7_STREAK_STEP} more than the last (+${BULLSEYE_V7_STREAK_STEP}, +${2 * BULLSEYE_V7_STREAK_STEP}, +${3 * BULLSEYE_V7_STREAK_STEP}…), up to ${BULLSEYE_V7_STREAK_CAP} in all. Any other dart ends the streak.`,
-          helpOnly: true,
-        },
+        { action: "The target", detail: "gets further away each throw.", helpOnly: true },
         { action: "From the fourth dart the target moves – lead it.", detail: "It is scored where it is when the dart lands.", helpOnly: true },
         { action: "From the seventh dart the ring values swap places.", detail: "Read the numbers – each value keeps its colour.", helpOnly: true },
         {
@@ -621,8 +615,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
           helpOnly: true,
         },
       ],
-      // bullRev 7 (docs/expansions/e5.md): the dart total on its curve, plus the bull-streak points.
-      score: `Your dart total: rings ${BULLSEYE_RING_VALUES.join(" / ")} from the centre out (the inner bull ${BULLSEYE_INNER_BULL_POINTS}), plus +1, +2 or +3 for each balloon popped on the way in. A higher dart total, higher score – 150 at ${bandTop(BULLSEYE_V7_BAND_CURVE)}. A good run (${BAND_GOOD_POINTS} points) totals ${bandUnitsFor(BULLSEYE_V7_BAND_CURVE, BAND_GOOD_POINTS)}. Bull streaks add up to ${BULLSEYE_V7_STREAK_CAP} more. Up to {max}.`,
+      score: liveBandHelp("bullseye", `Your dart total: rings ${BULLSEYE_RING_VALUES.join(" / ")} from the centre out (the inner bull ${BULLSEYE_INNER_BULL_POINTS}), plus +1, +2 or +3 for each balloon popped on the way in.`, { more: "A higher dart total", good: (u) => `totals ${u}` }),
     },
     matchup: {
       goal: "Match gems to meet each goal.",

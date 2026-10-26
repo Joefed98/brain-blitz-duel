@@ -47,7 +47,6 @@ import {
   BULLSEYE_OUTER_R,
   BULLSEYE_REV_BAND,
   BULLSEYE_REV_TUNED,
-  BULLSEYE_REV_EXPAND,
   BULLSEYE_V4_BALLOON_SPEED,
   type BullseyeBalloonV4,
   type BullseyeState,
@@ -90,8 +89,7 @@ const SEEDS = (count: number, step = 104_729) => Array.from({ length: count }, (
 /* ============================ 1. Flightpath ============================ */
 section("Flightpath bullRev 4 (value balloons across the board)");
 {
-  // bullRev 7 (the world expansion, docs/expansions/e5.md, expansion-e5-check) keeps this play on its taller range.
-  ok([BULLSEYE_REV_TUNED, BULLSEYE_REV_EXPAND].includes(playRevOf("bullseye", generateBullseye().bullRev) ?? -1), "new rounds are stamped bullRev 4 (or bullRev 7, the expansion)");
+  ok(playRevOf("bullseye", generateBullseye().bullRev) === BULLSEYE_REV_TUNED, "new rounds are stamped bullRev 4");
   const game = bullseyeGameFor(BULLSEYE_REV_TUNED);
   for (const seed of SEEDS(300, 7919)) {
     const winds = bullseyeWinds(seed);

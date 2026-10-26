@@ -105,7 +105,7 @@ function introScoreTemplates(): Record<PuzzleType, string> {
     hover: "Points for each barrier and gold star. Last the whole minute for 10 more.",
     skyline: "Points for each block and perfect drop, more for perfects in a row. Up to {max}.",
     bintoss: `Buckets, hoops, All ${BINTOSS_THROWS} in for 10 more: up to 150. Far buckets +${BINTOSS_FAR_POINTS} each: up to {max}.`,
-    bullseye: `Rings ${BULLSEYE_RING_VALUES.join(" / ")}, inner bull ${BULLSEYE_INNER_BULL_POINTS}: Up to 150; bulls in a row add 50: {max}.`,
+    bullseye: `Rings ${BULLSEYE_RING_VALUES.join(" / ")}, inner bull ${BULLSEYE_INNER_BULL_POINTS}; balloons +1 to +3. Up to {max}.`,
     matchup: "Longer lines score more; goals, ice, treasure and cascades add more. Up to {max}.",
     snake: "Points for each star you eat. Up to {max}.",
     cross: "Points for each lane crossed, more for each full crossing. Up to {max}.",

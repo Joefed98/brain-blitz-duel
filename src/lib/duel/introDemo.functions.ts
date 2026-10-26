@@ -11,7 +11,6 @@ import { BURST_REV_TALL } from "@/lib/arcade/burst";
 import { BEAT_REV_TALL } from "@/lib/arcade/beat";
 import { SLICE_REV_EXPAND, SLICE_REV_TALL } from "@/lib/arcade/slice";
 import { BINTOSS_REV_EXPAND } from "@/lib/arcade/binToss";
-import { BULLSEYE_REV_EXPAND } from "@/lib/arcade/bullseye";
 import { BUB_REV_REEF } from "@/lib/arcade/bubble";
 import { MATCHUP_REV_GOALS } from "@/lib/arcade/matchup";
 import { TEN_DROP_DEPTH_REV } from "@/lib/arcade/tenDrop";
@@ -135,11 +134,10 @@ export const getIntroDemoFn = createServerFn({ method: "GET" })
     // Lightbender and Turntable deal new stamps (par, gems, the gold crate, spare mirrors, the 7×7 board). A demo recorded
     // on an older puzzle would show the old rules, so each intro shows its still until a demo is recorded on the new stamp.
     if (isD4Type(data.type) && demo && !isDepth4(demo.puzzle)) return null;
-    // World expansion E5 (25 Oct 2026, docs/expansions/e5.md): Swish binRev 7, Flightpath bullRev 7 and Slice sliceRev 9
+    // World expansion E5 (25 Oct 2026, docs/expansions/e5.md): Swish binRev 7 and Slice sliceRev 9
     // play in larger worlds with new features; an older demo would show the old world (and its touches would land
     // elsewhere), so each shows its still until a demo is recorded on its new revision.
     if (data.type === "bintoss" && demo?.puzzle.type === "bintoss" && demo.puzzle.binRev !== BINTOSS_REV_EXPAND) return null;
-    if (data.type === "bullseye" && demo?.puzzle.type === "bullseye" && demo.puzzle.bullRev !== BULLSEYE_REV_EXPAND) return null;
     if (data.type === "slice" && demo?.puzzle.type === "slice" && demo.puzzle.sliceRev !== SLICE_REV_EXPAND) return null;
 
     return demo;
