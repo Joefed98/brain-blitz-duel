@@ -78,17 +78,39 @@ new MutationObserver(() => {
 
 /**
  * MeasureOptions.stallProbe: while a run plays, the CPU time every process outside the browser used
- * (the dev server, this script, anything else on the machine, and time the VM's host stole), read from
- * Linux's /proc every 100 ms. None of the page's work is in it, so a busy spell there means the
- * machine itself was short of CPU (a CI runner), not that the page's frames got heavier. Where /proc
- * is missing it records nothing. Samples are [epoch ms, CPU-seconds used by others so far].
+ * (the dev server, this script, anything else on the machine, and time the VM's host stole) on the
+ * CPUs this script may run on, read from Linux's /proc every 100 ms. None of the page's work is in
+ * it, so a busy spell there means the machine itself was short of CPU (a CI runner), not that the
+ * page's frames got heavier. Where /proc is missing it records nothing. Samples are [epoch ms,
+ * CPU-seconds used by others so far].
  */
 const CLK_TCK = 100;
+/** The CPUs this process may run on (its affinity, which the browser inherits), or null for all. */
+function allowedCpus(): Set<number> | null {
+  try {
+    const list = /Cpus_allowed_list:\s*(\S+)/.exec(readFileSync("/proc/self/status", "utf8"))?.[1];
+    if (!list) return null;
+    const out = new Set<number>();
+    for (const part of list.split(",")) {
+      const [a, b] = part.split("-").map(Number) as [number, number | undefined];
+      for (let c = a; c <= (b ?? a); c++) out.add(c);
+    }
+    return out;
+  } catch {
+    return null;
+  }
+}
+const CPUS = allowedCpus();
 function procCpu(): { others: number } | null {
   try {
-    const cpu = readFileSync("/proc/stat", "utf8").split("\n")[0]!.trim().split(/\s+/).slice(1).map(Number);
-    // user nice system idle iowait irq softirq steal: busy is everything but idle and iowait (steal included).
-    const busy = cpu.reduce((a, b, i) => (i === 3 || i === 4 || i > 7 ? a : a + b), 0);
+    // Busy time on the CPUs this script and the browser may use: user nice system irq softirq steal
+    // (everything but idle and iowait; steal is time the VM's host took).
+    let busy = 0;
+    for (const line of readFileSync("/proc/stat", "utf8").split("\n")) {
+      const m = /^cpu(\d+)\s+(.*)$/.exec(line);
+      if (!m || (CPUS && !CPUS.has(Number(m[1])))) continue;
+      busy += m[2]!.split(/\s+/).map(Number).reduce((a, b, i) => (i === 3 || i === 4 || i > 7 ? a : a + b), 0);
+    }
     let browser = 0;
     for (const pid of readdirSync("/proc")) {
       if (!/^\d+$/.test(pid)) continue;
