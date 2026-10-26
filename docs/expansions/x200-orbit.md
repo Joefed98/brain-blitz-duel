@@ -178,3 +178,32 @@ the raw points and the pay scale (`skillPayLine`). **The intro demo needs re-rec
 - `arcade-self-replay-check` gains an appended entry (`orbit/xp`); other branches may append too, so keep each.
 - Measure tool: `bun scripts/arcade-skill-bands.ts orbit --rev=x --levels=weak,average,good,great,near,elite
   --seeds=60 --jobs=1` and `--from=60 --seeds=200`.
+
+## Addendum (26 Oct 2026, Joe's notes from the test-bot session): provisional
+
+**What changed.**
+- *The near-perfect and elite plan* (`bots/orbit.ts`, orbitRev 12 only): the old plan took the first usable landing
+  window in a lap. On figure-eights and belted orbits the windows fly different lines, and the features lie on one of
+  them. A keen player now looks a little further (up to the plan's own scan) and takes the usable window whose safe
+  ticks take the most feature points, keeping the first window on a tie. On 30 tuning seeds, raw feature points went
+  from a median of 34 / 35 (near-perfect / elite) to 42 / 45 out of 50 (p90 50 / 50). Full stardust trails went from 3
+  to 4 of 5, slingshots from 3 to 4 of 4. Other levels are unchanged. The change is one separate block, so it can be
+  re-applied onto Session A's bots.
+- *The ceiling, by play*: orbit-expand-check now deals the puzzle for each of the 260 seed indices as generateOrbit
+  does (room seed, feature-bank course, its planets, holes and extras), plays it with its course's witness player and
+  grades the run through the server replay on that puzzle. Lowest: **200** on the tuning seeds (0–59) and **200** on
+  the fresh seeds (60–259).
+- *Zeros*: with today's bots, partial credit already removes them: 0 of 360 tuning runs and 0 of 1,200 fresh runs,
+  against 10 and 52 on orbitRev 10. Session A's average-level zeros (18 / 200) were on the parked scoring. A release
+  that flies away from the next planet still scores 0, so Session A's harder bots need re-measuring.
+
+**Provisional tables (today's bots plus the new plan; scoring unchanged).** orbitRev 12 median / p90 [orbitRev 10 median]:
+
+| Seeds | Weak | Average | Good | Great | Near-perfect | Elite |
+|---|---|---|---|---|---|---|
+| Tuning (0–59) | 32 / 81 [40] | 79.5 / 106 [58] | 99.5 / 133 [101] | 139 / 177 [120] | 177 / 192 [135] | 182.5 / 196 [143] |
+| Fresh (60–259) | 34.5 / 88 [37.5] | 69 / 103 [73] | 96 / 131 [100] | 136 / 173 [117] | 178 / 188 [139] | 183 / 197 [144] |
+
+No level scores 0. With the better plan, near-perfect is now above the bar: median 177–178, p90 188–192, about 5
+under elite's median. The skill pay and the elite-pace cap will be refitted on Session A's bots and flawless level;
+final tuning waits for them, as agreed. Good is −1 % / −4 % against orbitRev 10 measured with the old bots.
