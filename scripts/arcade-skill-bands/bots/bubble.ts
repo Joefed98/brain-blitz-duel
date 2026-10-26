@@ -16,6 +16,7 @@
  */
 import { dragLaunch, type ArcadeInputEvent } from "../../../src/lib/arcade/engine";
 import { bubDangerLine, bubIsSpecial, bubRemaining, bubRowsOf, bubCellY, bubV8FeaturePoints, BUB_COLS, BUB_INPUT_SHOT, BUB_R, BUB_SPEED, bubSpeed, type BubState } from "../../../src/lib/arcade/bubble";
+import type { SkillLevel } from "../human";
 import { driveEvents, Plan, type SkillBot } from "../bot";
 
 /** Typical drag length when aiming, phone px (the world is 390 px wide, so 1 world px = 1 phone px). */
@@ -23,7 +24,7 @@ const DRAG_PX = 150;
 /** Bank shots are harder to read off the trail: extra pointing error per bounce (fraction). */
 const BANK_ERR = 0.6;
 /** Chance a bank-shot target is noticed at all, per level. */
-const BANK_SEE: Record<string, number> = { average: 0.45, good: 0.65, great: 0.82, near: 0.93 };
+const BANK_SEE: Record<SkillLevel, number> = { weak: 0.25, average: 0.45, good: 0.65, great: 0.82, near: 0.93, elite: 0.985, perfect: 1 };
 /** Base (average-player) think time per shot, ms; a special in the shooter adds more. */
 const THINK_MS = 1100;
 const SPECIAL_THINK_MS = 500;
@@ -51,7 +52,9 @@ const inGrid = (r: number, c: number) => r >= 0 && r < ROWS && c >= 0 && c < row
  * bubbleRev 8: how much a player weighs the skill features (chests, bank shots, combos) against plain
  * clearing; weaker players mostly just clear.
  */
-const FEATURE_EYE: Record<string, number> = { average: 0.25, good: 0.5, great: 0.8, near: 1 };
+/** The feature points that earn the whole feature bonus (BUB_V8_FEATURE_CURVE's top knot). */
+const BUB_V8_FEATURE_TOP = 72;
+const FEATURE_EYE: Record<SkillLevel, number> = { weak: 0, average: 0.25, good: 0.5, great: 0.8, near: 1, elite: 1, perfect: 1 };
 
 function groupSize(grid: readonly number[], start: number): number {
   const colour = grid[start]!;
@@ -132,6 +135,12 @@ export const bot: SkillBot = ({ game, seed, human }) => {
         else windows.push({ lo: i, hi: i, o });
       });
       const opts: { angle: number; value: number; o: Outcome; sensible: boolean }[] = [];
+      // Elite and flawless (Oct 2026): base first. Once the feature points reach the top of the feature
+      // curve (72 pay the whole 50) a bank shot or combo pays nothing, so only bubbles count. (Weighing
+      // features at their curve's marginal pay against a bubble's was tried and scored lower than the flat
+      // 0.9 bubbles a point: the curve is steepest at its top, so points taken early pay later.)
+      let featureWeight = eye * 0.9;
+      if (init.reef && (level === "elite" || level === "perfect") && bubV8FeaturePoints(s) >= BUB_V8_FEATURE_TOP) featureWeight = 0;
       for (const w of windows) {
         if (w.o.bank && !human.chance(BANK_SEE[level]!)) continue;
         const a = w.o.after;
@@ -140,7 +149,7 @@ export const bot: SkillBot = ({ game, seed, human }) => {
         let sensible = removed > 0;
         if (a.cleared) value += 40;
         // bubbleRev 8: the feature points this shot earns (a dropped chest, a bank shot, a combo), as the player weighs them.
-        if (eye) value += eye * 0.9 * (bubV8FeaturePoints(a) - bubV8FeaturePoints(s));
+        if (eye) value += featureWeight * (bubV8FeaturePoints(a) - bubV8FeaturePoints(s));
         if (a.dead) value -= 60;
         if (removed <= 0) {
           // Nothing popped: a bubble placed by its own colour sets up the next pop.

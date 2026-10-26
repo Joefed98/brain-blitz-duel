@@ -37,26 +37,42 @@ import {
   MATCHUP_V3_SWAP_MS,
   type MatchupState,
 } from "../../../src/lib/arcade/matchup";
+import type { SkillLevel } from "../human";
 import { driveEvents, Plan, type SkillBot } from "../bot";
 
 /** Orientation before the first find, and a whole-board scan, for an average player (ms). */
 const ORIENT_MS = 500;
 const SCAN_MS = 4500;
 /** How much further (fraction of a whole-board scan) a player keeps looking after the first find. */
-const EXTRA_SCAN: Record<string, number> = { average: 0.02, good: 0.06, great: 0.1, near: 0.14 };
+const EXTRA_SCAN: Record<SkillLevel, number> = { weak: 0, average: 0.02, good: 0.06, great: 0.1, near: 0.14, elite: 0.16, perfect: 0.2 };
 /** Chance of reading the board while a cascade is still falling instead of waiting for it to settle. */
-const PLAY_THROUGH: Record<string, number> = { average: 0.15, good: 0.35, great: 0.6, near: 0.8 };
+const PLAY_THROUGH: Record<SkillLevel, number> = { weak: 0, average: 0.15, good: 0.35, great: 0.6, near: 0.8, elite: 0.88, perfect: 1 };
 /** Players who know the game favour moves low on the board (they shake more loose); weight per level. */
-const LOW_BIAS: Record<string, number> = { average: 0, good: 0.3, great: 0.6, near: 0.8 };
+const LOW_BIAS: Record<SkillLevel, number> = { weak: 0, average: 0, good: 0.3, great: 0.6, near: 0.8, elite: 0.9, perfect: 1 };
 /** Chance of following a swap straight up with a second move spotted in the same look. */
-const FOLLOW_UP: Record<string, number> = { average: 0.1, good: 0.3, great: 0.5, near: 0.7 };
+const FOLLOW_UP: Record<SkillLevel, number> = { weak: 0, average: 0.1, good: 0.3, great: 0.5, near: 0.7, elite: 0.78, perfect: 1 };
 /** Swipe: from decision to the swap landing on the board, ms. */
 const SWIPE_MS = 140;
 /**
  * matchupRev 9: how much a player weighs the features they can see in a swap's own clear (goal gems,
  * ice under it, gems cleared below the treasure gem) against plain clearing; weaker players mostly just match.
  */
-const FEATURE_EYE: Record<string, number> = { average: 0.15, good: 0.45, great: 0.8, near: 1.2 };
+const FEATURE_EYE: Record<SkillLevel, number> = { weak: 0, average: 0.15, good: 0.45, great: 0.8, near: 1.2, elite: 1.3, perfect: 1.4 };
+/**
+ * Competence fix (ctx.fixes, Oct 2026), matchupRev 9: the treasure gem (a gold medallion, 12 feature points
+ * when it reaches the bottom) is the board's biggest prize, and a player chasing it looks at its column first,
+ * so a move that clears gems under it is found early in the scan. The v1 bot scanned the board in a random
+ * order and collected about 0.3 of up to 8 treasures a run even at near-perfect. The chance a scan starts there.
+ */
+const TREASURE_HUNT: Record<SkillLevel, number> = { weak: 0, average: 0.1, good: 0.3, great: 0.55, near: 0.8, elite: 0.9, perfect: 1 };
+/**
+ * When no single swap clears a gem under the treasure (it often sticks a row or two above the bottom), a
+ * strong player sets one up: a swap that leaves a line under it for the next move. The chance, per such
+ * scan, that the player works one out (two-move planning on the treasure's column only).
+ */
+const TREASURE_SETUP: Record<SkillLevel, number> = { weak: 0, average: 0, good: 0.1, great: 0.3, near: 0.6, elite: 0.75, perfect: 1 };
+/** How much a set-up swap is worth to the player, in gems: about what the treasure is worth against plain clearing. */
+const SETUP_VALUE = 8;
 
 type Move = [number, number, number, number];
 const special = (k: number) => k === MATCHUP_BOMB || k === MATCHUP_CROSS || k === MATCHUP_STAR || matchupIsJackpot(k);
@@ -71,7 +87,7 @@ function allSwaps(rows = MATCHUP_ROWS): Move[] {
   return out;
 }
 
-export const bot: SkillBot = ({ game, seed, human }) => {
+export const bot: SkillBot = ({ game, seed, human, fixes }) => {
   const level = human.level;
   const plan = new Plan();
   const init = game.init(seed) as MatchupState;
@@ -114,6 +130,9 @@ export const bot: SkillBot = ({ game, seed, human }) => {
   const startScan = (s: MatchupState, t: number, settled: boolean) => {
     snapshot = [...s.cells];
     const found: { m: Move; u: number; value: number }[] = [];
+    const treasureAt = s.goals ? s.cells.indexOf(MATCHUP_TREASURE) : -1;
+    const hunt = Boolean(fixes) && treasureAt >= 0 && human.chance(TREASURE_HUNT[level]!);
+    const under = (cleared: readonly number[]) => cleared.some((i) => i % MATCHUP_SIZE === treasureAt % MATCHUP_SIZE && i > treasureAt);
     for (const m of SWAPS) {
       const after = game.step(s, { t: s.tick + 1, k: MATCHUP_INPUT_SWAP, a: m[0], b: m[1], c: m[2], d: m[3] }) as MatchupState;
       if (after.swaps === s.swaps) continue;
@@ -124,11 +143,38 @@ export const bot: SkillBot = ({ game, seed, human }) => {
       const low = Math.max(m[0], m[2]) / (ROWS - 1);
       const value = after.lastCleared.length + 5 * (step0?.created.length ?? 0) + 2 * LOW_BIAS[level]! * low + featureValue(s, step0?.cleared ?? []);
       const eye = special(s.cells[matchupIndex(m[0], m[1])]!) || special(s.cells[matchupIndex(m[2], m[3])]!);
-      found.push({ m, u: human.u() * (eye ? 0.5 : 1), value });
+      const look = hunt && under(step0?.cleared ?? []) ? 0.25 : 1;
+      found.push({ m, u: human.u() * (eye ? 0.5 : 1) * look, value });
     }
     if (found.length === 0) {
       scanFrom = t + human.reactTicks();
       return;
+    }
+    if (hunt && treasureAt < (ROWS - 1) * MATCHUP_SIZE && human.chance(TREASURE_SETUP[level]!)) {
+      // No swap clears under the treasure now: look for one that sets up the next swap to.
+      const stuck = !found.some((f) => {
+        const a = game.step(s, { t: s.tick + 1, k: MATCHUP_INPUT_SWAP, a: f.m[0], b: f.m[1], c: f.m[2], d: f.m[3] }) as MatchupState;
+        return under(a.lastAnimation[0]?.cleared ?? []);
+      });
+      if (stuck) {
+        const col = treasureAt % MATCHUP_SIZE;
+        const row = Math.floor(treasureAt / MATCHUP_SIZE);
+        const near = SWAPS.filter((m) => Math.min(m[0], m[2]) > row && Math.abs(m[1] - col) <= 2 && Math.abs(m[3] - col) <= 2);
+        for (const f of found) {
+          const a1 = game.step(s, { t: s.tick + 1, k: MATCHUP_INPUT_SWAP, a: f.m[0], b: f.m[1], c: f.m[2], d: f.m[3] }) as MatchupState;
+          const t1 = a1.cells.indexOf(MATCHUP_TREASURE);
+          if (t1 !== treasureAt) continue;
+          const ready = { ...a1, tick: Math.max(a1.tick, (a1.busyUntil ?? 0) - 1) } as MatchupState;
+          const sets = near.some((m) => {
+            const a2 = game.step(ready, { t: ready.tick + 1, k: MATCHUP_INPUT_SWAP, a: m[0], b: m[1], c: m[2], d: m[3] }) as MatchupState;
+            return a2.swaps > ready.swaps && under(a2.lastAnimation[0]?.cleared ?? []);
+          });
+          if (sets) {
+            f.value += SETUP_VALUE;
+            f.u *= 0.25;
+          }
+        }
+      }
     }
     found.sort((a, b) => a.u - b.u);
     const full = human.thinkTicks(SCAN_MS);
