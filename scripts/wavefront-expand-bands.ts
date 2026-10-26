@@ -11,7 +11,7 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { gunzipSync, gzipSync } from "node:zlib";
 import { stateDigest } from "./wavefront-expand-record";
 import { GAMES } from "./arcade-skill-bands/games";
-import { BAND_LEVELS, Human, type BandLevel } from "./arcade-skill-bands/human";
+import { ALL_LEVELS, Human, type SkillLevel } from "./arcade-skill-bands/human";
 import { bot } from "./arcade-skill-bands/bots/wavefront";
 import { encodeWavefrontRun, replayWavefrontRun } from "../src/lib/duel/wavefront";
 import { wavCheckpoint, wavefrontBandParts, wavSkillRaw, WAV_REV_EXPAND, type WavState } from "../src/lib/arcade/wavefront";
@@ -20,7 +20,7 @@ const args = process.argv.slice(2);
 const spec = GAMES.find((g) => g.type === "wavefront")!;
 export const RECORDED_SEEDS = [0, 10, 20, 30];
 
-export function playWavefront(rev: number, level: BandLevel, n: number) {
+export function playWavefront(rev: number, level: SkillLevel, n: number) {
   const seed = spec.seedFor(n);
   const game = spec.gameFor(rev, seed);
   const out = bot({ game, seed, rev, human: new Human("wavefront", seed, level) });
@@ -39,7 +39,7 @@ export function playWavefront(rev: number, level: BandLevel, n: number) {
 
 if (import.meta.main) {
   const runs: { level: string; n: number; seed: number; score: number; raw: string; digest: string }[] = [];
-  for (const level of BAND_LEVELS)
+  for (const level of ALL_LEVELS)
     for (const n of RECORDED_SEEDS) {
       const r = playWavefront(WAV_REV_EXPAND, level, n);
       const parts = wavefrontBandParts(r.state);

@@ -8,9 +8,11 @@
  *     round maximum is 200.
  *  3. Recorded wavRev 10 runs (bots, weak to elite) replay to their stored score, unflagged and in sync, and the
  *     scripted look-ahead run scores 200 through the server replay.
- *  4. Guaranteed opportunities (the arcade rule): on all 260 skill-band seeds (60 tuning, 200 fresh) the run's
+ *  4. Guaranteed opportunities (the arcade rule): on all 260 skill-band seeds (tuning n = 0–59, fresh n = 10000–10199) the run's
  *     plan deals the same power-ups (9, three of each kind, before 51 s, one at a time), the saucers fly at the
- *     same moments, and the perfect-play ceiling counted from what the seed deals is 200.
+ *     same moments, and the ceiling counted from what the seed deals is 200; and reachability: the look-ahead
+ *     oracle's stored run on every one of the 260 seeds (scripts/fixtures/wavefront-expand-oracle.json.gz)
+ *     replays through the server to 200.
  *  5. Room identity: very different input logs (idle, random, a weak bot, an elite bot) on the same seed see the
  *     same planned power-ups and saucers over the ticks both lived, and the same ships in every wave both reached.
  *  6. The rules on hand-built states: the 800 px world, 36-ship waves, the spread volley, the shield, the capped
@@ -28,6 +30,9 @@ import {
   wavefrontWorldHFor,
   wavCoreOpen,
   wavPlan,
+  wavPrecision,
+  WAV_X_BOSS_BY,
+  WAV_X_SKILL_PRECISE,
   wavShapeBox,
   wavShipY,
   wavSkillPaid,
@@ -71,7 +76,7 @@ import { wavefrontPuzzle } from "../src/puzzles/wavefront";
 import { roomSeed } from "./arcade-skill-bands/games";
 import { LEGACY_REVS, stateDigest } from "./wavefront-expand-record";
 import { RECORDED_SEEDS } from "./wavefront-expand-bands";
-import { BAND_LEVELS } from "./arcade-skill-bands/human";
+import { ALL_LEVELS } from "./arcade-skill-bands/human";
 import { randomLog, roomIdentity, scheduleOf } from "./room-identity/wavefront";
 import type { ArcadeInputEvent } from "../src/lib/arcade/engine";
 
@@ -144,7 +149,7 @@ section("Recorded wavRev 10 runs replay to their stored scores; 200 is reachable
     runs: { level: string; n: number; seed: number; score: number; raw: string; digest: string }[];
     ace: { seed: number; raw: string; score: number };
   };
-  ok(data.runs.length === BAND_LEVELS.length * RECORDED_SEEDS.length, `${BAND_LEVELS.length * RECORDED_SEEDS.length} recorded wavRev 10 runs (got ${data.runs.length})`);
+  ok(data.runs.length === ALL_LEVELS.length * RECORDED_SEEDS.length, `${ALL_LEVELS.length * RECORDED_SEEDS.length} recorded wavRev 10 runs (got ${data.runs.length})`);
   for (const run of data.runs) {
     const r = replayWavefrontRun(run.seed, run.raw, WAV_REV_EXPAND);
     ok(!r.flagged && r.desyncTick == null, `${run.level} #${run.n}: replays unflagged (${r.reason ?? ""})`);
@@ -160,6 +165,9 @@ section("Recorded wavRev 10 runs replay to their stored scores; 200 is reachable
 /* 4. Guaranteed opportunities and the perfect-play ceiling. */
 section("Every seed deals the same opportunities; the perfect-play ceiling is 200 on all 260 seeds");
 const FALL_TICKS = Math.ceil(((WAV_X_H - 66) - WAV_X_DROP_Y) / 4);
+/** The skill-band seed sets (docs/arcade-bands-elite.md): tuning n = 0–59, fresh n = 10000–10199. */
+const SEED_SETS = [...Array.from({ length: 60 }, (_, i) => i), ...Array.from({ length: 200 }, (_, i) => 10000 + i)];
+
 /**
  * What a flawless player can collect on a seed, counted from what it deals: every planned power-up (all fall
  * before 51 s, long before the earliest the mothership can be reached), the saucers that fly before 60 s, both
@@ -171,14 +179,16 @@ export function wavCeiling(seed: number): { raw: number; score: number } {
   const drops = plan.drops.filter((d) => d.t < 51 * 60).length;
   const saucers = Array.from({ length: WAV_X_SAUCERS }, (_, i) => (i + 1) * WAV_SAUCER_EVERY).filter((t) => t <= 60 * 60).length;
   const core = Math.ceil((WAV_X_MID_HP - 2 * WAV_X_CANNON_HP) / WAV_X_CORE_DAMAGE) + Math.ceil((WAV_X_BOSS_HP - 2 * WAV_X_CANNON_HP) / WAV_X_CORE_DAMAGE);
-  const raw = WAV_X_STREAK_CAP + WAV_X_SKILL_DROP * drops + WAV_X_SKILL_SAUCER * saucers + WAV_X_SKILL_CANNON * 4 + WAV_X_SKILL_CORE * core;
+  // Every weak-point hit (both bosses' cannons, then the core hits) dead centre.
+  const precise = wavPrecision(0) * (4 * WAV_X_CANNON_HP + core);
+  const raw = WAV_X_STREAK_CAP + WAV_X_SKILL_DROP * drops + WAV_X_SKILL_SAUCER * saucers + WAV_X_SKILL_CANNON * 4 + WAV_X_SKILL_CORE * core + WAV_X_SKILL_PRECISE * precise;
   const score = Math.min(200, bandPoints(WAV_V10_BAND_CURVE, WAV_PAR_X) + 10 + Math.min(WAV_X_EDGE_MAX, bandPoints(WAV_X_SKILL_PAY, raw)));
   return { raw, score };
 }
 {
   let lowest = Infinity;
   let lowestRaw = Infinity;
-  for (let n = 0; n < 260; n++) {
+  for (const n of SEED_SETS) {
     const seed = roomSeed(n);
     const plan = wavPlan(seed);
     const kinds = [0, 1, 2].map((k) => plan.drops.filter((d) => d.k === k).length);
@@ -194,9 +204,24 @@ export function wavCeiling(seed: number): { raw: number; score: number } {
   console.log(`  perfect-play ceiling: lowest ${lowest} over 260 seeds (skill points dealt: at least ${lowestRaw}, the full 50 at ${WAV_X_SKILL_PAY.units.at(-1)})`);
 }
 
+{
+  // Reachability: a player that actually plays each seed (the oracle, scripts/wavefront-expand-ace.ts --fast).
+  const oracle = JSON.parse(gunzipSync(readFileSync("scripts/fixtures/wavefront-expand-oracle.json.gz")).toString()) as { runs: { n: number; seed: number; log: string }[] };
+  ok(oracle.runs.length === 260 && oracle.runs.every((r, i) => r.n === SEED_SETS[i] && r.seed === roomSeed(r.n)), `the oracle has a stored run for each of the 260 seeds (${oracle.runs.length})`);
+  const lowest = { tuning: Infinity, fresh: Infinity };
+  for (const r of oracle.runs) {
+    const res = replayWavefrontRun(r.seed, r.log, WAV_REV_EXPAND);
+    ok(!res.flagged && res.desyncTick == null, `oracle seed #${r.n}: replays unflagged`);
+    const set = r.n < 60 ? "tuning" : "fresh";
+    lowest[set] = Math.min(lowest[set], res.score);
+  }
+  ok(lowest.tuning === 200 && lowest.fresh === 200, `the oracle reaches 200 on every seed through the server replay (lowest ${lowest.tuning} tuning, ${lowest.fresh} fresh)`);
+  console.log(`  reachability: the oracle's lowest score is ${lowest.tuning} on the 60 tuning seeds and ${lowest.fresh} on the 200 fresh ones`);
+}
+
 /* 5. Room identity. */
 section("Room identity: what the seed deals never depends on the play");
-for (const n of [0, 7, 61]) {
+for (const n of [0, 7, 10001]) {
   const seed = roomSeed(n);
   const logs = roomIdentity.logs(seed);
   const runs = logs.map((log) => ({ ...play(seed, log), schedule: scheduleOf(seed, WAV_REV_EXPAND, log) }));
@@ -267,8 +292,21 @@ ok(wavStreakMult(0) === 1 && wavStreakMult(WAV_X_STREAK_STEP - 1) === 1 && wavSt
   const shut = at(131 + 64, WAV_X_CORE_PERIOD / 2 + 10);
   ok(!wavCoreOpen(null, WAV_X_CORE_PERIOD / 2 + 11) && shut.boss!.hp === 35 && (shut.weakHits ?? 0) === 0 && shut.streak === 4, "a hit on the closed core takes 1 and keeps the streak as it was");
   ok(wavCoreOpen(null, WAV_X_CORE_PERIOD * 7 + 3) && !wavCoreOpen(null, WAV_X_CORE_PERIOD * 7 + WAV_X_CORE_PERIOD / 2), "the core opens on the run clock (the same moments for everyone)");
+  ok(open.precise === wavPrecision(0) && wavPrecision(0) === 3 && wavPrecision(1) === 3 && wavPrecision(2) === 2 && wavPrecision(3) === 2 && wavPrecision(4) === 1 && wavPrecision(5) === 1 && wavPrecision(6) === 0, "precision: 3 within 1 px of the centre, 2 within 3, 1 within 5, else 0");
+  const off = at(131 + 64 + 5, 10); // the boss slides 1 px this tick: 4 px off its centre
+  ok(off.weakHits === 1 && off.precise === 1, "an open-core hit 4 px off centre pays 1 precision point");
+  ok((shut.precise ?? 0) === 0, "a hull hit pays no precision");
   const gun = at(131 + 8, 10, { boss: { ...boss, guns: [1, WAV_X_CANNON_HP] } });
-  ok(gun.boss!.guns![0] === 0 && gun.cannonsDown === 1 && gun.drop === null && gun.boss!.hp === 35 && gun.streak === 5, "a cannon's last hit destroys it (the boss takes one), grows the streak and drops nothing");
+  ok(gun.boss!.guns![0] === 0 && gun.cannonsDown === 1 && gun.drop === null && gun.boss!.hp === 35 && gun.streak === 5 && gun.precise === 3, "a cannon's last hit destroys it (the boss takes one), grows the streak, pays its precision and drops nothing");
+}
+{
+  // The mothership by WAV_X_BOSS_BY at the latest: what is left of the formations leaves (no units for it).
+  const late = step({ ...base, enter: 0, fy: 84, wave: 5, tick: WAV_X_BOSS_BY - 1, redIn: 999 } as WavState);
+  ok(late.boss !== null && !late.boss!.mid && late.bossAt === WAV_X_BOSS_BY && late.shapes.every((c) => c === 0) && late.shapesDown === base.shapesDown && late.wavesCleared === base.wavesCleared, `the mothership arrives at ${WAV_X_BOSS_BY / 60} s whatever is left`);
+  const mid = step({ ...base, enter: 0, wave: 4, shapes: base.shapes.map(() => 0), boss: { x: 147, dir: 1, hp: 9, fireIn: 999, mid: 1, maxHp: 16, guns: [4, 4], at: 0 }, tick: WAV_X_BOSS_BY - 1, redIn: 999 } as WavState);
+  ok(mid.boss !== null && !mid.boss!.mid && (mid.midKilled ?? 0) === 0, "a gunship still flying at that moment leaves for the mothership");
+  const early = step({ ...base, enter: 0, tick: WAV_X_BOSS_BY - 1, bossAt: 3000, boss: { x: 131, dir: 1, hp: 20, fireIn: 999, mid: 0, maxHp: 36, guns: [0, 0], at: 0 }, shapes: base.shapes.map(() => 0), wave: 6, redIn: 999 } as WavState);
+  ok(early.bossAt === 3000 && early.boss!.hp === 20, "a mothership that came sooner stays as it is");
 }
 {
   // Saucers drop nothing; power-ups come only from the plan, at its moments and places.
@@ -302,12 +340,12 @@ ok(wavStreakMult(0) === 1 && wavStreakMult(WAV_X_STREAK_STEP - 1) === 1 && wavSt
     if (p < prevPay) ok(false, `the skill pay falls at ${u}`);
     prevPay = p;
   }
-  const perfect = { ...base, shapesDown: 180, armourHits: 30, wavesCleared: 6, bossDmg: 52, bossKilled: 1, bossAt: 3000, tick: 3100, streakPts: 9999, powerups: 9, saucers: 4, cannonsDown: 4, weakHits: 13, acted: 1 };
+  const perfect = { ...base, shapesDown: 180, armourHits: 30, wavesCleared: 6, bossDmg: 52, bossKilled: 1, bossAt: 3000, tick: 3100, streakPts: 9999, powerups: 9, saucers: 4, cannonsDown: 4, weakHits: 13, precise: 60, acted: 1 };
   const full = wavefrontBandParts(perfect);
   ok(full.points === 140 && full.bonus === 60 && wavSkillPaid(perfect) === 50, "a perfect fast run: 140 + 10 + 50");
   ok(game.score(perfect) === 200, "…which is exactly 200");
   ok(wavefrontBandParts({ ...perfect, saucers: 0 }).units === full.units, "saucers are skill points, not base units");
-  ok(game.score({ ...perfect, streakPts: 0, powerups: 0, saucers: 0, cannonsDown: 0, weakHits: 0 }) === 150, "with no skill points the same run scores 150");
+  ok(game.score({ ...perfect, streakPts: 0, powerups: 0, saucers: 0, cannonsDown: 0, weakHits: 0, precise: 0 }) === 150, "with no skill points the same run scores 150");
   ok(game.score({ ...base, acted: 0 }) === 0, "no input scores 0");
   const random = [0, 1, 2, 3, 4, 5, 6, 7].map((n) => play(roomSeed(n), randomLog(roomSeed(n))).end).map((s) => game.score(s));
   ok(Math.max(...random) <= 40, `random drags score little (${random.join(", ")})`);
@@ -318,4 +356,4 @@ if (failures.length) {
   console.log(`FAIL wavefront-expand-check: ${failures.length} of ${checks} checks failed`);
   process.exit(1);
 }
-console.log(`PASS wavefront-expand-check: ${checks} checks — old rounds unchanged on every revision, rooms deal wavRev 10, recorded runs and a 200 replay, the perfect-play ceiling 200 on 260 seeds, room identity, the new rules`);
+console.log(`PASS wavefront-expand-check: ${checks} checks — old rounds unchanged on every revision, rooms deal wavRev 10, recorded runs and a 200 replay, the counted ceiling and the oracle's 200 on all 260 seeds, room identity, the new rules`);

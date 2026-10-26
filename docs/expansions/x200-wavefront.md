@@ -25,66 +25,83 @@ escorts), the gunship after wave 3 (16 hp, counts as a wave) and the mothership 
 boss (4 hits each) and the core (×3 damage open), spread (8 volleys) and shield (12 s), the faster bolts (11 px) and
 red fire, the art, HUD, sounds and screen fill.
 
+## Addendum (26 Oct, evening, Joe's notes): the boss earlier, weak-point precision, a played ceiling
+
+- **The mothership by 78 s at the latest** (`WAV_X_BOSS_BY`): it still follows wave 5, but if a player hasn't got
+  there by 78 s of the run clock, whatever is left of the formations (or the gunship) leaves without units and the
+  mothership flies in. Every player gets at least 12 s with its weak points; a flawless player arrives by about 50 s.
+  The same moment for everyone (run clock), never from how the player played.
+- **Weak-point precision** (approved): a hit on a standing cannon or the open core pays precision points by how near
+  its centre it lands (`wavPrecision`, integer px from the bolt's whole-px x to the centre: 3 within 1 px, 2 within 3,
+  1 within 5, else 0), counted in `precise` and worth `WAV_X_SKILL_PRECISE` = 2 skill points each. Hull hits pay none.
+- Base and skill pay refitted on today's bots (provisional, see below).
+- **Reachability, played**: the look-ahead oracle (`scripts/wavefront-expand-ace.ts`; it now also tries the exact
+  positions that put the next bolt on a weak point's centre, and falls back to plain play when it hides from a boss)
+  played all 260 seeds; its runs are stored (`scripts/fixtures/wavefront-expand-oracle.json.gz`, packed by
+  `--pack`) and `wavefront-expand-check` replays every one through the server: **lowest 200 on the 60 tuning seeds and
+  200 on the 200 fresh seeds**. (259 seeds from the coarse `--fast` search; seed 229, 191 there, from the full search.)
+- Bot changes stay in wavRev 10 paths only (the bot reads `seen.x10`); none were needed for precision (the existing
+  per-level weak-point aim and `Human` aim error decide it), so they re-apply onto Session A's bots unchanged.
+
+## Final round (Session A's fixed bots, #175 merged)
+
+Main merged in; Wavefront's bot is main's fixed bot with the wavRev 10 paths on top (weak points on each boss's own
+width, led through its turns as the fixes do; saucers chased at wavRev 10, where they are skill points; the
+pre-fix `MOVE_ON` only when the fixes are off, the fixes' `COUNT_BOLTS` doing the same with them). Older stamps with
+the fixes off play exactly as main's bot. With the fixed bots every level from great up cleared all the formations on
+the old pace, so the round was retuned for skill to show:
+
+- **Gun**: a volley every 10 ticks (`WAV_X_FIRE_EVERY`, was 14), still 3 centre bolts in the air: pace is now set by
+  bolts that hit (a miss flies the whole screen), not the fire rate.
+- **Red fire**: from every 50 ticks at 6 px a tick (`WAV_X_RED_START`, `WAV_X_RED_SPEED`; were 75 and 5), so dodging
+  separates the levels.
+- Curves refitted on the tuning seeds (below). The mothership by 78 s and weak-point precision as in the addendum.
+
 ## Scoring (wavRev 10)
 
 - **Base**: ships + armour hits + 15 a cleared wave (the gunship too) + every boss hit point, on
-  `WAV_V10_BAND_CURVE` (250 → 50, 270 → 58, 290 → 66, 300 → 75, 310 → 90, 320 → 112, 330 = everything → 140).
+  `WAV_V10_BAND_CURVE` (250 → 53, 290 → 55, 300 → 67, 310 → 107, 318 → 126, 326 → 140; 330 is everything).
 - **Finish**: destroying the mothership adds up to 10 for speed (full within 20 s of its arrival, as wavRev 5–8).
 - **Skill points** (`wavSkillRaw`): the streak's points (1 a hit at ×2, 2 at ×3, up to 40) + 2 a power-up caught + 3 a
-  saucer + 8 a cannon destroyed + 2 an open-core hit; paid on `WAV_X_SKILL_PAY` (70 pay 3, 84 pay 10, 94 pay 18,
-  100 pay 28, 108 pay 42, the full 50 at 118). Incidental use pays little; the last 30 points need elite play.
+  saucer + 8 a cannon destroyed + 2 an open-core hit + 2 a precision point; paid on `WAV_X_SKILL_PAY` (up to 120 pay 0,
+  150 pay 18, 170 pay 20, 185 pay 37, 200 pay 37, 212 pay 48, the full 50 at 225).
 - Total `bandTotal(parts, acted, 200)`; no input scores 0. With no skill points a perfect run scores 150.
 
-## Perfect-play ceiling (guaranteed opportunities)
+## Perfect-play ceiling
 
-Every seed deals the same items: 180 ships, the same armour, two bosses (16 + 36 hp, 4 cannons), 9 power-ups (three of
-each kind, all before 51 s), saucers at 15, 30, 45, 60 and 75 s. Counted for a flawless player (every unit → 140, a
-quick kill → 10, skill points: streak cap 40 + 9 power-ups 18 + the 4 saucers before 60 s 12 + 4 cannons 32 + the 13
-open-core hits the bosses' hit points allow once their cannons are down 26 = **128 ≥ 118**, so 50): **200 on every one
-of the 260 seeds** (lowest 200 on the 60 tuning seeds and on the 200 fresh seeds). `wavefront-expand-check` proves the
-count on all 260 (the plan's counts, kinds, spacing and timing, then the formula).
+Counted: every seed deals the same items; a flawless player's skill points come to at least 302 (the full 50 needs
+225). **Played**: the look-ahead oracle's run on each of the 260 seeds (tuning n = 0–59, fresh n = 10000–10199; 244
+from the `--fast` search, the 16 that stopped at 197–199 there from the full search) is stored and replayed through
+the server by `wavefront-expand-check`: **lowest 200 on the tuning seeds and 200 on the fresh seeds**.
 
-Reachability: a scripted look-ahead player (`scripts/wavefront-expand-ace.ts`, an oracle, not a human model) plays the
-real sim; the stored seed-0 run scores **200** through the server replay (boss down at 61.6 s, 3 lives). Its coarse
-mode (`--fast`, a coarser search) over all 260 seeds,
-as a lower bound on what is reachable: it destroys the mothership on **260 / 260** seeds, clears every unit on 243, and
-scores 200 on 132 (32 of 60 tuning, 100 of 200 fresh); lowest 176 (tuning) / 179 (fresh), median 200, ≥ 190 on 58 / 60
-and 187 / 200. Where it falls short it is a few skill points (its 72-tick look-ahead misses a cannon or a core window),
-not a missing opportunity: the counted ceiling is 200 on every seed.
+## Final tables (fixed bots, paired seeds, every run through the server replay)
 
-## Tuning (skill-band bots, paired: the same seeds, every run through the server's encode + replay)
+`bun scripts/arcade-skill-bands.ts wavefront --rev=x --levels=all --seeds=60 --jobs=2` and `--from=10000 --seeds=200`.
+Old = wavRev 8 (`strictRev`, max 150) with the same fixed bots on the same seeds, in brackets. Median / p90.
 
-`bun scripts/arcade-skill-bands.ts wavefront --rev=x --levels=weak,average,good,great,near,elite --seeds=60 --jobs=1`
-and the same with `--from=60 --seeds=200`. "Old" is wavRev 8 (LIVE_BANDS' `strictRev`, max 150) on the same seeds.
-New: median / p90 (p10, best).
+| Level | Tuning (n 0–59) | Fresh (n 10000–10199) |
+|---|---|---|
+| Weak | 59 / 89 (59) | 62 / 78 (59) |
+| Average | 74 / 126 (66) | 80 / 137 (70) |
+| Good | 126 / 160 (120, +5 %) | 121 / 157 (133, −9 %) |
+| Great | 136 / 168 (150) | 145 / 169 (150) |
+| Near-perfect | 169 / 187 (150) | 168 / 187 (150) |
+| Elite | 187 / 198 (150) | 173 / 198 (150) |
+| Flawless (bot) | median 187, lowest 122 (150) | median 187, lowest 109 (150) |
+| Oracle | lowest 200 | lowest 200 |
 
-| Seeds | Level | New (max 200) | Old median / p90 | Median change |
-|---|---|---|---|---|
-| Tuning (60) | Weak | 60 / 75 (53, 133) | 59 / 79 | +2 % |
-| Tuning (60) | Average | 76 / 121 (62, 164) | 68 / 139 | +12 % |
-| Tuning (60) | Good | 92 / 160 (70, 167) | 100 / 150 | −8 % |
-| Tuning (60) | Great | 124 / 168 (79, 188) | 125 / 150 | −1 % |
-| Tuning (60) | Near-perfect | 166 / 185 (95, 200) | 139 / 150 | +19 % |
-| Tuning (60) | Elite | 179 / 194 (143, 200) | 140 / 150 | +28 % |
-| Fresh (200) | Weak | 61 / 76 (55, 156) | 62 / 73 | −2 % |
-| Fresh (200) | Average | 72 / 140 (61, 164) | 68 / 123 | +6 % |
-| Fresh (200) | Good | 98 / 159 (71, 181) | 95 / 150 | +3 % |
-| Fresh (200) | Great | 141 / 176 (79, 193) | 125 / 150 | +13 % |
-| Fresh (200) | Near-perfect | 167 / 186 (92, 200) | 136 / 150 | +23 % |
-| Fresh (200) | Elite | 178 / 192 (120, 200) | 139 / 150 | +28 % |
-
-- No zero scores at any level (0 of 1,560 runs); no run flagged or disagreeing with the server replay.
-- Good is steady on both seed sets (−8 % / +3 %; the parked version's base curve alone gave −7 % / +31 %).
-- Paired (same seed), the higher level scores more on: average > weak 46/60 and 155/200, good > average 40/60 and
-  144/200, great > good 38/60 and 137/200, near > great 48/60 and 137/200, elite > near 41/60 and 119/200.
-- **Random play** (uniformly random drags every 8–22 ticks, `randomLog` in `scripts/room-identity/wavefront.ts`, 260
-  seeds): median 6, p90 16, max 28 (wavRev 8: 12 / 28 / 40). Idle scores 0.
-- Bar: good within ±10 % ✓; near-perfect median 166 / 167 (165–175 ✓), p90 185 / 186 (at about 185, one point over
-  on the fresh set); elite p90 194 / 192 (190–200 ✓), median 179 / 178 (≥ 175 ✓); great between good and near ✓.
-- Bot (`scripts/arcade-skill-bands/bots/wavefront.ts`, wavRev 10 only, older revisions play exactly as before): weak
-  points aimed at by level, `MOVE_ON` (a player who counts the bolts already in flight moves on from a column they
-  will empty: weak 5 %, average 15 %, good 35 %, great 60 %, near 80 %, elite always), and the elite band goes for every
-  power-up and saucer. All aim, timing and reaction still go through `Human`.
+- Zero scores: none at any level (0 of 1,820 new-stamp runs); none flagged.
+- Paired (same seed, higher level scores more): average > weak 49/60 and 154/200, good > average 49/60 and 145/200,
+  great > good 33/60 and 146/200, near > great 48/60 and 146/200, elite > near 41/60 and 119/200, flawless > elite
+  39/60 and 132/200.
+- Random play (`randomLog`, 260 seeds): median 6, p90 14, max 27 (wavRev 8: 12 / 28 / 40). Idle 0.
+- **Bar**: good +5 % / −9 % ✓; near-perfect medians 169 / 168 ✓, p90 187 / 187 (two over "about 185"); elite median
+  187 ✓ / 173 (two under "about 175"), p90 198 / 198 ✓; great between ✓; no zeros ✓; random ≈ 0 ✓; the oracle 200 on
+  every seed ✓. **Not met: the flawless bot reaching 200 on every seed** (12 of 60 and 39 of 200 reach 200; lowest
+  122 / 109). The flawless bot is Session A's error-free human model, not an optimal player: it reaches the
+  mothership at about 72 s against the oracle's 50–60 s, and on 9 of 60 tuning seeds the near-perfect bot collects
+  more skill points than it does on the same seed. A curve that pays 200 on every flawless seed would pay near-perfect
+  far over 185, so it isn't forced; the oracle, which plays each seed, shows the 200 is there on all 260.
 
 ## Room identity
 
@@ -95,8 +112,8 @@ same entries over the ticks both runs lived, and the same ships in every wave bo
 
 ## Checks run
 
-Each run by itself (`bun scripts/<name>`), all **PASS**: wavefront-expand-check (1,738 checks), round-max-check,
-scoring-bands-check, scoring-targets-check, scoring-rev3-check (one run failed only its grading-time limit, 484 ms,
+Each run by itself (`bun scripts/<name>`), all **PASS** (re-run after the final round): wavefront-expand-check (2,024 checks), round-max-check,
+scoring-bands-check, scoring-targets-check, scoring-rev3-check (on the first pass one run failed only its grading-time limit, 484 ms,
 while four cores were busy; PASS on a quiet re-run), reveal-score-check (.tsx), replay-check, practice-bests-check,
 arcade-self-replay-check (wavefront entries), arcade-fx-check, arcade-help-bands-check, intro-score-text-check,
 six-game-scoring-check, arcade-score-bands-check, arcade-batch3-check, arcade-tuning-a-check, arcade-tuning-c-check,
