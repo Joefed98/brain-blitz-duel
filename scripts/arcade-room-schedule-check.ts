@@ -20,7 +20,7 @@ const mods = readdirSync(new URL("./x200/", import.meta.url))
   .filter((f) => f.endsWith(".ts") && f !== "room.ts" && !f.includes("-"))
   .sort();
 // The expansions shipped (Roofbound and Scrumper missed the tuning bar and are left out; docs/expansions/x200.md).
-const EXPECTED = ["hover", "swing"];
+const EXPECTED = ["flip", "hover", "swing"];
 for (const type of EXPECTED) if (!mods.includes(`${type}.ts`)) fail(`${type}: no scripts/x200/${type}.ts room module`);
 
 for (const file of mods) {

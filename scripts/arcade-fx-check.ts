@@ -128,7 +128,8 @@ const GAMES: Record<string, AnyGame> = {
   bintoss: { ...binTossArtGame, init: binTossGameFor(3).init } as AnyGame,
   bullseye: { ...bullseyeGame, init: bullseyeRev2Game.init, draw: drawBullseye } as AnyGame,
   bubble: { ...bubbleArtGame, init: bubbleRev2Game.init } as AnyGame,
-  flip: flipArtGameFor(2) as AnyGame,
+  // Roofbound's expansion (flipRev 8, docs/expansions/x200-flip.md) is the live spec.
+  flip: flipArtGameFor(8) as AnyGame,
   // Grappler's 200 expansion (swingRev 13) is the live spec: its bank course, so every feature (sections included) is on it.
   swing: { ...swingArtGameFor(13), init: () => swingArtGameFor(13).init(SWING_V13_BANK[0]!.seed) } as AnyGame,
   snip: { ...snipArtGame, init: snipRev3Game.init } as AnyGame,
@@ -372,6 +373,14 @@ const BUMPS: Record<string, ((s: any) => any)[]> = {
     (s) => ({ ...s, got: (s.got ?? 0) | 1 }),
     (s) => ({ ...s, got: 1023 }),
     (s) => ({ ...s, cracks: [0, s.tick - 30] }),
+    // flipRev 8 (the rooms' revision since 26 Oct 2026): trail star, full trail, double flip, checkpoint, save, speed zone, sweet landing.
+    (s) => ({ ...s, trailGot: [1, 0, 0, 0] }),
+    (s) => ({ ...s, trailGot: [31, 0, 0, 0] }),
+    (s) => ({ ...s, combos: (s.combos ?? 0) + 1, chain: 1 }),
+    (s) => ({ ...s, cpPassed: (s.cpPassed ?? 0) + 1 }),
+    (s) => ({ ...s, saves: (s.saves ?? 0) + 1 }),
+    (s) => ({ ...s, tick: s.v8.zones[0] + 1 }),
+    (s) => ({ ...s, sweetGot: (s.sweetGot ?? 0) | 1, sweetT: s.tick }),
   ],
   swing: [
     (s) => ({ ...s, maxX: s.maxX + 100 * 256 * 40 }),

@@ -88,6 +88,8 @@ export function flipRulesFor(rev?: number | null): FlipRules {
 export const FLIP_DECISION_OVERHANG = 1;
 export const FLIP_DECISION_PAIRED_SPIKES = 2;
 export const FLIP_DECISION_FALSE_GAP = 3;
+/** flipRev 8: a moving spike (it counts towards the decision share). */
+export const FLIP_DECISION_MOVER = 4;
 
 /** Shared-band bends: long sweeps until 45 s, then a continuous late-run ramp. */
 export const FLIP_WARP_FROM = 20 * TICKS_PER_SECOND;
@@ -173,6 +175,10 @@ export interface FlipSeg {
   group: number;
   /** Zero for a simple hazard; otherwise one of the decision constants. */
   decision: number;
+  /** flipRev 8 moving spikes only: slide amplitude (1/256 px), period (ticks) and phase (angle units). */
+  amp?: number;
+  per?: number;
+  ph?: number;
 }
 
 /** Runner timers: side is the surface it is on or heading to; flipT > 0 while airborne. */
@@ -493,6 +499,27 @@ export interface FlipState extends BandFields {
   cracks?: number[];
   /** flipRev 4 only (Tuning C): 1 = the bend starts at 10 s and the run scores on FLIP_V4_BAND_CURVE. Absent on every earlier round. */
   tunec?: number;
+  /** flipRev 8 only (the expansion, absent on every earlier round): see FlipV8Fields. */
+  exp?: number;
+  v8?: FlipV8Course;
+  arcN?: number;
+  land?: number;
+  chain?: number;
+  combos?: number;
+  comboPts?: number;
+  save?: number;
+  saves?: number;
+  inv?: number;
+  cpPassed?: number;
+  cleanCps?: number;
+  zoneSaves?: number;
+  zonesOk?: number;
+  trailGot?: number[];
+  pause?: number;
+  lost?: number;
+  /** flipRev 8 sweet spots: taken bits (course.sweets order) and the tick of the latest sweet landing (art's glint). */
+  sweetGot?: number;
+  sweetT?: number;
 }
 
 export function flipWarpAmp(tick: number, rev?: number | null, early?: number): number {
@@ -695,6 +722,9 @@ export function flipCheckpoint(state: FlipState): FlipCheckpoint {
   const extra = state.rev === FLIP_REV ? [state.got ?? 0, ...(state.cracks ?? [])] : [];
   // flipRev 4 adds its marker last.
   if (state.tunec) extra.push(state.tunec);
+  // flipRev 8 folds in its own counters after that.
+  if (state.exp) extra.push(state.exp, state.arcN ?? 0, state.land ?? 0, state.chain ?? 0, state.comboPts ?? 0, state.save ?? 0,
+    state.saves ?? 0, state.inv ?? 0, state.cpPassed ?? 0, state.cleanCps ?? 0, state.zonesOk ?? 0, state.pause ?? 0, state.lost ?? 0, ...(state.trailGot ?? []), state.sweetGot ?? 0);
   for (const value of [...Object.values(snap), ...extra]) {
     checksum ^= value | 0;
     checksum = Math.imul(checksum, 0x01000193) >>> 0;
@@ -792,7 +822,9 @@ const flipRev2Game: ArcadeGame<FlipState, ArcadeInputEvent | null> = { ...flipGa
 
 /** Takes puzzle.flipRev; anything else is the original corridor. */
 export function flipGameFor(rev?: number | null): ArcadeGame<FlipState, ArcadeInputEvent | null> {
-  if (rev === FLIP_REV_STRICT) return flipStrictGame;
+  if (rev === FLIP_REV_EXPAND) return flipExpandGame;
+  // 7 was the parked expansion's stamp, never dealt or stored: it would play as the revision before it.
+  if (rev === FLIP_REV_STRICT || rev === FLIP_REV_STRICT + 1) return flipStrictGame;
   if (rev === FLIP_REV_TARGET) return flipTargetGame;
   if (rev === FLIP_REV_TUNEC) return flipTunecGame;
   if (rev === FLIP_REV_BAND) return flipBandGame;
@@ -811,12 +843,14 @@ export const FLIP_REV_BAND = 3;
 /** Each half second survived counts 1 and each gold star 3; 140 at the full minute with all ten stars; lasting the minute adds 10. */
 export const FLIP_BAND_CURVE = bandCurve([0, 40, 105, 130, 140, 150], [0, 15, 70, 100, 120, 140]);
 export function flipBandParts(state: FlipState): BandParts {
+  if (state.exp) return flipV8Parts(state);
   const units = Math.floor((state.ended === 1 ? FLIP_RUN_TICKS : clampInt(state.tick, 0, FLIP_RUN_TICKS)) / 30) + 3 * flipStarsTaken(state);
   const finished = state.ended === 1;
   return { units, points: bandPoints(bandCurveOf(state, state.tunec ? FLIP_V4_BAND_CURVE : FLIP_BAND_CURVE), units), bonus: finished ? BAND_FINISH_BONUS : 0, penalty: 0, finished, text: `${((state.ended === 1 ? FLIP_RUN_TICKS : state.tick) / 60).toFixed(1)} s · ${flipStarsTaken(state)} stars`, bonusText: "Lasted the minute" };
 }
 
 function scoreBand(state: FlipState): number {
+  if (state.exp) return flipV8Score(state);
   return bandTotal(flipBandParts(state), Boolean(state.acted));
 }
 
@@ -861,3 +895,899 @@ export const FLIP_REV_STRICT = 6;
 export const flipStrictGame = bandStrictGame(flipTargetGame);
 /** The curve new rounds score on: FLIP_V4_BAND_CURVE's strict curve (what bandCurveOf gives a band-3 state). */
 export const FLIP_V6_BAND_CURVE = bandStrict(FLIP_V4_BAND_CURVE);
+
+/* ================= The expansion (flipRev 8, expansion E7, 26 Oct 2026) ================= */
+
+/**
+ * flipRev 8 (docs/expansions/x200-flip.md, docs/scoring-200.md): a taller 390 × 730 world whose cave
+ * height changes along the run (normal 260 px, tight 200 px, tall 340 px sections), so a flip's
+ * arc takes 9 to 16 ticks (flipV8Arc: the height under the runner when it leaves), a faster top
+ * speed and two speed zones (the run goes 11/8 as fast for 5 s), moving spikes that slide along
+ * their surface, four bonus star trails (five stars on a flip's arc, taken in the air), double-flip
+ * combos (a flip within 8 ticks of landing with a hazard close by), checkpoints at 15, 30 and 45 s
+ * (the next crash after one is saved: a second of shield, 10 s off the survival count), and sweet
+ * spots (eight strips of roof; a flip that lands with the runner's centre inside one is a sweet landing).
+ * The parked expansion's stamp (7) was never dealt; a round stamped 7 plays as flipRev 6 (flipGameFor).
+ *
+ * Scored to 200 (roundMaxFor("flip")): the rev-6 shape (half seconds + 3 per gold star on its own
+ * curve, FLIP_V8_BAND_CURVE, to 140, plus 10 for the full minute) and up to 50 more from the features
+ * only, their raw points (4 a full trail, 4 a sweet landing, 3 a clean speed zone, 3 a clean checkpoint,
+ * combo points up to FLIP_V8_COMBO_CAP) paid on a rising scale (FLIP_V8_SKILL_PAY).
+ *
+ * The guarantee (the arcade rule): every course carries exactly ten gold stars, four trails, eight sweet
+ * spots, two speed zones and three checkpoints (flipV8Opportunities), placed by the seed, all on one
+ * route the course builder proved lasts the minute (re-rolled from the seed until they fit), so a
+ * perfect run reaches 200 on every seed: 150 units on the base curve (140 + 10) and FLIP_V8_SKILL_FULL raw.
+ *
+ * Collision is the original 1-D rule (side, x-span, on the surface): the height, trails, zones and
+ * sweet spots never move a hazard.
+ */
+export const FLIP_REV_EXPAND = 8;
+export const FLIP_V8_WORLD_H = 730;
+/** The tunnel's middle line in the tall world; the cave's floor and ceiling sit half its height either side. */
+export const FLIP_V8_CY = 365;
+export const FLIP_V8_H_NORMAL = 260;
+export const FLIP_V8_H_TIGHT = 200;
+export const FLIP_V8_H_TALL = 340;
+const V8_HEIGHTS = [FLIP_V8_H_TIGHT, FLIP_V8_H_NORMAL, FLIP_V8_H_TALL] as const;
+/** A height change eases over this many px of tunnel. */
+export const FLIP_V8_RAMP = 160;
+const V8_SPEED_CAP = 2560;
+/** Speed zones: the run goes ZONE_NUM / ZONE_DEN as fast. */
+export const FLIP_V8_ZONE_NUM = 11;
+export const FLIP_V8_ZONE_DEN = 8;
+export const FLIP_V8_ZONE_TICKS = 5 * TICKS_PER_SECOND;
+export const FLIP_V8_CHECKPOINTS = [15, 30, 45].map((s) => s * TICKS_PER_SECOND);
+/** A saved crash: this many ticks of shield, and the survival count pauses this many ticks. */
+export const FLIP_V8_SHIELD_TICKS = 60;
+export const FLIP_V8_SAVE_PAUSE = 10 * TICKS_PER_SECOND;
+/** Double flip: the next flip begins within this many ticks of landing, with a hazard this close (px) ahead. */
+export const FLIP_V8_COMBO_TICKS = 8;
+export const FLIP_V8_COMBO_NEAR = 96;
+export const FLIP_V8_TRAILS = 4;
+export const FLIP_V8_TRAIL_STARS = 5;
+/** Trail stars sit at these points of their arc (per mille) and are taken within this share of the cave height. */
+const V8_TRAIL_AT = [150, 325, 500, 675, 850] as const;
+export const FLIP_V8_TRAIL_TOL = 230;
+export const FLIP_V8_TRAIL_R = 8;
+/** Moving spikes join the plain patterns from this tick. */
+const V8_MOVERS_FROM = 12 * TICKS_PER_SECOND;
+/** Raw skill points: a full trail, combo points (doubled in a speed zone, capped), a clean zone, a clean checkpoint; the paid total caps at 50. */
+export const FLIP_V8_TRAIL_POINTS = 4;
+export const FLIP_V8_COMBO_CAP = 6;
+export const FLIP_V8_ZONE_POINTS = 3;
+export const FLIP_V8_CP_POINTS = 3;
+export const FLIP_V8_FEATURE_CAP = 50;
+/**
+ * Sweet spots (the expansion's precision feature): FLIP_V8_SWEETS strips of roof, each FLIP_V8_SWEET_TICKS ticks of
+ * travel long, placed by the seed near these seconds (V8_SWEET_SECONDS) on one surface clear of hazards. Landing a
+ * flip with the runner's centre inside one (the tick the arc ends) is a sweet landing, worth FLIP_V8_SWEET_POINTS
+ * raw skill points, once per spot.
+ */
+export const FLIP_V8_SWEETS = 8;
+export const FLIP_V8_SWEET_TICKS = 1;
+export const FLIP_V8_SWEET_POINTS = 4;
+const V8_SWEET_SECONDS = [6.5, 13, 19.5, 26, 32.5, 39, 45.5, 52] as const;
+/**
+ * Readability (on screen only, Joe's decision of 26 Oct: nothing new drawn): flipRev 8 draws the runner
+ * FLIP_V8_RUNNER_X px from the left of the 390 px view (90 before; display only, the sim's collision is along x and
+ * never reads it), so the course is on screen FLIP_V8_READ_AHEAD px ahead of the runner. The builder places a gold star
+ * or sweet spot only where, V8_READ_TICKS after it comes on screen (a quick human reaction, 200 ms), a route still takes
+ * it from any settled runner.
+ */
+export const FLIP_V8_RUNNER_X = 50;
+export const FLIP_V8_READ_AHEAD = FLIP_WORLD_W - FLIP_V8_RUNNER_X;
+const V8_VIEW_AHEAD = FLIP_V8_READ_AHEAD;
+const V8_READ_TICKS = 12;
+/** The readability proof lets a player flip again this many ticks after landing (a quick double flip). */
+const V8_READ_LANDED = 6;
+/**
+ * The skill pay (a rising scale, as Breaker's BRK_V9_SKILL_PAY): the features' raw points (trails 4 each, sweet
+ * landings 4 each, clean zones 3 each, clean checkpoints 3 each, combo points up to FLIP_V8_COMBO_CAP) paid so a
+ * little feature play pays little and the full 50 needs every guaranteed item (FLIP_V8_SKILL_FULL = 63 raw: every
+ * trail, sweet spot, zone and checkpoint), or near it with combos on top. Fitted on the 60 tuning seeds
+ * (docs/expansions/x200-flip.md), with the base curve.
+ */
+export const FLIP_V8_SKILL_FULL = FLIP_V8_TRAILS * FLIP_V8_TRAIL_POINTS + FLIP_V8_SWEETS * FLIP_V8_SWEET_POINTS + 2 * FLIP_V8_ZONE_POINTS + 3 * FLIP_V8_CP_POINTS;
+export const FLIP_V8_SKILL_PAY = bandCurve([0, 12, 22, 53, 59, FLIP_V8_SKILL_FULL], [0, 3, 13, 21, 34, FLIP_V8_FEATURE_CAP]);
+/** The rev-8 survival curve: half seconds + 3 per gold star, to 140 (the full minute adds 10, the features up to 50). */
+export const FLIP_V8_BAND_CURVE = bandCurve([0, 40, 105, 130, 140, 146, 150], [0, 11, 47, 57, 70, 105, 140]);
+
+export interface FlipTrail {
+  /** Star centres (1/256 px) and heights (per mille of the cave: 0 the floor's runner line, 1000 the ceiling's). */
+  x: number[];
+  f: number[];
+  /** Launch point (1/256 px), its surface (the trail rises from the floor when 0) and the ticks it can be taken in. */
+  launch: number;
+  from: number;
+  t0: number;
+  t1: number;
+}
+
+/** The stored course's extra geometry, shared by every state of a run (never written after init). */
+export interface FlipV8Course {
+  /** Runner x (1/256 px) at every tick. */
+  xs: number[];
+  /** Height sections, flattened [x0, height px, …], x0 ascending. */
+  hts: number[];
+  /** Speed zones, flattened [first tick, end tick, …]. */
+  zones: number[];
+  trails: FlipTrail[];
+  /** Sweet spots (FLIP_V8_SWEETS on every course), in order along the run. */
+  sweets: FlipSweet[];
+}
+
+export function flipWorldHFor(rev?: number | null): number {
+  return rev === FLIP_REV_EXPAND ? FLIP_V8_WORLD_H : FLIP_WORLD_H;
+}
+export function flipWorldH(state: Pick<FlipState, "exp">): number {
+  return state.exp ? FLIP_V8_WORLD_H : FLIP_WORLD_H;
+}
+
+/** Cave height (px) at world x on a rev-8 course: its section, eased in over FLIP_V8_RAMP px. */
+export function flipV8HeightAt(course: Pick<FlipV8Course, "hts">, x: number): number {
+  const hts = course.hts;
+  let i = 0;
+  while (i + 2 < hts.length && hts[i + 2]! <= x) i += 2;
+  const h = hts[i + 1]!;
+  if (i === 0) return h;
+  const into = x - hts[i]!;
+  const ramp = FLIP_V8_RAMP * FP;
+  if (into >= ramp) return h;
+  const prev = hts[i - 1]!;
+  return prev + Math.trunc(((h - prev) * into) / ramp);
+}
+
+/** The ticks a flip takes when it leaves at cave height h (12 at the original 260). */
+export function flipV8Arc(h: number): number {
+  return clampInt(Math.trunc((h * FLIP_ARC_TICKS + 130) / 260), 9, 16);
+}
+
+export function flipV8InZone(course: Pick<FlipV8Course, "zones">, tick: number): boolean {
+  const z = course.zones;
+  for (let i = 0; i < z.length; i += 2) if (tick > z[i]! && tick <= z[i + 1]!) return true;
+  return false;
+}
+
+function v8Speed(tick: number): number {
+  return Math.min(V8_SPEED_CAP, SPEED_START + SPEED_STEP * Math.trunc(tick / SPEED_STEP_TICKS));
+}
+
+/** The base speed step (no zone) a rev-8 run is on at a tick (sounds and art). */
+export function flipV8BaseSpeed(tick: number): number {
+  return v8Speed(tick);
+}
+
+function v8Xs(zones: number[]): number[] {
+  const out = [0];
+  let x = 0;
+  for (let t = 1; t <= FLIP_RUN_TICKS; t++) {
+    const v = v8Speed(t);
+    x += flipV8InZone({ zones }, t) ? Math.trunc((v * FLIP_V8_ZONE_NUM) / FLIP_V8_ZONE_DEN) : v;
+    out.push(x);
+  }
+  return out;
+}
+
+/** A moving spike's slide (1/256 px) on a tick; 0 for every other hazard. */
+export function flipSegShift(seg: FlipSeg, tick: number): number {
+  if (!seg.amp || !seg.per) return 0;
+  const angle = ((seg.ph ?? 0) + Math.trunc((tick * WARP_ANGLE) / seg.per)) & (WARP_ANGLE - 1);
+  return Math.trunc((seg.amp * isin(angle)) / TRIG_ONE);
+}
+
+function v8Blocked(side: number, flipT: number, x: number, seg: FlipSeg, tick: number, half: number): boolean {
+  if (flipT !== 0 || side !== seg.side) return false;
+  const d = flipSegShift(seg, tick);
+  return x + half >= seg.x0 + d && x - half <= seg.x1 + d;
+}
+
+/** Integer smoothstep on per mille (the arc's ease, as the art draws it). */
+function smooth(p: number): number {
+  const q = clampInt(p, 0, 1000);
+  return Math.trunc((q * q * (3000 - 2 * q)) / 1000000);
+}
+
+/** Where the runner is across the cave this tick, per mille (0 standing on the floor, 1000 on the ceiling). */
+export function flipV8Frac(side: number, flipT: number, arcN: number): number {
+  if (flipT <= 0) return side === 1 ? 1000 : 0;
+  const up = smooth(Math.trunc(((arcN - flipT) * 1000) / arcN));
+  return side === 1 ? up : 1000 - up;
+}
+
+/** Trail star bits a runner takes on this tick. */
+function trailTake(trail: FlipTrail, x: number, frac: number, half: number, got: number): number {
+  const reach = half + FLIP_V8_TRAIL_R * FP;
+  for (let k = 0; k < FLIP_V8_TRAIL_STARS; k++) {
+    if (got & (1 << k)) continue;
+    if (Math.abs(x - trail.x[k]!) <= reach && Math.abs(frac - trail.f[k]!) <= FLIP_V8_TRAIL_TOL) got |= 1 << k;
+  }
+  return got;
+}
+
+/* Solver codes for rev 8: side | flipT << 1 | arcN << 6 | landed << 11 | crumble << 15 | star << 20 | trail bits << 21 | sweet << 26. */
+const pack8 = (side: number, flipT: number, arcN: number, landed: number, crumble = 0, got = 0, trail = 0, sweet = 0) =>
+  side | (flipT << 1) | (arcN << 6) | (landed << 11) | (crumble << 15) | (got << 20) | (trail << 21) | (sweet << 26);
+const STAR8 = 1 << 20;
+const TRAIL8 = 31 << 21;
+const SWEET8 = 1 << 26;
+const FULL_TRAIL = (1 << FLIP_V8_TRAIL_STARS) - 1;
+
+/** A sweet spot (flipRev 8): a strip of roof [x0, x1] (1/256 px, the runner's centre) on one surface. */
+export interface FlipSweet {
+  x0: number;
+  x1: number;
+  side: number;
+}
+
+/** A sweet landing: the tick a flip ends (flipT 1 → 0) with the runner's centre inside the strip on its surface. */
+export function flipSweetLanding(sweet: FlipSweet, side: number, wasFlipT: number, flipT: number, x: number): boolean {
+  return wasFlipT === 1 && flipT === 0 && side === sweet.side && x >= sweet.x0 && x <= sweet.x1;
+}
+
+function solverTick8(set: readonly number[], t: number, hazards: readonly FlipSeg[], course: FlipV8Course,
+  star?: { x: number; side: number }, trail?: FlipTrail, sweet?: FlipSweet, minLanded = SOLVER_LANDED): number[] {
+  const x = course.xs[t]!;
+  const half = RULES_V2.runnerHalf;
+  let onCrumble = false;
+  for (const seg of hazards) if (seg.kind === FLIP_CRUMBLE && x + half >= seg.x0 && x - half <= seg.x1) onCrumble = true;
+  const arcHere = flipV8Arc(flipV8HeightAt(course, x));
+  const seen = new Set<number>();
+  const out: number[] = [];
+  for (const code of set) {
+    const side = code & 1;
+    const flipT = (code >> 1) & 31;
+    const arcN = (code >> 6) & 31;
+    const landed = (code >> 11) & 15;
+    const crumble = onCrumble ? (code >> 15) & 31 : 0;
+    const got = (code >> 20) & 1;
+    const tbits = (code >> 21) & 31;
+    const sw = (code >> 26) & 1;
+    for (const tap of [false, true]) {
+      if (tap && (flipT > 0 || landed < minLanded)) continue;
+      let ns = side;
+      let nf = flipT;
+      let na = arcN;
+      if (nf > 0) nf -= 1;
+      else if (tap) {
+        ns ^= 1;
+        na = arcHere;
+        nf = na;
+      }
+      let c = crumble > 0 ? Math.min(CRUMBLE_CAP, crumble + 1) : 0;
+      let dead = false;
+      for (const seg of hazards) {
+        if (!v8Blocked(ns, nf, x, seg, t, half)) continue;
+        if (seg.kind !== FLIP_CRUMBLE) dead = true;
+        else if (c === 0) c = 1;
+        else if (c - 1 >= FLIP_CRUMBLE_TICKS) dead = true;
+        if (dead) break;
+      }
+      if (dead) continue;
+      const nl = nf > 0 ? 0 : Math.min(SOLVER_LANDED, landed + 1);
+      const taken = got || (star && nf === 0 && ns === star.side && Math.abs(x - star.x) <= half + FLIP_STAR_R * FP) ? 1 : 0;
+      const tb = trail ? trailTake(trail, x, flipV8Frac(ns, nf, na), half, tbits) : tbits;
+      const sweetTaken = sw || (sweet && flipSweetLanding(sweet, ns, flipT, nf, x)) ? 1 : 0;
+      const next = pack8(ns, nf, nf > 0 ? na : 0, nl, c, taken, tb, sweetTaken);
+      if (seen.has(next)) continue;
+      seen.add(next);
+      out.push(next);
+    }
+  }
+  return out;
+}
+
+function v8Reach(seg: FlipSeg): number {
+  return seg.amp ?? 0;
+}
+
+interface V8Built {
+  segs: FlipSeg[];
+  rng: number;
+  course: FlipV8Course;
+}
+
+function buildCourseV8(seed: number): V8Built {
+  let rng = seed | 0;
+  const draw = (bound: number) => {
+    const r = rngBelow(rng, bound);
+    rng = r.state;
+    return r.value;
+  };
+  const half = RULES_V2.runnerHalf;
+  // Speed zones, then the tunnel's x at every tick, then the height sections.
+  const z1 = (17 + draw(4)) * TICKS_PER_SECOND;
+  const z2 = (37 + draw(4)) * TICKS_PER_SECOND;
+  const zones = [z1, z1 + FLIP_V8_ZONE_TICKS, z2, z2 + FLIP_V8_ZONE_TICKS];
+  const xs = v8Xs(zones);
+  const hts = [0, FLIP_V8_H_NORMAL];
+  {
+    let prev = 1;
+    for (let t = 8 * TICKS_PER_SECOND; t < FLIP_RUN_TICKS; t += (5 + draw(4)) * TICKS_PER_SECOND) {
+      const pick = (prev + 1 + draw(2)) % 3;
+      hts.push(xs[t]!, V8_HEIGHTS[pick]!);
+      prev = pick;
+    }
+  }
+  const course: FlipV8Course = { xs, hts, zones, trails: [], sweets: [] };
+  const trailTicks = [7 + draw(2), 20 + draw(3), 33 + draw(3), 48 + draw(3)].map((s) => s * TICKS_PER_SECOND);
+  const X = xs;
+  const speedAt = (t: number) => X[Math.min(FLIP_RUN_TICKS, t + 1)]! - X[Math.min(FLIP_RUN_TICKS - 1, t)]!;
+  let frontier: number[] = [pack8(0, 0, 0, SOLVER_LANDED)];
+  let tick = 0;
+  const end = X[FLIP_RUN_TICKS]!;
+  const segs: FlipSeg[] = [];
+  let group = 0;
+  let groupsAfterTen = 0;
+  let decisionsAfterTen = 0;
+  let lastWasCrumble = false;
+  let trailIdx = 0;
+
+  const advance = (from: number[], t0: number, xEnd: number, hazards: readonly FlipSeg[]) => {
+    let set = from;
+    let t = t0;
+    const reach = hazards.reduce((m, seg) => Math.max(m, v8Reach(seg)), 0);
+    while (t < FLIP_RUN_TICKS && X[t]! - half <= xEnd + reach) {
+      t += 1;
+      set = solverTick8(set, t, hazards, course);
+      if (!set.length) break;
+    }
+    return { set, tick: t };
+  };
+
+  let x = X[CLEAR_TICKS]!;
+  let lastEnd = x;
+  while (x < end) {
+    const speed = speedAt(tick);
+    // A star trail: a clear stretch, a launch point and five stars on the arc from it.
+    // flipRev 8 (the guarantee): a trail that no route can take here is tried again after the next hazard, so
+    // every course carries all four (a course that can't is re-rolled by flipCourseV8).
+    if (trailIdx < trailTicks.length && tick + 30 >= trailTicks[trailIdx]!) {
+      const tL = tick + 50;
+      if (tL + 40 >= FLIP_RUN_TICKS) trailIdx += 1;
+      else {
+        const from = draw(2);
+        const arc = flipV8Arc(flipV8HeightAt(course, X[tL]!));
+        const tx: number[] = [];
+        const tf: number[] = [];
+        for (const p of V8_TRAIL_AT) {
+          tx.push(X[tL + Math.trunc((p * arc) / 1000)]!);
+          const up = smooth(p);
+          tf.push(from === 0 ? up : 1000 - up);
+        }
+        const reach = half + FLIP_V8_TRAIL_R * FP;
+        let t1 = tL;
+        while (t1 < FLIP_RUN_TICKS && X[t1]! - reach <= tx[FLIP_V8_TRAIL_STARS - 1]!) t1 += 1;
+        const trail: FlipTrail = { x: tx, f: tf, launch: X[tL]!, from, t0: tick + 1, t1 };
+        let set = frontier.map((code) => code & ~TRAIL8);
+        let t = tick;
+        while (t < t1 && set.length) {
+          t += 1;
+          set = solverTick8(set, t, [], course, undefined, trail);
+        }
+        const took = set.filter((code) => ((code >> 21) & 31) === FULL_TRAIL).map((code) => code & ~TRAIL8);
+        if (took.length) {
+          trailIdx += 1;
+          course.trails.push(trail);
+          frontier = took;
+          tick = t;
+          x = X[t]! + 20 * speed;
+          lastEnd = x;
+          continue;
+        }
+      }
+    }
+    const tight = x >= X[TIGHT_AFTER]!;
+    const budget = Math.max(speed * 4, speed * MAX_GAP_TICKS - (x - lastEnd) - speed * 2);
+    const gap = tight
+      ? Math.min(budget, speed * (16 + SOLVER_LANDED + draw(MAX_GAP_TICKS - 16 - SOLVER_LANDED + 1)))
+      : Math.trunc(((33 + draw(88)) * FP * speed) / SPEED_START);
+    const start = x + gap;
+    if (start >= end) break;
+    let accepted: FlipSeg[] = [];
+    let result: { set: number[]; tick: number } | null = null;
+    const afterTen = start >= X[10 * TICKS_PER_SECOND]!;
+    const requireDecision = afterTen && decisionsAfterTen * 100 < (groupsAfterTen + 1) * 75;
+    const crumbleOk = start >= X[FLIP_CRUMBLE_FROM]! && !lastWasCrumble && start - lastEnd >= 2 * half + 8 * speed;
+    const moverOk = start >= X[V8_MOVERS_FROM]!;
+    for (let attempt = 0; attempt < 48 && !result; attempt++) {
+      // Rev 8: moving spikes count as decisions too (the safe moment moves with them).
+      const decide = draw(4);
+      const pattern = requireDecision && attempt < 40 ? (decide === 3 ? 8 : 3 + decide) : draw(10);
+      const side = draw(2);
+      const len = Math.trunc(((40 + draw(120)) * FP * speed) / SPEED_START);
+      let trial: FlipSeg[];
+      const nextGroup = group + 1;
+      if (pattern >= 8) {
+        if (!moverOk) continue;
+        // A moving spike: it slides to and fro along its surface, so the safe moment moves with it.
+        const amp = (40 + draw(31)) * FP;
+        const per = 90 + draw(61);
+        const spikeLen = (30 + draw(24)) * FP;
+        trial = [{ x0: start + amp, x1: start + amp + spikeLen, side, kind: FLIP_SPIKE, group: nextGroup, decision: FLIP_DECISION_MOVER, amp, per, ph: draw(65536) }];
+      } else if (pattern >= 6) {
+        if (!crumbleOk) continue;
+        const crumbleLen = speed * (FLIP_CRUMBLE_TICKS + 18 + draw(30));
+        trial = [{ x0: start, x1: start + crumbleLen, side, kind: FLIP_CRUMBLE, group: nextGroup, decision: 0 }];
+      } else if (pattern === 3) {
+        const len1 = (30 + draw(40)) * FP;
+        const between = speed * (16 + SOLVER_LANDED + 4 + draw(12));
+        trial = [
+          { x0: start, x1: start + len1, side, kind: FLIP_OVERHANG, group: nextGroup, decision: FLIP_DECISION_OVERHANG },
+          { x0: start + len1 + between, x1: start + len1 + between + len1, side: side ^ 1, kind: FLIP_OVERHANG, group: nextGroup, decision: FLIP_DECISION_OVERHANG },
+        ];
+      } else if (pattern === 4) {
+        const spikeLen = (32 + draw(34)) * FP;
+        const between = speed * (25 + draw(16));
+        trial = [
+          { x0: start, x1: start + spikeLen, side, kind: FLIP_SPIKE, group: nextGroup, decision: FLIP_DECISION_PAIRED_SPIKES },
+          { x0: start + spikeLen + between, x1: start + spikeLen + between + spikeLen, side: side ^ 1, kind: FLIP_SPIKE, group: nextGroup, decision: FLIP_DECISION_PAIRED_SPIKES },
+        ];
+      } else if (pattern === 5) {
+        const gapLen = (55 + draw(45)) * FP;
+        const offset = speed * (16 + 8 + draw(12));
+        trial = [
+          { x0: start, x1: start + gapLen, side, kind: FLIP_GAP, group: nextGroup, decision: FLIP_DECISION_FALSE_GAP },
+          { x0: start + gapLen + offset, x1: start + gapLen + offset + 38 * FP, side: side ^ 1, kind: FLIP_SPIKE, group: nextGroup, decision: FLIP_DECISION_FALSE_GAP },
+        ];
+      } else {
+        trial = [{ x0: start, x1: start + len, side, kind: pattern === 2 ? FLIP_GAP : FLIP_SPIKE, group: nextGroup, decision: 0 }];
+      }
+      const last = trial[trial.length - 1]!;
+      if (last.x1 + v8Reach(last) >= end) continue;
+      const tried = advance(frontier, tick, last.x1, trial);
+      if (tried.set.length) {
+        accepted = trial;
+        result = tried;
+      }
+    }
+    if (!result) {
+      const stepTo = tight ? x + speed * 6 : start;
+      result = advance(frontier, tick, stepTo, []);
+      x = stepTo;
+    } else {
+      segs.push(...accepted);
+      group += 1;
+      lastWasCrumble = accepted[0]?.kind === FLIP_CRUMBLE;
+      if (afterTen) {
+        groupsAfterTen += 1;
+        if (accepted[0]?.decision) decisionsAfterTen += 1;
+      }
+      const last = accepted[accepted.length - 1]!;
+      x = last.x1 + v8Reach(last);
+      lastEnd = x;
+    }
+    frontier = result.set;
+    tick = result.tick;
+    if (tick >= FLIP_RUN_TICKS) break;
+  }
+  return { segs, rng, course };
+}
+
+/**
+ * Ten gold stars and FLIP_V8_SWEETS sweet spots that one route takes along with every trail star and lasts the
+ * minute (each nudged forward until a route takes it, in the order they come; stars and sweet spots clear of
+ * hazards, trails and the stretches a moving spike sweeps). Null if a placement fails (the course is re-rolled).
+ */
+function placeStarsV8(built: V8Built): { stars: FlipStar[]; sweets: FlipSweet[]; rng: number } | null {
+  const { segs, course } = built;
+  const X = course.xs;
+  let state = built.rng;
+  const draw = (bound: number) => {
+    const r = rngBelow(state, bound);
+    state = r.state;
+    return r.value;
+  };
+  const half = RULES_V2.runnerHalf;
+  const reach = half + FLIP_STAR_R * FP;
+  const near = (t: number) => {
+    const x = X[t]!;
+    return segs.filter((seg) => seg.x0 - v8Reach(seg) <= x + half + 64 * FP && seg.x1 + v8Reach(seg) >= x - half - 64 * FP);
+  };
+  const trailAt = (t: number) => course.trails.find((tr) => t >= tr.t0 && t <= tr.t1);
+  const clearSpan = (a: number, b: number, side: number) =>
+    !segs.some((seg) => seg.side === side && seg.x0 - v8Reach(seg) <= b + 8 * FP && seg.x1 + v8Reach(seg) >= a - 8 * FP) &&
+    !course.trails.some((tr) => X[tr.t0]! <= b + 8 * FP && X[tr.t1]! >= a - 8 * FP);
+  /** One tick of the route: a trail's stars are required by the tick after its last can be taken. */
+  const stepRoute = (set: number[], t: number, star?: { x: number; side: number }, sweet?: FlipSweet, minLanded = SOLVER_LANDED) => {
+    const trail = trailAt(t);
+    let out = solverTick8(set, t, near(t), course, star, trail, sweet, minLanded);
+    if (trail && t === trail.t1) out = out.filter((code) => ((code >> 21) & 31) === FULL_TRAIL).map((code) => code & ~TRAIL8);
+    return out;
+  };
+  /** The first tick whose x reaches `x`. */
+  const tickAt = (x: number) => {
+    let lo = 0;
+    let hi = FLIP_RUN_TICKS;
+    while (lo < hi) {
+      const mid = (lo + hi) >> 1;
+      if (X[mid]! < x) lo = mid + 1;
+      else hi = mid;
+    }
+    return lo;
+  };
+  const targets = [
+    ...STAR_SECONDS.map((sec) => ({ sec, sweet: false })),
+    ...V8_SWEET_SECONDS.map((sec) => ({ sec, sweet: true })),
+  ].sort((a, b) => a.sec - b.sec);
+  let set = [pack8(0, 0, 0, SOLVER_LANDED)];
+  let t = 0;
+  const stars: FlipStar[] = [];
+  const sweets: FlipSweet[] = [];
+  for (const target of targets) {
+    const at = X[Math.trunc(target.sec * TICKS_PER_SECOND)]!;
+    const firstSide = draw(2);
+    let placed = false;
+    for (let j = 0; j < 24 && !placed; j++) {
+      const x = at + j * 24 * FP;
+      // A sweet spot is FLIP_V8_SWEET_TICKS ticks of travel long where it lies.
+      const t0 = Math.min(FLIP_RUN_TICKS - FLIP_V8_SWEET_TICKS, tickAt(x));
+      const span = target.sweet ? { x0: x, x1: x + X[t0 + FLIP_V8_SWEET_TICKS]! - X[t0]! } : { x0: x, x1: x };
+      if (span.x1 + reach >= X[FLIP_RUN_TICKS - 60]!) break;
+      for (const side of [firstSide, firstSide ^ 1]) {
+        if (!clearSpan(span.x0 - reach, span.x1 + reach, side)) continue;
+        const bit = target.sweet ? SWEET8 : STAR8;
+        const sweet = target.sweet ? { x0: span.x0, x1: span.x1, side } : undefined;
+        const star = target.sweet ? undefined : { x, side };
+        // Readable in time (phase 1 of the 200 rule): once the item has been on screen a reaction time
+        // (V8_VIEW_AHEAD px ahead of the runner, then V8_READ_TICKS), every route situation that can still last
+        // past it must be able to take it, so a player who has not seen it yet never has to have planned for it.
+        {
+          const seenAt = tickAt(span.x0 - reach - V8_VIEW_AHEAD * FP);
+          let probe = set;
+          let pt = t;
+          let readable = true;
+          // From a settled runner (on either surface, free to flip), however it got there: the moment the item comes on
+          // screen, and again a reaction time later.
+          for (const at of [seenAt, seenAt + V8_READ_TICKS]) {
+            while (pt < at && X[pt + 1]! < span.x0 - reach && probe.length) {
+              pt += 1;
+              probe = stepRoute(probe, pt);
+            }
+            const from = pt;
+            const takes = (code: number) => {
+              let free = [code & ~bit];
+              let got = [code & ~bit];
+              let tt = from;
+              while (tt < FLIP_RUN_TICKS && X[tt]! <= span.x1 + reach && free.length) {
+                tt += 1;
+                free = stepRoute(free, tt, undefined, undefined, V8_READ_LANDED);
+                got = got.length ? stepRoute(got, tt, star, sweet, V8_READ_LANDED) : got;
+              }
+              return !free.length || got.some((c) => c & bit);
+            };
+            const settled = probe.filter((code) => ((code >> 1) & 31) === 0 && ((code >> 11) & 15) === SOLVER_LANDED);
+            if (!settled.every(takes)) readable = false;
+            if (!readable) break;
+          }
+          if (!readable) continue;
+        }
+        let trySet = set;
+        let tt = t;
+        while (tt < FLIP_RUN_TICKS && X[tt + 1]! < span.x0 - reach && trySet.length) {
+          tt += 1;
+          trySet = stepRoute(trySet, tt);
+        }
+        trySet = trySet.map((code) => code & ~bit);
+        while (tt < FLIP_RUN_TICKS && X[tt]! <= span.x1 + reach && trySet.length) {
+          tt += 1;
+          trySet = stepRoute(trySet, tt, star, sweet);
+        }
+        const took = trySet.filter((code) => code & bit);
+        if (!took.length) continue;
+        if (sweet) sweets.push(sweet);
+        else stars.push(star!);
+        set = took.map((code) => code & ~bit);
+        t = tt;
+        placed = true;
+        break;
+      }
+    }
+    if (!placed) return null;
+  }
+  while (t < FLIP_RUN_TICKS && set.length) {
+    t += 1;
+    set = stepRoute(set, t);
+  }
+  return set.length ? { stars, sweets, rng: state } : null;
+}
+
+export interface FlipCourseV8 {
+  segs: FlipSeg[];
+  rng: number;
+  stars: FlipStar[];
+  course: FlipV8Course;
+}
+
+const cacheV8 = new Map<number, FlipCourseV8>();
+/** Re-rolls a course may take before the full set of stars, trails and sweet spots fits (none needed one in 2,000 seeds tried). */
+const V8_ATTEMPTS = 40;
+
+/**
+ * The rev-8 course for a seed: hazards, four trails, ten gold stars and FLIP_V8_SWEETS sweet spots, every one of them
+ * on one route the builder proved lasts the minute; re-rolled from the seed until all of them fit, so every course
+ * offers exactly the same opportunities (flipV8Opportunities).
+ */
+export function flipCourseV8(seed: number): FlipCourseV8 {
+  const hit = cacheV8.get(seed | 0);
+  if (hit) return hit;
+  let out: FlipCourseV8 | null = null;
+  for (let attempt = 0; attempt < V8_ATTEMPTS && !out; attempt++) {
+    const built = buildCourseV8(attempt === 0 ? seed : (Math.imul(seed | 0, 0x9e3779b1) + attempt) | 0);
+    if (built.course.trails.length !== FLIP_V8_TRAILS) continue;
+    const placed = placeStarsV8(built);
+    if (placed) out = { segs: built.segs, rng: placed.rng, stars: placed.stars, course: { ...built.course, sweets: placed.sweets } };
+  }
+  if (!out) {
+    // Never reached on any seed checked (flip-x200-check); kept so a deal always has a course.
+    const built = buildCourseV8(seed);
+    out = { segs: built.segs, rng: built.rng, stars: [], course: { ...built.course, trails: [], sweets: [] } };
+  }
+  if (cacheV8.size > 16) cacheV8.clear();
+  cacheV8.set(seed | 0, out);
+  return out;
+}
+
+/** Rev 8 states carry the strict band mark for `acted` tracking; their score is flipV8Score's own. */
+const BAND_MARK_V8 = 3;
+
+function initV8(seed: number): FlipState {
+  const c = flipCourseV8(seed);
+  return {
+    ...initFrom(c),
+    rev: FLIP_REV,
+    stars: c.stars,
+    got: 0,
+    cracks: [],
+    tunec: 1,
+    band: BAND_MARK_V8,
+    acted: 0,
+    exp: 1,
+    v8: c.course,
+    arcN: 0,
+    land: 99,
+    chain: 0,
+    combos: 0,
+    comboPts: 0,
+    save: 0,
+    saves: 0,
+    inv: 0,
+    cpPassed: 0,
+    cleanCps: 0,
+    zoneSaves: 0,
+    zonesOk: 0,
+    trailGot: c.course.trails.map(() => 0),
+    pause: 0,
+    lost: 0,
+    sweetGot: 0,
+    sweetT: 0,
+  };
+}
+
+/** A hazard on either surface within reach of a double flip (under the runner or close ahead). */
+function hazardNear(s: FlipState, x: number, tick: number, half: number): boolean {
+  for (let i = s.cursor; i < s.segs.length; i++) {
+    const seg = s.segs[i]!;
+    const d = flipSegShift(seg, tick);
+    if (seg.x0 - v8Reach(seg) > x + half + FLIP_V8_COMBO_NEAR * FP) break;
+    if (seg.x1 + d >= x - half && seg.x0 + d <= x + half + FLIP_V8_COMBO_NEAR * FP) return true;
+  }
+  return false;
+}
+
+function stepV8(state: FlipState, input: ArcadeInputEvent | null): FlipState {
+  if (isOver(state)) return state;
+  const course = state.v8!;
+  const tick = state.tick + 1;
+  const s: FlipState = { ...state, tick };
+  const x = course.xs[tick]!;
+  const half = RULES_V2.runnerHalf;
+  const tap = input !== null && input.k === FLIP_INPUT_TAP;
+  const wasFlipT = s.flipT;
+  if (s.flipT > 0) {
+    s.flipT -= 1;
+    if (s.flipT === 0) s.land = 0;
+  } else if (tap) {
+    // Double flip: off again within FLIP_V8_COMBO_TICKS of landing, with a hazard close by.
+    if ((s.land ?? 99) <= FLIP_V8_COMBO_TICKS && hazardNear(s, x, tick, half)) {
+      s.chain = (s.chain ?? 0) + 1;
+      s.combos = (s.combos ?? 0) + 1;
+      s.comboPts = (s.comboPts ?? 0) + Math.min(3, s.chain) * (flipV8InZone(course, tick) ? 2 : 1);
+    } else s.chain = 0;
+    s.side ^= 1;
+    s.arcN = flipV8Arc(flipV8HeightAt(course, x));
+    s.flipT = s.arcN;
+  } else s.land = Math.min(99, (s.land ?? 99) + 1);
+  s.x = x;
+  let cursor = s.cursor;
+  while (cursor < s.segs.length && s.segs[cursor]!.x1 + v8Reach(s.segs[cursor]!) < s.x - half) cursor += 1;
+  s.cursor = cursor;
+  s.warpY = flipWarpAt(s, s.side, s.x, tick);
+  const shielded = (s.inv ?? 0) > 0;
+  if (shielded) s.inv = (s.inv ?? 0) - 1;
+  // After a save the survival count pauses (FLIP_V8_SAVE_PAUSE ticks), so lasting on never scores less.
+  if ((s.pause ?? 0) > 0) {
+    s.pause = (s.pause ?? 0) - 1;
+    s.lost = (s.lost ?? 0) + 1;
+  }
+  let hit = false;
+  for (let i = cursor; i < s.segs.length; i++) {
+    const seg = s.segs[i]!;
+    if (seg.x0 - v8Reach(seg) > s.x + half) break;
+    if (shielded || !v8Blocked(s.side, s.flipT, s.x, seg, tick, half)) continue;
+    if (seg.kind !== FLIP_CRUMBLE) {
+      hit = true;
+      continue;
+    }
+    const first = flipCrackTick(s, i);
+    if (first === null) s.cracks = [...(s.cracks ?? []), i, tick];
+    else if (tick - first >= FLIP_CRUMBLE_TICKS) hit = true;
+  }
+  if (s.stars) {
+    const reach = half + FLIP_STAR_R * FP;
+    let got = s.got ?? 0;
+    s.stars.forEach((star, i) => {
+      if (!(got & (1 << i)) && s.flipT === 0 && s.side === star.side && Math.abs(s.x - star.x) <= reach) got |= 1 << i;
+    });
+    s.got = got;
+  }
+  // A sweet landing: the arc ends with the runner's centre on a sweet spot (once per spot).
+  if (wasFlipT === 1 && s.flipT === 0) {
+    course.sweets.forEach((sweet, i) => {
+      if (!((s.sweetGot ?? 0) & (1 << i)) && flipSweetLanding(sweet, s.side, wasFlipT, s.flipT, s.x)) {
+        s.sweetGot = (s.sweetGot ?? 0) | (1 << i);
+        s.sweetT = tick;
+      }
+    });
+  }
+  course.trails.forEach((trail, i) => {
+    if (tick < trail.t0 || tick > trail.t1) return;
+    const was = s.trailGot![i]!;
+    const now = trailTake(trail, s.x, flipV8Frac(s.side, s.flipT, s.arcN ?? 0), half, was);
+    if (now !== was) s.trailGot = s.trailGot!.map((v, k) => (k === i ? now : v));
+  });
+  if (hit) {
+    if (s.save) {
+      // A checkpoint's save: a second of shield where it happened, the survival count paused for FLIP_V8_SAVE_PAUSE (10 s), the combo lost.
+      s.save = 0;
+      s.saves = (s.saves ?? 0) + 1;
+      s.inv = FLIP_V8_SHIELD_TICKS;
+      s.pause = FLIP_V8_SAVE_PAUSE;
+      s.chain = 0;
+    } else {
+      s.ended = 2;
+      s.endedTick = tick;
+      return s;
+    }
+  }
+  if (FLIP_V8_CHECKPOINTS.includes(tick)) {
+    s.cpPassed = (s.cpPassed ?? 0) + 1;
+    s.save = 1;
+    if (!s.saves) s.cleanCps = (s.cleanCps ?? 0) + 1;
+  }
+  const z = course.zones;
+  for (let i = 0; i < z.length; i += 2) {
+    if (tick === z[i]) s.zoneSaves = s.saves ?? 0;
+    if (tick === z[i + 1] && (s.saves ?? 0) === s.zoneSaves) s.zonesOk = (s.zonesOk ?? 0) + 1;
+  }
+  if (tick >= FLIP_RUN_TICKS) {
+    s.ended = 1;
+    s.endedTick = tick;
+  }
+  return s;
+}
+
+/** Trail stars taken, and full trails, on a rev-8 run. */
+export function flipTrailStars(state: Pick<FlipState, "trailGot">): { stars: number; full: number } {
+  let stars = 0;
+  let full = 0;
+  for (const bits of state.trailGot ?? []) {
+    for (let b = bits; b; b &= b - 1) stars += 1;
+    if (bits === FULL_TRAIL) full += 1;
+  }
+  return { stars, full };
+}
+
+/** Sweet landings on a rev-8 run. */
+export function flipSweetsTaken(state: Pick<FlipState, "sweetGot">): number {
+  let n = 0;
+  for (let b = state.sweetGot ?? 0; b; b &= b - 1) n += 1;
+  return n;
+}
+
+/**
+ * Rev 8's skill points: each feature's raw points (trails, sweet landings, combos, clean speed zones and clean
+ * checkpoints), their sum `raw`, and `total`, the raw sum paid on FLIP_V8_SKILL_PAY (0…50, the score's bonus).
+ */
+export function flipV8Features(state: FlipState): { trails: number; sweets: number; combo: number; zones: number; checkpoints: number; raw: number; total: number } {
+  const trails = FLIP_V8_TRAIL_POINTS * flipTrailStars(state).full;
+  const sweets = FLIP_V8_SWEET_POINTS * flipSweetsTaken(state);
+  const combo = Math.min(FLIP_V8_COMBO_CAP, state.comboPts ?? 0);
+  const zones = FLIP_V8_ZONE_POINTS * (state.zonesOk ?? 0);
+  const checkpoints = FLIP_V8_CP_POINTS * (state.cleanCps ?? 0);
+  const raw = trails + sweets + combo + zones + checkpoints;
+  return { trails, sweets, combo, zones, checkpoints, raw, total: Math.min(FLIP_V8_FEATURE_CAP, bandPoints(FLIP_V8_SKILL_PAY, raw)) };
+}
+
+/** What every rev-8 course offers, whatever the seed (the arcade rule's guaranteed opportunities). */
+export function flipV8Opportunities(state: Pick<FlipState, "stars" | "v8">): Record<string, number> {
+  const c = state.v8;
+  return {
+    goldStars: state.stars?.length ?? 0,
+    trails: c?.trails.length ?? 0,
+    trailStars: (c?.trails.length ?? 0) * FLIP_V8_TRAIL_STARS,
+    sweetSpots: c?.sweets.length ?? 0,
+    speedZones: (c?.zones.length ?? 0) / 2,
+    checkpoints: FLIP_V8_CHECKPOINTS.length,
+  };
+}
+
+/** Rev 8 survival units: half seconds lasted (the pauses after saves left out) and 3 per gold star. */
+export function flipV8Units(state: FlipState): number {
+  const alive = state.ended === 1 ? FLIP_RUN_TICKS : clampInt(state.tick, 0, FLIP_RUN_TICKS);
+  return Math.floor(Math.max(0, alive - (state.lost ?? 0)) / 30) + 3 * flipStarsTaken(state);
+}
+
+function flipV8Parts(state: FlipState): BandParts {
+  const units = flipV8Units(state);
+  const finished = state.ended === 1;
+  const f = flipV8Features(state);
+  const secs = ((state.ended === 1 ? FLIP_RUN_TICKS : state.tick) / 60).toFixed(1);
+  const saves = state.saves ? ` · ${state.saves} saved` : "";
+  const parts = [`${flipTrailStars(state).full} trails`, `${flipSweetsTaken(state)} sweet`, `combo ${f.combo}`, `${state.zonesOk ?? 0} zones`, `${state.cleanCps ?? 0} checkpoints`];
+  const bits = f.raw ? [`skill ${f.total} (${parts.join(", ")})`] : [];
+  return {
+    units,
+    points: bandPoints(FLIP_V8_BAND_CURVE, units),
+    bonus: (finished ? BAND_FINISH_BONUS : 0) + f.total,
+    penalty: 0,
+    finished,
+    text: `${secs} s · ${flipStarsTaken(state)} stars${saves}`,
+    bonusText: [finished ? "Lasted the minute" : "", ...bits].filter(Boolean).join(" · ") || "Bonus",
+  };
+}
+
+/** The rev-8 cap: Roofbound's round maximum (roundMax.ts). */
+const FLIP_V8_MAX = 200;
+
+function flipV8Score(state: FlipState): number {
+  return bandTotal(flipV8Parts(state), Boolean(state.acted), FLIP_V8_MAX);
+}
+
+/* Render geometry (art, effects and checks only; the sim never reads it). */
+
+/** A surface's unbent y (px) at world x: the original corridor's fixed lines, or rev 8's cave height about FLIP_V8_CY. */
+export function flipSurfaceBase(state: Pick<FlipState, "exp" | "v8">, side: number, worldX: number): number {
+  if (!state.exp || !state.v8) return side === 0 ? FLIP_FLOOR_Y : FLIP_CEIL_Y;
+  const h = flipV8HeightAt(state.v8, worldX);
+  return side === 0 ? FLIP_V8_CY + h / 2 : FLIP_V8_CY - h / 2;
+}
+
+/** The runner's drawn centre y (px, before the bend) on a side and arc timer; `lift` is half the runner box's height. */
+export function flipRunnerBaseY(state: Pick<FlipState, "exp" | "v8" | "x" | "arcN">, side: number, flipT: number, lift: number): number {
+  const fy = flipSurfaceBase(state, 0, state.x) - lift;
+  const cy = flipSurfaceBase(state, 1, state.x) + lift;
+  const target = side === 0 ? fy : cy;
+  if (flipT <= 0) return target;
+  const from = side === 0 ? cy : fy;
+  const n = state.exp ? Math.max(1, state.arcN || FLIP_ARC_TICKS) : FLIP_ARC_TICKS;
+  const f = 1 - Math.min(n, flipT) / n;
+  return from + (target - from) * f * f * (3 - 2 * f);
+}
+
+/** The runner's drawn centre (px) this tick, the bend included (effects and checks). */
+export function flipRunnerPoint(state: FlipState): { x: number; y: number } {
+  const lift = state.rev === FLIP_REV ? FLIP_RUNNER_H_PX_V2 / 2 : FLIP_RUNNER_H_PX / 2;
+  return { x: flipRunnerX(state), y: flipRunnerBaseY(state, state.side, state.flipT, lift) + state.warpY };
+}
+
+/** The runner's drawn x (px) in the view: 90, or FLIP_V8_RUNNER_X on flipRev 8 (display only). */
+export function flipRunnerX(state: Pick<FlipState, "exp">): number {
+  return state.exp ? FLIP_V8_RUNNER_X : 90;
+}
+
+export const flipExpandGame: ArcadeGame<FlipState, ArcadeInputEvent | null> = {
+  ...flipGame,
+  init: initV8,
+  step: bandStep(stepV8),
+};

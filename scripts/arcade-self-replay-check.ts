@@ -110,7 +110,7 @@ import "@/lib/duel/wordfallDict.server";
 
 import { BT_REV_BAND, BT_REV_TALL } from "@/lib/arcade/ballTrack";
 import { WAV_REV_BAND, WAV_REV_SHAPES, WAV_REV_TALL, WAV_REV_TUNEC } from "@/lib/arcade/wavefront";
-import { FLIP_REV_BAND, FLIP_REV_TUNEC } from "@/lib/arcade/flip";
+import { FLIP_REV_BAND, FLIP_REV_EXPAND, FLIP_REV_TUNEC } from "@/lib/arcade/flip";
 import { INK_REV_BAND, INK_REV_TUNEC } from "@/lib/arcade/inkBridge";
 import { MATCHUP_REV_BAND, MATCHUP_REV_PAR, MATCHUP_REV_WAIT } from "@/lib/arcade/matchup";
 import { BUB_REV_BAND, BUB_REV_TALL, BUB_REV_TORPEDO } from "@/lib/arcade/bubble";
@@ -622,6 +622,8 @@ const GAMES: Game[] = [
     encode: encodeSwingRun,
     replay: (seed: number, raw: string) => replaySwingRun(seed, raw, SWING_REV_EXPAND),
   },
+  // Roofbound's expansion (flipRev 8, docs/expansions/x200-flip.md), appended so every earlier entry keeps its index.
+  { key: "flip/x200", game: flipGameFor(FLIP_REV_EXPAND), checkpoint: flipCheckpoint, mode: "events", rate: 50, encode: encodeFlipRun, replay: (seed: number, raw: string) => replayFlipRun(seed, raw, FLIP_REV_EXPAND) },
 ];
 
 /** A random candidate event, often outside the declared range (a finger off the edge). */
