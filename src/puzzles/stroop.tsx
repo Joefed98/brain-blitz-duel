@@ -8,7 +8,8 @@ import { stroopFill } from "@/lib/arcade/arenaFills.renderer";
 import { ArrowPad } from "@/components/puzzles/GridDrag";
 import { clashTapPayload } from "@/components/puzzles/tapMapping";
 import { playTone } from "@/lib/sound";
-import { CLASH_QUEUE, CLASH_REV_DEPTH, CLASH_GOLD_STREAK, clashVariantOf, clashWorldHFor, CLASH_CHECKPOINT_INTERVAL, CLASH_DROP, CLASH_INPUT_LANE, CLASH_MOVE_LEFT, CLASH_MOVE_RIGHT, CLASH_WORLD_W, clashCheckpoint, type ClashState } from "@/lib/arcade/colourClash";
+import { dealtTopupRev } from "@/lib/duel/depthTopup";
+import { CLASH_QUEUE, CLASH_REV_DEPTH, CLASH_REV_TOPUP, CLASH_GOLD_STREAK, clashVariantOf, clashWorldHFor, CLASH_CHECKPOINT_INTERVAL, CLASH_DROP, CLASH_INPUT_LANE, CLASH_MOVE_LEFT, CLASH_MOVE_RIGHT, CLASH_WORLD_W, clashCheckpoint, type ClashState } from "@/lib/arcade/colourClash";
 import { encodeColourClashRun, replayColourClashRun } from "@/lib/duel/colourClash";
 import type { StroopPuzzleData } from "@/lib/duel/types";
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
@@ -85,5 +86,5 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
 /** clashRev 8: one note per lane (C, E, G, A), so a quick streak across the lanes plays a little pentatonic tune. */
 const LANE_NOTES = [523.25, 659.25, 783.99, 880] as const;
 
-export function buildStroop(): StroopPuzzleData { return { type: "stroop", seed: Math.floor(Math.random() * 0x7ffffffe) + 1, queue: CLASH_QUEUE, clashRev: CLASH_REV_DEPTH }; }
+export function buildStroop(): StroopPuzzleData { return { type: "stroop", seed: Math.floor(Math.random() * 0x7ffffffe) + 1, queue: CLASH_QUEUE, clashRev: dealtTopupRev(CLASH_REV_TOPUP, CLASH_REV_DEPTH) }; }
 export const stroopPuzzle: PuzzleDefinition = { key: "stroop", name: gameDisplayName("stroop"), category: "attention", timeLimitMs: 78_000, arcadeRun: true, generate: buildStroop, check: () => false, IntroExample, Stage, Reveal };

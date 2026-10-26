@@ -16,6 +16,7 @@
  * an Ascend tap on a number not on the board is kept as a wrong tap. Which taps
  * were made, and when, remain the phone's; what they earn is the server's.
  */
+import { dealtTopupRev } from "./depthTopup";
 import { watchLifeMs, watchStop } from "./stopWatch";
 import {
   NUMHUNT_MOVE_MS,
@@ -61,6 +62,12 @@ export const TAP_REV_ONE_CURVE = 4;
  * rev-3 finish (depth/ascend.ts). Every tapRev 4 rule (Flash's decoy cut) carries on.
  */
 export const TAP_REV_DEPTH = 5;
+/**
+ * The puzzle top-up (26 Oct 2026, docs/depth/topup-oct-2026.md): Flash and Bang On deal tapRev 6, the same tap logs,
+ * schedules and replay (every tapRev 4 rule carries on), their depth scoring retuned (depth/flash.ts, bangOn.ts) with
+ * a small partial credit so trying play never scores 0. Ascend stays on tapRev 5.
+ */
+export const TAP_REV_TOPUP = 6;
 
 let preDepthPin = false;
 /**
@@ -73,7 +80,7 @@ export function pinPreDepthTapRev(on: boolean): void {
 }
 /** The tapRev new puzzles of a tap-log game are dealt. */
 export function dealtTapRev(type: "reaction" | "stopwatch" | "numhunt"): number {
-  if (!preDepthPin) return TAP_REV_DEPTH;
+  if (!preDepthPin) return type === "numhunt" ? TAP_REV_DEPTH : dealtTopupRev(TAP_REV_TOPUP, TAP_REV_DEPTH);
   return type === "numhunt" ? TAP_REV : TAP_REV_ONE_CURVE;
 }
 /** Every tap-log answer starts with this, so a summary answer is never misread as taps. */
@@ -90,7 +97,7 @@ export const FLASH_FALSE_START_GAP_MS = 250;
 /** The stored tap revision (0 = unstamped). */
 export function tapRevOf(puzzle: unknown): number {
   const rev = (puzzle as { tapRev?: number } | null)?.tapRev;
-  return rev === TAP_REV || rev === TAP_REV_CARELESS || rev === TAP_REV_SPEED_TUNING || rev === TAP_REV_ONE_CURVE || rev === TAP_REV_DEPTH ? rev : 0;
+  return rev === TAP_REV || rev === TAP_REV_CARELESS || rev === TAP_REV_SPEED_TUNING || rev === TAP_REV_ONE_CURVE || rev === TAP_REV_DEPTH || rev === TAP_REV_TOPUP ? rev : 0;
 }
 
 export function usesTapLog(puzzle: unknown): boolean {

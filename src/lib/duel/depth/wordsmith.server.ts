@@ -16,7 +16,7 @@ export const wordsmithDepth: DepthGrader = {
     const points = typeof graded.extra?.["points"] === "number" ? (graded.extra["points"] as number) : 0;
     const words = Array.isArray(graded.extra?.["words"]) ? (graded.extra["words"] as string[]) : [];
     const pangram = words.some((word) => word.length >= puzzle.letters.length);
-    const wordScore = wordsmithV3Words(points);
+    const wordScore = wordsmithV3Words(points, puzzle.wordsmithRev ?? 0);
     const pangramBonus = pangram ? WORDSMITH_V3_PANGRAM_BONUS : 0;
     const score = Math.max(0, Math.min(DEPTH_MAX, wordScore + pangramBonus));
     return {
