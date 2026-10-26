@@ -774,8 +774,8 @@ export const HOVER_REV_EXPAND = 9;
 /** The parked, never-dealt expansion stamp: plays as hoverRev 7 (see HOVER_REV_EXPAND). */
 const HOVER_REV_PARKED = 8;
 export const HOVER_EXPAND_H = 727;
-/** hoverRev 9's first barrier: a warm-up gap this high (300 px; the course's first gaps are 150) round the start height. */
-export const HOVER_OPEN_H = 76_800;
+/** hoverRev 9's first barrier: a warm-up gap this high (400 px; the course's first gaps are 150) round the start height. */
+export const HOVER_OPEN_H = 102_400;
 /** A tight gate is 80 px high (the disc is 22 px across; the narrowest normal gap is 100 px). */
 export const HOVER_TIGHT_H = 20_480;
 /** Solid wall kept between a tight gate and the barrier's main gap, at least (fixed-point). */
@@ -1420,8 +1420,19 @@ export function hoverFeatureBonus(state: HoverState): number {
 }
 
 /** hoverRev 9 breakdown: the base on its curve, then the minute and the features as one bonus line. */
+/** hoverRev 9: true once the saucer has flown up to the first barrier (its nose at the warm-up gate). */
+export function hoverReachedFirst(state: HoverState): boolean {
+  const first = state.pillars[0];
+  return state.gates > 0 || (!!first && state.distance >= first.x0 - (HOVER_DISC_X + HOVER_DISC_R));
+}
+
+/** hoverRev 9's base units: barriers 3, gold stars 2, and 1 for flying up to the first barrier (so a run that tried never scores 0). */
+export function hoverExpandUnits(state: HoverState): number {
+  return 3 * Math.max(0, state.gates) + 2 * (state.stars ?? 0) + (hoverReachedFirst(state) ? 1 : 0);
+}
+
 export function hoverExpandParts(state: HoverState): BandParts {
-  const units = 3 * Math.max(0, state.gates) + 2 * (state.stars ?? 0);
+  const units = hoverExpandUnits(state);
   const finished = hoverSurvived(state);
   const totals = hoverFeatureTotals(state);
   const words = [

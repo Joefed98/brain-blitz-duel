@@ -75,6 +75,8 @@ import {
   hoverCentreY,
   hoverCheckpoint,
   hoverExpandParts,
+  hoverExpandUnits,
+  hoverReachedFirst,
   hoverFeatureBonus,
   hoverGameFor,
   hoverGapTop,
@@ -279,10 +281,10 @@ section("scoring and the ceiling");
   let rising = true;
   for (let u = 1; u <= HOVER_SKILL_RAW_MAX; u++) if (bandPoints(HOVER_SKILL_PAY, u) < bandPoints(HOVER_SKILL_PAY, u - 1)) rising = false;
   ok(rising && bandPoints(HOVER_SKILL_PAY, 15) <= 8 && bandPoints(HOVER_SKILL_PAY, 30) <= 26 && bandPoints(HOVER_SKILL_PAY, 55) <= 41, "the pay scale rises, light use pays little (15 raw → ≤ 8, 30 → ≤ 26) and the last 10 raw pay 9");
-  ok(bandPoints(HOVER_V9_BAND_CURVE, 3 * HOVER_REACHABLE_GATES + 2 * HOVER_STARS) + 10 === 150, "the base tops out at 150 (all barriers and stars, 140, plus the minute)");
+  ok(bandPoints(HOVER_V9_BAND_CURVE, 3 * HOVER_REACHABLE_GATES + 2 * HOVER_STARS + 1) + 10 === 150 && bandPoints(HOVER_V9_BAND_CURVE, 3 * HOVER_REACHABLE_GATES + 2 * HOVER_STARS) === 140, "the base tops out at 150 (all barriers and stars, 140, plus the minute)");
   // Ceiling from the counts: every course offers the same features (section 3), so a perfect run scores
   // base 150 + pay(full raw) 50, capped at 200, on every course.
-  const ceiling = Math.min(HOVER_V9_MAX, bandPoints(HOVER_V9_BAND_CURVE, 3 * HOVER_REACHABLE_GATES + 2 * HOVER_STARS) + 10 + bandPoints(HOVER_SKILL_PAY, HOVER_TIGHT_GATES * (HOVER_TIGHT_POINTS + HOVER_CENTRE_MAX_GRADE) + HOVER_CHAINS * HOVER_CHAIN_POINTS));
+  const ceiling = Math.min(HOVER_V9_MAX, bandPoints(HOVER_V9_BAND_CURVE, 3 * HOVER_REACHABLE_GATES + 2 * HOVER_STARS + 1) + 10 + bandPoints(HOVER_SKILL_PAY, HOVER_TIGHT_GATES * (HOVER_TIGHT_POINTS + HOVER_CENTRE_MAX_GRADE) + HOVER_CHAINS * HOVER_CHAIN_POINTS));
   ok(ceiling === 200, `perfect-play ceiling from the counts: ${ceiling}`);
   // Reachability: a stored witness run on every tuning and fresh seed reaches 200 through the server replay.
   const witness = existsSync(WITNESS_FIXTURE) ? (JSON.parse(gunzipSync(readFileSync(WITNESS_FIXTURE)).toString()) as HoverWitness[]) : [];
@@ -326,7 +328,7 @@ section("scoring and the ceiling");
     const score = game.score(state);
     maxSeen = Math.max(maxSeen, score);
     if (score !== Math.min(200, base + hoverFeatureBonus(state)) || base > 150 || hoverFeatureBonus(state) > 50 || score > 200) formula = false;
-    if (parts.points !== bandPoints(HOVER_V9_BAND_CURVE, 3 * state.gates + 2 * (state.stars ?? 0))) formula = false;
+    if (parts.points !== bandPoints(HOVER_V9_BAND_CURVE, hoverExpandUnits(state)) || hoverExpandUnits(state) !== 3 * state.gates + 2 * (state.stars ?? 0) + (hoverReachedFirst(state) ? 1 : 0)) formula = false;
     if (hoverFeatureBonus(state) !== bandPoints(HOVER_SKILL_PAY, hoverSkillRaw(state))) formula = false;
   }
   ok(formula && maxSeen <= 200, `60 runs: score = min(200, base ≤ 150 + paid skill ≤ 50) (max ${maxSeen})`);
@@ -334,6 +336,15 @@ section("scoring and the ceiling");
   {
     const { state } = play(roomSeed(3), []);
     ok(game.score(state) === 0, "no input scores 0");
+    // A run that tried (two taps) and crashed at the warm-up gate still scores: flying up to it counts 1.
+    {
+      const seed = roomSeed(5);
+      const s0 = game.init(seed) as HoverState;
+      let s1: HoverState = s0;
+      const tapAt = new Set([14, 48]);
+      while (!game.isOver(s1)) s1 = game.step(s1, tapAt.has(s1.tick + 1)) as HoverState;
+      ok(s1.crashed && s1.gates === 0 && hoverReachedFirst(s1) && game.score(s1) > 0, `two taps then nothing: ${s1.gates} barriers, reached the first ${hoverReachedFirst(s1)}, scores ${game.score(s1)}`);
+    }
     const scores: number[] = [];
     for (let n = 0; n < 60; n++) {
       const seed = roomSeed(n);
