@@ -11,7 +11,7 @@ import { gzipSync } from "node:zlib";
 import type { ArcadeInputEvent } from "../src/lib/arcade/engine";
 import { snipCheckpoint, snipGameFor, SNIP_CHECKPOINT_INTERVAL, SNIP_REV_EXPAND, type SnipCheckpoint } from "../src/lib/arcade/snip";
 import { encodeSnipRun, replaySnipRun } from "../src/lib/duel/snip";
-import { Human, TIERS } from "./arcade-skill-bands/human";
+import { ALL_LEVELS, Human } from "./arcade-skill-bands/human";
 import { bot } from "./arcade-skill-bands/bots/snip";
 import { roomSeed } from "./arcade-skill-bands/games";
 import { xPlannedRun, type XProofs } from "./snip-x200-lib";
@@ -32,7 +32,7 @@ export function encodeLog(seed: number, events: ArcadeInputEvent[]): string {
 
 if (import.meta.main) {
   const runs: { level: string; n: number; seed: number; score: number; raw: string }[] = [];
-  for (const tier of TIERS)
+  for (const tier of ALL_LEVELS.filter((l) => l !== "perfect"))
     for (const n of [0, 1]) {
       const seed = roomSeed(n);
       const { events } = bot({ game, seed, human: new Human("snip", seed, tier) } as never);

@@ -12,7 +12,7 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import { bandTotal } from "../src/lib/arcade/scoreBands";
 import { snipCourseParts, snipCourseUnits, snipFeatureBonus, snipGameFor, SNIP_COURSES, SNIP_REV_EXPAND, SNIP_X_MAX, type SnipState } from "../src/lib/arcade/snip";
-import { Human, type SkillTier } from "./arcade-skill-bands/human";
+import { Human, type SkillLevel as SkillTier } from "./arcade-skill-bands/human";
 import { bot, randomBot } from "./arcade-skill-bands/bots/snip";
 import { roomSeed } from "./arcade-skill-bands/games";
 
