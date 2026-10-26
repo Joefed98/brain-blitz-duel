@@ -1068,9 +1068,10 @@ function collideBalls(s: Pin4State): void {
 /**
  * pinRev 4's curve to 200 over table points (multiplier included): fitted on the skill-band bots
  * (scripts/e4-bands.ts) so each level up to great lands near its pinRev 3 score and only strong use of the
- * ramps, multiball, J-O-U-L-Z and the skill shot climbs to 190–200.
+ * ramps, multiball, J-O-U-L-Z and the skill shot climbs to 190–200. Merge retune (26 Oct 2026; the stamp is not
+ * live): the top flattened so near-perfect's top 10 % stays under about 185, on the tuning and 200 fresh seeds.
  */
-export const PIN_V4_BAND_CURVE = bandCurve([0, 14200, 25000, 37700, 52400, 86000, 120000], [0, 69, 98, 119, 165, 193, 200]);
+export const PIN_V4_BAND_CURVE = bandCurve([0, 14200, 25000, 37700, 52400, 105000, 140000], [0, 69, 98, 119, 168, 185, 200]);
 /** pinRev 4's top score (its ROUND_MAX line, roundMax.ts). */
 export const PIN_V4_MAX = 200;
 

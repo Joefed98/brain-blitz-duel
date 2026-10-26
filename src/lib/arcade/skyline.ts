@@ -744,11 +744,12 @@ export function skylineV7Units(state: SkylineState): { blocks: number; perfects:
 /**
  * skylineRev 7's curve to 200 over skylineV7Units: fitted (scripts/e4-fit.ts on the skill-band bots) so a
  * player of every level lands near today's rev-6 score for that level up to great, and only strong use of
- * the streak multiplier, gold blocks and milestones climbs to 190–200.
+ * the streak multiplier, gold blocks and milestones climbs to 190–200. Merge retune (26 Oct 2026; the stamp is not
+ * live): the top flattened so near-perfect's top 10 % stays under about 185, on the tuning and 200 fresh seeds.
  */
 /** skylineRev 7's top score (its ROUND_MAX line, roundMax.ts). */
 export const SKYLINE_V7_MAX = 200;
-export const SKYLINE_V7_BAND_CURVE = bandCurve([0, 129, 203, 326, 613, 833, 1050], [0, 72, 99, 118, 165, 190, 200]);
+export const SKYLINE_V7_BAND_CURVE = bandCurve([0, 129, 203, 326, 613, 900, 1100], [0, 72, 99, 118, 168, 185, 200]);
 
 export function skylineExpandParts(state: SkylineState): BandParts {
   const u = skylineV7Units(state);
