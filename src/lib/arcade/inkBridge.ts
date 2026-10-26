@@ -327,33 +327,33 @@ function capsuleContact(
   };
   // Already touching this capsule (e.g. just rolled off its end): only new entries collide.
   if (distanceSq(0) <= radius * radius) return null;
-  const candidates: number[] = [];
+  // The earliest candidate in [0, 1] that really touches (the same answer as trying them in ascending order;
+  // speed only: no candidate list, filtered and sorted copy).
+  let best: number | null = null;
+  const consider = (t: number) => {
+    if (t < 0 || t > 1 || (best !== null && t >= best)) return;
+    if (distanceSq(Math.min(1, t + 0.00001)) <= radius * radius + 1) best = t;
+  };
   // Infinite strip: solve the crossing of either parallel offset line.
   const cross0 = (x0 - ax) * sy - (y0 - ay) * sx;
   const crossV = dx * sy - dy * sx;
   if (crossV !== 0)
-    for (const sign of [-1, 1]) {
+    for (let sign = -1; sign <= 1; sign += 2) {
       const t = (sign * radius * Math.sqrt(lengthSq) - cross0) / crossV;
-      if (t >= 0 && t <= 1) candidates.push(t);
+      if (t >= 0 && t <= 1) consider(t);
     }
   // Rounded caps: solve the moving-point vs circle quadratic, including vertical lines.
-  for (const [cx, cy] of [
-    [ax, ay],
-    [bx, by],
-  ] as const) {
-    const ox = x0 - cx,
-      oy = y0 - cy,
-      a = dx * dx + dy * dy;
-    if (a === 0) continue;
-    const b = 2 * (ox * dx + oy * dy),
-      c = ox * ox + oy * oy - radius * radius;
-    const disc = b * b - 4 * a * c;
-    if (disc >= 0) candidates.push((-b - Math.sqrt(disc)) / (2 * a));
-  }
-  for (const t of candidates.filter((v) => v >= 0 && v <= 1).sort((a, b) => a - b)) {
-    if (distanceSq(Math.min(1, t + 0.00001)) <= radius * radius + 1) return t;
-  }
-  return null;
+  const a = dx * dx + dy * dy;
+  if (a !== 0)
+    for (let end = 0; end < 2; end++) {
+      const ox = x0 - (end === 0 ? ax : bx),
+        oy = y0 - (end === 0 ? ay : by);
+      const b = 2 * (ox * dx + oy * dy),
+        c = ox * ox + oy * oy - radius * radius;
+      const disc = b * b - 4 * a * c;
+      if (disc >= 0) consider((-b - Math.sqrt(disc)) / (2 * a));
+    }
+  return best;
 }
 
 /* =============================== Physics =============================== */
@@ -423,6 +423,8 @@ function clampOut(ball: InkBall, segs: readonly InkSeg[], prevX: number): boolea
   const r = (BALL_R - 1) * FP;
   for (let i = 0; i < segs.length; i++) {
     const seg = segs[i]!;
+    // Speed only: a ball further than r from the segment's box on either axis is further than r from it (skipped below too).
+    if ((ball.x < seg.x0 * FP - r && ball.x < seg.x1 * FP - r) || (ball.x > seg.x0 * FP + r && ball.x > seg.x1 * FP + r) || (ball.y < seg.y0 * FP - r && ball.y < seg.y1 * FP - r) || (ball.y > seg.y0 * FP + r && ball.y > seg.y1 * FP + r)) continue;
     const ax = seg.x0 * FP,
       ay = seg.y0 * FP,
       sx = (seg.x1 - seg.x0) * FP,
@@ -563,7 +565,6 @@ function moveBall(
 ): number {
   // inkRev 10 levels carry their own (gentler) gravity, so every caller plays them alike.
   if (lvl.gravity !== undefined) gravity = lvl.gravity;
-  const bucketX = inkBucketX(lvl, tick);
   const px = ball.x;
   const py = ball.y;
   const seg = ball.on >= 0 ? segs[ball.on] : undefined;
@@ -657,7 +658,12 @@ function moveBall(
       ball.vx = 0;
     }
   }
-  for (const b of lvl.blocks) if (touchesBlock(ball, b)) return 2;
+  // Speed only: a bird's box grown by the coin's radius must hold the coin's centre before touchesBlock can say yes.
+  const reachB = BALL_R * FP;
+  for (const b of lvl.blocks) {
+    if (ball.y < b.y * FP - reachB || ball.x < b.x0 * FP - reachB || ball.x > b.x1 * FP + reachB || ball.y > b.y * FP + (b.h ?? INK_BLOCK_H * FP) + reachB) continue;
+    if (touchesBlock(ball, b)) return 2;
+  }
   if (lvl.clouds) {
     const c = cloudBounce(ball, lvl.clouds, segs);
     if (c >= 0) {
@@ -665,11 +671,18 @@ function moveBall(
       return 0;
     }
   }
-  if (rimBounce(ball, bucketX, lvl.bucketY)) return 0;
-  // Into the bucket between its rim caps, or past the bottom.
-  if (py < lvl.bucketY * FP && ball.y >= lvl.bucketY * FP) {
-    const x = Math.trunc(ball.x / FP);
-    if (Math.abs(x - bucketX) <= INK_BUCKET_W / 2 - BALL_R) return 1;
+  // The pot only matters within its rim caps' reach of the rim's height, or crossing it (speed only: the pot's
+  // place is worked out just then; rimBounce strikes nothing further away).
+  const nearRim = Math.abs(ball.y - lvl.bucketY * FP) < (BALL_R + RIM_R) * FP;
+  const crossing = py < lvl.bucketY * FP && ball.y >= lvl.bucketY * FP;
+  if (nearRim || crossing) {
+    const bucketX = inkBucketX(lvl, tick);
+    if (nearRim && rimBounce(ball, bucketX, lvl.bucketY)) return 0;
+    // Into the bucket between its rim caps, or past the bottom.
+    if (crossing) {
+      const x = Math.trunc(ball.x / FP);
+      if (Math.abs(x - bucketX) <= INK_BUCKET_W / 2 - BALL_R) return 1;
+    }
   }
   if (ball.y > ((lvl.worldH ?? INK_WORLD_H) + BALL_R) * FP) return 2;
   return 0;
@@ -689,7 +702,8 @@ interface Pen {
   ink: number;
 }
 
-function addStroke(p: Pen, x: number, y: number, start: boolean): void {
+/** `inPlace` (strokeSegs' own pen only, speed only): add the segment to the pen's list rather than to a copy of it. */
+function addStroke(p: Pen, x: number, y: number, start: boolean, inPlace = false): void {
   if (start) {
     p.strokeStarts.push(p.segs.length);
     p.penX = x;
@@ -714,7 +728,9 @@ function addStroke(p: Pen, x: number, y: number, start: boolean): void {
   }
   if (p.segs.length >= MAX_SEGS) return;
   p.ink -= len * FP;
-  p.segs = [...p.segs, { x0: p.penX, y0: p.penY, x1: p.penX + dx, y1: p.penY + dy, len }];
+  const seg = { x0: p.penX, y0: p.penY, x1: p.penX + dx, y1: p.penY + dy, len };
+  if (inPlace) p.segs.push(seg);
+  else p.segs = [...p.segs, seg];
   p.penX += dx;
   p.penY += dy;
 }
@@ -739,8 +755,8 @@ function simulateDrop(
 function strokeSegs(ref: readonly number[][], ink: number): Pen {
   const pen: Pen = { segs: [], strokeStarts: [], penX: 0, penY: 0, penDown: 0, ink: ink * FP };
   for (const pts of ref) {
-    addStroke(pen, pts[0]!, pts[1]!, true);
-    for (let i = 2; i < pts.length; i += 2) addStroke(pen, pts[i]!, pts[i + 1]!, false);
+    addStroke(pen, pts[0]!, pts[1]!, true, true);
+    for (let i = 2; i < pts.length; i += 2) addStroke(pen, pts[i]!, pts[i + 1]!, false, true);
   }
   return pen;
 }
@@ -821,6 +837,9 @@ function findReference(
   // Screen candidates against the still bucket (one drop each); a sliding level then needs a
   // release, among 16 over one slide period, that lands with the bucket moving.
   const still: InkLevel = { ...lvl, slideAmp: 0 };
+  // inkRev 10 (speed only): the candidates through one waypoint share their first leg, and a drop that ends far
+  // from the second leg on the first one ends the same with it (stillDrop).
+  const shared = lvl.worldH !== undefined ? new Map<number, PrefixRun>() : null;
   for (const w of [null, ...way]) {
     for (const lift of lifts) {
       for (const ex of ends) {
@@ -830,7 +849,7 @@ function findReference(
         const ref = [pts];
         const pen = strokeSegs(ref, ink);
         if (pen.penDown === 0) continue; // ran out of ink
-        if (simulateDrop(still, pen.segs, 0, gravity) !== 1) continue;
+        if ((shared ? sharedDrop(still, pen.segs, gravity, shared) : simulateDrop(still, pen.segs, 0, gravity)) !== 1) continue;
         if (!lvl.slideAmp) return { ref, t0: 0 };
         const t0 = landingRelease(lvl, pen.segs, gravity);
         if (t0 >= 0) return { ref, t0 };
@@ -840,8 +859,171 @@ function findReference(
   return null;
 }
 
+/**
+ * A drop on a stroke's first segment alone, released on tick 0: its result, and the coin before every tick (and at
+ * the end) so a drop with more segments can pick it up from any tick.
+ */
+interface PrefixRun {
+  result: number;
+  balls: InkBall[];
+  /** The tick in which the coin rolled off the segment's far end (where a second leg would carry it on), or −1. */
+  offEnd: number;
+}
+
+/** Squared distance (1/256 px squared) from a point to a segment (px). */
+function segDistance2(seg: InkSeg, x: number, y: number): number {
+  const ax = seg.x0 * FP;
+  const ay = seg.y0 * FP;
+  const sx = (seg.x1 - seg.x0) * FP;
+  const sy = (seg.y1 - seg.y0) * FP;
+  const lengthSq = sx * sx + sy * sy;
+  const t = lengthSq > 0 ? Math.max(0, Math.min(1, ((x - ax) * sx + (y - ay) * sy) / lengthSq)) : 0;
+  const dx = x - ax - sx * t;
+  const dy = y - ay - sy * t;
+  return dx * dx + dy * dy;
+}
+
+/**
+ * A no-path drop picked up on tick `from` with the coin as `ball` and its earlier positions `before` (the coin before
+ * each tick so far): the rest of dropWithHit's run, the same rules in the same order (the stall rule reads those
+ * earlier positions as dropWithHit's ring would hold them).
+ */
+function dropFrom(lvl: InkLevel, segs: readonly InkSeg[], gravity: number, from: number, start: InkBall, before: readonly InkBall[], t0 = 0): number {
+  const ball: InkBall = { ...start };
+  const rx: number[] = new Array<number>(PROGRESS_WINDOW).fill(0);
+  const ry: number[] = new Array<number>(PROGRESS_WINDOW).fill(0);
+  for (let k = Math.max(0, from - PROGRESS_WINDOW + 1); k < from; k++) {
+    rx[k % PROGRESS_WINDOW] = before[k]!.x;
+    ry[k % PROGRESS_WINDOW] = before[k]!.y;
+  }
+  let floor = (lvl.bucketY + RIM_R + BALL_R + 2) * FP;
+  for (const sg of segs) floor = Math.max(floor, (Math.max(sg.y0, sg.y1) + BALL_R + 6) * FP);
+  for (const cl of lvl.clouds ?? []) floor = Math.max(floor, (cl.y + INK_CLOUD_R + BALL_R + 2) * FP);
+  for (let t = from; t < DROP_MAX; t++) {
+    rx[t % PROGRESS_WINDOW] = ball.x;
+    ry[t % PROGRESS_WINDOW] = ball.y;
+    const r = moveBall(ball, segs, lvl, t0 + t + 1, gravity);
+    if (r) return r;
+    if (ball.on < 0 && ball.vy >= 0 && ball.y > floor) return 2;
+    const o = (t + 1) % PROGRESS_WINDOW;
+    if (t >= PROGRESS_WINDOW - 1 && Math.hypot(ball.x - rx[o]!, ball.y - ry[o]!) <= PROGRESS_DISTANCE) return 2;
+  }
+  return 2;
+}
+
+/**
+ * inkRev 10 generation (speed only): the result of a still-pot drop from tick 0 on `segs`, sharing the run on their
+ * first segment alone. A later segment takes part in a tick only when the coin is within its reach (10 px) of it at
+ * some moment of that tick — every moment of a tick lies within 32 px of where the coin began it — or when the coin
+ * rolls off the first segment's far end onto it; until the first tick that begins within 50 px of a later segment or
+ * leaves that end, the drop runs exactly as on the first segment alone, so it is picked up from there (or, when that
+ * never happens, ends as that run ended).
+ */
+function sharedDrop(lvl: InkLevel, segs: readonly InkSeg[], gravity: number, cache: Map<number, PrefixRun>, m = 1, prefixKey?: number): number {
+  if (segs.length <= m || m < 1 || lvl.clouds?.length || lvl.wind) return simulateDrop(lvl, segs, 0, gravity);
+  const first = segs[0]!;
+  // The cache holds runs of one level and one family's prefixes: the caller names a longer prefix by its own key.
+  const key = prefixKey ?? (((first.x0 + 1024) * 4096 + first.y0 + 1024) * 4096 + first.x1 + 1024) * 4096 + first.y1 + 1024;
+  let run = cache.get(key);
+  if (!run) {
+    const prefix = segs.slice(0, m);
+    const ball = spoutBall(lvl);
+    const balls: InkBall[] = [];
+    let offEnd = -1;
+    let result = 2;
+    const rx: number[] = new Array<number>(PROGRESS_WINDOW).fill(0);
+    const ry: number[] = new Array<number>(PROGRESS_WINDOW).fill(0);
+    for (let t = 0; t < DROP_MAX; t++) {
+      balls.push({ ...ball });
+      rx[t % PROGRESS_WINDOW] = ball.x;
+      ry[t % PROGRESS_WINDOW] = ball.y;
+      const wasOn = ball.on;
+      const r = moveBall(ball, prefix, lvl, t + 1, gravity);
+      if (offEnd < 0 && wasOn === m - 1 && ball.on < 0 && ball.u !== 0) offEnd = t;
+      if (r) {
+        result = r;
+        break;
+      }
+      const o = (t + 1) % PROGRESS_WINDOW;
+      if (t >= PROGRESS_WINDOW - 1 && Math.hypot(ball.x - rx[o]!, ball.y - ry[o]!) <= PROGRESS_DISTANCE) break;
+    }
+    balls.push({ ...ball });
+    run = { result, balls, offEnd };
+    cache.set(key, run);
+  }
+  const far = (50 * FP) ** 2;
+  // The first tick that may differ: one that begins near a later segment, or the one rolling off the far end.
+  // (balls ends with the coin after the run's last tick, which began far enough already when the run ended early.)
+  const last = run.offEnd >= 0 ? run.offEnd : run.balls.length - 1;
+  // The later segments' box grown by 50 px: a coin outside it is further than 50 px from all of them.
+  let loX = Infinity,
+    hiX = -Infinity,
+    loY = Infinity,
+    hiY = -Infinity;
+  for (let j = m; j < segs.length; j++) {
+    const sg = segs[j]!;
+    loX = Math.min(loX, sg.x0 * FP, sg.x1 * FP);
+    hiX = Math.max(hiX, sg.x0 * FP, sg.x1 * FP);
+    loY = Math.min(loY, sg.y0 * FP, sg.y1 * FP);
+    hiY = Math.max(hiY, sg.y0 * FP, sg.y1 * FP);
+  }
+  loX -= 50 * FP;
+  hiX += 50 * FP;
+  loY -= 50 * FP;
+  hiY += 50 * FP;
+  for (let i = 0; i < last; i++) {
+    const b = run.balls[i]!;
+    if (b.x < loX || b.x > hiX || b.y < loY || b.y > hiY) continue;
+    for (let j = m; j < segs.length; j++) if (segDistance2(segs[j]!, b.x, b.y) <= far) return dropFrom(lvl, segs, gravity, i, b, run.balls);
+  }
+  if (run.offEnd >= 0) return dropFrom(lvl, segs, gravity, run.offEnd, run.balls[run.offEnd]!, run.balls);
+  return run.result;
+}
+
+/**
+ * inkRev 10 (speed only): landingRelease on a moving pot. The pot is the only thing that moves, and the coin meets it
+ * only within 11 px of its rim (the rim caps' reach) or crossing its rim's height, so every release plays the same
+ * ticks as the still pot until the first tick that begins within 45 px of the rim's height (a tick's travel and
+ * settling stay under 32 px); each of the 16 releases is picked up from there with the pot moving.
+ */
+function movingRelease(lvl: InkLevel, segs: readonly InkSeg[], gravity: number): number {
+  const still: InkLevel = { ...lvl, slideAmp: 0 };
+  const ball = spoutBall(still);
+  const balls: InkBall[] = [];
+  const near = (lvl.bucketY - 45) * FP;
+  let from = -1;
+  let result = 2;
+  const rx: number[] = new Array<number>(PROGRESS_WINDOW).fill(0);
+  const ry: number[] = new Array<number>(PROGRESS_WINDOW).fill(0);
+  for (let t = 0; t < DROP_MAX; t++) {
+    balls.push({ ...ball });
+    if (ball.y >= near) {
+      from = t;
+      break;
+    }
+    rx[t % PROGRESS_WINDOW] = ball.x;
+    ry[t % PROGRESS_WINDOW] = ball.y;
+    const r = moveBall(ball, segs, still, t + 1, gravity);
+    if (r) {
+      result = r;
+      break;
+    }
+    const o = (t + 1) % PROGRESS_WINDOW;
+    if (t >= PROGRESS_WINDOW - 1 && Math.hypot(ball.x - rx[o]!, ball.y - ry[o]!) <= PROGRESS_DISTANCE) break;
+  }
+  const tries = 16;
+  for (let k = 0; k < tries; k++) {
+    const t0 = Math.trunc((k * lvl.slidePeriod) / tries);
+    // Ended before nearing the pot: every release ends the same way.
+    const r = from < 0 ? result : dropFrom(lvl, segs, gravity, from, balls[from]!, balls, t0);
+    if (r === 1) return t0;
+  }
+  return -1;
+}
+
 /** First of 16 evenly spaced release ticks over one slide period that lands; −1 if none. */
 function landingRelease(lvl: InkLevel, segs: readonly InkSeg[], gravity = GRAVITY): number {
+  if (lvl.worldH !== undefined && lvl.slideAmp) return movingRelease(lvl, segs, gravity);
   const tries = lvl.slideAmp ? 16 : 1;
   for (let k = 0; k < tries; k++) {
     const t0 = Math.trunc((k * lvl.slidePeriod) / tries);
@@ -853,6 +1035,34 @@ function landingRelease(lvl: InkLevel, segs: readonly InkSeg[], gravity = GRAVIT
 /** Does any release over one slide period land with no lines? */
 function landsUnaided(lvl: InkLevel, gravity = GRAVITY): boolean {
   return landingRelease(lvl, [], gravity) >= 0;
+}
+
+/** inkRev 10 (speed only): simulateStaged's drop on fixed lines, the coin before every tick, and how it ended. */
+function ballsOf(lvl: InkLevel, segs: readonly InkSeg[], gravity: number): { balls: InkBall[]; result: number } {
+  const ball = spoutBall(lvl);
+  const balls: InkBall[] = [];
+  for (let t = 0; t < DROP_MAX; t++) {
+    balls.push({ ...ball });
+    const r = moveBall(ball, segs, lvl, t + 1, gravity);
+    if (r) return { balls, result: r };
+  }
+  return { balls, result: 2 };
+}
+
+/**
+ * inkRev 10 (speed only): simulateStaged with two stages, the first line set until tick `at` and `segs` from it,
+ * picked up from the first set's own drop (`pre`): exactly the same ticks, run from the coin as tick `at` began.
+ */
+function stagedFrom(lvl: InkLevel, segs: readonly InkSeg[], gravity: number, at: number, pre: { balls: InkBall[]; result: number }): number {
+  // simulateStaged's loop index t plays tick t + 1; the later set first plays tick `at` (index at − 1).
+  const from = Math.max(0, at - 1);
+  if (from >= pre.balls.length) return pre.result;
+  const ball: InkBall = { ...pre.balls[from]! };
+  for (let t = from; t < DROP_MAX; t++) {
+    const r = moveBall(ball, segs, lvl, t + 1, gravity);
+    if (r) return r;
+  }
+  return 2;
 }
 
 /** Runs a drop whose line set changes mid-flight: `stages` is sorted by tick, stages[0].tick === 0. */
@@ -956,6 +1166,9 @@ function findLiveReference(
     const remaining = ink * FP - used1; // full live budget minus the capped pre-release line
     if (remaining < FP * 8) continue;
     const trace = traceDrop(lvl, pen1.segs, gravity);
+    // inkRev 10 (speed only): the pre-release line's own drop, the coin before every tick, so each candidate's
+    // staged drop is picked up on the tick its live stroke turns solid (the ticks before it are this drop's).
+    const preRun = lvl.worldH !== undefined ? ballsOf(lvl, pen1.segs, gravity) : null;
     let drawTick = -1;
     for (let t = 1; t < trace.length; t++) {
       if (trace[t - 1]!.on === 0 && trace[t]!.on === -1) {
@@ -1000,14 +1213,16 @@ function findLiveReference(
         }
         if (!safe) continue;
         const actTick = cat.t + 2;
-        const result = simulateStaged(
-          lvl,
-          [
-            { tick: 0, segs: pen1.segs },
-            { tick: actTick, segs: [...pen1.segs, ...pen2.segs] },
-          ],
-          gravity,
-        );
+        const result = preRun
+          ? stagedFrom(lvl, [...pen1.segs, ...pen2.segs], gravity, actTick, preRun)
+          : simulateStaged(
+              lvl,
+              [
+                { tick: 0, segs: pen1.segs },
+                { tick: actTick, segs: [...pen1.segs, ...pen2.segs] },
+              ],
+              gravity,
+            );
         if (result !== 1) continue;
         const preAlone = simulateDrop(lvl, pen1.segs, 0, gravity) === 1;
         const candidate = { ref: ref1, t0: 0, liveRef: [{ tick: cat.t, pts: ref2[0]! }], preAlone };
@@ -1292,25 +1507,90 @@ function dropWithHit(
   path?: { x: number; y: number }[],
   gravity = GRAVITY,
 ): { result: number; hitAt: number } {
-  const ball = spoutBall(lvl);
-  const hit = { cloud: -1 };
-  let hitAt = -1;
+  return dropRun(lvl, segs, t0, path, gravity, 0, spoutBall(lvl), NO_BALLS, -1);
+}
+const NO_BALLS: readonly InkBall[] = [];
+
+/**
+ * dropWithHit's drop picked up on tick `from` (speed only): the coin as `start`, its positions before each earlier
+ * tick in `before`, and the first cloud bounce so far `hitAt0`; from 0 with the spout's coin it is the whole drop.
+ * Every later tick runs exactly as dropWithHit's would.
+ */
+function dropRun(
+  lvl: InkLevel,
+  segs: readonly InkSeg[],
+  t0: number,
+  path: { x: number; y: number }[] | undefined,
+  gravity: number,
+  from: number,
+  start: InkBall,
+  before: readonly InkBall[],
+  hitAt0: number,
+): { result: number; hitAt: number } {
+  const ball: InkBall = { ...start };
+  const hit = { cloud: hitAt0 >= 0 ? 0 : -1 };
+  let hitAt = hitAt0;
   // The step's stall rule too (a coin that moves 6 px or less over PROGRESS_WINDOW ticks has failed), so a coin
   // resting on a line fails here when it would in play, without running out the clock.
   const rx: number[] = new Array<number>(PROGRESS_WINDOW).fill(0);
   const ry: number[] = new Array<number>(PROGRESS_WINDOW).fill(0);
-  for (let t = 0; t < DROP_MAX; t++) {
+  for (let k = Math.max(0, from - PROGRESS_WINDOW + 1); k < from; k++) {
+    rx[k % PROGRESS_WINDOW] = before[k]!.x;
+    ry[k % PROGRESS_WINDOW] = before[k]!.y;
+  }
+  // A coin in the air moving down below every line, the pot's rim and every cloud can only fall out of the world
+  // (gravity only adds downward speed, and nothing else it can meet sends it up), so the drop has failed there:
+  // without a path to record, it ends at once (speed only: the same result and cloud tick as running it out).
+  let floor = (lvl.bucketY + RIM_R + BALL_R + 2) * FP;
+  if (!path) {
+    for (const sg of segs) floor = Math.max(floor, (Math.max(sg.y0, sg.y1) + BALL_R + 6) * FP);
+    for (const cl of lvl.clouds ?? []) floor = Math.max(floor, (cl.y + INK_CLOUD_R + BALL_R + 2) * FP);
+  }
+  for (let t = from; t < DROP_MAX; t++) {
     rx[t % PROGRESS_WINDOW] = ball.x;
     ry[t % PROGRESS_WINDOW] = ball.y;
     const r = moveBall(ball, segs, lvl, t0 + t + 1, gravity, hit);
     if (hit.cloud >= 0 && hitAt < 0) hitAt = t;
     path?.push({ x: ball.x, y: ball.y });
     if (r) return { result: r, hitAt };
+    if (!path && ball.on < 0 && ball.vy >= 0 && ball.y > floor) return { result: 2, hitAt };
     // The oldest of the last PROGRESS_WINDOW positions (the step's positions[0]).
     const o = (t + 1) % PROGRESS_WINDOW;
     if (t >= PROGRESS_WINDOW - 1 && Math.hypot(ball.x - rx[o]!, ball.y - ry[o]!) <= PROGRESS_DISTANCE) return { result: 2, hitAt };
   }
   return { result: 2, hitAt };
+}
+
+/**
+ * The still pot's drop up to the first tick that begins within 45 px of the rim's height (speed only): until then a
+ * moving pot's drop from any release plays the same ticks (the pot is the only thing that moves, and the coin meets
+ * it only within 11 px of the rim's height or crossing it; a tick's travel and settling stay under 32 px). `from` is
+ * that tick (−1 when the drop ended before it, as `ended`), with the coin before every tick, the path and the first
+ * cloud bounce so far.
+ */
+function stillPrefix(lvl: InkLevel, segs: readonly InkSeg[], gravity: number): { from: number; balls: InkBall[]; path: Pt[]; hitAt: number; ended: { result: number; hitAt: number } } {
+  const still: InkLevel = { ...lvl, slideAmp: 0 };
+  const ball = spoutBall(still);
+  const balls: InkBall[] = [];
+  const path: Pt[] = [];
+  const hit = { cloud: -1 };
+  let hitAt = -1;
+  const near = (lvl.bucketY - 45) * FP;
+  const rx: number[] = new Array<number>(PROGRESS_WINDOW).fill(0);
+  const ry: number[] = new Array<number>(PROGRESS_WINDOW).fill(0);
+  for (let t = 0; t < DROP_MAX; t++) {
+    balls.push({ ...ball });
+    if (ball.y >= near) return { from: t, balls, path, hitAt, ended: { result: 2, hitAt } };
+    rx[t % PROGRESS_WINDOW] = ball.x;
+    ry[t % PROGRESS_WINDOW] = ball.y;
+    const r = moveBall(ball, segs, still, t + 1, gravity, hit);
+    if (hit.cloud >= 0 && hitAt < 0) hitAt = t;
+    path.push({ x: ball.x, y: ball.y });
+    if (r) return { from: -1, balls, path, hitAt, ended: { result: r, hitAt } };
+    const o = (t + 1) % PROGRESS_WINDOW;
+    if (t >= PROGRESS_WINDOW - 1 && Math.hypot(ball.x - rx[o]!, ball.y - ry[o]!) <= PROGRESS_DISTANCE) return { from: -1, balls, path, hitAt, ended: { result: 2, hitAt } };
+  }
+  return { from: -1, balls, path, hitAt, ended: { result: 2, hitAt } };
 }
 
 /** Squared distance (px²) from a point to a cloud's core segment. */
@@ -1525,6 +1805,25 @@ export function inkSteep(pts: readonly number[]): boolean {
   return false;
 }
 
+/**
+ * Speed only: how many of a phone-drawn waypoint line's leading segments it shares with every line from the same
+ * start through the same waypoint (its first leg's points as inkPhoneLine sends them, up to the corner); 0 when the
+ * line has no waypoint.
+ */
+function sharedPrefix(pts: readonly number[]): number {
+  if (pts.length < 6 || [pts[0]!, pts[2]!].some((x) => x < 0 || x >= 512) || [pts[1]!, pts[3]!].some((y) => y < 0 || y >= 1024)) return 0;
+  const full = inkPhoneLine(pts);
+  const leg = inkPhoneLine(pts.slice(0, 4));
+  let c = 0;
+  while (c + 1 < leg.length && c + 1 < full.length && leg[c] === full[c] && leg[c + 1] === full[c + 1]) c += 2;
+  return Math.max(0, c / 2 - 1);
+}
+/** The cache key of a waypoint line's shared prefix: its start, its waypoint and the prefix's length. */
+function prefixKey(pts: readonly number[], m: number): number {
+  // Every coordinate is inside the world (x under 512, y under 1024): 46 bits, exact in a double.
+  return (((pts[0]! * 1024 + pts[1]!) * 512 + pts[2]!) * 1024 + pts[3]!) * 256 + m;
+}
+
 /** A line set as a phone sends it (inkPhoneLine on every stroke), within `ink`. */
 function phoneSegs(ref: readonly number[][], ink: number): Pen {
   return strokeSegs(ref.map(inkPhoneLine), ink);
@@ -1542,12 +1841,19 @@ function passes(path: readonly Pt[], p: Pt, r = INK_STAR_R): boolean {
  */
 function steadyRelease(lvl: InkLevel, segs: readonly InkSeg[], need: (path: Pt[], hitAt: number) => boolean): number {
   const P = Math.max(1, lvl.slidePeriod);
-  const ok = (t: number) => {
+  if (!lvl.slideAmp) {
     const path: Pt[] = [];
-    const d = dropWithHit(lvl, segs, ((t % P) + P) % P, path);
+    const d = dropWithHit(lvl, segs, 0, path);
+    return d.result === 1 && need(path, d.hitAt) ? 0 : -1;
+  }
+  // Every release plays the still pot's ticks until the coin nears the rim (speed only; stillPrefix).
+  const pre = stillPrefix(lvl, segs, GRAVITY);
+  const ok = (t: number) => {
+    if (pre.from < 0) return pre.ended.result === 1 && need(pre.path, pre.ended.hitAt);
+    const path = pre.path.slice();
+    const d = dropRun(lvl, segs, ((t % P) + P) % P, path, GRAVITY, pre.from, pre.balls[pre.from]!, pre.balls, pre.hitAt);
     return d.result === 1 && need(path, d.hitAt);
   };
-  if (!lvl.slideAmp) return ok(0) ? 0 : -1;
   const N = 16;
   const at = (k: number) => Math.trunc((k * P) / N);
   const good = Array.from({ length: N }, (_, k) => ok(at(k)));
@@ -1618,10 +1924,13 @@ function steadyOwn(lvl: InkLevel, ink: number): { ref: number[][]; t0: number } 
 function steadyReference(lvl: InkLevel, ink: number, ownOnly = false, gentle = false): { ref: number[][]; t0: number } | null {
   const clear = (_: Pt[], hitAt: number) => hitAt < 0;
   const still: InkLevel = { ...lvl, slideAmp: 0 };
-  const tryRef = (ref: number[][]): { ref: number[][]; t0: number } | null => {
+  // Speed only: the family's lines through one waypoint share their first leg (sharedPrefix, sharedDrop).
+  const shared = new Map<number, PrefixRun>();
+  const tryRef = (ref: number[][], family = false): { ref: number[][]; t0: number } | null => {
     const pen = phoneSegs(ref, ink);
     if (pen.penDown === 0) return null;
-    if (dropWithHit(still, pen.segs).result !== 1) return null;
+    const m = family ? sharedPrefix(ref[0]!) : 0;
+    if ((m > 0 ? sharedDrop(still, pen.segs, GRAVITY, shared, m, prefixKey(ref[0]!, m)) : dropWithHit(still, pen.segs).result) !== 1) return null;
     const t0 = steadyRelease(lvl, pen.segs, clear);
     if (t0 < 0 || !lineHolds(lvl, ref, t0, ink, clear)) return null;
     // The warm-up level (gentle): never near-vertical, and it still holds moved 6 px either way.
@@ -1643,7 +1952,7 @@ function steadyReference(lvl: InkLevel, ink: number, ownOnly = false, gentle = f
         const ey = lvl.bucketY - lift;
         if (w && (w[0] < 4 || w[0] > INK_WORLD_W - 4 || w[1] >= ey - 10)) continue;
         if (++tried > 40) return null;
-        const got = tryRef([w ? [sx, sy, w[0], w[1], ex, ey] : [sx, sy, ex, ey]]);
+        const got = tryRef([w ? [sx, sy, w[0], w[1], ex, ey] : [sx, sy, ex, ey]], true);
         if (got) return got;
       }
   return null;
@@ -1730,12 +2039,16 @@ function plainBonus(lvl: InkLevel, ink: number, draw: Draw, route: readonly (rea
   const off2 = INK_STAR_OFF_ROUTE * INK_STAR_OFF_ROUTE;
   let screened = 0;
   let tried = 0;
+  const shared = new Map<number, PrefixRun>();
   for (const pts of candidates) {
     if (screened >= 40 || ++tried > 160) break;
     if (pts[2]! < 4 || pts[2]! > INK_WORLD_W - 4 || pts[3]! >= pts[5]! - 10 || inkSteep(pts)) continue;
     const ref = [pts];
     const pen = phoneSegs(ref, ink);
     if (pen.penDown === 0) continue;
+    // Speed only: screened first without a path, sharing the first leg with the other lines through its waypoint.
+    const m = sharedPrefix(pts);
+    if (m > 0 && sharedDrop(still, pen.segs, GRAVITY, shared, m, prefixKey(pts, m)) !== 1) continue;
     const path: Pt[] = [];
     if (dropWithHit(still, pen.segs, 0, path).result !== 1) continue;
     screened++;
@@ -1896,6 +2209,7 @@ function handLive(lvl: InkLevel, level: number): LiveStroke | null {
   const preUsed = prePen.segs.reduce((sum, seg) => sum + seg.len, 0);
   const trace = traceDrop(lvl, prePen.segs).slice(1).map((p) => ({ x: p.x / FP, y: p.y / FP, on: p.on }));
   const zone = INK_NO_DRAW_ZONE_PX + 2;
+  const preRun = ballsOf(lvl, prePen.segs, GRAVITY);
   /** The cheap screen: the stroke turns solid on its LIFT (start + points + 1 ticks in), and no point it sends comes near the coin. */
   const screen = (cand: LiveStroke): boolean => {
     const pts = inkPhoneLine(cand.pts);
@@ -1906,7 +2220,8 @@ function handLive(lvl: InkLevel, level: number): LiveStroke | null {
     }
     const pen2 = strokeSegs([pts], ink - preUsed);
     if (pen2.penDown !== 1) return false;
-    return simulateStaged(lvl, [{ tick: 0, segs: prePen.segs }, { tick: cand.start + n + 1, segs: [...prePen.segs, ...pen2.segs] }]) === 1;
+    // simulateStaged's two stages, picked up from the pre-release line's own drop (speed only; stagedFrom).
+    return stagedFrom(lvl, [...prePen.segs, ...pen2.segs], GRAVITY, cand.start + n + 1, preRun) === 1;
   };
   let leave = -1;
   for (let t = 1; t < trace.length; t++)
