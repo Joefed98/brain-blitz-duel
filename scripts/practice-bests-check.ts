@@ -188,11 +188,12 @@ const localStorage = {
   check(/recordPracticeBest\(puzzle\.type, stampSignature\(puzzle\), result\.score\)/.test(practice), "practice records under the dealt puzzle's stamps");
   check(/if \(!wasExample\) \{\s*const record = recordPracticeBest/.test(practice), "intro-example runs are never recorded");
   check(/readPracticeBest\(next, stampSignature\(made\.puzzle/.test(practice), "the intro reads the dealt puzzle's best");
-  check(/function CardBest[\s\S]*?readPracticeBest\(type, currentPracticeStamp\(type\)\)/.test(practice), "the list's cards read the current stamps");
-  // Shelves and grid (follow-up to #129): every list draws one tile (tile(key…)), which carries the best and its description.
-  check((practice.match(/<CardBest type=\{key\} \/>/g) ?? []).length === 1 && /rows\.map\(\(key\) => tile\(key, TILE_PX\)\)/.test(practice) && /matches\.map\(\(key\) => tile\(key\)\)/.test(practice) && /previewRows\.map\(\(key\) => tile\(key\)\)/.test(practice) && /retiredRows\.map\(\(key\) => tile\(key, GRID_TILE_PX, true\)\)/.test(practice), "every practice card shows its best (active shelves and grid, preview, retired)");
-  check(/if \(best === null\) return null;/.test(practice), "a card with no best shows nothing");
-  check(/>\s*Best <b[^>]*>\{best\}<\/b>\s*</.test(practice), 'the card reads "Best 132" (the score in bold gold)');
+  check(/function RowBest[\s\S]*?readPracticeBest\(type, currentPracticeStamp\(type\)\)/.test(practice), "the list's rows read the current stamps");
+  // Category lists (tab pages refresh, 26 Oct 2026): every list draws one row (row(key…)), which carries the best in
+  // the BEST column and its description.
+  check((practice.match(/<RowBest type=\{key\} \/>/g) ?? []).length === 1 && /rows\.map\(\(key\) => row\(key\)\)/.test(practice) && /previewRows\.map\(\(key\) => row\(key\)\)/.test(practice) && /retiredRows\.map\(\(key\) => row\(key, true\)\)/.test(practice), "every practice row shows its best (category lists, preview, retired)");
+  check(/\{best \?\? "–"\}/.test(practice) && /data-none=\{best === null \|\| undefined\}/.test(practice), 'a row with no best shows a quiet "–"');
+  check(/className="ap-best"/.test(practice) && /\.ap-best \{[^}]*width: 56px;[^}]*text-align: right;/.test(readFileSync("src/polish-layout/app-pages.css", "utf8")), "the best sits in one fixed-width right-aligned BEST column");
   // 17 Oct 2026 (CI on #108): the best inside the button changed its accessible name ("Grappler Best 45"), so
   // arcade-play-check and arcade-lowend-check, which reopen the list and find each game's button by its exact
   // name, lost multi-segment games after their first run. The best is now only the button's description.

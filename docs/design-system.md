@@ -69,8 +69,10 @@ live round is drawn inside the game frame (see "Game screens" below).
 1. actions that start or join play: Create a room, the Daily Play and Continue pills, Join now,
    Ready, Play again;
 2. the current tab in the tab bar;
-3. the selected chip (the Practice category chip);
-4. the logo mark and the wordmark's last letter (the Z).
+3. the logo mark and the wordmark's last letter (the Z).
+
+The selected Practice chip is a light fill with dark text (tab pages refresh, 26 Oct 2026), not gold.
+Medal discs for 1st to 3rd (`PlaceDisc`, the room's `Medal`) are medals, not gold UI.
 
 Everything else is neutral: links (`--ap-link`), secondary buttons (`ap-btn-outline`), scores, times,
 headings, the Beta pill, icons in rows. A second gold thing on a screen should be a reason to look
@@ -100,6 +102,14 @@ chips and game icon tiles:
   icons as SVG). No text in an icon.
 - **Row icon squares** on the tab pages (`.ap-icon-sq`, 40 px, radius 11) take a tone from `data-tone`:
   puzzle #1A2236 / #7FA6F5, arcade #3A1E22 / #F08A6E, challenge #271F3A / #B79BF2; neutral without one.
+- **Play tab tiles** (`.ap-tile44`, `src/components/app/TabIcons.tsx`, 44 px, radius 12): glossy
+  gradients with inline SVG art: Daily Puzzle blue (#6E9BFF → #2E57D6 → #1A2E80, a calendar of coloured
+  tiles with three faint jigsaw pieces), Daily Arcade red (#FF8A5C → #E8443A → #7A1622, a black
+  controller), Challenge a friend violet (#C084FF → #7A35E0 → #3A1680, green and pink badges, a yellow
+  bolt, "VS").
+- **Category dots** (`.ap-dot`, `data-dot`): 8 px (10 px on headings) in each category's light tint:
+  Word #7FA6F5, Number #6FD99A, Speed #F5A25A, Attention #F08AC0, Pattern #B79BF2, Logic #5CD6C0,
+  Arcade #F08A6E.
 
 ## Fonts and sizes
 
@@ -368,3 +378,31 @@ sheet's setup and drivers and writes side-by-side sheets to `screenshots/before-
   auto-start ring in the category colour beside a gold Ready.
 - **Errors**: `ErrorState` (dimmed mark, title, explanation, optional room-code box, Back to Play, one gold
   action) for the 404, room not found and challenge not found.
+
+## Tab pages refresh (26 Oct 2026)
+
+The design canvas's "Tab pages refresh" row (T-Play, T-PlayFirst, T-Practice, T-Tournaments,
+T-TournamentsEmpty, T-Profile, T-ProfileNew), in `src/polish-layout/app-pages.css` ("tab pages refresh").
+Presentation only; review shots `bun scripts/shots/tab-refresh-shots.ts --tag=after`
+(`screenshots/tab-refresh-oct-2026/`, `--tag=before` on main).
+
+- **Play**: the first visit's intro card (`IntroCard`, the "intro" Play slot reserved before the first
+  paint; once per device, `lib/onboarding.ts`) stands in for the hero title; Quick play with the
+  player's badge; Next public game (`PublicGameNext`: date tile, title, "Tonight · 8:00 pm UK · 6 rounds",
+  a status line under a divider, then a quiet disabled "Opens 7:45 pm" with a lock beside Add to calendar,
+  or from lobby time the teal "Lobby open · 9 players waiting · starts in 11 min" and a gold Join now;
+  the same height in both states, `PUBLIC_CARD_H` 220); Today (Daily Puzzle and Daily Arcade, "Done"
+  with a teal tick and the score once played; Challenge a friend joins the panel); Warm up (three games
+  in one divided panel with "Best 171" or "Not played").
+- **Practice**: All games and the seven categories in a 4 × 2 chip grid; Recently played (up to four,
+  `practiceRecent.ts`); one list per category headed by its dot, name, count and a BEST label over a
+  56 px right-aligned column (`.ap-best`, "–" unplayed).
+- **Tournaments**: Next up (the card above), Coming up rows with a calendar icon button, Your results
+  titled by the schedule's event name with a place disc (`.ap-place`: gold, silver, bronze, outlined
+  otherwise), date, "2nd of 14" and points. Nothing scheduled: an empty card with "Open the beta
+  Discord" (only when `DISCORD_URL` in `betaConfig.ts` is set) and Go to Practice; no results: three
+  dashed discs and a line.
+- **Profile**: the badge in the player's own colour, name, Beta player chip and Change; the stats strip
+  in the same panel; Daily, Practice bests (BEST column) and Recent rooms (place discs) only once there
+  is something in them. A new player sees "Choose your look" and Get started (play a room, today's daily,
+  a practice best), each ticking off from the device's own records.
