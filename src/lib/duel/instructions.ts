@@ -22,7 +22,7 @@ import {
 import { withPuzzleScoreRev } from "./puzzleScoreRev";
 import { WORDHUNT_DEPTH_BASE_MAX, WORDHUNT_DEPTH_BONUS_MAX, WORDHUNT_V3_BASE_CURVE, WORDHUNT_V3_BONUS_CURVE } from "./wordHunt";
 import { ascendDepthHelp, bangOnDepthHelp, flashDepthHelp } from "./depth/speedTexts";
-import { bandMapTotal, bandOpen, bandUnitsFor } from "@/lib/arcade/scoreBands";
+import { bandMapTotal, bandOpen, bandPoints, bandUnitsFor } from "@/lib/arcade/scoreBands";
 import { TD_GOLD_MAX, TD_GOLD_POINTS, TD_REV3_FREE_RESETS, TD_REV3_RESET_COST, TD_RUN_TICKS, TD_STRETCH_FROM, TD_STRETCH_SPAN, TEN_DROP_DEPTH_REV, TEN_DROP_RAW_REV, tenDropScore } from "@/lib/arcade/tenDrop";
 import { CLASH_DEPTH_MAX_WRONG, CLASH_GOLD_POINTS, CLASH_GOLD_STREAK, CLASH_GOLDS, CLASH_GREAT_MAP, CLASH_PACE_ZERO_TICK, CLASH_REV3_RUN_TICKS, CLASH_STREAK_POINTS, CLASH_STRETCH_POINTS } from "@/lib/arcade/colourClash";
 import { WHACK_BANDS_MAP, WHACK_COMBO_POINTS, WHACK_DIAMOND_POINTS, WHACK_DIAMONDS, WHACK_QUICK_ZERO_TICKS } from "@/lib/arcade/whack";
@@ -63,7 +63,7 @@ import { BT_V7_BALLS, BT_V7_BOOST_STEPS, BT_V7_FEATURE_MAX, BT_V7_LAST_LAND_MIN 
 import { HOVER_REACHABLE_GATES, HOVER_STARS, HOVER_V2_GATES_SCORE, HOVER_V2_STARS_SCORE } from "@/lib/arcade/hover";
 import { WAV_BOSS_HP } from "@/lib/arcade/wavefront";
 import { SNAKE_V9_CAPS, SNAKE_V9_COLS, SNAKE_V9_ROWS } from "@/lib/arcade/snake";
-import { BEAT_V9_CAPS } from "@/lib/arcade/beat";
+import { BEAT_V9_CAPS, BEAT_V9_SKILL_PAY } from "@/lib/arcade/beat";
 import {
   PIN_MULT_MAX,
   PIN_PTS_BANK,
@@ -791,7 +791,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Swipe notes (from 30 seconds)", detail: "show a left or right arrow. Flick your finger that way in the lane as the note reaches the line. A plain tap won't hit them, and the wrong way is a miss.", helpOnly: true },
         { action: "Keep a combo going", detail: "to light up the lanes at 10, 25 and 50 – a miss resets it.", helpOnly: true },
       ],
-      score: `${liveBandHelp("beat", "Perfect counts 4, Good 3, OK 1 and a missed note −2, out of 4 a note, in thousandths of the chart.", { more: "More notes, closer to the beat", good: (u) => `reaches ${u}` })} Fever (up to ${BEAT_V9_CAPS.fever}), golden notes (up to ${BEAT_V9_CAPS.gold}), double taps (up to ${BEAT_V9_CAPS.double}) and the Perfect streak (up to ${BEAT_V9_CAPS.streak}) add up to 50 more, to {max}.`,
+      score: `${liveBandHelp("beat", "Perfect counts 4, Good 3, OK 1 and a missed note −2, out of 4 a note, in thousandths of the chart.", { more: "More notes, closer to the beat", good: (u) => `reaches ${u}` })} Fever (up to ${BEAT_V9_CAPS.fever}), golden notes (up to ${BEAT_V9_CAPS.gold}), double taps (up to ${BEAT_V9_CAPS.double}) and the Perfect streak (up to ${BEAT_V9_CAPS.streak}) earn up to 50 skill points, paid on a rising scale (20 pay ${bandPoints(BEAT_V9_SKILL_PAY, 20)}, 40 pay ${bandPoints(BEAT_V9_SKILL_PAY, 40)}, all 50 pay 50), to {max}.`,
     },
 
     ricochet: {

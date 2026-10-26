@@ -448,7 +448,7 @@ function drawMeter(ctx: CanvasRenderingContext2D, state: BeatState): void {
   if (fever > 0) retroText(ctx, "FEVER x2", x + w / 2, y + 2, 8, RETRO_WHITE, "center");
   else if (full) retroText(ctx, "TAP FEVER!", x + w / 2, y + 2, 8, blink ? "#000000" : RETRO_WHITE, "center");
   else retroText(ctx, "FEVER", x + w / 2, y + 2, 8, "rgba(255,255,255,0.75)", "center");
-  retroText(ctx, `+${beatV9Bonus(state).total}`, BEAT_WORLD_W - 10, y + 2, 8, GOLD, "right");
+  retroText(ctx, `+${beatV9Bonus(state).paid}`, BEAT_WORLD_W - 10, y + 2, 8, GOLD, "right");
   let memo = v9Memos.get(ctx);
   const now = { tick: state.tick, gold: state.goldsHit ?? 0, fevers: state.fevers ?? 0, doubles: state.doublesDone ?? 0 };
   if (!memo || state.tick < memo.tick) memo = { ...now, at: -99, text: "", colour: GOLD };

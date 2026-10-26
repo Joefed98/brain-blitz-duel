@@ -1116,27 +1116,37 @@ function stepV9(state: BeatState, input: ArcadeInputEvent | null): BeatState {
   return { ...next, meter, fever, fevers, feverQ, goldsHit, goldPts, doublesDone, streak, maxStreak };
 }
 
-/** beatRev 9's feature points, each capped (BEAT_V9_CAPS). */
-export function beatV9Bonus(state: BeatState): { fever: number; gold: number; double: number; streak: number; total: number } {
+/**
+ * beatRev 9's skill pay (retune, 26 Oct 2026; the stamp was not yet live): the features' own points (each capped,
+ * BEAT_V9_CAPS, 50 in all) paid on a rising scale, never more than the points themselves: a good player's ~20 pay 7,
+ * a great one's ~40 pay 26, and the full 50 only with every feature maxed. Fitted on the skill-band runs
+ * (docs/expansions/e2.md, both seed sets).
+ */
+export const BEAT_V9_SKILL_PAY = bandCurve([0, 20, 40, 45, 48, 50], [0, 7, 26, 40, 44, 50]);
+
+/** beatRev 9's feature points, each capped (BEAT_V9_CAPS); `total` their sum, `paid` what the score adds (BEAT_V9_SKILL_PAY). */
+export function beatV9Bonus(state: BeatState): { fever: number; gold: number; double: number; streak: number; total: number; paid: number } {
   const fever = Math.min(BEAT_V9_CAPS.fever, Math.trunc((state.feverQ ?? 0) / BEAT_FEVER_Q_PER));
   const gold = Math.min(BEAT_V9_CAPS.gold, state.goldPts ?? 0);
   const double = Math.min(BEAT_V9_CAPS.double, state.doublesDone ?? 0);
   const streak = Math.min(BEAT_V9_CAPS.streak, Math.trunc((state.maxStreak ?? 0) / BEAT_STREAK_PER));
-  return { fever, gold, double, streak, total: fever + gold + double + streak };
+  const total = fever + gold + double + streak;
+  return { fever, gold, double, streak, total, paid: bandPoints(BEAT_V9_SKILL_PAY, total) };
 }
 
 /**
  * beatRev 9 band knots: per mille of the chart, fitted so the simulated players who ignore the features
- * land where they did on beatRev 8 (scripts/expansions-e2-bands.ts); every note Perfect is 150.
+ * land where they did on beatRev 8 (scripts/expansions-e2-bands.ts); every note Perfect is 150. The retune
+ * (26 Oct 2026) added the 994 knot, so a run a few notes short of all Perfect stays clear of an all-Perfect one.
  */
-export const BEAT_V9_BAND_CURVE = bandCurve([0, 580, 790, 925, 985, 1000], [0, 68, 96, 112, 126, 150]);
+export const BEAT_V9_BAND_CURVE = bandCurve([0, 580, 790, 925, 985, 994, 1000], [0, 68, 96, 112, 126, 131, 150]);
 
 export function beatV9Parts(state: BeatState): BandParts {
   const quarters = Math.max(0, BEAT_PERFECT_Q * state.perfect + BEAT_GOOD_Q * state.good + BEAT_OK_Q * state.ok - 2 * state.misses);
   const units = Math.floor((1000 * quarters) / Math.max(1, BEAT_PERFECT_Q * beatNoteCount(state)));
   const b = beatV9Bonus(state);
   const bits = [b.fever && `fever ${b.fever}`, b.gold && `golden ${b.gold}`, b.double && `doubles ${b.double}`, b.streak && `streaks ${b.streak}`].filter(Boolean);
-  return { units, points: bandPoints(BEAT_V9_BAND_CURVE, units), bonus: b.total, penalty: 0, finished: false, text: `${state.perfect} perfect · ${state.good} good · ${state.ok} OK · ${state.misses} missed`, bonusText: `Skill bonus (${bits.join(" · ") || "none"})` };
+  return { units, points: bandPoints(BEAT_V9_BAND_CURVE, units), bonus: b.paid, penalty: 0, finished: false, text: `${state.perfect} perfect · ${state.good} good · ${state.ok} OK · ${state.misses} missed`, bonusText: `Skill ${b.total} of 50 (${bits.join(" · ") || "none"})` };
 }
 
 export const beatV9Game: ArcadeGame<BeatState, ArcadeInputEvent | null> = {

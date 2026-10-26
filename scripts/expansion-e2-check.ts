@@ -12,7 +12,7 @@
  *     a run with no input scores 0.
  *  4. New-stamp runs (scripts/fixtures/expansion-e2-new.json.gz, recorded on this branch with --record) replay to
  *     their stored scores; every score is at most 200 with each feature at most its cap (50 in all), and the
- *     near-perfect bots using the features reach 180+ in every game.
+ *     near-perfect bots using the features reach 180+ in every game; a stored Tempo run scores 200.
  *
  *   bun scripts/expansion-e2-check.ts [--record]
  */
@@ -31,6 +31,8 @@ import { beatV9Bonus, BEAT_REV_200, BEAT_REV_STRICT, BEAT_V9_CAPS, BEAT_V9_FIVE_
 
 const RECORD = process.argv.includes("--record");
 const NEW_FIXTURE = "scripts/fixtures/expansion-e2-new.json.gz";
+/** Seeds recorded per game and level (9 since the Tempo retune, so the stored runs include a 200). */
+const RECORD_SEEDS = 9;
 let checks = 0;
 const failures: string[] = [];
 const ok = (cond: boolean, label: string) => {
@@ -106,7 +108,7 @@ if (RECORD) {
     const spec = GAME_BY_TYPE.get(type as never)!;
     const bot = (await import(`./arcade-skill-bands/bots/${type}.ts`)).bot;
     for (const level of LEVELS)
-      for (let n = 0; n < 4; n++) {
+      for (let n = 0; n < RECORD_SEEDS; n++) {
         const seed = spec.seedFor(n);
         const game = spec.gameFor(rev, seed);
         const out = bot({ game, seed, rev, human: new Human(type, seed, level) });
@@ -122,11 +124,12 @@ if (RECORD) {
         fresh.push({ type, rev, level, seed, raw, score: result.score, digest: digest(result.state) });
       }
   }
-  writeFileSync(NEW_FIXTURE, gzipSync(JSON.stringify({ recorded: "expansion E2 branch, 25 Oct 2026", runs: fresh })));
+  writeFileSync(NEW_FIXTURE, gzipSync(JSON.stringify({ recorded: "expansion E2 branch (Meteor and Tempo; Tempo skill-pay retune), 26 Oct 2026", runs: fresh })));
   console.log(`wrote ${NEW_FIXTURE} (${fresh.length} runs)`);
 }
 const recorded = JSON.parse(gunzipSync(readFileSync(NEW_FIXTURE)).toString()) as { runs: any[] };
 const best: Record<string, number> = {};
+const top: Record<string, number> = {};
 for (const run of recorded.runs) {
   const spec = GAME_BY_TYPE.get(run.type)!;
   const now = spec.replay(run.seed, run.raw, run.rev);
@@ -137,8 +140,10 @@ for (const run of recorded.runs) {
   const b = bonusOf[run.type]!(now.state) as Record<string, number>;
   ok(b.total! <= 50 && Object.entries(capsOf[run.type]!).every(([k, cap]) => (b[k] ?? 0) <= cap), `${tag}: each feature within its cap`);
   if (run.level === "near") best[run.type] = Math.max(best[run.type] ?? 0, now.score);
+  top[run.type] = Math.max(top[run.type] ?? 0, now.score);
 }
 for (const type of Object.keys(NEW)) ok((best[type] ?? 0) >= 180, `${type}: near-perfect players using the features reach 180+ (best ${best[type]})`);
+ok(top.beat === 200, `beat: a stored beatRev 9 run scores 200, the maximum is reachable (best ${top.beat})`);
 
 if (failures.length) {
   for (const f of failures) console.log(`  ✗ ${f}`);
