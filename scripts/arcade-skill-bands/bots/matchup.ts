@@ -37,26 +37,27 @@ import {
   MATCHUP_V3_SWAP_MS,
   type MatchupState,
 } from "../../../src/lib/arcade/matchup";
+import type { SkillLevel } from "../human";
 import { driveEvents, Plan, type SkillBot } from "../bot";
 
 /** Orientation before the first find, and a whole-board scan, for an average player (ms). */
 const ORIENT_MS = 500;
 const SCAN_MS = 4500;
 /** How much further (fraction of a whole-board scan) a player keeps looking after the first find. */
-const EXTRA_SCAN: Record<string, number> = { average: 0.02, good: 0.06, great: 0.1, near: 0.14 };
+const EXTRA_SCAN: Record<SkillLevel, number> = { weak: 0, average: 0.02, good: 0.06, great: 0.1, near: 0.14, elite: 0.16, perfect: 0.16 };
 /** Chance of reading the board while a cascade is still falling instead of waiting for it to settle. */
-const PLAY_THROUGH: Record<string, number> = { average: 0.15, good: 0.35, great: 0.6, near: 0.8 };
+const PLAY_THROUGH: Record<SkillLevel, number> = { weak: 0, average: 0.15, good: 0.35, great: 0.6, near: 0.8, elite: 0.9, perfect: 0.9 };
 /** Players who know the game favour moves low on the board (they shake more loose); weight per level. */
-const LOW_BIAS: Record<string, number> = { average: 0, good: 0.3, great: 0.6, near: 0.8 };
+const LOW_BIAS: Record<SkillLevel, number> = { weak: 0, average: 0, good: 0.3, great: 0.6, near: 0.8, elite: 0.9, perfect: 0.9 };
 /** Chance of following a swap straight up with a second move spotted in the same look. */
-const FOLLOW_UP: Record<string, number> = { average: 0.1, good: 0.3, great: 0.5, near: 0.7 };
+const FOLLOW_UP: Record<SkillLevel, number> = { weak: 0, average: 0.1, good: 0.3, great: 0.5, near: 0.7, elite: 0.8, perfect: 0.8 };
 /** Swipe: from decision to the swap landing on the board, ms. */
 const SWIPE_MS = 140;
 /**
  * matchupRev 9: how much a player weighs the features they can see in a swap's own clear (goal gems,
  * ice under it, gems cleared below the treasure gem) against plain clearing; weaker players mostly just match.
  */
-const FEATURE_EYE: Record<string, number> = { average: 0.15, good: 0.45, great: 0.8, near: 1.2 };
+const FEATURE_EYE: Record<SkillLevel, number> = { weak: 0, average: 0.15, good: 0.45, great: 0.8, near: 1.2, elite: 1.4, perfect: 1.4 };
 
 type Move = [number, number, number, number];
 const special = (k: number) => k === MATCHUP_BOMB || k === MATCHUP_CROSS || k === MATCHUP_STAR || matchupIsJackpot(k);

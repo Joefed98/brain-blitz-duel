@@ -37,16 +37,16 @@ import type { SkillLevel } from "../human";
 /** World px per phone px (the 700-wide board on a ~390-px phone). */
 const WORLD_PER_PX = BT_W / 390;
 /** Shortest gap between deliberate taps, ticks (≈ 6–8.5 taps a second). */
-const TAP_GAP: Record<SkillLevel, number> = { average: 10, good: 9, great: 8, near: 7 };
+const TAP_GAP: Record<SkillLevel, number> = { weak: 11, average: 10, good: 9, great: 8, near: 7, elite: 6, perfect: 6 };
 /** Marbles whose routes the player keeps in mind at once (released or next out). */
-const HORIZON: Record<SkillLevel, number> = { average: 2, good: 3, great: 4, near: 5 };
+const HORIZON: Record<SkillLevel, number> = { weak: 1, average: 2, good: 3, great: 4, near: 5, elite: 6, perfect: 6 };
 /** Chance of allowing for a warned bottom-row change when planning a marble that lands after it. */
-const HEED: Record<SkillLevel, number> = { average: 0.5, good: 0.7, great: 0.85, near: 0.95 };
+const HEED: Record<SkillLevel, number> = { weak: 0.3, average: 0.5, good: 0.7, great: 0.85, near: 0.95, elite: 1, perfect: 1 };
 /**
  * btRev 7: chance a player plans round a crossover rather than dropping a marble through it (the drop can
  * meet a marble rolling along that row and knock both out).
  */
-const AVOID_X: Record<SkillLevel, number> = { average: 0.15, good: 0.45, great: 0.75, near: 0.95 };
+const AVOID_X: Record<SkillLevel, number> = { weak: 0, average: 0.15, good: 0.45, great: 0.75, near: 0.95, elite: 1, perfect: 1 };
 /** How many steps ahead of a marble the player sets a tube (just-in-time, not last-instant). */
 const LEAD_STEPS = 4;
 const WARN_TICKS = 5 * 60;

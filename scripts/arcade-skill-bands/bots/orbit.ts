@@ -16,12 +16,13 @@
  */
 import { lapPhases, ORBIT_INPUT_CHECKPOINT, ORBIT_INPUT_TAP } from "../../../src/lib/arcade/orbit";
 import type { OrbitRev3State } from "../../../src/lib/arcade/orbitRev3";
+import type { SkillLevel } from "../human";
 import { driveEvents, Plan, type SkillBot } from "../bot";
 
 /** Chance of going for a black hole when one is on offer. */
-const HOLE_TRY: Record<string, number> = { average: 0.2, good: 0.45, great: 0.7, near: 0.85 };
+const HOLE_TRY: Record<SkillLevel, number> = { weak: 0, average: 0.2, good: 0.45, great: 0.7, near: 0.85, elite: 0.925, perfect: 0.925 };
 /** Chance per hop of hesitating and letting the release point go round once more. */
-const HESITATE: Record<string, number> = { average: 0.15, good: 0.1, great: 0.06, near: 0.03 };
+const HESITATE: Record<SkillLevel, number> = { weak: 0.2, average: 0.15, good: 0.1, great: 0.06, near: 0.03, elite: 0.015, perfect: 0.015 };
 /** Flight sim cap (rev 3), ticks. */
 const FLIGHT_MAX = 190;
 

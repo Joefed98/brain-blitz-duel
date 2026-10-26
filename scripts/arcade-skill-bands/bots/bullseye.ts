@@ -39,12 +39,13 @@ import {
   type BullseyeState,
 } from "../../../src/lib/arcade/bullseye";
 import { DRAG_FULL_PX, DRAG_MAX_SCALE_256, DRAG_MIN_PX, DRAG_MIN_SCALE_256 } from "../../../src/lib/arcade/engine";
+import type { SkillLevel } from "../human";
 import { driveEvents, type SkillBot } from "../bot";
 
 /** Relative error judging how far a wind point pushes (shared with Swish). */
-const WIND_READ: Record<string, number> = { average: 0.3, good: 0.2, great: 0.12, near: 0.06 };
+const WIND_READ: Record<SkillLevel, number> = { weak: 0.4, average: 0.3, good: 0.2, great: 0.12, near: 0.06, elite: 0.03, perfect: 0.03 };
 /** Chance of waiting for the drifting target's turnaround rather than leading it through the middle. */
-const WAIT_END: Record<string, number> = { average: 0.35, good: 0.6, great: 0.85, near: 0.95 };
+const WAIT_END: Record<SkillLevel, number> = { weak: 0.1, average: 0.35, good: 0.6, great: 0.85, near: 0.95, elite: 1, perfect: 1 };
 
 /** Landing distance per launch unit (the sim's flight constant). */
 const REACH = (BULLSEYE_BOW_Y - BULLSEYE_CY) / BULLSEYE_REF_V;

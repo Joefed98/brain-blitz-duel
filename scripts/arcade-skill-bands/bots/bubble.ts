@@ -16,6 +16,7 @@
  */
 import { dragLaunch, type ArcadeInputEvent } from "../../../src/lib/arcade/engine";
 import { bubDangerLine, bubIsSpecial, bubRemaining, bubRowsOf, bubCellY, bubV8FeaturePoints, BUB_COLS, BUB_INPUT_SHOT, BUB_R, BUB_SPEED, bubSpeed, type BubState } from "../../../src/lib/arcade/bubble";
+import type { SkillLevel } from "../human";
 import { driveEvents, Plan, type SkillBot } from "../bot";
 
 /** Typical drag length when aiming, phone px (the world is 390 px wide, so 1 world px = 1 phone px). */
@@ -23,7 +24,7 @@ const DRAG_PX = 150;
 /** Bank shots are harder to read off the trail: extra pointing error per bounce (fraction). */
 const BANK_ERR = 0.6;
 /** Chance a bank-shot target is noticed at all, per level. */
-const BANK_SEE: Record<string, number> = { average: 0.45, good: 0.65, great: 0.82, near: 0.93 };
+const BANK_SEE: Record<SkillLevel, number> = { weak: 0.25, average: 0.45, good: 0.65, great: 0.82, near: 0.93, elite: 0.985, perfect: 0.985 };
 /** Base (average-player) think time per shot, ms; a special in the shooter adds more. */
 const THINK_MS = 1100;
 const SPECIAL_THINK_MS = 500;
@@ -51,7 +52,7 @@ const inGrid = (r: number, c: number) => r >= 0 && r < ROWS && c >= 0 && c < row
  * bubbleRev 8: how much a player weighs the skill features (chests, bank shots, combos) against plain
  * clearing; weaker players mostly just clear.
  */
-const FEATURE_EYE: Record<string, number> = { average: 0.25, good: 0.5, great: 0.8, near: 1 };
+const FEATURE_EYE: Record<SkillLevel, number> = { weak: 0, average: 0.25, good: 0.5, great: 0.8, near: 1, elite: 1, perfect: 1 };
 
 function groupSize(grid: readonly number[], start: number): number {
   const colour = grid[start]!;

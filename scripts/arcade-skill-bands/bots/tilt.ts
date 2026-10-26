@@ -25,15 +25,15 @@ const TURN = 65536;
 const WORLD_PER_PX = TILT_WORLD_W / 390;
 
 /** Finger top speed for turning the disc, world px a tick (≈ 12–20 phone px: a controlled spin, not a flick). */
-const FINGER: Record<SkillLevel, number> = { average: 7, good: 8, great: 9, near: 10 };
+const FINGER: Record<SkillLevel, number> = { weak: 6, average: 7, good: 8, great: 9, near: 10, elite: 10, perfect: 10 };
 /** Re-decision cadence, ticks (how often the player re-reads the board and changes the tilt). */
-const GLANCE: Record<SkillLevel, number> = { average: 12, good: 10, great: 8, near: 6 };
+const GLANCE: Record<SkillLevel, number> = { weak: 14, average: 12, good: 10, great: 8, near: 6, elite: 5, perfect: 5 };
 /** How far ahead (ticks) the player foresees where the marbles roll. */
-const HORIZON: Record<SkillLevel, number> = { average: 30, good: 38, great: 44, near: 48 };
+const HORIZON: Record<SkillLevel, number> = { weak: 22, average: 30, good: 38, great: 44, near: 48, elite: 50, perfect: 50 };
 /** tiltRev 4: a star at a hole's mouth is taken this much less often (the fall ends the run). */
 const MOUTH_GO = 0.5;
 /** Chance of detouring for each bonus star. */
-const STAR_GO: Record<SkillLevel, number> = process.env.TILT_NO_STARS ? { average: 0, good: 0, great: 0, near: 0 } : { average: 0.15, good: 0.45, great: 0.75, near: 0.92 };
+const STAR_GO: Record<SkillLevel, number> = process.env.TILT_NO_STARS ? { weak: 0, average: 0, good: 0, great: 0, near: 0, elite: 0, perfect: 0 } : { weak: 0, average: 0.15, good: 0.45, great: 0.75, near: 0.92, elite: 1, perfect: 1 };
 
 function openCell(m: Maze, c: number, d: number): number {
   const i = (c % m.n) + DX[d]!;

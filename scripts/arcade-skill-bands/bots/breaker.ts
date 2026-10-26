@@ -34,19 +34,20 @@ import {
   type BrkBall,
   type BrkState,
 } from "../../../src/lib/arcade/breaker";
+import type { SkillLevel } from "../human";
 import { driveEvents, type SkillBot } from "../bot";
 
 /** Finger top speed, px a tick (world px are phone px: the world is 390 wide). */
-const FINGER: Record<string, number> = { average: 26, good: 32, great: 38, near: 44 };
+const FINGER: Record<SkillLevel, number> = { weak: 20, average: 26, good: 32, great: 38, near: 44, elite: 47, perfect: 47 };
 /** Landing-read error per tick of remaining flight, px. */
-const READ: Record<string, number> = { average: 0.22, good: 0.15, great: 0.1, near: 0.06 };
+const READ: Record<SkillLevel, number> = { weak: 0.29, average: 0.22, good: 0.15, great: 0.1, near: 0.06, elite: 0.04, perfect: 0.04 };
 /** Chance of trying to angle a return towards the bricks (instead of just catching it centrally). */
-const STEER: Record<string, number> = { average: 0.1, good: 0.35, great: 0.6, near: 0.85 };
+const STEER: Record<SkillLevel, number> = { weak: 0, average: 0.1, good: 0.35, great: 0.6, near: 0.85, elite: 0.975, perfect: 0.975 };
 /** Chance of going for a falling capsule at all. */
-const CAPSULE: Record<string, number> = { average: 0.55, good: 0.75, great: 0.9, near: 0.97 };
+const CAPSULE: Record<SkillLevel, number> = { weak: 0.35, average: 0.55, good: 0.75, great: 0.9, near: 0.97, elite: 1, perfect: 1 };
 /** Tap: finger down-to-up ticks (must stay under 150 ms = 9 ticks), and finger back down and moving again. */
-const TAP: Record<string, number> = { average: 7, good: 6, great: 6, near: 5 };
-const REGRIP: Record<string, number> = { average: 12, good: 10, great: 8, near: 6 };
+const TAP: Record<SkillLevel, number> = { weak: 8, average: 7, good: 6, great: 6, near: 5, elite: 4, perfect: 4 };
+const REGRIP: Record<SkillLevel, number> = { weak: 14, average: 12, good: 10, great: 8, near: 6, elite: 5, perfect: 5 };
 
 const LO = BRK_WALL + BRK_BALL_R;
 /** The court's far wall line, set per run (brkRev 9's court is 420 wide). */
@@ -56,7 +57,7 @@ let WORLD_W = BRK_WORLD_W;
  * brkRev 9: how much a zone's look-ahead values skill points (gold bricks, combo points) against plain
  * hits. Stronger players read the wall for the direct line to a gold brick and the long chains.
  */
-const SKILL: Record<string, number> = { average: 0, good: 0.5, great: 1.5, near: 3 };
+const SKILL: Record<SkillLevel, number> = { weak: 0, average: 0, good: 0.5, great: 1.5, near: 3, elite: 3.75, perfect: 3.75 };
 let SKILL_W = 0;
 /** The paddle line the ball is caught on: set per run from the game's own world (brkRev 6's taller court). */
 let PADDLE_Y = 0;

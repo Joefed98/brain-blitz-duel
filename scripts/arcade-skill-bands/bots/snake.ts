@@ -10,11 +10,12 @@
  * next star) the player steers away from what is right ahead of the head.
  */
 import { snakeReversal, snakeStepTicks, snakeStepTicksFor, snakeColsOf, snakeWarpExit, SNAKE_INPUT_TURN, snakeRowsOf, SNAKE_GOLD_LIFE, type SnakeState } from "../../../src/lib/arcade/snake";
+import type { SkillLevel } from "../human";
 import { driveEvents, type SkillBot } from "../bot";
 import type { Human } from "../human";
 
 /** Shortest gap between two deliberate swipes, ticks (about 6–8.5 a second). */
-const SWIPE_GAP: Record<string, number> = { average: 10, good: 9, great: 8, near: 7 };
+const SWIPE_GAP: Record<SkillLevel, number> = { weak: 11, average: 10, good: 9, great: 8, near: 7, elite: 6, perfect: 6 };
 /** Base (average-player) time to find a new star and choose a route, ms. */
 const FIND_MS = 300;
 
@@ -295,7 +296,7 @@ export const bot: SkillBot = ({ game, seed, human }) => {
   /** The gold star this player is going for, and the golds already decided on. */
   let goldGoal = -1;
   const goldSeen = new Set<number>();
-  const GOLD_WILL: Record<string, number> = { average: 0.45, good: 0.65, great: 0.8, near: 0.92 };
+  const GOLD_WILL: Record<SkillLevel, number> = { weak: 0.25, average: 0.45, good: 0.65, great: 0.8, near: 0.92, elite: 0.98, perfect: 0.98 };
   /** Swipes planned: tick → direction. */
   const swipes = new Map<number, number>();
   let lastSwipe = -100;

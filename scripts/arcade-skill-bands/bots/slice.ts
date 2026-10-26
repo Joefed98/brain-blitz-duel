@@ -34,14 +34,15 @@ import {
   type SliceObject,
   type SliceState,
 } from "../../../src/lib/arcade/slice";
+import type { SkillLevel } from "../human";
 import { driveEvents, type SkillBot } from "../bot";
 
 /** Finger top speed while swiping, px a tick (world px are phone px here). */
-const FINGER: Record<string, number> = { average: 26, good: 32, great: 38, near: 44 };
+const FINGER: Record<SkillLevel, number> = { weak: 20, average: 26, good: 32, great: 38, near: 44, elite: 47, perfect: 47 };
 /** Prediction error per tick of look-ahead, px. */
-const READ: Record<string, number> = { average: 0.5, good: 0.35, great: 0.25, near: 0.15 };
+const READ: Record<SkillLevel, number> = { weak: 0.65, average: 0.5, good: 0.35, great: 0.25, near: 0.15, elite: 0.1, perfect: 0.1 };
 /** Chance per swipe decision of playing for a combo (waiting for three, reaching further). */
-const COMBO: Record<string, number> = { average: 0, good: 0.35, great: 0.65, near: 0.85 };
+const COMBO: Record<SkillLevel, number> = { weak: 0, average: 0, good: 0.35, great: 0.65, near: 0.85, elite: 0.95, perfect: 0.95 };
 /** How far (px) a player will stretch a swipe to take in another food: casual, and when playing for a combo. */
 const REACH = 110;
 const COMBO_REACH = 200;
@@ -52,7 +53,7 @@ const SWIPE_AIM = 1.8;
 /** Base time to choose the next target between swipes, ms. */
 const NEXT_MS = 260;
 /** sliceRev 9: the chance a swipe goes after a golden fruit or the ticket's food first, by level. */
-const FEATURE: Record<string, number> = { average: 0.15, good: 0.35, great: 0.6, near: 0.75 };
+const FEATURE: Record<SkillLevel, number> = { weak: 0, average: 0.15, good: 0.35, great: 0.6, near: 0.75, elite: 0.825, perfect: 0.825 };
 
 interface Pt {
   x: number;

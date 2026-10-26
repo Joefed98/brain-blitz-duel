@@ -26,15 +26,16 @@ import {
   WAV_WORLD_W,
   type WavState,
 } from "../../../src/lib/arcade/wavefront";
+import type { SkillLevel } from "../human";
 import { driveEvents, type SkillBot } from "../bot";
 
 /** Finger top speed, px a tick (the world is 390 wide, so world px are phone px). */
-const FINGER: Record<string, number> = { average: 26, good: 32, great: 38, near: 44 };
+const FINGER: Record<SkillLevel, number> = { weak: 20, average: 26, good: 32, great: 38, near: 44, elite: 47, perfect: 47 };
 /** Chance of going for a saucer, and for its power-up drop. */
-const SAUCER: Record<string, number> = { average: 0.4, good: 0.6, great: 0.8, near: 0.9 };
-const DROP: Record<string, number> = { average: 0.5, good: 0.7, great: 0.85, near: 0.95 };
+const SAUCER: Record<SkillLevel, number> = { weak: 0.2, average: 0.4, good: 0.6, great: 0.8, near: 0.9, elite: 0.95, perfect: 0.95 };
+const DROP: Record<SkillLevel, number> = { weak: 0.3, average: 0.5, good: 0.7, great: 0.85, near: 0.95, elite: 1, perfect: 1 };
 /** How far ahead (ticks) a player keeps track of incoming bolts when choosing where to stand. */
-const LOOKAHEAD: Record<string, number> = { average: 30, good: 38, great: 44, near: 50 };
+const LOOKAHEAD: Record<SkillLevel, number> = { weak: 22, average: 30, good: 38, great: 44, near: 50, elite: 53, perfect: 53 };
 
 /** The ship's bolt speed, px a tick (set per run: 10 in wavRev 6's taller world). */
 let BOLT_SPEED = 8;

@@ -41,13 +41,13 @@ import type { Human, SkillLevel } from "../human";
 /** World px per phone px (the 390-wide world fills a ~390-px phone). */
 const WORLD_PER_PX = INK_WORLD_W / 390;
 /** Careful tracing speed for a pre-release line, px a tick. */
-const DRAW: Record<SkillLevel, number> = { average: 6, good: 7, great: 8, near: 9 };
+const DRAW: Record<SkillLevel, number> = { weak: 5, average: 6, good: 7, great: 8, near: 9, elite: 10, perfect: 10 };
 /** Quick live-ramp stroke speed, px a tick. */
-const DRAW_LIVE: Record<SkillLevel, number> = { average: 10, good: 12, great: 14, near: 16 };
+const DRAW_LIVE: Record<SkillLevel, number> = { weak: 8, average: 10, good: 12, great: 14, near: 16, elite: 17, perfect: 17 };
 /** Moving pot: release read error per tick of coin flight (ticks of error per tick ahead). */
-const READ: Record<SkillLevel, number> = { average: 0.09, good: 0.065, great: 0.045, near: 0.03 };
+const READ: Record<SkillLevel, number> = { weak: 0.115, average: 0.09, good: 0.065, great: 0.045, near: 0.03, elite: 0.022, perfect: 0.022 };
 /** Chance of going for the gold star on a level that has one (first attempt only). */
-const STAR_GO: Record<SkillLevel, number> = { average: 0.1, good: 0.35, great: 0.6, near: 0.85 };
+const STAR_GO: Record<SkillLevel, number> = { weak: 0, average: 0.1, good: 0.35, great: 0.6, near: 0.85, elite: 0.975, perfect: 0.975 };
 /** The ideal live ramp is worked out for a hand that starts this many ticks after RELEASE. */
 const IDEAL_LIVE_DELAY = 18;
 const IDEAL_LIVE_SPEED = 12;

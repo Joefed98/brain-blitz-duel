@@ -38,15 +38,16 @@ import {
   BINTOSS_VX_MAX,
   type BinTossState,
 } from "../../../src/lib/arcade/binToss";
+import type { SkillLevel } from "../human";
 import { driveEvents, type SkillBot } from "../bot";
 
 /** Relative error judging how far a wind point pushes (shared with Flightpath). */
-const WIND_READ: Record<string, number> = { average: 0.3, good: 0.2, great: 0.12, near: 0.06 };
+const WIND_READ: Record<SkillLevel, number> = { weak: 0.4, average: 0.3, good: 0.2, great: 0.12, near: 0.06, elite: 0.03, perfect: 0.03 };
 /** Chance of waiting for the sliding bucket's turnaround rather than leading it through the middle. */
-const WAIT_END: Record<string, number> = { average: 0.35, good: 0.6, great: 0.85, near: 0.95 };
+const WAIT_END: Record<SkillLevel, number> = { weak: 0.1, average: 0.35, good: 0.6, great: 0.85, near: 0.95, elite: 1, perfect: 1 };
 
 /** binRev 7: the chance of going for the far bucket (on a throw that has one), by level. */
-const GO_FAR: Record<string, number> = { average: 0.12, good: 0.3, great: 0.6, near: 0.9 };
+const GO_FAR: Record<SkillLevel, number> = { weak: 0, average: 0.12, good: 0.3, great: 0.6, near: 0.9, elite: 1, perfect: 1 };
 
 /** The fastest launch a drag can give (a full 220-px drag), with a little room. */
 const maxSpeedOf = (ref: number) => Math.floor((ref * DRAG_MAX_SCALE_256) / 256) - 10;

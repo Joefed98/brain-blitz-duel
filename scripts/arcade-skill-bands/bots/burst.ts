@@ -20,18 +20,19 @@ import {
   type BurstBall,
   type BurstState,
 } from "../../../src/lib/arcade/burst";
+import type { SkillLevel } from "../human";
 import { driveEvents, Plan, type SkillBot } from "../bot";
 
 /** Path-read error per tick looked ahead, px. */
-const READ: Record<string, number> = { average: 0.3, good: 0.2, great: 0.13, near: 0.08 };
+const READ: Record<SkillLevel, number> = { weak: 0.4, average: 0.3, good: 0.2, great: 0.13, near: 0.08, elite: 0.055, perfect: 0.055 };
 /** How far ahead (ticks) the player checks that a spot is safe. */
-const LOOKAHEAD: Record<string, number> = { average: 28, good: 36, great: 44, near: 52 };
+const LOOKAHEAD: Record<SkillLevel, number> = { weak: 20, average: 28, good: 36, great: 44, near: 52, elite: 56, perfect: 56 };
 /** Chance of going for a falling icon. */
-const ICON: Record<string, number> = { average: 0.5, good: 0.7, great: 0.85, near: 0.95 };
+const ICON: Record<SkillLevel, number> = { weak: 0.3, average: 0.5, good: 0.7, great: 0.85, near: 0.95, elite: 1, perfect: 1 };
 /** How many atoms (the nearest) the player keeps an eye on for danger at once. */
-const WATCH: Record<string, number> = { average: 2, good: 3, great: 4, near: 6 };
+const WATCH: Record<SkillLevel, number> = { weak: 1, average: 2, good: 3, great: 4, near: 6, elite: 7, perfect: 7 };
 /** Shortest gap between two deliberate button presses, ticks (about 6–8.5 a second). */
-const PRESS_GAP: Record<string, number> = { average: 10, good: 9, great: 8, near: 7 };
+const PRESS_GAP: Record<SkillLevel, number> = { weak: 11, average: 10, good: 9, great: 8, near: 7, elite: 6, perfect: 6 };
 
 const FP = 256;
 const WALK = 4;

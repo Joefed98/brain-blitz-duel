@@ -7,14 +7,15 @@
  */
 import { ARCADE_INPUT_DRAG } from "../../../src/lib/arcade/engine";
 import { rallyPaddleW, rallyTotalHits, rallyTargetLeft, RALLY_BALL_R, rallyPaddleY, RALLY_TARGET_W, RALLY_WALL, RALLY_WORLD_W, type RallyBall, type RallyState } from "../../../src/lib/arcade/rally";
+import type { SkillLevel } from "../human";
 import { driveEvents, type SkillBot } from "../bot";
 
 /** Finger top speed, px a tick (world px are phone px here). */
-const FINGER: Record<string, number> = { average: 26, good: 32, great: 38, near: 44 };
+const FINGER: Record<SkillLevel, number> = { weak: 20, average: 26, good: 32, great: 38, near: 44, elite: 47, perfect: 47 };
 /** Landing-read error per tick of remaining flight, px. */
-const READ: Record<string, number> = { average: 0.22, good: 0.15, great: 0.1, near: 0.06 };
+const READ: Record<SkillLevel, number> = { weak: 0.29, average: 0.22, good: 0.15, great: 0.1, near: 0.06, elite: 0.04, perfect: 0.04 };
 /** Chance of trying to steer a gold ball to a pad. */
-const STEER: Record<string, number> = { average: 0, good: 0.3, great: 0.6, near: 0.85 };
+const STEER: Record<SkillLevel, number> = { weak: 0, average: 0, good: 0.3, great: 0.6, near: 0.85, elite: 0.975, perfect: 0.975 };
 
 /** The paddle line, set per run from the game's own court (rallyRev 6's taller court). */
 let PADDLE_Y = 0;

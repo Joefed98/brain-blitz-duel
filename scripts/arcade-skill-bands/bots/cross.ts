@@ -33,12 +33,13 @@ import {
   type CrossCourse,
   type CrossState,
 } from "../../../src/lib/arcade/cross";
+import type { SkillLevel } from "../human";
 import { driveEvents, type SkillBot } from "../bot";
 
 /** Fastest repeated swiping, ticks between swipes (a swipe is a down-move-up gesture). */
-const SWIPE_GAP: Record<string, number> = { average: 18, good: 15, great: 13, near: 11 };
+const SWIPE_GAP: Record<SkillLevel, number> = { weak: 21, average: 18, good: 15, great: 13, near: 11, elite: 10, perfect: 10 };
 /** Relative misjudgement of when traffic arrives (sd), per lane read. */
-const READ: Record<string, number> = { average: 0.15, good: 0.11, great: 0.08, near: 0.05 };
+const READ: Record<SkillLevel, number> = { weak: 0.19, average: 0.15, good: 0.11, great: 0.08, near: 0.05, elite: 0.035, perfect: 0.035 };
 /** Extra clear time (ticks) a player wants in the lane they hop into, beyond their next swipe. */
 const MARGIN = 12;
 /** Clear time (ticks) wanted just before landing too, so a hop never lands on a tail. */

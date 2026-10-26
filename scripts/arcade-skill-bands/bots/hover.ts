@@ -16,6 +16,7 @@
  * grows with how far ahead it has to be judged. Two-gap barriers: the nearer-looking gap (blurred pick).
  * Slips: now and then a tap goes well off its moment.
  */
+import type { SkillLevel } from "../human";
 import {
   HOVER_DISC_R,
   HOVER_DISC_X,
@@ -36,11 +37,11 @@ import {
 import { driveTaps, type SkillBot } from "../bot";
 
 /** Chance of deciding to go for a gold star (each one sits near a lip: a risky line). */
-const STAR_TRY: Record<string, number> = { average: 0.25, good: 0.5, great: 0.75, near: 0.9 };
+const STAR_TRY: Record<SkillLevel, number> = { weak: 0, average: 0.25, good: 0.5, great: 0.75, near: 0.9, elite: 0.975, perfect: 0.975 };
 /** Least room (px) to the gap's edges a player accepts to brush a star (risk appetite). */
-const STAR_ROOM: Record<string, number> = { average: 10, good: 10, great: 10, near: 10 };
+const STAR_ROOM: Record<SkillLevel, number> = { weak: 10, average: 10, good: 10, great: 10, near: 10, elite: 10, perfect: 10 };
 /** Read error on where a sliding gap will be, px per tick ahead (1 world px = 1 phone px). */
-const READ: Record<string, number> = { average: 0.3, good: 0.2, great: 0.13, near: 0.08 };
+const READ: Record<SkillLevel, number> = { weak: 0.4, average: 0.3, good: 0.2, great: 0.13, near: 0.08, elite: 0.055, perfect: 0.055 };
 /** Fastest deliberate tapping: 8 ticks apart (7.5 taps a second). */
 const MIN_TAP_GAP = 8;
 /** The last taps before a barrier are planned once its entry is this close (ticks). */

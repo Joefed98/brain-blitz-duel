@@ -16,6 +16,7 @@
  * alive (and stars for star-chasers), never the score.
  */
 import { SWING_INPUT_HOLD, type SwingState } from "../../../src/lib/arcade/swing";
+import type { SkillLevel } from "../human";
 import { driveEvents, Plan, type SkillBot } from "../bot";
 
 const FP = 256;
@@ -24,7 +25,7 @@ const REACH = 220 * FP;
 const RADIUS = 10 * FP;
 const COL = 40 * FP;
 /** Chance a level goes out of its way for a star anchor it sees coming. */
-const STAR_CHASE: Record<string, number> = { average: 0.1, good: 0.35, great: 0.65, near: 0.9 };
+const STAR_CHASE: Record<SkillLevel, number> = { weak: 0, average: 0.1, good: 0.35, great: 0.65, near: 0.9, elite: 1, perfect: 1 };
 /** Pace a player wants (px a tick): trades a further anchor against time spent. */
 const PACE = 4;
 /** How much a star-chaser values a star anchor, in px of progress. */

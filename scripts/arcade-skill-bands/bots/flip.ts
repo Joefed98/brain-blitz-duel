@@ -21,6 +21,7 @@ import {
   flipSpeed,
   type FlipState,
 } from "../../../src/lib/arcade/flip";
+import type { SkillLevel } from "../human";
 import { driveEvents, type SkillBot } from "../bot";
 
 const FP = 256;
@@ -28,7 +29,7 @@ const FP = 256;
 const VIEW_AHEAD = (FLIP_WORLD_W - 90) * FP;
 const HALF = FLIP_RUNNER_HALF_PX_V2 * FP;
 /** Chance of deciding to go for a star when it comes into view. */
-const STAR_TRY: Record<string, number> = { average: 0.5, good: 0.7, great: 0.85, near: 0.95 };
+const STAR_TRY: Record<SkillLevel, number> = { weak: 0.3, average: 0.5, good: 0.7, great: 0.85, near: 0.95, elite: 1, perfect: 1 };
 const TAP = { k: FLIP_INPUT_TAP, a: 0, b: 0, c: 0, d: 0 };
 
 export const bot: SkillBot = ({ game, seed, human }) => {

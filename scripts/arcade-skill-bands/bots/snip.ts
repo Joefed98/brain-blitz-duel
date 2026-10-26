@@ -52,11 +52,11 @@ const PROOFS: Record<string, Record<string, Proof>> = {
 /** World px per phone px (a 360-px-wide view on a ~390-px phone). */
 const WORLD_PER_PX = SNIP_CONFIG.viewW / 390;
 /** Reading error on the right cut moment (ticks sd): judging where the swing is. */
-const READ: Record<SkillLevel, number> = { average: 5, good: 3.5, great: 2.5, near: 1.5 };
+const READ: Record<SkillLevel, number> = { weak: 6.5, average: 5, good: 3.5, great: 2.5, near: 1.5, elite: 1, perfect: 1 };
 /** Shortest gap between two deliberate swipes (ticks). */
-const GAP: Record<SkillLevel, number> = { average: 20, good: 16, great: 14, near: 12 };
+const GAP: Record<SkillLevel, number> = { weak: 24, average: 20, good: 16, great: 14, near: 12, elite: 11, perfect: 11 };
 /** Chance of going for the golden leaf on a level. */
-const LEAF_GO: Record<SkillLevel, number> = { average: 0.1, good: 0.35, great: 0.6, near: 0.85 };
+const LEAF_GO: Record<SkillLevel, number> = { weak: 0, average: 0.1, good: 0.35, great: 0.6, near: 0.85, elite: 0.975, perfect: 0.975 };
 
 function bandOf(template: number): number {
   if ((SNIP_BANDS_V3.hard as readonly number[]).includes(template) || SNIP_BANDS_V6.hard.includes(template) || SNIP_BANDS_V7.hard.includes(template)) return 2;
