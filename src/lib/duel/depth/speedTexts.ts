@@ -7,7 +7,7 @@ import { FLASH_DECOY_FREE_SHARE_PCT } from "../tapLog";
 import { STOPWATCH_REV4_CURVE } from "../scoring";
 import { fastFinishSeconds, rev3Figures } from "../puzzleBandsText";
 import { FLASH_PARTIAL_HIT_MS, FLASH_PARTIAL_PER_HIT, FLASH_REV6_CURVE, FLASH_STEADY_LOOSE_MS, FLASH_STEADY_LOOSE_POINTS, FLASH_STEADY_TIGHT_MS, FLASH_STEADY_TIGHT_POINTS } from "./flash";
-import { BANGON_PARTIAL_MS, BANGON_PARTIAL_POINTS, BANGON_STREAK_TOP, BANGON_TOPUP_CENTRE_POINTS } from "./bangOn";
+import { BANGON_PARTIAL_MS, BANGON_PARTIAL_POINTS, BANGON_TOPUP_CENTRE_POINTS, BANGON_TOPUP_STREAK_TOP } from "./bangOn";
 import { ASCEND_FLOW_GAP_MS, ASCEND_FLOW_MAX, ASCEND_FLOW_STEP, ASCEND_FLOW_TOP } from "./ascend";
 
 const grouped = (n: number) => n.toLocaleString("en-GB");
@@ -21,7 +21,7 @@ export const FLASH_DEPTH_INTRO = `Tap fast and steady: ${FLASH_REV6_CURVE[0][0]}
 
 export function bangOnDepthHelp(): string {
   const curve = [...STOPWATCH_REV4_CURVE].reverse().filter(([, pts]) => pts > 0).map(([ms, pts]) => `${ms} ms off ≈ ${pts}`).join(", ");
-  return `Closer average stops score up to 150: ${curve}; misses count 500 ms. Dead centre: each stop on the bright centre line +${BANGON_TOPUP_CENTRE_POINTS}. Zone streak: watches in a row stopped in the gold zone, the 2nd +2, the 3rd +3, every later one +${BANGON_STREAK_TOP}; the two add up to 50 at most. {max} needs a close average and a long run on the line. Every watch stopped within ${BANGON_PARTIAL_MS} ms keeps at least ${BANGON_PARTIAL_POINTS}.`;
+  return `Closer average stops score up to 150: ${curve}; misses count 500 ms. Dead centre: each stop on the bright centre line +${BANGON_TOPUP_CENTRE_POINTS}. Zone streak: watches in a row stopped in the gold zone, the 2nd +2, the 3rd +3, the 4th +4, every later one +${BANGON_TOPUP_STREAK_TOP}; the two add up to 50 at most. {max} needs a close average and a long run on the line. Every watch stopped within ${BANGON_PARTIAL_MS} ms keeps at least ${BANGON_PARTIAL_POINTS}.`;
 }
 
 export const BANGON_DEPTH_INTRO = `Close stops score more. Hit the bright line, and the zone again and again: up to {max}.`;

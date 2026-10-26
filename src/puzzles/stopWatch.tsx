@@ -31,7 +31,7 @@ import { wrongMoveFlash } from "@/lib/fx/gameToolkit";
 import { playSound } from "@/lib/sound";
 import { bangOnEarnsGoldFaces, fireBangOnGoldFaces, localBangOnScore } from "@/components/puzzles/stopWatchFx";
 import { roundMaxFor } from "@/lib/duel/roundMax";
-import { BANGON_STREAK_MIN, BANGON_STREAK_TOP, BANGON_TOPUP_CENTRE_POINTS, bangOnCentrePoints, bangOnMarks, liveZoneStreak, scoreBangOnDepth, usesBangOnDepth, type WatchMark } from "@/lib/duel/depth/bangOn";
+import { BANGON_STREAK_MIN, BANGON_TOPUP_CENTRE_POINTS, BANGON_TOPUP_STREAK_TOP, bangOnCentrePoints, bangOnMarks, liveZoneStreak, scoreBangOnDepth, usesBangOnDepth, type WatchMark } from "@/lib/duel/depth/bangOn";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
@@ -225,7 +225,7 @@ function IntroExample() {
         to corner, and targets move, hide, turn vertical or accelerate. The counter starts at 2 on Watch 1 and reaches 11
         on Watch 10; watches 8-10 wrap. Score: up to 150 for close stops (5 ms average error or closer), falling to 0
         at {STOPWATCH_REV4_ZERO_MS} ms; a missed watch counts 500 ms. Each stop on the bright centre line adds
-        {BANGON_TOPUP_CENTRE_POINTS}, and zone stops in a row add more the longer the run (up to {BANGON_STREAK_TOP} a watch): up to {roundMaxFor("stopwatch")}.
+        {BANGON_TOPUP_CENTRE_POINTS}, and zone stops in a row add more the longer the run (up to {BANGON_TOPUP_STREAK_TOP} a watch): up to {roundMaxFor("stopwatch")}.
       </p>
     </div>
   );

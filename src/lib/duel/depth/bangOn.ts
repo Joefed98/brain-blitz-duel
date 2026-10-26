@@ -20,13 +20,15 @@ import { TAP_REV_DEPTH, TAP_REV_TOPUP, type WatchResult } from "../tapLog";
 export const BANGON_DEPTH_REV = TAP_REV_DEPTH;
 /**
  * The puzzle top-up (26 Oct 2026, tapRev 6; docs/depth/topup-oct-2026.md): the same line, zone and marks; a dead-centre
- * stop +3 (was 2) and the streak from its 2nd watch +2, 3rd +3, then +4 (was +1, +2, +3, +4), the two together at most
+ * stop +3 (was 2) and the streak from its 2nd watch +2, 3rd +3, 4th +4, then +5 (was +1, +2, +3, +4), the two together at most
  * BANGON_TOPUP_FEATURE_MAX; and partial credit: never below BANGON_PARTIAL_POINTS per watch stopped within
  * BANGON_PARTIAL_MS (a player who stops some watches close never scores 0).
  */
 export const BANGON_TOPUP_REV = TAP_REV_TOPUP;
 export const BANGON_TOPUP_CENTRE_POINTS = 3;
 export const BANGON_TOPUP_FEATURE_MAX = 50;
+/** tapRev 6: the most one watch of a streak adds (the 2nd +2, the 3rd +3, the 4th +4, every later one +5). */
+export const BANGON_TOPUP_STREAK_TOP = 5;
 export const BANGON_PARTIAL_POINTS = 2;
 export const BANGON_PARTIAL_MS = 100;
 /** A stop this close to the centre line (ms of marker travel) is dead centre. */
@@ -39,7 +41,7 @@ export const BANGON_STREAK_MIN = 2;
 
 /** Streak points for the n-th watch in a row stopped in the zone (n from 1). */
 export function streakPointsAt(n: number, tapRev = BANGON_DEPTH_REV): number {
-  if (tapRev >= BANGON_TOPUP_REV) return n >= BANGON_STREAK_MIN ? Math.min(BANGON_STREAK_TOP, n) : 0;
+  if (tapRev >= BANGON_TOPUP_REV) return n >= BANGON_STREAK_MIN ? Math.min(BANGON_TOPUP_STREAK_TOP, n) : 0;
   return Math.max(0, Math.min(BANGON_STREAK_TOP, n - 1));
 }
 
