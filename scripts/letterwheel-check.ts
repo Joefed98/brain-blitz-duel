@@ -58,9 +58,12 @@ import { roomPuzzle, runPlay, runSpam } from "./puzzle-fairness/run";
 import { KITS } from "./puzzle-fairness/kits";
 import { LEVELS } from "./puzzle-fairness/kit";
 import { pinDealtPuzzleScoreRev } from "../src/lib/duel/puzzleScoreRev";
+import { pinPreDepth } from "../src/lib/duel/wordDepth";
 
 // Written for the rev-1 puzzle shape: new puzzles here carry puzzleScoreRev 1 (rooms deal rev 2 since 19 Oct 2026, scoring-bands-check).
 pinDealtPuzzleScoreRev(1);
+// Word depth (25 Oct 2026): this check proves wheelRev 1; depth-letterwheel-check proves wheelRev 2.
+pinPreDepth(true);
 
 const failures: string[] = [];
 let checks = 0;

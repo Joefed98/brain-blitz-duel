@@ -335,7 +335,8 @@ async function mountStage(room: Room, puzzle: PuzzleData) {
   check(tested >= 3, `only ${tested} Exact boards tested`);
 }
 
-// Pipes: two tiles turned, reload, one more (the draft is the whole board, one hex digit a tile).
+// Pipes: two tiles turned, reload, one more (the draft is the whole board, one hex digit a tile; pipesRev 1, depth
+// batch 4, adds "~" and the tap log, which the reload must keep too).
 {
   let tested = 0;
   for (const seed of [4, 8, 15]) {
@@ -363,8 +364,10 @@ async function mountStage(room: Room, puzzle: PuzzleData) {
     await turnNew();
     await turnNew();
     const before = room.keeper.current(room.key);
-    const diff = (x: string, y: string) => [...x].filter((ch, i) => ch !== y[i]).length;
-    check(before.length === opening.length && diff(before, opening) === 2, `Pipes seed ${seed}: two turns were not drafted (${opening} → ${before})`);
+    const board = (x: string) => x.split("~")[0] ?? "";
+    const taps = (x: string) => x.split("~")[1] ?? "";
+    const diff = (x: string, y: string) => [...board(x)].filter((ch, i) => ch !== board(y)[i]).length;
+    check(board(before).length === board(opening).length && diff(before, opening) === 2, `Pipes seed ${seed}: two turns were not drafted (${opening} → ${before})`);
     await unmount(root);
 
     openPage(room);
@@ -375,6 +378,7 @@ async function mountStage(room: Room, puzzle: PuzzleData) {
     const after = room.keeper.current(room.key);
     check(third >= 0 && diff(after, before) === 1 && after[third] !== before[third] && diff(after, opening) === 3,
       `Pipes seed ${seed}: the next turn did not continue the restored board (${opening} → ${before} → ${after})`);
+    if (taps(before)) check(taps(after) === `${taps(before)},${third}`, `Pipes seed ${seed}: the tap log did not continue after the reload (${taps(before)} → ${taps(after)})`);
     await unmount(root);
     tested++;
   }

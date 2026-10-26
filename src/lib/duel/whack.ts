@@ -6,6 +6,7 @@
 
 import {
   whackCheckpoint,
+  whackDepthScore,
   whackGameFor,
   WHACK_CHECKPOINT_INTERVAL,
   WHACK_INPUT_RANGES,
@@ -161,3 +162,16 @@ export function replayWhackRun(seed: number, raw: string, rev?: number | null): 
 }
 
 export { WHACK_RUN_TICKS };
+
+/** whackRev 3: the score's parts and the features' counts, stored on the round (`extra.depth`) for the reveal. */
+export function whackDepthDetail(state: WhackState) {
+  const parts = whackDepthScore(state);
+  return {
+    base: parts.base,
+    combo: parts.combo,
+    diamonds: parts.diamonds,
+    comboBest: state.dp?.best ?? 0,
+    diamondHits: state.dp?.hits ?? 0,
+    diamondTotal: state.dp?.at.length ?? 0,
+  };
+}

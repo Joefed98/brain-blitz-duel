@@ -21,14 +21,21 @@
 
 import { finishParts, partialParts, scoreRev1, PUZZLE_SPEED_POINTS } from "./puzzleScoreRev";
 import { movesPoints, speedPoints } from "./scoring";
+import type { ParBonusCurve } from "./parBonus";
 
 /**
  * Rev 1: budget minimum + 5. Rev 2 (14 Oct 2026): budget max(16, minimum + 5); same boards.
  * Rev 3 (19 Oct 2026): budget minimum + 8 (17–20 on the 9–12 minimum boards); same boards.
  */
-export const SWAPWORD_REV = 3;
+export const SWAPWORD_REV = 4;
 export const SWAPWORD_REV2 = 2;
 export const SWAPWORD_REV3 = 3;
+/**
+ * Par swaps (25 Oct 2026, word depth d1; parBonus.ts): rev 3's rules and boards, scoring up to 200, the extra 50
+ * only for a finish in the board's proven fewest swaps (`minSwaps`, the par).
+ */
+export const SWAPWORD_REV_PAR = 4;
+export const SWAP_PAR_BONUS: ParBonusCurve = { base: 6, fast: 0.75, elite: 0.89, power: 2 };
 export const SW_COLS = 6;
 export const SW_ROWS = 6;
 /** Grid cell (row × 6 + col) of each tile, in reading order. */

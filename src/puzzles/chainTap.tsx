@@ -21,6 +21,7 @@ import {
   type ChainTap,
 } from "@/lib/duel/chain";
 import { useStageState } from "@/lib/duel/stageState";
+import { CHAIN_MILESTONE_POINTS, CHAIN_MILESTONES, chainMilestones, chainUsesDepth, type ChainMilestone } from "@/lib/duel/depth/chain";
 import {
   CHAIN_BLOCK,
   CHAIN_REVERSE_AT,
@@ -238,6 +239,28 @@ function ChainLine({ nodes, path, broken }: { nodes: ChainNode[]; path: number[]
   );
 }
 
+/**
+ * chainDepthRev 1 (Depth to 200): the three milestone pips, 10 / 20 / 30. Reached at a flowing pace: lit gold with a
+ * glow; reached slower: a gold outline (fewer points); not yet: dim. Fixed size, laid over the counter row's side so
+ * nothing moves.
+ */
+function MilestonePips({ reached, compact = false }: { reached: readonly ChainMilestone[]; compact?: boolean }) {
+  return (
+    <span data-chain-milestones="" className={`chain-milestones flex items-center ${compact ? "gap-1" : "gap-1.5"}`} aria-label={`Milestones: ${reached.length} of ${CHAIN_MILESTONES.length}`}>
+      {CHAIN_MILESTONES.map((at) => {
+        const m = reached.find((r) => r.at === at);
+        const state = !m ? "open" : m.points >= CHAIN_MILESTONE_POINTS ? "full" : m.points > 0 ? "part" : "slow";
+        return (
+          <span key={at} data-milestone={at} data-milestone-state={state} className="chain-milestone">
+            {at}
+            {m && m.points > 0 ? <span className="chain-milestone-plus">+{m.points}</span> : null}
+          </span>
+        );
+      })}
+    </span>
+  );
+}
+
 function Stage({ puzzle, locked, onSubmit, onDraftAnswer, phaseStartedAt, stateKey = "chain" }: PuzzleStageProps) {
   const data: ChainPuzzleData | null = puzzle.type === "chain" ? puzzle : null;
   const [taps, setTaps] = useStageState<ChainTap[]>(stateKey, "chainTaps2", () => []);
@@ -246,6 +269,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, phaseStartedAt, stateK
   const [pulse, setPulse] = useState<number | null>(null);
   const [faster, setFaster] = useState(false);
   const [reverseFlash, setReverseFlash] = useState(false);
+  /** chainDepthRev 1: the milestone just reached (shown under FASTER), cleared with the banner. */
+  const [milestoneFlash, setMilestoneFlash] = useState<ChainMilestone | null>(null);
   const submitted = useRef(false);
   const warned = useRef("");
   const rootRef = useRef<HTMLDivElement>(null);
@@ -316,6 +341,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, phaseStartedAt, stateK
   const windowMs = chainWindowMs(links + 1, data);
   const left = replay.lastT === null ? 1 : (windowMs - (clock - replay.lastT)) / windowMs;
   const tier = links >= (rules.fasterAt[1] ?? Infinity) ? 2 : links >= (rules.fasterAt[0] ?? Infinity) ? 1 : 0;
+  const depth = chainUsesDepth(data);
+  const milestones = depth ? chainMilestones(taps, links) : [];
   previewRef.current = {
     path: (path.length >= 2 ? path.map((id) => board[id]) : board.slice(0, CHAIN_BLOCK)).filter((n): n is ChainNode => Boolean(n)),
     length: rules.length,
@@ -345,6 +372,11 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, phaseStartedAt, stateK
     if (rules.fasterAt.includes(made)) {
       setFaster(true);
       setTimeout(() => setFaster(false), 900);
+      if (depth) {
+        const reachedNow = chainMilestones(nextTaps, made).find((m) => m.at === made) ?? null;
+        setMilestoneFlash(reachedNow);
+        setTimeout(() => setMilestoneFlash((current) => (current === reachedNow ? null : current)), 900);
+      }
       // The FASTER banner (hidden under the REVERSE flash when both land on one link).
       if (!reverseNow) soundCue("chain.faster");
     }
@@ -384,11 +416,16 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, phaseStartedAt, stateK
           {reversed ? "← Reversed: last to first" : `Reverse after link ${CHAIN_REVERSE_AT}!`}
         </p>
       )}
-      <p className="shrink-0 text-center font-mono text-3xl font-bold leading-none tabular-nums">
+      <p className="relative shrink-0 text-center font-mono text-3xl font-bold leading-none tabular-nums">
         <span key={links} className={`inline-block ${links > 0 ? "animate-scale-in" : ""} text-primary`}>
           {links}
         </span>
         <span className="text-muted-foreground"> / {rules.length}</span>
+        {depth ? (
+          <span className="absolute inset-y-0 right-1 flex items-center">
+            <MilestonePips reached={milestones} />
+          </span>
+        ) : null}
       </p>
       <ChainLinks links={links} total={rules.length} broken={broken} />
       <div data-play-area data-game-arena="tall" className={`relative min-h-0 w-full flex-1 ${broken ? "animate-shake" : ""}`}>
@@ -427,11 +464,21 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, phaseStartedAt, stateK
         {reverseFlash && !over && (
           <div data-chain-reverse-flash="" className="pointer-events-none absolute inset-x-0 top-1/3 z-10 text-center font-display text-4xl font-black tracking-widest text-warn animate-scale-in">
             ← REVERSE
+            {milestoneFlash ? (
+              <span data-chain-milestone-flash="" className="chain-milestone-flash block text-base tracking-[0.2em]">
+                {milestoneFlash.points > 0 ? `${milestoneFlash.at} in a row · +${milestoneFlash.points}` : `${milestoneFlash.at} in a row`}
+              </span>
+            ) : null}
           </div>
         )}
         {faster && !over && !reverseFlash && (
           <div className="pointer-events-none absolute inset-x-0 top-1/3 text-center font-display text-4xl font-black tracking-widest text-primary animate-scale-in">
             FASTER
+            {milestoneFlash ? (
+              <span data-chain-milestone-flash="" className="chain-milestone-flash block text-base tracking-[0.2em]">
+                {milestoneFlash.points > 0 ? `${milestoneFlash.at} in a row · +${milestoneFlash.points}` : `${milestoneFlash.at} in a row`}
+              </span>
+            ) : null}
           </div>
         )}
         {broken && (
@@ -454,7 +501,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, phaseStartedAt, stateK
   );
 }
 
-function Reveal({ timeLimitMs, puzzle, myAnswer, myMsRemaining }: PuzzleRevealProps) {
+function Reveal({ timeLimitMs, puzzle, myAnswer, myMsRemaining, myExtra }: PuzzleRevealProps) {
   if (puzzle.type !== "chain") return null;
   const answer = decodeChainAnswer(myAnswer ?? "");
   const replay = replayChain(puzzle, answer);
@@ -481,8 +528,23 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myMsRemaining }: PuzzleRevealPr
         {ending}
         {elapsed !== null ? ` · ${elapsed.toFixed(1)}s` : ""}
       </p>
+      {chainUsesDepth(puzzle) ? (
+        <div data-chain-reveal-milestones="" className="flex flex-col items-center gap-1">
+          <MilestonePips reached={chainMilestones(answer.taps, replay.links)} compact />
+          <p className="text-center font-mono text-xs text-muted-foreground">
+            {revealDepthLine(chainMilestones(answer.taps, replay.links), myExtra)}
+          </p>
+        </div>
+      ) : null}
     </div>
   );
+}
+
+/** "Milestones +8 · stretch +12" from the stored grade (the milestones from the answer before it arrives). */
+function revealDepthLine(milestones: readonly ChainMilestone[], extra: Record<string, unknown> | null | undefined): string {
+  const stored = typeof extra?.["milestonePoints"] === "number" ? (extra["milestonePoints"] as number) : milestones.reduce((a, m) => a + m.points, 0);
+  const stretch = typeof extra?.["stretch"] === "number" ? (extra["stretch"] as number) : 0;
+  return `Milestones +${stored}${stretch > 0 ? ` · speed beyond 150 +${stretch}` : ""}`;
 }
 
 export const chainTapPuzzle: PuzzleDefinition = {

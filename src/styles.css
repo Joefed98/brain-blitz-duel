@@ -959,6 +959,13 @@ html,
   max-width: 100%;
 }
 
+/* While the reveal can still scroll (AnswerReveal's useRevealMore), its bottom fades out as the room lists'
+   .rs-scroll does, so a board cut off by the scroll edge runs into the home-bar strip with no step. */
+.answer-reveal-content[data-more] {
+  -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 28px), transparent);
+  mask-image: linear-gradient(to bottom, #000 calc(100% - 28px), transparent);
+}
+
 @keyframes draw-stroke {
   0% {
     stroke-dashoffset: var(--draw-length, 60);

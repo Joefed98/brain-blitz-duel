@@ -1201,7 +1201,7 @@ export function bullseyeInitRev7(seed: number, storedWinds?: readonly number[]):
  * 6's strict curve, knot for knot. The taller range keeps the same dart totals level by level
  * (scripts/arcade-skill-bands.ts --rev=x), so today's players land where they did before streaks.
  */
-export const BULLSEYE_V7_BASE_CURVE = bandCurve([0, 73, 75, 82, 90, 92, 100, 101, 112], [0, 70, 74, 100, 120, 125, 140, 143, 150]);
+export const BULLSEYE_V7_BAND_CURVE = bandCurve([0, 73, 75, 82, 90, 92, 100, 101, 112], [0, 70, 74, 100, 120, 125, 140, 143, 150]);
 
 /** bullRev 7's streak points as the score counts them (up to 50). */
 export function bullseyeStreakPoints(state: Pick<BullseyeState, "streakPts">): number {
@@ -1213,7 +1213,7 @@ function bullseyeV7Parts(state: BullseyeState): BandParts {
   const streak = bullseyeStreakPoints(state);
   return {
     units,
-    points: bandPoints(BULLSEYE_V7_BASE_CURVE, units),
+    points: bandPoints(BULLSEYE_V7_BAND_CURVE, units),
     bonus: streak,
     penalty: 0,
     finished: false,

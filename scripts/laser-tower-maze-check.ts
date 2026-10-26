@@ -19,7 +19,8 @@ import {
   towerStacksLegal,
   towerPegsFrom,
 } from "../src/lib/duel/tower";
-import { generateMaze } from "../src/lib/duel/maze.server";
+import { generateMaze, generateMazeClassic } from "../src/lib/duel/maze.server";
+import { mazeColsOf } from "../src/lib/duel/maze";
 import { mazeRoute, mazeTurns, verifyMazePath } from "../src/lib/duel/maze";
 import { mazeExitInSight, mazeFalseTrailLengths, mazeJunctions } from "../src/lib/duel/maze.server";
 import {
@@ -96,30 +97,32 @@ console.log(
 
 /* ------------------------------ Maze Dash -------------------------------- */
 
+// The dealt maze (mazeRev 1, 19 × 23) and the 19 × 19 one before it pass the same tests.
 for (let index = 0; index < 40; index++) {
-  const puzzle = generateMaze();
+  const puzzle = index % 2 ? generateMazeClassic() : generateMaze();
+  const cols = mazeColsOf(puzzle);
   const route = puzzle.solution ?? [];
   if (route.length < MAZE_MIN_PATH) fail(`route length ${route.length}`);
   if (mazeTurns(route) < MAZE_MIN_TURNS) fail(`route turns ${mazeTurns(route)}`);
-  const junctions = mazeJunctions(puzzle.cells, route);
+  const junctions = mazeJunctions(puzzle.cells, route, cols);
   if (junctions < MAZE_MIN_JUNCTIONS) fail(`only ${junctions} junctions on or beside the route`);
-  const trails = mazeFalseTrailLengths(puzzle.cells, route);
+  const trails = mazeFalseTrailLengths(puzzle.cells, route, cols);
   const long = trails.filter((length) => length >= MAZE_LONG_DEAD_END_LENGTH).length;
   const enough = trails.filter((length) => length >= MAZE_DEAD_END_LENGTH).length;
   if (enough < MAZE_MIN_DEAD_ENDS) fail(`only ${enough} false trails`);
   if (long < MAZE_MIN_LONG_DEAD_ENDS) fail(`only ${long} long false trails`);
-  if (mazeExitInSight(puzzle.cells, route, puzzle.exit))
+  if (mazeExitInSight(puzzle.cells, route, puzzle.exit, cols))
     fail("the exit is visible down a corridor");
   if (route[0] !== puzzle.start || route[route.length - 1] !== puzzle.exit)
     fail("route ends wrong");
   // A perfect maze: the route found from the cells is the stored one.
-  if (mazeRoute(puzzle.cells, puzzle.start, puzzle.exit).join(",") !== route.join(",")) {
+  if (mazeRoute(puzzle.cells, puzzle.start, puzzle.exit, cols).join(",") !== route.join(",")) {
     fail("stored route is not the maze's own route");
   }
-  const verdict = verifyMazePath(puzzle.cells, puzzle.start, puzzle.exit, route, route);
+  const verdict = verifyMazePath(puzzle.cells, puzzle.start, puzzle.exit, route, route, cols);
   if (!verdict.solved || verdict.progress !== 1) fail("server rejects the stored route");
   const halfway = route.slice(0, Math.ceil(route.length / 2));
-  const partial = verifyMazePath(puzzle.cells, puzzle.start, puzzle.exit, route, halfway);
+  const partial = verifyMazePath(puzzle.cells, puzzle.start, puzzle.exit, route, halfway, cols);
   if (partial.solved || partial.progress > 0.75) fail("half a route scored as solved");
 }
 console.log("Maze Dash: 40 mazes — long, twisty, junction-rich, with blind tails and hidden exits");

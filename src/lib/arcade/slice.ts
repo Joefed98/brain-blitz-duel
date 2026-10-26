@@ -1565,7 +1565,7 @@ export const SLICE_V9_INPUT_RANGES: readonly InputRange[] = [
  * fitted with scripts/arcade-skill-bands.ts --rev=x so each simulated level's median stays within about
  * 10 % of sliceRev 8's once the bonus points they earn are added; 150 at 900.
  */
-export const SLICE_V9_BASE_CURVE = bandCurve([0, 352, 650, 706, 760, 800, 850], [0, 55, 72, 97, 120, 140, 150]);
+export const SLICE_V9_BAND_CURVE = bandCurve([0, 352, 650, 706, 760, 800, 850], [0, 55, 72, 97, 120, 140, 150]);
 
 function sliceV9Parts(state: SliceState): BandParts {
   const total = Math.max(1, sliceTotalDiscs(state));
@@ -1574,7 +1574,7 @@ function sliceV9Parts(state: SliceState): BandParts {
   const bonus = sliceV9Bonus(state);
   return {
     units,
-    points: bandPoints(SLICE_V9_BASE_CURVE, units),
+    points: bandPoints(SLICE_V9_BAND_CURVE, units),
     bonus,
     penalty: SLICE_BOMB_PENALTY * chillies,
     finished: false,

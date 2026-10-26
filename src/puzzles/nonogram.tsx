@@ -6,6 +6,7 @@ import {
   decodeNonoCells,
   encodeNonoCells,
   lineSatisfied,
+  nonoSizeOf,
   type NonoMarks,
 } from "@/lib/duel/nonogram";
 import { useStageState } from "@/lib/duel/stageState";
@@ -172,10 +173,12 @@ function Stage({
   stateKey = "nonogram",
 }: PuzzleStageProps) {
   const data: NonoPuzzleData | null = puzzle.type === "nonogram" ? puzzle : null;
+  // 7 × 7 before the depth revision, 8 × 8 on it (the clue count).
+  const SIZE = nonoSizeOf(data);
   const [marks, setMarks] = useStageState<NonoMarks>(
     stateKey,
     "nonoMarks",
-    () => Array.from({ length: NONO_SIZE * NONO_SIZE }, () => 0) as NonoMarks,
+    () => Array.from({ length: SIZE * SIZE }, () => 0) as NonoMarks,
   );
   const [tapped, setTapped] = useState<{ index: number; key: number } | null>(null);
   const submitted = useRef(false);
@@ -187,25 +190,25 @@ function Stage({
   const complete = useMemo(() => {
     if (!data) return false;
     const filledRow = (row: number) =>
-      Array.from({ length: NONO_SIZE }, (_, col) => marks[row * NONO_SIZE + col] === 1);
+      Array.from({ length: SIZE }, (_, col) => marks[row * SIZE + col] === 1);
     const filledCol = (col: number) =>
-      Array.from({ length: NONO_SIZE }, (_, row) => marks[row * NONO_SIZE + col] === 1);
+      Array.from({ length: SIZE }, (_, row) => marks[row * SIZE + col] === 1);
     return (
       data.rows.every((clue, row) => lineSatisfied(clue, filledRow(row))) &&
       data.cols.every((clue, col) => lineSatisfied(clue, filledCol(col)))
     );
-  }, [data, marks]);
+  }, [data, marks, SIZE]);
   const solving = useSolveFx("nonogram", complete);
   const linesDone = useMemo(() => {
     if (!data) return 0;
     const line = (cells: number[]) => cells.map((cell) => marks[cell] === 1);
-    const span = Array.from({ length: NONO_SIZE }, (_, i) => i);
+    const span = Array.from({ length: SIZE }, (_, i) => i);
     return (
-      data.rows.filter((clue, row) => lineSatisfied(clue, line(span.map((col) => row * NONO_SIZE + col)))).length +
-      data.cols.filter((clue, col) => lineSatisfied(clue, line(span.map((row) => row * NONO_SIZE + col)))).length
+      data.rows.filter((clue, row) => lineSatisfied(clue, line(span.map((col) => row * SIZE + col)))).length +
+      data.cols.filter((clue, col) => lineSatisfied(clue, line(span.map((row) => row * SIZE + col)))).length
     );
-  }, [data, marks]);
-  useFrameProgress(linesDone, NONO_SIZE * 2, "lines");
+  }, [data, marks, SIZE]);
+  useFrameProgress(linesDone, SIZE * 2, "lines");
 
   // Every line matching its clues means the picture is the stored one.
   useEffect(() => {
@@ -242,7 +245,7 @@ function Stage({
       <span aria-hidden="true" className="logic-calm-glow" />
       <div data-game-arena="logic" className="px-3">
         <div className="logic-nono-fit logic-nono-frame">
-          <Board rows={data.rows} cols={data.cols} marks={marks} onCell={tap} fluid tapped={tapped} />
+          <Board rows={data.rows} cols={data.cols} marks={marks} size={SIZE} onCell={tap} fluid tapped={tapped} />
         </div>
       </div>
     </div>
@@ -252,7 +255,8 @@ function Stage({
 function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProps) {
   if (puzzle.type !== "nonogram") return null;
   const pattern = puzzle.pattern ?? [];
-  const filled = decodeNonoCells(myAnswer ?? "");
+  const size = nonoSizeOf(puzzle);
+  const filled = decodeNonoCells(myAnswer ?? "", size);
   const mine = new Set(filled);
   const correct = filled.filter((cell) => pattern[cell]).length;
   const total = pattern.filter(Boolean).length;
@@ -260,7 +264,7 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: Puz
     myMsRemaining === undefined ? null : Math.round((timeLimitMs - myMsRemaining) / 100) / 10;
 
   const solutionMarks = pattern.map((cell) => (cell ? 1 : 0)) as NonoMarks;
-  const myMarks = Array.from({ length: NONO_SIZE * NONO_SIZE }, (_, index) =>
+  const myMarks = Array.from({ length: size * size }, (_, index) =>
     mine.has(index) ? 1 : 0,
   ) as NonoMarks;
   const wrongCells = new Set(filled.filter((cell) => !pattern[cell]));
@@ -271,7 +275,7 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: Puz
         <div className="logic-nono-pair">
           <div className="flex min-w-0 flex-1 flex-col items-center gap-1">
             <span className="text-xs uppercase tracking-widest text-muted-foreground">Solution</span>
-            <Board rows={puzzle.rows} cols={puzzle.cols} marks={solutionMarks} reveal />
+            <Board rows={puzzle.rows} cols={puzzle.cols} marks={solutionMarks} size={size} reveal />
           </div>
           <div className="flex min-w-0 flex-1 flex-col items-center gap-1">
             <span className="text-xs uppercase tracking-widest text-muted-foreground">Yours</span>
@@ -279,6 +283,7 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: Puz
               rows={puzzle.rows}
               cols={puzzle.cols}
               marks={myMarks}
+              size={size}
               wrongCells={wrongCells}
               reveal
             />

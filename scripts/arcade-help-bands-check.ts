@@ -14,7 +14,8 @@
  *
  *   bun scripts/arcade-help-bands-check.ts
  */
-import { LIVE_BANDS, liveDealtRev, type LiveBand, type LiveBandGame } from "../src/lib/arcade/liveBands";
+import { LIVE_BANDS, type LiveBandGame } from "../src/lib/arcade/liveBands";
+import { roundMaxFor } from "../src/lib/duel/roundMax";
 import { BAND_SPECS } from "../src/lib/arcade/bandParts";
 import {
   BAND_GOOD_POINTS,
@@ -73,10 +74,9 @@ for (const [type, live] of Object.entries(LIVE_BANDS) as [
   const dealt = (generatePuzzle(type as PuzzleType) as unknown as Record<string, unknown>)[
     live.field
   ];
-  // A world expansion (docs/scoring-200.md) deals its own later stamp (LIVE_BANDS' `dealt`).
   ok(
-    dealt === liveDealtRev(type),
-    `${type}: rooms deal ${live.field} ${String(dealt)}, the help reads ${live.field} ${liveDealtRev(type)} (update liveBands.ts)`,
+    dealt === live.rev,
+    `${type}: rooms deal ${live.field} ${String(dealt)}, the help reads ${live.field} ${live.rev} (update liveBands.ts)`,
   );
 }
 
@@ -103,8 +103,6 @@ for (const [type, live] of Object.entries(LIVE_BANDS) as [
   LiveBandGame,
   (typeof LIVE_BANDS)[LiveBandGame],
 ][]) {
-  // A world expansion's help states its own scoring to its raised maximum (its own check proves it).
-  if ((live as LiveBand).dealt !== undefined) continue;
   const score = PUZZLE_INSTRUCTIONS[type].score;
   const curve = live.curve;
   const top = curve.points[curve.points.length - 1]!;
@@ -130,8 +128,8 @@ for (const [type, live] of Object.entries(LIVE_BANDS) as [
     );
   else
     ok(
-      score.includes(`– up to ${top}.`) && score.endsWith("Up to 150."),
-      `${type}: finish game states up to ${top} then up to 150`,
+      score.includes(`– up to ${top}.`) && score.endsWith(`Up to ${roundMaxFor(type)}.`),
+      `${type}: finish game states up to ${top} then up to its maximum (${roundMaxFor(type)})`,
     );
   ok(!/→|Points follow|straight lines/.test(score), `${type}: no knot list in the help`);
 }

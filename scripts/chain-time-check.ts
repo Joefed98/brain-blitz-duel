@@ -65,7 +65,9 @@ let unfinishedOk = true;
 let legacyOk = true;
 let raisedBefore = 0;
 for (let seed = 1; seed <= 40; seed++) {
-  const fresh = generateChain(seed * 7919);
+  // Depth to 200 (25 Oct 2026): this check proves chainTimeRev's 150-point rounds, so the depth stamp
+  // (chainDepthRev 1, proved by depth-chain-check) is taken off the fresh board.
+  const fresh = { ...generateChain(seed * 7919), chainDepthRev: undefined } as ChainPuzzleData;
   if (fresh.chainTimeRev !== CHAIN_TIME_REV) stampOk = false;
   for (const [scoreRev, speedPar] of [[undefined, undefined], [undefined, SPEED_PAR_VERSION], [1, SPEED_PAR_VERSION]] as const) {
     const stamped = { ...fresh, puzzleScoreRev: scoreRev, speedPar } as ChainPuzzleData;

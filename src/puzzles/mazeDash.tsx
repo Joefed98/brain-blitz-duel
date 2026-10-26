@@ -19,8 +19,20 @@ import {
   verifyMazePath,
 } from "@/lib/duel/maze";
 import { useStageState } from "@/lib/duel/stageState";
+import {
+  LAB_STARS,
+  LAB_TRAIL_MAX,
+  decodeMazeTrail,
+  encodeMazeTrail,
+  mazeStarsTaken,
+  mazeTrailBacktracks,
+  mazeTrailRoute,
+  mazeTrailWalk,
+  usesMazeDepth,
+} from "@/lib/duel/depth/labyrinth";
+import { mazeColsOf } from "@/lib/duel/maze";
 import { MAZE_CELLS, MAZE_COLS, MAZE_TIME_MS, type MazePuzzleData } from "@/lib/duel/types";
-import { playCorrect } from "@/lib/sound";
+import { playCorrect, playSound } from "@/lib/sound";
 
 import { playMazeTrace } from "./labyrinthArt";
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
@@ -92,7 +104,12 @@ function MazeBoard({
   onCell,
   onRelease,
   k = 1,
+  stars,
+  taken,
 }: {
+  /** mazeRev 1: the detour stars' cells, and those the ball has taken (drawn as a faint outline). */
+  stars?: readonly number[] | undefined;
+  taken?: readonly number[] | undefined;
   /**
    * Polish batch S (display only): each cell's height over its width. A live round's frame passes more
    * than 1 where the arena has spare height, so the maze grows taller; touches map through the board's
@@ -126,7 +143,7 @@ function MazeBoard({
       ref={box}
       className="maze-board relative mx-auto aspect-square h-full max-h-full w-full max-w-full touch-none select-none rounded-lg bg-card p-1"
       data-maze-board=""
-      style={k === 1 ? { touchAction: "none" } : { touchAction: "none", aspectRatio: `${cols} / ${rows * k}` }}
+      style={k === 1 && rows === cols ? { touchAction: "none" } : { touchAction: "none", aspectRatio: `${cols} / ${rows * k}` }}
       onPointerDown={(event) => {
         if (!onCell) return;
         event.preventDefault();
@@ -196,6 +213,33 @@ function MazeBoard({
           r={0.18}
           fill="var(--maze-start)"
         />
+        {/* mazeRev 1 detour stars: the exit star's gold look, smaller, with a slow shimmer; a taken star pops and
+            leaves a faint gold outline (display only; the server counts the stars from the trail). */}
+        {stars?.map((cell) => {
+          const got = taken?.includes(cell) ?? false;
+          return (
+            <g key={`star-${cell}`} data-maze-star={got ? "taken" : "waiting"}>
+              {got ? (
+                <>
+                  <polygon className="maze-star-pop" points={starPoints(cx(cell), cy(cell), 0.3, 0.13)} fill={`url(#maze-star-${gid})`} />
+                  <polygon points={starPoints(cx(cell), cy(cell), 0.3, 0.13)} fill="none" stroke="var(--primary)" strokeWidth={0.04} strokeLinejoin="round" opacity={0.5} />
+                </>
+              ) : (
+                <>
+                  <circle className="maze-star-glow" cx={cx(cell)} cy={cy(cell)} r={0.5} fill={`url(#maze-halo-${gid})`} />
+                  <polygon
+                    points={starPoints(cx(cell), cy(cell), 0.34, 0.15)}
+                    fill={`url(#maze-star-${gid})`}
+                    stroke="#7A4E06"
+                    strokeWidth={0.025}
+                    strokeLinejoin="round"
+                    style={{ filter: "drop-shadow(0 0 0.1px var(--primary))" }}
+                  />
+                </>
+              )}
+            </g>
+          );
+        })}
         {/* Goal: a gold star flag marking the exit cell, lit by a soft halo inside its cell. */}
         <circle
           className="maze-exit-glow"
@@ -256,10 +300,10 @@ function IntroExample() {
         Draw your way from the start to the exit as fast as you can.
       </p>
       <div style={{ width: 120 }}>
-        <MazeBoard cells={cells} cols={3} start={0} exit={8} path={[0, 3, 4]} />
+        <MazeBoard cells={cells} cols={3} start={0} exit={8} path={[0, 3, 4]} stars={[6]} />
       </div>
       <p className="text-xs text-muted-foreground">
-        Wrong turns cost you time.
+        Wrong turns cost you time. Stars on side paths add points if you finish fast.
       </p>
     </div>
   );
@@ -270,7 +314,17 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "maze" }: P
   const cells = isMaze ? puzzle.cells : [];
   const start = isMaze ? puzzle.start : 0;
   const exit = isMaze ? puzzle.exit : MAZE_CELLS - 1;
-  const [path, setPath] = useStageState<number[]>(stateKey, "mazePath", () => [start]);
+  // mazeRev 1 (depth/labyrinth.ts): a 19 × 23 board, detour stars and the whole trail as the answer; the drawn route
+  // is the trail with its backtracks folded away. Older mazes keep the 19 × 19 board and the path answer.
+  const depth = usesMazeDepth(puzzle);
+  const cols = isMaze ? mazeColsOf(puzzle) : MAZE_COLS;
+  const rows = Math.ceil(cells.length / cols) || cols;
+  const stars = depth ? (puzzle.stars ?? []) : undefined;
+  const [classicPath, setPath] = useStageState<number[]>(stateKey, "mazePath", () => [start]);
+  const [trail, setTrail] = useStageState<number[]>(stateKey, "mazeTrail", () => [start]);
+  const path = useMemo(() => (depth ? mazeTrailRoute(mazeTrailWalk(cells, start, exit, trail, cols)) : classicPath), [depth, classicPath, trail, cells, start, exit, cols]);
+  const takenIdx = useMemo(() => (stars ? mazeStarsTaken(trail, stars) : []), [stars, trail]);
+  const taken = useMemo(() => takenIdx.map((i) => stars![i]!), [takenIdx, stars]);
   const submitted = useRef(false);
   const arenaRef = useRef<HTMLDivElement>(null);
   // Polish batch S: on a live round the arena takes the spare height (batch-s.css) and the maze grows
@@ -294,12 +348,13 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "maze" }: P
   const trace = useRef<(route: number[]) => void>(() => undefined);
   trace.current = (route) => {
     const board = arenaRef.current?.querySelector("[data-maze-board]");
-    if (board) playMazeTrace(board, route, MAZE_COLS, Math.ceil(cells.length / MAZE_COLS) || MAZE_COLS);
+    if (board) playMazeTrace(board, route, cols, rows);
   };
   useEffect(() => registerFxPreview("maze", () => trace.current(path.length > 1 ? path : (puzzle.type === "maze" ? puzzle.solution ?? [] : []))), [path, puzzle]);
 
   const solved = path[path.length - 1] === exit;
   const wasted = useMemo(() => {
+    if (depth) return mazeTrailBacktracks(trail);
     const seen = new Set<number>();
     let repeats = 0;
     for (const cell of path) {
@@ -307,11 +362,20 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "maze" }: P
       seen.add(cell);
     }
     return repeats;
-  }, [path]);
+  }, [path, depth, trail]);
 
+  const answerNow = depth ? encodeMazeTrail(trail, cols) : encodeMazePath(path);
   useEffect(() => {
-    onDraftAnswer?.(encodeMazePath(path));
-  }, [path, onDraftAnswer]);
+    onDraftAnswer?.(answerNow);
+  }, [answerNow, onDraftAnswer]);
+
+  // A star taken: its pop (CSS) and the chime pitched up (mute and the Effects slider apply). A reload that restores
+  // stars already taken plays nothing.
+  const starsSeen = useRef(taken.length);
+  useEffect(() => {
+    if (taken.length > starsSeen.current) playSound("correct", 0.7, 1.45);
+    starsSeen.current = taken.length;
+  }, [taken.length]);
 
   useEffect(() => {
     if (locked || submitted.current || !solved) return;
@@ -319,8 +383,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "maze" }: P
     playCorrect();
     // Finish effect: a glowing line traces the route (display only, never awaited).
     trace.current(path);
-    onSubmit(encodeMazePath(path));
-  }, [solved, path, locked, onSubmit]);
+    onSubmit(answerNow);
+  }, [solved, path, locked, onSubmit, answerNow]);
 
   /**
    * One cell touched by the finger: the route grows only into a cell next to its
@@ -329,6 +393,20 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "maze" }: P
    */
   const touch = (cell: number) => {
     if (locked || submitted.current || solved) return;
+    if (depth) {
+      // Every step is kept, backtracks included (the server counts the stars from the trail).
+      setTrail((current) => {
+        const route = mazeTrailRoute(current);
+        const last = route[route.length - 1] ?? start;
+        if (cell === last || current.length > LAB_TRAIL_MAX) return current;
+        if (!mazeOpen(cells, last, cell, cols)) {
+          puzzleReject();
+          return current;
+        }
+        return [...current, cell];
+      });
+      return;
+    }
     setPath((current) => {
       const last = current[current.length - 1] ?? start;
       if (cell === last) return current;
@@ -342,17 +420,17 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "maze" }: P
   /** The arrows drive the very same route as the finger does. */
   const step = (dir: "U" | "D" | "L" | "R") => {
     const last = path[path.length - 1] ?? start;
-    const col = last % MAZE_COLS;
-    const row = Math.floor(last / MAZE_COLS);
+    const col = last % cols;
+    const row = Math.floor(last / cols);
     if (dir === "U" && row === 0) return puzzleReject();
-    if (dir === "D" && row >= Math.floor((cells.length - 1) / MAZE_COLS)) return puzzleReject();
+    if (dir === "D" && row >= Math.floor((cells.length - 1) / cols)) return puzzleReject();
     if (dir === "L" && col === 0) return puzzleReject();
-    if (dir === "R" && col === MAZE_COLS - 1) return puzzleReject();
+    if (dir === "R" && col === cols - 1) return puzzleReject();
     const next =
       dir === "U"
-        ? last - MAZE_COLS
+        ? last - cols
         : dir === "D"
-          ? last + MAZE_COLS
+          ? last + cols
           : dir === "L"
             ? last - 1
             : last + 1;
@@ -365,10 +443,16 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "maze" }: P
     <div data-stage-column="1" data-polish="maze" className="flex min-h-0 flex-1 flex-col gap-1">
       <p className="text-center font-mono text-xs uppercase tracking-widest text-muted-foreground">
         squares <span className="text-primary">{path.length}</span> · wasted {wasted}
+        {stars ? (
+          <>
+            {" · "}stars <span data-maze-stars="" className="text-primary">{taken.length}</span>/{LAB_STARS}
+          </>
+        ) : null}
       </p>
 
       <div ref={arenaRef} data-game-arena="board" className="flex min-h-0 flex-1 items-center justify-center">
-        <MazeBoard cells={cells} start={start} exit={exit} path={path} onCell={touch} k={k} />
+        {/* mazeRev 1: the same board box as before (taller-than-square by k), split into 23 rows. */}
+        <MazeBoard cells={cells} cols={cols} start={start} exit={exit} path={path} onCell={touch} k={(k * cols) / rows} stars={stars} taken={taken} />
       </div>
 
        <div data-game-controls="pad" className="flex shrink-0 flex-col items-center justify-center">
@@ -383,16 +467,25 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "maze" }: P
   );
 }
 
-function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProps) {
+function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining, myExtra }: PuzzleRevealProps) {
   if (puzzle.type !== "maze") return null;
-  const mine = decodeMazePath(myAnswer ?? "");
+  const depth = usesMazeDepth(puzzle);
+  const cols = mazeColsOf(puzzle);
+  const rows = Math.ceil(puzzle.cells.length / cols) || cols;
+  const walk = depth ? mazeTrailWalk(puzzle.cells, puzzle.start, puzzle.exit, decodeMazeTrail(myAnswer ?? "", puzzle.start, cols, puzzle.cells.length), cols) : null;
+  const mine = walk ? mazeTrailRoute(walk) : decodeMazePath(myAnswer ?? "");
   const verdict = verifyMazePath(
     puzzle.cells,
     puzzle.start,
     puzzle.exit,
     puzzle.solution ?? [],
     mine,
+    cols,
   );
+  const stars = depth ? (puzzle.stars ?? []) : undefined;
+  const taken = walk && stars ? mazeStarsTaken(walk, stars).map((i) => stars[i]!) : undefined;
+  // The stored star points (a finish only), never recomputed here.
+  const starBonus = Number(myExtra?.["starBonus"] ?? 0);
   const elapsed =
     myMsRemaining === undefined ? null : Math.round((timeLimitMs - myMsRemaining) / 100) / 10;
 
@@ -405,12 +498,17 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: Puz
           exit={puzzle.exit}
           path={mine.length > 1 ? mine : []}
           ghost={puzzle.solution ?? []}
+          cols={cols}
+          k={cols / rows}
+          stars={stars}
+          taken={taken}
         />
       </div>
       <p className="font-mono text-base uppercase tracking-widest text-muted-foreground">
         {myCorrect
           ? `Solved${elapsed === null ? "" : ` · ${elapsed.toFixed(1)}s`}`
           : `${Math.round(verdict.progress * 100)}% of the way`}
+        {taken ? ` · ★ ${taken.length}/${LAB_STARS}${myCorrect && starBonus > 0 ? ` +${starBonus}` : ""}` : ""}
       </p>
     </div>
   );

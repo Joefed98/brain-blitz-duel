@@ -1416,7 +1416,7 @@ function initRev7(seed: number): BinTossState {
  * for all ten in): fitted with scripts/arcade-skill-bands.ts --rev=x so each simulated level's median
  * stays within about 10 % of binRev 6's; 140 at every bucket and hoop.
  */
-export const BINTOSS_V7_BASE_CURVE = bandCurve([0, 40, 60, 70, 74, 83, 100, 109], [0, 50, 80, 96, 110, 124, 137, 140]);
+export const BINTOSS_V7_BAND_CURVE = bandCurve([0, 40, 60, 70, 74, 83, 100, 109], [0, 50, 80, 96, 110, 124, 137, 140]);
 
 function binTossV7Parts(state: BinTossState): BandParts {
   const units = 10 * clampInt(state.baskets, 0, BINTOSS_THROWS) + BINTOSS_HOOP_POINTS * clampInt(state.swishes ?? 0, 0, BINTOSS_HOOP_COUNT);
@@ -1424,7 +1424,7 @@ function binTossV7Parts(state: BinTossState): BandParts {
   const far = binTossFarPoints(state);
   return {
     units,
-    points: bandPoints(BINTOSS_V7_BASE_CURVE, units),
+    points: bandPoints(BINTOSS_V7_BAND_CURVE, units),
     bonus: (finished ? BAND_FINISH_BONUS : 0) + far,
     penalty: 0,
     finished,

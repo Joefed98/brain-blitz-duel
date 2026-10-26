@@ -31,7 +31,7 @@ import { COMMON_WORDS_RAW } from "../../src/lib/duel/commonWords.server";
 import { ensureWordfallDict } from "../../src/lib/duel/wordfallDict.server";
 import { encodeWordfallRun } from "../../src/lib/duel/wordfall";
 import {
-  whackCheckpoint, whackGame, whackRule, WHACK_BOMB, WHACK_CHECKPOINT_INTERVAL, WHACK_HOLES, WHACK_INPUT_TAP, WHACK_STATUS_UP,
+  whackCheckpoint, whackGameFor, whackRule, WHACK_DIAMOND_LIFE_TICKS, WHACK_BOMB, WHACK_CHECKPOINT_INTERVAL, WHACK_HOLES, WHACK_INPUT_TAP, WHACK_STATUS_UP,
   type WhackState,
 } from "../../src/lib/arcade/whack";
 import { encodeWhackRun } from "../../src/lib/duel/whack";
@@ -42,7 +42,7 @@ import {
 import { encodeClayRun } from "../../src/lib/duel/clayShoot";
 import { PROFILES } from "../arcade-skill-bands/human";
 import type { PuzzleData } from "../../src/lib/duel/types";
-import { thinkMs, type PuzzleKit, type Rng, type Skill } from "./kit";
+import { hashText, makeRng, thinkMs, type PuzzleKit, type Rng, type Skill } from "./kit";
 
 /* ------------------------------- Shared drive ------------------------------- */
 
@@ -237,7 +237,7 @@ function clashLanding(s: ClashState, t: number, dropAt: number): number {
 }
 
 /** One word: optionally steer to `lane`, then swipe down, with these gaps (ticks). */
-function clashWordBot(choose: (s: ClashState, at: number) => number | null, delay: () => number, gesture: () => number): Pick<ClashState> {
+function clashWordBot(choose: (s: ClashState, at: number) => number | null, delay: () => number, gesture: () => number, leave?: (s: ClashState) => boolean): Pick<ClashState> {
   const sched = new Sched();
   let seen = 0;
   return (s, t) => {
@@ -245,6 +245,8 @@ function clashWordBot(choose: (s: ClashState, at: number) => number | null, dela
     if (item && item.spawn < t && s.items.length !== seen) {
       seen = s.items.length;
       sched.clear();
+      // clashRev 8: a "don't sort" word the player recognises is left to fall (no input at all).
+      if (item.kind === 1 && leave?.(s)) return sched.take(t);
       let at = t + delay();
       const g = gesture();
       const lane = choose(s, clashLanding(s, t, at + g));
@@ -297,6 +299,8 @@ const clashKit: PuzzleKit = {
       },
       () => ticks(react(rng, skill) + thinkMs(rng, BASE, skill)),
       () => ticks(Math.max(120, rng.normal(220, 40) * skill.pace)),
+      // clashRev 8: spots the grey, dashed "don't sort" word unless it slips (half again as often as a Stroop slip).
+      () => !rng.chance(Math.min(0.9, skill.err * 1.5)),
     ));
     const s = run.state;
     return { steps: [{ answer: run.raw, atMs: tickMs(s.finishTick > 0 ? s.finishTick : s.tick) }], timed: true };
@@ -484,7 +488,8 @@ const wordfallKit: PuzzleKit = {
 /* =================================== Bonk =================================== */
 
 function whackDrive(p: PuzzleData, pick: Pick<WhackState> | null): Driven<WhackState> {
-  return drive(whackGame, p.type === "whack" ? p.seed : 1, "whack", whackCheckpoint, WHACK_CHECKPOINT_INTERVAL, encodeWhackRun, pick);
+  // whackRev 3 adds diamonds (its own game); every older revision plays the same board.
+  return drive(whackGameFor(p.type === "whack" && p.whackRev === 3 ? 3 : undefined), p.type === "whack" ? p.seed : 1, "whack", whackCheckpoint, WHACK_CHECKPOINT_INTERVAL, encodeWhackRun, pick);
 }
 const whackTap = (hole: number): Ev => ({ k: WHACK_INPUT_TAP, a: hole, b: 0, c: 0 });
 
@@ -522,6 +527,7 @@ const whackKit: PuzzleKit = {
     const sched = new Sched();
     const seen = new Set<number>();
     let fingerFree = 0;
+    let diamondRng: Rng | null = null;
     const run = whackDrive(p, (s, t) => {
       const sch = s.schedule;
       for (let i = 0; i < s.next; i++) {
@@ -539,6 +545,17 @@ const whackKit: PuzzleKit = {
         // Too late: the ball is gone before the finger lands; usually the player still taps (an empty-hole tap).
         if (when >= sch.at[i]! + sch.life[i]! && !rng.chance(0.6)) continue;
         fingerFree = sched.at(when, whackTap(sch.hole[i]!));
+      }
+      // whackRev 3: a diamond is always worth a tap; it is quick, so slower players often arrive too late.
+      // Its own stream, so the targets play out exactly as on whackRev 2.
+      const dp = s.dp;
+      const drng = dp ? (diamondRng ??= makeRng(hashText(`whack:diamond:${p.type === "whack" ? p.seed : 1}:${skill.level}:${skill.reactionMs}`))) : null;
+      if (dp && drng) for (let d = 0; d < dp.at.length; d++) {
+        if (dp.status[d] !== WHACK_STATUS_UP || seen.has(1000 + d)) continue;
+        seen.add(1000 + d);
+        const when = Math.max(t + ticks(react(drng, skill) + Math.max(30, drng.normal(60, 20)) * skill.pace), fingerFree + ticks(Math.max(90, drng.normal(140, 30)) * skill.pace));
+        if (when >= dp.at[d]! + WHACK_DIAMOND_LIFE_TICKS && !drng.chance(0.6)) continue;
+        sched.at(when, whackTap(dp.hole[d]!));
       }
       return sched.take(t);
     });

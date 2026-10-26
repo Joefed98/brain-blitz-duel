@@ -29,7 +29,7 @@ import { Human, LEVELS } from "./arcade-skill-bands/human";
 import type { SkillBot } from "./arcade-skill-bands/bot";
 import { appendClientCounters, arcadeCounters } from "../src/lib/arcade/diagnostics";
 import { BAND_STRICT_MARK } from "../src/lib/arcade/scoreBands";
-import { LIVE_BANDS, liveDealtRev } from "../src/lib/arcade/liveBands";
+import { LIVE_BANDS } from "../src/lib/arcade/liveBands";
 import { generatePuzzle } from "../src/lib/duel/generate.server";
 import { ROUND_MAX, roundMaxFor } from "../src/lib/duel/roundMax";
 import { INTRO_SCORE } from "../src/lib/duel/introScore";
@@ -142,7 +142,7 @@ section("Rooms deal the new stamps; the maximum is 200 and the texts say so");
 for (const type of TYPES) {
   const live = LIVE_BANDS[type];
   const dealt = (generatePuzzle(type as PuzzleType) as unknown as Record<string, unknown>)[live.field];
-  ok(dealt === NEW_REV[type] && liveDealtRev(type) === NEW_REV[type], `${type}: rooms deal ${live.field} ${NEW_REV[type]} (got ${String(dealt)})`);
+  ok(dealt === NEW_REV[type] && LIVE_BANDS[type].rev === NEW_REV[type], `${type}: rooms deal ${live.field} ${NEW_REV[type]} (got ${String(dealt)})`);
   ok(ROUND_MAX[type] === 200 && roundMaxFor(type) === 200, `${type}: ROUND_MAX is 200`);
   ok(fillMax(INTRO_SCORE[type], type).includes("200"), `${type}: the intro states 200: ${fillMax(INTRO_SCORE[type], type)}`);
   ok(fillMax(PUZZLE_INSTRUCTIONS[type].score, type).includes("Up to 200."), `${type}: the help ends "Up to 200."`);

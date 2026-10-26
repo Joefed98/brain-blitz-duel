@@ -117,7 +117,8 @@ export function replayMatchupRun(seed: number, raw: string, rev?: number | null)
   const run = decodeMatchupRun(raw);
   const endTick = run.endTick && run.endTick > 0 ? Math.min(run.endTick, MATCHUP_RUN_TICKS) : 0;
   const clientLag = endTick > 0 && endTick < MATCHUP_RUN_TICKS;
-  const check = checkInputEvents(run.events, MATCHUP_RUN_TICKS, MATCHUP_INPUT_RANGES);
+  // matchupRev 9's taller board declares its own row range.
+  const check = checkInputEvents(run.events, MATCHUP_RUN_TICKS, matchupGame.inputRanges ?? MATCHUP_INPUT_RANGES);
   const events = new Map<number, ArcadeInputEvent>();
   for (const event of check.events) events.set(event.t, event);
   const lastTick = clientLag ? endTick : MATCHUP_RUN_TICKS;

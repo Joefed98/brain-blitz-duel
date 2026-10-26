@@ -16,7 +16,11 @@ import {
   scoreSymbolScanStages,
   splitStages,
 } from "./stagedRounds";
-import { decodePlacements, encodePlacements, verifyPlacements } from "./blockParty";
+import { blockGeometry, decodePlacements, encodePlacements, verifyPlacements } from "./blockParty";
+import { isDepth4 } from "./depth4/stamps";
+import { decodePipesTaps, pipesAfterTaps } from "./depth4/pipesTaps";
+import { replayGems } from "./depth4/iceGems";
+import { gemMinMoves } from "./depth4/gems.server";
 import { activeLightPresses, decodePresses, decodeSides, lightsAllOff, lightsOnCount, replayLights } from "./logic";
 import { gradePipesBoard, gradeSudokuGrid } from "./logic.server";
 import { decodeFlowPaths, verifyFlow } from "./flow";
@@ -24,14 +28,15 @@ import { decodeSlideMoves, replaySlide, slideBoard, slideDistance } from "./slid
 import { cratesOnTargets, decodePushMoves, replayPush } from "./push";
 import { decodeLaserAnswer, isSplitter, verifyLaser } from "./laser";
 import { decodeTowerMoves, replayTower } from "./tower";
-import { decodeMazePath, verifyMazePath } from "./maze";
+import { decodeMazePath, mazeColsOf, verifyMazePath } from "./maze";
+import { decodeMazeTrail, mazeStarsTaken, mazeTrailBacktracks, mazeTrailRoute, mazeTrailWalk, usesMazeDepth } from "./depth/labyrinth";
 import { decodeTubeLog, decodeTubeMoves, replayTubeLog, replayTubes } from "./tubes";
 import { dialsCorrect, decodeSafePending, decodeSafeTries, safeOpenedOn } from "./safe";
 import { checkBombPlan, decodeBombActions, decodeBombConstraints } from "./bomb";
 import { decodeGravityTilts, replayGravity } from "./gravity";
 import { blockingCars } from "./unblock.server";
 import { decodeChainAnswer, replayChain } from "./chain";
-import { decodeNonoCells, replayNonogram } from "./nonogram";
+import { decodeNonoCells, nonoSizeOf, replayNonogram } from "./nonogram";
 import { decodePairFlips, replayPairs } from "./pairmatch";
 import { decodeFloodMoves, replayFlood } from "./flood";
 import { decodeTileMoves, replayTiles, tilesLayout } from "./tiles";
@@ -47,11 +52,11 @@ import { decodeSteadyRun, replaySteadyRun } from "./steady";
 import { decodeSliceRun, replaySliceRun } from "./slice";
 import { decodeBubbleRun, replayBubbleRun } from "./bubble";
 import { decodeBeatRun, replayBeatRun } from "./beat";
-import { decodeWhackRun, replayWhackRun } from "./whack";
+import { decodeWhackRun, replayWhackRun, whackDepthDetail } from "./whack";
 import { decodeTenDropRun, replayTenDropRun } from "./tenDrop";
 import { decodeWordfallRun, replayWordfallRun } from "./wordfall";
 import { ensureWordfallDict } from "./wordfallDict.server";
-import { decodeClayRun, replayClayRun } from "./clayShoot";
+import { clayDepthDetail, decodeClayRun, replayClayRun } from "./clayShoot";
 import { clayChargesEmptyShots, clayEmptyShotCost, clayEmptyShots } from "@/lib/arcade/clayShoot";
 import { decodeWavefrontRun, replayWavefrontRun } from "./wavefront";
 import { decodeBastionRun, replayBastionRun } from "./bastion";
@@ -68,8 +73,8 @@ import { decodeTiltRun, replayTiltRun } from "./tilt";
 import { decodeHotFloorRun, replayHotFloorRun } from "./hotFloor";
 import { replayColourClashRun } from "./colourClash";
 import { clashRev4Finished, clashVariantOf, CLASH_REV, CLASH_REV_TALL, CLASH_REV_BANDS, CLASH_REV_GREAT } from "@/lib/arcade/colourClash";
-import { decodeTents, scoreTents, tentsLayoutValid } from "./tents";
-import { acceptedRects, decodeShikaku, scoreShikaku, shikakuCovered } from "./shikaku";
+import { decodeTents, scoreTents, tentsHeightOf, tentsLayoutValid } from "./tents";
+import { acceptedRects, decodeShikaku, scoreShikaku, shikakuCovered, shikakuHeightOf } from "./shikaku";
 import { decodeBulbs, lightUpStatus, scoreLightUp } from "./lightUp";
 import { decodeBallTrackRun, replayBallTrackRun } from "./ballTrack";
 import { scoreTrail, trComplete, trCorrectPrefix, trCorrectTiles, trDecode } from "./trail";
@@ -78,7 +83,7 @@ import { gradeMeasureBoards, scoreMeasure } from "./measure";
 import { gradeCheckoutStages, scoreCheckout } from "./checkout";
 import { gradeNumlineItems, numlineAccuracy, numlineFullError, scoreNumline } from "./numline";
 import { digCleanCollected, digDecode, digReplay, scoreDig } from "./dig";
-import { scoreWordSearch, wsDecode, wsGrade } from "./wordSearch";
+import { scoreWordSearch, wsDecode, wsGrade, wsSplitBonus } from "./wordSearch";
 import { LW_FREE_MISSES, lwDecode, lwDecodeLog, lwGrade, lwTallyLog, lwUsesLog, scoreLetterWheel, scoreLetterWheelLog } from "./letterWheel";
 import { decodeCrossRun, replayCrossRun } from "./cross";
 import { decodeDualRun, replayDualRun } from "./dual";
@@ -117,9 +122,15 @@ import {
   usesCountRev2,
   usesScanRev1,
   usesSpotRev1,
+  parseSpotTaps,
+  SPOT_REV1_SCENES,
 } from "./attentionRev";
+import { scanCorrections, usesScanDepth } from "./depth/eagleEye";
+import { spotBonusFound, usesSpotDepth } from "./depth/doubleTake";
 import { puzzleTimeLimitMs } from "./registry";
-import { PUZZLE_SCORE_REV, puzzleScoreRevOf, scoreRev1, takeScoreParts, wasteFactor, withPuzzleScoreRev } from "./puzzleScoreRev";
+import { PUZZLE_SCORE_REV, puzzleScoreRevOf, recordParts, scoreRev1, takeScoreParts, wasteFactor, withPuzzleScoreRev } from "./puzzleScoreRev";
+import { isTopsy, replayTopsyPuzzle, scoreTopsy } from "./topsy";
+import { decodeJumbled, isJumbledGradient, replayJumbled, scoreJumbled } from "./jumbled";
 import { sortedTubeCount } from "./tubes";
 import { madeDistance } from "./target";
 import { isWord } from "./dictionary.server";
@@ -435,7 +446,8 @@ function gradeUnderRev(
       revealRun = replay;
       correctCount = replay.correct;
       // clashRev 4–7: a finish allows up to CLASH_REV4_MAX_WRONG wrong gates; older rounds need every word right.
-      isCorrect = puzzle.clashRev === CLASH_REV || puzzle.clashRev === CLASH_REV_TALL || puzzle.clashRev === CLASH_REV_BANDS || puzzle.clashRev === CLASH_REV_GREAT
+      // clashRev 8 (depth to 200): its own finish (one more wrong word allowed for the "don't sort" words).
+      isCorrect = replay.depth ? replay.depth.finished : puzzle.clashRev === CLASH_REV || puzzle.clashRev === CLASH_REV_TALL || puzzle.clashRev === CLASH_REV_BANDS || puzzle.clashRev === CLASH_REV_GREAT
         ? clashRev4Finished(replay.correct, replay.wrong, replay.total, replay.state.finishTick)
         : replay.correct >= replay.total;
       score = replay.score;
@@ -448,6 +460,11 @@ function gradeUnderRev(
           ? Math.min(ms, clamp(timeLimitMs - (finishTick * 1000) / TICKS_PER_SECOND, 0, timeLimitMs))
           : 0;
       extraDetail = { wrong: replay.wrong, missed: replay.missed, total: replay.total };
+      // clashRev 8: the score's parts and the streak / gold / "don't sort" counts, for the reveal.
+      if (replay.depth) {
+        const d = replay.depth;
+        extraDetail = { ...extraDetail, depth: { base: d.base, gold: d.gold, streak: d.streak, stretch: d.stretch, best: d.best, golds: d.golds, goldWords: d.goldWords, touched: d.touched, passed: d.passed, skips: d.skips } };
+      }
       break;
     }
     case "spotdiff": {
@@ -459,6 +476,8 @@ function gradeUnderRev(
         isCorrect = result.finished;
         score = scoreSpotTwo(result, ms, timeLimitMs);
         extraDetail = { found: result.found, wrong: result.wrong };
+        // spotRev 2: whether the hidden seventh difference was tapped (scored by depth/doubleTake.server.ts).
+        if (usesSpotDepth(puzzle)) extraDetail["hiddenFound"] = spotBonusFound(puzzle, parseSpotTaps(answer, SPOT_REV1_SCENES));
         break;
       }
       // The phone sends every cell it tapped; the six differences live
@@ -486,6 +505,8 @@ function gradeUnderRev(
         errors = results.reduce((sum, r) => sum + r.wrong, 0);
         isCorrect = correctCount === STAGE_COUNT;
         score = scoreScanRev1(results, ms, timeLimitMs);
+        // scanRev 2: taps taken back, the phone's count (scored by depth/eagleEye.server.ts).
+        if (usesScanDepth(puzzle)) extraDetail = { corrections: scanCorrections(answer) };
         break;
       }
       const parts = splitStages(answer);
@@ -600,12 +621,14 @@ function gradeUnderRev(
         fewerBlockers = after < before;
       }
       score = scoreUnblock(replay.solved, ms, replay.moves, min, progress, fewerBlockers, timeLimitMs);
-      extraDetail = { solved: replay.solved, moves: replay.moves, minMoves: min };
+      extraDetail = { solved: replay.solved, moves: replay.moves, minMoves: min, ...(isDepth4(puzzle) ? { par: puzzle.par ?? min } : {}) };
       break;
     }
     case "blockparty": {
       // Only placements that are legal together count towards the coverage.
-      const verdict = verifyPlacements(puzzle.blockers, decodePlacements(answer));
+      // blockRev 1 (depth batch 4): the 7×7 board and its twelve pieces.
+      const geo = blockGeometry(puzzle);
+      const verdict = verifyPlacements(puzzle.blockers, decodePlacements(answer), geo);
       isCorrect = verdict.solved;
       // Rev 1: an unfinished board earns only pieces placed where the stored solution has a piece of that shape.
       const credited = scoreRev1() && puzzle.solution?.length
@@ -617,6 +640,8 @@ function gradeUnderRev(
         solved: verdict.solved,
         covered: verdict.covered,
         placements: encodePlacements(verdict.legal),
+        // The bigger board's unfinished progress: its own pieces in the solution's spots (11 of 12 = one short).
+        ...(isDepth4(puzzle) ? { d4Progress: Math.max(0, 2 * credited - verdict.legal.length) / (geo.pieces.length - 1) } : {}),
       };
       break;
     }
@@ -650,13 +675,22 @@ function gradeUnderRev(
     }
     case "pipes": {
       // Connectivity and leaks are worked out here, so any valid layout counts.
-      const board = decodeSides(puzzle.tiles, answer);
+      // pipesRev 1 (depth batch 4): the board comes from the tap log alone; the taps up to the solve are counted.
+      const taps = isDepth4(puzzle) ? decodePipesTaps(answer, puzzle.tiles.length) : null;
+      let turns = 0;
+      if (taps) {
+        for (let k = 0; k <= taps.length; k++) {
+          turns = k;
+          if (gradePipesBoard(puzzle.source, pipesAfterTaps(puzzle.tiles, taps.slice(0, k))).solved) break;
+        }
+      }
+      const board = taps ? pipesAfterTaps(puzzle.tiles, taps.slice(0, turns)) : decodeSides(puzzle.tiles, answer);
       const verdict = gradePipesBoard(puzzle.source, board);
       isCorrect = verdict.solved;
       correctCount = verdict.connected;
       const startConnected = scoreRev1() ? gradePipesBoard(puzzle.source, decodeSides(puzzle.tiles, "")).connected : 0;
       score = scorePipes(verdict.solved, verdict.connected, ms, timeLimitMs, startConnected);
-      extraDetail = { solved: verdict.solved, connected: verdict.connected };
+      extraDetail = { solved: verdict.solved, connected: verdict.connected, ...(taps ? { turns, par: puzzle.par ?? 0 } : {}) };
       break;
     }
     case "sudoku": {
@@ -711,13 +745,20 @@ function gradeUnderRev(
       }
       isCorrect = replay.solved;
       correctCount = replay.moves;
-      score = scoreIceSlide(replay.solved, replay.moves, min, ms, progress, timeLimitMs);
+      // slideRev 1 (depth batch 4): the gems collected; the slides they need are not wasted moves, so a finish is
+      // measured against the fewest slides that collect those gems (gemRouteLength), not the bare minimum.
+      const gems = isDepth4(puzzle) ? (puzzle.gems ?? []) : [];
+      const gemReplay = gems.length ? replayGems(board, gems, decodeSlideMoves(answer)) : null;
+      const gemMin = gemReplay && replay.solved && gemReplay.collected > 0 ? gemMinMoves(puzzle, gems.filter((_g, i) => gemReplay.mask & (1 << i))) : null;
+      score = scoreIceSlide(replay.solved, replay.moves, gemMin ?? min, ms, progress, timeLimitMs);
       extraDetail = {
         solved: replay.solved,
         moves: replay.moves,
         minMoves: min,
         movesFromExit: away,
         falls: replay.falls,
+        // slideRev 1 (depth batch 4): the ice gems the standing slides collected.
+        ...(isDepth4(puzzle) ? { gems: gems.length, gemsCollected: gemReplay?.collected ?? 0, ...(gemMin !== null ? { gemMinMoves: gemMin } : {}) } : {}),
       };
       break;
     }
@@ -740,6 +781,8 @@ function gradeUnderRev(
         minPushes: min,
         cratesHome: home,
         crates: puzzle.targets.length,
+        // pushRev 1 (depth batch 4): the gold crate ended on its gold mark (crates keep their index through every push).
+        ...(isDepth4(puzzle) && puzzle.gold ? { goldHome: replay.solved && replay.state.crates[puzzle.gold.crate] === puzzle.gold.target } : {}),
       };
       break;
     }
@@ -763,6 +806,8 @@ function gradeUnderRev(
           hitBomb: replay.hitBomb,
           shots: replay.shotLog.map((shot) => ({ t: shot.t, gems: shot.gemsLit, bomb: shot.hitBomb })),
           mirrorsPlaced: replay.layout.filter((piece) => !isSplitter(piece.kind)).length,
+          // laserRev 1 (depth batch 4): the mirrors in the solving shot's layout, against the par.
+          ...(isDepth4(puzzle) ? { solveMirrors: replay.solved ? replay.layout.filter((piece) => !isSplitter(piece.kind)).length : null, par: puzzle.par ?? 0 } : {}),
           ...actionLogDetail(replay.diag),
         };
         break;
@@ -811,14 +856,20 @@ function gradeUnderRev(
       break;
     }
     case "maze": {
+      // mazeRev 1 (depth/labyrinth.ts): the answer is the whole trail; the route is the trail with its backtracks
+      // folded away, graded exactly as the older path answer, and the stars are the ones the trail rolled over.
+      const depth = usesMazeDepth(puzzle);
+      const cols = mazeColsOf(puzzle);
+      const walk = depth ? mazeTrailWalk(puzzle.cells, puzzle.start, puzzle.exit, decodeMazeTrail(answer, puzzle.start, cols, puzzle.cells.length), cols) : null;
       // The drawn route is re-walked through the stored corridors.
-      const path = decodeMazePath(answer);
+      const path = walk ? mazeTrailRoute(walk) : decodeMazePath(answer);
       const verdict = verifyMazePath(
         puzzle.cells,
         puzzle.start,
         puzzle.exit,
         puzzle.solution ?? [],
         path,
+        cols,
       );
       isCorrect = verdict.solved;
       correctCount = verdict.walked;
@@ -833,6 +884,7 @@ function gradeUnderRev(
         solved: verdict.solved,
         progress: Math.round(verdict.progress * 100),
         wasted: verdict.wasted,
+        ...(walk ? { stars: mazeStarsTaken(walk, puzzle.stars ?? []), backtracks: mazeTrailBacktracks(walk) } : {}),
       };
       break;
     }
@@ -908,6 +960,27 @@ function gradeUnderRev(
       break;
     }
     case "gravity": {
+      // gravityRev 3 (the remodel, topsy.ts): three boards, six balls with holes, stars; scored to 200 here.
+      if (isTopsy(puzzle)) {
+        const replay = replayTopsyPuzzle(puzzle, decodeGravityTilts(answer));
+        // The elite stretch's efficiency: the boards' all-stars minimums ÷ the tilts made (server-only minimums).
+        const graded = scoreTopsy(replay, ms, timeLimitMs, undefined, (puzzle.boardStarMins ?? []).reduce((n, m) => n + m, 0) || undefined);
+        isCorrect = replay.solved;
+        correctCount = replay.home;
+        score = graded.score;
+        recordParts(graded.parts);
+        extraDetail = {
+          solved: replay.solved,
+          tilts: replay.tilts,
+          minMoves: puzzle.minMoves ?? 0,
+          home: replay.home,
+          stars: replay.stars,
+          cleared: replay.cleared,
+          boardTilts: replay.boards.map((b) => b.tilts),
+          outOfTilts: replay.boards.filter((b) => b.outOfTilts).length,
+        };
+        break;
+      }
       // Every tilt is replayed on the stored board, all four balls at once.
       // gravityRev 1: nothing past the stored tilt limit counts.
       const tiltLimit = gravityTiltLimit(puzzle);
@@ -951,7 +1024,7 @@ function gradeUnderRev(
     }
     case "nonogram": {
       // The submitted cells are checked against the stored picture, never a client verdict.
-      const replay = replayNonogram(puzzle.pattern ?? [], decodeNonoCells(answer));
+      const replay = replayNonogram(puzzle.pattern ?? [], decodeNonoCells(answer, nonoSizeOf(puzzle)));
       isCorrect = replay.solved;
       correctCount = replay.correct;
       errors = replay.wrong;
@@ -996,6 +1069,24 @@ function gradeUnderRev(
       break;
     }
     case "tiles": {
+      // tilesRev 3 (the remodel, jumbled.ts): the 5×5 gradient with row and column slides; scored to 200 here.
+      if (isJumbledGradient(puzzle)) {
+        const replay = replayJumbled(puzzle.frame, decodeJumbled(answer));
+        const graded = scoreJumbled(puzzle.frame, replay, puzzle.par ?? 0, ms, timeLimitMs, puzzle.minMoves);
+        isCorrect = replay.solved;
+        correctCount = replay.inPlace;
+        score = graded.score;
+        recordParts(graded.parts);
+        extraDetail = {
+          solved: replay.solved,
+          moves: replay.moves,
+          minMoves: puzzle.minMoves ?? 0,
+          par: puzzle.par ?? 0,
+          inPlace: replay.inPlace,
+          ...(graded.progress !== undefined ? { progress: Math.round(graded.progress * 100) } : {}),
+        };
+        break;
+      }
       // Every tapped tile is replayed on the stored frame, Undo and Reset too.
       // tilesRev 1: the extra-cell board (ten cells, tiles 1–9); stored rounds keep the 3×3 frame.
       const layout = tilesLayout(puzzle);
@@ -1028,6 +1119,7 @@ function gradeUnderRev(
         moves: replay.moves,
         minMoves: puzzle.minMoves ?? 0,
         aligned: replay.aligned,
+        ...(isDepth4(puzzle) ? { par: puzzle.par ?? puzzle.minMoves ?? 0 } : {}),
       };
       break;
     }
@@ -1460,6 +1552,8 @@ function gradeUnderRev(
         desyncTick: run.desyncTick,
         inputs: decodeWhackRun(answer).events.length,
         claimedScore: decodeWhackRun(answer).claimedScore,
+        // whackRev 3 (depth to 200): the base, the gold combo and the diamonds, stored for the reveal.
+        ...(run.state.dp ? { depth: whackDepthDetail(run.state) } : {}),
         ...(run.reason ? { reason: run.reason } : {}),
       };
       break;
@@ -1489,6 +1583,8 @@ function gradeUnderRev(
         desyncTick: run.desyncTick,
         inputs: decodeTenDropRun(answer).events.length,
         claimedScore: decodeTenDropRun(answer).claimedScore,
+        // tenRev 4: tens made by the gold tile (absent on older revisions).
+        ...(run.goldTens !== undefined ? { goldTens: run.goldTens } : {}),
         ...(run.reason ? { reason: run.reason } : {}),
       };
       break;
@@ -1567,6 +1663,8 @@ function gradeUnderRev(
         desyncTick: run.desyncTick,
         inputs: decodeClayRun(answer).events.length,
         claimedScore: decodeClayRun(answer).claimedScore,
+        // clayRev 9 (depth to 200): the base, the doubles and the hit streak, stored for the reveal.
+        ...(run.state.dp ? { depth: clayDepthDetail(run.state) } : {}),
         ...(run.reason ? { reason: run.reason } : {}),
       };
       break;
@@ -1899,16 +1997,18 @@ function gradeUnderRev(
     }
     case "shikaku": {
       // Rectangles are re-checked against the clues; overlaps and wrong areas don't count.
-      const rects = decodeShikaku(answer, puzzle.size);
+      // The depth revision's grid is 10 × 11 (`height`); older boards are square.
+      const shikakuRows = shikakuHeightOf(puzzle);
+      const rects = decodeShikaku(answer, puzzle.size, shikakuRows);
       const covered = shikakuCovered(rects, puzzle.clues, puzzle.size);
-      const solved = covered === puzzle.size * puzzle.size;
+      const solved = covered === puzzle.size * shikakuRows;
       isCorrect = solved;
       correctCount = covered;
       if (scoreRev1() && !solved && puzzle.solution?.length) {
         // Rev 1: area of rectangles on the (unique) solution, less the area of other accepted rectangles.
         const { right, wrong: wrongArea } = shikakuAreas(puzzle.solution, acceptedRects(rects, puzzle.clues, puzzle.size));
-        score = scoreShikaku(false, ms, timeLimitMs, right - wrongArea);
-      } else score = scoreShikaku(solved, ms, timeLimitMs, covered);
+        score = scoreShikaku(false, ms, timeLimitMs, right - wrongArea, puzzle.size * shikakuRows);
+      } else score = scoreShikaku(solved, ms, timeLimitMs, covered, puzzle.size * shikakuRows);
       extraDetail = { solved, covered, rects: rects.length };
       break;
     }
@@ -2036,14 +2136,16 @@ function gradeUnderRev(
     }
     case "wordsearch": {
       // Selections are matched against the stored placements; the client's word list is never read.
-      const selections = wsDecode(answer, puzzle.size);
+      // wordSearchRev 3: drags on the private bonus word are set aside (never a wrong pick); the depth grader adds its points.
+      const split = wsSplitBonus(puzzle.bonus, wsDecode(answer, puzzle.size));
+      const selections = split.rest;
       const verdict = wsGrade(puzzle.placements ?? [], selections);
       const total = puzzle.placements?.length ?? puzzle.wordCount;
       isCorrect = verdict.found.length === total;
       correctCount = verdict.found.length;
       errors = verdict.wrong;
       score = scoreWordSearch(verdict.found.length, total, verdict.wrong, ms, timeLimitMs);
-      extraDetail = { found: verdict.found.length, total, wrong: verdict.wrong };
+      extraDetail = { found: verdict.found.length, total, wrong: verdict.wrong, ...(puzzle.bonus ? { bonusFound: split.bonusFound } : {}) };
       break;
     }
     case "letterwheel": {
@@ -2168,7 +2270,7 @@ function gradeUnderRev(
     case "tents": {
       // The layout is re-checked against the rules and the stored solution.
       const treeSet = new Set(puzzle.trees);
-      const tents = decodeTents(answer, puzzle.size).filter((cell) => !treeSet.has(cell));
+      const tents = decodeTents(answer, puzzle.size, tentsHeightOf(puzzle)).filter((cell) => !treeSet.has(cell));
       const solution = new Set(puzzle.solution ?? []);
       const solved = tentsLayoutValid(puzzle, tents);
       const correct = tents.filter((cell) => solution.has(cell)).length;

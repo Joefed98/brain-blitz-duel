@@ -5,7 +5,7 @@
  * is stored privately.
  */
 
-import { cluesFor, countNonoSolutions } from "./nonogram";
+import { cluesFor, countNonoSolutions, NONO_DEPTH_MAX_FILLED, NONO_DEPTH_MIN_FILLED, NONO_DEPTH_SIZE } from "./nonogram";
 import { randomBelow, shuffled } from "./random";
 import { NONO_MAX_FILLED, NONO_MIN_FILLED, NONO_SIZE, type NonoPuzzleData } from "./types";
 
@@ -114,7 +114,49 @@ export function nonoUsablePictograms(): boolean[][] {
   );
 }
 
+/**
+ * The depth revision's 8 × 8 picture (depthRev 1, 25 Oct 2026): a random picture with a run of 3–6 in every row,
+ * topped up to 22–36 filled cells, every row and column occupied, kept only when its clues have exactly one
+ * solution (the same rules as the 7 × 7 random fallback).
+ */
+function randomDepthPattern(): boolean[] {
+  const size = NONO_DEPTH_SIZE;
+  const pattern = Array.from({ length: size * size }, () => false);
+  let filled = 0;
+  for (let row = 0; row < size; row += 1) {
+    const length = 3 + randomBelow(4);
+    const start = randomBelow(size - length + 1);
+    for (let col = start; col < start + length; col += 1) {
+      const cell = row * size + col;
+      if (!pattern[cell]) filled += 1;
+      pattern[cell] = true;
+    }
+  }
+  const target = Math.max(filled, NONO_DEPTH_MIN_FILLED + randomBelow(NONO_DEPTH_MAX_FILLED - NONO_DEPTH_MIN_FILLED + 1));
+  while (filled < target) {
+    const cell = randomBelow(pattern.length);
+    if (pattern[cell]) continue;
+    pattern[cell] = true;
+    filled += 1;
+  }
+  return pattern;
+}
+
 export function generateNonogram(): NonoPuzzleData {
+  for (let attempt = 0; attempt < 20_000; attempt++) {
+    const pattern = randomDepthPattern();
+    const count = pattern.filter(Boolean).length;
+    if (count < NONO_DEPTH_MIN_FILLED || count > NONO_DEPTH_MAX_FILLED) continue;
+    const { rows, cols } = cluesFor(pattern, NONO_DEPTH_SIZE);
+    if (!rows.every((c) => c.length > 0) || !cols.every((c) => c.length > 0)) continue;
+    if (countNonoSolutions(rows, cols, 2) !== 1) continue;
+    return { type: "nonogram", rows, cols, pattern };
+  }
+  return generateLegacyNonogram();
+}
+
+/** The 7 × 7 picture rooms dealt before the depth revision (kept for the calibration and checks). */
+export function generateLegacyNonogram(): NonoPuzzleData {
   for (const pattern of shuffled(
     NONO_PICTOGRAMS.map(patternFrom).filter(
       (candidate) => inFilledBand(candidate) && fillsEveryLine(candidate),

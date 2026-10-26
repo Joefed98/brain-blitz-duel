@@ -6,6 +6,9 @@
 
 import {
   clayCheckpoint,
+  clayDepthScore,
+  clayDoublesHit,
+  CLAY_DOUBLES,
   CLAY_CHECKPOINT_FIELDS,
   CLAY_CHECKPOINT_FIELDS_V2,
   CLAY_CHECKPOINT_INTERVAL,
@@ -151,4 +154,17 @@ export function replayClayRun(seed: number, raw: string, rev?: number | null): C
   if (check.reason) result.reason = check.reason;
   else if (mismatch) result.reason = "score did not match the replay";
   return result;
+}
+
+/** clayRev 9: the score's parts and the features' counts, stored on the round (`extra.depth`) for the reveal. */
+export function clayDepthDetail(state: ClayState) {
+  const parts = clayDepthScore(state);
+  return {
+    base: parts.base,
+    doubles: parts.doubles,
+    streak: parts.streak,
+    doublesHit: clayDoublesHit(state),
+    doublesTotal: CLAY_DOUBLES,
+    streakBest: state.dp?.best ?? 0,
+  };
 }

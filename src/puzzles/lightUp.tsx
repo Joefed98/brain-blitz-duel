@@ -8,6 +8,7 @@ import { useStageState } from "@/lib/duel/stageState";
 import {
   decodeBulbs,
   encodeBulbs,
+  lightUpHeightOf,
   lightUpStatus,
   lightUpValid,
   LIGHTUP_SIZE,
@@ -28,6 +29,7 @@ type Mark = 0 | 1 | 2;
 /** Beam cells per bulb, plus the stretches between two bulbs that see each other. */
 function beams(board: LightUpBoard, bulbs: readonly number[]) {
   const { size } = board;
+  const height = lightUpHeightOf(board);
   const wallSet = new Set(board.walls);
   const bulbSet = new Set(bulbs);
   const h = new Set<number>();
@@ -43,7 +45,7 @@ function beams(board: LightUpBoard, bulbs: readonly number[]) {
       const run: number[] = [bulb];
       let rr = r + dr;
       let cc = c + dc;
-      while (rr >= 0 && cc >= 0 && rr < size && cc < size && !wallSet.has(rr * size + cc)) {
+      while (rr >= 0 && cc >= 0 && rr < height && cc < size && !wallSet.has(rr * size + cc)) {
         const cell = rr * size + cc;
         run.push(cell);
         (dr === 0 ? h : v).add(cell);
@@ -77,6 +79,7 @@ function Board({
   spread?: { cell: number; key: number } | null;
 }) {
   const { size } = board;
+  const height = lightUpHeightOf(board);
   const bulbs = marks.flatMap((m, cell) => (m === 1 ? [cell] : []));
   const bulbSet = new Set(bulbs);
   const status = lightUpStatus(board, bulbs);
@@ -90,11 +93,11 @@ function Board({
       className={`logic-lamps grid w-full select-none ${small ? "logic-lamps-small" : ""}`}
       style={{ ...(pointer?.handlers.style ?? {}), gridTemplateColumns: `repeat(${size}, minmax(0, 1fr))`, gap: small ? 1 : 2 }}
     >
-      {Array.from({ length: size * size }, (_, cell) => {
+      {Array.from({ length: size * height }, (_, cell) => {
         const wi = wallIndex.get(cell);
         if (wi !== undefined) {
           const n = board.wallNumbers[wi] ?? -1;
-          const touching = orth(cell, size).filter((x) => bulbSet.has(x)).length;
+          const touching = orth(cell, size, height).filter((x) => bulbSet.has(x)).length;
           const over = n >= 0 && touching > n;
           const done = n >= 0 && touching === n;
           return (
@@ -185,8 +188,10 @@ export function LightUpExample() {
 function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStageProps) {
   const data: LightUpPuzzleData | null = puzzle.type === "lightup" ? puzzle : null;
   const size = data?.size ?? LIGHTUP_SIZE;
+  // 9 rows before the depth revision, 10 on it.
+  const height = data ? lightUpHeightOf(data) : size;
   const [marks, setMarks] = useStageState<Mark[]>(stateKey ?? "lightup", "lightUpMarks", () =>
-    new Array(size * size).fill(0),
+    new Array(size * height).fill(0),
   );
   const [spread, setSpread] = useState<{ cell: number; key: number } | null>(null);
   const submitted = useRef(false);
@@ -210,7 +215,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
   const walls = new Set(data?.walls ?? []);
   const pointer = useGridPointer({
     cols: size,
-    rows: size,
+    rows: height,
     onCell:
       !locked && data
         ? (cell) => {
@@ -244,7 +249,10 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
             lit <span className="text-primary">{status.lit.size}</span> / {status.whites}
           </p>
         )}
-        <div className="logic-square logic-lamp-frame">
+        <div
+          className={`${height === size ? "logic-square" : "logic-board-tall"} logic-lamp-frame`}
+          style={height === size ? undefined : ({ "--board-aspect": height / size } as CSSProperties)}
+        >
           <Board board={data} marks={marks} pointer={pointer} spread={spread} />
         </div>
         <LiveSummary
@@ -262,7 +270,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
 
 function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProps) {
   if (puzzle.type !== "lightup") return null;
-  const cells = puzzle.size * puzzle.size;
+  const cells = puzzle.size * lightUpHeightOf(puzzle);
   const solution = new Set(puzzle.solution ?? []);
   const mine = decodeBulbs(myAnswer ?? "", puzzle);
   const mineSet = new Set(mine);

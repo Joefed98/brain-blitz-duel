@@ -10,7 +10,7 @@ import { balltrackFxFor } from "./arcadeFxGames.renderer";
 import {
   BT_BALLS, BT_COLS, BT_H as BT_BASE_H, BT_HOPPER_COL, BT_HOPPER_H, BT_PALETTE,
   BT_REV, BT_ROWS as BT_BASE_ROWS, BT_SHUFFLE_TICKS, BT_TILE, BT_TRAY_H, BT_TURN_TICKS, BT_W, E, N, S, W,
-  btBallPoint, btEventCountdown, btLayout, btRotatable, btSwitchedOn, btTraysAt, rowDir,
+  btBallPoint, btEventCountdown, btLayout, btRotatable, btSwitchedOn, btTraysAt, rowDir, btIsGold, btRowsOf, BT_V7_COMBO_FROM,
   type BtBall, type BtCourse, type BtState,
 } from "./ballTrack";
 import {
@@ -18,6 +18,7 @@ import {
   toyBoard, toyMarble, toyTabletop,
 } from "./toybox.renderer";
 import { artCanvas, artContext, deviceLayer, type ArtCanvas } from "./cache.renderer";
+import { reducedMotion } from "./art.renderer";
 
 const BALL_R = 22.5;
 const SLOT = 100;
@@ -459,6 +460,108 @@ export function btMarble(ctx: CanvasRenderingContext2D, x: number, y: number, r:
   ctx.restore();
 }
 
+/**
+ * btRev 7: a crossover's brass plate, a small four-way badge at the tile centre (inside the channel, so the
+ * marble's path and collision are the channel's).
+ */
+function drawCrossPlate(ctx: CanvasRenderingContext2D, cell: number): void {
+  const { x, y } = cellCentre(cell);
+  ctx.save();
+  ctx.fillStyle = SWITCH_EDGE;
+  ctx.beginPath();
+  ctx.moveTo(x, y - 15); ctx.lineTo(x + 15, y); ctx.lineTo(x, y + 15); ctx.lineTo(x - 15, y);
+  ctx.closePath();
+  ctx.fill();
+  ctx.fillStyle = TOY_BRASS;
+  ctx.beginPath();
+  ctx.moveTo(x, y - 12); ctx.lineTo(x + 12, y); ctx.lineTo(x, y + 12); ctx.lineTo(x - 12, y);
+  ctx.closePath();
+  ctx.fill();
+  ctx.strokeStyle = "#5A3519";
+  ctx.lineWidth = 2.5;
+  ctx.lineCap = "round";
+  ctx.beginPath();
+  ctx.moveTo(x - 5, y - 5); ctx.lineTo(x + 5, y + 5);
+  ctx.moveTo(x + 5, y - 5); ctx.lineTo(x - 5, y + 5);
+  ctx.stroke();
+  ctx.restore();
+}
+
+/**
+ * btRev 7: a speed booster's chevrons, burnt orange in the channel bed pointing the way marbles run along
+ * the row, the lead chevron lit in turn (held still under reduced motion and reduced effects).
+ */
+function drawBooster(ctx: CanvasRenderingContext2D, cell: number, tick: number): void {
+  const { x, y } = cellCentre(cell);
+  const dir = rowDir(Math.floor(cell / BT_COLS));
+  const still = arcadeReducedEffects() || reducedMotion();
+  const lit = still ? -1 : Math.floor(tick / 8) % 3;
+  ctx.save();
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
+  for (let k = 0; k < 3; k++) {
+    const cx = x + dir * (k - 1) * 18;
+    ctx.strokeStyle = k === lit ? "#FFD27A" : "#E2702A";
+    ctx.lineWidth = 6;
+    ctx.beginPath();
+    ctx.moveTo(cx - dir * 6, y - 11);
+    ctx.lineTo(cx + dir * 5, y);
+    ctx.lineTo(cx - dir * 6, y + 11);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+/** btRev 7: a gold marble's band (a gold ring inside its radius, lit at the top) and a glint. */
+function goldBand(ctx: CanvasRenderingContext2D, x: number, y: number, r: number): void {
+  ctx.save();
+  const ring = ctx.createLinearGradient(x, y - r, x, y + r);
+  ring.addColorStop(0, "#FFF1B8");
+  ring.addColorStop(0.5, "#F2BE3C");
+  ring.addColorStop(1, "#A8700E");
+  // A dark edge first, so the band reads on every marble colour (yellow included).
+  ctx.strokeStyle = "rgba(70,40,4,0.85)";
+  ctx.lineWidth = Math.max(2, r * 0.32);
+  ctx.beginPath();
+  ctx.arc(x, y, r - ctx.lineWidth / 2, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.strokeStyle = ring;
+  ctx.lineWidth = Math.max(1.5, r * 0.22);
+  ctx.beginPath();
+  ctx.arc(x, y, r - Math.max(2, r * 0.32) / 2, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.fillStyle = "#FFFBE6";
+  ctx.beginPath();
+  for (let i = 0; i < 8; i++) {
+    const a = -Math.PI / 2 + (i * Math.PI) / 4;
+    const d = i % 2 === 0 ? r * 0.3 : r * 0.08;
+    ctx.lineTo(x + r * 0.42 + Math.cos(a) * d, y - r * 0.42 + Math.sin(a) * d);
+  }
+  ctx.closePath();
+  ctx.fill();
+  ctx.restore();
+}
+
+/** btRev 7: the boosted marble's streak, fading back along the step it is making. */
+function boostStreak(ctx: CanvasRenderingContext2D, s: BtState, b: BtBall, p: { x: number; y: number }): void {
+  const from = pointOf(b.from, btRowsOf(s));
+  const dx = p.x - from.x, dy = p.y - from.y;
+  const len = Math.hypot(dx, dy) || 1;
+  const ux = dx / len, uy = dy / len;
+  ctx.save();
+  const g = ctx.createLinearGradient(p.x, p.y, p.x - ux * BALL_R * 3, p.y - uy * BALL_R * 3);
+  g.addColorStop(0, "rgba(255,190,90,0.55)");
+  g.addColorStop(1, "rgba(255,190,90,0)");
+  ctx.strokeStyle = g;
+  ctx.lineWidth = BALL_R * 1.4;
+  ctx.lineCap = "round";
+  ctx.beginPath();
+  ctx.moveTo(p.x, p.y);
+  ctx.lineTo(p.x - ux * BALL_R * 3, p.y - uy * BALL_R * 3);
+  ctx.stroke();
+  ctx.restore();
+}
+
 /** A marble's soft contact shadow on the wood, offset away from the overhead lamp (Polish A3). */
 function marbleShadow(ctx: CanvasRenderingContext2D, x: number, y: number, r: number): void {
   ctx.fillStyle = "rgba(40,18,4,0.16)";
@@ -494,7 +597,8 @@ function btArtDrawWorld(ctx: CanvasRenderingContext2D, course: BtCourse, s: BtSt
 
   const v2 = s.rev === BT_REV;
   const liveDrop = (cell: number) => cell >= (BT_ROWS - 1) * BT_COLS && (btTraysAt(course, s.tick)[cell % BT_COLS] ?? -1) >= 0;
-  const maskOf = (cell: number) => (liveDrop(cell) && !btSwitchedOn(s.sw, cell % BT_COLS) ? N | S : BT_KIND[cell] === 2 ? BT_CORNER[cell]! : s.vert[cell] ? N | S : E | W);
+  // btRev 7: a crossover is a channel both ways (a plus).
+  const maskOf = (cell: number) => (liveDrop(cell) && !btSwitchedOn(s.sw, cell % BT_COLS) ? N | S : BT_KIND[cell] === 2 ? BT_CORNER[cell]! : course.cross?.includes(cell) ? N | E | S | W : s.vert[cell] ? N | S : E | W);
   // Rev 2: tubes mid-turn are drawn on their own, swung back by the part of the turn still to come.
   const turning = new Set<number>();
   if (v2) for (const cell of rot) if (turnOf(s, cell).u < 1) turning.add(cell);
@@ -518,6 +622,10 @@ function btArtDrawWorld(ctx: CanvasRenderingContext2D, course: BtCourse, s: BtSt
     const { x, y } = cellCentre(cell);
     brassPin(ctx, x, y);
   }
+
+  // btRev 7: crossover plates and booster chevrons, over the channels.
+  for (const cell of course.cross ?? []) drawCrossPlate(ctx, cell);
+  for (const cell of course.boost ?? []) drawBooster(ctx, cell, s.tick);
 
   if (v2) for (let col = 1; col < BT_COLS; col++) {
     const cell = (BT_ROWS - 1) * BT_COLS + col;
@@ -652,7 +760,7 @@ function btArtDrawWorld(ctx: CanvasRenderingContext2D, course: BtCourse, s: BtSt
   const queueGap = BALL_R;
   const leadOutline = BALL_R + 6 + 1.5;
   const queuedRadius = Math.min(BALL_R, (leadX - 4 - leadOutline - 5 * queueGap) / 10);
-  for (let i = s.next; i < Math.min(BT_BALLS, s.next + 6); i++) {
+  for (let i = s.next; i < Math.min(course.balls.length || BT_BALLS, s.next + 6); i++) {
     const offset = i - s.next;
     const x = offset === 0 ? leadX : leadX - leadOutline - queueGap - queuedRadius - (offset - 1) * (queuedRadius * 2 + queueGap);
     const colour = course.balls[i]!;
@@ -674,6 +782,7 @@ function btArtDrawWorld(ctx: CanvasRenderingContext2D, course: BtCourse, s: BtSt
     ctx.fill();
     ctx.globalAlpha = i === s.next ? 1 : 0.7;
     btMarble(ctx, x, hy, r, BT_PALETTE[colour]!, colour);
+    if (btIsGold(course, i)) goldBand(ctx, x, hy, r);
     ctx.globalAlpha = 1;
     if (i === s.next) {
       // The gold ring (same radius and width as the old brass one), lit at the top.
@@ -696,7 +805,20 @@ function btArtDrawWorld(ctx: CanvasRenderingContext2D, course: BtCourse, s: BtSt
     }
   for (const b of s.balls) {
     const p = btArtBallPoint(s, b, rot);
+    // btRev 7: a boosted marble trails a short streak (behind it, along the way it came; decorative).
+    if ((b.bst ?? 0) > 0 && b.cell >= 0 && b.cell < SLOT && !arcadeReducedEffects() && !reducedMotion()) boostStreak(ctx, s, b, p);
     btMarble(ctx, p.x, p.y, BALL_R, BT_PALETTE[b.colour]!, b.colour);
+    if (btIsGold(course, b.id)) goldBand(ctx, p.x, p.y, BALL_R);
+  }
+  // btRev 7: the home-in-a-row combo, on the queue shelf's right (left of an event countdown).
+  if (s.r7 && (s.streak ?? 0) >= BT_V7_COMBO_FROM) {
+    ctx.save();
+    ctx.font = '700 24px "JetBrains Mono", monospace';
+    ctx.textAlign = "right";
+    ctx.textBaseline = "middle";
+    ctx.fillStyle = "#7A3E0E";
+    ctx.fillText(`×${s.streak}`, BT_W - (countdown !== null ? 46 : 12), hy);
+    ctx.restore();
   }
   const lastHome=[...s.landings].reverse().find(m=>m.ok);
   successFrame(ctx,{id:'balltrack',tick:s.tick,count:s.home,eventTick:lastHome?.tick,misses:s.wrong+s.lost,colour:TOY_BRASS,width:BT_W,height:BT_H,point:{x:(lastHome?.cell??0)*BT_TILE+BT_TILE/2,y:trayY+BT_TRAY_H/2,shape:'ring',radius:20}});

@@ -89,6 +89,7 @@ import { ORBIT_REV3_BANK } from "../src/lib/duel/orbitRev3Bank.server";
 import { encodeOrbitRun, replayOrbitRun } from "../src/lib/duel/orbit";
 import { clearSpot, holeDelays, holeFork, HOLE_WINDOW_MAX, HOLE_WINDOW_MIN } from "./orbit-hole-lib";
 import { INTRO_SCORE } from "../src/lib/duel/introScore";
+import { roundMaxFor } from "../src/lib/duel/roundMax";
 import { PUZZLE_INSTRUCTIONS } from "../src/lib/duel/instructions";
 import { playRevOf } from "./scoring-targets-revs";
 
@@ -170,7 +171,7 @@ if (want("bintoss")) {
     ok(partialReplay.score === BINTOSS_V3_PARTIAL_MAX, `seed ${seed}: 9 buckets + every hoop = the intro's ${BINTOSS_V3_PARTIAL_MAX}`);
   }
   console.log(`  ${runs} bot runs reach ${best}; one miss caps at ${BINTOSS_V3_PARTIAL_MAX}`);
-  ok(INTRO_SCORE.bintoss.includes("up to 150") && !INTRO_SCORE.bintoss.includes(`up to ${BINTOSS_V3_PARTIAL_MAX}`), "Swish intro states 150 and no 99 cap (score bands)");
+  ok(INTRO_SCORE.bintoss.includes(`up to ${roundMaxFor("bintoss")}`) && !INTRO_SCORE.bintoss.includes(`up to ${BINTOSS_V3_PARTIAL_MAX}`), "Swish intro states its maximum and no 99 cap (score bands)");
 }
 
 /* ============================== 2b. Flightpath ============================== */
@@ -212,7 +213,7 @@ if (want("bullseye")) {
     }
   }
   console.log(`  ${runs} seeds: 150 with inner bulls (up to ${bullsMax} a run) and with every balloon popped`);
-  ok(/Up to 150/.test(INTRO_SCORE.bullseye), "Flightpath intro states the 150 maximum the bot reaches");
+  ok(INTRO_SCORE.bullseye.includes(`Up to ${roundMaxFor("bullseye")}`), "Flightpath intro states its maximum (150 today, the maximum the bot reaches)");
 
   // Balance: the same unsteady thrower (aiming at the centre, ignoring balloons) on both rules.
   let state = 7;
@@ -271,7 +272,7 @@ if (want("rally")) {
   console.log(`  ${runs} tracking-bot runs: ${reached} reach 150; ${targets} targets struck, ${bounces} bumper bounces`);
   ok(reached > 0, "150 is reachable on rev 2 through the server replay");
   ok(targets > 0 && bounces > 0, "targets and the bumper come into play");
-  ok(/up to 150/i.test(INTRO_SCORE.rally) && INTRO_SCORE.rally.includes("pink target"), "Rally intro states gold hits, targets and the 150 cap (score bands)");
+  ok(new RegExp(`up to ${roundMaxFor("rally")}\\b`, "i").test(INTRO_SCORE.rally) && INTRO_SCORE.rally.includes("pink target"), "Rally intro states gold hits, targets and its maximum (score bands)");
 }
 
 /* ================================ 2d. Tempo ================================ */
@@ -340,7 +341,7 @@ if (want("inkbridge")) {
     ok(reveal && !JSON.stringify(reveal).includes("Standard") && JSON.stringify(reveal).includes("live drawing"), "the reveal explains the level kind in plain words");
   }
   console.log(`  ${seeds.length} seeds: four proved off-route stars each; ${runs} bot runs reach 150, ${INK_V4_PARTIAL_MAX} one level short, all levels without stars`);
-  ok(INTRO_SCORE.inkbridge.includes("up to 150") && !INTRO_SCORE.inkbridge.includes(`up to ${INK_V4_PARTIAL_MAX}`), "Rainbow Bridge intro states 150 and no partial cap (score bands)");
+  ok(INTRO_SCORE.inkbridge.includes(`up to ${roundMaxFor("inkbridge")}`) && !INTRO_SCORE.inkbridge.includes(`up to ${INK_V4_PARTIAL_MAX}`), "Rainbow Bridge intro states its maximum and no partial cap (score bands)");
 }
 
 /* ================================ 2f. Orbit ================================ */
@@ -443,7 +444,7 @@ if (want("orbit")) {
     }
   }
   console.log(`  ${runs} courses: witness runs take all three holes and score 150; normal routes unaffected; checkpoints work across a jump`);
-  ok(/up to 150/.test(INTRO_SCORE.orbit) && !/117/.test(INTRO_SCORE.orbit), "Orbit intro: 150 for the sun, no partial cap (score bands)");
+  ok(INTRO_SCORE.orbit.includes(`up to ${roundMaxFor("orbit")}`) && !/117/.test(INTRO_SCORE.orbit), "Orbit intro: its maximum for the sun, no partial cap (score bands)");
 }
 
 /* ============================ 3. Intro text rules ============================ */

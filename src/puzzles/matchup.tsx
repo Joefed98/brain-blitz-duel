@@ -33,7 +33,8 @@ import {
   MATCHUP_BOARD_X,
   MATCHUP_BOARD_Y,
   MATCHUP_CELL_PX,
-  MATCHUP_ROWS,
+  matchupRowsFor,
+  matchupWorldHFor,
 } from "@/lib/arcade/matchup";
 import { KeyCursor, useGridCursor } from "@/components/puzzles/KeyCursor";
 import { directionOf, useGameKeys } from "@/lib/desktop";
@@ -98,6 +99,9 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const data: MatchupPuzzleData | null = puzzle.type === "matchup" ? puzzle : null;
   const seed = data?.seed ?? 1;
   const matchupGame = matchupGameFor(data?.matchupRev);
+  // matchupRev 9: the taller board (ten rows in a 390 × 720 world); every phone draws the stored revision's.
+  const MATCHUP_ROWS = matchupRowsFor(data?.matchupRev);
+  const MATCHUP_WORLD_H = matchupWorldHFor(data?.matchupRev);
   /** matchupRev 2–4: keep swapping while gems clear and fall; each resolution step animates on its own. */
   const constantPlay = matchupConstantPlay(matchupGame.init(seed));
   /** matchupRev 5: the sim itself refuses swaps until the gems have fallen in. */
@@ -171,6 +175,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     let secondAt = last;
     let ticksThisSecond = 0;
     let hintShown = false;
+    // matchupRev 9: the features sound from the shared set (a goal's chime, ice cracking, a treasure's ding, a deep cascade's zap).
+    let goalsSeen = { levels: state.current.levels ?? 0, ice: state.current.iceBroken ?? 0, treasures: state.current.treasures ?? 0, swaps: state.current.swaps };
 
     const finish = () => {
       if (submitted.current) return;
@@ -243,6 +249,14 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         }
       }
 
+      if (state.current.goals) {
+        const now = state.current;
+        if ((now.levels ?? 0) > goalsSeen.levels) playSound("shared.celebrate.chime", 0.7);
+        if ((now.treasures ?? 0) > goalsSeen.treasures) playSound("shared.celebrate.countDing", 0.8);
+        if ((now.iceBroken ?? 0) > goalsSeen.ice) playSound("shared.celebrate.crackle2", 0.55);
+        if (now.swaps > goalsSeen.swaps && (now.lastMult ?? 0) >= 3) playSound("shared.celebrate.zap", 0.45);
+        goalsSeen = { levels: now.levels ?? 0, ice: now.iceBroken ?? 0, treasures: now.treasures ?? 0, swaps: now.swaps };
+      }
       reportArcadeTick(state.current.tick, matchupGame.isOver(state.current));
       feedback(state.current, matchupGame.isOver(state.current));
       // The hint highlight appears after a spell without a move.
@@ -340,6 +354,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       { width: box.width, height: box.height },
       event.clientX - box.left,
       event.clientY - box.top,
+      MATCHUP_ROWS,
+      MATCHUP_WORLD_H,
     );
   };
 
@@ -460,6 +476,11 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
         {result.swaps} swap{result.swaps === 1 ? "" : "s"} · best line {result.bestLine || "-"}
         {result.reshuffles > 0 ? ` · ${result.reshuffles} reshuffled` : ""}
       </p>
+      {result.state.goals ? (
+        <p className="shrink-0 text-center font-mono text-base text-muted-foreground">
+          {result.state.levels ?? 0} goal{result.state.levels === 1 ? "" : "s"} · {result.state.iceBroken ?? 0} ice · {result.state.treasures ?? 0} treasure · cascades +{result.state.cascadeExtra ?? 0}
+        </p>
+      ) : null}
       {result.jackpots > 0 && (
         <p className="shrink-0 text-center font-mono text-base text-muted-foreground">
           {result.jackpots} jackpot gem{result.jackpots === 1 ? "" : "s"}

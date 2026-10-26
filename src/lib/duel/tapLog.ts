@@ -54,6 +54,28 @@ export const TAP_REV_SPEED_TUNING = 3;
  * TAP_REV.
  */
 export const TAP_REV_ONE_CURVE = 4;
+/**
+ * Depth to 200 (25 Oct 2026, docs/depth/d3-speed-attention.md): the same tap logs and replays, scored to 200 by
+ * the game's depth grader (src/lib/duel/depth/): Flash's stretched curve and steady-hand bonus (depth/flash.ts),
+ * Bang On's dead-centre line and zone streak on tapRev 4's curve (depth/bangOn.ts), Ascend's flow streak on its
+ * rev-3 finish (depth/ascend.ts). Every tapRev 4 rule (Flash's decoy cut) carries on.
+ */
+export const TAP_REV_DEPTH = 5;
+
+let preDepthPin = false;
+/**
+ * Checks written for the stamps rooms dealt before Depth to 200 (Flash and Bang On tapRev 4, Ascend tapRev 1) pin
+ * new puzzles to them, so they keep proving what they were written for; the depth checks prove tapRev 5. Never
+ * called by app code.
+ */
+export function pinPreDepthTapRev(on: boolean): void {
+  preDepthPin = on;
+}
+/** The tapRev new puzzles of a tap-log game are dealt. */
+export function dealtTapRev(type: "reaction" | "stopwatch" | "numhunt"): number {
+  if (!preDepthPin) return TAP_REV_DEPTH;
+  return type === "numhunt" ? TAP_REV : TAP_REV_ONE_CURVE;
+}
 /** Every tap-log answer starts with this, so a summary answer is never misread as taps. */
 export const TAP_LOG_PREFIX = "log1:";
 /** The most taps the server reads; the phone stops logging here. */
@@ -68,7 +90,7 @@ export const FLASH_FALSE_START_GAP_MS = 250;
 /** The stored tap revision (0 = unstamped). */
 export function tapRevOf(puzzle: unknown): number {
   const rev = (puzzle as { tapRev?: number } | null)?.tapRev;
-  return rev === TAP_REV || rev === TAP_REV_CARELESS || rev === TAP_REV_SPEED_TUNING || rev === TAP_REV_ONE_CURVE ? rev : 0;
+  return rev === TAP_REV || rev === TAP_REV_CARELESS || rev === TAP_REV_SPEED_TUNING || rev === TAP_REV_ONE_CURVE || rev === TAP_REV_DEPTH ? rev : 0;
 }
 
 export function usesTapLog(puzzle: unknown): boolean {
