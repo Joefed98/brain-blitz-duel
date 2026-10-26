@@ -18,8 +18,8 @@ nothing deals or names 12. A stored round stamped swingRev 12 (none exist) would
 - **High route**: 12 cave crystals (gems) at the tops of proved flights near the ceiling (touch radius 22 px).
 - **Low route**: 8 speed gates under anchors, their openings around the deepest proved fast swing; lit by a forward
   pass at 7 px a tick or faster.
-- **Swing combos**: fast (≥ 7 px a tick), quick (≤ 60 ticks), forward flying grabs grow a chain; every fifth link
-  is a combo point.
+- **Swing combos**: fast (≥ 7 px a tick), quick (≤ 60 ticks), forward flying grabs grow a chain; a chain
+  reaching 5, 10 and 15 links pays 2, 3 and 5 combo points (phase 1, below).
 - **Set-route sections**: two or three per course before the dragon (from about 22, 80 and 145 m): a wide start
   ledge, three landing ledges (the middle one of sections 2 and 3 collapses 45 ticks after the first landing) and a
   finish-flag ledge, each on a proved kick-and-release from the one before. Ledges are one-way; landed, the hero
@@ -48,7 +48,7 @@ nothing deals or names 12. A stored round stamped swingRev 12 (none exist) would
 ## Scoring (`swingScoreV13`)
 
 - **Base**: metres (to 500) + 5 a star on `SWING_V13_BAND_CURVE` (to 140; units 0/20/40/60/75/95/120/170/245/315/
-  440/489/515/550 → 0/15/29/44/60/80/89/98/109/122/130/133/135/140), + 10 for 500 m: at most 150. Refitted
+  440/489/510/530 → 0/15/29/44/60/80/89/98/109/122/130/133/136/140; 140 from 500 m with six stars, phase 1), + 10 for 500 m: at most 150. Refitted
   (26 Oct) by matching the weak, average and good players' unit quantiles on rev 13 to their scores on rev 11 on
   the same courses (paired), so players who ignore the features keep today's score.
 - **Skill** (raw points, `swingFeaturePoints`): combo points (at most `SWING_COMBO_CAP` 10), a point a gem (12) and a
@@ -169,3 +169,25 @@ Not run here (the coordinator's, after merging): arcade-room-practice-check and 
 measured with `bun scripts/arcade-perf.ts swing --rates=1,4` on the loaded machine (1×: 19.3 ms; 4×: 8.5 fps, but
 Tilt measured 15.9 fps beside it, against its 30 fps floor in arcade-lowend-check) are not trustworthy here;
 **arcade-lowend-check's Grappler line needs a run on a quiet machine**.
+
+## Phase 1 (26 Oct 2026, evening): achievable combos and a 200 within human reach
+
+Session A's fixed bots found Grappler topping out at 161 / 164 / 167 (near-perfect / elite / flawless) with no seed
+at 200: the old combo (a point every fifth link) only mattered for chains of 25+ fast regrabs, and the base needed
+every one of the ten stars. Changed in place on swingRev 13 (never dealt outside the unmerged PR):
+
+- **Combo tiers** (`SWING_COMBO_TIERS` 5 / 10 / 15, `SWING_COMBO_TIER_PAY` 2 / 3 / 5): a chain pays as it reaches
+  each tier, 10 raw points for a full 15-link chain (still capped at `SWING_COMBO_CAP` 10). A new state counter,
+  `comboTiers` (in the checkpoint, after every earlier value), drives the effect streak, so each tier is one moment.
+- **Base**: 140 from 500 m with six of the ten stars (530 units; was 550, all ten), so a flawless human-paced run
+  does not have to take every star to reach 200. Below 489 units the curve is unchanged (good and average keep
+  their scores).
+- **Par time stays the headroom feature** (unchanged: fastest proved route + start walk + 48 ticks, full share from
+  36 under).
+- **Ceiling**: unchanged at 200 on every bank course (the fixture recomputes byte for byte); the guaranteed raw
+  points (50, no combos counted) are now joined by up to 10 from a single 15-link chain, and the base needs six
+  stars, not ten.
+- With these, the witness search (`scripts/swing-x200-witness.ts 20 400`) reaches 200 on 19 of the first 20 bank
+  courses (199 on the other; before: 3 of 20), and an elite skill-band run reaches 200 (room deal 4).
+- Re-recorded: `scripts/fixtures/swing-x200-runs.json` (rev-13 runs, the elite 200 and a witness 200) and the
+  swing run in `scripts/fixtures/replay-runs.json`. Final tuning waits for Session A's bots (phase 2).

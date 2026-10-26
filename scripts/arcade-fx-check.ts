@@ -383,7 +383,7 @@ const BUMPS: Record<string, ((s: any) => any)[]> = {
     (s) => ({ ...s, gemsTaken: (s.gemsTaken ?? 0) | 1 }),
     (s) => ({ ...s, gatesLit: (s.gatesLit ?? 0) | 1 }),
     (s) => ({ ...s, ledgeTicks: (s.ledgeTicks ?? []).map((t: number, i: number) => (i === 0 ? s.tick : t)) }),
-    (s) => ({ ...s, comboPts: (s.comboPts ?? 0) + 1, chain: 5 }),
+    (s) => ({ ...s, comboPts: (s.comboPts ?? 0) + 2, comboTiers: (s.comboTiers ?? 0) + 1, chain: 5 }),
     (s) => ({ ...s, ledgeTicks: (s.ledges ?? []).map((l: any, i: number) => (l.section === 0 ? s.tick : (s.ledgeTicks ?? [])[i] ?? 0)) }),
     (s) => ({ ...s, ledgeTicks: (s.ledges ?? []).map((l: any, i: number) => (l.section === 1 ? (l.kind === 0 ? Math.max(1, s.tick - 60) : s.tick) : (s.ledgeTicks ?? [])[i] ?? 0)) }),
   ],

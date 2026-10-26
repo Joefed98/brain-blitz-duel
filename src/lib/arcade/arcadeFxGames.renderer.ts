@@ -1454,7 +1454,7 @@ export const SWING_FX_V13: ArcadeFxSpec<SwingState> = {
     { kind: "pop", count: (s) => swingFeatureCounts(s).gems, at: (s) => swingAt(s), label: () => "+GEM", colour: () => "#8FF4FF" },
     { kind: "pop", count: (s) => swingFeatureCounts(s).gates, at: (s) => swingAt(s, 26), label: () => "SPEED GATE!" },
     { kind: "pop", count: (s) => swingFeatureCounts(s).ledges, at: (s) => swingAt(s, -26), label: () => "LANDED!" },
-    { kind: "streak", count: (s) => s.comboPts ?? 0, at: (s) => swingAt(s, -40), label: (s) => `SWING COMBO ×${s.chain ?? 0}` },
+    { kind: "streak", count: (s) => s.comboTiers ?? 0, at: (s) => swingAt(s, -40), label: (s) => `SWING COMBO ×${s.chain ?? 0}` },
     { kind: "perfect", count: (s) => swingFeatureCounts(s).sections, at: (s) => swingAt(s, -30), label: () => "SECTION CLEAR!", colour: () => "#FFD84A" },
     { kind: "pop", count: (s) => swingFeatureCounts(s).parsBeaten, at: (s) => swingAt(s, -54), label: (s) => swingParLabel(s), colour: () => "#FFE9A8" },
   ],
