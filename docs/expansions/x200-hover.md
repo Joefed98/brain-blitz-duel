@@ -86,6 +86,35 @@ this branch's bots on the 60 tuning seeds (my harness, not the final tool): aver
 near-perfect 163 / 184, elite 189 / 197, the parked flawless player 194 / 200 (max 200), random 2 (max 11). The final
 tuning (phase 2) uses Session A's bots; the tables below are from before phase 1.
 
+## Phase 2: #175's fixed bots (26 Oct 2026, night)
+
+The bot is #175's fixed `bots/hover.ts` (old-stamp play exactly as #175 has it) with this expansion's feature play
+ported in (tight gates, centre line, chains, shields by level; `randomBot`). The flawless level (`perfect`) on hoverRev 9
+plays `bots/hoverFlawless.ts`: it sees the screen ahead of the saucer (260 px), re-plans every 6 ticks with a beam search
+over taps at most 10 a second, takes everything in view, plans a star chain whole once its first star is in view (and
+through the barrier after it), and sets up a gold gate's flap as the gate comes into view. Scoring changes on the same
+stamp for the top: the full skill pay at 58 raw of 70 (`HOVER_SKILL_SLACK` 12) and the base's 140 at every barrier and
+8 of the 10 gold stars (one slip forgiven at each end). The course is unchanged (witnesses still 200).
+
+`bun scripts/arcade-skill-bands.ts hover --rev=x --levels=weak,average,good,great,near,elite,perfect,random`; before =
+hoverRev 7 on the same fixed bots. Median (p10–p90).
+
+| Level | Tuning 60: before | after | Fresh 200: before | after |
+|---|---|---|---|---|
+| Weak | 34 (8–77) | 28 (11–70) | 25 (0–70) | 28 (11–77) |
+| Average | 76 (16–114) | 91 (27–116) | 76 (8–112) | 92 (27–113) |
+| Good | 110 (25–139) | 106 (45–139) | 113 (59–135) | 112 (45–139) |
+| Great | 132 (104–149) | 123 (61–151) | 120 (93–149) | 141 (53–158) |
+| Near-perfect | 139 (118–149) | 170 (80–185) | 149 (118–149) | 169 (95–185) |
+| Elite | 149 (126–149) | 180 (131–199) | 149 (130–149) | 178 (74–199) |
+| Flawless | 149 (139–150) | 200 (200–200), min 200 | 150 (139–150) | 200 (200–200), min 126 |
+| Random | 0 (0–0) | 2 (2–11) | 0 (0–0) | 2 (2–11) |
+
+Zeros: hoverRev 7 had weak 2/60 and 33/200, average 3/60 and 11/200, good 0/60 and 2/200, great 2/200; hoverRev 9 has
+none at any level, random included (min 2: the flight unit). Flawless reaches 200 on 60 of 60 tuning seeds and 191 of 200
+fresh (lowest 126, then 189–197: the bot's limited view, not the course: every one of those seeds has a stored witness
+run at 200).
+
 ## Tuning (bots through the server's encode + replay; old = hoverRev 7, LIVE_BANDS' `strictRev`)
 
 `bun scripts/arcade-skill-bands.ts hover --rev=x --levels=weak,average,good,great,near,elite,random --seeds=60 --jobs=1`
