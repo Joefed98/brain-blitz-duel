@@ -5,7 +5,7 @@
  */
 import * as config from "@/config/betaConfig";
 
-export type BetaKey = "SENTRY_DSN" | "TALLY_URL" | "CONTACT_EMAIL";
+export type BetaKey = "SENTRY_DSN" | "TALLY_URL" | "CONTACT_EMAIL" | "DISCORD_URL";
 
 export function betaValue(key: BetaKey): string {
   if (typeof window !== "undefined") {

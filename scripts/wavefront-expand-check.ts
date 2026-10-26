@@ -76,7 +76,7 @@ import { wavefrontPuzzle } from "../src/puzzles/wavefront";
 import { roomSeed } from "./arcade-skill-bands/games";
 import { LEGACY_REVS, stateDigest } from "./wavefront-expand-record";
 import { RECORDED_SEEDS } from "./wavefront-expand-bands";
-import { BAND_LEVELS } from "./arcade-skill-bands/human";
+import { ALL_LEVELS } from "./arcade-skill-bands/human";
 import { randomLog, roomIdentity, scheduleOf } from "./room-identity/wavefront";
 import type { ArcadeInputEvent } from "../src/lib/arcade/engine";
 
@@ -149,7 +149,7 @@ section("Recorded wavRev 10 runs replay to their stored scores; 200 is reachable
     runs: { level: string; n: number; seed: number; score: number; raw: string; digest: string }[];
     ace: { seed: number; raw: string; score: number };
   };
-  ok(data.runs.length === BAND_LEVELS.length * RECORDED_SEEDS.length, `${BAND_LEVELS.length * RECORDED_SEEDS.length} recorded wavRev 10 runs (got ${data.runs.length})`);
+  ok(data.runs.length === ALL_LEVELS.length * RECORDED_SEEDS.length, `${ALL_LEVELS.length * RECORDED_SEEDS.length} recorded wavRev 10 runs (got ${data.runs.length})`);
   for (const run of data.runs) {
     const r = replayWavefrontRun(run.seed, run.raw, WAV_REV_EXPAND);
     ok(!r.flagged && r.desyncTick == null, `${run.level} #${run.n}: replays unflagged (${r.reason ?? ""})`);

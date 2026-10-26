@@ -18,8 +18,12 @@
  * string them) belongs to the better levels only.
  */
 import {
+  sliceMultiplier,
   sliceObjectAt,
   sliceSuppressed,
+  sliceV9Bonus,
+  SLICE_COMBO_MAX,
+  SLICE_V9_BONUS_CAP,
   SLICE_HUD_H,
   SLICE_INPUT_BEGIN,
   SLICE_INPUT_END,
@@ -34,14 +38,31 @@ import {
   type SliceObject,
   type SliceState,
 } from "../../../src/lib/arcade/slice";
+import type { SkillLevel } from "../human";
 import { driveEvents, type SkillBot } from "../bot";
 
 /** Finger top speed while swiping, px a tick (world px are phone px here). */
-const FINGER: Record<string, number> = { average: 26, good: 32, great: 38, near: 44 };
+const FINGER: Record<SkillLevel, number> = { weak: 20, average: 26, good: 32, great: 38, near: 44, elite: 46, perfect: 48 };
 /** Prediction error per tick of look-ahead, px. */
-const READ: Record<string, number> = { average: 0.5, good: 0.35, great: 0.25, near: 0.15 };
+const READ: Record<SkillLevel, number> = { weak: 0.65, average: 0.5, good: 0.35, great: 0.25, near: 0.15, elite: 0.12, perfect: 0 };
 /** Chance per swipe decision of playing for a combo (waiting for three, reaching further). */
-const COMBO: Record<string, number> = { average: 0, good: 0.35, great: 0.65, near: 0.85 };
+const COMBO: Record<SkillLevel, number> = { weak: 0, average: 0, good: 0.35, great: 0.65, near: 0.85, elite: 0.92, perfect: 1 };
+/**
+ * Competence fix (ctx.fixes, Oct 2026): the multiplier stays live for 10 s after each triple and
+ * every cut in that time earns it, so a player who knows this stops holding off for triples while
+ * ×3 is live with time to spare and cuts everything (the v1 bot held off on ~90 % of swipes and
+ * let a sixth of the foods fall, even flawless). The chance a swipe decision uses that knowledge.
+ */
+const COMBO_KEEP: Record<SkillLevel, number> = { weak: 0, average: 0, good: 0.3, great: 0.6, near: 0.85, elite: 0.95, perfect: 1 };
+/** Combo time (ticks) a player leaves before going for the next triple to renew it. */
+const RENEW_TICKS = 240;
+/**
+ * Elite and flawless feature policy (base scoring first): a golden fruit or the ticket's food goes
+ * first, and a ticket narrows the swipe to its food, only when no other food is about to fall away
+ * (within this many ticks); and features stop once the bonus is at its cap.
+ */
+const SAFE_FEATURE: Record<SkillLevel, boolean> = { weak: false, average: false, good: false, great: false, near: false, elite: true, perfect: true };
+const SAFE_EXIT = 60;
 /** How far (px) a player will stretch a swipe to take in another food: casual, and when playing for a combo. */
 const REACH = 110;
 const COMBO_REACH = 200;
@@ -52,14 +73,14 @@ const SWIPE_AIM = 1.8;
 /** Base time to choose the next target between swipes, ms. */
 const NEXT_MS = 260;
 /** sliceRev 9: the chance a swipe goes after a golden fruit or the ticket's food first, by level. */
-const FEATURE: Record<string, number> = { average: 0.15, good: 0.35, great: 0.6, near: 0.75 };
+const FEATURE: Record<SkillLevel, number> = { weak: 0.05, average: 0.15, good: 0.35, great: 0.6, near: 0.75, elite: 0.85, perfect: 1 };
 
 interface Pt {
   x: number;
   y: number;
 }
 
-export const bot: SkillBot = ({ game, seed, human }) => {
+export const bot: SkillBot = ({ game, seed, human, fixes }) => {
   const level = human.level;
   // sliceRev 6: the taller board (the bot reads the stored round's own world).
   const SLICE_WORLD_H = sliceWorldH(game.init(seed) as SliceState);
@@ -187,7 +208,18 @@ export const bot: SkillBot = ({ game, seed, human }) => {
     // Attention: one target at a time — specials first, then whatever leaves soonest.
     // sliceRev 9: a player using the features puts a golden fruit, then the ticket's food, first.
     const ticket = s.v9 ? sliceTicketAt(s, t) : -1;
-    const want = s.v9 && human.chance(FEATURE[level]!);
+    let want = s.v9 && human.chance(FEATURE[level]!);
+    if (want && SAFE_FEATURE[level]) {
+      // Base first: leave the features while another food is about to fall, or once the bonus is full.
+      const isFeature = (i: number) => {
+        const o = s.objects[i]!;
+        if (o.special) return false;
+        if (o.colour === SLICE_V9_GOLD) return true;
+        return ticket >= 0 && o.colour === s.tickets![ticket]!.kind;
+      };
+      const urgent = foods.some((f) => !isFeature(f.i) && !s.objects[f.i]!.special && f.exit < SAFE_EXIT);
+      if (urgent || sliceV9Bonus(s) >= SLICE_V9_BONUS_CAP) want = false;
+    }
     const rank = (i: number) => {
       const o = s.objects[i]!;
       if (!want) return 0;
@@ -202,9 +234,15 @@ export const bot: SkillBot = ({ game, seed, human }) => {
     let anchor = foods[0]!;
     if (human.slip()) anchor = foods[human.int(0, foods.length - 1)]!;
     // Whether to play for a combo is decided once per swipe, and held while waiting for it.
+    // ×3 live with time to spare: no holding off, but still a long stroke through everything near.
+    let keep = false;
+    if (comboIntent === null && fixes && s.comboLive && sliceMultiplier(s.streak) >= SLICE_COMBO_MAX && s.comboUntil - t > RENEW_TICKS && human.chance(COMBO_KEEP[level]!)) {
+      comboIntent = false;
+      keep = true;
+    }
     comboIntent ??= human.chance(COMBO[level]!);
     const combo = comboIntent;
-    const reach = combo ? COMBO_REACH : REACH;
+    const reach = combo || keep ? COMBO_REACH : REACH;
     // Touch-down: travel from where the finger is, plus timing error.
     const a0 = posAt(s, anchor.i, t + 6);
     if (!a0) return false;

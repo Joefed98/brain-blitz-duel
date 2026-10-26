@@ -52,11 +52,11 @@ const PROOFS: Record<string, Record<string, Proof>> = {
 /** World px per phone px (a 360-px-wide view on a ~390-px phone). */
 const WORLD_PER_PX = SNIP_CONFIG.viewW / 390;
 /** Reading error on the right cut moment (ticks sd): judging where the swing is. */
-const READ: Record<SkillLevel, number> = { average: 5, good: 3.5, great: 2.5, near: 1.5 };
+const READ: Record<SkillLevel, number> = { weak: 6.5, average: 5, good: 3.5, great: 2.5, near: 1.5, elite: 1, perfect: 0 };
 /** Shortest gap between two deliberate swipes (ticks). */
-const GAP: Record<SkillLevel, number> = { average: 20, good: 16, great: 14, near: 12 };
+const GAP: Record<SkillLevel, number> = { weak: 24, average: 20, good: 16, great: 14, near: 12, elite: 11, perfect: 11 };
 /** Chance of going for the golden leaf on a level. */
-const LEAF_GO: Record<SkillLevel, number> = { average: 0.1, good: 0.35, great: 0.6, near: 0.85 };
+const LEAF_GO: Record<SkillLevel, number> = { weak: 0, average: 0.1, good: 0.35, great: 0.6, near: 0.85, elite: 0.975, perfect: 1 };
 
 function bandOf(template: number): number {
   if ((SNIP_BANDS_V3.hard as readonly number[]).includes(template) || SNIP_BANDS_V6.hard.includes(template) || SNIP_BANDS_V7.hard.includes(template)) return 2;
@@ -75,6 +75,40 @@ function idealCut(s: SnipState, i: number): Omit<ArcadeInputEvent, "t"> {
   return { k: SNIP_INPUT_CUT, a: Math.round(x - (dx / L) * 15), b: Math.round(y - (dy / L) * 15), c: Math.round(x + (dx / L) * 15), d: Math.round(y + (dy / L) * 15) };
 }
 
+/** The levels that weigh a feature against the base points it may cost (elite, flawless). */
+function level0(level: SkillLevel): boolean {
+  return level === "elite" || level === "perfect";
+}
+
+/**
+ * The coarse scan above samples a cut window every `stepT` ticks, but a swing's windows are ragged (ticks that
+ * fail sit between ones that work), so its middle can be a tick that fails. A player who has the swing read
+ * cuts in the middle of a run of ticks that all work: check the middle, else the working tick nearest it,
+ * then centre on the run around it. Returns the shift and the run's width.
+ */
+function steadyMid(ok: (d: number) => boolean, start: number, end: number, floor: number, stepT: number): [number, number] {
+  let m = Math.round((start + end) / 2);
+  if (!ok(m)) {
+    let found = start;
+    for (let k = 1; m - k >= start || m + k <= end; k++) {
+      if (m - k >= start && ok(m - k)) {
+        found = m - k;
+        break;
+      }
+      if (m + k <= end && ok(m + k)) {
+        found = m + k;
+        break;
+      }
+    }
+    m = found;
+  }
+  let a = m;
+  let b = m;
+  while (a - 1 >= Math.max(floor, start - stepT + 1) && a > m - 12 && ok(a - 1)) a -= 1;
+  while (b + 1 <= end + stepT - 1 && b < m + 12 && ok(b + 1)) b += 1;
+  return [Math.round((a + b) / 2), b - a + 1];
+}
+
 function permutations(n: number): number[][] {
   if (n <= 1) return [[0]];
   const out: number[][] = [];
@@ -82,7 +116,11 @@ function permutations(n: number): number[][] {
   return out;
 }
 
-export const bot: SkillBot = ({ game, seed, human }) => {
+export const bot: SkillBot = ({ game, seed, human, fixes }) => {
+  /** Oct 2026 competence fixes (BotCtx.fixes): cuts timed in the middle of a run of ticks that work (steadyMid). */
+  const fx = Boolean(fixes);
+  /** Elite and flawless play protect the apple: the golden leaf only when its window is wide enough for their own timing. */
+  const careful = level0(human.level);
   const level = human.level;
   const init = game.init(seed) as SnipState;
   const history: SnipState[] = [];
@@ -109,11 +147,16 @@ export const bot: SkillBot = ({ game, seed, human }) => {
    */
   const timeShape = (from: SnipState, shape: Plan, lo: number, span: number, needLeaf: boolean, stepT = 3): Plan | null => {
     const first = shape[0]![1];
+    // Each shift is tried at most once (the scan and steadyMid revisit the same ticks; tryPlan is deterministic).
+    const tried = new Map<number, boolean>();
     const ok = (d: number) => {
+      const hit = tried.get(d);
+      if (hit !== undefined) return hit;
       const plan = shape.map(([r, at]) => [r, at + d] as [number, number]);
-      if (plan.some(([, at]) => at > SNIP_LEVEL_TICKS - 2)) return false;
-      const res = tryPlan(from, plan);
-      return res.fed && (!needLeaf || res.leaf);
+      const res = plan.some(([, at]) => at > SNIP_LEVEL_TICKS - 2) ? null : tryPlan(from, plan);
+      const out = !!res && res.fed && (!needLeaf || res.leaf);
+      tried.set(d, out);
+      return out;
     };
     const d0 = lo - first;
     let start: number | null = null;
@@ -129,10 +172,14 @@ export const bot: SkillBot = ({ game, seed, human }) => {
       if (!ok(end + stepT)) break;
       end += stepT;
     }
-    const mid = Math.round((start + end) / 2);
+    let mid = Math.round((start + end) / 2);
+    lastWidth = end - start + 1;
+    if (fx) [mid, lastWidth] = steadyMid(ok, start, end, d0, stepT);
     return shape.map(([r, at]) => [r, at + mid] as [number, number]);
   };
 
+  /** The width (ticks) of the last window timeShape found. */
+  let lastWidth = 0;
   // Per-level plan state.
   let levelSeen = -1;
   let plan: Plan = [];
@@ -142,6 +189,9 @@ export const bot: SkillBot = ({ game, seed, human }) => {
   let wantLeaf = false;
   let retryAt = -1;
   let pendingCheck: { rope: number; at: number } | null = null;
+
+  /** Elite / flawless: the narrowest leaf window (ticks) worth playing, ±2 sd of their own cut-time error. */
+  const leafNeed = careful ? 1 + 4 * Math.hypot(READ[level], (human.p.timingSdMs * 1.5) / (1000 / 60)) : 0;
 
   const scheduleNext = (s: SnipState) => {
     if (next >= plan.length) {
@@ -187,6 +237,10 @@ export const bot: SkillBot = ({ game, seed, human }) => {
     }
     const lo = Math.max(ready, s.levelTick + 1);
     let timed = believe ? null : timeShape(s, shape, lo, 150, wantLeaf);
+    if (careful && timed && wantLeaf && proof.fast && lastWidth < leafNeed) {
+      // Too tight a window for their own hand: an apple is worth five leaves, so play the apple safe.
+      timed = null;
+    }
     if (!timed && wantLeaf && proof.fast && !believe) {
       wantLeaf = false;
       shape = proof.fast.plan.map(([r, at]) => [r, at] as [number, number]);

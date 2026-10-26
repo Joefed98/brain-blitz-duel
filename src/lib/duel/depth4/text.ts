@@ -8,7 +8,7 @@ import { PROGRESS_MEASURE, dealtLimitMs } from "../puzzleBandsText";
 import { rev3FastFinishSeconds, rev3UnfinishedScore } from "../puzzleScoreRev3";
 import { fillMax } from "../roundMax";
 import { d4Game } from "./score";
-import type { D4Type } from "./stamps";
+import { liveD4Rev, type D4Type } from "./stamps";
 
 /** What earns the feature, as the intro says it (no scoring terms: no "par", no "speed bonus"). */
 const INTRO_FEATURE: Record<D4Type, string> = {
@@ -34,7 +34,7 @@ const HELP_FEATURE: Partial<Record<D4Type, string>> = {
 
 /** Seconds a finish must take at most to reach the top of the stretch. */
 export function d4EliteSeconds(type: D4Type): number {
-  return Math.round((dealtLimitMs(type) * (1 - d4Game(type).elite)) / 1000);
+  return Math.round((dealtLimitMs(type) * (1 - d4Game(type, liveD4Rev(type)).elite)) / 1000);
 }
 
 export function d4IntroTemplate(type: D4Type): string {
@@ -46,7 +46,7 @@ export function d4Intro(type: D4Type): string {
 }
 
 export function d4Help(type: D4Type): string {
-  const g = d4Game(type);
+  const g = d4Game(type, liveD4Rev(type));
   const fast = rev3FastFinishSeconds(type, dealtLimitMs(type));
   const half = rev3UnfinishedScore(type, 0.5);
   const feature = HELP_FEATURE[type];

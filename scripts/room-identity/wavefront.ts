@@ -11,7 +11,7 @@
  */
 import { ARCADE_INPUT_DRAG, type ArcadeInputEvent } from "../../src/lib/arcade/engine";
 import { wavefrontGameFor, WAV_REV_EXPAND, WAV_SAUCER_EVERY, WAV_WORLD_W, type WavState } from "../../src/lib/arcade/wavefront";
-import { Human, type BandLevel } from "../arcade-skill-bands/human";
+import { Human, type SkillLevel } from "../arcade-skill-bands/human";
 import { bot } from "../arcade-skill-bands/bots/wavefront";
 
 const KIND = ["laser", "spread", "shield"];
@@ -53,7 +53,7 @@ export function randomLog(seed: number, ticks = 5400): ArcadeInputEvent[] {
 }
 
 /** A skill-band bot's log on wavRev 10. */
-export function botLog(seed: number, level: BandLevel): ArcadeInputEvent[] {
+export function botLog(seed: number, level: SkillLevel): ArcadeInputEvent[] {
   const game = wavefrontGameFor(WAV_REV_EXPAND);
   return bot({ game, seed, rev: WAV_REV_EXPAND, human: new Human("wavefront", seed, level) }).events ?? [];
 }
