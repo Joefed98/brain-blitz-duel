@@ -39,7 +39,7 @@ const add = (who: string, seed: number, events: ArcadeInputEvent[]) => {
 for (const n of [0, 1, 2])
   for (const level of ["weak", "good", "near", "elite"] as const) {
     const seed = roomSeed(n);
-    add(level, seed, bot({ game, seed, rev: INK_REV_EXPAND, human: new Human("inkbridge", seed, level) }).events ?? []);
+    add(level, seed, bot({ game, seed, rev: INK_REV_EXPAND, human: new Human("inkbridge", seed, level), fixes: true }).events ?? []);
   }
 for (const n of [0, 3]) add("perfect", roomSeed(n), inkOracleRun(roomSeed(n)).events);
 writeFileSync("scripts/fixtures/ink-x200-runs.json.gz", gzipSync(JSON.stringify({ note: "Rainbow Bridge inkRev 10 runs recorded by scripts/ink-x200-record.ts", rev: INK_REV_EXPAND, runs })));
