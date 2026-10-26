@@ -361,4 +361,4 @@ if (failures.length) {
   for (const f of failures.slice(0, 40)) console.log(`  ✗ ${f}`);
   process.exit(1);
 }
-console.log(`arcade-tuning-g1: ${checks} checks passed — 88 stored runs on every older revision and 32 on the taller ones replay unchanged; rooms deal brkRev 6, rallyRev 6, wavRev 6 and burstRev 4; worlds, reveals and effects by revision; per-game geometry; refitted curves and 150 via the server replay; demos stopped`);
+console.log(`arcade-tuning-g1: ${checks} checks passed — 88 stored runs on every older revision and 32 on the taller ones replay unchanged; rooms dealt brkRev 6, rallyRev 6, wavRev 6 and burstRev 4 (Breaker, Rally and Fission since moved on by their expansions); worlds, reveals and effects by revision; per-game geometry; refitted curves and 150 via the server replay; demos stopped`);

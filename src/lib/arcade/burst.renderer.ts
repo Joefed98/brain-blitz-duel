@@ -436,8 +436,8 @@ const v8Memos = new WeakMap<object, V8Memo>();
 
 /**
  * burstRev 8's golden atom (a gold atom sprite in its 18 px hit disc with a soft glow and a countdown
- * ring emptying over its four seconds, reddening in the last) and pops for a golden atom ("GOLD +4"), a
- * fast wave ("FAST +n"), a clean wave ("CLEAN +2"), a missed shot ("MISS") and the power-ups. Under
+ * ring emptying over its four seconds, reddening in the last) and pops for a golden atom ("GOLD +6"), a
+ * fast wave ("FAST +n"), a clean wave ("CLEAN +5"), a missed shot ("MISS") and the power-ups. Under
  * reduced motion nothing turns; under reduced effects the glows are skipped (glow() does that itself).
  */
 function drawV8(ctx: CanvasRenderingContext2D, state: BurstState, key: object): void {

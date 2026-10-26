@@ -307,7 +307,7 @@ section("Fission burstRev 8: clean waves, golden atoms, scheduled power-ups");
   d = game.step(d, { t: 101, k: BURST_INPUT_FIRE, a: 0, b: 1, c: 0, d: 0 });
   ok(d.fired === 1 && d.shots.length === 2, "a double shot: two beams, one shot");
   for (let i = 0; i < 90; i++) d = game.step(d, null);
-  ok(d.missed === 0 && d.cleanWaves === 1 && d.cleared === 1 && burstCleanBonus(d).clean === BURST_V8_CLEAN_PTS, "the last atom popped by a double shot (one beam missing): a clean wave, +4");
+  ok(d.missed === 0 && d.cleanWaves === 1 && d.cleared === 1 && burstCleanBonus(d).clean === BURST_V8_CLEAN_PTS, "the last atom popped by a double shot (one beam missing): a clean wave, +5");
   let m = { ...s, nextWaveAt: 0, balls: [{ size: 3, x: 60 * 256, y: 300 * 256, vx: 0, vy: 0 }] } as BurstState;
   m = game.step(m, { t: m.tick + 1, k: BURST_INPUT_FIRE, a: 0, b: 0, c: 0, d: 0 });
   for (let i = 0; i < 90; i++) m = game.step(m, null);
@@ -318,7 +318,7 @@ section("Fission burstRev 8: clean waves, golden atoms, scheduled power-ups");
   let gs = { ...s0, tick: g0.tick, wave: 1, nextWaveAt: 99999, balls: [{ size: 3, x: 10 * 256, y: 600 * 256, vx: 0, vy: 0 }], x: g0.x * 256, targetX: g0.x * 256, acted: 1, freeze: 9999 } as BurstState;
   gs = game.step(gs, { t: gs.tick + 1, k: BURST_INPUT_FIRE, a: 0, b: 1, c: 0, d: 0 });
   for (let i = 0; i < 60; i++) gs = game.step(gs, null);
-  ok(burstGoldenCount(gs) === 1 && burstCleanBonus(gs).gold === BURST_V8_GOLDEN_PTS && gs.landed === 1, "a beam takes a live golden atom (+4, a hit for the clean count)");
+  ok(burstGoldenCount(gs) === 1 && burstCleanBonus(gs).gold === BURST_V8_GOLDEN_PTS && gs.landed === 1, "a beam takes a live golden atom (+6, a hit for the clean count)");
   ok(burstCleanUnits({ hits: 10, lives: 0 }) === 3 && burstCleanUnits({ hits: 40, lives: 1 }) === 30, "lives lost never take more than three quarters of the atoms");
   ok(burstCleanParts({ ...s0, hits: 2, lives: 0, acted: 1 } as BurstState).points > 0, "two atoms and three lives lost still score");
 }

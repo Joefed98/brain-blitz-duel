@@ -14,10 +14,10 @@ import { writeFileSync } from "node:fs";
 import { GAME_BY_TYPE } from "./arcade-skill-bands/games";
 import { Human, type SkillProfile } from "./arcade-skill-bands/human";
 import { E9_GAMES, playE9 } from "./expansion-e9-bands";
-import { bullseyeOracle, rallyOracle } from "./expansion-e9-oracles";
+import { bullseyeOracle, burstOracle, rallyOracle } from "./expansion-e9-oracles";
 
 /** The exact oracles, tried first (scripts/expansion-e9-oracles.ts). */
-const ORACLES: Record<string, any> = { bullseye: bullseyeOracle, rally: rallyOracle };
+const ORACLES: Record<string, any> = { bullseye: bullseyeOracle, rally: rallyOracle, burst: burstOracle };
 
 const args = process.argv.slice(2);
 const opt = (name: string) => args.find((a) => a.startsWith(`--${name}=`))?.slice(name.length + 3);

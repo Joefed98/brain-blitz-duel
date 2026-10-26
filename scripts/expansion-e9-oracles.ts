@@ -30,6 +30,7 @@ import {
   type BullseyeState,
 } from "../src/lib/arcade/bullseye";
 import { rallyBonusCount, rallyPaddleW, rallyPaddleY, rallyTotalHits, rallyWorldW, RALLY_BALL_R, type RallyBall, type RallyState } from "../src/lib/arcade/rally";
+import { burstGoldenCount, burstGoldenNow, BURST_INPUT_FIRE, BURST_INPUT_MOVE, BURST_MOVE_SNAP, BURST_WORLD_W, type BurstState } from "../src/lib/arcade/burst";
 import type { SkillBot } from "./arcade-skill-bands/bot";
 
 /* ------------------------------------------------------------------ Flightpath */
@@ -150,7 +151,7 @@ export const rallyOracle: SkillBot = ({ game, seed }) => {
         const half = rallyPaddleW(rallyTotalHits(s)) / 2;
         const target = s.bonus?.some((b) => s.tick >= b.tick - 200 && s.tick < b.tick + 240) ?? false;
         let best = { inputs: [a, a], v: -Infinity };
-        const sweeps = target ? [0, -12, 12, -40, 40] : [0];
+        const sweeps = target ? [0, -12, 12, -24, 24, -40, 40, -64, 64] : [0];
         for (let k = -6; k <= 6; k++)
           for (const sw of sweeps) {
             const mid = s;
@@ -158,7 +159,7 @@ export const rallyOracle: SkillBot = ({ game, seed }) => {
             const after1 = stepTo(mid, x1);
             const x2 = Math.max(0, Math.min(W, follow(after1, (k * half) / 7)));
             const inputs = [x1, x2];
-            const f = run(s, inputs, 200);
+            const f = run(s, inputs, target ? 260 : 200);
             const v = (f.dead ? -1000 : 0) + 100 * (rallyBonusCount(f) - rallyBonusCount(s)) + 8 * ((f.targetHits ?? 0) - (s.targetHits ?? 0)) + 5 * (f.goldHits - s.goldHits) - Math.abs(k) * 0.01 - Math.abs(sw) * 0.001;
             if (v > best.v) best = { inputs, v };
           }
@@ -168,6 +169,87 @@ export const rallyOracle: SkillBot = ({ game, seed }) => {
     }
     push(s.tick + 1, a);
     s = stepTo(s, a);
+  }
+  return { events };
+};
+
+/* ------------------------------------------------------------------ Fission */
+
+/**
+ * Fission: the ship snaps to any x (a touch in the control strip, `BURST_MOVE_SNAP`, as the phone sends it). Each
+ * tick with no beam up it tries firing from a handful of spots (under each atom's coming path, under a live golden
+ * atom first) on forks of the sim and takes the spot whose beam hits soonest with the ship untouched for a while
+ * after; otherwise it moves to the spot that stays untouched longest.
+ */
+export const burstOracle: SkillBot = ({ game, seed }) => {
+  let s: BurstState = game.init(seed);
+  const events: ArcadeInputEvent[] = [];
+  let flip = 0;
+  const snap = (x: number): Omit<ArcadeInputEvent, "t"> => ({ k: BURST_INPUT_MOVE, a: Math.round(Math.max(12, Math.min(BURST_WORLD_W - 12, x))), b: 0, c: BURST_MOVE_SNAP, d: 0 });
+  const stepIn = (st: BurstState, ev: Omit<ArcadeInputEvent, "t"> | null) => game.step(st, ev ? { ...ev, t: st.tick + 1 } : null) as BurstState;
+  /** Ticks the ship stays untouched (and alive) standing at x from st, up to `n`. */
+  const safeFor = (st: BurstState, n: number): number => {
+    let f = st;
+    for (let i = 0; i < n; i++) {
+      const before = f.lives;
+      f = stepIn(f, null);
+      if (f.lives < before || game.isOver(f)) return i;
+    }
+    return n;
+  };
+  while (!game.isOver(s) && s.tick < game.runTicks) {
+    const xs = new Set<number>();
+    const gn = burstGoldenNow(s, s.tick + 1);
+    if (gn >= 0) xs.add(s.goldens![gn]!.x);
+    for (const b of s.balls) for (const lead of [0, 8, 16, 24]) xs.add(Math.round((b.x + b.vx * lead) / 256));
+    xs.add(Math.round(s.x / 256));
+    let ev: Omit<ArcadeInputEvent, "t"> | null = null;
+    if (s.shots.length === 0) {
+      let best: { x: number; when: number } | null = null;
+      for (const x of xs) {
+        // Already there: fire this tick; else move this tick and fire the next, exactly as played below. A fork
+        // shows whether the beam hits and the ship is safe.
+        const here = Math.round(s.x / 256) === x;
+        let f = here ? s : stepIn(s, snap(x));
+        if (f.lives < s.lives) continue;
+        f = stepIn(f, { k: BURST_INPUT_FIRE, a: 0, b: flip ^ 1, c: 0, d: 0 });
+        const hits0 = f.hits + burstGoldenCount(f) * 1000;
+        let when = -1;
+        for (let i = 0; i < 80 && !game.isOver(f) && f.shots.length > 0; i++) {
+          f = stepIn(f, null);
+          if (f.hits + burstGoldenCount(f) * 1000 > hits0 || (f.missed ?? 0) > (s.missed ?? 0)) {
+            when = f.hits + burstGoldenCount(f) * 1000 > hits0 ? i : -1;
+            break;
+          }
+        }
+        if (when < 0 || (f.missed ?? 0) > (s.missed ?? 0) || f.lives < s.lives) continue;
+        const gold = burstGoldenCount(f) > burstGoldenCount(s);
+        if (safeFor(f, 45) < 45) continue;
+        const score = gold ? when - 1000 : when;
+        if (!best || score < best.when) best = { x, when: score };
+      }
+      if (best) {
+        if (Math.round(s.x / 256) !== best.x) ev = snap(best.x);
+        else ev = { k: BURST_INPUT_FIRE, a: 0, b: (flip ^= 1), c: 0, d: 0 };
+      }
+    }
+    if (!ev) {
+      // No shot to take: stand where the ship stays safe longest (now, else the best spot nearby).
+      if (safeFor(s, 45) < 45) {
+        let bestX = Math.round(s.x / 256);
+        let bestT = -1;
+        for (let x = 12; x <= BURST_WORLD_W - 12; x += 12) {
+          const t = safeFor(stepIn(s, snap(x)), 60);
+          if (t > bestT) {
+            bestT = t;
+            bestX = x;
+          }
+        }
+        ev = snap(bestX);
+      }
+    }
+    if (ev) events.push({ ...ev, t: s.tick + 1 });
+    s = stepIn(s, ev);
   }
   return { events };
 };

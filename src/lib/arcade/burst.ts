@@ -921,9 +921,9 @@ export const BURST_V8_GOLDEN_BELOW = 24;
 export const BURST_V8_GOLDEN_BAND = 110;
 /** Points: a golden atom, a clean wave. */
 export const BURST_V8_GOLDEN_PTS = 6;
-export const BURST_V8_CLEAN_PTS = 4;
+export const BURST_V8_CLEAN_PTS = 5;
 /** Each feature's most points. */
-export const BURST_V8_CAPS = { gold: 36, clear: 12, clean: 24 } as const;
+export const BURST_V8_CAPS = { gold: 36, clear: 12, clean: 25 } as const;
 
 const geometriesV8 = new Map<number, BurstGeometry>();
 /** burstRev 8's higher arena: the ceiling from 24 px, higher bounces and a higher lowest ceiling. */
