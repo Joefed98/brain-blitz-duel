@@ -58,7 +58,7 @@ export function scheduleOf(seed: number, rev: number, events: unknown): { t: num
 }
 
 /** Uniformly random taps at a human-ish rate (every 0.25–1.5 s), from a seeded stream. */
-function randomTaps(seed: number): ArcadeInputEvent[] {
+export function randomTaps(seed: number): ArcadeInputEvent[] {
   let x = (seed ^ 0x5bd1e995) >>> 0;
   const next = () => {
     x = (x + 0x6d2b79f5) >>> 0;

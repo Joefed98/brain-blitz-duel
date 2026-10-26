@@ -70,7 +70,7 @@ import { generateOrbit } from "../src/lib/duel/arcade.server";
 import { LIVE_BANDS } from "../src/lib/arcade/liveBands";
 import { roundMaxFor } from "../src/lib/duel/roundMax";
 import { roomSeed } from "./arcade-skill-bands/games";
-import { roomIdentity } from "./room-identity/orbit";
+import { randomTaps, roomIdentity } from "./room-identity/orbit";
 
 let failed = 0;
 const ok = (cond: boolean, msg: string) => {
@@ -258,6 +258,18 @@ const fly = (s: OrbitRev3State, ticks: number, until: (s: OrbitRev3State) => boo
   ok((late.perfect ?? 0) === 0 && (early.perfect ?? 0) === 0, `a release after the first lap (${lap} ticks) earns no perfect orbit`);
   const firstWitness = runTaps(xp0, entry.taps.slice(0, 1));
   ok(entry.taps[0]! <= lap ? (firstWitness.perfect ?? 0) >= 1 || firstWitness.ended === 2 || firstWitness.cur > 0 : true, "a first-lap release that lands is a perfect orbit");
+}
+
+// Random play stays near 0: uniformly random taps every 0.25–1.5 s on 200 dealt courses.
+{
+  const scores: number[] = [];
+  for (let seed = 1; seed <= 200; seed++) {
+    const course = orbitXpCourseForSeed(seed)!;
+    const start = initXpFrom(decodeRev3Planets(course.planets), ORBIT_REV3_WORLD_W, decodeOrbitHoles(course.holes), decodeOrbitExtras(course.extras));
+    scores.push(orbitRev3Game.score(runTaps(start, randomTaps(seed).map((e) => e.t))));
+  }
+  scores.sort((a, b) => a - b);
+  ok(scores[100]! <= 5 && scores[180]! <= 20, `random play stays near 0 (200 courses: median ${scores[100]}, p90 ${scores[180]}, best ${scores[199]})`);
 }
 
 /* 4. Recorded orbitRev 12 runs. */
