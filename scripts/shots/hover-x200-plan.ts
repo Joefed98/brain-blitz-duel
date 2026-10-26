@@ -22,8 +22,10 @@ export function hoverShotPlan(seed = 1, quietUntil = 0) {
     const prev = s;
     s = game.step(s, set.has(s.tick + 1)) as HoverState;
     const ahead = s.pillars[s.gates];
-    // Threading a tight gate: the saucer in the middle of the barrier.
-    if (!shots.tight && ahead?.tightTop !== undefined && (s.tightOn ?? -1) === s.gates && pillarX(ahead, s.distance) + HOVER_PILLAR_W / 2 <= HOVER_DISC_X) shots.tight = s.tick;
+    // A tight gate ahead with its centre line at rest (the barrier about 120 px ahead of the saucer).
+    if (!shots.rest && ahead?.tightTop !== undefined && pillarX(ahead, s.distance) <= HOVER_DISC_X + 120 * 256 && pillarX(ahead, s.distance) > HOVER_DISC_X + 90 * 256) shots.rest = s.tick;
+    // Threading a tight gate on its centre line: the saucer past the middle of the barrier, the line lit behind it.
+    if (!shots.tight && ahead?.tightTop !== undefined && (s.tightOn ?? -1) === s.gates && (s.ctrOn ?? -1) === s.gates && pillarX(ahead, s.distance) + (HOVER_PILLAR_W * 3) / 4 <= HOVER_DISC_X) shots.tight = s.tick;
     // A complete chain half swept.
     if (!shots.chain && (s.chainHits?.length ?? 0) > (prev.chainHits?.length ?? 0)) {
       const c = s.chainHits!.at(-1)! >> 3;

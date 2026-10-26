@@ -784,6 +784,8 @@ function drawShield(ctx: CanvasRenderingContext2D, state: HoverState): void {
 /** The centre line's brightness for a grade (0: at rest; 3: dead centre). */
 const CENTRE_ALPHA = [0.14, 0.32, 0.5, 0.78] as const;
 const CENTRE_FADE = 30;
+/** How far either side of the saucer the line's bright run reaches (px). */
+const CENTRE_GLOW = 22;
 
 /**
  * The centre line through a tight gate (hoverRev 9; display only, drawn on the sim's line: the gate's middle,
@@ -816,14 +818,23 @@ function drawCentreLine(ctx: CanvasRenderingContext2D, state: HoverState, index:
     // The glow under the saucer: brighter the nearer its centre is to the line right now.
     const near = Math.max(0, 1 - Math.abs(state.y - hoverCentreY(pillar)) / HOVER_CENTRE_TOL[2]);
     if (near > 0) {
+      // A short bright run of the line under and either side of the saucer, fading out over CENTRE_GLOW px.
       const x = px(HOVER_DISC_X);
-      ctx.globalAlpha = 0.25 + 0.6 * near;
-      ctx.fillStyle = near > 0.6 ? RETRO_WHITE : STAR_GOLD;
-      ctx.fillRect(Math.max(left, x - 3), cy, Math.min(left + width, x + 3) - Math.max(left, x - 3), 1);
-      if (glow) {
-        ctx.fillStyle = STAR_GOLD;
-        ctx.globalAlpha = 0.3 * near;
-        ctx.fillRect(Math.max(left, x - 6), cy - 1, Math.min(left + width, x + 6) - Math.max(left, x - 6), 3);
+      for (let d = 0; d < CENTRE_GLOW; d += 2) {
+        const k = 1 - d / CENTRE_GLOW;
+        for (const x0 of d === 0 ? [x - 1] : [x - d - 2, x + d]) {
+          const a = Math.max(left, x0);
+          const b = Math.min(left + width, x0 + 2);
+          if (b <= a) continue;
+          ctx.globalAlpha = (0.2 + 0.65 * near) * k;
+          ctx.fillStyle = near > 0.6 && d < 6 ? RETRO_WHITE : STAR_GOLD;
+          ctx.fillRect(a, cy, b - a, 1);
+          if (glow) {
+            ctx.fillStyle = STAR_GOLD;
+            ctx.globalAlpha = 0.28 * near * k;
+            ctx.fillRect(a, cy - 1, b - a, 3);
+          }
+        }
       }
     }
   } else if (logged !== undefined) {

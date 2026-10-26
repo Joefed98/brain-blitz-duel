@@ -262,7 +262,7 @@ section("centre line");
   ok((main.tight ?? 0) === 0 && (main.ctrPts ?? 0) === 0 && main.gates === i + 1, "through the main gap: no tight gate, no centre points");
   const broken = fly(() => c, { invuln: 30 });
   ok((broken.tight ?? 0) === 0 && (broken.ctrPts ?? 0) === 0, "on a broken shield's moment: no tight gate, no centre points");
-  ok(HOVER_CENTRE_TOL[0] === 5 * FP && HOVER_CENTRE_TOL[1] === 9 * FP && HOVER_CENTRE_TOL[2] === 14 * FP && hoverCentreGrade(5 * FP) === 3 && hoverCentreGrade(5 * FP + 1) === 2 && hoverCentreGrade(14 * FP + 1) === 0, "grades: within 5 px 3, 9 px 2, 14 px 1");
+  ok(HOVER_CENTRE_TOL[0] === 6 * FP && HOVER_CENTRE_TOL[1] === 10 * FP && HOVER_CENTRE_TOL[2] === 15 * FP && hoverCentreGrade(6 * FP) === 3 && hoverCentreGrade(6 * FP + 1) === 2 && hoverCentreGrade(15 * FP) === 1 && hoverCentreGrade(15 * FP + 1) === 0, "grades: within 6 px 3, 10 px 2, 15 px 1");
 }
 
 /* 6. Scoring and the ceiling. */

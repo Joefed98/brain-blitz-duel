@@ -901,6 +901,39 @@ function middleTick(p: HoverPillar): number {
 const passDistance = (p: HoverPillar) => p.x0 + HOVER_PILLAR_W - (HOVER_DISC_X - HOVER_DISC_R);
 const enterDistance = (p: HoverPillar) => p.x0 - (HOVER_DISC_X + HOVER_DISC_R);
 
+/** The room a chain's way out keeps to the next barrier's gap edges (fixed-point). */
+const HOVER_CHAIN_EXIT_ROOM = 768;
+
+/**
+ * True when, after a chain's flap (tapped at height `yStart` when the course has scrolled to `tapDistance`),
+ * no tap or one more tap after the chain's last star carries the saucer through barrier `b` with
+ * HOVER_CHAIN_EXIT_ROOM to its gap's edges, touching b's gold star if it has one, clear of the floor and ceiling.
+ */
+function chainExitFlyable(yStart: number, tapDistance: number, speed: number, b: HoverPillar, bottom: number): boolean {
+  const last = HOVER_CHAIN_K0 + HOVER_CHAIN_TICKS;
+  const kIn = Math.ceil((enterDistance(b) - tapDistance) / speed);
+  const kOut = Math.floor((passDistance(b) - tapDistance) / speed);
+  const kMid = Math.round((b.x0 + (HOVER_PILLAR_W >> 1) - HOVER_DISC_X - tapDistance) / speed);
+  const tap0 = cleanTickAt(tapDistance);
+  const room = HOVER_CHAIN_EXIT_ROOM;
+  for (let u = last; u <= kOut; u++) {
+    // u === last: no second tap (the chain's own flap carries on).
+    let y = yStart;
+    let v = 0;
+    let ok = true;
+    let star = b.starDy === undefined;
+    for (let k = 0; k <= kOut && ok; k++) {
+      v = k === 0 || (u > last && k === u) ? HOVER_IMPULSE : clampInt(v + HOVER_GRAVITY, -HOVER_TERMINAL, HOVER_TERMINAL);
+      y += v;
+      if (y - HOVER_DISC_R <= room || y + HOVER_DISC_R >= bottom - room) ok = false;
+      else if (k >= kIn && !gapsAt(b, tap0 + k).some(([top, h]) => y - HOVER_DISC_R >= top + room && y + HOVER_DISC_R <= top + h - room)) ok = false;
+      if (!star && k === kMid && Math.abs((hoverStarY(b, tap0 + k) ?? 0) - y) <= HOVER_DISC_R + HOVER_STAR_R - 512) star = true;
+    }
+    if (ok && star) return true;
+  }
+  return false;
+}
+
 /** The course features for a hoverRev 9 course (pillars already drifted; tight gates are set on them). */
 function buildFeatures(
   seed: number,
@@ -1019,6 +1052,8 @@ function buildFeatures(
       const margin = 2_048 + HOVER_STAR_R;
       if (span + 2 * margin > window) continue;
       const tapDistance = passDistance(a) + ((window - span) >> 1) - HOVER_CHAIN_K0 * speed;
+      // The barrier after the chain must still be flyable out of the chain's flap (its gold star touched too).
+      if (!chainExitFlyable(yStart, tapDistance, speed, b, bottom)) continue;
       // 5–7 stars, as many as keep every neighbouring pair HOVER_CHAIN_GAP apart at this speed.
       const tickOf = (j: number, m: number) => Math.round((j * HOVER_CHAIN_TICKS) / (m - 1));
       const fits = (m: number) => Array.from({ length: m - 1 }, (_, j) => tickOf(j + 1, m) - tickOf(j, m)).every((dk) => dk * speed >= HOVER_CHAIN_GAP);

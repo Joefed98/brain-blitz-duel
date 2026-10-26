@@ -1,9 +1,10 @@
 /**
  * Review screenshots for the 200 expansion (Hover hoverRev 9; a design tool, not a check): mid-play
- * frames at 414×896 (DPR 2) showing each new feature — a tight gate being threaded, a star chain
- * half swept, a shield bubble ahead, the shield held and a shield breaking.
+ * frames at 414×896 (DPR 2) showing each feature — a tight gate's centre line at rest ahead and lit
+ * while the saucer threads it, a star chain half swept, a shield bubble ahead, the shield held and a
+ * shield breaking.
  *
- *   bun scripts/shots/hover-x200-shots.ts --url=<origin> [--out=screenshots/expansion-e1]
+ *   bun scripts/shots/hover-x200-shots.ts --url=<origin> [--out=screenshots/x200-oct-2026]
  *
  * Practice deals its fixed example (seed 1, as scripts/shots/capture.ts does), the page clock is
  * faked and stepped, and the taps of scripts/shots/hover-x200-plan.ts (the flawless skill-band
@@ -19,7 +20,7 @@ import { hoverShotPlan } from "./hover-x200-plan";
 const args = process.argv.slice(2);
 const opt = (name: string) => args.find((a) => a.startsWith(`--${name}=`))?.slice(name.length + 3);
 const ORIGIN = (opt("url") ?? "http://127.0.0.1:5202").replace(/\/$/, "");
-const OUT = opt("out") ?? "screenshots/expansion-e1";
+const OUT = opt("out") ?? "screenshots/x200-oct-2026";
 mkdirSync(OUT, { recursive: true });
 
 /** A server function's name from its URL (as scripts/shots/capture.ts reads it). */
@@ -32,15 +33,14 @@ function serverFnName(url: string): string {
   }
 }
 
-const NAMES: Record<string, string> = { tight: "hover-tight-gate", chain: "hover-star-chain", bubble: "hover-shield-bubble", held: "hover-shield-held", break: "hover-shield-break" };
+const NAMES: Record<string, string> = { rest: "hover-centre-line-rest-414x896", tight: "hover-centre-line-lit-414x896", chain: "hover-star-chain-414x896", bubble: "hover-shield-bubble-414x896", held: "hover-shield-held-414x896", break: "hover-shield-break-414x896" };
 
 const browser = await chromium.launch({ executablePath: process.env.PLAYWRIGHT_CHROMIUM ?? "/opt/pw-browsers/chromium" });
 const context = await browser.newContext({ viewport: { width: 414, height: 896 }, deviceScaleFactor: 2, hasTouch: false });
 const page = await context.newPage();
 page.on("pageerror", (e) => console.log("pageerror", String(e.message ?? e).split("\n")[0]));
-// The page clock only moves when this script steps it.
+// The page clock only moves when this script steps it (installed running; paused once the practice list is up).
 await page.clock.install({ time: new Date("2026-10-25T12:00:00Z") });
-await page.clock.pauseAt(new Date("2026-10-25T12:00:01Z"));
 // Each faked frame (every 16 ms of the page clock) is handed a time exactly one sim tick after the
 // last, so the stage runs one tick per frame and a tap clicked between frames lands on the next tick.
 await page.addInitScript(() => {
@@ -69,8 +69,9 @@ await page.route("**/_serverFn/**", async (route) => {
 });
 await page.goto(`${ORIGIN}/practice`, { waitUntil: "domcontentloaded", timeout: 180_000 });
 const button = page.getByRole("button", { name: gameDisplayName("hover"), exact: true }).first();
-for (let i = 0; i < 600 && !(await button.isVisible().catch(() => false)); i++) await page.clock.runFor(100);
-await page.clock.runFor(1500);
+await button.waitFor({ timeout: 120_000 });
+await page.waitForTimeout(1500); // hydration
+await page.clock.pauseAt(new Date(Date.parse("2026-10-25T12:00:00Z") + 600_000));
 await button.click();
 const ready = page.getByRole("button", { name: /^Ready/ }).first();
 for (let i = 0; i < 600 && !(await ready.isVisible().catch(() => false)); i++) await page.clock.runFor(100);
