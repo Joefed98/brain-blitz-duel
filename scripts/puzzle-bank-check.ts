@@ -253,10 +253,11 @@ if (PART === PARTS) {
     const { slideRev, gems, ...slide } = depthDeal("iceslide", seed) as PuzzleData & { slideRev?: number; gems?: number[] };
     if (slideRev !== 1 || !Array.isArray(gems) || JSON.stringify(slide) !== JSON.stringify(ice)) depthOnBank = false;
     const board = BLOCK_D4_BANK[d4BankIndex("blockD4", seed, BLOCK_D4_BANK.length)];
-    const { blockRev, ...block } = depthDeal("blockparty", seed) as PuzzleData & { blockRev?: number };
-    if (blockRev !== 1 || JSON.stringify(block) !== JSON.stringify(board)) depthOnBank = false;
+    // Tessellate's 7×7 boards are stored with their stamp (blockRev 1): the deal is the board exactly.
+    const block = depthDeal("blockparty", seed) as PuzzleData & { blockRev?: number };
+    if (block.blockRev !== 1 || JSON.stringify(block) !== JSON.stringify(board)) depthOnBank = false;
   }
-  check(depthOnBank, "room start: Chroma Lines' and Skid's depth deals are the seed's bank entry with only their stamp (and gems) added, Tessellate's the seed's 7×7 board with only its stamp");
+  check(depthOnBank, "room start: Chroma Lines' and Skid's depth deals are the seed's bank entry with only their stamp (and gems) added, Tessellate's the seed's 7×7 board (stored with its stamp)");
   const categories = ["logic", "pattern"] as const;
   let banked = 0;
   let sameShape = true;

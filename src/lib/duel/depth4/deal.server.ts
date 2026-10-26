@@ -14,6 +14,7 @@
  * The three banked games (flow, iceslide, blockparty) take the new stamp only when drawn by seed (rooms,
  * practice): their fixed intro examples stay the old stored ones, so the bank checks still prove them.
  */
+import { withSeededRandom } from "../random";
 import { dealtPuzzleScoreRev } from "../puzzleScoreRev";
 import { PUZZLE_SCORE_REV_HELPER } from "../puzzleScoreRev3";
 import { drawBankedPuzzle } from "../puzzleBank.server";
@@ -31,6 +32,8 @@ import { drawBlockD4 } from "./blockD4.server";
 
 /** Lightbender's spare mirrors on laserRev 1. */
 export const LASER_SPARE_MIRRORS = 2;
+/** Mixed into the bank seed for Skid's gem picks (slideRev 1). */
+const ICE_GEM_SEED = 0x1ce9e35;
 
 export interface D4DealContext {
   unblockRow?: UnblockBankRow | null;
@@ -72,7 +75,8 @@ export function dealDepth4(type: PuzzleType, context: D4DealContext): PuzzleData
     case "iceslide": {
       if (context.bankSeed === undefined) return null;
       const p = drawBankedPuzzle("iceslide", context.bankSeed, context.recentBankKeys) as Extract<PuzzleData, { type: "iceslide" }>;
-      return { ...addIceGems(p), slideRev: D4_REV };
+      // The gems' picks come from the bank seed, so the room seed alone reproduces the round (puzzle-bank-check).
+      return { ...withSeededRandom(ICE_GEM_SEED ^ context.bankSeed, () => addIceGems(p)), slideRev: D4_REV };
     }
     case "push":
       return { ...drawPushD4(context.bankSeed), pushRev: D4_REV };

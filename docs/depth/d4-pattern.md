@@ -64,6 +64,7 @@ score exactly as today.
 - FEATURE games put all 50 on the feature, so the extra is reachable only through it. Since the pre-merge review
   (26 Oct 2026) only a fixed base B is paid at today's 150 pace; the rest of the feature is paid on the elite stretch,
   so a near-perfect player with the feature lands about 165–175 and only elite pace reaches 190–200.
+- Skid's gem picks are seeded from the bank seed (merge, 26 Oct 2026), so the room seed alone reproduces the round.
 - Skid's gems are not wasted moves: a finish's efficiency is measured against the fewest slides that collect the
   gems it collected (`gemMinMoves`), not the bare minimum.
 - The reveal's breakdown adds up to the score: "120 + 50 par + 30 speed" (the stretch is part of the speed figure).
@@ -103,10 +104,10 @@ Simulated players (the fairness kits at the audit's four levels plus an elite le
 | Chroma Lines | near | 150 | 150 | 150 | 152 | 166 | 188 | 100 % → 100 % |
 | Chroma Lines | elite | 150 | 150 | 150 | 198 | 200 | 200 | 100 % → 100 % |
 | Skid | average | 65 | 78 | 91 | 58 | 78 | 91 | 0 % → 0 % |
-| Skid | good | 124 | 132 | 137 | 120 | 132 | 144 | 70 % → 53 % |
-| Skid | great | 138 | 143 | 146 | 142 | 155 | 167 | 100 % → 97 % |
-| Skid | near | 148 | 150 | 150 | 167 | 174 | 178 | 100 % → 100 % |
-| Skid | elite | 150 | 150 | 150 | 192 | 200 | 200 | 100 % → 100 % |
+| Skid | good | 124 | 132 | 137 | 120 | 133 | 140 | 70 % → 53 % |
+| Skid | great | 138 | 143 | 146 | 142 | 155 | 164 | 100 % → 95 % |
+| Skid | near | 148 | 150 | 150 | 167 | 173 | 188 | 100 % → 100 % |
+| Skid | elite | 150 | 150 | 150 | 194 | 200 | 200 | 100 % → 100 % |
 | Heave | average | 74 | 121 | 127 | 68 | 87 | 103 | 12 % → 0 % |
 | Heave | good | 133 | 142 | 144 | 132 | 141 | 146 | 95 % → 82 % |
 | Heave | great | 144 | 148 | 150 | 148 | 157 | 161 | 100 % → 100 % |
