@@ -77,6 +77,9 @@ export const MOMENT_TABLE: readonly MomentRow[] = [
   fx("breaker", 3, "pop", "moving-target", 25, "Brick out of a sliding row"),
   fx("breaker", 4, "clear", "row-clear", 35, "Row cleared"),
   fx("breaker", 5, "final", "wall-cleared", 95, "Wall cleared", "finish"),
+  // brkRev 9 (expansion E3): fire on brkRev 9 rounds only.
+  fx("breaker", 6, "perfect", "gold-brick", 55, "Gold brick broken by a direct hit"),
+  fx("breaker", 7, "pop", "combo", 30, "No-touch combo stepped up (×2, ×3)"),
   // Pinball
   fx("pinball", 0, "pop", "bumper", 0, "Bumper hit (border ripple only)"),
   fx("pinball", 1, "perfect", "target", 15, "Drop target knocked down"),

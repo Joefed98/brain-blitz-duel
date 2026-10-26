@@ -155,10 +155,14 @@ const BUILDERS: Record<string, Builder> = {
   }),
   breaker: (r, s) => {
     const done = b(r, "cleared");
+    // brkRev 9: a 105-brick wall, and the skill points (gold bricks, combos) as their own line and tiles.
+    const wall = n(r, "wall") || 80;
+    const deep = n(r, "wall") > 0;
     return {
-      axis: { value: n(r, "destroyed"), max: 80, label: "Bricks destroyed" },
-      lines: [head(`${n(r, "destroyed")} / 80 bricks`, s, done)],
+      axis: { value: n(r, "destroyed"), max: wall, label: "Bricks destroyed" },
+      lines: [head(`${n(r, "destroyed")} / ${wall} bricks`, s, done), ...(deep ? [`Skill +${n(r, "skill")}: ${n(r, "goldBroken")} gold · ${n(r, "comboPts")} combo`] : [])],
       tiles: [
+        ...(deep ? [{ label: "Gold bricks", value: String(n(r, "goldBroken")) }, { label: "Best combo", value: String(n(r, "bestChain")) }] : []),
         { label: "Power-ups", value: String(n(r, "powerUps")) },
         { label: "Balls lost", value: String(n(r, "losses")) },
         // Hits this run landed (was the wall's total hit points, e.g. 130 for 6 bricks destroyed).

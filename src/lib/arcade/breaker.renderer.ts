@@ -1,5 +1,7 @@
 import { successHud, successFrame, SUCCESS_ACCENTS } from "./success.renderer";
 import { drawArtSprite } from "./sprites.renderer";
+import { reducedMotion } from "./art.renderer";
+import { arcadeReducedEffects } from "@/lib/fx/lowEnd";
 import { arcadeFx } from "./arcadeFx.renderer";
 import { breakerFxFor } from "./arcadeFxGames.renderer";
 import {
@@ -22,7 +24,6 @@ import {
   BRK_BRICKS,
   BRK_CAPSULE_H,
   BRK_CAPSULE_W,
-  BRK_COLS,
   BRK_HUD_H,
   BRK_PADDLE_H,
   BRK_PADDLE_W,
@@ -38,6 +39,16 @@ import {
   BRK_WALL_Y,
   BRK_REV_TALL, BRK_REV_TARGET, BRK_REV_STRICT,
   BRK_WORLD_W,
+  BRK_REV_DEEP,
+  BRK_V9_COMBO_X2,
+  BRK_V9_SKILL_MAX,
+  brkCols,
+  brkComboMultiplier,
+  brkIsGold,
+  brkSkillPoints,
+  brkWallSize,
+  brkWallXOf,
+  brkWorldW,
   type BrkState,
 } from "./breaker";
 import { px, type ArcadeGame, type ArcadeInputEvent, type CanvasSize } from "./engine";
@@ -139,22 +150,29 @@ export function paintBrick(ctx: CanvasRenderingContext2D, colour: string, power:
 }
 
 function draw(ctx: CanvasRenderingContext2D, state: BrkState, size: CanvasSize): void {
-  retroScreen(ctx, size, BRK_WORLD_W, brkWorldH(state), "stretch", (c) => arcadeFx(c, breakerFxFor(state), state, () => drawWorld(c, state, ctx)));
+  retroScreen(ctx, size, brkWorldW(state), brkWorldH(state), "stretch", (c) => arcadeFx(c, breakerFxFor(state), state, () => drawWorld(c, state, ctx)));
 }
 
-/** A brick's top-left in world px; brkRev 2 sliding rows carry their sim offset at the drawn tick. */
-function brickXY(index: number, state?: BrkState) {
-  const row = Math.trunc(index / BRK_COLS);
+/** brkRev 9: gold bricks in the batch's metal gold (Polish A1 palette). */
+const GOLD = "#FFD84A";
+const GOLD_DEEP = "#B8860B";
+
+/** A brick's top-left in world px; brkRev 2 sliding rows carry their sim offset at the drawn tick (`slide`). */
+function brickXY(index: number, state: BrkState, slide = true) {
+  const cols = brkCols(state);
+  const row = Math.trunc(index / cols);
   return {
-    x: BRK_WALL_X + (index % BRK_COLS) * BRK_BRICK_W + (state ? brkRowOffset(state, row, state.tick) : 0),
+    x: brkWallXOf(state) + (index % cols) * BRK_BRICK_W + (slide ? brkRowOffset(state, row, state.tick) : 0),
     y: BRK_WALL_Y + row * BRK_ROW_PITCH,
   };
 }
 
+
 function brickColour(state: BrkState, index: number, left: number): string {
+  if (brkIsGold(state, index)) return GOLD;
   const power = (state.gold[index] ?? 0) - 1;
   if (power >= 0) return powerColour(power);
-  const row = Math.trunc(index / BRK_COLS);
+  const row = Math.trunc(index / brkCols(state));
   return RAINBOW[row % RAINBOW.length] ?? PADDLE;
 }
 
@@ -164,6 +182,9 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: BrkState, key: CanvasRe
   // brkRev 6: the taller court's height and paddle line (the original 620 / 548 otherwise).
   const BRK_WORLD_H = brkWorldH(state);
   const BRK_PADDLE_Y = brkPaddleY(state);
+  // brkRev 9: the wider court and its bigger wall (390 and 80 otherwise).
+  const BRK_WORLD_W = brkWorldW(state);
+  const BRK_BRICKS = state.bricks.length;
   let m = memo.get(key);
   if (!m || state.tick < m.tick) {
     m = { tick: state.tick, bricks: state.bricks.slice(), deaths: [] };
@@ -175,15 +196,18 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: BrkState, key: CanvasRe
       // Polish A1: a pixel shatter in the brick's colour and a "+10" where it broke (presentation only).
       const { x, y } = brickXY(i, state);
       const colour = brickColour(state, i, state.maxHp[i] ?? 1);
-      addShatter(key, x + BRK_BRICK_W / 2, y + BRK_BRICK_H / 2, [colour, RETRO_WHITE, colour, "#000000"], 10, 26);
-      addPop(key, x + BRK_BRICK_W / 2, y + BRK_BRICK_H / 2, "+10", colour, 9, 4);
+      const gild = brkIsGold(state, i);
+      addShatter(key, x + BRK_BRICK_W / 2, y + BRK_BRICK_H / 2, gild ? [GOLD, RETRO_WHITE, "#FFF3B0", GOLD_DEEP] : [colour, RETRO_WHITE, colour, "#000000"], gild ? 16 : 10, gild ? 34 : 26);
+      // brkRev 9: a combo brick shows its multiplier, a gold brick its skill points.
+      const combo = state.deep && !gild ? brkComboMultiplier(state.chain ?? 0) : 1;
+      addPop(key, x + BRK_BRICK_W / 2, y + BRK_BRICK_H / 2, gild ? "GOLD +10" : combo > 1 ? `+10 ×${combo}` : "+10", gild || combo > 1 ? GOLD : colour, gild ? 11 : 9, 4);
     }
   }
   m.deaths = m.deaths.filter((d) => now - d.at < BURST_MS);
   m.tick = state.tick;
   // Previous HP remains available until hit effects have observed it.
   memo.set(key, m);
-  backdrop(ctx, "breaker-navy", BRK_WORLD_W, BRK_WORLD_H, (c) => paintNavy(c, BRK_WORLD_H));
+  backdrop(ctx, "breaker-navy", BRK_WORLD_W, BRK_WORLD_H, (c) => paintNavy(c, BRK_WORLD_H, BRK_WORLD_W));
 
   // The walls are real (the ball bounces off them): a soft edge, not a bright frame (17 Oct 2026, display only).
   const wallColour = "rgba(42,74,122,0.42)";
@@ -195,7 +219,7 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: BrkState, key: CanvasRe
   for (const row of state.slide ?? []) {
     const y = BRK_WALL_Y + row * BRK_ROW_PITCH + BRK_BRICK_H + 1;
     pixelRect(ctx, BRK_WALL, y, BRK_WORLD_W - 2 * BRK_WALL, 2, "rgba(255,255,255,0.12)");
-    for (const x of [BRK_WALL_X - BRK_SLIDE_AMP, BRK_WORLD_W - BRK_WALL_X + BRK_SLIDE_AMP - 2])
+    for (const x of [brkWallXOf(state) - BRK_SLIDE_AMP, BRK_WORLD_W - brkWallXOf(state) + BRK_SLIDE_AMP - 2])
       if (x >= BRK_WALL && x <= BRK_WORLD_W - BRK_WALL - 2) pixelRect(ctx, x, y - 2, 2, 4, "rgba(255,255,255,0.3)");
   }
   ctx.save();
@@ -204,6 +228,8 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: BrkState, key: CanvasRe
     ctx.rect(BRK_WALL, BRK_HUD_H + BRK_WALL, BRK_WORLD_W - 2 * BRK_WALL, BRK_WORLD_H);
     ctx.clip();
   }
+  // brkRev 9: gold bricks glint while a ball is on a direct line (it has touched nothing since the paddle).
+  const glint = !!state.deep && state.pause === 0 && state.balls.some((b) => b.d === 1 && b.spam === 0) && (state.fire ?? 0) === 0;
   state.bricks.forEach((left, index) => {
     if (left <= 0) return;
     const { x, y } = brickXY(index, state);
@@ -211,6 +237,10 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: BrkState, key: CanvasRe
     const colour = brickColour(state, index, left);
     const taken = (state.maxHp[index] ?? 1) - left;
     const b = power >= 0 ? bloom : (left === 1 ? bloom * 0.6 : 0);
+    if (brkIsGold(state, index)) {
+      drawGoldBrick(ctx, x, y, glint, bloom);
+      return;
+    }
     const sprite = getBrickSprite(colour, power, taken, b);
     if (sprite) {
       ctx.drawImage(sprite, x, y);
@@ -254,8 +284,8 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: BrkState, key: CanvasRe
   }
 
   const changed=state.bricks.findIndex((hp,i)=>hp<(m.bricks[i]??hp));
-  const hitPoint=changed>=0?brickXY(changed):brickXY(m.deaths.at(-1)?.index??0);
-  const reward=successFrame(ctx,{id:'breaker',tick:state.tick,count:state.hits,misses:state.losses,colour:PADDLE,width:BRK_WORLD_W,height:BRK_WORLD_H,point:{x:hitPoint.x+BRK_BRICK_W/2,y:hitPoint.y+BRK_BRICK_H/2,shape:'pixel'},hud:{x:14,y:26,text:`BRICKS ${brkDestroyed(state)}/${BRK_BRICKS}`}});
+  const hitPoint=changed>=0?brickXY(changed,state,false):brickXY(m.deaths.at(-1)?.index??0,state,false);
+  const reward=successFrame(ctx,{id:'breaker',tick:state.tick,count:state.hits,misses:state.losses,colour:PADDLE,width:BRK_WORLD_W,height:BRK_WORLD_H,point:{x:hitPoint.x+BRK_BRICK_W/2,y:hitPoint.y+BRK_BRICK_H/2,shape:'pixel'},hud:{x:14,y:26,text:`BRICKS ${brkDestroyed(state)}/${brkWallSize(state)}`}});
   if(reward.chain>=10){ctx.save();ctx.globalAlpha=.3;ctx.strokeStyle=PADDLE;ctx.lineWidth=3;ctx.strokeRect(state.paddleX-BRK_PADDLE_W/2-2,BRK_PADDLE_Y-2,BRK_PADDLE_W+4,BRK_PADDLE_H+4);ctx.restore();}
   // Polish A1: the paddle's gold light.
   glow(ctx, PADDLE, state.paddleX, BRK_PADDLE_Y + BRK_PADDLE_H / 2, BRK_PADDLE_W / 2 + 18, 16, 0.42);
@@ -287,7 +317,7 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: BrkState, key: CanvasRe
     );
   }
 
-  successHud(ctx,'breaker',state.tick,14,26,()=>{retroReadout(ctx, 14, 8, `BRICKS ${brkDestroyed(state)}/${BRK_BRICKS}`, RETRO_WHITE);});
+  successHud(ctx,'breaker',state.tick,14,26,()=>{retroReadout(ctx, 14, 8, `BRICKS ${brkDestroyed(state)}/${brkWallSize(state)}`, RETRO_WHITE);});
   if ((state.fire ?? 0) > 0) {
     const fire = state.fire ?? 0;
     retroText(ctx, `FIREBALL ${Math.ceil(fire / 60)}`, BRK_WORLD_W - 14, 10, 12, FIRE, "right");
@@ -295,6 +325,79 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: BrkState, key: CanvasRe
     pixelRect(ctx, BRK_WORLD_W - 110, 26, Math.round((96 * fire) / brkFireTicks(state)), 3, FIRE);
   }
   if (state.pause > 0) retroText(ctx, "RELAUNCHING", BRK_WORLD_W / 2, BRK_PADDLE_Y - 40, 16, PADDLE, "center");
+  if (state.deep) drawDeepHud(ctx, state, key);
+}
+
+/**
+ * brkRev 9: a gold brick, 44 × 20 at (x, y), exactly its collision box: a dark bronze case with a gold frame,
+ * a pixel gold ingot and two sparkles (the Polish A1 metal gold), a soft gold light, and a white glint that
+ * sweeps it while a ball is on a direct line (presentation clock; reduced motion keeps the still shine).
+ */
+function drawGoldBrick(ctx: CanvasRenderingContext2D, x: number, y: number, glint: boolean, bloom: number): void {
+  // A dark bronze case (so it never reads as a plain yellow brick), a gold ingot set in it, sparkles.
+  pixelRect(ctx, x + 1, y, BRK_BRICK_W - 2, BRK_BRICK_H, "#2A1A00");
+  pixelRect(ctx, x + 1, y, BRK_BRICK_W - 2, 2, GOLD, bloom);
+  pixelRect(ctx, x + 1, y + BRK_BRICK_H - 2, BRK_BRICK_W - 2, 2, GOLD_DEEP);
+  pixelRect(ctx, x + 1, y, 2, BRK_BRICK_H, GOLD);
+  pixelRect(ctx, x + BRK_BRICK_W - 3, y, 2, BRK_BRICK_H, GOLD_DEEP);
+  // The ingot: a trapezoid in bright gold with a lit top edge.
+  pixelRect(ctx, x + 14, y + 5, 16, 2, "#FFF3B0");
+  pixelRect(ctx, x + 12, y + 7, 20, 4, GOLD);
+  pixelRect(ctx, x + 10, y + 11, 24, 4, "#E9B830");
+  pixelRect(ctx, x + 10, y + 15, 24, 1, GOLD_DEEP);
+  // Two fixed sparkles at the corners.
+  for (const [sx, sy] of [[6, 4], [37, 13]] as const) {
+    pixelRect(ctx, x + sx, y + sy - 2, 2, 6, "#FFF3B0");
+    pixelRect(ctx, x + sx - 2, y + sy, 6, 2, "#FFF3B0");
+  }
+  if (glint && !reducedMotion() && !arcadeReducedEffects()) {
+    const t = (typeof performance === "undefined" ? 0 : performance.now()) / 900;
+    const gx = Math.floor((t % 1) * (BRK_BRICK_W + 12)) - 6;
+    if (gx > 2 && gx < BRK_BRICK_W - 6) {
+      pixelRect(ctx, x + gx, y + 2, 2, BRK_BRICK_H - 4, "rgba(255,255,255,0.75)");
+      pixelRect(ctx, x + gx + 2, y + 4, 2, BRK_BRICK_H - 8, "rgba(255,255,255,0.4)");
+    }
+  }
+  glow(ctx, GOLD, x + BRK_BRICK_W / 2, y + BRK_BRICK_H / 2, BRK_BRICK_W * 0.75, BRK_BRICK_H, glint ? 0.45 : 0.18);
+}
+
+/** brkRev 9's HUD: the skill points (top right), and the combo while a chain has a multiplier, above the paddle. */
+const clinkMemo = new WeakMap<CanvasRenderingContext2D, { clinks: number; at: number; tick: number }>();
+function drawDeepHud(ctx: CanvasRenderingContext2D, state: BrkState, key: CanvasRenderingContext2D): void {
+  const W = brkWorldW(state);
+  const skill = brkSkillPoints(state);
+  // Right of the BRICKS readout, under the Fireball line and its bar.
+  retroText(ctx, `SKILL ${skill}/${BRK_V9_SKILL_MAX}`, W - 14, 31, 11, skill >= BRK_V9_SKILL_MAX ? RETRO_WHITE : GOLD, "right");
+  const chain = state.chain ?? 0;
+  const mult = brkComboMultiplier(chain);
+  const paddleY = brkPaddleY(state);
+  if (mult > 1) {
+    glow(ctx, GOLD, state.paddleX, paddleY - 26, 46, 14, 0.35);
+    retroText(ctx, `COMBO ×${mult} · ${chain}`, state.paddleX, paddleY - 30, 11, mult >= 3 ? "#FF8A3C" : GOLD, "center");
+  } else if (chain >= BRK_V9_COMBO_X2 - 3 && chain > 0) {
+    retroText(ctx, `${chain} IN A ROW`, state.paddleX, paddleY - 30, 9, "rgba(255,216,74,0.7)", "center");
+  }
+  // A ball bounced off gold (not a direct hit, or a Fireball, laser or ×3 shot): a short white ring on the presentation clock.
+  const now = typeof performance === "undefined" ? 0 : performance.now();
+  let memo2 = clinkMemo.get(key);
+  if (!memo2 || state.tick < memo2.tick) memo2 = { clinks: state.clinks ?? 0, at: -1e9, tick: state.tick };
+  if ((state.clinks ?? 0) > memo2.clinks) memo2.at = now;
+  memo2.clinks = state.clinks ?? 0;
+  memo2.tick = state.tick;
+  clinkMemo.set(key, memo2);
+  const age = now - memo2.at;
+  if (age < 220 && !reducedMotion()) {
+    for (let i = 0; i < state.bricks.length; i++) {
+      if (!brkIsGold(state, i) || (state.bricks[i] ?? 0) <= 0) continue;
+      const { x, y } = brickXY(i, state);
+      ctx.save();
+      ctx.globalAlpha = 0.6 * (1 - age / 220);
+      ctx.strokeStyle = RETRO_WHITE;
+      ctx.lineWidth = 2;
+      ctx.strokeRect(x, y - 1, BRK_BRICK_W, BRK_BRICK_H + 2);
+      ctx.restore();
+    }
+  }
 }
 
 /**
@@ -302,8 +405,7 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: BrkState, key: CanvasRe
  * pixel stars and a soft glow along the walls; black at the court's bottom, where the screen fill's
  * pixel floor takes over.
  */
-function paintNavy(c: CanvasRenderingContext2D, worldH: number): void {
-  const W = BRK_WORLD_W;
+function paintNavy(c: CanvasRenderingContext2D, worldH: number, W = BRK_WORLD_W): void {
   c.fillStyle = linear(c, 0, 0, 0, worldH, [[0, "#071433"], [0.45, "#060F28"], [0.85, "#030817"], [1, "#010206"]]);
   c.fillRect(0, 0, W, worldH);
   blob(c, W * 0.5, worldH * 0.2, W * 0.7, "#1C3C8C", 0.3, 0.8);
@@ -352,8 +454,10 @@ const breakerArtGameTunef: ArcadeGame<BrkState, ArcadeInputEvent | null> = { ...
 const breakerArtGameTall: ArcadeGame<BrkState, ArcadeInputEvent | null> = { ...breakerGameFor(BRK_REV_TALL), draw };
 const breakerArtGameTarget: ArcadeGame<BrkState, ArcadeInputEvent | null> = { ...breakerGameFor(BRK_REV_TARGET), draw };
 const breakerArtGameStrict: ArcadeGame<BrkState, ArcadeInputEvent | null> = { ...breakerGameFor(BRK_REV_STRICT), draw };
+const breakerArtGameDeep: ArcadeGame<BrkState, ArcadeInputEvent | null> = { ...breakerGameFor(BRK_REV_DEEP), draw };
 /** The art game for a stored brkRev; one cached object per revision. */
 export function breakerArtGameFor(rev?: number | null): ArcadeGame<BrkState, ArcadeInputEvent | null> {
+  if (rev === BRK_REV_DEEP) return breakerArtGameDeep;
   if (rev === BRK_REV_STRICT) return breakerArtGameStrict;
   if (rev === BRK_REV_TARGET) return breakerArtGameTarget;
   if (rev === BRK_REV_TALL) return breakerArtGameTall;

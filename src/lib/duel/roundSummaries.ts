@@ -1044,8 +1044,9 @@ const breakerSummary: SummaryBuilder = (result) => {
   return {
     summary: cleared
       ? `Cleared at ${ended.toFixed(1)}s`
-      : `${Number(result.extra?.["destroyed"] ?? 80 - left)} / 80 bricks · ${hits} hits · ${powerUps} power-up${powerUps === 1 ? "" : "s"}`,
-    detail: [`${Number(result.extra?.["losses"] ?? 0)} relaunches`],
+      : `${Number(result.extra?.["destroyed"] ?? 80 - left)} / ${Number(result.extra?.["wall"] ?? 80)} bricks · ${hits} hits · ${powerUps} power-up${powerUps === 1 ? "" : "s"}`,
+    // brkRev 9: the skill points too.
+    detail: [`${Number(result.extra?.["losses"] ?? 0)} relaunches`, ...(result.extra?.["wall"] !== undefined ? [`${Number(result.extra?.["goldBroken"] ?? 0)} gold · combo ${Number(result.extra?.["comboPts"] ?? 0)} · skill +${Number(result.extra?.["skill"] ?? 0)}`] : [])],
   };
 };
 

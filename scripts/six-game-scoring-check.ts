@@ -139,7 +139,7 @@ for (const game of [orbitGame, orbitRev3Game] as const) {
   eq(game.score({ ...game.init(1), best: ORBIT_TOTAL - 1, finished: 0 } as never), SPLIT_PARTIAL_MAX.orbit, "Orbit partial max");
 }
 // Expansion E6: Ball Tracker's btRev 7 intro names its features. "{max}" is the game's own maximum (roundMax.ts: 150 today, 200 once its expansion raises it).
-for (const [type, goal] of [["balltrack", "in-a-row marbles add more. Up to {max}"], ["bintoss", "All 10 in for 10 more"], ["breaker", "Clear all 80 quickly for up to {max}"], ["inkbridge", "All 10 levels quickly: up to {max}"], ["swing", "Reach 500 metres for 10 more"], ["tilt", "All 4 quickly: up to {max}"]] as const) {
+for (const [type, goal] of [["balltrack", "in-a-row marbles add more. Up to {max}"], ["bintoss", "All 10 in for 10 more"], ["breaker", "Clear all 105 quickly for up to {max}"], ["inkbridge", "All 10 levels quickly: up to {max}"], ["swing", "Reach 500 metres for 10 more"], ["tilt", "All 4 quickly: up to {max}"]] as const) {
   eq(INTRO_SCORE[type].includes(goal.replace("{max}", String(roundMaxFor(type)))), true, `${type} intro goal`);
 }
 // Scrumper and Mixed Signals are not on the split: no partial cap at 130.

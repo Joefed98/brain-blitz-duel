@@ -13,7 +13,7 @@ import { JUNC_REV_BAND } from "@/lib/arcade/junction";
 import { BINTOSS_REV_TARGET, BINTOSS_REV_STRICT } from "@/lib/arcade/binToss";
 import { SWING_REV_TALL, SWING_REV_TARGET, SWING_REV_STRICT } from "@/lib/arcade/swing";
 import { BURST_REV_TARGET, BURST_REV_STRICT } from "@/lib/arcade/burst";
-import { BRK_REV_TARGET, BRK_REV_STRICT } from "@/lib/arcade/breaker";
+import { BRK_REV_TARGET, BRK_REV_STRICT, BRK_REV_DEEP } from "@/lib/arcade/breaker";
 import { PIN_REV_TARGET, PIN_REV_STRICT } from "@/lib/arcade/pinball";
 import { WHACK_REV_DEPTH } from "@/lib/arcade/whack";
 import { WAV_REV_TARGET, WAV_REV_STRICT } from "@/lib/arcade/wavefront";
@@ -114,7 +114,7 @@ export function generateRicochet(): RicoPuzzleData {
 }
 
 export function generateBreaker(): BreakerPuzzleData {
-  return { type: "breaker", seed: arcadeSeed(), brkRev: BRK_REV_STRICT };
+  return { type: "breaker", seed: arcadeSeed(), brkRev: BRK_REV_DEEP };
 }
 
 export function generatePinball(): PinballPuzzleData {

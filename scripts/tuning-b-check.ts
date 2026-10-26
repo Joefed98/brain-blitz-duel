@@ -221,7 +221,8 @@ section("Breaker brkRev 4 (3.5 s Fireball)");
 {
   // Tuning F (Oct 2026) moved rooms on to brkRev 5 (2.5 s Fireball); arcade-tuning-f-check covers it.
   // Taller worlds batch 1 (16 Oct 2026) moved rooms on to brkRev 6 (the taller court); arcade-tuning-g1-check covers it.
-  ok(playRevOf("breaker", generateBreaker().brkRev) === BRK_REV_TUNEF + 1, "new rounds are stamped brkRev 6 (brkRev 5 rules on the taller court)");
+  // Expansion E3 (docs/expansions/e3.md) then moved rooms on to brkRev 9; expansion-e3-check covers it.
+  ok(playRevOf("breaker", generateBreaker().brkRev) === BRK_REV_TUNEF + 4, "new rounds are stamped brkRev 9 (expansion E3, after brkRev 6: brkRev 5 rules on the taller court)");
   ok(BRK_FIRE_TICKS_V4 === 210 && BRK_FIRE_TICKS === 300, "Fireball 3.5 s (210 ticks), was 5 s");
   for (const [rev, want] of [[BRK_REV_TUNED, BRK_FIRE_TICKS_V4], [BRK_REV_BAND, BRK_FIRE_TICKS]] as const) {
     const game = breakerGameFor(rev);

@@ -58,6 +58,7 @@ const { breakerArtGameFor } = await import("../src/lib/arcade/breaker.renderer")
 const { pinballArtGame } = await import("../src/lib/arcade/pinball.renderer");
 const { rallyArtGame } = await import("../src/lib/arcade/rally.renderer");
 const { rallyRev2Game } = await import("../src/lib/arcade/rally");
+const { BRK_REV_DEEP } = await import("../src/lib/arcade/breaker");
 const { beatArtGame } = await import("../src/lib/arcade/beat.renderer");
 const { beatRev2Game } = await import("../src/lib/arcade/beat");
 const { snakeArtGame } = await import("../src/lib/arcade/snake.renderer");
@@ -109,7 +110,8 @@ const course = BALL_TRACK_BANK[0]!.course;
 const btGame = makeBallTrackGame(course, 2);
 const GAMES: Record<string, AnyGame> = {
   hover: { ...hoverArtGame, init: hoverRev2Game.init } as AnyGame,
-  breaker: breakerArtGameFor(2) as AnyGame,
+  // Expansion E3: rooms deal brkRev 9 (ARCADE_FX_SPECS lists its 420 × 784 spec).
+  breaker: breakerArtGameFor(BRK_REV_DEEP) as AnyGame,
   rally: { ...rallyArtGame, init: rallyRev2Game.init } as AnyGame,
   beat: { ...beatArtGame, init: beatRev2Game.init } as AnyGame,
   snake: { ...snakeArtGame, init: snakeRev3Game.init } as AnyGame,
@@ -249,16 +251,19 @@ const BUMPS: Record<string, ((s: any) => any)[]> = {
     (s) => ({ ...s, gates: 24 }),
     (s) => ({ ...s, gates: s.totalGates }),
   ],
+  // brkRev 9: a 9-column wall (gold bricks apart), then the gold-brick and combo moments.
   breaker: [
     (s) => ({ ...s, powerUps: s.powerUps + 1 }),
-    (s) => ({ ...s, bricks: s.bricks.map((b: number, i: number) => (i < 10 ? 0 : b)) }),
+    (s) => ({ ...s, bricks: s.bricks.map((b: number, i: number) => (i < 20 ? 0 : b)) }),
     (s) => ({ ...s, fireballs: (s.fireballs ?? 0) + 1, fire: 300 }),
-    (s) => ({ ...s, bricks: s.bricks.map((b: number, i: number) => (Math.trunc(i / 8) === (s.slide ?? [3])[0] && i % 8 === 0 ? 0 : b)) }),
+    (s) => ({ ...s, bricks: s.bricks.map((b: number, i: number) => (Math.trunc(i / 9) === (s.slide ?? [4])[0] && i % 9 === 0 ? 0 : b)) }),
     (s) => ({
       ...s,
-      bricks: s.bricks.map((b: number, i: number) => (i >= s.bricks.length - 8 ? 0 : b)),
+      bricks: s.bricks.map((b: number, i: number) => (i >= s.bricks.length - 9 ? 0 : b)),
     }),
     (s) => ({ ...s, cleared: true }),
+    (s) => ({ ...s, goldBroken: (s.goldBroken ?? 0) + 1 }),
+    (s) => ({ ...s, comboUps: (s.comboUps ?? 0) + 1, chain: 8 }),
   ],
   rally: [
     (s) => ({ ...s, hits: s.hits + 10 }),

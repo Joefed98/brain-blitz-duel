@@ -31,8 +31,9 @@ import {
   BRK_RUN_TICKS,
   BRK_TEAL,
   breakerWorldHFor,
-  BRK_REV_TARGET, BRK_REV_STRICT,
-  BRK_WORLD_W,
+  breakerWorldWFor,
+  BRK_REV_DEEP,
+  brkWallSize,
   type BrkState,
 } from "@/lib/arcade/breaker";
 import { decodeBreakerRun, encodeBreakerRun, replayBreakerRun } from "@/lib/duel/breaker";
@@ -42,8 +43,11 @@ import { NO_SCROLL_STYLE, useNoTouchScroll } from "@/components/puzzles/noScroll
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 import { arcadeCanvasRatio } from "@/lib/fx/lowEnd";
 
-/** Fixed intro still: a paddle under a wall with a gold brick and a capsule. */
+/** Fixed intro still (brkRev 9): the wall with its gold bricks behind armour, a direct shot up a cleared lane, a ×2 combo. */
 function IntroExample() {
+  const gold = (row: number, col: number) => row === 0 && (col === 1 || col === 4);
+  const armour = (row: number, col: number) => row === 1 && (col === 1 || col === 4);
+  const gone = (row: number, col: number) => (col === 4 && row >= 1) || (row === 3 && col === 2);
   return (
     <div className="flex w-full flex-col items-center gap-2">
       <svg
@@ -54,23 +58,29 @@ function IntroExample() {
         style={{ background: BRK_BG, borderRadius: 10 }}
       >
         {Array.from({ length: 4 }, (_, row) =>
-          Array.from({ length: 6 }, (_, col) => (
-            <rect
-              key={`${row}-${col}`}
-              x={12 + col * 24}
-              y={14 + row * 14}
-              width={22}
-              height={10}
-              fill={row === 1 && col === 3 ? BRK_GOLD : BRK_TEAL[row % BRK_TEAL.length]}
-            />
-          )),
+          Array.from({ length: 6 }, (_, col) =>
+            gone(row, col) ? null : (
+              <rect
+                key={`${row}-${col}`}
+                x={12 + col * 24}
+                y={14 + row * 14}
+                width={22}
+                height={10}
+                fill={gold(row, col) ? "#FFD84A" : armour(row, col) ? "#2857AA" : BRK_TEAL[row % BRK_TEAL.length]}
+                stroke={gold(row, col) ? "#FFF3B0" : armour(row, col) ? "#0B0B0F" : "none"}
+              />
+            ),
+          ),
         )}
-        <rect x={92} y={62} width={12} height={8} rx={2} fill={BRK_GOLD} />
-        <circle cx={64} cy={88} r={4} fill="#F7F7F8" />
-        <rect x={62} y={102} width={44} height={7} rx={2} fill={BRK_GOLD} />
+        <path d="M108 94 L108 26" stroke="#FFD84A" strokeWidth={1.5} strokeDasharray="3 3" />
+        <circle cx={108} cy={70} r={4} fill="#F7F7F8" />
+        <rect x={86} y={100} width={44} height={7} rx={2} fill={BRK_GOLD} />
+        <text x={36} y={92} fill="#FFD84A" fontSize={11} fontWeight={700} fontFamily="'JetBrains Mono', ui-monospace, monospace">
+          COMBO ×2
+        </text>
       </svg>
       <p className="text-center text-xs text-muted-foreground">
-        Catch a power-up brick's capsule, then tap to fire.
+        Gold bricks break only on a direct hit; bricks without a paddle touch build a combo.
       </p>
     </div>
   );
@@ -83,6 +93,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const art = breakerArtGameFor(data?.brkRev);
   // brkRev 6: the taller court; every phone draws the stored revision's world.
   const BRK_WORLD_H = breakerWorldHFor(data?.brkRev);
+  // brkRev 9: the 420-wide court (390 before).
+  const BRK_WORLD_W = breakerWorldWFor(data?.brkRev);
 
   const wrap = useRef<HTMLDivElement | null>(null);
   const canvas = useRef<HTMLCanvasElement | null>(null);
@@ -377,8 +389,13 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
       <p className="whitespace-normal break-words text-center font-mono text-base font-bold text-foreground">
         {result.cleared
           ? `Cleared at ${result.endedSeconds.toFixed(1)}s`
-          : `${result.destroyed} / 80 bricks · ${result.hits} hits · ${result.powerUps} power-up${result.powerUps === 1 ? "" : "s"}`}
+          : `${result.destroyed} / ${brkWallSize(result.state)} bricks · ${result.hits} hits · ${result.powerUps} power-up${result.powerUps === 1 ? "" : "s"}`}
       </p>
+      {result.state.deep ? (
+        <p className="shrink-0 text-center font-mono text-base text-foreground">
+          {`${result.state.goldBroken ?? 0} gold brick${result.state.goldBroken === 1 ? "" : "s"} · longest no-touch run ${result.state.bestChain ?? 0}`}
+        </p>
+      ) : null}
       <p className="shrink-0 text-center font-mono text-base text-muted-foreground">
         {result.losses} relaunch{result.losses === 1 ? "" : "es"}
       </p>
@@ -393,7 +410,7 @@ export const breakerPuzzle: PuzzleDefinition = {
   category: "arcade",
   timeLimitMs: (BRK_RUN_TICKS / TICKS_PER_SECOND) * 1000 + 3000,
   revealMs: 6_000,
-  generate: () => ({ type: "breaker", seed: 1, brkRev: BRK_REV_STRICT }) satisfies BreakerPuzzleData,
+  generate: () => ({ type: "breaker", seed: 1, brkRev: BRK_REV_DEEP }) satisfies BreakerPuzzleData,
   check: () => false,
   revealHeading: "Your run",
   IntroExample,

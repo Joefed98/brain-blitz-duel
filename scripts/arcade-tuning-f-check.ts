@@ -163,8 +163,10 @@ section("New rounds carry the Tuning F stamps and score on the bands");
     // Taller worlds batch 3 (16 Oct 2026) moved Orbit on to its taller view (orbitRev 8); arcade-tuning-g3-check covers it.
     ["orbit", "orbitRev", playRevOf("orbit", generateOrbit().orbitRev), ORBIT_REV_SWEPT + 1, 8],
   ];
+  // Expansion E3 (docs/expansions/e3.md) then moved Breaker on to brkRev 9; expansion-e3-check covers it.
+  const movedOn: Record<string, number> = { breaker: BRK_REV_TUNEF + 4 };
   for (const [type, field, got, rev, n] of stamps) {
-    ok(got === rev && rev === n, `${type}: new rounds stamped ${field} ${n} (got ${got})`);
+    ok(got === (movedOn[type] ?? rev) && rev === n, `${type}: new rounds stamped ${field} ${movedOn[type] ?? n} (got ${got})`);
     ok(puzzleUsesBands({ type, [field]: rev } as never), `${type} ${rev} scores on the bands`);
   }
 }
