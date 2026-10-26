@@ -12,14 +12,11 @@ import {
   SNIP_X_WOBBLES,
   type SnipCourse,
   type SnipState,
-  SNIP_REV_EXPAND,
-  SNIP_REV_PROVEN,
   SNIP_CHECKPOINT_INTERVAL,
   snipCheckpoint,
   type SnipCheckpoint,
 } from "../src/lib/arcade/snip";
 import { encodeSnipRun } from "../src/lib/duel/snip";
-import { playRevOf } from "./scoring-targets-revs";
 
 /** A stable digest of a whole sim state (every field, sorted keys). */
 export function snipStateDigest(state: unknown): string {
@@ -95,10 +92,12 @@ export interface XPlay {
   vines: [number, number, number][];
   /** Level tick each fruit was fed (−1 if not). */
   fedAt: number[];
+  /** snipRev 11: the level's par-time credit (ticks under its par time, at most the margin; par levels only). */
+  quick: number;
 }
 
 /** Plays one level of a course (an index, or a candidate put in the spare slot) on a deal. */
-export function xPlayLevel(course: number | SnipCourse, wob: number, wind: number, gold: number, plan: XPlan, trace = false): XPlay {
+export function xPlayLevel(course: number | SnipCourse, wob: number, wind: number, gold: number, plan: XPlan, trace = false, missAt = -1): XPlay {
   let index = typeof course === "number" ? course : SNIP_COURSES.length;
   if (typeof course !== "number") (SNIP_COURSES as SnipCourse[])[index] = course;
   try {
@@ -112,7 +111,9 @@ export function xPlayLevel(course: number | SnipCourse, wob: number, wind: numbe
     for (let k = 0; k < SNIP_X_LEVEL_TICKS + 2; k++) {
       const at = s.levelTick + 1;
       const due = plan.find(([, t]) => t === at);
-      if (due) {
+      // A wasted swipe (checks): a short stroke at the view's top-left corner, clear of every rope; it still counts as a cut.
+      if (at === missAt) recordInput(log, { k: SNIP_INPUT_CUT, a: 2, b: (s.camY ?? 0) + 2, c: 6, d: (s.camY ?? 0) + 6, t: s.tick + 1 }, snipExpandGame.inputRanges);
+      else if (due) {
         if (!s.ropes[due[0]]?.alive) valid = false;
         else {
           const cut = xCutFor(s, due[0]);
@@ -142,6 +143,7 @@ export function xPlayLevel(course: number | SnipCourse, wob: number, wind: numbe
           par: (s.parLevels ?? 0) > 0,
           perfect: (s.perfect ?? 0) > 0,
           golden: s.golden ?? 0,
+          quick: s.quickTicks ?? 0,
           vines,
           fedAt,
           ...(trace ? { paths } : {}),
@@ -200,12 +202,4 @@ export function xPlannedRun(seed: number, proofs: XProofs, which: "best" | "win"
     if (s.tick % SNIP_CHECKPOINT_INTERVAL === 0) checkpoints.push(snipCheckpoint(s));
   }
   return { events, state: s, raw: encodeSnipRun({ seed, claimedScore: game.score(s), events, endTick: s.tick, checkpoints }) };
-}
-
-/**
- * The play a check written before the 200-point expansion proves rooms deal: rooms deal snipRev 11 since then
- * (proved by snip-x200-check); until it they dealt snipRev 9, snipRev 7's play (playRevOf).
- */
-export function snipPlayBeforeExpand(rev: number | undefined | null): number | undefined | null {
-  return rev === SNIP_REV_EXPAND ? SNIP_REV_PROVEN : playRevOf("snip", rev);
 }

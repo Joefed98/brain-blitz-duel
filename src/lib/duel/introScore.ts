@@ -119,7 +119,7 @@ function introScoreTemplates(): Record<PuzzleType, string> {
     inkbridge: `Points for each level and gold star. All ${INK_LEVELS} levels quickly: up to {max}.`,
     burst: "Points for each atom hit; a lost life takes 5 hits off. Last the 90 s for 10 more.",
     orbit: "Points for each planet you reach. Reach the sun quickly for up to {max}.",
-    snip: "Points for fruit fed and leaves; golden apples, par cuts and times add more. Up to {max}.",
+    snip: "Points for fruit fed and leaves; golden apples, few cuts and speed add more. Up to {max}.",
     swing: `Points for distance and stars. Reach ${SWING_FINISH_M} metres for 10 more.`,
     tilt: `Points for each maze, how close you get, and stars. All ${TILT_MAX_MAZES} quickly: up to {max}.`,
     balltrack: `Points per marble home; gold, boosted and in-a-row marbles add more. Up to {max}.`,

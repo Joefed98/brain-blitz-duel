@@ -1917,11 +1917,12 @@ export function snipCourseUnits(state: SnipState): number {
 
 /**
  * snipRev 11 knots: units are 18 a level's fruits (shared) and 2 a star, 120 = everything on all six
- * levels = 140; feeding everything adds up to 10 for speed. Fitted with scripts/arcade-skill-bands.ts
- * snip --rev=now (docs/expansions/x200-snip.md) so today's players, with their usual share of the
- * features, land about where snipRev 9 put them (median units: average 87, good 93, great 96, near 100).
+ * levels = 140; feeding everything adds up to 10 for speed. Refitted on the 60 tuning seeds (room seed
+ * indices 0–59) with the skill pay below (scripts/snip-x200-bands.ts; docs/expansions/x200-snip.md):
+ * good players stay where snipRev 9 put them, a level more is worth most where the near-perfect player
+ * gains it, and every unit still adds (at least 0.4 points a unit).
  */
-export const SNIP_V11_BAND_CURVE = bandCurve([0, 40, 70, 87, 93, 97, 102, 110, 120], [0, 26, 46, 62, 90, 104, 118, 130, 140]);
+export const SNIP_V11_BAND_CURVE = bandCurve([0, 40, 60, 75, 85, 92, 98, 104, 110, 115, 120], [0, 17, 25, 33, 66, 81, 94, 111, 132, 138, 140]);
 
 /**
  * The feature bonus on a snipRev 11 state (0–50). Raw points in tenths (snipFeatureRaw, at most
@@ -1941,8 +1942,11 @@ export function snipFeatureRaw(state: SnipState): number {
 export function snipQuickRaw(state: SnipState): number {
   return Math.trunc((SNIP_X_QUICK_RAW * (state.quickTicks ?? 0)) / SNIP_X_PAR_MARGIN);
 }
-/** snipRev 11's skill pay: raw tenths → bonus points (rising; 50 only at the top). */
-export const SNIP_X_SKILL_PAY = bandCurve([0, 100, 200, 300, 400, 460, SNIP_X_RAW_TOP], [0, 3, 10, 21, 34, 42, SNIP_X_FEATURE_MAX]);
+/**
+ * snipRev 11's skill pay: raw tenths → bonus points (rising: 10 raw points pay 0.3 a point, 20 pay 0.3,
+ * steepest from 20 to 30 where steady feature play starts, then a slow climb: the full 50 needs all 50).
+ */
+export const SNIP_X_SKILL_PAY = bandCurve([0, 100, 200, 260, 300, 340, 380, 420, 460, SNIP_X_RAW_TOP], [0, 3, 6, 22, 34, 36, 38, 45, 47, SNIP_X_FEATURE_MAX]);
 export function snipFeatureBonus(state: SnipState): number {
   return clampInt(bandPoints(SNIP_X_SKILL_PAY, snipFeatureRaw(state)), 0, SNIP_X_FEATURE_MAX);
 }

@@ -330,6 +330,11 @@ export const bot: SkillBot = (ctx) => {
  * splits it into two swipes, so the level misses par). Timing is found as before on the noise-free
  * sim from when the player is ready, then executed with reading, timing and aim error, a missed swipe
  * retried one reaction later and the rest re-timed after each cut.
+ *
+ * 26 Oct 2026 (snipRev 11): the "best" plans are the fastest perfect plans (scripts/snip-x200-plans.ts).
+ * A player now looks past the first workable moment for a roomier one (PATIENCE), aims at the middle of
+ * the window to the tick, and skips a feature plan whose window is tighter than they can hit
+ * (MIN_WINDOW, about three times their own timing spread): feature plans often leave only 1–6 ticks.
  */
 const X_PROOFS: Record<string, { deals: Record<string, { win: Plan; best: Record<string, Plan> }> }> = (() => {
   try {
@@ -352,8 +357,12 @@ const COMBO: Record<SkillTier, number> = { weak: 0.1, average: 0.2, good: 0.45, 
 const STUDY: Record<SkillTier, number> = { weak: 850, average: 700, good: 500, great: 380, near: 280, elite: 220 };
 /** Chance of timing a feature plan at the first moment it works (chasing the par time) rather than the window's middle. */
 const EAGER: Record<SkillTier, number> = { weak: 0, average: 0, good: 0, great: 0.1, near: 0.3, elite: 0.85 };
+/** The narrowest window (ticks) a player will try a feature plan in: about three times their own timing spread. */
+const MIN_WINDOW: Record<SkillTier, number> = { weak: 20, average: 16, good: 12, great: 9, near: 6, elite: 4 };
+/** How long (ticks) past the first moment a plan works the player will wait for a roomier window. */
+const PATIENCE: Record<SkillTier, number> = { weak: 0, average: 0, good: 12, great: 24, near: 40, elite: 40 };
 /** Reading error (ticks sd) and stroke gap by tier: the four levels' figures, the elite a little sharper. */
-const READ_X: Record<SkillTier, number> = { weak: 6, average: 5, good: 3.5, great: 2.5, near: 1.5, elite: 1 };
+const READ_X: Record<SkillTier, number> = { weak: 6, average: 5, good: 3.5, great: 2.5, near: 1.5, elite: 0.6 };
 const GAP_X: Record<SkillTier, number> = { weak: 22, average: 20, good: 16, great: 14, near: 12, elite: 11 };
 
 function courseBot({ game, seed, human }: Parameters<SkillBot>[0]): ReturnType<SkillBot> {
@@ -375,6 +384,8 @@ function courseBot({ game, seed, human }: Parameters<SkillBot>[0]): ReturnType<S
     return outcome(s, from);
   };
   let eager = false;
+  /** The width (ticks) of the window the last timeShape picked. */
+  let lastWidth = 0;
   const timeShape = (from: SnipState, shape: Plan, lo: number, span: number, best: boolean, stepT = 3): Plan | null => {
     const first = shape[0]![1];
     const ok = (d: number) => {
@@ -384,16 +395,28 @@ function courseBot({ game, seed, human }: Parameters<SkillBot>[0]): ReturnType<S
       return res.all && (!best || (res.par && res.two));
     };
     const d0 = lo - first;
-    let start: number | null = null;
-    for (let d = d0; d <= d0 + span; d += stepT)
-      if (ok(d)) {
-        start = d;
-        break;
-      }
-    if (start === null) return null;
-    let end = start;
-    for (let k = 0; k < 6 && ok(end + stepT); k++) end += stepT;
+    // The windows (runs of start shifts that work) from the first one the player sees to as far as their
+    // patience lets them wait for a roomier one (PATIENCE): they take the widest, the earliest of equals;
+    // a player chasing the par time takes the first.
+    const runs: { start: number; end: number }[] = [];
+    let horizon = d0 + span;
+    for (let d = d0; d <= horizon; d += stepT) {
+      if (!ok(d)) continue;
+      let end = d;
+      for (let k = 0; k < 6 && ok(end + stepT); k++) end += stepT;
+      runs.push({ start: d, end });
+      if (runs.length === 1) horizon = Math.min(horizon, d + (best && eager ? 0 : PATIENCE[tier]));
+      d = end + stepT;
+    }
+    if (!runs.length) return null;
+    let pick = runs[0]!;
+    for (const r of runs) if (r.end - r.start > pick.end - pick.start) pick = r;
+    // The window's edges to the tick (the scan steps stepT): its middle is where a careful hand aims.
+    let { start, end } = pick;
+    for (let k = 1; k < stepT && ok(start - 1); k++) start -= 1;
+    for (let k = 1; k < stepT && ok(end + 1); k++) end += 1;
     const mid = best && eager ? Math.min(Math.round((start + end) / 2), start + stepT) : Math.round((start + end) / 2);
+    lastWidth = end - start + 1;
     return shape.map(([r, at]) => [r, at + mid] as [number, number]);
   };
 
@@ -455,6 +478,8 @@ function courseBot({ game, seed, human }: Parameters<SkillBot>[0]): ReturnType<S
     }
     const lo = Math.max(ready, s.levelTick + 1);
     let timed = timeShape(s, shape, lo, 150, wantBest);
+    // A player who knows their own precision skips a feature plan whose window is tighter than they can hit.
+    if (timed && wantBest && lastWidth < MIN_WINDOW[tier]) timed = null;
     if (!timed && wantBest && proof) {
       wantBest = false;
       shape = proof.win.map(([r, at]) => [r, at] as [number, number]);
@@ -479,7 +504,9 @@ function courseBot({ game, seed, human }: Parameters<SkillBot>[0]): ReturnType<S
     if (si >= strokes.length) return;
     const rest = toPlan(strokes.slice(si));
     const lo = Math.max(s.levelTick + GAP_X[tier], rest[0]![1] - 12);
-    const timed = timeShape(s, rest, lo, 60, wantBest, 3) ?? (wantBest ? timeShape(s, rest, lo, 60, false, 3) : null);
+    let timed = timeShape(s, rest, lo, 60, wantBest, 3);
+    if (timed && wantBest && lastWidth < MIN_WINDOW[tier]) timed = null;
+    if (!timed && wantBest) timed = timeShape(s, rest, lo, 60, false, 3);
     if (timed) strokes = [...strokes.slice(0, si), ...toStrokes(timed)];
   };
 

@@ -570,8 +570,6 @@ const GAMES: Game[] = [
   },
   { key: "snip/bank6", game: snipGameFor(SNIP_REV_BANK6), checkpoint: snipCheckpoint, mode: "events", rate: 40, encode: encodeSnipRun, replay: (seed: number, raw: string) => replaySnipRun(seed, raw, SNIP_REV_BANK6) },
   { key: "snip/proven", game: snipGameFor(SNIP_REV_PROVEN), checkpoint: snipCheckpoint, mode: "events", rate: 40, encode: encodeSnipRun, replay: (seed: number, raw: string) => replaySnipRun(seed, raw, SNIP_REV_PROVEN) },
-  // The 200-point expansion (snipRev 11): the tall courses, several fruits, wind, rings, par times.
-  { key: "snip/expand", game: snipGameFor(SNIP_REV_EXPAND), checkpoint: snipCheckpoint, mode: "events", rate: 40, encode: encodeSnipRun, replay: (seed: number, raw: string) => replaySnipRun(seed, raw, SNIP_REV_EXPAND) },
   { key: "hotfloor", game: hotFloorGame, checkpoint: hotfloorCheckpoint, mode: "events", rate: 60, encode: encodeHotFloorRun, replay: replayHotFloorRun },
   { key: "stroop", game: colourClashRev4Game, checkpoint: clashCheckpoint, mode: "events", rate: 18, encode: encodeColourClashRun, replay: (seed: number, raw: string) => replayColourClashRun(seed, raw, 4) },
   { key: "stroop", game: colourClashRev3Game, checkpoint: clashCheckpoint, mode: "events", rate: 18, encode: encodeColourClashRun, replay: (seed: number, raw: string) => replayColourClashRun(seed, raw, 3) },
@@ -610,6 +608,9 @@ const GAMES: Game[] = [
     encode: (run: any) => encodeBallTrackRun(btCourseTall(run.seed), run, BT_REV_TALL),
     replay: (seed: number, raw: string) => replayBallTrackRun(btCourseTall(seed), seed, raw, BT_REV_TALL),
   },
+  // The 200-point expansion (snipRev 11, 26 Oct 2026; appended so every earlier entry keeps its index): the tall
+  // courses, several fruits, wind, rings, par times.
+  { key: "snip/expand", game: snipGameFor(SNIP_REV_EXPAND), checkpoint: snipCheckpoint, mode: "events", rate: 40, encode: encodeSnipRun, replay: (seed: number, raw: string) => replaySnipRun(seed, raw, SNIP_REV_EXPAND) },
 ];
 
 /** A random candidate event, often outside the declared range (a finger off the edge). */

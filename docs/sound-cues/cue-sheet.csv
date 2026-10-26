@@ -252,6 +252,9 @@ snip.leaf,Replays,Leaf taken: the clip reaches the moment's key tick [replays.md
 snip.level,Replays,Apple fed: the clip reaches the moment's key tick [replays.md],,0–2 per highlight,recorded sound,snip.level,250,replay,snip.level,public/sounds/snip.level.mp3 (from replay.moment.mp3)
 snip.all-apples,Replays,All 10 apples: the clip reaches the moment's key tick [replays.md],,0–2 per highlight,recorded sound,snip.all-apples,250,replay,snip.all-apples,public/sounds/snip.all-apples.mp3 (from replay.moment.mp3)
 snip.spring,Replays,Off a springy branch: the clip reaches the moment's key tick [replays.md],,0–2 per highlight,recorded sound,snip.spring,250,replay,snip.spring,public/sounds/snip.spring.mp3 (from replay.moment.mp3)
+snip.golden,Replays,Golden apple fed in time (snipRev 11): the clip reaches the moment's key tick [replays.md],,0–2 per highlight,recorded sound,snip.golden,250,replay,snip.golden,
+snip.ring,Replays,Caught by a ring (snipRev 11): the clip reaches the moment's key tick [replays.md],,0–2 per highlight,recorded sound,snip.ring,250,replay,snip.ring,
+snip.quick,Replays,A level fed under its par time at par cuts (snipRev 11): the clip reaches the moment's key tick [replays.md],,0–2 per highlight,recorded sound,snip.quick,250,replay,snip.quick,
 tilt.maze,Replays,Maze done: the clip reaches the moment's key tick [replays.md],,0–2 per highlight,recorded sound,tilt.maze,250,replay,tilt.maze,public/sounds/tilt.maze.mp3 (from replay.moment.mp3)
 tilt.all-mazes,Replays,All 4 mazes: the clip reaches the moment's key tick [replays.md],,0–2 per highlight,recorded sound,tilt.all-mazes,250,replay,tilt.all-mazes,public/sounds/tilt.all-mazes.mp3 (from replay.moment.mp3)
 tilt.star,Replays,Bonus star: the clip reaches the moment's key tick [replays.md],,0–2 per highlight,recorded sound,tilt.star,250,replay,tilt.star,public/sounds/tilt.star.mp3 (from replay.moment.mp3)
