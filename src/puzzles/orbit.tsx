@@ -21,8 +21,8 @@ import { encodeOrbitRun, replayOrbitRun } from "@/lib/duel/orbit";
 import { ORBIT_TIME_MS, type OrbitPuzzleData } from "@/lib/duel/types";
 import { ArcadeCanvasStage } from "@/components/puzzles/ArcadeCanvasStage";
 import { orbitArtGame, orbitRev3ArtGame } from "@/lib/arcade/orbit.renderer";
-import { initBandFrom, initRev3From, initRev4From, initSweptFrom, initTallFrom, initTargetFrom, initStrictFrom, initTunedFrom, decodeOrbitHoles, decodeRev3Planets, orbitWorldHFor, ORBIT_REV3_WORLD_W } from "@/lib/arcade/orbitRev3";
-import { ORBIT_REV3, ORBIT_REV4, ORBIT_REV_BAND, ORBIT_REV_SWEPT, ORBIT_REV_TALL, ORBIT_REV_TARGET, ORBIT_REV_STRICT, ORBIT_REV_TUNED } from "@/lib/arcade/orbit";
+import { initBandFrom, initRev3From, initRev4From, initSweptFrom, initTallFrom, initTargetFrom, initStrictFrom, initTunedFrom, decodeOrbitHoles, decodeRev3Planets, orbitStartForPuzzle, orbitWorldHFor, orbitWorldWFor, ORBIT_REV3_WORLD_W } from "@/lib/arcade/orbitRev3";
+import { ORBIT_REV3, ORBIT_REV4, ORBIT_REV_BAND, ORBIT_REV_SWEPT, ORBIT_REV_TALL, ORBIT_REV_TARGET, ORBIT_REV_STRICT, ORBIT_REV_TUNED, ORBIT_REV_XP } from "@/lib/arcade/orbit";
 import { orbitSounds } from "@/lib/fx/gameSounds";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
@@ -38,9 +38,18 @@ function IntroExample() {
         <circle cx={120} cy={42} r={11} fill="none" stroke={ORBIT_COLOURS[1]} strokeWidth={4} />
         <path d="M 120 14 A 28 28 0 0 1 148 42" fill="none" stroke={ORBIT_RED} strokeWidth={4} />
         <line x1={50} y1={80} x2={104} y2={64} stroke={ORBIT_GOLD} strokeOpacity={0.4} strokeDasharray="3 4" />
+        {/* orbitRev 12: stardust on the line, a slingshot moon's ring beside it, an asteroid pair either side of a gap. */}
+        {[[60, 77], [70, 74], [88, 69]].map(([x, y]) => (
+          <circle key={x} cx={x} cy={y} r={2} fill="#FFE9A8" />
+        ))}
+        <circle cx={92} cy={86} r={12} fill="none" stroke="#5CE1E6" strokeOpacity={0.6} strokeDasharray="3 3" />
+        <circle cx={92} cy={86} r={3.5} fill="#A7A2C2" />
+        <circle cx={30} cy={56} r={3} fill="#A29989" />
+        <circle cx={44} cy={44} r={3} fill="#8E8476" />
+        <path d="M 50 110 m -19 -11 A 22 22 0 0 1 50 88" fill="none" stroke={ORBIT_GOLD} strokeWidth={2.5} strokeOpacity={0.7} />
         <polygon points="80,71 68,70 72,80" fill={ORBIT_GOLD} />
       </svg>
-      <p className="text-center text-xs text-muted-foreground">Let go so the next orbit catches you.</p>
+      <p className="text-center text-xs text-muted-foreground">Let go on the first lap; collect stardust, sling past moons, thread the rocks.</p>
     </div>
   );
 }
@@ -53,6 +62,9 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const [devPlanet] = useState(() => (data ? orbitDevPlanet() : null));
   const game = useMemo(() => {
     if (devPlanet) return { ...orbitArtGame, init: (seed: number) => orbitDevStart(orbitArtGame.init(seed), devPlanet) };
+    // orbitRev 12 (world expansion): the bank course, holes and features in the bigger view.
+    const xpStart = data?.orbitRev === ORBIT_REV_XP ? orbitStartForPuzzle(data) : null;
+    if (xpStart) return { ...orbitRev3ArtGame, init: xpStart } as unknown as typeof orbitArtGame;
     if ((data?.orbitRev === ORBIT_REV4 || data?.orbitRev === ORBIT_REV_BAND || data?.orbitRev === ORBIT_REV_TUNED || data?.orbitRev === ORBIT_REV_SWEPT || data?.orbitRev === ORBIT_REV_TALL || data?.orbitRev === ORBIT_REV_TARGET || data?.orbitRev === ORBIT_REV_STRICT) && data.planets) {
       const planets = decodeRev3Planets(data.planets);
       const holes = decodeOrbitHoles(data.holes ?? []);
@@ -82,7 +94,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       seed={data?.seed ?? 1}
       enabled={data !== null}
       locked={locked}
-      worldW={ORBIT_WORLD_W}
+      // orbitRev 12: the 450 × 782 view (390 wide on every earlier revision).
+      worldW={data?.orbitRev === ORBIT_REV_XP ? orbitWorldWFor(data.orbitRev) : ORBIT_WORLD_W}
       // orbitRev 8: the taller view (620 on every earlier revision).
       worldH={orbitWorldHFor(data?.orbitRev)}
       game={game}
@@ -141,14 +154,24 @@ export function orbitLine(r: { passed: number; total: number; survived: boolean;
   return r.survived ? `${head} · survived` : `${head} · lost at ${r.survivedSeconds.toFixed(1)}s`;
 }
 
+/** orbitRev 12: the features a run took. */
+export function orbitXpLine(x: { dust: number; dustTotal: number; slings: number; slingsTotal: number; threads: number; threadsTotal: number; perfect: number }): string {
+  return `Stardust ${x.dust}/${x.dustTotal} · slingshots ${x.slings}/${x.slingsTotal} · fields ${x.threads}/${x.threadsTotal} · ${x.perfect} perfect orbits`;
+}
+
 function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   if (puzzle.type !== "orbit") return null;
-  const result = replayOrbitRun(puzzle.seed, myAnswer ?? "", puzzle.orbitRev, puzzle.planets, puzzle.holes);
+  const result = replayOrbitRun(puzzle.seed, myAnswer ?? "", puzzle.orbitRev, puzzle.planets, puzzle.holes, puzzle.extras);
   return (
     <div className="flex min-h-0 w-full flex-1 flex-col items-center justify-start gap-3 overflow-y-auto">
       <p className="whitespace-normal break-words text-center font-mono text-base font-bold text-foreground">
         {orbitLine(result)}
       </p>
+      {result.xp ? (
+        <p className="shrink-0 text-center font-mono text-base text-foreground">
+          {orbitXpLine(result.xp)}
+        </p>
+      ) : null}
       <p className="shrink-0 text-center font-mono text-base text-muted-foreground">Same planets for everyone</p>
     </div>
   );

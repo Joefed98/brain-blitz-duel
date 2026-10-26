@@ -50,6 +50,7 @@ import {
   ORBIT_REV_TALL,
   ORBIT_REV_TARGET,
   ORBIT_REV_STRICT,
+  ORBIT_REV_XP,
   inside,
   lapPhases,
   orbitBeltOffset,
@@ -558,6 +559,30 @@ export interface OrbitRev3State extends BandFields {
   swept?: number;
   /** orbitRev 8 only (taller worlds): the view height in px (ORBIT_TALL_VIEW_H). Absent = 620. Display only: no step reads it. */
   worldH?: number;
+  /**
+   * orbitRev 12 only (world expansion; absent on every earlier round): the marker, the view width, the course's
+   * features (stardust motes, slingshot moons, asteroid fields) and what the run has taken of them. See "World
+   * expansion" below.
+   */
+  xp?: number;
+  viewW?: number;
+  dust?: readonly OrbitDust[];
+  moons?: readonly OrbitMoon[];
+  fields?: readonly OrbitField[];
+  /** Bit i: mote i collected / moon i slung round / field i threaded. */
+  dustGot?: number;
+  slung?: number;
+  threaded?: number;
+  /** Hops let go during the first lap round their planet. */
+  perfect?: number;
+  /** Ticks left of the first lap round the current planet; `arm` = this flight was let go inside it. */
+  lapLeft?: number;
+  arm?: number;
+  /** 1 while this flight is boosted by a slingshot; `moonIn` bit i = the rocket is inside moon i's ring. */
+  boost?: number;
+  moonIn?: number;
+  /** orbitRev 12: the furthest a flight from planet `best` got toward planet best + 1, in sixteenths (0–15). */
+  reach?: number;
   tick: number;
   rng: number;
   cur: number;
@@ -649,6 +674,11 @@ function stepRev3(state: OrbitRev3State, worldW: number, input: ArcadeInputEvent
   if (input?.k === ORBIT_INPUT_CHECKPOINT && orbitRev3CanSetCheckpoint(s)) s.checkpoint = s.cur;
   let respawned = false;
   const die = () => {
+    if (s.xp) {
+      s.arm = 0;
+      s.boost = 0;
+      s.moonIn = 0;
+    }
     if (s.checkpoint >= 0 && s.respawns > 0) {
       s.respawns -= 1;
       s.respawnTick = tick;
@@ -661,6 +691,7 @@ function stepRev3(state: OrbitRev3State, worldW: number, input: ArcadeInputEvent
       s.vx = 0;
       s.vy = 0;
       s.flying = 0;
+      if (s.xp) s.lapLeft = lapPhases(p).length;
       respawned = true;
       return;
     }
@@ -689,7 +720,14 @@ function stepRev3(state: OrbitRev3State, worldW: number, input: ArcadeInputEvent
       s.releaseTick = tick;
       s.releaseX = s.x;
       s.releaseY = s.y;
+      // orbitRev 12: a release during the first lap round this planet is armed for a perfect orbit.
+      if (s.xp) {
+        s.arm = (s.lapLeft ?? 0) > 0 ? 1 : 0;
+        s.boost = 0;
+        s.moonIn = 0;
+      }
     } else {
+      if (s.xp && (s.lapLeft ?? 0) > 0) s.lapLeft = s.lapLeft! - 1;
       s.angle = (s.angle + here.dir * phaseRate(here, s.angle)) & 65535;
       const pos = orbitPos(here, s.angle);
       s.x = pos.x;
@@ -700,6 +738,8 @@ function stepRev3(state: OrbitRev3State, worldW: number, input: ArcadeInputEvent
     const previousX = s.x, previousY = s.y;
     s.x += s.vx;
     s.y += s.vy;
+    // orbitRev 12: partial credit, how far a flight from the furthest planet reached got toward the next one.
+    if (s.xp) orbitXpReach(s);
     // orbitRev 7: one sweep orders belts and black holes along the segment; earlier revisions test belts, then holes.
     const sweep = s.swept ? orbitSweptHit(s, previousX, previousY, s.x, s.y, tick) : null;
     if (sweep ? sweep.belt : flightHitsBelts(s.planets, previousX, previousY, s.x, s.y, tick)) {
@@ -713,7 +753,40 @@ function stepRev3(state: OrbitRev3State, worldW: number, input: ArcadeInputEvent
     // Rev 4: a black hole beside the planet just left swallows the rocket and puts it in
     // orbit round planet `to`; the planets in between count as reached.
     const hole = sweep ? sweep.hole : s.holes ? s.holes.find((h) => h.from === s.cur && orbitFlightHitsHole(h, previousX, previousY, s.x, s.y)) : undefined;
+    // orbitRev 12: rocks and moon bodies crash free flight (a black hole only wins when it comes first along the
+    // tick's segment); otherwise the segment collects stardust, threads asteroid fields and may slingshot.
+    if (s.xp) {
+      const hit = orbitXpSweep(s, previousX, previousY, s.x, s.y);
+      if (hit.crashK >= 0 && (!hole || hit.crashK < orbitHoleK(hole, previousX, previousY, s.x, s.y, orbitSweepSteps(previousX, previousY, s.x, s.y)))) {
+        die();
+        if (respawned) {
+          const checkpointPlanet = s.planets[s.cur];
+          if (checkpointPlanet) s.camY = checkpointPlanet.y - VIEW_ANCHOR;
+        }
+        if (s.ended || respawned) return s;
+      }
+      if (hit.dust) s.dustGot = (s.dustGot ?? 0) | hit.dust;
+      if (hit.fields) s.threaded = (s.threaded ?? 0) | hit.fields;
+      // A slingshot is taken on leaving a moon's ring without having touched the moon.
+      const left = (s.moonIn ?? 0) & ~hit.ring;
+      s.moonIn = hit.ring;
+      if (left && !s.boost) {
+        let moon = 0;
+        while (!(left & (1 << moon))) moon++;
+        s.boost = 1;
+        s.slung = (s.slung ?? 0) | (1 << moon);
+        s.vx = Math.trunc((s.vx * ORBIT_SLING_NUM) / ORBIT_SLING_DEN);
+        s.vy = Math.trunc((s.vy * ORBIT_SLING_NUM) / ORBIT_SLING_DEN);
+      }
+    }
     const j = hole ? -1 : captureAt(s.planets, s.cur, s.x, s.y);
+    if (s.xp && (hole || j >= 0)) {
+      if (s.arm) s.perfect = (s.perfect ?? 0) + 1;
+      s.arm = 0;
+      s.boost = 0;
+      s.moonIn = 0;
+      s.lapLeft = lapPhases(s.planets[hole ? hole.to : j]!).length;
+    }
     if (hole) {
       const to = s.planets[hole.to]!;
       // The planets between the one left and the hole's target count as reached (on rev 4–6 the one left is always hole.from).
@@ -731,7 +804,10 @@ function stepRev3(state: OrbitRev3State, worldW: number, input: ArcadeInputEvent
       s.vy = 0;
       s.flying = 0;
       s.captured += 1;
-      if (hole.to > s.best) s.best = hole.to;
+      if (hole.to > s.best) {
+        s.best = hole.to;
+        if (s.xp) s.reach = 0;
+      }
     } else if (j >= 0) {
       const to = s.planets[j]!;
       s.cur = j;
@@ -741,7 +817,10 @@ function stepRev3(state: OrbitRev3State, worldW: number, input: ArcadeInputEvent
       s.y = pos.y;
       s.flying = 0;
       s.captured += 1;
-      if (j > s.best) s.best = j;
+      if (j > s.best) {
+        s.best = j;
+        if (s.xp) s.reach = 0;
+      }
       if (j >= ORBIT_TOTAL) {
         s.ended = 1;
         s.endedTick = tick;
@@ -1000,6 +1079,7 @@ export function initBandFrom(planets: Planet[], worldW: number, holes: OrbitHole
 }
 
 export function orbitBandParts(state: OrbitRev3State): BandParts {
+  if (state.xp) return orbitXpParts(state);
   const finished = Boolean(state.finished);
   const units = finished ? ORBIT_TOTAL : clampInt(state.best, 0, ORBIT_TOTAL);
   return {
@@ -1014,6 +1094,7 @@ export function orbitBandParts(state: OrbitRev3State): BandParts {
 }
 
 function scoreBand(state: OrbitRev3State): number {
+  if (state.xp) return bandTotal(orbitBandParts(state), Boolean(state.acted), ORBIT_XP_MAX);
   return bandTotal(orbitBandParts(state), Boolean(state.acted));
 }
 
@@ -1166,11 +1247,18 @@ export function initStrictFrom(planets: Planet[], worldW: number, holes: OrbitHo
 
 /** The view height (px) a stored round's orbitRev is framed in (620 for every earlier revision). */
 export function orbitWorldHFor(rev?: number | null): number {
+  if (rev === ORBIT_REV_XP) return ORBIT_XP_VIEW_H;
   return rev === ORBIT_REV_TALL || rev === ORBIT_REV_TARGET || rev === ORBIT_REV_STRICT ? ORBIT_TALL_H : 620;
 }
 
+/** The view width (px) a stored round's orbitRev is framed in: orbitRev 12's wider view, 390 on every earlier one. */
+export function orbitWorldWFor(rev?: number | null): number {
+  return rev === ORBIT_REV_XP ? ORBIT_XP_VIEW_W : 390;
+}
+
 /** The start for a stored bank-course orbitRev (4–8), or null for an earlier one. */
-export function orbitRev3StartFor(rev: number | null | undefined): ((planets: Planet[], worldW: number, holes: OrbitHole[]) => OrbitRev3State) | null {
+export function orbitRev3StartFor(rev: number | null | undefined, extras?: OrbitExtras | null): ((planets: Planet[], worldW: number, holes: OrbitHole[]) => OrbitRev3State) | null {
+  if (rev === ORBIT_REV_XP) return (planets, worldW, holes) => initXpFrom(planets, worldW, holes, extras ?? ORBIT_NO_EXTRAS);
   if (rev === ORBIT_REV_STRICT) return initStrictFrom;
   if (rev === ORBIT_REV_TARGET) return initTargetFrom;
   if (rev === ORBIT_REV_TALL) return initTallFrom;
@@ -1184,3 +1272,308 @@ export function orbitRev3StartFor(rev: number | null | undefined): ((planets: Pl
 export const ORBIT_V9_BAND_CURVE = bandRetarget(ORBIT_BAND_CURVE);
 /** orbitRev 10 (score bands, 19 Oct 2026): the curve new rounds score on, ORBIT_BAND_CURVE's strict curve (band 3). */
 export const ORBIT_V10_BAND_CURVE = bandStrict(ORBIT_BAND_CURVE);
+
+
+/* ================= World expansion (orbitRev 12, 25 Oct 2026) ================= */
+/*
+ * orbitRev 12 keeps orbitRev 10's proved bank course, its black holes and its base score (the strict curve on
+ * planets reached plus up to 10 for reaching the sun quickly, 150 at most), frames it in a bigger 450 × 782 view
+ * (orbitCamera.ts), and adds four skill features, placed and proved offline on a witness run
+ * (scripts/orbit-xp-lib.ts, src/lib/duel/orbitXpBank.server.ts) and shipped in the puzzle (`extras`):
+ *  - stardust trails: motes along a hop's best line; the rocket's body collects one it touches in flight;
+ *  - slingshot moons: a small moon beside a hop; a flight that passes through the ring ORBIT_MOON_ASSIST round
+ *    its centre and leaves it without touching its body (which crashes like a rock) is boosted to 1.5× speed
+ *    for the rest of that flight;
+ *  - asteroid fields: a line of rocks across a hop with a gap; rocks crash free flight (as belts do), and a
+ *    flight that crosses the gap's line threads the field;
+ *  - perfect orbits: a release during the first lap round a planet that lands in the next orbit (or a hole).
+ * Only these earn the 50 points above 150 (ORBIT_XP_MAX, the game's round maximum). Integer maths only.
+ */
+export interface OrbitDust {
+  x: number;
+  y: number;
+}
+export interface OrbitMoon {
+  x: number;
+  y: number;
+}
+export interface OrbitRock {
+  x: number;
+  y: number;
+  /** Rock radius, 1/256 px (its drawn outline sits inside it). */
+  r: number;
+}
+export interface OrbitField {
+  /** The gap's line, end to end (between the two innermost rocks). */
+  ax: number;
+  ay: number;
+  bx: number;
+  by: number;
+  rocks: OrbitRock[];
+}
+export interface OrbitExtras {
+  dust: OrbitDust[];
+  moons: OrbitMoon[];
+  fields: OrbitField[];
+}
+export const ORBIT_NO_EXTRAS: OrbitExtras = { dust: [], moons: [], fields: [] };
+/** Compact extras as shipped in the puzzle: motes [x, y], moons [x, y], fields [ax, ay, bx, by, x, y, r, x, y, r…]. */
+export interface OrbitExtrasRow {
+  d: [number, number][];
+  m: [number, number][];
+  f: number[][];
+}
+export function encodeOrbitExtras(e: OrbitExtras): OrbitExtrasRow {
+  return {
+    d: e.dust.map((m) => [m.x, m.y]),
+    m: e.moons.map((m) => [m.x, m.y]),
+    f: e.fields.map((f) => [f.ax, f.ay, f.bx, f.by, ...f.rocks.flatMap((r) => [r.x, r.y, r.r])]),
+  };
+}
+export function decodeOrbitExtras(row: OrbitExtrasRow | null | undefined): OrbitExtras {
+  if (!row) return ORBIT_NO_EXTRAS;
+  return {
+    dust: row.d.map(([x, y]) => ({ x, y })),
+    moons: row.m.map(([x, y]) => ({ x, y })),
+    fields: row.f.map((f) => {
+      const rocks: OrbitRock[] = [];
+      for (let k = 4; k + 2 < f.length; k += 3) rocks.push({ x: f[k]!, y: f[k + 1]!, r: f[k + 2]! });
+      return { ax: f[0]!, ay: f[1]!, bx: f[2]!, by: f[3]!, rocks };
+    }),
+  };
+}
+
+/** The round maximum on orbitRev 12 (src/lib/duel/roundMax.ts says the same; the sim keeps its own copy). */
+export const ORBIT_XP_MAX = 200;
+export const ORBIT_XP_VIEW_W = 450;
+export const ORBIT_XP_VIEW_H = 782;
+/** Stardust mote radius; the rocket's body collects it within its own radius plus this. */
+export const ORBIT_DUST_R = 4 * FP;
+export const ORBIT_DUST_REACH = ORBIT_ROCKET_DIAMETER / 2 + ORBIT_DUST_R;
+/** Moon body radius (crashes like a rock) and the slingshot reach from its centre. */
+export const ORBIT_MOON_R = 8 * FP;
+export const ORBIT_MOON_CRASH = ORBIT_ROCKET_DIAMETER / 2 + ORBIT_MOON_R;
+export const ORBIT_MOON_ASSIST = 44 * FP;
+/** Slingshot boost: the flight's speed × 3 / 2. */
+export const ORBIT_SLING_NUM = 3;
+export const ORBIT_SLING_DEN = 2;
+/** Feature points (orbitRev 12): 1 per 2 motes (15), 4 per slingshot (16), 4 per field threaded (12), 1 per 3 perfect orbits (7). */
+export const ORBIT_XP_DUST_CAP = 15;
+export const ORBIT_XP_SLING_PTS = 4;
+export const ORBIT_XP_SLING_CAP = 16;
+export const ORBIT_XP_THREAD_PTS = 4;
+export const ORBIT_XP_THREAD_CAP = 12;
+export const ORBIT_XP_PERFECT_PER = 3;
+export const ORBIT_XP_PERFECT_CAP = 7;
+/**
+ * The features every orbitRev 12 course carries (the feature bank, scripts/orbit-xp-lib.ts, places exactly these
+ * many on every course and proves each one on a witness run): the seed decides where, never how many.
+ */
+export const ORBIT_XP_TRAILS = 5;
+export const ORBIT_XP_MOTES = 6;
+export const ORBIT_XP_MOONS = 4;
+export const ORBIT_XP_FIELDS = 3;
+/**
+ * orbitRev 12's base curve: orbitRev 10's strict curve (ORBIT_V10_BAND_CURVE) from 12 planets up, with a knot at 4
+ * planets (32) so the first hops, now among rocks and moons, count a little more (fitted on the skill-band bots:
+ * docs/expansions/x200-orbit.md). 140 for the sun.
+ */
+export const ORBIT_V12_BAND_CURVE = bandCurve([0, 4, 12, 20, 30, 36, 40], [0, 32, 74, 100, 117, 139, 140]);
+/** The most the features' raw points (orbitXpFeaturePoints, each part capped) can pay: the round maximum's extra 50. */
+export const ORBIT_V12_SKILL_MAX = 50;
+/**
+ * orbitRev 12's skill pay: the features' raw points (0–50) paid on a rising scale, so the odd mote and moon pay
+ * little and the full 50 needs every feature taken: 20 pay 14, 30 pay 28, 40 pay 36, 45 pay 46, 50 pay 50.
+ */
+export const ORBIT_V12_SKILL_PAY = bandCurve([0, 20, 30, 40, 45, 50], [0, 14, 28, 36, 46, ORBIT_V12_SKILL_MAX]);
+/**
+ * Elite pace: skill pays at most ORBIT_V12_SKILL_PACED_FROM (40) unless the sun is reached quickly; the last 10 come
+ * in a share from 10 s left (ORBIT_V12_PACE_FROM ticks) to the full 10 with 40 s left (ORBIT_V12_PACE_FULL ticks),
+ * which every course's witness run beats.
+ */
+export const ORBIT_V12_SKILL_PACED_FROM = 40;
+export const ORBIT_V12_PACE_FROM = 10 * 60;
+export const ORBIT_V12_PACE_FULL = 40 * 60;
+
+/** First sample (0..steps) at which the segment comes within `reach` of (cx, cy), or -1. */
+function xpCircleK(cx: number, cy: number, reach: number, x0: number, y0: number, x1: number, y1: number, steps: number): number {
+  if (cx < Math.min(x0, x1) - reach || cx > Math.max(x0, x1) + reach || cy < Math.min(y0, y1) - reach || cy > Math.max(y0, y1) + reach) return -1;
+  for (let k = 0; k <= steps; k++) {
+    const dx = x0 + Math.trunc(((x1 - x0) * k) / steps) - cx;
+    const dy = y0 + Math.trunc(((y1 - y0) * k) / steps) - cy;
+    if (dx * dx + dy * dy <= reach * reach) return k;
+  }
+  return -1;
+}
+
+const xpSign = (v: number) => (v > 0 ? 1 : v < 0 ? -1 : 0);
+/** Side of (rx, ry) from the line p → q (sign only), in 1/16 px units. */
+function xpOrient(px: number, py: number, qx: number, qy: number, rx: number, ry: number): number {
+  const a = Math.trunc((qx - px) / 16), b = Math.trunc((ry - py) / 16), c = Math.trunc((qy - py) / 16), d = Math.trunc((rx - px) / 16);
+  return xpSign(a * b - c * d);
+}
+/** Does the flight segment cross the field's gap line? */
+export function orbitCrossesGap(f: OrbitField, x0: number, y0: number, x1: number, y1: number): boolean {
+  const s0 = xpOrient(f.ax, f.ay, f.bx, f.by, x0, y0);
+  const s1 = xpOrient(f.ax, f.ay, f.bx, f.by, x1, y1);
+  if (s0 * s1 > 0 || (s0 === 0 && s1 === 0)) return false;
+  return xpOrient(x0, y0, x1, y1, f.ax, f.ay) * xpOrient(x0, y0, x1, y1, f.bx, f.by) <= 0;
+}
+
+export interface OrbitXpHit {
+  /** First sample that touches a rock or a moon's body, or -1. */
+  crashK: number;
+  /** Bits: motes touched, fields threaded. */
+  dust: number;
+  fields: number;
+  /** Bits: moons whose slingshot ring holds the segment's end. */
+  ring: number;
+}
+
+/** orbitRev 12's features against one flight tick's swept segment (sampled every px, as belts and holes are). */
+export function orbitXpSweep(s: Pick<OrbitRev3State, "dust" | "moons" | "fields" | "dustGot" | "threaded">, x0: number, y0: number, x1: number, y1: number): OrbitXpHit {
+  const steps = orbitSweepSteps(x0, y0, x1, y1);
+  let crashK = -1;
+  const crash = (k: number) => {
+    if (k >= 0 && (crashK < 0 || k < crashK)) crashK = k;
+  };
+  let ring = 0;
+  (s.moons ?? []).forEach((m, i) => {
+    crash(xpCircleK(m.x, m.y, ORBIT_MOON_CRASH, x0, y0, x1, y1, steps));
+    if ((x1 - m.x) ** 2 + (y1 - m.y) ** 2 <= ORBIT_MOON_ASSIST * ORBIT_MOON_ASSIST) ring |= 1 << i;
+  });
+  let fields = 0;
+  (s.fields ?? []).forEach((f, i) => {
+    for (const r of f.rocks) crash(xpCircleK(r.x, r.y, r.r + ORBIT_ROCKET_DIAMETER / 2, x0, y0, x1, y1, steps));
+    if (!((s.threaded ?? 0) & (1 << i)) && orbitCrossesGap(f, x0, y0, x1, y1)) fields |= 1 << i;
+  });
+  let dust = 0;
+  (s.dust ?? []).forEach((m, i) => {
+    if (!((s.dustGot ?? 0) & (1 << i)) && xpCircleK(m.x, m.y, ORBIT_DUST_REACH, x0, y0, x1, y1, steps) >= 0) dust |= 1 << i;
+  });
+  return { crashK, dust, fields, ring };
+}
+
+const bitCount = (bits: number) => {
+  let n = 0;
+  for (let b = bits; b; b &= b - 1) n++;
+  return n;
+};
+
+/**
+ * orbitRev 12's partial credit: a flight from the furthest planet reached (`best`) counts how far along the line
+ * from that planet's centre to the next one's it has got (the rocket's position projected on it), in sixteenths,
+ * at most 15: an early crash still scores for the distance it flew. Integer maths; reset when `best` moves on.
+ */
+export function orbitXpReach(s: OrbitRev3State): void {
+  if (s.cur !== s.best || s.cur >= ORBIT_TOTAL) return;
+  const a = s.planets[s.cur]!, b = s.planets[s.cur + 1]!;
+  const dx = b.x - a.x, dy = b.y - a.y;
+  const len2 = dx * dx + dy * dy;
+  if (len2 <= 0) return;
+  const along = (s.x - a.x) * dx + (s.y - a.y) * dy;
+  const sixteenths = Math.max(0, Math.min(15, Math.trunc((along * 16) / len2)));
+  if (sixteenths > (s.reach ?? 0)) s.reach = sixteenths;
+}
+
+/** What a run has taken of orbitRev 12's features (zeros on every earlier round). */
+export function orbitXpCounts(s: OrbitRev3State) {
+  return {
+    dust: bitCount(s.dustGot ?? 0),
+    dustTotal: s.dust?.length ?? 0,
+    slings: bitCount(s.slung ?? 0),
+    slingsTotal: s.moons?.length ?? 0,
+    threads: bitCount(s.threaded ?? 0),
+    threadsTotal: s.fields?.length ?? 0,
+    perfect: s.perfect ?? 0,
+  };
+}
+
+/** orbitRev 12's feature points, each part capped; 50 at most. */
+export function orbitXpFeaturePoints(s: OrbitRev3State): { dust: number; slings: number; threads: number; perfect: number; total: number } {
+  const c = orbitXpCounts(s);
+  const dust = Math.min(ORBIT_XP_DUST_CAP, Math.trunc(c.dust / 2));
+  const slings = Math.min(ORBIT_XP_SLING_CAP, ORBIT_XP_SLING_PTS * c.slings);
+  const threads = Math.min(ORBIT_XP_THREAD_CAP, ORBIT_XP_THREAD_PTS * c.threads);
+  const perfect = Math.min(ORBIT_XP_PERFECT_CAP, Math.trunc(c.perfect / ORBIT_XP_PERFECT_PER));
+  return { dust, slings, threads, perfect, total: dust + slings + threads + perfect };
+}
+
+/** orbitRev 12's breakdown: orbitRev 10's base (curve points and the sun's speed bonus) plus the feature points. */
+/** orbitRev 12's skill cap: 40, plus up to 10 for reaching the sun at elite pace (ORBIT_V12_PACE_FROM → _FULL ticks left). */
+export function orbitXpSkillCap(state: OrbitRev3State): number {
+  if (!state.finished) return ORBIT_V12_SKILL_PACED_FROM;
+  const left = ORBIT_REV3_RUN_TICKS - clampInt(state.endedTick, 0, ORBIT_REV3_RUN_TICKS);
+  const span = ORBIT_V12_PACE_FULL - ORBIT_V12_PACE_FROM;
+  const share = clampInt(left - ORBIT_V12_PACE_FROM, 0, span);
+  return ORBIT_V12_SKILL_PACED_FROM + Math.trunc(((ORBIT_V12_SKILL_MAX - ORBIT_V12_SKILL_PACED_FROM) * share) / span);
+}
+
+/** orbitRev 12's skill pay: the features' raw points (0–50) on ORBIT_V12_SKILL_PAY, capped by the pace (orbitXpSkillCap). */
+export function orbitXpSkillPaid(state: OrbitRev3State): number {
+  return Math.min(bandPoints(ORBIT_V12_SKILL_PAY, orbitXpFeaturePoints(state).total), orbitXpSkillCap(state));
+}
+
+/**
+ * orbitRev 12's base points: ORBIT_V12_BAND_CURVE on the planets reached, plus the share of the next planet's step
+ * the furthest flight from the last one covered (`reach`, sixteenths): an early crash still scores. The sun: 140.
+ */
+export function orbitXpBasePoints(state: OrbitRev3State): number {
+  if (state.finished) return bandPoints(ORBIT_V12_BAND_CURVE, ORBIT_TOTAL);
+  const best = clampInt(state.best, 0, ORBIT_TOTAL);
+  const here = bandPoints(ORBIT_V12_BAND_CURVE, best);
+  if (best >= ORBIT_TOTAL) return here;
+  const next = bandPoints(ORBIT_V12_BAND_CURVE, best + 1);
+  return here + Math.trunc(((next - here) * clampInt(state.reach ?? 0, 0, 15)) / 16);
+}
+
+function orbitXpParts(state: OrbitRev3State): BandParts {
+  const finished = Boolean(state.finished);
+  const units = finished ? ORBIT_TOTAL : clampInt(state.best, 0, ORBIT_TOTAL);
+  const speed = finished ? speedBonusCurve(BAND_FINISH_BONUS, ORBIT_REV3_RUN_TICKS - clampInt(state.endedTick, 0, ORBIT_REV3_RUN_TICKS), ORBIT_REV3_RUN_TICKS) : 0;
+  const f = orbitXpFeaturePoints(state);
+  const paid = orbitXpSkillPaid(state);
+  const c = orbitXpCounts(state);
+  const reach = finished || units >= ORBIT_TOTAL ? 0 : clampInt(state.reach ?? 0, 0, 15);
+  return {
+    units,
+    points: orbitXpBasePoints(state),
+    bonus: speed + paid,
+    penalty: 0,
+    finished,
+    text: `${finished ? "Sun reached" : `${units} / ${ORBIT_TOTAL} planets${reach ? ` and ${reach}/16 of the next` : ""}`} · ${c.dust} dust · ${c.slings} slingshot${c.slings === 1 ? "" : "s"} · ${c.threads} threaded · ${c.perfect} perfect`,
+    bonusText: `${finished ? `Sun reached (${speed}), ` : ""}skill ${paid} (stardust ${f.dust}, slingshots ${f.slings}, fields ${f.threads}, perfect orbits ${f.perfect}: ${f.total} of ${ORBIT_V12_SKILL_MAX}${paid < bandPoints(ORBIT_V12_SKILL_PAY, f.total) ? `, at most ${orbitXpSkillCap(state)} at this pace` : ""})`,
+  };
+}
+
+/** orbitRev 12 start: the orbitRev 10 start (strict band) in the bigger view, with the course's features. */
+export function initXpFrom(planets: Planet[], worldW: number, holes: OrbitHole[], extras: OrbitExtras): OrbitRev3State {
+  return {
+    ...initTallFrom(planets, worldW, holes),
+    band: BAND_STRICT_MARK,
+    worldH: ORBIT_XP_VIEW_H,
+    xp: 1,
+    viewW: ORBIT_XP_VIEW_W,
+    dust: extras.dust,
+    moons: extras.moons,
+    fields: extras.fields,
+    dustGot: 0,
+    slung: 0,
+    threaded: 0,
+    perfect: 0,
+    lapLeft: lapPhases(planets[0]!).length,
+    arm: 0,
+    boost: 0,
+    moonIn: 0,
+    reach: 0,
+  };
+}
+
+/** A stored round's start from its puzzle fields (every bank-course revision, 4–12), or null for rev 3 and earlier. */
+export function orbitStartForPuzzle(p: { orbitRev?: number | undefined; planets?: OrbitRev3CompactPlanet[] | undefined; holes?: OrbitHoleRow[] | undefined; extras?: OrbitExtrasRow | undefined }): (() => OrbitRev3State) | null {
+  const start = orbitRev3StartFor(p.orbitRev, p.orbitRev === ORBIT_REV_XP ? decodeOrbitExtras(p.extras) : null);
+  if (!start || !p.planets || p.planets.length === 0) return null;
+  const planets = decodeRev3Planets(p.planets);
+  const holes = decodeOrbitHoles(p.holes ?? []);
+  return () => start(planets, ORBIT_REV3_WORLD_W, holes);
+}

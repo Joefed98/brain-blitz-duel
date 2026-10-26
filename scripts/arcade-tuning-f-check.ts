@@ -63,7 +63,7 @@ import {
 } from "../src/lib/arcade/rally";
 import { beatGameFor, beatThinned, BEAT_LANE_GAP, BEAT_REV_TUNEC, BEAT_REV_TUNEF, BEAT_V5_BAND_CURVE, type BeatState } from "../src/lib/arcade/beat";
 import { snakeGameFor, snakeRocksEarned, SNAKE_REV_ROCKS, SNAKE_REV_TALL, SNAKE_ROCK_MAX_V6, SNAKE_V6_BAND_CURVE, type SnakeState } from "../src/lib/arcade/snake";
-import { FP, orbitFlightBeltK, ORBIT_REV_SWEPT, ORBIT_REV_TUNED, ORBIT_ROCKET_DIAMETER, ORBIT_TOTAL } from "../src/lib/arcade/orbit";
+import { FP, orbitFlightBeltK, ORBIT_REV_SWEPT, ORBIT_REV_TUNED, ORBIT_REV_XP, ORBIT_ROCKET_DIAMETER, ORBIT_TOTAL } from "../src/lib/arcade/orbit";
 import {
   decodeOrbitHoles,
   decodeRev3Planets,
@@ -164,8 +164,9 @@ section("New rounds carry the Tuning F stamps and score on the bands");
     // Taller worlds batch 3 (16 Oct 2026) moved Orbit on to its taller view (orbitRev 8); arcade-tuning-g3-check covers it.
     ["orbit", "orbitRev", playRevOf("orbit", generateOrbit().orbitRev), ORBIT_REV_SWEPT + 1, 8],
   ];
-  // Expansion E3 (docs/expansions/e3.md) then moved Breaker on to brkRev 9; expansion-e3-check covers it.
-  const movedOn: Record<string, number> = { breaker: BRK_REV_TUNEF + 4 };
+  // Expansion E3 (docs/expansions/e3.md) then moved Breaker on to brkRev 9; expansion-e3-check covers it. The expansion
+  // to 200 (docs/expansions/x200-orbit.md) moved Orbit on to orbitRev 12; orbit-expand-check covers it.
+  const movedOn: Record<string, number> = { breaker: BRK_REV_TUNEF + 4, orbit: ORBIT_REV_XP };
   for (const [type, field, got, rev, n] of stamps) {
     ok(got === (movedOn[type] ?? rev) && rev === n, `${type}: new rounds stamped ${field} ${movedOn[type] ?? n} (got ${got})`);
     ok(puzzleUsesBands({ type, [field]: rev } as never), `${type} ${rev} scores on the bands`);

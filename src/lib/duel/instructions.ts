@@ -78,6 +78,7 @@ import { BINTOSS_FAR_CAP, BINTOSS_FAR_POINTS, BINTOSS_FAR_THROWS, BINTOSS_V7_BAN
 import { P4_PTS_COMBO, P4_PTS_JACKPOT, P4_PTS_JOULZ, P4_PTS_RAMP, P4_PTS_SKILL } from "@/lib/arcade/pinball4";
 import { BULLSEYE_INNER_BULL_POINTS, BULLSEYE_RING_VALUES } from "@/lib/arcade/bullseye";
 import { liveBandHelp } from "@/lib/arcade/liveBands";
+import { ORBIT_V12_PACE_FROM, ORBIT_V12_PACE_FULL, ORBIT_V12_SKILL_MAX, ORBIT_V12_SKILL_PACED_FROM, ORBIT_V12_SKILL_PAY, ORBIT_XP_DUST_CAP, ORBIT_XP_FIELDS, ORBIT_XP_MOONS, ORBIT_XP_PERFECT_CAP, ORBIT_XP_PERFECT_PER, ORBIT_XP_SLING_CAP, ORBIT_XP_SLING_PTS, ORBIT_XP_THREAD_CAP, ORBIT_XP_THREAD_PTS, ORBIT_XP_TRAILS } from "@/lib/arcade/orbitRev3";
 import { BRK_V9_COLS, BRK_V9_COMBO_MAX, BRK_V9_COMBO_X2, BRK_V9_COMBO_X3, BRK_V9_GOLD, BRK_V9_GOLD_POINTS, BRK_V9_ROWS, BRK_V9_SKILL_MAX, BRK_V9_SKILL_PAY } from "@/lib/arcade/breaker";
 import type { BandCurve } from "@/lib/arcade/scoreBands";
 import { fillMax, liveRecord, roundMaxFor } from "./roundMax";
@@ -980,15 +981,21 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
       goal: "Fly planet to planet to the sun.",
       how: [
         { action: "Tap to let go;", detail: "the next orbit catches you." },
-        { action: "Checkpoint:", detail: "a crash returns you there." },
-        { action: "Black hole:", detail: "fly in, skip 5-6 planets." },
+        { action: "Grab stardust;", detail: "sling through moon rings." },
+        { action: "Thread rock gaps;", detail: "let go on the first lap." },
+        { action: "Checkpoint:", detail: "a crash returns you there.", helpOnly: true },
+        { action: "Black hole:", detail: "fly in, skip 5-6 planets.", helpOnly: true },
         { action: "You orbit automatically.", detail: "Tap to let go – you fly straight until the next orbit catches you. Miss both of the next two orbits and the run ends (or you go back to your checkpoint) as soon as nothing ahead can catch you.", helpOnly: true },
         { action: "Set Checkpoint once while orbiting.", detail: "Your next crash returns you there. Without it, or after using it, a crash ends the run. Orbits are belt-safe. On later planets, time arrival and departure through the opening in the outside asteroid ring – it turns once every 12 seconds.", helpOnly: true },
         { action: "Orbits change shape.", detail: "Ovals speed up near the planet. On a figure-eight, let go only on the outer loops – never at the crossing.", helpOnly: true },
         { action: "Black holes:", detail: "about every ten planets a small black hole sits beside one planet. Let go at just the right moment to fly into it and you come out beside a planet 5 or 6 further on and fly into its orbit over about a second; the planets you skip count as reached. A checkpoint you set before the jump still works.", helpOnly: true },
         { action: "Any black hole ahead counts:", detail: "touch one with any part of the rocket on any flight, even from the planet before, and it swallows you; one you have already passed fades out.", helpOnly: true },
+        { action: "Stardust:", detail: `${ORBIT_XP_TRAILS} trails of gold motes lie on the best line between some planets. Fly through them to collect them.`, helpOnly: true },
+        { action: "Slingshot moons:", detail: `fly through one of the ${ORBIT_XP_MOONS} small moons' dashed rings without touching the moon and it flings you on at one and a half times the speed. Touching the moon is a crash.`, helpOnly: true },
+        { action: "Asteroid fields:", detail: `${ORBIT_XP_FIELDS} lines of rocks across some hops. Thread the gap in the middle (the dotted line) for a bonus; hitting a rock is a crash.`, helpOnly: true },
+        { action: "Perfect orbits:", detail: "let go while the gold arc still shows – during your first lap round the planet – and land in the next orbit.", helpOnly: true },
       ],
-      score: liveBandHelp("orbit", "Each planet reached counts 1.", { more: "More planets", good: (u) => `reaches ${u} planets`, finish: "Reaching the sun adds up to 10 for speed: the full 10 with at least half the time left, falling to 0 at the buzzer." }),
+      score: liveBandHelp("orbit", "Each planet reached counts 1, and a crash still counts the part of the way to the next planet you flew.", { more: "More planets", good: (u) => `reaches ${u} planets`, finish: `Reaching the sun adds up to 10 for speed: the full 10 with at least half the time left, falling to 0 at the buzzer. Skill adds up to ${ORBIT_V12_SKILL_MAX} more: 1 for every 2 stardust motes (up to ${ORBIT_XP_DUST_CAP}), ${ORBIT_XP_SLING_PTS} for each slingshot (up to ${ORBIT_XP_SLING_CAP}), ${ORBIT_XP_THREAD_PTS} for each field threaded (up to ${ORBIT_XP_THREAD_CAP}) and 1 for every ${ORBIT_XP_PERFECT_PER} perfect orbits (up to ${ORBIT_XP_PERFECT_CAP}). ${skillPayLine(ORBIT_V12_SKILL_PAY)} Without the sun, skill pays at most ${ORBIT_V12_SKILL_PACED_FROM}; the last ${ORBIT_V12_SKILL_MAX - ORBIT_V12_SKILL_PACED_FROM} come for reaching it fast: a share from ${ORBIT_V12_PACE_FROM / 60} s left, all of them with ${ORBIT_V12_PACE_FULL / 60} s left.` }),
     },
 
     snip: {

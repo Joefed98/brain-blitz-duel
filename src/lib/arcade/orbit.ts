@@ -52,6 +52,12 @@ export const ORBIT_REV_TALL = 8;
 export const ORBIT_REV_TARGET = 9;
 /** orbitRev 10 (score bands, 19 Oct 2026, docs/scoring-targets.md): orbitRev 9 play, scored on its strict curve (band 3). */
 export const ORBIT_REV_STRICT = 10;
+/**
+ * orbitRev 12 (world expansion, 25 Oct 2026, docs/expansions/e7.md): orbitRev 10's course, holes and base
+ * scoring in a bigger 450 × 782 view, plus stardust trails, slingshot moons, asteroid fields and perfect orbits,
+ * which alone earn the extra 50 to 200 (orbitRev3.ts "World expansion").
+ */
+export const ORBIT_REV_XP = 12;
 const FLIGHT_MAX = 150;
 export const ORBIT_FLIGHT_MAX = FLIGHT_MAX;
 /** The current planet sits this far down the screen. */
@@ -722,6 +728,9 @@ export function orbitCheckpoint(state: OrbitState): OrbitCheckpoint {
   if (holes.swept) values.push(holes.swept);
   // orbitRev 8 (taller worlds): the view height, last.
   if (holes.worldH) values.push(holes.worldH);
+  // orbitRev 12 (world expansion): its feature counters, last.
+  const xp = state as { xp?: number; dustGot?: number; slung?: number; threaded?: number; perfect?: number; lapLeft?: number; arm?: number; boost?: number; moonIn?: number; vx?: number; vy?: number; reach?: number };
+  if (xp.xp) values.push(xp.xp, xp.dustGot ?? 0, xp.slung ?? 0, xp.threaded ?? 0, xp.perfect ?? 0, xp.lapLeft ?? 0, xp.arm ?? 0, xp.boost ?? 0, xp.moonIn ?? 0, xp.vx ?? 0, xp.vy ?? 0, xp.reach ?? 0);
   for (const value of values) {
     checksum ^= value | 0;
     checksum = Math.imul(checksum, 0x01000193) >>> 0;
