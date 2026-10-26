@@ -480,7 +480,7 @@ export function playerBreakdown(
  * wordsmithRev 2: WORDSMITH_V2_CURVE, at most 140 unless `allLetters` (a word using every tile was found).
  */
 export function scoreWordsmith(points: number, rev?: number | null, allLetters = false): number {
-  if ((rev ?? 0) >= WORDSMITH_REV_DEPTH) return wordsmithV3Words(points) + (allLetters ? WORDSMITH_V3_PANGRAM_BONUS : 0);
+  if ((rev ?? 0) >= WORDSMITH_REV_DEPTH) return wordsmithV3Words(points, rev ?? 0) + (allLetters ? WORDSMITH_V3_PANGRAM_BONUS : 0);
   if ((rev ?? 0) >= WORDSMITH_REV_ONE_CURVE) return Math.min(allLetters ? MAX_ROUND_SCORE : WORDSMITH_V2_CAP, bandOpen(WORDSMITH_V2_CURVE, points));
   if (rev === WORDSMITH_REV_CURVE) return bandOpen(WORDSMITH_V1_CURVE, points);
   return clamp(Math.floor(2.5 * Math.max(0, points)), 0, MAX_ROUND_SCORE);
@@ -519,9 +519,17 @@ export const WORDSMITH_REV_DEPTH = 3;
 export const WORDSMITH_V3_CURVE = bandCurve([0, 3, 4, 6, 11, 18, 32, 45, 60, 80, 110, 150], [0, 6, 14, 30, 70, 90, 130, 140, 143, 152, 166, 180]);
 export const WORDSMITH_V3_CAP = 180;
 export const WORDSMITH_V3_PANGRAM_BONUS = 20;
-/** wordsmithRev 3: the word points part (0–180). */
-export function wordsmithV3Words(points: number): number {
-  return Math.min(WORDSMITH_V3_CAP, bandOpen(WORDSMITH_V3_CURVE, points, WORDSMITH_V3_CAP));
+/**
+ * The puzzle top-up (26 Oct 2026, wordsmithRev 4; docs/depth/topup-oct-2026.md): rev 3's curve exactly up to 45
+ * points (140), then a little steeper (today's 150 haul, 60 points and the pangram, about 170; 190+ about 100
+ * points with the pangram), the same 180 cap and pangram bonus.
+ */
+export const WORDSMITH_REV_TOPUP = 4;
+export const WORDSMITH_V4_CURVE = bandCurve([0, 3, 4, 6, 11, 18, 32, 45, 60, 80, 105, 140], [0, 6, 14, 30, 70, 90, 130, 140, 153, 164, 174, 180]);
+/** wordsmithRev 3 and later: the word points part (0–180), on the stamp's own curve (rev 3's by default). */
+export function wordsmithV3Words(points: number, rev: number = WORDSMITH_REV_DEPTH): number {
+  const curve = rev >= WORDSMITH_REV_TOPUP ? WORDSMITH_V4_CURVE : WORDSMITH_V3_CURVE;
+  return Math.min(WORDSMITH_V3_CAP, bandOpen(curve, points, WORDSMITH_V3_CAP));
 }
 /** Forage's curve (wordHuntRev 1): kits' word points average 9, good 15, great 24, near-perfect 36; 150 at 48. */
 export const WORDHUNT_REV_CURVE = 1;

@@ -9,8 +9,8 @@ import type { Graded } from "../grade";
 import { rev3Unfinished } from "../puzzleScoreRev3";
 import { storedScoreParts } from "../puzzleScoreRev";
 import type { PuzzleData } from "../types";
-import { d4Finish, parShare } from "./score";
-import { isDepth4, isD4Type, type D4Type } from "./stamps";
+import { d4Finish, d4Game, parShare } from "./score";
+import { d4RevOf, isDepth4, isD4Type, type D4Type } from "./stamps";
 
 /** Each move over par costs this share of the par bonus. */
 export const D4_PAR_STEP: Record<"unblock" | "rings" | "pipes" | "laser", number> = {
@@ -27,15 +27,16 @@ function num(extra: Record<string, unknown> | null | undefined, key: string): nu
 
 /** The feature's share (0–1) from the grade's stored facts. */
 export function d4FeatureShare(type: D4Type, puzzle: PuzzleData, extra: Record<string, unknown> | null | undefined): number {
+  const step = (t: keyof typeof D4_PAR_STEP) => d4Game(t, d4RevOf(puzzle)).parStep ?? D4_PAR_STEP[t];
   switch (type) {
     case "unblock":
-      return parShare(num(extra, "moves") ?? Infinity, num(extra, "par") ?? 0, D4_PAR_STEP.unblock);
+      return parShare(num(extra, "moves") ?? Infinity, num(extra, "par") ?? 0, step("unblock"));
     case "rings":
-      return parShare(num(extra, "moves") ?? Infinity, num(extra, "par") ?? 0, D4_PAR_STEP.rings);
+      return parShare(num(extra, "moves") ?? Infinity, num(extra, "par") ?? 0, step("rings"));
     case "pipes":
-      return parShare(num(extra, "turns") ?? Infinity, num(extra, "par") ?? 0, D4_PAR_STEP.pipes);
+      return parShare(num(extra, "turns") ?? Infinity, num(extra, "par") ?? 0, step("pipes"));
     case "laser":
-      return parShare(num(extra, "solveMirrors") ?? Infinity, num(extra, "par") ?? 0, D4_PAR_STEP.laser);
+      return parShare(num(extra, "solveMirrors") ?? Infinity, num(extra, "par") ?? 0, step("laser"));
     case "iceslide": {
       const total = num(extra, "gems") ?? 0;
       return total > 0 ? (num(extra, "gemsCollected") ?? 0) / total : 0;
@@ -64,7 +65,7 @@ export function withDepth4(puzzle: PuzzleData, graded: Graded): Graded {
   const left = num(extra, "time") ?? 0;
   const efficiency = num(extra, "efficiency") ?? 1;
   const share = d4FeatureShare(type, puzzle, extra);
-  const r = d4Finish(type, graded.score, parts?.speed ?? 0, left, efficiency, share);
+  const r = d4Finish(type, graded.score, parts?.speed ?? 0, left, efficiency, share, d4RevOf(puzzle));
   return {
     ...graded,
     score: r.score,

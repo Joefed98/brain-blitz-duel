@@ -20,6 +20,11 @@ import { LEVELS, SKILLS, hashText, makeRng } from "./puzzle-fairness/kit";
 import { roomPuzzle } from "./puzzle-fairness/run";
 import { puzzleTimeLimitMs } from "../src/lib/duel/registry";
 import type { PuzzleData, WordsmithPuzzleData } from "../src/lib/duel/types";
+import { pinPreTopup } from "../src/lib/duel/depthTopup";
+
+// The puzzle top-up (26 Oct 2026, docs/depth/topup-oct-2026.md) deals newer stamps; this check proves the stamps it was
+// written for, so new deals are pinned to them (depth-topup-check proves the top-up's).
+pinPreTopup(true);
 
 const FIXTURE = "scripts/fixtures/depth-wordsmith-legacy.json.gz";
 const RECORD = process.argv.includes("--record");

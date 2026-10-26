@@ -138,9 +138,19 @@ export function lwJarKept(drops: number, misses: number): number {
   return Math.max(0, drops - Math.max(0, misses - LW_FREE_MISSES));
 }
 
-/** Points the jar adds: 50 × drops ÷ size, whole points, at most 50. */
-export function lwJarBonus(drops: number, size: number): number {
+/**
+ * The puzzle top-up (26 Oct 2026, wheelRev 3; docs/depth/topup-oct-2026.md): the same board, jar and log; the jar
+ * pays a little more for its first drops (50 × fill^LW_JAR_TOPUP_POWER), so today's near-perfect player lands about
+ * 165–175 and a full jar is still 50.
+ */
+export const LW_REV_TOPUP = 3;
+export const LW_JAR_TOPUP_POWER = 0.8;
+
+/** Points the jar adds: 50 × drops ÷ size (wheelRev 3: 50 × (drops ÷ size)^0.8), whole points, at most 50. */
+export function lwJarBonus(drops: number, size: number, rev = LW_REV_JAR): number {
   const s = Math.max(1, size);
+  const fill = Math.min(Math.max(0, drops), s) / s;
+  if (rev >= LW_REV_TOPUP) return Math.round(LW_JAR_POINTS * Math.pow(fill, LW_JAR_TOPUP_POWER));
   return Math.round((LW_JAR_POINTS * Math.min(Math.max(0, drops), s)) / s);
 }
 

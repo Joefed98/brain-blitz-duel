@@ -12,13 +12,14 @@ import { rev3EfficiencyOverride, rev3Progress } from "./puzzleProgress";
 import { gradeDepth200 } from "./depth200.server";
 import { stampNumberDepth } from "./numberDepth.server";
 import { puzzleTimeLimitMs } from "./registry";
-import { WORDHUNT_REV_TARGET, WORDSMITH_REV_DEPTH, WORDSMITH_REV_TARGET } from "./scoring";
+import { WORDHUNT_REV_TARGET, WORDSMITH_REV_DEPTH, WORDSMITH_REV_TARGET, WORDSMITH_REV_TOPUP } from "./scoring";
+import { dealtTopupRev } from "./depthTopup";
 import { stampMoveLimits } from "./moveLimits.server";
 import { stampTieRev } from "./tieBreak";
 import { dealDepth4 } from "./depth4/deal.server";
 import { dealtDepthRev } from "./wordDepth";
 import { stampTileGridRev } from "./tileGrid";
-import { STRIKEOUT_REV4, STRIKEOUT_REV5 } from "./strikeout";
+import { STRIKEOUT_REV4, STRIKEOUT_REV5, STRIKEOUT_REV_TOPUP } from "./strikeout";
 import { generateBlockParty } from "./blockParty.server";
 import { gradeSubmission, latestTapMs, type Graded, type SubmitExtra } from "./grade";
 import { newRoomSeed, pickRoundOrder, type RoundSelectionOptions } from "./selection";
@@ -147,7 +148,8 @@ function generateUnstamped(type: PuzzleType, context: GenerateContext): PuzzleDa
   if (type === "stroop") return generateColourClash();
   // Nucleus and Forage carry their scoring-targets stamp (18 Oct 2026; scoring.ts WORDSMITH_V1_CURVE, WORDHUNT_V1_CURVE).
   // Word depth (25 Oct 2026): Nucleus deals wordsmithRev 3 (the curve to 200 and the pangram bonus).
-  if (type === "wordsmith") return { ...generateWordsmith(), wordsmithRev: dealtDepthRev(WORDSMITH_REV_DEPTH, WORDSMITH_REV_TARGET) };
+  // The puzzle top-up (26 Oct 2026): wordsmithRev 4, rev 3's curve a little steeper above 45 points.
+  if (type === "wordsmith") return { ...generateWordsmith(), wordsmithRev: dealtDepthRev(dealtTopupRev(WORDSMITH_REV_TOPUP, WORDSMITH_REV_DEPTH), WORDSMITH_REV_TARGET) };
   // Forage wordHuntRev 3 (word depth, 25 Oct 2026; wordHunt.ts): the 6×6 board with its golden tile.
   if (type === "wordhunt") return dealtDepthRev(WORDHUNT_REV_DEPTH, WORDHUNT_REV_TARGET) >= WORDHUNT_REV_DEPTH ? generateWordHuntDepth() : { ...generateWordHunt(), wordHuntRev: WORDHUNT_REV_TARGET };
   if (type === "unblock") return generateUnblock(context.unblockRow);
@@ -220,7 +222,7 @@ function generateUnstamped(type: PuzzleType, context: GenerateContext): PuzzleDa
   if (type === "letterwheel") return generateLetterWheel(wordGameSeed(type, context.bankSeed));
   // Room-seeded: every player in a room gets the same board from the room seed.
   // Word depth (25 Oct 2026): Strikeout rev 5 = rev 4's draw and rules, scored to 200 (depth/strikeout.server.ts).
-  if (type === "strikeout") return generateStrikeout(wordGameSeed(type, context.bankSeed), dealtDepthRev(STRIKEOUT_REV5, STRIKEOUT_REV4));
+  if (type === "strikeout") return generateStrikeout(wordGameSeed(type, context.bankSeed), dealtDepthRev(dealtTopupRev(STRIKEOUT_REV_TOPUP, STRIKEOUT_REV5), STRIKEOUT_REV4));
   if (type === "codeword") return generateCodeword(wordGameSeed(type, context.bankSeed));
   if (type === "swapword") return generateSwapword(wordGameSeed(type, context.bankSeed));
   if (type === "measure") return generateMeasure(gameSeed(type, context));

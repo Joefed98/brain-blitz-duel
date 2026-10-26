@@ -32,7 +32,8 @@ import {
 import { fireFlashGoldPulse, flashEarnsGoldPulse, localFlashScore } from "@/components/puzzles/reactionFx";
 import { registerFxPreview } from "@/components/puzzles/speedFx";
 import { FLASH_FALSE_START_COST } from "@/lib/duel/scoring";
-import { FLASH_REV5_CURVE, FLASH_STEADY_LOOSE_MS, FLASH_STEADY_TIGHT_MS, flashSpread, usesFlashDepth } from "@/lib/duel/depth/flash";
+import { knots } from "@/lib/duel/depth200";
+import { FLASH_REV6_CURVE, FLASH_STEADY_LOOSE_MS, FLASH_STEADY_TIGHT_MS, flashSpread, usesFlashDepth } from "@/lib/duel/depth/flash";
 import { roundMaxFor } from "@/lib/duel/roundMax";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
@@ -138,8 +139,8 @@ function IntroExample() {
       <p className="text-center text-xs text-muted-foreground">
         Traps: teal, red or blue, near-gold amber, a gold border, the word GOLD, half the screen gold. Tapping a trap, a
         dark screen, or within {FLASH_FASTEST_MS} ms of the gold is a false start: −8 each for the first two, −11 each
-        after that. Score: {roundMaxFor("reaction")} at {FLASH_REV5_CURVE[0][0]} ms average with a steady hand (every reaction
-        close together), 155 at 150 ms, 120 at 200 ms; a missed flash counts 1,200 ms.
+        after that. Score: {roundMaxFor("reaction")} at {FLASH_REV6_CURVE[0][0]} ms average with a steady hand (every reaction
+        close together), {knots(FLASH_REV6_CURVE, 150)} at 150 ms, {knots(FLASH_REV6_CURVE, 200)} at 200 ms; a missed flash counts 1,200 ms.
       </p>
     </div>
   );

@@ -20,7 +20,8 @@ import {
   type WordHuntPuzzleData,
   type WordHuntWord,
 } from "./types";
-import { scoreWordHuntDepth, wordHuntDepth, wordHuntValue, WORDHUNT_REV_DEPTH } from "./wordHunt";
+import { scoreWordHuntDepth, wordHuntDepth, wordHuntValue, WORDHUNT_REV_DEPTH, WORDHUNT_REV_TOPUP } from "./wordHunt";
+import { dealtTopupRev } from "./depthTopup";
 
 /** Letters weighted roughly by how often they turn up in English. */
 const WEIGHTED =
@@ -170,7 +171,7 @@ export function generateWordHuntDepth(): WordHuntPuzzleData {
     totalPoints,
     par: Math.max(1, Math.round(totalPoints * WORDHUNT_PAR_SHARE)),
     golden,
-    wordHuntRev: WORDHUNT_REV_DEPTH,
+    wordHuntRev: dealtTopupRev(WORDHUNT_REV_TOPUP, WORDHUNT_REV_DEPTH),
   };
 }
 
@@ -308,7 +309,7 @@ export function gradeWordHunt(
     const values = accepted.map((entry) => wordHuntValue(entry.word, entry.path, puzzle.golden));
     const extraPoints = values.reduce((sum, v) => sum + v.extra, 0);
     const value = values.reduce((sum, v) => sum + v.value, 0);
-    const depth = scoreWordHuntDepth(points, extraPoints, 100 - missCutPct);
+    const depth = scoreWordHuntDepth(points, extraPoints, 100 - missCutPct, puzzle.wordHuntRev ?? 0);
     return {
       answer: accepted.map((entry) => entry.word).join(","),
       isCorrect: points >= par,
