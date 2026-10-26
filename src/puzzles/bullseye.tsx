@@ -97,7 +97,7 @@ function IntroExample() {
           2
         </text>
         {/* bullRev 8: the dead-centre ring inside the bull. */}
-        <circle cx="98" cy="46" r="3" fill="none" stroke="#FFFFFF" strokeWidth="0.8" />
+        <circle cx="98" cy="46" r="1.5" fill="none" stroke="#FFFFFF" strokeWidth="0.8" />
         <circle cx="150" cy="40" r="8" fill="#E8384F" />
         <circle cx="147" cy="37" r="2" fill="#FFFFFF" opacity="0.6" />
         <g stroke={BULLSEYE_GOLD} strokeWidth="2" fill="none">

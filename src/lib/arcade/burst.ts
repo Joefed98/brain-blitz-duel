@@ -1134,7 +1134,7 @@ export function burstCleanBonus(state: BurstState): { gold: number; clear: numbe
  * burstRev 8 band knots (atoms hit, minus 5 a life lost; lasting the 90 s adds 10, the features come on top),
  * fitted with scripts/expansion-e9-bands.ts (docs/expansions/e9.md).
  */
-export const BURST_V8_BAND_CURVE = bandCurve([0, 15, 45, 70, 80, 90, 100], [0, 25, 52, 74, 98, 120, 136]);
+export const BURST_V8_BAND_CURVE = bandCurve([0, 15, 45, 70, 80, 90, 100, 140], [0, 38, 64, 106, 114, 122, 128, 136]);
 
 /** burstRev 8's units: atoms hit less 5 a life lost, never below a quarter of the atoms hit (rounded up). */
 export function burstCleanUnits(state: Pick<BurstState, "hits" | "lives">): number {

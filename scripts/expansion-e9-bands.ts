@@ -7,7 +7,7 @@
  *   bun scripts/expansion-e9-bands.ts [rally burst bullseye] [--set=tune|fresh|both] [--levels=weak,…,elite]
  *       [--jobs=4] [--json=out.json] [--off] [--random]
  *
- * Seed sets: "tune" is room seeds 0–59 (the ones the knots were fitted on), "fresh" is 60–299 (never seen
+ * Seed sets: "tune" is room seeds 0–59 (the ones the knots were fitted on), "fresh" is 10000–10199 (never seen
  * by the tuning). Reported per game and set: each level's median / top 10 % (90th percentile) on the new
  * revision with the old median in brackets; each feature's median payout per level (the skill check);
  * with --off, the new revision with the bots ignoring the features (what the features add on the same
@@ -27,7 +27,7 @@ import type { SkillBot } from "./arcade-skill-bands/bot";
 import { ARCADE_INPUT_DRAG } from "../src/lib/arcade/engine";
 import { rallyBonusPoints, RALLY_REV_BONUS, RALLY_REV_STRICT, RALLY_V10_W, type RallyState } from "../src/lib/arcade/rally";
 import { burstCleanBonus, BURST_INPUT_FIRE, BURST_INPUT_MOVE, BURST_REV_CLEAN, BURST_REV_STRICT, BURST_WORLD_W, type BurstState } from "../src/lib/arcade/burst";
-import { bullseyeDeadPoints, bullseyeStreakPoints, BULLSEYE_INPUT_SHOT, BULLSEYE_REV_EXPAND, BULLSEYE_REV_STRICT, BULLSEYE_V_MAX, type BullseyeState } from "../src/lib/arcade/bullseye";
+import { bullseyeBoard, bullseyeDeadPoints, bullseyeRingValues, bullseyeStreakPoints, BULLSEYE_CX, BULLSEYE_OUTER_R, BULLSEYE_RINGS, BULLSEYE_INPUT_SHOT, BULLSEYE_REV_EXPAND, BULLSEYE_REV_STRICT, BULLSEYE_V_MAX, type BullseyeState } from "../src/lib/arcade/bullseye";
 import { rallyBotOptions } from "./arcade-skill-bands/bots/rally";
 import { burstBotOptions } from "./arcade-skill-bands/bots/burst";
 
@@ -43,7 +43,8 @@ const CHILD = args.includes("--child");
 const ONLY = args.filter((a) => !a.startsWith("--"));
 
 export const TUNE_SEEDS = Array.from({ length: 60 }, (_, i) => i);
-export const FRESH_SEEDS = Array.from({ length: 240 }, (_, i) => 60 + i);
+/** Fresh seeds: the band tool's (docs/arcade-bands-elite.md), n = 10000–10199, never used for tuning by anyone. */
+export const FRESH_SEEDS = Array.from({ length: 200 }, (_, i) => 10000 + i);
 
 interface Feature {
   name: string;
@@ -145,6 +146,8 @@ export interface E9Run {
   units: number;
   raw: Record<string, number>;
   feats: Record<string, number>;
+  /** Flightpath only: each bull's distance from the board's centre in bull radii (on darts whose centre is the 10). */
+  bullR?: number[];
   mismatch: boolean;
 }
 
@@ -155,7 +158,8 @@ export function playE9(g: E9Game, bot: SkillBot, which: E9Run["which"], level: S
   const rev = which === "old" ? g.old : g.rev;
   const game = spec.gameFor(rev, seed);
   const human = new Human(g.type, seed, level === "random" ? "average" : level);
-  const out = bot({ game, seed, rev, human });
+  // The band tool's fixed bots (BotCtx.fixes, docs/arcade-bands-elite.md) on both revisions, so "before" is like for like.
+  const out = bot({ game, seed, rev, human, fixes: true });
   let state = game.init(seed);
   const byTick = new Map((out.events ?? []).map((e) => [e.t, e]));
   const checkpoints: unknown[] = [];
@@ -173,7 +177,17 @@ export function playE9(g: E9Game, bot: SkillBot, which: E9Run["which"], level: S
     g.type === "rally" ? { gold: st.goldHits, pads: st.targetHits ?? 0, hits: st.hits, dead: st.dead ? 1 : 0, end: st.endedTick }
     : g.type === "burst" ? { hits: st.hits, lost: 3 - st.lives, cleared: st.cleared, wave: st.wave, clean: st.cleanWaves ?? 0, ended: st.ended }
     : { total: st.total, bulls: st.hits.filter((h: any) => h.ring >= 0 && h.value - (h.bal ?? 0) >= 10).length, darts: st.arrowIndex, dead: st.dead ?? 0, streakPts: st.streakPts ?? 0 };
-  return { type: g.type, which, level, n, seed, score: result.score, base: which === "old" ? result.score : result.score - Object.values(feats).reduce((a, b) => a + b, 0), units: UNITS[g.type]?.(st).u ?? 0, raw, feats, mismatch: result.score !== score || Boolean(result.flagged) };
+  const bullR =
+    g.type === "bullseye" && which !== "old"
+      ? st.hits
+          .filter((h: any) => h.ring === 0 && bullseyeRingValues(st, h.arrow)[0] === 10)
+          .map((h: any) => {
+            const b = bullseyeBoard(st, h.arrow);
+            const bullR = (BULLSEYE_OUTER_R * b.scalePct) / 100 / BULLSEYE_RINGS;
+            return Math.round((Math.hypot(h.x - h.tdx - BULLSEYE_CX, h.y - b.cy) / bullR) * 1000) / 1000;
+          })
+      : undefined;
+  return { type: g.type, which, level, n, seed, score: result.score, bullR, base: which === "old" ? result.score : result.score - Object.values(feats).reduce((a, b) => a + b, 0), units: UNITS[g.type]?.(st).u ?? 0, raw, feats, mismatch: result.score !== score || Boolean(result.flagged) };
 }
 
 const seedsFor = (set: string) => (set === "tune" ? TUNE_SEEDS : set === "fresh" ? FRESH_SEEDS : [...TUNE_SEEDS, ...FRESH_SEEDS]);

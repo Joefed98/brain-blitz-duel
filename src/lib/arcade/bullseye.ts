@@ -1054,8 +1054,8 @@ export const BULLSEYE_V6_BAND_CURVE = bandStrict(BULLSEYE_V4_BAND_CURVE);
  * The skill features: a bullseye streak and the dead-centre ring. Darts in the gold 10 (wherever the 10
  * sits, inner bull included) in a row build a streak ×n (n bulls in a row); from ×3 each bull adds
  * BULLSEYE_V8_STREAK_STEP × (n − 2) streak points (+2, +4, +6 …), counted up to BULLSEYE_V8_STREAK_CAP.
- * A dart anywhere else ends it. Inside the bull (when the 10 is the centre ring) a dead-centre ring half
- * the bull's radius adds BULLSEYE_V8_DEAD_PTS on top (counted up to BULLSEYE_V8_DEAD_CAP); it keeps the
+ * A dart anywhere else ends it. Inside the bull (when the 10 is the centre ring) a dead-centre ring a quarter
+ * of the bull's radius adds BULLSEYE_V8_DEAD_PTS on top (counted up to BULLSEYE_V8_DEAD_CAP); it keeps the
  * streak as any bull does. The score is the dart total on bullRev 6's own curve (up to 150), plus the
  * streak and dead-centre points: a near-perfect player fills the streak; only pinpoint darts reach 190–200.
  * Everything (boards, heights, winds, drift, shuffles, balloons) is drawn from the seed at init.
@@ -1084,10 +1084,17 @@ export const BULLSEYE_V8_STREAK_STEP = 2;
 export const BULLSEYE_V8_STREAK_FROM = 3;
 /** The most streak points the score counts. */
 export const BULLSEYE_V8_STREAK_CAP = 30;
-/** The dead-centre ring: half the bull's (the centre ring's) radius; each dart in it adds this, counted up to the cap. */
-export const BULLSEYE_V8_DEAD_DIV = BULLSEYE_RINGS * 2;
-export const BULLSEYE_V8_DEAD_PTS = 4;
-export const BULLSEYE_V8_DEAD_CAP = 24;
+/**
+ * The dead-centre ring: a quarter of the bull's (the centre ring's) radius; each dart in it adds this, counted up to
+ * the cap. A quarter, not the half first planned, because with the band tool's fixed bots near-perfect players landed
+ * five of their 10-centred bulls inside a half-radius ring and elite ones six (docs/expansions/e9.md); inside a quarter
+ * it is two against three and a half, so pinpoint darts are what reach 190–200. 7 a dart, up to 42: a seed has six to
+ * nine darts with the 10 in the centre, and on a six-dart seed a perfect run (inner bull every dart, dead centre on
+ * the six) needs them all for 200 (expansion-e9-check proves the ceiling on every tuning and fresh seed).
+ */
+export const BULLSEYE_V8_DEAD_DIV = BULLSEYE_RINGS * 4;
+export const BULLSEYE_V8_DEAD_PTS = 7;
+export const BULLSEYE_V8_DEAD_CAP = 42;
 
 export interface BullseyeTarget {
   /** Centre height, sim px (the original range's coordinates; negative above its top). */
@@ -1198,7 +1205,7 @@ function bullseyeV8Shot(state: BullseyeState, tick: number, vx: number, vy: numb
 }
 
 /**
- * bullRev 8's dead-centre ring: within half the bull's radius of the board's centre, on a dart whose centre
+ * bullRev 8's dead-centre ring: within a quarter of the bull's radius of the board's centre, on a dart whose centre
  * ring is the 10 (integer comparison, as bullseyeRingAt).
  */
 export function bullseyeInDeadCentre(x: number, y: number, scalePct: number, values: readonly number[], cy: number): boolean {
@@ -1233,7 +1240,7 @@ export function bullseyeInitRev8(seed: number, storedWinds?: readonly number[]):
  * bullRev 8's dart-total curve (rings, inner bulls and balloons; the streak and dead-centre points come on
  * top), fitted with scripts/expansion-e9-bands.ts (docs/expansions/e9.md).
  */
-export const BULLSEYE_V8_BAND_CURVE = bandCurve([0, 54, 69, 81, 92, 100, 102, 112, 118], [0, 52, 64, 92, 117, 132, 139, 147, 150]);
+export const BULLSEYE_V8_BAND_CURVE = bandCurve([0, 54, 69, 81, 92, 100, 108, 113, 118, 130], [0, 57, 73, 98, 112, 121, 128, 130, 142, 150]);
 
 /** bullRev 8's streak points as the score counts them (up to BULLSEYE_V8_STREAK_CAP). */
 export function bullseyeStreakPoints(state: Pick<BullseyeState, "streakPts">): number {

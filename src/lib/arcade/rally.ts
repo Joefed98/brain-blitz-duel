@@ -1172,9 +1172,9 @@ function stepBonus(state: RallyState, input: ArcadeInputEvent | null): RallyStat
  * skill-band bots (docs/expansions/e9.md); the bonus targets add up to RALLY_V10_BONUS_COUNT ×
  * RALLY_V10_BONUS_PTS on top.
  */
-export const RALLY_V10_BAND_CURVE = bandCurve([0, 40, 80, 110, 140, 180, 240, 300], [0, 36, 43, 70, 144, 160, 168, 178]);
+export const RALLY_V10_BAND_CURVE = bandCurve([0, 40, 80, 110, 140, 180, 240, 270], [0, 24, 43, 72, 112, 158, 163, 190]);
 /** The most the base curve pays. */
-export const RALLY_V10_BASE_TOP = 178;
+export const RALLY_V10_BASE_TOP = 190;
 
 /** rallyRev 10's units: 5 a gold-ball hit, 6 a pink pad and 1 a blue return. */
 export function rallyBonusUnits(state: Pick<RallyState, "goldHits" | "targetHits" | "hits">): number {

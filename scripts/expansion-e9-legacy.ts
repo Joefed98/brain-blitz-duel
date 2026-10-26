@@ -10,7 +10,7 @@
  *   bun scripts/expansion-e9-legacy.ts <root> | gzip > scripts/fixtures/expansion-e9-legacy.json.gz   (root = a checkout of main before the change)
  *
  * With --after it records the same way on the expansion revisions with today's code (two runs per level, the
- * weak and elite levels included), plus each game's first elite run that reaches 200 (`top`):
+ * weak and elite levels included), plus each game's first flawless run (the band tool's fixed bot) that reaches 200 (`top`):
  *
  *   bun scripts/expansion-e9-legacy.ts "$PWD" --after | gzip > scripts/fixtures/expansion-e9-runs.json.gz
  */
@@ -42,9 +42,9 @@ export interface E9Record {
   raw: string;
 }
 
-function record(spec: any, bot: any, Human: any, type: string, rev: number | null, level: string, seed: number): E9Record {
+function record(spec: any, bot: any, Human: any, type: string, rev: number | null, level: string, seed: number, fixes = false): E9Record {
   const game = spec.gameFor(rev, seed);
-  const res = bot({ game, seed, rev, human: new Human(spec.type, seed, level) });
+  const res = bot({ game, seed, rev, human: new Human(spec.type, seed, level), fixes });
   let state = game.init(seed);
   const checkpoints: unknown[] = [];
   const byTick = new Map((res.events ?? []).map((e: any) => [e.t, e]));
@@ -76,9 +76,10 @@ if (import.meta.main) {
       for (const level of levels) for (let n = 0; n < perLevel; n++) runs.push(record(spec, bot, Human, type, rev, level, spec.seedFor(n + index * 7)));
     });
     if (after) {
-      // The first elite run from seed index 300 on (past the tuning and fresh sets) that reaches 200.
+      // The first flawless run (the band tool's error-free level on its fixed bot) from seed index 300 on (past the
+      // tuning seeds, short of the fresh ones) that reaches 200.
       for (let n = 300; n < 3000; n++) {
-        const run = record(spec, bot, Human, type, revs[0]!, "elite", spec.seedFor(n));
+        const run = record(spec, bot, Human, type, revs[0]!, "perfect", spec.seedFor(n), true);
         if (run.score >= 200) {
           top.push(run);
           break;

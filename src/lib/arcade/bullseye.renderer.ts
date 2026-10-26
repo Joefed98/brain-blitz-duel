@@ -107,7 +107,7 @@ function drawInnerBull(ctx: CanvasRenderingContext2D, scalePct: number, dx: numb
   ctx.restore();
 }
 
-/** bullRev 8: the dead-centre ring, half the bull's radius, a white hairline (drawn exactly at its scoring edge). */
+/** bullRev 8: the dead-centre ring, a quarter of the bull's radius, a white hairline (drawn exactly at its scoring edge). */
 function drawDeadCentre(ctx: CanvasRenderingContext2D, scalePct: number, dx: number, cy: number): void {
   const r = (BULLSEYE_OUTER_R * scalePct) / (100 * BULLSEYE_V8_DEAD_DIV);
   ctx.save();

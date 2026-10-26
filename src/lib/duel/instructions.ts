@@ -626,7 +626,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         },
         {
           action: "Dead-centre:",
-          detail: `the thin white ring in the middle of the bull (half its width, shown whenever the 10 is the centre ring). A dart inside it adds ${BULLSEYE_V8_DEAD_PTS} on top of the streak, up to ${BULLSEYE_V8_DEAD_CAP} in all, and keeps the streak going like any bull.`,
+          detail: `the thin white ring in the middle of the bull (a quarter of its width, shown whenever the 10 is the centre ring). A dart inside it adds ${BULLSEYE_V8_DEAD_PTS} on top of the streak, up to ${BULLSEYE_V8_DEAD_CAP} in all, and keeps the streak going like any bull.`,
           helpOnly: true,
         },
         { action: "From the fourth dart the target moves – lead it.", detail: "It is scored where it is when the dart lands.", helpOnly: true },

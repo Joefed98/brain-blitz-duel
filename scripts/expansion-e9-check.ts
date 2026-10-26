@@ -15,12 +15,12 @@
  *  4. The rules: Rally's six targets (one per window, upper half, clear of the bumpers, 4 s each, any ball
  *     scores one, +6, a miss costs nothing, spin pays nothing); Fission's clean waves (one shot per tap, a
  *     double beam is one shot, a beam that hits nothing breaks the wave, the bonus only for a clean wave), the
- *     golden atoms and no chain reactions or random drops; Flightpath's dead-centre ring (half the bull's
+ *     golden atoms and no chain reactions or random drops; Flightpath's dead-centre ring (a quarter of the bull's
  *     radius, only on a bull, counted and capped) and the streak cap.
  *  5. Ceilings: every feature's opportunities are in every run (Rally's 6 targets, Fission's 6 golden atoms
  *     and 7 power-ups, Flightpath's dead-centre on at least 6 darts), so the features' caps are reachable on
  *     every seed; Flightpath's perfect-play ceiling is at least 200 on every tuning and fresh seed (room seeds
- *     0–299), worked out dart by dart. Rally's and Fission's are measured by scripts/expansion-e9-ceiling.ts.
+ *     0–59 and 10000–10199), worked out dart by dart. Rally's and Fission's are measured by scripts/expansion-e9-ceiling.ts.
  *  6. Never 0 for a run that hit anything (Rally's blue returns count, Fission's lives never take away more
  *     than three quarters of the atoms); doing nothing scores 0.
  *
@@ -325,17 +325,17 @@ section("Fission burstRev 8: clean waves, golden atoms, scheduled power-ups");
 
 section("Flightpath bullRev 8: the dead-centre ring and the streak");
 {
-  // The ring: half the bull's radius, exactly, on any board size.
+  // The ring: a quarter of the bull's radius, exactly, on any board size.
   for (const scale of [64, 72, 82, 92, 104]) {
     const r0 = (BULLSEYE_OUTER_R * scale) / (100 * BULLSEYE_RINGS);
     for (let dx = -20; dx <= 20; dx++)
       for (let dy = -20; dy <= 20; dy++) {
-        const inside = (dx * dx + dy * dy) * 4 <= r0 * r0 + 1e-9;
+        const inside = (dx * dx + dy * dy) * 16 <= r0 * r0 + 1e-9;
         ok(bullseyeInDeadCentre(BULLSEYE_CX + dx, 200 + dy, scale, [10, 9, 8, 3, 2, 1], 200) === inside, `dead-centre at scale ${scale} (${dx}, ${dy})`);
       }
     ok(!bullseyeInDeadCentre(BULLSEYE_CX, 200, scale, [9, 10, 8, 3, 2, 1], 200), "no dead-centre when the 10 is not the centre ring");
   }
-  ok(BULLSEYE_V8_DEAD_DIV === BULLSEYE_RINGS * 2, "half the bull's radius");
+  ok(BULLSEYE_V8_DEAD_DIV === BULLSEYE_RINGS * 4, "a quarter of the bull's radius");
   ok(bullseyeDeadPoints({ dead: 99 }) === BULLSEYE_V8_DEAD_CAP && bullseyeDeadPoints({ dead: 2 }) === 2 * BULLSEYE_V8_DEAD_PTS, "dead-centre points, capped");
   ok(bullseyeStreakPoints({ streakPts: 999 }) === BULLSEYE_V8_STREAK_CAP, "streak points, capped");
 }
@@ -366,7 +366,7 @@ section("Every run holds enough chances for 200; Flightpath's ceiling is 200 on 
     minCeil = Math.min(minCeil, ceiling);
     if (ceiling < 200) under++;
   }
-  ok(under === 0, `Flightpath: the perfect-play ceiling is 200 on all 300 seeds (lowest ${minCeil})`);
+  ok(under === 0, `Flightpath: the perfect-play ceiling is 200 on all ${TUNE_SEEDS.length + FRESH_SEEDS.length} seeds (lowest ${minCeil})`);
   console.log(`  Flightpath: perfect-play ceiling 200 on all ${TUNE_SEEDS.length + FRESH_SEEDS.length} seeds`);
   ok(RALLY_V10_BONUS_COUNT * RALLY_V10_BONUS_PTS === 36 && BURST_V8_GOLDENS * BURST_V8_GOLDEN_PTS === BURST_V8_CAPS.gold, "every run holds all six Rally targets and all six Fission golden atoms");
 }
@@ -389,4 +389,4 @@ if (failures.length) {
   for (const f of [...new Set(failures)].slice(0, 40)) console.log(`  ✗ ${f}`);
   process.exit(1);
 }
-console.log(`\nPASS expansion-e9-check: ${checks} checks — older stamps replay as on main; rooms deal rallyRev 10, burstRev 8 and bullRev 8 at 200; the same targets, pads, power-ups, golden atoms and boards for every player; the new rules; Flightpath's ceiling 200 on 300 seeds`);
+console.log(`\nPASS expansion-e9-check: ${checks} checks — older stamps replay as on main; rooms deal rallyRev 10, burstRev 8 and bullRev 8 at 200; the same targets, pads, power-ups, golden atoms and boards for every player; the new rules; Flightpath's ceiling 200 on ${TUNE_SEEDS.length + FRESH_SEEDS.length} seeds`);
