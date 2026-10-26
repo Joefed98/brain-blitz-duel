@@ -8,7 +8,6 @@
  */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { readdirSync } from "node:fs";
-import { inputAt, tapAt } from "../src/lib/arcade/engine";
 import { ROOM_STYLES, type X200Room } from "./x200/room";
 
 const failures: string[] = [];
@@ -33,10 +32,13 @@ for (const file of mods) {
     const deal = room.deal(n);
     const seen = new Map<string, { json: string; style: string }>();
     let opp: { json: string; style: string } | null = null;
+    const ends = new Set<string>();
     for (const style of ROOM_STYLES) {
       const log = room.play(deal, style);
       const game = deal.game;
+      // The full log, looked up by tick (engine.ts's inputAt / tapAt read only the newest entry of a log being recorded).
       const tapSet = log.taps ? new Set(log.taps) : null;
+      const byTick = new Map((log.events ?? []).map((e) => [e.t, e]));
       let state = game.init(deal.seed);
       const look = () => {
         for (const [id, d] of Object.entries(room.schedule(state))) {
@@ -49,13 +51,16 @@ for (const file of mods) {
       look();
       while (!game.isOver(state) && state.tick < game.runTicks) {
         const t = state.tick + 1;
-        state = game.step(state, tapSet ? tapAt(log.taps!, t) : inputAt(log.events ?? [], t));
+        state = game.step(state, tapSet ? tapSet.has(t) : (byTick.get(t) ?? null));
         look();
       }
+      ends.add(`${state.tick}|${game.score(state)}|${JSON.stringify(state).length}`);
       const o = JSON.stringify(room.opportunities(state));
       if (!opp) opp = { json: o, style };
       else if (opp.json !== o) fail(`${room.type} deal ${n}: opportunities ${opp.json} for ${opp.style} but ${o} for ${style}`);
     }
+    // The styles must really have played differently, or the comparison proves nothing.
+    if (ends.size < 3) fail(`${room.type} deal ${n}: only ${ends.size} distinct run ends over ${ROOM_STYLES.length} styles (inputs not applied?)`);
     items += seen.size;
   }
   console.log(`${room.type} (rev ${room.rev}): ${room.deals ?? 8} deals × ${ROOM_STYLES.length} styles, ${items} scheduled items identical (${((performance.now() - t0) / 1000).toFixed(1)} s)`);
