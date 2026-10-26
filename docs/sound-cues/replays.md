@@ -46,6 +46,10 @@ game the round was.
 | `hover.two-gap` | Through a two-gap barrier: the clip reaches the moment's key tick | instant (the moment lands; about 0.5 s of half-speed play follows) |
 | `hover.slipped-through` | Slipped through a moving barrier: the clip reaches the moment's key tick | instant (the moment lands; about 0.5 s of half-speed play follows) |
 | `hover.all-barriers` | Every barrier passed: the clip reaches the moment's key tick | instant (the moment lands; about 0.5 s of half-speed play follows) |
+| `hover.tight-gate` | Through a tight gate (hoverRev 9): the clip reaches the moment's key tick | instant (the moment lands; about 0.5 s of half-speed play follows) |
+| `hover.star-chain` | A whole star chain (hoverRev 9): the clip reaches the moment's key tick | instant (the moment lands; about 0.5 s of half-speed play follows) |
+| `hover.shield` | Shield picked up (hoverRev 9): the clip reaches the moment's key tick | instant (the moment lands; about 0.5 s of half-speed play follows) |
+| `hover.centre-line` | Along a tight gate's centre line (hoverRev 9): the clip reaches the moment's key tick | instant (the moment lands; about 0.5 s of half-speed play follows) |
 | `breaker.power-up` | Power-up caught: the clip reaches the moment's key tick | instant (the moment lands; about 0.5 s of half-speed play follows) |
 | `breaker.bricks` | Bricks streak (every 10): the clip reaches the moment's key tick | instant (the moment lands; about 0.5 s of half-speed play follows) |
 | `breaker.fireball` | Fireball caught: the clip reaches the moment's key tick | instant (the moment lands; about 0.5 s of half-speed play follows) |

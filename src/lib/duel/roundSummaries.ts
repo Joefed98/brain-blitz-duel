@@ -921,7 +921,11 @@ const hoverSummary: SummaryBuilder = (result) => {
     summary: survived
       ? `${gates} / ${total} · survived`
       : `${gates} / ${total} barriers · crashed at ${ended.toFixed(1)}s`,
-    detail: [survived ? "Flew the whole run" : "Run ended early"],
+    // hoverRev 9: the features and the skill points.
+    detail: [
+      survived ? "Flew the whole run" : "Run ended early",
+      ...(result.extra?.["tightGates"] !== undefined ? [`${Number(result.extra?.["tightGates"] ?? 0)} tight · ${Number(result.extra?.["starChains"] ?? 0)} chains · centre ${Number(result.extra?.["centrePts"] ?? 0)} · skill +${Number(result.extra?.["skill"] ?? 0)}`] : []),
+    ],
   };
 };
 

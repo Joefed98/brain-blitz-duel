@@ -49,6 +49,7 @@ import { PIN_REV_EXPAND } from "@/lib/arcade/pinball";
 import { decodeSnakeRun, replaySnakeRun } from "./snake";
 import { decodeBreakerRun, replayBreakerRun } from "./breaker";
 import { brkSkillPaid, brkWallSize } from "@/lib/arcade/breaker";
+import { hoverFeatureBonus } from "@/lib/arcade/hover";
 import { decodePinballRun, replayPinballRun } from "./pinball";
 import { decodeRallyRun, replayRallyRun } from "./rally";
 import { decodeSteadyRun, replaySteadyRun } from "./steady";
@@ -1142,6 +1143,8 @@ function gradeUnderRev(
         gates: run.gates,
         totalGates: run.totalGates,
         ...(puzzle.hoverRev ? { hoverRev: puzzle.hoverRev, stars: run.stars, totalStars: run.totalStars } : {}),
+        // hoverRev 9 (the 200 expansion): the features and the skill points paid for them.
+        ...(run.state.xp ? { tightGates: run.state.tight ?? 0, starChains: run.state.chainsDone ?? 0, centrePts: run.state.ctrPts ?? 0, centreLines: run.state.ctrLog?.length ?? 0, shieldBreaks: run.state.shieldBreaks ?? 0, skill: hoverFeatureBonus(run.state) } : {}),
         survived: run.survived,
         endedSeconds: run.endedSeconds,
         flagged: run.flagged,

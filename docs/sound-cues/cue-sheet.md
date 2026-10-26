@@ -26,8 +26,8 @@ effects ([arcade-effects.md](arcade-effects.md)) so a sound can be written for e
 | fail sting | 4 | 0 | 35 | 39 |
 | success sting | 3 | 0 | 68 | 71 |
 | ambience | 0 | 1 | 8 | 9 |
-| replay | 0 | 0 | 131 | 131 |
-| **all** | 65 | 1 | 680 | 746 |
+| replay | 0 | 0 | 135 | 135 |
+| **all** | 65 | 1 | 684 | 750 |
 
 ## Silent and placeholder cues
 
@@ -547,6 +547,10 @@ Grouped by game or screen.
 | `hover.two-gap` | Through a two-gap barrier: the clip reaches the moment's key tick [replays.md] |  | 0–2 per highlight | recorded sound | `hover.two-gap` | 250 | replay | `hover.two-gap` |
 | `hover.slipped-through` | Slipped through a moving barrier: the clip reaches the moment's key tick [replays.md] |  | 0–2 per highlight | recorded sound | `hover.slipped-through` | 250 | replay | `hover.slipped-through` |
 | `hover.all-barriers` | Every barrier passed: the clip reaches the moment's key tick [replays.md] |  | 0–2 per highlight | recorded sound | `hover.all-barriers` | 250 | replay | `hover.all-barriers` |
+| `hover.tight-gate` | Through a tight gate (hoverRev 9): the clip reaches the moment's key tick [replays.md] |  | 0–2 per highlight | recorded sound | `hover.tight-gate` | 250 | replay | `hover.tight-gate` |
+| `hover.star-chain` | A whole star chain (hoverRev 9): the clip reaches the moment's key tick [replays.md] |  | 0–2 per highlight | recorded sound | `hover.star-chain` | 250 | replay | `hover.star-chain` |
+| `hover.shield` | Shield picked up (hoverRev 9): the clip reaches the moment's key tick [replays.md] |  | 0–2 per highlight | recorded sound | `hover.shield` | 250 | replay | `hover.shield` |
+| `hover.centre-line` | Along a tight gate's centre line (hoverRev 9): the clip reaches the moment's key tick [replays.md] |  | 0–2 per highlight | recorded sound | `hover.centre-line` | 250 | replay | `hover.centre-line` |
 | `breaker.power-up` | Power-up caught: the clip reaches the moment's key tick [replays.md] |  | 0–2 per highlight | recorded sound | `breaker.power-up` | 250 | replay | `breaker.power-up` |
 | `breaker.bricks` | Bricks streak (every 10): the clip reaches the moment's key tick [replays.md] |  | 0–2 per highlight | recorded sound | `breaker.bricks` | 250 | replay | `breaker.bricks` |
 | `breaker.fireball` | Fireball caught: the clip reaches the moment's key tick [replays.md] |  | 0–2 per highlight | recorded sound | `breaker.fireball` | 250 | replay | `breaker.fireball` |
@@ -1706,6 +1710,10 @@ loops are not measured there). Files in `public/sounds/` are listed once per slo
 | `hover.two-gap` | effects | `hover.two-gap` | 486 |
 | `hover.slipped-through` | effects | `hover.slipped-through` | 486 |
 | `hover.all-barriers` | effects | `hover.all-barriers` | 486 |
+| `hover.tight-gate` | effects | `hover.tight-gate` | 486 |
+| `hover.star-chain` | effects | `hover.star-chain` | 486 |
+| `hover.shield` | effects | `hover.shield` | 486 |
+| `hover.centre-line` | effects | `hover.centre-line` | 486 |
 | `breaker.power-up` | effects | `breaker.power-up` | 486 |
 | `breaker.bricks` | effects | `breaker.bricks` | 486 |
 | `breaker.fireball` | effects | `breaker.fireball` | 486 |

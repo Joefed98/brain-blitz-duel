@@ -60,7 +60,7 @@ import {
 import { BUB_SPECIAL_BLOCK, BUB_TORPEDO_HITS, BUB_V3_JOKER_BLOCK, BUB_V8_CHESTS, BUB_V8_CHEST_FP, BUB_V8_FEATURE_MAX } from "@/lib/arcade/bubble";
 import { MATCHUP_V3_PAR_RAW, MATCHUP_V9_FEATURE_MAX } from "@/lib/arcade/matchup";
 import { BT_V7_BALLS, BT_V7_BOOST_STEPS, BT_V7_FEATURE_MAX, BT_V7_LAST_LAND_MIN } from "@/lib/arcade/ballTrack";
-import { HOVER_REACHABLE_GATES, HOVER_STARS, HOVER_V2_GATES_SCORE, HOVER_V2_STARS_SCORE } from "@/lib/arcade/hover";
+import { HOVER_CENTRE_MAX_GRADE, HOVER_CENTRE_TOL, HOVER_CHAIN_POINTS, HOVER_CHAINS, HOVER_PICKUPS, HOVER_REACHABLE_GATES, HOVER_SKILL_MAX, HOVER_SKILL_PAY, HOVER_STARS, HOVER_TIGHT_GATES, HOVER_TIGHT_POINTS, HOVER_V2_GATES_SCORE, HOVER_V2_STARS_SCORE } from "@/lib/arcade/hover";
 import { WAV_BOSS_HP } from "@/lib/arcade/wavefront";
 import { SNAKE_V9_CAPS, SNAKE_V9_COLS, SNAKE_V9_ROWS } from "@/lib/arcade/snake";
 import { BEAT_V9_CAPS, BEAT_V9_SKILL_PAY } from "@/lib/arcade/beat";
@@ -521,14 +521,19 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
       goal: "Fly through the barrier gaps.",
       how: [
         { action: "Tap to hover up;", detail: "let go to drop." },
-        { action: "Touch gold stars", detail: "in tight gaps for a bonus." },
-        { action: "Later barriers", detail: "have two gaps, or slide." },
+        { action: "Gold gates:", detail: "thread them, dead centre for more." },
+        { action: "Star chains:", detail: "sweep them; shields take a crash." },
+        { action: "Touch gold stars", detail: "in tight gaps for a bonus. Later barriers have two gaps, or slide.", helpOnly: true },
         { action: "Hit anything", detail: "and the run ends. Gold stars sit near the edge of a gap, so they are risky.", helpOnly: true },
+        { action: `${HOVER_TIGHT_GATES} tight gates:`, detail: `a narrow gold-rimmed second gap on a barrier. Fly through it without touching anything for ${HOVER_TIGHT_POINTS} skill points.`, helpOnly: true },
+        { action: "The centre line:", detail: `a faint line through each tight gate lights up as you fly along it. Stay within ${HOVER_CENTRE_TOL[0] / 256} px of it across the barrier for ${HOVER_CENTRE_MAX_GRADE} more, within ${HOVER_CENTRE_TOL[1] / 256} px for 2, within ${HOVER_CENTRE_TOL[2] / 256} px for 1.`, helpOnly: true },
+        { action: `${HOVER_CHAINS} star chains:`, detail: `5 to 7 stars on one flap's arc between two barriers. Touch every star of a chain for ${HOVER_CHAIN_POINTS} skill points.`, helpOnly: true },
+        { action: `${HOVER_PICKUPS} shield bubbles`, detail: "sit at the same places for everyone. Touch one for a shield: your next crash breaks it instead and you fly on, untouchable for a moment.", helpOnly: true },
         { action: "Two-gap barriers:", detail: "fly through either gap. Sliding barriers move slowly and steadily up and down.", helpOnly: true },
         { action: "Taller sky:", detail: "the flight area fills your screen, and gaps sit anywhere from near the top to near the bottom. The faint stars behind are scenery only.", helpOnly: true },
         { action: "Everyone flies", detail: `the same course for sixty seconds: ${HOVER_REACHABLE_GATES} barriers in a clean run and ${HOVER_STARS} gold stars.`, helpOnly: true },
       ],
-      score: liveBandHelp("hover", `Each of the ${HOVER_REACHABLE_GATES} barriers counts 3 and each gold star 2.`, { more: "More barriers and stars", good: (u) => `counts ${u} – about ${Math.round(u / 3)} barriers`, finish: "Lasting the minute adds 10." }),
+      score: liveBandHelp("hover", `Each of the ${HOVER_REACHABLE_GATES} barriers counts 3 and each gold star 2.`, { more: "More barriers and stars", good: (u) => `counts ${u} – about ${Math.round(u / 3)} barriers`, finish: `Lasting the minute adds 10. Skill adds up to ${HOVER_SKILL_MAX} more: ${HOVER_TIGHT_POINTS} a tight gate, ${HOVER_CHAIN_POINTS} a whole star chain and up to ${HOVER_CENTRE_MAX_GRADE} a centre line. ${skillPayLine(HOVER_SKILL_PAY)}` }),
     },
     swerve: {
       goal: "Collect coins while dodging the blocks.",

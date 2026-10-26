@@ -21,8 +21,11 @@ import {
   HOVER_WORLD_W,
   HOVER_SHIELD_INVULN,
   HOVER_SHIELD_R,
+  hoverCentreGrade,
+  hoverCentreY,
   hoverFeatureTotals,
   hoverWorldH,
+  HOVER_CENTRE_TOL,
   type HoverState,
 } from "./hover";
 import type { ArcadeGame, CanvasSize } from "./engine";
@@ -239,6 +242,7 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: HoverState, crashIndica
       drawPipe(ctx, left, a[1]!, width, b[0]! - a[1]!, colour, bloom, flash, "both", pulse);
       drawPipe(ctx, left, b[1]!, width, HOVER_WORLD_H - b[1]!, colour, bloom, flash, "top", pulse);
       drawTightRims(ctx, state, index, left, width, tTop, tBot);
+      drawCentreLine(ctx, state, index, left, width);
     } else {
     drawPipe(ctx, left, 0, width, top, colour, bloom, flash, "bottom", pulse);
     if (pillar.gap2Top !== undefined) {
@@ -277,7 +281,7 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: HoverState, crashIndica
   if ((state.totalStars ?? 0) > 0) retroText(ctx, `STARS ${state.stars ?? 0}/${state.totalStars}`, 10, 46, 14, STAR_GOLD, "left", 4);
   if (state.xp) {
     const totals = hoverFeatureTotals(state);
-    retroText(ctx, `TIGHT ${state.tight ?? 0}/${totals.tight}  CHAINS ${state.chainsDone ?? 0}/${totals.chains}`, 10, 64, 12, STAR_GOLD, "left");
+    retroText(ctx, `TIGHT ${state.tight ?? 0}/${totals.tight}  CHAINS ${state.chainsDone ?? 0}/${totals.chains}  CENTRE ${state.ctrPts ?? 0}`, 10, 64, 12, STAR_GOLD, "left");
   }
 
   if (state.crashed && crashIndicator) {
@@ -775,4 +779,71 @@ function drawShield(ctx: CanvasRenderingContext2D, state: HoverState): void {
     }
     ctx.globalAlpha = 1;
   }
+}
+
+/** The centre line's brightness for a grade (0: at rest; 3: dead centre). */
+const CENTRE_ALPHA = [0.14, 0.32, 0.5, 0.78] as const;
+const CENTRE_FADE = 30;
+
+/**
+ * The centre line through a tight gate (hoverRev 9; display only, drawn on the sim's line: the gate's middle,
+ * across the barrier's columns). At rest a faint 1 px gold line. While the saucer's centre is within the
+ * columns on a clean thread, the part of the line it has flown along lights up, as bright as the grade the
+ * pass holds so far (HOVER_CENTRE_TOL), with a small glow under the saucer that rises the closer it is to the
+ * line. A pass that scored stays lit at its grade and fades over CENTRE_FADE ticks. Reduced effects: the line
+ * and its lit part only, no glow.
+ */
+function drawCentreLine(ctx: CanvasRenderingContext2D, state: HoverState, index: number, left: number, width: number): void {
+  const pillar = state.pillars[index]!;
+  const cy = Math.round(px(hoverCentreY(pillar)));
+  const glow = !arcadeReducedEffects();
+  ctx.save();
+  ctx.fillStyle = STAR_GOLD;
+  ctx.globalAlpha = CENTRE_ALPHA[0];
+  ctx.fillRect(left, cy, width, 1);
+  const logged = (state.ctrLog ?? []).find((e) => e >> 2 === index);
+  if (state.ctrOn === index && !state.crashed) {
+    // Being threaded now: light the line from the barrier's left edge to the saucer.
+    const dev = state.ctrDev ?? 0;
+    const grade = hoverCentreGrade(dev);
+    const lit = Math.max(0, Math.min(width, px(HOVER_DISC_X) - left));
+    ctx.globalAlpha = CENTRE_ALPHA[grade]!;
+    ctx.fillRect(left, cy, lit, 1);
+    if (glow && grade > 0) {
+      ctx.globalAlpha = CENTRE_ALPHA[grade]! * 0.35;
+      ctx.fillRect(left, cy - 1, lit, 3);
+    }
+    // The glow under the saucer: brighter the nearer its centre is to the line right now.
+    const near = Math.max(0, 1 - Math.abs(state.y - hoverCentreY(pillar)) / HOVER_CENTRE_TOL[2]);
+    if (near > 0) {
+      const x = px(HOVER_DISC_X);
+      ctx.globalAlpha = 0.25 + 0.6 * near;
+      ctx.fillStyle = near > 0.6 ? RETRO_WHITE : STAR_GOLD;
+      ctx.fillRect(Math.max(left, x - 3), cy, Math.min(left + width, x + 3) - Math.max(left, x - 3), 1);
+      if (glow) {
+        ctx.fillStyle = STAR_GOLD;
+        ctx.globalAlpha = 0.3 * near;
+        ctx.fillRect(Math.max(left, x - 6), cy - 1, Math.min(left + width, x + 6) - Math.max(left, x - 6), 3);
+      }
+    }
+  } else if (logged !== undefined) {
+    // Threaded and graded: the whole line stays lit at its grade, fading as the barrier scrolls away.
+    const grade = logged & 3;
+    const age = px(state.distance - (pillar.x0 + HOVER_PILLAR_W - (HOVER_DISC_X - HOVER_DISC_R))) / px(hoverScroll(index + 1));
+    const fade = age < 0 ? 1 : Math.max(0, 1 - age / CENTRE_FADE);
+    if (fade > 0) {
+      ctx.globalAlpha = CENTRE_ALPHA[0] + (CENTRE_ALPHA[grade]! - CENTRE_ALPHA[0]) * fade;
+      ctx.fillStyle = grade === 3 && fade > 0.5 ? RETRO_WHITE : STAR_GOLD;
+      ctx.fillRect(left, cy, width, 1);
+      if (glow) {
+        ctx.fillStyle = STAR_GOLD;
+        ctx.globalAlpha = CENTRE_ALPHA[grade]! * 0.35 * fade;
+        ctx.fillRect(left, cy - 1, width, 3);
+      }
+    } else {
+      ctx.globalAlpha = CENTRE_ALPHA[1];
+      ctx.fillRect(left, cy, width, 1);
+    }
+  }
+  ctx.restore();
 }

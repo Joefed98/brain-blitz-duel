@@ -53,7 +53,7 @@ const specs = await import("../src/lib/arcade/arcadeFxGames.renderer");
 const sprites = await import("../src/lib/arcade/sprites.renderer");
 
 const { hoverArtGame } = await import("../src/lib/arcade/hover.renderer");
-const { hoverRev2Game } = await import("../src/lib/arcade/hover");
+const { hoverExpandGame } = await import("../src/lib/arcade/hover");
 const { breakerArtGameFor } = await import("../src/lib/arcade/breaker.renderer");
 const { pinballArtGame } = await import("../src/lib/arcade/pinball.renderer");
 const { rallyArtGame } = await import("../src/lib/arcade/rally.renderer");
@@ -109,7 +109,8 @@ type AnyGame = {
 const course = BALL_TRACK_BANK[0]!.course;
 const btGame = makeBallTrackGame(course, 2);
 const GAMES: Record<string, AnyGame> = {
-  hover: { ...hoverArtGame, init: hoverRev2Game.init } as AnyGame,
+  // hoverRev 9 (the 200 expansion): the course rooms deal, so the new moments fire on real states too.
+  hover: { ...hoverArtGame, init: hoverExpandGame.init } as AnyGame,
   // Expansion E3: rooms deal brkRev 9 (ARCADE_FX_SPECS lists its 420 × 784 spec).
   breaker: breakerArtGameFor(BRK_REV_DEEP) as AnyGame,
   rally: { ...rallyArtGame, init: rallyRev2Game.init } as AnyGame,
@@ -250,6 +251,11 @@ const BUMPS: Record<string, ((s: any) => any)[]> = {
     (s) => ({ ...s, gates: 17 }),
     (s) => ({ ...s, gates: 24 }),
     (s) => ({ ...s, gates: s.totalGates }),
+    // hoverRev 9: a tight gate, a whole star chain, a shield picked up, a centre line graded.
+    (s) => ({ ...s, tight: (s.tight ?? 0) + 1 }),
+    (s) => ({ ...s, chainsDone: (s.chainsDone ?? 0) + 1 }),
+    (s) => ({ ...s, pickupsTaken: [...(s.pickupsTaken ?? []), 0] }),
+    (s) => ({ ...s, ctrLog: [...(s.ctrLog ?? []), 4 * 4 + 3], ctrPts: (s.ctrPts ?? 0) + 3 }),
   ],
   // brkRev 9: a 9-column wall (gold bricks apart), then the gold-brick and combo moments.
   breaker: [

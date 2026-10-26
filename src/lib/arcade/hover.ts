@@ -805,9 +805,9 @@ export const HOVER_CHAIN_POINTS = 5;
 /**
  * The centre line through a tight gate: on a clean thread, the furthest the saucer's centre strays from
  * the gate's middle while it is within the barrier's columns grades it 3 (within HOVER_CENTRE_TOL[0]),
- * 2 or 1 (fixed-point). The slowest gate's best arc strays about 4.3 px, so 3 is open on every gate.
+ * 2 or 1 (fixed-point). The slowest gate's best arc strays about 4.3 px, so 3 is open on every gate with room to spare.
  */
-export const HOVER_CENTRE_TOL = [1_280, 2_304, 3_584] as const;
+export const HOVER_CENTRE_TOL = [1_536, 2_560, 3_840] as const;
 export const HOVER_CENTRE_MAX_GRADE = 3;
 /** The tight gate's centre line height (fixed-point). */
 export function hoverCentreY(p: HoverPillar): number {
@@ -849,6 +849,11 @@ const HOVER_RISE: number[] = (() => {
   }
   return out;
 })();
+
+/** The height one flap climbs (fixed-point): the top of its arc above the tap. */
+const HOVER_ARC = -Math.min(...HOVER_RISE);
+/** The room kept under a tight gate's lowest centre line's arc, above the floor (fixed-point). */
+const HOVER_CENTRE_FLOOR = 1_024;
 
 /** The distance after each tick of a crash-free run (the scroll ramp depends only on barriers passed). */
 const HOVER_CLEAN_DIST: number[] = (() => {
@@ -933,7 +938,8 @@ function buildFeatures(
       const next = centres(i + 1);
       const sides: [number, number][] = [
         [HOVER_FEATURE_EDGE + half, p.gapTop - HOVER_TIGHT_WALL - half],
-        [p.gapTop + p.gapH + HOVER_TIGHT_WALL + half, bottom - HOVER_FEATURE_EDGE - half],
+        // A centre line is flown on the top of a flap's arc, so a low gate's centre keeps a whole arc above the floor.
+        [p.gapTop + p.gapH + HOVER_TIGHT_WALL + half, Math.min(bottom - HOVER_FEATURE_EDGE - half, bottom - HOVER_DISC_R - HOVER_ARC - HOVER_CENTRE_FLOOR)],
       ];
       const ranges = sides
         .map(([lo, hi]): [number, number] => {
@@ -975,7 +981,8 @@ function buildFeatures(
         chainCandidates.push(i);
     while (chains.length < HOVER_CHAINS && chainCandidates.length) {
       const i = pickFrom(chainCandidates);
-      if (used.has(i) || (!relax && (used.has(i - 1) || used.has(i + 1)))) continue;
+      // Never two chains in a row: the drop out of one and the climb into the next can't both be flown.
+      if (used.has(i) || used.has(i - 1) || used.has(i + 1)) continue;
       const a = pillars[i]!;
       const b = pillars[i + 1]!;
       // The gap the saucer leaves barrier i by (the one nearest the next barrier's), as it is then.
