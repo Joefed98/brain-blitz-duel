@@ -23,6 +23,7 @@ import {
   type JuncCar,
   type JuncState,
 } from "../../../src/lib/arcade/junction";
+import type { SkillLevel } from "../human";
 import { driveEvents, type SkillBot } from "../bot";
 
 const FP = 256;
@@ -35,7 +36,7 @@ const DIAG_EXIT = 93_249;
 const SPAWN_OUT = 20 * FP;
 
 /** Ticks between deliberate taps (about 6–8 taps a second). */
-const TAP_GAP: Record<string, number> = { average: 10, good: 9, great: 8, near: 7 };
+const TAP_GAP: Record<SkillLevel, number> = { weak: 11, average: 10, good: 9, great: 8, near: 7, elite: 6, perfect: 6 };
 /** The cushion a person leaves after the last tail clears before releasing crossing traffic, ms. */
 const CUSHION_MS = 150;
 

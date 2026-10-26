@@ -26,6 +26,11 @@ import type { LetterWheelPuzzleData, PuzzleData } from "../src/lib/duel/types";
 import { hashText, LEVELS, makeRng, SKILLS } from "./puzzle-fairness/kit";
 import { KITS } from "./puzzle-fairness/kits";
 import { roomPuzzle } from "./puzzle-fairness/run";
+import { pinPreTopup } from "../src/lib/duel/depthTopup";
+
+// The puzzle top-up (26 Oct 2026, docs/depth/topup-oct-2026.md) deals newer stamps; this check proves the stamps it was
+// written for, so new deals are pinned to them (depth-topup-check proves the top-up's).
+pinPreTopup(true);
 
 const FIXTURE = "scripts/fixtures/depth-letterwheel-legacy.json.gz";
 const RECORD = process.argv.includes("--record");

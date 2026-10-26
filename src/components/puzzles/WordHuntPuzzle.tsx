@@ -198,7 +198,7 @@ export function WordHuntPuzzle({
   const valueOf = (entry: Found) => (depth ? wordHuntValue(entry.word, entry.path, golden).value : entry.points);
   const shownPoints = depth ? found.reduce((sum, entry) => sum + valueOf(entry), 0) : points;
   const depthScore = depth
-    ? scoreWordHuntDepth(points, found.reduce((sum, entry) => sum + (valueOf(entry) - entry.points), 0)).score
+    ? scoreWordHuntDepth(points, found.reduce((sum, entry) => sum + (valueOf(entry) - entry.points), 0), 100, puzzle.wordHuntRev ?? 0).score
     : 0;
 
   const lockIn = useCallback(() => {

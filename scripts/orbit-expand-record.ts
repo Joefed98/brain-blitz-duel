@@ -1,6 +1,6 @@
 /**
  * Records the orbitRev 12 runs orbit-expand-check replays (scripts/fixtures/orbit-x200-runs.json.gz): the
- * skill-band bots at every level (weak to elite) on feature-bank courses rooms deal (seed indices 300 on, outside
+ * skill-band bots (with the band tool's fixes on) at every level, weak to flawless, on feature-bank courses rooms deal (seed indices 300 on, outside
  * the tuning and fresh sets), each log through the server's encode + replay, with its score, final checkpoint
  * checksum and tick.
  *
@@ -12,7 +12,7 @@ import { gzipSync } from "node:zlib";
 import { appendClientCounters, arcadeCounters } from "../src/lib/arcade/diagnostics";
 import { orbitCheckpoint, ORBIT_REV_XP } from "../src/lib/arcade/orbit";
 import { GAMES } from "./arcade-skill-bands/games";
-import { BAND_LEVELS, Human } from "./arcade-skill-bands/human";
+import { ALL_LEVELS, Human } from "./arcade-skill-bands/human";
 import { bot } from "./arcade-skill-bands/bots/orbit";
 
 const SEEDS = Number(process.argv.find((a) => a.startsWith("--seeds="))?.slice(8) ?? 4);
@@ -20,10 +20,10 @@ const spec = GAMES.find((g) => g.type === "orbit")!;
 const rev = ORBIT_REV_XP;
 const runs: any[] = [];
 for (let n = 300; n < 300 + SEEDS; n++) {
-  for (const level of BAND_LEVELS) {
+  for (const level of ALL_LEVELS) {
     const seed = spec.seedForX!(n);
     const game = spec.gameFor(rev, seed);
-    const out = bot({ game, seed, rev, human: new Human("orbit", seed, level) });
+    const out = bot({ game, seed, rev, human: new Human("orbit", seed, level), fixes: true });
     let state = game.init(seed);
     const byTick = new Map((out.events ?? []).map((e) => [e.t, e]));
     const checkpoints: unknown[] = [];

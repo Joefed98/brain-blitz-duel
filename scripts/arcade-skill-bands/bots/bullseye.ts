@@ -18,7 +18,11 @@
  */
 import {
   bullseyeBalloonPos,
+  bullseyeBalloonValue,
   bullseyeDrag,
+  bullseyeInInnerBull,
+  bullseyeRingAt,
+  bullseyeRingValue,
   bullseyeRingValues,
   bullseyeScalePct,
   bullseyeSway,
@@ -39,12 +43,26 @@ import {
   type BullseyeState,
 } from "../../../src/lib/arcade/bullseye";
 import { DRAG_FULL_PX, DRAG_MAX_SCALE_256, DRAG_MIN_PX, DRAG_MIN_SCALE_256 } from "../../../src/lib/arcade/engine";
+import type { SkillLevel } from "../human";
 import { driveEvents, type SkillBot } from "../bot";
 
 /** Relative error judging how far a wind point pushes (shared with Swish). */
-const WIND_READ: Record<string, number> = { average: 0.3, good: 0.2, great: 0.12, near: 0.06 };
+const WIND_READ: Record<SkillLevel, number> = { weak: 0.45, average: 0.3, good: 0.2, great: 0.12, near: 0.06, elite: 0.04, perfect: 0 };
 /** Chance of waiting for the drifting target's turnaround rather than leading it through the middle. */
-const WAIT_END: Record<string, number> = { average: 0.35, good: 0.6, great: 0.85, near: 0.95 };
+const WAIT_END: Record<SkillLevel, number> = { weak: 0.15, average: 0.35, good: 0.6, great: 0.85, near: 0.95, elite: 1, perfect: 1 };
+/**
+ * Competence fix (ctx.fixes, Oct 2026): on drifting-target darts the reticle still circles (the
+ * sim adds the sway on every dart), and the phone draws it circling, so a player times the release
+ * against both. The v1 bot ignored the sway there (5–9 px off on 7 of 10 darts, at every level).
+ * The share of the sway each level allows for: a casual player hardly reads it, a top player fully.
+ */
+const SWAY_DRIFT: Record<SkillLevel, number> = { weak: 0.2, average: 0.45, good: 0.65, great: 0.8, near: 0.92, elite: 0.97, perfect: 1 };
+/**
+ * Levels with the balloon policy (ctx.fixes): throw through the part of the balloon over the 10
+ * (or the inner bull) rather than its middle, and only when the pop plus the ring under it pays at
+ * least the plain dart would.
+ */
+const SMART_BALLOON: Record<SkillLevel, boolean> = { weak: false, average: false, good: false, great: false, near: true, elite: true, perfect: true };
 
 /** Landing distance per launch unit (the sim's flight constant). */
 const REACH = (BULLSEYE_BOW_Y - BULLSEYE_CY) / BULLSEYE_REF_V;
@@ -60,7 +78,7 @@ function dragFor(x: number, y: number): { dx: number; dy: number } {
   return { dx: (ox / dist) * len, dy: (oy / dist) * len };
 }
 
-export const bot: SkillBot = ({ game, seed, human }) => {
+export const bot: SkillBot = ({ game, seed, human, fixes }) => {
   const level = human.level;
   const init = game.init(seed) as BullseyeState;
   let planned = -1;
@@ -106,7 +124,50 @@ export const bot: SkillBot = ({ game, seed, human }) => {
             best = u;
           }
         }
-        if (wait && bestD > ring * 2.5) goBalloon = false; // not worth leaving the 10 for
+        if (fixes && SMART_BALLOON[level]) {
+          // A top player: over the 4 s, find the moment the balloon covers the most valuable
+          // point of the board (the 10, or the inner bull while the 10 is the middle) and throw
+          // through the balloon there; leave the balloon when no pass pays at least a plain dart.
+          const plain = values[0] === 10 ? 12 : 10;
+          const bal = bullseyeBalloonValue(s, arrow);
+          const sc = bullseyeScalePct(arrow);
+          // How far off a throw may land and still be counted on: the player's own spread.
+          const spread = 1.5 + human.p.aimSdPx;
+          const valueAt = (x: number, y: number) => {
+            const r = bullseyeRingAt(x, y, sc);
+            if (r === 0 && bullseyeInInnerBull(x, y, sc, values)) return 12;
+            return bullseyeRingValue(r, values);
+          };
+          const sure = (x: number, y: number) =>
+            Math.min(valueAt(x, y), valueAt(x + spread, y), valueAt(x - spread, y), valueAt(x, y + spread), valueAt(x, y - spread));
+          const inside = 12 - spread;
+          let bestPay = -1;
+          let bestSpot: { x: number; y: number } | null = null;
+          for (let u = ready; u < ready + (wait ? 240 : 1); u++) {
+            const land = u + BULLSEYE_FLIGHT_TICKS;
+            const p = bullseyeBalloonPos(s, arrow, land)!;
+            const tdx = tenSpot(land).x - BULLSEYE_CX;
+            // Points inside the balloon (the player's spread in from its edge), judged on the board under them.
+            for (let ox = -inside; ox <= inside; ox += 2)
+              for (let oy = -inside; oy <= inside; oy += 2) {
+                if (ox * ox + oy * oy > inside * inside) continue;
+                const x = Math.round(p.x + ox);
+                const y = Math.round(p.y + oy);
+                const pay = sure(x - tdx, y) + bal;
+                if (pay > bestPay) {
+                  bestPay = pay;
+                  bestSpot = { x, y };
+                  best = u;
+                }
+              }
+          }
+          if (bestPay < plain || !bestSpot) goBalloon = false;
+          else {
+            at = best;
+            timeScale = 1.3;
+            spot = bestSpot;
+          }
+        } else if (wait && bestD > ring * 2.5) goBalloon = false; // not worth leaving the 10 for
         else {
           at = best;
           timeScale = 1.3;
@@ -133,7 +194,7 @@ export const bot: SkillBot = ({ game, seed, human }) => {
             break;
           }
         }
-        useSway = false;
+        useSway = Boolean(fixes);
         timeScale = waitEnd ? 1.3 : 1.5;
         spot = { x: BULLSEYE_CX + dxAt(at), y: BULLSEYE_CY - ringOff };
       }
@@ -141,7 +202,9 @@ export const bot: SkillBot = ({ game, seed, human }) => {
       const shift = bullseyeWindShiftPx(arrow, s.winds[arrow] ?? 0);
       const comp = shift * (1 + WIND_READ[level]! * human.normal());
       // Where the reticle is put (visual placement error), then the sway it is timed against.
-      const sway = useSway ? bullseyeSway(arrow, at) : { dx: 0, dy: 0 };
+      const swayShare = fixes && drift && !goBalloon ? SWAY_DRIFT[level]! : 1;
+      const raw = useSway ? bullseyeSway(arrow, at) : { dx: 0, dy: 0 };
+      const sway = { dx: raw.dx * swayShare, dy: raw.dy * swayShare };
       const aimX = spot.x - comp + human.aim(1) - sway.dx;
       const aimY = spot.y + human.aim(1) - sway.dy;
       const drag = dragFor(aimX, aimY);

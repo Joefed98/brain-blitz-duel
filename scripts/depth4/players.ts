@@ -16,9 +16,9 @@ import { BLOCK_GEOMETRY_D4, absoluteCells, encodePlacements, fitsOn, orientation
 import { rotateMask, tileOpenings } from "../../src/lib/duel/logic";
 import { encodePipesTapAnswer } from "../../src/lib/duel/depth4/pipesTaps";
 import { gemRoute } from "../../src/lib/duel/depth4/gems.server";
-import { d4Finish, parShare } from "../../src/lib/duel/depth4/score";
+import { d4Finish, d4Game, parShare } from "../../src/lib/duel/depth4/score";
 import { D4_PAR_STEP } from "../../src/lib/duel/depth4/grade.server";
-import type { D4Type } from "../../src/lib/duel/depth4/stamps";
+import { d4RevOf, type D4Type } from "../../src/lib/duel/depth4/stamps";
 import { KITS } from "../puzzle-fairness/kits";
 import { SKILLS, hashText, makeRng, thinkMs, type Play, type PuzzleKit, type Rng, type Skill, type Step } from "../puzzle-fairness/kit";
 
@@ -199,14 +199,14 @@ export function runLevel(type: PuzzleType, puzzle: PuzzleData, seed: number, lev
   let score = graded.score;
   const refinish = (share: number): Run => {
     const rev3 = extra["rev3Score"] as number;
-    score = d4Finish(type as D4Type, rev3, rev3 - 120, (extra["time"] as number) ?? 0, (extra["efficiency"] as number) ?? 1, share).score;
+    score = d4Finish(type as D4Type, rev3, rev3 - 120, (extra["time"] as number) ?? 0, (extra["efficiency"] as number) ?? 1, share, d4RevOf(puzzle)).score;
     return { score, solved: true, share };
   };
   if (d4 && graded.isCorrect && type === "push" && !rng.chance(FEATURE_TRY[level])) return refinish(0);
   const miss = PAR_MISS[type];
   if (d4 && graded.isCorrect && miss && d4.share >= 1 && !rng.chance(PAR_FIND[level])) {
     const over = rng.int(miss[0], miss[1]);
-    return refinish(parShare(1 + over, 1, D4_PAR_STEP[type as "unblock"]));
+    return refinish(parShare(1 + over, 1, d4Game(type as D4Type, d4RevOf(puzzle)).parStep ?? D4_PAR_STEP[type as "unblock"]));
   }
   return { score, solved: graded.isCorrect, ...(d4 ? { share: d4.share } : {}) };
 }

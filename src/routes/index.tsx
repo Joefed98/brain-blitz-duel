@@ -13,9 +13,11 @@ import { PublicGameCard } from "@/components/app/PublicGameCard";
 import { DailyCard, shownDailyStatus, useDailyStatus } from "@/components/daily/DailyCard";
 import { ChallengeCard } from "@/components/challenge/ChallengeCard";
 import { PlaySlot } from "@/components/app/PlaySlot";
+import { IntroCard } from "@/components/app/IntroCard";
+import { PlayerBadge } from "@/components/duel/PlayerBadge";
 import { PUBLIC_GAMES } from "@/config/publicGames";
 import { termsAgreed } from "@/lib/beta/terms";
-import { readPlayCards, writePlayCards } from "@/lib/playCards";
+import { readPlayCards, releaseSlot, writePlayCards } from "@/lib/playCards";
 import { ShareWelcomeCard } from "@/components/share/ShareWelcomeCard";
 import { useClock } from "@/components/app/useClock";
 import { markOnboardingSeen, onboardingSeen } from "@/lib/onboarding";
@@ -25,6 +27,11 @@ import { currentUserId, getStoredName, setStoredName } from "@/lib/duel/session"
 import { ROOM_CODE_LENGTH, codeFromInput } from "@/lib/duel/roomLink";
 import { readLastRoom } from "@/lib/duel/deviceHistory";
 import { recentPracticeTypes, warmUpTypes } from "@/lib/duel/practiceRecent";
+import { readPracticeBest } from "@/lib/duel/practiceBest";
+import { currentPracticeStamp } from "@/lib/duel/practiceStamps";
+import { dailyStreak, readDailyRecord } from "@/lib/duel/dailyRecord";
+import { ukDayKey } from "@/lib/duel/daily";
+import { rememberedLook, type PlayerLook } from "@/lib/duel/playerLook";
 import { scheduledGames, upcomingGames, type PublicGame } from "@/lib/publicSchedule";
 import { unlockAudio } from "@/lib/sound";
 import { celebrationSound, celebrationsOn } from "@/lib/fx/celebrations";
@@ -127,8 +134,15 @@ function Home() {
   const [shake, setShake] = useState(0);
   const [busy, setBusy] = useState<"create" | "join" | null>(null);
   const nameRef = useRef<HTMLInputElement | null>(null);
-  // The first-time intro (lib/onboarding): once per device on a plain visit, or from "How it works".
+  // The first-time intro's three panels (Onboarding), from "How it works".
   const [intro, setIntro] = useState(false);
+  // The first-time intro card (lib/onboarding: once per device on a plain visit; reserved before the
+  // first paint, playCards.ts): "pending" until the page is up, then shown or collapsed.
+  const [introCard, setIntroCard] = useState<"pending" | "show" | "hide">("pending");
+  // This device's look (the name row's badge), Warm up's bests and the daily streak: device storage.
+  const [look, setLook] = useState<PlayerLook>({ colour: 0, icon: null });
+  const [bests, setBests] = useState<Partial<Record<PuzzleType, number>>>({});
+  const [streak, setStreak] = useState(0);
   // The beta terms come before the first room (lib/beta/terms.ts): Create or Join waits for I AGREE.
   const [termsFor, setTermsFor] = useState<"create" | "join" | null>(null);
   // The Add to Home Screen hint (iPhone Safari, first visit; reserved before the first paint, playCards.ts).
@@ -151,13 +165,30 @@ function Home() {
     setEditingName(stored.trim() === "");
     const types = warmUpTypes(recentPracticeTypes());
     setRecent(types);
+    const remembered = rememberedLook();
+    setLook({ colour: remembered.colour ?? 0, icon: remembered.icon ?? null });
+    setBests(
+      Object.fromEntries(
+        types.flatMap((type) => {
+          const best = readPracticeBest(type, currentPracticeStamp(type));
+          return best === null ? [] : [[type, best]];
+        }),
+      ),
+    );
+    const record = readDailyRecord();
+    setStreak(dailyStreak(record.days, ukDayKey(Date.now())));
     setGames(scheduledGames());
     setMounted(true);
   }, []);
   useEffect(() => {
-    // A shared link's arrival is welcomed by the card below instead (as a room link marks it seen).
+    // Shown once on a plain visit: seen as soon as it is up, so leaving without closing it still counts.
+    const fresh = !isShareRef(window.location.search) && !onboardingSeen();
+    // A shared link's arrival is welcomed by the share card instead (as a room link marks it seen).
     if (isShareRef(window.location.search)) markOnboardingSeen();
-    else if (!onboardingSeen()) setIntro(true);
+    else if (fresh) markOnboardingSeen();
+    setIntroCard(fresh ? "show" : "hide");
+    // Seen now: the next visit to the tab (this page load's reservation stays on <html>) never reserves it.
+    return () => releaseSlot("intro");
   }, []);
   // Silent until the slot gets a file (docs/sound-cues/music.md).
   useScreenMusic("music_home");
@@ -237,6 +268,20 @@ function Home() {
   return (
     <PhoneShell tabs="play">
       <div className="ap-stack">
+        <PlaySlot id="intro" state={introCard}>
+          <IntroCard
+            onClose={() => setIntroCard("hide")}
+            onPractice={() => {
+              unlockAudio();
+              const first = warmUp[0];
+              goToTab(router, "play", "practice", first ? { game: first } : undefined);
+            }}
+            onHowItWorks={() => {
+              unlockAudio();
+              setIntro(true);
+            }}
+          />
+        </PlaySlot>
         <PlaySlot id="welcome" state={slotState(welcome !== null, welcome === true)}>
         <ShareWelcomeCard
           assumeDue
@@ -252,7 +297,7 @@ function Home() {
         />
         </PlaySlot>
 
-        <div>
+        <div data-play-hero>
           <h1 className="ap-title" aria-label="Play live with friends">
             <span>Play live</span> <span>with friends</span>
           </h1>
@@ -280,8 +325,9 @@ function Home() {
               className="ap-input tap-target"
             />
           ) : (
-            <p className="flex h-11 items-center justify-between gap-3 text-[15px] text-muted-foreground">
-              <span className="min-w-0 truncate">
+            <p className="flex h-11 items-center justify-between gap-2.5 text-[15px] text-muted-foreground">
+              <PlayerBadge look={look} name={name} size={28} />
+              <span className="min-w-0 flex-1 truncate">
                 Playing as <span className="th-name font-semibold text-foreground">{name}</span>
               </span>
               <button
@@ -391,31 +437,6 @@ function Home() {
         })()}
         </PlaySlot>
 
-        {/* The Daily card sits below the share welcome card (the first card on the tab), as agreed for #125 + #126. */}
-        <PlaySlot id="daily" state={slotState(daily.settled, !!daily.status?.available)}>
-        <DailyCard
-          status={dailyShown}
-          onOpen={(kind) => {
-            unlockAudio();
-            void router.navigate({
-              to: "/daily",
-              search: { kind },
-              state: { fromPlayTab: true } as never,
-            });
-          }}
-        />
-        </PlaySlot>
-
-        <PlaySlot id="challenge" state={slotState(challenges !== null, challenges === true)}>
-        <ChallengeCard
-          available
-          onOpen={() => {
-            unlockAudio();
-            void router.navigate({ to: "/challenge", search: {}, state: { fromPlayTab: true } as never } as never);
-          }}
-        />
-        </PlaySlot>
-
         {/* Its last height is reserved before the first paint (playCards.ts): the schedule is read on the phone. */}
         <div
           ref={publicSlot}
@@ -445,6 +466,32 @@ function Home() {
         ) : null}
         </div>
 
+        {/* Today: the dailies, with Challenge a friend joining their panel (app-pages.css). */}
+        <PlaySlot id="daily" state={slotState(daily.settled, !!daily.status?.available)}>
+        <DailyCard
+          status={dailyShown}
+          streak={streak}
+          onOpen={(kind) => {
+            unlockAudio();
+            void router.navigate({
+              to: "/daily",
+              search: { kind },
+              state: { fromPlayTab: true } as never,
+            });
+          }}
+        />
+        </PlaySlot>
+
+        <PlaySlot id="challenge" state={slotState(challenges !== null, challenges === true)}>
+        <ChallengeCard
+          available
+          onOpen={() => {
+            unlockAudio();
+            void router.navigate({ to: "/challenge", search: {}, state: { fromPlayTab: true } as never } as never);
+          }}
+        />
+        </PlaySlot>
+
         <section aria-label="Warm up" className="ap-section">
           <div className="ap-section-head">
             <h2 className="ap-section-title">Warm up</h2>
@@ -456,21 +503,32 @@ function Home() {
               All {ACTIVE_GAMES} games
             </button>
           </div>
-          <div className="grid grid-cols-3 gap-3">
+          {/* Three games in one panel, each with this device's best (or "Not played"). */}
+          <div data-warm-panel data-warm="" data-divided="" className="ap-panel ap-game-strip" style={{ ["--ap-strip" as string]: 3 }}>
             {warmUp.map((type) => (
               <button
                 key={type}
                 type="button"
                 data-warm-up={type}
+                aria-label={PUZZLE_REGISTRY[type].name}
                 onClick={() => {
                   unlockAudio();
                   goToTab(router, "play", "practice", { game: type });
                 }}
-                className="press flex min-w-0 flex-col items-center gap-2 rounded-[18px] py-1"
+                className="press"
               >
-                <GameIcon type={type} size={62} />
-                <span className="w-full truncate text-center text-[14px] font-semibold text-foreground">
+                <GameIcon type={type} size={60} />
+                <span aria-hidden="true" className="ap-strip-name">
                   {PUZZLE_REGISTRY[type].name}
+                </span>
+                <span aria-hidden="true" data-warm-best={bests[type] ?? ""} data-none={bests[type] === undefined || undefined} className="ap-strip-best">
+                  {bests[type] === undefined ? (
+                    "Not played"
+                  ) : (
+                    <>
+                      Best <b>{bests[type]}</b>
+                    </>
+                  )}
                 </span>
               </button>
             ))}

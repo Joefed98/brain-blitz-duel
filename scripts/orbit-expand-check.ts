@@ -292,7 +292,7 @@ const fly = (s: OrbitRev3State, ticks: number, until: (s: OrbitRev3State) => boo
     else console.log(`  differs: ${run.level} seed ${run.seed}: ${r.score} vs ${run.score}`);
     levels.add(run.level);
   }
-  ok(fixture.runs.length >= 24 && match === fixture.runs.length && levels.size === 6, `${match} / ${fixture.runs.length} recorded orbitRev 12 runs (${[...levels].join(", ")}) replay to the same score, checksum and tick`);
+  ok(fixture.runs.length >= 24 && match === fixture.runs.length && levels.size === 7, `${match} / ${fixture.runs.length} recorded orbitRev 12 runs (${[...levels].join(", ")}) replay to the same score, checksum and tick`);
   const low = fixture.runs.filter((r) => r.level === "weak" || r.level === "average");
   ok(low.length > 0 && low.every((r) => r.score > 0), `no recorded weak or average run scores 0 (${low.map((r) => r.score).join(", ")})`);
 }

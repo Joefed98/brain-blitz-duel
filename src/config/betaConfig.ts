@@ -34,6 +34,14 @@ export const TALLY_URL = "";
 export const CONTACT_EMAIL = "";
 
 /**
+ * The beta's Discord invite link, e.g. "https://discord.gg/abcd1234" (tab pages refresh, 26 Oct 2026).
+ *
+ * Empty: the Tournaments tab's "Open the beta Discord" button (shown when no public game is scheduled)
+ * is hidden. Set: it opens the link in a new tab.
+ */
+export const DISCORD_URL = "";
+
+/**
  * Celebrations (Prompt P, 23 Oct 2026; display, sound and animation only): the podium hero, the
  * hero run, the new-best and streak banners, the results count-up, the logo charge-in, the lobby
  * charge meter, the GO lightning and the signature zap (src/lib/fx/celebrations.ts).
