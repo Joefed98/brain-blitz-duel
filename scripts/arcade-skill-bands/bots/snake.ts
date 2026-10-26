@@ -9,7 +9,8 @@
  * reaction later, when the player re-plans. With no route in hand (finding the
  * next star) the player steers away from what is right ahead of the head.
  */
-import { snakeReversal, snakeStepTicks, snakeStepTicksFor, snakeColsOf, snakeWarpExit, SNAKE_INPUT_TURN, snakeRowsOf, SNAKE_GOLD_LIFE, type SnakeState } from "../../../src/lib/arcade/snake";
+import { bandPoints } from "../../../src/lib/arcade/scoreBands";
+import { snakeGoldWorth, SNAKE_V9_BAND_CURVE, SNAKE_V9_CAPS, snakeReversal, snakeStepTicks, snakeStepTicksFor, snakeColsOf, snakeWarpExit, SNAKE_INPUT_TURN, snakeRowsOf, SNAKE_GOLD_LIFE, type SnakeState } from "../../../src/lib/arcade/snake";
 import type { SkillLevel } from "../human";
 import { driveEvents, type SkillBot } from "../bot";
 import type { Human } from "../human";
@@ -296,7 +297,7 @@ export const bot: SkillBot = ({ game, seed, human }) => {
   /** The gold star this player is going for, and the golds already decided on. */
   let goldGoal = -1;
   const goldSeen = new Set<number>();
-  const GOLD_WILL: Record<SkillLevel, number> = { weak: 0.25, average: 0.45, good: 0.65, great: 0.8, near: 0.92, elite: 0.98, perfect: 0.98 };
+  const GOLD_WILL: Record<SkillLevel, number> = { weak: 0.25, average: 0.45, good: 0.65, great: 0.8, near: 0.92, elite: 0.98, perfect: 1 };
   /** Swipes planned: tick → direction. */
   const swipes = new Map<number, number>();
   let lastSwipe = -100;
@@ -380,7 +381,22 @@ export const bot: SkillBot = ({ game, seed, human }) => {
         const g = s.gold!;
         const dist = Math.abs(Math.trunc(g / COLS) - Math.trunc(head / COLS)) + Math.abs((g % COLS) - (head % COLS));
         // Worth it when it can be reached well before it fades.
-        if (dist * snakeStepTicks(s.eaten) + 40 < SNAKE_GOLD_LIFE) {
+        let worth = dist * snakeStepTicks(s.eaten) + 40 < SNAKE_GOLD_LIFE;
+        if (worth && (level === "elite" || level === "perfect")) {
+          // Elite and flawless (Oct 2026): stars first. The gold is taken only when what it still pays (its
+          // worth on arrival, nothing past the gold cap) beats the star points the detour's extra squares cost
+          // at the run's own star rate, valued on the band curve where the run is heading.
+          const step = snakeStepTicks(s.eaten);
+          const md = (a: number, b: number) => Math.abs(Math.trunc(a / COLS) - Math.trunc(b / COLS)) + Math.abs((a % COLS) - (b % COLS));
+          const extra = Math.max(0, dist + md(g, s.pellet) - md(head, s.pellet));
+          const pays = Math.min(snakeGoldWorth(t + dist * step + 20, s.goldEnd ?? 0), SNAKE_V9_CAPS.gold - (s.goldPts ?? 0));
+          // A star's worth is the curve's slope where the run is heading (its final count at this pace).
+          const ticksPerStar = s.eaten > 2 ? t / s.eaten : 120;
+          const final = Math.round(s.eaten + Math.max(0, game.runTicks - t) / ticksPerStar);
+          const perStar = bandPoints(SNAKE_V9_BAND_CURVE, final) - bandPoints(SNAKE_V9_BAND_CURVE, final - 1);
+          worth = pays > (extra * step * perStar) / ticksPerStar;
+        }
+        if (worth) {
           goldGoal = g;
           replanAt = t + human.reactTicks() + human.thinkTicks(200);
         }

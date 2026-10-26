@@ -26,6 +26,9 @@ import {
   BT_K_ROTATE,
   BT_STEP_TICKS,
   BT_TILE,
+  BT_V7_BOOST_STEPS,
+  BT_V7_BOOST_TICKS,
+  BT_V7_DROP_TICKS,
   BT_W,
   type BtCourse,
   type BtState,
@@ -80,7 +83,66 @@ function routeFrom(course: BtCourse, rot: Set<number>, start: number, above: boo
   return null;
 }
 
-export const bot: SkillBot = ({ game, human }) => {
+/**
+ * Oct 2026: the shortest route into column `col` that passes a speed booster (a boosted
+ * marble home is a feature point), or null.
+ */
+function boostedRoute(course: BtCourse, rot: Set<number>, start: number, above: boolean, col: number, tick: number, avoidCross: boolean): Step[] | null {
+  const boost = new Set(course.boost ?? []);
+  if (!boost.size) return null;
+  type Q = { cell: number; above: boolean; on: boolean; path: Step[] };
+  const queue: Q[] = [{ cell: start, above, on: boost.has(start), path: [] }];
+  const seen = new Set<string>();
+  while (queue.length) {
+    const q = queue.shift()!;
+    const key = `${q.cell}|${q.above}|${q.on}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    const options = btLayout(course).kind[q.cell] === 2 ? [-1] : rot.has(q.cell) ? [0, 1] : [0];
+    for (const v of options) {
+      const next = btNext(q.cell, q.above, v === 1, course, tick);
+      const path = [...q.path, { cell: q.cell, vert: rot.has(q.cell) ? v : -1 }];
+      if (next.cell >= SLOT) {
+        if (next.cell - SLOT === col && q.on) return path;
+        continue;
+      }
+      if (next.cell < 0) continue;
+      if (avoidCross && next.fromAbove && course.cross?.includes(next.cell)) continue;
+      queue.push({ cell: next.cell, above: next.fromAbove, on: q.on || boost.has(next.cell), path });
+    }
+  }
+  return null;
+}
+/** Extra steps a booster route may take over the shortest one. */
+const BOOST_SLACK = 2;
+/**
+ * Oct 2026 fix: chance per marble of routing it through a speed booster when that is cheap (players who
+ * know boosted marbles pay look for the chevrons; before, no level did, so boosts came only by accident).
+ */
+const BOOST_SEEK: Record<SkillLevel, number> = { weak: 0, average: 0.1, good: 0.3, great: 0.6, near: 0.85, elite: 1, perfect: 1 };
+
+/**
+ * Oct 2026 fix: when a marble following `route` lands, counted step by step as the sim moves it (a
+ * booster's quick steps included; queueing behind another marble ignored). Used to tell which side of a
+ * warned tray change a landing falls.
+ */
+function landTick(course: BtCourse, route: Step[], ball: { cell: number; at: number; bst?: number } | undefined, id: number): number {
+  const boost = new Set(course.boost ?? []);
+  let at = ball ? ball.at : 1 + id * BT_V7_DROP_TICKS + BT_STEP_TICKS;
+  let bst = ball?.bst ?? 0;
+  const move = (into: number | undefined) => {
+    if (into !== undefined && boost.has(into)) bst = BT_V7_BOOST_STEPS;
+    if (bst > 0) {
+      at += BT_V7_BOOST_TICKS;
+      bst--;
+    } else at += BT_STEP_TICKS;
+  };
+  if (!ball || ball.cell < 0) move(BT_HOPPER_COL);
+  for (let i = 0; i < route.length; i++) move(route[i + 1]?.cell);
+  return at;
+}
+
+export const bot: SkillBot = ({ game, human, fixes }) => {
   const level = human.level;
   const g = game as BtGame;
   const course = g.course;
@@ -98,6 +160,10 @@ export const bot: SkillBot = ({ game, human }) => {
   /** Off-route marbles noticed: re-plan after a reaction. */
   const offNoticed = new Map<number, number>();
 
+  /** Oct 2026 fix: the tray column each planned route ends in, and the warned events already re-checked. */
+  const routeCol = new Map<number, number>();
+  const rechecked = new Set<number>();
+
   const plan = (s: BtState, id: number, t: number): void => {
     const ball = s.balls.find((b) => b.id === id);
     const colour = course.balls[id]!;
@@ -107,19 +173,55 @@ export const bot: SkillBot = ({ game, human }) => {
     let at = t;
     const guess = routeFrom(course, rot, start, above, btTraysAt(course, t).indexOf(colour), t);
     const eta = t + (guess ? guess.length : 20) * BT_STEP_TICKS + (ball ? 0 : 103);
-    for (const ev of [course.relay, course.shuffle]) {
-      if (ev.tick > t && ev.tick <= eta && ev.tick - t <= WARN_TICKS + 60 && human.chance(HEED[level])) at = ev.tick;
-    }
+    let trayAt: ((tick: number) => number) | null = null;
+    if (fixes) {
+      // Oct 2026 fix: a warned change (countdown on screen) is allowed for by when this marble will really
+      // land on its route, re-read once for the route to the tray it will then need.
+      const heeds = [course.relay, course.shuffle].map((ev) => ev.tick > t && ev.tick - t <= WARN_TICKS + 60 && human.chance(HEED[level]));
+      const landAt = (r: Step[] | null) => (r ? landTick(course, r, ball, id) : eta);
+      trayAt = (tick: number) => {
+        let k = t;
+        [course.relay, course.shuffle].forEach((ev, i) => {
+          if (heeds[i] && tick >= ev.tick) k = Math.max(k, ev.tick);
+        });
+        return k;
+      };
+      at = trayAt(landAt(guess));
+      const again = routeFrom(course, rot, start, above, btTraysAt(course, at).indexOf(colour), at);
+      at = trayAt(landAt(again));
+    } else
+      for (const ev of [course.relay, course.shuffle]) {
+        if (ev.tick > t && ev.tick <= eta && ev.tick - t <= WARN_TICKS + 60 && human.chance(HEED[level])) at = ev.tick;
+      }
     const trays = btTraysAt(course, at);
     let col = trays.indexOf(colour);
     // Misreading which tray is whose (or a plain slip).
+    let misread = false;
     if (human.chance(human.p.judgement * 0.15) || human.slip(0.5)) {
       const others = trays.flatMap((c, i) => (c >= 0 && c !== colour ? [i] : []));
       if (others.length) col = others[human.int(0, others.length - 1)]!;
+      misread = others.length > 0;
     }
     const avoid = (course.cross?.length ?? 0) > 0 && human.chance(AVOID_X[level]);
-    const route = (avoid ? routeFrom(course, rot, start, above, col, at, true) : null) ?? routeFrom(course, rot, start, above, col, at) ?? routeFrom(course, rot, start, above, col, t);
+    const routeTo = (c: number, tick: number) => (avoid ? routeFrom(course, rot, start, above, c, tick, true) : null) ?? routeFrom(course, rot, start, above, c, tick) ?? routeFrom(course, rot, start, above, c, t);
+    let route = routeTo(col, at);
+    if (trayAt && route && !misread) {
+      // The route actually taken (round a crossover, say) may land on the other side of the change.
+      const real = trayAt(landTick(course, route, ball, id));
+      if (real !== at) {
+        at = real;
+        col = btTraysAt(course, at).indexOf(colour);
+        route = routeTo(col, at);
+      }
+    }
+    if (route && !misread && trayAt && BOOST_SEEK[level] > 0 && !((ball?.via ?? 0) & 4) && human.chance(BOOST_SEEK[level])) {
+      // Base first: a booster route only when it costs at most a couple of steps and lands on the same side
+      // of any warned change (so the marble still goes home).
+      const via = boostedRoute(course, rot, start, above, col, at, avoid);
+      if (via && via.length <= route.length + BOOST_SLACK && trayAt(landTick(course, via, ball, id)) === at) route = via;
+    }
     routes.set(id, route ?? []);
+    routeCol.set(id, col);
   };
 
   return driveEvents(
@@ -132,6 +234,30 @@ export const bot: SkillBot = ({ game, human }) => {
       // Which marbles are in mind: released ones first, then the next out, up to the horizon.
       const inPlay = seen.balls.filter((b) => b.cell < SLOT).map((b) => b.id).sort((a, b) => a - b);
       const mind = [...inPlay, seen.next].filter((id) => id < course.balls.length).slice(0, HORIZON[level]);
+
+      // Oct 2026 fix: when a re-lay or shuffle countdown appears, the player re-checks the marbles already
+      // planned (each with the chance they heed it) and re-plans those whose tray will have moved by the
+      // time they land; only a changed route costs think time. Before, a route planned before the warning
+      // kept its old tray, so even the flawless player sent two marbles a run to the wrong cup.
+      if (fixes) {
+        for (const ev of [course.relay, course.shuffle]) {
+          if (rechecked.has(ev.tick) || seen.tick < ev.tick - WARN_TICKS || seen.tick >= ev.tick) continue;
+          rechecked.add(ev.tick);
+          let think = 0;
+          for (const id of [...routes.keys()].sort((a, b) => a - b)) {
+            if (id >= course.balls.length || !human.chance(HEED[level])) continue;
+            const b = seen.balls.find((x) => x.id === id);
+            if (b && b.cell >= SLOT) continue;
+            const before = routeCol.get(id);
+            plan(seen, id, t);
+            if (routeCol.get(id) !== before) think += human.thinkTicks(300);
+          }
+          if (think > 0) {
+            busyUntil = t + think;
+            return null;
+          }
+        }
+      }
 
       // A marble off its planned route is noticed one reaction later, then re-planned.
       for (const id of mind) {

@@ -12,6 +12,11 @@
  * and flipping off in time. Gold stars: on first sight the player decides
  * whether to go for one; if a route over the known stretch takes it, they
  * plan for that, otherwise they let it go. Slips: a flip well off its moment.
+ *
+ * Competence fix (Oct 2026, ctx.fixes; docs/arcade-bands-elite.md): a star, once read, is taken into
+ * the plan at once, and a tap planned for later than a reaction from then is held and re-planned (the
+ * bot used to re-plan only for hazards, so a flip already lined up could cost a star that was read in
+ * time to keep it; even the flawless bot lost a gold star that way on some seeds).
  */
 import {
   FLIP_INPUT_TAP,
@@ -32,7 +37,7 @@ const HALF = FLIP_RUNNER_HALF_PX_V2 * FP;
 const STAR_TRY: Record<SkillLevel, number> = { weak: 0.3, average: 0.5, good: 0.7, great: 0.85, near: 0.95, elite: 1, perfect: 1 };
 const TAP = { k: FLIP_INPUT_TAP, a: 0, b: 0, c: 0, d: 0 };
 
-export const bot: SkillBot = ({ game, seed, human }) => {
+export const bot: SkillBot = ({ game, seed, human, fixes }) => {
   const level = human.level;
   const lag = human.lagTicks();
   const commitLead = Math.round(human.p.reactionMs[0] / (1000 / 60));
@@ -148,6 +153,16 @@ export const bot: SkillBot = ({ game, seed, human }) => {
         starWant.push(human.chance(STAR_TRY[level]!));
       }
       for (let i = 0; i < segReady.length; i++) if (segReady[i] === t) dirty = true;
+      // Fixes: a wanted star, once read, is taken into the plan straight away (as a hazard is), and a tap
+      // planned but not yet under way (more than a reaction off) is held for it.
+      if (fixes) {
+        let read = false;
+        for (let i = 0; i < starReady.length; i++) if (starReady[i] === t && starWant[i] && !((s.got ?? 0) & (1 << i))) read = true;
+        if (read) {
+          dirty = true;
+          if (pending !== null && pending - t > commitLead) pending = null;
+        }
+      }
       if ((s.flipT === 0 && lastFlipT > 0) || t >= replanAt) dirty = true;
       lastFlipT = s.flipT;
 

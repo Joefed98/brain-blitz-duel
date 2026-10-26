@@ -13,7 +13,7 @@
  * misreads a long dead-end branch as the way on, rolls down it and stops to
  * rethink. A slip is a moment of tilting the wrong way.
  */
-import { tiltCellCentre, tiltStarPoint, TILT_INPUT_DRAG, TILT_WORLD_W, type Maze, type TiltState } from "../../../src/lib/arcade/tilt";
+import { tiltCellCentre, tiltStarPoint, TILT_INPUT_DRAG, TILT_MAX_MAZES, TILT_RUN_TICKS, TILT_WORLD_W, type Maze, type TiltState } from "../../../src/lib/arcade/tilt";
 import { driveEvents, type SkillBot } from "../bot";
 import type { SkillLevel } from "../human";
 
@@ -30,8 +30,22 @@ const FINGER: Record<SkillLevel, number> = { weak: 6, average: 7, good: 8, great
 const GLANCE: Record<SkillLevel, number> = { weak: 14, average: 12, good: 10, great: 8, near: 6, elite: 5, perfect: 5 };
 /** How far ahead (ticks) the player foresees where the marbles roll. */
 const HORIZON: Record<SkillLevel, number> = { weak: 22, average: 30, good: 38, great: 44, near: 48, elite: 50, perfect: 50 };
+/** Fixes: ticks of braking tried after the look-ahead (the disc turns slowly, so stopping takes a while). */
+const BRAKE_TICKS = 60;
+/** Fixes: chance per glance that the player weighs the marble's speed against the holes ahead (stopping distance). */
+const CAUTION: Record<SkillLevel, number> = { weak: 0.35, average: 0.6, good: 0.75, great: 0.88, near: 0.96, elite: 0.98, perfect: 1 };
+/** Fixes: ticks without progress before the player stops and tries something else (v1: 240 at every level). */
+const STUCK: Record<SkillLevel, number> = { weak: 300, average: 260, good: 220, great: 190, near: 160, elite: 150, perfect: 120 };
+/** Fixes: a typical strong player's ticks per route cell (thinking included), before the run gives its own. */
+const PACE_PRIOR = 15;
+/** Fixes: chance a stuck player works out the two-move way on (else they try something at random). */
+const DEEP_FIND: Record<SkillLevel, number> = { weak: 0.25, average: 0.45, good: 0.65, great: 0.8, near: 0.92, elite: 0.96, perfect: 1 };
+/** Fixes: how long the first move of a two-move plan is held, ticks after the turn. */
+const DEEP_HOLDS = [3, 6, 10, 14, 20, 26];
 /** tiltRev 4: a star at a hole's mouth is taken this much less often (the fall ends the run). */
 const MOUTH_GO = 0.5;
+/** Fixes: levels that leave a hole's star alone (elite policy: protect the run). */
+const SKIP_MOUTH: Record<SkillLevel, boolean> = { weak: false, average: false, good: false, great: false, near: false, elite: true, perfect: true };
 /** Chance of detouring for each bonus star. */
 const STAR_GO: Record<SkillLevel, number> = process.env.TILT_NO_STARS ? { weak: 0, average: 0, good: 0, great: 0, near: 0, elite: 0, perfect: 0 } : { weak: 0, average: 0.15, good: 0.45, great: 0.75, near: 0.92, elite: 1, perfect: 1 };
 
@@ -136,7 +150,7 @@ interface Goal {
   pt?: { x: number; y: number };
 }
 
-export const bot: SkillBot = ({ game, seed, human }) => {
+export const bot: SkillBot = ({ game, seed, human, fixes }) => {
   const level = human.level;
   const init = game.init(seed) as TiltState;
   const history: TiltState[] = [];
@@ -162,6 +176,11 @@ export const bot: SkillBot = ({ game, seed, human }) => {
   let bestProgress = Infinity;
   let bestAt = 0;
   let wanderUntil = -1;
+  let switchedAt = -10000;
+  let lastGoalKey = -1;
+  let deep: { from: number; a1: number; until1: number; a2: number; until2: number } | null = null;
+  /** Fixes: the tilts the last look-ahead found no marble falling with (for a safe "try something else"). */
+  let safeAngles: number[] = [];
 
   const bodyOf = (s: TiltState, which: number) => {
     if (which === 0) return s.aHome ? null : { x: s.x, y: s.y, vx: s.vx, vy: s.vy };
@@ -179,6 +198,9 @@ export const bot: SkillBot = ({ game, seed, human }) => {
     starPlan = (m.stars ?? []).filter((c, k) => {
       const centre = tiltCellCentre(m, c);
       const atHole = !!m.starXY && (m.starXY[2 * k] !== centre.x || m.starXY[2 * k + 1] !== centre.y);
+      // Elite and flawless (fixes): never a hole's star. Leaning into a hole's mouth risks the whole run for 5 points
+      // (on the tuning seeds elite fell in 8 runs of 60 taking the ones on its route, 2 of 60 taking none, same median).
+      if (atHole && fixes && SKIP_MOUTH[level]) return false;
       return human.chance(STAR_GO[level] * (atHole ? MOUTH_GO : 1));
     });
     focus = 0;
@@ -189,6 +211,29 @@ export const bot: SkillBot = ({ game, seed, human }) => {
     }
     bestProgress = Infinity;
     bestAt = t;
+  };
+
+  /** Route cells from each maze's start(s) to its cup(s): the work a run must do. */
+  const routeCells = (mz: Maze) => {
+    const a = field(mz, mz.exit)[mz.start] ?? 0;
+    const b = mz.start2 !== undefined && mz.start2 >= 0 && mz.exit2 !== undefined && mz.exit2 >= 0 ? (field(mz, mz.exit2)[mz.start2] ?? 0) : 0;
+    return a + b;
+  };
+  /** Fixes: whether the detour to `star` still leaves time to finish every maze at the player's pace. */
+  const starAffordable = (s: TiltState, m: Maze, which: number, c: number, star: number, t: number): boolean => {
+    const left = (b: { x: number; y: number } | null, exit: number) => (b ? (field(m, exit)[cellAt(m, b.x, b.y)] ?? 0) : 0);
+    const here = left(bodyOf(s, 0), m.exit) + (s.b ? left(bodyOf(s, 1), m.exit2!) : 0);
+    let later = 0;
+    for (let k = s.level + 1; k < TILT_MAX_MAZES && k < s.list.length; k++) later += routeCells(s.list[k]!);
+    let done = 0;
+    for (let k = 0; k < s.level; k++) done += routeCells(s.list[k]!);
+    done += Math.max(0, routeCells(m) - here);
+    const exit = which === 0 ? m.exit : m.exit2!;
+    const detour = Math.max(0, (field(m, c)[star] ?? 0) + (field(m, exit)[star] ?? 0) - (field(m, exit)[c] ?? 0));
+    // Pace (ticks a route cell, thinking included): the run's own once it has some, else a typical one.
+    const pace = done >= 40 ? Math.max(9, Math.min(30, t / done)) : PACE_PRIOR;
+    const need = pace * (here + later + detour + 4) * Math.exp(human.p.judgement * human.normal());
+    return t + need < TILT_RUN_TICKS - 60;
   };
 
   /** The current goal of the steered marble (as the player has it in mind). */
@@ -207,6 +252,12 @@ export const bot: SkillBot = ({ game, seed, human }) => {
     if (want.length && c >= 0) {
       const dist = field(m, c);
       want.sort((p, q) => dist[p]! - dist[q]!);
+      // Fixes: a star is worth 5 points, finishing every maze far more; the player drops a star whose detour the
+      // clock can no longer spare (judged by their own pace so far, with their own misjudgement).
+      if (fixes && !starAffordable(s, m, which, c, want[0]!, t)) {
+        starPlan = starPlan.filter((sc) => sc !== want[0]);
+        return goalOf(s, m, t);
+      }
       return { which, cell: want[0]!, dir: -1, pt: tiltStarPoint(m, stars.indexOf(want[0]!)) };
     }
     // Reading a fork for the first time: a long dead-end branch can look like the way on.
@@ -229,9 +280,31 @@ export const bot: SkillBot = ({ game, seed, human }) => {
     return { which, cell: exit, dir: exitDir };
   };
 
+  /**
+   * Fixes (Oct 2026): can the marble(s) still be stopped from here? Tilt against the steered marble's
+   * motion at the player's own turning speed and see whether either marble rolls into a hole first: a
+   * hole the player can see coming is one to brake for, not only one the held tilt drops into.
+   */
+  const brakeFalls = (p: TiltState, which: number): boolean => {
+    let q = p;
+    for (let h = 0; h < BRAKE_TICKS && !game.isOver(q); h++) {
+      const b = bodyOf(q, which) ?? bodyOf(q, 1 - which);
+      if (!b) return false;
+      if (Math.abs(b.vx) + Math.abs(b.vy) < 48) {
+        const o = bodyOf(q, 1 - which);
+        if (!o || Math.abs(o.vx) + Math.abs(o.vy) < 48) return false;
+      }
+      const target = Math.round((Math.atan2(-b.vx, -b.vy) / (2 * Math.PI)) * TURN) & (TURN - 1);
+      const px = Math.max(-fingerTop, Math.min(fingerTop, Math.round(wrap(target - q.angle) / ANG_PER_PX)));
+      q = game.step({ ...q, angle: (q.angle + px * ANG_PER_PX) & (TURN - 1) }, null);
+    }
+    return q.ended === 2;
+  };
+
   /** How good a (forked) state is for the goal, as an experienced eye judges it. */
-  const value = (p: TiltState, s0: TiltState, goal: Goal): number => {
-    if (p.ended === 2) return -1e15;
+  const value = (p: TiltState, s0: TiltState, goal: Goal, careful = false): number => {
+    // Fixes: of runs that all fall, the latest fall is the least bad (more time to correct).
+    if (p.ended === 2) return fixes ? -1e15 + p.endedTick * 1e6 : -1e15;
     if (p.mazes > s0.mazes || p.ended === 1) return 1e13;
     const m = p.list[p.level]!;
     let v = 0;
@@ -245,6 +318,7 @@ export const bot: SkillBot = ({ game, seed, human }) => {
     const o = bodyOf(p, 1 - goal.which);
     if (o) v -= 0.05 * pathDist(m, o.x, o.y, goal.which === 0 ? m.exit2! : m.exit, goal.which === 0 ? m.exitDir2! : m.exitDir);
     if (p.chaser && p.gate) for (const ball of [bodyOf(p, 0), bodyOf(p, 1)]) if (ball) v += Math.min(4 * m.cs, Math.abs(ball.x - p.chaser.x) + Math.abs(ball.y - p.chaser.y));
+    if (careful && brakeFalls(p, goal.which)) v -= 1e12;
     return v;
   };
 
@@ -252,7 +326,10 @@ export const bot: SkillBot = ({ game, seed, human }) => {
   const idealAngle = (seen: TiltState, goal: Goal): number => {
     let best = seen.angle;
     let bestV = -Infinity;
+    safeAngles = [];
     const horizon = HORIZON[level];
+    // Fixes: this glance the player also judges whether the marble could still be stopped short of a hole.
+    const careful = !!fixes && human.chance(CAUTION[level]);
     for (let k = 0; k < 24; k++) {
       const target = (k * TURN) / 24;
       let p: TiltState = seen;
@@ -261,13 +338,59 @@ export const bot: SkillBot = ({ game, seed, human }) => {
         const px = Math.max(-fingerTop, Math.min(fingerTop, Math.round(wrap(target - p.angle) / ANG_PER_PX)));
         p = game.step({ ...p, angle: (p.angle + px * ANG_PER_PX) & (TURN - 1) }, null);
       }
-      const v = value(p, seen, goal);
+      const v = value(p, seen, goal, careful);
+      if (v > -1e11) safeAngles.push(target);
       if (v > bestV) {
         bestV = v;
         best = target;
       }
     }
     return best;
+  };
+
+  /** Rolls `p` with the disc turned toward `target` (the player's own turning speed) for `n` ticks. */
+  const roll = (p: TiltState, target: number, n: number): TiltState => {
+    for (let h = 0; h < n && !game.isOver(p); h++) {
+      const px = Math.max(-fingerTop, Math.min(fingerTop, Math.round(wrap(target - p.angle) / ANG_PER_PX)));
+      p = game.step({ ...p, angle: (p.angle + px * ANG_PER_PX) & (TURN - 1) }, null);
+    }
+    return p;
+  };
+
+  /**
+   * Fixes: when a held tilt can't get the marble on (it must drop into a one-cell gap, or brake before a hole and
+   * then turn), the player thinks it through as two moves: tilt one way for a moment, then another. Tried only when
+   * stuck (it is a harder think, and it costs think time). Returns the plan, or null when nothing beats the held tilt.
+   */
+  const deepPlan = (seen: TiltState, goal: Goal): { a1: number; h1: number; a2: number } | null => {
+    const horizon = HORIZON[level];
+    let bestV = -Infinity;
+    let plan: { a1: number; h1: number; a2: number } | null = null;
+    let single = -Infinity;
+    // The first move: each of 24 tilts, or holding the tilt as it is (waiting for the right moment).
+    for (let k1 = 0; k1 <= 24; k1++) {
+      const a1 = k1 < 24 ? (k1 * TURN) / 24 : seen.angle;
+      const turn1 = Math.ceil(Math.abs(wrap(a1 - seen.angle)) / (ANG_PER_PX * fingerTop));
+      let p = roll(seen, a1, turn1);
+      let held = 0;
+      for (const h1 of DEEP_HOLDS) {
+        p = roll(p, a1, h1 - held);
+        held = h1;
+        if (game.isOver(p)) break;
+        for (let k2 = 0; k2 < 24; k2++) {
+          const a2 = (k2 * TURN) / 24;
+          const turn2 = Math.ceil(Math.abs(wrap(a2 - p.angle)) / (ANG_PER_PX * fingerTop));
+          const v = value(roll(p, a2, turn2 + horizon), seen, goal, true);
+          if (v > bestV) {
+            bestV = v;
+            plan = { a1, h1: turn1 + h1, a2 };
+          }
+        }
+      }
+      const one = value(roll(p, a1, horizon), seen, goal, true);
+      single = Math.max(single, one);
+    }
+    return plan && bestV > single + 4 * 256 ? plan : null;
   };
 
   return driveEvents(
@@ -295,16 +418,42 @@ export const bot: SkillBot = ({ game, seed, human }) => {
         // Stuck guard on the goal distance.
         const b = bodyOf(seen, goal.which)!;
         const prog = pathDist(m, b.x, b.y, goal.cell, goal.dir, goal.pt);
+        // Fixes: progress is measured toward the goal in mind; a new goal (a star taken, the other marble) starts afresh
+        // (v1 compared the cup's distance with the star's, so every star taken set off a pointless wander 4 s later).
+        const goalKey = goal.which * 100000 + goal.cell * 4 + goal.dir + 1;
+        if (fixes && goalKey !== lastGoalKey) {
+          bestProgress = Infinity;
+          bestAt = t;
+        }
+        lastGoalKey = goalKey;
         if (prog < bestProgress - 8 * 256) {
           bestProgress = prog;
           bestAt = t;
-        } else if (t - bestAt > 240 && t > wanderUntil) {
-          wanderUntil = t + 30 + human.int(0, 50);
-          wantAngle = human.int(0, TURN - 1);
+        } else if (t - bestAt > (fixes ? STUCK[level] : 240) && t > wanderUntil && !(deep && t < deep.until2)) {
+          const plan = fixes && human.chance(DEEP_FIND[level]) ? deepPlan(seen, goal) : null;
+          if (plan) {
+            // Fixes: the two-move plan (see deepPlan) after a moment's thought, then back to steering by eye.
+            const think = human.thinkTicks(800);
+            deep = { from: t + think, a1: plan.a1, until1: t + think + plan.h1, a2: plan.a2, until2: t + think + plan.h1 + 30 };
+          } else if (fixes && bodyOf(seen, 1 - goal.which) && t - switchedAt > 480) {
+            // Fixes: two marbles and one tilt; when one is boxed in, a player brings the other home first.
+            focus = 1 - goal.which;
+            switchedAt = t;
+          } else {
+            wanderUntil = t + 30 + human.int(0, 50);
+            wantAngle = human.int(0, TURN - 1);
+            // Fixes: a player trying something else still doesn't tilt a marble into a hole they can see.
+            if (fixes) {
+              idealAngle(seen, goal);
+              if (safeAngles.length) wantAngle = safeAngles[human.int(0, safeAngles.length - 1)]!;
+            }
+          }
           bestAt = t;
           bestProgress = Infinity;
         }
-        if (t > wanderUntil) {
+        if (deep && t < deep.until2) {
+          if (t >= deep.from) wantAngle = t < deep.until1 ? deep.a1 : deep.a2;
+        } else if (t > wanderUntil) {
           if (human.slip(0.3)) {
             slipUntil = t + human.reactTicks();
             wantAngle = (s.angle + (human.chance(0.5) ? 1 : -1) * human.int(4000, 12000)) & (TURN - 1);
