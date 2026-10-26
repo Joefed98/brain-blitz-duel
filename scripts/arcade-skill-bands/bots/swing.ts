@@ -54,6 +54,8 @@ const STANDING = 1_000_000;
 const PACE = 4;
 /** How much a star-chaser values a star anchor, in px of progress. */
 const STAR_PULL = 250;
+/** swingRev 13: the most a player swings waiting for the release on to a section's start ledge (ticks). */
+const START_WAIT = 90;
 /** How far ahead (ticks) a player looks for a release point on the rope. */
 const RELEASE_HORIZON = 150;
 const FLIGHT_LOOK = 70;
@@ -246,7 +248,7 @@ export const bot: SkillBot = ({ game, seed, human }) => {
     if (s.expand) {
       const target = startAhead(s);
       if (target >= 0) {
-        const onto = ontoPlan(s, target, RELEASE_HORIZON);
+        const onto = detourTicks(s, START_WAIT) >= 0 ? ontoPlan(s, target, detourTicks(s, START_WAIT)) : null;
         if (onto) return { d: onto.d, grab: null, onto: target, reels: onto.reels };
       }
       const gem = gemPlan(s);
@@ -314,7 +316,7 @@ export const bot: SkillBot = ({ game, seed, human }) => {
         let run: [number, number] | null = null;
         let at = -1;
         for (let d = lag + 2; d < states.length; d++) {
-          const ok = vals[d]!.j >= 0 && ontoPlan(step(states[d]!, hold(1)), target, RELEASE_HORIZON) !== null;
+          const ok = vals[d]!.j >= 0 && detourTicks(s, START_WAIT) >= 0 && ontoPlan(step(states[d]!, hold(1)), target, detourTicks(s, START_WAIT)) !== null;
           if (ok && at < 0) at = d;
           if (at >= 0 && (!ok || d === states.length - 1)) {
             const len = d - at + (ok ? 1 : 0);
@@ -406,8 +408,7 @@ export const bot: SkillBot = ({ game, seed, human }) => {
     const taken = s.gemsTaken ?? 0;
     const gi = (s.gems ?? []).findIndex(([gx], i) => !(taken & (1 << i)) && gx > s.x && gx - s.x < 460 * FP && wants(60_000 + i, cfg.gemLook));
     if (gi < 0) return null;
-    // With the dragon out they take only a detour its lead allows (it flies 4 px a tick; keep 160 px and a second spare).
-    const maxD = s.chaseX ? Math.trunc(((s.x - s.chaseX) / FP - 160) / 4) - 60 : RELEASE_HORIZON;
+    const maxD = detourTicks(s, RELEASE_HORIZON);
     if (maxD < 0) return null;
     const ropeAnchor = s.rope;
     const from = s.anchors[ropeAnchor]?.x ?? s.x;
@@ -480,6 +481,8 @@ export const bot: SkillBot = ({ game, seed, human }) => {
     }
     return null;
   };
+  /** swingRev 13: the longest detour (ticks) worth taking: with the dragon out, what its lead allows (it flies 4 px a tick; keep 260 px and 1.5 s spare). */
+  const detourTicks = (s: SwingState, most: number) => (s.chaseX ? Math.min(most, Math.trunc(((s.x - s.chaseX) / FP - 260) / 4) - 90) : most);
   /** swingRev 13: the start ledge of a wanted section a little ahead (not yet landed on), or -1. */
   const startAhead = (s: SwingState): number =>
     (s.ledges ?? []).findIndex((l, i) => l.kind === 0 && !(s.ledgeTicks?.[i] ?? 0) && l.x > s.x - 40 * FP && l.x - s.x < 420 * FP && wants(50_000 + l.section, cfg.section));
@@ -626,4 +629,20 @@ export const bot: SkillBot = ({ game, seed, human }) => {
     }
     return null;
   }, init);
+};
+
+/**
+ * Random play (the arcade rule's floor, 26 Oct 2026): a finger that presses and lets go at random moments with no
+ * aim at all (holds and gaps of 4–60 ticks, now and then a reel swipe), seeded from the Human's own stream.
+ */
+export const randomBot: SkillBot = ({ game, seed, human }) => {
+  let next = 1 + human.int(0, 40);
+  let down = false;
+  return driveEvents(game, (_s: SwingState, t) => {
+    if (t < next) return null;
+    next = t + human.int(4, 60);
+    if (human.chance(0.1)) return { k: SWING_INPUT_REEL, a: human.int(0, 1), b: 0, c: 0, d: 0 };
+    down = !down;
+    return hold(down ? 1 : 0);
+  }, game.init(seed) as SwingState);
 };

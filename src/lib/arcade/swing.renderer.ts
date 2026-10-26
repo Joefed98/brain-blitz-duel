@@ -34,6 +34,8 @@ import {
   swingWorldH,
   swingWorldW,
   swingFeatureCounts,
+  swingRunningSection,
+  swingSectionPar,
   expand13LedgeGone,
   SWING_COMBO_EVERY,
   SWING_GATE_HALF_W,
@@ -1145,6 +1147,15 @@ function drawExpand(ctx: CanvasRenderingContext2D, state: SwingState, sx: (x: nu
       ctx.lineTo(x - 5, top + thick - 2);
       ctx.closePath();
       ctx.fill();
+      // swingRev 13: the section's par time, small and muted above the start ledge until the section is done.
+      const par = swingSectionPar(state, l.section);
+      if (par.par > 0 && par.flag <= 0) {
+        ctx.font = "600 11px 'JetBrains Mono', ui-monospace, monospace";
+        ctx.textAlign = "center";
+        ctx.fillStyle = "rgba(255,224,138,0.72)";
+        ctx.fillText(`PAR ${(par.par / 60).toFixed(1)} s`, x, top - 8);
+        ctx.textAlign = "left";
+      }
     } else if (l.kind === 2) {
       // The finish flag: a pole at the slab's far end with a gold pennant that ripples.
       const pole = left + half * 2 - 6;
@@ -1225,7 +1236,7 @@ function drawCrystal(ctx: CanvasRenderingContext2D, cx: number, cy: number, r: n
   ctx.restore();
 }
 
-/** swingRev 13's HUD row under the metres: the chain while it runs, then gems and gates. */
+/** swingRev 13's HUD row under the metres: the chain while it runs, a running section's par clock, then gems. */
 function drawExpandHud(ctx: CanvasRenderingContext2D, state: SwingState, width: number): void {
   const f = swingFeatureCounts(state);
   ctx.font = "600 13px 'JetBrains Mono', ui-monospace, monospace";
@@ -1234,6 +1245,13 @@ function drawExpandHud(ctx: CanvasRenderingContext2D, state: SwingState, width: 
   if (chain >= 2) {
     ctx.fillStyle = chain >= SWING_COMBO_EVERY ? SWING_GOLD : "rgba(255,255,255,0.75)";
     ctx.fillText(`CHAIN ×${chain}`, 14, 46);
+  }
+  // swingRev 13: a running section's clock against its par (gold while under it, grey once past it).
+  const run = swingRunningSection(state);
+  if (run) {
+    ctx.textAlign = "center";
+    ctx.fillStyle = run.elapsed < run.par ? "rgba(255,224,138,0.9)" : "rgba(200,200,210,0.6)";
+    ctx.fillText(`${(run.elapsed / 60).toFixed(1)} s · PAR ${(run.par / 60).toFixed(1)}`, width / 2, 46);
   }
   ctx.textAlign = "right";
   ctx.fillStyle = "#BDF6FF";

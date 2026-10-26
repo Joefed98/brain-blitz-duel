@@ -75,9 +75,11 @@ export function proveSwingSeedV4(seed: number, opts: { beam?: number; starWeight
   return best;
 }
 
-/** swingRev 13: true when a course's start state carries every expansion feature (the rev-13 bank's first test). */
+/** swingRev 13: true when a course's start state carries every expansion feature, pars included (the rev-13 bank's first test). */
 export function swingExpandComplete(seed: number): boolean {
   const s = swingGameFor(SWING_REV_EXPAND).init(seed);
+  const sections = new Set((s.ledges ?? []).map((l) => l.section)).size;
+  // swingRev 13: and every section has its par (its fastest route found from the course).
   return (s.starSpots ?? []).length === SWING_STARS && (s.gems ?? []).length === SWING_GEMS && (s.gates ?? []).length === SWING_GATES &&
-    (s.ledges ?? []).length >= (SWING_SECTIONS - 1) * SWING_SECTION_LEDGES;
+    (s.ledges ?? []).length >= (SWING_SECTIONS - 1) * SWING_SECTION_LEDGES && (s.pars ?? []).filter((p) => p > 0).length === sections;
 }

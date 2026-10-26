@@ -1500,13 +1500,12 @@ export const SWING_SKILL_PAY = bandCurve([0, 6, 12, 20, 28, 36, 42], [0, 4, 12, 
 export const SWING_FEATURE_CAP = 50;
 export const SWING_V13_MAX = 200;
 /**
- * The base part of a rev-13 score (metres + 5 a star, as every band revision): 140 at 500 m with every
- * star, as rev 11. The deeper cave takes fewer runs into the lava, so the same players go further; the
- * knots were fitted by matching the skill-band players' unit quantiles on rev 13 to their curve points
- * on rev 11 (the same bank courses, 30 a level), so today's players keep today's base score
- * (docs/expansions/e7.md has the fit and the tuning table).
+ * The base part of a rev-13 score (metres + 5 a star, as every band revision): 140 at 500 m with every star, plus 10
+ * for reaching 500 m, so it tops out at 150 as rev 11 does. The knots were fitted (26 Oct 2026) by matching the weak,
+ * average and good skill-band players' unit quantiles on rev 13 to their scores on rev 11 on the same bank courses
+ * (60 each, paired), so players who ignore the features keep today's score (docs/expansions/x200-swing.md).
  */
-export const SWING_V13_BAND_CURVE = bandCurve([0, 55, 74, 129, 166, 215, 260, 329, 489, 515, 550], [0, 46, 60, 84, 93, 107, 117, 129, 133, 135, 140]);
+export const SWING_V13_BAND_CURVE = bandCurve([0, 20, 40, 60, 75, 95, 120, 170, 245, 315, 440, 489, 515, 550], [0, 15, 29, 44, 60, 80, 89, 98, 109, 122, 130, 133, 135, 140]);
 
 /** A set-route ledge: its centre x and top (1/256 px), half-width, kind (0 start, 1 landing, 2 finish flag), section, order and whether it collapses. */
 export interface SwingLedge {
@@ -1655,6 +1654,23 @@ export function swingSectionPar(s: Pick<SwingState, "ledges" | "ledgeTicks" | "p
   });
   const time = cleared && par > 0 && start > 0 && flag > start ? flag - start : -1;
   return { par, start, flag, time, beat: time >= 0 ? par - time : 0 };
+}
+
+/**
+ * The section whose par clock is running (rev 13, display only): its start ledge landed, its flag not yet, every one
+ * of its ledges the hero has passed landed on (so the par can still be won) and the hero not past its flag. Null otherwise.
+ */
+export function swingRunningSection(s: SwingState): { section: number; par: number; elapsed: number } | null {
+  for (const k of new Set((s.ledges ?? []).map((l) => l.section))) {
+    const p = swingSectionPar(s, k);
+    if (p.par <= 0 || p.start <= 0 || p.flag > 0) continue;
+    const mine = (s.ledges ?? []).map((l, i) => ({ l, i })).filter(({ l }) => l.section === k);
+    const flag = mine.find(({ l }) => l.kind === 2)!.l;
+    if (s.x > flag.x + flag.half + 60 * FP) continue;
+    if (mine.some(({ l, i }) => l.x + l.half < s.x - 40 * FP && !((s.ledgeTicks?.[i] ?? 0) > 0))) continue;
+    return { section: k, par: p.par, elapsed: s.tick - p.start };
+  }
+  return null;
 }
 
 /** The effect pop for the latest section finished under par: "−0.8 s · PAR". */
