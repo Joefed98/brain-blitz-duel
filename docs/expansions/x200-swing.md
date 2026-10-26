@@ -149,3 +149,23 @@ gate): the game's renderer drawing a recorded elite run at the iPhone 11 home-sc
   zeros"; the base curve was fitted to weak, average and good together.
 - docs/arena-sizes-oct-2026.md still lists Grappler at 390 × 730 (rev 13 is 450 × 844); left for the merge
   (presentation-geometry-check rewrites the whole table, other games' lines included).
+
+## Checks (local, 26 Oct 2026; four workers sharing four cores)
+
+Pass: swing-x200-check (176 checks, 9 s; `CHECKS_FULL=1` 2,757 checks: every bank course's features, 2,030 ledges
+in the real sim and all 177 ceilings), arcade-room-schedule-check (Grappler's lines: 6 deals × 5 styles, 299
+scheduled items identical, 13 s; it fails only on the three other games' missing modules), round-max-check,
+scoring-bands-check, scoring-targets-check, arcade-score-bands-check, arcade-help-bands-check,
+intro-score-text-check, reveal-score-check, replay-check, arcade-self-replay-check (with the appended
+`swing/expand` entry), arcade-fx-check, sound-manifest-check, practice-bests-check, arcade-chart-check,
+help-scroll-check, swing-rev8-check, burst-swing-score-check, arcade-batch1-check, arcade-batch3-check,
+arcade-tuning-a-check, arcade-tuning-c-check, arcade-tuning-e-check, arcade-tuning-f2-check,
+arcade-tuning-g3-check, six-game-scoring-check, four-tuning-check, intro-demo-check, pinball-check,
+player-looks-check, presentation-geometry-check, bottom-clearance-check swing, arcade-fill-check swing,
+arcade-play-check swing (frame 29.9 ms against the 17.8 ms baseline, within its limits; a first attempt under heavy
+load timed out in the layout harness, Breaker passed beside it), `bunx tsc --noEmit`.
+
+Not run here (the coordinator's, after merging): arcade-room-practice-check and arcade-lowend-check. Frame times
+measured with `bun scripts/arcade-perf.ts swing --rates=1,4` on the loaded machine (1×: 19.3 ms; 4×: 8.5 fps, but
+Tilt measured 15.9 fps beside it, against its 30 fps floor in arcade-lowend-check) are not trustworthy here;
+**arcade-lowend-check's Grappler line needs a run on a quiet machine**.

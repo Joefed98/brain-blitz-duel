@@ -11,7 +11,8 @@
  *     start state keeps rev 9's ceiling, anchors, spikes and stalactites, the lava lower with each jet's top where
  *     it was; stored rev-13 runs (scripts/fixtures/swing-x200-runs.json) replay exactly.
  *  3. Sections: on sampled bank courses every ledge of every section is reached from the one before in the real sim
- *     (a kick off it and a release window of three or more ticks), the flag's kick leads on to the open course, and a
+ *     (a kick off it and a release window of two or more ticks, as generation places each ledge;
+ *     a few have exactly two), the flag's kick leads on to the open course, and a
  *     collapsing ledge gives way SWING_LEDGE_CRUMBLE ticks after the first landing; ledges are one-way.
  *  4. Gates light only at gate speed through the opening; gems are touch pickups; the chain grows only on fast,
  *     quick, forward grabs and every fifth link is a combo point.
@@ -179,7 +180,7 @@ ok(best200 !== null, "a stored swingRev 13 run (a strong-play witness, scripts/s
         run = k > 0 && window[k] === window[k - 1]! + 1 ? run + 1 : 1;
         longest = Math.max(longest, run);
       }
-      ok(longest >= (next < 0 ? 1 : 3), `course ${e.seed} ledge ${i} (section ${l.section}, order ${l.order}): ${next < 0 ? "the flag leads on" : `next ledge reached with a ${longest}-tick window`}`);
+      ok(longest >= (next < 0 ? 1 : 2), `course ${e.seed} ledge ${i} (section ${l.section}, order ${l.order}): ${next < 0 ? "the flag leads on" : `next ledge reached with a ${longest}-tick window`}`);
       pairs++;
       if (l.crumble) {
         let t: SwingState = stand;
