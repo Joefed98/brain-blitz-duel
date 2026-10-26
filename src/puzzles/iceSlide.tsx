@@ -22,10 +22,25 @@ import { buzz } from "@/lib/motion";
 import { playCorrect, playWrong } from "@/lib/sound";
 import { puzzleReject } from "@/lib/fx/puzzleReject";
 import { LiveSummary, SummaryItem, useInFrame } from "@/components/puzzles/batchP/LiveSummary";
+import { IceGems } from "@/components/puzzles/depth4/IceGems";
+import { popCount, replayGems } from "@/lib/duel/depth4/iceGems";
+import { rightMoveFlash } from "@/lib/fx/gameToolkit";
 import { useSolveMoment } from "@/lib/fx/patternFx";
 import { IceBoard as Board, IceTrail, useIceSlideFx } from "@/components/puzzles/pattern/iceSlideBoard";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
+
+/** Of this slide's new gems (`bits`), those the moving ball has reached along `path` (display only). */
+function gemsPassed(gems: readonly number[], bits: number, cell: number, path: readonly number[]): number {
+  const reached = path.indexOf(cell);
+  let out = 0;
+  gems.forEach((gem, i) => {
+    if (!(bits & (1 << i))) return;
+    const at = path.indexOf(gem);
+    if (at >= 0 && reached >= 0 && at <= reached) out |= 1 << i;
+  });
+  return out;
+}
 
 /** Fixed intro example — never randomised. */
 function IntroExample() {
@@ -79,10 +94,29 @@ function Stage({
   const [animating, setAnimating] = useState(false);
   const [visualBall, setVisualBall] = useState<{ cell: number; jump: boolean } | null>(null);
   const slideTimers = useRef<ReturnType<typeof setTimeout>[]>([]);
+  const slidePath = useRef<number[]>([]);
 
   useEffect(() => () => slideTimers.current.forEach(clearTimeout), []);
 
   const replay = useMemo(() => replaySlide(board, moves), [board, moves]);
+  // slideRev 1 (depth batch 4): ice gems. A gem lights as the moving ball reaches it; the count is the shared replay's.
+  const gems = useMemo(() => (data && (data.slideRev ?? 0) >= 1 ? (data.gems ?? []) : []), [data]);
+  const gemReplay = useMemo(() => replayGems(board, gems, moves), [board, gems, moves]);
+  const gemsBefore = gemReplay.history[gemReplay.history.length - 2] ?? 0;
+  const gemsShown = animating && visualBall
+    ? gemsBefore | gemsPassed(gems, gemReplay.mask & ~gemsBefore, visualBall.cell, slidePath.current)
+    : gemReplay.mask;
+  const gemsLit = useRef(0);
+  useEffect(() => {
+    const fresh = gemsShown & ~gemsLit.current;
+    if (fresh) {
+      playCorrect();
+      gems.forEach((cell, i) => {
+        if (fresh & (1 << i)) rightMoveFlash(document.querySelector(`[data-game-stage] [data-d4-gem="${cell}"]`));
+      });
+    }
+    gemsLit.current = gemsShown;
+  }, [gemsShown, gems]);
   const portalPairs = useMemo(() => data?.portals ?? [], [data]);
   const fx = useIceSlideFx({
     portals: board.portals,
@@ -125,6 +159,7 @@ function Stage({
     if (locked || submitted.current || replay.solved || animating) return;
     const outcome = slideOutcome(board, replay.cell, replay.mask, dir);
     if (!outcome.path.length) return;
+    slidePath.current = outcome.path;
     fx.begin(replay.cell, replay.mask, outcome);
     setVisualBall({ cell: replay.cell, jump: true });
     setAnimating(true);
@@ -193,6 +228,7 @@ function Stage({
             solving={solving}
           >
             <IceTrail cells={fx.trail} cols={SLIDE_COLS} rows={SLIDE_COLS} fading={fx.trailFading} />
+            {gems.length ? <IceGems gems={gems} collected={gemsShown} cols={SLIDE_COLS} /> : null}
             {fx.fall ? (
               <span
                 key={fx.fall.key}
@@ -224,6 +260,7 @@ function Stage({
       <LiveSummary
         items={[
           <SummaryItem key="moves" label="Moves" value={replay.moves} />,
+          gems.length ? <SummaryItem key="gems" label="Gems" value={`${popCount(gemsShown)} / ${gems.length}`} /> : null,
           replay.falls > 0 ? <SummaryItem key="falls" value={replay.falls} after={replay.falls === 1 ? "fall" : "falls"} warn /> : null,
         ]}
       />

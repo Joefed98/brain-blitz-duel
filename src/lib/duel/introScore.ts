@@ -15,6 +15,7 @@ import { parBonusIntro } from "./parBonusText";
 import { doubleTakeDepthIntro, eagleEyeDepthIntro, tallyDepthIntro } from "./depth/attentionTexts";
 import { ASCEND_DEPTH_INTRO, BANGON_DEPTH_INTRO, FLASH_DEPTH_INTRO } from "./depth/speedTexts";
 import { depthIntro } from "./numberDepthText";
+import { d4IntroTemplate } from "./depth4/text";
 import { fillMax, liveRecord } from "./roundMax";
 import { CHAIN_DEPTH_INTRO } from "./depth/chain";
 import { PAIR_DEPTH_INTRO } from "./depth/matchmaker";
@@ -77,14 +78,14 @@ function introScoreTemplates(): Record<PuzzleType, string> {
     stroop: `Sort all ${CLASH_QUEUE}, ${CLASH_DEPTH_MAX_WRONG} wrong at most; gold words and a long streak on a quick run reach {max}.`,
 
     // Logic and pattern
-    unblock: bandsIntro("unblock"),
+    unblock: d4IntroTemplate("unblock"),
     lightsout: logicDepthIntro("lightsout"),
-    pipes: bandsIntro("pipes"),
+    pipes: d4IntroTemplate("pipes"),
     sudoku: logicDepthIntro("sudoku"),
-    flow: bandsIntro("flow"),
-    iceslide: bandsIntro("iceslide"),
-    push: bandsIntro("push"),
-    laser: bandsIntro("laser"),
+    flow: d4IntroTemplate("flow"),
+    iceslide: d4IntroTemplate("iceslide"),
+    push: d4IntroTemplate("push"),
+    laser: d4IntroTemplate("laser"),
     tower: logicDepthIntro("tower"),
     tubes: logicDepthIntro("tubes"),
     safe: logicDepthIntro("safe"),
@@ -93,8 +94,8 @@ function introScoreTemplates(): Record<PuzzleType, string> {
     nonogram: logicDepthIntro("nonogram"),
     flood: logicDepthIntro("flood"),
     tiles: JUMBLED_INTRO_SCORE,
-    rings: bandsIntro("rings"),
-    blockparty: bandsIntro("blockparty"),
+    rings: d4IntroTemplate("rings"),
+    blockparty: d4IntroTemplate("blockparty"),
     shikaku: logicDepthIntro("shikaku"),
     lightup: logicDepthIntro("lightup"),
     tents: logicDepthIntro("tents"),

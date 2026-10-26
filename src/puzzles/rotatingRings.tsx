@@ -22,6 +22,7 @@ import {
   type RingsPuzzleData,
 } from "@/lib/duel/types";
 import { useSolveMoment } from "@/lib/fx/patternFx";
+import { parItems } from "@/components/puzzles/depth4/ParMeter";
 import { LiveSummary, SummaryItem, useFrameProgress } from "@/components/puzzles/batchP/LiveSummary";
 import { playLock } from "@/lib/sound";
 import { directionOf, useGameKeys } from "@/lib/desktop";
@@ -141,7 +142,10 @@ function Stage({
         <LiveSummary
           items={[
             <SummaryItem key="ring" label="Ring" value={selectedRing + 1} after="selected" />,
-            <SummaryItem key="turns" label="Turns" value={replay.moves} />,
+            // ringsRev 1 (depth batch 4): "Turns n · Par p" with the par meter.
+            ...((data.ringsRev ?? 0) >= 1 && (data.par ?? 0) > 0
+              ? parItems("Turns", replay.moves, data.par!)
+              : [<SummaryItem key="turns" label="Turns" value={replay.moves} />]),
           ]}
         />
       ) : (
@@ -213,7 +217,7 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining, score
           ? solvedMovesText(replay.moves, min, myMsRemaining, timeLimitMs, "B", scoreParts)
           : `${replay.aligned} / ${RINGS_SEGMENTS} spokes`}
       </p>
-       {!replay.solved && <p className="font-mono text-base text-muted-foreground">{replay.moves} moves · min {min}</p>}
+       {!replay.solved && <p className="font-mono text-base text-muted-foreground">{replay.moves} moves · {(puzzle.ringsRev ?? 0) >= 1 ? "par" : "min"} {min}</p>}
     </div>
   );
 }

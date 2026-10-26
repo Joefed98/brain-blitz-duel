@@ -8,6 +8,7 @@ import { SLIDE_PAR_BONUS } from "./wordSlide";
 import { SWAP_PAR_BONUS } from "./swapword";
 import { doubleTakeDepthHelp, eagleEyeDepthHelp, tallyDepthHelp } from "./depth/attentionTexts";
 import { depthHelp } from "./numberDepthText";
+import { d4Help } from "./depth4/text";
 import {
   scoreWordHunt,
   WORDHUNT_FREE_MISSES,
@@ -278,18 +279,19 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
       how: [
         { action: "Drag a block", detail: "along its own direction." },
         { action: "Clear a path", detail: "for the gold block." },
+        { action: "Par", detail: "is the fewest moves; the bar's gold mark shows it." },
       ],
-      score: bandsHelp("unblock"),
+      score: d4Help("unblock"),
     },
     blockparty: {
-      goal: "Fit all nine pieces into the free squares.",
+      goal: "Fit every piece into the free squares.",
       how: [
         { action: "Tap a piece", detail: "to rotate it." },
         { action: "Drag it", detail: "onto the board." },
         { action: "Fit every piece", detail: "around the fixed pegs." },
         { action: "Drag a piece's anchor", detail: "onto a free board square.", helpOnly: true },
       ],
-      score: bandsHelp("blockparty"),
+      score: d4Help("blockparty"),
     },
     lightsout: {
       goal: "Turn every light off.",
@@ -307,8 +309,9 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Tap a tile", detail: "to rotate its pipe." },
         { action: "Join every opening", detail: "to another pipe." },
         { action: "No leaks", detail: "at the edges." },
+        { action: "Par", detail: "is the fewest taps; the bar's gold mark shows it." },
       ],
-      score: bandsHelp("pipes"),
+      score: d4Help("pipes"),
     },
     sudoku: {
       goal: "Fill the 6 × 6 sudoku grid.",
@@ -328,7 +331,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Fill every square", detail: "with a path." },
         { action: "Drag from a loose end", detail: "to carry on; tap a dot to clear its path.", helpOnly: true },
       ],
-      score: bandsHelp("flow"),
+      score: d4Help("flow"),
     },
     iceslide: {
       goal: "Slide the ball to the gold exit.",
@@ -336,9 +339,10 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Swipe", detail: "to slide until something stops you." },
         { action: "Arrows turn you;", detail: "avoid the holes." },
         { action: "Portals", detail: "carry you across." },
+        { action: "Ice gems", detail: "off the direct route score a bonus." },
         { action: "Cracked ice", detail: "breaks after you cross it once.", helpOnly: true },
       ],
-      score: bandsHelp("iceslide"),
+      score: d4Help("iceslide"),
     },
     push: {
       goal: "Push every crate onto a marked square.",
@@ -346,9 +350,10 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Swipe or use the arrows", detail: "to walk." },
         { action: "Walk into a crate", detail: "to push it." },
         { action: "Crates can't be pulled,", detail: "so plan ahead." },
+        { action: "The gold crate", detail: "on the gold mark scores a bonus." },
         { action: "The worker", detail: "moves one square at a time and pushes one crate at a time.", helpOnly: true },
       ],
-      score: bandsHelp("push"),
+      score: d4Help("push"),
     },
     laser: {
       goal: "Light all six gems with one beam.",
@@ -356,10 +361,11 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Drag mirrors", detail: "and the splitter onto the grid." },
         { action: "Tap a piece", detail: "to turn it." },
         { action: "Tap FIRE:", detail: "three shots; avoid bombs." },
+        { action: "Two spare mirrors:", detail: "use fewer for an elegant beam." },
         { action: "The splitter", detail: "forks the beam across its input axis.", helpOnly: true },
         { action: "Gem arrows:", detail: "marked gems only light from that direction.", helpOnly: true },
       ],
-      score: bandsHelp("laser"),
+      score: d4Help("laser"),
     },
     tower: {
       goal: "Move the whole tower onto the gold post.",
@@ -496,10 +502,11 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Tap a ring,", detail: "then turn it with the arrows." },
         { action: "The legend", detail: "shows which rings turn together." },
         { action: "A strobe dot lights", detail: "for each finished spoke." },
+        { action: "Par", detail: "is the fewest turns; the bar's gold mark shows it." },
         { action: "Linked rings", detail: "turn the same way or the opposite way.", helpOnly: true },
         { action: "The selected ring", detail: "glows and the needle touches its edge.", helpOnly: true },
       ],
-      score: bandsHelp("rings"),
+      score: d4Help("rings"),
     },
     hover: {
       goal: "Fly through the barrier gaps.",

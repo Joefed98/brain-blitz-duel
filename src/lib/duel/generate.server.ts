@@ -15,6 +15,7 @@ import { puzzleTimeLimitMs } from "./registry";
 import { WORDHUNT_REV_TARGET, WORDSMITH_REV_DEPTH, WORDSMITH_REV_TARGET } from "./scoring";
 import { stampMoveLimits } from "./moveLimits.server";
 import { stampTieRev } from "./tieBreak";
+import { dealDepth4 } from "./depth4/deal.server";
 import { dealtDepthRev } from "./wordDepth";
 import { stampTileGridRev } from "./tileGrid";
 import { STRIKEOUT_REV4, STRIKEOUT_REV5 } from "./strikeout";
@@ -138,6 +139,9 @@ function generateUnstamped(type: PuzzleType, context: GenerateContext): PuzzleDa
   // for the previous versions pin the old deal, d5Remodels.ts).
   if (type === "gravity" && dealsD5Remodels()) return generateTopsy();
   if (type === "tiles" && dealsD5Remodels()) return generateJumbled();
+  // Depth batch 4 (docs/depth/d4-pattern.md): eight Pattern / Logic games deal their 200-point stamp.
+  const depth = dealDepth4(type, context);
+  if (depth) return depth;
   if (context.bankSeed !== undefined && isBankedType(type))
     return drawBankedPuzzle(type, context.bankSeed, context.recentBankKeys);
   if (type === "stroop") return generateColourClash();

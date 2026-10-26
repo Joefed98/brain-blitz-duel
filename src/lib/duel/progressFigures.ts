@@ -15,7 +15,7 @@
  *
  * Every function is shared (phone and server): the decoders and replays it uses are the graders'.
  */
-import { decodePlacements, verifyPlacements } from "./blockParty";
+import { blockGeometry, decodePlacements, verifyPlacements } from "./blockParty";
 import { decodeFlowPaths, verifyFlow } from "./flow";
 import { acceptedRects, decodeShikaku, shikakuHeightOf } from "./shikaku";
 import { decodeBulbs } from "./lightUp";
@@ -137,7 +137,7 @@ export function solutionProgress(puzzle: PuzzleData, answer: string, extra?: Rec
     }
     case "blockparty": {
       if (!puzzle.solution?.length) return null;
-      const legal = verifyPlacements(puzzle.blockers, decodePlacements(answer)).legal;
+      const legal = verifyPlacements(puzzle.blockers, decodePlacements(answer), blockGeometry(puzzle)).legal;
       const { inSpot, legal: placed } = blockPartyCounts(puzzle.solution, legal);
       const off = placed - inSpot;
       return { text: `${inSpot}/${puzzle.solution.length} pieces in place`, cost: off > 0 ? `${plural(off, "piece")} elsewhere` : null };

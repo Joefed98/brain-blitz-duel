@@ -4,7 +4,8 @@
  * grader: the twelve Speed and Attention games (D3, docs/depth/d3-speed-attention.md) grade from the game's own
  * grade; the nine word games (wordDepth.server.ts, docs/depth/d1-word.md) from both; the Number games (depthRev 1,
  * numberDepth.server.ts, docs/depth/d2-number.md) and the eleven Logic games (depthRev 1, logicDepth.server.ts,
- * docs/depth/d6-logic.md) from today's grade. A grader applies only to puzzles stamped with its game's depth
+ * docs/depth/d6-logic.md) and depth batch 4's eight Pattern / Logic games (depth4/, docs/depth/d4-pattern.md) from
+ * today's grade. A grader applies only to puzzles stamped with its game's depth
  * revision; every older round returns null and grades exactly as before. The D5 remodels (Topsy-Turvy, Jumbled)
  * already score to 200 in their own grader. Engine games score inside their sims and need nothing here.
  */
@@ -27,6 +28,8 @@ import { matchmakerDepth } from "./depth/matchmaker.server";
 import { WORD_DEPTH_GRADERS, type DepthGrader as WordDepthGrader } from "./wordDepth.server";
 import { usesDepth as usesLogicDepth, DEPTH_TYPES as LOGIC_DEPTH_TYPES } from "./logicDepth";
 import { withLogicDepth } from "./logicDepth.server";
+import { D4_TYPES, isD4Type, isDepth4 } from "./depth4/stamps";
+import { withDepth4 } from "./depth4/grade.server";
 import { isTopsy } from "./topsy";
 import { isJumbledGradient } from "./jumbled";
 
@@ -70,11 +73,21 @@ const logicDepth: DepthGrader = {
   grade: ({ puzzle, today }) => withLogicDepth(puzzle, today()),
 };
 
+/**
+ * Depth batch 4 (Pattern / Logic, depth4/grade.server.ts, docs/depth/d4-pattern.md): each game's own stamp, where rev 3's
+ * helper applies (as when it ran inside that branch); a finish gains its stretch or feature on today's grade.
+ */
+const depth4: DepthGrader = {
+  applies: (puzzle) => isDepth4(puzzle) && isD4Type(puzzle.type) && puzzleScoreRevOf(puzzle) >= PUZZLE_SCORE_REV_HELPER && rev3Applies(puzzle.type),
+  grade: ({ puzzle, today }) => withDepth4(puzzle, today()),
+};
+
 /** The D5 remodels (Topsy-Turvy gravityRev 3, Jumbled tilesRev 3, docs/depth/d5-remodels.md) score to 200 in their own grader. */
 const ownGrade = (applies: (puzzle: PuzzleData) => boolean): DepthGrader => ({ applies, grade: ({ graded }) => graded });
 
 const GRADERS: Partial<Record<PuzzleType, DepthGrader>> = {
   ...Object.fromEntries(LOGIC_DEPTH_TYPES.map((type) => [type, logicDepth])),
+  ...Object.fromEntries(D4_TYPES.map((type) => [type, depth4])),
   ...Object.fromEntries(Object.entries(WORD_DEPTH_GRADERS).map(([type, g]) => [type, wordDepth(g!)])),
   ...Object.fromEntries(Object.keys(NUMBER_DEPTH_GAMES).map((type) => [type, numberDepth])),
   reaction: flashDepth,

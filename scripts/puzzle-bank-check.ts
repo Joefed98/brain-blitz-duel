@@ -41,6 +41,10 @@ import { encodePlacements } from "../src/lib/duel/blockParty";
 import { encodeBulbs } from "../src/lib/duel/lightUp";
 import { buildRoomPuzzles, generatePuzzle, gradeAnswer } from "../src/lib/duel/generate.server";
 import { stampMoveLimits } from "../src/lib/duel/moveLimits.server";
+import { dealDepth4 } from "../src/lib/duel/depth4/deal.server";
+import { isD4Type } from "../src/lib/duel/depth4/stamps";
+import { BLOCK_D4_BANK } from "../src/lib/duel/depth4/blockD4Bank.server";
+import { d4BankIndex } from "../src/lib/duel/depth4/bankIndex";
 import {
   BANKED_TYPES,
   RETIRED_BANKS,
@@ -236,6 +240,24 @@ if (PART === PARTS) {
 
 /* ---------------- room start ---------------- */
 if (PART === PARTS) {
+  // Depth batch 4 (docs/depth/d4-pattern.md): Chroma Lines and Skid deal the seed's bank entry with their stamp (and
+  // Skid's gems), Tessellate a board from its own 7×7 bank; a banked round is that deal, stamped like live rounds.
+  const depthDeal = (type: BankedType, seed: number) => (isD4Type(type) ? dealDepth4(type, { bankSeed: seed }) : null);
+  const bankedDeal = (type: BankedType, seed: number) => stampMoveLimits(depthDeal(type, seed) ?? drawBankedPuzzle(type, seed));
+  let depthOnBank = true;
+  for (const seed of [1, 7, 4242, 987654]) {
+    const entry = bankFor("flow")[bankIndexFor("flow", seed, BANK_COUNT)];
+    const { flowRev, ...flow } = depthDeal("flow", seed) as PuzzleData & { flowRev?: number };
+    if (flowRev !== 1 || JSON.stringify(flow) !== JSON.stringify(entry)) depthOnBank = false;
+    const ice = bankFor("iceslide")[bankIndexFor("iceslide", seed, BANK_COUNT)];
+    const { slideRev, gems, ...slide } = depthDeal("iceslide", seed) as PuzzleData & { slideRev?: number; gems?: number[] };
+    if (slideRev !== 1 || !Array.isArray(gems) || JSON.stringify(slide) !== JSON.stringify(ice)) depthOnBank = false;
+    const board = BLOCK_D4_BANK[d4BankIndex("blockD4", seed, BLOCK_D4_BANK.length)];
+    // Tessellate's 7×7 boards are stored with their stamp (blockRev 1): the deal is the board exactly.
+    const block = depthDeal("blockparty", seed) as PuzzleData & { blockRev?: number };
+    if (block.blockRev !== 1 || JSON.stringify(block) !== JSON.stringify(board)) depthOnBank = false;
+  }
+  check(depthOnBank, "room start: Chroma Lines' and Skid's depth deals are the seed's bank entry with only their stamp (and gems) added, Tessellate's the seed's 7×7 board (stored with its stamp)");
   const categories = ["logic", "pattern"] as const;
   let banked = 0;
   let sameShape = true;
@@ -250,11 +272,11 @@ if (PART === PARTS) {
       if (!(BANKED_TYPES as readonly string[]).includes(puzzle.type) || RETIRED_BANKS.has(puzzle.type as BankedType)) continue;
       banked++;
       const { speedPar, puzzleScoreRev, tieRev: _tieRev, ...rest } = puzzle as PuzzleData & { speedPar?: number; puzzleScoreRev?: number; tieRev?: number };
-      const expected = bankFor(puzzle.type as BankedType)[bankIndexFor(puzzle.type as BankedType, seed, BANK_COUNT)];
+      const expected = depthDeal(puzzle.type as BankedType, seed) ?? bankFor(puzzle.type as BankedType)[bankIndexFor(puzzle.type as BankedType, seed, BANK_COUNT)];
       // Room rounds carry the per-puzzle stamps generatePuzzle sets (speedPar, and since 13 Oct 2026 puzzleScoreRev
       // and the per-game limit stamps of moveLimits.server.ts: Polypotions' tubesRev / pourLimit, Topsy-Turvy's gravityRev / tiltLimit).
       if (speedPar !== live.speedPar || puzzleScoreRev !== live.puzzleScoreRev || JSON.stringify(rest) !== JSON.stringify(stampMoveLimits(expected!))) sameShape = false;
-      const again = stampMoveLimits(drawBankedPuzzle(puzzle.type as BankedType, seed));
+      const again = bankedDeal(puzzle.type as BankedType, seed);
       if (JSON.stringify(again) !== JSON.stringify(rest)) reproducible = false;
     }
   }
@@ -266,7 +288,7 @@ if (PART === PARTS) {
   for (const t of BANKED_TYPES.filter((b) => !RETIRED_BANKS.has(b))) for (const seed of [11, 4242, 987654]) {
     const p = generatePuzzle(t, { bankSeed: seed }) as PuzzleData & { speedPar?: number; puzzleScoreRev?: number };
     const { speedPar: sp, puzzleScoreRev: ps, ...rest } = p;
-    if (sp !== live.speedPar || ps !== live.puzzleScoreRev || JSON.stringify(rest) !== JSON.stringify(stampMoveLimits(drawBankedPuzzle(t, seed)))) practiceSame = false;
+    if (sp !== live.speedPar || ps !== live.puzzleScoreRev || JSON.stringify(rest) !== JSON.stringify(bankedDeal(t, seed))) practiceSame = false;
   }
   check(practiceSame, "practice: banked draws carry the same stamps as live rounds (speedPar, puzzleScoreRev, limits)");
   const logicPattern = [...typesInCategory("logic"), ...typesInCategory("pattern")];

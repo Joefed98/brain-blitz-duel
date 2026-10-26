@@ -6,6 +6,7 @@
  */
 import { generatePuzzle, gradeAnswer } from "../../src/lib/duel/generate.server";
 import { withSeededRandom } from "../../src/lib/duel/random";
+import { pinDepth4Off } from "../../src/lib/duel/depth4/deal.server";
 import { pinD5LegacyDeal } from "../../src/lib/duel/d5Remodels";
 import { puzzleTimeLimitMs } from "../../src/lib/duel/registry";
 import type { PuzzleData, PuzzleType } from "../../src/lib/duel/types";
@@ -33,12 +34,15 @@ const D5_REMODELLED: ReadonlySet<PuzzleType> = new Set<PuzzleType>(["gravity", "
 
 /** The room puzzle for (type, seed), as a room started with that seed would store it. */
 export function roomPuzzle(type: PuzzleType, seed: number): PuzzleData {
+  // The rev-1 shape's checks also keep the boards dealt before depth batch 4's stamps.
+  if (pinRev1) pinDepth4Off(true);
   const before = D5_REMODELLED.has(type) ? pinD5LegacyDeal(true) : null;
   let puzzle: PuzzleData;
   try {
     puzzle = withSeededRandom(seed, () => generatePuzzle(type, { bankSeed: seed }));
   } finally {
     if (before !== null) pinD5LegacyDeal(before);
+    if (pinRev1) pinDepth4Off(false);
   }
   return pinRev1 ? ({ ...(puzzle as object), puzzleScoreRev: 1, ...(REV1_ENGINE_STAMPS[type] ?? {}) } as unknown as PuzzleData) : puzzle;
 }

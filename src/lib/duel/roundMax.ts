@@ -61,22 +61,22 @@ export const ROUND_MAX: Readonly<Record<PuzzleType, number>> = {
   // Pattern
   flood: 200,
   tiles: 200,
-  rings: 150,
-  pipes: 150,
+  rings: 200, // depth batch 4 (docs/depth/d4-pattern.md)
+  pipes: 200, // depth batch 4 (docs/depth/d4-pattern.md)
   lightsout: 200,
   nonogram: 200,
-  flow: 150,
+  flow: 200, // depth batch 4 (docs/depth/d4-pattern.md)
   tubes: 200,
-  blockparty: 150,
+  blockparty: 200, // depth batch 4 (docs/depth/d4-pattern.md)
   sudoku: 200,
   // Logic
   bomb: 200,
   safe: 200,
-  unblock: 150,
+  unblock: 200, // depth batch 4 (docs/depth/d4-pattern.md)
   maze: 200,
-  iceslide: 150,
-  push: 150,
-  laser: 150,
+  iceslide: 200, // depth batch 4 (docs/depth/d4-pattern.md)
+  push: 200, // depth batch 4 (docs/depth/d4-pattern.md)
+  laser: 200, // depth batch 4 (docs/depth/d4-pattern.md)
   tower: 200,
   gravity: 200,
   lightup: 200,

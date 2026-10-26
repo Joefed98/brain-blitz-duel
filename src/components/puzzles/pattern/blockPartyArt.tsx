@@ -146,14 +146,18 @@ export const PieceArt = memo(function PieceArt({
   );
 });
 
+/** The board's width in cells: 6, or 7 on blockRev 1 (depth batch 4); BlockBoard provides it. */
+export const BlockColsContext = createContext(N);
+
 /** Cells of a placement as [row, col]. */
-const rowCol = (cell: number): Pt => [Math.floor(cell / N), cell % N];
+const rowCol = (cell: number, n: number = N): Pt => [Math.floor(cell / n), cell % n];
 
 /** The static pegboard: slab, recessed wells and brass pegs. */
 export const BlockBoardArt = memo(function BlockBoardArt({ blockers }: { blockers: number[] }) {
   const base = cleanId(useId());
+  const n = useContext(BlockColsContext);
   const pegs = new Set(blockers);
-  const S = N * U;
+  const S = n * U;
   return (
     <svg className="bp-board-art" viewBox={`0 0 ${S} ${S}`} aria-hidden="true">
       <defs>
@@ -174,8 +178,8 @@ export const BlockBoardArt = memo(function BlockBoardArt({ blockers }: { blocker
       </defs>
       <rect x="0" y="0" width={S} height={S} rx="22" fill={`url(#${base}-slab)`} />
       <rect x="1.5" y="1.5" width={S - 3} height={S - 3} rx="21" fill="none" stroke="#fff" strokeOpacity="0.07" strokeWidth="3" />
-      {Array.from({ length: N * N }, (_, cell) => {
-        const [r, c] = rowCol(cell);
+      {Array.from({ length: n * n }, (_, cell) => {
+        const [r, c] = rowCol(cell, n);
         const x = c * U;
         const y = r * U;
         return (
@@ -210,8 +214,9 @@ export function BlockPiecesArt({
   /** Completion: delay (ms) per piece for the lock-tight pulse. */
   wave?: Map<number, number> | null | undefined;
 }) {
+  const n = useContext(BlockColsContext);
   return (
-    <svg className="bp-pieces-art" viewBox={`0 0 ${N * U} ${N * U}`} aria-hidden="true">
+    <svg className="bp-pieces-art" viewBox={`0 0 ${n * U} ${n * U}`} aria-hidden="true">
       {placements.map((placement) => (
         <PlacedPiece
           key={`${placement.piece}:${placement.cells.join("-")}`}
@@ -236,7 +241,8 @@ function PlacedPiece({
   snap?: boolean | undefined;
   delay?: number | undefined;
 }) {
-  const cells = useMemo(() => placement.cells.map(rowCol), [placement.cells]);
+  const n = useContext(BlockColsContext);
+  const cells = useMemo(() => placement.cells.map((cell) => rowCol(cell, n)), [placement.cells, n]);
   const outline = useMemo(() => pieceOutline(cells, GAP), [cells]);
   return (
     <g className={snap ? "bp-piece bp-piece--snap" : "bp-piece"}>
@@ -252,12 +258,12 @@ function PlacedPiece({
 }
 
 /** Steps (Chebyshev) from each cell to its nearest peg. */
-export function pegDistances(blockers: number[]): number[] {
-  return Array.from({ length: N * N }, (_, cell) => {
-    const [r, c] = rowCol(cell);
-    let best = N;
+export function pegDistances(blockers: number[], n: number = N): number[] {
+  return Array.from({ length: n * n }, (_, cell) => {
+    const [r, c] = rowCol(cell, n);
+    let best = n;
     for (const peg of blockers) {
-      const [pr, pc] = rowCol(peg);
+      const [pr, pc] = rowCol(peg, n);
       best = Math.min(best, Math.max(Math.abs(pr - r), Math.abs(pc - c)));
     }
     return best;
@@ -270,17 +276,18 @@ export const SHINE_STEP_MS = 120;
 /** The completion shine: rings leave every peg, then the cells light up outwards. */
 export function BlockSolveFx({ blockers }: { blockers: number[] }) {
   const ids = useContext(IdsContext);
-  const distance = useMemo(() => pegDistances(blockers), [blockers]);
+  const n = useContext(BlockColsContext);
+  const distance = useMemo(() => pegDistances(blockers, n), [blockers, n]);
   const pegs = new Set(blockers);
   return (
-    <svg className="bp-solve-fx" viewBox={`0 0 ${N * U} ${N * U}`} aria-hidden="true">
+    <svg className="bp-solve-fx" viewBox={`0 0 ${n * U} ${n * U}`} aria-hidden="true">
       {blockers.map((peg) => {
-        const [r, c] = rowCol(peg);
+        const [r, c] = rowCol(peg, n);
         return <circle key={`ring-${peg}`} className="bp-peg-ring" cx={c * U + 50} cy={r * U + 50} r="28" />;
       })}
       {distance.map((steps, cell) => {
         if (pegs.has(cell)) return null;
-        const [r, c] = rowCol(cell);
+        const [r, c] = rowCol(cell, n);
         return (
           <rect
             key={cell}

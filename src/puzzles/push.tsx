@@ -37,7 +37,9 @@ function Board({
   cells = PUSH_CELLS,
   facing,
   solveFx,
+  gold,
 }: {
+  gold?: { crate: number; target: number } | undefined;
   walls: number[];
   targets: number[];
   crates: number[];
@@ -58,6 +60,7 @@ function Board({
       cells={cells}
       facing={facing}
       solveFx={solveFx ?? false}
+      gold={gold}
     />
   );
 }
@@ -104,6 +107,9 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "push" }: P
   );
 
   const solveFx = useSolveMoment(replay.solved, "push.solve");
+  // pushRev 1 (depth batch 4): the gold crate and its gold mark.
+  const gold = puzzle.type === "push" && (puzzle.pushRev ?? 0) >= 1 ? puzzle.gold : undefined;
+  const goldHome = gold ? replay.state.crates[gold.crate] === gold.target : false;
   const inFrame = useFrameProgress(replay.cratesOnTargets, targets.length, "home");
 
   useEffect(() => {
@@ -124,6 +130,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "push" }: P
     const home = cratesOnTargets(result.state.crates, targets);
     soundCue(result.pushed ? "push.push" : "push.step");
     if (home > replay.cratesOnTargets && home < targets.length) soundCue("push.home");
+    if (gold && !goldHome && result.state.crates[gold.crate] === gold.target) playCorrect();
     setMoves((current) => [...current, dir]);
   };
 
@@ -164,12 +171,14 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "push" }: P
           pusher={replay.state.pusher}
           facing={moves.at(-1)}
           solveFx={solveFx}
+          gold={gold}
         />
       </div>
       <LiveSummary
         items={[
           <SummaryItem key="pushes" label="Pushes" value={replay.pushes} />,
           <SummaryItem key="moves" label="Moves" value={replay.moves} />,
+          gold ? <SummaryItem key="gold" label="Gold crate" value={goldHome ? "on its mark" : "not yet"} /> : null,
         ]}
       />
         <ArrowPad onPress={step} disabled={locked || replay.solved} />
@@ -235,7 +244,7 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: Puz
     <div className="flex min-h-0 w-full flex-1 flex-col items-center gap-3">
       <div className="push-reveal-space flex min-h-0 w-full flex-1 flex-col items-center justify-center gap-3">
         <div className="push-reveal-board">
-        <Board walls={puzzle.walls} targets={puzzle.targets} crates={myCorrect ? mine.state.crates : crates} pusher={myCorrect ? mine.state.pusher : pusherCell} />
+        <Board walls={puzzle.walls} targets={puzzle.targets} crates={myCorrect ? mine.state.crates : crates} pusher={myCorrect ? mine.state.pusher : pusherCell} gold={(puzzle.pushRev ?? 0) >= 1 ? puzzle.gold : undefined} />
         </div>
       <p className="font-mono text-base uppercase tracking-widest text-muted-foreground">
         minimum · {min} push{min === 1 ? "" : "es"}

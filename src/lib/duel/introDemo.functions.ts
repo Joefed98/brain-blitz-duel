@@ -17,6 +17,7 @@ import { chainDemoCompatible } from "./chain";
 import { pairUsesDepth } from "./depth/matchmaker";
 import { STRIKEOUT_REV4 } from "./strikeout";
 import { createServerFn } from "@tanstack/react-start";
+import { isD4Type, isDepth4 } from "./depth4/stamps";
 
 import type { PuzzleData } from "./types";
 import type { PuzzleDemoLog } from "./puzzleDemo";
@@ -127,6 +128,10 @@ export const getIntroDemoFn = createServerFn({ method: "GET" })
     // Blackout, Hanoi, Polypotions and Safe Cracker show their par line or clean crack: an older demo would show the old
     // board or no feature, so these stay stopped (the intro shows its still) until one is recorded on depthRev 1.
     if (DEPTH_DEMO_STOPS.has(data.type) && depthRevOf(demo?.puzzle) < DEPTH_REV) return null;
+    // Depth batch 4 (25 Oct 2026, docs/depth/d4-pattern.md): Gridlock, Tessellate, Pipeline, Chroma Lines, Skid, Heave,
+    // Lightbender and Turntable deal new stamps (par, gems, the gold crate, spare mirrors, the 7×7 board). A demo recorded
+    // on an older puzzle would show the old rules, so each intro shows its still until a demo is recorded on the new stamp.
+    if (isD4Type(data.type) && demo && !isDepth4(demo.puzzle)) return null;
     return demo;
   });
 

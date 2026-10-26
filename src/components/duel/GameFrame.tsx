@@ -53,7 +53,7 @@ const SHORT_GOALS: Partial<Record<PuzzleType, string>> = {
   symscan: "Find every matching eagle",
   countup: "Count the shapes asked for",
   unblock: "Slide the gold block out",
-  blockparty: "Fit all nine pieces",
+  blockparty: "Fit every piece",
   maze: "Draw a path to the exit",
   tower: "Move the tower to the gold post",
   checkout: "Score exactly the target",

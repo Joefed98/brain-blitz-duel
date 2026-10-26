@@ -16,6 +16,8 @@
  *  6. The help and intro numbers: each game's dealt clock and "150 in about N s" agree with freshly dealt puzzles.
  *  7. Grading stays quick: every stored run grades in a few ms once a board's table is built.
  */
+import { isD4Type } from "../src/lib/duel/depth4/stamps";
+import { d4Help, d4Intro } from "../src/lib/duel/depth4/text";
 import { readFileSync } from "node:fs";
 import { gunzipSync } from "node:zlib";
 import { generatePuzzle, gradeAnswer } from "../src/lib/duel/generate.server";
@@ -275,6 +277,12 @@ for (const type of Object.keys(REV3_GAMES) as PuzzleType[]) {
   ok(rev3Help(type).includes(`about ${n} s with no mistakes`), `${type}: the rev-3 help states its numbers`);
   // Word depth (25 Oct 2026): the nine word games state their depth curves (proved by their depth-<game>-checks).
   if (WORD_DEPTH_GAMES.includes(type)) continue;
+  // Depth batch 4's games (depth4/text.ts) keep the rev-3 finish time ("about N s") in their own text.
+  if (isD4Type(type)) {
+    ok(d4Help(type).includes(`about ${n} s`) && PUZZLE_INSTRUCTIONS[type]?.score === d4Help(type), `${type}: the "?" help does not state the rev-3 numbers`);
+    ok(INTRO_SCORE[type] === d4Intro(type) && d4Intro(type).length <= 90, `${type}: intro line "${INTRO_SCORE[type]}"`);
+    continue;
+  }
   // A D3 game raised to 200 (Depth to 200, docs/depth/) writes its own help and intro on its new stamp; its depth check proves them.
   if (roundMaxFor(type) > 150 && !isNumberDepthType(type)) continue;
   // The Number puzzles to 200 (depthRev 1) keep rev 3's numbers inside their own text (numberDepthText.ts).
