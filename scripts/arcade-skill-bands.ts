@@ -40,7 +40,8 @@
  * band-3 revision before it (its `strictRev`): "live" is the band-3 revision, "next" the expansion.
  * --rev=now measures the revision rooms deal today (LIVE_BANDS in src/lib/arcade/liveBands.ts), reported as
  * "live": the scoring-targets audit (18 Oct 2026, docs/scoring-targets.md) ran it before and after.
- * --levels=average,near limits the levels. --save=<dir> writes each run's
+ * --levels=average,near limits the levels; --levels=weak,average,good,near,elite adds the 200-point expansions'
+ * weak and elite levels (human.ts BAND_LEVELS). --from=n starts at seed index n (fresh seeds after tuning ones). --save=<dir> writes each run's
  * encoded log (for fixtures). Not a check: it has no pass/fail and is not run
  * by run-checks or CI. One game at 30 seeds × 4 levels takes ~10 s to a few
  * minutes depending on the bot.
@@ -51,7 +52,7 @@ import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { cpus } from "node:os";
 import { appendClientCounters, arcadeCounters } from "../src/lib/arcade/diagnostics";
 import { GAMES, liveBefore, liveBeforeG1, type GameSpec } from "./arcade-skill-bands/games";
-import { Human, LEVELS, LEVEL_LABEL, type SkillLevel } from "./arcade-skill-bands/human";
+import { Human, LEVELS, LEVEL_LABEL, type BandLevel as SkillLevel } from "./arcade-skill-bands/human";
 import type { SkillBot } from "./arcade-skill-bands/bot";
 import { UNITS } from "./arcade-skill-bands/units";
 import { LIVE_BANDS } from "../src/lib/arcade/liveBands";
@@ -64,6 +65,8 @@ const JOBS = Number(opt("jobs") ?? 1);
 const JSON_PATH = opt("json");
 const SAVE_DIR = opt("save");
 const LEVEL_LIST = (opt("levels")?.split(",") ?? [...LEVELS]) as SkillLevel[];
+/** First seed index (`--from=60` with `--seeds=200` measures the 200 fresh seeds after the 60 tuning ones). */
+const FROM = Number(opt("from") ?? 0);
 const CHILD = args.includes("--child");
 const ONLY = args.filter((a) => !a.startsWith("--"));
 
@@ -210,7 +213,7 @@ async function runGame(spec: GameSpec): Promise<RunRecord[]> {
   const records: RunRecord[] = [];
   for (const [which, rev] of revs)
     for (const level of LEVEL_LIST)
-      for (let n = 0; n < SEEDS; n++) {
+      for (let n = FROM; n < FROM + SEEDS; n++) {
         const seed = spec.seedFor(n);
         const rec = playOne(spec, bot, rev, which, level, seed);
         if (SAVE_DIR) {
