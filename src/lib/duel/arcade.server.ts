@@ -1,6 +1,6 @@
 import { TEN_DROP_DEPTH_REV } from "@/lib/arcade/tenDrop";
 import { SLICE_REV_TARGET, SLICE_REV_STRICT, SLICE_REV_EXPAND } from "@/lib/arcade/slice";
-import { FLIP_REV_TARGET, FLIP_REV_STRICT } from "@/lib/arcade/flip";
+import { FLIP_REV_TARGET, FLIP_REV_STRICT, FLIP_REV_EXPAND } from "@/lib/arcade/flip";
 import { CROSS_REV_TARGET, CROSS_REV_STRICT } from "@/lib/arcade/cross";
 import { INK_REV_TARGET, INK_REV_STRICT } from "@/lib/arcade/inkBridge";
 import { SNAKE_REV_TARGET, SNAKE_REV_200 } from "@/lib/arcade/snake";
@@ -11,7 +11,7 @@ import { SKYLINE_REV_TARGET, SKYLINE_REV_STRICT, SKYLINE_REV_EXPAND } from "@/li
 import { tiltSeedCupsReachable, TILT_REV_TARGET, TILT_REV_STRICT } from "@/lib/arcade/tilt";
 import { JUNC_REV_BAND } from "@/lib/arcade/junction";
 import { BINTOSS_REV_TARGET, BINTOSS_REV_STRICT, BINTOSS_REV_EXPAND } from "@/lib/arcade/binToss";
-import { SWING_REV_TALL, SWING_REV_TARGET, SWING_REV_STRICT } from "@/lib/arcade/swing";
+import { SWING_REV_TALL, SWING_REV_TARGET, SWING_REV_STRICT, SWING_REV_EXPAND } from "@/lib/arcade/swing";
 import { BURST_REV_TARGET, BURST_REV_STRICT } from "@/lib/arcade/burst";
 import { BRK_REV_TARGET, BRK_REV_STRICT, BRK_REV_DEEP } from "@/lib/arcade/breaker";
 import { PIN_REV_TARGET, PIN_REV_STRICT, PIN_REV_EXPAND } from "@/lib/arcade/pinball";
@@ -23,6 +23,7 @@ import { BEAT_REV_TARGET, BEAT_REV_200 } from "@/lib/arcade/beat";
 import { orbitHolesForBankSeed, orbitRev3BankEntryForSeed, orbitRev3PlanetsForSeed, encodeRev3Planets } from "./orbitRev3Course.server";
 import { proveSwingSeed } from "./swingProof.server";
 import { SWING_V9_BANK } from "./swingBankV9.server";
+import { SWING_V13_BANK } from "./swingBankV13.server";
 import { CLAY_REV_DEPTH } from "@/lib/arcade/clayShoot";
 import { WORDFALL_REV_BANDS } from "@/lib/arcade/wordfall";
 import { CLASH_QUEUE, CLASH_REV_TALL, CLASH_REV_DEPTH } from "@/lib/arcade/colourClash";
@@ -176,7 +177,8 @@ export function generateColourClash(): StroopPuzzleData {
 }
 
 export function generateFlip(): FlipPuzzleData {
-  return { type: "flip", seed: arcadeSeed(), flipRev: FLIP_REV_STRICT };
+  // flipRev 8 (expansion E7, docs/expansions/x200-flip.md): the taller cave, its features and sweet spots, scored to 200.
+  return { type: "flip", seed: arcadeSeed(), flipRev: FLIP_REV_EXPAND };
 }
 
 export function generateJunction(): JunctionPuzzleData {
@@ -215,6 +217,11 @@ export function generateSnip(): SnipPuzzleData {
  */
 export function generateSwing(): SwingPuzzleData {
   const roomSeed = arcadeSeed();
+  // swingRev 13 (the 200 expansion): from the bank courses re-proved with every feature (scripts/swing-bank.ts --expand).
+  if (SWING_V13_BANK.length > 0) {
+    const index = ((roomSeed % SWING_V13_BANK.length) + SWING_V13_BANK.length) % SWING_V13_BANK.length;
+    return { type: "swing", seed: SWING_V13_BANK[index]!.seed, swingRev: SWING_REV_EXPAND };
+  }
   // swingRev 9 (taller worlds, batch 3): from the bank courses re-proved on the taller cavern (scripts/swing-bank.ts --tall).
   if (SWING_V9_BANK.length > 0) {
     const index = ((roomSeed % SWING_V9_BANK.length) + SWING_V9_BANK.length) % SWING_V9_BANK.length;

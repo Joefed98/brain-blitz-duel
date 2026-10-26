@@ -160,7 +160,9 @@ section("New rounds carry the Tuning E stamps; one world per stored revision");
     // then snipRev 7 (the same game with every per-pin deal proven; scripts/snip-rev7-check.ts).
     // The 200-point expansion (26 Oct 2026) then moved Scrumper on to its tall courses (snipRev 11); snip-x200-check covers it.
     ["snip", "snipRev", playRevOf("snip", generateSnip().snipRev), SNIP_REV_EXPAND],
-    ["hover", "hoverRev", playRevOf("hover", generateHover().hoverRev), HOVER_REV_TALL],
+    // The 200 expansion (26 Oct 2026) then moved Hover on to hoverRev 9 (390 × 727, tight gates, centre lines, star
+    // chains, shields); hover-x200-check covers it.
+    ["hover", "hoverRev", playRevOf("hover", generateHover().hoverRev), HOVER_REV_TALL + 4],
   ];
   // Expansion E4 (25 Oct 2026) moved High Rise on to skylineRev 7 (e4-expansion-check covers it); its tall world
   // started with skylineRev 4, which stored rounds still play and score on the bands.
@@ -176,7 +178,8 @@ section("New rounds carry the Tuning E stamps; one world per stored revision");
   ok(snakeWorldHForRev(SNAKE_REV_TALL) === SNAKE_TALL_H && SNAKE_TALL_H === 724 && snakeWorldHForRev(SNAKE_REV_BAND) === SNAKE_WORLD_H, "Meteor: 390 × 724 on snakeRev 5, 390 × 532 before");
   ok(snipWorldHFor(SNIP_REV_TALL) === SNIP_TALL_H && SNIP_TALL_H === 640 && snipWorldHFor(SNIP_REV_BAND) === SNIP_H, "Scrumper: 360 × 640 on snipRev 5, 360 × 560 before");
   // The arena table (presentation-geometry) uses the worlds rooms deal today.
-  ok(ARCADE_FX_SPECS.hover.height === HOVER_TALL_H && ARCADE_FX_SPECS.skyline.height === skylineWorldHFor(generateSkyline().skylineRev) && skylineWorldHFor(generateSkyline().skylineRev) >= SKYLINE_TALL_H && ARCADE_FX_SPECS.snake.height === SNAKE_V9_H && ARCADE_FX_SPECS.snake.width === SNAKE_V9_WORLD_W && SNAKE_V9_H > SNAKE_TALL_H && ARCADE_FX_SPECS.snip.height === snipWorldHFor(generateSnip().snipRev) && snipWorldHFor(generateSnip().snipRev) > SNIP_TALL_H, "the live arena sizes are the taller worlds (Meteor: snakeRev 9's bigger field since expansion E2; Scrumper: snipRev 11's course view since the 200-point expansion)");
+  // Hover: hoverRev 9's 727-high world since the 200 expansion (hover-x200-check).
+  ok(ARCADE_FX_SPECS.hover.height === hoverWorldHFor(generateHover().hoverRev) && hoverWorldHFor(generateHover().hoverRev) >= 727 && ARCADE_FX_SPECS.skyline.height === skylineWorldHFor(generateSkyline().skylineRev) && skylineWorldHFor(generateSkyline().skylineRev) >= SKYLINE_TALL_H && ARCADE_FX_SPECS.snake.height === SNAKE_V9_H && ARCADE_FX_SPECS.snake.width === SNAKE_V9_WORLD_W && SNAKE_V9_H > SNAKE_TALL_H && ARCADE_FX_SPECS.snip.height === SNIP_TALL_H, "the live arena sizes are the taller worlds (Meteor: snakeRev 9's bigger field since expansion E2; Hover: hoverRev 9's since the 200 expansion)");
   // Effects follow the state's own world; old states keep the old spec object.
   const states = {
     hover: [hoverGameFor(HOVER_REV_TUNEC).init(5), hoverGameFor(HOVER_REV_TALL).init(5)],
@@ -471,7 +474,8 @@ if (want("snip")) {
   ok(PUZZLE_INSTRUCTIONS.snip.how.some((l) => l.helpOnly && /from above/.test(l.detail)), "Scrumper's help says a crook catches only from above");
 }
 // Screen audit Oct 2026: a plain line and a good run from the curve rooms deal (arcade-help-bands-check).
-if (want("hover")) ok(PUZZLE_INSTRUCTIONS.hover.score.includes("A good run (100 points) counts 42 – about 14 barriers"), "Hover's help states a good run on hoverRev 5's curve");
+// Hover: the curve rooms deal since the 200 expansion (hoverRev 9; hover-x200-check).
+if (want("hover")) ok(PUZZLE_INSTRUCTIONS.hover.score.includes("A good run (100 points) counts 45 – about 15 barriers"), "Hover's help states a good run on the curve rooms deal (hoverRev 9 since the 200 expansion)");
 if (want("snake")) ok(PUZZLE_INSTRUCTIONS.snake.score.includes("150 at 31") && PUZZLE_INSTRUCTIONS.snake.score.includes("A good run (100 points) eats 22 stars"), "Meteor's help states the top and a good run rooms deal (snakeRev 9 since expansion E2, expansion-e2-check)");
 
 if (failures.length) {

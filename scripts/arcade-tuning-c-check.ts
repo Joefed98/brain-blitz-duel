@@ -164,11 +164,14 @@ section("New rounds carry the Tuning C stamps; Junction is practice only");
     // Expansion E6 (25 Oct 2026) then moved Gemstone on to its taller board with goals (matchupRev 9); e6-check covers it.
     ["matchup", playRevOf("matchup", generateMatchup().matchupRev), MATCHUP_REV_PAR + 3],
     // Taller worlds batch 3 (16 Oct 2026) then moved Grappler on to its taller cavern (swingRev 9); arcade-tuning-g3-check covers it.
-    ["swing", playRevOf("swing", generateSwing().swingRev), SWING_REV_TUNEC + 2],
+    // Grappler's 200 expansion (26 Oct 2026) moved Grappler on to swingRev 13 (after swingRev 9's taller cavern); swing-x200-check covers it.
+    ["swing", playRevOf("swing", generateSwing().swingRev), SWING_REV_TUNEC + 6],
     // Tuning E (Oct 2026) moved Hover on to its taller world (hoverRev 5); arcade-tuning-e-check covers it.
-    ["hover", playRevOf("hover", generateHover().hoverRev), HOVER_REV_TALL],
+    // The 200 expansion (26 Oct 2026) then moved Hover on to hoverRev 9; hover-x200-check covers it.
+    ["hover", playRevOf("hover", generateHover().hoverRev), HOVER_REV_TALL + 4],
     ["inkbridge", playRevOf("inkbridge", generateInkBridge().inkRev), INK_REV_TUNEC],
-    ["flip", playRevOf("flip", generateFlip().flipRev), FLIP_REV_TUNEC],
+    // Expansion E7 (docs/expansions/x200-flip.md) then moved Roofbound on to flipRev 8; flip-x200-check covers it.
+    ["flip", playRevOf("flip", generateFlip().flipRev), FLIP_REV_TUNEC + 4],
     // Tuning F (Oct 2026) moved Tempo on to a thinner chart on the same curve (beatRev 5); arcade-tuning-f-check covers it.
     // Taller worlds batch 2 (16 Oct 2026) moved Tempo and Slice on to their taller worlds (beatRev 6, sliceRev 6); arcade-tuning-g2-check covers them.
     // Expansion E2 (25 Oct 2026) then moved Tempo on to its five-lane song with fever (beatRev 9); expansion-e2-check covers it.
@@ -228,7 +231,8 @@ section("Grappler, Hover, Rainbow Bridge and Tempo: same play, new curves");
   }
   // Hover's help now states its Tuning E curve (arcade-tuning-e-check).
   // Screen audit Oct 2026: the help gives a good run from the curve rooms deal (swingRev 9, inkRev 6, beatRev 9 since expansion E2; arcade-help-bands-check).
-  ok(PUZZLE_INSTRUCTIONS.swing.score.includes("A good run (100 points) counts 166") && PUZZLE_INSTRUCTIONS.inkbridge.score.includes("A good run (100 points) counts 59") && PUZZLE_INSTRUCTIONS.beat.score.includes("A good run (100 points) reaches 824"), "the \"?\" help states a good run on the curves rooms deal");
+  // Grappler's 200 expansion (swingRev 13) states a good run on its own base curve (swing-x200-check).
+  ok(PUZZLE_INSTRUCTIONS.swing.score.includes("A good run (100 points) counts 184") && PUZZLE_INSTRUCTIONS.inkbridge.score.includes("A good run (100 points) counts 59") && PUZZLE_INSTRUCTIONS.beat.score.includes("A good run (100 points) reaches 824"), "the \"?\" help states a good run on the curves rooms deal");
 }
 
 /* ================================ 4a. Gemstone ================================ */

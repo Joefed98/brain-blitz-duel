@@ -1,11 +1,13 @@
 import { DEPTH_DEMO_STOPS, DEPTH_REV, depthRevOf } from "./logicDepth";
-import { SWING_REV_TALL } from "@/lib/arcade/swing";
+import { SWING_REV_EXPAND } from "@/lib/arcade/swing";
 import { INK_REV3, INK_REV4, INK_REV_BAND, INK_REV_TUNEC } from "@/lib/arcade/inkBridge";
 import { CLAY_REV_DEPTH } from "@/lib/arcade/clayShoot";
 import { WHACK_REV_DEPTH } from "@/lib/arcade/whack";
 import { WORDFALL_REV } from "@/lib/arcade/wordfall";
 import { BRK_REV_DEEP } from "@/lib/arcade/breaker";
 import { SNIP_REV_EXPAND } from "@/lib/arcade/snip";
+import { FLIP_REV_EXPAND } from "@/lib/arcade/flip";
+import { HOVER_REV_EXPAND } from "@/lib/arcade/hover";
 import { RALLY_REV_TALL } from "@/lib/arcade/rally";
 import { WAV_REV_TALL } from "@/lib/arcade/wavefront";
 import { BURST_REV_TALL } from "@/lib/arcade/burst";
@@ -107,6 +109,13 @@ export const getIntroDemoFn = createServerFn({ method: "GET" })
     // The 200-point expansion (25 Oct 2026, docs/expansions/e3.md): Breaker brkRev 9 plays on a wider, taller court with
     // new features, so its demo stays stopped (the intro shows its still) until one is recorded there.
     if (data.type === "breaker" && demo?.puzzle.type === "breaker" && demo.puzzle.brkRev !== BRK_REV_DEEP) return null;
+    // Roofbound flipRev 8 (expansion E7, docs/expansions/x200-flip.md): a taller cave whose height changes, moving spikes,
+    // trails, checkpoints, speed zones and sweet spots. An older demo would show the short corridor (and none of them),
+    // so Roofbound's stays stopped (the intro shows its still) until one is recorded on flipRev 8.
+    if (data.type === "flip" && demo?.puzzle.type === "flip" && demo.puzzle.flipRev !== FLIP_REV_EXPAND) return null;
+    // The 200-point expansion (26 Oct 2026, docs/expansions/x200-hover.md): Hover hoverRev 9 plays in a 390 × 727 world with
+    // tight gates, centre lines, star chains and shields, so its demo stays stopped until one is recorded there.
+    if (data.type === "hover" && demo?.puzzle.type === "hover" && demo.puzzle.hoverRev !== HOVER_REV_EXPAND) return null;
     if (data.type === "rally" && demo?.puzzle.type === "rally" && demo.puzzle.rallyRev !== RALLY_REV_TALL) return null;
     if (data.type === "wavefront" && demo?.puzzle.type === "wavefront" && demo.puzzle.wavRev !== WAV_REV_TALL) return null;
     if (data.type === "burst" && demo?.puzzle.type === "burst" && demo.puzzle.burstRev !== BURST_REV_TALL) return null;
@@ -124,7 +133,9 @@ export const getIntroDemoFn = createServerFn({ method: "GET" })
     // Taller worlds batch 3 (16 Oct 2026): Grappler's taller cavern, Orbit's taller view and Ball Tracker's 12-row board.
     // An older demo would show the short world (and Ball Tracker's would play a 9-row course), so each stays stopped
     // until one is recorded on its tall revision.
-    if (data.type === "swing" && demo?.puzzle.type === "swing" && demo.puzzle.swingRev !== SWING_REV_TALL) return null;
+    // Grappler's 200 expansion (swingRev 13, 26 Oct 2026): a wider, deeper cave with ledges, gems, gates and par
+    // times, so only a demo recorded on swingRev 13 plays; until one is, the intro shows its still.
+    if (data.type === "swing" && demo?.puzzle.type === "swing" && demo.puzzle.swingRev !== SWING_REV_EXPAND) return null;
     if (data.type === "orbit" && demo?.puzzle.type === "orbit" && demo.puzzle.orbitRev !== ORBIT_REV_TALL) return null;
     // Expansion E6 (25 Oct 2026): Ball Tracker's 13-row board, Gemstone's taller board with goals: each stays stopped
     // until a demo is recorded on its new revision (btRev 7, matchupRev 9).

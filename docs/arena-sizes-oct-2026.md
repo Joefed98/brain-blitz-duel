@@ -40,7 +40,7 @@ revisions keep their own world in reveals and replays.
 | Swish | 430x728 | 375x519 → 307x519 | 390x552 → 326x552 | 390x696 → 390x660 | 414x700 → 413x700 | 430x784 → 430x728 | 1280x652 → 385x652 | 0.907x | 60px | 0px | 36px | 0px | Swish's cancel strip (72px): 16px |
 | Flightpath | 390x560 | 375x591 → 375x538 | 390x624 → 390x560 | 390x768 → 390x560 | 414x772 → 414x594 | 430x856 → 430x617 | 1280x724 → 504x724 | 1.000x | 60px | 0px | 208px | 0px | - |
 | Coral Pop | 390x730 | 375x591 → 316x591 | 390x624 → 333x624 | 390x768 → 390x730 | 414x772 → 412x772 | 430x856 → 430x805 | 1280x724 → 387x724 | 1.000x | 60px | 0px | 38px | 0px | - |
-| Roofbound | 390x620 | 375x591 → 372x591 | 390x624 → 390x620 | 390x768 → 390x620 | 414x772 → 414x658 | 430x856 → 430x684 | 1280x724 → 455x724 | 1.000x | 60px | 0px | 148px | 0px | - |
+| Roofbound | 390x730 | 375x591 → 316x591 | 390x624 → 333x624 | 390x768 → 390x730 | 414x772 → 412x772 | 430x856 → 430x805 | 1280x724 → 387x724 | 1.000x | 60px | 0px | 38px | 0px | - |
 | Grappler | 390x730 | 375x591 → 316x591 | 390x624 → 333x624 | 390x768 → 390x730 | 414x772 → 412x772 | 430x856 → 430x805 | 1280x724 → 387x724 | 1.000x | 60px | 0px | 38px | 0px | - |
 | Scrumper | 360x640 | 375x567 → 319x567 | 390x600 → 338x600 | 390x744 → 390x693 | 414x748 → 414x736 | 430x832 → 430x764 | 1280x700 → 394x700 | 1.083x | 84px | 25px | 25px | 0px | - |
 | Tilt | 440x470 | 375x591 → 375x401 | 390x624 → 390x417 | 390x768 → 390x417 | 414x772 → 414x442 | 430x856 → 430x459 | 1280x724 → 678x724 | 0.886x | 60px | 176px | 176px | 0px | - |
@@ -83,7 +83,7 @@ stars, walkers, lava, reactions) that holds still under reduced motion or reduce
 | Swish | 375x519 → 307x519 | 390x552 → 326x552 | 390x696 → 390x660 | 414x700 → 413x700 | 430x784 → 430x728 | 1280x652 → 385x652 | the counter's front, a kick board and the fairground floor (sky and counter beside the world) |
 | Flightpath | 375x591 → 375x538 | 390x624 → 390x560 | 390x768 → 390x560 | 414x772 → 414x594 | 430x856 → 430x617 | 1280x724 → 504x724 | the counter's front, a kick board and the fairground floor |
 | Coral Pop | 375x591 → 316x591 | 390x624 → 333x624 | 390x768 → 390x730 | 414x772 → 412x772 | 430x856 → 430x805 | 1280x724 → 387x724 | the deep water settles onto soft sand |
-| Roofbound | 375x591 → 372x591 | 390x624 → 390x620 | 390x768 → 390x620 | 414x772 → 414x658 | 430x856 → 430x684 | 1280x724 → 455x724 | deep rock below the floor's rock, faint lava streaks drifting and bubbling (still under reduced motion) |
+| Roofbound | 375x591 → 316x591 | 390x624 → 333x624 | 390x768 → 390x730 | 414x772 → 412x772 | 430x856 → 430x805 | 1280x724 → 387x724 | deep rock below the floor's rock, faint lava streaks drifting and bubbling (still under reduced motion) |
 | Grappler | 375x591 → 316x591 | 390x624 → 333x624 | 390x768 → 390x730 | 414x772 → 412x772 | 430x856 → 430x805 | 1280x724 → 387x724 | more lava under the cavern's lava, then dark rock |
 | Scrumper | 375x567 → 319x567 | 390x600 → 338x600 | 390x744 → 390x693 | 414x748 → 414x736 | 430x832 → 430x764 | 1280x700 → 394x700 | the orchard grass runs on below, a deeper green (world centred) |
 | Tilt | 375x591 → 375x401 | 390x624 → 390x417 | 390x768 → 390x417 | 414x772 → 414x442 | 430x856 → 430x459 | 1280x724 → 678x724 | the board's oak runs on to the screen's edges, settling darker (no rim) |
@@ -120,7 +120,7 @@ than half hidden; Hover's world is cut the same way, its disc at the top).
 | Swish | 414x652 → 385x652, 64px | 414x700 → 413x700, 16px | world none, Swish's cancel strip (72px) 32px |
 | Flightpath | 414x724 → 414x594, 64px | 414x772 → 414x594, 16px | world none |
 | Coral Pop | 414x724 → 387x724, 64px | 414x772 → 412x772, 16px | world 32px |
-| Roofbound | 414x724 → 414x658, 64px | 414x772 → 414x658, 16px | world none |
+| Roofbound | 414x724 → 387x724, 64px | 414x772 → 412x772, 16px | world 32px |
 | Grappler | 414x724 → 387x724, 64px | 414x772 → 412x772, 16px | world 32px |
 | Scrumper | 414x700 → 394x700, 64px | 414x748 → 414x736, 16px | world 20px |
 | Tilt | 414x724 → 414x442, 64px | 414x772 → 414x442, 16px | world none |
@@ -156,7 +156,7 @@ bottom; the spare space was the game's arena fill or the page colour. Same arith
 | Swish | 367x471 → 278x471 | 382x504 → 298x504 | 382x648 → 382x647 | 422x736 → 422x714 | 1272x604 → 357x604 |
 | Flightpath | 367x543 → 367x527 | 382x576 → 382x549 | 382x720 → 382x549 | 422x808 → 422x606 | 1272x676 → 471x676 |
 | Coral Pop | 367x543 → 290x543 | 382x576 → 308x576 | 382x720 → 382x715 | 422x808 → 422x790 | 1272x676 → 361x676 |
-| Roofbound | 367x543 → 342x543 | 382x576 → 362x576 | 382x720 → 382x607 | 422x808 → 422x671 | 1272x676 → 425x676 |
+| Roofbound | 367x543 → 290x543 | 382x576 → 308x576 | 382x720 → 382x715 | 422x808 → 422x790 | 1272x676 → 361x676 |
 | Grappler | 367x543 → 290x543 | 382x576 → 308x576 | 382x720 → 382x715 | 422x808 → 422x790 | 1272x676 → 361x676 |
 | Scrumper | 367x503 → 283x503 | 382x536 → 302x536 | 382x680 → 382x679 | 422x768 → 422x750 | 1272x636 → 358x636 |
 | Tilt | 367x503 → 367x392 | 382x536 → 382x408 | 382x680 → 382x408 | 422x768 → 422x451 | 1272x636 → 595x636 |

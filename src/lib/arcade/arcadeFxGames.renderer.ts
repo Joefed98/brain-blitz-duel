@@ -13,7 +13,7 @@
 import type { ArcadeFxMiss, ArcadeFxSpec, ArcadeWorld } from "./arcadeFx.renderer";
 import { px } from "./engine";
 
-import { HOVER_DISC_X, HOVER_TALL_H, HOVER_WORLD_H, HOVER_WORLD_W, hoverWorldH, type HoverState } from "./hover";
+import { HOVER_DISC_X, HOVER_EXPAND_H, HOVER_TALL_H, HOVER_WORLD_H, HOVER_WORLD_W, hoverWorldH, type HoverState } from "./hover";
 
 /** hoverRev 2: passed barriers of one kind (original courses have none, so these stay 0). */
 function hoverPassed(s: HoverState, kind: "twoGap" | "moving"): number {
@@ -102,11 +102,19 @@ import {
   swingWorldH,
   SWING_WORLD_W,
   swingMetres,
+  SWING_V13_H,
+  SWING_V13_W,
+  swingFeatureCounts,
+  swingParLabel,
   type SwingState,
 } from "./swing";
 import {
   flipCrackTick,
   flipStarsTaken,
+  flipRunnerPoint,
+  flipSweetsTaken,
+  flipTrailStars,
+  FLIP_V8_WORLD_H,
   FLIP_CRUMBLE_TICKS,
   FLIP_STARS,
   FLIP_WORLD_H,
@@ -114,6 +122,14 @@ import {
   type FlipState,
 } from "./flip";
 
+/** flipRev 8: speed zones the run has entered (0 on every earlier round). */
+function flipZonesEntered(s: FlipState): number {
+  const z = s.v8?.zones;
+  if (!z || s.ended === 2) return 0;
+  let n = 0;
+  for (let i = 0; i < z.length; i += 2) if (s.tick > z[i]!) n += 1;
+  return n;
+}
 /** Rev 2: crumble tiles the runner touched that broke with it safely elsewhere. */
 function flipEscapes(s: FlipState): number {
   if (s.ended === 2) return 0;
@@ -368,8 +384,51 @@ export const HOVER_FX: ArcadeFxSpec<HoverState> = {
       textOnly: true,
       bulbs: { pattern: "step", colours: HOVER_STEP_COLOURS, strong: true },
     },
+    // hoverRev 9 (the 200 expansion; counts stay 0 on every earlier round, so their moments are unchanged): a tight
+    // gate threaded, a whole star chain, a shield picked up, a centre line graded.
+    {
+      kind: "perfect",
+      count: (s) => s.tight ?? 0,
+      at: (s) => ({ x: px(HOVER_DISC_X) + 24, y: px(s.y) - 16 }),
+      label: () => "TIGHT GATE!",
+      colour: () => "#FFD84A",
+      textOnly: true,
+      bulbs: { pattern: "step", colours: ["#FFD84A"], strong: true },
+    },
+    {
+      kind: "clear",
+      count: (s) => s.chainsDone ?? 0,
+      at: (s) => ({ x: px(HOVER_DISC_X) + 24, y: px(s.y) - 16 }),
+      label: () => "STAR CHAIN!",
+      colour: () => "#FFD84A",
+      textOnly: true,
+      bulbs: { pattern: "step", colours: ["#FFD84A"], strong: true },
+    },
+    {
+      kind: "pop",
+      count: (s) => s.pickupsTaken?.length ?? 0,
+      at: (s) => ({ x: px(HOVER_DISC_X) + 24, y: px(s.y) - 14 }),
+      label: () => "SHIELD!",
+      colour: () => "#5CD0FF",
+      textOnly: true,
+    },
+    {
+      kind: "combo",
+      count: (s) => s.ctrLog?.length ?? 0,
+      at: (s) => ({ x: px(HOVER_DISC_X) + 24, y: px(s.y) + 14 }),
+      label: (s) => {
+        const grade = (s.ctrLog?.at(-1) ?? 0) & 3;
+        return grade === 3 ? "DEAD CENTRE!" : `CENTRE +${grade}`;
+      },
+      colour: () => "#FFD84A",
+      textOnly: true,
+    },
   ],
-  misses: [{ count: (s) => (s.crashed ? 1 : 0), at: (s) => ({ x: px(HOVER_DISC_X), y: px(s.y) }) }],
+  misses: [
+    { count: (s) => (s.crashed ? 1 : 0), at: (s) => ({ x: px(HOVER_DISC_X), y: px(s.y) }) },
+    // hoverRev 9: a shield breaking in place of a crash.
+    { count: (s) => s.shieldBreaks ?? 0, at: (s) => ({ x: px(HOVER_DISC_X), y: px(s.y) }) },
+  ],
 };
 
 function brickCentre(index: number): { x: number; y: number } {
@@ -1085,9 +1144,25 @@ export const FLIP_FX: ArcadeFxSpec<FlipState> = {
       label: () => "ALL 10 STARS!",
     },
     { kind: "pop", count: flipEscapes, at: () => ({ x: 90, y: FLIP_WORLD_H / 2 + 30 }), label: () => "JUST IN TIME!" },
+    // flipRev 8 only (every earlier round keeps these counters at 0).
+    { kind: "pop", count: (s) => flipTrailStars(s).stars, at: (s) => flipRunnerPoint(s), label: () => null },
+    { kind: "perfect", count: (s) => flipTrailStars(s).full, at: (s) => flipRunnerPoint(s), label: () => "STAR TRAIL!" },
+    {
+      kind: "combo",
+      count: (s) => s.combos ?? 0,
+      at: (s) => flipRunnerPoint(s),
+      label: (s) => ((s.chain ?? 0) <= 1 ? "DOUBLE FLIP!" : (s.chain ?? 0) === 2 ? "TRIPLE FLIP!" : `FLIP ×${(s.chain ?? 0) + 1}`),
+    },
+    { kind: "streak", count: (s) => s.cpPassed ?? 0, label: () => "CHECKPOINT" },
+    { kind: "pop", count: (s) => s.saves ?? 0, at: (s) => flipRunnerPoint(s), label: () => "SAVED!" },
+    { kind: "streak", count: flipZonesEntered, label: () => "SPEED ZONE!" },
+    // flipRev 8's sweet spots: a small pop at the runner's feet on a sweet landing.
+    { kind: "pop", count: flipSweetsTaken, at: (s) => flipRunnerPoint(s), label: () => "SWEET!" },
   ],
   misses: [{ count: (s) => (s.ended === 2 ? 1 : 0) }],
 };
+/** flipRev 8's taller cave draws its effects on the 730 px world. */
+export const flipFxFor = (s: FlipState): ArcadeFxSpec<FlipState> => (s.exp ? fxSpecAt(FLIP_FX, FLIP_V8_WORLD_H) : FLIP_FX);
 
 export const SWING_FX: ArcadeFxSpec<SwingState> = {
   game: "swing",
@@ -1307,11 +1382,15 @@ export function fxSpecAt<S>(spec: ArcadeFxSpec<S>, height: number): ArcadeFxSpec
 export const hoverFxFor = (s: HoverState): ArcadeFxSpec<HoverState> => fxSpecAt(HOVER_FX, hoverWorldH(s));
 /** The specs live rooms deal today (Tuning E's taller worlds); stored rounds draw through fxSpecAt. */
 export const HOVER_FX_TALL = fxSpecAt(HOVER_FX, HOVER_TALL_H);
+/** hoverRev 9 (the 200 expansion): the 390 × 727 world rooms deal now. */
+export const HOVER_FX_EXPAND = fxSpecAt(HOVER_FX, HOVER_EXPAND_H);
 export const skylineFxFor = (s: SkylineState): ArcadeFxSpec<SkylineState> => fxSpecAt(SKYLINE_FX, skylineWorldH(s));
 /** snakeRev 9 (expansion E2): the wider, taller world rooms deal. */
 export const SNAKE_FX_V9: ArcadeFxSpec<SnakeState> = { ...SNAKE_FX, width: SNAKE_V9_WORLD_W, height: SNAKE_V9_H };
 export const snakeFxFor = (s: SnakeState): ArcadeFxSpec<SnakeState> => (s.cols ? SNAKE_FX_V9 : fxSpecAt(SNAKE_FX, snakeWorldHFor(snakeRowsOf(s))));
 export const SNAKE_FX_TALL = fxSpecAt(SNAKE_FX, SNAKE_TALL_H);
+/** Roofbound flipRev 8's 730 px cave (the spec rooms deal today; earlier rounds draw through flipFxFor). */
+export const FLIP_FX_TALL = fxSpecAt(FLIP_FX, FLIP_V8_WORLD_H);
 export const snipFxFor = (s: SnipState): ArcadeFxSpec<SnipState> => fxSpecAt(SNIP_FX, snipWorldH(s));
 export const SNIP_FX_TALL = fxSpecAt(SNIP_FX, SNIP_TALL_H);
 export const SKYLINE_FX_TALL = fxSpecAt(SKYLINE_FX, SKYLINE_TALL_H);
@@ -1401,8 +1480,28 @@ export const SLICE_FX_V9: ArcadeFxSpec<SliceState> = { ...SLICE_FX, width: SLICE
 export const bubbleFxFor = (s: BubState): ArcadeFxSpec<BubState> => fxSpecAt(BUBBLE_FX, bubWorldH(s));
 export const BUBBLE_FX_TALL = fxSpecAt(BUBBLE_FX, BUB_TALL_H);
 /** Taller worlds batch 3 (Oct 2026): Grappler swingRev 9, Orbit orbitRev 8 (its view), Ball Tracker btRev 4. */
-export const swingFxFor = (s: SwingState): ArcadeFxSpec<SwingState> => fxSpecAt(SWING_FX, swingWorldH(s));
 export const SWING_FX_TALL = fxSpecAt(SWING_FX, SWING_TALL_H);
+/**
+ * Grappler swingRev 13 (the 200 expansion, docs/expansions/x200-swing.md): the wider, taller view, plus a pop for
+ * each gem, lit gate and ledge landed, a streak on every combo point, a banner for each cleared set-route section,
+ * and a pop for each section finished under its par time (counters the sim keeps).
+ */
+const swingAt = (s: SwingState, dy = -22) => ({ x: s.x / 256 - s.camX / 256, y: s.y / 256 + dy });
+export const SWING_FX_V13: ArcadeFxSpec<SwingState> = {
+  ...SWING_FX,
+  width: SWING_V13_W,
+  height: SWING_V13_H,
+  events: [
+    ...SWING_FX.events,
+    { kind: "pop", count: (s) => swingFeatureCounts(s).gems, at: (s) => swingAt(s), label: () => "+GEM", colour: () => "#8FF4FF" },
+    { kind: "pop", count: (s) => swingFeatureCounts(s).gates, at: (s) => swingAt(s, 26), label: () => "SPEED GATE!" },
+    { kind: "pop", count: (s) => swingFeatureCounts(s).ledges, at: (s) => swingAt(s, -26), label: () => "LANDED!" },
+    { kind: "streak", count: (s) => s.comboPts ?? 0, at: (s) => swingAt(s, -40), label: (s) => `SWING COMBO ×${s.chain ?? 0}` },
+    { kind: "perfect", count: (s) => swingFeatureCounts(s).sections, at: (s) => swingAt(s, -30), label: () => "SECTION CLEAR!", colour: () => "#FFD84A" },
+    { kind: "pop", count: (s) => swingFeatureCounts(s).parsBeaten, at: (s) => swingAt(s, -54), label: (s) => swingParLabel(s), colour: () => "#FFE9A8" },
+  ],
+};
+export const swingFxFor = (s: SwingState): ArcadeFxSpec<SwingState> => (s.expand ? SWING_FX_V13 : fxSpecAt(SWING_FX, swingWorldH(s)));
 export const orbit3FxFor = (s: OrbitRev3State): ArcadeFxSpec<OrbitRev3State> => fxSpecAt(ORBIT3_FX, orbitViewH(s));
 export const ORBIT3_FX_TALL = fxSpecAt(ORBIT3_FX, ORBIT_TALL_VIEW_H);
 export const balltrackFxFor = (s: BtState): ArcadeFxSpec<BtState> => fxSpecAt(BALLTRACK_FX, btWorldH(s));
@@ -1448,7 +1547,7 @@ export const PINBALL_FX: ArcadeFxSpec<PinState> = {
 };
 
 export const ARCADE_FX_SPECS = {
-  hover: HOVER_FX_TALL,
+  hover: HOVER_FX_EXPAND,
   breaker: BREAKER_FX_DEEP,
   rally: RALLY_FX_TALL,
   beat: BEAT_FX_TALL,
@@ -1465,8 +1564,9 @@ export const ARCADE_FX_SPECS = {
   bintoss: BINTOSS_FX_V7,
   bullseye: BULLSEYE_FX,
   bubble: BUBBLE_FX_TALL,
-  flip: FLIP_FX,
-  swing: SWING_FX_TALL,
+  flip: FLIP_FX_TALL,
+  // The live round's view (swingRev 13, the 200 expansion); older rounds draw through swingFxFor.
+  swing: SWING_FX_V13,
   // The live round's view (snipRev 11); older rounds draw through their state's spec (snipFxFor).
   snip: fxSpecAt(SNIP_FX, SNIP_X_VIEW_H),
   tilt: TILT_FX,
