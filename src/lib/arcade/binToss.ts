@@ -1414,9 +1414,10 @@ function initRev7(seed: number): BinTossState {
 /**
  * binRev 7's curve for binRev 6's units (10 a bucket, 3 a hoop swish; the far points come on top, and 10
  * for all ten in): fitted with scripts/arcade-skill-bands.ts --rev=x so each simulated level's median
- * stays within about 10 % of binRev 6's; 140 at every bucket and hoop.
+ * stays within about 10 % of binRev 6's; 142 at every bucket and hoop. Merge retune (26 Oct 2026; not live): the top
+ * flattened so near-perfect's top 10 % stays under about 185 on the tuning and 200 fresh seeds.
  */
-export const BINTOSS_V7_BAND_CURVE = bandCurve([0, 40, 60, 70, 74, 83, 100, 109], [0, 50, 80, 96, 110, 124, 137, 140]);
+export const BINTOSS_V7_BAND_CURVE = bandCurve([0, 40, 60, 70, 74, 83, 97, 109], [0, 56, 80, 96, 110, 139, 140, 142]);
 
 function binTossV7Parts(state: BinTossState): BandParts {
   const units = 10 * clampInt(state.baskets, 0, BINTOSS_THROWS) + BINTOSS_HOOP_POINTS * clampInt(state.swishes ?? 0, 0, BINTOSS_HOOP_COUNT);

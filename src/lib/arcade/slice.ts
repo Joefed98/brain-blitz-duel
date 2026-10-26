@@ -1563,9 +1563,10 @@ export const SLICE_V9_INPUT_RANGES: readonly InputRange[] = [
 /**
  * sliceRev 9's curve on the value-weighted share (per mille of the most the run offers, every food at ×3):
  * fitted with scripts/arcade-skill-bands.ts --rev=x so each simulated level's median stays within about
- * 10 % of sliceRev 8's once the bonus points they earn are added; 150 at 900.
+ * 10 % of sliceRev 8's once the bonus points they earn are added; 150 at 850. Merge retune (26 Oct 2026; not live):
+ * the top flattened so near-perfect's top 10 % stays under about 185 on the tuning and 200 fresh seeds.
  */
-export const SLICE_V9_BAND_CURVE = bandCurve([0, 352, 650, 706, 760, 800, 850], [0, 55, 72, 97, 120, 140, 150]);
+export const SLICE_V9_BAND_CURVE = bandCurve([0, 352, 643, 704, 743, 797, 850], [0, 55, 72, 132, 135, 136, 150]);
 
 function sliceV9Parts(state: SliceState): BandParts {
   const total = Math.max(1, sliceTotalDiscs(state));
