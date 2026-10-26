@@ -80,6 +80,7 @@ const { bubbleArtGame } = await import("../src/lib/arcade/bubble.renderer");
 const { bubbleRev2Game } = await import("../src/lib/arcade/bubble");
 const { flipArtGameFor } = await import("../src/lib/arcade/flipArt.renderer");
 const { swingArtGameFor } = await import("../src/lib/arcade/swing.renderer");
+const { SWING_V13_BANK } = await import("../src/lib/duel/swingBankV13.server");
 const { snipArtGame } = await import("../src/lib/arcade/snip.renderer");
 const { snipRev3Game } = await import("../src/lib/arcade/snip");
 const { tiltRev2ArtGame: tiltArtGame } = await import("../src/lib/arcade/tiltArt.renderer");
@@ -128,7 +129,8 @@ const GAMES: Record<string, AnyGame> = {
   bullseye: { ...bullseyeGame, init: bullseyeRev2Game.init, draw: drawBullseye } as AnyGame,
   bubble: { ...bubbleArtGame, init: bubbleRev2Game.init } as AnyGame,
   flip: flipArtGameFor(2) as AnyGame,
-  swing: swingArtGameFor(4) as AnyGame,
+  // Grappler's 200 expansion (swingRev 13) is the live spec: its bank course, so every feature (sections included) is on it.
+  swing: { ...swingArtGameFor(13), init: () => swingArtGameFor(13).init(SWING_V13_BANK[0]!.seed) } as AnyGame,
   snip: { ...snipArtGame, init: snipRev3Game.init } as AnyGame,
   tilt: tiltArtGame as AnyGame,
   balltrack: {
@@ -377,6 +379,13 @@ const BUMPS: Record<string, ((s: any) => any)[]> = {
     (s) => ({ ...s, rocks: (s.rocks ?? []).map((r: any, i: number) => (i === 0 ? { ...r, phase: 3 } : r)) }),
     (s) => ({ ...s, x: (s.jets?.[0]?.x ?? 0) + 40 * 256 }),
     (s) => ({ ...s, ended: 1, maxX: s.maxX + 600 * 256 * 40 }),
+    // swingRev 13: a gem, a lit gate, a ledge landed, a combo point, a section cleared, a section under par.
+    (s) => ({ ...s, gemsTaken: (s.gemsTaken ?? 0) | 1 }),
+    (s) => ({ ...s, gatesLit: (s.gatesLit ?? 0) | 1 }),
+    (s) => ({ ...s, ledgeTicks: (s.ledgeTicks ?? []).map((t: number, i: number) => (i === 0 ? s.tick : t)) }),
+    (s) => ({ ...s, comboPts: (s.comboPts ?? 0) + 1, chain: 5 }),
+    (s) => ({ ...s, ledgeTicks: (s.ledges ?? []).map((l: any, i: number) => (l.section === 0 ? s.tick : (s.ledgeTicks ?? [])[i] ?? 0)) }),
+    (s) => ({ ...s, ledgeTicks: (s.ledges ?? []).map((l: any, i: number) => (l.section === 1 ? (l.kind === 0 ? Math.max(1, s.tick - 60) : s.tick) : (s.ledgeTicks ?? [])[i] ?? 0)) }),
   ],
   snip: [
     (s) => ({ ...s, stars: s.stars + 1 }),

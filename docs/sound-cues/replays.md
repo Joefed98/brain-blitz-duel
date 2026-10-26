@@ -127,6 +127,12 @@ game the round was.
 | `swing.dodged` | Stalactite dodged: the clip reaches the moment's key tick | instant (the moment lands; about 0.5 s of half-speed play follows) |
 | `swing.over-lava` | Over the lava jet: the clip reaches the moment's key tick | instant (the moment lands; about 0.5 s of half-speed play follows) |
 | `swing.finish` | 500 m (dragon outrun): the clip reaches the moment's key tick | instant (the moment lands; about 0.5 s of half-speed play follows) |
+| `swing.gem` | High-route gem (swingRev 13): the clip reaches the moment's key tick | instant (the moment lands; about 0.5 s of half-speed play follows) |
+| `swing.speed-gate` | Speed gate lit (swingRev 13): the clip reaches the moment's key tick | instant (the moment lands; about 0.5 s of half-speed play follows) |
+| `swing.ledge` | Landed on a ledge (swingRev 13): the clip reaches the moment's key tick | instant (the moment lands; about 0.5 s of half-speed play follows) |
+| `swing.combo` | Swing combo point (swingRev 13): the clip reaches the moment's key tick | instant (the moment lands; about 0.5 s of half-speed play follows) |
+| `swing.section` | Set-route section cleared (swingRev 13): the clip reaches the moment's key tick | instant (the moment lands; about 0.5 s of half-speed play follows) |
+| `swing.par` | Section finished under par (swingRev 13): the clip reaches the moment's key tick | instant (the moment lands; about 0.5 s of half-speed play follows) |
 | `snip.leaf` | Leaf taken: the clip reaches the moment's key tick | instant (the moment lands; about 0.5 s of half-speed play follows) |
 | `snip.level` | Apple fed: the clip reaches the moment's key tick | instant (the moment lands; about 0.5 s of half-speed play follows) |
 | `snip.all-apples` | All 10 apples: the clip reaches the moment's key tick | instant (the moment lands; about 0.5 s of half-speed play follows) |
