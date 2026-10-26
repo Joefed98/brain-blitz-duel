@@ -3,8 +3,11 @@
  * src/lib/onboarding.ts). Draws the real home and room screens in headless Chromium through
  * scripts/safe-area-harness.tsx (network edge stubbed, scripts/safe-area-server.ts) and fails
  * unless:
- *  - a fresh device sees the intro on home, three panels with dots, Next and Skip on each;
- *  - Let's play and Skip both land on home, and the intro does not show again on reload;
+ *  - a fresh device sees the intro card on home (tab pages refresh, 26 Oct 2026: the first-time intro
+ *    is a card at the top of the Play tab, src/components/app/IntroCard.tsx), and its How it works
+ *    opens the three panels with dots, Next and Skip on each;
+ *  - Let's play and Skip both land on home, closing the card removes it, and neither the card nor the
+ *    panels show again on reload;
  *  - a swipe turns the panel either way, and Next plays the existing lock cue (no new sound);
  *  - a room invite link opens the room with no intro, and home never shows it afterwards;
  *  - "How it works" on home reopens it at any time;
@@ -200,6 +203,14 @@ async function open(page: Page, mode: "home" | "room", where: string) {
 }
 
 const introUp = (page: Page) => page.locator("[data-onboarding]").count().then((n) => n > 0);
+/** The first-time intro card on the Play tab, drawn (not collapsed away). */
+const cardUp = (page: Page) =>
+  page.locator("[data-intro-card]").evaluateAll((els) => els.some((el) => el.getBoundingClientRect().height > 0 && !el.closest("[data-slot-state='hide']")));
+/** The card's How it works: the three panels. */
+async function openFromCard(page: Page) {
+  await page.locator("[data-intro-how]").click();
+  await page.locator("[data-onboarding]").waitFor({ timeout: 10_000 });
+}
 const homeUp = (page: Page) => page.getByRole("button", { name: "Create a room" }).count().then((n) => n > 0);
 const currentPanel = (page: Page) =>
   page.evaluate(() => {
@@ -265,10 +276,12 @@ try {
     const { context, page, cues } = await newDevice(size);
     try {
       await open(page, "home", where);
-      if (!(await introUp(page))) {
-        fail(`${where}: a fresh device did not see the intro on home`);
+      if (!(await cardUp(page))) {
+        fail(`${where}: a fresh device did not see the intro card on home`);
         continue;
       }
+      if (await introUp(page)) fail(`${where}: the panels opened by themselves (the card stands in for them)`);
+      await openFromCard(page);
       const before = failures.length;
       for (let i = 0; i < 3; i++) {
         await settle(page);
@@ -291,7 +304,8 @@ try {
       if (other.length) fail(`${where}: the intro played ${other.join(", ")}`);
       await open(page, "home", where);
       if (await introUp(page)) fail(`${where}: the intro showed again after Let's play`);
-      if (failures.length === before) ok(`${where}: three panels fit with no scrolling, clear of the insets; Let's play lands on home once`);
+      if (await cardUp(page)) fail(`${where}: the intro card showed again on reload`);
+      if (failures.length === before) ok(`${where}: the card, then three panels that fit with no scrolling, clear of the insets; Let's play lands on home once`);
     } finally {
       await context.close();
     }
@@ -302,13 +316,18 @@ try {
     const { context, page } = await newDevice();
     const before = failures.length;
     await open(page, "home", "skip");
-    if (!(await introUp(page))) fail("skip: no intro on a fresh device");
+    if (!(await cardUp(page))) fail("skip: no intro card on a fresh device");
+    await openFromCard(page);
     await page.locator("[data-onboarding-skip]").click();
     await page.waitForTimeout(300);
     if (await introUp(page)) fail("skip: Skip did not close the intro");
     if (!(await homeUp(page))) fail("skip: Skip did not land on home");
+    // The card's close button removes it (it collapses away).
+    await page.locator("[data-intro-close]").click();
+    await page.waitForTimeout(700);
+    if (await cardUp(page)) fail("skip: the card's close button did not remove it");
     await open(page, "home", "skip");
-    if (await introUp(page)) fail("skip: the intro showed again after Skip");
+    if ((await introUp(page)) || (await cardUp(page))) fail("skip: the intro showed again after Skip");
     // Skip on a later panel too.
     await page.getByRole("button", { name: "How it works" }).click();
     await page.locator("[data-onboarding-next]").click();
@@ -316,7 +335,7 @@ try {
     await page.locator("[data-onboarding-skip]").click();
     await page.waitForTimeout(300);
     if (!(await homeUp(page)) || (await introUp(page))) fail("skip: Skip on panel 2 did not land on home");
-    if (failures.length === before) ok("Skip (panel 1 and 2) lands on home and the intro does not return");
+    if (failures.length === before) ok("Skip (panel 1 and 2) lands on home, the card closes, and the intro does not return");
     await context.close();
   }
 
@@ -325,6 +344,7 @@ try {
     const { context, page } = await newDevice();
     const before = failures.length;
     await open(page, "home", "swipe");
+    await openFromCard(page);
     const box = (await page.locator("[data-onboarding-track]").boundingBox())!;
     const y = box.y + box.height / 2;
     const swipe = async (from: number, to: number) => {
@@ -356,7 +376,7 @@ try {
     const text = await page.locator("#root").innerText();
     if (!/SAFE/.test(text)) fail("invite: the room did not render (no room code on screen)");
     await open(page, "home", "invite");
-    if (await introUp(page)) fail("invite: home showed the intro after arriving by a room link");
+    if ((await introUp(page)) || (await cardUp(page))) fail("invite: home showed the intro after arriving by a room link");
     if (!(await homeUp(page))) fail("invite: home did not render afterwards");
     if (failures.length === before) ok("room invite link: straight to the room, and no intro on home afterwards");
     await context.close();
@@ -368,7 +388,7 @@ try {
     const before = failures.length;
     await page.addInitScript((key) => localStorage.setItem(key, "1"), ONBOARDING_KEY);
     await open(page, "home", "how it works");
-    if (await introUp(page)) fail("how it works: the intro showed on a device that has seen it");
+    if ((await introUp(page)) || (await cardUp(page))) fail("how it works: the intro showed on a device that has seen it");
     for (let round = 0; round < 2; round++) {
       await page.getByRole("button", { name: "How it works" }).click();
       await settle(page);
@@ -387,12 +407,13 @@ try {
     const { context, page } = await newDevice({ brokenStorage: true });
     const before = failures.length;
     await open(page, "home", "storage");
-    if (!(await introUp(page))) fail("storage: with localStorage failing a fresh device saw no intro");
+    if (!(await cardUp(page))) fail("storage: with localStorage failing a fresh device saw no intro card");
+    await openFromCard(page);
     await page.locator("[data-onboarding-skip]").click();
     await page.waitForTimeout(300);
     if (!(await homeUp(page))) fail("storage: Skip did not land on home with localStorage failing");
     await open(page, "home", "storage");
-    if (await introUp(page)) fail("storage: the intro showed twice in one session with localStorage failing");
+    if ((await introUp(page)) || (await cardUp(page))) fail("storage: the intro showed twice in one session with localStorage failing");
     if (failures.length === before) ok("storage failing: the intro shows once a session (sessionStorage fallback), no errors");
     await context.close();
   }
@@ -401,6 +422,7 @@ try {
   {
     const { context, page } = await newDevice({ reducedMotion: true });
     await open(page, "home", "reduced motion");
+    await openFromCard(page);
     const duration = await page.evaluate(
       () => getComputedStyle(document.querySelector("[data-onboarding-track] > div")!).transitionDuration,
     );
@@ -421,4 +443,4 @@ if (failures.length) {
   console.log(`FAIL: ${failures.length} onboarding problem(s)`);
   process.exit(1);
 }
-console.log("PASS: first-time intro shows once on home, never after a room link, reopens from How it works, and fits at 414x896, 390x844, 375x667 and 360x800");
+console.log("PASS: first-time intro card shows once on home, its How it works opens the panels, never after a room link, reopens from How it works, and fits at 414x896, 390x844, 375x667 and 360x800");

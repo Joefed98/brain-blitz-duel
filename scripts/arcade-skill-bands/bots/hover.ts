@@ -15,7 +15,22 @@
  * lag); where a sliding gap will be at the pass is judged with an error that
  * grows with how far ahead it has to be judged. Two-gap barriers: the nearer-looking gap (blurred pick).
  * Slips: now and then a tap goes well off its moment.
+ *
+ * Competence fix (ctx.fixes, Oct 2026): a player who knows the game flies the line that forgives
+ * their own timing, not the one with the most room only if every tap lands on its tick. Among the
+ * best plans by room, the one whose room stays largest with each of its taps a timing error (one sd
+ * of the level's jitter at this barrier) early or late is flown. (Without it the bot often keyed a
+ * barrier on a hard-falling tap just before the entry, the line a few ticks of lateness ruins: the
+ * slow, wide first barriers crashed average players about as often as the fast narrow ones.) A gold
+ * star is then gone for only when that forgiving room still keeps the player's margin: the base
+ * score is protected first. When no one- or two-tap line keeps room (a far climb at speed, a
+ * sliding gap), every tap sequence through the pass is weighed (dpPlan), as a player hammers or
+ * holds off to make a gap they can see they otherwise miss; and the line through a barrier must
+ * leave the next barrier's gap within reach (lookAhead), as a player looks one barrier further.
+ * elite and perfect always plan this way (perfect's jitter is 0); weak, a first-timer who doesn't
+ * know the lines yet, never does.
  */
+import type { SkillLevel } from "../human";
 import {
   HOVER_DISC_R,
   HOVER_DISC_X,
@@ -36,11 +51,11 @@ import {
 import { driveTaps, type SkillBot } from "../bot";
 
 /** Chance of deciding to go for a gold star (each one sits near a lip: a risky line). */
-const STAR_TRY: Record<string, number> = { average: 0.25, good: 0.5, great: 0.75, near: 0.9 };
+const STAR_TRY: Record<SkillLevel, number> = { weak: 0.1, average: 0.25, good: 0.5, great: 0.75, near: 0.9, elite: 1, perfect: 1 };
 /** Least room (px) to the gap's edges a player accepts to brush a star (risk appetite). */
-const STAR_ROOM: Record<string, number> = { average: 10, good: 10, great: 10, near: 10 };
+const STAR_ROOM: Record<SkillLevel, number> = { weak: 10, average: 10, good: 10, great: 10, near: 10, elite: 10, perfect: 10 };
 /** Read error on where a sliding gap will be, px per tick ahead (1 world px = 1 phone px). */
-const READ: Record<string, number> = { average: 0.3, good: 0.2, great: 0.13, near: 0.08 };
+const READ: Record<SkillLevel, number> = { weak: 0.4, average: 0.3, good: 0.2, great: 0.13, near: 0.08, elite: 0.06, perfect: 0 };
 /** Fastest deliberate tapping: 8 ticks apart (7.5 taps a second). */
 const MIN_TAP_GAP = 8;
 /** The last taps before a barrier are planned once its entry is this close (ticks). */
@@ -82,8 +97,10 @@ interface Target {
   scale: number;
 }
 
-export const bot: SkillBot = ({ game, seed, human }) => {
+export const bot: SkillBot = ({ game, seed, human, fixes }) => {
   const level = human.level;
+  /** The forgiving-line fix (see above): the core levels only with ctx.fixes; elite and perfect always; never weak (a first-timer doesn't know the lines). */
+  const ROBUST = level !== "weak" && (Boolean(fixes) || level === "elite" || level === "perfect");
   const lag = human.lagTicks();
   /** Commit point: a tap can no longer be corrected within about a reaction time of it. */
   const commitLead = Math.round(human.p.reactionMs[0] / (1000 / 60));
@@ -95,9 +112,9 @@ export const bot: SkillBot = ({ game, seed, human }) => {
   const init = game.init(seed) as HoverState;
   FLOOR = hoverBottom(init) - HOVER_DISC_R - 6 * FP;
 
-  const target = (s: HoverState, seen: HoverState, t: number): Target | null => {
-    let idx = -1;
-    for (let i = seen.gates; i < seen.pillars.length; i++) {
+  const target = (s: HoverState, seen: HoverState, t: number, from = -1): Target | null => {
+    let idx = from >= 0 && from < seen.pillars.length ? from : -1;
+    for (let i = seen.gates; from < 0 && i < seen.pillars.length; i++) {
       const p = seen.pillars[i]!;
       if (pillarX(p, seen.distance) + HOVER_PILLAR_W - (HOVER_DISC_X - HOVER_DISC_R) >= 0) {
         idx = i;
@@ -172,7 +189,9 @@ export const bot: SkillBot = ({ game, seed, human }) => {
    * when chasing a star, whether the disc touches it). Returns the first tap's offset
    * (-1: no tap needed yet) and the plan's room.
    */
-  const plan = (s: HoverState, tg: Target): { first: number; room: number } => {
+  type Ranked = { taps: number[]; v: number; room: number };
+  const plan = (s: HoverState, tg: Target): { first: number; room: number; ranked: Ranked[] } => {
+    const ranked: Ranked[] = [];
     const N = Math.max(tg.exit + 2, 2);
     const traj: number[] = [];
     let y = s.y;
@@ -210,6 +229,8 @@ export const bot: SkillBot = ({ game, seed, human }) => {
         break;
       }
     let best = { first: -1, v: -Infinity, room: -Infinity };
+    /** Every plan considered (ROBUST): its taps (offsets), nominal value and the star height it passes at. */
+    const cands: { taps: number[]; v: number; starY: number | null }[] = [];
     // A: no tap.
     const noTapRoom = floorOk >= N ? roomOf((k) => traj[k]!) : -Infinity;
     if (floorOk >= N) {
@@ -220,6 +241,7 @@ export const bot: SkillBot = ({ game, seed, human }) => {
         room,
       };
     }
+    const noTap = { ...best };
     // Window extremes of an arc started at u (relative), for u at or before entry.
     const ext = (u: number) => {
       let mn = Infinity;
@@ -245,6 +267,7 @@ export const bot: SkillBot = ({ game, seed, human }) => {
           : Math.min(yu1 + mn - tg.lo, tg.hi - (yu1 + mx));
         // A tap inside the barrier only ever saves the pass; nobody hops up mid-gap for a star.
         const v = value(room, inside ? null : starAt(yu1), 1);
+        if (ROBUST) cands.push({ taps: [u], v, starY: inside ? null : starAt(yu1) });
         if (v > best.v) best = { first: u, v, room };
       }
       // C: set-up at P, key at u (key at or before entry).
@@ -256,10 +279,152 @@ export const bot: SkillBot = ({ game, seed, human }) => {
         if (yu > FLOOR || yu - ARC <= CEIL) continue;
         const room = Math.min(yu + mn - tg.lo, tg.hi - (yu + mx));
         const v = value(room, starAt(yu), 2);
+        if (ROBUST) cands.push({ taps: [P, u], v, starY: starAt(yu) });
         if (v > best.v) best = { first: P, v, room };
       }
     }
-    return { first: best.first, room: best.room };
+    if (ROBUST && cands.length) {
+      // The forgiving line: of the best plans, the one whose room holds up with each tap a timing sd early or late.
+      const D = Math.round((human.p.timingSdMs * tg.scale) / (1000 / 60));
+      const pathRoom = (taps: number[]) => {
+        let yy = s.y;
+        let vv = s.vy;
+        let r = Infinity;
+        for (let k = 0; k <= tg.exit; k++) {
+          vv = taps.includes(k) ? HOVER_IMPULSE : clampV(vv + HOVER_GRAVITY);
+          yy += vv;
+          if (yy < CEIL - 4 * FP || yy > FLOOR + 4 * FP) return -100 * FP;
+          if (k >= E) {
+            const yk = yy - tg.slope * (k - tg.centre);
+            r = Math.min(r, yk - tg.lo, tg.hi - yk);
+          }
+        }
+        return r;
+      };
+      const robustRoom = (taps: number[]) => {
+        let r = pathRoom(taps);
+        if (D > 0)
+          for (let i = 0; i < taps.length; i++)
+            for (const d of [-D, D]) {
+              const shifted = taps.slice();
+              shifted[i] = Math.max(0, shifted[i]! + d);
+              r = Math.min(r, pathRoom(shifted));
+            }
+        return r;
+      };
+      cands.sort((a, b) => b.v - a.v);
+      // The no-tap line has no timing to get wrong: its room as planned. The best plans with and without the star are weighed.
+      let rb = noTap;
+      if (noTap.v > -Infinity) ranked.push({ taps: [], v: noTap.v, room: noTap.room });
+      const starred = cands.filter((c) => c.v >= 500 * FP);
+      for (const c of [...starred.slice(0, 16), ...cands.filter((c) => c.v < 500 * FP).slice(0, 16)]) {
+        const room = robustRoom(c.taps);
+        const v = value(room, c.v >= 500 * FP ? c.starY : null, c.taps.length);
+        ranked.push({ taps: c.taps, v, room });
+        if (v > rb.v) rb = { first: c.taps[0]!, v, room };
+      }
+      if (rb.v > -Infinity) best = rb;
+    }
+    ranked.sort((a, b) => b.v - a.v);
+    return { first: best.first, room: best.room, ranked };
+  };
+
+  /**
+   * ROBUST: when no one- or two-tap line keeps room, every tap sequence through the pass (taps at least
+   * MIN_TAP_GAP apart, the floor and ceiling kept), as a dynamic programme over the disc's height,
+   * speed and time since the last tap: the sequence with the most room (maximin), and its first tap.
+   */
+  /** A rescue plan stands until a tap is made (the flight to its first tap is the one it planned). */
+  const rescueCache = new Map<string, { at: number; room: number }>();
+  const dpPlan = (s: HoverState, tg: Target, t: number) => {
+    const key = `${tg.idx}:${lastTap}`;
+    let hit = rescueCache.get(key);
+    if (!hit || (hit.at >= 0 && hit.at < t)) {
+      const r = dpCore(s.y, s.vy, Math.min(MIN_TAP_GAP, t - lastTap), 0, tg);
+      hit = { at: r.first >= 0 ? t + r.first : -1, room: r.room };
+      rescueCache.set(key, hit);
+    }
+    return { first: hit.at >= t ? hit.at - t : -1, room: hit.room };
+  };
+  const dpCore = (y0: number, vy0: number, since0: number, k0: number, tg: Target): { first: number; room: number } => {
+    const E = Math.max(0, tg.entry);
+    type Node = { y: number; vy: number; since: number; acc: number; first: number };
+    let layer = new Map<number, Node>();
+    layer.set(0, { y: y0, vy: vy0, since: since0, acc: Infinity, first: -1 });
+    for (let k = k0; k <= tg.exit; k++) {
+      const next = new Map<number, Node>();
+      for (const n of layer.values()) {
+        for (const tap of n.since >= MIN_TAP_GAP ? [false, true] : [false]) {
+          const v = tap ? HOVER_IMPULSE : clampV(n.vy + HOVER_GRAVITY);
+          const y = n.y + v;
+          if (y < CEIL || y > FLOOR) continue;
+          let acc = n.acc;
+          if (k >= E) {
+            const yk = y - tg.slope * (k - tg.centre);
+            acc = Math.min(acc, yk - tg.lo, tg.hi - yk);
+          }
+          const since = tap ? 1 : Math.min(MIN_TAP_GAP, n.since + 1);
+          // (After a tap the speed fixes the time since it until the next tap is allowed, so height (to 4 px) and speed key a node.)
+          const key = (y >> 10) * 8192 + (v + 4096);
+          const old = next.get(key);
+          if (!old || acc > old.acc || (acc === old.acc && since > old.since)) next.set(key, { y, vy: v, since, acc, first: n.first < 0 && tap ? k : n.first });
+        }
+      }
+      layer = next;
+    }
+    let best = { first: -1, room: -Infinity };
+    for (const n of layer.values()) if (n.acc > best.room) best = { first: n.first, room: n.acc };
+    return best;
+  };
+
+  /**
+   * ROBUST: a player looks one barrier further. The line chosen for this barrier must leave the next one's
+   * gap within the heights the disc can reach by its entry (falling, or tapping as fast as allowed); if it
+   * doesn't, the plan that best keeps room in both is flown (the least of the two, the larger the better).
+   */
+  const reachCache = new Map<string, number>();
+  const lookAhead = (s: HoverState, seen: HoverState, t: number, tg: Target, p: ReturnType<typeof plan>): { first: number; room: number } => {
+    const nx = target(s, seen, t, tg.idx + 1);
+    if (!nx || nx.exit <= tg.exit || p.ranked.length === 0) return p;
+    const reach = (taps: number[]) => {
+      const key = `${tg.idx}:${lastTap}:${taps.map((k) => k + t).join(",")}`;
+      const hit = reachCache.get(key);
+      if (hit !== undefined) return hit;
+      let y = s.y;
+      let vy = s.vy;
+      let since = Math.min(MIN_TAP_GAP, t - lastTap);
+      for (let k = 0; k <= tg.exit; k++) {
+        const tap = taps.includes(k);
+        vy = tap ? HOVER_IMPULSE : clampV(vy + HOVER_GRAVITY);
+        y += vy;
+        since = tap ? 1 : Math.min(MIN_TAP_GAP, since + 1);
+      }
+      // The band of heights the disc can be at by the next entry: falling all the way, or tapping as fast as allowed.
+      let yf = y;
+      let vf = vy;
+      let yu = y;
+      let vu = vy;
+      let su = since;
+      for (let k = tg.exit + 1; k <= Math.max(tg.exit + 1, nx.entry); k++) {
+        vf = clampV(vf + HOVER_GRAVITY);
+        yf = Math.min(FLOOR, yf + vf);
+        const tap = su >= MIN_TAP_GAP && yu - ARC > CEIL;
+        vu = tap ? HOVER_IMPULSE : clampV(vu + HOVER_GRAVITY);
+        yu = Math.min(FLOOR, Math.max(CEIL, yu + vu));
+        su = tap ? 1 : su + 1;
+      }
+      const r = Math.min(yf - nx.lo, nx.hi - yu);
+      reachCache.set(key, r);
+      return r;
+    };
+    const top = p.ranked[0]!;
+    if (reach(top.taps) >= 4 * FP) return p;
+    let best = { first: p.first, room: p.room, score: -Infinity };
+    for (const c of p.ranked.slice(0, 12)) {
+      const score = Math.min(c.room, reach(c.taps));
+      if (score > best.score) best = { first: c.taps.length ? c.taps[0]! : -1, room: c.room, score };
+    }
+    return best;
   };
 
   const commit = (due: number, t: number, scale: number) => {
@@ -282,7 +447,11 @@ export const bot: SkillBot = ({ game, seed, human }) => {
           const low = Math.min(FLOOR - 20 * FP, apex + ARC);
           let cruise = false;
           if (tg.entry <= APPROACH) {
-            const p = plan(s, tg);
+            let p: { first: number; room: number } = plan(s, tg);
+            if (ROBUST && p.room < 4 * FP) {
+              const q = dpPlan(s, tg, t);
+              if (q.room > p.room) p = q;
+            } else if (ROBUST && p.room >= 0 && p.first <= commitLead) p = lookAhead(s, seen, t, tg, p as ReturnType<typeof plan>);
             if (p.room < -10 * FP && tg.entry > 2) cruise = true;
             else due = p.first >= 0 ? t + p.first : -1;
           } else cruise = true;

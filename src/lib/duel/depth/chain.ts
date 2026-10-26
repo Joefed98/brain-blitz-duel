@@ -25,6 +25,27 @@ export const CHAIN_FLOW_FULL_MS = 400;
 export const CHAIN_FLOW_ZERO_MS = 650;
 /** The finish's stretch above 150 (fastShare is the rev-3 chain fastShare). */
 export const CHAIN_STRETCH: StretchCurve = { fastShare: 0.53, eliteShare: 0.68, stretchTop: 35, power: 1.3 };
+/**
+ * The puzzle top-up (26 Oct 2026, chainDepthRev 2; docs/depth/topup-oct-2026.md): the same chain and milestones;
+ * 150 comes a little sooner and the stretch climbs from there (CHAIN_STRETCH_TOPUP), and a milestone pays in full
+ * up to CHAIN_TOPUP_FLOW_FULL_MS a link (none from CHAIN_TOPUP_FLOW_ZERO_MS), so today's near-perfect chain lands
+ * about 165–175 and only an elite one 190–200.
+ */
+export const CHAIN_DEPTH_TOPUP_REV = 2;
+export const CHAIN_STRETCH_TOPUP: StretchCurve = { fastShare: 0.46, eliteShare: 0.68, stretchTop: 35, power: 1.2 };
+export const CHAIN_TOPUP_FLOW_FULL_MS = 450;
+export const CHAIN_TOPUP_FLOW_ZERO_MS = 700;
+
+/** The stamp's finish stretch. */
+export function chainStretchFor(rev: number): StretchCurve {
+  return rev >= CHAIN_DEPTH_TOPUP_REV ? CHAIN_STRETCH_TOPUP : CHAIN_STRETCH;
+}
+
+/** The chainDepthRev a stored puzzle carries (0 before the depth revision). */
+export function chainDepthRevOf(puzzle: ChainPuzzleData | null | undefined): number {
+  return puzzle?.chainDepthRev ?? 0;
+}
+
 /** An unfinished chain never reaches a finish (120). */
 export const CHAIN_DEPTH_UNFINISHED_TOP = 119;
 
@@ -40,25 +61,27 @@ export interface ChainMilestone {
   points: number;
 }
 
-/** Points for a milestone made with this average gap. */
-export function chainMilestonePoints(gapMs: number): number {
-  if (gapMs <= CHAIN_FLOW_FULL_MS) return CHAIN_MILESTONE_POINTS;
-  if (gapMs >= CHAIN_FLOW_ZERO_MS) return 0;
-  return Math.round((CHAIN_MILESTONE_POINTS * (CHAIN_FLOW_ZERO_MS - gapMs)) / (CHAIN_FLOW_ZERO_MS - CHAIN_FLOW_FULL_MS));
+/** Points for a milestone made with this average gap (on the stamp's flow window). */
+export function chainMilestonePoints(gapMs: number, rev = CHAIN_DEPTH_REV): number {
+  const full = rev >= CHAIN_DEPTH_TOPUP_REV ? CHAIN_TOPUP_FLOW_FULL_MS : CHAIN_FLOW_FULL_MS;
+  const zero = rev >= CHAIN_DEPTH_TOPUP_REV ? CHAIN_TOPUP_FLOW_ZERO_MS : CHAIN_FLOW_ZERO_MS;
+  if (gapMs <= full) return CHAIN_MILESTONE_POINTS;
+  if (gapMs >= zero) return 0;
+  return Math.round((CHAIN_MILESTONE_POINTS * (zero - gapMs)) / (zero - full));
 }
 
 /**
  * The milestones reached by a chain of `links` correct taps (`taps` in order, the first `links` of them the
  * links). The first milestone's ten links have nine gaps (the first tap is untimed); later ones ten.
  */
-export function chainMilestones(taps: readonly ChainTap[], links: number): ChainMilestone[] {
+export function chainMilestones(taps: readonly ChainTap[], links: number, rev = CHAIN_DEPTH_REV): ChainMilestone[] {
   const out: ChainMilestone[] = [];
   for (const at of CHAIN_MILESTONES) {
     if (links < at || taps.length < at) break;
     const from = at === 10 ? 0 : at - 11;
     const gaps = at - 1 - from;
     const gapMs = Math.round((taps[at - 1]!.t - taps[from]!.t) / Math.max(1, gaps));
-    out.push({ at, gapMs, points: chainMilestonePoints(gapMs) });
+    out.push({ at, gapMs, points: chainMilestonePoints(gapMs, rev) });
   }
   return out;
 }
@@ -72,19 +95,19 @@ export function chainMilestoneTotal(milestones: readonly ChainMilestone[]): numb
 const CHAIN_LIMIT_S = 45;
 
 /** Seconds a clean finish may take for 150, and for the stretch's top. */
-export function chainFinishSeconds(): { at150: number; atTop: number } {
+export function chainFinishSeconds(curve: StretchCurve = CHAIN_STRETCH_TOPUP): { at150: number; atTop: number } {
   return {
-    at150: Math.round(CHAIN_LIMIT_S * (1 - CHAIN_STRETCH.fastShare)),
-    atTop: Math.round(CHAIN_LIMIT_S * (1 - CHAIN_STRETCH.eliteShare)),
+    at150: Math.round(CHAIN_LIMIT_S * (1 - curve.fastShare)),
+    atTop: Math.round(CHAIN_LIMIT_S * (1 - curve.eliteShare)),
   };
 }
 
 /** The "?" help SCORE text ({max} is filled with the game's maximum). */
 export function chainDepthHelp(halfDone: number): string {
-  const s = chainFinishSeconds();
-  const top = 150 + CHAIN_STRETCH.stretchTop;
+  const s = chainFinishSeconds(CHAIN_STRETCH_TOPUP);
+  const top = 150 + CHAIN_STRETCH_TOPUP.stretchTop;
   const all = CHAIN_MILESTONES.length * CHAIN_MILESTONE_POINTS;
-  return `Progress counts: links tapped. Unfinished scores up to 110: about ${halfDone} half done, 110 one link short. A full chain scores 120 to ${top}: 120 as time runs out, 150 if you finish in about ${s.at150} s, ${top} in about ${s.atTop} s with no slips. Milestones: 10, 20 and 30 links in a row each add up to ${CHAIN_MILESTONE_POINTS} (all ${CHAIN_MILESTONE_POINTS} when their ten links come at about ${(CHAIN_FLOW_FULL_MS / 1000).toFixed(1)} s a link or quicker, none at ${(CHAIN_FLOW_ZERO_MS / 1000).toFixed(2)} s), up to ${all}, so {max} is a very fast, clean chain.`;
+  return `Progress counts: links tapped. Unfinished scores up to 110: about ${halfDone} half done, 110 one link short. A full chain scores 120 to ${top}: 120 as time runs out, 150 if you finish in about ${s.at150} s, ${top} in about ${s.atTop} s with no slips. Milestones: 10, 20 and 30 links in a row each add up to ${CHAIN_MILESTONE_POINTS} (all ${CHAIN_MILESTONE_POINTS} when their ten links come at about ${(CHAIN_TOPUP_FLOW_FULL_MS / 1000).toFixed(2)} s a link or quicker, none at ${(CHAIN_TOPUP_FLOW_ZERO_MS / 1000).toFixed(1)} s), up to ${all}, so {max} is a very fast, clean chain.`;
 }
 
 /** The round intro SCORE line (at most 90 characters). */

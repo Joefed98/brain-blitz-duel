@@ -26,6 +26,11 @@ import { knots } from "../src/lib/duel/depth200";
 import { FLASH_DEPTH_INTRO, flashDepthHelp } from "../src/lib/duel/depth/speedTexts";
 import type { PuzzleData, ReactionPuzzleData } from "../src/lib/duel/types";
 import { DEPTH_LEVELS, distTable, legacyMismatches, makeOk, median, playAnswer, quantile, roomPuzzle, SEEDS, spamAnswers, type Dist } from "./depth-speed-lib";
+import { pinPreTopup } from "../src/lib/duel/depthTopup";
+
+// The puzzle top-up (26 Oct 2026, docs/depth/topup-oct-2026.md) deals newer stamps; this check proves the stamps it was
+// written for, so new deals are pinned to them (depth-topup-check proves the top-up's).
+pinPreTopup(true);
 
 const { ok, finish } = makeOk();
 const lines: string[] = [];

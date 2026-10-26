@@ -21,7 +21,8 @@ import {
 } from "@/lib/duel/types";
 
 import { scanRev1StageResult, scanStageMatches, usesScanRev1 } from "@/lib/duel/attentionRev";
-import { SCAN_DEPTH_REV, scanCorrections, usesScanDepth } from "@/lib/duel/depth/eagleEye";
+import { SCAN_DEPTH_REV, SCAN_TOPUP_REV, scanCorrections, usesScanDepth } from "@/lib/duel/depth/eagleEye";
+import { dealtTopupRev } from "@/lib/duel/depthTopup";
 import { EagleArt as EagleIcon, playEagleTakeoff } from "./eagleEyeArt";
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 import { useBeforePaint } from "@/components/puzzles/useBeforePaint";
@@ -396,7 +397,7 @@ export function buildSymbolScan(): SymbolScanPuzzleData {
   // scanRev 1 (14 Oct 2026): the third grid has two target directions.
   const built = SYMSCAN_STAGE_COLS.map((cols, i) => (i === SYMSCAN_STAGE_COLS.length - 1 ? buildTwoTargetStage(cols) : buildStage(cols)));
   // scanRev 2 (25 Oct 2026, depth/eagleEye.ts): the same grids, scored to {max}; the answer adds the taps taken back.
-  return { type: "symscan", stages: built.map((b) => b.stage), targets: built.map((b) => b.targets), scanRev: SCAN_DEPTH_REV };
+  return { type: "symscan", stages: built.map((b) => b.stage), targets: built.map((b) => b.targets), scanRev: dealtTopupRev(SCAN_TOPUP_REV, SCAN_DEPTH_REV) };
 }
 
 export const symbolScanPuzzle: PuzzleDefinition = {

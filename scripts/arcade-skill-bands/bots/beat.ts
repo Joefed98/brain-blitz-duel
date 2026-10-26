@@ -14,6 +14,7 @@
  */
 import { BEAT_FEVER_FULL, BEAT_INPUT_FEVER, BEAT_INPUT_RELEASE, BEAT_INPUT_SWIPE, BEAT_INPUT_TAP, beatLanesAt, type BeatState } from "../../../src/lib/arcade/beat";
 import { msToTicks } from "../human";
+import type { SkillLevel } from "../human";
 import { driveEvents, Plan, type SkillBot } from "../bot";
 
 /**
@@ -26,7 +27,8 @@ import { driveEvents, Plan, type SkillBot } from "../bot";
  */
 export const beatBotOptions = { features: true };
 
-const CAPACITY: Record<string, number> = { average: 4.5, good: 5.5, great: 6.5, near: 8 };
+// (perfect: no overload, so no lapse from a busy passage: the ceiling, Oct 2026.)
+const CAPACITY: Record<SkillLevel, number> = { weak: 3.5, average: 4.5, good: 5.5, great: 6.5, near: 8, elite: 8.75, perfect: 20 };
 
 export const bot: SkillBot = ({ game, seed, human }) => {
   const init = game.init(seed) as BeatState;

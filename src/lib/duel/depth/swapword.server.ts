@@ -6,7 +6,7 @@
 import type { Graded } from "../grade";
 import { parBonusPoints } from "../parBonus";
 import { puzzleTimeLimitMs } from "../registry";
-import { SWAPWORD_REV_PAR, SWAP_PAR_BONUS } from "../swapword";
+import { SWAPWORD_REV_PAR, swapParBonusFor } from "../swapword";
 import { withBonus } from "../wordDepth";
 import type { DepthGrader } from "../wordDepth.server";
 import { parGrade } from "./parGrade";
@@ -18,7 +18,7 @@ export const swapwordDepth: DepthGrader = {
     const swaps = Number((today.extra as { swaps?: number } | null)?.swaps ?? Infinity);
     const atPar = today.isCorrect && swaps <= puzzle.minSwaps;
     const left = today.storedMs / Math.max(1, puzzleTimeLimitMs(puzzle));
-    const bonus = parBonusPoints(SWAP_PAR_BONUS, atPar, left);
+    const bonus = parBonusPoints(swapParBonusFor(puzzle.swapwordRev), atPar, left);
     return parGrade(today, withBonus(today.score, bonus), bonus, { atPar });
   },
 };

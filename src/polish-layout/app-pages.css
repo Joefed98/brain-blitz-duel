@@ -562,12 +562,38 @@ a.ap-row:active {
   white-space: nowrap;
   -webkit-tap-highlight-color: transparent;
 }
+/* The selected chip: a light fill, dark text (tab pages refresh: gold only for play, the tab and the Z). */
 .ap-chip[aria-pressed="true"] {
   border-color: transparent;
-  background: var(--ap-shine);
-  box-shadow: var(--ap-shine-top);
-  color: var(--ap-on-gold);
-  font-weight: 700;
+  background: var(--ap-text);
+  color: #121216;
+  font-weight: 750;
+}
+/* Practice's chips (tab pages refresh): All games and the seven categories in a 4 × 2 grid, so none is
+   cut off at 375 px; each category with its colour dot. */
+.ap-chip-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+.ap-chip-grid > .ap-chip {
+  justify-content: center;
+  gap: 6px;
+  min-width: 0;
+  padding: 0 4px;
+  font-size: 13.5px;
+}
+.ap-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  flex: none;
+  border-radius: 50%;
+  background: var(--ap-cat-dot, var(--ap-faint));
+}
+.ap-dot[data-size="10"] {
+  width: 10px;
+  height: 10px;
 }
 
 /* ------------------------------------------------------------------ stats */
@@ -641,23 +667,6 @@ a.ap-row:active {
   white-space: nowrap;
 }
 
-/* Profile: the default avatar (no colour or icon chosen yet), the initial on a quiet disc. */
-.ap-avatar-default {
-  display: inline-flex;
-  width: 52px;
-  height: 52px;
-  flex: none;
-  align-items: center;
-  justify-content: center;
-  border-radius: 50%;
-  background: var(--ap-done);
-  box-shadow: inset 0 0 0 1px var(--ap-line);
-  color: var(--ap-text);
-  font-size: 24px;
-  font-weight: 800;
-  line-height: 1;
-}
-
 /* A score that isn't a call to play (Practice bests, Profile, results): bright, heavy, tabular. */
 .ap-score {
   color: var(--ap-text);
@@ -691,80 +700,531 @@ a.ap-row:active {
   color: var(--ap-faint);
 }
 
-/* ------------------------------------------------------------------ Practice: shelves and tiles */
-/* (Follow-up to #129.) All with no search: one shelf per category, a row of square tiles that starts at the
-   page margin and scrolls out to the screen's edges (native momentum, no bar, no snapping). A category or a
-   search: the same tiles in a grid of three. Each tile is one button named exactly its game. */
-.ap-shelf {
+/* ------------------------------------------------------------------ tab pages refresh (26 Oct 2026) */
+/* The design canvas's "Tab pages refresh" row (T-Play, T-PlayFirst, T-Practice, T-Tournaments,
+   T-TournamentsEmpty, T-Profile, T-ProfileNew): the room screens' panels and rows, gold only for play. */
+
+/* Each category's light dot colour (chips, shelf headings). */
+[data-dot="word"] { --ap-cat-dot: #7FA6F5; }
+[data-dot="number"] { --ap-cat-dot: #6FD99A; }
+[data-dot="speed"] { --ap-cat-dot: #F5A25A; }
+[data-dot="attention"] { --ap-cat-dot: #F08AC0; }
+[data-dot="pattern"] { --ap-cat-dot: #B79BF2; }
+[data-dot="logic"] { --ap-cat-dot: #5CD6C0; }
+[data-dot="arcade"] { --ap-cat-dot: #F08A6E; }
+
+/* The Play tab's glossy 44 px icon tiles (TabIcons.tsx). */
+.ap-tile44 {
   display: flex;
-  gap: 10px;
-  margin: 0 -20px;
-  padding: 2px 20px 4px;
-  overflow-x: auto;
-  overflow-y: hidden;
-  overscroll-behavior-x: contain;
-  scroll-padding-inline: 20px;
-  scrollbar-width: none;
-  -webkit-overflow-scrolling: touch;
-}
-.ap-shelf::-webkit-scrollbar {
-  display: none;
-}
-.ap-tile {
-  display: flex;
-  width: 104px;
-  min-width: 0;
+  width: 44px;
+  height: 44px;
   flex: none;
-  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.4), inset 0 -2px 0 rgb(0 0 0 / 0.25), 0 4px 14px var(--ap-tile-glow);
+}
+.ap-tile44[data-tile="puzzle"] {
+  --ap-tile-glow: rgb(77 140 255 / 0.35);
+  background: linear-gradient(145deg, #6E9BFF 0%, #2E57D6 55%, #1A2E80 100%);
+}
+.ap-tile44[data-tile="arcade"] {
+  --ap-tile-glow: rgb(255 77 77 / 0.35);
+  background: linear-gradient(145deg, #FF8A5C 0%, #E8443A 55%, #7A1622 100%);
+}
+.ap-tile44[data-tile="challenge"] {
+  --ap-tile-glow: rgb(178 107 255 / 0.35);
+  background: linear-gradient(145deg, #C084FF 0%, #7A35E0 55%, #3A1680 100%);
+}
+.ap-row[data-icon="tile"] {
+  --ap-inset: 72px;
+  min-height: 64px;
+  gap: 14px;
+}
+
+/* A played daily: the teal tick and its score in place of the Play pill. */
+.ap-done-score {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
   gap: 6px;
-  text-align: left;
+  color: var(--ap-text);
+  font-size: 18px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.ap-done-score > svg {
+  width: 16px;
+  height: 16px;
+  color: #5CD6C0;
+}
+
+/* Challenge a friend joins the Today panel when the dailies are on the page (one panel, divided rows). */
+html[data-play-cards~="daily"] [data-play-slot="daily"]:not([data-slot-state="hide"]) + [data-play-slot="challenge"] {
+  margin-top: -22px;
+}
+html[data-play-cards~="daily"] [data-play-slot="daily"]:not([data-slot-state="hide"]) + [data-play-slot="challenge"] .ap-panel {
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+}
+html[data-play-cards~="daily"] [data-play-slot="daily"]:not([data-slot-state="hide"]) + [data-play-slot="challenge"] .ap-row::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: var(--ap-inset);
+  height: 1px;
+  background: var(--ap-divider);
+  pointer-events: none;
+}
+html[data-play-cards~="challenge"] [data-play-slot="daily"]:not([data-slot-state="hide"]):has(+ [data-play-slot="challenge"]) [data-daily-card] .ap-panel,
+html[data-play-cards~="challenge"] [data-play-slot="daily"]:not([data-slot-state="hide"]):has(+ [data-play-slot="challenge"]) [data-daily-card] .ap-panel > :last-child {
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+/* The next public game (Play and Tournaments): its lines, a status line under a divider, two buttons. */
+.ap-next-head {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 16px 14px;
+}
+.ap-next-status {
+  display: flex;
+  height: 40px;
+  align-items: center;
+  gap: 8px;
+  padding: 0 16px;
+  border-top: 1px solid var(--ap-divider);
+  color: var(--ap-text-2);
+  font-size: 13.5px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.ap-next-status > span:last-child {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ap-next-status > svg {
+  width: 16px;
+  height: 16px;
+  flex: none;
+}
+.ap-next-status[data-open] {
+  color: #5CD6C0;
+}
+.ap-live-dot {
+  width: 8px;
+  height: 8px;
+  flex: none;
+  border-radius: 50%;
+  background: #5CD6C0;
+  box-shadow: 0 0 0 4px rgb(92 214 192 / 0.18);
+}
+.ap-next-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  padding: 0 16px 16px;
+}
+.ap-next-actions > :only-child {
+  grid-column: 1 / -1;
+}
+/* Before the lobby opens: a quiet, disabled "Opens 7:45 pm" with a lock. */
+.ap-btn-quiet {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  border: 0;
+  border-radius: 12px;
+  background: #222228;
+  color: var(--ap-text-2);
+  font-weight: 700;
+  white-space: nowrap;
+}
+.ap-btn-quiet:disabled {
+  opacity: 1;
+}
+/* A date tile that isn't the next game: neutral. */
+.ap-date[data-quiet] {
+  width: 40px;
+  height: 44px;
+  border-radius: 10px;
+  background: #1E1E24;
+}
+.ap-date[data-quiet] > .ap-date-day {
+  font-size: 10px;
+  color: var(--ap-text-2);
+}
+.ap-date[data-quiet] > .ap-date-num {
+  font-size: 17px;
+}
+.ap-row[data-icon="date-sm"] {
+  --ap-inset: 70px;
+  min-height: 68px;
+  padding-right: 8px;
+  gap: 14px;
+}
+.ap-icon-btn {
+  display: flex;
+  width: 44px;
+  height: 44px;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  color: var(--ap-text-2);
+}
+.ap-icon-btn > svg {
+  width: 20px;
+  height: 20px;
+}
+
+/* A finishing place: medal discs for 1st to 3rd, an outlined number otherwise. */
+.ap-place {
+  display: inline-flex;
+  width: 36px;
+  height: 36px;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  border: 1px solid var(--ap-line);
+  color: var(--ap-link);
+  font-size: 15px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+.ap-place[data-place-disc="1"],
+.ap-place[data-place-disc="2"],
+.ap-place[data-place-disc="3"] {
+  border: 0;
+}
+.ap-place[data-place-disc="1"] {
+  background: linear-gradient(180deg, #FFE08A, #C99A2E);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.6);
+  color: #1A1410;
+}
+.ap-place[data-place-disc="2"] {
+  background: linear-gradient(180deg, #F4F4F7, #A6A6B0);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.7), inset 0 -2px 0 rgb(0 0 0 / 0.18);
+  color: #1A1A20;
+}
+.ap-place[data-place-disc="3"] {
+  background: linear-gradient(180deg, #F2C29A, #A9653A);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.55), inset 0 -2px 0 rgb(0 0 0 / 0.2);
+  color: #1E120A;
+}
+.ap-row[data-icon="place"] {
+  --ap-inset: 66px;
+  min-height: 68px;
+  gap: 14px;
+}
+.ap-points {
+  flex: none;
+  color: var(--ap-text);
+  font-size: 18px;
+  font-weight: 800;
+  font-stretch: 110%;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* The BEST column (Practice and Profile): one fixed-width right-aligned column, "–" when unplayed. */
+.ap-best {
+  width: 56px;
+  flex: none;
+  text-align: right;
+  color: var(--ap-text);
+  font-size: 18px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.ap-best[data-none] {
+  color: #6E6B75;
+  font-weight: 600;
+}
+.ap-col-label {
+  width: 56px;
+  flex: none;
+  text-align: right;
+  color: var(--ap-faint);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  white-space: nowrap;
+}
+/* A heading with the BEST label lined up over the rows' column (the panel's 16 px padding). */
+.ap-col-head {
+  display: flex;
+  min-height: 24px;
+  align-items: center;
+  gap: 8px;
+  padding-right: 16px;
+}
+.ap-col-head > .ap-meta {
+  flex: 1;
+  min-width: 0;
+}
+.ap-row[data-icon="game"] {
+  --ap-inset: 74px;
+  gap: 14px;
+}
+.ap-row[data-icon="game"] .game-icon {
+  border-radius: 11px;
+}
+
+/* Practice's Recently played and the Play tab's Warm up: games across one panel. */
+.ap-game-strip {
+  display: grid;
+  grid-template-columns: repeat(var(--ap-strip, 4), minmax(0, 1fr));
+  padding: 12px 4px 10px;
+}
+.ap-game-strip > * {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  padding: 0 4px;
   color: var(--ap-text);
   -webkit-tap-highlight-color: transparent;
 }
-.ap-tile-art {
-  display: block;
-  width: 104px;
-  height: 104px;
-  overflow: hidden;
-  border-radius: 16px;
+.ap-game-strip[data-divided] > * + * {
+  border-left: 1px solid var(--ap-divider);
 }
-.ap-tile-art > .game-icon {
-  display: flex;
-  border-radius: 16px;
-}
-.ap-tile-name {
+.ap-game-strip .ap-strip-name {
+  max-width: 100%;
   overflow: hidden;
-  font-size: 14px;
-  font-weight: 600;
-  line-height: 18px;
+  font-size: 13px;
+  font-weight: 650;
+  line-height: 17px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.ap-tile-best {
-  margin-top: -3px;
-  font-size: 12px;
-  font-weight: 500;
-  line-height: 16px;
-  color: var(--ap-text-2);
+.ap-game-strip .ap-strip-best {
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 17px;
+  font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
-.ap-tile-best > .ap-score {
+.ap-game-strip .ap-strip-best[data-none] {
+  color: #6E6B75;
+  font-weight: 600;
+}
+.ap-game-strip[data-warm] {
+  padding: 14px 6px 12px;
+}
+.ap-game-strip[data-warm] > * {
+  gap: 6px;
+}
+.ap-game-strip[data-warm] .ap-strip-name {
+  font-size: 14px;
+}
+.ap-game-strip[data-warm] .ap-strip-best {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ap-text-2);
+}
+.ap-game-strip[data-warm] .ap-strip-best > b {
+  color: var(--ap-text);
   font-weight: 700;
 }
-.ap-tile-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 16px 10px;
+
+/* The first-time intro, as a card on the Play tab (T-PlayFirst). */
+.ap-intro {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 18px 16px 16px 18px;
 }
-.ap-tile-grid > .ap-tile {
-  width: auto;
+.ap-intro-close {
+  position: absolute;
+  top: 6px;
+  right: 6px;
 }
-.ap-tile-grid .ap-tile-art {
-  width: 100%;
-  height: auto;
-  aspect-ratio: 1;
+.ap-kicker {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--ap-text-2);
 }
-.ap-tile-grid .ap-tile-art > .game-icon {
-  width: 100% !important;
-  height: 100% !important;
+.ap-intro-title {
+  margin-top: 4px;
+  text-transform: none;
+  font-size: 26px;
+  font-weight: 800;
+  font-stretch: 112%;
+  letter-spacing: -0.02em;
+  line-height: 1.08;
+  color: var(--ap-text);
+}
+.ap-intro-title > span {
+  display: block;
+  white-space: nowrap;
+}
+@media (max-width: 399px) {
+  .ap-intro-title {
+    font-size: 24px;
+  }
+}
+.ap-steps {
+  overflow: hidden;
+  border-radius: 14px;
+  background: #121215;
+}
+.ap-steps > li {
+  position: relative;
+  display: flex;
+  height: 56px;
+  overflow: hidden;
+  align-items: center;
+  gap: 12px;
+  padding: 0 14px;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 19px;
+}
+.ap-steps > li + li::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: 54px;
+  height: 1px;
+  background: var(--ap-divider);
+}
+.ap-step-num {
+  display: inline-flex;
+  width: 28px;
+  height: 28px;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  border: 1px solid var(--ap-line);
+  color: var(--ap-link);
+  font-size: 13px;
+  font-weight: 800;
+}
+/* With the intro card up, the Play tab's hero title gives way to it (kept for screen readers). */
+html[data-play-cards~="intro"] [data-play-hero] {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* Profile's Get started: an open ring, or a teal tick once done. */
+.ap-check {
+  display: inline-flex;
+  width: 26px;
+  height: 26px;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  border: 2px solid var(--ap-line);
+}
+.ap-check[data-done] {
+  border-color: transparent;
+  background: #5CD6C0;
+  color: #0D0D0F;
+}
+.ap-check > svg {
+  width: 15px;
+  height: 15px;
+}
+.ap-row[data-icon="check"] {
+  --ap-inset: 56px;
+  min-height: 68px;
+  gap: 14px;
+}
+.ap-row[data-icon="check"][data-done] .ap-row-title {
+  color: var(--ap-text-2);
+}
+
+/* Profile: the badge, name and Beta player chip, with the stats strip under a divider in the same panel. */
+.ap-profile-head {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px;
+}
+.ap-profile-head > [data-player-badge] {
+  box-shadow: 0 0 0 3px var(--ap-panel), 0 0 0 4px var(--ap-line);
+}
+.ap-chip-quiet {
+  display: inline-flex;
+  height: 20px;
+  flex: none;
+  align-items: center;
+  padding: 0 7px;
+  border: 1px solid var(--ap-line);
+  border-radius: 999px;
+  color: var(--ap-text-2);
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.ap-panel > .ap-stats {
+  border-top: 1px solid var(--ap-divider);
+}
+.ap-profile-new {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 20px 16px 16px;
+  text-align: center;
+}
+.ap-profile-new > [data-player-badge] {
+  box-shadow: 0 0 0 4px var(--ap-panel), 0 0 0 5px var(--ap-line);
+}
+
+/* Empty states (T-TournamentsEmpty). */
+.ap-empty-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 28px 22px 22px;
+  text-align: center;
+}
+.ap-empty-icon {
+  display: flex;
+  width: 64px;
+  height: 64px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 20px;
+  background: #1E1E24;
+  color: var(--ap-faint);
+}
+.ap-empty-icon > svg {
+  width: 30px;
+  height: 30px;
+}
+.ap-ghost-discs {
+  display: flex;
+  flex: none;
+}
+.ap-ghost-discs > span {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 1.5px dashed var(--ap-line);
+  background: var(--ap-panel);
+}
+.ap-ghost-discs > span + span {
+  margin-left: -8px;
 }
