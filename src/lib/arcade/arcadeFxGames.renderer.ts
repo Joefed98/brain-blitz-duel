@@ -125,7 +125,7 @@ import {
   BULLSEYE_WORLD_W,
   type BullseyeState,
 } from "./bullseye";
-import { SLICE_TALL_H, SLICE_WORLD_H, SLICE_WORLD_W, sliceMayoCount, sliceMultiplier, sliceWorldH, type SliceState } from "./slice";
+import { SLICE_TALL_H, SLICE_V9_H, SLICE_V9_W, SLICE_WORLD_H, SLICE_WORLD_W, sliceMayoCount, sliceMultiplier, sliceWorldH, type SliceState } from "./slice";
 import { bubCellX, bubCellY, BUB_COLS, BUB_TALL_H, BUB_WORLD_H, BUB_WORLD_W, bubWorldH, type BubState } from "./bubble";
 
 /** Where the last special landed (bubbleRev 2), in world units. */
@@ -1371,8 +1371,12 @@ export const BURST_FX_TALL = fxSpecAt(BURST_FX, BURST_TALL_H);
 /** Taller worlds batch 2 (Oct 2026): Tempo beatRev 6, Slice sliceRev 6, Coral Pop bubbleRev 5. */
 export const beatFxFor = (s: BeatState): ArcadeFxSpec<BeatState> => fxSpecAt(BEAT_FX, beatWorldH(s));
 export const BEAT_FX_TALL = fxSpecAt(BEAT_FX, BEAT_TALL_H);
+/** World expansion E5 (25 Oct 2026, docs/expansions/e5.md): Swish binRev 7's world. */
+export const BINTOSS_FX_V7: ArcadeFxSpec<BinTossState> = { ...BINTOSS_FX, width: 430, height: 728 };
 export const sliceFxFor = (s: SliceState): ArcadeFxSpec<SliceState> => fxSpecAt(SLICE_FX, sliceWorldH(s));
 export const SLICE_FX_TALL = fxSpecAt(SLICE_FX, SLICE_TALL_H);
+/** World expansion E5 (25 Oct 2026, docs/expansions/e5.md): Slice sliceRev 9's world (as the renderer's own v9 spec). */
+export const SLICE_FX_V9: ArcadeFxSpec<SliceState> = { ...SLICE_FX, width: SLICE_V9_W, height: SLICE_V9_H };
 export const bubbleFxFor = (s: BubState): ArcadeFxSpec<BubState> => fxSpecAt(BUBBLE_FX, bubWorldH(s));
 export const BUBBLE_FX_TALL = fxSpecAt(BUBBLE_FX, BUB_TALL_H);
 /** Taller worlds batch 3 (Oct 2026): Grappler swingRev 9, Orbit orbitRev 8 (its view), Ball Tracker btRev 4. */
@@ -1436,8 +1440,8 @@ export const ARCADE_FX_SPECS = {
   cross: CROSS_FX,
   junction: JUNCTION_FX,
   inkbridge: INKBRIDGE_FX,
-  slice: SLICE_FX_TALL,
-  bintoss: BINTOSS_FX,
+  slice: SLICE_FX_V9,
+  bintoss: BINTOSS_FX_V7,
   bullseye: BULLSEYE_FX,
   bubble: BUBBLE_FX_TALL,
   flip: FLIP_FX,

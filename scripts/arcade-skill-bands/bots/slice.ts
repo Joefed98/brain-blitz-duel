@@ -25,9 +25,11 @@ import {
   SLICE_INPUT_END,
   SLICE_INPUT_SWIPE,
   sliceMaxPath,
+  sliceRadius,
+  sliceTicketAt,
+  sliceWorldW,
+  SLICE_V9_GOLD,
   SLICE_R,
-  SLICE_SPECIAL_R,
-  SLICE_WORLD_W,
   sliceWorldH,
   type SliceObject,
   type SliceState,
@@ -49,6 +51,8 @@ const BOMB_MARGIN = 18;
 const SWIPE_AIM = 1.8;
 /** Base time to choose the next target between swipes, ms. */
 const NEXT_MS = 260;
+/** sliceRev 9: the chance a swipe goes after a golden fruit or the ticket's food first, by level. */
+const FEATURE: Record<string, number> = { average: 0.15, good: 0.35, great: 0.6, near: 0.75 };
 
 interface Pt {
   x: number;
@@ -59,6 +63,8 @@ export const bot: SkillBot = ({ game, seed, human }) => {
   const level = human.level;
   // sliceRev 6: the taller board (the bot reads the stored round's own world).
   const SLICE_WORLD_H = sliceWorldH(game.init(seed) as SliceState);
+  // sliceRev 9: the larger board's width.
+  const SLICE_WORLD_W = sliceWorldW(game.init(seed) as SliceState);
   const speed = FINGER[level]!;
   const lag = human.lagTicks();
   const history: SliceState[] = [];
@@ -76,7 +82,7 @@ export const bot: SkillBot = ({ game, seed, human }) => {
     return at ? { x: at.x / 256, y: at.y / 256 } : null;
   };
   const onScreen = (p: Pt | null, r: number) => !!p && p.y - r <= SLICE_WORLD_H && p.y + r >= SLICE_HUD_H;
-  const radius = (o: SliceObject) => (o.special ? SLICE_SPECIAL_R : SLICE_R);
+  const radius = (o: SliceObject) => sliceRadius(o);
 
   /** Ticks until a food can no longer be cut (falls off or leaves). */
   const exitIn = (s: SliceState, i: number, t: number): number => {
@@ -179,7 +185,20 @@ export const bot: SkillBot = ({ game, seed, human }) => {
     });
     if (foods.length === 0) return false;
     // Attention: one target at a time — specials first, then whatever leaves soonest.
-    foods.sort((a, b) => Number(b.special) - Number(a.special) || a.exit - b.exit);
+    // sliceRev 9: a player using the features puts a golden fruit, then the ticket's food, first.
+    const ticket = s.v9 ? sliceTicketAt(s, t) : -1;
+    const want = s.v9 && human.chance(FEATURE[level]!);
+    const rank = (i: number) => {
+      const o = s.objects[i]!;
+      if (!want) return 0;
+      if (o.colour === SLICE_V9_GOLD && !o.special) return 2;
+      return ticket >= 0 && !o.special && o.colour === s.tickets![ticket]!.kind ? 1 : 0;
+    };
+    foods.sort((a, b) => Number(b.special) - Number(a.special) || rank(b.i) - rank(a.i) || a.exit - b.exit);
+    // Working a ticket: only its food (and golden fruit, bottles) go in the swipe, so the count isn't reset.
+    const open = ticket >= 0 && (s.ticketCuts?.[ticket] ?? 0) < s.tickets![ticket]!.count;
+    const focus = want && open && foods.some((f) => rank(f.i) >= 1 && s.objects[f.i]!.colour !== SLICE_V9_GOLD);
+    if (focus) foods.splice(0, foods.length, ...foods.filter((f) => f.special || rank(f.i) >= 1 || s.objects[f.i]!.colour === SLICE_V9_GOLD));
     let anchor = foods[0]!;
     if (human.slip()) anchor = foods[human.int(0, foods.length - 1)]!;
     // Whether to play for a combo is decided once per swipe, and held while waiting for it.

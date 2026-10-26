@@ -36,8 +36,8 @@
  * Tempo, Slice and Coral Pop; Mixed Signals and Pull! are engine games, measured
  * by scripts/arcade-tuning-g2-engine-bands.ts with the puzzle-fairness kits).
  * --rev=g3 does the same for batch 3 (a game's `tuneg3`: Grappler, Orbit and Ball Tracker).
- * --rev=x measures a 200-point expansion (Oct 2026, docs/scoring-200.md: LIVE_BANDS' `rev` for a game with a
- * `strictRev`) against the revision rooms dealt before it (its `strictRev`): "live" is the old revision, "next" the expansion.
+ * --rev=x measures a world expansion (LIVE_BANDS' `rev` once it has a `strictRev`, docs/scoring-200.md) against the
+ * band-3 revision before it (its `strictRev`): "live" is the band-3 revision, "next" the expansion.
  * --rev=now measures the revision rooms deal today (LIVE_BANDS in src/lib/arcade/liveBands.ts), reported as
  * "live": the scoring-targets audit (18 Oct 2026, docs/scoring-targets.md) ran it before and after.
  * --levels=average,near limits the levels. --save=<dir> writes each run's
@@ -139,7 +139,12 @@ async function runGame(spec: GameSpec): Promise<RunRecord[]> {
     return [];
   }
   const revs: ["live" | "next" | "tuned", number | null][] = [];
-  if (REV_MODE === "now") {
+  if (REV_MODE === "x") {
+    // World expansions (docs/scoring-200.md): the band-3 revision ("live") against the stamp rooms deal now ("next").
+    const live = (LIVE_BANDS as Record<string, { rev: number; strictRev?: number }>)[spec.type];
+    if (live?.strictRev === undefined) console.error(`${spec.type}: no expansion revision`);
+    else revs.push(["live", live.strictRev], ["next", live.rev]);
+  } else if (REV_MODE === "now") {
     // The revision rooms deal today (LIVE_BANDS), as "live": the scoring-targets audit (Oct 2026).
     const now = (LIVE_BANDS as Record<string, { rev: number }>)[spec.type]?.rev;
     if (now === undefined) console.error(`${spec.type}: no live band`);

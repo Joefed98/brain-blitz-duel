@@ -22,8 +22,11 @@ import { DRAG_FULL_PX, DRAG_MAX_SCALE_256, DRAG_MIN_PX, DRAG_MIN_SCALE_256, type
 import {
   binTossBinCentre,
   binTossCentreAt,
-  binTossDrag,
+  binTossDragFor,
   binTossPath,
+  BINTOSS_EXPAND,
+  BINTOSS_REV_EXPAND,
+  BINTOSS_V7_REF_V,
   binTossSlideOffset,
   binTossWindAcc,
   binTossWindSub,
@@ -42,8 +45,11 @@ const WIND_READ: Record<string, number> = { average: 0.3, good: 0.2, great: 0.12
 /** Chance of waiting for the sliding bucket's turnaround rather than leading it through the middle. */
 const WAIT_END: Record<string, number> = { average: 0.35, good: 0.6, great: 0.85, near: 0.95 };
 
+/** binRev 7: the chance of going for the far bucket (on a throw that has one), by level. */
+const GO_FAR: Record<string, number> = { average: 0.12, good: 0.3, great: 0.6, near: 0.9 };
+
 /** The fastest launch a drag can give (a full 220-px drag), with a little room. */
-const MAX_SPEED = Math.floor((BINTOSS_REF_V * DRAG_MAX_SCALE_256) / 256) - 10;
+const maxSpeedOf = (ref: number) => Math.floor((ref * DRAG_MAX_SCALE_256) / 256) - 10;
 
 type Game = ArcadeGame<BinTossState, ArcadeInputEvent | null>;
 
@@ -58,9 +64,9 @@ function forkThrow(game: Game, from: BinTossState, delay: number, vx: number, vy
 }
 
 /** The drag (finger travel, phone px) that gives a launch, inverting the phone's drag mapping. */
-function dragFor(vx: number, vy: number): { dx: number; dy: number } {
+function dragFor(vx: number, vy: number, ref = BINTOSS_REF_V): { dx: number; dy: number } {
   const speed = Math.hypot(vx, vy);
-  const scale = (speed * 256) / BINTOSS_REF_V;
+  const scale = (speed * 256) / ref;
   let len = DRAG_MIN_PX + ((scale - DRAG_MIN_SCALE_256) * (DRAG_FULL_PX - DRAG_MIN_PX)) / (DRAG_MAX_SCALE_256 - DRAG_MIN_SCALE_256);
   len = Math.max(DRAG_MIN_PX, Math.min(DRAG_FULL_PX, len + 0.5));
   return { dx: (vx / speed) * len, dy: (vy / speed) * len };
@@ -69,6 +75,10 @@ function dragFor(vx: number, vy: number): { dx: number; dy: number } {
 export const bot: SkillBot = ({ game, seed, human }) => {
   const level = human.level;
   const init = game.init(seed) as BinTossState;
+  // binRev 7: the stronger throw, and a far bucket on throws 1–6.
+  const expand = init.expand === BINTOSS_EXPAND;
+  const ref = expand ? BINTOSS_V7_REF_V : BINTOSS_REF_V;
+  const MAX_SPEED = maxSpeedOf(ref);
   // The player's habitual arc (launch upward speed), with some throw-to-throw variety.
   const habit = 1_050 + 250 * human.u();
   let planned = -1;
@@ -95,13 +105,16 @@ export const bot: SkillBot = ({ game, seed, human }) => {
       }
       return hi;
     };
-    const wantHoop = Boolean(s.hoops?.[index]);
+    // binRev 7: go for the far bucket (its hoop hangs over it), or play the main bucket and leave the hoop.
+    const farAt = expand ? (s.fars?.[index] ?? 0) : 0;
+    const goFar = farAt > 0 && human.chance(GO_FAR[level]!);
+    const wantHoop = Boolean(s.hoops?.[index]) && (!expand || goFar || !farAt);
     const spinner = Boolean(s.spinners?.[index]);
     const slide = s.slides[index]!;
     const sliding = slide.amp > 0;
     const pref = -Math.round(habit + 120 * human.normal());
     const vys = [0, 100, -100, 200, -200, 300, -300, 450, -450, 600, 800].map((o) => Math.max(-3_000, Math.min(-850, pref - o)));
-    const scored = (out: BinTossState) => out.baskets > s.baskets && (!wantHoop || (out.swishes ?? 0) > (s.swishes ?? 0));
+    const scored = (out: BinTossState) => out.baskets > s.baskets && (!wantHoop || (out.swishes ?? 0) > (s.swishes ?? 0)) && (!goFar || (out.farIn ?? 0) > (s.farIn ?? 0));
 
     // Notice the new ball, read the wind, drag out the arc.
     const ready = human.reactTicks() + human.thinkTicks(1500);
@@ -139,8 +152,8 @@ export const bot: SkillBot = ({ game, seed, human }) => {
         if (best) break;
       }
     } else {
-      const centre = binTossCentreAt(s, index, t) / 256;
-      const hoop = s.hoops?.[index] ?? null;
+      const centre = (goFar ? farAt : binTossCentreAt(s, index, t)) / 256;
+      const hoop = wantHoop ? (s.hoops?.[index] ?? null) : null;
       let lines = vys.slice(0, 5).map((vy) => ({ vy, vx: solve(vy, wind, centre), miss: 0 })).filter((l) => Math.hypot(l.vx, l.vy) <= MAX_SPEED);
       if (hoop) {
         // Through the hoop: the arc (into the bucket) that falls closest to the hoop's middle.
@@ -208,9 +221,9 @@ export const bot: SkillBot = ({ game, seed, human }) => {
     const vy = Math.round(best.vy * human.power(slip ? 4 : 0.6));
     const want = still - drift * WIND_READ[level]! * human.normal() + human.aim(1, 1.3);
     const vx = solve(vy, 0, want);
-    const drag = dragFor(vx, vy);
+    const drag = dragFor(vx, vy, ref);
     // Lift-off jitter in finger pixels.
-    const launch = binTossDrag(drag.dx + human.aim(1, 0.3), drag.dy + human.aim(1, 0.3));
+    const launch = binTossDragFor(expand ? BINTOSS_REV_EXPAND : null, drag.dx + human.aim(1, 0.3), drag.dy + human.aim(1, 0.3));
     const at = t + best.d + (leadScale > 0 ? human.timingTicks(leadScale) : 0);
     flick = launch ? { at: Math.max(t, at), a: launch.vx, b: launch.vy } : { at: Math.max(t, at), a: best.vx, b: best.vy };
   };
