@@ -21,7 +21,7 @@ import {
   SKYLINE_CHECKPOINT_INTERVAL,
   SKYLINE_COLOURS,
   SKYLINE_FLASH,
-  SKYLINE_REV_TARGET, SKYLINE_REV_STRICT,
+  SKYLINE_REV_EXPAND,
   skylineWorldHFor,
   SKYLINE_RUN_TICKS,
   type SkylineState,
@@ -52,9 +52,14 @@ function IntroExample() {
         <rect x="76" y="42" width="78" height="20" fill={SKYLINE_COLOURS[2]} />
         <rect x="140" y="42" width="14" height="20" fill={SKYLINE_FLASH} opacity="0.35" />
         <rect x="30" y="14" width="64" height="20" fill={SKYLINE_COLOURS[3]} opacity="0.8" />
+        {/* skylineRev 7: the next-block preview, showing a gold block coming. */}
+        <rect x="140" y="6" width="50" height="18" rx="9" fill="#060A1C" opacity="0.85" />
+        <text x="146" y="18" fontSize="7" fontWeight="700" fill="#E5EDFF" fontFamily="ui-monospace, monospace">NEXT</text>
+        <rect x="167" y="10" width="18" height="10" fill="#FFD24A" />
+        <rect x="167" y="10" width="18" height="2" fill="#FFF1B8" />
       </svg>
       <p className="text-center text-xs text-muted-foreground">
-        The part hanging over the edge is cut away. Perfect drops in a row build a streak; from block 20 a waving flag warns of wind.
+        The overhang is cut away. Perfect drops in a row multiply; the preview shows the next block: gold, narrow or wide.
       </p>
     </div>
   );
@@ -285,7 +290,7 @@ export const skylinePuzzle: PuzzleDefinition = {
   category: "arcade",
   timeLimitMs: (SKYLINE_RUN_TICKS / TICKS_PER_SECOND) * 1000 + 3000,
   revealMs: 6_000,
-  generate: () => ({ type: "skyline", seed: 1, skylineRev: SKYLINE_REV_STRICT }) satisfies SkylinePuzzleData,
+  generate: () => ({ type: "skyline", seed: 1, skylineRev: SKYLINE_REV_EXPAND }) satisfies SkylinePuzzleData,
   check: () => false,
   revealHeading: "Your run",
   IntroExample,

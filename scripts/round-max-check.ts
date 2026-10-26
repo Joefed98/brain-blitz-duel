@@ -52,9 +52,9 @@ const ALL_TYPES = Object.keys(GAME_DISPLAY_NAMES) as PuzzleType[];
  * Games an expansion has raised to the ceiling, one list for every expansion (docs/scoring-200.md: each adds its
  * games here): the Number depth games and Tenfall and Trail (#152), Coral Pop, Gemstone and Ball Tracker (E6,
  * #153), Topsy-Turvy and Jumbled (the D5 remodels, #156), the twelve Speed and Attention games (depth D3, #160), the
- * nine word puzzles (word depth d1, #157), the eleven Logic depth games (d6, #159), depth batch 4's eight (#158)
- * and Breaker (expansion E3).
- * Checked against ROUND_MAX below, so the list and the maximums can't drift apart.
+ * nine word puzzles (word depth d1, #157), the eleven Logic depth games (d6, #159), depth batch 4's eight (#158),
+ * High Rise and Pinball (E4, #161) and Breaker (E3). Checked against ROUND_MAX below, so the list and the maximums can't
+ * drift apart.
  */
 const RAISED: PuzzleType[] = [
   "target", "equation", "numline", "numpyramid", "balance", "measure", "checkout", "tendrop", "trail", "bubble", "matchup", "balltrack",
@@ -68,6 +68,8 @@ const RAISED: PuzzleType[] = [
   "lightsout", "sudoku", "tower", "tubes", "safe", "bomb", "nonogram", "flood", "tents", "shikaku", "lightup",
   // Depth batch 4 (docs/depth/d4-pattern.md): eight Pattern / Logic games.
   "unblock", "blockparty", "pipes", "flow", "iceslide", "push", "laser", "rings",
+  // Expansion E4 (docs/expansions/e4.md): High Rise and Pinball.
+  "skyline", "pinball",
   // Expansion E3 (docs/expansions/e3.md): Breaker.
   "breaker",
 ];
@@ -78,6 +80,8 @@ const at150 = (preferred: PuzzleType, not?: PuzzleType): PuzzleType =>
   TYPES.includes(preferred) && preferred !== not ? preferred : TYPES.find((t) => t !== not)!;
 /** Expansion E6's games: their intros state the 200 themselves (not only the help). */
 const E6_RAISED: PuzzleType[] = ["bubble", "matchup", "balltrack"];
+/** Expansion E4's games: their intro and their help both state the 200 and never 150. */
+const E4_RAISED: PuzzleType[] = ["skyline", "pinball"];
 /** A stated 200 (not the 200 in "1,200 ms" or "7,200 points"). */
 const TOP200 = /(?<![\d,.])200(?![\d,]*\d)/g;
 const texts = (type: PuzzleType) => ({ intro: INTRO_SCORE[type], help: PUZZLE_INSTRUCTIONS[type].score, lines: JSON.stringify({ ...PUZZLE_INSTRUCTIONS[type], score: "" }) });
@@ -99,6 +103,10 @@ for (const type of RAISED) {
   ok(chartLabels(roundMaxFor(type)).map((l) => l.text)[3] === "200", `${type}: the chart's top label is 200`);
   ok(TOP200.test(INTRO_SCORE[type] + " " + PUZZLE_INSTRUCTIONS[type].score), `${type}: its intro or help states its 200 maximum`);
   TOP200.lastIndex = 0;
+}
+for (const type of E4_RAISED) {
+  ok(/\b200\b/.test(INTRO_SCORE[type]) && !/\b150\b/.test(INTRO_SCORE[type]), `${type} (raised): its intro states 200: "${INTRO_SCORE[type]}"`);
+  ok(/\b200\b/.test(PUZZLE_INSTRUCTIONS[type].score) && !/\b150\b/.test(PUZZLE_INSTRUCTIONS[type].score), `${type} (raised): its help states 200: "${PUZZLE_INSTRUCTIONS[type].score}"`);
 }
 for (const type of E6_RAISED) ok(/\b200\b/.test(INTRO_SCORE[type]) && !/\b150\b/.test(INTRO_SCORE[type]), `${type}: the intro states its 200: "${INTRO_SCORE[type]}"`);
 ok(roundMaxFor("no-such-game") === 150 && roundMaxFor(null) === 150, "an unknown or removed game is 150");

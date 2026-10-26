@@ -30,7 +30,7 @@ import { LIVE_BANDS, liveStrictRev, type LiveBandGame } from "../src/lib/arcade/
 import { BAND_STRICT_MARK, BAND_TARGET_MARK, bandHasStrict, bandMapTotal, bandStrict, bandTop, type BandCurve } from "../src/lib/arcade/scoreBands";
 import { BASES } from "./arcade-bands-fit";
 import { GAMES } from "./arcade-skill-bands/games";
-import { TARGET_REVS } from "./scoring-targets-revs";
+import { STRICT_REVS, TARGET_REVS } from "./scoring-targets-revs";
 import { generatePuzzle, gradeAnswer } from "../src/lib/duel/generate.server";
 import { rev2KnotsFor, rev2KnotsForPuzzle, REV2_DEALT_KEY, REV2_IDENTITY_KNOTS, rev2Points, REV2_FINISH_GAMES, REV2_OPEN_GAMES, PUZZLE_SCORE_REV_BANDS } from "../src/lib/duel/puzzleScoreRev2";
 import { PUZZLE_REV2_KNOTS } from "../src/lib/duel/puzzleBands.data";

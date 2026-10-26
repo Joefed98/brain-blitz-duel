@@ -19,13 +19,27 @@
  */
 import { type ArcadeGame, type ArcadeInputEvent } from "../../../src/lib/arcade/engine";
 import { PIN_INPUT_FLIPPERS, PIN_MID_X, type PinState } from "../../../src/lib/arcade/pinball";
+import { p4PlungeLane, p4PowerAt, P4_LANE_COUNT, P4_RAIL, P4_SHIFT, type Pin4State } from "../../../src/lib/arcade/pinball4";
+
+/** pinRev 4: left presses that put a dark J-O-U-L-Z letter on `lane` (each left press shifts the lit letters left one). */
+function presses(joulz: number, lane: number): number {
+  let j = joulz;
+  for (let k = 0; k < P4_LANE_COUNT; k++) {
+    if (((j >> lane) & 1) === 0) return k;
+    j = ((j >> 1) | ((j & 1) << (P4_LANE_COUNT - 1))) & ((1 << P4_LANE_COUNT) - 1);
+  }
+  return 0;
+}
 import { driveEvents, type SkillBot } from "../bot";
 
 const WINDOW = 45;
 const HORIZON = 150;
 const LOST = 2500;
-/** The ball counts as reaching the flippers below this line (world px). */
-const ARRIVE_Y = 566 * 256;
+/** The ball counts as reaching the flippers below this line (world px; pinRev 4's lower table sits P4_SHIFT lower). */
+const ARRIVE_PX = 566;
+const shiftOf = (s: PinState) => ((s as Partial<Pin4State>).rev4 ? P4_SHIFT : 0);
+/** pinRev 4: every ball in play (multiball's extras too). */
+const ballsOf = (s: PinState): { x: number; y: number; vy: number }[] => [...(s.live ? [s] : []), ...((s as Partial<Pin4State>).extras ?? [])];
 
 type Game = ArcadeGame<PinState, ArcadeInputEvent | null>;
 
@@ -57,7 +71,10 @@ function arrival(game: Game, start: PinState, until: number, maskAt: (tick: numb
     const before = s.lost;
     s = game.step(s, ev);
     if (s.lost > before) return { tick: s.tick, side: 0 };
-    if (s.live && s.y >= ARRIVE_Y && s.vy >= 0) return { tick: s.tick, side: s.x < PIN_MID_X * 256 ? 0 : 1 };
+    const arriveY = (ARRIVE_PX + shiftOf(s)) * 256;
+    // pinRev 4: a ball resting at the flippers (barely moving either way) counts as arrived too.
+    const resting = (b: { vy: number }) => shiftOf(s) > 0 && Math.abs(b.vy) < 64;
+    for (const b of ballsOf(s)) if (b.y >= arriveY && (b.vy >= 0 || resting(b))) return { tick: s.tick, side: b.x < PIN_MID_X * 256 ? 0 : 1 };
   }
   return null;
 }
@@ -83,6 +100,14 @@ export const bot: SkillBot = ({ game, seed, human }) => {
   /** The current plan: press and release ticks, side, and the ball position the plan expects at a check tick. */
   let plan: { press: number; release: number; side: number; checkTick: number; checkX: number; checkY: number } | null = null;
   let surpriseUntil = 0;
+  /** pinRev 4's plunge: the press and release ticks the player aims at the flashing lane's zone of the meter. */
+  let plunge: { press: number; release: number } | null = null;
+  /**
+   * pinRev 4: while a ball rides the plunge rail or the left ramp to a known lane, the player taps the left
+   * flipper to shift a dark letter onto it (when they think of it: more often the better they are).
+   */
+  let shift: { left: number; ride: number; until: number } | null = null;
+  const shiftChance = Math.max(0.15, 1 - 2 * human.p.judgement);
   /** No arrival in view: look again in a few ticks (a glance, not a continuous solve). */
   let lookAt = 0;
 
@@ -145,14 +170,56 @@ export const bot: SkillBot = ({ game, seed, human }) => {
           }
         }
       }
-      const coming = seen.live && (seen.y > 520 * 256 || (seen.vy > 0 && seen.y > 330 * 256));
+      const sh = shiftOf(seen);
+      const coming = ballsOf(seen).some((b) => b.y > (520 + sh) * 256 || (b.vy > 0 && b.y > (330 + sh) * 256));
       if (!plan && s.live && coming && t >= surpriseUntil && t >= lookAt) {
         const lead = surpriseUntil > 0 && t - surpriseUntil < 2 ? 1 : Math.max(2, Math.round(human.reactTicks() / 2));
         choose(seen, t, lead);
         if (!plan) lookAt = t + 4;
         if (plan && plan.press >= 0 && plan.press <= t) want = mask | (1 << plan.side);
       }
-      if (!s.live) want = 0;
+      const p4 = s as Partial<Pin4State>;
+      const riding = p4.rev4 && s.live ? (p4.ride ?? 0) : 0;
+      if ((riding === 1 || riding === P4_RAIL) && !plan && !shift && t > (plunge?.release ?? 0)) {
+        const lane = riding === 1 ? 2 : p4PlungeLane(p4.power ?? 0);
+        const left = human.chance(shiftChance) ? presses(p4.joulz ?? 0, lane) : 0;
+        shift = { left, ride: riding, until: t + 2 * left + 2 };
+      }
+      if (shift) {
+        // Tap, release, tap… (a fresh press each time), then let go.
+        if (shift.left > 0) want = mask & 1 ? want & ~1 : want | 1;
+        if (mask & 1 && !(want & 1)) shift.left -= 1;
+        if (shift.left <= 0 && !(want & 1)) {
+          if (!riding) shift = null;
+        }
+        if (!riding && shift && shift.left <= 0) shift = null;
+      }
+      if (p4.rev4 && !s.live) {
+        // pinRev 4: the ball waits on the plunger. Aim the press at the flashing lane's zone of the meter
+        // (its middle power), anticipated a reaction time ahead, with the player's timing error.
+        want = 0;
+        if (!plan) {
+          if (!plunge && (p4.charge ?? -1) >= 0) {
+            const lane = p4.skillLane ?? 0;
+            let target = -1;
+            const earliest = Math.max(2, Math.round(human.reactTicks() / 2));
+            for (let k = earliest; k < earliest + 80 && target < 0; k++) {
+              const power = p4PowerAt((p4.charge ?? 0) + k + 1);
+              // The middle of the lane's zone: the power whose own zone neighbours are the same lane.
+              if (p4PlungeLane(power) === lane && p4PlungeLane(power - 4) === lane && p4PlungeLane(power + 4) === lane) target = k;
+            }
+            if (target < 0) target = earliest;
+            let press = t + target + human.timingTicks();
+            if (human.slip()) press += human.int(-6, 6);
+            plunge = { press: Math.max(t, press), release: Math.max(t, press) + 6 + human.int(0, 4) };
+          }
+          if (plunge && t >= plunge.press) want = 1;
+        }
+      } else if (!s.live) want = 0;
+      if (plunge && s.live && t >= plunge.release) {
+        want &= ~1;
+        plunge = null;
+      }
       if (want === mask) return null;
       mask = want;
       sentAt.set(t, want);

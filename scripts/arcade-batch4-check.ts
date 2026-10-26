@@ -524,7 +524,8 @@ for (const type of (["skyline", "tilt", "junction", "snip"] as const).filter(wan
   ok(help.goal.length <= 34, `${type}: intro GOAL fits one line: ${help.goal}`);
   ok(INTRO_SCORE[type].length <= 90, `${type}: intro SCORE within 90 characters (${INTRO_SCORE[type].length})`);
 }
-if (want("skyline")) ok(new RegExp(`up to ${roundMaxFor("skyline")}\\b`, "i").test(INTRO_SCORE.skyline), "High Rise intro states its maximum (150 today, the maximum the bot reaches)");
+// skylineRev 7 (E4, 25 Oct 2026) raised High Rise to 200 (roundMax.ts); e4-expansion-check proves a bot reaches it.
+if (want("skyline")) ok(new RegExp(`up to ${roundMaxFor("skyline")}\\b`, "i").test(INTRO_SCORE.skyline), "High Rise intro states its maximum");
 if (want("snip")) ok(PUZZLE_INSTRUCTIONS.snip.how.some((l) => !l.helpOnly && `${l.action} ${l.detail}`.includes("up to 12 s each")), "Scrumper intro says up to 12 s each");
 if (want("junction")) ok(/minute for 10 more/i.test(INTRO_SCORE.junction), "Junction intro states the 10 for lasting the minute (score bands)");
 if (want("tilt")) ok(!INTRO_SCORE.tilt.includes(`up to ${TILT_V2_PARTIAL_MAX}`) && INTRO_SCORE.tilt.includes(`up to ${roundMaxFor("tilt")}`), "Tilt intro states its maximum and no partial cap (score bands)");

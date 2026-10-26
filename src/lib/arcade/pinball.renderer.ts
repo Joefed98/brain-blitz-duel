@@ -92,7 +92,7 @@ export const PIN_COLOURS = {
 } as const;
 
 /** Bevel shades for the rails, slings, flippers and targets (light from the top left). */
-const SHADE = {
+export const SHADE = {
   railBody: "#0E7F72",
   railLight: "#3DFFE0",
   railSpec: "rgba(236,255,251,0.9)",
@@ -110,7 +110,7 @@ const SHADE = {
 } as const;
 
 /** How long a struck bumper or slingshot glows, in sim ticks. */
-const GLOW_TICKS = 10;
+export const GLOW_TICKS = 10;
 
 /** Centre of the multiplier lights row, its y (text top) and spacing. */
 const PIN_MID_LIGHTS_X = 181;
@@ -134,7 +134,7 @@ const spinMemo = new WeakMap<
 
 type Ctx = CanvasRenderingContext2D;
 
-function capsule(
+export function capsule(
   ctx: Ctx,
   ax: number,
   ay: number,
@@ -155,7 +155,7 @@ function capsule(
 }
 
 /** One stroke over several segments (a union, so translucent passes never double up at joins). */
-function strokeSegs(
+export function strokeSegs(
   ctx: Ctx,
   segs: readonly PinSegDef[],
   width: number,
@@ -181,7 +181,7 @@ function strokeSegs(
  * offset to the top left by less than r minus their half-width (so they stay
  * inside the capsule's own outline).
  */
-function bevelRails(
+export function bevelRails(
   ctx: Ctx,
   segs: readonly PinSegDef[],
   r: number,
@@ -204,7 +204,7 @@ function bevelRails(
  * Polish A2 (display only): a thin neon rail, about 2 px of light on the capsule's centre line, in a
  * soft glow that fills the capsule faintly (so the solid still reads) and fades just past it.
  */
-function neonRails(ctx: Ctx, segs: readonly PinSegDef[], r: number): void {
+export function neonRails(ctx: Ctx, segs: readonly PinSegDef[], r: number): void {
   strokeSegs(ctx, segs, r * 2 + 8, "rgba(61,255,224,0.035)");
   strokeSegs(ctx, segs, r * 2 + 3, "rgba(61,255,224,0.07)");
   strokeSegs(ctx, segs, r * 2, "rgba(14,127,114,0.42)");
@@ -231,7 +231,7 @@ function playfieldPath(ctx: Ctx): void {
 
 const mirrorX = (x: number) => 2 * PIN_MID_X - x;
 
-function chevron(
+export function chevron(
   ctx: Ctx,
   cx: number,
   cy: number,
@@ -251,7 +251,7 @@ function chevron(
   ctx.stroke();
 }
 
-function triPath(ctx: Ctx, cx: number, top: number, base: number, half: number): void {
+export function triPath(ctx: Ctx, cx: number, top: number, base: number, half: number): void {
   ctx.beginPath();
   ctx.moveTo(cx, top);
   ctx.lineTo(cx + half, base);
@@ -259,13 +259,13 @@ function triPath(ctx: Ctx, cx: number, top: number, base: number, half: number):
   ctx.closePath();
 }
 
-function ovalPath(ctx: Ctx, cx: number, cy: number, rx: number, ry: number): void {
+export function ovalPath(ctx: Ctx, cx: number, cy: number, rx: number, ry: number): void {
   ctx.beginPath();
   ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2);
 }
 
 /** A dark glass insert socket with a thin rim (unlit state; the lit state is drawn per frame). */
-function socket(ctx: Ctx, path: () => void, glass: string, rim: string): void {
+export function socket(ctx: Ctx, path: () => void, glass: string, rim: string): void {
   path();
   ctx.fillStyle = glass;
   ctx.fill();
@@ -275,7 +275,7 @@ function socket(ctx: Ctx, path: () => void, glass: string, rim: string): void {
 }
 
 /** A soft round pool of light (gradient, no shadowBlur). */
-function pool(ctx: Ctx, x: number, y: number, r: number, colour: string, alpha: number): void {
+export function pool(ctx: Ctx, x: number, y: number, r: number, colour: string, alpha: number): void {
   if (alpha <= 0) return;
   const g = ctx.createRadialGradient(x, y, 0, x, y, r);
   g.addColorStop(0, colour.replace("A)", `${alpha.toFixed(3)})`));
@@ -472,7 +472,7 @@ function paintInlays(c: Ctx): void {
 }
 
 /** Apron plates below each flipper guide (off the playfield: the ball can never reach them). */
-function paintAprons(c: Ctx): void {
+export function paintAprons(c: Ctx): void {
   const [lx, ly] = PIN_FLIP_PIVOTS[0]!;
   const left: [number, number][] = [
     [PIN_LEFT_WALL + PIN_WALL_R, 553],
@@ -526,7 +526,7 @@ function paintAprons(c: Ctx): void {
 }
 
 /** The plunger under the waiting ball (decoration in the shooter lane below the ball's rest). */
-function paintPlunger(c: Ctx): void {
+export function paintPlunger(c: Ctx): void {
   const top = PIN_LANE_Y + PIN_BALL_R + 1;
   // Spring coils.
   c.strokeStyle = "#5C6B78";
@@ -555,7 +555,7 @@ function paintPlunger(c: Ctx): void {
   c.fill();
 }
 
-function paintSlingPlastics(c: Ctx): void {
+export function paintSlingPlastics(c: Ctx): void {
   for (const tri of SLING_TRIS) {
     c.save();
     c.beginPath();
@@ -596,7 +596,7 @@ function paintSlingPlastics(c: Ctx): void {
 }
 
 /** A chrome post (a small domed cap with a glint). */
-function chromePost(c: Ctx, x: number, y: number, r: number): void {
+export function chromePost(c: Ctx, x: number, y: number, r: number): void {
   const g = c.createRadialGradient(x - r * 0.35, y - r * 0.4, 0.3, x, y, r);
   g.addColorStop(0, "#FFFFFF");
   g.addColorStop(0.45, "#C6CEDC");
@@ -648,7 +648,7 @@ export function paintBumper(c: Ctx, bx: number, by: number): void {
   c.fill();
 }
 
-function starPath(c: Ctx, x: number, y: number, ro: number, ri: number): void {
+export function starPath(c: Ctx, x: number, y: number, ro: number, ri: number): void {
   c.beginPath();
   for (let i = 0; i < 10; i++) {
     const r = i % 2 === 0 ? ro : ri;
@@ -781,7 +781,7 @@ function drawLights(ctx: Ctx, state: PinState, bloom: number): void {
   }
 }
 
-function drawSlingFlash(ctx: Ctx, state: PinState): void {
+export function drawSlingFlash(ctx: Ctx, state: PinState): void {
   for (const seg of SEG_SLINGS) {
     const age = state.tick - (state.slingAt[seg.id ?? 0] ?? -999);
     if (age < 0 || age >= GLOW_TICKS) continue;
@@ -791,7 +791,7 @@ function drawSlingFlash(ctx: Ctx, state: PinState): void {
   }
 }
 
-function drawBumperFlash(ctx: Ctx, state: PinState): void {
+export function drawBumperFlash(ctx: Ctx, state: PinState): void {
   PIN_BUMPERS.forEach(([bx, by], i) => {
     const age = state.tick - (state.bumperAt[i] ?? -999);
     if (age < 0 || age >= GLOW_TICKS) return;
@@ -836,7 +836,7 @@ function drawBumperFlash(ctx: Ctx, state: PinState): void {
 /** How long a bumper's "+100" rises, in sim ticks. */
 const POINTS_TICKS = 36;
 /** Polish A2: "+100" (times the multiplier) rising off a struck bumper, from the sim's bumperAt. */
-function drawBumperPoints(ctx: Ctx, state: PinState): void {
+export function drawBumperPoints(ctx: Ctx, state: PinState): void {
   PIN_BUMPERS.forEach(([bx, by], i) => {
     const age = state.tick - (state.bumperAt[i] ?? -999);
     if (age < 0 || age >= POINTS_TICKS) return;
@@ -847,7 +847,7 @@ function drawBumperPoints(ctx: Ctx, state: PinState): void {
   });
 }
 
-function drawTargets(ctx: Ctx, state: PinState): void {
+export function drawTargets(ctx: Ctx, state: PinState): void {
   PIN_TARGET_XS.forEach((x, i) => {
     if (((state.targets >> i) & 1) === 1) return;
     const ax = x - PIN_TARGET_HALF,
@@ -860,7 +860,7 @@ function drawTargets(ctx: Ctx, state: PinState): void {
   });
 }
 
-function drawSpinner(ctx: Ctx, state: PinState, key: Ctx, t: number): void {
+export function drawSpinner(ctx: Ctx, state: PinState, key: Ctx, t: number): void {
   // A bar across the left orbit lane that keeps turning after the ball goes through.
   let memo = spinMemo.get(key);
   if (!memo || state.tick < memo.tick)
@@ -901,7 +901,7 @@ function drawSpinner(ctx: Ctx, state: PinState, key: Ctx, t: number): void {
 }
 
 /** A tapered bat: a circle of r0 at (ax, ay) and r1 at (bx, by), joined by their outer tangents. */
-function flipperPath(ctx: Ctx, ax: number, ay: number, bx: number, by: number, r0: number, r1: number): void {
+export function flipperPath(ctx: Ctx, ax: number, ay: number, bx: number, by: number, r0: number, r1: number): void {
   const dx = bx - ax;
   const dy = by - ay;
   const d = Math.hypot(dx, dy) || 1;
@@ -913,7 +913,7 @@ function flipperPath(ctx: Ctx, ax: number, ay: number, bx: number, by: number, r
   ctx.closePath();
 }
 
-function drawFlippers(ctx: Ctx, state: PinState): void {
+export function drawFlippers(ctx: Ctx, state: PinState): void {
   for (let side = 0; side < 2; side++) {
     const [pxp, pyp] = PIN_FLIP_PIVOTS[side]!;
     const a = (pinFlipAngle(side, state.flips[side] ?? 0) / 65536) * Math.PI * 2;

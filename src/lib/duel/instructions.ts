@@ -44,8 +44,6 @@ const RANGE_0_200 = Array.from({ length: 201 }, (_, i) => i);
 const RANGE_0_80 = Array.from({ length: 81 }, (_, i) => i);
 import { CLASH_QUEUE } from "@/lib/arcade/colourClash";
 import {
-  SKYLINE_STREAK_FROM,
-  SKYLINE_STREAK_POINTS,
   SKYLINE_V2_BLOCK_POINTS,
   SKYLINE_V2_PERFECT_POINTS,
   SKYLINE_WIND_FROM,
@@ -69,13 +67,12 @@ import {
   PIN_MULT_MAX,
   PIN_PTS_BANK,
   PIN_PTS_BUMPER,
-  PIN_PTS_LANE,
-  PIN_PTS_LANE_SET,
   PIN_PTS_SLING,
   PIN_PTS_SPIN,
   PIN_PTS_SPIN_LIT,
   PIN_PTS_TARGET,
 } from "@/lib/arcade/pinball";
+import { P4_PTS_COMBO, P4_PTS_JACKPOT, P4_PTS_JOULZ, P4_PTS_RAMP, P4_PTS_SKILL } from "@/lib/arcade/pinball4";
 import { BULLSEYE_INNER_BULL_POINTS, BULLSEYE_RING_VALUES } from "@/lib/arcade/bullseye";
 import { liveBandHelp } from "@/lib/arcade/liveBands";
 import { BRK_V9_COLS, BRK_V9_COMBO_MAX, BRK_V9_COMBO_X2, BRK_V9_COMBO_X3, BRK_V9_GOLD, BRK_V9_GOLD_POINTS, BRK_V9_ROWS, BRK_V9_SKILL_MAX, BRK_V9_SKILL_PAY } from "@/lib/arcade/breaker";
@@ -543,15 +540,19 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
       goal: "Stack blocks as high as you can.",
       how: [
         { action: "Tap to drop", detail: "the sliding block on the tower." },
-        { action: "Perfect drops in a row", detail: "earn a streak bonus." },
-        { action: "From block 20", detail: "a waving flag warns of wind." },
+        { action: "Perfects in a row", detail: "multiply, up to ×4." },
+        { action: "Next block:", detail: "gold, narrow or wide." },
+        { action: "Next-block preview:", detail: "gold scores a bonus if you land it perfectly; narrow is harder and worth more; wide is easier and worth less.", helpOnly: true },
+        { action: "Every 10 floors", detail: "scores a height bonus and the camera pulls back to show the city.", helpOnly: true },
+        { action: "From block 20", detail: "a waving flag warns of wind.", helpOnly: true },
         { action: "Overhang is cut", detail: "so the next block is narrower. Line it up exactly (a perfect drop) and the block grows back a little.", helpOnly: true },
-        { action: "Streak:", detail: `from the ${SKYLINE_STREAK_FROM}rd perfect drop in a row, every perfect drop scores ${SKYLINE_STREAK_POINTS} bonus point. A drop that isn't perfect resets the streak.`, helpOnly: true },
+        { action: "Streak multiplier:", detail: "from the 3rd perfect drop in a row a perfect drop counts double, from the 6th triple and from the 10th four times. A drop that isn't perfect resets it.", helpOnly: true },
+        { action: "Narrow and wide blocks", detail: "are perfect when centred on the top. A centred wide block stays whole, so the tower widens; off-centre, the overhang is cut as usual.", helpOnly: true },
         { action: "Wind:", detail: `once ${SKYLINE_WIND_FROM} blocks are placed, a flag flies from the top block. Still flag: no wind. It starts waving about a second before a gust and streams the way the gust blows. Every gust is the same strength and nudges the sliding block that way while it blows.`, helpOnly: true },
-        { action: "Taller view:", detail: "you see more of the tower and sky before the camera pulls back.", helpOnly: true },
+        { action: "Taller view, more sky:", detail: "the tower climbs higher before the camera pulls back.", helpOnly: true },
         { action: "Everyone", detail: "gets the same gusts at the same moments.", helpOnly: true },
       ],
-      score: liveBandHelp("skyline", "Each block and each perfect drop counts 5, and each streak point 2 (a streak point for each perfect drop from the 3rd in a row).", { more: "More blocks and perfect drops", good: (u) => `counts ${u} – about ${Math.round(u / 5)} blocks` }),
+      score: liveBandHelp("skyline", "Each block counts 5 (narrow 8, wide 3), each perfect drop counts 5 times its streak multiplier, a gold block landed perfectly 15 more and every 10 floors 20.", { more: "More blocks and perfect streaks", good: (u) => `counts ${u}` }),
     },
     bintoss: {
       goal: "Throw the ball into the bucket.",
@@ -699,19 +700,23 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
     pinball: {
       goal: "Keep the ball in play and rack up table points.",
       how: [
-        { action: "Hold left or right", detail: "to flip; both thumbs for both." },
+        { action: "Hold left or right", detail: "to flip; tap to plunge." },
+        { action: "Ramps and J-O-U-L-Z", detail: "raise the multiplier." },
+        { action: "Lock 3 balls", detail: "for multiball and a jackpot." },
         { action: "Hold the left or right half", detail: "of the screen to raise that flipper; two thumbs raise both.", helpOnly: true },
-        { action: "Three balls, one minute:", detail: "a lost ball relaunches by itself." },
-        { action: "Bumpers, targets, spinner", detail: "and lit lanes all score." },
-        { action: "One table for everyone,", detail: "with no luck in it: each ball launches up the right-hand lane at its own fixed strength.", helpOnly: true },
+        { action: "Three balls, one minute:", detail: "a lost ball comes back on the plunger.", helpOnly: true },
+        { action: "Skill shot:", detail: `the power meter in the right-hand lane rises and falls; tap to plunge. Soft drops the ball into Z, full power into J. Plunge into the flashing letter for ${P4_PTS_SKILL.toLocaleString("en-GB")}.`, helpOnly: true },
+        { action: "J-O-U-L-Z lanes:", detail: `a ball through a lane lights its letter (lit letters stay lit from ball to ball). Each flipper press shifts the lit letters, so line a dark one up under the ball. All five: ${P4_PTS_JOULZ.toLocaleString("en-GB")} and the next multiplier (up to ×${PIN_MULT_MAX}), which counts on bumpers, targets, the spinner and letters.`, helpOnly: true },
+        { action: "Two ramps:", detail: `roll the ball up a ramp fast enough for ${P4_PTS_RAMP.toLocaleString("en-GB")} and the next multiplier. The left ramp drops the ball onto the U lane; the right one brings it back through the spinner. Ramps back to back build a combo (${P4_PTS_COMBO.toLocaleString("en-GB")} more each).`, helpOnly: true },
+        { action: "Multiball:", detail: `a ramp shot lights the lock; with it lit, each ramp shot sinks the ball in the lock hole and a new one comes up. The third releases all three for 20 seconds with the jackpot lit: the target behind the drop targets, ${P4_PTS_JACKPOT.toLocaleString("en-GB")} a hit from below. A ball lost while another is in play costs nothing.`, helpOnly: true },
+        { action: "One table for everyone,", detail: "with no luck in it.", helpOnly: true },
         { action: "Pink pop bumpers:", detail: `${PIN_PTS_BUMPER} a hit, and they kick the ball away.`, helpOnly: true },
         { action: "Orange drop targets:", detail: `${PIN_PTS_TARGET} each. Knock all four down for ${PIN_PTS_BANK.toLocaleString("en-GB")} more and a lit spinner for 15 seconds.`, helpOnly: true },
         { action: "Spinner in the left lane:", detail: `${PIN_PTS_SPIN} a turn, ${PIN_PTS_SPIN_LIT} while lit. A faster ball spins it more.`, helpOnly: true },
-        { action: "Three top lanes:", detail: `${PIN_PTS_LANE} for lighting each one. Light all three for ${PIN_PTS_LANE_SET.toLocaleString("en-GB")} and the next multiplier (up to ×${PIN_MULT_MAX}), which counts on everything after. Each flipper press shifts the lit lanes, so you can line a dark lane up under the ball.`, helpOnly: true },
         { action: "Yellow slingshots", detail: `kick the ball back across (${PIN_PTS_SLING} each).`, helpOnly: true },
         { action: "A ball between the flippers drains.", detail: "Hold a flipper up to catch the ball on it, then let go and flip again to aim.", helpOnly: true },
       ],
-      score: liveBandHelp("pinball", "Your table points count, multiplier included.", { more: "More table points", good: (u) => `scores ${u.toLocaleString("en-GB")} table points` }),
+      score: liveBandHelp("pinball", "Your table points count, multiplier, ramps, jackpots and skill shots included.", { more: "More table points", good: (u) => `scores ${u.toLocaleString("en-GB")} table points` }),
     },
     rally: {
       goal: "Keep the rally going.",

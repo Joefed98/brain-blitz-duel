@@ -88,6 +88,10 @@ export interface SkylineResult {
   /** skylineRev 2: longest run of perfect drops and the streak bonus earned (0 on original rounds). */
   bestStreak: number;
   streakPoints: number;
+  /** skylineRev 7: gold blocks landed perfectly, the best streak multiplier and height milestones (0 / 1 on older rounds). */
+  golds: number;
+  bestMult: number;
+  milestones: number;
   survived: boolean;
   /** Seconds into the run when the tower was missed, or the full run length. */
   endedSeconds: number;
@@ -145,6 +149,9 @@ export function replaySkylineRun(seed: number, raw: string, rev?: number | null)
     perfects: state.perfects,
     bestStreak: state.bestStreak ?? 0,
     streakPoints: state.streakPoints ?? 0,
+    golds: state.golds ?? 0,
+    bestMult: state.bestMult ?? 1,
+    milestones: state.milestones ?? 0,
     survived,
     endedSeconds: Math.round((reached / TICKS_PER_SECOND) * 10) / 10,
     score: replayScore,

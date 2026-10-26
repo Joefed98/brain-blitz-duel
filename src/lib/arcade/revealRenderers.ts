@@ -17,7 +17,7 @@ import { breakerWorldHFor, breakerWorldWFor } from "./breaker";
 import { rallyWorldHFor } from "./rally";
 /** A stored round's world height in the reveal's 390-wide box: the 420-wide expansion court (brkRev 9) scales down whole. */
 const in390 = (w: number, h: number) => (w === 390 ? h : Math.round((h * 390) / w));
-import { pinballArtGameFor } from "./pinball.renderer";
+import { drawPinballAny, pinballWorldHFor } from "./pinball4.renderer";
 import { PIN_WORLD_H, PIN_WORLD_W } from "./pinball";
 import { rallyArtGame as rallyGame, rallyRevealGame } from "./rally.renderer";
 import { sliceGame, sliceWorldHFor } from "./slice";
@@ -169,7 +169,8 @@ export const ARCADE_REVEAL_RENDERERS: Record<string, ArcadeRevealRenderer> = {
       return null;
     },
   },
-  pinball: simple("#FF4DFF", PIN_WORLD_W, PIN_WORLD_H, pinballArtGameFor(1), (p, a) => replayPinballRun(seedOf(p), a, p.type === "pinball" ? p.pinRev : undefined)),
+  // pinRev 4 (E4) draws its own taller table (drawPinballAny reads the state's revision).
+  pinball: simple("#FF4DFF", PIN_WORLD_W, PIN_WORLD_H, { draw: drawPinballAny }, (p, a) => replayPinballRun(seedOf(p), a, p.type === "pinball" ? p.pinRev : undefined), undefined, undefined, (p) => pinballWorldHFor(p.type === "pinball" ? p.pinRev : undefined)),
   rally: simple("#4D8CFF", 390, 620, rallyGame, (p, a) => replayRallyRun(seedOf(p), a, p.type === "rally" ? p.rallyRev : undefined), undefined, rallyRevealGame, (p) => rallyWorldHFor(p.type === "rally" ? p.rallyRev : undefined)),
   slice: simple("#C9CED6", 390, 620, sliceArtGame, (p, a) => replaySliceRun(seedOf(p), a, p.type === "slice" ? p.sliceRev : undefined), undefined, undefined, (p) => sliceWorldHFor(p.type === "slice" ? p.sliceRev : undefined)),
   bubble: simple(GOLD, 390, 620, bubbleGame, (p, a) => replayBubbleRun(seedOf(p), a, p.type === "bubble" ? p.bubbleRev : undefined), undefined, undefined, (p) => bubbleWorldHFor(p.type === "bubble" ? p.bubbleRev : undefined)),

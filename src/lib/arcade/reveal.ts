@@ -93,14 +93,17 @@ const BUILDERS: Record<string, Builder> = {
   skyline: (r, s) => ({
     axis: { value: n(r, "blocks"), max: null, label: "Blocks stacked" },
     lines: [
-      n(r, "skylineRev") > 0
-        ? `${n(r, "blocks")} blocks · ${n(r, "perfects")} perfect · +${n(r, "streakPoints")} streak → ${s}`
-        : `${n(r, "blocks")} blocks · ${n(r, "perfects")} perfect → ${s}`,
+      n(r, "skylineRev") >= 7
+        ? `${n(r, "blocks")} blocks · ${n(r, "perfects")} perfect · best ×${Math.max(1, n(r, "bestMult"))} · ${n(r, "golds")} gold · ${n(r, "milestones")} milestone${n(r, "milestones") === 1 ? "" : "s"} → ${s}`
+        : n(r, "skylineRev") > 0
+          ? `${n(r, "blocks")} blocks · ${n(r, "perfects")} perfect · +${n(r, "streakPoints")} streak → ${s}`
+          : `${n(r, "blocks")} blocks · ${n(r, "perfects")} perfect → ${s}`,
     ],
     tiles: [
       { label: "Blocks", value: String(n(r, "blocks")) },
       { label: "Perfect drops", value: String(n(r, "perfects")) },
       ...(n(r, "skylineRev") > 0 ? [{ label: "Best streak", value: String(n(r, "bestStreak")) }] : []),
+      ...(n(r, "skylineRev") >= 7 ? [{ label: "Gold blocks", value: String(n(r, "golds")) }] : []),
     ],
     outcome: ended(r, false),
   }),
@@ -173,8 +176,12 @@ const BUILDERS: Record<string, Builder> = {
   },
   pinball: (r, s) => ({
     axis: { value: n(r, "points"), max: null, label: "Table points" },
-    lines: [`${n(r, "points").toLocaleString("en-GB")} table points → ${s}`],
+    lines:
+      n(r, "pinRev") >= 4
+        ? [`${n(r, "points").toLocaleString("en-GB")} table points · ${n(r, "ramps")} ramps · ${n(r, "multiballs")} multiball · ${n(r, "jackpots")} jackpots → ${s}`]
+        : [`${n(r, "points").toLocaleString("en-GB")} table points → ${s}`],
     tiles: [
+      ...(n(r, "pinRev") >= 4 ? [{ label: "Ramps", value: `${n(r, "ramps")}${n(r, "bestCombo") > 1 ? ` · combo ×${n(r, "bestCombo")}` : ""}` }, { label: "Jackpots", value: String(n(r, "jackpots")) }] : []),
       { label: "Bumper hits", value: String(n(r, "bumps")) },
       { label: "Targets", value: `${n(r, "drops")}${n(r, "banks") > 0 ? ` · ${n(r, "banks")} bank${n(r, "banks") === 1 ? "" : "s"}` : ""}` },
       { label: "Multiplier", value: `×${Math.max(1, n(r, "mult"))}` },
