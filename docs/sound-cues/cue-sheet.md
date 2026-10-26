@@ -19,15 +19,15 @@ effects ([arcade-effects.md](arcade-effects.md)) so a sound can be written for e
 
 | Category | Silent | Placeholder | Recorded | Total |
 |---|---|---|---|---|
-| game event | 35 | 0 | 300 | 335 |
+| game event | 35 | 0 | 304 | 339 |
 | room moment | 1 | 0 | 34 | 35 |
 | music | 12 | 0 | 82 | 94 |
 | UI tap | 10 | 0 | 22 | 32 |
 | fail sting | 4 | 0 | 35 | 39 |
 | success sting | 3 | 0 | 68 | 71 |
 | ambience | 0 | 1 | 8 | 9 |
-| replay | 0 | 0 | 131 | 131 |
-| **all** | 65 | 1 | 680 | 746 |
+| replay | 0 | 0 | 133 | 133 |
+| **all** | 65 | 1 | 686 | 752 |
 
 ## Silent and placeholder cues
 
@@ -593,6 +593,8 @@ Grouped by game or screen.
 | `inkbridge.level` | Level cleared: the clip reaches the moment's key tick [replays.md] |  | 0–2 per highlight | recorded sound | `inkbridge.level` | 250 | replay | `inkbridge.level` |
 | `inkbridge.gold-star` | Coin through the gold star: the clip reaches the moment's key tick [replays.md] |  | 0–2 per highlight | recorded sound | `inkbridge.gold-star` | 250 | replay | `inkbridge.gold-star` |
 | `inkbridge.all-levels` | All 10 levels: the clip reaches the moment's key tick [replays.md] |  | 0–2 per highlight | recorded sound | `inkbridge.all-levels` | 250 | replay | `inkbridge.all-levels` |
+| `inkbridge.trick-shot` | Trick shot off a bounce cloud: the clip reaches the moment's key tick [replays.md] |  | 0–2 per highlight | recorded sound | `inkbridge.trick-shot` | 250 | replay | `inkbridge.trick-shot` |
+| `inkbridge.shamrock-moment` | Coin through the shamrock: the clip reaches the moment's key tick [replays.md] |  | 0–2 per highlight | recorded sound | `inkbridge.shamrock-moment` | 250 | replay | `inkbridge.shamrock-moment` |
 | `slice.combo` | Combo multiplier: the clip reaches the moment's key tick [replays.md] |  | 0–2 per highlight | recorded sound | `slice.combo` | 250 | replay | `slice.combo` |
 | `slice.frenzy` | Sauce frenzy: the clip reaches the moment's key tick [replays.md] |  | 0–2 per highlight | recorded sound | `slice.frenzy` | 250 | replay | `slice.frenzy` |
 | `slice.simmer` | Simmer (slow time): the clip reaches the moment's key tick [replays.md] |  | 0–2 per highlight | recorded sound | `slice.simmer` | 250 | replay | `slice.simmer` |
@@ -1358,6 +1360,10 @@ Grouped by game or screen.
 | `inkbridge.liveLevel` | The live levels (9–10) begin (inkRev 3+) [arcade-effects.md] | The no-draw ring appears round the coin | 0–1 | recorded sound | `inkbridge.liveLevel` | 600 | game event | `inkbridge.liveLevel` |
 | `inkbridge.coinLand` | The coin lands on a rainbow (at most one per 150 ms) [arcade-effects.md] | The coin meets the line | 10–30 | recorded sound | `arc_marble_clink` (shared) | 120 | game event | `inkbridge.coinLand` |
 | `inkbridge.coinRoll` | While the coin rolls along a rainbow [arcade-effects.md] | The coin rolls with its gold trail | loop | recorded sound | `arc_marble_roll` (shared) | loop | ambience | `inkbridge.coinRoll` |
+| `inkbridge.cloudBounce` | The coin springs off a bounce cloud (inkRev 10; at most one per 120 ms) [arcade-effects.md] | The cloud squashes and springs back (still under reduced motion) | 0–15 | recorded sound | `inkbridge.cloudBounce` | 300 | game event | `inkbridge.cloudBounce` |
+| `inkbridge.trickShot` | The coin is potted after bouncing off a cloud (inkRev 10) [arcade-effects.md] | A TRICK SHOT! pop over the pot | 0–5 | recorded sound | `inkbridge.trickShot` | 600 | game event | `inkbridge.trickShot` |
+| `inkbridge.silverCoin` | The coin in flight takes a silver coin (inkRev 10; at most one per 60 ms) [arcade-effects.md] | The silver coin goes | 0–25 | recorded sound | `inkbridge.silverCoin` | 150 | game event | `inkbridge.silverCoin` |
+| `inkbridge.shamrock` | The coin in flight takes the run's shamrock (inkRev 10) [arcade-effects.md] | The shamrock goes; a SHAMROCK +20! pop when the coin is potted | 0–1 | recorded sound | `inkbridge.shamrock` | 600 | game event | `inkbridge.shamrock` |
 | `inkbridge.draw` | Rainbow Bridge: The first segment of each drawn stroke [arcade.md] |  | 10–30 | recorded sound | `arc_rainbow` (shared) | 910 | game event | `inkbridge.draw` |
 | `inkbridge.pot` | Rainbow Bridge: The pot of gold is reached [arcade.md] |  | 3–10 | recorded sound | `arc_rainbow_pot` (shared) | 1000 | success sting | `inkbridge.pot` |
 | `inkbridge.bump` | Rainbow Bridge: A level fails on a block [arcade.md] |  | 0–5 | recorded sound | `arc_rainbow_bump` (shared) | 200 | fail sting | `inkbridge.bump` |
@@ -1751,6 +1757,8 @@ loops are not measured there). Files in `public/sounds/` are listed once per slo
 | `junction.new-roads` | effects | `junction.new-roads` | 486 |
 | `inkbridge.level` | effects | `inkbridge.level` | 486 |
 | `inkbridge.gold-star` | effects | `inkbridge.gold-star` | 486 |
+| `inkbridge.trick-shot` | effects | `inkbridge.trick-shot` | 486 |
+| `inkbridge.shamrock-moment` | effects | `inkbridge.shamrock-moment` | 486 |
 | `inkbridge.all-levels` | effects | `inkbridge.all-levels` | 486 |
 | `slice.combo` | effects | `slice.combo` | 486 |
 | `slice.frenzy` | effects | `slice.frenzy` | 486 |
@@ -1995,6 +2003,10 @@ loops are not measured there). Files in `public/sounds/` are listed once per slo
 | `flip.crackStart` | effects | `flip.crackStart` | 528 |
 | `flip.collapse` | effects | `flip.collapse` | 528 |
 | `inkbridge.goldStar` | effects | `inkbridge.goldStar` | 528 |
+| `inkbridge.trickShot` | effects | `inkbridge.trickShot` | 600 |
+| `inkbridge.cloudBounce` | effects | `inkbridge.cloudBounce` | 528 |
+| `inkbridge.silverCoin` | effects | `inkbridge.silverCoin` | 528 |
+| `inkbridge.shamrock` | effects | `inkbridge.shamrock` | 600 |
 | `inkbridge.allLevels` | effects | `inkbridge.allLevels` | 840 |
 | `inkbridge.release` | effects | `inkbridge.release` | 528 |
 | `inkbridge.fail` | effects | `inkbridge.fail` | 528 |

@@ -1828,6 +1828,8 @@ function gradeUnderRev(
         fails: run.fails,
         stars: run.stars,
         starLevels: run.starLevels,
+        // inkRev 10 (x200): trick shots, silver coins and the shamrock (older rounds store none of these).
+        ...(run.cloudLevels ? { tricks: run.tricks, cloudLevels: run.cloudLevels, silver: run.silver, silverTotal: run.silverTotal, shamrock: run.shamrock } : {}),
         endedSeconds: run.endedSeconds,
         flagged: run.flagged,
         clientLag: run.clientLag,

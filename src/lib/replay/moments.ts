@@ -148,6 +148,8 @@ export const MOMENT_TABLE: readonly MomentRow[] = [
   fx("inkbridge", 0, "clear", "level", 35, "Level cleared"),
   fx("inkbridge", 1, "perfect", "gold-star", 45, "Coin through the gold star"),
   fx("inkbridge", 2, "final", "all-levels", 95, "All 10 levels", "finish"),
+  fx("inkbridge", 3, "combo", "trick-shot", 50, "Trick shot off a bounce cloud"),
+  fx("inkbridge", 4, "perfect", "shamrock-moment", 60, "Coin through the shamrock"),
   // Slice
   fx("slice", 0, "combo", "combo", 25, "Combo multiplier"),
   fx("slice", 1, "perfect", "frenzy", 30, "Sauce frenzy"),

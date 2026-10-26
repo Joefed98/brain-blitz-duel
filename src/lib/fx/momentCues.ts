@@ -78,6 +78,7 @@ export const MOMENT_CUES: readonly MomentCue[] = [
   row("cross", "cones", "cross.pastRoadworks", ["cross.hop"]),
   row("inkbridge", "gold-star", "inkbridge.goldStar"),
   row("inkbridge", "all-levels", "inkbridge.allLevels", ["inkbridge.pot", "complete"]),
+  row("inkbridge", "trick-shot", "inkbridge.trickShot", ["inkbridge.pot"]),
   row("slice", "sliced", "slice.slicedStreak", ["slice.cut"]),
   row("slice", "mayo", "slice.mayoSqueeze", ["slice.cut"]),
   row("slice", "many-in-one", "slice.manyInOne", ["slice.cut", "slice.slicedStreak"]),

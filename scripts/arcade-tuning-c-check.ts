@@ -49,7 +49,7 @@ import {
 import { encodeMatchupRun, replayMatchupRun } from "../src/lib/duel/matchup";
 import { swingGameFor, SWING_BAND_CURVE, SWING_REV_TUNED, SWING_REV_TUNEC, SWING_V7_BAND_CURVE } from "../src/lib/arcade/swing";
 import { hoverGameFor, HOVER_BAND_CURVE, HOVER_REV_BAND, HOVER_REV_TALL, HOVER_REV_TUNEC, HOVER_V4_BAND_CURVE } from "../src/lib/arcade/hover";
-import { inkBridgeGameFor, INK_BAND_CURVE, INK_REV_BAND, INK_REV_TUNEC, INK_V6_BAND_CURVE } from "../src/lib/arcade/inkBridge";
+import { inkBridgeGameFor, INK_BAND_CURVE, INK_REV_BAND, INK_REV_EXPAND, INK_REV_STRICT, INK_REV_TUNEC, INK_V6_BAND_CURVE } from "../src/lib/arcade/inkBridge";
 import { flipGameFor, flipWarpAmp, FLIP_BAND_CURVE, FLIP_REV, FLIP_REV_BAND, FLIP_REV_TUNEC, FLIP_V4_BAND_CURVE, FLIP_WARP_FROM_V4 } from "../src/lib/arcade/flip";
 import { beatGameFor, BEAT_BAND_CURVE, BEAT_REV_BAND, BEAT_REV_TUNEC, BEAT_REV_TUNEF, BEAT_V4_BAND_CURVE } from "../src/lib/arcade/beat";
 import {
@@ -167,7 +167,8 @@ section("New rounds carry the Tuning C stamps; Junction is practice only");
     ["swing", playRevOf("swing", generateSwing().swingRev), SWING_REV_TUNEC + 2],
     // Tuning E (Oct 2026) moved Hover on to its taller world (hoverRev 5); arcade-tuning-e-check covers it.
     ["hover", playRevOf("hover", generateHover().hoverRev), HOVER_REV_TALL],
-    ["inkbridge", playRevOf("inkbridge", generateInkBridge().inkRev), INK_REV_TUNEC],
+    // x200 (26 Oct 2026) moved Rainbow Bridge on to inkRev 10 (ink-x200-check); inkRev 8, dealt before it, kept Tuning C's play.
+    ["inkbridge", generateInkBridge().inkRev === INK_REV_EXPAND ? playRevOf("inkbridge", INK_REV_STRICT) : -1, INK_REV_TUNEC],
     ["flip", playRevOf("flip", generateFlip().flipRev), FLIP_REV_TUNEC],
     // Tuning F (Oct 2026) moved Tempo on to a thinner chart on the same curve (beatRev 5); arcade-tuning-f-check covers it.
     // Taller worlds batch 2 (16 Oct 2026) moved Tempo and Slice on to their taller worlds (beatRev 6, sliceRev 6); arcade-tuning-g2-check covers them.
@@ -229,7 +230,7 @@ section("Grappler, Hover, Rainbow Bridge and Tempo: same play, new curves");
   }
   // Hover's help now states its Tuning E curve (arcade-tuning-e-check).
   // Screen audit Oct 2026: the help gives a good run from the curve rooms deal (swingRev 9, inkRev 6, beatRev 9 since expansion E2; arcade-help-bands-check).
-  ok(PUZZLE_INSTRUCTIONS.swing.score.includes("A good run (100 points) counts 166") && PUZZLE_INSTRUCTIONS.inkbridge.score.includes("A good run (100 points) counts 59") && PUZZLE_INSTRUCTIONS.beat.score.includes("A good run (100 points) reaches 824"), "the \"?\" help states a good run on the curves rooms deal");
+  ok(PUZZLE_INSTRUCTIONS.swing.score.includes("A good run (100 points) counts 166") && PUZZLE_INSTRUCTIONS.inkbridge.score.includes("A good run (100 points) counts 86") /* inkRev 10 (x200) */ && PUZZLE_INSTRUCTIONS.beat.score.includes("A good run (100 points) reaches 824"), "the \"?\" help states a good run on the curves rooms deal");
 }
 
 /* ================================ 4a. Gemstone ================================ */
