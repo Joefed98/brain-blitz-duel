@@ -75,6 +75,7 @@ import { replayBubbleRun } from "@/lib/duel/bubble";
 import { replayBeatRun } from "@/lib/duel/beat";
 import { replaySnakeRun } from "@/lib/duel/snake";
 import { replayCrossRun } from "@/lib/duel/cross";
+import { crossWorldHFor } from "./cross";
 import { replayWavefrontRun } from "@/lib/duel/wavefront";
 import { replayFlipRun } from "@/lib/duel/flip";
 import { replayJunctionRun } from "@/lib/duel/junction";
@@ -179,7 +180,7 @@ export const ARCADE_REVEAL_RENDERERS: Record<string, ArcadeRevealRenderer> = {
   bubble: simple(GOLD, 390, 620, bubbleGame, (p, a) => replayBubbleRun(seedOf(p), a, p.type === "bubble" ? p.bubbleRev : undefined), undefined, undefined, (p) => bubbleWorldHFor(p.type === "bubble" ? p.bubbleRev : undefined)),
   beat: simple(GOLD, 390, 620, beatGame, (p, a) => replayBeatRun(seedOf(p), a, p.type === "beat" ? p.beatRev : undefined), undefined, undefined, (p) => beatWorldHFor(p.type === "beat" ? p.beatRev : undefined)),
   snake: simple("#2ED3B7", SNAKE_WORLD_W, SNAKE_WORLD_H, snakeGame, (p, a) => replaySnakeRun(seedOf(p), a, p.type === "snake" ? p.snakeRev : undefined), undefined, undefined, (p) => snakeWorldHForRev(p.type === "snake" ? p.snakeRev : undefined)),
-  cross: simple("#2ED3B7", 390, 580, crossGame, (p, a) => replayCrossRun(seedOf(p), a, p.type === "cross" ? p.crossRev : undefined), undefined, crossRevealGame),
+  cross: simple("#2ED3B7", 390, 580, crossGame, (p, a) => replayCrossRun(seedOf(p), a, p.type === "cross" ? p.crossRev : undefined), undefined, crossRevealGame, (p) => crossWorldHFor(p.type === "cross" ? p.crossRev : undefined)),
   wavefront: simple(
     "#A78BFA",
     390,

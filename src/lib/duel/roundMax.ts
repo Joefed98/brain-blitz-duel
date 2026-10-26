@@ -91,7 +91,7 @@ export const ROUND_MAX: Readonly<Record<PuzzleType, number>> = {
   bubble: 200, // expansion E6, bubbleRev 8
   bullseye: 150,
   burst: 150,
-  cross: 150,
+  cross: 200, // Jaywalk crossRev 9 (x200, 26 Oct 2026)
   flip: 150,
   hover: 150,
   inkbridge: 150,

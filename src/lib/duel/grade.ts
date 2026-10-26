@@ -1258,6 +1258,8 @@ function gradeUnderRev(
         desyncTick: run.desyncTick,
         inputs: decodeCrossRun(answer).events.length,
         claimedScore: decodeCrossRun(answer).claimedScore,
+        // crossRev 9 (x200): coins and streak points (older rounds keep exactly their old fields).
+        ...(run.state.wide ? { coins: run.state.coinTotal ?? 0, streakPts: run.state.streakPts ?? 0 } : {}),
         ...(run.reason ? { reason: run.reason } : {}),
       };
       break;

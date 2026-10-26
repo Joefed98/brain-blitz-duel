@@ -138,6 +138,9 @@ export const MOMENT_TABLE: readonly MomentRow[] = [
   fx("cross", 0, "clear", "crossing", 35, "Road crossed"),
   fx("cross", 1, "pop", "bikes", 20, "Past the cyclists"),
   fx("cross", 2, "pop", "cones", 20, "Through the roadworks"),
+  fx("cross", 3, "pop", "coin", 15, "Gold coin collected (crossRev 9)"),
+  fx("cross", 4, "pop", "checkpoint", 20, "Checkpoint island reached (crossRev 9)"),
+  fx("cross", 5, "streak", "streak", 40, "Streak multiplier up (crossRev 9)"),
   // Junction (practice only)
   fx("junction", 0, "perfect", "ambulance", 45, "Ambulance through"),
   fx("junction", 1, "streak", "cleared", 25, "Cars cleared (every 10)"),

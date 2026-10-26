@@ -12,7 +12,7 @@ import { ORBIT_EIGHT, type OrbitState } from "@/lib/arcade/orbit";
 import { CLASH_LANE_EXPAND_TICK, type ClashState } from "@/lib/arcade/colourClash";
 import { SWING_CHASE_REACH, SWING_REV, SWING_ROCK_WARN, SWING_ROCK_WARN_V6, SWING_WORLD_W, swingJetAt, type SwingState } from "@/lib/arcade/swing";
 import { WAV_CELL, WAV_COLS, WAV_SHIP_H, wavDropPx, wavForm, wavShipY, type WavState } from "@/lib/arcade/wavefront";
-import { CROSS_CYCLE_FROM, CROSS_REV2, CROSS_ROADWORKS_FROM, CROSS_ROADWORKS_TWO_FROM, type CrossState } from "@/lib/arcade/cross";
+import { CROSS_CYCLE_FROM, CROSS_CYCLE_TWO_FROM, CROSS_REV2, CROSS_ROADWORKS_FROM, CROSS_ROADWORKS_TWO_FROM, CROSS_X_BUS_FROM, CROSS_X_BUS_TWO_FROM, type CrossState } from "@/lib/arcade/cross";
 import { FLIP_CRUMBLE_TICKS, flipCrackTick, flipSpeed, type FlipState } from "@/lib/arcade/flip";
 import { HOVER_WORLD_W, type HoverPillar, type HoverState } from "@/lib/arcade/hover";
 import { snakeStepTicks, type SnakeState } from "@/lib/arcade/snake";
@@ -197,6 +197,8 @@ export function wavefrontSounds(): GameSounds<WavState> {
 
 /** crossRev 2+: the crossings (0-based) that bring a new layout: the first cycle lane, roadworks, the chicane. */
 const CROSS_NEW_LAYOUTS = [CROSS_CYCLE_FROM, CROSS_ROADWORKS_FROM, CROSS_ROADWORKS_TWO_FROM];
+/** crossRev 9 adds the first bus (crossing 2), bikes and motorbikes (3), a second bus (5) and second bikes and motorbikes (6). */
+const CROSS_X_NEW_LAYOUTS = [CROSS_X_BUS_FROM, CROSS_CYCLE_FROM, CROSS_ROADWORKS_FROM, CROSS_X_BUS_TWO_FROM, CROSS_CYCLE_TWO_FROM, CROSS_ROADWORKS_TWO_FROM];
 
 export function crossSounds(): GameSounds<CrossState> {
   let prev: CrossState | null = null;
@@ -211,9 +213,15 @@ export function crossSounds(): GameSounds<CrossState> {
         else if (state.col !== prev.col || (state.hop > 0 && (prev.hop === 0 || state.hop > prev.hop))) sfx("cross.hop", "arc_honk", 0.6);
         // A new layout's crossing begins (its kerb pause ends).
         const go = prev.tick < state.pauseUntil && state.tick >= state.pauseUntil;
-        if (go && (state.rev ?? 0) >= CROSS_REV2 && CROSS_NEW_LAYOUTS.includes(state.crossings) && !announced.has(state.crossings)) {
+        if (go && (state.rev ?? 0) >= CROSS_REV2 && (state.wide ? CROSS_X_NEW_LAYOUTS : CROSS_NEW_LAYOUTS).includes(state.crossings) && !announced.has(state.crossings)) {
           announced.add(state.crossings);
           effectCue("cross.newHazard");
+        }
+        // crossRev 9, on existing sounds: a coin's clink, the island's bell, the streak's sting.
+        if (state.wide) {
+          if ((state.coinTotal ?? 0) > (prev.coinTotal ?? 0)) sfx("arc_retro_coin", "arc_retro_coin", 0.7);
+          if ((state.banked ?? 0) > (prev.banked ?? 0)) sfx("arc_fair_bell", "arc_fair_bell", 0.55);
+          if ((state.streakPts ?? 0) > (prev.streakPts ?? 0)) sfx("arc_fair_sting", "arc_fair_sting", 0.7);
         }
       } else if (prev && state.tick < prev.tick) announced.clear();
       prev = state;

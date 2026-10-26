@@ -5,6 +5,7 @@ import { CLAY_REV_DEPTH } from "@/lib/arcade/clayShoot";
 import { WHACK_REV_DEPTH } from "@/lib/arcade/whack";
 import { WORDFALL_REV } from "@/lib/arcade/wordfall";
 import { BRK_REV_DEEP } from "@/lib/arcade/breaker";
+import { CROSS_REV_EXPAND } from "@/lib/arcade/cross";
 import { RALLY_REV_TALL } from "@/lib/arcade/rally";
 import { WAV_REV_TALL } from "@/lib/arcade/wavefront";
 import { BURST_REV_TALL } from "@/lib/arcade/burst";
@@ -111,6 +112,9 @@ export const getIntroDemoFn = createServerFn({ method: "GET" })
     if (data.type === "burst" && demo?.puzzle.type === "burst" && demo.puzzle.burstRev !== BURST_REV_TALL) return null;
     // Expansion E2 (25 Oct 2026): Meteor and Tempo demos stay stopped until one is recorded on the 200-point revision.
     if (data.type === "snake" && demo?.puzzle.type === "snake" && demo.puzzle.snakeRev !== SNAKE_REV_200) return null;
+    // x200 (26 Oct 2026, docs/expansions/x200-cross.md): Jaywalk crossRev 9 plays a taller 13-lane road with the island,
+    // coins, buses and motorbikes; an older demo would show the 9-lane road, so it stays stopped until one is recorded there.
+    if (data.type === "cross" && demo?.puzzle.type === "cross" && demo.puzzle.crossRev !== CROSS_REV_EXPAND) return null;
     // Taller worlds batch 2 (16 Oct 2026): the same for Tempo, Slice, Coral Pop and Mixed Signals (Pull! above), each stopped
     // until a demo is recorded on its tall revision.
     if (data.type === "beat" && demo?.puzzle.type === "beat" && demo.puzzle.beatRev !== BEAT_REV_200) return null;

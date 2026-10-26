@@ -1007,7 +1007,11 @@ const crossSummary: SummaryBuilder = (result) => {
   const lanes = Number(result.extra?.["lanes"] ?? 0);
   return {
     summary: crossLine({ crossings, livesLost: lost }),
-    detail: [`${lanes} lane${lanes === 1 ? "" : "s"} crossed in total`],
+    detail: [
+      `${lanes} lane${lanes === 1 ? "" : "s"} crossed in total`,
+      // crossRev 9 (x200): coins and the streak.
+      ...(result.extra?.["coins"] !== undefined ? [`${Number(result.extra["coins"])} coin${Number(result.extra["coins"]) === 1 ? "" : "s"} · streak ${Number(result.extra?.["streakPts"] ?? 0)}`] : []),
+    ],
   };
 };
 

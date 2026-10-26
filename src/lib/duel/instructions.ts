@@ -78,6 +78,7 @@ import { BINTOSS_FAR_CAP, BINTOSS_FAR_POINTS, BINTOSS_FAR_THROWS, BINTOSS_V7_BAN
 import { P4_PTS_COMBO, P4_PTS_JACKPOT, P4_PTS_JOULZ, P4_PTS_RAMP, P4_PTS_SKILL } from "@/lib/arcade/pinball4";
 import { BULLSEYE_INNER_BULL_POINTS, BULLSEYE_RING_VALUES } from "@/lib/arcade/bullseye";
 import { liveBandHelp } from "@/lib/arcade/liveBands";
+import { CROSS_V9_SKILL_PAY, CROSS_X_BONUS_MAX, CROSS_X_COIN_CROSSINGS, CROSS_X_COIN_POINTS, CROSS_X_COINS_PER_RUN } from "@/lib/arcade/cross";
 import { BRK_V9_COLS, BRK_V9_COMBO_MAX, BRK_V9_COMBO_X2, BRK_V9_COMBO_X3, BRK_V9_GOLD, BRK_V9_GOLD_POINTS, BRK_V9_ROWS, BRK_V9_SKILL_MAX, BRK_V9_SKILL_PAY } from "@/lib/arcade/breaker";
 import type { BandCurve } from "@/lib/arcade/scoreBands";
 import { fillMax, liveRecord, roundMaxFor } from "./roundMax";
@@ -672,14 +673,19 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
       goal: "Get across the traffic as many times as you can.",
       how: [
         { action: "Swipe to hop.", detail: "Up goes forward; down and sideways step." },
-        { action: "Bikes from crossing 3,", detail: "cones from 4: find the gap." },
+        { action: "Grab gold coins;", detail: "cross without a hit for a ×2–×4 streak." },
+        { action: "Reach the grass island:", detail: "after a hit you restart there." },
+        { action: "Buses from crossing 2,", detail: "bikes and motorbikes from 3, cones from 4.", helpOnly: true },
+        { action: "Buses are long and slow with small gaps:", detail: "time the gap or walk along to it. Motorbikes are narrow and very fast.", helpOnly: true },
         { action: "Bikes race along the green lanes;", detail: "cones block part of the road.", helpOnly: true },
-        { action: "Three lives.", detail: "A hit sends you back to the start of this crossing." },
+        { action: "Three lives.", detail: "A hit sends you back to the start of this crossing, or to the island once you've reached it in that crossing.", helpOnly: true },
+        { action: "Coins:", detail: `${CROSS_X_COINS_PER_RUN} a run, four on each of the first ${CROSS_X_COIN_CROSSINGS} crossings, in the riskiest lanes (two each side of the island, out near the edges); step onto one to grab it. Everyone meets the same coins in the same places.`, helpOnly: true },
+        { action: "Streak:", detail: `each crossing without a hit raises it (×2, ×3, then ×4) and adds its multiplier less 1 in streak points; a hit ends it.`, helpOnly: true },
         { action: "The first two crossings", detail: "always leave wide gaps in every lane. Later traffic is tighter and faster.", helpOnly: true },
         { action: "After each crossing", detail: "you get a second on the kerb before the next one.", helpOnly: true },
         { action: "Only the walker counts:", detail: "traffic has to touch the figure itself (its arms' reach), not the space around it.", helpOnly: true },
       ],
-      score: liveBandHelp("cross", "Each lane crossed counts 1 and each full crossing 2 more.", { more: "More lanes and crossings" }),
+      score: `${liveBandHelp("cross", "Each row crossed counts 1 and each full crossing 2 more.", { more: "More rows and crossings" })} Skill adds up to ${CROSS_X_BONUS_MAX} more: ${CROSS_X_COIN_POINTS} a coin plus the streak points. ${skillPayLine(CROSS_V9_SKILL_PAY)} Up to {max}.`,
     },
     dual: {
       goal: "Keep both runners alive.",
