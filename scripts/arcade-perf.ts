@@ -29,12 +29,12 @@
  * writes to a sim or a run.
  */
 import { spawn, type ChildProcess } from "node:child_process";
-import { existsSync, writeFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 
 import { ACTIVE_ARCADE_GAMES, ENGINE_GAME_WORLDS } from "../src/lib/arcade/arcadeFxGames.renderer";
 import { gameDisplayName } from "../src/lib/duel/gameNames";
 import { gotoRetried, warmUp } from "./browser-load";
-import { SLOW_WORK_MS, STALL_MS } from "../src/lib/fx/lowEnd";
+import { SETTLE_MS, SLOW_WORK_MS, STALL_MS, WINDOW_MS } from "../src/lib/fx/lowEnd";
 
 export const ARCADE_STAGE_GAMES = [...ACTIVE_ARCADE_GAMES, ...Object.keys(ENGINE_GAME_WORLDS), "tendrop", "stroop", "whack", "clayshoot"] as string[];
 
@@ -69,7 +69,42 @@ workChannel.port1.onmessage = (e) => { const p = window.__perf; if (p.work && !p
   requestAnimationFrame((t) => { const p = window.__perf; if (p.gaps && !p.over && p.live) p.gaps.push(t - last); p.live = p.frames > 0 && !p.over; workChannel.port2.postMessage(t); sample(t); });
 })(performance.now());
 window.__arcadeProbe = (state, over) => { const p = window.__perf; p.over = over; p.frames++; };
+// When the governor steps down (page time, ms), for checks that judge what the machine was doing then.
+window.__perf.reducedAt = null;
+new MutationObserver(() => {
+  if (window.__perf.reducedAt === null && document.querySelector("[data-reduced-effects]")) window.__perf.reducedAt = performance.now();
+}).observe(document, { attributes: true, subtree: true, attributeFilter: ["data-reduced-effects"] });
 `;
+
+/**
+ * MeasureOptions.stallProbe: while a run plays, the CPU time every process outside the browser used
+ * (the dev server, this script, anything else on the machine, and time the VM's host stole), read from
+ * Linux's /proc every 100 ms. None of the page's work is in it, so a busy spell there means the
+ * machine itself was short of CPU (a CI runner), not that the page's frames got heavier. Where /proc
+ * is missing it records nothing. Samples are [epoch ms, CPU-seconds used by others so far].
+ */
+const CLK_TCK = 100;
+function procCpu(): { others: number } | null {
+  try {
+    const cpu = readFileSync("/proc/stat", "utf8").split("\n")[0]!.trim().split(/\s+/).slice(1).map(Number);
+    // user nice system idle iowait irq softirq steal: busy is everything but idle and iowait (steal included).
+    const busy = cpu.reduce((a, b, i) => (i === 3 || i === 4 || i > 7 ? a : a + b), 0);
+    let browser = 0;
+    for (const pid of readdirSync("/proc")) {
+      if (!/^\d+$/.test(pid)) continue;
+      try {
+        const cmd = readFileSync(`/proc/${pid}/cmdline`, "utf8");
+        if (!/chrom|headless_shell/i.test(cmd.split("\0")[0] ?? "")) continue;
+        const stat = readFileSync(`/proc/${pid}/stat`, "utf8");
+        const f = stat.slice(stat.lastIndexOf(")") + 2).split(" ");
+        browser += Number(f[11]) + Number(f[12]);
+      } catch { /* exited */ }
+    }
+    return { others: (busy - browser) / CLK_TCK };
+  } catch {
+    return null;
+  }
+}
 
 /** --raster: time every draw call on an immediately rasterised canvas, by method and by caller. */
 const RASTER_INIT = String.raw`
@@ -141,6 +176,10 @@ export interface PerfResult {
   workMedianMs: number;
   workSlowShare: number;
   workMaxMs: number;
+  /** The first step down seen (with stallProbe, the probe around it); null when effects stayed full. */
+  stepDown?: StepDown | null;
+  /** With stallProbe: cores' worth of CPU used outside the browser over the whole measure (context for a log line). */
+  otherCores?: number;
   categories?: Record<string, number>;
   files?: [string, number][];
   /** --raster: draw-call ms per frame, by method and by caller. */
@@ -238,6 +277,19 @@ export interface MeasureOptions {
   raf30?: boolean;
   /** One main-thread stall of this many ms, 2.5 s into the first run's play (after the governor's 1 s settle). */
   stallMs?: number;
+  /** Sample the CPU used outside the browser (procCpu) and return it around a step down. */
+  stallProbe?: boolean;
+}
+
+/**
+ * Where the governor stepped down in a run, with the CPU the rest of the machine used (procCpu) around
+ * it: from SETTLE_MS before the governor's WINDOW_MS judging window to the step down.
+ */
+export interface StepDown {
+  /** Epoch ms of the step down. */
+  at: number;
+  /** procCpu samples from at − WINDOW_MS − SETTLE_MS to at: [epoch ms, CPU-seconds used by others so far]. */
+  probe: [number, number][];
 }
 
 /** One game at one CPU slowdown: the mean frame gap over `seconds` of live play (restarting runs that end). */
@@ -260,6 +312,11 @@ export async function measure(browser: import("playwright").Browser, origin: str
   let profileOut: ReturnType<typeof attribute> | undefined;
   const work: number[] = [];
   let raster: { byMethod: Record<string, number>; byCaller: Record<string, number> } | undefined;
+  let stepDown: StepDown | null = null;
+  const probe: [number, number][] = [];
+  const sampleCpu = () => { const c = procCpu(); if (c) probe.push([Date.now(), c.others]); };
+  const sampler = o.stallProbe ? setInterval(sampleCpu, 100) : null;
+  if (o.stallProbe) sampleCpu();
   const wantMs = SECONDS * 1000;
   try {
     while (gaps.reduce((a, b) => a + b, 0) < wantMs && runs < 12) {
@@ -327,8 +384,11 @@ export async function measure(browser: import("playwright").Browser, origin: str
           }),
           raster: (window as never as { __raster?: { byMethod: Record<string, number>; byCaller: Record<string, number> } }).__raster,
           reduced: document.querySelector("[data-reduced-effects]")?.getAttribute("data-reduced-effects") ?? null,
+          reducedAt: (window as never as { __perf: { reducedAt: number | null } }).__perf.reducedAt,
+          timeOrigin: performance.timeOrigin,
         };
       });
+      if (got.reducedAt !== null && !stepDown) stepDown = { at: got.timeOrigin + got.reducedAt, probe: [] };
       gaps.push(...got.gaps);
       work.push(...got.work);
       if (got.raster) {
@@ -349,7 +409,12 @@ export async function measure(browser: import("playwright").Browser, origin: str
       }
     }
   } finally {
+    if (sampler) clearInterval(sampler);
     await context.close();
+  }
+  if (stepDown) {
+    const from = stepDown.at - WINDOW_MS - SETTLE_MS;
+    stepDown.probe = probe.filter(([at]) => at >= from - 200 && at <= stepDown!.at + 200);
   }
   const sum = gaps.reduce((a, b) => a + b, 0);
   const sorted = [...gaps].sort((a, b) => a - b);
@@ -361,6 +426,8 @@ export async function measure(browser: import("playwright").Browser, origin: str
     workMedianMs: workSorted[Math.floor(workSorted.length / 2)] ?? 0,
     workSlowShare: work.length ? work.filter((w) => w > SLOW_WORK_MS && w <= STALL_MS).length / work.length : 0,
     workMaxMs: workSorted[workSorted.length - 1] ?? 0,
+    stepDown,
+    ...(o.stallProbe && probe.length > 1 ? { otherCores: (probe.at(-1)![1] - probe[0]![1]) / ((probe.at(-1)![0] - probe[0]![0]) / 1000) } : {}),
     ...(profileOut ? { categories: profileOut.cats, files: profileOut.files } : {}),
     ...(raster ? { raster: { perFrameMs: Object.values(raster.byMethod).reduce((a, b) => a + b, 0) / Math.max(1, gaps.length), byMethod: top(raster.byMethod, gaps.length, 12), byCaller: top(raster.byCaller, gaps.length, 16) } } : {}),
   };
