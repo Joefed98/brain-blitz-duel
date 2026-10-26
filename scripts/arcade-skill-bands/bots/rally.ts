@@ -44,6 +44,8 @@ const BONUS_AIM: Record<string, number> = { weak: 9, average: 7, good: 5, great:
  * rallyRev 10: chance a player plans two balls at once (takes a gold ball when the blue one lands soon after,
  * if the finger can get from one to the other in time) instead of always leaving the gold one.
  */
+/** rallyRev 10: how far from the paddle's centre (share of its half-width) a player dares take a ball to aim it at a target. */
+const EDGE: Record<string, number> = { weak: 0.4, average: 0.5, good: 0.6, great: 0.7, near: 0.8, elite: 0.85 };
 const BOTH: Record<string, number> = { weak: 0, average: 0, good: 0.25, great: 0.5, near: 0.8, elite: 0.95 };
 
 /**
@@ -99,7 +101,9 @@ export const bot: SkillBot = ({ game, seed, human }) => {
   const init = game.init(seed) as RallyState;
   PADDLE_Y = rallyPaddleY(init);
   WORLD_W = rallyWorldW(init);
-  const bonusOn = !!init.exp && rallyBotOptions.features;
+  // rallyRev 10's own court (the planning below is new there; older revisions play exactly as before), and its targets.
+  const tenCourt = !!init.exp;
+  const bonusOn = tenCourt && rallyBotOptions.features;
   const level = human.level;
   const history: RallyState[] = [];
   let finger = WORLD_W / 2;
@@ -129,7 +133,7 @@ export const bot: SkillBot = ({ game, seed, human }) => {
     if (aim && aim.gold && blue && blue.t - aim.t < 30) {
       const key = `both:${aim.key}:${blue.key}`;
       let both = plans.get(key);
-      if (both === undefined) plans.set(key, (both = bonusOn && human.chance(BOTH[level]!)));
+      if (both === undefined) plans.set(key, (both = tenCourt && human.chance(BOTH[level]!)));
       const half = rallyPaddleW(rallyTotalHits(s)) / 2;
       const reach = FINGER[level]! * Math.max(0, blue.t - aim.t - 6) + half * 0.8;
       if (!both || Math.abs(blue.x - aim.x) > reach) aim = blue;
@@ -155,14 +159,17 @@ export const bot: SkillBot = ({ game, seed, human }) => {
       let goal: number | null = null;
       // rallyRev 10: a gold bonus target up when the return would reach it: take the ball where it goes there.
       let bonusOff: number | null = null;
-      if (r.bonus && s.bonus) {
+      // Only when it is safe: no other ball lands soon after (the paddle must get back in time), and the
+      // contact point the target needs is well inside the paddle (better players use more of it).
+      const busy = cands.some((c) => c !== aim && c.t - aim.t < 40);
+      if (r.bonus && s.bonus && !busy) {
         const speed = Math.min(RALLY_SPEED_CAP, Math.trunc((s.speed * 103) / 100));
         for (let n = 0; n < s.bonus.length && bonusOff === null; n++) {
           const tg = s.bonus[n]!;
           const est = offsetFor(aim.x, aim.ball.vx, aim.ball.vy, speed, half, tg.x, tg.y);
           if (!est) continue;
           const at = s.tick + Math.round(aim.t) + Math.round(est.ticks);
-          if (rallyBonusLive(s, n, at) && rallyBonusLive(s, n, at + 6)) bonusOff = est.off;
+          if (Math.abs(est.off) <= half * EDGE[level]! && rallyBonusLive(s, n, at) && rallyBonusLive(s, n, at + 6)) bonusOff = est.off;
         }
       }
       if (bonusOff !== null) {

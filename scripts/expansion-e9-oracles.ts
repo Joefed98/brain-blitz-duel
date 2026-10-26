@@ -20,7 +20,9 @@ import {
   bullseyeWindShiftFor,
   BULLSEYE_ARROWS,
   BULLSEYE_CX,
+  BULLSEYE_FLIGHT_DEN,
   BULLSEYE_FLIGHT_TICKS,
+  BULLSEYE_V8_FLIGHT_NUM,
   BULLSEYE_INPUT_SHOT,
   BULLSEYE_OUTER_R,
   BULLSEYE_RINGS,
@@ -69,8 +71,8 @@ function planDart(game: any, s0: BullseyeState): { t: number; vx: number; vy: nu
       // The aim point (landing + sway) the release needs, then a small search on the launch to hit it exactly.
       const zero = bullseyeAimPointFor(s, u, 0, -1920);
       for (const [dvx, dvy] of searchOrder()) {
-        const guessX = Math.round(((tx - wind - zero.x) * 1920) / 423) + dvx;
-        const guessY = -1920 + Math.round(((ty - zero.y) * 1920) / 423) + dvy;
+        const guessX = Math.round(((tx - wind - zero.x) * BULLSEYE_FLIGHT_DEN) / BULLSEYE_V8_FLIGHT_NUM) + dvx;
+        const guessY = -1920 + Math.round(((ty - zero.y) * BULLSEYE_FLIGHT_DEN) / BULLSEYE_V8_FLIGHT_NUM) + dvy;
         const vx = Math.max(-BULLSEYE_V_MAX, Math.min(BULLSEYE_V_MAX, guessX));
         const vy = Math.max(-BULLSEYE_V_MAX, Math.min(0, guessY));
         const p = bullseyeAimPointFor(s, u, vx, vy);

@@ -29,6 +29,7 @@ const ONLY = args.filter((a) => !a.startsWith("--"));
 /** A flawless player: instant (but human-floor) reactions, no aim, timing, power or reading error, no slips. */
 export const FLAWLESS: SkillProfile = { reactionMs: [120, 0], lapse: 0, timingSdMs: 0, aimSdPx: 0, powerSd: 0, mistake: 0, thinkScale: 0.25, judgement: 0, trackLagMs: 17 };
 
+if (import.meta.main) {
 const out: Record<string, { n: number; best: number }[]> = {};
 for (const g of E9_GAMES) {
   if (ONLY.length && !ONLY.includes(g.type)) continue;
@@ -61,3 +62,4 @@ for (const g of E9_GAMES) {
 }
 void GAME_BY_TYPE;
 if (opt("json")) writeFileSync(opt("json")!, JSON.stringify(out));
+}

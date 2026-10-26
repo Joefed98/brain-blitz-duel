@@ -557,8 +557,8 @@ export function drawBullseye(ctx: CanvasRenderingContext2D, state: BullseyeState
           ctx.lineWidth = 3;
           ctx.lineJoin = "round";
           const t = `DEAD CENTRE +${BULLSEYE_V8_DEAD_PTS}`;
-          ctx.strokeText(t, 0, bal > 0 ? -40 : -22);
-          ctx.fillText(t, 0, bal > 0 ? -40 : -22);
+          ctx.strokeText(t, 0, bal > 0 ? -44 : -30);
+          ctx.fillText(t, 0, bal > 0 ? -44 : -30);
           ctx.font = "700 20px 'JetBrains Mono', ui-monospace, monospace";
           ctx.fillStyle = BULLSEYE_GOLD;
         }

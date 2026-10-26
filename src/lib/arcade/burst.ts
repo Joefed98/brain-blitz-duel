@@ -920,10 +920,10 @@ export const BURST_V8_GOLDEN_SIDE = 30;
 export const BURST_V8_GOLDEN_BELOW = 24;
 export const BURST_V8_GOLDEN_BAND = 110;
 /** Points: a golden atom, a clean wave. */
-export const BURST_V8_GOLDEN_PTS = 4;
+export const BURST_V8_GOLDEN_PTS = 6;
 export const BURST_V8_CLEAN_PTS = 4;
 /** Each feature's most points. */
-export const BURST_V8_CAPS = { gold: 24, clear: 12, clean: 20 } as const;
+export const BURST_V8_CAPS = { gold: 36, clear: 12, clean: 24 } as const;
 
 const geometriesV8 = new Map<number, BurstGeometry>();
 /** burstRev 8's higher arena: the ceiling from 24 px, higher bounces and a higher lowest ceiling. */
@@ -1134,7 +1134,7 @@ export function burstCleanBonus(state: BurstState): { gold: number; clear: numbe
  * burstRev 8 band knots (atoms hit, minus 5 a life lost; lasting the 90 s adds 10, the features come on top),
  * fitted with scripts/expansion-e9-bands.ts (docs/expansions/e9.md).
  */
-export const BURST_V8_BAND_CURVE = bandCurve([0, 14, 45, 68, 78, 86, 100], [0, 22, 56, 80, 100, 136, 146]);
+export const BURST_V8_BAND_CURVE = bandCurve([0, 15, 45, 70, 80, 90, 100], [0, 25, 52, 74, 98, 120, 136]);
 
 /** burstRev 8's units: atoms hit less 5 a life lost, never below a quarter of the atoms hit (rounded up). */
 export function burstCleanUnits(state: Pick<BurstState, "hits" | "lives">): number {
