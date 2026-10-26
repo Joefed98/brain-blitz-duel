@@ -8,6 +8,7 @@
  * before. Shared, pure and the same on every phone and the server.
  */
 import type { PuzzleData, PuzzleType } from "../types";
+import { preTopupPinned } from "../depthTopup";
 
 /** The stamp field each game carries. */
 export const D4_STAMP_FIELD = {
@@ -27,6 +28,24 @@ export type D4Type = keyof typeof D4_STAMP_FIELD;
 export const D4_REV = 1;
 
 export const D4_TYPES = Object.keys(D4_STAMP_FIELD) as D4Type[];
+
+/**
+ * The puzzle top-up (26 Oct 2026, docs/depth/topup-oct-2026.md): stamp 2 for the five games whose near-perfect play
+ * sat under the 200-point bar. Same boards and play (score.ts's D4_GAMES_TOPUP retunes the curve; Lightbender and
+ * Turntable add partial credit). Rounds on stamp 1 score exactly as before.
+ */
+export const D4_REV_TOPUP = 2;
+export const D4_TOPUP_TYPES: readonly D4Type[] = ["blockparty", "pipes", "laser", "rings", "push"];
+
+/** The stamp the app's texts state (the top-up's for its five games; never pinned by a check). */
+export function liveD4Rev(type: D4Type): number {
+  return D4_TOPUP_TYPES.includes(type) ? D4_REV_TOPUP : D4_REV;
+}
+
+/** The stamp new puzzles of a game are dealt. */
+export function dealtD4Rev(type: D4Type): number {
+  return D4_TOPUP_TYPES.includes(type) && !preTopupPinned() ? D4_REV_TOPUP : D4_REV;
+}
 
 export function isD4Type(type: string | null | undefined): type is D4Type {
   return !!type && type in D4_STAMP_FIELD;

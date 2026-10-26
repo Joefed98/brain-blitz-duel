@@ -34,6 +34,20 @@ export const WORDHUNT_V3_BASE_CURVE = bandCurve([0, 4, 6, 9, 18, 27, 44, 70], [0
 /** Feature extras (what long words and the golden tile add) → bonus points, at most 50. */
 export const WORDHUNT_V3_BONUS_CURVE = bandCurve([0, 8, 17, 27, 48, 89, 140], [0, 6, 9, 13, 20, 38, 50]);
 
+/**
+ * The puzzle top-up (26 Oct 2026, wordHuntRev 4; docs/depth/topup-oct-2026.md): rev 3's board and rules; the base
+ * curve is rev 3's to 27 points, then reaches 150 a little sooner (60 points), and the extras pay a little more
+ * for the first long and golden words, so today's near-perfect haul lands about 165–175. 200 still needs both.
+ */
+export const WORDHUNT_REV_TOPUP = 4;
+export const WORDHUNT_V4_BASE_CURVE = bandCurve([0, 4, 6, 9, 18, 27, 44, 60], [0, 6, 25, 58, 92, 112, 140, 150]);
+export const WORDHUNT_V4_BONUS_CURVE = bandCurve([0, 8, 17, 27, 48, 89, 120], [0, 6, 9, 15, 27, 40, 50]);
+
+/** The base and bonus curves a stamp scores on. */
+export function wordHuntCurves(rev: number | null | undefined): { base: typeof WORDHUNT_V3_BASE_CURVE; bonus: typeof WORDHUNT_V3_BONUS_CURVE } {
+  return (rev ?? 0) >= WORDHUNT_REV_TOPUP ? { base: WORDHUNT_V4_BASE_CURVE, bonus: WORDHUNT_V4_BONUS_CURVE } : { base: WORDHUNT_V3_BASE_CURVE, bonus: WORDHUNT_V3_BONUS_CURVE };
+}
+
 /** True when the stored board carries the depth rules. */
 export function wordHuntDepth(puzzle: { wordHuntRev?: number | undefined } | null | undefined): boolean {
   return (puzzle?.wordHuntRev ?? 0) >= WORDHUNT_REV_DEPTH;
@@ -79,10 +93,11 @@ export interface WordHuntDepthScore {
   bonusPart: number;
 }
 
-/** wordHuntRev 3's score: base points on their curve plus feature extras on theirs, each cut by `keptPct`. */
-export function scoreWordHuntDepth(basePoints: number, extraPoints: number, keptPct = 100): WordHuntDepthScore {
+/** wordHuntRev 3's score (and 4's, on its own curves): base points on their curve plus feature extras on theirs, each cut by `keptPct`. */
+export function scoreWordHuntDepth(basePoints: number, extraPoints: number, keptPct = 100, rev: number = WORDHUNT_REV_DEPTH): WordHuntDepthScore {
   const kept = Math.max(0, Math.min(100, keptPct));
-  const basePart = Math.floor((bandOpen(WORDHUNT_V3_BASE_CURVE, Math.round(basePoints)) * kept) / 100);
-  const bonusPart = Math.floor((bandOpen(WORDHUNT_V3_BONUS_CURVE, Math.round(extraPoints), WORDHUNT_DEPTH_BONUS_MAX) * kept) / 100);
+  const curves = wordHuntCurves(rev);
+  const basePart = Math.floor((bandOpen(curves.base, Math.round(basePoints)) * kept) / 100);
+  const bonusPart = Math.floor((bandOpen(curves.bonus, Math.round(extraPoints), WORDHUNT_DEPTH_BONUS_MAX) * kept) / 100);
   return { score: Math.min(WORDHUNT_DEPTH_BASE_MAX, basePart) + Math.min(WORDHUNT_DEPTH_BONUS_MAX, bonusPart), basePart, bonusPart };
 }

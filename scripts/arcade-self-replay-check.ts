@@ -609,8 +609,6 @@ const GAMES: Game[] = [
     encode: (run: any) => encodeBallTrackRun(btCourseTall(run.seed), run, BT_REV_TALL),
     replay: (seed: number, raw: string) => replayBallTrackRun(btCourseTall(seed), seed, raw, BT_REV_TALL),
   },
-  // Roofbound's expansion (flipRev 8, docs/expansions/x200-flip.md), appended so every earlier entry keeps its index.
-  { key: "flip/x200", game: flipGameFor(FLIP_REV_EXPAND), checkpoint: flipCheckpoint, mode: "events", rate: 50, encode: encodeFlipRun, replay: (seed: number, raw: string) => replayFlipRun(seed, raw, FLIP_REV_EXPAND) },
   // The 200 expansion (26 Oct 2026): Hover hoverRev 9 (tight gates, centre lines, star chains, shields).
   { key: "hover/x200", game: hoverGameFor(HOVER_REV_EXPAND), checkpoint: hoverCheckpoint, mode: "taps", rate: 60, encode: encodeHoverRun, replay: (seed: number, raw: string) => replayHoverRun(seed, raw, HOVER_REV_EXPAND) },
   // Grappler's 200 expansion (swingRev 13, 26 Oct 2026), appended so every earlier entry keeps its index: its bank courses.
@@ -624,6 +622,8 @@ const GAMES: Game[] = [
     encode: encodeSwingRun,
     replay: (seed: number, raw: string) => replaySwingRun(seed, raw, SWING_REV_EXPAND),
   },
+  // Roofbound's expansion (flipRev 8, docs/expansions/x200-flip.md), appended so every earlier entry keeps its index.
+  { key: "flip/x200", game: flipGameFor(FLIP_REV_EXPAND), checkpoint: flipCheckpoint, mode: "events", rate: 50, encode: encodeFlipRun, replay: (seed: number, raw: string) => replayFlipRun(seed, raw, FLIP_REV_EXPAND) },
 ];
 
 /** A random candidate event, often outside the declared range (a finger off the edge). */

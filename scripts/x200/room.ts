@@ -1,6 +1,6 @@
 /**
  * The arcade rule's room proof (26 Oct 2026, the 200-point expansions of Hover, Grappler, Roofbound and
- * Scrumper): every player in a room plays the identical run, so everything a run offers (spawns, pickups,
+ * Scrumper; Hover and Grappler shipped): every player in a room plays the identical run, so everything a run offers (spawns, pickups,
  * shield points, gates, par times, wind, schedules) must come from the stored puzzle alone, never from how a
  * player has played. Each game's module in this folder (`scripts/x200/<type>.ts`) exports `x200Room`;
  * arcade-room-schedule-check plays every room deal it gives with several input styles and fails unless every

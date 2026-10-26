@@ -24,8 +24,8 @@ revisions keep their own world in reveals and replays.
 
 | Game | World | 375x667 | 390x700 | 390x844 | 414x896 (48/34px insets) | 430x932 | 1280x800 | Scale at 390x844 | Box top | Spare above | Spare below | Spare across | Bottom control (gap to bottom) |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| Hover | 390x735 | 375x591 → 314x591 | 390x624 → 331x624 | 390x768 → 390x735 | 414x772 → 410x772 | 430x856 → 430x810 | 1280x724 → 384x724 | 1.000x | 60px | 0px | 33px | 0px | - |
-| Breaker | 390x730 | 375x591 → 316x591 | 390x624 → 333x624 | 390x768 → 390x730 | 414x772 → 412x772 | 430x856 → 430x805 | 1280x724 → 387x724 | 1.000x | 60px | 0px | 38px | 0px | - |
+| Hover | 390x727 | 375x591 → 317x591 | 390x624 → 335x624 | 390x768 → 390x727 | 414x772 → 414x772 | 430x856 → 430x802 | 1280x724 → 388x724 | 1.000x | 60px | 0px | 41px | 0px | - |
+| Breaker | 420x784 | 375x591 → 317x591 | 390x624 → 334x624 | 390x768 → 390x728 | 414x772 → 414x772 | 430x856 → 430x803 | 1280x724 → 388x724 | 0.929x | 60px | 0px | 40px | 0px | - |
 | Rally | 390x730 | 375x591 → 316x591 | 390x624 → 333x624 | 390x768 → 390x730 | 414x772 → 412x772 | 430x856 → 430x805 | 1280x724 → 387x724 | 1.000x | 60px | 0px | 38px | 0px | - |
 | Tempo | 390x730 | 375x591 → 316x591 | 390x624 → 333x624 | 390x768 → 390x730 | 414x772 → 412x772 | 430x856 → 430x805 | 1280x724 → 387x724 | 1.000x | 60px | 0px | 38px | 0px | - |
 | Meteor | 468x868 | 375x591 → 319x591 | 390x624 → 336x624 | 390x768 → 390x723 | 414x772 → 414x768 | 430x856 → 430x798 | 1280x724 → 390x724 | 0.833x | 60px | 22px | 22px | 0px | - |
@@ -41,7 +41,7 @@ revisions keep their own world in reveals and replays.
 | Flightpath | 390x560 | 375x591 → 375x538 | 390x624 → 390x560 | 390x768 → 390x560 | 414x772 → 414x594 | 430x856 → 430x617 | 1280x724 → 504x724 | 1.000x | 60px | 0px | 208px | 0px | - |
 | Coral Pop | 390x730 | 375x591 → 316x591 | 390x624 → 333x624 | 390x768 → 390x730 | 414x772 → 412x772 | 430x856 → 430x805 | 1280x724 → 387x724 | 1.000x | 60px | 0px | 38px | 0px | - |
 | Roofbound | 390x730 | 375x591 → 316x591 | 390x624 → 333x624 | 390x768 → 390x730 | 414x772 → 412x772 | 430x856 → 430x805 | 1280x724 → 387x724 | 1.000x | 60px | 0px | 38px | 0px | - |
-| Grappler | 390x730 | 375x591 → 316x591 | 390x624 → 333x624 | 390x768 → 390x730 | 414x772 → 412x772 | 430x856 → 430x805 | 1280x724 → 387x724 | 1.000x | 60px | 0px | 38px | 0px | - |
+| Grappler | 450x844 | 375x591 → 315x591 | 390x624 → 333x624 | 390x768 → 390x731 | 414x772 → 412x772 | 430x856 → 430x806 | 1280x724 → 386x724 | 0.867x | 60px | 0px | 37px | 0px | - |
 | Scrumper | 360x640 | 375x567 → 319x567 | 390x600 → 338x600 | 390x744 → 390x693 | 414x748 → 414x736 | 430x832 → 430x764 | 1280x700 → 394x700 | 1.083x | 84px | 25px | 25px | 0px | - |
 | Tilt | 440x470 | 375x591 → 375x401 | 390x624 → 390x417 | 390x768 → 390x417 | 414x772 → 414x442 | 430x856 → 430x459 | 1280x724 → 678x724 | 0.886x | 60px | 176px | 176px | 0px | - |
 | Ball Tracker | 700x1400 | 375x555 → 278x555 | 390x588 → 294x588 | 390x732 → 366x732 | 414x736 → 368x736 | 430x820 → 410x820 | 1280x688 → 344x688 | 0.523x | 60px | 0px | -0px | 24px | Ball Tracker's status row (28px): 16px |
@@ -68,8 +68,8 @@ stars, walkers, lava, reactions) that holds still under reduced motion or reduce
 | Bonk | 375x491 → 375x375 | 390x524 → 390x390 | 390x668 → 390x390 | 414x672 → 414x414 | 430x756 → 430x430 | 1280x624 → 624x624 | the meadow below the 4x4 field starts in the field's green, then soft tufts, a few faded flowers and small stones on a faint band of soil (static); the field centred, the meadow above it too |
 | Tenfall | 375x535 → 370x535 | 390x568 → 390x563 | 390x712 → 390x563 | 414x716 → 414x598 | 430x800 → 430x621 | 1280x668 → 462x668 | a sill closing the columns, then the frame's rails and a shaded backing to a foot rail |
 | Pull! | 375x565 → 299x565 | 390x598 → 317x598 | 390x742 → 390x737 | 414x746 → 395x746 | 430x830 → 430x812 | 1280x698 → 370x698 | more field below, starting in the world's own bottom grass; sky, treeline and field beside the world (no seam) |
-| Hover | 375x591 → 314x591 | 390x624 → 331x624 | 390x768 → 390x735 | 414x772 → 410x772 | 430x856 → 430x810 | 1280x724 → 384x724 | the black night sky with faint still stars |
-| Breaker | 375x591 → 316x591 | 390x624 → 333x624 | 390x768 → 390x730 | 414x772 → 412x772 | 430x856 → 430x805 | 1280x724 → 387x724 | the black screen runs on into a dark retro floor (a faint horizon grid) |
+| Hover | 375x591 → 317x591 | 390x624 → 335x624 | 390x768 → 390x727 | 414x772 → 414x772 | 430x856 → 430x802 | 1280x724 → 388x724 | the black night sky with faint still stars |
+| Breaker | 375x591 → 317x591 | 390x624 → 334x624 | 390x768 → 390x728 | 414x772 → 414x772 | 430x856 → 430x803 | 1280x724 → 388x724 | the black screen runs on into a dark retro floor (a faint horizon grid) |
 | Rally | 375x591 → 316x591 | 390x624 → 333x624 | 390x768 → 390x730 | 414x772 → 412x772 | 430x856 → 430x805 | 1280x724 → 387x724 | the court's dark floor, five retro lamps lit by Rally's good moments |
 | Tempo | 375x591 → 316x591 | 390x624 → 333x624 | 390x768 → 390x730 | 414x772 → 412x772 | 430x856 → 430x805 | 1280x724 → 387x724 | the four lanes' tints fade into the dark, a few small notes drifting and slowly changing colour |
 | Meteor | 375x591 → 319x591 | 390x624 → 336x624 | 390x768 → 390x723 | 414x772 → 414x768 | 430x856 → 430x798 | 1280x724 → 390x724 | a faint starfield round the board, its stars stepping through the border's colours (world centred) |
@@ -84,7 +84,7 @@ stars, walkers, lava, reactions) that holds still under reduced motion or reduce
 | Flightpath | 375x591 → 375x538 | 390x624 → 390x560 | 390x768 → 390x560 | 414x772 → 414x594 | 430x856 → 430x617 | 1280x724 → 504x724 | the counter's front, a kick board and the fairground floor |
 | Coral Pop | 375x591 → 316x591 | 390x624 → 333x624 | 390x768 → 390x730 | 414x772 → 412x772 | 430x856 → 430x805 | 1280x724 → 387x724 | the deep water settles onto soft sand |
 | Roofbound | 375x591 → 316x591 | 390x624 → 333x624 | 390x768 → 390x730 | 414x772 → 412x772 | 430x856 → 430x805 | 1280x724 → 387x724 | deep rock below the floor's rock, faint lava streaks drifting and bubbling (still under reduced motion) |
-| Grappler | 375x591 → 316x591 | 390x624 → 333x624 | 390x768 → 390x730 | 414x772 → 412x772 | 430x856 → 430x805 | 1280x724 → 387x724 | more lava under the cavern's lava, then dark rock |
+| Grappler | 375x591 → 315x591 | 390x624 → 333x624 | 390x768 → 390x731 | 414x772 → 412x772 | 430x856 → 430x806 | 1280x724 → 386x724 | more lava under the cavern's lava, then dark rock |
 | Scrumper | 375x567 → 319x567 | 390x600 → 338x600 | 390x744 → 390x693 | 414x748 → 414x736 | 430x832 → 430x764 | 1280x700 → 394x700 | the orchard grass runs on below, a deeper green (world centred) |
 | Tilt | 375x591 → 375x401 | 390x624 → 390x417 | 390x768 → 390x417 | 414x772 → 414x442 | 430x856 → 430x459 | 1280x724 → 678x724 | the board's oak runs on to the screen's edges, settling darker (no rim) |
 | Ball Tracker | 375x555 → 278x555 | 390x588 → 294x588 | 390x732 → 366x732 | 414x736 → 368x736 | 430x820 → 410x820 | 1280x688 → 344x688 | the wooden board runs on across the sides and to the bottom |
@@ -104,8 +104,8 @@ than half hidden; Hover's world is cut the same way, its disc at the top).
 
 | Game | Before (home-screen app) | After | Cut at 848px between fix and fix-up |
 |---|---|---|---|
-| Hover | 414x724 → 384x724, 64px | 414x772 → 410x772, 16px | world 32px |
-| Breaker | 414x724 → 387x724, 64px | 414x772 → 412x772, 16px | world 32px |
+| Hover | 414x724 → 388x724, 64px | 414x772 → 414x772, 16px | world 32px |
+| Breaker | 414x724 → 388x724, 64px | 414x772 → 414x772, 16px | world 32px |
 | Rally | 414x724 → 387x724, 64px | 414x772 → 412x772, 16px | world 32px |
 | Tempo | 414x724 → 387x724, 64px | 414x772 → 412x772, 16px | world 32px |
 | Meteor | 414x724 → 390x724, 64px | 414x772 → 414x768, 16px | world 28px |
@@ -121,7 +121,7 @@ than half hidden; Hover's world is cut the same way, its disc at the top).
 | Flightpath | 414x724 → 414x594, 64px | 414x772 → 414x594, 16px | world none |
 | Coral Pop | 414x724 → 387x724, 64px | 414x772 → 412x772, 16px | world 32px |
 | Roofbound | 414x724 → 387x724, 64px | 414x772 → 412x772, 16px | world 32px |
-| Grappler | 414x724 → 387x724, 64px | 414x772 → 412x772, 16px | world 32px |
+| Grappler | 414x724 → 386x724, 64px | 414x772 → 412x772, 16px | world 32px |
 | Scrumper | 414x700 → 394x700, 64px | 414x748 → 414x736, 16px | world 20px |
 | Tilt | 414x724 → 414x442, 64px | 414x772 → 414x442, 16px | world none |
 | Ball Tracker | 414x688 → 344x688, 64px | 414x736 → 368x736, 16px | world none, Ball Tracker's status row (28px) 32px |
@@ -140,8 +140,8 @@ bottom; the spare space was the game's arena fill or the page colour. Same arith
 
 | Game | 375x667 | 390x700 | 390x844 | 430x932 | 1280x800 |
 |---|---|---|---|---|---|
-| Hover | 367x543 → 288x543 | 382x576 → 306x576 | 382x720 → 382x720 | 422x808 → 422x795 | 1272x676 → 359x676 |
-| Breaker | 367x543 → 290x543 | 382x576 → 308x576 | 382x720 → 382x715 | 422x808 → 422x790 | 1272x676 → 361x676 |
+| Hover | 367x543 → 291x543 | 382x576 → 309x576 | 382x720 → 382x712 | 422x808 → 422x787 | 1272x676 → 363x676 |
+| Breaker | 367x543 → 291x543 | 382x576 → 309x576 | 382x720 → 382x713 | 422x808 → 422x788 | 1272x676 → 362x676 |
 | Rally | 367x543 → 290x543 | 382x576 → 308x576 | 382x720 → 382x715 | 422x808 → 422x790 | 1272x676 → 361x676 |
 | Tempo | 367x543 → 290x543 | 382x576 → 308x576 | 382x720 → 382x715 | 422x808 → 422x790 | 1272x676 → 361x676 |
 | Meteor | 367x543 → 293x543 | 382x576 → 311x576 | 382x720 → 382x708 | 422x808 → 422x783 | 1272x676 → 364x676 |
@@ -157,7 +157,7 @@ bottom; the spare space was the game's arena fill or the page colour. Same arith
 | Flightpath | 367x543 → 367x527 | 382x576 → 382x549 | 382x720 → 382x549 | 422x808 → 422x606 | 1272x676 → 471x676 |
 | Coral Pop | 367x543 → 290x543 | 382x576 → 308x576 | 382x720 → 382x715 | 422x808 → 422x790 | 1272x676 → 361x676 |
 | Roofbound | 367x543 → 290x543 | 382x576 → 308x576 | 382x720 → 382x715 | 422x808 → 422x790 | 1272x676 → 361x676 |
-| Grappler | 367x543 → 290x543 | 382x576 → 308x576 | 382x720 → 382x715 | 422x808 → 422x790 | 1272x676 → 361x676 |
+| Grappler | 367x543 → 290x543 | 382x576 → 307x576 | 382x720 → 382x716 | 422x808 → 422x791 | 1272x676 → 360x676 |
 | Scrumper | 367x503 → 283x503 | 382x536 → 302x536 | 382x680 → 382x679 | 422x768 → 422x750 | 1272x636 → 358x636 |
 | Tilt | 367x503 → 367x392 | 382x536 → 382x408 | 382x680 → 382x408 | 422x768 → 422x451 | 1272x636 → 595x636 |
 | Ball Tracker | 367x503 → 251x503 | 382x536 → 268x536 | 382x680 → 340x680 | 422x768 → 384x768 | 1272x636 → 318x636 |

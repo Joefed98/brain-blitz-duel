@@ -15,6 +15,11 @@
 import { SWAPWORD_REV3, SWAPWORD_REV_PAR } from "../src/lib/duel/swapword";
 import type { PuzzleData, SwapwordPuzzleData } from "../src/lib/duel/types";
 import { runParCheck } from "./depth-par-lib";
+import { pinPreTopup } from "../src/lib/duel/depthTopup";
+
+// The puzzle top-up (26 Oct 2026, docs/depth/topup-oct-2026.md) deals newer stamps; this check proves the stamps it was
+// written for, so new deals are pinned to them (depth-topup-check proves the top-up's).
+pinPreTopup(true);
 
 runParCheck({
   type: "swapword",

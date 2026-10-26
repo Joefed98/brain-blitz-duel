@@ -229,7 +229,9 @@ try {
       check((await card.getAttribute("data-public-game")) === "calendar", "Next public game: before lobby time it offers a calendar");
       check(await page.getByRole("button", { name: "Add to calendar" }).isVisible(), 'Next public game: "Add to calendar"');
       check(await page.getByRole("button", { name: "Join now" }).isDisabled(), 'Next public game: "Join now" is off before lobby time');
-      check(/Lobby opens 6:45 pm/.test((await card.textContent()) ?? ""), "Next public game: the lobby time in UK time");
+      // Tab pages refresh (26 Oct 2026): the quiet button says when the lobby opens, the line how long until then.
+      check(/Opens 6:45 pm/.test((await card.textContent()) ?? ""), "Next public game: the lobby time in UK time");
+      check(/Lobby opens in under a minute/.test((await card.textContent()) ?? ""), "Next public game: how long until the lobby opens");
       const download = page.waitForEvent("download", { timeout: 10_000 }).catch(() => null);
       await page.getByRole("button", { name: "Add to calendar" }).click();
       const file = await download;
@@ -256,9 +258,11 @@ try {
       check(await page.getByRole("dialog", { name: "Settings" }).isVisible(), "Profile: the gear opens the settings");
       check((await page.locator("[data-settings-sheet] [data-sound-controls]").count()) === 1, "Settings: the sound controls");
       await page.getByRole("button", { name: "Close settings" }).click();
-      check(await page.getByRole("button", { name: "Change look" }).isVisible(), 'Profile: "Change look"');
-      await page.getByRole("button", { name: "Change look" }).click();
-      check((await page.locator("[data-look-picker]").count()) === 1, "Profile: Change look opens the lobby's look picker");
+      // A device with no rooms, dailies or bests (tab pages refresh): its badge, "Choose your look" and Get started.
+      check(await page.getByRole("button", { name: "Choose your look" }).isVisible(), 'Profile (new player): "Choose your look"');
+      check((await page.locator("[data-get-started] [data-step]").count()) === 3, "Profile (new player): the three Get started steps");
+      await page.getByRole("button", { name: "Choose your look" }).click();
+      check((await page.locator("[data-look-picker]").count()) === 1, "Profile: Choose your look opens the lobby's look picker");
       check(/Saved on this phone\. Sign-in after the beta will keep it all/.test((await page.textContent("body")) ?? ""), "Profile: the saved-on-this-phone note");
       await page.goBack();
       await page.getByRole("button", { name: "Create a room" }).waitFor({ timeout: 30_000 });
@@ -338,7 +342,7 @@ try {
         if ((await page.getByRole("button", { name, exact: true }).count()) < 1) names.push(name);
       }
       check(names.length === 0, `every practice button is named exactly its game${names.length ? `: ${names.join(", ")}` : ""}`);
-      check((await page.locator("[data-practice-filter]").first().textContent()) === "All", "the filter chips start with All");
+      check((await page.locator("[data-practice-filter]").first().textContent()) === "All games", "the filter chips start with All games");
       await page.locator("[data-practice-filter='logic']").click();
       const logic = await page.locator("[data-practice-game]").evaluateAll((els) => els.map((el) => el.getAttribute("data-practice-game")));
       check(logic.length > 0 && logic.every((t) => PUZZLE_REGISTRY[t as keyof typeof PUZZLE_REGISTRY]?.category === "logic"), "the Logic chip shows only logic games");
