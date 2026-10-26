@@ -939,6 +939,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Double flips:", detail: "flip again within about an eighth of a second of landing with a hazard close by. A triple and longer chains count more, and twice as much in a speed zone.", helpOnly: true },
         { action: "Star trails:", detail: `${FLIP_V8_TRAILS} arcs of ${FLIP_V8_TRAIL_STARS} small stars, taken in the air. Leave the surface at the chevron and your flip sweeps through them.`, helpOnly: true },
         { action: "Sweet spots:", detail: `${FLIP_V8_SWEETS} roofs carry a short, faint pale strip. Time a flip so you touch down with your feet inside it for a sweet landing; it glints. Each counts once.`, helpOnly: true },
+        { action: "Look ahead:", detail: "a faint strip at the right edge shows what is coming next – hazards in red, gold stars and sweet spots – before it scrolls in.", helpOnly: true },
         { action: "Checkpoints (15, 30 and 45 s):", detail: "pass one and your next crash is saved – a second of shield, but your survival time pauses for 10 seconds.", helpOnly: true },
       ],
       score: liveBandHelp("flip", "Each half second you last counts 1 and each gold star 3.", {

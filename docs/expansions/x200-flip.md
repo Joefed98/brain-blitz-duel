@@ -30,8 +30,9 @@ flip-x200-check on stored flipRev 6 runs).
 
 ## The new feature: sweet spots
 
-Each course has **eight sweet spots** (`FLIP_V8_SWEETS`): a short strip of roof, `FLIP_V8_SWEET_TICKS` = 2 ticks of travel
-long (about 8–14 px early in the run, 20–28 px late), placed by the seed near 6.5, 13, 19.5, 26, 32.5, 39, 45.5 and 52 s on
+Each course has **eight sweet spots** (`FLIP_V8_SWEETS`): a short strip of roof, `FLIP_V8_SWEET_TICKS` = 1 tick of travel
+long (about 4–7 px early in the run, 10–14 px late: exactly one landing tick fits, so a sweet landing needs the flip timed
+to the tick), placed by the seed near 6.5, 13, 19.5, 26, 32.5, 39, 45.5 and 52 s on
 one surface, on clear roof (no hazard, gap, crumble or moving spike's sweep within reach of it). A **sweet landing** is the
 tick a flip ends (`flipT` 1 → 0) with the runner's centre inside an untaken strip on its surface (`flipSweetLanding`); each
 spot counts once (`sweetGot` bits; `sweetT` the tick, for the glint). Running or standing over a strip never counts. Like
@@ -50,13 +51,24 @@ every other feature, the spots come only from the stored course, the same for ev
 ## Scoring (`flipV8Parts`, `flipV8Features`)
 
 - **Base** (the rev-6 shape): units = half seconds survived (the paused ticks left out) + 3 per gold star, on
-  `FLIP_V8_BAND_CURVE` (units 0 / 40 / 105 / 130 / 140 / 146 / 150 → 0 / 16 / 56 / 65 / 69 / 127 / 140), plus 10 for lasting
+  `FLIP_V8_BAND_CURVE` (units 0 / 40 / 105 / 130 / 140 / 146 / 150 → 0 / 11 / 33 / 38 / 43 / 95 / 140), plus 10 for lasting
   the minute: 150 at most, only for the full minute with all ten stars.
 - **Skill** (0–50): raw points 4 a full trail, 4 a sweet landing, 3 a speed zone run without a save, 3 a checkpoint reached
-  with no crash, and double-flip combo points up to 4 (`FLIP_V8_COMBO_CAP`), paid on `FLIP_V8_SKILL_PAY` (raw 12 / 32 / 49 /
-  57 / 63 → 3 / 4 / 26 / 39 / 50): a little feature play pays little; the full 50 needs `FLIP_V8_SKILL_FULL` = 63 raw, which
+  with no crash, and double-flip combo points up to 6 (`FLIP_V8_COMBO_CAP`), paid on `FLIP_V8_SKILL_PAY` (raw 12 / 30 / 37 /
+  61 / 63 → 0 / 1 / 7 / 30 / 50): a little feature play pays little; the full 50 needs `FLIP_V8_SKILL_FULL` = 63 raw, which
   is every trail, sweet spot, zone and checkpoint (or near it with combos on top).
 - **Total**: base + skill, capped at 200; no input scores 0. The reveal's lines add up to it (`bandLines`).
+
+## Look-ahead strip (phase 2, 26 Oct)
+
+Session A's fixed bots found gold stars that became readable too late, even for a flawless player, on 31 of 200 seeds: at
+top speed the 300 px of view ahead of the runner is barely two flips. flipRev 8 now **announces the course
+`FLIP_V8_PREVIEW` = 180 px early**: the next stretch is squeezed into a faint strip along the view's right edge (30 px,
+`drawPreviews`), each hazard a short red mark on its surface, each gold star a small gold diamond and each sweet spot a pale
+notch (display only; nothing in it collides). The course builder proves every gold star and sweet spot **readable from
+there**: from every settled runner (on either surface) a reaction time (12 ticks) after the item enters the strip, a route
+still takes it (players may flip again 6 ticks after a landing in this proof; the route proofs keep 14). The skill-band bot
+reads hazards, stars and sweet spots from the strip on flipRev 8 (all levels; earlier stamps are unchanged).
 
 ## The guarantee (the arcade rule)
 
@@ -74,74 +86,64 @@ every trail, sweet spot, clean zone and clean checkpoint (raw 63 → skill 50): 
   search on the sim) on each of those 260 seeds replays through the server's encode + replay to exactly 200: the **lowest
   perfect-play ceiling is 200** on both sets (flip-x200-check).
 - Rooms draw any seed (`arcadeSeed`); `bun scripts/flip-x200-seeds.ts --n=2000` builds 2,000 seeds spread over that range:
-  0 without the full opportunities (74 ms a course). The fallback in `flipCourseV8` was never reached.
+  0 without the full opportunities (about 250 ms a course with the readability proof). The fallback in `flipCourseV8` was never reached.
 - Room identity: `scripts/x200/flip.ts` (arcade-room-schedule-check) plays six room deals with idle, random, weak, good and
   elite input; every scheduled item (hazards and slides, heights, zones, checkpoints, stars, trails, sweet spots) reads the
   same in every run, and the opportunity counts agree.
 
-## Tuning
+## Tuning (phase 2: #175's fixed bots)
 
-Paired runs (the same seeds for every level), every run through the server's encode + replay:
-`bun scripts/arcade-skill-bands.ts flip --rev=x --levels=weak,average,good,great,near,elite,random --seeds=60` (tuning,
-indices 0–59) and `--seeds=200 --from=10000` (fresh, never tuned on). "Old" is flipRev 6 (LIVE_BANDS' `strictRev`, max 150);
-new is flipRev 8 (max 200). Median / p90 / best; zero scores in brackets. `bun scripts/flip-x200-bands.ts` gives the same
-runs with each feature's raw points.
+Paired runs (the same seeds for every level), every run through the server's encode + replay, with #175's fixed bots
+(`ctx.fixes`) and this game's flipRev 8 feature chasing: `bun scripts/arcade-skill-bands.ts flip --rev=x
+--levels=weak,average,good,great,near,elite,perfect,random --seeds=60` (tuning) and `--seeds=200 --from=10000` (fresh,
+measured once, at the end). "Old" is flipRev 6 (LIVE_BANDS' `strictRev`, max 150) with the same fixed bots; new is flipRev 8.
+Median (p10–p90) as the tool prints them; min / max and zeros from its JSON.
 
-| Seeds | Level | New (max 200) median · p90 · best | Old median (max 150) | Median change |
+| Seeds | Level | New median (p10–p90) | New min / max | Old median (p10–p90) |
 |---|---|---|---|---|
-| Tuning (60) | Weak | 42 · 60 · 75 | 38 | +11 % |
-| Tuning (60) | Average | 73 · 91 · 120 | 73 | 0 % |
-| Tuning (60) | Good | 120 · 153 · 168 | 120 | 0 % |
-| Tuning (60) | Great | 140 · 163 · 179 | 120 | +17 % |
-| Tuning (60) | Near-perfect | 169 · 182 · 192 | 150 | +13 % |
-| Tuning (60) | Elite | 182 · 192 · 200 | 150 | +21 % |
-| Tuning (60) | Random | 2 · 4 · 5 | 2 | |
-| Fresh (200) | Weak | 38 · 60 · 80 (1 zero) | 38 | 0 % |
-| Fresh (200) | Average | 73 · 91 · 153 | 74 (1 zero) | −1 % |
-| Fresh (200) | Good | 101 · 147 · 168 (1 zero) | 100 | +1 % |
-| Fresh (200) | Great | 135 · 163 · 185 | 120 | +13 % |
-| Fresh (200) | Near-perfect | 163 · 185 · 192 | 150 | +9 % |
-| Fresh (200) | Elite | 179 · 192 · 200 | 150 | +19 % |
-| Fresh (200) | Random | 2 · 4 · 7 (4 zeros) | 2 (4 zeros) | |
+| Tuning (60) | Weak | 50 (7–116) | 1 / 150 | 38 (11–62) |
+| Tuning (60) | Average | 74 (45–150) | 0 / 164 (1 zero) | 72 (34–120) |
+| Tuning (60) | Good | 119 (46–153) | 0 / 160 (1 zero) | 120 (59–150) |
+| Tuning (60) | Great | 157 (94–168) | 9 / 180 | 120 (89–150) |
+| Tuning (60) | Near-perfect | 168 (138–180) | 57 / 200 | 150 (100–150) |
+| Tuning (60) | Elite | 180 (172–200) | 69 / 200 | 150 (147–150) |
+| Tuning (60) | Flawless | 200 (200–200) | 200 / 200 | 150 (120–150) |
+| Tuning (60) | Random | 1 (1–3) | 1 / 3 | 2 (2–4) |
+| Fresh (200) | Weak | 46 (4–87) | 1 / 150 | 40 (11–68) |
+| Fresh (200) | Average | 63 (8–116) | 1 / 153 | 74 (30–120), 1 zero |
+| Fresh (200) | Good | 119 (50–156) | 1 / 160 | 120 (61–150) |
+| Fresh (200) | Great | 157 (94–168) | 3 / 176 | 150 (100–150) |
+| Fresh (200) | Near-perfect | 172 (134–180) | 3 / 200 | 150 (120–150) |
+| Fresh (200) | Elite | 180 (172–200) | 3 / 200 | 150 (150–150) |
+| Fresh (200) | Flawless | 200 (200–200) | 200 / 200 | 150 (150–150) |
+| Fresh (200) | Random | 1 (1–3) | 0 / 4 (4 zeros) | 2 (2–4), 4 zeros |
 
-No other zero scores; no run flagged or disagreeing with the server replay (3,640 runs). On the old revision good's median
-moves with the seed set (120 tuning, 100 fresh) because flipRev 6's curve jumps 20 points for a ninth star; flipRev 8's good
-median is 120 and 101, within 1 % of both.
+No run flagged or disagreeing with the server replay. The tuning set's two zeros (one average, one good) are a slip at the
+first hazard: the planned flip came a few ticks too late, after the crash, so the run has no input and scores 0 under the
+existing no-input rule; none on the fresh seeds.
 
-**Second fit (26 Oct, after the merge).** The first fit (base 15 / 51 / 73 / 79 / 123, pay 1 / 2 / 28 / 36 at raw 12 / 32 /
-51 / 54, combos up to 6) gave near-perfect 170 · 183 on the tuning seeds but 162 · 187 on the fresh ones. One more fit,
-on the tuning seeds only and scored on bootstrap resamples of them, aimed at the middle of the band (near-perfect median
-170, p90 ≤ 181) and tried flatter tops to the base curve (the last 4 units capped at 12–40 points). A flatter top did not
-narrow near-perfect's spread: its top decile is the runs with every star and most features, whatever the split. The best
-fit (the one above: the top 146 → 150 worth 13 points instead of 17, the pay steeper from 49 raw, combos up to 4) was
-measured on the fresh seeds once.
+**The bar** (Joe's, confirmed 26 Oct): good 119 / 119 against 120 / 120 (within 1 %); near-perfect 168 / p90 180 (tuning)
+and 172 / p90 180 (fresh); elite 180 / p90 200 on both; **flawless 200 on every one of the 260 seeds**; random 1. Met on both
+sets. Average is 74 on the tuning seeds and 63 on the fresh ones (−15 % against 74; the bar names no figure for average).
 
-**Feature payout by level** (medians; tuning / fresh): sweet landings 0 / 0 weak, 0 / 0 average, 1 / 1 good, 2 / 2 great,
-4 / 4 near-perfect, 6 / 6 elite (raw 4 each); skill pay 2, 3, 3, 13, 29, 42 (both sets).
+**Feature payout by level** (tuning medians): sweet landings 0 weak, 0 average, 1 good, 2 great, 4 near-perfect, 6 elite,
+8 flawless (raw 4 each); skill pay 0, 0, 3, 10, 22, 30, 50.
 
-**What changed from the parked tuning.** The parked expansion paid its features straight (trails 5, combo up to 15, zones
-3, checkpoints 3, capped at 50), so a good player already collected about 30 and near-perfect players often the full 50
-(near-perfect 158 · 200 · 200). Now the skill points are paid on the rising scale, the base curve is refitted with them, the
-near-perfect and elite players differ mostly in sweet landings and full trails (the precision the elite tier's tighter timing
-and full feature chasing buys), and good stays within about 10 % of its old median.
+**How it gets there.** The sweet spot is one landing tick wide (was 2), so it needs the flip timed to the tick: near-perfect
+lands half of them, elite three quarters, flawless all. The skill pay is steep at the top (61 raw pays 30, the full 63 pays
+50), so the near-perfect top 10 % (raw about 61) stays at 180 while the elite top 10 % reaches 200. The base curve's last
+stretch is steep too (146 → 150 units, the last gold star, is worth 45 points), as flipRev 6's own curve is (its last star
+is worth 30).
 
-**The bar.** Tuning: met (good 120 vs 120; near-perfect 169 / p90 182; elite 182 / p90 192; weak and average at or above
-their old medians; random ≤ 5). Fresh: met for good (101 vs 100), elite (179 / p90 192) and random; **near-perfect is just
-outside**: median 163 against 165–175, p90 185 (the bar's "about 185"). Its median moves with how many of the ten gold stars
-the seed set lets it take, on the steep top of the base curve (the old revision's own steep top moves good by 20 between
-the two sets). Two runs scored 0 on fresh seeds (one weak, one good: the bot never tapped before
-the first hazard, so "no input scores 0"); flipRev 6 has the same bot artefact (one average and four random zeros on the same
-seeds).
-
-**Bots** (`scripts/arcade-skill-bands/bots/flip.ts`): the parked bot, plus sweet spots (decided on first sight, kept only
-while a route over the known stretch lands in one, aimed with the level's timing jitter: 25 / 45 / 65 / 80 % of spots tried
-for average / good / great / near-perfect), the tiers (weak: stars 35 %, trails 20 %, combos 5 %, sweet spots 12 %; elite:
-every star, trail and sweet spot, combos 95 %, with the elite profile's own timing and random stream) and `randomBot` (taps
-at random, about 1.5 a second, no aim).
+**Bot** (`scripts/arcade-skill-bands/bots/flip.ts`): #175's fixed bot, its old-stamp play unchanged (proved event for event
+against #175's bot on flipRev 6, 4 and unstamped, every level, fixes on and off), plus flipRev 8's feature chasing: trails,
+double flips and sweet spots per level (weak … flawless), the look-ahead strip, a sweet landing only aimed for while a flip
+a tick or two off (none for flawless) still lives, and no double flip that costs a planned item or leaves only a
+hair-trigger rescue. Elite and flawless keep wanting an item a plan could not fit yet, take the first comfortable flip
+window, and stop chasing combos past the cap or with an announced gold star still to take.
 
 **Fitting**: the curves were fitted on the 60 tuning seeds only (a search over the base knots and the pay scale, scored on
-bootstrap resamples of those seeds so a fit that only held on one sample lost); the sweet spot's length went 5 → 3 → 2
-ticks in the same tuning, so that it is a precision test that separates elite from near-perfect play.
+bootstrap resamples of those seeds); the fresh seeds were measured once, after the fit.
 
 ## Replay coverage
 
@@ -175,18 +177,19 @@ parked expansion's frames: trail, double flip, zone, moving spike, checkpoint, t
 
 ## Checks
 
-Local, 26 Oct 2026 (a machine shared by four workers, so browser frame times run high):
+Local, 26 Oct 2026, after phase 2 (on the PR branch with #175 merged; a machine shared by four workers, so browser frame
+times run high):
 
-- PASS: flip-x200-check (677 checks, ~20 s: legacy replay, stamp, courses, the 260-seed guarantee and witnesses, sweet-spot
-  rules on 1,703 landings, caps, saves, idle and random play, stored flipRev 8 runs, texts), arcade-room-schedule-check
-  (Roofbound's lines: 6 deals × 5 styles, every scheduled item identical; the check itself fails only on the three other
-  games' missing modules), round-max-check, scoring-bands-check, scoring-targets-check, arcade-score-bands-check,
-  arcade-help-bands-check, intro-score-text-check, reveal-score-check, replay-check, arcade-self-replay-check (whole run,
-  plus the new `flip/x200` entry and every flip entry at 40 runs), arcade-fx-check, sound-manifest-check,
-  practice-bests-check, arcade-batch1-check, arcade-tuning-c-check, flip-bend-check, hotfloor-flip-check,
-  bullseye-cross-flip-tuning-check, arcade-correction-check, depth-matchmaker-check, intro-demo-check, whack-check,
-  presentation-geometry-check, arcade-play-check flip (frame 27.1 ms against the 17.0 baseline under load, within limits),
-  bottom-clearance-check flip, arcade-fill-check flip; `bunx tsc --noEmit` clean.
+- PASS: flip-x200-check (677 checks, ~30 s: legacy replay, stamp, courses, the 260-seed guarantee and witnesses, sweet-spot
+  rules, caps, saves, idle and random play, stored flipRev 8 runs, texts), scoring-bands-check, scoring-targets-check,
+  arcade-help-bands-check, intro-score-text-check, replay-check, round-max-check, sound-manifest-check, practice-bests-check,
+  arcade-fx-check, reveal-score-check, arcade-self-replay-check (the five flip entries, `flip/x200` included, at 40 runs),
+  arcade-batch1-check, arcade-tuning-c-check, flip-bend-check, hotfloor-flip-check, arcade-score-bands-check,
+  intro-demo-check, arcade-play-check flip (26.4 ms against the 17.0 baseline, within limits; 43 ms when run alongside the
+  fresh band run), arcade-fill-check flip, bottom-clearance-check flip; `bunx tsc --noEmit` clean.
+- arcade-room-schedule-check: Roofbound's lines pass (6 deals × 5 styles, 539 scheduled items identical); the check stops
+  on Hover's module, which imports a `randomBot` that #175's fixed `bots/hover.ts` no longer exports (the Hover port, not
+  Roofbound).
 - Not run here (the coordinator runs them after merging): arcade-room-practice-check, arcade-lowend-check (which does not
   cover Roofbound).
 
@@ -196,6 +199,8 @@ Local, 26 Oct 2026 (a machine shared by four workers, so browser frame times run
   its roofs (stretches of clear surface), placed by the seed, rather than one on every stretch (whose number varies).
 - The landing is judged on the runner's centre (its feet), the tick the flip's arc ends; the strip is drawn over exactly
   that x-span. A double flip off a sweet spot still counts the landing.
+- The look-ahead strip (phase 2) is a display change Joe has not seen yet: it answers Session A's finding that stars were
+  readable too late; the strip and its proof could instead be a wider view if he prefers.
 - The checkpoint saved-crash rule is kept from the parked expansion as Joe listed it, flagged for his confirmation.
 - Combos are not needed for the ceiling (the full skill pay needs only the guaranteed items), so a seed's number of combo
   chances never limits the top; they add raw points on top (up to 4).
