@@ -786,6 +786,8 @@ export const HOVER_FEATURE_EDGE = 6_144;
 export const HOVER_TIGHT_REACH = 46_080;
 export const HOVER_TIGHT_GATES = 5;
 export const HOVER_TIGHT_FROM = 4;
+/** Places drawn on one barrier for a tight gate whose centre line can be flown (centreFlyable). */
+export const HOVER_TIGHT_TRIES = 6;
 export const HOVER_CHAINS = 5;
 export const HOVER_CHAIN_FROM = 2;
 /** A chain covers the top of one flap's hump: from HOVER_CHAIN_K0 ticks after the tap, for HOVER_CHAIN_TICKS ticks. */
@@ -909,7 +911,7 @@ const HOVER_CHAIN_EXIT_ROOM = 768;
  * no tap or one more tap after the chain's last star carries the saucer through barrier `b` with
  * HOVER_CHAIN_EXIT_ROOM to its gap's edges, touching b's gold star if it has one, clear of the floor and ceiling.
  */
-function chainExitFlyable(yStart: number, tapDistance: number, speed: number, b: HoverPillar, bottom: number): boolean {
+export function chainExitFlyable(yStart: number, tapDistance: number, speed: number, b: HoverPillar, bottom: number): boolean {
   const last = HOVER_CHAIN_K0 + HOVER_CHAIN_TICKS;
   const kIn = Math.ceil((enterDistance(b) - tapDistance) / speed);
   const kOut = Math.floor((passDistance(b) - tapDistance) / speed);
@@ -930,6 +932,83 @@ function chainExitFlyable(yStart: number, tapDistance: number, speed: number, b:
       if (!star && k === kMid && Math.abs((hoverStarY(b, tap0 + k) ?? 0) - y) <= HOVER_DISC_R + HOVER_STAR_R - 512) star = true;
     }
     if (ok && star) return true;
+  }
+  return false;
+}
+
+/** The first tick of a crash-free run whose distance is past `d` (strictly). */
+function cleanTickPast(d: number): number {
+  let t = cleanTickAt(d);
+  while (t < HOVER_RUN_TICKS && HOVER_CLEAN_DIST[t]! <= d) t++;
+  return t;
+}
+
+/** FALL[j]: the disc's height change j ticks after a tap (j = 0 is the tap tick), terminal speed applied, fixed-point. */
+const HOVER_FALL: number[] = (() => {
+  const out: number[] = [];
+  let v = HOVER_IMPULSE;
+  let y = 0;
+  for (let j = 0; j <= 240; j++) {
+    if (j > 0) v = clampInt(v + HOVER_GRAVITY, -HOVER_TERMINAL, HOVER_TERMINAL);
+    y += v;
+    out.push(y);
+  }
+  return out;
+})();
+
+/**
+ * True when a tight gate at `centre` on barrier `p` can be flown dead centre (within HOVER_CENTRE_TOL[0] less 1 px
+ * across the barrier's columns, inside the gate with 2 px to spare while overlapping it) out of the barrier before:
+ * the last tap lifting it through the gate is made from a height the saucer can reach by then out of the previous
+ * barrier's gaps. A crash-free run's timeline (the scroll depends only on barriers passed). For each moment of the
+ * last tap the heights it may be made from form one range (the flight after a tap depends on the height alone).
+ */
+export function centreFlyable(prev: HoverPillar, p: HoverPillar, centre: number, bottom: number): boolean {
+  const t0 = cleanTickPast(passDistance(prev));
+  const oA = cleanTickPast(p.x0 - (HOVER_DISC_X + HOVER_DISC_R));
+  const oB = cleanTickAt(p.x0 + HOVER_PILLAR_W - (HOVER_DISC_X - HOVER_DISC_R)) - 1;
+  const dA = cleanTickAt(p.x0 - HOVER_DISC_X);
+  let dB = dA;
+  while (dB + 1 <= HOVER_RUN_TICKS && HOVER_CLEAN_DIST[dB + 1]! <= p.x0 + HOVER_PILLAR_W - HOVER_DISC_X) dB++;
+  if (oB - t0 > 230) return false;
+  const half = HOVER_TIGHT_H >> 1;
+  const lo = centre - half + HOVER_DISC_R + 512;
+  const hi = centre + half - HOVER_DISC_R - 512;
+  const tol = HOVER_CENTRE_TOL[0] - 256;
+  // A height y at tick t is allowed by every rule in force then.
+  const lower = (t: number) => Math.max(HOVER_DISC_R + 1, t >= oA ? lo : 0, t >= dA && t <= dB ? centre - tol : 0);
+  const upper = (t: number) => Math.min(bottom - HOVER_DISC_R - 1, t >= oA ? hi : bottom, t >= dA && t <= dB ? centre + tol : bottom);
+  // The heights the last tap (at tick t2) may be made from: one range per tick.
+  const range = new Map<number, [number, number]>();
+  for (let t2 = Math.max(t0 + 1, dA - 26); t2 <= dB; t2++) {
+    let a = lower(t2) - HOVER_FALL[0]!;
+    let b = upper(t2) - HOVER_FALL[0]!;
+    for (let t = t2 + 1; t <= oB && a <= b; t++) {
+      a = Math.max(a, lower(t) - HOVER_FALL[t - t2]!);
+      b = Math.min(b, upper(t) - HOVER_FALL[t - t2]!);
+    }
+    if (a <= b) range.set(t2, [a, b]);
+  }
+  if (!range.size) return false;
+  // Before the gate the saucer can be anywhere between two bounds: the highest it can climb (from the top of the
+  // barrier before's gaps, a tap every 8 ticks, never past the ceiling) and the lowest it can fall (from the bottom of
+  // them, no tap, never past the floor). The last tap is made before the gate's columns reach the saucer.
+  let up = Infinity;
+  let down = -Infinity;
+  for (const [top, h] of gapsAt(prev, t0)) {
+    up = Math.min(up, top + HOVER_DISC_R + 512);
+    down = Math.max(down, top + h - HOVER_DISC_R - 512);
+  }
+  let vUp = 0;
+  let vDown = 0;
+  for (let t = t0 + 1; t <= Math.min(oA, dB); t++) {
+    // The last tap made at t, from the height before it.
+    const r = range.get(t);
+    if (r && r[0] <= down && r[1] >= up) return true;
+    vUp = (t - t0 - 1) % 8 === 0 ? HOVER_IMPULSE : clampInt(vUp + HOVER_GRAVITY, -HOVER_TERMINAL, HOVER_TERMINAL);
+    up = Math.max(HOVER_DISC_R + 1, up + vUp);
+    vDown = clampInt(vDown + HOVER_GRAVITY, -HOVER_TERMINAL, HOVER_TERMINAL);
+    down = Math.min(bottom - HOVER_DISC_R - 1, down + vDown);
   }
   return false;
 }
@@ -957,10 +1036,12 @@ function buildFeatures(
 
   // Tight gates. A second, looser pass (rarely needed) makes sure every course has them all.
   const tight = new Set<number>();
-  for (const relax of [0, 1]) {
+  // hoverRev 9's third pass (rarely needed) draws more places on each barrier, from one barrier earlier.
+  for (const relax of [0, 1, 2]) {
     const reach = relax ? (HOVER_TIGHT_REACH * 4) / 3 : HOVER_TIGHT_REACH;
+    const tries = relax === 2 ? 3 * HOVER_TIGHT_TRIES : HOVER_TIGHT_TRIES;
     const tightCandidates: number[] = [];
-    for (let i = HOVER_TIGHT_FROM; i < reachable - 1; i++)
+    for (let i = relax === 2 ? HOVER_TIGHT_FROM - 1 : HOVER_TIGHT_FROM; i < reachable - 1; i++)
       if (plain(pillars[i]!) && !tight.has(i)) tightCandidates.push(i);
     while (tight.size < HOVER_TIGHT_GATES && tightCandidates.length) {
       const i = pickFrom(tightCandidates);
@@ -986,8 +1067,15 @@ function buildFeatures(
         })
         .filter(([lo, hi]) => hi >= lo);
       if (!ranges.length) continue;
-      const [lo, hi] = ranges[draw(ranges.length)]!;
-      const centre = (lo + draw(hi - lo + 1)) << 8;
+      // The centre line must be flyable dead centre out of the barrier before (from the top, middle or bottom of its
+      // gap): up to HOVER_TIGHT_TRIES places are drawn on this barrier.
+      let centre = -1;
+      for (let k = 0; k < tries && centre < 0; k++) {
+        const [lo, hi] = ranges[draw(ranges.length)]!;
+        const c = (lo + draw(hi - lo + 1)) << 8;
+        if (centreFlyable(pillars[i - 1]!, p, c, bottom)) centre = c;
+      }
+      if (centre < 0) continue;
       p.tightTop = centre - half;
       p.tightH = HOVER_TIGHT_H;
       tight.add(i);
@@ -1005,6 +1093,8 @@ function buildFeatures(
       if (
         !tight.has(i) &&
         !tight.has(i + 1) &&
+        // A chain also keeps clear of a tight gate two barriers on (its centre line is flown out of the barrier the chain leads to).
+        !tight.has(i + 2) &&
         !used.has(i) &&
         (relax >= 3 ||
           (pillars[i]!.starDy === undefined &&

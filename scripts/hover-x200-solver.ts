@@ -159,6 +159,10 @@ export function solveHover(seed: number, opts: SolveOptions, rev = HOVER_REV_EXP
         nd.push(done);
       }
     }
+    if (process.env.SOLVER_TRACE && Math.abs(t - Number(process.env.SOLVER_TRACE)) <= 30 && t % 3 === 0) {
+      const sorted = [...ny].sort((a, b) => a - b);
+      console.error(`t ${t}: ${ny.length} states, y ${sorted[0]! / 256}..${sorted[sorted.length - 1]! / 256}, ranges ${JSON.stringify(ranges?.map(([a, b]) => [a / 256, b / 256]))}`);
+    }
     if (!ny.length) {
       if (process.env.SOLVER_DBG) console.error(`dead at tick ${t}: ${ys.length} states before, y ${Math.min(...ys) / 256}..${Math.max(...ys) / 256} vy ${Math.min(...vys)}..${Math.max(...vys)} prev ${JSON.stringify(allowed[t - 1]?.map(([a, b]) => [a / 256, b / 256]))}, ranges ${JSON.stringify(ranges?.map(([a, b]) => [a / 256, b / 256]))}, items done ${Math.max(...dones)} of ${items.length}`);
       return null;

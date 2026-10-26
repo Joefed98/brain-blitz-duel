@@ -11,8 +11,9 @@
  *     an older demo is stopped.
  *  3. Courses (the arcade rule's counts): every course of 1,500 seeds, the 60 tuning seeds and the 200 fresh
  *     ones has exactly 5 tight gates (80 px, on plain reachable barriers, solid wall to the main gap, clear of
- *     the floor and ceiling) with a centre line through each, exactly 5 star chains (5–7 stars, 16 px or more
- *     apart, between two barriers) and 2 shield bubbles; the first barrier is the 300 px warm-up gap.
+ *     the floor and ceiling) with a centre line through each that can be flown dead centre out of the barrier
+ *     before, exactly 5 star chains (5–7 stars, 16 px or more apart, between two barriers, never two in a row, none
+ *     leading into a tight gate) and 2 shield bubbles; the first barrier is the 300 px warm-up gap.
  *  4. Determinism and server = phone: random logs replay through the server path to the phone's own score and
  *     checkpoints, never flagged; integers only.
  *  5. The centre line: a pass held on the line grades 3, 7 px off grades 2, 12 px off grades 1, further off or
@@ -69,6 +70,7 @@ import {
   HOVER_V9_BAND_CURVE,
   HOVER_V9_MAX,
   hoverBottom,
+  centreFlyable,
   hoverCentreGrade,
   hoverCentreY,
   hoverCheckpoint,
@@ -175,9 +177,12 @@ section("courses");
       if (wall < HOVER_TIGHT_WALL) bad(`tight gate ${i} wall ${wall / FP}`);
       if (p.tightTop! < HOVER_FEATURE_EDGE || p.tightTop! + HOVER_TIGHT_H > H - HOVER_FEATURE_EDGE) bad(`tight gate ${i} off the edge`);
       if (hoverCentreY(p) !== p.tightTop! + (HOVER_TIGHT_H >> 1)) bad(`tight gate ${i}: centre line off the middle`);
+      if (!centreFlyable(s.pillars[i - 1]!, p, hoverCentreY(p), H)) bad(`tight gate ${i}: its centre line can't be flown out of the barrier before`);
+      if ((s.chains ?? []).some((c) => c.after === i - 2 || c.after === i - 1 || c.after === i)) bad(`tight gate ${i}: a chain leads into it`);
     }
     const chains = s.chains ?? [];
     if (chains.length !== HOVER_CHAINS) bad(`${chains.length} chains`);
+    if (chains.some((c, k) => k > 0 && c.after - chains[k - 1]!.after < 2)) bad("two chains in a row");
     for (const c of chains) {
       if (c.stars.length < 5 || c.stars.length > 7) bad(`chain of ${c.stars.length}`);
       const a = s.pillars[c.after]!;
