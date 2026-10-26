@@ -14,11 +14,23 @@
 export const LEVELS = ["average", "good", "great", "near"] as const;
 export type SkillLevel = (typeof LEVELS)[number];
 
-export const LEVEL_LABEL: Record<SkillLevel, string> = {
+/**
+ * The 200-point expansions' tiers (26 Oct 2026, the arcade rule): the four levels plus a weak-but-trying
+ * player below average and an elite one above near-perfect. A tier plays as its level (`TIER_LEVEL`: bots
+ * keyed on the four levels need no change) with its own profile and its own random stream, so the elite
+ * player never plays the near-perfect player's run. Bots that pace features by tier read `human.tier`.
+ */
+export const TIERS = ["weak", ...LEVELS, "elite"] as const;
+export type SkillTier = (typeof TIERS)[number];
+export const TIER_LEVEL: Record<SkillTier, SkillLevel> = { weak: "average", average: "average", good: "good", great: "great", near: "near", elite: "near" };
+
+export const LEVEL_LABEL: Record<SkillTier, string> = {
+  weak: "Weak",
   average: "Average",
   good: "Good",
   great: "Great",
   near: "Near-perfect",
+  elite: "Elite",
 };
 
 export interface SkillProfile {
@@ -46,11 +58,13 @@ export interface SkillProfile {
  * Reaction means follow the brief (300 / 230 / 190 / 160 ms). Other figures are
  * typical touch-screen values: timing sd 45→12 ms, aim sd 9→2.5 px, power sd 7→1.5 %.
  */
-export const PROFILES: Record<SkillLevel, SkillProfile> = {
+export const PROFILES: Record<SkillTier, SkillProfile> = {
+  weak: { reactionMs: [380, 70], lapse: 0.14, timingSdMs: 70, aimSdPx: 14, powerSd: 0.11, mistake: 0.18, thinkScale: 1.3, judgement: 0.5, trackLagMs: 190 },
   average: { reactionMs: [300, 55], lapse: 0.08, timingSdMs: 45, aimSdPx: 9, powerSd: 0.07, mistake: 0.1, thinkScale: 1, judgement: 0.35, trackLagMs: 140 },
   good: { reactionMs: [230, 40], lapse: 0.04, timingSdMs: 30, aimSdPx: 6, powerSd: 0.045, mistake: 0.05, thinkScale: 0.75, judgement: 0.2, trackLagMs: 100 },
   great: { reactionMs: [190, 30], lapse: 0.02, timingSdMs: 20, aimSdPx: 4, powerSd: 0.03, mistake: 0.025, thinkScale: 0.55, judgement: 0.1, trackLagMs: 75 },
   near: { reactionMs: [160, 20], lapse: 0.005, timingSdMs: 12, aimSdPx: 2.5, powerSd: 0.015, mistake: 0.008, thinkScale: 0.4, judgement: 0.04, trackLagMs: 55 },
+  elite: { reactionMs: [140, 15], lapse: 0.002, timingSdMs: 7, aimSdPx: 1.5, powerSd: 0.008, mistake: 0.003, thinkScale: 0.3, judgement: 0.015, trackLagMs: 40 },
 };
 
 const TICK_MS = 1000 / 60;
@@ -74,13 +88,17 @@ function hash(text: string): number {
 }
 
 export class Human {
+  /** The level the bot plays (a tier's TIER_LEVEL). */
   readonly level: SkillLevel;
+  /** The tier asked for: the level itself, or "weak" / "elite". */
+  readonly tier: SkillTier;
   readonly p: SkillProfile;
   private rand: () => number;
   private spare: number | null = null;
 
-  constructor(game: string, seed: number, level: SkillLevel) {
-    this.level = level;
+  constructor(game: string, seed: number, level: SkillTier) {
+    this.tier = level;
+    this.level = TIER_LEVEL[level];
     this.p = PROFILES[level];
     this.rand = mulberry(hash(`${game}:${seed}:${level}`));
   }
