@@ -11,7 +11,7 @@ import { whackDepthScore, type WhackState } from "./whack";
 import { CLAY_DOUBLES, clayDepthScore, clayDoublesHit, type ClayState } from "./clayShoot";
 import { MATCHUP_PAR_RAW } from "./matchup";
 import { WF_PAR } from "./wordfall";
-import { HOVER_V2_GATES_SCORE, HOVER_V2_STARS_SCORE } from "./hover";
+import { HOVER_CHAINS, HOVER_TIGHT_GATES, HOVER_V2_GATES_SCORE, HOVER_V2_STARS_SCORE } from "./hover";
 import { WAV_BOSS_HP, WAV_V2_WAVES } from "./wavefront";
 import { BAND_SPECS } from "./bandParts";
 import { bandLines } from "./scoreBands";
@@ -72,6 +72,23 @@ type Builder = (run: Run, score: number) => ArcadeRevealData;
 const BUILDERS: Record<string, Builder> = {
   hover: (r, s) => {
     const done = n(r, "gates") >= n(r, "totalGates") && n(r, "totalGates") > 0;
+    // hoverRev 9 (the 200 expansion): the base, then the skill points (tight gates, chains, centre lines).
+    if (r["tightGates"] !== undefined)
+      return {
+        axis: { value: n(r, "gates"), max: n(r, "totalGates"), label: "Barriers passed" },
+        lines: [
+          `${n(r, "gates")} / ${n(r, "totalGates")} barriers · ${n(r, "stars")} / ${n(r, "totalStars")} gold stars → ${s - n(r, "skill")}`,
+          `Skill +${n(r, "skill")}: ${n(r, "tightGates")} tight gates · ${n(r, "starChains")} star chains · centre ${n(r, "centrePts")}`,
+          `Total → ${s}`,
+        ],
+        tiles: [
+          { label: "Barriers", value: String(n(r, "gates")) },
+          { label: "Tight gates", value: `${n(r, "tightGates")} / ${HOVER_TIGHT_GATES}` },
+          { label: "Star chains", value: `${n(r, "starChains")} / ${HOVER_CHAINS}` },
+          { label: b(r, "survived") ? "Survived" : "Crashed at", value: b(r, "survived") ? "60 s" : sec(n(r, "endedSeconds")) },
+        ],
+        outcome: done ? "finish" : ended(r, false),
+      };
     return {
       axis: { value: n(r, "gates"), max: n(r, "totalGates"), label: "Barriers passed" },
       lines:

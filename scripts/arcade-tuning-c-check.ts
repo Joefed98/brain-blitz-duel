@@ -166,7 +166,8 @@ section("New rounds carry the Tuning C stamps; Junction is practice only");
     // Taller worlds batch 3 (16 Oct 2026) then moved Grappler on to its taller cavern (swingRev 9); arcade-tuning-g3-check covers it.
     ["swing", playRevOf("swing", generateSwing().swingRev), SWING_REV_TUNEC + 2],
     // Tuning E (Oct 2026) moved Hover on to its taller world (hoverRev 5); arcade-tuning-e-check covers it.
-    ["hover", playRevOf("hover", generateHover().hoverRev), HOVER_REV_TALL],
+    // The 200 expansion (26 Oct 2026) then moved Hover on to hoverRev 9; hover-x200-check covers it.
+    ["hover", playRevOf("hover", generateHover().hoverRev), HOVER_REV_TALL + 4],
     ["inkbridge", playRevOf("inkbridge", generateInkBridge().inkRev), INK_REV_TUNEC],
     // Expansion E7 (docs/expansions/x200-flip.md) then moved Roofbound on to flipRev 8; flip-x200-check covers it.
     ["flip", playRevOf("flip", generateFlip().flipRev), FLIP_REV_TUNEC + 4],

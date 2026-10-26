@@ -92,8 +92,8 @@ export const ROUND_MAX: Readonly<Record<PuzzleType, number>> = {
   bullseye: 150,
   burst: 150,
   cross: 150,
-  flip: 200, // expansion E7 (x200), flipRev 8
-  hover: 150,
+  flip: 200, // expansion X200, flipRev 8
+  hover: 200, // expansion X200, hoverRev 9
   inkbridge: 150,
   junction: 150,
   matchup: 200, // expansion E6, matchupRev 9

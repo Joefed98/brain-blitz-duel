@@ -70,6 +70,11 @@ export const MOMENT_TABLE: readonly MomentRow[] = [
   fx("hover", 3, "pop", "two-gap", 20, "Through a two-gap barrier"),
   fx("hover", 4, "pop", "slipped-through", 30, "Slipped through a moving barrier", "near-miss"),
   fx("hover", 5, "final", "all-barriers", 90, "Every barrier passed", "finish"),
+  // hoverRev 9 (the 200 expansion): fire on hoverRev 9 rounds only.
+  fx("hover", 6, "perfect", "tight-gate", 45, "Through a tight gate"),
+  fx("hover", 7, "clear", "star-chain", 55, "A whole star chain"),
+  fx("hover", 8, "pop", "shield", 10, "Shield picked up"),
+  fx("hover", 9, "combo", "centre-line", 35, "Along a tight gate's centre line"),
   // Breaker
   fx("breaker", 0, "perfect", "power-up", 25, "Power-up caught"),
   fx("breaker", 1, "streak", "bricks", 20, "Bricks streak (every 10)"),

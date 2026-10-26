@@ -19,7 +19,13 @@ import {
   HOVER_SCROLL_START,
   HOVER_TALL_H,
   HOVER_WORLD_W,
+  HOVER_SHIELD_INVULN,
+  HOVER_SHIELD_R,
+  hoverCentreGrade,
+  hoverCentreY,
+  hoverFeatureTotals,
   hoverWorldH,
+  HOVER_CENTRE_TOL,
   type HoverState,
 } from "./hover";
 import type { ArcadeGame, CanvasSize } from "./engine";
@@ -227,6 +233,17 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: HoverState, crashIndica
     const pulse = live && through >= 0 && through < span ? Math.sin((Math.PI * through) / span) : 0;
     const top = px(hoverGapTop(pillar, state.tick));
     const bottom = top + px(pillar.gapH);
+    if (pillar.tightTop !== undefined) {
+      // hoverRev 9 tight gate: the barrier has its main gap and a narrow gold-rimmed one.
+      const tTop = px(pillar.tightTop);
+      const tBot = tTop + px(pillar.tightH ?? 0);
+      const [a, b] = tTop < top ? [[tTop, tBot], [top, bottom]] : [[top, bottom], [tTop, tBot]];
+      drawPipe(ctx, left, 0, width, a[0]!, colour, bloom, flash, "bottom", pulse);
+      drawPipe(ctx, left, a[1]!, width, b[0]! - a[1]!, colour, bloom, flash, "both", pulse);
+      drawPipe(ctx, left, b[1]!, width, HOVER_WORLD_H - b[1]!, colour, bloom, flash, "top", pulse);
+      drawTightRims(ctx, state, index, left, width, tTop, tBot);
+      drawCentreLine(ctx, state, index, left, width);
+    } else {
     drawPipe(ctx, left, 0, width, top, colour, bloom, flash, "bottom", pulse);
     if (pillar.gap2Top !== undefined) {
       // hoverRev 2 two-gap barrier: a middle block between the upper and lower gaps.
@@ -236,10 +253,17 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: HoverState, crashIndica
       drawPipe(ctx, left, bottom2, width, HOVER_WORLD_H - bottom2, colour, bloom, flash, "top", pulse);
       drawForkArrows(ctx, left + width / 2 - 3, bottom, top2);
     } else drawPipe(ctx, left, bottom, width, HOVER_WORLD_H - bottom, colour, bloom, flash, "top", pulse);
+    }
     if (pillar.movePhase !== undefined) drawSlideRail(ctx, left, width, pillar, state.tick);
     drawStar(ctx, state, pillar, index, left + width / 2);
     drawStarPlusOne(ctx, state, pillar, index, left + width / 2);
   });
+
+  // hoverRev 9: star chains and shield bubbles in the open space between barriers.
+  if (state.xp) {
+    drawChains(ctx, state);
+    drawPickups(ctx, state);
+  }
 
   // Ordinary passes are rewarded by the barrier itself, not a saucer trace.
   // Feed only each five-gate milestone to the shared burst/edge/HUD reward.
@@ -248,9 +272,17 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: HoverState, crashIndica
   const colourAge = latest ? px(state.distance - (latest.x0 + HOVER_PILLAR_W - discLeft)) / px(hoverScroll(state.gates)) : Infinity;
   if(!reducedMotion()&&state.gates>0&&state.gates%7===0&&colourAge<20){ctx.save();ctx.globalAlpha=.22*(1-colourAge/20);ctx.strokeStyle=BARRIER_CYCLES[Math.floor(state.gates/7)%6]??SAUCER;ctx.lineWidth=1;ctx.strokeRect(4,4,HOVER_WORLD_W-8,HOVER_WORLD_H-8);ctx.restore();}
   if (!(state.crashed && crashIndicator)) drawShipLight(ctx, state);
+  // hoverRev 9: the saucer blinks while a broken shield keeps it untouchable.
+  if ((state.invuln ?? 0) > 0 && !state.crashed) ctx.globalAlpha = reducedMotion() ? 0.7 : Math.floor(state.tick / 4) % 2 ? 0.4 : 0.9;
   drawSaucer(ctx, state, crashIndicator);
+  ctx.globalAlpha = 1;
+  if (state.xp) drawShield(ctx, state);
   successHud(ctx,'hover',state.tick,10,28,()=>{retroReadout(ctx, 10, 10, `BARRIERS ${state.gates}/${state.totalGates}`, RETRO_WHITE);});
   if ((state.totalStars ?? 0) > 0) retroText(ctx, `STARS ${state.stars ?? 0}/${state.totalStars}`, 10, 46, 14, STAR_GOLD, "left", 4);
+  if (state.xp) {
+    const totals = hoverFeatureTotals(state);
+    retroText(ctx, `TIGHT ${state.tight ?? 0}/${totals.tight}  CHAINS ${state.chainsDone ?? 0}/${totals.chains}  CENTRE ${state.ctrPts ?? 0}`, 10, 64, 12, STAR_GOLD, "left");
+  }
 
   if (state.crashed && crashIndicator) {
     ctx.fillStyle = "rgba(255,59,92,0.2)";
@@ -535,4 +567,294 @@ export function hoverNightFill(ctx: CanvasRenderingContext2D, view: ArenaSceneVi
     }
     ctx.globalAlpha = 1;
   }
+}
+
+/* ===================== the 200 expansion (hoverRev 9): display only ===================== */
+
+const RIM_GOLD = "#FFD84A";
+const RIM_DARK = "#8A6512";
+const SHIELD_CYAN = DOME;
+
+/**
+ * A tight gate's gold rims: the barrier-cap style of Polish A2 in gold (the full-strength cap,
+ * the bright lip and the dark seam), with the gold light thrown into the gap and two rivets.
+ * Everything solid sits on the barrier, inside its collision rectangle; a gate just threaded
+ * flashes white for a moment.
+ */
+function drawTightRims(ctx: CanvasRenderingContext2D, state: HoverState, index: number, x: number, w: number, top: number, bottom: number): void {
+  const glow = !arcadeReducedEffects() ? capGlowSprite(w, RIM_GOLD) : null;
+  if (glow) {
+    ctx.globalAlpha = 0.8;
+    ctx.drawImage(glow, x - GLOW_REACH, top - 1, w + GLOW_REACH * 2, GLOW_REACH * 3);
+    ctx.save();
+    ctx.translate(0, bottom + 1);
+    ctx.scale(1, -1);
+    ctx.drawImage(glow, x - GLOW_REACH, 0, w + GLOW_REACH * 2, GLOW_REACH * 3);
+    ctx.restore();
+    ctx.globalAlpha = 1;
+  }
+  const CAP = 8;
+  const caps: [number, number, number][] = [
+    [top - CAP, top - 3, top - CAP],
+    [bottom, bottom, bottom + CAP - 1],
+  ];
+  for (const [capTop, lip, seam] of caps) {
+    ctx.fillStyle = RIM_GOLD;
+    ctx.fillRect(x, capTop, w, CAP);
+    ctx.fillStyle = "rgba(255,255,255,0.5)";
+    ctx.fillRect(x, lip, w, 3);
+    ctx.fillStyle = RIM_DARK;
+    ctx.fillRect(x, seam, w, 1);
+    pixelRect(ctx, x + 3, capTop + 3, 2, 2, RIM_DARK);
+    pixelRect(ctx, x + w - 5, capTop + 3, 2, 2, RIM_DARK);
+  }
+  // A glint running along the rims (still under reduced motion).
+  const t = retroClock();
+  if (t > 0) {
+    const gx = x + (((t / 9) % (w + 24)) - 12);
+    ctx.globalAlpha = 0.85;
+    for (const y of [top - 3, bottom]) if (gx >= x && gx <= x + w - 3) pixelRect(ctx, gx, y, 3, 3, RETRO_WHITE);
+    ctx.globalAlpha = 1;
+  }
+  if (state.tightTaken?.includes(index)) {
+    const pillar = state.pillars[index]!;
+    const age = px(state.distance - (pillar.x0 + HOVER_PILLAR_W - (HOVER_DISC_X - HOVER_DISC_R))) / px(hoverScroll(index + 1));
+    if (age >= 0 && age < 24) {
+      ctx.globalAlpha = 0.7 * (1 - age / 24);
+      ctx.fillStyle = RETRO_WHITE;
+      ctx.fillRect(x, top - CAP, w, CAP);
+      ctx.fillRect(x, bottom, w, CAP);
+      ctx.globalAlpha = 1;
+    }
+  }
+}
+
+/** The gold star's pixel art (the same shape drawStar paints), cached once at twice the world scale. */
+let chainStar: ArtCanvas | null | undefined;
+const CHAIN_STAR_BOX = 16;
+function chainStarSprite(): ArtCanvas | null {
+  if (chainStar !== undefined) return chainStar;
+  const layer = artCanvas(CHAIN_STAR_BOX * 2, CHAIN_STAR_BOX * 2);
+  const c = layer && (artContext(layer) as CanvasRenderingContext2D | null);
+  if (layer && c) {
+    c.scale(2, 2);
+    const r = px(HOVER_STAR_R);
+    pixelShape(c, CHAIN_STAR_BOX / 2, CHAIN_STAR_BOX / 2, r, 2, (dx, dy) => {
+      const ax = Math.abs(dx);
+      const ay = Math.abs(dy);
+      if (ax * ax + ay * ay > r * r) return null;
+      if (ax <= 2 && ay <= 2) return RETRO_WHITE;
+      if (ax <= 2.5 || ay <= 2.5 || ax + ay <= r * 0.8) return STAR_GOLD;
+      return null;
+    });
+  }
+  chainStar = layer && c ? layer : null;
+  return chainStar;
+}
+
+/**
+ * Star chains (hoverRev 9): each untaken star in the gold star's art and glow (the arc they sit
+ * on reads as a chain by itself; no thread is drawn, so nothing is shown that does not collect),
+ * and the "+1" rising from each one taken. A chain already broken (a star gone by untaken)
+ * fades, since it can no longer pay out.
+ */
+function drawChains(ctx: CanvasRenderingContext2D, state: HoverState): void {
+  const hits = state.chainHits ?? [];
+  const r = px(HOVER_STAR_R);
+  const glow = !arcadeReducedEffects() ? starGlowSprite() : null;
+  const sprite = chainStarSprite();
+  const reachBack = HOVER_DISC_R + HOVER_STAR_R;
+  (state.chains ?? []).forEach((chain, c) => {
+    const first = chain.stars[0]!;
+    const last = chain.stars[chain.stars.length - 1]!;
+    if (px(first.x0 - state.distance) > HOVER_WORLD_W + 20 || px(last.x0 - state.distance) < -40) return;
+    const broken = chain.stars.some((star, j) => !hits.includes(c * 8 + j) && star.x0 - state.distance < HOVER_DISC_X - reachBack);
+    const alpha = broken ? 0.32 : 1;
+    chain.stars.forEach((star, j) => {
+      const cx = px(star.x0 - state.distance);
+      const cy = px(star.y);
+      if (cx < -30 || cx > HOVER_WORLD_W + 20) return;
+      if (hits.includes(c * 8 + j)) {
+        const age = px(state.distance - (star.x0 - HOVER_DISC_X)) / px(hoverScroll(chain.after + 1));
+        const span = 40;
+        if (age >= 0 && age < span) {
+          const k = age / span;
+          ctx.globalAlpha = k < 0.7 ? 1 : 1 - (k - 0.7) / 0.3;
+          retroText(ctx, "+1", cx, cy - (reducedMotion() ? 10 : 6 + k * 18), 12, STAR_GOLD, "center");
+          ctx.globalAlpha = 1;
+        }
+        return;
+      }
+      if (glow) {
+        const pulse = reducedMotion() ? 0.7 : 0.6 + 0.2 * Math.sin(retroClock() / 260 + j);
+        ctx.globalAlpha = pulse * alpha;
+        ctx.drawImage(glow, cx - r * 2.4, cy - r * 2.4, r * 4.8, r * 4.8);
+      }
+      ctx.globalAlpha = alpha;
+      if (sprite) ctx.drawImage(sprite, cx - CHAIN_STAR_BOX / 2, cy - CHAIN_STAR_BOX / 2, CHAIN_STAR_BOX, CHAIN_STAR_BOX);
+      ctx.globalAlpha = 1;
+    });
+  });
+}
+
+/** A shield bubble: a cyan pixel ring with a lit edge and a small shield inside, cached once (twice the world scale). */
+let bubble: ArtCanvas | null | undefined;
+const BUBBLE_BOX = 24;
+function bubbleSprite(): ArtCanvas | null {
+  if (bubble !== undefined) return bubble;
+  const layer = artCanvas(BUBBLE_BOX * 2, BUBBLE_BOX * 2);
+  const c = layer && (artContext(layer) as CanvasRenderingContext2D | null);
+  if (layer && c) {
+    c.scale(2, 2);
+    const r = px(HOVER_SHIELD_R);
+    const m = BUBBLE_BOX / 2;
+    const fill = c.createRadialGradient(m - 3, m - 3, 1, m, m, r);
+    fill.addColorStop(0, "rgba(92,208,255,0.35)");
+    fill.addColorStop(1, "rgba(92,208,255,0.08)");
+    c.fillStyle = fill;
+    c.beginPath();
+    c.arc(m, m, r - 1, 0, Math.PI * 2);
+    c.fill();
+    pixelShape(c, m, m, r, 1, (dx, dy) => {
+      const d = Math.hypot(dx, dy);
+      if (d > r || d < r - 2) {
+        // The emblem: a small pointed shield in the middle.
+        const ax = Math.abs(dx);
+        if (dy >= -4 && dy <= 1 && ax <= 3.5) return ax <= 1 ? RETRO_WHITE : SHIELD_CYAN;
+        if (dy > 1 && dy <= 5 && ax <= 3.5 - (dy - 1)) return SHIELD_CYAN;
+        return null;
+      }
+      return dx < -1 && dy < -1 ? RETRO_WHITE : SHIELD_CYAN;
+    });
+  }
+  bubble = layer && c ? layer : null;
+  return bubble;
+}
+
+/** Shield bubbles (hoverRev 9) still to be picked up, with a slow breath of light round them. */
+function drawPickups(ctx: CanvasRenderingContext2D, state: HoverState): void {
+  const sprite = bubbleSprite();
+  (state.pickups ?? []).forEach((pickup, k) => {
+    if (state.pickupsTaken?.includes(k)) return;
+    const cx = px(pickup.x0 - state.distance);
+    const cy = px(pickup.y);
+    if (cx < -20 || cx > HOVER_WORLD_W + 20) return;
+    const glow = !arcadeReducedEffects() ? starGlowSprite() : null;
+    if (glow) {
+      ctx.globalAlpha = reducedMotion() ? 0.25 : 0.2 + 0.1 * Math.sin(retroClock() / 300 + k);
+      ctx.drawImage(glow, cx - 16, cy - 16, 32, 32);
+      ctx.globalAlpha = 1;
+    }
+    if (sprite) ctx.drawImage(sprite, cx - BUBBLE_BOX / 2, cy - BUBBLE_BOX / 2, BUBBLE_BOX, BUBBLE_BOX);
+  });
+}
+
+/**
+ * The shield held (hoverRev 9): a cyan ring hugging the saucer (within 2 px of its edge) with a
+ * glint going round. When one breaks, its pieces fly off while the saucer blinks.
+ */
+function drawShield(ctx: CanvasRenderingContext2D, state: HoverState): void {
+  const cx = px(HOVER_DISC_X);
+  const cy = px(state.y);
+  const r = px(HOVER_DISC_R);
+  if (state.shield && !state.crashed) {
+    ctx.strokeStyle = SHIELD_CYAN;
+    ctx.globalAlpha = 0.85;
+    ctx.lineWidth = 1.3;
+    ctx.beginPath();
+    ctx.arc(cx, cy, r + 0.7, 0, Math.PI * 2);
+    ctx.stroke();
+    const t = retroClock();
+    const a = t === 0 ? -Math.PI * 0.75 : t / 380;
+    pixelRect(ctx, cx + Math.cos(a) * r - 1, cy + Math.sin(a) * r - 1, 2, 2, RETRO_WHITE);
+    ctx.globalAlpha = 1;
+  }
+  const since = HOVER_SHIELD_INVULN - (state.invuln ?? 0);
+  if ((state.invuln ?? 0) > 0 && since < 20 && !reducedMotion()) {
+    ctx.globalAlpha = 1 - since / 20;
+    for (let i = 0; i < 8; i++) {
+      const ang = (i * Math.PI) / 4 + 0.4;
+      const d = r + 2 + since * 1.6;
+      pixelRect(ctx, cx + Math.cos(ang) * d - 1, cy + Math.sin(ang) * d - 1, 2, 2, i % 2 ? RETRO_WHITE : SHIELD_CYAN);
+    }
+    ctx.globalAlpha = 1;
+  }
+}
+
+/** The centre line's brightness for a grade (0: at rest; 3: dead centre). */
+const CENTRE_ALPHA = [0.14, 0.32, 0.5, 0.78] as const;
+const CENTRE_FADE = 30;
+/** How far either side of the saucer the line's bright run reaches (px). */
+const CENTRE_GLOW = 22;
+
+/**
+ * The centre line through a tight gate (hoverRev 9; display only, drawn on the sim's line: the gate's middle,
+ * across the barrier's columns). At rest a faint 1 px gold line. While the saucer's centre is within the
+ * columns on a clean thread, the part of the line it has flown along lights up, as bright as the grade the
+ * pass holds so far (HOVER_CENTRE_TOL), with a small glow under the saucer that rises the closer it is to the
+ * line. A pass that scored stays lit at its grade and fades over CENTRE_FADE ticks. Reduced effects: the line
+ * and its lit part only, no glow.
+ */
+function drawCentreLine(ctx: CanvasRenderingContext2D, state: HoverState, index: number, left: number, width: number): void {
+  const pillar = state.pillars[index]!;
+  const cy = Math.round(px(hoverCentreY(pillar)));
+  const glow = !arcadeReducedEffects();
+  ctx.save();
+  ctx.fillStyle = STAR_GOLD;
+  ctx.globalAlpha = CENTRE_ALPHA[0];
+  ctx.fillRect(left, cy, width, 1);
+  const logged = (state.ctrLog ?? []).find((e) => e >> 2 === index);
+  if (state.ctrOn === index && !state.crashed) {
+    // Being threaded now: light the line from the barrier's left edge to the saucer.
+    const dev = state.ctrDev ?? 0;
+    const grade = hoverCentreGrade(dev);
+    const lit = Math.max(0, Math.min(width, px(HOVER_DISC_X) - left));
+    ctx.globalAlpha = CENTRE_ALPHA[grade]!;
+    ctx.fillRect(left, cy, lit, 1);
+    if (glow && grade > 0) {
+      ctx.globalAlpha = CENTRE_ALPHA[grade]! * 0.35;
+      ctx.fillRect(left, cy - 1, lit, 3);
+    }
+    // The glow under the saucer: brighter the nearer its centre is to the line right now.
+    const near = Math.max(0, 1 - Math.abs(state.y - hoverCentreY(pillar)) / HOVER_CENTRE_TOL[2]);
+    if (near > 0) {
+      // A short bright run of the line under and either side of the saucer, fading out over CENTRE_GLOW px.
+      const x = px(HOVER_DISC_X);
+      for (let d = 0; d < CENTRE_GLOW; d += 2) {
+        const k = 1 - d / CENTRE_GLOW;
+        for (const x0 of d === 0 ? [x - 1] : [x - d - 2, x + d]) {
+          const a = Math.max(left, x0);
+          const b = Math.min(left + width, x0 + 2);
+          if (b <= a) continue;
+          ctx.globalAlpha = (0.2 + 0.65 * near) * k;
+          ctx.fillStyle = near > 0.6 && d < 6 ? RETRO_WHITE : STAR_GOLD;
+          ctx.fillRect(a, cy, b - a, 1);
+          if (glow) {
+            ctx.fillStyle = STAR_GOLD;
+            ctx.globalAlpha = 0.28 * near * k;
+            ctx.fillRect(a, cy - 1, b - a, 3);
+          }
+        }
+      }
+    }
+  } else if (logged !== undefined) {
+    // Threaded and graded: the whole line stays lit at its grade, fading as the barrier scrolls away.
+    const grade = logged & 3;
+    const age = px(state.distance - (pillar.x0 + HOVER_PILLAR_W - (HOVER_DISC_X - HOVER_DISC_R))) / px(hoverScroll(index + 1));
+    const fade = age < 0 ? 1 : Math.max(0, 1 - age / CENTRE_FADE);
+    if (fade > 0) {
+      ctx.globalAlpha = CENTRE_ALPHA[0] + (CENTRE_ALPHA[grade]! - CENTRE_ALPHA[0]) * fade;
+      ctx.fillStyle = grade === 3 && fade > 0.5 ? RETRO_WHITE : STAR_GOLD;
+      ctx.fillRect(left, cy, width, 1);
+      if (glow) {
+        ctx.fillStyle = STAR_GOLD;
+        ctx.globalAlpha = CENTRE_ALPHA[grade]! * 0.35 * fade;
+        ctx.fillRect(left, cy - 1, width, 3);
+      }
+    } else {
+      ctx.globalAlpha = CENTRE_ALPHA[1];
+      ctx.fillRect(left, cy, width, 1);
+    }
+  }
+  ctx.restore();
 }
