@@ -34,6 +34,35 @@ The parked inkRev 9 had the taller world, bounce clouds and gold stars, but:
 - **Level 1 is a warm-up**: a missed drop there costs no fail (`INK_WARMUP_LEVELS`); three misses on levels 2–10
   still end the run.
 
+## No needle levels (27 Oct 2026, brief 2)
+
+A "needle" level is one with no line a finger can draw (Session A found them on generated levels). inkRev 10 already
+proved every line as a phone draws it, but a scan of every level of 4,000 seeds (`bun scripts/ink-x200-drawable.ts
+[from] [count]`, the proof ink-x200-check uses) found three ways one could still slip through, about one level in
+5,000, all closed (inkRev 10 only; every older stamp builds byte for byte as before):
+
+- **The fallback layout.** `buildLevelsRev3` gave up after 48 layouts on a live level (120 on others) and dealt one
+  canned open layout; on inkRev 10 that was about half the seeds, sometimes with no hand-drawn live stroke. inkRev 10
+  now runs the layout stream on (`INK_ATTEMPTS_10`, 4,000) until a layout passes every proof; on the first 30 seeds no
+  level took more than 92. The longer stream alone changes no level found within the old limits.
+- **A cloud placed after the reference was proved.** The cloud could sit on the reference line's wobbled path, so
+  the reference no longer held 3 px either way without touching it.
+- **A bonus line proved on a still pot or a different release** than the one stored, missing its star on the stored
+  release (plain and wind levels too).
+
+The last two are closed by one rule: a decorated level (1–8) is kept only when the finished level, with its cloud or
+wind and pickups in place, passes ink-x200-check's own per-level proof (`staticProof` / `staticDrawable`: the
+reference as a phone draws it, holding 3 px either way and never touching a cloud; the bonus line on its stored
+release taking the star, after a bounce on a cloud level, and every silver coin and the shamrock; the coin never
+potting unaided); otherwise the feature moves on as before (another cloud or wind, another layout, or a swap).
+
+After the change, **0 of 40,000 levels** (seed indices 0–3,999, which include all 260 skill-band seeds) lack a
+hand-drawable proof; before it, 8 levels did (seed indices 136, 459, 468, 2194, 2214, 2310, 2347, 2452), plus the
+fallback layouts. ink-x200-check section 4b asserts it on 24 more seeds, those eight included. The ceiling is still
+200 on every one of the 260 seeds. Build time, the three timed together in one process on a loaded machine (50 seeds):
+inkRev 10 now median 556 ms / total 33.5 s, inkRev 10 before 430 ms / 25.3 s, inkRev 8 on main's code
+1,034 ms / 54.9 s, so still below inkRev 8's cost on main.
+
 ## Features (fixed counts, every seed)
 
 | Feature | Per run | Where | Raw points |
@@ -84,34 +113,35 @@ old: inkRev 8's median with the same (fixed) bot; zero-score runs new / old; run
 | Level | inkRev 10 (max 200) | inkRev 8 median | Change | Zeros new / old | All ten |
 |---|---|---|---|---|---|
 | Weak | 32 / 55 / 88 | 33 | −3 % | 0 / 17 | 0 / 60 |
-| Average | 42.5 / 88 / 148 | 51 | −17 % | 0 / 11 | 1 / 60 |
-| Good | 61 / 145 / 157 | 65 | −6 % | 0 / 6 | 6 / 60 |
-| Great | 118 / 163 / 177 | 91 | +30 % | 0 / 2 | 26 / 60 |
-| Near-perfect | 166 / 183 / 191 | 111 | +50 % | 0 / 1 | 46 / 60 |
-| Elite | 178 / 193 / 200 | 122 | +46 % | 0 / 1 | 51 / 60 |
+| Average | 42.5 / 88 / 110 | 51 | −17 % | 0 / 11 | 0 / 60 |
+| Good | 61 / 113 / 157 | 65 | −6 % | 0 / 6 | 3 / 60 |
+| Great | 114.5 / 161 / 175 | 91 | +26 % | 0 / 2 | 22 / 60 |
+| Near-perfect | 165.5 / 182 / 190 | 111 | +49 % | 0 / 1 | 43 / 60 |
+| Elite | 177 / 190 / 200 | 122 | +45 % | 0 / 1 | 50 / 60 |
 
 **Fresh seeds (60–259, never used for tuning)**
 
 | Level | inkRev 10 (max 200) | inkRev 8 median | Change | Zeros new / old | All ten |
 |---|---|---|---|---|---|
 | Weak | 32 / 54 / 90 | 33 | −3 % | 0 / 71 | 0 / 200 |
-| Average | 47 / 88 / 144 | 51 | −8 % | 0 / 37 | 2 / 200 |
-| Good | 72 / 143 / 155 | 65 | +11 % | 0 / 27 | 21 / 200 |
-| Great | 110 / 157 / 182 | 83 | +33 % | 0 / 17 | 72 / 200 |
-| Near-perfect | 166.5 / 181 / 194 | 105 | +59 % | 0 / 8 | 142 / 200 |
-| Elite | 178 / 190 / 200 | 121 | +47 % | 0 / 6 | 185 / 200 |
+| Average | 47 / 88 / 146 | 51 | −8 % | 0 / 37 | 2 / 200 |
+| Good | 72 / 115 / 153 | 65 | +11 % | 0 / 27 | 14 / 200 |
+| Great | 104 / 155 / 182 | 83 | +25 % | 0 / 17 | 57 / 200 |
+| Near-perfect | 165 / 180 / 194 | 105 | +57 % | 0 / 8 | 135 / 200 |
+| Elite | 177.5 / 190 / 200 | 121 | +47 % | 0 / 6 | 183 / 200 |
 
 **Random input** (uniformly random strokes, RELEASE, UNDO and live strokes at a human-ish rate,
 `ink-x200-bands.ts --random`, all 260 seeds): inkRev 10 median 0, p90 22, best 29 (level 1's free misses let a
-random line pot it now and then); inkRev 8 median 0, best 33.
+random line pot it now and then); inkRev 8 median 0, best 33 (re-measured on 27 Oct after the needle fix: the same).
 
 The official tool agrees: `bun scripts/arcade-skill-bands.ts inkbridge --rev=x --levels=weak,average,good,great,near,elite
 --seeds=60 --jobs=1` gives live (inkRev 8) 33 / 51 / 65 / 91 / 111 / 122 and next (inkRev 10) 32 / 43 / 61 / 118 / 166 (p90
 183) / 178 (p90 190). (Its run order shares the bot's per-seed line cache differently, so single runs can differ by a
 point or two.) Its 200 fresh seeds were stopped by the session's time limit; the fresh table is from ink-x200-bands.
 
-Against the bar: good within about ±10 % of before (−6 % tuning, +11 % fresh); near-perfect median 166 / 166.5 with
-p90 183 / 181; elite median 178 / 178 with p90 193 / 190; no zero for weak or average play (inkRev 8 had 17–71); great
+Both tables were re-measured on 27 Oct after the needle fix (the levels changed on some seeds; the bots did not).
+Against the bar: good within about ±10 % of before (−6 % tuning, +11 % fresh); near-perfect median 165.5 / 165 with
+p90 182 / 180; elite median 177 / 177.5 with p90 190 / 190; no zero for weak or average play (inkRev 8 had 17–71); great
 between good and near-perfect. The inkRev 8 medians here are with the fixed bot (the coordinator's earlier figures,
 good 51, used the old one); the old bot played inkRev 8's moving pots and long lines below its level.
 
@@ -142,6 +172,13 @@ scoring-rev3-check, reveal-score-check, replay-check, arcade-fx-check, arcade-se
 40 runs each), arcade-batch5-check, arcade-tuning-c-check, ink-birds-check, ink-line-check, ink-rainbow-check,
 ink-rev3-fix-check, ink-live-check, ink-live-bottom-check, sound-manifest-check, intro-demo-check; `tsc --noEmit`
 clean. The ceiling over all 260 seeds: `bun scripts/ink-x200-oracle.ts 0 130` and `130 130`.
+
+After the needle fix (27 Oct), each on its own, all pass: ink-x200-check (581 checks), replay-check,
+arcade-self-replay-check (the six ink entries, 40 runs each), ink-birds-check, ink-line-check, ink-rainbow-check,
+ink-rev3-fix-check, ink-live-check, ink-live-bottom-check, round-max-check, practice-bests-check, scoring-bands-check,
+arcade-fx-check, arcade-batch5-check, arcade-tuning-c-check, reveal-score-check, arcade-help-bands-check,
+intro-score-text-check; `tsc --noEmit` clean; the drawable scan on seed indices 0–3,999 and the ceiling on all 260.
+`scripts/fixtures/ink-x200-runs.json.gz` was re-recorded; the inkRev 10 run in `replay-runs.json` still replays.
 
 ## Shared files touched (Rainbow Bridge's lines only)
 

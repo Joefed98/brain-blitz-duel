@@ -11,6 +11,9 @@
  *      shamrock; per level the reference pots as a phone draws it (holding 3 px either way, never touching a cloud),
  *      the coin never pots unaided, the bonus line takes its star (after a bounce on a cloud level), passes every
  *      silver coin and the shamrock, rides the wind on a wind level, and the live levels pot with a hand-drawn stroke.
+ *  4b. No needle levels: on 24 more seeds (8 of them seeds that once dealt one), every level has a line a finger can
+ *      draw (static levels: the reference and the bonus line as a phone sends them, holding 3 px either way, every pickup
+ *      on the bonus line; live levels: the hand-drawn stroke). scripts/ink-x200-drawable.ts scans thousands of seeds.
  *   5. The perfect-play ceiling reaches 200 through the server replay on sample seeds (scripts/ink-x200-oracle.ts
  *      runs all 260 skill-band seeds for the report).
  *   6. Recorded inkRev 10 runs (scripts/fixtures/ink-x200-runs.json.gz) replay to the same score and state, and the
@@ -36,6 +39,7 @@ import {
   inkFeaturePaid,
   inkWorldHFor,
   inkX200Proof,
+  staticDrawable,
   INK_CLOUD_HW,
   INK_CLOUD_KICK,
   INK_CLOUD_LEVELS,
@@ -162,6 +166,23 @@ for (const seed of SAMPLE) {
   }
 }
 console.log(`  ${SAMPLE.length} seeds: every count fixed, every line proved`);
+
+/* 4b. No needle levels: every level of more seeds has a line a finger can draw (scripts/ink-x200-drawable.ts scans thousands). */
+section("No needle levels: a hand-drawable line on every level");
+{
+  // Skill-band seed indices whose levels were needles before generation re-ran the finished level's proof (a cloud
+  // placed after the reference was proved, or a bonus line whose stored release missed its star), then a spread.
+  const NEEDLES_BEFORE = [136, 459, 468, 2194, 2214, 2310, 2347, 2452];
+  const seeds = [...NEEDLES_BEFORE, ...Array.from({ length: 16 }, (_, i) => 300 + 97 * i)];
+  let levels = 0;
+  for (const n of seeds)
+    for (const l of inkX200Proof(roomSeed(n))) {
+      levels++;
+      const drawable = l.level < 8 ? staticDrawable(l) : l.ref && l.hand === true && !l.unaided;
+      ok(drawable, `seed index ${n} level ${l.level + 1} (${l.kind}): no line a finger can draw (a needle level)`);
+    }
+  console.log(`  ${levels} levels on ${seeds.length} more seeds (${NEEDLES_BEFORE.length} that once had a needle), each with a phone-drawn line that holds 3 px either way`);
+}
 
 /* 5. The ceiling. */
 section("The perfect-play ceiling is 200 through the server replay");

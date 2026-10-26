@@ -1306,7 +1306,7 @@ function buildLevelsRev3(
     const count = counts[sourceLevel]!;
     const ink = inkBudgetFor(i, rev);
     let made: InkLevel | null = null;
-    for (let attempt = 0; attempt < (live ? 48 : 120) && !made; attempt++) {
+    for (let attempt = 0; attempt < (accept ? INK_ATTEMPTS_10 : live ? 48 : 120) && !made; attempt++) {
       const c = Math.max(1, count - Math.trunc(attempt / 20));
       let lvl = layout(sourceLevel, c, draw, h, forceSlide, drop);
       if (drop) lvl.gravity = live ? INK_TALL_LIVE_GRAVITY : INK_TALL_GRAVITY;
@@ -1744,6 +1744,13 @@ function trickStar(lvl: InkLevel, level: number, found: CloudFind): { x: number;
  * only when all of its features can be placed and proved (buildLevelsRev3's accept hook), so the counts never vary.
  */
 export const INK_BONUS_LEVELS = INK_LIVE_FROM;
+/**
+ * inkRev 10: layouts a level may try before the open fallback layout (inkRev 3 tried 120, 48 on a live level). Every
+ * inkRev 10 level needs its hand-drawn proofs, and 48 left about half the seeds with the same canned fallback on a live
+ * level, sometimes without a hand-drawn live stroke (a needle level); the layout stream now runs on until one passes.
+ * A level found within the old limits is built exactly as before.
+ */
+const INK_ATTEMPTS_10 = 4000;
 /** inkRev 10: the first level is a warm-up: a missed drop there costs no fail. */
 export const INK_WARMUP_LEVELS = 1;
 export const INK_WIND_LEVELS = 3;
@@ -2282,7 +2289,10 @@ function decorateAs(lvl: InkLevel, level: number, kind: InkKind, shamrock: boole
   const finish = (L: InkLevel, b: Bonus): InkLevel | null => {
     const spots = pickupSpots(L, b.path, b.star, routeOf(L, ink), shamrock);
     if (!spots) return null;
-    return { ...L, star: b.star, starRef: b.ref, starT0: b.t0, silver: spots.silver, ...(spots.shamrock ? { shamrock: spots.shamrock } : {}) };
+    const done: InkLevel = { ...L, star: b.star, starRef: b.ref, starT0: b.t0, silver: spots.silver, ...(spots.shamrock ? { shamrock: spots.shamrock } : {}) };
+    // No needle levels: the finished level passes ink-x200-check's own proof (the reference still holding with the
+    // cloud or wind in place, the bonus line on the stored release taking the star and every pickup).
+    return staticDrawable(staticProof(done, level)) ? done : null;
   };
   // Level 1 is the warm-up: its easy line has twice a hand's usual margin.
   const r = steadyReference(lvl, ink, false, level < INK_WARMUP_LEVELS);
@@ -2402,7 +2412,6 @@ export interface InkX200LevelProof {
 export function inkX200Proof(seed: number): InkX200LevelProof[] {
   const { list } = buildLevels(seed, INK_REV_EXPAND);
   return list.map((lvl, i) => {
-    const ink = inkBudgetFor(i, INK_REV_EXPAND);
     const live = inkIsLive(i, INK_REV_EXPAND);
     const unaided = landsUnaided(lvl);
     if (live) {
@@ -2410,30 +2419,42 @@ export function inkX200Proof(seed: number): InkX200LevelProof[] {
       const ok = Boolean(hand && handDrop(lvl, i, lvl.ref, [hand]).potted && handDrop(lvl, i, lvl.ref, [hand], 0, 0, 5).potted);
       return { level: i, ref: ok, unaided, bonus: null, silverOnLine: 0, silver: 0, shamrock: null, windTicks: null, hand: ok, kind: "live" as const };
     }
-    const clear = (_: Pt[], hitAt: number) => hitAt < 0;
-    const refPen = phoneSegs(lvl.ref, ink);
-    const refDrop = dropWithHit(lvl, refPen.segs, lvl.refT0);
-    const ref = refPen.penDown === 1 && refDrop.result === 1 && refDrop.hitAt < 0 && lineHolds(lvl, lvl.ref, lvl.refT0, ink, clear);
-    const bonus = lvl.star && lvl.starRef ? starProved(lvl, i) : false;
-    const path: Pt[] = [];
-    if (lvl.starRef) dropWithHit(lvl, phoneSegs(lvl.starRef, ink).segs, lvl.starT0 ?? 0, path);
-    const silverOnLine = (lvl.silver ?? []).filter((c) => passes(path, c, INK_SILVER_R)).length;
-    const w = lvl.wind;
-    const still: Pt[] = [];
-    if (w && lvl.starRef) dropWithHit({ ...lvl, slideAmp: 0 }, phoneSegs(lvl.starRef, ink).segs, 0, still);
-    return {
-      level: i,
-      ref,
-      unaided,
-      bonus,
-      silverOnLine,
-      silver: lvl.silver?.length ?? 0,
-      shamrock: lvl.shamrock ? passes(path, lvl.shamrock, INK_SHAMROCK_R) : null,
-      windTicks: w ? still.filter((p) => p.x >= w.x0 * FP && p.x <= w.x1 * FP && p.y >= w.y0 * FP && p.y <= w.y1 * FP).length : null,
-      hand: null,
-      kind: lvl.clouds?.length ? ("cloud" as const) : w ? ("wind" as const) : ("plain" as const),
-    };
+    return staticProof(lvl, i);
   });
+}
+
+/** inkX200Proof's levels 1-8 proof (and generation's last test of a decorated level). */
+function staticProof(lvl: InkLevel, i: number): InkX200LevelProof {
+  const ink = inkBudgetFor(i, INK_REV_EXPAND);
+  const unaided = landsUnaided(lvl);
+  const clear = (_: Pt[], hitAt: number) => hitAt < 0;
+  const refPen = phoneSegs(lvl.ref, ink);
+  const refDrop = dropWithHit(lvl, refPen.segs, lvl.refT0);
+  const ref = refPen.penDown === 1 && refDrop.result === 1 && refDrop.hitAt < 0 && lineHolds(lvl, lvl.ref, lvl.refT0, ink, clear);
+  const bonus = lvl.star && lvl.starRef ? starProved(lvl, i) : false;
+  const path: Pt[] = [];
+  if (lvl.starRef) dropWithHit(lvl, phoneSegs(lvl.starRef, ink).segs, lvl.starT0 ?? 0, path);
+  const silverOnLine = (lvl.silver ?? []).filter((c) => passes(path, c, INK_SILVER_R)).length;
+  const w = lvl.wind;
+  const still: Pt[] = [];
+  if (w && lvl.starRef) dropWithHit({ ...lvl, slideAmp: 0 }, phoneSegs(lvl.starRef, ink).segs, 0, still);
+  return {
+    level: i,
+    ref,
+    unaided,
+    bonus,
+    silverOnLine,
+    silver: lvl.silver?.length ?? 0,
+    shamrock: lvl.shamrock ? passes(path, lvl.shamrock, INK_SHAMROCK_R) : null,
+    windTicks: w ? still.filter((p) => p.x >= w.x0 * FP && p.x <= w.x1 * FP && p.y >= w.y0 * FP && p.y <= w.y1 * FP).length : null,
+    hand: null,
+    kind: lvl.clouds?.length ? ("cloud" as const) : w ? ("wind" as const) : ("plain" as const),
+  };
+}
+
+/** A level 1-8 proof with a line a finger can draw: the reference and the bonus line hold, every pickup on the bonus line. */
+export function staticDrawable(l: InkX200LevelProof): boolean {
+  return l.ref && !l.unaided && l.bonus === true && l.silverOnLine === l.silver && l.shamrock !== false;
 }
 
 /** Test hook: each rev-4 star's proved line pots the coin through the star within its ink. */
