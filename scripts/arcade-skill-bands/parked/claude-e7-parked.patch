@@ -1,0 +1,1481 @@
+diff --git a/scripts/arcade-bands-elite.ts b/scripts/arcade-bands-elite.ts
+new file mode 100644
+index 00000000..7fc34cee
+--- /dev/null
++++ b/scripts/arcade-bands-elite.ts
+@@ -0,0 +1,186 @@
++/**
++ * The elite skill-band report (Oct 2026, docs/arcade-bands-elite.md) from scripts/arcade-skill-bands.ts
++ * runs saved with --json. Each input is `<source>=<file>[,<file>…]`: a source (main, or a parked
++ * branch) and its runs' files, tuning seeds (n < 10000) and fresh seeds (n ≥ 10000) together.
++ *
++ *   bun scripts/arcade-bands-elite.ts main=runs/main-tuning.json,runs/main-fresh.json \
++ *     claude/e1-parked=runs/e1-tuning.json,runs/e1-fresh.json --out=docs/arcade-bands-elite.data.md
++ *
++ * Per game: every level's median / top 10 % (the 90th percentile) / zero scores on the tuning and
++ * the fresh seeds; the paired steps (each fresh seed played by every level, the median of the per-seed
++ * differences between neighbouring levels); the per-seed ceiling (the best any level, the flawless one
++ * included, scored on that seed: a floor on what a perfect run could score there) with how many seeds
++ * cannot reach the maximum and the lowest; and the merge gates. Script-only: no pass/fail.
++ */
++import { readFileSync, writeFileSync } from "node:fs";
++import { gameDisplayName } from "../src/lib/duel/gameNames";
++import { ALL_LEVELS, LEVEL_LABEL, type SkillLevel } from "./arcade-skill-bands/human";
++import type { RunRecord } from "./arcade-skill-bands";
++
++export const FRESH_FROM = 10000;
++
++const args = process.argv.slice(2);
++const OUT = args.find((a) => a.startsWith("--out="))?.slice(6);
++const JSON_OUT = args.find((a) => a.startsWith("--json="))?.slice(7);
++const sources = args.filter((a) => !a.startsWith("--")).map((a) => {
++  const [name, files] = a.split("=") as [string, string];
++  const records: RunRecord[] = [];
++  const maxes: Record<string, number> = {};
++  for (const f of files.split(",")) {
++    const d = JSON.parse(readFileSync(f, "utf8")) as { records: RunRecord[]; maxes?: Record<string, number> };
++    records.push(...d.records);
++    Object.assign(maxes, d.maxes ?? {});
++  }
++  return { name, records, maxes };
++});
++
++const pct = (xs: number[], q: number) => {
++  if (!xs.length) return NaN;
++  const s = [...xs].sort((a, b) => a - b);
++  const pos = (s.length - 1) * q;
++  const lo = Math.floor(pos);
++  return Math.round(s[lo]! + (s[Math.ceil(pos)]! - s[lo]!) * (pos - lo));
++};
++
++export interface LevelRow { level: SkillLevel; median: number; top10: number; zeros: number; n: number }
++export interface SetReport {
++  rows: LevelRow[];
++  /** Median of the per-seed difference between each level and the one below it (the same seeds). */
++  steps: { from: SkillLevel; to: SkillLevel; paired: number }[];
++  /** Per-seed ceiling: the best any level (the flawless bot included) scored on that seed. */
++  ceiling: { seeds: number; belowMax: number; lowest: number; median: number };
++  /** Median over seeds of near-perfect's score as a share of the seed's ceiling. */
++  nearShare: number;
++}
++export interface GameReport {
++  source: string;
++  type: string;
++  rev: number | null;
++  max: number;
++  tuning: SetReport;
++  fresh: SetReport;
++  flags: string[];
++}
++
++const HUMAN: SkillLevel[] = ALL_LEVELS.filter((l) => l !== "perfect");
++
++function setReport(recs: RunRecord[], max: number): SetReport {
++  const rows = ALL_LEVELS.filter((l) => recs.some((r) => r.level === l)).map((level) => {
++    const xs = recs.filter((r) => r.level === level).map((r) => r.score);
++    return { level, median: pct(xs, 0.5), top10: pct(xs, 0.9), zeros: xs.filter((x) => x === 0).length, n: xs.length };
++  });
++  const byN = new Map<number, Map<SkillLevel, number>>();
++  for (const r of recs) {
++    if (!byN.has(r.n)) byN.set(r.n, new Map());
++    byN.get(r.n)!.set(r.level, r.score);
++  }
++  const human = HUMAN.filter((l) => rows.some((x) => x.level === l));
++  const steps = human.slice(1).map((to, i) => {
++    const from = human[i]!;
++    const diffs = [...byN.values()].filter((m) => m.has(from) && m.has(to)).map((m) => m.get(to)! - m.get(from)!);
++    return { from, to, paired: pct(diffs, 0.5) };
++  });
++  const ceilings = [...byN.values()].map((m) => Math.max(...m.values()));
++  const shares = [...byN.values()].filter((m) => m.has("near")).map((m) => (1000 * m.get("near")!) / Math.max(1, Math.max(...m.values())));
++  return {
++    rows,
++    steps,
++    ceiling: { seeds: ceilings.length, belowMax: ceilings.filter((c) => c < max).length, lowest: ceilings.length ? Math.min(...ceilings) : NaN, median: pct(ceilings, 0.5) },
++    nearShare: pct(shares, 0.5) / 1000,
++  };
++}
++
++export const medianOf = (set: SetReport, level: SkillLevel) => set.rows.find((r) => r.level === level)?.median;
++export const top10Of = (set: SetReport, level: SkillLevel) => set.rows.find((r) => r.level === level)?.top10;
++
++export function reportGame(source: string, type: string, recs: RunRecord[], max: number): GameReport {
++  const tuning = setReport(recs.filter((r) => r.n < FRESH_FROM), max);
++  const fresh = setReport(recs.filter((r) => r.n >= FRESH_FROM), max);
++  const flags: string[] = [];
++  for (const [name, set] of [["tuning", tuning], ["fresh", fresh]] as const) {
++    if (!set.rows.length) continue;
++    for (let i = 1; i < HUMAN.length; i++) {
++      const a = medianOf(set, HUMAN[i - 1]!);
++      const b = medianOf(set, HUMAN[i]!);
++      if (a !== undefined && b !== undefined && !(b > a)) flags.push(`${name}: ${LEVEL_LABEL[HUMAN[i]!]} median not above ${LEVEL_LABEL[HUMAN[i - 1]!]} (${a} → ${b})`);
++    }
++  }
++  const good = medianOf(fresh, "good");
++  const near = medianOf(fresh, "near");
++  const elite = medianOf(fresh, "elite");
++  if (good !== undefined && near !== undefined && near - good < 25) flags.push(`fresh: good → near-perfect only ${near - good} (under ~25)`);
++  if (near !== undefined && elite !== undefined && elite - near < 10) flags.push(`fresh: near-perfect → elite only ${elite - near} (under ~10)`);
++  return { source, type, rev: recs[0]?.rev ?? null, max, tuning, fresh, flags };
++}
++
++/** The 200-point merge gates (docs/scoring-200.md, the overnight queue's bar); `before` is the old revision's good median per set. */
++export function gates(g: GameReport, before?: { tuning?: number; fresh?: number }): string[] {
++  const out: string[] = [];
++  for (const [name, set] of [["tuning", g.tuning], ["fresh", g.fresh]] as const) {
++    const good = medianOf(set, "good");
++    const old = before?.[name];
++    if (good !== undefined && old) out.push(`${name} good ${good} vs ${old} before (${good >= old * 0.9 && good <= old * 1.1 ? "within" : "outside"} ±10 %)`);
++    const near = medianOf(set, "near");
++    const nearTop = top10Of(set, "near");
++    if (near !== undefined) out.push(`${name} near-perfect ${near} / top 10 % ${nearTop} (${near >= 165 && near <= 175 && (nearTop ?? 999) <= 185 ? "meets" : "misses"} 165–175, ≤ 185)`);
++    const elite = medianOf(set, "elite");
++    const eliteTop = top10Of(set, "elite");
++    if (elite !== undefined) out.push(`${name} elite ${elite} / top 10 % ${eliteTop} (${elite >= 175 && (eliteTop ?? 0) >= 190 ? "meets" : "misses"} median ≥ 175, top 10 % 190–200)`);
++    const zeros = set.rows.filter((r) => (r.level === "weak" || r.level === "average") && r.zeros > 0).map((r) => `${LEVEL_LABEL[r.level]} ${r.zeros}`);
++    if (set.rows.length) out.push(`${name} zeros (weak/average): ${zeros.length ? zeros.join(", ") : "none"}`);
++  }
++  return out;
++}
++
++function stepsLine(set: SetReport): string {
++  return set.steps.map((s) => `${LEVEL_LABEL[s.from]} → ${LEVEL_LABEL[s.to]} ${s.paired >= 0 ? "+" : ""}${s.paired}`).join(", ");
++}
++
++export function gameMarkdown(g: GameReport, before?: { tuning?: number; fresh?: number }): string {
++  const name = gameDisplayName(g.type as never);
++  const out = [`### ${name} (\`${g.type}\` rev ${g.rev}, max ${g.max}; ${g.source})`, ""];
++  const t = g.tuning.rows[0]?.n ?? 0;
++  const f = g.fresh.rows[0]?.n ?? 0;
++  out.push(`| Level | Tuning (${t} seeds): median / top 10 % | zeros | Fresh (${f} seeds): median / top 10 % | zeros |`, "|---|---|---|---|---|");
++  for (const level of ALL_LEVELS) {
++    const a = g.tuning.rows.find((r) => r.level === level);
++    const b = g.fresh.rows.find((r) => r.level === level);
++    if (!a && !b) continue;
++    out.push(`| ${LEVEL_LABEL[level]}${level === "perfect" ? " (ceiling bot)" : ""} | ${a ? `${a.median} / ${a.top10}` : "–"} | ${a?.zeros ?? "–"} | ${b ? `${b.median} / ${b.top10}` : "–"} | ${b?.zeros ?? "–"} |`);
++  }
++  out.push("");
++  out.push(`- Paired steps (median of per-seed differences), tuning: ${stepsLine(g.tuning)}; fresh: ${stepsLine(g.fresh)}.`);
++  for (const [nm, set] of [["tuning", g.tuning], ["fresh", g.fresh]] as const)
++    if (set.ceiling.seeds) out.push(`- Ceiling, ${nm} seeds: median ${set.ceiling.median}, lowest ${set.ceiling.lowest}; ${set.ceiling.belowMax} of ${set.ceiling.seeds} seeds below ${g.max}. Near-perfect scores a median ${Math.round(set.nearShare * 100)} % of its seed's ceiling.`);
++  if (g.max > 150) out.push(`- Gates: ${gates(g, before).join("; ")}.`);
++  out.push(`- Flags: ${g.flags.length ? g.flags.join("; ") : "none (medians rise level by level; good → near-perfect ≥ 25, near-perfect → elite ≥ 10)"}.`);
++  return out.join("\n");
++}
++
++export function summaryRow(g: GameReport): string {
++  const m = (l: SkillLevel) => medianOf(g.fresh, l) ?? "–";
++  return `| ${gameDisplayName(g.type as never)} | ${g.source} | ${g.max} | ${HUMAN.map(m).join(" / ")} | ${medianOf(g.fresh, "perfect") ?? "–"} | ${g.fresh.ceiling.belowMax} / ${g.fresh.ceiling.lowest} | ${g.flags.length ? g.flags.map((f) => f.replace(/^fresh: |^tuning: /, (x) => x)).join("; ") : "–"} |`;
++}
++
++if (import.meta.main) {
++  const reports: GameReport[] = [];
++  for (const src of sources) {
++    const types = [...new Set(src.records.map((r) => r.type as string))];
++    for (const type of types) reports.push(reportGame(src.name, type, src.records.filter((r) => r.type === type), src.maxes[type] ?? 150));
++  }
++  // "Before" for a parked game's good gate: main's run of the same game (main deals the score-band revision the expansion replaces).
++  const beforeOf = (g: GameReport) => {
++    const m = reports.find((x) => x.source === "main" && x.type === g.type);
++    return g.source !== "main" && m ? { tuning: medianOf(m.tuning, "good"), fresh: medianOf(m.fresh, "good") } : undefined;
++  };
++  const md = [
++    "| Game | Source | Max | Fresh medians: weak / average / good / great / near / elite | Flawless | Seeds below max / lowest ceiling | Flags |",
++    "|---|---|---|---|---|---|---|",
++    ...reports.map(summaryRow),
++    "",
++    ...reports.map((g) => gameMarkdown(g, beforeOf(g)) + "\n"),
++  ].join("\n");
++  if (OUT) writeFileSync(OUT, md);
++  else console.log(md);
++  if (JSON_OUT) writeFileSync(JSON_OUT, JSON.stringify(reports.map((g) => ({ ...g, gates: g.max > 150 ? gates(g, beforeOf(g)) : [] })), null, 1));
++}
+diff --git a/scripts/arcade-skill-bands.ts b/scripts/arcade-skill-bands.ts
+index d681da23..5896c6bf 100644
+--- a/scripts/arcade-skill-bands.ts
++++ b/scripts/arcade-skill-bands.ts
+@@ -36,11 +36,16 @@
+  * Tempo, Slice and Coral Pop; Mixed Signals and Pull! are engine games, measured
+  * by scripts/arcade-tuning-g2-engine-bands.ts with the puzzle-fairness kits).
+  * --rev=g3 does the same for batch 3 (a game's `tuneg3`: Grappler, Orbit and Ball Tracker).
+- * --rev=x measures a game's expansion (a game's `expand`, Oct 2026: Grappler swingRev 12) against the revision
+- * rooms dealt before it (`expandBefore`), on the seeds rooms deal each revision (`seedForRev`).
++ * --rev=x measures a world expansion (LIVE_BANDS' `rev` once it has a `strictRev`, docs/scoring-200.md) against the
++ * band-3 revision before it (its `strictRev`): "live" is the band-3 revision, "next" the expansion.
+  * --rev=now measures the revision rooms deal today (LIVE_BANDS in src/lib/arcade/liveBands.ts), reported as
+  * "live": the scoring-targets audit (18 Oct 2026, docs/scoring-targets.md) ran it before and after.
+- * --levels=average,near limits the levels. --save=<dir> writes each run's
++ * --levels=average,near limits the levels (default the four core levels; --levels=all adds weak, elite
++ * and perfect, scripts/arcade-skill-bands/human.ts). --from=N starts the seed samples at n = N (fresh
++ * seeds: --from=10000). Each level plays the same seeds (paired runs). --bots=v1 plays the bots as the
++ * checks pin them (BotCtx.fixes off: no Oct 2026 competence fixes, docs/arcade-bands-elite.md).
++ * --jobs splits the work by game and level. scripts/arcade-bands-elite.ts turns --json files into the
++ * elite report. --save=<dir> writes each run's
+  * encoded log (for fixtures). Not a check: it has no pass/fail and is not run
+  * by run-checks or CI. One game at 30 seeds × 4 levels takes ~10 s to a few
+  * minutes depending on the bot.
+@@ -51,10 +56,11 @@ import { existsSync, mkdirSync, writeFileSync } from "node:fs";
+ import { cpus } from "node:os";
+ import { appendClientCounters, arcadeCounters } from "../src/lib/arcade/diagnostics";
+ import { GAMES, liveBefore, liveBeforeG1, type GameSpec } from "./arcade-skill-bands/games";
+-import { Human, LEVELS, LEVEL_LABEL, type SkillLevel } from "./arcade-skill-bands/human";
++import { ALL_LEVELS, Human, LEVELS, LEVEL_LABEL, type SkillLevel } from "./arcade-skill-bands/human";
+ import type { SkillBot } from "./arcade-skill-bands/bot";
+ import { UNITS } from "./arcade-skill-bands/units";
+ import { LIVE_BANDS } from "../src/lib/arcade/liveBands";
++import { roundMaxFor } from "../src/lib/duel/roundMax";
+ 
+ const args = process.argv.slice(2);
+ const opt = (name: string) => args.find((a) => a.startsWith(`--${name}=`))?.slice(name.length + 3);
+@@ -63,7 +69,9 @@ const REV_MODE = (opt("rev") ?? "live") as "live" | "next" | "both" | "current"
+ const JOBS = Number(opt("jobs") ?? 1);
+ const JSON_PATH = opt("json");
+ const SAVE_DIR = opt("save");
+-const LEVEL_LIST = (opt("levels")?.split(",") ?? [...LEVELS]) as SkillLevel[];
++const LEVEL_LIST = (opt("levels") === "all" ? [...ALL_LEVELS] : (opt("levels")?.split(",") ?? [...LEVELS])) as SkillLevel[];
++const FROM = Number(opt("from") ?? 0);
++const FIXES = opt("bots") !== "v1";
+ const CHILD = args.includes("--child");
+ const ONLY = args.filter((a) => !a.startsWith("--"));
+ 
+@@ -72,6 +80,8 @@ export interface RunRecord {
+   rev: number | null;
+   which: "live" | "next" | "tuned";
+   level: SkillLevel;
++  /** The sample index (roomSeed(n) and the like): every level plays the same n. */
++  n: number;
+   seed: number;
+   score: number;
+   counters: Record<string, number>;
+@@ -93,11 +103,11 @@ async function loadBot(type: string): Promise<SkillBot | null> {
+ 
+ const CHECKPOINT_EVERY = 300;
+ 
+-function playOne(spec: GameSpec, bot: SkillBot, rev: number | null, which: "live" | "next" | "tuned", level: SkillLevel, seed: number): RunRecord & { raw: string } {
++function playOne(spec: GameSpec, bot: SkillBot, rev: number | null, which: "live" | "next" | "tuned", level: SkillLevel, n: number, seed: number): RunRecord & { raw: string } {
+   const started = performance.now();
+   const game = spec.gameFor(rev, seed);
+   const human = new Human(spec.type, seed, level);
+-  const out = bot({ game, seed, rev, human });
++  const out = bot({ game, seed, rev, human, fixes: FIXES });
+   // Re-drive the sim from the bot's log alone, exactly as the phone records it.
+   let state = game.init(seed);
+   const checkpoints: unknown[] = [];
+@@ -120,6 +130,7 @@ function playOne(spec: GameSpec, bot: SkillBot, rev: number | null, which: "live
+     rev,
+     which,
+     level,
++    n,
+     seed,
+     score: result.score,
+     counters,
+@@ -140,14 +151,23 @@ async function runGame(spec: GameSpec): Promise<RunRecord[]> {
+   }
+   const revs: ["live" | "next" | "tuned", number | null][] = [];
+   if (REV_MODE === "x") {
+-    // A game's expansion (Oct 2026, docs/expansions/): the revision rooms dealt before it ("live") against the expansion ("next").
+-    if (spec.expand === undefined || spec.expandBefore === undefined) console.error(`${spec.type}: no expansion revision`);
+-    else revs.push(["live", spec.expandBefore], ["next", spec.expand]);
++    // World expansions (docs/scoring-200.md): the band-3 revision ("live") against the stamp rooms deal now ("next").
++    const live = (LIVE_BANDS as Record<string, { rev: number; strictRev?: number }>)[spec.type];
++    if (live?.strictRev === undefined) console.error(`${spec.type}: no expansion revision`);
++    else revs.push(["live", live.strictRev], ["next", live.rev]);
+   } else if (REV_MODE === "now") {
+     // The revision rooms deal today (LIVE_BANDS), as "live": the scoring-targets audit (Oct 2026).
+-    const now = (LIVE_BANDS as Record<string, { rev: number }>)[spec.type]?.rev;
++    // (A branch whose entry names the revision rooms deal separately, `dealt`, measures that one.)
++    const entry = (LIVE_BANDS as Record<string, { rev: number; dealt?: number }>)[spec.type];
++    const now = entry?.dealt ?? entry?.rev;
+     if (now === undefined) console.error(`${spec.type}: no live band`);
+     else revs.push(["live", now]);
++  } else if (REV_MODE === "x") {
++    // The 200-point expansions (Oct 2026, docs/scoring-200.md): the revision rooms dealt before it ("live")
++    // against the expansion's ("next").
++    const live = (LIVE_BANDS as Record<string, { rev: number; strictRev?: number }>)[spec.type];
++    if (live?.strictRev === undefined) console.error(`${spec.type}: no expansion revision`);
++    else revs.push(["live", live.strictRev], ["next", live.rev]);
+   } else if (REV_MODE === "g3") {
+     // Taller worlds batch 3: the revision rooms stamped before it ("live") against the taller one ("next").
+     const before = liveBeforeG1(spec);
+@@ -203,9 +223,9 @@ async function runGame(spec: GameSpec): Promise<RunRecord[]> {
+   const records: RunRecord[] = [];
+   for (const [which, rev] of revs)
+     for (const level of LEVEL_LIST)
+-      for (let n = 0; n < SEEDS; n++) {
+-        const seed = spec.seedForRev?.(n, rev) ?? spec.seedFor(n);
+-        const rec = playOne(spec, bot, rev, which, level, seed);
++      for (let n = FROM; n < FROM + SEEDS; n++) {
++        const seed = spec.seedFor(n);
++        const rec = playOne(spec, bot, rev, which, level, n, seed);
+         if (SAVE_DIR) {
+           mkdirSync(`${SAVE_DIR}/${spec.type}`, { recursive: true });
+           writeFileSync(`${SAVE_DIR}/${spec.type}/${which}-${level}-${n}.txt`, rec.raw);
+@@ -271,14 +291,15 @@ async function main() {
+       console.error(`${spec.type}: ${recs.length} runs in ${((performance.now() - t0) / 1000).toFixed(1)} s`);
+     }
+   } else {
+-    const queue = [...specs];
+-    const passArgs = args.filter((a) => a.startsWith("--") && !a.startsWith("--jobs=") && !a.startsWith("--json="));
++    // One job per game and level (the slow bots' levels run side by side).
++    const queue = specs.flatMap((spec) => LEVEL_LIST.map((level) => ({ spec, level })));
++    const passArgs = args.filter((a) => a.startsWith("--") && !a.startsWith("--jobs=") && !a.startsWith("--json=") && !a.startsWith("--levels="));
+     const worker = async () => {
+       while (queue.length) {
+-        const spec = queue.shift()!;
++        const { spec, level } = queue.shift()!;
+         const t0 = performance.now();
+         const recs = await new Promise<RunRecord[]>((resolve) => {
+-          const child = spawn("bun", [process.argv[1]!, spec.type, "--child", ...passArgs], { stdio: ["ignore", "pipe", "inherit"] });
++          const child = spawn("bun", [process.argv[1]!, spec.type, "--child", `--levels=${level}`, ...passArgs], { stdio: ["ignore", "pipe", "inherit"] });
+           let out = "";
+           child.stdout.on("data", (d) => (out += d));
+           child.on("close", () => {
+@@ -287,14 +308,14 @@ async function main() {
+           });
+         });
+         records.push(...recs);
+-        console.error(`${spec.type}: ${recs.length} runs in ${((performance.now() - t0) / 1000).toFixed(1)} s`);
++        console.error(`${spec.type} ${level}: ${recs.length} runs in ${((performance.now() - t0) / 1000).toFixed(1)} s`);
+       }
+     };
+     await Promise.all(Array.from({ length: Math.min(JOBS, cpus().length) }, worker));
+-    records = specs.flatMap((s) => records.filter((r) => r.type === s.type));
++    records = specs.flatMap((s) => LEVEL_LIST.flatMap((l) => records.filter((r) => r.type === s.type && r.level === l)));
+   }
+   printTable(records);
+-  if (JSON_PATH) writeFileSync(JSON_PATH, JSON.stringify({ seeds: SEEDS, rev: REV_MODE, records, summary: summarise(records) }, null, 1));
++  if (JSON_PATH) writeFileSync(JSON_PATH, JSON.stringify({ seeds: SEEDS, from: FROM, rev: REV_MODE, bots: FIXES ? "v2" : "v1", maxes: Object.fromEntries(specs.map((sp) => [sp.type, roundMaxFor(sp.type)])), records, summary: summarise(records) }, null, 1));
+ }
+ 
+ await main();
+diff --git a/scripts/arcade-skill-bands/bot.ts b/scripts/arcade-skill-bands/bot.ts
+index edca94e4..7f73addc 100644
+--- a/scripts/arcade-skill-bands/bot.ts
++++ b/scripts/arcade-skill-bands/bot.ts
+@@ -11,6 +11,12 @@ export interface BotCtx {
+   /** Revision stamped on the puzzle. */
+   rev: number | null;
+   human: Human;
++  /**
++   * The Oct 2026 competence fixes (docs/arcade-bands-elite.md: bots that under-played, Rainbow
++   * Bridge first). Off unless the band tool sets it, so the checks that run bots keep the bots
++   * they were proved with.
++   */
++  fixes?: boolean;
+ }
+ 
+ /** A bot returns the input log the phone would submit: events, or taps for tap-only games. */
+diff --git a/scripts/arcade-skill-bands/bots/balltrack.ts b/scripts/arcade-skill-bands/bots/balltrack.ts
+index 487f273e..2b90ea4e 100644
+--- a/scripts/arcade-skill-bands/bots/balltrack.ts
++++ b/scripts/arcade-skill-bands/bots/balltrack.ts
+@@ -37,11 +37,11 @@ import type { SkillLevel } from "../human";
+ /** World px per phone px (the 700-wide board on a ~390-px phone). */
+ const WORLD_PER_PX = BT_W / 390;
+ /** Shortest gap between deliberate taps, ticks (≈ 6–8.5 taps a second). */
+-const TAP_GAP: Record<SkillLevel, number> = { average: 10, good: 9, great: 8, near: 7 };
++const TAP_GAP: Record<SkillLevel, number> = { weak: 11, average: 10, good: 9, great: 8, near: 7, elite: 6, perfect: 6 };
+ /** Marbles whose routes the player keeps in mind at once (released or next out). */
+-const HORIZON: Record<SkillLevel, number> = { average: 2, good: 3, great: 4, near: 5 };
++const HORIZON: Record<SkillLevel, number> = { weak: 1, average: 2, good: 3, great: 4, near: 5, elite: 6, perfect: 6 };
+ /** Chance of allowing for a warned bottom-row change when planning a marble that lands after it. */
+-const HEED: Record<SkillLevel, number> = { average: 0.5, good: 0.7, great: 0.85, near: 0.95 };
++const HEED: Record<SkillLevel, number> = { weak: 0.3, average: 0.5, good: 0.7, great: 0.85, near: 0.95, elite: 1, perfect: 1 };
+ /** How many steps ahead of a marble the player sets a tube (just-in-time, not last-instant). */
+ const LEAD_STEPS = 4;
+ const WARN_TICKS = 5 * 60;
+diff --git a/scripts/arcade-skill-bands/bots/beat.ts b/scripts/arcade-skill-bands/bots/beat.ts
+index 8e3a4515..98d1d687 100644
+--- a/scripts/arcade-skill-bands/bots/beat.ts
++++ b/scripts/arcade-skill-bands/bots/beat.ts
+@@ -14,13 +14,14 @@
+  */
+ import { BEAT_INPUT_RELEASE, BEAT_INPUT_SWIPE, BEAT_INPUT_TAP, BEAT_LANES, type BeatState } from "../../../src/lib/arcade/beat";
+ import { msToTicks } from "../human";
++import type { SkillLevel } from "../human";
+ import { driveEvents, Plan, type SkillBot } from "../bot";
+ 
+ /**
+  * Notes a second this player reads and plays comfortably (a perception/motor
+  * constant). Above about 70 % of it the passage starts to overload them.
+  */
+-const CAPACITY: Record<string, number> = { average: 4.5, good: 5.5, great: 6.5, near: 8 };
++const CAPACITY: Record<SkillLevel, number> = { weak: 3.5, average: 4.5, good: 5.5, great: 6.5, near: 8, elite: 8.75, perfect: 8.75 };
+ 
+ export const bot: SkillBot = ({ game, seed, human }) => {
+   const init = game.init(seed) as BeatState;
+diff --git a/scripts/arcade-skill-bands/bots/bintoss.ts b/scripts/arcade-skill-bands/bots/bintoss.ts
+index 37b09205..4b641972 100644
+--- a/scripts/arcade-skill-bands/bots/bintoss.ts
++++ b/scripts/arcade-skill-bands/bots/bintoss.ts
+@@ -35,12 +35,13 @@ import {
+   BINTOSS_VX_MAX,
+   type BinTossState,
+ } from "../../../src/lib/arcade/binToss";
++import type { SkillLevel } from "../human";
+ import { driveEvents, type SkillBot } from "../bot";
+ 
+ /** Relative error judging how far a wind point pushes (shared with Flightpath). */
+-const WIND_READ: Record<string, number> = { average: 0.3, good: 0.2, great: 0.12, near: 0.06 };
++const WIND_READ: Record<SkillLevel, number> = { weak: 0.4, average: 0.3, good: 0.2, great: 0.12, near: 0.06, elite: 0.03, perfect: 0.03 };
+ /** Chance of waiting for the sliding bucket's turnaround rather than leading it through the middle. */
+-const WAIT_END: Record<string, number> = { average: 0.35, good: 0.6, great: 0.85, near: 0.95 };
++const WAIT_END: Record<SkillLevel, number> = { weak: 0.1, average: 0.35, good: 0.6, great: 0.85, near: 0.95, elite: 1, perfect: 1 };
+ 
+ /** The fastest launch a drag can give (a full 220-px drag), with a little room. */
+ const MAX_SPEED = Math.floor((BINTOSS_REF_V * DRAG_MAX_SCALE_256) / 256) - 10;
+diff --git a/scripts/arcade-skill-bands/bots/breaker.ts b/scripts/arcade-skill-bands/bots/breaker.ts
+index 515ce5ce..903c7248 100644
+--- a/scripts/arcade-skill-bands/bots/breaker.ts
++++ b/scripts/arcade-skill-bands/bots/breaker.ts
+@@ -32,19 +32,20 @@ import {
+   type BrkBall,
+   type BrkState,
+ } from "../../../src/lib/arcade/breaker";
++import type { SkillLevel } from "../human";
+ import { driveEvents, type SkillBot } from "../bot";
+ 
+ /** Finger top speed, px a tick (world px are phone px: the world is 390 wide). */
+-const FINGER: Record<string, number> = { average: 26, good: 32, great: 38, near: 44 };
++const FINGER: Record<SkillLevel, number> = { weak: 20, average: 26, good: 32, great: 38, near: 44, elite: 47, perfect: 47 };
+ /** Landing-read error per tick of remaining flight, px. */
+-const READ: Record<string, number> = { average: 0.22, good: 0.15, great: 0.1, near: 0.06 };
++const READ: Record<SkillLevel, number> = { weak: 0.29, average: 0.22, good: 0.15, great: 0.1, near: 0.06, elite: 0.04, perfect: 0.04 };
+ /** Chance of trying to angle a return towards the bricks (instead of just catching it centrally). */
+-const STEER: Record<string, number> = { average: 0.1, good: 0.35, great: 0.6, near: 0.85 };
++const STEER: Record<SkillLevel, number> = { weak: 0, average: 0.1, good: 0.35, great: 0.6, near: 0.85, elite: 0.975, perfect: 0.975 };
+ /** Chance of going for a falling capsule at all. */
+-const CAPSULE: Record<string, number> = { average: 0.55, good: 0.75, great: 0.9, near: 0.97 };
++const CAPSULE: Record<SkillLevel, number> = { weak: 0.35, average: 0.55, good: 0.75, great: 0.9, near: 0.97, elite: 1, perfect: 1 };
+ /** Tap: finger down-to-up ticks (must stay under 150 ms = 9 ticks), and finger back down and moving again. */
+-const TAP: Record<string, number> = { average: 7, good: 6, great: 6, near: 5 };
+-const REGRIP: Record<string, number> = { average: 12, good: 10, great: 8, near: 6 };
++const TAP: Record<SkillLevel, number> = { weak: 8, average: 7, good: 6, great: 6, near: 5, elite: 4, perfect: 4 };
++const REGRIP: Record<SkillLevel, number> = { weak: 14, average: 12, good: 10, great: 8, near: 6, elite: 5, perfect: 5 };
+ 
+ const LO = BRK_WALL + BRK_BALL_R;
+ const HI = BRK_WORLD_W - BRK_WALL - BRK_BALL_R;
+diff --git a/scripts/arcade-skill-bands/bots/bubble.ts b/scripts/arcade-skill-bands/bots/bubble.ts
+index a636bc83..1a9f5f38 100644
+--- a/scripts/arcade-skill-bands/bots/bubble.ts
++++ b/scripts/arcade-skill-bands/bots/bubble.ts
+@@ -16,6 +16,7 @@
+  */
+ import { dragLaunch, type ArcadeInputEvent } from "../../../src/lib/arcade/engine";
+ import { bubIsSpecial, bubRemaining, bubCellY, BUB_COLS, BUB_INPUT_SHOT, BUB_MAX_ROWS, BUB_R, BUB_SHOOTER_LINE, BUB_SPEED, bubSpeed, type BubState } from "../../../src/lib/arcade/bubble";
++import type { SkillLevel } from "../human";
+ import { driveEvents, Plan, type SkillBot } from "../bot";
+ 
+ /** Typical drag length when aiming, phone px (the world is 390 px wide, so 1 world px = 1 phone px). */
+@@ -23,7 +24,7 @@ const DRAG_PX = 150;
+ /** Bank shots are harder to read off the trail: extra pointing error per bounce (fraction). */
+ const BANK_ERR = 0.6;
+ /** Chance a bank-shot target is noticed at all, per level. */
+-const BANK_SEE: Record<string, number> = { average: 0.45, good: 0.65, great: 0.82, near: 0.93 };
++const BANK_SEE: Record<SkillLevel, number> = { weak: 0.25, average: 0.45, good: 0.65, great: 0.82, near: 0.93, elite: 0.985, perfect: 0.985 };
+ /** Base (average-player) think time per shot, ms; a special in the shooter adds more. */
+ const THINK_MS = 1100;
+ const SPECIAL_THINK_MS = 500;
+diff --git a/scripts/arcade-skill-bands/bots/bullseye.ts b/scripts/arcade-skill-bands/bots/bullseye.ts
+index e93cfbf4..fc0dfa5f 100644
+--- a/scripts/arcade-skill-bands/bots/bullseye.ts
++++ b/scripts/arcade-skill-bands/bots/bullseye.ts
+@@ -39,12 +39,13 @@ import {
+   type BullseyeState,
+ } from "../../../src/lib/arcade/bullseye";
+ import { DRAG_FULL_PX, DRAG_MAX_SCALE_256, DRAG_MIN_PX, DRAG_MIN_SCALE_256 } from "../../../src/lib/arcade/engine";
++import type { SkillLevel } from "../human";
+ import { driveEvents, type SkillBot } from "../bot";
+ 
+ /** Relative error judging how far a wind point pushes (shared with Swish). */
+-const WIND_READ: Record<string, number> = { average: 0.3, good: 0.2, great: 0.12, near: 0.06 };
++const WIND_READ: Record<SkillLevel, number> = { weak: 0.4, average: 0.3, good: 0.2, great: 0.12, near: 0.06, elite: 0.03, perfect: 0.03 };
+ /** Chance of waiting for the drifting target's turnaround rather than leading it through the middle. */
+-const WAIT_END: Record<string, number> = { average: 0.35, good: 0.6, great: 0.85, near: 0.95 };
++const WAIT_END: Record<SkillLevel, number> = { weak: 0.1, average: 0.35, good: 0.6, great: 0.85, near: 0.95, elite: 1, perfect: 1 };
+ 
+ /** Landing distance per launch unit (the sim's flight constant). */
+ const REACH = (BULLSEYE_BOW_Y - BULLSEYE_CY) / BULLSEYE_REF_V;
+diff --git a/scripts/arcade-skill-bands/bots/burst.ts b/scripts/arcade-skill-bands/bots/burst.ts
+index 3add7f94..fc6edcf0 100644
+--- a/scripts/arcade-skill-bands/bots/burst.ts
++++ b/scripts/arcade-skill-bands/bots/burst.ts
+@@ -20,18 +20,19 @@ import {
+   type BurstBall,
+   type BurstState,
+ } from "../../../src/lib/arcade/burst";
++import type { SkillLevel } from "../human";
+ import { driveEvents, Plan, type SkillBot } from "../bot";
+ 
+ /** Path-read error per tick looked ahead, px. */
+-const READ: Record<string, number> = { average: 0.3, good: 0.2, great: 0.13, near: 0.08 };
++const READ: Record<SkillLevel, number> = { weak: 0.4, average: 0.3, good: 0.2, great: 0.13, near: 0.08, elite: 0.055, perfect: 0.055 };
+ /** How far ahead (ticks) the player checks that a spot is safe. */
+-const LOOKAHEAD: Record<string, number> = { average: 28, good: 36, great: 44, near: 52 };
++const LOOKAHEAD: Record<SkillLevel, number> = { weak: 20, average: 28, good: 36, great: 44, near: 52, elite: 56, perfect: 56 };
+ /** Chance of going for a falling icon. */
+-const ICON: Record<string, number> = { average: 0.5, good: 0.7, great: 0.85, near: 0.95 };
++const ICON: Record<SkillLevel, number> = { weak: 0.3, average: 0.5, good: 0.7, great: 0.85, near: 0.95, elite: 1, perfect: 1 };
+ /** How many atoms (the nearest) the player keeps an eye on for danger at once. */
+-const WATCH: Record<string, number> = { average: 2, good: 3, great: 4, near: 6 };
++const WATCH: Record<SkillLevel, number> = { weak: 1, average: 2, good: 3, great: 4, near: 6, elite: 7, perfect: 7 };
+ /** Shortest gap between two deliberate button presses, ticks (about 6–8.5 a second). */
+-const PRESS_GAP: Record<string, number> = { average: 10, good: 9, great: 8, near: 7 };
++const PRESS_GAP: Record<SkillLevel, number> = { weak: 11, average: 10, good: 9, great: 8, near: 7, elite: 6, perfect: 6 };
+ 
+ const FP = 256;
+ const WALK = 4;
+diff --git a/scripts/arcade-skill-bands/bots/cross.ts b/scripts/arcade-skill-bands/bots/cross.ts
+index 4328ab0c..ffe02c56 100644
+--- a/scripts/arcade-skill-bands/bots/cross.ts
++++ b/scripts/arcade-skill-bands/bots/cross.ts
+@@ -33,12 +33,13 @@ import {
+   type CrossCourse,
+   type CrossState,
+ } from "../../../src/lib/arcade/cross";
++import type { SkillLevel } from "../human";
+ import { driveEvents, type SkillBot } from "../bot";
+ 
+ /** Fastest repeated swiping, ticks between swipes (a swipe is a down-move-up gesture). */
+-const SWIPE_GAP: Record<string, number> = { average: 18, good: 15, great: 13, near: 11 };
++const SWIPE_GAP: Record<SkillLevel, number> = { weak: 21, average: 18, good: 15, great: 13, near: 11, elite: 10, perfect: 10 };
+ /** Relative misjudgement of when traffic arrives (sd), per lane read. */
+-const READ: Record<string, number> = { average: 0.15, good: 0.11, great: 0.08, near: 0.05 };
++const READ: Record<SkillLevel, number> = { weak: 0.19, average: 0.15, good: 0.11, great: 0.08, near: 0.05, elite: 0.035, perfect: 0.035 };
+ /** Extra clear time (ticks) a player wants in the lane they hop into, beyond their next swipe. */
+ const MARGIN = 12;
+ /** Clear time (ticks) wanted just before landing too, so a hop never lands on a tail. */
+diff --git a/scripts/arcade-skill-bands/bots/flip.ts b/scripts/arcade-skill-bands/bots/flip.ts
+index a602ce09..f6a6e5c6 100644
+--- a/scripts/arcade-skill-bands/bots/flip.ts
++++ b/scripts/arcade-skill-bands/bots/flip.ts
+@@ -13,6 +13,14 @@
+  * whether to go for one; if a route over the known stretch takes it, they
+  * plan for that, otherwise they let it go. Slips: a flip well off its moment.
+  *
++ * Competence fix (Oct 2026, ctx.fixes; docs/arcade-bands-elite.md): a star (or trail), once read, is taken into
++ * the plan at once, and a tap planned for later than a reaction from then is held and re-planned (the
++ * bot used to re-plan only for hazards, so a flip already lined up could cost a star that was read in
++ * time to keep it; even the flawless bot lost a gold star that way on some seeds). Rev 7: a double
++ * flip is tried only while a route still takes the star and trail the plan is going for, and not once
++ * the combo points are capped (double flips cost the flawless bot a gold star, 42 points, on a third
++ * of the seeds).
++ *
+  * flipRev 7 (the expansion): the same player, on the course's own tick-by-tick x. Star
+  * trails are planned like stars (decided on first sight, kept only while a route takes all
+  * five; the window that takes them is narrow, so timing jitter costs trail stars). Double
+@@ -24,10 +32,12 @@ import {
+   FLIP_INPUT_TAP,
+   FLIP_RUNNER_HALF_PX_V2,
+   FLIP_RUN_TICKS,
++  FLIP_V7_COMBO_CAP,
+   FLIP_WORLD_W,
+   flipSpeed,
+   type FlipState,
+ } from "../../../src/lib/arcade/flip";
++import type { SkillLevel } from "../human";
+ import { driveEvents, type SkillBot } from "../bot";
+ 
+ const FP = 256;
+@@ -35,14 +45,14 @@ const FP = 256;
+ const VIEW_AHEAD = (FLIP_WORLD_W - 90) * FP;
+ const HALF = FLIP_RUNNER_HALF_PX_V2 * FP;
+ /** Chance of deciding to go for a star when it comes into view. */
+-const STAR_TRY: Record<string, number> = { average: 0.5, good: 0.7, great: 0.85, near: 0.95 };
++const STAR_TRY: Record<SkillLevel, number> = { weak: 0.3, average: 0.5, good: 0.7, great: 0.85, near: 0.95, elite: 1, perfect: 1 };
+ /** Rev 7: chance of going for a star trail, and of trying a double flip after a landing near a hazard. */
+-const TRAIL_TRY: Record<string, number> = { average: 0.35, good: 0.6, great: 0.8, near: 0.95 };
+-const COMBO_TRY: Record<string, number> = { average: 0.1, good: 0.3, great: 0.55, near: 0.8 };
++const TRAIL_TRY: Record<SkillLevel, number> = { weak: 0.1, average: 0.35, good: 0.6, great: 0.8, near: 0.95, elite: 1, perfect: 1 };
++const COMBO_TRY: Record<SkillLevel, number> = { weak: 0, average: 0.1, good: 0.3, great: 0.55, near: 0.8, elite: 0.925, perfect: 0.925 };
+ const FULL_TRAIL = 31;
+ const TAP = { k: FLIP_INPUT_TAP, a: 0, b: 0, c: 0, d: 0 };
+ 
+-export const bot: SkillBot = ({ game, seed, human }) => {
++export const bot: SkillBot = ({ game, seed, human, fixes }) => {
+   const level = human.level;
+   const lag = human.lagTicks();
+   const commitLead = Math.round(human.p.reactionMs[0] / (1000 / 60));
+@@ -64,6 +74,9 @@ export const bot: SkillBot = ({ game, seed, human }) => {
+   const trailWant: boolean[] = [];
+   /** Rev 7: the tick a double flip is tried at, after a landing. */
+   let comboAt: number | null = null;
++  /** Fixes: the star and trail the current plan takes (-1 none), so a double flip never costs them. */
++  let goalStar = -1;
++  let goalTrail = -1;
+   const stepX = (tick: number) => (v7 ? v7.xs[tick]! - v7.xs[tick - 1]! : flipSpeed(tick));
+ 
+   /**
+@@ -174,6 +187,17 @@ export const bot: SkillBot = ({ game, seed, human }) => {
+         trailWant.push(human.chance(TRAIL_TRY[level]!));
+       }
+       for (let i = 0; i < segReady.length; i++) if (segReady[i] === t) dirty = true;
++      // Fixes: a wanted star, once read, is taken into the plan straight away (as a hazard is), and a tap
++      // planned but not yet under way (more than a reaction off) is held for it.
++      if (fixes) {
++        let read = false;
++        for (let i = 0; i < starReady.length; i++) if (starReady[i] === t && starWant[i] && !((s.got ?? 0) & (1 << i))) read = true;
++        for (let i = 0; i < trailReady.length; i++) if (trailReady[i] === t && trailWant[i]) read = true;
++        if (read) {
++          dirty = true;
++          if (pending !== null && pending - t > commitLead) pending = null;
++        }
++      }
+       if (v7 && s.flipT === 0 && lastFlipT > 0 && human.chance(COMBO_TRY[level]!)) comboAt = t + human.int(1, 6);
+       if ((s.flipT === 0 && lastFlipT > 0) || t >= replanAt) dirty = true;
+       lastFlipT = s.flipT;
+@@ -225,6 +249,8 @@ export const bot: SkillBot = ({ game, seed, human }) => {
+           starWant[star] = false;
+           plan = solve(s, t, H, -1);
+         }
++        goalStar = star >= 0 && starWant[star] ? star : -1;
++        goalTrail = trail >= 0 && trailWant[trail] ? trail : -1;
+         window = plan.idle ? null : plan.win;
+         if (!plan.idle && !plan.win) window = null;
+       }
+@@ -233,7 +259,9 @@ export const bot: SkillBot = ({ game, seed, human }) => {
+       if (v7 && comboAt !== null && t >= comboAt) {
+         const at = comboAt;
+         comboAt = null;
+-        if (pending === null && s.flipT === 0 && t <= at + 1) {
++        // Fixes: no double flips once they score nothing more (the combo points' cap shows on the HUD).
++        const capped = fixes && (s.comboPts ?? 0) >= FLIP_V7_COMBO_CAP;
++        if (pending === null && s.flipT === 0 && t <= at + 1 && !capped) {
+           const next = game.step(s, { ...TAP, t }) as FlipState;
+           if (next.ended !== 2 && (next.combos ?? 0) > (s.combos ?? 0)) {
+             let H = 0;
+@@ -242,7 +270,10 @@ export const bot: SkillBot = ({ game, seed, human }) => {
+               H++;
+               x += stepX(next.tick + H);
+             }
+-            if (solve(next, t + 1, H, -1).alive) {
++            // Fixes: and only when a route still takes the star and trail the plan is going for (those in this stretch).
++            const gs = fixes && goalStar >= 0 && !((s.got ?? 0) & (1 << goalStar)) && stars[goalStar]!.x + HALF <= x ? goalStar : -1;
++            const gt = fixes && goalTrail >= 0 && (s.trailGot?.[goalTrail] ?? 0) !== FULL_TRAIL && trails[goalTrail]!.x[4]! + HALF <= x ? goalTrail : -1;
++            if (solve(next, t + 1, H, gs, gt).alive) {
+               window = null;
+               dirty = true;
+               return TAP;
+diff --git a/scripts/arcade-skill-bands/bots/hover.ts b/scripts/arcade-skill-bands/bots/hover.ts
+index 8771bc76..f18653bb 100644
+--- a/scripts/arcade-skill-bands/bots/hover.ts
++++ b/scripts/arcade-skill-bands/bots/hover.ts
+@@ -16,6 +16,7 @@
+  * grows with how far ahead it has to be judged. Two-gap barriers: the nearer-looking gap (blurred pick).
+  * Slips: now and then a tap goes well off its moment.
+  */
++import type { SkillLevel } from "../human";
+ import {
+   HOVER_DISC_R,
+   HOVER_DISC_X,
+@@ -36,11 +37,11 @@ import {
+ import { driveTaps, type SkillBot } from "../bot";
+ 
+ /** Chance of deciding to go for a gold star (each one sits near a lip: a risky line). */
+-const STAR_TRY: Record<string, number> = { average: 0.25, good: 0.5, great: 0.75, near: 0.9 };
++const STAR_TRY: Record<SkillLevel, number> = { weak: 0, average: 0.25, good: 0.5, great: 0.75, near: 0.9, elite: 0.975, perfect: 0.975 };
+ /** Least room (px) to the gap's edges a player accepts to brush a star (risk appetite). */
+-const STAR_ROOM: Record<string, number> = { average: 10, good: 10, great: 10, near: 10 };
++const STAR_ROOM: Record<SkillLevel, number> = { weak: 10, average: 10, good: 10, great: 10, near: 10, elite: 10, perfect: 10 };
+ /** Read error on where a sliding gap will be, px per tick ahead (1 world px = 1 phone px). */
+-const READ: Record<string, number> = { average: 0.3, good: 0.2, great: 0.13, near: 0.08 };
++const READ: Record<SkillLevel, number> = { weak: 0.4, average: 0.3, good: 0.2, great: 0.13, near: 0.08, elite: 0.055, perfect: 0.055 };
+ /** Fastest deliberate tapping: 8 ticks apart (7.5 taps a second). */
+ const MIN_TAP_GAP = 8;
+ /** The last taps before a barrier are planned once its entry is this close (ticks). */
+diff --git a/scripts/arcade-skill-bands/bots/inkbridge.ts b/scripts/arcade-skill-bands/bots/inkbridge.ts
+index 19cb032a..669d7adf 100644
+--- a/scripts/arcade-skill-bands/bots/inkbridge.ts
++++ b/scripts/arcade-skill-bands/bots/inkbridge.ts
+@@ -41,13 +41,13 @@ import type { Human, SkillLevel } from "../human";
+ /** World px per phone px (the 390-wide world fills a ~390-px phone). */
+ const WORLD_PER_PX = INK_WORLD_W / 390;
+ /** Careful tracing speed for a pre-release line, px a tick. */
+-const DRAW: Record<SkillLevel, number> = { average: 6, good: 7, great: 8, near: 9 };
++const DRAW: Record<SkillLevel, number> = { weak: 5, average: 6, good: 7, great: 8, near: 9, elite: 10, perfect: 10 };
+ /** Quick live-ramp stroke speed, px a tick. */
+-const DRAW_LIVE: Record<SkillLevel, number> = { average: 10, good: 12, great: 14, near: 16 };
++const DRAW_LIVE: Record<SkillLevel, number> = { weak: 8, average: 10, good: 12, great: 14, near: 16, elite: 17, perfect: 17 };
+ /** Moving pot: release read error per tick of coin flight (ticks of error per tick ahead). */
+-const READ: Record<SkillLevel, number> = { average: 0.09, good: 0.065, great: 0.045, near: 0.03 };
++const READ: Record<SkillLevel, number> = { weak: 0.115, average: 0.09, good: 0.065, great: 0.045, near: 0.03, elite: 0.022, perfect: 0.022 };
+ /** Chance of going for the gold star on a level that has one (first attempt only). */
+-const STAR_GO: Record<SkillLevel, number> = { average: 0.1, good: 0.35, great: 0.6, near: 0.85 };
++const STAR_GO: Record<SkillLevel, number> = { weak: 0, average: 0.1, good: 0.35, great: 0.6, near: 0.85, elite: 0.975, perfect: 0.975 };
+ /** The ideal live ramp is worked out for a hand that starts this many ticks after RELEASE. */
+ const IDEAL_LIVE_DELAY = 18;
+ const IDEAL_LIVE_SPEED = 12;
+diff --git a/scripts/arcade-skill-bands/bots/junction.ts b/scripts/arcade-skill-bands/bots/junction.ts
+index 58c5bc34..397d0495 100644
+--- a/scripts/arcade-skill-bands/bots/junction.ts
++++ b/scripts/arcade-skill-bands/bots/junction.ts
+@@ -23,6 +23,7 @@ import {
+   type JuncCar,
+   type JuncState,
+ } from "../../../src/lib/arcade/junction";
++import type { SkillLevel } from "../human";
+ import { driveEvents, type SkillBot } from "../bot";
+ 
+ const FP = 256;
+@@ -35,7 +36,7 @@ const DIAG_EXIT = 93_249;
+ const SPAWN_OUT = 20 * FP;
+ 
+ /** Ticks between deliberate taps (about 6–8 taps a second). */
+-const TAP_GAP: Record<string, number> = { average: 10, good: 9, great: 8, near: 7 };
++const TAP_GAP: Record<SkillLevel, number> = { weak: 11, average: 10, good: 9, great: 8, near: 7, elite: 6, perfect: 6 };
+ /** The cushion a person leaves after the last tail clears before releasing crossing traffic, ms. */
+ const CUSHION_MS = 150;
+ 
+diff --git a/scripts/arcade-skill-bands/bots/matchup.ts b/scripts/arcade-skill-bands/bots/matchup.ts
+index bbaa0c5e..ef9e3958 100644
+--- a/scripts/arcade-skill-bands/bots/matchup.ts
++++ b/scripts/arcade-skill-bands/bots/matchup.ts
+@@ -35,19 +35,20 @@ import {
+   MATCHUP_V3_SWAP_MS,
+   type MatchupState,
+ } from "../../../src/lib/arcade/matchup";
++import type { SkillLevel } from "../human";
+ import { driveEvents, Plan, type SkillBot } from "../bot";
+ 
+ /** Orientation before the first find, and a whole-board scan, for an average player (ms). */
+ const ORIENT_MS = 500;
+ const SCAN_MS = 4500;
+ /** How much further (fraction of a whole-board scan) a player keeps looking after the first find. */
+-const EXTRA_SCAN: Record<string, number> = { average: 0.02, good: 0.06, great: 0.1, near: 0.14 };
++const EXTRA_SCAN: Record<SkillLevel, number> = { weak: 0, average: 0.02, good: 0.06, great: 0.1, near: 0.14, elite: 0.16, perfect: 0.16 };
+ /** Chance of reading the board while a cascade is still falling instead of waiting for it to settle. */
+-const PLAY_THROUGH: Record<string, number> = { average: 0.15, good: 0.35, great: 0.6, near: 0.8 };
++const PLAY_THROUGH: Record<SkillLevel, number> = { weak: 0, average: 0.15, good: 0.35, great: 0.6, near: 0.8, elite: 0.9, perfect: 0.9 };
+ /** Players who know the game favour moves low on the board (they shake more loose); weight per level. */
+-const LOW_BIAS: Record<string, number> = { average: 0, good: 0.3, great: 0.6, near: 0.8 };
++const LOW_BIAS: Record<SkillLevel, number> = { weak: 0, average: 0, good: 0.3, great: 0.6, near: 0.8, elite: 0.9, perfect: 0.9 };
+ /** Chance of following a swap straight up with a second move spotted in the same look. */
+-const FOLLOW_UP: Record<string, number> = { average: 0.1, good: 0.3, great: 0.5, near: 0.7 };
++const FOLLOW_UP: Record<SkillLevel, number> = { weak: 0, average: 0.1, good: 0.3, great: 0.5, near: 0.7, elite: 0.8, perfect: 0.8 };
+ /** Swipe: from decision to the swap landing on the board, ms. */
+ const SWIPE_MS = 140;
+ 
+diff --git a/scripts/arcade-skill-bands/bots/orbit.ts b/scripts/arcade-skill-bands/bots/orbit.ts
+index fb7aaecf..35555b01 100644
+--- a/scripts/arcade-skill-bands/bots/orbit.ts
++++ b/scripts/arcade-skill-bands/bots/orbit.ts
+@@ -19,25 +19,51 @@
+  * gap; a player who goes for them (more often the better they are) aims at the best of those ticks instead of
+  * the window's middle (a narrower target, so the same timing error misses more), and better players more often
+  * let go in the first lap (perfect orbits) rather than waiting for a comfortable later window.
++ *
++ * Competence fix (ctx.fixes, Oct 2026): a player who can see the belts come round doesn't throw the
++ * rocket at a release window one or two ticks wide (near-perfect's losses were almost all such
++ * windows late in the course, with 40 s of the 90 s run to spare). Each window is judged by the chance
++ * the player's own jitter (timing and read error at that flight) lands the tap on a losing tick; the
++ * first window under the level's tolerance (RISK) is taken, else the safest one seen within the usual
++ * wait (three laps, or the belts' full turn), and anything once time runs short. Perfect judges
++ * windows by elite's jitter (the same choices) and then taps without error. Elite and perfect
++ * (protect the base): a black hole is gone for only when its window is as safe as that, else the hop;
++ * (orbitRev 11) a feature tick inside the window is aimed at only when a tap aimed there is no riskier
++ * than that tolerance (or than the window's middle), and a first-lap window is held to the same rule.
+  */
+ import { lapPhases, ORBIT_INPUT_CHECKPOINT, ORBIT_INPUT_TAP } from "../../../src/lib/arcade/orbit";
+ import type { OrbitRev3State } from "../../../src/lib/arcade/orbitRev3";
++import { PROFILES, type SkillLevel } from "../human";
+ import { driveEvents, Plan, type SkillBot } from "../bot";
+ 
+ /** Chance of going for a black hole when one is on offer. */
+-const HOLE_TRY: Record<string, number> = { average: 0.2, good: 0.45, great: 0.7, near: 0.85 };
++const HOLE_TRY: Record<SkillLevel, number> = { weak: 0, average: 0.2, good: 0.45, great: 0.7, near: 0.85, elite: 1, perfect: 1 };
+ /** Chance per hop of hesitating and letting the release point go round once more. */
+-const HESITATE: Record<string, number> = { average: 0.15, good: 0.1, great: 0.06, near: 0.03 };
++const HESITATE: Record<SkillLevel, number> = { weak: 0.2, average: 0.15, good: 0.1, great: 0.06, near: 0.03, elite: 0.015, perfect: 0 };
++/** ctx.fixes: the most loss chance a player accepts on a window before waiting for a better one. */
++const RISK: Record<SkillLevel, number> = { weak: 1, average: 0.25, good: 0.15, great: 0.08, near: 0.04, elite: 0.03, perfect: 0.03 };
++/** Normal CDF (Abramowitz–Stegun erf). */
++const phi = (z: number) => {
++  const x = Math.abs(z) / Math.SQRT2;
++  const k = 1 / (1 + 0.3275911 * x);
++  const e = 1 - ((((1.061405429 * k - 1.453152027) * k + 1.421413741) * k - 0.284496736) * k + 0.254829592) * k * Math.exp(-x * x);
++  return z >= 0 ? (1 + e) / 2 : (1 - e) / 2;
++};
+ /** Flight sim cap (rev 3), ticks. */
+ const FLIGHT_MAX = 190;
+ /** orbitRev 11: chance of aiming for the features on a hop that has some, and of insisting on a first-lap release. */
+-const FEATURE_TRY: Record<string, number> = { average: 0.25, good: 0.5, great: 0.75, near: 0.9 };
+-const FIRST_LAP: Record<string, number> = { average: 0.35, good: 0.6, great: 0.8, near: 0.95 };
++const FEATURE_TRY: Record<SkillLevel, number> = { weak: 0, average: 0.25, good: 0.5, great: 0.75, near: 0.9, elite: 1, perfect: 1 };
++const FIRST_LAP: Record<SkillLevel, number> = { weak: 0.1, average: 0.35, good: 0.6, great: 0.8, near: 0.95, elite: 1, perfect: 1 };
+ 
+ type Kind = "hop" | "hole" | "die";
+ 
+-export const bot: SkillBot = ({ game, seed, human }) => {
++export const bot: SkillBot = ({ game, seed, human, fixes }) => {
+   const level = human.level;
++  /** The window fix (see above): the core levels only with ctx.fixes; weak, elite and perfect always. */
++  const FIX = Boolean(fixes) || level === "weak" || level === "elite" || level === "perfect";
++  /** Elite and perfect protect the base: a hole or a feature tick only when it is no riskier than the hop they'd accept. */
++  const PROTECT = level === "elite" || level === "perfect";
++  const runTicks = game.runTicks;
+   const step = (s: OrbitRev3State, tap: boolean) => game.step(s, tap ? { t: s.tick + 1, k: ORBIT_INPUT_TAP, a: 0, b: 0, c: 0, d: 0 } : null) as OrbitRev3State;
+ 
+   /** Wait d ticks in orbit, tap, follow the flight: what happens, and how long it flew. */
+@@ -86,6 +112,27 @@ export const bot: SkillBot = ({ game, seed, human }) => {
+     if (tryHole) burnt.add(s.cur);
+     let skips = human.chance(HESITATE[level]!) ? 1 : 0;
+     let chosen: [number, number, Kind] | null = null;
++    /** FIX: the loss chance of a tap aimed at tick `mid` under the player's own jitter at that flight. */
++    // (perfect chooses windows as elite does, by elite's jitter, then taps without error: the same policy, no error.)
++    const sdTick = (level === "perfect" ? PROFILES.elite.timingSdMs : human.p.timingSdMs) / (1000 / 60);
++    const riskAt = (mid: number) => {
++      const flight = flights[Math.round(mid)] ?? 60;
++      const sd = sdTick * Math.sqrt((flight / 150 + (beltsNear ? 0.4 : 0)) ** 2 + 1);
++      if (sd < 1e-6) return kinds[Math.round(mid)] === "die" ? 1 : 0;
++      let p = 0;
++      const span = Math.ceil(4 * sd) + 1;
++      for (let x = Math.floor(mid) - span; x <= Math.ceil(mid) + span; x++) {
++        const k = x < 0 ? "die" : (kinds[Math.min(x, kinds.length - 1)] ?? "die");
++        if (k === "die") p += phi((x + 0.5 - mid) / sd) - phi((x - 0.5 - mid) / sd);
++      }
++      return p;
++    };
++    const riskOf = (w: [number, number, Kind]) => riskAt(w[0] + (w[1] - 1) / 2);
++    // Time running short (about 1.5 s a planet left): any window will do.
++    const hurry = runTicks - t < (40 - s.cur) * 90;
++    const risk = hurry ? 1 : RISK[level]!;
++    let fallback: [number, number, Kind] | null = null;
++    let fallbackRisk = Infinity;
+     for (let d = 0; d <= maxScan && !chosen; d++) {
+       const f = fork(s, d);
+       kinds.push(f.kind);
+@@ -103,10 +150,24 @@ export const bot: SkillBot = ({ game, seed, human }) => {
+           // orbitRev 11: a first-lap release is a perfect orbit; a keen player never lets this one go round.
+           if (s.xp && skips > 0 && w[0] + w[1] / 2 < lap && human.chance(FIRST_LAP[level]!)) skips = 0;
+           if (skips > 0) skips--;
+-          else chosen = w;
++          else if (!FIX) chosen = w;
++          else {
++            const r = riskOf(w);
++            if (r <= risk) chosen = w;
++            else if (r < fallbackRisk - 1e-9) {
++              fallback = w;
++              fallbackRisk = r;
++            }
++          }
+         }
+       }
+     }
++    if (FIX && PROTECT && tryHole && !chosen) {
++      // Protect the base: no hole window safe enough, so the hop it would have flown (the first acceptable, else the safest).
++      const hops = windows.filter((w) => w[2] === "hop" && w[0] + w[1] / 2 >= ready);
++      chosen = hops.find((w) => riskOf(w) <= risk) ?? hops.sort((a, b) => riskOf(a) - riskOf(b))[0] ?? null;
++    }
++    if (FIX && !chosen) chosen = fallback;
+     if (!chosen) {
+       // Nothing of the wanted kind came round: take any hop window seen after ready, else just guess.
+       chosen = windows.find((w) => w[2] === "hop" && w[0] + w[1] / 2 >= ready) ?? windows.find((w) => w[2] === "hop") ?? [ready + lap / 2, 1, "hop"];
+@@ -118,7 +179,10 @@ export const bot: SkillBot = ({ game, seed, human }) => {
+       let best = -1, bestGain = 0;
+       for (let d = start; d < start + len; d++) {
+         // Only a tick with room either side (two ticks each way that still land): a player aims where a near miss is safe.
+-        const roomy = [-2, -1, 1, 2].every((o) => kinds[d + o] !== undefined && kinds[d + o] !== "die");
++        // (Protecting the base: only a tick a tap can be aimed at with no more risk than the level accepts, or than the middle.)
++        const roomy = PROTECT && FIX
++          ? riskAt(d) <= Math.max(risk, riskAt(start + (len - 1) / 2)) + 1e-9
++          : [-2, -1, 1, 2].every((o) => kinds[d + o] !== undefined && kinds[d + o] !== "die");
+         const g = roomy ? (gains[d] ?? 0) : 0;
+         if (g > bestGain || (g === bestGain && g > 0 && Math.abs(d - mid) < Math.abs(best - mid))) {
+           best = d;
+diff --git a/scripts/arcade-skill-bands/bots/rally.ts b/scripts/arcade-skill-bands/bots/rally.ts
+index 40c2b9f6..83d1cbfd 100644
+--- a/scripts/arcade-skill-bands/bots/rally.ts
++++ b/scripts/arcade-skill-bands/bots/rally.ts
+@@ -7,14 +7,15 @@
+  */
+ import { ARCADE_INPUT_DRAG } from "../../../src/lib/arcade/engine";
+ import { rallyPaddleW, rallyTotalHits, rallyTargetLeft, RALLY_BALL_R, rallyPaddleY, RALLY_TARGET_W, RALLY_WALL, RALLY_WORLD_W, type RallyBall, type RallyState } from "../../../src/lib/arcade/rally";
++import type { SkillLevel } from "../human";
+ import { driveEvents, type SkillBot } from "../bot";
+ 
+ /** Finger top speed, px a tick (world px are phone px here). */
+-const FINGER: Record<string, number> = { average: 26, good: 32, great: 38, near: 44 };
++const FINGER: Record<SkillLevel, number> = { weak: 20, average: 26, good: 32, great: 38, near: 44, elite: 47, perfect: 47 };
+ /** Landing-read error per tick of remaining flight, px. */
+-const READ: Record<string, number> = { average: 0.22, good: 0.15, great: 0.1, near: 0.06 };
++const READ: Record<SkillLevel, number> = { weak: 0.29, average: 0.22, good: 0.15, great: 0.1, near: 0.06, elite: 0.04, perfect: 0.04 };
+ /** Chance of trying to steer a gold ball to a pad. */
+-const STEER: Record<string, number> = { average: 0, good: 0.3, great: 0.6, near: 0.85 };
++const STEER: Record<SkillLevel, number> = { weak: 0, average: 0, good: 0.3, great: 0.6, near: 0.85, elite: 0.975, perfect: 0.975 };
+ 
+ /** The paddle line, set per run from the game's own court (rallyRev 6's taller court). */
+ let PADDLE_Y = 0;
+diff --git a/scripts/arcade-skill-bands/bots/slice.ts b/scripts/arcade-skill-bands/bots/slice.ts
+index 23046672..058fa645 100644
+--- a/scripts/arcade-skill-bands/bots/slice.ts
++++ b/scripts/arcade-skill-bands/bots/slice.ts
+@@ -32,14 +32,15 @@ import {
+   type SliceObject,
+   type SliceState,
+ } from "../../../src/lib/arcade/slice";
++import type { SkillLevel } from "../human";
+ import { driveEvents, type SkillBot } from "../bot";
+ 
+ /** Finger top speed while swiping, px a tick (world px are phone px here). */
+-const FINGER: Record<string, number> = { average: 26, good: 32, great: 38, near: 44 };
++const FINGER: Record<SkillLevel, number> = { weak: 20, average: 26, good: 32, great: 38, near: 44, elite: 47, perfect: 47 };
+ /** Prediction error per tick of look-ahead, px. */
+-const READ: Record<string, number> = { average: 0.5, good: 0.35, great: 0.25, near: 0.15 };
++const READ: Record<SkillLevel, number> = { weak: 0.65, average: 0.5, good: 0.35, great: 0.25, near: 0.15, elite: 0.1, perfect: 0.1 };
+ /** Chance per swipe decision of playing for a combo (waiting for three, reaching further). */
+-const COMBO: Record<string, number> = { average: 0, good: 0.35, great: 0.65, near: 0.85 };
++const COMBO: Record<SkillLevel, number> = { weak: 0, average: 0, good: 0.35, great: 0.65, near: 0.85, elite: 0.95, perfect: 0.95 };
+ /** How far (px) a player will stretch a swipe to take in another food: casual, and when playing for a combo. */
+ const REACH = 110;
+ const COMBO_REACH = 200;
+diff --git a/scripts/arcade-skill-bands/bots/snake.ts b/scripts/arcade-skill-bands/bots/snake.ts
+index e9a979aa..0fdfde4d 100644
+--- a/scripts/arcade-skill-bands/bots/snake.ts
++++ b/scripts/arcade-skill-bands/bots/snake.ts
+@@ -10,11 +10,12 @@
+  * next star) the player steers away from what is right ahead of the head.
+  */
+ import { snakeReversal, snakeStepTicks, SNAKE_COLS, SNAKE_INPUT_TURN, snakeRowsOf, type SnakeState } from "../../../src/lib/arcade/snake";
++import type { SkillLevel } from "../human";
+ import { driveEvents, type SkillBot } from "../bot";
+ import type { Human } from "../human";
+ 
+ /** Shortest gap between two deliberate swipes, ticks (about 6–8.5 a second). */
+-const SWIPE_GAP: Record<string, number> = { average: 10, good: 9, great: 8, near: 7 };
++const SWIPE_GAP: Record<SkillLevel, number> = { weak: 11, average: 10, good: 9, great: 8, near: 7, elite: 6, perfect: 6 };
+ /** Base (average-player) time to find a new star and choose a route, ms. */
+ const FIND_MS = 300;
+ 
+diff --git a/scripts/arcade-skill-bands/bots/snip.ts b/scripts/arcade-skill-bands/bots/snip.ts
+index 7ef1dc5a..62507d8b 100644
+--- a/scripts/arcade-skill-bands/bots/snip.ts
++++ b/scripts/arcade-skill-bands/bots/snip.ts
+@@ -52,11 +52,11 @@ const PROOFS: Record<string, Record<string, Proof>> = {
+ /** World px per phone px (a 360-px-wide view on a ~390-px phone). */
+ const WORLD_PER_PX = SNIP_CONFIG.viewW / 390;
+ /** Reading error on the right cut moment (ticks sd): judging where the swing is. */
+-const READ: Record<SkillLevel, number> = { average: 5, good: 3.5, great: 2.5, near: 1.5 };
++const READ: Record<SkillLevel, number> = { weak: 6.5, average: 5, good: 3.5, great: 2.5, near: 1.5, elite: 1, perfect: 1 };
+ /** Shortest gap between two deliberate swipes (ticks). */
+-const GAP: Record<SkillLevel, number> = { average: 20, good: 16, great: 14, near: 12 };
++const GAP: Record<SkillLevel, number> = { weak: 24, average: 20, good: 16, great: 14, near: 12, elite: 11, perfect: 11 };
+ /** Chance of going for the golden leaf on a level. */
+-const LEAF_GO: Record<SkillLevel, number> = { average: 0.1, good: 0.35, great: 0.6, near: 0.85 };
++const LEAF_GO: Record<SkillLevel, number> = { weak: 0, average: 0.1, good: 0.35, great: 0.6, near: 0.85, elite: 0.975, perfect: 0.975 };
+ 
+ function bandOf(template: number): number {
+   if ((SNIP_BANDS_V3.hard as readonly number[]).includes(template) || SNIP_BANDS_V6.hard.includes(template) || SNIP_BANDS_V7.hard.includes(template)) return 2;
+diff --git a/scripts/arcade-skill-bands/bots/swing.ts b/scripts/arcade-skill-bands/bots/swing.ts
+index 1cb1afd8..fa337487 100644
+--- a/scripts/arcade-skill-bands/bots/swing.ts
++++ b/scripts/arcade-skill-bands/bots/swing.ts
+@@ -15,13 +15,27 @@
+  * the sim decides what happens. Decisions value forward progress and staying
+  * alive (and stars for star-chasers), never the score.
+  *
++ * Competence fixes (Oct 2026, ctx.fixes; docs/arcade-bands-elite.md): a player who finds no release
++ * in sight swipes the rope shorter or longer (the help's "Stuck? Keep swinging… swipe up to shorten"),
++ * never grabs a rope they cannot leave again (a dead hang with the dragon behind), keeps an eye on the
++ * clock from halfway (pace rises to what the 500 m line still needs), and counts a wanted star touched
++ * on the swing after a grab like one touched in the air. A precise player (release timing good to a tick
++ * or two: near-perfect, elite, flawless) looks at releases every tick and values each by what their own
++ * timing spread makes of it (a release with no grab after it a fall, as is a missed grab), and one a tick
++ * or two either side must not swing or drop them into anything either. Without these even the flawless bot hung on a rope until the dragon
++ * caught it on a third of the seeds.
++ * Rev 12: with a start ledge ahead, a precise player looks one rope further for a release that drops them
++ * on to it (the set routes start there), and counts gems, gates and ledges taken on the swing after a
++ * grab too.
++ *
+  * swingRev 12 (the expansion): the better levels also go out of their way for
+  * the high-route gems, the low-route speed gates and the set-route ledges
+  * (each a level's chance per feature they see, like stars), and keep a quicker
+  * tempo for swing combos; the forked flights already land on ledges, take gems
+  * and light gates, so a wanted one simply adds to that plan's value.
+  */
+-import { SWING_INPUT_HOLD, type SwingState } from "../../../src/lib/arcade/swing";
++import { SWING_INPUT_HOLD, SWING_INPUT_REEL, SWING_REEL_UP, SWING_REEL_DOWN, type SwingState } from "../../../src/lib/arcade/swing";
++import type { SkillLevel } from "../human";
+ import { driveEvents, Plan, type SkillBot } from "../bot";
+ 
+ const FP = 256;
+@@ -30,11 +44,11 @@ const REACH = 220 * FP;
+ const RADIUS = 10 * FP;
+ const COL = 40 * FP;
+ /** Chance a level goes out of its way for a star anchor it sees coming. */
+-const STAR_CHASE: Record<string, number> = { average: 0.1, good: 0.35, great: 0.65, near: 0.9 };
++const STAR_CHASE: Record<SkillLevel, number> = { weak: 0, average: 0.1, good: 0.35, great: 0.65, near: 0.9, elite: 1, perfect: 1 };
+ /** swingRev 12: the same for a gem, a speed gate and a set-route ledge. */
+-const GEM_CHASE: Record<string, number> = { average: 0.05, good: 0.25, great: 0.6, near: 0.9 };
+-const GATE_CHASE: Record<string, number> = { average: 0.05, good: 0.25, great: 0.6, near: 0.9 };
+-const LEDGE_CHASE: Record<string, number> = { average: 0, good: 0.2, great: 0.55, near: 0.9 };
++const GEM_CHASE: Record<SkillLevel, number> = { weak: 0, average: 0.05, good: 0.25, great: 0.6, near: 0.9, elite: 1, perfect: 1 };
++const GATE_CHASE: Record<SkillLevel, number> = { weak: 0, average: 0.05, good: 0.25, great: 0.6, near: 0.9, elite: 1, perfect: 1 };
++const LEDGE_CHASE: Record<SkillLevel, number> = { weak: 0, average: 0, good: 0.2, great: 0.55, near: 0.9, elite: 1, perfect: 1 };
+ /** What a wanted gem, gate or ledge is worth to them, in px of progress. */
+ const GEM_PULL = 180;
+ const GATE_PULL = 150;
+@@ -42,7 +56,7 @@ const LEDGE_PULL = 900;
+ /** Window key offset for presses made standing on a ledge. */
+ const STANDING = 1_000_000;
+ /** swingRev 12: the pace a level keeps for combos (px a tick, in place of PACE). */
+-const COMBO_PACE: Record<string, number> = { average: 4, good: 4.5, great: 5.5, near: 6.5 };
++const COMBO_PACE: Record<SkillLevel, number> = { weak: 3.5, average: 4, good: 4.5, great: 5.5, near: 6.5, elite: 7, perfect: 7 };
+ /** Pace a player wants (px a tick): trades a further anchor against time spent. */
+ const PACE = 4;
+ /** How much a star-chaser values a star anchor, in px of progress. */
+@@ -57,6 +71,20 @@ const MIN_HOLD = 8;
+ /** Quickest let-go-then-press a finger makes (ticks, ~80 ms). */
+ const REGRAB_MIN = 5;
+ 
++/** Fixes: the 500 m line (sim START_X + 500 m, perception only), the clock, and how much faster than the
++ *  rate still needed a player keeps when the clock gets short. */
++const FINISH_X = 23000 * FP;
++const RUN_TICKS = 3600;
++const PACE_MARGIN = 1.2;
++/** From halfway (30 s) the clock is part of the plan. */
++const PACE_FROM = 1800;
++
++/** Fixes: release timing is looked at up to this many ticks either side, and a release with no grab after it weighs this (a fall). */
++const ODDS_MAX = 6;
++const FALL_COST = 1200;
++/** Fixes: a mistimed release this likely or more must be survivable too. */
++const NEIGHBOUR_ODDS = 0.005;
++
+ /** What a missed grab (a fall) weighs against progress in px when choosing. */
+ const MISS_COST = 400;
+ 
+@@ -69,6 +97,9 @@ function phi(z: number): number {
+ }
+ 
+ const hold = (a: number) => ({ k: SWING_INPUT_HOLD, a, b: 0, c: 0, d: 0 });
++const reel = (a: number) => ({ k: SWING_INPUT_REEL, a, b: 0, c: 0, d: 0 });
++/** Ticks a reel takes in the sim (REEL_TICKS). */
++const REEL_LEN = 8;
+ 
+ function floorAt(s: SwingState, x: number): number {
+   const arr = s.floor;
+@@ -95,9 +126,9 @@ function nearest(s: SwingState): number {
+   return best;
+ }
+ 
+-export const bot: SkillBot = ({ game, seed, human }) => {
++export const bot: SkillBot = ({ game, seed, human, fixes }) => {
+   const level = human.level;
+-  const step = (s: SwingState, ev: ReturnType<typeof hold> | null) => game.step(s, ev ? { ...ev, t: s.tick + 1 } : null) as SwingState;
++  const step = (s: SwingState, ev: { k: number; a: number; b: number; c: number; d: number } | null) => game.step(s, ev ? { ...ev, t: s.tick + 1 } : null) as SwingState;
+   const plan = new Plan();
+   const history: SwingState[] = [];
+   const lag = human.lagTicks();
+@@ -165,7 +196,14 @@ export const bot: SkillBot = ({ game, seed, human }) => {
+     originGates = s.gatesLit ?? 0;
+     originLedges = s.ledgeTicks ?? [];
+   };
+-  const pace = (s: SwingState) => (s.expand ? COMBO_PACE[level]! : PACE);
++  const basePace = (s: SwingState) => (s.expand ? COMBO_PACE[level]! : PACE);
++  /** The pace a plan trades time at; with the fixes, faster from halfway when the clock says the 500 m line needs it. */
++  const pace = (s: SwingState) => {
++    const p = basePace(s);
++    if (!fixes || s.tick < PACE_FROM) return p;
++    const left = Math.max(60, RUN_TICKS - s.tick);
++    return Math.max(p, (PACE_MARGIN * Math.max(0, FINISH_X - s.x)) / FP / left);
++  };
+ 
+   /** What a press from body state b would take, and how good it looks: forward progress, a swing clear of the floor, a wanted star. */
+   const grabAt = (b: SwingState, from: number, ropeAnchor: number): { j: number; v: number } => {
+@@ -182,6 +220,25 @@ export const bot: SkillBot = ({ game, seed, human }) => {
+   };
+ 
+   let paceNow = PACE;
++  /** Fixes: how many ticks either side a release is looked at (two and a half of the player's own timing spreads). */
++  const oddsR = Math.min(ODDS_MAX, Math.ceil((2.5 * human.p.timingSdMs) / (1000 / 60)));
++  /**
++   * Fixes: a player whose release timing is good to a tick or two (near-perfect, elite, flawless: oddsR ≤ 2)
++   * plans releases tick by tick and weighs each by its odds; the others keep the two-tick grid, each choice
++   * robust to a sample either side, and the old weight on a missed grab.
++   */
++  const precise = Boolean(fixes) && oddsR <= 2;
++  /** Fixes: the chance a planned release lands k ticks off (k = -oddsR…oddsR), from the player's own timing spread. */
++  const releaseOdds = (() => {
++    const sd = human.p.timingSdMs / (1000 / 60);
++    const w = Array.from({ length: 2 * oddsR + 1 }, (_, j) => {
++      const k = j - oddsR;
++      return sd <= 0 ? (k === 0 ? 1 : 0) : phi((k + 0.5) / sd) - phi((k - 0.5) / sd);
++    });
++    const sum = w.reduce((a, b) => a + b, 0);
++    return w.map((x) => x / sum);
++  })();
++
+   /** Own timing spread (ticks) for a press `start` ticks into a flight, and where in a window they aim. */
+   const spread = (start: number) => (human.p.timingSdMs * (1 + start / 40)) / (1000 / 60);
+   const aimIn = (start: number, len: number) => start + Math.min(Math.trunc((len - 1) / 2), Math.round(1.5 * spread(start)) + 1);
+@@ -207,9 +264,10 @@ export const bot: SkillBot = ({ game, seed, human }) => {
+       if (len >= 3) {
+         const mid = i + Math.trunc((len - 1) / 2);
+         // A player knows roughly how reliably they can hit a window this wide this far ahead,
+-        // and weighs the progress against the fall that a miss means.
++        // and weighs the progress against the fall that a miss means (a precise player, see `precise`,
++        // weighs it as the fall it is: FALL_COST).
+         const hit = hitChance(i, len);
+-        out.push({ start: i, len, value: vals[mid]!.v * hit - MISS_COST * (1 - hit) - paceNow * mid });
++        out.push({ start: i, len, value: vals[mid]!.v * hit - (precise ? FALL_COST : MISS_COST) * (1 - hit) - paceNow * mid });
+       }
+       i = k;
+     }
+@@ -228,6 +286,59 @@ export const bot: SkillBot = ({ game, seed, human }) => {
+     return { vals, states };
+   };
+ 
++  /**
++   * Fixes: a strong player does not grab a rope they cannot leave (a dead hang with no swing left, the
++   * dragon behind). From state g, just after a grab, some forward-upswing release over the coming
++   * swings must offer a grab window.
++   */
++  const CONT_HORIZON = 150;
++  const canGoOn = (g: SwingState): boolean => {
++    if (g.ended || g.rope < 0) return !g.ended;
++    const ropeAnchor = g.rope;
++    const ax = g.anchors[ropeAnchor]!.x;
++    let rope = g;
++    let prev = g;
++    for (let d = 0; d <= CONT_HORIZON && !rope.ended; d++) {
++      if (d % 3 === 0 && d >= MIN_HOLD && rope.x > prev.x && rope.y < prev.y && rope.x >= ax) {
++        const { vals, states } = flightGrabs(step(rope, hold(0)), ax, ropeAnchor);
++        if (windowsOf(vals, REGRAB_MIN).length > 0) return true;
++        // The 500 m line crossed in the air.
++        const last = states[states.length - 1];
++        if (last && step(last, null).ended === 1) return true;
++      }
++      prev = rope;
++      rope = step(rope, null);
++    }
++    // The 500 m line crossed on the rope.
++    return rope.ended === 1;
++  };
++
++  /**
++   * Fixes, rev 12: a set route starts on its wide start ledge. With a wanted start ledge ahead and not yet
++   * landed, a precise player (one who can then fly the route's tick-or-two releases) looks one rope
++   * further: from the rope a grab gives (state g), does some release
++   * on the coming swings drop them on to it? Worth LEDGE_PULL when it does.
++   */
++  const START_LOOK = 700 * FP;
++  const landBonus = (g: SwingState): number => {
++    if (!precise || !g.expand || g.rope < 0 || !g.ledges) return 0;
++    const target = g.ledges.findIndex((l, i) => l.kind === 0 && !((g.ledgeTicks?.[i] ?? 0) > 0) && l.x + l.half > g.x && l.x - g.x < START_LOOK);
++    if (target < 0 || !wants(40_000 + target, LEDGE_CHASE[level]!)) return 0;
++    const ax = g.anchors[g.rope]!.x;
++    let rope = g;
++    let prev = g;
++    for (let d = 0; d <= RELEASE_HORIZON && !rope.ended; d++) {
++      if (d % 2 === 0 && d >= MIN_HOLD && rope.x > prev.x && rope.y < prev.y && rope.x >= ax) {
++        let f = step(rope, hold(0));
++        for (let k = 0; k < 110 && !f.ended && (f.ledgeOn ?? -1) < 0; k++) f = step(f, null);
++        if (f.ledgeOn === target) return LEDGE_PULL;
++      }
++      prev = rope;
++      rope = step(rope, null);
++    }
++    return 0;
++  };
++
+   /** On a rope: the release tick (delay from now) whose flight offers the best grab, robust to a tick or two either side. */
+   const planRelease = (s: SwingState): { d: number; grab: { start: number; len: number } } | null => {
+     markOrigin(s);
+@@ -239,10 +350,32 @@ export const bot: SkillBot = ({ game, seed, human }) => {
+     const grabs: ({ start: number; len: number } | null)[] = [];
+     const anchorX = s.anchors[ropeAnchor]!.x;
+     let prev = rope;
++    // Every other tick, robust to one sample (two ticks) either side. A precise player: every tick, each
++    // release valued by what their own timing spread makes of it (releaseOdds: the flights a tick or two
++    // either side, a flight with no grab counted as a fall).
++    const every = precise ? 1 : 2;
++    const raw: number[] = [];
+     for (let d = 0; d <= RELEASE_HORIZON && !rope.ended; d++) {
+       // A player lets go on the forward upswing (ahead of the anchor, moving forward and up), never straight after grabbing.
+       const upswing = rope.x > prev.x && rope.y < prev.y && rope.x >= anchorX;
+-      if (d % 2 === 0) {
++      if (precise) {
++        // Every tick near the aim is flown, upswing or not: a mistimed release still flies.
++        if (d < MIN_HOLD - oddsR) raw.push(-Infinity);
++        else {
++          const { vals } = flightGrabs(step(rope, hold(0)), from, ropeAnchor);
++          const w = windowsOf(vals, REGRAB_MIN);
++          let top = null as { start: number; len: number; value: number } | null;
++          for (const x of w) if (!top || x.value > top.value) top = x;
++          raw.push(top ? top.value - paceNow * d : -Infinity);
++          grabs.push(top);
++          value.push(d >= MIN_HOLD && upswing && top ? 0 : -Infinity);
++          prev = rope;
++          rope = step(rope, null);
++          continue;
++        }
++        grabs.push(null);
++        value.push(-Infinity);
++      } else if (d % every === 0) {
+         if (d < MIN_HOLD || !upswing) {
+           value.push(-Infinity);
+           grabs.push(null);
+@@ -260,9 +393,54 @@ export const bot: SkillBot = ({ game, seed, human }) => {
+       rope = step(rope, null);
+     }
+     const order = value
+-      .map((_, i) => ({ i, v: Math.min(value[i]!, value[i - 1] ?? value[i]!, value[i + 1] ?? value[i]!) }))
++      .map((_, i) => {
++        if (!precise) return { i, v: Math.min(value[i]!, value[i - 1] ?? value[i]!, value[i + 1] ?? value[i]!) };
++        if (value[i] === -Infinity) return { i, v: -Infinity };
++        let v = 0;
++        for (let k = -oddsR; k <= oddsR; k++) {
++          const r = raw[i + k] ?? -Infinity;
++          v += releaseOdds[k + oddsR]! * (r === -Infinity ? -FALL_COST : r);
++        }
++        return { i, v };
++      })
+       .filter((x) => x.v > -Infinity)
+       .sort((a, b) => b.v - a.v);
++    if (fixes) {
++      // Fixes: the best few, each flown through its grab and the swing after; a wanted star (or, rev 12, a gem,
++      // gate or ledge) taken on that swing counts like one taken in the air. The best that keeps them alive and moving.
++      const ok: { i: number; v: number; grabbed: SwingState }[] = [];
++      for (const { i, v } of order.slice(0, 24 / every)) {
++        const g = grabs[i]!;
++        let f = s;
++        for (let k = 0; k < i * every; k++) f = step(f, null);
++        f = step(f, hold(0));
++        const aim = aimIn(g.start, g.len);
++        for (let k = 0; k < aim && !f.ended; k++) f = step(f, null);
++        f = step(f, hold(1));
++        const grabbed = f;
++        for (let k = 0; k < SAFE_SWING && !f.ended; k++) f = step(f, null);
++        if (f.ended === 2) continue;
++        // A release a tick or two either side (when the player's timing makes that at all likely), with the
++        // grab pressed as planned, must not swing or drop them into something either.
++        let neighbourDies = false;
++        for (const k of [-1, 1, -2, 2]) {
++          if (neighbourDies || !precise || Math.abs(k) > oddsR || releaseOdds[k + oddsR]! < NEIGHBOUR_ODDS) continue;
++          let n = s;
++          for (let q = 0; q < i * every + k && !n.ended; q++) n = step(n, null);
++          if (n.ended) continue;
++          n = step(n, hold(0));
++          for (let q = 0; q < aim && !n.ended; q++) n = step(n, null);
++          n = step(n, hold(1));
++          for (let q = 0; q < SAFE_SWING && !n.ended; q++) n = step(n, null);
++          if (n.ended === 2) neighbourDies = true;
++        }
++        if (neighbourDies) continue;
++        ok.push({ i, v: v + STAR_PULL * (pickups(f) - pickups(grabbed)) + extras(f) - extras(grabbed) + landBonus(grabbed), grabbed });
++      }
++      ok.sort((a, b) => b.v - a.v);
++      for (const c of ok) if (canGoOn(c.grabbed)) return { d: c.i * every, grab: grabs[c.i]! };
++      return null;
++    }
+     // The player's feel for the cave: the best few, checked for a grab that does not swing them into something.
+     for (const { i } of order.slice(0, 12)) {
+       const g = grabs[i]!;
+@@ -279,6 +457,27 @@ export const bot: SkillBot = ({ game, seed, human }) => {
+     return null;
+   };
+ 
++  /**
++   * Fixes: stuck on a rope with no release in sight (a long rope low over the lava, the next anchor
++   * high), a player swipes to shorten (or let out) the rope, as the help says. The first reel
++   * moment over the coming swing after which a release opens up; null if none does.
++   */
++  const planReel = (s: SwingState): { wait: number; dir: number } | null => {
++    for (let wait = 0; wait <= 48; wait += 4) {
++      let f = s;
++      for (let k = 0; k < wait && !f.ended; k++) f = step(f, null);
++      if (f.ended || f.rope < 0) return null;
++      for (const dir of [SWING_REEL_UP, SWING_REEL_DOWN]) {
++        let g = step(f, reel(dir));
++        if (g.reelLeft <= 0 || g.reelTo === f.len) continue;
++        for (let k = 0; k < REEL_LEN && !g.ended; k++) g = step(g, null);
++        if (g.ended) continue;
++        if (planRelease(g) !== null) return { wait, dir };
++      }
++    }
++    return null;
++  };
++
+   /** Flying: the grab tick (delay from now) in the best window whose swing keeps the ninja alive. */
+   const planGrab = (s: SwingState, ropeAnchor: number): { start: number; len: number } | null => {
+     markOrigin(s);
+@@ -288,13 +487,24 @@ export const bot: SkillBot = ({ game, seed, human }) => {
+     const wins = windowsOf(vals, lag + 2).sort((a, b) => b.value - a.value);
+     const safe = (d: number) => {
+       let g = step(states[d]!, hold(1));
++      const grabbed = g;
+       for (let k = 0; k < SAFE_SWING && !g.ended; k++) g = step(g, null);
+-      return g.ended !== 2;
++      return g.ended !== 2 && (!fixes || canGoOn(grabbed));
+     };
+-    for (const w of wins) {
+-      const mid = w.start + Math.trunc((w.len - 1) / 2);
+-      if (safe(mid)) return { start: w.start, len: w.len };
+-    }
++    if (fixes && s.expand) {
++      // Fixes: each window's grab looked one rope further for a start ledge (landBonus).
++      const ranked = wins
++        .map((w) => {
++          const mid = w.start + Math.trunc((w.len - 1) / 2);
++          return { w, mid, v: w.value + landBonus(step(states[mid]!, hold(1))) };
++        })
++        .sort((a, b) => b.v - a.v);
++      for (const r of ranked) if (safe(r.mid)) return { start: r.w.start, len: r.w.len };
++    } else
++      for (const w of wins) {
++        const mid = w.start + Math.trunc((w.len - 1) / 2);
++        if (safe(mid)) return { start: w.start, len: w.len };
++      }
+     // Nothing comfortable: the first tick anything forward is in reach.
+     const any = vals.findIndex((v) => v.j >= 0);
+     return any >= 0 ? { start: any, len: 1 } : null;
+@@ -337,6 +547,7 @@ export const bot: SkillBot = ({ game, seed, human }) => {
+ 
+     const ev = plan.take(t);
+     if (ev && ev.k === -1) planned = false;
++    else if (ev && ev.k === SWING_INPUT_REEL) return ev;
+     else if (ev) {
+       if (ev.a === 0) {
+         mode = "fly";
+@@ -356,6 +567,15 @@ export const bot: SkillBot = ({ game, seed, human }) => {
+           return null;
+         }
+         const r = planRelease(s);
++        if (r === null && fixes) {
++          const rl = planReel(s);
++          if (rl !== null) {
++            // A swipe: decided now, done a beat later (the moment on the swing is anticipated).
++            pendingAt = plan.at(t + Math.max(1, rl.wait + human.timingTicks(1)), reel(rl.dir));
++            plan.at(pendingAt + REEL_LEN + 1, { k: -1, a: 0, b: 0, c: 0, d: 0 });
++            return null;
++          }
++        }
+         if (r === null) {
+           // No good release in sight: keep swinging and look again shortly.
+           planned = false;
+diff --git a/scripts/arcade-skill-bands/bots/tilt.ts b/scripts/arcade-skill-bands/bots/tilt.ts
+index bc2a72fc..ddb5bb41 100644
+--- a/scripts/arcade-skill-bands/bots/tilt.ts
++++ b/scripts/arcade-skill-bands/bots/tilt.ts
+@@ -25,15 +25,15 @@ const TURN = 65536;
+ const WORLD_PER_PX = TILT_WORLD_W / 390;
+ 
+ /** Finger top speed for turning the disc, world px a tick (≈ 12–20 phone px: a controlled spin, not a flick). */
+-const FINGER: Record<SkillLevel, number> = { average: 7, good: 8, great: 9, near: 10 };
++const FINGER: Record<SkillLevel, number> = { weak: 6, average: 7, good: 8, great: 9, near: 10, elite: 10, perfect: 10 };
+ /** Re-decision cadence, ticks (how often the player re-reads the board and changes the tilt). */
+-const GLANCE: Record<SkillLevel, number> = { average: 12, good: 10, great: 8, near: 6 };
++const GLANCE: Record<SkillLevel, number> = { weak: 14, average: 12, good: 10, great: 8, near: 6, elite: 5, perfect: 5 };
+ /** How far ahead (ticks) the player foresees where the marbles roll. */
+-const HORIZON: Record<SkillLevel, number> = { average: 30, good: 38, great: 44, near: 48 };
++const HORIZON: Record<SkillLevel, number> = { weak: 22, average: 30, good: 38, great: 44, near: 48, elite: 50, perfect: 50 };
+ /** tiltRev 4: a star at a hole's mouth is taken this much less often (the fall ends the run). */
+ const MOUTH_GO = 0.5;
+ /** Chance of detouring for each bonus star. */
+-const STAR_GO: Record<SkillLevel, number> = process.env.TILT_NO_STARS ? { average: 0, good: 0, great: 0, near: 0 } : { average: 0.15, good: 0.45, great: 0.75, near: 0.92 };
++const STAR_GO: Record<SkillLevel, number> = process.env.TILT_NO_STARS ? { weak: 0, average: 0, good: 0, great: 0, near: 0, elite: 0, perfect: 0 } : { weak: 0, average: 0.15, good: 0.45, great: 0.75, near: 0.92, elite: 1, perfect: 1 };
+ 
+ function openCell(m: Maze, c: number, d: number): number {
+   const i = (c % m.n) + DX[d]!;
+diff --git a/scripts/arcade-skill-bands/bots/wavefront.ts b/scripts/arcade-skill-bands/bots/wavefront.ts
+index 07015c35..d653fe5f 100644
+--- a/scripts/arcade-skill-bands/bots/wavefront.ts
++++ b/scripts/arcade-skill-bands/bots/wavefront.ts
+@@ -26,15 +26,16 @@ import {
+   WAV_WORLD_W,
+   type WavState,
+ } from "../../../src/lib/arcade/wavefront";
++import type { SkillLevel } from "../human";
+ import { driveEvents, type SkillBot } from "../bot";
+ 
+ /** Finger top speed, px a tick (the world is 390 wide, so world px are phone px). */
+-const FINGER: Record<string, number> = { average: 26, good: 32, great: 38, near: 44 };
++const FINGER: Record<SkillLevel, number> = { weak: 20, average: 26, good: 32, great: 38, near: 44, elite: 47, perfect: 47 };
+ /** Chance of going for a saucer, and for its power-up drop. */
+-const SAUCER: Record<string, number> = { average: 0.4, good: 0.6, great: 0.8, near: 0.9 };
+-const DROP: Record<string, number> = { average: 0.5, good: 0.7, great: 0.85, near: 0.95 };
++const SAUCER: Record<SkillLevel, number> = { weak: 0.2, average: 0.4, good: 0.6, great: 0.8, near: 0.9, elite: 0.95, perfect: 0.95 };
++const DROP: Record<SkillLevel, number> = { weak: 0.3, average: 0.5, good: 0.7, great: 0.85, near: 0.95, elite: 1, perfect: 1 };
+ /** How far ahead (ticks) a player keeps track of incoming bolts when choosing where to stand. */
+-const LOOKAHEAD: Record<string, number> = { average: 30, good: 38, great: 44, near: 50 };
++const LOOKAHEAD: Record<SkillLevel, number> = { weak: 22, average: 30, good: 38, great: 44, near: 50, elite: 53, perfect: 53 };
+ 
+ /** The ship's bolt speed, px a tick (set per run: 10 in wavRev 6's taller world). */
+ let BOLT_SPEED = 8;
+diff --git a/scripts/arcade-skill-bands/human.ts b/scripts/arcade-skill-bands/human.ts
+index 392740c8..8fb56bda 100644
+--- a/scripts/arcade-skill-bands/human.ts
++++ b/scripts/arcade-skill-bands/human.ts
+@@ -1,7 +1,11 @@
+ /**
+  * Simulated human players for the arcade skill bands (scripts/arcade-skill-bands.ts).
+  *
+- * Four levels, the same in every game. Each bot plays through the real sim and
++ * Four core levels, the same in every game (LEVELS: average, good, great, near-perfect), plus three
++ * the band tool adds (Oct 2026, docs/arcade-bands-elite.md; EXTRA_LEVELS): weak (a casual first
++ * go), elite (a top-1 % human: a little quicker and steadier than near-perfect, never superhuman,
++ * with per-game adjustments in ELITE_BY_GAME) and perfect (no human error at all: the flawless-play
++ * ceiling a seed allows, as far as the bot's own plan can find it). Each bot plays through the real sim and
+  * may look at the state the way a player looks at the screen, but every action
+  * goes through a Human: it reacts late (reaction time with spread and the odd
+  * lapse), times anticipated moments with jitter, aims with pixel and power
+@@ -12,13 +16,18 @@
+  */
+ 
+ export const LEVELS = ["average", "good", "great", "near"] as const;
+-export type SkillLevel = (typeof LEVELS)[number];
++/** Every level, weakest first; the band tool's default list (scripts/arcade-skill-bands.ts). */
++export const ALL_LEVELS = ["weak", "average", "good", "great", "near", "elite", "perfect"] as const;
++export type SkillLevel = (typeof ALL_LEVELS)[number];
+ 
+ export const LEVEL_LABEL: Record<SkillLevel, string> = {
++  weak: "Weak",
+   average: "Average",
+   good: "Good",
+   great: "Great",
+   near: "Near-perfect",
++  elite: "Elite",
++  perfect: "Flawless",
+ };
+ 
+ export interface SkillProfile {
+@@ -45,14 +54,30 @@ export interface SkillProfile {
+ /**
+  * Reaction means follow the brief (300 / 230 / 190 / 160 ms). Other figures are
+  * typical touch-screen values: timing sd 45→12 ms, aim sd 9→2.5 px, power sd 7→1.5 %.
++ *
++ * weak: a casual player's first goes (380 ms reactions with frequent lapses, 65 ms timing,
++ * 13 px aim). elite: a top-1 % human (Oct 2026): reactions 145 ± 15 ms (a trained player's
++ * simple-reaction mean on a phone is about 150–180 ms; 140 ms with 8 ms timing and 1.5 px aim, the
++ * figures the expansion merge used, is past what touch screens and fingers deliver run after run),
++ * timing sd 9 ms, aim sd 1.8 px, a lapse one decision in 300, a slip one in 250. perfect: no reaction
++ * beyond the floor, no error, no lapse, no slip: the ceiling, not a player.
+  */
+ export const PROFILES: Record<SkillLevel, SkillProfile> = {
++  weak: { reactionMs: [380, 70], lapse: 0.14, timingSdMs: 65, aimSdPx: 13, powerSd: 0.1, mistake: 0.17, thinkScale: 1.35, judgement: 0.5, trackLagMs: 190 },
+   average: { reactionMs: [300, 55], lapse: 0.08, timingSdMs: 45, aimSdPx: 9, powerSd: 0.07, mistake: 0.1, thinkScale: 1, judgement: 0.35, trackLagMs: 140 },
+   good: { reactionMs: [230, 40], lapse: 0.04, timingSdMs: 30, aimSdPx: 6, powerSd: 0.045, mistake: 0.05, thinkScale: 0.75, judgement: 0.2, trackLagMs: 100 },
+   great: { reactionMs: [190, 30], lapse: 0.02, timingSdMs: 20, aimSdPx: 4, powerSd: 0.03, mistake: 0.025, thinkScale: 0.55, judgement: 0.1, trackLagMs: 75 },
+   near: { reactionMs: [160, 20], lapse: 0.005, timingSdMs: 12, aimSdPx: 2.5, powerSd: 0.015, mistake: 0.008, thinkScale: 0.4, judgement: 0.04, trackLagMs: 55 },
++  elite: { reactionMs: [145, 15], lapse: 0.003, timingSdMs: 9, aimSdPx: 1.8, powerSd: 0.011, mistake: 0.004, thinkScale: 0.32, judgement: 0.025, trackLagMs: 45 },
++  perfect: { reactionMs: [120, 0], lapse: 0, timingSdMs: 0, aimSdPx: 0, powerSd: 0, mistake: 0, thinkScale: 0.2, judgement: 0, trackLagMs: 17 },
+ };
+ 
++/**
++ * Per-game elite adjustments over PROFILES.elite, where a game's own skill sits in one figure
++ * (docs/arcade-bands-elite.md has why for each). Empty means the shared elite profile.
++ */
++export const ELITE_BY_GAME: Record<string, Partial<SkillProfile>> = {};
++
+ const TICK_MS = 1000 / 60;
+ 
+ /** mulberry32 over a 32-bit state; a stable stream per (game, seed, level). */
+@@ -81,7 +106,7 @@ export class Human {
+ 
+   constructor(game: string, seed: number, level: SkillLevel) {
+     this.level = level;
+-    this.p = PROFILES[level];
++    this.p = level === "elite" ? { ...PROFILES.elite, ...ELITE_BY_GAME[game] } : PROFILES[level];
+     this.rand = mulberry(hash(`${game}:${seed}:${level}`));
+   }
+ 

@@ -132,6 +132,37 @@ export function gates(g: GameReport, before?: { tuning?: number; fresh?: number 
   return out;
 }
 
+/**
+ * Whether any one rising payout (a nondecreasing remap of today's scores, the same on both seed sets)
+ * could meet every score gate at once: good within ±10 % of before, near-perfect median 165–175 and top
+ * 10 % ≤ 185, elite median ≥ 175 and top 10 % 190–200. If not, no retune of this revision's payout can
+ * pass, whatever its shape (zero scores aside, which no payout lifts). A remap of the score is coarser
+ * than a refit of the raw units (scores tied at a cap stay tied), so "feasible" is necessary, not
+ * sufficient: it can need a steep stretch over a few points.
+ */
+export function remapFeasible(g: GameReport, before?: { tuning?: number; fresh?: number }): { feasible: boolean; why: string } {
+  const pts: [number, number, number, string][] = [];
+  for (const [name, set] of [["tuning", g.tuning], ["fresh", g.fresh]] as const) {
+    const b = before?.[name];
+    const good = medianOf(set, "good");
+    if (b && good !== undefined) pts.push([good, 0.9 * b, 1.1 * b, `${name} good`]);
+    const add = (x: number | undefined, lo: number, hi: number, what: string) => x !== undefined && pts.push([x, lo, hi, `${name} ${what}`]);
+    add(medianOf(set, "near"), 165, 175, "near-perfect median");
+    add(top10Of(set, "near"), 0, 185, "near-perfect top 10 %");
+    add(medianOf(set, "elite"), 175, 200, "elite median");
+    add(top10Of(set, "elite"), 190, 200, "elite top 10 %");
+  }
+  const xs = [...new Set(pts.map((p) => p[0]))].sort((a, b) => a - b);
+  let floor = 0;
+  for (const x of xs) {
+    const here = pts.filter((p) => p[0] === x);
+    floor = Math.max(floor, ...here.map((p) => p[1]));
+    const ceil = Math.min(...here.map((p) => p[2]));
+    if (floor > ceil) return { feasible: false, why: `a score of ${x} would have to pay at least ${Math.round(floor)} and at most ${ceil} (${here.map((p) => p[3]).join(", ")})` };
+  }
+  return { feasible: true, why: "" };
+}
+
 function stepsLine(set: SetReport): string {
   return set.steps.map((s) => `${LEVEL_LABEL[s.from]} → ${LEVEL_LABEL[s.to]} ${s.paired >= 0 ? "+" : ""}${s.paired}`).join(", ");
 }
@@ -152,7 +183,11 @@ export function gameMarkdown(g: GameReport, before?: { tuning?: number; fresh?: 
   out.push(`- Paired steps (median of per-seed differences), tuning: ${stepsLine(g.tuning)}; fresh: ${stepsLine(g.fresh)}.`);
   for (const [nm, set] of [["tuning", g.tuning], ["fresh", g.fresh]] as const)
     if (set.ceiling.seeds) out.push(`- Ceiling, ${nm} seeds: median ${set.ceiling.median}, lowest ${set.ceiling.lowest}; ${set.ceiling.belowMax} of ${set.ceiling.seeds} seeds below ${g.max}. Near-perfect scores a median ${Math.round(set.nearShare * 100)} % of its seed's ceiling.`);
-  if (g.max > 150) out.push(`- Gates: ${gates(g, before).join("; ")}.`);
+  if (g.max > 150) {
+    out.push(`- Gates: ${gates(g, before).join("; ")}.`);
+    const r = remapFeasible(g, before);
+    out.push(`- Any one rising payout meeting every score gate on both seed sets: ${r.feasible ? "exists (it may need a steep stretch)" : `none: ${r.why}`}.`);
+  }
   out.push(`- Flags: ${g.flags.length ? g.flags.join("; ") : "none (medians rise level by level; good → near-perfect ≥ 25, near-perfect → elite ≥ 10)"}.`);
   return out.join("\n");
 }
@@ -182,5 +217,5 @@ if (import.meta.main) {
   ].join("\n");
   if (OUT) writeFileSync(OUT, md);
   else console.log(md);
-  if (JSON_OUT) writeFileSync(JSON_OUT, JSON.stringify(reports.map((g) => ({ ...g, gates: g.max > 150 ? gates(g, beforeOf(g)) : [] })), null, 1));
+  if (JSON_OUT) writeFileSync(JSON_OUT, JSON.stringify(reports.map((g) => ({ ...g, gates: g.max > 150 ? gates(g, beforeOf(g)) : [], remap: g.max > 150 ? remapFeasible(g, beforeOf(g)) : null })), null, 1));
 }

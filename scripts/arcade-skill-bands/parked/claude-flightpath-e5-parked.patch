@@ -1,0 +1,1037 @@
+diff --git a/scripts/arcade-bands-elite.ts b/scripts/arcade-bands-elite.ts
+new file mode 100644
+index 00000000..7fc34cee
+--- /dev/null
++++ b/scripts/arcade-bands-elite.ts
+@@ -0,0 +1,186 @@
++/**
++ * The elite skill-band report (Oct 2026, docs/arcade-bands-elite.md) from scripts/arcade-skill-bands.ts
++ * runs saved with --json. Each input is `<source>=<file>[,<file>…]`: a source (main, or a parked
++ * branch) and its runs' files, tuning seeds (n < 10000) and fresh seeds (n ≥ 10000) together.
++ *
++ *   bun scripts/arcade-bands-elite.ts main=runs/main-tuning.json,runs/main-fresh.json \
++ *     claude/e1-parked=runs/e1-tuning.json,runs/e1-fresh.json --out=docs/arcade-bands-elite.data.md
++ *
++ * Per game: every level's median / top 10 % (the 90th percentile) / zero scores on the tuning and
++ * the fresh seeds; the paired steps (each fresh seed played by every level, the median of the per-seed
++ * differences between neighbouring levels); the per-seed ceiling (the best any level, the flawless one
++ * included, scored on that seed: a floor on what a perfect run could score there) with how many seeds
++ * cannot reach the maximum and the lowest; and the merge gates. Script-only: no pass/fail.
++ */
++import { readFileSync, writeFileSync } from "node:fs";
++import { gameDisplayName } from "../src/lib/duel/gameNames";
++import { ALL_LEVELS, LEVEL_LABEL, type SkillLevel } from "./arcade-skill-bands/human";
++import type { RunRecord } from "./arcade-skill-bands";
++
++export const FRESH_FROM = 10000;
++
++const args = process.argv.slice(2);
++const OUT = args.find((a) => a.startsWith("--out="))?.slice(6);
++const JSON_OUT = args.find((a) => a.startsWith("--json="))?.slice(7);
++const sources = args.filter((a) => !a.startsWith("--")).map((a) => {
++  const [name, files] = a.split("=") as [string, string];
++  const records: RunRecord[] = [];
++  const maxes: Record<string, number> = {};
++  for (const f of files.split(",")) {
++    const d = JSON.parse(readFileSync(f, "utf8")) as { records: RunRecord[]; maxes?: Record<string, number> };
++    records.push(...d.records);
++    Object.assign(maxes, d.maxes ?? {});
++  }
++  return { name, records, maxes };
++});
++
++const pct = (xs: number[], q: number) => {
++  if (!xs.length) return NaN;
++  const s = [...xs].sort((a, b) => a - b);
++  const pos = (s.length - 1) * q;
++  const lo = Math.floor(pos);
++  return Math.round(s[lo]! + (s[Math.ceil(pos)]! - s[lo]!) * (pos - lo));
++};
++
++export interface LevelRow { level: SkillLevel; median: number; top10: number; zeros: number; n: number }
++export interface SetReport {
++  rows: LevelRow[];
++  /** Median of the per-seed difference between each level and the one below it (the same seeds). */
++  steps: { from: SkillLevel; to: SkillLevel; paired: number }[];
++  /** Per-seed ceiling: the best any level (the flawless bot included) scored on that seed. */
++  ceiling: { seeds: number; belowMax: number; lowest: number; median: number };
++  /** Median over seeds of near-perfect's score as a share of the seed's ceiling. */
++  nearShare: number;
++}
++export interface GameReport {
++  source: string;
++  type: string;
++  rev: number | null;
++  max: number;
++  tuning: SetReport;
++  fresh: SetReport;
++  flags: string[];
++}
++
++const HUMAN: SkillLevel[] = ALL_LEVELS.filter((l) => l !== "perfect");
++
++function setReport(recs: RunRecord[], max: number): SetReport {
++  const rows = ALL_LEVELS.filter((l) => recs.some((r) => r.level === l)).map((level) => {
++    const xs = recs.filter((r) => r.level === level).map((r) => r.score);
++    return { level, median: pct(xs, 0.5), top10: pct(xs, 0.9), zeros: xs.filter((x) => x === 0).length, n: xs.length };
++  });
++  const byN = new Map<number, Map<SkillLevel, number>>();
++  for (const r of recs) {
++    if (!byN.has(r.n)) byN.set(r.n, new Map());
++    byN.get(r.n)!.set(r.level, r.score);
++  }
++  const human = HUMAN.filter((l) => rows.some((x) => x.level === l));
++  const steps = human.slice(1).map((to, i) => {
++    const from = human[i]!;
++    const diffs = [...byN.values()].filter((m) => m.has(from) && m.has(to)).map((m) => m.get(to)! - m.get(from)!);
++    return { from, to, paired: pct(diffs, 0.5) };
++  });
++  const ceilings = [...byN.values()].map((m) => Math.max(...m.values()));
++  const shares = [...byN.values()].filter((m) => m.has("near")).map((m) => (1000 * m.get("near")!) / Math.max(1, Math.max(...m.values())));
++  return {
++    rows,
++    steps,
++    ceiling: { seeds: ceilings.length, belowMax: ceilings.filter((c) => c < max).length, lowest: ceilings.length ? Math.min(...ceilings) : NaN, median: pct(ceilings, 0.5) },
++    nearShare: pct(shares, 0.5) / 1000,
++  };
++}
++
++export const medianOf = (set: SetReport, level: SkillLevel) => set.rows.find((r) => r.level === level)?.median;
++export const top10Of = (set: SetReport, level: SkillLevel) => set.rows.find((r) => r.level === level)?.top10;
++
++export function reportGame(source: string, type: string, recs: RunRecord[], max: number): GameReport {
++  const tuning = setReport(recs.filter((r) => r.n < FRESH_FROM), max);
++  const fresh = setReport(recs.filter((r) => r.n >= FRESH_FROM), max);
++  const flags: string[] = [];
++  for (const [name, set] of [["tuning", tuning], ["fresh", fresh]] as const) {
++    if (!set.rows.length) continue;
++    for (let i = 1; i < HUMAN.length; i++) {
++      const a = medianOf(set, HUMAN[i - 1]!);
++      const b = medianOf(set, HUMAN[i]!);
++      if (a !== undefined && b !== undefined && !(b > a)) flags.push(`${name}: ${LEVEL_LABEL[HUMAN[i]!]} median not above ${LEVEL_LABEL[HUMAN[i - 1]!]} (${a} → ${b})`);
++    }
++  }
++  const good = medianOf(fresh, "good");
++  const near = medianOf(fresh, "near");
++  const elite = medianOf(fresh, "elite");
++  if (good !== undefined && near !== undefined && near - good < 25) flags.push(`fresh: good → near-perfect only ${near - good} (under ~25)`);
++  if (near !== undefined && elite !== undefined && elite - near < 10) flags.push(`fresh: near-perfect → elite only ${elite - near} (under ~10)`);
++  return { source, type, rev: recs[0]?.rev ?? null, max, tuning, fresh, flags };
++}
++
++/** The 200-point merge gates (docs/scoring-200.md, the overnight queue's bar); `before` is the old revision's good median per set. */
++export function gates(g: GameReport, before?: { tuning?: number; fresh?: number }): string[] {
++  const out: string[] = [];
++  for (const [name, set] of [["tuning", g.tuning], ["fresh", g.fresh]] as const) {
++    const good = medianOf(set, "good");
++    const old = before?.[name];
++    if (good !== undefined && old) out.push(`${name} good ${good} vs ${old} before (${good >= old * 0.9 && good <= old * 1.1 ? "within" : "outside"} ±10 %)`);
++    const near = medianOf(set, "near");
++    const nearTop = top10Of(set, "near");
++    if (near !== undefined) out.push(`${name} near-perfect ${near} / top 10 % ${nearTop} (${near >= 165 && near <= 175 && (nearTop ?? 999) <= 185 ? "meets" : "misses"} 165–175, ≤ 185)`);
++    const elite = medianOf(set, "elite");
++    const eliteTop = top10Of(set, "elite");
++    if (elite !== undefined) out.push(`${name} elite ${elite} / top 10 % ${eliteTop} (${elite >= 175 && (eliteTop ?? 0) >= 190 ? "meets" : "misses"} median ≥ 175, top 10 % 190–200)`);
++    const zeros = set.rows.filter((r) => (r.level === "weak" || r.level === "average") && r.zeros > 0).map((r) => `${LEVEL_LABEL[r.level]} ${r.zeros}`);
++    if (set.rows.length) out.push(`${name} zeros (weak/average): ${zeros.length ? zeros.join(", ") : "none"}`);
++  }
++  return out;
++}
++
++function stepsLine(set: SetReport): string {
++  return set.steps.map((s) => `${LEVEL_LABEL[s.from]} → ${LEVEL_LABEL[s.to]} ${s.paired >= 0 ? "+" : ""}${s.paired}`).join(", ");
++}
++
++export function gameMarkdown(g: GameReport, before?: { tuning?: number; fresh?: number }): string {
++  const name = gameDisplayName(g.type as never);
++  const out = [`### ${name} (\`${g.type}\` rev ${g.rev}, max ${g.max}; ${g.source})`, ""];
++  const t = g.tuning.rows[0]?.n ?? 0;
++  const f = g.fresh.rows[0]?.n ?? 0;
++  out.push(`| Level | Tuning (${t} seeds): median / top 10 % | zeros | Fresh (${f} seeds): median / top 10 % | zeros |`, "|---|---|---|---|---|");
++  for (const level of ALL_LEVELS) {
++    const a = g.tuning.rows.find((r) => r.level === level);
++    const b = g.fresh.rows.find((r) => r.level === level);
++    if (!a && !b) continue;
++    out.push(`| ${LEVEL_LABEL[level]}${level === "perfect" ? " (ceiling bot)" : ""} | ${a ? `${a.median} / ${a.top10}` : "–"} | ${a?.zeros ?? "–"} | ${b ? `${b.median} / ${b.top10}` : "–"} | ${b?.zeros ?? "–"} |`);
++  }
++  out.push("");
++  out.push(`- Paired steps (median of per-seed differences), tuning: ${stepsLine(g.tuning)}; fresh: ${stepsLine(g.fresh)}.`);
++  for (const [nm, set] of [["tuning", g.tuning], ["fresh", g.fresh]] as const)
++    if (set.ceiling.seeds) out.push(`- Ceiling, ${nm} seeds: median ${set.ceiling.median}, lowest ${set.ceiling.lowest}; ${set.ceiling.belowMax} of ${set.ceiling.seeds} seeds below ${g.max}. Near-perfect scores a median ${Math.round(set.nearShare * 100)} % of its seed's ceiling.`);
++  if (g.max > 150) out.push(`- Gates: ${gates(g, before).join("; ")}.`);
++  out.push(`- Flags: ${g.flags.length ? g.flags.join("; ") : "none (medians rise level by level; good → near-perfect ≥ 25, near-perfect → elite ≥ 10)"}.`);
++  return out.join("\n");
++}
++
++export function summaryRow(g: GameReport): string {
++  const m = (l: SkillLevel) => medianOf(g.fresh, l) ?? "–";
++  return `| ${gameDisplayName(g.type as never)} | ${g.source} | ${g.max} | ${HUMAN.map(m).join(" / ")} | ${medianOf(g.fresh, "perfect") ?? "–"} | ${g.fresh.ceiling.belowMax} / ${g.fresh.ceiling.lowest} | ${g.flags.length ? g.flags.map((f) => f.replace(/^fresh: |^tuning: /, (x) => x)).join("; ") : "–"} |`;
++}
++
++if (import.meta.main) {
++  const reports: GameReport[] = [];
++  for (const src of sources) {
++    const types = [...new Set(src.records.map((r) => r.type as string))];
++    for (const type of types) reports.push(reportGame(src.name, type, src.records.filter((r) => r.type === type), src.maxes[type] ?? 150));
++  }
++  // "Before" for a parked game's good gate: main's run of the same game (main deals the score-band revision the expansion replaces).
++  const beforeOf = (g: GameReport) => {
++    const m = reports.find((x) => x.source === "main" && x.type === g.type);
++    return g.source !== "main" && m ? { tuning: medianOf(m.tuning, "good"), fresh: medianOf(m.fresh, "good") } : undefined;
++  };
++  const md = [
++    "| Game | Source | Max | Fresh medians: weak / average / good / great / near / elite | Flawless | Seeds below max / lowest ceiling | Flags |",
++    "|---|---|---|---|---|---|---|",
++    ...reports.map(summaryRow),
++    "",
++    ...reports.map((g) => gameMarkdown(g, beforeOf(g)) + "\n"),
++  ].join("\n");
++  if (OUT) writeFileSync(OUT, md);
++  else console.log(md);
++  if (JSON_OUT) writeFileSync(JSON_OUT, JSON.stringify(reports.map((g) => ({ ...g, gates: g.max > 150 ? gates(g, beforeOf(g)) : [] })), null, 1));
++}
+diff --git a/scripts/arcade-skill-bands.ts b/scripts/arcade-skill-bands.ts
+index 7a65f830..5896c6bf 100644
+--- a/scripts/arcade-skill-bands.ts
++++ b/scripts/arcade-skill-bands.ts
+@@ -36,11 +36,16 @@
+  * Tempo, Slice and Coral Pop; Mixed Signals and Pull! are engine games, measured
+  * by scripts/arcade-tuning-g2-engine-bands.ts with the puzzle-fairness kits).
+  * --rev=g3 does the same for batch 3 (a game's `tuneg3`: Grappler, Orbit and Ball Tracker).
+- * --rev=x measures a world expansion (LIVE_BANDS' `dealt`, docs/scoring-200.md) against the band-3 revision
+- * before it: "live" is the band-3 revision, "next" the expansion.
++ * --rev=x measures a world expansion (LIVE_BANDS' `rev` once it has a `strictRev`, docs/scoring-200.md) against the
++ * band-3 revision before it (its `strictRev`): "live" is the band-3 revision, "next" the expansion.
+  * --rev=now measures the revision rooms deal today (LIVE_BANDS in src/lib/arcade/liveBands.ts), reported as
+  * "live": the scoring-targets audit (18 Oct 2026, docs/scoring-targets.md) ran it before and after.
+- * --levels=average,near limits the levels. --save=<dir> writes each run's
++ * --levels=average,near limits the levels (default the four core levels; --levels=all adds weak, elite
++ * and perfect, scripts/arcade-skill-bands/human.ts). --from=N starts the seed samples at n = N (fresh
++ * seeds: --from=10000). Each level plays the same seeds (paired runs). --bots=v1 plays the bots as the
++ * checks pin them (BotCtx.fixes off: no Oct 2026 competence fixes, docs/arcade-bands-elite.md).
++ * --jobs splits the work by game and level. scripts/arcade-bands-elite.ts turns --json files into the
++ * elite report. --save=<dir> writes each run's
+  * encoded log (for fixtures). Not a check: it has no pass/fail and is not run
+  * by run-checks or CI. One game at 30 seeds × 4 levels takes ~10 s to a few
+  * minutes depending on the bot.
+@@ -51,10 +56,11 @@ import { existsSync, mkdirSync, writeFileSync } from "node:fs";
+ import { cpus } from "node:os";
+ import { appendClientCounters, arcadeCounters } from "../src/lib/arcade/diagnostics";
+ import { GAMES, liveBefore, liveBeforeG1, type GameSpec } from "./arcade-skill-bands/games";
+-import { Human, LEVELS, LEVEL_LABEL, type SkillLevel } from "./arcade-skill-bands/human";
++import { ALL_LEVELS, Human, LEVELS, LEVEL_LABEL, type SkillLevel } from "./arcade-skill-bands/human";
+ import type { SkillBot } from "./arcade-skill-bands/bot";
+ import { UNITS } from "./arcade-skill-bands/units";
+ import { LIVE_BANDS } from "../src/lib/arcade/liveBands";
++import { roundMaxFor } from "../src/lib/duel/roundMax";
+ 
+ const args = process.argv.slice(2);
+ const opt = (name: string) => args.find((a) => a.startsWith(`--${name}=`))?.slice(name.length + 3);
+@@ -63,7 +69,9 @@ const REV_MODE = (opt("rev") ?? "live") as "live" | "next" | "both" | "current"
+ const JOBS = Number(opt("jobs") ?? 1);
+ const JSON_PATH = opt("json");
+ const SAVE_DIR = opt("save");
+-const LEVEL_LIST = (opt("levels")?.split(",") ?? [...LEVELS]) as SkillLevel[];
++const LEVEL_LIST = (opt("levels") === "all" ? [...ALL_LEVELS] : (opt("levels")?.split(",") ?? [...LEVELS])) as SkillLevel[];
++const FROM = Number(opt("from") ?? 0);
++const FIXES = opt("bots") !== "v1";
+ const CHILD = args.includes("--child");
+ const ONLY = args.filter((a) => !a.startsWith("--"));
+ 
+@@ -72,6 +80,8 @@ export interface RunRecord {
+   rev: number | null;
+   which: "live" | "next" | "tuned";
+   level: SkillLevel;
++  /** The sample index (roomSeed(n) and the like): every level plays the same n. */
++  n: number;
+   seed: number;
+   score: number;
+   counters: Record<string, number>;
+@@ -93,11 +103,11 @@ async function loadBot(type: string): Promise<SkillBot | null> {
+ 
+ const CHECKPOINT_EVERY = 300;
+ 
+-function playOne(spec: GameSpec, bot: SkillBot, rev: number | null, which: "live" | "next" | "tuned", level: SkillLevel, seed: number): RunRecord & { raw: string } {
++function playOne(spec: GameSpec, bot: SkillBot, rev: number | null, which: "live" | "next" | "tuned", level: SkillLevel, n: number, seed: number): RunRecord & { raw: string } {
+   const started = performance.now();
+   const game = spec.gameFor(rev, seed);
+   const human = new Human(spec.type, seed, level);
+-  const out = bot({ game, seed, rev, human });
++  const out = bot({ game, seed, rev, human, fixes: FIXES });
+   // Re-drive the sim from the bot's log alone, exactly as the phone records it.
+   let state = game.init(seed);
+   const checkpoints: unknown[] = [];
+@@ -120,6 +130,7 @@ function playOne(spec: GameSpec, bot: SkillBot, rev: number | null, which: "live
+     rev,
+     which,
+     level,
++    n,
+     seed,
+     score: result.score,
+     counters,
+@@ -141,14 +152,22 @@ async function runGame(spec: GameSpec): Promise<RunRecord[]> {
+   const revs: ["live" | "next" | "tuned", number | null][] = [];
+   if (REV_MODE === "x") {
+     // World expansions (docs/scoring-200.md): the band-3 revision ("live") against the stamp rooms deal now ("next").
+-    const live = (LIVE_BANDS as Record<string, { rev: number; dealt?: number }>)[spec.type];
+-    if (live?.dealt === undefined) console.error(`${spec.type}: no expansion revision`);
+-    else revs.push(["live", live.rev], ["next", live.dealt]);
++    const live = (LIVE_BANDS as Record<string, { rev: number; strictRev?: number }>)[spec.type];
++    if (live?.strictRev === undefined) console.error(`${spec.type}: no expansion revision`);
++    else revs.push(["live", live.strictRev], ["next", live.rev]);
+   } else if (REV_MODE === "now") {
+     // The revision rooms deal today (LIVE_BANDS), as "live": the scoring-targets audit (Oct 2026).
+-    const now = (LIVE_BANDS as Record<string, { rev: number }>)[spec.type]?.rev;
++    // (A branch whose entry names the revision rooms deal separately, `dealt`, measures that one.)
++    const entry = (LIVE_BANDS as Record<string, { rev: number; dealt?: number }>)[spec.type];
++    const now = entry?.dealt ?? entry?.rev;
+     if (now === undefined) console.error(`${spec.type}: no live band`);
+     else revs.push(["live", now]);
++  } else if (REV_MODE === "x") {
++    // The 200-point expansions (Oct 2026, docs/scoring-200.md): the revision rooms dealt before it ("live")
++    // against the expansion's ("next").
++    const live = (LIVE_BANDS as Record<string, { rev: number; strictRev?: number }>)[spec.type];
++    if (live?.strictRev === undefined) console.error(`${spec.type}: no expansion revision`);
++    else revs.push(["live", live.strictRev], ["next", live.rev]);
+   } else if (REV_MODE === "g3") {
+     // Taller worlds batch 3: the revision rooms stamped before it ("live") against the taller one ("next").
+     const before = liveBeforeG1(spec);
+@@ -204,9 +223,9 @@ async function runGame(spec: GameSpec): Promise<RunRecord[]> {
+   const records: RunRecord[] = [];
+   for (const [which, rev] of revs)
+     for (const level of LEVEL_LIST)
+-      for (let n = 0; n < SEEDS; n++) {
++      for (let n = FROM; n < FROM + SEEDS; n++) {
+         const seed = spec.seedFor(n);
+-        const rec = playOne(spec, bot, rev, which, level, seed);
++        const rec = playOne(spec, bot, rev, which, level, n, seed);
+         if (SAVE_DIR) {
+           mkdirSync(`${SAVE_DIR}/${spec.type}`, { recursive: true });
+           writeFileSync(`${SAVE_DIR}/${spec.type}/${which}-${level}-${n}.txt`, rec.raw);
+@@ -272,14 +291,15 @@ async function main() {
+       console.error(`${spec.type}: ${recs.length} runs in ${((performance.now() - t0) / 1000).toFixed(1)} s`);
+     }
+   } else {
+-    const queue = [...specs];
+-    const passArgs = args.filter((a) => a.startsWith("--") && !a.startsWith("--jobs=") && !a.startsWith("--json="));
++    // One job per game and level (the slow bots' levels run side by side).
++    const queue = specs.flatMap((spec) => LEVEL_LIST.map((level) => ({ spec, level })));
++    const passArgs = args.filter((a) => a.startsWith("--") && !a.startsWith("--jobs=") && !a.startsWith("--json=") && !a.startsWith("--levels="));
+     const worker = async () => {
+       while (queue.length) {
+-        const spec = queue.shift()!;
++        const { spec, level } = queue.shift()!;
+         const t0 = performance.now();
+         const recs = await new Promise<RunRecord[]>((resolve) => {
+-          const child = spawn("bun", [process.argv[1]!, spec.type, "--child", ...passArgs], { stdio: ["ignore", "pipe", "inherit"] });
++          const child = spawn("bun", [process.argv[1]!, spec.type, "--child", `--levels=${level}`, ...passArgs], { stdio: ["ignore", "pipe", "inherit"] });
+           let out = "";
+           child.stdout.on("data", (d) => (out += d));
+           child.on("close", () => {
+@@ -288,14 +308,14 @@ async function main() {
+           });
+         });
+         records.push(...recs);
+-        console.error(`${spec.type}: ${recs.length} runs in ${((performance.now() - t0) / 1000).toFixed(1)} s`);
++        console.error(`${spec.type} ${level}: ${recs.length} runs in ${((performance.now() - t0) / 1000).toFixed(1)} s`);
+       }
+     };
+     await Promise.all(Array.from({ length: Math.min(JOBS, cpus().length) }, worker));
+-    records = specs.flatMap((s) => records.filter((r) => r.type === s.type));
++    records = specs.flatMap((s) => LEVEL_LIST.flatMap((l) => records.filter((r) => r.type === s.type && r.level === l)));
+   }
+   printTable(records);
+-  if (JSON_PATH) writeFileSync(JSON_PATH, JSON.stringify({ seeds: SEEDS, rev: REV_MODE, records, summary: summarise(records) }, null, 1));
++  if (JSON_PATH) writeFileSync(JSON_PATH, JSON.stringify({ seeds: SEEDS, from: FROM, rev: REV_MODE, bots: FIXES ? "v2" : "v1", maxes: Object.fromEntries(specs.map((sp) => [sp.type, roundMaxFor(sp.type)])), records, summary: summarise(records) }, null, 1));
+ }
+ 
+ await main();
+diff --git a/scripts/arcade-skill-bands/bot.ts b/scripts/arcade-skill-bands/bot.ts
+index edca94e4..7f73addc 100644
+--- a/scripts/arcade-skill-bands/bot.ts
++++ b/scripts/arcade-skill-bands/bot.ts
+@@ -11,6 +11,12 @@ export interface BotCtx {
+   /** Revision stamped on the puzzle. */
+   rev: number | null;
+   human: Human;
++  /**
++   * The Oct 2026 competence fixes (docs/arcade-bands-elite.md: bots that under-played, Rainbow
++   * Bridge first). Off unless the band tool sets it, so the checks that run bots keep the bots
++   * they were proved with.
++   */
++  fixes?: boolean;
+ }
+ 
+ /** A bot returns the input log the phone would submit: events, or taps for tap-only games. */
+diff --git a/scripts/arcade-skill-bands/bots/balltrack.ts b/scripts/arcade-skill-bands/bots/balltrack.ts
+index 487f273e..2b90ea4e 100644
+--- a/scripts/arcade-skill-bands/bots/balltrack.ts
++++ b/scripts/arcade-skill-bands/bots/balltrack.ts
+@@ -37,11 +37,11 @@ import type { SkillLevel } from "../human";
+ /** World px per phone px (the 700-wide board on a ~390-px phone). */
+ const WORLD_PER_PX = BT_W / 390;
+ /** Shortest gap between deliberate taps, ticks (≈ 6–8.5 taps a second). */
+-const TAP_GAP: Record<SkillLevel, number> = { average: 10, good: 9, great: 8, near: 7 };
++const TAP_GAP: Record<SkillLevel, number> = { weak: 11, average: 10, good: 9, great: 8, near: 7, elite: 6, perfect: 6 };
+ /** Marbles whose routes the player keeps in mind at once (released or next out). */
+-const HORIZON: Record<SkillLevel, number> = { average: 2, good: 3, great: 4, near: 5 };
++const HORIZON: Record<SkillLevel, number> = { weak: 1, average: 2, good: 3, great: 4, near: 5, elite: 6, perfect: 6 };
+ /** Chance of allowing for a warned bottom-row change when planning a marble that lands after it. */
+-const HEED: Record<SkillLevel, number> = { average: 0.5, good: 0.7, great: 0.85, near: 0.95 };
++const HEED: Record<SkillLevel, number> = { weak: 0.3, average: 0.5, good: 0.7, great: 0.85, near: 0.95, elite: 1, perfect: 1 };
+ /** How many steps ahead of a marble the player sets a tube (just-in-time, not last-instant). */
+ const LEAD_STEPS = 4;
+ const WARN_TICKS = 5 * 60;
+diff --git a/scripts/arcade-skill-bands/bots/beat.ts b/scripts/arcade-skill-bands/bots/beat.ts
+index 8e3a4515..98d1d687 100644
+--- a/scripts/arcade-skill-bands/bots/beat.ts
++++ b/scripts/arcade-skill-bands/bots/beat.ts
+@@ -14,13 +14,14 @@
+  */
+ import { BEAT_INPUT_RELEASE, BEAT_INPUT_SWIPE, BEAT_INPUT_TAP, BEAT_LANES, type BeatState } from "../../../src/lib/arcade/beat";
+ import { msToTicks } from "../human";
++import type { SkillLevel } from "../human";
+ import { driveEvents, Plan, type SkillBot } from "../bot";
+ 
+ /**
+  * Notes a second this player reads and plays comfortably (a perception/motor
+  * constant). Above about 70 % of it the passage starts to overload them.
+  */
+-const CAPACITY: Record<string, number> = { average: 4.5, good: 5.5, great: 6.5, near: 8 };
++const CAPACITY: Record<SkillLevel, number> = { weak: 3.5, average: 4.5, good: 5.5, great: 6.5, near: 8, elite: 8.75, perfect: 8.75 };
+ 
+ export const bot: SkillBot = ({ game, seed, human }) => {
+   const init = game.init(seed) as BeatState;
+diff --git a/scripts/arcade-skill-bands/bots/bintoss.ts b/scripts/arcade-skill-bands/bots/bintoss.ts
+index 9e3a7cf5..4dbc9b78 100644
+--- a/scripts/arcade-skill-bands/bots/bintoss.ts
++++ b/scripts/arcade-skill-bands/bots/bintoss.ts
+@@ -38,15 +38,16 @@ import {
+   BINTOSS_VX_MAX,
+   type BinTossState,
+ } from "../../../src/lib/arcade/binToss";
++import type { SkillLevel } from "../human";
+ import { driveEvents, type SkillBot } from "../bot";
+ 
+ /** Relative error judging how far a wind point pushes (shared with Flightpath). */
+-const WIND_READ: Record<string, number> = { average: 0.3, good: 0.2, great: 0.12, near: 0.06 };
++const WIND_READ: Record<SkillLevel, number> = { weak: 0.4, average: 0.3, good: 0.2, great: 0.12, near: 0.06, elite: 0.03, perfect: 0.03 };
+ /** Chance of waiting for the sliding bucket's turnaround rather than leading it through the middle. */
+-const WAIT_END: Record<string, number> = { average: 0.35, good: 0.6, great: 0.85, near: 0.95 };
++const WAIT_END: Record<SkillLevel, number> = { weak: 0.1, average: 0.35, good: 0.6, great: 0.85, near: 0.95, elite: 1, perfect: 1 };
+ 
+ /** binRev 7: the chance of going for the far bucket (on a throw that has one), by level. */
+-const GO_FAR: Record<string, number> = { average: 0.12, good: 0.3, great: 0.6, near: 0.9 };
++const GO_FAR: Record<SkillLevel, number> = { weak: 0, average: 0.12, good: 0.3, great: 0.6, near: 0.9, elite: 1, perfect: 1 };
+ 
+ /** The fastest launch a drag can give (a full 220-px drag), with a little room. */
+ const maxSpeedOf = (ref: number) => Math.floor((ref * DRAG_MAX_SCALE_256) / 256) - 10;
+diff --git a/scripts/arcade-skill-bands/bots/breaker.ts b/scripts/arcade-skill-bands/bots/breaker.ts
+index 515ce5ce..903c7248 100644
+--- a/scripts/arcade-skill-bands/bots/breaker.ts
++++ b/scripts/arcade-skill-bands/bots/breaker.ts
+@@ -32,19 +32,20 @@ import {
+   type BrkBall,
+   type BrkState,
+ } from "../../../src/lib/arcade/breaker";
++import type { SkillLevel } from "../human";
+ import { driveEvents, type SkillBot } from "../bot";
+ 
+ /** Finger top speed, px a tick (world px are phone px: the world is 390 wide). */
+-const FINGER: Record<string, number> = { average: 26, good: 32, great: 38, near: 44 };
++const FINGER: Record<SkillLevel, number> = { weak: 20, average: 26, good: 32, great: 38, near: 44, elite: 47, perfect: 47 };
+ /** Landing-read error per tick of remaining flight, px. */
+-const READ: Record<string, number> = { average: 0.22, good: 0.15, great: 0.1, near: 0.06 };
++const READ: Record<SkillLevel, number> = { weak: 0.29, average: 0.22, good: 0.15, great: 0.1, near: 0.06, elite: 0.04, perfect: 0.04 };
+ /** Chance of trying to angle a return towards the bricks (instead of just catching it centrally). */
+-const STEER: Record<string, number> = { average: 0.1, good: 0.35, great: 0.6, near: 0.85 };
++const STEER: Record<SkillLevel, number> = { weak: 0, average: 0.1, good: 0.35, great: 0.6, near: 0.85, elite: 0.975, perfect: 0.975 };
+ /** Chance of going for a falling capsule at all. */
+-const CAPSULE: Record<string, number> = { average: 0.55, good: 0.75, great: 0.9, near: 0.97 };
++const CAPSULE: Record<SkillLevel, number> = { weak: 0.35, average: 0.55, good: 0.75, great: 0.9, near: 0.97, elite: 1, perfect: 1 };
+ /** Tap: finger down-to-up ticks (must stay under 150 ms = 9 ticks), and finger back down and moving again. */
+-const TAP: Record<string, number> = { average: 7, good: 6, great: 6, near: 5 };
+-const REGRIP: Record<string, number> = { average: 12, good: 10, great: 8, near: 6 };
++const TAP: Record<SkillLevel, number> = { weak: 8, average: 7, good: 6, great: 6, near: 5, elite: 4, perfect: 4 };
++const REGRIP: Record<SkillLevel, number> = { weak: 14, average: 12, good: 10, great: 8, near: 6, elite: 5, perfect: 5 };
+ 
+ const LO = BRK_WALL + BRK_BALL_R;
+ const HI = BRK_WORLD_W - BRK_WALL - BRK_BALL_R;
+diff --git a/scripts/arcade-skill-bands/bots/bubble.ts b/scripts/arcade-skill-bands/bots/bubble.ts
+index a636bc83..1a9f5f38 100644
+--- a/scripts/arcade-skill-bands/bots/bubble.ts
++++ b/scripts/arcade-skill-bands/bots/bubble.ts
+@@ -16,6 +16,7 @@
+  */
+ import { dragLaunch, type ArcadeInputEvent } from "../../../src/lib/arcade/engine";
+ import { bubIsSpecial, bubRemaining, bubCellY, BUB_COLS, BUB_INPUT_SHOT, BUB_MAX_ROWS, BUB_R, BUB_SHOOTER_LINE, BUB_SPEED, bubSpeed, type BubState } from "../../../src/lib/arcade/bubble";
++import type { SkillLevel } from "../human";
+ import { driveEvents, Plan, type SkillBot } from "../bot";
+ 
+ /** Typical drag length when aiming, phone px (the world is 390 px wide, so 1 world px = 1 phone px). */
+@@ -23,7 +24,7 @@ const DRAG_PX = 150;
+ /** Bank shots are harder to read off the trail: extra pointing error per bounce (fraction). */
+ const BANK_ERR = 0.6;
+ /** Chance a bank-shot target is noticed at all, per level. */
+-const BANK_SEE: Record<string, number> = { average: 0.45, good: 0.65, great: 0.82, near: 0.93 };
++const BANK_SEE: Record<SkillLevel, number> = { weak: 0.25, average: 0.45, good: 0.65, great: 0.82, near: 0.93, elite: 0.985, perfect: 0.985 };
+ /** Base (average-player) think time per shot, ms; a special in the shooter adds more. */
+ const THINK_MS = 1100;
+ const SPECIAL_THINK_MS = 500;
+diff --git a/scripts/arcade-skill-bands/bots/bullseye.ts b/scripts/arcade-skill-bands/bots/bullseye.ts
+index a1938b46..91525b1f 100644
+--- a/scripts/arcade-skill-bands/bots/bullseye.ts
++++ b/scripts/arcade-skill-bands/bots/bullseye.ts
+@@ -24,7 +24,11 @@ import {
+   BULLSEYE_V7_FLIGHT_NUM,
+   BULLSEYE_FLIGHT_NUM,
+   bullseyeBalloonPos,
++  bullseyeBalloonValue,
+   bullseyeDrag,
++  bullseyeInInnerBull,
++  bullseyeRingAt,
++  bullseyeRingValue,
+   bullseyeRingValues,
+   bullseyeScalePct,
+   bullseyeSway,
+@@ -44,12 +48,26 @@ import {
+   type BullseyeState,
+ } from "../../../src/lib/arcade/bullseye";
+ import { DRAG_FULL_PX, DRAG_MAX_SCALE_256, DRAG_MIN_PX, DRAG_MIN_SCALE_256 } from "../../../src/lib/arcade/engine";
++import type { SkillLevel } from "../human";
+ import { driveEvents, type SkillBot } from "../bot";
+ 
+ /** Relative error judging how far a wind point pushes (shared with Swish). */
+-const WIND_READ: Record<string, number> = { average: 0.3, good: 0.2, great: 0.12, near: 0.06 };
++const WIND_READ: Record<SkillLevel, number> = { weak: 0.45, average: 0.3, good: 0.2, great: 0.12, near: 0.06, elite: 0.04, perfect: 0 };
+ /** Chance of waiting for the drifting target's turnaround rather than leading it through the middle. */
+-const WAIT_END: Record<string, number> = { average: 0.35, good: 0.6, great: 0.85, near: 0.95 };
++const WAIT_END: Record<SkillLevel, number> = { weak: 0.15, average: 0.35, good: 0.6, great: 0.85, near: 0.95, elite: 1, perfect: 1 };
++/**
++ * Competence fix (ctx.fixes, Oct 2026): on drifting-target darts the reticle still circles (the
++ * sim adds the sway on every dart), and the phone draws it circling, so a player times the release
++ * against both. The v1 bot ignored the sway there (5–9 px off on 7 of 10 darts, at every level).
++ * The share of the sway each level allows for: a casual player hardly reads it, a top player fully.
++ */
++const SWAY_DRIFT: Record<SkillLevel, number> = { weak: 0.2, average: 0.45, good: 0.65, great: 0.8, near: 0.92, elite: 0.97, perfect: 1 };
++/**
++ * Levels with the balloon policy (ctx.fixes): throw through the part of the balloon over the 10
++ * (or the inner bull) rather than its middle, and only when the pop plus the ring under it pays at
++ * least the plain dart would.
++ */
++const SMART_BALLOON: Record<SkillLevel, boolean> = { weak: false, average: false, good: false, great: false, near: true, elite: true, perfect: true };
+ 
+ /** Landing distance per launch unit (the sim's flight constant). */
+ const REACH = (BULLSEYE_BOW_Y - BULLSEYE_CY) / BULLSEYE_REF_V;
+@@ -66,7 +84,7 @@ function dragFor(x: number, y: number, expand = false): { dx: number; dy: number
+   return { dx: (ox / dist) * len, dy: (oy / dist) * len };
+ }
+ 
+-export const bot: SkillBot = ({ game, seed, human }) => {
++export const bot: SkillBot = ({ game, seed, human, fixes }) => {
+   const level = human.level;
+   const init = game.init(seed) as BullseyeState;
+   let planned = -1;
+@@ -118,7 +136,53 @@ export const bot: SkillBot = ({ game, seed, human }) => {
+         }
+         // bullRev 7: a streak running makes a balloon off the 10 not worth the risk.
+         const leave = expand && (s.streak ?? 0) > 0 ? 1 : 2.5;
+-        if (wait && bestD > ring * leave) goBalloon = false; // not worth leaving the 10 for
++        if (fixes && SMART_BALLOON[level]) {
++          // A top player: over the 4 s, find the moment the balloon covers the most valuable
++          // point of the board (the 10, or the inner bull while the 10 is the middle) and throw
++          // through the balloon there; leave the balloon when no pass pays at least a plain dart.
++          const plain = values[0] === 10 ? 12 : 10;
++          const bal = bullseyeBalloonValue(s, arrow);
++          const sc = board.scalePct;
++          // How far off a throw may land and still be counted on: the player's own spread.
++          const spread = 1.5 + human.p.aimSdPx;
++          const valueAt = (x: number, y: number) => {
++            const r = bullseyeRingAt(x, y, sc, board.cy);
++            if (r === 0 && bullseyeInInnerBull(x, y, sc, values, board.cy)) return 12;
++            return bullseyeRingValue(r, values);
++          };
++          const sure = (x: number, y: number) =>
++            Math.min(valueAt(x, y), valueAt(x + spread, y), valueAt(x - spread, y), valueAt(x, y + spread), valueAt(x, y - spread));
++          const inside = 12 - spread;
++          let bestPay = -1;
++          let bestSpot: { x: number; y: number } | null = null;
++          for (let u = ready; u < ready + (wait ? 240 : 1); u++) {
++            const land = u + BULLSEYE_FLIGHT_TICKS;
++            const p = bullseyeBalloonPos(s, arrow, land)!;
++            const tdx = tenSpot(land).x - BULLSEYE_CX;
++            // Points inside the balloon (the player's spread in from its edge), judged on the board under them.
++            for (let ox = -inside; ox <= inside; ox += 2)
++              for (let oy = -inside; oy <= inside; oy += 2) {
++                if (ox * ox + oy * oy > inside * inside) continue;
++                const x = Math.round(p.x + ox);
++                const y = Math.round(p.y + oy);
++                const under = sure(x - tdx, y);
++                // bullRev 7: a pass outside the 10 ends the streak, so only passes over the 10 count.
++                if (expand && under < 10) continue;
++                const pay = under + bal;
++                if (pay > bestPay) {
++                  bestPay = pay;
++                  bestSpot = { x, y };
++                  best = u;
++                }
++              }
++          }
++          if (bestPay < plain || !bestSpot) goBalloon = false;
++          else {
++            at = best;
++            timeScale = 1.3;
++            spot = bestSpot;
++          }
++        } else if (wait && bestD > ring * leave) goBalloon = false; // not worth leaving the 10 for
+         else {
+           at = best;
+           timeScale = 1.3;
+@@ -145,7 +209,7 @@ export const bot: SkillBot = ({ game, seed, human }) => {
+             break;
+           }
+         }
+-        useSway = false;
++        useSway = Boolean(fixes);
+         timeScale = waitEnd ? 1.3 : 1.5;
+         spot = { x: BULLSEYE_CX + dxAt(at), y: board.cy - ringOff };
+       }
+@@ -153,7 +217,9 @@ export const bot: SkillBot = ({ game, seed, human }) => {
+       const shift = bullseyeWindShiftFor(s, arrow, s.winds[arrow] ?? 0);
+       const comp = shift * (1 + WIND_READ[level]! * human.normal());
+       // Where the reticle is put (visual placement error), then the sway it is timed against.
+-      const sway = useSway ? bullseyeSway(arrow, at, board.scalePct) : { dx: 0, dy: 0 };
++      const swayShare = fixes && drift && !goBalloon ? SWAY_DRIFT[level]! : 1;
++      const raw = useSway ? bullseyeSway(arrow, at, board.scalePct) : { dx: 0, dy: 0 };
++      const sway = { dx: raw.dx * swayShare, dy: raw.dy * swayShare };
+       const aimX = spot.x - comp + human.aim(1) - sway.dx;
+       const aimY = spot.y + human.aim(1) - sway.dy;
+       const drag = dragFor(aimX, aimY, expand);
+diff --git a/scripts/arcade-skill-bands/bots/burst.ts b/scripts/arcade-skill-bands/bots/burst.ts
+index 3add7f94..fc6edcf0 100644
+--- a/scripts/arcade-skill-bands/bots/burst.ts
++++ b/scripts/arcade-skill-bands/bots/burst.ts
+@@ -20,18 +20,19 @@ import {
+   type BurstBall,
+   type BurstState,
+ } from "../../../src/lib/arcade/burst";
++import type { SkillLevel } from "../human";
+ import { driveEvents, Plan, type SkillBot } from "../bot";
+ 
+ /** Path-read error per tick looked ahead, px. */
+-const READ: Record<string, number> = { average: 0.3, good: 0.2, great: 0.13, near: 0.08 };
++const READ: Record<SkillLevel, number> = { weak: 0.4, average: 0.3, good: 0.2, great: 0.13, near: 0.08, elite: 0.055, perfect: 0.055 };
+ /** How far ahead (ticks) the player checks that a spot is safe. */
+-const LOOKAHEAD: Record<string, number> = { average: 28, good: 36, great: 44, near: 52 };
++const LOOKAHEAD: Record<SkillLevel, number> = { weak: 20, average: 28, good: 36, great: 44, near: 52, elite: 56, perfect: 56 };
+ /** Chance of going for a falling icon. */
+-const ICON: Record<string, number> = { average: 0.5, good: 0.7, great: 0.85, near: 0.95 };
++const ICON: Record<SkillLevel, number> = { weak: 0.3, average: 0.5, good: 0.7, great: 0.85, near: 0.95, elite: 1, perfect: 1 };
+ /** How many atoms (the nearest) the player keeps an eye on for danger at once. */
+-const WATCH: Record<string, number> = { average: 2, good: 3, great: 4, near: 6 };
++const WATCH: Record<SkillLevel, number> = { weak: 1, average: 2, good: 3, great: 4, near: 6, elite: 7, perfect: 7 };
+ /** Shortest gap between two deliberate button presses, ticks (about 6–8.5 a second). */
+-const PRESS_GAP: Record<string, number> = { average: 10, good: 9, great: 8, near: 7 };
++const PRESS_GAP: Record<SkillLevel, number> = { weak: 11, average: 10, good: 9, great: 8, near: 7, elite: 6, perfect: 6 };
+ 
+ const FP = 256;
+ const WALK = 4;
+diff --git a/scripts/arcade-skill-bands/bots/cross.ts b/scripts/arcade-skill-bands/bots/cross.ts
+index 4328ab0c..ffe02c56 100644
+--- a/scripts/arcade-skill-bands/bots/cross.ts
++++ b/scripts/arcade-skill-bands/bots/cross.ts
+@@ -33,12 +33,13 @@ import {
+   type CrossCourse,
+   type CrossState,
+ } from "../../../src/lib/arcade/cross";
++import type { SkillLevel } from "../human";
+ import { driveEvents, type SkillBot } from "../bot";
+ 
+ /** Fastest repeated swiping, ticks between swipes (a swipe is a down-move-up gesture). */
+-const SWIPE_GAP: Record<string, number> = { average: 18, good: 15, great: 13, near: 11 };
++const SWIPE_GAP: Record<SkillLevel, number> = { weak: 21, average: 18, good: 15, great: 13, near: 11, elite: 10, perfect: 10 };
+ /** Relative misjudgement of when traffic arrives (sd), per lane read. */
+-const READ: Record<string, number> = { average: 0.15, good: 0.11, great: 0.08, near: 0.05 };
++const READ: Record<SkillLevel, number> = { weak: 0.19, average: 0.15, good: 0.11, great: 0.08, near: 0.05, elite: 0.035, perfect: 0.035 };
+ /** Extra clear time (ticks) a player wants in the lane they hop into, beyond their next swipe. */
+ const MARGIN = 12;
+ /** Clear time (ticks) wanted just before landing too, so a hop never lands on a tail. */
+diff --git a/scripts/arcade-skill-bands/bots/flip.ts b/scripts/arcade-skill-bands/bots/flip.ts
+index c1ad42fb..bc9ebbb5 100644
+--- a/scripts/arcade-skill-bands/bots/flip.ts
++++ b/scripts/arcade-skill-bands/bots/flip.ts
+@@ -21,6 +21,7 @@ import {
+   flipSpeed,
+   type FlipState,
+ } from "../../../src/lib/arcade/flip";
++import type { SkillLevel } from "../human";
+ import { driveEvents, type SkillBot } from "../bot";
+ 
+ const FP = 256;
+@@ -28,7 +29,7 @@ const FP = 256;
+ const VIEW_AHEAD = (FLIP_WORLD_W - 90) * FP;
+ const HALF = FLIP_RUNNER_HALF_PX_V2 * FP;
+ /** Chance of deciding to go for a star when it comes into view. */
+-const STAR_TRY: Record<string, number> = { average: 0.5, good: 0.7, great: 0.85, near: 0.95 };
++const STAR_TRY: Record<SkillLevel, number> = { weak: 0.3, average: 0.5, good: 0.7, great: 0.85, near: 0.95, elite: 1, perfect: 1 };
+ const TAP = { k: FLIP_INPUT_TAP, a: 0, b: 0, c: 0, d: 0 };
+ 
+ export const bot: SkillBot = ({ game, seed, human }) => {
+diff --git a/scripts/arcade-skill-bands/bots/hover.ts b/scripts/arcade-skill-bands/bots/hover.ts
+index 8771bc76..f18653bb 100644
+--- a/scripts/arcade-skill-bands/bots/hover.ts
++++ b/scripts/arcade-skill-bands/bots/hover.ts
+@@ -16,6 +16,7 @@
+  * grows with how far ahead it has to be judged. Two-gap barriers: the nearer-looking gap (blurred pick).
+  * Slips: now and then a tap goes well off its moment.
+  */
++import type { SkillLevel } from "../human";
+ import {
+   HOVER_DISC_R,
+   HOVER_DISC_X,
+@@ -36,11 +37,11 @@ import {
+ import { driveTaps, type SkillBot } from "../bot";
+ 
+ /** Chance of deciding to go for a gold star (each one sits near a lip: a risky line). */
+-const STAR_TRY: Record<string, number> = { average: 0.25, good: 0.5, great: 0.75, near: 0.9 };
++const STAR_TRY: Record<SkillLevel, number> = { weak: 0, average: 0.25, good: 0.5, great: 0.75, near: 0.9, elite: 0.975, perfect: 0.975 };
+ /** Least room (px) to the gap's edges a player accepts to brush a star (risk appetite). */
+-const STAR_ROOM: Record<string, number> = { average: 10, good: 10, great: 10, near: 10 };
++const STAR_ROOM: Record<SkillLevel, number> = { weak: 10, average: 10, good: 10, great: 10, near: 10, elite: 10, perfect: 10 };
+ /** Read error on where a sliding gap will be, px per tick ahead (1 world px = 1 phone px). */
+-const READ: Record<string, number> = { average: 0.3, good: 0.2, great: 0.13, near: 0.08 };
++const READ: Record<SkillLevel, number> = { weak: 0.4, average: 0.3, good: 0.2, great: 0.13, near: 0.08, elite: 0.055, perfect: 0.055 };
+ /** Fastest deliberate tapping: 8 ticks apart (7.5 taps a second). */
+ const MIN_TAP_GAP = 8;
+ /** The last taps before a barrier are planned once its entry is this close (ticks). */
+diff --git a/scripts/arcade-skill-bands/bots/inkbridge.ts b/scripts/arcade-skill-bands/bots/inkbridge.ts
+index 19cb032a..669d7adf 100644
+--- a/scripts/arcade-skill-bands/bots/inkbridge.ts
++++ b/scripts/arcade-skill-bands/bots/inkbridge.ts
+@@ -41,13 +41,13 @@ import type { Human, SkillLevel } from "../human";
+ /** World px per phone px (the 390-wide world fills a ~390-px phone). */
+ const WORLD_PER_PX = INK_WORLD_W / 390;
+ /** Careful tracing speed for a pre-release line, px a tick. */
+-const DRAW: Record<SkillLevel, number> = { average: 6, good: 7, great: 8, near: 9 };
++const DRAW: Record<SkillLevel, number> = { weak: 5, average: 6, good: 7, great: 8, near: 9, elite: 10, perfect: 10 };
+ /** Quick live-ramp stroke speed, px a tick. */
+-const DRAW_LIVE: Record<SkillLevel, number> = { average: 10, good: 12, great: 14, near: 16 };
++const DRAW_LIVE: Record<SkillLevel, number> = { weak: 8, average: 10, good: 12, great: 14, near: 16, elite: 17, perfect: 17 };
+ /** Moving pot: release read error per tick of coin flight (ticks of error per tick ahead). */
+-const READ: Record<SkillLevel, number> = { average: 0.09, good: 0.065, great: 0.045, near: 0.03 };
++const READ: Record<SkillLevel, number> = { weak: 0.115, average: 0.09, good: 0.065, great: 0.045, near: 0.03, elite: 0.022, perfect: 0.022 };
+ /** Chance of going for the gold star on a level that has one (first attempt only). */
+-const STAR_GO: Record<SkillLevel, number> = { average: 0.1, good: 0.35, great: 0.6, near: 0.85 };
++const STAR_GO: Record<SkillLevel, number> = { weak: 0, average: 0.1, good: 0.35, great: 0.6, near: 0.85, elite: 0.975, perfect: 0.975 };
+ /** The ideal live ramp is worked out for a hand that starts this many ticks after RELEASE. */
+ const IDEAL_LIVE_DELAY = 18;
+ const IDEAL_LIVE_SPEED = 12;
+diff --git a/scripts/arcade-skill-bands/bots/junction.ts b/scripts/arcade-skill-bands/bots/junction.ts
+index 58c5bc34..397d0495 100644
+--- a/scripts/arcade-skill-bands/bots/junction.ts
++++ b/scripts/arcade-skill-bands/bots/junction.ts
+@@ -23,6 +23,7 @@ import {
+   type JuncCar,
+   type JuncState,
+ } from "../../../src/lib/arcade/junction";
++import type { SkillLevel } from "../human";
+ import { driveEvents, type SkillBot } from "../bot";
+ 
+ const FP = 256;
+@@ -35,7 +36,7 @@ const DIAG_EXIT = 93_249;
+ const SPAWN_OUT = 20 * FP;
+ 
+ /** Ticks between deliberate taps (about 6–8 taps a second). */
+-const TAP_GAP: Record<string, number> = { average: 10, good: 9, great: 8, near: 7 };
++const TAP_GAP: Record<SkillLevel, number> = { weak: 11, average: 10, good: 9, great: 8, near: 7, elite: 6, perfect: 6 };
+ /** The cushion a person leaves after the last tail clears before releasing crossing traffic, ms. */
+ const CUSHION_MS = 150;
+ 
+diff --git a/scripts/arcade-skill-bands/bots/matchup.ts b/scripts/arcade-skill-bands/bots/matchup.ts
+index bbaa0c5e..ef9e3958 100644
+--- a/scripts/arcade-skill-bands/bots/matchup.ts
++++ b/scripts/arcade-skill-bands/bots/matchup.ts
+@@ -35,19 +35,20 @@ import {
+   MATCHUP_V3_SWAP_MS,
+   type MatchupState,
+ } from "../../../src/lib/arcade/matchup";
++import type { SkillLevel } from "../human";
+ import { driveEvents, Plan, type SkillBot } from "../bot";
+ 
+ /** Orientation before the first find, and a whole-board scan, for an average player (ms). */
+ const ORIENT_MS = 500;
+ const SCAN_MS = 4500;
+ /** How much further (fraction of a whole-board scan) a player keeps looking after the first find. */
+-const EXTRA_SCAN: Record<string, number> = { average: 0.02, good: 0.06, great: 0.1, near: 0.14 };
++const EXTRA_SCAN: Record<SkillLevel, number> = { weak: 0, average: 0.02, good: 0.06, great: 0.1, near: 0.14, elite: 0.16, perfect: 0.16 };
+ /** Chance of reading the board while a cascade is still falling instead of waiting for it to settle. */
+-const PLAY_THROUGH: Record<string, number> = { average: 0.15, good: 0.35, great: 0.6, near: 0.8 };
++const PLAY_THROUGH: Record<SkillLevel, number> = { weak: 0, average: 0.15, good: 0.35, great: 0.6, near: 0.8, elite: 0.9, perfect: 0.9 };
+ /** Players who know the game favour moves low on the board (they shake more loose); weight per level. */
+-const LOW_BIAS: Record<string, number> = { average: 0, good: 0.3, great: 0.6, near: 0.8 };
++const LOW_BIAS: Record<SkillLevel, number> = { weak: 0, average: 0, good: 0.3, great: 0.6, near: 0.8, elite: 0.9, perfect: 0.9 };
+ /** Chance of following a swap straight up with a second move spotted in the same look. */
+-const FOLLOW_UP: Record<string, number> = { average: 0.1, good: 0.3, great: 0.5, near: 0.7 };
++const FOLLOW_UP: Record<SkillLevel, number> = { weak: 0, average: 0.1, good: 0.3, great: 0.5, near: 0.7, elite: 0.8, perfect: 0.8 };
+ /** Swipe: from decision to the swap landing on the board, ms. */
+ const SWIPE_MS = 140;
+ 
+diff --git a/scripts/arcade-skill-bands/bots/orbit.ts b/scripts/arcade-skill-bands/bots/orbit.ts
+index a75c5231..59c7caea 100644
+--- a/scripts/arcade-skill-bands/bots/orbit.ts
++++ b/scripts/arcade-skill-bands/bots/orbit.ts
+@@ -16,12 +16,13 @@
+  */
+ import { lapPhases, ORBIT_INPUT_CHECKPOINT, ORBIT_INPUT_TAP } from "../../../src/lib/arcade/orbit";
+ import type { OrbitRev3State } from "../../../src/lib/arcade/orbitRev3";
++import type { SkillLevel } from "../human";
+ import { driveEvents, Plan, type SkillBot } from "../bot";
+ 
+ /** Chance of going for a black hole when one is on offer. */
+-const HOLE_TRY: Record<string, number> = { average: 0.2, good: 0.45, great: 0.7, near: 0.85 };
++const HOLE_TRY: Record<SkillLevel, number> = { weak: 0, average: 0.2, good: 0.45, great: 0.7, near: 0.85, elite: 0.925, perfect: 0.925 };
+ /** Chance per hop of hesitating and letting the release point go round once more. */
+-const HESITATE: Record<string, number> = { average: 0.15, good: 0.1, great: 0.06, near: 0.03 };
++const HESITATE: Record<SkillLevel, number> = { weak: 0.2, average: 0.15, good: 0.1, great: 0.06, near: 0.03, elite: 0.015, perfect: 0.015 };
+ /** Flight sim cap (rev 3), ticks. */
+ const FLIGHT_MAX = 190;
+ 
+diff --git a/scripts/arcade-skill-bands/bots/rally.ts b/scripts/arcade-skill-bands/bots/rally.ts
+index 40c2b9f6..83d1cbfd 100644
+--- a/scripts/arcade-skill-bands/bots/rally.ts
++++ b/scripts/arcade-skill-bands/bots/rally.ts
+@@ -7,14 +7,15 @@
+  */
+ import { ARCADE_INPUT_DRAG } from "../../../src/lib/arcade/engine";
+ import { rallyPaddleW, rallyTotalHits, rallyTargetLeft, RALLY_BALL_R, rallyPaddleY, RALLY_TARGET_W, RALLY_WALL, RALLY_WORLD_W, type RallyBall, type RallyState } from "../../../src/lib/arcade/rally";
++import type { SkillLevel } from "../human";
+ import { driveEvents, type SkillBot } from "../bot";
+ 
+ /** Finger top speed, px a tick (world px are phone px here). */
+-const FINGER: Record<string, number> = { average: 26, good: 32, great: 38, near: 44 };
++const FINGER: Record<SkillLevel, number> = { weak: 20, average: 26, good: 32, great: 38, near: 44, elite: 47, perfect: 47 };
+ /** Landing-read error per tick of remaining flight, px. */
+-const READ: Record<string, number> = { average: 0.22, good: 0.15, great: 0.1, near: 0.06 };
++const READ: Record<SkillLevel, number> = { weak: 0.29, average: 0.22, good: 0.15, great: 0.1, near: 0.06, elite: 0.04, perfect: 0.04 };
+ /** Chance of trying to steer a gold ball to a pad. */
+-const STEER: Record<string, number> = { average: 0, good: 0.3, great: 0.6, near: 0.85 };
++const STEER: Record<SkillLevel, number> = { weak: 0, average: 0, good: 0.3, great: 0.6, near: 0.85, elite: 0.975, perfect: 0.975 };
+ 
+ /** The paddle line, set per run from the game's own court (rallyRev 6's taller court). */
+ let PADDLE_Y = 0;
+diff --git a/scripts/arcade-skill-bands/bots/slice.ts b/scripts/arcade-skill-bands/bots/slice.ts
+index b6a7c59e..eef01a65 100644
+--- a/scripts/arcade-skill-bands/bots/slice.ts
++++ b/scripts/arcade-skill-bands/bots/slice.ts
+@@ -34,14 +34,15 @@ import {
+   type SliceObject,
+   type SliceState,
+ } from "../../../src/lib/arcade/slice";
++import type { SkillLevel } from "../human";
+ import { driveEvents, type SkillBot } from "../bot";
+ 
+ /** Finger top speed while swiping, px a tick (world px are phone px here). */
+-const FINGER: Record<string, number> = { average: 26, good: 32, great: 38, near: 44 };
++const FINGER: Record<SkillLevel, number> = { weak: 20, average: 26, good: 32, great: 38, near: 44, elite: 47, perfect: 47 };
+ /** Prediction error per tick of look-ahead, px. */
+-const READ: Record<string, number> = { average: 0.5, good: 0.35, great: 0.25, near: 0.15 };
++const READ: Record<SkillLevel, number> = { weak: 0.65, average: 0.5, good: 0.35, great: 0.25, near: 0.15, elite: 0.1, perfect: 0.1 };
+ /** Chance per swipe decision of playing for a combo (waiting for three, reaching further). */
+-const COMBO: Record<string, number> = { average: 0, good: 0.35, great: 0.65, near: 0.85 };
++const COMBO: Record<SkillLevel, number> = { weak: 0, average: 0, good: 0.35, great: 0.65, near: 0.85, elite: 0.95, perfect: 0.95 };
+ /** How far (px) a player will stretch a swipe to take in another food: casual, and when playing for a combo. */
+ const REACH = 110;
+ const COMBO_REACH = 200;
+@@ -52,7 +53,7 @@ const SWIPE_AIM = 1.8;
+ /** Base time to choose the next target between swipes, ms. */
+ const NEXT_MS = 260;
+ /** sliceRev 9: the chance a swipe goes after a golden fruit or the ticket's food first, by level. */
+-const FEATURE: Record<string, number> = { average: 0.15, good: 0.35, great: 0.6, near: 0.75 };
++const FEATURE: Record<SkillLevel, number> = { weak: 0, average: 0.15, good: 0.35, great: 0.6, near: 0.75, elite: 0.825, perfect: 0.825 };
+ 
+ interface Pt {
+   x: number;
+diff --git a/scripts/arcade-skill-bands/bots/snake.ts b/scripts/arcade-skill-bands/bots/snake.ts
+index e9a979aa..0fdfde4d 100644
+--- a/scripts/arcade-skill-bands/bots/snake.ts
++++ b/scripts/arcade-skill-bands/bots/snake.ts
+@@ -10,11 +10,12 @@
+  * next star) the player steers away from what is right ahead of the head.
+  */
+ import { snakeReversal, snakeStepTicks, SNAKE_COLS, SNAKE_INPUT_TURN, snakeRowsOf, type SnakeState } from "../../../src/lib/arcade/snake";
++import type { SkillLevel } from "../human";
+ import { driveEvents, type SkillBot } from "../bot";
+ import type { Human } from "../human";
+ 
+ /** Shortest gap between two deliberate swipes, ticks (about 6–8.5 a second). */
+-const SWIPE_GAP: Record<string, number> = { average: 10, good: 9, great: 8, near: 7 };
++const SWIPE_GAP: Record<SkillLevel, number> = { weak: 11, average: 10, good: 9, great: 8, near: 7, elite: 6, perfect: 6 };
+ /** Base (average-player) time to find a new star and choose a route, ms. */
+ const FIND_MS = 300;
+ 
+diff --git a/scripts/arcade-skill-bands/bots/snip.ts b/scripts/arcade-skill-bands/bots/snip.ts
+index 7ef1dc5a..62507d8b 100644
+--- a/scripts/arcade-skill-bands/bots/snip.ts
++++ b/scripts/arcade-skill-bands/bots/snip.ts
+@@ -52,11 +52,11 @@ const PROOFS: Record<string, Record<string, Proof>> = {
+ /** World px per phone px (a 360-px-wide view on a ~390-px phone). */
+ const WORLD_PER_PX = SNIP_CONFIG.viewW / 390;
+ /** Reading error on the right cut moment (ticks sd): judging where the swing is. */
+-const READ: Record<SkillLevel, number> = { average: 5, good: 3.5, great: 2.5, near: 1.5 };
++const READ: Record<SkillLevel, number> = { weak: 6.5, average: 5, good: 3.5, great: 2.5, near: 1.5, elite: 1, perfect: 1 };
+ /** Shortest gap between two deliberate swipes (ticks). */
+-const GAP: Record<SkillLevel, number> = { average: 20, good: 16, great: 14, near: 12 };
++const GAP: Record<SkillLevel, number> = { weak: 24, average: 20, good: 16, great: 14, near: 12, elite: 11, perfect: 11 };
+ /** Chance of going for the golden leaf on a level. */
+-const LEAF_GO: Record<SkillLevel, number> = { average: 0.1, good: 0.35, great: 0.6, near: 0.85 };
++const LEAF_GO: Record<SkillLevel, number> = { weak: 0, average: 0.1, good: 0.35, great: 0.6, near: 0.85, elite: 0.975, perfect: 0.975 };
+ 
+ function bandOf(template: number): number {
+   if ((SNIP_BANDS_V3.hard as readonly number[]).includes(template) || SNIP_BANDS_V6.hard.includes(template) || SNIP_BANDS_V7.hard.includes(template)) return 2;
+diff --git a/scripts/arcade-skill-bands/bots/swing.ts b/scripts/arcade-skill-bands/bots/swing.ts
+index 4a39e4f0..d7ae7719 100644
+--- a/scripts/arcade-skill-bands/bots/swing.ts
++++ b/scripts/arcade-skill-bands/bots/swing.ts
+@@ -16,6 +16,7 @@
+  * alive (and stars for star-chasers), never the score.
+  */
+ import { SWING_INPUT_HOLD, type SwingState } from "../../../src/lib/arcade/swing";
++import type { SkillLevel } from "../human";
+ import { driveEvents, Plan, type SkillBot } from "../bot";
+ 
+ const FP = 256;
+@@ -24,7 +25,7 @@ const REACH = 220 * FP;
+ const RADIUS = 10 * FP;
+ const COL = 40 * FP;
+ /** Chance a level goes out of its way for a star anchor it sees coming. */
+-const STAR_CHASE: Record<string, number> = { average: 0.1, good: 0.35, great: 0.65, near: 0.9 };
++const STAR_CHASE: Record<SkillLevel, number> = { weak: 0, average: 0.1, good: 0.35, great: 0.65, near: 0.9, elite: 1, perfect: 1 };
+ /** Pace a player wants (px a tick): trades a further anchor against time spent. */
+ const PACE = 4;
+ /** How much a star-chaser values a star anchor, in px of progress. */
+diff --git a/scripts/arcade-skill-bands/bots/tilt.ts b/scripts/arcade-skill-bands/bots/tilt.ts
+index bc2a72fc..ddb5bb41 100644
+--- a/scripts/arcade-skill-bands/bots/tilt.ts
++++ b/scripts/arcade-skill-bands/bots/tilt.ts
+@@ -25,15 +25,15 @@ const TURN = 65536;
+ const WORLD_PER_PX = TILT_WORLD_W / 390;
+ 
+ /** Finger top speed for turning the disc, world px a tick (≈ 12–20 phone px: a controlled spin, not a flick). */
+-const FINGER: Record<SkillLevel, number> = { average: 7, good: 8, great: 9, near: 10 };
++const FINGER: Record<SkillLevel, number> = { weak: 6, average: 7, good: 8, great: 9, near: 10, elite: 10, perfect: 10 };
+ /** Re-decision cadence, ticks (how often the player re-reads the board and changes the tilt). */
+-const GLANCE: Record<SkillLevel, number> = { average: 12, good: 10, great: 8, near: 6 };
++const GLANCE: Record<SkillLevel, number> = { weak: 14, average: 12, good: 10, great: 8, near: 6, elite: 5, perfect: 5 };
+ /** How far ahead (ticks) the player foresees where the marbles roll. */
+-const HORIZON: Record<SkillLevel, number> = { average: 30, good: 38, great: 44, near: 48 };
++const HORIZON: Record<SkillLevel, number> = { weak: 22, average: 30, good: 38, great: 44, near: 48, elite: 50, perfect: 50 };
+ /** tiltRev 4: a star at a hole's mouth is taken this much less often (the fall ends the run). */
+ const MOUTH_GO = 0.5;
+ /** Chance of detouring for each bonus star. */
+-const STAR_GO: Record<SkillLevel, number> = process.env.TILT_NO_STARS ? { average: 0, good: 0, great: 0, near: 0 } : { average: 0.15, good: 0.45, great: 0.75, near: 0.92 };
++const STAR_GO: Record<SkillLevel, number> = process.env.TILT_NO_STARS ? { weak: 0, average: 0, good: 0, great: 0, near: 0, elite: 0, perfect: 0 } : { weak: 0, average: 0.15, good: 0.45, great: 0.75, near: 0.92, elite: 1, perfect: 1 };
+ 
+ function openCell(m: Maze, c: number, d: number): number {
+   const i = (c % m.n) + DX[d]!;
+diff --git a/scripts/arcade-skill-bands/bots/wavefront.ts b/scripts/arcade-skill-bands/bots/wavefront.ts
+index 07015c35..d653fe5f 100644
+--- a/scripts/arcade-skill-bands/bots/wavefront.ts
++++ b/scripts/arcade-skill-bands/bots/wavefront.ts
+@@ -26,15 +26,16 @@ import {
+   WAV_WORLD_W,
+   type WavState,
+ } from "../../../src/lib/arcade/wavefront";
++import type { SkillLevel } from "../human";
+ import { driveEvents, type SkillBot } from "../bot";
+ 
+ /** Finger top speed, px a tick (the world is 390 wide, so world px are phone px). */
+-const FINGER: Record<string, number> = { average: 26, good: 32, great: 38, near: 44 };
++const FINGER: Record<SkillLevel, number> = { weak: 20, average: 26, good: 32, great: 38, near: 44, elite: 47, perfect: 47 };
+ /** Chance of going for a saucer, and for its power-up drop. */
+-const SAUCER: Record<string, number> = { average: 0.4, good: 0.6, great: 0.8, near: 0.9 };
+-const DROP: Record<string, number> = { average: 0.5, good: 0.7, great: 0.85, near: 0.95 };
++const SAUCER: Record<SkillLevel, number> = { weak: 0.2, average: 0.4, good: 0.6, great: 0.8, near: 0.9, elite: 0.95, perfect: 0.95 };
++const DROP: Record<SkillLevel, number> = { weak: 0.3, average: 0.5, good: 0.7, great: 0.85, near: 0.95, elite: 1, perfect: 1 };
+ /** How far ahead (ticks) a player keeps track of incoming bolts when choosing where to stand. */
+-const LOOKAHEAD: Record<string, number> = { average: 30, good: 38, great: 44, near: 50 };
++const LOOKAHEAD: Record<SkillLevel, number> = { weak: 22, average: 30, good: 38, great: 44, near: 50, elite: 53, perfect: 53 };
+ 
+ /** The ship's bolt speed, px a tick (set per run: 10 in wavRev 6's taller world). */
+ let BOLT_SPEED = 8;
+diff --git a/scripts/arcade-skill-bands/human.ts b/scripts/arcade-skill-bands/human.ts
+index 392740c8..8fb56bda 100644
+--- a/scripts/arcade-skill-bands/human.ts
++++ b/scripts/arcade-skill-bands/human.ts
+@@ -1,7 +1,11 @@
+ /**
+  * Simulated human players for the arcade skill bands (scripts/arcade-skill-bands.ts).
+  *
+- * Four levels, the same in every game. Each bot plays through the real sim and
++ * Four core levels, the same in every game (LEVELS: average, good, great, near-perfect), plus three
++ * the band tool adds (Oct 2026, docs/arcade-bands-elite.md; EXTRA_LEVELS): weak (a casual first
++ * go), elite (a top-1 % human: a little quicker and steadier than near-perfect, never superhuman,
++ * with per-game adjustments in ELITE_BY_GAME) and perfect (no human error at all: the flawless-play
++ * ceiling a seed allows, as far as the bot's own plan can find it). Each bot plays through the real sim and
+  * may look at the state the way a player looks at the screen, but every action
+  * goes through a Human: it reacts late (reaction time with spread and the odd
+  * lapse), times anticipated moments with jitter, aims with pixel and power
+@@ -12,13 +16,18 @@
+  */
+ 
+ export const LEVELS = ["average", "good", "great", "near"] as const;
+-export type SkillLevel = (typeof LEVELS)[number];
++/** Every level, weakest first; the band tool's default list (scripts/arcade-skill-bands.ts). */
++export const ALL_LEVELS = ["weak", "average", "good", "great", "near", "elite", "perfect"] as const;
++export type SkillLevel = (typeof ALL_LEVELS)[number];
+ 
+ export const LEVEL_LABEL: Record<SkillLevel, string> = {
++  weak: "Weak",
+   average: "Average",
+   good: "Good",
+   great: "Great",
+   near: "Near-perfect",
++  elite: "Elite",
++  perfect: "Flawless",
+ };
+ 
+ export interface SkillProfile {
+@@ -45,14 +54,30 @@ export interface SkillProfile {
+ /**
+  * Reaction means follow the brief (300 / 230 / 190 / 160 ms). Other figures are
+  * typical touch-screen values: timing sd 45→12 ms, aim sd 9→2.5 px, power sd 7→1.5 %.
++ *
++ * weak: a casual player's first goes (380 ms reactions with frequent lapses, 65 ms timing,
++ * 13 px aim). elite: a top-1 % human (Oct 2026): reactions 145 ± 15 ms (a trained player's
++ * simple-reaction mean on a phone is about 150–180 ms; 140 ms with 8 ms timing and 1.5 px aim, the
++ * figures the expansion merge used, is past what touch screens and fingers deliver run after run),
++ * timing sd 9 ms, aim sd 1.8 px, a lapse one decision in 300, a slip one in 250. perfect: no reaction
++ * beyond the floor, no error, no lapse, no slip: the ceiling, not a player.
+  */
+ export const PROFILES: Record<SkillLevel, SkillProfile> = {
++  weak: { reactionMs: [380, 70], lapse: 0.14, timingSdMs: 65, aimSdPx: 13, powerSd: 0.1, mistake: 0.17, thinkScale: 1.35, judgement: 0.5, trackLagMs: 190 },
+   average: { reactionMs: [300, 55], lapse: 0.08, timingSdMs: 45, aimSdPx: 9, powerSd: 0.07, mistake: 0.1, thinkScale: 1, judgement: 0.35, trackLagMs: 140 },
+   good: { reactionMs: [230, 40], lapse: 0.04, timingSdMs: 30, aimSdPx: 6, powerSd: 0.045, mistake: 0.05, thinkScale: 0.75, judgement: 0.2, trackLagMs: 100 },
+   great: { reactionMs: [190, 30], lapse: 0.02, timingSdMs: 20, aimSdPx: 4, powerSd: 0.03, mistake: 0.025, thinkScale: 0.55, judgement: 0.1, trackLagMs: 75 },
+   near: { reactionMs: [160, 20], lapse: 0.005, timingSdMs: 12, aimSdPx: 2.5, powerSd: 0.015, mistake: 0.008, thinkScale: 0.4, judgement: 0.04, trackLagMs: 55 },
++  elite: { reactionMs: [145, 15], lapse: 0.003, timingSdMs: 9, aimSdPx: 1.8, powerSd: 0.011, mistake: 0.004, thinkScale: 0.32, judgement: 0.025, trackLagMs: 45 },
++  perfect: { reactionMs: [120, 0], lapse: 0, timingSdMs: 0, aimSdPx: 0, powerSd: 0, mistake: 0, thinkScale: 0.2, judgement: 0, trackLagMs: 17 },
+ };
+ 
++/**
++ * Per-game elite adjustments over PROFILES.elite, where a game's own skill sits in one figure
++ * (docs/arcade-bands-elite.md has why for each). Empty means the shared elite profile.
++ */
++export const ELITE_BY_GAME: Record<string, Partial<SkillProfile>> = {};
++
+ const TICK_MS = 1000 / 60;
+ 
+ /** mulberry32 over a 32-bit state; a stable stream per (game, seed, level). */
+@@ -81,7 +106,7 @@ export class Human {
+ 
+   constructor(game: string, seed: number, level: SkillLevel) {
+     this.level = level;
+-    this.p = PROFILES[level];
++    this.p = level === "elite" ? { ...PROFILES.elite, ...ELITE_BY_GAME[game] } : PROFILES[level];
+     this.rand = mulberry(hash(`${game}:${seed}:${level}`));
+   }
+ 

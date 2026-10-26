@@ -527,6 +527,12 @@ Lovable still hosts and publishes the app (https://brain-blitz-duel.lovable.app)
   and "?" help texts (`{max}`), Perfectionist / So Close / Fastest Finger, the round result's bars and the onboarding read.
   An expansion raises its own line to 200 plus its stamped scoring. Practice bests moved to `duelz-practice-best:v3:` and room
   arcade bests (`arcadeBest.ts`) to `duelz-arcade-room-best:v2:` (fresh once; old records kept, never read). round-max-check (~1 s) proves it.
+- **Skill bands with an elite level** (26 Oct 2026, measurement only; `docs/arcade-bands-elite.md`): the arcade
+  skill-band tool has seven levels (`ALL_LEVELS`: weak, average, good, great, near, elite = a top-1 % human, perfect =
+  no error, used only for each seed's ceiling), paired seeds (`--from=10000` for fresh ones) and the report
+  `scripts/arcade-bands-elite.ts`. The bots' Oct 2026 competence fixes are gated on `BotCtx.fixes` (set only by the
+  band tool; `--bots=v1` and every check play the old bots). Parked branches' copies are patches in
+  `scripts/arcade-skill-bands/parked/`.
 - `src/components/duel/` — room/round screens (PhoneShell, RoundIntro, TimerBar,
   AnswerReveal, ArcadeReveal, WinnerReveal…); `src/components/puzzles/` — shared puzzle
   widgets; `src/lib/fx/` — sound and visual feedback (presentation only).
