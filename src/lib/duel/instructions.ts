@@ -61,7 +61,24 @@ import { BUB_SPECIAL_BLOCK, BUB_TORPEDO_HITS, BUB_V3_JOKER_BLOCK, BUB_V8_CHESTS,
 import { MATCHUP_V3_PAR_RAW, MATCHUP_V9_FEATURE_MAX } from "@/lib/arcade/matchup";
 import { BT_V7_BALLS, BT_V7_BOOST_STEPS, BT_V7_FEATURE_MAX, BT_V7_LAST_LAND_MIN } from "@/lib/arcade/ballTrack";
 import { HOVER_REACHABLE_GATES, HOVER_STARS, HOVER_V2_GATES_SCORE, HOVER_V2_STARS_SCORE } from "@/lib/arcade/hover";
-import { WAV_BOSS_HP } from "@/lib/arcade/wavefront";
+import {
+  WAV_BOSS_HP,
+  WAV_X_CANNON_HP,
+  WAV_X_CORE_DAMAGE,
+  WAV_X_CORE_PERIOD,
+  WAV_X_DROPS,
+  WAV_X_EDGE_MAX,
+  WAV_X_SHAPES,
+  WAV_X_SHIELD_TICKS,
+  WAV_X_SKILL_CANNON,
+  WAV_X_SKILL_CORE,
+  WAV_X_SKILL_DROP,
+  WAV_X_SKILL_PAY,
+  WAV_X_SKILL_SAUCER,
+  WAV_X_SPREAD_VOLLEYS,
+  WAV_X_STREAK_CAP,
+  WAV_X_STREAK_STEP,
+} from "@/lib/arcade/wavefront";
 import { SNAKE_V9_CAPS, SNAKE_V9_COLS, SNAKE_V9_ROWS } from "@/lib/arcade/snake";
 import { BEAT_V9_CAPS, BEAT_V9_SKILL_PAY } from "@/lib/arcade/beat";
 import {
@@ -888,19 +905,25 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
       score: `Up to 135 for the share of targets hit, −3 per wrong hat, −5 per hedgehog, −3 per empty tap, +15 for hitting every target; that total sets the first 150: 62 scores ${bandMapTotal(WHACK_BANDS_MAP, 62)}, 102 scores ${bandMapTotal(WHACK_BANDS_MAP, 102)}, 118 scores ${bandMapTotal(WHACK_BANDS_MAP, 118)}, 133 scores ${bandMapTotal(WHACK_BANDS_MAP, 133)}, a perfect run 150. The combo adds up to ${WHACK_COMBO_POINTS} for long unbroken runs of very quick hits (slower hits count less, none after about ${Math.round((WHACK_QUICK_ZERO_TICKS * 1000) / 60)} ms); each of the ${WHACK_DIAMONDS} diamonds adds ${WHACK_DIAMOND_POINTS}. {max} only for a perfect, very fast run with an unbroken combo and both diamonds.`,
     },
     wavefront: {
-      goal: "Five waves and a boss in 90 s.",
+      goal: "Five waves and two bosses in 90 s.",
       how: [
         { action: "Drag to move;", detail: "you fire on your own." },
-        { action: "Dodge red bolts and divers:", detail: "3 lives." },
-        { action: "After wave 5,", detail: "shoot down the boss fast." },
+        { action: "Catch power-ups;", detail: "keep a hit streak going." },
+        { action: "Bosses:", detail: "hit the cannons and open core." },
+        { action: "Red bolts and divers cost a life:", detail: "you have 3.", helpOnly: true },
         { action: "The run lasts 90 seconds.", detail: "Each new wave flies in from the top 2 seconds after you clear one. Don't let a formation reach your line.", helpOnly: true },
         { action: "From wave 3, ships peel off and dive at you,", detail: "then fly back to their place. Shoot them on the way; one that rams you costs a life.", helpOnly: true },
-        { action: "Each wave flies its own shape:", detail: "a grid, then a triangle, a circle, a pentagon and an octagon – always 30 ships. Waves 3 and 4 come down more slowly.", helpOnly: true },
+        { action: "Each wave flies its own shape:", detail: `a grid, then a triangle, a circle, a pentagon and an octagon – ${WAV_X_SHAPES} ships each, with six escorts under the shapes. Waves 3 and 4 come down more slowly.`, helpOnly: true },
         { action: "From wave 2, a grey armoured ship", detail: "sits in the middle of the shape and takes 6-12 hits – every hit counts.", helpOnly: true },
-        { action: "Shoot the saucer", detail: "and catch its drop: 5 laser shots that pierce up to 3 enemies.", helpOnly: true },
-        { action: "The boss slides side to side and fires in patterns.", detail: `Its bar shows the ${WAV_BOSS_HP} hits it can take; every hit counts, and destroying it ends the run – the sooner after it arrives, the more it scores.`, helpOnly: true },
+        { action: "Power-ups:", detail: `${WAV_X_DROPS} fall from the top at set moments in every run, the same for everyone in a room, ${WAV_X_DROPS / 3} of each. Laser: 5 shots that pierce up to 3 enemies. Spread: ${WAV_X_SPREAD_VOLLEYS} volleys with two extra bolts angled out. Shield: absorbs the next hit (${WAV_X_SHIELD_TICKS / 60} s).`, helpOnly: true },
+        { action: "A saucer flies over every 15 seconds:", detail: "shoot it down for skill points.", helpOnly: true },
+        { action: "Streak:", detail: `every hit in a row counts; ×2 from ${WAV_X_STREAK_STEP} in a row, ×3 from ${2 * WAV_X_STREAK_STEP} (the most). A shot that flies off without hitting, or a lost life, ends it; spread bolts, shots fired while a wave flies in and hits on a boss's hull don't.`, helpOnly: true },
+        { action: "After wave 3 a gunship flies in; after wave 5, the boss.", detail: `Each has two cannons (${WAV_X_CANNON_HP} hits each; a destroyed one stops firing) and a core that opens for half of every ${WAV_X_CORE_PERIOD / 60} s: a hit on the open core counts ${WAV_X_CORE_DAMAGE}. The boss's bar shows its ${WAV_BOSS_HP} hit points; destroying it ends the run – the sooner after it arrives, the more it scores.`, helpOnly: true },
       ],
-      score: liveBandHelp("wavefront", "Ships, armour hits, boss hits and saucers count 1, and cleared waves 15.", { more: "More ships, hits and waves", finish: "Destroying the boss adds up to 10 for speed: the full 10 within 20 s of its arrival, falling to 0 at 40 s." }),
+      score: liveBandHelp("wavefront", "Ships, armour hits and boss hit points count 1, and cleared waves (the gunship too) 15.", {
+        more: "More ships, hits and waves",
+        finish: `Destroying the boss adds up to 10 for speed: the full 10 within 20 s of its arrival, falling to 0 at 40 s. Skill adds up to ${WAV_X_EDGE_MAX} more: the streak's points (1 a hit at ×2, 2 at ×3, up to ${WAV_X_STREAK_CAP}), ${WAV_X_SKILL_DROP} a power-up caught, ${WAV_X_SKILL_SAUCER} a saucer, ${WAV_X_SKILL_CANNON} a cannon destroyed and ${WAV_X_SKILL_CORE} an open-core hit. ${skillPayLine(WAV_X_SKILL_PAY)}`,
+      }),
     },
     bastion: {
       goal: "Defend the base.",

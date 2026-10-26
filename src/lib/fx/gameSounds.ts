@@ -11,7 +11,7 @@ import type { SoundId } from "@/lib/fx/manifest";
 import { ORBIT_EIGHT, type OrbitState } from "@/lib/arcade/orbit";
 import { CLASH_LANE_EXPAND_TICK, type ClashState } from "@/lib/arcade/colourClash";
 import { SWING_CHASE_REACH, SWING_REV, SWING_ROCK_WARN, SWING_ROCK_WARN_V6, SWING_WORLD_W, swingJetAt, type SwingState } from "@/lib/arcade/swing";
-import { WAV_CELL, WAV_COLS, WAV_SHIP_H, wavDropPx, wavForm, wavShipY, type WavState } from "@/lib/arcade/wavefront";
+import { WAV_CELL, WAV_COLS, WAV_SHIP_H, wavDropPx, wavForm, wavShipY, wavStreakMult, type WavState } from "@/lib/arcade/wavefront";
 import { CROSS_CYCLE_FROM, CROSS_REV2, CROSS_ROADWORKS_FROM, CROSS_ROADWORKS_TWO_FROM, type CrossState } from "@/lib/arcade/cross";
 import { FLIP_CRUMBLE_TICKS, flipCrackTick, flipSpeed, type FlipState } from "@/lib/arcade/flip";
 import { HOVER_WORLD_W, type HoverPillar, type HoverState } from "@/lib/arcade/hover";
@@ -178,7 +178,13 @@ export function wavefrontSounds(): GameSounds<WavState> {
       loopCue("wavefront.danger", running && wavDanger(state));
       if (prev && state.tick > prev.tick) {
         if (state.fireIn > prev.fireIn) sfx("wavefront.fire", "arc_blaster", 0.6, 1, true);
-        if (state.pierce > prev.pierce) sfx("wavefront.pierce", "arc_retro_pickup");
+        // wavRev 10 plays the pickup for every power-up caught (laser, spread or shield); older rounds the laser.
+        if (state.x10 ? (state.powerups ?? 0) > (prev.powerups ?? 0) : state.pierce > prev.pierce) sfx("wavefront.pierce", "arc_retro_pickup");
+        if (state.x10) {
+          // The shield absorbing a hit (the armour clank), and the streak's multiplier stepping up (a blip).
+          if ((state.shieldBlocks ?? 0) > (prev.shieldBlocks ?? 0)) effectCue("wavefront.armourHit");
+          if (wavStreakMult(state.streak ?? 0) > wavStreakMult(prev.streak ?? 0)) sfx("wavefront.dive", "arc_retro_blip", 0.6);
+        }
         // Ships and the armoured ship destroyed this frame (bursts carry the kill tick).
         if (state.bursts.some((b) => b.t > prev!.tick && (b.c === 3 || b.c === 4))) sfx("wavefront.bigExplode", "arc_big_explode", 0.8);
         else if (state.bursts.some((b) => b.t > prev!.tick && b.c !== 3)) sfx("wavefront.shapePop", "arc_shape_pop", 0.7);

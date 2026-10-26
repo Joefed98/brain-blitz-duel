@@ -8,7 +8,7 @@ import {
   WAV_CHECKPOINT_INTERVAL,
   WAV_COLOURS,
   WAV_GOLD,
-  WAV_REV_TARGET, WAV_REV_STRICT,
+  WAV_REV_EXPAND,
   wavDragZoneTop,
   wavefrontWorldHFor,
   WAV_WORLD_W,
@@ -58,7 +58,7 @@ function IntroExample() {
         <rect x={82} y={78} width={4} height={12} fill={WAV_GOLD} />
         <polygon points="84,100 104,118 84,112 64,118" fill={WAV_GOLD} />
       </svg>
-      <p className="text-center text-xs text-muted-foreground">Your ship fires on its own. Five waves, then the boss.</p>
+      <p className="text-center text-xs text-muted-foreground">Your ship fires on its own. Catch power-ups, keep a streak, hit the bosses' weak points.</p>
     </div>
   );
 }
@@ -140,7 +140,7 @@ export const wavefrontPuzzle: PuzzleDefinition = {
   category: "arcade",
   timeLimitMs: WAVEFRONT_TIME_MS,
   revealMs: 6_000,
-  generate: () => ({ type: "wavefront", seed: 1, wavRev: WAV_REV_STRICT }) satisfies WavefrontPuzzleData,
+  generate: () => ({ type: "wavefront", seed: 1, wavRev: WAV_REV_EXPAND }) satisfies WavefrontPuzzleData,
   check: () => false,
   revealHeading: "Your run",
   IntroExample,

@@ -16,7 +16,7 @@ import { BURST_REV_TARGET, BURST_REV_STRICT } from "@/lib/arcade/burst";
 import { BRK_REV_TARGET, BRK_REV_STRICT, BRK_REV_DEEP } from "@/lib/arcade/breaker";
 import { PIN_REV_TARGET, PIN_REV_STRICT, PIN_REV_EXPAND } from "@/lib/arcade/pinball";
 import { WHACK_REV_DEPTH } from "@/lib/arcade/whack";
-import { WAV_REV_TARGET, WAV_REV_STRICT } from "@/lib/arcade/wavefront";
+import { WAV_REV_TARGET, WAV_REV_STRICT, WAV_REV_EXPAND } from "@/lib/arcade/wavefront";
 import { ORBIT_REV_TARGET, ORBIT_REV_STRICT, ORBIT_REV_XP } from "@/lib/arcade/orbit";
 import { RALLY_REV_TARGET, RALLY_REV_STRICT } from "@/lib/arcade/rally";
 import { BEAT_REV_TARGET, BEAT_REV_200 } from "@/lib/arcade/beat";
@@ -160,7 +160,7 @@ export function generateWhack(): WhackPuzzleData {
 }
 
 export function generateWavefront(): WavefrontPuzzleData {
-  return { type: "wavefront", seed: arcadeSeed(), wavRev: WAV_REV_STRICT };
+  return { type: "wavefront", seed: arcadeSeed(), wavRev: WAV_REV_EXPAND };
 }
 
 export function generateBastion(): BastionPuzzleData {
