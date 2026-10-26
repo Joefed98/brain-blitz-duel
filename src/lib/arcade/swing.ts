@@ -1688,7 +1688,7 @@ export function swingBandPartsV13(state: SwingState): BandParts {
   const units = metres + 5 * clampInt(state.stars ?? 0, 0, SWING_STARS);
   const finished = swingMetres(state) >= SWING_FINISH_M;
   const f = swingFeaturePoints(state);
-  const words = `skill +${f.total} (combos ${f.combo} · gems ${f.gems} · gates ${f.gates} · ledges ${f.ledgePts} · par ${f.parPts})`;
+  const words = `skill +${f.total} (${f.raw} skill points: combos ${f.combo} · gems ${f.gems} · gates ${f.gates} · ledges ${f.ledgePts} · par ${f.parPts})`;
   return {
     units,
     points: bandPoints(SWING_V13_BAND_CURVE, units),

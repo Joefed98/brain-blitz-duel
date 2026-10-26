@@ -121,7 +121,7 @@ function introScoreTemplates(): Record<PuzzleType, string> {
     burst: "Points for each atom hit; a lost life takes 5 hits off. Last the 90 s for 10 more.",
     orbit: "Points for each planet you reach. Reach the sun quickly for up to {max}.",
     snip: `Points for each apple and leaf. All ${SNIP_CONFIG.levels} apples quickly: up to {max}.`,
-    swing: `Distance and stars, 10 more at ${SWING_FINISH_M} m; combos, gems, gates, ledges, pars: up to {max}.`,
+    swing: `Distance and stars. Reach ${SWING_FINISH_M} metres for 10 more. Gems, gates, ledges, pars: up to {max}.`,
     tilt: `Points for each maze, how close you get, and stars. All ${TILT_MAX_MAZES} quickly: up to {max}.`,
     balltrack: `Points per marble home; gold, boosted and in-a-row marbles add more. Up to {max}.`,
     swerve: arcadeOpen("each coin you collect"),
