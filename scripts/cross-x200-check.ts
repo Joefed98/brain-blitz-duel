@@ -33,6 +33,7 @@ import {
   crossBlocked,
   crossBonusOf,
   crossClosed,
+  crossPlayerHalfFp,
   crossSkillRaw,
   CROSS_V9_BAND_CURVE,
   CROSS_V9_SKILL_PAY,
@@ -68,7 +69,7 @@ import type { ArcadeInputEvent } from "../src/lib/arcade/engine";
 import { decodeCrossRun, replayCrossRun } from "../src/lib/duel/cross";
 import { roundMaxFor } from "../src/lib/duel/roundMax";
 import { crossStateDigest, playCrossRun, type CrossFixtureRun } from "./cross-expand-record";
-import { crossCeilingRun } from "./cross-ceiling";
+import { crossCeilingRun, crossingPath } from "./cross-ceiling";
 import { roomIdentity, uniformLog } from "./room-identity/cross";
 import { generateCross } from "../src/lib/duel/arcade.server";
 import { bandPoints, bandTop } from "../src/lib/arcade/scoreBands";
@@ -153,6 +154,28 @@ for (let n = 0; n < 6; n++) {
   });
 }
 
+// One density schedule: crossing k's car lanes have the same speeds, lengths and gaps on every seed (only which lane
+// gets which, directions and phases differ), when the crossing has the same number of car lanes.
+{
+  const sig = new Map<string, string>();
+  let compared = 0;
+  for (let n = 0; n < 40; n++) {
+    const s = game.init(roomSeed(n)) as CrossState;
+    s.courses.forEach((course, index) => {
+      const cars = course.lanes.filter((l) => !l.kind);
+      const key = `${index}:${cars.length}`;
+      const shape = JSON.stringify([cars.map((l) => l.speed).sort((x, y) => x - y), cars.map((l) => l.blockW).sort((x, y) => x - y), cars.map((l) => l.period - l.blockW).sort((x, y) => x - y)]);
+      const seen = sig.get(key);
+      if (seen === undefined) sig.set(key, shape);
+      else {
+        compared++;
+        ok(seen === shape, `crossing ${index + 1} (${cars.length} car lanes): the same speeds, lengths and gaps on every seed`);
+      }
+    });
+  }
+  ok(compared >= 200, `the density schedule compared on ${compared} crossings`);
+}
+
 // Exactly CROSS_X_COINS_PER_RUN coins on every run (60 room seeds): the seed decides where, never how many.
 {
   let worst = Infinity;
@@ -216,35 +239,20 @@ ok(islandRespawns >= 3 && startRespawns >= 3, `hits restarted on the island (${i
 ok(streakPays >= 10 && streakEnds >= 1, `the streak paid (${streakPays}) and was ended by hits (${streakEnds})`);
 ok(crossMultiplierFor(1) === 1 && crossMultiplierFor(2) === 2 && crossMultiplierFor(3) === 3 && crossMultiplierFor(4) === 4 && crossMultiplierFor(9) === 4, "the multiplier runs ×1, ×2, ×3, ×4");
 
-// A scripted walker: from the start, side-step to the first coin's column, then hop up whenever the next lane looks clear.
-{
-  const seed = roomSeed(5);
-  let s = game.init(seed) as CrossState;
-  const target = (crossCourse(s).coins ?? []).find((c) => c >> 4 < CROSS_X_ISLAND)!;
-  const col = target & 15;
-  const log: ArcadeInputEvent[] = [];
-  while (!game.isOver(s) && s.tick < 1800 && !(s.coinTotal ?? 0)) {
-    const t = s.tick + 1;
-    let a = -1;
-    if (s.tick >= s.pauseUntil && s.hop === 0 && (log.length === 0 || t - log[log.length - 1]!.t >= 8)) {
-      if (s.col !== col && s.lane === 0) a = s.col < col ? 3 : 2;
-      else if (s.lane < target >> 4) {
-        const next = crossCourse(s).lanes[s.lane];
-        let clear = !!next;
-        for (let k = 0; k < 30 && clear && next; k++) if (crossBlocked(next, crossColumnCentreFp(s.col), t + 6 + k - s.crossStart, 13 * 256)) clear = false;
-        const here = crossCourse(s).lanes[s.lane - 1];
-        let danger = false;
-        for (let k = 0; k < 8 && here && s.lane >= 1; k++) if (crossBlocked(here, crossColumnCentreFp(s.col), t + k - s.crossStart, 13 * 256)) danger = true;
-        if (clear) a = 0;
-        else if (danger) a = 1;
-      }
-    }
-    const ev = a >= 0 ? { t, k: CROSS_INPUT_MOVE, a, b: 0, c: 0, d: 0 } : null;
-    if (ev) log.push(ev);
-    s = game.step(s, ev);
-  }
-  // One coin is 3 skill points (paid on CROSS_V9_SKILL_PAY's rising scale, so a single coin alone pays nothing yet).
-  ok((s.coinTotal ?? 0) === 1 && crossSkillRaw(s) === CROSS_X_COIN_POINTS && game.score(s) === bandPoints(CROSS_V9_BAND_CURVE, crossBandParts(s).units) + crossBonusOf(s), `a scripted walker collects the first coin (coins ${s.coinTotal}, lives ${s.lives})`);
+// A scripted walker (the oracle's path for one coin, scripts/cross-ceiling.ts): on three seeds, each coin of the
+// first crossing on its own is taken by a log that walks to it, counted once, as 3 skill points.
+for (const n of [5, 17, 61]) {
+  const seed = roomSeed(n);
+  const init = game.init(seed) as CrossState;
+  const course = crossCourse(init);
+  (course.coins ?? []).forEach((cell, bit) => {
+    const path = crossingPath(course, crossPlayerHalfFp(init), 1, 1500, 1 << bit);
+    const byTick = new Map(path.steps.map((st) => [st.rel, { t: st.rel, k: CROSS_INPUT_MOVE, a: st.a, b: 0, c: 0, d: 0 }]));
+    let s = init;
+    while (!game.isOver(s) && s.crossings === 0) s = game.step(s, byTick.get(s.tick + 1) ?? null);
+    // One coin is 3 skill points (paid on CROSS_V9_SKILL_PAY's rising scale).
+    ok(path.finished && s.crossings === 1 && ((s.coins ?? 0) === 0) && (s.coinTotal ?? 0) >= 1 && crossSkillRaw({ coinTotal: 1, streakPts: 0 }) === CROSS_X_COIN_POINTS && game.score(s) === bandPoints(CROSS_V9_BAND_CURVE, crossBandParts(s).units) + crossBonusOf(s), `seed ${seed}: a walker takes the coin at lane ${cell >> 4} column ${cell & 15} and crosses (coins ${s.coinTotal}, lives ${s.lives})`);
+  });
 }
 
 /* 5. Bounds: buses and motorbikes drawn within 2 px of their boxes. */

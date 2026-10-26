@@ -11,9 +11,10 @@ with Joe on 26 Oct (fixed opportunities a run; skill headroom on paired seeds).
 | | Parked crossRev 8 | crossRev 9 |
 |---|---|---|
 | Coins | 4 on every crossing, every crossing (more crossings meant more coins) | **20 a run, whatever the seed**: 4 on each of crossings 1–5, none after (`CROSS_X_COINS_PER_RUN`). The seed only picks lanes and columns |
-| Coin columns | any of 1–2 / 10–11 | the same columns, but only ones the lane below leaves open (a coin above roadworks can always be hopped into from below; some parked coins in a chicane's middle lane could only be reached by hopping back down from above) |
-| Bonus | `min(50, 3 × coins + streak)`: linear, so a few coins and a short streak filled much of it | the raw skill points (3 a coin plus the streak points) paid on `CROSS_V9_SKILL_PAY`: 15 pay 3, 30 pay 40, 45 pay 43, 60 pay 47, the full 50 needs 66 (every coin and a six-point streak) |
-| Play curve | `[0,57,68,89,113,136,150]` at units `[0,40,50,58,66,74,82]` | `[0,55,75,92,125,147,150]`: refitted with the pay so good play stays near crossRev 7 |
+| Coin columns | any of 1–2 / 10–11 | column 2 or 10 (the seed picks the side), so every coin is the same four-column detour from the walker's start; only a column the lane below leaves open (a coin above roadworks can always be hopped into from below; some parked coins in a chicane's middle lane could only be reached by hopping back down from above) |
+| Traffic | each car lane's speed, length and gap drawn independently | **one density schedule a crossing**: the crossing's car lanes take speeds, lengths and gaps evenly spread over the usual ranges (one value each), and the seed only deals which lane gets which, directions and phases. Crossing k is equally hard on every run (second iteration, below) |
+| Bonus | `min(50, 3 × coins + streak)`: linear, so a few coins and a short streak filled much of it | the raw skill points (3 a coin plus the streak points) paid on `CROSS_V9_SKILL_PAY`: 15 pay 6, 30 pay 36, 45 pay 43, 60 pay 46, the full 50 needs 66 (every coin and a six-point streak) |
+| Play curve | `[0,57,68,89,113,136,150]` at units `[0,40,50,58,66,74,82]` | `[0,53,76,90,121,149,150]`: refitted with the pay (tuning seeds only) so good play stays near crossRev 7 |
 | HUD | coins taken | coins taken of the run's twenty ("7/20") |
 | Bot | chased a coin only when it was in the very next lane | lines up for coins ahead (see below); an elite level |
 
@@ -45,7 +46,9 @@ Reaction, timing, lag and slips all still come from `Human`.
 
 - **13 lanes and the island**: a crossing is 14 rows; the island banks it (a later hit restarts there, 1 s pause).
 - **Gold coins**: 20 a run, four on each of crossings 1–5, in the fastest two traffic lanes of each half (never
-  roadworks), on columns 1–2 or 10–11 open in the lane below. Standing on the cell takes it. 3 skill points.
+  roadworks), on column 2 or 10, open in the lane below. Standing on the cell takes it. 3 skill points.
+- **Traffic**: a crossing's car lanes share one density schedule (above); buses, motorbikes, cyclists and roadworks
+  are drawn as parked.
 - **Buses and motorbikes**: as parked.
 - **Streak**: each crossing without a hit raises it; the multiplier is min(4, streak), and each such crossing adds
   multiplier − 1 skill points (0, 1, 2, 3, 3, …); a hit ends it.
@@ -66,10 +69,10 @@ The path becomes an input log played through the real sim and the server replay.
 | Seeds | Inputs | Ceiling (min) | Below 200 | Coins (min) | Crossings (min) | Streak points (min) |
 |---|---|---|---|---|---|---|
 | Tuning 0–59 | any tick (the sim's limit) | **200** | 0 | 20 / 20 | 10 | 24 |
-| Fresh 60–259 | any tick | **200** | 0 | 20 / 20 | 9 | 21 |
-| All 260 | ≥ 8 ticks apart (about 7 swipes a second) | **200** | 0 | 16 | 5 | 9 |
+| Fresh 60–259 | any tick | **200** | 0 | 20 / 20 | 8 | 18 |
+| All 260 | ≥ 8 ticks apart (about 7 swipes a second) | **200** | 0 | 17 | 5 | 9 |
 
-So the full skill pay (66 raw) is reached on every seed with room to spare (≥ 81 raw), and the play part's 150 too.
+So the full skill pay (66 raw) is reached on every seed with room to spare (≥ 78 raw), and the play part's 150 too.
 `cross-x200-check` replays 6 sampled seeds this way and stores one oracle run (seed index 1000) that scores 200
 through the server replay.
 
@@ -83,56 +86,67 @@ the 60 tuning seeds only (`scripts/cross-x200-bands.ts`, which also prints cross
 
 | Level | crossRev 9 median / p90 / best | (old median) | change | zeros new / old |
 |---|---|---|---|---|
-| Weak | 62 / 83 / 97 | (61) | +2 % | 0 / 0 |
-| Average | 74 / 104 / 139 | (74) | 0 % | 0 / 0 |
-| Good | 106 / 142 / 181 | (96) | +10 % | 0 / 0 |
-| Great | 132 / 157 / 190 | (116) | +14 % | 0 / 0 |
-| Near-perfect | **165 / 190** / 195 | (126) | +31 % | 0 / 0 |
-| Elite | **188 / 193** / 194 | (145) | +30 % | 0 / 0 |
+| Weak | 61 / 88 / 117 | (61) | 0 % | 0 / 0 |
+| Average | 75 / 101 / 128 | (74) | +1 % | 0 / 0 |
+| Good | 101 / 152 / 163 | (96) | +5 % | 0 / 0 |
+| Great | 126 / 172 / 185 | (116) | +9 % | 0 / 0 |
+| Near-perfect | **166 / 187** / 193 | (126) | +32 % | 0 / 0 |
+| Elite | **178 / 193** / 195 | (145) | +23 % | 0 / 0 |
 
 **Fresh seeds (60–259)**
 
 | Level | crossRev 9 median / p90 / best | (old median) | change | zeros new / old |
 |---|---|---|---|---|
-| Weak | 59 / 86 / 126 | (59) | 0 % | 0 / 0 |
-| Average | 71 / 101 / 130 | (68) | +4 % | 0 / 0 |
-| Good | 96 / 144 / 158 | (93) | +3 % | 0 / 0 |
-| Great | 125 / 164 / 190 | (111) | +13 % | 0 / 0 |
-| Near-perfect | **156 / 189** / 192 | (130) | +20 % | 0 / 0 |
-| Elite | **170 / 193** / 197 | (145) | +17 % | 0 / 0 |
+| Weak | 61 / 83 / 116 | (59) | +3 % | 0 / 0 |
+| Average | 73 / 97 / 134 | (68) | +7 % | 0 / 0 |
+| Good | 97 / 148 / 186 | (93) | +4 % | 0 / 0 |
+| Great | 133 / 174 / 192 | (111) | +20 % | 0 / 0 |
+| Near-perfect | **159 / 189** / 193 | (130) | +22 % | 0 / 0 |
+| Elite | **183 / 193** / 195 | (145) | +26 % | 0 / 0 |
 
-What the levels do (fresh seeds, medians): crossings 2 / 3 / 3 / 4 / 4 / 4; coins 1 / 1 / 2 / 4 / 7 / 11 of the 20;
+What the levels do (fresh seeds, medians): crossings 2 / 3 / 3 / 4 / 4 / 4; coins 1 / 1 / 3 / 5 / 8 / 11 of the 20;
 lives lost 2 / 2 / 1 / 1 / 1 / 1.
 
 Lowest perfect-play ceiling: 200 on both sets. Random play (uniformly random swipes, about 4 a second, 20 seeds):
-median 2, max 6.
+median 2, max 5.
+
+### Second iteration (after the coordinator's review)
+
+The first version (one commit earlier) measured near-perfect 165 / 190 tuning and 156 / 189 fresh, elite 188 / 193
+and 170 / 193. Tried, gated on crossRev 9, fitted on the tuning seeds and then checked on the fresh ones:
+
+1. **One density schedule a crossing** (done): the seed no longer decides how hard crossing k is, only its
+   arrangement. Elite's fresh median rose 170 → 183.
+2. **Finer base units**: already per row (a crossing's 14 rows each count 1, plus 2 a crossing), so nothing to change.
+3. **Coins a similar detour** (done): column 2 or 10 only.
+4. **Lost-life cost**: not changed. A hit already costs time (back to the pavement or island) and the streak; the
+   spread at the top that keeps near-perfect's p90 high comes from runs that lose nothing and take many coins, which a
+   cheaper life would not narrow.
 
 ### Against the bar
 
-- Good within ±10 % of before: yes (+10 % tuning, +3 % fresh).
+- Good within ±10 % of before: yes (+5 % tuning, +4 % fresh).
 - Great between good and near-perfect, near-perfect above great, elite above near-perfect: yes, on both sets.
 - No zero for weak or average play; random play near 0: yes.
-- Elite top 10 % 190–200: yes (193 / 193). Elite median ≥ ~175: yes on tuning (188), **no on fresh (170)**.
-- Near-perfect median 165–175: yes on tuning (165), **no on fresh (156)**. Near-perfect p90 ≤ ~185: **no (190 / 189)**.
+- Elite top 10 % 190–200: yes (193 / 193). Elite median ≥ ~175: **yes** (178 tuning, 183 fresh).
+- Near-perfect median 165–175: yes on tuning (166), **no on fresh (159)**. Near-perfect p90 ≤ ~185: **no (187 / 189)**.
 
-**Not fully met.** The near-perfect distribution is wide: whether a seed's later crossings let a strong player
-through for a fourth or fifth crossing, and the odd lost life, move near-perfect play by 40+ points (its p10 is ~90),
-and near-perfect, great and good play differ in their reach by only a few rows (median units 61 / 66 / 67 on the
-tuning seeds), so the play curve cannot separate them without moving good play; the separation has to come from the
-coins, and near-perfect's coin count varies a lot (1–15). An offline search over both curves (smooth ones: no more
-than 4 points a unit on the play curve, 2.6 a skill point on the pay) found nothing that puts near-perfect's median at
-165+ with its p90 at 185 or under while good stays within ±10 %, on either seed set or both pooled (best pooled:
-near-perfect 166 / 189, elite 179 / 191, good +11 %). I chose the curves above (near-perfect 165 / 156, elite
-188 / 170) rather than force a cliff into either curve; the first unconstrained fit did hit every number on the
-tuning seeds, with the play curve jumping 61 points over half a crossing, which would not survive real players.
+**Still not fully met, on near-perfect only.** Near-perfect's spread stays wide (its units run 36–94 on the tuning
+seeds even with every crossing equally hard: the bot's own hits and how its timing meets each arrangement), and good,
+great and near-perfect reach nearly the same depth (median units 58 / 65 / 69 tuning), so the separation has to come
+from coins, whose count for near-perfect still runs 2–14. An offline search over smooth curves (≤ 4 points a unit on
+the play curve, ≤ 2.6 a skill point on the pay) on the tuning seeds found no curve with near-perfect's p90 under 187
+while its median stays at 165 and good within ±10 %; the curves above are its best. A curve with a cliff could hit
+the tuning numbers but would not hold on fresh seeds or with real players, so I stopped there.
 
 ## Checks
 
-New: **cross-x200-check** (~45 s; `CROSS_X200_CEILING_SEEDS` raises the ceiling sample): legacy crossRev 3 and 7
+New: **cross-x200-check** (~65 s; `CROSS_X200_CEILING_SEEDS` raises the ceiling sample): legacy crossRev 3 and 7
 identity (40 runs recorded on main before the expansion, unchanged since the parked branch), crossRev 9 fixture
-replay (37 runs: six at each of the six levels and the oracle's 200), determinism, server = phone, rooms deal crossRev
+replay (37 runs: six at each of the six levels and the oracle's 200, re-recorded on the second iteration), determinism, server = phone, rooms deal crossRev
 9, courses (14 rows, the island, buses, motorbikes, passable and fair), exactly 20 coins a run on 60 seeds with four on
-each of crossings 1–5 and none later, on open columns, coin, island and streak rules tick by tick, bounds of buses
+each of crossings 1–5 and none later, on open columns, one density schedule per crossing (40 seeds), every coin of
+crossing 1 taken by a walker on three seeds, coin, island and streak rules tick by tick, bounds of buses
 and motorbikes (2 px), the skill pay (rising, capped at 50, 15 points pay at most 8), no input scores 0, the
 ceiling, room identity, random play.
 

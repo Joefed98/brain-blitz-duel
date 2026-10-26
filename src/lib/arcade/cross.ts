@@ -171,7 +171,7 @@ export const CROSS_X_MOTO_GAP_SPAN_FP = 128_000;
 /** One motorbike lane from crossing 3, two from crossing 6. */
 export const CROSS_X_MOTO_FROM = 2;
 export const CROSS_X_MOTO_TWO_FROM = 5;
-/** Coins: one in each of the riskiest lanes, two below the island and two above, columns 1–2 or 10–11, on crossings 1–5 only. */
+/** Coins: one in each of the riskiest lanes, two below the island and two above, column 2 or 10, on crossings 1–5 only. */
 export const CROSS_X_COIN_CROSSINGS = 5;
 export const CROSS_X_COINS_PER_HALF = 2;
 /** Every run holds exactly this many coins (four on each of the first five crossings). */
@@ -576,13 +576,13 @@ function rollMotoLaneX(rng: number, index: number): { rng: number; lane: CrossLa
 }
 
 /** The columns a coin may sit on: out near the edges, so a coin is gone for, not stumbled on. */
-export const CROSS_X_COIN_COLS = [1, 2, 10, 11] as const;
+export const CROSS_X_COIN_COLS = [2, 10] as const;
 
 /**
  * The crossing's coins (crossings 1–CROSS_X_COIN_CROSSINGS only, so every run holds exactly
  * CROSS_X_COINS_PER_RUN): in each half (below and above the island) the fastest traffic lanes
  * (cars, buses, bikes or motorbikes; never roadworks) get one coin each on a seeded column
- * 1–2 or 10–11 that the lane below leaves open (so it can be hopped into straight from below;
+ * 2 or 10 (the same detour every time) that the lane below leaves open (so it can be hopped into straight from below;
  * a lane above roadworks takes one of the columns through the cones, or is passed over).
  */
 function placeCoinsX(rng: number, lanes: CrossLane[], index: number): { rng: number; coins: number[] } {
@@ -668,6 +668,24 @@ function rollCourseV9(rng: number, index: number): { rng: number; course: CrossC
       state = rolled.rng;
       special.set(lane, rolled.lane);
     }
+    // The crossing's car lanes share one density schedule: their speeds, lengths and gaps are evenly spread
+    // over the usual ranges (one value per lane), and the seed only deals which lane gets which, their
+    // directions and phases. So every run's crossing k is equally hard; only the arrangement differs.
+    const carLanes: number[] = [];
+    for (let lane = 0; lane < rows; lane++) if (!special.has(lane)) carLanes.push(lane);
+    const n = carLanes.length;
+    const spread = (span: number) => {
+      const values = Array.from({ length: n }, (_, k) => Math.trunc(((2 * k + 1) * span) / (2 * n)));
+      for (let k = n - 1; k > 0; k--) {
+        const j = draw(k + 1);
+        [values[k], values[j]] = [values[j]!, values[k]!];
+      }
+      return values;
+    };
+    const fairCourse = index < CROSS_FAIR_COURSES;
+    const speeds = spread(CROSS_SPEED_SPAN_FP);
+    const blocks = spread(fairCourse ? CROSS_FAIR_BLOCK_SPAN_FP : CROSS_BLOCK_SPAN_FP);
+    const gaps = spread(CROSS_GAP_SPAN_FP);
     const lanes: CrossLane[] = [];
     for (let lane = 0; lane < rows; lane++) {
       const fixed = special.get(lane);
@@ -675,9 +693,14 @@ function rollCourseV9(rng: number, index: number): { rng: number; course: CrossC
         lanes.push(fixed);
         continue;
       }
-      const rolled = rollCarLaneV2(state, index);
-      state = rolled.rng;
-      lanes.push(rolled.lane);
+      const k = carLanes.indexOf(lane);
+      const dir = draw(2) === 0 ? 1 : -1;
+      const speed = crossSpeedFor(CROSS_SPEED_MIN_FP + speeds[k]!, index);
+      const blockW = CROSS_BLOCK_MIN_FP + blocks[k]!;
+      let gap = (fairCourse ? CROSS_FAIR_GAP_MIN_FP : CROSS_GAP_MIN_FP) + gaps[k]!;
+      if (fairCourse) gap = Math.max(gap, CROSS_PLAYER_HALF_FP * 2 + CROSS_FAIR_WINDOW_TICKS * speed);
+      const period = blockW + gap;
+      lanes.push({ dir, speed, blockW, period, phase: draw(period) });
     }
     const course: CrossCourse = { lanes };
     const fair = index >= CROSS_FAIR_COURSES || crossFairPassable(course, CROSS_X_SEARCH_TICKS);
@@ -1317,7 +1340,7 @@ export const CROSS_V7_BAND_CURVE = bandStrict(CROSS_BAND_CURVE);
  * seeds, checked on 200 fresh ones) so good play scores about what it did on crossRev 7 and
  * near-perfect and elite play reach the 200 scale's top bands (docs/expansions/x200-cross.md).
  */
-export const CROSS_V9_BAND_CURVE = bandCurve([0, 40, 50, 58, 66, 74, 82], [0, 55, 75, 92, 125, 147, 150]);
+export const CROSS_V9_BAND_CURVE = bandCurve([0, 40, 50, 58, 66, 74, 82], [0, 53, 76, 90, 121, 149, 150]);
 
 /** crossRev 9's raw skill points: CROSS_X_COIN_POINTS a coin plus the streak pool. */
 export function crossSkillRaw(state: Pick<CrossState, "coinTotal" | "streakPts">): number {
@@ -1329,7 +1352,7 @@ export function crossSkillRaw(state: Pick<CrossState, "coinTotal" | "streakPts">
  * CROSS_X_BONUS_MAX, so a few coins and a short streak pay little and the full 50 needs (nearly)
  * every coin of the run and a long streak.
  */
-export const CROSS_V9_SKILL_PAY = bandCurve([0, 15, 30, 45, 60, 66], [0, 3, 40, 43, 47, CROSS_X_BONUS_MAX]);
+export const CROSS_V9_SKILL_PAY = bandCurve([0, 15, 30, 45, 60, 66], [0, 6, 36, 43, 46, CROSS_X_BONUS_MAX]);
 
 /** crossRev 9's bonus: the skill points paid on CROSS_V9_SKILL_PAY, at most CROSS_X_BONUS_MAX. */
 export function crossBonusOf(state: Pick<CrossState, "coinTotal" | "streakPts">): number {
