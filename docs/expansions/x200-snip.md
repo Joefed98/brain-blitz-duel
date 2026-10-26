@@ -224,3 +224,36 @@ Run in this worktree (CPU shared with three other workers):
   `practiceStamps.data.ts` (regenerate with `bun scripts/practice-stamps.ts`), `scripts/fixtures/replay-runs.json`
   (one appended snip run; keep every game's appended run), arcade-self-replay-check's appended `snip/expand` entry.
 - `src/lib/arcade/devWarp.ts` is the parked branch's file as is; another worker may port the same file.
+
+## Second attempt (26 Oct 2026, after the review): structural reweighting, not shipped
+
+What I tried, offline on the 60 tuning seeds only: the bots' per-level records (each level's course, deal, end tick
+and whether it was fed at par cuts) were re-scored under 45 structures. The par-time margin was 60, 90 or 120 ticks.
+The par-time credit was linear, squared or cubed toward the tight end. The raw weights for golden apples, par cuts,
+second leaves and par time were 50/20/20/15, 50/15/15/25, 55/15/10/30, 50/10/10/35 or 60/10/10/30 (perfect-run bonus
+making 50). For each structure I refitted the base curve, kept strictly rising (0.4–3.5 points a unit, so its top
+flattens where the optimiser wants it to), and the pay scale, also strictly rising (0.03–0.3 a raw tenth). The target
+was near-perfect median 170, near-perfect p90 ≤ 182, elite median ≥ 178 and elite p90 190–200.
+
+Result: the best structure (60-tick margin, squared par-time credit, weights 50/10/10/35) gives near-perfect 169.5 /
+p90 187, elite 174.5 / p90 190 and good 98. Every structure leaves near-perfect's top 10 % at 186–189 and elite's
+median at 172–174.5.
+
+Why no monotone scoring can reach the band: near-perfect's top-decile runs beat elite's median run on every scored
+feature (tuning seeds):
+
+| Feature | Elite median | Near-perfect 85th–90th percentile |
+|---|---|---|
+| Units | 112 | 120 |
+| Levels cleared | 5 | 6 |
+| Speed bonus | 0 | 10 |
+| Golden apples | 2 | 3 |
+| Second leaves | 3 | 4–5 |
+| Par-cut levels | 5 | 6 |
+| Par-time levels (sum of credit) | 3.3 | 3.85–4.0 |
+
+So with any monotone scoring, elite's median is at most near-perfect's p90. "Elite median ≥ 178 with near-perfect p90
+≤ 182" then needs both to land in 178–182, which only a plateau (a cliff in reverse) could do. The separation has to
+come from play, not pay: the elite bot loses a level as often as the near-perfect one, because the perfect-level
+windows are 1–6 ticks wide. The shipped scoring is unchanged (first attempt above), so I didn't take a second fresh
+measurement; the fresh numbers above stand.
