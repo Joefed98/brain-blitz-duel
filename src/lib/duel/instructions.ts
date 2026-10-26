@@ -50,12 +50,22 @@ import {
 } from "@/lib/arcade/skyline";
 import { JUNC_V2_BUS_POINTS, JUNC_V2_CAR_POINTS, JUNC_V2_SURVIVE_BONUS } from "@/lib/arcade/junction";
 import {
-  TILT_STARS_PER_MAZE,
-  TILT_TWO_FROM,
   TILT_V2_FINISH_BONUS,
   TILT_V2_MAZE_POINTS,
   TILT_V2_PARTIAL_MAX,
   TILT_V2_STAR_POINTS,
+  TILT_X_MAZES,
+  TILT_X_MAZE_UNITS,
+  TILT_X_PACE_POINTS,
+  TILT_X_PACE_SLOW,
+  TILT_X_PROGRESS,
+  TILT_X_QUICK,
+  TILT_X_QUICK_POINTS,
+  TILT_X_QUICK_TAIL,
+  TILT_X_SKILL_PAY,
+  TILT_X_STARS,
+  TILT_X_STAR_UNITS,
+  TILT_X_TWO_FROM,
 } from "@/lib/arcade/tilt";
 import { BUB_SPECIAL_BLOCK, BUB_TORPEDO_HITS, BUB_V3_JOKER_BLOCK, BUB_V8_CHESTS, BUB_V8_CHEST_FP, BUB_V8_FEATURE_MAX } from "@/lib/arcade/bubble";
 import { MATCHUP_V3_PAR_RAW, MATCHUP_V9_FEATURE_MAX } from "@/lib/arcade/matchup";
@@ -1061,14 +1071,16 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
       goal: "Roll each marble into its own cup.",
       how: [
         { action: "Drag left or right", detail: "to spin the maze." },
-        { action: "Gold stars sit by black holes:", detail: "risky bonuses." },
-        { action: `From maze ${TILT_TWO_FROM}, two marbles,`, detail: "each to its own cup." },
-        { action: "Marbles always roll down.", detail: "Each finished maze brings a harder one; dark holes end the run.", helpOnly: true },
+        { action: "Keys open gates;", detail: "quick stars pay early." },
+        { action: `From maze ${TILT_X_TWO_FROM}, two marbles,`, detail: "each to its own cup." },
+        { action: "Marbles always roll down.", detail: `${TILT_X_MAZES} big mazes, each bigger than the screen: the view follows the marbles. A marble that falls into a black hole goes back to its start.`, helpOnly: true },
+        { action: "Keys and gates:", detail: "a gate across the way to the cup stays shut until either marble rolls over its key, which waits in a side passage before the gate. A gate and its key share a colour.", helpOnly: true },
+        { action: "Quick stars:", detail: `${TILT_X_QUICK} per maze, a few cells into an icy side passage before the gate. Each is worth ${TILT_X_QUICK_POINTS} while its ring is pale gold (until a run at the maze's par pace would reach it), then less as the ring turns amber, and it is gone ${TILT_X_QUICK_TAIL / 60} s later.`, helpOnly: true },
+        { action: "Ice:", detail: "on the frosted cells the marble keeps its speed and slides further, so ease off before a turn or a hole.", helpOnly: true },
         { action: "Cups:", detail: "the blue marble goes in the blue cup, the amber marble in the amber cup, which always starts well away from it. Each marble can only leave through the gap by its own cup, and the maze is done when both are in. The marbles roll through each other.", helpOnly: true },
-        { action: "Stars:", detail: `${TILT_STARS_PER_MAZE} per maze, at the mouth of a black hole beside the route where there is one, otherwise one step off the route. Roll either marble over one to collect it, without rolling on into the hole.`, helpOnly: true },
-        { action: "Maze 2 only: the red ball waits behind a silver gate with a padlock.", detail: "Pass the brass padlock and it's free – it tilts with you. Touch the red ball and the run ends.", helpOnly: true },
+        { action: "Gold stars:", detail: `${TILT_X_STARS === 1 ? "one" : TILT_X_STARS} per maze, a step or two off the route. Roll either marble over ${TILT_X_STARS === 1 ? "it" : "one"} to collect it.`, helpOnly: true },
       ],
-      score: liveBandHelp("tilt", "Each finished maze counts 30, getting closer to the exit in the maze you are on up to 29 more, and each star 5.", { more: "Further through the mazes and more stars", good: (u) => `counts ${u} – about ${Math.round(u / 30)} mazes`, finish: "All four mazes adds up to 10 for speed: the full 10 by 75 s, falling to 0 at the buzzer." }),
+      score: liveBandHelp("tilt", `Each finished maze counts ${TILT_X_MAZE_UNITS}, getting closer to the exit in the maze you are on up to ${TILT_X_PROGRESS} more, and each gold star ${TILT_X_STAR_UNITS}.`, { more: "Further through the mazes and more stars", good: (u) => `counts ${u} – about ${Math.round(u / TILT_X_MAZE_UNITS)} mazes`, finish: `All ${TILT_X_MAZES} mazes adds 10. Skill adds up to 50 more: ${TILT_X_QUICK_POINTS} for each quick star in time, and up to ${TILT_X_PACE_POINTS} for each maze finished at its par (the time its shortest tour of stars and key to the cup takes, so long and short mazes pay alike), none at ${TILT_X_PACE_SLOW / 100}× par. ${skillPayLine(TILT_X_SKILL_PAY)}` }),
     },
     hotfloor: {
       goal: "Plan a route to the exit before the floor falls.",
