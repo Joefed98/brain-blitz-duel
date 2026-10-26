@@ -10,7 +10,7 @@
  *   import { roomIdentity } from "./room-identity/wavefront";
  */
 import { ARCADE_INPUT_DRAG, type ArcadeInputEvent } from "../../src/lib/arcade/engine";
-import { wavefrontGameFor, WAV_REV_EXPAND, WAV_WORLD_W, type WavState } from "../../src/lib/arcade/wavefront";
+import { wavefrontGameFor, WAV_REV_EXPAND, WAV_SAUCER_EVERY, WAV_WORLD_W, type WavState } from "../../src/lib/arcade/wavefront";
 import { Human, type BandLevel } from "../arcade-skill-bands/human";
 import { bot } from "../arcade-skill-bands/bots/wavefront";
 
@@ -26,7 +26,13 @@ export function scheduleOf(seed: number, rev: number, events: unknown): { t: num
     const prev = s;
     s = game.step(s, byTick.get(s.tick + 1) ?? null) as WavState;
     if ((s.dropsSeen ?? 0) > (prev.dropsSeen ?? 0) && s.drop) out.push({ t: s.tick, what: `power-up ${KIND[s.drop.k ?? 0]} at x ${Math.trunc(s.drop.x / 256)}` });
-    if (prev.saucerDir === 0 && s.saucerDir !== 0) out.push({ t: s.tick, what: `saucer from the ${s.saucerDir > 0 ? "left" : "right"}` });
+    // A saucer can be shot down on the tick it appears (a spread bolt already off the edge), so it counts as seen when
+    // it is flying or was just shot without having flown.
+    const shotAtOnce = prev.saucerDir === 0 && (s.saucers ?? 0) > (prev.saucers ?? 0);
+    if (prev.saucerDir === 0 && (s.saucerDir !== 0 || shotAtOnce)) {
+      const dir = s.saucerDir !== 0 ? s.saucerDir : (s.plan?.saucers[s.tick / WAV_SAUCER_EVERY - 1] ?? 1);
+      out.push({ t: s.tick, what: `saucer from the ${dir > 0 ? "left" : "right"}` });
+    }
   }
   return out;
 }
