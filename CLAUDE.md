@@ -428,7 +428,7 @@ Lovable still hosts and publishes the app (https://brain-blitz-duel.lovable.app)
   Add to calendar side by side; reserved 186 px, `PUBLIC_CARD_H`, titled or not, with a same-size stand-in), the Add to Home
   Screen hint a plain panel, and Profile's Send feedback the link on the right of the footer line (`FeedbackLink`);
   play-tab-shift-check covers a cached height and the hint. Gold means "tap to play" (Create a room, the Daily Play and
-  Continue pills, Join now, the selected Practice chip, the current tab, the logo and wordmark Z); links, secondary buttons,
+  Continue pills, Join now, the current tab, the logo and wordmark Z; the selected Practice chip is a light fill since 26 Oct); links, secondary buttons,
   scores and the Beta pill are neutral, icon squares take the category palette (`data-tone`), a played daily shows a grey
   Done pill and "6 rounds · 742", and every `.press` control on the pages sinks to 98 % and lightens while pressed.
   Practice is shelves: with All and no search, one horizontally scrolling row of 104 px square tiles per category
@@ -521,6 +521,16 @@ Lovable still hosts and publishes the app (https://brain-blitz-duel.lovable.app)
   header (`bare` PhoneShell); ties shown with `tieDisplay.ts` (tie-display-check); one error layout
   (`ErrorState`) for the 404, room not found and challenge not found; `Wordmark.tsx` retired for
   `AppWordmark`. celebrations-off.json was re-recorded on the branch (switch set off).
+- **Tab pages refresh** (26 Oct 2026; presentation and device storage only, no stamps; `docs/design-system.md`
+  "Tab pages refresh", the design canvas's T-* boards): Play's first visit shows the first-time intro as a
+  card (`IntroCard`, Play slot "intro", reserved by `PLAY_CARDS_BOOT` from the onboarding flag; its How it
+  works opens the three panels; onboarding-check), the Next public game card says "Lobby opens in 1 h 25
+  min" over a quiet "Opens 7:45 pm" until lobby time (`PUBLIC_CARD_H` 220), Today's dailies show Done with
+  the score, Challenge a friend joins their panel, new icon tiles (`TabIcons.tsx`); Practice's chips are a
+  4 × 2 grid, Recently played, category lists with a BEST column; Tournaments' results are titled from
+  `publicGames.ts` with place discs, an empty state with the Discord button (`DISCORD_URL` in
+  `betaConfig.ts`, hidden while empty); Profile's badge is the player's colour, and a new player sees Get
+  started instead of zeros. Shots: `bun scripts/shots/tab-refresh-shots.ts` (`screenshots/tab-refresh-oct-2026/`).
 - **Per-game round maximum** (25 Oct 2026, the 200-point foundation; `docs/scoring-200.md`; no game's scoring changed):
   `src/lib/duel/roundMax.ts` (`ROUND_MAX`, 150 for every game today; `SCORE_CEILING` 200; `roundMaxFor`) is what the
   perfect moment and `shared.perfect`, the signature beat's no-finish threshold, the arcade reveal chart's axis, the intro

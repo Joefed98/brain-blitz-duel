@@ -173,7 +173,10 @@ const ONLY = process.argv.filter((a) => !a.startsWith("--")).slice(2);
 const GEOMETRY = process.argv.find((a) => a.startsWith("--geometry="))?.slice(11);
 const ALL_SCREENS: Screen[] = [
   { name: "home (room join)", mode: "home" },
-  { name: "first-time intro", mode: "home", fresh: true, fits: true },
+  // Tab pages refresh (26 Oct 2026): the first visit's intro is a card at the top of the Play tab, a page
+  // that scrolls like the other tab pages; its three panels (How it works) are judged to fit, without
+  // scrolling, at four sizes by onboarding-check.
+  { name: "first-time intro", mode: "home", fresh: true },
   { name: "practice list", mode: "practice" },
   { name: "tournaments", mode: "tournaments" },
   { name: "profile", mode: "profile" },

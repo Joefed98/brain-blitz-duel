@@ -27,6 +27,8 @@ export const PLAY_CARDS_KEY = "duelz-play-cards:v1";
 export const NAME_KEY = "duelz_display_name";
 export const LAST_ROOM_KEY = "duelz-last-room:v1";
 export const ARRIVAL_KEY = "duelz-share-arrival:v1";
+/** The first-time intro's once-per-device flag (lib/onboarding.ts; sessionStorage when localStorage fails). */
+export const ONBOARDING_SEEN_KEY = "duelz_onboarding_seen";
 /** The Add to Home Screen hint's once-per-device flag (lib/beta/homeScreenHint.ts). */
 export const HOME_HINT_KEY = "duelz-home-hint:v1";
 /**
@@ -43,13 +45,13 @@ export const NOT_SAFARI_UA = /CriOS|FxiOS|EdgiOS|OPiOS|OPT\/|GSA\/|DuckDuckGo|FB
  * the server-rendered page can't draw the card (it depends on the phone's clock) but the boot script
  * can reserve it: each configured game's start (UTC ms) and its card's height, soonest first.
  */
-export const PUBLIC_CARD_H = { titled: 186, plain: 186 } as const;
+export const PUBLIC_CARD_H = { titled: 220, plain: 220 } as const;
 export const PUBLIC_CARD_STARTS: [number, number][] = scheduledGames(PUBLIC_GAMES).map((g) => [
   g.startsAt,
   g.title ? PUBLIC_CARD_H.titled : PUBLIC_CARD_H.plain,
 ]);
 
-export type PlaySlotId = "daily" | "challenge" | "rejoin" | "welcome" | "homescreen";
+export type PlaySlotId = "daily" | "challenge" | "rejoin" | "welcome" | "homescreen" | "intro";
 
 /** What the boot script reads of the browser for the home-screen hint (window.navigator, matchMedia). */
 export interface BootDevice {
@@ -112,6 +114,7 @@ export function playCardTokens(
   device: BootDevice | null = null,
   starts: readonly [number, number][] = PUBLIC_CARD_STARTS,
   now: number = Date.now(),
+  session: Pick<Storage, "getItem"> | null = null,
 ): string[] {
   const read = (key: string): unknown => {
     try {
@@ -140,6 +143,15 @@ export function playCardTokens(
   if (last && typeof last.code === "string" && /^[A-Z]{4}$/.test(last.code))
     if (!(cache.rejoin && cache.rejoin.code === last.code && cache.rejoin.open === null)) tokens.push("rejoin");
   if (/[?&]ref=share(&|$)/.test(search) && !read("duelz-share-arrival:v1")) tokens.push("welcome");
+  // The first-time intro card (tab pages refresh): a device that hasn't seen it, unless a shared link
+  // brought it (the share welcome card stands in for it).
+  let introSeen = true;
+  try {
+    introSeen = !!store && store.getItem("duelz_onboarding_seen") === "1";
+  } catch {
+    introSeen = false;
+  }
+  if (!introSeen && !(session && session.getItem("duelz_onboarding_seen") === "1") && !/[?&]ref=share(&|$)/.test(search)) tokens.push("intro");
   let hinted = true;
   try {
     hinted = !store || store.getItem("duelz-home-hint:v1") !== null;
@@ -170,6 +182,9 @@ export const PLAY_CARDS_BOOT =
   'var l=r("duelz-last-room:v1");' +
   'if(l&&typeof l.code==="string"&&/^[A-Z]{4}$/.test(l.code)&&!(c.rejoin&&c.rejoin.code===l.code&&c.rejoin.open===null))t.push("rejoin");' +
   'if(/[?&]ref=share(&|$)/.test(q)&&!r("duelz-share-arrival:v1"))t.push("welcome");' +
+  'var o=false;try{o=s.getItem("duelz_onboarding_seen")==="1"}catch(e){o=false}' +
+  'var e2=false;try{e2=window.sessionStorage.getItem("duelz_onboarding_seen")==="1"}catch(e){}' +
+  'if(!o&&!e2&&!/[?&]ref=share(&|$)/.test(q))t.push("intro");' +
   'var v=window.navigator,u=v&&v.userAgent||"",d=false;try{d=s.getItem("duelz-home-hint:v1")!==null}catch(e){d=true}' +
   'var a=!!v&&(v.standalone===true||!!(window.matchMedia&&window.matchMedia("(display-mode: standalone)").matches));' +
   'if(!d&&!a&&/iPhone|iPod/.test(u)&&/Safari\\//.test(u)&&/Version\\//.test(u)&&!/CriOS|FxiOS|EdgiOS|OPiOS|OPT\\/|GSA\\/|DuckDuckGo|FBAN|FBAV|Instagram|Line\\/|Snapchat|YaBrowser|Mercury/.test(u))t.push("homescreen");' +
@@ -201,10 +216,24 @@ export function bootDevice(): BootDevice | null {
 /** Runs the boot where there is no root <head> (the screen harness). */
 export function bootPlayCards(): void {
   try {
-    applyTokens(document.documentElement, playCardTokens(window.localStorage, location.search, bootDevice()));
+    let session: Storage | null = null;
+    try {
+      session = window.sessionStorage;
+    } catch {
+      session = null;
+    }
+    applyTokens(document.documentElement, playCardTokens(window.localStorage, location.search, bootDevice(), PUBLIC_CARD_STARTS, Date.now(), session));
   } catch {
     /* nothing reserved */
   }
+}
+
+/** Drops a slot from this visit's reservations (the intro card once it has been seen and the page left). */
+export function releaseSlot(id: PlaySlotId): void {
+  if (typeof document === "undefined") return;
+  const root = document.documentElement;
+  const tokens = (root.getAttribute("data-play-cards") ?? "").split(" ").filter((t) => t && t !== id);
+  root.setAttribute("data-play-cards", tokens.join(" "));
 }
 
 /** Whether this visit reserved a slot (read once the page is up; false before the boot ran). */
