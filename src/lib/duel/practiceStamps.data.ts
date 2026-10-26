@@ -20,7 +20,7 @@ export const PRACTICE_STAMPS = {
   "dig": "puzzleScoreRev=3 speedPar=1",
   "dual": "puzzleScoreRev=3 speedPar=1",
   "equation": "depthRev=1 equationRev=1 puzzleScoreRev=3 speedPar=1",
-  "flip": "flipRev=6 puzzleScoreRev=3 speedPar=1",
+  "flip": "flipRev=8 puzzleScoreRev=3 speedPar=1",
   "flood": "depthRev=1 floodRev=3 puzzleScoreRev=3 speedPar=1",
   "flow": "flowRev=1 puzzleScoreRev=3 speedPar=1",
   "gravity": "gravityRev=3 puzzleScoreRev=3 speedPar=1",

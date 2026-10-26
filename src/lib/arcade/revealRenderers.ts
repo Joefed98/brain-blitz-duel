@@ -51,6 +51,7 @@ import { tiltArtGame as tiltGame } from "./tiltArt.renderer";
 import { btArtDraw } from "./ballTrackArt.renderer";
 import { ballTrackWorldHFor, BT_H, BT_W, type BtState } from "./ballTrack";
 import { swingWorldHFor } from "./swing";
+import { flipWorldHFor } from "./flip";
 import { whackArtGame as whackGame } from "./whack.renderer";
 import { CLAY_H, CLAY_W, clayWorldHFor } from "./clayShoot";
 import { clayArtGameFor } from './clayShoot.renderer';
@@ -190,7 +191,8 @@ export const ARCADE_REVEAL_RENDERERS: Record<string, ArcadeRevealRenderer> = {
     undefined,
     (p) => wavefrontWorldHFor(p.type === "wavefront" ? p.wavRev : undefined),
   ),
-  flip: simple("#FF4D5E", 390, 620, flipGame, (p, a) => replayFlipRun(seedOf(p), a, p.type === "flip" ? p.flipRev : undefined)),
+  // flipRev 8 (the expansion): the 730 px cave.
+  flip: simple("#FF4D5E", 390, 620, flipGame, (p, a) => replayFlipRun(seedOf(p), a, p.type === "flip" ? p.flipRev : undefined), undefined, undefined, (p) => flipWorldHFor(p.type === "flip" ? p.flipRev : undefined)),
   junction: simple("#22C55E", 390, 620, junctionGame, (p, a) => replayJunctionRun(seedOf(p), a, p.type === "junction" ? p.junctionRev : undefined), undefined, junctionRevealGame),
   inkbridge: simple("#2ED3B7", 390, 620, inkBridgeGame, (p, a) => replayInkBridgeRun(seedOf(p), a, p.type === "inkbridge" ? p.inkRev : undefined)),
   burst: {

@@ -3,7 +3,7 @@
  * tick by tick from any state, keeping per reachable runner situation the state with the most gold stars,
  * then trail stars, then combo points. Routes never crash (a checkpoint's save counts as a crash).
  */
-import { FLIP_INPUT_TAP, FLIP_RUN_TICKS, FLIP_V8_COMBO_CAP, flipStarsTaken, flipTrailStars, type FlipState } from "../src/lib/arcade/flip";
+import { FLIP_INPUT_TAP, FLIP_RUN_TICKS, FLIP_V8_COMBO_CAP, flipStarsTaken, flipSweetsTaken, flipTrailStars, type FlipState } from "../src/lib/arcade/flip";
 import type { ArcadeGame, ArcadeInputEvent } from "../src/lib/arcade/engine";
 
 export const flipTap = (t: number): ArcadeInputEvent => ({ t, k: FLIP_INPUT_TAP, a: 0, b: 0, c: 0, d: 0 });
@@ -17,7 +17,7 @@ function keyOf(s: FlipState): string {
 
 function value(s: FlipState): number {
   const t = flipTrailStars(s);
-  return flipStarsTaken(s) * 1e7 + t.full * 1e6 + t.stars * 1e4 + Math.min(FLIP_V8_COMBO_CAP, s.comboPts ?? 0) * 10 + Math.min(3, s.chain ?? 0);
+  return flipStarsTaken(s) * 1e9 + t.full * 1e8 + flipSweetsTaken(s) * 1e7 + t.stars * 1e5 + Math.min(FLIP_V8_COMBO_CAP, s.comboPts ?? 0) * 10 + Math.min(3, s.chain ?? 0);
 }
 
 export interface FlipRoute {

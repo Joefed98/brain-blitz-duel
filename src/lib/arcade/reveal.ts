@@ -312,6 +312,8 @@ const BUILDERS: Record<string, Builder> = {
       { label: b(r, "survived") ? "Survived" : "Crashed at", value: b(r, "survived") ? "60 s" : sec(n(r, "survivedSeconds")) },
       // flipRev 2 rounds only: stars taken.
       ...(n(r, "starsTotal") > 0 ? [{ label: "Stars", value: `${n(r, "stars")} / ${n(r, "starsTotal")}` }] : []),
+      // flipRev 8 rounds only: sweet landings and the skill points.
+      ...(n(r, "sweetsTotal") > 0 ? [{ label: "Sweet landings", value: `${n(r, "sweets")} / ${n(r, "sweetsTotal")}` }, { label: "Skill", value: `+${n(r, "skill")}` }] : []),
     ],
     outcome: b(r, "survived") ? "finish" : "crash",
   }),

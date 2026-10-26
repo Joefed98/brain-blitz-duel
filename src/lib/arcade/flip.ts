@@ -947,8 +947,8 @@ export const FLIP_V8_TRAIL_R = 8;
 /** Moving spikes join the plain patterns from this tick. */
 const V8_MOVERS_FROM = 12 * TICKS_PER_SECOND;
 /** Feature points (50 in all): a full trail, combo points (doubled in a speed zone, capped), a clean zone, a clean checkpoint. */
-export const FLIP_V8_TRAIL_POINTS = 5;
-export const FLIP_V8_COMBO_CAP = 12;
+export const FLIP_V8_TRAIL_POINTS = 6;
+export const FLIP_V8_COMBO_CAP = 8;
 export const FLIP_V8_ZONE_POINTS = 3;
 export const FLIP_V8_CP_POINTS = 3;
 export const FLIP_V8_FEATURE_CAP = 50;
@@ -960,7 +960,7 @@ export const FLIP_V8_FEATURE_CAP = 50;
  */
 export const FLIP_V8_SWEETS = 8;
 export const FLIP_V8_SWEET_TICKS = 5;
-export const FLIP_V8_SWEET_POINTS = 2;
+export const FLIP_V8_SWEET_POINTS = 3;
 const V8_SWEET_SECONDS = [6.5, 13, 19.5, 26, 32.5, 39, 45.5, 52] as const;
 /**
  * The skill pay (a rising scale, as Breaker's BRK_V9_SKILL_PAY): the features' raw points (trails 5 each, sweet
@@ -969,9 +969,9 @@ const V8_SWEET_SECONDS = [6.5, 13, 19.5, 26, 32.5, 39, 45.5, 52] as const;
  * sweet spot, zone and checkpoint), or near it with combos on top.
  */
 export const FLIP_V8_SKILL_FULL = FLIP_V8_TRAILS * FLIP_V8_TRAIL_POINTS + FLIP_V8_SWEETS * FLIP_V8_SWEET_POINTS + 2 * FLIP_V8_ZONE_POINTS + 3 * FLIP_V8_CP_POINTS;
-export const FLIP_V8_SKILL_PAY = bandCurve([0, 15, 30, 40, 46, FLIP_V8_SKILL_FULL], [0, 6, 18, 30, 40, FLIP_V8_FEATURE_CAP]);
+export const FLIP_V8_SKILL_PAY = bandCurve([0, 12, 27, 42, 55, FLIP_V8_SKILL_FULL], [0, 4, 10, 17, 26, FLIP_V8_FEATURE_CAP]);
 /** The rev-8 survival curve: half seconds + 3 per gold star, to 140 (the full minute adds 10, the features up to 50). */
-export const FLIP_V8_BAND_CURVE = bandCurve([0, 40, 105, 130, 140, 146, 147, 150], [0, 10, 40, 56, 72, 84, 98, 140]);
+export const FLIP_V8_BAND_CURVE = bandCurve([0, 40, 105, 130, 140, 146, 150], [0, 12, 48, 74, 96, 118, 140]);
 
 export interface FlipTrail {
   /** Star centres (1/256 px) and heights (per mille of the cave: 0 the floor's runner line, 1000 the ceiling's). */
@@ -1681,7 +1681,8 @@ function flipV8Parts(state: FlipState): BandParts {
   const f = flipV8Features(state);
   const secs = ((state.ended === 1 ? FLIP_RUN_TICKS : state.tick) / 60).toFixed(1);
   const saves = state.saves ? ` · ${state.saves} saved` : "";
-  const bits = f.total ? [`skill ${f.total}`] : [];
+  const parts = [`${flipTrailStars(state).full} trails`, `${flipSweetsTaken(state)} sweet`, `combo ${f.combo}`, `${state.zonesOk ?? 0} zones`, `${state.cleanCps ?? 0} checkpoints`];
+  const bits = f.raw ? [`skill ${f.total} (${parts.join(", ")})`] : [];
   return {
     units,
     points: bandPoints(FLIP_V8_BAND_CURVE, units),
