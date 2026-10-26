@@ -5,6 +5,7 @@
  */
 import { finishParts, partialParts, scoreRev1 } from "./puzzleScoreRev";
 import { dealtDepthRev } from "./wordDepth";
+import { dealtTopupRev } from "./depthTopup";
 import type { TileGridPuzzleData } from "./types";
 
 
@@ -17,9 +18,12 @@ export const TG_REVEAL_MS = 8_000;
 /** Word depth to 200 (25 Oct 2026): Interlock's stretch stamp; the board and rules are unchanged (depth/tilegrid.server.ts). */
 export const TILE_GRID_DEPTH_REV = 1;
 
-/** New rounds carry tileGridRev 1 (none while a check pins the pre-depth stamps). */
+/** The puzzle top-up (26 Oct 2026): tileGridRev 2, the same board, its pace bonus retuned (TILEGRID_STRETCH_TOPUP). */
+export const TILE_GRID_TOPUP_REV = 2;
+
+/** New rounds carry tileGridRev 2 (1 while a check pins the live stamps, none while one pins the pre-depth stamps). */
 export function stampTileGridRev(puzzle: TileGridPuzzleData): TileGridPuzzleData {
-  const rev = dealtDepthRev<number | undefined>(TILE_GRID_DEPTH_REV, undefined);
+  const rev = dealtDepthRev<number | undefined>(dealtTopupRev(TILE_GRID_TOPUP_REV, TILE_GRID_DEPTH_REV), undefined);
   return rev === undefined ? puzzle : { ...puzzle, tileGridRev: rev };
 }
 

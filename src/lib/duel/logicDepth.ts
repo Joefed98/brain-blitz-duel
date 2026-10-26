@@ -19,6 +19,7 @@
  * Shared and pure (the phone's texts and the server's grade read the same numbers).
  */
 import type { PuzzleData, PuzzleType } from "./types";
+import { preTopupPinned } from "./depthTopup";
 
 /** The stamp: puzzles dealt with it score to 200 (and the bigger boards' games deal their bigger boards). */
 export const DEPTH_REV = 1;
@@ -58,6 +59,32 @@ export const DEPTH_GAMES: Readonly<Partial<Record<PuzzleType, DepthGame>>> = {
 export const DEPTH_TYPES = Object.keys(DEPTH_GAMES) as PuzzleType[];
 
 /**
+ * The puzzle top-up (26 Oct 2026, docs/depth/topup-oct-2026.md): `depthRev: 2` for four games whose near-perfect
+ * play sat under the 200-point bar (Safe Cracker, Box Six, Colour Flood, Shikaku). Same boards and play; the curve
+ * starts a little earlier, so today's 150s land about 150–165 (Safe Cracker's clean crack, a feature, about 165–175),
+ * and two partial credits (Safe Cracker's clues, Colour Flood's board run out of moves) keep trying play off 0.
+ * Older rounds (depthRev 1) score exactly as before.
+ */
+export const DEPTH_REV_TOPUP = 2;
+
+export interface DepthGameTopup extends DepthGame {
+  /** Clean route: the fixed part of the top a first-try crack earns (the rest follows the stretch)… */
+  cleanFixed?: number;
+  /** …in full from `cleanFixedFull` of the clock left, rising evenly from `cleanFixedFrom` (a slow crack earns none). */
+  cleanFixedFrom?: number;
+  cleanFixedFull?: number;
+}
+
+export const DEPTH_GAMES_TOPUP: Readonly<Partial<Record<PuzzleType, DepthGameTopup>>> = {
+  safe: { route: "clean", fast: 0.7, elite: 0.82, power: 1.5, cleanFixed: 15, cleanFixedFrom: 0.5, cleanFixedFull: 0.65 },
+  sudoku: { route: "stretch", fast: 0.5, elite: 0.69, power: 1.3 },
+  flood: { route: "stretch", fast: 0.73, elite: 0.79, power: 1.5 },
+  shikaku: { route: "stretch", fast: 0.52, elite: 0.69, power: 1.3 },
+};
+
+export const DEPTH_TOPUP_TYPES = Object.keys(DEPTH_GAMES_TOPUP) as PuzzleType[];
+
+/**
  * Intro demos recorded before the depth revision that no longer show the game as dealt (a bigger board, or no par
  * line / clean crack): stopped until re-recorded on depthRev 1 (introDemo.functions.ts). Box Six, Bomb Defusal and
  * Colour Flood play exactly as before, so their demos keep playing.
@@ -91,7 +118,19 @@ export function usesDepth(puzzle: PuzzleData | null | undefined): boolean {
   return !!puzzle && isDepthType(puzzle.type) && depthRevOf(puzzle) >= DEPTH_REV;
 }
 
-export function depthGame(type: PuzzleType): DepthGame {
+/** The depth revision new puzzles of `type` are dealt (2 for the top-up's games, 1 for the rest). */
+export function dealtLogicDepthRev(type: PuzzleType): number {
+  return DEPTH_GAMES_TOPUP[type] && !preTopupPinned() ? DEPTH_REV_TOPUP : DEPTH_REV;
+}
+
+/** The depth revision the app's texts state: the top-up's for its four games (never pinned by a check). */
+export function liveLogicDepthRev(type: PuzzleType): number {
+  return DEPTH_GAMES_TOPUP[type] ? DEPTH_REV_TOPUP : DEPTH_REV;
+}
+
+/** The game's curve on a depth revision (by default the one dealt today, which the texts state). */
+export function depthGame(type: PuzzleType, rev = dealtLogicDepthRev(type)): DepthGameTopup {
+  if (rev >= DEPTH_REV_TOPUP && DEPTH_GAMES_TOPUP[type]) return DEPTH_GAMES_TOPUP[type]!;
   return DEPTH_GAMES[type] ?? { route: "stretch", fast: 0.6, elite: 0.8, power: 1.5 };
 }
 
@@ -101,14 +140,14 @@ function clamp(v: number, lo: number, hi: number): number {
 }
 
 /** The 0–30 speed points (puzzleScoreRev 3's, on this game's `fast`). */
-export function depthSpeedPoints(type: PuzzleType, left: number, efficiency: number): number {
-  const t = Math.min(1, clamp(left, 0, 1) / depthGame(type).fast);
+export function depthSpeedPoints(type: PuzzleType, left: number, efficiency: number, rev?: number): number {
+  const t = Math.min(1, clamp(left, 0, 1) / depthGame(type, rev).fast);
   return Math.round(DEPTH_SPEED_POINTS * t * clamp(efficiency, 0, 1));
 }
 
 /** The stretch curve, 0 at `fast` (and below), 1 at `elite` (and above). */
-export function depthStretchShare(type: PuzzleType, left: number): number {
-  const g = depthGame(type);
+export function depthStretchShare(type: PuzzleType, left: number, rev?: number): number {
+  const g = depthGame(type, rev);
   if (g.elite <= g.fast) return 0;
   const x = clamp((clamp(left, 0, 1) - g.fast) / (g.elite - g.fast), 0, 1);
   return Math.pow(x, g.power);
@@ -137,20 +176,22 @@ export interface DepthFinish {
 }
 
 /** A finish on the depth revision. */
-export function depthFinish(type: PuzzleType, input: DepthFinishInput): DepthFinish {
-  const g = depthGame(type);
+export function depthFinish(type: PuzzleType, input: DepthFinishInput, rev?: number): DepthFinish {
+  const g = depthGame(type, rev);
   const eff = clamp(input.efficiency, 0, 1);
-  const speed = depthSpeedPoints(type, input.left, eff);
+  const speed = depthSpeedPoints(type, input.left, eff, rev);
   let top = 0;
   let topLabel = "";
   let atPar: boolean | undefined;
   if (g.route === "par") {
     atPar = input.par !== undefined && input.par > 0 && input.moves !== undefined && input.moves <= input.par;
-    top = atPar ? DEPTH_PAR_BASE + Math.round((DEPTH_TOP_POINTS - DEPTH_PAR_BASE) * depthStretchShare(type, input.left)) : 0;
+    top = atPar ? DEPTH_PAR_BASE + Math.round((DEPTH_TOP_POINTS - DEPTH_PAR_BASE) * depthStretchShare(type, input.left, rev)) : 0;
     topLabel = "par";
   } else if (g.route === "clean") {
     const share = DEPTH_CLEAN_SHARE[clamp(Math.round(input.openedOn ?? 3), 1, 3) - 1] ?? 0;
-    top = Math.round(DEPTH_TOP_POINTS * depthStretchShare(type, input.left) * share);
+    const fixed = g.cleanFixed ?? 0;
+    const ramp = g.cleanFixedFull !== undefined && g.cleanFixedFrom !== undefined ? clamp((input.left - g.cleanFixedFrom) / Math.max(0.01, g.cleanFixedFull - g.cleanFixedFrom), 0, 1) : 1;
+    top = Math.round(fixed * ramp * share + (DEPTH_TOP_POINTS - fixed) * depthStretchShare(type, input.left, rev) * share);
     topLabel = "clean crack";
   } else {
     let share = eff * eff;
@@ -159,18 +200,18 @@ export function depthFinish(type: PuzzleType, input: DepthFinishInput): DepthFin
       share *= over <= 0 ? DEPTH_FLOOD_PAR_SHARE[0] : over === 1 ? DEPTH_FLOOD_PAR_SHARE[1] : 0;
       atPar = over <= 0;
     }
-    top = Math.round(DEPTH_TOP_POINTS * depthStretchShare(type, input.left) * share);
+    top = Math.round(DEPTH_TOP_POINTS * depthStretchShare(type, input.left, rev) * share);
   }
   top = clamp(top, 0, DEPTH_TOP_POINTS);
   return { score: DEPTH_FINISH_BASE + speed + top, speed, top, topLabel, ...(atPar !== undefined ? { atPar } : {}) };
 }
 
 /** Seconds a clean finish must leave for 150 (the texts' "about N s"). */
-export function depthFastSeconds(type: PuzzleType, limitMs: number): number {
-  return Math.round((limitMs * (1 - depthGame(type).fast)) / 1000);
+export function depthFastSeconds(type: PuzzleType, limitMs: number, rev?: number): number {
+  return Math.round((limitMs * (1 - depthGame(type, rev).fast)) / 1000);
 }
 
 /** Seconds of play a clean finish may take for the full top (stretch and clean games). */
-export function depthEliteSeconds(type: PuzzleType, limitMs: number): number {
-  return Math.round((limitMs * (1 - depthGame(type).elite)) / 1000);
+export function depthEliteSeconds(type: PuzzleType, limitMs: number, rev?: number): number {
+  return Math.round((limitMs * (1 - depthGame(type, rev).elite)) / 1000);
 }

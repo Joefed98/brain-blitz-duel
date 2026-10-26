@@ -9,7 +9,7 @@ import { bandsIntro } from "./puzzleBandsText";
 import { depthIntro as logicDepthIntro } from "./logicDepthText";
 import { wordSearchBonusIntro } from "./wordSearchText";
 import { letterWheelJarIntro } from "./letterWheelText";
-import { CODEWORD_STRETCH, TILEGRID_STRETCH, stretchIntro, strikeoutDepthIntro } from "./depth/stretchShapes";
+import { CODEWORD_STRETCH, TILEGRID_STRETCH_TOPUP, stretchIntro, strikeoutDepthIntro } from "./depth/stretchShapes";
 import { parBonusIntro } from "./parBonusText";
 import { doubleTakeDepthIntro, eagleEyeDepthIntro, tallyDepthIntro } from "./depth/attentionTexts";
 import { ASCEND_DEPTH_INTRO, BANGON_DEPTH_INTRO, FLASH_DEPTH_INTRO } from "./depth/speedTexts";
@@ -39,7 +39,7 @@ function introScoreTemplates(): Record<PuzzleType, string> {
     // Word
     wordsmith: "Longer words score more. The word using every tile adds a big bonus; {max} only with it.",
     wordhunt: "Longer words score more; 6+ letters and the gold tile add extra. {max} needs both.",
-    tilegrid: stretchIntro("tilegrid", TILEGRID_STRETCH),
+    tilegrid: stretchIntro("tilegrid", TILEGRID_STRETCH_TOPUP),
     wordslide: parBonusIntro("wordslide", "moves"),
     wordsearch: wordSearchBonusIntro(),
     letterwheel: letterWheelJarIntro(),
