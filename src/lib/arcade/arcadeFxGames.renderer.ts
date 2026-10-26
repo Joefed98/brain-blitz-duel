@@ -38,6 +38,13 @@ import {
   brkDestroyed,
   brkWorldH,
   brkRowOffset,
+  brkCols,
+  brkComboMultiplier,
+  brkIsGold,
+  brkRowsOf,
+  brkWorldW,
+  BRK_V9_H,
+  BRK_V9_W,
   type BrkState,
 } from "./breaker";
 
@@ -124,7 +131,7 @@ import {
   BULLSEYE_WORLD_W,
   type BullseyeState,
 } from "./bullseye";
-import { SLICE_TALL_H, SLICE_WORLD_H, SLICE_WORLD_W, sliceMayoCount, sliceMultiplier, sliceWorldH, type SliceState } from "./slice";
+import { SLICE_TALL_H, SLICE_V9_H, SLICE_V9_W, SLICE_WORLD_H, SLICE_WORLD_W, sliceMayoCount, sliceMultiplier, sliceWorldH, type SliceState } from "./slice";
 import { bubCellX, bubCellY, BUB_COLS, BUB_TALL_H, BUB_WORLD_H, BUB_WORLD_W, bubWorldH, type BubState } from "./bubble";
 
 /** Where the last special landed (bubbleRev 2), in world units. */
@@ -1303,10 +1310,69 @@ export const SKYLINE_FX_TALL = fxSpecAt(SKYLINE_FX, SKYLINE_TALL_H);
  */
 export const SKYLINE_FX_SKY = fxSpecAt(SKYLINE_FX, SKYLINE_TALL_H);
 /** Taller worlds batch 1 (Oct 2026): Breaker brkRev 6, Rally rallyRev 6, Wavefront wavRev 6, Fission burstRev 4. */
-export const breakerFxFor = (s: BrkState): ArcadeFxSpec<BrkState> => fxSpecAt(BREAKER_FX, brkWorldH(s));
 export const BREAKER_FX_TALL = fxSpecAt(BREAKER_FX, BRK_TALL_H);
-export const rallyFxFor = (s: RallyState): ArcadeFxSpec<RallyState> => fxSpecAt(RALLY_FX, rallyWorldH(s));
 export const RALLY_FX_TALL = fxSpecAt(RALLY_FX, RALLY_TALL_H);
+
+/* Expansion E3 (25 Oct 2026, docs/expansions/e3.md): brkRev 9's 420 × 784 court. */
+const E3_GOLD = "#FFD84A";
+function deepRows(s: BrkState): number[][] {
+  const cols = brkCols(s);
+  return Array.from({ length: brkRowsOf(s) }, (_, r) => Array.from({ length: cols }, (_, c) => r * cols + c));
+}
+const deepRowClear = (s: BrkState, row: number[]) => row.every((i) => (s.bricks[i] ?? 0) <= 0 || brkIsGold(s, i));
+/**
+ * brkRev 9: the wider court. The live spec (ARCADE_FX_SPECS) serves every revision's replay moments and moment cues
+ * (src/lib/replay/moments.ts), so the original events keep their order and read older states exactly as before;
+ * the row and sliding-row counts read the 9-column wall only on brkRev 9 states, and the gold-brick and combo
+ * moments come after them.
+ */
+export const BREAKER_FX_DEEP: ArcadeFxSpec<BrkState> = {
+  ...BREAKER_FX,
+  width: BRK_V9_W,
+  height: BRK_V9_H,
+  events: [
+    ...BREAKER_FX.events.map((e) => {
+      if (e.kind === "clear")
+        return {
+          ...e,
+          count: (s: BrkState) => (s.deep ? deepRows(s).filter((row) => deepRowClear(s, row)).length : e.count(s)),
+          at: (s: BrkState) => {
+            if (!s.deep) return e.at?.(s) ?? null;
+            const rows = deepRows(s);
+            for (let r = rows.length - 1; r >= 0; r--) if (deepRowClear(s, rows[r]!)) return { x: brkWorldW(s) / 2, y: BRK_WALL_Y + r * BRK_ROW_PITCH + BRK_BRICK_H / 2 };
+            return { x: brkWorldW(s) / 2, y: BRK_WALL_Y };
+          },
+        };
+      if (e.count === brkSlideDestroyed)
+        return {
+          ...e,
+          count: (s: BrkState) => (s.deep ? (s.slide ?? []).reduce((n, row) => n + (deepRows(s)[row] ?? []).filter((i) => (s.bricks[i] ?? 0) <= 0).length, 0) : brkSlideDestroyed(s)),
+          at: (s: BrkState) => (s.deep ? { x: brkWorldW(s) / 2 + brkRowOffset(s, (s.slide ?? [])[0] ?? 0, s.tick), y: BRK_WALL_Y + ((s.slide ?? [])[0] ?? 0) * BRK_ROW_PITCH + BRK_BRICK_H / 2 } : (e.at?.(s) ?? null)),
+        };
+      return e;
+    }),
+    {
+      kind: "perfect",
+      count: (s) => s.goldBroken ?? 0,
+      at: (s) => ({ x: s.paddleX, y: brkWorldH(s) - 110 }),
+      label: () => "GOLD BRICK!",
+      ...BREAKER_TEXT,
+      colour: () => E3_GOLD,
+      bulbs: { pattern: "chase", colours: [E3_GOLD, "#FFF3B0", "#B8860B"] },
+    },
+    {
+      kind: "pop",
+      count: (s) => s.comboUps ?? 0,
+      at: (s) => ({ x: s.paddleX, y: brkWorldH(s) - 130 }),
+      label: (s) => `COMBO ×${brkComboMultiplier(s.chain ?? 0)}`,
+      ...BREAKER_TEXT,
+      colour: () => E3_GOLD,
+    },
+  ],
+};
+/** The spec a stored round draws with: the expansion's own, else the stored height's. */
+export const breakerFxFor = (s: BrkState): ArcadeFxSpec<BrkState> => (s.deep ? BREAKER_FX_DEEP : fxSpecAt(BREAKER_FX, brkWorldH(s)));
+export const rallyFxFor = (s: RallyState): ArcadeFxSpec<RallyState> => fxSpecAt(RALLY_FX, rallyWorldH(s));
 export const wavefrontFxFor = (s: WavState): ArcadeFxSpec<WavState> => fxSpecAt(WAVEFRONT_FX, wavWorldH(s));
 export const WAVEFRONT_FX_TALL = fxSpecAt(WAVEFRONT_FX, WAV_TALL_H);
 export const burstFxFor = (s: BurstState): ArcadeFxSpec<BurstState> => fxSpecAt(BURST_FX, burstFloorY(s));
@@ -1314,8 +1380,12 @@ export const BURST_FX_TALL = fxSpecAt(BURST_FX, BURST_TALL_H);
 /** Taller worlds batch 2 (Oct 2026): Tempo beatRev 6, Slice sliceRev 6, Coral Pop bubbleRev 5. */
 export const beatFxFor = (s: BeatState): ArcadeFxSpec<BeatState> => fxSpecAt(BEAT_FX, beatWorldH(s));
 export const BEAT_FX_TALL = fxSpecAt(BEAT_FX, BEAT_TALL_H);
+/** World expansion E5 (25 Oct 2026, docs/expansions/e5.md): Swish binRev 7's world. */
+export const BINTOSS_FX_V7: ArcadeFxSpec<BinTossState> = { ...BINTOSS_FX, width: 430, height: 728 };
 export const sliceFxFor = (s: SliceState): ArcadeFxSpec<SliceState> => fxSpecAt(SLICE_FX, sliceWorldH(s));
 export const SLICE_FX_TALL = fxSpecAt(SLICE_FX, SLICE_TALL_H);
+/** World expansion E5 (25 Oct 2026, docs/expansions/e5.md): Slice sliceRev 9's world (as the renderer's own v9 spec). */
+export const SLICE_FX_V9: ArcadeFxSpec<SliceState> = { ...SLICE_FX, width: SLICE_V9_W, height: SLICE_V9_H };
 export const bubbleFxFor = (s: BubState): ArcadeFxSpec<BubState> => fxSpecAt(BUBBLE_FX, bubWorldH(s));
 export const BUBBLE_FX_TALL = fxSpecAt(BUBBLE_FX, BUB_TALL_H);
 /** Taller worlds batch 3 (Oct 2026): Grappler swingRev 9, Orbit orbitRev 8 (its view), Ball Tracker btRev 4. */
@@ -1367,7 +1437,7 @@ export const PINBALL_FX: ArcadeFxSpec<PinState> = {
 
 export const ARCADE_FX_SPECS = {
   hover: HOVER_FX_TALL,
-  breaker: BREAKER_FX_TALL,
+  breaker: BREAKER_FX_DEEP,
   rally: RALLY_FX_TALL,
   beat: BEAT_FX_TALL,
   snake: SNAKE_FX_V9,
@@ -1379,8 +1449,8 @@ export const ARCADE_FX_SPECS = {
   cross: CROSS_FX,
   junction: JUNCTION_FX,
   inkbridge: INKBRIDGE_FX,
-  slice: SLICE_FX_TALL,
-  bintoss: BINTOSS_FX,
+  slice: SLICE_FX_V9,
+  bintoss: BINTOSS_FX_V7,
   bullseye: BULLSEYE_FX,
   bubble: BUBBLE_FX_TALL,
   flip: FLIP_FX,

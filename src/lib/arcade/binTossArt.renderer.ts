@@ -1,6 +1,6 @@
 import { BINTOSS_NEXT_DELAY } from "./binToss";
 import { arcadeFx } from "./arcadeFx.renderer";
-import { BINTOSS_FX } from "./arcadeFxGames.renderer";
+import { BINTOSS_FX, BINTOSS_FX_V7 } from "./arcadeFxGames.renderer";
 import { successHud, successFrame, SUCCESS_ACCENTS } from "./success.renderer";
 import type { ArcadeGame, ArcadeInputEvent, CanvasSize } from "./engine";
 import {
@@ -10,6 +10,8 @@ import {
   BINTOSS_HOOP_CAP_R, BINTOSS_HOOP_HALF, BINTOSS_SPIN_THICK,
   binTossCentreAt, binTossGame, binTossHalf, binTossPath, binTossSpinEnds, binTossSpinPivot,
   type BinTossGhost, type BinTossHoop, type BinTossLandingPresentation, type BinTossState,
+  BINTOSS_EXPAND, BINTOSS_FAR_HALF, BINTOSS_FAR_POINTS, BINTOSS_V7_LIFT, BINTOSS_V7_WORLD_H, BINTOSS_V7_WORLD_W,
+  binTossWindAcc, binTossWindSub, binTossWorldOf,
 } from "./binToss";
 import { reducedMotion } from "./art.renderer";
 import { FAIR_TEXT, fairArenaScene, fairChangeAge, fairPennant, fairScreen, fairTransform } from "./fairground.renderer";
@@ -333,9 +335,9 @@ function drawSpinner(ctx: CanvasRenderingContext2D, state: BinTossState, index: 
   ctx.restore();
 }
 
-function drawWind(ctx: CanvasRenderingContext2D, wind: number): void {
-  const centreX = BINTOSS_WORLD_W / 2;
-  const y = 84;
+function drawWind(ctx: CanvasRenderingContext2D, wind: number, worldW = BINTOSS_WORLD_W, top = 0): void {
+  const centreX = worldW / 2;
+  const y = 84 + top;
   const strength = Math.abs(wind);
   ctx.save();
   ctx.strokeStyle = wind === 0 ? "#F7F7F855" : BINTOSS_BIN_COLOUR;
@@ -360,7 +362,38 @@ function drawWind(ctx: CanvasRenderingContext2D, wind: number): void {
   ctx.textBaseline = "alphabetic";
   ctx.fillText(wind === 0 ? "no wind" : `${wind < 0 ? "←" : "→"} ${strength}`, centreX, y - 19);
   ctx.restore();
-  fairPennant(ctx, BINTOSS_WORLD_W - 30, 10, wind, BINTOSS_WIND_MAX);
+  fairPennant(ctx, worldW - 30, 10 + top, wind, BINTOSS_WIND_MAX);
+}
+
+/**
+ * binRev 7: the far bucket's tag, a small gold pennant on a pole standing in the bucket's mouth (scenery
+ * above the rim, never in the ball's way: the rim is the bucket's top), "+9" on it.
+ */
+function drawFarTag(ctx: CanvasRenderingContext2D, centre: number, top: number, made: boolean): void {
+  ctx.save();
+  const x = centre + 8;
+  ctx.strokeStyle = "#4E3019";
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(x, top - 3);
+  ctx.lineTo(x, top - 34);
+  ctx.stroke();
+  ctx.fillStyle = made ? "#FFE9A3" : "#F5B82E";
+  ctx.beginPath();
+  ctx.moveTo(x, top - 34);
+  ctx.lineTo(x + 26, top - 28);
+  ctx.lineTo(x, top - 21);
+  ctx.closePath();
+  ctx.fill();
+  ctx.strokeStyle = "rgba(110,74,16,0.9)";
+  ctx.lineWidth = 0.8;
+  ctx.stroke();
+  ctx.fillStyle = "#3A2208";
+  ctx.font = "800 9px 'JetBrains Mono', ui-monospace, monospace";
+  ctx.textAlign = "left";
+  ctx.textBaseline = "middle";
+  ctx.fillText(`+${BINTOSS_FAR_POINTS}`, x + 3, top - 27.5);
+  ctx.restore();
 }
 
 const trails = new WeakMap<CanvasRenderingContext2D, { tick: number; points: { x: number; y: number }[] }>();
@@ -391,7 +424,11 @@ function drawTrail(ctx: CanvasRenderingContext2D, state: BinTossState): void {
 function draw(ctx: CanvasRenderingContext2D, state: BinTossState, size: CanvasSize): void {
   const basketAge = fairChangeAge(ctx, "bintoss-baskets", state.baskets);
   const resolvedAge = fairChangeAge(ctx, "bintoss-resolved", state.resolved);
-  fairScreen(ctx, size, BINTOSS_WORLD_W, BINTOSS_WORLD_H, FLOOR, () => arcadeFx(ctx, BINTOSS_FX, state, () => {
+  // binRev 7: the wider, taller fairground, drawn `lift` px down so every sim coordinate keeps its place.
+  const world = binTossWorldOf(state);
+  const expand = world.lift > 0;
+  const farAge = expand ? fairChangeAge(ctx, "bintoss-far", state.farIn ?? 0) : Infinity;
+  fairScreen(ctx, size, world.w, world.h, FLOOR + world.lift, () => { if (expand) ctx.translate(0, world.lift); arcadeFx(ctx, expand ? BINTOSS_FX_V7 : BINTOSS_FX, state, () => {
     const index = Math.min(state.throwIndex, BINTOSS_THROWS - 1);
     const centre = px(binTossCentreAt(state, index, state.tick));
     const half = px(binTossHalf(index, state.rev));
@@ -402,6 +439,16 @@ function draw(ctx: CanvasRenderingContext2D, state: BinTossState, size: CanvasSi
     counterShadow(ctx, centre, slides ? FLOOR + 12 : FLOOR + 1, half + 6, 0);
     if (state.resolved < BINTOSS_THROWS) counterShadow(ctx, px(state.x), FLOOR + 1, px(BINTOSS_BALL_R) * 1.4, FLOOR - px(state.y));
     drawBucket(ctx, centre, half, lean, slides);
+    // binRev 7: the far bucket further back, still; it rocks after a far basket or a rim hit.
+    const farCentre = expand && state.throwIndex < BINTOSS_THROWS ? (state.fars?.[index] ?? 0) : 0;
+    if (farCentre) {
+      const fsince = state.tick - (state.farWobbleTick ?? 0);
+      let farLean = (state.farWobbleTick ?? 0) > 0 && fsince >= 0 && fsince < 24 ? (fsince % 8 < 4 ? 2 : -2) : 0;
+      if (!reducedMotion() && farAge < 500) farLean = Math.sin(farAge / 45) * 2 * (1 - farAge / 500);
+      counterShadow(ctx, px(farCentre), FLOOR + 1, px(BINTOSS_FAR_HALF) + 6, 0);
+      drawBucket(ctx, px(farCentre), px(BINTOSS_FAR_HALF), farLean, false);
+      drawFarTag(ctx, px(farCentre), px(BINTOSS_RIM_Y), farAge < 600);
+    }
     // Rev 3: the hoop (glowing briefly after a swish) and the spinner.
     const hoop = state.throwIndex < BINTOSS_THROWS ? (state.hoops?.[index] ?? null) : null;
     const swishAge = fairChangeAge(ctx, "bintoss-swishes", state.swishes ?? 0);
@@ -411,8 +458,15 @@ function draw(ctx: CanvasRenderingContext2D, state: BinTossState, size: CanvasSi
     if (state.throwIndex < BINTOSS_THROWS) drawSpinner(ctx, state, index, knock);
 
     const caughtIndex=Math.max(0,state.throwIndex-1);
-    successFrame(ctx,{id:'bintoss',tick:state.tick,count:state.baskets,eventTick:state.results.at(-1)===1?state.readyTick-BINTOSS_NEXT_DELAY:0,misses:state.resolved-state.baskets,colour:SUCCESS_ACCENTS.gold,width:BINTOSS_WORLD_W,height:BINTOSS_WORLD_H,point:{x:px(binTossCentreAt(state,caughtIndex,state.tick)),y:px(BINTOSS_RIM_Y),shape:'spark'},hud:{x:12,y:12,text:`Throw ${Math.min(BINTOSS_THROWS,state.throwIndex+1)} / ${BINTOSS_THROWS} · ${state.baskets} in`}});
-    if (state.throwIndex < BINTOSS_THROWS) drawWind(ctx, state.winds[state.throwIndex] ?? 0);
+    // binRev 7: a far basket sparks at the far bucket.
+    const caughtFar = expand && state.farResults?.at(-1) === 1 ? (state.fars?.[caughtIndex] ?? 0) : 0;
+    if (expand) {
+      ctx.save();
+      ctx.translate(0, -world.lift);
+    }
+    successFrame(ctx,{id:'bintoss',tick:state.tick,count:state.baskets,eventTick:state.results.at(-1)===1?state.readyTick-BINTOSS_NEXT_DELAY:0,misses:state.resolved-state.baskets,colour:SUCCESS_ACCENTS.gold,width:world.w,height:world.h,point:{x:caughtFar?px(caughtFar):px(binTossCentreAt(state,caughtIndex,state.tick)),y:px(BINTOSS_RIM_Y)+world.lift,shape:'spark'},hud:{x:12,y:12,text:`Throw ${Math.min(BINTOSS_THROWS,state.throwIndex+1)} / ${BINTOSS_THROWS} · ${state.baskets} in`}});
+    if (expand) ctx.restore();
+    if (state.throwIndex < BINTOSS_THROWS) drawWind(ctx, state.winds[state.throwIndex] ?? 0, world.w, -world.lift);
     if (state.resolved < BINTOSS_THROWS) {
       drawTrail(ctx, state);
       const r = px(BINTOSS_BALL_R);
@@ -431,25 +485,47 @@ function draw(ctx: CanvasRenderingContext2D, state: BinTossState, size: CanvasSi
     ctx.textBaseline = "top";
     ctx.textAlign = "left";
     const shown = Math.min(BINTOSS_THROWS, state.throwIndex + 1);
-  successHud(ctx,'bintoss',state.tick,12,12,()=>{ctx.fillText(`Throw ${shown} / ${BINTOSS_THROWS} · ${state.baskets} in`, 12, 12);});
+  successHud(ctx,'bintoss',state.tick,12,12-world.lift,()=>{ctx.fillText(`Throw ${shown} / ${BINTOSS_THROWS} · ${state.baskets} in`, 12, 12-world.lift);});
+    // binRev 7: the far points so far, under the throw line.
+    if (expand) {
+      ctx.save();
+      ctx.font = "700 14px 'JetBrains Mono', ui-monospace, monospace";
+      ctx.textBaseline = "top";
+      ctx.fillStyle = (state.farIn ?? 0) > 0 ? "#F5B82E" : "rgba(247,247,248,0.6)";
+      ctx.fillText(`FAR ${state.farIn ?? 0} · +${Math.min(50, BINTOSS_FAR_POINTS * (state.farIn ?? 0))}`, 12, 40 - world.lift);
+      ctx.restore();
+    }
     for (let i = 0; i < BINTOSS_THROWS; i++) {
       const result = state.results[i];
       ctx.fillStyle = result === 1 ? "#F5B82E" : result === 0 ? BINTOSS_MISS_COLOUR : "#F7F7F844";
       ctx.beginPath();
       ctx.arc(20 + i * 16, BINTOSS_WORLD_H - 16, 4, 0, Math.PI * 2);
       ctx.fill();
+      // binRev 7: a far basket's pip has a white ring.
+      if (expand && state.farResults?.[i] === 1) {
+        ctx.strokeStyle = "#FFF4E0";
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+      }
     }
-  }), [0.3, 0.52]);
+  }); }, [0.3, 0.52]);
 }
 
-export function binTossArtAim(ctx: CanvasRenderingContext2D, size: CanvasSize, aim: BinTossGhost, cancelled = false): void {
+/** The world an aim, ghost or landing is drawn in (binRev 7: the wider, taller fairground). */
+function worldFor(expand: boolean | undefined): { w: number; h: number; lift: number } {
+  return expand ? { w: BINTOSS_V7_WORLD_W, h: BINTOSS_V7_WORLD_H, lift: BINTOSS_V7_LIFT } : { w: BINTOSS_WORLD_W, h: BINTOSS_WORLD_H, lift: 0 };
+}
+
+export function binTossArtAim(ctx: CanvasRenderingContext2D, size: CanvasSize, aim: BinTossGhost, cancelled = false, expand = false): void {
   const points = binTossPath(aim.vx, aim.vy, 0, false);
   const first = points[0];
   if (!first) return;
-  const { scale, offsetX, offsetY } = fairTransform(size, BINTOSS_WORLD_W, BINTOSS_WORLD_H);
+  const world = worldFor(expand);
+  const { scale, offsetX, offsetY } = fairTransform(size, world.w, world.h);
   ctx.save();
   ctx.translate(offsetX, offsetY);
   ctx.scale(scale, scale);
+  ctx.translate(0, world.lift);
   ctx.strokeStyle = AIM_INK;
   ctx.globalAlpha = cancelled ? 0.28 : 1;
   ctx.lineCap = "round";
@@ -473,10 +549,11 @@ export function binTossArtLanding(
   size: CanvasSize,
   landing: BinTossLandingPresentation,
 ): void {
-  const { scale, offsetX, offsetY } = fairTransform(size, BINTOSS_WORLD_W, BINTOSS_WORLD_H);
+  const world = worldFor(landing.expand === BINTOSS_EXPAND);
+  const { scale, offsetX, offsetY } = fairTransform(size, world.w, world.h);
   const p = Math.max(0, Math.min(1, landing.progress));
   const centre = px(landing.binCentre);
-  const half = px(binTossHalf(landing.binIndex, landing.rev));
+  const half = px(landing.far ? BINTOSS_FAR_HALF : binTossHalf(landing.binIndex, landing.rev));
   const rim = px(BINTOSS_RIM_Y);
   const radius = px(BINTOSS_BALL_R);
   let x = centre;
@@ -497,6 +574,7 @@ export function binTossArtLanding(
   ctx.save();
   ctx.translate(offsetX, offsetY);
   ctx.scale(scale, scale);
+  ctx.translate(0, world.lift);
   ctx.beginPath();
   ctx.moveTo(centre - half, rim);
   ctx.lineTo(centre - half + 4, FLOOR);
@@ -515,4 +593,31 @@ export const binTossArtGame: ArcadeGame<BinTossState, ArcadeInputEvent | null> =
 /** Arena scene (15 Oct 2026, display only): the stall's sky, counter and floor beyond the world. */
 export function binTossArenaScene(ctx: CanvasRenderingContext2D, view: ArenaSceneView): void {
   fairArenaScene(ctx, view, FLOOR);
+}
+
+/** binRev 7's arena scene: the floor line sits lift px lower in the taller world. */
+export function binTossArenaSceneV7(ctx: CanvasRenderingContext2D, view: ArenaSceneView): void {
+  fairArenaScene(ctx, view, FLOOR + BINTOSS_V7_LIFT);
+}
+
+/** binRev 7: the last throw's arc, faint until the next release, in the wider world (binTossDrawGhost's look). */
+export function binTossArtGhost(ctx: CanvasRenderingContext2D, size: CanvasSize, ghost: BinTossGhost, alpha = 0.22): void {
+  const world = worldFor(true);
+  const points = binTossPath(ghost.vx, ghost.vy, ghost.wind, true, binTossWindAcc(ghost.index ?? 0, ghost.rev), binTossWindSub(ghost.rev));
+  const first = points[0];
+  if (!first) return;
+  const { scale, offsetX, offsetY } = fairTransform(size, world.w, world.h);
+  ctx.save();
+  ctx.translate(offsetX, offsetY);
+  ctx.scale(scale, scale);
+  ctx.translate(0, world.lift);
+  ctx.globalAlpha = alpha;
+  ctx.strokeStyle = "#F5B82E";
+  ctx.lineWidth = 2;
+  ctx.setLineDash([3, 6]);
+  ctx.beginPath();
+  ctx.moveTo(first.x, first.y);
+  for (const point of points.slice(1)) ctx.lineTo(point.x, point.y);
+  ctx.stroke();
+  ctx.restore();
 }

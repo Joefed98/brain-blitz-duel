@@ -48,6 +48,7 @@ import { SKYLINE_REV_EXPAND } from "@/lib/arcade/skyline";
 import { PIN_REV_EXPAND } from "@/lib/arcade/pinball";
 import { decodeSnakeRun, replaySnakeRun } from "./snake";
 import { decodeBreakerRun, replayBreakerRun } from "./breaker";
+import { brkSkillPaid, brkWallSize } from "@/lib/arcade/breaker";
 import { decodePinballRun, replayPinballRun } from "./pinball";
 import { decodeRallyRun, replayRallyRun } from "./rally";
 import { decodeSteadyRun, replaySteadyRun } from "./steady";
@@ -1332,6 +1333,8 @@ function gradeUnderRev(
         losses: run.losses,
         powerUps: run.powerUps,
         ...(puzzle.brkRev ? { brkRev: puzzle.brkRev, fireballs: run.fireballs } : {}),
+        // brkRev 9 (the expansion): its wall size and skill points, for the reveal.
+        ...(run.state.deep ? { wall: brkWallSize(run.state), goldBroken: run.state.goldBroken ?? 0, comboPts: run.state.comboPts ?? 0, bestChain: run.state.bestChain ?? 0, skill: brkSkillPaid(run.state) } : {}),
         cleared: run.cleared,
         endedSeconds: run.endedSeconds,
         flagged: run.flagged,

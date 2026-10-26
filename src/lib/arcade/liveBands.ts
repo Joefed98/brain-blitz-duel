@@ -19,17 +19,17 @@ import { BUB_REV_REEF, BUB_REV_STRICT, BUB_V8_BAND_CURVE } from "./bubble";
 import { CROSS_REV_STRICT, CROSS_V7_BAND_CURVE } from "./cross";
 import { RALLY_REV_STRICT, RALLY_V8_BAND_CURVE } from "./rally";
 import { SNAKE_REV_200, SNAKE_REV_STRICT, SNAKE_V9_BAND_CURVE } from "./snake";
-import { BINTOSS_REV_STRICT, BINTOSS_V6_BAND_CURVE } from "./binToss";
+import { BINTOSS_REV_STRICT, BINTOSS_REV_EXPAND, BINTOSS_V7_BAND_CURVE } from "./binToss";
 import { SNIP_REV_STRICT, SNIP_V9_BAND_CURVE } from "./snip";
 import { HOVER_REV_STRICT, HOVER_V7_BAND_CURVE } from "./hover";
 import { SKYLINE_REV_EXPAND, SKYLINE_REV_STRICT, SKYLINE_V7_BAND_CURVE } from "./skyline";
 import { JUNC_REV_BAND, JUNC_BAND_CURVE } from "./junction";
-import { BRK_REV_STRICT, BRK_V8_BAND_CURVE } from "./breaker";
+import { BRK_REV_DEEP, BRK_REV_STRICT, BRK_V9_BAND_CURVE } from "./breaker";
 import { TILT_REV_STRICT, TILT_V6_BAND_CURVE } from "./tilt";
 import { ORBIT_REV_STRICT } from "./orbit";
 import { ORBIT_V10_BAND_CURVE } from "./orbitRev3";
 import { BEAT_REV_200, BEAT_REV_STRICT, BEAT_V9_BAND_CURVE } from "./beat";
-import { SLICE_REV_STRICT, SLICE_V8_BAND_CURVE } from "./slice";
+import { SLICE_REV_STRICT, SLICE_REV_EXPAND, SLICE_V9_BAND_CURVE } from "./slice";
 import { BURST_REV_STRICT, BURST_V6_BAND_CURVE } from "./burst";
 import { SWING_REV_STRICT, SWING_V11_BAND_CURVE } from "./swing";
 import { BULLSEYE_REV_STRICT, BULLSEYE_V6_BAND_CURVE } from "./bullseye";
@@ -59,16 +59,16 @@ export const LIVE_BANDS = {
   cross: { field: "crossRev", rev: CROSS_REV_STRICT, curve: CROSS_V7_BAND_CURVE },
   rally: { field: "rallyRev", rev: RALLY_REV_STRICT, curve: RALLY_V8_BAND_CURVE },
   snake: { field: "snakeRev", rev: SNAKE_REV_200, curve: SNAKE_V9_BAND_CURVE, strictRev: SNAKE_REV_STRICT },
-  bintoss: { field: "binRev", rev: BINTOSS_REV_STRICT, curve: BINTOSS_V6_BAND_CURVE },
+  bintoss: { field: "binRev", rev: BINTOSS_REV_EXPAND, curve: BINTOSS_V7_BAND_CURVE, strictRev: BINTOSS_REV_STRICT },
   snip: { field: "snipRev", rev: SNIP_REV_STRICT, curve: SNIP_V9_BAND_CURVE },
   hover: { field: "hoverRev", rev: HOVER_REV_STRICT, curve: HOVER_V7_BAND_CURVE },
   skyline: { field: "skylineRev", rev: SKYLINE_REV_EXPAND, curve: SKYLINE_V7_BAND_CURVE, strictRev: SKYLINE_REV_STRICT },
   junction: { field: "junctionRev", rev: JUNC_REV_BAND, curve: JUNC_BAND_CURVE },
-  breaker: { field: "brkRev", rev: BRK_REV_STRICT, curve: BRK_V8_BAND_CURVE },
+  breaker: { field: "brkRev", rev: BRK_REV_DEEP, curve: BRK_V9_BAND_CURVE, strictRev: BRK_REV_STRICT },
   tilt: { field: "tiltRev", rev: TILT_REV_STRICT, curve: TILT_V6_BAND_CURVE },
   orbit: { field: "orbitRev", rev: ORBIT_REV_STRICT, curve: ORBIT_V10_BAND_CURVE },
   beat: { field: "beatRev", rev: BEAT_REV_200, curve: BEAT_V9_BAND_CURVE, strictRev: BEAT_REV_STRICT },
-  slice: { field: "sliceRev", rev: SLICE_REV_STRICT, curve: SLICE_V8_BAND_CURVE },
+  slice: { field: "sliceRev", rev: SLICE_REV_EXPAND, curve: SLICE_V9_BAND_CURVE, strictRev: SLICE_REV_STRICT },
   burst: { field: "burstRev", rev: BURST_REV_STRICT, curve: BURST_V6_BAND_CURVE },
   swing: { field: "swingRev", rev: SWING_REV_STRICT, curve: SWING_V11_BAND_CURVE },
   bullseye: { field: "bullRev", rev: BULLSEYE_REV_STRICT, curve: BULLSEYE_V6_BAND_CURVE },

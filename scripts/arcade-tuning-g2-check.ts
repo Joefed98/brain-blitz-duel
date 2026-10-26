@@ -62,7 +62,7 @@ import {
   BEAT_V6_BAND_CURVE,
   type BeatState,
 } from "../src/lib/arcade/beat";
-import {
+import { SLICE_REV_EXPAND,
   sliceCheckpoint,
   sliceGameFor,
   sliceMaxPath,
@@ -74,6 +74,8 @@ import {
   SLICE_REV_TALL,
   SLICE_TALL_H,
   SLICE_V6_BAND_CURVE,
+  SLICE_V9_H,
+  SLICE_V9_W,
   SLICE_WORLD_H,
   type SliceState,
 } from "../src/lib/arcade/slice";
@@ -207,7 +209,8 @@ section("New rounds: stamps, start states, checksums, worlds by revision");
 {
   // Expansion E2 (25 Oct 2026) then moved Tempo on to its five-lane song (beatRev 9, the same lanes); expansion-e2-check covers it.
   ok(playRevOf("beat", generateBeat().beatRev) === BEAT_REV_TALL + 3, "rooms deal beatRev 9 (expansion E2, after beatRev 6)");
-  ok(playRevOf("slice", generateSlice().sliceRev) === SLICE_REV_TALL, "rooms deal sliceRev 6");
+  // World expansion E5 (25 Oct 2026) moved Slice on to its larger board (sliceRev 9); expansion-e5-check covers it.
+  ok([SLICE_REV_TALL, SLICE_REV_EXPAND].includes(playRevOf("slice", generateSlice().sliceRev) ?? -1), "rooms deal sliceRev 6 (or sliceRev 9, the expansion)");
   // Expansion E6 (25 Oct 2026) moved Coral Pop on to its deeper reef (bubbleRev 8, the same tank); e6-check covers it.
   ok(generateBubble().bubbleRev === BUB_REV_TALL + 3, "rooms deal bubbleRev 8 (expansion E6, after bubbleRev 5)");
   // Rooms deal the score-bands stamps after these (clashRev 6, clayRev 7: the same play, scoring-bands-check), and since
@@ -260,7 +263,8 @@ section("New rounds: stamps, start states, checksums, worlds by revision");
 
   // Effects: the tall specs in ARCADE_FX_SPECS, older rounds at their own height, through fxSpecAt.
   const fx = ARCADE_FX_SPECS as Record<string, { height: number }>;
-  ok(fx.beat!.height === 730 && fx.slice!.height === 730 && fx.bubble!.height === 730, "ARCADE_FX_SPECS hold the taller heights rooms deal");
+  // World expansion E5 (25 Oct 2026) moved Slice rooms on to sliceRev 9's 430 × 805 world (expansion-e5-check covers it).
+  ok(fx.beat!.height === 730 && fx.slice!.width === SLICE_V9_W && fx.slice!.height === SLICE_V9_H && fx.bubble!.height === 730, "ARCADE_FX_SPECS hold the taller heights rooms deal (Slice: sliceRev 9's world)");
   ok(beatFxFor({ worldH: 730 } as BeatState).height === 730 && beatFxFor({} as BeatState) === BEAT_FX, "Tempo effects by state height");
   ok(sliceFxFor({ worldH: 730 } as SliceState).height === 730 && sliceFxFor({} as SliceState) === SLICE_FX, "Slice effects by state height");
   ok(bubbleFxFor({ worldH: 730 } as BubState).height === 730 && bubbleFxFor({} as BubState) === BUBBLE_FX, "Coral Pop effects by state height");

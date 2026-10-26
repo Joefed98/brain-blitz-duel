@@ -390,6 +390,11 @@ export function breakerSounds(): GameSounds<BrkState> {
         if (paddleHit) sfx("breaker.paddle", "arc_retro_blip", 0.8, 1, true);
         // A ball off a side wall or the ceiling: turned back with no brick hit and no paddle return.
         else if (state.hits === prev.hits && state.balls.length === prev.balls.length && state.balls.some((ball, i) => turnedBack(prev!.balls[i], ball))) effectCue("breaker.wallBounce");
+        // brkRev 9 (the expansion, existing sounds only): a gold brick broken chimes, a bounce off gold clinks,
+        // a combo stepping up to ×2 or ×3 rings the pickup a little higher.
+        if ((state.goldBroken ?? 0) > (prev.goldBroken ?? 0)) sfx("breaker.fireballLit", "arc_retro_coin", 0.9, 1.25);
+        else if ((state.clinks ?? 0) > (prev.clinks ?? 0)) effectCue("breaker.wallBounce", 0, 1.4);
+        if ((state.comboUps ?? 0) > (prev.comboUps ?? 0)) sfx("breaker.powerUp", "arc_retro_pickup", 0.7, 1.2);
       }
       prev = state;
     },

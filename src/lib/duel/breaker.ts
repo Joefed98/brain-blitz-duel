@@ -155,7 +155,7 @@ export function replayBreakerRun(seed: number, raw: string, rev?: number | null)
   const run = decodeBreakerRun(raw);
   const endTick = run.endTick && run.endTick > 0 ? Math.min(run.endTick, BRK_RUN_TICKS) : 0;
   const clientLag = endTick > 0 && endTick < BRK_RUN_TICKS;
-  const check = checkInputEvents(run.events, BRK_RUN_TICKS, BRK_INPUT_RANGES);
+  const check = checkInputEvents(run.events, BRK_RUN_TICKS, breakerGame.inputRanges ?? BRK_INPUT_RANGES);
   const events = new Map<number, ArcadeInputEvent>();
   for (const event of check.events) events.set(event.t, event);
   const lastTick = clientLag ? endTick : BRK_RUN_TICKS;

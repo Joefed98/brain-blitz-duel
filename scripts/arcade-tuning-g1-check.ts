@@ -159,7 +159,8 @@ for (const [file, label] of [["scripts/fixtures/arcade-tuning-g1-legacy.json", "
 /* ============================== 2. New rounds ============================== */
 section("New rounds: stamps, start states, checksums, worlds by revision");
 {
-  ok(playRevOf("breaker", generateBreaker().brkRev) === BRK_REV_TALL, "rooms deal brkRev 6");
+  // Expansion E3 (docs/expansions/e3.md) then moved Breaker on to brkRev 9; expansion-e3-check covers it.
+  ok(playRevOf("breaker", generateBreaker().brkRev) === BRK_REV_TALL + 3, "rooms deal brkRev 9 (expansion E3, after brkRev 6)");
   ok(playRevOf("rally", generateRally().rallyRev) === RALLY_REV_TALL, "rooms deal rallyRev 6");
   ok(playRevOf("wavefront", generateWavefront().wavRev) === WAV_REV_TALL, "rooms deal wavRev 6");
   ok(playRevOf("burst", generateBurst().burstRev) === BURST_REV_TALL, "rooms deal burstRev 4");
@@ -197,7 +198,8 @@ section("New rounds: stamps, start states, checksums, worlds by revision");
 
   // Effects: the tall specs in ARCADE_FX_SPECS, older rounds at their own height, through fxSpecAt.
   const fx = ARCADE_FX_SPECS as Record<string, { height: number }>;
-  ok(fx.breaker!.height === 730 && fx.rally!.height === 730 && fx.wavefront!.height === 730 && fx.burst!.height === 650, "ARCADE_FX_SPECS hold the taller heights rooms deal");
+  // Expansion E3 (brkRev 9) moved Breaker on to its 784-high court: the height rooms deal now.
+  ok(fx.breaker!.height === breakerWorldHFor(generateBreaker().brkRev) && fx.rally!.height === 730 && fx.wavefront!.height === 730 && fx.burst!.height === 650, "ARCADE_FX_SPECS hold the taller heights rooms deal");
   ok(breakerFxFor({ worldH: 730 } as BrkState).height === 730 && breakerFxFor({} as BrkState) === BREAKER_FX, "Breaker effects by state height");
   ok(rallyFxFor({ worldH: 730 } as RallyState).height === 730 && rallyFxFor({} as RallyState) === RALLY_FX, "Rally effects by state height");
   ok(wavefrontFxFor({ worldH: 730 } as WavState).height === 730 && wavefrontFxFor({} as WavState) === WAVEFRONT_FX, "Wavefront effects by state height");
@@ -347,7 +349,7 @@ section("Refitted curves keep the band rules; 150 is reachable");
 section("Intro demos stay stopped until re-recorded on the taller revision");
 {
   const src = read("src/lib/duel/introDemo.functions.ts");
-  ok(/data\.type === "breaker" && demo\?\.puzzle\.type === "breaker" && demo\.puzzle\.brkRev !== BRK_REV_TALL\) return null/.test(src), "Breaker's demo plays only on brkRev 6");
+  ok(/data\.type === "breaker" && demo\?\.puzzle\.type === "breaker" && demo\.puzzle\.brkRev !== (BRK_REV_TALL|BRK_REV_DEEP)\) return null/.test(src), "Breaker's demo plays only on brkRev 6 (brkRev 9 since expansion E3)");
   ok(/data\.type === "rally" && demo\?\.puzzle\.type === "rally" && demo\.puzzle\.rallyRev !== RALLY_REV_TALL\) return null/.test(src), "Rally's demo plays only on rallyRev 6");
   ok(/data\.type === "wavefront" && demo\?\.puzzle\.type === "wavefront" && demo\.puzzle\.wavRev !== WAV_REV_TALL\) return null/.test(src), "Wavefront's demo plays only on wavRev 6");
   ok(/data\.type === "burst" && demo\?\.puzzle\.type === "burst" && demo\.puzzle\.burstRev !== BURST_REV_TALL\) return null/.test(src), "Fission's demo plays only on burstRev 4");

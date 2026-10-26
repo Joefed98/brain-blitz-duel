@@ -7,6 +7,7 @@ import { recordInput, inputAt } from "@/lib/arcade/engine";
 import { reportArcadeTick, resetArcadeClock } from "@/lib/arcade/clock";
 import { drawSliceArt, drawSliceKitchenExample } from "@/lib/arcade/slice.renderer";
 import { sliceSounds } from "@/lib/fx/gameSounds";
+import { sliceExtraSounds } from "@/lib/arcade/e5Sounds";
 import { useEffect, useRef, useState } from "react";
 
 import {
@@ -28,7 +29,7 @@ import {
   SLICE_INPUT_END,
   SLICE_RUN_TICKS,
   sliceWorldHFor,
-  SLICE_WORLD_W,
+  sliceWorldWFor,
   type SliceState,
 } from "@/lib/arcade/slice";
 import { decodeSliceRun, encodeSliceRun, replaySliceRun } from "@/lib/duel/slice";
@@ -65,8 +66,9 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const data: SlicePuzzleData | null = puzzle.type === "slice" ? puzzle : null;
   const seed = data?.seed ?? 1;
   const sliceGame = sliceGameFor(data?.sliceRev);
-  // sliceRev 6: the taller board; every phone draws the stored revision's world.
+  // sliceRev 6: the taller board; sliceRev 9: the larger board. Every phone draws the stored revision's world.
   const SLICE_WORLD_H = sliceWorldHFor(data?.sliceRev);
+  const SLICE_WORLD_W = sliceWorldWFor(data?.sliceRev);
 
   const wrap = useRef<HTMLDivElement | null>(null);
   const canvas = useRef<HTMLCanvasElement | null>(null);
@@ -121,6 +123,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     let draftAt = 0;
     const feedback = arcadeFeedback({ game: "slice", combo: false });
     const sounds = sliceSounds();
+    const extra = sliceExtraSounds();
     let bombs = state.current.bombsHit;
 
     const finish = () => {
@@ -166,6 +169,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       reportArcadeTick(state.current.tick, sliceGame.isOver(state.current));
       feedback(state.current, sliceGame.isOver(state.current));
       sounds.frame(state.current, !sliceGame.isOver(state.current) && !lockedRef.current);
+      extra(state.current);
 
       frameTiming.draw();
       const size = sizeCanvas();
