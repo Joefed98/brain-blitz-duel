@@ -691,7 +691,7 @@ Lovable still hosts and publishes the app (https://brain-blitz-duel.lovable.app)
   [--profile] [--raster]` measures frame times under CDP CPU slowdown and attributes them (a tool, not a check);
   arcade-lowend-check (~4 min, shard `play5`) fails if Tilt, Ball Tracker, Ink Bridge, Grappler or Orbit average
   under 30 fps at 4× slowdown (390×844), or if reduced effects switch on at normal speed (plain, a 30 Hz-capped
-  screen, one 500 ms stall; slowness is judged by each frame's own work, never the gap between frames). Before → after for every game:
+  screen, one 500 ms stall; slowness is judged by each frame's own work, never the gap between frames); a normal-speed step down is played once more only when /proc shows other processes left the browser under 1.25 cores through the judging window, and that second play must keep full effects). Before → after for every game:
   `docs/arcade-lowend-oct-2026.md`. Geometry/pixel browser checks pin full effects (`DEVICE_INIT`).
 - puzzle-input-tuning rewrites `.lovable/audits/puzzle-input-oct6.md`; restore it
   (`git checkout`) before committing.
