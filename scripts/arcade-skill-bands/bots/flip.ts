@@ -36,6 +36,8 @@
 import {
   FLIP_INPUT_TAP,
   FLIP_RUNNER_HALF_PX_V2,
+  FLIP_V8_COMBO_CAP,
+  FLIP_V8_READ_AHEAD,
   FLIP_RUN_TICKS,
   FLIP_WORLD_W,
   flipSpeed,
@@ -83,6 +85,10 @@ export const bot: SkillBot = ({ game, seed, human, fixes }) => {
   const trailWant: boolean[] = [];
   /** Rev 8: the tick a double flip is tried at, after a landing. */
   let comboAt: number | null = null;
+  /** flipRev 8: elite and flawless players keep wanting an item a plan could not fit yet (they try again next plan). */
+  const keepTrying = Boolean(v8) && (level === "elite" || level === "perfect");
+  /** The items the current plan aims for (a double flip must not cost them). */
+  let aim = { star: -1, trail: -1, sweet: -1 };
   const sweets = v8?.sweets ?? [];
   const sweetReady: number[] = [];
   const sweetWant: boolean[] = [];
@@ -100,7 +106,7 @@ export const bot: SkillBot = ({ game, seed, human, fixes }) => {
     star: number,
     trail = -1,
     sweet = -1,
-  ): { idle: boolean; win: [number, number] | null; alive: boolean } => {
+  ): { idle: boolean; win: [number, number] | null; alive: boolean; good: Set<number> } => {
     const goal = (st: FlipState) =>
       (star < 0 || ((st.got ?? 0) & (1 << star)) !== 0) && (trail < 0 || (st.trailGot?.[trail] ?? 0) === FULL_TRAIL) &&
       (sweet < 0 || ((st.sweetGot ?? 0) & (1 << sweet)) !== 0);
@@ -148,16 +154,30 @@ export const bot: SkillBot = ({ game, seed, human, fixes }) => {
     // (the most comfortable), not a hair-trigger one.
     let ci = 0;
     let win: [number, number] | null = null;
+    let early: [number, number] | null = null;
     let cur: [number, number] | null = null;
+    /** Every tick a flip from the no-tap chain keeps a route alive (flipRev 8's sweet-spot safety margin reads it). */
+    const good = new Set<number>();
     for (let k = 0; k < layers.length - 1 && ci >= 0; k++) {
       const node = layers[k]![ci]!;
       const tk = node.kids[1];
       if (tk >= 0 && alive[k + 1]![tk]!) {
+        good.add(t + k);
         if (cur && cur[1] === t + k - 1) cur[1] = t + k;
         else cur = [t + k, t + k];
         if (!win || cur[1] - cur[0] > win[1] - win[0]) win = [cur[0], cur[1]];
+        // flipRev 8 shows the course further ahead, so the widest window can lie late, close to the hazard that
+        // needs it: a player takes the first comfortable one (8 ticks or more) instead.
+        if (keepTrying && !early && cur[1] - cur[0] >= 7) early = [cur[0], cur[1]];
       }
       ci = node.kids[0];
+    }
+    if (early) {
+      // Keep extending the early window while the chain stays good (cur may have grown since).
+      const [e0] = early;
+      let e1 = early[1];
+      while (good.has(e1 + 1)) e1++;
+      win = [e0, e1];
     }
     // Idle: the no-tap chain itself stays alive to the end of the known stretch.
     let idle = true;
@@ -171,7 +191,7 @@ export const bot: SkillBot = ({ game, seed, human, fixes }) => {
       }
       ci = n;
     }
-    return { idle, win, alive: alive[0]![0] ?? false };
+    return { idle, win, alive: alive[0]![0] ?? false, good };
   };
 
   return driveEvents(
@@ -181,7 +201,9 @@ export const bot: SkillBot = ({ game, seed, human, fixes }) => {
       // The later parts of a recognised pattern (an overhang pair, offset spikes) are expected:
       // they only need the tracking lag once the pattern's first part has been processed.
       const edge = s.x + VIEW_AHEAD;
-      for (let i = segReady.length; i < s.segs.length && s.segs[i]!.x0 <= edge; i++) {
+      // flipRev 8 announces the course (hazards, gold stars, sweet spots) in a strip at the view's edge FLIP_V8_PREVIEW px early.
+      const itemEdge = v8 ? s.x + FLIP_V8_READ_AHEAD * FP : edge;
+      for (let i = segReady.length; i < s.segs.length && s.segs[i]!.x0 <= itemEdge; i++) {
         const seg = s.segs[i]!;
         const prev = i > 0 ? s.segs[i - 1]! : null;
         const sameGroup = prev !== null && prev.group === seg.group && seg.group !== 0;
@@ -189,7 +211,7 @@ export const bot: SkillBot = ({ game, seed, human, fixes }) => {
         dirty = true;
       }
       const stars = s.stars ?? [];
-      for (let i = starReady.length; i < stars.length && stars[i]!.x <= edge; i++) {
+      for (let i = starReady.length; i < stars.length && stars[i]!.x <= itemEdge; i++) {
         starReady.push(t + human.reactTicks());
         starWant.push(human.chance(starTry));
       }
@@ -197,7 +219,7 @@ export const bot: SkillBot = ({ game, seed, human, fixes }) => {
         trailReady.push(t + human.reactTicks());
         trailWant.push(human.chance(trailTry));
       }
-      for (let i = sweetReady.length; i < sweets.length && sweets[i]!.x0 <= edge; i++) {
+      for (let i = sweetReady.length; i < sweets.length && sweets[i]!.x0 <= itemEdge; i++) {
         sweetReady.push(t + human.reactTicks());
         sweetWant.push(human.chance(sweetTry));
       }
@@ -221,7 +243,7 @@ export const bot: SkillBot = ({ game, seed, human, fixes }) => {
       if (dirty && pending === null) {
         dirty = false;
         // Known stretch: up to the first hazard not yet processed (or the edge of view).
-        let known = edge;
+        let known = itemEdge;
         for (let i = s.cursor; i < s.segs.length; i++) {
           if (i >= segReady.length || segReady[i]! > t) {
             known = Math.min(known, s.segs[i]!.x0 - FP);
@@ -266,26 +288,45 @@ export const bot: SkillBot = ({ game, seed, human, fixes }) => {
         replanAt = t + Math.max(4, Math.floor(H / 3));
         let plan = solve(s, t, H, star, trail, sweet);
         if (sweet >= 0 && !plan.idle && !plan.win) {
-          sweetWant[sweet] = false;
+          if (!keepTrying) sweetWant[sweet] = false;
+          sweet = -1;
           plan = solve(s, t, H, star, trail);
         } else if (sweet >= 0 && plan.win) {
-          // A sweet landing is never worth a crash: aim for it only while a flip a couple of ticks off still lives.
+          // A sweet landing is never worth a crash: aim for it only while a flip a tick or two off (by the player's
+          // timing: none for a flawless player) still lives.
           const safe = solve(s, t, H, star, trail);
-          if (safe.win && (plan.win[0] - 2 < safe.win[0] || plan.win[1] + 2 > safe.win[1])) plan = safe;
+          const margin = level === "perfect" ? 0 : level === "elite" ? 1 : 2;
+          const aimAt = Math.round((plan.win[0] + plan.win[1]) / 2);
+          let ok = true;
+          for (let d = -margin; d <= margin; d++) if (!safe.good.has(aimAt + d)) ok = false;
+          if (safe.win && !ok) {
+            plan = safe;
+            sweet = -1;
+          }
         }
         if (trail >= 0 && !plan.idle && !plan.win) {
-          trailWant[trail] = false;
+          if (!keepTrying) trailWant[trail] = false;
+          trail = -1;
+          sweet = -1;
           plan = solve(s, t, H, star);
         }
         if (star >= 0 && !plan.idle && !plan.win) {
-          starWant[star] = false;
+          if (!keepTrying) starWant[star] = false;
+          star = -1;
+          trail = -1;
+          sweet = -1;
           plan = solve(s, t, H, -1);
         }
+        aim = { star, trail, sweet };
         window = plan.idle ? null : plan.win;
         if (!plan.idle && !plan.win) window = null;
       }
 
       // Rev 8 double flip: a quick flip after landing, if one here counts and keeps a route alive.
+      // Combo points count up to FLIP_V8_COMBO_CAP: past it a double flip is only a risk.
+      if (v8 && comboAt !== null && (s.comboPts ?? 0) >= FLIP_V8_COMBO_CAP) comboAt = null;
+      // ...and a flawless or elite player never starts one with an announced gold star still to take.
+      if (keepTrying && comboAt !== null && stars.some((st, i) => starWant[i] && (starReady[i] ?? Infinity) <= t && !((s.got ?? 0) & (1 << i)) && st.x + HALF >= s.x)) comboAt = null;
       if (v8 && comboAt !== null && t >= comboAt) {
         const at = comboAt;
         comboAt = null;
@@ -298,7 +339,10 @@ export const bot: SkillBot = ({ game, seed, human, fixes }) => {
               H++;
               x += stepX(next.tick + H);
             }
-            if (solve(next, t + 1, H, -1).alive) {
+            // ...and it must not cost the items the plan is aiming for (an item beyond this short look counts as lost).
+            // ...with a comfortable flip after it (no hair-trigger rescue).
+            const comfy = (r: ReturnType<typeof solve>) => r.alive && (r.idle || (r.win !== null && r.win[1] - r.win[0] >= 4));
+            if (comfy(solve(next, t + 1, H, aim.star, aim.trail, aim.sweet)) || (aim.star < 0 && aim.trail < 0 && aim.sweet < 0 && comfy(solve(next, t + 1, H, -1)))) {
               window = null;
               dirty = true;
               return TAP;

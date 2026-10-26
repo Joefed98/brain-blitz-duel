@@ -968,10 +968,17 @@ export const FLIP_V8_SWEETS = 8;
 export const FLIP_V8_SWEET_TICKS = 1;
 export const FLIP_V8_SWEET_POINTS = 4;
 const V8_SWEET_SECONDS = [6.5, 13, 19.5, 26, 32.5, 39, 45.5, 52] as const;
-/** Readability (phase 1): an item is on screen this far ahead of the runner (the 390 px view less the runner's 90), and a
- * player has read it this many ticks later (a quick human reaction, 200 ms). */
-const V8_VIEW_AHEAD = FLIP_WORLD_W - 90;
+/**
+ * Readability: a gold star or sweet spot is announced this far beyond the right edge of the view (a small marker at the
+ * edge, flipRev 8's art; FLIP_V8_PREVIEW px), so it is readable FLIP_V8_PREVIEW + 300 px ahead of the runner (the 390 px
+ * view less the runner's 90), and a player has read it V8_READ_TICKS later (a quick human reaction, 200 ms).
+ */
+export const FLIP_V8_PREVIEW = 180;
+export const FLIP_V8_READ_AHEAD = FLIP_WORLD_W - 90 + FLIP_V8_PREVIEW;
+const V8_VIEW_AHEAD = FLIP_V8_READ_AHEAD;
 const V8_READ_TICKS = 12;
+/** The readability proof lets a player flip again this many ticks after landing (a quick double flip). */
+const V8_READ_LANDED = 6;
 /**
  * The skill pay (a rising scale, as Breaker's BRK_V9_SKILL_PAY): the features' raw points (trails 4 each, sweet
  * landings 4 each, clean zones 3 each, clean checkpoints 3 each, combo points up to FLIP_V8_COMBO_CAP) paid so a
@@ -980,9 +987,9 @@ const V8_READ_TICKS = 12;
  * (docs/expansions/x200-flip.md), with the base curve.
  */
 export const FLIP_V8_SKILL_FULL = FLIP_V8_TRAILS * FLIP_V8_TRAIL_POINTS + FLIP_V8_SWEETS * FLIP_V8_SWEET_POINTS + 2 * FLIP_V8_ZONE_POINTS + 3 * FLIP_V8_CP_POINTS;
-export const FLIP_V8_SKILL_PAY = bandCurve([0, 12, 33, 40, 49, FLIP_V8_SKILL_FULL], [0, 3, 5, 29, 33, FLIP_V8_FEATURE_CAP]);
+export const FLIP_V8_SKILL_PAY = bandCurve([0, 12, 30, 37, 61, FLIP_V8_SKILL_FULL], [0, 0, 1, 7, 30, FLIP_V8_FEATURE_CAP]);
 /** The rev-8 survival curve: half seconds + 3 per gold star, to 140 (the full minute adds 10, the features up to 50). */
-export const FLIP_V8_BAND_CURVE = bandCurve([0, 40, 105, 130, 140, 146, 150], [0, 13, 47, 62, 68, 119, 140]);
+export const FLIP_V8_BAND_CURVE = bandCurve([0, 40, 105, 130, 140, 146, 150], [0, 11, 33, 38, 43, 95, 140]);
 
 export interface FlipTrail {
   /** Star centres (1/256 px) and heights (per mille of the cave: 0 the floor's runner line, 1000 the ceiling's). */
@@ -1117,7 +1124,7 @@ export function flipSweetLanding(sweet: FlipSweet, side: number, wasFlipT: numbe
 }
 
 function solverTick8(set: readonly number[], t: number, hazards: readonly FlipSeg[], course: FlipV8Course,
-  star?: { x: number; side: number }, trail?: FlipTrail, sweet?: FlipSweet): number[] {
+  star?: { x: number; side: number }, trail?: FlipTrail, sweet?: FlipSweet, minLanded = SOLVER_LANDED): number[] {
   const x = course.xs[t]!;
   const half = RULES_V2.runnerHalf;
   let onCrumble = false;
@@ -1135,7 +1142,7 @@ function solverTick8(set: readonly number[], t: number, hazards: readonly FlipSe
     const tbits = (code >> 21) & 31;
     const sw = (code >> 26) & 1;
     for (const tap of [false, true]) {
-      if (tap && (flipT > 0 || landed < SOLVER_LANDED)) continue;
+      if (tap && (flipT > 0 || landed < minLanded)) continue;
       let ns = side;
       let nf = flipT;
       let na = arcN;
@@ -1380,9 +1387,9 @@ function placeStarsV8(built: V8Built): { stars: FlipStar[]; sweets: FlipSweet[];
     !segs.some((seg) => seg.side === side && seg.x0 - v8Reach(seg) <= b + 8 * FP && seg.x1 + v8Reach(seg) >= a - 8 * FP) &&
     !course.trails.some((tr) => X[tr.t0]! <= b + 8 * FP && X[tr.t1]! >= a - 8 * FP);
   /** One tick of the route: a trail's stars are required by the tick after its last can be taken. */
-  const stepRoute = (set: number[], t: number, star?: { x: number; side: number }, sweet?: FlipSweet) => {
+  const stepRoute = (set: number[], t: number, star?: { x: number; side: number }, sweet?: FlipSweet, minLanded = SOLVER_LANDED) => {
     const trail = trailAt(t);
-    let out = solverTick8(set, t, near(t), course, star, trail, sweet);
+    let out = solverTick8(set, t, near(t), course, star, trail, sweet, minLanded);
     if (trail && t === trail.t1) out = out.filter((code) => ((code >> 21) & 31) === FULL_TRAIL).map((code) => code & ~TRAIL8);
     return out;
   };
@@ -1437,8 +1444,8 @@ function placeStarsV8(built: V8Built): { stars: FlipStar[]; sweets: FlipSweet[];
             let tt = pt;
             while (tt < FLIP_RUN_TICKS && X[tt]! <= span.x1 + reach && free.length) {
               tt += 1;
-              free = stepRoute(free, tt);
-              got = got.length ? stepRoute(got, tt, star, sweet) : got;
+              free = stepRoute(free, tt, undefined, undefined, V8_READ_LANDED);
+              got = got.length ? stepRoute(got, tt, star, sweet, V8_READ_LANDED) : got;
             }
             return !free.length || got.some((c) => c & bit);
           };
