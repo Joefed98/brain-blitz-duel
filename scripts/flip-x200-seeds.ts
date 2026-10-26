@@ -1,11 +1,10 @@
 /**
  * Roofbound flipRev 8's guarantee over many seeds (a tool, not a check): builds the course for N seeds spread over
- * the room seed range (arcadeSeed draws 1 … 2^31 − 1) and counts courses without the full opportunities and the
- * re-rolls they took.
+ * the room seed range (arcadeSeed draws 1 … 2^31 − 1) and counts the courses without the full opportunities.
  *
  *   bun scripts/flip-x200-seeds.ts [--n=2000]
  */
-import { flipCourseV8, flipGameFor, flipV8Opportunities, FLIP_REV_EXPAND } from "../src/lib/arcade/flip";
+import { flipGameFor, flipV8Opportunities, FLIP_REV_EXPAND } from "../src/lib/arcade/flip";
 
 const n = Number(process.argv.find((a) => a.startsWith("--n="))?.slice(4) ?? 2000);
 const game = flipGameFor(FLIP_REV_EXPAND);
@@ -18,6 +17,5 @@ for (let k = 0; k < n; k++) {
     short++;
     console.log(`seed ${seed}: ${JSON.stringify(o)}`);
   }
-  void flipCourseV8;
 }
 console.log(`${n} seeds: ${short} without the full opportunities (${((performance.now() - t0) / n).toFixed(0)} ms a course)`);

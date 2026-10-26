@@ -909,23 +909,35 @@ function drawSweetSpots(ctx: CanvasRenderingContext2D, state: FlipState, toScree
     const landedX = state.sweetT ? state.v8!.xs[state.sweetT]! : -1;
     const glint = taken && since >= 0 && since < SWEET_GLINT_TICKS && landedX >= sweet.x0 && landedX <= sweet.x1;
     // The strip, a hair inside the rock so the lava line stays readable.
-    ctx.globalAlpha = taken ? (glint ? 1 : 0.18) : 0.62;
-    ctx.strokeStyle = glint ? "#FFF6D8" : "rgba(255,240,196,0.9)";
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    for (let x = a; x <= b; x += Math.max(1, (b - a) / 6)) {
-      const y = at(x) - inward * 2;
-      if (x === a) ctx.moveTo(x, y);
-      else ctx.lineTo(x, y);
+    const strip = () => {
+      ctx.beginPath();
+      for (let x = a; x <= b; x += Math.max(1, (b - a) / 6)) {
+        const y = at(x) - inward * 2;
+        if (x === a) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      }
+      ctx.lineTo(b, at(b) - inward * 2);
+    };
+    const alpha = taken ? (glint ? 1 : 0.18) : 0.82;
+    // A soft pale glow on the strip only (butt caps: never past its ends), then the strip itself.
+    if (!taken && !arcadeReducedEffects()) {
+      ctx.globalAlpha = 0.22;
+      ctx.strokeStyle = "#FFE7A8";
+      ctx.lineWidth = 6;
+      strip();
+      ctx.stroke();
     }
-    ctx.lineTo(b, at(b) - inward * 2);
+    ctx.globalAlpha = alpha;
+    ctx.strokeStyle = glint ? "#FFF6D8" : "rgba(255,242,204,0.95)";
+    ctx.lineWidth = 2.4;
+    strip();
     ctx.stroke();
     // End notches into the rock.
     ctx.lineWidth = 1.2;
     ctx.beginPath();
     for (const x of [a, b]) {
       ctx.moveTo(x, at(x) - inward * 0.5);
-      ctx.lineTo(x, at(x) - inward * 5);
+      ctx.lineTo(x, at(x) - inward * 6);
     }
     ctx.stroke();
     if (glint && !arcadeReducedEffects()) {

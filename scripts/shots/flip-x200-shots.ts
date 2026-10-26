@@ -28,8 +28,8 @@ async function info(page: Page): Promise<Info> {
     const v8 = s.v8;
     const trailLive = v8.trails.findIndex((t: any) => s.tick >= t.t1 - 30 && s.tick <= t.t1 - 6);
     const moverInView = s.segs.some((g: any) => g.amp && (g.x0 - s.x) / 256 > 60 && (g.x0 - s.x) / 256 < 260);
-    // A sweet spot well in view ahead of the runner (130–260 px), not yet landed on.
-    const sweetAhead = v8.sweets.some((sw: any, i: number) => !((s.sweetGot ?? 0) & (1 << i)) && (sw.x0 - s.x) / 256 > 130 && (sw.x1 - s.x) / 256 < 260);
+    // A sweet spot well in view ahead of the runner (70–140 px), not yet landed on.
+    const sweetAhead = v8.sweets.some((sw: any, i: number) => !((s.sweetGot ?? 0) & (1 << i)) && (sw.x0 - s.x) / 256 > 70 && (sw.x1 - s.x) / 256 < 140);
     return { launched: s.flipT > 0 && s.flipT === s.arcN, tick: s.tick, combos: s.combos ?? 0, saves: s.saves ?? 0, ended: s.ended, cpPassed: s.cpPassed ?? 0, inZone: F.flipV8InZone(v8, s.tick), height: F.flipV8HeightAt(v8, s.x), trailLive, moverInView, sweetAhead, sweetT: s.sweetT ?? 0 };
   });
 }
@@ -51,8 +51,8 @@ async function main() {
   await button.waitFor({ timeout: 120_000 });
   await page.waitForTimeout(1500);
   await button.click();
-  const ready = page.getByRole("button", { name: /^Ready/ });
-  await ready.waitFor({ timeout: 60_000 });
+  const ready = page.getByRole("button", { name: /^Ready/ }).first();
+  await ready.waitFor({ timeout: 150_000 });
   await page.evaluate(async () => {
     const w = window as unknown as Record<string, unknown>;
     w.__flip = await import(/* @vite-ignore */ "/src/lib/arcade/flip.ts");
