@@ -2,10 +2,11 @@ import { useGameKeys } from "@/lib/desktop";
 import { gameDisplayName } from "@/lib/duel/gameNames";
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 
-import { LW_FREE_MISSES, lwDecode, lwDecodeLog, lwEncodeLog, lwGrade, lwSlotCells, lwUsesLog, LW_MAX_TRACES } from "@/lib/duel/letterWheel";
+import { LW_FREE_MISSES, LW_JAR_DROPS, lwDecode, lwDecodeLog, lwEncodeLog, lwGrade, lwJarDrops, lwJarKept, lwSlotCells, lwUsesJar, lwUsesLog, LW_MAX_TRACES } from "@/lib/duel/letterWheel";
 import { useStageState } from "@/lib/duel/stageState";
 import { LETTERWHEEL_TIME_MS, type LetterWheelPuzzleData, type LetterWheelSlot } from "@/lib/duel/types";
-import { buzz } from "@/lib/motion";
+import { buzz, prefersReducedMotion } from "@/lib/motion";
+import { playTick } from "@/lib/sound";
 import { Button } from "@/components/ui/button";
 import { Shuffle, X } from "lucide-react";
 import { shuffleLetterOrder } from "@/components/puzzles/letterShuffle";
@@ -210,6 +211,58 @@ function Wheel({
   );
 }
 
+/** wheelRev 2: a short glow on the jar as a word drops in (none under reduced motion or reduced effects). */
+function jarPulse(el: HTMLElement | null): void {
+  if (!el || typeof el.animate !== "function" || prefersReducedMotion()) return;
+  if (typeof document !== "undefined" && document.documentElement.dataset["reducedEffects"]) return;
+  el.animate(
+    [
+      { transform: "scale(1)", filter: "none" },
+      { transform: "scale(1.12)", filter: "drop-shadow(0 0 6px color-mix(in oklab, var(--primary) 80%, transparent))", offset: 0.4 },
+      { transform: "scale(1)", filter: "none" },
+    ],
+    { duration: 360, easing: "ease-out" },
+  );
+}
+
+/**
+ * wheelRev 2's bonus jar: a glass jar filling gold by drops (3 letters 1, 4 → 2, 5 → 3, 6+ → 4) and the count of
+ * bonus words. Drawn from the first paint at its fixed size in the trace row's right end, so nothing moves.
+ */
+export function BonusJar({ drops, size, words }: { drops: number; size: number; words: number }) {
+  const share = Math.max(0, Math.min(1, drops / Math.max(1, size)));
+  const full = share >= 1;
+  // The jar's inside runs from y 9 to y 30 (21 units).
+  const h = 21 * share;
+  return (
+    <div
+      data-lw-jar={drops}
+      data-lw-jar-size={size}
+      role="img"
+      aria-label={`Bonus jar: ${words} word${words === 1 ? "" : "s"}, ${Math.min(drops, size)} of ${size}`}
+      className="flex h-8 items-center gap-1 font-mono text-xs font-bold tabular-nums"
+    >
+      <svg viewBox="0 0 24 32" width={22} height={30} aria-hidden="true">
+        <defs>
+          <clipPath id="lw-jar-inside">
+            <path d="M5 9 h14 a2 2 0 0 1 2 2 v17 a3 3 0 0 1 -3 3 h-12 a3 3 0 0 1 -3 -3 v-17 a2 2 0 0 1 2 -2z" />
+          </clipPath>
+          <linearGradient id="lw-jar-fill" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stopColor="#ffe08a" />
+            <stop offset="1" stopColor="#d99a1e" />
+          </linearGradient>
+        </defs>
+        <path d="M5 9 h14 a2 2 0 0 1 2 2 v17 a3 3 0 0 1 -3 3 h-12 a3 3 0 0 1 -3 -3 v-17 a2 2 0 0 1 2 -2z" fill="rgba(255,255,255,0.07)" />
+        <rect x="3" y={30 - h} width="18" height={h + 1} fill="url(#lw-jar-fill)" clipPath="url(#lw-jar-inside)" style={{ transition: "y 300ms ease-out, height 300ms ease-out" }} />
+        <path d="M5 9 h14 a2 2 0 0 1 2 2 v17 a3 3 0 0 1 -3 3 h-12 a3 3 0 0 1 -3 -3 v-17 a2 2 0 0 1 2 -2z" fill="none" stroke="rgba(255,255,255,0.55)" strokeWidth="1.2" />
+        <rect x="6" y="4" width="12" height="4" rx="1.2" fill={full ? "#f2c75c" : "#5a5a66"} stroke="rgba(255,255,255,0.35)" strokeWidth="0.8" />
+        <path d="M8 12 v14" stroke="rgba(255,255,255,0.28)" strokeWidth="1.4" strokeLinecap="round" />
+      </svg>
+      <span className={full ? "text-primary" : "text-muted-foreground"}>{words}</span>
+    </div>
+  );
+}
+
 /** Fixed example: wheel T E A R, with TEA selected down through RATE. */
 const EX_SLOTS: LetterWheelSlot[] = [
   { row: 0, col: 0, across: true, len: 4 },
@@ -239,6 +292,9 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, checkWord, stateKey }:
   // wheelRev 1: every submitted trace, in order (the answer), and the phone's own count of "Not a word" verdicts.
   const [log, setLog] = useStageState<string[]>(key, "lwLog", () => []);
   const [misses, setMisses] = useStageState<number>(key, "lwMisses", () => 0);
+  // wheelRev 2: the bonus words in the jar, as the server's live check told them (the server scores the log itself).
+  const [bonus, setBonus] = useStageState<string[]>(key, "lwBonus", () => []);
+  const jarRef = useRef<HTMLDivElement | null>(null);
   const [path, setPath] = useState<number[]>([]);
   const [shake, setShake] = useState(false);
   const [flash, setFlash] = useState<string | null>(null);
@@ -252,6 +308,10 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, checkWord, stateKey }:
   const filledCount = filled.filter(Boolean).length;
   const words = filled.filter((w): w is string => !!w);
   const usesLog = lwUsesLog(data);
+  const usesJar = lwUsesJar(data);
+  const jarSize = data?.jarSize ?? LW_JAR_DROPS;
+  // Each miss after the free ones spills a drop (as the server counts it from the log).
+  const jarDrops = lwJarKept(bonus.reduce((sum, w) => sum + lwJarDrops(w), 0), misses);
   const encoded = usesLog ? lwEncodeLog(log) : words.join(",");
 
   useEffect(() => {
@@ -348,9 +408,18 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, checkWord, stateKey }:
         // Batch W: the toolkit's right-move glow on the slot's cells as the word lands (display only).
         const slot = data.slots[i];
         if (slot) for (const cell of lwSlotCells(slot, data.cols)) rightMoveFlash(stageRef.current?.querySelector(`[data-lw-cell="${cell}"]`));
+      } else if (v.reason === "Not in this puzzle" && usesJar && !bonus.includes(v.word.toUpperCase())) {
+        // wheelRev 2: a real word not in the crossword drops into the bonus jar.
+        const word = v.word.toUpperCase();
+        setBonus((b) => (b.includes(word) ? b : [...b, word]));
+        playTick();
+        buzz(8);
+        setFlash(`Bonus · ${word}`);
+        setTimeout(() => setFlash(null), 900);
+        jarPulse(jarRef.current);
       } else if (v.reason === "Not in this puzzle") {
         puzzleReject();
-        setFlash("Not in this puzzle");
+        setFlash(usesJar ? "Already in the jar" : "Not in this puzzle");
         setTimeout(() => setFlash(null), 900);
       } else {
         if (usesLog && v.reason === "Not a word") setMisses((m) => m + 1);
@@ -387,6 +456,11 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, checkWord, stateKey }:
       </div>
       <div data-arena-part="letterwheel-word" className="relative flex h-8 w-full shrink-0 items-center justify-center px-2 font-mono text-lg font-bold tracking-widest text-primary" aria-live="polite">
         <span>{current || flash || ""}</span>
+        {usesJar ? (
+          <div ref={jarRef} className="absolute inset-y-0 right-2 flex items-center">
+            <BonusJar drops={jarDrops} size={jarSize} words={bonus.length} />
+          </div>
+        ) : null}
         {/* The found-word chip shares the trace row (the trace is already cleared when a word lands). */}
         <div className="pointer-events-none absolute inset-0">
           <FoundWordMoment value={accepted} />
@@ -456,6 +530,11 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myMsRemaining, myExtra }: Puzzl
       {storedMisses > 0 ? (
         <p data-lw-reveal-misses={storedMisses} className="font-mono text-xs text-muted-foreground">
           {storedMisses} miss{storedMisses === 1 ? "" : "es"} · {LW_FREE_MISSES} free
+        </p>
+      ) : null}
+      {lwUsesJar(puzzle) && myExtra?.["jarSize"] !== undefined ? (
+        <p data-lw-reveal-jar={Number(myExtra["bonusWords"] ?? 0)} className="font-mono text-xs text-muted-foreground">
+          Bonus jar · {Number(myExtra["bonusWords"] ?? 0)} word{Number(myExtra["bonusWords"] ?? 0) === 1 ? "" : "s"} · {Math.min(Number(myExtra["jarDrops"] ?? 0), Number(myExtra["jarSize"]))} / {Number(myExtra["jarSize"])}
         </p>
       ) : null}
     </div>

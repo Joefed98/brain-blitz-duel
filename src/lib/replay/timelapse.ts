@@ -11,6 +11,7 @@
  */
 import { ACTION_LOG_PREFIX, decodeActionLog, usesActionLog } from "@/lib/duel/actionLog";
 import type { PuzzleData } from "@/lib/duel/types";
+import { LAB_TRAIL_PREFIX } from "@/lib/duel/depth/labyrinth";
 
 export interface TimelapseSpec {
   /** "," for comma lists; "" for one letter per move (Topsy-Turvy, Heave). */
@@ -50,6 +51,16 @@ const letters = (allowed: RegExp) => (answer: string) =>
 const joinComma = (tokens: string[], k: number) => tokens.slice(0, k).join(",");
 const joinLetters = (tokens: string[], k: number) => tokens.slice(0, k).join("");
 const same = (k: number) => k;
+/**
+ * Labyrinth's answer: a comma list of path cells, or (mazeRev 1) the trail prefix and one U/D/L/R letter a step. The
+ * trail's prefix is its first token (the start cell, as the path's first cell is), so k tokens are k − 1 steps either way.
+ */
+const mazeTokens = (answer: string) => {
+  const text = String(answer ?? "");
+  if (!text.startsWith(LAB_TRAIL_PREFIX)) return comma(text);
+  return [LAB_TRAIL_PREFIX, ...text.slice(LAB_TRAIL_PREFIX.length).split("").filter((c) => /[UDLR]/.test(c))];
+};
+const joinMaze = (tokens: string[], k: number) => (tokens[0] === LAB_TRAIL_PREFIX ? joinLetters(tokens, k) : joinComma(tokens, k));
 /** An action log's items in time order (every item kept: a replay shows what was sent, the Reveal applies its own rules). */
 const logItems = (answer: string) =>
   decodeActionLog(String(answer ?? ""), Number.MAX_SAFE_INTEGER).actions.map(
@@ -90,8 +101,8 @@ export const TIMELAPSE: Record<string, TimelapseSpec> = {
   },
   maze: {
     sep: ",",
-    tokens: comma,
-    prefix: joinComma,
+    tokens: mazeTokens,
+    prefix: joinMaze,
     moves: (k) => Math.max(0, k - 1),
     min: () => null,
     unit: "step",

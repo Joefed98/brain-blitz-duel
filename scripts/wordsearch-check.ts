@@ -30,6 +30,9 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { WORD_SEARCH_CATEGORIES } from "../src/lib/duel/wordSearchWords";
 import { WORD_SEARCH_BANK } from "../src/lib/duel/wordSearchBank.server";
 import { generatePuzzle, gradeAnswer } from "../src/lib/duel/generate.server";
+import { pinPreDepth } from "../src/lib/duel/wordDepth";
+// Written for wordSearchRev 2: new deals are pinned to it (depth-wordsearch-check proves rev 3).
+pinPreDepth(true);
 import { splitPuzzle } from "../src/lib/duel/secrets";
 import {
   checkWordSearchPath,

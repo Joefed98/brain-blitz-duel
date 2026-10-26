@@ -49,7 +49,7 @@ import {
   hoverWorldHFor,
   type HoverState,
 } from "../src/lib/arcade/hover";
-import { skylineGameFor, SKYLINE_REV_BAND, SKYLINE_REV_TALL, SKYLINE_TALL_H, SKYLINE_WORLD_H, skylineWorldHFor } from "../src/lib/arcade/skyline";
+import { skylineGameFor, SKYLINE_REV_BAND, SKYLINE_REV_EXPAND, SKYLINE_REV_TALL, SKYLINE_TALL_H, SKYLINE_WORLD_H, skylineWorldHFor } from "../src/lib/arcade/skyline";
 import {
   snakeCol,
   snakeGameFor,
@@ -151,7 +151,6 @@ section("Old rounds replay and score exactly as before");
 section("New rounds carry the Tuning E stamps; one world per stored revision");
 {
   const stamps: [string, string, number | undefined, number][] = [
-    ["skyline", "skylineRev", playRevOf("skyline", generateSkyline().skylineRev), SKYLINE_REV_TALL],
     // Tuning F moved Meteor rooms on to snakeRev 6: the same tall grid with more rocks (arcade-tuning-f-check).
     ["snake", "snakeRev", playRevOf("snake", generateSnake().snakeRev), SNAKE_REV_ROCKS],
     // Scrumper rooms moved on to snipRev 6 (the same tall game on a bigger bank; scripts/snip-bank6-check.ts),
@@ -159,6 +158,10 @@ section("New rounds carry the Tuning E stamps; one world per stored revision");
     ["snip", "snipRev", playRevOf("snip", generateSnip().snipRev), SNIP_REV_PROVEN],
     ["hover", "hoverRev", playRevOf("hover", generateHover().hoverRev), HOVER_REV_TALL],
   ];
+  // Expansion E4 (25 Oct 2026) moved High Rise on to skylineRev 7 (e4-expansion-check covers it); its tall world
+  // started with skylineRev 4, which stored rounds still play and score on the bands.
+  ok(generateSkyline().skylineRev === SKYLINE_REV_EXPAND, `skyline: rooms deal skylineRev ${SKYLINE_REV_EXPAND} (expansion E4, after skylineRev ${SKYLINE_REV_TALL})`);
+  ok(puzzleUsesBands({ type: "skyline", skylineRev: SKYLINE_REV_TALL } as never), `skyline ${SKYLINE_REV_TALL} scores on the bands`);
   for (const [type, field, got, rev] of stamps) {
     ok(got === rev, `${type}: new rounds stamped ${rev} (got ${got})`);
     ok(puzzleUsesBands({ type, [field]: rev } as never), `${type} ${rev} scores on the bands`);

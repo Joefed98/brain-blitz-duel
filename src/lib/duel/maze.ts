@@ -12,45 +12,61 @@ export const MAZE_E = 2;
 export const MAZE_S = 4;
 export const MAZE_W = 8;
 
-export function mazeRow(cell: number): number {
-  return Math.floor(cell / N);
+export function mazeRow(cell: number, cols = N): number {
+  return Math.floor(cell / cols);
 }
 
-export function mazeCol(cell: number): number {
-  return cell % N;
+export function mazeCol(cell: number, cols = N): number {
+  return cell % cols;
 }
 
-/** The side of `from` that faces `to`, or 0 when they are not neighbours. */
-export function mazeSideBetween(from: number, to: number): number {
-  if (to === from - N && mazeRow(from) > 0) return MAZE_N;
-  if (to === from + N && mazeRow(from) < N - 1) return MAZE_S;
-  if (to === from - 1 && mazeCol(from) > 0) return MAZE_W;
-  if (to === from + 1 && mazeCol(from) < N - 1) return MAZE_E;
+/**
+ * The board's columns: 19 (MAZE_COLS) for every maze before mazeRev 1; mazeRev 1 (depth to 200, 25 Oct 2026)
+ * stores its own `cols` (and `rows`). Every rule below takes it, defaulting to 19, so an older maze is read exactly
+ * as before.
+ */
+export function mazeColsOf(puzzle: { cols?: number } | null | undefined): number {
+  const cols = puzzle?.cols;
+  return typeof cols === "number" && Number.isInteger(cols) && cols > 1 ? cols : N;
+}
+
+/** The side of `from` that faces `to`, or 0 when they are not neighbours (`rows` from the board's cell count). */
+export function mazeSideBetween(from: number, to: number, cols = N, rows = N): number {
+  if (to === from - cols && mazeRow(from, cols) > 0) return MAZE_N;
+  if (to === from + cols && mazeRow(from, cols) < rows - 1) return MAZE_S;
+  if (to === from - 1 && mazeCol(from, cols) > 0) return MAZE_W;
+  if (to === from + 1 && mazeCol(from, cols) < cols - 1) return MAZE_E;
   return 0;
 }
 
+function rowsOf(cells: number[], cols: number): number {
+  return cols === N && cells.length <= MAZE_CELLS ? N : Math.ceil(cells.length / cols);
+}
+
 /** True when a corridor joins the two cells (both walls are open). */
-export function mazeOpen(cells: number[], from: number, to: number): boolean {
-  const side = mazeSideBetween(from, to);
+export function mazeOpen(cells: number[], from: number, to: number, cols = N): boolean {
+  const rows = rowsOf(cells, cols);
+  const side = mazeSideBetween(from, to, cols, rows);
   if (!side) return false;
-  const back = mazeSideBetween(to, from);
+  const back = mazeSideBetween(to, from, cols, rows);
   return Boolean((cells[from] ?? 0) & side) && Boolean((cells[to] ?? 0) & back);
 }
 
-export function mazeCorridorNeighbours(cells: number[], cell: number): number[] {
-  return [cell - N, cell + N, cell - 1, cell + 1].filter(
-    (next) => next >= 0 && next < MAZE_CELLS && mazeOpen(cells, cell, next),
+export function mazeCorridorNeighbours(cells: number[], cell: number, cols = N): number[] {
+  const size = cols === N && cells.length <= MAZE_CELLS ? MAZE_CELLS : cells.length;
+  return [cell - cols, cell + cols, cell - 1, cell + 1].filter(
+    (next) => next >= 0 && next < size && mazeOpen(cells, cell, next, cols),
   );
 }
 
 /** The one route between two cells in a perfect maze. */
-export function mazeRoute(cells: number[], start: number, exit: number): number[] {
+export function mazeRoute(cells: number[], start: number, exit: number, cols = N): number[] {
   const from = new Map<number, number>([[start, -1]]);
   const queue = [start];
   while (queue.length) {
     const cell = queue.shift()!;
     if (cell === exit) break;
-    for (const next of mazeCorridorNeighbours(cells, cell)) {
+    for (const next of mazeCorridorNeighbours(cells, cell, cols)) {
       if (from.has(next)) continue;
       from.set(next, cell);
       queue.push(next);
@@ -81,12 +97,12 @@ export function encodeMazePath(path: number[]): string {
   return path.join(",");
 }
 
-export function decodeMazePath(raw: string): number[] {
+export function decodeMazePath(raw: string, size = MAZE_CELLS): number[] {
   return String(raw ?? "")
     .split(",")
     .map((value) => Number.parseInt(value, 10))
-    .filter((cell) => Number.isInteger(cell) && cell >= 0 && cell < MAZE_CELLS)
-    .slice(0, MAZE_CELLS * 4);
+    .filter((cell) => Number.isInteger(cell) && cell >= 0 && cell < size)
+    .slice(0, size * 4);
 }
 
 export interface MazeVerdict {
@@ -109,6 +125,7 @@ export function verifyMazePath(
   exit: number,
   solution: number[],
   path: number[],
+  cols = N,
 ): MazeVerdict {
   const walk: number[] = [];
   if (path[0] === start) {
@@ -117,7 +134,7 @@ export function verifyMazePath(
       const cell = path[index]!;
       const previous = walk[walk.length - 1]!;
       if (cell === previous) continue;
-      if (!mazeOpen(cells, previous, cell)) break;
+      if (!mazeOpen(cells, previous, cell, cols)) break;
       walk.push(cell);
       if (cell === exit) break;
     }

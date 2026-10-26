@@ -11,7 +11,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 
 import { WORD_FINISH_MAX_MS, playFinish, goldFlip, goldPulse } from "../src/components/puzzles/wordFinish";
-import { WORD_BATCH_DEMOS, WORD_BATCH_PRESENTATION, WORD_POLISH_DEMOS, WORD_POLISH_PRESENTATION, puzzleInputDemoCompatible, puzzlePresentation } from "../src/components/puzzles/wordInput";
+import { LOOKOUT_DEPTH_PRESENTATION, ROUNDABOUT_DEPTH_PRESENTATION, WORD_BATCH_DEMOS, WORD_BATCH_PRESENTATION, WORD_POLISH_DEMOS, WORD_POLISH_PRESENTATION, puzzleInputDemoCompatible, puzzlePresentation } from "../src/components/puzzles/wordInput";
 import { wordfallGame, WF_PAR, WF_RUN_TICKS, type WordfallState } from "../src/lib/arcade/wordfall";
 import { wordfallEarnsShimmer } from "../src/lib/arcade/wordfall.renderer";
 
@@ -89,9 +89,11 @@ ok(!/shimmerStart\.set\([^)]*\)/.test(renderer.split("export function wordfallSt
 ok(!/from "\.\/wordfall\.renderer"/.test(readFileSync("src/lib/arcade/wordfall.ts", "utf8")), "the sim never imports the renderer");
 
 // 4. Demo revisions for the boards that moved.
+const DEPTH_PRESENTATION: Record<string, string> = { letterwheel: ROUNDABOUT_DEPTH_PRESENTATION, wordsearch: LOOKOUT_DEPTH_PRESENTATION };
 // The word batch (14 Oct 2026) moved some of these boards again; those take its newer revision.
 for (const type of new Set([...WORD_POLISH_DEMOS, ...WORD_BATCH_DEMOS])) {
-  const current = WORD_BATCH_DEMOS.has(type) ? WORD_BATCH_PRESENTATION : WORD_POLISH_PRESENTATION;
+  // Word depth (25 Oct 2026): a game whose depth stamp moved its board keeps a newer revision of its own.
+  const current = DEPTH_PRESENTATION[type] ?? (WORD_BATCH_DEMOS.has(type) ? WORD_BATCH_PRESENTATION : WORD_POLISH_PRESENTATION);
   ok(puzzlePresentation(type) === current, `${type}: current word presentation`);
   ok(!puzzleInputDemoCompatible(type, {}), `${type}: unstamped coordinate demos are rejected`);
   ok(!puzzleInputDemoCompatible(type, { presentation: "oct10-polish-a" }), `${type}: older demos are rejected`);

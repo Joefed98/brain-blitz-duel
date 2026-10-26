@@ -8,6 +8,7 @@ import { markerState, targetCentre } from "@/lib/duel/stopWatch";
 import {
   TAP_LOG_MAX,
   TAP_LOG_PREFIX,
+  dealtTapRev,
   TAP_REV_ONE_CURVE,
   tapRevOf,
   decodeTapTimes,
@@ -29,6 +30,8 @@ import { useGoalProgress } from "@/components/duel/GameFrame";
 import { wrongMoveFlash } from "@/lib/fx/gameToolkit";
 import { playSound } from "@/lib/sound";
 import { bangOnEarnsGoldFaces, fireBangOnGoldFaces, localBangOnScore } from "@/components/puzzles/stopWatchFx";
+import { roundMaxFor } from "@/lib/duel/roundMax";
+import { BANGON_CENTRE_POINTS, BANGON_STREAK_MIN, BANGON_STREAK_TOP, bangOnMarks, liveZoneStreak, scoreBangOnDepth, usesBangOnDepth, type WatchMark } from "@/lib/duel/depth/bangOn";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
@@ -97,7 +100,7 @@ export function buildStopWatch(): StopWatchPuzzleData {
       if (blind.length) spec.blind = blind;
       return spec;
     }),
-    tapRev: TAP_REV_ONE_CURVE,
+    tapRev: dealtTapRev("stopwatch"),
   };
 }
 
@@ -108,6 +111,9 @@ function Bar({
   markerRef,
   targetRef,
   passesLeft,
+  deadCentre = false,
+  streak = null,
+  deadHit = false,
 }: {
   spec: StopWatchSpec;
   marker: number | null;
@@ -115,6 +121,12 @@ function Bar({
   markerRef?: React.RefObject<HTMLSpanElement | null> | undefined;
   targetRef?: React.RefObject<HTMLSpanElement | null> | undefined;
   passesLeft: number;
+  /** Depth (tapRev 5): the zone's centre is the bright dead-centre line (stopping on it scores a bonus). */
+  deadCentre?: boolean;
+  /** Depth (tapRev 5): the zone streak running into this watch (null: no chip). */
+  streak?: number | null;
+  /** Depth (tapRev 5): the watch on show was just stopped on the line. */
+  deadHit?: boolean;
 }) {
   const vertical = spec.vertical === true;
   const diagonal = !vertical && spec.diagonal === true;
@@ -143,7 +155,8 @@ function Bar({
         }
       >
         <span
-          className={`absolute rounded-full bg-primary ${vertical ? "inset-x-2 top-1/2 h-[3px] -translate-y-1/2" : "inset-y-2 left-1/2 w-[3px] -translate-x-1/2"}`}
+          data-bangon-centre={deadCentre ? "" : undefined}
+          className={`absolute rounded-full ${deadCentre ? "bangon-dead-centre" : "bg-primary"} ${vertical ? "inset-x-2 top-1/2 h-[3px] -translate-y-1/2" : "inset-y-2 left-1/2 w-[3px] -translate-x-1/2"}`}
         />
       </span>
       {spec.blind?.map(([from, to]) => (
@@ -174,6 +187,20 @@ function Bar({
         )
       )}
       <span aria-hidden="true" className="bangon-crystal" />
+      {streak !== null ? (
+        <span
+          data-bangon-streak={streak >= BANGON_STREAK_MIN ? "on" : "off"}
+          aria-label={`Zone streak ${streak}`}
+          className="bangon-streak-chip pointer-events-none absolute left-2 top-2 z-10 font-mono text-sm font-bold tabular-nums"
+        >
+          Zone ×{streak}
+        </span>
+      ) : null}
+      {deadHit ? (
+        <span data-bangon-dead-hit="" className="bangon-dead-hit pointer-events-none absolute inset-x-0 bottom-1.5 z-10 text-center font-mono text-xs font-bold uppercase tracking-widest">
+          Dead centre
+        </span>
+      ) : null}
       <span
         aria-label={`${passesLeft} passes left`}
         className={`absolute right-2 top-2 z-10 font-mono text-sm font-bold tabular-nums ${passesLeft === 1 ? "text-warn" : "text-foreground"}`}
@@ -192,12 +219,13 @@ function IntroExample() {
       <p className="text-center text-sm text-muted-foreground">
         Ten watches, each one trickier. Tap to stop the marker on the zone's centre line.
       </p>
-      <Bar spec={{ centre: 0.62, half: 0.07, sweepMs: 1_100, hidden: false, wrap: false, passes: 2, blind: [[0.26, 0.34]] }} marker={0.58} passesLeft={2} />
+      <Bar spec={{ centre: 0.62, half: 0.07, sweepMs: 1_100, hidden: false, wrap: false, passes: 2, blind: [[0.26, 0.34]] }} marker={0.58} passesLeft={2} deadCentre streak={2} />
       <p className="text-center text-xs text-muted-foreground">
         From Watch 2, black blind spots hide the marker (wider later on); some sweeps are slower, two watches run corner
         to corner, and targets move, hide, turn vertical or accelerate. The counter starts at 2 on Watch 1 and reaches 11
-        on Watch 10; watches 8-10 wrap. Score: 150 at 5 ms average error or closer, 137 at 20 ms, 101 at 200 ms, then
-        falling faster to 0 at 325 ms; a missed watch counts 500 ms.
+        on Watch 10; watches 8-10 wrap. Score: up to 150 for close stops (5 ms average error or closer), falling to 0
+        at {STOPWATCH_REV4_ZERO_MS} ms; a missed watch counts 500 ms. Each stop on the bright centre line adds
+        {BANGON_CENTRE_POINTS}, and zone stops in a row add more the longer the run (up to {BANGON_STREAK_TOP} a watch): up to {roundMaxFor("stopwatch")}.
       </p>
     </div>
   );
@@ -350,6 +378,7 @@ function WatchView({
   onTap,
   runKey = "",
   fxScore = null,
+  marks = null,
 }: {
   index: number;
   count: number;
@@ -366,8 +395,13 @@ function WatchView({
   runKey?: string;
   /** The phone's local score once all ten are done (read-only), else null. */
   fxScore?: number | null;
+  /** Depth (tapRev 5): each settled watch's zone and dead-centre marks (null: an older round). */
+  marks?: WatchMark[] | null;
 }) {
   const showing = result !== "none";
+  // Depth: the streak the chip shows is the run of zone stops up to the last settled watch.
+  const streak = marks ? liveZoneStreak(marks) : null;
+  const lastMark = marks && showing ? marks[marks.length - 1] : undefined;
   const rootRef = useRef<HTMLDivElement | null>(null);
   const flashed = useRef("");
   // End of run: the watch faces flash gold in turn when the local score reaches the threshold.
@@ -413,9 +447,13 @@ function WatchView({
           markerRef={live ? refs.markerRef : undefined}
           targetRef={live && spec.moving ? refs.targetRef : undefined}
           passesLeft={passesLeft}
+          deadCentre={marks !== null}
+          streak={streak}
+          deadHit={lastMark?.centre === true}
         />
       </div>
       <p data-game-controls="status"
+        data-bangon-dead={lastMark?.centre ? "" : undefined}
         className={`font-mono text-3xl font-bold tabular-nums ${
           showing ? (result === "missed" ? "text-warn" : "text-primary") : "text-muted-foreground"
         }`}
@@ -423,7 +461,11 @@ function WatchView({
         {status}
       </p>
       <div data-game-controls="history" className="stopwatch-history grid h-16 w-full grid-cols-3 gap-2" aria-label="Recent results">
-        {errors.slice(!showing ? -3 : -4, !showing ? undefined : -1).map((ms, i, list) => <span key={errors.length - list.length + i} data-bangon-face="" className="bangon-card flex flex-col items-center justify-center rounded-md border border-border bg-card px-1 font-mono text-sm text-foreground"><span className="text-muted-foreground">{errors.length - list.length + i + (!showing ? 1 : 0)}</span><span>{ms >= STOPWATCH_MISS_MS ? "Missed" : `${ms} ms off`}</span></span>)}
+        {errors.slice(!showing ? -3 : -4, !showing ? undefined : -1).map((ms, i, list) => {
+          const at = errors.length - list.length + i - (showing ? 1 : 0);
+          const mark = marks?.[at];
+          return <span key={errors.length - list.length + i} data-bangon-face="" data-bangon-mark={mark ? (mark.centre ? "centre" : mark.zone ? "zone" : "out") : undefined} className="bangon-card flex flex-col items-center justify-center rounded-md border border-border bg-card px-1 font-mono text-sm text-foreground"><span className="text-muted-foreground">{errors.length - list.length + i + (!showing ? 1 : 0)}</span><span>{ms >= STOPWATCH_MISS_MS ? "Missed" : `${ms} ms off`}</span></span>;
+        })}
       </div>
     </div>
   );
@@ -483,6 +525,8 @@ function LoggedStage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAns
   }, [done, now, locked, key]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const refs = useMarkerGlide(live, spec, phaseStartedAt + start, shownIndex);
+  const depth = usesBangOnDepth(puzzle);
+  const marks = useMemo(() => (depth ? bangOnMarks(watches, results).marks : null), [depth, watches, results]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (puzzle.type !== "stopwatch" || !spec) return null;
 
@@ -516,7 +560,8 @@ function LoggedStage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAns
       errors={errors}
       onTap={handleTap}
       runKey={key}
-      fxScore={done && last && upTo >= last.at + STOPWATCH_GAP_MS ? localBangOnScore(errors, watches.length, tapRevOf(puzzle)) : null}
+      fxScore={done && last && upTo >= last.at + STOPWATCH_GAP_MS ? (depth ? scoreBangOnDepth(watches, results).score : localBangOnScore(errors, watches.length, tapRevOf(puzzle))) : null}
+      marks={marks}
     />
   );
 }
@@ -533,6 +578,13 @@ function storedBangOn(extra: Record<string, unknown> | null | undefined) {
   const zeroMs = extra?.["zeroMs"];
   if (!Array.isArray(distances) || typeof averageMs !== "number" || typeof kneeMs !== "number" || typeof zeroMs !== "number") return null;
   return { distances: distances.filter((v): v is number => typeof v === "number"), averageMs, kneeMs, zeroMs };
+}
+
+/** Depth (tapRev 5): the stored dead-centre and zone-streak figures (bangOn.server.ts). */
+function storedBangOnDepth(extra: Record<string, unknown> | null | undefined) {
+  const d = extra?.["depth"] as Record<string, unknown> | undefined;
+  if (!d || typeof d["centre"] !== "number" || typeof d["streak"] !== "number" || !Array.isArray(d["zone"]) || !Array.isArray(d["dead"])) return null;
+  return { centre: d["centre"] as number, centreHits: Number(d["centreHits"] ?? 0), streak: d["streak"] as number, zone: d["zone"] as boolean[], dead: d["dead"] as boolean[] };
 }
 
 function Reveal({ puzzle, myAnswer, myExtra }: PuzzleRevealProps) {
@@ -555,12 +607,14 @@ function Reveal({ puzzle, myAnswer, myExtra }: PuzzleRevealProps) {
   const avg = stored ? stored.averageMs : Math.round(errors.reduce((a, b) => a + b, 0) / errors.length);
   // tapRev 4 scores on its own curve (scoring.ts STOPWATCH_REV4_CURVE); the stored knee is tapRev 2's.
   const curve = tapRevOf(puzzle) >= TAP_REV_ONE_CURVE ? { kneeMs: STOPWATCH_REV4_KNEE_MS, zeroMs: STOPWATCH_REV4_ZERO_MS } : stored;
+  // Depth (tapRev 5): the server's stored marks and bonus points.
+  const depth = usesBangOnDepth(puzzle) ? storedBangOnDepth(myExtra) : null;
 
   return (
     <>
       <div className="grid w-full grid-cols-1 justify-items-center gap-y-0.5">
         {errors.map((ms, index) => (
-          <p key={index} className="whitespace-nowrap font-mono text-base leading-6 tabular-nums text-foreground">
+          <p key={index} data-bangon-mark={depth ? (depth.dead[index] ? "centre" : depth.zone[index] ? "zone" : "out") : undefined} className="whitespace-nowrap font-mono text-base leading-6 tabular-nums text-foreground">
             Watch {index + 1} - {ms >= STOPWATCH_MISS_MS ? "missed (500 ms)" : `${ms} ms off`}
           </p>
         ))}
@@ -568,6 +622,11 @@ function Reveal({ puzzle, myAnswer, myExtra }: PuzzleRevealProps) {
       <div className="bangon-reveal-avg flex w-full flex-col items-center gap-1 rounded-2xl bg-card px-4 py-4">
         <p className="text-sm uppercase tracking-[0.2em] text-muted-foreground">Average error</p>
         <p className="font-mono text-4xl font-bold tabular-nums text-primary">{avg} ms</p>
+        {depth ? (
+          <p data-bangon-depth="" className="text-center font-mono text-xs text-muted-foreground">
+            Dead centre {depth.centreHits} × {BANGON_CENTRE_POINTS} = +{depth.centre} · zone streak +{depth.streak}
+          </p>
+        ) : null}
         {curve && avg > curve.kneeMs ? (
           <p className="text-center text-xs text-muted-foreground">
             Over {curve.kneeMs} ms the score falls faster: 0 at {curve.zeroMs} ms.

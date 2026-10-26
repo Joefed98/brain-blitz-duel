@@ -14,9 +14,11 @@
  * (scripts/codeword-bank.ts), picked by the room seed.
  */
 
+import { dealtDepthRev } from "./wordDepth";
 import { CODEWORD_BANK } from "./codewordBank.server";
 import {
   CODEWORD_REV,
+  CODEWORD_DEPTH_REV,
   CW_GIVENS,
   CW_MAX_LETTERS,
   CW_MIN_LETTERS,
@@ -426,7 +428,8 @@ export function generateCodeword(seed: number): CodewordPuzzleData {
     }
     throw new Error("Cryptogrid: no board found");
   }
-  return codewordFromEntry(CODEWORD_BANK[codewordBankIndex(seed)]!);
+  // Word depth (25 Oct 2026): new rounds deal codewordRev 4, rev 3's board (codewordFromEntry treats 4 as 3).
+  return codewordFromEntry(CODEWORD_BANK[codewordBankIndex(seed)]!, dealtDepthRev(CODEWORD_DEPTH_REV, CODEWORD_REV));
 }
 
 /** Live check: answers only once every number has a letter, and then only solved or not. */

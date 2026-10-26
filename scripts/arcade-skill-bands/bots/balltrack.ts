@@ -42,6 +42,11 @@ const TAP_GAP: Record<SkillLevel, number> = { average: 10, good: 9, great: 8, ne
 const HORIZON: Record<SkillLevel, number> = { average: 2, good: 3, great: 4, near: 5 };
 /** Chance of allowing for a warned bottom-row change when planning a marble that lands after it. */
 const HEED: Record<SkillLevel, number> = { average: 0.5, good: 0.7, great: 0.85, near: 0.95 };
+/**
+ * btRev 7: chance a player plans round a crossover rather than dropping a marble through it (the drop can
+ * meet a marble rolling along that row and knock both out).
+ */
+const AVOID_X: Record<SkillLevel, number> = { average: 0.15, good: 0.45, great: 0.75, near: 0.95 };
 /** How many steps ahead of a marble the player sets a tube (just-in-time, not last-instant). */
 const LEAD_STEPS = 4;
 const WARN_TICKS = 5 * 60;
@@ -50,7 +55,7 @@ const SLOT = 100;
 type Step = { cell: number; vert: number };
 
 /** Shortest route from a marble's tile into column `col`, with the tube state each tile needs (-1 = fixed/corner). */
-function routeFrom(course: BtCourse, rot: Set<number>, start: number, above: boolean, col: number, tick: number): Step[] | null {
+function routeFrom(course: BtCourse, rot: Set<number>, start: number, above: boolean, col: number, tick: number, avoidCross = false): Step[] | null {
   type Q = { cell: number; above: boolean; path: Step[] };
   const queue: Q[] = [{ cell: start, above, path: [] }];
   const seen = new Set<string>();
@@ -68,6 +73,7 @@ function routeFrom(course: BtCourse, rot: Set<number>, start: number, above: boo
         continue;
       }
       if (next.cell < 0) continue;
+      if (avoidCross && next.fromAbove && course.cross?.includes(next.cell)) continue;
       queue.push({ cell: next.cell, above: next.fromAbove, path });
     }
   }
@@ -111,7 +117,8 @@ export const bot: SkillBot = ({ game, human }) => {
       const others = trays.flatMap((c, i) => (c >= 0 && c !== colour ? [i] : []));
       if (others.length) col = others[human.int(0, others.length - 1)]!;
     }
-    const route = routeFrom(course, rot, start, above, col, at) ?? routeFrom(course, rot, start, above, col, t);
+    const avoid = (course.cross?.length ?? 0) > 0 && human.chance(AVOID_X[level]);
+    const route = (avoid ? routeFrom(course, rot, start, above, col, at, true) : null) ?? routeFrom(course, rot, start, above, col, at) ?? routeFrom(course, rot, start, above, col, t);
     routes.set(id, route ?? []);
   };
 

@@ -90,3 +90,31 @@
 @media (prefers-reduced-motion: reduce) {
   [data-word-polish="wordsmith"] [data-game-controls="input"] { transition: none; }
 }
+
+/* Word depth (25 Oct 2026, wordsmithRev 3): the pangram badge over the arena's top-left corner. Open: a quiet
+   sunk pill stating the bonus; found: the gold shine with a dark label, one short pop (no motion when reduced). */
+[data-word-polish="wordsmith"] [data-pangram-badge] {
+  color: #a09da6;
+  background: rgb(255 255 255 / 0.04);
+  box-shadow: inset 0 1px 3px rgb(0 0 0 / 0.55), inset 0 0 0 1px rgb(255 255 255 / 0.08);
+  transition: color 160ms ease, background 160ms ease, box-shadow 160ms ease;
+}
+[data-word-polish="wordsmith"] [data-pangram-badge="found"] {
+  color: #1b1405;
+  background: linear-gradient(180deg, #ffe39a 0%, #f2c75c 45%, #c9962e 100%);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.6),
+    inset 0 -2px 0 rgb(0 0 0 / 0.25),
+    0 0 12px 2px rgb(242 199 92 / 0.55),
+    0 4px 10px rgb(0 0 0 / 0.5);
+}
+@media (prefers-reduced-motion: no-preference) {
+  html:not([data-reduced-effects]) [data-word-polish="wordsmith"] [data-pangram-badge="found"] {
+    animation: wordsmith-pangram-pop 520ms cubic-bezier(.2, 1.4, .4, 1) both;
+  }
+}
+@keyframes wordsmith-pangram-pop {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.18); }
+  100% { transform: scale(1); }
+}

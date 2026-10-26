@@ -4,7 +4,18 @@
  * every submitted grid through this code rather than trusting a client verdict.
  */
 
-import { NONO_SIZE } from "./types";
+import { NONO_SIZE, type NonoPuzzleData } from "./types";
+
+/** The depth revision's bigger pictures (depthRev 1, 25 Oct 2026): 8 × 8, 22–36 filled (a little under the 7 × 7 band's share, so the clock still fits a good solve). */
+export const NONO_DEPTH_SIZE = 8;
+export const NONO_DEPTH_MIN_FILLED = 22;
+export const NONO_DEPTH_MAX_FILLED = 36;
+
+/** A stored puzzle's side: its clue count (7 on every puzzle dealt before the depth revision). */
+export function nonoSizeOf(puzzle: Pick<NonoPuzzleData, "rows"> | null | undefined): number {
+  const n = puzzle?.rows?.length ?? 0;
+  return n >= 2 && n <= 12 ? n : NONO_SIZE;
+}
 
 /** The run lengths of filled cells in one line, in order. */
 export function lineClue(cells: boolean[]): number[] {
@@ -21,18 +32,18 @@ export function lineClue(cells: boolean[]): number[] {
   return runs;
 }
 
-export function rowCells(pattern: boolean[], row: number): boolean[] {
-  return Array.from({ length: NONO_SIZE }, (_, col) => pattern[row * NONO_SIZE + col] === true);
+export function rowCells(pattern: boolean[], row: number, size = NONO_SIZE): boolean[] {
+  return Array.from({ length: size }, (_, col) => pattern[row * size + col] === true);
 }
 
-export function colCells(pattern: boolean[], col: number): boolean[] {
-  return Array.from({ length: NONO_SIZE }, (_, row) => pattern[row * NONO_SIZE + col] === true);
+export function colCells(pattern: boolean[], col: number, size = NONO_SIZE): boolean[] {
+  return Array.from({ length: size }, (_, row) => pattern[row * size + col] === true);
 }
 
-export function cluesFor(pattern: boolean[]): { rows: number[][]; cols: number[][] } {
+export function cluesFor(pattern: boolean[], size = NONO_SIZE): { rows: number[][]; cols: number[][] } {
   return {
-    rows: Array.from({ length: NONO_SIZE }, (_, row) => lineClue(rowCells(pattern, row))),
-    cols: Array.from({ length: NONO_SIZE }, (_, col) => lineClue(colCells(pattern, col))),
+    rows: Array.from({ length: size }, (_, row) => lineClue(rowCells(pattern, row, size))),
+    cols: Array.from({ length: size }, (_, col) => lineClue(colCells(pattern, col, size))),
   };
 }
 
@@ -46,10 +57,10 @@ export function lineSatisfied(clue: number[], cells: boolean[]): boolean {
 }
 
 /** Every arrangement of one line that matches its clue, as boolean rows. */
-export function lineCandidates(clue: number[]): boolean[][] {
+export function lineCandidates(clue: number[], size = NONO_SIZE): boolean[][] {
   const out: boolean[][] = [];
-  for (let mask = 0; mask < 1 << NONO_SIZE; mask++) {
-    const cells = Array.from({ length: NONO_SIZE }, (_, index) => (mask & (1 << index)) !== 0);
+  for (let mask = 0; mask < 1 << size; mask++) {
+    const cells = Array.from({ length: size }, (_, index) => (mask & (1 << index)) !== 0);
     if (sameClue(clue, lineClue(cells))) out.push(cells);
   }
   return out;
@@ -60,7 +71,9 @@ export function lineCandidates(clue: number[]): boolean[][] {
  * clue sets with exactly one, so the player always has a single right answer.
  */
 export function countNonoSolutions(rows: number[][], cols: number[][], cap = 2): number {
-  const candidates = rows.map(lineCandidates);
+  // The side is the clue count (7 before the depth revision, 8 on it).
+  const NONO_SIZE = rows.length;
+  const candidates = rows.map((clue) => lineCandidates(clue, NONO_SIZE));
   let found = 0;
   const grid: boolean[][] = [];
 
@@ -106,11 +119,11 @@ export function encodeNonoCells(marks: NonoMarks): string {
 
 export type NonoMarks = (0 | 1 | 2)[];
 
-export function decodeNonoCells(raw: string): number[] {
+export function decodeNonoCells(raw: string, size = NONO_SIZE): number[] {
   return String(raw ?? "")
     .split(",")
     .map((part) => Number.parseInt(part, 10))
-    .filter((value) => Number.isInteger(value) && value >= 0 && value < NONO_SIZE * NONO_SIZE)
+    .filter((value) => Number.isInteger(value) && value >= 0 && value < size * size)
     .filter((value, index, list) => list.indexOf(value) === index)
     .sort((a, b) => a - b);
 }

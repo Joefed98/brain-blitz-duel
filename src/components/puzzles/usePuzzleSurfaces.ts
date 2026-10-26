@@ -71,7 +71,7 @@ export function applyPuzzleSurfaces(root: HTMLElement, type: string) {
           if (!overlay) continue;
           const values = svg.getAttribute("viewBox")?.split(/\s+/).map(Number);
           const viewWidth = values?.[2] ?? 0;
-          const cols = type === "wordhunt" ? 5 : type === "pipes" ? 1 : 0;
+          const cols = type === "wordhunt" ? (root.querySelectorAll("[data-cell]").length === 36 ? 6 : 5) : type === "pipes" ? 1 : 0;
           const cell = cols ? viewWidth / cols : viewWidth > 0 && viewWidth < 30 ? 1 : Math.min(...cells.map(n => n.getBoundingClientRect().width).filter(w => w > 0));
           if (!Number.isFinite(cell) || cell <= 0) continue;
           const selector = type === "pipes" ? "line" : type === "wordhunt" || type === "trail" ? "polyline, line" : "polyline";

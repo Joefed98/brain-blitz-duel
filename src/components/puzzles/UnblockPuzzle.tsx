@@ -10,6 +10,7 @@ import {
 } from "@/components/puzzles/GridDrag";
 import { UnblockCarArt, UnblockExitFx, UnblockLot } from "@/components/puzzles/pattern/unblockArt";
 import { LiveSummary, SummaryItem, useInFrame } from "@/components/puzzles/batchP/LiveSummary";
+import { parItems } from "@/components/puzzles/depth4/ParMeter";
 import { soundCue, useSolveMoment } from "@/lib/fx/patternFx";
 import { clampSlide, encodeMoves, isSolved, position, type UnblockMove } from "@/lib/duel/unblock";
 import {
@@ -296,7 +297,12 @@ export function UnblockPuzzle({
         </UnblockLot>
       </div>
 
-      <LiveSummary items={[<SummaryItem key="moves" label="Moves" value={moveCount} />]} />
+      {/* unblockRev 1 (depth batch 4): "Moves n · Par p" with the par meter. */}
+      <LiveSummary
+        items={(puzzle.unblockRev ?? 0) >= 1 && (puzzle.par ?? 0) > 0
+          ? parItems("Moves", moveCount, puzzle.par!)
+          : [<SummaryItem key="moves" label="Moves" value={moveCount} />]}
+      />
 
       <div data-game-controls="actions" className="flex gap-2">
         <button

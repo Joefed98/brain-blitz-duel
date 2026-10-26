@@ -12,6 +12,8 @@ import { appendClientCounters, arcadeCounters } from "@/lib/arcade/diagnostics";
 import {
   tenDropCheckpoint,
   tenDropGame,
+  tenDropInit,
+  TEN_DROP_DEPTH_REV,
   tdGreedy,
   tdSegmentOk,
   TD_CHECKPOINT_INTERVAL,
@@ -62,7 +64,9 @@ for (let run = 0; run < RUNS; run++) {
     rng = x.state;
     return x.value;
   };
-  let state = tenDropGame.init(seed);
+  // Every other smart and random run plays the dealt tenRev 4 (gold tiles ride in the start state).
+  const rev = run % 4 >= 2 ? TEN_DROP_DEPTH_REV : undefined;
+  let state = tenDropInit(seed, rev);
   const log: ArcadeInputEvent[] = [];
   const cps: ReturnType<typeof tenDropCheckpoint>[] = [];
   // Half the runs aim at real tiles with a near-greedy policy; half tap at random.
@@ -86,7 +90,7 @@ for (let run = 0; run < RUNS; run++) {
     arcadeCounters("tendrop", state, tenDropGame.score(state)),
   );
   const t0 = performance.now();
-  const res = replayTenDropRun(seed, raw);
+  const res = replayTenDropRun(seed, raw, rev);
   tdTime = Math.max(tdTime, performance.now() - t0);
   tdBest = Math.max(tdBest, res.score);
   if (!same(res.state, state) || res.score !== tenDropGame.score(state) || res.flagged || res.inputDiag.clamped || res.inputDiag.dropped)

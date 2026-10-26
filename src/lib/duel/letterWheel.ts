@@ -102,6 +102,66 @@ export function lwTallyLog(
   return { traces: traces.length, slots: [...filled].sort((a, b) => a - b), misses, neutral };
 }
 
+/**
+ * wheelRev 2 (25 Oct 2026, word depth to 200; docs/depth/d1-word.md): the bonus jar. Real words traced from the
+ * wheel that are not in the crossword (wheelRev 1's free "neutral" traces) fill a jar by length; a full jar adds
+ * 50 to today's score, the only way past 150. The crossword, the log, misses and today's score are unchanged.
+ */
+export const LW_REV_JAR = 2;
+/** The jar's size in drops (smaller only on a board whose bonus words hold fewer). */
+export const LW_JAR_DROPS = 30;
+/** Points a full jar adds. */
+export const LW_JAR_POINTS = 50;
+/** Unfinished rounds stay below every finish (120) with the jar. */
+export const LW_JAR_UNFINISHED_TOP = 119;
+
+export function lwUsesJar(puzzle: unknown): boolean {
+  return ((puzzle as { wheelRev?: number } | null)?.wheelRev ?? 0) >= LW_REV_JAR;
+}
+
+/** Drops one bonus word puts in the jar: 3 letters 1, 4 → 2, 5 → 3, 6+ → 4. */
+export function lwJarDrops(word: string): number {
+  const n = word.length;
+  return n <= 3 ? 1 : n === 4 ? 2 : n === 5 ? 3 : 4;
+}
+
+/** A board whose bonus words hold few drops gets a smaller jar: at most this share of them fills it. */
+export const LW_JAR_REACH = 0.6;
+
+/** The jar's size for a board whose bonus words hold `available` drops in all. */
+export function lwJarSize(available: number): number {
+  return Math.max(1, Math.min(LW_JAR_DROPS, Math.ceil(Math.max(0, available) * LW_JAR_REACH)));
+}
+
+/** Drops left in the jar: each miss after the free ones spills one (so tracing at random never fills it). */
+export function lwJarKept(drops: number, misses: number): number {
+  return Math.max(0, drops - Math.max(0, misses - LW_FREE_MISSES));
+}
+
+/** Points the jar adds: 50 × drops ÷ size, whole points, at most 50. */
+export function lwJarBonus(drops: number, size: number): number {
+  const s = Math.max(1, size);
+  return Math.round((LW_JAR_POINTS * Math.min(Math.max(0, drops), s)) / s);
+}
+
+/**
+ * The jar from a wheelRev 2 attempt log: each distinct trace that can be drawn on the wheel, is a dictionary word
+ * and fills no crossword slot, in log order. A repeat adds nothing.
+ */
+export function lwJarTally(
+  words: readonly string[],
+  letters: string,
+  traces: readonly string[],
+  isDictionaryWord: (word: string) => boolean,
+): { bonus: string[]; drops: number } {
+  const bonus: string[] = [];
+  for (const t of traces) {
+    if (bonus.includes(t) || words.includes(t) || !lwSpellable(letters, t) || !isDictionaryWord(t)) continue;
+    bonus.push(t);
+  }
+  return { bonus, drops: bonus.reduce((sum, w) => sum + lwJarDrops(w), 0) };
+}
+
 /** Misses charged after the free allowance. */
 export function lwMissPenalty(misses: number): number {
   return LW_MISS_COST * Math.max(0, misses - LW_FREE_MISSES);

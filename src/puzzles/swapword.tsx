@@ -5,6 +5,7 @@ import { ArrowLeftRight } from "lucide-react";
 import { gameDisplayName } from "@/lib/duel/gameNames";
 import { useStageState } from "@/lib/duel/stageState";
 import {
+  SWAPWORD_REV_PAR,
   SW_COLS,
   SW_ROWS,
   SW_TILES,
@@ -187,6 +188,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, checkMoves, stateKey }
 
   const maxSwaps = data?.maxSwaps ?? 0;
   const left = Math.max(0, maxSwaps - swaps.length);
+  const parOn = (data?.swapwordRev ?? 0) >= SWAPWORD_REV_PAR;
+  const withinPar = !!data && swaps.length <= data.minSwaps;
 
   useEffect(() => {
     if (submitted.current || locked) return;
@@ -300,6 +303,18 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, checkMoves, stateKey }
           {left}
           <span className="font-mono text-[10px] font-normal uppercase tracking-widest text-muted-foreground">swaps left</span>
         </span>
+        {/* Par swaps (swapwordRev 4): swaps used against the board's fewest; gold while still within par. */}
+        {parOn ? (
+          <span
+            data-par-swaps={withinPar ? "within" : "over"}
+            className={`flex items-center gap-1.5 rounded-full border px-3 py-1 font-display text-sm font-bold tabular-nums ${withinPar ? "border-primary/70 text-primary" : "border-border text-muted-foreground"}`}
+            aria-label={`${swaps.length} swaps used, par ${data?.minSwaps}`}
+          >
+            <span className="inline-block w-[2ch] text-right">{swaps.length}</span>
+            <span className="font-mono text-[10px] font-normal uppercase tracking-widest text-muted-foreground">used · par</span>
+            <span className={withinPar ? "" : "line-through"}>{data?.minSwaps}</span>
+          </span>
+        ) : null}
       </div>
       <div
         data-game-arena="swapword"

@@ -8,7 +8,8 @@ import { gameDisplayName } from "./gameNames";
 import { buildableFrom, commonWords, isWord, wordsFrom } from "./dictionary.server";
 import { pick, shuffled } from "./random";
 import type { Graded } from "./grade";
-import { scoreWordsmith } from "./scoring";
+import { scoreWordsmith, WORDSMITH_REV_DEPTH } from "./scoring";
+import { preDepthPinned } from "./wordDepth";
 import {
   WORDSMITH_CENTRE_INDEX,
   WORDSMITH_SIZES,
@@ -97,7 +98,10 @@ export function generateWordsmith(size: number = pick(WORDSMITH_SIZES)): Wordsmi
 
 /** Preserve the exact seeded nine-letter practice/intro board under its original band. */
 export function generateWordsmithExample(): WordsmithPuzzleData {
-  return generateWithinRange(9, { min: 25, max: 60 });
+  // Word depth (25 Oct 2026): the example board scores as rooms deal Nucleus (wordsmithRev 3, the pangram badge);
+  // its letters are unchanged (wordsmith-variable-check).
+  const made = generateWithinRange(9, { min: 25, max: 60 });
+  return preDepthPinned() ? made : { ...made, wordsmithRev: WORDSMITH_REV_DEPTH };
 }
 
 function generateWithinRange(size: number, range: { readonly min: number; readonly max: number }): WordsmithPuzzleData {

@@ -18,6 +18,7 @@
  * the parent merges them in index order. A seed that exhausts its attempts
  * simply moves on to the next retry, so a build cannot fail at random.
  */
+import { GRAVITY_INTRO_EXAMPLE } from "../src/lib/duel/gravityBank.server";
 import { spawn } from "node:child_process";
 import { createHash } from "node:crypto";
 import { readFileSync, writeFileSync } from "node:fs";
@@ -26,6 +27,7 @@ import { fileURLToPath } from "node:url";
 
 import {
   BANKED_TYPES,
+  RETIRED_BANKS,
   bankEntrySeed,
   bankKey,
   buildBankEntry,
@@ -124,6 +126,9 @@ export interface BuiltBank {
  * under INTRO_EXAMPLE_SEED, minus the speed-par stamp the draw re-adds.
  */
 export function liveIntroExample(type: BankedType): PuzzleData {
+  // A retired bank (RETIRED_BANKS: Topsy-Turvy since gravityRev 3) keeps its stored example frozen: the live
+  // generator now deals the new version.
+  if (type === "gravity" && RETIRED_BANKS.has(type)) return GRAVITY_INTRO_EXAMPLE as PuzzleData;
   const { speedPar: _stamp, ...made } = withSeededRandom(INTRO_EXAMPLE_SEED, () => generatePuzzle(type)) as PuzzleData & { speedPar?: number };
   return made as PuzzleData;
 }

@@ -827,9 +827,9 @@ const tentsKit: PuzzleKit = {
   spam(p, rng) {
     const pz = p as TentsPuzzleData;
     const trees = new Set(pz.trees);
-    const around = [...new Set(pz.trees.flatMap((t) => orthNeighbours(t, pz.size)))].filter((c) => !trees.has(c));
-    const free = [...Array(pz.size * pz.size).keys()].filter((c) => !trees.has(c));
-    const onePerTree = pz.trees.map((t) => rng.pick(orthNeighbours(t, pz.size).filter((c) => !trees.has(c))));
+    const around = [...new Set(pz.trees.flatMap((t) => orthNeighbours(t, pz.size, pz.height ?? pz.size)))].filter((c) => !trees.has(c));
+    const free = [...Array(pz.size * (pz.height ?? pz.size)).keys()].filter((c) => !trees.has(c));
+    const onePerTree = pz.trees.map((t) => rng.pick(orthNeighbours(t, pz.size, pz.height ?? pz.size).filter((c) => !trees.has(c))));
     return [
       { label: "around-every-tree", answer: encodeTents(around) },
       { label: "one-per-tree", answer: encodeTents(onePerTree) },
@@ -841,7 +841,7 @@ const tentsKit: PuzzleKit = {
     const pz = p as TentsPuzzleData;
     const trees = new Set(pz.trees);
     const sol = new Set(pz.solution ?? []);
-    const around = [...new Set(pz.trees.flatMap((t) => orthNeighbours(t, pz.size)))].filter((c) => !trees.has(c) && !sol.has(c));
+    const around = [...new Set(pz.trees.flatMap((t) => orthNeighbours(t, pz.size, pz.height ?? pz.size)))].filter((c) => !trees.has(c) && !sol.has(c));
     return placePlay<number>(
       {
         targets: [...sol].map((c) => [c, 1]),
@@ -876,7 +876,7 @@ function clueRects(pz: ShikakuPuzzleData, clue: { cell: number; n: number }): Sh
     for (let r0 = r - h + 1; r0 <= r; r0++) {
       for (let c0 = c - w + 1; c0 <= c; c0++) {
         const rect = { r0, c0, r1: r0 + h - 1, c1: c0 + w - 1 };
-        if (r0 < 0 || c0 < 0 || rect.r1 >= pz.size || rect.c1 >= pz.size) continue;
+        if (r0 < 0 || c0 < 0 || rect.r1 >= (pz.height ?? pz.size) || rect.c1 >= pz.size) continue;
         if (rectValid(rect, pz.clues, pz.size)) out.push(rect);
       }
     }
@@ -898,8 +898,8 @@ const shikakuKit: PuzzleKit = {
     // Random drags at 1/s between random cells; only the accepted ones stay.
     const drags: ShikakuRect[] = [];
     for (let i = 0; i < spamCount(limitMs, 1); i++) {
-      const a = rng.below(pz.size * pz.size);
-      const b = rng.below(pz.size * pz.size);
+      const a = rng.below(pz.size * (pz.height ?? pz.size));
+      const b = rng.below(pz.size * (pz.height ?? pz.size));
       const rect = {
         r0: Math.min(Math.floor(a / pz.size), Math.floor(b / pz.size)),
         c0: Math.min(a % pz.size, b % pz.size),
@@ -959,14 +959,14 @@ const lightupKit: PuzzleKit = {
   spam(p, rng) {
     const pz = p as LightUpPuzzleData;
     const walls = new Set(pz.walls);
-    const whites = [...Array(pz.size * pz.size).keys()].filter((c) => !walls.has(c));
+    const whites = [...Array(pz.size * (pz.height ?? pz.size)).keys()].filter((c) => !walls.has(c));
     // Tap random dark cells until everything is lit (ignores the numbers).
     const dark: number[] = [];
     const lit = new Set<number>();
     for (const c of rng.shuffle(whites)) {
       if (lit.has(c)) continue;
       dark.push(c);
-      for (const x of sightLine(c, pz.size, walls)) lit.add(x);
+      for (const x of sightLine(c, pz.size, walls, pz.height ?? pz.size)) lit.add(x);
     }
     return [
       { label: "bulbs-everywhere", answer: encodeBulbs(whites) },
@@ -978,7 +978,7 @@ const lightupKit: PuzzleKit = {
     const pz = p as LightUpPuzzleData;
     const walls = new Set(pz.walls);
     const sol = new Set(pz.solution ?? []);
-    const whites = [...Array(pz.size * pz.size).keys()].filter((c) => !walls.has(c) && !sol.has(c));
+    const whites = [...Array(pz.size * (pz.height ?? pz.size)).keys()].filter((c) => !walls.has(c) && !sol.has(c));
     return placePlay<number>(
       {
         targets: [...sol].map((c) => [c, 1]),

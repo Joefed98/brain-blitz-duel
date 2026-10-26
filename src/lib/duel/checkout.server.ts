@@ -5,8 +5,10 @@
  * routes (keeps them learnable); stages 3–5 reject targets that always taking
  * the biggest dart that fits would finish.
  */
+import { numberDepthDealt } from "./numberDepth";
 import {
   CHECKOUT_REV,
+  CHECKOUT_REV_BIG_FINISH,
   CHECKOUT_STANDARD,
   checkoutGreedySolves,
   encodeCheckoutDarts,
@@ -55,11 +57,13 @@ function boardFor(rng: SeededRng, index: number): Omit<CheckoutStageData, "targe
 function buildStage(
   rng: SeededRng,
   index: number,
+  bigFinish = false,
 ): { stage: CheckoutStageData; minDarts: number; route: string } {
   const [lo, hi] = CHECKOUT_TARGETS[index]!;
   for (let attempt = 0; attempt < 400; attempt++) {
     const board = boardFor(rng, index);
-    const stage: CheckoutStageData = { ...board, target: rng.int(lo, hi) };
+    // checkoutRev 2: the board also takes a big finish, in its search, route count and greedy test alike.
+    const stage: CheckoutStageData = { ...board, target: rng.int(lo, hi), ...(bigFinish ? { bigFinish: true } : {}) };
     const found = searchCheckout(stage);
     if (found.minDarts === null || !found.route) continue;
     if (index <= 1 && found.routes < CHECKOUT_MIN_ROUTES) continue;
@@ -71,10 +75,12 @@ function buildStage(
 
 export function generateCheckout(seed: number): CheckoutPuzzleData {
   const rng = seededRng(seed);
-  const built = Array.from({ length: 5 }, (_, index) => buildStage(rng, index));
+  // depthRev 1 (numberDepth.ts) deals checkoutRev 2's big finish; a check pinned before it gets rev 1's boards.
+  const bigFinish = numberDepthDealt();
+  const built = Array.from({ length: 5 }, (_, index) => buildStage(rng, index, bigFinish));
   return {
     type: "checkout",
-    checkoutRev: CHECKOUT_REV,
+    checkoutRev: bigFinish ? CHECKOUT_REV_BIG_FINISH : CHECKOUT_REV,
     stages: built.map((b) => b.stage),
     minDarts: built.map((b) => b.minDarts),
     routes: built.map((b) => b.route),

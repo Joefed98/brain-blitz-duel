@@ -13,8 +13,9 @@ import {
   rectsOverlap,
   rectValid,
   shikakuCovered,
+  shikakuHeightOf,
   shikakuSolved,
-  SHIKAKU_CELLS,
+  SHIKAKU_DEPTH_HEIGHT,
   SHIKAKU_SIZE,
   type ShikakuClue,
   type ShikakuRect,
@@ -109,12 +110,12 @@ function Board({
 }
 
 function IntroExample() {
-  // The real board size, shown with one valid rectangle per row.
-  const clues = Array.from({ length: SHIKAKU_SIZE }, (_, row) => ({ cell: row * SHIKAKU_SIZE + (row % 2 ? 2 : 6), n: SHIKAKU_SIZE }));
-  const rects = Array.from({ length: SHIKAKU_SIZE }, (_, row) => ({ r0: row, c0: 0, r1: row, c1: SHIKAKU_SIZE - 1 }));
+  // The real board size (10 × 11 since the depth revision), shown with one valid rectangle per row.
+  const clues = Array.from({ length: SHIKAKU_DEPTH_HEIGHT }, (_, row) => ({ cell: row * SHIKAKU_SIZE + (row % 2 ? 2 : 6), n: SHIKAKU_SIZE }));
+  const rects = Array.from({ length: SHIKAKU_DEPTH_HEIGHT }, (_, row) => ({ r0: row, c0: 0, r1: row, c1: SHIKAKU_SIZE - 1 }));
   return (
-    <div style={{ width: 180 }}>
-      <Board size={SHIKAKU_SIZE} clues={clues} rects={rects} small />
+    <div style={{ width: 164 }}>
+      <Board size={SHIKAKU_SIZE} rows={SHIKAKU_DEPTH_HEIGHT} clues={clues} rects={rects} small />
     </div>
   );
 }
@@ -122,6 +123,8 @@ function IntroExample() {
 function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStageProps) {
   const data: ShikakuPuzzleData | null = puzzle.type === "shikaku" ? puzzle : null;
   const size = data?.size ?? SHIKAKU_SIZE;
+  // 10 rows before the depth revision, 11 on it.
+  const height = data ? shikakuHeightOf(data) : size;
   const clues = data?.clues ?? [];
   const [rects, setRects] = useStageState<ShikakuRect[]>(stateKey ?? "shikaku", "shikakuRects", () => []);
   const [preview, setPreview] = useState<ShikakuRect | null>(null);
@@ -130,15 +133,15 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
   const last = useRef<number | null>(null);
   const submitted = useRef(false);
   const encoded = encodeShikaku(rects);
-  const solving = useSolveFx("shikaku", Boolean(data && shikakuSolved(rects, clues, size)));
-  const inFrame = useFrameProgress(shikakuCovered(rects, clues, size), size * size, "covered");
+  const solving = useSolveFx("shikaku", Boolean(data && shikakuSolved(rects, clues, size, height)));
+  const inFrame = useFrameProgress(shikakuCovered(rects, clues, size), size * height, "covered");
 
   useEffect(() => {
     onDraftAnswer?.(encoded);
   }, [encoded, onDraftAnswer]);
 
   useEffect(() => {
-    if (!data || locked || submitted.current || !shikakuSolved(rects, clues, size)) return;
+    if (!data || locked || submitted.current || !shikakuSolved(rects, clues, size, height)) return;
     submitted.current = true;
     playCorrect();
     onSubmit(encoded);
@@ -148,7 +151,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
   const active = !locked && data !== null;
   const pointer = useGridPointer({
     cols: size,
-    rows: size,
+    rows: height,
     onCell: active
       ? (cell) => {
           if (submitted.current) return;
@@ -184,7 +187,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
   });
 
   if (!data) return null;
-  const uncovered = size * size - shikakuCovered(rects, clues, size);
+  const uncovered = size * height - shikakuCovered(rects, clues, size);
 
   return (
     <div data-logic-stage="shikaku" data-logic-solved={solving ? "" : undefined} data-stage-column="2" className="relative flex min-h-0 flex-1 flex-col gap-2">
@@ -195,8 +198,12 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
             uncovered <span className="text-primary">{uncovered}</span>
           </p>
         )}
-        <div key={shake} className={`logic-square logic-glass-frame ${shake ? "animate-shake" : ""}`}>
-          <Board size={size} clues={clues} rects={rects} preview={preview} pointer={pointer} />
+        <div
+          key={shake}
+          className={`${height === size ? "logic-square" : "logic-board-tall"} logic-glass-frame ${shake ? "animate-shake" : ""}`}
+          style={height === size ? undefined : ({ "--board-aspect": height / size } as CSSProperties)}
+        >
+          <Board size={size} rows={height} clues={clues} rects={rects} preview={preview} pointer={pointer} />
         </div>
         <LiveSummary
           inArena
@@ -212,7 +219,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
 
 function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProps) {
   if (puzzle.type !== "shikaku") return null;
-  const mine = acceptedRects(decodeShikaku(myAnswer ?? "", puzzle.size), puzzle.clues, puzzle.size);
+  const height = shikakuHeightOf(puzzle);
+  const mine = acceptedRects(decodeShikaku(myAnswer ?? "", puzzle.size, height), puzzle.clues, puzzle.size);
   const covered = mine.reduce((sum, r) => sum + (r.r1 - r.r0 + 1) * (r.c1 - r.c0 + 1), 0);
   const elapsed = Math.max(0, timeLimitMs - (myMsRemaining ?? 0));
   return (
@@ -221,16 +229,16 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: Puz
         <div className="logic-pair">
           <div className="flex min-w-0 flex-1 flex-col items-center gap-1">
             <span className="text-xs uppercase tracking-widest text-muted-foreground">Solution</span>
-            <Board size={puzzle.size} clues={puzzle.clues} rects={puzzle.solution ?? []} small />
+            <Board size={puzzle.size} rows={height} clues={puzzle.clues} rects={puzzle.solution ?? []} small />
           </div>
           <div className="flex min-w-0 flex-1 flex-col items-center gap-1">
             <span className="text-xs uppercase tracking-widest text-muted-foreground">Yours</span>
-            <Board size={puzzle.size} clues={puzzle.clues} rects={mine} small />
+            <Board size={puzzle.size} rows={height} clues={puzzle.clues} rects={mine} small />
           </div>
         </div>
       </div>
       <p className="logic-reveal-text text-center font-mono text-primary">
-        {myCorrect ? `Solved · ${(elapsed / 1000).toFixed(1)}s` : (solutionProgress(puzzle, myAnswer ?? "")?.text ?? `${covered} / ${SHIKAKU_CELLS} covered`)}
+        {myCorrect ? `Solved · ${(elapsed / 1000).toFixed(1)}s` : (solutionProgress(puzzle, myAnswer ?? "")?.text ?? `${covered} / ${puzzle.size * height} covered`)}
       </p>
     </div>
   );
@@ -244,7 +252,7 @@ export const shikakuPuzzle: PuzzleDefinition = {
   revealMs: 8_000,
   generate: () => ({ type: "shikaku", size: SHIKAKU_SIZE, clues: [] }) satisfies ShikakuPuzzleData,
   check: (answer, puzzle) =>
-    puzzle.type === "shikaku" && shikakuSolved(decodeShikaku(answer, puzzle.size), puzzle.clues, puzzle.size),
+    puzzle.type === "shikaku" && shikakuSolved(decodeShikaku(answer, puzzle.size, shikakuHeightOf(puzzle)), puzzle.clues, puzzle.size, shikakuHeightOf(puzzle)),
   revealHeading: "The solution",
   IntroExample,
   Stage,

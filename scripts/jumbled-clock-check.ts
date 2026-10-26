@@ -2,7 +2,9 @@
  * Jumbled tilesRev 2 (20 Oct 2026, Joe's ruling; docs/scoring-targets.md): the extra-cell board on a 90 s clock,
  * stored on the puzzle (`timeLimitMs`), scoring on its own knots row (`tiles:2`).
  *
- *   1. Rooms deal tilesRev 2 with a 90 s clock; the round's clock, the knots and the phone's own time-out read it.
+ *   1. Rooms dealt tilesRev 2 with a 90 s clock (until the D5 remodel, tilesRev 3, 25 Oct 2026: the room puzzles here are
+ *      the old deal, pinned by scripts/puzzle-fairness/run.ts; d5-remodels-check proves tilesRev 3); the round's clock,
+ *      the knots and the phone's own time-out read it.
  *   2. Older stamps grade exactly as before: the scoring-bands fixture's Jumbled rows (recorded on tilesRev 1, 60 s)
  *      on their stamp; unstamped boards keep the classic frame and 60 s.
  *   3. Runs recorded on tilesRev 2 (scripts/fixtures/jumbled-clock-runs.json.gz: the kits at four levels, every spam

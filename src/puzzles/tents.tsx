@@ -6,6 +6,7 @@ import {
   decodeTents,
   encodeTents,
   lineCounts,
+  tentsHeightOf,
   tentsLayoutValid,
   tentsTouch,
 } from "@/lib/duel/tents";
@@ -71,6 +72,7 @@ type Mark = 0 | 1 | 2;
 
 function Board({
   size,
+  height = size,
   trees,
   rowCounts,
   colCounts,
@@ -84,6 +86,8 @@ function Board({
   dimDone = true,
 }: {
   size: number;
+  /** Rows (the depth revision's 8 × 9 field); `size` when square. */
+  height?: number;
   trees: readonly number[];
   rowCounts: readonly number[];
   colCounts: readonly number[];
@@ -100,7 +104,7 @@ function Board({
 }) {
   const treeSet = new Set(trees);
   const tents = marks.flatMap((mark, cell) => (mark === 1 ? [cell] : []));
-  const { rows, cols } = lineCounts(tents, size);
+  const { rows, cols } = lineCounts(tents, size, height);
   return (
     <div
       className="logic-camp grid w-full"
@@ -120,7 +124,7 @@ function Board({
           {count < 0 ? "?" : count}
         </span>
       ))}
-      {Array.from({ length: size }, (_, r) => [
+      {Array.from({ length: height }, (_, r) => [
         <span
           key={`r${r}`}
           className={`camp-sign logic-sign my-[12%] flex items-center justify-center font-mono text-sm font-bold ${
@@ -180,8 +184,9 @@ function IntroExample() {
 function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStageProps) {
   const data: TentsPuzzleData | null = puzzle.type === "tents" ? puzzle : null;
   const size = data?.size ?? 7;
+  const height = data ? tentsHeightOf(data) : size;
   const [marks, setMarks] = useStageState<Mark[]>(stateKey ?? "tents", "tentsMarks", () =>
-    new Array(size * size).fill(0),
+    new Array(size * height).fill(0),
   );
   const [flash, setFlash] = useState<number | null>(null);
   const [pitched, setPitched] = useState<number | null>(null);
@@ -229,9 +234,10 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
             tents <span className="text-primary">{tents.length}</span> / {data.trees.length}
           </p>
         )}
-        <div className="logic-tents-fit logic-camp-frame">
+        <div className="logic-tents-fit logic-camp-frame" style={{ "--board-aspect": height / size } as CSSProperties}>
           <Board
             size={size}
+            height={height}
             trees={data.trees}
             rowCounts={data.rowCounts}
             colCounts={data.colCounts}
@@ -255,10 +261,11 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
 
 function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProps) {
   if (puzzle.type !== "tents") return null;
-  const cells = puzzle.size * puzzle.size;
+  const height = tentsHeightOf(puzzle);
+  const cells = puzzle.size * height;
   const solution = new Set(puzzle.solution ?? []);
   const treeSet = new Set(puzzle.trees);
-  const mine = decodeTents(myAnswer ?? "", puzzle.size).filter((cell) => !treeSet.has(cell));
+  const mine = decodeTents(myAnswer ?? "", puzzle.size, height).filter((cell) => !treeSet.has(cell));
   const solvedMarks = Array.from({ length: cells }, (_, cell) =>
     solution.has(cell) ? 1 : 0,
   ) as Mark[];
@@ -276,6 +283,7 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: Puz
             <span className="text-xs uppercase tracking-widest text-muted-foreground">Solution</span>
             <Board
               size={puzzle.size}
+              height={height}
               trees={puzzle.trees}
               rowCounts={puzzle.rowCounts}
               colCounts={puzzle.colCounts}
@@ -289,6 +297,7 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: Puz
             <span className="text-xs uppercase tracking-widest text-muted-foreground">Yours</span>
             <Board
               size={puzzle.size}
+              height={height}
               trees={puzzle.trees}
               rowCounts={puzzle.rowCounts}
               colCounts={puzzle.colCounts}
@@ -325,7 +334,7 @@ export const tentsPuzzle: PuzzleDefinition = {
       colCounts: new Array(8).fill(0),
     }) satisfies TentsPuzzleData,
   check: (answer, puzzle) =>
-    puzzle.type === "tents" && tentsLayoutValid(puzzle, decodeTents(answer, puzzle.size)),
+    puzzle.type === "tents" && tentsLayoutValid(puzzle, decodeTents(answer, puzzle.size, tentsHeightOf(puzzle))),
   revealHeading: "The solution",
   IntroExample,
   Stage,

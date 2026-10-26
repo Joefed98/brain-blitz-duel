@@ -1,7 +1,9 @@
 import { pipelineDepths } from "@/components/puzzles/pipelineFlow";
 import { PIPE_ARMS, PipeArt, PipeDefs, PipeSurge } from "@/components/puzzles/pattern/pipesArt";
 import { soundCue, useSolveMoment } from "@/lib/fx/patternFx";
-import { useFrameProgress } from "@/components/puzzles/batchP/LiveSummary";
+import { LiveSummary, useFrameProgress } from "@/components/puzzles/batchP/LiveSummary";
+import { parItems } from "@/components/puzzles/depth4/ParMeter";
+import { decodePipesTaps, encodePipesTapAnswer, pipesAfterTaps } from "@/lib/duel/depth4/pipesTaps";
 import { rightMoveFlash } from "@/lib/fx/gameToolkit";
 import { gameDisplayName } from "@/lib/duel/gameNames";
 import { playCorrect } from "@/lib/sound";
@@ -203,6 +205,10 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "pipes" }: 
   const [sides, setSides] = useStageState<number[]>(stateKey, "pipeSides", () =>
     startTiles.map((tile) => tileOpenings(tile)),
   );
+  // pipesRev 1 (depth batch 4): every tap is logged (the server takes the board from the taps) for par turns.
+  const parTurns = puzzle.type === "pipes" && (puzzle.pipesRev ?? 0) >= 1 ? (puzzle.par ?? 0) : 0;
+  const tapLog = puzzle.type === "pipes" && (puzzle.pipesRev ?? 0) >= 1;
+  const [taps, setTaps] = useStageState<number[]>(stateKey, "pipeTaps", () => []);
   const submitted = useRef(false);
 
   const tiles = useMemo<PipeTile[]>(
@@ -226,16 +232,17 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "pipes" }: 
     wetCount.current = state.connected.size;
   }, [state.connected.size, state.solved]);
 
+  const answer = tapLog ? encodePipesTapAnswer(tiles, taps) : encodeSides(tiles);
   useEffect(() => {
-    onDraftAnswer?.(encodeSides(tiles));
-  }, [tiles, onDraftAnswer]);
+    onDraftAnswer?.(answer);
+  }, [answer, onDraftAnswer]);
 
   useEffect(() => {
     if (locked || submitted.current || !state.solved || !tiles.length) return;
     submitted.current = true;
     playCorrect();
-    onSubmit(encodeSides(tiles));
-  }, [state.solved, tiles, locked, onSubmit]);
+    onSubmit(answer);
+  }, [state.solved, tiles, locked, onSubmit, answer]);
 
   /** A tap turns only the tapped tile, one quarter turn clockwise (stable, so the memoised board keeps its tiles). */
   const lockedRef = useRef(locked);
@@ -248,8 +255,9 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "pipes" }: 
       setSides((current) =>
         current.map((value, index) => (index === cell ? rotateMask(value, 1) : value)),
       );
+      if (tapLog) setTaps((current) => [...current, cell]);
     },
-    [setSides],
+    [setSides, setTaps, tapLog],
   );
 
   if (puzzle.type !== "pipes") return null;
@@ -272,6 +280,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "pipes" }: 
         />
         </div>
       </div>
+      {parTurns > 0 ? <LiveSummary items={parItems("Turns", taps.length, parTurns)} /> : null}
     </div>
   );
 }
@@ -283,7 +292,10 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: Puz
     const solved: PipeTile[] = puzzle.tiles.map((tile, index) => ({
       sides: puzzle.solution?.[index] ?? tileOpenings(tile),
     }));
-    const mine = decodeSides(puzzle.tiles, myAnswer ?? encodeSides(puzzle.tiles));
+    // pipesRev 1: the board is the tap log's, as the server graded it.
+    const mine = (puzzle.pipesRev ?? 0) >= 1
+      ? pipesAfterTaps(puzzle.tiles, decodePipesTaps(myAnswer ?? "", puzzle.tiles.length))
+      : decodeSides(puzzle.tiles, myAnswer ?? encodeSides(puzzle.tiles));
     return { solved, all: new Set(solved.map((_, index) => index)), mine, mineState: pipesState(mine, puzzle.source) };
   }, [puzzle, myAnswer]);
   if (puzzle.type !== "pipes" || !boards) return null;

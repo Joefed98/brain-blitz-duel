@@ -5,6 +5,7 @@
 
 import {
   NONO_PICTOGRAMS,
+  generateLegacyNonogram,
   generateNonogram,
   nonoUsablePictograms,
 } from "../src/lib/duel/nonogram.server";
@@ -13,6 +14,9 @@ import {
   countNonoSolutions,
   replayNonogram,
   encodeNonoCells,
+  NONO_DEPTH_MAX_FILLED,
+  NONO_DEPTH_MIN_FILLED,
+  NONO_DEPTH_SIZE,
 } from "../src/lib/duel/nonogram";
 import { generatePairMatch, pairCombinations } from "../src/lib/duel/pairmatch.server";
 import { replayPairs } from "../src/lib/duel/pairmatch";
@@ -46,13 +50,18 @@ check(
 );
 check("nonogram bank has usable pictograms", nonoUsablePictograms().length >= 10);
 
-for (let round = 0; round < ROUNDS; round++) {
-  const puzzle = generateNonogram();
+// Rooms deal the depth revision's 8 × 8 pictures (depthRev 1, 25 Oct 2026); the 7 × 7 generator is kept for stored-round
+// comparisons and is proved the same way.
+for (let round = 0; round < ROUNDS * 2; round++) {
+  const legacy = round >= ROUNDS;
+  const puzzle = legacy ? generateLegacyNonogram() : generateNonogram();
+  const size = legacy ? NONO_SIZE : NONO_DEPTH_SIZE;
+  const [minFilled, maxFilled] = legacy ? [NONO_MIN_FILLED, NONO_MAX_FILLED] : [NONO_DEPTH_MIN_FILLED, NONO_DEPTH_MAX_FILLED];
   const pattern = puzzle.pattern ?? [];
   const filled = pattern.filter(Boolean).length;
-  const clues = cluesFor(pattern);
-  check("nonogram picture is stored", pattern.length === NONO_SIZE * NONO_SIZE);
-  check("nonogram filled count in band", filled >= NONO_MIN_FILLED && filled <= NONO_MAX_FILLED);
+  const clues = cluesFor(pattern, size);
+  check("nonogram picture is stored", pattern.length === size * size);
+  check("nonogram filled count in band", filled >= minFilled && filled <= maxFilled);
   check(
     "nonogram every row is used",
     clues.rows.every((clue) => clue.length > 0),

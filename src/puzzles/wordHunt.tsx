@@ -1,15 +1,21 @@
 import { gameDisplayName } from "@/lib/duel/gameNames";
-import { roundMaxFor } from "@/lib/duel/roundMax";
 import { WordHuntBoard, WordHuntPuzzle } from "@/components/puzzles/WordHuntPuzzle";
 import { WORDHUNT_TIME_MS, wordHuntPoints, type WordHuntPuzzleData } from "@/lib/duel/types";
+import { wordHuntDepth, wordHuntLongHalves } from "@/lib/duel/wordHunt";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
-/** Fixed intro example — never randomised. */
-const EXAMPLE_GRID = "TAPLENSROIEMCKUGBEAHWYTRS".split("");
-/** P → A → N → E, through touching letters. */
-const EXAMPLE_PATH = [2, 1, 5, 10];
-const EXAMPLE_FOUND = ["PLANE", "SNARE", "TIDE"];
+/** Fixed intro example — never randomised: a 6×6 board (wordHuntRev 3) with its golden tile on the A. */
+const EXAMPLE_GRID = "TAPLEDNSROINEMCKUGGBEAHTWYTRSOLINESA".split("");
+/** P → A → N → E, through touching letters and the golden A. */
+const EXAMPLE_PATH = [2, 1, 6, 12];
+const EXAMPLE_GOLDEN = 1;
+/** Example words with their points: through the golden tile ×2, 7+ letters ×2. */
+const EXAMPLE_FOUND: { word: string; mark: string; points: number }[] = [
+  { word: "PANE", mark: "★", points: 2 },
+  { word: "SNARE", mark: "", points: 2 },
+  { word: "PLANETS", mark: "×2", points: 14 },
+];
 /** Words listed on the reveal before the rest are summed up. */
 const REVEAL_WORDS = 30;
 
@@ -20,20 +26,20 @@ function IntroExample() {
         Drag through touching letters to make words. Four letters or more.
       </p>
       <div className="flex items-center gap-4">
-        <WordHuntBoard grid={EXAMPLE_GRID} path={EXAMPLE_PATH} size={150} />
+        <WordHuntBoard grid={EXAMPLE_GRID} path={EXAMPLE_PATH} size={150} golden={EXAMPLE_GOLDEN} />
         <ul className="flex flex-col gap-1">
-          {EXAMPLE_FOUND.map((word) => (
+          {EXAMPLE_FOUND.map((entry) => (
             <li
-              key={word}
+              key={entry.word}
               className="flex items-center gap-3 font-mono text-xs uppercase tracking-widest"
             >
-              <span>{word}</span>
-              <span className="text-primary">{wordHuntPoints(word)}</span>
+              <span>{entry.word}{entry.mark ? ` ${entry.mark}` : ""}</span>
+              <span className="text-primary">{entry.points}</span>
             </li>
           ))}
         </ul>
       </div>
-      <p className="text-xs text-muted-foreground">Word points × 2 = round score (max {roundMaxFor("wordhunt")}). Plurals count. You have 100 seconds.</p>
+      <p className="text-xs text-muted-foreground">6+ letters and the gold tile multiply a word. Plurals count. You have 100 seconds.</p>
     </div>
   );
 }
@@ -54,8 +60,12 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, c
   );
 }
 
-function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
+function Reveal({ puzzle, myAnswer, myExtra }: PuzzleRevealProps) {
   if (puzzle.type !== "wordhunt") return null;
+  // wordHuntRev 3: each word's points with its long-word and golden multipliers (golden words from the stored grade).
+  const depth = wordHuntDepth(puzzle);
+  const goldWords = new Set(Array.isArray(myExtra?.["goldWords"]) ? (myExtra["goldWords"] as unknown[]).map(String) : []);
+  const wordValue = (word: string) => (depth ? (wordHuntPoints(word) * wordHuntLongHalves(word.length) * (goldWords.has(word) ? 2 : 1)) / 2 : wordHuntPoints(word));
   const mine = (myAnswer ?? "")
     .split(",")
     .map((word) => word.trim().toUpperCase())
@@ -64,7 +74,7 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
 
   // Compact columns (14 px text) so a strong run fits one 375×667 screen; past
   // 30 words the shortest are summed up in a "+N more" line.
-  const shown = [...mine].sort((a, b) => wordHuntPoints(b) - wordHuntPoints(a) || b.length - a.length).slice(0, REVEAL_WORDS);
+  const shown = [...mine].sort((a, b) => wordValue(b) - wordValue(a) || b.length - a.length).slice(0, REVEAL_WORDS);
   const more = mine.length - shown.length;
   return (
     <div data-word-reveal="wordhunt" className="flex w-full flex-col items-center gap-3">
@@ -74,8 +84,8 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
         <ul className="word-reveal-list w-full">
           {shown.map((word) => (
             <li key={word}>
-              <span>{word}</span>
-              <span className="text-primary">{wordHuntPoints(word)}</span>
+              <span>{goldWords.has(word) ? `${word} ★` : word}</span>
+              <span className="text-primary">{wordValue(word)}</span>
             </li>
           ))}
         </ul>

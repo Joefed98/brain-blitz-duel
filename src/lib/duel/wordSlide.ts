@@ -4,11 +4,26 @@
  * Undo and "X" is Reset. Undo and Reset never reduce the move count.
  */
 
+import type { ParBonusCurve } from "./parBonus";
+
 export const WS_SIZE = 5;
 export const WS_MARKED_ROWS = [0, 1, 2, 3, 4] as const;
 export const WS_TIME_MS = 100_000;
 export const WS_REVEAL_MS = 6_000;
 export const WS_SHIFT_MS = 120;
+
+/**
+ * Par moves (25 Oct 2026, word depth d1; parBonus.ts): `wordSlideRev 1` puzzles score up to 200, the extra 50 only
+ * for a finish in at most `par` moves (the stored scramble's shift count; Undo and Reset count as moves).
+ */
+export const WORD_SLIDE_REV_PAR = 1;
+export const SLIDE_PAR_BONUS: ParBonusCurve = { base: 6, fast: 0.75, elite: 0.95, power: 6 };
+
+/** The puzzle's par-moves stamp (0 = before par moves). */
+export function wordSlideRevOf(puzzle: { wordSlideRev?: number } | null | undefined): number {
+  const rev = puzzle?.wordSlideRev;
+  return typeof rev === "number" && Number.isFinite(rev) ? rev : 0;
+}
 
 export interface SlideShift {
   axis: "r" | "c";

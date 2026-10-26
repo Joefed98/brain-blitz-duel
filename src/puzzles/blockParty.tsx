@@ -1,8 +1,8 @@
 import { gameDisplayName } from "@/lib/duel/gameNames";
 import { solutionProgress } from "@/lib/duel/progressFigures";
 import { BlockBoard, BlockPartyPuzzle } from "@/components/puzzles/BlockPartyPuzzle";
-import { decodePlacements } from "@/lib/duel/blockParty";
-import { BLOCK_FREE_CELLS, BLOCK_TIME_MS, type BlockPartyPuzzleData } from "@/lib/duel/types";
+import { blockGeometry, decodePlacements } from "@/lib/duel/blockParty";
+import { BLOCK_TIME_MS, type BlockPartyPuzzleData } from "@/lib/duel/types";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
@@ -18,7 +18,7 @@ function IntroExample() {
   return (
     <div className="flex flex-col items-center gap-4">
       <p className="text-sm text-muted-foreground">
-        Fit all nine pieces around the pegs. Tap to rotate.
+        Fit every piece around the pegs. Tap to rotate.
       </p>
       <BlockBoard blockers={EXAMPLE_BLOCKERS} placements={EXAMPLE_PLACED} size={150} />
       <p className="text-xs text-muted-foreground">
@@ -45,6 +45,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer }:
 function Reveal({ puzzle, myAnswer, myCorrect }: PuzzleRevealProps) {
   if (puzzle.type !== "blockparty") return null;
   const mine = decodePlacements(myAnswer ?? "");
+  const geo = blockGeometry(puzzle);
   const covered = mine.reduce((sum, entry) => sum + entry.cells.length, 0);
 
   return (
@@ -53,7 +54,7 @@ function Reveal({ puzzle, myAnswer, myCorrect }: PuzzleRevealProps) {
         <div className="bp-reveal-pair">
           <div className="flex flex-col items-center gap-1">
             <div className="bp-reveal-board">
-              <BlockBoard blockers={puzzle.blockers} placements={puzzle.solution ?? []} />
+              <BlockBoard blockers={puzzle.blockers} placements={puzzle.solution ?? []} cols={geo.cols} />
             </div>
             <span className="font-mono text-base uppercase tracking-widest text-muted-foreground">
               one solution
@@ -61,7 +62,7 @@ function Reveal({ puzzle, myAnswer, myCorrect }: PuzzleRevealProps) {
           </div>
           <div className="flex flex-col items-center gap-1">
             <div className="bp-reveal-board">
-              <BlockBoard blockers={puzzle.blockers} placements={mine} />
+              <BlockBoard blockers={puzzle.blockers} placements={mine} cols={geo.cols} />
             </div>
             <span className="font-mono text-base uppercase tracking-widest text-muted-foreground">
               your board
@@ -73,7 +74,7 @@ function Reveal({ puzzle, myAnswer, myCorrect }: PuzzleRevealProps) {
         {myCorrect ? (
           <span className="text-primary">Solved</span>
         ) : (
-          (solutionProgress(puzzle, myAnswer ?? "")?.text ?? `${covered} / ${BLOCK_FREE_CELLS} covered`)
+          (solutionProgress(puzzle, myAnswer ?? "")?.text ?? `${covered} / ${geo.free} covered`)
         )}
       </p>
     </div>

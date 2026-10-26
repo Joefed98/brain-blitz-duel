@@ -163,16 +163,29 @@ export interface BubState extends BandFields {
   drilled?: number;
   /** bubbleRev 5 only (taller worlds batch 2): the tank's height in px (BUB_TALL_H). Absent = BUB_WORLD_H. */
   worldH?: number;
+  /**
+   * bubbleRev 8 only (absent otherwise): the deeper reef's mark, treasure chests dropped, bank shots (a shot
+   * off a wall that removed bubbles), combo shots (each back-to-back removing shot after the first), the pop
+   * streak now and at best, the shot in flight's wall bounces, and the removed count when it was fired.
+   */
+  reef?: number;
+  chests?: number;
+  banks?: number;
+  combos?: number;
+  streak?: number;
+  bestStreak?: number;
+  bounce?: number;
+  shotBase?: number;
 }
 
 function cellIndex(row: number, col: number): number {
   return row * BUB_COLS + col;
 }
 
-function init(seed: number): BubState {
+function init(seed: number, startRows = BUB_START_ROWS, maxRows = BUB_MAX_ROWS): BubState {
   let rng = seed | 0;
-  const grid = new Array<number>(BUB_MAX_ROWS * BUB_COLS).fill(0);
-  for (let row = 0; row < BUB_START_ROWS; row++) {
+  const grid = new Array<number>(maxRows * BUB_COLS).fill(0);
+  for (let row = 0; row < startRows; row++) {
     for (let col = 0; col < bubRowCols(row); col++) {
       const draw = rngBelow(rng, BUB_COLOUR_COUNT);
       rng = draw.state;
@@ -220,8 +233,9 @@ function init(seed: number): BubState {
  * in each block of BUB_V3_JOKER_BLOCK shots and a single mine or torpedo (its
  * kind drawn too) in the first BUB_SPECIAL_BLOCK shots.
  */
-function initRev2(seed: number, v3 = false): BubState {
-  const base = init(seed);
+function initRev2(seed: number, v3 = false, reef = false): BubState {
+  // bubbleRev 8: the deeper reef starts with BUB_V8_START_ROWS rows in a BUB_V8_ROWS-row field.
+  const base = reef ? init(seed, BUB_V8_START_ROWS, BUB_V8_ROWS) : init(seed);
   let rng = base.rng;
   const queue = [...base.queue];
   const used = new Set<number>();
@@ -267,14 +281,14 @@ function initRev2(seed: number, v3 = false): BubState {
 }
 
 /** Cells within `radius` hex steps of a cell, the cell included. */
-function hexArea(start: number, radius: number): number[] {
+function hexArea(start: number, radius: number, rows = BUB_MAX_ROWS): number[] {
   const seen = new Set<number>([start]);
   let frontier = [start];
   for (let ring = 0; ring < radius; ring++) {
     const next: number[] = [];
     for (const index of frontier) {
       for (const [nr, nc] of neighbours(Math.floor(index / BUB_COLS), index % BUB_COLS)) {
-        if (!inGrid(nr, nc)) continue;
+        if (!inGrid(nr, nc, rows)) continue;
         const cell = cellIndex(nr, nc);
         if (seen.has(cell)) continue;
         seen.add(cell);
@@ -294,7 +308,7 @@ function hexArea(start: number, radius: number): number[] {
 function resolveSpecial(grid: number[], landed: number, kind: number): { cleared: number[]; keep: number } {
   const row = Math.floor(landed / BUB_COLS);
   if (kind === BUB_BOMB) {
-    return { cleared: hexArea(landed, BUB_BOMB_RADIUS).filter((i) => i !== landed && grid[i]! > 0), keep: 0 };
+    return { cleared: hexArea(landed, BUB_BOMB_RADIUS, bubRowsOf(grid)).filter((i) => i !== landed && grid[i]! > 0), keep: 0 };
   }
   if (kind === BUB_LINE) {
     const cleared: number[] = [];
@@ -307,7 +321,7 @@ function resolveSpecial(grid: number[], landed: number, kind: number): { cleared
   // Joker: try every colour it touches, in colour order.
   const touching = new Set<number>();
   for (const [nr, nc] of neighbours(row, landed % BUB_COLS)) {
-    if (!inGrid(nr, nc)) continue;
+    if (!inGrid(nr, nc, bubRowsOf(grid))) continue;
     const v = grid[cellIndex(nr, nc)]!;
     if (v > 0 && v <= BUB_COLOUR_COUNT) touching.add(v);
   }
@@ -370,8 +384,13 @@ function neighbours(row: number, col: number): Array<[number, number]> {
   return [[row, col - 1], [row, col + 1], ...up, ...down];
 }
 
-function inGrid(row: number, col: number): boolean {
-  return row >= 0 && row < BUB_MAX_ROWS && col >= 0 && col < bubRowCols(row);
+function inGrid(row: number, col: number, rows = BUB_MAX_ROWS): boolean {
+  return row >= 0 && row < rows && col >= 0 && col < bubRowCols(row);
+}
+
+/** Rows a field holds (BUB_MAX_ROWS on every revision before bubbleRev 8's deeper reef). */
+export function bubRowsOf(grid: readonly number[]): number {
+  return (grid.length / BUB_COLS) | 0;
 }
 
 /** The free cell nearest the ball that touches the ceiling or another bubble. */
@@ -383,13 +402,14 @@ function landingCell(
 ): number | null {
   let best: number | null = null;
   let bestDistance = Number.MAX_SAFE_INTEGER;
-  for (let row = 0; row < BUB_MAX_ROWS; row++) {
+  const rows = bubRowsOf(grid);
+  for (let row = 0; row < rows; row++) {
     for (let col = 0; col < bubRowCols(row); col++) {
       const index = cellIndex(row, col);
       if (grid[index]) continue;
       const supported =
         row === 0 ||
-        neighbours(row, col).some(([nr, nc]) => inGrid(nr, nc) && grid[cellIndex(nr, nc)]! > 0);
+        neighbours(row, col).some(([nr, nc]) => inGrid(nr, nc, rows) && grid[cellIndex(nr, nc)]! > 0);
       if (!supported) continue;
       const dx = bubCellX(row, col) - xPx;
       const dy = bubCellY(row, descents) - yPx;
@@ -415,7 +435,7 @@ function colourGroup(grid: readonly number[], start: number): number[] {
     const row = Math.floor(index / BUB_COLS);
     const col = index % BUB_COLS;
     for (const [nr, nc] of neighbours(row, col)) {
-      if (!inGrid(nr, nc)) continue;
+      if (!inGrid(nr, nc, bubRowsOf(grid))) continue;
       const next = cellIndex(nr, nc);
       if (seen.has(next) || grid[next] !== colour) continue;
       seen.add(next);
@@ -442,7 +462,7 @@ function unattached(grid: readonly number[]): number[] {
     const row = Math.floor(index / BUB_COLS);
     const col = index % BUB_COLS;
     for (const [nr, nc] of neighbours(row, col)) {
-      if (!inGrid(nr, nc)) continue;
+      if (!inGrid(nr, nc, bubRowsOf(grid))) continue;
       const next = cellIndex(nr, nc);
       if (held.has(next) || !grid[next]) continue;
       held.add(next);
@@ -457,11 +477,11 @@ function unattached(grid: readonly number[]): number[] {
 }
 
 /** True when a bubble has come down past the shooter line. */
-function reachedShooter(grid: readonly number[], descents: number): boolean {
-  for (let row = BUB_MAX_ROWS - 1; row >= 0; row--) {
+function reachedShooter(grid: readonly number[], descents: number, line = BUB_SHOOTER_LINE): boolean {
+  for (let row = bubRowsOf(grid) - 1; row >= 0; row--) {
     for (let col = 0; col < bubRowCols(row); col++) {
       if (!grid[cellIndex(row, col)]) continue;
-      if (bubCellY(row, descents) + BUB_R >= BUB_SHOOTER_LINE) return true;
+      if (bubCellY(row, descents) + BUB_R >= line) return true;
     }
   }
   return false;
@@ -487,6 +507,11 @@ function step(state: BubState, input: ArcadeInputEvent | null): BubState {
     next.y = bubShooterY(next) * 256;
     next.vx = aimed.vx;
     next.vy = aimed.vy;
+    // bubbleRev 8: each shot counts its own wall bounces and what it removes.
+    if (next.reef) {
+      next.bounce = 0;
+      next.shotBase = next.popped + next.dropped;
+    }
   }
 
   if (next.flightColour === BUB_LINE && next.lineRev === BUB_REV_TORPEDO) {
@@ -497,6 +522,7 @@ function step(state: BubState, input: ArcadeInputEvent | null): BubState {
     const leftWall = (BUB_WALL + BUB_R) * 256;
     const rightWall = (BUB_WORLD_W - BUB_WALL - BUB_R) * 256;
     let landed: number | null = null;
+    let bounces = 0;
 
     for (let sub = 0; sub < 4 && landed === null; sub++) {
       const sx = sub === 3 ? vx - 3 * Math.trunc(vx / 4) : Math.trunc(vx / 4);
@@ -506,9 +532,11 @@ function step(state: BubState, input: ArcadeInputEvent | null): BubState {
       if (x < leftWall) {
         x = leftWall + (leftWall - x);
         vx = -vx;
+        bounces++;
       } else if (x > rightWall) {
         x = rightWall - (x - rightWall);
         vx = -vx;
+        bounces++;
       }
 
       const xPx = Math.trunc(x / 256);
@@ -517,7 +545,7 @@ function step(state: BubState, input: ArcadeInputEvent | null): BubState {
       let touched = yPx <= ceiling;
       if (!touched) {
         const reach = (BUB_D - 2) * (BUB_D - 2);
-        for (let row = 0; row < BUB_MAX_ROWS && !touched; row++) {
+        for (let row = 0; row < bubRowsOf(next.grid) && !touched; row++) {
           for (let col = 0; col < bubRowCols(row); col++) {
             if (!next.grid[cellIndex(row, col)]) continue;
             const dx = bubCellX(row, col) - xPx;
@@ -535,6 +563,7 @@ function step(state: BubState, input: ArcadeInputEvent | null): BubState {
     next.x = x;
     next.y = y;
     next.vx = vx;
+    if (next.reef && bounces) next.bounce = (next.bounce ?? 0) + bounces;
 
     if (landed !== null && bubIsSpecial(next.flightColour)) {
       // bubbleRev 2 specials (they only ever come from a stamped queue).
@@ -556,13 +585,11 @@ function step(state: BubState, input: ArcadeInputEvent | null): BubState {
       next.lastSpecial = kind;
       next.lastSpecialCell = landed;
       next.lastSpecialCleared = cleared.length;
-      const loose = unattached(grid);
-      for (const index of loose) grid[index] = 0;
-      next.dropped = next.dropped + loose.length;
+      dropLoose(next, grid);
       if (next.shots % BUB_DESCEND_EVERY === 0) next.descents = next.descents + 1;
       next.grid = grid;
       if (bubOccupied(grid) === 0) next.cleared = true;
-      else if (reachedShooter(grid, next.descents)) next.dead = true;
+      else if (reachedShooter(grid, next.descents, bubDangerLine(next))) next.dead = true;
     } else if (landed !== null) {
       const grid = [...next.grid];
       grid[landed] = next.flightColour;
@@ -573,27 +600,59 @@ function step(state: BubState, input: ArcadeInputEvent | null): BubState {
       if (group.length >= BUB_MIN_GROUP) {
         for (const index of group) grid[index] = 0;
         next.popped = next.popped + group.length;
-        const loose = unattached(grid);
-        for (const index of loose) grid[index] = 0;
-        next.dropped = next.dropped + loose.length;
+        dropLoose(next, grid);
       }
 
       if (next.shots % BUB_DESCEND_EVERY === 0) next.descents = next.descents + 1;
       next.grid = grid;
 
       if (bubOccupied(grid) === 0) next.cleared = true;
-      else if (reachedShooter(grid, next.descents)) next.dead = true;
+      else if (reachedShooter(grid, next.descents, bubDangerLine(next))) next.dead = true;
     } else if (Math.trunc(y / 256) > bubWorldH(next) + BUB_D) {
       // Nothing to stick to: the shot is simply spent.
       next.flightColour = 0;
       next.shots = next.shots + 1;
       if (next.shots % BUB_DESCEND_EVERY === 0) next.descents = next.descents + 1;
-      if (reachedShooter(next.grid, next.descents)) next.dead = true;
+      if (reachedShooter(next.grid, next.descents, bubDangerLine(next))) next.dead = true;
     }
   }
 
+  if (next.reef && next.shots > state.shots) reefShotDone(next);
   if (isOver(next)) next.endedTick = tick;
   return next;
+}
+
+/**
+ * Drops every bubble no longer held from the top (in place on `grid` and `next`). bubbleRev 8 counts the
+ * treasure chests among them: a chest only ever pays here, falling with a cluster.
+ */
+function dropLoose(next: BubState, grid: number[]): void {
+  const loose = unattached(grid);
+  if (next.reef) {
+    let chests = 0;
+    for (const index of loose) if (grid[index] === BUB_CHEST) chests += 1;
+    if (chests) next.chests = (next.chests ?? 0) + chests;
+  }
+  for (const index of loose) grid[index] = 0;
+  next.dropped = next.dropped + loose.length;
+}
+
+/**
+ * bubbleRev 8: a shot has just finished (stuck, special spent or torpedo run over). A shot that removed
+ * anything extends the pop streak (each back-to-back pop after the first is a combo) and, if it came off
+ * a wall first, counts as a bank shot; a shot that removed nothing ends the streak.
+ */
+function reefShotDone(next: BubState): void {
+  const removed = next.popped + next.dropped - (next.shotBase ?? 0);
+  if (removed > 0) {
+    const streak = (next.streak ?? 0) + 1;
+    next.streak = streak;
+    if (streak >= 2) next.combos = (next.combos ?? 0) + 1;
+    if (streak > (next.bestStreak ?? 0)) next.bestStreak = streak;
+    if ((next.bounce ?? 0) > 0) next.banks = (next.banks ?? 0) + 1;
+  } else next.streak = 0;
+  next.shotBase = next.popped + next.dropped;
+  next.bounce = 0;
 }
 
 /**
@@ -614,6 +673,7 @@ function torpedoFlight(next: BubState): void {
   let drilled = next.drilled ?? 0;
   let lastHit = drilled > 0 ? next.lastSpecialCell ?? -1 : -1;
   let done = false;
+  let bounces = 0;
   for (let sub = 0; sub < 4 && !done; sub++) {
     const sx = sub === 3 ? vx - 3 * Math.trunc(vx / 4) : Math.trunc(vx / 4);
     const sy = sub === 3 ? vy - 3 * Math.trunc(vy / 4) : Math.trunc(vy / 4);
@@ -622,13 +682,15 @@ function torpedoFlight(next: BubState): void {
     if (x < leftWall) {
       x = leftWall + (leftWall - x);
       vx = -vx;
+      bounces++;
     } else if (x > rightWall) {
       x = rightWall - (x - rightWall);
       vx = -vx;
+      bounces++;
     }
     const xPx = Math.trunc(x / 256);
     const yPx = Math.trunc(y / 256);
-    for (let row = 0; row < BUB_MAX_ROWS && drilled < BUB_TORPEDO_HITS; row++) {
+    for (let row = 0; row < bubRowsOf(grid) && drilled < BUB_TORPEDO_HITS; row++) {
       for (let col = 0; col < bubRowCols(row) && drilled < BUB_TORPEDO_HITS; col++) {
         const index = cellIndex(row, col);
         if (!grid[index]) continue;
@@ -649,6 +711,7 @@ function torpedoFlight(next: BubState): void {
   next.vx = vx;
   next.drilled = drilled;
   next.lastSpecialCell = lastHit;
+  if (next.reef && bounces) next.bounce = (next.bounce ?? 0) + bounces;
   if (!done) {
     next.grid = grid;
     return;
@@ -660,13 +723,11 @@ function torpedoFlight(next: BubState): void {
   next.lastSpecial = BUB_LINE;
   next.lastSpecialCleared = drilled;
   next.drilled = 0;
-  const loose = unattached(grid);
-  for (const index of loose) grid[index] = 0;
-  next.dropped = next.dropped + loose.length;
+  dropLoose(next, grid);
   if (next.shots % BUB_DESCEND_EVERY === 0) next.descents = next.descents + 1;
   next.grid = grid;
   if (bubOccupied(grid) === 0) next.cleared = true;
-  else if (reachedShooter(grid, next.descents)) next.dead = true;
+  else if (reachedShooter(grid, next.descents, bubDangerLine(next))) next.dead = true;
 }
 
 function score(state: BubState): number {
@@ -733,6 +794,8 @@ export function bubCheckpoint(state: BubState): BubCheckpoint {
   if (state.lineRev !== undefined) extra.push(state.lineRev, state.drilled ?? 0);
   // bubbleRev 5 (taller worlds): the tank's height, last.
   if (state.worldH) extra.push(state.worldH);
+  // bubbleRev 8 (the deeper reef): its feature counters, last.
+  if (state.reef) extra.push(state.reef, state.chests ?? 0, state.banks ?? 0, state.combos ?? 0, state.streak ?? 0, state.bounce ?? 0);
   for (const value of [...Object.values(snapshot), ...extra]) {
     checksum ^= value | 0;
     checksum = Math.imul(checksum, 0x01000193) >>> 0;
@@ -917,6 +980,7 @@ export const bubbleRev2Game: ArcadeGame<BubState, ArcadeInputEvent | null> = { .
 
 /** The game for a stored round: its bubbleRev picks the rules (absent = original). */
 export function bubbleGameFor(rev?: number | null): ArcadeGame<BubState, ArcadeInputEvent | null> {
+  if (rev === BUB_REV_REEF) return bubbleReefGame;
   if (rev === BUB_REV_STRICT) return bubbleStrictGame;
   if (rev === BUB_REV_TARGET) return bubbleTargetGame;
   if (rev === BUB_REV_TALL) return bubbleTallGame;
@@ -1032,7 +1096,7 @@ export const bubbleTallGame: ArcadeGame<BubState, ArcadeInputEvent | null> = {
 
 /** The tank height (px) a stored round's bubbleRev plays in. */
 export function bubbleWorldHFor(rev?: number | null): number {
-  return rev === BUB_REV_TALL || rev === BUB_REV_TARGET || rev === BUB_REV_STRICT ? BUB_TALL_H : BUB_WORLD_H;
+  return rev === BUB_REV_TALL || rev === BUB_REV_TARGET || rev === BUB_REV_STRICT || rev === BUB_REV_REEF ? BUB_TALL_H : BUB_WORLD_H;
 }
 
 /* ================= Scoring targets (bubbleRev 6, 18 Oct 2026) ================= */
@@ -1059,3 +1123,130 @@ export const BUB_REV_STRICT = 7;
 export const bubbleStrictGame = bandStrictGame(bubbleTargetGame);
 /** The curve new rounds score on: BUB_V5_BAND_CURVE's strict curve (what bandCurveOf gives a band-3 state). */
 export const BUB_V7_BAND_CURVE = bandStrict(BUB_V5_BAND_CURVE);
+
+
+/* ================= Expansion E6 (bubbleRev 8, 25 Oct 2026): the deeper reef ================= */
+
+/**
+ * bubbleRev 8 (docs/expansions/e6.md, docs/scoring-200.md): bubbleRev 7's tank (390 × BUB_TALL_H, the
+ * same gun, shot speed, queue, Jokers, mine or torpedo, directional Torpedo and descent pace) with a taller
+ * reef and three skill features worth up to BUB_V8_FEATURE_MAX more, so the round tops out at 200:
+ *  - The reef starts BUB_V8_START_ROWS rows deep (95 bubbles, was 67) in a BUB_V8_ROWS-row field, and the
+ *    danger line sits BUB_V8_LINE (just above the gun) instead of 543, so the run lasts the same number of
+ *    descents as before.
+ *  - Treasure chests (BUB_CHEST): BUB_V8_CHESTS seeded chests sit in the reef (rows 3–9, never touching).
+ *    A chest is no colour (nothing matches it, a Joker ignores it) and pays only when it falls with a
+ *    cluster (dropLoose); a mine or torpedo that destroys one directly pays nothing.
+ *  - Bank shots: a shot that comes off a wall at least once and removes bubbles.
+ *  - Combos: every removing shot straight after another removing shot.
+ * Base points: the bubbles cleared (chests included) on BUB_V8_BAND_CURVE, plus the clear's speed bonus
+ * (to 150, as before); the features add bubV8FeatureBonus (to 50). States add the `reef` fields (folded
+ * into the checkpoint checksum last) and a 220-cell grid.
+ */
+export const BUB_REV_REEF = 8;
+export const BUB_V8_START_ROWS = 10;
+export const BUB_V8_ROWS = 20;
+/** The danger line's y in the deeper reef (the bubble's lower edge): 263 px below the starting reef, as in every earlier tank. */
+export const BUB_V8_LINE = 630;
+/** The treasure chest's grid value (never in the queue). */
+export const BUB_CHEST = 9;
+export const BUB_V8_CHESTS = 6;
+/** Feature points: a chest dropped, a bank shot, a combo shot. */
+export const BUB_V8_CHEST_FP = 5;
+export const BUB_V8_BANK_FP = 1;
+export const BUB_V8_COMBO_FP = 1;
+/** The most the features add. */
+export const BUB_V8_FEATURE_MAX = 50;
+/** Feature points → bonus (fitted by scripts/e6-bands.ts so solid play earns a little and strong play nearly all 50). */
+export const BUB_V8_FEATURE_CURVE = bandCurve([0, 16, 28, 49, 72], [0, 6, 10, 22, 50]);
+/** bubbleRev 8 units: the bubbles (chests included) cleared of the reef's BUB_V8_UNIT_SCALE. */
+export const BUB_V8_UNIT_SCALE = 95;
+/**
+ * bubbleRev 8 base knots (bubbles cleared): fitted by scripts/e6-bands.ts so the same players' base points
+ * plus their usual feature bonus land where they did on bubbleRev 7; 140 from 89 of the 95, a clear adds up
+ * to 10 for speed.
+ */
+export const BUB_V8_BAND_CURVE = bandCurve([0, 20, 43, 71, 86, 89], [0, 66, 92, 110, 132, 140]);
+
+/** The danger line (the lowest bubble's lower edge may not reach it) a state plays to. */
+export function bubDangerLine(state: { reef?: number }): number {
+  return state.reef ? BUB_V8_LINE : BUB_SHOOTER_LINE;
+}
+
+/** bubbleRev 8 feature points so far. */
+export function bubV8FeaturePoints(state: BubState): number {
+  return (state.chests ?? 0) * BUB_V8_CHEST_FP + (state.banks ?? 0) * BUB_V8_BANK_FP + (state.combos ?? 0) * BUB_V8_COMBO_FP;
+}
+
+/** bubbleRev 8 feature bonus, 0…BUB_V8_FEATURE_MAX. */
+export function bubV8FeatureBonus(state: BubState): number {
+  return clampInt(bandPoints(BUB_V8_FEATURE_CURVE, bubV8FeaturePoints(state)), 0, BUB_V8_FEATURE_MAX);
+}
+
+function initReef(seed: number): BubState {
+  const base = initRev2(seed, true, true);
+  // Chests from the PRNG after the specials: rows 3–9, never two touching.
+  let rng = base.rng;
+  const grid = [...base.grid];
+  const chestAt: number[] = [];
+  for (let guard = 0; chestAt.length < BUB_V8_CHESTS && guard < 400; guard++) {
+    const rowDraw = rngBelow(rng, BUB_V8_START_ROWS - 3);
+    rng = rowDraw.state;
+    const row = 3 + rowDraw.value;
+    const colDraw = rngBelow(rng, bubRowCols(row));
+    rng = colDraw.state;
+    const index = cellIndex(row, colDraw.value);
+    const near = neighbours(row, colDraw.value).some(([r, c]) => inGrid(r, c, BUB_V8_ROWS) && chestAt.includes(cellIndex(r, c)));
+    if (chestAt.includes(index) || near) continue;
+    chestAt.push(index);
+    grid[index] = BUB_CHEST;
+  }
+  return {
+    ...bandInit(base),
+    rng,
+    grid,
+    lineRev: BUB_REV_TORPEDO,
+    drilled: 0,
+    y: (BUB_TALL_H - BUB_SHOOTER_LIFT) * 256,
+    worldH: BUB_TALL_H,
+    reef: 1,
+    chests: 0,
+    banks: 0,
+    combos: 0,
+    streak: 0,
+    bestStreak: 0,
+    bounce: 0,
+    shotBase: 0,
+  };
+}
+
+export function bubbleReefParts(state: BubState): BandParts {
+  const start = Math.max(1, state.startCount);
+  const units = state.cleared ? start : clampInt(start - bubRemaining(state), 0, start);
+  const finished = Boolean(state.cleared);
+  const scaled = Math.floor((units * BUB_V8_UNIT_SCALE) / start);
+  const speed = finished ? speedBonusCurve(BAND_FINISH_BONUS, BUB_RUN_TICKS - clampInt(state.endedTick, 0, BUB_RUN_TICKS), BUB_RUN_TICKS) : 0;
+  const feature = bubV8FeatureBonus(state);
+  const extras = `${state.chests ?? 0} chest${state.chests === 1 ? "" : "s"} · ${state.banks ?? 0} bank${state.banks === 1 ? "" : "s"} · ${state.combos ?? 0} combo${state.combos === 1 ? "" : "s"}`;
+  return {
+    units,
+    points: bandPoints(BUB_V8_BAND_CURVE, scaled),
+    bonus: speed + feature,
+    penalty: 0,
+    finished,
+    text: finished ? "Reef cleared" : `${units} / ${start} bubbles cleared`,
+    bonusText: finished ? `Cleared +${speed} · ${extras}` : extras,
+  };
+}
+
+function scoreReef(state: BubState): number {
+  return bandTotal(bubbleReefParts(state), Boolean(state.acted), BUB_V8_MAX);
+}
+/** bubbleRev 8's round maximum (ROUND_MAX.bubble). */
+export const BUB_V8_MAX = 200;
+
+export const bubbleReefGame: ArcadeGame<BubState, ArcadeInputEvent | null> = {
+  ...bubbleGame,
+  init: initReef,
+  score: (state) => (state.reef ? scoreReef(state) : bubbleGame.score(state)),
+};

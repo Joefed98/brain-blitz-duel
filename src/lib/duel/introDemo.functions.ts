@@ -1,6 +1,8 @@
+import { DEPTH_DEMO_STOPS, DEPTH_REV, depthRevOf } from "./logicDepth";
 import { SWING_REV_TALL } from "@/lib/arcade/swing";
 import { INK_REV3, INK_REV4, INK_REV_BAND, INK_REV_TUNEC } from "@/lib/arcade/inkBridge";
-import { CLAY_REV } from "@/lib/arcade/clayShoot";
+import { CLAY_REV_DEPTH } from "@/lib/arcade/clayShoot";
+import { WHACK_REV_DEPTH } from "@/lib/arcade/whack";
 import { WORDFALL_REV } from "@/lib/arcade/wordfall";
 import { BRK_REV_TALL } from "@/lib/arcade/breaker";
 import { RALLY_REV_TALL } from "@/lib/arcade/rally";
@@ -8,18 +10,22 @@ import { WAV_REV_TALL } from "@/lib/arcade/wavefront";
 import { BURST_REV_TALL } from "@/lib/arcade/burst";
 import { BEAT_REV_TALL } from "@/lib/arcade/beat";
 import { SLICE_REV_TALL } from "@/lib/arcade/slice";
-import { BUB_REV_TALL } from "@/lib/arcade/bubble";
+import { BUB_REV_REEF } from "@/lib/arcade/bubble";
+import { MATCHUP_REV_GOALS } from "@/lib/arcade/matchup";
+import { TEN_DROP_DEPTH_REV } from "@/lib/arcade/tenDrop";
 import { SKYLINE_REV_EXPAND } from "@/lib/arcade/skyline";
 import { PIN_REV_EXPAND } from "@/lib/arcade/pinball";
 import { chainDemoCompatible } from "./chain";
+import { pairUsesDepth } from "./depth/matchmaker";
 import { STRIKEOUT_REV4 } from "./strikeout";
 import { createServerFn } from "@tanstack/react-start";
+import { isD4Type, isDepth4 } from "./depth4/stamps";
 
 import type { PuzzleData } from "./types";
 import type { PuzzleDemoLog } from "./puzzleDemo";
 import { ORBIT_BELT_PERIOD_TICKS, ORBIT_BELT_REVISION, ORBIT_REV3, ORBIT_REV4, ORBIT_REV_BAND, ORBIT_REV_TALL, ORBIT_REV_TUNED } from "@/lib/arcade/orbit";
-import { BT_BALLS, BT_REV_TALL } from "@/lib/arcade/ballTrack";
-import { clashPlays3, CLASH_REV_TALL } from "@/lib/arcade/colourClash";
+import { BT_BALLS, BT_REV_RUSH, BT_V7_BALLS } from "@/lib/arcade/ballTrack";
+import { clashPlays3, CLASH_REV_DEPTH } from "@/lib/arcade/colourClash";
 
 export interface IntroDemoRow {
   game_type: string;
@@ -66,9 +72,13 @@ export const getIntroDemoFn = createServerFn({ method: "GET" })
     // The fixed-splitter demo cannot replay the new movable-piece example.
     if (data.type === "laser" && demo?.puzzle.type === "laser" && demo.puzzle.splitterPieces !== 1) return null;
     // Old Ball Track queues and release timings cannot replay the current run.
-    if (data.type === "balltrack" && demo?.puzzle.type === "balltrack" && demo.puzzle.course.balls.length !== BT_BALLS) return null;
+    if (data.type === "balltrack" && demo?.puzzle.type === "balltrack" && demo.puzzle.course.balls.length !== (demo.puzzle.btRev === BT_REV_RUSH ? BT_V7_BALLS : BT_BALLS)) return null;
     // Open-stream Colour Clash demos cannot replay the fixed-queue run.
     if (data.type === "stroop" && demo?.puzzle.type === "stroop" && !clashPlays3(demo.puzzle.clashRev)) return null;
+    // The D5 remodels (25 Oct 2026): Topsy-Turvy gravityRev 3 and Jumbled tilesRev 3 are new games on new boards, so an
+    // older demo stays stopped (the intro shows its still) until one is recorded on the new stamp.
+    if (data.type === "gravity" && demo?.puzzle.type === "gravity" && (demo.puzzle.gravityRev ?? 0) < 3) return null;
+    if (data.type === "tiles" && demo?.puzzle.type === "tiles" && (demo.puzzle.tilesRev ?? 0) < 3) return null;
     // Four-step bomb demos cannot replay the six-step example, and version-2 demos show the old clue wording (version 3 rewrote every clue, 14 Oct 2026).
     if (data.type === "bomb" && demo?.puzzle.type === "bomb" && demo.puzzle.bombVersion !== 3) return null;
     // strikeoutRev 3 (15 Oct 2026) shows ten strike markers, three vowel dots and an extra starting letter on words 1–3,
@@ -79,8 +89,14 @@ export const getIntroDemoFn = createServerFn({ method: "GET" })
     if (data.type === "inkbridge" && demo?.puzzle.type === "inkbridge" && demo.puzzle.inkRev !== INK_REV3 && demo.puzzle.inkRev !== INK_REV4 && demo.puzzle.inkRev !== INK_REV_BAND && demo.puzzle.inkRev !== INK_REV_TUNEC) return null;
     // clayRev 5 (14 Oct 2026) flies 14–16 birds and clayRev 6 (16 Oct 2026, taller worlds batch 2) flies them under a
     // taller sky: an older demo would show the old sky, so only a demo recorded on today's clayRev plays.
-    if (data.type === "clayshoot" && demo?.puzzle.type === "clayshoot" && demo.puzzle.clayRev !== CLAY_REV) return null;
+    // Depth to 200 (25 Oct 2026): clayRev 9 adds doubles and the hit streak, Bonk's whackRev 3 the gold combo and
+    // diamonds; an older demo shows none of them, so each stays stopped (the intro shows its still) until re-recorded.
+    if (data.type === "clayshoot" && demo?.puzzle.type === "clayshoot" && demo.puzzle.clayRev !== CLAY_REV_DEPTH) return null;
+    if (data.type === "whack" && demo?.puzzle.type === "whack" && demo.puzzle.whackRev !== WHACK_REV_DEPTH) return null;
     if (data.type === "chain" && demo?.puzzle.type === "chain" && !chainDemoCompatible(demo.puzzle)) return null;
+    // Depth to 200 (25 Oct 2026): Matchmaker's pairRev 1 deals a gold pair and shows the streak; an older demo has
+    // neither, so it stays stopped (the intro shows its still) until one is recorded on pairRev 1.
+    if (data.type === "pairmatch" && demo?.puzzle.type === "pairmatch" && !pairUsesDepth(demo.puzzle)) return null;
     // Rev-1 Letterfall demos fall faster, deal vowel-heavy runs and have no Enter box under the well.
     if (data.type === "wordfall" && demo?.puzzle.type === "wordfall" && demo.puzzle.wordfallRev !== WORDFALL_REV) return null;
     // Taller worlds batch 1 (16 Oct 2026): a demo recorded on an older revision would show the short world (and its
@@ -93,20 +109,38 @@ export const getIntroDemoFn = createServerFn({ method: "GET" })
     // until a demo is recorded on its tall revision.
     if (data.type === "beat" && demo?.puzzle.type === "beat" && demo.puzzle.beatRev !== BEAT_REV_TALL) return null;
     if (data.type === "slice" && demo?.puzzle.type === "slice" && demo.puzzle.sliceRev !== SLICE_REV_TALL) return null;
-    if (data.type === "bubble" && demo?.puzzle.type === "bubble" && demo.puzzle.bubbleRev !== BUB_REV_TALL) return null;
-    if (data.type === "stroop" && demo?.puzzle.type === "stroop" && demo.puzzle.clashRev !== CLASH_REV_TALL) return null;
+    // Expansion E6 (25 Oct 2026): Coral Pop's deeper reef (bubbleRev 8) replaces the tall tank's field; a demo stays stopped until one is recorded on it.
+    if (data.type === "bubble" && demo?.puzzle.type === "bubble" && demo.puzzle.bubbleRev !== BUB_REV_REEF) return null;
+    // Depth to 200 (25 Oct 2026): Mixed Signals' clashRev 8 deals "don't sort" and gold words and a streak; a demo
+    // recorded on an older revision shows none of them, so it stays stopped until one is recorded on clashRev 8.
+    if (data.type === "stroop" && demo?.puzzle.type === "stroop" && demo.puzzle.clashRev !== CLASH_REV_DEPTH) return null;
     // Taller worlds batch 3 (16 Oct 2026): Grappler's taller cavern, Orbit's taller view and Ball Tracker's 12-row board.
     // An older demo would show the short world (and Ball Tracker's would play a 9-row course), so each stays stopped
     // until one is recorded on its tall revision.
     if (data.type === "swing" && demo?.puzzle.type === "swing" && demo.puzzle.swingRev !== SWING_REV_TALL) return null;
     if (data.type === "orbit" && demo?.puzzle.type === "orbit" && demo.puzzle.orbitRev !== ORBIT_REV_TALL) return null;
-    if (data.type === "balltrack" && demo?.puzzle.type === "balltrack" && demo.puzzle.btRev !== BT_REV_TALL) return null;
+    // Expansion E6 (25 Oct 2026): Ball Tracker's 13-row board, Gemstone's taller board with goals: each stays stopped
+    // until a demo is recorded on its new revision (btRev 7, matchupRev 9).
+    if (data.type === "balltrack" && demo?.puzzle.type === "balltrack" && demo.puzzle.btRev !== BT_REV_RUSH) return null;
+    if (data.type === "matchup" && demo?.puzzle.type === "matchup" && demo.puzzle.matchupRev !== MATCHUP_REV_GOALS) return null;
+    // Tenfall tenRev 4 (25 Oct 2026, depth to 200): gold tiles. An older demo shows no gold tile under the gold-tile
+    // help, so Tenfall's intro shows its still until a demo is recorded on tenRev 4.
+    if (data.type === "tendrop" && demo?.puzzle.type === "tendrop" && (demo.puzzle.tenRev ?? 0) < TEN_DROP_DEPTH_REV) return null;
+    // Logic depth to 200 (depthRev 1, 25 Oct 2026): Mosaic, Tents and Trees, Shikaku and Lamplighter deal bigger boards, and
+    // Blackout, Hanoi, Polypotions and Safe Cracker show their par line or clean crack: an older demo would show the old
+    // board or no feature, so these stay stopped (the intro shows its still) until one is recorded on depthRev 1.
+    if (DEPTH_DEMO_STOPS.has(data.type) && depthRevOf(demo?.puzzle) < DEPTH_REV) return null;
+    // Depth batch 4 (25 Oct 2026, docs/depth/d4-pattern.md): Gridlock, Tessellate, Pipeline, Chroma Lines, Skid, Heave,
+    // Lightbender and Turntable deal new stamps (par, gems, the gold crate, spare mirrors, the 7×7 board). A demo recorded
+    // on an older puzzle would show the old rules, so each intro shows its still until a demo is recorded on the new stamp.
+    if (isD4Type(data.type) && demo && !isDepth4(demo.puzzle)) return null;
     // Expansion E4 (25 Oct 2026, docs/expansions/e4.md): High Rise's skylineRev 7 (taller view, special blocks, the
     // next-block preview, milestones). An older demo would show the old view without them, so the intro shows the
     // still until a demo is recorded on skylineRev 7.
     if (data.type === "skyline" && demo?.puzzle.type === "skyline" && demo.puzzle.skylineRev !== SKYLINE_REV_EXPAND) return null;
     // Pinball's pinRev 4 (the taller table, its ramps, lanes, lock and plunger): only a pinRev 4 demo plays.
     if (data.type === "pinball" && demo?.puzzle.type === "pinball" && demo.puzzle.pinRev !== PIN_REV_EXPAND) return null;
+
     return demo;
   });
 
