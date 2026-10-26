@@ -257,3 +257,67 @@ So with any monotone scoring, elite's median is at most near-perfect's p90. "Eli
 come from play, not pay: the elite bot loses a level as often as the near-perfect one, because the perfect-level
 windows are 1–6 ticks wide. The shipped scoring is unchanged (first attempt above), so I didn't take a second fresh
 measurement; the fresh numbers above stand.
+
+## Phase 1 and phase 2 (26 Oct 2026, evening): forgiving cut timing, Session A's bots
+
+**Phase 1: cut timing made more forgiving.** Same stamp, since snipRev 11 was never dealt outside an unmerged PR.
+- *Wider chutes*: each course's two chute boards over the basket reach up to 50 px further out, and 25 px higher.
+  Each board goes as far as it can while staying a fruit's width (24 px) from every other piece, nest, leaf, peg and
+  ring (`scripts/snip-x200-chutes.ts`). 59 of the 72 boards got the full 50; the rest 0–25.
+- *Larger leaves*: leaves are now drawn at 60 px (they were 48) and taken at `SNIP_X_STAR_REACH` 40 (it was 24).
+  That is a fruit touching the drawn leaf.
+- *Re-proved*: `scripts/snip-x200-plans.ts` now also re-finds every deal's win plan and drops a golden choice that
+  has no perfect plan. All 324 deals × golden choices still have plans; no golden choice was dropped. Par times
+  were rewritten (5.0–9.0 s), the recorded runs re-recorded, and the ceiling proof still holds: 200 on every bank
+  deal and on all 260 tuning and fresh seeds.
+- *Effect* (start-time shifts of ±8 ticks around the stored plans, wind preset 0, all courses): plans that still
+  feed every fruit went from 10.3 to 11.3 of 17; plans that stay perfect from 6.0 to 7.8 of 17. Deals with fewer
+  than 5 perfect shifts went from 37 of 108 to 28.
+
+**Phase 2: #175's fixed bots** (merged at d74da894).
+- `bots/snip.ts` keeps #175's old-stamp bot exactly and adds the snipRev 11 course bot, keyed on all seven levels.
+  Flawless plays each level's stored perfect plan.
+- Competence fixes to the course bot:
+  - #175's `steadyMid`: centre on a run of ticks that all work. The 3-tick scan used to land on failing ticks
+    inside ragged windows, which was most of the elite bot's lost levels.
+  - Weigh the deal's other stored plans for the roomiest window.
+  - Look further on before cutting on an untested plan.
+
+Measured on the tuning seeds (0–59). "Before" is the old stamp (snipRev 9) on the same fixed bots:
+
+| Level | Before: median (p90) | snipRev 11 now: median / p90 |
+|---|---|---|
+| Weak | 51 (80) | 65.5 / 110 |
+| Average | 73.5 (100) | 94 / 153 |
+| Good | 97 (123) | 132.5 / 168 |
+| Great | 120 (130) | 162.5 / 185 |
+| Near-perfect | 124 (144) | 164.5 / 187 |
+| Elite | 130 (145) | 173 / 190 |
+| Flawless | 147 (149) | 200 / 200 (min 200) |
+
+No zero scores at any level. Random play: median 0, best 12.
+
+**The bar is still not met.** The forgiving timing lifts every level, so the skill levels bunch at the top:
+
+| Level | Units, median | Units, p90 | Levels cleared, median |
+|---|---|---|---|
+| Good | 102 | 118 | 5 |
+| Great | 111 | 120 | 5 |
+| Near-perfect | 111 | 120 | 5 |
+| Elite | 114 | 120 | 5 |
+
+The only clear separation at the top is the par-time credit (median of six levels: near-perfect 1.7, elite 2.15;
+p90 2.6 vs 3.8).
+
+Refitting on these runs: 12 structures (par margin 60 or 90; linear or squared credit; four weight splits), each
+with strictly rising curves (0.4–3.5 a unit, 0.03–0.3 a raw tenth).
+- Good stays at 122–129 against the target of about 97 ± 10 %.
+- Near-perfect sits at 157.5–162 / 184–187.
+- Elite sits at 170.5–175 / 188–193.
+
+To put good back at 97 and near-perfect at 165, the base would have to jump about 4 points a unit between 102 and
+111 units (a cliff). And near-perfect's top-decile runs (units 120, all six levels) still dominate elite's median
+run (units 114, five levels).
+
+The shipped scoring is unchanged (`SNIP_V11_BAND_CURVE` and `SNIP_X_SKILL_PAY` as above). The fresh seeds were not
+measured again: the tuning seeds already miss the bar on good, near-perfect and elite.

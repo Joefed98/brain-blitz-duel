@@ -447,11 +447,15 @@ function courseBot({ game, seed, human }: Parameters<SkillBot>[0]): ReturnType<S
   let lastWidth = 0;
   const timeShape = (from: SnipState, shape: Plan, lo: number, span: number, best: boolean, stepT = 3): Plan | null => {
     const first = shape[0]![1];
+    const tried = new Map<number, boolean>();
     const ok = (d: number) => {
+      const hit = tried.get(d);
+      if (hit !== undefined) return hit;
       const plan = shape.map(([r, at]) => [r, at + d] as [number, number]);
-      if (plan.some(([, at]) => at > SNIP_X_LEVEL_TICKS - 2)) return false;
-      const res = tryPlan(from, plan);
-      return res.all && (!best || (res.par && res.two));
+      const res = plan.some(([, at]) => at > SNIP_X_LEVEL_TICKS - 2) ? null : tryPlan(from, plan);
+      const out = !!res && res.all && (!best || (res.par && res.two));
+      tried.set(d, out);
+      return out;
     };
     const d0 = lo - first;
     // The windows (runs of start shifts that work) from the first one the player sees to as far as their
@@ -474,8 +478,11 @@ function courseBot({ game, seed, human }: Parameters<SkillBot>[0]): ReturnType<S
     let { start, end } = pick;
     for (let k = 1; k < stepT && ok(start - 1); k++) start -= 1;
     for (let k = 1; k < stepT && ok(end + 1); k++) end += 1;
-    const mid = best && eager ? Math.min(Math.round((start + end) / 2), start + stepT) : Math.round((start + end) / 2);
-    lastWidth = end - start + 1;
+    // The scan steps stepT ticks and a swing's windows are ragged, so centre on a run of ticks that all work
+    // (#175's steadyMid); a player chasing the par time takes the earliest tick with a working tick either side.
+    let [mid, width] = steadyMid(ok, start, end, d0, stepT);
+    if (best && eager) for (let t = start; t < mid; t++) if (ok(t - 1) && ok(t) && ok(t + 1)) { mid = t; break; }
+    lastWidth = width;
     return shape.map(([r, at]) => [r, at + mid] as [number, number]);
   };
 
@@ -543,6 +550,32 @@ function courseBot({ game, seed, human }: Parameters<SkillBot>[0]): ReturnType<S
       wantBest = false;
       shape = proof.win.map(([r, at]) => [r, at] as [number, number]);
       timed = timeShape(s, shape, lo, 150, false);
+    }
+    // Playing it safe on a tight course: a patient player weighs the deal's other known ways down (its stored
+    // plans) and takes the one with the roomiest window.
+    if (!wantBest && proof && PATIENCE[tier] > 0 && (!timed || lastWidth < 2 * MIN_WINDOW[tier])) {
+      let pick = timed;
+      let width = timed ? lastWidth : 0;
+      for (const alt of [proof.win, ...Object.values(proof.best)]) {
+        const t = timeShape(s, alt.map(([r, at]) => [r, at] as [number, number]), lo, 150, false);
+        if (t && lastWidth > width) {
+          pick = t;
+          width = lastWidth;
+        }
+      }
+      timed = pick;
+      lastWidth = width;
+    }
+    // No window from when they are ready: look further on, then try the deal's other stored plans (a player who
+    // knows the course has more than one way down it), before cutting on an untested plan.
+    if (!timed && proof) {
+      for (const alt of [proof.win, ...Object.values(proof.best)]) {
+        timed = timeShape(s, alt.map(([r, at]) => [r, at] as [number, number]), lo, 300, false);
+        if (timed) {
+          wantBest = false;
+          break;
+        }
+      }
     }
     const plan = timed ?? shape.map(([r, at]) => [r, at + Math.max(0, lo - shape[0]![1])] as [number, number]);
     strokes = toStrokes(plan);
