@@ -1871,7 +1871,7 @@ function gradeUnderRev(
     }
     case "orbit": {
       const replayStart = performance.now();
-      const run = replayOrbitRun(puzzle.seed, answer, puzzle.orbitRev, puzzle.planets, puzzle.holes);
+      const run = replayOrbitRun(puzzle.seed, answer, puzzle.orbitRev, puzzle.planets, puzzle.holes, puzzle.extras);
       revealRun = run;
       arcadeDiag = buildArcadeDiag(puzzle.type, run, answer, performance.now() - replayStart);
       if (arcadeDiag.replayMs > 500)
@@ -1897,6 +1897,8 @@ function gradeUnderRev(
         inputs: decodeOrbitRun(answer).events.length,
         claimedScore: decodeOrbitRun(answer).claimedScore,
         ...(run.reason ? { reason: run.reason } : {}),
+        // orbitRev 12 (the expansion to 200): the features the run took, as flat numbers.
+        ...(run.xp ? { dust: run.xp.dust, dustTotal: run.xp.dustTotal, slings: run.xp.slings, slingsTotal: run.xp.slingsTotal, threads: run.xp.threads, threadsTotal: run.xp.threadsTotal, perfect: run.xp.perfect } : {}),
       };
       break;
     }

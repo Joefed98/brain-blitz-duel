@@ -379,6 +379,8 @@ const BUILDERS: Record<string, Builder> = {
   }),
   orbit: (r, s) => {
     const done = b(r, "finished");
+    // orbitRev 12: the features taken, on the replay (its `xp`) or as the stored result's flat numbers.
+    const xp = (r["xp"] && typeof r["xp"] === "object" ? r["xp"] : r) as Run;
     return {
       axis: { value: n(r, "passed"), max: 40, label: "Planets" },
       lines: [head(done ? "Sun reached" : `${n(r, "passed")} / 40 planets`, s, done)],
@@ -386,6 +388,15 @@ const BUILDERS: Record<string, Builder> = {
         { label: "Checkpoint planet", value: typeof r["checkpoint"] === "number" && n(r, "checkpoint") >= 0 ? String(n(r, "checkpoint")) : "none" },
         { label: "Planets", value: String(n(r, "captured")) },
         ...(n(r, "holes") > 0 ? [{ label: "Black holes", value: `${n(r, "jumps")} / ${n(r, "holes")} (+${n(r, "skipped")} planets)` }] : []),
+        // orbitRev 12 (the expansion to 200): the features taken.
+        ...(n(xp, "dustTotal") > 0
+          ? [
+              { label: "Stardust", value: `${n(xp, "dust")} / ${n(xp, "dustTotal")}` },
+              { label: "Slingshots", value: `${n(xp, "slings")} / ${n(xp, "slingsTotal")}` },
+              { label: "Fields threaded", value: `${n(xp, "threads")} / ${n(xp, "threadsTotal")}` },
+              { label: "Perfect orbits", value: String(n(xp, "perfect")) },
+            ]
+          : []),
       ],
       outcome: done ? "finish" : ended(r, false),
     };
