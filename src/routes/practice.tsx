@@ -40,6 +40,7 @@ import {
   puzzleTimeLimitMs,
   puzzleRunMs,
   typesInCategory,
+  isLiveType,
 } from "@/lib/duel/registry";
 import { clearStageState } from "@/lib/duel/stageState";
 import { DemoRecorder, type PuzzleDemoLog } from "@/lib/duel/puzzleDemo";
@@ -65,7 +66,7 @@ import { APP_NAME } from "@/lib/brand";
 import { noteSignatureSubmit, signatureHoldUntil } from "@/lib/fx/signature";
 import { useSignatureVerdict } from "@/lib/fx/useSignature";
 import { GameIcon } from "@/components/app/GameIcon";
-import { notePracticePlayed } from "@/lib/duel/practiceRecent";
+import { notePracticePlayed, recentPracticeTypes } from "@/lib/duel/practiceRecent";
 import type { PuzzleCategory } from "@/lib/duel/types";
 
 export const Route = createFileRoute("/practice")({
@@ -122,26 +123,26 @@ function useTicker(active: boolean): number {
 }
 
 /**
- * A practice card's best under the game's current stamps ("Best 132"); nothing before a first run.
- * Kept out of the card's accessible name (aria-hidden; the button points at it with
- * aria-describedby), so the button is always named exactly the game, before and after a best.
+ * A practice row's best under the game's current stamps, in the BEST column; "–" before a first run.
+ * Kept out of the row's accessible name (aria-hidden; the button points at it with aria-describedby),
+ * so the button is always named exactly the game, before and after a best.
  */
-function CardBest({ type }: { type: PuzzleType }) {
+function RowBest({ type }: { type: PuzzleType }) {
   const best = readPracticeBest(type, currentPracticeStamp(type));
-  if (best === null) return null;
   return (
     <span
       id={cardBestId(type)}
       aria-hidden="true"
-      data-card-best={best}
-      className="ap-tile-best"
+      data-card-best={best ?? undefined}
+      data-none={best === null || undefined}
+      className="ap-best"
     >
-      Best <b className="ap-score">{best}</b>
+      {best ?? "–"}
     </span>
   );
 }
 
-/** The id the card's button describes itself by (its best, when there is one). */
+/** The id the row's button describes itself by (its best). */
 function cardBestId(type: PuzzleType): string {
   return `practice-best-${type}`;
 }
@@ -166,29 +167,6 @@ function matchesFilter(type: PuzzleType, filter: PracticeFilter, query: string):
   const q = query.trim().toLowerCase();
   return q === "" || definition.name.toLowerCase().includes(q) || definition.category.includes(q);
 }
-
-/**
- * A practice tile's picture and name (follow-up to #129: the list is shelves and a grid of square
- * tiles): the game's own icon filling a 104 px square, the name on one line. The tile's button is named
- * exactly the game (aria-label; checks find it by name), the icon is aria-hidden and the best is the
- * button's description (CardBest).
- */
-function GameTileLabel({ type, size }: { type: PuzzleType; size: number }) {
-  return (
-    <>
-      <span className="ap-tile-art">
-        <GameIcon type={type} size={size} />
-      </span>
-      <span data-ellipsis className="ap-tile-name">
-        {PUZZLE_REGISTRY[type].name}
-      </span>
-    </>
-  );
-}
-
-/** A shelf tile's square, in CSS px; a grid tile's icon is drawn at GRID_TILE_PX and fits its column (never upscaled). */
-const TILE_PX = 104;
-const GRID_TILE_PX = 128;
 
 /** The signature verdict for a graded practice run. */
 function practiceVerdict(graded: Graded) {
@@ -488,8 +466,6 @@ function PracticeScreen() {
 
   if (stage === "list") {
     const visible = (key: PuzzleType) => matchesFilter(key, filter, query);
-    // All with no search: one shelf per category; a category or a search: one grid of what matches.
-    const shelves = filter === "all" && query.trim() === "";
     const groups = puzzleCategories()
       .map((category) => ({ category, rows: typesInCategory(category).filter(visible) }))
       .filter((group) => group.rows.length > 0);
@@ -498,9 +474,8 @@ function PracticeScreen() {
     const retiredRows = RETIRED_PUZZLE_TYPES.filter(
       (key) => !PREVIEW_PUZZLE_TYPES.includes(key),
     ).filter(visible);
-    // One button per game: a tap opens its round; a swipe along a shelf scrolls it (the browser
-    // cancels the click once a touch moves into a scroll), so a swipe never starts a game.
-    const tile = (key: PuzzleType, size = GRID_TILE_PX, retired = false) => (
+    // One row per game: a tap opens its round. The best sits in one fixed-width BEST column.
+    const row = (key: PuzzleType, retired = false) => (
       <button
         key={key}
         type="button"
@@ -508,19 +483,38 @@ function PracticeScreen() {
         aria-label={PUZZLE_REGISTRY[key].name}
         aria-describedby={cardBestId(key)}
         data-practice-game={key}
-        className={`ap-tile press${retired ? " opacity-80" : ""}`}
+        data-icon="game"
+        className={`ap-row press${retired ? " opacity-80" : ""}`}
       >
-        <GameTileLabel type={key} size={size} />
-        <CardBest type={key} />
+        <GameIcon type={key} size={44} />
+        <span data-ellipsis aria-hidden="true" className="ap-row-title min-w-0 flex-1">
+          {PUZZLE_REGISTRY[key].name}
+        </span>
+        <RowBest type={key} />
       </button>
     );
+    // A heading over a list: the category's dot, its name and count, and the BEST label over the column.
+    const listHead = (title: string, count: number, dot?: PuzzleCategory) => (
+      <div className="ap-col-head">
+        {dot ? <span aria-hidden="true" data-dot={dot} data-size="10" className="ap-dot" /> : null}
+        <h2 className="ap-section-title">{title}</h2>
+        <span className="ap-meta">
+          {count} {count === 1 ? "game" : "games"}
+        </span>
+        <span aria-hidden="true" className="ap-col-label">
+          BEST
+        </span>
+      </div>
+    );
+    // Recently played (practiceRecent.ts), with All and no search: up to four, each with its best.
+    const recentRows = filter === "all" && query.trim() === "" ? recentPracticeTypes().filter(isLiveType).slice(0, 4) : [];
     return (
       <PhoneShell tabs="practice">
         <div className="ap-stack">
           <div>
-            <div className="flex items-baseline gap-2.5">
+            <div className="flex items-baseline justify-between gap-2.5">
               <h1 className="ap-title">Practice</h1>
-              <span className="ap-meta text-[15px]">{ACTIVE_GAME_COUNT} games</span>
+              <span className="ap-meta text-[14px]">{ACTIVE_GAME_COUNT} games</span>
             </div>
             <DevKeyStatus status={demoStatus} />
           </div>
@@ -560,7 +554,8 @@ function PracticeScreen() {
                 className="ap-input ap-search"
               />
             </div>
-            <div role="group" aria-label="Category" data-scroll-x className="ap-chips">
+            {/* All games and the seven categories in a 4 × 2 grid: none is cut off at 375 px. */}
+            <div role="group" aria-label="Category" className="ap-chip-grid">
               {(["all", ...puzzleCategories()] as const).map((chip) => {
                 const on = filter === chip;
                 return (
@@ -572,57 +567,66 @@ function PracticeScreen() {
                     onClick={() => setFilter(chip)}
                     className="ap-chip th-hit press"
                   >
-                    {chip === "all" ? "All" : categoryLabel(chip)}
+                    {chip === "all" ? null : <span aria-hidden="true" data-dot={chip} className="ap-dot" />}
+                    {chip === "all" ? "All games" : categoryLabel(chip)}
                   </button>
                 );
               })}
             </div>
           </div>
 
-          {shelves ? (
-            groups.map(({ category, rows }) => (
-              <section key={category} aria-label={categoryLabel(category)} data-practice-group={category} className="flex flex-col gap-2.5">
-                <div className="ap-section-head">
-                  <h2 className="ap-group-title">{categoryLabel(category)}</h2>
-                  <button
-                    type="button"
-                    data-practice-see-all={category}
-                    onClick={() => {
-                      setFilter(category);
-                      window.scrollTo({ top: 0 });
-                    }}
-                    className="ap-link press -my-2.5 -mr-1 h-11 px-1"
-                  >
-                    See all
-                  </button>
-                </div>
-                <div data-scroll-x data-practice-shelf={category} className="ap-shelf">
-                  {rows.map((key) => tile(key, TILE_PX))}
-                </div>
-              </section>
-            ))
-          ) : matches.length > 0 ? (
-            <div data-practice-grid className="ap-tile-grid">
-              {matches.map((key) => tile(key))}
-            </div>
+          {recentRows.length > 0 ? (
+            <section aria-label="Recently played" data-practice-recent-list className="ap-section">
+              <h2 className="ap-section-title">Recently played</h2>
+              <div className="ap-panel ap-game-strip">
+                {recentRows.map((key) => {
+                  const best = readPracticeBest(key, currentPracticeStamp(key));
+                  return (
+                    <button
+                      key={key}
+                      type="button"
+                      data-practice-recent={key}
+                      aria-label={`${PUZZLE_REGISTRY[key].name}, recently played`}
+                      onClick={() => void load(key)}
+                      className="press"
+                    >
+                      <GameIcon type={key} size={52} />
+                      <span aria-hidden="true" className="ap-strip-name">
+                        {PUZZLE_REGISTRY[key].name}
+                      </span>
+                      <span aria-hidden="true" data-none={best === null || undefined} className="ap-strip-best">
+                        {best ?? "–"}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </section>
           ) : null}
+
+          {groups.map(({ category, rows }) => (
+            <section key={category} aria-label={categoryLabel(category)} data-practice-group={category} className="ap-section">
+              {listHead(categoryLabel(category), rows.length, category)}
+              <div className="ap-panel">{rows.map((key) => row(key))}</div>
+            </section>
+          ))}
           {matches.length === 0 && previewRows.length === 0 && retiredRows.length === 0 ? (
             <p className="ap-panel ap-empty">No games match</p>
           ) : null}
 
           {previewRows.length > 0 && (
-            <section aria-label="Practice only" className="flex flex-col gap-2.5">
-              <h2 className="ap-group-title">New · practice only</h2>
-              <div className="ap-tile-grid">{previewRows.map((key) => tile(key))}</div>
+            <section aria-label="Practice only" className="ap-section">
+              {listHead("New · practice only", previewRows.length)}
+              <div className="ap-panel">{previewRows.map((key) => row(key))}</div>
             </section>
           )}
 
           {retiredRows.length > 0 && (
-            <details className="flex flex-col gap-2" open={query.trim() !== "" || undefined}>
-              <summary className="ap-group-title th-hit press cursor-pointer">
+            <details className="flex flex-col gap-2.5" open={query.trim() !== "" || undefined}>
+              <summary className="ap-section-title th-hit press cursor-pointer">
                 Retired ({retiredRows.length})
               </summary>
-              <div className="ap-tile-grid mt-3">{retiredRows.map((key) => tile(key, GRID_TILE_PX, true))}</div>
+              <div className="ap-panel mt-2.5">{retiredRows.map((key) => row(key, true))}</div>
             </details>
           )}
 

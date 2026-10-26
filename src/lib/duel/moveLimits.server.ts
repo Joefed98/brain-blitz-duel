@@ -9,6 +9,8 @@
  * Where the minimum is private (Polypotions, Topsy-Turvy, Brimful), the shown
  * limit is rounded up to a multiple of 5 so it never gives the minimum away.
  */
+import { dealtTopupRev } from "./depthTopup";
+import { COUNT_TOPUP_REV } from "./depth/tally";
 import {
   BALANCE_LIMIT_REV,
   COUNTUP_COUNT_REV,
@@ -94,7 +96,8 @@ function stampLimitsOnly(puzzle: PuzzleData): PuzzleData {
       };
     }
     case "countup":
-      return { ...puzzle, countRev: COUNTUP_COUNT_REV };
+      // The puzzle top-up (26 Oct 2026): countRev 4, countRev 3's trays with the depth climb retuned (depth/tally.ts).
+      return { ...puzzle, countRev: dealtTopupRev(COUNT_TOPUP_REV, COUNTUP_COUNT_REV) };
     default:
       return puzzle;
   }

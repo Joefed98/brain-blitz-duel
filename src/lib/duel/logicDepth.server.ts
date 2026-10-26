@@ -5,7 +5,7 @@
  * their own label ("120 + 45 par + 30 speed"); the stretch rides in the speed term ("120 + 64 speed").
  */
 import type { Graded } from "./grade";
-import { depthFinish, usesDepth, type DepthFinishInput } from "./logicDepth";
+import { depthFinish, depthRevOf, usesDepth, type DepthFinishInput } from "./logicDepth";
 import { puzzleTimeLimitMs } from "./registry";
 import type { PuzzleData } from "./types";
 
@@ -42,7 +42,7 @@ export function withLogicDepth(puzzle: PuzzleData, graded: Graded): Graded {
     ...depthMovesAndPar(puzzle, extra),
     ...(puzzle.type === "safe" ? { openedOn: num(extra["openedOn"]) ?? 3 } : {}),
   };
-  const r = depthFinish(puzzle.type, input);
+  const r = depthFinish(puzzle.type, input, depthRevOf(puzzle));
   const labelled = r.topLabel !== "";
   const parts = labelled
     ? { kind: "finish" as const, base: 120, efficiency: r.top, measure: r.topLabel, speed: r.speed }

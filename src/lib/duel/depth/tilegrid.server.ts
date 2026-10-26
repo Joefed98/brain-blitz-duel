@@ -5,16 +5,17 @@
  */
 import type { DepthGrader } from "../wordDepth.server";
 import type { PuzzleData } from "../types";
-import { TILE_GRID_DEPTH_REV } from "../tileGrid";
+import { TILE_GRID_DEPTH_REV, TILE_GRID_TOPUP_REV } from "../tileGrid";
 import { addFinishBonus, finishFigures, stretchPoints } from "./stretch.server";
-import { TILEGRID_STRETCH, stretchCurveFor } from "./stretchShapes";
+import { TILEGRID_STRETCH, TILEGRID_STRETCH_TOPUP, stretchCurveFor } from "./stretchShapes";
 
 export const tilegridDepth: DepthGrader = {
   applies: (puzzle: PuzzleData) => puzzle.type === "tilegrid" && (puzzle.tileGridRev ?? 0) >= TILE_GRID_DEPTH_REV,
   grade(ctx) {
     const f = finishFigures(ctx.today);
     if (!f) return ctx.today;
-    const pace = stretchPoints(stretchCurveFor("tilegrid", TILEGRID_STRETCH), f.time, f.efficiency, 50);
+    const shape = ((ctx.puzzle as { tileGridRev?: number }).tileGridRev ?? 0) >= TILE_GRID_TOPUP_REV ? TILEGRID_STRETCH_TOPUP : TILEGRID_STRETCH;
+    const pace = stretchPoints(stretchCurveFor("tilegrid", shape), f.time, f.efficiency, 50);
     return addFinishBonus(ctx.today, f.parts, pace, "pace bonus", { paceBonus: pace });
   },
 };

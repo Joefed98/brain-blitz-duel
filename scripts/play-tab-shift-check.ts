@@ -10,6 +10,8 @@
  *  2. Returning device (a stored name, today's daily done, the room cached): the same, and the daily
  *     card shows the remembered "6 rounds · 694" and its grey Done pill from the first frame.
  *  3. Arriving from a shared link (?ref=share): the welcome card is there from the first frame.
+ *     A first visit (the intro not yet seen, tab pages refresh 26 Oct 2026): the first-time intro card
+ *     is there from the first frame and nothing moves.
  *  4. The server says no (dailies and challenges not migrated, the room closed): the reserved cards
  *     collapse smoothly (nothing below moves more than 40 px in a frame, nothing ever moves down)
  *     and are gone; Quick play never moves.
@@ -31,7 +33,7 @@ import { startSafeAreaServer } from "./safe-area-server";
 import { CHROMIUM_PATHS, IPHONE_SAFARI_UA } from "./theme-screens";
 import { ONBOARDING_KEY } from "../src/lib/onboarding";
 import { ukDayKey, ukDayWindow, type DailyStatus } from "../src/lib/duel/daily";
-import { ARRIVAL_KEY, HOME_HINT_KEY, LAST_ROOM_KEY, NAME_KEY, PLAY_CARDS_BOOT, PLAY_CARDS_KEY, PUBLIC_CARD_H, applyTokens, playCardTokens, type BootDevice } from "../src/lib/playCards";
+import { ARRIVAL_KEY, HOME_HINT_KEY, LAST_ROOM_KEY, NAME_KEY, ONBOARDING_SEEN_KEY, PLAY_CARDS_BOOT, PLAY_CARDS_KEY, PUBLIC_CARD_H, applyTokens, playCardTokens, type BootDevice } from "../src/lib/playCards";
 
 const failures: string[] = [];
 let passes = 0;
@@ -53,6 +55,7 @@ const ITEMS: Record<string, string> = {
   publicGame: "[data-public-game]",
   homeHint: "[data-home-hint]",
   warmUp: '[aria-label="Warm up"]',
+  intro: "[data-intro-card]",
 };
 const day = ukDayKey(Date.now());
 const status = (available: boolean, done = false): DailyStatus => ({
@@ -75,6 +78,8 @@ interface Scenario {
   /** The browser (Prompt R merge: iPhone Safari draws the Add to Home Screen hint). */
   userAgent?: string;
   server: { daily: boolean; done?: boolean; challenges: boolean; rejoin: "open" | "closed" | null };
+  /** A device that hasn't seen the first-time intro (every other scenario has). */
+  firstVisit?: boolean;
   expect: "stable" | "collapse";
 }
 
@@ -84,7 +89,7 @@ async function run(browser: Browser, origin: string, s: Scenario): Promise<{ fra
   await context.addInitScript(
     ({ storage, harness, items, onboarding, games }) => {
       try {
-        localStorage.setItem(onboarding, "1");
+        if (onboarding) localStorage.setItem(onboarding, "1");
         for (const [k, v] of Object.entries(storage)) localStorage.setItem(k, v);
       } catch {
         /* ignore */
@@ -109,7 +114,7 @@ async function run(browser: Browser, origin: string, s: Scenario): Promise<{ fra
     {
       storage: s.storage,
       items: ITEMS,
-      onboarding: ONBOARDING_KEY,
+      onboarding: s.firstVisit ? "" : ONBOARDING_KEY,
       games: [{ date: inTwoDays(), time: "19:00", lobbyOpens: "18:45", rounds: 6, roomCode: "PLAY", title: "Saturday night quiz" }],
       harness: {
         slowMs: SLOW_MS,
@@ -201,12 +206,18 @@ try {
   const backSeen = judge(returning, back.frames);
   const firstDaily = backSeen?.find((f) => f.items["daily"] !== null)?.daily ?? "";
   // The follow-up to #129: a played daily's row shows its score ("6 rounds · 694") and a grey Done pill, no place.
-  check(/6 rounds · 694/.test(firstDaily) && /Done/.test(firstDaily), `returning device (a daily already played): the daily card's first frame shows the remembered score and Done (${firstDaily})`);
+  // Tab pages refresh (26 Oct 2026): "Done" and the score beside a teal tick in place of the pill.
+  check(/Done/.test(firstDaily) && /694/.test(firstDaily), `returning device (a daily already played): the daily card's first frame shows the remembered score and Done (${firstDaily})`);
 
   const arrival: Scenario = { name: "arrival from a shared link", storage: {}, query: "ref=share", server: all, expect: "stable" };
   const arrived = await run(browser, server.origin, arrival);
   const arrivedSeen = judge(arrival, arrived.frames);
   check(!!arrivedSeen && arrivedSeen[0]!.items["welcome"] !== null, "arrival: the welcome card is there from the first frame");
+
+  const first: Scenario = { name: "first visit (intro card)", storage: lastRoom, server: all, expect: "stable", firstVisit: true };
+  const firstSeen = judge(first, (await run(browser, server.origin, first)).frames);
+  check(!!firstSeen && firstSeen[0]!.items["intro"] !== null, "first visit: the intro card is there from the first frame");
+  check(!!freshSeen && freshSeen[freshSeen.length - 1]!.items["intro"] === null, "a device that has seen the intro: no intro card");
 
   // The public game card: a cached height (the last visit's) holds it from the first frame as the boot
   // script's default does on a fresh device (above), and the Add to Home Screen hint on iPhone Safari.
@@ -314,10 +325,13 @@ check(readFileSync("src/lib/duel/deviceHistory.ts", "utf8").includes(`"${LAST_RO
 check(readFileSync("src/lib/share/shareRef.ts", "utf8").includes(`"${ARRIVAL_KEY}"`), "the arrival key differs from shareRef.ts");
 const src = readFileSync("src/lib/playCards.ts", "utf8");
 const body = src.slice(src.indexOf("export function playCardTokens"), src.indexOf("/** The inline script"));
-check([NAME_KEY, LAST_ROOM_KEY, ARRIVAL_KEY, PLAY_CARDS_KEY, HOME_HINT_KEY].every((k) => body.includes(`"${k}"`)), "the boot script doesn't read every key it should");
+check([NAME_KEY, LAST_ROOM_KEY, ARRIVAL_KEY, PLAY_CARDS_KEY, HOME_HINT_KEY, ONBOARDING_SEEN_KEY].every((k) => body.includes(`"${k}"`)), "the boot script doesn't read every key it should");
+check(ONBOARDING_SEEN_KEY === ONBOARDING_KEY, "the intro key the boot script reads differs from lib/onboarding.ts");
 check(readFileSync("src/components/beta/HomeScreenHint.tsx", "utf8").includes("HOME_HINT_KEY"), "the hint doesn't mark the key the boot script reads");
 const mem = (o: Record<string, string>) => ({ getItem: (k: string) => o[k] ?? null });
-check(playCardTokens(mem({}), "", null, []).join() === "daily,challenge", `fresh tokens ${playCardTokens(mem({}), "", null, []).join()}`);
+check(playCardTokens(mem({}), "", null, []).join() === "daily,challenge,intro", `fresh tokens ${playCardTokens(mem({}), "", null, []).join()}`);
+check(playCardTokens(mem({ [ONBOARDING_SEEN_KEY]: "1" }), "", null, []).join() === "daily,challenge", "a device that has seen the intro reserves no intro card");
+check(playCardTokens(mem({}), "", null, [], Date.now(), mem({ [ONBOARDING_SEEN_KEY]: "1" })).join() === "daily,challenge", "seen this session (sessionStorage): no intro card");
 check(playCardTokens(mem({ [PLAY_CARDS_KEY]: JSON.stringify({ daily: { available: false }, challenges: false }) }), "?ref=share", null, []).join() === "welcome", "remembered no's and a share arrival");
 // A configured public game still to come reserves its card on a device with no height cached (the
 // server-rendered page can't draw it: it depends on the phone's clock); a cached height wins; none once it has started.
@@ -341,7 +355,7 @@ bootFn(
   { search: "" },
   { documentElement: { setAttribute: (k: string, v: string) => void (attrs[k] = v), style: { setProperty: (k: string, v: string) => void (props[k] = v) } } },
 );
-check(attrs["data-play-cards"] === "named daily challenge public" && props["--play-public-h"] === "212px", `the inline boot script runs on its own (${attrs["data-play-cards"]}, ${props["--play-public-h"]})`);
+check(attrs["data-play-cards"] === "named daily challenge intro public" && props["--play-public-h"] === "212px", `the inline boot script runs on its own (${attrs["data-play-cards"]}, ${props["--play-public-h"]})`);
 // The inline script (a fixed string) gives the same tokens as playCardTokens + applyTokens in every case.
 {
   const cases: [Record<string, string>, string, BootDevice | null][] = [];
@@ -361,6 +375,7 @@ check(attrs["data-play-cards"] === "named daily challenge public" && props["--pl
     for (const name of [undefined, "", "  ", "Jo"])
       for (const last of [undefined, JSON.stringify({ code: "ABCD" }), JSON.stringify({ code: "abcd" })])
         for (const arrival of [undefined, JSON.stringify({ at: 1 })])
+          for (const seen of [undefined, "1"])
           for (const search of ["", "?ref=share", "?mode=home&ref=share&room=ABCD", "?ref=sharex"])
             for (const device of devices)
               for (const hinted of [undefined, "", JSON.stringify({ shownAt: "2026-10-22T20:00:00Z" })]) {
@@ -370,6 +385,7 @@ check(attrs["data-play-cards"] === "named daily challenge public" && props["--pl
                 if (last !== undefined) store[LAST_ROOM_KEY] = last;
                 if (arrival !== undefined) store[ARRIVAL_KEY] = arrival;
                 if (hinted !== undefined) store[HOME_HINT_KEY] = hinted;
+                if (seen !== undefined) store[ONBOARDING_SEEN_KEY] = seen;
                 cases.push([store, search, device]);
               }
   let differ = 0;

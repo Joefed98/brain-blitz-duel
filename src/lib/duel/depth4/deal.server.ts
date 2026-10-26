@@ -25,7 +25,7 @@ import { generateLaser } from "../laser.server";
 import { isSplitter } from "../laser";
 import type { PuzzleData, PuzzleType } from "../types";
 import { pipesParTurns } from "./pipesTaps";
-import { D4_REV, isD4Type } from "./stamps";
+import { D4_REV, dealtD4Rev, isD4Type } from "./stamps";
 import { addIceGems } from "./gems.server";
 import { drawPushD4 } from "./pushD4.server";
 import { drawBlockD4 } from "./blockD4.server";
@@ -52,20 +52,20 @@ export function dealDepth4(type: PuzzleType, context: D4DealContext): PuzzleData
   switch (type) {
     case "unblock": {
       const p = generateUnblock(context.unblockRow);
-      return { ...p, unblockRev: D4_REV, par: p.minMoves ?? 0 };
+      return { ...p, unblockRev: dealtD4Rev("unblock"), par: p.minMoves ?? 0 };
     }
     case "rings": {
       const p = generateRings(RINGS_TWO_RULE_PATTERNS);
-      return { ...p, ringsRev: D4_REV, par: p.minMoves ?? 0 };
+      return { ...p, ringsRev: dealtD4Rev("rings"), par: p.minMoves ?? 0 };
     }
     case "pipes": {
       const p = generatePipes();
-      return { ...p, pipesRev: D4_REV, par: pipesParTurns(p.tiles, p.solution ?? []) };
+      return { ...p, pipesRev: dealtD4Rev("pipes"), par: pipesParTurns(p.tiles, p.solution ?? []) };
     }
     case "laser": {
       const p = generateLaser();
       const par = (p.solution ?? []).filter((piece) => !isSplitter(piece.kind)).length;
-      return { ...p, laserRev: D4_REV, par, mirrors: p.mirrors + LASER_SPARE_MIRRORS };
+      return { ...p, laserRev: dealtD4Rev("laser"), par, mirrors: p.mirrors + LASER_SPARE_MIRRORS };
     }
     case "flow": {
       if (context.bankSeed === undefined) return null;
@@ -79,10 +79,10 @@ export function dealDepth4(type: PuzzleType, context: D4DealContext): PuzzleData
       return { ...withSeededRandom(ICE_GEM_SEED ^ context.bankSeed, () => addIceGems(p)), slideRev: D4_REV };
     }
     case "push":
-      return { ...drawPushD4(context.bankSeed), pushRev: D4_REV };
+      return { ...drawPushD4(context.bankSeed), pushRev: dealtD4Rev("push") };
     case "blockparty": {
       if (context.bankSeed === undefined) return null;
-      return { ...drawBlockD4(context.bankSeed), blockRev: D4_REV };
+      return { ...drawBlockD4(context.bankSeed), blockRev: dealtD4Rev("blockparty") };
     }
   }
   return null;
