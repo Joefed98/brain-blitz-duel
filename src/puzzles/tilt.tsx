@@ -1,6 +1,6 @@
 import { heldHorizontal } from "@/lib/desktop";
 import { gameDisplayName } from "@/lib/duel/gameNames";
-import { tiltArenaSceneFor, tiltArtGameFor } from "@/lib/arcade/tiltArt.renderer";
+import { tiltArenaScene, tiltArtGameFor } from "@/lib/arcade/tiltArt.renderer";
 import { tiltSounds } from "@/lib/fx/gameSounds";
 import { useRef } from "react";
 
@@ -10,10 +10,10 @@ import {
   TILT_CHECKPOINT_INTERVAL,
   TILT_GOLD,
   TILT_RED,
-  TILT_REV_EXPAND,
+  TILT_REV,
   TILT_TEAL,
+  TILT_WORLD_H,
   TILT_WORLD_W,
-  tiltWorldHFor,
 } from "@/lib/arcade/tilt";
 import { encodeTiltRun, replayTiltRun } from "@/lib/duel/tilt";
 import { TILT_TIME_MS, type TiltPuzzleData } from "@/lib/duel/types";
@@ -56,13 +56,12 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       background="#9A7347"
       fitWorld
       centreWorld
-      scene={tiltArenaSceneFor(data?.tiltRev)}
+      scene={tiltArenaScene}
       seed={data?.seed ?? 1}
       enabled={data !== null}
       locked={locked}
       worldW={TILT_WORLD_W}
-      // tiltRev 8: the taller world (the bigger mazes scroll under a camera that follows the marbles).
-      worldH={tiltWorldHFor(data?.tiltRev)}
+      worldH={TILT_WORLD_H}
       renderAtCanvasSize
       game={tiltArtGameFor(data?.tiltRev)}
       sounds={tiltSounds}
@@ -110,7 +109,6 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
       {result.totalStars > 0 && (
         <p className="shrink-0 text-center font-mono text-base text-muted-foreground">
           {result.stars} / {result.totalStars} bonus stars
-          {result.totalQuick > 0 ? ` · ${result.quickStars} / ${result.totalQuick} quick stars` : ""}
         </p>
       )}
       <p className="shrink-0 text-center font-mono text-base text-muted-foreground">Same mazes for everyone</p>
@@ -125,7 +123,7 @@ export const tiltPuzzle: PuzzleDefinition = {
   category: "arcade",
   timeLimitMs: TILT_TIME_MS,
   revealMs: 6_000,
-  generate: () => ({ type: "tilt", seed: 1, tiltRev: TILT_REV_EXPAND }) satisfies TiltPuzzleData,
+  generate: () => ({ type: "tilt", seed: 1, tiltRev: TILT_REV }) satisfies TiltPuzzleData,
   check: () => false,
   revealHeading: "Your run",
   IntroExample,

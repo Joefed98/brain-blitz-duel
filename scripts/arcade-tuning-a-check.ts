@@ -75,7 +75,7 @@ import {
 import { encodeSwingRun, replaySwingRun } from "../src/lib/duel/swing";
 import { SWING_V4_BANK } from "../src/lib/duel/swingBankV4.server";
 import { proveSwingSeedV4 } from "../src/lib/duel/swingProof.server";
-import { tiltCupReachable, tiltDealableX, tiltGameFor, tiltSeedCupsReachable, TILT_REV_BAND, TILT_REV_EXPAND } from "../src/lib/arcade/tilt";
+import { tiltCupReachable, tiltGameFor, tiltSeedCupsReachable, TILT_REV_BAND } from "../src/lib/arcade/tilt";
 import { generateOrbit, generateSkyline, generateSwing, generateTilt, generateWavefront } from "../src/lib/duel/arcade.server";
 import { skylineGameFor, SKYLINE_REV_EXPAND, SKYLINE_REV_TALL } from "../src/lib/arcade/skyline";
 import { APP_FLAG_LOGO_URL } from "../src/lib/brand";
@@ -413,10 +413,8 @@ if (want("swing")) {
 if (want("tilt")) {
   section("Tilt: every cup reachable, the orange marble always drawn");
   const p = generateTilt();
-  // Tuning C moved new Tilt rounds on to tiltRev 4 (arcade-tuning-c-check), the expansion (26 Oct 2026) on to tiltRev 8
-  // (tilt-expand-check); every cup stays reachable.
-  ok(p.tiltRev === TILT_REV_EXPAND && tiltDealableX(p.seed), "new Tilt rounds are stamped tiltRev 8 (the expansion) and deal a seed with every key and cup reachable");
-  ok(TILT_REV_BAND + 1 === 4 && typeof tiltSeedCupsReachable === "function", "tiltRev 4 still follows the band revision");
+  // Tuning C moved new Tilt rounds on to tiltRev 4 (arcade-tuning-c-check); every cup stays reachable.
+  ok(playRevOf("tilt", p.tiltRev) === TILT_REV_BAND + 1 && tiltSeedCupsReachable(p.seed), "new Tilt rounds are stamped tiltRev 4 (Tuning C) and deal a seed with every cup reachable");
   const n = FULL ? 40_000 : 4_000;
   let bad = 0;
   let amber = 0;
