@@ -56,6 +56,7 @@ import {
   FLIP_V8_SKILL_FULL,
   FLIP_V8_SKILL_PAY,
   FLIP_V8_SWEETS,
+  FLIP_V8_SWEET_POINTS,
   FLIP_V8_SWEET_TICKS,
   FLIP_V8_TRAILS,
   FLIP_V8_WORLD_H,
@@ -221,7 +222,7 @@ const v8Runs = gz<FlipLegacyRun[]>(FLIP_RUNS_FIXTURE);
   // One spot pays once: a whole witness takes each of the eight once.
   const w = gz<FlipWitness[]>(FLIP_WITNESS_FIXTURE)[0]!;
   const end = encodeFlipLog(FLIP_REV_EXPAND, w.seed, w.taps.map(TAP)).state;
-  ok(flipSweetsTaken(end) === FLIP_V8_SWEETS && flipV8Features(end).sweets === 3 * FLIP_V8_SWEETS, "a perfect route lands on every sweet spot once");
+  ok(flipSweetsTaken(end) === FLIP_V8_SWEETS && flipV8Features(end).sweets === FLIP_V8_SWEET_POINTS * FLIP_V8_SWEETS, "a perfect route lands on every sweet spot once");
 }
 
 /* 6. Scoring, saves, idle and random play. */

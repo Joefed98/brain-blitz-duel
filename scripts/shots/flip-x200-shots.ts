@@ -1,11 +1,12 @@
 /**
  * Review screenshots for Roofbound flipRev 8 (a design tool, not a check): a real practice run at 414 × 896
  * in headless Chromium, the page clock stepped one sim tick at a time while the in-page route planner
- * (scripts/flip-rev8-plan.ts, on the live run's own state) taps, saving frames that show each new feature:
- * a star trail swept mid-flip, a moving spike in its groove, a speed zone, a checkpoint gate and the save
- * badge, a double flip, tall and tight cave, and a saved crash (the planner stops tapping after 45 s).
+ * (scripts/flip-x200-plan.ts, on the live run's own state) taps, saving frames that show each feature:
+ * a roof's sweet spot ahead and a sweet landing's glint, a star trail swept mid-flip, a moving spike in its
+ * groove, a speed zone, a checkpoint gate and the save badge, a double flip, tall and tight cave, and a
+ * saved crash (the planner stops tapping after 30 s). Frames are flip-<what>-414x896.png.
  *
- *   bun scripts/shots/flip-e7-shots.ts --url=http://127.0.0.1:5301 [--out=screenshots/e7-oct-2026]
+ *   bun scripts/shots/flip-x200-shots.ts --url=http://127.0.0.1:5301 [--out=screenshots/x200-oct-2026] [--only=sweet-spot,sweet-glint]
  */
 import { mkdirSync } from "node:fs";
 import { chromium, type Page } from "playwright";
@@ -13,10 +14,11 @@ import { chromium, type Page } from "playwright";
 const args = process.argv.slice(2);
 const opt = (name: string) => args.find((a) => a.startsWith(`--${name}=`))?.slice(name.length + 3);
 const ORIGIN = opt("url") ?? "http://127.0.0.1:5301";
-const OUT = opt("out") ?? "screenshots/e7-oct-2026";
+const OUT = opt("out") ?? "screenshots/x200-oct-2026";
+const ONLY = opt("only")?.split(",") ?? null;
 mkdirSync(OUT, { recursive: true });
 
-type Info = { launched: boolean; tick: number; combos: number; saves: number; ended: number; cpPassed: number; inZone: boolean; height: number; trailLive: number; moverInView: boolean };
+type Info = { launched: boolean; tick: number; combos: number; saves: number; ended: number; cpPassed: number; inZone: boolean; height: number; trailLive: number; moverInView: boolean; sweetAhead: boolean; sweetT: number };
 
 async function info(page: Page): Promise<Info> {
   return page.evaluate(() => {
@@ -26,7 +28,9 @@ async function info(page: Page): Promise<Info> {
     const v8 = s.v8;
     const trailLive = v8.trails.findIndex((t: any) => s.tick >= t.t1 - 30 && s.tick <= t.t1 - 6);
     const moverInView = s.segs.some((g: any) => g.amp && (g.x0 - s.x) / 256 > 60 && (g.x0 - s.x) / 256 < 260);
-    return { launched: s.flipT > 0 && s.flipT === s.arcN, tick: s.tick, combos: s.combos ?? 0, saves: s.saves ?? 0, ended: s.ended, cpPassed: s.cpPassed ?? 0, inZone: F.flipV8InZone(v8, s.tick), height: F.flipV8HeightAt(v8, s.x), trailLive, moverInView };
+    // A sweet spot well in view ahead of the runner (130–260 px), not yet landed on.
+    const sweetAhead = v8.sweets.some((sw: any, i: number) => !((s.sweetGot ?? 0) & (1 << i)) && (sw.x0 - s.x) / 256 > 130 && (sw.x1 - s.x) / 256 < 260);
+    return { launched: s.flipT > 0 && s.flipT === s.arcN, tick: s.tick, combos: s.combos ?? 0, saves: s.saves ?? 0, ended: s.ended, cpPassed: s.cpPassed ?? 0, inZone: F.flipV8InZone(v8, s.tick), height: F.flipV8HeightAt(v8, s.x), trailLive, moverInView, sweetAhead, sweetT: s.sweetT ?? 0 };
   });
 }
 
@@ -52,7 +56,7 @@ async function main() {
   await page.evaluate(async () => {
     const w = window as unknown as Record<string, unknown>;
     w.__flip = await import(/* @vite-ignore */ "/src/lib/arcade/flip.ts");
-    w.__plan = await import(/* @vite-ignore */ "/scripts/flip-rev8-plan.ts");
+    w.__plan = await import(/* @vite-ignore */ "/scripts/flip-x200-plan.ts");
   });
   await ready.click();
   // Let the run begin, then hold the clock and step it a tick at a time.
@@ -65,7 +69,7 @@ async function main() {
   const replan = async (stopAfter: number) =>
     page.evaluate((until) => {
       const w = window as unknown as { __fs: any; __flip: any; __plan: any; __taps: number[] };
-      const route = w.__plan.planFlipRoute(w.__flip.flipGameFor(7), w.__fs, Math.min(3600, until), 600);
+      const route = w.__plan.planFlipRoute(w.__flip.flipGameFor(w.__flip.FLIP_REV_EXPAND), w.__fs, Math.min(3600, until), 600);
       w.__taps = route ? route.taps : [];
       return w.__taps.length;
     }, stopAfter);
@@ -78,13 +82,13 @@ async function main() {
   let s = await info(page);
   await plan(s.tick);
   const shots = new Map<string, number>();
-  const want = (name: string, cond: boolean) => cond && !shots.has(name);
+  const want = (name: string, cond: boolean) => cond && !shots.has(name) && (!ONLY || ONLY.includes(name));
   let lastCombos = s.combos;
   let comboAt = -1;
   let savedAt = -1;
   let tapping = true;
   const tick = 1000 / 60;
-  while (s.ended === 0 && s.tick < 3590) {
+  while (s.ended === 0 && s.tick < 3590 && !(ONLY && ONLY.every((n) => shots.has(n)))) {
     const next = taps.find((t) => t > s.tick);
     const tapNow = tapping && next === s.tick + 1;
     if (tapNow) {
@@ -103,9 +107,12 @@ async function main() {
     if (s.saves > was.saves) savedAt = s.tick;
     const snap = async (name: string) => {
       shots.set(name, s.tick);
-      await page.screenshot({ path: `${OUT}/flip-${name}.png` });
-      console.log(`flip-${name}.png at tick ${s.tick}`);
+      await page.screenshot({ path: `${OUT}/flip-${name}-414x896.png` });
+      console.log(`flip-${name}-414x896.png at tick ${s.tick}`);
     };
+    if (want("sweet-spot", s.sweetAhead && s.tick > 700)) await snap("sweet-spot");
+    // A sweet landing's glint runs along the strip for 24 ticks: caught 5 ticks in.
+    if (want("sweet-glint", s.sweetT > 700 && s.tick === s.sweetT + 5)) await snap("sweet-glint");
     if (want("trail", s.trailLive >= 1)) await snap("trail");
     if (want("double-flip", comboAt > 0 && s.tick === comboAt + 8)) await snap("double-flip");
     if (want("speed-zone", s.inZone && s.tick > 1200)) await snap("speed-zone");
@@ -117,7 +124,7 @@ async function main() {
     if (want("tall", s.height === 340 && s.tick > 600)) await snap("tall");
     if (want("tight", s.height === 200 && s.tick > 600)) await snap("tight");
     // After the second checkpoint (a save ready), stop tapping until a crash is saved, then plan on.
-    if (tapping && s.tick > 1960 && s.cpPassed >= 2 && !shots.has("saved")) tapping = false;
+    if (tapping && s.tick > 1960 && s.cpPassed >= 2 && !shots.has("saved") && (!ONLY || ONLY.includes("saved"))) tapping = false;
     if (!tapping && savedAt > 0 && s.tick === savedAt + 10) {
       await snap("saved");
       tapping = true;

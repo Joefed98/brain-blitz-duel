@@ -896,25 +896,31 @@ export const flipStrictGame = bandStrictGame(flipTargetGame);
 /** The curve new rounds score on: FLIP_V4_BAND_CURVE's strict curve (what bandCurveOf gives a band-3 state). */
 export const FLIP_V6_BAND_CURVE = bandStrict(FLIP_V4_BAND_CURVE);
 
-/* ================= The expansion (flipRev 8, 25 Oct 2026) ================= */
+/* ================= The expansion (flipRev 8, expansion E7, 26 Oct 2026) ================= */
 
 /**
- * flipRev 8 (docs/expansions/e7.md, docs/scoring-200.md): a taller 390 × 730 world whose cave
+ * flipRev 8 (docs/expansions/x200-flip.md, docs/scoring-200.md): a taller 390 × 730 world whose cave
  * height changes along the run (normal 260 px, tight 200 px, tall 340 px sections), so a flip's
  * arc takes 9 to 16 ticks (flipV8Arc: the height under the runner when it leaves), a faster top
  * speed and two speed zones (the run goes 11/8 as fast for 5 s), moving spikes that slide along
  * their surface, four bonus star trails (five stars on a flip's arc, taken in the air), double-flip
- * combos (a flip within 8 ticks of landing with a hazard close by), and checkpoints at 15, 30 and
- * 45 s (the next crash after one is saved: a second of shield, 5 s off the survival count).
+ * combos (a flip within 8 ticks of landing with a hazard close by), checkpoints at 15, 30 and 45 s
+ * (the next crash after one is saved: a second of shield, 10 s off the survival count), and sweet
+ * spots (eight strips of roof; a flip that lands with the runner's centre inside one is a sweet landing).
+ * The parked expansion's stamp (7) was never dealt; a round stamped 7 plays as flipRev 6 (flipGameFor).
  *
  * Scored to 200 (roundMaxFor("flip")): the rev-6 shape (half seconds + 3 per gold star on its own
- * curve to 140, plus 10 for the full minute) and up to 50 more from the features only: 1 per trail
- * star and 1 per full trail (24), combo points (a double flip 1, a triple 2, longer 3; 12 at most),
- * 4 per speed zone run through without a save (8) and 2 per checkpoint reached without a crash (6).
+ * curve, FLIP_V8_BAND_CURVE, to 140, plus 10 for the full minute) and up to 50 more from the features
+ * only, their raw points (4 a full trail, 4 a sweet landing, 3 a clean speed zone, 3 a clean checkpoint,
+ * combo points up to FLIP_V8_COMBO_CAP) paid on a rising scale (FLIP_V8_SKILL_PAY).
  *
- * Collision is the original 1-D rule (side, x-span, on the surface): the height, trails and
- * zones never move a hazard; the course is proved on the sim's own rule: one route takes every
- * gold star and every trail star and lasts the minute.
+ * The guarantee (the arcade rule): every course carries exactly ten gold stars, four trails, eight sweet
+ * spots, two speed zones and three checkpoints (flipV8Opportunities), placed by the seed, all on one
+ * route the course builder proved lasts the minute (re-rolled from the seed until they fit), so a
+ * perfect run reaches 200 on every seed: 150 units on the base curve (140 + 10) and FLIP_V8_SKILL_FULL raw.
+ *
+ * Collision is the original 1-D rule (side, x-span, on the surface): the height, trails, zones and
+ * sweet spots never move a hazard.
  */
 export const FLIP_REV_EXPAND = 8;
 export const FLIP_V8_WORLD_H = 730;
@@ -946,9 +952,9 @@ export const FLIP_V8_TRAIL_TOL = 230;
 export const FLIP_V8_TRAIL_R = 8;
 /** Moving spikes join the plain patterns from this tick. */
 const V8_MOVERS_FROM = 12 * TICKS_PER_SECOND;
-/** Feature points (50 in all): a full trail, combo points (doubled in a speed zone, capped), a clean zone, a clean checkpoint. */
-export const FLIP_V8_TRAIL_POINTS = 6;
-export const FLIP_V8_COMBO_CAP = 8;
+/** Raw skill points: a full trail, combo points (doubled in a speed zone, capped), a clean zone, a clean checkpoint; the paid total caps at 50. */
+export const FLIP_V8_TRAIL_POINTS = 4;
+export const FLIP_V8_COMBO_CAP = 6;
 export const FLIP_V8_ZONE_POINTS = 3;
 export const FLIP_V8_CP_POINTS = 3;
 export const FLIP_V8_FEATURE_CAP = 50;
@@ -959,19 +965,20 @@ export const FLIP_V8_FEATURE_CAP = 50;
  * raw skill points, once per spot.
  */
 export const FLIP_V8_SWEETS = 8;
-export const FLIP_V8_SWEET_TICKS = 5;
-export const FLIP_V8_SWEET_POINTS = 3;
+export const FLIP_V8_SWEET_TICKS = 2;
+export const FLIP_V8_SWEET_POINTS = 4;
 const V8_SWEET_SECONDS = [6.5, 13, 19.5, 26, 32.5, 39, 45.5, 52] as const;
 /**
- * The skill pay (a rising scale, as Breaker's BRK_V9_SKILL_PAY): the features' raw points (trails 5 each, sweet
- * landings 2 each, clean zones 3 each, clean checkpoints 3 each, combo points up to FLIP_V8_COMBO_CAP) paid so a
- * little feature play pays little and the full 50 needs every guaranteed item (FLIP_V8_SKILL_FULL raw: every trail,
- * sweet spot, zone and checkpoint), or near it with combos on top.
+ * The skill pay (a rising scale, as Breaker's BRK_V9_SKILL_PAY): the features' raw points (trails 4 each, sweet
+ * landings 4 each, clean zones 3 each, clean checkpoints 3 each, combo points up to FLIP_V8_COMBO_CAP) paid so a
+ * little feature play pays little and the full 50 needs every guaranteed item (FLIP_V8_SKILL_FULL = 63 raw: every
+ * trail, sweet spot, zone and checkpoint), or near it with combos on top. Fitted on the 60 tuning seeds
+ * (docs/expansions/x200-flip.md), with the base curve.
  */
 export const FLIP_V8_SKILL_FULL = FLIP_V8_TRAILS * FLIP_V8_TRAIL_POINTS + FLIP_V8_SWEETS * FLIP_V8_SWEET_POINTS + 2 * FLIP_V8_ZONE_POINTS + 3 * FLIP_V8_CP_POINTS;
-export const FLIP_V8_SKILL_PAY = bandCurve([0, 12, 27, 42, 55, FLIP_V8_SKILL_FULL], [0, 4, 10, 17, 26, FLIP_V8_FEATURE_CAP]);
+export const FLIP_V8_SKILL_PAY = bandCurve([0, 12, 32, 51, 54, FLIP_V8_SKILL_FULL], [0, 1, 2, 28, 36, FLIP_V8_FEATURE_CAP]);
 /** The rev-8 survival curve: half seconds + 3 per gold star, to 140 (the full minute adds 10, the features up to 50). */
-export const FLIP_V8_BAND_CURVE = bandCurve([0, 40, 105, 130, 140, 146, 150], [0, 12, 48, 74, 96, 118, 140]);
+export const FLIP_V8_BAND_CURVE = bandCurve([0, 40, 105, 130, 140, 146, 150], [0, 15, 51, 73, 79, 123, 140]);
 
 export interface FlipTrail {
   /** Star centres (1/256 px) and heights (per mille of the cave: 0 the floor's runner line, 1000 the ceiling's). */
@@ -1595,7 +1602,7 @@ function stepV8(state: FlipState, input: ArcadeInputEvent | null): FlipState {
   });
   if (hit) {
     if (s.save) {
-      // A checkpoint's save: a second of shield where it happened, 5 s off the survival count, the combo lost.
+      // A checkpoint's save: a second of shield where it happened, the survival count paused for FLIP_V8_SAVE_PAUSE (10 s), the combo lost.
       s.save = 0;
       s.saves = (s.saves ?? 0) + 1;
       s.inv = FLIP_V8_SHIELD_TICKS;
