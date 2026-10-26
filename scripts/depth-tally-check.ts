@@ -21,6 +21,11 @@ import { hashText, makeRng } from "./puzzle-fairness/kit";
 import { roomPuzzle } from "./puzzle-fairness/run";
 import { tallyDepthIntro, tallyDepthHelp } from "../src/lib/duel/depth/attentionTexts";
 import { TABLE_SEEDS, checkTexts, finish, median, ok, printTable, replayLegacy, scoreTable, top10 } from "./depth-attention-lib";
+import { pinPreTopup } from "../src/lib/duel/depthTopup";
+
+// The puzzle top-up (26 Oct 2026, docs/depth/topup-oct-2026.md) deals newer stamps; this check proves the stamps it was
+// written for, so new deals are pinned to them (depth-topup-check proves the top-up's).
+pinPreTopup(true);
 
 const legacy = replayLegacy("countup");
 const toOld = (p: PuzzleData) => ({ ...(p as CountUpPuzzleData), countRev: 2 }) as PuzzleData;

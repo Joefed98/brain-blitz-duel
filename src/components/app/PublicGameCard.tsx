@@ -1,10 +1,12 @@
-import { CalendarPlus, Users } from "lucide-react";
-import type { ReactNode } from "react";
+import { CalendarPlus, Clock, Lock, Users } from "lucide-react";
+import { useEffect, useState, type ReactNode } from "react";
 
+import { fetchDuelByCode, fetchPlayers } from "@/lib/duel/api";
 import {
   downloadCalendar,
   nextUpState,
   ukDateParts,
+  ukDay,
   ukTime,
   type PublicGame,
 } from "@/lib/publicSchedule";
@@ -15,54 +17,67 @@ export function publicGameWhen(game: PublicGame): string {
   return `${weekday} ${day} ${month} · ${ukTime(game.startsAt)} UK`;
 }
 
+/** "Tonight · 8:00 pm UK · 6 rounds", "Tomorrow · …" or "Thu 29 Oct · …" (UK dates and times). */
+function publicGameLine(game: PublicGame, now: number): string {
+  const day = ukDay(game.startsAt, now);
+  const time = ukTime(game.startsAt);
+  const evening = /pm$/.test(time) && Number(time.split(":")[0]) % 12 >= 5;
+  return `${day === "Today" && evening ? "Tonight" : day} · ${time} UK · ${game.rounds} rounds`;
+}
+
+/** "1 h 25 min", "25 min", "under a minute", "2 days" until `ms` from `now`. */
+export function untilText(ms: number, now: number): string {
+  const minutes = Math.ceil((ms - now) / 60_000);
+  if (minutes <= 1) return "under a minute";
+  if (minutes < 60) return `${minutes} min`;
+  if (minutes < 24 * 60) {
+    const h = Math.floor(minutes / 60);
+    const m = minutes % 60;
+    return m === 0 ? `${h} h` : `${h} h ${m} min`;
+  }
+  const days = Math.round(minutes / (24 * 60));
+  return `${days} ${days === 1 ? "day" : "days"}`;
+}
+
 /**
- * A public game's date tile and its three stacked lines: the title, "Tue 27 Oct · 8:00 pm UK" (secondary)
- * and "Lobby opens 7:45 pm · 6 rounds" (faint). Every line is one line (ellipsis), so the height never
- * depends on the title. `game` null: the stand-in before the page is up (no day or time: those need the
- * phone's clock), the same size as the real one.
+ * Players waiting in the public room once its lobby is open (the room's own player rows, the same read
+ * as "Rejoin your last room"); null until known or when the read fails. Re-read every 20 s while open.
  */
-function PublicGameLines({ game, now }: { game: PublicGame | null; now: number }) {
-  const parts = game ? ukDateParts(game.startsAt) : null;
-  const lobby = !game
-    ? "Lobby opens ····"
-    : `${nextUpState(game, now) === "join" ? "Lobby open now" : `Lobby opens ${ukTime(game.lobbyAt)}`} · ${game.rounds} rounds`;
-  return (
-    <>
-      <span aria-hidden="true" className="ap-date">
-        <span className="ap-date-day">{parts ? parts.weekday : "···"}</span>
-        <span className="ap-date-num">{parts ? parts.day : "··"}</span>
-      </span>
-      <span className="ap-row-text">
-        <span data-ellipsis className="ap-row-title">
-          {game?.title ?? "Public game"}
-        </span>
-        <span data-ellipsis className="ap-row-sub">
-          {game ? publicGameWhen(game) : "····"}
-        </span>
-        <span data-ellipsis className="ap-row-sub ap-faint">
-          {lobby}
-        </span>
-      </span>
-    </>
-  );
-}
-
-/** A later public game's row (Tournaments): its date tile and lines, no buttons. */
-export function PublicGameRow({ game, now }: { game: PublicGame; now: number }) {
-  return (
-    <div data-icon="date" className="ap-row">
-      <PublicGameLines game={game} now={now} />
-    </div>
-  );
+function useLobbyWaiting(roomCode: string | null, open: boolean): number | null {
+  const [waiting, setWaiting] = useState<number | null>(null);
+  useEffect(() => {
+    if (!roomCode || !open) return setWaiting(null);
+    let live = true;
+    const read = async () => {
+      try {
+        const duel = await fetchDuelByCode(roomCode);
+        if (!duel || duel.disbanded_at) return;
+        const players = await fetchPlayers(duel.id);
+        if (live) setWaiting(players.filter((p) => p.status !== "left").length);
+      } catch {
+        /* the line just leaves the count out */
+      }
+    };
+    void read();
+    const timer = window.setInterval(() => void read(), 20_000);
+    return () => {
+      live = false;
+      window.clearInterval(timer);
+    };
+  }, [roomCode, open]);
+  return waiting;
 }
 
 /**
- * The next public game, in one layout (Play's card and Tournaments' first row): the date tile and lines,
- * then two equal 44 px buttons side by side. Join now opens the public room (its link join asks for a
- * name) and is gold from lobby time until the start; before the lobby opens it is there but off. Add to
- * calendar (an .ics file) is always offered. `data-public-game` is the state ("calendar" before the
- * lobby opens, "join" from then; "pending" for the stand-in). Its height is reserved before the first
- * paint (PUBLIC_CARD_H in lib/playCards.ts, the same with or without a title).
+ * The next public game, in one layout (Play's card and Tournaments' Next up; the design canvas's T-Play
+ * and T-Tournaments): the date tile, the title and "Tonight · 8:00 pm UK · 6 rounds"; under a divider, the
+ * lobby's state ("Lobby opens in 1 h 25 min", or the teal "Lobby open · 9 players waiting · starts in
+ * 11 min"); then the buttons. Before the lobby opens: a quiet, disabled "Opens 7:45 pm" (lock icon, still
+ * named Join now) beside Add to calendar (an .ics file); from lobby time until the start: Join now, gold,
+ * across the card. Every line is one line (ellipsis) and both states are the same height, so the card's
+ * height never changes (reserved before the first paint: PUBLIC_CARD_H in lib/playCards.ts).
+ * `data-public-game` is the state ("calendar", "join"; "pending" for the stand-in, `game` null, drawn
+ * before the page knows the phone's clock).
  */
 export function PublicGameNext({
   game,
@@ -75,32 +90,104 @@ export function PublicGameNext({
 }) {
   const state = game ? nextUpState(game, now) : "calendar";
   const open = state === "join";
+  const waiting = useLobbyWaiting(game?.roomCode ?? null, open);
+  const parts = game ? ukDateParts(game.startsAt) : null;
   return (
-    <div data-public-game={game ? state : "pending"} className="flex flex-col gap-3 p-4">
-      <div className="flex items-center gap-3">
-        <PublicGameLines game={game} now={now} />
+    <div data-public-game={game ? state : "pending"}>
+      <div className="ap-next-head">
+        <span aria-hidden="true" className="ap-date">
+          <span className="ap-date-day">{parts ? parts.weekday.toUpperCase() : "···"}</span>
+          <span className="ap-date-num">{parts ? parts.day : "··"}</span>
+        </span>
+        <span className="ap-row-text">
+          <span data-ellipsis className="ap-row-title">
+            {game?.title ?? "Public game"}
+          </span>
+          <span data-ellipsis className="ap-row-sub">
+            {game ? publicGameLine(game, now) : "····"}
+          </span>
+        </span>
       </div>
-      <div className="grid grid-cols-2 gap-2.5">
-        <button
-          type="button"
-          data-public-join
-          disabled={!open}
-          onClick={() => game && open && onJoin(game.roomCode)}
-          // Before the lobby opens it says when it does (Polish batch R): "Opens 7:45 pm", still named Join now.
-          aria-label={open || !game ? "Join now" : `Join now (opens ${ukTime(game.lobbyAt)})`}
-          className={`${open ? "ap-btn-gold" : "ap-btn-outline ap-btn-off"} press tap-target h-11 w-full text-[15px]`}
-        >
-          <Users aria-hidden="true" className="h-[18px] w-[18px]" /> {open || !game ? "Join now" : `Opens ${ukTime(game.lobbyAt)}`}
-        </button>
-        <button
-          type="button"
-          data-public-calendar
-          onClick={() => game && downloadCalendar(game)}
-          className="ap-btn-outline press tap-target h-11 w-full text-[15px]"
-        >
-          <CalendarPlus aria-hidden="true" className="h-[18px] w-[18px]" /> Add to calendar
-        </button>
+      {open && game ? (
+        <p data-public-status data-open="" className="ap-next-status">
+          <span aria-hidden="true" className="ap-live-dot" />
+          <span>
+            Lobby open
+            {waiting !== null ? ` · ${waiting} ${waiting === 1 ? "player" : "players"} waiting` : ""} · starts in{" "}
+            {untilText(game.startsAt, now)}
+          </span>
+        </p>
+      ) : (
+        <p data-public-status className="ap-next-status">
+          <Clock aria-hidden="true" />
+          <span>{game ? `Lobby opens in ${untilText(game.lobbyAt, now)}` : "Lobby opens ····"}</span>
+        </p>
+      )}
+      <div className="ap-next-actions">
+        {open && game ? (
+          <button
+            type="button"
+            data-public-join
+            onClick={() => onJoin(game.roomCode)}
+            className="ap-btn-gold press tap-target h-11 w-full text-[16px]"
+          >
+            <Users aria-hidden="true" className="h-[18px] w-[18px]" /> Join now
+          </button>
+        ) : (
+          <>
+            <button
+              type="button"
+              data-public-join
+              disabled
+              // Still named Join now (it becomes it at lobby time); it shows when it opens.
+              aria-label={game ? `Join now (opens ${ukTime(game.lobbyAt)})` : "Join now"}
+              className="ap-btn-quiet tap-target h-11 w-full text-[15px]"
+            >
+              <Lock aria-hidden="true" className="h-[15px] w-[15px]" strokeWidth={2.2} />
+              {game ? `Opens ${ukTime(game.lobbyAt)}` : "Opens ····"}
+            </button>
+            <button
+              type="button"
+              data-public-calendar
+              onClick={() => game && downloadCalendar(game)}
+              className="ap-btn-outline press tap-target h-11 w-full text-[15px]"
+            >
+              <CalendarPlus aria-hidden="true" className="h-[18px] w-[18px]" /> Add to calendar
+            </button>
+          </>
+        )}
       </div>
+    </div>
+  );
+}
+
+/** A later public game's row (Tournaments' Coming up): a quiet date tile, its lines, a calendar button. */
+export function PublicGameRow({ game }: { game: PublicGame }) {
+  const parts = ukDateParts(game.startsAt);
+  const name = game.title ?? "Public game";
+  return (
+    <div data-icon="date-sm" className="ap-row">
+      <span aria-hidden="true" data-quiet="" className="ap-date">
+        <span className="ap-date-day">{parts.weekday.toUpperCase()}</span>
+        <span className="ap-date-num">{parts.day}</span>
+      </span>
+      <span className="ap-row-text">
+        <span data-ellipsis className="ap-row-title">
+          {name}
+        </span>
+        <span data-ellipsis className="ap-row-sub">
+          {parts.day} {parts.month} · {ukTime(game.startsAt)} UK
+        </span>
+      </span>
+      <button
+        type="button"
+        data-public-row-calendar
+        aria-label={`Add ${name} to calendar`}
+        onClick={() => downloadCalendar(game)}
+        className="ap-icon-btn press"
+      >
+        <CalendarPlus aria-hidden="true" strokeWidth={1.9} />
+      </button>
     </div>
   );
 }
@@ -126,7 +213,7 @@ export function PublicGameCard({
         <h2 className="ap-section-title">{heading}</h2>
         {link}
       </div>
-      <div className="ap-panel">
+      <div className="ap-panel overflow-hidden">
         <PublicGameNext game={game} now={now} onJoin={onJoin} />
       </div>
     </section>

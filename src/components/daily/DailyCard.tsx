@@ -1,5 +1,7 @@
-import { Gamepad2, Puzzle } from "lucide-react";
+import { Check } from "lucide-react";
 import { useEffect, useState } from "react";
+
+import { DailyArcadeTile, DailyPuzzleTile } from "@/components/app/TabIcons";
 
 import { dailyStatus } from "@/lib/duel/asyncApi";
 import {
@@ -15,17 +17,18 @@ import {
 import { readPlayCards, writePlayCards } from "@/lib/playCards";
 
 /**
- * A daily's row: its size, then (once played today) the device's score ("6 rounds · 742"), and its pill:
- * gold Play or Continue (tap to play), grey Done once played.
+ * A daily's row (tab pages refresh, 26 Oct 2026): its size and, once played today, "Done" (with this
+ * device's streak from 2 days) and the score beside a teal tick in place of the pill; else the gold
+ * Play or Continue pill (tap to play).
  */
-function rowState(kind: DailyKind, state: DailyState): { sub: string; action: string; done: boolean } {
+function rowState(kind: DailyKind, state: DailyState, streak: number): { sub: string; action: string; done: number | null } {
   const size = kind === "puzzle" ? `${DAILY_ROUNDS[kind]} rounds` : `${DAILY_ROUNDS[kind]} games`;
-  if (state.state === "play") return { sub: size, action: "Play", done: false };
-  if (state.state === "continue") return { sub: `${size} · started`, action: "Continue", done: false };
-  return { sub: `${size} · ${state.total}`, action: "Done", done: true };
+  if (state.state === "play") return { sub: size, action: "Play", done: null };
+  if (state.state === "continue") return { sub: `${size} · started`, action: "Continue", done: null };
+  return { sub: streak >= 2 ? `Done · ${streak}-day streak` : "Done", action: "Done", done: state.total };
 }
 
-const DAILY_ICON = { puzzle: Puzzle, arcade: Gamepad2 } as const;
+const DAILY_ICON = { puzzle: DailyPuzzleTile, arcade: DailyArcadeTile } as const;
 
 /**
  * Today's dailies for this device, fetched after mount: `status` once the server answers (null on a
@@ -69,14 +72,17 @@ export function shownDailyStatus(
 
 /**
  * The Play tab's "Daily challenge" card (21 Oct 2026): today's Daily Puzzle and Daily Arcade, each
- * with Play, Continue, or the device's score and place. Hidden until the status call says the
+ * with Play, Continue, or Done and the device's score (Challenge a friend joins its panel, app-pages.css). Hidden until the status call says the
  * dailies are available (before the async-room migration is applied it never shows).
  */
 export function DailyCard({
   status,
+  streak = 0,
   onOpen,
 }: {
   status: DailyStatus | null;
+  /** This device's daily streak (dailyRecord.ts), read once the page is up. */
+  streak?: number;
   onOpen: (kind: DailyKind) => void;
 }) {
   if (!status?.available) return null;
@@ -88,7 +94,7 @@ export function DailyCard({
       </div>
       <div className="ap-panel">
         {DAILY_KINDS.map((kind) => {
-          const { sub, action, done } = rowState(kind, status[kind]);
+          const { sub, action, done } = rowState(kind, status[kind], streak);
           const Icon = DAILY_ICON[kind];
           return (
             <button
@@ -97,19 +103,24 @@ export function DailyCard({
               data-daily-open={kind}
               data-daily-state={status[kind].state}
               onClick={() => onOpen(kind)}
-              data-icon="sq"
+              data-icon="tile"
               className="ap-row press"
             >
-              <span data-tone={kind} className="ap-icon-sq">
-                <Icon aria-hidden="true" />
-              </span>
+              <Icon />
               <span className="ap-row-text">
                 <span className="ap-row-title">{DAILY_TITLE[kind]}</span>
                 <span data-ellipsis className="ap-row-sub">
                   {sub}
                 </span>
               </span>
-              <span className={done ? "ap-pill-done" : "ap-pill-gold"}>{action}</span>
+              {done !== null ? (
+                <span data-daily-done className="ap-done-score">
+                  <Check aria-hidden="true" strokeWidth={2.6} />
+                  {done}
+                </span>
+              ) : (
+                <span className="ap-pill-gold">{action}</span>
+              )}
             </button>
           );
         })}

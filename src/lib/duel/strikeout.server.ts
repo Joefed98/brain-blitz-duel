@@ -16,6 +16,7 @@ import {
   STRIKEOUT_REV3,
   STRIKEOUT_REV4,
   STRIKEOUT_REV5,
+  STRIKEOUT_REV_TOPUP,
   decodeStrikeout,
   decodeStrikeout2,
   replayStrikeout,
@@ -211,7 +212,7 @@ export function generateStrikeout(seed: number, rev: number = STRIKEOUT_REV4): S
       if (!placed) { ok = false; break; }
     }
     if (ok && strikeout2RuleBreak(words, givens, rev3 ? STRIKEOUT_REV3 : STRIKEOUT_REV2) === null) {
-      const stamp = rev >= STRIKEOUT_REV5 ? STRIKEOUT_REV5 : rev >= STRIKEOUT_REV4 ? STRIKEOUT_REV4 : rev3 ? STRIKEOUT_REV3 : STRIKEOUT_REV2;
+      const stamp = rev >= STRIKEOUT_REV_TOPUP ? STRIKEOUT_REV_TOPUP : rev >= STRIKEOUT_REV5 ? STRIKEOUT_REV5 : rev >= STRIKEOUT_REV4 ? STRIKEOUT_REV4 : rev3 ? STRIKEOUT_REV3 : STRIKEOUT_REV2;
       return { type: "strikeout", strikeoutRev: stamp, rows: SO2_WORDS, length: SO2_MAX_LEN, givens, words };
     }
   }

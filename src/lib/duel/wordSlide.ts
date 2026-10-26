@@ -18,6 +18,16 @@ export const WS_SHIFT_MS = 120;
  */
 export const WORD_SLIDE_REV_PAR = 1;
 export const SLIDE_PAR_BONUS: ParBonusCurve = { base: 6, fast: 0.75, elite: 0.95, power: 6 };
+/**
+ * The puzzle top-up (26 Oct 2026, wordSlideRev 2; docs/depth/topup-oct-2026.md): the same boards and par; making par
+ * pays a little more at any pace, so today's near-perfect player lands about 165–175.
+ */
+export const WORD_SLIDE_REV_TOPUP = 2;
+export const SLIDE_PAR_BONUS_TOPUP: ParBonusCurve = { base: 9, fast: 0.75, elite: 0.95, power: 6 };
+/** The par bonus a stored round's stamp scores on. */
+export function slideParBonusFor(rev: number): ParBonusCurve {
+  return rev >= WORD_SLIDE_REV_TOPUP ? SLIDE_PAR_BONUS_TOPUP : SLIDE_PAR_BONUS;
+}
 
 /** The puzzle's par-moves stamp (0 = before par moves). */
 export function wordSlideRevOf(puzzle: { wordSlideRev?: number } | null | undefined): number {

@@ -44,6 +44,11 @@ import { decodePushSolution, replayPush, pushStep } from "../src/lib/duel/push";
 import { blockD4Candidate } from "./depth4-block-bank";
 import { kitFor, playAndGrade } from "./depth4/players";
 import { makeRng, type Skill } from "./puzzle-fairness/kit";
+import { pinPreTopup } from "../src/lib/duel/depthTopup";
+
+// The puzzle top-up (26 Oct 2026, docs/depth/topup-oct-2026.md) deals newer stamps; this check proves the stamps it was
+// written for, so new deals are pinned to them (depth-topup-check proves the top-up's).
+pinPreTopup(true);
 
 const FULL = process.env["CHECKS_FULL"] === "1";
 let passes = 0;
