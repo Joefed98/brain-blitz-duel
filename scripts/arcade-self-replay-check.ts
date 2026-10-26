@@ -131,7 +131,8 @@ import { initBandFrom, initSweptFrom, initTallFrom, initTunedFrom } from "@/lib/
 import { BEAT_REV_BAND, BEAT_REV_TALL, BEAT_REV_TUNEC, BEAT_REV_TUNEF } from "@/lib/arcade/beat";
 import { SLICE_REV_BAND, SLICE_REV_LONG, SLICE_REV_TALL, SLICE_REV_TUNEC } from "@/lib/arcade/slice";
 import { BURST_REV_BAND, BURST_REV_TALL } from "@/lib/arcade/burst";
-import { SWING_REV_BAND, SWING_REV_TUNED, SWING_REV_TUNEC, SWING_REV_SPREAD, SWING_REV_TALL } from "@/lib/arcade/swing";
+import { SWING_REV_BAND, SWING_REV_TUNED, SWING_REV_TUNEC, SWING_REV_SPREAD, SWING_REV_TALL, SWING_REV_EXPAND } from "@/lib/arcade/swing";
+import { SWING_V13_BANK } from "@/lib/duel/swingBankV13.server";
 import { BULLSEYE_REV_BAND, BULLSEYE_REV_TUNED, bullseyeInitFor } from "@/lib/arcade/bullseye";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -612,6 +613,17 @@ const GAMES: Game[] = [
   { key: "flip/x200", game: flipGameFor(FLIP_REV_EXPAND), checkpoint: flipCheckpoint, mode: "events", rate: 50, encode: encodeFlipRun, replay: (seed: number, raw: string) => replayFlipRun(seed, raw, FLIP_REV_EXPAND) },
   // The 200 expansion (26 Oct 2026): Hover hoverRev 9 (tight gates, centre lines, star chains, shields).
   { key: "hover/x200", game: hoverGameFor(HOVER_REV_EXPAND), checkpoint: hoverCheckpoint, mode: "taps", rate: 60, encode: encodeHoverRun, replay: (seed: number, raw: string) => replayHoverRun(seed, raw, HOVER_REV_EXPAND) },
+  // Grappler's 200 expansion (swingRev 13, 26 Oct 2026), appended so every earlier entry keeps its index: its bank courses.
+  {
+    key: "swing/expand",
+    game: swingGameFor(SWING_REV_EXPAND),
+    seedFor: (n: number) => SWING_V13_BANK[n % SWING_V13_BANK.length]!.seed,
+    checkpoint: swingCheckpoint,
+    mode: "events",
+    rate: 30,
+    encode: encodeSwingRun,
+    replay: (seed: number, raw: string) => replaySwingRun(seed, raw, SWING_REV_EXPAND),
+  },
 ];
 
 /** A random candidate event, often outside the declared range (a finger off the edge). */
@@ -641,6 +653,8 @@ const ENTRY_COST: Record<number, number> = {
   115: 2.1,
   // Taller worlds batch 3 (16 Oct 2026, measured locally at 40 runs).
   126: 2.2, 128: 0.6,
+  // Grappler's 200 expansion (26 Oct 2026, swing/expand: about 10 s at 40 runs on a loaded machine).
+  129: 8.0,
 };
 
 /** Entry indexes of group k of n (1-based): costliest first onto the lightest group, ties by index. */

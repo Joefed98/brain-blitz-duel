@@ -1309,7 +1309,13 @@ const swingSummary: SummaryBuilder = (result) => {
   const ended = Number(result.extra?.["survivedSeconds"] ?? 0);
   return {
     summary: survived ? `${metres} m · survived · ${result.score ?? 0}` : `${metres} m · fell at ${ended.toFixed(1)}s · ${result.score ?? 0}`,
-    detail: ["Same cavern for everyone"],
+    // swingRev 13: the features (gems, gates, sections and pars beaten).
+    detail: [
+      "Same cavern for everyone",
+      ...(Number(result.extra?.["gemTotal"] ?? 0) > 0
+        ? [`${Number(result.extra?.["gems"] ?? 0)} gems · ${Number(result.extra?.["gates"] ?? 0)} gates · ${Number(result.extra?.["sections"] ?? 0)} sections, ${Number(result.extra?.["parsBeaten"] ?? 0)} under par`]
+        : []),
+    ],
   };
 };
 

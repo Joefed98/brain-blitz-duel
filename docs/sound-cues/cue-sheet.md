@@ -19,15 +19,15 @@ effects ([arcade-effects.md](arcade-effects.md)) so a sound can be written for e
 
 | Category | Silent | Placeholder | Recorded | Total |
 |---|---|---|---|---|
-| game event | 35 | 0 | 306 | 341 |
+| game event | 35 | 0 | 312 | 347 |
 | room moment | 1 | 0 | 34 | 35 |
 | music | 12 | 0 | 82 | 94 |
 | UI tap | 10 | 0 | 22 | 32 |
 | fail sting | 4 | 0 | 36 | 40 |
 | success sting | 3 | 0 | 68 | 71 |
 | ambience | 0 | 1 | 8 | 9 |
-| replay | 0 | 0 | 142 | 142 |
-| **all** | 65 | 1 | 698 | 764 |
+| replay | 0 | 0 | 148 | 148 |
+| **all** | 65 | 1 | 710 | 776 |
 
 ## Silent and placeholder cues
 
@@ -635,6 +635,12 @@ Grouped by game or screen.
 | `swing.dodged` | Stalactite dodged: the clip reaches the moment's key tick [replays.md] |  | 0–2 per highlight | recorded sound | `swing.dodged` | 250 | replay | `swing.dodged` |
 | `swing.over-lava` | Over the lava jet: the clip reaches the moment's key tick [replays.md] |  | 0–2 per highlight | recorded sound | `swing.over-lava` | 250 | replay | `swing.over-lava` |
 | `swing.finish` | 500 m (dragon outrun): the clip reaches the moment's key tick [replays.md] |  | 0–2 per highlight | recorded sound | `swing.finish` | 250 | replay | `swing.finish` |
+| `swing.gem` | High-route gem (swingRev 13): the clip reaches the moment's key tick [replays.md] |  | 0–2 per highlight | recorded sound | `swing.gem` | 250 | replay | `swing.gem` |
+| `swing.speed-gate` | Speed gate lit (swingRev 13): the clip reaches the moment's key tick [replays.md] |  | 0–2 per highlight | recorded sound | `swing.speed-gate` | 250 | replay | `swing.speed-gate` |
+| `swing.ledge` | Landed on a ledge (swingRev 13): the clip reaches the moment's key tick [replays.md] |  | 0–2 per highlight | recorded sound | `swing.ledge` | 250 | replay | `swing.ledge` |
+| `swing.combo` | Swing combo point (swingRev 13): the clip reaches the moment's key tick [replays.md] |  | 0–2 per highlight | recorded sound | `swing.combo` | 250 | replay | `swing.combo` |
+| `swing.section` | Set-route section cleared (swingRev 13): the clip reaches the moment's key tick [replays.md] |  | 0–2 per highlight | recorded sound | `swing.section` | 250 | replay | `swing.section` |
+| `swing.par` | Section finished under par (swingRev 13): the clip reaches the moment's key tick [replays.md] |  | 0–2 per highlight | recorded sound | `swing.par` | 250 | replay | `swing.par` |
 | `snip.leaf` | Leaf taken: the clip reaches the moment's key tick [replays.md] |  | 0–2 per highlight | recorded sound | `snip.leaf` | 250 | replay | `snip.leaf` |
 | `snip.level` | Apple fed: the clip reaches the moment's key tick [replays.md] |  | 0–2 per highlight | recorded sound | `snip.level` | 250 | replay | `snip.level` |
 | `snip.all-apples` | All 10 apples: the clip reaches the moment's key tick [replays.md] |  | 0–2 per highlight | recorded sound | `snip.all-apples` | 250 | replay | `snip.all-apples` |
@@ -1239,6 +1245,12 @@ Grouped by game or screen.
 | `swing.dragonNear` | The dragon closes within 4 m while off the left edge (at most one per 4 s) [arcade-effects.md] | The DRAGON label grows to full size and its arrow turns red | 0–5 | recorded sound | `swing.dragonNear` | 1000 | game event | `swing.dragonNear` |
 | `swing.rockCrumble` | Halfway through a stalactite's warning [arcade-effects.md] | Grit and chips crumble off and its shadow grows | 2–8 | recorded sound | `swing.rockCrumble` | 500 | game event | `swing.rockCrumble` |
 | `swing.lava` | While the run is live [arcade-effects.md] | Lava waves, embers and drips | loop | recorded sound | `swing.lava` | loop | ambience | `swing.lava` |
+| `swing.gemTaken` | A high-route gem taken (swingRev 13) [arcade-effects.md] | +GEM pop in cyan at the hero | 0–12 | recorded sound | `swing.gemTaken` | 600 | game event | `swing.gemTaken` |
+| `swing.gateLit` | A speed gate lit by a fast swoop (swingRev 13) [arcade-effects.md] | SPEED GATE! pop under the hero | 0–8 | recorded sound | `swing.gateLit` | 380 | game event | `swing.gateLit` |
+| `swing.ledgeLanded` | Landed on a set-route ledge (swingRev 13) [arcade-effects.md] | LANDED! pop above the hero | 0–15 | recorded sound | `swing.ledgeLanded` | 487 | game event | `swing.ledgeLanded` |
+| `swing.comboPoint` | Every fifth linked swing (swingRev 13) [arcade-effects.md] | SWING COMBO ×n streak | 0–10 | recorded sound | `swing.comboPoint` | 500 | game event | `swing.comboPoint` |
+| `swing.sectionClear` | A set-route section's finish flag reached (swingRev 13) [arcade-effects.md] | SECTION CLEAR! banner | 0–3 | recorded sound | `swing.sectionClear` | 600 | game event | `swing.sectionClear` |
+| `swing.parBeaten` | A section finished under its par time (swingRev 13) [arcade-effects.md] | "−0.8 s UNDER PAR" pop above the hero (in place of the section chime) | 0–3 | recorded sound | `swing.parBeaten` | 600 | game event | `swing.parBeaten` |
 | `swing.crash` | Grappler: The run ends in a crash [arcade.md] |  | 0–1 | recorded sound | `arc_crash` (shared) | 200 | fail sting | `swing.crash` |
 | `swing.grapple` | Grappler: The rope catches [arcade.md] |  | 20–60 | recorded sound | `arc_grapple` (shared) | 450 | game event | `swing.grapple` |
 | `swing.starTaken` | Grappler: A star is taken (swingRev 4+) [arcade.md] |  | 5–20 | recorded sound | `arc_pickup` (shared) | 100 | game event | `swing.starTaken` |
@@ -1812,6 +1824,12 @@ loops are not measured there). Files in `public/sounds/` are listed once per slo
 | `swing.dodged` | effects | `swing.dodged` | 486 |
 | `swing.over-lava` | effects | `swing.over-lava` | 486 |
 | `swing.finish` | effects | `swing.finish` | 486 |
+| `swing.gem` | effects | `swing.gem` | 486 |
+| `swing.speed-gate` | effects | `swing.speed-gate` | 486 |
+| `swing.ledge` | effects | `swing.ledge` | 486 |
+| `swing.combo` | effects | `swing.combo` | 486 |
+| `swing.section` | effects | `swing.section` | 486 |
+| `swing.par` | effects | `swing.par` | 486 |
 | `snip.leaf` | effects | `snip.leaf` | 486 |
 | `snip.level` | effects | `snip.level` | 486 |
 | `snip.all-apples` | effects | `snip.all-apples` | 486 |
@@ -2014,6 +2032,12 @@ loops are not measured there). Files in `public/sounds/` are listed once per slo
 | `swing.rockFall` | effects | `swing.rockFall` | 528 |
 | `swing.jetBubble` | effects | `swing.jetBubble` | 528 |
 | `swing.jetErupt` | effects | `swing.jetErupt` | 528 |
+| `swing.gemTaken` | effects | `swing.gemTaken` | 600 |
+| `swing.gateLit` | effects | `swing.gateLit` | 380 |
+| `swing.ledgeLanded` | effects | `swing.ledgeLanded` | 487 |
+| `swing.comboPoint` | effects | `swing.comboPoint` | 500 |
+| `swing.sectionClear` | effects | `swing.sectionClear` | 1000 |
+| `swing.parBeaten` | effects | `swing.parBeaten` | 1000 |
 | `cross.pastBikes` | effects | `cross.pastBikes` | 400 |
 | `cross.pastRoadworks` | effects | `cross.pastRoadworks` | 274 |
 | `flip.surviveStreak` | effects | `flip.surviveStreak` | 480 |

@@ -428,6 +428,14 @@ const BUILDERS: Record<string, Builder> = {
           value: sec(n(r, "survivedSeconds")),
         },
         ...(n(r, "swingRev") > 0 ? [{ label: "Stars", value: `${n(r, "stars")} / ${n(r, "starTotal")}` }] : []),
+        // swingRev 13 (the 200 expansion): gems, gates and the set-route sections with their par times.
+        ...(n(r, "gemTotal") > 0
+          ? [
+              { label: "Gems", value: `${n(r, "gems")} / ${n(r, "gemTotal")}` },
+              { label: "Speed gates", value: `${n(r, "gates")} / ${n(r, "gateTotal")}` },
+              { label: "Sections", value: `${n(r, "sections")} / ${n(r, "sectionTotal")} · ${n(r, "parsBeaten")} under par` },
+            ]
+          : []),
         ...(n(r, "cause") > 0 ? [{ label: "Ended by", value: ["", "the dragon", "a stalactite", "a lava jet"][n(r, "cause")] ?? "" }] : []),
       ],
       outcome: done ? "finish" : ended(r, false),

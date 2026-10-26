@@ -180,6 +180,12 @@ Already sounded: launch (`orbit.launch`), first checkpoint (`orbit.checkpoint`),
 | `swing.dragonNear` | The dragon closes within 4 m while off the left edge (at most one per 4 s) | The DRAGON label grows to full size and its arrow turns red | `swing.dragonNear.mp3` | 0–5 | 1000 ms |
 | `swing.rockCrumble` | Halfway through a stalactite's warning | Grit and chips crumble off and its shadow grows | `cave.stoneCrack.mp3` | 2–8 | 500 ms |
 | `swing.lava` | While the run is live | Lava waves, embers and drips | `swing.lava.mp3` | loop | loop |
+| `swing.gemTaken` | A high-route gem taken (swingRev 13) | +GEM pop in cyan at the hero | `sfx_spark_chime.mp3` (shared recording, volume 0.7) | 0–12 | 600 ms |
+| `swing.gateLit` | A speed gate lit by a fast swoop (swingRev 13) | SPEED GATE! pop under the hero | `sfx_joulz_zap.mp3` (shared recording, volume 0.8) | 0–8 | 380 ms |
+| `swing.ledgeLanded` | Landed on a set-route ledge (swingRev 13) | LANDED! pop above the hero | `sfx_count_ding.mp3` (shared recording, volume 0.7) | 0–15 | 487 ms |
+| `swing.comboPoint` | Every fifth linked swing (swingRev 13) | SWING COMBO ×n streak | `banner.combo.mp3` (volume 0.85) | 0–10 | 500 ms |
+| `swing.sectionClear` | A set-route section's finish flag reached (swingRev 13) | SECTION CLEAR! banner | `done.chimeSweep.mp3` | 0–3 | 600 ms |
+| `swing.parBeaten` | A section finished under its par time (swingRev 13) | "−0.8 s UNDER PAR" pop above the hero (in place of the section chime) | `done.goldPulse.mp3` (shared recording, volume 0.8) | 0–3 | 600 ms |
 
 Already sounded: rope catch and anchor flash (`swing.grapple`), star (`swing.starTaken`), dragon (`swing.dragon`), stalactite shake (`swing.rockShake`), stalactite lands and the replays' "dodged" pop (`swing.rockLand`), crash (`swing.crash`).
 
