@@ -254,7 +254,8 @@ for (const seed of CROSS_SEEDS.slice(0, 12)) {
 }
 console.log(`  150 reached through the server replay on ${best150} of 12 seeds (planner never loses a life)`);
 const crossIntro = INTRO_SCORE.cross;
-ok(crossIntro.includes(`Up to ${roundMaxFor("cross")}`) && /each lane crossed/.test(crossIntro) && /full crossing/.test(crossIntro), "Jaywalk intro states lanes, crossings, up to its maximum (score bands, crossRev 4)");
+// The intro follows the revision rooms deal: crossRev 9 (x200) states rows, crossings, coins and streaks, up to its maximum.
+ok(crossIntro.includes(`Up to ${roundMaxFor("cross")}`) && /rows/.test(crossIntro) && /crossings/.test(crossIntro) && /coins/.test(crossIntro), "Jaywalk intro states rows, crossings, coins, up to its maximum (crossRev 9)");
 }
 
 /* =============================== 2b. Roofbound =============================== */

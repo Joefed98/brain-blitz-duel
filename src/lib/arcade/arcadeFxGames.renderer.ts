@@ -80,7 +80,11 @@ import { burstFloorY, BURST_FLOOR_Y, BURST_LIVES, BURST_TALL_H, BURST_WORLD_W, t
 import { SKYLINE_STREAK_FROM, SKYLINE_TALL_H, SKYLINE_WIND_FROM, SKYLINE_WORLD_H, SKYLINE_WORLD_W, skylineWorldH, type SkylineState } from "./skyline";
 import {
   crossColumnCentreFp,
+  crossGeomOf,
   crossKindCrossed,
+  crossMultiplierFor,
+  CROSS_KIND_ISLAND,
+  CROSS_X_WORLD_H,
   crossLaneCentre,
   CROSS_HUD_H,
   CROSS_KIND_CYCLE,
@@ -803,18 +807,44 @@ export const CROSS_FX: ArcadeFxSpec<CrossState> = {
     {
       kind: "pop",
       count: (s) => crossKindCrossed(s, CROSS_KIND_CYCLE),
-      at: (s) => ({ x: px(crossColumnCentreFp(s.col)), y: crossLaneCentre(s.lane) - 20 }),
+      at: (s) => ({ x: px(crossColumnCentreFp(s.col)), y: crossLaneCentre(s.lane, crossGeomOf(s)) - 20 }),
       label: () => "PAST THE BIKES!",
     },
     {
       kind: "pop",
       count: (s) => crossKindCrossed(s, CROSS_KIND_ROADWORKS),
-      at: (s) => ({ x: px(crossColumnCentreFp(s.col)), y: crossLaneCentre(s.lane) - 20 }),
+      at: (s) => ({ x: px(crossColumnCentreFp(s.col)), y: crossLaneCentre(s.lane, crossGeomOf(s)) - 20 }),
       label: () => "THROUGH THE CONES!",
+    },
+    // crossRev 9 (counts stay 0 on every earlier round): a coin collected, the island reached, the streak paying.
+    {
+      kind: "pop",
+      count: (s) => s.coinTotal ?? 0,
+      at: (s) => ({ x: px(crossColumnCentreFp(s.col)), y: crossLaneCentre(s.lane, crossGeomOf(s)) - 20 }),
+      label: () => "COIN!",
+    },
+    {
+      kind: "pop",
+      count: (s) => (s.wide ? crossKindCrossed(s, CROSS_KIND_ISLAND) : 0),
+      at: (s) => ({ x: px(crossColumnCentreFp(s.col)), y: crossLaneCentre(s.lane, crossGeomOf(s)) - 20 }),
+      label: () => "CHECKPOINT!",
+    },
+    {
+      kind: "streak",
+      count: (s) => s.streakPts ?? 0,
+      at: () => ({ x: CROSS_WORLD_W / 2, y: CROSS_HUD_H + 60 }),
+      label: (s) => `STREAK ×${crossMultiplierFor(s.streak ?? 0)}`,
+    },
+    // crossRev 9 (x200 addendum): a close call, a hop landed just behind a passing vehicle.
+    {
+      kind: "pop",
+      count: (s) => s.closeCalls ?? 0,
+      at: (s) => ({ x: px(crossColumnCentreFp(s.col)), y: crossLaneCentre(s.lane, crossGeomOf(s)) - 20 }),
+      label: () => "CLOSE CALL!",
     },
   ],
   // Where the walker was hit (the frame before it went back to the kerb).
-  misses: [{ count: (s) => -s.lives, at: (s, before) => { const w = before ?? s; return { x: px(crossColumnCentreFp(w.col)), y: crossLaneCentre(w.lane) }; } }],
+  misses: [{ count: (s) => -s.lives, at: (s, before) => { const w = before ?? s; return { x: px(crossColumnCentreFp(w.col)), y: crossLaneCentre(w.lane, crossGeomOf(w)) }; } }],
 };
 
 export const JUNCTION_FX: ArcadeFxSpec<JuncState> = {
@@ -1392,6 +1422,9 @@ export const BREAKER_FX_DEEP: ArcadeFxSpec<BrkState> = {
   ],
 };
 /** The spec a stored round draws with: the expansion's own, else the stored height's. */
+/** Jaywalk: crossRev 9's taller world (the spec rooms deal today); earlier rounds draw through CROSS_FX. */
+export const crossFxFor = (s: CrossState): ArcadeFxSpec<CrossState> => fxSpecAt(CROSS_FX, crossGeomOf(s).worldH);
+export const CROSS_FX_TALL = fxSpecAt(CROSS_FX, CROSS_X_WORLD_H);
 export const breakerFxFor = (s: BrkState): ArcadeFxSpec<BrkState> => (s.deep ? BREAKER_FX_DEEP : fxSpecAt(BREAKER_FX, brkWorldH(s)));
 export const rallyFxFor = (s: RallyState): ArcadeFxSpec<RallyState> => fxSpecAt(RALLY_FX, rallyWorldH(s));
 export const wavefrontFxFor = (s: WavState): ArcadeFxSpec<WavState> => fxSpecAt(WAVEFRONT_FX, wavWorldH(s));
@@ -1476,7 +1509,7 @@ export const ARCADE_FX_SPECS = {
   // and rev 3 and later through ORBIT3_FX (orbit3FxFor).
   orbit: ORBIT_FX_XP_VIEW,
   skyline: SKYLINE_FX_SKY,
-  cross: CROSS_FX,
+  cross: CROSS_FX_TALL,
   junction: JUNCTION_FX,
   inkbridge: INKBRIDGE_FX_TALL,
   slice: SLICE_FX_V9,

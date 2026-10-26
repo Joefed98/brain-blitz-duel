@@ -114,7 +114,7 @@ import { FLIP_REV_BAND, FLIP_REV_TUNEC } from "@/lib/arcade/flip";
 import { INK_REV_BAND, INK_REV_TUNEC } from "@/lib/arcade/inkBridge";
 import { MATCHUP_REV_BAND, MATCHUP_REV_PAR, MATCHUP_REV_WAIT } from "@/lib/arcade/matchup";
 import { BUB_REV_BAND, BUB_REV_TALL, BUB_REV_TORPEDO } from "@/lib/arcade/bubble";
-import { CROSS_REV_BAND, CROSS_REV_SMALL } from "@/lib/arcade/cross";
+import { CROSS_REV_BAND, CROSS_REV_EXPAND, CROSS_REV_SMALL } from "@/lib/arcade/cross";
 import { RALLY_REV_BAND, RALLY_REV_TALL, RALLY_REV_TUNED, RALLY_REV_TUNEF } from "@/lib/arcade/rally";
 import { SNAKE_REV_BAND, SNAKE_REV_ROCKS, SNAKE_REV_TALL } from "@/lib/arcade/snake";
 import { BINTOSS_REV_BAND } from "@/lib/arcade/binToss";
@@ -635,6 +635,9 @@ const GAMES: Game[] = [
   },
   // Expansion x200 (docs/expansions/x200-tilt.md): tiltRev 8, its bigger mazes, keys, quick stars and falls back to the start.
   { key: "tilt/expand", game: tiltGameFor(TILT_REV_EXPAND), checkpoint: tiltCheckpoint, mode: "events", rate: 500, encode: encodeTiltRun, replay: (seed: number, raw: string) => replayTiltRun(seed, raw, TILT_REV_EXPAND) },
+  // x200 (26 Oct 2026, docs/expansions/x200-cross.md), appended so every earlier entry keeps its index: Jaywalk crossRev 9,
+  // the taller world with the island, coins, buses, motorbikes and the streak.
+  { key: "cross/expand", game: crossGameFor(CROSS_REV_EXPAND), checkpoint: crossCheckpoint, mode: "events", rate: 60, encode: encodeCrossRun, replay: (seed: number, raw: string) => replayCrossRun(seed, raw, CROSS_REV_EXPAND) },
 ];
 
 /** A random candidate event, often outside the declared range (a finger off the edge). */
@@ -666,6 +669,8 @@ const ENTRY_COST: Record<number, number> = {
   126: 2.2, 128: 0.6,
   // x200 Rainbow Bridge (26 Oct 2026, measured locally at 40 runs beside #23; #129 is Orbit's orbit/xp).
   130: 14.0,
+  // x200 Jaywalk crossRev 9 (26 Oct 2026, measured locally at 40 runs; #132 after Orbit, Rainbow Bridge and Tilt).
+  132: 16.9,
 };
 
 /** Entry indexes of group k of n (1-based): costliest first onto the lightest group, ties by index. */

@@ -210,6 +210,10 @@ skyline.wind-perfect,Replays,Perfect drop in the wind: the clip reaches the mome
 cross.crossing,Replays,Road crossed: the clip reaches the moment's key tick [replays.md],,0–2 per highlight,recorded sound,cross.crossing,250,replay,cross.crossing,public/sounds/cross.crossing.mp3 (from replay.moment.mp3)
 cross.bikes,Replays,Past the cyclists: the clip reaches the moment's key tick [replays.md],,0–2 per highlight,recorded sound,cross.bikes,250,replay,cross.bikes,public/sounds/cross.bikes.mp3 (from replay.moment.mp3)
 cross.cones,Replays,Through the roadworks: the clip reaches the moment's key tick [replays.md],,0–2 per highlight,recorded sound,cross.cones,250,replay,cross.cones,public/sounds/cross.cones.mp3 (from replay.moment.mp3)
+cross.coin,Replays,Gold coin collected (crossRev 9): the clip reaches the moment's key tick [replays.md],,0–2 per highlight,recorded sound,cross.coin,250,replay,cross.coin,
+cross.checkpoint,Replays,Checkpoint island reached (crossRev 9): the clip reaches the moment's key tick [replays.md],,0–2 per highlight,recorded sound,cross.checkpoint,250,replay,cross.checkpoint,
+cross.streak,Replays,Streak multiplier up (crossRev 9): the clip reaches the moment's key tick [replays.md],,0–2 per highlight,recorded sound,cross.streak,250,replay,cross.streak,
+cross.close-call,Replays,Close call (crossRev 9): the clip reaches the moment's key tick [replays.md],,0–2 per highlight,recorded sound,cross.close-call,250,replay,cross.close-call,
 junction.ambulance,Replays,Ambulance through: the clip reaches the moment's key tick [replays.md],,0–2 per highlight,recorded sound,junction.ambulance,250,replay,junction.ambulance,public/sounds/junction.ambulance.mp3 (from replay.moment.mp3)
 junction.cleared,Replays,Cars cleared (every 10): the clip reaches the moment's key tick [replays.md],,0–2 per highlight,recorded sound,junction.cleared,250,replay,junction.cleared,public/sounds/junction.cleared.mp3 (from replay.moment.mp3)
 junction.bus,Replays,Bus through: the clip reaches the moment's key tick [replays.md],,0–2 per highlight,recorded sound,junction.bus,250,replay,junction.bus,public/sounds/junction.bus.mp3 (from replay.moment.mp3)
