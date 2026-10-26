@@ -954,7 +954,7 @@ export const FLIP_V8_TRAIL_R = 8;
 const V8_MOVERS_FROM = 12 * TICKS_PER_SECOND;
 /** Raw skill points: a full trail, combo points (doubled in a speed zone, capped), a clean zone, a clean checkpoint; the paid total caps at 50. */
 export const FLIP_V8_TRAIL_POINTS = 4;
-export const FLIP_V8_COMBO_CAP = 6;
+export const FLIP_V8_COMBO_CAP = 4;
 export const FLIP_V8_ZONE_POINTS = 3;
 export const FLIP_V8_CP_POINTS = 3;
 export const FLIP_V8_FEATURE_CAP = 50;
@@ -976,9 +976,9 @@ const V8_SWEET_SECONDS = [6.5, 13, 19.5, 26, 32.5, 39, 45.5, 52] as const;
  * (docs/expansions/x200-flip.md), with the base curve.
  */
 export const FLIP_V8_SKILL_FULL = FLIP_V8_TRAILS * FLIP_V8_TRAIL_POINTS + FLIP_V8_SWEETS * FLIP_V8_SWEET_POINTS + 2 * FLIP_V8_ZONE_POINTS + 3 * FLIP_V8_CP_POINTS;
-export const FLIP_V8_SKILL_PAY = bandCurve([0, 12, 32, 51, 54, FLIP_V8_SKILL_FULL], [0, 1, 2, 28, 36, FLIP_V8_FEATURE_CAP]);
+export const FLIP_V8_SKILL_PAY = bandCurve([0, 12, 32, 49, 57, FLIP_V8_SKILL_FULL], [0, 3, 4, 26, 39, FLIP_V8_FEATURE_CAP]);
 /** The rev-8 survival curve: half seconds + 3 per gold star, to 140 (the full minute adds 10, the features up to 50). */
-export const FLIP_V8_BAND_CURVE = bandCurve([0, 40, 105, 130, 140, 146, 150], [0, 15, 51, 73, 79, 123, 140]);
+export const FLIP_V8_BAND_CURVE = bandCurve([0, 40, 105, 130, 140, 146, 150], [0, 16, 56, 65, 69, 127, 140]);
 
 export interface FlipTrail {
   /** Star centres (1/256 px) and heights (per mille of the cave: 0 the floor's runner line, 1000 the ceiling's). */

@@ -50,11 +50,11 @@ every other feature, the spots come only from the stored course, the same for ev
 ## Scoring (`flipV8Parts`, `flipV8Features`)
 
 - **Base** (the rev-6 shape): units = half seconds survived (the paused ticks left out) + 3 per gold star, on
-  `FLIP_V8_BAND_CURVE` (units 0 / 40 / 105 / 130 / 140 / 146 / 150 → 0 / 15 / 51 / 73 / 79 / 123 / 140), plus 10 for lasting
+  `FLIP_V8_BAND_CURVE` (units 0 / 40 / 105 / 130 / 140 / 146 / 150 → 0 / 16 / 56 / 65 / 69 / 127 / 140), plus 10 for lasting
   the minute: 150 at most, only for the full minute with all ten stars.
 - **Skill** (0–50): raw points 4 a full trail, 4 a sweet landing, 3 a speed zone run without a save, 3 a checkpoint reached
-  with no crash, and double-flip combo points up to 6 (`FLIP_V8_COMBO_CAP`), paid on `FLIP_V8_SKILL_PAY` (raw 12 / 32 / 51 /
-  54 / 63 → 1 / 2 / 28 / 36 / 50): a little feature play pays little; the full 50 needs `FLIP_V8_SKILL_FULL` = 63 raw, which
+  with no crash, and double-flip combo points up to 4 (`FLIP_V8_COMBO_CAP`), paid on `FLIP_V8_SKILL_PAY` (raw 12 / 32 / 49 /
+  57 / 63 → 3 / 4 / 26 / 39 / 50): a little feature play pays little; the full 50 needs `FLIP_V8_SKILL_FULL` = 63 raw, which
   is every trail, sweet spot, zone and checkpoint (or near it with combos on top).
 - **Total**: base + skill, capped at 200; no input scores 0. The reveal's lines add up to it (`bandLines`).
 
@@ -89,27 +89,35 @@ runs with each feature's raw points.
 
 | Seeds | Level | New (max 200) median · p90 · best | Old median (max 150) | Median change |
 |---|---|---|---|---|
-| Tuning (60) | Weak | 37 · 55 · 80 | 38 | −3 % |
-| Tuning (60) | Average | 73 · 97 · 119 | 74 | −1 % |
-| Tuning (60) | Good | 119 · 151 · 169 | 120 | −1 % |
-| Tuning (60) | Great | 143 · 164 · 183 | 120 | +19 % |
-| Tuning (60) | Near-perfect | 170 · 183 · 196 | 150 | +13 % |
-| Tuning (60) | Elite | 183 · 196 · 200 | 150 | +22 % |
+| Tuning (60) | Weak | 42 · 60 · 75 | 38 | +11 % |
+| Tuning (60) | Average | 73 · 91 · 120 | 73 | 0 % |
+| Tuning (60) | Good | 120 · 153 · 168 | 120 | 0 % |
+| Tuning (60) | Great | 140 · 163 · 179 | 120 | +17 % |
+| Tuning (60) | Near-perfect | 169 · 182 · 192 | 150 | +13 % |
+| Tuning (60) | Elite | 182 · 192 · 200 | 150 | +21 % |
 | Tuning (60) | Random | 2 · 4 · 5 | 2 | |
-| Fresh (200) | Weak | 33 · 55 · 87 (1 zero) | 38 | −13 % |
-| Fresh (200) | Average | 73 · 97 · 151 | 74 (1 zero) | −1 % |
-| Fresh (200) | Good | 110 · 145 · 169 (1 zero) | 100 | +10 % |
-| Fresh (200) | Great | 137 · 164 · 190 | 120 | +14 % |
-| Fresh (200) | Near-perfect | 162 · 187 · 196 | 150 | +8 % |
-| Fresh (200) | Elite | 183 · 196 · 200 | 150 | +22 % |
-| Fresh (200) | Random | 2 · 4 · 6 (4 zeros) | 2 (4 zeros) | |
+| Fresh (200) | Weak | 38 · 60 · 80 (1 zero) | 38 | 0 % |
+| Fresh (200) | Average | 73 · 91 · 153 | 74 (1 zero) | −1 % |
+| Fresh (200) | Good | 101 · 147 · 168 (1 zero) | 100 | +1 % |
+| Fresh (200) | Great | 135 · 163 · 185 | 120 | +13 % |
+| Fresh (200) | Near-perfect | 163 · 185 · 192 | 150 | +9 % |
+| Fresh (200) | Elite | 179 · 192 · 200 | 150 | +19 % |
+| Fresh (200) | Random | 2 · 4 · 7 (4 zeros) | 2 (4 zeros) | |
 
 No other zero scores; no run flagged or disagreeing with the server replay (3,640 runs). On the old revision good's median
 moves with the seed set (120 tuning, 100 fresh) because flipRev 6's curve jumps 20 points for a ninth star; flipRev 8's good
-median is 119 and 110, within 10 % of both.
+median is 120 and 101, within 1 % of both.
+
+**Second fit (26 Oct, after the merge).** The first fit (base 15 / 51 / 73 / 79 / 123, pay 1 / 2 / 28 / 36 at raw 12 / 32 /
+51 / 54, combos up to 6) gave near-perfect 170 · 183 on the tuning seeds but 162 · 187 on the fresh ones. One more fit,
+on the tuning seeds only and scored on bootstrap resamples of them, aimed at the middle of the band (near-perfect median
+170, p90 ≤ 181) and tried flatter tops to the base curve (the last 4 units capped at 12–40 points). A flatter top did not
+narrow near-perfect's spread: its top decile is the runs with every star and most features, whatever the split. The best
+fit (the one above: the top 146 → 150 worth 13 points instead of 17, the pay steeper from 49 raw, combos up to 4) was
+measured on the fresh seeds once.
 
 **Feature payout by level** (medians; tuning / fresh): sweet landings 0 / 0 weak, 0 / 0 average, 1 / 1 good, 2 / 2 great,
-4 / 4 near-perfect, 6 / 6 elite (raw 4 each); skill pay 0, 1, 1–2, 14, 33, 46.
+4 / 4 near-perfect, 6 / 6 elite (raw 4 each); skill pay 2, 3, 3, 13, 29, 42 (both sets).
 
 **What changed from the parked tuning.** The parked expansion paid its features straight (trails 5, combo up to 15, zones
 3, checkpoints 3, capped at 50), so a good player already collected about 30 and near-perfect players often the full 50
@@ -117,8 +125,11 @@ median is 119 and 110, within 10 % of both.
 near-perfect and elite players differ mostly in sweet landings and full trails (the precision the elite tier's tighter timing
 and full feature chasing buys), and good stays within about 10 % of its old median.
 
-**The bar.** Tuning: met (good 119 vs 120; near-perfect 170 / p90 183; elite 183 / p90 196; weak and average at their old
-medians; random ≤ 5). Fresh: met for good (110 vs 100, +10 %), elite (183 / p90 196) and random; **near-perfect lands just outside** (median 162 against 165–175, p90 187 against about 185): its median moves with how many of the ten gold stars the seed set lets it take, on the steep top of the base curve (the old revision's own steep top makes good move by 20 between the two sets). Two runs scored 0 on fresh seeds (one weak, one good: the bot never tapped before
+**The bar.** Tuning: met (good 120 vs 120; near-perfect 169 / p90 182; elite 182 / p90 192; weak and average at or above
+their old medians; random ≤ 5). Fresh: met for good (101 vs 100), elite (179 / p90 192) and random; **near-perfect is just
+outside**: median 163 against 165–175, p90 185 (the bar's "about 185"). Its median moves with how many of the ten gold stars
+the seed set lets it take, on the steep top of the base curve (the old revision's own steep top moves good by 20 between
+the two sets). Two runs scored 0 on fresh seeds (one weak, one good: the bot never tapped before
 the first hazard, so "no input scores 0"); flipRev 6 has the same bot artefact (one average and four random zeros on the same
 seeds).
 
@@ -187,7 +198,7 @@ Local, 26 Oct 2026 (a machine shared by four workers, so browser frame times run
   that x-span. A double flip off a sweet spot still counts the landing.
 - The checkpoint saved-crash rule is kept from the parked expansion as Joe listed it, flagged for his confirmation.
 - Combos are not needed for the ceiling (the full skill pay needs only the guaranteed items), so a seed's number of combo
-  chances never limits the top; they add raw points on top (up to 6).
+  chances never limits the top; they add raw points on top (up to 4).
 - Fresh-seed results of earlier configurations were looked at between tuning rounds; the final curves were chosen by their
   cost on the tuning seeds (the lower of two fitted candidates).
 - The worktree started at origin/main (6b42ef3) and was fast-forwarded to the groundwork commit 8d8b61c.
