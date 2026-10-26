@@ -23,9 +23,15 @@
  * flipRev 8 adds sweet spots: on first sight the player decides whether to aim for one (a strip
  * of roof to land a flip in); if a route over the known stretch lands in it, the flip is aimed
  * at that window, with the level's timing jitter, so imprecise players often land just outside.
- * The tiers (human.tier): a weak player goes for features less often than average; an elite
- * player goes for every star, trail and sweet spot and tries a double flip after nearly every
- * landing by a hazard (the near-perfect player's level, with the elite profile's own timing).
+ * The levels beyond the four: a weak player goes for features less often than average; elite and
+ * perfect (flawless) players go for every trail and sweet spot and try a double flip after nearly
+ * every landing by a hazard.
+ *
+ * Competence fix (Oct 2026, ctx.fixes; docs/arcade-bands-elite.md): a star, once read, is taken into
+ * the plan at once, and a tap planned for later than a reaction from then is held and re-planned (the
+ * bot used to re-plan only for hazards, so a flip already lined up could cost a star that was read in
+ * time to keep it; even the flawless bot lost a gold star that way on some seeds). flipRev 8's sweet
+ * spots and trails are read the same way.
  */
 import {
   FLIP_INPUT_TAP,
@@ -35,6 +41,7 @@ import {
   flipSpeed,
   type FlipState,
 } from "../../../src/lib/arcade/flip";
+import type { SkillLevel } from "../human";
 import { driveEvents, type SkillBot } from "../bot";
 
 const FP = 256;
@@ -42,27 +49,20 @@ const FP = 256;
 const VIEW_AHEAD = (FLIP_WORLD_W - 90) * FP;
 const HALF = FLIP_RUNNER_HALF_PX_V2 * FP;
 /** Chance of deciding to go for a star when it comes into view. */
-const STAR_TRY: Record<string, number> = { average: 0.5, good: 0.7, great: 0.85, near: 0.95 };
-/** Rev 8: chance of going for a star trail, and of trying a double flip after a landing near a hazard. */
-const TRAIL_TRY: Record<string, number> = { average: 0.35, good: 0.6, great: 0.8, near: 0.95 };
-const COMBO_TRY: Record<string, number> = { average: 0.1, good: 0.3, great: 0.55, near: 0.8 };
-/** flipRev 8: chance of aiming a flip's landing at a sweet spot. */
-const SWEET_TRY: Record<string, number> = { average: 0.25, good: 0.45, great: 0.65, near: 0.8 };
-/** The tiers' own chances (they otherwise play as their level). */
-const TIER_TRY: Record<string, { star: number; trail: number; combo: number; sweet: number }> = {
-  weak: { star: 0.35, trail: 0.2, combo: 0.05, sweet: 0.12 },
-  elite: { star: 1, trail: 1, combo: 0.95, sweet: 1 },
-};
+const STAR_TRY: Record<SkillLevel, number> = { weak: 0.3, average: 0.5, good: 0.7, great: 0.85, near: 0.95, elite: 1, perfect: 1 };
+/** flipRev 8: chance of going for a star trail, of trying a double flip after a landing near a hazard, and of aiming a landing at a sweet spot. */
+const TRAIL_TRY: Record<SkillLevel, number> = { weak: 0.2, average: 0.35, good: 0.6, great: 0.8, near: 0.95, elite: 1, perfect: 1 };
+const COMBO_TRY: Record<SkillLevel, number> = { weak: 0.05, average: 0.1, good: 0.3, great: 0.55, near: 0.8, elite: 0.95, perfect: 1 };
+const SWEET_TRY: Record<SkillLevel, number> = { weak: 0.12, average: 0.25, good: 0.45, great: 0.65, near: 0.8, elite: 1, perfect: 1 };
 const FULL_TRAIL = 31;
 const TAP = { k: FLIP_INPUT_TAP, a: 0, b: 0, c: 0, d: 0 };
 
-export const bot: SkillBot = ({ game, seed, human }) => {
-  const level = human.level;
-  const tierTry = TIER_TRY[human.tier];
-  const starTry = tierTry?.star ?? STAR_TRY[level]!;
-  const trailTry = tierTry?.trail ?? TRAIL_TRY[level]!;
-  const comboTry = tierTry?.combo ?? COMBO_TRY[level]!;
-  const sweetTry = tierTry?.sweet ?? SWEET_TRY[level]!;
+export const bot: SkillBot = ({ game, seed, human, fixes }) => {
+  const level = human.level as SkillLevel;
+  const starTry = STAR_TRY[level] ?? 0.5;
+  const trailTry = TRAIL_TRY[level] ?? 0.35;
+  const comboTry = COMBO_TRY[level] ?? 0.1;
+  const sweetTry = SWEET_TRY[level] ?? 0.25;
   const lag = human.lagTicks();
   const commitLead = Math.round(human.p.reactionMs[0] / (1000 / 60));
   const init = game.init(seed) as FlipState;
@@ -202,6 +202,18 @@ export const bot: SkillBot = ({ game, seed, human }) => {
         sweetWant.push(human.chance(sweetTry));
       }
       for (let i = 0; i < segReady.length; i++) if (segReady[i] === t) dirty = true;
+      // Fixes: a wanted star (or, on flipRev 8, trail or sweet spot), once read, is taken into the plan straight
+      // away (as a hazard is), and a tap planned but not yet under way (more than a reaction off) is held for it.
+      if (fixes) {
+        let read = false;
+        for (let i = 0; i < starReady.length; i++) if (starReady[i] === t && starWant[i] && !((s.got ?? 0) & (1 << i))) read = true;
+        for (let i = 0; i < trailReady.length; i++) if (trailReady[i] === t && trailWant[i]) read = true;
+        for (let i = 0; i < sweetReady.length; i++) if (sweetReady[i] === t && sweetWant[i]) read = true;
+        if (read) {
+          dirty = true;
+          if (pending !== null && pending - t > commitLead) pending = null;
+        }
+      }
       if (v8 && s.flipT === 0 && lastFlipT > 0 && human.chance(comboTry)) comboAt = t + human.int(1, 6);
       if ((s.flipT === 0 && lastFlipT > 0) || t >= replanAt) dirty = true;
       lastFlipT = s.flipT;

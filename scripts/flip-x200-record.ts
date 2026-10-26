@@ -17,7 +17,7 @@ import { encodeFlipRun, replayFlipRun } from "../src/lib/duel/flip";
 import type { ArcadeInputEvent } from "../src/lib/arcade/engine";
 import { bot } from "./arcade-skill-bands/bots/flip";
 import { roomSeed } from "./arcade-skill-bands/games";
-import { Human, LEVELS, type SkillTier } from "./arcade-skill-bands/human";
+import { Human, LEVELS, type SkillLevel } from "./arcade-skill-bands/human";
 import { flipTap, planFlipRoute } from "./flip-x200-plan";
 
 export const FLIP_LEGACY_FIXTURE = new URL("./fixtures/flip-legacy-runs.json.gz", import.meta.url);
@@ -56,7 +56,7 @@ export function encodeFlipLog(rev: number | null, seed: number, events: ArcadeIn
   return { raw, local: game.score(state), state };
 }
 
-function record(plan: [number | null, number][], levels: readonly SkillTier[], base: (rev: number | null, n: number) => number): FlipLegacyRun[] {
+function record(plan: [number | null, number][], levels: readonly SkillLevel[], base: (rev: number | null, n: number) => number): FlipLegacyRun[] {
   const out: FlipLegacyRun[] = [];
   for (const [rev, perLevel] of plan) {
     const game = flipGameFor(rev);
@@ -64,7 +64,7 @@ function record(plan: [number | null, number][], levels: readonly SkillTier[], b
       for (let n = 0; n < perLevel; n++) {
         const seed = roomSeed(base(rev, n));
         const human = new Human("flip", seed, level);
-        const { events = [] } = bot({ game, seed, rev, human });
+        const { events = [] } = bot({ game, seed, rev, human, fixes: rev === FLIP_REV_EXPAND });
         const { raw } = encodeFlipLog(rev, seed, events);
         const result = replayFlipRun(seed, raw, rev);
         out.push({ rev, level, seed, raw, score: result.score, checkpoint: flipCheckpoint(result.state) });

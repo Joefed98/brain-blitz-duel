@@ -11,20 +11,20 @@ import { flipBandParts, flipCheckpoint, flipGameFor, flipStarsTaken, flipSweetsT
 import { encodeFlipRun, replayFlipRun } from "../src/lib/duel/flip";
 import { bot, randomBot } from "./arcade-skill-bands/bots/flip";
 import { roomSeed } from "./arcade-skill-bands/games";
-import { Human, TIERS, type SkillTier } from "./arcade-skill-bands/human";
+import { ALL_LEVELS, Human, type SkillLevel } from "./arcade-skill-bands/human";
 
 const args = process.argv.slice(2);
 const opt = (name: string) => args.find((a) => a.startsWith(`--${name}=`))?.slice(name.length + 3);
 const SEEDS = Number(opt("seeds") ?? 60);
 const FROM = Number(opt("from") ?? 0);
 const REVS = (opt("rev") ?? "6,8").split(",").map(Number);
-const LEVELS = (opt("levels") ?? [...TIERS, "random"].join(",")).split(",") as (SkillTier | "random")[];
+const LEVELS = (opt("levels") ?? [...ALL_LEVELS, "random"].join(",")).split(",") as (SkillLevel | "random")[];
 
-export function playFlip(rev: number, level: SkillTier | "random", n: number) {
+export function playFlip(rev: number, level: SkillLevel | "random", n: number) {
   const seed = roomSeed(n);
   const game = flipGameFor(rev);
   const human = new Human("flip", seed, level === "random" ? "weak" : level);
-  const { events = [] } = (level === "random" ? randomBot : bot)({ game, seed, rev, human });
+  const { events = [] } = (level === "random" ? randomBot : bot)({ game, seed, rev, human, fixes: true });
   let state = game.init(seed) as FlipState;
   const byTick = new Map(events.map((e) => [e.t, e]));
   const checkpoints: unknown[] = [];

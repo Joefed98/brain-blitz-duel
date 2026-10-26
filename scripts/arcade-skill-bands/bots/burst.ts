@@ -14,24 +14,27 @@ import {
   burstFloorY,
   BURST_INPUT_FIRE,
   BURST_INPUT_MOVE,
+  BURST_GAP,
   BURST_RADIUS,
+  BURST_SHORT_LEN,
   BURST_WORLD_W,
   burstCeiling,
   type BurstBall,
   type BurstState,
 } from "../../../src/lib/arcade/burst";
+import type { SkillLevel } from "../human";
 import { driveEvents, Plan, type SkillBot } from "../bot";
 
 /** Path-read error per tick looked ahead, px. */
-const READ: Record<string, number> = { average: 0.3, good: 0.2, great: 0.13, near: 0.08 };
+const READ: Record<SkillLevel, number> = { weak: 0.4, average: 0.3, good: 0.2, great: 0.13, near: 0.08, elite: 0.055, perfect: 0 };
 /** How far ahead (ticks) the player checks that a spot is safe. */
-const LOOKAHEAD: Record<string, number> = { average: 28, good: 36, great: 44, near: 52 };
+const LOOKAHEAD: Record<SkillLevel, number> = { weak: 20, average: 28, good: 36, great: 44, near: 52, elite: 56, perfect: 60 };
 /** Chance of going for a falling icon. */
-const ICON: Record<string, number> = { average: 0.5, good: 0.7, great: 0.85, near: 0.95 };
+const ICON: Record<SkillLevel, number> = { weak: 0.3, average: 0.5, good: 0.7, great: 0.85, near: 0.95, elite: 1, perfect: 1 };
 /** How many atoms (the nearest) the player keeps an eye on for danger at once. */
-const WATCH: Record<string, number> = { average: 2, good: 3, great: 4, near: 6 };
+const WATCH: Record<SkillLevel, number> = { weak: 1, average: 2, good: 3, great: 4, near: 6, elite: 7, perfect: 12 };
 /** Shortest gap between two deliberate button presses, ticks (about 6–8.5 a second). */
-const PRESS_GAP: Record<string, number> = { average: 10, good: 9, great: 8, near: 7 };
+const PRESS_GAP: Record<SkillLevel, number> = { weak: 11, average: 10, good: 9, great: 8, near: 7, elite: 6, perfect: 6 };
 
 const FP = 256;
 const WALK = 4;
@@ -39,6 +42,8 @@ const HALF_W = 12;
 const PLAYER_H = 36;
 const GRAVITY = 32;
 const SHOT_SPEED = 9;
+/** BURST mode's short shots: from head height, 12 px a tick, three a press BURST_GAP apart. */
+const BULLET_SPEED = 12;
 const MIN_X = HALF_W;
 const MAX_X = BURST_WORLD_W - HALF_W;
 const APEX_PCT = [75, 60, 45, 30];
@@ -101,7 +106,9 @@ function touches(bx: number, by: number, r: number, px: number, margin: number):
   return dx * dx + dy * dy <= r * r;
 }
 
-export const bot: SkillBot = ({ game, seed, human }) => {
+export const bot: SkillBot = ({ game, seed, human, fixes }) => {
+  /** Oct 2026 competence fixes (BotCtx.fixes): BURST mode's short shots fired as short shots. */
+  const fx = Boolean(fixes);
   setArena(burstFloorY(game.init(seed)));
   const level = human.level;
   const read = READ[level]!;
@@ -229,7 +236,29 @@ export const bot: SkillBot = ({ game, seed, human }) => {
     }
 
     // ---- Fire: an atom is about to cross the shot line. ----
-    if (s.shots.length === 0 && t - lastFire >= gap && t - lastPress >= 2) {
+    if (fx && s.burst) {
+      // BURST: a press sends three short shots up from head height, BURST_GAP apart, from wherever the figure
+      // is then; another press only once all three are away. Fire when one of them will meet an atom's path.
+      if (s.burstLeft === 0 && t - lastFire >= gap && t - lastPress >= 2) {
+        let go = false;
+        for (let j = 0; j < 3 && !go; j++) {
+          const bx = at(want, BURST_GAP * j + 1);
+          for (const rd of reads) {
+            for (let k = BURST_GAP * j; k < rd.pts.length && !go; k++) {
+              const top = BURST_FLOOR_Y - PLAYER_H - BULLET_SPEED * (k - BURST_GAP * j + 1);
+              if (top <= ceil) break;
+              const p = rd.pts[k]!;
+              if (Math.abs(p.x - bx) <= rd.r * 0.8 && p.y + rd.r >= top && p.y - rd.r <= top + BURST_SHORT_LEN) go = true;
+            }
+            if (go) break;
+          }
+        }
+        if (go || human.slip(0.01)) {
+          plan.at(t, { k: BURST_INPUT_FIRE, a: 0, b: (fireFlip ^= 1), c: 0, d: 0 });
+          lastFire = t;
+        }
+      }
+    } else if (s.shots.length === 0 && t - lastFire >= gap && t - lastPress >= 2) {
       let go = false;
       for (const rd of reads) {
         for (let k = 0; k < Math.min(rd.pts.length, 40) && !go; k++) {
