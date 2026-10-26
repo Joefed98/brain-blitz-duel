@@ -14,44 +14,72 @@
  * the release point is. The tap itself is then the noisy human one, and its
  * outcome is whatever the sim does; nothing here looks at the score.
  *
- * orbitRev 12 (world expansion): the features are things a player sees, so the bot may aim for them. Within the
- * window it picked, the forks also show which release ticks take stardust, a moon's slingshot or an asteroid
- * gap; a player who goes for them (more often the better they are) aims at the best of those ticks instead of
- * the window's middle (a narrower target, so the same timing error misses more), and better players more often
- * let go in the first lap (perfect orbits) rather than waiting for a comfortable later window.
+ * Competence fix (ctx.fixes, Oct 2026): a player who can see the belts come round doesn't throw the
+ * rocket at a release window one or two ticks wide (near-perfect's losses were almost all such
+ * windows late in the course, with 40 s of the 90 s run to spare). Each window is judged by the chance
+ * the player's own jitter (timing and read error at that flight) lands the tap on a losing tick; the
+ * first window under the level's tolerance (RISK) is taken, else the safest one seen within the usual
+ * wait (three laps, or the belts' full turn), and anything once time runs short. Perfect judges
+ * windows by elite's jitter (the same choices) and then taps without error. Elite and perfect
+ * (protect the base): a black hole is gone for only when its window is as safe as that, else the hop.
+ *
+ * orbitRev 12 (the expansion to 200, docs/expansions/x200-orbit.md; every path below is gated on the state's `xp`
+ * marker, so older stamps play exactly as above): the features are things a player sees, so the bot may aim for
+ * them. The forks also show which release ticks take stardust, a moon's slingshot or an asteroid gap; a player who
+ * goes for them (more often the better they are) aims at the best of those ticks with room either side, and better
+ * players more often let go in the first lap (perfect orbits). Near-perfect, elite and flawless also know which
+ * window's line carries the features (on a figure-eight or a belted orbit the windows in a lap fly different lines):
+ * they look on to the end of the usual scan and take the window that takes the most (with the fixes, only one under
+ * their risk tolerance).
  */
 import { lapPhases, ORBIT_INPUT_CHECKPOINT, ORBIT_INPUT_TAP } from "../../../src/lib/arcade/orbit";
 import type { OrbitRev3State } from "../../../src/lib/arcade/orbitRev3";
+import { PROFILES, type SkillLevel } from "../human";
 import { driveEvents, Plan, type SkillBot } from "../bot";
 
 /** Chance of going for a black hole when one is on offer. */
-const HOLE_TRY: Record<string, number> = { average: 0.2, good: 0.45, great: 0.7, near: 0.85 };
+const HOLE_TRY: Record<SkillLevel, number> = { weak: 0, average: 0.2, good: 0.45, great: 0.7, near: 0.85, elite: 1, perfect: 1 };
 /** Chance per hop of hesitating and letting the release point go round once more. */
-const HESITATE: Record<string, number> = { average: 0.15, good: 0.1, great: 0.06, near: 0.03 };
+const HESITATE: Record<SkillLevel, number> = { weak: 0.2, average: 0.15, good: 0.1, great: 0.06, near: 0.03, elite: 0.015, perfect: 0 };
+/** ctx.fixes: the most loss chance a player accepts on a window before waiting for a better one. */
+const RISK: Record<SkillLevel, number> = { weak: 1, average: 0.25, good: 0.15, great: 0.08, near: 0.04, elite: 0.03, perfect: 0.03 };
+/** Normal CDF (Abramowitz–Stegun erf). */
+const phi = (z: number) => {
+  const x = Math.abs(z) / Math.SQRT2;
+  const k = 1 / (1 + 0.3275911 * x);
+  const e = 1 - ((((1.061405429 * k - 1.453152027) * k + 1.421413741) * k - 0.284496736) * k + 0.254829592) * k * Math.exp(-x * x);
+  return z >= 0 ? (1 + e) / 2 : (1 - e) / 2;
+};
 /** Flight sim cap (rev 3), ticks. */
 const FLIGHT_MAX = 190;
 /** orbitRev 12: chance of aiming for the features on a hop that has some, and of insisting on a first-lap release. */
-const FEATURE_TRY: Record<string, number> = { average: 0.25, good: 0.5, great: 0.75, near: 0.9 };
-const FIRST_LAP: Record<string, number> = { average: 0.35, good: 0.6, great: 0.8, near: 0.95 };
+const FEATURE_TRY: Record<SkillLevel, number> = { weak: 0.25, average: 0.25, good: 0.5, great: 0.75, near: 0.9, elite: 1, perfect: 1 };
+const FIRST_LAP: Record<SkillLevel, number> = { weak: 0.35, average: 0.35, good: 0.6, great: 0.8, near: 0.95, elite: 1, perfect: 1 };
 
 type Kind = "hop" | "hole" | "die";
 
-export const bot: SkillBot = ({ game, seed, human }) => {
+export const bot: SkillBot = ({ game, seed, human, fixes }) => {
   const level = human.level;
-  // The elite level (the 200-point expansions' extra level): near-perfect's tables, but always after the features and
-  // the first-lap release, and its steadier hand aims a tick closer to a window's edge.
-  const elite = human.band === "elite";
-  const featureTry = elite ? 1 : FEATURE_TRY[level]!;
-  const firstLap = elite ? 1 : FIRST_LAP[level]!;
-  const room = elite ? [-1, 1] : [-2, -1, 1, 2];
+  /** The window fix (see above): the core levels only with ctx.fixes; weak, elite and perfect always. */
+  const FIX = Boolean(fixes) || level === "weak" || level === "elite" || level === "perfect";
+  /** Elite and perfect protect the base: a hole only when it is no riskier than the hop they'd accept. */
+  const PROTECT = level === "elite" || level === "perfect";
+  const runTicks = game.runTicks;
   const step = (s: OrbitRev3State, tap: boolean) => game.step(s, tap ? { t: s.tick + 1, k: ORBIT_INPUT_TAP, a: 0, b: 0, c: 0, d: 0 } : null) as OrbitRev3State;
 
-  /** Wait d ticks in orbit, tap, follow the flight: what happens, and how long it flew. */
-  /** Feature points a fork's flight took (orbitRev 12): motes, slingshots and threads, as the score counts them. */
+  /** orbitRev 12: elite and flawless aim a tick closer to a window's edge than the rest. */
+  const room = level === "elite" || level === "perfect" ? [-1, 1] : [-2, -1, 1, 2];
+  /** orbitRev 12: feature points a fork's flight took (motes, slingshots, threads, as the score counts them). */
   const gainOf = (from: OrbitRev3State, to: OrbitRev3State) => {
-    const bits = (n: number) => { let c = 0; for (let b = n; b; b &= b - 1) c++; return c; };
+    const bits = (n: number) => {
+      let c = 0;
+      for (let b = n; b; b &= b - 1) c++;
+      return c;
+    };
     return (bits(to.dustGot ?? 0) - bits(from.dustGot ?? 0)) / 2 + 4 * (bits(to.slung ?? 0) - bits(from.slung ?? 0)) + 4 * (bits(to.threaded ?? 0) - bits(from.threaded ?? 0));
   };
+
+  /** Wait d ticks in orbit, tap, follow the flight: what happens, how long it flew, and (orbitRev 12) what it took. */
   const fork = (from: OrbitRev3State, d: number): { kind: Kind; flight: number; gain: number } => {
     let s = from;
     for (let k = 0; k < d && !s.ended; k++) s = step(s, false);
@@ -92,6 +120,27 @@ export const bot: SkillBot = ({ game, seed, human }) => {
     if (tryHole) burnt.add(s.cur);
     let skips = human.chance(HESITATE[level]!) ? 1 : 0;
     let chosen: [number, number, Kind] | null = null;
+    /** FIX: a window's loss chance under the player's own jitter, aimed at its middle. */
+    // (perfect chooses windows as elite does, by elite's jitter, then taps without error: the same policy, no error.)
+    const sdTick = (level === "perfect" ? PROFILES.elite.timingSdMs : human.p.timingSdMs) / (1000 / 60);
+    const riskOf = (w: [number, number, Kind]) => {
+      const mid = w[0] + (w[1] - 1) / 2;
+      const flight = flights[Math.round(mid)] ?? 60;
+      const sd = sdTick * Math.sqrt((flight / 150 + (beltsNear ? 0.4 : 0)) ** 2 + 1);
+      if (sd < 1e-6) return kinds[Math.round(mid)] === "die" ? 1 : 0;
+      let p = 0;
+      const span = Math.ceil(4 * sd) + 1;
+      for (let x = Math.floor(mid) - span; x <= Math.ceil(mid) + span; x++) {
+        const k = x < 0 ? "die" : (kinds[Math.min(x, kinds.length - 1)] ?? "die");
+        if (k === "die") p += phi((x + 0.5 - mid) / sd) - phi((x - 0.5 - mid) / sd);
+      }
+      return p;
+    };
+    // Time running short (about 1.5 s a planet left): any window will do.
+    const hurry = runTicks - t < (40 - s.cur) * 90;
+    const risk = hurry ? 1 : RISK[level]!;
+    let fallback: [number, number, Kind] | null = null;
+    let fallbackRisk = Infinity;
     for (let d = 0; d <= maxScan && !chosen; d++) {
       const f = fork(s, d);
       kinds.push(f.kind);
@@ -107,23 +156,67 @@ export const bot: SkillBot = ({ game, seed, human }) => {
         // Usable only if its middle comes round after the player is ready.
         if (w[0] + w[1] / 2 >= ready && (w[2] === "hole") === tryHole) {
           // orbitRev 12: a first-lap release is a perfect orbit; a keen player never lets this one go round.
-          if (s.xp && skips > 0 && w[0] + w[1] / 2 < lap && human.chance(firstLap)) skips = 0;
+          if (s.xp && skips > 0 && w[0] + w[1] / 2 < lap && human.chance(FIRST_LAP[level])) skips = 0;
           if (skips > 0) skips--;
-          else chosen = w;
+          else if (!FIX) chosen = w;
+          else {
+            const r = riskOf(w);
+            if (r <= risk) chosen = w;
+            else if (r < fallbackRisk - 1e-9) {
+              fallback = w;
+              fallbackRisk = r;
+            }
+          }
         }
       }
     }
+    if (FIX && PROTECT && tryHole && !chosen) {
+      // Protect the base: no hole window safe enough, so the hop it would have flown (the first acceptable, else the safest).
+      const hops = windows.filter((w) => w[2] === "hop" && w[0] + w[1] / 2 >= ready);
+      chosen = hops.find((w) => riskOf(w) <= risk) ?? hops.sort((a, b) => riskOf(a) - riskOf(b))[0] ?? null;
+    }
+    if (FIX && !chosen) chosen = fallback;
     if (!chosen) {
       // Nothing of the wanted kind came round: take any hop window seen after ready, else just guess.
       chosen = windows.find((w) => w[2] === "hop" && w[0] + w[1] / 2 >= ready) ?? windows.find((w) => w[2] === "hop") ?? [ready + lap / 2, 1, "hop"];
     }
+    // orbitRev 12, near-perfect, elite and flawless: take the usable window whose safe ticks take the most features
+    // (with the fixes, only among windows under the level's risk), keeping the first one on a tie.
+    if (s.xp && (level === "near" || level === "elite" || level === "perfect") && chosen[2] !== "hole") {
+      for (let d = kinds.length; d <= maxScan; d++) {
+        const f = fork(s, d);
+        kinds.push(f.kind);
+        flights.push(f.flight);
+        gains.push(f.gain);
+        const prev = kinds[d - 1];
+        if (d > 0 && prev !== "die" && prev !== f.kind) {
+          let a = d - 1;
+          while (a > 0 && kinds[a - 1] === prev) a--;
+          windows.push([a, d - a, prev!]);
+        }
+      }
+      const safeGain = (w: [number, number, Kind]) => {
+        let g = 0;
+        for (let d = w[0]; d < w[0] + w[1]; d++) if (room.every((o) => kinds[d + o] !== undefined && kinds[d + o] !== "die")) g = Math.max(g, gains[d] ?? 0);
+        return g;
+      };
+      let bestGain = safeGain(chosen);
+      for (const w of windows) {
+        if (w[2] !== "hop" || w[0] + w[1] / 2 < ready || w[0] <= chosen[0] || (FIX && riskOf(w) > risk)) continue;
+        const g = safeGain(w);
+        if (g > bestGain) {
+          bestGain = g;
+          chosen = w;
+        }
+      }
+    }
     const [start, len] = chosen;
     let mid = start + (len - 1) / 2;
     // orbitRev 12: going for the features means aiming at the window's best tick for them (nearest the middle on a tie).
-    if (s.xp && human.chance(featureTry)) {
+    if (s.xp && human.chance(FEATURE_TRY[level])) {
       let best = -1, bestGain = 0;
       for (let d = start; d < start + len; d++) {
-        // Only a tick with room either side (two ticks each way that still land): a player aims where a near miss is safe.
+        // Only a tick with room either side that still lands: a player aims where a near miss is safe.
         const roomy = room.every((o) => kinds[d + o] !== undefined && kinds[d + o] !== "die");
         const g = roomy ? (gains[d] ?? 0) : 0;
         if (g > bestGain || (g === bestGain && g > 0 && Math.abs(d - mid) < Math.abs(best - mid))) {

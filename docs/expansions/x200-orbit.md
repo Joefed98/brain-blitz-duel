@@ -26,6 +26,9 @@ as before (orbit-expand-check replays 96 runs recorded on main before the change
 
 ## What changed from the parked version, and why
 
+> The curve, pay and pace numbers in this section are the first tuning, on the old bots. They were refitted on Session
+> A's fixed bots (#175): see "Final tuning" at the end, which supersedes them. The mechanisms are unchanged.
+
 1. **Partial credit** (Joe: the rocket was lost before the first planet too often, so average and good play scored
    0: on the parked version 2 average zeros on the tuning seeds and 10 on fresh ones). `reach` (orbitRev 12 only)
    is how far the furthest flight from the last planet reached got toward the next one: the rocket's position
@@ -178,3 +181,112 @@ the raw points and the pay scale (`skillPayLine`). **The intro demo needs re-rec
 - `arcade-self-replay-check` gains an appended entry (`orbit/xp`); other branches may append too, so keep each.
 - Measure tool: `bun scripts/arcade-skill-bands.ts orbit --rev=x --levels=weak,average,good,great,near,elite
   --seeds=60 --jobs=1` and `--from=60 --seeds=200`.
+
+## Addendum (26 Oct 2026, Joe's notes from the test-bot session): provisional
+
+**What changed.**
+- *The near-perfect and elite plan* (`bots/orbit.ts`, orbitRev 12 only): the old plan took the first usable landing
+  window in a lap. On figure-eights and belted orbits the windows fly different lines, and the features lie on one of
+  them. A keen player now looks a little further (up to the plan's own scan) and takes the usable window whose safe
+  ticks take the most feature points, keeping the first window on a tie. On 30 tuning seeds, raw feature points went
+  from a median of 34 / 35 (near-perfect / elite) to 42 / 45 out of 50 (p90 50 / 50). Full stardust trails went from 3
+  to 4 of 5, slingshots from 3 to 4 of 4. Other levels are unchanged. The change is one separate block, so it can be
+  re-applied onto Session A's bots.
+- *The ceiling, by play*: orbit-expand-check now deals the puzzle for each of the 260 seed indices as generateOrbit
+  does (room seed, feature-bank course, its planets, holes and extras), plays it with its course's witness player and
+  grades the run through the server replay on that puzzle. Lowest: **200** on the tuning seeds (0–59) and **200** on
+  the fresh seeds (60–259).
+- *Zeros*: with today's bots, partial credit already removes them: 0 of 360 tuning runs and 0 of 1,200 fresh runs,
+  against 10 and 52 on orbitRev 10. Session A's average-level zeros (18 / 200) were on the parked scoring. A release
+  that flies away from the next planet still scores 0, so Session A's harder bots need re-measuring.
+
+**Provisional tables (today's bots plus the new plan; scoring unchanged).** orbitRev 12 median / p90 [orbitRev 10 median]:
+
+| Seeds | Weak | Average | Good | Great | Near-perfect | Elite |
+|---|---|---|---|---|---|---|
+| Tuning (0–59) | 32 / 81 [40] | 79.5 / 106 [58] | 99.5 / 133 [101] | 139 / 177 [120] | 177 / 192 [135] | 182.5 / 196 [143] |
+| Fresh (60–259) | 34.5 / 88 [37.5] | 69 / 103 [73] | 96 / 131 [100] | 136 / 173 [117] | 178 / 188 [139] | 183 / 197 [144] |
+
+No level scores 0. With the better plan, near-perfect is now above the bar: median 177–178, p90 188–192, about 5
+under elite's median. The skill pay and the elite-pace cap will be refitted on Session A's bots and flawless level;
+final tuning waits for them, as agreed. Good is −1 % / −4 % against orbitRev 10 measured with the old bots.
+
+## Final tuning (26 Oct 2026, Session A's fixed bots, #175)
+
+**Merge.** Main (with #175) is merged in. The x200 tools now use main's `human.ts` (`ALL_LEVELS`, seven levels) with
+no shim, plus `seedForX` for `--rev=x`. Orbit's bot is #175's fixed bot (the risk-judged windows on `fixes`; elite and
+flawless protect the base) with the orbitRev 12 paths added on top. Every new path is gated on the state's `xp` marker,
+so older stamps play exactly as main's bot, fixes on or off:
+- the feature-aiming tick (`FEATURE_TRY`) and the first-lap release (`FIRST_LAP`), per-level tables with all seven keys;
+- for near-perfect, elite and flawless, the window whose line takes the most features (with the fixes, only among
+  windows under the level's risk);
+- ±1 tick of room for elite and flawless.
+
+The recorded runs (`orbit-x200-runs.json.gz`, 28 runs, weak to flawless, fixes on) and the replay-runs.json orbit run
+were re-recorded on the final scoring. replay-runs.json keeps main's new stroop run as well.
+
+**Final scoring on orbitRev 12** (no stored rounds exist on it, so it was refitted freely):
+- Base `ORBIT_V12_BAND_CURVE`: planets 0 / 4 / 12 / 20 / 30 / 36 / 40 → 0 / 24 / 60 / 89 / 110 / 139 / 140, plus the partial
+  credit (sixteenths of the next planet's step).
+- The speed bonus is unchanged: up to 10 for the sun.
+- Raw feature points, 50 at most:
+  - stardust 15 for 28 of the 30 motes (`ORBIT_XP_DUST_FULL`, in proportion);
+  - 4 per slingshot (16);
+  - 4 per field threaded (12);
+  - 1 per 3 perfect orbits (7).
+- `ORBIT_V12_SKILL_PAY`: raw 20 pays 10, 30 pays 26, 44 pays 30, and 48 or more pays 50.
+- Elite pace (`orbitXpSkillCap`): skill pays at most 24 unless the sun is reached quickly. The rest comes in a share
+  from 35 s left to all of it with 2,560 ticks (42.7 s) left. The slowest witness finishes with 2,567 ticks left, so
+  every course's ceiling stays 200.
+
+Why the pace cap matters: with the fixed bots, near-perfect reaches the sun on 50 / 60 and 180 / 200 seeds. Its
+fastest tenth finishes as quickly as elite's median, and finish speed is the one thing that separates the two levels.
+
+**Tables.** Measured with `bun scripts/arcade-skill-bands.ts orbit --rev=x --levels=all --jobs=2`, tuning seeds 0–59
+and fresh seeds 10000–10199, with fixes on. "Before" is the fixed bots on orbitRev 10 (`strictRev`), on the same
+feature-bank courses. The scores are the tool's own logs (`--save`) replayed through the server on the final scoring.
+The logs don't depend on scoring, because the bot never reads the score.
+
+| Seeds | Weak | Average | Good | Great (med / p90) | Near-perfect (med / p90) | Elite (med / p90) | Flawless (med, lowest) |
+|---|---|---|---|---|---|---|---|
+| Tuning 0–59 | 23 [40] | 73 [73] | 112.5 [107] | 163 / 171 [139] | **171 / 179** [147] | **178 / 200** [150] | 189.5, 171 [150] |
+| Fresh 10000–10199 | 25 [23] | 63.5 [70] | 99 [106] | 159.5 / 170 [135] | **172 / 184** [148] | **179 / 200** [150] | 190, 170 [150] |
+
+| Seeds | Zero scores, orbitRev 12 | Zero scores, orbitRev 10 (fixed bots) | Good vs before | Lowest ceiling (oracle, server replay) | Flawless bot at 200 |
+|---|---|---|---|---|---|
+| Tuning | none at any level | weak 4, average 4, great 2 | +5.1 % | 200 | 17 / 60 |
+| Fresh | none at any level | weak 17, average 18, good 5, great 4, near 1 | −6.6 % | 200 (also 200 on seeds 60–259) | 74 / 200 |
+
+Random play (uniform taps every 0.25–1.5 s): median 1, p90 6, best 34 on 200 courses (orbit-expand-check).
+
+**Session A's two points.**
+- *Average scored 0 on 18 of 200 seeds.* That is orbitRev 10 itself with the fixed bots (18 average zeros on the
+  fresh set above). On orbitRev 12 the partial credit leaves no zeros at any level.
+- *Good +14 %.* With the fixed bots on both sides, on the same seeds, good is +5.1 % (tuning) and −6.6 % (fresh).
+
+**Against the bar.**
+- Met:
+  - good within ±10 %;
+  - near-perfect median 171 / 172, p90 179 / 184;
+  - elite median 178 / 179, p90 200 / 200;
+  - great between good and near-perfect, and near-perfect out-scores great;
+  - no zeros for weak or average play;
+  - random play near 0;
+  - the oracle (each course's witness player, through the server replay) reaches 200 on every seed of 0–59, 60–259 and
+    10000–10199.
+- Not met: **the flawless bot reaches 200 on only 17 / 60 and 74 / 200 seeds** (median 189.5 / 190, lowest 171 / 170).
+  It always reaches the sun, but its plan takes a median of 46–47 of the 50 raw feature points; it reaches 48 or more
+  on only 26 / 60 and 94 / 200 seeds. Its first-lap and feature windows also wait for its reaction time, which the
+  witness's instant releases don't.
+- Making the flawless bot's own score reach 200 would need a better plan (for example searching the hole choices and
+  windows for the most features), not a gentler curve. Any curve that pays its 46 raw points in full also pays elite's
+  typical run in full, and puts elite's median at 200.
+- Weak's median is 23 against 40 on the tuning seeds (25 against 23 on fresh).
+
+Checks re-run after the final scoring (each alone): orbit-expand-check (the ceiling on all three seed sets, 28 recorded
+runs), round-max-check, scoring-bands-check, scoring-targets-check, scoring-rev3-check (one run under load failed only
+its "a stored run took 902 ms to grade" timing line, a puzzle's; the rerun passed), reveal-score-check, replay-check,
+practice-bests-check, arcade-self-replay-check (all 8 Orbit entries), arcade-fx-check, arcade-help-bands-check,
+intro-score-text-check, six-game-scoring-check, arcade-score-bands-check, arcade-chart-check, intro-demo-check,
+arcade-tuning-a-check, arcade-tuning-f-check, arcade-tuning-g3-check and arcade-batch5-check all pass. `tsc --noEmit`
+is clean.

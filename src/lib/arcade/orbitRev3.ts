@@ -1357,8 +1357,12 @@ export const ORBIT_MOON_ASSIST = 44 * FP;
 /** Slingshot boost: the flight's speed × 3 / 2. */
 export const ORBIT_SLING_NUM = 3;
 export const ORBIT_SLING_DEN = 2;
-/** Feature points (orbitRev 12): 1 per 2 motes (15), 4 per slingshot (16), 4 per field threaded (12), 1 per 3 perfect orbits (7). */
+/**
+ * Feature points (orbitRev 12): stardust 15 for 28 of the 30 motes (15 × motes / 28, rounded down), 4 per slingshot
+ * (16), 4 per field threaded (12), 1 per 3 perfect orbits (7).
+ */
 export const ORBIT_XP_DUST_CAP = 15;
+export const ORBIT_XP_DUST_FULL = 28;
 export const ORBIT_XP_SLING_PTS = 4;
 export const ORBIT_XP_SLING_CAP = 16;
 export const ORBIT_XP_THREAD_PTS = 4;
@@ -1374,26 +1378,26 @@ export const ORBIT_XP_MOTES = 6;
 export const ORBIT_XP_MOONS = 4;
 export const ORBIT_XP_FIELDS = 3;
 /**
- * orbitRev 12's base curve: orbitRev 10's strict curve (ORBIT_V10_BAND_CURVE) from 12 planets up, with a knot at 4
- * planets (32) so the first hops, now among rocks and moons, count a little more (fitted on the skill-band bots:
- * docs/expansions/x200-orbit.md). 140 for the sun.
+ * orbitRev 12's base curve on planets reached: 140 for the sun, as orbitRev 10's strict curve from 36 planets up, lower
+ * in the middle since the features now add up to 50 on top (fitted with the skill pay on Session A's fixed skill-band
+ * bots, docs/expansions/x200-orbit.md).
  */
-export const ORBIT_V12_BAND_CURVE = bandCurve([0, 4, 12, 20, 30, 36, 40], [0, 32, 74, 100, 117, 139, 140]);
+export const ORBIT_V12_BAND_CURVE = bandCurve([0, 4, 12, 20, 30, 36, 40], [0, 24, 60, 89, 110, 139, 140]);
 /** The most the features' raw points (orbitXpFeaturePoints, each part capped) can pay: the round maximum's extra 50. */
 export const ORBIT_V12_SKILL_MAX = 50;
 /**
  * orbitRev 12's skill pay: the features' raw points (0–50) paid on a rising scale, so the odd mote and moon pay
- * little and the full 50 needs every feature taken: 20 pay 14, 30 pay 28, 40 pay 36, 45 pay 46, 50 pay 50.
+ * little and the full 50 needs nearly every feature taken: 20 pay 10, 30 pay 26, 44 pay 30, 48 or more pay 50.
  */
-export const ORBIT_V12_SKILL_PAY = bandCurve([0, 20, 30, 40, 45, 50], [0, 14, 28, 36, 46, ORBIT_V12_SKILL_MAX]);
+export const ORBIT_V12_SKILL_PAY = bandCurve([0, 20, 30, 44, 48], [0, 10, 26, 30, ORBIT_V12_SKILL_MAX]);
 /**
- * Elite pace: skill pays at most ORBIT_V12_SKILL_PACED_FROM (40) unless the sun is reached quickly; the last 10 come
- * in a share from 10 s left (ORBIT_V12_PACE_FROM ticks) to the full 10 with 40 s left (ORBIT_V12_PACE_FULL ticks),
- * which every course's witness run beats.
+ * Elite pace: skill pays at most ORBIT_V12_SKILL_PACED_FROM (24) unless the sun is reached quickly; the rest come in a
+ * share from 35 s left (ORBIT_V12_PACE_FROM ticks) to all of it with 2,560 ticks (42.7 s) left (ORBIT_V12_PACE_FULL),
+ * which every course's witness run beats (the slowest finishes with 2,567 ticks left).
  */
-export const ORBIT_V12_SKILL_PACED_FROM = 40;
-export const ORBIT_V12_PACE_FROM = 10 * 60;
-export const ORBIT_V12_PACE_FULL = 40 * 60;
+export const ORBIT_V12_SKILL_PACED_FROM = 24;
+export const ORBIT_V12_PACE_FROM = 35 * 60;
+export const ORBIT_V12_PACE_FULL = 2560;
 
 /** First sample (0..steps) at which the segment comes within `reach` of (cx, cy), or -1. */
 function xpCircleK(cx: number, cy: number, reach: number, x0: number, y0: number, x1: number, y1: number, steps: number): number {
@@ -1492,7 +1496,7 @@ export function orbitXpCounts(s: OrbitRev3State) {
 /** orbitRev 12's feature points, each part capped; 50 at most. */
 export function orbitXpFeaturePoints(s: OrbitRev3State): { dust: number; slings: number; threads: number; perfect: number; total: number } {
   const c = orbitXpCounts(s);
-  const dust = Math.min(ORBIT_XP_DUST_CAP, Math.trunc(c.dust / 2));
+  const dust = Math.min(ORBIT_XP_DUST_CAP, Math.trunc((c.dust * ORBIT_XP_DUST_CAP) / ORBIT_XP_DUST_FULL));
   const slings = Math.min(ORBIT_XP_SLING_CAP, ORBIT_XP_SLING_PTS * c.slings);
   const threads = Math.min(ORBIT_XP_THREAD_CAP, ORBIT_XP_THREAD_PTS * c.threads);
   const perfect = Math.min(ORBIT_XP_PERFECT_CAP, Math.trunc(c.perfect / ORBIT_XP_PERFECT_PER));
@@ -1500,7 +1504,7 @@ export function orbitXpFeaturePoints(s: OrbitRev3State): { dust: number; slings:
 }
 
 /** orbitRev 12's breakdown: orbitRev 10's base (curve points and the sun's speed bonus) plus the feature points. */
-/** orbitRev 12's skill cap: 40, plus up to 10 for reaching the sun at elite pace (ORBIT_V12_PACE_FROM → _FULL ticks left). */
+/** orbitRev 12's skill cap: ORBIT_V12_SKILL_PACED_FROM, rising to the full 50 for reaching the sun at elite pace (ORBIT_V12_PACE_FROM → _FULL ticks left). */
 export function orbitXpSkillCap(state: OrbitRev3State): number {
   if (!state.finished) return ORBIT_V12_SKILL_PACED_FROM;
   const left = ORBIT_REV3_RUN_TICKS - clampInt(state.endedTick, 0, ORBIT_REV3_RUN_TICKS);

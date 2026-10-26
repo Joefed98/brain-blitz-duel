@@ -130,16 +130,23 @@ for (const [i, entry] of ORBIT_XP_BANK.entries()) {
 ok(fixedCounts === ORBIT_XP_BANK.length, `every course carries exactly ${ORBIT_XP_TRAILS} × ${ORBIT_XP_MOTES} stardust motes, ${ORBIT_XP_MOONS} moons, ${ORBIT_XP_FIELDS} asteroid fields and 3 black holes (${fixedCounts} / ${ORBIT_XP_BANK.length}): the seed decides where, never how many`);
 ok(perfectBank === ORBIT_XP_BANK.length, `every course's witness reaches the sun with every feature taken (${minPerfect}+ perfect orbits) and scores ${ORBIT_XP_MAX} through the server (${perfectBank} / ${ORBIT_XP_BANK.length})`);
 {
-  // The course each seed index deals (as generateOrbit: room seed mod the bank) and its perfect-play ceiling.
-  const sets: [string, number, number][] = [["tuning", 0, 60], ["fresh", 60, 260]];
+  // Reachability, seed by seed: the puzzle each seed index deals (as generateOrbit: its room seed, the feature-bank
+  // course seed mod the bank, the course's planets, holes and extras) is played by its course's witness player,
+  // and the run is graded by the server's replay on that puzzle's own fields.
+  const sets: [string, number, number][] = [["tuning", 0, 60], ["fresh", 60, 260], ["fresh (Session A's set)", 10000, 10200]];
   for (const [name, from, to] of sets) {
-    let min = Infinity;
+    let min = Infinity, played = 0;
     for (let n = from; n < to; n++) {
-      const course = orbitXpCourseForSeed(roomSeed(n))!;
+      const seed = roomSeed(n);
+      const course = orbitXpCourseForSeed(seed)!;
       const entry = ORBIT_XP_BANK.find((e) => JSON.stringify(e.extras) === JSON.stringify(course.extras))!;
-      min = Math.min(min, ceilingOf.get(entry.seed) ?? 0);
+      const puzzle = { type: "orbit" as const, seed, orbitRev: ORBIT_REV_XP, planets: course.planets, holes: course.holes, extras: course.extras };
+      const end = runTaps(orbitStartForPuzzle(puzzle)!(), entry.taps);
+      const server = replayOrbitRun(puzzle.seed, encodeTaps(puzzle.seed, entry.taps, end), puzzle.orbitRev, puzzle.planets, puzzle.holes, puzzle.extras);
+      if (!server.flagged) played++;
+      min = Math.min(min, server.flagged ? 0 : server.score);
     }
-    ok(min === ORBIT_XP_MAX, `perfect-play ceiling on the ${to - from} ${name} seed indices ${from}–${to - 1}: lowest ${min} (every one reaches ${ORBIT_XP_MAX})`);
+    ok(min === ORBIT_XP_MAX && played === to - from, `perfect-play ceiling, played through the server replay on each of the ${to - from} ${name} seed indices ${from}–${to - 1}: lowest ${min} (every one reaches ${ORBIT_XP_MAX})`);
   }
 }
 
@@ -152,15 +159,15 @@ const xp0 = initXpFrom(planets, ORBIT_REV3_WORLD_W, holes, extras);
 ok(xp0.xp === 1 && xp0.viewW === 450 && xp0.worldH === 782 && xp0.band === 3 && xp0.reach === 0, "orbitRev 12 starts band-3, 450 × 782, with its marker and no partial credit");
 ok(orbitRev3Game.score(xp0) === 0 && orbitRev3Game.score(runTaps(xp0, [])) === 0, "no input scores 0");
 {
-  // The base curve is orbitRev 10's strict curve from 20 planets up, lifted only below (the first hops count more).
+  // The base curve rises with every planet, meets orbitRev 10's strict curve from 36 planets up and gives 140 at the sun.
   const strict = bandStrict(ORBIT_BAND_CURVE);
   let sameTop = true, lifted = true;
   for (let u = 0; u <= ORBIT_TOTAL; u++) {
     const a = bandPoints(ORBIT_V12_BAND_CURVE, u), b = bandPoints(strict, u);
-    if (u >= 20 && a !== b) sameTop = false;
-    if (u < 20 && a < b) lifted = false;
+    if (u >= 36 && a !== b) sameTop = false;
+    if (u > 0 && a < bandPoints(ORBIT_V12_BAND_CURVE, u - 1)) lifted = false;
   }
-  ok(sameTop && lifted && bandPoints(ORBIT_V12_BAND_CURVE, ORBIT_TOTAL) === 140, "the base curve is orbitRev 10's strict curve from 20 planets up, never lower below it, 140 at the sun");
+  ok(sameTop && lifted && bandPoints(ORBIT_V12_BAND_CURVE, ORBIT_TOTAL) === 140, "the base curve never falls, is orbitRev 10's strict curve from 36 planets up and gives 140 at the sun");
 }
 {
   // Partial credit: every first-lap release that crashes scores the share of planet 1's step it flew.
@@ -187,20 +194,21 @@ ok(orbitRev3Game.score(xp0) === 0 && orbitRev3Game.score(runTaps(xp0, [])) === 0
   // Skill pay: a rising scale on the raw feature points, the full 50 only for all of them.
   const knots = ORBIT_V12_SKILL_PAY;
   const pays = Array.from({ length: 51 }, (_, raw) => bandPoints(knots, raw));
-  ok(pays[50] === ORBIT_V12_SKILL_MAX && pays[49]! < ORBIT_V12_SKILL_MAX && pays.every((p, i) => i === 0 || p >= pays[i - 1]!) && pays[20]! < 20 && pays[30]! < 30, `skill pay rises: 10 → ${pays[10]}, 20 → ${pays[20]}, 30 → ${pays[30]}, 40 → ${pays[40]}, 50 → ${pays[50]}`);
+  ok(pays[50] === ORBIT_V12_SKILL_MAX && pays[48] === ORBIT_V12_SKILL_MAX && pays[47]! < ORBIT_V12_SKILL_MAX && pays.every((p, i) => i === 0 || p >= pays[i - 1]!) && pays[20]! < 20 && pays[30]! < 30, `skill pay rises: 10 → ${pays[10]}, 20 → ${pays[20]}, 30 → ${pays[30]}, 40 → ${pays[40]}, 44 → ${pays[44]}, 48 → ${pays[48]}, 50 → ${pays[50]}`);
   const all = { ...xp0, dustGot: 0x3fffffff, slung: 0xff, threaded: 0xff, perfect: 99, finished: 1, endedTick: 600, acted: 1 } as OrbitRev3State;
   const pts = orbitXpFeaturePoints(all);
   ok(pts.total === 50 && orbitXpSkillPaid(all) === 50 && orbitRev3Game.score(all) === ORBIT_XP_MAX, `raw feature points cap at 50 (${pts.dust} + ${pts.slings} + ${pts.threads} + ${pts.perfect}) and the total at ${ORBIT_XP_MAX}`);
   // Elite pace: every feature taken pays 40 without the sun, a share of the last 10 from 10 s left, all 50 with 40 s left.
   const at = (endedTick: number, finished = 1) => orbitXpSkillPaid({ ...all, finished, endedTick } as OrbitRev3State);
   const run = orbitRev3Game.runTicks;
-  ok(at(run, 0) === ORBIT_V12_SKILL_PACED_FROM && at(run - ORBIT_V12_PACE_FROM) === 40 && at(run - (ORBIT_V12_PACE_FROM + ORBIT_V12_PACE_FULL) / 2) === 45 && at(run - ORBIT_V12_PACE_FULL) === 50 && at(600) === 50, `skill pays 40 without the sun, ${at(run - 1500)} with 25 s left, 50 with 40 s or more left (elite pace)`);
+  const half = Math.trunc((ORBIT_V12_PACE_FROM + ORBIT_V12_PACE_FULL) / 2);
+  ok(at(run, 0) === ORBIT_V12_SKILL_PACED_FROM && at(run - ORBIT_V12_PACE_FROM) === ORBIT_V12_SKILL_PACED_FROM && at(run - half) === ORBIT_V12_SKILL_PACED_FROM + Math.trunc((50 - ORBIT_V12_SKILL_PACED_FROM) / 2) && at(run - ORBIT_V12_PACE_FULL) === 50 && at(600) === 50, `skill pays ${ORBIT_V12_SKILL_PACED_FROM} without the sun or with ${ORBIT_V12_PACE_FROM / 60} s left, ${at(run - half)} with ${(half / 60).toFixed(1)} s left, 50 with ${(ORBIT_V12_PACE_FULL / 60).toFixed(1)} s or more left (elite pace)`);
   const some = { ...xp0, dustGot: 0xff, slung: 1, perfect: 6, acted: 1 } as OrbitRev3State;
   ok(orbitXpSkillPaid(some) === bandPoints(knots, orbitXpFeaturePoints(some).total) && orbitXpSkillPaid(some) < ORBIT_V12_SKILL_PACED_FROM, "incidental features pay on the scale, under the pace cap");
 }
 // With no features placed, orbitRev 12 plays exactly as orbitRev 10 (the hole bank's own tap logs) and never scores less.
 {
-  let play = 0, parts = 0, notLower = 0, n = 0;
+  let play = 0, parts = 0, n = 0;
   for (const e of ORBIT_XP_BANK.slice(0, 40)) {
     const h = holeOf(e.seed);
     const p = decodeRev3Planets(planetsOf(e.seed));
@@ -210,10 +218,9 @@ ok(orbitRev3Game.score(xp0) === 0 && orbitRev3Game.score(runTaps(xp0, [])) === 0
     if (b.tick === a.tick && b.best === a.best && b.ended === a.ended && b.captured === a.captured && (b.jumps ?? 0) === (a.jumps ?? 0) && b.finished === a.finished) play++;
     const pb = orbitBandParts(b);
     if (orbitRev3Game.score(b) === Math.min(ORBIT_XP_MAX, orbitXpBasePoints(b) + (pb.bonus - orbitXpSkillPaid(b)) + orbitXpSkillPaid(b)) && pb.points === orbitXpBasePoints(b)) parts++;
-    if (orbitRev3Game.score(b) >= orbitRev3Game.score(a)) notLower++;
   }
   ok(play === n, `with no features on the course, orbitRev 12 plays exactly as orbitRev 10 (${play} / ${n} hole-bank tap logs: ticks, planets, captures, jumps, end)`);
-  ok(parts === n && notLower === n, `and scores its base (curve + partial credit), the sun's speed bonus and skill, never below orbitRev 10 for the same play (${notLower} / ${n})`);
+  ok(parts === n, `and scores exactly its base (curve + partial credit), the sun's speed bonus and the paid skill (${parts} / ${n})`);
 }
 // Hand-made flights beside a feature, flown from the planet nearest it (so the flight is inside the world).
 const flightAt = (x: number, y: number, vx: number): OrbitRev3State => {
@@ -285,7 +292,7 @@ const fly = (s: OrbitRev3State, ticks: number, until: (s: OrbitRev3State) => boo
     else console.log(`  differs: ${run.level} seed ${run.seed}: ${r.score} vs ${run.score}`);
     levels.add(run.level);
   }
-  ok(fixture.runs.length >= 24 && match === fixture.runs.length && levels.size === 6, `${match} / ${fixture.runs.length} recorded orbitRev 12 runs (${[...levels].join(", ")}) replay to the same score, checksum and tick`);
+  ok(fixture.runs.length >= 24 && match === fixture.runs.length && levels.size === 7, `${match} / ${fixture.runs.length} recorded orbitRev 12 runs (${[...levels].join(", ")}) replay to the same score, checksum and tick`);
   const low = fixture.runs.filter((r) => r.level === "weak" || r.level === "average");
   ok(low.length > 0 && low.every((r) => r.score > 0), `no recorded weak or average run scores 0 (${low.map((r) => r.score).join(", ")})`);
 }

@@ -74,7 +74,7 @@ export function randomTaps(seed: number): ArcadeInputEvent[] {
 function botLog(seed: number, level: "weak" | "elite"): ArcadeInputEvent[] {
   const start = startFor(seed);
   const game = { ...orbitRev3Game, init: start };
-  return bot({ game, seed, rev: ORBIT_REV_XP, human: new Human("orbit", seed, level) }).events ?? [];
+  return bot({ game, seed, rev: ORBIT_REV_XP, human: new Human("orbit", seed, level), fixes: true }).events ?? [];
 }
 
 export const roomIdentity = {
