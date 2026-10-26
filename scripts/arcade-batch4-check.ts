@@ -526,7 +526,8 @@ for (const type of (["skyline", "tilt", "junction", "snip"] as const).filter(wan
 }
 // skylineRev 7 (E4, 25 Oct 2026) raised High Rise to 200 (roundMax.ts); e4-expansion-check proves a bot reaches it.
 if (want("skyline")) ok(new RegExp(`up to ${roundMaxFor("skyline")}\\b`, "i").test(INTRO_SCORE.skyline), "High Rise intro states its maximum");
-if (want("snip")) ok(PUZZLE_INSTRUCTIONS.snip.how.some((l) => !l.helpOnly && `${l.action} ${l.detail}`.includes("up to 12 s each")), "Scrumper intro says up to 12 s each");
+// The 200-point expansion (snipRev 11): six levels of up to 14 s each, stated in the help (the intro's three lines carry the features).
+if (want("snip")) ok(PUZZLE_INSTRUCTIONS.snip.how.some((l) => `${l.action} ${l.detail}`.includes("up to 14 s each")), "Scrumper help says up to 14 s each");
 if (want("junction")) ok(/minute for 10 more/i.test(INTRO_SCORE.junction), "Junction intro states the 10 for lasting the minute (score bands)");
 if (want("tilt")) ok(!INTRO_SCORE.tilt.includes(`up to ${TILT_V2_PARTIAL_MAX}`) && INTRO_SCORE.tilt.includes(`up to ${roundMaxFor("tilt")}`), "Tilt intro states its maximum and no partial cap (score bands)");
 

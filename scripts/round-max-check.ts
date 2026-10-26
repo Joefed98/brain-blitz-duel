@@ -74,6 +74,8 @@ const RAISED: PuzzleType[] = [
   "bintoss", "slice",
   // Expansion E3 (docs/expansions/e3.md): Breaker.
   "breaker",
+  // The 200-point expansion (docs/expansions/x200-snip.md): Scrumper.
+  "snip",
   // Expansion E2 (docs/expansions/e2.md): Meteor and Tempo.
   "snake", "beat",
 ];

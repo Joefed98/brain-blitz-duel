@@ -18,9 +18,9 @@
  */
 import { readFileSync } from "node:fs";
 import { inputAt, recordInput, type ArcadeInputEvent } from "../../../src/lib/arcade/engine";
-import { SNIP_BANDS_V3, SNIP_BANDS_V6, SNIP_BANDS_V7, SNIP_CONFIG, SNIP_PROVEN_FIRST, SNIP_INPUT_CUT, SNIP_LEVEL_TICKS, type SnipState } from "../../../src/lib/arcade/snip";
+import { SNIP_BANDS_V3, SNIP_BANDS_V6, SNIP_BANDS_V7, SNIP_CONFIG, SNIP_COURSES, SNIP_PROVEN_FIRST, SNIP_INPUT_CUT, SNIP_LEVEL_TICKS, SNIP_X_LEVEL_TICKS, SNIP_X_PAN_TICKS, type SnipState } from "../../../src/lib/arcade/snip";
 import { driveEvents, type SkillBot } from "../bot";
-import type { SkillLevel } from "../human";
+import type { SkillLevel, SkillTier } from "../human";
 
 type Plan = [number, number][];
 interface Proof {
@@ -82,7 +82,10 @@ function permutations(n: number): number[][] {
   return out;
 }
 
-export const bot: SkillBot = ({ game, seed, human }) => {
+export const bot: SkillBot = (ctx) => {
+  // snipRev 11's tall course has its own player (below).
+  if ((ctx.game.init(ctx.seed) as SnipState).course) return courseBot(ctx);
+  const { game, seed, human } = ctx;
   const level = human.level;
   const init = game.init(seed) as SnipState;
   const history: SnipState[] = [];
@@ -312,6 +315,269 @@ export const bot: SkillBot = ({ game, seed, human }) => {
       pendingCheck = { rope, at: s.levelTick + human.reactTicks() };
       // A vine the lagged view has not seen yet is swiped where it is now.
       return swipe(view.ropes[rope] ? view : s, rope);
+    },
+    init,
+  );
+};
+
+/* ================= snipRev 11: the tall course (the 200-point expansion) ================= */
+
+/**
+ * snipRev 11 bot. The pan shows the course; then the player works out a plan for the level's deal:
+ * the stored proof (fixtures/snip-x200-proofs.json) — its "best" plan (fewest cuts and both leaves)
+ * when they go for the features, else its "win" plan (every fruit fed). Better players go for the
+ * features more often, and only they make a stroke that cuts two ropes at once (a weaker player
+ * splits it into two swipes, so the level misses par). Timing is found as before on the noise-free
+ * sim from when the player is ready, then executed with reading, timing and aim error, a missed swipe
+ * retried one reaction later and the rest re-timed after each cut.
+ */
+const X_PROOFS: Record<string, { deals: Record<string, { win: Plan; best: Record<string, Plan> }> }> = (() => {
+  try {
+    return JSON.parse(readFileSync(new URL("../../fixtures/snip-x200-proofs.json", import.meta.url), "utf8"));
+  } catch {
+    return {};
+  }
+})();
+/**
+ * The course bot's figures by tier (26 Oct 2026, snipRev 11: weak and elite added; the four levels keep
+ * their parked values). The elite player studies the course during the pan, goes for the features on
+ * nearly every level and, chasing the par time, takes the first moment its plan works (others the
+ * middle of the window, the safer moment).
+ */
+/** Chance of playing for the features (the best plan: every fruit at par, both leaves, the fastest stored) on a level. */
+const BEST_GO: Record<SkillTier, number> = { weak: 0.05, average: 0.1, good: 0.3, great: 0.55, near: 0.85, elite: 0.95 };
+/** Chance of pulling off a two-rope stroke in one swipe (else it is two swipes). */
+const COMBO: Record<SkillTier, number> = { weak: 0.1, average: 0.2, good: 0.45, great: 0.7, near: 0.92, elite: 0.97 };
+/** Extra study time a weaker player needs on a busier course (ms per rope). */
+const STUDY: Record<SkillTier, number> = { weak: 850, average: 700, good: 500, great: 380, near: 280, elite: 220 };
+/** Chance of timing a feature plan at the first moment it works (chasing the par time) rather than the window's middle. */
+const EAGER: Record<SkillTier, number> = { weak: 0, average: 0, good: 0, great: 0.1, near: 0.3, elite: 0.85 };
+/** Reading error (ticks sd) and stroke gap by tier: the four levels' figures, the elite a little sharper. */
+const READ_X: Record<SkillTier, number> = { weak: 6, average: 5, good: 3.5, great: 2.5, near: 1.5, elite: 1 };
+const GAP_X: Record<SkillTier, number> = { weak: 22, average: 20, good: 16, great: 14, near: 12, elite: 11 };
+
+function courseBot({ game, seed, human }: Parameters<SkillBot>[0]): ReturnType<SkillBot> {
+  const tier = human.tier;
+  const init = game.init(seed) as SnipState;
+  const history: SnipState[] = [];
+  const lag = human.lagTicks();
+
+  const outcome = (s: SnipState, from: SnipState) => ({ all: (s.cleared ?? 0) > (from.cleared ?? 0), par: (s.parLevels ?? 0) > (from.parLevels ?? 0), two: (s.stars2 ?? 0) > (from.stars2 ?? 0) });
+  const tryPlan = (from: SnipState, plan: Plan) => {
+    let s = from;
+    const log: ArcadeInputEvent[] = [];
+    const lvl = s.level;
+    while (!game.isOver(s) && s.level === lvl) {
+      const due = plan.find(([, at]) => at === s.levelTick + 1);
+      if (due && s.ropes[due[0]]?.alive) recordInput(log, { ...idealCut(s, due[0]), t: s.tick + 1 }, game.inputRanges);
+      s = game.step(s, inputAt(log, s.tick + 1));
+    }
+    return outcome(s, from);
+  };
+  let eager = false;
+  const timeShape = (from: SnipState, shape: Plan, lo: number, span: number, best: boolean, stepT = 3): Plan | null => {
+    const first = shape[0]![1];
+    const ok = (d: number) => {
+      const plan = shape.map(([r, at]) => [r, at + d] as [number, number]);
+      if (plan.some(([, at]) => at > SNIP_X_LEVEL_TICKS - 2)) return false;
+      const res = tryPlan(from, plan);
+      return res.all && (!best || (res.par && res.two));
+    };
+    const d0 = lo - first;
+    let start: number | null = null;
+    for (let d = d0; d <= d0 + span; d += stepT)
+      if (ok(d)) {
+        start = d;
+        break;
+      }
+    if (start === null) return null;
+    let end = start;
+    for (let k = 0; k < 6 && ok(end + stepT); k++) end += stepT;
+    const mid = best && eager ? Math.min(Math.round((start + end) / 2), start + stepT) : Math.round((start + end) / 2);
+    return shape.map(([r, at]) => [r, at + mid] as [number, number]);
+  };
+
+  let levelSeen = -1;
+  /** The level's strokes: ropes cut on consecutive ticks from `at`. */
+  let strokes: { ropes: number[]; at: number }[] = [];
+  let si = 0;
+  let fireAt = Infinity;
+  let wantBest = false;
+  let retryAt = -1;
+  let retryRopes: number[] = [];
+  let queue: number[] = [];
+  let pending: { ropes: number[]; at: number } | null = null;
+
+  const toStrokes = (plan: Plan) => {
+    const out: { ropes: number[]; at: number }[] = [];
+    for (const [r, at] of [...plan].sort((a, b) => a[1] - b[1])) {
+      const last = out.at(-1);
+      if (last && at === last.at + last.ropes.length) last.ropes.push(r);
+      else out.push({ ropes: [r], at });
+    }
+    return out;
+  };
+  const toPlan = (list: { ropes: number[]; at: number }[]): Plan => list.flatMap((st) => st.ropes.map((r, k) => [r, st.at + k] as [number, number]));
+
+  const scheduleNext = (s: SnipState) => {
+    if (si >= strokes.length) {
+      fireAt = Infinity;
+      return;
+    }
+    const err = human.normal() * READ_X[tier] + human.timingTicks(1.5);
+    fireAt = Math.max(s.levelTick + 1, Math.round(strokes[si]!.at + err));
+  };
+
+  const planLevel = (s: SnipState) => {
+    const course = SNIP_COURSES[s.template]!;
+    const ropes = s.ropes.length;
+    const ready = SNIP_X_PAN_TICKS + human.thinkTicks(900 + 500 * course.band + STUDY[tier] * (ropes - 1));
+    const wind = course.winds.findIndex(([a, p, ph]) => a === (s.windA ?? 0) && p === (s.windP ?? 0) && ph === (s.windPh ?? 0));
+    const proof = X_PROOFS[String(s.template)]?.deals[`${s.wob ?? 0}:${Math.max(0, wind)}`];
+    wantBest = !!proof && human.chance(BEST_GO[tier]);
+    eager = human.chance(EAGER[tier]);
+    const gold = (s.fruits ?? []).findIndex((f) => f.gold === 1);
+    const bestPlan = proof ? (proof.best[String(gold)] ?? Object.values(proof.best)[0]) : undefined;
+    wantBest = wantBest && !!bestPlan;
+    let shape: Plan = ((wantBest ? bestPlan : proof?.win) ?? Array.from({ length: ropes }, (_, i) => [i, 90 + 30 * i] as [number, number])).map(([r, at]) => [r, at] as [number, number]);
+    // A combined stroke a weaker hand splits into separate swipes.
+    {
+      const st = toStrokes(shape);
+      const split: { ropes: number[]; at: number }[] = [];
+      let shift = 0;
+      for (const x of st) {
+        if (x.ropes.length > 1 && !human.chance(COMBO[tier])) {
+          x.ropes.forEach((r, k) => split.push({ ropes: [r], at: x.at + shift + k * GAP_X[tier] }));
+          shift += (x.ropes.length - 1) * GAP_X[tier];
+        } else split.push({ ropes: x.ropes, at: x.at + shift });
+      }
+      shape = toPlan(split);
+    }
+    const lo = Math.max(ready, s.levelTick + 1);
+    let timed = timeShape(s, shape, lo, 150, wantBest);
+    if (!timed && wantBest && proof) {
+      wantBest = false;
+      shape = proof.win.map(([r, at]) => [r, at] as [number, number]);
+      timed = timeShape(s, shape, lo, 150, false);
+    }
+    const plan = timed ?? shape.map(([r, at]) => [r, at + Math.max(0, lo - shape[0]![1])] as [number, number]);
+    strokes = toStrokes(plan);
+    for (let i = 1; i < strokes.length; i++) {
+      const prev = strokes[i - 1]!;
+      const end = prev.at + prev.ropes.length - 1;
+      if (strokes[i]!.at - end < GAP_X[tier]) strokes[i]!.at = end + GAP_X[tier];
+    }
+    si = 0;
+    retryAt = -1;
+    queue = [];
+    pending = null;
+    scheduleNext(s);
+  };
+
+  /** After a stroke: re-time the rest of the plan from what the fruit is doing now. */
+  const retime = (s: SnipState) => {
+    if (si >= strokes.length) return;
+    const rest = toPlan(strokes.slice(si));
+    const lo = Math.max(s.levelTick + GAP_X[tier], rest[0]![1] - 12);
+    const timed = timeShape(s, rest, lo, 60, wantBest, 3) ?? (wantBest ? timeShape(s, rest, lo, 60, false, 3) : null);
+    if (timed) strokes = [...strokes.slice(0, si), ...toStrokes(timed)];
+  };
+
+  /** A swipe across rope i as seen: through the middle of a clear segment, with aim and angle error. */
+  const swipe = (seen: SnipState, i: number): Omit<ArcadeInputEvent, "t"> => {
+    const rope = seen.ropes[i]!;
+    const f = seen.fruits?.[rope.f ?? 0];
+    const n = rope.x.length;
+    const pts = (k: number) => (k < n ? [rope.x[k]! / 256, rope.y[k]! / 256] : [(f?.x ?? 0) / 256, (f?.y ?? 0) / 256]) as [number, number];
+    const k = Math.max(1, Math.min(n - 2, 2 + Math.floor(human.u() * 3)));
+    const [x0, y0] = pts(k);
+    const [x1, y1] = pts(k + 1);
+    const cx = (x0 + x1) / 2 + human.aim(WORLD_PER_PX);
+    const cy = (y0 + y1) / 2 + human.aim(WORLD_PER_PX);
+    let ang = Math.atan2(y1 - y0, x1 - x0) + Math.PI / 2 + human.normal() * 0.25;
+    if (Math.cos(ang) < 0) ang += Math.PI;
+    const half = 22 * (0.85 + 0.3 * human.u());
+    return { k: SNIP_INPUT_CUT, a: Math.round(cx - Math.cos(ang) * half), b: Math.round(cy - Math.sin(ang) * half), c: Math.round(cx + Math.cos(ang) * half), d: Math.round(cy + Math.sin(ang) * half) };
+  };
+
+  return driveEvents(
+    game,
+    (s: SnipState) => {
+      history.push(s);
+      if (s.level !== levelSeen) {
+        levelSeen = s.level;
+        planLevel(s);
+      }
+      if (s.levelTick < SNIP_X_PAN_TICKS) return null;
+      const seen = history[Math.max(0, history.length - 1 - lag)]!;
+      const view = seen.level === s.level && seen.levelTick >= SNIP_X_PAN_TICKS ? seen : s;
+      // The rest of a stroke under way: the next rope on the very next tick.
+      while (queue.length) {
+        const r = queue.shift()!;
+        if (s.ropes[r]?.alive) return swipe(view.ropes[r] ? view : s, r);
+      }
+      if (pending && s.levelTick >= pending.at) {
+        const alive = pending.ropes.filter((r) => s.ropes[r]?.alive);
+        pending = null;
+        if (alive.length) {
+          retryAt = s.levelTick + 1;
+          retryRopes = alive;
+        } else {
+          si += 1;
+          retime(s);
+          scheduleNext(s);
+        }
+      }
+      if (pending || si >= strokes.length) return null;
+      const stroke = strokes[si]!;
+      // A vine not there yet (no catch so far): wait for it.
+      if (stroke.ropes.some((r) => r >= s.ropes.length)) return null;
+      const alive = (retryAt >= 0 ? retryRopes : stroke.ropes).filter((r) => s.ropes[r]?.alive);
+      if (!alive.length) {
+        si += 1;
+        retryAt = -1;
+        retime(s);
+        scheduleNext(s);
+        return null;
+      }
+      const due = s.levelTick + 1 >= fireAt;
+      const retry = retryAt >= 0 && s.levelTick + 1 >= retryAt;
+      if (!due && !retry) return null;
+      if (human.slip(0.5) && !retry) {
+        retryAt = s.levelTick + human.reactTicks();
+        retryRopes = stroke.ropes;
+        fireAt = Infinity;
+        return null;
+      }
+      retryAt = -1;
+      fireAt = Infinity;
+      queue = alive.slice(1);
+      pending = { ropes: alive, at: s.levelTick + alive.length + human.reactTicks() };
+      return swipe(view.ropes[alive[0]!] ? view : s, alive[0]!);
+    },
+    init,
+  );
+}
+
+/**
+ * Random play (26 Oct 2026, the arcade rule): a swipe of random length and angle at a random point of the
+ * view every 0.5–2 s, no aim and no plan (through the view on the tall course, the camera's top added).
+ */
+export const randomBot: SkillBot = ({ game, seed, human }) => {
+  const init = game.init(seed) as SnipState;
+  let nextAt = human.int(30, 120);
+  return driveEvents(
+    game,
+    (s: SnipState) => {
+      if (s.tick < nextAt) return null;
+      nextAt = s.tick + human.int(30, 120);
+      const w = SNIP_CONFIG.viewW;
+      const h = s.course ? 672 : SNIP_CONFIG.worldH;
+      const cx = human.u() * w;
+      const cy = (s.course ? (s.camY ?? 0) : 0) + human.u() * h;
+      const ang = human.u() * Math.PI;
+      const half = 15 + human.u() * 40;
+      return { k: SNIP_INPUT_CUT, a: Math.round(cx - Math.cos(ang) * half), b: Math.round(cy - Math.sin(ang) * half), c: Math.round(cx + Math.cos(ang) * half), d: Math.round(cy + Math.sin(ang) * half) };
     },
     init,
   );

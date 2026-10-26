@@ -78,6 +78,7 @@ import {
   SNIP_REV_BAND,
   SNIP_REV_PROVEN,
   SNIP_REV_TALL,
+  SNIP_REV_EXPAND,
   SNIP_RUN_TICKS,
   SNIP_TALL_FIRST,
   SNIP_TALL_H,
@@ -157,7 +158,8 @@ section("New rounds carry the Tuning E stamps; one world per stored revision");
     ["snake", "snakeRev", playRevOf("snake", generateSnake().snakeRev), SNAKE_REV_ROCKS + 3],
     // Scrumper rooms moved on to snipRev 6 (the same tall game on a bigger bank; scripts/snip-bank6-check.ts),
     // then snipRev 7 (the same game with every per-pin deal proven; scripts/snip-rev7-check.ts).
-    ["snip", "snipRev", playRevOf("snip", generateSnip().snipRev), SNIP_REV_PROVEN],
+    // The 200-point expansion (26 Oct 2026) then moved Scrumper on to its tall courses (snipRev 11); snip-x200-check covers it.
+    ["snip", "snipRev", playRevOf("snip", generateSnip().snipRev), SNIP_REV_EXPAND],
     ["hover", "hoverRev", playRevOf("hover", generateHover().hoverRev), HOVER_REV_TALL],
   ];
   // Expansion E4 (25 Oct 2026) moved High Rise on to skylineRev 7 (e4-expansion-check covers it); its tall world

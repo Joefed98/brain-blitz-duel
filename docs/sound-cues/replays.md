@@ -127,6 +127,9 @@ game the round was.
 | `snip.level` | Apple fed: the clip reaches the moment's key tick | instant (the moment lands; about 0.5 s of half-speed play follows) |
 | `snip.all-apples` | All 10 apples: the clip reaches the moment's key tick | instant (the moment lands; about 0.5 s of half-speed play follows) |
 | `snip.spring` | Off a springy branch: the clip reaches the moment's key tick | instant (the moment lands; about 0.5 s of half-speed play follows) |
+| `snip.golden` | Golden apple fed in time (snipRev 11): the clip reaches the moment's key tick | instant (the moment lands; about 0.5 s of half-speed play follows) |
+| `snip.ring` | Caught by a ring (snipRev 11): the clip reaches the moment's key tick | instant (the moment lands; about 0.5 s of half-speed play follows) |
+| `snip.quick` | A level fed under its par time at par cuts (snipRev 11): the clip reaches the moment's key tick | instant (the moment lands; about 0.5 s of half-speed play follows) |
 | `tilt.maze` | Maze done: the clip reaches the moment's key tick | instant (the moment lands; about 0.5 s of half-speed play follows) |
 | `tilt.all-mazes` | All 4 mazes: the clip reaches the moment's key tick | instant (the moment lands; about 0.5 s of half-speed play follows) |
 | `tilt.star` | Bonus star: the clip reaches the moment's key tick | instant (the moment lands; about 0.5 s of half-speed play follows) |

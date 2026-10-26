@@ -1295,7 +1295,13 @@ const snipSummary: SummaryBuilder = (result) => {
   const levels = Number(result.extra?.["levels"] ?? 0);
   return {
     summary: `${eaten} apple${eaten === 1 ? "" : "s"} · ${stars} lea${stars === 1 ? "f" : "ves"} · ${result.score ?? 0}`,
-    detail: [`${levels} level${levels === 1 ? "" : "s"} played`],
+    detail: [
+      `${levels} level${levels === 1 ? "" : "s"} played`,
+      // snipRev 11: golden apples, levels at par cuts and under par time.
+      ...(Number(result.extra?.["snipRev"] ?? 0) >= 11
+        ? [`${Number(result.extra?.["golden"] ?? 0)} golden · ${Number(result.extra?.["parLevels"] ?? 0)} at par · ${Number(result.extra?.["quickLevels"] ?? 0)} quick`]
+        : []),
+    ],
   };
 };
 
