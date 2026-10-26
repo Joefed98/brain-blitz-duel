@@ -1523,12 +1523,12 @@ export const WAV_X_CORE_PERIOD = 150;
 export const WAV_X_CORE_DAMAGE = 3;
 export const WAV_X_SPREAD_VOLLEYS = 8;
 /** wavRev 10's faster gun: a volley every WAV_X_FIRE_EVERY ticks, up to WAV_X_MAX_BOLTS centre bolts in the air, 12 px a tick. */
-export const WAV_X_FIRE_EVERY = 14;
+export const WAV_X_FIRE_EVERY = 10;
 export const WAV_X_MAX_BOLTS = 3;
 export const WAV_X_BOLT_SPEED = 11;
 /** wavRev 10's red bolts: they start faster and more often (the longer drop to the ship would make them easy). */
-export const WAV_X_RED_START = 75;
-const WAV_X_RED_SPEED = 5 * FP;
+export const WAV_X_RED_START = 50;
+const WAV_X_RED_SPEED = 6 * FP;
 const WAV_X_RED_CAP = Math.trunc((WAV_X_RED_SPEED * 5) / 2);
 /** A spread bolt's sideways speed (1/256 px a tick). */
 export const WAV_X_SPREAD_DX = 2 * FP;
@@ -2165,7 +2165,7 @@ export const WAV_PAR_X = (() => {
  * wavRev 10 knots on the base units (WAV_PAR_X = 140), fitted with the skill-band bots
  * (docs/expansions/x200-wavefront.md) so today's players land where they did on wavRev 8.
  */
-export const WAV_V10_BAND_CURVE = bandCurve([0, 250, 270, 290, 300, 310, 320, WAV_PAR_X], [0, 29, 52, 53, 66, 93, 140, 140]);
+export const WAV_V10_BAND_CURVE = bandCurve([0, 250, 270, 290, 300, 310, 318, 326, WAV_PAR_X], [0, 53, 55, 55, 67, 107, 126, 140, 140]);
 /**
  * wavRev 10 skill points (the features' raw points, `wavSkillRaw`): the streak's points (capped at
  * WAV_X_STREAK_CAP), WAV_X_SKILL_DROP a power-up caught, WAV_X_SKILL_SAUCER a saucer, WAV_X_SKILL_CANNON a
@@ -2189,7 +2189,7 @@ export function wavSkillRaw(s: WavState): number {
   );
 }
 /** The skill points paid on a rising scale: little for incidental use, the full 50 only for elite play. */
-export const WAV_X_SKILL_PAY = bandCurve([0, 125, 150, 170, 190, 210], [0, 0, 28, 29, 31, 50]);
+export const WAV_X_SKILL_PAY = bandCurve([0, 120, 150, 170, 185, 200, 212, 225], [0, 0, 18, 20, 37, 37, 48, 50]);
 export const WAV_X_EDGE_MAX = 50;
 /** wavRev 10's round maximum (ROUND_MAX's wavefront line; the sim keeps its own figure). */
 export const WAV_X_MAX = 200;

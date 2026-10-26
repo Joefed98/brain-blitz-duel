@@ -46,7 +46,7 @@ function value(s: WavState): number {
   // The mothership's kill ends the run: only once the skill points are full, or when what is left of the boss
   // (its standing cannons, the core hits its hit points allow) and the saucers still to come can't fill them
   // (rootCanFill, judged on the state the decision starts from), or the clock is nearly out.
-  const end = s.bossKilled ? (raw >= FULL || !rootCanFill || s.tick > 80 * 60 ? 500_000 : -500_000) : 0;
+  const end = s.bossKilled ? (raw >= FULL || !rootCanFill || s.tick > 80 * 60 || s.tick - (s.bossAt ?? 0) > 1150 ? 500_000 : -500_000) : 0;
   // Hits on a cannon still standing count as progress towards its points.
   const progress = (partial * WAV_X_SKILL_CANNON) / WAV_X_CANNON_HP;
   return s.lives * 100_000 + (raw + progress) * 3000 + (s.shapesDown + s.armourHits) * 30 + (s.bossDmg ?? 0) * 40 - hull * 60 + (s.streak ?? 0) + end;

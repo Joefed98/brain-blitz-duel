@@ -8,7 +8,7 @@
  *     round maximum is 200.
  *  3. Recorded wavRev 10 runs (bots, weak to elite) replay to their stored score, unflagged and in sync, and the
  *     scripted look-ahead run scores 200 through the server replay.
- *  4. Guaranteed opportunities (the arcade rule): on all 260 skill-band seeds (60 tuning, 200 fresh) the run's
+ *  4. Guaranteed opportunities (the arcade rule): on all 260 skill-band seeds (tuning n = 0–59, fresh n = 10000–10199) the run's
  *     plan deals the same power-ups (9, three of each kind, before 51 s, one at a time), the saucers fly at the
  *     same moments, and the ceiling counted from what the seed deals is 200; and reachability: the look-ahead
  *     oracle's stored run on every one of the 260 seeds (scripts/fixtures/wavefront-expand-oracle.json.gz)
@@ -165,6 +165,9 @@ section("Recorded wavRev 10 runs replay to their stored scores; 200 is reachable
 /* 4. Guaranteed opportunities and the perfect-play ceiling. */
 section("Every seed deals the same opportunities; the perfect-play ceiling is 200 on all 260 seeds");
 const FALL_TICKS = Math.ceil(((WAV_X_H - 66) - WAV_X_DROP_Y) / 4);
+/** The skill-band seed sets (docs/arcade-bands-elite.md): tuning n = 0–59, fresh n = 10000–10199. */
+const SEED_SETS = [...Array.from({ length: 60 }, (_, i) => i), ...Array.from({ length: 200 }, (_, i) => 10000 + i)];
+
 /**
  * What a flawless player can collect on a seed, counted from what it deals: every planned power-up (all fall
  * before 51 s, long before the earliest the mothership can be reached), the saucers that fly before 60 s, both
@@ -185,7 +188,7 @@ export function wavCeiling(seed: number): { raw: number; score: number } {
 {
   let lowest = Infinity;
   let lowestRaw = Infinity;
-  for (let n = 0; n < 260; n++) {
+  for (const n of SEED_SETS) {
     const seed = roomSeed(n);
     const plan = wavPlan(seed);
     const kinds = [0, 1, 2].map((k) => plan.drops.filter((d) => d.k === k).length);
@@ -204,7 +207,7 @@ export function wavCeiling(seed: number): { raw: number; score: number } {
 {
   // Reachability: a player that actually plays each seed (the oracle, scripts/wavefront-expand-ace.ts --fast).
   const oracle = JSON.parse(gunzipSync(readFileSync("scripts/fixtures/wavefront-expand-oracle.json.gz")).toString()) as { runs: { n: number; seed: number; log: string }[] };
-  ok(oracle.runs.length === 260 && oracle.runs.every((r, i) => r.n === i && r.seed === roomSeed(i)), `the oracle has a stored run for each of the 260 seeds (${oracle.runs.length})`);
+  ok(oracle.runs.length === 260 && oracle.runs.every((r, i) => r.n === SEED_SETS[i] && r.seed === roomSeed(r.n)), `the oracle has a stored run for each of the 260 seeds (${oracle.runs.length})`);
   const lowest = { tuning: Infinity, fresh: Infinity };
   for (const r of oracle.runs) {
     const res = replayWavefrontRun(r.seed, r.log, WAV_REV_EXPAND);
@@ -218,7 +221,7 @@ export function wavCeiling(seed: number): { raw: number; score: number } {
 
 /* 5. Room identity. */
 section("Room identity: what the seed deals never depends on the play");
-for (const n of [0, 7, 61]) {
+for (const n of [0, 7, 10001]) {
   const seed = roomSeed(n);
   const logs = roomIdentity.logs(seed);
   const runs = logs.map((log) => ({ ...play(seed, log), schedule: scheduleOf(seed, WAV_REV_EXPAND, log) }));
