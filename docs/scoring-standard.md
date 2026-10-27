@@ -127,3 +127,80 @@ true spot, falling evenly to 0 at 15 %).
 | Lamplighter (`lightup`) | `depthRev` 2 | up to 120 by share of bulbs on their solution squares, + up to 10 early | 40, full by 45 s | clean 10, −2.5 per wrong bulb |
 
 Each category's section below records its own decisions (how a row was read where the brief left room).
+
+## Number decisions
+
+Module `src/lib/duel/standard/number.server.ts` (grader), shared rules `standard/number.ts`, texts
+`standard/numberText.ts`; Tenfall scores in its sim (`src/lib/arcade/tenDrop.ts`, `tenRev` 5). Check:
+`scripts/standard-number-check.ts` (~11 s).
+
+**Stamps.** The eight puzzles share the `depthRev` key, each one above its own live value: Exact 2 → 3, Operator 1 → 2,
+Counterweight 1 → 2, Integer Pyramid 1 → 2, Trail 1 → 2, Brimful 2 → 3, Checkout 2 → 3, Ballpark 1 → 2; Tenfall `tenRev`
+4 → 5. Every other read of `depthRev` for these games is `usesNumberDepth` (≥ 1: the depth boards, Brimful's public
+par, Checkout's big-finish boards, Exact's five-number targets) or the depth grader's `≥ 2` (scoring only, never reached
+on the new stamp), so the new values deal and play exactly as the live ones. Tenfall's `tenRev ≥ 4` reads (gold tiles,
+the moment cue, the reveal's gold tens, the intro demo's gate) cover 5; the intro demo keeps its recorded tenRev 4 run.
+Exact and Tenfall carry no draft timeline (Exact is one part; Tenfall's run log has its own ticks).
+
+**Clocks.** Every row's clock is the game's real one (Exact 75 s, Operator 90 s, Counterweight, Integer Pyramid, Trail and
+Brimful 120 s, Checkout and Ballpark 90 s, Tenfall a 90 s run), so no "full by" time was scaled.
+
+**Speed and mistakes.** No Number game's finish speed is cut by mistakes today (Operator's, Counterweight's, the Pyramid's
+and Trail's rev-1 finishes have no efficiency part; Brimful's moves and Checkout's darts are par-type and are replaced by
+their par / fewest-darts bonuses), so speed is never scaled, except Ballpark's (× average accuracy, the row).
+
+- **Exact.** Finished = 150 + speed + elegance: 15 using the fewest numbers the target needs, 5 less per number more.
+  The fewest is computed (`exactMinTiles`: any answer from 1–4 numbers, else 5, else 6); on depth deals it is always 5.
+  Not exact: 129 × 0.93^d for the closest any made number (any step's result, over every prefix of the stored steps; a
+  starting number is not "made") came to the target (d at least 1): off by 1 = 120, 5 away 90, 10 away 62, 20 away 30,
+  40 away 7; random steps sit 20–900 away (spam median 0).
+- **Operator.** Unfinished = 30 per equation right + up to 2.5 each early + the clean points; clean = 2.5 per equation
+  right whose only try was its first full set of signs (the phone's try count is 1), counting unfinished.
+- **Counterweight.** Par hangs: every tray weight hung once (the scale's tray length, the fewest possible), summed over the
+  four scales against the hangs used (each scale counted at least its tray length): 15 at par, 0 at twice. Unfinished =
+  30 per balanced scale (any order, as rev 1: a scale out of hangs is skipped) + up to 2.5 each early. Not a mid-puzzle
+  bonus (it is measured over the whole round), so it pays on a finish only.
+- **Integer Pyramid.** Unfinished = 120 × (pyramids done + the share of cells right on the first unfinished one, at most
+  0.99) ÷ 4 + up to 2.5 per pyramid early + clean. Clean = 2.5 per completed pyramid in which no draft ever held a
+  wrong number (a tray tile whose value is not the cell's solution), counted unfinished too; no timeline → 0.
+- **Trail.** Unfinished = 120 × today's progress (the larger of the right run from the start and right squares less wrong
+  ones: today's cost for wrong squares kept) + 10 ÷ 26 per square right, early. Clean path: 10 when no draft ever lost a
+  placed square (every square a draft had at step i is still at step i in the next draft); no timeline → 0. Drafts are
+  raw paths and the finish is the slot form (`trSlots`); both read the same way.
+- **Brimful.** Par pours over the four puzzles together: total actions against the total of the public par (each
+  puzzle's fewest moves); 15 at par, 0 at twice. Unfinished = 30 per puzzle solved + up to 2.5 each early (in-board
+  progress no longer counts).
+- **Checkout** (five boards). Fewest darts: 10 at the boards' total fewest darts, 0 at twice (all darts thrown on
+  solved boards). Big finishes: a board pays when its checkout is 100 or more (target ≥ 100) and some legal visit can end
+  it on a big finish (the Bull, or a treble on a double-finish board; searched over the board's own dart rule,
+  `checkoutBigBoards`). Those boards share 10 evenly; on room seeds that is 2–4 boards (board 3 always, board 4 almost
+  always, board 5 about four in five, board 2 about one in four, board 1 almost never). A big finish is earned board by
+  board, so it counts towards an unfinished score too (the standard's mid-puzzle rule). The stage's rule line and the
+  reveal show the ★ only on the boards that pay.
+- **Ballpark.** Accuracy per number: 1 within 2 % of the line's length, evenly to 0 at 15 %. Finished (all 15 placed) =
+  150 × average accuracy + 20 × speed share × average accuracy + 2 per bullseye (within 1 %, at most 30). Unfinished =
+  8 × accuracy per number placed + early: each number's 10 ÷ 15 scaled by its own accuracy (so quick random taps earn
+  none) + bullseyes. Today's cost of a wild number (25 % or more off: −1) is kept, finished or not; with it random or
+  all-middle placement scores a median 3 on the kits (all-middle alone about 16). A finish never scores below the same
+  answer's unfinished credit: 150 A + speed + B − wild against 120 A + early (≤ 10 A) + B − wild. A finish's base is
+  below 150 here, so `StandardFinish` gained an optional `base` (foundation change, additive: absent = 150). Ballpark is
+  the one game where a finish need not beat every unfinished score: a finish of all-wild placements scores near 0.
+  The stage shows "◎ Bullseyes" instead of the streak; the reveal colours numbers within 2 % as full and counts bullseyes.
+  *Worked example (Joe's board, room seed 5000):* 12 numbers 1.5 % off and 3 numbers 5 % off, placed by 70 s: before
+  (depthRev 1) **100**; now accuracy (12 + 3 × 0.769) ÷ 15 = 0.954 → 143, speed 20 × 20⁄30 × 0.954 = 13, no bullseyes →
+  **156**.
+- **Tenfall** (`tenRev` 5, whole numbers in the sim). Unfinished = ⌊(12 × targets × 5400 + Σ ticks left at each clear)
+  ÷ 5400⌋ (12 per target + up to 1 each early) + 2 per gold ten − 5 per reset after the first 4 (tenRev 3's cost, kept), at
+  most 130. All ten = 150 + ⌊30 × min(ticks left, 1800) ÷ 1800⌋ (full by 60 s) + 2 per gold ten (at most 20). Gold: 2 for
+  each of the ten targets cleared with its gold tile, finished or not. The sim keeps the early sum (`earlyTicks`) on
+  tenRev 5 states only; checkpoints and older revisions are unchanged. A tenRev 5 run joins `replay-runs.json`
+  (`bun scripts/replay-fixtures.ts --add=tendrop`; the older runs stay).
+
+**Texts.** `standardNumberHelp` / `standardNumberIntro` replace the depth texts in `instructions.ts` and `introScore.ts`
+(the depth texts stay in `numberDepthText.ts` for the older stamps). How-to lines: Brimful's par pours are over the
+puzzles together, Checkout's big finish names boards of 100+, Ballpark's bullseyes replace the streak.
+
+**Checks pinned** (the world they were written for): `number-depth-check`, `puzzle-score-rev-check`,
+`scoring-rev3-check` and `tendrop-depth-check` deal with `pinPreStandard(true)`; `number-depth-check` reads the depth
+texts from `numberDepthText.ts`; `scoring-rev3-check` compares a standard game's older text with the live help only
+when the game is not on the standard; `scoring-bands-check` and `number-batch-check` expect the standard's live texts.

@@ -38,6 +38,9 @@ import { pinPreDepth } from "../src/lib/duel/wordDepth";
 pinRev1Shape(true);
 // Word depth (25 Oct 2026): this check proves the rev-1 shape; the depth stamps have their own checks.
 pinPreDepth(true);
+// The scoring standard (27 Oct 2026): new deals keep the stamps before it (standard-<group>-checks prove the new ones).
+pinPreStandard(true);
+import { pinPreStandard } from "../src/lib/duel/standard/stamps";
 import { clashCheckpoint, clashGatesAt, clashLaneCount, clashRev4Finished, clashRuleAt, colourClashGameFor, CLASH_CHECKPOINT_INTERVAL, CLASH_DROP, CLASH_INPUT_LANE, CLASH_SET_LANE, CLASH_WORLD_W } from "../src/lib/arcade/colourClash";
 import { encodeColourClashRun, replayColourClashRun } from "../src/lib/duel/colourClash";
 import { buildArcadeReveal } from "../src/lib/arcade/reveal";

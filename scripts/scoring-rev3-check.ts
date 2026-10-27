@@ -54,8 +54,11 @@ import { pinPreDepth, WORD_DEPTH_GAMES } from "../src/lib/duel/wordDepth";
 pinPreDepth(true);
 import { pinPreDepthTapRev } from "../src/lib/duel/tapLog";
 import { roundMaxFor } from "../src/lib/duel/roundMax";
+import { STANDARD_STAMPS, pinPreStandard } from "../src/lib/duel/standard/stamps";
 // Flash, Bang On and Ascend deal tapRev 5 (Depth to 200, depth-*-check proves it); this check proves rev 3 on the stamps before it.
 pinPreDepthTapRev(true);
+// Written for the stamps before the scoring standard (standard/stamps.ts): new deals keep them.
+pinPreStandard(true);
 
 let checks = 0;
 const failures: string[] = [];
@@ -288,8 +291,11 @@ for (const type of Object.keys(REV3_GAMES) as PuzzleType[]) {
   // The Number puzzles to 200 (depthRev 1) keep rev 3's numbers inside their own text (numberDepthText.ts).
   const help = isNumberDepthType(type) ? depthHelp(type) : rev3Help(type);
   const intro = isNumberDepthType(type) ? fillMax(depthIntro(type), type) : rev3Intro(type);
-  ok(help.includes(`about ${n} s with no mistakes`) && PUZZLE_INSTRUCTIONS[type]?.score === help, `${type}: the "?" help does not state the rev-3 numbers`);
-  ok(INTRO_SCORE[type] === intro && intro.length <= 90, `${type}: intro line "${INTRO_SCORE[type]}"`);
+  // Rooms deal a scoring-standard game on its standard stamp, so its live help and intro are the standard's
+  // (standard/*Text.ts, proved by its standard-<group>-check); this text stays the one its older stamps were dealt with.
+  const live = STANDARD_STAMPS[type] === undefined;
+  ok(help.includes(`about ${n} s with no mistakes`) && (!live || PUZZLE_INSTRUCTIONS[type]?.score === help), `${type}: the "?" help does not state the rev-3 numbers`);
+  ok((!live || INTRO_SCORE[type] === intro) && intro.length <= 90, `${type}: intro line "${INTRO_SCORE[type]}"`);
 }
 
 if (failures.length) {

@@ -24,7 +24,8 @@
 import { readFileSync } from "node:fs";
 import { gunzipSync } from "node:zlib";
 import { generatePuzzle, gradeAnswer } from "../src/lib/duel/generate.server";
-import { INTRO_SCORE } from "../src/lib/duel/introScore";
+import { depthHelp, depthIntro } from "../src/lib/duel/numberDepthText";
+import { pinPreStandard } from "../src/lib/duel/standard/stamps";
 import { PUZZLE_INSTRUCTIONS } from "../src/lib/duel/instructions";
 import { CHECKOUT_BULL, CHECKOUT_REV_BIG_FINISH, checkoutValid, encodeCheckoutDarts, joinCheckoutRound, searchCheckout } from "../src/lib/duel/checkout";
 import { encodeMeasureRound, measureActions, measureApply, measureSolved, type MeasureAction } from "../src/lib/duel/measure";
@@ -44,7 +45,7 @@ import { exactTilesUsed } from "../src/lib/duel/numberDepth.server";
 import { pinDealtPuzzleScoreRev, storedScoreParts } from "../src/lib/duel/puzzleScoreRev";
 import { rev3Game } from "../src/lib/duel/puzzleScoreRev3";
 import { puzzleTimeLimitMs } from "../src/lib/duel/registry";
-import { roundMaxFor } from "../src/lib/duel/roundMax";
+import { fillMax, roundMaxFor } from "../src/lib/duel/roundMax";
 import { encodeSteps, hasSolutionWithAtMostFourTiles, solveWithAllSixTiles } from "../src/lib/duel/target";
 import type { CheckoutPuzzleData, MeasurePuzzleData, NumlinePuzzleData, PuzzleData, PuzzleType, TargetNumberPuzzleData } from "../src/lib/duel/types";
 import { hashText, makeRng, type Skill } from "./puzzle-fairness/kit";
@@ -53,6 +54,10 @@ import { roomPuzzle } from "./puzzle-fairness/run";
 import { gradeEntry, type Rev3Game } from "./scoring-rev3-record";
 import { NUMBER_DEPTH_FIXTURE, NUMBER_DEPTH_GAMES as GAMES } from "./number-depth-record";
 import { gradeRev1Entry, NUMBER_DEPTH_REV1_FIXTURE, type Rev1Game } from "./number-depth-rev1-record";
+
+// Written for the depth stamps (depthRev 1, the feature games' 2): new deals keep them, not the scoring standard's
+// (standard/stamps.ts; scripts/standard-number-check.ts proves those).
+pinPreStandard(true);
 
 const failures: string[] = [];
 let passes = 0;
@@ -299,17 +304,18 @@ for (const type of ["target", "measure", "checkout"] as PuzzleType[]) {
   }
 }
 
-/* 5. Texts. */
+/* 5. Texts (the depth stamps' own texts, numberDepthText.ts: rooms deal the scoring standard's, standard/numberText.ts). */
+const DEPTH_HELP = Object.fromEntries(GAMES.map((type) => [type, depthHelp(type)])) as Record<PuzzleType, string>;
 for (const type of GAMES) {
-  const intro = INTRO_SCORE[type];
-  const help = PUZZLE_INSTRUCTIONS[type].score;
+  const intro = fillMax(depthIntro(type), type);
+  const help = DEPTH_HELP[type];
   ok(/\b200\b/.test(intro) && intro.length <= 90, `${type}: the intro states 200 within two lines ("${intro}")`);
   ok(/\b200\b/.test(help), `${type}: the help states 200`);
 }
-ok(/Elegance bonus/.test(PUZZLE_INSTRUCTIONS.target.score) && PUZZLE_INSTRUCTIONS.target.how.some((h) => /Elegance/.test(h.action)), "Exact: the elegance bonus is explained");
-ok(/Par pours/.test(PUZZLE_INSTRUCTIONS.measure.score) && PUZZLE_INSTRUCTIONS.measure.how.some((h) => /Par pours/.test(h.action)), "Brimful: par pours are explained");
-ok(/Big finish/.test(PUZZLE_INSTRUCTIONS.checkout.score) && PUZZLE_INSTRUCTIONS.checkout.how.some((h) => /Big finish/.test(h.action)), "Checkout: the big finish is explained");
-ok(/Bullseye streak/.test(PUZZLE_INSTRUCTIONS.numline.score) && PUZZLE_INSTRUCTIONS.numline.how.some((h) => /Bullseye/.test(h.action)), "Ballpark: the bullseye streak is explained");
+ok(/Elegance bonus/.test(DEPTH_HELP.target) && PUZZLE_INSTRUCTIONS.target.how.some((h) => /Elegance/.test(h.action)), "Exact: the elegance bonus is explained");
+ok(/Par pours/.test(DEPTH_HELP.measure) && PUZZLE_INSTRUCTIONS.measure.how.some((h) => /Par pours/.test(h.action)), "Brimful: par pours are explained");
+ok(/Big finish/.test(DEPTH_HELP.checkout) && PUZZLE_INSTRUCTIONS.checkout.how.some((h) => /Big finish/.test(h.action)), "Checkout: the big finish is explained");
+ok(/Bullseye streak/.test(DEPTH_HELP.numline) && PUZZLE_INSTRUCTIONS.numline.how.some((h) => /Bullseye/.test(h.action)), "Ballpark: the bullseye streak is explained");
 
 /** Brimful: the shortest action list for a board (BFS). */
 function bfs(board: MeasurePuzzleData["boards"][number]): MeasureAction[] {

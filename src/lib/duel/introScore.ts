@@ -12,7 +12,7 @@ import { CODEWORD_STRETCH, TILEGRID_STRETCH_TOPUP, stretchIntro, strikeoutDepthI
 import { parBonusIntro } from "./parBonusText";
 import { doubleTakeDepthIntro, eagleEyeDepthIntro, tallyDepthIntro } from "./depth/attentionTexts";
 import { ASCEND_DEPTH_INTRO, BANGON_DEPTH_INTRO, FLASH_DEPTH_INTRO } from "./depth/speedTexts";
-import { depthIntro } from "./numberDepthText";
+import { standardNumberIntro } from "./standard/numberText";
 import { d4IntroTemplate } from "./depth4/text";
 import { fillMax, liveRecord } from "./roundMax";
 import { CHAIN_DEPTH_INTRO } from "./depth/chain";
@@ -48,16 +48,16 @@ function introScoreTemplates(): Record<PuzzleType, string> {
     wordfall: "Longer words score more; Qu counts as two letters. {max} for a big haul of words.",
 
     // Number
-    target: depthIntro("target"),
-    equation: depthIntro("equation"),
-    balance: depthIntro("balance"),
-    numpyramid: depthIntro("numpyramid"),
-    trail: depthIntro("trail"),
-    measure: depthIntro("measure"),
+    target: standardNumberIntro("target"),
+    equation: standardNumberIntro("equation"),
+    balance: standardNumberIntro("balance"),
+    numpyramid: standardNumberIntro("numpyramid"),
+    trail: standardNumberIntro("trail"),
+    measure: standardNumberIntro("measure"),
     // "board" for the brief's "stage": the intro wording check rejects "stage".
-    checkout: depthIntro("checkout"),
+    checkout: standardNumberIntro("checkout"),
     // "speed points" for the brief's "speed bonus": the intro wording check rejects "speed bonus".
-    numline: depthIntro("numline"),
+    numline: standardNumberIntro("numline"),
     tendrop: "Points per target. Clear all ten fast, hitting targets with gold tiles, for up to {max}.",
 
     // Attention

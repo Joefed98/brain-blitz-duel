@@ -7,7 +7,8 @@ import { parBonusHelp } from "./parBonusText";
 import { SLIDE_PAR_BONUS_TOPUP } from "./wordSlide";
 import { SWAP_PAR_BONUS_TOPUP } from "./swapword";
 import { doubleTakeDepthHelp, eagleEyeDepthHelp, tallyDepthHelp } from "./depth/attentionTexts";
-import { depthHelp } from "./numberDepthText";
+// The scoring standard (27 Oct 2026): the Number games' help describes the standard stamp rooms deal.
+import { standardNumberHelp } from "./standard/numberText";
 import { d4Help } from "./depth4/text";
 import {
   scoreWordHunt,
@@ -24,7 +25,6 @@ import { withPuzzleScoreRev } from "./puzzleScoreRev";
 import { WORDHUNT_DEPTH_BASE_MAX, WORDHUNT_DEPTH_BONUS_MAX, WORDHUNT_V4_BASE_CURVE, WORDHUNT_V4_BONUS_CURVE } from "./wordHunt";
 import { ascendDepthHelp, bangOnDepthHelp, flashDepthHelp } from "./depth/speedTexts";
 import { BAND_GOOD_POINTS, bandMapTotal, bandOpen, bandPoints, bandTop, bandUnitsFor } from "@/lib/arcade/scoreBands";
-import { TD_GOLD_MAX, TD_GOLD_POINTS, TD_REV3_FREE_RESETS, TD_REV3_RESET_COST, TD_RUN_TICKS, TD_STRETCH_FROM, TD_STRETCH_SPAN, TEN_DROP_DEPTH_REV, TEN_DROP_RAW_REV, tenDropScore } from "@/lib/arcade/tenDrop";
 import { CLASH_DEPTH_MAX_WRONG, CLASH_GOLD_POINTS, CLASH_GOLD_STREAK, CLASH_GOLDS, CLASH_GREAT_MAP, CLASH_TOPUP_PACE_FLOOR, CLASH_TOPUP_PACE_ZERO_TICK, CLASH_REV3_RUN_TICKS, CLASH_STREAK_POINTS, CLASH_STRETCH_POINTS } from "@/lib/arcade/colourClash";
 import { WHACK_BANDS_MAP, WHACK_COMBO_POINTS, WHACK_DIAMOND_POINTS, WHACK_DIAMONDS, WHACK_QUICK_ZERO_TICKS } from "@/lib/arcade/whack";
 import { CLAY_DOUBLE_POINTS, CLAY_DOUBLES, CLAY_QUICK_HIT_MAP, CLAY_QUICK_POINTS, CLAY_STREAK_POINTS } from "@/lib/arcade/clayShoot";
@@ -187,7 +187,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "The fourth scale", detail: "is wider: 10 notches, 5 each side, and five weights to hang.", helpOnly: true },
         { action: "Hangs are limited:", detail: "9 / 12 / 15 / 18 hangs on the four scales (the counter). Out of hangs, the scale ends unbalanced and the next one starts.", helpOnly: true },
       ],
-      score: depthHelp("balance"),
+      score: standardNumberHelp("balance"),
     },
     wordslide: {
       goal: "Slide rows and columns until every row is a word.",
@@ -209,7 +209,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Every step", detail: "must be a whole number." },
         { action: "Elegance bonus:", detail: "hit the target with 5 numbers, not all 6." },
       ],
-      score: depthHelp("target"),
+      score: standardNumberHelp("target"),
     },
     equation: {
       goal: "Fill the gaps so each equation is true.",
@@ -221,7 +221,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "The last one", detail: "uses division in a harder mix. 90 seconds for all four.", helpOnly: true },
         { action: "3 tries each:", detail: "every full set of signs is a try. After the third wrong one the equation locks; tap Next.", helpOnly: true },
       ],
-      score: depthHelp("equation"),
+      score: standardNumberHelp("equation"),
     },
     reaction: {
       goal: "Tap the instant the screen turns gold.",
@@ -923,8 +923,8 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Tiles apply", detail: "in the order you tap them.", helpOnly: true },
         { action: "A ÷ that doesn't divide exactly", detail: "is refused.", helpOnly: true },
       ],
-      // tenRev 4 (the dealt stamp): tenRev 3's unfinished score; a finish to the game's maximum.
-      score: `Unfinished: targets hit, about ${tenDropScore(1, TD_RUN_TICKS, TEN_DROP_DEPTH_REV)} for the first and ${tenDropScore(9, TD_RUN_TICKS, TEN_DROP_DEPTH_REV)} for nine (−${TD_REV3_RESET_COST} per reset after the first ${TD_REV3_FREE_RESETS}). All ten: ${tenDropScore(10, TD_RUN_TICKS, TEN_DROP_DEPTH_REV)} if the last clears as time runs out, rising the earlier it clears: ${tenDropScore(10, TD_RUN_TICKS - TD_STRETCH_FROM, TEN_DROP_DEPTH_REV)} at ${Math.round((TD_RUN_TICKS - TD_STRETCH_FROM) / 60)} s, ${tenDropScore(10, TD_RUN_TICKS - TD_STRETCH_FROM - TD_STRETCH_SPAN, TEN_DROP_DEPTH_REV)} at ${Math.round((TD_RUN_TICKS - TD_STRETCH_FROM - TD_STRETCH_SPAN) / 60)} s, ${tenDropScore(10, TD_RUN_TICKS / 2, TEN_DROP_DEPTH_REV)} by ${TD_RUN_TICKS / 120} s. Each target hit exactly with a gold tile adds ${TD_GOLD_POINTS} on a finish (up to ${TD_GOLD_MAX}), so {max} takes all ten by ${TD_RUN_TICKS / 120} s and ${TD_GOLD_MAX / TD_GOLD_POINTS} gold targets.`,
+      // tenRev 5 (the scoring standard, the dealt stamp): standard/numberText.ts.
+      score: standardNumberHelp("tendrop"),
     },
     clayshoot: {
       goal: "Shoot all 25 clays without hitting a bird.",
@@ -1178,7 +1178,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Ten dark numbers are fixed", detail: "– the path must reach each one at exactly that step. You fill the other 26.", helpOnly: true },
         { action: "Undo removes your last square; Reset clears your path.", detail: "Tapping your last square or dragging back along the path also undoes.", helpOnly: true },
       ],
-      score: depthHelp("trail"),
+      score: standardNumberHelp("trail"),
     },
     measure: {
       goal: "Measure out exactly the target amount.",
@@ -1186,13 +1186,13 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Tap a jug, then another", detail: "to pour." },
         { action: "Fill and Empty", detail: "use the tap and drain." },
         { action: "Every action", detail: "is a move." },
-        { action: "Par pours:", detail: "solve a puzzle in its fewest moves for a bonus." },
+        { action: "Par pours:", detail: "solve the puzzles in their fewest moves for a bonus." },
         { action: "A pour", detail: "stops when the first jug is empty or the second is full.", helpOnly: true },
         { action: "Puzzle 4", detail: "has no tap or drain: make the split shown on the jugs.", helpOnly: true },
         { action: "Reset", detail: "starts the puzzle again; moves keep counting.", helpOnly: true },
         { action: "Moves are limited", detail: "to about 4½× the fewest (the counter). Out of moves, the run ends there.", helpOnly: true },
       ],
-      score: depthHelp("measure"),
+      score: standardNumberHelp("measure"),
     },
     checkout: {
       goal: "Score exactly the target with your darts.",
@@ -1200,12 +1200,12 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Tap a number,", detail: "then x1, x2 or x3." },
         { action: "Hit zero exactly", detail: "and finish in the ring shown." },
         { action: "Tap Throw", detail: "to check." },
-        { action: "Big finish:", detail: "end on the Bull or a treble for a bonus." },
+        { action: "Big finish:", detail: "end a board of 100+ on the Bull or a treble for a bonus." },
         { action: "Outer bull = 25,", detail: "inner bull = 50 (a double).", helpOnly: true },
         { action: "The ring shown", detail: "is a double or a treble.", helpOnly: true },
         { action: "Every board is different.", detail: "Solve the five in any order; a wrong throw only costs time. Undo takes a dart back.", helpOnly: true },
       ],
-      score: depthHelp("checkout"),
+      score: standardNumberHelp("checkout"),
     },
     numline: {
       goal: "Place each number on the line.",
@@ -1213,12 +1213,12 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Drag the marker,", detail: "then tap Place." },
         { action: "Only the ends", detail: "are labelled." },
         { action: "Estimate:", detail: "no calculator needed." },
-        { action: "Bullseye streak:", detail: "land within a hair of exact, in a row, for a bonus." },
+        { action: "Bullseyes:", detail: "land within 1% of exact for a bonus." },
         { action: "A magnifier", detail: "shows where your finger is.", helpOnly: true },
         { action: "Placed numbers are locked.", detail: "Five numbers on each of three lines.", helpOnly: true },
         { action: "Numbers include", detail: "fractions, percentages, powers and roots.", helpOnly: true },
       ],
-      score: depthHelp("numline"),
+      score: standardNumberHelp("numline"),
     },
     numpyramid: {
       goal: "Each cell is the sum of the two below it.",
@@ -1229,7 +1229,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Four pyramids", detail: "to complete, one after another.", helpOnly: true },
         { action: "Double-tap a placed tile", detail: "to return it to the tray; drag it onto another cell to swap.", helpOnly: true },
       ],
-      score: depthHelp("numpyramid"),
+      score: standardNumberHelp("numpyramid"),
     },
     balltrack: {
       goal: "Steer every marble into the cup of its colour.",
