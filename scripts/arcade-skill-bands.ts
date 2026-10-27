@@ -69,7 +69,10 @@ const REV_MODE = (opt("rev") ?? "live") as "live" | "next" | "both" | "current" 
 const JOBS = Number(opt("jobs") ?? 1);
 const JSON_PATH = opt("json");
 const SAVE_DIR = opt("save");
-const LEVEL_LIST = (opt("levels") === "all" ? [...ALL_LEVELS] : (opt("levels")?.split(",") ?? [...LEVELS])) as SkillLevel[];
+/** A level, or "random" (the bot module's `randomBot`: inputs at random, no aim; measured only when named). */
+type RunLevel = SkillLevel | "random";
+const LEVEL_LIST = (opt("levels") === "all" ? [...ALL_LEVELS] : (opt("levels")?.split(",") ?? [...LEVELS])) as RunLevel[];
+const levelLabel = (l: RunLevel) => (l === "random" ? "Random" : LEVEL_LABEL[l]);
 const FROM = Number(opt("from") ?? 0);
 const FIXES = opt("bots") !== "v1";
 const CHILD = args.includes("--child");
@@ -79,7 +82,7 @@ export interface RunRecord {
   type: string;
   rev: number | null;
   which: "live" | "next" | "tuned";
-  level: SkillLevel;
+  level: RunLevel;
   /** The sample index (roomSeed(n) and the like): every level plays the same n. */
   n: number;
   seed: number;
@@ -94,19 +97,20 @@ export interface RunRecord {
   ms: number;
 }
 
-async function loadBot(type: string): Promise<SkillBot | null> {
+async function loadBot(type: string): Promise<{ bot: SkillBot; random?: SkillBot } | null> {
   const path = new URL(`./arcade-skill-bands/bots/${type}.ts`, import.meta.url);
   if (!existsSync(path)) return null;
   const mod = await import(path.href);
-  return mod.bot as SkillBot;
+  return { bot: mod.bot as SkillBot, random: mod.randomBot as SkillBot | undefined };
 }
 
 const CHECKPOINT_EVERY = 300;
 
-function playOne(spec: GameSpec, bot: SkillBot, rev: number | null, which: "live" | "next" | "tuned", level: SkillLevel, n: number, seed: number): RunRecord & { raw: string } {
+function playOne(spec: GameSpec, bot: SkillBot, rev: number | null, which: "live" | "next" | "tuned", level: RunLevel, n: number, seed: number): RunRecord & { raw: string } {
   const started = performance.now();
   const game = spec.gameFor(rev, seed);
-  const human = new Human(spec.type, seed, level);
+  // A random player gets the weak level's Human for its dice; the random bot ignores its profile.
+  const human = new Human(spec.type, seed, level === "random" ? "weak" : level);
   const out = bot({ game, seed, rev, human, fixes: FIXES });
   // Re-drive the sim from the bot's log alone, exactly as the phone records it.
   let state = game.init(seed);
@@ -144,11 +148,12 @@ function playOne(spec: GameSpec, bot: SkillBot, rev: number | null, which: "live
 }
 
 async function runGame(spec: GameSpec): Promise<RunRecord[]> {
-  const bot = await loadBot(spec.type);
-  if (!bot) {
+  const bots = await loadBot(spec.type);
+  if (!bots) {
     console.error(`${spec.type}: no bot yet`);
     return [];
   }
+  if (LEVEL_LIST.includes("random") && !bots.random) console.error(`${spec.type}: no randomBot, random play skipped`);
   const revs: ["live" | "next" | "tuned", number | null][] = [];
   if (REV_MODE === "x") {
     // World expansions (docs/scoring-200.md): the band-3 revision ("live") against the stamp rooms deal now ("next").
@@ -222,9 +227,12 @@ async function runGame(spec: GameSpec): Promise<RunRecord[]> {
   }
   const records: RunRecord[] = [];
   for (const [which, rev] of revs)
-    for (const level of LEVEL_LIST)
+    for (const level of LEVEL_LIST) {
+      const bot = level === "random" ? bots.random : bots.bot;
+      if (!bot) continue;
       for (let n = FROM; n < FROM + SEEDS; n++) {
-        const seed = spec.seedFor(n);
+        // A game whose expansion deals from its own bank maps n to a course per revision (Grappler, games.ts).
+        const seed = spec.seedForRev?.(n, rev) ?? spec.seedFor(n);
         const rec = playOne(spec, bot, rev, which, level, n, seed);
         if (SAVE_DIR) {
           mkdirSync(`${SAVE_DIR}/${spec.type}`, { recursive: true });
@@ -233,6 +241,7 @@ async function runGame(spec: GameSpec): Promise<RunRecord[]> {
         const { raw: _raw, ...plain } = rec;
         records.push(plain);
       }
+    }
   return records;
 }
 
@@ -245,10 +254,10 @@ function quantile(sorted: number[], q: number): number {
 }
 
 export function summarise(records: RunRecord[]) {
-  const rows: { type: string; which: string; level: SkillLevel; median: number; p10: number; p90: number; min: number; max: number; n: number }[] = [];
+  const rows: { type: string; which: string; level: RunLevel; median: number; p10: number; p90: number; min: number; max: number; n: number }[] = [];
   const keys = new Set(records.map((r) => `${r.type}|${r.which}|${r.level}`));
   for (const key of keys) {
-    const [type, which, level] = key.split("|") as [string, string, SkillLevel];
+    const [type, which, level] = key.split("|") as [string, string, RunLevel];
     const scores = records.filter((r) => r.type === type && r.which === which && r.level === level).map((r) => r.score).sort((a, b) => a - b);
     rows.push({ type, which, level, median: quantile(scores, 0.5), p10: quantile(scores, 0.1), p90: quantile(scores, 0.9), min: scores[0]!, max: scores.at(-1)!, n: scores.length });
   }
@@ -259,7 +268,7 @@ function printTable(records: RunRecord[]) {
   const rows = summarise(records);
   const types = [...new Set(rows.map((r) => r.type))];
   const whichs = [...new Set(rows.map((r) => r.which))];
-  console.log(`\n${"game".padEnd(10)} ${"rev".padEnd(5)} ${LEVEL_LIST.map((l) => LEVEL_LABEL[l].padEnd(20)).join(" ")}`);
+  console.log(`\n${"game".padEnd(10)} ${"rev".padEnd(5)} ${LEVEL_LIST.map((l) => levelLabel(l).padEnd(20)).join(" ")}`);
   console.log(`${"".padEnd(16)} ${LEVEL_LIST.map(() => "median (p10–p90)".padEnd(20)).join(" ")}`);
   for (const type of types)
     for (const which of whichs) {

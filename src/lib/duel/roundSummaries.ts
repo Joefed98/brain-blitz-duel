@@ -921,7 +921,11 @@ const hoverSummary: SummaryBuilder = (result) => {
     summary: survived
       ? `${gates} / ${total} · survived`
       : `${gates} / ${total} barriers · crashed at ${ended.toFixed(1)}s`,
-    detail: [survived ? "Flew the whole run" : "Run ended early"],
+    // hoverRev 9: the features and the skill points.
+    detail: [
+      survived ? "Flew the whole run" : "Run ended early",
+      ...(result.extra?.["tightGates"] !== undefined ? [`${Number(result.extra?.["tightGates"] ?? 0)} tight · ${Number(result.extra?.["starChains"] ?? 0)} chains · centre ${Number(result.extra?.["centrePts"] ?? 0)} · skill +${Number(result.extra?.["skill"] ?? 0)}`] : []),
+    ],
   };
 };
 
@@ -1295,7 +1299,13 @@ const snipSummary: SummaryBuilder = (result) => {
   const levels = Number(result.extra?.["levels"] ?? 0);
   return {
     summary: `${eaten} apple${eaten === 1 ? "" : "s"} · ${stars} lea${stars === 1 ? "f" : "ves"} · ${result.score ?? 0}`,
-    detail: [`${levels} level${levels === 1 ? "" : "s"} played`],
+    detail: [
+      `${levels} level${levels === 1 ? "" : "s"} played`,
+      // snipRev 11: golden apples, levels at par cuts and under par time.
+      ...(Number(result.extra?.["snipRev"] ?? 0) >= 11
+        ? [`${Number(result.extra?.["golden"] ?? 0)} golden · ${Number(result.extra?.["parLevels"] ?? 0)} at par · ${Number(result.extra?.["quickLevels"] ?? 0)} quick`]
+        : []),
+    ],
   };
 };
 
@@ -1305,7 +1315,13 @@ const swingSummary: SummaryBuilder = (result) => {
   const ended = Number(result.extra?.["survivedSeconds"] ?? 0);
   return {
     summary: survived ? `${metres} m · survived · ${result.score ?? 0}` : `${metres} m · fell at ${ended.toFixed(1)}s · ${result.score ?? 0}`,
-    detail: ["Same cavern for everyone"],
+    // swingRev 13: the features (gems, gates, sections and pars beaten).
+    detail: [
+      "Same cavern for everyone",
+      ...(Number(result.extra?.["gemTotal"] ?? 0) > 0
+        ? [`${Number(result.extra?.["gems"] ?? 0)} gems · ${Number(result.extra?.["gates"] ?? 0)} gates · ${Number(result.extra?.["sections"] ?? 0)} sections, ${Number(result.extra?.["parsBeaten"] ?? 0)} under par`]
+        : []),
+    ],
   };
 };
 

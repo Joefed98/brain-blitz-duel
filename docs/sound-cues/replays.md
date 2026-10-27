@@ -46,6 +46,10 @@ game the round was.
 | `hover.two-gap` | Through a two-gap barrier: the clip reaches the moment's key tick | instant (the moment lands; about 0.5 s of half-speed play follows) |
 | `hover.slipped-through` | Slipped through a moving barrier: the clip reaches the moment's key tick | instant (the moment lands; about 0.5 s of half-speed play follows) |
 | `hover.all-barriers` | Every barrier passed: the clip reaches the moment's key tick | instant (the moment lands; about 0.5 s of half-speed play follows) |
+| `hover.tight-gate` | Through a tight gate (hoverRev 9): the clip reaches the moment's key tick | instant (the moment lands; about 0.5 s of half-speed play follows) |
+| `hover.star-chain` | A whole star chain (hoverRev 9): the clip reaches the moment's key tick | instant (the moment lands; about 0.5 s of half-speed play follows) |
+| `hover.shield` | Shield picked up (hoverRev 9): the clip reaches the moment's key tick | instant (the moment lands; about 0.5 s of half-speed play follows) |
+| `hover.centre-line` | Along a tight gate's centre line (hoverRev 9): the clip reaches the moment's key tick | instant (the moment lands; about 0.5 s of half-speed play follows) |
 | `breaker.power-up` | Power-up caught: the clip reaches the moment's key tick | instant (the moment lands; about 0.5 s of half-speed play follows) |
 | `breaker.bricks` | Bricks streak (every 10): the clip reaches the moment's key tick | instant (the moment lands; about 0.5 s of half-speed play follows) |
 | `breaker.fireball` | Fireball caught: the clip reaches the moment's key tick | instant (the moment lands; about 0.5 s of half-speed play follows) |
@@ -118,15 +122,31 @@ game the round was.
 | `flip.star` | Star taken: the clip reaches the moment's key tick | instant (the moment lands; about 0.5 s of half-speed play follows) |
 | `flip.all-stars` | All 10 stars: the clip reaches the moment's key tick | instant (the moment lands; about 0.5 s of half-speed play follows) |
 | `flip.just-in-time` | Off a crumbling tile just in time: the clip reaches the moment's key tick | instant (the moment lands; about 0.5 s of half-speed play follows) |
+| `flip.trail-star` | Trail star taken: the clip reaches the moment's key tick | instant (the moment lands; about 0.5 s of half-speed play follows) |
+| `flip.star-trail` | A whole star trail: the clip reaches the moment's key tick | instant (the moment lands; about 0.5 s of half-speed play follows) |
+| `flip.double-flip` | Double flip: the clip reaches the moment's key tick | instant (the moment lands; about 0.5 s of half-speed play follows) |
+| `flip.checkpoint` | Checkpoint passed: the clip reaches the moment's key tick | instant (the moment lands; about 0.5 s of half-speed play follows) |
+| `flip.saved` | A crash saved by a checkpoint: the clip reaches the moment's key tick | instant (the moment lands; about 0.5 s of half-speed play follows) |
+| `flip.speed-zone` | Into a speed zone: the clip reaches the moment's key tick | instant (the moment lands; about 0.5 s of half-speed play follows) |
+| `flip.sweet-spot` | A sweet landing on a roof's sweet spot: the clip reaches the moment's key tick | instant (the moment lands; about 0.5 s of half-speed play follows) |
 | `swing.distance` | Distance (every 100 m): the clip reaches the moment's key tick | instant (the moment lands; about 0.5 s of half-speed play follows) |
 | `swing.star` | Star: the clip reaches the moment's key tick | instant (the moment lands; about 0.5 s of half-speed play follows) |
 | `swing.dodged` | Stalactite dodged: the clip reaches the moment's key tick | instant (the moment lands; about 0.5 s of half-speed play follows) |
 | `swing.over-lava` | Over the lava jet: the clip reaches the moment's key tick | instant (the moment lands; about 0.5 s of half-speed play follows) |
 | `swing.finish` | 500 m (dragon outrun): the clip reaches the moment's key tick | instant (the moment lands; about 0.5 s of half-speed play follows) |
+| `swing.gem` | High-route gem (swingRev 13): the clip reaches the moment's key tick | instant (the moment lands; about 0.5 s of half-speed play follows) |
+| `swing.speed-gate` | Speed gate lit (swingRev 13): the clip reaches the moment's key tick | instant (the moment lands; about 0.5 s of half-speed play follows) |
+| `swing.ledge` | Landed on a ledge (swingRev 13): the clip reaches the moment's key tick | instant (the moment lands; about 0.5 s of half-speed play follows) |
+| `swing.combo` | Swing combo point (swingRev 13): the clip reaches the moment's key tick | instant (the moment lands; about 0.5 s of half-speed play follows) |
+| `swing.section` | Set-route section cleared (swingRev 13): the clip reaches the moment's key tick | instant (the moment lands; about 0.5 s of half-speed play follows) |
+| `swing.par` | Section finished under par (swingRev 13): the clip reaches the moment's key tick | instant (the moment lands; about 0.5 s of half-speed play follows) |
 | `snip.leaf` | Leaf taken: the clip reaches the moment's key tick | instant (the moment lands; about 0.5 s of half-speed play follows) |
 | `snip.level` | Apple fed: the clip reaches the moment's key tick | instant (the moment lands; about 0.5 s of half-speed play follows) |
 | `snip.all-apples` | All 10 apples: the clip reaches the moment's key tick | instant (the moment lands; about 0.5 s of half-speed play follows) |
 | `snip.spring` | Off a springy branch: the clip reaches the moment's key tick | instant (the moment lands; about 0.5 s of half-speed play follows) |
+| `snip.golden` | Golden apple fed in time (snipRev 11): the clip reaches the moment's key tick | instant (the moment lands; about 0.5 s of half-speed play follows) |
+| `snip.ring` | Caught by a ring (snipRev 11): the clip reaches the moment's key tick | instant (the moment lands; about 0.5 s of half-speed play follows) |
+| `snip.quick` | A level fed under its par time at par cuts (snipRev 11): the clip reaches the moment's key tick | instant (the moment lands; about 0.5 s of half-speed play follows) |
 | `tilt.maze` | Maze done: the clip reaches the moment's key tick | instant (the moment lands; about 0.5 s of half-speed play follows) |
 | `tilt.all-mazes` | All 4 mazes: the clip reaches the moment's key tick | instant (the moment lands; about 0.5 s of half-speed play follows) |
 | `tilt.star` | Bonus star: the clip reaches the moment's key tick | instant (the moment lands; about 0.5 s of half-speed play follows) |

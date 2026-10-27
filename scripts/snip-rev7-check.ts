@@ -52,6 +52,7 @@ import {
   SNIP_PROVEN_WOBBLES,
   SNIP_REV_BANK6,
   SNIP_REV_PROVEN,
+  SNIP_REV_EXPAND,
   SNIP_RUN_TICKS,
   SNIP_TALL_H,
   snipWorldHFor,
@@ -100,7 +101,8 @@ section("Stored rounds (snipRev 6 and older) replay and score exactly as before"
 /* ======================== 2. Stamp, world, rules ======================== */
 section("New rounds: snipRev 7, the tall world, snipRev 6's rules");
 {
-  ok(playRevOf("snip", generateSnip().snipRev) === SNIP_REV_PROVEN, `new rounds stamped ${SNIP_REV_PROVEN} (got ${playRevOf("snip", generateSnip().snipRev)})`);
+  // The 200-point expansion (26 Oct 2026) moved rooms on to snipRev 11's tall courses (snip-x200-check).
+  ok(playRevOf("snip", generateSnip().snipRev) === SNIP_REV_EXPAND, `new rounds stamped ${SNIP_REV_EXPAND}, after ${SNIP_REV_PROVEN}'s play (got ${playRevOf("snip", generateSnip().snipRev)})`);
   ok(puzzleUsesBands({ type: "snip", snipRev: SNIP_REV_PROVEN } as never), "snipRev 7 scores on the bands");
   ok(snipWorldHFor(SNIP_REV_PROVEN) === SNIP_TALL_H, "snipRev 7 plays in the 360 × 640 world");
   ok(revealWorldH(ARCADE_REVEAL_RENDERERS.snip!, { type: "snip", seed: 5, snipRev: SNIP_REV_PROVEN } as never) === SNIP_TALL_H, "the reveal draws snipRev 7 at the tall height");

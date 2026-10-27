@@ -53,7 +53,7 @@ const specs = await import("../src/lib/arcade/arcadeFxGames.renderer");
 const sprites = await import("../src/lib/arcade/sprites.renderer");
 
 const { hoverArtGame } = await import("../src/lib/arcade/hover.renderer");
-const { hoverRev2Game } = await import("../src/lib/arcade/hover");
+const { hoverExpandGame } = await import("../src/lib/arcade/hover");
 const { breakerArtGameFor } = await import("../src/lib/arcade/breaker.renderer");
 const { pinballArtGame } = await import("../src/lib/arcade/pinball.renderer");
 const { rallyArtGame } = await import("../src/lib/arcade/rally.renderer");
@@ -82,6 +82,7 @@ const { bubbleArtGame } = await import("../src/lib/arcade/bubble.renderer");
 const { bubbleRev2Game } = await import("../src/lib/arcade/bubble");
 const { flipArtGameFor } = await import("../src/lib/arcade/flipArt.renderer");
 const { swingArtGameFor } = await import("../src/lib/arcade/swing.renderer");
+const { SWING_V13_BANK } = await import("../src/lib/duel/swingBankV13.server");
 const { snipArtGame } = await import("../src/lib/arcade/snip.renderer");
 const { snipRev3Game } = await import("../src/lib/arcade/snip");
 const { tiltRev2ArtGame: tiltArtGame } = await import("../src/lib/arcade/tiltArt.renderer");
@@ -111,7 +112,8 @@ type AnyGame = {
 const course = BALL_TRACK_BANK[0]!.course;
 const btGame = makeBallTrackGame(course, 2);
 const GAMES: Record<string, AnyGame> = {
-  hover: { ...hoverArtGame, init: hoverRev2Game.init } as AnyGame,
+  // hoverRev 9 (the 200 expansion): the course rooms deal, so the new moments fire on real states too.
+  hover: { ...hoverArtGame, init: hoverExpandGame.init } as AnyGame,
   // Expansion E3: rooms deal brkRev 9 (ARCADE_FX_SPECS lists its 420 × 784 spec).
   breaker: breakerArtGameFor(BRK_REV_DEEP) as AnyGame,
   // Expansion E9: rooms deal rallyRev 10 (ARCADE_FX_SPECS lists its 420 × 784 spec) and burstRev 8.
@@ -129,8 +131,10 @@ const GAMES: Record<string, AnyGame> = {
   bintoss: { ...binTossArtGame, init: binTossGameFor(3).init } as AnyGame,
   bullseye: { ...bullseyeGame, init: bullseyeRev2Game.init, draw: drawBullseye } as AnyGame,
   bubble: { ...bubbleArtGame, init: bubbleRev2Game.init } as AnyGame,
-  flip: flipArtGameFor(2) as AnyGame,
-  swing: swingArtGameFor(4) as AnyGame,
+  // Roofbound's expansion (flipRev 8, docs/expansions/x200-flip.md) is the live spec.
+  flip: flipArtGameFor(8) as AnyGame,
+  // Grappler's 200 expansion (swingRev 13) is the live spec: its bank course, so every feature (sections included) is on it.
+  swing: { ...swingArtGameFor(13), init: () => swingArtGameFor(13).init(SWING_V13_BANK[0]!.seed) } as AnyGame,
   snip: { ...snipArtGame, init: snipRev3Game.init } as AnyGame,
   tilt: tiltArtGame as AnyGame,
   balltrack: {
@@ -253,6 +257,11 @@ const BUMPS: Record<string, ((s: any) => any)[]> = {
     (s) => ({ ...s, gates: 17 }),
     (s) => ({ ...s, gates: 24 }),
     (s) => ({ ...s, gates: s.totalGates }),
+    // hoverRev 9: a tight gate, a whole star chain, a shield picked up, a centre line graded.
+    (s) => ({ ...s, tight: (s.tight ?? 0) + 1 }),
+    (s) => ({ ...s, chainsDone: (s.chainsDone ?? 0) + 1 }),
+    (s) => ({ ...s, pickupsTaken: [...(s.pickupsTaken ?? []), 0] }),
+    (s) => ({ ...s, ctrLog: [...(s.ctrLog ?? []), 4 * 4 + 3], ctrPts: (s.ctrPts ?? 0) + 3 }),
   ],
   // brkRev 9: a 9-column wall (gold bricks apart), then the gold-brick and combo moments.
   breaker: [
@@ -372,6 +381,14 @@ const BUMPS: Record<string, ((s: any) => any)[]> = {
     (s) => ({ ...s, got: (s.got ?? 0) | 1 }),
     (s) => ({ ...s, got: 1023 }),
     (s) => ({ ...s, cracks: [0, s.tick - 30] }),
+    // flipRev 8 (the rooms' revision since 26 Oct 2026): trail star, full trail, double flip, checkpoint, save, speed zone, sweet landing.
+    (s) => ({ ...s, trailGot: [1, 0, 0, 0] }),
+    (s) => ({ ...s, trailGot: [31, 0, 0, 0] }),
+    (s) => ({ ...s, combos: (s.combos ?? 0) + 1, chain: 1 }),
+    (s) => ({ ...s, cpPassed: (s.cpPassed ?? 0) + 1 }),
+    (s) => ({ ...s, saves: (s.saves ?? 0) + 1 }),
+    (s) => ({ ...s, tick: s.v8.zones[0] + 1 }),
+    (s) => ({ ...s, sweetGot: (s.sweetGot ?? 0) | 1, sweetT: s.tick }),
   ],
   swing: [
     (s) => ({ ...s, maxX: s.maxX + 100 * 256 * 40 }),
@@ -379,12 +396,23 @@ const BUMPS: Record<string, ((s: any) => any)[]> = {
     (s) => ({ ...s, rocks: (s.rocks ?? []).map((r: any, i: number) => (i === 0 ? { ...r, phase: 3 } : r)) }),
     (s) => ({ ...s, x: (s.jets?.[0]?.x ?? 0) + 40 * 256 }),
     (s) => ({ ...s, ended: 1, maxX: s.maxX + 600 * 256 * 40 }),
+    // swingRev 13: a gem, a lit gate, a ledge landed, a combo point, a section cleared, a section under par.
+    (s) => ({ ...s, gemsTaken: (s.gemsTaken ?? 0) | 1 }),
+    (s) => ({ ...s, gatesLit: (s.gatesLit ?? 0) | 1 }),
+    (s) => ({ ...s, ledgeTicks: (s.ledgeTicks ?? []).map((t: number, i: number) => (i === 0 ? s.tick : t)) }),
+    (s) => ({ ...s, comboPts: (s.comboPts ?? 0) + 2, comboTiers: (s.comboTiers ?? 0) + 1, chain: 5 }),
+    (s) => ({ ...s, ledgeTicks: (s.ledges ?? []).map((l: any, i: number) => (l.section === 0 ? s.tick : (s.ledgeTicks ?? [])[i] ?? 0)) }),
+    (s) => ({ ...s, ledgeTicks: (s.ledges ?? []).map((l: any, i: number) => (l.section === 1 ? (l.kind === 0 ? Math.max(1, s.tick - 60) : s.tick) : (s.ledgeTicks ?? [])[i] ?? 0)) }),
   ],
   snip: [
     (s) => ({ ...s, stars: s.stars + 1 }),
     (s) => ({ ...s, eaten: s.eaten + 1 }),
     (s) => ({ ...s, eaten: 10 }),
     (s) => ({ ...s, springHits: (s.springHits ?? 0) + 1 }),
+    // snipRev 11: a golden apple fed, a ring's catch, a level quick and clean.
+    (s) => ({ ...s, golden: (s.golden ?? 0) + 1 }),
+    (s) => ({ ...s, ringed: 1, ringTick: s.tick }),
+    (s) => ({ ...s, quickLevels: (s.quickLevels ?? 0) + 1 }),
   ],
   tilt: [
     (s) => ({ ...s, mazes: s.mazes + 1 }),

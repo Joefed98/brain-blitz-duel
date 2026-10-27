@@ -1,3 +1,4 @@
+import { devWarp } from "@/lib/arcade/devWarp";
 import { snipFill } from "@/lib/arcade/arenaFills.renderer";
 import { ArcadeArenaSlot } from "@/components/puzzles/ArcadeArenaSlot";
 import { gameDisplayName } from "@/lib/duel/gameNames";
@@ -17,7 +18,9 @@ import {
   SNIP_CHECKPOINT_INTERVAL,
   SNIP_INPUT_CUT,
   SNIP_CONFIG,
-  SNIP_REV_TARGET, SNIP_REV_STRICT,
+  SNIP_REV_TARGET, SNIP_REV_EXPAND,
+  SNIP_X_LEVELS,
+  SNIP_COURSES,
   snipWorldHFor,
   type SnipState,
 } from "@/lib/arcade/snip";
@@ -53,7 +56,7 @@ function IntroExample() {
 function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const data: SnipPuzzleData | null = puzzle.type === "snip" ? puzzle : null;
   const seed = data?.seed ?? 1;
-  const snipGame = snipGameFor(data?.snipRev);
+  const snipGame = devWarp("snip", snipGameFor(data?.snipRev));
 
   const board = useRef<HTMLDivElement | null>(null);
   const canvas = useRef<HTMLCanvasElement | null>(null);
@@ -70,7 +73,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const lockedRef = useRef(locked);
   const submitRef = useRef(onSubmit);
   const draftRef = useRef(onDraftAnswer);
-  const [hud, setHud] = useState({ level: 1, eaten: 0, stars: 0, score: 0 });
+  const [hud, setHud] = useState({ level: 1, eaten: 0, stars: 0, score: 0, cuts: "", par: "", late: false });
   const [dev, setDev] = useState("");
   lockedRef.current = locked;
   submitRef.current = onSubmit;
@@ -132,10 +135,15 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         }
       }
       const s = state.current;
-      const key = `${s.level}.${s.eaten}.${s.stars}`;
+      // snipRev 11: the par time dims once the level's clock passes it.
+      const parT = s.course ? (SNIP_COURSES[s.template]?.parT ?? 0) : 0;
+      const late = parT > 0 && s.levelTick >= parT;
+      const key = `${s.level}.${s.eaten}.${s.stars}.${s.lvlStrokes ?? 0}.${s.stars2 ?? 0}.${s.starGot.join("")}.${late ? 1 : 0}`;
       if (key !== shownKey) {
         shownKey = key;
-        setHud({ level: Math.min(10, s.level + 1), eaten: s.eaten, stars: s.stars, score: snipGame.score(s) });
+        // snipRev 11: six levels; the left shows this level's cuts against its par, then its par time.
+        const par = s.course ? (SNIP_COURSES[s.template]?.par ?? 0) : 0;
+        setHud({ level: Math.min(s.course ? SNIP_X_LEVELS : 10, s.level + 1), eaten: s.eaten, stars: s.stars + (s.stars2 ?? 0), score: snipGame.score(s), cuts: s.course ? `${s.lvlStrokes ?? 0}/${par} cuts` : "", par: parT > 0 ? `par ${(parT / 60).toFixed(1)}s` : "", late });
       }
       if (devOn && s.tick % 6 === 0) {
         const cuts = s.cutLog
@@ -167,7 +175,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
           ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
           const previous = camera.current;
           const reset = previous.level !== s.level;
-          const x = snipCamera(s, reset ? s.sx / 256 - 180 : previous.x, reset ? 1 : Math.min(0.1, Math.max(0, (time - previous.time) / 1000)));
+          // snipRev 11 has no horizontal camera: its vertical one rides in the state (camY).
+          const x = s.course ? 0 : snipCamera(s, reset ? s.sx / 256 - 180 : previous.x, reset ? 1 : Math.min(0.1, Math.max(0, (time - previous.time) / 1000)));
           camera.current = { x, level: s.level, time };
           swipes.current = swipes.current.filter((w) => time - w.at < 220);
           frameTiming.draw();
@@ -200,7 +209,9 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     const box = board.current?.getBoundingClientRect();
     if (!box) return null;
     const { scaleX, scaleY } = snipView({ width: box.width, height: box.height }, snipWorldHFor(data.snipRev));
-    return { x: Math.round((clientX - box.left) / scaleX + camera.current.x), y: Math.round((clientY - box.top) / scaleY) };
+    // snipRev 11: through the vertical camera the drawn frame used (the state it drew).
+    const camY = state.current.course ? (state.current.camY ?? 0) : 0;
+    return { x: Math.round((clientX - box.left) / scaleX + camera.current.x), y: Math.round((clientY - box.top) / scaleY + camY) };
   };
   const active = () => !locked && !submitted.current && !snipGame.isOver(state.current);
 
@@ -208,12 +219,21 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     <div data-stage-column="1" className="flex min-h-0 w-full flex-1 flex-col gap-1 select-none" style={GAME_ROOT_STYLE}>
       {/* One 20px line under the compact header (15 Oct 2026, display only; it was 32px). */}
       <div data-snip-hud className="flex h-5 shrink-0 items-center justify-between px-2 font-mono text-xs leading-none text-muted-foreground">
-        <span>Level {hud.level}</span>
+        {/* snipRev 11 adds the cuts and par time, so its line is shorter ("Lv", "fed") to fit a 375 px phone. */}
+        <span className="whitespace-nowrap">
+          {hud.par ? "Lv" : "Level"} {hud.level}
+          {hud.cuts ? ` · ${hud.cuts}` : ""}
+          {hud.par ? (
+            <span data-snip-par className={hud.late ? "opacity-40" : undefined}>
+              {` · ${hud.par}`}
+            </span>
+          ) : null}
+        </span>
         <span className="text-base font-bold text-foreground">
           <span className="text-primary">{hud.score}</span>
         </span>
-        <span>
-          {hud.eaten} picked · {hud.stars} leaves
+        <span className="whitespace-nowrap">
+          {hud.eaten} {hud.par ? "fed" : "picked"} · {hud.stars} leaves
         </span>
       </div>
       <ArcadeArenaSlot width={SNIP_CONFIG.viewW} height={snipWorldHFor(data.snipRev)} scene={snipFill} playCentre>
@@ -258,8 +278,15 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   return (
     <div className="flex w-full flex-col items-center gap-3">
       <p className="text-center font-mono text-lg font-bold text-foreground">
-        {result.eaten} apple{result.eaten === 1 ? "" : "s"} picked · {result.stars} leaves
+        {result.state.course
+          ? `${result.eaten} / ${result.state.fruitsDealt ?? 0} fruit · ${result.state.golden ?? 0} golden · ${result.stars + (result.state.stars2 ?? 0)} leaves`
+          : `${result.eaten} apple${result.eaten === 1 ? "" : "s"} picked · ${result.stars} leaves`}
       </p>
+      {result.state.course ? (
+        <p className="text-center font-mono text-base text-muted-foreground">
+          {result.state.cleared ?? 0} / {SNIP_X_LEVELS} levels cleared · {result.state.parLevels ?? 0} at par
+        </p>
+      ) : null}
       <p className="text-center text-base text-muted-foreground">Same levels for everyone</p>
     </div>
   );
@@ -272,7 +299,7 @@ export const snipPuzzle: PuzzleDefinition = {
   category: "arcade",
   timeLimitMs: SNIP_TIME_MS,
   revealMs: 6_000,
-  generate: () => ({ type: "snip", seed: 1, snipRev: SNIP_REV_STRICT }) satisfies SnipPuzzleData,
+  generate: () => ({ type: "snip", seed: 1, snipRev: SNIP_REV_EXPAND }) satisfies SnipPuzzleData,
   check: () => false,
   revealHeading: "Your run",
   IntroExample,

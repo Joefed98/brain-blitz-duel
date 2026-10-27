@@ -110,6 +110,11 @@ export class Human {
     this.rand = mulberry(hash(`${game}:${seed}:${level}`));
   }
 
+  /** The level (an alias the x200 expansion bots used before the band tool's levels landed). */
+  get tier(): SkillLevel {
+    return this.level;
+  }
+
   /** Uniform in [0, 1). */
   u(): number {
     return this.rand();

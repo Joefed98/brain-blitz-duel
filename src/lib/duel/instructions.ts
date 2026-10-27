@@ -62,7 +62,7 @@ import {
 import { BUB_SPECIAL_BLOCK, BUB_TORPEDO_HITS, BUB_V3_JOKER_BLOCK, BUB_V8_CHESTS, BUB_V8_CHEST_FP, BUB_V8_FEATURE_MAX } from "@/lib/arcade/bubble";
 import { MATCHUP_V3_PAR_RAW, MATCHUP_V9_FEATURE_MAX } from "@/lib/arcade/matchup";
 import { BT_V7_BALLS, BT_V7_BOOST_STEPS, BT_V7_FEATURE_MAX, BT_V7_LAST_LAND_MIN } from "@/lib/arcade/ballTrack";
-import { HOVER_REACHABLE_GATES, HOVER_STARS, HOVER_V2_GATES_SCORE, HOVER_V2_STARS_SCORE } from "@/lib/arcade/hover";
+import { HOVER_CENTRE_POINTS, HOVER_CENTRE_TOP, HOVER_CENTRE_TOL, HOVER_SKILL_SLACK, HOVER_CHAIN_POINTS, HOVER_CHAINS, HOVER_PICKUPS, HOVER_REACHABLE_GATES, HOVER_SKILL_MAX, HOVER_SKILL_PAY, HOVER_STARS, HOVER_TIGHT_GATES, HOVER_TIGHT_POINTS, HOVER_V2_GATES_SCORE, HOVER_V2_STARS_SCORE } from "@/lib/arcade/hover";
 import { WAV_BOSS_HP } from "@/lib/arcade/wavefront";
 import { SNAKE_V9_CAPS, SNAKE_V9_COLS, SNAKE_V9_ROWS } from "@/lib/arcade/snake";
 import { BEAT_V9_CAPS, BEAT_V9_SKILL_PAY } from "@/lib/arcade/beat";
@@ -82,8 +82,11 @@ import { BULLSEYE_INNER_BULL_POINTS, BULLSEYE_RING_VALUES, BULLSEYE_V8_DEAD_CAP,
 import { RALLY_V10_BONUS_COUNT, RALLY_V10_BONUS_PTS } from "@/lib/arcade/rally";
 import { BURST_V8_CAPS, BURST_V8_CLEAN_PTS, BURST_V8_GOLDEN_PTS, BURST_V8_GOLDENS } from "@/lib/arcade/burst";
 import { liveBandHelp } from "@/lib/arcade/liveBands";
+import { SWING_COMBO_CAP, SWING_FEATURE_CAP, SWING_GATES, SWING_GEMS, SWING_LEDGE_POINTS, SWING_PAR_POINTS, SWING_SKILL_PAY } from "@/lib/arcade/swing";
 import { BRK_V9_COLS, BRK_V9_COMBO_MAX, BRK_V9_COMBO_X2, BRK_V9_COMBO_X3, BRK_V9_GOLD, BRK_V9_GOLD_POINTS, BRK_V9_ROWS, BRK_V9_SKILL_MAX, BRK_V9_SKILL_PAY } from "@/lib/arcade/breaker";
-import type { BandCurve } from "@/lib/arcade/scoreBands";
+import { FLIP_V8_COMBO_CAP, FLIP_V8_CP_POINTS, FLIP_V8_FEATURE_CAP, FLIP_V8_SKILL_PAY, FLIP_V8_SWEETS, FLIP_V8_SWEET_POINTS, FLIP_V8_TRAILS, FLIP_V8_TRAIL_POINTS, FLIP_V8_TRAIL_STARS, FLIP_V8_ZONE_POINTS } from "@/lib/arcade/flip";
+import { bandCurve, type BandCurve } from "@/lib/arcade/scoreBands";
+import { SNIP_X_FEATURE_MAX, SNIP_X_FEED_UNITS, SNIP_X_GOLD_RAW, SNIP_X_LEVELS, SNIP_X_PAR_MARGIN, SNIP_X_PAR_RAW, SNIP_X_PERFECT_RAW, SNIP_X_QUICK_RAW, SNIP_X_RAW_TOP, SNIP_X_SKILL_PAY, SNIP_X_STAR2_RAW, SNIP_X_STAR_UNITS } from "@/lib/arcade/snip";
 import { fillMax, liveRecord, roundMaxFor } from "./roundMax";
 import { chainDepthHelp } from "./depth/chain";
 import { pairDepthHelp } from "./depth/matchmaker";
@@ -525,14 +528,19 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
       goal: "Fly through the barrier gaps.",
       how: [
         { action: "Tap to hover up;", detail: "let go to drop." },
-        { action: "Touch gold stars", detail: "in tight gaps for a bonus." },
-        { action: "Later barriers", detail: "have two gaps, or slide." },
+        { action: "Gold gates:", detail: "thread them, dead centre for more." },
+        { action: "Star chains:", detail: "sweep them; shields take a crash." },
+        { action: "Touch gold stars", detail: "in tight gaps for a bonus. Later barriers have two gaps, or slide.", helpOnly: true },
         { action: "Hit anything", detail: "and the run ends. Gold stars sit near the edge of a gap, so they are risky.", helpOnly: true },
+        { action: `${HOVER_TIGHT_GATES} tight gates:`, detail: `a narrow gold-rimmed second gap on a barrier. Fly through it without touching anything for ${HOVER_TIGHT_POINTS} skill points.`, helpOnly: true },
+        { action: "The centre line:", detail: `a faint line through each tight gate lights up as you fly along it. Stay within ${HOVER_CENTRE_TOL[0] / 256} px of it across the barrier for ${HOVER_CENTRE_POINTS[3]} more, within ${HOVER_CENTRE_TOL[1] / 256} px for ${HOVER_CENTRE_POINTS[2]}, within ${HOVER_CENTRE_TOL[2] / 256} px for ${HOVER_CENTRE_POINTS[1]}.`, helpOnly: true },
+        { action: `${HOVER_CHAINS} star chains:`, detail: `5 to 7 stars on one flap's arc between two barriers. Touch every star of a chain for ${HOVER_CHAIN_POINTS} skill points.`, helpOnly: true },
+        { action: `${HOVER_PICKUPS} shield bubbles`, detail: "sit at the same places for everyone. Touch one for a shield: your next crash breaks it instead and you fly on, untouchable for a moment.", helpOnly: true },
         { action: "Two-gap barriers:", detail: "fly through either gap. Sliding barriers move slowly and steadily up and down.", helpOnly: true },
         { action: "Taller sky:", detail: "the flight area fills your screen, and gaps sit anywhere from near the top to near the bottom. The faint stars behind are scenery only.", helpOnly: true },
-        { action: "Everyone flies", detail: `the same course for sixty seconds: ${HOVER_REACHABLE_GATES} barriers in a clean run and ${HOVER_STARS} gold stars.`, helpOnly: true },
+        { action: "Everyone flies", detail: `the same course for sixty seconds: ${HOVER_REACHABLE_GATES} barriers in a clean run (the first a wide warm-up gap) and ${HOVER_STARS} gold stars.`, helpOnly: true },
       ],
-      score: liveBandHelp("hover", `Each of the ${HOVER_REACHABLE_GATES} barriers counts 3 and each gold star 2.`, { more: "More barriers and stars", good: (u) => `counts ${u} – about ${Math.round(u / 3)} barriers`, finish: "Lasting the minute adds 10." }),
+      score: liveBandHelp("hover", `Each of the ${HOVER_REACHABLE_GATES} barriers counts 3 and each gold star 2; staying up half a second (or reaching the first barrier) counts 1.`, { more: "More barriers and stars", good: (u) => `counts ${u} – about ${Math.round(u / 3)} barriers`, finish: `Lasting the minute adds 10. Skill adds up to ${HOVER_SKILL_MAX} more: ${HOVER_TIGHT_POINTS} a tight gate, ${HOVER_CHAIN_POINTS} a whole star chain and up to ${HOVER_CENTRE_TOP} a centre line. ${skillPayLine(HOVER_SKILL_PAY)} That is ${HOVER_SKILL_SLACK} short of everything, so one slip is forgiven.` }),
     },
     swerve: {
       goal: "Collect coins while dodging the blocks.",
@@ -939,16 +947,23 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
       score: "The longer you last, the more you score – the full minute is {max}.",
     },
     flip: {
-      goal: "Run the corridor – flip to the other side to dodge.",
+      goal: "Run the cave – flip to the other side to dodge, and chain flips for more.",
       how: [
-        { action: "Tap to flip sides;", detail: "run on the side without spikes." },
-        { action: "Cracked tiles break;", detail: "flip off fast." },
-        { action: "Grab the gold stars.", detail: "From 10 seconds the corridor bends." },
-        { action: "Spikes or lava on one side?", detail: "Run on the other.", helpOnly: true },
-        { action: "Hazards ride the bends with you,", detail: "so the gap between floor and ceiling never changes.", helpOnly: true },
-        { action: "A tile starts cracking", detail: "the moment you touch it and is gone less than half a second later.", helpOnly: true },
+        { action: "Tap to flip sides;", detail: "dodge the spikes (some slide). Flip again right after landing for a double flip." },
+        { action: "Grab gold stars and star trails;", detail: "land a flip on a roof's faint sweet spot for a bonus." },
+        { action: "Checkpoints save one crash.", detail: "Speed zones rush you on; tall caves mean longer flips." },
+        { action: "Spikes or lava on one side?", detail: "Run on the other. Cracked tiles break less than half a second after you touch them: flip off fast.", helpOnly: true },
+        { action: "Moving spikes", detail: "slide to and fro along the groove under them; time your flip to their slide.", helpOnly: true },
+        { action: "The cave changes height:", detail: "in a tall stretch a flip takes longer to cross, in a tight one it is quicker. From 10 seconds the cave bends too, and hazards ride the bends with you.", helpOnly: true },
+        { action: "Double flips:", detail: "flip again within about an eighth of a second of landing with a hazard close by. A triple and longer chains count more, and twice as much in a speed zone.", helpOnly: true },
+        { action: "Star trails:", detail: `${FLIP_V8_TRAILS} arcs of ${FLIP_V8_TRAIL_STARS} small stars, taken in the air. Leave the surface at the chevron and your flip sweeps through them.`, helpOnly: true },
+        { action: "Sweet spots:", detail: `${FLIP_V8_SWEETS} roofs carry a short, faint pale strip. Time a flip so you touch down with your feet inside it for a sweet landing; it glints. Each counts once.`, helpOnly: true },
+        { action: "Checkpoints (15, 30 and 45 s):", detail: "pass one and your next crash is saved – a second of shield, but your survival time pauses for 10 seconds.", helpOnly: true },
       ],
-      score: liveBandHelp("flip", "Each half second you last counts 1 and each gold star 3.", { more: "More time and stars", finish: "Lasting the full minute adds 10." }),
+      score: liveBandHelp("flip", "Each half second you last counts 1 and each gold star 3.", {
+        more: "More time and stars",
+        finish: `Lasting the full minute adds 10. Skill adds up to ${FLIP_V8_FEATURE_CAP} more: ${FLIP_V8_TRAIL_POINTS} a full star trail, ${FLIP_V8_SWEET_POINTS} a sweet landing, ${FLIP_V8_ZONE_POINTS} a speed zone run through without a save, ${FLIP_V8_CP_POINTS} a checkpoint reached without a crash, and double-flip combo points (up to ${FLIP_V8_COMBO_CAP}). ${skillPayLine(FLIP_V8_SKILL_PAY)}`,
+      }),
     },
     junction: {
       goal: "Keep traffic moving, no crashes.",
@@ -1015,29 +1030,38 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
     },
 
     snip: {
-      goal: "Drop the apple into the basket.",
+      goal: "Feed every fruit into the basket.",
       how: [
-        { action: "Swipe across a rope", detail: "to cut it. Order matters." },
-        { action: "Crooks catch falling apples:", detail: "cut the vine." },
-        { action: "Avoid wasp nests;", detail: "use planks and springs.", helpOnly: true },
-        { action: "Golden leaves:", detail: "the apple picks one up as it passes through; each counts 2.", helpOnly: true },
-        { action: "10 levels,", detail: "up to 12 s each." },
-        { action: "Picker's crooks:", detail: "a wooden pole with an iron hook open at the top. It snags the apple only when the apple falls freely down past its hook from above, then holds it on a green vine; swipe the vine to drop it again. Each crook catches once.", helpOnly: true },
-        { action: "Time it with the swing.", detail: "Cut the last rope and the apple drops; the walls bounce it without losing speed, and the camera follows across the wider arena.", helpOnly: true },
-        { action: "Orchard pieces:", detail: "the apple rolls along sloped planks and down tin gutters, bounces hard off springy green branches, and a touch on a wasp nest loses the level. Some baskets slide slowly side to side – drop it as one comes under.", helpOnly: true },
-        { action: "Several ropes?", detail: "Which one you cut first decides which way the apple swings.", helpOnly: true },
-        { action: "Don't let it settle", detail: "on a ledge or plank, or fly out the top or bottom.", helpOnly: true },
-        { action: "Taller levels:", detail: "two easy levels, three medium and five hard ones, many with several steps: a cut, a catch, another cut.", helpOnly: true },
-        { action: "Everyone", detail: "gets the same ten levels in the same order.", helpOnly: true },
+        { action: "Swipe a rope", detail: "to cut it; crooks catch fruit." },
+        { action: "Feed every fruit;", detail: "golden ones within 7 s." },
+        { action: "Par:", detail: "fewest cuts, under the par time." },
+        { action: `${SNIP_X_LEVELS} levels,`, detail: "up to 14 s each; 1–3 fruits a level. Pegs and rings catch falling fruit: cut the vine to drop it on.", helpOnly: true },
+        { action: "Taller courses:", detail: "each level opens with a look down the course from the basket up to the fruit; then the camera follows the fruit. The map at the side shows the whole course with your view boxed.", helpOnly: true },
+        { action: "Pegs:", detail: "a wooden pole with an iron hook open at the top. It snags a fruit only when it falls freely down past the hook from above. Rings snag a free fruit that passes through their middle from any side. Each catches once and holds the fruit on a green vine.", helpOnly: true },
+        { action: "Orchard pieces:", detail: "fruit rolls along sloped planks and down tin gutters and chutes, bounces hard off springy green branches, and a touch on a wasp nest loses it. Some baskets slide slowly side to side.", helpOnly: true },
+        { action: "Wind:", detail: "the windsock and the drifting leaves show it. It swings the ropes and the fruit they hold back and forth; a falling fruit is not blown.", helpOnly: true },
+        { action: "Fewest cuts:", detail: "every swipe counts as a cut, a miss too; one swipe across several ropes is one cut. Feed every fruit in no more cuts than the level's par (shown at the top left).", helpOnly: true },
+        { action: "Par time:", detail: `each course has its own, shown beside the cuts and on the small dial under the windsock, which runs down with the level's clock. Feed every fruit at par cuts before it and the level is quick: up to ${SNIP_X_QUICK_RAW / 10} skill points, the full amount ${SNIP_X_PAR_MARGIN / 60} s or more inside it.`, helpOnly: true },
+        { action: "Golden apples:", detail: "on levels 2, 4 and 6 one fruit is golden for the level's first 7 s (the gold ring round it runs down). Fed in time it scores extra; after that it ripens into an ordinary apple.", helpOnly: true },
+        { action: "Golden leaves:", detail: "two along each course; the first counts 2, the second is a bonus.", helpOnly: true },
+        { action: "Don't let fruit settle", detail: "on a ledge or plank, or fly out the top or bottom.", helpOnly: true },
+        { action: "Everyone", detail: "gets the same six courses, wind, golden apples and par times in the same order.", helpOnly: true },
       ],
-      score: liveBandHelp("snip", "Each apple counts 10 and each leaf 2.", { more: "More apples and leaves", good: (u) => `counts ${u} – about ${Math.round(u / 10)} apples`, finish: "All ten apples adds up to 10 for speed: the full 10 with at least half the time left, falling to 0 at the buzzer." }),
+      score: liveBandHelp("snip", `Each level's fruit count ${SNIP_X_FEED_UNITS} between them and a leaf ${SNIP_X_STAR_UNITS}.`, { more: "More fruit and leaves", good: (u) => `counts ${u} – about ${Math.round(u / 20)} levels fed`, finish: `Feeding every fruit adds up to 10 for speed: the full 10 by 48 s. Skill adds up to ${SNIP_X_FEATURE_MAX} more: ${SNIP_X_GOLD_RAW / 10} a golden apple fed while golden, ${SNIP_X_PAR_RAW / 10} a level at par cuts, ${SNIP_X_STAR2_RAW / 10} a second leaf, up to ${SNIP_X_QUICK_RAW / 10} a level under its par time and ${SNIP_X_PERFECT_RAW / 10} for a perfect run (${SNIP_X_RAW_TOP / 10} in all). ${skillPayLine(bandCurve(SNIP_X_SKILL_PAY.units.map((u) => u / 10), SNIP_X_SKILL_PAY.points))}` }),
     },
     swing: {
-      goal: "Swing the ninja to the 500 m line.",
+      goal: "Swing to 500 m via gems and gates.",
       how: [
         { action: "Hold to grab and swing,", detail: "let go to fly." },
-        { action: "From 200 m a dragon chases you:", detail: "keep going." },
-        { action: "Touch stars as you fly by", detail: "for bonus points." },
+        { action: "Fly high for gems,", detail: "swoop fast through gates." },
+        { action: "Land each ledge route", detail: "under its par time." },
+        { action: "From 200 m a dragon chases you:", detail: "keep going.", helpOnly: true },
+        { action: "Touch stars as you fly by", detail: "for bonus points.", helpOnly: true },
+        { action: "Swing combos:", detail: "fly into each grab fast (a strong release) and grab the next anchor ahead within a second of your last grab, and the chain grows; a chain of 5, 10 and 15 in a row pays 2, 3 and 5 combo points as it gets there. A slow grab, hanging on too long or landing on a ledge ends the chain.", helpOnly: true },
+        { action: "High route:", detail: `${SWING_GEMS} cyan gems sit at the tops of strong flights, close under the ceiling. Touch one to take it.`, helpOnly: true },
+        { action: "Low route:", detail: `${SWING_GATES} speed gates hang under anchors. Grab early for a long rope and swoop through the glowing gap fast; it lights gold.`, helpOnly: true },
+        { action: "Set routes:", detail: "before the dragon, two or three runs of ledges hang from the roof: a start ledge, landing ledges and a finish flag. Drop on to a ledge from above to land, then hold to kick off and swing to the next one. A cracked ledge collapses soon after you land on it.", helpOnly: true },
+        { action: "Par times:", detail: "each route's start ledge shows its par, the time from landing on the start ledge to landing on the flag along the route's quickest swings, plus a little. Land every ledge of the route and reach the flag under par for skill points: the further under, the more. The clock under the distance shows a route's time while it runs.", helpOnly: true },
         { action: "Stuck? Keep swinging", detail: "– every pass gets you higher. Swipe up to shorten the rope for speed, down to let it out.", helpOnly: true },
         { action: "The dragon flies at a steady pace behind you.", detail: "Slow down or stall and it catches you, which ends the run. A marker at the left edge shows how far back it is.", helpOnly: true },
         { action: "Loose stalactites crumble, shedding grit,", detail: "for two seconds before they fall. Don't be under one.", helpOnly: true },
@@ -1045,7 +1069,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Ten stars float along the way,", detail: "spread evenly from start to finish: some high, some low, some on risky lines near the lava. Touch one to take it; they are optional.", helpOnly: true },
         { action: "Don't touch the spikes", detail: "or fall into the lava.", helpOnly: true },
       ],
-      score: liveBandHelp("swing", "Each metre counts 1 (up to 500) and each star 5.", { more: "More metres and stars", finish: "Reaching 500 m adds 10." }),
+      score: liveBandHelp("swing", "Each metre counts 1 (up to 500) and each star 5.", { more: "More metres and stars", finish: `Reaching 500 m adds 10. Skill adds up to ${SWING_FEATURE_CAP} more: a skill point for each gem (${SWING_GEMS}) and lit speed gate (${SWING_GATES}), each combo point (up to ${SWING_COMBO_CAP}: 2, 3 and 5 for a chain reaching 5, 10 and 15), ${SWING_LEDGE_POINTS} shared by the ledges you land and ${SWING_PAR_POINTS} shared by the routes you finish under par. ${skillPayLine(SWING_SKILL_PAY)}` }),
     },
     tilt: {
       goal: "Roll each marble into its own cup.",
