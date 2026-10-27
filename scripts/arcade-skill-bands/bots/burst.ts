@@ -14,6 +14,11 @@
  * golden atoms walks under one while it is up (seen a reaction late) and fires
  * when the beam's line looks clear of atoms; misses come from the player's own
  * path reads and slips, so better players clear more waves clean.
+ *
+ * burstRev 9 (phone-test notes, docs/phone-notes-oct-2026/fission.md): the golden atom bounces, so a player
+ * going for it reads its path like an atom's (with the same read error) and fires when that read crosses the
+ * beam's line clear of atoms; power-ups now drop from the atoms that carry them and are chased like any icon,
+ * and BURST shots are fired as short shots (also at the golden atom).
  */
 import {
   burstFloorY,
@@ -28,6 +33,9 @@ import {
   burstGoldenNow,
   BURST_V8_GOLDEN_LIFE,
   BURST_ICON_DOUBLE,
+  BURST_GOLD_R,
+  BURST_V9_GOLDEN_AS,
+  BURST_V9_GOLDEN_LIFE,
   type BurstBall,
   type BurstState,
 } from "../../../src/lib/arcade/burst";
@@ -114,6 +122,39 @@ function path(b: BurstBall, ceil: number, n: number): { x: number; y: number; c?
       vx = -Math.abs(vx);
     }
     out.push(touched ? { x: x / FP, y: y / FP, c: 1 } : { x: x / FP, y: y / FP });
+  }
+  return out;
+}
+
+/** burstRev 9: the bouncing golden atom's centre over the next n ticks (as path(), its own radius, an S atom's bounce). */
+function goldenPath(s: BurstState, ceil: number, n: number): { x: number; y: number }[] {
+  if ((s.freeze ?? 0) > 0) return Array.from({ length: n }, () => ({ x: (s.gx ?? 0) / FP, y: (s.gy ?? 0) / FP }));
+  const out: { x: number; y: number }[] = [];
+  const r = BURST_GOLD_R * FP;
+  let x = s.gx ?? 0;
+  let y = s.gy ?? 0;
+  let vx = s.gvx ?? 0;
+  let vy = s.gvy ?? 0;
+  for (let i = 0; i < n; i++) {
+    vy += GRAVITY;
+    y += vy;
+    x += vx;
+    if (y + r >= BURST_FLOOR_Y * FP) {
+      y = BURST_FLOOR_Y * FP - r;
+      vy = -BOUNCE_V[BURST_V9_GOLDEN_AS]!;
+    }
+    if (y - r < ceil * FP) {
+      y = ceil * FP + r;
+      if (vy < 0) vy = -vy;
+    }
+    if (x - r < 0) {
+      x = r;
+      vx = Math.abs(vx);
+    } else if (x + r > BURST_WORLD_W * FP) {
+      x = BURST_WORLD_W * FP - r;
+      vx = -Math.abs(vx);
+    }
+    out.push({ x: x / FP, y: y / FP });
   }
   return out;
 }
@@ -230,9 +271,20 @@ export const bot: SkillBot = ({ game, seed, human, fixes }) => {
       }
     }
     // burstRev 8: a golden atom up now; a player going for it lines up under it (noticing it a reaction late).
-    const gn = features ? burstGoldenNow(seen, seen.tick) : -1;
+    const carry = Boolean(seen.carry);
+    const gn = !features ? -1 : carry ? (seen.gn ?? -1) : burstGoldenNow(seen, seen.tick);
     let atom: { x: number; y: number } | null = null;
-    if (gn >= 0) {
+    /** burstRev 9: the player's read of the bouncing golden atom's path (from now on), while going for it. */
+    let gold: { x: number; y: number }[] | null = null;
+    if (gn >= 0 && carry) {
+      if (!goldenWill.has(gn)) goldenWill.set(gn, { go: human.chance(GOLDEN[level]!), at: t + human.reactTicks(), err: human.normal() });
+      const w = goldenWill.get(gn)!;
+      if (w.go && t >= w.at) {
+        gold = goldenPath(seen, ceil, horizon + lag).slice(lag).map((p, k) => ({ x: p.x + w.err * read * (k + 1), y: p.y }));
+        const k = Math.min(gold.length - 1, Math.round(Math.abs(gold[0]!.x - x) / (WALK * 2)) + 12);
+        atom = { x: gold[k]!.x, y: gold[k]!.y };
+      }
+    } else if (gn >= 0) {
       if (!goldenWill.has(gn)) goldenWill.set(gn, { go: human.chance(GOLDEN[level]!), at: t + human.reactTicks(), err: human.normal() });
       const w = goldenWill.get(gn)!;
       const g = seen.goldens![gn]!;
@@ -293,9 +345,10 @@ export const bot: SkillBot = ({ game, seed, human, fixes }) => {
       // is then; another press only once all three are away. Fire when one of them will meet an atom's path.
       if (s.burstLeft === 0 && t - lastFire >= gap && t - lastPress >= 2) {
         let go = false;
+        const targets = gold ? [...reads, { pts: gold, r: BURST_GOLD_R }] : reads;
         for (let j = 0; j < 3 && !go; j++) {
           const bx = at(want, BURST_GAP * j + 1);
-          for (const rd of reads) {
+          for (const rd of targets) {
             for (let k = BURST_GAP * j; k < rd.pts.length && !go; k++) {
               const top = BURST_FLOOR_Y - PLAYER_H - BULLET_SPEED * (k - BURST_GAP * j + 1);
               if (top <= ceil) break;
@@ -326,10 +379,23 @@ export const bot: SkillBot = ({ game, seed, human, fixes }) => {
         }
         if (go) break;
       }
+      // burstRev 9: the golden atom's read crossing the beam's line (still up then), with that line clear of atoms.
+      if (gold && !go) {
+        const lasts = seen.goldens![gn]!.tick + BURST_V9_GOLDEN_LIFE - s.tick;
+        for (let k = 0; k < Math.min(gold.length, 40, lasts - 2) && !go; k++) {
+          const p = gold[k]!;
+          const lineTop = BURST_FLOOR_Y - SHOT_SPEED * (k + 1);
+          if (Math.abs(p.x - x) > BURST_GOLD_R * 0.8 || p.y + BURST_GOLD_R < lineTop) continue;
+          let blocked = false;
+          for (const rd of reads) for (let j = 0; j <= Math.min(rd.pts.length - 1, k) && !blocked; j++) if (Math.abs(rd.pts[j]!.x - x) <= rd.r + 2 && rd.pts[j]!.y + rd.r >= p.y) blocked = true;
+          if (!blocked) go = true;
+          break;
+        }
+      }
       // A golden atom: only while it will still be up when the beam gets there (a player watching its ring).
       const climb = atom ? Math.ceil((BURST_FLOOR_Y - atom.y) / SHOT_SPEED) : 0;
       const lasts = gn >= 0 ? seen.goldens![gn]!.tick + BURST_V8_GOLDEN_LIFE - s.tick : 0;
-      if (atom && !go && Math.abs(atom.x - x) <= 6 && lasts > climb + (level === "weak" || level === "average" ? 0 : 6)) {
+      if (atom && !gold && !go && Math.abs(atom.x - x) <= 6 && lasts > climb + (level === "weak" || level === "average" ? 0 : 6)) {
         // The beam's line up to the golden atom looks clear of atoms for its climb.
         const k = Math.ceil((BURST_FLOOR_Y - atom.y) / SHOT_SPEED);
         let blocked = false;
