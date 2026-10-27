@@ -28,7 +28,8 @@ import { DEVICE_INIT, IPHONE11_APP, emulateDevice, type DeviceConfig } from "./d
 import { generatePuzzle } from "../src/lib/duel/generate.server";
 import { withSeededRandom } from "../src/lib/duel/random";
 import { splitPuzzle } from "../src/lib/duel/secrets";
-import { CHART_MARGIN, chartPoint, chartRow } from "../src/lib/duel/arcadeChart";
+import { CHART_MARGIN, chartPoint, chartRow, chartRows } from "../src/lib/duel/arcadeChart";
+import { roundMaxFor } from "../src/lib/duel/roundMax";
 import type { PuzzleData } from "../src/lib/duel/types";
 
 const VERBOSE = process.argv.includes("--verbose");
@@ -224,11 +225,20 @@ try {
 
   /* 2. The chart. */
   const hover = puzzleOf("hover");
-  const ROOMS: Record<number, number[]> = {
-    2: [132, 135],
-    6: [12, 47, 51, 88, 88, 131],
-    10: [0, 27, 50, 64, 64, 100, 101, 118, 121, 150],
-  };
+  // The chart's scale is the game's maximum (roundMax.ts): Hover's is 200 since its 200 expansion (hoverRev 9). The rooms
+  // below are written on today's 0–50 / 51–100 / 101–150 thirds and moved onto Hover's own thirds row by row, so 50, 51,
+  // 100, 101 and 150 stay each row's ends, and ties stay ties.
+  const CHART_MAX = roundMaxFor("hover");
+  const [r0, r1, r2] = chartRows(CHART_MAX);
+  const onScale = (s: number) =>
+    s <= 50 ? Math.round((s * r0.hi) / 50) : s <= 100 ? r1.lo + Math.round(((s - 51) * (r1.hi - r1.lo)) / 49) : r2.lo + Math.round(((s - 101) * (r2.hi - r2.lo)) / 49);
+  const ROOMS: Record<number, number[]> = Object.fromEntries(
+    Object.entries({
+      2: [132, 135],
+      6: [12, 47, 51, 88, 88, 131],
+      10: [0, 27, 50, 64, 64, 100, 101, 118, 121, 150],
+    }).map(([n, scores]) => [n, scores.map(onScale)]),
+  );
   {
     for (const [n, scores] of Object.entries(ROOMS)) {
       const where = `chart, ${n} players, ${IPHONE11_APP.key}`;
@@ -289,8 +299,8 @@ try {
         if (g.markers.length !== scores.length) fails.push(`${g.markers.length} markers for ${scores.length} players`);
         for (const m of g.markers) {
           const score = scores[m.slot - 1]!;
-          if (m.row !== chartRow(score)) fails.push(`slot ${m.slot} (${score}) on row ${m.row}`);
-          const wantX = g.chart.x + CHART_MARGIN + chartPoint(score).x * trackW;
+          if (m.row !== chartRow(score, CHART_MAX)) fails.push(`slot ${m.slot} (${score}) on row ${m.row}`);
+          const wantX = g.chart.x + CHART_MARGIN + chartPoint(score, CHART_MAX).x * trackW;
           if (Math.abs(m.badgeX - wantX) > 0.75) fails.push(`slot ${m.slot} (${score}) at x ${m.badgeX.toFixed(1)}, want ${wantX.toFixed(1)}`);
           if (m.you !== (m.slot === 1)) fails.push(`slot ${m.slot}: You marked wrongly`);
           if (m.you && (!/0px 0px 0px 4px/.test(m.ring) || !/You$/.test(m.text))) fails.push(`You has no ring or label (${m.ring}, "${m.text}")`);
@@ -311,7 +321,7 @@ try {
           for (let j = i + 1; j < blocks.length; j++)
             if (overlap({ ...blocks[i]!, what: "" }, { ...blocks[j]!, what: "" })) fails.push(`"${blocks[i]!.text}" and "${blocks[j]!.text}" overlap`);
         if (g.pageScrolls) fails.push("the reveal page scrolls");
-        const wantLabels = ["0", "50", "100", "150"];
+        const wantLabels = ["0", String(r0.hi), String(r1.hi), String(r2.hi)];
         if (JSON.stringify(g.labels) !== JSON.stringify(wantLabels)) fails.push(`labels ${g.labels}`);
         const bottom = g.chart.y + g.chart.h;
         if (bottom > IPHONE11_APP.screenH - IPHONE11_APP.bottom) fails.push(`chart ends at ${bottom}, under the home bar`);
