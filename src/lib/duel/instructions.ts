@@ -115,7 +115,7 @@ import { BURST_V8_CAPS, BURST_V8_CLEAN_PTS, BURST_V8_GOLDEN_PTS, BURST_V8_GOLDEN
 import { liveBandHelp } from "@/lib/arcade/liveBands";
 import { ORBIT_V12_PACE_FROM, ORBIT_V12_PACE_FULL, ORBIT_V12_SKILL_MAX, ORBIT_V12_SKILL_PACED_FROM, ORBIT_V12_SKILL_PAY, ORBIT_XP_DUST_CAP, ORBIT_XP_DUST_FULL, ORBIT_XP_FIELDS, ORBIT_XP_MOONS, ORBIT_XP_MOTES, ORBIT_XP_PERFECT_CAP, ORBIT_XP_PERFECT_PER, ORBIT_XP_SLING_CAP, ORBIT_XP_SLING_PTS, ORBIT_XP_THREAD_CAP, ORBIT_XP_THREAD_PTS, ORBIT_XP_TRAILS } from "@/lib/arcade/orbitRev3";
 import { CROSS_V9_SKILL_PAY, CROSS_X_BONUS_MAX, CROSS_X_CLOSE_MAX, CROSS_X_CLOSE_POINTS, CROSS_X_COIN_CROSSINGS, CROSS_X_COIN_POINTS, CROSS_X_COINS_PER_RUN } from "@/lib/arcade/cross";
-import { SWING_COMBO_CAP, SWING_FEATURE_CAP, SWING_GATES, SWING_GEMS, SWING_LEDGE_POINTS, SWING_PAR_POINTS, SWING_SKILL_PAY } from "@/lib/arcade/swing";
+import { SWING_V14_GATES, SWING_V14_GEMS, SWING_V14_PAR_POINTS, SWING_V14_PICKUP_POINTS, SWING_V14_SECTIONS, SWING_V14_STARS } from "@/lib/arcade/swing";
 import { BRK_V10_GOLD_HITS, BRK_V9_COLS, BRK_V9_COMBO_MAX, BRK_V9_COMBO_X2, BRK_V9_COMBO_X3, BRK_V9_GOLD, BRK_V9_GOLD_POINTS, BRK_V9_ROWS, BRK_V9_SKILL_MAX, BRK_V9_SKILL_PAY } from "@/lib/arcade/breaker";
 import { FLIP_V8_COMBO_CAP, FLIP_V8_CP_POINTS, FLIP_V8_FEATURE_CAP, FLIP_V9_SKILL_PAY, FLIP_V8_SWEETS, FLIP_V8_SWEET_POINTS, FLIP_V8_TRAILS, FLIP_V8_TRAIL_POINTS, FLIP_V8_TRAIL_STARS, FLIP_V8_ZONE_POINTS } from "@/lib/arcade/flip";
 import { bandCurve, type BandCurve } from "@/lib/arcade/scoreBands";
@@ -1105,26 +1105,21 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
       score: liveBandHelp("snip", `Each level's fruit count ${SNIP_X_FEED_UNITS} between them and a leaf ${SNIP_X_STAR_UNITS}.`, { more: "More fruit and leaves", good: (u) => `counts ${u} – about ${Math.round(u / 20)} levels fed`, finish: `Feeding every fruit adds up to 10 for speed: the full 10 by 48 s. Skill adds up to ${SNIP_X_FEATURE_MAX} more: ${SNIP_X_GOLD_RAW / 10} a golden apple fed while golden, ${SNIP_X_PAR_RAW / 10} a level at par cuts, ${SNIP_X_STAR2_RAW / 10} a second leaf, up to ${SNIP_X_QUICK_RAW / 10} a level under its par time and ${SNIP_X_PERFECT_RAW / 10} for a perfect run (${SNIP_X_RAW_TOP / 10} in all). ${skillPayLine(bandCurve(SNIP_X_SKILL_PAY.units.map((u) => u / 10), SNIP_X_SKILL_PAY.points))}` }),
     },
     swing: {
-      goal: "Swing to 500 m via gems and gates.",
+      goal: "Swing ledge to ledge to the end.",
       how: [
-        { action: "Hold to grab and swing,", detail: "let go to fly." },
-        { action: "Fly high for gems,", detail: "swoop fast through gates." },
-        { action: "Land each ledge route", detail: "under its par time." },
-        { action: "From 200 m a dragon chases you:", detail: "keep going.", helpOnly: true },
-        { action: "Touch stars as you fly by", detail: "for bonus points.", helpOnly: true },
-        { action: "Swing combos:", detail: "fly into each grab fast (a strong release) and grab the next anchor ahead within a second of your last grab, and the chain grows; a chain of 5, 10 and 15 in a row pays 2, 3 and 5 combo points as it gets there. A slow grab, hanging on too long or landing on a ledge ends the chain.", helpOnly: true },
-        { action: "High route:", detail: `${SWING_GEMS} cyan gems sit at the tops of strong flights, close under the ceiling. Touch one to take it.`, helpOnly: true },
-        { action: "Low route:", detail: `${SWING_GATES} speed gates hang under anchors. Grab early for a long rope and swoop through the glowing gap fast; it lights gold.`, helpOnly: true },
-        { action: "Set routes:", detail: "before the dragon, two or three runs of ledges hang from the roof: a start ledge, landing ledges and a finish flag. Drop on to a ledge from above to land, then hold to kick off and swing to the next one. A cracked ledge collapses soon after you land on it.", helpOnly: true },
-        { action: "Par times:", detail: "each route's start ledge shows its par, the time from landing on the start ledge to landing on the flag along the route's quickest swings, plus a little. Land every ledge of the route and reach the flag under par for skill points: the further under, the more. The clock under the distance shows a route's time while it runs.", helpOnly: true },
-        { action: "Stuck? Keep swinging", detail: "– every pass gets you higher. Swipe up to shorten the rope for speed, down to let it out.", helpOnly: true },
-        { action: "The dragon flies at a steady pace behind you.", detail: "Slow down or stall and it catches you, which ends the run. A marker at the left edge shows how far back it is.", helpOnly: true },
-        { action: "Loose stalactites crumble, shedding grit,", detail: "for two seconds before they fall. Don't be under one.", helpOnly: true },
-        { action: "Lava bubbles before it jets up.", detail: "Don't be over a jet when it erupts.", helpOnly: true },
-        { action: "Ten stars float along the way,", detail: "spread evenly from start to finish: some high, some low, some on risky lines near the lava. Touch one to take it; they are optional.", helpOnly: true },
-        { action: "Don't touch the spikes", detail: "or fall into the lava.", helpOnly: true },
+        { action: "Hold to swing off the ledge,", detail: "let go to land." },
+        { action: "Two hooks? Catch the far one", detail: "in the air." },
+        { action: "Squeezes:", detail: "fly the gap, catch the far hook." },
+        { action: "Each section is a start ledge, one or two hooks and a landing ledge.", detail: "Only your section's hooks can be grabbed, and the cave past the landing ledge stays dark until you land.", helpOnly: true },
+        { action: "Miss a ledge or touch a squeeze's rock", detail: "and you are back on the section's start ledge. The clock keeps running; what that try picked up is put back.", helpOnly: true },
+        { action: "Par times:", detail: "each section has one, shown under the section count (its quickest swing plus a little). Land under par for points: the further under, the more.", helpOnly: true },
+        { action: "Speed gates", detail: `(${SWING_V14_GATES}) sit on the flight line: a well-timed release flies straight through and lights them.`, helpOnly: true },
+        { action: "Gems", detail: `(${SWING_V14_GEMS}) sit on harder lines: an earlier or later release that still lands.`, helpOnly: true },
+        { action: "Touch stars on a tighter swing:", detail: `the ${SWING_V14_STARS} stars, spread evenly along the course, sit where a shortened rope runs. Swipe up as you swing to shorten it.`, helpOnly: true },
+        { action: "From section 4 a dragon chases you,", detail: "slower than before. If it catches you, you are back on the start ledge. A marker at the left edge shows how far back it is.", helpOnly: true },
+        { action: "Everyone", detail: "gets the same course, hooks, gates, gems, stars and par times.", helpOnly: true },
       ],
-      score: liveBandHelp("swing", "Each metre counts 1 (up to 500) and each star 5.", { more: "More metres and stars", finish: `Reaching 500 m adds 10. Skill adds up to ${SWING_FEATURE_CAP} more: a skill point for each gem (${SWING_GEMS}) and lit speed gate (${SWING_GATES}), each combo point (up to ${SWING_COMBO_CAP}: 2, 3 and 5 for a chain reaching 5, 10 and 15), ${SWING_LEDGE_POINTS} shared by the ledges you land and ${SWING_PAR_POINTS} shared by the routes you finish under par. ${skillPayLine(SWING_SKILL_PAY)}` }),
+      score: liveBandHelp("swing", "Each section cleared counts 10, and how far you got into the next up to 9.", { more: "More sections", good: (u) => `counts ${u} – about ${Math.round(u / 10)} sections`, finish: `Clearing all ${SWING_V14_SECTIONS} sections adds 10. Up to ${SWING_V14_PAR_POINTS} more for sections under par, and ${SWING_V14_PICKUP_POINTS} for each gate, gem and star landed with.` }),
     },
     tilt: {
       goal: "Roll each marble into its own cup.",

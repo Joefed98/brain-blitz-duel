@@ -1,5 +1,5 @@
 import { DEPTH_DEMO_STOPS, DEPTH_REV, depthRevOf } from "./logicDepth";
-import { SWING_REV_EXPAND } from "@/lib/arcade/swing";
+import { SWING_REV_ASSAULT } from "@/lib/arcade/swing";
 import { INK_REV_EXPAND } from "@/lib/arcade/inkBridge";
 import { CLAY_REV_DEPTH } from "@/lib/arcade/clayShoot";
 import { WHACK_REV_NOTES } from "@/lib/arcade/whack";
@@ -159,9 +159,9 @@ export const getIntroDemoFn = createServerFn({ method: "GET" })
     // Taller worlds batch 3 (16 Oct 2026): Grappler's taller cavern, Orbit's taller view and Ball Tracker's 12-row board.
     // An older demo would show the short world (and Ball Tracker's would play a 9-row course), so each stays stopped
     // until one is recorded on its tall revision.
-    // Grappler's 200 expansion (swingRev 13, 26 Oct 2026): a wider, deeper cave with ledges, gems, gates and par
-    // times, so only a demo recorded on swingRev 13 plays; until one is, the intro shows its still.
-    if (data.type === "swing" && demo?.puzzle.type === "swing" && demo.puzzle.swingRev !== SWING_REV_EXPAND) return null;
+    // Grappler's assault course (swingRev 14, 27 Oct 2026): a course of ledges, hooks and squeezes, so only a demo
+    // recorded on swingRev 14 plays; until one is, the intro shows its still. (swingRev 13's demo rule was the same.)
+    if (data.type === "swing" && demo?.puzzle.type === "swing" && demo.puzzle.swingRev !== SWING_REV_ASSAULT) return null;
     // The expansion to 200 (orbitRev 12) shows a wider view with stardust, moons and asteroid fields, so Orbit's demo
     // stays stopped (the intro shows its still) until one is recorded on orbitRev 12.
     if (data.type === "orbit" && demo?.puzzle.type === "orbit" && demo.puzzle.orbitRev !== ORBIT_REV_XP) return null;
