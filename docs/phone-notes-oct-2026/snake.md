@@ -110,8 +110,9 @@ gold time best. No played run scores 0 (the one weak run that would have now sco
 | expansion-e2-check (dealt-stamp line updated to snakeRev 10) | pass |
 | arcade-tuning-f-check (`movedOn.snake` = 10) | pass |
 | arcade-batch2-check | pass |
-| arcade-self-replay-check (`snake/v10` entry added) | see the report |
-| arcade-tuning-e-check | see the report |
+| arcade-self-replay-check (`snake/v10` entry added) | pass |
+| arcade-tuning-e-check (dealt-stamp row moved on to 10) | pass |
+| presentation-geometry-check | pass |
 | round-max-check | pass |
 | arcade-help-bands-check | pass |
 | intro-score-text-check | pass |
@@ -124,7 +125,8 @@ gold time best. No played run scores 0 (the one weak run that would have now sco
 | arcade-fx-check | pass |
 | scoring-targets-check | pass |
 | intro-demo-check | pass |
-| replay-check, practice-bests-check | see the report (the coordinator regenerates their stamp data) |
+| replay-check | fail, expected: no stored run on snakeRev 10 in `scripts/fixtures/replay-runs.json` (the coordinator updates it) |
+| practice-bests-check | fail, expected: `practiceStamps.data.ts` out of date (the coordinator runs `bun scripts/practice-stamps.ts`) |
 
 Review frames: `bun scripts/shots/meteor-rev10-frames.ts [--out=…]`, which shows the start (comet, six mouths,
 both lanes), a landed 2×2 rock with a gold star out, and a 2×2 shadow falling (room seed index 0, elite bot).

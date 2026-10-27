@@ -155,7 +155,8 @@ section("New rounds carry the Tuning E stamps; one world per stored revision");
   const stamps: [string, string, number | undefined, number][] = [
     // Tuning F moved Meteor rooms on to snakeRev 6: the same tall grid with more rocks (arcade-tuning-f-check).
     // Expansion E2 (25 Oct 2026) then moved Meteor on to its wider, taller field (snakeRev 9); expansion-e2-check covers it.
-    ["snake", "snakeRev", playRevOf("snake", generateSnake().snakeRev), SNAKE_REV_ROCKS + 3],
+    // Joe's phone notes (27 Oct 2026) then moved it on to snakeRev 10 (the same field); snake-rev10-check covers it.
+    ["snake", "snakeRev", playRevOf("snake", generateSnake().snakeRev), SNAKE_REV_ROCKS + 4],
     // Scrumper rooms moved on to snipRev 6 (the same tall game on a bigger bank; scripts/snip-bank6-check.ts),
     // then snipRev 7 (the same game with every per-pin deal proven; scripts/snip-rev7-check.ts).
     // The 200-point expansion (26 Oct 2026) then moved Scrumper on to its tall courses (snipRev 11); snip-x200-check covers it.
