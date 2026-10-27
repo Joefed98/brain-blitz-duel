@@ -199,5 +199,5 @@ eq(demoGuard.includes('data.type === "skyline" && demo?.puzzle.type === "skyline
 // 620 px court, so only a rallyRev 6 demo plays (arcade-tuning-g1-check). This flips back to "not invalidated" (and the
 // guard comes out of introDemo.functions.ts) once Rally's demo is re-recorded on rallyRev 6.
 // Expansion E9 (26 Oct 2026, docs/expansions/e9.md) moved the guard on to rallyRev 10 (the 420 × 784 court and its gold targets).
-eq(demoGuard.includes('data.type === "rally" && demo?.puzzle.type === "rally" && demo.puzzle.rallyRev !== RALLY_REV_BONUS) return null'), true, "rally demo stopped until re-recorded on rallyRev 10");
+eq(demoGuard.includes('data.type === "rally" && demo?.puzzle.type === "rally" && demo.puzzle.rallyRev !== RALLY_REV_CURVE) return null'), true, "rally demo stopped until re-recorded on rallyRev 11 (phone notes, 27 Oct 2026)");
 console.log(`Six-game scoring: ${checks} formula/schedule/intro/reveal/demo checks passed (legacy rules and the Oct 2026 score bands); Bullseye anchors 100→150, 90→133, 70→99, 50→65; band 110→150, 72→70`);

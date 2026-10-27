@@ -17,7 +17,7 @@ import { INK_REV_EXPAND, INK_REV_STRICT, INK_V10_BAND_CURVE } from "./inkBridge"
 import { MATCHUP_REV_GOALS, MATCHUP_REV_STRICT, MATCHUP_V9_BAND_CURVE } from "./matchup";
 import { BUB_REV_CREDIT, BUB_REV_STRICT, BUB_V8_BAND_CURVE } from "./bubble";
 import { CROSS_REV_EXPAND, CROSS_REV_STRICT, CROSS_V9_BAND_CURVE } from "./cross";
-import { RALLY_REV_BONUS, RALLY_REV_STRICT, RALLY_V10_BAND_CURVE } from "./rally";
+import { RALLY_REV_CURVE, RALLY_REV_STRICT, RALLY_V10_BAND_CURVE } from "./rally";
 import { SNAKE_REV_200, SNAKE_REV_STRICT, SNAKE_V9_BAND_CURVE } from "./snake";
 import { BINTOSS_REV_STRICT, BINTOSS_REV_EXPAND, BINTOSS_V7_BAND_CURVE } from "./binToss";
 import { SNIP_REV_EXPAND, SNIP_REV_STRICT, SNIP_V11_BAND_CURVE } from "./snip";
@@ -57,7 +57,7 @@ export const LIVE_BANDS = {
   matchup: { field: "matchupRev", rev: MATCHUP_REV_GOALS, curve: MATCHUP_V9_BAND_CURVE, strictRev: MATCHUP_REV_STRICT },
   bubble: { field: "bubbleRev", rev: BUB_REV_CREDIT, curve: BUB_V8_BAND_CURVE, strictRev: BUB_REV_STRICT },
   cross: { field: "crossRev", rev: CROSS_REV_EXPAND, curve: CROSS_V9_BAND_CURVE, strictRev: CROSS_REV_STRICT },
-  rally: { field: "rallyRev", rev: RALLY_REV_BONUS, curve: RALLY_V10_BAND_CURVE, strictRev: RALLY_REV_STRICT },
+  rally: { field: "rallyRev", rev: RALLY_REV_CURVE, curve: RALLY_V10_BAND_CURVE, strictRev: RALLY_REV_STRICT },
   snake: { field: "snakeRev", rev: SNAKE_REV_200, curve: SNAKE_V9_BAND_CURVE, strictRev: SNAKE_REV_STRICT },
   bintoss: { field: "binRev", rev: BINTOSS_REV_EXPAND, curve: BINTOSS_V7_BAND_CURVE, strictRev: BINTOSS_REV_STRICT },
   snip: { field: "snipRev", rev: SNIP_REV_EXPAND, curve: SNIP_V11_BAND_CURVE, strictRev: SNIP_REV_STRICT },
