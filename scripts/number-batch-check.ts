@@ -64,6 +64,11 @@ import type {
 import { pinDealtPuzzleScoreRev } from "../src/lib/duel/puzzleScoreRev";
 import { depthIntro } from "../src/lib/duel/numberDepthText";
 import { fillMax } from "../src/lib/duel/roundMax";
+import { pinPrePhoneNotes } from "../src/lib/duel/phoneNotes";
+
+// Written for Brimful measureRev 2: new deals stay on the stamps before Joe's phone notes (27 Oct 2026) here;
+// phone-notes-check proves the stamps rooms deal now.
+pinPrePhoneNotes(true);
 
 // Written for the rev-1 puzzle shape: new puzzles here carry puzzleScoreRev 1 (rooms deal rev 2 since 19 Oct 2026, scoring-bands-check).
 pinDealtPuzzleScoreRev(1);

@@ -17,9 +17,10 @@ import { reducedMotion } from './art.renderer';
 import { FX_PARTICLE_LIMIT } from '../fx/limits';
 
 // Kitchen palette belongs to the renderer, never to the simulation's colour table.
+// The onion's skin is light green #CFEDE6 since Joe's phone notes (27 Oct 2026; look only, every revision).
 const K = { ink:'#232721', board:'#AC784B', grain:'#855936', edge:'#70492F', tile:'#DCE9E7',
   grout:'#A5BFBA', counter:'#648985', white:'#FFF9EB', gold:'#F5C542', silver:SLICE_SILVER,
-  bagel:'#F4BF61', cabbage:'#56B63B', onion:'#EAF3D8', meat:'#925237', tomato:'#F52C35', flesh:'#FFF0BE',
+  bagel:'#F4BF61', cabbage:'#56B63B', onion:'#CFEDE6', meat:'#925237', tomato:'#F52C35', flesh:'#FFF0BE',
   cabbageLight:'#B7E47C', cabbageDark:'#287C35', onionGreen:'#76AB58', onionFace:'#F9FBEA', meatFace:'#CB8067', fat:'#F5DCC2',
   seeds:'#FFE18E', leaf:'#275C27', mustard:'#FFDC24', chilli:'#ED202F', glow:'rgba(255,38,45,0.45)',
   mayo:'#FFF6DC', mayoShade:'#E9DDB8', mayoCap:'#3F7FD8', knot:'#6E4428', groove:'#93623C' };

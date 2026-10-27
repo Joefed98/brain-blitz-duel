@@ -50,7 +50,7 @@ const GAMES: Record<string, { type: PuzzleType; sim: string; art: string; draw: 
     sim: "/src/lib/arcade/skyline.ts",
     art: "/src/lib/arcade/skyline.renderer.ts",
     draw: "drawSkylineArt",
-    game: "skylineExpandGame",
+    game: "skylineLiftGame",
     seed: 12345,
     level: "near",
     moments: [
@@ -64,6 +64,8 @@ const GAMES: Record<string, { type: PuzzleType; sim: string; art: string; draw: 
       // A height milestone: the banner and the camera pulled back to show the city (floor 20 and 30).
       { name: "milestone-20", pick: "(s) => s.milestones === 2 && s.tick - s.milestoneTick === 45" },
       { name: "milestone-30", pick: "(s) => s.milestones === 3 && s.tick - s.milestoneTick === 45" },
+      // A perfect drop just landed (the PERFECT pop; since 27 Oct 2026 it rings the crane bell, the old every-10-floors sound).
+      { name: "perfect", pick: "(s) => s.perfectTick > 0 && s.placed >= 6 && s.tick - s.perfectTick === 8" },
     ],
   },
   pinball: {

@@ -189,11 +189,12 @@
 }
 
 /* ============================================================ Don't Break the Chain (chain) */
-/* Charms glow in their own colours over a soft drop shadow; the counter and the chain glow gold. */
+/* Charms glow in their own colours over a soft drop shadow; the counter and the chain glow gold. The charm glow is
+   a little softer since Joe's phone notes (27 Oct 2026): 5 px at 75 % (was 8 px at full strength), the rim 55 %. */
 [data-puzzle-play] svg.chain-charm {
   filter:
-    drop-shadow(0 0 8px currentColor)
-    drop-shadow(0 0 2px color-mix(in srgb, currentColor 70%, transparent))
+    drop-shadow(0 0 5px color-mix(in srgb, currentColor 75%, transparent))
+    drop-shadow(0 0 2px color-mix(in srgb, currentColor 55%, transparent))
     drop-shadow(0 3px 2px rgba(0, 0, 0, 0.6))
     saturate(1.15) brightness(1.08);
 }

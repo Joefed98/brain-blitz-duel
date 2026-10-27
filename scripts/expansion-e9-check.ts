@@ -21,6 +21,11 @@
  *     and 7 power-ups, Flightpath's dead-centre on at least 6 darts), so the features' caps are reachable on
  *     every seed; Flightpath's perfect-play ceiling is at least 200 on every tuning and fresh seed (room seeds
  *     0–59 and 10000–10199), worked out dart by dart. Rally's and Fission's are measured by scripts/expansion-e9-ceiling.ts.
+ *  7. Rally rallyRev 11 (Joe's phone notes, 27 Oct 2026, docs/phone-notes-oct-2026/rally.md): rooms deal it; it starts
+ *     from rallyRev 10's exact draws (only the marker differs); targets stay up 5 s and still never overlap; a
+ *     return off a moving paddle visibly curves the way the paddle moved (and rallyRev 10's bend is unchanged);
+ *     the same-room identity above holds on it too. rallyRev 10's own runs (expansion-e9-runs.json.gz) prove it
+ *     replays exactly as before.
  *  6. Never 0 for a run that hit anything (Rally's blue returns count, Fission's lives never take away more
  *     than three quarters of the atoms); doing nothing scores 0.
  *
@@ -50,7 +55,10 @@ import {
   RALLY_BUMPER_R,
   RALLY_HUD_H,
   RALLY_REV_BONUS,
+  RALLY_REV_CURVE,
   RALLY_REV_STRICT,
+  RALLY_V11_BONUS_LIFE,
+  RALLY_V11_EXP,
   RALLY_TARGET_SPOTS,
   RALLY_V10_BONUS_COUNT,
   RALLY_V10_BONUS_LIFE,
@@ -154,7 +162,8 @@ for (const [file, label] of [["scripts/fixtures/expansion-e9-legacy.json.gz", "b
 /* ============================== 2. New rounds ============================== */
 section("Rooms deal the new stamps at 200");
 // Fission deals burstRev 9 since the phone-test notes (27 Oct 2026; fission-carry-check proves it); burstRev 8 is still checked here.
-ok(generateRally().rallyRev === RALLY_REV_BONUS && generateBurst().burstRev === BURST_REV_CARRY && generateBullseye().bullRev === BULLSEYE_REV_EXPAND, "rooms deal rallyRev 10, burstRev 9 (was 8) and bullRev 8");
+// Joe's phone notes (27 Oct 2026) moved Rally on to rallyRev 11 (section 7 below).
+ok(generateRally().rallyRev === RALLY_REV_CURVE && generateBurst().burstRev === BURST_REV_CARRY && generateBullseye().bullRev === BULLSEYE_REV_EXPAND, "rooms deal rallyRev 11, burstRev 9 (was 8) and bullRev 8");
 for (const type of ["rally", "burst", "bullseye"] as const) ok(roundMaxFor(type) === 200, `${type}: ROUND_MAX is 200`);
 ok(LIVE_BANDS.rally.strictRev === RALLY_REV_STRICT && LIVE_BANDS.burst.strictRev === BURST_REV_STRICT && LIVE_BANDS.bullseye.strictRev === BULLSEYE_REV_STRICT, "LIVE_BANDS keeps the band-3 revisions rooms dealt before as strictRev");
 ok(rallyWorldWFor(RALLY_REV_BONUS) === RALLY_V10_W && rallyWorldHFor(RALLY_REV_BONUS) === RALLY_V10_H && rallyWorldWFor(RALLY_REV_STRICT) === 390 && rallyWorldHFor(RALLY_REV_STRICT) === 730, "Rally's worlds by revision (420 × 784 on rallyRev 10)");
@@ -196,9 +205,10 @@ const BOTS: Record<string, SkillBot> = {};
 for (const g of E9_GAMES) BOTS[g.type] = (await import(new URL(`./arcade-skill-bands/bots/${g.type}.ts`, import.meta.url).href)).bot;
 const PLAYERS = ["weak", "elite", "random"] as const;
 
-for (let n = 0; n < 8; n++) {
+for (let n = 0; n < 16; n++) {
   // Rally: the target schedule and pad spots are in the state from init and never change; every pad move lands on the seed's list.
-  const runs = PLAYERS.map((p) => play<RallyState>("rally", RALLY_REV_BONUS, n, p));
+  // Seeds 0–7 on rallyRev 10, then the same eight seeds on rallyRev 11 (phone notes, 27 Oct 2026).
+  const runs = PLAYERS.map((p) => play<RallyState>("rally", n < 8 ? RALLY_REV_BONUS : RALLY_REV_CURVE, n % 8, p));
   const first = runs[0]!.states[0]!;
   const moves = runs.map((r) => {
     const seq: [number, number][][] = [[], []];
@@ -373,9 +383,74 @@ section("Every run holds enough chances for 200; Flightpath's ceiling is 200 on 
   ok(RALLY_V10_BONUS_COUNT * RALLY_V10_BONUS_PTS === 36 && BURST_V8_GOLDENS * BURST_V8_GOLDEN_PTS === BURST_V8_CAPS.gold, "every run holds all six Rally targets and all six Fission golden atoms");
 }
 
+/* ============================== 7. Rally rallyRev 11 ============================== */
+section("Rally rallyRev 11 (phone notes, 27 Oct 2026): curving spin, 5 s targets");
+{
+  ok(rallyWorldWFor(RALLY_REV_CURVE) === RALLY_V10_W && rallyWorldHFor(RALLY_REV_CURVE) === RALLY_V10_H, "rallyRev 11 plays on rallyRev 10's 420 × 784 court");
+  ok(RALLY_V11_BONUS_LIFE === 5 * 60 && RALLY_V10_BONUS_LIFE === 4 * 60, "targets: 5 s on rallyRev 11, still 4 s on rallyRev 10");
+  const g10 = rallyGameFor(RALLY_REV_BONUS);
+  const g11 = rallyGameFor(RALLY_REV_CURVE);
+  for (let n = 0; n < 300; n++) {
+    const seed = GAME_BY_TYPE.get("rally")!.seedFor(n);
+    const a = g10.init(seed);
+    const b = g11.init(seed);
+    ok(a.exp === 1 && b.exp === RALLY_V11_EXP && JSON.stringify({ ...b, exp: 1 }) === JSON.stringify(a), `rally seed ${n}: rallyRev 11 starts from rallyRev 10's exact draws`);
+    (b.bonus ?? []).forEach((t, i, all) => {
+      ok(i === 0 || t.tick >= all[i - 1]!.tick + RALLY_V11_BONUS_LIFE, `rally seed ${n}: rallyRev 11 target ${i} after the one before has gone`);
+      ok(t.tick + RALLY_V11_BONUS_LIFE <= 60 * 60, `rally seed ${n}: rallyRev 11 target ${i} up for its whole 5 s inside the run`);
+      const late = t.tick + RALLY_V11_BONUS_LIFE - 1;
+      ok(rallyBonusLive(b, i, late) && !rallyBonusLive(b, i, late + 1) && !rallyBonusLive(a, i, t.tick + RALLY_V10_BONUS_LIFE), `rally seed ${n}: target ${i} up 5 s on rallyRev 11, 4 s on rallyRev 10`);
+    });
+  }
+  // A ball touching a target 4.5 s after it appeared scores it on rallyRev 11 only.
+  {
+    const seed = GAME_BY_TYPE.get("rally")!.seedFor(1);
+    const scored = (game: typeof g10) => {
+      const s0 = game.init(seed);
+      const t0 = s0.bonus![0]!;
+      let s = { ...s0, tick: t0.tick + 270 - 4, x: t0.x * 256, y: (t0.y + 12) * 256, vx: 0, vy: -1024, acted: 1 } as RallyState;
+      for (let i = 0; i < 4; i++) s = game.step(s, null);
+      return rallyBonusCount(s);
+    };
+    ok(scored(g11) === 1 && scored(g10) === 0, "a touch 4.5 s after the target appeared scores on rallyRev 11 (and not on rallyRev 10)");
+  }
+  // A return off a moving paddle curves the way the paddle moved; off a still paddle it flies straight.
+  const flight = (game: typeof g10, move: number): { dev: number; dev20: number; dev40: number; minVy: number; speed: number } => {
+    const s0 = game.init(GAME_BY_TYPE.get("rally")!.seedFor(4));
+    const py = rallyPaddleY(s0);
+    // The ball comes straight down onto the paddle's centre at x 210; the paddle has been moving `move` px a tick.
+    let s = { ...s0, tick: 60, x: 210 * 256, y: (py - RALLY_BALL_R - 3) * 256, vx: 0, vy: 1024, aimX: 210 - move, paddleX: 210 - move, pv: move * 256, acted: 1 } as RallyState;
+    s = game.step(s, { t: 61, k: ARCADE_INPUT_DRAG, a: 210, b: 0, c: 0, d: 0 });
+    ok(s.hits === 1 && s.vy < 0, `rally rev ${s.exp}: the scripted return is hit`);
+    const x0 = s.x;
+    const vx0 = s.vx;
+    let minVy = Math.abs(s.vy);
+    const devs: number[] = [];
+    for (let i = 1; i <= 60; i++) {
+      s = game.step(s, null);
+      minVy = Math.min(minVy, Math.abs(s.vy));
+      // Straight flight from the contact velocity, against where the ball went (no wall reached in 60 ticks).
+      if (i % 20 === 0) devs.push((s.x - (x0 + vx0 * i)) / 256);
+    }
+    return { dev: devs[2]!, dev20: devs[0]!, dev40: devs[1]!, minVy, speed: s.speed };
+  };
+  const still11 = flight(g11, 0);
+  const right11 = flight(g11, 8);
+  const left11 = flight(g11, -8);
+  const right10 = flight(g10, 8);
+  console.log(`  curve after 60 ticks: rallyRev 11 ${right11.dev.toFixed(1)} px right / ${left11.dev.toFixed(1)} px left (still paddle ${still11.dev.toFixed(1)}); rallyRev 10 ${right10.dev.toFixed(1)} px`);
+  ok(still11.dev === 0, "rallyRev 11: a return off a still paddle flies straight");
+  ok(right11.dev >= 30 && left11.dev <= -30, "rallyRev 11: a return off a fast-moving paddle swerves at least 30 px the way it moved within a second");
+  // rallyRev 10's bend is over in about 20 ticks (a kink, then straight); rallyRev 11's keeps bending through the flight.
+  ok(right11.dev - right11.dev40 > right11.dev40 - right11.dev20 + 4 && Math.abs(right10.dev - right10.dev40 - (right10.dev40 - right10.dev20)) <= 1, "rallyRev 11 still bends a second after contact (rallyRev 10's bend is a short kink, unchanged)");
+  ok(right11.dev > right10.dev && flight(g11, 3).dev >= 2 * flight(g10, 3).dev, "rallyRev 11 curves further than rallyRev 10, twice as far off an ordinary 3 px a tick paddle");
+  ok(right11.minVy * 256 >= right11.speed * 100 && left11.minVy * 256 >= left11.speed * 100, "a bend never flattens the flight below 40 % of its speed");
+  ok(rallyBonusParts({ ...g11.init(3), spin: 256, spun: 1 } as RallyState).points === rallyBonusParts(g11.init(3)).points, "rallyRev 11: spin pays nothing");
+}
+
 /* ============================== 6. Never 0 for a run that tried ============================== */
 section("Doing nothing scores 0; trying always scores");
-for (const [type, game] of [["rally", rallyGameFor(RALLY_REV_BONUS)], ["burst", burstGameFor(BURST_REV_CLEAN)], ["bullseye", bullseyeGameFor(BULLSEYE_REV_EXPAND)]] as const) {
+for (const [type, game] of [["rally", rallyGameFor(RALLY_REV_BONUS)], ["rally", rallyGameFor(RALLY_REV_CURVE)], ["burst", burstGameFor(BURST_REV_CLEAN)], ["bullseye", bullseyeGameFor(BULLSEYE_REV_EXPAND)]] as const) {
   const g = game as any;
   let s = type === "bullseye" ? bullseyeInitRev8(3) : g.init(3);
   while (!g.isOver(s) && s.tick < g.runTicks) s = g.step(s, null);

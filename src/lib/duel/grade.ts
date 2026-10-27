@@ -44,7 +44,7 @@ import { decodeRingTaps, replayRings } from "./rings";
 import { decodeHoverRun, replayHoverRun } from "./hover";
 import { decodeSwerveRun, replaySwerveRun } from "./swerve";
 import { decodeSkylineRun, replaySkylineRun } from "./skyline";
-import { SKYLINE_REV_EXPAND } from "@/lib/arcade/skyline";
+import { SKYLINE_REV_EXPAND, SKYLINE_REV_LIFT } from "@/lib/arcade/skyline";
 import { pinIsExpanded } from "@/lib/arcade/pinball";
 import { decodeSnakeRun, replaySnakeRun } from "./snake";
 import { decodeBreakerRun, replayBreakerRun } from "./breaker";
@@ -139,7 +139,7 @@ import { spotBonusFound, usesSpotDepth } from "./depth/doubleTake";
 import { puzzleTimeLimitMs } from "./registry";
 import { PUZZLE_SCORE_REV, puzzleScoreRevOf, recordParts, scoreRev1, takeScoreParts, wasteFactor, withPuzzleScoreRev } from "./puzzleScoreRev";
 import { isTopsy, replayTopsyPuzzle, scoreTopsy } from "./topsy";
-import { decodeJumbled, isJumbledGradient, replayJumbled, scoreJumbled } from "./jumbled";
+import { isJumbledGradient, replayGradientAnswer, scoreJumbled } from "./jumbled";
 import { sortedTubeCount } from "./tubes";
 import { madeDistance } from "./target";
 import { isWord } from "./dictionary.server";
@@ -1080,7 +1080,8 @@ function gradeUnderRev(
     case "tiles": {
       // tilesRev 3 (the remodel, jumbled.ts): the 5×5 gradient with row and column slides; scored to 200 here.
       if (isJumbledGradient(puzzle)) {
-        const replay = replayJumbled(puzzle.frame, decodeJumbled(answer));
+        // tilesRev 4 (Gradient, Joe's phone notes): swaps with locked tiles, scored the same way.
+        const replay = replayGradientAnswer(puzzle, answer);
         const graded = scoreJumbled(puzzle.frame, replay, puzzle.par ?? 0, ms, timeLimitMs, puzzle.minMoves);
         isCorrect = replay.solved;
         correctCount = replay.inPlace;
@@ -1202,8 +1203,8 @@ function gradeUnderRev(
         blocks: run.blocks,
         perfects: run.perfects,
         ...(puzzle.skylineRev ? { skylineRev: puzzle.skylineRev, bestStreak: run.bestStreak, streakPoints: run.streakPoints } : {}),
-        // skylineRev 7 (the expansion): gold blocks landed perfectly, the best streak multiplier, height milestones.
-        ...(puzzle.skylineRev === SKYLINE_REV_EXPAND ? { golds: run.golds, bestMult: run.bestMult, milestones: run.milestones } : {}),
+        // skylineRev 7+ (the expansion; 8 is its play on a gentler curve): gold blocks landed perfectly, the best streak multiplier, height milestones.
+        ...(puzzle.skylineRev === SKYLINE_REV_EXPAND || puzzle.skylineRev === SKYLINE_REV_LIFT ? { golds: run.golds, bestMult: run.bestMult, milestones: run.milestones } : {}),
         survived: run.survived,
         endedSeconds: run.endedSeconds,
         flagged: run.flagged,

@@ -116,7 +116,7 @@ section("legacy identity");
 if (want("bintoss")) {
   section("Swish binRev 3 (bonus hoops, spinners, wind on today's bucket)");
   const game = binTossGameFor(BINTOSS_REV3);
-  ok([BINTOSS_REV_BAND + 2, BINTOSS_REV_EXPAND].includes(generateBinToss().binRev ?? -1), "new rounds are stamped binRev 6 (rev 4 play with the shorter spinner: binRev 5, scoring-targets-check; on the score bands: binRev 6, scoring-bands-check) or binRev 7 (the world expansion, expansion-e5-check)");
+  ok([BINTOSS_REV_BAND + 2, BINTOSS_REV_EXPAND + 1].includes(generateBinToss().binRev ?? -1), "new rounds are stamped binRev 6 (rev 4 play with the shorter spinner: binRev 5, scoring-targets-check; on the score bands: binRev 6, scoring-bands-check) or binRev 8 (binRev 7, the world expansion, with the smaller far bucket of the phone notes; expansion-e5-check)");
   ok(binTossGameFor(undefined) === binTossGame && binTossGame.init(5).hoops === undefined, "unstamped rounds keep the original game");
   ok(binTossGameFor(BINTOSS_REV2).init(5).hoops === undefined, "rev-2 rounds have no hoops or spinners");
   ok(JSON.stringify(game.init(77)) === JSON.stringify(game.init(77)), "hoops and spinners are seeded");
@@ -237,7 +237,7 @@ if (want("rally")) {
   section("Rally rallyRev 2 (far-wall targets, bumper from 30 s)");
   const game = rallyGameFor(RALLY_REV);
   // Expansion E9 (docs/expansions/e9.md) then moved Rally on to rallyRev 10; expansion-e9-check covers it.
-  ok(playRevOf("rally", generateRally().rallyRev) === RALLY_REV_TUNEF + 5 && RALLY_REV_TUNED === 4 && RALLY_REV_BAND === 3, "new rounds are stamped rallyRev 10 (expansion E9, after rallyRev 6: the taller court, arcade-tuning-g1-check; rallyRev 5 = Tuning F second bumper, arcade-tuning-f-check; rallyRev 4 = Tuning B pads in their own halves; rallyRev 3 = rev 2 play on the score bands)");
+  ok(playRevOf("rally", generateRally().rallyRev) === RALLY_REV_TUNEF + 6 && RALLY_REV_TUNED === 4 && RALLY_REV_BAND === 3, "new rounds are stamped rallyRev 11 (phone notes 27 Oct 2026, after rallyRev 10: expansion E9, after rallyRev 6: the taller court, arcade-tuning-g1-check; rallyRev 5 = Tuning F second bumper, arcade-tuning-f-check; rallyRev 4 = Tuning B pads in their own halves; rallyRev 3 = rev 2 play on the score bands)");
   ok(rallyGameFor(undefined) === rallyGame && rallyGame.init(5).spots === undefined, "unstamped rounds keep the original game");
   for (const seed of SEEDS(200, 7919)) {
     const a = game.init(seed);
@@ -280,8 +280,9 @@ if (want("rally")) {
 if (want("beat")) {
   section("Tempo beatRev 2 (swipe notes in the second half)");
   const game = beatGameFor(BEAT_REV);
-  // Expansion E2 (25 Oct 2026) then moved Tempo on to beatRev 9 (expansion-e2-check).
-  ok(playRevOf("beat", generateBeat().beatRev) === BEAT_REV_TUNEF + 4 && BEAT_REV_TUNEC === 4, "new rounds are stamped beatRev 9 (expansion E2, after beatRev 6: rev 2 play on the score bands; Tuning C curve; Tuning F thinner chart, arcade-tuning-f-check; the taller lanes, arcade-tuning-g2-check)");
+  // Expansion E2 (25 Oct 2026) then moved Tempo on to beatRev 9 (expansion-e2-check), and Joe's phone notes
+  // (27 Oct 2026) to beatRev 10 (tempo-ease-check).
+  ok(playRevOf("beat", generateBeat().beatRev) === BEAT_REV_TUNEF + 5 && BEAT_REV_TUNEC === 4, "new rounds are stamped beatRev 10 (the phone notes, after expansion E2's beatRev 9 and after beatRev 6: rev 2 play on the score bands; Tuning C curve; Tuning F thinner chart, arcade-tuning-f-check; the taller lanes, arcade-tuning-g2-check)");
   ok(beatGameFor(undefined) === beatGame && beatGame.init(5).chart.swipes === undefined, "unstamped rounds keep the original game");
   let swipeTotal = 0;
   for (const seed of SEEDS(200, 7919)) {

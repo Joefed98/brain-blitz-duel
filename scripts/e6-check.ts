@@ -38,6 +38,7 @@ import type { PuzzleType } from "../src/lib/duel/types";
 import {
   bubbleGameFor,
   bubbleReefParts,
+  bubCheckpoint,
   bubDangerLine,
   bubRowsOf,
   bubV8FeatureBonus,
@@ -48,6 +49,8 @@ import {
   BUB_LINE,
   BUB_REV_REEF,
   BUB_REV_CREDIT,
+  BUB_REV_BLAST,
+  BUB_V10_BOMB_RADIUS,
   BUB_V8_BAND_CURVE,
   BUB_V8_CHESTS,
   BUB_V8_FEATURE_CURVE,
@@ -138,7 +141,7 @@ for (const file of ["scripts/fixtures/e6-legacy.json", "scripts/fixtures/e6-runs
 /* ============================== 2. Stamps ============================== */
 section("Rooms deal the new stamps; the maximum is 200; demos stay stopped");
 const dealt = (type: PuzzleType) => generatePuzzle(type) as unknown as Record<string, unknown>;
-ok(dealt("bubble").bubbleRev === BUB_REV_CREDIT, "Coral Pop: rooms deal bubbleRev 9 (bubbleRev 8's reef with burst credit)");
+ok(dealt("bubble").bubbleRev === BUB_REV_BLAST, "Coral Pop: rooms deal bubbleRev 10 (bubbleRev 9 with the mine's bigger blast)");
 // Gemstone moved on to matchupRev 10 (27 Oct 2026, phone-test notes; gemstone-rev10-check); matchupRev 9 replays here as before.
 ok(dealt("matchup").matchupRev === MATCHUP_REV_ICE, "Gemstone: rooms deal matchupRev 10 (matchupRev 9's successor)");
 {
@@ -149,7 +152,7 @@ ok(dealt("matchup").matchupRev === MATCHUP_REV_ICE, "Gemstone: rooms deal matchu
 for (const type of ["bubble", "matchup", "balltrack"]) ok(roundMaxFor(type) === 200, `${type}: ROUND_MAX is 200`);
 {
   const demo = readFileSync("src/lib/duel/introDemo.functions.ts", "utf8");
-  ok(/bubbleRev !== BUB_REV_REEF\) return null/.test(demo), "Coral Pop's demo stays stopped until recorded on bubbleRev 8");
+  ok(/bubbleRev !== BUB_REV_BLAST\) return null/.test(demo), "Coral Pop's demo stays stopped until recorded on bubbleRev 10");
   ok(/matchupRev !== MATCHUP_REV_ICE\) return null/.test(demo), "Gemstone's demo stays stopped until recorded on matchupRev 10 (its successor to 9)");
   ok(/btRev !== BT_REV_RUSH\) return null/.test(demo), "Ball Tracker's demo stays stopped until recorded on btRev 7");
 }
@@ -229,6 +232,56 @@ function shootUp(s0: BubState): BubState {
     ok(reef.score(s) === bandTotal(parts, Boolean(s.acted), 200), `${level}: the score is its breakdown`);
   }
   ok(paid > 0, "chests pay in real play");
+}
+
+/* ============================== 3b. Coral Pop bubbleRev 10 ============================== */
+section("Coral Pop bubbleRev 10 (phone notes): the mine blasts two rings; everything else is bubbleRev 9");
+{
+  const credit = bubbleGameFor(BUB_REV_CREDIT);
+  const blast = bubbleGameFor(BUB_REV_BLAST);
+  for (const seed of [1, 7, 12345, 987654321, 2_000_000_011]) {
+    const b = blast.init(seed) as BubState;
+    const c = credit.init(seed) as BubState;
+    ok(b.bombR === BUB_V10_BOMB_RADIUS && JSON.stringify({ ...b, bombR: undefined }) === JSON.stringify(c), `seed ${seed}: bubbleRev 10 starts as bubbleRev 9 (field, queue, chests) with the blast radius ${BUB_V10_BOMB_RADIUS}`);
+    ok(c.bombR === undefined && (reef.init(seed) as BubState).bombR === undefined, `seed ${seed}: older starts carry no blast radius`);
+    ok(bubCheckpoint(b).checksum !== bubCheckpoint(c).checksum, `seed ${seed}: the checksum folds the radius in`);
+  }
+  /** A full reef five rows deep (colour 3), the mine first in the queue, shot straight up. */
+  const minedReef = (game: typeof blast): BubState => {
+    const s = game.init(1) as BubState;
+    const grid = new Array<number>(s.grid.length).fill(0);
+    for (let i = 0; i < 5 * BUB_COLS; i++) grid[i] = 3;
+    const queue = [...s.queue];
+    queue[0] = BUB_BOMB;
+    return { ...s, grid, queue, queueAt: 0, startCount: 5 * BUB_COLS };
+  };
+  const fire = (game: typeof blast, s0: BubState): BubState => {
+    let s = game.step(s0, { t: 1, k: BUB_INPUT_SHOT, a: 100, b: -4096, c: 0, d: 0 });
+    for (let i = 0; i < 400 && s.flightColour !== 0; i++) s = game.step(s, null);
+    return s;
+  };
+  const old = fire(credit, minedReef(credit));
+  const big = fire(blast, minedReef(blast));
+  ok(old.lastSpecial === BUB_BOMB && big.lastSpecial === BUB_BOMB && old.lastSpecialCell === big.lastSpecialCell, `the mine lands on the same cell on both stamps (${old.lastSpecialCell})`);
+  ok((old.lastSpecialCleared ?? 0) > 0 && (old.lastSpecialCleared ?? 0) <= 6, `bubbleRev 9's mine clears one ring (${old.lastSpecialCleared})`);
+  ok((big.lastSpecialCleared ?? 0) >= (old.lastSpecialCleared ?? 0) + 4 && (big.lastSpecialCleared ?? 0) <= 18, `bubbleRev 10's mine clears two rings (${big.lastSpecialCleared}, was ${old.lastSpecialCleared})`);
+  // Real play through the server replay on the new stamp.
+  const spec: any = GAME_BY_TYPE.get("bubble" as never)!;
+  const { bot } = await import("./arcade-skill-bands/bots/bubble.ts");
+  for (const [level, n] of [["weak", 0], ["good", 1], ["near", 2]] as const) {
+    const seed = spec.seedFor(n);
+    const events = bot({ game: blast, seed, rev: BUB_REV_BLAST, human: new Human("bubble", seed, level) }).events ?? [];
+    const byTick = new Map(events.map((e: any) => [e.t, e]));
+    let s = blast.init(seed) as BubState;
+    const checkpoints: unknown[] = [];
+    while (!blast.isOver(s) && s.tick < blast.runTicks) {
+      s = blast.step(s, (byTick.get(s.tick + 1) as any) ?? null);
+      if (s.tick % 300 === 0) checkpoints.push(spec.checkpoint(s));
+    }
+    const claimed = blast.score(s);
+    const result = spec.replay(seed, spec.encode({ seed, claimedScore: claimed, events, endTick: s.tick, checkpoints }, BUB_REV_BLAST, seed), BUB_REV_BLAST);
+    ok(!result.flagged && result.score === claimed && claimed > 0 && claimed <= 200, `${level}: a bubbleRev 10 run (${claimed}) replays through the server to ${result.score}`);
+  }
 }
 
 /* ============================== 4. Gemstone ============================== */

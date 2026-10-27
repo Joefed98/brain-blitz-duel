@@ -12,6 +12,11 @@
  *
  * Shared by the phone (the streak line and the gold card) and the server (depth/matchmaker.server.ts): both walk
  * the flip list through `pairDepthReplay`, so the bonus is the server's.
+ *
+ * pairRev 2 (27 Oct 2026, Joe's phone notes; phoneNotes.ts): the same board, streak and scores, but the gold pair
+ * is worth PAIR_GOLD_MAX whenever it is matched in the first PAIR_GOLD_WINDOW_MS of the round, however many tries
+ * it took, and nothing after. The answer adds the round-clock time of the gold match (`<flips>@<ms>`, the phone's
+ * synced clock, as the tap logs are); the server holds it to the answer's receipt time.
  */
 import { sameCard } from "../pairmatch";
 import type { PairCard, PairPuzzleData } from "../types";
@@ -23,6 +28,30 @@ export const PAIR_STREAK_MAX = 30;
 export const PAIR_GOLD_MAX = 20;
 export const PAIR_GOLD_FULL_TRY = 8;
 export const PAIR_GOLD_ZERO_TRY = 20;
+/** pairRev 2: the gold pair pays in full any time in the round's first 30 s. */
+export const PAIR_NOTES_REV = 2;
+export const PAIR_GOLD_WINDOW_MS = 30_000;
+/** pairRev 2's answer: the flip list, then this mark and the gold match's round-clock ms. */
+export const PAIR_GOLD_TIME_MARK = "@";
+
+/** True for pairRev 2+: the gold pair is judged on the clock (PAIR_GOLD_WINDOW_MS), not on tries. */
+export function pairGoldTimed(puzzle: PairPuzzleData | null | undefined): boolean {
+  return (puzzle?.pairRev ?? 0) >= PAIR_NOTES_REV && pairUsesDepth(puzzle);
+}
+
+/** The flip list and the gold match's time (null when absent or unreadable). Older answers never carry the mark. */
+export function splitPairGoldTime(raw: string | null | undefined): { flips: string; goldMs: number | null } {
+  const text = String(raw ?? "");
+  const at = text.indexOf(PAIR_GOLD_TIME_MARK);
+  if (at < 0) return { flips: text, goldMs: null };
+  const ms = Number.parseInt(text.slice(at + 1), 10);
+  return { flips: text.slice(0, at), goldMs: Number.isInteger(ms) && ms >= 0 ? ms : null };
+}
+
+/** pairRev 2's answer string. */
+export function joinPairGoldTime(flips: string, goldMs: number | null): string {
+  return goldMs === null ? flips : `${flips}${PAIR_GOLD_TIME_MARK}${Math.max(0, Math.round(goldMs))}`;
+}
 
 export function pairUsesDepth(puzzle: PairPuzzleData | null | undefined): boolean {
   return (puzzle?.pairRev ?? 0) >= PAIR_DEPTH_REV && !!puzzle?.gold;
@@ -45,6 +74,8 @@ export interface PairDepthReplay {
   /** The try (1-based) on which the gold pair was matched, or null. */
   goldTry: number | null;
   goldBonus: number;
+  /** pairRev 2: the round-clock ms of the gold match (as sent), or null. */
+  goldMs: number | null;
 }
 
 export function pairStreakBonus(points: number): number {
@@ -58,8 +89,16 @@ export function pairGoldBonus(goldTry: number | null): number {
   return Math.round((PAIR_GOLD_MAX * (PAIR_GOLD_ZERO_TRY - goldTry)) / (PAIR_GOLD_ZERO_TRY - PAIR_GOLD_FULL_TRY));
 }
 
-/** Walks the flips exactly as replayPairs does (matched cards and a re-tap of the open card are ignored). */
-export function pairDepthReplay(puzzle: PairPuzzleData, flips: readonly number[]): PairDepthReplay {
+/** pairRev 2: the full gold bonus for a gold match in the first 30 s, else nothing. */
+export function pairGoldTimedBonus(goldTry: number | null, goldMs: number | null): number {
+  return goldTry !== null && goldMs !== null && goldMs <= PAIR_GOLD_WINDOW_MS ? PAIR_GOLD_MAX : 0;
+}
+
+/**
+ * Walks the flips exactly as replayPairs does (matched cards and a re-tap of the open card are ignored). `goldMs`
+ * (pairRev 2) is the gold match's round-clock time; older rounds ignore it and score the gold pair on tries.
+ */
+export function pairDepthReplay(puzzle: PairPuzzleData, flips: readonly number[], goldMs: number | null = null): PairDepthReplay {
   const cards = puzzle.cards;
   const matched = new Set<number>();
   let first: number | null = null;
@@ -94,7 +133,8 @@ export function pairDepthReplay(puzzle: PairPuzzleData, flips: readonly number[]
     streakPoints,
     streakBonus: pairStreakBonus(streakPoints),
     goldTry,
-    goldBonus: pairGoldBonus(goldTry),
+    goldBonus: pairGoldTimed(puzzle) ? pairGoldTimedBonus(goldTry, goldMs) : pairGoldBonus(goldTry),
+    goldMs: pairGoldTimed(puzzle) && goldTry !== null ? goldMs : null,
   };
 }
 
@@ -102,8 +142,8 @@ export function pairDepthReplay(puzzle: PairPuzzleData, flips: readonly number[]
 
 /** The "?" help SCORE text: the rev-3 text for the base, then the two features ({max} filled by the caller). */
 export function pairDepthHelp(baseHelp: string, max: number): string {
-  return `${baseHelp.split(String(max)).join("150")} On top: matches in a row build a streak (the second match in a row counts double, up to five times on the fifth); a long streak adds up to ${PAIR_STREAK_MAX}, a miss starts it again. The gold pair adds ${PAIR_GOLD_MAX} if you match it within ${PAIR_GOLD_FULL_TRY} tries, less after, none from try ${PAIR_GOLD_ZERO_TRY}. {max} needs both.`;
+  return `${baseHelp.split(String(max)).join("150")} On top: matches in a row build a streak (the second match in a row counts double, up to five times on the fifth); a long streak adds up to ${PAIR_STREAK_MAX}, a miss starts it again. The gold pair adds ${PAIR_GOLD_MAX} if you match it in the first ${PAIR_GOLD_WINDOW_MS / 1000} s. {max} needs both.`;
 }
 
 /** The round intro SCORE line (at most 90 characters). */
-export const PAIR_DEPTH_INTRO = "Pairs: up to 110; finish fast for more. Streaks and an early gold pair add up to {max}.";
+export const PAIR_DEPTH_INTRO = "Pairs: up to 110; finish fast for more. Streaks and the gold pair in 30 s add up to {max}.";

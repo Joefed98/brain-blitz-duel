@@ -82,7 +82,7 @@ import {
   TILT_V4_FINISH_MIN,
   type TiltState,
 } from "../src/lib/arcade/tilt";
-import { SLICE_REV_EXPAND, sliceGameFor, SLICE_BLADE_V4, SLICE_INPUT_BEGIN, SLICE_INPUT_SWIPE, SLICE_R, SLICE_REV_BAND, SLICE_REV_LONG, SLICE_REV_TUNEC, sliceObjectAt, type SliceState } from "../src/lib/arcade/slice";
+import { SLICE_REV_BIG, SLICE_REV_EXPAND, sliceGameFor, SLICE_BLADE_V4, SLICE_INPUT_BEGIN, SLICE_INPUT_SWIPE, SLICE_R, SLICE_REV_BAND, SLICE_REV_LONG, SLICE_REV_TUNEC, sliceObjectAt, type SliceState } from "../src/lib/arcade/slice";
 import { generateBeat, generateFlip, generateInkBridge, generateMatchup, generateSlice, generateSwing, generateTilt, generateWavefront } from "../src/lib/duel/arcade.server";
 import { generateHover } from "../src/lib/duel/hover.server";
 import { isRetired, typesInCategory } from "../src/lib/duel/registry";
@@ -179,14 +179,16 @@ section("New rounds carry the Tuning C stamps; Junction is practice only");
     // Tuning F (Oct 2026) moved Tempo on to a thinner chart on the same curve (beatRev 5); arcade-tuning-f-check covers it.
     // Taller worlds batch 2 (16 Oct 2026) moved Tempo and Slice on to their taller worlds (beatRev 6, sliceRev 6); arcade-tuning-g2-check covers them.
     // Expansion E2 (25 Oct 2026) then moved Tempo on to its five-lane song with fever (beatRev 9); expansion-e2-check covers it.
-    ["beat", playRevOf("beat", generateBeat().beatRev), BEAT_REV_TUNEF + 4],
+    // Joe's phone notes (27 Oct 2026) then moved it on to beatRev 10 (wider windows, a lighter chart); tempo-ease-check covers it.
+    ["beat", playRevOf("beat", generateBeat().beatRev), BEAT_REV_TUNEF + 5],
     // Taller worlds batch 1 (16 Oct 2026) moved Wavefront on to its taller world (wavRev 6); arcade-tuning-g1-check covers it.
     // The 200 expansion (26 Oct 2026) then moved it on to wavRev 10 (wavefront-expand-check), and the phone notes (27 Oct) to wavRev 11 (wavefront-phone-check).
     ["wavefront", playRevOf("wavefront", generateWavefront().wavRev), WAV_REV_TUNEC + 6],
     // The expansion (x200, 26 Oct 2026) moved Tilt on to tiltRev 8 (bigger mazes, keys, quick stars, par); tilt-expand-check covers it.
     ["tilt", playRevOf("tilt", generateTilt().tiltRev), TILT_REV_EXPAND],
     // World expansion E5 (25 Oct 2026) moved Slice on to its larger board (sliceRev 9); expansion-e5-check covers it.
-    ["slice", playRevOf("slice", generateSlice().sliceRev), SLICE_REV_EXPAND],
+    // sliceRev 10 (27 Oct 2026, Joe's phone notes): sliceRev 9 with bigger onions and golden fruit; expansion-e5-check covers it.
+    ["slice", playRevOf("slice", generateSlice().sliceRev), SLICE_REV_BIG],
   ];
   const field: Record<string, string> = { matchup: "matchupRev", swing: "swingRev", hover: "hoverRev", inkbridge: "inkRev", flip: "flipRev", beat: "beatRev", wavefront: "wavRev", tilt: "tiltRev", slice: "sliceRev" };
   for (const [type, got, rev] of stamps) {

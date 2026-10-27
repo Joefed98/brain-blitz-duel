@@ -59,7 +59,7 @@ const { pinballArtGame } = await import("../src/lib/arcade/pinball.renderer");
 const { rallyArtGame } = await import("../src/lib/arcade/rally.renderer");
 const { rallyRev2Game } = await import("../src/lib/arcade/rally");
 const { BRK_REV_DEEP } = await import("../src/lib/arcade/breaker");
-const { rallyGameFor, RALLY_REV_BONUS } = await import("../src/lib/arcade/rally");
+const { rallyGameFor, RALLY_REV_CURVE } = await import("../src/lib/arcade/rally");
 const { BURST_REV_CARRY } = await import("../src/lib/arcade/burst");
 const { beatArtGame } = await import("../src/lib/arcade/beat.renderer");
 const { beatRev2Game } = await import("../src/lib/arcade/beat");
@@ -116,8 +116,8 @@ const GAMES: Record<string, AnyGame> = {
   hover: { ...hoverArtGame, init: hoverExpandGame.init } as AnyGame,
   // Expansion E3: rooms deal brkRev 9 (ARCADE_FX_SPECS lists its 420 × 784 spec).
   breaker: breakerArtGameFor(BRK_REV_DEEP) as AnyGame,
-  // Expansion E9: rooms deal rallyRev 10 (ARCADE_FX_SPECS lists its 420 × 784 spec) and burstRev 8.
-  rally: { ...rallyGameFor(RALLY_REV_BONUS), draw: rallyArtGame.draw } as AnyGame,
+  // Expansion E9: rooms deal rallyRev 10 (ARCADE_FX_SPECS lists its 420 × 784 spec) and burstRev 8; rallyRev 11 since the phone notes (27 Oct 2026).
+  rally: { ...rallyGameFor(RALLY_REV_CURVE), draw: rallyArtGame.draw } as AnyGame,
   beat: { ...beatArtGame, init: beatRev2Game.init } as AnyGame,
   snake: { ...snakeArtGame, init: snakeRev3Game.init } as AnyGame,
   burst: burstArtGameFor(BURST_REV_CARRY) as AnyGame,
