@@ -127,7 +127,7 @@ function drawSwitch(ctx: CanvasRenderingContext2D, cell: number, on: boolean) {
   ctx.restore();
 }
 
-function symbol(ctx: CanvasRenderingContext2D, kind: number, x: number, y: number, r: number) {
+export function symbol(ctx: CanvasRenderingContext2D, kind: number, x: number, y: number, r: number) {
   ctx.beginPath();
   const s = BT_SYMBOLS[kind % BT_SYMBOLS.length];
   if (s === "circle") ctx.arc(x, y, r, 0, Math.PI * 2);
@@ -222,7 +222,7 @@ function btBoardLayer(ctx: CanvasRenderingContext2D, masks: readonly number[], B
  * a soft drop shadow, dark rim, bevelled walls (lit lip, shaded inner edge),
  * the bed with a polished centre and the carved groove.
  */
-function strokeChannels(ctx: CanvasRenderingContext2D, trace: (c: CanvasRenderingContext2D) => void, movable: boolean): void {
+export function strokeChannels(ctx: CanvasRenderingContext2D, trace: (c: CanvasRenderingContext2D) => void, movable: boolean): void {
   const pass = (width: number, colour: string, dx = 0, dy = 0) => {
     ctx.strokeStyle = colour;
     ctx.lineWidth = width;
@@ -254,7 +254,7 @@ function strokeChannels(ctx: CanvasRenderingContext2D, trace: (c: CanvasRenderin
 }
 
 /** A domed brass pin (radius 6, same as before). */
-function brassPin(ctx: CanvasRenderingContext2D, x: number, y: number): void {
+export function brassPin(ctx: CanvasRenderingContext2D, x: number, y: number): void {
   ctx.fillStyle = SWITCH_EDGE;
   ctx.beginPath();
   ctx.arc(x, y, 6.75, 0, Math.PI * 2);

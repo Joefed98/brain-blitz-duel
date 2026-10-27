@@ -794,7 +794,7 @@ function drawCrumble(ctx: CanvasRenderingContext2D, x: number, tipY: number, flo
  * radius) with a small raised star on its face, slowly catching the light. The glow round it is
  * light, not a body; with reduced effects (`flat`) only the coin is drawn.
  */
-function drawCoin(ctx: CanvasRenderingContext2D, cx: number, cy: number, r: number, tick: number, flat: boolean): void {
+export function drawCoin(ctx: CanvasRenderingContext2D, cx: number, cy: number, r: number, tick: number, flat: boolean): void {
   ctx.save();
   if (!flat) {
     const glow = ctx.createRadialGradient(cx, cy, r * 0.6, cx, cy, r * 2.1);

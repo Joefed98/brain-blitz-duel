@@ -147,7 +147,7 @@ export function paintGate(c: Ctx, colour: string, w: number): void {
  * the gate's colour, fading up the lane, with lit rails. Painted once per colour and size into a cached
  * layer, under the falling word's neutral plate (so its ink is never tinted).
  */
-function paintLaneGlow(c: Ctx, colour: string, w: number, h: number): void {
+export function paintLaneGlow(c: Ctx, colour: string, w: number, h: number): void {
   const g = c.createLinearGradient(0, 0, 0, h);
   g.addColorStop(0, "rgba(0,0,0,0)");
   g.addColorStop(0.3, "rgba(0,0,0,0)");

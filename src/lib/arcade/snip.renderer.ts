@@ -68,7 +68,7 @@ export function basket(c:CanvasRenderingContext2D):void {
   c.restore();
 }
 /** Golden leaf's tips reach the exact 24px pickup radius; no extra halo. */
-function leaf(c:CanvasRenderingContext2D):void {
+export function leaf(c:CanvasRenderingContext2D):void {
   c.save();c.translate(24,24);c.rotate(-0.55);
   c.fillStyle=COUNTRY_GOLD_EDGE;c.beginPath();c.moveTo(0,-24);c.bezierCurveTo(30,-14,30,14,0,24);c.bezierCurveTo(-30,14,-30,-14,0,-24);c.fill();
   c.fillStyle=COUNTRY_GOLD;c.beginPath();c.moveTo(0,-22);c.bezierCurveTo(27,-13,27,13,0,22);c.bezierCurveTo(-27,13,-27,-13,0,-22);c.fill();
@@ -112,7 +112,7 @@ function canopy(c:CanvasRenderingContext2D):void {
   for(let x=0;x<SNIP_W;x+=18){c.beginPath();c.ellipse(x+9,26,8,2,0,0,Math.PI*2);c.fill();}
 }
 /** A twisted twine rope: a dark outline, the tan cord and slanted lit strands along its length (Polish A4). */
-function twine(c:CanvasRenderingContext2D,points:readonly (readonly [number,number])[],alpha:number):void {
+export function twine(c:CanvasRenderingContext2D,points:readonly (readonly [number,number])[],alpha:number):void {
   const first=points[0];if(!first)return;
   c.save();c.globalAlpha=alpha;c.lineCap='round';c.lineJoin='round';
   c.beginPath();c.moveTo(first[0],first[1]);for(const [x,y] of points)c.lineTo(x,y);

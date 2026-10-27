@@ -52,7 +52,7 @@ function tileStyle(look: TileLook): React.CSSProperties {
 }
 
 /** The figure-eight board: 6 × 6 cells, 21 of them tiles. */
-function Board({
+export function Board({
   letters,
   looks,
   selected,

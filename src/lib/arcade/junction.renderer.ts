@@ -52,8 +52,8 @@ import { artHash } from "./art.renderer";
 
 /* Mirrors of the sim's private constants (junction.ts). */
 const FP = 256;
-const HALF = 31;
-const LANE = 16;
+export const HALF = 31;
+export const LANE = 16;
 const CAR_W = 24;
 const CAR_PX = 41;
 const SPAWN_OUT = 20;
@@ -262,7 +262,7 @@ function drawLaneMarks(ctx: CanvasRenderingContext2D, state: JuncState, changed:
 }
 
 /** Daylight versions of the car colours, taken from Cross's palette. */
-const CAR_COLOURS = [CROSS_BLOCK_COLOURS[2], CROSS_BLOCK_COLOURS[4], CROSS_BLOCK_COLOURS[1], CROSS_BLOCK_COLOURS[5]];
+export const CAR_COLOURS = [CROSS_BLOCK_COLOURS[2], CROSS_BLOCK_COLOURS[4], CROSS_BLOCK_COLOURS[1], CROSS_BLOCK_COLOURS[5]];
 
 interface Ghost { x: number; y: number; dx: number; dy: number; colour: number; start: number }
 interface Memory { tick: number; gaveUp: number; seen: Map<number, { car: JuncCar; x: number; y: number; dx: number; dy: number }>; ghosts: Ghost[]; success:{x:number;y:number} }
@@ -287,7 +287,7 @@ function remember(state: JuncState): Memory {
   return m;
 }
 
-function drawScene(ctx: CanvasRenderingContext2D): void {
+export function drawScene(ctx: CanvasRenderingContext2D): void {
   ctx.fillStyle = REAL_GRASS;
   ctx.fillRect(0, 0, JUNC_WORLD_W, JUNC_WORLD_H);
   ctx.fillStyle = REAL_GRASS_DARK;
@@ -351,7 +351,7 @@ function drawScene(ctx: CanvasRenderingContext2D): void {
   realTree(ctx, 312, 590, 11);
 }
 
-function drawLight(ctx: CanvasRenderingContext2D, x: number, y: number, green: boolean): void {
+export function drawLight(ctx: CanvasRenderingContext2D, x: number, y: number, green: boolean): void {
   ctx.save();
   ctx.translate(x, y);
   ctx.scale(1.18, 1.18);
@@ -376,7 +376,7 @@ function drawLight(ctx: CanvasRenderingContext2D, x: number, y: number, green: b
   ctx.restore();
 }
 
-function drawCar(ctx: CanvasRenderingContext2D, x: number, y: number, dx: number, dy: number, colour: string, amb: boolean, tick: number, alpha = 1, len = CAR_PX, bus = false): void {
+export function drawCar(ctx: CanvasRenderingContext2D, x: number, y: number, dx: number, dy: number, colour: string, amb: boolean, tick: number, alpha = 1, len = CAR_PX, bus = false): void {
   ctx.save();
   ctx.globalAlpha = alpha;
   ctx.translate(x, y);

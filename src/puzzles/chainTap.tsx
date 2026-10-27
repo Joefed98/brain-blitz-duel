@@ -210,7 +210,7 @@ function IntroExample() {
   );
 }
 
-function ChainLine({ nodes, path, broken }: { nodes: ChainNode[]; path: number[]; broken: boolean }) {
+export function ChainLine({ nodes, path, broken }: { nodes: ChainNode[]; path: number[]; broken: boolean }) {
   const points = path
     .map((id) => nodes[id])
     .filter((node): node is ChainNode => Boolean(node));

@@ -51,7 +51,7 @@ function ballColour(index: number): string {
 const POTION_SYMBOLS = ["●", "▲", "■", "◆", "★", "✚", "♥", "✦"] as const;
 
 /** Ten glass flasks in two rows of five; each ball is one countable liquid layer. */
-function Tubes({
+export function Tubes({
   tubes,
   lifted,
   shake,

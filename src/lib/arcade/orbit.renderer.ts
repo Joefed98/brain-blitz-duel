@@ -543,7 +543,7 @@ function drawOrbitPaths(ctx: CanvasRenderingContext2D, state: { planets: Planet[
 }
 
 /** A planet's soft atmosphere: a glow in its colour just past the disc, behind it (one cached glow sprite). */
-function drawAtmosphere(ctx: CanvasRenderingContext2D, x: number, y: number, r: number, colour: string): void {
+export function drawAtmosphere(ctx: CanvasRenderingContext2D, x: number, y: number, r: number, colour: string): void {
   drawFxGlow(ctx, colour, x, y, r * 1.9 + 10, 0.85);
   drawFxGlow(ctx, colour, x, y, r * 1.3 + 4, 0.55);
   drawFxGlow(ctx, "#DDEBFF", x, y, r * 1.15 + 3, 0.25);
@@ -594,7 +594,7 @@ function drawAmbientShootingStar(ctx: CanvasRenderingContext2D, tick: number, w:
  * The rocket's flame, in its frame (nose to +x): a small steady flame while it is alive, longer in
  * flight and longest just after a release, with a warm glow at the nozzle. Behind the body.
  */
-function drawRocketFlame(ctx: CanvasRenderingContext2D, flying: number, since: number, tick: number, still: boolean, sling = false): void {
+export function drawRocketFlame(ctx: CanvasRenderingContext2D, flying: number, since: number, tick: number, still: boolean, sling = false): void {
   const flicker = still ? 1 : 0.8 + 0.2 * Math.sin(tick * 2.3);
   // orbitRev 12: a slingshot flight burns longest, with a teal glow round the gold.
   const boost = sling ? 9 : flying > 0 && since >= 0 && since < 24 ? (24 - since) * 0.35 : 0;

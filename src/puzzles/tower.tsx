@@ -33,7 +33,7 @@ function discColour(size: number, discs = TOWER_DISCS): string {
 }
 
 /** Three or four wooden posts; the target post stands on a gold plate. */
-function Pegs({
+export function Pegs({
   pegs,
   discs,
   targetPeg,

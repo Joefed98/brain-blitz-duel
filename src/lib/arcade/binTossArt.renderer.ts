@@ -93,7 +93,7 @@ function counterShadow(ctx: CanvasRenderingContext2D, x: number, y: number, rx: 
   ctx.restore();
 }
 
-function drawBucket(ctx: CanvasRenderingContext2D, centre: number, half: number, lean: number, trolley: boolean): void {
+export function drawBucket(ctx: CanvasRenderingContext2D, centre: number, half: number, lean: number, trolley: boolean): void {
   const top = px(BINTOSS_RIM_Y);
   const h = FLOOR - top;
   ctx.save();

@@ -1,7 +1,8 @@
 /**
- * The round games' icons as pictures for the results card (resultCard.ts), drawn from the same
- * drawing GameIcon shows (gameIcons/conceptIcons.tsx): each game's GameIcon is mounted off screen
- * and its <svg> turned into a picture (styles that come from CSS — colours, currentColor — are
+ * The round games' icons as pictures for the results card (resultCard.ts), the same picture GameIcon
+ * shows: a game's tile scene image (public/tiles, tileSceneUrl) drawn as is; for a game without one,
+ * its line drawing (gameIcons/conceptIcons.tsx): its GameIcon is mounted off screen and its <svg>
+ * turned into a picture (styles that come from CSS — colours, currentColor — are
  * written onto the copy, and any gradients it points at are copied in), so the card matches the
  * app. Presentation only. Any icon that can't be drawn is left out (the card shows its category
  * tile with the app's bolt).
@@ -9,7 +10,7 @@
 import { createRoot } from "react-dom/client";
 import { flushSync } from "react-dom";
 
-import { GameIcon, hasGameIcon } from "@/components/app/GameIcon";
+import { GameIcon, hasGameIcon, tileSceneUrl } from "@/components/app/GameIcon";
 import type { PuzzleType } from "@/lib/duel/types";
 
 const SVG_NS = "http://www.w3.org/2000/svg";
@@ -174,6 +175,20 @@ async function iconImage(
   }
 }
 
+/** A tile scene image on a `px` square canvas (null if it can't be loaded). */
+async function sceneIcon(url: string, px: number): Promise<HTMLCanvasElement | null> {
+  const img = await loadImage(url);
+  if (!img) return null;
+  const canvas = document.createElement("canvas");
+  canvas.width = px;
+  canvas.height = px;
+  const c = canvas.getContext("2d");
+  if (!c) return null;
+  c.imageSmoothingQuality = "high";
+  c.drawImage(img, 0, 0, px, px);
+  return canvas;
+}
+
 /** Each game's icon as a canvas at `px` square (null where it can't be drawn). */
 export async function gameIconImages(
   types: readonly string[],
@@ -193,7 +208,10 @@ export async function gameIconImages(
   document.body.appendChild(host);
   try {
     for (const type of new Set(types)) {
-      if (hasGameIcon(type)) {
+      const scene = tileSceneUrl(type);
+      if (scene) {
+        out.set(type, await sceneIcon(scene, px));
+      } else if (hasGameIcon(type)) {
         out.set(type, await iconImage(type as PuzzleType, px, host));
       } else {
         out.set(type, null);

@@ -481,7 +481,7 @@ export function drawClay(c: CanvasRenderingContext2D, x: number, y: number, gold
 }
 
 /** Shot zone: a faint disc and rim at exactly the sim's hit radius (orange 30, gold 24). */
-function drawShotZone(c: CanvasRenderingContext2D, x: number, y: number, gold: boolean): void {
+export function drawShotZone(c: CanvasRenderingContext2D, x: number, y: number, gold: boolean): void {
   const r = gold ? CLAY_CONFIG.goldHitRadius : CLAY_CONFIG.orangeHitRadius;
   c.beginPath();
   c.arc(x, y, r, 0, TAU);
@@ -496,7 +496,7 @@ function drawShotZone(c: CanvasRenderingContext2D, x: number, y: number, gold: b
 
 const SHARD_TICKS = 26;
 
-function drawShatter(c: CanvasRenderingContext2D, state: ClayState, i: number, age: number, still: boolean): void {
+export function drawShatter(c: CanvasRenderingContext2D, state: ClayState, i: number, age: number, still: boolean): void {
   const x0 = state.x[i]! / 256;
   const y0 = state.y[i]! / 256;
   const gold = state.schedule.kind[i] === CLAY_KIND_GOLD;
@@ -578,7 +578,7 @@ function drawMissPuff(c: CanvasRenderingContext2D, state: ClayState, age: number
 }
 
 /** Bird facing +x, centred on its collision ellipse (±15 × ±9; art within ±17 × ±11). */
-function drawBird(c: CanvasRenderingContext2D, flap: number): void {
+export function drawBird(c: CanvasRenderingContext2D, flap: number): void {
   const outline = "rgba(14,20,32,0.82)";
   const wing = (f: number, fill: string, tipFill: string) => {
     const r1x = 3;

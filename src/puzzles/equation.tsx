@@ -73,7 +73,7 @@ export function buildEquation(): EquationPuzzleData {
 }
 
 /* Operator polish (13 Oct 2026): drawing, animation and sound cues only; answers and submit untouched. */
-const OPERATOR_CSS = `
+export const OPERATOR_CSS = `
 [data-polish="equation"] .op-board { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; padding: 14px 10px; border-radius: 16px; overflow: hidden;
   background: radial-gradient(110% 60% at 50% 45%, rgba(61,220,132,.07), transparent 65%), repeating-linear-gradient(0deg, rgba(255,255,255,.02) 0 1px, transparent 1px 24px), repeating-linear-gradient(90deg, rgba(255,255,255,.02) 0 1px, transparent 1px 24px), linear-gradient(180deg, #16161e, #0f0f15);
   box-shadow: inset 0 0 0 1px rgba(61,220,132,.16), inset 0 1px 0 rgba(255,255,255,.05), 0 6px 18px rgba(0,0,0,.35); }
@@ -166,7 +166,7 @@ function useFitOneLine(box: RefObject<HTMLElement | null>, line: RefObject<HTMLE
   }, [key, basePx, minPx]);
 }
 
-function OperatorSlot({ value, onClick, fresh, next }: { value: Operator | null; onClick?: (() => void) | undefined; fresh?: boolean; next?: boolean }) {
+export function OperatorSlot({ value, onClick, fresh, next }: { value: Operator | null; onClick?: (() => void) | undefined; fresh?: boolean; next?: boolean }) {
   return (
     <Button
       variant="ghost"

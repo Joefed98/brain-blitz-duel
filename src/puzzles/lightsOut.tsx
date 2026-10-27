@@ -69,7 +69,7 @@ export function BulbDefs({ ids }: { ids: string }) {
 }
 
 /** The grid of lights. Numbers mark the shortest solution on the reveal. */
-function LightsGrid({
+export function LightsGrid({
   lights,
   cols = LIGHTS_COLS,
   numbers,

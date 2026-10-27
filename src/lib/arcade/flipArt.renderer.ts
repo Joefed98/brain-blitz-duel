@@ -23,7 +23,7 @@ let RUNNER_X = 90;
 const SPIKE_HEIGHT = 22;
 const OVERHANG_DEPTH = 34;
 /** Canvas-only material tokens shared by every part of this renderer. */
-const MATERIAL = {
+export const MATERIAL = {
   wash: "rgba(8,7,10,0.76)", tunnel: "#121418", basalt: "#1E1E24",
   nearRock: "#2A2A32", farRock: "#181A20", seam: "#303039",
   lava: "#FF4A24", hot: "#FFAA46", core: "#E73720", obsidian: "#090A0D",
@@ -329,7 +329,7 @@ function drawCave(ctx: CanvasRenderingContext2D, state: FlipState, side: number,
 }
 
 /** Jagged obsidian joins the rail continuously; all hot cores are silhouette-clipped. */
-function drawRockObstacle(ctx: CanvasRenderingContext2D, a: number, b: number, inward: number, at: Surface,
+export function drawRockObstacle(ctx: CanvasRenderingContext2D, a: number, b: number, inward: number, at: Surface,
   maxH: number, seed: number, pulse: number): void {
   if (b - a <= 1) return;
   // Polish A4: a soft lava glow behind the hazard (light only, drawn before its silhouette).
@@ -533,7 +533,7 @@ export function drawRunnerHero(ctx: CanvasRenderingContext2D, state: FlipState, 
 }
 
 /** Rev 2 star: glowing yellow (never orange like the spikes), centred where the runner stands. */
-function drawStar(ctx: CanvasRenderingContext2D, x: number, y: number, tick: number, still: boolean): void {
+export function drawStar(ctx: CanvasRenderingContext2D, x: number, y: number, tick: number, still: boolean): void {
   const r = FLIP_STAR_R;
   const pulse = still ? 0.5 : 0.5 + 0.5 * Math.sin(tick / 8);
   const glow = ctx.createRadialGradient(x, y, 1, x, y, r * 2.2);

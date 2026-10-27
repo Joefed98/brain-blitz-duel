@@ -41,7 +41,7 @@ import "@/polish-layout/batch-w-strikeout.css";
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
 /** One strike marker per strike allowed (five, ten from rev 3 or twelve from rev 4, drawn smaller); used ones are filled red. */
-function Strikes({ used, max = SO_MAX_STRIKES, markerRef }: { used: number; max?: number; markerRef?: React.RefObject<HTMLDivElement | null> }) {
+export function Strikes({ used, max = SO_MAX_STRIKES, markerRef }: { used: number; max?: number; markerRef?: React.RefObject<HTMLDivElement | null> }) {
   const many = max > SO_MAX_STRIKES;
   // Rev 4's twelve markers sit a little closer (12 × 20 px + 11 × 4 px = 284 px) so the row fits a 320 px phone.
   const gap = max > 10 ? "gap-1" : many ? "gap-1.5" : "gap-2";
@@ -73,7 +73,7 @@ const TILE: Record<TileLook, string> = {
   missed: "border-2 border-destructive bg-card text-muted-foreground",
 };
 
-function Row({
+export function Row({
   letters,
   looks,
   selected,

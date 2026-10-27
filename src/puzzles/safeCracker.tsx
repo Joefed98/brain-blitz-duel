@@ -17,7 +17,7 @@ import { usesDepth } from "@/lib/duel/logicDepth";
 import "@/polish-depth-d6/depth-d6.css";
 
 /** One vertical drum, with arrows that repeat while held and a vertical swipe. */
-function Dial({
+export function Dial({
   digit,
   onStep,
   disabled,

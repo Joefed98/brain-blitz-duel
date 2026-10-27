@@ -175,7 +175,7 @@ interface TapeGeom {
  * A horizontal steel tape with its labelled notches; children draw markers in 0–1 shares
  * via `x`. `t` is the tape thickness; `label` the end-label size.
  */
-function Line({
+export function Line({
   stage,
   width,
   height,
@@ -290,7 +290,7 @@ function Line({
 }
 
 /** A pinned marker: needle through the tape, a shaded head and its soft shadow. */
-function Pin({
+export function Pin({
   cx,
   geom,
   r,

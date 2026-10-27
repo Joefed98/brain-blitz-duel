@@ -42,7 +42,7 @@ const MAX_CELL = 72;
 const cellFor = (width: number) => Math.max(CELL, Math.min(MAX_CELL, Math.floor((width - 92) / WS_SIZE)));
 const GAP = 4;
 
-function Board({
+export function Board({
   grid,
   cell,
   good,

@@ -70,7 +70,7 @@ function TuftIcon() {
 
 type Mark = 0 | 1 | 2;
 
-function Board({
+export function Board({
   size,
   height = size,
   trees,

@@ -32,7 +32,7 @@ const DIRECTIONS: ArrowDir[] = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"];
 
 type CellState = "plain" | "selected" | "target" | "wrong" | "missed";
 
-function CellBox({
+export function CellBox({
   dir,
   state,
   size,

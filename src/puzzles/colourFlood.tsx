@@ -30,7 +30,7 @@ function fillOf(colour: number): string {
 }
 
 /** The board, with one white outline around the player's region boundary. */
-function Board({
+export function Board({
   grid,
   size = FLOOD_SIZE,
   cell = 26,

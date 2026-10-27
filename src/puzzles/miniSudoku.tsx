@@ -33,7 +33,7 @@ function boxEdges(cell: number): string {
 }
 
 /** The 6x6 grid, with thicker lines around every 2x3 box. */
-function SudokuGrid({
+export function SudokuGrid({
   values,
   tones,
   pencil,

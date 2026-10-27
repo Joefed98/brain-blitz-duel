@@ -53,7 +53,7 @@ function ledText(seconds: number): string {
 }
 
 /** The dark bomb box: thick coloured wires, two round caps, an LED and a plate. */
-function Panel({
+export function Panel({
   wires,
   buttons,
   light,

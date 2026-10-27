@@ -55,7 +55,7 @@ const CROSS_X_FOOT_PAVING = "#B5B9C0";
 
 // Real World daylight palette (the values of realworld.renderer's REAL_*; not imported, because
 // realworld.renderer re-exports drawVehicle from this module).
-const REAL_ASPHALT = "#555B64";
+export const REAL_ASPHALT = "#555B64";
 const REAL_GRASS = "#86BF63";
 const REAL_GRASS_DARK = "#6FA851";
 const REAL_INK = "#1E2630";

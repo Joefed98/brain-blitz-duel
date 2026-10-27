@@ -97,11 +97,14 @@ chips and game icon tiles:
 - `data-cat` sets `--cat`, plus `--cat-hi` (62 % toward white, for text) and `--cat-lo` (62 % toward
   black, for gradients), mixed in oklab.
 - **Game icon tiles** (`.game-icon[data-cat]`, `GameIcon`; 27 Oct 2026): black (#000) inside, a border in the
-  category's exact colour (`--cat`, the `--category-*` token; about 4.5 % of the tile, at least 1.5 px), and a small
-  drawing of the game's idea (`gameIcons/conceptIcons.tsx`): a 64-unit box, art inside 7…57, 3-unit round strokes in
-  #F3F1EC for the main shapes, #6F6F7D for the secondary ones and the category colour (`currentColor`) for the one
-  thing that matters. Letters and digits are stroke glyphs (`Glyph`); no `<text>` in an icon. One style for every
-  game, retired ones included; the share card draws the same drawing on the same tile.
+  category's exact colour (`--cat`, the `--category-*` token; about 4.5 % of the tile, at least 1.5 px), and a
+  small scene of the game in its real look: a few of its own pieces (its renderer's sprites, its board components
+  and CSS) in a hand-made state, composed for a square (Breaker's rainbow bricks, paddle and rising ball; Hanoi's
+  posts and discs; Slider's letter rows and padlocks). Few bold pieces that read at 34 px; no HUD, timers, buttons or
+  UI words (letters and digits that are game pieces stay). Scenes live in `scripts/shots/tile-scenes/` and are
+  exported as 208 px WebPs (`public/tiles/`) by `bun scripts/shots/tile-scenes.ts`; re-run it when a game's look
+  changes. A game without a scene shows its line drawing (`gameIcons/conceptIcons.tsx`). The share card draws the
+  same image on the same tile.
 - **Row icon squares** on the tab pages (`.ap-icon-sq`, 40 px, radius 11) take a tone from `data-tone`:
   puzzle #1A2236 / #7FA6F5, arcade #3A1E22 / #F08A6E, challenge #271F3A / #B79BF2; neutral without one.
 - **Play tab tiles** (`.ap-tile44`, `src/components/app/TabIcons.tsx`, 44 px, radius 12): glossy
@@ -198,7 +201,7 @@ is cut off, except player names, which ellipsise (no-wrap-check).
 ## The Joulz hero
 
 The hero (`src/lib/arcade/hero.renderer.ts`) replaces the stick figures in Grappler, Jaywalk and
-Roofbound (their game icons are concept drawings since 27 Oct 2026).
+Roofbound (and appears in their tile scenes).
 
 - Colours: black #0D0D0F (`HERO_BLACK`), gold #F7BF2F (`HERO_GOLD`), light gold #FFE08A, deep gold
   #C98A0E, cape edge #A86F08, the bolt's lower half #D99A14.
