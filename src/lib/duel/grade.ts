@@ -49,6 +49,7 @@ import { PIN_REV_EXPAND } from "@/lib/arcade/pinball";
 import { decodeSnakeRun, replaySnakeRun } from "./snake";
 import { decodeBreakerRun, replayBreakerRun } from "./breaker";
 import { brkSkillPaid, brkWallSize } from "@/lib/arcade/breaker";
+import { hoverFeatureBonus } from "@/lib/arcade/hover";
 import { decodePinballRun, replayPinballRun } from "./pinball";
 import { decodeRallyRun, replayRallyRun } from "./rally";
 import { rallyBonusCount, rallyBonusPoints } from "@/lib/arcade/rally";
@@ -72,8 +73,9 @@ import { decodeBurstRun, replayBurstRun } from "./burst";
 import { burstCleanBonus, burstGoldenCount } from "@/lib/arcade/burst";
 import { decodeOrbitRun, replayOrbitRun } from "./orbit";
 import { decodeSwingRun, replaySwingRun } from "./swing";
-import { SWING_REV, SWING_REV_BAND, SWING_REV_TUNED, SWING_REV_TUNEC, SWING_REV_SPREAD, SWING_REV_TALL, SWING_REV_TARGET, SWING_REV_STRICT } from "@/lib/arcade/swing";
+import { SWING_REV, SWING_REV_BAND, SWING_REV_TUNED, SWING_REV_TUNEC, SWING_REV_SPREAD, SWING_REV_TALL, SWING_REV_TARGET, SWING_REV_STRICT, SWING_REV_EXPAND, swingFeaturePoints } from "@/lib/arcade/swing";
 import { decodeSnipRun, replaySnipRun } from "./snip";
+import { snipFeatureBonus, SNIP_REV_EXPAND, SNIP_X_MAX } from "@/lib/arcade/snip";
 import { decodeTiltRun, replayTiltRun } from "./tilt";
 import { TILT_REV_EXPAND } from "@/lib/arcade/tilt";
 import { decodeHotFloorRun, replayHotFloorRun } from "./hotFloor";
@@ -1146,6 +1148,8 @@ function gradeUnderRev(
         gates: run.gates,
         totalGates: run.totalGates,
         ...(puzzle.hoverRev ? { hoverRev: puzzle.hoverRev, stars: run.stars, totalStars: run.totalStars } : {}),
+        // hoverRev 9 (the 200 expansion): the features and the skill points paid for them.
+        ...(run.state.xp ? { tightGates: run.state.tight ?? 0, starChains: run.state.chainsDone ?? 0, centrePts: run.state.ctrPts ?? 0, centreLines: run.state.ctrLog?.length ?? 0, shieldBreaks: run.state.shieldBreaks ?? 0, skill: hoverFeatureBonus(run.state) } : {}),
         survived: run.survived,
         endedSeconds: run.endedSeconds,
         flagged: run.flagged,
@@ -1779,6 +1783,8 @@ function gradeUnderRev(
         survivedSeconds: run.survivedSeconds,
         survived: run.survived,
         ...(run.starsTotal > 0 ? { stars: run.stars, starsTotal: run.starsTotal } : {}),
+        // flipRev 8 (the expansion): the features' counts and the skill points paid.
+        ...(run.sweetsTotal > 0 ? { trailStars: run.trailStars, trailTotal: run.trailTotal, combos: run.combos, saves: run.saves, sweets: run.sweets, sweetsTotal: run.sweetsTotal, skill: run.skill } : {}),
         endedSeconds: run.endedSeconds,
         flagged: run.flagged,
         clientLag: run.clientLag,
@@ -1921,7 +1927,8 @@ function gradeUnderRev(
       arcadeDiag = buildArcadeDiag(puzzle.type, run, answer, performance.now() - replayStart);
       if (arcadeDiag.replayMs > 500)
         console.warn(`[arcade] slow replay ${puzzle.type}: ${arcadeDiag.replayMs}ms`);
-      isCorrect = run.score >= 150;
+      // snipRev 11 (the 200-point expansion) scores to 200: a perfect run is 200; older revisions keep 150.
+      isCorrect = run.score >= (puzzle.snipRev === SNIP_REV_EXPAND ? SNIP_X_MAX : 150);
       correctCount = run.eaten;
       score = run.score;
       extraDetail = {
@@ -1929,6 +1936,21 @@ function gradeUnderRev(
         stars: run.stars,
         levels: run.levels,
         cuts: run.cuts,
+        // snipRev 11: the courses' fruit, levels fed, golden apples, par levels, par-time levels and credit, second leaves, skill paid.
+        ...(run.state.course
+          ? {
+              snipRev: puzzle.snipRev,
+              fruits: run.state.fruitsDealt ?? 0,
+              cleared: run.state.cleared ?? 0,
+              golden: run.state.golden ?? 0,
+              parLevels: run.state.parLevels ?? 0,
+              quickLevels: run.state.quickLevels ?? 0,
+              quickTicks: run.state.quickTicks ?? 0,
+              stars2: run.state.stars2 ?? 0,
+              strokes: run.state.strokes ?? 0,
+              skill: snipFeatureBonus(run.state),
+            }
+          : {}),
         finished: run.finished,
         endedSeconds: run.endedSeconds,
         flagged: run.flagged,
@@ -1956,7 +1978,9 @@ function gradeUnderRev(
         survived: run.survived,
         survivedSeconds: run.survivedSeconds,
         // swingRev 4: stars taken (of starTotal) and what ended the run (1 dragon, 2 stalactite, 3 lava jet).
-        ...(puzzle.swingRev === SWING_REV || puzzle.swingRev === SWING_REV_BAND || puzzle.swingRev === SWING_REV_TUNED || puzzle.swingRev === SWING_REV_TUNEC || puzzle.swingRev === SWING_REV_SPREAD || puzzle.swingRev === SWING_REV_TALL || puzzle.swingRev === SWING_REV_TARGET || puzzle.swingRev === SWING_REV_STRICT ? { swingRev: puzzle.swingRev, stars: run.stars ?? 0, starTotal: run.starTotal ?? 0, cause: run.cause ?? 0 } : {}),
+        ...(puzzle.swingRev === SWING_REV || puzzle.swingRev === SWING_REV_BAND || puzzle.swingRev === SWING_REV_TUNED || puzzle.swingRev === SWING_REV_TUNEC || puzzle.swingRev === SWING_REV_SPREAD || puzzle.swingRev === SWING_REV_TALL || puzzle.swingRev === SWING_REV_TARGET || puzzle.swingRev === SWING_REV_STRICT || puzzle.swingRev === SWING_REV_EXPAND ? { swingRev: puzzle.swingRev, stars: run.stars ?? 0, starTotal: run.starTotal ?? 0, cause: run.cause ?? 0 } : {}),
+        // swingRev 13 (the 200 expansion): the features and their payout (raw skill points and what they paid).
+        ...(run.state.expand ? (({ comboPts, bestChain, gems, gemTotal, gates, gateTotal, ledges, ledgeTotal, sections, sectionTotal, parsBeaten, parBeat, parPts, raw, total }) => ({ comboPts, bestChain, gems, gemTotal, gates, gateTotal, ledges, ledgeTotal, sections, sectionTotal, parsBeaten, parBeat, parPts, skillRaw: raw, skill: total }))(swingFeaturePoints(run.state)) : {}),
         endedSeconds: run.endedSeconds,
         flagged: run.flagged,
         clientLag: run.clientLag,

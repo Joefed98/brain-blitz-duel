@@ -5,7 +5,10 @@ import { snipFxFor } from "./arcadeFxGames.renderer";
 /** Orchard Snip. Art only: original world, camera, rope nodes and collision geometry. */
 import type { CanvasSize } from './engine';
 import { snipCamera, snipGame, snipMouthAt, snipView, SNIP_CONFIG, SNIP_EATEN, SNIP_HOOK_REACH, SNIP_STUNG, SNIP_TALL_H, SNIP_W, snipWorldH, type SnipState, type SnipTemplate } from './snip';
-import { artHash } from './art.renderer';
+import { snipCourseMouthAt, snipWindAt, SNIP_COURSES, SNIP_X_GOLD_TICKS, SNIP_X_PLAY, SNIP_X_RING_R, SNIP_X_RING_REACH, SNIP_X_VIEW_H, SNIP_X_W, type SnipCourse } from './snip';
+import { artHash, reducedMotion } from './art.renderer';
+import { artCanvas, artContext, deviceLayer, type ArtCanvas } from './cache.renderer';
+import { arcadeReducedEffects } from '@/lib/fx/lowEnd';
 import { countryStamp, countryClock, countryCloud, COUNTRY_SKY, COUNTRY_GRASS_BACK, COUNTRY_GRASS, COUNTRY_GRASS_DARK, COUNTRY_WOOD, COUNTRY_WOOD_DARK, COUNTRY_WOOD_LIGHT, COUNTRY_STONE, COUNTRY_STONE_DARK, COUNTRY_GOLD, COUNTRY_GOLD_EDGE, COUNTRY_SHINE, COUNTRY_APPLE, COUNTRY_APPLE_EDGE } from './countryside.renderer';
 
 export interface SnipSwipe { a: number; b: number; c: number; d: number; at: number }
@@ -320,9 +323,9 @@ function orchardCloud(c: CanvasRenderingContext2D): void {
   for (const [x, y, r] of [[12, 10, 7], [26, 8, 8], [37, 13, 6]] as const) { c.beginPath(); c.arc(x - 1, y - 1, r, 0, Math.PI * 2); c.fill(); }
   c.restore();
 }
-function drawOrchardSky(c: CanvasRenderingContext2D, camera: number): void {
+function drawOrchardSky(c: CanvasRenderingContext2D, camera: number, clock?: number): void {
   countryStamp(c, 'orchard-backdrop-a4', 390, 620, 0, 0, orchardBackdrop);
-  const t = countryClock();
+  const t = clock ?? countryClock();
   for (const [x, y, f] of [[38, 100, 0.7], [278, 146, 0.85], [152, 218, 0.55], [330, 250, 0.45], [90, 300, 0.4]] as const) {
     c.save(); c.globalAlpha = 0.85; c.translate(x + Math.sin(t * 0.08 + y) * 5 - camera * 0.08, y); c.scale(f, f);
     countryStamp(c, 'orchard-cloud-a4', 56, 34, 0, 0, orchardCloud); c.restore();
@@ -335,6 +338,8 @@ export function drawSnipArt(c: CanvasRenderingContext2D, state: SnipState, size:
 }
 
 function drawSnipArtWorld(c:CanvasRenderingContext2D,state:SnipState,size:CanvasSize,trail?:readonly (readonly [number,number])[],cameraX=snipCamera(state,state.sx/256-SNIP_CONFIG.viewW/2,1),swipes:readonly SnipSwipe[]=[]):void {
+  // snipRev 11: the tall course through the state's vertical camera (no horizontal camera).
+  if(state.course){drawCourseWorld(c,state,size,swipes);return;}
   const tpl=SNIP_CONFIG.templates[state.template];if(!tpl)return;
   const H=snipWorldH(state);
   const {scaleX,scaleY}=snipView(size,H);
@@ -377,6 +382,197 @@ export function drawSnipOrchardExample(c:CanvasRenderingContext2D,t:number):void
   twine(c,cut?[[80,10],[79,18],[80,24]]:[[80,10],[80,45]],cut?0.5:1);
   c.save();c.translate(68,108);c.scale(24/64,24/64);countryStamp(c,'orchard-basket',64,64,0,0,basket);c.restore();
   if(t<47){c.save();c.translate(73,38+fall*70);c.scale(14/24,14/24);countryStamp(c,'orchard-apple',24,24,0,0,apple);c.restore();}
+  // snipRev 11's features in the still: a second fruit, golden, on its own rope, and a ring below it.
+  twine(c,[[124,10],[124,34]],1);
+  c.save();c.translate(117,32);c.scale(14/24,14/24);countryStamp(c,'orchard-apple-gold',24,24,0,0,goldenApple);c.restore();
+  c.save();c.translate(124,78);c.scale(0.45,0.45);ringArt(c,0,0,false,0);c.restore();
   const swipe=t>=15&&t<30?(t-15)/10:-1;if(swipe>=0&&swipe<=1){c.strokeStyle=COUNTRY_SHINE;c.lineWidth=2;c.beginPath();c.moveTo(55,22);c.lineTo(55+50*Math.min(1,swipe),30);c.stroke();}
 }
 export const snipArtGame={...snipGame,draw:(c:CanvasRenderingContext2D,s:SnipState,size:CanvasSize)=>drawSnipArt(c,s,size)};
+
+/* ================= snipRev 11: the tall orchard course (200-point expansion, display only) ================= */
+
+/** A golden apple: the apple's shape and leaf, in polished gold with a warm glint (same 24 px disc). */
+export function goldenApple(c:CanvasRenderingContext2D):void {
+  c.fillStyle=COUNTRY_GOLD_EDGE;circle(c,12,12,12);
+  const body=c.createRadialGradient(8.5,9,1,12,13,11.5);
+  body.addColorStop(0,'#FFF4B8');body.addColorStop(0.45,COUNTRY_GOLD);body.addColorStop(1,'#B9811A');
+  c.fillStyle=body;circle(c,12,12,11);
+  c.fillStyle='rgba(120,70,10,0.4)';c.beginPath();c.ellipse(12,5,3.4,1.5,0,0,Math.PI*2);c.fill();
+  c.strokeStyle=COUNTRY_WOOD_DARK;c.lineWidth=1.8;c.lineCap='round';c.beginPath();c.moveTo(12,5.2);c.quadraticCurveTo(11.4,2.6,13,0.9);c.stroke();
+  c.fillStyle=COUNTRY_GRASS_DARK;c.beginPath();c.ellipse(16.3,3.6,4.2,1.9,-0.45,0,Math.PI*2);c.fill();
+  c.fillStyle=COUNTRY_GRASS;c.beginPath();c.ellipse(16.1,3.3,3.2,1.1,-0.45,0,Math.PI*2);c.fill();
+  c.fillStyle='rgba(255,255,255,0.85)';c.beginPath();c.ellipse(6.5,10,1.5,3.6,0.35,0,Math.PI*2);c.fill();
+  c.fillStyle='#FFFFFF';circle(c,7.6,6.8,1.2);
+}
+/**
+ * A ring: a brass hoop on a short twig from a branch stub; it snags a free fruit passing through its middle.
+ * The hoop is drawn at SNIP_X_RING_R; the catch zone (SNIP_X_RING_REACH) is its inner glow.
+ */
+function ringArt(c:CanvasRenderingContext2D,x:number,y:number,used:boolean,glow:number):void {
+  c.save();
+  c.strokeStyle=COUNTRY_WOOD_DARK;c.lineWidth=4;c.lineCap='round';
+  c.beginPath();c.moveTo(x+(x<180?-22:22),y-SNIP_X_RING_R-16);c.lineTo(x,y-SNIP_X_RING_R-2);c.stroke();
+  if(!used){c.globalAlpha=0.18+0.25*glow;c.fillStyle=COUNTRY_SHINE;circle(c,x,y,SNIP_X_RING_REACH);c.globalAlpha=1;}
+  c.strokeStyle=COUNTRY_GOLD_EDGE;c.lineWidth=5;c.beginPath();c.arc(x,y,SNIP_X_RING_R,0,Math.PI*2);c.stroke();
+  c.strokeStyle=used?'#C9A24A':COUNTRY_GOLD;c.lineWidth=3;c.beginPath();c.arc(x,y,SNIP_X_RING_R,0,Math.PI*2);c.stroke();
+  c.strokeStyle='rgba(255,250,220,0.8)';c.lineWidth=1.2;c.beginPath();c.arc(x,y,SNIP_X_RING_R,Math.PI*1.1,Math.PI*1.6);c.stroke();
+  c.restore();
+}
+/** The orchard's tall edges: apple-tree trunks up both walls with leafy clumps (cached per course height). */
+function courseTrees(c:CanvasRenderingContext2D,h:number):void {
+  for(const side of [0,1]){
+    const x=side?SNIP_X_W-7:7;
+    // The dark bark runs to the world's edge, so the screen fill's bark beside a centred world meets it with no seam.
+    c.fillStyle=COUNTRY_WOOD_DARK;c.fillRect(side?x-6:0,0,side?SNIP_X_W-(x-6):x+6,h);
+    c.fillStyle=COUNTRY_WOOD;c.fillRect(x-4,0,7,h);
+    c.fillStyle='rgba(255,230,190,0.25)';c.fillRect(x-3,0,2,h);
+    for(let y=60;y<h-40;y+=140){
+      const k=artHash(y,side+31);
+      const dir=side?-1:1;
+      c.strokeStyle=COUNTRY_WOOD_DARK;c.lineWidth=5;c.beginPath();c.moveTo(x,y);c.quadraticCurveTo(x+dir*20,y-12,x+dir*(34+k%12),y-22);c.stroke();
+      for(const [dx,dy,r,tone] of [[30,-26,15,COUNTRY_GRASS_DARK],[40,-18,12,'#4FA341'],[24,-34,10,COUNTRY_GRASS]] as const){c.fillStyle=tone;circle(c,x+dir*dx,y+dy+(k>>>4)%5,r);}
+      if(k%3===0){c.fillStyle=COUNTRY_APPLE;circle(c,x+dir*36,y-14,3.5);}
+    }
+  }
+}
+/** The trees' sprite per course height (2× its size); only the slice in view is drawn each frame (a 2,400 px blit cost more than the rest of the frame at 4× CPU slowdown). */
+const treeSprites=new Map<number,ArtCanvas|null>();
+function drawTreesSlice(c:CanvasRenderingContext2D,h:number,camY:number):void {
+  let sprite=treeSprites.get(h);
+  if(sprite===undefined){const canvas=artCanvas(SNIP_X_W*2,h*2);const x=canvas&&(artContext(canvas) as CanvasRenderingContext2D|null);if(canvas&&x){x.scale(2,2);courseTrees(x,h);}sprite=canvas&&x?canvas:null;treeSprites.set(h,sprite);}
+  if(!sprite){courseTrees(c,h);return;}
+  const top=Math.max(0,Math.floor(camY)),bottom=Math.min(h,Math.ceil(camY+SNIP_X_VIEW_H));
+  if(bottom>top)c.drawImage(sprite as CanvasImageSource,0,top*2,SNIP_X_W*2,(bottom-top)*2,0,top,SNIP_X_W,bottom-top);
+}
+/** The view's foreground fringe: tufts rising from a strip in the screen fill's top green (#4E9C42). */
+function fringe(c:CanvasRenderingContext2D):void {
+  c.fillStyle='#4E9C42';c.fillRect(0,12,SNIP_X_W,6);
+  for(let k=0;k<70;k++){const h=artHash(k,2203);const x=(h%3600)/10;const tall=5+(h>>>12)%8;
+    c.fillStyle=h%3?'#4E9C42':'#3E8A33';c.beginPath();c.moveTo(x-3,18);c.quadraticCurveTo(x,18-tall*0.6,x+((h>>>5)%5)-2,18-tall);c.quadraticCurveTo(x+1,18-tall*0.5,x+3,18);c.fill();}
+}
+/** Wind: drifting streaks and leaves across the view, as many and as fast as the wind is strong (view px). */
+function windStreaks(c:CanvasRenderingContext2D,state:SnipState,w:number,h:number,still:boolean):void {
+  const wind=snipWindAt(state);const amp=state.windA??0;if(!amp)return;
+  const strength=Math.min(1,Math.abs(wind)/Math.max(1,amp));const dir=wind>=0?1:-1;
+  const t=still?0:state.tick;
+  c.save();
+  for(let k=0;k<10;k++){
+    const hgt=artHash(k,4421);
+    const y=(hgt%1000)/1000*h;
+    const x=(((hgt>>>10)%1000)/1000*w+dir*t*(1.5+(k%3)))%(w+60);
+    const xx=x<0?x+w+60:x;
+    c.globalAlpha=0.12+0.3*strength;
+    if(k%3===0){c.fillStyle=k%2?COUNTRY_GRASS:'#C9A24A';c.beginPath();c.ellipse(xx-30,y,4,1.8,dir*0.6+Math.sin(t*0.1+k),0,Math.PI*2);c.fill();}
+    else{c.strokeStyle='rgba(255,255,255,0.9)';c.lineWidth=1.4;c.beginPath();c.moveTo(xx-30,y);c.lineTo(xx-30-dir*(14+18*strength),y+2);c.stroke();}
+  }
+  c.restore();
+}
+/** A windsock at the view's top left: its tail follows the wind (display only). */
+function windSock(c:CanvasRenderingContext2D,state:SnipState):void {
+  const amp=state.windA??0;if(!amp)return;
+  const wind=snipWindAt(state);const k=Math.max(-1,Math.min(1,wind/amp));
+  c.save();c.translate(18,46);
+  c.strokeStyle=COUNTRY_WOOD_DARK;c.lineWidth=2;c.beginPath();c.moveTo(0,0);c.lineTo(0,22);c.stroke();
+  const len=8+16*Math.abs(k);const dir=k>=0?1:-1;
+  for(let s=0;s<3;s++){c.fillStyle=s%2?'#FFFFFF':'#E85A4F';c.beginPath();c.moveTo(dir*(s*len/3),-1+s*0.6);c.lineTo(dir*((s+1)*len/3),-1+(s+1)*0.8+(1-Math.abs(k))*4*(s+1)/3);c.lineTo(dir*((s+1)*len/3),7-(s+1)*0.8+(1-Math.abs(k))*4*(s+1)/3);c.lineTo(dir*(s*len/3),7-s*0.6);c.closePath();c.fill();}
+  c.restore();
+}
+/**
+ * snipRev 11's par time, display only: a small pocket-watch dial under the windsock whose pale ring runs
+ * down with the level's clock to the course's par time, then greys (view px; no motion but the clock's).
+ */
+function parDial(c:CanvasRenderingContext2D,state:SnipState,course:SnipCourse):void {
+  const par=course.parT;if(!par)return;
+  const left=Math.max(0,1-state.levelTick/par);
+  c.save();c.translate(20,92);
+  c.globalAlpha=left>0?0.85:0.4;
+  c.fillStyle='rgba(20,40,30,0.42)';c.beginPath();c.arc(0,0,10,0,Math.PI*2);c.fill();
+  c.strokeStyle='rgba(255,250,230,0.35)';c.lineWidth=1.5;c.beginPath();c.arc(0,0,7,0,Math.PI*2);c.stroke();
+  if(left>0){c.strokeStyle='#FFF4D2';c.lineWidth=2.5;c.beginPath();c.arc(0,0,7,-Math.PI/2,-Math.PI/2+Math.PI*2*left);c.stroke();}
+  c.fillStyle='rgba(255,250,230,0.8)';c.fillRect(-1.5,-13,3,3);
+  c.restore();
+}
+/** The small level map at the side: the whole course, the basket, fruits and leaves, the view boxed (view px). */
+function courseMap(c:CanvasRenderingContext2D,state:SnipState,course:SnipCourse,w:number):void {
+  const mh=128,mw=Math.round(mh*SNIP_X_W/course.h);const k=mh/course.h;
+  const x0=w-mw-8,y0=40;
+  c.save();
+  c.fillStyle='rgba(20,40,30,0.42)';c.beginPath();c.roundRect(x0-3,y0-3,mw+6,mh+6,5);c.fill();
+  c.strokeStyle='rgba(255,250,230,0.55)';c.lineWidth=1;c.stroke();
+  c.save();c.translate(x0,y0);c.scale(k,k);
+  c.lineWidth=6;c.strokeStyle=COUNTRY_WOOD_LIGHT;
+  for(const s of [...(course.planks??[]),...(course.gutters??[])]){c.beginPath();c.moveTo(s[0],s[1]);c.lineTo(s[2],s[3]);c.stroke();}
+  c.strokeStyle=COUNTRY_GRASS;for(const s of course.springs??[]){c.beginPath();c.moveTo(s[0],s[1]);c.lineTo(s[2],s[3]);c.stroke();}
+  c.fillStyle='#D8B46A';for(const [x,y,r] of course.nests??[])circle(c,x,y,r+6);
+  c.strokeStyle=COUNTRY_GOLD;c.lineWidth=7;for(const [x,y] of [...(course.hooks??[]),...(course.rings??[])]){c.beginPath();c.arc(x,y,14,0,Math.PI*2);c.stroke();}
+  c.fillStyle=COUNTRY_GOLD;state.starX.forEach((sx,i)=>{if(!state.starGot[i])circle(c,sx/256,state.starY[i]!/256,14);});
+  const m=snipCourseMouthAt(course,state.levelTick);c.fillStyle=COUNTRY_WOOD_LIGHT;c.fillRect(m.x/256-32,m.y/256-18,64,36);
+  for(const f of state.fruits??[]){if(f.st!==SNIP_X_PLAY)continue;c.fillStyle=f.gold===1?'#FFE27A':COUNTRY_APPLE;circle(c,f.x/256,f.y/256,22);}
+  // The view.
+  c.strokeStyle='#FFFFFF';c.lineWidth=10;c.strokeRect(5,(state.camY??0)+5,SNIP_X_W-10,SNIP_X_VIEW_H-10);
+  c.restore();c.restore();
+}
+
+/** snipRev 11's world: the sky, trees and course through the vertical camera, the map and wind on top. */
+function drawCourseWorld(c:CanvasRenderingContext2D,state:SnipState,size:CanvasSize,swipes:readonly SnipSwipe[]):void {
+  const course=SNIP_COURSES[state.template];if(!course)return;
+  const camY=state.camY??0;
+  const sx=size.width/SNIP_X_W,sy=size.height/SNIP_X_VIEW_H;
+  const still=reducedMotion();const lite=arcadeReducedEffects();
+  c.save();c.fillStyle=ORCHARD_SKY_TOP;c.fillRect(0,0,size.width,size.height);c.beginPath();c.rect(0,0,size.width,size.height);c.clip();
+  // The sky: the backdrop's hills meet the course's bottom; higher up it slides down slowly (parallax).
+  // The sky is one screen-sized cached layer, repainted only when its parallax lift moves a whole px or the
+  // clouds drift a step (a scaled 2× backdrop and five clouds every frame cost a third of a frame at 4× CPU slowdown).
+  {const k=Math.max(size.width/390,size.height/620);const lift=Math.round((course.h-SNIP_X_VIEW_H-camY)*0.25*sy);const drift=still?0:Math.round(countryClock()*2)/2;
+    deviceLayer(c,`snip-x-sky:${lift}:${drift}`,(l)=>{l.save();l.translate(0,size.height-620*k+lift);l.scale(k,k);drawOrchardSky(l,0,drift);l.restore();});}
+  c.scale(sx,sy);c.translate(0,-camY);
+  if(!lite)drawTreesSlice(c,course.h,camY);
+  countryStamp(c,'orchard-canopy',SNIP_W,28,0,0,canopy);
+  for(const [x0,y0,x1,y1] of course.platforms??[])countryStamp(c,'orchard-rail',x1-x0,y1-y0,x0,y0,ctx=>rail(ctx,x1-x0,y1-y0));
+  const now=typeof performance==='undefined'?0:performance.now()/1000;
+  for(const s of course.planks??[])plankArt(c,s);
+  for(const s of course.gutters??[])gutterArt(c,s);
+  const flex=state.springTick!==undefined&&state.tick-state.springTick<12?Math.sin(((state.tick-state.springTick)/12)*Math.PI):0;
+  for(const s of course.springs??[])springArt(c,s,flex);
+  for(const [x,y,r] of course.nests??[])nestArt(c,x,y,r,still?0:now,false);
+  const free=(state.fruits??[]).some((f,k)=>f.st===SNIP_X_PLAY&&!state.ropes.some(r=>r.alive&&r.f===k));
+  (course.hooks??[]).forEach(([x,y],k)=>crookArt(c,x,y,Boolean((state.hooked??0)&(1<<k)),free?1:0));
+  (course.rings??[]).forEach(([x,y],k)=>ringArt(c,x,y,Boolean((state.ringed??0)&(1<<k)),free?1:0));
+  const mouth=snipCourseMouthAt(course,state.levelTick);
+  if(course.slide){c.save();c.strokeStyle=COUNTRY_WOOD_DARK;c.globalAlpha=0.35;c.lineWidth=3;c.beginPath();c.moveTo(course.mouth[0]-course.slide[0]-32,course.mouth[1]+34);c.lineTo(course.mouth[0]+course.slide[0]+32,course.mouth[1]+34);c.stroke();c.restore();}
+  c.save();c.fillStyle='rgba(30,50,30,0.18)';c.beginPath();c.ellipse(mouth.x/256+3,mouth.y/256+34,26,5,0,0,Math.PI*2);c.fill();c.restore();
+  countryStamp(c,'orchard-basket',64,64,mouth.x/256-32,mouth.y/256-32,basket);
+  state.starX.forEach((x,i)=>{const y=state.starY[i];if(state.starGot[i]||y===undefined)return;
+    if(!drawArtSprite(c,'orchard','leaf',x/256-24,y/256-24,48,48))countryStamp(c,'orchard-leaf',48,48,x/256-24,y/256-24,leaf);});
+  const pinRopes=course.fruits.reduce((n,f)=>n+f.pins.length,0);
+  state.ropes.forEach((rope,index)=>{const f=state.fruits?.[rope.f??0];const pts:[number,number][]=[];for(let i=0;i<rope.x.length;i++){const x=rope.x[i],y=rope.y[i];if(x!==undefined&&y!==undefined)pts.push([x/256,y/256]);}if(rope.alive&&f)pts.push([f.x/256,f.y/256]);(index>=pinRopes?vine:twine)(c,pts,rope.alive?1:0.6);});
+  for(const f of state.fruits??[]){
+    if(f.st!==SNIP_X_PLAY)continue;
+    // A golden apple's glow (and a ring of time round it) runs down until it ripens (gold 2: an ordinary apple).
+    if(f.gold===1){
+      const left=Math.max(0,1-state.levelTick/SNIP_X_GOLD_TICKS);
+      if(!lite){c.save();c.globalAlpha=(still?0.35:0.25+0.15*Math.sin(state.tick*0.15))*(0.4+0.6*left);c.fillStyle='#FFE27A';circle(c,f.x/256,f.y/256,17);c.restore();}
+      c.save();c.strokeStyle=COUNTRY_GOLD;c.lineWidth=2;c.globalAlpha=0.85;c.beginPath();c.arc(f.x/256,f.y/256,16,-Math.PI/2,-Math.PI/2+Math.PI*2*left);c.stroke();c.restore();
+    }
+    countryStamp(c,f.gold===1?'orchard-apple-gold':'orchard-apple',24,24,f.x/256-12,f.y/256-12,f.gold===1?goldenApple:apple);
+  }
+  const t=typeof performance==='undefined'?0:performance.now();
+  c.strokeStyle=COUNTRY_SHINE;c.lineWidth=2;c.lineCap='round';
+  for(const sw of swipes){const k=1-(t-sw.at)/200;if(k<=0)continue;c.globalAlpha=k*0.8;c.beginPath();c.moveTo(sw.a,sw.b);c.lineTo(sw.c,sw.d);c.stroke();}
+  c.globalAlpha=1;
+  const done=SNIP_COURSES[state.order[Math.max(0,state.level-1)]??state.template];
+  // Every fruit fed sparks at its basket (the level just finished when it was the last one).
+  const at=done&&state.fedTick===state.endTick?{x:done.mouth[0],y:done.mouth[1]}:{x:mouth.x/256,y:mouth.y/256};
+  successFrame(c,{id:'snip',tick:state.tick,count:state.eaten,eventTick:(state.fedTick??0)>0?state.fedTick:0,colour:COUNTRY_GOLD,width:SNIP_X_W,height:course.h,point:{...at,shape:'spark'}});
+  c.restore();
+  // View-space overlays: wind and the map.
+  c.save();c.scale(sx,sy);
+  if(!lite)windStreaks(c,state,SNIP_X_W,SNIP_X_VIEW_H,still);
+  windSock(c,state);
+  parDial(c,state,course);
+  courseMap(c,state,course,SNIP_X_W);
+  // A foreground grass fringe along the view's bottom, so the screen fill's meadow carries on wherever the camera is.
+  countryStamp(c,'orchard-fringe',SNIP_X_W,18,0,SNIP_X_VIEW_H-18,fringe);
+  c.restore();
+}

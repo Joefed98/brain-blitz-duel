@@ -570,6 +570,11 @@ export const burstAmbient: ArenaAmbient = {
 
 /** 20. Scrumper: the orchard grass runs on below, a deeper green, with leafy dark above a centred world. */
 export function snipFill(ctx: CanvasRenderingContext2D, view: ArenaSceneView): void {
+  // snipRev 11's taller view is a hair narrower than the screen: the trunks' dark bark (#72502D) runs on beside it.
+  for (const r of fillSides(view)) {
+    ctx.fillStyle = "#72502D";
+    ctx.fillRect(r.x, r.y, r.w, r.h);
+  }
   const below = fillBelow(view);
   const above = fillAbove(view);
   if (above) fillGradient(ctx, above, above.y, above.y + above.h, [[0, "#0B1A0C"], [1, "#2E5A26"]]);

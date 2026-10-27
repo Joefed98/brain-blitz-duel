@@ -11,6 +11,7 @@
 import type { Browser, BrowserContext, Page } from "playwright";
 
 import { DEVICE_INIT, IPHONE11_APP, emulateDevice } from "./device-emulation";
+import { FIXED_NOW, fixClock } from "./fixed-clock";
 import { ONBOARDING_KEY } from "../src/lib/onboarding";
 import { generatePuzzle } from "../src/lib/duel/generate.server";
 import { withSeededRandom } from "../src/lib/duel/random";
@@ -365,6 +366,16 @@ function deviceInit(seed: { onboarding: string; bests: [string, number][] }) {
 
 const BEST_TYPES = ["tilegrid", "matchup", "sudoku"] as const;
 
+let pageClock: ReturnType<typeof fixClock> | null = null;
+/**
+ * Draws every screen opened from here on with a fixed clock (scripts/fixed-clock.ts): the dated screens
+ * (the Play tab's public games, scheduled `day(2)` after "now", Tournaments, room history) then read the
+ * same on any day. Shifts this process's Date too, so the room and daily fixtures agree with the page.
+ */
+export function fixThemeClock(at: number = FIXED_NOW): void {
+  pageClock = fixClock(at);
+}
+
 /** Opens one screen at one viewport; the caller closes the context. */
 export async function openThemeScreen(
   browser: Browser,
@@ -380,6 +391,7 @@ export async function openThemeScreen(
     ...(viewport.desktop ? { hasTouch: false, isMobile: false } : { hasTouch: true }),
     ...(screen.userAgent ? { userAgent: screen.userAgent } : {}),
   });
+  if (pageClock) await context.addInitScript(pageClock.script, pageClock.arg);
   await context.addInitScript(DEVICE_INIT);
   if (screen.beta)
     await context.addInitScript((beta) => {

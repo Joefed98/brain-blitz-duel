@@ -1,5 +1,5 @@
 import { DEPTH_DEMO_STOPS, DEPTH_REV, depthRevOf } from "./logicDepth";
-import { SWING_REV_TALL } from "@/lib/arcade/swing";
+import { SWING_REV_EXPAND } from "@/lib/arcade/swing";
 import { INK_REV_EXPAND } from "@/lib/arcade/inkBridge";
 import { CLAY_REV_DEPTH } from "@/lib/arcade/clayShoot";
 import { WHACK_REV_DEPTH } from "@/lib/arcade/whack";
@@ -7,6 +7,9 @@ import { WORDFALL_REV } from "@/lib/arcade/wordfall";
 import { BRK_REV_DEEP } from "@/lib/arcade/breaker";
 import { TILT_REV_EXPAND } from "@/lib/arcade/tilt";
 import { CROSS_REV_EXPAND } from "@/lib/arcade/cross";
+import { FLIP_REV_EXPAND } from "@/lib/arcade/flip";
+import { SNIP_REV_EXPAND } from "@/lib/arcade/snip";
+import { HOVER_REV_EXPAND } from "@/lib/arcade/hover";
 import { RALLY_REV_BONUS } from "@/lib/arcade/rally";
 import { WAV_REV_EXPAND } from "@/lib/arcade/wavefront";
 import { BURST_REV_CLEAN } from "@/lib/arcade/burst";
@@ -113,6 +116,13 @@ export const getIntroDemoFn = createServerFn({ method: "GET" })
     // Tilt's expansion (tiltRev 8, 26 Oct 2026): three bigger mazes under a camera, keys, ice and quick stars. An older
     // demo would show the small disc, so the intro shows its still until a demo is recorded on tiltRev 8.
     if (data.type === "tilt" && demo?.puzzle.type === "tilt" && demo.puzzle.tiltRev !== TILT_REV_EXPAND) return null;
+    // Roofbound flipRev 8 (expansion E7, docs/expansions/x200-flip.md): a taller cave whose height changes, moving spikes,
+    // trails, checkpoints, speed zones and sweet spots. An older demo would show the short corridor (and none of them),
+    // so Roofbound's stays stopped (the intro shows its still) until one is recorded on flipRev 8.
+    if (data.type === "flip" && demo?.puzzle.type === "flip" && demo.puzzle.flipRev !== FLIP_REV_EXPAND) return null;
+    // The 200-point expansion (26 Oct 2026, docs/expansions/x200-hover.md): Hover hoverRev 9 plays in a 390 × 727 world with
+    // tight gates, centre lines, star chains and shields, so its demo stays stopped until one is recorded there.
+    if (data.type === "hover" && demo?.puzzle.type === "hover" && demo.puzzle.hoverRev !== HOVER_REV_EXPAND) return null;
     if (data.type === "rally" && demo?.puzzle.type === "rally" && demo.puzzle.rallyRev !== RALLY_REV_BONUS) return null;
     // The 200 expansion (wavRev 10): a demo recorded on an older revision shows the shorter arena and no power-ups, so it stays stopped until one is recorded on wavRev 10.
     if (data.type === "wavefront" && demo?.puzzle.type === "wavefront" && demo.puzzle.wavRev !== WAV_REV_EXPAND) return null;
@@ -136,7 +146,9 @@ export const getIntroDemoFn = createServerFn({ method: "GET" })
     // Taller worlds batch 3 (16 Oct 2026): Grappler's taller cavern, Orbit's taller view and Ball Tracker's 12-row board.
     // An older demo would show the short world (and Ball Tracker's would play a 9-row course), so each stays stopped
     // until one is recorded on its tall revision.
-    if (data.type === "swing" && demo?.puzzle.type === "swing" && demo.puzzle.swingRev !== SWING_REV_TALL) return null;
+    // Grappler's 200 expansion (swingRev 13, 26 Oct 2026): a wider, deeper cave with ledges, gems, gates and par
+    // times, so only a demo recorded on swingRev 13 plays; until one is, the intro shows its still.
+    if (data.type === "swing" && demo?.puzzle.type === "swing" && demo.puzzle.swingRev !== SWING_REV_EXPAND) return null;
     // The expansion to 200 (orbitRev 12) shows a wider view with stardust, moons and asteroid fields, so Orbit's demo
     // stays stopped (the intro shows its still) until one is recorded on orbitRev 12.
     if (data.type === "orbit" && demo?.puzzle.type === "orbit" && demo.puzzle.orbitRev !== ORBIT_REV_XP) return null;
@@ -144,6 +156,10 @@ export const getIntroDemoFn = createServerFn({ method: "GET" })
     // until a demo is recorded on its new revision (btRev 7, matchupRev 9).
     if (data.type === "balltrack" && demo?.puzzle.type === "balltrack" && demo.puzzle.btRev !== BT_REV_RUSH) return null;
     if (data.type === "matchup" && demo?.puzzle.type === "matchup" && demo.puzzle.matchupRev !== MATCHUP_REV_GOALS) return null;
+    // The 200-point expansion (26 Oct 2026, docs/expansions/x200-snip.md): Scrumper's snipRev 11 tall courses with several
+    // fruits and a vertical camera. An older demo shows the old one-apple levels, so the intro shows its still until a demo
+    // is recorded on snipRev 11.
+    if (data.type === "snip" && demo?.puzzle.type === "snip" && demo.puzzle.snipRev !== SNIP_REV_EXPAND) return null;
     // Tenfall tenRev 4 (25 Oct 2026, depth to 200): gold tiles. An older demo shows no gold tile under the gold-tile
     // help, so Tenfall's intro shows its still until a demo is recorded on tenRev 4.
     if (data.type === "tendrop" && demo?.puzzle.type === "tendrop" && (demo.puzzle.tenRev ?? 0) < TEN_DROP_DEPTH_REV) return null;

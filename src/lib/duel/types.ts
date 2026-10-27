@@ -1776,7 +1776,7 @@ export interface HoverPuzzleData {
   type: "hover";
   /** Drives every pillar of the run — identical for everyone in the room. */
   seed: number;
-  /** Course revision (2 = gold stars, two-gap and moving barriers; 3 = score bands; 4 = about 10% lower, Tuning C); absent = original course. */
+  /** Course revision (2 = gold stars, two-gap and moving barriers; 3 = score bands; 4 = about 10% lower, Tuning C; 5 = taller world; 6 = scoring targets; 7 = score bands; 9 = the 200 expansion: tight gates, centre lines, star chains, shields); absent = original course. */
   hoverRev?: number;
 }
 

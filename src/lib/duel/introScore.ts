@@ -2,7 +2,6 @@ import { CLASH_DEPTH_MAX_WRONG, CLASH_QUEUE } from "@/lib/arcade/colourClash";
 import { BULLSEYE_INNER_BULL_POINTS, BULLSEYE_RING_VALUES } from "@/lib/arcade/bullseye";
 import { BINTOSS_FAR_POINTS, BINTOSS_THROWS } from "@/lib/arcade/binToss";
 import { INK_FEATURE_MAX, INK_LEVELS } from "@/lib/arcade/inkBridge";
-import { SNIP_CONFIG } from "@/lib/arcade/snip";
 import { SWING_FINISH_M } from "@/lib/arcade/swing";
 import { TILT_X_MAZES } from "@/lib/arcade/tilt";
 import { bandsIntro } from "./puzzleBandsText";
@@ -101,7 +100,7 @@ function introScoreTemplates(): Record<PuzzleType, string> {
     dig: "Fill the drain with clean water for 100, more if you're quick and use few digs.",
 
     // Arcade
-    hover: "Points for each barrier and gold star. Last the whole minute for 10 more.",
+    hover: "Points for barriers and stars; tight gates, chains and centre lines add 50. Up to {max}.",
     skyline: "Points for blocks, perfects in a row, gold blocks and every 10 floors. Up to {max}.",
     bintoss: `Buckets, hoops, All ${BINTOSS_THROWS} in for 10 more: up to 150. Far buckets +${BINTOSS_FAR_POINTS} each: up to {max}.`,
     bullseye: `Rings ${BULLSEYE_RING_VALUES.join(" / ")}, inner bull ${BULLSEYE_INNER_BULL_POINTS}; streaks, dead-centre add more. Up to {max}.`,
@@ -115,13 +114,13 @@ function introScoreTemplates(): Record<PuzzleType, string> {
     slice: "Food by combo; gold fruit, tickets and dodges add more. Chilli: lose 10. Up to {max}.",
     beat: "Notes hit in time score; fever, gold notes, double taps and streaks add bonus. Up to {max}.",
     wavefront: "Ships, waves, a fast boss kill; streaks, precise weak-point hits, power-ups: up to {max}.",
-    flip: "Points for every second you last and each gold star. Last the minute for 10 more.",
+    flip: "Time and stars score; trails, sweet spots, double flips, zones and checkpoints: up to {max}.",
     junction: "Points for each car and bus through, ± for ambulances. Last the minute for 10 more.",
     inkbridge: `Levels score; stars, coins, shamrock: up to ${INK_FEATURE_MAX} more. All ${INK_LEVELS} levels quickly: up to {max}.`,
     burst: "Atoms score; a lost life costs 5. Last 90 s for 10 more; clean waves add. Up to {max}.",
     orbit: "Planets and the sun, plus stardust, slingshots, fields and perfect orbits: up to {max}.",
-    snip: `Points for each apple and leaf. All ${SNIP_CONFIG.levels} apples quickly: up to {max}.`,
-    swing: `Points for distance and stars. Reach ${SWING_FINISH_M} metres for 10 more.`,
+    snip: "Points for fruit fed and leaves; golden apples, few cuts and speed add more. Up to {max}.",
+    swing: `Distance and stars. Reach ${SWING_FINISH_M} metres for 10 more. Gems, gates, ledges, pars: up to {max}.`,
     tilt: `Mazes, progress and stars; quick stars and pace add more. All ${TILT_X_MAZES} quickly: up to {max}.`,
     balltrack: `Points per marble home; gold, boosted and in-a-row marbles add more. Up to {max}.`,
     swerve: arcadeOpen("each coin you collect"),

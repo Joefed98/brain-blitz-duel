@@ -31,7 +31,7 @@ import {
   type ArcadeGame,
   type CanvasSize,
 } from "./engine";
-import { bandStrictGame, bandStrict, bandRetarget, bandTargetGame, bandCurveOf, bandCurve, bandInit, bandPoints, bandScoreOf, bandStep, bandTotal, BAND_FINISH_BONUS, type BandFields, type BandParts } from "./scoreBands";
+import { BAND_STRICT_MARK, bandStrictGame, bandStrict, bandRetarget, bandTargetGame, bandCurveOf, bandCurve, bandInit, bandPoints, bandScoreOf, bandStep, bandTotal, BAND_FINISH_BONUS, type BandFields, type BandParts } from "./scoreBands";
 
 /* ============================== Constants ============================== */
 
@@ -107,6 +107,28 @@ export interface HoverPillar {
   movePhase?: number;
   /** hoverRev 2 only: a gold star's centre, as an offset from the (moving) gap top. */
   starDy?: number;
+  /** hoverRev 9 only: a tight gate, a narrow gold-rimmed extra gap (top and height, fixed-point). */
+  tightTop?: number;
+  tightH?: number;
+}
+
+/** hoverRev 9: one star of a star chain, fixed in the world (x0 scrolls like a pillar's). */
+export interface HoverChainStar {
+  x0: number;
+  y: number;
+}
+
+/** hoverRev 9: a star chain in the open space after barrier `after`, laid on one flap's arc. */
+export interface HoverChain {
+  after: number;
+  stars: HoverChainStar[];
+}
+
+/** hoverRev 9: a shield pickup in the open space after barrier `after`. */
+export interface HoverPickup {
+  after: number;
+  x0: number;
+  y: number;
 }
 
 export interface HoverState extends BandFields {
@@ -133,6 +155,34 @@ export interface HoverState extends BandFields {
   totalStars?: number;
   /** hoverRev 5 only (Tuning E): the taller world's height in px (HOVER_TALL_H). Absent = HOVER_WORLD_H. */
   worldH?: number;
+  /** hoverRev 9 only (the 200 expansion): 1 marks the expansion rules; every field below is absent on earlier rounds. */
+  xp?: number;
+  /** Tight gates threaded and the pillar index of each. */
+  tight?: number;
+  tightTaken?: number[];
+  /** The barrier being threaded through its tight gate cleanly (≥ 0), failed on it (−2 − index), or none (−1). */
+  tightOn?: number;
+  /** The course's star chains, the stars taken (chain × 8 + star) and the chains completed. */
+  chains?: HoverChain[];
+  chainHits?: number[];
+  chainsDone?: number;
+  /** The course's shield pickups and the ones taken (their index). */
+  pickups?: HoverPickup[];
+  pickupsTaken?: number[];
+  /** 1 while a shield is held; ticks of invulnerability left after one broke; shields broken. */
+  shield?: number;
+  invuln?: number;
+  shieldBreaks?: number;
+  /**
+   * The centre line through each tight gate (new on hoverRev 9): the gate being measured (the barrier
+   * index while the saucer's centre is within its columns, else −1), the furthest the saucer's centre has
+   * been from the line on it so far (fixed-point), and each gate threaded with a centre grade
+   * (index × 4 + grade, grade 1–3) and their points.
+   */
+  ctrOn?: number;
+  ctrDev?: number;
+  ctrLog?: number[];
+  ctrPts?: number;
 }
 
 /** The world height a state plays in (px): the taller Tuning E world, or the original 560. */
@@ -378,6 +428,7 @@ function stepRev2(state: HoverState, tapped: boolean): HoverState {
 }
 
 function step(state: HoverState, tapped: boolean): HoverState {
+  if (state.xp) return stepExpand(state, tapped);
   if (state.rev === HOVER_REV) return stepRev2(state, tapped);
   if (isOver(state)) return state;
 
@@ -448,6 +499,8 @@ export function hoverCheckpoint(state: HoverState): HoverCheckpoint {
   // hoverRev 4 (Tuning C) adds its marker last; hoverRev 5 (Tuning E) its world height after it.
   if (state.tunec) extra.push(state.tunec);
   if (state.worldH) extra.push(state.worldH);
+  // hoverRev 9 (the 200 expansion) folds its feature state in after them.
+  if (state.xp) extra.push(state.xp, state.tight ?? 0, state.tightOn ?? -1, state.chainsDone ?? 0, state.chainHits?.length ?? 0, state.pickupsTaken?.length ?? 0, state.shield ?? 0, state.invuln ?? 0, state.shieldBreaks ?? 0, state.ctrOn ?? -1, state.ctrDev ?? 0, state.ctrPts ?? 0);
   for (const value of [...Object.values(snapshot), ...extra]) {
     checksum ^= value | 0;
     checksum = Math.imul(checksum, 0x01000193) >>> 0;
@@ -546,7 +599,8 @@ export const hoverRev2Game: ArcadeGame<HoverState> = { ...hoverGame, init: initR
 
 /** The game for a stored round: its hoverRev picks the rules (absent = original). */
 export function hoverGameFor(rev?: number | null): ArcadeGame<HoverState> {
-  if (rev === HOVER_REV_STRICT) return hoverStrictGame;
+  if (rev === HOVER_REV_EXPAND) return hoverExpandGame;
+  if (rev === HOVER_REV_STRICT || rev === HOVER_REV_PARKED) return hoverStrictGame;
   if (rev === HOVER_REV_TARGET) return hoverTargetGame;
   if (rev === HOVER_REV_TALL) return hoverTallGame;
   if (rev === HOVER_REV_TUNEC) return hoverTunecGame;
@@ -561,12 +615,14 @@ export const HOVER_REV_BAND = 3;
 /** Barriers count 3 and gold stars 2; 140 at every barrier and star; lasting the minute adds 10. */
 export const HOVER_BAND_CURVE = bandCurve([0, 24, 45, 65, 100, 123, 146], [0, 70, 100, 125, 136, 138, 140]);
 export function hoverBandParts(state: HoverState): BandParts {
+  if (state.xp) return hoverExpandParts(state);
   const units = 3 * Math.max(0, state.gates) + 2 * (state.stars ?? 0);
   const finished = hoverSurvived(state);
   return { units, points: bandPoints(bandCurveOf(state, state.worldH ? HOVER_V5_BAND_CURVE : state.tunec ? HOVER_V4_BAND_CURVE : HOVER_BAND_CURVE), units), bonus: finished ? BAND_FINISH_BONUS : 0, penalty: 0, finished, text: `${state.gates} / ${state.totalGates} barriers · ${state.stars ?? 0} stars`, bonusText: "Lasted the minute" };
 }
 
 function scoreBand(state: HoverState): number {
+  if (state.xp) return bandTotal(hoverExpandParts(state), Boolean(state.acted), HOVER_V9_MAX);
   return bandTotal(hoverBandParts(state), Boolean(state.acted));
 }
 
@@ -642,7 +698,8 @@ export const hoverTallGame: ArcadeGame<HoverState> = { ...hoverTunecGame, init: 
 
 /** The world height (px) a stored round's hoverRev plays in. */
 export function hoverWorldHFor(rev?: number | null): number {
-  return rev === HOVER_REV_TALL || rev === HOVER_REV_TARGET || rev === HOVER_REV_STRICT ? HOVER_TALL_H : HOVER_WORLD_H;
+  if (rev === HOVER_REV_EXPAND) return HOVER_EXPAND_H;
+  return rev === HOVER_REV_TALL || rev === HOVER_REV_TARGET || rev === HOVER_REV_STRICT || rev === HOVER_REV_PARKED ? HOVER_TALL_H : HOVER_WORLD_H;
 }
 
 /* ================= Scoring targets (hoverRev 6, 18 Oct 2026) ================= */
@@ -669,3 +726,753 @@ export const HOVER_REV_STRICT = 7;
 export const hoverStrictGame = bandStrictGame(hoverTargetGame);
 /** The curve new rounds score on: HOVER_V5_BAND_CURVE's strict curve (what bandCurveOf gives a band-3 state). */
 export const HOVER_V7_BAND_CURVE = bandStrict(HOVER_V5_BAND_CURVE);
+
+/* ================= The 200 expansion (hoverRev 9, 26 Oct 2026) ================= */
+
+/**
+ * hoverRev 9 (the 200 expansion, docs/scoring-200.md): Hover scores up to 200.
+ *
+ * World: 390 × HOVER_EXPAND_H, the height a 390-wide world takes when it fills the iPhone 11
+ * home-screen arena (414 × 772) edge to edge, so the world is as large on screen as it can be.
+ * The course is hoverRev 7's (the same seeded barriers, gap sizes, kinds, gold stars, slides,
+ * spacing and scroll ramp), drifting over the whole height (hoverDrift on this world's floor),
+ * and three features are laid on it at init from their own PRNG stream (seed ^ 0x7e1a5c03):
+ *
+ *  - Tight gates (HOVER_TIGHT_GATES): on plain barriers (one still gap, no star) an extra
+ *    gold-rimmed gap only HOVER_TIGHT_H high (the narrowest normal gap is 100 px), above or
+ *    below the main gap with solid wall between. Threading it cleanly (inside it on every tick
+ *    the saucer overlaps the barrier, no shield breaking there) scores HOVER_TIGHT_POINTS.
+ *  - Star chains (HOVER_CHAINS, exactly that many on every course): 5–7 stars in the open space
+ *    between two barriers (on most courses neither with a gold star and the second one still; a
+ *    course short of room relaxes those rules, passes 3 and 4), laid on the top of the exact arc of
+ *    one flap at that stretch's scroll speed (so one well-timed tap from the right height sweeps them
+ *    all). Each star is collected by touch like a gold star; collecting every star of a chain scores
+ *    HOVER_CHAIN_POINTS.
+ *  - Shield pickups (HOVER_PICKUPS): bubbles at fixed seeded points (one early, one mid-course) in the
+ *    open space between two barriers, the same for every player; touching one with no shield held
+ *    gives a shield (one at a time). A crash with a shield (a barrier, the floor or the ceiling)
+ *    breaks it instead: the saucer flies on, untouchable for HOVER_SHIELD_INVULN ticks (barriers pass
+ *    through it; the floor bounces it up with a tap's kick, the ceiling stops its climb). The shield
+ *    scores nothing itself.
+ *  - The centre line (new on hoverRev 9): every tight gate has a line through its middle. On a clean
+ *    thread, the furthest the saucer's centre strays from it while within the barrier's columns
+ *    grades the pass (HOVER_CENTRE_TOL: 3, 2 or 1 points).
+ *
+ * Score: the base (barriers 3, gold stars 2, on HOVER_V9_BAND_CURVE to 140, plus 10 for lasting
+ * the minute; at most 150) plus the skill points (5 a tight gate, 5 a whole chain, the centre
+ * grades: hoverSkillRaw, at most HOVER_SKILL_RAW_MAX) paid on the rising HOVER_SKILL_PAY (at most
+ * 50), capped at HOVER_V9_MAX (200). 200 only for every barrier, star, tight gate, chain and a
+ * dead-centre line through every gate.
+ * States add `xp` and the feature fields, folded into the checkpoint checksum after the rest.
+ */
+/**
+ * The expansion's stamp. It folds in the parked Expansion E1 revision (hoverRev 8 on an unmerged branch),
+ * which was never dealt: nothing names or deals 8, and a round stamped 8 would play as hoverRev 7 (the
+ * revision before it; none exists).
+ */
+export const HOVER_REV_EXPAND = 9;
+/** The parked, never-dealt expansion stamp: plays as hoverRev 7 (see HOVER_REV_EXPAND). */
+const HOVER_REV_PARKED = 8;
+export const HOVER_EXPAND_H = 727;
+/** hoverRev 9's first barrier: a warm-up gap this high (400 px; the course's first gaps are 150) round the start height. */
+export const HOVER_OPEN_H = 102_400;
+/** A tight gate is 80 px high (the disc is 22 px across; the narrowest normal gap is 100 px). */
+export const HOVER_TIGHT_H = 20_480;
+/** Solid wall kept between a tight gate and the barrier's main gap, at least (fixed-point). */
+export const HOVER_TIGHT_WALL = 14_336;
+/** Tight gates, chains and pickups keep this far from the floor and ceiling (fixed-point). */
+export const HOVER_FEATURE_EDGE = 6_144;
+/** The farthest a tight gate sits from the neighbouring barriers' gaps, so it is always reachable (fixed-point). */
+export const HOVER_TIGHT_REACH = 46_080;
+export const HOVER_TIGHT_GATES = 5;
+export const HOVER_TIGHT_FROM = 4;
+/** Places drawn on one barrier for a tight gate whose centre line can be flown (centreFlyable). */
+export const HOVER_TIGHT_TRIES = 6;
+export const HOVER_CHAINS = 5;
+export const HOVER_CHAIN_FROM = 2;
+/** A chain covers the top of one flap's hump: from HOVER_CHAIN_K0 ticks after the tap, for HOVER_CHAIN_TICKS ticks. */
+export const HOVER_CHAIN_K0 = 4;
+export const HOVER_CHAIN_TICKS = 28;
+/** Chain stars are at least this far apart along the course (fixed-point). */
+export const HOVER_CHAIN_GAP = 4_096;
+/** The most two barriers' gaps differ for a chain between them (fixed-point). */
+export const HOVER_CHAIN_STEP = 16_384;
+/** The most the gap after a chain may differ from the gap of the barrier after that (fixed-point). */
+export const HOVER_CHAIN_ONWARD = 40_960;
+export const HOVER_PICKUPS = 2;
+export const HOVER_SHIELD_R = 2_560;
+export const HOVER_SHIELD_INVULN = 45;
+export const HOVER_TIGHT_POINTS = 5;
+export const HOVER_CHAIN_POINTS = 5;
+/**
+ * The centre line through a tight gate: on a clean thread, the furthest the saucer's centre strays from
+ * the gate's middle while it is within the barrier's columns grades it 3 (within HOVER_CENTRE_TOL[0]),
+ * 2 or 1 (fixed-point). The slowest gate's best arc strays about 4.3 px, so 3 is open on every gate with room to spare.
+ */
+export const HOVER_CENTRE_TOL = [1_536, 2_560, 3_840] as const;
+export const HOVER_CENTRE_MAX_GRADE = 3;
+/**
+ * Skill points by centre-line grade (0–3): dead centre pays twice a grade 2, so the line separates the elite from the
+ * merely near-perfect (phase 1 of the arcade rule, 26 Oct 2026).
+ */
+export const HOVER_CENTRE_POINTS = [0, 1, 2, 4] as const;
+/** The most one gate's centre line pays. */
+export const HOVER_CENTRE_TOP = HOVER_CENTRE_POINTS[HOVER_CENTRE_MAX_GRADE];
+/** The tight gate's centre line height (fixed-point). */
+export function hoverCentreY(p: HoverPillar): number {
+  return (p.tightTop ?? 0) + ((p.tightH ?? 0) >> 1);
+}
+/** A centre-line grade (0–3) for the furthest the saucer strayed (fixed-point). */
+export function hoverCentreGrade(dev: number): number {
+  return dev <= HOVER_CENTRE_TOL[0] ? 3 : dev <= HOVER_CENTRE_TOL[1] ? 2 : dev <= HOVER_CENTRE_TOL[2] ? 1 : 0;
+}
+export const HOVER_SKILL_MAX = 50;
+/** hoverRev 9's cap (the round maximum it was built for, roundMax.ts). */
+export const HOVER_V9_MAX = 200;
+export const HOVER_SKILL_RAW_MAX = HOVER_TIGHT_GATES * (HOVER_TIGHT_POINTS + HOVER_CENTRE_TOP) + HOVER_CHAINS * HOVER_CHAIN_POINTS;
+/**
+ * The raw skill that pays the full HOVER_SKILL_MAX: HOVER_SKILL_SLACK short of everything, so a flawless human-paced
+ * run reaches 200 with one slip (a chain lost and a centre line off dead centre, or three lines a grade off), but no less.
+ */
+export const HOVER_SKILL_SLACK = 12;
+export const HOVER_SKILL_FULL = HOVER_SKILL_RAW_MAX - HOVER_SKILL_SLACK;
+/**
+ * The skill pay scale (raw skill points → paid, as Breaker's BRK_V9_SKILL_PAY): light use pays little and
+ * the full HOVER_SKILL_MAX needs every tight gate, chain and dead-centre line.
+ */
+export const HOVER_SKILL_PAY = bandCurve([0, 15, 30, 45, 52, HOVER_SKILL_FULL], [0, 8, 23, 30, 37, HOVER_SKILL_MAX]);
+/**
+ * The base curve: barriers 3 and gold stars 2 (and the flight unit), 140 at all 42 barriers and 8 of the 10
+ * stars (a flawless human-paced run may lose two near-lip stars; plus 10 for the minute). hoverRev 7's strict curve with its middle knots a few points lower
+ * (scripts/arcade-skill-bands.ts --rev=x): the shields and the warm-up gate carry the simulated
+ * good player a few barriers further than on hoverRev 7, so its median stays within 10 % of it.
+ */
+export const HOVER_V9_BAND_CURVE = bandCurve(
+  [0, 24, 27, 42, 45, 65, 89, 100, 143],
+  [0, 68, 70, 97, 101, 112, 118, 139, 140],
+);
+
+/** RISE[k]: the disc's height change k ticks after the tap tick (k = 0 is the tap tick itself), fixed-point. */
+const HOVER_RISE: number[] = (() => {
+  const out: number[] = [];
+  let v = HOVER_IMPULSE;
+  let y = 0;
+  for (let k = 0; k <= HOVER_CHAIN_K0 + HOVER_CHAIN_TICKS; k++) {
+    if (k > 0) v = clampInt(v + HOVER_GRAVITY, -HOVER_TERMINAL, HOVER_TERMINAL);
+    y += v;
+    out.push(y);
+  }
+  return out;
+})();
+
+/** The height one flap climbs (fixed-point): the top of its arc above the tap. */
+const HOVER_ARC = -Math.min(...HOVER_RISE);
+/** The room kept under a tight gate's lowest centre line's arc, above the floor (fixed-point). */
+const HOVER_CENTRE_FLOOR = 1_024;
+
+/** The distance after each tick of a crash-free run (the scroll ramp depends only on barriers passed). */
+const HOVER_CLEAN_DIST: number[] = (() => {
+  const xs = Array.from({ length: HOVER_GATE_COUNT }, (_, i) => HOVER_FIRST_X + i * HOVER_SPACING);
+  const out = [0];
+  let gates = 0;
+  let distance = 0;
+  for (let tick = 1; tick <= HOVER_RUN_TICKS; tick++) {
+    distance += hoverScroll(gates);
+    while (
+      gates < xs.length &&
+      distance > xs[gates]! + HOVER_PILLAR_W - (HOVER_DISC_X - HOVER_DISC_R)
+    )
+      gates += 1;
+    out.push(distance);
+  }
+  return out;
+})();
+
+/** The first tick of a crash-free run whose distance reaches `d`. */
+function cleanTickAt(d: number): number {
+  let lo = 0;
+  let hi = HOVER_RUN_TICKS;
+  while (lo < hi) {
+    const mid = (lo + hi) >> 1;
+    if (HOVER_CLEAN_DIST[mid]! >= d) hi = mid;
+    else lo = mid + 1;
+  }
+  return lo;
+}
+
+/** A barrier's gaps (top, height) at a tick: the (moving) first gap and the second one. */
+function gapsAt(p: HoverPillar, tick: number): [number, number][] {
+  const out: [number, number][] = [[hoverGapTop(p, tick), p.gapH]];
+  if (p.gap2Top !== undefined) out.push([p.gap2Top, p.gap2H ?? 0]);
+  return out;
+}
+
+/** The tick a crash-free run's disc is level with a barrier's middle. */
+function middleTick(p: HoverPillar): number {
+  return cleanTickAt(p.x0 + (HOVER_PILLAR_W >> 1) - HOVER_DISC_X);
+}
+
+/** Scrolled distance at which a barrier is passed (its gate counts), and at which the disc first overlaps it. */
+const passDistance = (p: HoverPillar) => p.x0 + HOVER_PILLAR_W - (HOVER_DISC_X - HOVER_DISC_R);
+const enterDistance = (p: HoverPillar) => p.x0 - (HOVER_DISC_X + HOVER_DISC_R);
+
+/** The room a chain's way out keeps to the next barrier's gap edges (fixed-point). */
+const HOVER_CHAIN_EXIT_ROOM = 768;
+
+/**
+ * True when, after a chain's flap (tapped at height `yStart` when the course has scrolled to `tapDistance`),
+ * no tap or one more tap after the chain's last star carries the saucer through barrier `b` with
+ * HOVER_CHAIN_EXIT_ROOM to its gap's edges, touching b's gold star if it has one, clear of the floor and ceiling.
+ */
+export function chainExitFlyable(yStart: number, tapDistance: number, speed: number, b: HoverPillar, bottom: number): boolean {
+  const last = HOVER_CHAIN_K0 + HOVER_CHAIN_TICKS;
+  const kIn = Math.ceil((enterDistance(b) - tapDistance) / speed);
+  const kOut = Math.floor((passDistance(b) - tapDistance) / speed);
+  const kMid = Math.round((b.x0 + (HOVER_PILLAR_W >> 1) - HOVER_DISC_X - tapDistance) / speed);
+  const tap0 = cleanTickAt(tapDistance);
+  const room = HOVER_CHAIN_EXIT_ROOM;
+  for (let u = last; u <= kOut; u++) {
+    // u === last: no second tap (the chain's own flap carries on).
+    let y = yStart;
+    let v = 0;
+    let ok = true;
+    let star = b.starDy === undefined;
+    for (let k = 0; k <= kOut && ok; k++) {
+      v = k === 0 || (u > last && k === u) ? HOVER_IMPULSE : clampInt(v + HOVER_GRAVITY, -HOVER_TERMINAL, HOVER_TERMINAL);
+      y += v;
+      if (y - HOVER_DISC_R <= room || y + HOVER_DISC_R >= bottom - room) ok = false;
+      else if (k >= kIn && !gapsAt(b, tap0 + k).some(([top, h]) => y - HOVER_DISC_R >= top + room && y + HOVER_DISC_R <= top + h - room)) ok = false;
+      if (!star && k === kMid && Math.abs((hoverStarY(b, tap0 + k) ?? 0) - y) <= HOVER_DISC_R + HOVER_STAR_R - 512) star = true;
+    }
+    if (ok && star) return true;
+  }
+  return false;
+}
+
+/** The first tick of a crash-free run whose distance is past `d` (strictly). */
+function cleanTickPast(d: number): number {
+  let t = cleanTickAt(d);
+  while (t < HOVER_RUN_TICKS && HOVER_CLEAN_DIST[t]! <= d) t++;
+  return t;
+}
+
+/** FALL[j]: the disc's height change j ticks after a tap (j = 0 is the tap tick), terminal speed applied, fixed-point. */
+const HOVER_FALL: number[] = (() => {
+  const out: number[] = [];
+  let v = HOVER_IMPULSE;
+  let y = 0;
+  for (let j = 0; j <= 240; j++) {
+    if (j > 0) v = clampInt(v + HOVER_GRAVITY, -HOVER_TERMINAL, HOVER_TERMINAL);
+    y += v;
+    out.push(y);
+  }
+  return out;
+})();
+
+/**
+ * True when a tight gate at `centre` on barrier `p` can be flown dead centre (within HOVER_CENTRE_TOL[0] less 1 px
+ * across the barrier's columns, inside the gate with 2 px to spare while overlapping it) out of the barrier before:
+ * the last tap lifting it through the gate is made from a height the saucer can reach by then out of the previous
+ * barrier's gaps. A crash-free run's timeline (the scroll depends only on barriers passed). For each moment of the
+ * last tap the heights it may be made from form one range (the flight after a tap depends on the height alone).
+ */
+export function centreFlyable(prev: HoverPillar, p: HoverPillar, centre: number, bottom: number): boolean {
+  const t0 = cleanTickPast(passDistance(prev));
+  const oA = cleanTickPast(p.x0 - (HOVER_DISC_X + HOVER_DISC_R));
+  const oB = cleanTickAt(p.x0 + HOVER_PILLAR_W - (HOVER_DISC_X - HOVER_DISC_R)) - 1;
+  const dA = cleanTickAt(p.x0 - HOVER_DISC_X);
+  let dB = dA;
+  while (dB + 1 <= HOVER_RUN_TICKS && HOVER_CLEAN_DIST[dB + 1]! <= p.x0 + HOVER_PILLAR_W - HOVER_DISC_X) dB++;
+  if (oB - t0 > 230) return false;
+  const half = HOVER_TIGHT_H >> 1;
+  const lo = centre - half + HOVER_DISC_R + 512;
+  const hi = centre + half - HOVER_DISC_R - 512;
+  const tol = HOVER_CENTRE_TOL[0] - 256;
+  // A height y at tick t is allowed by every rule in force then.
+  const lower = (t: number) => Math.max(HOVER_DISC_R + 1, t >= oA ? lo : 0, t >= dA && t <= dB ? centre - tol : 0);
+  const upper = (t: number) => Math.min(bottom - HOVER_DISC_R - 1, t >= oA ? hi : bottom, t >= dA && t <= dB ? centre + tol : bottom);
+  // The heights the last tap (at tick t2) may be made from: one range per tick.
+  const range = new Map<number, [number, number]>();
+  for (let t2 = Math.max(t0 + 1, dA - 26); t2 <= dB; t2++) {
+    let a = lower(t2) - HOVER_FALL[0]!;
+    let b = upper(t2) - HOVER_FALL[0]!;
+    for (let t = t2 + 1; t <= oB && a <= b; t++) {
+      a = Math.max(a, lower(t) - HOVER_FALL[t - t2]!);
+      b = Math.min(b, upper(t) - HOVER_FALL[t - t2]!);
+    }
+    if (a <= b) range.set(t2, [a, b]);
+  }
+  if (!range.size) return false;
+  // Before the gate the saucer can be anywhere between two bounds: the highest it can climb (from the top of the
+  // barrier before's gaps, a tap every 8 ticks, never past the ceiling) and the lowest it can fall (from the bottom of
+  // them, no tap, never past the floor). The last tap is made before the gate's columns reach the saucer.
+  let up = Infinity;
+  let down = -Infinity;
+  for (const [top, h] of gapsAt(prev, t0)) {
+    up = Math.min(up, top + HOVER_DISC_R + 512);
+    down = Math.max(down, top + h - HOVER_DISC_R - 512);
+  }
+  let vUp = 0;
+  let vDown = 0;
+  for (let t = t0 + 1; t <= Math.min(oA, dB); t++) {
+    // The last tap made at t, from the height before it.
+    const r = range.get(t);
+    if (r && r[0] <= down && r[1] >= up) return true;
+    vUp = (t - t0 - 1) % 8 === 0 ? HOVER_IMPULSE : clampInt(vUp + HOVER_GRAVITY, -HOVER_TERMINAL, HOVER_TERMINAL);
+    up = Math.max(HOVER_DISC_R + 1, up + vUp);
+    vDown = clampInt(vDown + HOVER_GRAVITY, -HOVER_TERMINAL, HOVER_TERMINAL);
+    down = Math.min(bottom - HOVER_DISC_R - 1, down + vDown);
+  }
+  return false;
+}
+
+/** The course features for a hoverRev 9 course (pillars already drifted; tight gates are set on them). */
+function buildFeatures(
+  seed: number,
+  pillars: HoverPillar[],
+  bottom: number,
+): { chains: HoverChain[]; pickups: HoverPickup[] } {
+  let rng = (seed ^ 0x7e1a_5c03) | 0;
+  const draw = (n: number) => {
+    const drawn = rngBelow(rng, Math.max(1, n));
+    rng = drawn.state;
+    return drawn.value;
+  };
+  const reachable = HOVER_REACHABLE_GATES;
+  const centres = (i: number) =>
+    gapsAt(pillars[i]!, middleTick(pillars[i]!)).map(([t, h]) => t + (h >> 1));
+  const nearest = (list: number[], c: number) =>
+    list.reduce((best, v) => (Math.abs(v - c) < Math.abs(best - c) ? v : best), list[0]!);
+  const plain = (p: HoverPillar) =>
+    p.gap2Top === undefined && p.movePhase === undefined && p.starDy === undefined;
+  const pickFrom = <T>(list: T[]): T => list.splice(draw(list.length), 1)[0]!;
+
+  // Tight gates. A second, looser pass (rarely needed) makes sure every course has them all.
+  const tight = new Set<number>();
+  // hoverRev 9's third pass (rarely needed) draws more places on each barrier, from one barrier earlier.
+  for (const relax of [0, 1, 2]) {
+    const reach = relax ? (HOVER_TIGHT_REACH * 4) / 3 : HOVER_TIGHT_REACH;
+    const tries = relax === 2 ? 3 * HOVER_TIGHT_TRIES : HOVER_TIGHT_TRIES;
+    const tightCandidates: number[] = [];
+    for (let i = relax === 2 ? HOVER_TIGHT_FROM - 1 : HOVER_TIGHT_FROM; i < reachable - 1; i++)
+      if (plain(pillars[i]!) && !tight.has(i)) tightCandidates.push(i);
+    while (tight.size < HOVER_TIGHT_GATES && tightCandidates.length) {
+      const i = pickFrom(tightCandidates);
+      if ([...tight].some((j) => Math.abs(j - i) < (relax ? 2 : 3))) continue;
+      const p = pillars[i]!;
+      const half = HOVER_TIGHT_H >> 1;
+      const prev = centres(i - 1);
+      const next = centres(i + 1);
+      const sides: [number, number][] = [
+        [HOVER_FEATURE_EDGE + half, p.gapTop - HOVER_TIGHT_WALL - half],
+        // A centre line is flown on the top of a flap's arc, so a low gate's centre keeps a whole arc above the floor.
+        [p.gapTop + p.gapH + HOVER_TIGHT_WALL + half, Math.min(bottom - HOVER_FEATURE_EDGE - half, bottom - HOVER_DISC_R - HOVER_ARC - HOVER_CENTRE_FLOOR)],
+      ];
+      const ranges = sides
+        .map(([lo, hi]): [number, number] => {
+          // Kept within reach of a gap on each neighbouring barrier.
+          const mid = (lo + hi) >> 1;
+          const pc = nearest(prev, mid);
+          const nc = nearest(next, mid);
+          const a = Math.max(lo, pc - reach, nc - reach);
+          const b = Math.min(hi, pc + reach, nc + reach);
+          return [Math.ceil(a / 256), Math.floor(b / 256)];
+        })
+        .filter(([lo, hi]) => hi >= lo);
+      if (!ranges.length) continue;
+      // The centre line must be flyable dead centre out of the barrier before (from the top, middle or bottom of its
+      // gap): up to HOVER_TIGHT_TRIES places are drawn on this barrier.
+      let centre = -1;
+      for (let k = 0; k < tries && centre < 0; k++) {
+        const [lo, hi] = ranges[draw(ranges.length)]!;
+        const c = (lo + draw(hi - lo + 1)) << 8;
+        if (centreFlyable(pillars[i - 1]!, p, c, bottom)) centre = c;
+      }
+      if (centre < 0) continue;
+      p.tightTop = centre - half;
+      p.tightH = HOVER_TIGHT_H;
+      tight.add(i);
+    }
+  }
+
+  // Star chains: between barriers i and i + 1 whose gaps (where the saucer meets them) are close.
+  const chains: HoverChain[] = [];
+  const used = new Set<number>();
+  // Passes 3 and 4 (hoverRev 9's fixed count, HOVER_CHAINS on every course): a gold-star barrier either
+  // side and a sliding barrier after the chain are allowed, then (4) gaps further apart.
+  for (const relax of [0, 1, 2, 3, 4]) {
+    const chainCandidates: number[] = [];
+    for (let i = HOVER_CHAIN_FROM; i < reachable - 2; i++)
+      if (
+        !tight.has(i) &&
+        !tight.has(i + 1) &&
+        // A chain also keeps clear of a tight gate two barriers on (its centre line is flown out of the barrier the chain leads to).
+        !tight.has(i + 2) &&
+        !used.has(i) &&
+        (relax >= 3 ||
+          (pillars[i]!.starDy === undefined &&
+            pillars[i + 1]!.starDy === undefined &&
+            pillars[i + 1]!.movePhase === undefined))
+      )
+        chainCandidates.push(i);
+    while (chains.length < HOVER_CHAINS && chainCandidates.length) {
+      const i = pickFrom(chainCandidates);
+      // Never two chains in a row: the drop out of one and the climb into the next can't both be flown.
+      if (used.has(i) || used.has(i - 1) || used.has(i + 1)) continue;
+      const a = pillars[i]!;
+      const b = pillars[i + 1]!;
+      // The gap the saucer leaves barrier i by (the one nearest the next barrier's), as it is then.
+      const exitTick = cleanTickAt(passDistance(a));
+      const nextCentres = centres(i + 1);
+      let best: { top: number; h: number; c1: number } | null = null;
+      for (const [top, h] of gapsAt(a, exitTick)) {
+        const c = top + (h >> 1);
+        const c1 = nearest(nextCentres, c);
+        if (!best || Math.abs(c1 - c) < Math.abs(best.c1 - (best.top + (best.h >> 1))))
+          best = { top, h, c1 };
+      }
+      if (!best) continue;
+      const c0 = best.top + (best.h >> 1);
+      if (Math.abs(best.c1 - c0) > (Math.min(relax, 2) + 1 + (relax === 4 ? 2 : 0)) * HOVER_CHAIN_STEP) continue;
+      // The gap a chain leads to must not leave the saucer too far from the barrier after it (at the
+      // fastest scroll a long drop can be out of reach).
+      const after2 = centres(i + 2);
+      if (Math.abs(nearest(after2, best.c1) - best.c1) > (relax === 4 ? HOVER_CHAIN_ONWARD * 2 : relax >= 2 ? (HOVER_CHAIN_ONWARD * 3) >> 1 : HOVER_CHAIN_ONWARD)) continue;
+      // Start height: between the two gaps, kept where the saucer can be as it leaves barrier i.
+      const yStart = clampInt(
+        (c0 + best.c1) >> 1,
+        best.top + HOVER_DISC_R + 1_024,
+        best.top + best.h - HOVER_DISC_R - 1_024,
+      );
+      if (
+        yStart + HOVER_RISE[18]! < HOVER_FEATURE_EDGE + HOVER_STAR_R ||
+        yStart > bottom - HOVER_FEATURE_EDGE - HOVER_STAR_R
+      )
+        continue;
+      const speed = hoverScroll(i + 1);
+      const span = HOVER_CHAIN_TICKS * speed;
+      const window = enterDistance(b) - passDistance(a);
+      const margin = 2_048 + HOVER_STAR_R;
+      if (span + 2 * margin > window) continue;
+      const tapDistance = passDistance(a) + ((window - span) >> 1) - HOVER_CHAIN_K0 * speed;
+      // The barrier after the chain must still be flyable out of the chain's flap (its gold star touched too).
+      if (!chainExitFlyable(yStart, tapDistance, speed, b, bottom)) continue;
+      // 5–7 stars, as many as keep every neighbouring pair HOVER_CHAIN_GAP apart at this speed.
+      const tickOf = (j: number, m: number) => Math.round((j * HOVER_CHAIN_TICKS) / (m - 1));
+      const fits = (m: number) => Array.from({ length: m - 1 }, (_, j) => tickOf(j + 1, m) - tickOf(j, m)).every((dk) => dk * speed >= HOVER_CHAIN_GAP);
+      let n = 5 + draw(3);
+      while (n >= 5 && !fits(n)) n -= 1;
+      if (n < 5) continue;
+      const stars: HoverChainStar[] = [];
+      for (let j = 0; j < n; j++) {
+        const k = HOVER_CHAIN_K0 + tickOf(j, n);
+        stars.push({ x0: HOVER_DISC_X + tapDistance + k * speed, y: yStart + HOVER_RISE[k]! });
+      }
+      chains.push({ after: i, stars });
+      used.add(i);
+    }
+  }
+  chains.sort((x, y) => x.after - y.after);
+
+  // Shield pickups: one early and one in the middle of the course, after a barrier no chain uses.
+  const pickups: HoverPickup[] = [];
+  for (const [from, to] of [
+    [5, 15],
+    [20, 32],
+  ] as const) {
+    const options: number[] = [];
+    for (let i = from; i < to; i++) if (!used.has(i)) options.push(i);
+    if (!options.length) continue;
+    const i = pickFrom(options);
+    const a = pillars[i]!;
+    const b = pillars[i + 1]!;
+    const c1 = centres(i + 1)[0]!;
+    const c0 = nearest(centres(i), c1);
+    const y = clampInt(
+      (c0 + c1) >> 1,
+      HOVER_FEATURE_EDGE + HOVER_SHIELD_R,
+      bottom - HOVER_FEATURE_EDGE - HOVER_SHIELD_R,
+    );
+    const x0 = HOVER_DISC_X + ((passDistance(a) + enterDistance(b)) >> 1);
+    pickups.push({ after: i, x0, y });
+  }
+  return { chains, pickups };
+}
+
+function initExpand(seed: number): HoverState {
+  const base = hoverTunecGame.init(seed);
+  const bottom = HOVER_EXPAND_H * 256;
+  const pillars = base.pillars.map((pillar, index) => {
+    const drift = hoverDrift(seed, index, bottom);
+    const out: HoverPillar = { ...pillar, gapTop: pillar.gapTop + drift };
+    if (pillar.gap2Top !== undefined) out.gap2Top = pillar.gap2Top + drift;
+    return out;
+  });
+  const y = base.y + hoverDrift(seed, 0, bottom);
+  // The first barrier is a warm-up: a HOVER_OPEN_H gap centred on the saucer's starting height.
+  pillars[0] = { ...pillars[0]!, gapTop: y - (HOVER_OPEN_H >> 1), gapH: HOVER_OPEN_H };
+  const { chains, pickups } = buildFeatures(seed, pillars, bottom);
+  return {
+    ...base,
+    band: BAND_STRICT_MARK,
+    y,
+    pillars,
+    worldH: HOVER_EXPAND_H,
+    xp: 1,
+    tight: 0,
+    tightTaken: [],
+    tightOn: -1,
+    chains,
+    chainHits: [],
+    chainsDone: 0,
+    pickups,
+    pickupsTaken: [],
+    shield: 0,
+    invuln: 0,
+    shieldBreaks: 0,
+    ctrOn: -1,
+    ctrDev: 0,
+    ctrLog: [],
+    ctrPts: 0,
+  };
+}
+
+/** True when the disc (centre y) sits wholly inside a gap. */
+const insideGap = (y: number, top: number, h: number) =>
+  y - HOVER_DISC_R >= top && y + HOVER_DISC_R <= top + h;
+
+/** True when the disc overlaps a barrier's columns at this distance. */
+function overlaps(pillar: HoverPillar, distance: number): boolean {
+  const left = pillarX(pillar, distance);
+  return left + HOVER_PILLAR_W > HOVER_DISC_X - HOVER_DISC_R && left < HOVER_DISC_X + HOVER_DISC_R;
+}
+
+/** hoverRev 9 collision: overlapping, and inside none of the barrier's gaps (a tight gate counts as one). */
+function hitsExpand(pillar: HoverPillar, distance: number, y: number, tick: number): boolean {
+  if (!overlaps(pillar, distance)) return false;
+  if (insideGap(y, hoverGapTop(pillar, tick), pillar.gapH)) return false;
+  if (pillar.gap2Top !== undefined && insideGap(y, pillar.gap2Top, pillar.gap2H ?? 0)) return false;
+  if (pillar.tightTop !== undefined && insideGap(y, pillar.tightTop, pillar.tightH ?? 0))
+    return false;
+  return true;
+}
+
+/** True when the disc touches a round object (radius r) at world x0, height oy. */
+function touches(x0: number, oy: number, r: number, distance: number, y: number): boolean {
+  const dx = x0 - distance - HOVER_DISC_X;
+  const reach = HOVER_DISC_R + r;
+  if (dx > reach || dx < -reach) return false;
+  const dy = oy - y;
+  return dx * dx + dy * dy <= reach * reach;
+}
+
+function stepExpand(state: HoverState, tapped: boolean): HoverState {
+  if (isOver(state)) return state;
+  let vy = clampInt(
+    tapped ? HOVER_IMPULSE : state.vy + HOVER_GRAVITY,
+    -HOVER_TERMINAL,
+    HOVER_TERMINAL,
+  );
+  let y = state.y + vy;
+  const tick = state.tick + 1;
+  const distance = state.distance + hoverScroll(state.gates);
+  let gates = state.gates;
+  while (gates < state.pillars.length && distance > passedAt(state.pillars[gates]!)) gates += 1;
+
+  let invuln = Math.max(0, (state.invuln ?? 0) - 1);
+  let shield = state.shield ?? 0;
+  let shieldBreaks = state.shieldBreaks ?? 0;
+  const bottom = hoverBottom(state);
+  const ceiling = y - HOVER_DISC_R <= 0;
+  const floor = y + HOVER_DISC_R >= bottom;
+  let crashed =
+    ceiling || floor || state.pillars.some((pillar) => hitsExpand(pillar, distance, y, tick));
+  if (crashed && (invuln > 0 || shield)) {
+    // The shield takes the crash: it breaks and the saucer flies on, untouchable for a moment.
+    if (invuln === 0) {
+      shield = 0;
+      shieldBreaks += 1;
+      invuln = HOVER_SHIELD_INVULN;
+    }
+    if (floor) {
+      y = bottom - HOVER_DISC_R - 256;
+      vy = HOVER_IMPULSE;
+    } else if (ceiling) {
+      y = HOVER_DISC_R + 256;
+      vy = 0;
+    }
+    crashed = false;
+  }
+
+  // Tight gates: threaded cleanly when the disc was inside the gate on every tick it overlapped the barrier.
+  let tight = state.tight ?? 0;
+  let tightTaken = state.tightTaken ?? [];
+  let tightOn = state.tightOn ?? -1;
+  let ctrOn = state.ctrOn ?? -1;
+  let ctrDev = state.ctrDev ?? 0;
+  let ctrLog = state.ctrLog ?? [];
+  let ctrPts = state.ctrPts ?? 0;
+  for (let g = state.gates; g < gates; g++) {
+    if (tightOn === g) {
+      tight += 1;
+      tightTaken = [...tightTaken, g];
+      // The centre line pays on a clean thread only, graded by the furthest the saucer strayed from it.
+      const grade = ctrOn === g ? hoverCentreGrade(ctrDev) : 0;
+      if (grade > 0) {
+        ctrLog = [...ctrLog, g * 4 + grade];
+        ctrPts += HOVER_CENTRE_POINTS[grade]!;
+      }
+    }
+    if (tightOn === g || tightOn === -2 - g) tightOn = -1;
+    if (ctrOn === g) {
+      ctrOn = -1;
+      ctrDev = 0;
+    }
+  }
+  const ahead = state.pillars[gates];
+  if (
+    !crashed &&
+    ahead?.tightTop !== undefined &&
+    overlaps(ahead, distance) &&
+    tightOn !== -2 - gates
+  ) {
+    tightOn = invuln === 0 && insideGap(y, ahead.tightTop, ahead.tightH ?? 0) ? gates : -2 - gates;
+  }
+  // The centre line: measured on every tick the saucer's centre is within the barrier's columns (the gate's depth).
+  if (!crashed && ahead?.tightTop !== undefined && tightOn === gates) {
+    const left = pillarX(ahead, distance);
+    if (left <= HOVER_DISC_X && HOVER_DISC_X <= left + HOVER_PILLAR_W) {
+      const dev = Math.abs(y - hoverCentreY(ahead));
+      ctrDev = ctrOn === gates ? Math.max(ctrDev, dev) : dev;
+      ctrOn = gates;
+    }
+  }
+
+  // Gold stars (as hoverRev 2), chain stars and shield pickups, when the disc touches them.
+  let stars = state.stars ?? 0;
+  let starsTaken = state.starsTaken ?? [];
+  let chainHits = state.chainHits ?? [];
+  let chainsDone = state.chainsDone ?? 0;
+  let pickupsTaken = state.pickupsTaken ?? [];
+  if (!crashed) {
+    state.pillars.forEach((pillar, index) => {
+      const starY = hoverStarY(pillar, tick);
+      if (starY === null || starsTaken.includes(index)) return;
+      if (touches(pillar.x0 + (HOVER_PILLAR_W >> 1), starY, HOVER_STAR_R, distance, y)) {
+        starsTaken = [...starsTaken, index];
+        stars += 1;
+      }
+    });
+    (state.chains ?? []).forEach((chain, c) => {
+      chain.stars.forEach((star, j) => {
+        const id = c * 8 + j;
+        if (chainHits.includes(id) || !touches(star.x0, star.y, HOVER_STAR_R, distance, y)) return;
+        chainHits = [...chainHits, id];
+        if (chain.stars.every((_, k) => chainHits.includes(c * 8 + k))) chainsDone += 1;
+      });
+    });
+    (state.pickups ?? []).forEach((pickup, k) => {
+      if (
+        shield ||
+        pickupsTaken.includes(k) ||
+        !touches(pickup.x0, pickup.y, HOVER_SHIELD_R, distance, y)
+      )
+        return;
+      pickupsTaken = [...pickupsTaken, k];
+      shield = 1;
+    });
+  }
+  const next: HoverState = {
+    ...state,
+    tick,
+    y,
+    vy,
+    distance,
+    gates,
+    stars,
+    starsTaken,
+    tight,
+    tightTaken,
+    tightOn,
+    chainHits,
+    chainsDone,
+    pickupsTaken,
+    shield,
+    invuln,
+    shieldBreaks,
+    ctrOn,
+    ctrDev,
+    ctrLog,
+    ctrPts,
+  };
+  if (crashed) return { ...next, crashed: true, endedTick: tick };
+  if (tick >= HOVER_RUN_TICKS) return { ...next, endedTick: tick };
+  return next;
+}
+
+/** Tight gates and chains a course offers (all on its reachable part). */
+export function hoverFeatureTotals(state: HoverState): { tight: number; chains: number } {
+  return {
+    tight: state.pillars.filter((p) => p.tightTop !== undefined).length,
+    chains: state.chains?.length ?? 0,
+  };
+}
+
+/**
+ * The skill points before the pay scale: HOVER_TIGHT_POINTS a tight gate, HOVER_CHAIN_POINTS a whole star
+ * chain and the centre-line points (HOVER_CENTRE_POINTS by grade, up to HOVER_CENTRE_TOP a gate), at most HOVER_SKILL_RAW_MAX.
+ * Every course holds exactly HOVER_TIGHT_GATES tight gates and HOVER_CHAINS chains.
+ */
+export function hoverSkillRaw(state: HoverState): number {
+  return HOVER_TIGHT_POINTS * Math.min(HOVER_TIGHT_GATES, state.tight ?? 0) + HOVER_CHAIN_POINTS * Math.min(HOVER_CHAINS, state.chainsDone ?? 0) + Math.min(HOVER_TIGHT_GATES * HOVER_CENTRE_TOP, state.ctrPts ?? 0);
+}
+
+/** The skill points paid (on HOVER_SKILL_PAY, at most HOVER_SKILL_MAX): what the score, HUD and stored run read. */
+export function hoverFeatureBonus(state: HoverState): number {
+  return bandPoints(HOVER_SKILL_PAY, hoverSkillRaw(state));
+}
+
+/** hoverRev 9 breakdown: the base on its curve, then the minute and the features as one bonus line. */
+/** hoverRev 9: true once the saucer has flown up to the first barrier (its nose at the warm-up gate). */
+export function hoverReachedFirst(state: HoverState): boolean {
+  const first = state.pillars[0];
+  return state.gates > 0 || (!!first && state.distance >= first.x0 - (HOVER_DISC_X + HOVER_DISC_R));
+}
+
+/**
+ * hoverRev 9's partial credit for flying (so a run that tried never scores 0): 1 unit once the saucer has stayed up
+ * HOVER_FLIGHT_TICKS (half a second) or flown up to the first barrier. With no input it scores 0 anyway (no input).
+ */
+export const HOVER_FLIGHT_TICKS = 30;
+export function hoverFlightUnits(state: HoverState): number {
+  return hoverReachedFirst(state) || state.tick >= HOVER_FLIGHT_TICKS ? 1 : 0;
+}
+
+/** hoverRev 9's base units: barriers 3, gold stars 2, and the flight credit (hoverFlightUnits). */
+export function hoverExpandUnits(state: HoverState): number {
+  return 3 * Math.max(0, state.gates) + 2 * (state.stars ?? 0) + hoverFlightUnits(state);
+}
+
+export function hoverExpandParts(state: HoverState): BandParts {
+  const units = hoverExpandUnits(state);
+  const finished = hoverSurvived(state);
+  const totals = hoverFeatureTotals(state);
+  const words = [
+    ...(finished ? ["lasted the minute"] : []),
+    ...(state.tight ? [`${state.tight} / ${totals.tight} tight gates`] : []),
+    ...(state.chainsDone ? [`${state.chainsDone} / ${totals.chains} star chains`] : []),
+    ...(state.ctrPts ? [`centre lines ${state.ctrPts}`] : []),
+  ];
+  const text = words.join(" · ");
+  return {
+    units,
+    points: bandPoints(HOVER_V9_BAND_CURVE, units),
+    bonus: (finished ? BAND_FINISH_BONUS : 0) + hoverFeatureBonus(state),
+    penalty: 0,
+    finished,
+    text: `${state.gates} / ${state.totalGates} barriers · ${state.stars ?? 0} stars`,
+    bonusText: text ? text[0]!.toUpperCase() + text.slice(1) : "Bonus",
+  };
+}
+
+export const hoverExpandGame: ArcadeGame<HoverState> = { ...hoverStrictGame, init: initExpand };

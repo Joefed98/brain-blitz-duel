@@ -67,6 +67,7 @@ import {
   SWING_JET_HALF_W,
   SWING_REV_SPREAD,
   SWING_REV_TALL,
+  SWING_REV_EXPAND,
   SWING_ROCK_HALF_W,
   SWING_STARS,
   SWING_STAR_TOUCH,
@@ -196,7 +197,9 @@ section("New rounds: stamps, start states, checksums, worlds by revision");
 {
   for (let k = 0; k < 12; k++) {
     const swing = generateSwing();
-    ok(playRevOf("swing", swing.swingRev) === SWING_REV_TALL && SWING_V9_BANK.some((e) => e.seed === swing.seed), "rooms deal swingRev 9 on a course re-proved for the taller cavern");
+    // Grappler's 200 expansion (26 Oct 2026) moved rooms on to swingRev 13: swingRev 9's cavern deepened and widened, on
+    // SWING_V9_BANK courses re-proved with every feature (swing-x200-check covers it).
+    ok(swing.swingRev === SWING_REV_EXPAND && SWING_V9_BANK.some((e) => e.seed === swing.seed), "rooms deal swingRev 13 (the expansion, after swingRev 9) on a course re-proved for the taller cavern");
     const orbit = generateOrbit();
     // The expansion to 200 (docs/expansions/x200-orbit.md) moved Orbit on to orbitRev 12 (its 450 × 782 view); orbit-expand-check covers it.
     ok(orbit.orbitRev === ORBIT_REV_XP && orbit.planets?.length === ORBIT_TOTAL + 1, "rooms deal orbitRev 12 with the course's planets");
@@ -240,8 +243,9 @@ section("New rounds: stamps, start states, checksums, worlds by revision");
   // Effects: the tall specs in ARCADE_FX_SPECS, older rounds at their own height, through fxSpecAt.
   const fx = ARCADE_FX_SPECS as Record<string, { height: number }>;
   // Expansion E6 (25 Oct 2026) moved Ball Tracker on to its 13-row board (1400 px; e6-check).
-  // The expansion to 200 moved Orbit on to its 450 × 782 view (orbitRev 12; orbit-expand-check).
-  ok(fx.swing!.height === 730 && fx.orbit!.height === 782 && fx.balltrack!.height === 1400, "ARCADE_FX_SPECS hold the heights rooms deal");
+  // Grappler's 200 expansion (swingRev 13) deals its 450 × 844 view (swing-x200-check); the expansion to 200 moved Orbit
+  // on to its 450 × 782 view (orbitRev 12; orbit-expand-check).
+  ok(fx.swing!.height === 844 && fx.orbit!.height === 782 && fx.balltrack!.height === 1400, "ARCADE_FX_SPECS hold the heights rooms deal");
   ok(swingFxFor({ worldH: 730 } as SwingState).height === 730 && swingFxFor({} as SwingState) === SWING_FX, "Grappler effects by state height");
   ok(orbit3FxFor({ worldH: 650 } as OrbitRev3State).height === 650 && orbit3FxFor({} as OrbitRev3State) === ORBIT3_FX, "Orbit effects by view height");
   ok(balltrackFxFor({ worldH: 1300 } as BtState).height === 1300 && balltrackFxFor({} as BtState) === BALLTRACK_FX, "Ball Tracker effects by state height");
@@ -517,7 +521,8 @@ section("Refitted curves keep the band rules; 150 is reachable");
 section("Intro demos stay stopped until re-recorded on the taller revision");
 {
   const src = read("src/lib/duel/introDemo.functions.ts");
-  ok(/data\.type === "swing" && demo\?\.puzzle\.type === "swing" && demo\.puzzle\.swingRev !== SWING_REV_TALL\) return null/.test(src), "Grappler's demo plays only on swingRev 9");
+  // Grappler's 200 expansion: its demo now plays only on swingRev 13 (swing-x200-check).
+  ok(/data\.type === "swing" && demo\?\.puzzle\.type === "swing" && demo\.puzzle\.swingRev !== SWING_REV_EXPAND\) return null/.test(src), "Grappler's demo plays only on swingRev 13");
   // The expansion to 200: Orbit's demo now waits for one recorded on orbitRev 12 (orbit-expand-check).
   ok(/data\.type === "orbit" && demo\?\.puzzle\.type === "orbit" && demo\.puzzle\.orbitRev !== ORBIT_REV_XP\) return null/.test(src), "Orbit's demo plays only on orbitRev 12");
   // Expansion E6: Ball Tracker's demo now plays only on btRev 7 (e6-check).

@@ -74,8 +74,16 @@ const RAISED: PuzzleType[] = [
   "bintoss", "slice",
   // Expansion E3 (docs/expansions/e3.md): Breaker.
   "breaker",
+  // The 200-point expansion (docs/expansions/x200-snip.md): Scrumper.
+  "snip",
   // Expansion E2 (docs/expansions/e2.md): Meteor and Tempo.
   "snake", "beat",
+  // Expansion E7 (docs/expansions/x200-flip.md): Roofbound flipRev 8.
+  "flip",
+  // The 200 expansions (docs/expansions/x200-hover.md): Hover.
+  "hover",
+  // Grappler's 200 expansion (docs/expansions/x200-swing.md): swingRev 13.
+  "swing",
   // The expansions to 200 under the arcade rule (docs/expansions/x200-*.md): Orbit, Wavefront, Rainbow Bridge, Tilt, Jaywalk.
   "orbit",
   "wavefront",

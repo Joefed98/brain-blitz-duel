@@ -17,7 +17,8 @@ import "../src/styles.css";
 import { serverNow } from "@/lib/duel/clock";
 import type { DuelPlayerRow, DuelRow, PuzzleData, RoundResultRow } from "@/lib/duel/types";
 import { puzzleDef } from "@/lib/duel/registry";
-import { bootPlayCards } from "@/lib/playCards";
+import { bootPlayCards, publicCardStarts } from "@/lib/playCards";
+import { configuredGames } from "@/lib/publicSchedule";
 import { TERMS_KEY, TERMS_VERSION, termsAgreed } from "@/lib/beta/terms";
 import { Route as DuelRoute } from "@/routes/duel.$code";
 import { Route as HomeRoute } from "@/routes/index";
@@ -433,8 +434,10 @@ if (new URLSearchParams(location.search).get("terms") !== "0")
     /* ignore */
   }
 
-// The root's inline boot script (playCards.ts): which Play tab cards to reserve before the first paint.
-bootPlayCards();
+// The root's inline boot script (playCards.ts): which Play tab cards to reserve before the first paint,
+// from the schedule the page draws (a check's window.__DUELZ_PUBLIC_GAMES__ when it set one), so what the
+// checks prove never depends on the dates in src/config/publicGames.ts.
+bootPlayCards(publicCardStarts(configuredGames()));
 
 for (const [type, name] of Object.entries(H.names ?? {}))
   (puzzleDef(type as never) as { name: string }).name = name;

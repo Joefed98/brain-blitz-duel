@@ -110,7 +110,7 @@ import "@/lib/duel/wordfallDict.server";
 
 import { BT_REV_BAND, BT_REV_TALL } from "@/lib/arcade/ballTrack";
 import { WAV_REV_BAND, WAV_REV_SHAPES, WAV_REV_TALL, WAV_REV_TUNEC } from "@/lib/arcade/wavefront";
-import { FLIP_REV_BAND, FLIP_REV_TUNEC } from "@/lib/arcade/flip";
+import { FLIP_REV_BAND, FLIP_REV_EXPAND, FLIP_REV_TUNEC } from "@/lib/arcade/flip";
 import { INK_REV_BAND, INK_REV_TUNEC } from "@/lib/arcade/inkBridge";
 import { MATCHUP_REV_BAND, MATCHUP_REV_PAR, MATCHUP_REV_WAIT } from "@/lib/arcade/matchup";
 import { BUB_REV_BAND, BUB_REV_TALL, BUB_REV_TORPEDO } from "@/lib/arcade/bubble";
@@ -118,9 +118,9 @@ import { CROSS_REV_BAND, CROSS_REV_EXPAND, CROSS_REV_SMALL } from "@/lib/arcade/
 import { RALLY_REV_BAND, RALLY_REV_TALL, RALLY_REV_TUNED, RALLY_REV_TUNEF } from "@/lib/arcade/rally";
 import { SNAKE_REV_BAND, SNAKE_REV_ROCKS, SNAKE_REV_TALL } from "@/lib/arcade/snake";
 import { BINTOSS_REV_BAND } from "@/lib/arcade/binToss";
-import { SNIP_REV_BAND, SNIP_REV_BANK6, SNIP_REV_PROVEN, SNIP_REV_TALL } from "@/lib/arcade/snip";
+import { SNIP_REV_BAND, SNIP_REV_BANK6, SNIP_REV_EXPAND, SNIP_REV_PROVEN, SNIP_REV_TALL } from "@/lib/arcade/snip";
 import { SKYLINE_REV_BAND, SKYLINE_REV_TALL } from "@/lib/arcade/skyline";
-import { HOVER_REV_BAND, HOVER_REV_TALL, HOVER_REV_TUNEC } from "@/lib/arcade/hover";
+import { HOVER_REV_BAND, HOVER_REV_EXPAND, HOVER_REV_TALL, HOVER_REV_TUNEC } from "@/lib/arcade/hover";
 import { JUNC_REV_BAND } from "@/lib/arcade/junction";
 import { BRK_REV_BAND, BRK_REV_TALL, BRK_REV_TUNED, BRK_REV_TUNEF } from "@/lib/arcade/breaker";
 import { pinballGameFor, pinCheckpoint, PIN_REV } from "@/lib/arcade/pinball";
@@ -132,7 +132,8 @@ import { ORBIT_XP_BANK } from "@/lib/duel/orbitXpBank.server";
 import { BEAT_REV_BAND, BEAT_REV_TALL, BEAT_REV_TUNEC, BEAT_REV_TUNEF } from "@/lib/arcade/beat";
 import { SLICE_REV_BAND, SLICE_REV_LONG, SLICE_REV_TALL, SLICE_REV_TUNEC } from "@/lib/arcade/slice";
 import { BURST_REV_BAND, BURST_REV_TALL } from "@/lib/arcade/burst";
-import { SWING_REV_BAND, SWING_REV_TUNED, SWING_REV_TUNEC, SWING_REV_SPREAD, SWING_REV_TALL } from "@/lib/arcade/swing";
+import { SWING_REV_BAND, SWING_REV_TUNED, SWING_REV_TUNEC, SWING_REV_SPREAD, SWING_REV_TALL, SWING_REV_EXPAND } from "@/lib/arcade/swing";
+import { SWING_V13_BANK } from "@/lib/duel/swingBankV13.server";
 import { BULLSEYE_REV_BAND, BULLSEYE_REV_TUNED, bullseyeInitFor } from "@/lib/arcade/bullseye";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -609,6 +610,24 @@ const GAMES: Game[] = [
     encode: (run: any) => encodeBallTrackRun(btCourseTall(run.seed), run, BT_REV_TALL),
     replay: (seed: number, raw: string) => replayBallTrackRun(btCourseTall(seed), seed, raw, BT_REV_TALL),
   },
+  // The 200 expansion (26 Oct 2026): Hover hoverRev 9 (tight gates, centre lines, star chains, shields).
+  { key: "hover/x200", game: hoverGameFor(HOVER_REV_EXPAND), checkpoint: hoverCheckpoint, mode: "taps", rate: 60, encode: encodeHoverRun, replay: (seed: number, raw: string) => replayHoverRun(seed, raw, HOVER_REV_EXPAND) },
+  // Grappler's 200 expansion (swingRev 13, 26 Oct 2026), appended so every earlier entry keeps its index: its bank courses.
+  {
+    key: "swing/expand",
+    game: swingGameFor(SWING_REV_EXPAND),
+    seedFor: (n: number) => SWING_V13_BANK[n % SWING_V13_BANK.length]!.seed,
+    checkpoint: swingCheckpoint,
+    mode: "events",
+    rate: 30,
+    encode: encodeSwingRun,
+    replay: (seed: number, raw: string) => replaySwingRun(seed, raw, SWING_REV_EXPAND),
+  },
+  // Roofbound's expansion (flipRev 8, docs/expansions/x200-flip.md), appended so every earlier entry keeps its index.
+  { key: "flip/x200", game: flipGameFor(FLIP_REV_EXPAND), checkpoint: flipCheckpoint, mode: "events", rate: 50, encode: encodeFlipRun, replay: (seed: number, raw: string) => replayFlipRun(seed, raw, FLIP_REV_EXPAND) },
+  // The 200-point expansion (snipRev 11, 26 Oct 2026; appended so every earlier entry keeps its index): the tall
+  // courses, several fruits, wind, rings, par times.
+  { key: "snip/expand", game: snipGameFor(SNIP_REV_EXPAND), checkpoint: snipCheckpoint, mode: "events", rate: 40, encode: encodeSnipRun, replay: (seed: number, raw: string) => replaySnipRun(seed, raw, SNIP_REV_EXPAND) },
   // The expansion to 200 (docs/expansions/x200-orbit.md), appended: Orbit orbitRev 12 on its feature-bank courses.
   {
     key: "orbit/xp",
@@ -667,10 +686,12 @@ const ENTRY_COST: Record<number, number> = {
   115: 2.1,
   // Taller worlds batch 3 (16 Oct 2026, measured locally at 40 runs).
   126: 2.2, 128: 0.6,
-  // x200 Rainbow Bridge (26 Oct 2026, measured locally at 40 runs beside #23; #129 is Orbit's orbit/xp).
-  130: 14.0,
-  // x200 Jaywalk crossRev 9 (26 Oct 2026, measured locally at 40 runs; #132 after Orbit, Rainbow Bridge and Tilt).
-  132: 16.9,
+  // x200 Rainbow Bridge (26 Oct 2026, measured locally at 40 runs beside #23; #133 is Orbit's orbit/xp).
+  134: 14.0,
+  // x200 Jaywalk crossRev 9 (26 Oct 2026, measured locally at 40 runs; #136 after Orbit, Rainbow Bridge and Tilt).
+  136: 16.9,
+  // Grappler's 200 expansion (26 Oct 2026, swing/expand: about 10 s at 40 runs on a loaded machine).
+  129: 8.0,
 };
 
 /** Entry indexes of group k of n (1-based): costliest first onto the lightest group, ties by index. */
