@@ -656,7 +656,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         },
         {
           action: "The wind moves your dart by that many rings.",
-          detail: "Wind 2 to the right? Aim two rings to the left.",
+          detail: "The flag flies the way the wind blows, with its strength on it. Flag flying right with a 2? Aim two rings to the left.",
           helpOnly: true,
         },
         { action: "Every dart's board stands at its own distance:", detail: "near boards low and big, far ones high and small. The same boards for everyone in the room.", helpOnly: true },
