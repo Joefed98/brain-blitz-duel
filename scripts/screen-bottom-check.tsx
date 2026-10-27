@@ -28,6 +28,7 @@ import { createCanvas, loadImage } from "@napi-rs/canvas";
 
 import { startSafeAreaServer } from "./safe-area-server";
 import { DEVICE_INIT, IPHONE11_APP, emulateDevice } from "./device-emulation";
+import { FIXED_SCHEDULE, fixClock } from "./fixed-clock";
 import { ONBOARDING_KEY } from "../src/lib/onboarding";
 import { generatePuzzle } from "../src/lib/duel/generate.server";
 import { withSeededRandom } from "../src/lib/duel/random";
@@ -366,6 +367,9 @@ const server = await startSafeAreaServer({
   cacheDir: "node_modules/.vite-screen-bottom",
   buildId: "screen-bottom-check",
 });
+// A fixed clock and schedule (scripts/fixed-clock.ts): the home, tournaments and profile screens draw the
+// same public game card and dates on any day, whatever src/config/publicGames.ts holds.
+const pageClock = fixClock();
 const { chromium } = await import("playwright");
 const browser = await chromium.launch({ executablePath: CHROMIUM });
 const failures: string[] = [];
@@ -396,9 +400,11 @@ try {
   for (const screen of SCREENS) {
     const where = `${screen.name} (414x896 home-screen app)`;
     const context = await browser.newContext({ viewport: { width: DEVICE.w, height: DEVICE.h } });
+    await context.addInitScript(pageClock.script, pageClock.arg);
     await context.addInitScript(DEVICE_INIT);
     await context.addInitScript(
       (r) => {
+        (window as unknown as { __DUELZ_PUBLIC_GAMES__: unknown }).__DUELZ_PUBLIC_GAMES__ = r.schedule;
         (window as unknown as { __harness: unknown }).__harness = {
           puzzles: { sudoku: r.puzzle },
           verdict: { isCorrect: true, score: 150 },
@@ -413,7 +419,7 @@ try {
           /* ignore */
         }
       },
-      { room: screen.room?.() ?? null, puzzle: PUZZLE, seen: !screen.fresh, key: ONBOARDING_KEY },
+      { room: screen.room?.() ?? null, puzzle: PUZZLE, seen: !screen.fresh, key: ONBOARDING_KEY, schedule: FIXED_SCHEDULE },
     );
     const page = await context.newPage();
     const problems: string[] = [];

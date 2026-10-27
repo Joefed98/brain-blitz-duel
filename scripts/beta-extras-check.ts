@@ -34,6 +34,7 @@ import type { Browser, BrowserContext, Page } from "playwright";
 
 import * as betaConfig from "../src/config/betaConfig";
 import { PUBLIC_GAMES, PUBLIC_ROOM_CODE } from "../src/config/publicGames";
+import { scheduledGames, upcomingGames } from "../src/lib/publicSchedule";
 import { feedbackUrl } from "../src/lib/beta/feedback";
 import { TERMS_KEY, agreeToTerms, resetTermsMemory, termsAgreement } from "../src/lib/beta/terms";
 import { termsEventRow } from "../src/lib/duel/betaRecord.server";
@@ -187,11 +188,24 @@ check(!iphoneSafari({ ua: `${IPHONE} [FBAN/FBIOS;FBAV/530.0]`, standalone: false
 check(!iphoneSafari({ ua: IPHONE.replace("iPhone; CPU iPhone OS", "iPad; CPU OS"), standalone: false }), "iPad: no hint");
 check(!iphoneSafari(null), "no browser: no hint");
 check(PUBLIC_ROOM_CODE === "JULZ" && /^[ABCDEFGHJKLMNPQRSTUVWXYZ]{4}$/.test(PUBLIC_ROOM_CODE), "the public room's code is a valid room code (JOULZ isn't: 5 letters with an O)");
+// Launch night was delayed (27 Oct 2026): none scheduled until the beta date is set. Every configured game
+// (none today) is a well-formed entry in the public room; the schedule's reading is proved on a fixed list.
 check(
-  PUBLIC_GAMES.some((g) => g.date === "2026-10-27" && g.time === "20:00" && g.roomCode === "JULZ") &&
-    PUBLIC_GAMES.some((g) => g.date === "2026-10-29" && g.time === "20:00" && g.roomCode === "JULZ"),
-  "public games on Tue 27 Oct and Thu 29 Oct 2026 at 20:00 UK time",
+  PUBLIC_GAMES.every((g) => g.roomCode === PUBLIC_ROOM_CODE && scheduledGames([g]).length === 1),
+  "every configured public game is in the public room and reads as a UK date and time",
 );
+{
+  const fixed = [
+    { date: "2026-10-27", time: "20:00", lobbyOpens: "19:45", rounds: 6, roomCode: PUBLIC_ROOM_CODE, title: "Launch night" },
+    { date: "2026-10-29", time: "20:00", lobbyOpens: "19:45", rounds: 6, roomCode: PUBLIC_ROOM_CODE },
+  ];
+  const up = upcomingGames(Date.UTC(2026, 9, 26, 12), scheduledGames(fixed));
+  check(
+    up.length === 2 && up[0]!.startsAt === Date.UTC(2026, 9, 27, 20) && up[0]!.lobbyAt === Date.UTC(2026, 9, 27, 19, 45) && up[1]!.startsAt === Date.UTC(2026, 9, 29, 20),
+    "a fixed schedule: games on Tue 27 Oct and Thu 29 Oct 2026 at 20:00 UK time (GMT), lobby at 19:45",
+  );
+  check(upcomingGames(Date.UTC(2026, 9, 30), scheduledGames(fixed)).length === 0, "a fixed schedule: past games drop off");
+}
 {
   const original = Math.random;
   // Every draw lands on J, U, L, Z in turn first: a new room still never gets the public code.
