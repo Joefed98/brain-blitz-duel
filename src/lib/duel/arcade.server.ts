@@ -4,7 +4,7 @@ import { FLIP_REV_TARGET, FLIP_REV_STRICT, FLIP_REV_EXPAND } from "@/lib/arcade/
 import { CROSS_REV_TARGET, CROSS_REV_STRICT } from "@/lib/arcade/cross";
 import { INK_REV_TARGET, INK_REV_STRICT } from "@/lib/arcade/inkBridge";
 import { SNAKE_REV_TARGET, SNAKE_REV_200 } from "@/lib/arcade/snake";
-import { BUB_REV_REEF } from "@/lib/arcade/bubble";
+import { BUB_REV_CREDIT } from "@/lib/arcade/bubble";
 import { MATCHUP_REV_GOALS } from "@/lib/arcade/matchup";
 import { SNIP_REV_TARGET, SNIP_REV_EXPAND } from "@/lib/arcade/snip";
 import { SKYLINE_REV_TARGET, SKYLINE_REV_STRICT, SKYLINE_REV_EXPAND } from "@/lib/arcade/skyline";
@@ -12,13 +12,13 @@ import { tiltSeedCupsReachable, TILT_REV_TARGET, TILT_REV_STRICT } from "@/lib/a
 import { JUNC_REV_BAND } from "@/lib/arcade/junction";
 import { BINTOSS_REV_TARGET, BINTOSS_REV_STRICT, BINTOSS_REV_EXPAND } from "@/lib/arcade/binToss";
 import { SWING_REV_TALL, SWING_REV_TARGET, SWING_REV_STRICT, SWING_REV_EXPAND } from "@/lib/arcade/swing";
-import { BURST_REV_TARGET, BURST_REV_STRICT } from "@/lib/arcade/burst";
+import { BURST_REV_TARGET, BURST_REV_STRICT, BURST_REV_CLEAN } from "@/lib/arcade/burst";
 import { BRK_REV_TARGET, BRK_REV_STRICT, BRK_REV_DEEP } from "@/lib/arcade/breaker";
 import { PIN_REV_TARGET, PIN_REV_STRICT, PIN_REV_EXPAND } from "@/lib/arcade/pinball";
 import { WHACK_REV_DEPTH } from "@/lib/arcade/whack";
 import { WAV_REV_TARGET, WAV_REV_STRICT } from "@/lib/arcade/wavefront";
 import { ORBIT_REV_TARGET, ORBIT_REV_STRICT } from "@/lib/arcade/orbit";
-import { RALLY_REV_TARGET, RALLY_REV_STRICT } from "@/lib/arcade/rally";
+import { RALLY_REV_TARGET, RALLY_REV_STRICT, RALLY_REV_BONUS } from "@/lib/arcade/rally";
 import { BEAT_REV_TARGET, BEAT_REV_200 } from "@/lib/arcade/beat";
 import { orbitHolesForBankSeed, orbitRev3BankEntryForSeed, orbitRev3PlanetsForSeed, encodeRev3Planets } from "./orbitRev3Course.server";
 import { proveSwingSeed } from "./swingProof.server";
@@ -35,7 +35,7 @@ import { CLASH_QUEUE, CLASH_REV_TALL, CLASH_REV_DEPTH, CLASH_REV_TOPUP } from "@
  */
 
 import { randomBelow } from "./random";
-import { bullseyeWinds, BULLSEYE_REV_TARGET, BULLSEYE_REV_STRICT } from "@/lib/arcade/bullseye";
+import { bullseyeWinds, BULLSEYE_REV_TARGET, BULLSEYE_REV_STRICT, BULLSEYE_REV_EXPAND } from "@/lib/arcade/bullseye";
 import type {
   BinTossPuzzleData,
   BullseyePuzzleData,
@@ -91,7 +91,7 @@ export function generateBinToss(): BinTossPuzzleData {
 
 export function generateBullseye(): BullseyePuzzleData {
   const seed = arcadeSeed();
-  return { type: "bullseye", seed, winds: bullseyeWinds(seed), bullRev: BULLSEYE_REV_STRICT };
+  return { type: "bullseye", seed, winds: bullseyeWinds(seed), bullRev: BULLSEYE_REV_EXPAND };
 }
 
 export function generateMatchup(): MatchupPuzzleData {
@@ -124,7 +124,7 @@ export function generatePinball(): PinballPuzzleData {
 }
 
 export function generateRally(): RallyPuzzleData {
-  return { type: "rally", seed: arcadeSeed(), rallyRev: RALLY_REV_STRICT };
+  return { type: "rally", seed: arcadeSeed(), rallyRev: RALLY_REV_BONUS };
 }
 
 export function generateSteady(): SteadyPuzzleData {
@@ -136,8 +136,8 @@ export function generateSlice(): SlicePuzzleData {
 }
 
 export function generateBubble(): BubblePuzzleData {
-  // bubbleRev 8 (expansion E6): the deeper reef with chests, bank shots and combos.
-  return { type: "bubble", seed: arcadeSeed(), bubbleRev: BUB_REV_REEF };
+  // bubbleRev 9: bubbleRev 8's deeper reef (expansion E6) with credit for bubbles burst (no zero for a played run).
+  return { type: "bubble", seed: arcadeSeed(), bubbleRev: BUB_REV_CREDIT };
 }
 
 export function generateBeat(): BeatPuzzleData {
@@ -191,7 +191,7 @@ export function generateInkBridge(): InkBridgePuzzleData {
 }
 
 export function generateBurst(): BurstPuzzleData {
-  return { type: "burst", seed: arcadeSeed(), burstRev: BURST_REV_STRICT };
+  return { type: "burst", seed: arcadeSeed(), burstRev: BURST_REV_CLEAN };
 }
 
 export function generateOrbit(): OrbitPuzzleData {

@@ -212,7 +212,7 @@ section("New rounds: stamps, start states, checksums, worlds by revision");
   // World expansion E5 (25 Oct 2026) moved Slice on to its larger board (sliceRev 9); expansion-e5-check covers it.
   ok([SLICE_REV_TALL, SLICE_REV_EXPAND].includes(playRevOf("slice", generateSlice().sliceRev) ?? -1), "rooms deal sliceRev 6 (or sliceRev 9, the expansion)");
   // Expansion E6 (25 Oct 2026) moved Coral Pop on to its deeper reef (bubbleRev 8, the same tank); e6-check covers it.
-  ok(generateBubble().bubbleRev === BUB_REV_TALL + 3, "rooms deal bubbleRev 8 (expansion E6, after bubbleRev 5)");
+  ok(generateBubble().bubbleRev === BUB_REV_TALL + 4, "rooms deal bubbleRev 9 (expansion E6's bubbleRev 8 with burst credit, after bubbleRev 5)");
   // Rooms deal the score-bands stamps after these (clashRev 6, clayRev 7: the same play, scoring-bands-check), and since
   // 20 Oct 2026 scoring report batch 2's (clashRev 7, clayRev 8: the same play again, scoring-batch2-check).
   // Depth to 200 (25 Oct 2026): clashRev 8 (clashRev 5 play on the taller board plus the streak, "don't sort" and gold

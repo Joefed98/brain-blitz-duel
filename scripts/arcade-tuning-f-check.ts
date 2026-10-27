@@ -34,7 +34,7 @@ import { TUNING_F_GAMES, type TuningFRecord } from "./arcade-tuning-f-legacy";
 import { GAME_BY_TYPE } from "./arcade-skill-bands/games";
 import { Human, type SkillLevel, type SkillProfile } from "./arcade-skill-bands/human";
 import { puzzleUsesBands } from "../src/lib/arcade/bandParts";
-import { bandPoints, bandTop } from "../src/lib/arcade/scoreBands";
+import { bandPoints, bandTop, bandUnitsFor } from "../src/lib/arcade/scoreBands";
 import {
   breakerGameFor,
   BRK_FIRE_TICKS_V4,
@@ -60,6 +60,8 @@ import {
   RALLY_REV_TUNEF,
   RALLY_V5_BAND_CURVE,
   type RallyState,
+  RALLY_V10_BAND_CURVE,
+  RALLY_V10_BASE_TOP,
 } from "../src/lib/arcade/rally";
 import { beatGameFor, beatThinned, BEAT_LANE_GAP, BEAT_REV_TUNEC, BEAT_REV_TUNEF, BEAT_V5_BAND_CURVE, type BeatState } from "../src/lib/arcade/beat";
 import { snakeGameFor, snakeRocksEarned, SNAKE_REV_ROCKS, SNAKE_REV_TALL, SNAKE_ROCK_MAX_V6, SNAKE_V6_BAND_CURVE, type SnakeState } from "../src/lib/arcade/snake";
@@ -165,7 +167,8 @@ section("New rounds carry the Tuning F stamps and score on the bands");
     ["orbit", "orbitRev", playRevOf("orbit", generateOrbit().orbitRev), ORBIT_REV_SWEPT + 1, 8],
   ];
   // Expansion E3 (docs/expansions/e3.md) then moved Breaker on to brkRev 9; expansion-e3-check covers it.
-  const movedOn: Record<string, number> = { breaker: BRK_REV_TUNEF + 4 };
+  // Expansion E9 (docs/expansions/e9.md) then moved Rally on to rallyRev 10; expansion-e9-check covers it.
+  const movedOn: Record<string, number> = { breaker: BRK_REV_TUNEF + 4, rally: RALLY_REV_TUNEF + 5 };
   for (const [type, field, got, rev, n] of stamps) {
     ok(got === (movedOn[type] ?? rev) && rev === n, `${type}: new rounds stamped ${field} ${movedOn[type] ?? n} (got ${got})`);
     ok(puzzleUsesBands({ type, [field]: rev } as never), `${type} ${rev} scores on the bands`);
@@ -513,7 +516,8 @@ section("Intro and \"?\" help");
 {
   const help = (type: keyof typeof PUZZLE_INSTRUCTIONS) => JSON.stringify(PUZZLE_INSTRUCTIONS[type]);
   if (want("breaker")) ok(help("breaker").includes("2.5 seconds") && !help("breaker").includes("3.5 seconds"), "Breaker: the Fireball lasts 2.5 seconds");
-  if (want("rally")) ok(/second bumper/.test(help("rally")) && /45 s/.test(help("rally")) && PUZZLE_INSTRUCTIONS.rally.score.includes("150 at 220. A good run (100 points) counts 103") && /5 a paddle hit/.test(help("rally")) && /counts 6/.test(help("rally")) && !/\+3|scores 3/.test(help("rally")), "Rally: the second bumper from 45 s, the top and a good run new rooms score on (rallyRev 6) and one value each for a gold hit (5) and a pink pad (6)");
+  // Expansion E9 (docs/expansions/e9.md) moved Rally on to rallyRev 10: its help reads that curve (a good run and the base top).
+  if (want("rally")) ok(/second bumper/.test(help("rally")) && /45 s/.test(help("rally")) && PUZZLE_INSTRUCTIONS.rally.score.includes(`up to ${RALLY_V10_BASE_TOP}. A good run (100 points) counts ${bandUnitsFor(RALLY_V10_BAND_CURVE, 100)}`) && /5 a hit/.test(help("rally")) && /counts 6/.test(help("rally")) && !/\+3|scores 3/.test(help("rally")), "Rally: the second bumper from 45 s, the top and a good run new rooms score on (rallyRev 10 since expansion E9) and one value each for a gold hit (5) and a pink pad (6)");
   if (want("beat")) ok(PUZZLE_INSTRUCTIONS.beat.score.includes("A good run (100 points) reaches 824"), "Tempo: a good run on the curve rooms deal (beatRev 9 since expansion E2)");
   if (want("snake")) ok(/length 9/.test(help("snake")) && /every 4 stars, up to 11/.test(help("snake")) && /at most 14 rocks/.test(help("snake")) && PUZZLE_INSTRUCTIONS.snake.score.includes("150 at 31"), "Meteor: rocks from length 9, every 4 stars, up to 11 (14 with the shower), and the snakeRev 9 top (expansion E2)");
   if (want("orbit")) ok(/Any black hole ahead/.test(help("orbit")) && /any part of the rocket/.test(help("orbit")), "Orbit: any black hole ahead swallows any part of the rocket");

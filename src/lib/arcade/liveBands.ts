@@ -15,9 +15,9 @@ import { WAV_REV_STRICT, WAV_V8_BAND_CURVE } from "./wavefront";
 import { FLIP_REV_EXPAND, FLIP_REV_STRICT, FLIP_V8_BAND_CURVE } from "./flip";
 import { INK_REV_STRICT, INK_V8_BAND_CURVE } from "./inkBridge";
 import { MATCHUP_REV_GOALS, MATCHUP_REV_STRICT, MATCHUP_V9_BAND_CURVE } from "./matchup";
-import { BUB_REV_REEF, BUB_REV_STRICT, BUB_V8_BAND_CURVE } from "./bubble";
+import { BUB_REV_CREDIT, BUB_REV_STRICT, BUB_V8_BAND_CURVE } from "./bubble";
 import { CROSS_REV_STRICT, CROSS_V7_BAND_CURVE } from "./cross";
-import { RALLY_REV_STRICT, RALLY_V8_BAND_CURVE } from "./rally";
+import { RALLY_REV_BONUS, RALLY_REV_STRICT, RALLY_V10_BAND_CURVE } from "./rally";
 import { SNAKE_REV_200, SNAKE_REV_STRICT, SNAKE_V9_BAND_CURVE } from "./snake";
 import { BINTOSS_REV_STRICT, BINTOSS_REV_EXPAND, BINTOSS_V7_BAND_CURVE } from "./binToss";
 import { SNIP_REV_EXPAND, SNIP_REV_STRICT, SNIP_V11_BAND_CURVE } from "./snip";
@@ -30,9 +30,9 @@ import { ORBIT_REV_STRICT } from "./orbit";
 import { ORBIT_V10_BAND_CURVE } from "./orbitRev3";
 import { BEAT_REV_200, BEAT_REV_STRICT, BEAT_V9_BAND_CURVE } from "./beat";
 import { SLICE_REV_STRICT, SLICE_REV_EXPAND, SLICE_V9_BAND_CURVE } from "./slice";
-import { BURST_REV_STRICT, BURST_V6_BAND_CURVE } from "./burst";
+import { BURST_REV_CLEAN, BURST_REV_STRICT, BURST_V8_BAND_CURVE } from "./burst";
 import { SWING_REV_EXPAND, SWING_REV_STRICT, SWING_V13_BAND_CURVE } from "./swing";
-import { BULLSEYE_REV_STRICT, BULLSEYE_V6_BAND_CURVE } from "./bullseye";
+import { BULLSEYE_REV_EXPAND, BULLSEYE_REV_STRICT, BULLSEYE_V8_BAND_CURVE } from "./bullseye";
 import { PIN_REV_EXPAND, PIN_V4_BAND_CURVE } from "./pinball4";
 import { PIN_REV_STRICT } from "./pinball";
 
@@ -55,9 +55,9 @@ export const LIVE_BANDS = {
   flip: { field: "flipRev", rev: FLIP_REV_EXPAND, curve: FLIP_V8_BAND_CURVE, strictRev: FLIP_REV_STRICT },
   inkbridge: { field: "inkRev", rev: INK_REV_STRICT, curve: INK_V8_BAND_CURVE },
   matchup: { field: "matchupRev", rev: MATCHUP_REV_GOALS, curve: MATCHUP_V9_BAND_CURVE, strictRev: MATCHUP_REV_STRICT },
-  bubble: { field: "bubbleRev", rev: BUB_REV_REEF, curve: BUB_V8_BAND_CURVE, strictRev: BUB_REV_STRICT },
+  bubble: { field: "bubbleRev", rev: BUB_REV_CREDIT, curve: BUB_V8_BAND_CURVE, strictRev: BUB_REV_STRICT },
   cross: { field: "crossRev", rev: CROSS_REV_STRICT, curve: CROSS_V7_BAND_CURVE },
-  rally: { field: "rallyRev", rev: RALLY_REV_STRICT, curve: RALLY_V8_BAND_CURVE },
+  rally: { field: "rallyRev", rev: RALLY_REV_BONUS, curve: RALLY_V10_BAND_CURVE, strictRev: RALLY_REV_STRICT },
   snake: { field: "snakeRev", rev: SNAKE_REV_200, curve: SNAKE_V9_BAND_CURVE, strictRev: SNAKE_REV_STRICT },
   bintoss: { field: "binRev", rev: BINTOSS_REV_EXPAND, curve: BINTOSS_V7_BAND_CURVE, strictRev: BINTOSS_REV_STRICT },
   snip: { field: "snipRev", rev: SNIP_REV_EXPAND, curve: SNIP_V11_BAND_CURVE, strictRev: SNIP_REV_STRICT },
@@ -69,10 +69,10 @@ export const LIVE_BANDS = {
   orbit: { field: "orbitRev", rev: ORBIT_REV_STRICT, curve: ORBIT_V10_BAND_CURVE },
   beat: { field: "beatRev", rev: BEAT_REV_200, curve: BEAT_V9_BAND_CURVE, strictRev: BEAT_REV_STRICT },
   slice: { field: "sliceRev", rev: SLICE_REV_EXPAND, curve: SLICE_V9_BAND_CURVE, strictRev: SLICE_REV_STRICT },
-  burst: { field: "burstRev", rev: BURST_REV_STRICT, curve: BURST_V6_BAND_CURVE },
+  burst: { field: "burstRev", rev: BURST_REV_CLEAN, curve: BURST_V8_BAND_CURVE, strictRev: BURST_REV_STRICT },
   // swingRev 13 (the 200 expansion): the base curve; the features pay up to 50 more on a rising scale (the help says so).
   swing: { field: "swingRev", rev: SWING_REV_EXPAND, curve: SWING_V13_BAND_CURVE, strictRev: SWING_REV_STRICT },
-  bullseye: { field: "bullRev", rev: BULLSEYE_REV_STRICT, curve: BULLSEYE_V6_BAND_CURVE },
+  bullseye: { field: "bullRev", rev: BULLSEYE_REV_EXPAND, curve: BULLSEYE_V8_BAND_CURVE, strictRev: BULLSEYE_REV_STRICT },
   pinball: { field: "pinRev", rev: PIN_REV_EXPAND, curve: PIN_V4_BAND_CURVE, strictRev: PIN_REV_STRICT },
 } as const satisfies Record<string, LiveBand>;
 

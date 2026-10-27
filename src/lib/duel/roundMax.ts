@@ -88,9 +88,9 @@ export const ROUND_MAX: Readonly<Record<PuzzleType, number>> = {
   bintoss: 200,
   breaker: 200, // expansion E3, brkRev 9
   pinball: 200,
-  bubble: 200, // expansion E6, bubbleRev 8
-  bullseye: 150,
-  burst: 150,
+  bubble: 200, // expansion E6, bubbleRev 8 (bubbleRev 9: burst credit)
+  bullseye: 200, // expansion E9, bullRev 8
+  burst: 200, // expansion E9, burstRev 8
   cross: 150,
   flip: 200, // expansion X200, flipRev 8
   hover: 200, // expansion X200, hoverRev 9
@@ -98,7 +98,7 @@ export const ROUND_MAX: Readonly<Record<PuzzleType, number>> = {
   junction: 150,
   matchup: 200, // expansion E6, matchupRev 9
   orbit: 150,
-  rally: 150,
+  rally: 200, // expansion E9, rallyRev 10
   skyline: 200,
   slice: 200,
   snake: 200, // expansion E2, snakeRev 9

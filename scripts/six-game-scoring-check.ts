@@ -189,12 +189,15 @@ const demoGuard = readFileSync("src/lib/duel/introDemo.functions.ts", "utf8");
 // Expansion E6 (25 Oct 2026): a btRev 7 demo carries 36 marbles; every older one 30.
 eq(demoGuard.includes('data.type === "balltrack"') && demoGuard.includes("course.balls.length !== (demo.puzzle.btRev === BT_REV_RUSH ? BT_V7_BALLS : BT_BALLS)"), true, "Old Ball Track demo rejected");
 // Expansion E6 deliberately stops Gemstone's demo until one is recorded on matchupRev 9 (e6-check).
-for (const type of ["junction", "bullseye"]) eq(demoGuard.includes(`data.type === "${type}"`), false, `${type} demo not invalidated`);
+// Expansion E9 (26 Oct 2026, docs/expansions/e9.md) deliberately stops Flightpath's demo until one is recorded on bullRev 8 (expansion-e9-check).
+for (const type of ["junction"]) eq(demoGuard.includes(`data.type === "${type}"`), false, `${type} demo not invalidated`);
+eq(demoGuard.includes('data.type === "bullseye" && demo?.puzzle.type === "bullseye" && demo.puzzle.bullRev !== BULLSEYE_REV_EXPAND'), true, "Flightpath demo stopped until recorded on bullRev 8");
 // Expansion E4 (25 Oct 2026, docs/expansions/e4.md) stops High Rise's intro demo the same way: only a skylineRev 7 demo
 // plays (the taller view, special blocks and the preview). It flips back once the demo is re-recorded on skylineRev 7.
 eq(demoGuard.includes('data.type === "skyline" && demo?.puzzle.type === "skyline" && demo.puzzle.skylineRev !== SKYLINE_REV_EXPAND) return null'), true, "skyline demo stopped until re-recorded on skylineRev 7");
 // Taller worlds batch 1 (16 Oct 2026) deliberately stops Rally's intro demo: a demo recorded before rallyRev 6 shows the
 // 620 px court, so only a rallyRev 6 demo plays (arcade-tuning-g1-check). This flips back to "not invalidated" (and the
 // guard comes out of introDemo.functions.ts) once Rally's demo is re-recorded on rallyRev 6.
-eq(demoGuard.includes('data.type === "rally" && demo?.puzzle.type === "rally" && demo.puzzle.rallyRev !== RALLY_REV_TALL) return null'), true, "rally demo stopped until re-recorded on rallyRev 6");
+// Expansion E9 (26 Oct 2026, docs/expansions/e9.md) moved the guard on to rallyRev 10 (the 420 × 784 court and its gold targets).
+eq(demoGuard.includes('data.type === "rally" && demo?.puzzle.type === "rally" && demo.puzzle.rallyRev !== RALLY_REV_BONUS) return null'), true, "rally demo stopped until re-recorded on rallyRev 10");
 console.log(`Six-game scoring: ${checks} formula/schedule/intro/reveal/demo checks passed (legacy rules and the Oct 2026 score bands); Bullseye anchors 100→150, 90→133, 70→99, 50→65; band 110→150, 72→70`);

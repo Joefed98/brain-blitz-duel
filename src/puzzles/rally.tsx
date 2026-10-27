@@ -21,7 +21,6 @@ import {
 } from "@/lib/arcade/engine";
 import {
   rallyCheckpoint,
-  rallyGame,
   rallyGameFor,
   RALLY_BALL,
   RALLY_BG,
@@ -29,8 +28,11 @@ import {
   RALLY_GOLD,
   RALLY_REV_BAND,
   RALLY_RUN_TICKS,
+  RALLY_REV_BONUS,
+  RALLY_V10_BONUS_COUNT,
+  rallyBonusCount,
   rallyWorldHFor,
-  RALLY_WORLD_W,
+  rallyWorldWFor,
   type RallyState,
 } from "@/lib/arcade/rally";
 import { decodeRallyRun, encodeRallyRun, replayRallyRun } from "@/lib/duel/rally";
@@ -41,7 +43,7 @@ import { NO_SCROLL_STYLE, useNoTouchScroll } from "@/components/puzzles/noScroll
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 import { arcadeCanvasRatio } from "@/lib/fx/lowEnd";
 
-/** Fixed intro still: the ball dropping onto the paddle. */
+/** Fixed intro still (rallyRev 10): the pink pads, a gold bonus target with its countdown ring, a return aimed at it. */
 function IntroExample() {
   return (
     <div className="flex w-full flex-col items-center gap-2">
@@ -52,15 +54,19 @@ function IntroExample() {
         aria-hidden="true"
         style={{ background: RALLY_BG, borderRadius: 10 }}
       >
-        <path d="M40 16 L120 70" stroke="rgba(255,255,255,0.25)" strokeDasharray="4 4" />
-        <circle cx={120} cy={74} r={6} fill={RALLY_BALL} />
-        <rect x={96} y={100} width={50} height={8} rx={3} fill={RALLY_GOLD} />
+        <path d="M120 98 L104 44" stroke={RALLY_GOLD} strokeWidth={1.5} fill="none" strokeDasharray="4 3" />
+        <circle cx={120} cy={94} r={6} fill={RALLY_BALL} />
+        <rect x={98} y={102} width={44} height={8} rx={3} fill="#3DFFE0" />
+        <circle cx={102} cy={38} r={9} fill="#2A1E05" stroke={RALLY_GOLD} strokeWidth={1.5} />
+        <circle cx={102} cy={38} r={5} fill="none" stroke={RALLY_GOLD} strokeWidth={1.5} />
+        <circle cx={102} cy={38} r={1.8} fill={RALLY_GOLD} />
+        <path d="M102 26 A12 12 0 1 1 90 38" stroke={RALLY_GOLD} strokeWidth={1.5} fill="none" />
+        <circle cx={48} cy={70} r={6} fill={RALLY_GOLD} />
         <rect x={30} y={6} width={26} height={4} fill="#FF6FD8" />
-        <rect x={104} y={6} width={26} height={4} fill="#FF6FD8" />
-        <circle cx={70} cy={50} r={7} fill="none" stroke="#B49CFF" strokeWidth={2} />
+        <rect x={112} y={6} width={26} height={4} fill="#FF6FD8" />
       </svg>
       <p className="text-center text-xs text-muted-foreground">
-        Gold balls join every ten seconds; hit the pink pads on the far wall with them.
+        Hit the gold target before its ring runs out; gold balls score on the pink pads.
       </p>
     </div>
   );
@@ -69,11 +75,14 @@ function IntroExample() {
 function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const data: RallyPuzzleData | null = puzzle.type === "rally" ? puzzle : null;
   const seed = data?.seed ?? 1;
+  // The stored revision's game (rallyRev 10 has its own step and its 420-wide court; every earlier one shares rallyGame's).
+  const rallyGame = rallyGameFor(data?.rallyRev);
+  const RALLY_WORLD_W = rallyWorldWFor(data?.rallyRev);
 
   const wrap = useRef<HTMLDivElement | null>(null);
   const canvas = useRef<HTMLCanvasElement | null>(null);
   const frameTiming = useArcadeFrameTiming(canvas);
-  const state = useRef<RallyState>(rallyGameFor(data?.rallyRev).init(seed));
+  const state = useRef<RallyState>(rallyGame.init(seed));
   const events = useRef<ArcadeInputEvent[]>([]);
   const checkpoints = useRef<ReturnType<typeof rallyCheckpoint>[]>([]);
   const wanted = useRef<number | null>(null);
@@ -108,7 +117,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     });
 
   useEffect(() => {
-    state.current = rallyGameFor(data?.rallyRev).init(seed);
+    state.current = rallyGame.init(seed);
     events.current = [];
     checkpoints.current = [];
     wanted.current = null;
@@ -116,7 +125,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     submitted.current = false;
     deadAt.current = null;
     forceRedraw((n) => n + 1);
-  }, [seed]);
+  }, [seed, rallyGame]);
 
   useEffect(() => {
     if (!data) return;
@@ -288,7 +297,9 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
       </div>
       <p className="whitespace-normal break-words text-center font-mono text-base font-bold text-foreground">
         {/* The values the scorer uses: band revisions (rallyRev 3+) count 5 a gold hit and 6 a pad on the band curve. */}
-        {(puzzle.rallyRev ?? 0) >= RALLY_REV_BAND
+        {puzzle.rallyRev === RALLY_REV_BONUS
+          ? `${result.goldHits} gold hit${result.goldHits === 1 ? "" : "s"} × 5 + ${result.targetHits} pad${result.targetHits === 1 ? "" : "s"} × 6 · gold targets ${rallyBonusCount(result.state)}/${RALLY_V10_BONUS_COUNT}`
+          : (puzzle.rallyRev ?? 0) >= RALLY_REV_BAND
           ? `${result.goldHits} gold hit${result.goldHits === 1 ? "" : "s"} × 5 + ${result.targetHits} pad${result.targetHits === 1 ? "" : "s"} × 6`
           : `${result.goldHits} gold hit${result.goldHits === 1 ? "" : "s"} × 2.5 (rounded down)${puzzle.rallyRev ? ` + ${result.targetHits} pad${result.targetHits === 1 ? "" : "s"} × 3` : ""}`} ·{" "}
         {result.survived ? "survived" : `lost at ${result.endedSeconds.toFixed(1)}s`}

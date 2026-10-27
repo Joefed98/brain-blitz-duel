@@ -55,7 +55,7 @@ function brkSlideDestroyed(s: BrkState): number {
   return n;
 }
 import { PINBALL_IN_ROOMS, PIN_BUMPERS, PIN_LANE_POSTS, PIN_LANE_SENSOR_Y, PIN_LEFT_WALL, PIN_ORBIT_INNER, PIN_SPINNER_Y, PIN_TARGET_XS, PIN_TARGET_Y, PIN_WORLD_H, PIN_WORLD_W, type PinState } from "./pinball";
-import { rallyPaddleY, rallyWorldH, RALLY_SPEED_CAP, RALLY_SPEED_START, RALLY_TALL_H, RALLY_WORLD_H, RALLY_WORLD_W, type RallyState } from "./rally";
+import { rallyBonusCount, rallyPaddleY, rallyWorldH, RALLY_V10_BONUS_LIFE, RALLY_V10_BONUS_PTS, RALLY_V10_H, RALLY_V10_W, RALLY_SPEED_CAP, RALLY_SPEED_START, RALLY_TALL_H, RALLY_WORLD_H, RALLY_WORLD_W, type RallyState } from "./rally";
 import { BEAT_TALL_H, BEAT_WORLD_H, BEAT_WORLD_W, beatHitLineY, beatLaneXOf, beatLanesAt, beatWorldH, type BeatState } from "./beat";
 /** Tempo's last judged lane centre (beatRev 9: in the five-lane section, five lanes). */
 const beatLastX = (s: BeatState) => beatLaneXOf(Math.max(0, s.lastLane), beatLanesAt(s, s.tick));
@@ -76,7 +76,7 @@ import {
   SNAKE_V9_H,
   type SnakeState,
 } from "./snake";
-import { burstFloorY, BURST_FLOOR_Y, BURST_LIVES, BURST_TALL_H, BURST_WORLD_W, type BurstState } from "./burst";
+import { burstFloorY, burstGoldenCount, BURST_FLOOR_Y, BURST_LIVES, BURST_TALL_H, BURST_WORLD_W, type BurstState } from "./burst";
 import { SKYLINE_STREAK_FROM, SKYLINE_TALL_H, SKYLINE_WIND_FROM, SKYLINE_WORLD_H, SKYLINE_WORLD_W, skylineWorldH, type SkylineState } from "./skyline";
 import {
   crossColumnCentreFp,
@@ -1464,15 +1464,53 @@ export const BREAKER_FX_DEEP: ArcadeFxSpec<BrkState> = {
 };
 /** The spec a stored round draws with: the expansion's own, else the stored height's. */
 export const breakerFxFor = (s: BrkState): ArcadeFxSpec<BrkState> => (s.deep ? BREAKER_FX_DEEP : fxSpecAt(BREAKER_FX, brkWorldH(s)));
-export const rallyFxFor = (s: RallyState): ArcadeFxSpec<RallyState> => fxSpecAt(RALLY_FX, rallyWorldH(s));
+/**
+ * Expansion E9 (26 Oct 2026, docs/expansions/e9.md): rallyRev 10's 420 × 784 court. The original events keep their
+ * order and read older states as before; the gold bonus target's moment comes after them.
+ */
+export const RALLY_FX_BONUS: ArcadeFxSpec<RallyState> = {
+  ...RALLY_FX,
+  width: RALLY_V10_W,
+  height: RALLY_V10_H,
+  events: [
+    ...RALLY_FX.events,
+    {
+      kind: "perfect",
+      count: (s) => rallyBonusCount(s),
+      at: (s) => {
+        const at = s.bonusAt ?? 0;
+        const t = (s.bonus ?? []).find((b) => at >= b.tick && at < b.tick + RALLY_V10_BONUS_LIFE);
+        return t ? { x: t.x, y: t.y } : { x: RALLY_V10_W / 2, y: 120 };
+      },
+      label: () => `GOLD TARGET +${RALLY_V10_BONUS_PTS}`,
+      textOnly: true,
+      colour: () => "#FFD84A",
+      bulbs: { pattern: "flash", colours: RALLY_GOLD_BULBS, heat: rallyHeat, strong: true },
+    },
+  ],
+};
+export const rallyFxFor = (s: RallyState): ArcadeFxSpec<RallyState> => (s.exp ? RALLY_FX_BONUS : fxSpecAt(RALLY_FX, rallyWorldH(s)));
 export const wavefrontFxFor = (s: WavState): ArcadeFxSpec<WavState> => fxSpecAt(WAVEFRONT_FX, wavWorldH(s));
 export const WAVEFRONT_FX_TALL = fxSpecAt(WAVEFRONT_FX, WAV_TALL_H);
-export const burstFxFor = (s: BurstState): ArcadeFxSpec<BurstState> => fxSpecAt(BURST_FX, burstFloorY(s));
+export const burstFxFor = (s: BurstState): ArcadeFxSpec<BurstState> => (s.exp ? BURST_FX_CLEAN : fxSpecAt(BURST_FX, burstFloorY(s)));
 export const BURST_FX_TALL = fxSpecAt(BURST_FX, BURST_TALL_H);
+/**
+ * Expansion E9 (26 Oct 2026, docs/expansions/e9.md): burstRev 8 keeps the 390 × 650 world; its golden atoms and
+ * clean waves come after the original events (their text is the renderer's own pops, so these light the bulbs only).
+ */
+export const BURST_FX_CLEAN: ArcadeFxSpec<BurstState> = {
+  ...BURST_FX_TALL,
+  events: [
+    ...BURST_FX_TALL.events,
+    { kind: "perfect", count: (s) => burstGoldenCount(s), at: (s) => ({ x: s.popX / 256, y: s.popY / 256 }), label: () => null, textOnly: true, bulbs: { pattern: "flash", colours: COOL_LIGHTS } },
+    { kind: "clear", count: (s) => s.cleanWaves ?? 0, at: (s) => ({ x: BURST_WORLD_W / 2, y: burstFloorY(s) / 2 }), label: () => null, textOnly: true, bulbs: { pattern: "flash", colours: COOL_LIGHTS, strong: true } },
+  ],
+};
 /** Taller worlds batch 2 (Oct 2026): Tempo beatRev 6, Slice sliceRev 6, Coral Pop bubbleRev 5. */
 export const beatFxFor = (s: BeatState): ArcadeFxSpec<BeatState> => fxSpecAt(BEAT_FX, beatWorldH(s));
 export const BEAT_FX_TALL = fxSpecAt(BEAT_FX, BEAT_TALL_H);
-/** World expansion E5 (25 Oct 2026, docs/expansions/e5.md): Swish binRev 7's world. */
+/** World expansion E5 (25 Oct 2026, docs/expansions/e5.md): Swish binRev 7's world. Expansion E9: Flightpath bullRev 8's (its effects in the original sim coordinates, drawn lift px down). */
+export const BULLSEYE_FX_V8: ArcadeFxSpec<BullseyeState> = { ...BULLSEYE_FX, height: 728 };
 export const BINTOSS_FX_V7: ArcadeFxSpec<BinTossState> = { ...BINTOSS_FX, width: 430, height: 728 };
 export const sliceFxFor = (s: SliceState): ArcadeFxSpec<SliceState> => fxSpecAt(SLICE_FX, sliceWorldH(s));
 export const SLICE_FX_TALL = fxSpecAt(SLICE_FX, SLICE_TALL_H);
@@ -1550,10 +1588,10 @@ export const PINBALL_FX: ArcadeFxSpec<PinState> = {
 export const ARCADE_FX_SPECS = {
   hover: HOVER_FX_EXPAND,
   breaker: BREAKER_FX_DEEP,
-  rally: RALLY_FX_TALL,
+  rally: RALLY_FX_BONUS,
   beat: BEAT_FX_TALL,
   snake: SNAKE_FX_V9,
-  burst: BURST_FX_TALL,
+  burst: BURST_FX_CLEAN,
   wavefront: WAVEFRONT_FX_TALL,
   // The live round's view (orbitRev 8); rev 1/2 rounds draw through ORBIT_FX and rev 3–7 through ORBIT3_FX.
   orbit: fxSpecAt(ORBIT_FX, ORBIT_TALL_VIEW_H),
@@ -1563,7 +1601,7 @@ export const ARCADE_FX_SPECS = {
   inkbridge: INKBRIDGE_FX,
   slice: SLICE_FX_V9,
   bintoss: BINTOSS_FX_V7,
-  bullseye: BULLSEYE_FX,
+  bullseye: BULLSEYE_FX_V8,
   bubble: BUBBLE_FX_TALL,
   flip: FLIP_FX_TALL,
   // The live round's view (swingRev 13, the 200 expansion); older rounds draw through swingFxFor.
