@@ -78,7 +78,9 @@ import {
 import { SLICE_V9_BAND_CURVE, SLICE_V9_BONUS_CAP, SLICE_V9_DODGE_POINTS, SLICE_V9_GOLD_POINTS, SLICE_V9_TICKET_POINTS, SLICE_V9_VALUE } from "@/lib/arcade/slice";
 import { BINTOSS_FAR_CAP, BINTOSS_FAR_POINTS, BINTOSS_FAR_THROWS, BINTOSS_V7_BAND_CURVE } from "@/lib/arcade/binToss";
 import { P4_PTS_COMBO, P4_PTS_JACKPOT, P4_PTS_JOULZ, P4_PTS_RAMP, P4_PTS_SKILL } from "@/lib/arcade/pinball4";
-import { BULLSEYE_INNER_BULL_POINTS, BULLSEYE_RING_VALUES } from "@/lib/arcade/bullseye";
+import { BULLSEYE_INNER_BULL_POINTS, BULLSEYE_RING_VALUES, BULLSEYE_V8_DEAD_CAP, BULLSEYE_V8_DEAD_PTS, BULLSEYE_V8_STREAK_CAP, BULLSEYE_V8_STREAK_STEP } from "@/lib/arcade/bullseye";
+import { RALLY_V10_BONUS_COUNT, RALLY_V10_BONUS_PTS } from "@/lib/arcade/rally";
+import { BURST_V8_CAPS, BURST_V8_CLEAN_PTS, BURST_V8_GOLDEN_PTS, BURST_V8_GOLDENS } from "@/lib/arcade/burst";
 import { liveBandHelp } from "@/lib/arcade/liveBands";
 import { BRK_V9_COLS, BRK_V9_COMBO_MAX, BRK_V9_COMBO_X2, BRK_V9_COMBO_X3, BRK_V9_GOLD, BRK_V9_GOLD_POINTS, BRK_V9_ROWS, BRK_V9_SKILL_MAX, BRK_V9_SKILL_PAY } from "@/lib/arcade/breaker";
 import type { BandCurve } from "@/lib/arcade/scoreBands";
@@ -594,11 +596,13 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
       score: `Each bucket counts 10 and each hoop bonus 3. More buckets and hoops, higher score – up to ${BINTOSS_V7_BAND_CURVE.points.at(-1)}. A good run (${BAND_GOOD_POINTS} points) counts ${bandUnitsFor(BINTOSS_V7_BAND_CURVE, BAND_GOOD_POINTS)} – about ${Math.round(bandUnitsFor(BINTOSS_V7_BAND_CURVE, BAND_GOOD_POINTS) / 10)} buckets. All ten in adds 10, and each far bucket ${BINTOSS_FAR_POINTS} (up to ${BINTOSS_FAR_CAP}). Up to {max}.`,
     },
     bullseye: {
-      goal: "Hit the centre – ten darts.",
+      goal: "Hit the gold 10, near and far.",
       how: [
         { action: "Drag to aim,", detail: "let go to throw." },
-        { action: "Wind 2?", detail: "Aim two rings into the wind." },
-        { action: "Inner bull 12.", detail: "Balloons add +1, +2 or +3." },
+        { action: "Bulls in a row:", detail: `from the 3rd, +${BULLSEYE_V8_STREAK_STEP}, +${2 * BULLSEYE_V8_STREAK_STEP}, +${3 * BULLSEYE_V8_STREAK_STEP}…` },
+        { action: "White dead-centre ring:", detail: `+${BULLSEYE_V8_DEAD_PTS} more.` },
+        { action: "Wind 2?", detail: "Aim two rings into the wind.", helpOnly: true },
+        { action: "Inner bull 12.", detail: "Balloons add +1, +2 or +3.", helpOnly: true },
         {
           action: "Touch and drag to aim:",
           detail: "the dotted path shows where the dart will land.",
@@ -614,7 +618,17 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
           detail: "Wind 2 to the right? Aim two rings to the left.",
           helpOnly: true,
         },
-        { action: "The target", detail: "gets further away each throw.", helpOnly: true },
+        { action: "Every dart's board stands at its own distance:", detail: "near boards low and big, far ones high and small. The same boards for everyone in the room.", helpOnly: true },
+        {
+          action: "Bull streak:",
+          detail: `a dart in the gold 10 (wherever it sits) right after another is a streak ×2, then ×3… From ×3 each bull adds ${BULLSEYE_V8_STREAK_STEP} more than the last (+${BULLSEYE_V8_STREAK_STEP}, +${2 * BULLSEYE_V8_STREAK_STEP}, +${3 * BULLSEYE_V8_STREAK_STEP}…), up to ${BULLSEYE_V8_STREAK_CAP} in all. Any other dart ends the streak.`,
+          helpOnly: true,
+        },
+        {
+          action: "Dead-centre:",
+          detail: `the thin white ring in the middle of the bull (a quarter of its width, shown whenever the 10 is the centre ring). A dart inside it adds ${BULLSEYE_V8_DEAD_PTS} on top of the streak, up to ${BULLSEYE_V8_DEAD_CAP} in all, and keeps the streak going like any bull.`,
+          helpOnly: true,
+        },
         { action: "From the fourth dart the target moves – lead it.", detail: "It is scored where it is when the dart lands.", helpOnly: true },
         { action: "From the seventh dart the ring values swap places.", detail: "Read the numbers – each value keeps its colour.", helpOnly: true },
         {
@@ -628,7 +642,8 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
           helpOnly: true,
         },
       ],
-      score: liveBandHelp("bullseye", `Your dart total: rings ${BULLSEYE_RING_VALUES.join(" / ")} from the centre out (the inner bull ${BULLSEYE_INNER_BULL_POINTS}), plus +1, +2 or +3 for each balloon popped on the way in.`, { more: "A higher dart total", good: (u) => `totals ${u}` }),
+      // bullRev 8 (docs/expansions/e9.md): the dart total on its curve, plus the streak and dead-centre points.
+      score: `${liveBandHelp("bullseye", `Your dart total: rings ${BULLSEYE_RING_VALUES.join(" / ")} from the centre out (the inner bull ${BULLSEYE_INNER_BULL_POINTS}), plus +1, +2 or +3 for each balloon popped on the way in.`, { more: "A higher dart total", good: (u) => `totals ${u}` })} Bull streaks add up to ${BULLSEYE_V8_STREAK_CAP} more and dead-centre darts ${BULLSEYE_V8_DEAD_PTS} each, up to ${BULLSEYE_V8_DEAD_CAP}. Up to {max}.`,
     },
     matchup: {
       goal: "Match gems to meet each goal.",
@@ -740,17 +755,20 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
       goal: "Keep the rally going.",
       how: [
         { action: "Drag the paddle.", detail: "Miss the blue ball: over." },
-        { action: "Only gold balls score:", detail: "5 a paddle hit." },
-        { action: "Gold on a pink wall pad:", detail: "6 a hit." },
+        { action: "Gold balls score:", detail: "5 a hit, 6 a pink pad." },
+        { action: "Gold target:", detail: `+${RALLY_V10_BONUS_PTS} before its ring runs out.` },
         { action: "Drag to move the paddle", detail: "along the bottom.", helpOnly: true },
         { action: "Every hit", detail: "makes the paddle smaller and the ball faster.", helpOnly: true },
         { action: "A gold ball drops in", detail: "every ten seconds – only gold balls score.", helpOnly: true },
-        { action: "Two pink target pads", detail: "sit on the far wall, one in each half. A gold ball that hits one counts 6, and the pad moves somewhere new in its own half, so the two never overlap.", helpOnly: true },
+        { action: "Two pink target pads", detail: "sit on the far wall, one in each half. A gold ball that hits one counts 6, and the pad moves to a new spot in its own half, so the two never overlap. The spots are the same for everyone in the room.", helpOnly: true },
+        { action: `${RALLY_V10_BONUS_COUNT} gold targets a round:`, detail: `each appears at its own moment and spot in the upper court (the same for everyone in the room) and stays about 4 seconds, its ring counting down. Any ball that touches it scores ${RALLY_V10_BONUS_PTS}; a miss costs nothing.`, helpOnly: true },
+        { action: "Aim with the paddle:", detail: "where the ball meets it sets the angle; move the paddle as you hit to spin the return so it curves. Spin scores nothing itself.", helpOnly: true },
         { action: "From 30 seconds a bumper", detail: "appears mid-court (it blinks a warning first). Balls bounce off it like a mirror, at the same speed.", helpOnly: true },
         { action: "For the last 15 seconds", detail: "a second bumper joins it (from 45 s, with the same blinking warning), always far enough away for a ball to pass between them.", helpOnly: true },
         { action: "Miss the blue ball", detail: "and the run is over.", helpOnly: true },
       ],
-      score: liveBandHelp("rally", "Each gold-ball hit counts 5 and each pink target 6. The blue ball scores nothing; losing it ends the run.", { more: "More gold hits and pink targets", good: (u) => `counts ${u} – about ${Math.round(u / 5)} gold-ball hits` }),
+      // rallyRev 10 (docs/expansions/e9.md): the gold hits and pads on their curve, plus the gold targets.
+      score: liveBandHelp("rally", "Each gold-ball hit counts 5, each pink target 6 and each blue-ball return 1; losing the blue ball ends the run.", { more: "More gold hits and pink targets", good: (u) => `counts ${u} – about ${Math.round(u / 5)} gold-ball hits`, finish: `Each gold target struck adds ${RALLY_V10_BONUS_PTS} (${RALLY_V10_BONUS_COUNT} a round).` }),
     },
 
     steady: {
@@ -968,15 +986,18 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
       goal: "Split the atoms. Don't get hit.",
       how: [
         { action: "◀ ▶ to move,", detail: "tap the arena to shoot up." },
-        { action: "Catch drops:", detail: "BURST, SHIELD and FREEZE." },
-        { action: "An atom touching you", detail: "costs a life (3 lives)." },
+        { action: "Clear a wave with no miss:", detail: `+${BURST_V8_CLEAN_PTS}.` },
+        { action: "Golden atom:", detail: `+${BURST_V8_GOLDEN_PTS} before it fades.` },
+        { action: "An atom touching you", detail: "costs a life (3 lives).", helpOnly: true },
         { action: "Hold ◀ or ▶ to walk; tap anywhere on the arena to fire straight up.", detail: "There is no FIRE button: every tap on the arena is a shot.", helpOnly: true },
         { action: "Big atoms split into smaller ones;", detail: "the smallest pop.", helpOnly: true },
-        { action: "Purple atoms: 1 in 2 drop a gold BURST icon", detail: "– triple shots until you lose a life.", helpOnly: true },
-        { action: "Blue atoms: 1 in 8 drop a teal SHIELD", detail: "– it takes the next hit for you.", helpOnly: true },
-        { action: "Green atoms: 1 in 12 drop an ice-blue FREEZE", detail: "– every atom stops for 3 seconds. Frozen atoms still hurt if you walk into one.", helpOnly: true },
+        { action: "Clean wave:", detail: `clear a wave without a single miss for ${BURST_V8_CLEAN_PTS} more. A miss is a shot that hits nothing (both beams of a double shot); one miss ends the bonus for that wave. The counter (CLEAN 7/7) shows shots that hit / shots fired.`, helpOnly: true },
+        { action: "Fast wave:", detail: "3 more for clearing a wave within 5 s of it appearing, 2 within 8 s, 1 within 12 s.", helpOnly: true },
+        { action: `${BURST_V8_GOLDENS} golden atoms:`, detail: `each appears at its own moment and spot (the same for everyone in the room) and fades after about 4 seconds. A beam that reaches one scores ${BURST_V8_GOLDEN_PTS}.`, helpOnly: true },
+        { action: "Power-ups fall on a fixed schedule", detail: "(the same for everyone): DOUBLE fires two beams a shot for 8 s; FREEZE stops every atom for 3 s. Frozen atoms still hurt if you walk into one. They score nothing themselves.", helpOnly: true },
       ],
-      score: liveBandHelp("burst", "Each atom hit counts 1 unit; each life lost takes 5 units off (never below 0 units).", { more: "More atoms, fewer lives lost", good: (u) => `counts ${u} units`, finish: "Lasting the 90 s adds 10." }),
+      // burstRev 8 (docs/expansions/e9.md): the atoms on their curve, lasting, plus clean waves, fast waves and golden atoms.
+      score: liveBandHelp("burst", "Each atom hit counts 1 unit; each life lost takes 5 units off (never below a quarter of the atoms hit).", { more: "More atoms, fewer lives lost", good: (u) => `counts ${u} units`, finish: `Lasting the 90 s adds 10. Clean waves add up to ${BURST_V8_CAPS.clean}, fast waves up to ${BURST_V8_CAPS.clear} and golden atoms up to ${BURST_V8_CAPS.gold}.` }),
     },
     orbit: {
       goal: "Fly planet to planet to the sun.",

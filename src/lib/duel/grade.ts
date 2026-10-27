@@ -51,6 +51,7 @@ import { decodeBreakerRun, replayBreakerRun } from "./breaker";
 import { brkSkillPaid, brkWallSize } from "@/lib/arcade/breaker";
 import { decodePinballRun, replayPinballRun } from "./pinball";
 import { decodeRallyRun, replayRallyRun } from "./rally";
+import { rallyBonusCount, rallyBonusPoints } from "@/lib/arcade/rally";
 import { decodeSteadyRun, replaySteadyRun } from "./steady";
 import { decodeSliceRun, replaySliceRun } from "./slice";
 import { decodeBubbleRun, replayBubbleRun } from "./bubble";
@@ -68,6 +69,7 @@ import { decodeFlipRun, replayFlipRun } from "./flip";
 import { decodeJunctionRun, replayJunctionRun } from "./junction";
 import { decodeInkBridgeRun, replayInkBridgeRun } from "./inkBridge";
 import { decodeBurstRun, replayBurstRun } from "./burst";
+import { burstCleanBonus, burstGoldenCount } from "@/lib/arcade/burst";
 import { decodeOrbitRun, replayOrbitRun } from "./orbit";
 import { decodeSwingRun, replaySwingRun } from "./swing";
 import { SWING_REV, SWING_REV_BAND, SWING_REV_TUNED, SWING_REV_TUNEC, SWING_REV_SPREAD, SWING_REV_TALL, SWING_REV_TARGET, SWING_REV_STRICT } from "@/lib/arcade/swing";
@@ -93,6 +95,7 @@ import { decodeDualRun, replayDualRun } from "./dual";
 import { decodeRicoRun, replayRicoRun } from "./ricochet";
 import { decodeBinTossRun, replayBinTossRun } from "./binToss";
 import { decodeBullseyeRun, replayBullseyeRun } from "./bullseye";
+import { bullseyeDeadPoints, bullseyeStreakPoints } from "@/lib/arcade/bullseye";
 import { decodeMatchupRun, replayMatchupRun } from "./matchup";
 
 import { decodeTileGrid, scoreTileGrid } from "./tileGrid";
@@ -1397,6 +1400,8 @@ function gradeUnderRev(
         goldHits: run.goldHits,
         targetHits: run.targetHits,
         rallyRev: run.rallyRev,
+        // rallyRev 10 (expansion E9): the gold bonus targets struck, for the reveal.
+        ...(run.state.exp ? { bonusHits: rallyBonusCount(run.state), bonusPts: rallyBonusPoints(run.state) } : {}),
         paddleWidth: run.paddleWidth,
         survived: run.survived,
         endedSeconds: run.endedSeconds,
@@ -1856,6 +1861,8 @@ function gradeUnderRev(
         lives: run.lives,
         livesLost: run.livesLost,
         ...(puzzle.burstRev ? { burstRev: puzzle.burstRev, freezes: run.freezes } : {}),
+        // burstRev 8 (expansion E9): clean waves, golden atoms and the features' points, for the reveal.
+        ...(run.state.exp ? { cleanWaves: run.state.cleanWaves ?? 0, goldens: burstGoldenCount(run.state), skill: burstCleanBonus(run.state).total } : {}),
         survived: run.survived,
         survivedSeconds: run.survivedSeconds,
         endedSeconds: run.endedSeconds,
@@ -2368,6 +2375,8 @@ function gradeUnderRev(
         balloons: run.balloons,
         bullRev: run.bullRev,
         ...(run.tuned ? { tuned: run.tuned, balloonPoints: run.balloonPoints } : {}),
+        // bullRev 8 (expansion E9): the streak and dead-centre points, for the reveal.
+        ...(run.state.expand ? { streakPts: bullseyeStreakPoints(run.state), dead: run.state.dead ?? 0, deadPts: bullseyeDeadPoints(run.state) } : {}),
         finished: run.finished,
         endedSeconds: run.endedSeconds,
         flagged: run.flagged,

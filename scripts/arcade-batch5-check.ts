@@ -178,7 +178,8 @@ if (want("bullseye")) {
   section("Flightpath bullRev 2 (inner bull, drifting balloons)");
   const game = bullseyeGameFor(BULLSEYE_REV);
   const generated = generateBullseye();
-  ok(playRevOf("bullseye", generated.bullRev) === BULLSEYE_REV_TUNED && BULLSEYE_REV_BAND === 3, "new rounds are stamped bullRev 4 (Tuning B value balloons; bullRev 3 = rev 2 play on the score bands)");
+  // Expansion E9 (docs/expansions/e9.md) then moved Flightpath on to bullRev 8; expansion-e9-check covers it.
+  ok(playRevOf("bullseye", generated.bullRev) === BULLSEYE_REV_TUNED + 4 && BULLSEYE_REV_BAND === 3, "new rounds are stamped bullRev 8 (expansion E9, after bullRev 4's Tuning B value balloons; bullRev 3 = rev 2 play on the score bands)");
   ok(bullseyeGameFor(undefined) === bullseyeGame && bullseyeInit(5).balloons === undefined, "unstamped rounds keep the original game");
   for (const seed of SEEDS(200, 7919)) {
     const a = bullseyeInitRev2(seed, bullseyeWinds(seed));
@@ -235,7 +236,8 @@ if (want("bullseye")) {
 if (want("rally")) {
   section("Rally rallyRev 2 (far-wall targets, bumper from 30 s)");
   const game = rallyGameFor(RALLY_REV);
-  ok(playRevOf("rally", generateRally().rallyRev) === RALLY_REV_TUNEF + 1 && RALLY_REV_TUNED === 4 && RALLY_REV_BAND === 3, "new rounds are stamped rallyRev 6 (the taller court, arcade-tuning-g1-check; rallyRev 5 = Tuning F second bumper, arcade-tuning-f-check; rallyRev 4 = Tuning B pads in their own halves; rallyRev 3 = rev 2 play on the score bands)");
+  // Expansion E9 (docs/expansions/e9.md) then moved Rally on to rallyRev 10; expansion-e9-check covers it.
+  ok(playRevOf("rally", generateRally().rallyRev) === RALLY_REV_TUNEF + 5 && RALLY_REV_TUNED === 4 && RALLY_REV_BAND === 3, "new rounds are stamped rallyRev 10 (expansion E9, after rallyRev 6: the taller court, arcade-tuning-g1-check; rallyRev 5 = Tuning F second bumper, arcade-tuning-f-check; rallyRev 4 = Tuning B pads in their own halves; rallyRev 3 = rev 2 play on the score bands)");
   ok(rallyGameFor(undefined) === rallyGame && rallyGame.init(5).spots === undefined, "unstamped rounds keep the original game");
   for (const seed of SEEDS(200, 7919)) {
     const a = game.init(seed);

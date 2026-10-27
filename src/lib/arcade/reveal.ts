@@ -136,9 +136,14 @@ const BUILDERS: Record<string, Builder> = {
     const tuned = n(r, "tuned") === 1;
     return {
       axis: { value: n(r, "total"), max: tuned ? 126 : rev2 ? 120 : 100, label: "Dart total" },
-      lines: rev2 ? [`${n(r, "total")} points from 10 darts → ${s}`] : [`${n(r, "total")} / 100 rings → ${s}`],
+      lines: [
+        ...(rev2 ? [`${n(r, "total")} points from 10 darts → ${s}`] : [`${n(r, "total")} / 100 rings → ${s}`]),
+        // bullRev 8: the streak and dead-centre points on top.
+        ...(typeof r["dead"] === "number" ? [`Bull streak +${n(r, "streakPts")} · dead-centre ${n(r, "dead")} +${n(r, "deadPts")}`] : []),
+      ],
       tiles: [
         { label: "Bullseyes", value: String(n(r, "inner")) },
+        ...(typeof r["dead"] === "number" ? [{ label: "Dead-centre", value: String(n(r, "dead")) }] : []),
         ...(rev2 ? [{ label: "Inner bulls", value: String(n(r, "innerBulls")) }, { label: "Balloons", value: tuned ? `${n(r, "pops")} / ${n(r, "balloons")} · +${n(r, "balloonPoints")}` : `${n(r, "pops")} / ${n(r, "balloons")}` }] : []),
         { label: "Darts", value: String(n(r, "arrows")) },
       ],
@@ -191,12 +196,16 @@ const BUILDERS: Record<string, Builder> = {
   }),
   rally: (r, s) => ({
     axis: { value: n(r, "goldHits"), max: null, label: "Gold-ball hits" },
-    lines:
-      n(r, "rallyRev") === 2
+    lines: [
+      ...(n(r, "rallyRev") === 2
         ? [`${n(r, "hits")} hits · ${n(r, "goldHits")} gold · ${n(r, "targetHits")} targets → ${s}`]
-        : [`${n(r, "hits")} hits · ${n(r, "goldHits")} gold → ${s}`],
+        : [`${n(r, "hits")} hits · ${n(r, "goldHits")} gold → ${s}`]),
+      // rallyRev 10: the gold bonus targets on top.
+      ...(typeof r["bonusHits"] === "number" ? [`Gold targets ${n(r, "bonusHits")} / 6 +${n(r, "bonusPts")}`] : []),
+    ],
     tiles: [
       { label: "Gold hits", value: String(n(r, "goldHits")) },
+      ...(typeof r["bonusHits"] === "number" ? [{ label: "Gold targets", value: `${n(r, "bonusHits")} / 6` }] : []),
       ...(n(r, "rallyRev") === 2 ? [{ label: "Targets", value: String(n(r, "targetHits")) }] : []),
       { label: "All hits", value: String(n(r, "hits")) },
       { label: "Paddle", value: `${n(r, "paddleWidth")} px` },
@@ -363,7 +372,9 @@ const BUILDERS: Record<string, Builder> = {
   burst: (r, s) => ({
     axis: { value: Math.max(1, n(r, "wave")), max: null, label: "Waves" },
     lines:
-      n(r, "burstRev") > 0
+      typeof r["cleanWaves"] === "number"
+        ? [`${n(r, "hits")} atoms · ${n(r, "livesLost")} lives lost · skill +${n(r, "skill")} → ${s}`]
+        : n(r, "burstRev") > 0
         ? [
             s === 150 && n(r, "livesLost") === 0
               ? `Full 90 s, no life lost, ${n(r, "cleared")} waves cleared → 150`
@@ -373,6 +384,8 @@ const BUILDERS: Record<string, Builder> = {
     tiles: [
       { label: "Atoms", value: String(n(r, "hits")) },
       { label: "Lives lost", value: String(n(r, "livesLost")) },
+      // burstRev 8: clean waves and golden atoms.
+      ...(typeof r["cleanWaves"] === "number" ? [{ label: "Clean waves", value: String(n(r, "cleanWaves")) }, { label: "Golden atoms", value: `${n(r, "goldens")} / 6` }] : []),
       ...(n(r, "burstRev") > 0 ? [{ label: "Waves cleared", value: String(n(r, "cleared")) }, { label: "Freezes", value: String(n(r, "freezes")) }] : []),
     ],
     outcome: ended(r, false),
