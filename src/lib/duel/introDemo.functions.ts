@@ -16,7 +16,7 @@ import { BURST_REV_CLEAN } from "@/lib/arcade/burst";
 import { BULLSEYE_REV_EXPAND } from "@/lib/arcade/bullseye";
 import { BEAT_REV_200 } from "@/lib/arcade/beat";
 import { SNAKE_REV_200 } from "@/lib/arcade/snake";
-import { SLICE_REV_EXPAND, SLICE_REV_TALL } from "@/lib/arcade/slice";
+import { SLICE_REV_BIG, SLICE_REV_TALL } from "@/lib/arcade/slice";
 import { BINTOSS_REV_EXPAND } from "@/lib/arcade/binToss";
 import { BUB_REV_REEF } from "@/lib/arcade/bubble";
 import { MATCHUP_REV_GOALS } from "@/lib/arcade/matchup";
@@ -182,7 +182,8 @@ export const getIntroDemoFn = createServerFn({ method: "GET" })
     // play in larger worlds with new features; an older demo would show the old world (and its touches would land
     // elsewhere), so each shows its still until a demo is recorded on its new revision.
     if (data.type === "bintoss" && demo?.puzzle.type === "bintoss" && demo.puzzle.binRev !== BINTOSS_REV_EXPAND) return null;
-    if (data.type === "slice" && demo?.puzzle.type === "slice" && demo.puzzle.sliceRev !== SLICE_REV_EXPAND) return null;
+    // Slice sliceRev 10 (27 Oct 2026, Joe's phone notes): bigger onions and golden fruit; only a sliceRev 10 demo plays.
+    if (data.type === "slice" && demo?.puzzle.type === "slice" && demo.puzzle.sliceRev !== SLICE_REV_BIG) return null;
 
     return demo;
   });

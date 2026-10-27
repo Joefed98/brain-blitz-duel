@@ -1,5 +1,5 @@
 import { TEN_DROP_DEPTH_REV } from "@/lib/arcade/tenDrop";
-import { SLICE_REV_TARGET, SLICE_REV_STRICT, SLICE_REV_EXPAND } from "@/lib/arcade/slice";
+import { SLICE_REV_TARGET, SLICE_REV_STRICT, SLICE_REV_BIG } from "@/lib/arcade/slice";
 import { FLIP_REV_TARGET, FLIP_REV_STRICT, FLIP_REV_EXPAND } from "@/lib/arcade/flip";
 import { CROSS_REV_EXPAND } from "@/lib/arcade/cross";
 import { INK_REV_EXPAND } from "@/lib/arcade/inkBridge";
@@ -134,7 +134,8 @@ export function generateSteady(): SteadyPuzzleData {
 }
 
 export function generateSlice(): SlicePuzzleData {
-  return { type: "slice", seed: arcadeSeed(), sliceRev: SLICE_REV_EXPAND };
+  // sliceRev 10: sliceRev 9 (expansion E5) with onions and golden fruit 1.2× the size (Joe's phone notes, 27 Oct 2026).
+  return { type: "slice", seed: arcadeSeed(), sliceRev: SLICE_REV_BIG };
 }
 
 export function generateBubble(): BubblePuzzleData {

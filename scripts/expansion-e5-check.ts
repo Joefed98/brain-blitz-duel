@@ -56,7 +56,10 @@ import {
   type BinTossState,
 } from "../src/lib/arcade/binToss";
 import {
+  SLICE_REV_BIG,
   SLICE_REV_EXPAND,
+  SLICE_V10,
+  SLICE_V10_RADIUS,
   SLICE_V9,
   SLICE_V9_BONUS_CAP,
   SLICE_V9_GOLD,
@@ -89,6 +92,8 @@ const LEGACY = "scripts/fixtures/expansion-e5-legacy.json.gz";
 const RUNS = "scripts/fixtures/expansion-e5-runs.json.gz";
 const NEW_REV: Record<"bintoss" | "slice", number> = { bintoss: BINTOSS_REV_EXPAND, slice: SLICE_REV_EXPAND };
 const TYPES = Object.keys(NEW_REV) as (keyof typeof NEW_REV)[];
+/** What rooms deal today: Swish's E5 stamp; Slice's sliceRev 10 (sliceRev 9 with bigger onions and golden fruit, 27 Oct 2026). */
+const DEALT_REV: Record<"bintoss" | "slice", number> = { bintoss: BINTOSS_REV_EXPAND, slice: SLICE_REV_BIG };
 /** The legacy fixture also holds Flightpath's older stamps, which still replay on main's (unchanged) Flightpath. */
 const LEGACY_TYPES = [...TYPES, "bullseye"];
 const spec = (type: string) => GAMES.find((g) => g.type === type)!;
@@ -123,7 +128,7 @@ section("Rooms deal the new stamps; the maximum is 200 and the texts say so");
 for (const type of TYPES) {
   const live = LIVE_BANDS[type];
   const dealt = (generatePuzzle(type as PuzzleType) as unknown as Record<string, unknown>)[live.field];
-  ok(dealt === NEW_REV[type] && LIVE_BANDS[type].rev === NEW_REV[type], `${type}: rooms deal ${live.field} ${NEW_REV[type]} (got ${String(dealt)})`);
+  ok(dealt === DEALT_REV[type] && LIVE_BANDS[type].rev === DEALT_REV[type], `${type}: rooms deal ${live.field} ${DEALT_REV[type]} (got ${String(dealt)})`);
   ok(ROUND_MAX[type] === 200 && roundMaxFor(type) === 200, `${type}: ROUND_MAX is 200`);
   ok(fillMax(INTRO_SCORE[type], type).includes("200"), `${type}: the intro states 200: ${fillMax(INTRO_SCORE[type], type)}`);
   ok(fillMax(PUZZLE_INSTRUCTIONS[type].score, type).includes("Up to 200."), `${type}: the help ends "Up to 200."`);
@@ -131,7 +136,7 @@ for (const type of TYPES) {
   // One phone line each (46 characters, as batch 5's; Slice's first line was written before that rule, 50).
   ok(how.length <= 3 && how.every((line) => `${line.action} ${line.detail}`.length <= (type === "slice" ? 50 : 46)), `${type}: intro HOW fits three short lines`);
   const s = spec(type);
-  const init = s.gameFor(NEW_REV[type], s.seedFor(0)).init(s.seedFor(0)) as { band?: number };
+  const init = s.gameFor(DEALT_REV[type], s.seedFor(0)).init(s.seedFor(0)) as { band?: number };
   ok(init.band === BAND_STRICT_MARK, `${type}: band ${BAND_STRICT_MARK} from the first tick`);
 }
 {
@@ -273,9 +278,45 @@ section("Slice sliceRev 9: the larger board, sizes and values, golden fruit, tic
   ok(t0.from > 0 && t0.until - t0.from === 480, "a ticket lasts eight seconds");
 }
 
+section("Slice sliceRev 10: sliceRev 9 with onions and golden fruit 1.2× the size");
+{
+  const g9 = sliceGameFor(SLICE_REV_EXPAND);
+  const g10 = sliceGameFor(SLICE_REV_BIG);
+  ok(SLICE_REV_BIG === 10 && g10 !== g9 && g10.step === g9.step && g10.score === g9.score, "rev 10 steps and scores with rev 9's rules");
+  ok(sliceWorldWFor(SLICE_REV_BIG) === SLICE_V9_W && sliceWorldHFor(SLICE_REV_BIG) === SLICE_V9_H, "rev 10 plays on rev 9's 430 × 805 board");
+  ok(SLICE_V10_RADIUS[2] === Math.round(SLICE_V9_RADIUS[2] * 1.2) && SLICE_V10_RADIUS[SLICE_V9_GOLD] === Math.round(SLICE_V9_RADIUS[SLICE_V9_GOLD] * 1.2), "onion and golden fruit radii 1.2× rev 9's (whole px)");
+  ok([0, 1, 3].every((k) => SLICE_V10_RADIUS[k] === SLICE_V9_RADIUS[k]), "bagel, cabbage and meat keep rev 9's size");
+  const strip = (o: SliceState["objects"][number]): unknown => ({ ...o, r: 0, payload: o.payload.map(strip) });
+  for (let n = 0; n < 200; n++) {
+    const seed = 15485863 * n + 3;
+    const a = g9.init(seed) as SliceState;
+    const b = g10.init(seed) as SliceState;
+    ok(b.v10 === SLICE_V10 && a.v10 === undefined && b.v9 === SLICE_V9, `seed ${seed}: rev 10 marks its states (rev 9's don't)`);
+    ok(JSON.stringify({ ...a, objects: a.objects.map(strip) }) === JSON.stringify({ ...b, objects: b.objects.map(strip), v10: undefined }), `seed ${seed}: the same schedule, tickets and values as rev 9`);
+    const all = b.objects.flatMap((o) => [o, ...o.payload]);
+    const plain = all.filter((o) => !o.bomb && !o.special);
+    ok(plain.every((o) => o.r === SLICE_V10_RADIUS[o.colour]), `seed ${seed}: each food's rev-10 size from its kind (frenzy batches too)`);
+    ok(plain.some((o) => o.colour === 2) && plain.filter((o) => o.colour === SLICE_V9_GOLD).length === SLICE_V9_GOLDS, `seed ${seed}: onions and six golden fruit`);
+    ok(all.filter((o) => o.bomb).every((o) => sliceRadius(o) === 20) && all.filter((o) => o.special).every((o, i) => sliceRadius(o) === sliceRadius(a.objects.flatMap((x) => [x, ...x.payload]).filter((x) => x.special)[i]!)), `seed ${seed}: chillies and bottles keep their size`);
+  }
+  // No input still scores 0; bot runs on rev 10 replay through the server to their scores, 0–200, and played runs score.
+  let s = g10.init(4) as SliceState;
+  while (!g10.isOver(s) && s.tick < g10.runTicks) s = g10.step(s, null) as SliceState;
+  ok(g10.score(s) === 0, "rev 10: a run with no input scores 0");
+  for (const level of LEVELS)
+    for (let n = 0; n < 2; n++) {
+      const run = await playRun("slice", SLICE_REV_BIG, level, spec("slice").seedFor(3000 + n));
+      const replay = spec("slice").replay(run.seed, run.raw, run.rev);
+      const tag = `slice rev 10 ${level} ${run.seed}`;
+      ok(!replay.flagged && replay.desyncTick == null, `${tag}: replays unflagged (${replay.reason ?? ""})`);
+      ok(replay.score === run.score && run.score > 0 && run.score <= 200, `${tag}: replays to ${run.score}, above 0 and at most 200`);
+      ok((replay.state as SliceState).v10 === SLICE_V10, `${tag}: played on the rev-10 rules`);
+    }
+}
+
 console.log(
   failures.length === 0
-    ? `PASS expansion-e5-check: ${passes} checks — older stamps replay as on main; rooms deal binRev 7 and sliceRev 9 at 200 (Flightpath split out, then moved on by expansion E9); stored new-stamp runs and a 200 each; the new rules`
+    ? `PASS expansion-e5-check: ${passes} checks — older stamps replay as on main; rooms deal binRev 7 and sliceRev 10 (sliceRev 9 with bigger onions and golden fruit) at 200 (Flightpath split out, then moved on by expansion E9); stored new-stamp runs and a 200 each; the new rules`
     : `FAIL expansion-e5-check: ${failures.length} of ${passes + failures.length} checks failed\n${failures.map((f) => `  ✗ ${f}`).join("\n")}`,
 );
 if (failures.length > 0) process.exit(1);

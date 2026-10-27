@@ -62,7 +62,7 @@ import {
   BEAT_V6_BAND_CURVE,
   type BeatState,
 } from "../src/lib/arcade/beat";
-import { SLICE_REV_EXPAND,
+import { SLICE_REV_BIG, SLICE_REV_EXPAND,
   sliceCheckpoint,
   sliceGameFor,
   sliceMaxPath,
@@ -210,7 +210,8 @@ section("New rounds: stamps, start states, checksums, worlds by revision");
   // Expansion E2 (25 Oct 2026) then moved Tempo on to its five-lane song (beatRev 9, the same lanes); expansion-e2-check covers it.
   ok(playRevOf("beat", generateBeat().beatRev) === BEAT_REV_TALL + 3, "rooms deal beatRev 9 (expansion E2, after beatRev 6)");
   // World expansion E5 (25 Oct 2026) moved Slice on to its larger board (sliceRev 9); expansion-e5-check covers it.
-  ok([SLICE_REV_TALL, SLICE_REV_EXPAND].includes(playRevOf("slice", generateSlice().sliceRev) ?? -1), "rooms deal sliceRev 6 (or sliceRev 9, the expansion)");
+  // sliceRev 10 (27 Oct 2026) keeps sliceRev 9 with bigger onions and golden fruit; expansion-e5-check covers it too.
+  ok([SLICE_REV_TALL, SLICE_REV_EXPAND, SLICE_REV_BIG].includes(playRevOf("slice", generateSlice().sliceRev) ?? -1), "rooms deal sliceRev 6 (or sliceRev 9, the expansion, or its sliceRev 10)");
   // Expansion E6 (25 Oct 2026) moved Coral Pop on to its deeper reef (bubbleRev 8, the same tank); e6-check covers it.
   ok(generateBubble().bubbleRev === BUB_REV_TALL + 4, "rooms deal bubbleRev 9 (expansion E6's bubbleRev 8 with burst credit, after bubbleRev 5)");
   // Rooms deal the score-bands stamps after these (clashRev 6, clayRev 7: the same play, scoring-bands-check), and since
