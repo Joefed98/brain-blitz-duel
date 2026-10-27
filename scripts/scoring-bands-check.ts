@@ -20,6 +20,8 @@
  *   bun scripts/scoring-bands-check.ts
  */
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { patternStdHelp } from "../src/lib/duel/standard/patternText";
+import { isPatternStdType } from "../src/lib/duel/standard/patternRules";
 import { isD4Type } from "../src/lib/duel/depth4/stamps";
 import { d4Help } from "../src/lib/duel/depth4/text";
 import { generateMazeClassic } from "../src/lib/duel/maze.server";
@@ -298,6 +300,12 @@ const fixture = JSON.parse(gunzipSync(readFileSync(FIXTURE)).toString()) as { ar
     // Depth to 200: a D3 game raised to 200 states its own revision's help (its depth check proves it); the Number
     // puzzles to 200 (depthRev 1) state their own text (numberDepthText.ts; number-depth-check proves it).
     // Depth batch 4's games state their own text (depth4/text.ts; depth4-check proves the rest).
+    // The scoring standard's Pattern and Logic games (first half) state its text (standard/patternText.ts;
+    // standard-pattern-check proves the numbers).
+    if (isPatternStdType(type)) {
+      ok(PUZZLE_INSTRUCTIONS[type].score === patternStdHelp(type), `${type}: the "?" help is not the puzzle's score text`);
+      continue;
+    }
     if (isD4Type(type)) {
       ok(PUZZLE_INSTRUCTIONS[type].score === d4Help(type), `${type}: the "?" help is not the puzzle's score text`);
       continue;

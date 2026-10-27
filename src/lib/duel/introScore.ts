@@ -14,10 +14,8 @@ import { preStandardPinned } from "./standard/stamps";
 import { STANDARD_ATTENTION_INTRO } from "./standard/attentionTexts";
 import { BANGON_DEPTH_INTRO, FLASH_DEPTH_INTRO } from "./depth/speedTexts";
 import { depthIntro } from "./numberDepthText";
-import { d4IntroTemplate } from "./depth4/text";
+import { PATTERN_STD_INTRO } from "./standard/patternText";
 import { fillMax, liveRecord } from "./roundMax";
-import { TOPSY_INTRO_SCORE } from "./topsy";
-import { JUMBLED_INTRO_SCORE } from "./jumbled";
 import type { PuzzleType } from "./types";
 
 /**
@@ -76,24 +74,24 @@ function introScoreTemplates(): Record<PuzzleType, string> {
     stroop: STANDARD_ATTENTION_INTRO.stroop,
 
     // Logic and pattern
-    unblock: d4IntroTemplate("unblock"),
+    unblock: PATTERN_STD_INTRO.unblock,
     lightsout: logicDepthIntro("lightsout"),
-    pipes: d4IntroTemplate("pipes"),
+    pipes: PATTERN_STD_INTRO.pipes,
     sudoku: logicDepthIntro("sudoku"),
-    flow: d4IntroTemplate("flow"),
-    iceslide: d4IntroTemplate("iceslide"),
-    push: d4IntroTemplate("push"),
-    laser: d4IntroTemplate("laser"),
+    flow: PATTERN_STD_INTRO.flow,
+    iceslide: PATTERN_STD_INTRO.iceslide,
+    push: PATTERN_STD_INTRO.push,
+    laser: PATTERN_STD_INTRO.laser,
     tower: logicDepthIntro("tower"),
     tubes: logicDepthIntro("tubes"),
     safe: logicDepthIntro("safe"),
     bomb: logicDepthIntro("bomb"),
-    gravity: TOPSY_INTRO_SCORE,
+    gravity: PATTERN_STD_INTRO.gravity,
     nonogram: logicDepthIntro("nonogram"),
     flood: logicDepthIntro("flood"),
-    tiles: JUMBLED_INTRO_SCORE,
-    rings: d4IntroTemplate("rings"),
-    blockparty: d4IntroTemplate("blockparty"),
+    tiles: PATTERN_STD_INTRO.tiles,
+    rings: PATTERN_STD_INTRO.rings,
+    blockparty: PATTERN_STD_INTRO.blockparty,
     shikaku: logicDepthIntro("shikaku"),
     lightup: logicDepthIntro("lightup"),
     tents: logicDepthIntro("tents"),

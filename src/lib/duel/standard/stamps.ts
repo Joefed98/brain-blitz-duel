@@ -46,6 +46,17 @@ export const STANDARD_STAMPS: Partial<Record<PuzzleType, StandardStamp>> = {
   pairmatch: s("pairRev", 2),
 
   // Pattern and Logic: Gridlock, Tessellate, Skid, Topsy-Turvy, Gradient, Turntable, Lightbender, Chroma Lines, Pipeline, Heave (pattern.server.ts)
+  unblock: s("unblockRev", 1),
+  blockparty: s("blockRev", 2),
+  iceslide: s("slideRev", 1),
+  gravity: s("gravityRev", 4),
+  tiles: s("tilesRev", 4),
+  rings: s("ringsRev", 2),
+  // Lightbender times its gems from its own action log (the shots' times), so it needs no draft timeline.
+  laser: s("laserRev", 2, false),
+  flow: s("flowRev", 1),
+  pipes: s("pipesRev", 2),
+  push: s("pushRev", 2),
 
   // Pattern and Logic: Blackout, Box Six, Hanoi, Polypotions, Safe Cracker, Bomb Defusal, Mosaic, Colour Flood, Tents and Trees, Shikaku, Lamplighter (logic.server.ts)
 

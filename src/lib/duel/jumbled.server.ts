@@ -150,7 +150,8 @@ export function generateGradient(): TilesPuzzleData {
 
 /** Re-checks a stored tilesRev 4 round: a legal frame, the minimum, par, the route, a readable palette. */
 export function verifyGradientPuzzle(puzzle: TilesPuzzleData, readable: (palette: readonly string[]) => boolean): string | null {
-  if (puzzle.type !== "tiles" || puzzle.tilesRev !== TILES_REV_SWAP) return "not tilesRev 4";
+  // tilesRev 5 (the scoring standard, standard/stamps.ts) deals tilesRev 4's boards and rules.
+  if (puzzle.type !== "tiles" || (puzzle.tilesRev !== TILES_REV_SWAP && puzzle.tilesRev !== TILES_REV_SWAP + 1)) return "not tilesRev 4 or 5";
   const { frame } = puzzle;
   if (frame.length !== 25 || new Set(frame).size !== 25 || frame.some((t) => !Number.isInteger(t) || t < 0 || t > 24)) return "frame";
   for (const corner of JUMBLED_CORNERS) if (frame[corner] !== corner) return "an anchor moved";
