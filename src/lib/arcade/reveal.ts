@@ -621,7 +621,26 @@ const BUILDERS: Record<string, Builder> = {
     // clashRev 4 (puzzle score shape): a finish is all sorted with at most 2 wrong = 120 + the time bonus
     // (−5 per wrong from it); otherwise 110 × correct ÷ N − 2 per wrong. The bonus is the stored one.
     // clashRev 8 (depth to 200): the same lines, then the gold, streak and speed-stretch points a finish added.
-    const depth = (r as { depth?: { base: number; gold: number; streak: number; stretch: number; best: number; golds: number; goldWords: number; touched: number } }).depth;
+    const depth = (r as { depth?: { base: number; gold: number; streak: number; stretch: number; best: number; golds: number; goldWords: number; touched: number; standard?: boolean } }).depth;
+    // clashRev 10 (the scoring standard): 150 + speed + streak + gold, or the share of words right less wrong plus both.
+    if (depth?.standard && n(r, "queue") > 0) {
+      const done = b(r, "finished");
+      const sorted = n(r, "correct") + n(r, "wrong") >= n(r, "queue");
+      return {
+        axis: { value: n(r, "correct"), max: n(r, "queue"), label: "Correct" },
+        lines: [
+          `${n(r, "correct")} / ${n(r, "queue")} correct → ${s}`,
+          done ? `${n(r, "wrong")} wrong · finish ${depth.base} · speed +${depth.stretch}` : `${n(r, "wrong")} wrong · ${Math.max(0, n(r, "net"))} net → ${depth.base} · ${sorted ? "more than 3 wrong" : "not all sorted"}`,
+          `streak +${depth.streak} (best ${depth.best}) · gold +${depth.gold} (${depth.golds}/${depth.goldWords})`,
+        ],
+        tiles: [
+          { label: "Correct", value: `${n(r, "correct")} / ${n(r, "queue")}` },
+          { label: "Best streak", value: String(depth.best) },
+          { label: "Bonus", value: `+${depth.gold + depth.streak}` },
+        ],
+        outcome: done ? "finish" : "time",
+      };
+    }
     if (depth && n(r, "queue") > 0) {
       const done = b(r, "finished");
       const sorted = n(r, "correct") + n(r, "wrong") >= n(r, "queue");

@@ -1,4 +1,4 @@
-import { bandsHelp, openBandsLine } from "./puzzleBandsText";
+import { openBandsLine } from "./puzzleBandsText";
 import { depthHelp as logicDepthHelp } from "./logicDepthText";
 import { wordSearchBonusHelp } from "./wordSearchText";
 import { letterWheelJarHelp } from "./letterWheelText";
@@ -8,7 +8,7 @@ import { SLIDE_PAR_BONUS_TOPUP } from "./wordSlide";
 import { SW6_SPARE_SWAPS, SWAP_PAR_BONUS_TOPUP } from "./swapword";
 import { STD_ROUNDABOUT, STD_STRIKEOUT, WORD_STANDARD_HELP } from "./standard/word";
 import { preStandardPinned } from "./standard/stamps";
-import { doubleTakeDepthHelp, eagleEyeDepthHelp, tallyDepthHelp } from "./depth/attentionTexts";
+import { STANDARD_ATTENTION_HELP } from "./standard/attentionTexts";
 import { depthHelp } from "./numberDepthText";
 import { d4Help } from "./depth4/text";
 import {
@@ -24,10 +24,9 @@ import {
 } from "./scoring";
 import { withPuzzleScoreRev } from "./puzzleScoreRev";
 import { WORDHUNT_DEPTH_BASE_MAX, WORDHUNT_DEPTH_BONUS_MAX, WORDHUNT_V4_BASE_CURVE, WORDHUNT_V4_BONUS_CURVE } from "./wordHunt";
-import { ascendDepthHelp, bangOnDepthHelp, flashDepthHelp } from "./depth/speedTexts";
+import { bangOnDepthHelp, flashDepthHelp } from "./depth/speedTexts";
 import { BAND_GOOD_POINTS, bandMapTotal, bandOpen, bandPoints, bandTop, bandUnitsFor } from "@/lib/arcade/scoreBands";
 import { TD_GOLD_MAX, TD_GOLD_POINTS, TD_REV3_FREE_RESETS, TD_REV3_RESET_COST, TD_RUN_TICKS, TD_STRETCH_FROM, TD_STRETCH_SPAN, TEN_DROP_DEPTH_REV, TEN_DROP_RAW_REV, tenDropScore } from "@/lib/arcade/tenDrop";
-import { CLASH_DEPTH_MAX_WRONG, CLASH_GOLD_POINTS, CLASH_GOLD_STREAK, CLASH_GOLDS, CLASH_GREAT_MAP, CLASH_TOPUP_PACE_FLOOR, CLASH_TOPUP_PACE_ZERO_TICK, CLASH_REV3_RUN_TICKS, CLASH_STREAK_POINTS, CLASH_STRETCH_POINTS } from "@/lib/arcade/colourClash";
 import { WHACK_BANDS_MAP, WHACK_COMBO_POINTS, WHACK_DIAMOND_POINTS, WHACK_DIAMONDS, WHACK_QUICK_ZERO_TICKS } from "@/lib/arcade/whack";
 import { CLAY_DOUBLE_POINTS, CLAY_DOUBLES, CLAY_QUICK_HIT_MAP, CLAY_QUICK_POINTS, CLAY_STREAK_POINTS } from "@/lib/arcade/clayShoot";
 import { WORDFALL_BANDS_MAP } from "@/lib/arcade/wordfall";
@@ -122,11 +121,7 @@ import { BRK_V10_GOLD_HITS, BRK_V9_COLS, BRK_V9_COMBO_MAX, BRK_V9_COMBO_X2, BRK_
 import { FLIP_V8_COMBO_CAP, FLIP_V8_CP_POINTS, FLIP_V8_FEATURE_CAP, FLIP_V8_SKILL_PAY, FLIP_V8_SWEETS, FLIP_V8_SWEET_POINTS, FLIP_V8_TRAILS, FLIP_V8_TRAIL_POINTS, FLIP_V8_TRAIL_STARS, FLIP_V8_ZONE_POINTS } from "@/lib/arcade/flip";
 import { bandCurve, type BandCurve } from "@/lib/arcade/scoreBands";
 import { SNIP_X_FEATURE_MAX, SNIP_X_FEED_UNITS, SNIP_X_GOLD_RAW, SNIP_X_LEVELS, SNIP_X_PAR_MARGIN, SNIP_X_PAR_RAW, SNIP_X_PERFECT_RAW, SNIP_X_QUICK_RAW, SNIP_X_RAW_TOP, SNIP_X_SKILL_PAY, SNIP_X_STAR2_RAW, SNIP_X_STAR_UNITS } from "@/lib/arcade/snip";
-import { fillMax, liveRecord, roundMaxFor } from "./roundMax";
-import { chainDepthHelp } from "./depth/chain";
-import { pairDepthHelp } from "./depth/matchmaker";
-import { labyrinthDepthHelp } from "./depth/labyrinth";
-import { rev3UnfinishedScore } from "./puzzleScoreRev3";
+import { fillMax, liveRecord } from "./roundMax";
 import { topsyHelpScore } from "./topsy";
 import { jumbledHelpScore } from "./jumbled";
 import type { PuzzleType } from "./types";
@@ -244,10 +239,11 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Find the smallest", detail: "number left and tap it." },
         { action: "Keep going", detail: "until every number is gone." },
         { action: "Untapped numbers", detail: "move every 15 seconds." },
-        { action: "Flow:", detail: "quick right taps in a row build a bonus multiplier." },
+        { action: "Flow:", detail: "right taps in a row, with no wrong tap, build a bonus." },
         { action: "The timer above the board", detail: "counts up to 15 s, then the numbers move and it starts again from 0.", helpOnly: true },
       ],
-      score: ascendDepthHelp(),
+      // The scoring standard (tapRev 6): standard/attentionTexts.ts.
+      score: STANDARD_ATTENTION_HELP.numhunt(),
     },
     stroop: {
       goal: "Steer each falling word into the right gate.",
@@ -257,11 +253,12 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Watch the banner:", detail: "the rule swaps every 15 s." },
         { action: "The rule", detail: "is either the ink colour or what the word says.", helpOnly: true },
         { action: "Grey word in a dashed frame:", detail: "don't touch it – let it fall." },
-        { action: "Gold-bordered word:", detail: "sort it right for a bonus, doubled on a streak." },
+        { action: "Gold-bordered word:", detail: "sort it right for a bonus." },
         { action: "Streak:", detail: "words right in a row; the lanes glow brighter as it grows.", helpOnly: true },
         { action: "Sort the last word", detail: `to finish – the run ends when all ${CLASH_QUEUE} are sorted, or at 75 seconds.`, helpOnly: true },
       ],
-      score: `All ${CLASH_QUEUE} sorted (or let fall) with at most ${CLASH_DEPTH_MAX_WRONG} wrong is a finish: ${bandMapTotal(CLASH_GREAT_MAP, 120)} as time runs out, rising with the time left (5 off the speed part per wrong word; touching a grey word counts as wrong) to 150 for a quick finish with none wrong. A finish adds up to ${CLASH_GOLDS * CLASH_GOLD_POINTS * 2} for gold words (${CLASH_GOLD_POINTS} each, ${CLASH_GOLD_POINTS * 2} on a streak of ${CLASH_GOLD_STREAK}+), up to ${CLASH_STREAK_POINTS} for your longest streak (all ${CLASH_QUEUE} in a row for the lot) and up to ${CLASH_STRETCH_POINTS} for a clean finish quicker than ${CLASH_REV3_RUN_TICKS / 120} s; the gold and streak points count in full by ${CLASH_REV3_RUN_TICKS / 120} s and fade to ${Math.round(CLASH_TOPUP_PACE_FLOOR * 100)} % at ${CLASH_TOPUP_PACE_ZERO_TICK / 60} s. {max} only for a quick, clean run with every gold word on a streak. Otherwise words right less words wrong, ${bandMapTotal(CLASH_GREAT_MAP, 110)} at most: 20 scores ${bandMapTotal(CLASH_GREAT_MAP, 70)}, 40 scores ${bandMapTotal(CLASH_GREAT_MAP, 100)}, 46 or more ${bandMapTotal(CLASH_GREAT_MAP, 110)}.`,
+      // The scoring standard (clashRev 10): standard/attentionTexts.ts.
+      score: STANDARD_ATTENTION_HELP.stroop(),
     },
     symscan: {
       goal: "Find every eagle that matches the target.",
@@ -271,7 +268,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Three grids,", detail: "each bigger, in 30 seconds." },
         { action: "Grid 3 has two targets:", detail: "tap every eagle facing either one.", helpOnly: true },
       ],
-      score: eagleEyeDepthHelp(),
+      score: STANDARD_ATTENTION_HELP.symscan(),
     },
     spotdiff: {
       goal: "Find six differences in each of two pictures.",
@@ -282,7 +279,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "One picture hides a 7th:", detail: "a shape drawn smaller. Find it before the 6th for a bonus." },
         { action: "Next picture", detail: "moves on early; you can't go back.", helpOnly: true },
       ],
-      score: doubleTakeDepthHelp(),
+      score: STANDARD_ATTENTION_HELP.spotdiff(),
     },
     stopwatch: {
       goal: "Stop the marker in the gold zone, ten times.",
@@ -308,7 +305,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Four trays", detail: "share 60 seconds.", helpOnly: true },
         { action: "Colours", detail: "are red, blue, green, purple, pink, orange and white.", helpOnly: true },
       ],
-      score: tallyDepthHelp(),
+      score: STANDARD_ATTENTION_HELP.countup(),
     },
     wordhunt: {
       goal: "Find as many words as you can.",
@@ -435,11 +432,11 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Drag", detail: "through the passages." },
         { action: "Walls", detail: "block your way." },
         { action: "Reach the exit", detail: "to finish." },
-        { action: "Stars", detail: "anywhere in the maze add points if you finish fast." },
+        { action: "Stars", detail: "anywhere in the maze add points, finished or not." },
         { action: "The path", detail: "moves one neighbouring cell at a time.", helpOnly: true },
       ],
-      // Depth to 200 (mazeRev 1): depth/labyrinth.ts.
-      score: labyrinthDepthHelp(rev3UnfinishedScore("maze", 0.5)),
+      // The scoring standard (mazeRev 3): standard/attentionTexts.ts.
+      score: STANDARD_ATTENTION_HELP.maze(),
     },
     tubes: {
       goal: "Sort the potions so each flask is one colour.",
@@ -501,10 +498,9 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Every 5 links", detail: "the board reshuffles with five new charms.", helpOnly: true },
         { action: "Reverse:", detail: "a banner warns from link 17; links 21-25 run last to first (the arrows point back).", helpOnly: true },
         { action: "Watch for look-alikes:", detail: "right shape, wrong colour.", helpOnly: true },
-        // Depth to 200 (chainDepthRev 1): the milestones, one short line.
-        { action: "Milestones:", detail: "10, 20 and 30 links in a row score extra when quick." },
       ],
-      score: chainDepthHelp(rev3UnfinishedScore("chain", 0.5)),
+      // The scoring standard (chainDepthRev 3): no milestones; standard/attentionTexts.ts.
+      score: STANDARD_ATTENTION_HELP.chain(),
     },
     nonogram: {
       goal: "Fill cells so every line matches its numbers.",
@@ -521,10 +517,10 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Tap two cards", detail: "to turn them over." },
         { action: "A match stays up;", detail: "a miss flips back." },
         { action: "Remember", detail: "where each card was." },
-        // Depth to 200 (pairRev 1): the streak and the gold pair, one short line.
-        { action: "Bonus:", detail: "match in a row for a streak; find the gold pair early." },
+        // The streak and the gold pair, one short line.
+        { action: "Bonus:", detail: "match in a row for a streak; find the gold pair in 30 s." },
       ],
-      score: pairDepthHelp(bandsHelp("pairmatch"), roundMaxFor("pairmatch")),
+      score: STANDARD_ATTENTION_HELP.pairmatch(),
     },
     flood: {
       goal: "Flood the whole board with one colour.",

@@ -35,7 +35,16 @@ export const STANDARD_STAMPS: Partial<Record<PuzzleType, StandardStamp>> = {
 
   // Number (number.server.ts)
 
-  // Speed and Attention (attention.server.ts)
+  // Speed and Attention (attention.server.ts; Mixed Signals scores in its sim, colourClash.ts clashRev 10). Ascend's and
+  // the Chain's answers carry their own tap times and Mixed Signals is an engine game, so they need no draft timeline.
+  numhunt: s("tapRev", 5, false),
+  chain: s("chainDepthRev", 2, false),
+  stroop: s("clashRev", 9, false),
+  symscan: s("scanRev", 3),
+  spotdiff: s("spotRev", 2),
+  countup: s("countRev", 4),
+  maze: s("mazeRev", 2),
+  pairmatch: s("pairRev", 2),
 
   // Pattern and Logic: Gridlock, Tessellate, Skid, Topsy-Turvy, Gradient, Turntable, Lightbender, Chroma Lines, Pipeline, Heave (pattern.server.ts)
 

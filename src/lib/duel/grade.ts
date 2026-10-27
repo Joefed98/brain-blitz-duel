@@ -472,7 +472,8 @@ function gradeUnderRev(
       // clashRev 8: the score's parts and the streak / gold / "don't sort" counts, for the reveal.
       if (replay.depth) {
         const d = replay.depth;
-        extraDetail = { ...extraDetail, depth: { base: d.base, gold: d.gold, streak: d.streak, stretch: d.stretch, best: d.best, golds: d.golds, goldWords: d.goldWords, touched: d.touched, passed: d.passed, skips: d.skips } };
+        // clashRev 10 (the scoring standard): `standard` marks the standard's parts (base 150 or the share, stretch = speed).
+        extraDetail = { ...extraDetail, depth: { base: d.base, gold: d.gold, streak: d.streak, stretch: d.stretch, best: d.best, golds: d.golds, goldWords: d.goldWords, touched: d.touched, passed: d.passed, skips: d.skips, ...(d.standard ? { standard: 1 } : {}) } };
       }
       break;
     }

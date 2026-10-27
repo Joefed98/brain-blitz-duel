@@ -15,10 +15,8 @@
  *   8. Trail is a Logic game; the display name "Gradient".
  */
 import { generatePuzzle, gradeAnswer } from "../src/lib/duel/generate.server";
-import { pinPreStandard } from "../src/lib/duel/standard/stamps";
-// Written for the stamps before the scoring standard (docs/scoring-standard.md): new deals keep them.
-pinPreStandard(true);
 import { pinPrePhoneNotes } from "../src/lib/duel/phoneNotes";
+import { pinPreStandard } from "../src/lib/duel/standard/stamps";
 import { withSeededRandom } from "../src/lib/duel/random";
 import { puzzleDef } from "../src/lib/duel/registry";
 import { gameDisplayName } from "../src/lib/duel/gameNames";
@@ -53,6 +51,9 @@ import type {
   TilesPuzzleData,
 } from "../src/lib/duel/types";
 
+// Written for the phone notes' stamps (mazeRev 2, pairRev 2, …): new deals stay on them, not on the scoring standard's (27 Oct 2026),
+// which the standard's own checks prove.
+pinPreStandard(true);
 let checks = 0;
 const failures: string[] = [];
 const ok = (cond: boolean, msg: string) => {
