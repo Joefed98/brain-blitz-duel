@@ -14,6 +14,7 @@ import {
   MATCHUP_CHECKPOINT_INTERVAL,
   MATCHUP_INPUT_RANGES,
   MATCHUP_RUN_TICKS,
+  MATCHUP_V10_RUN_TICKS,
   type MatchupCheckpoint,
   type MatchupState,
 } from "@/lib/arcade/matchup";
@@ -65,7 +66,8 @@ export function decodeMatchupRun(raw: string): MatchupRun {
   const checkpoints = checkpointPart
     .split(",")
     .filter(Boolean)
-    .slice(0, Math.ceil(MATCHUP_RUN_TICKS / MATCHUP_CHECKPOINT_INTERVAL))
+    // matchupRev 10's 90 s run has the most checkpoints; a shorter run's list is shorter anyway.
+    .slice(0, Math.ceil(MATCHUP_V10_RUN_TICKS / MATCHUP_CHECKPOINT_INTERVAL))
     .map((encoded) => encoded.split(":").map((part) => Number.parseInt(part, 10)))
     .filter((values) => values.length === 8 && values.every(Number.isInteger))
     .map(([tick, swaps, raw2, bestLine, cascades, reshuffles, board, sum]) => ({
@@ -115,13 +117,15 @@ export interface MatchupResult {
 export function replayMatchupRun(seed: number, raw: string, rev?: number | null): MatchupResult {
   const matchupGame = matchupGameFor(rev);
   const run = decodeMatchupRun(raw);
-  const endTick = run.endTick && run.endTick > 0 ? Math.min(run.endTick, MATCHUP_RUN_TICKS) : 0;
-  const clientLag = endTick > 0 && endTick < MATCHUP_RUN_TICKS;
+  // matchupRev 10 runs 90 s (its game's runTicks); every earlier revision 60 s (MATCHUP_RUN_TICKS).
+  const runTicks = matchupGame.runTicks;
+  const endTick = run.endTick && run.endTick > 0 ? Math.min(run.endTick, runTicks) : 0;
+  const clientLag = endTick > 0 && endTick < runTicks;
   // matchupRev 9's taller board declares its own row range.
-  const check = checkInputEvents(run.events, MATCHUP_RUN_TICKS, matchupGame.inputRanges ?? MATCHUP_INPUT_RANGES);
+  const check = checkInputEvents(run.events, runTicks, matchupGame.inputRanges ?? MATCHUP_INPUT_RANGES);
   const events = new Map<number, ArcadeInputEvent>();
   for (const event of check.events) events.set(event.t, event);
-  const lastTick = clientLag ? endTick : MATCHUP_RUN_TICKS;
+  const lastTick = clientLag ? endTick : runTicks;
   const clientCheckpoints = new Map((run.checkpoints ?? []).map((item) => [item.tick, item]));
 
   let state = matchupGame.init(seed);

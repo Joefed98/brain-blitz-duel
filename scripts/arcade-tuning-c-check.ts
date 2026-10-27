@@ -163,7 +163,8 @@ section("New rounds carry the Tuning C stamps; Junction is practice only");
     // slice (sliceRev 5) and Grappler on to its evenly spread stars (swingRev 8), the same play
     // otherwise; arcade-tuning-f-check and swing-rev8-check cover them.
     // Expansion E6 (25 Oct 2026) then moved Gemstone on to its taller board with goals (matchupRev 9); e6-check covers it.
-    ["matchup", playRevOf("matchup", generateMatchup().matchupRev), MATCHUP_REV_PAR + 3],
+    // Joe's phone-test notes (27 Oct 2026) moved it on again (matchupRev 10: 90 s, ice swaps); gemstone-rev10-check covers it.
+    ["matchup", playRevOf("matchup", generateMatchup().matchupRev), MATCHUP_REV_PAR + 4],
     // Taller worlds batch 3 (16 Oct 2026) then moved Grappler on to its taller cavern (swingRev 9); arcade-tuning-g3-check covers it.
     // Grappler's 200 expansion (26 Oct 2026) moved Grappler on to swingRev 13 (after swingRev 9's taller cavern); swing-x200-check covers it.
     ["swing", playRevOf("swing", generateSwing().swingRev), SWING_REV_TUNEC + 6],
@@ -244,8 +245,9 @@ if (want("matchup")) {
   section("Gemstone matchupRev 5: wait for the gems to fall, par 2,500");
   const game = matchupGameFor(MATCHUP_REV_WAIT);
   ok(bandTop(MATCHUP_V5_BAND_CURVE) === 2500 && bandPoints(MATCHUP_V5_BAND_CURVE, 2500) === 150 && bandPoints(MATCHUP_V5_BAND_CURVE, 2499) < 150, "150 needs 2,500 match points");
-  // The live help shows the curve rooms deal today (Tuning F: 150 at 2,800; expansion E6: 150 at 3,200, e6-check).
-  ok(PUZZLE_INSTRUCTIONS.matchup.score.includes("3,200") && PUZZLE_INSTRUCTIONS.matchup.how.some((h) => h.detail.includes("wait")), "the \"?\" help and intro say so");
+  // The live help shows the curve rooms deal today (Tuning F: 150 at 2,800; expansion E6: 150 at 3,200, e6-check;
+  // matchupRev 10: 150 at 4,200, gemstone-rev10-check).
+  ok(PUZZLE_INSTRUCTIONS.matchup.score.includes("4,200") && PUZZLE_INSTRUCTIONS.matchup.how.some((h) => h.detail.includes("wait")), "the \"?\" help and intro say so");
   // Find a valid swap on a fresh board, make it, then check the wait.
   const swaps: [number, number, number, number][] = [];
   for (let r = 0; r < MATCHUP_ROWS; r++)

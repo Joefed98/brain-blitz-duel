@@ -5,7 +5,7 @@ import { CROSS_REV_EXPAND } from "@/lib/arcade/cross";
 import { INK_REV_EXPAND } from "@/lib/arcade/inkBridge";
 import { SNAKE_REV_TARGET, SNAKE_REV_200 } from "@/lib/arcade/snake";
 import { BUB_REV_CREDIT } from "@/lib/arcade/bubble";
-import { MATCHUP_REV_GOALS } from "@/lib/arcade/matchup";
+import { MATCHUP_REV_ICE } from "@/lib/arcade/matchup";
 import { SNIP_REV_TARGET, SNIP_REV_EXPAND } from "@/lib/arcade/snip";
 import { SKYLINE_REV_TARGET, SKYLINE_REV_STRICT, SKYLINE_REV_EXPAND } from "@/lib/arcade/skyline";
 import { TILT_REV_EXPAND } from "@/lib/arcade/tilt";
@@ -96,8 +96,9 @@ export function generateBullseye(): BullseyePuzzleData {
 }
 
 export function generateMatchup(): MatchupPuzzleData {
-  // matchupRev 9 (expansion E6): the taller board with goals, ice and treasure.
-  return { type: "matchup", seed: arcadeSeed(), matchupRev: MATCHUP_REV_GOALS };
+  // matchupRev 10 (27 Oct 2026, phone-test notes): matchupRev 9's taller board with goals, ice and treasure, over 90 s,
+  // with swaps into and out of ice that make a line, and the ice laid once.
+  return { type: "matchup", seed: arcadeSeed(), matchupRev: MATCHUP_REV_ICE };
 }
 
 export function generateSnake(): SnakePuzzleData {

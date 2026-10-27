@@ -19,7 +19,7 @@ import { SNAKE_REV_200 } from "@/lib/arcade/snake";
 import { SLICE_REV_EXPAND, SLICE_REV_TALL } from "@/lib/arcade/slice";
 import { BINTOSS_REV_EXPAND } from "@/lib/arcade/binToss";
 import { BUB_REV_REEF } from "@/lib/arcade/bubble";
-import { MATCHUP_REV_GOALS } from "@/lib/arcade/matchup";
+import { MATCHUP_REV_ICE } from "@/lib/arcade/matchup";
 import { TEN_DROP_DEPTH_REV } from "@/lib/arcade/tenDrop";
 import { SKYLINE_REV_EXPAND } from "@/lib/arcade/skyline";
 import { PIN_REV_EXPAND } from "@/lib/arcade/pinball";
@@ -155,7 +155,9 @@ export const getIntroDemoFn = createServerFn({ method: "GET" })
     // Expansion E6 (25 Oct 2026): Ball Tracker's 13-row board, Gemstone's taller board with goals: each stays stopped
     // until a demo is recorded on its new revision (btRev 7, matchupRev 9).
     if (data.type === "balltrack" && demo?.puzzle.type === "balltrack" && demo.puzzle.btRev !== BT_REV_RUSH) return null;
-    if (data.type === "matchup" && demo?.puzzle.type === "matchup" && demo.puzzle.matchupRev !== MATCHUP_REV_GOALS) return null;
+    // Gemstone's matchupRev 10 (27 Oct 2026: 90 s, swaps into and out of ice, ice laid once) plays differently again, so
+    // only a demo recorded on matchupRev 10 plays; until one is, the intro shows its still.
+    if (data.type === "matchup" && demo?.puzzle.type === "matchup" && demo.puzzle.matchupRev !== MATCHUP_REV_ICE) return null;
     // The 200-point expansion (26 Oct 2026, docs/expansions/x200-snip.md): Scrumper's snipRev 11 tall courses with several
     // fruits and a vertical camera. An older demo shows the old one-apple levels, so the intro shows its still until a demo
     // is recorded on snipRev 11.

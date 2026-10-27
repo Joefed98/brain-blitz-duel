@@ -154,7 +154,8 @@ section("New rounds carry the Tuning F stamps; runs on them replay unchanged");
   // Grappler's 200 expansion (26 Oct 2026) moved Grappler on again (swingRev 13); swing-x200-check covers it.
   // The 200-point expansion (26 Oct 2026) moved Scrumper on to snipRev 11; snip-x200-check covers it.
   // x200 (26 Oct 2026) moved Jaywalk on to crossRev 9 (the expansion); cross-x200-check covers it.
-  const movedOn: Record<string, number> = { slice: SLICE_REV_EXPAND, bubble: BUB_REV_TORPEDO + 5, swing: SWING_REV_SPREAD + 5, matchup: 9, snip: SNIP_REV_EXPAND, cross: CROSS_REV_EXPAND };
+  // Gemstone's phone-test notes (27 Oct 2026) moved it on to matchupRev 10; gemstone-rev10-check covers it.
+  const movedOn: Record<string, number> = { slice: SLICE_REV_EXPAND, bubble: BUB_REV_TORPEDO + 5, swing: SWING_REV_SPREAD + 5, matchup: 10, snip: SNIP_REV_EXPAND, cross: CROSS_REV_EXPAND };
   for (const [type, field, got, rev] of stamps) {
     if (!want(type)) continue;
     ok(got === (movedOn[type] ?? rev), `${type}: new rounds stamped ${movedOn[type] ?? rev} (got ${got})`);
@@ -293,7 +294,8 @@ if (want("matchup")) {
   }
   ok(best === 150, `150 is reachable through the server replay (best ${best}, ${bestRaw} match points)`);
   // Expansion E6's matchupRev 9 scores on its own curve (150 at 3,200 before its feature bonus); e6-check covers it.
-  ok(PUZZLE_INSTRUCTIONS.matchup.score.includes("3,200"), "the \"?\" help shows the curve rooms deal (150 at 3,200)");
+  // matchupRev 10 (27 Oct 2026, the 90 s run) tops its base curve at 4,200.
+  ok(PUZZLE_INSTRUCTIONS.matchup.score.includes("4,200"), "the \"?\" help shows the curve rooms deal (150 at 4,200)");
 }
 
 console.log(failures.length === 0 ? `PASS arcade-tuning-f2-check (${checks} checks)` : `FAIL arcade-tuning-f2-check: ${failures.length} of ${checks} failed`);

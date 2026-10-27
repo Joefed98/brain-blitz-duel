@@ -62,6 +62,7 @@ import {
   matchupIndex,
   matchupRowsOf,
   MATCHUP_REV_GOALS,
+  MATCHUP_REV_ICE,
   MATCHUP_SIZE,
   MATCHUP_TREASURE,
   MATCHUP_V9_BAND_CURVE,
@@ -138,7 +139,8 @@ for (const file of ["scripts/fixtures/e6-legacy.json", "scripts/fixtures/e6-runs
 section("Rooms deal the new stamps; the maximum is 200; demos stay stopped");
 const dealt = (type: PuzzleType) => generatePuzzle(type) as unknown as Record<string, unknown>;
 ok(dealt("bubble").bubbleRev === BUB_REV_CREDIT, "Coral Pop: rooms deal bubbleRev 9 (bubbleRev 8's reef with burst credit)");
-ok(dealt("matchup").matchupRev === MATCHUP_REV_GOALS, "Gemstone: rooms deal matchupRev 9");
+// Gemstone moved on to matchupRev 10 (27 Oct 2026, phone-test notes; gemstone-rev10-check); matchupRev 9 replays here as before.
+ok(dealt("matchup").matchupRev === MATCHUP_REV_ICE, "Gemstone: rooms deal matchupRev 10 (matchupRev 9's successor)");
 {
   const bt = dealt("balltrack");
   ok(bt.btRev === BT_REV_RUSH, "Ball Tracker: rooms deal btRev 7");
@@ -148,7 +150,7 @@ for (const type of ["bubble", "matchup", "balltrack"]) ok(roundMaxFor(type) === 
 {
   const demo = readFileSync("src/lib/duel/introDemo.functions.ts", "utf8");
   ok(/bubbleRev !== BUB_REV_REEF\) return null/.test(demo), "Coral Pop's demo stays stopped until recorded on bubbleRev 8");
-  ok(/matchupRev !== MATCHUP_REV_GOALS\) return null/.test(demo), "Gemstone's demo stays stopped until recorded on matchupRev 9");
+  ok(/matchupRev !== MATCHUP_REV_ICE\) return null/.test(demo), "Gemstone's demo stays stopped until recorded on matchupRev 10 (its successor to 9)");
   ok(/btRev !== BT_REV_RUSH\) return null/.test(demo), "Ball Tracker's demo stays stopped until recorded on btRev 7");
 }
 
