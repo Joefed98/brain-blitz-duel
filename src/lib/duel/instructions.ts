@@ -1,4 +1,4 @@
-import { bandsHelp, openBandsLine } from "./puzzleBandsText";
+import { openBandsLine } from "./puzzleBandsText";
 import { logicStandardHelp } from "./standard/logicText";
 import { FLOOD_STANDARD_SPARE_MOVES } from "./standard/logicRules";
 import { wordSearchBonusHelp } from "./wordSearchText";
