@@ -245,8 +245,8 @@ section("New rounds: stamps, start states, checksums, worlds by revision");
   // Expansion E6 (25 Oct 2026) moved Ball Tracker on to its 13-row board (1400 px; e6-check).
   // Grappler's 200 expansion (swingRev 13) deals its 450 × 844 view (swing-x200-check); the expansion to 200 moved Orbit
   // on to its 450 × 782 view (orbitRev 12; orbit-expand-check).
-  // Orbit: orbitRev 12's 450 × 782 view, drawn 839 tall since 27 Oct 2026 (Joe's phone notes: the world reaches the bottom).
-  ok(fx.swing!.height === 844 && fx.orbit!.height === 839 && fx.balltrack!.height === 1400, "ARCADE_FX_SPECS hold the heights rooms deal");
+  // Orbit: orbitRev 12's 450 × 782 view, drawn 862 tall since 27 Oct 2026 (Joe's phone notes: 80 rows above the frame).
+  ok(fx.swing!.height === 844 && fx.orbit!.height === 862 && fx.balltrack!.height === 1400, "ARCADE_FX_SPECS hold the heights rooms deal");
   ok(swingFxFor({ worldH: 730 } as SwingState).height === 730 && swingFxFor({} as SwingState) === SWING_FX, "Grappler effects by state height");
   ok(orbit3FxFor({ worldH: 650 } as OrbitRev3State).height === 650 && orbit3FxFor({} as OrbitRev3State) === ORBIT3_FX, "Orbit effects by view height");
   ok(balltrackFxFor({ worldH: 1300 } as BtState).height === 1300 && balltrackFxFor({} as BtState) === BALLTRACK_FX, "Ball Tracker effects by state height");

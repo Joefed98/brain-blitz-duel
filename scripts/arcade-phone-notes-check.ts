@@ -185,11 +185,11 @@ ok(tiltGameFor(TILT_REV_LIFT).init(7).lift === 1 && !tiltGameFor(TILT_REV_EXPAND
   ok(scale === 1.2 && r * scale - r <= 2, `Hover's gold stars drawn 1.2× (${(r * scale).toFixed(1)} px on a ${r} px pickup, inside the 2 px rule)`);
   ok(!/cityRow|WINDOW_TONES/.test(hover), "Hover: no city in the background");
   const orbit = read("src/lib/arcade/orbit.renderer.ts");
-  const drawH = Number(/export const ORBIT_XP_DRAW_H = (\d+);/.exec(orbit)?.[1]);
-  ok(drawH === Math.floor((450 * 772) / 414), `Orbit's drawn view (450 × ${drawH}) has the iPhone 11 home-screen box's shape (414 × 772)`);
+  const drawH = 782 + Number(/export const ORBIT_XP_AHEAD = (\d+);/.exec(orbit)?.[1]);
+  ok(drawH === 782 + 80 && /export const ORBIT_XP_DRAW_H = 782 \+ ORBIT_XP_AHEAD;/.test(orbit), `Orbit's drawn view (450 × ${drawH}): the camera's 782 frame and 80 rows above it, so the frame reaches the box's bottom`);
   ok(!/ctx\.arc\(x, y, ORBIT_MOON_ASSIST \/ FP, 0, Math\.PI \* 2\);\s*ctx\.stroke\(\)/.test(orbit) && !/"#91877A"/.test(orbit), "Orbit: no dashed ring round a moon, no belt track line");
   const stage = read("src/puzzles/orbit.tsx");
-  ok(/overlay=\{\(send\) => \(/.test(stage) && !/footer=\{/.test(stage), "Orbit: SET CHECKPOINT is laid over the play area, no row under it");
+  ok(/overlay=\{xp \? \(send\) => \(/.test(stage) && /footer=\{xp \? undefined :/.test(stage), "Orbit orbitRev 12: SET CHECKPOINT in the world's reserved corner, no row under it (play-control-clearance-check proves the corner)");
   ok(/worldH=\{orbitDrawHFor\(data\?\.orbitRev\)\}/.test(stage), "Orbit's stage sizes its world from the drawn height");
   const tilt = read("src/lib/arcade/tiltArt.renderer.ts");
   ok(!/function cameraX/.test(tilt) && /const cam = \{ x: 0, y: 0 \};/.test(tilt), "Tilt: the camera stays on the disc's centre");

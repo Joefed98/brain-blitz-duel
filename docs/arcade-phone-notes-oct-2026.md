@@ -10,7 +10,7 @@ here reads the device, and the new stamps keep their predecessors' play tick for
 |---|---|---|---|
 | Hover | No buildings, more starry space; stars in the gaps 1.2× | The city rows are gone: a near-black sky with a faint blue lift, a soft band of far star dust and a fixed star field (a few bright ones with a small glint); the drifting field has twice the stars; the fill below the world carries the same stars. Gold stars (barrier gaps and star chains) are drawn 1.2× (8.4 px on their 7 px pickup, inside the bounds rule's 2 px). | none (display) |
 | Jaywalk | A dark evening, darker road | An evening palette: road #25292F (was #555B64), dim grass, hedges, paving and kerbs, a blue dusk wash over the cached scene, warm lamp pools on both verges (light only, the traffic drawn over it). Vehicles, walker, coins and HUD unchanged. | none (display) |
-| Orbit | Black space with stars, no purple / pink / green; no orbit lines round moons and rocks; no bottom strip, world extended down; SET CHECKPOINT kept, over the play area | The nebula's coloured clouds are gone (black with far star dust and the star field). The slingshot moons' dashed rings, the asteroid fields' dotted gap line and the belts' track line are gone; a moon keeps a soft halo that fades out exactly at the assist's reach, so where a pass slings still shows. orbitRev 12's 450 × 782 framed view is drawn 839 tall (`orbitDrawHFor`: the extra 57 px below the frame; the camera and its framing are unchanged), so at 414 × 896 the world fills the 414 × 772 box; SET CHECKPOINT is laid over the play area's bottom (12 px above the world's edge; only the button takes a touch). | none (display) |
+| Orbit | Black space with stars, no purple / pink / green; no orbit lines round moons and rocks; no bottom strip, world extended down; SET CHECKPOINT kept, over the play area | The nebula's coloured clouds are gone (black with far star dust and the star field). The slingshot moons' dashed rings, the asteroid fields' dotted gap line and the belts' track line are gone; a moon keeps a soft halo that fades out exactly at the assist's reach, so where a pass slings still shows. orbitRev 12's 450 × 782 framed view is drawn 862 tall (`orbitDrawHFor`: 80 rows above the camera's frame, the course further ahead; the camera and its framing are unchanged), so the world reaches the screen's 16 px strip (403 × 772 at 414 × 896). SET CHECKPOINT sits in `ORBIT_XP_ZONE`, a reserved 210 × 74 corner at the top right of those rows, where nothing in play is drawn (see "SET CHECKPOINT's corner" below). | none (display) |
 | Roofbound | No buildings, a dark eerie cave; scores low, lift them | The far city is replaced by the cave's depths: dark stalactites and stalagmites in two slow layers, a few faint cold crystals, a pale mist low over the floor, pale spores in place of embers, colder and darker tunnel air (the lava hazards keep their colours). Scoring: `flipRev 9` (below). | `flipRev 9` |
 | Tilt | Fixed camera; subtler ice; scores low, lift them | The camera stays on the disc's centre (no panning), scaled so the whole disc fits the width (mazes 1–3 at about 0.98 / 0.86 / 0.77); only the board turns. The ice's frost is about a third as strong, so walls and openings read through it. Scoring: `tiltRev 9` (below). | `tiltRev 9` |
 | Ball Tracker | Reveal shows 32/30; bottom countdown should say "20 to switch up", not "20 to drop" | The reveal (axis, line, tile), the round leaderboard summary and the "ALL n HOME!" moment count the course's own marbles: 36 on btRev 7, 30 before (the reveal reads the replay state's `r7`). The readout under the board counts the whole seconds to the next switch-up (the bottom row's re-lay, then the colour shuffle): "20 to switch up"; after both it shows marbles left ("6 left"). The help says what the count is. | none (display) |
@@ -58,9 +58,35 @@ witness runs score 200.
   dotted line and the belts' track line. The planets' own orbit paths (the line the rocket rides, gold for the first
   lap) are kept: they show when to let go. A moon keeps a soft halo to its assist's reach instead of a ring.
 - **"Drop the purple, pink and green"** is the background nebula; the planets keep their colours.
-- **Orbit's world extended down** is a display change: the drawn view is taller below the camera's frame; the sim,
-  its `worldH` and the checkpoint are unchanged, so no stamp. Earlier orbit revisions keep their views (also with
-  SET CHECKPOINT over the play area). On 375 × 667 the taller view is 317 px wide (was 323 × 539, now 317 × 591).
+- **Orbit's world extended** is a display change: 80 rows drawn above the camera's frame; the sim, its `worldH` and the
+  checkpoint are unchanged, so no stamp. Earlier orbit revisions keep their views and SET CHECKPOINT's row under them.
+  On 375 × 667 the world is 309 × 591 (was 323 × 539).
+
+## SET CHECKPOINT's corner (follow-up, 27 Oct 2026)
+
+The first version laid SET CHECKPOINT over the world's bottom, which room-practice-parity-check and
+play-control-clearance-check reject (controls sit below the arena, never inside it). Of the two placements allowed:
+
+- **The control strip below the play area** can't hold the button without shrinking the world: at 414 × 896 a 44 px row
+  and its 8 px gap leave a 414 × 720 box, where a 450-wide world taller than 782 is drawn under 414 px wide (the 839-tall
+  version at 386 × 720). That is the old 414 × 719 world with its strip back, which Joe asked to remove.
+- **So the button is in a fixed top corner where nothing in play is drawn.** No corner of the camera's frame is empty on
+  its own: over the 371 bank courses' witness runs something in play (stardust, rocks, planets, now and then the rocket)
+  touches a 150 × 64 top corner in about half of all frames. The 80 rows are therefore drawn *above* the frame, and
+  their top-right 210 × 74 corner (`ORBIT_XP_ZONE`) is clipped out of everything but the starfield (`clipOutZone` in
+  orbit.renderer.ts: paths, planets, belts, holes, moons, rocks, dust, the rocket and its trail, shooting stars, feature
+  pops). The camera keeps the rocket's centre 14 px inside its frame, so the rocket never reaches the zone, and anything
+  hidden there is beyond the frame that orbitRev 12 always showed. The button is 4 px in from the world's top and right
+  edges; the feature HUD line is split into two short lines so it stays left of the zone.
+
+Proved by the two checks, extended (neither loosened): **play-control-clearance-check**: the markup (the corner on
+orbitRev 12 only, 44 px tall; earlier revisions keep the row, still checked as before), the renderer's clip order (only
+the starfield before the clip; everything in play inside it; pops clipped too), the 128 × 44 button with its 4 px insets
+inside the zone at nine viewports' world scales (360 × 800 to 1280 × 800; tightest 375 × 667: a 144 × 51 zone), and on
+every course rooms can deal (371), every frame of its witness run and two random runs, in both camera modes (2.1 million
+frames), the rocket's 16 px reach outside the zone (lowest rocket top 78 px against the zone's 74).
+**room-practice-parity-check**: on orbitRev 12 the only control inside the arena slot is the corner row (absolute,
+right-1, top-1, 44 px) and its one button, and there is no row below; every other game still has none in the slot.
 - **Ball Tracker's "20 to switch up"** counts seconds to the next switch-up (the re-lay, then the shuffle), not
   marbles; Joe's wording implies the count is about the switch-up. After the last switch-up it shows marbles left.
 - **Tilt's fixed camera** zooms each maze to fit the width, so the bigger mazes are drawn smaller (maze 3 at 0.77).

@@ -955,11 +955,22 @@ function drawBlackHole(ctx: CanvasRenderingContext2D, x: number, y: number, arme
 
 /**
  * The height (px) Orbit is drawn in for a stored orbitRev (display only; Joe's phone notes, 27 Oct 2026). orbitRev 12
- * frames its course in a 450 × 782 view (the sim's `worldH`); the play screen draws ORBIT_XP_DRAW_H, the extra 57 px
- * below that frame, so the world reaches the screen's bottom on the iPhone 11 home-screen app (414 × 772 box) with
- * SET CHECKPOINT laid over it. The camera, its framing and every input are unchanged. Earlier revisions keep their view.
+ * frames its course in a 450 × 782 view (the sim's `worldH`, the camera's frame); the play screen draws ORBIT_XP_DRAW_H:
+ * ORBIT_XP_AHEAD more rows above that frame (the course further ahead, as orbitRev 8's taller view did), so the frame's
+ * bottom is the world's bottom and the world reaches the screen's 16 px strip on the iPhone 11 home-screen app. In the
+ * top-right corner of those rows sits ORBIT_XP_ZONE, where nothing in play is ever drawn (everything but the starfield is
+ * clipped out of it) and SET CHECKPOINT is laid; the camera keeps the rocket inside its frame, below the rows, so
+ * nothing the rocket can meet is ever under the button. The camera, its framing and every input are unchanged.
+ * Earlier revisions keep their view (and SET CHECKPOINT's row under it).
  */
-export const ORBIT_XP_DRAW_H = 839;
+export const ORBIT_XP_AHEAD = 80;
+export const ORBIT_XP_DRAW_H = 782 + ORBIT_XP_AHEAD;
+/**
+ * The reserved empty zone (view px, from the drawn view's top-right corner): 210 wide and 74 tall, inside the rows above
+ * the frame and 6 px clear of it (the camera keeps the rocket's centre 14 px inside its frame, so its 11 px body never
+ * reaches the zone; play-control-clearance-check proves it on every course).
+ */
+export const ORBIT_XP_ZONE = { w: 210, h: ORBIT_XP_AHEAD - 6 } as const;
 export function orbitDrawHFor(rev?: number | null): number {
   return rev === ORBIT_REV_XP ? ORBIT_XP_DRAW_H : orbitWorldHFor(rev);
 }
@@ -967,15 +978,27 @@ export function orbitDrawHFor(rev?: number | null): number {
 function orbitDrawH(state: OrbitRev3State): number {
   return state.viewW ? ORBIT_XP_DRAW_H : orbitViewH(state);
 }
+/** Clips everything drawn until the matching restore out of ORBIT_XP_ZONE (orbitRev 12 only; a no-op save otherwise). */
+function clipOutZone(ctx: CanvasRenderingContext2D, state: OrbitRev3State, W: number, H: number): void {
+  ctx.save();
+  if (!state.viewW) return;
+  ctx.beginPath();
+  ctx.rect(0, 0, W, H);
+  ctx.rect(W - ORBIT_XP_ZONE.w, 0, ORBIT_XP_ZONE.w, ORBIT_XP_ZONE.h);
+  ctx.clip("evenodd");
+}
 
 function drawOrbitRev3ArtWorld(ctx: CanvasRenderingContext2D, state: OrbitRev3State, size: CanvasSize): void {
-  // orbitRev 8: the taller view (620 otherwise); orbitRev 12 drawn taller still, below its framed view.
+  // orbitRev 8: the taller view (620 otherwise); orbitRev 12 drawn taller still, ORBIT_XP_AHEAD rows above its frame.
   const ORBIT_CAM_VIEW_H = orbitDrawH(state);
   // orbitRev 12: the wider view (390 otherwise).
   const ORBIT_CAM_VIEW_W = orbitViewW(state);
   const still = prefersReducedMotion();
   const t = still ? 0 : state.tick / 60;
-  const cam = orbitCamera(state, { reducedMotion: still });
+  const ahead = ORBIT_CAM_VIEW_H - orbitViewH(state);
+  // The drawn view's top-left in the world: the camera's frame, raised by the rows drawn above it.
+  const framed = orbitCamera(state, { reducedMotion: still });
+  const cam = { x: framed.x, y: framed.y - ahead };
   const scale = Math.min(size.width / ORBIT_CAM_VIEW_W, size.height / ORBIT_CAM_VIEW_H);
   const ox = (size.width - ORBIT_CAM_VIEW_W * scale) / 2;
   const oy = (size.height - ORBIT_CAM_VIEW_H * scale) / 2;
@@ -991,11 +1014,13 @@ function drawOrbitRev3ArtWorld(ctx: CanvasRenderingContext2D, state: OrbitRev3St
 
   const capturePlanet=state.planets[state.cur];
   rev3Starfield(ctx, cam, t, still, ORBIT_CAM_VIEW_H, ORBIT_CAM_VIEW_W);
+  // orbitRev 12: from here to the HUD nothing is drawn in ORBIT_XP_ZONE (SET CHECKPOINT's reserved corner).
+  clipOutZone(ctx, state, ORBIT_CAM_VIEW_W, ORBIT_CAM_VIEW_H);
   if (!still && !arcadeReducedEffects()) drawAmbientShootingStar(ctx, state.tick, ORBIT_CAM_VIEW_W, ORBIT_CAM_VIEW_H);
    drawOrbitShootingStar(ctx, state, cam, still);
 
-  // Cull to the view plus one ring's margin either side (orbitVisiblePlanets).
-  const visible = orbitVisiblePlanets(state, cam, ORBIT_CAM_VIEW_H - orbitViewH(state));
+  // Cull to the drawn view plus one ring's margin either side (orbitVisiblePlanets).
+  const visible = orbitVisiblePlanets(state, cam, ahead);
 
   drawOrbitPaths(ctx, state, visible, cam.x, cam.y, t);
   ctx.globalAlpha = 1;
@@ -1130,6 +1155,8 @@ function drawOrbitRev3ArtWorld(ctx: CanvasRenderingContext2D, state: OrbitRev3St
   ctx.fill();
   ctx.restore();
 
+  // The end of ORBIT_XP_ZONE's clip (clipOutZone): the HUD and the success layer's HUD burst are top left.
+  ctx.restore();
   if(capturePlanet)successFrame(ctx,{id:'orbit3',tick:state.tick,count:state.captured,enabled:state.captured%5===0,misses:1-state.respawns,colour:ORBIT_GOLD,width:ORBIT_CAM_VIEW_W,height:ORBIT_CAM_VIEW_H,point:{x:110,y:26,shape:'spark'},hud:{x:14,y:12,text:`Planets ${state.best} / ${ORBIT_TOTAL}`}});
   ctx.fillStyle = "#FFFFFF";
   ctx.font = "600 16px 'JetBrains Mono', ui-monospace, monospace";
@@ -1140,14 +1167,20 @@ function drawOrbitRev3ArtWorld(ctx: CanvasRenderingContext2D, state: OrbitRev3St
     const c = orbitXpCounts(state);
     ctx.font = "600 12px 'JetBrains Mono', ui-monospace, monospace";
     ctx.fillStyle = "#FFE9A8";
-    ctx.fillText(`Dust ${c.dust}/${c.dustTotal} · Sling ${c.slings}/${c.slingsTotal} · Thread ${c.threads}/${c.threadsTotal} · Perfect ${c.perfect}`, 14, 44);
+    // Two short lines (since 27 Oct 2026), left of SET CHECKPOINT's reserved corner (ORBIT_XP_ZONE).
+    ctx.fillText(`Dust ${c.dust}/${c.dustTotal} · Sling ${c.slings}/${c.slingsTotal}`, 14, 44);
+    ctx.fillText(`Thread ${c.threads}/${c.threadsTotal} · Perfect ${c.perfect}`, 14, 60);
   }
   if (state.checkpoint >= 0) {
     ctx.fillStyle = state.respawns > 0 ? ORBIT_GOLD : "rgba(255,255,255,0.4)";
     ctx.font = "600 14px 'JetBrains Mono', ui-monospace, monospace";
-    ctx.fillText(state.respawns > 0 ? `Checkpoint ${state.checkpoint} · 1 respawn` : `Checkpoint used`, 14, state.xp ? 62 : 44);
+    ctx.fillText(state.respawns > 0 ? `Checkpoint ${state.checkpoint} · 1 respawn` : `Checkpoint used`, 14, state.xp ? 78 : 44);
   }
-  if (xpMemory) drawXpPops(ctx, xpMemory, cam, still);
+  if (xpMemory) {
+    clipOutZone(ctx, state, ORBIT_CAM_VIEW_W, ORBIT_CAM_VIEW_H);
+    drawXpPops(ctx, xpMemory, cam, still);
+    ctx.restore();
+  }
   if (state.tick - state.respawnTick < 45) {
     ctx.globalAlpha = 1 - (state.tick - state.respawnTick) / 45;
     ctx.fillStyle = ORBIT_GOLD;

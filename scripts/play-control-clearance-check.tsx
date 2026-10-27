@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { renderToStaticMarkup } from "react-dom/server";
 import { ArrowModeOverride, ArrowPad } from "../src/components/puzzles/GridDrag";
+import { BUTTON, ORBIT_XP_AHEAD, ORBIT_XP_DRAW_H, ORBIT_XP_ZONE, zoneFits, zoneProof } from "./orbit-zone-lib";
 
 const removed = {
   "mazeDash": "Tap or hold an arrow · or draw with your finger · go back to undo",
@@ -66,6 +67,45 @@ for (const { file, row, button, count, width, tall } of arcadeRows) {
     assert.ok(width(w) >= 44 && tall >= 44, `${file} ${w}px: 44px targets`);
   }
   console.log(`PASS ${file}: controls below the fitted arena, ${tall}px tall, ≥${Math.min(...[375, 390, 430].map(width)).toFixed(1)}px wide at 375–430px.`);
+}
+// Orbit orbitRev 12 (Joe's phone notes, 27 Oct 2026; docs/arcade-phone-notes-oct-2026.md): the world reaches the screen's
+// bottom, so SET CHECKPOINT is not in a row below it but in ORBIT_XP_ZONE, the reserved top-right corner of the rows drawn
+// above the camera's frame (orbit.renderer.ts), where nothing in play is ever drawn. Proved here: the markup puts the 44 px
+// button 4 px in from the world's top and right edges on orbitRev 12 only (earlier revisions keep the row above); the button
+// with its insets fits inside the zone at every viewport's world scale; the renderer clips everything but the starfield
+// out of the zone; and on every course rooms can deal, every frame of its witness run and of two random runs, in both
+// camera modes, the rocket's drawn reach stays out of the zone (so nothing the rocket can meet is ever under the button).
+{
+  const orbit = readFileSync("src/puzzles/orbit.tsx", "utf8");
+  assert.match(orbit, /const xp = data\?\.orbitRev === ORBIT_REV_XP;/, "orbit: orbitRev 12 picks the corner");
+  assert.match(orbit, /overlay=\{xp \? \(send\) => \(\s*<div data-game-controls="checkpoint" data-orbit-zone="" className="pointer-events-none absolute right-1 top-1 flex h-11 items-start justify-end">/, "orbit: the button 4px in from the world's top and right");
+  assert.match(orbit, /className="pointer-events-auto h-11 px-3 text-\[11px\] font-bold before:content-\['SET_CHECKPOINT'\]"/, "orbit: the corner button is 44px tall, 11px text, 12px sides");
+  assert.match(orbit, /footer=\{xp \? undefined : \(send\) => \(/, "orbit: no row below the world on orbitRev 12");
+  const renderer = readFileSync("src/lib/arcade/orbit.renderer.ts", "utf8");
+  const world = renderer.split("function drawOrbitRev3ArtWorld")[1]?.split("\n}\n")[0] ?? "";
+  const clipAt = world.indexOf("clipOutZone(ctx, state, ORBIT_CAM_VIEW_W, ORBIT_CAM_VIEW_H);");
+  const starsAt = world.indexOf("rev3Starfield(");
+  const firstPlay = Math.min(...["drawAmbientShootingStar(", "drawOrbitShootingStar(", "drawOrbitPaths(", "drawFirstLap(", "rev3GlowLayer(", "drawSun(", "drawBelt(", "drawBlackHole(", "drawXpFeatures(", "drawShipTrail(", "drawRocketFlame("].map((f) => world.indexOf(f)).filter((i) => i >= 0));
+  const restoreAt = world.indexOf("ctx.restore();\n  if(capturePlanet)successFrame(");
+  const lastPlay = Math.max(...["drawRocketFlame(", "drawShipTrail(", "drawXpFeatures(", "drawCaptureGlow("].map((f) => world.lastIndexOf(f)));
+  assert.ok(starsAt >= 0 && starsAt < clipAt && clipAt < firstPlay && lastPlay < restoreAt, "orbit: everything in play is drawn inside the clip that leaves the zone out (only the starfield before it)");
+  assert.match(world, /clipOutZone\(ctx, state, ORBIT_CAM_VIEW_W, ORBIT_CAM_VIEW_H\);\s*drawXpPops\(ctx, xpMemory, cam, still\);\s*ctx\.restore\(\);/, "orbit: feature pops are clipped out of the zone too");
+  assert.match(renderer, /ctx\.rect\(W - ORBIT_XP_ZONE\.w, 0, ORBIT_XP_ZONE\.w, ORBIT_XP_ZONE\.h\);\s*ctx\.clip\("evenodd"\);/, "orbit: the clip cuts the top-right zone out");
+  assert.equal(ORBIT_XP_ZONE.h <= ORBIT_XP_AHEAD, true, "orbit: the zone lies within the rows above the camera's frame");
+  // Every viewport the play-screen checks cover (the box from presentation-geometry-check's model: a 60px header under
+  // any notch, 16px at the bottom; desktop's ≤640px column with its 56px header), at orbitRev 12's 450 x 862 world.
+  const viewports: [number, number, number, number][] = [[360, 800, 0, 60], [375, 667, 0, 60], [390, 700, 0, 60], [390, 844, 0, 60], [414, 896, 48, 60], [430, 932, 0, 60], [600, 900, 0, 60], [1024, 768, 0, 60], [1280, 800, 0, 56]];
+  for (const [w, h, inset, header] of viewports) {
+    const boxW = w >= 1180 ? Math.min(640, w) : w;
+    const boxH = h - inset - header - 16;
+    const scale = Math.min(boxW / 450, boxH / ORBIT_XP_DRAW_H);
+    const z = zoneFits(scale);
+    assert.ok(z.fits, `orbit ${w}x${h}: the ${BUTTON.maxW}x${BUTTON.h} button with its ${BUTTON.inset}px insets fits the ${z.w.toFixed(0)}x${z.h.toFixed(0)}px zone`);
+  }
+  const proof = zoneProof(2);
+  assert.equal(proof.courses, 371, "orbit: every bank course rooms deal");
+  assert.deepEqual(proof.hits, [], "orbit: the rocket never reaches the zone");
+  console.log(`PASS orbit orbitRev 12: SET CHECKPOINT in the reserved top-right zone (${ORBIT_XP_ZONE.w}x${ORBIT_XP_ZONE.h} view px) at ${viewports.length} viewports; nothing in play drawn there; the rocket never in it over ${proof.frames} frames (${proof.courses} courses, ${proof.runs} runs, lowest rocket top ${proof.lowestRocketTop.toFixed(0)}px vs the zone's ${ORBIT_XP_ZONE.h}px).`);
 }
 const stage = readFileSync("src/components/puzzles/ArcadeCanvasStage.tsx", "utf8");
 // The slot's props may span lines and hold an arrow function (the arena scene's `=>`), so match lazily to the tag's end.

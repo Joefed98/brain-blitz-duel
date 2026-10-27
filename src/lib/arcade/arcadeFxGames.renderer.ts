@@ -1596,13 +1596,15 @@ export const SWING_FX_V13: ArcadeFxSpec<SwingState> = {
   ],
 };
 export const swingFxFor = (s: SwingState): ArcadeFxSpec<SwingState> => (s.expand ? SWING_FX_V13 : fxSpecAt(SWING_FX, swingWorldH(s)));
-/** The live round's drawn view on orbitRev 12 (the expansion to 200; 839 tall since 27 Oct 2026), with ORBIT_FX's events (ARCADE_FX_SPECS). */
-const ORBIT_FX_XP_VIEW: ArcadeFxSpec<OrbitState> = { ...ORBIT_FX, width: 450, height: 839 };
+/** orbitRev 12's drawn height (orbit.renderer.ts ORBIT_XP_DRAW_H: 782 + 80 rows above the frame; not imported, the renderer imports this module). */
+const ORBIT_XP_DRAW_H_FX = 862;
+/** The live round's drawn view on orbitRev 12 (the expansion to 200; 862 tall since 27 Oct 2026), with ORBIT_FX's events (ARCADE_FX_SPECS). */
+const ORBIT_FX_XP_VIEW: ArcadeFxSpec<OrbitState> = { ...ORBIT_FX, width: 450, height: ORBIT_XP_DRAW_H_FX };
 /**
  * orbitRev 12 (the expansion to 200): the same events in the wider 450 × 782 view, drawn 839 tall since 27 Oct 2026
- * (ORBIT_XP_DRAW_H in orbit.renderer.ts: the world reaches the screen's bottom), so the layer maps as the world does.
+ * (ORBIT_XP_DRAW_H in orbit.renderer.ts, rows above the camera's frame: the world reaches the screen's bottom), so the layer maps as the world does.
  */
-export const ORBIT3_FX_XP: ArcadeFxSpec<OrbitRev3State> = { ...ORBIT3_FX, width: 450, height: 839 };
+export const ORBIT3_FX_XP: ArcadeFxSpec<OrbitRev3State> = { ...ORBIT3_FX, width: 450, height: ORBIT_XP_DRAW_H_FX };
 export const orbit3FxFor = (s: OrbitRev3State): ArcadeFxSpec<OrbitRev3State> => (s.viewW ? ORBIT3_FX_XP : fxSpecAt(ORBIT3_FX, orbitViewH(s)));
 export const ORBIT3_FX_TALL = fxSpecAt(ORBIT3_FX, ORBIT_TALL_VIEW_H);
 export const balltrackFxFor = (s: BtState): ArcadeFxSpec<BtState> => fxSpecAt(BALLTRACK_FX, btWorldH(s));

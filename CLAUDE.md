@@ -65,7 +65,7 @@ Lovable still hosts and publishes the app (https://brain-blitz-duel.lovable.app)
   page's root (`html:has([data-arcade-play])`, body being 100 % of it): html and body are locked `overflow: hidden`, and at
   100 % of the short viewport they cut tall worlds and the lowest controls 48 px above the screen's bottom (fix-up, 15 Oct
   2026). Every clipping box ends at the screen's bottom; nothing clips above the 16 px strip. Tilt's world is
-  centred in its box; Orbit's SET CHECKPOINT is 44 px tall and narrower, laid over the play area since 27 Oct 2026. arcade-device-bottom-check (headless Chromium,
+  centred in its box; Orbit's SET CHECKPOINT is 44 px tall and narrower, in the world's reserved top-right corner on orbitRev 12 since 27 Oct 2026. arcade-device-bottom-check (headless Chromium,
   in six parts since 17 Oct 2026, when a half with the Meteor passes ran past run-checks' 300 s on CI: its games' layout passes in thirds, `@1/6` and `@2/6` on `play1`/`play2` and `@3/6` on `play10`, and its three Meteor edge passes one each on `play7`–`play9` as `@4/6`–`@6/6`) reproduces the iPhone 11 and 14 home-screen app and Safari geometry (`scripts/device-emulation.ts`:
   the short layout viewport, the full screen, the insets, `navigator.standalone`, which the app keys on, and `display-mode:
   standalone` answered in-page since Chromium cannot emulate it) and fails if any clipping ancestor, html and body included,
@@ -616,8 +616,10 @@ Lovable still hosts and publishes the app (https://brain-blitz-duel.lovable.app)
   their intro demos play only when recorded on 9). Display only: Hover's city gone for deep space with more stars, its
   gold stars drawn 1.2× (8.4 px on a 7 px pickup); Jaywalk a dark evening palette (darker road, dusk wash, lamp pools on
   the verges); Orbit black space (no nebula), no rings round moons (a soft halo to the assist's reach), no field guide
-  line or belt track line, the planets' orbit paths kept, its 450 × 782 view drawn 839 tall (`orbitDrawHFor`; the world
-  reaches the bottom) with SET CHECKPOINT laid over the play area (`ArcadeCanvasStage` `overlay` can take `send`);
+  line or belt track line, the planets' orbit paths kept, its 450 × 782 view drawn 862 tall (`orbitDrawHFor`: 80 rows above the
+  camera's frame; the world reaches the bottom) with SET CHECKPOINT in `ORBIT_XP_ZONE`, a reserved top-right corner of those
+  rows clipped out of everything in play (`clipOutZone`; `ArcadeCanvasStage` `overlay` can take `send`; earlier revisions keep
+  the row; play-control-clearance-check and room-practice-parity-check prove the corner, `scripts/orbit-zone-lib.ts`);
   Roofbound's far city replaced by the cave's depths (stalactites, cold crystals, mist, pale spores); Tilt's camera fixed
   on the disc's centre, scaled to fit the width (`tiltFixedZoom`), and fainter ice; Ball Tracker's reveal, leaderboard
   and final moment count btRev 7's 36 marbles, and the readout under the board counts the seconds to the next

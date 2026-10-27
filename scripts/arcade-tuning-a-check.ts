@@ -332,9 +332,9 @@ if (want("orbit")) {
   ok(puzzleUsesBands({ type: "orbit", orbitRev: ORBIT_REV_TUNED }) && puzzleUsesBands({ type: "orbit", orbitRev: ORBIT_REV_BAND }), "orbitRev 5 and 6 both score on the band curve");
   const footer = readFileSync("src/puzzles/orbit.tsx", "utf8");
   // Superseded 15 Oct 2026 (arcade play screen): the 44 px row ends 16 px above the visible bottom, as every arcade control row.
-  // Superseded 27 Oct 2026 (Joe's phone notes): no row under the world; the 44 px button is laid over the play area's
-  // bottom, 12 px above the world's edge (the world reaches the screen's 16 px strip), and only the button takes a touch.
-  ok(/data-game-controls="checkpoint" className="pointer-events-none absolute inset-x-0 bottom-3 flex h-11 items-center justify-center">/.test(footer) && /className="pointer-events-auto h-11 px-3 text-\[11px\] /.test(footer), "SET CHECKPOINT: a 44 px button laid over the play area's bottom, still 44 px tall and narrow");
+  // (orbitRev 12 since 27 Oct 2026, Joe's phone notes: the button sits in the world's reserved corner instead;
+  // play-control-clearance-check proves it. This revision and the others before 12 keep the row.)
+  ok(/data-game-controls="checkpoint" className="flex h-11 shrink-0 items-center justify-center">/.test(footer) && /className="h-11 px-3 text-\[11px\] /.test(footer), "SET CHECKPOINT: a 44 px row ending 16 px above the bottom, still 44 px tall, narrower since 15 Oct 2026");
 }
 
 /* =============================== 2d. Grappler =============================== */

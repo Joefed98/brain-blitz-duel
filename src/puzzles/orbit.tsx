@@ -77,6 +77,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     }
     return orbitArtGame;
   }, [devPlanet, data]);
+  const xp = data?.orbitRev === ORBIT_REV_XP;
   const belts = useMemo(() => (devPlanet && data ? orbitBeltPlanets(orbitArtGame.init(data.seed)) : []), [devPlanet, data]);
   return (
     <>
@@ -113,16 +114,32 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         }
         return null;
       }}
-      overlay={(send) => (
-        // Laid over the play area's bottom (Joe's phone notes, 27 Oct 2026: no strip under the world), 12 px above the
-        // world's edge; the button is 44 px tall with 11 px text and 12 px sides. Only the button takes a touch: a tap
-        // beside it reaches the canvas (a release), as anywhere else on the world.
-        <div data-game-controls="checkpoint" className="pointer-events-none absolute inset-x-0 bottom-3 flex h-11 items-center justify-center">
+      // orbitRev 12 (Joe's phone notes, 27 Oct 2026): the world reaches the screen's bottom and SET CHECKPOINT sits in
+      // the reserved top-right corner of the rows drawn above the camera's frame (ORBIT_XP_ZONE, orbit.renderer.ts),
+      // where nothing in play is ever drawn: 4 px in from the world's top and right edges, 44 px tall, 11 px text and
+      // 12 px sides. Only the button takes a touch: a tap beside it reaches the canvas (a release). Earlier revisions
+      // keep the 44 px row under the world.
+      overlay={xp ? (send) => (
+        <div data-game-controls="checkpoint" data-orbit-zone="" className="pointer-events-none absolute right-1 top-1 flex h-11 items-start justify-end">
           {canSet && !locked && (
             <ArcadeControlButton
               type="button"
               aria-label="Set checkpoint"
               className="pointer-events-auto h-11 px-3 text-[11px] font-bold before:content-['SET_CHECKPOINT']"
+              onPressStart={() => send({ k: ORBIT_INPUT_CHECKPOINT, a: 0, b: 0, c: 0 })}
+            />
+          )}
+        </div>
+      ) : undefined}
+      footer={xp ? undefined : (send) => (
+        // The 44 px button's row ends 16 px above the bottom of the screen, as every arcade control row; the
+        // button is 44 px tall with 11 px text and 12 px sides, narrower than before (15 Oct 2026, display only).
+        <div data-game-controls="checkpoint" className="flex h-11 shrink-0 items-center justify-center">
+          {canSet && !locked && (
+            <ArcadeControlButton
+              type="button"
+              aria-label="Set checkpoint"
+              className="h-11 px-3 text-[11px] font-bold before:content-['SET_CHECKPOINT']"
               onPressStart={() => send({ k: ORBIT_INPUT_CHECKPOINT, a: 0, b: 0, c: 0 })}
             />
           )}
