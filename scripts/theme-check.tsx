@@ -29,7 +29,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { createCanvas, loadImage } from "@napi-rs/canvas";
 
 import { startSafeAreaServer } from "./safe-area-server";
-import { CHROMIUM_PATHS, THEME_SCREENS, VIEWPORTS, openThemeScreen } from "./theme-screens";
+import { CHROMIUM_PATHS, THEME_SCREENS, VIEWPORTS, fixThemeClock, openThemeScreen } from "./theme-screens";
 import { APP_PAGE_FAMILY, THEME_FAMILIES, THEME_FONTS } from "../src/lib/theme";
 
 const args = process.argv.slice(2);
@@ -359,6 +359,8 @@ const server = await startSafeAreaServer({
   cacheDir: "node_modules/.vite-theme",
   buildId: "theme-check",
 });
+// A fixed clock (scripts/fixed-clock.ts), as no-wrap-check: the dated screens draw the same text on any day.
+fixThemeClock();
 const { chromium } = await import("playwright");
 const browser = await chromium.launch({ executablePath: CHROMIUM });
 const familiesLoaded = new Set<string>();

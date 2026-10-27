@@ -29,6 +29,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { chromium, type Browser } from "playwright";
 
 import { DEVICE_INIT, IPHONE11_APP } from "./device-emulation";
+import { fixClock } from "./fixed-clock";
 import { startSafeAreaServer } from "./safe-area-server";
 import { CHROMIUM_PATHS, IPHONE_SAFARI_UA } from "./theme-screens";
 import { ONBOARDING_KEY } from "../src/lib/onboarding";
@@ -44,6 +45,10 @@ function check(ok: boolean, message: string) {
     console.log(`  FAIL ${message}`);
   }
 }
+
+// A fixed clock (scripts/fixed-clock.ts), in this process and every page: the daily's day, the schedule's
+// game two days on and the real app's configured games read the same on any day.
+const pageClock = fixClock();
 
 const SLOW_MS = 1500;
 const ITEMS: Record<string, string> = {
@@ -85,6 +90,7 @@ interface Scenario {
 
 async function run(browser: Browser, origin: string, s: Scenario): Promise<{ frames: Frame[]; storage: Record<string, string>; nameRow: { natural: number; reserved: number } }> {
   const context = await browser.newContext({ viewport: { width: IPHONE11_APP.w, height: IPHONE11_APP.h }, hasTouch: true, isMobile: true, ...(s.userAgent ? { userAgent: s.userAgent } : {}) });
+  await context.addInitScript(pageClock.script, pageClock.arg);
   await context.addInitScript(DEVICE_INIT);
   await context.addInitScript(
     ({ storage, harness, items, onboarding, games }) => {
@@ -264,7 +270,8 @@ try {
       await warm.waitForTimeout(4000);
       await warm.close();
       const context = await browser.newContext({ viewport: { width: IPHONE11_APP.w, height: IPHONE11_APP.h }, hasTouch: true, isMobile: true });
-      await context.addInitScript(DEVICE_INIT);
+      await context.addInitScript(pageClock.script, pageClock.arg);
+  await context.addInitScript(DEVICE_INIT);
       const errors: string[] = [];
       await context.addInitScript(
         ({ storage, items, onboarding }) => {
