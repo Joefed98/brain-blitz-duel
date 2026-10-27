@@ -164,7 +164,7 @@ section("New rounds: stamps, start states, checksums, worlds by revision");
   // Expansion E9 (docs/expansions/e9.md) then moved Rally on to rallyRev 10 and Fission on to burstRev 8; expansion-e9-check covers them.
   ok(playRevOf("rally", generateRally().rallyRev) === RALLY_REV_TALL + 4, "rooms deal rallyRev 10 (expansion E9, after rallyRev 6)");
   // The 200 expansion (26 Oct 2026) moved rooms on to wavRev 10 (wavefront-expand-check); wavRev 6 stays as it was.
-  ok(playRevOf("wavefront", generateWavefront().wavRev) === WAV_REV_TALL + 4, "rooms deal wavRev 10 (the expansion, after wavRev 6)");
+  ok(playRevOf("wavefront", generateWavefront().wavRev) === WAV_REV_TALL + 5, "rooms deal wavRev 11 (the phone notes, after the expansion's wavRev 10 and wavRev 6)");
   ok(playRevOf("burst", generateBurst().burstRev) === BURST_REV_TALL + 4, "rooms deal burstRev 8 (expansion E9, after burstRev 4)");
 
   ok(breakerWorldHFor(BRK_REV_TALL) === 730 && breakerWorldHFor(BRK_REV_TUNEF) === BRK_WORLD_H && breakerWorldHFor(undefined) === 620, "Breaker world heights by revision");
@@ -355,7 +355,7 @@ section("Intro demos stay stopped until re-recorded on the taller revision");
   ok(/data\.type === "breaker" && demo\?\.puzzle\.type === "breaker" && demo\.puzzle\.brkRev !== (BRK_REV_TALL|BRK_REV_DEEP)\) return null/.test(src), "Breaker's demo plays only on brkRev 6 (brkRev 9 since expansion E3)");
   ok(/data\.type === "rally" && demo\?\.puzzle\.type === "rally" && demo\.puzzle\.rallyRev !== (RALLY_REV_TALL|RALLY_REV_BONUS)\) return null/.test(src), "Rally's demo plays only on rallyRev 6 (rallyRev 10 since expansion E9)");
   // The 200 expansion: Wavefront's demo now plays only on wavRev 10 (none is recorded yet, so the intro shows its still).
-  ok(/data\.type === "wavefront" && demo\?\.puzzle\.type === "wavefront" && demo\.puzzle\.wavRev !== WAV_REV_EXPAND\) return null/.test(src), "Wavefront's demo plays only on wavRev 10");
+  ok(/data\.type === "wavefront" && demo\?\.puzzle\.type === "wavefront" && demo\.puzzle\.wavRev !== WAV_REV_PHONE\) return null/.test(src), "Wavefront's demo plays only on wavRev 11");
   ok(/data\.type === "burst" && demo\?\.puzzle\.type === "burst" && demo\.puzzle\.burstRev !== (BURST_REV_TALL|BURST_REV_CLEAN)\) return null/.test(src), "Fission's demo plays only on burstRev 4 (burstRev 8 since expansion E9)");
 }
 

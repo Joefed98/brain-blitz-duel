@@ -11,7 +11,7 @@ import { FLIP_REV_EXPAND } from "@/lib/arcade/flip";
 import { SNIP_REV_EXPAND } from "@/lib/arcade/snip";
 import { HOVER_REV_EXPAND } from "@/lib/arcade/hover";
 import { RALLY_REV_BONUS } from "@/lib/arcade/rally";
-import { WAV_REV_EXPAND } from "@/lib/arcade/wavefront";
+import { WAV_REV_PHONE } from "@/lib/arcade/wavefront";
 import { BURST_REV_CLEAN } from "@/lib/arcade/burst";
 import { BULLSEYE_REV_EXPAND } from "@/lib/arcade/bullseye";
 import { BEAT_REV_200 } from "@/lib/arcade/beat";
@@ -124,8 +124,9 @@ export const getIntroDemoFn = createServerFn({ method: "GET" })
     // tight gates, centre lines, star chains and shields, so its demo stays stopped until one is recorded there.
     if (data.type === "hover" && demo?.puzzle.type === "hover" && demo.puzzle.hoverRev !== HOVER_REV_EXPAND) return null;
     if (data.type === "rally" && demo?.puzzle.type === "rally" && demo.puzzle.rallyRev !== RALLY_REV_BONUS) return null;
-    // The 200 expansion (wavRev 10): a demo recorded on an older revision shows the shorter arena and no power-ups, so it stays stopped until one is recorded on wavRev 10.
-    if (data.type === "wavefront" && demo?.puzzle.type === "wavefront" && demo.puzzle.wavRev !== WAV_REV_EXPAND) return null;
+    // The 200 expansion (wavRev 10), then Joe's phone notes (wavRev 11: power-ups from carriers, no streak, the mothership
+    // only after wave 5): an older demo shows other play, so it stays stopped until one is recorded on wavRev 11.
+    if (data.type === "wavefront" && demo?.puzzle.type === "wavefront" && demo.puzzle.wavRev !== WAV_REV_PHONE) return null;
     if (data.type === "burst" && demo?.puzzle.type === "burst" && demo.puzzle.burstRev !== BURST_REV_CLEAN) return null;
     // Expansion E9 (26 Oct 2026, docs/expansions/e9.md): Flightpath bullRev 8 too (Rally and Fission above).
     if (data.type === "bullseye" && demo?.puzzle.type === "bullseye" && demo.puzzle.bullRev !== BULLSEYE_REV_EXPAND) return null;

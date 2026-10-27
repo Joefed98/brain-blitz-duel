@@ -196,6 +196,8 @@ export function wavefrontSounds(): GameSounds<WavState> {
         if (state.saucerDir !== 0 && prev.saucerDir === 0) effectCue("wavefront.saucerEnter");
         // The laser pickup becomes visible when its wait runs out.
         if (state.drop && state.drop.wait <= 0 && (!prev.drop || prev.drop.wait > 0)) effectCue("wavefront.laserDrop");
+        // wavRev 11: a power-up starts to fall from a carrier or a saucer shot down.
+        if ((state.pickupsMade ?? 0) > (prev.pickupsMade ?? 0)) effectCue("wavefront.laserDrop");
         // An armour plate knocked off without a kill (no burst is drawn).
         if (state.armourHits > prev.armourHits && !state.bursts.some((b) => b.t > prev!.tick && b.c === 4)) effectCue("wavefront.armourHit");
         if (state.reds.length > prev.reds.length) effectCue("wavefront.enemyFire", 150);

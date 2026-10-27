@@ -179,8 +179,8 @@ section("New rounds carry the Tuning C stamps; Junction is practice only");
     // Expansion E2 (25 Oct 2026) then moved Tempo on to its five-lane song with fever (beatRev 9); expansion-e2-check covers it.
     ["beat", playRevOf("beat", generateBeat().beatRev), BEAT_REV_TUNEF + 4],
     // Taller worlds batch 1 (16 Oct 2026) moved Wavefront on to its taller world (wavRev 6); arcade-tuning-g1-check covers it.
-    // The 200 expansion (26 Oct 2026) then moved it on to wavRev 10; wavefront-expand-check covers it.
-    ["wavefront", playRevOf("wavefront", generateWavefront().wavRev), WAV_REV_TUNEC + 5],
+    // The 200 expansion (26 Oct 2026) then moved it on to wavRev 10 (wavefront-expand-check), and the phone notes (27 Oct) to wavRev 11 (wavefront-phone-check).
+    ["wavefront", playRevOf("wavefront", generateWavefront().wavRev), WAV_REV_TUNEC + 6],
     // The expansion (x200, 26 Oct 2026) moved Tilt on to tiltRev 8 (bigger mazes, keys, quick stars, par); tilt-expand-check covers it.
     ["tilt", playRevOf("tilt", generateTilt().tiltRev), TILT_REV_EXPAND],
     // World expansion E5 (25 Oct 2026) moved Slice on to its larger board (sliceRev 9); expansion-e5-check covers it.
