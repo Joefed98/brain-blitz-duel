@@ -497,7 +497,8 @@ export function wavefrontFill(ctx: CanvasRenderingContext2D, view: ArenaSceneVie
 export function orbitFill(ctx: CanvasRenderingContext2D, view: ArenaSceneView): void {
   const r = fillBelow(view);
   if (!r) return;
-  fillGradient(ctx, r, r.y, r.y + r.h, [[0, "#06060F"], [0.5, "#04040A"], [1, "#020205"]]);
+  // A deep navy (the screen fill must read lighter than the screen edge's black), with no coloured nebula.
+  fillGradient(ctx, r, r.y, r.y + r.h, [[0, "#0E0E24"], [0.5, "#0C0C1F"], [1, "#0B0B1C"]]);
   stars(ctx, r, 181, ["#FFFFFF", "#D9E2FF", "#BFD0FF"], 650, 0.42);
 }
 
