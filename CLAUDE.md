@@ -858,6 +858,17 @@ and the 1.5 s receipt check) and which taps the phone chooses to send; fully ser
 taps would need live streaming before money play. Unstamped rounds keep the old summary
 grading. See `docs/duelz-scoring-reference.md` section 14.
 
+## Working rules for every session
+
+1. **Before pushing, merge the latest `main` into your branch** and re-run your checks on the merged tree.
+2. **Never rebuild `scripts/fixtures/replay-runs.json` over existing runs** (e.g. a fresh `scripts/replay-fixtures.ts`
+   write): keep every stored run and add each new-stamp run once.
+3. **Append new self-replay entries at the end of the list** (`scripts/arcade-self-replay-check.ts`), never mid-list:
+   each entry has its own PRNG stream and the `@k/n` parts split by position.
+4. **Take game counts, names and categories from `main`** (`src/lib/duel/gameNames.ts`, `src/lib/duel/registry.ts`),
+   never from memory or an older branch.
+5. **Never loosen or delete an assertion** to get green, and leave `bun.lock` unchanged.
+
 ## Working process
 
 - **Prompt reports must list every check by name** with pass / fail / timeout, never
