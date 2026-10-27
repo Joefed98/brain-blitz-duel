@@ -177,7 +177,8 @@ section("New rounds carry the Tuning C stamps; Junction is practice only");
     // Tuning F (Oct 2026) moved Tempo on to a thinner chart on the same curve (beatRev 5); arcade-tuning-f-check covers it.
     // Taller worlds batch 2 (16 Oct 2026) moved Tempo and Slice on to their taller worlds (beatRev 6, sliceRev 6); arcade-tuning-g2-check covers them.
     // Expansion E2 (25 Oct 2026) then moved Tempo on to its five-lane song with fever (beatRev 9); expansion-e2-check covers it.
-    ["beat", playRevOf("beat", generateBeat().beatRev), BEAT_REV_TUNEF + 4],
+    // Joe's phone notes (27 Oct 2026) then moved it on to beatRev 10 (wider windows, a lighter chart); tempo-ease-check covers it.
+    ["beat", playRevOf("beat", generateBeat().beatRev), BEAT_REV_TUNEF + 5],
     // Taller worlds batch 1 (16 Oct 2026) moved Wavefront on to its taller world (wavRev 6); arcade-tuning-g1-check covers it.
     // The 200 expansion (26 Oct 2026) then moved it on to wavRev 10; wavefront-expand-check covers it.
     ["wavefront", playRevOf("wavefront", generateWavefront().wavRev), WAV_REV_TUNEC + 5],
