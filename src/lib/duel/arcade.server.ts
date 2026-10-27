@@ -11,7 +11,7 @@ import { SKYLINE_REV_TARGET, SKYLINE_REV_STRICT, SKYLINE_REV_EXPAND } from "@/li
 import { TILT_REV_EXPAND } from "@/lib/arcade/tilt";
 import { TILT_BANK } from "./tiltBank.server";
 import { JUNC_REV_BAND } from "@/lib/arcade/junction";
-import { BINTOSS_REV_TARGET, BINTOSS_REV_STRICT, BINTOSS_REV_EXPAND } from "@/lib/arcade/binToss";
+import { BINTOSS_REV_TARGET, BINTOSS_REV_STRICT, BINTOSS_REV_SMALL_FAR } from "@/lib/arcade/binToss";
 import { SWING_REV_TALL, SWING_REV_TARGET, SWING_REV_STRICT, SWING_REV_EXPAND } from "@/lib/arcade/swing";
 import { BURST_REV_TARGET, BURST_REV_STRICT, BURST_REV_CLEAN } from "@/lib/arcade/burst";
 import { BRK_REV_TARGET, BRK_REV_STRICT, BRK_REV_DEEP } from "@/lib/arcade/breaker";
@@ -87,7 +87,7 @@ export function generateSkyline(): SkylinePuzzleData {
 }
 
 export function generateBinToss(): BinTossPuzzleData {
-  return { type: "bintoss", seed: arcadeSeed(), binRev: BINTOSS_REV_EXPAND };
+  return { type: "bintoss", seed: arcadeSeed(), binRev: BINTOSS_REV_SMALL_FAR };
 }
 
 export function generateBullseye(): BullseyePuzzleData {

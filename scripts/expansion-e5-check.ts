@@ -18,6 +18,11 @@
  *     (430 × 805, more throws), sizes and values (bread 26 px worth 1 … golden fruit 10 px worth 5), six golden
  *     fruits, five tickets each fillable from the schedule, the bonus capped at 50, and the dodge rules.
  *
+ *  5. Swish binRev 8 (Joe's phone notes, 27 Oct 2026, docs/phone-notes-oct-2026/bintoss.md): rooms deal it (binRev 7's
+ *     stored runs above prove binRev 7 is unchanged); it starts from binRev 7's exact draws with the far bucket 60 %
+ *     of its size; a throw into the smaller bucket counts, one that binRev 7's wider mouth caught but the smaller one
+ *     doesn't is a miss on binRev 8 only; the far buckets and hoops are the seed's for every player whatever they do.
+ *
  *   bun scripts/expansion-e5-check.ts            # ~20 s
  *   bun scripts/expansion-e5-check.ts --record   # re-record the new-stamp runs (only when a rule here changes)
  */
@@ -46,6 +51,11 @@ import {
   BINTOSS_FAR_THROWS,
   BINTOSS_HOOP_HALF,
   BINTOSS_REV_EXPAND,
+  BINTOSS_REV_SMALL_FAR,
+  BINTOSS_V8_FAR_HALF,
+  binTossFarHalf,
+  binTossDragFor,
+  binTossIsExpand,
   BINTOSS_THROWS,
   BINTOSS_V7_MAX_SPEED,
   BINTOSS_V7_RIGHT,
@@ -89,6 +99,8 @@ const LEGACY = "scripts/fixtures/expansion-e5-legacy.json.gz";
 const RUNS = "scripts/fixtures/expansion-e5-runs.json.gz";
 const NEW_REV: Record<"bintoss" | "slice", number> = { bintoss: BINTOSS_REV_EXPAND, slice: SLICE_REV_EXPAND };
 const TYPES = Object.keys(NEW_REV) as (keyof typeof NEW_REV)[];
+/** What rooms deal today: Swish moved on to binRev 8 (phone notes, 27 Oct 2026; section 5); NEW_REV stays the stamp the stored runs were recorded on. */
+const DEALT: Record<"bintoss" | "slice", number> = { bintoss: BINTOSS_REV_SMALL_FAR, slice: SLICE_REV_EXPAND };
 /** The legacy fixture also holds Flightpath's older stamps, which still replay on main's (unchanged) Flightpath. */
 const LEGACY_TYPES = [...TYPES, "bullseye"];
 const spec = (type: string) => GAMES.find((g) => g.type === type)!;
@@ -123,7 +135,7 @@ section("Rooms deal the new stamps; the maximum is 200 and the texts say so");
 for (const type of TYPES) {
   const live = LIVE_BANDS[type];
   const dealt = (generatePuzzle(type as PuzzleType) as unknown as Record<string, unknown>)[live.field];
-  ok(dealt === NEW_REV[type] && LIVE_BANDS[type].rev === NEW_REV[type], `${type}: rooms deal ${live.field} ${NEW_REV[type]} (got ${String(dealt)})`);
+  ok(dealt === DEALT[type] && LIVE_BANDS[type].rev === DEALT[type], `${type}: rooms deal ${live.field} ${DEALT[type]} (got ${String(dealt)})`);
   ok(ROUND_MAX[type] === 200 && roundMaxFor(type) === 200, `${type}: ROUND_MAX is 200`);
   ok(fillMax(INTRO_SCORE[type], type).includes("200"), `${type}: the intro states 200: ${fillMax(INTRO_SCORE[type], type)}`);
   ok(fillMax(PUZZLE_INSTRUCTIONS[type].score, type).includes("Up to 200."), `${type}: the help ends "Up to 200."`);
@@ -240,6 +252,67 @@ section("Swish binRev 7: far buckets, hoops over them, far points");
   ok(landed && landed.baskets === 1 && landed.farResults?.[0] === 1 && landed.results[0] === 1, "a far basket counts as a basket and a far one");
 }
 
+section("Swish binRev 8: the far bucket at 60 % of its size");
+{
+  const g7 = binTossGameFor(BINTOSS_REV_EXPAND);
+  const g8 = binTossGameFor(BINTOSS_REV_SMALL_FAR);
+  ok(BINTOSS_V8_FAR_HALF === Math.round((BINTOSS_FAR_HALF * 6) / 10), `the far bucket's half-width is 60 % of binRev 7's (${BINTOSS_V8_FAR_HALF / 256} px, was ${BINTOSS_FAR_HALF / 256})`);
+  ok(binTossIsExpand(BINTOSS_REV_SMALL_FAR) && binTossIsExpand(BINTOSS_REV_EXPAND) && !binTossIsExpand(6), "binRev 8 plays in binRev 7's fairground");
+  ok(JSON.stringify(binTossDragFor(BINTOSS_REV_SMALL_FAR, 90, -140)) === JSON.stringify(binTossDragFor(BINTOSS_REV_EXPAND, 90, -140)), "binRev 8 throws as binRev 7");
+  for (let n = 0; n < 300; n++) {
+    const seed = 104729 * n + 7;
+    const a = g7.init(seed) as BinTossState;
+    const b = g8.init(seed) as BinTossState;
+    const { farHalf, ...rest } = b;
+    ok(farHalf === BINTOSS_V8_FAR_HALF && a.farHalf === undefined && binTossFarHalf(a) === BINTOSS_FAR_HALF && JSON.stringify(rest) === JSON.stringify(a), `seed ${seed}: binRev 8 starts from binRev 7's exact draws, the far bucket smaller`);
+  }
+  // Throw 1 on one seed: every launch on a grid, flown to its end on both stamps.
+  const seed = 99;
+  let s7 = g7.init(seed) as BinTossState;
+  while (s7.phase !== 0) s7 = g7.step(s7, null);
+  let s8 = g8.init(seed) as BinTossState;
+  while (s8.phase !== 0) s8 = g8.step(s8, null);
+  let in7 = 0;
+  let in8 = 0;
+  let onlyWide = 0;
+  let narrowNotWide = 0;
+  const far = s8.fars![0]!;
+  for (let vy = -900; vy >= -1700; vy -= 20)
+    for (let vx = 300; vx <= 1400; vx += 6) {
+      let t7 = g7.step(s7, { t: s7.tick + 1, k: 1, a: vx, b: vy, c: 0, d: 0 });
+      while (t7.phase === 1) t7 = g7.step(t7, null);
+      let t8 = g8.step(s8, { t: s8.tick + 1, k: 1, a: vx, b: vy, c: 0, d: 0 });
+      while (t8.phase === 1) t8 = g8.step(t8, null);
+      if (t7.farIn === 1) in7++;
+      if (t8.farIn === 1) {
+        in8++;
+        ok(t8.baskets === 1 && t8.results[0] === 1 && t8.farResults?.[0] === 1, `binRev 8 (${vx}, ${vy}): a far basket counts as a basket and a far one`);
+        ok(Math.abs(t8.x - far) <= BINTOSS_V8_FAR_HALF, `binRev 8 (${vx}, ${vy}): a far basket is inside the smaller mouth`);
+      }
+      if (t7.farIn === 1 && t8.farIn !== 1) onlyWide++;
+      if (t8.farIn === 1 && t7.farIn !== 1) narrowNotWide++;
+    }
+  console.log(`  throw 1 on seed ${seed}: ${in7} launches score the far bucket on binRev 7, ${in8} on binRev 8`);
+  ok(in8 > 0, "the smaller far bucket can still be made");
+  ok(in8 < in7 * 0.75 && onlyWide > 0, "the smaller far bucket is harder: fewer launches make it, and some binRev 7 far baskets miss it");
+  ok(narrowNotWide === 0, "every binRev 8 far basket was a binRev 7 far basket too (only the mouth changed)");
+  // The far buckets and hoops are the seed's, the same for every player whatever they throw.
+  for (let n = 0; n < 6; n++) {
+    let st = g8.init(1000 + n) as BinTossState;
+    const want = JSON.stringify({ f: st.fars, h: st.hoops, w: st.winds, fh: st.farHalf });
+    let r = (1000 + n) >>> 0;
+    const rnd = () => ((r = (Math.imul(r, 1664525) + 1013904223) >>> 0) / 4294967296);
+    while (!g8.isOver(st) && st.tick < 60 * 120) {
+      const input = st.phase === 0 && rnd() < 0.05 ? { t: st.tick + 1, k: 1, a: Math.floor(300 + rnd() * 1100), b: -Math.floor(800 + rnd() * 900), c: 0, d: 0 } : null;
+      st = g8.step(st, input);
+      if (JSON.stringify({ f: st.fars, h: st.hoops, w: st.winds, fh: st.farHalf }) !== want) {
+        ok(false, `binRev 8 seed ${1000 + n}: the far buckets changed mid-run`);
+        break;
+      }
+    }
+  }
+}
+
 section("Slice sliceRev 9: the larger board, sizes and values, golden fruit, tickets, the bonus");
 {
   const game = sliceGameFor(SLICE_REV_EXPAND);
@@ -275,7 +348,7 @@ section("Slice sliceRev 9: the larger board, sizes and values, golden fruit, tic
 
 console.log(
   failures.length === 0
-    ? `PASS expansion-e5-check: ${passes} checks — older stamps replay as on main; rooms deal binRev 7 and sliceRev 9 at 200 (Flightpath split out, then moved on by expansion E9); stored new-stamp runs and a 200 each; the new rules`
+    ? `PASS expansion-e5-check: ${passes} checks — older stamps replay as on main; rooms deal binRev 8 (binRev 7 with the smaller far bucket) and sliceRev 9 at 200 (Flightpath split out, then moved on by expansion E9); stored new-stamp runs and a 200 each; the new rules`
     : `FAIL expansion-e5-check: ${failures.length} of ${passes + failures.length} checks failed\n${failures.map((f) => `  ✗ ${f}`).join("\n")}`,
 );
 if (failures.length > 0) process.exit(1);

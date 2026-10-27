@@ -463,6 +463,8 @@ export interface BinTossState extends BandFields {
   farResults?: number[];
   /** binRev 7: last far-bucket rim hit (render only, like wobbleTick). */
   farWobbleTick?: number;
+  /** binRev 8 only (phone notes, 27 Oct 2026): the far bucket's half-width, 1/256 px. Absent = BINTOSS_FAR_HALF. */
+  farHalf?: number;
   tick: number;
   rng: number;
   /** The throw now in hand, 0-based; reaches ten when they are all done. */
@@ -684,13 +686,15 @@ function step(state: BinTossState, input: ArcadeInputEvent | null): BinTossState
   // binRev 7: this throw's far bucket (0 = none), standing still further back on the same floor.
   const far = state.expand === BINTOSS_EXPAND ? (state.fars?.[state.throwIndex] ?? 0) : 0;
   let farWobbleTick = state.farWobbleTick;
+  // binRev 8: the smaller far bucket (binRev 7's otherwise).
+  const farHalf = binTossFarHalf(state);
 
   // Crossing the rim line on the way down decides the throw.
   if (vy > 0 && state.y < BINTOSS_RIM_Y && ny >= BINTOSS_RIM_Y) {
     const offset = Math.abs(nx - centre);
     const farOffset = far ? Math.abs(nx - far) : Infinity;
     const inMain = offset <= half - binTossRimInset(state.rev);
-    if (inMain || farOffset <= BINTOSS_FAR_HALF - binTossRimInset(state.rev)) {
+    if (inMain || farOffset <= farHalf - binTossRimInset(state.rev)) {
       const caught: BinTossState = { ...state, x: nx, y: ny, wobbleTick };
       if (state.rev === BINTOSS_REV3) {
         caught.hooped = hooped ?? 0;
@@ -698,7 +702,7 @@ function step(state: BinTossState, input: ArcadeInputEvent | null): BinTossState
       }
       return resolve(caught, tick, true, !inMain);
     }
-    if (farOffset <= BINTOSS_FAR_HALF + BINTOSS_BALL_R) {
+    if (farOffset <= farHalf + BINTOSS_BALL_R) {
       // binRev 7: the far bucket's rim edge, as the main bucket's.
       farWobbleTick = tick;
       vx = -(vx >> 1);
@@ -726,10 +730,10 @@ function step(state: BinTossState, input: ArcadeInputEvent | null): BinTossState
   }
 
   // binRev 7: the far bucket's outside wall.
-  if (far && ny > BINTOSS_RIM_Y && Math.abs(nx - far) <= BINTOSS_FAR_HALF + BINTOSS_BALL_R) {
+  if (far && ny > BINTOSS_RIM_Y && Math.abs(nx - far) <= farHalf + BINTOSS_BALL_R) {
     farWobbleTick = tick;
     vx = -(vx >> 1);
-    nx = state.x < far ? far - BINTOSS_FAR_HALF - BINTOSS_BALL_R : far + BINTOSS_FAR_HALF + BINTOSS_BALL_R;
+    nx = state.x < far ? far - farHalf - BINTOSS_BALL_R : far + farHalf + BINTOSS_BALL_R;
   }
 
   const next: BinTossState = { ...state, tick, vx, vy, windV, windPos, x: nx, y: ny, wobbleTick };
@@ -818,6 +822,8 @@ export function binTossCheckpoint(state: BinTossState): BinTossCheckpoint {
   if (state.spinHalf !== undefined) values.push(state.spinHalf);
   // binRev 7 only, after that: its marker and the far baskets.
   if (state.expand === BINTOSS_EXPAND) values.push(state.expand, state.farIn ?? 0);
+  // binRev 8 only, last: the smaller far bucket.
+  if (state.farHalf !== undefined) values.push(state.farHalf);
   for (const value of values) {
     checksum ^= value | 0;
     checksum = Math.imul(checksum, 0x01000193) >>> 0;
@@ -1019,6 +1025,8 @@ export interface BinTossLandingPresentation {
   /** binRev 7: the wider world (BINTOSS_EXPAND), and true when the ball went in the far bucket. */
   expand?: number | undefined;
   far?: boolean | undefined;
+  /** binRev 8: the far bucket's half-width (1/256 px; absent = BINTOSS_FAR_HALF). */
+  farHalf?: number | undefined;
 }
 
 /** Draws a walked flight as a dotted arc. Never touches simulation state. */
@@ -1240,6 +1248,7 @@ export const binTossRev3Game: ArcadeGame<BinTossState, ArcadeInputEvent | null> 
 
 /** Takes puzzle.binRev; anything else is the original bin. */
 export function binTossGameFor(rev?: number | null): ArcadeGame<BinTossState, ArcadeInputEvent | null> {
+  if (rev === BINTOSS_REV_SMALL_FAR) return binTossSmallFarGame;
   if (rev === BINTOSS_REV_EXPAND) return binTossExpandGame;
   if (rev === BINTOSS_REV_STRICT) return binTossStrictGame;
   if (rev === BINTOSS_REV_TARGET) return binTossTargetGame;
@@ -1339,7 +1348,7 @@ export const BINTOSS_FAR_CAP = 50;
 
 /** The aim launch for a drag on this revision (binRev 7 throws 1.2 times as fast). */
 export function binTossDragFor(rev: number | null | undefined, dx: number, dy: number): DragLaunch | null {
-  if (rev !== BINTOSS_REV_EXPAND) return binTossDrag(dx, dy);
+  if (rev !== BINTOSS_REV_EXPAND && rev !== BINTOSS_REV_SMALL_FAR) return binTossDrag(dx, dy);
   const launch = dragLaunch(dx, dy, BINTOSS_V7_REF_V);
   if (!launch) return null;
   return { ...launch, vx: clampInt(launch.vx, -BINTOSS_VX_MAX, BINTOSS_VX_MAX), vy: clampInt(launch.vy, -BINTOSS_VY_MAX, -1) };
@@ -1436,3 +1445,31 @@ function binTossV7Parts(state: BinTossState): BandParts {
 
 /** binRev 7: the wider fairground with a far bucket on throws 1–6, scored to 200. */
 export const binTossExpandGame: ArcadeGame<BinTossState, ArcadeInputEvent | null> = { ...binTossGame, init: initRev7 };
+
+/* ============ Phone notes (binRev 8, 27 Oct 2026; docs/phone-notes-oct-2026/bintoss.md) ============ */
+
+/**
+ * binRev 8 (Joe's phone notes, 27 Oct 2026): binRev 7 exactly (the same world, throws, winds, buckets, far
+ * bucket places, hoops, spinners and scoring), with the +9 far bucket 60 % of its size: its mouth, rim and
+ * walls are BINTOSS_V8_FAR_HALF (60 % of BINTOSS_FAR_HALF, about 17 px half-width, 35 px across, for a 14 px
+ * ball), so a far basket is harder. Init draws exactly binRev 7's stream; states add `farHalf`, folded into
+ * the checkpoint last. Every older stamp keeps its own bucket.
+ */
+export const BINTOSS_REV_SMALL_FAR = 8;
+export const BINTOSS_V8_FAR_HALF = Math.round((BINTOSS_FAR_HALF * 6) / 10);
+
+/** The far bucket's half-width a state plays with (1/256 px): binRev 8's smaller one, else binRev 7's. */
+export function binTossFarHalf(state: Pick<BinTossState, "farHalf">): number {
+  return state.farHalf ?? BINTOSS_FAR_HALF;
+}
+
+/** binRev 8: binRev 7 with the smaller far bucket. */
+export const binTossSmallFarGame: ArcadeGame<BinTossState, ArcadeInputEvent | null> = {
+  ...binTossExpandGame,
+  init: (seed: number) => ({ ...initRev7(seed), farHalf: BINTOSS_V8_FAR_HALF }),
+};
+
+/** Whether a stored binRev plays in binRev 7's wider fairground (binRev 7 and 8). */
+export function binTossIsExpand(rev: number | null | undefined): boolean {
+  return rev === BINTOSS_REV_EXPAND || rev === BINTOSS_REV_SMALL_FAR;
+}

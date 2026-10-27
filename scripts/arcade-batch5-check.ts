@@ -116,7 +116,7 @@ section("legacy identity");
 if (want("bintoss")) {
   section("Swish binRev 3 (bonus hoops, spinners, wind on today's bucket)");
   const game = binTossGameFor(BINTOSS_REV3);
-  ok([BINTOSS_REV_BAND + 2, BINTOSS_REV_EXPAND].includes(generateBinToss().binRev ?? -1), "new rounds are stamped binRev 6 (rev 4 play with the shorter spinner: binRev 5, scoring-targets-check; on the score bands: binRev 6, scoring-bands-check) or binRev 7 (the world expansion, expansion-e5-check)");
+  ok([BINTOSS_REV_BAND + 2, BINTOSS_REV_EXPAND + 1].includes(generateBinToss().binRev ?? -1), "new rounds are stamped binRev 6 (rev 4 play with the shorter spinner: binRev 5, scoring-targets-check; on the score bands: binRev 6, scoring-bands-check) or binRev 8 (binRev 7, the world expansion, with the smaller far bucket of the phone notes; expansion-e5-check)");
   ok(binTossGameFor(undefined) === binTossGame && binTossGame.init(5).hoops === undefined, "unstamped rounds keep the original game");
   ok(binTossGameFor(BINTOSS_REV2).init(5).hoops === undefined, "rev-2 rounds have no hoops or spinners");
   ok(JSON.stringify(game.init(77)) === JSON.stringify(game.init(77)), "hoops and spinners are seeded");

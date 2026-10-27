@@ -17,7 +17,7 @@ import { BULLSEYE_REV_EXPAND } from "@/lib/arcade/bullseye";
 import { BEAT_REV_200 } from "@/lib/arcade/beat";
 import { SNAKE_REV_200 } from "@/lib/arcade/snake";
 import { SLICE_REV_EXPAND, SLICE_REV_TALL } from "@/lib/arcade/slice";
-import { BINTOSS_REV_EXPAND } from "@/lib/arcade/binToss";
+import { BINTOSS_REV_SMALL_FAR } from "@/lib/arcade/binToss";
 import { BUB_REV_REEF } from "@/lib/arcade/bubble";
 import { MATCHUP_REV_GOALS } from "@/lib/arcade/matchup";
 import { TEN_DROP_DEPTH_REV } from "@/lib/arcade/tenDrop";
@@ -182,7 +182,9 @@ export const getIntroDemoFn = createServerFn({ method: "GET" })
     // World expansion E5 (25 Oct 2026, docs/expansions/e5.md): Swish binRev 7 and Slice sliceRev 9
     // play in larger worlds with new features; an older demo would show the old world (and its touches would land
     // elsewhere), so each shows its still until a demo is recorded on its new revision.
-    if (data.type === "bintoss" && demo?.puzzle.type === "bintoss" && demo.puzzle.binRev !== BINTOSS_REV_EXPAND) return null;
+    // Swish binRev 8 (phone notes, 27 Oct 2026): the far bucket is 60 % of its size, so an older demo's far baskets
+    // could miss; it stays stopped until one is recorded on binRev 8.
+    if (data.type === "bintoss" && demo?.puzzle.type === "bintoss" && demo.puzzle.binRev !== BINTOSS_REV_SMALL_FAR) return null;
     if (data.type === "slice" && demo?.puzzle.type === "slice" && demo.puzzle.sliceRev !== SLICE_REV_EXPAND) return null;
 
     return demo;

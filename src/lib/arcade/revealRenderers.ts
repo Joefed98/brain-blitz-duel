@@ -10,7 +10,7 @@ import { hoverArtGame as hoverGame, hoverRevealGame } from "./hover.renderer";
 import { skylineArtGame as skylineGame, skylineRevealGame } from "./skyline.renderer";
 import { binTossArtGame as binTossGame } from "./binTossArt.renderer";
 import { drawBullseye } from "./bullseye.renderer";
-import { BINTOSS_REV_EXPAND, BINTOSS_V7_WORLD_H, BINTOSS_V7_WORLD_W } from "./binToss";
+import { binTossIsExpand, BINTOSS_V7_WORLD_H, BINTOSS_V7_WORLD_W } from "./binToss";
 import { matchupArtGame as matchupGame } from "./matchup.renderer";
 import { matchupWorldHFor } from "./matchup";
 import { breakerArtGameFor } from "./breaker.renderer";
@@ -161,7 +161,7 @@ export const ARCADE_REVEAL_RENDERERS: Record<string, ArcadeRevealRenderer> = {
   skyline: simple(GOLD, 390, 560, skylineGame, (p, a) => replaySkylineRun(seedOf(p), a, p.type === "skyline" ? p.skylineRev : undefined), undefined, skylineRevealGame, (p) => skylineWorldHFor(p.type === "skyline" ? p.skylineRev : undefined)),
   // binRev 7: the wider fairground (430 × 728) drawn at 390 wide, so 660 tall.
   bintoss: simple("#2ED3B7", 390, 560, binTossGame, (p, a) => replayBinTossRun(seedOf(p), a, p.type === "bintoss" ? p.binRev : undefined), undefined, undefined,
-    (p) => (p.type === "bintoss" && p.binRev === BINTOSS_REV_EXPAND ? Math.round((390 * BINTOSS_V7_WORLD_H) / BINTOSS_V7_WORLD_W) : 560)),
+    (p) => (p.type === "bintoss" && binTossIsExpand(p.binRev) ? Math.round((390 * BINTOSS_V7_WORLD_H) / BINTOSS_V7_WORLD_W) : 560)),
   bullseye: simple(GOLD, 390, 560, { draw: drawBullseye }, (p, a) =>
     replayBullseyeRun(seedOf(p), a, p.type === "bullseye" ? p.winds : [], p.type === "bullseye" ? p.bullRev : undefined),
     // bullRev 8 (expansion E9): the taller range.

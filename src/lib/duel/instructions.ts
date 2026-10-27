@@ -606,16 +606,16 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
       goal: "Throw the ball into the bucket.",
       how: [
         { action: "Drag to aim,", detail: "then let go to throw." },
-        { action: "Wind 1 = a quarter bucket.", detail: "Aim into the wind." },
-        { action: "Far bucket at the back:", detail: `+${BINTOSS_FAR_POINTS}, and its hoop +3.` },
+        { action: "Wind 1 = a quarter bucket.", detail: "Aim into the flag." },
+        { action: "Small far bucket:", detail: `+${BINTOSS_FAR_POINTS}, and its hoop +3.` },
         { action: "Through the hoop, then in:", detail: "+3 bonus.", helpOnly: true },
         {
           action: "Far buckets:",
-          detail: `on throws 1-${BINTOSS_FAR_THROWS} a narrow bucket stands still further back. Either bucket counts; the far one adds ${BINTOSS_FAR_POINTS} more (up to ${BINTOSS_FAR_CAP} in all). The hoops hang over it.`,
+          detail: `on throws 1-${BINTOSS_FAR_THROWS} a small bucket (about half the main one's width) stands still further back. Either bucket counts; the far one adds ${BINTOSS_FAR_POINTS} more (up to ${BINTOSS_FAR_CAP} in all). The hoops hang over it.`,
           helpOnly: true,
         },
         {
-          action: "Each wind point moves the ball a quarter of a bucket width.",
+          action: "The flag at the top shows the wind: it points the way the wind blows, with its strength on it. Each wind point moves the ball a quarter of a bucket width.",
           detail: "Wind 2 to the left? Aim half a bucket width to the right.",
           helpOnly: true,
         },
