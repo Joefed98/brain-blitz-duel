@@ -27,7 +27,8 @@ import { TUBES_MAX_ATTEMPTS, generateTubes, verifyTubesPuzzle } from "./tubes.se
 import { TUBES_BANK, TUBES_INTRO_EXAMPLE } from "./tubesBank.server";
 import { withSeededRandom } from "./random";
 import { SPEED_PAR_VERSION } from "./speedPar";
-import { dealtPuzzleScoreRev } from "./puzzleScoreRev";
+import { PUZZLE_SCORE_REV_DEALT, dealtPuzzleScoreRev, puzzleScoreRevOf } from "./puzzleScoreRev";
+import { dealStandard } from "./standard/stamps";
 import { stampMoveLimits } from "./moveLimits.server";
 import type {
   BlockPartyPuzzleData,
@@ -246,5 +247,7 @@ export function bankedIntroExample(type: PuzzleType): PuzzleData | null {
   const example = spec(type).example;
   if (!example) return null;
   const copy = stampMoveLimits(JSON.parse(JSON.stringify(example)) as PuzzleData);
-  return { ...(copy as object), speedPar: SPEED_PAR_VERSION, puzzleScoreRev: dealtPuzzleScoreRev() } as unknown as PuzzleData;
+  const stamped = { ...(copy as object), speedPar: SPEED_PAR_VERSION, puzzleScoreRev: dealtPuzzleScoreRev() } as unknown as PuzzleData;
+  // The scoring standard's stamp, as generatePuzzle deals it, so the example is the live one.
+  return puzzleScoreRevOf(stamped) === PUZZLE_SCORE_REV_DEALT ? dealStandard(stamped) : stamped;
 }
