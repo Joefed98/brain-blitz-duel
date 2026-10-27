@@ -70,7 +70,7 @@ import { decodeFlipRun, replayFlipRun } from "./flip";
 import { decodeJunctionRun, replayJunctionRun } from "./junction";
 import { decodeInkBridgeRun, replayInkBridgeRun } from "./inkBridge";
 import { decodeBurstRun, replayBurstRun } from "./burst";
-import { burstCleanBonus, burstGoldenCount } from "@/lib/arcade/burst";
+import { burstCarryBonus, burstCleanBonus, burstGoldenCount } from "@/lib/arcade/burst";
 import { decodeOrbitRun, replayOrbitRun } from "./orbit";
 import { decodeSwingRun, replaySwingRun } from "./swing";
 import { SWING_REV, SWING_REV_BAND, SWING_REV_TUNED, SWING_REV_TUNEC, SWING_REV_SPREAD, SWING_REV_TALL, SWING_REV_TARGET, SWING_REV_STRICT, SWING_REV_EXPAND, swingFeaturePoints } from "@/lib/arcade/swing";
@@ -1873,7 +1873,8 @@ function gradeUnderRev(
         livesLost: run.livesLost,
         ...(puzzle.burstRev ? { burstRev: puzzle.burstRev, freezes: run.freezes } : {}),
         // burstRev 8 (expansion E9): clean waves, golden atoms and the features' points, for the reveal.
-        ...(run.state.exp ? { cleanWaves: run.state.cleanWaves ?? 0, goldens: burstGoldenCount(run.state), skill: burstCleanBonus(run.state).total } : {}),
+        // burstRev 9 (phone-test notes): waves cleared with a time bonus, golden atoms and the features' points.
+        ...(run.state.carry ? { quickWaves: run.state.quickWaves ?? 0, goldens: burstGoldenCount(run.state), skill: burstCarryBonus(run.state).total } : run.state.exp ? { cleanWaves: run.state.cleanWaves ?? 0, goldens: burstGoldenCount(run.state), skill: burstCleanBonus(run.state).total } : {}),
         survived: run.survived,
         survivedSeconds: run.survivedSeconds,
         endedSeconds: run.endedSeconds,

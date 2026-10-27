@@ -60,7 +60,7 @@ const { rallyArtGame } = await import("../src/lib/arcade/rally.renderer");
 const { rallyRev2Game } = await import("../src/lib/arcade/rally");
 const { BRK_REV_DEEP } = await import("../src/lib/arcade/breaker");
 const { rallyGameFor, RALLY_REV_BONUS } = await import("../src/lib/arcade/rally");
-const { BURST_REV_CLEAN } = await import("../src/lib/arcade/burst");
+const { BURST_REV_CARRY } = await import("../src/lib/arcade/burst");
 const { beatArtGame } = await import("../src/lib/arcade/beat.renderer");
 const { beatRev2Game } = await import("../src/lib/arcade/beat");
 const { snakeArtGame } = await import("../src/lib/arcade/snake.renderer");
@@ -120,7 +120,7 @@ const GAMES: Record<string, AnyGame> = {
   rally: { ...rallyGameFor(RALLY_REV_BONUS), draw: rallyArtGame.draw } as AnyGame,
   beat: { ...beatArtGame, init: beatRev2Game.init } as AnyGame,
   snake: { ...snakeArtGame, init: snakeRev3Game.init } as AnyGame,
-  burst: burstArtGameFor(BURST_REV_CLEAN) as AnyGame,
+  burst: burstArtGameFor(BURST_REV_CARRY) as AnyGame,
   wavefront: wavefrontArtGameFor(2) as AnyGame,
   orbit: orbitArtGame as AnyGame,
   skyline: { ...skylineArtGame, init: skylineRev2Game.init } as AnyGame,

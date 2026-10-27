@@ -7,7 +7,7 @@ import {
   BURST_REV,
   BURST_REV_BAND,
   BURST_REV_TALL,
-  BURST_REV_TARGET, BURST_REV_STRICT, BURST_REV_CLEAN,
+  BURST_REV_TARGET, BURST_REV_STRICT, BURST_REV_CLEAN, BURST_REV_CARRY,
   BURST_CHECKPOINT_INTERVAL,
   BURST_CHECKPOINT_KEYS,
   BURST_LIVES,
@@ -73,6 +73,15 @@ const runV8 = makeArcadeRun<BurstState, BurstCheckpoint>({
   interval: BURST_CHECKPOINT_INTERVAL,
 });
 
+/** burstRev 9 (phone-test notes): power-ups carried by atoms, the bouncing golden atom, BURST shots, wave-clear bonus. */
+const runV9 = makeArcadeRun<BurstState, BurstCheckpoint>({
+  tag: "burst",
+  game: burstGameFor(BURST_REV_CARRY),
+  checkpoint: burstCheckpoint,
+  keys: BURST_CHECKPOINT_KEYS,
+  interval: BURST_CHECKPOINT_INTERVAL,
+});
+
 export interface BurstResult extends FlatReplay<BurstState, BurstCheckpoint> {
   wave: number;
   hits: number;
@@ -90,7 +99,7 @@ export const decodeBurstRun = run.decode;
 
 /** The single place a Burst score is worked out. */
 export function replayBurstRun(seed: number, raw: string, rev?: number | null): BurstResult {
-  const result = (rev === BURST_REV_CLEAN ? runV8 : rev === BURST_REV_STRICT ? runStrict : rev === BURST_REV_TARGET ? runTarget : rev === BURST_REV_TALL ? runTall : rev === BURST_REV_BAND ? runBand : rev === BURST_REV ? runV2 : run).replay(seed, raw);
+  const result = (rev === BURST_REV_CARRY ? runV9 : rev === BURST_REV_CLEAN ? runV8 : rev === BURST_REV_STRICT ? runStrict : rev === BURST_REV_TARGET ? runTarget : rev === BURST_REV_TALL ? runTall : rev === BURST_REV_BAND ? runBand : rev === BURST_REV ? runV2 : run).replay(seed, raw);
   const s = result.state;
   return {
     ...result,

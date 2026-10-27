@@ -14,9 +14,10 @@ import {
   BURST_GOLD,
   BURST_INPUT_FIRE,
   BURST_INPUT_MOVE,
-  BURST_REV_CLEAN,
+  BURST_REV_CARRY,
   BURST_V8_GOLDENS,
   burstCleanBonus,
+  burstCarryBonus,
   burstGoldenCount,
   BURST_TEAL,
   BURST_WORLD_W,
@@ -35,6 +36,9 @@ function burstAllSounds() {
     { count: (s) => s.doubles ?? 0, sound: "zap" },
     { count: (s) => burstGoldenCount(s), sound: "chime" },
     { count: (s) => s.cleanWaves ?? 0, sound: "ding", volume: 0.8 },
+    // burstRev 9: a wave cleared with a time bonus, and a BURST icon caught.
+    { count: (s) => s.quickWaves ?? 0, sound: "ding", volume: 0.8 },
+    { count: (s) => s.bursts ?? 0, sound: "zap" },
     { count: (s) => s.missed ?? 0, sound: "tick", volume: 0.5 },
   ]);
   return { frame: (state: BurstState, running: boolean) => { base.frame(state, running); features(state, running); }, stop: base.stop };
@@ -154,7 +158,11 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
         {burstLine(result)}
       </p>
       <p className="shrink-0 text-center font-mono text-base text-muted-foreground">Same waves for everyone</p>
-      {result.state.exp ? (
+      {result.state.carry ? (
+        <p className="shrink-0 text-center font-mono text-sm text-muted-foreground">
+          {`${result.state.quickWaves ?? 0} quick wave${result.state.quickWaves === 1 ? "" : "s"} · ${burstGoldenCount(result.state)}/${BURST_V8_GOLDENS} golden · bonus +${burstCarryBonus(result.state).total}`}
+        </p>
+      ) : result.state.exp ? (
         <p className="shrink-0 text-center font-mono text-sm text-muted-foreground">
           {`${result.state.cleanWaves ?? 0} clean wave${result.state.cleanWaves === 1 ? "" : "s"} · ${burstGoldenCount(result.state)}/${BURST_V8_GOLDENS} golden · bonus +${burstCleanBonus(result.state).total}`}
         </p>
@@ -170,7 +178,7 @@ export const burstPuzzle: PuzzleDefinition = {
   category: "arcade",
   timeLimitMs: BURST_TIME_MS,
   revealMs: 6_000,
-  generate: () => ({ type: "burst", seed: 1, burstRev: BURST_REV_CLEAN }) satisfies BurstPuzzleData,
+  generate: () => ({ type: "burst", seed: 1, burstRev: BURST_REV_CARRY }) satisfies BurstPuzzleData,
   check: () => false,
   revealHeading: "Your run",
   IntroExample,
