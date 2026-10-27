@@ -28,7 +28,7 @@ import { ROUND_MAX } from "../src/lib/duel/roundMax";
 import { LIVE_BANDS, liveStrictRev } from "../src/lib/arcade/liveBands";
 import { snakeV9Bonus, snakeRow, snakeCol, SNAKE_REV_200, SNAKE_REV_STRICT, SNAKE_V9_CAPS, SNAKE_V9_COLS, SNAKE_V9_ROWS, SNAKE_V9_BAND_CURVE } from "../src/lib/arcade/snake";
 import { BURST_REV_CLEAN, BURST_REV_STRICT, BURST_V6_BAND_CURVE } from "../src/lib/arcade/burst";
-import { beatV9Bonus, BEAT_REV_200, BEAT_REV_STRICT, BEAT_V9_CAPS, BEAT_V9_FIVE_FROM, BEAT_V9_BREAK, BEAT_DOUBLE_GAP, BEAT_V9_BAND_CURVE, BEAT_V9_RUN_TICKS } from "../src/lib/arcade/beat";
+import { beatV9Bonus, BEAT_REV_200, BEAT_REV_EASE, BEAT_REV_STRICT, BEAT_V9_CAPS, BEAT_V9_FIVE_FROM, BEAT_V9_BREAK, BEAT_DOUBLE_GAP, BEAT_V9_BAND_CURVE, BEAT_V9_RUN_TICKS } from "../src/lib/arcade/beat";
 
 const RECORD = process.argv.includes("--record");
 const NEW_FIXTURE = "scripts/fixtures/expansion-e2-new.json.gz";
@@ -58,7 +58,8 @@ for (const [type, top] of [["snake", SNAKE_REV_STRICT], ["beat", BEAT_REV_STRICT
 
 /* 2. Dealt revisions, maxima and help curves. */
 ok((generatePuzzle("snake") as any).snakeRev === SNAKE_REV_200, "rooms deal snakeRev 9");
-ok((generatePuzzle("beat") as any).beatRev === BEAT_REV_200, "rooms deal beatRev 9");
+// Phone notes (27 Oct 2026): rooms moved on to beatRev 10 (tempo-ease-check); beatRev 9 stays proved below.
+ok((generatePuzzle("beat") as any).beatRev === BEAT_REV_EASE, "rooms deal beatRev 10 (beatRev 9 before the phone notes)");
 ok(ROUND_MAX.snake === 200 && ROUND_MAX.beat === 200, "ROUND_MAX: Meteor and Tempo are 200");
 ok(LIVE_BANDS.snake.curve === SNAKE_V9_BAND_CURVE && LIVE_BANDS.beat.curve === BEAT_V9_BAND_CURVE, "the help reads the new curves");
 ok(liveStrictRev("snake") === SNAKE_REV_STRICT && liveStrictRev("beat") === BEAT_REV_STRICT, "their score-bands revisions are the ones rooms dealt before (strictRev)");

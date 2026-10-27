@@ -20,7 +20,7 @@ import { WHACK_REV_DEPTH } from "@/lib/arcade/whack";
 import { WAV_REV_TARGET, WAV_REV_STRICT, WAV_REV_EXPAND } from "@/lib/arcade/wavefront";
 import { ORBIT_REV_TARGET, ORBIT_REV_STRICT, ORBIT_REV_XP } from "@/lib/arcade/orbit";
 import { RALLY_REV_TARGET, RALLY_REV_STRICT, RALLY_REV_BONUS } from "@/lib/arcade/rally";
-import { BEAT_REV_TARGET, BEAT_REV_200 } from "@/lib/arcade/beat";
+import { BEAT_REV_TARGET, BEAT_REV_EASE } from "@/lib/arcade/beat";
 import { orbitXpCourseForSeed, orbitHolesForBankSeed, orbitRev3BankEntryForSeed, orbitRev3PlanetsForSeed, encodeRev3Planets } from "./orbitRev3Course.server";
 import { proveSwingSeed } from "./swingProof.server";
 import { SWING_V9_BANK } from "./swingBankV9.server";
@@ -142,7 +142,8 @@ export function generateBubble(): BubblePuzzleData {
 }
 
 export function generateBeat(): BeatPuzzleData {
-  return { type: "beat", seed: arcadeSeed(), beatRev: BEAT_REV_200 };
+  // beatRev 10 (phone notes, 27 Oct 2026): beatRev 9's song with wider windows and a lighter chart, easiest from the fifth lane.
+  return { type: "beat", seed: arcadeSeed(), beatRev: BEAT_REV_EASE };
 }
 
 export function generateTenDrop(): TenDropPuzzleData {

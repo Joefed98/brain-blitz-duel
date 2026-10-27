@@ -28,7 +28,7 @@ import { BRK_REV_DEEP, BRK_REV_STRICT, BRK_V9_BAND_CURVE } from "./breaker";
 import { TILT_REV_EXPAND, TILT_REV_STRICT, TILT_V8_BAND_CURVE } from "./tilt";
 import { ORBIT_REV_STRICT, ORBIT_REV_XP } from "./orbit";
 import { ORBIT_V12_BAND_CURVE } from "./orbitRev3";
-import { BEAT_REV_200, BEAT_REV_STRICT, BEAT_V9_BAND_CURVE } from "./beat";
+import { BEAT_REV_EASE, BEAT_REV_STRICT, BEAT_V10_BAND_CURVE } from "./beat";
 import { SLICE_REV_STRICT, SLICE_REV_EXPAND, SLICE_V9_BAND_CURVE } from "./slice";
 import { BURST_REV_CLEAN, BURST_REV_STRICT, BURST_V8_BAND_CURVE } from "./burst";
 import { SWING_REV_EXPAND, SWING_REV_STRICT, SWING_V13_BAND_CURVE } from "./swing";
@@ -67,7 +67,8 @@ export const LIVE_BANDS = {
   breaker: { field: "brkRev", rev: BRK_REV_DEEP, curve: BRK_V9_BAND_CURVE, strictRev: BRK_REV_STRICT },
   tilt: { field: "tiltRev", rev: TILT_REV_EXPAND, curve: TILT_V8_BAND_CURVE, strictRev: TILT_REV_STRICT },
   orbit: { field: "orbitRev", rev: ORBIT_REV_XP, curve: ORBIT_V12_BAND_CURVE, strictRev: ORBIT_REV_STRICT },
-  beat: { field: "beatRev", rev: BEAT_REV_200, curve: BEAT_V9_BAND_CURVE, strictRev: BEAT_REV_STRICT },
+  // beatRev 10 (phone notes): beatRev 9's base curve and skill pay on an easier chart and wider windows.
+  beat: { field: "beatRev", rev: BEAT_REV_EASE, curve: BEAT_V10_BAND_CURVE, strictRev: BEAT_REV_STRICT },
   slice: { field: "sliceRev", rev: SLICE_REV_EXPAND, curve: SLICE_V9_BAND_CURVE, strictRev: SLICE_REV_STRICT },
   burst: { field: "burstRev", rev: BURST_REV_CLEAN, curve: BURST_V8_BAND_CURVE, strictRev: BURST_REV_STRICT },
   // swingRev 13 (the 200 expansion): the base curve; the features pay up to 50 more on a rising scale (the help says so).

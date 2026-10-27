@@ -875,7 +875,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Gold notes and Perfect streaks", detail: "score a bonus; five lanes from 40 s.", helpOnly: true },
         { action: "Tail notes:", detail: "hold, let go at the end.", helpOnly: true },
         { action: "Arrow notes:", detail: "swipe that way on the line.", helpOnly: true },
-        { action: "A 75-second song:", detail: "from 40 s, after a short break, the lanes become five (a pink fifth lane), and the last section is the busiest.", helpOnly: true },
+        { action: "A 75-second song:", detail: "from 40 s, after a short break, the lanes become five (a pink fifth lane), easing in with a few seconds of single notes, and the last section is the busiest.", helpOnly: true },
         { action: "Fever:", detail: "Perfects (and Goods, half as much) fill the meter at the top; a miss empties it. When it flashes TAP FEVER!, tap it: for 8 seconds every note you hit counts twice.", helpOnly: true },
         { action: "Golden notes:", detail: "hit one dead on – on the very moment it meets the line – for a bonus point.", helpOnly: true },
         { action: "Double taps:", detail: "two notes with white dots, close together in one lane. Tap both; both Perfect earns a bonus point.", helpOnly: true },
