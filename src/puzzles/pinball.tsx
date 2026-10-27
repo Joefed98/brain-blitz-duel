@@ -1,11 +1,11 @@
-import { pinballAmbient } from "@/lib/arcade/arenaFills.renderer";
+import { pinball4Ambient, pinballAmbient } from "@/lib/arcade/arenaFills.renderer";
 import { ArcadeArenaSlot } from "@/components/puzzles/ArcadeArenaSlot";
 import { gameDisplayName } from "@/lib/duel/gameNames";
 import { useArcadeFrameTiming } from "@/components/puzzles/useArcadeFrameTiming";
 import { arcadeFeedback } from "@/lib/fx/arcade";
 import { pinballGlowFill, PIN_COLOURS } from "@/lib/arcade/pinball.renderer";
 import { pinball4GlowFill, pinballArtGameForAny, pinballWorldHFor } from "@/lib/arcade/pinball4.renderer";
-import { pinballGameForAny, pinCheckpointAny, PIN_REV_EXPAND } from "@/lib/arcade/pinball4";
+import { pinballGameForAny, pinCheckpointAny, PIN_REV_LONG } from "@/lib/arcade/pinball4";
 import { pinballSounds } from "@/lib/fx/gameSounds";
 import { appendClientCounters, arcadeCounters } from "@/lib/arcade/diagnostics";
 import { inputAt, recordInput } from "@/lib/arcade/engine";
@@ -17,7 +17,8 @@ import {
   PIN_BALLS,
   PIN_CHECKPOINT_INTERVAL,
   PIN_INPUT_FLIPPERS,
-  PIN_RUN_TICKS,
+  pinIsExpanded,
+  PIN_V5_RUN_TICKS,
   PIN_WORLD_W,
   type PinState,
 } from "@/lib/arcade/pinball";
@@ -214,7 +215,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   };
 
   return (
-    <ArcadeArenaSlot width={PIN_WORLD_W} height={pinballWorldHFor(data.pinRev)} scene={data.pinRev === PIN_REV_EXPAND ? pinball4GlowFill : pinballGlowFill} ambient={pinballAmbient} playCentre>
+    <ArcadeArenaSlot width={PIN_WORLD_W} height={pinballWorldHFor(data.pinRev)} scene={pinIsExpanded(data.pinRev) ? pinball4GlowFill : pinballGlowFill} ambient={pinIsExpanded(data.pinRev) ? pinball4Ambient : pinballAmbient} playCentre>
       <div ref={wrap} data-game-arena="canvas" className="relative min-h-0 w-full flex-1 overflow-hidden" style={NO_SCROLL_STYLE}>
         <canvas
           ref={canvas}
@@ -242,7 +243,7 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
       <p className="shrink-0 text-center font-mono text-base text-muted-foreground">
         {result.bumps} bumper hits · {result.drops} targets · {result.spins} spins
       </p>
-      {puzzle.pinRev === PIN_REV_EXPAND ? (
+      {pinIsExpanded(puzzle.pinRev) ? (
         <p className="shrink-0 text-center font-mono text-base text-muted-foreground">
           {result.ramps} ramps · {result.multiballs} multiball · {result.jackpots} jackpots · {result.skills} skill shots
         </p>
@@ -259,9 +260,10 @@ export const pinballPuzzle: PuzzleDefinition = {
   key: "pinball",
   name: gameDisplayName("pinball"),
   category: "arcade",
-  timeLimitMs: (PIN_RUN_TICKS / TICKS_PER_SECOND) * 1000 + 3000,
+  // pinRev 5's 90 s run (older rounds run 60 s and end there; their clock shows the extra 30 s unused, as Tempo's beatRev 9).
+  timeLimitMs: (PIN_V5_RUN_TICKS / TICKS_PER_SECOND) * 1000 + 3000,
   revealMs: 6_000,
-  generate: () => ({ type: "pinball", seed: 1, pinRev: PIN_REV_EXPAND }) satisfies PinballPuzzleData,
+  generate: () => ({ type: "pinball", seed: 1, pinRev: PIN_REV_LONG }) satisfies PinballPuzzleData,
   check: () => false,
   revealHeading: "Your run",
   IntroExample,

@@ -18,7 +18,7 @@ import { HOVER_WORLD_W, type HoverPillar, type HoverState } from "@/lib/arcade/h
 import { snakeStepTicks, type SnakeState } from "@/lib/arcade/snake";
 import { BRK_SLIDE_STARTS, brkDestroyed, brkPaddleY, type BrkState } from "@/lib/arcade/breaker";
 import { RALLY_BUMPER2_FROM, RALLY_BUMPER_FROM, type RallyState } from "@/lib/arcade/rally";
-import { PIN_BALLS, PIN_RUN_TICKS, type PinState } from "@/lib/arcade/pinball";
+import { PIN_BALLS, pinRunTicksOf, type PinState } from "@/lib/arcade/pinball";
 import type { Pin4State } from "@/lib/arcade/pinball4";
 import { BURST_RADIUS, burstCeiling, burstFloorY, type BurstState } from "@/lib/arcade/burst";
 import { BEAT_COMBO_TIERS, BEAT_FALL_TICKS, BEAT_JUDGE_PENDING, type BeatState } from "@/lib/arcade/beat";
@@ -464,7 +464,7 @@ export function pinballSounds(): GameSounds<PinState> {
           if ((p4.multiballs ?? 0) > (q4.multiballs ?? 0)) sfx("shared.celebrate.zap", "arc_retro_pickup", 1);
           if ((p4.jackpots ?? 0) > (q4.jackpots ?? 0) || (p4.skills ?? 0) > (q4.skills ?? 0)) sfx("shared.celebrate.chime", "correct", 0.9);
         }
-        const over = state.lost >= PIN_BALLS && prev.lost < PIN_BALLS && state.tick < PIN_RUN_TICKS;
+        const over = state.lost >= PIN_BALLS && prev.lost < PIN_BALLS && state.tick < pinRunTicksOf(state);
         if (over) effectCue("pinball.gameOver");
         if (state.lost > prev.lost && !(over && cueHasFile("pinball.gameOver"))) sfx("pinball.ballLost", "arc_retro_explode");
         if (state.live && !prev.live) sfx("pinball.launch", "arc_bounce", 0.8);
