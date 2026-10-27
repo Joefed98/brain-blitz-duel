@@ -263,8 +263,8 @@ section("Swish binRev 8: the far bucket at 60 % of its size");
     const seed = 104729 * n + 7;
     const a = g7.init(seed) as BinTossState;
     const b = g8.init(seed) as BinTossState;
-    const { farHalf, ...rest } = b;
-    ok(farHalf === BINTOSS_V8_FAR_HALF && a.farHalf === undefined && binTossFarHalf(a) === BINTOSS_FAR_HALF && JSON.stringify(rest) === JSON.stringify(a), `seed ${seed}: binRev 8 starts from binRev 7's exact draws, the far bucket smaller`);
+    const { farHalf, close, closeNow, ...rest } = b;
+    ok(farHalf === BINTOSS_V8_FAR_HALF && close === 0 && closeNow === 0 && a.farHalf === undefined && a.close === undefined && binTossFarHalf(a) === BINTOSS_FAR_HALF && JSON.stringify(rest) === JSON.stringify(a), `seed ${seed}: binRev 8 starts from binRev 7's exact draws, the far bucket smaller`);
   }
   // Throw 1 on one seed: every launch on a grid, flown to its end on both stamps.
   const seed = 99;
@@ -276,6 +276,8 @@ section("Swish binRev 8: the far bucket at 60 % of its size");
   let in8 = 0;
   let onlyWide = 0;
   let narrowNotWide = 0;
+  let closeMisses = 0;
+  let farMisses = 0;
   const far = s8.fars![0]!;
   for (let vy = -900; vy >= -1700; vy -= 20)
     for (let vx = 300; vx <= 1400; vx += 6) {
@@ -290,12 +292,25 @@ section("Swish binRev 8: the far bucket at 60 % of its size");
         ok(Math.abs(t8.x - far) <= BINTOSS_V8_FAR_HALF, `binRev 8 (${vx}, ${vy}): a far basket is inside the smaller mouth`);
       }
       if (t7.farIn === 1 && t8.farIn !== 1) onlyWide++;
+      // A missed throw counts one unit on binRev 8 exactly when it came down within BINTOSS_V8_CLOSE of a bucket's mouth.
+      ok(t7.close === undefined && (t8.close ?? 0) <= 1 && (t8.baskets === 1 ? t8.close === 0 : true), `binRev 8 (${vx}, ${vy}): at most one close miss a throw, none for a basket`);
+      if (t8.baskets === 0 && t8.close === 1) closeMisses++;
+      if (t8.baskets === 0 && t8.close === 0) farMisses++;
+      if (t8.baskets === 0) ok((g8.score({ ...t8, acted: 1 } as BinTossState) > 0) === (t8.close === 1), `binRev 8 (${vx}, ${vy}): a missed throw scores only if it came close`);
       if (t8.farIn === 1 && t7.farIn !== 1) narrowNotWide++;
     }
   console.log(`  throw 1 on seed ${seed}: ${in7} launches score the far bucket on binRev 7, ${in8} on binRev 8`);
   ok(in8 > 0, "the smaller far bucket can still be made");
   ok(in8 < in7 * 0.75 && onlyWide > 0, "the smaller far bucket is harder: fewer launches make it, and some binRev 7 far baskets miss it");
   ok(narrowNotWide === 0, "every binRev 8 far basket was a binRev 7 far basket too (only the mouth changed)");
+  console.log(`  throw 1 misses on binRev 8: ${closeMisses} close (1 unit), ${farMisses} not close`);
+  ok(closeMisses > 0 && farMisses > 0, "binRev 8 credits close misses and only them");
+  {
+    const s0 = g8.init(seed) as BinTossState;
+    const parts = (st: Partial<BinTossState>) => g8.score({ ...s0, ...st, acted: 1 } as BinTossState);
+    ok(parts({ close: 1, resolved: 10, throwIndex: 10 }) > 0 && parts({ close: 0, resolved: 10, throwIndex: 10 }) === 0, "a run whose only near thing was a close miss scores more than 0");
+    ok(parts({ baskets: 5, close: 3 }) > parts({ baskets: 5, close: 0 }), "close misses count on top of the buckets");
+  }
   // The far buckets and hoops are the seed's, the same for every player whatever they throw.
   for (let n = 0; n < 6; n++) {
     let st = g8.init(1000 + n) as BinTossState;

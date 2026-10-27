@@ -633,8 +633,8 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         },
         { action: "Drag down to the cancel strip", detail: "to put a throw back.", helpOnly: true },
       ],
-      // binRev 7 (docs/expansions/e5.md): binRev 6's units on their own curve, plus the far points.
-      score: `Each bucket counts 10 and each hoop bonus 3. More buckets and hoops, higher score – up to ${BINTOSS_V7_BAND_CURVE.points.at(-1)}. A good run (${BAND_GOOD_POINTS} points) counts ${bandUnitsFor(BINTOSS_V7_BAND_CURVE, BAND_GOOD_POINTS)} – about ${Math.round(bandUnitsFor(BINTOSS_V7_BAND_CURVE, BAND_GOOD_POINTS) / 10)} buckets. All ten in adds 10, and each far bucket ${BINTOSS_FAR_POINTS} (up to ${BINTOSS_FAR_CAP}). Up to {max}.`,
+      // binRev 7 (docs/expansions/e5.md): binRev 6's units on their own curve, plus the far points; binRev 8 (phone notes) adds a unit a close miss.
+      score: `Each bucket counts 10, each hoop bonus 3 and each throw that only just misses a bucket 1. More buckets and hoops, higher score – up to ${BINTOSS_V7_BAND_CURVE.points.at(-1)}. A good run (${BAND_GOOD_POINTS} points) counts ${bandUnitsFor(BINTOSS_V7_BAND_CURVE, BAND_GOOD_POINTS)} – about ${Math.round(bandUnitsFor(BINTOSS_V7_BAND_CURVE, BAND_GOOD_POINTS) / 10)} buckets. All ten in adds 10, and each far bucket ${BINTOSS_FAR_POINTS} (up to ${BINTOSS_FAR_CAP}). Up to {max}.`,
     },
     bullseye: {
       goal: "Hit the gold 10, near and far.",

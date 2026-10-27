@@ -465,6 +465,9 @@ export interface BinTossState extends BandFields {
   farWobbleTick?: number;
   /** binRev 8 only (phone notes, 27 Oct 2026): the far bucket's half-width, 1/256 px. Absent = BINTOSS_FAR_HALF. */
   farHalf?: number;
+  /** binRev 8 only: missed throws that came close (BINTOSS_V8_CLOSE), and 1 while the throw in flight has. */
+  close?: number;
+  closeNow?: number;
   tick: number;
   rng: number;
   /** The throw now in hand, 0-based; reaches ten when they are all done. */
@@ -564,10 +567,13 @@ function resolve(state: BinTossState, tick: number, scored: boolean, far = false
           spinBaskets: (state.spinBaskets ?? 0) + (scored && state.spinners?.[state.throwIndex] ? 1 : 0),
         }
       : {};
+  // binRev 8: a missed throw that came close counts (once); the flag resets for the next throw.
+  const close = state.farHalf !== undefined ? { close: (state.close ?? 0) + (!scored && state.closeNow ? 1 : 0), closeNow: 0 } : {};
   return {
     ...state,
     ...rev3,
     ...expand,
+    ...close,
     tick,
     phase: BINTOSS_WAIT,
     resolved: state.resolved + 1,
@@ -689,10 +695,14 @@ function step(state: BinTossState, input: ArcadeInputEvent | null): BinTossState
   // binRev 8: the smaller far bucket (binRev 7's otherwise).
   const farHalf = binTossFarHalf(state);
 
+  // binRev 8: whether this throw has come close to a bucket (a missed throw that did counts a unit).
+  let closeNow = state.closeNow ?? 0;
+
   // Crossing the rim line on the way down decides the throw.
   if (vy > 0 && state.y < BINTOSS_RIM_Y && ny >= BINTOSS_RIM_Y) {
     const offset = Math.abs(nx - centre);
     const farOffset = far ? Math.abs(nx - far) : Infinity;
+    if (state.farHalf !== undefined && Math.min(offset - half, farOffset - farHalf) <= BINTOSS_V8_CLOSE) closeNow = 1;
     const inMain = offset <= half - binTossRimInset(state.rev);
     if (inMain || farOffset <= farHalf - binTossRimInset(state.rev)) {
       const caught: BinTossState = { ...state, x: nx, y: ny, wobbleTick };
@@ -742,6 +752,7 @@ function step(state: BinTossState, input: ArcadeInputEvent | null): BinTossState
     next.knockTick = knockTick ?? 0;
   }
   if (state.expand === BINTOSS_EXPAND) next.farWobbleTick = farWobbleTick ?? 0;
+  if (state.farHalf !== undefined) next.closeNow = closeNow;
 
   // Landing on the floor or leaving the canvas is a miss.
   const right = state.expand === BINTOSS_EXPAND ? BINTOSS_V7_RIGHT : BINTOSS_WORLD_RIGHT;
@@ -822,8 +833,8 @@ export function binTossCheckpoint(state: BinTossState): BinTossCheckpoint {
   if (state.spinHalf !== undefined) values.push(state.spinHalf);
   // binRev 7 only, after that: its marker and the far baskets.
   if (state.expand === BINTOSS_EXPAND) values.push(state.expand, state.farIn ?? 0);
-  // binRev 8 only, last: the smaller far bucket.
-  if (state.farHalf !== undefined) values.push(state.farHalf);
+  // binRev 8 only, last: the smaller far bucket and the close misses.
+  if (state.farHalf !== undefined) values.push(state.farHalf, state.close ?? 0);
   for (const value of values) {
     checksum ^= value | 0;
     checksum = Math.imul(checksum, 0x01000193) >>> 0;
@@ -1429,7 +1440,9 @@ function initRev7(seed: number): BinTossState {
 export const BINTOSS_V7_BAND_CURVE = bandCurve([0, 40, 60, 70, 74, 83, 97, 109], [0, 56, 80, 96, 110, 139, 140, 142]);
 
 function binTossV7Parts(state: BinTossState): BandParts {
-  const units = 10 * clampInt(state.baskets, 0, BINTOSS_THROWS) + BINTOSS_HOOP_POINTS * clampInt(state.swishes ?? 0, 0, BINTOSS_HOOP_COUNT);
+  // binRev 8 adds a unit for each missed throw that came close (none on binRev 7, whose states have no `close`).
+  const close = clampInt(state.close ?? 0, 0, BINTOSS_THROWS);
+  const units = 10 * clampInt(state.baskets, 0, BINTOSS_THROWS) + BINTOSS_HOOP_POINTS * clampInt(state.swishes ?? 0, 0, BINTOSS_HOOP_COUNT) + close;
   const finished = state.baskets >= BINTOSS_THROWS;
   const far = binTossFarPoints(state);
   return {
@@ -1438,7 +1451,7 @@ function binTossV7Parts(state: BinTossState): BandParts {
     bonus: (finished ? BAND_FINISH_BONUS : 0) + far,
     penalty: 0,
     finished,
-    text: `${state.baskets} / ${BINTOSS_THROWS} buckets · ${state.swishes ?? 0} hoops`,
+    text: `${state.baskets} / ${BINTOSS_THROWS} buckets · ${state.swishes ?? 0} hoops${state.farHalf !== undefined ? ` · ${close} close` : ""}`,
     bonusText: finished ? `All ten in (${BAND_FINISH_BONUS}) and far buckets (${far})` : `${state.farIn ?? 0} far buckets`,
   };
 }
@@ -1452,11 +1465,15 @@ export const binTossExpandGame: ArcadeGame<BinTossState, ArcadeInputEvent | null
  * binRev 8 (Joe's phone notes, 27 Oct 2026): binRev 7 exactly (the same world, throws, winds, buckets, far
  * bucket places, hoops, spinners and scoring), with the +9 far bucket 60 % of its size: its mouth, rim and
  * walls are BINTOSS_V8_FAR_HALF (60 % of BINTOSS_FAR_HALF, about 17 px half-width, 35 px across, for a 14 px
- * ball), so a far basket is harder. Init draws exactly binRev 7's stream; states add `farHalf`, folded into
- * the checkpoint last. Every older stamp keeps its own bucket.
+ * ball), so a far basket is harder. So that every run that throws scores something, a missed throw that came
+ * close (its ball crossed the rim line within BINTOSS_V8_CLOSE of either bucket's mouth, rim hits included)
+ * counts 1 unit, once a throw. Init draws exactly binRev 7's stream; states add `farHalf`, `close` and
+ * `closeNow`; `farHalf` and `close` fold into the checkpoint last. Every older stamp keeps its own bucket and units.
  */
 export const BINTOSS_REV_SMALL_FAR = 8;
 export const BINTOSS_V8_FAR_HALF = Math.round((BINTOSS_FAR_HALF * 6) / 10);
+/** binRev 8: how near a bucket's mouth edge (1/256 px, about two ball widths) a missed throw counts as close. */
+export const BINTOSS_V8_CLOSE = 28 * 256;
 
 /** The far bucket's half-width a state plays with (1/256 px): binRev 8's smaller one, else binRev 7's. */
 export function binTossFarHalf(state: Pick<BinTossState, "farHalf">): number {
@@ -1466,7 +1483,7 @@ export function binTossFarHalf(state: Pick<BinTossState, "farHalf">): number {
 /** binRev 8: binRev 7 with the smaller far bucket. */
 export const binTossSmallFarGame: ArcadeGame<BinTossState, ArcadeInputEvent | null> = {
   ...binTossExpandGame,
-  init: (seed: number) => ({ ...initRev7(seed), farHalf: BINTOSS_V8_FAR_HALF }),
+  init: (seed: number) => ({ ...initRev7(seed), farHalf: BINTOSS_V8_FAR_HALF, close: 0, closeNow: 0 }),
 };
 
 /** Whether a stored binRev plays in binRev 7's wider fairground (binRev 7 and 8). */
