@@ -412,7 +412,8 @@ Lovable still hosts and publishes the app (https://brain-blitz-duel.lovable.app)
   home-screen app until shown once (`duelz-home-hint:v1`). *Send feedback* (`FeedbackLink`, `lib/beta/feedback.ts`):
   Profile, under the podium and two-player final screen, under the daily results; `TALLY_URL` with `device` (the anonymous
   sign-in id) and `version`. *Public games*: the persistent room **JULZ** (`PUBLIC_ROOM_CODE`; JOULZ isn't a valid code),
-  Tue 27 and Thu 29 Oct 2026 at 20:00 UK; new rooms never get it (`RESERVED_ROOM_CODES`); made by hand once
+  no games scheduled since 27 Oct 2026 (launch night delayed; `PUBLIC_GAMES` empty until the beta date is set, so no Next
+  public game card and Tournaments' empty state); new rooms never get it (`RESERVED_ROOM_CODES` always holds `PUBLIC_ROOM_CODE`); made by hand once
   (`docs/beta-sql.md` section 11). The boot script also reserves the next configured public game's card on a fresh device
   (`PUBLIC_CARD_STARTS`), and the server-rendered page draws a time-free stand-in card in that space (the real one
   needs the phone's clock), so it never pops in or jumps. beta-extras-check (~2 min, `play11`) proves it all.

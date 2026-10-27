@@ -18,7 +18,7 @@
  *
  * scripts/play-tab-shift-check.ts proves the layout holds within 2 px from the first frame at 414x896.
  */
-import { PUBLIC_GAMES } from "@/config/publicGames";
+import { PUBLIC_GAMES, type PublicGameConfig } from "@/config/publicGames";
 import type { DailyStatus } from "@/lib/duel/daily";
 import { scheduledGames } from "@/lib/publicSchedule";
 
@@ -46,10 +46,9 @@ export const NOT_SAFARI_UA = /CriOS|FxiOS|EdgiOS|OPiOS|OPT\/|GSA\/|DuckDuckGo|FB
  * can reserve it: each configured game's start (UTC ms) and its card's height, soonest first.
  */
 export const PUBLIC_CARD_H = { titled: 220, plain: 220 } as const;
-export const PUBLIC_CARD_STARTS: [number, number][] = scheduledGames(PUBLIC_GAMES).map((g) => [
-  g.startsAt,
-  g.title ? PUBLIC_CARD_H.titled : PUBLIC_CARD_H.plain,
-]);
+export const publicCardStarts = (games: readonly PublicGameConfig[]): [number, number][] =>
+  scheduledGames(games).map((g) => [g.startsAt, g.title ? PUBLIC_CARD_H.titled : PUBLIC_CARD_H.plain]);
+export const PUBLIC_CARD_STARTS: [number, number][] = publicCardStarts(PUBLIC_GAMES);
 
 export type PlaySlotId = "daily" | "challenge" | "rejoin" | "welcome" | "homescreen" | "intro";
 
@@ -213,8 +212,8 @@ export function bootDevice(): BootDevice | null {
   }
 }
 
-/** Runs the boot where there is no root <head> (the screen harness). */
-export function bootPlayCards(): void {
+/** Runs the boot where there is no root <head> (the screen harness, which passes its own schedule's starts). */
+export function bootPlayCards(starts: readonly [number, number][] = PUBLIC_CARD_STARTS): void {
   try {
     let session: Storage | null = null;
     try {
@@ -222,7 +221,7 @@ export function bootPlayCards(): void {
     } catch {
       session = null;
     }
-    applyTokens(document.documentElement, playCardTokens(window.localStorage, location.search, bootDevice(), PUBLIC_CARD_STARTS, Date.now(), session));
+    applyTokens(document.documentElement, playCardTokens(window.localStorage, location.search, bootDevice(), starts, Date.now(), session));
   } catch {
     /* nothing reserved */
   }
