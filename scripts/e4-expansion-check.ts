@@ -183,7 +183,7 @@ section("Rooms deal the expansions; recorded runs replay; 200 is the top");
   ok(pin.pinRev === PIN_REV_LONG && PIN_REV_EXPAND === 4 && PIN_REV_LONG === 5, `rooms deal pinRev 5, pinRev 4's table for 90 s (${pin.pinRev})`);
   ok(roundMaxFor("skyline") === 200 && roundMaxFor("pinball") === 200, "both games' round maximum is 200");
   ok(LIVE_BANDS.skyline.rev === SKYLINE_REV_LIFT && LIVE_BANDS.skyline.curve === SKYLINE_V8_BAND_CURVE, "the High Rise help reads skylineRev 8's curve");
-  ok(LIVE_BANDS.skyline.rev === SKYLINE_REV_EXPAND && LIVE_BANDS.skyline.curve === SKYLINE_V7_BAND_CURVE, "the High Rise help reads skylineRev 7's curve");
+  ok(LIVE_BANDS.pinball.rev === PIN_REV_LONG && LIVE_BANDS.pinball.curve === PIN_V5_BAND_CURVE, "the Pinball help reads the dealt pinRev 5's curve");
   for (const curve of [SKYLINE_V7_BAND_CURVE, SKYLINE_V8_BAND_CURVE, PIN_V4_BAND_CURVE, PIN_V5_BAND_CURVE]) {
     ok(curve.points.at(-1) === 200 && curve.units[0] === 0 && curve.points[0] === 0, "the curve runs from (0, 0) to 200");
     for (let i = 1; i < curve.units.length; i++) ok(curve.units[i]! > curve.units[i - 1]! && curve.points[i]! > curve.points[i - 1]!, "the knots rise");
