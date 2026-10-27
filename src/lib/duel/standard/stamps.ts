@@ -23,7 +23,14 @@ export const s = (key: string, live: number, timed = true, deal?: StandardStamp[
 
 /** Every game on the standard, by category. */
 export const STANDARD_STAMPS: Partial<Record<PuzzleType, StandardStamp>> = {
-  // Word (word.server.ts)
+  // Word (word.server.ts; numbers and texts in word.ts)
+  tilegrid: s("tileGridRev", 2),
+  wordslide: s("wordSlideRev", 2),
+  wordsearch: s("wordSearchRev", 3),
+  letterwheel: s("wheelRev", 3),
+  strikeout: s("strikeoutRev", 6),
+  codeword: s("codewordRev", 4),
+  swapword: s("swapwordRev", 6),
 
   // Number (number.server.ts)
 
