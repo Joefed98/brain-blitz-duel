@@ -242,7 +242,7 @@ section("Rally rallyRev 4 (pads never overlap)");
 {
   // Tuning F (Oct 2026) moved rooms on to rallyRev 5 (a second bumper); arcade-tuning-f-check covers it.
   // Expansion E9 (docs/expansions/e9.md) then moved Rally on to rallyRev 10; expansion-e9-check covers it.
-  ok(playRevOf("rally", generateRally().rallyRev) === RALLY_REV_TUNEF + 5, "new rounds are stamped rallyRev 10 (expansion E9, after rallyRev 6: rallyRev 5 pads and bumpers on the taller court)");
+  ok(playRevOf("rally", generateRally().rallyRev) === RALLY_REV_TUNEF + 6, "new rounds are stamped rallyRev 11 (phone notes 27 Oct 2026, after expansion E9's rallyRev 10, after rallyRev 6: rallyRev 5 pads and bumpers on the taller court)");
   const half = Math.trunc(RALLY_WORLD_W / 2);
   const overlap = (s: RallyState) => {
     const [p, q] = (s.live ?? []).map((spot) => rallyTargetLeft(s.spots ?? [], spot));

@@ -10,14 +10,14 @@ import { CROSS_REV_EXPAND } from "@/lib/arcade/cross";
 import { FLIP_REV_EXPAND } from "@/lib/arcade/flip";
 import { SNIP_REV_EXPAND } from "@/lib/arcade/snip";
 import { HOVER_REV_EXPAND } from "@/lib/arcade/hover";
-import { RALLY_REV_BONUS } from "@/lib/arcade/rally";
+import { RALLY_REV_CURVE } from "@/lib/arcade/rally";
 import { WAV_REV_EXPAND } from "@/lib/arcade/wavefront";
 import { BURST_REV_CLEAN } from "@/lib/arcade/burst";
 import { BULLSEYE_REV_EXPAND } from "@/lib/arcade/bullseye";
 import { BEAT_REV_EASE } from "@/lib/arcade/beat";
 import { SNAKE_REV_10 } from "@/lib/arcade/snake";
 import { SLICE_REV_BIG, SLICE_REV_TALL } from "@/lib/arcade/slice";
-import { BINTOSS_REV_EXPAND } from "@/lib/arcade/binToss";
+import { BINTOSS_REV_SMALL_FAR } from "@/lib/arcade/binToss";
 import { BUB_REV_BLAST } from "@/lib/arcade/bubble";
 import { MATCHUP_REV_GOALS } from "@/lib/arcade/matchup";
 import { TEN_DROP_DEPTH_REV } from "@/lib/arcade/tenDrop";
@@ -125,7 +125,9 @@ export const getIntroDemoFn = createServerFn({ method: "GET" })
     // The 200-point expansion (26 Oct 2026, docs/expansions/x200-hover.md): Hover hoverRev 9 plays in a 390 × 727 world with
     // tight gates, centre lines, star chains and shields, so its demo stays stopped until one is recorded there.
     if (data.type === "hover" && demo?.puzzle.type === "hover" && demo.puzzle.hoverRev !== HOVER_REV_EXPAND) return null;
-    if (data.type === "rally" && demo?.puzzle.type === "rally" && demo.puzzle.rallyRev !== RALLY_REV_BONUS) return null;
+    // Rally rallyRev 11 (phone notes, 27 Oct 2026): spin shots now curve visibly and targets last 5 s, so an older demo
+    // would play differently; it stays stopped until one is recorded on rallyRev 11.
+    if (data.type === "rally" && demo?.puzzle.type === "rally" && demo.puzzle.rallyRev !== RALLY_REV_CURVE) return null;
     // The 200 expansion (wavRev 10): a demo recorded on an older revision shows the shorter arena and no power-ups, so it stays stopped until one is recorded on wavRev 10.
     if (data.type === "wavefront" && demo?.puzzle.type === "wavefront" && demo.puzzle.wavRev !== WAV_REV_EXPAND) return null;
     if (data.type === "burst" && demo?.puzzle.type === "burst" && demo.puzzle.burstRev !== BURST_REV_CLEAN) return null;
@@ -187,7 +189,9 @@ export const getIntroDemoFn = createServerFn({ method: "GET" })
     // World expansion E5 (25 Oct 2026, docs/expansions/e5.md): Swish binRev 7 and Slice sliceRev 9
     // play in larger worlds with new features; an older demo would show the old world (and its touches would land
     // elsewhere), so each shows its still until a demo is recorded on its new revision.
-    if (data.type === "bintoss" && demo?.puzzle.type === "bintoss" && demo.puzzle.binRev !== BINTOSS_REV_EXPAND) return null;
+    // Swish binRev 8 (phone notes, 27 Oct 2026): the far bucket is 60 % of its size, so an older demo's far baskets
+    // could miss; it stays stopped until one is recorded on binRev 8.
+    if (data.type === "bintoss" && demo?.puzzle.type === "bintoss" && demo.puzzle.binRev !== BINTOSS_REV_SMALL_FAR) return null;
     // Slice sliceRev 10 (27 Oct 2026, Joe's phone notes): bigger onions and golden fruit; only a sliceRev 10 demo plays.
     if (data.type === "slice" && demo?.puzzle.type === "slice" && demo.puzzle.sliceRev !== SLICE_REV_BIG) return null;
 
