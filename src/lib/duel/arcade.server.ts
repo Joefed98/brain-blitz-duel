@@ -2,7 +2,7 @@ import { TEN_DROP_DEPTH_REV } from "@/lib/arcade/tenDrop";
 import { SLICE_REV_TARGET, SLICE_REV_STRICT, SLICE_REV_EXPAND } from "@/lib/arcade/slice";
 import { FLIP_REV_TARGET, FLIP_REV_STRICT, FLIP_REV_EXPAND } from "@/lib/arcade/flip";
 import { CROSS_REV_EXPAND } from "@/lib/arcade/cross";
-import { INK_REV_EXPAND } from "@/lib/arcade/inkBridge";
+import { INK_REV_SPREAD } from "@/lib/arcade/inkBridge";
 import { SNAKE_REV_TARGET, SNAKE_REV_200 } from "@/lib/arcade/snake";
 import { BUB_REV_CREDIT } from "@/lib/arcade/bubble";
 import { MATCHUP_REV_GOALS } from "@/lib/arcade/matchup";
@@ -188,7 +188,8 @@ export function generateJunction(): JunctionPuzzleData {
 }
 
 export function generateInkBridge(): InkBridgePuzzleData {
-  return { type: "inkbridge", seed: arcadeSeed(), inkRev: INK_REV_EXPAND };
+  // inkRev 11 (phone notes, 27 Oct 2026): no wind zones, fewer silver coins, the pickups spread out.
+  return { type: "inkbridge", seed: arcadeSeed(), inkRev: INK_REV_SPREAD };
 }
 
 export function generateBurst(): BurstPuzzleData {

@@ -13,7 +13,7 @@ import { roundMaxFor } from "../duel/roundMax";
 import { BT_REV_RUSH, BT_REV_STRICT, BT_V7_BAND_CURVE } from "./ballTrack";
 import { WAV_REV_EXPAND, WAV_REV_STRICT, WAV_V10_BAND_CURVE } from "./wavefront";
 import { FLIP_REV_EXPAND, FLIP_REV_STRICT, FLIP_V8_BAND_CURVE } from "./flip";
-import { INK_REV_EXPAND, INK_REV_STRICT, INK_V10_BAND_CURVE } from "./inkBridge";
+import { INK_REV_SPREAD, INK_REV_STRICT, INK_V10_BAND_CURVE } from "./inkBridge";
 import { MATCHUP_REV_GOALS, MATCHUP_REV_STRICT, MATCHUP_V9_BAND_CURVE } from "./matchup";
 import { BUB_REV_CREDIT, BUB_REV_STRICT, BUB_V8_BAND_CURVE } from "./bubble";
 import { CROSS_REV_EXPAND, CROSS_REV_STRICT, CROSS_V9_BAND_CURVE } from "./cross";
@@ -53,7 +53,7 @@ export const LIVE_BANDS = {
   balltrack: { field: "btRev", rev: BT_REV_RUSH, curve: BT_V7_BAND_CURVE, strictRev: BT_REV_STRICT },
   wavefront: { field: "wavRev", rev: WAV_REV_EXPAND, curve: WAV_V10_BAND_CURVE, strictRev: WAV_REV_STRICT },
   flip: { field: "flipRev", rev: FLIP_REV_EXPAND, curve: FLIP_V8_BAND_CURVE, strictRev: FLIP_REV_STRICT },
-  inkbridge: { field: "inkRev", rev: INK_REV_EXPAND, curve: INK_V10_BAND_CURVE, strictRev: INK_REV_STRICT },
+  inkbridge: { field: "inkRev", rev: INK_REV_SPREAD, curve: INK_V10_BAND_CURVE, strictRev: INK_REV_STRICT },
   matchup: { field: "matchupRev", rev: MATCHUP_REV_GOALS, curve: MATCHUP_V9_BAND_CURVE, strictRev: MATCHUP_REV_STRICT },
   bubble: { field: "bubbleRev", rev: BUB_REV_CREDIT, curve: BUB_V8_BAND_CURVE, strictRev: BUB_REV_STRICT },
   cross: { field: "crossRev", rev: CROSS_REV_EXPAND, curve: CROSS_V9_BAND_CURVE, strictRev: CROSS_REV_STRICT },

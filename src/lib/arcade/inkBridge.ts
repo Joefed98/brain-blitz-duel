@@ -91,7 +91,7 @@ export const INK_REV_BAND = 5;
 export const INK_REV_TUNEC = 6;
 /** Rev 3 rules (live levels 9–10, shared live ink) apply to rev 3 and rev 4. */
 function rev3Rules(rev?: number | null): boolean {
-  return rev === INK_REV3 || rev === INK_REV4 || rev === INK_REV_BAND || rev === INK_REV_TUNEC || rev === INK_REV_TARGET || rev === INK_REV_STRICT || rev === INK_REV_EXPAND;
+  return rev === INK_REV3 || rev === INK_REV4 || rev === INK_REV_BAND || rev === INK_REV_TUNEC || rev === INK_REV_TARGET || rev === INK_REV_STRICT || inkX(rev);
 }
 
 /* ================= x200 (inkRev 10, 26 Oct 2026; parked as Expansion E1's inkRev 9) ================= */
@@ -109,6 +109,17 @@ function rev3Rules(rev?: number | null): boolean {
  * 10 for speed, plus the features' raw points paid on INK_V10_SKILL_PAY (≤ INK_FEATURE_MAX).
  */
 export const INK_REV_EXPAND = 10;
+/**
+ * inkRev 11 (Joe's phone notes, 27 Oct 2026; docs/phone-notes-oct-2026/rainbow-bridge.md): inkRev 10's world, levels,
+ * clouds, physics and live levels, with no wind zones (the three wind levels are plain), INK_V11_SILVER_PER_LEVEL silver
+ * coins a level (16 a run, was 24), and the star, shamrock and silver coins spread further from the easy route and from
+ * each other (INK_V11_*), so taking them all needs a bolder bonus line. Features paid on INK_V11_SKILL_PAY.
+ */
+export const INK_REV_SPREAD = 11;
+/** inkRev 10 and 11: the taller world and its features (x200). */
+export function inkX(rev?: number | null): boolean {
+  return rev === INK_REV_EXPAND || rev === INK_REV_SPREAD;
+}
 export const INK_TALL_H = 674;
 /** How much lower every inkRev 10 pot sits (the extra sky): INK_TALL_H − INK_WORLD_H. */
 export const INK_TALL_DROP = INK_TALL_H - INK_WORLD_H;
@@ -128,14 +139,14 @@ export const INK_CLOUD_KICK = 5 * 256;
 export const INK_FEATURE_MAX = 50;
 /** The world height a round is drawn and played in. */
 export function inkWorldHFor(rev?: number | null): number {
-  return rev === INK_REV_EXPAND ? INK_TALL_H : INK_WORLD_H;
+  return inkX(rev) ? INK_TALL_H : INK_WORLD_H;
 }
 export function inkWorldH(state: { worldH?: number }): number {
   return state.worldH ?? INK_WORLD_H;
 }
 /** Does this revision carry gold stars (rev 4's four, inkRev 10's ink stars)? */
 function starRev(rev?: number | null): boolean {
-  return rev === INK_REV4 || rev === INK_REV_EXPAND;
+  return rev === INK_REV4 || inkX(rev);
 }
 /** Star draw radius in px; the coin collects it when its centre comes within STAR_R + coin radius. */
 export const INK_STAR_R = 9;
@@ -193,7 +204,7 @@ export function inkIsLive(level: number, rev?: number | null): boolean {
 /** Ink for a level, rev-aware: live levels share a budget 1.5× the usual. */
 export function inkBudgetFor(level: number, rev?: number | null): number {
   // inkRev 10: 9 % more ink for the taller levels.
-  const base = rev === INK_REV_EXPAND ? Math.trunc((inkBudget(level) * 279) / 256) : inkBudget(level);
+  const base = inkX(rev) ? Math.trunc((inkBudget(level) * 279) / 256) : inkBudget(level);
   return inkIsLive(level, rev) ? Math.trunc((base * INK_LIVE_BUDGET_256) / 256) : base;
 }
 
@@ -1755,6 +1766,35 @@ const INK_ATTEMPTS_10 = 4000;
 export const INK_WARMUP_LEVELS = 1;
 export const INK_WIND_LEVELS = 3;
 export const INK_SILVER_PER_LEVEL = 3;
+/** inkRev 11: two silver coins a level (16 a run), no wind levels. */
+export const INK_V11_SILVER_PER_LEVEL = 2;
+export const INK_V11_WIND_LEVELS = 0;
+/**
+ * inkRev 11 spread (px): a plain level's star sits at least INK_V11_STAR_OFF_ROUTE from the easy route (inkRev 10: 40);
+ * every pickup at least INK_V11_PICKUP_OFF_ROUTE from it (18), the silver coins at least INK_V11_PICKUP_GAP from each
+ * other, the star and the shamrock (24), and the shamrock INK_V11_SHAMROCK_GAP from the star (40). Pickups are placed
+ * farthest-first (the point of the bonus line farthest from the route and every pickup placed), not evenly along it.
+ */
+export const INK_V11_STAR_OFF_ROUTE = 52;
+export const INK_V11_PICKUP_OFF_ROUTE = 30;
+export const INK_V11_PICKUP_GAP = 52;
+export const INK_V11_SHAMROCK_GAP = 64;
+/** What generation places on a level 1–8, per revision. */
+interface InkFeatureSpec {
+  rev: number;
+  windLevels: number;
+  silverPerLevel: number;
+  spread: boolean;
+}
+const INK_SPEC_10: InkFeatureSpec = { rev: INK_REV_EXPAND, windLevels: INK_WIND_LEVELS, silverPerLevel: INK_SILVER_PER_LEVEL, spread: false };
+const INK_SPEC_11: InkFeatureSpec = { rev: INK_REV_SPREAD, windLevels: INK_V11_WIND_LEVELS, silverPerLevel: INK_V11_SILVER_PER_LEVEL, spread: true };
+/** Silver coins a level and wind levels a run on this revision (inkRev 10 or 11). */
+export function inkSilverPerLevel(rev?: number | null): number {
+  return rev === INK_REV_SPREAD ? INK_V11_SILVER_PER_LEVEL : INK_SILVER_PER_LEVEL;
+}
+export function inkWindLevels(rev?: number | null): number {
+  return rev === INK_REV_SPREAD ? INK_V11_WIND_LEVELS : INK_WIND_LEVELS;
+}
 /** Pickup radii (px): the coin takes one when its centre comes within this plus its own radius. */
 export const INK_SILVER_R = 6;
 export const INK_SHAMROCK_R = 9;
@@ -1970,7 +2010,8 @@ function steadyReference(lvl: InkLevel, ink: number, ownOnly = false, gentle = f
  * point farthest from the reference route, then INK_SILVER_PER_LEVEL silver coins spread along the rest; all off
  * the reference route, clear of the star, the birds, the clouds, the HUD and each other. Null if they do not fit.
  */
-function pickupSpots(lvl: InkLevel, path: readonly Pt[], star: Pt, route: readonly (readonly [number, number])[], wantShamrock: boolean): { silver: Pt[]; shamrock?: Pt } | null {
+function pickupSpots(lvl: InkLevel, path: readonly Pt[], star: Pt, route: readonly (readonly [number, number])[], wantShamrock: boolean, spec: InkFeatureSpec = INK_SPEC_10): { silver: Pt[]; shamrock?: Pt } | null {
+  if (spec.spread) return spreadSpots(lvl, path, star, route, wantShamrock, spec);
   const cands: Pt[] = [];
   for (let i = 4; i < path.length; i += 2) {
     const x = Math.trunc(path[i]!.x / FP);
@@ -2020,6 +2061,65 @@ function pickupSpots(lvl: InkLevel, path: readonly Pt[], star: Pt, route: readon
   return shamrock ? { silver, shamrock } : { silver };
 }
 
+/**
+ * inkRev 11's pickup places: the same candidates as inkRev 10 but at least INK_V11_PICKUP_OFF_ROUTE from the route;
+ * the shamrock (when asked) the farthest from the route and the star, at least INK_V11_SHAMROCK_GAP from the star;
+ * then each silver coin the candidate farthest from the route and from every pickup already placed (the star
+ * included), at least INK_V11_PICKUP_GAP from each. Null if they do not fit.
+ */
+function spreadSpots(lvl: InkLevel, path: readonly Pt[], star: Pt, route: readonly (readonly [number, number])[], wantShamrock: boolean, spec: InkFeatureSpec): { silver: Pt[]; shamrock?: Pt } | null {
+  const off2 = INK_V11_PICKUP_OFF_ROUTE * INK_V11_PICKUP_OFF_ROUTE;
+  const cands: { p: Pt; route2: number }[] = [];
+  for (let i = 4; i < path.length; i += 2) {
+    const x = Math.trunc(path[i]!.x / FP);
+    const y = Math.trunc(path[i]!.y / FP);
+    if (y < 46 || y > lvl.bucketY - 30 || x < 12 || x > INK_WORLD_W - 12) continue;
+    if (lvl.blocks.some((b) => blockDistance2(b, x, y) < (INK_SHAMROCK_R + 3) ** 2)) continue;
+    if (lvl.clouds?.some((cl) => cloudDistance2(cl, x, y) < (INK_CLOUD_R + INK_SHAMROCK_R + 3) ** 2)) continue;
+    const route2 = nearestRoute2(route, x, y);
+    if (route2 < off2) continue;
+    cands.push({ p: { x, y }, route2 });
+  }
+  const d2 = (a: Pt, b: Pt) => (a.x - b.x) ** 2 + (a.y - b.y) ** 2;
+  const placed: Pt[] = [star];
+  const pick = (gap: number): Pt | null => {
+    let best: Pt | null = null;
+    let bestD = -1;
+    for (const c of cands) {
+      let d = c.route2;
+      let ok = true;
+      for (const q of placed) {
+        const e = d2(c.p, q);
+        if (e < gap * gap) {
+          ok = false;
+          break;
+        }
+        if (e < d) d = e;
+      }
+      if (ok && d > bestD) {
+        bestD = d;
+        best = c.p;
+      }
+    }
+    return best;
+  };
+  let shamrock: Pt | undefined;
+  if (wantShamrock) {
+    shamrock = pick(INK_V11_SHAMROCK_GAP) ?? undefined;
+    if (!shamrock) return null;
+    placed.push(shamrock);
+  }
+  const silver: Pt[] = [];
+  for (let j = 0; j < spec.silverPerLevel; j++) {
+    const p = pick(INK_V11_PICKUP_GAP);
+    if (!p) return null;
+    silver.push(p);
+    placed.push(p);
+  }
+  silver.sort((a, b) => a.y - b.y || a.x - b.x);
+  return shamrock ? { silver, shamrock } : { silver };
+}
+
 type Bonus = { ref: number[][]; t0: number; star: Pt; path: Pt[] };
 
 /**
@@ -2027,7 +2127,7 @@ type Bonus = { ref: number[][]; t0: number; star: Pt; path: Pt[] };
  * pot (seeded order), its star at the point of its path farthest from the reference route; on a wind level the path
  * must ride the wind for WIND_RIDE ticks. Kept only when it holds (lineHolds, a steady release on a moving pot).
  */
-function plainBonus(lvl: InkLevel, ink: number, draw: Draw, route: readonly (readonly [number, number])[]): Bonus | null {
+function plainBonus(lvl: InkLevel, ink: number, draw: Draw, route: readonly (readonly [number, number])[], offRoute = INK_STAR_OFF_ROUTE): Bonus | null {
   const still: InkLevel = { ...lvl, slideAmp: 0 };
   const dir = lvl.bucketX > lvl.spoutX ? 1 : -1;
   const sy = SPOUT_Y + 28;
@@ -2043,7 +2143,7 @@ function plainBonus(lvl: InkLevel, ink: number, draw: Draw, route: readonly (rea
     const j = draw(i + 1);
     [candidates[i], candidates[j]] = [candidates[j]!, candidates[i]!];
   }
-  const off2 = INK_STAR_OFF_ROUTE * INK_STAR_OFF_ROUTE;
+  const off2 = offRoute * offRoute;
   let screened = 0;
   let tried = 0;
   const shared = new Map<number, PrefixRun>();
@@ -2068,7 +2168,7 @@ function plainBonus(lvl: InkLevel, ink: number, draw: Draw, route: readonly (rea
       const y = Math.trunc(p.y / FP);
       if (y < SPOUT_Y + 40 || y > lvl.bucketY - 40 || x < 14 || x > INK_WORLD_W - 14) continue;
       const near = nearestRoute2(route, x, y, off2);
-      if (near < off2 + 4 * INK_STAR_OFF_ROUTE) continue;
+      if (near < off2 + 4 * offRoute) continue;
       if (lvl.blocks.some((b) => blockDistance2(b, x, y) < (INK_STAR_R + BALL_R + 4) ** 2)) continue;
       if (near > bestD) {
         bestD = near;
@@ -2275,19 +2375,19 @@ type InkKind = "plain" | "cloud" | "wind";
  * cloud or wind will not fit this layout and `canSwap` allows it (a later level is still plain and takes this one's
  * kind), the level is made plain instead and `swapped` reports it.
  */
-function decorateLevel(lvl: InkLevel, level: number, kind: InkKind, shamrock: boolean, draw: Draw, canSwap = false): { level: InkLevel; swapped: boolean } | null {
-  const made = decorateAs(lvl, level, kind, shamrock, draw);
+function decorateLevel(lvl: InkLevel, level: number, kind: InkKind, shamrock: boolean, draw: Draw, canSwap = false, spec: InkFeatureSpec = INK_SPEC_10): { level: InkLevel; swapped: boolean } | null {
+  const made = decorateAs(lvl, level, kind, shamrock, draw, spec);
   if (made !== "swap") return made ? { level: made, swapped: false } : null;
   if (!canSwap) return null;
-  const plain = decorateAs(lvl, level, "plain", shamrock, draw);
+  const plain = decorateAs(lvl, level, "plain", shamrock, draw, spec);
   return plain && plain !== "swap" ? { level: plain, swapped: true } : null;
 }
 
 /** decorateLevel's one try: the level, null (its reference or bonus line will not hold), or "swap" (the cloud or wind will not fit). */
-function decorateAs(lvl: InkLevel, level: number, kind: InkKind, shamrock: boolean, draw: Draw): InkLevel | null | "swap" {
+function decorateAs(lvl: InkLevel, level: number, kind: InkKind, shamrock: boolean, draw: Draw, spec: InkFeatureSpec = INK_SPEC_10): InkLevel | null | "swap" {
   const ink = inkBudgetFor(level, INK_REV_EXPAND);
   const finish = (L: InkLevel, b: Bonus): InkLevel | null => {
-    const spots = pickupSpots(L, b.path, b.star, routeOf(L, ink), shamrock);
+    const spots = pickupSpots(L, b.path, b.star, routeOf(L, ink), shamrock, spec);
     if (!spots) return null;
     const done: InkLevel = { ...L, star: b.star, starRef: b.ref, starT0: b.t0, silver: spots.silver, ...(spots.shamrock ? { shamrock: spots.shamrock } : {}) };
     // No needle levels: the finished level passes ink-x200-check's own proof (the reference still holding with the
@@ -2303,7 +2403,7 @@ function decorateAs(lvl: InkLevel, level: number, kind: InkKind, shamrock: boole
     return c ? finish(c.level, c.bonus) ?? "swap" : "swap";
   }
   const route = routeOf(L, ink);
-  const b = plainBonus(L, ink, draw, route);
+  const b = plainBonus(L, ink, draw, route, spec.spread ? INK_V11_STAR_OFF_ROUTE : INK_STAR_OFF_ROUTE);
   if (!b) return null;
   if (kind === "plain") return finish(L, b);
   // A wind level: the wind blows over part of the bonus line's flight; the reference line must still hold in it,
@@ -2347,8 +2447,11 @@ function windOn(lvl: InkLevel, path: readonly Pt[], draw: Draw): InkWind | null 
   return { ...wind, ax: (draw(3) === 0 ? -toward : toward) * mag };
 }
 
-/** inkRev 10: the tall levels, every one of 1–8 carrying its features (the kinds drawn from their own seeded stream). */
-function buildLevelsRev10(seed: number): { list: InkLevel[]; rng: number } {
+/**
+ * inkRev 10 and 11: the tall levels, every one of 1–8 carrying its features (the kinds drawn from their own seeded
+ * stream). inkRev 11 draws the same stream with no wind kinds, so its cloud levels are inkRev 10's cloud levels.
+ */
+function buildLevelsRev10(seed: number, spec: InkFeatureSpec = INK_SPEC_10): { list: InkLevel[]; rng: number } {
   let frng = (seed ^ 0x9c10d5) | 0;
   const draw: Draw = (bound) => {
     const r = rngBelow(frng, Math.max(1, bound));
@@ -2361,13 +2464,13 @@ function buildLevelsRev10(seed: number): { list: InkLevel[]; rng: number } {
     [order[i], order[j]] = [order[j]!, order[i]!];
   }
   const kinds: InkKind[] = order.map(() => "plain");
-  for (const [k, level] of order.entries()) kinds[level] = k < INK_CLOUD_LEVELS ? "cloud" : k < INK_CLOUD_LEVELS + INK_WIND_LEVELS ? "wind" : "plain";
+  for (const [k, level] of order.entries()) kinds[level] = k < INK_CLOUD_LEVELS ? "cloud" : k < INK_CLOUD_LEVELS + spec.windLevels ? "wind" : "plain";
   const shamrockLevel = draw(INK_BONUS_LEVELS);
-  return buildLevelsRev3(seed, INK_TALL_DROP, INK_REV_EXPAND, (lvl, level) => {
+  return buildLevelsRev3(seed, INK_TALL_DROP, spec.rev, (lvl, level) => {
     if (level < INK_BONUS_LEVELS) {
       // A cloud or wind that will not fit this layout passes to the next level still plain (the counts never change).
       const later = kinds.findIndex((k, j) => j > level && k === "plain");
-      const r = decorateLevel(lvl, level, kinds[level]!, level === shamrockLevel, draw, later >= 0);
+      const r = decorateLevel(lvl, level, kinds[level]!, level === shamrockLevel, draw, later >= 0, spec);
       if (r?.swapped) {
         kinds[later] = kinds[level]!;
         kinds[level] = "plain";
@@ -2409,10 +2512,10 @@ export interface InkX200LevelProof {
   kind: "plain" | "cloud" | "wind" | "live";
 }
 
-export function inkX200Proof(seed: number): InkX200LevelProof[] {
-  const { list } = buildLevels(seed, INK_REV_EXPAND);
+export function inkX200Proof(seed: number, rev = INK_REV_EXPAND): InkX200LevelProof[] {
+  const { list } = buildLevels(seed, rev);
   return list.map((lvl, i) => {
-    const live = inkIsLive(i, INK_REV_EXPAND);
+    const live = inkIsLive(i, rev);
     const unaided = landsUnaided(lvl);
     if (live) {
       const hand = lvl.liveHand?.[0];
@@ -2452,6 +2555,25 @@ function staticProof(lvl: InkLevel, i: number): InkX200LevelProof {
   };
 }
 
+/**
+ * Test hook (ink-v11-check): how spread out a level 1-8's pickups are, px. `route` is the nearest any silver coin or the
+ * shamrock comes to the easy route, `star` the star's distance from it, `pair` the nearest two of the star, silver
+ * coins and shamrock come to each other, and `shamrockStar` the shamrock's distance from the star (null without one).
+ */
+export function inkPickupSpread(lvl: InkLevel, level: number): { route: number; star: number; pair: number; shamrockStar: number | null } {
+  const route = routeOf(lvl, inkBudgetFor(level, INK_REV_EXPAND));
+  const pickups = [...(lvl.silver ?? []), ...(lvl.shamrock ? [lvl.shamrock] : [])];
+  const all = [...(lvl.star ? [lvl.star] : []), ...pickups];
+  let pair = Infinity;
+  for (let i = 0; i < all.length; i++) for (let j = i + 1; j < all.length; j++) pair = Math.min(pair, Math.hypot(all[i]!.x - all[j]!.x, all[i]!.y - all[j]!.y));
+  return {
+    route: Math.min(...pickups.map((p) => Math.sqrt(nearestRoute2(route, p.x, p.y)))),
+    star: lvl.star ? Math.sqrt(nearestRoute2(route, lvl.star.x, lvl.star.y)) : 0,
+    pair,
+    shamrockStar: lvl.shamrock && lvl.star ? Math.hypot(lvl.shamrock.x - lvl.star.x, lvl.shamrock.y - lvl.star.y) : null,
+  };
+}
+
 /** A level 1-8 proof with a line a finger can draw: the reference and the bonus line hold, every pickup on the bonus line. */
 export function staticDrawable(l: InkX200LevelProof): boolean {
   return l.ref && !l.unaided && l.bonus === true && l.silverOnLine === l.silver && l.shamrock !== false;
@@ -2481,6 +2603,7 @@ export function inkStarCheck(seed: number): { stars: number; proved: number; off
 
 function buildLevels(seed: number, rev?: number): { list: InkLevel[]; rng: number } {
   if (rev === INK_REV_EXPAND) return buildLevelsRev10(seed);
+  if (rev === INK_REV_SPREAD) return buildLevelsRev10(seed, INK_SPEC_11);
   if (rev === INK_REV4) return buildLevelsRev4(seed);
   if (rev === INK_REV3) return buildLevelsRev3(seed);
   const birds = rev === INK_REV;
@@ -2735,7 +2858,7 @@ function initWith(seed: number, rev?: number): InkState {
     liveLifts: 0,
     preInkUsed: 0,
     ...(rev === INK_REV4 ? { stars: 0, starGot: 0 } : {}),
-    ...(rev === INK_REV_EXPAND ? { stars: 0, starGot: 0, worldH: INK_TALL_H, tricks: 0, cloudHit: 0, cloudTick: -100, cloudIdx: -1, silver: 0, silverGot: 0, shamrocks: 0, shamrockGot: 0 } : {}),
+    ...(inkX(rev) ? { stars: 0, starGot: 0, worldH: INK_TALL_H, tricks: 0, cloudHit: 0, cloudTick: -100, cloudIdx: -1, silver: 0, silverGot: 0, shamrocks: 0, shamrockGot: 0 } : {}),
   };
 }
 
@@ -2758,7 +2881,7 @@ function resetLevel(s: InkState): void {
   s.liveLifts = 0;
   s.preInkUsed = 0;
   if (s.rev === INK_REV4) s.starGot = 0;
-  if (s.rev === INK_REV_EXPAND) {
+  if (inkX(s.rev)) {
     s.starGot = 0;
     s.cloudHit = 0;
     s.silverGot = 0;
@@ -2877,7 +3000,7 @@ function step(state: InkState, input: ArcadeInputEvent | null): InkState {
     let result =
       input?.k === INK_INPUT_DROP_AGAIN
         ? 2
-        : moveBall(s.ball, s.segs, s.list[s.level]!, tick, gravity, s.rev === INK_REV_EXPAND ? bounce : undefined);
+        : moveBall(s.ball, s.segs, s.list[s.level]!, tick, gravity, inkX(s.rev) ? bounce : undefined);
     // inkRev 10: a cloud bounce marks this drop (a pot after it is a trick shot) and the art's squash.
     if (bounce.cloud >= 0) {
       s.cloudHit = 1;
@@ -2893,7 +3016,7 @@ function step(state: InkState, input: ArcadeInputEvent | null): InkState {
       if (dx * dx + dy * dy <= (INK_STAR_R + BALL_R) * (INK_STAR_R + BALL_R)) s.starGot = 1;
     }
     // inkRev 10: silver coins and the shamrock, picked up the same way (they count once the coin is potted).
-    if (s.rev === INK_REV_EXPAND) {
+    if (inkX(s.rev)) {
       const here = s.list[s.level]!;
       const bx = s.ball.x / FP;
       const by = s.ball.y / FP;
@@ -2918,8 +3041,8 @@ function step(state: InkState, input: ArcadeInputEvent | null): InkState {
     if (result === 1) {
       s.levels += 1;
       if (starRev(s.rev) && s.starGot) s.stars = (s.stars ?? 0) + 1;
-      if (s.rev === INK_REV_EXPAND && s.cloudHit) s.tricks = (s.tricks ?? 0) + 1;
-      if (s.rev === INK_REV_EXPAND) {
+      if (inkX(s.rev) && s.cloudHit) s.tricks = (s.tricks ?? 0) + 1;
+      if (inkX(s.rev)) {
         let got = s.silverGot ?? 0;
         while (got) {
           s.silver = (s.silver ?? 0) + (got & 1);
@@ -2939,7 +3062,7 @@ function step(state: InkState, input: ArcadeInputEvent | null): InkState {
       resetLevel(s);
     } else if (result === 2) {
       // inkRev 10: level 1 is a warm-up, its misses cost no fail (a player who keeps trying always gets a start).
-      if (!(s.rev === INK_REV_EXPAND && s.level < INK_WARMUP_LEVELS)) s.fails += 1;
+      if (!(inkX(s.rev) && s.level < INK_WARMUP_LEVELS)) s.fails += 1;
       s.flashKind = 2;
       s.flashTick = tick;
       s.failedBall = { x: s.ball.x, y: s.ball.y };
@@ -3042,7 +3165,7 @@ export function inkCheckpoint(state: InkState): InkCheckpoint {
   // Rev 4 folds its own counters in; older states never have them, so their sums are unchanged.
   if (state.rev === INK_REV4) values.push(state.stars ?? 0, state.starGot ?? 0);
   // inkRev 10 folds its own fields in the same place; no older state has rev 10, so their sums are unchanged.
-  if (state.rev === INK_REV_EXPAND) values.push(state.stars ?? 0, state.starGot ?? 0, state.tricks ?? 0, state.cloudHit ?? 0, state.cloudTick ?? 0, state.cloudIdx ?? 0, state.worldH ?? 0, state.silver ?? 0, state.silverGot ?? 0, state.shamrocks ?? 0, state.shamrockGot ?? 0);
+  if (inkX(state.rev)) values.push(state.stars ?? 0, state.starGot ?? 0, state.tricks ?? 0, state.cloudHit ?? 0, state.cloudTick ?? 0, state.cloudIdx ?? 0, state.worldH ?? 0, state.silver ?? 0, state.silverGot ?? 0, state.shamrocks ?? 0, state.shamrockGot ?? 0);
   // inkRev 6 (Tuning C) adds its marker before the segments only when present, so older sums are unchanged.
   if (state.tunec) values.push(state.tunec);
   for (const seg of state.segs) values.push(seg.x0, seg.y0, seg.x1, seg.y1);
@@ -3225,6 +3348,7 @@ export const inkBridgeBirdsGame: ArcadeGame<InkState, ArcadeInputEvent | null> =
 export const inkBridgeInkRev3Game: ArcadeGame<InkState, ArcadeInputEvent | null> = { ...inkBridgeGame, init: (seed) => initWith(seed, INK_REV3) };
 export const inkBridgeInkRev4Game: ArcadeGame<InkState, ArcadeInputEvent | null> = { ...inkBridgeGame, init: (seed) => initWith(seed, INK_REV4) };
 export function inkBridgeGameFor(rev?: number | null): ArcadeGame<InkState, ArcadeInputEvent | null> {
+  if (rev === INK_REV_SPREAD) return inkBridgeSpreadGame;
   if (rev === INK_REV_EXPAND) return inkBridgeExpandGame;
   if (rev === INK_REV_STRICT) return inkBridgeStrictGame;
   if (rev === INK_REV_TARGET) return inkBridgeTargetGame;
@@ -3240,14 +3364,14 @@ export function inkBridgeGameFor(rev?: number | null): ArcadeGame<InkState, Arca
 /** Levels count 10 and gold stars 2; 140 at all ten levels and every star; finishing adds up to 10 for speed. */
 export const INK_BAND_CURVE = bandCurve([0, 10, 20, 40, 60, 80, 90, 108], [0, 35, 55, 85, 110, 128, 138, 140]);
 export function inkBridgeBandParts(state: InkState): BandParts {
-  if (state.rev === INK_REV_EXPAND) return inkExpandBandParts(state);
+  if (inkX(state.rev)) return inkExpandBandParts(state);
   const units = 10 * clampInt(state.levels, 0, INK_LEVELS) + INK_STAR_POINTS * clampInt(state.stars ?? 0, 0, INK_STAR_LEVELS);
   const finished = state.levels >= INK_LEVELS;
   return { units, points: bandPoints(bandCurveOf(state, state.tunec ? INK_V6_BAND_CURVE : INK_BAND_CURVE), units), bonus: finished ? speedBonusCurve(BAND_FINISH_BONUS, INK_RUN_TICKS - clampInt(state.endedTick || state.tick, 0, INK_RUN_TICKS), INK_RUN_TICKS) : 0, penalty: 0, finished, text: `${state.levels} / ${INK_LEVELS} levels · ${state.stars ?? 0} stars`, bonusText: "All ten levels" };
 }
 
 function scoreBand(state: InkState): number {
-  if (state.rev === INK_REV_EXPAND) return bandTotal(inkBridgeBandParts(state), Boolean(state.acted), INK_EXPAND_MAX);
+  if (inkX(state.rev)) return bandTotal(inkBridgeBandParts(state), Boolean(state.acted), INK_EXPAND_MAX);
   return bandTotal(inkBridgeBandParts(state), Boolean(state.acted));
 }
 
@@ -3329,9 +3453,18 @@ export function inkFeatureRaw(state: Pick<InkState, "stars" | "tricks" | "silver
   );
 }
 
-/** inkRev 10: the feature bonus the score adds (INK_V10_SKILL_PAY of the raw points, at most INK_FEATURE_MAX). */
-export function inkFeaturePaid(raw: number): number {
-  return Math.min(INK_FEATURE_MAX, bandPoints(INK_V10_SKILL_PAY, raw));
+/** inkRev 11: the most the features' raw points can come to (two silver coins a level). */
+export const INK_V11_FEATURE_RAW_MAX =
+  INK_BONUS_LEVELS * INK_RAW_STAR + INK_CLOUD_LEVELS * INK_RAW_TRICK + INK_BONUS_LEVELS * INK_V11_SILVER_PER_LEVEL * INK_RAW_SILVER + INK_RAW_SHAMROCK;
+/**
+ * inkRev 11's skill pay: INK_V10_SKILL_PAY's shape on the smaller raw maximum (16 silver coins, not 24); the full
+ * INK_FEATURE_MAX still needs every star, trick shot, silver coin and the shamrock.
+ */
+export const INK_V11_SKILL_PAY = bandCurve([0, 18, 35, 53, 70, 88, 101, INK_V11_FEATURE_RAW_MAX], [0, 4, 10, 17, 25, 31, 37, INK_FEATURE_MAX]);
+
+/** inkRev 10 / 11: the feature bonus the score adds (the revision's skill pay of the raw points, at most INK_FEATURE_MAX). */
+export function inkFeaturePaid(raw: number, rev?: number | null): number {
+  return Math.min(INK_FEATURE_MAX, bandPoints(rev === INK_REV_SPREAD ? INK_V11_SKILL_PAY : INK_V10_SKILL_PAY, raw));
 }
 
 function inkExpandBandParts(state: InkState): BandParts {
@@ -3340,7 +3473,7 @@ function inkExpandBandParts(state: InkState): BandParts {
   const left = INK_RUN_TICKS - clampInt(state.endedTick || state.tick, 0, INK_RUN_TICKS);
   const speed = finished ? Math.min(BAND_FINISH_BONUS, Math.round((BAND_FINISH_BONUS * left) / INK_V10_SPEED_PAR)) : 0;
   const raw = inkFeatureRaw(state);
-  const paid = inkFeaturePaid(raw);
+  const paid = inkFeaturePaid(raw, state.rev);
   const featureText = `${state.stars ?? 0} stars · ${state.tricks ?? 0} trick shots · ${state.silver ?? 0} silver · ${state.shamrocks ? "shamrock" : "no shamrock"}: ${raw} → ${paid}`;
   return {
     units,
@@ -3358,4 +3491,10 @@ export const inkBridgeExpandGame: ArcadeGame<InkState, ArcadeInputEvent | null> 
   ...inkBridgeGame,
   init: (seed) => ({ ...initWith(seed, INK_REV_EXPAND), band: BAND_STRICT_MARK, acted: 0 }),
   inputRanges: INK_TALL_INPUT_RANGES,
+};
+
+/** inkRev 11 (phone notes, 27 Oct 2026): inkRev 10 with no wind, two silver coins a level and the pickups spread out. */
+export const inkBridgeSpreadGame: ArcadeGame<InkState, ArcadeInputEvent | null> = {
+  ...inkBridgeExpandGame,
+  init: (seed) => ({ ...initWith(seed, INK_REV_SPREAD), band: BAND_STRICT_MARK, acted: 0 }),
 };

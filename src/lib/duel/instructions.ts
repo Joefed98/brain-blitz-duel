@@ -94,7 +94,7 @@ import {
   WAV_X_STREAK_CAP,
   WAV_X_STREAK_STEP,
 } from "@/lib/arcade/wavefront";
-import { INK_CLOUD_LEVELS, INK_FEATURE_MAX, INK_RAW_SHAMROCK, INK_RAW_SILVER, INK_RAW_STAR, INK_RAW_TRICK, INK_SILVER_PER_LEVEL, INK_V10_SKILL_PAY, INK_WIND_LEVELS } from "@/lib/arcade/inkBridge";
+import { INK_CLOUD_LEVELS, INK_FEATURE_MAX, INK_RAW_SHAMROCK, INK_RAW_SILVER, INK_RAW_STAR, INK_RAW_TRICK, INK_V11_SILVER_PER_LEVEL, INK_V11_SKILL_PAY } from "@/lib/arcade/inkBridge";
 import { SNAKE_V9_CAPS, SNAKE_V9_COLS, SNAKE_V9_ROWS } from "@/lib/arcade/snake";
 import { BEAT_V9_CAPS, BEAT_V9_SKILL_PAY } from "@/lib/arcade/beat";
 import {
@@ -1036,13 +1036,12 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Levels 1-4", detail: "Draw lines around the white birds, then tap RELEASE to drop the coin into a still pot.", helpOnly: true },
         { action: "Levels 5-8", detail: "The pot moves! Time your release so the coin rolls into it.", helpOnly: true },
         { action: "Levels 9-10: LIVE", detail: "Draw one line, RELEASE, then keep drawing as the coin falls. Faded strokes commit when you lift your finger; you can't draw through birds or near the coin.", helpOnly: true },
-        { action: "Bonus routes:", detail: `every one of levels 1-8 has an ink star and ${INK_SILVER_PER_LEVEL} silver coins on a harder route than the easy one; one level in the run also has the shamrock. Roll the coin through them and into the pot: they count only once the coin is potted. You never need them to finish a level.`, helpOnly: true },
+        { action: "Bonus routes:", detail: `every one of levels 1-8 has an ink star and ${INK_V11_SILVER_PER_LEVEL} silver coins spread out along a harder route, well away from the easy one; one level in the run also has the shamrock. Roll the coin through them and into the pot: they count only once the coin is potted. You never need them to finish a level.`, helpOnly: true },
         { action: "Bounce clouds:", detail: `${INK_CLOUD_LEVELS} levels have a springy cloud that throws the coin back up. On them the bonus route bounces off it: pot the coin after a bounce for a trick shot.`, helpOnly: true },
-        { action: "Wind:", detail: `${INK_WIND_LEVELS} levels have a wind zone (streaks show which way it blows). A coin in the air inside it is pushed sideways; a coin rolling on a line is not.`, helpOnly: true },
         { action: "Ink is limited", detail: "Each level has a budget, with a larger shared supply for live levels.", helpOnly: true },
         { action: "Three failed drops", detail: "and you're out.", helpOnly: true },
       ],
-      score: liveBandHelp("inkbridge", "Each level counts 10.", { more: "More levels", good: (u) => `counts ${u} – about ${Math.round(u / 10)} levels`, finish: `All ten levels adds up to 10 for speed: the full 10 with at least 45 s left, falling to 0 at the buzzer. Bonuses add up to ${INK_FEATURE_MAX} more: ${INK_RAW_STAR} an ink star, ${INK_RAW_TRICK} a trick shot, ${INK_RAW_SILVER} a silver coin and ${INK_RAW_SHAMROCK} the shamrock. ${skillPayLine(INK_V10_SKILL_PAY)}` }),
+      score: liveBandHelp("inkbridge", "Each level counts 10.", { more: "More levels", good: (u) => `counts ${u} – about ${Math.round(u / 10)} levels`, finish: `All ten levels adds up to 10 for speed: the full 10 with at least 45 s left, falling to 0 at the buzzer. Bonuses add up to ${INK_FEATURE_MAX} more: ${INK_RAW_STAR} an ink star, ${INK_RAW_TRICK} a trick shot, ${INK_RAW_SILVER} a silver coin and ${INK_RAW_SHAMROCK} the shamrock. ${skillPayLine(INK_V11_SKILL_PAY)}` }),
     },
 
     burst: {
