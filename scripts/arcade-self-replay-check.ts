@@ -124,6 +124,7 @@ import { HOVER_REV_BAND, HOVER_REV_EXPAND, HOVER_REV_TALL, HOVER_REV_TUNEC } fro
 import { JUNC_REV_BAND } from "@/lib/arcade/junction";
 import { BRK_REV_BAND, BRK_REV_TALL, BRK_REV_TUNED, BRK_REV_TUNEF } from "@/lib/arcade/breaker";
 import { pinballGameFor, pinCheckpoint, PIN_REV } from "@/lib/arcade/pinball";
+import { pin4Checkpoint, pinball5Game, PIN_REV_LONG } from "@/lib/arcade/pinball4";
 import { encodePinballRun, replayPinballRun } from "@/lib/duel/pinball";
 import { TILT_REV_BAND, TILT_REV_EXPAND, TILT_REV_TUNEC } from "@/lib/arcade/tilt";
 import { ORBIT_REV_BAND, ORBIT_REV_SWEPT, ORBIT_REV_TALL, ORBIT_REV_TUNED, ORBIT_REV_XP } from "@/lib/arcade/orbit";
@@ -656,7 +657,8 @@ const GAMES: Game[] = [
   { key: "tilt/expand", game: tiltGameFor(TILT_REV_EXPAND), checkpoint: tiltCheckpoint, mode: "events", rate: 500, encode: encodeTiltRun, replay: (seed: number, raw: string) => replayTiltRun(seed, raw, TILT_REV_EXPAND) },
   // x200 (26 Oct 2026, docs/expansions/x200-cross.md), appended so every earlier entry keeps its index: Jaywalk crossRev 9,
   // the taller world with the island, coins, buses, motorbikes and the streak.
-  { key: "cross/expand", game: crossGameFor(CROSS_REV_EXPAND), checkpoint: crossCheckpoint, mode: "events", rate: 60, encode: encodeCrossRun, replay: (seed: number, raw: string) => replayCrossRun(seed, raw, CROSS_REV_EXPAND) },
+  { key: "cross/expand", game: crossGameFor(CROSS_REV_EXPAND), checkpoint: crossCheckpoint, mode: "events", rate: 60, encode: encodeCrossRun, replay: (seed: number, raw: string) => replayCrossRun(seed, raw, CROSS_REV_EXPAND) },  // Pinball pinRev 5 (27 Oct 2026, Joe's phone notes), appended so every earlier entry keeps its index: the taller table for 90 s.
+  { key: "pinball/90", game: pinball5Game, checkpoint: pin4Checkpoint, mode: "events", rate: 120, encode: encodePinballRun, replay: (seed: number, raw: string) => replayPinballRun(seed, raw, PIN_REV_LONG) },
 ];
 
 /** A random candidate event, often outside the declared range (a finger off the edge). */

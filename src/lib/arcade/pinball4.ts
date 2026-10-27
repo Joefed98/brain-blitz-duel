@@ -65,8 +65,10 @@ import {
   PIN_PTS_SPIN_LIT,
   PIN_PTS_TARGET,
   PIN_REV_EXPAND,
+  PIN_REV_LONG,
   PIN_RIGHT,
   PIN_RUN_TICKS,
+  PIN_V5_RUN_TICKS,
   PIN_SLING,
   PIN_SLING_KICK,
   PIN_TARGET,
@@ -87,7 +89,7 @@ import {
   type Seg,
 } from "./pinball";
 
-export { PIN_REV_EXPAND };
+export { PIN_REV_EXPAND, PIN_REV_LONG };
 
 /* ============================== Constants ============================== */
 
@@ -350,6 +352,8 @@ export interface P4Ball {
 
 export interface Pin4State extends PinState, BandFields {
   rev4: number;
+  /** pinRev 5 (1): the 90-second run (absent on pinRev 4). */
+  rev5?: number;
   seed: number;
   /** The main ball's ramp ride (as P4Ball). */
   ride: number;
@@ -461,8 +465,13 @@ function init(seed: number): Pin4State {
   };
 }
 
+/** The run's length in ticks: 90 s on pinRev 5, 60 s on pinRev 4. */
+export function p4RunTicks(state: Pin4State): number {
+  return state.rev5 ? PIN_V5_RUN_TICKS : PIN_RUN_TICKS;
+}
+
 export function p4IsOver(state: Pin4State): boolean {
-  return state.endedTick > 0 || state.tick >= PIN_RUN_TICKS;
+  return state.endedTick > 0 || state.tick >= p4RunTicks(state);
 }
 
 /** Balls in play now (the main ball if live, plus multiball extras). */
@@ -975,7 +984,7 @@ function step(state: Pin4State, input: ArcadeInputEvent | null): Pin4State {
       if (next.lost >= PIN_BALLS) next.endedTick = tick;
     }
   }
-  if (tick >= PIN_RUN_TICKS && next.endedTick === 0) next.endedTick = tick;
+  if (tick >= p4RunTicks(next) && next.endedTick === 0) next.endedTick = tick;
   return next;
 }
 
@@ -1118,6 +1127,8 @@ export function pin4Checkpoint(state: Pin4State) {
     state.multiballs, state.mbUntil, state.jackpots, state.lockLit, state.locksMade, state.railX, state.extras.length,
     ...state.extras.flatMap((b) => [b.x, b.y, b.vx, b.vy, b.ride, b.rideT]),
     ...state.releases,
+    // pinRev 5 folds its flag in last, so pinRev 4's checksum is unchanged.
+    ...(state.rev5 ? [state.rev5] : []),
   ];
   for (const value of values) {
     checksum ^= value | 0;
@@ -1164,13 +1175,44 @@ export const pinball4Game: ArcadeGame<Pin4State, ArcadeInputEvent | null> = {
   inputRanges: PIN_INPUT_RANGES,
 };
 
+/* ========================= The 90-second table ========================= */
+
+/**
+ * pinRev 5's curve over table points: pinRev 4's shape with the units stretched for the extra 30 s (the
+ * skill-band bots make about 1.9 times the table points in 90 s), fitted with scripts/pinball-90-bands.ts on
+ * room seeds 0–59 (docs/phone-notes-oct-2026/pinball.md) so every level's median lands where it did on
+ * pinRev 4 (weak to elite within a few points) and only a near-flawless 90 s reaches 200.
+ */
+export const PIN_V5_BAND_CURVE = bandCurve([0, 27000, 47500, 80000, 104000, 140000, 266000], [0, 69, 98, 122, 168, 182, 200]);
+
+export function pinball5BandParts(state: Pin4State): BandParts {
+  const units = Math.max(0, state.points);
+  return {
+    units,
+    points: bandPoints(PIN_V5_BAND_CURVE, units),
+    bonus: 0,
+    penalty: 0,
+    finished: false,
+    text: `${units.toLocaleString("en-GB")} table points`,
+  };
+}
+
+/** The pinRev 5 game: pinRev 4's table and play for 90 s, scored to 200 on PIN_V5_BAND_CURVE. */
+export const pinball5Game: ArcadeGame<Pin4State, ArcadeInputEvent | null> = {
+  ...pinball4Game,
+  runTicks: PIN_V5_RUN_TICKS,
+  init: (seed) => ({ ...bandInit(init(seed)), band: 3, rev5: 1 }),
+  score: (state) => bandTotal(pinball5BandParts(state), Boolean(state.acted), PIN_V4_MAX),
+};
+
 /** Max speed note for the reveal and checks: the cap is pinRev 1's. */
 export const P4_MAX_SPEED = PIN_MAX_SPEED;
 
 /* ============================ Any revision ============================ */
 
-/** The game for any stored pinRev: pinRev 4 this table, anything else pinball.ts's (pinballGameFor). */
+/** The game for any stored pinRev: pinRev 5 the 90-second table, pinRev 4 this table, anything else pinball.ts's (pinballGameFor). */
 export function pinballGameForAny(rev?: number | null): ArcadeGame<PinState, ArcadeInputEvent | null> {
+  if (rev === PIN_REV_LONG) return pinball5Game as unknown as ArcadeGame<PinState, ArcadeInputEvent | null>;
   return rev === PIN_REV_EXPAND ? (pinball4Game as unknown as ArcadeGame<PinState, ArcadeInputEvent | null>) : pinballGameFor(rev);
 }
 

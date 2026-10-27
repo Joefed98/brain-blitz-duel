@@ -33,7 +33,7 @@ import { SLICE_REV_STRICT, SLICE_REV_EXPAND, SLICE_V9_BAND_CURVE } from "./slice
 import { BURST_REV_CLEAN, BURST_REV_STRICT, BURST_V8_BAND_CURVE } from "./burst";
 import { SWING_REV_EXPAND, SWING_REV_STRICT, SWING_V13_BAND_CURVE } from "./swing";
 import { BULLSEYE_REV_EXPAND, BULLSEYE_REV_STRICT, BULLSEYE_V8_BAND_CURVE } from "./bullseye";
-import { PIN_REV_EXPAND, PIN_V4_BAND_CURVE } from "./pinball4";
+import { PIN_REV_LONG, PIN_V5_BAND_CURVE } from "./pinball4";
 import { PIN_REV_STRICT } from "./pinball";
 
 export interface LiveBand {
@@ -73,7 +73,7 @@ export const LIVE_BANDS = {
   // swingRev 13 (the 200 expansion): the base curve; the features pay up to 50 more on a rising scale (the help says so).
   swing: { field: "swingRev", rev: SWING_REV_EXPAND, curve: SWING_V13_BAND_CURVE, strictRev: SWING_REV_STRICT },
   bullseye: { field: "bullRev", rev: BULLSEYE_REV_EXPAND, curve: BULLSEYE_V8_BAND_CURVE, strictRev: BULLSEYE_REV_STRICT },
-  pinball: { field: "pinRev", rev: PIN_REV_EXPAND, curve: PIN_V4_BAND_CURVE, strictRev: PIN_REV_STRICT },
+  pinball: { field: "pinRev", rev: PIN_REV_LONG, curve: PIN_V5_BAND_CURVE, strictRev: PIN_REV_STRICT },
 } as const satisfies Record<string, LiveBand>;
 
 export type LiveBandGame = keyof typeof LIVE_BANDS;

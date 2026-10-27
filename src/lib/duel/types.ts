@@ -1892,14 +1892,14 @@ export interface BreakerPuzzleData {
 
 /* ================================ Pinball ================================ */
 
-/** A fixed 60-second, three-ball run; the round clock adds three of slack (63 s). */
+/** pinRev 1–4's fixed 60-second, three-ball run; the round clock adds three of slack (63 s). pinRev 5 runs 90 s on a 93 s clock (src/puzzles/pinball.tsx). */
 export const PINBALL_TIME_MS = 63_000;
 
 export interface PinballPuzzleData {
   type: "pinball";
   /** Stored like every arcade seed; the table itself is fixed, so it plays the same for everyone whatever the seed. */
   seed: number;
-  /** Rules revision (1 = the first table, scored on the Oct 2026 band shape). */
+  /** Rules revision (1 = the first table, scored on the Oct 2026 band shape; 4 the taller table; 5 it for 90 s). */
   pinRev?: number;
 }
 

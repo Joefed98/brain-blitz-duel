@@ -22,7 +22,7 @@ import { BUB_REV_REEF } from "@/lib/arcade/bubble";
 import { MATCHUP_REV_GOALS } from "@/lib/arcade/matchup";
 import { TEN_DROP_DEPTH_REV } from "@/lib/arcade/tenDrop";
 import { SKYLINE_REV_EXPAND } from "@/lib/arcade/skyline";
-import { PIN_REV_EXPAND } from "@/lib/arcade/pinball";
+import { pinIsExpanded } from "@/lib/arcade/pinball";
 import { chainDemoCompatible } from "./chain";
 import { pairUsesDepth } from "./depth/matchmaker";
 import { STRIKEOUT_REV4 } from "./strikeout";
@@ -175,8 +175,9 @@ export const getIntroDemoFn = createServerFn({ method: "GET" })
     // next-block preview, milestones). An older demo would show the old view without them, so the intro shows the
     // still until a demo is recorded on skylineRev 7.
     if (data.type === "skyline" && demo?.puzzle.type === "skyline" && demo.puzzle.skylineRev !== SKYLINE_REV_EXPAND) return null;
-    // Pinball's pinRev 4 (the taller table, its ramps, lanes, lock and plunger): only a pinRev 4 demo plays.
-    if (data.type === "pinball" && demo?.puzzle.type === "pinball" && demo.puzzle.pinRev !== PIN_REV_EXPAND) return null;
+    // Pinball's pinRev 4 (the taller table, its ramps, lanes, lock and plunger): only a demo on that table plays
+    // (pinRev 4 or 5: pinRev 5 plays the same table tick for tick, only for 90 s instead of 60).
+    if (data.type === "pinball" && demo?.puzzle.type === "pinball" && !pinIsExpanded(demo.puzzle.pinRev)) return null;
     // World expansion E5 (25 Oct 2026, docs/expansions/e5.md): Swish binRev 7 and Slice sliceRev 9
     // play in larger worlds with new features; an older demo would show the old world (and its touches would land
     // elsewhere), so each shows its still until a demo is recorded on its new revision.

@@ -45,7 +45,7 @@ import { decodeHoverRun, replayHoverRun } from "./hover";
 import { decodeSwerveRun, replaySwerveRun } from "./swerve";
 import { decodeSkylineRun, replaySkylineRun } from "./skyline";
 import { SKYLINE_REV_EXPAND } from "@/lib/arcade/skyline";
-import { PIN_REV_EXPAND } from "@/lib/arcade/pinball";
+import { pinIsExpanded } from "@/lib/arcade/pinball";
 import { decodeSnakeRun, replaySnakeRun } from "./snake";
 import { decodeBreakerRun, replayBreakerRun } from "./breaker";
 import { brkSkillPaid, brkWallSize } from "@/lib/arcade/breaker";
@@ -1378,7 +1378,7 @@ function gradeUnderRev(
         spins: run.spins,
         laneSets: run.laneSets,
         // pinRev 4 (the expansion): ramps, the best combo, multiballs, jackpots and skill shots.
-        ...(puzzle.pinRev === PIN_REV_EXPAND ? { ramps: run.ramps, bestCombo: run.bestCombo, multiballs: run.multiballs, jackpots: run.jackpots, skills: run.skills } : {}),
+        ...(pinIsExpanded(puzzle.pinRev) ? { ramps: run.ramps, bestCombo: run.bestCombo, multiballs: run.multiballs, jackpots: run.jackpots, skills: run.skills } : {}),
         lost: run.lost,
         ballsLeft: run.ballsLeft,
         endedSeconds: run.endedSeconds,

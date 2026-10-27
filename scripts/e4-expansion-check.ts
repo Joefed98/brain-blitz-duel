@@ -54,7 +54,7 @@ import {
   SKYLINE_WORLD_RIGHT,
   type SkylineState,
 } from "../src/lib/arcade/skyline";
-import { pinballGame, pinballGameFor, PIN_BALLS, PIN_INPUT_FLIPPERS, PIN_REV_EXPAND, PIN_REV_STRICT } from "../src/lib/arcade/pinball";
+import { pinballGame, pinballGameFor, PIN_BALLS, PIN_INPUT_FLIPPERS, PIN_REV_EXPAND, PIN_REV_LONG, PIN_REV_STRICT } from "../src/lib/arcade/pinball";
 import {
   p4PlungeLane,
   p4PlungeX,
@@ -79,6 +79,7 @@ import {
   P4_RIDE_LOCK,
   P4_WORLD_H,
   PIN_V4_BAND_CURVE,
+  PIN_V5_BAND_CURVE,
   type Pin4State,
 } from "../src/lib/arcade/pinball4";
 import { GAME_BY_TYPE } from "./arcade-skill-bands/games";
@@ -175,11 +176,12 @@ section("Rooms deal the expansions; recorded runs replay; 200 is the top");
   const sky = generatePuzzle("skyline") as any;
   const pin = generatePuzzle("pinball") as any;
   ok(sky.skylineRev === SKYLINE_REV_EXPAND && SKYLINE_REV_EXPAND === 7, `rooms deal skylineRev 7 (${sky.skylineRev})`);
-  ok(pin.pinRev === PIN_REV_EXPAND && PIN_REV_EXPAND === 4, `rooms deal pinRev 4 (${pin.pinRev})`);
+  // Since 27 Oct 2026 rooms deal pinRev 5: this table for 90 s (scripts/pinball-90-check.ts proves it plays as pinRev 4).
+  ok(pin.pinRev === PIN_REV_LONG && PIN_REV_EXPAND === 4 && PIN_REV_LONG === 5, `rooms deal pinRev 5, pinRev 4's table for 90 s (${pin.pinRev})`);
   ok(roundMaxFor("skyline") === 200 && roundMaxFor("pinball") === 200, "both games' round maximum is 200");
   ok(LIVE_BANDS.skyline.rev === SKYLINE_REV_EXPAND && LIVE_BANDS.skyline.curve === SKYLINE_V7_BAND_CURVE, "the High Rise help reads skylineRev 7's curve");
-  ok(LIVE_BANDS.pinball.rev === PIN_REV_EXPAND && LIVE_BANDS.pinball.curve === PIN_V4_BAND_CURVE, "the Pinball help reads pinRev 4's curve");
-  for (const curve of [SKYLINE_V7_BAND_CURVE, PIN_V4_BAND_CURVE]) {
+  ok(LIVE_BANDS.pinball.rev === PIN_REV_LONG && LIVE_BANDS.pinball.curve === PIN_V5_BAND_CURVE, "the Pinball help reads the dealt pinRev 5's curve");
+  for (const curve of [SKYLINE_V7_BAND_CURVE, PIN_V4_BAND_CURVE, PIN_V5_BAND_CURVE]) {
     ok(curve.points.at(-1) === 200 && curve.units[0] === 0 && curve.points[0] === 0, "the curve runs from (0, 0) to 200");
     for (let i = 1; i < curve.units.length; i++) ok(curve.units[i]! > curve.units[i - 1]! && curve.points[i]! > curve.points[i - 1]!, "the knots rise");
     ok(bandPoints(curve, 10_000_000) === 200, "nothing scores past 200");

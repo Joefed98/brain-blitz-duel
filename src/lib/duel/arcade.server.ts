@@ -15,7 +15,7 @@ import { BINTOSS_REV_TARGET, BINTOSS_REV_STRICT, BINTOSS_REV_EXPAND } from "@/li
 import { SWING_REV_TALL, SWING_REV_TARGET, SWING_REV_STRICT, SWING_REV_EXPAND } from "@/lib/arcade/swing";
 import { BURST_REV_TARGET, BURST_REV_STRICT, BURST_REV_CLEAN } from "@/lib/arcade/burst";
 import { BRK_REV_TARGET, BRK_REV_STRICT, BRK_REV_DEEP } from "@/lib/arcade/breaker";
-import { PIN_REV_TARGET, PIN_REV_STRICT, PIN_REV_EXPAND } from "@/lib/arcade/pinball";
+import { PIN_REV_TARGET, PIN_REV_STRICT, PIN_REV_EXPAND, PIN_REV_LONG } from "@/lib/arcade/pinball";
 import { WHACK_REV_DEPTH } from "@/lib/arcade/whack";
 import { WAV_REV_TARGET, WAV_REV_STRICT, WAV_REV_EXPAND } from "@/lib/arcade/wavefront";
 import { ORBIT_REV_TARGET, ORBIT_REV_STRICT, ORBIT_REV_XP } from "@/lib/arcade/orbit";
@@ -121,7 +121,8 @@ export function generateBreaker(): BreakerPuzzleData {
 }
 
 export function generatePinball(): PinballPuzzleData {
-  return { type: "pinball", seed: arcadeSeed(), pinRev: PIN_REV_EXPAND };
+  // pinRev 5 (27 Oct 2026, Joe's phone notes): pinRev 4's table for 90 s.
+  return { type: "pinball", seed: arcadeSeed(), pinRev: PIN_REV_LONG };
 }
 
 export function generateRally(): RallyPuzzleData {
