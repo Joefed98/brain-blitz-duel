@@ -193,8 +193,9 @@ section("New rounds carry the Tuning C stamps; Junction is practice only");
   }
   ok(isRetired("junction"), "Junction is retired (practice only)");
   ok(!typesInCategory("arcade").includes("junction"), "rooms never deal Junction");
-  // 21 since Tuning C; 22 once Pinball (13 Oct, practice only until PINBALL_IN_ROOMS) is switched on.
-  const dealt = 21 + (PINBALL_IN_ROOMS ? 1 : 0);
+  // 21 since Tuning C; 22 once Pinball (13 Oct, practice only until PINBALL_IN_ROOMS) is switched on;
+  // one fewer since Scrumper retired to practice (27 Oct 2026).
+  const dealt = 20 + (PINBALL_IN_ROOMS ? 1 : 0);
   ok(typesInCategory("arcade").length === dealt, `rooms deal ${dealt} arcade games (got ${typesInCategory("arcade").length})`);
   ok(ACTIVE_ARCADE_GAMES.length === dealt && !ACTIVE_ARCADE_GAMES.includes("junction") && "junction" in ARCADE_GAME_WORLDS, `${dealt} active arcade worlds; Junction keeps its world for practice`);
   ok([...typesInCategory("arcade")].sort().join() === [...ACTIVE_ARCADE_GAMES].sort().join(), "the active arcade list is exactly the arcade types rooms deal");

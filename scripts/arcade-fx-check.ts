@@ -146,7 +146,7 @@ const GAMES: Record<string, AnyGame> = {
   pinball: pinballArtGame as AnyGame,
 };
 
-assert.equal(Object.keys(GAMES).length, 23, "23 arcade games with a world (22 active with Pinball; Junction practice only)");
+assert.equal(Object.keys(GAMES).length, 23, "23 arcade games with a world (21 active with Pinball; Junction and Scrumper practice only)");
 assert.deepEqual(
   Object.keys(GAMES).sort(),
   Object.keys(specs.ARCADE_FX_SPECS).sort(),
