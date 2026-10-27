@@ -9,18 +9,39 @@ import { TimelineRecorder } from "@/lib/duel/standard/timeline";
 
 /**
  * The scoring standard's draft timelines (standard/timeline.ts), one per round (stateKey), kept outside the
- * component tree so a remount mid-round keeps the record. Only the latest few rounds are kept.
+ * component tree so a remount mid-round keeps the record, and on the device so a reload mid-round carries on from it
+ * (only the latest round's is kept there). Only the latest few rounds are kept in memory.
  */
 const timelines = new Map<string, TimelineRecorder>();
+const TIMELINE_STORE_PREFIX = "duelz.timeline.v1:";
 
 function timelineFor(key: string): TimelineRecorder {
   let rec = timelines.get(key);
   if (!rec) {
-    rec = new TimelineRecorder();
+    let kept: string | null = null;
+    try {
+      kept = typeof localStorage === "undefined" ? null : localStorage.getItem(TIMELINE_STORE_PREFIX + key);
+    } catch {
+      kept = null;
+    }
+    rec = TimelineRecorder.resume(kept);
     timelines.set(key, rec);
     while (timelines.size > 6) timelines.delete(timelines.keys().next().value!);
   }
   return rec;
+}
+
+function keepTimeline(key: string, rec: TimelineRecorder): void {
+  try {
+    if (typeof localStorage === "undefined") return;
+    for (let i = localStorage.length - 1; i >= 0; i--) {
+      const k = localStorage.key(i);
+      if (k?.startsWith(TIMELINE_STORE_PREFIX) && k !== TIMELINE_STORE_PREFIX + key) localStorage.removeItem(k);
+    }
+    localStorage.setItem(TIMELINE_STORE_PREFIX + key, rec.encoded());
+  } catch {
+    // Storage full or blocked: the record still stands in memory.
+  }
 }
 
 /** What the shared signature beat needs to know about the game on screen. */
@@ -45,9 +66,10 @@ export function feedbackStage(Stage: ComponentType<PuzzleStageProps>, theme: Gam
       (answer: string): string => {
         if (!timed) return answer;
         const p = latest.current;
-        const rec = timelineFor(p.stateKey ?? `${p.puzzle.type}-${p.phaseStartedAt}`);
+        const key = p.stateKey ?? `${p.puzzle.type}-${p.phaseStartedAt}`;
+        const rec = timelineFor(key);
         // Round-clock time on the host's own clock (no standard game has preparation time).
-        rec.note(answer, p.now - p.phaseStartedAt);
+        if (rec.note(answer, p.now - p.phaseStartedAt)) keepTimeline(key, rec);
         return rec.attach(answer);
       },
       [timed],

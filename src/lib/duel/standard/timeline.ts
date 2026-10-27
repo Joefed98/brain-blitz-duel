@@ -51,17 +51,33 @@ export function applyEdit(from: string, keep: number, cut: number, insert: strin
 export class TimelineRecorder {
   private drafts: TimedDraft[] = [];
 
-  /** Records a draft at round-clock time `t` (an unchanged draft records nothing). */
-  note(draft: string, t: number): void {
+  /** Records a draft at round-clock time `t`; false when it was unchanged (nothing recorded). */
+  note(draft: string, t: number): boolean {
     const last = this.drafts[this.drafts.length - 1];
-    if (last && last.draft === draft) return;
+    if (last && last.draft === draft) return false;
     const time = Math.max(last ? last.t : 0, Math.round(Number.isFinite(t) ? t : 0));
     if (this.drafts.length >= TIMELINE_MAX_ENTRIES) this.drafts[this.drafts.length - 1] = { t: time, draft };
     else this.drafts.push({ t: time, draft });
+    return true;
   }
 
   get size(): number {
     return this.drafts.length;
+  }
+
+  /** The record so far (TIMELINE_MARK + entries), for keeping on the device. */
+  encoded(): string {
+    return encodeTimeline(this.drafts);
+  }
+
+  /** A recorder carrying on from a kept record (a reload mid-round); an unreadable record starts afresh. */
+  static resume(text: string | null): TimelineRecorder {
+    const rec = new TimelineRecorder();
+    if (text && text.startsWith(TIMELINE_MARK)) {
+      const drafts = readEntries(text.slice(TIMELINE_MARK.length), Number.MAX_SAFE_INTEGER);
+      if (drafts) rec.drafts = drafts;
+    }
+    return rec;
   }
 
   /** The answer with its timeline (an empty answer stays empty: nothing was done). */
@@ -103,6 +119,11 @@ export function stripTimeline(answer: string): string {
  */
 export function decodeTimeline(text: string | null, body: string, latestMs: number): TimedDraft[] | null {
   if (text === null || text.length > TIMELINE_MAX_CHARS) return null;
+  const out = readEntries(text, latestMs);
+  return out && out[out.length - 1]!.draft === body ? out : null;
+}
+
+function readEntries(text: string, latestMs: number): TimedDraft[] | null {
   let raw: unknown;
   try {
     raw = JSON.parse(text);
@@ -124,7 +145,7 @@ export function decodeTimeline(text: string | null, body: string, latestMs: numb
     draft = next;
     out.push({ t: Math.min(Math.round(t), Math.max(0, latestMs)), draft });
   }
-  return draft === body ? out : null;
+  return out;
 }
 
 /**
