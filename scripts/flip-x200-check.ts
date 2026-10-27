@@ -42,6 +42,7 @@ import {
   flipV8Units,
   flipWorldHFor,
   FLIP_REV_EXPAND,
+  FLIP_V9_BAND_CURVE,
   FLIP_REV_STRICT,
   FLIP_RUN_TICKS,
   FLIP_STARS,
@@ -83,6 +84,7 @@ import {
   type FlipWitness,
 } from "./flip-x200-record";
 import { flipTap as TAP } from "./flip-x200-plan";
+import { playRevOf } from "./scoring-targets-revs";
 
 let checks = 0;
 const failures: string[] = [];
@@ -117,9 +119,10 @@ const gz = <T>(url: URL): T => JSON.parse(gunzipSync(readFileSync(url)).toString
 }
 
 /* 2. Stamp and wiring. */
-ok(LIVE_BANDS.flip.rev === FLIP_REV_EXPAND && liveStrictRev("flip") === FLIP_REV_STRICT, "LIVE_BANDS deals flipRev 8 and keeps flipRev 6 as its strict revision");
-ok(LIVE_BANDS.flip.curve === FLIP_V8_BAND_CURVE, "LIVE_BANDS' curve is flipRev 8's base curve");
-ok((generatePuzzle("flip") as { flipRev?: number }).flipRev === FLIP_REV_EXPAND, "rooms deal flipRev 8");
+// Since 27 Oct 2026 rooms deal flipRev 9, flipRev 8's play on lifted curves (phone-notes-check proves it and its curve).
+ok(playRevOf("flip", LIVE_BANDS.flip.rev) === FLIP_REV_EXPAND && liveStrictRev("flip") === FLIP_REV_STRICT, "LIVE_BANDS deals flipRev 8's play and keeps flipRev 6 as its strict revision");
+ok(LIVE_BANDS.flip.curve === FLIP_V9_BAND_CURVE && FLIP_V9_BAND_CURVE.units.join() === FLIP_V8_BAND_CURVE.units.join(), "LIVE_BANDS' curve is the dealt one, on flipRev 8's units");
+ok(playRevOf("flip", (generatePuzzle("flip") as { flipRev?: number }).flipRev) === FLIP_REV_EXPAND, "rooms deal flipRev 8's play");
 ok(roundMaxFor("flip") === 200, "Roofbound's round maximum is 200");
 ok(flipWorldHFor(FLIP_REV_EXPAND) === FLIP_V8_WORLD_H && FLIP_V8_WORLD_H === 730, "flipRev 8: the 730 px world");
 ok(flipWorldHFor(FLIP_REV_STRICT) === FLIP_WORLD_H && flipWorldHFor(undefined) === FLIP_WORLD_H, "earlier revisions keep 620 px");

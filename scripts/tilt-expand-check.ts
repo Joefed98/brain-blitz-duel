@@ -40,6 +40,7 @@ import {
   TILT_REV_EXPAND,
   TILT_REV_STRICT,
   TILT_V8_BAND_CURVE,
+  TILT_V9_BAND_CURVE,
   TILT_X_FALL_HOLD,
   TILT_X_MAZES,
   TILT_X_PACE_POINTS,
@@ -64,6 +65,7 @@ import { GAME_BY_TYPE } from "./arcade-skill-bands/games";
 import { tiltStateDigest } from "./tilt-expand-record";
 import { randomLog, roomIdentity, scheduleOf } from "./room-identity/tilt";
 import { TILT_BANK } from "../src/lib/duel/tiltBank.server";
+import { playRevOf } from "./scoring-targets-revs";
 
 /** Cells on the way into a black hole (between it and the route) or within two cells of one. */
 function nearHoles(m: Maze): Set<number> {
@@ -131,7 +133,8 @@ for (const run of runs) {
 }
 /* 3. The deal. */
 const dealt = generatePuzzle("tilt") as unknown as { tiltRev: number; seed: number };
-ok(dealt.tiltRev === TILT_REV_EXPAND, `rooms deal tiltRev ${TILT_REV_EXPAND} (got ${dealt.tiltRev})`);
+// Since 27 Oct 2026 rooms deal tiltRev 9, tiltRev 8's play on lifted curves (phone-notes-check proves it and its curve).
+ok(playRevOf("tilt", dealt.tiltRev) === TILT_REV_EXPAND, `rooms deal tiltRev ${TILT_REV_EXPAND}'s play (got ${dealt.tiltRev})`);
 ok(tiltDealableX(dealt.seed) && TILT_BANK.includes(dealt.seed), "rooms deal a bank seed, which passes the dealer's rule");
 ok(TILT_BANK.length >= 260 && new Set(TILT_BANK).size === TILT_BANK.length, `the bank holds 260 or more distinct seeds (${TILT_BANK.length})`);
 /** Hops from a cell to the nearest cell of a marble's route. */
@@ -337,7 +340,7 @@ for (const n of [0, 1, 2]) {
   ok(TILT_V8_BAND_CURVE.points.at(-1) === 140 && TILT_V8_BAND_CURVE.units.at(-1) === 150, "the base curve tops out at 140 at 150 units");
   ok(roundMaxFor("tilt") === 200, "Tilt's round maximum is 200");
   const live = LIVE_BANDS.tilt as { rev: number; curve: unknown; strictRev?: number };
-  ok(live.rev === TILT_REV_EXPAND && live.curve === TILT_V8_BAND_CURVE && live.strictRev === TILT_REV_STRICT, "LIVE_BANDS lists tiltRev 8 on its curve, tiltRev 6 as its strict revision");
+  ok(playRevOf("tilt", live.rev) === TILT_REV_EXPAND && live.curve === TILT_V9_BAND_CURVE && TILT_V9_BAND_CURVE.units.join() === TILT_V8_BAND_CURVE.units.join() && live.strictRev === TILT_REV_STRICT, "LIVE_BANDS lists tiltRev 8's play on the dealt curve (its units), tiltRev 6 as its strict revision");
 }
 
 if (failures.length) {
