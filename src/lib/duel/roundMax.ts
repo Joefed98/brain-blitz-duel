@@ -15,7 +15,6 @@
  * together.
  */
 import type { PuzzleType } from "./types";
-import { preStandardPinned } from "./standard/stamps";
 
 /** The system's ceiling: no game's round maximum may exceed it. */
 export const SCORE_CEILING = 200;
@@ -145,6 +144,14 @@ export function roundMaxGeneration(): number {
   return generation;
 }
 
+/**
+ * Cached texts rebuild (liveRecord) when a check pins the scoring standard off or on (standard/stamps.ts
+ * pinPreStandard: the texts of the stamps before it). Never called by the app.
+ */
+export function rebuildLiveRecords(): void {
+  generation++;
+}
+
 /* ------------------------------------------------------------------ reads */
 
 /**
@@ -233,15 +240,13 @@ export function fillMax(text: string, type: string | null | undefined): string {
 /**
  * A record built by `build` (texts that state a game's maximum), rebuilt only when a check's
  * override changes the maximums (roundMaxGeneration) or a check pins the scoring standard off
- * (standard/stamps.ts: the texts of the stamps before it), so the app builds it once.
+ * (rebuildLiveRecords: the texts of the stamps before it), so the app builds it once.
  */
 export function liveRecord<T extends object>(build: () => T): T {
   let built: T | null = null;
   let at = -1;
-  let preStandard = false;
   const current = (): T => {
-    if (built === null || at !== generation || preStandard !== preStandardPinned()) {
-      preStandard = preStandardPinned();
+    if (built === null || at !== generation) {
       built = build();
       at = generation;
     }
