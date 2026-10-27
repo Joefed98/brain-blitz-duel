@@ -42,8 +42,10 @@ import { brkCheckpoint, breakerGameFor, BRK_REV, BRK_REV_BAND, BRK_REV_TALL, BRK
 import { encodeBreakerRun, replayBreakerRun } from "../../src/lib/duel/breaker";
 import { tiltCheckpoint, tiltGameFor, TILT_REV, TILT_REV_BAND, TILT_REV_TUNEC } from "../../src/lib/arcade/tilt";
 import { encodeTiltRun, replayTiltRun } from "../../src/lib/duel/tilt";
-import { orbitCheckpoint, ORBIT_REV4, ORBIT_REV_BAND, ORBIT_REV_SWEPT, ORBIT_REV_TALL, ORBIT_REV_TUNED } from "../../src/lib/arcade/orbit";
-import { decodeOrbitHoles, decodeRev3Planets, encodeRev3Planets, initRev4From, orbitRev3Game, orbitRev3StartFor, ORBIT_REV3_WORLD_W } from "../../src/lib/arcade/orbitRev3";
+import { tiltBankSeedFor } from "../../src/lib/duel/tiltBank.server";
+import { orbitCheckpoint, ORBIT_REV4, ORBIT_REV_BAND, ORBIT_REV_SWEPT, ORBIT_REV_TALL, ORBIT_REV_TUNED, ORBIT_REV_XP } from "../../src/lib/arcade/orbit";
+import { decodeOrbitExtras, decodeOrbitHoles, decodeRev3Planets, encodeRev3Planets, initRev4From, orbitRev3Game, orbitRev3StartFor, ORBIT_REV3_WORLD_W } from "../../src/lib/arcade/orbitRev3";
+import { ORBIT_XP_BANK } from "../../src/lib/duel/orbitXpBank.server";
 import { encodeOrbitRun, replayOrbitRun } from "../../src/lib/duel/orbit";
 import { ORBIT_HOLE_BANK } from "../../src/lib/duel/orbitHoleBank.server";
 import { ORBIT_REV3_BANK } from "../../src/lib/duel/orbitRev3Bank.server";
@@ -99,6 +101,10 @@ export interface GameSpec {
    * courses (paired). Checks keep reading `seedFor`.
    */
   seedForRev?: (n: number, rev: number | null) => number | undefined;
+  /** `--rev=x` only: the seeds a world expansion deals from its own bank (both revisions measured on them, paired). */
+  seedForX?: (n: number) => number;
+  /** The seed index → seed the older checks' fixtures were recorded with, when `seedFor` has since moved on (Tilt's bank). */
+  fixtureSeedFor?: (n: number) => number;
   /** The game (sim + score) for a revision and stored seed. */
   gameFor: (rev: number | null, seed: number) => ArcadeGame<any, any>;
   checkpoint: (state: any) => unknown;
@@ -130,6 +136,8 @@ const btCourse = (seed: number) => BALL_TRACK_BANK[seed % BALL_TRACK_BANK.length
 const btCourseFor = (rev: number | null, seed: number) => (rev === BT_REV_RUSH ? BALL_TRACK_BANK_V7[seed % BALL_TRACK_BANK_V7.length]!.course : rev === BT_REV_TALL || rev === BT_REV_TARGET || rev === BT_REV_STRICT ? BALL_TRACK_BANK_TALL[seed % BALL_TRACK_BANK_TALL.length]!.course : btCourse(seed));
 const orbitEntry = (seed: number) => ORBIT_HOLE_BANK.find((e) => e.seed === seed)!;
 const orbitPlanets = (seed: number) => decodeRev3Planets(ORBIT_REV3_BANK.find((e) => e.seed === seed)!.planets);
+/** orbitRev 12 (the expansion to 200): the course's features, from the feature bank rooms deal. */
+const orbitXpExtras = (seed: number) => ORBIT_XP_BANK.find((e) => e.seed === seed)?.extras;
 
 const simple = (
   type: PuzzleType,
@@ -169,7 +177,9 @@ export const GAMES: GameSpec[] = [
   { ...simple("skyline", SKYLINE_REV, SKYLINE_REV_BAND, skylineGameFor, skylineCheckpoint, encodeSkylineRun, replaySkylineRun, true), tunee: SKYLINE_REV_TALL },
   simple("junction", JUNC_REV, JUNC_REV_BAND, junctionGameFor, juncCheckpoint, encodeJunctionRun, replayJunctionRun),
   { ...simple("breaker", BRK_REV, BRK_REV_BAND, breakerGameFor, brkCheckpoint, encodeBreakerRun, replayBreakerRun), current: BRK_REV_TUNED, tunef: BRK_REV_TUNEF, tuneg: BRK_REV_TALL },
-  { ...simple("tilt", TILT_REV, TILT_REV_BAND, tiltGameFor, tiltCheckpoint, encodeTiltRun, replayTiltRun), tunec: TILT_REV_TUNEC },
+  // Rooms deal tiltRev 8's bank (seeds the oracle played to 200), so every revision is measured on those (paired). The
+  // tuning seeds 0–59 are the bank's first 60; the fresh seeds 10000– start at its 61st, so the two sets never share one.
+  { ...simple("tilt", TILT_REV, TILT_REV_BAND, tiltGameFor, tiltCheckpoint, encodeTiltRun, replayTiltRun), tunec: TILT_REV_TUNEC, seedFor: tiltBankSeedFor, fixtureSeedFor: plain },
   {
     type: "orbit",
     live: ORBIT_REV4,
@@ -179,13 +189,16 @@ export const GAMES: GameSpec[] = [
     tuneg3: ORBIT_REV_TALL,
     // Rooms deal bank courses with proved black holes (rev 4); the planets and holes ride in the puzzle.
     seedFor: (n) => ORBIT_HOLE_BANK[roomSeed(n) % ORBIT_HOLE_BANK.length]!.seed,
+    // orbitRev 12 (the expansion to 200) rooms deal a feature-bank course (room seed mod its length); --rev=x plays
+    // both revisions on it.
+    seedForX: (n) => ORBIT_XP_BANK[roomSeed(n) % ORBIT_XP_BANK.length]!.seed,
     gameFor: (rev, seed) => {
-      const start = orbitRev3StartFor(rev) ?? initRev4From;
+      const start = orbitRev3StartFor(rev, rev === ORBIT_REV_XP ? decodeOrbitExtras(orbitXpExtras(seed)) : null) ?? initRev4From;
       return { ...orbitRev3Game, init: () => start(orbitPlanets(seed), ORBIT_REV3_WORLD_W, decodeOrbitHoles(orbitEntry(seed).holes)) };
     },
     checkpoint: orbitCheckpoint,
     encode: (run) => encodeOrbitRun(run),
-    replay: (seed, raw, rev) => replayOrbitRun(seed, raw, rev ?? undefined, encodeRev3Planets(orbitPlanets(seed)), orbitEntry(seed).holes),
+    replay: (seed, raw, rev) => replayOrbitRun(seed, raw, rev ?? undefined, encodeRev3Planets(orbitPlanets(seed)), orbitEntry(seed).holes, rev === ORBIT_REV_XP ? orbitXpExtras(seed) : undefined),
   },
   { ...simple("beat", BEAT_REV, BEAT_REV_BAND, beatGameFor, beatCheckpoint, encodeBeatRun, replayBeatRun), tunec: BEAT_REV_TUNEC, tunef: BEAT_REV_TUNEF, tuneg2: BEAT_REV_TALL },
   { ...simple("slice", SLICE_REV, SLICE_REV_BAND, sliceGameFor, sliceCheckpoint, encodeSliceRun, replaySliceRun), tunec: SLICE_REV_TUNEC, tunef: SLICE_REV_LONG, tuneg2: SLICE_REV_TALL },

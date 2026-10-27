@@ -84,6 +84,12 @@ const RAISED: PuzzleType[] = [
   "hover",
   // Grappler's 200 expansion (docs/expansions/x200-swing.md): swingRev 13.
   "swing",
+  // The expansions to 200 under the arcade rule (docs/expansions/x200-*.md): Orbit, Wavefront, Rainbow Bridge, Tilt, Jaywalk.
+  "orbit",
+  "wavefront",
+  "inkbridge",
+  "tilt",
+  "cross",
   // Expansion E9 (docs/expansions/e9.md): Rally, Fission and Flightpath.
   "rally", "burst", "bullseye",
 ];

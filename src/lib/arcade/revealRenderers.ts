@@ -30,6 +30,7 @@ import { beatArtGame as beatGame } from "./beat.renderer";
 import { beatWorldHFor } from "./beat";
 import { SNAKE_WORLD_H, SNAKE_WORLD_W, snakeWorldHForRev } from "./snake";
 import { hoverWorldHFor } from "./hover";
+import { inkWorldHFor } from "./inkBridge";
 import { skylineWorldHFor } from "./skyline";
 import { snakeArtGame as snakeGame } from "./snake.renderer";
 import { crossArtGame as crossGame, crossRevealGame } from "./cross.renderer";
@@ -43,8 +44,8 @@ import { burstArtGameFor } from "./burst.renderer";
 import { orbitArtGame as orbitGame, orbitArtGameFor, orbitRev3ArtGame } from "./orbit.renderer";
 import { decodeOrbitRun } from "@/lib/duel/orbit";
 import { checkInputEvents } from "./engine";
-import { ORBIT_REV3, ORBIT_REV4, ORBIT_REV_BAND, ORBIT_REV_SWEPT, ORBIT_REV_TALL, ORBIT_REV_TARGET, ORBIT_REV_STRICT, ORBIT_REV_TUNED } from "./orbit";
-import { decodeOrbitHoles, decodeRev3Planets, initRev3From, initRev4From, initSweptFrom, initTallFrom, initTargetFrom, initStrictFrom, initTunedFrom, orbitWorldHFor, ORBIT_REV3_WORLD_W, type OrbitRev3State } from "./orbitRev3";
+import { ORBIT_REV3, ORBIT_REV4, ORBIT_REV_BAND, ORBIT_REV_SWEPT, ORBIT_REV_TALL, ORBIT_REV_TARGET, ORBIT_REV_STRICT, ORBIT_REV_TUNED, ORBIT_REV_XP } from "./orbit";
+import { decodeOrbitHoles, decodeRev3Planets, initRev3From, initRev4From, initSweptFrom, initTallFrom, initTargetFrom, initStrictFrom, initTunedFrom, orbitStartForPuzzle, orbitWorldHFor, orbitWorldWFor, ORBIT_REV3_WORLD_W, type OrbitRev3State } from "./orbitRev3";
 import { swingArtGame as swingGame } from "./swing.renderer";
 import { drawSnipArt as drawSnip } from "./snip.renderer";
 import { snipCamera, snipWorldH, snipWorldHFor, SNIP_CONFIG, SNIP_H, type SnipState } from "./snip";
@@ -77,6 +78,7 @@ import { replayBubbleRun } from "@/lib/duel/bubble";
 import { replayBeatRun } from "@/lib/duel/beat";
 import { replaySnakeRun } from "@/lib/duel/snake";
 import { replayCrossRun } from "@/lib/duel/cross";
+import { crossWorldHFor } from "./cross";
 import { replayWavefrontRun } from "@/lib/duel/wavefront";
 import { replayFlipRun } from "@/lib/duel/flip";
 import { replayJunctionRun } from "@/lib/duel/junction";
@@ -86,6 +88,7 @@ import { replayOrbitRun } from "@/lib/duel/orbit";
 import { replaySwingRun } from "@/lib/duel/swing";
 import { replaySnipRun } from "@/lib/duel/snip";
 import { replayTiltRun } from "@/lib/duel/tilt";
+import { tiltWorldHFor } from "./tilt";
 import { replayBallTrackRun } from "@/lib/duel/ballTrack";
 import { replayWhackRun } from "@/lib/duel/whack";
 import { replayClayRun } from "@/lib/duel/clayShoot";
@@ -183,7 +186,7 @@ export const ARCADE_REVEAL_RENDERERS: Record<string, ArcadeRevealRenderer> = {
   bubble: simple(GOLD, 390, 620, bubbleGame, (p, a) => replayBubbleRun(seedOf(p), a, p.type === "bubble" ? p.bubbleRev : undefined), undefined, undefined, (p) => bubbleWorldHFor(p.type === "bubble" ? p.bubbleRev : undefined)),
   beat: simple(GOLD, 390, 620, beatGame, (p, a) => replayBeatRun(seedOf(p), a, p.type === "beat" ? p.beatRev : undefined), undefined, undefined, (p) => beatWorldHFor(p.type === "beat" ? p.beatRev : undefined)),
   snake: simple("#2ED3B7", SNAKE_WORLD_W, SNAKE_WORLD_H, snakeGame, (p, a) => replaySnakeRun(seedOf(p), a, p.type === "snake" ? p.snakeRev : undefined), undefined, undefined, (p) => snakeWorldHForRev(p.type === "snake" ? p.snakeRev : undefined)),
-  cross: simple("#2ED3B7", 390, 580, crossGame, (p, a) => replayCrossRun(seedOf(p), a, p.type === "cross" ? p.crossRev : undefined), undefined, crossRevealGame),
+  cross: simple("#2ED3B7", 390, 580, crossGame, (p, a) => replayCrossRun(seedOf(p), a, p.type === "cross" ? p.crossRev : undefined), undefined, crossRevealGame, (p) => crossWorldHFor(p.type === "cross" ? p.crossRev : undefined)),
   wavefront: simple(
     "#A78BFA",
     390,
@@ -197,7 +200,7 @@ export const ARCADE_REVEAL_RENDERERS: Record<string, ArcadeRevealRenderer> = {
   // flipRev 8 (the expansion): the 730 px cave.
   flip: simple("#FF4D5E", 390, 620, flipGame, (p, a) => replayFlipRun(seedOf(p), a, p.type === "flip" ? p.flipRev : undefined), undefined, undefined, (p) => flipWorldHFor(p.type === "flip" ? p.flipRev : undefined)),
   junction: simple("#22C55E", 390, 620, junctionGame, (p, a) => replayJunctionRun(seedOf(p), a, p.type === "junction" ? p.junctionRev : undefined), undefined, junctionRevealGame),
-  inkbridge: simple("#2ED3B7", 390, 620, inkBridgeGame, (p, a) => replayInkBridgeRun(seedOf(p), a, p.type === "inkbridge" ? p.inkRev : undefined)),
+  inkbridge: simple("#2ED3B7", 390, 620, inkBridgeGame, (p, a) => replayInkBridgeRun(seedOf(p), a, p.type === "inkbridge" ? p.inkRev : undefined), undefined, inkBridgeGame, (p) => inkWorldHFor(p.type === "inkbridge" ? p.inkRev : undefined)),
   burst: {
     accent: "#2ED3B7",
     worldW: 390,
@@ -213,10 +216,24 @@ export const ARCADE_REVEAL_RENDERERS: Record<string, ArcadeRevealRenderer> = {
     accent: GOLD,
     worldW: 390,
     worldH: 620,
-    // orbitRev 8: the taller view.
-    heightFor: (puzzle) => orbitWorldHFor(puzzle.type === "orbit" ? puzzle.orbitRev : undefined),
+    // orbitRev 8: the taller view; orbitRev 12: the wider 450 × 782 view, drawn into the 390-wide box at its own aspect.
+    heightFor: (puzzle) => {
+      const rev = puzzle.type === "orbit" ? puzzle.orbitRev : undefined;
+      return in390(orbitWorldWFor(rev), orbitWorldHFor(rev));
+    },
     drawFinal: (ctx, puzzle, answer) => {
-      const { state } = replayOrbitRun(seedOf(puzzle), answer, puzzle.type === "orbit" ? puzzle.orbitRev : undefined, puzzle.type === "orbit" ? puzzle.planets : undefined, puzzle.type === "orbit" ? puzzle.holes : undefined);
+      const { state } = replayOrbitRun(seedOf(puzzle), answer, puzzle.type === "orbit" ? puzzle.orbitRev : undefined, puzzle.type === "orbit" ? puzzle.planets : undefined, puzzle.type === "orbit" ? puzzle.holes : undefined, puzzle.type === "orbit" ? puzzle.extras : undefined);
+      const xpStart = puzzle.type === "orbit" && puzzle.orbitRev === ORBIT_REV_XP ? orbitStartForPuzzle(puzzle) : null;
+      if (xpStart) {
+        // Visual reconstruction through the art sim (camera and effects observe every tick), as below.
+        const run = decodeOrbitRun(answer);
+        const checked = checkInputEvents(run.events, orbitRev3ArtGame.runTicks, orbitRev3ArtGame.inputRanges ?? []);
+        const events = new Map(checked.events.map((event) => [event.t, event]));
+        let visual: OrbitRev3State = xpStart();
+        for (let tick = 1; tick <= state.tick; tick++) visual = orbitRev3ArtGame.step(visual, events.get(tick) ?? null);
+        orbitRev3ArtGame.draw(ctx, visual, { width: 390, height: in390(orbitWorldWFor(ORBIT_REV_XP), orbitWorldHFor(ORBIT_REV_XP)) });
+        return null;
+      }
       if (puzzle.type === "orbit" && (puzzle.orbitRev === ORBIT_REV3 || puzzle.orbitRev === ORBIT_REV4 || puzzle.orbitRev === ORBIT_REV_BAND || puzzle.orbitRev === ORBIT_REV_TUNED || puzzle.orbitRev === ORBIT_REV_SWEPT || puzzle.orbitRev === ORBIT_REV_TALL || puzzle.orbitRev === ORBIT_REV_TARGET || puzzle.orbitRev === ORBIT_REV_STRICT) && puzzle.planets) {
         // Visual reconstruction only: scoring above still uses the original replay.
         const run = decodeOrbitRun(answer);
@@ -260,7 +277,8 @@ export const ARCADE_REVEAL_RENDERERS: Record<string, ArcadeRevealRenderer> = {
       return null;
     },
   },
-  tilt: simple("#2EC4B6", 440, 470, tiltGame, (p, a) => replayTiltRun(seedOf(p), a, p.type === "tilt" ? p.tiltRev : undefined)),
+  // tiltRev 8: the taller world (the art draws the expansion's camera from the state).
+  tilt: simple("#2EC4B6", 440, 470, tiltGame, (p, a) => replayTiltRun(seedOf(p), a, p.type === "tilt" ? p.tiltRev : undefined), undefined, tiltGame, (p) => tiltWorldHFor(p.type === "tilt" ? p.tiltRev : undefined)),
   balltrack: {
     accent: GOLD,
     worldW: BT_W,

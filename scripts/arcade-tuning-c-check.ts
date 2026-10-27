@@ -49,7 +49,7 @@ import {
 import { encodeMatchupRun, replayMatchupRun } from "../src/lib/duel/matchup";
 import { swingGameFor, SWING_BAND_CURVE, SWING_REV_TUNED, SWING_REV_TUNEC, SWING_V7_BAND_CURVE } from "../src/lib/arcade/swing";
 import { hoverGameFor, HOVER_BAND_CURVE, HOVER_REV_BAND, HOVER_REV_TALL, HOVER_REV_TUNEC, HOVER_V4_BAND_CURVE } from "../src/lib/arcade/hover";
-import { inkBridgeGameFor, INK_BAND_CURVE, INK_REV_BAND, INK_REV_TUNEC, INK_V6_BAND_CURVE } from "../src/lib/arcade/inkBridge";
+import { inkBridgeGameFor, INK_BAND_CURVE, INK_REV_BAND, INK_REV_EXPAND, INK_REV_STRICT, INK_REV_TUNEC, INK_V6_BAND_CURVE } from "../src/lib/arcade/inkBridge";
 import { flipGameFor, flipWarpAmp, FLIP_BAND_CURVE, FLIP_REV, FLIP_REV_BAND, FLIP_REV_TUNEC, FLIP_V4_BAND_CURVE, FLIP_WARP_FROM_V4 } from "../src/lib/arcade/flip";
 import { beatGameFor, BEAT_BAND_CURVE, BEAT_REV_BAND, BEAT_REV_TUNEC, BEAT_REV_TUNEF, BEAT_V4_BAND_CURVE } from "../src/lib/arcade/beat";
 import {
@@ -75,6 +75,7 @@ import {
   tiltGameFor,
   tiltStarPoint,
   TILT_REV_BAND,
+  TILT_REV_EXPAND,
   TILT_REV_TUNEC,
   TILT_STARS_PER_MAZE,
   TILT_STAR_MOUTH,
@@ -169,7 +170,8 @@ section("New rounds carry the Tuning C stamps; Junction is practice only");
     // Tuning E (Oct 2026) moved Hover on to its taller world (hoverRev 5); arcade-tuning-e-check covers it.
     // The 200 expansion (26 Oct 2026) then moved Hover on to hoverRev 9; hover-x200-check covers it.
     ["hover", playRevOf("hover", generateHover().hoverRev), HOVER_REV_TALL + 4],
-    ["inkbridge", playRevOf("inkbridge", generateInkBridge().inkRev), INK_REV_TUNEC],
+    // x200 (26 Oct 2026) moved Rainbow Bridge on to inkRev 10 (ink-x200-check); inkRev 8, dealt before it, kept Tuning C's play.
+    ["inkbridge", generateInkBridge().inkRev === INK_REV_EXPAND ? playRevOf("inkbridge", INK_REV_STRICT) : -1, INK_REV_TUNEC],
     // Expansion E7 (docs/expansions/x200-flip.md) then moved Roofbound on to flipRev 8; flip-x200-check covers it.
     ["flip", playRevOf("flip", generateFlip().flipRev), FLIP_REV_TUNEC + 4],
     // Tuning F (Oct 2026) moved Tempo on to a thinner chart on the same curve (beatRev 5); arcade-tuning-f-check covers it.
@@ -177,8 +179,10 @@ section("New rounds carry the Tuning C stamps; Junction is practice only");
     // Expansion E2 (25 Oct 2026) then moved Tempo on to its five-lane song with fever (beatRev 9); expansion-e2-check covers it.
     ["beat", playRevOf("beat", generateBeat().beatRev), BEAT_REV_TUNEF + 4],
     // Taller worlds batch 1 (16 Oct 2026) moved Wavefront on to its taller world (wavRev 6); arcade-tuning-g1-check covers it.
-    ["wavefront", playRevOf("wavefront", generateWavefront().wavRev), WAV_REV_TUNEC + 1],
-    ["tilt", playRevOf("tilt", generateTilt().tiltRev), TILT_REV_TUNEC],
+    // The 200 expansion (26 Oct 2026) then moved it on to wavRev 10; wavefront-expand-check covers it.
+    ["wavefront", playRevOf("wavefront", generateWavefront().wavRev), WAV_REV_TUNEC + 5],
+    // The expansion (x200, 26 Oct 2026) moved Tilt on to tiltRev 8 (bigger mazes, keys, quick stars, par); tilt-expand-check covers it.
+    ["tilt", playRevOf("tilt", generateTilt().tiltRev), TILT_REV_EXPAND],
     // World expansion E5 (25 Oct 2026) moved Slice on to its larger board (sliceRev 9); expansion-e5-check covers it.
     ["slice", playRevOf("slice", generateSlice().sliceRev), SLICE_REV_EXPAND],
   ];
@@ -232,7 +236,7 @@ section("Grappler, Hover, Rainbow Bridge and Tempo: same play, new curves");
   // Hover's help now states its Tuning E curve (arcade-tuning-e-check).
   // Screen audit Oct 2026: the help gives a good run from the curve rooms deal (swingRev 9, inkRev 6, beatRev 9 since expansion E2; arcade-help-bands-check).
   // Grappler's 200 expansion (swingRev 13) states a good run on its own base curve (swing-x200-check).
-  ok(PUZZLE_INSTRUCTIONS.swing.score.includes("A good run (100 points) counts 177") && PUZZLE_INSTRUCTIONS.inkbridge.score.includes("A good run (100 points) counts 59") && PUZZLE_INSTRUCTIONS.beat.score.includes("A good run (100 points) reaches 824"), "the \"?\" help states a good run on the curves rooms deal");
+  ok(PUZZLE_INSTRUCTIONS.swing.score.includes("A good run (100 points) counts 177") && PUZZLE_INSTRUCTIONS.inkbridge.score.includes("A good run (100 points) counts 73") /* inkRev 10 (x200) */ && PUZZLE_INSTRUCTIONS.beat.score.includes("A good run (100 points) reaches 824"), "the \"?\" help states a good run on the curves rooms deal");
 }
 
 /* ================================ 4a. Gemstone ================================ */
@@ -371,7 +375,8 @@ if (want("wavefront")) {
   const kill = (fight: number) => wavefrontBandParts({ ...base, shapesDown: 999, armourHits: 99, saucers: 9, wavesCleared: WAV_V5_WAVES, bossHits: WAV_BOSS_HP, bossKilled: 1, bossAt: 3000, tick: 3000 + fight } as WavState).bonus;
   ok(kill(WAV_KILL_WINDOW_V5 / 2) === 10 && kill(WAV_KILL_WINDOW_V5) === 0 && kill((WAV_KILL_WINDOW_V5 * 3) / 4) === 5, "the kill's bonus: 10 within half the window, 5 at three quarters, 0 at the end");
   for (let f = 0; f < WAV_KILL_WINDOW_V5; f += 30) if (kill(f + 30) > kill(f)) ok(false, `a slower kill scores more at ${f} ticks`);
-  ok(PUZZLE_INSTRUCTIONS.wavefront.goal.startsWith("Five waves") && PUZZLE_INSTRUCTIONS.wavefront.score.includes("saucers count 1") && PUZZLE_INSTRUCTIONS.wavefront.score.includes("within 20 s"), "the intro and help say five waves and the timed kill");
+  // The 200 expansion (wavRev 10) made saucers skill points ("3 a saucer") instead of base units.
+  ok(PUZZLE_INSTRUCTIONS.wavefront.goal.startsWith("Five waves") && (PUZZLE_INSTRUCTIONS.wavefront.score.includes("saucers count 1") || /\d+ a saucer/.test(PUZZLE_INSTRUCTIONS.wavefront.score)) && PUZZLE_INSTRUCTIONS.wavefront.score.includes("within 20 s"), "the intro and help say five waves and the timed kill");
   // 150 through the server replay: the skill-band player with a perfect profile (no lapses, no aim or timing error).
   let best = 0;
   for (let n = 0; n < 12 && best < 150; n++) {
@@ -465,7 +470,8 @@ if (want("tilt")) {
   ok(near === 0, `the amber marble never starts within a maze's width of its cup (${near} of ${twoMarble}; tiltRev 3: ${nearOld})`);
   ok(mouth >= SEEDS * 2 * 1.5, `many stars sit at a hole's mouth (${mouth} of ${SEEDS * 8})`);
   ok(mouthOk, "every mouth star is next to its hole and can be taken without falling in");
-  ok(PUZZLE_INSTRUCTIONS.tilt.how.some((h) => h.action.includes("black holes")), "the intro says where the stars are");
+  // tiltRev 8 (x200) moved the gold stars a step or two off the route; the help names them ("Gold stars:").
+  ok(PUZZLE_INSTRUCTIONS.tilt.how.some((h) => h.action.includes("Gold stars")), "the intro says where the stars are");
   // 150 through the server replay: the checks' scripted Tilt player (scripts/tilt-bot.ts, real-sim lookahead,
   // brisk 4° a tick drags) takes all four mazes and all eight stars fast enough for the full speed bonus.
   let best = 0;

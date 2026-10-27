@@ -124,8 +124,8 @@ section("legacy identity");
 // Tuning A moved new Wavefront and Grappler rounds on to wavRev 4 / swingRev 6, Tuning C on to wavRev 5 / swingRev 7 (arcade-tuning-c-check), and Tuning F Grappler on to swingRev 8 (swing-rev8-check).
 // Taller worlds batch 1 (16 Oct 2026) moved Wavefront, Breaker and Fission on to wavRev 6, brkRev 6 and burstRev 4 (arcade-tuning-g1-check).
 // Expansion E3 (docs/expansions/e3.md) then moved Breaker on to brkRev 9 (expansion-e3-check), and expansion E9
-// (docs/expansions/e9.md) Fission on to burstRev 8 (expansion-e9-check).
-ok(playRevOf("wavefront", generateWavefront().wavRev) === WAV_REV_TUNEC + 1 && playRevOf("breaker", generateBreaker().brkRev) === BRK_REV_TUNEF + 4 && playRevOf("burst", generateBurst().burstRev) === BURST_REV_BAND + 5 && playRevOf("swing", generateSwing().swingRev) === SWING_REV_TUNEC + 6, "new rounds are stamped with the score-band revisions (the batch-3 rules plus the Oct 2026 bands; Tuning A then Tuning C for Wavefront and Grappler, Tuning F's spread stars, taller worlds batch 3's taller cavern and the 200 expansion's swingRev 13 for Grappler, swing-x200-check; Breaker brkRev 4 adds Tuning B's 3.5 s Fireball, brkRev 5 Tuning F's 2.5 s one, arcade-tuning-f-check)");
+// (docs/expansions/e9.md) Fission on to burstRev 8 (expansion-e9-check); the 200 expansion (x200) moved Wavefront on to wavRev 10.
+ok(playRevOf("wavefront", generateWavefront().wavRev) === WAV_REV_TUNEC + 5 && playRevOf("breaker", generateBreaker().brkRev) === BRK_REV_TUNEF + 4 && playRevOf("burst", generateBurst().burstRev) === BURST_REV_BAND + 5 && playRevOf("swing", generateSwing().swingRev) === SWING_REV_TUNEC + 6, "new rounds are stamped with the score-band revisions (the batch-3 rules plus the Oct 2026 bands; Tuning A then Tuning C for Wavefront and Grappler, Tuning F's spread stars, taller worlds batch 3's taller cavern and the 200 expansion's swingRev 13 for Grappler, swing-x200-check; Breaker brkRev 4 adds Tuning B's 3.5 s Fireball, brkRev 5 Tuning F's 2.5 s one, arcade-tuning-f-check)");
 
 /* ================================ 2a. Wavefront ================================ */
 if (want("wavefront")) {
@@ -224,7 +224,8 @@ if (want("wavefront")) {
   ok(!/block/i.test(text) && /armoured ship/.test(text), "Wavefront text says armoured ships, never blocks");
   ok(/90 s/.test(PUZZLE_INSTRUCTIONS.wavefront.goal), "the intro says 90 seconds");
   // Tuning C (wavRev 5) times the kill: up to 10, sooner scores more.
-  ok(/Destroy the boss fast for up to 10 more/.test(INTRO_SCORE.wavefront), "intro: destroying the boss adds up to 10 for speed (Tuning C)");
+  // The 200 expansion (wavRev 10) words it as one clause of the intro score: "… a fast boss kill; …".
+  ok(/Destroy the boss fast for up to 10 more|a fast boss kill/.test(INTRO_SCORE.wavefront), "intro: destroying the boss fast scores more (Tuning C)");
 }
 
 /* ================================ 2b. Breaker ================================ */

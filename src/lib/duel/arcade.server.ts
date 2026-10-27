@@ -1,14 +1,15 @@
 import { TEN_DROP_DEPTH_REV } from "@/lib/arcade/tenDrop";
 import { SLICE_REV_TARGET, SLICE_REV_STRICT, SLICE_REV_EXPAND } from "@/lib/arcade/slice";
 import { FLIP_REV_TARGET, FLIP_REV_STRICT, FLIP_REV_EXPAND } from "@/lib/arcade/flip";
-import { CROSS_REV_TARGET, CROSS_REV_STRICT } from "@/lib/arcade/cross";
-import { INK_REV_TARGET, INK_REV_STRICT } from "@/lib/arcade/inkBridge";
+import { CROSS_REV_EXPAND } from "@/lib/arcade/cross";
+import { INK_REV_EXPAND } from "@/lib/arcade/inkBridge";
 import { SNAKE_REV_TARGET, SNAKE_REV_200 } from "@/lib/arcade/snake";
 import { BUB_REV_CREDIT } from "@/lib/arcade/bubble";
 import { MATCHUP_REV_GOALS } from "@/lib/arcade/matchup";
 import { SNIP_REV_TARGET, SNIP_REV_EXPAND } from "@/lib/arcade/snip";
 import { SKYLINE_REV_TARGET, SKYLINE_REV_STRICT, SKYLINE_REV_EXPAND } from "@/lib/arcade/skyline";
-import { tiltSeedCupsReachable, TILT_REV_TARGET, TILT_REV_STRICT } from "@/lib/arcade/tilt";
+import { TILT_REV_EXPAND } from "@/lib/arcade/tilt";
+import { TILT_BANK } from "./tiltBank.server";
 import { JUNC_REV_BAND } from "@/lib/arcade/junction";
 import { BINTOSS_REV_TARGET, BINTOSS_REV_STRICT, BINTOSS_REV_EXPAND } from "@/lib/arcade/binToss";
 import { SWING_REV_TALL, SWING_REV_TARGET, SWING_REV_STRICT, SWING_REV_EXPAND } from "@/lib/arcade/swing";
@@ -16,11 +17,11 @@ import { BURST_REV_TARGET, BURST_REV_STRICT, BURST_REV_CLEAN } from "@/lib/arcad
 import { BRK_REV_TARGET, BRK_REV_STRICT, BRK_REV_DEEP } from "@/lib/arcade/breaker";
 import { PIN_REV_TARGET, PIN_REV_STRICT, PIN_REV_EXPAND } from "@/lib/arcade/pinball";
 import { WHACK_REV_DEPTH } from "@/lib/arcade/whack";
-import { WAV_REV_TARGET, WAV_REV_STRICT } from "@/lib/arcade/wavefront";
-import { ORBIT_REV_TARGET, ORBIT_REV_STRICT } from "@/lib/arcade/orbit";
+import { WAV_REV_TARGET, WAV_REV_STRICT, WAV_REV_EXPAND } from "@/lib/arcade/wavefront";
+import { ORBIT_REV_TARGET, ORBIT_REV_STRICT, ORBIT_REV_XP } from "@/lib/arcade/orbit";
 import { RALLY_REV_TARGET, RALLY_REV_STRICT, RALLY_REV_BONUS } from "@/lib/arcade/rally";
 import { BEAT_REV_TARGET, BEAT_REV_200 } from "@/lib/arcade/beat";
-import { orbitHolesForBankSeed, orbitRev3BankEntryForSeed, orbitRev3PlanetsForSeed, encodeRev3Planets } from "./orbitRev3Course.server";
+import { orbitXpCourseForSeed, orbitHolesForBankSeed, orbitRev3BankEntryForSeed, orbitRev3PlanetsForSeed, encodeRev3Planets } from "./orbitRev3Course.server";
 import { proveSwingSeed } from "./swingProof.server";
 import { SWING_V9_BANK } from "./swingBankV9.server";
 import { SWING_V13_BANK } from "./swingBankV13.server";
@@ -104,7 +105,7 @@ export function generateSnake(): SnakePuzzleData {
 }
 
 export function generateCross(): CrossPuzzleData {
-  return { type: "cross", seed: arcadeSeed(), crossRev: CROSS_REV_STRICT };
+  return { type: "cross", seed: arcadeSeed(), crossRev: CROSS_REV_EXPAND };
 }
 
 export function generateDual(): DualPuzzleData {
@@ -162,7 +163,7 @@ export function generateWhack(): WhackPuzzleData {
 }
 
 export function generateWavefront(): WavefrontPuzzleData {
-  return { type: "wavefront", seed: arcadeSeed(), wavRev: WAV_REV_STRICT };
+  return { type: "wavefront", seed: arcadeSeed(), wavRev: WAV_REV_EXPAND };
 }
 
 export function generateBastion(): BastionPuzzleData {
@@ -187,7 +188,7 @@ export function generateJunction(): JunctionPuzzleData {
 }
 
 export function generateInkBridge(): InkBridgePuzzleData {
-  return { type: "inkbridge", seed: arcadeSeed(), inkRev: INK_REV_STRICT };
+  return { type: "inkbridge", seed: arcadeSeed(), inkRev: INK_REV_EXPAND };
 }
 
 export function generateBurst(): BurstPuzzleData {
@@ -196,6 +197,10 @@ export function generateBurst(): BurstPuzzleData {
 
 export function generateOrbit(): OrbitPuzzleData {
   const seed = arcadeSeed();
+  // Rev 12 (the expansion to 200, 26 Oct 2026): one of the bank courses with proved holes and features
+  // (scripts/orbit-xp-bank.ts), picked by the seed, in the bigger view. Every room deals it while the bank has courses.
+  const xp = orbitXpCourseForSeed(seed);
+  if (xp) return { type: "orbit", seed, orbitRev: ORBIT_REV_XP, planets: xp.planets, holes: xp.holes, extras: xp.extras };
   // Rev 3 only from the proved bank: live proof is too slow for a room start, so an empty bank keeps rev 2.
   const bankPlanets = orbitRev3PlanetsForSeed(seed);
   if (!bankPlanets) return { type: "orbit", seed };
@@ -236,11 +241,11 @@ export function generateSwing(): SwingPuzzleData {
 }
 
 export function generateTilt(): TiltPuzzleData {
-  // Every cup reachable: the mazes' spanning-tree carve already guarantees it (tilt-cups-check
-  // proves it on 20,000 seeds); this re-deal only guards against a future maze change.
-  let seed = arcadeSeed();
-  for (let k = 0; k < 20 && !tiltSeedCupsReachable(seed); k++) seed = arcadeSeed();
-  return { type: "tilt", seed, tiltRev: TILT_REV_STRICT };
+  // tiltRev 8 (the expansion): a seed from the bank (TILT_BANK, scripts/tilt-bank.ts): every maze fully dealt
+  // (tiltDealableX) and played to 200 by the oracle through the server's replay (tilt-expand-check replays each).
+  const pick = arcadeSeed();
+  const seed = TILT_BANK[((pick % TILT_BANK.length) + TILT_BANK.length) % TILT_BANK.length]!;
+  return { type: "tilt", seed, tiltRev: TILT_REV_EXPAND };
 }
 
 export function generateHotFloor(): HotFloorPuzzleData {

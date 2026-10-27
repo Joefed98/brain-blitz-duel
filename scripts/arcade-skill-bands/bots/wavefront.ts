@@ -8,6 +8,12 @@
  * lead judged roughly. Every red bolt and diving ship is a new event: it is
  * dodged no sooner than a reaction after it appears, by moving to the nearest
  * spot it will not cross. After wave 5 the boss is the target.
+ *
+ * wavRev 10 (the 200 expansion; every branch below reads `seen.x10`, so older stamps play exactly as before): the
+ * bosses' weak points are aimed at by level (CORE, CANNON) on the gunship's or the mothership's own width, leading
+ * the boss through its turns as the fixes do; without the fixes a player who counts the bolts in flight moves on
+ * from a column they will empty (MOVE_ON; the fixes' COUNT_BOLTS does it with them), and saucers, worth skill points
+ * on wavRev 10, are chased at every level the tables say (the elite's near-only saucer policy is wavRev 8's).
  */
 import { ARCADE_INPUT_DRAG } from "../../../src/lib/arcade/engine";
 import {
@@ -15,10 +21,13 @@ import {
   wavForm,
   wavShapeBox,
   WAV_BOSS_W,
+  wavBossW,
+  wavCannonX,
+  wavCoreOpen,
   WAV_CELL,
   WAV_COLS,
   WAV_DIVE_TICKS,
-  WAV_ROWS,
+
   WAV_SHIP_H,
   WAV_SHIP_W,
   wavShipY,
@@ -45,6 +54,11 @@ const BOUNCE_READ: Record<SkillLevel, number> = { weak: 0, average: 0.2, good: 0
 /** Fixes: levels that take a saucer only when it passes within SAUCER_NEAR px of the ship (elite policy). */
 const CHEAP_SAUCER: Record<SkillLevel, boolean> = { weak: false, average: false, good: false, great: false, near: false, elite: true, perfect: true };
 const SAUCER_NEAR = 60;
+/** wavRev 10: chance of aiming at a boss's open core, and at a cannon still firing, when deciding. */
+const CORE: Record<SkillLevel, number> = { weak: 0.05, average: 0.15, good: 0.4, great: 0.7, near: 0.9, elite: 1, perfect: 1 };
+const CANNON: Record<SkillLevel, number> = { weak: 0.05, average: 0.1, good: 0.3, great: 0.55, near: 0.8, elite: 1, perfect: 1 };
+/** wavRev 10 without the fixes: chance that, choosing a column, the player counts the bolts already in flight. */
+const MOVE_ON: Record<SkillLevel, number> = { weak: 0.05, average: 0.15, good: 0.35, great: 0.6, near: 0.8, elite: 1, perfect: 1 };
 const BOSS_MIN_X = 12;
 const BOSS_MAX_X = WAV_WORLD_W - 12 - WAV_BOSS_W;
 
@@ -97,6 +111,11 @@ export const bot: SkillBot = ({ game, seed, human, fixes }) => {
   let bossBounce = false;
   let countBolts = false;
   let bossAt = -1;
+  /** wavRev 10: what the player aims at on a boss (0/1 a cannon, 2 the core, 3 the hull), -1 undecided. */
+  let bossMode = -1;
+  /** wavRev 10 without the fixes: whether the player is counting bolts in flight (MOVE_ON), and when they next decide. */
+  let moveOn = false;
+  let moveOnAt = 0;
 
   return driveEvents(game, (s: WavState, t) => {
     history.push(s);
@@ -146,7 +165,7 @@ export const bot: SkillBot = ({ game, seed, human, fixes }) => {
         // Worth it only while it can still be caught up with.
         // Elite and flawless (fixes): a saucer is one ship's worth; go for it only when it passes close by, so no
         // shot at the formation or the boss is lost to the chase.
-        const reach = fixes && CHEAP_SAUCER[level] ? Math.min(speed * flight, SAUCER_NEAR) : speed * flight;
+        const reach = fixes && CHEAP_SAUCER[level] && !seen.x10 ? Math.min(speed * flight, SAUCER_NEAR) : speed * flight;
         if (aim > MIN_X - 10 && aim < MAX_X + 10 && Math.abs(aim - finger) < reach) {
           want = aim;
           chasing = true;
@@ -161,9 +180,39 @@ export const bot: SkillBot = ({ game, seed, human, fixes }) => {
           if (fixes) bossBounce = human.chance(BOUNCE_READ[level]);
         }
         const flight = (BOLT_Y0 - 84 - 48) / BOLT_SPEED;
-        const centre = seen.boss.x + WAV_BOSS_W / 2 + seen.boss.dir * lag;
-        want = centre + seen.boss.dir * flight * (1 + human.p.judgement * bossErr) + bossErr * WAV_BOSS_W * 0.15;
-        if (fixes) {
+        const w = seen.x10 ? wavBossW(seen.boss) : WAV_BOSS_W;
+        let offset = w / 2;
+        let spread = w * 0.15;
+        let weak = false;
+        if (seen.x10) {
+          // wavRev 10: weak points. Decide every half second: the core when it will be open as the bolt lands, else a cannon.
+          const guns = seen.boss.guns ?? [0, 0];
+          if ((t & 31) === 0 || bossMode < 0) {
+            const open = wavCoreOpen(seen.boss, Math.round(t + flight + lag * (1 + human.normal() * 0.3)));
+            bossMode = open && human.chance(CORE[level]) ? 2 : guns.some((g) => g > 0) && human.chance(CANNON[level]) ? (guns[0]! > 0 && (guns[1]! <= 0 || human.chance(0.5)) ? 0 : 1) : 3;
+          }
+          if (bossMode === 2) {
+            spread = human.p.aimSdPx * 0.8;
+            weak = true;
+          } else if ((bossMode === 0 || bossMode === 1) && guns[bossMode]! > 0) {
+            offset = wavCannonX(seen.boss, bossMode);
+            spread = human.p.aimSdPx * 0.8;
+            weak = true;
+          }
+        }
+        const centre = seen.boss.x + offset + seen.boss.dir * lag;
+        want = centre + seen.boss.dir * flight * (1 + human.p.judgement * bossErr) + bossErr * spread;
+        if (fixes && seen.x10) {
+          // wavRev 10 with the fixes: the same lead through the boss's turns, on this boss's width and weak point.
+          const ahead = (flight + lag) * (1 + human.p.judgement * bossErr);
+          let x = seen.boss.x + seen.boss.dir * ahead;
+          const maxX = WAV_WORLD_W - 12 - w;
+          if (bossBounce) {
+            if (x < BOSS_MIN_X) x = 2 * BOSS_MIN_X - x;
+            if (x > maxX) x = 2 * maxX - x;
+          }
+          want = x + offset + bossErr * human.p.aimSdPx * (weak ? 0.8 : 2.1);
+        } else if (fixes) {
           // Fixes: where the boss will be when the bolt arrives, through its turn at a wall for a player who reads it;
           // the aim's spread is the player's own (v1: 15 % of the boss's width at every level).
           const ahead = (flight + lag) * (1 + human.p.judgement * bossErr);
@@ -180,7 +229,7 @@ export const bot: SkillBot = ({ game, seed, human, fixes }) => {
     if (!chasing && !seen.boss) {
       // Columns that still hold a shape the bolts can reach: grid columns, or (wavRev 4
       // shapes) each x a ship sits at, its lowest ship first. `cell` is that ship's slot.
-      const live: { c: number; x: number; low: number; cell: number }[] = [];
+      let live: { c: number; x: number; low: number; cell: number }[] = [];
       const form = wavForm(seen);
       if (form) {
         const byX = new Map<number, number>();
@@ -194,7 +243,7 @@ export const bot: SkillBot = ({ game, seed, human, fixes }) => {
       } else
         for (let c = 0; c < WAV_COLS; c++) {
           let low = -1;
-          for (let r = WAV_ROWS - 1; r >= 0; r--) {
+          for (let r = Math.trunc(seen.shapes.length / WAV_COLS) - 1; r >= 0; r--) {
             const code = seen.shapes[r * WAV_COLS + c] ?? 0;
             if (code !== 0) {
               low = r;
@@ -216,6 +265,26 @@ export const bot: SkillBot = ({ game, seed, human, fixes }) => {
           return flying >= need;
         };
         for (let k = live.length - 1; k >= 0; k--) if (live.length > 1 && spent(live[k]!)) live.splice(k, 1);
+      }
+      if (seen.x10 && !fixes && live.length > 1) {
+        // wavRev 10 without the fixes: a column whose ships are all already covered by bolts in flight is spent.
+        if (t >= moveOnAt) {
+          moveOn = human.chance(MOVE_ON[level]);
+          moveOnAt = t + human.thinkTicks(700);
+        }
+        if (moveOn) {
+          const formNow = wavForm(seen);
+          const spent = (l: { c: number; x: number }) => {
+            let ships = 0;
+            seen.shapes.forEach((code, i) => {
+              if (code !== 0 && (formNow ? formNow[i]![0] === l.c : i % WAV_COLS === l.c)) ships++;
+            });
+            const up = seen.bolts.filter((b) => !b.sd && Math.abs(b.x / 256 - l.x) < WAV_CELL / 2 + 2).length;
+            return up >= ships;
+          };
+          const fresh = live.filter((l) => !spent(l));
+          if (fresh.length) live = fresh;
+        }
       }
       const colLive = live.some((l) => l.c === col);
       if ((!colLive && col >= 0) || t >= rethinkAt) {

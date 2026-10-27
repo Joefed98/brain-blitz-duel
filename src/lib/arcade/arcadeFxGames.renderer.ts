@@ -80,7 +80,11 @@ import { burstFloorY, burstGoldenCount, BURST_FLOOR_Y, BURST_LIVES, BURST_TALL_H
 import { SKYLINE_STREAK_FROM, SKYLINE_TALL_H, SKYLINE_WIND_FROM, SKYLINE_WORLD_H, SKYLINE_WORLD_W, skylineWorldH, type SkylineState } from "./skyline";
 import {
   crossColumnCentreFp,
+  crossGeomOf,
   crossKindCrossed,
+  crossMultiplierFor,
+  CROSS_KIND_ISLAND,
+  CROSS_X_WORLD_H,
   crossLaneCentre,
   CROSS_HUD_H,
   CROSS_KIND_CYCLE,
@@ -90,8 +94,8 @@ import {
   type CrossState,
 } from "./cross";
 import { JUNC_BUILD_EVERY, JUNC_BUILDS, JUNC_LIGHT_AT_V2, JUNC_WORLD_H, JUNC_WORLD_W, type JuncState } from "./junction";
-import { INK_LEVELS, INK_WORLD_H, INK_WORLD_W, type InkState } from "./inkBridge";
-import { wavShipY, wavWorldH, WAV_TALL_H, WAV_WORLD_H, WAV_WORLD_W, type WavState } from "./wavefront";
+import { inkBucketX, inkWorldH, INK_LEVELS, INK_TALL_H, INK_WORLD_H, INK_WORLD_W, type InkState } from "./inkBridge";
+import { wavShipY, wavWorldH, WAV_X_H, WAV_TALL_H, WAV_WORLD_H, WAV_WORLD_W, type WavState } from "./wavefront";
 import { ORBIT_WORLD_H, ORBIT_WORLD_W, type OrbitState } from "./orbit";
 import { orbitViewH, ORBIT_CAM_VIEW_H, ORBIT_CAM_VIEW_W, ORBIT_TALL_VIEW_H } from "./orbitCamera";
 import type { OrbitRev3State } from "./orbitRev3";
@@ -159,7 +163,7 @@ function bubSpecialPoint(s: BubState): { x: number; y: number } {
   return { x: bubCellX(row, cell % BUB_COLS), y: bubCellY(row, s.descents) };
 }
 import { SNIP_CONFIG, SNIP_COURSES, SNIP_EATEN, SNIP_H, SNIP_TALL_H, SNIP_X_LEVELS, SNIP_X_VIEW_H, snipCamera, snipWorldH, type SnipState } from "./snip";
-import { TILT_MAX_MAZES, TILT_WORLD_H, TILT_WORLD_W, type TiltState } from "./tilt";
+import { TILT_MAX_MAZES, TILT_X_H, TILT_WORLD_H, TILT_WORLD_W, type TiltState } from "./tilt";
 import { btWorldH, BT_BALLS, BT_H, BT_TALL_H, BT_V7_H, BT_W, type BtState } from "./ballTrack";
 import { wfWord, wfWorldH, WF_H, WF_H_V2, WF_PAR, WF_W, WF_WELL_Y, type WordfallState } from "./wordfall";
 import {
@@ -733,7 +737,8 @@ export const WAVEFRONT_FX: ArcadeFxSpec<WavState> = {
       kind: "clear",
       count: (s) => s.wavesCleared,
       at: (s) => ({ x: s.shipX, y: wavShipY(s) - 30 }),
-      label: (_s, n) => `WAVE ${n} CLEARED`,
+      // wavRev 10: the gunship after wave 3 counts as a wave; its banner names it, and the waves after it keep their own numbers.
+      label: (s, n) => (s.x10 && s.midKilled ? (n === 4 ? "GUNSHIP DOWN!" : `WAVE ${n - 1} CLEARED`) : `WAVE ${n} CLEARED`),
       sweep: true,
     },
     // wavRev 2: a diver shot down mid-dive, boss hits every 6, the boss destroyed (the final moment).
@@ -750,7 +755,7 @@ export const WAVEFRONT_FX: ArcadeFxSpec<WavState> = {
       kind: "streak",
       count: (s) => s.bossHits ?? 0,
       every: 6,
-      at: (s) => ({ x: (s.boss?.x ?? 131) + 64, y: 150 }),
+      at: (s) => ({ x: (s.boss?.x ?? 131) + (s.boss?.mid ? 48 : 64), y: 150 }),
       label: (_s, n) => `BOSS HIT ×${n}`,
     },
     {
@@ -862,18 +867,44 @@ export const CROSS_FX: ArcadeFxSpec<CrossState> = {
     {
       kind: "pop",
       count: (s) => crossKindCrossed(s, CROSS_KIND_CYCLE),
-      at: (s) => ({ x: px(crossColumnCentreFp(s.col)), y: crossLaneCentre(s.lane) - 20 }),
+      at: (s) => ({ x: px(crossColumnCentreFp(s.col)), y: crossLaneCentre(s.lane, crossGeomOf(s)) - 20 }),
       label: () => "PAST THE BIKES!",
     },
     {
       kind: "pop",
       count: (s) => crossKindCrossed(s, CROSS_KIND_ROADWORKS),
-      at: (s) => ({ x: px(crossColumnCentreFp(s.col)), y: crossLaneCentre(s.lane) - 20 }),
+      at: (s) => ({ x: px(crossColumnCentreFp(s.col)), y: crossLaneCentre(s.lane, crossGeomOf(s)) - 20 }),
       label: () => "THROUGH THE CONES!",
+    },
+    // crossRev 9 (counts stay 0 on every earlier round): a coin collected, the island reached, the streak paying.
+    {
+      kind: "pop",
+      count: (s) => s.coinTotal ?? 0,
+      at: (s) => ({ x: px(crossColumnCentreFp(s.col)), y: crossLaneCentre(s.lane, crossGeomOf(s)) - 20 }),
+      label: () => "COIN!",
+    },
+    {
+      kind: "pop",
+      count: (s) => (s.wide ? crossKindCrossed(s, CROSS_KIND_ISLAND) : 0),
+      at: (s) => ({ x: px(crossColumnCentreFp(s.col)), y: crossLaneCentre(s.lane, crossGeomOf(s)) - 20 }),
+      label: () => "CHECKPOINT!",
+    },
+    {
+      kind: "streak",
+      count: (s) => s.streakPts ?? 0,
+      at: () => ({ x: CROSS_WORLD_W / 2, y: CROSS_HUD_H + 60 }),
+      label: (s) => `STREAK ×${crossMultiplierFor(s.streak ?? 0)}`,
+    },
+    // crossRev 9 (x200 addendum): a close call, a hop landed just behind a passing vehicle.
+    {
+      kind: "pop",
+      count: (s) => s.closeCalls ?? 0,
+      at: (s) => ({ x: px(crossColumnCentreFp(s.col)), y: crossLaneCentre(s.lane, crossGeomOf(s)) - 20 }),
+      label: () => "CLOSE CALL!",
     },
   ],
   // Where the walker was hit (the frame before it went back to the kerb).
-  misses: [{ count: (s) => -s.lives, at: (s, before) => { const w = before ?? s; return { x: px(crossColumnCentreFp(w.col)), y: crossLaneCentre(w.lane) }; } }],
+  misses: [{ count: (s) => -s.lives, at: (s, before) => { const w = before ?? s; return { x: px(crossColumnCentreFp(w.col)), y: crossLaneCentre(w.lane, crossGeomOf(w)) }; } }],
 };
 
 export const JUNCTION_FX: ArcadeFxSpec<JuncState> = {
@@ -933,6 +964,26 @@ export const INKBRIDGE_FX: ArcadeFxSpec<InkState> = {
       kind: "final",
       count: (s) => (s.levels >= INK_LEVELS ? 1 : 0),
       label: () => "ALL 10 LEVELS!",
+    },
+    {
+      // inkRev 10: the coin potted after bouncing off a cloud (after the older events, so replay moments' indexes stay put).
+      kind: "combo",
+      count: (s) => s.tricks ?? 0,
+      at: (s) => {
+        const lvl = s.list[Math.max(0, s.level - (s.ended ? 0 : 1))];
+        return lvl ? { x: inkBucketX(lvl, s.flashTick), y: lvl.bucketY - 18 } : null;
+      },
+      label: () => "TRICK SHOT!",
+    },
+    {
+      // inkRev 10: the coin potted through the run's shamrock.
+      kind: "perfect",
+      count: (s) => s.shamrocks ?? 0,
+      at: (s) => {
+        const lvl = s.list[Math.max(0, s.level - (s.ended ? 0 : 1))];
+        return lvl?.shamrock ? { x: lvl.shamrock.x, y: lvl.shamrock.y } : null;
+      },
+      label: () => "SHAMROCK +20!",
     },
   ],
   // A failed drop (off the bridge or onto a block): the red flash the renderer draws, kind 2.
@@ -1463,6 +1514,9 @@ export const BREAKER_FX_DEEP: ArcadeFxSpec<BrkState> = {
   ],
 };
 /** The spec a stored round draws with: the expansion's own, else the stored height's. */
+/** Jaywalk: crossRev 9's taller world (the spec rooms deal today); earlier rounds draw through CROSS_FX. */
+export const crossFxFor = (s: CrossState): ArcadeFxSpec<CrossState> => fxSpecAt(CROSS_FX, crossGeomOf(s).worldH);
+export const CROSS_FX_TALL = fxSpecAt(CROSS_FX, CROSS_X_WORLD_H);
 export const breakerFxFor = (s: BrkState): ArcadeFxSpec<BrkState> => (s.deep ? BREAKER_FX_DEEP : fxSpecAt(BREAKER_FX, brkWorldH(s)));
 /**
  * Expansion E9 (26 Oct 2026, docs/expansions/e9.md): rallyRev 10's 420 × 784 court. The original events keep their
@@ -1541,9 +1595,16 @@ export const SWING_FX_V13: ArcadeFxSpec<SwingState> = {
   ],
 };
 export const swingFxFor = (s: SwingState): ArcadeFxSpec<SwingState> => (s.expand ? SWING_FX_V13 : fxSpecAt(SWING_FX, swingWorldH(s)));
-export const orbit3FxFor = (s: OrbitRev3State): ArcadeFxSpec<OrbitRev3State> => fxSpecAt(ORBIT3_FX, orbitViewH(s));
+/** The live round's view size on orbitRev 12 (the expansion to 200), with ORBIT_FX's events (ARCADE_FX_SPECS). */
+const ORBIT_FX_XP_VIEW: ArcadeFxSpec<OrbitState> = { ...ORBIT_FX, width: 450, height: 782 };
+/** orbitRev 12 (the expansion to 200): the same events in the wider 450 × 782 view. */
+export const ORBIT3_FX_XP: ArcadeFxSpec<OrbitRev3State> = { ...ORBIT3_FX, width: 450, height: 782 };
+export const orbit3FxFor = (s: OrbitRev3State): ArcadeFxSpec<OrbitRev3State> => (s.viewW ? ORBIT3_FX_XP : fxSpecAt(ORBIT3_FX, orbitViewH(s)));
 export const ORBIT3_FX_TALL = fxSpecAt(ORBIT3_FX, ORBIT_TALL_VIEW_H);
 export const balltrackFxFor = (s: BtState): ArcadeFxSpec<BtState> => fxSpecAt(BALLTRACK_FX, btWorldH(s));
+/** x200 (Oct 2026): Rainbow Bridge inkRev 10's taller world draws through the spec at its own height. */
+export const inkBridgeFxFor = (s: InkState): ArcadeFxSpec<InkState> => fxSpecAt(INKBRIDGE_FX, inkWorldH(s));
+export const INKBRIDGE_FX_TALL = fxSpecAt(INKBRIDGE_FX, INK_TALL_H);
 export const BALLTRACK_FX_TALL = fxSpecAt(BALLTRACK_FX, BT_TALL_H);
 
 /* ================================ Pinball ================================ */
@@ -1592,13 +1653,15 @@ export const ARCADE_FX_SPECS = {
   beat: BEAT_FX_TALL,
   snake: SNAKE_FX_V9,
   burst: BURST_FX_CLEAN,
-  wavefront: WAVEFRONT_FX_TALL,
-  // The live round's view (orbitRev 8); rev 1/2 rounds draw through ORBIT_FX and rev 3–7 through ORBIT3_FX.
-  orbit: fxSpecAt(ORBIT_FX, ORBIT_TALL_VIEW_H),
+  // The live round's world (wavRev 10, the 200 expansion); older rounds draw through wavefrontFxFor(state).
+  wavefront: fxSpecAt(WAVEFRONT_FX, WAV_X_H),
+  // The live round's view (orbitRev 12's 450 × 782; orbitRev 8–10 were 390 × 650); rev 1/2 rounds draw through ORBIT_FX
+  // and rev 3 and later through ORBIT3_FX (orbit3FxFor).
+  orbit: ORBIT_FX_XP_VIEW,
   skyline: SKYLINE_FX_SKY,
-  cross: CROSS_FX,
+  cross: CROSS_FX_TALL,
   junction: JUNCTION_FX,
-  inkbridge: INKBRIDGE_FX,
+  inkbridge: INKBRIDGE_FX_TALL,
   slice: SLICE_FX_V9,
   bintoss: BINTOSS_FX_V7,
   bullseye: BULLSEYE_FX_V8,
@@ -1608,7 +1671,8 @@ export const ARCADE_FX_SPECS = {
   swing: SWING_FX_V13,
   // The live round's view (snipRev 11); older rounds draw through their state's spec (snipFxFor).
   snip: fxSpecAt(SNIP_FX, SNIP_X_VIEW_H),
-  tilt: TILT_FX,
+  // The live round's view (tiltRev 8's taller world); its art draws through TILT_X_FX, older rounds through TILT_FX.
+  tilt: fxSpecAt(TILT_FX, TILT_X_H),
   // Expansion E6: the worlds rooms deal now (Ball Tracker's 13-row board, Gemstone's 720 px world).
   balltrack: fxSpecAt(BALLTRACK_FX, BT_V7_H),
   matchup: fxSpecAt(MATCHUP_FX, MATCHUP_V9_WORLD_H),

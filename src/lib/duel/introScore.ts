@@ -1,9 +1,9 @@
 import { CLASH_DEPTH_MAX_WRONG, CLASH_QUEUE } from "@/lib/arcade/colourClash";
 import { BULLSEYE_INNER_BULL_POINTS, BULLSEYE_RING_VALUES } from "@/lib/arcade/bullseye";
 import { BINTOSS_FAR_POINTS, BINTOSS_THROWS } from "@/lib/arcade/binToss";
-import { INK_LEVELS } from "@/lib/arcade/inkBridge";
+import { INK_FEATURE_MAX, INK_LEVELS } from "@/lib/arcade/inkBridge";
 import { SWING_FINISH_M } from "@/lib/arcade/swing";
-import { TILT_MAX_MAZES } from "@/lib/arcade/tilt";
+import { TILT_X_MAZES } from "@/lib/arcade/tilt";
 import { bandsIntro } from "./puzzleBandsText";
 import { depthIntro as logicDepthIntro } from "./logicDepthText";
 import { wordSearchBonusIntro } from "./wordSearchText";
@@ -106,22 +106,22 @@ function introScoreTemplates(): Record<PuzzleType, string> {
     bullseye: `Rings ${BULLSEYE_RING_VALUES.join(" / ")}, inner bull ${BULLSEYE_INNER_BULL_POINTS}; streaks, dead-centre add more. Up to {max}.`,
     matchup: "Longer lines score more; goals, ice, treasure and cascades add more. Up to {max}.",
     snake: "Points per star; gold stars, combos, lane rides and warps add bonus. Up to {max}.",
-    cross: "Points for each lane crossed, more for each full crossing. Up to {max}.",
+    cross: "Points for rows and crossings; coins, close calls and clean streaks add more. Up to {max}.",
     breaker: "Bricks score; gold and combos add up to 50. Clear all 105 quickly for up to {max}.",
     rally: "Gold-ball hits, each pink target and gold target score; blue returns a little. Up to {max}.",
     pinball: "Table points: ramps, J-O-U-L-Z, jackpots and skill shots score big. Up to {max}.",
     bubble: "Clear bubbles; falling chests, bank shots and combos add more. Up to {max}.",
     slice: "Food by combo; gold fruit, tickets and dodges add more. Chilli: lose 10. Up to {max}.",
     beat: "Notes hit in time score; fever, gold notes, double taps and streaks add bonus. Up to {max}.",
-    wavefront: "Ships, armour hits, saucers, waves, boss hits. Destroy the boss fast for up to 10 more.",
+    wavefront: "Ships, waves, a fast boss kill; streaks, precise weak-point hits, power-ups: up to {max}.",
     flip: "Time and stars score; trails, sweet spots, double flips, zones and checkpoints: up to {max}.",
     junction: "Points for each car and bus through, ± for ambulances. Last the minute for 10 more.",
-    inkbridge: `Points for each level and gold star. All ${INK_LEVELS} levels quickly: up to {max}.`,
+    inkbridge: `Levels score; stars, coins, shamrock: up to ${INK_FEATURE_MAX} more. All ${INK_LEVELS} levels quickly: up to {max}.`,
     burst: "Atoms score; a lost life costs 5. Last 90 s for 10 more; clean waves add. Up to {max}.",
-    orbit: "Points for each planet you reach. Reach the sun quickly for up to {max}.",
+    orbit: "Planets and the sun, plus stardust, slingshots, fields and perfect orbits: up to {max}.",
     snip: "Points for fruit fed and leaves; golden apples, few cuts and speed add more. Up to {max}.",
     swing: `Distance and stars. Reach ${SWING_FINISH_M} metres for 10 more. Gems, gates, ledges, pars: up to {max}.`,
-    tilt: `Points for each maze, how close you get, and stars. All ${TILT_MAX_MAZES} quickly: up to {max}.`,
+    tilt: `Mazes, progress and stars; quick stars and pace add more. All ${TILT_X_MAZES} quickly: up to {max}.`,
     balltrack: `Points per marble home; gold, boosted and in-a-row marbles add more. Up to {max}.`,
     swerve: arcadeOpen("each coin you collect"),
     dual: "The longer both runners survive, the more you score. The full minute is {max}.",

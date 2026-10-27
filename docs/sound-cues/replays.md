@@ -89,6 +89,10 @@ game the round was.
 | `cross.crossing` | Road crossed: the clip reaches the moment's key tick | instant (the moment lands; about 0.5 s of half-speed play follows) |
 | `cross.bikes` | Past the cyclists: the clip reaches the moment's key tick | instant (the moment lands; about 0.5 s of half-speed play follows) |
 | `cross.cones` | Through the roadworks: the clip reaches the moment's key tick | instant (the moment lands; about 0.5 s of half-speed play follows) |
+| `cross.coin` | Gold coin collected (crossRev 9): the clip reaches the moment's key tick | instant (the moment lands; about 0.5 s of half-speed play follows) |
+| `cross.checkpoint` | Checkpoint island reached (crossRev 9): the clip reaches the moment's key tick | instant (the moment lands; about 0.5 s of half-speed play follows) |
+| `cross.streak` | Streak multiplier up (crossRev 9): the clip reaches the moment's key tick | instant (the moment lands; about 0.5 s of half-speed play follows) |
+| `cross.close-call` | Close call (crossRev 9): the clip reaches the moment's key tick | instant (the moment lands; about 0.5 s of half-speed play follows) |
 | `junction.ambulance` | Ambulance through: the clip reaches the moment's key tick | instant (the moment lands; about 0.5 s of half-speed play follows) |
 | `junction.cleared` | Cars cleared (every 10): the clip reaches the moment's key tick | instant (the moment lands; about 0.5 s of half-speed play follows) |
 | `junction.bus` | Bus through: the clip reaches the moment's key tick | instant (the moment lands; about 0.5 s of half-speed play follows) |
@@ -96,6 +100,8 @@ game the round was.
 | `inkbridge.level` | Level cleared: the clip reaches the moment's key tick | instant (the moment lands; about 0.5 s of half-speed play follows) |
 | `inkbridge.gold-star` | Coin through the gold star: the clip reaches the moment's key tick | instant (the moment lands; about 0.5 s of half-speed play follows) |
 | `inkbridge.all-levels` | All 10 levels: the clip reaches the moment's key tick | instant (the moment lands; about 0.5 s of half-speed play follows) |
+| `inkbridge.trick-shot` | Trick shot off a bounce cloud: the clip reaches the moment's key tick | instant (the moment lands; about 0.5 s of half-speed play follows) |
+| `inkbridge.shamrock-moment` | Coin through the shamrock: the clip reaches the moment's key tick | instant (the moment lands; about 0.5 s of half-speed play follows) |
 | `slice.combo` | Combo multiplier: the clip reaches the moment's key tick | instant (the moment lands; about 0.5 s of half-speed play follows) |
 | `slice.frenzy` | Sauce frenzy: the clip reaches the moment's key tick | instant (the moment lands; about 0.5 s of half-speed play follows) |
 | `slice.simmer` | Simmer (slow time): the clip reaches the moment's key tick | instant (the moment lands; about 0.5 s of half-speed play follows) |

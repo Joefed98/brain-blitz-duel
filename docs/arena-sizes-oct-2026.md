@@ -33,9 +33,9 @@ revisions keep their own world in reveals and replays.
 | Wavefront | 390x730 | 375x591 → 316x591 | 390x624 → 333x624 | 390x768 → 390x730 | 414x772 → 412x772 | 430x856 → 430x805 | 1280x724 → 387x724 | 1.000x | 60px | 0px | 38px | 0px | - |
 | Orbit | 390x650 | 375x539 → 323x539 | 390x572 → 343x572 | 390x716 → 390x650 | 414x720 → 414x690 | 430x804 → 430x717 | 1280x672 → 403x672 | 1.000x | 60px | 0px | 66px | 0px | Orbit's SET CHECKPOINT (44px row): 16px |
 | High Rise | 390x735 | 375x591 → 314x591 | 390x624 → 331x624 | 390x768 → 390x735 | 414x772 → 410x772 | 430x856 → 430x810 | 1280x724 → 384x724 | 1.000x | 60px | 0px | 33px | 0px | - |
-| Jaywalk | 390x580 | 375x591 → 375x558 | 390x624 → 390x580 | 390x768 → 390x580 | 414x772 → 414x616 | 430x856 → 430x639 | 1280x724 → 487x724 | 1.000x | 60px | 0px | 188px | 0px | - |
+| Jaywalk | 390x727 | 375x591 → 317x591 | 390x624 → 335x624 | 390x768 → 390x727 | 414x772 → 414x772 | 430x856 → 430x802 | 1280x724 → 388x724 | 1.000x | 60px | 0px | 41px | 0px | - |
 | Junction | 390x620 | 375x591 → 372x591 | 390x624 → 390x620 | 390x768 → 390x620 | 414x772 → 414x658 | 430x856 → 430x684 | 1280x724 → 455x724 | 1.000x | 60px | 0px | 148px | 0px | - |
-| Rainbow Bridge | 390x620 | 375x535 → 337x535 | 390x568 → 357x568 | 390x712 → 390x620 | 414x716 → 414x658 | 430x800 → 430x684 | 1280x668 → 420x668 | 1.000x | 60px | 0px | 92px | 0px | Rainbow Bridge's Undo / Reset / Release / Drop again (48px): 16px |
+| Rainbow Bridge | 390x674 | 375x535 → 310x535 | 390x568 → 329x568 | 390x712 → 390x674 | 414x716 → 414x715 | 430x800 → 430x743 | 1280x668 → 387x668 | 1.000x | 60px | 0px | 38px | 0px | Rainbow Bridge's Undo / Reset / Release / Drop again (48px): 16px |
 | Slice | 430x805 | 375x591 → 316x591 | 390x624 → 333x624 | 390x768 → 390x730 | 414x772 → 412x772 | 430x856 → 430x805 | 1280x724 → 387x724 | 0.907x | 60px | 0px | 38px | 0px | - |
 | Swish | 430x728 | 375x519 → 307x519 | 390x552 → 326x552 | 390x696 → 390x660 | 414x700 → 413x700 | 430x784 → 430x728 | 1280x652 → 385x652 | 0.907x | 60px | 0px | 36px | 0px | Swish's cancel strip (72px): 16px |
 | Flightpath | 390x560 | 375x591 → 375x538 | 390x624 → 390x560 | 390x768 → 390x560 | 414x772 → 414x594 | 430x856 → 430x617 | 1280x724 → 504x724 | 1.000x | 60px | 0px | 208px | 0px | - |
@@ -77,8 +77,8 @@ stars, walkers, lava, reactions) that holds still under reduced motion or reduce
 | Wavefront | 375x591 → 316x591 | 390x624 → 333x624 | 390x768 → 390x730 | 414x772 → 412x772 | 430x856 → 430x805 | 1280x724 → 387x724 | the night sky's stars below and beside the world |
 | Orbit | 375x539 → 323x539 | 390x572 → 343x572 | 390x716 → 390x650 | 414x720 → 414x690 | 430x804 → 430x717 | 1280x672 → 403x672 | deep space with light stars under SET CHECKPOINT |
 | High Rise | 375x591 → 314x591 | 390x624 → 331x624 | 390x768 → 390x735 | 414x772 → 410x772 | 430x856 → 430x810 | 1280x724 → 384x724 | a dark road under the tower's base block, softly lit by street lamps |
-| Jaywalk | 375x591 → 375x558 | 390x624 → 390x580 | 390x768 → 390x580 | 414x772 → 414x616 | 430x856 → 430x639 | 1280x724 → 487x724 | the start pavement runs on between grass verges to a grass strip, two or three people strolling along it (none under reduced motion) |
-| Rainbow Bridge | 375x535 → 337x535 | 390x568 → 357x568 | 390x712 → 390x620 | 414x716 → 414x658 | 430x800 → 430x684 | 1280x668 → 420x668 | grass and hillside below the ground (sky, hills and ground beside the world) |
+| Jaywalk | 375x591 → 317x591 | 390x624 → 335x624 | 390x768 → 390x727 | 414x772 → 414x772 | 430x856 → 430x802 | 1280x724 → 388x724 | the start pavement runs on between grass verges to a grass strip, two or three people strolling along it (none under reduced motion) |
+| Rainbow Bridge | 375x535 → 310x535 | 390x568 → 329x568 | 390x712 → 390x674 | 414x716 → 414x715 | 430x800 → 430x743 | 1280x668 → 387x668 | grass and hillside below the ground (sky, hills and ground beside the world) |
 | Slice | 375x591 → 316x591 | 390x624 → 333x624 | 390x768 → 390x730 | 414x772 → 412x772 | 430x856 → 430x805 | 1280x724 → 387x724 | a faded marble worktop under the chopping board |
 | Swish | 375x519 → 307x519 | 390x552 → 326x552 | 390x696 → 390x660 | 414x700 → 413x700 | 430x784 → 430x728 | 1280x652 → 385x652 | the counter's front, a kick board and the fairground floor (sky and counter beside the world) |
 | Flightpath | 375x591 → 375x538 | 390x624 → 390x560 | 390x768 → 390x560 | 414x772 → 414x594 | 430x856 → 430x617 | 1280x724 → 504x724 | the counter's front, a kick board and the fairground floor |
@@ -113,9 +113,9 @@ than half hidden; Hover's world is cut the same way, its disc at the top).
 | Wavefront | 414x724 → 387x724, 64px | 414x772 → 412x772, 16px | world 32px |
 | Orbit | 414x672 → 403x672, 64px | 414x720 → 414x690, 16px | world none, Orbit's SET CHECKPOINT (44px row) 32px |
 | High Rise | 414x724 → 384x724, 64px | 414x772 → 410x772, 16px | world 32px |
-| Jaywalk | 414x724 → 414x616, 64px | 414x772 → 414x616, 16px | world none |
+| Jaywalk | 414x724 → 388x724, 64px | 414x772 → 414x772, 16px | world 32px |
 | Junction | 414x724 → 414x658, 64px | 414x772 → 414x658, 16px | world none |
-| Rainbow Bridge | 414x668 → 414x658, 64px | 414x716 → 414x658, 16px | world none, Rainbow Bridge's Undo / Reset / Release / Drop again (48px) 32px |
+| Rainbow Bridge | 414x668 → 387x668, 64px | 414x716 → 414x715, 16px | world none, Rainbow Bridge's Undo / Reset / Release / Drop again (48px) 32px |
 | Slice | 414x724 → 387x724, 64px | 414x772 → 412x772, 16px | world 32px |
 | Swish | 414x652 → 385x652, 64px | 414x700 → 413x700, 16px | world none, Swish's cancel strip (72px) 32px |
 | Flightpath | 414x724 → 414x594, 64px | 414x772 → 414x594, 16px | world none |
@@ -149,9 +149,9 @@ bottom; the spare space was the game's arena fill or the page colour. Same arith
 | Wavefront | 367x543 → 290x543 | 382x576 → 308x576 | 382x720 → 382x715 | 422x808 → 422x790 | 1272x676 → 361x676 |
 | Orbit | 367x455 → 273x455 | 382x488 → 293x488 | 382x632 → 379x632 | 422x720 → 422x703 | 1272x588 → 353x588 |
 | High Rise | 367x543 → 288x543 | 382x576 → 306x576 | 382x720 → 382x720 | 422x808 → 422x795 | 1272x676 → 359x676 |
-| Jaywalk | 367x543 → 365x543 | 382x576 → 382x568 | 382x720 → 382x568 | 422x808 → 422x628 | 1272x676 → 455x676 |
+| Jaywalk | 367x543 → 291x543 | 382x576 → 309x576 | 382x720 → 382x712 | 422x808 → 422x787 | 1272x676 → 363x676 |
 | Junction | 367x543 → 342x543 | 382x576 → 362x576 | 382x720 → 382x607 | 422x808 → 422x671 | 1272x676 → 425x676 |
-| Rainbow Bridge | 367x483 → 304x483 | 382x516 → 325x516 | 382x660 → 382x607 | 422x748 → 422x671 | 1272x616 → 387x616 |
+| Rainbow Bridge | 367x483 → 279x483 | 382x516 → 299x516 | 382x660 → 382x660 | 422x748 → 422x729 | 1272x616 → 356x616 |
 | Slice | 367x543 → 290x543 | 382x576 → 308x576 | 382x720 → 382x715 | 422x808 → 422x790 | 1272x676 → 361x676 |
 | Swish | 367x471 → 278x471 | 382x504 → 298x504 | 382x648 → 382x647 | 422x736 → 422x714 | 1272x604 → 357x604 |
 | Flightpath | 367x543 → 367x527 | 382x576 → 382x549 | 382x720 → 382x549 | 422x808 → 422x606 | 1272x676 → 471x676 |

@@ -148,6 +148,10 @@ export const MOMENT_TABLE: readonly MomentRow[] = [
   fx("cross", 0, "clear", "crossing", 35, "Road crossed"),
   fx("cross", 1, "pop", "bikes", 20, "Past the cyclists"),
   fx("cross", 2, "pop", "cones", 20, "Through the roadworks"),
+  fx("cross", 3, "pop", "coin", 15, "Gold coin collected (crossRev 9)"),
+  fx("cross", 4, "pop", "checkpoint", 20, "Checkpoint island reached (crossRev 9)"),
+  fx("cross", 5, "streak", "streak", 40, "Streak multiplier up (crossRev 9)"),
+  fx("cross", 6, "pop", "close-call", 20, "Close call (crossRev 9)"),
   // Junction (practice only)
   fx("junction", 0, "perfect", "ambulance", 45, "Ambulance through"),
   fx("junction", 1, "streak", "cleared", 25, "Cars cleared (every 10)"),
@@ -158,6 +162,8 @@ export const MOMENT_TABLE: readonly MomentRow[] = [
   fx("inkbridge", 0, "clear", "level", 35, "Level cleared"),
   fx("inkbridge", 1, "perfect", "gold-star", 45, "Coin through the gold star"),
   fx("inkbridge", 2, "final", "all-levels", 95, "All 10 levels", "finish"),
+  fx("inkbridge", 3, "combo", "trick-shot", 50, "Trick shot off a bounce cloud"),
+  fx("inkbridge", 4, "perfect", "shamrock-moment", 60, "Coin through the shamrock"),
   // Slice
   fx("slice", 0, "combo", "combo", 25, "Combo multiplier"),
   fx("slice", 1, "perfect", "frenzy", 30, "Sauce frenzy"),

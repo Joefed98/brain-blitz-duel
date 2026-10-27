@@ -39,7 +39,7 @@ import {
   type WavState,
 } from "../src/lib/arcade/wavefront";
 import { encodeWavefrontRun, replayWavefrontRun } from "../src/lib/duel/wavefront";
-import { orbitCanSetCheckpoint, orbitCheckpoint, ORBIT_INPUT_CHECKPOINT, ORBIT_INPUT_TAP, ORBIT_REV_BAND, ORBIT_REV_SWEPT, ORBIT_REV_TUNED, ORBIT_TOTAL, orbitPos } from "../src/lib/arcade/orbit";
+import { orbitCanSetCheckpoint, orbitCheckpoint, ORBIT_INPUT_CHECKPOINT, ORBIT_INPUT_TAP, ORBIT_REV_BAND, ORBIT_REV_TUNED, ORBIT_REV_XP, ORBIT_TOTAL, orbitPos } from "../src/lib/arcade/orbit";
 import {
   decodeOrbitHoles,
   decodeRev3Planets,
@@ -75,7 +75,7 @@ import {
 import { encodeSwingRun, replaySwingRun } from "../src/lib/duel/swing";
 import { SWING_V4_BANK } from "../src/lib/duel/swingBankV4.server";
 import { proveSwingSeedV4 } from "../src/lib/duel/swingProof.server";
-import { tiltCupReachable, tiltGameFor, tiltSeedCupsReachable, TILT_REV_BAND } from "../src/lib/arcade/tilt";
+import { tiltCupReachable, tiltDealableX, tiltGameFor, tiltSeedCupsReachable, TILT_REV_BAND, TILT_REV_EXPAND } from "../src/lib/arcade/tilt";
 import { generateOrbit, generateSkyline, generateSwing, generateTilt, generateWavefront } from "../src/lib/duel/arcade.server";
 import { skylineGameFor, SKYLINE_REV_EXPAND, SKYLINE_REV_TALL } from "../src/lib/arcade/skyline";
 import { APP_FLAG_LOGO_URL } from "../src/lib/brand";
@@ -134,7 +134,9 @@ if (want("skyline")) {
 if (want("wavefront")) {
   section("Wavefront wavRev 4: shaped formations");
   // Taller worlds batch 1 (16 Oct 2026) moved Wavefront on to wavRev 6 (arcade-tuning-g1-check).
-  ok(playRevOf("wavefront", generateWavefront().wavRev) === WAV_REV_SHAPES + 2, "new Wavefront rounds are stamped wavRev 6 (the taller world, after Tuning C's wavRev 5 and wavRev 4)");
+  // Taller worlds batch 1 moved Wavefront on to wavRev 6, and the 200 expansion (26 Oct 2026) on to wavRev 10
+  // (wavefront-expand-check), which still flies the shapes (with escorts).
+  ok(generateWavefront().wavRev === WAV_REV_SHAPES + 6 && wavefrontGameFor(WAV_REV_SHAPES + 6).init(1).shaped === 1, "new Wavefront rounds are stamped wavRev 10 (the expansion, after the taller world's wavRev 6), still shaped");
   ok(puzzleUsesBands({ type: "wavefront", wavRev: WAV_REV_SHAPES }) && puzzleUsesBands({ type: "wavefront", wavRev: WAV_REV_BAND }), "wavRev 3 and 4 both score on the band curve");
   for (let wave = 2; wave <= WAV_V2_WAVES; wave++) {
     const form = WAV_FORMS[wave]!;
@@ -226,7 +228,8 @@ if (want("orbit")) {
     const p = generateOrbit();
     // Tuning F (Oct 2026) moved rooms on to orbitRev 7 (rev-6 play with swept black holes), and taller worlds batch 3
     // (16 Oct 2026) to orbitRev 8 (rev 7 in a taller view); arcade-tuning-f-check and arcade-tuning-g3-check cover them.
-    ok(playRevOf("orbit", p.orbitRev) === ORBIT_REV_SWEPT + 1 && p.planets?.length === ORBIT_TOTAL + 1, "new Orbit rounds are stamped orbitRev 8 (rev 7 in the taller view) with their planets");
+    // The expansion to 200 (docs/expansions/x200-orbit.md) then moved rooms on to orbitRev 12; orbit-expand-check covers it.
+    ok(p.orbitRev === ORBIT_REV_XP && p.planets?.length === ORBIT_TOTAL + 1, "new Orbit rounds are stamped orbitRev 12 (the expansion to 200) with their planets");
   }
   const bankBySeed = new Map(ORBIT_REV3_BANK.map((e) => [e.seed, e]));
   const courses = ORBIT_HOLE_BANK.slice(0, FULL ? 40 : 6);
@@ -411,8 +414,10 @@ if (want("swing")) {
 if (want("tilt")) {
   section("Tilt: every cup reachable, the orange marble always drawn");
   const p = generateTilt();
-  // Tuning C moved new Tilt rounds on to tiltRev 4 (arcade-tuning-c-check); every cup stays reachable.
-  ok(playRevOf("tilt", p.tiltRev) === TILT_REV_BAND + 1 && tiltSeedCupsReachable(p.seed), "new Tilt rounds are stamped tiltRev 4 (Tuning C) and deal a seed with every cup reachable");
+  // Tuning C moved new Tilt rounds on to tiltRev 4 (arcade-tuning-c-check), the expansion (26 Oct 2026) on to tiltRev 8
+  // (tilt-expand-check); every cup stays reachable.
+  ok(p.tiltRev === TILT_REV_EXPAND && tiltDealableX(p.seed), "new Tilt rounds are stamped tiltRev 8 (the expansion) and deal a seed with every key and cup reachable");
+  ok(TILT_REV_BAND + 1 === 4 && typeof tiltSeedCupsReachable === "function", "tiltRev 4 still follows the band revision");
   const n = FULL ? 40_000 : 4_000;
   let bad = 0;
   let amber = 0;

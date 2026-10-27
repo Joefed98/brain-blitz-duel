@@ -231,8 +231,9 @@ async function runGame(spec: GameSpec): Promise<RunRecord[]> {
       const bot = level === "random" ? bots.random : bots.bot;
       if (!bot) continue;
       for (let n = FROM; n < FROM + SEEDS; n++) {
-        // A game whose expansion deals from its own bank maps n to a course per revision (Grappler, games.ts).
-        const seed = spec.seedForRev?.(n, rev) ?? spec.seedFor(n);
+        // A game whose expansion deals from its own bank maps n to a course per revision (Grappler, games.ts); --rev=x
+        // plays a world expansion's own bank (seedForX) otherwise.
+        const seed = spec.seedForRev?.(n, rev) ?? (REV_MODE === "x" && spec.seedForX ? spec.seedForX(n) : spec.seedFor(n));
         const rec = playOne(spec, bot, rev, which, level, n, seed);
         if (SAVE_DIR) {
           mkdirSync(`${SAVE_DIR}/${spec.type}`, { recursive: true });

@@ -12,8 +12,16 @@
  * for the players who go for them, and at forks a weaker player sometimes
  * misreads a long dead-end branch as the way on, rolls down it and stops to
  * rethink. A slip is a moment of tilting the wrong way.
+ *
+ * tiltRev 8 (the expansion, docs/expansions/x200-tilt.md; every addition below is on tiltRev 8 states only, so
+ * older revisions play exactly as before): a shut gate is a wall until its key is taken, so a marble whose cup is
+ * cut off goes for the nearest key; quick stars are taken first (by the players who go for them, while their
+ * window still has time); a skilled player anticipates the roll since the eye last saw it (they know their own
+ * tilt); a fall sends the marble back to its start (avoided like the old run-ending fall, but weighed as the time
+ * it costs when the player is stuck), a hole fallen into is passed slowly afterwards, and the marble is not rolled
+ * into its cup while the player is on the way to a star or key.
  */
-import { tiltCellCentre, tiltStarPoint, TILT_INPUT_DRAG, TILT_MAX_MAZES, TILT_RUN_TICKS, TILT_WORLD_W, type Maze, type TiltState } from "../../../src/lib/arcade/tilt";
+import { tiltCellCentre, tiltQuickFullLeftX, tiltQuickLeftX, tiltStarPoint, TILT_INPUT_DRAG, TILT_MAX_MAZES, TILT_RUN_TICKS, TILT_WORLD_W, type Maze, type TiltState } from "../../../src/lib/arcade/tilt";
 import { driveEvents, type SkillBot } from "../bot";
 import type { SkillLevel } from "../human";
 
@@ -49,6 +57,31 @@ const SKIP_MOUTH: Record<SkillLevel, boolean> = { weak: false, average: false, g
 /** Chance of detouring for each bonus star. */
 const STAR_GO: Record<SkillLevel, number> = process.env.TILT_NO_STARS ? { weak: 0, average: 0, good: 0, great: 0, near: 0, elite: 0, perfect: 0 } : { weak: 0, average: 0.15, good: 0.45, great: 0.75, near: 0.92, elite: 1, perfect: 1 };
 
+/** tiltRev 8: chance of going for each quick star (while its window has time left). */
+const QUICK_GO: Record<SkillLevel, number> = process.env.TILT_NO_STARS ? { weak: 0, average: 0, good: 0, great: 0, near: 0, elite: 0, perfect: 0 } : { weak: 0.1, average: 0.25, good: 0.5, great: 0.8, near: 0.97, elite: 1, perfect: 1 };
+/** tiltRev 8: the share of the perception lag a player anticipates away. */
+const ANTICIPATE: Record<SkillLevel, number> = { weak: 0, average: 0, good: 0.3, great: 0.5, near: 0.7, elite: 0.85, perfect: 1 };
+/** tiltRev 8: what a fall is worth to a stuck player, in cells of path, beyond the ground it loses. */
+const FALL_COST = 12;
+/** tiltRev 8: how much a player who has fallen into a hole weighs rolling fast past it again (path distance, FP, per FP of speed). */
+const BURNT_CAUTION = 6;
+/** tiltRev 8: the ticks a cell the player reckons a trip to a quick star takes. */
+const QUICK_TRIP = 14;
+
+/** tiltRev 8: the keys taken in the maze being played (the bot's own view of the gates). */
+let KEYS = 0;
+function gateShut(m: Maze, c: number, nc: number): boolean {
+  const gates = m.gates ?? [];
+  for (let k = 0; 2 * k < gates.length; k++) {
+    if ((KEYS >> k) & 1) continue;
+    const gc = gates[2 * k]!;
+    const gd = gates[2 * k + 1]!;
+    const other = (Math.trunc(gc / m.n) + DY[gd]!) * m.n + (gc % m.n) + DX[gd]!;
+    if ((c === gc && nc === other) || (c === other && nc === gc)) return true;
+  }
+  return false;
+}
+
 function openCell(m: Maze, c: number, d: number): number {
   const i = (c % m.n) + DX[d]!;
   const j = Math.trunc(c / m.n) + DY[d]!;
@@ -56,14 +89,16 @@ function openCell(m: Maze, c: number, d: number): number {
   const nc = j * m.n + i;
   if (!m.inside[nc]) return -1;
   const wall = d === 0 ? m.wallR[c] : d === 1 ? m.wallD[c] : d === 2 ? m.wallR[nc] : m.wallD[nc];
-  return wall ? -1 : nc;
+  return wall || gateShut(m, c, nc) ? -1 : nc;
 }
 
 const fieldCache = new WeakMap<Maze, Map<number, number[]>>();
 function field(m: Maze, target: number): number[] {
   let byMaze = fieldCache.get(m);
   if (!byMaze) fieldCache.set(m, (byMaze = new Map()));
-  const hit = byMaze.get(target);
+  // tiltRev 8: the gates open as their keys are taken (no gates on older revisions: KEYS stays 0 there).
+  const key = target + 100000 * KEYS;
+  const hit = byMaze.get(key);
   if (hit) return hit;
   const dist = new Array<number>(m.n * m.n).fill(1e6);
   dist[target] = 0;
@@ -78,7 +113,7 @@ function field(m: Maze, target: number): number[] {
       }
     }
   }
-  byMaze.set(target, dist);
+  byMaze.set(key, dist);
   return dist;
 }
 
@@ -154,7 +189,8 @@ export const bot: SkillBot = ({ game, seed, human, fixes }) => {
   const level = human.level;
   const init = game.init(seed) as TiltState;
   const history: TiltState[] = [];
-  const lag = human.lagTicks();
+  // tiltRev 8: a skilled player anticipates where the marble has rolled since the eye last saw it.
+  const lag = init.xp ? Math.round(human.lagTicks() * (1 - ANTICIPATE[level])) : human.lagTicks();
   const fingerTop = FINGER[level];
 
   let touch = 0;
@@ -166,6 +202,9 @@ export const bot: SkillBot = ({ game, seed, human, fixes }) => {
   let thinkUntil = 0;
   let focus = 0;
   let starPlan: number[] = [];
+  let quickPlan: number[] = [];
+  // tiltRev 8: black holes fallen into in the maze being played.
+  const burnt = new Set<number>();
   const decided = new Set<number>();
   let detour: { cell: number; until: number } | null = null;
   let rethinkUntil = 0;
@@ -194,6 +233,7 @@ export const bot: SkillBot = ({ game, seed, human, fixes }) => {
     thinkUntil = t + human.thinkTicks(2600 + 700 * s.level + (two ? 1200 : 0));
     decided.clear();
     detour = null;
+    burnt.clear();
     // tiltRev 4 stars beside a black hole (not at their cell's centre) are a risk to the whole run: half as tempting.
     starPlan = (m.stars ?? []).filter((c, k) => {
       const centre = tiltCellCentre(m, c);
@@ -203,6 +243,7 @@ export const bot: SkillBot = ({ game, seed, human, fixes }) => {
       if (atHole && fixes && SKIP_MOUTH[level]) return false;
       return human.chance(STAR_GO[level] * (atHole ? MOUTH_GO : 1));
     });
+    quickPlan = s.xp ? (m.quick ?? []).filter(() => human.chance(QUICK_GO[level])) : [];
     focus = 0;
     if (two) {
       const da = field(m, m.exit)[cellAt(m, s.x, s.y)] ?? 99;
@@ -246,6 +287,30 @@ export const bot: SkillBot = ({ game, seed, human, fixes }) => {
     const exit = which === 0 ? m.exit : m.exit2!;
     const exitDir = which === 0 ? m.exitDir : m.exitDir2!;
     if (detour) return { which, cell: detour.cell, dir: -1 };
+    if (s.xp && c >= 0) {
+      // tiltRev 8: quick stars first while the player reckons the trip still beats the star's window.
+      const qGot = s.quickGot ?? [];
+      const quick = m.quick ?? [];
+      const dist = field(m, c);
+      const live = quickPlan.filter((q) => {
+        const k = quick.indexOf(q);
+        return !qGot[k] && dist[q]! < 1e6 && dist[q]! * QUICK_TRIP + 30 < tiltQuickFullLeftX(s, k) + (tiltQuickLeftX(s, k) - tiltQuickFullLeftX(s, k)) / 2;
+      });
+      if (live.length) {
+        live.sort((p, q) => dist[p]! - dist[q]!);
+        return { which, cell: live[0]!, dir: -1 };
+      }
+      // A cup cut off by a shut gate: the nearest key that can be reached.
+      if (field(m, exit)[c]! >= 1e6) {
+        const keys = (m.keys ?? []).filter((k, i) => !((KEYS >> i) & 1) && dist[k]! < 1e6);
+        if (keys.length) {
+          keys.sort((p, q) => dist[p]! - dist[q]!);
+          return { which, cell: keys[0]!, dir: -1 };
+        }
+        // This marble cannot reach a key: the other one must.
+        if (bodyOf(s, 1 - which)) focus = 1 - which;
+      }
+    }
     const got = s.starGot ?? [];
     const stars = m.stars ?? [];
     const want = starPlan.filter((sc) => !got[stars.indexOf(sc)]);
@@ -298,20 +363,26 @@ export const bot: SkillBot = ({ game, seed, human, fixes }) => {
       const px = Math.max(-fingerTop, Math.min(fingerTop, Math.round(wrap(target - q.angle) / ANG_PER_PX)));
       q = game.step({ ...q, angle: (q.angle + px * ANG_PER_PX) & (TURN - 1) }, null);
     }
-    return q.ended === 2;
+    return q.ended === 2 || (q.falls ?? 0) > (p.falls ?? 0);
   };
 
   /** How good a (forked) state is for the goal, as an experienced eye judges it. */
-  const value = (p: TiltState, s0: TiltState, goal: Goal, careful = false): number => {
+  const value = (p: TiltState, s0: TiltState, goal: Goal, careful = false, stuck = false): number => {
     // Fixes: of runs that all fall, the latest fall is the least bad (more time to correct).
     if (p.ended === 2) return fixes ? -1e15 + p.endedTick * 1e6 : -1e15;
+    // tiltRev 8: a fall sends the marble back to its start. Normally avoided as the old run-ending fall was (the
+    // latest least bad); once stuck, it costs only the ground lost (the end state shows it) and the wait.
+    const fell = (p.falls ?? 0) > (s0.falls ?? 0) ? (stuck ? FALL_COST * p.list[p.level]!.cs : 1e14 - Math.min(p.fallTick ?? 0, 5400) * 1e6) : 0;
+    // tiltRev 8: on the way to a star or key, rolling into the cup first would give the star up.
+    if (s0.xp && goal.dir < 0 && !detour && p.mazes > s0.mazes) return -1e12;
     if (p.mazes > s0.mazes || p.ended === 1) return 1e13;
     const m = p.list[p.level]!;
     let v = 0;
     const home0 = (s0.aHome ?? 0) + (s0.bHome ?? 0);
     const home = (p.aHome ?? 0) + (p.bHome ?? 0);
     v += (home - home0) * 1e10;
-    v += ((p.stars ?? 0) - (s0.stars ?? 0)) * (goal.dir < 0 ? 1e8 : 0);
+    v += ((p.stars ?? 0) - (s0.stars ?? 0) + (p.quickTaken ?? 0) - (s0.quickTaken ?? 0)) * (goal.dir < 0 ? 1e8 : 0);
+    if ((p.keysGot ?? 0) !== (s0.keysGot ?? 0)) v += 1e9;
     const b = bodyOf(p, goal.which);
     if (b) v -= pathDist(m, b.x, b.y, goal.cell, goal.dir, goal.pt);
     // A light pull on the other marble toward its own cup.
@@ -319,7 +390,7 @@ export const bot: SkillBot = ({ game, seed, human, fixes }) => {
     if (o) v -= 0.05 * pathDist(m, o.x, o.y, goal.which === 0 ? m.exit2! : m.exit, goal.which === 0 ? m.exitDir2! : m.exitDir);
     if (p.chaser && p.gate) for (const ball of [bodyOf(p, 0), bodyOf(p, 1)]) if (ball) v += Math.min(4 * m.cs, Math.abs(ball.x - p.chaser.x) + Math.abs(ball.y - p.chaser.y));
     if (careful && brakeFalls(p, goal.which)) v -= 1e12;
-    return v;
+    return v - fell;
   };
 
   /** Ideal tilt for the seen state (24 candidates rolled forward with the player's own turning speed). */
@@ -334,11 +405,24 @@ export const bot: SkillBot = ({ game, seed, human, fixes }) => {
       const target = (k * TURN) / 24;
       let p: TiltState = seen;
       const turn = Math.ceil(Math.abs(wrap(target - seen.angle)) / (ANG_PER_PX * fingerTop));
+      // tiltRev 8: how fast a marble rolls past a hole the player has already fallen into.
+      let caution = 0;
       for (let h = 0; h < turn + horizon && !game.isOver(p); h++) {
         const px = Math.max(-fingerTop, Math.min(fingerTop, Math.round(wrap(target - p.angle) / ANG_PER_PX)));
         p = game.step({ ...p, angle: (p.angle + px * ANG_PER_PX) & (TURN - 1) }, null);
+        if (burnt.size && p.level === seen.level) {
+          const m = p.list[p.level]!;
+          for (const b of [bodyOf(p, 0), bodyOf(p, 1)]) {
+            if (!b) continue;
+            for (const pit of burnt) {
+              const c = tiltCellCentre(m, pit);
+              const d = Math.abs(b.x - c.x) + Math.abs(b.y - c.y);
+              if (d < 2 * m.cs) caution = Math.max(caution, ((Math.abs(b.vx) + Math.abs(b.vy)) * (2 * m.cs - d)) / m.cs);
+            }
+          }
+        }
       }
-      const v = value(p, seen, goal, careful);
+      const v = value(p, seen, goal, careful) - BURNT_CAUTION * caution;
       if (v > -1e11) safeAngles.push(target);
       if (v > bestV) {
         bestV = v;
@@ -380,14 +464,14 @@ export const bot: SkillBot = ({ game, seed, human, fixes }) => {
         for (let k2 = 0; k2 < 24; k2++) {
           const a2 = (k2 * TURN) / 24;
           const turn2 = Math.ceil(Math.abs(wrap(a2 - p.angle)) / (ANG_PER_PX * fingerTop));
-          const v = value(roll(p, a2, turn2 + horizon), seen, goal, true);
+          const v = value(roll(p, a2, turn2 + horizon), seen, goal, true, true);
           if (v > bestV) {
             bestV = v;
             plan = { a1, h1: turn1 + h1, a2 };
           }
         }
       }
-      const one = value(roll(p, a1, horizon), seen, goal, true);
+      const one = value(roll(p, a1, horizon), seen, goal, true, true);
       single = Math.max(single, one);
     }
     return plan && bestV > single + 4 * 256 ? plan : null;
@@ -396,8 +480,28 @@ export const bot: SkillBot = ({ game, seed, human, fixes }) => {
   return driveEvents(
     game,
     (s: TiltState, t) => {
+      // tiltRev 8: remember the black hole a marble just fell into (the player learns where it is).
+      const before = history[history.length - 1];
+      if (s.xp && before && before.level === s.level && (s.falls ?? 0) > (before.falls ?? 0)) {
+        const mz = s.list[s.level]!;
+        for (const b of [bodyOf(before, 0), bodyOf(before, 1)]) {
+          if (!b) continue;
+          let near = -1;
+          let nearD = Infinity;
+          for (const pit of mz.pits) {
+            const c = tiltCellCentre(mz, pit);
+            const d = Math.abs(b.x + b.vx - c.x) + Math.abs(b.y + b.vy - c.y);
+            if (d < nearD) {
+              nearD = d;
+              near = pit;
+            }
+          }
+          if (near >= 0 && nearD < mz.cs) burnt.add(near);
+        }
+      }
       history.push(s);
       if (s.level !== mazeLevel) enter(s, t);
+      KEYS = s.keysGot ?? 0;
       const seen = history[Math.max(0, history.length - 1 - lag)]!;
       if (seen.level !== s.level || t < thinkUntil || t < rethinkUntil) return null;
       const m = s.list[s.level]!;

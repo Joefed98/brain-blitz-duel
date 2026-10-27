@@ -11,8 +11,8 @@ import type { SoundId } from "@/lib/fx/manifest";
 import { ORBIT_EIGHT, type OrbitState } from "@/lib/arcade/orbit";
 import { CLASH_LANE_EXPAND_TICK, type ClashState } from "@/lib/arcade/colourClash";
 import { SWING_CHASE_REACH, SWING_REV, SWING_ROCK_WARN, SWING_ROCK_WARN_V6, SWING_WORLD_W, swingJetAt, type SwingState } from "@/lib/arcade/swing";
-import { WAV_CELL, WAV_COLS, WAV_SHIP_H, wavDropPx, wavForm, wavShipY, type WavState } from "@/lib/arcade/wavefront";
-import { CROSS_CYCLE_FROM, CROSS_REV2, CROSS_ROADWORKS_FROM, CROSS_ROADWORKS_TWO_FROM, type CrossState } from "@/lib/arcade/cross";
+import { WAV_CELL, WAV_COLS, WAV_SHIP_H, wavDropPx, wavForm, wavShipY, wavStreakMult, type WavState } from "@/lib/arcade/wavefront";
+import { CROSS_CYCLE_FROM, CROSS_CYCLE_TWO_FROM, CROSS_REV2, CROSS_ROADWORKS_FROM, CROSS_ROADWORKS_TWO_FROM, CROSS_X_BUS_FROM, CROSS_X_BUS_TWO_FROM, type CrossState } from "@/lib/arcade/cross";
 import { FLIP_CRUMBLE_TICKS, flipCrackTick, flipSpeed, type FlipState } from "@/lib/arcade/flip";
 import { HOVER_WORLD_W, type HoverPillar, type HoverState } from "@/lib/arcade/hover";
 import { snakeStepTicks, type SnakeState } from "@/lib/arcade/snake";
@@ -93,6 +93,16 @@ export function orbitSounds(): GameSounds<OrbitState> {
           if (Math.trunc(state.captured / 10) > Math.trunc(prev.captured / 10)) effectCue("orbit.shootingStar");
           else effectCue("orbit.planetCaught");
         }
+        // orbitRev 12 (the expansion to 200), from the existing set: a tick per stardust mote, a zap for a slingshot,
+        // a chime for a threaded asteroid field, a ding for each perfect orbit.
+        const xp = state as OrbitState & { xp?: number; dustGot?: number; slung?: number; threaded?: number; perfect?: number };
+        const was = prev as typeof xp;
+        if (xp.xp) {
+          if ((xp.dustGot ?? 0) !== (was.dustGot ?? 0)) sfx("shared.celebrate.countTick", "tick", 0.8);
+          if ((xp.slung ?? 0) !== (was.slung ?? 0)) sfx("shared.celebrate.zap", "arc_pickup");
+          if ((xp.threaded ?? 0) !== (was.threaded ?? 0)) sfx("shared.celebrate.chime", "arc_pickup");
+          if ((xp.perfect ?? 0) > (was.perfect ?? 0)) sfx("shared.celebrate.countDing", "tick", 0.55);
+        }
         // The first figure-eight planet and the first asteroid belt: a heads-up as the one before is reached.
         for (const at of [state.planets.findIndex((p) => p.kind === ORBIT_EIGHT), state.planets.findIndex((p) => p.hazard >= 0)]) {
           if (at > 0 && !announced.has(at) && prev.cur < at - 1 && state.cur === at - 1) {
@@ -168,7 +178,13 @@ export function wavefrontSounds(): GameSounds<WavState> {
       loopCue("wavefront.danger", running && wavDanger(state));
       if (prev && state.tick > prev.tick) {
         if (state.fireIn > prev.fireIn) sfx("wavefront.fire", "arc_blaster", 0.6, 1, true);
-        if (state.pierce > prev.pierce) sfx("wavefront.pierce", "arc_retro_pickup");
+        // wavRev 10 plays the pickup for every power-up caught (laser, spread or shield); older rounds the laser.
+        if (state.x10 ? (state.powerups ?? 0) > (prev.powerups ?? 0) : state.pierce > prev.pierce) sfx("wavefront.pierce", "arc_retro_pickup");
+        if (state.x10) {
+          // The shield absorbing a hit (the armour clank), and the streak's multiplier stepping up (a blip).
+          if ((state.shieldBlocks ?? 0) > (prev.shieldBlocks ?? 0)) effectCue("wavefront.armourHit");
+          if (wavStreakMult(state.streak ?? 0) > wavStreakMult(prev.streak ?? 0)) sfx("wavefront.dive", "arc_retro_blip", 0.6);
+        }
         // Ships and the armoured ship destroyed this frame (bursts carry the kill tick).
         if (state.bursts.some((b) => b.t > prev!.tick && (b.c === 3 || b.c === 4))) sfx("wavefront.bigExplode", "arc_big_explode", 0.8);
         else if (state.bursts.some((b) => b.t > prev!.tick && b.c !== 3)) sfx("wavefront.shapePop", "arc_shape_pop", 0.7);
@@ -197,6 +213,8 @@ export function wavefrontSounds(): GameSounds<WavState> {
 
 /** crossRev 2+: the crossings (0-based) that bring a new layout: the first cycle lane, roadworks, the chicane. */
 const CROSS_NEW_LAYOUTS = [CROSS_CYCLE_FROM, CROSS_ROADWORKS_FROM, CROSS_ROADWORKS_TWO_FROM];
+/** crossRev 9 adds the first bus (crossing 2), bikes and motorbikes (3), a second bus (5) and second bikes and motorbikes (6). */
+const CROSS_X_NEW_LAYOUTS = [CROSS_X_BUS_FROM, CROSS_CYCLE_FROM, CROSS_ROADWORKS_FROM, CROSS_X_BUS_TWO_FROM, CROSS_CYCLE_TWO_FROM, CROSS_ROADWORKS_TWO_FROM];
 
 export function crossSounds(): GameSounds<CrossState> {
   let prev: CrossState | null = null;
@@ -211,9 +229,16 @@ export function crossSounds(): GameSounds<CrossState> {
         else if (state.col !== prev.col || (state.hop > 0 && (prev.hop === 0 || state.hop > prev.hop))) sfx("cross.hop", "arc_honk", 0.6);
         // A new layout's crossing begins (its kerb pause ends).
         const go = prev.tick < state.pauseUntil && state.tick >= state.pauseUntil;
-        if (go && (state.rev ?? 0) >= CROSS_REV2 && CROSS_NEW_LAYOUTS.includes(state.crossings) && !announced.has(state.crossings)) {
+        if (go && (state.rev ?? 0) >= CROSS_REV2 && (state.wide ? CROSS_X_NEW_LAYOUTS : CROSS_NEW_LAYOUTS).includes(state.crossings) && !announced.has(state.crossings)) {
           announced.add(state.crossings);
           effectCue("cross.newHazard");
+        }
+        // crossRev 9, on existing sounds: a coin's clink, the island's bell, the streak's sting.
+        if (state.wide) {
+          if ((state.coinTotal ?? 0) > (prev.coinTotal ?? 0)) sfx("arc_retro_coin", "arc_retro_coin", 0.7);
+          if ((state.banked ?? 0) > (prev.banked ?? 0)) sfx("arc_fair_bell", "arc_fair_bell", 0.55);
+          if ((state.streakPts ?? 0) > (prev.streakPts ?? 0)) sfx("arc_fair_sting", "arc_fair_sting", 0.7);
+          if ((state.closeCalls ?? 0) > (prev.closeCalls ?? 0)) sfx("arc_retro_pickup", "arc_retro_pickup", 0.6);
         }
       } else if (prev && state.tick < prev.tick) announced.clear();
       prev = state;
@@ -645,6 +670,11 @@ export function tiltSounds(): GameSounds<TiltState> {
         if (state.mazes > prev.mazes) sfx("tilt.mazeDone", "arc_marble_clink");
         else if ((state.cupped ?? 0) > (prev.cupped ?? 0)) sfx("tilt.cup", "arc_marble_clink", 0.7);
         if ((state.stars ?? 0) > (prev.stars ?? 0)) sfx("tilt.starTaken", "arc_leaf_collect", 0.8);
+        // tiltRev 8: a quick star is the star's chime a little higher; a key opens its gate with the latch; a fall
+        // into a black hole (the marble goes back to its start) is the old run-ending fall's cue.
+        if ((state.quickTaken ?? 0) > (prev.quickTaken ?? 0)) sfx("tilt.starTaken", "arc_leaf_collect", 0.8, 1.25);
+        if ((state.keysTaken ?? 0) > (prev.keysTaken ?? 0)) sfx("tilt.gate", "arc_latch");
+        if ((state.falls ?? 0) > (prev.falls ?? 0)) effectCue("tilt.pitFall");
         if (state.mazes === prev.mazes && state.level === prev.level) {
           if (state.gate && !prev.gate) sfx("tilt.gate", "arc_latch");
           const hitX = Math.abs(prev.vx) > TILT_KNOCK_SPEED && state.vx === 0;
@@ -773,6 +803,10 @@ export function inkBridgeSounds(): GameSounds<InkState> {
         if (state.dropping && !prev.dropping) effectCue("inkbridge.release");
         // The coin lands on a rainbow; the live levels (9–10) begin.
         if (state.dropping && prev.dropping && prev.ball.on < 0 && state.ball.on >= 0) effectCue("inkbridge.coinLand", 150);
+        // inkRev 10: the coin springs off a bounce cloud, and picks up a silver coin or the shamrock.
+        if (state.cloudTick !== undefined && state.cloudTick !== prev.cloudTick && state.cloudTick === state.tick) effectCue("inkbridge.cloudBounce", 120);
+        if ((state.silverGot ?? 0) !== (prev.silverGot ?? 0) && (state.silverGot ?? 0) !== 0) effectCue("inkbridge.silverCoin", 60);
+        if (state.shamrockGot && !prev.shamrockGot) effectCue("inkbridge.shamrock");
         if (inkIsLive(state.level, state.rev) && !inkIsLive(prev.level, prev.rev)) effectCue("inkbridge.liveLevel");
         // The ink meter and pen tip pulse red at the pre-release cap (as the renderer draws it).
         const cap = (INK_LIVE_PRE_CAP - 2) * 256;

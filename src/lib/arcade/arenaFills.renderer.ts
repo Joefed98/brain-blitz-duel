@@ -479,7 +479,8 @@ export function bubbleFill(ctx: CanvasRenderingContext2D, view: ArenaSceneView):
 /** 14. Wavefront: its night sky (stars and a faint nebula) runs on below and beside the world. */
 export function wavefrontFill(ctx: CanvasRenderingContext2D, view: ArenaSceneView): void {
   for (const [i, r] of around(view, true).entries()) {
-    ctx.fillStyle = "#07070C";
+    // A deep navy (wavRev 10's taller world leaves sides at 414 px): never the screen edge's #070709.
+    ctx.fillStyle = "#0B0B18";
     ctx.fillRect(r.x, r.y, r.w, r.h);
     stars(ctx, r, 401 + i, ["#FFFFFF", "#C9D6FF", "#8FA8FF"], 380, 0.42);
   }

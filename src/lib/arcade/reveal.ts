@@ -382,7 +382,9 @@ const BUILDERS: Record<string, Builder> = {
           : [head(`${levels} / ${total} levels${phase}`, s, done)],
       tiles: [
         { label: "Levels", value: String(levels) },
-        ...(starLevels > 0 ? [{ label: "Gold stars", value: `${n(r, "stars")} / ${starLevels}` }] : []),
+        ...(starLevels > 0 ? [{ label: n(r, "silverTotal") > 0 ? "Ink stars" : "Gold stars", value: `${n(r, "stars")} / ${starLevels}` }] : []),
+        // inkRev 10 (x200): silver coins and the shamrock.
+        ...(n(r, "silverTotal") > 0 ? [{ label: "Silver", value: `${n(r, "silver")} / ${n(r, "silverTotal")}` }, { label: "Shamrock", value: n(r, "shamrock") ? "Yes" : "No" }] : []),
         { label: "Fails", value: String(n(r, "fails")) },
       ],
       outcome: done ? "finish" : "time",
@@ -411,6 +413,8 @@ const BUILDERS: Record<string, Builder> = {
   }),
   orbit: (r, s) => {
     const done = b(r, "finished");
+    // orbitRev 12: the features taken, on the replay (its `xp`) or as the stored result's flat numbers.
+    const xp = (r["xp"] && typeof r["xp"] === "object" ? r["xp"] : r) as Run;
     return {
       axis: { value: n(r, "passed"), max: 40, label: "Planets" },
       lines: [head(done ? "Sun reached" : `${n(r, "passed")} / 40 planets`, s, done)],
@@ -418,6 +422,15 @@ const BUILDERS: Record<string, Builder> = {
         { label: "Checkpoint planet", value: typeof r["checkpoint"] === "number" && n(r, "checkpoint") >= 0 ? String(n(r, "checkpoint")) : "none" },
         { label: "Planets", value: String(n(r, "captured")) },
         ...(n(r, "holes") > 0 ? [{ label: "Black holes", value: `${n(r, "jumps")} / ${n(r, "holes")} (+${n(r, "skipped")} planets)` }] : []),
+        // orbitRev 12 (the expansion to 200): the features taken.
+        ...(n(xp, "dustTotal") > 0
+          ? [
+              { label: "Stardust", value: `${n(xp, "dust")} / ${n(xp, "dustTotal")}` },
+              { label: "Slingshots", value: `${n(xp, "slings")} / ${n(xp, "slingsTotal")}` },
+              { label: "Fields threaded", value: `${n(xp, "threads")} / ${n(xp, "threadsTotal")}` },
+              { label: "Perfect orbits", value: String(n(xp, "perfect")) },
+            ]
+          : []),
       ],
       outcome: done ? "finish" : ended(r, false),
     };
@@ -480,13 +493,17 @@ const BUILDERS: Record<string, Builder> = {
     };
   },
   tilt: (r, s) => {
-    const done = n(r, "mazes") >= 4;
+    // tiltRev 8 (the expansion, docs/expansions/x200-tilt.md): three mazes and quick stars.
+    const all = n(r, "tiltRev") === 8 ? 3 : 4;
+    const done = n(r, "mazes") >= all;
+    const quick = n(r, "totalQuick") > 0;
     return {
-      axis: { value: n(r, "mazes"), max: 4, label: "Mazes" },
-      lines: [n(r, "tiltRev") > 0 ? `${n(r, "mazes")} / 4 mazes · ${n(r, "stars")} / ${n(r, "totalStars")} stars → ${s}` : head(`${n(r, "mazes")} / 4 mazes`, s, done)],
+      axis: { value: n(r, "mazes"), max: all, label: "Mazes" },
+      lines: [n(r, "tiltRev") > 0 ? `${n(r, "mazes")} / ${all} mazes · ${n(r, "stars")} / ${n(r, "totalStars")} stars${quick ? ` · ${n(r, "quickStars")} / ${n(r, "totalQuick")} quick stars` : ""} → ${s}` : head(`${n(r, "mazes")} / 4 mazes`, s, done)],
       tiles: [
-        { label: "Mazes", value: `${n(r, "mazes")} / 4` },
+        { label: "Mazes", value: `${n(r, "mazes")} / ${all}` },
         ...(n(r, "tiltRev") > 0 ? [{ label: "Stars", value: `${n(r, "stars")} / ${n(r, "totalStars")}` }] : []),
+        ...(quick ? [{ label: "Quick stars", value: `${n(r, "quickStars")} / ${n(r, "totalQuick")}` }] : []),
         { label: b(r, "caught") ? "Caught at" : b(r, "survived") ? "Time" : "Pit at", value: sec(n(r, "survivedSeconds")) },
       ],
       outcome: done ? "finish" : ended(r, false),

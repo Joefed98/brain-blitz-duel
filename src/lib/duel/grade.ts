@@ -77,6 +77,7 @@ import { SWING_REV, SWING_REV_BAND, SWING_REV_TUNED, SWING_REV_TUNEC, SWING_REV_
 import { decodeSnipRun, replaySnipRun } from "./snip";
 import { snipFeatureBonus, SNIP_REV_EXPAND, SNIP_X_MAX } from "@/lib/arcade/snip";
 import { decodeTiltRun, replayTiltRun } from "./tilt";
+import { TILT_REV_EXPAND } from "@/lib/arcade/tilt";
 import { decodeHotFloorRun, replayHotFloorRun } from "./hotFloor";
 import { replayColourClashRun } from "./colourClash";
 import { clashRev4Finished, clashVariantOf, CLASH_REV, CLASH_REV_TALL, CLASH_REV_BANDS, CLASH_REV_GREAT } from "@/lib/arcade/colourClash";
@@ -1265,6 +1266,8 @@ function gradeUnderRev(
         desyncTick: run.desyncTick,
         inputs: decodeCrossRun(answer).events.length,
         claimedScore: decodeCrossRun(answer).claimedScore,
+        // crossRev 9 (x200): coins and streak points (older rounds keep exactly their old fields).
+        ...(run.state.wide ? { coins: run.state.coinTotal ?? 0, streakPts: run.state.streakPts ?? 0, closeCalls: run.state.closeCalls ?? 0 } : {}),
         ...(run.reason ? { reason: run.reason } : {}),
       };
       break;
@@ -1839,6 +1842,8 @@ function gradeUnderRev(
         fails: run.fails,
         stars: run.stars,
         starLevels: run.starLevels,
+        // inkRev 10 (x200): trick shots, silver coins and the shamrock (older rounds store none of these).
+        ...(run.cloudLevels ? { tricks: run.tricks, cloudLevels: run.cloudLevels, silver: run.silver, silverTotal: run.silverTotal, shamrock: run.shamrock } : {}),
         endedSeconds: run.endedSeconds,
         flagged: run.flagged,
         clientLag: run.clientLag,
@@ -1884,7 +1889,7 @@ function gradeUnderRev(
     }
     case "orbit": {
       const replayStart = performance.now();
-      const run = replayOrbitRun(puzzle.seed, answer, puzzle.orbitRev, puzzle.planets, puzzle.holes);
+      const run = replayOrbitRun(puzzle.seed, answer, puzzle.orbitRev, puzzle.planets, puzzle.holes, puzzle.extras);
       revealRun = run;
       arcadeDiag = buildArcadeDiag(puzzle.type, run, answer, performance.now() - replayStart);
       if (arcadeDiag.replayMs > 500)
@@ -1910,6 +1915,8 @@ function gradeUnderRev(
         inputs: decodeOrbitRun(answer).events.length,
         claimedScore: decodeOrbitRun(answer).claimedScore,
         ...(run.reason ? { reason: run.reason } : {}),
+        // orbitRev 12 (the expansion to 200): the features the run took, as flat numbers.
+        ...(run.xp ? { dust: run.xp.dust, dustTotal: run.xp.dustTotal, slings: run.xp.slings, slingsTotal: run.xp.slingsTotal, threads: run.xp.threads, threadsTotal: run.xp.threadsTotal, perfect: run.xp.perfect } : {}),
       };
       break;
     }
@@ -1998,6 +2005,8 @@ function gradeUnderRev(
       extraDetail = {
         mazes: run.mazes,
         ...(puzzle.tiltRev ? { tiltRev: puzzle.tiltRev, stars: run.stars, totalStars: run.totalStars } : {}),
+        // tiltRev 8 (the expansion): quick stars, falls and the paid skill points.
+        ...(puzzle.tiltRev === TILT_REV_EXPAND ? { quickStars: run.quickStars, totalQuick: run.totalQuick, falls: run.falls, skillPoints: run.skillPoints } : {}),
         survived: run.survived,
         survivedSeconds: run.survivedSeconds,
         endedSeconds: run.endedSeconds,

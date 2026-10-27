@@ -12,8 +12,10 @@ import {
   INK_INPUT_DROP_AGAIN,
   INK_INPUT_STROKE,
   INK_STEP_PX,
-  INK_WORLD_H,
   INK_WORLD_W,
+  inkWorldH,
+  inkWorldHFor,
+  INK_REV_EXPAND,
 } from "@/lib/arcade/inkBridge";
 import { encodeInkBridgeRun, replayInkBridgeRun } from "@/lib/duel/inkBridge";
 import { INKBRIDGE_TIME_MS, type InkBridgePuzzleData } from "@/lib/duel/types";
@@ -39,7 +41,7 @@ function IntroExample() {
   return (
     <div className="flex w-full flex-col items-center gap-2">
       <canvas ref={canvas} width={336} height={260} className="h-[130px] w-[168px] rounded-lg" aria-hidden="true" />
-      <p className="text-center text-xs text-muted-foreground">Draw lines around the white birds, then RELEASE. Levels 5–8 move; 9–10 are live!</p>
+      <p className="text-center text-xs text-muted-foreground">Draw lines around the white birds, then RELEASE. Roll through stars, silver coins and the shamrock for bonus points.</p>
     </div>
   );
 }
@@ -113,15 +115,15 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         background={INK_ART_BG}
         fitWorld
         scene={(ctx, view, state) => {
-          inkArenaScene(ctx, view, inkSceneGround(state));
+          inkArenaScene(ctx, view, inkSceneGround(state), inkWorldH(state));
           inkBridgeExtras(ctx, view);
         }}
-        sceneKey={inkSceneGround}
+        sceneKey={(state) => inkSceneGround(state) + 10_000 * inkWorldH(state)}
         seed={data?.seed ?? 1}
         enabled={data !== null}
         locked={locked}
         worldW={INK_WORLD_W}
-        worldH={INK_WORLD_H}
+        worldH={inkWorldHFor(data?.inkRev)}
         game={inkBirdsArt(data?.inkRev)}
         sounds={inkBridgeSounds}
         checkpoint={inkCheckpoint}
@@ -207,8 +209,11 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   );
 }
 
-export function inkBridgeLine(r: { levels: number; total: number; score: number; stars?: number; starLevels?: number }, rev?: number): string {
-  const stars = r.starLevels ? ` · ${r.stars ?? 0} / ${r.starLevels} gold stars` : "";
+export function inkBridgeLine(r: { levels: number; total: number; score: number; stars?: number; starLevels?: number; tricks?: number; cloudLevels?: number; silver?: number; silverTotal?: number; shamrock?: number }, rev?: number): string {
+  const stars =
+    (r.starLevels ? ` · ${r.stars ?? 0} / ${r.starLevels} ${r.silverTotal ? "ink" : "gold"} stars` : "") +
+    (r.cloudLevels ? ` · ${r.tricks ?? 0} / ${r.cloudLevels} trick shots` : "") +
+    (r.silverTotal ? ` · ${r.silver ?? 0} / ${r.silverTotal} silver${r.shamrock ? " · shamrock" : ""}` : "");
   if (r.levels >= r.total) return `All ${r.total} levels${stars}`;
   if (rev === undefined || rev < 3) return `Level ${r.levels}${stars}`;
   // Which kind of level the run stopped on, in plain words.
@@ -236,7 +241,7 @@ export const inkBridgePuzzle: PuzzleDefinition = {
   category: "arcade",
   timeLimitMs: INKBRIDGE_TIME_MS,
   revealMs: 6_000,
-  generate: () => ({ type: "inkbridge", seed: 1 }) satisfies InkBridgePuzzleData,
+  generate: () => ({ type: "inkbridge", seed: 1, inkRev: INK_REV_EXPAND }) satisfies InkBridgePuzzleData,
   check: () => false,
   revealHeading: "Your run",
   IntroExample,

@@ -22,6 +22,15 @@
  * wait (three laps, or the belts' full turn), and anything once time runs short. Perfect judges
  * windows by elite's jitter (the same choices) and then taps without error. Elite and perfect
  * (protect the base): a black hole is gone for only when its window is as safe as that, else the hop.
+ *
+ * orbitRev 12 (the expansion to 200, docs/expansions/x200-orbit.md; every path below is gated on the state's `xp`
+ * marker, so older stamps play exactly as above): the features are things a player sees, so the bot may aim for
+ * them. The forks also show which release ticks take stardust, a moon's slingshot or an asteroid gap; a player who
+ * goes for them (more often the better they are) aims at the best of those ticks with room either side, and better
+ * players more often let go in the first lap (perfect orbits). Near-perfect, elite and flawless also know which
+ * window's line carries the features (on a figure-eight or a belted orbit the windows in a lap fly different lines):
+ * they look on to the end of the usual scan and take the window that takes the most (with the fixes, only one under
+ * their risk tolerance).
  */
 import { lapPhases, ORBIT_INPUT_CHECKPOINT, ORBIT_INPUT_TAP } from "../../../src/lib/arcade/orbit";
 import type { OrbitRev3State } from "../../../src/lib/arcade/orbitRev3";
@@ -43,6 +52,9 @@ const phi = (z: number) => {
 };
 /** Flight sim cap (rev 3), ticks. */
 const FLIGHT_MAX = 190;
+/** orbitRev 12: chance of aiming for the features on a hop that has some, and of insisting on a first-lap release. */
+const FEATURE_TRY: Record<SkillLevel, number> = { weak: 0.25, average: 0.25, good: 0.5, great: 0.75, near: 0.9, elite: 1, perfect: 1 };
+const FIRST_LAP: Record<SkillLevel, number> = { weak: 0.35, average: 0.35, good: 0.6, great: 0.8, near: 0.95, elite: 1, perfect: 1 };
 
 type Kind = "hop" | "hole" | "die";
 
@@ -55,17 +67,30 @@ export const bot: SkillBot = ({ game, seed, human, fixes }) => {
   const runTicks = game.runTicks;
   const step = (s: OrbitRev3State, tap: boolean) => game.step(s, tap ? { t: s.tick + 1, k: ORBIT_INPUT_TAP, a: 0, b: 0, c: 0, d: 0 } : null) as OrbitRev3State;
 
-  /** Wait d ticks in orbit, tap, follow the flight: what happens, and how long it flew. */
-  const fork = (from: OrbitRev3State, d: number): { kind: Kind; flight: number } => {
+  /** orbitRev 12: elite and flawless aim a tick closer to a window's edge than the rest. */
+  const room = level === "elite" || level === "perfect" ? [-1, 1] : [-2, -1, 1, 2];
+  /** orbitRev 12: feature points a fork's flight took (motes, slingshots, threads, as the score counts them). */
+  const gainOf = (from: OrbitRev3State, to: OrbitRev3State) => {
+    const bits = (n: number) => {
+      let c = 0;
+      for (let b = n; b; b &= b - 1) c++;
+      return c;
+    };
+    return (bits(to.dustGot ?? 0) - bits(from.dustGot ?? 0)) / 2 + 4 * (bits(to.slung ?? 0) - bits(from.slung ?? 0)) + 4 * (bits(to.threaded ?? 0) - bits(from.threaded ?? 0));
+  };
+
+  /** Wait d ticks in orbit, tap, follow the flight: what happens, how long it flew, and (orbitRev 12) what it took. */
+  const fork = (from: OrbitRev3State, d: number): { kind: Kind; flight: number; gain: number } => {
     let s = from;
     for (let k = 0; k < d && !s.ended; k++) s = step(s, false);
     s = step(s, true);
     let n = 0;
     while (s.flying > 0 && s.ended === 0 && n++ < FLIGHT_MAX + 5) s = step(s, false);
-    if ((s.jumps ?? 0) > (from.jumps ?? 0)) return { kind: "hole", flight: n };
-    if (s.ended === 2 || s.respawns < from.respawns) return { kind: "die", flight: n };
-    if (s.cur > from.cur || s.finished === 1) return { kind: "hop", flight: n };
-    return { kind: "die", flight: n };
+    const gain = from.xp ? gainOf(from, s) : 0;
+    if ((s.jumps ?? 0) > (from.jumps ?? 0)) return { kind: "hole", flight: n, gain };
+    if (s.ended === 2 || s.respawns < from.respawns) return { kind: "die", flight: n, gain: 0 };
+    if (s.cur > from.cur || s.finished === 1) return { kind: "hop", flight: n, gain };
+    return { kind: "die", flight: n, gain: 0 };
   };
 
   const plan = new Plan();
@@ -85,6 +110,7 @@ export const bot: SkillBot = ({ game, seed, human, fixes }) => {
     const maxScan = Math.max(lap * 3, beltsNear ? 760 : 0) + ready;
     const kinds: Kind[] = [];
     const flights: number[] = [];
+    const gains: number[] = [];
     /** Windows found so far: [start delay, length, kind]. */
     const windows: [number, number, Kind][] = [];
     const hasHole = (s.holes ?? []).some((h) => h.from === s.cur);
@@ -119,6 +145,7 @@ export const bot: SkillBot = ({ game, seed, human, fixes }) => {
       const f = fork(s, d);
       kinds.push(f.kind);
       flights.push(f.flight);
+      gains.push(f.gain);
       // Close a window when it ends.
       const prev = kinds[d - 1];
       if (d > 0 && prev !== "die" && prev !== f.kind) {
@@ -128,6 +155,8 @@ export const bot: SkillBot = ({ game, seed, human, fixes }) => {
         const w = windows[windows.length - 1]!;
         // Usable only if its middle comes round after the player is ready.
         if (w[0] + w[1] / 2 >= ready && (w[2] === "hole") === tryHole) {
+          // orbitRev 12: a first-lap release is a perfect orbit; a keen player never lets this one go round.
+          if (s.xp && skips > 0 && w[0] + w[1] / 2 < lap && human.chance(FIRST_LAP[level])) skips = 0;
           if (skips > 0) skips--;
           else if (!FIX) chosen = w;
           else {
@@ -151,8 +180,52 @@ export const bot: SkillBot = ({ game, seed, human, fixes }) => {
       // Nothing of the wanted kind came round: take any hop window seen after ready, else just guess.
       chosen = windows.find((w) => w[2] === "hop" && w[0] + w[1] / 2 >= ready) ?? windows.find((w) => w[2] === "hop") ?? [ready + lap / 2, 1, "hop"];
     }
+    // orbitRev 12, near-perfect, elite and flawless: take the usable window whose safe ticks take the most features
+    // (with the fixes, only among windows under the level's risk), keeping the first one on a tie.
+    if (s.xp && (level === "near" || level === "elite" || level === "perfect") && chosen[2] !== "hole") {
+      for (let d = kinds.length; d <= maxScan; d++) {
+        const f = fork(s, d);
+        kinds.push(f.kind);
+        flights.push(f.flight);
+        gains.push(f.gain);
+        const prev = kinds[d - 1];
+        if (d > 0 && prev !== "die" && prev !== f.kind) {
+          let a = d - 1;
+          while (a > 0 && kinds[a - 1] === prev) a--;
+          windows.push([a, d - a, prev!]);
+        }
+      }
+      const safeGain = (w: [number, number, Kind]) => {
+        let g = 0;
+        for (let d = w[0]; d < w[0] + w[1]; d++) if (room.every((o) => kinds[d + o] !== undefined && kinds[d + o] !== "die")) g = Math.max(g, gains[d] ?? 0);
+        return g;
+      };
+      let bestGain = safeGain(chosen);
+      for (const w of windows) {
+        if (w[2] !== "hop" || w[0] + w[1] / 2 < ready || w[0] <= chosen[0] || (FIX && riskOf(w) > risk)) continue;
+        const g = safeGain(w);
+        if (g > bestGain) {
+          bestGain = g;
+          chosen = w;
+        }
+      }
+    }
     const [start, len] = chosen;
-    const mid = start + (len - 1) / 2;
+    let mid = start + (len - 1) / 2;
+    // orbitRev 12: going for the features means aiming at the window's best tick for them (nearest the middle on a tie).
+    if (s.xp && human.chance(FEATURE_TRY[level])) {
+      let best = -1, bestGain = 0;
+      for (let d = start; d < start + len; d++) {
+        // Only a tick with room either side that still lands: a player aims where a near miss is safe.
+        const roomy = room.every((o) => kinds[d + o] !== undefined && kinds[d + o] !== "die");
+        const g = roomy ? (gains[d] ?? 0) : 0;
+        if (g > bestGain || (g === bestGain && g > 0 && Math.abs(d - mid) < Math.abs(best - mid))) {
+          best = d;
+          bestGain = g;
+        }
+      }
+      if (best >= 0) mid = best;
+    }
     const flight = flights[Math.round(mid)] ?? 60;
     // Read error on where the release point is: grows with the flight's length and with belts to thread.
     const readScale = flight / 150 + (beltsNear ? 0.4 : 0);

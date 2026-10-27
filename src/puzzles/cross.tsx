@@ -31,7 +31,8 @@ import {
   CROSS_RUN_TICKS,
   CROSS_SWIPE_PX,
   type CrossState,
-  CROSS_WORLD_H,
+  crossWorldHFor,
+  CROSS_REV_EXPAND,
   CROSS_WORLD_W,
 } from "@/lib/arcade/cross";
 import { decodeCrossRun, encodeCrossRun, replayCrossRun } from "@/lib/duel/cross";
@@ -65,10 +66,11 @@ function IntroExample() {
         <path d="M78 60 L82 52 L86 60 Z M120 60 L124 52 L128 60 Z" fill="#FF7A1A" />
         <rect x="118" y="60" width="52" height="8" fill="#F7F7F8" />
         <rect x="95" y="76" width="45" height="12" fill={CROSS_BLOCK} />
+        <circle cx="150" cy="82" r="5" fill="#F5C443" stroke="#B9831A" strokeWidth="1.2" />
         <circle cx="86" cy="96" r="10" fill={CROSS_PLAYER} />
       </svg>
       <p className="text-center text-xs text-muted-foreground">
-        Hop up through the gaps. Mind the bikes and find the gap in the cones.
+        Hop up through the gaps. Grab gold coins and mind the bikes, buses and cones.
       </p>
     </div>
   );
@@ -238,7 +240,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   if (!data) return null;
 
   return (
-    <ArcadeArenaSlot width={CROSS_WORLD_W} height={CROSS_WORLD_H} scene={crossArenaScene} ambient={crossAmbient}>
+    <ArcadeArenaSlot width={CROSS_WORLD_W} height={crossWorldHFor(data.crossRev)} scene={crossArenaScene} ambient={crossAmbient}>
       <div
         ref={wrap}
         data-game-arena="canvas" className="min-h-0 w-full flex-1 overflow-hidden rounded-xl"
@@ -313,7 +315,7 @@ export const crossPuzzle: PuzzleDefinition = {
   category: "arcade",
   timeLimitMs: (CROSS_RUN_TICKS / TICKS_PER_SECOND) * 1000 + 3000,
   revealMs: 6_000,
-  generate: () => ({ type: "cross", seed: 1 }) satisfies CrossPuzzleData,
+  generate: () => ({ type: "cross", seed: 1, crossRev: CROSS_REV_EXPAND }) satisfies CrossPuzzleData,
   check: () => false,
   revealHeading: "Your run",
   IntroExample,

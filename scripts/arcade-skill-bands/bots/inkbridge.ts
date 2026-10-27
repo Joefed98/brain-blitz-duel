@@ -22,6 +22,15 @@
  * error (judging where the coin will fall), lifting to commit it. A failed drop
  * resets the level (redrawn after a short rethink, no star try); three
  * failures end the run. Only the better players go for the gold stars.
+ *
+ * inkRev 10 (x200: the taller world with clouds, wind, ink stars, silver coins and a shamrock), on top of the bot
+ * above (fixed or not) and only on that stamp: on each of levels 1–8 the player goes for the level's bonus line (its
+ * star, silver coins, the shamrock, a cloud's trick shot: on a cloud level the line must bounce) on a first attempt
+ * at their level's rate (BONUS_GO), when it holds up to the wobble test (BONUS_MIN_REL); the world is 674 px tall;
+ * planned lines are sampled as the sim's inkPhoneLine (the model its levels are proved with); a level's hand-drawn
+ * live stroke (`liveHand`) is among the catch ramps considered; a warm-up miss on level 1 (no fail) is a new attempt.
+ * Without the fixes, the catch ramp is re-aimed at where the coin is seen to fall (liveRescue).
+ * INK_BOT_FEATURES=0 in the environment makes every player ignore the bonuses (the "no features" measurement).
  */
 import { inputAt, recordInput, type ArcadeGame, type ArcadeInputEvent } from "../../../src/lib/arcade/engine";
 import {
@@ -32,7 +41,11 @@ import {
   INK_STEP_PX,
   INK_WORLD_H,
   INK_WORLD_W,
+  INK_REV_EXPAND,
   inkIsLive,
+  inkPhoneLine,
+  inkFeatureRaw,
+  inkWorldH,
   type InkLevel,
   type InkState,
 } from "../../../src/lib/arcade/inkBridge";
@@ -49,6 +62,15 @@ const DRAW_LIVE: Record<SkillLevel, number> = { weak: 8, average: 10, good: 12, 
 const READ: Record<SkillLevel, number> = { weak: 0.115, average: 0.09, good: 0.065, great: 0.045, near: 0.03, elite: 0.025, perfect: 0 };
 /** Chance of going for the gold star on a level that has one (first attempt only). */
 const STAR_GO: Record<SkillLevel, number> = { weak: 0, average: 0.1, good: 0.35, great: 0.6, near: 0.85, elite: 0.95, perfect: 1 };
+/**
+ * inkRev 10: chance of going for a level's bonus line (first attempt only), and the wobbled copies it must survive
+ * (of PROBES2 with the fixes, of PROBES without) before the player risks a drop on it.
+ */
+const BONUS_GO: Record<SkillLevel, number> = { weak: 0.05, average: 0.1, good: 0.3, great: 0.6, near: 0.85, elite: 1, perfect: 1 };
+const BONUS_MIN_REL: Record<SkillLevel, number> = { weak: 8, average: 8, good: 8, great: 8, near: 7, elite: 7, perfect: 0 };
+const BONUS_MIN_REL_V1: Record<SkillLevel, number> = { weak: 6, average: 6, good: 5, great: 5, near: 4, elite: 4, perfect: 0 };
+/** INK_BOT_FEATURES=0: nobody goes for the bonuses. */
+const FEATURES = process.env.INK_BOT_FEATURES !== "0";
 /** The ideal live ramp is worked out for a hand that starts this many ticks after RELEASE. */
 const IDEAL_LIVE_DELAY = 18;
 const IDEAL_LIVE_SPEED = 12;
@@ -75,6 +97,13 @@ interface Ideal {
 
 /** The points a phone sends for a straight-segment polyline drawn steadily: every 12 px, rounded. */
 function phonePoints(pts: readonly number[]): [number, number][] {
+  // inkRev 10: the sim's own model of a phone's points (the one its levels are proved with), in whole px.
+  if (phoneExact) {
+    const flat = inkPhoneLine(pts.map((v) => Math.round(v)));
+    const out: [number, number][] = [];
+    for (let i = 0; i + 1 < flat.length; i += 2) out.push([flat[i]!, flat[i + 1]!]);
+    return out;
+  }
   // A finger moving steadily along the polyline: the phone sends a point whenever it is
   // 12 px from the last one sent, and the lift point.
   const out: [number, number][] = [[Math.round(pts[0]!), Math.round(pts[1]!)]];
@@ -177,7 +206,11 @@ function steep(pts: readonly number[]): boolean {
 const idealCache = new Map<string, Ideal>();
 
 const clampX = (x: number) => Math.max(0, Math.min(INK_WORLD_W, Math.round(x)));
-const clampY = (y: number) => Math.max(0, Math.min(INK_WORLD_H, Math.round(y)));
+/** The world's height for the run being played (inkRev 10 is taller); set when a bot or a simulation starts. */
+let worldH = INK_WORLD_H;
+/** inkRev 10 runs sample planned lines with the sim's inkPhoneLine; set when a bot or a simulation starts. */
+let phoneExact = false;
+const clampY = (y: number) => Math.max(0, Math.min(worldH, Math.round(y)));
 
 /**
  * Schedules one hand-drawn stroke from tick `t0`; returns the tick after its last point.
@@ -246,8 +279,10 @@ type Game = ArcadeGame<InkState, ArcadeInputEvent | null>;
  * Noise-free drop from a fresh level state: lines drawn as a phone sends them, RELEASE at
  * `rel` (absolute tick, or as soon as drawn), live ramps from IDEAL_LIVE_DELAY after it.
  */
-export function simulate(game: Game, from: InkState, strokes: number[][], rel: number | null, live: number[][], still = false, wantTrace = false, perturb = 0, liveDelay = IDEAL_LIVE_DELAY, liveSpeed = 0): { potted: boolean; star: boolean; flight: number; trace: { x: number; y: number; on: number }[] } {
+export function simulate(game: Game, from: InkState, strokes: number[][], rel: number | null, live: number[][], still = false, wantTrace = false, perturb = 0, liveDelay = IDEAL_LIVE_DELAY, liveSpeed = 0): { potted: boolean; star: boolean; trick: boolean; raw: number; flight: number; trace: { x: number; y: number; on: number }[] } {
   const trace: { x: number; y: number; on: number }[] = [];
+  phoneExact = from.rev === INK_REV_EXPAND;
+  worldH = inkWorldH(from);
   let s: InkState = from;
   if (still) {
     const list = [...s.list];
@@ -312,12 +347,14 @@ export function simulate(game: Game, from: InkState, strokes: number[][], rel: n
     s = game.step(s, inputAt(log, s.tick + 1));
     if (wantTrace && s.dropping) trace.push({ x: s.ball.x / 256, y: s.ball.y / 256, on: s.ball.on });
   }
-  return { potted: s.levels > from.levels, star: (s.stars ?? 0) > (from.stars ?? 0), flight: released >= 0 ? s.tick - released : 0, trace };
+  return { potted: s.levels > from.levels, star: (s.stars ?? 0) > (from.stars ?? 0), trick: (s.tricks ?? 0) > (from.tricks ?? 0), raw: inkFeatureRaw(s) - inkFeatureRaw(from), flight: released >= 0 ? s.tick - released : 0, trace };
 }
 
 /** The line (and release phase / live ramp) an experienced player would use on this level. */
 export function inkIdeal(game: Game, seed: number, s: InkState, wantStar: boolean): Ideal {
   const key = `${seed}:${s.level}:${wantStar ? 1 : 0}:${s.rev}`;
+  // inkRev 10: a cloud level's bonus line must also bounce (its star sits at the top of the bounce).
+  const bounce = s.rev === INK_REV_EXPAND && Boolean(s.list[s.level]!.clouds?.length);
   const hit = idealCache.get(key);
   if (hit) return hit;
   const lvl: InkLevel = s.list[s.level]!;
@@ -330,7 +367,7 @@ export function inkIdeal(game: Game, seed: number, s: InkState, wantStar: boolea
     if (sims >= budget) return null;
     sims += 1;
     const base = simulate(game, s, strokes, null, liveSt, moving);
-    if (!base.potted || (needStar && !base.star)) return null;
+    if (!base.potted || (needStar && !(base.star && (!bounce || base.trick)))) return null;
     let phase = 0;
     let flight = base.flight;
     if (moving) {
@@ -340,7 +377,7 @@ export function inkIdeal(game: Game, seed: number, s: InkState, wantStar: boolea
         const rel = s.tick + 400 + Math.trunc((k * lvl.slidePeriod) / 12);
         sims += 1;
         const r = simulate(game, s, strokes, rel, liveSt);
-        if (r.potted && (!needStar || r.star)) {
+        if (r.potted && (!needStar || (r.star && (!bounce || r.trick)))) {
           found = rel;
           flight = r.flight;
         }
@@ -357,7 +394,7 @@ export function inkIdeal(game: Game, seed: number, s: InkState, wantStar: boolea
       if (sims >= budget) break;
       sims += 1;
       const r = simulate(game, s, cand.strokes, null, cand.live, true, false, k + 17 * s.level);
-      if (r.potted && (!needStar || r.star)) ok += 1;
+      if (r.potted && (!needStar || (r.star && (!bounce || r.trick)))) ok += 1;
     }
     return ok;
   };
@@ -401,7 +438,8 @@ export function inkIdeal(game: Game, seed: number, s: InkState, wantStar: boolea
   if (live) {
     // Live: the proved pre-release line (as drawn by hand); the catch ramp as proved, moved,
     // or re-aimed lower at the pot, alone or followed by a backstop wall.
-    const ramps: number[][] = [];
+    // inkRev 10: the level's own hand-drawn live stroke (proved drawn at a hand's pace) comes first.
+    const ramps: number[][] = (lvl.liveHand ?? []).map((l) => [...l.pts]);
     // Where the coin actually leaves the hand-drawn pre-release line, and falls from there.
     const trace = simulate(game, s, ref, null, [], false, true).trace;
     let leave = -1;
@@ -548,7 +586,9 @@ export function inkPlan(game: Game, seed: number, s: InkState, need: "pot" | "st
   const live = inkIsLive(s.level, s.rev);
   const moving = lvl.slideAmp > 0;
   let sims = 0;
-  const wants = (r: { potted: boolean; star: boolean }) => r.potted && (need === "pot" || r.star);
+  // inkRev 10: a cloud level's bonus line must also bounce.
+  const bounce = s.rev === INK_REV_EXPAND && Boolean(lvl.clouds?.length);
+  const wants = (r: { potted: boolean; star: boolean; trick: boolean }) => r.potted && (need === "pot" || (r.star && (!bounce || r.trick)));
   const run = (strokes: number[][], liveSt: number[][], rel: number | null, still: boolean, perturb = 0, delay = PLAN_DELAY, speed = PLAN_LIVE_SPEED) => {
     sims += 1;
     return simulate(game, s, strokes, rel, liveSt, still, false, perturb, delay, speed);
@@ -613,6 +653,8 @@ export function inkPlan(game: Game, seed: number, s: InkState, need: "pot" | "st
                 }
             }
       for (const l of lvl.liveRef ?? []) ramps.push([...l.pts], [l.pts[0]!, l.pts[1]! + 14, ...l.pts.slice(2)], [l.pts[0]!, l.pts[1]! + 28, ...l.pts.slice(2)]);
+      // inkRev 10: the level's hand-drawn live stroke (only that stamp has one).
+      for (const l of lvl.liveHand ?? []) ramps.unshift([...l.pts]);
       for (const ramp of ramps) {
         cands.push([pre, [ramp]]);
         cands.push([pre, [ramp, wall(ramp[1]! + 20)]]);
@@ -821,9 +863,112 @@ export function inkPlan(game: Game, seed: number, s: InkState, need: "pot" | "st
   return lines;
 }
 
+/**
+ * inkRev 10 live levels: the catch ramp a player draws watching the coin fall. From the drop as it is (the
+ * pre-release line as actually drawn), the coin's fall is followed noise-free (what the eye judges), and the first
+ * ramp of the generator's family under it that pots when drawn from `startIn` ticks on at `speed` px a tick, and
+ * still pots 3 px off either way, is the one drawn (with the live aim error). Null when none is found.
+ */
+function liveRescue(game: Game, s: InkState, startIn: number, speed: number, finger = false): number[] | null {
+  const lvl = s.list[s.level]!;
+  const run = (ramp: number[] | null, ox = 0): { potted: boolean; trace: { x: number; y: number; on: number }[] } => {
+    const at = new Map<number, Ev>();
+    if (ramp && finger) {
+      // Flicked as the phone sends it (fingerPoints), as the fixed bots draw a live stroke.
+      const fp = fingerPoints(ramp.map((v, i) => (i % 2 === 0 ? v + ox : v)), speed);
+      let t = s.tick + startIn;
+      for (let i = 0; i < fp.length; i++) {
+        t = Math.max(i ? t + 1 : t, s.tick + startIn + fp[i]![0]);
+        at.set(t, { k: INK_INPUT_STROKE, a: clampX(fp[i]![1]), b: clampY(fp[i]![2]), c: i === 0 ? 1 : 0, d: 0 });
+      }
+      at.set(t + 1, { k: INK_INPUT_LIFT, a: 200, b: 0, c: 0, d: 0 });
+    } else if (ramp) {
+      const pts = phonePoints(ramp.map((v, i) => (i % 2 === 0 ? v + ox : v)));
+      let travelled = 0;
+      let t = s.tick + startIn;
+      at.set(t, { k: INK_INPUT_STROKE, a: clampX(pts[0]![0]), b: clampY(pts[0]![1]), c: 1, d: 0 });
+      for (let i = 1; i < pts.length; i++) {
+        travelled += Math.hypot(pts[i]![0] - pts[i - 1]![0], pts[i]![1] - pts[i - 1]![1]);
+        t = Math.max(t + 1, s.tick + startIn + Math.round(travelled / speed));
+        at.set(t, { k: INK_INPUT_STROKE, a: clampX(pts[i]![0]), b: clampY(pts[i]![1]), c: 0, d: 0 });
+      }
+      at.set(t + 1, { k: INK_INPUT_LIFT, a: 200, b: 0, c: 0, d: 0 });
+    }
+    const log: ArcadeInputEvent[] = [];
+    const trace: { x: number; y: number; on: number }[] = [];
+    let st = s;
+    for (let k = 0; k < 400 && !game.isOver(st) && st.level === s.level && st.fails === s.fails && st.flashTick === s.flashTick; k++) {
+      const ev = at.get(st.tick + 1);
+      if (ev) recordInput(log, { ...ev, t: st.tick + 1 }, game.inputRanges);
+      st = game.step(st, inputAt(log, st.tick + 1));
+      trace.push({ x: st.ball.x / 256, y: st.ball.y / 256, on: st.ball.on });
+    }
+    return { potted: st.levels > s.levels, trace };
+  };
+  const trace = run(null).trace;
+  let leave = trace.findIndex((p, i) => i > 0 && trace[i - 1]!.on >= 0 && p.on < 0);
+  if (leave < 0 && trace[0]?.on === -1) leave = 0;
+  if (leave < 0) return null;
+  let tries = 0;
+  // Under the coin a little after it leaves the line (sooner first), down to over the pot (on a moving pot, anywhere
+  // along its slide), straight or with a shallow catch first.
+  for (const d of [Math.max(startIn, 8), startIn + 8, startIn + 16, 26, 38, 52, 0, 4])
+    for (const dy0 of [40, 64, 90, 120, 24]) {
+      const p = trace[leave + d];
+      if (!p) continue;
+      const dir = lvl.bucketX >= p.x ? 1 : -1;
+      const cx = Math.round(p.x) + dir * 8;
+      const cy = Math.round(p.y) + dy0;
+      if (cy >= lvl.bucketY - 40) continue;
+      for (const lift of [30, 50, 70])
+        for (const off of [0, -14, 14, -28, 28, -42, 42, -56, 56].filter((o) => Math.abs(o) <= 14 + lvl.slideAmp))
+          for (const bend of [false, true]) {
+            if (++tries > 700) return null;
+            const ex = lvl.bucketX - dir * off;
+            const ey = lvl.bucketY - lift;
+            const ramp = bend ? [cx, cy, cx + Math.sign(ex - cx || dir) * 40, cy + 16, ex, ey] : [cx, cy, ex, ey];
+            if (bend && (ey <= cy + 26 || Math.abs(ex - cx) < 50)) continue;
+            if (steep(ramp)) continue;
+            if (run(ramp).potted && run(ramp, 3).potted && run(ramp, -3).potted) return ramp;
+          }
+    }
+  return null;
+}
+
+/** inkRev 10: the feature points a plan line takes, drawn noise-free (released at its moment on a moving pot). */
+function bonusGain(game: Game, s: InkState, l: PlanLine): number {
+  let rel: number | null = null;
+  if (l.period) {
+    rel = s.tick + 400 - ((s.tick + 400) % l.period) + l.phase;
+    if (rel < s.tick + 400) rel += l.period;
+  }
+  const r = simulate(game, s, l.strokes, rel, l.live, !l.period && s.list[s.level]!.slideAmp > 0, false, 0, PLAN_DELAY, PLAN_LIVE_SPEED);
+  return r.potted ? r.raw : -1;
+}
+
+/** inkRev 10: the feature points one level offers (its star, a cloud's trick shot, its silver coins, the shamrock). */
+function levelRaw(lvl: InkLevel): number {
+  return (lvl.star ? 5 : 0) + (lvl.clouds?.length ? 5 : 0) + 2 * (lvl.silver?.length ?? 0) + (lvl.shamrock ? 20 : 0);
+}
+
+/** inkRev 10: the same line released at the first of 96 moments over the pot's slide that takes `full` points, or null. */
+function fullMoment(game: Game, s: InkState, l: PlanLine, full: number): PlanLine | null {
+  const base = s.tick + 400 - ((s.tick + 400) % l.period);
+  const n = Math.min(l.period, 96);
+  for (let k = 0; k < n; k++) {
+    const rel = base + Math.trunc((k * l.period) / n);
+    const r = simulate(game, s, l.strokes, rel, l.live, false, false, 0, PLAN_DELAY, PLAN_LIVE_SPEED);
+    if (r.potted && r.raw >= full) return { ...l, phase: rel % l.period, flight: r.flight || l.flight };
+  }
+  return null;
+}
+
 export const bot: SkillBot = ({ game, seed, human, fixes }) => {
   const level = human.level;
   const init = game.init(seed) as InkState;
+  worldH = inkWorldH(init);
+  const expand = init.rev === INK_REV_EXPAND;
+  phoneExact = expand;
 
   const plan = new Plan();
   let key = -1;
@@ -853,7 +998,28 @@ export const bot: SkillBot = ({ game, seed, human, fixes }) => {
     curLine = "";
     // The star only on a line that holds up, and never with one failure left: a failed drop
     // costs a third of the run.
-    if (first && s.fails < INK_FAILS - 1 && lvl.star && !starTried.has(s.level) && human.chance(STAR_GO[level])) {
+    if (expand) {
+      // inkRev 10: every one of levels 1–8 has a bonus line; level 1's misses cost no fail.
+      if (FEATURES && first && (s.fails < INK_FAILS - 1 || s.level === 0) && lvl.star && lvl.starRef && !starTried.has(s.level) && human.chance(BONUS_GO[level])) {
+        starTried.add(s.level);
+        // Of the bonus lines steady enough, the one that takes the most (the stars, silver coins and shamrock it passes).
+        let best = -1;
+        for (const st of inkPlan(game, seed, s, "star")) {
+          if (st.rel < BONUS_MIN_REL[level]) continue;
+          const g = bonusGain(game, s, st);
+          if (g > best) {
+            best = g;
+            line = st;
+          }
+        }
+        // On a moving pot, a line that misses a pickup at its planned moment is released at the moment that takes
+        // everything, if there is one (the player waits for it).
+        if (line && line.period && best < levelRaw(lvl)) {
+          const proof: PlanLine = { ...line, strokes: (lvl.starRef ?? []).map((p) => [...p]), live: [] };
+          line = fullMoment(game, s, line, levelRaw(lvl)) ?? fullMoment(game, s, proof, levelRaw(lvl)) ?? line;
+        }
+      }
+    } else if (first && s.fails < INK_FAILS - 1 && lvl.star && !starTried.has(s.level) && human.chance(STAR_GO[level])) {
       starTried.add(s.level);
       const st = inkPlan(game, seed, s, "star")[0];
       if (st && st.rel >= STAR_MIN_REL[level]) line = st;
@@ -911,7 +1077,13 @@ export const bot: SkillBot = ({ game, seed, human, fixes }) => {
     // Look at the level (a fresh level takes longer than a retry).
     let at = t + (first ? human.thinkTicks(2800 + 250 * s.level + (live ? 1500 : 0)) : human.thinkTicks(1300));
     let ideal: Ideal | null = null;
-    if (first && lvl.star && !starTried.has(s.level) && human.chance(STAR_GO[level])) {
+    if (expand) {
+      if (FEATURES && first && lvl.star && lvl.starRef && !starTried.has(s.level) && human.chance(BONUS_GO[level])) {
+        starTried.add(s.level);
+        const st = inkIdeal(game, seed, s, true);
+        if (st.ok && (st.rel ?? 0) >= BONUS_MIN_REL_V1[level]) ideal = st;
+      }
+    } else if (first && lvl.star && !starTried.has(s.level) && human.chance(STAR_GO[level])) {
       starTried.add(s.level);
       const st = inkIdeal(game, seed, s, true);
       if (st.ok) ideal = st;
@@ -946,7 +1118,9 @@ export const bot: SkillBot = ({ game, seed, human, fixes }) => {
   return driveEvents(
     game,
     (s: InkState, t) => {
-      const k = s.level * 10 + s.fails;
+      // inkRev 10: a new attempt after every missed drop (level 1's warm-up misses keep the fail count, so the
+      // miss's tick says so).
+      const k = expand ? s.level * 1_000_000 + s.fails * 100_000 + (s.flashKind === 2 ? s.flashTick : 0) : s.level * 10 + s.fails;
       if (k !== key) {
         attempt = s.level === lastLevel ? attempt + 1 : 0;
         if (fixes && attempt > 0 && curLine) failsOn.set(curLine, (failsOn.get(curLine) ?? 0) + 1);
@@ -960,6 +1134,9 @@ export const bot: SkillBot = ({ game, seed, human, fixes }) => {
         // ramp in (the phone sends its newest point each tick), lifting to commit it.
         liveQueued = true;
         let at = t + human.reactTicks() + human.int(3, 8);
+        // inkRev 10: the ramp is aimed at where the coin is seen to fall (the planned one if none is found).
+        const seen = expand ? liveRescue(game, s, at - t, DRAW_LIVE2[level], true) : null;
+        if (seen) liveRamps = [seen];
         for (const ramp of liveRamps) {
           at = drawLive(plan, human, ramp, at, DRAW_LIVE2[level], 1.6);
           plan.at(at, press(INK_INPUT_LIFT));
@@ -970,6 +1147,9 @@ export const bot: SkillBot = ({ game, seed, human, fixes }) => {
         // Live level: RELEASE is in; the hand goes to the screen and draws the catch ramp.
         liveQueued = true;
         let at = t + human.reactTicks() + human.int(3, 8);
+        // inkRev 10: the ramp is aimed at where the coin is seen to fall (the planned one if none is found).
+        const seen = expand ? liveRescue(game, s, at - t, DRAW_LIVE[level]) : null;
+        if (seen) liveRamps = [seen];
         for (const ramp of liveRamps) {
           // Where the coin will fall is judged ahead of time: a bigger aim error than a static line.
           at = drawStroke(plan, human, ramp, at, DRAW_LIVE[level], 1.6);

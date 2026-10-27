@@ -19,7 +19,8 @@ import {
   type CanvasSize,
   type InputRange,
 } from "./engine";
-import { bandStrictGame, bandStrict, bandRetarget, bandTargetGame, bandCurveOf, bandCurve, bandInit, bandPoints, bandScoreOf, bandStep, bandTotal, type BandFields, type BandParts } from "./scoreBands";
+import { BAND_STRICT_MARK, bandStrictGame, bandStrict, bandRetarget, bandTargetGame, bandCurveOf, bandCurve, bandInit, bandPoints, bandScoreOf, bandStep, bandTotal, type BandFields, type BandParts } from "./scoreBands";
+import { roundMaxFor } from "../duel/roundMax";
 
 /* ============================== Constants ============================== */
 
@@ -99,6 +100,10 @@ export const CROSS_CYCLE3_GAP_MIN_FP = 102_400;
 export const CROSS_CYCLE3_GAP_SPAN_FP = 143_360;
 export const CROSS_KIND_CYCLE = 1;
 export const CROSS_KIND_ROADWORKS = 2;
+/** crossRev 9 only: the grass checkpoint island (never blocked), long buses and fast motorbikes. */
+export const CROSS_KIND_ISLAND = 3;
+export const CROSS_KIND_BUS = 4;
+export const CROSS_KIND_MOTO = 5;
 /** Crossings 1–2 (indices 0–1): every lane's gaps stay open this long at any column. */
 export const CROSS_FAIR_COURSES = 2;
 export const CROSS_FAIR_WINDOW_TICKS = 90;
@@ -122,6 +127,104 @@ export const CROSS_ROADWORKS_TWO_FROM = 6;
 /** Half-column positions left open through the cones. */
 export const CROSS_ROADWORKS_OPENING = 3;
 
+/* ----------------------- crossRev 9: the expansion (x200, 26 Oct 2026) ----------------------- */
+
+/**
+ * crossRev 9 (x200, docs/expansions/x200-cross.md; the parked Expansion E1 crossRev 8, never dealt,
+ * renumbered): a taller world (390×727, filling the iPhone 11 play box) with
+ * thirteen traffic lanes and a grass checkpoint island halfway (row 7 of 14), a shorter start
+ * pavement, long buses and fast motorbikes, gold coins in the riskiest lanes and a streak
+ * multiplier for back-to-back crossings without a hit. Twenty coins a run (four on each of the
+ * first five crossings), whatever the seed. Scored to 200 (roundMax.ts): the play
+ * itself (rows and crossings) on CROSS_V9_BAND_CURVE up to 150, plus up to 50 from coins and the
+ * streak paid on CROSS_V9_SKILL_PAY.
+ */
+export const CROSS_REV_EXPAND = 9;
+export const CROSS_X_WORLD_H = 727;
+/** Rows between the kerbs: 13 lanes and the island. */
+export const CROSS_X_ROWS = 14;
+/** The island's row (1-based from the bottom): six lanes below it, seven above. */
+export const CROSS_X_ISLAND = 7;
+export const CROSS_X_LANE_H = 44;
+/** The start pavement, shorter than the goal kerb (34 px). */
+export const CROSS_X_START_H = 28;
+/** Courses are proved over a longer horizon: a crossing has 14 rows. */
+export const CROSS_X_SEARCH_TICKS = 1200;
+/** Buses: long (136–168 px), a little slower than the lane's cars, small gaps (80–112 px). */
+export const CROSS_X_BUS_BLOCK_MIN_FP = 34_816;
+export const CROSS_X_BUS_BLOCK_SPAN_FP = 8_192;
+export const CROSS_X_BUS_GAP_MIN_FP = 20_480;
+export const CROSS_X_BUS_GAP_SPAN_FP = 8_192;
+export const CROSS_X_BUS_SPEED_NUM = 4;
+export const CROSS_X_BUS_SPEED_DEN = 5;
+/** One bus lane from crossing 2, two from crossing 5. */
+export const CROSS_X_BUS_FROM = 1;
+export const CROSS_X_BUS_TWO_FROM = 4;
+/** Motorbikes: narrow (36–43 px), far faster than the fastest car, two per lane with 560–1,060 px between. */
+export const CROSS_X_MOTO_BLOCK_MIN_FP = 9_216;
+export const CROSS_X_MOTO_BLOCK_SPAN_FP = 1_792;
+export const CROSS_X_MOTO_SPEED_MIN_FP = 200;
+export const CROSS_X_MOTO_SPEED_SPAN_FP = 140;
+export const CROSS_X_MOTO_RIDERS = 2;
+export const CROSS_X_MOTO_GAP_MIN_FP = 143_360;
+export const CROSS_X_MOTO_GAP_SPAN_FP = 128_000;
+/** One motorbike lane from crossing 3, two from crossing 6. */
+export const CROSS_X_MOTO_FROM = 2;
+export const CROSS_X_MOTO_TWO_FROM = 5;
+/** Coins: one in each of the riskiest lanes, two below the island and two above, column 2 or 10, on crossings 1–5 only. */
+export const CROSS_X_COIN_CROSSINGS = 5;
+export const CROSS_X_COINS_PER_HALF = 2;
+/** Every run holds exactly this many coins (four on each of the first five crossings). */
+export const CROSS_X_COINS_PER_RUN = CROSS_X_COIN_CROSSINGS * CROSS_X_COINS_PER_HALF * 2;
+export const CROSS_X_COIN_POINTS = 3;
+/** The streak multiplier: ×1 on the first crossing without a hit, then ×2, ×3, ×4 at most. */
+export const CROSS_X_MULT_MAX = 4;
+/** Each crossing without a hit adds this × (multiplier − 1) to the streak pool (1: ×2 pays 1, ×3 pays 2, ×4 pays 3). */
+export const CROSS_X_STREAK_POINTS = 1;
+/** Coins, the streak and close calls together add at most this (the score itself stops at 200). */
+export const CROSS_X_BONUS_MAX = 60;
+/**
+ * Close calls (x200 addendum, approved by Joe): a forward hop that lands in a traffic lane within this many ticks of a
+ * vehicle passing that column (a tight near miss) scores CROSS_X_CLOSE_POINTS skill points, once per lane a crossing,
+ * at most CROSS_X_CLOSE_MAX a run.
+ */
+export const CROSS_X_CLOSE_TICKS = 6;
+export const CROSS_X_CLOSE_POINTS = 1;
+export const CROSS_X_CLOSE_MAX = 40;
+
+/** One world's layout. Every revision before crossRev 9 uses CROSS_GEOM. */
+export interface CrossGeom {
+  worldH: number;
+  /** Rows between the kerbs (lanes, plus the island on crossRev 9). */
+  rows: number;
+  laneH: number;
+  goalH: number;
+  startH: number;
+  /** The island's row, 0 when there is none. */
+  island: number;
+  /** Vehicles are drawn this far inside their lane, top and bottom. */
+  inset: number;
+}
+export const CROSS_GEOM: CrossGeom = { worldH: CROSS_WORLD_H, rows: CROSS_LANES, laneH: CROSS_LANE_H, goalH: CROSS_KERB_H, startH: CROSS_KERB_H, island: 0, inset: 7 };
+export const CROSS_GEOM_X: CrossGeom = { worldH: CROSS_X_WORLD_H, rows: CROSS_X_ROWS, laneH: CROSS_X_LANE_H, goalH: CROSS_KERB_H, startH: CROSS_X_START_H, island: CROSS_X_ISLAND, inset: 6 };
+
+/** The layout a run is played in (crossRev 9 states carry `wide`). */
+export function crossGeomOf(state: { wide?: number }): CrossGeom {
+  return state.wide ? CROSS_GEOM_X : CROSS_GEOM;
+}
+/** The rows between the kerbs for a run. */
+export function crossRowsOf(state: { wide?: number }): number {
+  return state.wide ? CROSS_X_ROWS : CROSS_LANES;
+}
+/** The world height for a stored crossRev (reveals, intros and the arena slot). */
+export function crossWorldHFor(rev?: number | null): number {
+  return rev === CROSS_REV_EXPAND ? CROSS_X_WORLD_H : CROSS_WORLD_H;
+}
+/** The streak multiplier a crossing completed as the `streak`-th in a row without a hit pays. */
+export function crossMultiplierFor(streak: number): number {
+  return clampInt(streak, 1, CROSS_X_MULT_MAX);
+}
+
 /* ============================== Course ================================= */
 
 export interface CrossLane {
@@ -129,7 +232,7 @@ export interface CrossLane {
   kind?: number;
   /** crossRev 2 roadworks only: columns closed by cones and barriers. */
   closed?: number[];
-  /** crossRev 3 cyclists only: each rider's start within the period (blockW wide each). */
+  /** crossRev 3 cyclists (and crossRev 9 motorbikes) only: each rider's start within the period (blockW wide each). */
   offsets?: number[];
   /** +1 moves right, −1 moves left. */
   dir: number;
@@ -142,6 +245,8 @@ export interface CrossLane {
 
 export interface CrossCourse {
   lanes: CrossLane[];
+  /** crossRev 9 only: the crossing's gold coins, each a cell `lane * 16 + col` (lane 1-based). */
+  coins?: number[];
 }
 
 function mod(value: number, m: number): number {
@@ -151,7 +256,7 @@ function mod(value: number, m: number): number {
 
 /** True when the player's disc at this column centre touches a block (half: the disc's half-width, 1/256 px). */
 export function crossBlocked(lane: CrossLane, centreFp: number, rel: number, half = CROSS_PLAYER_HALF_FP): boolean {
-  if (lane.kind === CROSS_KIND_ROADWORKS) return false;
+  if (lane.kind === CROSS_KIND_ROADWORKS || lane.kind === CROSS_KIND_ISLAND) return false;
   const left = centreFp - half;
   const span = half * 2;
   const u = mod(left - lane.dir * lane.speed * rel - lane.phase, lane.period);
@@ -175,17 +280,20 @@ export const CROSS_SEARCH_TICKS = 900;
 
 /**
  * A breadth-first search over (lane, column, hop progress, tick). A crossing is
- * only accepted when the goal kerb can be reached from the start kerb.
+ * only accepted when the goal kerb can be reached from the start kerb. The lane
+ * count is the course's own (9 on every revision before crossRev 9, whose 14
+ * rows include the island), so older courses search exactly as before.
  */
-export function crossPassable(course: CrossCourse): boolean {
+export function crossPassable(course: CrossCourse, horizon = CROSS_SEARCH_TICKS): boolean {
+  const rows = course.lanes.length;
   // Key: (lane * columns + column) * 7 + ticks left in the hop.
   const key = (lane: number, col: number, hop: number) => (lane * CROSS_COLS + col) * 7 + hop;
   let frontier = new Set<number>([key(0, CROSS_COLS >> 1, 0)]);
-  for (let rel = 1; rel <= CROSS_SEARCH_TICKS && frontier.size > 0; rel++) {
+  for (let rel = 1; rel <= horizon && frontier.size > 0; rel++) {
     const next = new Set<number>();
     let arrived = false;
     const consider = (lane: number, col: number, hop: number) => {
-      if (lane > CROSS_LANES) {
+      if (lane > rows) {
         arrived = true;
         return;
       }
@@ -217,9 +325,9 @@ export function crossPassable(course: CrossCourse): boolean {
   return false;
 }
 
-/** True when roadworks close this column of a lane (1…9); kerbs are never closed. */
+/** True when roadworks close this column of a lane (1…9, 1…14 on crossRev 9); kerbs are never closed. */
 export function crossClosed(course: CrossCourse, lane: number, col: number): boolean {
-  if (lane < 1 || lane > CROSS_LANES) return false;
+  if (lane < 1 || lane > course.lanes.length) return false;
   const closed = course.lanes[lane - 1]?.closed;
   return !!closed && closed.includes(col);
 }
@@ -344,13 +452,13 @@ function roadworksLane(openFrom: number): CrossLane {
  * column, hopping only forward and standing at least CROSS_FAIR_DWELL_TICKS in
  * each lane, the goal kerb is still reachable.
  */
-export function crossFairPassable(course: CrossCourse): boolean {
+export function crossFairPassable(course: CrossCourse, horizon = CROSS_SEARCH_TICKS): boolean {
   const col = CROSS_COLS >> 1;
   const centre = crossColumnCentreFp(col);
   // Per lane, the set of ticks the walker can be standing there (dwell counted).
   let ready = new Set<number>();
-  for (let rel = CROSS_FAIR_DWELL_TICKS; rel <= CROSS_SEARCH_TICKS; rel++) ready.add(rel);
-  for (let lane = 1; lane <= CROSS_LANES; lane++) {
+  for (let rel = CROSS_FAIR_DWELL_TICKS; rel <= horizon; rel++) ready.add(rel);
+  for (let lane = 1; lane <= course.lanes.length; lane++) {
     const laneDef = course.lanes[lane - 1];
     if (!laneDef || crossClosed(course, lane, col)) return false;
     const next = new Set<number>();
@@ -361,7 +469,7 @@ export function crossFairPassable(course: CrossCourse): boolean {
         if (crossBlocked(laneDef, centre, rel)) ok = false;
       if (!ok) continue;
       // Standing on: every later tick while the lane stays clear is a hop-off point.
-      for (let rel = land + CROSS_FAIR_DWELL_TICKS; rel <= CROSS_SEARCH_TICKS && !crossBlocked(laneDef, centre, rel); rel++) {
+      for (let rel = land + CROSS_FAIR_DWELL_TICKS; rel <= horizon && !crossBlocked(laneDef, centre, rel); rel++) {
         if (next.has(rel)) break;
         next.add(rel);
       }
@@ -430,6 +538,195 @@ function rollCourseV2(rng: number, index: number, rev = CROSS_REV2): { rng: numb
   return { rng: state, course: { lanes } };
 }
 
+/* ------------------------- crossRev 9 courses ------------------------- */
+
+/** The grass island: no traffic, never blocked, never closed. */
+function islandLane(): CrossLane {
+  return { kind: CROSS_KIND_ISLAND, dir: 1, speed: 0, blockW: 0, period: 1 << 20, phase: 0 };
+}
+
+/** A bus lane: long vehicles a little slower than the crossing's cars, with small gaps (fair-rule aware). */
+function rollBusLaneX(rng: number, index: number): { rng: number; lane: CrossLane } {
+  let state = rng;
+  const draw = (bound: number) => {
+    const r = rngBelow(state, bound);
+    state = r.state;
+    return r.value;
+  };
+  const dir = draw(2) === 0 ? 1 : -1;
+  const base = crossSpeedFor(CROSS_SPEED_MIN_FP + draw(CROSS_SPEED_SPAN_FP), index);
+  const speed = Math.trunc((base * CROSS_X_BUS_SPEED_NUM) / CROSS_X_BUS_SPEED_DEN);
+  const blockW = CROSS_X_BUS_BLOCK_MIN_FP + draw(CROSS_X_BUS_BLOCK_SPAN_FP);
+  let gap = CROSS_X_BUS_GAP_MIN_FP + draw(CROSS_X_BUS_GAP_SPAN_FP);
+  if (index < CROSS_FAIR_COURSES) gap = Math.max(gap, CROSS_PLAYER_HALF_FP * 2 + CROSS_FAIR_WINDOW_TICKS * speed);
+  const period = blockW + gap;
+  return { rng: state, lane: { kind: CROSS_KIND_BUS, dir, speed, blockW, period, phase: draw(period) } };
+}
+
+/** A motorbike lane: two narrow riders far faster than any car, far apart at seeded uneven spacing. */
+function rollMotoLaneX(rng: number, index: number): { rng: number; lane: CrossLane } {
+  let state = rng;
+  const draw = (bound: number) => {
+    const r = rngBelow(state, bound);
+    state = r.state;
+    return r.value;
+  };
+  const dir = draw(2) === 0 ? 1 : -1;
+  const speed = crossSpeedFor(CROSS_SPEED_MIN_FP + CROSS_SPEED_SPAN_FP, index) + CROSS_X_MOTO_SPEED_MIN_FP + draw(CROSS_X_MOTO_SPEED_SPAN_FP);
+  const blockW = CROSS_X_MOTO_BLOCK_MIN_FP + draw(CROSS_X_MOTO_BLOCK_SPAN_FP);
+  const offsets: number[] = [];
+  let at = 0;
+  for (let k = 0; k < CROSS_X_MOTO_RIDERS; k++) {
+    offsets.push(at);
+    at += blockW + CROSS_X_MOTO_GAP_MIN_FP + draw(CROSS_X_MOTO_GAP_SPAN_FP);
+  }
+  return { rng: state, lane: { kind: CROSS_KIND_MOTO, dir, speed, blockW, period: at, phase: draw(at), offsets } };
+}
+
+/** The columns a coin may sit on: out near the edges, so a coin is gone for, not stumbled on. */
+export const CROSS_X_COIN_COLS = [2, 10] as const;
+
+/**
+ * The crossing's coins (crossings 1–CROSS_X_COIN_CROSSINGS only, so every run holds exactly
+ * CROSS_X_COINS_PER_RUN): in each half (below and above the island) the fastest traffic lanes
+ * (cars, buses, bikes or motorbikes; never roadworks) get one coin each on a seeded column
+ * 2 or 10 (the same detour every time) that the lane below leaves open (so it can be hopped into straight from below;
+ * a lane above roadworks takes one of the columns through the cones, or is passed over).
+ */
+function placeCoinsX(rng: number, lanes: CrossLane[], index: number): { rng: number; coins: number[] } {
+  if (index >= CROSS_X_COIN_CROSSINGS) return { rng, coins: [] };
+  let state = rng;
+  const coins: number[] = [];
+  const course: CrossCourse = { lanes };
+  for (const [from, to] of [[0, CROSS_X_ISLAND - 1], [CROSS_X_ISLAND, lanes.length]] as const) {
+    const pool: number[] = [];
+    for (let i = from; i < to; i++) {
+      const kind = lanes[i]?.kind;
+      if (kind !== CROSS_KIND_ROADWORKS && kind !== CROSS_KIND_ISLAND) pool.push(i);
+    }
+    pool.sort((a, b) => lanes[b]!.speed - lanes[a]!.speed || a - b);
+    let placed = 0;
+    for (const i of pool) {
+      if (placed === CROSS_X_COINS_PER_HALF) break;
+      // Lane i + 1 (1-based); the lane below is i (0 = the pavement, the island never closed).
+      const cols = CROSS_X_COIN_COLS.filter((c) => !crossClosed(course, i, c));
+      if (cols.length === 0) continue;
+      const r = rngBelow(state, cols.length);
+      state = r.state;
+      coins.push((i + 1) * 16 + cols[r.value]!);
+      placed += 1;
+    }
+  }
+  return { rng: state, coins };
+}
+
+function rollCourseV9(rng: number, index: number): { rng: number; course: CrossCourse } {
+  let state = rng;
+  const draw = (bound: number) => {
+    const r = rngBelow(state, bound);
+    state = r.state;
+    return r.value;
+  };
+  const rows = CROSS_X_ROWS;
+  const island = CROSS_X_ISLAND - 1;
+  for (let attempt = 0; attempt < 40; attempt++) {
+    const special = new Map<number, CrossLane>([[island, islandLane()]]);
+    /** The traffic lane inside a chicane stays a car lane. */
+    let between = -1;
+    if (index >= CROSS_ROADWORKS_FROM) {
+      const two = index >= CROSS_ROADWORKS_TWO_FROM;
+      // Starts that keep the closed lanes (and a chicane's middle) off the outer lanes and the island.
+      const starts: number[] = [];
+      for (let first = 1; first + (two ? 2 : 0) <= rows - 2; first++)
+        if (first !== island && (!two || (first + 1 !== island && first + 2 !== island))) starts.push(first);
+      const first = starts[draw(starts.length)]!;
+      const side = draw(2);
+      const span = (CROSS_COLS >> 1) - CROSS_ROADWORKS_OPENING;
+      const open = side === 0 ? draw(span + 1) : (CROSS_COLS >> 1) + 1 + draw(span + 1);
+      special.set(first, roadworksLane(open));
+      if (two) {
+        const other = side === 0 ? (CROSS_COLS >> 1) + 1 + draw(span + 1) : draw(span + 1);
+        special.set(first + 2, roadworksLane(other));
+        between = first + 1;
+      }
+    }
+    const free = () => {
+      let lane = draw(rows);
+      while (special.has(lane) || lane === between) lane = (lane + 1) % rows;
+      return lane;
+    };
+    const cycles = index >= CROSS_CYCLE_TWO_FROM ? 2 : index >= CROSS_CYCLE_FROM ? 1 : 0;
+    for (let k = 0; k < cycles; k++) {
+      const lane = free();
+      const rolled = rollCycleLaneV3(state, index);
+      state = rolled.rng;
+      special.set(lane, rolled.lane);
+    }
+    const buses = index >= CROSS_X_BUS_TWO_FROM ? 2 : index >= CROSS_X_BUS_FROM ? 1 : 0;
+    for (let k = 0; k < buses; k++) {
+      const lane = free();
+      const rolled = rollBusLaneX(state, index);
+      state = rolled.rng;
+      special.set(lane, rolled.lane);
+    }
+    const motos = index >= CROSS_X_MOTO_TWO_FROM ? 2 : index >= CROSS_X_MOTO_FROM ? 1 : 0;
+    for (let k = 0; k < motos; k++) {
+      const lane = free();
+      const rolled = rollMotoLaneX(state, index);
+      state = rolled.rng;
+      special.set(lane, rolled.lane);
+    }
+    // The crossing's car lanes share one density schedule: their speeds, lengths and gaps are evenly spread
+    // over the usual ranges (one value per lane), and the seed only deals which lane gets which, their
+    // directions and phases. So every run's crossing k is equally hard; only the arrangement differs.
+    const carLanes: number[] = [];
+    for (let lane = 0; lane < rows; lane++) if (!special.has(lane)) carLanes.push(lane);
+    const n = carLanes.length;
+    const spread = (span: number) => {
+      const values = Array.from({ length: n }, (_, k) => Math.trunc(((2 * k + 1) * span) / (2 * n)));
+      for (let k = n - 1; k > 0; k--) {
+        const j = draw(k + 1);
+        [values[k], values[j]] = [values[j]!, values[k]!];
+      }
+      return values;
+    };
+    const fairCourse = index < CROSS_FAIR_COURSES;
+    const speeds = spread(CROSS_SPEED_SPAN_FP);
+    const blocks = spread(fairCourse ? CROSS_FAIR_BLOCK_SPAN_FP : CROSS_BLOCK_SPAN_FP);
+    const gaps = spread(CROSS_GAP_SPAN_FP);
+    const lanes: CrossLane[] = [];
+    for (let lane = 0; lane < rows; lane++) {
+      const fixed = special.get(lane);
+      if (fixed) {
+        lanes.push(fixed);
+        continue;
+      }
+      const k = carLanes.indexOf(lane);
+      const dir = draw(2) === 0 ? 1 : -1;
+      const speed = crossSpeedFor(CROSS_SPEED_MIN_FP + speeds[k]!, index);
+      const blockW = CROSS_BLOCK_MIN_FP + blocks[k]!;
+      let gap = (fairCourse ? CROSS_FAIR_GAP_MIN_FP : CROSS_GAP_MIN_FP) + gaps[k]!;
+      if (fairCourse) gap = Math.max(gap, CROSS_PLAYER_HALF_FP * 2 + CROSS_FAIR_WINDOW_TICKS * speed);
+      const period = blockW + gap;
+      lanes.push({ dir, speed, blockW, period, phase: draw(period) });
+    }
+    const course: CrossCourse = { lanes };
+    const fair = index >= CROSS_FAIR_COURSES || crossFairPassable(course, CROSS_X_SEARCH_TICKS);
+    if (fair && crossPassable(course, CROSS_X_SEARCH_TICKS)) {
+      const placed = placeCoinsX(state, lanes, index);
+      return { rng: placed.rng, course: { lanes, coins: placed.coins } };
+    }
+  }
+  // A last resort: wide, slow car lanes round the island (the fair rules), still deterministic.
+  const lanes: CrossLane[] = [];
+  for (let lane = 0; lane < rows; lane++) {
+    const period = CROSS_BLOCK_MIN_FP + CROSS_FAIR_GAP_MIN_FP + CROSS_GAP_SPAN_FP;
+    lanes.push(lane === island ? islandLane() : { dir: lane % 2 === 0 ? 1 : -1, speed: CROSS_SPEED_MIN_FP, blockW: CROSS_BLOCK_MIN_FP, period, phase: lane * 9_000 });
+  }
+  const placed = placeCoinsX(state, lanes, index);
+  return { rng: placed.rng, course: { lanes, coins: placed.coins } };
+}
+
 /* ================================ State ================================ */
 
 export interface CrossState extends BandFields {
@@ -465,6 +762,21 @@ export interface CrossState extends BandFields {
   hitTick: number;
   /** crossRev 5 only (Tuning F): the walker's smaller hit box. Absent on every earlier round. */
   tunef?: number;
+  /**
+   * crossRev 9 only (the expansion, 25 Oct 2026); absent on every earlier round. `wide` marks the
+   * 14-row world (13 lanes and the island); `coins` the bits of this crossing's coins collected,
+   * `coinTotal` every coin collected; `streak` back-to-back crossings without a hit, `streakPts`
+   * the streak bonus banked; `banked` 1 once the island is reached in this crossing.
+   */
+  wide?: number;
+  coins?: number;
+  coinTotal?: number;
+  streak?: number;
+  streakPts?: number;
+  banked?: number;
+  /** crossRev 9 (x200 second addendum): close calls made, and the lanes (bits) of this crossing that gave one. */
+  closeCalls?: number;
+  closeLanes?: number;
 }
 
 function init(seed: number): CrossState {
@@ -537,6 +849,18 @@ function step(state: CrossState, input: ArcadeInputEvent | null): CrossState {
   if (isOver(state)) return state;
   const tick = state.tick + 1;
   let { lane, col, hop, hopDir, reached, crossings, crossStart, pauseUntil, clean, hitThisCrossing, ghost } = state;
+  /** Rows between the kerbs: 9 lanes, or crossRev 9's 13 lanes and the island. */
+  const rows = crossRowsOf(state);
+  const wide = !!state.wide;
+  let coins = state.coins ?? 0;
+  let coinTotal = state.coinTotal ?? 0;
+  let streak = state.streak ?? 0;
+  let streakPts = state.streakPts ?? 0;
+  let banked = state.banked ?? 0;
+  let closeCalls = state.closeCalls ?? 0;
+  let closeLanes = state.closeLanes ?? 0;
+  /** crossRev 9: a forward hop landed in a lane this tick (a close call is judged on it). */
+  let landed = false;
   // Everything sent while the disc waits on the kerb is dropped, so a swipe at
   // the end of one crossing can never carry into the next.
   const paused = tick < pauseUntil;
@@ -566,11 +890,22 @@ function step(state: CrossState, input: ArcadeInputEvent | null): CrossState {
       lane += hopDir;
       if (lane < 0) lane = 0;
       if (lane > reached) reached = lane;
-      if (lane > CROSS_LANES) {
+      if (lane > rows) {
         // The goal kerb: bank the crossing, then a second on the start kerb
         // while the traffic of the next crossing keeps rolling.
         crossings += 1;
         if (!hitThisCrossing) clean += 1;
+        if (wide) {
+          // crossRev 9: a crossing without a hit raises the streak; its multiplier (×1…×4) pays
+          // the streak pool. A new crossing has fresh coins and no island banked.
+          if (!hitThisCrossing) {
+            streak += 1;
+            streakPts += CROSS_X_STREAK_POINTS * (crossMultiplierFor(streak) - 1);
+          }
+          coins = 0;
+          banked = 0;
+          closeLanes = 0;
+        }
         hitThisCrossing = false;
         ghost = false;
         lane = 0;
@@ -579,11 +914,14 @@ function step(state: CrossState, input: ArcadeInputEvent | null): CrossState {
         hopDir = 1;
         pauseUntil = tick + CROSS_PAUSE_TICKS;
         crossStart = pauseUntil;
-      }
+      } else if (wide && lane === CROSS_X_ISLAND) {
+        // crossRev 9: the island banks this crossing's progress.
+        banked = 1;
+      } else if (wide && hopDir > 0 && lane >= 1) landed = true;
     }
   }
 
-  if (!paused && hop === 0 && lane >= 1 && lane <= CROSS_LANES) {
+  if (!paused && hop === 0 && lane >= 1 && lane <= rows) {
     const course = crossCourse({ ...state, crossings });
     const laneDef = course.lanes[lane - 1];
     const blocked = !!laneDef && crossBlocked(laneDef, crossColumnCentreFp(col), tick - crossStart, crossPlayerHalfFp(state));
@@ -591,9 +929,32 @@ function step(state: CrossState, input: ArcadeInputEvent | null): CrossState {
     if (blocked && !ghost) {
       const lives = state.lives - 1;
       const base = { ...state, tick, lane, hop: 0, hopDir: 1, reached, crossings, crossStart, clean, lives, hitTick: tick };
-      if (lives <= 0) return { ...base, col, pauseUntil, hitThisCrossing: true, ghost, dead: true, endedTick: tick };
+      // crossRev 9: a hit ends the streak; with the island banked the walker restarts there.
+      const extra = wide ? { coins, coinTotal, streak: 0, streakPts, banked, closeCalls, closeLanes } : {};
+      if (lives <= 0) return { ...base, ...extra, col, pauseUntil, hitThisCrossing: true, ghost, dead: true, endedTick: tick };
       // Respawn on the start lane of this crossing; keep its progress and traffic clock.
-      return { ...base, lane: 0, col: CROSS_COLS >> 1, pauseUntil: tick + CROSS_PAUSE_TICKS, hitThisCrossing: true, ghost: false };
+      return { ...base, ...extra, lane: wide && banked ? CROSS_X_ISLAND : 0, col: CROSS_COLS >> 1, pauseUntil: tick + CROSS_PAUSE_TICKS, hitThisCrossing: true, ghost: false };
+    }
+    // crossRev 9: a close call. A forward hop lands just behind a vehicle that has passed this column within the
+    // last CROSS_X_CLOSE_TICKS ticks (a tight near miss); once per lane a crossing.
+    if (wide && landed && laneDef && laneDef.kind !== CROSS_KIND_ROADWORKS && laneDef.kind !== CROSS_KIND_ISLAND && !(closeLanes & (1 << lane))) {
+      const rel = tick - crossStart;
+      const half = crossPlayerHalfFp(state);
+      const centre = crossColumnCentreFp(col);
+      for (let k = 1; k <= CROSS_X_CLOSE_TICKS; k++)
+        if (crossBlocked(laneDef, centre, rel - k, half)) {
+          closeCalls += 1;
+          closeLanes |= 1 << lane;
+          break;
+        }
+    }
+    // crossRev 9: standing on a coin's cell collects it.
+    if (wide && course.coins) {
+      const at = course.coins.indexOf(lane * 16 + col);
+      if (at >= 0 && !(coins & (1 << at))) {
+        coins |= 1 << at;
+        coinTotal += 1;
+      }
     }
   }
 
@@ -611,14 +972,16 @@ function step(state: CrossState, input: ArcadeInputEvent | null): CrossState {
     clean,
     hitThisCrossing,
     ghost,
+    ...(wide ? { coins, coinTotal, streak, streakPts, banked, closeCalls, closeLanes } : {}),
   };
   if (tick >= CROSS_RUN_TICKS) return { ...next, endedTick: tick };
   return next;
 }
 
-/** Bank completed crossings plus the furthest lane reached in the current one. */
-export function crossTotalLanes(state: Pick<CrossState, "crossings" | "reached">): number {
-  return state.crossings * CROSS_LANES + clampInt(state.reached, 0, CROSS_LANES);
+/** Bank completed crossings plus the furthest lane reached in the current one (crossRev 9: rows, the island one of them). */
+export function crossTotalLanes(state: Pick<CrossState, "crossings" | "reached"> & Pick<CrossState, "wide">): number {
+  const rows = crossRowsOf(state);
+  return state.crossings * rows + clampInt(state.reached, 0, rows);
 }
 
 function score(state: CrossState): number {
@@ -685,6 +1048,13 @@ export function crossCheckpoint(state: CrossState): CrossCheckpoint {
     checksum ^= state.tunef | 0;
     checksum = Math.imul(checksum, 0x01000193) >>> 0;
   }
+  // crossRev 9 folds its fields in last, only when present.
+  if (state.wide) {
+    for (const value of [state.wide, state.coins ?? 0, state.coinTotal ?? 0, state.streak ?? 0, state.streakPts ?? 0, state.banked ?? 0, state.closeCalls ?? 0]) {
+      checksum ^= value | 0;
+      checksum = Math.imul(checksum, 0x01000193) >>> 0;
+    }
+  }
   return { ...snapshot, checksum };
 }
 
@@ -699,15 +1069,20 @@ export const CROSS_BLOCK = "#4F9CF9";
 export const CROSS_BLOCK_COLOURS = [CROSS_BLOCK, "#F25C54", "#F5B82E", "#A56A43", "#2ED3B7", "#F080AB"] as const;
 
 /** Top of a lane row on screen; lane 1 is the bottom lane. */
-export function crossLaneTop(lane: number): number {
-  return CROSS_LANES_Y + (CROSS_LANES - lane) * CROSS_LANE_H;
+export function crossLaneTop(lane: number, g: CrossGeom = CROSS_GEOM): number {
+  return CROSS_HUD_H + g.goalH + (g.rows - lane) * g.laneH;
 }
 
-/** The centre y of a lane, the start kerb (0) or the goal kerb (10). */
-export function crossLaneCentre(lane: number): number {
-  if (lane <= 0) return CROSS_LANES_Y + CROSS_LANES * CROSS_LANE_H + CROSS_KERB_H / 2;
-  if (lane > CROSS_LANES) return CROSS_HUD_H + CROSS_KERB_H / 2;
-  return crossLaneTop(lane) + CROSS_LANE_H / 2;
+/** The centre y of a lane, the start kerb (0) or the goal kerb (rows + 1). */
+export function crossLaneCentre(lane: number, g: CrossGeom = CROSS_GEOM): number {
+  if (lane <= 0) return crossStartTop(g) + g.startH / 2;
+  if (lane > g.rows) return CROSS_HUD_H + g.goalH / 2;
+  return crossLaneTop(lane, g) + g.laneH / 2;
+}
+
+/** Top of the start pavement (the bottom of the lowest lane). */
+export function crossStartTop(g: CrossGeom = CROSS_GEOM): number {
+  return CROSS_HUD_H + g.goalH + g.rows * g.laneH;
 }
 
 function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number): void {
@@ -891,6 +1266,7 @@ const crossRev3Game: ArcadeGame<CrossState, ArcadeInputEvent | null> = {
 
 /** Takes puzzle.crossRev (2 or 3); anything else is the original traffic. */
 export function crossGameFor(rev?: number | null): ArcadeGame<CrossState, ArcadeInputEvent | null> {
+  if (rev === CROSS_REV_EXPAND) return crossExpandGame;
   if (rev === CROSS_REV_STRICT) return crossStrictGame;
   if (rev === CROSS_REV_TARGET) return crossTargetGame;
   if (rev === CROSS_REV_SMALL) return crossSmallGame;
@@ -904,9 +1280,12 @@ export function crossKindCrossed(state: Pick<CrossState, "courses" | "crossings"
   const count = (course: CrossCourse | undefined, upTo: number) => {
     for (let lane = 1; lane <= upTo; lane++) if (course?.lanes[lane - 1]?.kind === kind) total += 1;
   };
-  for (let index = 0; index < state.crossings; index++)
-    count(state.courses[Math.min(index, CROSS_COURSES - 1)], CROSS_LANES);
-  count(state.courses[Math.min(state.crossings, CROSS_COURSES - 1)], clampInt(state.reached, 0, CROSS_LANES));
+  for (let index = 0; index < state.crossings; index++) {
+    const course = state.courses[Math.min(index, CROSS_COURSES - 1)];
+    count(course, course?.lanes.length ?? CROSS_LANES);
+  }
+  const now = state.courses[Math.min(state.crossings, CROSS_COURSES - 1)];
+  count(now, clampInt(state.reached, 0, now?.lanes.length ?? CROSS_LANES));
   return total;
 }
 
@@ -918,13 +1297,15 @@ export const CROSS_REV_BAND = 4;
 export const CROSS_BAND_CURVE = bandCurve([0, 41, 50, 59, 66, 77], [0, 70, 100, 125, 145, 150]);
 
 export function crossBandParts(state: CrossState): BandParts {
+  if (state.wide) return crossExpandParts(state);
   const lanes = crossTotalLanes(state);
   const units = lanes + 2 * state.crossings;
   return { units, points: bandPoints(bandCurveOf(state, CROSS_BAND_CURVE), units), bonus: 0, penalty: 0, finished: false, text: `${lanes} lanes · ${state.crossings} crossings` };
 }
 
 function scoreBand(state: CrossState): number {
-  return bandTotal(crossBandParts(state), Boolean(state.acted));
+  // crossRev 9 scores to the game's maximum (200, roundMax.ts); every earlier revision to 150.
+  return bandTotal(crossBandParts(state), Boolean(state.acted), state.wide ? roundMaxFor("cross") : undefined);
 }
 
 export const crossBandGame: ArcadeGame<CrossState, ArcadeInputEvent | null> = { ...crossRev3Game, init: (seed) => bandInit(crossRev3Game.init(seed)) };
@@ -978,3 +1359,71 @@ export const CROSS_REV_STRICT = 7;
 export const crossStrictGame = bandStrictGame(crossTargetGame);
 /** The curve new rounds score on: CROSS_BAND_CURVE's strict curve (what bandCurveOf gives a band-3 state). */
 export const CROSS_V7_BAND_CURVE = bandStrict(CROSS_BAND_CURVE);
+
+
+/* ================= The expansion (crossRev 9, x200, 26 Oct 2026) ================= */
+
+/**
+ * crossRev 9's play curve: units are rows crossed (14 a crossing, the island one of them) plus 2
+ * per crossing, so a full crossing counts 16. Fitted with the skill pay (scripts/cross-x200-bands.ts, 60 tuning
+ * seeds, checked on 200 fresh ones) so good play scores about what it did on crossRev 7 and
+ * near-perfect and elite play reach the 200 scale's top bands (docs/expansions/x200-cross.md).
+ */
+export const CROSS_V9_BAND_CURVE = bandCurve([0, 37, 52, 68, 76, 90], [0, 52, 76, 114, 138, 150]);
+
+/** crossRev 9's raw skill points: CROSS_X_COIN_POINTS a coin, the streak pool and the close calls (at most CROSS_X_CLOSE_MAX). */
+export function crossSkillRaw(state: Pick<CrossState, "coinTotal" | "streakPts"> & Partial<Pick<CrossState, "closeCalls">>): number {
+  return (state.coinTotal ?? 0) * CROSS_X_COIN_POINTS + (state.streakPts ?? 0) + Math.min(CROSS_X_CLOSE_MAX, (state.closeCalls ?? 0) * CROSS_X_CLOSE_POINTS);
+}
+
+/**
+ * crossRev 9's skill pay (x200, 26 Oct 2026): the raw skill points paid on a rising scale, so a few
+ * coins and a short streak pay little; 50 (what a run with 150 of play needs) at 72, nearly every coin
+ * and a long streak or close calls; above that it keeps rising to CROSS_X_BONUS_MAX, so a perfect run a
+ * little short of 150 of play still reaches 200 (where the score stops): the skill cap never binds below 200.
+ */
+export const CROSS_V9_SKILL_PAY = bandCurve([0, 15, 30, 45, 54, 63, 74, 90], [0, 3, 10, 16, 20, 35, 50, CROSS_X_BONUS_MAX]);
+
+/** crossRev 9's bonus: the skill points paid on CROSS_V9_SKILL_PAY, at most CROSS_X_BONUS_MAX. */
+export function crossBonusOf(state: Pick<CrossState, "coinTotal" | "streakPts"> & Partial<Pick<CrossState, "closeCalls">>): number {
+  return Math.min(CROSS_X_BONUS_MAX, bandPoints(CROSS_V9_SKILL_PAY, crossSkillRaw(state)));
+}
+
+/** The streak multiplier the crossing under way pays if finished without a hit (render and HUD). */
+export function crossNextMultiplier(state: Pick<CrossState, "streak" | "hitThisCrossing">): number {
+  return state.hitThisCrossing ? 1 : crossMultiplierFor((state.streak ?? 0) + 1);
+}
+
+function crossExpandParts(state: CrossState): BandParts {
+  const lanes = crossTotalLanes(state);
+  const units = lanes + 2 * state.crossings;
+  const coins = state.coinTotal ?? 0;
+  return {
+    units,
+    points: bandPoints(CROSS_V9_BAND_CURVE, units),
+    bonus: crossBonusOf(state),
+    penalty: 0,
+    finished: false,
+    text: `${lanes} rows · ${state.crossings} crossings`,
+    bonusText: `${coins} coin${coins === 1 ? "" : "s"} · streak ${state.streakPts ?? 0}${state.closeCalls ? ` · ${state.closeCalls} close call${state.closeCalls === 1 ? "" : "s"}` : ""}`,
+  };
+}
+
+export const crossExpandGame: ArcadeGame<CrossState, ArcadeInputEvent | null> = {
+  ...crossStrictGame,
+  init: (seed: number) => ({
+    ...initFor(seed, rollCourseV9, "9"),
+    rev: CROSS_REV_EXPAND,
+    band: BAND_STRICT_MARK,
+    acted: 0,
+    tunef: 1,
+    wide: 1,
+    coins: 0,
+    coinTotal: 0,
+    streak: 0,
+    streakPts: 0,
+    banked: 0,
+    closeCalls: 0,
+    closeLanes: 0,
+  }),
+};

@@ -101,7 +101,7 @@ import { ORBIT_HOLE_BANK } from "@/lib/duel/orbitHoleBank.server";
 import { ORBIT_REV3_BANK } from "@/lib/duel/orbitRev3Bank.server";
 import { orbitRev3PlanetsForSeed } from "@/lib/duel/orbitRev3Course.server";
 import { binTossGameFor, BINTOSS_REV2, BINTOSS_REV3 } from "@/lib/arcade/binToss";
-import { inkBridgeGameFor, INK_REV3, INK_REV4 } from "@/lib/arcade/inkBridge";
+import { inkBridgeGameFor, INK_REV3, INK_REV4, INK_REV_EXPAND } from "@/lib/arcade/inkBridge";
 import { swingGameFor, SWING_REV, SWING_REV_V3 } from "@/lib/arcade/swing";
 import { wordfallCheckpoint, wordfallGame, wordfallGameFor } from "@/lib/arcade/wordfall";
 import { encodeWordfallRun, replayWordfallRun } from "@/lib/duel/wordfall";
@@ -114,7 +114,7 @@ import { FLIP_REV_BAND, FLIP_REV_EXPAND, FLIP_REV_TUNEC } from "@/lib/arcade/fli
 import { INK_REV_BAND, INK_REV_TUNEC } from "@/lib/arcade/inkBridge";
 import { MATCHUP_REV_BAND, MATCHUP_REV_PAR, MATCHUP_REV_WAIT } from "@/lib/arcade/matchup";
 import { BUB_REV_BAND, BUB_REV_TALL, BUB_REV_TORPEDO } from "@/lib/arcade/bubble";
-import { CROSS_REV_BAND, CROSS_REV_SMALL } from "@/lib/arcade/cross";
+import { CROSS_REV_BAND, CROSS_REV_EXPAND, CROSS_REV_SMALL } from "@/lib/arcade/cross";
 import { RALLY_REV_BAND, RALLY_REV_TALL, RALLY_REV_TUNED, RALLY_REV_TUNEF } from "@/lib/arcade/rally";
 import { SNAKE_REV_BAND, SNAKE_REV_ROCKS, SNAKE_REV_TALL } from "@/lib/arcade/snake";
 import { BINTOSS_REV_BAND } from "@/lib/arcade/binToss";
@@ -125,9 +125,10 @@ import { JUNC_REV_BAND } from "@/lib/arcade/junction";
 import { BRK_REV_BAND, BRK_REV_TALL, BRK_REV_TUNED, BRK_REV_TUNEF } from "@/lib/arcade/breaker";
 import { pinballGameFor, pinCheckpoint, PIN_REV } from "@/lib/arcade/pinball";
 import { encodePinballRun, replayPinballRun } from "@/lib/duel/pinball";
-import { TILT_REV_BAND, TILT_REV_TUNEC } from "@/lib/arcade/tilt";
-import { ORBIT_REV_BAND, ORBIT_REV_SWEPT, ORBIT_REV_TALL, ORBIT_REV_TUNED } from "@/lib/arcade/orbit";
-import { initBandFrom, initSweptFrom, initTallFrom, initTunedFrom } from "@/lib/arcade/orbitRev3";
+import { TILT_REV_BAND, TILT_REV_EXPAND, TILT_REV_TUNEC } from "@/lib/arcade/tilt";
+import { ORBIT_REV_BAND, ORBIT_REV_SWEPT, ORBIT_REV_TALL, ORBIT_REV_TUNED, ORBIT_REV_XP } from "@/lib/arcade/orbit";
+import { decodeOrbitExtras, initBandFrom, initSweptFrom, initTallFrom, initTunedFrom, initXpFrom } from "@/lib/arcade/orbitRev3";
+import { ORBIT_XP_BANK } from "@/lib/duel/orbitXpBank.server";
 import { BEAT_REV_BAND, BEAT_REV_TALL, BEAT_REV_TUNEC, BEAT_REV_TUNEF } from "@/lib/arcade/beat";
 import { SLICE_REV_BAND, SLICE_REV_LONG, SLICE_REV_TALL, SLICE_REV_TUNEC } from "@/lib/arcade/slice";
 import { BURST_REV_BAND, BURST_REV_TALL } from "@/lib/arcade/burst";
@@ -627,6 +628,35 @@ const GAMES: Game[] = [
   // The 200-point expansion (snipRev 11, 26 Oct 2026; appended so every earlier entry keeps its index): the tall
   // courses, several fruits, wind, rings, par times.
   { key: "snip/expand", game: snipGameFor(SNIP_REV_EXPAND), checkpoint: snipCheckpoint, mode: "events", rate: 40, encode: encodeSnipRun, replay: (seed: number, raw: string) => replaySnipRun(seed, raw, SNIP_REV_EXPAND) },
+  // The expansion to 200 (docs/expansions/x200-orbit.md), appended: Orbit orbitRev 12 on its feature-bank courses.
+  {
+    key: "orbit/xp",
+    game: orbitRev3Game,
+    gameFor: (seed: number) => ({ ...orbitRev3Game, init: () => initXpFrom(orbitCourse(seed), ORBIT_REV3_WORLD_W, decodeOrbitHoles(orbitHoles(seed)), decodeOrbitExtras(ORBIT_XP_BANK.find((e) => e.seed === seed)!.extras)) }),
+    seedFor: (n: number) => ORBIT_XP_BANK[n % ORBIT_XP_BANK.length]!.seed,
+    checkpoint: orbitCheckpoint,
+    mode: "events",
+    rate: 25,
+    encode: encodeOrbitRun,
+    replay: (seed: number, raw: string) => replayOrbitRun(seed, raw, ORBIT_REV_XP, encodeRev3Planets(orbitCourse(seed)), orbitHoles(seed), ORBIT_XP_BANK.find((e) => e.seed === seed)!.extras),
+  },
+  // x200 (26 Oct 2026): Rainbow Bridge inkRev 10 (clouds, wind, ink stars, silver coins, the shamrock), appended so
+  // every earlier entry keeps its index. Eight seeds in turn: a level build takes a few seconds, and the sim caches 16.
+  {
+    key: "ink/v10",
+    game: inkBridgeGameFor(INK_REV_EXPAND),
+    seedFor: (n: number) => 9_000_001 + 7_919 * (n % 8),
+    checkpoint: inkCheckpoint,
+    mode: "events",
+    rate: 400,
+    encode: encodeInkBridgeRun,
+    replay: (seed: number, raw: string) => replayInkBridgeRun(seed, raw, INK_REV_EXPAND),
+  },
+  // Expansion x200 (docs/expansions/x200-tilt.md): tiltRev 8, its bigger mazes, keys, quick stars and falls back to the start.
+  { key: "tilt/expand", game: tiltGameFor(TILT_REV_EXPAND), checkpoint: tiltCheckpoint, mode: "events", rate: 500, encode: encodeTiltRun, replay: (seed: number, raw: string) => replayTiltRun(seed, raw, TILT_REV_EXPAND) },
+  // x200 (26 Oct 2026, docs/expansions/x200-cross.md), appended so every earlier entry keeps its index: Jaywalk crossRev 9,
+  // the taller world with the island, coins, buses, motorbikes and the streak.
+  { key: "cross/expand", game: crossGameFor(CROSS_REV_EXPAND), checkpoint: crossCheckpoint, mode: "events", rate: 60, encode: encodeCrossRun, replay: (seed: number, raw: string) => replayCrossRun(seed, raw, CROSS_REV_EXPAND) },
 ];
 
 /** A random candidate event, often outside the declared range (a finger off the edge). */
@@ -656,6 +686,10 @@ const ENTRY_COST: Record<number, number> = {
   115: 2.1,
   // Taller worlds batch 3 (16 Oct 2026, measured locally at 40 runs).
   126: 2.2, 128: 0.6,
+  // x200 Rainbow Bridge (26 Oct 2026, measured locally at 40 runs beside #23; #133 is Orbit's orbit/xp).
+  134: 14.0,
+  // x200 Jaywalk crossRev 9 (26 Oct 2026, measured locally at 40 runs; #136 after Orbit, Rainbow Bridge and Tilt).
+  136: 16.9,
   // Grappler's 200 expansion (26 Oct 2026, swing/expand: about 10 s at 40 runs on a loaded machine).
   129: 8.0,
 };

@@ -124,9 +124,10 @@ const GAMES: Record<string, AnyGame> = {
   wavefront: wavefrontArtGameFor(2) as AnyGame,
   orbit: orbitArtGame as AnyGame,
   skyline: { ...skylineArtGame, init: skylineRev2Game.init } as AnyGame,
-  cross: crossArtGameFor(3) as AnyGame,
+  // The revision rooms deal (crossRev 9, x200: the island, coins and streak events too).
+  cross: crossArtGameFor(9) as AnyGame,
   junction: junctionArtGame as AnyGame,
-  inkbridge: inkBridgeArtGameFor(4) as AnyGame,
+  inkbridge: inkBridgeArtGameFor(10) as AnyGame, // inkRev 10 (x200): the taller world rooms deal, its spec ARCADE_FX_SPECS.inkbridge
   slice: sliceArtGameFor(2) as AnyGame,
   bintoss: { ...binTossArtGame, init: binTossGameFor(3).init } as AnyGame,
   bullseye: { ...bullseyeGame, init: bullseyeRev2Game.init, draw: drawBullseye } as AnyGame,
@@ -321,6 +322,10 @@ const BUMPS: Record<string, ((s: any) => any)[]> = {
     (s) => ({ ...s, crossings: s.crossings + 1 }),
     (s) => ({ ...s, crossings: 3, reached: 0 }),
     (s) => ({ ...s, crossings: 4, reached: 0 }),
+    (s) => ({ ...s, coinTotal: (s.coinTotal ?? 0) + 1 }),
+    (s) => ({ ...s, reached: 7, lane: 7, banked: 1 }),
+    (s) => ({ ...s, streak: 2, streakPts: (s.streakPts ?? 0) + 2 }),
+    (s) => ({ ...s, closeCalls: (s.closeCalls ?? 0) + 1 }),
   ],
   junction: [
     (s) => ({ ...s, ambThrough: s.ambThrough + 1 }),
@@ -329,7 +334,7 @@ const BUMPS: Record<string, ((s: any) => any)[]> = {
     (s) => ({ ...s, busCleared: (s.busCleared ?? 0) + 1 }),
     (s) => ({ ...s, diagCleared: (s.diagCleared ?? 0) + 5 }),
   ],
-  inkbridge: [(s) => ({ ...s, levels: s.levels + 1 }), (s) => ({ ...s, stars: (s.stars ?? 0) + 1 }), (s) => ({ ...s, levels: 10 })],
+  inkbridge: [(s) => ({ ...s, levels: s.levels + 1 }), (s) => ({ ...s, stars: (s.stars ?? 0) + 1 }), (s) => ({ ...s, levels: 10 }), (s) => ({ ...s, tricks: (s.tricks ?? 0) + 1 }), (s) => ({ ...s, shamrocks: (s.shamrocks ?? 0) + 1 })],
   slice: [
     (s) => ({ ...s, comboLive: 1, streak: 2 }),
     (s) => ({ ...s, frenzyFrom: [...s.frenzyFrom, s.tick] }),

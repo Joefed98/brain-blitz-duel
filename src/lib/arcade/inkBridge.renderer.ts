@@ -1,10 +1,11 @@
 import { successHud, successFrame, SUCCESS_ACCENTS } from "./success.renderer";
 import { arcadeReducedEffects } from "@/lib/fx/lowEnd";
 import { arcadeFx } from "./arcadeFx.renderer";
-import { INKBRIDGE_FX } from "./arcadeFxGames.renderer";
+import { inkBridgeFxFor } from "./arcadeFxGames.renderer";
+import { reducedMotion } from "./art.renderer";
 /** Rainbow Ink Bridge. Presentation only; all geometry comes from the unchanged sim. */
 import type { CanvasSize } from './engine';
-import { inkBridgeGame, inkBridgeGameFor, inkBlockH, inkBucketX, inkBudget, inkBudgetFor, inkIsLive, INK_BLOCK_H, INK_BUCKET_H, INK_BUCKET_W, INK_FAILS, INK_LEVELS, INK_NO_DRAW_ZONE_PX, INK_LIVE_PRE_CAP, INK_STAR_R, INK_WORLD_H, INK_WORLD_W, type InkState } from './inkBridge';
+import { inkBridgeGame, inkBridgeGameFor, inkBlockH, inkBucketX, inkBudget, inkBudgetFor, inkIsLive, inkWorldH, INK_BLOCK_H, INK_BUCKET_H, INK_BUCKET_W, INK_CLOUD_HW, INK_CLOUD_R, INK_FAILS, INK_LEVELS, INK_NO_DRAW_ZONE_PX, INK_LIVE_PRE_CAP, INK_SHAMROCK_R, INK_SILVER_R, INK_STAR_R, INK_WORLD_H, INK_WORLD_W, type InkCloud, type InkState, type InkWind } from './inkBridge';
 import { artCanvas, artContext, type ArtCanvas } from './cache.renderer';
 import { sceneBelow, sceneBlades, sceneFill, sceneSides, type ArenaSceneView } from './arenaScene.renderer';
 import { artHash } from './art.renderer';
@@ -166,20 +167,21 @@ function paintBridge(c: CanvasRenderingContext2D,state:InkState):void {
   }
   c.stroke();
 }
-type BridgeCache={surface:ArtCanvas|null;segs:InkState['segs'];starts:InkState['strokeStarts'];k:number};
+type BridgeCache={surface:ArtCanvas|null;segs:InkState['segs'];starts:InkState['strokeStarts'];k:number;h:number};
 const bridges=new WeakMap<CanvasRenderingContext2D,BridgeCache>();
 function drawBridge(c:CanvasRenderingContext2D,state:InkState):void {
   let cache=bridges.get(c);
   const k=layerScale(c,INK_WORLD_W);
-  const same=cache && cache.k===k && cache.segs.length===state.segs.length && cache.segs.every((s,i)=>s===state.segs[i]) && cache.starts.length===state.strokeStarts.length && cache.starts.every((s,i)=>s===state.strokeStarts[i]);
+  const H=inkWorldH(state);
+  const same=cache && cache.k===k && cache.h===H && cache.segs.length===state.segs.length && cache.segs.every((s,i)=>s===state.segs[i]) && cache.starts.length===state.strokeStarts.length && cache.starts.every((s,i)=>s===state.strokeStarts[i]);
   if(!same) {
-    const pw=Math.max(1,Math.round(INK_WORLD_W*k)), ph=Math.max(1,Math.round(INK_WORLD_H*k));
-    const surface=cache?.surface && cache.k===k ? cache.surface : artCanvas(pw,ph);
+    const pw=Math.max(1,Math.round(INK_WORLD_W*k)), ph=Math.max(1,Math.round(H*k));
+    const surface=cache?.surface && cache.k===k && cache.h===H ? cache.surface : artCanvas(pw,ph);
     const native=surface?artContext(surface):null;
-    if(native) { const ctx=native as CanvasRenderingContext2D;ctx.clearRect(0,0,pw,ph);ctx.save();ctx.scale(pw/INK_WORLD_W,ph/INK_WORLD_H);paintBridge(ctx,state);ctx.restore(); }
-    cache={surface,segs:state.segs,starts:state.strokeStarts,k};bridges.set(c,cache);
+    if(native) { const ctx=native as CanvasRenderingContext2D;ctx.clearRect(0,0,pw,ph);ctx.save();ctx.scale(pw/INK_WORLD_W,ph/H);paintBridge(ctx,state);ctx.restore(); }
+    cache={surface,segs:state.segs,starts:state.strokeStarts,k,h:H};bridges.set(c,cache);
   }
-  if(cache?.surface)c.drawImage(cache.surface,0,0,INK_WORLD_W,INK_WORLD_H);else paintBridge(c,state);
+  if(cache?.surface)c.drawImage(cache.surface,0,0,INK_WORLD_W,H);else paintBridge(c,state);
 }
 /** Rev 4 gold star: five points filling the star's draw circle (radius INK_STAR_R). */
 function goldStar(m: CanvasRenderingContext2D): void {
@@ -224,8 +226,10 @@ function inkCloud(c: CanvasRenderingContext2D): void {
  * Deep-to-pale daylight sky, a sun haze and hazy far hills; baked once. No
  * rainbow in the sky: rainbow lines are what the player draws.
  */
-function inkSky(m: CanvasRenderingContext2D): void {
-  const W = INK_WORLD_W, H = INK_WORLD_H;
+function inkSky(m: CanvasRenderingContext2D, H = INK_WORLD_H): void {
+  const W = INK_WORLD_W;
+  // inkRev 10's taller world: the far hills sit as far above its bottom as they did above 620's.
+  const dy = H - INK_WORLD_H;
   const sky = m.createLinearGradient(0, 0, 0, H);
   for (const [at, colour] of INK_SKY_STOPS) sky.addColorStop(at, colour);
   m.fillStyle = sky; m.fillRect(0, 0, W, H);
@@ -249,17 +253,19 @@ function inkSky(m: CanvasRenderingContext2D): void {
   for (let i = 0; i < 6; i++) { const x = 14 + (i * 83) % (W - 90), y = 70 + (i * 67) % 260; m.beginPath(); m.moveTo(x, y); m.bezierCurveTo(x + 20, y - 5, x + 52, y + 4, x + 80, y - 2); m.stroke(); }
   // Far hills: a hazy blue ridge, then a softer green one with tiny trees.
   m.fillStyle = 'rgba(132,186,196,0.55)';
-  m.beginPath(); m.moveTo(0, 548); m.quadraticCurveTo(70, 508, 150, 540); m.quadraticCurveTo(250, 500, 330, 534); m.quadraticCurveTo(370, 520, W, 528); m.lineTo(W, H); m.lineTo(0, H); m.closePath(); m.fill();
+  m.save(); m.translate(0, dy);
+  m.beginPath(); m.moveTo(0, 548); m.quadraticCurveTo(70, 508, 150, 540); m.quadraticCurveTo(250, 500, 330, 534); m.quadraticCurveTo(370, 520, W, 528); m.lineTo(W, H - dy); m.lineTo(0, H - dy); m.closePath(); m.fill();
   m.fillStyle = 'rgba(146,206,128,0.8)';
-  m.beginPath(); m.moveTo(0, 578); m.quadraticCurveTo(110, 548, 220, 574); m.quadraticCurveTo(310, 556, W, 570); m.lineTo(W, H); m.lineTo(0, H); m.closePath(); m.fill();
+  m.beginPath(); m.moveTo(0, 578); m.quadraticCurveTo(110, 548, 220, 574); m.quadraticCurveTo(310, 556, W, 570); m.lineTo(W, H - dy); m.lineTo(0, H - dy); m.closePath(); m.fill();
   for (const [x, y, r] of [[40, 566, 5], [52, 568, 4], [262, 566, 5], [336, 563, 4], [350, 565, 5]] as const) {
     m.fillStyle = '#6B9F63'; m.fillRect(x - 0.6, y, 1.2, 5);
     m.fillStyle = '#5E9A5A'; m.beginPath(); m.arc(x, y - r * 0.6, r, 0, Math.PI * 2); m.fill();
   }
+  m.restore();
 }
 /** Blades in two tones, clover clumps and a scatter of small flowers; clipped into the hill. */
-function inkGrass(m: CanvasRenderingContext2D): void {
-  const W = INK_WORLD_W, H = INK_WORLD_H;
+function inkGrass(m: CanvasRenderingContext2D, H = INK_WORLD_H): void {
+  const W = INK_WORLD_W;
   for (let i = 0; i < 70; i++) {
     const x = (i * 97) % W, y = 30 + (i * 53) % (H - 30);
     m.fillStyle = i % 2 ? 'rgba(40,110,45,0.16)' : 'rgba(170,230,120,0.14)';
@@ -280,26 +286,28 @@ function inkGrass(m: CanvasRenderingContext2D): void {
   }
 }
 /** Same ground outline as the shared countryside hill: its flat crest meets the pot's base. */
-function inkGroundPath(c: CanvasRenderingContext2D, base: number, x: number): void {
+function inkGroundPath(c: CanvasRenderingContext2D, base: number, x: number, H = INK_WORLD_H): void {
   c.beginPath(); c.moveTo(0,base+12);
   c.quadraticCurveTo(Math.max(0,x-80),base+12,x-32,base);
   c.lineTo(x+32,base);
   c.quadraticCurveTo(Math.min(INK_WORLD_W,x+80),base+12,INK_WORLD_W,base+12);
-  c.lineTo(INK_WORLD_W,INK_WORLD_H);c.lineTo(0,INK_WORLD_H);c.closePath();
+  c.lineTo(INK_WORLD_W,H);c.lineTo(0,H);c.closePath();
 }
-function drawInkBackdrop(c: CanvasRenderingContext2D): void {
-  stamp(c,'inksky',INK_WORLD_W,INK_WORLD_H,0,0,inkSky);
+/** Sprite keys for the world-sized layers: the 620 world keeps its original keys. */
+const sizedKey = (key: string, H: number) => (H === INK_WORLD_H ? key : `${key}${H}`);
+function drawInkBackdrop(c: CanvasRenderingContext2D, H = INK_WORLD_H): void {
+  stamp(c,sizedKey('inksky',H),INK_WORLD_W,H,0,0,(m)=>inkSky(m,H));
   const t=countryClock();
   for(const [x,y,f,a] of [[38,100,0.55,0.75],[278,146,0.7,0.8],[152,218,0.4,0.6],[300,300,0.35,0.5],[70,350,0.3,0.45]] as const) {
     c.save();c.globalAlpha=a;c.translate(x+Math.sin(t*0.08+y)*5,y);c.scale(f,f);
     countryStamp(c,'inkcloud',48,26,0,0,inkCloud);c.restore();
   }
 }
-function drawInkGround(c: CanvasRenderingContext2D, base: number, x: number): void {
-  const fill=c.createLinearGradient(0,base,0,INK_WORLD_H);
+function drawInkGround(c: CanvasRenderingContext2D, base: number, x: number, H = INK_WORLD_H): void {
+  const fill=c.createLinearGradient(0,base,0,H);
   fill.addColorStop(0,'#78C957');fill.addColorStop(0.35,GRASS);fill.addColorStop(1,'#3C8A36');
-  c.save();inkGroundPath(c,base,x);c.fillStyle=fill;c.fill();c.clip();
-  stamp(c,'inkgrass',INK_WORLD_W,INK_WORLD_H,0,0,inkGrass);
+  c.save();inkGroundPath(c,base,x,H);c.fillStyle=fill;c.fill();c.clip();
+  stamp(c,sizedKey('inkgrass',H),INK_WORLD_W,H,0,0,(m)=>inkGrass(m,H));
   // A sunlit crest line along the top of the hill (inside the ground). Only the crest: the
   // outline's sides and bottom are the world's edges, which meet the arena scene unlined.
   c.beginPath();c.moveTo(0,base+12);
@@ -312,18 +320,146 @@ function drawInkGround(c: CanvasRenderingContext2D, base: number, x: number): vo
 
 /** The game's drawing through the shared success layer (presentation only). */
 export function drawInkBridgeArt(c: CanvasRenderingContext2D, state: InkState, size: CanvasSize): void {
-  arcadeFx(c, INKBRIDGE_FX, state, () => drawInkBridgeArtWorld(c, state, size), size);
+  arcadeFx(c, inkBridgeFxFor(state), state, () => drawInkBridgeArtWorld(c, state, size), size);
+}
+
+/* ===================== inkRev 10: bounce clouds (art only) ===================== */
+/** The bounce cloud's cell: the 52 × 20 capsule (INK_CLOUD_HW, INK_CLOUD_R) plus 2 px all round. */
+const BCLOUD_W = 2 * (INK_CLOUD_HW + INK_CLOUD_R) + 4, BCLOUD_H = 2 * INK_CLOUD_R + 4;
+/**
+ * A springy cloud in the shaded-cloud style (lit white puffs, a blue-grey underside), its outline the
+ * collision capsule exactly: the puffs sit inside the capsule, so nothing drawn reaches more than 2 px
+ * past what bounces the coin. A golden spring line across its belly marks it as bouncy. Cached once.
+ */
+function bounceCloud(m: CanvasRenderingContext2D): void {
+  const r = INK_CLOUD_R, hw = INK_CLOUD_HW, cx = BCLOUD_W / 2, cy = BCLOUD_H / 2;
+  const capsule = () => { m.beginPath(); m.roundRect(cx - hw - r, cy - r, 2 * (hw + r), 2 * r, r); };
+  capsule(); m.fillStyle = '#CFE2F0'; m.fill();
+  m.save(); capsule(); m.clip();
+  const puffs = [[cx - hw + 2, cy + 1, 9], [cx - 4, cy - 2, 11], [cx + hw - 3, cy + 1, 9]] as const;
+  for (const [x, y, pr] of puffs) {
+    const g = m.createLinearGradient(0, y - pr, 0, y + pr);
+    g.addColorStop(0, '#FFFFFF'); g.addColorStop(0.6, '#F4FAFF'); g.addColorStop(1, '#D6E7F3');
+    m.fillStyle = g; m.beginPath(); m.arc(x, y, pr, 0, Math.PI * 2); m.fill();
+  }
+  m.fillStyle = 'rgba(140,172,200,0.4)'; m.fillRect(cx - hw - r, cy + r - 5, 2 * (hw + r), 5);
+  // The spring: a gentle golden zigzag across its belly.
+  m.strokeStyle = 'rgba(245,184,46,0.8)'; m.lineWidth = 1.4; m.lineJoin = 'round'; m.beginPath();
+  for (let i = 0; i <= 8; i++) { const x = cx - hw + (i * 2 * hw) / 8, y = cy + 4 + (i % 2 ? -2 : 2); if (i) m.lineTo(x, y); else m.moveTo(x, y); }
+  m.stroke();
+  m.restore();
+  // A bright rim along the lit top, and a soft outline on the capsule itself.
+  m.strokeStyle = 'rgba(255,255,255,0.95)'; m.lineWidth = 1.5; m.lineCap = 'round';
+  m.beginPath(); m.arc(cx - 4, cy - 2, 9, Math.PI * 1.15, Math.PI * 1.75); m.stroke();
+  // A gold edge (the rainbow world's interactive gold), so a bounce cloud never reads as a backdrop cloud.
+  capsule(); m.strokeStyle = 'rgba(190,140,30,0.85)'; m.lineWidth = 1.4; m.stroke();
+}
+/** Ticks a hit cloud squashes for, and how much wider it gets at most (×). */
+const BCLOUD_SQUASH = 14;
+const BCLOUD_WIDEN = 0.04;
+/** Test hook (ink-expand-check's bounds proof): the bounce cloud's cell, painter and widest squash. */
+export const INK_BCLOUD_ART = { w: BCLOUD_W, h: BCLOUD_H, paint: bounceCloud, widen: BCLOUD_WIDEN } as const;
+function drawBounceClouds(c: CanvasRenderingContext2D, clouds: readonly InkCloud[], state: InkState): void {
+  const age = state.tick - (state.cloudTick ?? -100);
+  for (let i = 0; i < clouds.length; i++) {
+    const cl = clouds[i]!;
+    // A hit cloud squashes and springs back (flatter and a hair wider: 1 px a side at most); still under reduced motion.
+    let sx = 1, sy = 1;
+    if (i === state.cloudIdx && age >= 0 && age < BCLOUD_SQUASH && !reducedMotion()) {
+      const k = Math.sin((age / BCLOUD_SQUASH) * Math.PI) * (1 - age / BCLOUD_SQUASH);
+      sy = 1 - 0.3 * k; sx = 1 + BCLOUD_WIDEN * k;
+    }
+    if (sx === 1 && sy === 1) { stamp(c, 'bcloud', BCLOUD_W, BCLOUD_H, cl.x - BCLOUD_W / 2, cl.y - BCLOUD_H / 2, bounceCloud); continue; }
+    c.save(); c.translate(cl.x, cl.y); c.scale(sx, sy);
+    stamp(c, 'bcloud', BCLOUD_W, BCLOUD_H, -BCLOUD_W / 2, -BCLOUD_H / 2, bounceCloud);
+    c.restore();
+  }
+}
+
+/* ============ inkRev 10: wind zones, silver coins and the shamrock (art only) ============ */
+/** A silver coin filling its pickup circle (radius INK_SILVER_R): a bright rim, a darker face and a shine. */
+function silverCoin(m: CanvasRenderingContext2D): void {
+  const r = INK_SILVER_R;
+  const g = m.createLinearGradient(0, 0, 2 * r, 2 * r);
+  g.addColorStop(0, '#FFFFFF'); g.addColorStop(0.45, '#D9E1E8'); g.addColorStop(1, '#8D9AA6');
+  m.fillStyle = g; m.beginPath(); m.arc(r, r, r - 0.5, 0, Math.PI * 2); m.fill();
+  m.strokeStyle = '#5E6B77'; m.lineWidth = 1; m.stroke();
+  m.strokeStyle = 'rgba(94,107,119,0.55)'; m.beginPath(); m.arc(r, r, r - 2.6, 0, Math.PI * 2); m.stroke();
+  m.fillStyle = 'rgba(255,255,255,0.95)'; m.beginPath(); m.arc(r - 1.8, r - 1.8, 1.2, 0, Math.PI * 2); m.fill();
+}
+/** The shamrock: three heart leaves and a stem inside its pickup circle (radius INK_SHAMROCK_R). */
+function shamrock(m: CanvasRenderingContext2D): void {
+  const r = INK_SHAMROCK_R, cx = r, cy = r;
+  m.lineJoin = 'round';
+  m.strokeStyle = '#1E6B34'; m.lineWidth = 1.6; m.lineCap = 'round';
+  m.beginPath(); m.moveTo(cx, cy + 1); m.quadraticCurveTo(cx + 1.5, cy + r * 0.6, cx + 3, r * 2 - 1); m.stroke();
+  for (let i = 0; i < 3; i++) {
+    const a = -Math.PI / 2 + (i * 2 * Math.PI) / 3;
+    const lx = cx + Math.cos(a) * r * 0.42, ly = cy + Math.sin(a) * r * 0.42;
+    m.save(); m.translate(lx, ly); m.rotate(a + Math.PI / 2);
+    const k = r * 0.52;
+    m.beginPath(); m.moveTo(0, k * 0.75);
+    m.bezierCurveTo(-k * 1.25, -k * 0.1, -k * 0.55, -k * 1.05, 0, -k * 0.35);
+    m.bezierCurveTo(k * 0.55, -k * 1.05, k * 1.25, -k * 0.1, 0, k * 0.75);
+    m.closePath();
+    m.fillStyle = '#3BAE65'; m.fill(); m.strokeStyle = '#1E6B34'; m.lineWidth = 1; m.stroke();
+    m.restore();
+  }
+  m.fillStyle = 'rgba(255,255,255,0.7)'; m.beginPath(); m.arc(cx - 2.2, cy - 3.6, 1.1, 0, Math.PI * 2); m.fill();
+}
+/** Test hook (the x200 check's bounds proof): each pickup's cell side and painter. */
+export const INK_PICKUP_ART = { silver: { w: INK_SILVER_R * 2, paint: silverCoin }, shamrock: { w: INK_SHAMROCK_R * 2, paint: shamrock } } as const;
+/**
+ * A wind zone: a soft band over exactly its rectangle, with streaks drifting the way it pushes (on the sim tick, so
+ * a replay draws the same; still under reduced motion) and a chevron at its leading edge.
+ */
+function drawWind(c: CanvasRenderingContext2D, w: InkWind, tick: number): void {
+  const wd = w.x1 - w.x0, ht = w.y1 - w.y0, dir = w.ax > 0 ? 1 : -1;
+  c.save();
+  c.beginPath(); c.rect(w.x0, w.y0, wd, ht); c.clip();
+  c.fillStyle = 'rgba(255,255,255,0.16)'; c.fillRect(w.x0, w.y0, wd, ht);
+  const speed = reducedMotion() ? 0 : 0.9 + Math.abs(w.ax) / 24;
+  c.strokeStyle = 'rgba(255,255,255,0.7)'; c.lineWidth = 1.6; c.lineCap = 'round';
+  const rows = Math.max(3, Math.floor(ht / 18));
+  for (let i = 0; i < rows; i++) {
+    const y = w.y0 + ((i + 0.5) * ht) / rows;
+    const span = wd + 60;
+    const off = ((tick * speed + i * 37) % span + span) % span;
+    for (let k = -1; k <= 1; k++) {
+      const x = dir > 0 ? w.x0 - 30 + off + k * (span / 2) : w.x1 + 30 - off - k * (span / 2);
+      c.beginPath(); c.moveTo(x - dir * 22, y); c.lineTo(x, y); c.stroke();
+    }
+  }
+  c.restore();
+  // The edges: a dashed outline (inside the zone) and a chevron at the downwind edge.
+  c.save(); c.strokeStyle = 'rgba(255,255,255,0.55)'; c.setLineDash([5, 5]); c.lineWidth = 1;
+  c.strokeRect(w.x0 + 0.5, w.y0 + 0.5, wd - 1, ht - 1); c.setLineDash([]);
+  const ex = dir > 0 ? w.x1 - 4 : w.x0 + 4, my = (w.y0 + w.y1) / 2;
+  c.strokeStyle = 'rgba(255,255,255,0.85)'; c.lineWidth = 2; c.lineJoin = 'round';
+  c.beginPath(); c.moveTo(ex - dir * 8, my - 8); c.lineTo(ex, my); c.lineTo(ex - dir * 8, my + 8); c.stroke();
+  c.restore();
+}
+function drawPickups(c: CanvasRenderingContext2D, lvl: InkState['list'][number], state: InkState): void {
+  const coins = lvl.silver ?? [];
+  for (let i = 0; i < coins.length; i++) {
+    if ((state.silverGot ?? 0) & (1 << i)) continue;
+    const p = coins[i]!;
+    stamp(c, 'silver', INK_SILVER_R * 2, INK_SILVER_R * 2, p.x - INK_SILVER_R, p.y - INK_SILVER_R, silverCoin);
+  }
+  const sh = lvl.shamrock;
+  if (sh && !state.shamrockGot) stamp(c, 'shamrock', INK_SHAMROCK_R * 2, INK_SHAMROCK_R * 2, sh.x - INK_SHAMROCK_R, sh.y - INK_SHAMROCK_R, shamrock);
 }
 
 function drawInkBridgeArtWorld(c:CanvasRenderingContext2D,state:InkState,size:CanvasSize):void {
   const lvl=state.list[Math.min(state.level,state.list.length-1)];if(!lvl)return;
-  const scale=Math.min(size.width/INK_WORLD_W,size.height/INK_WORLD_H);
+  const H=inkWorldH(state);
+  const scale=Math.min(size.width/INK_WORLD_W,size.height/H);
   c.save();c.fillStyle=SKY;c.fillRect(0,0,size.width,size.height);
-  c.translate((size.width-INK_WORLD_W*scale)/2,(size.height-INK_WORLD_H*scale)/2);c.scale(scale,scale);
-  drawInkBackdrop(c);
+  c.translate((size.width-INK_WORLD_W*scale)/2,(size.height-H*scale)/2);c.scale(scale,scale);
+  drawInkBackdrop(c,H);
   // Background only, below the pot opening and every level block; touchable art paints above it.
   const bx=inkBucketX(lvl,state.tick), base=lvl.bucketY+INK_BUCKET_H;
-  drawInkGround(c,base,bx);
+  drawInkGround(c,base,bx,H);
   const lx=Math.min(INK_WORLD_W-24,Math.max(2,bx+40));
   // Polish A2: his soft shadow on the grass.
   c.fillStyle='rgba(20,60,25,0.28)';c.beginPath();c.ellipse(lx+11,base+2.5,11,2.6,0,0,Math.PI*2);c.fill();
@@ -335,9 +471,14 @@ function drawInkBridgeArtWorld(c:CanvasRenderingContext2D,state:InkState,size:Ca
     c.fillStyle=RED;c.fillRect(b.x0,b.y,b.x1-b.x0,INK_BLOCK_H);
     c.fillStyle=RED_EDGE;c.fillRect(b.x0,b.y+INK_BLOCK_H-1,b.x1-b.x0,1);
   }
+  // inkRev 10: this level's wind zone (behind everything it pushes) and bounce clouds (drawn to their capsules).
+  if(lvl.wind)drawWind(c,lvl.wind,state.tick);
+  if(lvl.clouds)drawBounceClouds(c,lvl.clouds,state);
   drawPot(c,inkBucketX(lvl,state.tick),lvl.bucketY,state.flashKind===1&&state.tick-state.flashTick<20);
   // Rev 4: this level's gold star, until the coin in flight touches it (then it rides as a glow).
   if(lvl.star){ if(!state.starGot) stamp(c,'star',INK_STAR_R*2,INK_STAR_R*2,lvl.star.x-INK_STAR_R,lvl.star.y-INK_STAR_R,goldStar); else { c.save();c.globalAlpha=0.5;c.strokeStyle=GOLD;c.lineWidth=2;c.beginPath();c.arc(state.ball.x/FP,state.ball.y/FP,BALL_R+4,0,Math.PI*2);c.stroke();c.restore(); } }
+  // inkRev 10: silver coins and the shamrock, until the coin in flight takes them.
+  drawPickups(c,lvl,state);
   drawBridge(c,state);
   if(state.dropping) {
     const trail=state.positions.slice(-5);c.strokeStyle=GOLD;c.lineWidth=2;c.lineCap='round';
@@ -348,7 +489,7 @@ function drawInkBridgeArtWorld(c:CanvasRenderingContext2D,state:InkState,size:Ca
   // Live levels while dropping: faded, non-solid draft strokes (clipped off any birds) and a
   // no-draw ring where the next draft point would be rejected.
   if (inkIsLive(state.level,state.rev)&&state.dropping) {
-    c.save();c.beginPath();c.rect(0,0,INK_WORLD_W,INK_WORLD_H);
+    c.save();c.beginPath();c.rect(0,0,INK_WORLD_W,H);
     for(const b of lvl.blocks) if(b.h) c.rect(b.x0,b.y,b.x1-b.x0,inkBlockH(b));
     c.clip('evenodd');
     c.strokeStyle=GOLD;c.lineCap='round';c.setLineDash([6,6]);c.globalAlpha=0.35;c.lineWidth=4;
@@ -359,7 +500,7 @@ function drawInkBridgeArtWorld(c:CanvasRenderingContext2D,state:InkState,size:Ca
     c.setLineDash([]);c.restore();
   }
   const caughtLevel=state.list[Math.max(0,state.level-1)]??lvl;
-  successFrame(c,{id:'inkbridge',tick:state.tick,count:state.levels,misses:state.fails,eventTick:state.flashKind===1?state.flashTick:0,colour:GOLD,width:INK_WORLD_W,height:INK_WORLD_H,point:{x:inkBucketX(caughtLevel,state.flashTick),y:caughtLevel.bucketY,shape:'spark'}});
+  successFrame(c,{id:'inkbridge',tick:state.tick,count:state.levels,misses:state.fails,eventTick:state.flashKind===1?state.flashTick:0,colour:GOLD,width:INK_WORLD_W,height:H,point:{x:inkBucketX(caughtLevel,state.flashTick),y:caughtLevel.bucketY,shape:'spark'}});
   const age=state.tick-state.flashTick;
   if(state.flashKind===2&&state.failedBall&&age<20) {
     c.globalAlpha=1-age/20;stamp(c,'coin',14,14,state.failedBall.x/FP-7,state.failedBall.y/FP-7,coin);
@@ -412,6 +553,9 @@ export function drawInkRainbowExample(c:CanvasRenderingContext2D):void {
   drawBirds(c,{x0:30,x1:70,y:56},5,0);
   c.strokeStyle=rainbow(c,36,34,132,94,0,113);c.lineCap='round';c.lineWidth=3;c.beginPath();c.moveTo(36,34);c.lineTo(132,94);c.stroke();
   c.save();c.translate(134,104);c.scale(0.5,0.5);drawPot(c,0,0,false);c.restore();
+  // x200 (inkRev 10): a bounce cloud and an ink star, two of the optional bonuses.
+  c.save();c.translate(18,96);c.scale(0.6,0.6);stamp(c,'bcloud',BCLOUD_W,BCLOUD_H,-BCLOUD_W/2,-BCLOUD_H/2,bounceCloud);c.restore();
+  c.save();c.translate(96,40);c.scale(0.8,0.8);stamp(c,'star',INK_STAR_R*2,INK_STAR_R*2,-INK_STAR_R,-INK_STAR_R,goldStar);c.restore();
 }
 export const inkBridgeArtGame={...inkBridgeGame,draw:drawInkBridgeArt};
 export const inkBridgeArtGameFor=(rev?:number|null)=>({...inkBridgeGameFor(rev),draw:drawInkBridgeArt});
@@ -422,15 +566,15 @@ export const inkBridgeArtGameFor=(rev?:number|null)=>({...inkBridgeGameFor(rev),
  * phone, the same sky, far hills and ground at this level's ground line, `groundY`). Grass,
  * clover and a few flowers only: no pot, coin, birds, blocks or rainbow, and nothing moves.
  */
-export function inkArenaScene(ctx: CanvasRenderingContext2D, view: ArenaSceneView, groundY: number): void {
-  const H = INK_WORLD_H;
+export function inkArenaScene(ctx: CanvasRenderingContext2D, view: ArenaSceneView, groundY: number, H = INK_WORLD_H): void {
+  const dy = H - INK_WORLD_H;
   for (const side of sceneSides(view)) {
     const left = side.x < 0;
     sceneFill(ctx, side, 0, H, INK_SKY_STOPS);
     ctx.fillStyle = 'rgba(132,186,196,0.55)';
-    ctx.fillRect(side.x, left ? 548 : 528, side.w, H);
+    ctx.fillRect(side.x, (left ? 548 : 528) + dy, side.w, H);
     ctx.fillStyle = 'rgba(146,206,128,0.8)';
-    ctx.fillRect(side.x, left ? 578 : 570, side.w, H);
+    ctx.fillRect(side.x, (left ? 578 : 570) + dy, side.w, H);
     const ground = { x: side.x, y: groundY, w: side.w, h: H - groundY };
     if (ground.h > 0) {
       sceneFill(ctx, ground, groundY - 12, H, [[0, '#78C957'], [0.35, GRASS], [1, '#3C8A36']]);
@@ -478,5 +622,5 @@ export function inkArenaScene(ctx: CanvasRenderingContext2D, view: ArenaSceneVie
 /** The world's ground line at its left and right edges for the current level (the scene meets it). */
 export function inkSceneGround(state: InkState): number {
   const lvl = state.list[Math.min(state.level, state.list.length - 1)];
-  return lvl ? lvl.bucketY + INK_BUCKET_H + 12 : INK_WORLD_H;
+  return lvl ? lvl.bucketY + INK_BUCKET_H + 12 : inkWorldH(state);
 }
