@@ -247,24 +247,23 @@ export function pinballFill(ctx: CanvasRenderingContext2D, view: ArenaSceneView)
 export const pinballAmbient = lightRow("pinball", PIN_LAMPS);
 
 /**
- * 7b. Pinball's taller table (pinRev 4 and 5; 27 Oct 2026, the violet table): its dark bottom edge runs on into a
- * deep violet, with the lamps in the table's teal, gold and lavender.
+ * 7b. Pinball's taller table (pinRev 4 and 5): its rich purple bottom edge runs on into a darker purple, with the
+ * lamps in the table's own pink, gold and cyan (27 Oct 2026, Joe's phone notes, second pass).
  */
-const PIN4_LAMPS = ["#3FF0D2", "#FFD27A", "#E0D0FF", "#FFD27A", "#3FF0D2"] as const;
 export function pinball4Fill(ctx: CanvasRenderingContext2D, view: ArenaSceneView): void {
   const below = fillBelow(view);
   const above = fillAbove(view);
   if (above) fillGradient(ctx, above, above.y, above.y + above.h, [[0, "#070709"], [1, "#000000"]]);
   if (!below) return;
-  fillGradient(ctx, below, below.y, below.y + below.h, [[0, "#040208"], [0.5, "#0B0614"], [1, "#120A1E"]]);
+  fillGradient(ctx, below, below.y, below.y + below.h, [[0, "#0E0422"], [0.5, "#0A0318"], [1, "#0D0420"]]);
   const glow = ctx.createRadialGradient(view.worldW / 2, below.y + below.h, 4, view.worldW / 2, below.y + below.h, view.worldW * 0.7);
-  glow.addColorStop(0, "rgba(170,120,255,0.07)");
-  glow.addColorStop(1, "rgba(170,120,255,0)");
+  glow.addColorStop(0, "rgba(255,79,216,0.08)");
+  glow.addColorStop(1, "rgba(255,79,216,0)");
   ctx.fillStyle = glow;
   ctx.fillRect(below.x, below.y, below.w, below.h);
-  lampsAtRest(ctx, view, PIN4_LAMPS, "#160C24");
+  lampsAtRest(ctx, view, PIN_LAMPS, "#160A26");
 }
-export const pinball4Ambient = lightRow("pinball", PIN4_LAMPS);
+export const pinball4Ambient = lightRow("pinball", PIN_LAMPS);
 
 /** 8. Rally: the court's dark floor runs on, with five retro lamps in Rally's tones. */
 const RALLY_LAMPS = ["#3DFFE0", "#FFD84A", "#FF6FD8", "#B49CFF", "#3DFFE0"] as const;

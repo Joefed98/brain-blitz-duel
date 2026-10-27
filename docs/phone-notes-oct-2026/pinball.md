@@ -22,27 +22,30 @@ violet table, lavender guides, teal and gold accents, J-O-U-L-Z lanes, ramps and
   stretched for the extra 30 s: `[0, 27000, 47500, 80000, 104000, 140000, 266000] → [0, 69, 98, 122, 168, 182, 200]`.
   The bots make about 1.9× the table points in 90 s; the knots were fitted on room seeds 0–59 so every level's median
   stays where it was on pinRev 4, and checked once on 100 fresh seeds (10000–10099).
-- **Texts:** the help says "Three balls, 90 seconds"; "Pink pop bumpers" became "Pop bumpers" (they are violet now).
+- **Texts:** the help says "Three balls, 90 seconds"; the bumpers are "Pink pop bumpers" again (see the table's colours below).
   The help's band numbers read the new curve through `LIVE_BANDS`. The intro score line is unchanged (still "Up to 200").
-- **Intro demo:** pinRev 5 plays pinRev 4 tick for tick, so a demo recorded on either plays (`introDemo.functions.ts`).
+- **Intro demo:** pinRev 5 plays pinRev 4 tick for tick, so a demo recorded on either plays (`introDemo.functi### The table's look (look only, no stamp; pinRev 4 and 5 draw it)
 
-### The violet table (look only, no stamp; pinRev 4 and 5 draw it)
+`src/lib/arcade/pinball4.renderer.ts`, `src/lib/arcade/arenaFills.renderer.ts`. The first pass took the mockup's palette
+(a deep violet table, lavender guides, teal and gold accents); on his phone Joe found it had lost too much colour, so
+the second pass (27 Oct 2026) restores the table's original vivid colours on the new layout:
 
-`src/lib/arcade/pinball4.renderer.ts`, `src/lib/arcade/arenaFills.renderer.ts`:
+- **Colours as before:** pink pop bumpers with their stars, the cyan neon guides and rails, green J-O-U-L-Z lane lights
+  and letters, orange drop targets, the gold multiplier, spinner, skill lane and lock, the magenta jackpot, the
+  flippers and slingshots, the cyan and magenta ramp accents, MULTIBALL in pink.
+- **The playfield** is a rich purple (`#3A1468` → `#25094A` → `#13052A`, a stronger purple glow), not the old indigo
+  or the first pass's dull violet; the shooter lane floor purple.
+- **Kept from the first pass:** the ramps drawn as smoked-glass tubes (a dark body with a fine lit edge each side, now
+  cyan on the left ramp and magenta on the right, faint hoops every 18 px and a soft sheen) with a **square portal**
+  at each entrance (and at the right ramp's exit into the left orbit), and the **LOCK** label over the lock hole. The
+  tubes have no collision (a ball on the playfield passes under them), so nothing collides differently.
+- The screen fill round the table (`pinball4Fill`, `pinball4Ambient`) runs on from the table's purple bottom edge into a
+  darker purple, with a soft pink glow and the lamps in the table's pink, gold and cyan. pinRev 1–3's table and fill are
+  unchanged.
+- Screenshots: `screenshots/phone-notes-oct-2026/pinball-before-after-414x896.png` (main, the first pass and this one
+  on the real page at 414×896).
 
-- Playfield `#2A0E3A` → `#1A0E2A` → `#130A20`, a violet glow; lavender guides (`#E0D0FF`, a thin lit line in a soft
-  body exactly the capsule's width); bumpers with a lavender-to-violet skirt and a teal star (the skirt's outer edge is
-  the collision radius, as before); the shooter lane floor violet.
-- J-O-U-L-Z letters light teal (`#3FF0D2`), the skill-shot lane gold (`#FFD27A`); the multiplier, spinner, lock, LOCK
-  label, jackpot and the plunger meter in the gold and teal accents; MULTIBALL in lavender.
-- **Tunnels (the ramps):** a smoked-glass tube on each ramp's path with a fine lit edge each side (teal on the left
-  ramp, lavender on the right, about half the old strength), faint hoops every 18 px and a soft sheen; butt ends and a
-  **square portal** at each entrance (and at the right ramp's exit into the left orbit). They have no collision (a ball
-  on the playfield passes under them), so nothing collides differently.
-- The screen fill round the table (`pinball4Fill`, `pinball4Ambient`) starts from the table's dark bottom edge and runs
-  into deep violet with lamps in teal, gold and lavender. pinRev 1–3's table and fill are unchanged.
-- Screenshots: `screenshots/phone-notes-oct-2026/pinball-table-before.png` and `-after.png` (the world at the 414 px
-  width, 2× pixels, the same state).
+e state).
 
 ## Medians by level, before (pinRev 4) and after (pinRev 5)
 

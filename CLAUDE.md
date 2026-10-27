@@ -597,8 +597,8 @@ Lovable still hosts and publishes the app (https://brain-blitz-duel.lovable.app)
   pickups further from the easy line and each other, the bonus curve rescaled; ink-v11-check), Gemstone `matchupRev 10`
   (90 s, ice laid once at the start and never refreshed, swaps into and out of ice when they make a line of three, the
   curve refitted; the gem counter gone and the treasure shiny bronze on every revision; gemstone-rev10-check), Pinball
-  `pinRev 5` (pinRev 4 for 90 s on a stretched curve; the violet table, J-O-U-L-Z lanes, smoked square-mouthed ramp
-  tunnels and the lock in teal and gold on pinRev 4 and 5; pinball-90-check) and Flightpath (display only, no stamp:
+  `pinRev 5` (pinRev 4 for 90 s on a stretched curve; on pinRev 4 and 5 the original vivid pinks, greens and cyans on a
+  rich purple table, smoked square-mouthed ramp tubes and a LOCK label; pinball-90-check) and Flightpath (display only, no stamp:
   a landed dart stays on its own board for 700 ms before the next board shows, so it is drawn in the ring it scored;
   rings 1–2 light pinks and 8–9 light golds, a black dart, a waving wind flag with the strength; flightpath-hit-check).
   Gemstone and Pinball follow Tempo's precedent: the definition's clock is 93 s, older 60 s rounds end at 60 s. The

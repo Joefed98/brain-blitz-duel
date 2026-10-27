@@ -787,7 +787,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Two ramps:", detail: `roll the ball up a ramp fast enough for ${P4_PTS_RAMP.toLocaleString("en-GB")} and the next multiplier. The left ramp drops the ball onto the U lane; the right one brings it back through the spinner. Ramps back to back build a combo (${P4_PTS_COMBO.toLocaleString("en-GB")} more each).`, helpOnly: true },
         { action: "Multiball:", detail: `a ramp shot lights the lock; with it lit, each ramp shot sinks the ball in the lock hole and a new one comes up. The third releases all three for 20 seconds with the jackpot lit: the target behind the drop targets, ${P4_PTS_JACKPOT.toLocaleString("en-GB")} a hit from below. A ball lost while another is in play costs nothing.`, helpOnly: true },
         { action: "One table for everyone,", detail: "with no luck in it.", helpOnly: true },
-        { action: "Pop bumpers:", detail: `${PIN_PTS_BUMPER} a hit, and they kick the ball away.`, helpOnly: true },
+        { action: "Pink pop bumpers:", detail: `${PIN_PTS_BUMPER} a hit, and they kick the ball away.`, helpOnly: true },
         { action: "Orange drop targets:", detail: `${PIN_PTS_TARGET} each. Knock all four down for ${PIN_PTS_BANK.toLocaleString("en-GB")} more and a lit spinner for 15 seconds.`, helpOnly: true },
         { action: "Spinner in the left lane:", detail: `${PIN_PTS_SPIN} a turn, ${PIN_PTS_SPIN_LIT} while lit. A faster ball spins it more.`, helpOnly: true },
         { action: "Yellow slingshots", detail: `kick the ball back across (${PIN_PTS_SLING} each).`, helpOnly: true },

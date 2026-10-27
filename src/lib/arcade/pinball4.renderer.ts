@@ -18,7 +18,7 @@ import { artCanvas, artContext, type ArtCanvas } from "./cache.renderer";
 import { fillAbove, fillBelow, pinball4Fill } from "./arenaFills.renderer";
 import type { ArenaSceneView } from "./arenaScene.renderer";
 import { type ArcadeGame, type ArcadeInputEvent, type CanvasSize } from "./engine";
-import { pinIsExpanded, PIN_BALLS, PIN_BALL_R, PIN_BUMPER_R, PIN_MULT_MAX, pinRunTicksOf, PIN_SLING, PIN_TARGET, PIN_GATE, PIN_WALL_R, type PinSegDef, type PinState } from "./pinball";
+import { pinIsExpanded, PIN_BALLS, PIN_BALL_R, PIN_MULT_MAX, pinRunTicksOf, PIN_SLING, PIN_TARGET, PIN_GATE, PIN_WALL_R, type PinSegDef, type PinState } from "./pinball";
 import {
   drawBall,
   drawBumperFlash,
@@ -31,9 +31,10 @@ import {
   capsule,
   chevron,
   chromePost,
+  neonRails,
   ovalPath,
   paintAprons,
-  starPath,
+  paintBumper,
   paintPlunger,
   paintSlingPlastics,
   pinballArtGameFor,
@@ -98,21 +99,18 @@ type Ctx = CanvasRenderingContext2D;
 
 const S = P4_SHIFT;
 /**
- * The table's palette (27 Oct 2026, Joe's phone notes, closer to Claude's mockup): a deep violet playfield,
- * lavender guides, teal and gold accents. The ramps are smoked tunnels: the left one edged teal, the right
- * lavender; the plunge rail chrome; the lock gold.
+ * The table's palette. Joe's phone notes (27 Oct 2026, a second pass): the original vivid pinks, purples and greens
+ * (bumpers, targets, lanes, lights, flippers and accents) on a rich purple playfield, with the smoked ramp tubes, square
+ * portals and the LOCK label. The ramps' accents: the left one cyan, the right magenta; the plunge rail chrome; the lock gold.
  */
-const TABLE_TOP = "#2A0E3A";
-const TABLE_MID = "#1A0E2A";
-const TABLE_BOTTOM = "#130A20";
-const GUIDE = "#E0D0FF";
-const TEAL = "#3FF0D2";
-const GOLD = "#FFD27A";
-const RAMP_COLOURS = [TEAL, GUIDE] as const;
+const TABLE_TOP = "#3A1468";
+const TABLE_MID = "#25094A";
+const TABLE_BOTTOM = "#13052A";
+const RAMP_COLOURS = ["#3DFFE0", "#FF4DFF"] as const;
 /** The ramps' accents as "r,g,b" (for translucent pools and edges). */
-const RAMP_RGB = ["63,240,210", "224,208,255"] as const;
-const LOCK_GOLD = GOLD;
-const LETTER_ON = TEAL;
+const RAMP_RGB = ["61,255,224", "255,77,255"] as const;
+const LOCK_GOLD = "#FFD84A";
+const LETTER_ON = "#4BFF7A";
 
 /* ============================ The static table ============================ */
 
@@ -132,9 +130,9 @@ function playfieldPath(c: Ctx): void {
 /** The deep purple glow behind the table (pinball.renderer's, centred on the taller table). */
 export function paintTable4Glow(c: Ctx, x: number, y: number, w: number, h: number): void {
   const g = c.createRadialGradient(P4_MID_X, 420, 40, P4_MID_X, 420, 640);
-  g.addColorStop(0, "rgba(84,30,120,0.5)");
-  g.addColorStop(0.45, "rgba(52,18,82,0.3)");
-  g.addColorStop(1, "rgba(26,14,42,0)");
+  g.addColorStop(0, "rgba(120,36,200,0.55)");
+  g.addColorStop(0.45, "rgba(84,24,150,0.32)");
+  g.addColorStop(1, "rgba(48,12,96,0)");
   c.save();
   c.globalCompositeOperation = "lighter";
   c.fillStyle = g;
@@ -157,12 +155,12 @@ function paintPlayfield(c: Ctx, detail: boolean): void {
   c.fillRect(0, 0, P4_WORLD_W, P4_WORLD_H);
 
   // Pools of colour: the lanes, the ramps, the bumpers, the target bank and the flippers.
-  pool(c, 186, 110, 110, "rgba(63,240,210,A)", 0.06);
-  pool(c, 80, 260, 90, "rgba(63,240,210,A)", 0.05);
-  pool(c, 306, 250, 90, "rgba(224,208,255,A)", 0.05);
-  pool(c, 190, 228 + S, 120, "rgba(170,120,255,A)", 0.12);
-  pool(c, 190, 352 + S, 80, "rgba(255,210,122,A)", 0.07);
-  pool(c, P4_MID_X, 600 + S, 130, "rgba(255,210,122,A)", 0.05);
+  pool(c, 186, 110, 110, "rgba(75,255,122,A)", 0.06);
+  pool(c, 80, 260, 90, "rgba(61,255,224,A)", 0.06);
+  pool(c, 306, 250, 90, "rgba(255,77,255,A)", 0.06);
+  pool(c, 190, 228 + S, 120, "rgba(255,77,255,A)", 0.13);
+  pool(c, 190, 352 + S, 80, "rgba(255,138,60,A)", 0.08);
+  pool(c, P4_MID_X, 600 + S, 130, "rgba(255,216,74,A)", 0.05);
 
   let seed = 0x9e3779b9;
   const rnd = () => ((seed = (Math.imul(seed ^ (seed >>> 15), 0x2c1b3c6d) + 0x6d2b79f5) | 0) >>> 0) / 4294967296;
@@ -175,8 +173,8 @@ function paintPlayfield(c: Ctx, detail: boolean): void {
   // The retro horizon grid over the lower table (pinRev 1's, moved down with it).
   const top = 432 + S;
   const fade = c.createLinearGradient(0, top, 0, 540 + S);
-  fade.addColorStop(0, "rgba(224,208,255,0)");
-  fade.addColorStop(1, "rgba(224,208,255,0.07)");
+  fade.addColorStop(0, "rgba(255,77,255,0)");
+  fade.addColorStop(1, "rgba(255,77,255,0.085)");
   c.strokeStyle = fade;
   c.lineWidth = 1;
   c.beginPath();
@@ -205,9 +203,9 @@ function paintPlayfield(c: Ctx, detail: boolean): void {
 
   // Shooter lane floor.
   const lg = c.createLinearGradient(P4_LANE_INNER, 0, P4_LANE_OUTER, 0);
-  lg.addColorStop(0, "#0C0716");
-  lg.addColorStop(0.5, "#1C1030");
-  lg.addColorStop(1, "#0C0716");
+  lg.addColorStop(0, "#0E0620");
+  lg.addColorStop(0.5, "#1E0E3C");
+  lg.addColorStop(1, "#0E0620");
   c.fillStyle = lg;
   c.fillRect(P4_LANE_INNER, 150, P4_LANE_OUTER - P4_LANE_INNER, P4_WORLD_H - 150);
 
@@ -244,9 +242,9 @@ function paintInlays(c: Ctx): void {
     chevron(c, cx + 0.8, cy + 1, w, h, "rgba(0,0,0,0.55)", 2.4);
     chevron(c, cx, cy, w, h, colour, 1.6);
   };
-  for (let y = 380 + S; y <= 490 + S; y += 36) groove(ORBIT_MID, y, 14, 7, "rgba(63,240,210,0.2)");
-  for (let i = 0; i < 3; i++) groove(P4_MID_X, 392 + S + i * 15, 18, 7, `rgba(255,210,122,${(0.32 - i * 0.08).toFixed(2)})`);
-  c.strokeStyle = "rgba(224,208,255,0.12)";
+  for (let y = 380 + S; y <= 490 + S; y += 36) groove(ORBIT_MID, y, 14, 7, "rgba(61,255,224,0.22)");
+  for (let i = 0; i < 3; i++) groove(P4_MID_X, 392 + S + i * 15, 18, 7, `rgba(255,138,60,${(0.32 - i * 0.08).toFixed(2)})`);
+  c.strokeStyle = "rgba(255,77,255,0.14)";
   c.lineWidth = 1.5;
   c.beginPath();
   c.ellipse(190, 226 + S, 86, 64, 0, 0, Math.PI * 2);
@@ -257,16 +255,16 @@ function paintInlays(c: Ctx): void {
   });
 
   // Unlit sockets: five letter lanes, the multiplier row, target lights, the spinner arrow, ramp arrows, the jackpot.
-  for (let lane = 0; lane < P4_LANE_COUNT; lane++) socket(c, () => triPath(c, laneCentre(lane), LANE_INSERT_TOP, LANE_INSERT_BASE, 8), "#062824", "rgba(63,240,210,0.32)");
-  for (let m = 2; m <= PIN_MULT_MAX; m++) socket(c, () => ovalPath(c, multX(m), MULT_Y + 4.5, 12.5, 8), "#2A1E08", "rgba(255,210,122,0.32)");
+  for (let lane = 0; lane < P4_LANE_COUNT; lane++) socket(c, () => triPath(c, laneCentre(lane), LANE_INSERT_TOP, LANE_INSERT_BASE, 8), "#062A13", "rgba(75,255,122,0.32)");
+  for (let m = 2; m <= PIN_MULT_MAX; m++) socket(c, () => ovalPath(c, multX(m), MULT_Y + 4.5, 12.5, 8), "#271B04", "rgba(255,216,74,0.32)");
   for (const x of P4_TARGET_XS) socket(c, () => ovalPath(c, x, TARGET_INSERT_Y, 4, 4), "#2A1206", "rgba(255,138,60,0.35)");
-  socket(c, () => triPath(c, ORBIT_MID, SPIN_INSERT_Y - 6, SPIN_INSERT_Y + 6, 8), "#2A2008", "rgba(255,210,122,0.32)");
-  P4_RAMPS.forEach((_, i) => socket(c, () => triPath(c, rampMouthX(i), RAMP_INSERT_Y - 6, RAMP_INSERT_Y + 6, 9), "#140A24", `rgba(${RAMP_RGB[i]},0.36)`));
-  socket(c, () => ovalPath(c, P4_MID_X + 9, JACKPOT_INSERT_Y, 30, 7), "#1E0E34", "rgba(224,208,255,0.32)");
+  socket(c, () => triPath(c, ORBIT_MID, SPIN_INSERT_Y - 6, SPIN_INSERT_Y + 6, 8), "#2A2004", "rgba(255,216,74,0.32)");
+  P4_RAMPS.forEach((_, i) => socket(c, () => triPath(c, rampMouthX(i), RAMP_INSERT_Y - 6, RAMP_INSERT_Y + 6, 9), "#10102A", `rgba(${RAMP_RGB[i]},0.4)`));
+  socket(c, () => ovalPath(c, P4_MID_X + 9, JACKPOT_INSERT_Y, 30, 7), "#2A0A26", "rgba(255,77,255,0.35)");
   for (const x of P4_TARGET_XS) {
     c.fillStyle = "rgba(0,0,0,0.6)";
     c.fillRect(x - 8, P4_TARGET_Y - 2, 16, 4);
-    c.fillStyle = "rgba(255,210,122,0.2)";
+    c.fillStyle = "rgba(255,138,60,0.22)";
     c.fillRect(x - 8, P4_TARGET_Y + 2, 16, 1);
   }
 }
@@ -289,13 +287,13 @@ function paintTable(c: Ctx, detail: boolean): void {
   paintPlunger(c);
   paintSlingPlastics(c);
   c.restore();
-  P4_BUMPERS.forEach(([bx, by]) => paintBumper4(c, bx, by));
-  guideRails(c, SEG_WALLS);
+  P4_BUMPERS.forEach(([bx, by]) => paintBumper(c, bx, by));
+  neonRails(c, SEG_WALLS, PIN_WALL_R);
   strokeSegs(c, SEG_SLINGS, PIN_WALL_R * 2 + 9, "rgba(255,216,74,0.07)");
   strokeSegs(c, SEG_SLINGS, PIN_WALL_R * 2 + 4, "rgba(255,216,74,0.14)");
   bevelRails(c, SEG_SLINGS, PIN_WALL_R, SHADE.slingBody, SHADE.slingLight, SHADE.slingSpec, null);
   for (const tri of SLING_TRIS) for (const [x, y] of tri) chromePost(c, x, y, PIN_WALL_R + 0.5);
-  for (const g of SEG_GATE) capsule(c, g.a[0], g.a[1], g.b[0], g.b[1], g.r, "rgba(63,240,210,0.55)");
+  for (const g of SEG_GATE) capsule(c, g.a[0], g.a[1], g.b[0], g.b[1], g.r, "rgba(61,255,224,0.55)");
   for (const x of [P4_LEFT_WALL, P4_ORBIT_INNER]) {
     c.fillStyle = "#E9FFFB";
     c.beginPath();
@@ -307,51 +305,6 @@ function paintTable(c: Ctx, detail: boolean): void {
   // The ramps' level over the playfield (painted into the same layer: one image a frame).
   paintRamps(c);
   c.restore();
-}
-
-/** The guides in lavender: a thin lit line on the capsule's centre over a soft body exactly its width. */
-function guideRails(c: Ctx, segs: readonly PinSegDef[]): void {
-  strokeSegs(c, segs, PIN_WALL_R * 2 + 6, "rgba(224,208,255,0.04)");
-  strokeSegs(c, segs, PIN_WALL_R * 2, "rgba(96,70,150,0.6)");
-  strokeSegs(c, segs, 2, GUIDE);
-  strokeSegs(c, segs, 0.8, "rgba(255,255,255,0.8)", -0.3, -0.4);
-}
-
-/** A bumper in the table's palette: a lavender-to-violet skirt (outer edge exactly at the collision radius), a dark cap, a teal star. */
-function paintBumper4(c: Ctx, bx: number, by: number): void {
-  const R = PIN_BUMPER_R;
-  c.fillStyle = "rgba(0,0,0,0.42)";
-  c.beginPath();
-  c.arc(bx + 2, by + 3, R - 1, 0, Math.PI * 2);
-  c.fill();
-  const rg = c.createLinearGradient(bx - R, by - R, bx + R, by + R);
-  rg.addColorStop(0, GUIDE);
-  rg.addColorStop(0.45, "#9A6CE8");
-  rg.addColorStop(1, "#3E1C70");
-  c.fillStyle = rg;
-  c.beginPath();
-  c.arc(bx, by, R, 0, Math.PI * 2);
-  c.fill();
-  const cg = c.createRadialGradient(bx - 5, by - 6, 1, bx, by, R - 4);
-  cg.addColorStop(0, "#4A2A6E");
-  cg.addColorStop(0.6, "#22103A");
-  cg.addColorStop(1, "#140A24");
-  c.fillStyle = cg;
-  c.beginPath();
-  c.arc(bx, by, R - 4, 0, Math.PI * 2);
-  c.fill();
-  c.strokeStyle = "rgba(224,208,255,0.5)";
-  c.lineWidth = 1.5;
-  c.beginPath();
-  c.arc(bx, by, R - 6, Math.PI * 1.05, Math.PI * 1.55);
-  c.stroke();
-  starPath(c, bx, by, 7.5, 3.2);
-  c.fillStyle = "rgba(63,240,210,0.9)";
-  c.fill();
-  c.fillStyle = "rgba(230,255,250,0.85)";
-  c.beginPath();
-  c.arc(bx - 0.5, by - 0.5, 1.6, 0, Math.PI * 2);
-  c.fill();
 }
 
 /** Cached layers keyed by device scale (play, reveal, intro). */
@@ -412,7 +365,7 @@ function paintRamps(c: Ctx): void {
     c.stroke();
     c.restore();
     linePath(c, path);
-    c.strokeStyle = `rgba(${rgb},0.5)`;
+    c.strokeStyle = `rgba(${rgb},0.65)`;
     c.lineWidth = 22;
     c.stroke();
     linePath(c, path);
@@ -475,7 +428,7 @@ function paintRamps(c: Ctx): void {
   const g = c.createRadialGradient(P4_LOCK_X, P4_LOCK_Y, 2, P4_LOCK_X, P4_LOCK_Y, 12);
   g.addColorStop(0, "#000000");
   g.addColorStop(0.7, "#120618");
-  g.addColorStop(1, "#3A2608");
+  g.addColorStop(1, "#3A1F00");
   c.fillStyle = g;
   c.beginPath();
   c.arc(P4_LOCK_X, P4_LOCK_Y, 12, 0, Math.PI * 2);
@@ -483,7 +436,7 @@ function paintRamps(c: Ctx): void {
   c.strokeStyle = LOCK_GOLD;
   c.lineWidth = 2;
   c.stroke();
-  retroText(c, "LOCK", P4_LOCK_X, P4_LOCK_Y - 24, 7, "rgba(255,210,122,0.7)", "center");
+  retroText(c, "LOCK", P4_LOCK_X, P4_LOCK_Y - 24, 7, "rgba(255,216,74,0.8)", "center");
   c.restore();
 }
 
@@ -529,27 +482,27 @@ function drawLights(ctx: Ctx, s: Pin4State, bloom: number, t: number): void {
     const lit = ((s.joulz >> lane) & 1) === 1;
     const gold = lane === flash && blink(t, 180);
     if (lit || gold) {
-      if (glow) pool(ctx, cx, (LANE_INSERT_TOP + LANE_INSERT_BASE) / 2 + 2, 17, gold ? "rgba(255,210,122,A)" : "rgba(63,240,210,A)", 0.32 + 0.06 * pulse);
+      if (glow) pool(ctx, cx, (LANE_INSERT_TOP + LANE_INSERT_BASE) / 2 + 2, 17, gold ? "rgba(255,216,74,A)" : "rgba(75,255,122,A)", 0.32 + 0.06 * pulse);
       triPath(ctx, cx, LANE_INSERT_TOP, LANE_INSERT_BASE, 8);
-      ctx.fillStyle = gold ? LOCK_GOLD : TEAL;
+      ctx.fillStyle = gold ? LOCK_GOLD : PIN_COLOURS.laneOn;
       ctx.fill();
     }
-    retroText(ctx, P4_LETTERS[lane]!, cx, LANE_INSERT_BASE + 4, 10, lit ? LETTER_ON : gold ? LOCK_GOLD : "rgba(224,208,255,0.45)", "center", lit && glow ? 4 : 0);
+    retroText(ctx, P4_LETTERS[lane]!, cx, LANE_INSERT_BASE + 4, 10, lit ? LETTER_ON : gold ? LOCK_GOLD : "rgba(75,255,122,0.38)", "center", lit && glow ? 4 : 0);
   }
   // The multiplier inserts.
   for (let m = 2; m <= PIN_MULT_MAX; m++) {
     const on = s.mult >= m;
     const x = multX(m);
     if (on) {
-      if (glow) pool(ctx, x, MULT_Y + 4.5, 22, "rgba(255,210,122,A)", 0.26 + 0.05 * pulse);
+      if (glow) pool(ctx, x, MULT_Y + 4.5, 22, "rgba(255,216,74,A)", 0.26 + 0.05 * pulse);
       const g = ctx.createRadialGradient(x - 3, MULT_Y + 2, 1, x, MULT_Y + 4.5, 12.5);
-      g.addColorStop(0, "#FFF2D4");
-      g.addColorStop(1, "#E0A848");
+      g.addColorStop(0, "#FFF4C2");
+      g.addColorStop(1, "#E0A81E");
       ctx.fillStyle = g;
       ovalPath(ctx, x, MULT_Y + 4.5, 12.5, 8);
       ctx.fill();
     }
-    retroText(ctx, `x${m}`, x + 1, MULT_Y + 0.5, 9, on ? "#2B1A00" : "rgba(255,210,122,0.42)", "center");
+    retroText(ctx, `x${m}`, x + 1, MULT_Y + 0.5, 9, on ? "#2B1A00" : "rgba(255,216,74,0.42)", "center");
   }
   P4_TARGET_XS.forEach((x, i) => {
     if (((s.targets >> i) & 1) === 0) return;
@@ -559,9 +512,9 @@ function drawLights(ctx: Ctx, s: Pin4State, bloom: number, t: number): void {
     ctx.fill();
   });
   if (s.tick < s.spinLit) {
-    if (glow) pool(ctx, ORBIT_MID, SPIN_INSERT_Y, 16, "rgba(255,210,122,A)", 0.3 + 0.08 * pulse);
+    if (glow) pool(ctx, ORBIT_MID, SPIN_INSERT_Y, 16, "rgba(255,216,74,A)", 0.3 + 0.08 * pulse);
     triPath(ctx, ORBIT_MID, SPIN_INSERT_Y - 6, SPIN_INSERT_Y + 6, 8);
-    ctx.fillStyle = GOLD;
+    ctx.fillStyle = PIN_COLOURS.spinnerLit;
     ctx.fill();
   }
   // Ramp arrows: gold while the lock is lit (a ramp shot locks), bright while a combo is on, else dim.
@@ -572,7 +525,7 @@ function drawLights(ctx: Ctx, s: Pin4State, bloom: number, t: number): void {
     const on = lockLit || comboOn;
     if (!on) return;
     const colour = lockLit ? LOCK_GOLD : RAMP_COLOURS[i]!;
-    if (glow) pool(ctx, x, RAMP_INSERT_Y, 18, lockLit ? "rgba(255,210,122,A)" : `rgba(${RAMP_RGB[i]},A)`, 0.3 + 0.08 * pulse);
+    if (glow) pool(ctx, x, RAMP_INSERT_Y, 18, lockLit ? "rgba(255,216,74,A)" : `rgba(${RAMP_RGB[i]},A)`, 0.3 + 0.08 * pulse);
     if (blink(t, 260) || !comboOn) {
       triPath(ctx, x, RAMP_INSERT_Y - 6, RAMP_INSERT_Y + 6, 9);
       ctx.fillStyle = colour;
@@ -582,12 +535,12 @@ function drawLights(ctx: Ctx, s: Pin4State, bloom: number, t: number): void {
   });
   // The jackpot standup's insert, lit through multiball.
   if (p4JackpotLit(s)) {
-    if (glow) pool(ctx, P4_MID_X + 9, JACKPOT_INSERT_Y, 30, "rgba(255,210,122,A)", 0.35 + 0.1 * pulse);
+    if (glow) pool(ctx, P4_MID_X + 9, JACKPOT_INSERT_Y, 30, "rgba(255,77,255,A)", 0.35 + 0.1 * pulse);
     ovalPath(ctx, P4_MID_X + 9, JACKPOT_INSERT_Y, 30, 7);
-    ctx.fillStyle = blink(t, 200) ? "#FFF2D4" : GOLD;
+    ctx.fillStyle = blink(t, 200) ? "#FF9BFF" : "#FF4DFF";
     ctx.fill();
   }
-  retroText(ctx, "JACKPOT", P4_MID_X + 9, JACKPOT_INSERT_Y - 3.5, 7, p4JackpotLit(s) ? "#2B1A00" : "rgba(224,208,255,0.45)", "center");
+  retroText(ctx, "JACKPOT", P4_MID_X + 9, JACKPOT_INSERT_Y - 3.5, 7, p4JackpotLit(s) ? "#2A0A26" : "rgba(255,77,255,0.45)", "center");
 }
 
 /** The jackpot standup on its capsule: gold-rimmed magenta, bright and flashing when lit or just hit. */
@@ -597,9 +550,9 @@ function drawJackpot(ctx: Ctx, s: Pin4State, t: number): void {
   const lit = p4JackpotLit(s);
   const hit = s.tick - s.jackpotAt < 12;
   capsule(ctx, ax, ay, bx, by, PIN_WALL_R, SHADE.shadow, 1.5, 2.5);
-  capsule(ctx, ax, ay, bx, by, PIN_WALL_R, lit ? "#A87A2A" : "#3E2464");
-  capsule(ctx, ax, ay, bx, by, PIN_WALL_R - 1, hit ? "#FFFFFF" : lit && blink(t, 200) ? "#FFF2D4" : lit ? GOLD : "#7A5AA8", 0, -0.4);
-  capsule(ctx, ax, ay, bx, by, 0.7, "rgba(245,236,255,0.8)", -0.4, -1.4);
+  capsule(ctx, ax, ay, bx, by, PIN_WALL_R, lit ? "#A3168F" : "#5A1050");
+  capsule(ctx, ax, ay, bx, by, PIN_WALL_R - 1, hit ? "#FFFFFF" : lit && blink(t, 200) ? "#FF9BFF" : lit ? "#FF4DFF" : "#8A2A7E", 0, -0.4);
+  capsule(ctx, ax, ay, bx, by, 0.7, "rgba(255,230,255,0.8)", -0.4, -1.4);
 }
 
 /** Where a ball is drawn: on the playfield, or along its ramp, the lock path or the plunge rail. */
@@ -726,9 +679,9 @@ function drawMeter(ctx: Ctx, s: Pin4State, t: number): void {
     const y1 = METER_BOTTOM - (zone * h) / P4_LANE_COUNT;
     const y0 = METER_BOTTOM - ((zone + 1) * h) / P4_LANE_COUNT;
     const gold = lane === s.skillLane;
-    ctx.fillStyle = gold ? (blink(t, 180) ? "rgba(255,210,122,0.75)" : "rgba(255,210,122,0.45)") : zone % 2 ? "rgba(63,240,210,0.16)" : "rgba(63,240,210,0.1)";
+    ctx.fillStyle = gold ? (blink(t, 180) ? "rgba(255,216,74,0.75)" : "rgba(255,216,74,0.45)") : zone % 2 ? "rgba(75,255,122,0.16)" : "rgba(75,255,122,0.1)";
     ctx.fillRect(x0, y0 + 1, w, y1 - y0 - 2);
-    retroText(ctx, P4_LETTERS[lane]!, x0 + w / 2, (y0 + y1) / 2 - 5, 9, gold ? "#2B1A00" : "rgba(224,250,245,0.7)", "center");
+    retroText(ctx, P4_LETTERS[lane]!, x0 + w / 2, (y0 + y1) / 2 - 5, 9, gold ? "#2B1A00" : "rgba(220,255,230,0.7)", "center");
   }
   const power = p4PowerAt(s.charge);
   const ny = METER_BOTTOM - ((power + 0.5) * h) / (P4_POWER_MAX + 1);
@@ -755,7 +708,7 @@ function drawHud(ctx: Ctx, s: Pin4State): void {
   }
   if (p4JackpotLit(s)) {
     const secs = Math.ceil((s.mbUntil - s.tick) / 60);
-    retroText(ctx, `MULTIBALL ${secs}`, 12, 26, 9, GUIDE, "left", 3);
+    retroText(ctx, `MULTIBALL ${secs}`, 12, 26, 9, "#FF9BFF", "left", 3);
   } else if (s.locks > 0) retroText(ctx, s.lockLit && s.locks === 2 ? "2 LOCKED: MULTIBALL LIT" : `${s.locks} LOCKED`, 12, 26, 9, LOCK_GOLD, "left");
   else if (s.lockLit) retroText(ctx, "LOCK LIT", 12, 26, 9, LOCK_GOLD, "left");
   if (s.lost >= PIN_BALLS && s.tick < pinRunTicksOf(s)) retroText(ctx, "GAME OVER", P4_WORLD_W / 2 - 12, 420 + S, 16, "#FF3B5C", "center", 6);
@@ -864,7 +817,7 @@ export function pinballWorldHFor(rev?: number | null): number {
 }
 
 /**
- * The play screen's fill round the taller table: arenaFills' violet fill and lamps (pinball4Fill), with the
+ * The play screen's fill round the taller table: arenaFills' purple fill and lamps (pinball4Fill), with the
  * glow centred on this table.
  */
 export function pinball4GlowFill(ctx: CanvasRenderingContext2D, view: ArenaSceneView): void {
@@ -876,8 +829,8 @@ export function pinball4GlowFill(ctx: CanvasRenderingContext2D, view: ArenaScene
   ctx.save();
   ctx.globalCompositeOperation = "lighter";
   const g = ctx.createLinearGradient(0, below.y, 0, below.y + below.h);
-  g.addColorStop(0, "rgba(42,14,58,0)");
-  g.addColorStop(1, "rgba(42,14,58,0.3)");
+  g.addColorStop(0, "rgba(84,24,150,0)");
+  g.addColorStop(1, "rgba(84,24,150,0.28)");
   ctx.fillStyle = g;
   ctx.fillRect(below.x, below.y, below.w, below.h);
   ctx.restore();
