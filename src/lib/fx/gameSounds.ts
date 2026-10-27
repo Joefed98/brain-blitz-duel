@@ -132,6 +132,8 @@ export function swingSounds(): GameSounds<SwingState> {
       loopCue("swing.lava", running && state.ended === 0);
       if (prev && state.tick > prev.tick) {
         if (state.ended === 2 && prev.ended !== 2) sfx("swing.crash", "arc_crash");
+        // swingRev 14: a miss (or the dragon) puts the hero back on the start ledge: the same crash.
+        else if ((state.restarts ?? 0) > (prev.restarts ?? 0)) sfx("swing.crash", "arc_crash");
         else if (prev.rope < 0 && state.rope >= 0) sfx("swing.grapple", "arc_grapple");
         // swingRev 4: a star taken, the dragon appearing, a stalactite starting to shake, a jet erupting.
         if ((state.stars ?? 0) > (prev.stars ?? 0)) sfx("swing.starTaken", "arc_pickup", 0.9);

@@ -10,7 +10,7 @@ import {
   SWING_REV_TUNEC,
   SWING_REV_SPREAD,
   SWING_REV_TALL,
-  SWING_REV_TARGET, SWING_REV_STRICT, SWING_REV_EXPAND,
+  SWING_REV_TARGET, SWING_REV_STRICT, SWING_REV_EXPAND, SWING_REV_ASSAULT,
   SWING_REV_V2,
   SWING_REV_V3,
   SWING_CHECKPOINT_INTERVAL,
@@ -34,6 +34,8 @@ const tallRunV9 = makeArcadeRun<SwingState, SwingCheckpoint>({ tag: "swing", gam
 const targetRunV10 = makeArcadeRun<SwingState, SwingCheckpoint>({ tag: "swing", game: swingGameFor(SWING_REV_TARGET), checkpoint: swingCheckpoint, keys: SWING_CHECKPOINT_KEYS, interval: SWING_CHECKPOINT_INTERVAL });
 /** swingRev 13 (the expansion): the deeper, wider cavern with combos, gems, speed gates and set-route ledges, scored to 200. */
 const expandRunV13 = makeArcadeRun<SwingState, SwingCheckpoint>({ tag: "swing", game: swingGameFor(SWING_REV_EXPAND), checkpoint: swingCheckpoint, keys: SWING_CHECKPOINT_KEYS, interval: SWING_CHECKPOINT_INTERVAL });
+/** swingRev 14 (the assault course): sections of ledges, hooks and squeezes, restarts on a miss, scored to 200. */
+const assaultRunV14 = makeArcadeRun<SwingState, SwingCheckpoint>({ tag: "swing", game: swingGameFor(SWING_REV_ASSAULT), checkpoint: swingCheckpoint, keys: SWING_CHECKPOINT_KEYS, interval: SWING_CHECKPOINT_INTERVAL });
 const strictRunV11 = makeArcadeRun<SwingState, SwingCheckpoint>({ tag: "swing", game: swingGameFor(SWING_REV_STRICT), checkpoint: swingCheckpoint, keys: SWING_CHECKPOINT_KEYS, interval: SWING_CHECKPOINT_INTERVAL });
 const spreadRunV8 = makeArcadeRun<SwingState, SwingCheckpoint>({ tag: "swing", game: swingGameFor(SWING_REV_SPREAD), checkpoint: swingCheckpoint, keys: SWING_CHECKPOINT_KEYS, interval: SWING_CHECKPOINT_INTERVAL });
 const tunecRunV7 = makeArcadeRun<SwingState, SwingCheckpoint>({ tag: "swing", game: swingGameFor(SWING_REV_TUNEC), checkpoint: swingCheckpoint, keys: SWING_CHECKPOINT_KEYS, interval: SWING_CHECKPOINT_INTERVAL });
@@ -50,7 +52,7 @@ export const decodeSwingRun = run.decode;
 
 /** The single place a Swing score is worked out. */
 export function replaySwingRun(seed: number, raw: string, rev?: number): SwingResult {
-  const picked = rev === SWING_REV_EXPAND ? expandRunV13 : rev === SWING_REV_STRICT ? strictRunV11 : rev === SWING_REV_TARGET ? targetRunV10 : rev === SWING_REV_TALL ? tallRunV9 : rev === SWING_REV_SPREAD ? spreadRunV8 : rev === SWING_REV_TUNEC ? tunecRunV7 : rev === SWING_REV_TUNED ? tunedRunV6 : rev === SWING_REV_BAND ? bandRunV5 : rev === SWING_REV ? chaseRunV4 : rev === SWING_REV_V3 ? dragonRunV3 : rev === SWING_REV_V2 ? dragonRunV2 : run;
+  const picked = rev === SWING_REV_ASSAULT ? assaultRunV14 : rev === SWING_REV_EXPAND ? expandRunV13 : rev === SWING_REV_STRICT ? strictRunV11 : rev === SWING_REV_TARGET ? targetRunV10 : rev === SWING_REV_TALL ? tallRunV9 : rev === SWING_REV_SPREAD ? spreadRunV8 : rev === SWING_REV_TUNEC ? tunecRunV7 : rev === SWING_REV_TUNED ? tunedRunV6 : rev === SWING_REV_BAND ? bandRunV5 : rev === SWING_REV ? chaseRunV4 : rev === SWING_REV_V3 ? dragonRunV3 : rev === SWING_REV_V2 ? dragonRunV2 : run;
   const result = picked.replay(seed, raw);
   return { ...result, ...swingExtra(result.state) };
 }

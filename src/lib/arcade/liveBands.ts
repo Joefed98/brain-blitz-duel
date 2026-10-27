@@ -31,7 +31,7 @@ import { ORBIT_V12_BAND_CURVE } from "./orbitRev3";
 import { BEAT_REV_EASE, BEAT_REV_STRICT, BEAT_V10_BAND_CURVE } from "./beat";
 import { SLICE_REV_STRICT, SLICE_REV_BIG, SLICE_V9_BAND_CURVE } from "./slice";
 import { BURST_REV_CARRY, BURST_REV_STRICT, BURST_V9_BAND_CURVE } from "./burst";
-import { SWING_REV_EXPAND, SWING_REV_STRICT, SWING_V13_BAND_CURVE } from "./swing";
+import { SWING_REV_ASSAULT, SWING_REV_STRICT, SWING_V14_BAND_CURVE } from "./swing";
 import { BULLSEYE_REV_EXPAND, BULLSEYE_REV_STRICT, BULLSEYE_V8_BAND_CURVE } from "./bullseye";
 import { PIN_REV_LONG, PIN_V5_BAND_CURVE } from "./pinball4";
 import { PIN_REV_STRICT } from "./pinball";
@@ -71,8 +71,8 @@ export const LIVE_BANDS = {
   beat: { field: "beatRev", rev: BEAT_REV_EASE, curve: BEAT_V10_BAND_CURVE, strictRev: BEAT_REV_STRICT },
   slice: { field: "sliceRev", rev: SLICE_REV_BIG, curve: SLICE_V9_BAND_CURVE, strictRev: SLICE_REV_STRICT },
   burst: { field: "burstRev", rev: BURST_REV_CARRY, curve: BURST_V9_BAND_CURVE, strictRev: BURST_REV_STRICT },
-  // swingRev 13 (the 200 expansion): the base curve; the features pay up to 50 more on a rising scale (the help says so).
-  swing: { field: "swingRev", rev: SWING_REV_EXPAND, curve: SWING_V13_BAND_CURVE, strictRev: SWING_REV_STRICT },
+  // swingRev 14 (the assault course): the sections' curve; pars, gates, gems and stars pay up to 70 more (the help says so).
+  swing: { field: "swingRev", rev: SWING_REV_ASSAULT, curve: SWING_V14_BAND_CURVE, strictRev: SWING_REV_STRICT },
   bullseye: { field: "bullRev", rev: BULLSEYE_REV_EXPAND, curve: BULLSEYE_V8_BAND_CURVE, strictRev: BULLSEYE_REV_STRICT },
   pinball: { field: "pinRev", rev: PIN_REV_LONG, curve: PIN_V5_BAND_CURVE, strictRev: PIN_REV_STRICT },
 } as const satisfies Record<string, LiveBand>;

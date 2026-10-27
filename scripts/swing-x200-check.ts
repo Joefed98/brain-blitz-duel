@@ -26,8 +26,10 @@
  *     scripts/swing-x200-ceiling.ts in scripts/fixtures/swing-x200-ceiling.json; a sample recomputed, every course
  *     with CHECKS_FULL=1) is 200, so the lowest over the skill-band tool's tuning (0–59) and fresh (10000–10199)
  *     deals, which are bank courses, is too.
- *  8. Display and text: the effects and reveal sizes by revision, the intro line, the help, the intro demo held to
- *     swingRev 13, the par shown in the art.
+ *  8. Display and text: the effects and reveal sizes by revision, the par shown in the art; the intro demo held to
+ *     swingRev 13 or later. Since the assault course (swingRev 14, 27 Oct 2026) rooms deal swingRev 14 and the intro and
+ *     help describe it (swing-assault-check proves them); this check deals swingRev 13 through pinSwingPreAssault, the
+ *     deal rooms made before it.
  *
  *   bun scripts/swing-x200-check.ts          (CHECKS_FULL=1: every bank course's features, sections and ceiling)
  */
@@ -61,6 +63,7 @@ import {
   SWING_PAR_MARGIN,
   SWING_PAR_POINTS,
   SWING_REV_EXPAND,
+  SWING_REV_ASSAULT,
   SWING_REV_STRICT,
   SWING_SECTION_LEDGES,
   SWING_SKILL_PAY,
@@ -74,7 +77,7 @@ import {
 import { SWING_FX_V13, swingFxFor } from "../src/lib/arcade/arcadeFxGames.renderer";
 import { ARCADE_REVEAL_RENDERERS, revealWorldH } from "../src/lib/arcade/revealRenderers";
 import { bandPoints } from "../src/lib/arcade/scoreBands";
-import { generateSwing } from "../src/lib/duel/arcade.server";
+import { generateSwing, pinSwingPreAssault } from "../src/lib/duel/arcade.server";
 import { INTRO_SCORE } from "../src/lib/duel/introScore";
 import { PUZZLE_INSTRUCTIONS } from "../src/lib/duel/instructions";
 import { roundMaxFor } from "../src/lib/duel/roundMax";
@@ -96,6 +99,8 @@ const ok = (cond: boolean, label: string) => {
   if (!cond) failures.push(label);
 };
 const game = swingGameFor(SWING_REV_EXPAND);
+// The deal before the assault course (swingRev 14): this check proves swingRev 13's.
+pinSwingPreAssault(true);
 const hold = (s: SwingState, a: number) => ({ t: s.tick + 1, k: SWING_INPUT_HOLD, a, b: 0, c: 0, d: 0 });
 const started = performance.now();
 
@@ -327,14 +332,11 @@ ok(best200 !== null, "a stored swingRev 13 run (an elite skill-band run) reaches
   const reveal = ARCADE_REVEAL_RENDERERS.swing!;
   ok(revealWorldH(reveal, { type: "swing", seed: 1, swingRev: SWING_REV_EXPAND } as any) === swingRevealHFor(SWING_REV_EXPAND) && swingRevealHFor(SWING_REV_EXPAND) === 731, "the reveal keeps the 450 × 844 view's shape in its 390-wide box");
   ok(revealWorldH(reveal, { type: "swing", seed: 1, swingRev: SWING_REV_STRICT } as any) === 730, "older reveals keep 390 × 730");
-  ok(/up to \{max\}|\b200\b/.test(INTRO_SCORE.swing) && /pars/.test(INTRO_SCORE.swing) && /gems/i.test(INTRO_SCORE.swing), `the intro score line states the new top and the features: "${INTRO_SCORE.swing}"`);
-  const help = PUZZLE_INSTRUCTIONS.swing!;
-  const text = help.how.map((h) => `${h.action} ${h.detail}`).join(" ");
-  ok(/gems/.test(text) && /speed gates/.test(text) && /ledges/.test(text) && /combo/.test(text) && /collapses/.test(text) && /Par times/.test(text) && /par time/.test(text), "the help explains gems, gates, ledges, combos, the collapsing ledge and par times");
-  ok(help.how.filter((h) => !h.helpOnly).length === 3 && help.how.some((h) => !h.helpOnly && /par time/.test(h.detail)), "the intro's three lines name the par time");
-  ok(/Skill adds up to 50 more/.test(help.score) && /under par/.test(help.score) && /Up to 200/.test(help.score), "the help's score line states the skill points, the par and the 200");
+  // The intro and help describe the revision rooms deal: swingRev 14 since the assault course (swing-assault-check);
+  // swingRev 13's lines (gems, gates, ledges, combos, the collapsing ledge, par times, the skill pay) went with it.
+  ok(/up to \{max\}|\b200\b/.test(INTRO_SCORE.swing) && /pars/.test(INTRO_SCORE.swing) && /gems/i.test(INTRO_SCORE.swing), `the intro score line states the top and the features: "${INTRO_SCORE.swing}"`);
   const demo = readFileSync("src/lib/duel/introDemo.functions.ts", "utf8");
-  ok(/data\.type === "swing" && demo\?\.puzzle\.type === "swing" && demo\.puzzle\.swingRev !== SWING_REV_EXPAND\) return null/.test(demo), "Grappler's intro demo stays stopped until one is recorded on swingRev 13");
+  ok(/data\.type === "swing" && demo\?\.puzzle\.type === "swing" && demo\.puzzle\.swingRev !== SWING_REV_ASSAULT\) return null/.test(demo), "Grappler's intro demo stays stopped (a swingRev 13 one too) until one is recorded on swingRev 14");
   const art = readFileSync("src/lib/arcade/swing.renderer.ts", "utf8");
   ok(/PAR \$\{/.test(art) && /swingRunningSection/.test(art), "the art shows each section's par and its running clock");
 }

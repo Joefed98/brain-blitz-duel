@@ -146,6 +146,11 @@ game the round was.
 | `swing.combo` | Swing combo point (swingRev 13): the clip reaches the moment's key tick | instant (the moment lands; about 0.5 s of half-speed play follows) |
 | `swing.section` | Set-route section cleared (swingRev 13): the clip reaches the moment's key tick | instant (the moment lands; about 0.5 s of half-speed play follows) |
 | `swing.par` | Section finished under par (swingRev 13): the clip reaches the moment's key tick | instant (the moment lands; about 0.5 s of half-speed play follows) |
+| `swing.gate14` | Speed gate lit (swingRev 14): the clip reaches the moment's key tick | instant (the moment lands; about 0.5 s of half-speed play follows) |
+| `swing.gem14` | Gem on a harder line (swingRev 14): the clip reaches the moment's key tick | instant (the moment lands; about 0.5 s of half-speed play follows) |
+| `swing.star14` | Star on a tighter swing (swingRev 14): the clip reaches the moment's key tick | instant (the moment lands; about 0.5 s of half-speed play follows) |
+| `swing.clear14` | Section cleared (swingRev 14): the clip reaches the moment's key tick | instant (the moment lands; about 0.5 s of half-speed play follows) |
+| `swing.course14` | Course cleared (swingRev 14): the clip reaches the moment's key tick | instant (the moment lands; about 0.5 s of half-speed play follows) |
 | `snip.leaf` | Leaf taken: the clip reaches the moment's key tick | instant (the moment lands; about 0.5 s of half-speed play follows) |
 | `snip.level` | Apple fed: the clip reaches the moment's key tick | instant (the moment lands; about 0.5 s of half-speed play follows) |
 | `snip.all-apples` | All 10 apples: the clip reaches the moment's key tick | instant (the moment lands; about 0.5 s of half-speed play follows) |

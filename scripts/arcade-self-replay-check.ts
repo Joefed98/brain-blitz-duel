@@ -133,7 +133,7 @@ import { ORBIT_XP_BANK } from "@/lib/duel/orbitXpBank.server";
 import { BEAT_REV_BAND, BEAT_REV_TALL, BEAT_REV_TUNEC, BEAT_REV_TUNEF } from "@/lib/arcade/beat";
 import { SLICE_REV_BAND, SLICE_REV_LONG, SLICE_REV_TALL, SLICE_REV_TUNEC } from "@/lib/arcade/slice";
 import { BURST_REV_BAND, BURST_REV_TALL } from "@/lib/arcade/burst";
-import { SWING_REV_BAND, SWING_REV_TUNED, SWING_REV_TUNEC, SWING_REV_SPREAD, SWING_REV_TALL, SWING_REV_EXPAND } from "@/lib/arcade/swing";
+import { SWING_REV_BAND, SWING_REV_TUNED, SWING_REV_TUNEC, SWING_REV_SPREAD, SWING_REV_TALL, SWING_REV_EXPAND, SWING_REV_ASSAULT } from "@/lib/arcade/swing";
 import { SWING_V13_BANK } from "@/lib/duel/swingBankV13.server";
 import { BULLSEYE_REV_BAND, BULLSEYE_REV_TUNED, bullseyeInitFor } from "@/lib/arcade/bullseye";
 
@@ -555,8 +555,6 @@ const GAMES: Game[] = [
   { key: "rally/tunef", game: rallyGameFor(RALLY_REV_TUNEF), checkpoint: rallyCheckpoint, mode: "events", rate: 120, encode: encodeRallyRun, replay: (seed: number, raw: string) => replayRallyRun(seed, raw, RALLY_REV_TUNEF) },
   { key: "beat/tunef", game: beatGameFor(BEAT_REV_TUNEF), checkpoint: beatCheckpoint, mode: "events", rate: 200, encode: encodeBeatRun, replay: (seed: number, raw: string) => replayBeatRun(seed, raw, BEAT_REV_TUNEF) },
   { key: "snake/rocks", game: snakeGameFor(SNAKE_REV_ROCKS), checkpoint: snakeCheckpoint, mode: "events", rate: 40, encode: encodeSnakeRun, replay: (seed: number, raw: string) => replaySnakeRun(seed, raw, SNAKE_REV_ROCKS) },
-  // Joe's phone notes (27 Oct 2026): Meteor snakeRev 10 (2 × 2 rocks, a third wormhole pair, a second lane, longer gold stars).
-  { key: "snake/v10", game: snakeGameFor(SNAKE_REV_10), checkpoint: snakeCheckpoint, mode: "events", rate: 40, encode: encodeSnakeRun, replay: (seed: number, raw: string) => replaySnakeRun(seed, raw, SNAKE_REV_10) },
   // Taller worlds batch 1 (Oct 2026): Breaker's and Rally's taller courts, Wavefront's taller world, Fission's taller arena.
   { key: "breaker/tall", game: breakerGameFor(BRK_REV_TALL), checkpoint: brkCheckpoint, mode: "events", rate: 950, encode: encodeBreakerRun, replay: (seed: number, raw: string) => replayBreakerRun(seed, raw, BRK_REV_TALL) },
   { key: "rally/tall", game: rallyGameFor(RALLY_REV_TALL), checkpoint: rallyCheckpoint, mode: "events", rate: 120, encode: encodeRallyRun, replay: (seed: number, raw: string) => replayRallyRun(seed, raw, RALLY_REV_TALL) },
@@ -660,6 +658,10 @@ const GAMES: Game[] = [
   // x200 (26 Oct 2026, docs/expansions/x200-cross.md), appended so every earlier entry keeps its index: Jaywalk crossRev 9,
   // the taller world with the island, coins, buses, motorbikes and the streak.
   { key: "cross/expand", game: crossGameFor(CROSS_REV_EXPAND), checkpoint: crossCheckpoint, mode: "events", rate: 60, encode: encodeCrossRun, replay: (seed: number, raw: string) => replayCrossRun(seed, raw, CROSS_REV_EXPAND) },
+  // Joe's phone notes (27 Oct 2026), appended so every earlier entry keeps its index: Meteor snakeRev 10 (2 × 2 rocks, a third wormhole pair, a second lane, longer gold stars).
+  { key: "snake/v10", game: snakeGameFor(SNAKE_REV_10), checkpoint: snakeCheckpoint, mode: "events", rate: 40, encode: encodeSnakeRun, replay: (seed: number, raw: string) => replaySnakeRun(seed, raw, SNAKE_REV_10) },
+  // Grappler's assault course (swingRev 14, 27 Oct 2026), appended so every earlier entry keeps its index: any seed.
+  { key: "swing/assault", game: swingGameFor(SWING_REV_ASSAULT), checkpoint: swingCheckpoint, mode: "events", rate: 30, encode: encodeSwingRun, replay: (seed: number, raw: string) => replaySwingRun(seed, raw, SWING_REV_ASSAULT) },
   // Joe's phone notes (27 Oct 2026, docs/phone-notes-oct-2026/wavefront.md), appended so every earlier entry keeps its index:
   // Wavefront wavRev 11, power-ups from carriers and saucers, no streak, the mothership after wave 5.
   { key: "wavefront/phone", game: wavefrontGameFor(WAV_REV_PHONE), checkpoint: wavCheckpoint, mode: "events", rate: 300, encode: encodeWavefrontRun, replay: (seed: number, raw: string) => replayWavefrontRun(seed, raw, WAV_REV_PHONE) },

@@ -438,6 +438,25 @@ const BUILDERS: Record<string, Builder> = {
     };
   },
   swing: (r, s) => {
+    // swingRev 14 (the assault course): sections on the axis; the lines add up to the stored score.
+    if (n(r, "swingRev") >= 14) {
+      const done = n(r, "sections") >= n(r, "sectionTotal") && n(r, "sectionTotal") > 0;
+      return {
+        axis: { value: n(r, "sections"), max: Math.max(1, n(r, "sectionTotal")), label: "Sections" },
+        lines: [
+          `Section ${n(r, "sections")} / ${n(r, "sectionTotal")} → ${n(r, "basePts")}`,
+          `Pars, gates, gems, stars${done ? ", course cleared" : ""} +${n(r, "bonusPts")}`,
+          `Total → ${s}`,
+        ],
+        tiles: [
+          { label: "Sections", value: `${n(r, "sections")} / ${n(r, "sectionTotal")}` },
+          { label: "Under par", value: `${n(r, "parsBeaten")}` },
+          { label: "Restarts", value: `${n(r, "restarts")}` },
+          { label: "Gates · gems · stars", value: `${n(r, "gates")} · ${n(r, "gems")} · ${n(r, "stars")}` },
+        ],
+        outcome: done ? "finish" : ended(r, false),
+      };
+    }
     const metres = n(r, "metres");
     const done = metres >= 500;
     return {
