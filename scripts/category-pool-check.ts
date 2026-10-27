@@ -54,8 +54,8 @@ for (const type of ["flow", "pipes", "push"] as const) expect(type, "pattern", f
 // Scrumper retired to practice (Joe's decision, 27 Oct 2026); its icon and name stay for history.
 expect("snip", "arcade", true);
 
-// The active pool per category (27 Oct 2026, after Scrumper's retirement): 72 games.
-const POOL: Record<string, number> = { word: 9, number: 9, speed: 6, attention: 6, pattern: 10, logic: 11, arcade: 21 };
+// The active pool per category (27 Oct 2026, after Scrumper's retirement, with Trail in Logic): 72 games.
+const POOL: Record<string, number> = { word: 9, number: 8, speed: 6, attention: 6, pattern: 10, logic: 12, arcade: 21 };
 for (const [category, want] of Object.entries(POOL)) {
   const got = typesInCategory(category as never).length;
   if (got !== want) fail(`${category}: ${got} active games, want ${want}`);

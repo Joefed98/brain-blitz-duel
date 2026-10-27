@@ -59,7 +59,7 @@ export const GAME_DISPLAY_NAMES: Record<PuzzleType, string> = {
   shikaku: "Shikaku",
   skyline: "High Rise",
   slice: "Slice",
-  tiles: "Jumbled",
+  tiles: "Gradient",
   snake: "Meteor",
   snip: "Scrumper",
   tubes: "Polypotions",

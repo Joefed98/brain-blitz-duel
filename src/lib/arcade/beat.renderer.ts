@@ -17,8 +17,8 @@ import {
   BEAT_LANE_COLOURS,
   BEAT_LANES,
   BEAT_NOTE_H,
-  BEAT_OK_TICKS,
   BEAT_WORLD_W,
+  beatWindows,
   beatHitLineY,
   beatLaneX,
   beatWorldH,
@@ -102,7 +102,7 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: BeatState): void {
     const held = state.holding[lane] === index;
     if (state.judged[index] !== BEAT_JUDGE_NONE && !held) continue;
     const remaining = state.chart.ticks[index]! - state.tick;
-    if (remaining > BEAT_FALL_TICKS || remaining + hold < -BEAT_OK_TICKS) continue;
+    if (remaining > BEAT_FALL_TICKS || remaining + hold < -beatWindows(state).ok) continue;
     const colour = NEON[lane % NEON.length]!;
     // beatRev 9: a note sits in its own section's lanes (five from the fifth-lane section).
     const laneW = BEAT_WORLD_W / noteLanes(state.chart.ticks[index]!);

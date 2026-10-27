@@ -40,6 +40,7 @@ import {
   BRK_REV_TALL, BRK_REV_TARGET, BRK_REV_STRICT,
   BRK_WORLD_W,
   BRK_REV_DEEP,
+  BRK_REV_PHONE,
   BRK_V9_COMBO_X2,
   BRK_V9_SKILL_MAX,
   brkCols,
@@ -67,7 +68,7 @@ import {
   retroTrail,
   RETRO_WHITE,
 } from "./retro.renderer";
-import { addPop, addShatter, backdrop, clearPops, blob, drawPops, glow, linear, pixelStars } from "./polishA1.renderer";
+import { addShatter, backdrop, clearPops, blob, drawPops, glow, linear, pixelStars } from "./polishA1.renderer";
 
 const PADDLE = "#FFD84A";
 const LASER = "#B4FF9A";
@@ -99,24 +100,82 @@ function pixelFlame(ctx: CanvasRenderingContext2D, cx: number, cy: number, colou
 }
 const BURST_MS = 320;
 
+/** Draws a 2 px pixel-art pattern (X white, o the brick's colour) centred on the 44 × 20 brick. */
+function pixelPattern(ctx: CanvasRenderingContext2D, rows: readonly string[], colour: string): void {
+  const w = (rows[0]?.length ?? 0) * 2;
+  const h = rows.length * 2;
+  const x0 = Math.round((BRK_BRICK_W - w) / 2);
+  const y0 = Math.round((BRK_BRICK_H - h) / 2);
+  rows.forEach((row, y) => {
+    for (let x = 0; x < row.length; x++) {
+      const ch = row[x];
+      if (ch === "X") pixelRect(ctx, x0 + x * 2, y0 + y * 2, 2, 2, "#FFFFFF");
+      else if (ch === "o") pixelRect(ctx, x0 + x * 2, y0 + y * 2, 2, 2, colour);
+    }
+  });
+}
+/** Two balls flying apart: the double-ball brick. */
+const SYMBOL_MULTI = [
+  "..XXX.......XXX..",
+  ".XXXXX.....XXXXX.",
+  "XXXXXXX...XXXXXXX",
+  "XXXXXXX...XXXXXXX",
+  "XXXXXXX...XXXXXXX",
+  ".XXXXX.....XXXXX.",
+  "..XXX.......XXX..",
+] as const;
+/** Three small balls rising on their trails: the ×3 (×5 on the original board) shots brick. */
+const SYMBOL_SPAM = [
+  ".XX....XX....XX.",
+  "XXXX..XXXX..XXXX",
+  "XXXX..XXXX..XXXX",
+  ".XX....XX....XX.",
+  ".oo....oo....oo.",
+  "................",
+  ".oo....oo....oo.",
+] as const;
+/** A beam (white core, green edges) rising from an emitter: the laser brick. */
+const SYMBOL_LASER = [
+  "..o.X.o..",
+  "...oXo...",
+  "...oXo...",
+  "...oXo...",
+  "...oXo...",
+  "..XXXXX..",
+  ".XXXXXXX.",
+] as const;
+/** The symbol for a power-up brick; false (the star stays) for the Fireball, which draws its flame over it. */
+function powerSymbol(ctx: CanvasRenderingContext2D, power: number, colour: string): boolean {
+  if (power === BRK_POWER_MULTI) pixelPattern(ctx, SYMBOL_MULTI, colour);
+  else if (power === BRK_POWER_SPAM) pixelPattern(ctx, SYMBOL_SPAM, colour);
+  else if (power === BRK_POWER_LASER) pixelPattern(ctx, SYMBOL_LASER, colour);
+  else return false;
+  return true;
+}
+
 const memo = new WeakMap<CanvasRenderingContext2D, { tick: number; bricks: number[]; deaths: { index: number; at: number }[] }>();
 
 /** Cache for brick sprites: keyed by color + power + HP taken. */
 const brickCache = new Map<string, ArtCanvas>();
-export function getBrickSprite(colour: string, power: number, taken: number, bloom: number): ArtCanvas | undefined {
-  const key = `${colour}-${power}-${taken}-${bloom > 0}`;
+export function getBrickSprite(colour: string, power: number, taken: number, bloom: number, symbol = false): ArtCanvas | undefined {
+  const key = `${colour}-${power}-${taken}-${bloom > 0}-${symbol}`;
   const cached = brickCache.get(key);
   if (cached) return cached;
   const canvas = artCanvas(BRK_BRICK_W, BRK_BRICK_H);
   const ctx = canvas && (artContext(canvas) as CanvasRenderingContext2D | null);
   if (!canvas || !ctx) return undefined;
-  paintBrick(ctx, colour, power, taken, bloom);
+  paintBrick(ctx, colour, power, taken, bloom, symbol);
   brickCache.set(key, canvas);
   return canvas;
 }
 
-/** A brick's art at (0, 0), BRK_BRICK_W × BRK_BRICK_H (the sprite above; the game icon paints it at its real size). */
-export function paintBrick(ctx: CanvasRenderingContext2D, colour: string, power: number, taken: number, bloom: number): void {
+/**
+ * A brick's art at (0, 0), BRK_BRICK_W × BRK_BRICK_H (the sprite above; the game icon paints it at its real size).
+ * `symbol` (phone notes, 27 Oct 2026, display only): a power-up brick shows what it does instead of the plain star
+ * (two balls for double-ball, three rising shots for ×3, a beam for the laser; the Fireball keeps its star and flame).
+ * The game icon leaves it off, so its art is unchanged.
+ */
+export function paintBrick(ctx: CanvasRenderingContext2D, colour: string, power: number, taken: number, bloom: number, symbol = false): void {
   if (power >= 0) {
     // Dark brick, metal outline, white pixel star.
     pixelRect(ctx, 1, 0, BRK_BRICK_W - 2, BRK_BRICK_H, "#101018");
@@ -124,7 +183,7 @@ export function paintBrick(ctx: CanvasRenderingContext2D, colour: string, power:
     pixelRect(ctx, 1, BRK_BRICK_H - 2, BRK_BRICK_W - 2, 2, colour);
     pixelRect(ctx, 1, 0, 2, BRK_BRICK_H, colour);
     pixelRect(ctx, BRK_BRICK_W - 3, 0, 2, BRK_BRICK_H, colour);
-    pixelStar(ctx, BRK_BRICK_W / 2, BRK_BRICK_H / 2);
+    if (!symbol || !powerSymbol(ctx, power, colour)) pixelStar(ctx, BRK_BRICK_W / 2, BRK_BRICK_H / 2);
   } else {
     // Neon brick with bevel highlights.
     pixelRect(ctx, 1, 0, BRK_BRICK_W - 2, BRK_BRICK_H, colour, bloom);
@@ -198,9 +257,8 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: BrkState, key: CanvasRe
       const colour = brickColour(state, i, state.maxHp[i] ?? 1);
       const gild = brkIsGold(state, i);
       addShatter(key, x + BRK_BRICK_W / 2, y + BRK_BRICK_H / 2, gild ? [GOLD, RETRO_WHITE, "#FFF3B0", GOLD_DEEP] : [colour, RETRO_WHITE, colour, "#000000"], gild ? 16 : 10, gild ? 34 : 26);
-      // brkRev 9: a combo brick shows its multiplier, a gold brick its skill points.
-      const combo = state.deep && !gild ? brkComboMultiplier(state.chain ?? 0) : 1;
-      addPop(key, x + BRK_BRICK_W / 2, y + BRK_BRICK_H / 2, gild ? "GOLD +10" : combo > 1 ? `+10 ×${combo}` : "+10", gild || combo > 1 ? GOLD : colour, gild ? 11 : 9, 4);
+      // Phone notes (27 Oct 2026, every revision, display only): no "+10" / "+10 ×2" / "GOLD +10" points pop here any
+      // more; the shatter, burst, banners and sounds are unchanged.
     }
   }
   m.deaths = m.deaths.filter((d) => now - d.at < BURST_MS);
@@ -229,7 +287,8 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: BrkState, key: CanvasRe
     ctx.clip();
   }
   // brkRev 9: gold bricks glint while a ball is on a direct line (it has touched nothing since the paddle).
-  const glint = !!state.deep && state.pause === 0 && state.balls.some((b) => b.d === 1 && b.spam === 0) && (state.fire ?? 0) === 0;
+  // brkRev 10: any hit counts, so there is no direct line to show; the gold brick shows its cracks instead.
+  const glint = !!state.deep && !state.phone && state.pause === 0 && state.balls.some((b) => b.d === 1 && b.spam === 0) && (state.fire ?? 0) === 0;
   state.bricks.forEach((left, index) => {
     if (left <= 0) return;
     const { x, y } = brickXY(index, state);
@@ -238,10 +297,10 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: BrkState, key: CanvasRe
     const taken = (state.maxHp[index] ?? 1) - left;
     const b = power >= 0 ? bloom : (left === 1 ? bloom * 0.6 : 0);
     if (brkIsGold(state, index)) {
-      drawGoldBrick(ctx, x, y, glint, bloom);
+      drawGoldBrick(ctx, x, y, glint, bloom, state.phone ? taken : 0);
       return;
     }
-    const sprite = getBrickSprite(colour, power, taken, b);
+    const sprite = getBrickSprite(colour, power, taken, b, true);
     if (sprite) {
       ctx.drawImage(sprite, x, y);
     }
@@ -333,7 +392,7 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: BrkState, key: CanvasRe
  * a pixel gold ingot and two sparkles (the Polish A1 metal gold), a soft gold light, and a white glint that
  * sweeps it while a ball is on a direct line (presentation clock; reduced motion keeps the still shine).
  */
-function drawGoldBrick(ctx: CanvasRenderingContext2D, x: number, y: number, glint: boolean, bloom: number): void {
+function drawGoldBrick(ctx: CanvasRenderingContext2D, x: number, y: number, glint: boolean, bloom: number, taken = 0): void {
   // A dark bronze case (so it never reads as a plain yellow brick), a gold ingot set in it, sparkles.
   pixelRect(ctx, x + 1, y, BRK_BRICK_W - 2, BRK_BRICK_H, "#2A1A00");
   pixelRect(ctx, x + 1, y, BRK_BRICK_W - 2, 2, GOLD, bloom);
@@ -357,6 +416,13 @@ function drawGoldBrick(ctx: CanvasRenderingContext2D, x: number, y: number, glin
       pixelRect(ctx, x + gx, y + 2, 2, BRK_BRICK_H - 4, "rgba(255,255,255,0.75)");
       pixelRect(ctx, x + gx + 2, y + 4, 2, BRK_BRICK_H - 8, "rgba(255,255,255,0.4)");
     }
+  }
+  // brkRev 10: a dark pixel crack for each hit taken (of BRK_V10_GOLD_HITS), across the ingot.
+  for (let c = 0; c < taken; c++) {
+    const cx = x + 9 + c * 8;
+    pixelRect(ctx, cx, y + 4, 2, 4, "#000000");
+    pixelRect(ctx, cx + 2, y + 8, 2, 4, "#000000");
+    pixelRect(ctx, cx, y + 12, 2, 4, "#000000");
   }
   glow(ctx, GOLD, x + BRK_BRICK_W / 2, y + BRK_BRICK_H / 2, BRK_BRICK_W * 0.75, BRK_BRICK_H, glint ? 0.45 : 0.18);
 }
@@ -455,8 +521,10 @@ const breakerArtGameTall: ArcadeGame<BrkState, ArcadeInputEvent | null> = { ...b
 const breakerArtGameTarget: ArcadeGame<BrkState, ArcadeInputEvent | null> = { ...breakerGameFor(BRK_REV_TARGET), draw };
 const breakerArtGameStrict: ArcadeGame<BrkState, ArcadeInputEvent | null> = { ...breakerGameFor(BRK_REV_STRICT), draw };
 const breakerArtGameDeep: ArcadeGame<BrkState, ArcadeInputEvent | null> = { ...breakerGameFor(BRK_REV_DEEP), draw };
+const breakerArtGamePhone: ArcadeGame<BrkState, ArcadeInputEvent | null> = { ...breakerGameFor(BRK_REV_PHONE), draw };
 /** The art game for a stored brkRev; one cached object per revision. */
 export function breakerArtGameFor(rev?: number | null): ArcadeGame<BrkState, ArcadeInputEvent | null> {
+  if (rev === BRK_REV_PHONE) return breakerArtGamePhone;
   if (rev === BRK_REV_DEEP) return breakerArtGameDeep;
   if (rev === BRK_REV_STRICT) return breakerArtGameStrict;
   if (rev === BRK_REV_TARGET) return breakerArtGameTarget;

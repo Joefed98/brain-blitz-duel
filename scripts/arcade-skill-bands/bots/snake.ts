@@ -10,7 +10,7 @@
  * next star) the player steers away from what is right ahead of the head.
  */
 import { bandPoints } from "../../../src/lib/arcade/scoreBands";
-import { snakeGoldWorth, SNAKE_V9_BAND_CURVE, SNAKE_V9_CAPS, snakeReversal, snakeStepTicks, snakeStepTicksFor, snakeColsOf, snakeWarpExit, SNAKE_INPUT_TURN, snakeRowsOf, SNAKE_GOLD_LIFE, type SnakeState } from "../../../src/lib/arcade/snake";
+import { snakeGoldWorth, SNAKE_V9_BAND_CURVE, SNAKE_V9_CAPS, snakeReversal, snakeStepTicks, snakeStepTicksFor, snakeColsOf, snakeWarpExit, SNAKE_INPUT_TURN, snakeRowsOf, SNAKE_GOLD_LIFE, snakeRockCells, snakeRockSpan, snakeWarnCells, snakeOnLane, type SnakeState } from "../../../src/lib/arcade/snake";
 import type { SkillLevel } from "../human";
 import { driveEvents, type SkillBot } from "../bot";
 import type { Human } from "../human";
@@ -47,7 +47,8 @@ function nb(cell: number, dir: number): number {
 
 /** Cells the player treats as walls: rocks, plus the shadows they have noticed. */
 function blockedSet(s: SnakeState, shadows: Set<number>): Set<number> {
-  const b = new Set<number>(s.rocks ?? []);
+  // snakeRev 10: a 2 × 2 rock blocks all four of its squares (older rounds: the rocks themselves).
+  const b = new Set<number>(snakeRockCells(s));
   for (const c of shadows) b.add(c);
   // A player who does not use the wormholes steers round their mouths.
   if (!WARPS.length) for (const c of s.warps ?? []) b.add(c);
@@ -116,7 +117,8 @@ function route(s: SnakeState, first: number, goal: number, blocked: Set<number>,
         if ((freeAt.get(next) ?? 0) > d + 1) continue;
         const nk = key(next, nd, turn ? 1 : Math.min(minRun, run + 1));
         // snakeRev 9: a player who uses the speed lanes values a lane square as a quicker one.
-        const lane = LANES && (nd === 1 || nd === 3 ? Math.trunc(cell / COLS) === s.laneRow : cell % COLS === s.laneCol);
+        // (snakeOnLane: snakeRev 10's second vertical lane too.)
+        const lane = LANES && snakeOnLane(s, cell, nd);
         const nc = cost + (lane ? 0.6 : 1) + (turn ? 0.4 : 0);
         if (nc < (best.get(nk) ?? Infinity)) {
           best.set(nk, nc);
@@ -327,7 +329,8 @@ export const bot: SkillBot = ({ game, seed, human }) => {
       // early in the window if carrying on one square too far crashes, late if turning a square
       // early does. The shift leaves about one timing sd of margin.
       const prevDir = turns.indexOf(turn) > 0 ? turns[turns.indexOf(turn) - 1]!.dir : s.nextDir;
-      const hard1 = (c: number) => c < 0 || (s.rocks ?? []).includes(c) || shadows.has(c) || s.body.slice(0, -2).includes(c);
+      const rockCells = snakeRockCells(s);
+      const hard1 = (c: number) => c < 0 || rockCells.includes(c) || shadows.has(c) || s.body.slice(0, -2).includes(c);
       // A miss runs on for a square or two before the player can correct it.
       const hard = (from: number, d: number) => {
         const c1 = nb(from, d);
@@ -351,9 +354,11 @@ export const bot: SkillBot = ({ game, seed, human }) => {
   return driveEvents(game, (s: SnakeState, t) => {
     const head = s.body[0]!;
     // New rock shadows: noticed one reaction after they appear.
-    const warnCells = [...((s.rockWarn ?? -1) >= 0 ? [s.rockWarn!] : []), ...(s.showerWarn ?? [])];
+    // (snakeRev 10: a 2 × 2 rock's shadow covers its four squares; older rounds: the one square.)
+    const warnCells = snakeWarnCells(s);
+    const rockSpan = (s.rockWarn ?? -1) >= 0 ? snakeRockSpan(s, s.rockWarn!) : [];
     for (const c of warnCells) {
-      const k = `${c}:${s.rockWarn === c ? s.rockLandTick : s.showerLandTick}`;
+      const k = `${c}:${rockSpan.includes(c) ? s.rockLandTick : s.showerLandTick}`;
       if (!seenWarn.has(k)) {
         seenWarn.add(k);
         notice.push({ at: t + human.reactTicks(), cells: [c] });
@@ -372,7 +377,8 @@ export const bot: SkillBot = ({ game, seed, human }) => {
       }
     }
     // Landed shadows become rocks (the shadow set keeps them; harmless).
-    for (const c of shadows) if (!warnCells.includes(c) && !(s.rocks ?? []).includes(c)) shadows.delete(c);
+    const landedCells = snakeRockCells(s);
+    for (const c of shadows) if (!warnCells.includes(c) && !landedCells.includes(c)) shadows.delete(c);
 
     // snakeRev 9: a gold star appears; the player sees it a reaction later and decides whether it is worth the detour.
     if (features && (s.gold ?? -1) >= 0 && !goldSeen.has(s.goldAt ?? 0)) {
@@ -381,7 +387,9 @@ export const bot: SkillBot = ({ game, seed, human }) => {
         const g = s.gold!;
         const dist = Math.abs(Math.trunc(g / COLS) - Math.trunc(head / COLS)) + Math.abs((g % COLS) - (head % COLS));
         // Worth it when it can be reached well before it fades.
-        let worth = dist * snakeStepTicks(s.eaten) + 40 < SNAKE_GOLD_LIFE;
+        // (snakeRev 10's gold stars stay longer: goldLife.)
+        const life = s.goldLife ?? SNAKE_GOLD_LIFE;
+        let worth = dist * snakeStepTicks(s.eaten) + 40 < life;
         if (worth && (level === "elite" || level === "perfect")) {
           // Elite and flawless (Oct 2026): stars first. The gold is taken only when what it still pays (its
           // worth on arrival, nothing past the gold cap) beats the star points the detour's extra squares cost
@@ -389,7 +397,7 @@ export const bot: SkillBot = ({ game, seed, human }) => {
           const step = snakeStepTicks(s.eaten);
           const md = (a: number, b: number) => Math.abs(Math.trunc(a / COLS) - Math.trunc(b / COLS)) + Math.abs((a % COLS) - (b % COLS));
           const extra = Math.max(0, dist + md(g, s.pellet) - md(head, s.pellet));
-          const pays = Math.min(snakeGoldWorth(t + dist * step + 20, s.goldEnd ?? 0), SNAKE_V9_CAPS.gold - (s.goldPts ?? 0));
+          const pays = Math.min(snakeGoldWorth(t + dist * step + 20, s.goldEnd ?? 0, life), SNAKE_V9_CAPS.gold - (s.goldPts ?? 0));
           // A star's worth is the curve's slope where the run is heading (its final count at this pace).
           const ticksPerStar = s.eaten > 2 ? t / s.eaten : 120;
           const final = Math.round(s.eaten + Math.max(0, game.runTicks - t) / ticksPerStar);

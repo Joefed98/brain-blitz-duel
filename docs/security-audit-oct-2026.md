@@ -166,3 +166,7 @@ None of these touch a game, sim, grade, score, timing, input log, replay or vers
      every path, so a phone can't invent misses, but a modified phone can leave them out and keep a random-tracing
      score. Like the tap logs' timing ("Trusted client inputs" in CLAUDE.md), this needs server-side counting (every
      `checkWordFn` call in the round) before it can be relied on for ranked play.
+   - **Matchmaker's gold-pair time is the phone's** (27 Oct 2026, `pairRev 2`, Joe's phone notes). The answer carries the
+     round-clock time of the gold match (`@ms`); the server holds it to the answer's receipt time, so a phone can't
+     claim it later than it was sent, but a modified phone can claim an earlier one and keep the 20-point gold bonus.
+     The same remedy applies (server-timed taps).

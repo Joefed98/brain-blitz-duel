@@ -20,7 +20,7 @@ import { decodeFlowPaths, verifyFlow } from "./flow";
 import { acceptedRects, decodeShikaku, shikakuHeightOf } from "./shikaku";
 import { decodeBulbs } from "./lightUp";
 import { decodeTileMoves, replayTiles, tilesLayout } from "./tiles";
-import { decodeJumbled, isJumbledGradient, JUMBLED_MOVABLE, jumbledInPlace, jumbledProgress, replayJumbled } from "./jumbled";
+import { isJumbledGradient, JUMBLED_MOVABLE, jumbledInPlace, jumbledProgress, replayGradientAnswer } from "./jumbled";
 import { decodeSwapword, replaySwapword, swapwordPlaced } from "./swapword";
 import { decodeSlideTokens, markedRowWord, replayWordSlide, WS_MARKED_ROWS } from "./wordSlide";
 import { PUZZLE_SCORE_REV, puzzleScoreRevOf } from "./puzzleScoreRev";
@@ -145,7 +145,7 @@ export function solutionProgress(puzzle: PuzzleData, answer: string, extra?: Rec
     case "tiles": {
       // tilesRev 3 (the remodel): tiles put in place on the gradient.
       if (isJumbledGradient(puzzle)) {
-        const end = replayJumbled(puzzle.frame, decodeJumbled(answer)).frame;
+        const end = replayGradientAnswer(puzzle, answer).frame;
         const out = JUMBLED_MOVABLE - jumbledInPlace(puzzle.frame);
         return { text: `${Math.round(jumbledProgress(puzzle.frame, end) * out)}/${out} tiles placed`, cost: null };
       }
