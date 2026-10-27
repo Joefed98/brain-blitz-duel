@@ -1,5 +1,5 @@
 /**
- * Success-event declarations for the 22 active arcade games, read by the shared
+ * Success-event declarations for the 21 active arcade games (and practice-only Junction and Scrumper), read by the shared
  * layer in arcadeFx.renderer.ts. Every `count`/`at`/`when` below is a pure read
  * of a counter or position the sim already keeps for its own rules; nothing here
  * changes a sim, an input or a score. Pops show counter facts ("+1", "×3",
@@ -273,10 +273,11 @@ export type ArcadeFxGame = keyof typeof ARCADE_GAME_WORLDS;
 
 /**
  * Arcade games with a world that rooms do not deal (practice only; registry RETIRED_TYPES):
- * Junction (retired in Tuning C) and Pinball until PINBALL_IN_ROOMS (pinball.ts) is switched on.
+ * Junction (retired in Tuning C), Scrumper (retired 27 Oct 2026) and Pinball until PINBALL_IN_ROOMS
+ * (pinball.ts) is switched on.
  */
-export const RETIRED_ARCADE_GAMES: readonly ArcadeFxGame[] = PINBALL_IN_ROOMS ? ["junction"] : ["junction", "pinball"];
-/** The 22 active arcade games (rooms deal these; Pinball joined on 14 Oct 2026 with PINBALL_IN_ROOMS on). */
+export const RETIRED_ARCADE_GAMES: readonly ArcadeFxGame[] = PINBALL_IN_ROOMS ? ["junction", "snip"] : ["junction", "snip", "pinball"];
+/** The 21 active arcade games (rooms deal these; Pinball joined on 14 Oct 2026 with PINBALL_IN_ROOMS on, Scrumper left on 27 Oct 2026). */
 export const ACTIVE_ARCADE_GAMES = (Object.keys(ARCADE_GAME_WORLDS) as ArcadeFxGame[]).filter((g) => !RETIRED_ARCADE_GAMES.includes(g));
 
 /**

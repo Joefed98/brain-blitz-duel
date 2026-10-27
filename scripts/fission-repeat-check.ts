@@ -66,8 +66,17 @@ try {
       locks: document.documentElement.dataset["gameLocks"] ?? "0",
       scenes: document.querySelectorAll("[data-arena-scene]").length,
     }));
-    if (left.short || left.screen || left.locks !== "0" || left.scenes)
+    // Since 27 Oct 2026 Play again is on the practice reveal, itself a game screen with its own
+    // selection lock: exactly that one may be held; a lock the play screen left would make it 2.
+    if (left.short || left.screen || left.locks !== "1" || left.scenes)
       failures.push(`run ${run}: the play screen left state behind (${JSON.stringify(left)})`);
+  }
+  // Back from the last reveal to the Practice list: no game screen is left, so no lock at all.
+  if (!failures.length) {
+    await page.getByRole("button", { name: "Back", exact: true }).click();
+    await page.locator("[data-practice-game]").first().waitFor({ timeout: 30_000 });
+    const locks = await page.evaluate(() => document.documentElement.dataset["gameLocks"] ?? "0");
+    if (locks !== "0") failures.push(`back on the Practice list, ${locks} game lock(s) left`);
   }
 } catch (error) {
   failures.push(`stopped: ${(error as Error).message.split("\n")[0]}`);

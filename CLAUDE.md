@@ -10,10 +10,13 @@ override anything general here.
 ## What this is
 
 Duelz: a multiplayer skill-game app. Up to 10 players (`MAX_PLAYERS`) join a room with a
-short code and play the same timed rounds; 73 active games across Word, Number, Speed, Attention,
+short code and play the same timed rounds; 72 active games across Word, Number, Speed, Attention,
 Pattern, Logic and Arcade (Word 9, Number 8, Speed 6, Attention 6, Pattern 10, Logic 12 (Trail moved from Number on 27 Oct 2026),
-Arcade 22 with Pinball dealt in rooms; 10 retired to practice: Swerve, Steady, Dual, Ricochet,
-Bastion, Rooftop Run, Junction, Dig, Hot Floor and, since 20 Oct 2026, Letterfall). Every category the lobby offers keeps at
+Arcade 21 with Pinball dealt in rooms; 11 retired to practice: Swerve, Steady, Dual, Ricochet,
+Bastion, Rooftop Run, Junction, Dig, Hot Floor, since 20 Oct 2026 Letterfall and, since 27 Oct 2026
+(Joe's decision), Scrumper (`snip`: out of room draws and the Practice list's main shelves, in its
+Retired section; stored rounds replay and grade as before; icon and name kept; category-pool-check pins
+the counts)). Every category the lobby offers keeps at
 least 6 active games (`category-pool-check`). On 14 Oct 2026, 19 retired games and the Memory
 category were deleted; old rooms' rounds of them show only the name and stored score
 (`src/lib/duel/removedGames.ts`, proved by `removed-games-check`). Built in Lovable, synced to this repo.
@@ -622,6 +625,17 @@ Lovable still hosts and publishes the app (https://brain-blitz-duel.lovable.app)
   + 3 a gate, gem or star. Bots: `scripts/arcade-skill-bands/bots/swingAssault.ts`. swing-assault-check (~1 min;
   `scripts/fixtures/swing-assault-legacy.json` recorded on main, `swing-assault-runs.json`, `--record`); shots
   `bun scripts/shots/swing-assault-shots.ts`. **The intro demo needs recording on swingRev 14.**
+- **Practice reveal, fitting reveals, Scrumper retired** (27 Oct 2026, from Joe's phone tests; display and room
+  draw only, no stamps, no scoring or grading changed): practice has no separate points page after the answer
+  reveal; the reveal (puzzles and arcade) stays up with small Back (the Practice list) and Play again (a new round of
+  the same game) under it (`AnswerReveal` `onPlayAgain` / `onBack`, `data-practice-reveal-actions`; no countdown
+  in practice). Rooms keep their timed reveal, round results and standings exactly. Every answer reveal fits its
+  screen (`useRevealFit` in `AnswerReveal.tsx`): when the board and lines are taller than the space, the boards
+  (outermost canvases, svgs and grids) are drawn smaller by a transform with a matching negative margin, down to
+  half size, before the whole reveal shrinks (its lines never under 13 px); the reveal tray no longer runs past the
+  content's end (its 10 px padding made fill-height reveals, the Logic ones, scroll and fade). Ballpark's line and
+  Roundabout's crossword cells got the dark-glass pass (`batch-w-numline.css`, `batch-w-letterwheel.css`, live round
+  only). Scrumper is retired (see the counts at the top).
 - `src/components/duel/` — room/round screens (PhoneShell, RoundIntro, TimerBar,
   AnswerReveal, ArcadeReveal, WinnerReveal…); `src/components/puzzles/` — shared puzzle
   widgets; `src/lib/fx/` — sound and visual feedback (presentation only).
@@ -845,7 +859,7 @@ Lovable still hosts and publishes the app (https://brain-blitz-duel.lovable.app)
 active arcade list and the checks all read it). Its rules are
 `pinRev 1`; `scripts/pinball-check.ts` (~11 s) replays stored rev-1 runs, long runs and fast shots (no tunnelling).
 
-**Junction** (`junction`) is retired to practice since Tuning C (12 Oct 2026): rooms deal the 22
+**Junction** (`junction`) is retired to practice since Tuning C (12 Oct 2026): rooms deal the 21
 active arcade games (`ACTIVE_ARCADE_GAMES` in `arcadeFxGames.renderer.ts`); Junction keeps its world,
 effects and band curve for practice and stored rounds.
 
