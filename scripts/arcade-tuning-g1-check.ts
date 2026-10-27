@@ -160,7 +160,8 @@ for (const [file, label] of [["scripts/fixtures/arcade-tuning-g1-legacy.json", "
 section("New rounds: stamps, start states, checksums, worlds by revision");
 {
   // Expansion E3 (docs/expansions/e3.md) then moved Breaker on to brkRev 9; expansion-e3-check covers it.
-  ok(playRevOf("breaker", generateBreaker().brkRev) === BRK_REV_TALL + 3, "rooms deal brkRev 9 (expansion E3, after brkRev 6)");
+  // The phone notes (27 Oct 2026) then moved it on to brkRev 10 (expansion-e3-check section 5).
+  ok(playRevOf("breaker", generateBreaker().brkRev) === BRK_REV_TALL + 4, "rooms deal brkRev 10 (the phone notes, after expansion E3's brkRev 9 and brkRev 6)");
   // Expansion E9 (docs/expansions/e9.md) then moved Rally on to rallyRev 10 and Fission on to burstRev 8; expansion-e9-check covers them.
   ok(playRevOf("rally", generateRally().rallyRev) === RALLY_REV_TALL + 4, "rooms deal rallyRev 10 (expansion E9, after rallyRev 6)");
   // The 200 expansion (26 Oct 2026) moved rooms on to wavRev 10 (wavefront-expand-check); wavRev 6 stays as it was.

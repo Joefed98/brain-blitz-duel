@@ -18,7 +18,7 @@ import { BEAT_REV_200 } from "@/lib/arcade/beat";
 import { SNAKE_REV_200 } from "@/lib/arcade/snake";
 import { SLICE_REV_EXPAND, SLICE_REV_TALL } from "@/lib/arcade/slice";
 import { BINTOSS_REV_EXPAND } from "@/lib/arcade/binToss";
-import { BUB_REV_REEF } from "@/lib/arcade/bubble";
+import { BUB_REV_BLAST } from "@/lib/arcade/bubble";
 import { MATCHUP_REV_GOALS } from "@/lib/arcade/matchup";
 import { TEN_DROP_DEPTH_REV } from "@/lib/arcade/tenDrop";
 import { SKYLINE_REV_EXPAND } from "@/lib/arcade/skyline";
@@ -141,7 +141,8 @@ export const getIntroDemoFn = createServerFn({ method: "GET" })
     if (data.type === "beat" && demo?.puzzle.type === "beat" && demo.puzzle.beatRev !== BEAT_REV_200) return null;
     if (data.type === "slice" && demo?.puzzle.type === "slice" && demo.puzzle.sliceRev !== SLICE_REV_TALL) return null;
     // Expansion E6 (25 Oct 2026): Coral Pop's deeper reef (bubbleRev 8) replaces the tall tank's field; a demo stays stopped until one is recorded on it.
-    if (data.type === "bubble" && demo?.puzzle.type === "bubble" && demo.puzzle.bubbleRev !== BUB_REV_REEF) return null;
+    // Phone notes (27 Oct 2026): bubbleRev 10's mine blasts two rings, so the demo stays stopped until one is recorded on it.
+    if (data.type === "bubble" && demo?.puzzle.type === "bubble" && demo.puzzle.bubbleRev !== BUB_REV_BLAST) return null;
     // Depth to 200 (25 Oct 2026): Mixed Signals' clashRev 8 deals "don't sort" and gold words and a streak; a demo
     // recorded on an older revision shows none of them, so it stays stopped until one is recorded on clashRev 8.
     if (data.type === "stroop" && demo?.puzzle.type === "stroop" && demo.puzzle.clashRev !== CLASH_REV_DEPTH) return null;

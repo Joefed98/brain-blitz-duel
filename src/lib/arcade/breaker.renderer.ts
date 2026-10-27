@@ -124,23 +124,23 @@ const SYMBOL_MULTI = [
   ".XXXXX.....XXXXX.",
   "..XXX.......XXX..",
 ] as const;
-/** Three shots rising: the ×3 (×5 on the original board) brick. */
+/** Three small balls rising on their trails: the ×3 (×5 on the original board) shots brick. */
 const SYMBOL_SPAM = [
-  "..X.....X.....X..",
-  ".XXX...XXX...XXX.",
-  "XXXXX.XXXXX.XXXXX",
-  "..X.....X.....X..",
-  "..X.....X.....X..",
-  "..o.....o.....o..",
-  "..o.....o.....o..",
+  ".XX....XX....XX.",
+  "XXXX..XXXX..XXXX",
+  "XXXX..XXXX..XXXX",
+  ".XX....XX....XX.",
+  ".oo....oo....oo.",
+  "................",
+  ".oo....oo....oo.",
 ] as const;
-/** A beam rising from an emitter: the laser brick. */
+/** A beam (white core, green edges) rising from an emitter: the laser brick. */
 const SYMBOL_LASER = [
-  "....X....",
-  "...XXX...",
-  "....X....",
-  "....X....",
-  "....X....",
+  "..o.X.o..",
+  "...oXo...",
+  "...oXo...",
+  "...oXo...",
+  "...oXo...",
   "..XXXXX..",
   ".XXXXXXX.",
 ] as const;
@@ -420,9 +420,9 @@ function drawGoldBrick(ctx: CanvasRenderingContext2D, x: number, y: number, glin
   // brkRev 10: a dark pixel crack for each hit taken (of BRK_V10_GOLD_HITS), across the ingot.
   for (let c = 0; c < taken; c++) {
     const cx = x + 9 + c * 8;
-    pixelRect(ctx, cx, y + 4, 2, 4, "#2A1A00");
-    pixelRect(ctx, cx + 2, y + 8, 2, 4, "#2A1A00");
-    pixelRect(ctx, cx, y + 12, 2, 4, "#2A1A00");
+    pixelRect(ctx, cx, y + 4, 2, 4, "#000000");
+    pixelRect(ctx, cx + 2, y + 8, 2, 4, "#000000");
+    pixelRect(ctx, cx, y + 12, 2, 4, "#000000");
   }
   glow(ctx, GOLD, x + BRK_BRICK_W / 2, y + BRK_BRICK_H / 2, BRK_BRICK_W * 0.75, BRK_BRICK_H, glint ? 0.45 : 0.18);
 }
