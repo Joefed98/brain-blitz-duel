@@ -6,7 +6,7 @@
  */
 
 import { CROSS_LANE_POINTS, CROSS_CROSSING_POINTS } from "./cross";
-import { BT_BALLS } from "./ballTrack";
+import { BT_BALLS, BT_V7_BALLS } from "./ballTrack";
 import { whackDepthScore, type WhackState } from "./whack";
 import { CLAY_DOUBLES, clayDepthScore, clayDoublesHit, type ClayState } from "./clayShoot";
 import { MATCHUP_PAR_RAW } from "./matchup";
@@ -494,7 +494,7 @@ const BUILDERS: Record<string, Builder> = {
   },
   tilt: (r, s) => {
     // tiltRev 8 (the expansion, docs/expansions/x200-tilt.md): three mazes and quick stars.
-    const all = n(r, "tiltRev") === 8 ? 3 : 4;
+    const all = n(r, "tiltRev") === 8 || n(r, "tiltRev") === 9 ? 3 : 4;
     const done = n(r, "mazes") >= all;
     const quick = n(r, "totalQuick") > 0;
     return {
@@ -510,12 +510,14 @@ const BUILDERS: Record<string, Builder> = {
     };
   },
   balltrack: (r, s) => {
-    const done = n(r, "home") >= BT_BALLS;
+    // btRev 7 drops 36 marbles (every earlier course 30): the replay's own state says which.
+    const all = (r["state"] as { r7?: number } | undefined)?.r7 ? BT_V7_BALLS : BT_BALLS;
+    const done = n(r, "home") >= all;
     return {
-      axis: { value: n(r, "home"), max: BT_BALLS, label: "Marbles home" },
-      lines: [head(`${n(r, "home")} / ${BT_BALLS} home`, s, done)],
+      axis: { value: n(r, "home"), max: all, label: "Marbles home" },
+      lines: [head(`${n(r, "home")} / ${all} home`, s, done)],
       tiles: [
-        { label: "Marbles home", value: `${n(r, "home")} / ${BT_BALLS}` },
+        { label: "Marbles home", value: `${n(r, "home")} / ${all}` },
         { label: "Wrong tray", value: String(n(r, "wrong")) },
         { label: "Lost", value: String(n(r, "lost")) },
       ],

@@ -20,6 +20,7 @@ import {
   ORBIT_ELLIPSE,
   ORBIT_GOLD,
   ORBIT_RED,
+  ORBIT_REV_XP,
   ORBIT_TOTAL,
   ORBIT_TRAIL_TICKS,
   ORBIT_WORLD_H,
@@ -244,7 +245,7 @@ export function drawPlanet(ctx: CanvasRenderingContext2D, x: number, y: number, 
 const NEBULA_TILE = 512;
 let nebulaTile: HTMLCanvasElement | null | undefined;
 
-/** Soft purple, blue and teal clouds plus a dust of faint far stars, baked once. */
+/** A dust of faint far stars on black, baked once (the coloured clouds went on 27 Oct 2026). */
 function nebulaSprite(): HTMLCanvasElement | null {
   if (nebulaTile !== undefined) return nebulaTile;
   if (typeof document === "undefined") return (nebulaTile = null);
@@ -255,37 +256,15 @@ function nebulaSprite(): HTMLCanvasElement | null {
   if (!c) return (nebulaTile = null);
   c.scale(2, 2);
   const T = NEBULA_TILE;
-  // Polish A4 (25 Oct 2026, display only): richer purple, magenta and teal clouds, each with a brighter heart
-  // (about twice main's strength, still soft: every cloud fades to nothing at its edge).
-  const clouds = [
-    [80, 120, 190, "128,70,220", 0.46],
-    [330, 70, 150, "214,64,190", 0.36],
-    [420, 330, 210, "30,170,180", 0.34],
-    [170, 400, 170, "190,60,200", 0.3],
-    [260, 230, 120, "90,110,255", 0.22],
-    [470, 480, 140, "128,70,220", 0.34],
-    [30, 300, 110, "36,190,190", 0.28],
-    [120, 250, 90, "240,90,200", 0.2],
-    [380, 200, 80, "60,210,200", 0.2],
-  ] as const;
-  for (const [cx, cy, r, rgb, a] of clouds)
-    for (const dx of [-T, 0, T])
-      for (const dy of [-T, 0, T]) {
-        const g = c.createRadialGradient(cx + dx, cy + dy, 0, cx + dx, cy + dy, r);
-        g.addColorStop(0, `rgba(${rgb},${a})`);
-        g.addColorStop(0.18, `rgba(${rgb},${(a * 0.85).toFixed(3)})`);
-        g.addColorStop(0.5, `rgba(${rgb},${(a * 0.4).toFixed(3)})`);
-        g.addColorStop(1, `rgba(${rgb},0)`);
-        c.fillStyle = g;
-        c.fillRect(cx + dx - r, cy + dy - r, r * 2, r * 2);
-      }
+  // Black space (Joe's phone notes, 27 Oct 2026; display only): the purple, magenta and teal clouds are gone,
+  // so the tile is far star dust alone, a little denser.
   // Far star dust: tiny, dim, some faintly coloured.
-  for (let i = 0; i < 260; i++) {
+  for (let i = 0; i < 420; i++) {
     const h = Math.imul(i * 2654435761 + 977, 0x85ebca6b) >>> 0;
     const x = h % T;
     const y = (h >>> 9) % T;
     c.globalAlpha = 0.15 + ((h >>> 3) % 40) / 100;
-    c.fillStyle = h % 7 === 0 ? "#9CC8FF" : h % 11 === 0 ? "#FFE3B0" : "#FFFFFF";
+    c.fillStyle = h % 7 === 0 ? "#D6E4FF" : h % 11 === 0 ? "#FFF0D6" : "#FFFFFF";
     const size = (h >>> 20) % 5 === 0 ? 1 : 0.6;
     c.fillRect(x, y, size, size);
   }
@@ -475,14 +454,7 @@ function drawBelt(ctx: CanvasRenderingContext2D, p: Planet, tick: number, cam: n
     ctx.closePath();
   }
   ctx.clip();
-  ctx.strokeStyle = "#91877A";
-  ctx.globalAlpha = 0.25;
-  ctx.lineWidth = 3;
-  ctx.lineCap = "butt";
-  ctx.beginPath();
-  points.forEach((point, k) => k === 0 ? ctx.moveTo(point.x, point.y) : ctx.lineTo(point.x, point.y));
-  ctx.stroke();
-  ctx.globalAlpha = 1;
+  // The belt's faint track line is gone (Joe's phone notes, 27 Oct 2026): the rocks alone show it.
   for (let k = 1; k < 64; k++) {
     const phase = (start + Math.trunc(ORBIT_BELT_SPAN * k / 64)) & 65535;
     const o = orbitBeltOffset(p, phase);
@@ -830,7 +802,7 @@ import {
   orbitViewW,
   type OrbitCamOffset,
 } from "./orbitCamera";
-import { orbitHoleLive, orbitRev3Game, orbitXpCounts, ORBIT_DUST_R, ORBIT_HOLE_R, ORBIT_MOON_ASSIST, ORBIT_MOON_R, ORBIT_REV3_BG, ORBIT_REV3_RED, type OrbitRev3State } from "./orbitRev3";
+import { orbitHoleLive, orbitRev3Game, orbitWorldHFor, orbitXpCounts, ORBIT_DUST_R, ORBIT_HOLE_R, ORBIT_MOON_ASSIST, ORBIT_MOON_R, ORBIT_REV3_BG, ORBIT_REV3_RED, type OrbitRev3State } from "./orbitRev3";
 import { devDisplayAllowed } from "@/lib/devDisplay";
 import { orbitRewardObserve, drawOrbitShootingStar } from './orbitRewards.renderer';
 
@@ -981,9 +953,24 @@ function drawBlackHole(ctx: CanvasRenderingContext2D, x: number, y: number, arme
   ctx.restore();
 }
 
+/**
+ * The height (px) Orbit is drawn in for a stored orbitRev (display only; Joe's phone notes, 27 Oct 2026). orbitRev 12
+ * frames its course in a 450 × 782 view (the sim's `worldH`); the play screen draws ORBIT_XP_DRAW_H, the extra 57 px
+ * below that frame, so the world reaches the screen's bottom on the iPhone 11 home-screen app (414 × 772 box) with
+ * SET CHECKPOINT laid over it. The camera, its framing and every input are unchanged. Earlier revisions keep their view.
+ */
+export const ORBIT_XP_DRAW_H = 839;
+export function orbitDrawHFor(rev?: number | null): number {
+  return rev === ORBIT_REV_XP ? ORBIT_XP_DRAW_H : orbitWorldHFor(rev);
+}
+/** The drawn height for a state: orbitRev 12's states carry the wider view (`viewW`). */
+function orbitDrawH(state: OrbitRev3State): number {
+  return state.viewW ? ORBIT_XP_DRAW_H : orbitViewH(state);
+}
+
 function drawOrbitRev3ArtWorld(ctx: CanvasRenderingContext2D, state: OrbitRev3State, size: CanvasSize): void {
-  // orbitRev 8: the taller view (620 otherwise).
-  const ORBIT_CAM_VIEW_H = orbitViewH(state);
+  // orbitRev 8: the taller view (620 otherwise); orbitRev 12 drawn taller still, below its framed view.
+  const ORBIT_CAM_VIEW_H = orbitDrawH(state);
   // orbitRev 12: the wider view (390 otherwise).
   const ORBIT_CAM_VIEW_W = orbitViewW(state);
   const still = prefersReducedMotion();
@@ -1008,7 +995,7 @@ function drawOrbitRev3ArtWorld(ctx: CanvasRenderingContext2D, state: OrbitRev3St
    drawOrbitShootingStar(ctx, state, cam, still);
 
   // Cull to the view plus one ring's margin either side (orbitVisiblePlanets).
-  const visible = orbitVisiblePlanets(state, cam);
+  const visible = orbitVisiblePlanets(state, cam, ORBIT_CAM_VIEW_H - orbitViewH(state));
 
   drawOrbitPaths(ctx, state, visible, cam.x, cam.y, t);
   ctx.globalAlpha = 1;
@@ -1314,42 +1301,36 @@ function drawXpMoon(ctx: CanvasRenderingContext2D, x: number, y: number, r: numb
 function drawXpFeatures(ctx: CanvasRenderingContext2D, s: OrbitRev3State, cam: OrbitCamOffset, t: number, still: boolean, W: number, H: number): void {
   const lite = arcadeReducedEffects();
   const inView = (x: number, y: number, m: number) => x > -m && y > -m && x < W + m && y < H + m;
-  // Asteroid fields: the gap's line as a faint dotted guide (gold once threaded), then the rocks.
+  // Asteroid fields: the rocks.
   (s.fields ?? []).forEach((f, i) => {
     const ax = f.ax / FP - cam.x, ay = f.ay / FP - cam.y, bx = f.bx / FP - cam.x, by = f.by / FP - cam.y;
     if (!inView((ax + bx) / 2, (ay + by) / 2, 120)) return;
-    const done = ((s.threaded ?? 0) >> i) & 1;
-    ctx.save();
-    ctx.strokeStyle = done ? ORBIT_GOLD : XP_TEAL;
-    ctx.globalAlpha = done ? 0.55 : 0.35;
-    ctx.lineWidth = 1.5;
-    ctx.setLineDash([2, 5]);
-    ctx.beginPath();
-    ctx.moveTo(ax, ay);
-    ctx.lineTo(bx, by);
-    ctx.stroke();
-    ctx.restore();
+    // No dotted guide line through the gap (Joe's phone notes, 27 Oct 2026): the rocks alone show the field.
     f.rocks.forEach((r, k) => {
       const x = r.x / FP - cam.x, y = r.y / FP - cam.y;
       const hash = Math.imul((r.x ^ (r.y * 31)) + k * 977, 0x85ebca6b) >>> 0;
       drawXpRock(ctx, x, y, r.r / FP, hash, still ? 0 : (t * 0.4 * (hash & 1 ? 1 : -1)));
     });
   });
-  // Slingshot moons: the dashed assist ring (its exact reach), the moon, a gold ring once slung.
+  // Slingshot moons: a soft glow (gold once slung) and the moon.
   (s.moons ?? []).forEach((m, i) => {
     const x = m.x / FP - cam.x, y = m.y / FP - cam.y;
     if (!inView(x, y, 60)) return;
     const used = ((s.slung ?? 0) >> i) & 1;
-    ctx.save();
-    ctx.strokeStyle = used ? ORBIT_GOLD : XP_TEAL;
-    ctx.globalAlpha = used ? 0.35 : 0.5;
-    ctx.lineWidth = 1.3;
-    ctx.setLineDash([5, 5]);
-    ctx.lineDashOffset = still ? 0 : -t * 10;
-    ctx.beginPath();
-    ctx.arc(x, y, ORBIT_MOON_ASSIST / FP, 0, Math.PI * 2);
-    ctx.stroke();
-    ctx.restore();
+    // No dashed ring round the moon (Joe's phone notes, 27 Oct 2026): a soft halo of light fading out exactly at the
+    // assist's reach shows where a pass slings (teal, gold once slung; light only, under reduced effects too).
+    {
+      const reach = ORBIT_MOON_ASSIST / FP;
+      const halo = ctx.createRadialGradient(x, y, ORBIT_MOON_R / FP, x, y, reach);
+      const tone = used ? "255,209,102" : "92,225,230";
+      halo.addColorStop(0, `rgba(${tone},${used ? 0.1 : 0.16})`);
+      halo.addColorStop(0.75, `rgba(${tone},${used ? 0.05 : 0.08})`);
+      halo.addColorStop(1, `rgba(${tone},0)`);
+      ctx.fillStyle = halo;
+      ctx.beginPath();
+      ctx.arc(x, y, reach, 0, Math.PI * 2);
+      ctx.fill();
+    }
     if (!lite) {
       ctx.save();
       ctx.globalCompositeOperation = "lighter";

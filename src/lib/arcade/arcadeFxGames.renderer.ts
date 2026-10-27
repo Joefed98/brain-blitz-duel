@@ -164,7 +164,7 @@ function bubSpecialPoint(s: BubState): { x: number; y: number } {
 }
 import { SNIP_CONFIG, SNIP_COURSES, SNIP_EATEN, SNIP_H, SNIP_TALL_H, SNIP_X_LEVELS, SNIP_X_VIEW_H, snipCamera, snipWorldH, type SnipState } from "./snip";
 import { TILT_MAX_MAZES, TILT_X_H, TILT_WORLD_H, TILT_WORLD_W, type TiltState } from "./tilt";
-import { btWorldH, BT_BALLS, BT_H, BT_TALL_H, BT_V7_H, BT_W, type BtState } from "./ballTrack";
+import { btWorldH, BT_BALLS, BT_H, BT_TALL_H, BT_V7_BALLS, BT_V7_H, BT_W, type BtState } from "./ballTrack";
 import { wfWord, wfWorldH, WF_H, WF_H_V2, WF_PAR, WF_W, WF_WELL_Y, type WordfallState } from "./wordfall";
 import {
   matchupIsJackpot,
@@ -1372,7 +1372,8 @@ export const BALLTRACK_FX: ArcadeFxSpec<BtState> = {
   fit: "world",
   events: [
     { kind: "streak", count: (s) => s.home, every: 5, label: (_s, n) => `${n} HOME` },
-    { kind: "final", count: (s) => (s.home >= BT_BALLS ? 1 : 0), label: () => "ALL 30 HOME!" },
+    // btRev 7 drops 36 marbles (every earlier course 30).
+    { kind: "final", count: (s) => (s.home >= (s.r7 ? BT_V7_BALLS : BT_BALLS) ? 1 : 0), label: (s) => `ALL ${s.r7 ? BT_V7_BALLS : BT_BALLS} HOME!` },
     // btRev 2 only: a marble home after riding a turned tube, or after passing a switch point.
     { kind: "pop", count: (s) => s.rideHomes ?? 0, label: () => "TURNED HOME!" },
     { kind: "pop", count: (s) => s.switchHomes ?? 0, label: () => "SWITCHED HOME!" },
@@ -1595,10 +1596,13 @@ export const SWING_FX_V13: ArcadeFxSpec<SwingState> = {
   ],
 };
 export const swingFxFor = (s: SwingState): ArcadeFxSpec<SwingState> => (s.expand ? SWING_FX_V13 : fxSpecAt(SWING_FX, swingWorldH(s)));
-/** The live round's view size on orbitRev 12 (the expansion to 200), with ORBIT_FX's events (ARCADE_FX_SPECS). */
-const ORBIT_FX_XP_VIEW: ArcadeFxSpec<OrbitState> = { ...ORBIT_FX, width: 450, height: 782 };
-/** orbitRev 12 (the expansion to 200): the same events in the wider 450 × 782 view. */
-export const ORBIT3_FX_XP: ArcadeFxSpec<OrbitRev3State> = { ...ORBIT3_FX, width: 450, height: 782 };
+/** The live round's drawn view on orbitRev 12 (the expansion to 200; 839 tall since 27 Oct 2026), with ORBIT_FX's events (ARCADE_FX_SPECS). */
+const ORBIT_FX_XP_VIEW: ArcadeFxSpec<OrbitState> = { ...ORBIT_FX, width: 450, height: 839 };
+/**
+ * orbitRev 12 (the expansion to 200): the same events in the wider 450 × 782 view, drawn 839 tall since 27 Oct 2026
+ * (ORBIT_XP_DRAW_H in orbit.renderer.ts: the world reaches the screen's bottom), so the layer maps as the world does.
+ */
+export const ORBIT3_FX_XP: ArcadeFxSpec<OrbitRev3State> = { ...ORBIT3_FX, width: 450, height: 839 };
 export const orbit3FxFor = (s: OrbitRev3State): ArcadeFxSpec<OrbitRev3State> => (s.viewW ? ORBIT3_FX_XP : fxSpecAt(ORBIT3_FX, orbitViewH(s)));
 export const ORBIT3_FX_TALL = fxSpecAt(ORBIT3_FX, ORBIT_TALL_VIEW_H);
 export const balltrackFxFor = (s: BtState): ArcadeFxSpec<BtState> => fxSpecAt(BALLTRACK_FX, btWorldH(s));

@@ -51,15 +51,20 @@ import { arcadeReducedEffects } from "../fx/lowEnd";
 import { sceneBelow, sceneSides, type ArenaSceneView } from "./arenaScene.renderer";
 
 /** crossRev 9: the plain paving stone of the world's foot (the slab pattern's own face colour). */
-const CROSS_X_FOOT_PAVING = "#B5B9C0";
+const CROSS_X_FOOT_PAVING = "#5A5F69";
 
-// Real World daylight palette (the values of realworld.renderer's REAL_*; not imported, because
-// realworld.renderer re-exports drawVehicle from this module).
-const REAL_ASPHALT = "#555B64";
-const REAL_GRASS = "#86BF63";
-const REAL_GRASS_DARK = "#6FA851";
+// The evening palette (Joe's phone notes, 27 Oct 2026; display only): a darker road, dim grass, hedges and
+// paving, a blue dusk wash and warm lamp pools on the verges. Was Real World daylight (realworld.renderer's
+// REAL_* values; not imported, because realworld.renderer re-exports drawVehicle from this module).
+const REAL_ASPHALT = "#25292F";
+const REAL_GRASS = "#2F4B31";
+const REAL_GRASS_DARK = "#223825";
 const REAL_INK = "#1E2630";
-const REAL_KERB = "#C9CDD3";
+const REAL_KERB = "#7A7F88";
+/** The paving slabs' face colour. */
+const CROSS_PAVING = "#5F646E";
+/** The dusk wash over the cached scene (not the traffic, the walker or the HUD). */
+const CROSS_DUSK = "rgba(16,22,58,0.22)";
 
 function mod(value: number, m: number): number {
   const r = value % m;
@@ -144,12 +149,12 @@ function texture(ctx: CanvasRenderingContext2D) {
       c.fillRect(0, 0, 64, 64);
       for (let k = 0; k < 220; k++) {
         const h = artHash(k, 3);
-        c.fillStyle = h % 3 === 0 ? "rgba(255,255,255,0.09)" : "rgba(20,24,30,0.22)";
+        c.fillStyle = h % 3 === 0 ? "rgba(255,255,255,0.05)" : "rgba(8,10,14,0.3)";
         c.fillRect(h % 64, (h >>> 6) % 64, 1 + ((h >>> 12) % 2), 1);
       }
     }),
     paving: make((c) => {
-      c.fillStyle = "#BCC1C8";
+      c.fillStyle = CROSS_PAVING;
       c.fillRect(0, 0, 64, 64);
       for (let k = 0; k < 8; k++) {
         c.fillStyle = k % 2 ? "rgba(255,255,255,0.12)" : "rgba(60,66,76,0.08)";
@@ -802,9 +807,9 @@ function paintGrass(c: CanvasRenderingContext2D, x: number, y: number, w: number
     const r = artHash(k, 73);
     const fx = Math.round(x + ((r % 1000) / 1000) * w);
     const fy = Math.round(y + (((r >>> 10) % 1000) / 1000) * h);
-    c.fillStyle = r % 3 ? "rgba(255,255,255,0.75)" : "rgba(255,226,92,0.85)";
+    c.fillStyle = r % 3 ? "rgba(220,226,255,0.28)" : "rgba(255,226,92,0.3)";
     c.fillRect(fx, fy, 2, 2);
-    c.fillStyle = "rgba(240,180,40,0.8)";
+    c.fillStyle = "rgba(240,180,40,0.3)";
     if (r % 3) c.fillRect(fx + 0.5, fy + 0.5, 1, 1);
   }
   c.restore();
@@ -817,7 +822,7 @@ function paintGrass(c: CanvasRenderingContext2D, x: number, y: number, w: number
     const r = artHash(k, 41);
     const bx = x + (r % 1000) / 1000 * w;
     const by = y + ((r >>> 10) % 1000) / 1000 * h;
-    c.strokeStyle = r % 3 ? "rgba(40,90,30,0.35)" : "rgba(210,240,170,0.35)";
+    c.strokeStyle = r % 3 ? "rgba(10,30,12,0.4)" : "rgba(150,190,150,0.16)";
     c.beginPath();
     c.moveTo(bx, by);
     c.lineTo(bx + ((r >>> 20) % 3) - 1, by - 3);
@@ -833,7 +838,7 @@ function paintRoad(c: CanvasRenderingContext2D, course: ReturnType<typeof crossC
   // Pavements: paving slabs with a kerb stone along the road edge.
   const pavement = (top: number, finish: boolean) => {
     const height = finish ? g.goalH : g.startH;
-    c.fillStyle = tex.paving ?? "#BCC1C8";
+    c.fillStyle = tex.paving ?? CROSS_PAVING;
     c.fillRect(CROSS_BOARD_X, top, CROSS_BOARD_W, height);
     const kerbY = finish ? top + height - 5 : top;
     c.fillStyle = REAL_KERB;
@@ -906,6 +911,35 @@ function paintRoad(c: CanvasRenderingContext2D, course: ReturnType<typeof crossC
   c.fillRect(CROSS_BOARD_X, crossStartTop(g) - 3, CROSS_BOARD_W, 2);
   // Polish A2: low hedges along both verges, from the HUD band down (background only; no lane reaches them).
   for (const x of [0, CROSS_BOARD_X + CROSS_BOARD_W]) paintHedge(c, x, CROSS_HUD_H, CROSS_BOARD_X, g.worldH - CROSS_HUD_H);
+  paintEvening(c, g);
+}
+
+/**
+ * The evening (Joe's phone notes, 27 Oct 2026; display only, in the cached scene): a blue dusk wash over the
+ * whole crossing, then soft warm pools from street lamps on both verges, every 150 px, faint on the road's
+ * edge. Light only: nothing here is solid or near a lane's middle, and the traffic is drawn over it.
+ */
+function paintEvening(c: CanvasRenderingContext2D, g: CrossGeom): void {
+  c.fillStyle = CROSS_DUSK;
+  c.fillRect(0, 0, CROSS_WORLD_W, g.worldH);
+  // The pools end above the start pavement's foot, which the play screen repaints (pavedFoot) and runs on below.
+  const foot = crossStartTop(g) + g.startH - 2;
+  for (let k = 0, y = CROSS_HUD_H + 60; y + 40 + 70 < foot; k++, y += 150) {
+    for (const x of [CROSS_BOARD_X / 2, CROSS_WORLD_W - CROSS_BOARD_X / 2]) {
+      const ly = y + (k % 2 ? 40 : 0) * (x < CROSS_WORLD_W / 2 ? 1 : -1);
+      const pool = c.createRadialGradient(x, ly, 2, x, ly, 70);
+      pool.addColorStop(0, "rgba(255,196,120,0.2)");
+      pool.addColorStop(0.45, "rgba(255,180,100,0.07)");
+      pool.addColorStop(1, "rgba(255,180,100,0)");
+      c.fillStyle = pool;
+      c.fillRect(x - 70, ly - 70, 140, 140);
+      // The lamp head on the verge.
+      c.fillStyle = "rgba(255,226,170,0.85)";
+      c.beginPath();
+      c.arc(x, ly, 2, 0, Math.PI * 2);
+      c.fill();
+    }
+  }
 }
 
 /**
@@ -952,15 +986,15 @@ function paintHedge(c: CanvasRenderingContext2D, x: number, y: number, w: number
   c.beginPath();
   c.rect(x, y, w, h);
   c.clip();
-  c.fillStyle = "#3F7A35";
+  c.fillStyle = "#1C3420";
   c.fillRect(x, y, w, h);
   for (let k = 0, by = y; by < y + h; k++, by += 7) {
     const r = artHash(k, x > 0 ? 91 : 89);
-    c.fillStyle = r % 2 ? "#4E8E40" : "#4A8A3C";
+    c.fillStyle = r % 2 ? "#264528" : "#234126";
     c.beginPath();
     c.ellipse(x + w / 2, by + 3, w * 0.7, 4.5, 0, 0, Math.PI * 2);
     c.fill();
-    c.fillStyle = "rgba(190,235,140,0.35)";
+    c.fillStyle = "rgba(170,210,170,0.12)";
     c.fillRect(x + 1 + (r % 3), by + 1, 2, 1);
   }
   c.fillStyle = "rgba(20,40,15,0.25)";
@@ -1029,7 +1063,9 @@ function drawCrossArtWorld(ctx: CanvasRenderingContext2D, state: CrossState, siz
     const foot = crossStartTop(g) + g.startH - 2;
     // crossRev 9's world ends 7 px under a slab joint: its foot is the paving's plain stone, so no
     // joint lines the world's bottom edge (the scene below carries the slabs on).
-    ctx.fillStyle = g.island ? CROSS_X_FOOT_PAVING : (tex.paving ?? "#BCC1C8");
+    ctx.fillStyle = g.island ? CROSS_X_FOOT_PAVING : (tex.paving ?? CROSS_PAVING);
+    ctx.fillRect(CROSS_BOARD_X, foot, CROSS_BOARD_W, worldH - foot);
+    ctx.fillStyle = CROSS_DUSK;
     ctx.fillRect(CROSS_BOARD_X, foot, CROSS_BOARD_W, worldH - foot);
   }
   // Finish pavement pulse after a clean crossing.
@@ -1232,15 +1268,23 @@ export const crossRevealGame = { draw: (ctx: CanvasRenderingContext2D, state: Cr
  */
 export function crossArenaScene(ctx: CanvasRenderingContext2D, view: ArenaSceneView): void {
   const tex = texture(ctx);
-  for (const side of sceneSides(view)) paintGrass(ctx, side.x, side.y, side.w, side.h);
+  for (const side of sceneSides(view)) {
+    paintGrass(ctx, side.x, side.y, side.w, side.h);
+    ctx.fillStyle = CROSS_DUSK;
+    ctx.fillRect(side.x, side.y, side.w, side.h);
+  }
   const below = sceneBelow(view);
   if (!below) return;
   paintGrass(ctx, below.x, below.y, below.w, below.h);
+  ctx.fillStyle = CROSS_DUSK;
+  ctx.fillRect(below.x, below.y, below.w, below.h);
   // crossRev 9's world fills the screen: the short strip below is all pavement, no grass verge.
   const verge = view.worldH > CROSS_WORLD_H && below.h < 40 ? 0 : Math.min(14, below.h);
   const paved = below.h - verge;
   if (paved > 0) {
-    ctx.fillStyle = tex.paving ?? "#BCC1C8";
+    ctx.fillStyle = tex.paving ?? CROSS_PAVING;
+    ctx.fillRect(CROSS_BOARD_X, below.y, CROSS_BOARD_W, paved);
+    ctx.fillStyle = CROSS_DUSK;
     ctx.fillRect(CROSS_BOARD_X, below.y, CROSS_BOARD_W, paved);
     // The paving's outer edge: a low edging stone, then the grass edge's shadow.
     if (verge > 0) {

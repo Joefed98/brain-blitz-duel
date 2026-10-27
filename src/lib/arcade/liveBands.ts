@@ -12,7 +12,7 @@ import { bandHelp, type BandCurve, type BandHelpWords } from "./scoreBands";
 import { roundMaxFor } from "../duel/roundMax";
 import { BT_REV_RUSH, BT_REV_STRICT, BT_V7_BAND_CURVE } from "./ballTrack";
 import { WAV_REV_EXPAND, WAV_REV_STRICT, WAV_V10_BAND_CURVE } from "./wavefront";
-import { FLIP_REV_EXPAND, FLIP_REV_STRICT, FLIP_V8_BAND_CURVE } from "./flip";
+import { FLIP_REV_LIFT, FLIP_REV_STRICT, FLIP_V9_BAND_CURVE } from "./flip";
 import { INK_REV_EXPAND, INK_REV_STRICT, INK_V10_BAND_CURVE } from "./inkBridge";
 import { MATCHUP_REV_GOALS, MATCHUP_REV_STRICT, MATCHUP_V9_BAND_CURVE } from "./matchup";
 import { BUB_REV_CREDIT, BUB_REV_STRICT, BUB_V8_BAND_CURVE } from "./bubble";
@@ -25,7 +25,7 @@ import { HOVER_REV_EXPAND, HOVER_REV_STRICT, HOVER_V9_BAND_CURVE } from "./hover
 import { SKYLINE_REV_EXPAND, SKYLINE_REV_STRICT, SKYLINE_V7_BAND_CURVE } from "./skyline";
 import { JUNC_REV_BAND, JUNC_BAND_CURVE } from "./junction";
 import { BRK_REV_DEEP, BRK_REV_STRICT, BRK_V9_BAND_CURVE } from "./breaker";
-import { TILT_REV_EXPAND, TILT_REV_STRICT, TILT_V8_BAND_CURVE } from "./tilt";
+import { TILT_REV_LIFT, TILT_REV_STRICT, TILT_V9_BAND_CURVE } from "./tilt";
 import { ORBIT_REV_STRICT, ORBIT_REV_XP } from "./orbit";
 import { ORBIT_V12_BAND_CURVE } from "./orbitRev3";
 import { BEAT_REV_200, BEAT_REV_STRICT, BEAT_V9_BAND_CURVE } from "./beat";
@@ -52,7 +52,7 @@ export interface LiveBand {
 export const LIVE_BANDS = {
   balltrack: { field: "btRev", rev: BT_REV_RUSH, curve: BT_V7_BAND_CURVE, strictRev: BT_REV_STRICT },
   wavefront: { field: "wavRev", rev: WAV_REV_EXPAND, curve: WAV_V10_BAND_CURVE, strictRev: WAV_REV_STRICT },
-  flip: { field: "flipRev", rev: FLIP_REV_EXPAND, curve: FLIP_V8_BAND_CURVE, strictRev: FLIP_REV_STRICT },
+  flip: { field: "flipRev", rev: FLIP_REV_LIFT, curve: FLIP_V9_BAND_CURVE, strictRev: FLIP_REV_STRICT },
   inkbridge: { field: "inkRev", rev: INK_REV_EXPAND, curve: INK_V10_BAND_CURVE, strictRev: INK_REV_STRICT },
   matchup: { field: "matchupRev", rev: MATCHUP_REV_GOALS, curve: MATCHUP_V9_BAND_CURVE, strictRev: MATCHUP_REV_STRICT },
   bubble: { field: "bubbleRev", rev: BUB_REV_CREDIT, curve: BUB_V8_BAND_CURVE, strictRev: BUB_REV_STRICT },
@@ -65,7 +65,7 @@ export const LIVE_BANDS = {
   skyline: { field: "skylineRev", rev: SKYLINE_REV_EXPAND, curve: SKYLINE_V7_BAND_CURVE, strictRev: SKYLINE_REV_STRICT },
   junction: { field: "junctionRev", rev: JUNC_REV_BAND, curve: JUNC_BAND_CURVE },
   breaker: { field: "brkRev", rev: BRK_REV_DEEP, curve: BRK_V9_BAND_CURVE, strictRev: BRK_REV_STRICT },
-  tilt: { field: "tiltRev", rev: TILT_REV_EXPAND, curve: TILT_V8_BAND_CURVE, strictRev: TILT_REV_STRICT },
+  tilt: { field: "tiltRev", rev: TILT_REV_LIFT, curve: TILT_V9_BAND_CURVE, strictRev: TILT_REV_STRICT },
   orbit: { field: "orbitRev", rev: ORBIT_REV_XP, curve: ORBIT_V12_BAND_CURVE, strictRev: ORBIT_REV_STRICT },
   beat: { field: "beatRev", rev: BEAT_REV_200, curve: BEAT_V9_BAND_CURVE, strictRev: BEAT_REV_STRICT },
   slice: { field: "sliceRev", rev: SLICE_REV_EXPAND, curve: SLICE_V9_BAND_CURVE, strictRev: SLICE_REV_STRICT },

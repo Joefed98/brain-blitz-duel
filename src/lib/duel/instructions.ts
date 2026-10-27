@@ -64,7 +64,7 @@ import {
   TILT_X_QUICK,
   TILT_X_QUICK_POINTS,
   TILT_X_QUICK_TAIL,
-  TILT_X_SKILL_PAY,
+  TILT_V9_SKILL_PAY,
   TILT_X_STARS,
   TILT_X_STAR_UNITS,
   TILT_X_TWO_FROM,
@@ -117,7 +117,7 @@ import { ORBIT_V12_PACE_FROM, ORBIT_V12_PACE_FULL, ORBIT_V12_SKILL_MAX, ORBIT_V1
 import { CROSS_V9_SKILL_PAY, CROSS_X_BONUS_MAX, CROSS_X_CLOSE_MAX, CROSS_X_CLOSE_POINTS, CROSS_X_COIN_CROSSINGS, CROSS_X_COIN_POINTS, CROSS_X_COINS_PER_RUN } from "@/lib/arcade/cross";
 import { SWING_COMBO_CAP, SWING_FEATURE_CAP, SWING_GATES, SWING_GEMS, SWING_LEDGE_POINTS, SWING_PAR_POINTS, SWING_SKILL_PAY } from "@/lib/arcade/swing";
 import { BRK_V9_COLS, BRK_V9_COMBO_MAX, BRK_V9_COMBO_X2, BRK_V9_COMBO_X3, BRK_V9_GOLD, BRK_V9_GOLD_POINTS, BRK_V9_ROWS, BRK_V9_SKILL_MAX, BRK_V9_SKILL_PAY } from "@/lib/arcade/breaker";
-import { FLIP_V8_COMBO_CAP, FLIP_V8_CP_POINTS, FLIP_V8_FEATURE_CAP, FLIP_V8_SKILL_PAY, FLIP_V8_SWEETS, FLIP_V8_SWEET_POINTS, FLIP_V8_TRAILS, FLIP_V8_TRAIL_POINTS, FLIP_V8_TRAIL_STARS, FLIP_V8_ZONE_POINTS } from "@/lib/arcade/flip";
+import { FLIP_V8_COMBO_CAP, FLIP_V8_CP_POINTS, FLIP_V8_FEATURE_CAP, FLIP_V9_SKILL_PAY, FLIP_V8_SWEETS, FLIP_V8_SWEET_POINTS, FLIP_V8_TRAILS, FLIP_V8_TRAIL_POINTS, FLIP_V8_TRAIL_STARS, FLIP_V8_ZONE_POINTS } from "@/lib/arcade/flip";
 import { bandCurve, type BandCurve } from "@/lib/arcade/scoreBands";
 import { SNIP_X_FEATURE_MAX, SNIP_X_FEED_UNITS, SNIP_X_GOLD_RAW, SNIP_X_LEVELS, SNIP_X_PAR_MARGIN, SNIP_X_PAR_RAW, SNIP_X_PERFECT_RAW, SNIP_X_QUICK_RAW, SNIP_X_RAW_TOP, SNIP_X_SKILL_PAY, SNIP_X_STAR2_RAW, SNIP_X_STAR_UNITS } from "@/lib/arcade/snip";
 import { fillMax, liveRecord, roundMaxFor } from "./roundMax";
@@ -1008,7 +1008,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
       ],
       score: liveBandHelp("flip", "Each half second you last counts 1 and each gold star 3.", {
         more: "More time and stars",
-        finish: `Lasting the full minute adds 10. Skill adds up to ${FLIP_V8_FEATURE_CAP} more: ${FLIP_V8_TRAIL_POINTS} a full star trail, ${FLIP_V8_SWEET_POINTS} a sweet landing, ${FLIP_V8_ZONE_POINTS} a speed zone run through without a save, ${FLIP_V8_CP_POINTS} a checkpoint reached without a crash, and double-flip combo points (up to ${FLIP_V8_COMBO_CAP}). ${skillPayLine(FLIP_V8_SKILL_PAY)}`,
+        finish: `Lasting the full minute adds 10. Skill adds up to ${FLIP_V8_FEATURE_CAP} more: ${FLIP_V8_TRAIL_POINTS} a full star trail, ${FLIP_V8_SWEET_POINTS} a sweet landing, ${FLIP_V8_ZONE_POINTS} a speed zone run through without a save, ${FLIP_V8_CP_POINTS} a checkpoint reached without a crash, and double-flip combo points (up to ${FLIP_V8_COMBO_CAP}). ${skillPayLine(FLIP_V9_SKILL_PAY)}`,
       }),
     },
     junction: {
@@ -1066,7 +1066,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
       goal: "Fly planet to planet to the sun.",
       how: [
         { action: "Tap to let go;", detail: "the next orbit catches you." },
-        { action: "Grab stardust;", detail: "sling through moon rings." },
+        { action: "Grab stardust;", detail: "sling through moon halos." },
         { action: "Thread rock gaps;", detail: "let go on the first lap." },
         { action: "Checkpoint:", detail: "a crash returns you there.", helpOnly: true },
         { action: "Black hole:", detail: "fly in, skip 5-6 planets.", helpOnly: true },
@@ -1076,8 +1076,8 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Black holes:", detail: "about every ten planets a small black hole sits beside one planet. Let go at just the right moment to fly into it and you come out beside a planet 5 or 6 further on and fly into its orbit over about a second; the planets you skip count as reached. A checkpoint you set before the jump still works.", helpOnly: true },
         { action: "Any black hole ahead counts:", detail: "touch one with any part of the rocket on any flight, even from the planet before, and it swallows you; one you have already passed fades out.", helpOnly: true },
         { action: "Stardust:", detail: `${ORBIT_XP_TRAILS} trails of gold motes lie on the best line between some planets. Fly through them to collect them.`, helpOnly: true },
-        { action: "Slingshot moons:", detail: `fly through one of the ${ORBIT_XP_MOONS} small moons' dashed rings without touching the moon and it flings you on at one and a half times the speed. Touching the moon is a crash.`, helpOnly: true },
-        { action: "Asteroid fields:", detail: `${ORBIT_XP_FIELDS} lines of rocks across some hops. Thread the gap in the middle (the dotted line) for a bonus; hitting a rock is a crash.`, helpOnly: true },
+        { action: "Slingshot moons:", detail: `fly through one of the ${ORBIT_XP_MOONS} small moons' soft halos without touching the moon and it flings you on at one and a half times the speed. Touching the moon is a crash.`, helpOnly: true },
+        { action: "Asteroid fields:", detail: `${ORBIT_XP_FIELDS} lines of rocks across some hops. Thread the gap in the middle of the line for a bonus; hitting a rock is a crash.`, helpOnly: true },
         { action: "Perfect orbits:", detail: "let go while the gold arc still shows – during your first lap round the planet – and land in the next orbit.", helpOnly: true },
       ],
       score: liveBandHelp("orbit", "Each planet reached counts 1, and a crash still counts the part of the way to the next planet you flew.", { more: "More planets", good: (u) => `reaches ${u} planets`, finish: `Reaching the sun adds up to 10 for speed: the full 10 with at least half the time left, falling to 0 at the buzzer. Skill adds up to ${ORBIT_V12_SKILL_MAX} more: stardust up to ${ORBIT_XP_DUST_CAP} (all of it for ${ORBIT_XP_DUST_FULL} of the ${ORBIT_XP_TRAILS * ORBIT_XP_MOTES} motes), ${ORBIT_XP_SLING_PTS} for each slingshot (up to ${ORBIT_XP_SLING_CAP}), ${ORBIT_XP_THREAD_PTS} for each field threaded (up to ${ORBIT_XP_THREAD_CAP}) and 1 for every ${ORBIT_XP_PERFECT_PER} perfect orbits (up to ${ORBIT_XP_PERFECT_CAP}). ${skillPayLine(ORBIT_V12_SKILL_PAY)} Without the sun, skill pays at most ${ORBIT_V12_SKILL_PACED_FROM}; the last ${ORBIT_V12_SKILL_MAX - ORBIT_V12_SKILL_PACED_FROM} come for reaching it fast: a share from ${ORBIT_V12_PACE_FROM / 60} s left, all of them with about ${Math.round(ORBIT_V12_PACE_FULL / 60)} s left.` }),
@@ -1131,14 +1131,14 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Drag left or right", detail: "to spin the maze." },
         { action: "Keys open gates;", detail: "quick stars pay early." },
         { action: `From maze ${TILT_X_TWO_FROM}, two marbles,`, detail: "each to its own cup." },
-        { action: "Marbles always roll down.", detail: `${TILT_X_MAZES} big mazes, each bigger than the screen: the view follows the marbles. A marble that falls into a black hole goes back to its start.`, helpOnly: true },
+        { action: "Marbles always roll down.", detail: `${TILT_X_MAZES} mazes, each bigger than the last, always all on screen. A marble that falls into a black hole goes back to its start.`, helpOnly: true },
         { action: "Keys and gates:", detail: "a gate across the way to the cup stays shut until either marble rolls over its key, which waits in a side passage before the gate. A gate and its key share a colour.", helpOnly: true },
         { action: "Quick stars:", detail: `${TILT_X_QUICK} per maze, a few cells into an icy side passage before the gate. Each is worth ${TILT_X_QUICK_POINTS} while its ring is pale gold (until a run at the maze's par pace would reach it), then less as the ring turns amber, and it is gone ${TILT_X_QUICK_TAIL / 60} s later.`, helpOnly: true },
-        { action: "Ice:", detail: "on the frosted cells the marble keeps its speed and slides further, so ease off before a turn or a hole.", helpOnly: true },
+        { action: "Ice:", detail: "on the faintly frosted cells the marble keeps its speed and slides further, so ease off before a turn or a hole.", helpOnly: true },
         { action: "Cups:", detail: "the blue marble goes in the blue cup, the amber marble in the amber cup, which always starts well away from it. Each marble can only leave through the gap by its own cup, and the maze is done when both are in. The marbles roll through each other.", helpOnly: true },
         { action: "Gold stars:", detail: `${TILT_X_STARS === 1 ? "one" : TILT_X_STARS} per maze, a step or two off the route. Roll either marble over ${TILT_X_STARS === 1 ? "it" : "one"} to collect it.`, helpOnly: true },
       ],
-      score: liveBandHelp("tilt", `Each finished maze counts ${TILT_X_MAZE_UNITS}, getting closer to the exit in the maze you are on up to ${TILT_X_PROGRESS} more, and each gold star ${TILT_X_STAR_UNITS}.`, { more: "Further through the mazes and more stars", good: (u) => `counts ${u} – about ${Math.round(u / TILT_X_MAZE_UNITS)} mazes`, finish: `All ${TILT_X_MAZES} mazes adds 10. Skill adds up to 50 more: ${TILT_X_QUICK_POINTS} for each quick star in time, and up to ${TILT_X_PACE_POINTS} for each maze finished at its par (the time its shortest tour of stars and key to the cup takes, so long and short mazes pay alike), none at ${TILT_X_PACE_SLOW / 100}× par. ${skillPayLine(TILT_X_SKILL_PAY)}` }),
+      score: liveBandHelp("tilt", `Each finished maze counts ${TILT_X_MAZE_UNITS}, getting closer to the exit in the maze you are on up to ${TILT_X_PROGRESS} more, and each gold star ${TILT_X_STAR_UNITS}.`, { more: "Further through the mazes and more stars", good: (u) => `counts ${u} – about ${Math.round(u / TILT_X_MAZE_UNITS)} mazes`, finish: `All ${TILT_X_MAZES} mazes adds 10. Skill adds up to 50 more: ${TILT_X_QUICK_POINTS} for each quick star in time, and up to ${TILT_X_PACE_POINTS} for each maze finished at its par (the time its shortest tour of stars and key to the cup takes, so long and short mazes pay alike), none at ${TILT_X_PACE_SLOW / 100}× par. ${skillPayLine(TILT_V9_SKILL_PAY)}` }),
     },
     hotfloor: {
       goal: "Plan a route to the exit before the floor falls.",
@@ -1244,7 +1244,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "A marble rolling into an upright tube", detail: "drops a row.", helpOnly: true },
         { action: "A closed drop on the bottom row", detail: "sends marbles rolling past it (gold →).", helpOnly: true },
         { action: `${BT_V7_BALLS} marbles drop, one about every 1.4 seconds`, detail: "until 49 seconds; the run lasts a minute.", helpOnly: true },
-        { action: "Mid-round the bottom row moves and the cups swap colours;", detail: "a countdown warns you.", helpOnly: true },
+        { action: "Mid-round the bottom row moves and the cups swap colours;", detail: "the count under the board (\"20 to switch up\") gives the seconds to the next switch-up.", helpOnly: true },
       ],
       score: liveBandHelp("balltrack", "Each marble home counts 1.", { more: "More marbles home", good: (u) => `gets ${u} marbles home`, finish: `All ${BT_V7_BALLS} home adds up to 10 for speed: the full 10 if the last marble lands by ${((BT_V7_LAST_LAND_MIN + (3600 - BT_V7_LAST_LAND_MIN) / 2) / 60).toFixed(1)} s, falling to 0 at the buzzer. Gold marbles, boosted marbles and combos add up to ${BT_V7_FEATURE_MAX} more.` }),
     },

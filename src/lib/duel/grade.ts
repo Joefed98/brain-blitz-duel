@@ -77,7 +77,7 @@ import { SWING_REV, SWING_REV_BAND, SWING_REV_TUNED, SWING_REV_TUNEC, SWING_REV_
 import { decodeSnipRun, replaySnipRun } from "./snip";
 import { snipFeatureBonus, SNIP_REV_EXPAND, SNIP_X_MAX } from "@/lib/arcade/snip";
 import { decodeTiltRun, replayTiltRun } from "./tilt";
-import { TILT_REV_EXPAND } from "@/lib/arcade/tilt";
+import { tiltIsExpand } from "@/lib/arcade/tilt";
 import { decodeHotFloorRun, replayHotFloorRun } from "./hotFloor";
 import { replayColourClashRun } from "./colourClash";
 import { clashRev4Finished, clashVariantOf, CLASH_REV, CLASH_REV_TALL, CLASH_REV_BANDS, CLASH_REV_GREAT } from "@/lib/arcade/colourClash";
@@ -2006,7 +2006,7 @@ function gradeUnderRev(
         mazes: run.mazes,
         ...(puzzle.tiltRev ? { tiltRev: puzzle.tiltRev, stars: run.stars, totalStars: run.totalStars } : {}),
         // tiltRev 8 (the expansion): quick stars, falls and the paid skill points.
-        ...(puzzle.tiltRev === TILT_REV_EXPAND ? { quickStars: run.quickStars, totalQuick: run.totalQuick, falls: run.falls, skillPoints: run.skillPoints } : {}),
+        ...(tiltIsExpand(puzzle.tiltRev) ? { quickStars: run.quickStars, totalQuick: run.totalQuick, falls: run.falls, skillPoints: run.skillPoints } : {}),
         survived: run.survived,
         survivedSeconds: run.survivedSeconds,
         endedSeconds: run.endedSeconds,

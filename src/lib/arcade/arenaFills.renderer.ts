@@ -493,16 +493,11 @@ export function wavefrontFill(ctx: CanvasRenderingContext2D, view: ArenaSceneVie
   ctx.fillRect(r.x, r.y, r.w, r.h);
 }
 
-/** 18. Orbit: deep space with light stars under the world (SET CHECKPOINT sits on top, unchanged). */
+/** 18. Orbit: black space with light stars under the world (no coloured nebula since 27 Oct 2026). */
 export function orbitFill(ctx: CanvasRenderingContext2D, view: ArenaSceneView): void {
   const r = fillBelow(view);
   if (!r) return;
-  fillGradient(ctx, r, r.y, r.y + r.h, [[0, "#0E0E24"], [0.5, "#0B0B1C"], [1, "#08080F"]]);
-  const neb = ctx.createRadialGradient(view.worldW * 0.25, r.y + r.h * 0.4, 6, view.worldW * 0.25, r.y + r.h * 0.4, 140);
-  neb.addColorStop(0, "rgba(90,60,150,0.08)");
-  neb.addColorStop(1, "rgba(90,60,150,0)");
-  ctx.fillStyle = neb;
-  ctx.fillRect(r.x, r.y, r.w, r.h);
+  fillGradient(ctx, r, r.y, r.y + r.h, [[0, "#06060F"], [0.5, "#04040A"], [1, "#020205"]]);
   stars(ctx, r, 181, ["#FFFFFF", "#D9E2FF", "#BFD0FF"], 650, 0.42);
 }
 
