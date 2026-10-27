@@ -32,7 +32,7 @@ import {
   BRK_TEAL,
   breakerWorldHFor,
   breakerWorldWFor,
-  BRK_REV_DEEP,
+  BRK_REV_PHONE,
   brkWallSize,
   type BrkState,
 } from "@/lib/arcade/breaker";
@@ -43,7 +43,7 @@ import { NO_SCROLL_STYLE, useNoTouchScroll } from "@/components/puzzles/noScroll
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 import { arcadeCanvasRatio } from "@/lib/fx/lowEnd";
 
-/** Fixed intro still (brkRev 9): the wall with its gold bricks behind armour, a direct shot up a cleared lane, a ×2 combo. */
+/** Fixed intro still (brkRev 9; text brkRev 10): the wall with its gold bricks behind armour, a shot up a cleared lane, a ×2 combo. */
 function IntroExample() {
   const gold = (row: number, col: number) => row === 0 && (col === 1 || col === 4);
   const armour = (row: number, col: number) => row === 1 && (col === 1 || col === 4);
@@ -80,7 +80,7 @@ function IntroExample() {
         </text>
       </svg>
       <p className="text-center text-xs text-muted-foreground">
-        Gold bricks break only on a direct hit; bricks without a paddle touch build a combo.
+        Gold bricks break after 4 hits; bricks without a paddle touch build a combo.
       </p>
     </div>
   );
@@ -410,7 +410,7 @@ export const breakerPuzzle: PuzzleDefinition = {
   category: "arcade",
   timeLimitMs: (BRK_RUN_TICKS / TICKS_PER_SECOND) * 1000 + 3000,
   revealMs: 6_000,
-  generate: () => ({ type: "breaker", seed: 1, brkRev: BRK_REV_DEEP }) satisfies BreakerPuzzleData,
+  generate: () => ({ type: "breaker", seed: 1, brkRev: BRK_REV_PHONE }) satisfies BreakerPuzzleData,
   check: () => false,
   revealHeading: "Your run",
   IntroExample,

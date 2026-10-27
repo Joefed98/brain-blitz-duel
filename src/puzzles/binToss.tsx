@@ -22,7 +22,7 @@ import {
   binTossDrawGhost,
 
   binTossGameFor,
-  BINTOSS_REV_EXPAND,
+  binTossIsExpand,
   BINTOSS_V7_LIFT,
   BINTOSS_V7_WORLD_H,
   BINTOSS_V7_WORLD_W,
@@ -104,7 +104,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const fairSceneKey = useFairSceneKey();
   const binTossGame = binTossGameFor(data?.binRev);
   // binRev 7: the wider, taller fairground and its stronger throw; every phone draws the stored revision's world.
-  const expand = data?.binRev === BINTOSS_REV_EXPAND;
+  const expand = binTossIsExpand(data?.binRev);
   const world = expand ? { w: BINTOSS_V7_WORLD_W, h: BINTOSS_V7_WORLD_H, lift: BINTOSS_V7_LIFT } : { w: BINTOSS_WORLD_W, h: BINTOSS_WORLD_H, lift: 0 };
   const dragOf = (dx: number, dy: number) => binTossDragFor(data?.binRev, dx, dy);
 
@@ -250,6 +250,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
                 rev: before.rev,
                 expand: before.expand,
                 far,
+                farHalf: before.farHalf,
                 tick: state.current.tick,
               };
             }

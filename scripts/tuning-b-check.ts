@@ -223,7 +223,8 @@ section("Breaker brkRev 4 (3.5 s Fireball)");
   // Tuning F (Oct 2026) moved rooms on to brkRev 5 (2.5 s Fireball); arcade-tuning-f-check covers it.
   // Taller worlds batch 1 (16 Oct 2026) moved rooms on to brkRev 6 (the taller court); arcade-tuning-g1-check covers it.
   // Expansion E3 (docs/expansions/e3.md) then moved rooms on to brkRev 9; expansion-e3-check covers it.
-  ok(playRevOf("breaker", generateBreaker().brkRev) === BRK_REV_TUNEF + 4, "new rounds are stamped brkRev 9 (expansion E3, after brkRev 6: brkRev 5 rules on the taller court)");
+  // The phone notes (27 Oct 2026) moved Breaker on to brkRev 10 (expansion-e3-check section 5).
+  ok(playRevOf("breaker", generateBreaker().brkRev) === BRK_REV_TUNEF + 5, "new rounds are stamped brkRev 10 (the phone notes, after expansion E3's brkRev 9 and brkRev 6: brkRev 5 rules on the taller court)");
   ok(BRK_FIRE_TICKS_V4 === 210 && BRK_FIRE_TICKS === 300, "Fireball 3.5 s (210 ticks), was 5 s");
   for (const [rev, want] of [[BRK_REV_TUNED, BRK_FIRE_TICKS_V4], [BRK_REV_BAND, BRK_FIRE_TICKS]] as const) {
     const game = breakerGameFor(rev);
@@ -241,7 +242,7 @@ section("Rally rallyRev 4 (pads never overlap)");
 {
   // Tuning F (Oct 2026) moved rooms on to rallyRev 5 (a second bumper); arcade-tuning-f-check covers it.
   // Expansion E9 (docs/expansions/e9.md) then moved Rally on to rallyRev 10; expansion-e9-check covers it.
-  ok(playRevOf("rally", generateRally().rallyRev) === RALLY_REV_TUNEF + 5, "new rounds are stamped rallyRev 10 (expansion E9, after rallyRev 6: rallyRev 5 pads and bumpers on the taller court)");
+  ok(playRevOf("rally", generateRally().rallyRev) === RALLY_REV_TUNEF + 6, "new rounds are stamped rallyRev 11 (phone notes 27 Oct 2026, after expansion E9's rallyRev 10, after rallyRev 6: rallyRev 5 pads and bumpers on the taller court)");
   const half = Math.trunc(RALLY_WORLD_W / 2);
   const overlap = (s: RallyState) => {
     const [p, q] = (s.live ?? []).map((spot) => rallyTargetLeft(s.spots ?? [], spot));

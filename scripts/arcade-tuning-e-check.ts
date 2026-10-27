@@ -50,7 +50,7 @@ import {
   hoverWorldHFor,
   type HoverState,
 } from "../src/lib/arcade/hover";
-import { skylineGameFor, SKYLINE_REV_BAND, SKYLINE_REV_EXPAND, SKYLINE_REV_TALL, SKYLINE_TALL_H, SKYLINE_WORLD_H, skylineWorldHFor } from "../src/lib/arcade/skyline";
+import { skylineGameFor, SKYLINE_REV_BAND, SKYLINE_REV_EXPAND, SKYLINE_REV_LIFT, SKYLINE_REV_TALL, SKYLINE_TALL_H, SKYLINE_WORLD_H, skylineWorldHFor } from "../src/lib/arcade/skyline";
 import {
   snakeCol,
   snakeGameFor,
@@ -155,7 +155,8 @@ section("New rounds carry the Tuning E stamps; one world per stored revision");
   const stamps: [string, string, number | undefined, number][] = [
     // Tuning F moved Meteor rooms on to snakeRev 6: the same tall grid with more rocks (arcade-tuning-f-check).
     // Expansion E2 (25 Oct 2026) then moved Meteor on to its wider, taller field (snakeRev 9); expansion-e2-check covers it.
-    ["snake", "snakeRev", playRevOf("snake", generateSnake().snakeRev), SNAKE_REV_ROCKS + 3],
+    // Joe's phone notes (27 Oct 2026) then moved it on to snakeRev 10 (the same field); snake-rev10-check covers it.
+    ["snake", "snakeRev", playRevOf("snake", generateSnake().snakeRev), SNAKE_REV_ROCKS + 4],
     // Scrumper rooms moved on to snipRev 6 (the same tall game on a bigger bank; scripts/snip-bank6-check.ts),
     // then snipRev 7 (the same game with every per-pin deal proven; scripts/snip-rev7-check.ts).
     // The 200-point expansion (26 Oct 2026) then moved Scrumper on to its tall courses (snipRev 11); snip-x200-check covers it.
@@ -166,7 +167,7 @@ section("New rounds carry the Tuning E stamps; one world per stored revision");
   ];
   // Expansion E4 (25 Oct 2026) moved High Rise on to skylineRev 7 (e4-expansion-check covers it); its tall world
   // started with skylineRev 4, which stored rounds still play and score on the bands.
-  ok(generateSkyline().skylineRev === SKYLINE_REV_EXPAND, `skyline: rooms deal skylineRev ${SKYLINE_REV_EXPAND} (expansion E4, after skylineRev ${SKYLINE_REV_TALL})`);
+  ok(generateSkyline().skylineRev === SKYLINE_REV_LIFT, `skyline: rooms deal skylineRev ${SKYLINE_REV_LIFT} (expansion E4 on a gentler curve, after skylineRev ${SKYLINE_REV_TALL})`);
   ok(puzzleUsesBands({ type: "skyline", skylineRev: SKYLINE_REV_TALL } as never), `skyline ${SKYLINE_REV_TALL} scores on the bands`);
   for (const [type, field, got, rev] of stamps) {
     ok(got === rev, `${type}: new rounds stamped ${rev} (got ${got})`);

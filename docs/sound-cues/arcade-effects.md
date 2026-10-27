@@ -186,6 +186,11 @@ Already sounded: launch (`orbit.launch`), first checkpoint (`orbit.checkpoint`),
 | `swing.comboPoint` | Every fifth linked swing (swingRev 13) | SWING COMBO ×n streak | `banner.combo.mp3` (volume 0.85) | 0–10 | 500 ms |
 | `swing.sectionClear` | A set-route section's finish flag reached (swingRev 13) | SECTION CLEAR! banner | `done.chimeSweep.mp3` | 0–3 | 600 ms |
 | `swing.parBeaten` | A section finished under its par time (swingRev 13) | "−0.8 s UNDER PAR" pop above the hero (in place of the section chime) | `done.goldPulse.mp3` (shared recording, volume 0.8) | 0–3 | 600 ms |
+| `swing.assaultGate` | A speed gate lit on the assault course (swingRev 14) | SPEED GATE! pop under the hero | `sfx_joulz_zap.mp3` (shared recording, volume 0.8) | 0–4 | 380 ms |
+| `swing.assaultGem` | A gem taken on a harder line (swingRev 14; a miss puts it back) | +GEM pop in cyan at the hero | `sfx_spark_chime.mp3` (shared recording, volume 0.7) | 0–4 | 600 ms |
+| `swing.assaultStar` | A star taken on a tighter swing (swingRev 14; a miss puts it back) | STAR! burst in gold | `sfx_spark_chime.mp3` (shared recording, volume 0.8) | 0–4 | 600 ms |
+| `swing.assaultClear` | A section's landing ledge reached (swingRev 14) | CLEAR! (or "−0.4 s UNDER PAR") pop above the hero | `sfx_count_ding.mp3` (shared recording, volume 0.6) | 0–36 | 487 ms |
+| `swing.assaultCourse` | The last section cleared (swingRev 14) | COURSE CLEARED! banner | `banner.fullClear.mp3` (shared recording) | 0–1 | 1200 ms |
 
 Already sounded: rope catch and anchor flash (`swing.grapple`), star (`swing.starTaken`), dragon (`swing.dragon`), stalactite shake (`swing.rockShake`), stalactite lands and the replays' "dodged" pop (`swing.rockLand`), crash (`swing.crash`).
 
@@ -333,9 +338,9 @@ Already sounded: switch and tube turn (`balltrack.switch`), marble home and cup 
 
 | Cue | Trigger | Looks like | Plays today | Per round | Length |
 |---|---|---|---|---|---|
-| `skyline.floorsStreak` | Every 10th floor | n FLOORS banner | `banner.streak.mp3` · own file `skyline.floors.mp3` (sound batch 4, volume 0.8) | 1–4 | 483 ms |
+| `skyline.floorsStreak` | Every 10th floor | n FLOORS banner | the whoosh, `sky.gust.mp3` (Joe's phone notes, 27 Oct 2026; was `skyline.floors.mp3`, now the perfect drop's; the rev-7 zap no longer stacks on it) | 1–4 | 648 ms |
 | `skyline.windFlag` | The wind flag goes up (skylineRev 2+) | A flag is raised on the top block | `sky.gust.mp3` | 0–1 | 400 ms |
-| `skyline.windPerfect` | A perfect drop in the wind | PERFECT pop at the seam in a gust | `pop.perfect.mp3` · own file `skyline.perfectFit.mp3` (sound batch 4, volume 0.8) | 0–5 | 209 ms |
+| `skyline.windPerfect` | A perfect drop in the wind | PERFECT pop at the seam in a gust | `skyline.floors.mp3` (volume 0.8; Joe's phone notes, 27 Oct 2026: the old every-10-floors sound on every perfect drop; `skyline.perfectFit.mp3` retired) | 0–5 | 483 ms |
 | `skyline.gust` | A gust starts blowing | Gust streaks cross the sky | `sky.gust.mp3` | 2–8 | 600 ms |
 | `skyline.gustWarn` | The flag streams a second before a gust blows | The flag streams and ripples | `ui.warn.mp3` | 2–8 | 500 ms |
 
