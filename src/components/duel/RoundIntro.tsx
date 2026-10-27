@@ -7,7 +7,7 @@ import { useContext, useEffect, useLayoutEffect, useRef, useState, type ReactNod
 import { ChevronLeft } from "lucide-react";
 import { fx } from "@/lib/fx";
 import { roundMusicFor } from "@/lib/fx/theme";
-import { prepareRoundMusic, startMusic, stopMusic, stopMusicIf } from "@/lib/sound";
+import { prepareBeatTrack, prepareRoundMusic, startMusic, stopMusic, stopMusicIf } from "@/lib/sound";
 import { preloadGameArt } from "@/lib/arcade/gameArt.renderer";
 import { preloadGameData, useGameDataReady } from "@/lib/duel/gamePreload";
 
@@ -141,6 +141,8 @@ export function RoundIntro({
   // Rooms preload in starting/round_title; practice keeps its existing entry point.
   useEffect(() => {
     if (practice) prepareRoundMusic(roundMusicFor(type, puzzleDef(type).category));
+    // Tempo's tick-locked track (no round bed): decoded during the intro so it plays from the first frame.
+    if (type === "beat") prepareBeatTrack();
   }, [type, practice]);
 
   // Arcade art: start loading the game's world sprites as the intro begins, so the

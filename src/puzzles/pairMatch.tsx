@@ -20,7 +20,8 @@ import {
 } from "@/lib/duel/types";
 import { buzz } from "@/lib/motion";
 import { playCorrect, playCueSlot, playTone, playWrong } from "@/lib/sound";
-import { isGoldCard, pairDepthReplay, pairUsesDepth } from "@/lib/duel/depth/matchmaker";
+import { PAIR_GOLD_WINDOW_MS, isGoldCard, joinPairGoldTime, pairDepthReplay, pairGoldTimed, pairUsesDepth, splitPairGoldTime } from "@/lib/duel/depth/matchmaker";
+import { serverNow } from "@/lib/duel/clock";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
@@ -152,6 +153,8 @@ function Stage({
   const data: PairPuzzleData | null = puzzle.type === "pairmatch" ? puzzle : null;
   const [flips, setFlips] = useStageState<number[]>(stateKey, "pairFlips", () => []);
   const [open, setOpen] = useStageState<number[]>(stateKey, "pairOpen", () => []);
+  // pairRev 2: the round-clock ms the gold pair was matched (sent with the flips; the server holds it to receipt).
+  const [goldMs, setGoldMs] = useStageState<number | null>(stateKey, "pairGoldMs", () => null);
   const submitted = useRef(false);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const boardRef = useRef<HTMLDivElement>(null);
@@ -160,11 +163,13 @@ function Stage({
   const replay = data ? replayPairs(data.cards, flips) : null;
   const matched = new Set(replay?.matched ?? []);
   // pairRev 1 (Depth to 200): the streak multiplier and the gold pair, walked from the same flips as the server.
-  const depth = data && pairUsesDepth(data) ? pairDepthReplay(data, flips) : null;
+  const depth = data && pairUsesDepth(data) ? pairDepthReplay(data, flips, goldMs) : null;
+  const timedGold = pairGoldTimed(data);
+  const encode = (list: number[], gold: number | null) => (timedGold ? joinPairGoldTime(encodePairFlips(list), gold) : encodePairFlips(list));
 
   useEffect(() => {
-    onDraftAnswer?.(encodePairFlips(flips));
-  }, [flips, onDraftAnswer]);
+    onDraftAnswer?.(timedGold ? joinPairGoldTime(encodePairFlips(flips), goldMs) : encodePairFlips(flips));
+  }, [flips, goldMs, timedGold, onDraftAnswer]);
 
   useEffect(() => () => (timer.current ? clearTimeout(timer.current) : undefined), []);
 
@@ -172,8 +177,8 @@ function Stage({
     if (!data || locked || submitted.current) return;
     if (now < phaseStartedAt + PAIR_TIME_MS - 400) return;
     submitted.current = true;
-    onSubmit(encodePairFlips(flips));
-  }, [now, phaseStartedAt, locked, data, flips, onSubmit]);
+    onSubmit(timedGold ? joinPairGoldTime(encodePairFlips(flips), goldMs) : encodePairFlips(flips));
+  }, [now, phaseStartedAt, locked, data, flips, goldMs, timedGold, onSubmit]);
 
   // Polish batch S: the pairs count goes to the frame's goal line on a live round; the line above the
   // dock keeps the flips (display only).
@@ -193,11 +198,16 @@ function Stage({
     if (nextOpen.length < 2) return;
 
     const [first, second] = nextOpen as [number, number];
+    let nextGoldMs = goldMs;
     if (sameCard(data.cards[first], data.cards[second])) {
       playCorrect();
       rightMoveFlash(card);
+      if (timedGold && nextGoldMs === null && isGoldCard(data, data.cards[second])) {
+        nextGoldMs = Math.max(0, Math.round(serverNow() - phaseStartedAt));
+        setGoldMs(nextGoldMs);
+      }
       if (pairUsesDepth(data)) {
-        const after = pairDepthReplay(data, nextFlips);
+        const after = pairDepthReplay(data, nextFlips, nextGoldMs);
         // The streak's pip climbs with the multiplier; the gold pair plays the board's own wave.
         if (after.streak >= 2) playTone(523 * Math.pow(2, (2 * (Math.min(after.streak, 5) - 2)) / 12), 90, "triangle", 0.16);
         if (isGoldCard(data, data.cards[second])) playCueSlot("pairmatch.cardWave", 0.6);
@@ -207,7 +217,7 @@ function Stage({
         submitted.current = true;
         // Finish effect fires synchronously, then the flips are submitted exactly as before.
         firePairWave(boardRef.current, 6);
-        onSubmit(encodePairFlips(nextFlips));
+        onSubmit(encode(nextFlips, nextGoldMs));
       }
       return;
     }
@@ -244,6 +254,12 @@ function Stage({
                 {" · "}
                 <span data-pair-gold-found="" className="pairmatch-gold-found">gold +{depth.goldBonus}</span>
               </>
+            ) : timedGold && now - phaseStartedAt < PAIR_GOLD_WINDOW_MS ? (
+              <>
+                {" · "}
+                {/* pairRev 2: the gold pair's window, counting down (display only). */}
+                <span data-pair-gold-window="">gold {Math.max(0, Math.ceil((PAIR_GOLD_WINDOW_MS - (now - phaseStartedAt)) / 1000))}s</span>
+              </>
             ) : null}
           </>
         ) : null}
@@ -255,7 +271,7 @@ function Stage({
 function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProps) {
   if (puzzle.type !== "pairmatch") return null;
   const replay = replayPairs(puzzle.cards, decodePairFlips(myAnswer ?? ""));
-  const depth = pairUsesDepth(puzzle) ? pairDepthReplay(puzzle, decodePairFlips(myAnswer ?? "")) : null;
+  const depth = pairUsesDepth(puzzle) ? pairDepthReplay(puzzle, decodePairFlips(myAnswer ?? ""), splitPairGoldTime(myAnswer).goldMs) : null;
   const elapsed =
     myMsRemaining === undefined ? null : Math.round((timeLimitMs - myMsRemaining) / 100) / 10;
   const everything = new Set(Array.from({ length: PAIR_CARDS }, (_, index) => index));
@@ -273,7 +289,7 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: Puz
       </p>
       {depth ? (
         <p data-pair-reveal-bonus="" className="text-center font-mono text-xs text-muted-foreground">
-          Best streak {depth.bestStreak} · streak +{depth.streakBonus} · gold {depth.goldTry !== null ? `try ${depth.goldTry}, +${depth.goldBonus}` : "not found"}
+          Best streak {depth.bestStreak} · streak +{depth.streakBonus} · gold {depth.goldTry !== null ? (depth.goldMs !== null ? `${(depth.goldMs / 1000).toFixed(1)}s, +${depth.goldBonus}` : `try ${depth.goldTry}, +${depth.goldBonus}`) : "not found"}
         </p>
       ) : null}
     </div>

@@ -7,6 +7,10 @@
  * The line follows the finger, wrapping round (five copies of the line slide inside a box clipped to it), and on
  * release settles on the nearest step; only then is the slide recorded. Anchors (the corners, dotted) never move:
  * the edge lines slide their middle three tiles. The board only shows what replayJumbled decided.
+ *
+ * Gradient, tilesRev 4 (27 Oct 2026, Joe's phone notes; jumbled.ts): the round's own colour scheme, and a move is a
+ * swap: tap a tile, then another (or drag one onto another). A tile on its own cell locks and shows the anchors'
+ * dot; a locked tile can't be picked. The board only shows what replayGradient decided.
  */
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent, type ReactElement } from "react";
 
@@ -20,14 +24,18 @@ import {
   JUMBLED_N,
   JUMBLED_RESET,
   JUMBLED_UNDO,
-  decodeJumbled,
+  encodeGradient,
   encodeJumbled,
+  gradientLocked,
+  isGradientSwap,
+  replayGradient,
+  replayGradientAnswer,
   jumbledPalette,
   jumbledProgress,
-  jumbledSlide,
   lineCells,
   replayJumbled,
   solvedJumbled,
+  type GradientSwap,
   type JumbledMove,
   type JumbledToken,
   type LineKind,
@@ -91,10 +99,32 @@ export interface GradientBoardProps {
   celebrate?: boolean;
   /** When set, the board takes drags and reports a finished slide. */
   onSlide?: ((move: JumbledMove) => void) | undefined;
+  /** tilesRev 4: the round's colours (cell by cell); absent = the fixed tilesRev 3 gradient. */
+  palette?: readonly string[] | undefined;
+  /** tilesRev 4: tiles home are locked (dotted like the anchors). */
+  locks?: boolean;
+  /** tilesRev 4: the picked tile's cell. */
+  selected?: number | null;
+  /** tilesRev 4: a tap on a cell, or a drag from one cell onto another (swap mode; no slides). */
+  onTapCell?: ((cell: number) => void) | undefined;
+  onDragSwap?: ((swap: GradientSwap) => void) | undefined;
 }
 
-export function GradientBoard({ frame, size, numbers = false, showHome = false, celebrate = false, onSlide }: GradientBoardProps) {
-  const palette = jumbledPalette();
+export function GradientBoard({
+  frame,
+  size,
+  numbers = false,
+  showHome = false,
+  celebrate = false,
+  onSlide,
+  palette: ownPalette,
+  locks = false,
+  selected = null,
+  onTapCell,
+  onDragSwap,
+}: GradientBoardProps) {
+  const palette = ownPalette ?? jumbledPalette();
+  const swapMode = Boolean(onTapCell);
   const boardRef = useRef<HTMLDivElement | null>(null);
   useNoTouchScroll(boardRef);
   const reduced = usePrefersReducedMotion();
@@ -127,6 +157,15 @@ export function GradientBoard({ frame, size, numbers = false, showHome = false, 
   };
 
   const down = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (swapMode) {
+      const rect = event.currentTarget.getBoundingClientRect();
+      const cell = cellAt(event.clientX - rect.left, event.clientY - rect.top);
+      if (cell === null) return;
+      event.preventDefault();
+      start.current = { x: event.clientX, y: event.clientY, cell, id: event.pointerId };
+      event.currentTarget.setPointerCapture?.(event.pointerId);
+      return;
+    }
     if (!onSlide || dragRef.current?.settling) return;
     const rect = event.currentTarget.getBoundingClientRect();
     const cell = cellAt(event.clientX - rect.left, event.clientY - rect.top);
@@ -138,7 +177,7 @@ export function GradientBoard({ frame, size, numbers = false, showHome = false, 
 
   const move = (event: ReactPointerEvent<HTMLDivElement>) => {
     const s = start.current;
-    if (!s || s.id !== event.pointerId) return;
+    if (!s || s.id !== event.pointerId || swapMode) return;
     const dx = event.clientX - s.x;
     const dy = event.clientY - s.y;
     const current = dragRef.current;
@@ -164,6 +203,15 @@ export function GradientBoard({ frame, size, numbers = false, showHome = false, 
     const s = start.current;
     if (!s || s.id !== event.pointerId) return;
     start.current = null;
+    if (swapMode) {
+      // A tap picks (or swaps with the picked tile); a drag from one tile onto another swaps the two.
+      const rect = event.currentTarget.getBoundingClientRect();
+      const end = cellAt(event.clientX - rect.left, event.clientY - rect.top);
+      const moved = Math.max(Math.abs(event.clientX - s.x), Math.abs(event.clientY - s.y)) >= step / 2;
+      if (moved && end !== null && end !== s.cell && onDragSwap) onDragSwap({ a: s.cell, b: end });
+      else onTapCell?.(s.cell);
+      return;
+    }
     const current = dragRef.current;
     if (!current || current.settling) return;
     const len = lineCells(current.kind, current.index).length;
@@ -199,7 +247,9 @@ export function GradientBoard({ frame, size, numbers = false, showHome = false, 
         data-cell={cell ?? undefined}
         data-tile={t}
         data-home={showHome && home && !isCorner(t) ? "" : undefined}
-        data-anchor={isCorner(t) ? "" : undefined}
+        data-anchor={isCorner(t) || (locks && home) ? "" : undefined}
+        data-locked={locks && home && !isCorner(t) ? "" : undefined}
+        data-selected={cell !== null && cell === selected ? "" : undefined}
         className="tiles-tile jumbled-tile"
         style={{
           ...style,
@@ -264,6 +314,7 @@ export function GradientBoard({ frame, size, numbers = false, showHome = false, 
       onPointerUp={up}
       onPointerCancel={cancel}
       aria-label="Colour gradient board"
+      data-gradient-swap={swapMode ? "" : undefined}
     >
       {frame.map((t, cell) =>
         hidden.has(cell) ? null : tileEl(t, cell, pos(cell), `t${t}`),
@@ -289,7 +340,137 @@ function ParMeter({ moves, par }: { moves: number; par: number }) {
 
 /* ------------------------------------------------------------------ the live stage */
 
-export function GradientStage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, stateKey = "tiles" }: PuzzleStageProps) {
+export function GradientStage(props: PuzzleStageProps) {
+  return isGradientSwap(props.puzzle) ? <GradientSwapStage {...props} /> : <GradientSlideStage {...props} />;
+}
+
+/** tilesRev 4 (Gradient): tap a tile, then another, to swap them; tiles home lock. */
+function GradientSwapStage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, stateKey = "tiles" }: PuzzleStageProps) {
+  const data = puzzle as TilesPuzzleData;
+  const [swaps, setSwaps] = useStageState<GradientSwap[]>(stateKey, "gradientSwaps", () => []);
+  const [selected, setSelected] = useState<number | null>(null);
+  const [numbers, setNumbers] = useState(readNumbers);
+  const submitted = useRef(false);
+  const replay = useMemo(() => replayGradient(data.frame, swaps), [data.frame, swaps]);
+  const par = data.par ?? 0;
+  const celebrate = useSolveMoment(replay.solved, "tiles.solve");
+  const inFrame = useFrameProgress(replay.inPlace, JUMBLED_MOVABLE, "in place");
+  const spaceRef = useRef<HTMLDivElement | null>(null);
+  const space = useGridMetrics(spaceRef, 1, 1);
+  const boardRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    onDraftAnswer?.(encodeGradient(swaps));
+  }, [swaps, onDraftAnswer]);
+
+  useEffect(() => {
+    if (locked || submitted.current) return;
+    if (now < phaseStartedAt + (data.timeLimitMs ?? 120_000) - 400) return;
+    submitted.current = true;
+    onSubmit(encodeGradient(swaps));
+  }, [now, phaseStartedAt, locked, data.timeLimitMs, swaps, onSubmit]);
+
+  const blocked = locked || submitted.current || replay.solved;
+  const tileAt = (cell: number) => boardRef.current?.querySelector(`[data-cell="${cell}"]`);
+
+  const swap = (a: number, b: number) => {
+    setSelected(null);
+    if (blocked) return;
+    if (gradientLocked(replay.frame, a) || gradientLocked(replay.frame, b)) {
+      wrongMoveFlash(tileAt(gradientLocked(replay.frame, a) ? a : b) ?? null);
+      return;
+    }
+    const next = [...swaps, { a, b }];
+    const after = replayGradient(data.frame, next);
+    soundCue("tiles.slide");
+    if (after.inPlace > replay.inPlace) playLock();
+    else playTick(0.6);
+    setSwaps(next);
+    if (after.solved) {
+      submitted.current = true;
+      onSubmit(encodeGradient(next));
+    }
+  };
+
+  const tap = (cell: number) => {
+    if (blocked) return;
+    if (gradientLocked(replay.frame, cell)) {
+      // A locked tile (home, or a corner anchor) can't be picked.
+      wrongMoveFlash(tileAt(cell) ?? null);
+      return;
+    }
+    hapticTick();
+    if (selected === null) setSelected(cell);
+    else if (selected === cell) setSelected(null);
+    else swap(selected, cell);
+  };
+
+  useGameKeys((kind, key) => {
+    if (key !== "Escape" || kind !== "down") return false;
+    setSelected(null);
+    return true;
+  });
+
+  const toggleNumbers = () => {
+    setNumbers((on) => {
+      writeNumbers(!on);
+      return !on;
+    });
+  };
+
+  const size = space ? Math.max(0, Math.floor(Math.min(space.width, space.height, 460))) : 0;
+  const overPar = replay.moves > par;
+
+  return (
+    <div data-stage-column="3" data-polish="tiles-gradient" className="flex min-h-0 flex-1 flex-col items-center gap-2">
+      <div ref={spaceRef} data-game-arena="board" className="jumbled-arena flex min-h-0 w-full flex-1 items-center justify-center">
+        <div ref={boardRef}>
+          {size ? (
+            <GradientBoard
+              frame={replay.frame}
+              size={size}
+              numbers={numbers}
+              showHome
+              celebrate={celebrate}
+              palette={jumbledPalette(data)}
+              locks
+              selected={selected}
+              onTapCell={blocked ? undefined : tap}
+              onDragSwap={blocked ? undefined : (s) => swap(s.a, s.b)}
+            />
+          ) : null}
+        </div>
+      </div>
+      {inFrame ? (
+        <LiveSummary
+          items={[
+            <SummaryItem key="moves" label="Swaps" value={replay.moves} warn={overPar} />,
+            <SummaryItem key="par" label="Par" value={par} />,
+            <ParMeter key="meter" moves={replay.moves} par={par} />,
+          ]}
+        />
+      ) : (
+        <p data-after-arena data-game-controls="status" className="shrink-0 font-mono text-xs uppercase tracking-widest text-muted-foreground">
+          swaps <span className="text-primary">{replay.moves}</span> · par <span className="text-primary">{par}</span>
+        </p>
+      )}
+      <div data-game-controls="actions" className="flex shrink-0 gap-3 px-2">
+        <button
+          type="button"
+          aria-pressed={numbers}
+          aria-label="Show tile numbers"
+          onClick={toggleNumbers}
+          className="jumbled-numbers-toggle h-11 w-14 rounded-xl border border-border bg-card font-mono text-sm font-bold text-foreground"
+        >
+          123
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/** tilesRev 3: row and column slides. */
+function GradientSlideStage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, stateKey = "tiles" }: PuzzleStageProps) {
   const data = puzzle as TilesPuzzleData;
   const [tokens, setTokens] = useStageState<JumbledToken[]>(stateKey, "jumbledMoves", () => []);
   const [numbers, setNumbers] = useState(readNumbers);
@@ -402,7 +583,8 @@ export function GradientStage({ puzzle, phaseStartedAt, now, locked, onSubmit, o
 
 export function GradientReveal({ puzzle, myAnswer, myCorrect, scoreParts }: PuzzleRevealProps) {
   const data = puzzle as TilesPuzzleData;
-  const replay = replayJumbled(data.frame, decodeJumbled(myAnswer ?? ""));
+  const replay = replayGradientAnswer(data, myAnswer);
+  const swaps = isGradientSwap(data);
   const spaceRef = useRef<HTMLDivElement | null>(null);
   const space = useGridMetrics(spaceRef, 1, 1);
   const size = space ? Math.max(0, Math.floor(Math.min(space.width, space.height, 300))) : 0;
@@ -411,11 +593,11 @@ export function GradientReveal({ puzzle, myAnswer, myCorrect, scoreParts }: Puzz
   return (
     <div className="tiles-reveal jumbled-reveal flex min-h-0 w-full flex-1 flex-col items-center justify-start gap-3" data-jumbled-reveal="">
       <div ref={spaceRef} className="jumbled-reveal-space">
-        {size ? <GradientBoard frame={replay.solved ? solvedJumbled() : replay.frame} size={size} /> : null}
+        {size ? <GradientBoard frame={replay.solved ? solvedJumbled() : replay.frame} size={size} palette={jumbledPalette(data)} locks={swaps && !replay.solved} /> : null}
       </div>
       <p className={`whitespace-normal break-words text-center font-mono text-base font-bold ${myCorrect ? "text-primary" : "text-foreground"}`}>
         {replay.solved
-          ? `Solved in ${replay.moves} moves · par ${par}${data.minMoves ? ` · best ${data.minMoves}` : ""}`
+          ? `Solved in ${replay.moves} ${swaps ? "swaps" : "moves"} · par ${par}${data.minMoves ? ` · best ${data.minMoves}` : ""}`
           : `${replay.inPlace} / ${JUMBLED_MOVABLE} in place · ${Math.round(jumbledProgress(data.frame, replay.frame) * 100)} % rebuilt`}
       </p>
       {parts ? <p className="font-mono text-base text-primary">{parts}</p> : null}
@@ -425,24 +607,36 @@ export function GradientReveal({ puzzle, myAnswer, myCorrect, scoreParts }: Puzz
 
 /* ------------------------------------------------------------------ intro still */
 
-/** A fixed example (never randomised): row 2 slid one step left puts it back in the gradient. */
-const INTRO_MOVE: JumbledMove = { kind: "R", index: 2, shift: 1 };
+/**
+ * Gradient's intro still (tilesRev 4; fixed, never randomised): one of the round colour schemes, two tiles swapped,
+ * and the board after the swap with both locked.
+ */
+const INTRO_PALETTE: readonly string[] = [
+  "#482501", "#6d3919", "#914f37", "#b76755", "#df7f74", "#672e21", "#87453b", "#a95d57", "#cc7674", "#f09091",
+  "#843941", "#a2525b", "#c16c76", "#e18692", "#ffa4b0", "#a24261", "#be5e7a", "#da7a95", "#f796b0", "#fdc1cf",
+  "#c14c81", "#db6a9a", "#f488b4", "#fdb1ce", "#fedbe7",
+];
+const INTRO_SWAP: GradientSwap = { a: 7, b: 17 };
 const INTRO_AFTER = solvedJumbled();
-const INTRO_BEFORE = jumbledSlide(INTRO_AFTER, { kind: "R", index: 2, shift: JUMBLED_N - 1 });
+const INTRO_BEFORE = (() => {
+  const f = solvedJumbled();
+  [f[INTRO_SWAP.a], f[INTRO_SWAP.b]] = [f[INTRO_SWAP.b]!, f[INTRO_SWAP.a]!];
+  return f;
+})();
 
 export function GradientIntroExample() {
   return (
     <div className="flex w-full flex-col items-center gap-2" data-jumbled-intro="">
       <div className="flex items-center gap-3">
-        <GradientBoard frame={INTRO_BEFORE} size={124} />
+        <GradientBoard frame={INTRO_BEFORE} size={124} palette={INTRO_PALETTE} locks selected={INTRO_SWAP.a} />
         <span className="font-mono text-xs text-muted-foreground">→</span>
-        <GradientBoard frame={jumbledSlide(INTRO_BEFORE, INTRO_MOVE)} size={124} />
+        <GradientBoard frame={INTRO_AFTER} size={124} palette={INTRO_PALETTE} locks />
       </div>
       <p className="text-center text-xs text-muted-foreground">
-        Swiping the middle row one step right wraps its last tile round and rebuilds the gradient. The dotted corners never move.
+        Tap two tiles to swap them. A tile in its right place locks (dotted) and can't move. Every round has new colours.
       </p>
     </div>
   );
 }
 
-export const JUMBLED_INTRO = { before: INTRO_BEFORE, move: INTRO_MOVE, after: INTRO_AFTER };
+export const JUMBLED_INTRO = { before: INTRO_BEFORE, swap: INTRO_SWAP, after: INTRO_AFTER };

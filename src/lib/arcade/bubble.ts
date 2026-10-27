@@ -171,6 +171,8 @@ export interface BubState extends BandFields {
   reef?: number;
   /** bubbleRev 9: base units credit a quarter of the bubbles burst or dropped (bubbleReefParts). */
   credit?: number;
+  /** bubbleRev 10 only (phone notes, 27 Oct 2026): the mine's blast radius in hex rings (BUB_V10_BOMB_RADIUS). Absent = BUB_BOMB_RADIUS. */
+  bombR?: number;
   chests?: number;
   banks?: number;
   combos?: number;
@@ -307,10 +309,10 @@ function hexArea(start: number, radius: number, rows = BUB_MAX_ROWS): number[] {
  * Returns the cells it clears (field bubbles only; the special itself is never
  * counted) and the colour a Joker keeps if it pops nothing (0 = removed).
  */
-function resolveSpecial(grid: number[], landed: number, kind: number): { cleared: number[]; keep: number } {
+function resolveSpecial(grid: number[], landed: number, kind: number, bombRadius = BUB_BOMB_RADIUS): { cleared: number[]; keep: number } {
   const row = Math.floor(landed / BUB_COLS);
   if (kind === BUB_BOMB) {
-    return { cleared: hexArea(landed, BUB_BOMB_RADIUS, bubRowsOf(grid)).filter((i) => i !== landed && grid[i]! > 0), keep: 0 };
+    return { cleared: hexArea(landed, bombRadius, bubRowsOf(grid)).filter((i) => i !== landed && grid[i]! > 0), keep: 0 };
   }
   if (kind === BUB_LINE) {
     const cleared: number[] = [];
@@ -574,7 +576,8 @@ function step(state: BubState, input: ArcadeInputEvent | null): BubState {
       grid[landed] = kind;
       next.flightColour = 0;
       next.shots = next.shots + 1;
-      const { cleared, keep } = resolveSpecial(grid, landed, kind);
+      // bubbleRev 10: the mine's bigger blast (state.bombR); every earlier stamp keeps BUB_BOMB_RADIUS.
+      const { cleared, keep } = resolveSpecial(grid, landed, kind, next.bombR ?? BUB_BOMB_RADIUS);
       for (const index of cleared) grid[index] = 0;
       grid[landed] = keep;
       // A Joker that popped groups counts itself among the popped, as a matching shot does.
@@ -798,6 +801,8 @@ export function bubCheckpoint(state: BubState): BubCheckpoint {
   if (state.worldH) extra.push(state.worldH);
   // bubbleRev 8 (the deeper reef): its feature counters, last.
   if (state.reef) extra.push(state.reef, state.chests ?? 0, state.banks ?? 0, state.combos ?? 0, state.streak ?? 0, state.bounce ?? 0);
+  // bubbleRev 10 (phone notes): the mine's blast radius, last.
+  if (state.bombR) extra.push(state.bombR);
   for (const value of [...Object.values(snapshot), ...extra]) {
     checksum ^= value | 0;
     checksum = Math.imul(checksum, 0x01000193) >>> 0;
@@ -982,6 +987,7 @@ export const bubbleRev2Game: ArcadeGame<BubState, ArcadeInputEvent | null> = { .
 
 /** The game for a stored round: its bubbleRev picks the rules (absent = original). */
 export function bubbleGameFor(rev?: number | null): ArcadeGame<BubState, ArcadeInputEvent | null> {
+  if (rev === BUB_REV_BLAST) return bubbleBlastGame;
   if (rev === BUB_REV_CREDIT) return bubbleCreditGame;
   if (rev === BUB_REV_REEF) return bubbleReefGame;
   if (rev === BUB_REV_STRICT) return bubbleStrictGame;
@@ -1099,7 +1105,7 @@ export const bubbleTallGame: ArcadeGame<BubState, ArcadeInputEvent | null> = {
 
 /** The tank height (px) a stored round's bubbleRev plays in. */
 export function bubbleWorldHFor(rev?: number | null): number {
-  return rev === BUB_REV_TALL || rev === BUB_REV_TARGET || rev === BUB_REV_STRICT || rev === BUB_REV_REEF || rev === BUB_REV_CREDIT ? BUB_TALL_H : BUB_WORLD_H;
+  return rev === BUB_REV_TALL || rev === BUB_REV_TARGET || rev === BUB_REV_STRICT || rev === BUB_REV_REEF || rev === BUB_REV_CREDIT || rev === BUB_REV_BLAST ? BUB_TALL_H : BUB_WORLD_H;
 }
 
 /* ================= Scoring targets (bubbleRev 6, 18 Oct 2026) ================= */
@@ -1272,4 +1278,25 @@ export const BUB_V9_CREDIT_PER = 4;
 export const bubbleCreditGame: ArcadeGame<BubState, ArcadeInputEvent | null> = {
   ...bubbleReefGame,
   init: (seed) => ({ ...initReef(seed), credit: 1 }),
+};
+
+/* ================= bubbleRev 10 (27 Oct 2026): the mine's bigger blast ================= */
+
+/**
+ * bubbleRev 10 (Joe's phone-test notes, docs/phone-notes-oct-2026/bubble.md): bubbleRev 9 exactly (reef, queue,
+ * features, credit and curves), with the mine (BUB_BOMB) clearing every bubble within BUB_V10_BOMB_RADIUS hex rings
+ * of where it lands (18 cells) instead of one ring (6). The queue is unchanged, so the mine comes at the same shot for
+ * every player. States add `bombR` (folded into the checkpoint checksum last).
+ */
+export const BUB_REV_BLAST = 10;
+export const BUB_V10_BOMB_RADIUS = 2;
+
+/** The mine's blast radius (hex rings) a state plays with. */
+export function bubBombRadius(state: { bombR?: number }): number {
+  return state.bombR ?? BUB_BOMB_RADIUS;
+}
+
+export const bubbleBlastGame: ArcadeGame<BubState, ArcadeInputEvent | null> = {
+  ...bubbleCreditGame,
+  init: (seed) => ({ ...bubbleCreditGame.init(seed), bombR: BUB_V10_BOMB_RADIUS }),
 };

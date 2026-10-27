@@ -46,7 +46,7 @@ const SHORT_GOALS: Partial<Record<PuzzleType, string>> = {
   numpyramid: "Each cell is the sum of the two below",
   trail: "One path from 1 to 36 through every square",
   gravity: "Roll every ball into its hole",
-  tiles: "Slide lines to rebuild the gradient",
+  tiles: "Swap tiles to rebuild the gradient",
   tilegrid: "Build a mini crossword",
   target: "Use the numbers to make the target",
   equation: "Make each equation true",

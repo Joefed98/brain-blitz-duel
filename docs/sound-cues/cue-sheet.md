@@ -104,12 +104,6 @@ Grouped by game or screen. These are the cues still missing a sound.
 |---|---|---|---|---|---|---|---|---|
 | `tendrop.refused` | a ÷ or − tile is refused [number.md] |  | 5–40 (per move) | silent | none | 300 | fail sting | `tendrop.refused` |
 
-### Trail
-
-| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
-|---|---|---|---|---|---|---|---|---|
-| `trail.step` | the path gains a step [number.md] |  | 5–40 (per move) | silent | none | 200 | game event | `trail.step` |
-
 ### Pull!
 
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
@@ -138,57 +132,57 @@ Grouped by game or screen. These are the cues still missing a sound.
 |---|---|---|---|---|---|---|---|---|
 | `stroop.gatePulse` | Mixed Signals: A word lands in a gate (white pulse if right, grey if wrong) [speed-attention.md] |  | 5–40 (per move) | silent | none | 300 | game event | `stroop.gatePulse` |
 
+### Gradient
+
+| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
+|---|---|---|---|---|---|---|---|---|
+| `tiles.slide` | A tile changes cell (a slide or an undo) [pattern.md (Jumbled (tiles))] |  | 5–40 (per move) | silent | none | 160 | game event | `tiles.slide` |
+
 ### Gridlock
 
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
 |---|---|---|---|---|---|---|---|---|
-| `unblock.solve` | The solving drop: the gold car revs back and drives out through the exit with speed streaks [pattern.md (Gridlock (unblock))] |  | 0–1 | silent | none | 1160 | success sting | `unblock.solve` |
+| `unblock.solve` | The solving drop: the gold car revs back and drives out through the exit with speed streaks [pattern.md (Gridlock (unblock))] |  | 0–1 | silent | none | 1160 | success sting | `unblock.solve` |
 
 ### Heave
 
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
 |---|---|---|---|---|---|---|---|---|
-| `push.step` | A walking step [pattern.md (Heave (push))] |  | 5–40 (per move) | silent | none | 120 | game event | `push.step` |
-| `push.push` | A step that pushes a crate [pattern.md (Heave (push))] |  | 5–40 (per move) | silent | none | 120 | game event | `push.push` |
-
-### Jumbled
-
-| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
-|---|---|---|---|---|---|---|---|---|
-| `tiles.slide` | A tile changes cell (a slide or an undo) [pattern.md (Jumbled (tiles))] |  | 5–40 (per move) | silent | none | 160 | game event | `tiles.slide` |
+| `push.step` | A walking step [pattern.md (Heave (push))] |  | 5–40 (per move) | silent | none | 120 | game event | `push.step` |
+| `push.push` | A step that pushes a crate [pattern.md (Heave (push))] |  | 5–40 (per move) | silent | none | 120 | game event | `push.push` |
 
 ### Lightbender
 
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
 |---|---|---|---|---|---|---|---|---|
-| `laser.place` | A mirror or splitter is placed or moved [pattern.md (Lightbender (laser))] |  | 5–40 (per move) | silent | none | 180 | UI tap | `laser.place` |
-| `laser.turn` | A placed mirror is flipped [pattern.md (Lightbender (laser))] |  | 5–40 (per move) | silent | none | 180 | game event | `laser.turn` |
-| `laser.fire` | The beam starts [pattern.md (Lightbender (laser))] |  | 5–40 (per move) | silent | none | 2000 | game event | `laser.fire` |
-| `laser.gem` | One or more gems light during a shot [pattern.md (Lightbender (laser))] |  | 5–40 (per move) | silent | none | 260 | game event | `laser.gem` |
+| `laser.place` | A mirror or splitter is placed or moved [pattern.md (Lightbender (laser))] |  | 5–40 (per move) | silent | none | 180 | UI tap | `laser.place` |
+| `laser.turn` | A placed mirror is flipped [pattern.md (Lightbender (laser))] |  | 5–40 (per move) | silent | none | 180 | game event | `laser.turn` |
+| `laser.fire` | The beam starts [pattern.md (Lightbender (laser))] |  | 5–40 (per move) | silent | none | 2000 | game event | `laser.fire` |
+| `laser.gem` | One or more gems light during a shot [pattern.md (Lightbender (laser))] |  | 5–40 (per move) | silent | none | 260 | game event | `laser.gem` |
 
 ### Pipeline
 
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
 |---|---|---|---|---|---|---|---|---|
-| `pipes.rotate` | Each tile tap (a quarter turn) [pattern.md (Pipeline (pipes))] |  | 5–40 (per move) | silent | none | 170 | game event | `pipes.rotate` |
+| `pipes.rotate` | Each tile tap (a quarter turn) [pattern.md (Pipeline (pipes))] |  | 5–40 (per move) | silent | none | 170 | game event | `pipes.rotate` |
 
 ### Skid
 
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
 |---|---|---|---|---|---|---|---|---|
-| `iceslide.slide` | A slide starts (the ball and its frost trail move) [pattern.md (Skid (iceslide))] |  | 5–40 (per move) | silent | none | 100 | game event | `iceslide.slide` |
+| `iceslide.slide` | A slide starts (the ball and its frost trail move) [pattern.md (Skid (iceslide))] |  | 5–40 (per move) | silent | none | 100 | game event | `iceslide.slide` |
 
 ### Topsy-Turvy
 
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
 |---|---|---|---|---|---|---|---|---|
-| `gravity.tilt` | An arrow press tilts the tray and the balls roll [pattern.md (Topsy-Turvy (gravity))] |  | 5–40 (per move) | silent | none | 200 | game event | `gravity.tilt` |
+| `gravity.tilt` | An arrow press tilts the tray and the balls roll [pattern.md (Topsy-Turvy (gravity))] |  | 5–40 (per move) | silent | none | 200 | game event | `gravity.tilt` |
 
 ### Turntable
 
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
 |---|---|---|---|---|---|---|---|---|
-| `rings.turn` | A turn: the ring rotates and every linked ring that moved flashes [pattern.md (Turntable (rings))] |  | 5–40 (per move) | silent | none | 210 | game event | `rings.turn` |
+| `rings.turn` | A turn: the ring rotates and every linked ring that moved flashes [pattern.md (Turntable (rings))] |  | 5–40 (per move) | silent | none | 210 | game event | `rings.turn` |
 
 ### Blackout
 
@@ -259,6 +253,12 @@ Grouped by game or screen. These are the cues still missing a sound.
 |---|---|---|---|---|---|---|---|---|
 | `tents.pitch` | A tent is placed [logic.md] |  | 5–40 (per move) | silent | none | 240 | game event | `tents.pitch` |
 | `tents.grass` | A cell is marked as grass [logic.md] |  | 5–40 (per move) | silent | none | 200 | game event | `tents.grass` |
+
+### Trail
+
+| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
+|---|---|---|---|---|---|---|---|---|
+| `trail.step` | the path gains a step [number.md] |  | 5–40 (per move) | silent | none | 200 | game event | `trail.step` |
 
 ### Bastion
 
@@ -347,7 +347,6 @@ Grouped by game or screen. These are the cues still missing a sound.
 | Integer Pyramid | number | yes | music_number_2 (shared) | `music_number_numpyramid` |
 | Operator | number | yes | music_number_1 (shared) | `music_number_equation` |
 | Tenfall | number | yes | music_number_3 (shared) | `music_number_tendrop` |
-| Trail | number | yes | music_number_3 (shared) | `music_number_trail` |
 | Ascend | speed | yes | music_speed_2 (shared) | `music_speed_numhunt` |
 | Bang On | speed | yes | music_speed_1 (shared) | `music_speed_stopwatch` |
 | Bonk | speed | yes | music_speed_3 (shared) | `music_speed_whack` |
@@ -361,9 +360,9 @@ Grouped by game or screen. These are the cues still missing a sound.
 | Mixed Signals | attention | yes | music_attention_3 (shared) | `music_attention_stroop` |
 | Tally | attention | yes | music_attention_1 (shared) | `music_attention_countup` |
 | Chroma Lines | pattern | yes | music_logic_2 (shared) | `music_pattern_flow` |
+| Gradient | pattern | yes | music_pattern_1 (shared) | `music_pattern_tiles` |
 | Gridlock | pattern | yes | music_pattern_2 (shared) | `music_pattern_unblock` |
 | Heave | pattern | yes | music_logic_3 (shared) | `music_pattern_push` |
-| Jumbled | pattern | yes | music_pattern_1 (shared) | `music_pattern_tiles` |
 | Lightbender | pattern | yes | music_pattern_3 (shared) | `music_pattern_laser` |
 | Pipeline | pattern | yes | music_logic_2 (shared) | `music_pattern_pipes` |
 | Skid | pattern | yes | music_pattern_2 (shared) | `music_pattern_iceslide` |
@@ -382,6 +381,7 @@ Grouped by game or screen. These are the cues still missing a sound.
 | Safe Cracker | logic | yes | music_logic_2 (shared) | `music_logic_safe` |
 | Shikaku | logic | yes | music_logic_1 (shared) | `music_logic_shikaku` |
 | Tents and Trees | logic | yes | music_logic_1 (shared) | `music_logic_tents` |
+| Trail | logic | yes | music_logic_3 (shared) | `music_logic_trail` |
 | Ball Tracker | arcade | yes | music_balltrack | `music_balltrack` |
 | Bastion | arcade | practice only | **none** | `music_bastion` |
 | Breaker | arcade | yes | music_breaker | `music_breaker` |
@@ -832,13 +832,6 @@ Grouped by game or screen.
 | `tendrop.solve` | all ten targets cleared: last target bursts, remaining tiles shimmer [number.md] |  | 0–1 | recorded sound | `tendrop.solve` | 1200 | success sting | `tendrop.solve` |
 | `music.tendrop` | Tenfall round bed: music_number_3 (number bed shared with other games) |  | loop | recorded sound | `music_number_3` (shared) | 60000 | music | `music_number_tendrop` |
 
-### Trail
-
-| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
-|---|---|---|---|---|---|---|---|---|
-| `trail.solve` | the trail is complete [number.md] |  | 0–1 | recorded sound | `trail.solve` | 1150 | success sting | `trail.solve` |
-| `music.trail` | Trail round bed: music_number_3 (number bed shared with other games) |  | loop | recorded sound | `music_number_3` (shared) | 60000 | music | `music_number_trail` |
-
 ### Ascend
 
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
@@ -957,32 +950,32 @@ Grouped by game or screen.
 
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
 |---|---|---|---|---|---|---|---|---|
-| `flow.connect` | A pair is joined and a pulse runs along it (not on the solving join) [pattern.md (Chroma Lines (flow))] |  | 5–40 (per move) | recorded sound | `flow.connect` | 460 | game event | `flow.connect` |
-| `flow.solve` | Each path pulses end to end in its colour, then the board glows [pattern.md (Chroma Lines (flow))] |  | 0–1 | recorded sound | `flow.solve` | 1150 | success sting | `flow.solve` |
+| `flow.connect` | A pair is joined and a pulse runs along it (not on the solving join) [pattern.md (Chroma Lines (flow))] |  | 5–40 (per move) | recorded sound | `flow.connect` | 460 | game event | `flow.connect` |
+| `flow.solve` | Each path pulses end to end in its colour, then the board glows [pattern.md (Chroma Lines (flow))] |  | 0–1 | recorded sound | `flow.solve` | 1150 | success sting | `flow.solve` |
 | `music.flow` | Chroma Lines round bed: music_logic_2 (pattern bed shared with other games) |  | loop | recorded sound | `music_logic_2` (shared) | 60000 | music | `music_pattern_flow` |
+
+### Gradient
+
+| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
+|---|---|---|---|---|---|---|---|---|
+| `tiles.solve` | The colour ramp flows across the tiles from 1 to 8, then the gap glows [pattern.md (Jumbled (tiles))] |  | 0–1 | recorded sound | `tiles.solve` | 980 | success sting | `tiles.solve` |
+| `music.tiles` | Gradient round bed: music_pattern_1 (pattern bed shared with other games) |  | loop | recorded sound | `music_pattern_1` (shared) | 60000 | music | `music_pattern_tiles` |
 
 ### Gridlock
 
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
 |---|---|---|---|---|---|---|---|---|
 | `pz_car_escape` | Gridlock: The gold car drives out (solve) [core.md] |  | 0–1 | recorded sound | `pz_car_escape` | 2470 | game event | `pz_car_escape` |
-| `unblock.slide` | A car settles into a new bay (each kept move, each undo, a reset with moves to undo) [pattern.md (Gridlock (unblock))] |  | 5–40 (per move) | recorded sound | `unblock.slide` | 170 | game event | `unblock.slide` |
+| `unblock.slide` | A car settles into a new bay (each kept move, each undo, a reset with moves to undo) [pattern.md (Gridlock (unblock))] |  | 5–40 (per move) | recorded sound | `unblock.slide` | 170 | game event | `unblock.slide` |
 | `music.unblock` | Gridlock round bed: music_pattern_2 (pattern bed shared with other games) |  | loop | recorded sound | `music_pattern_2` (shared) | 60000 | music | `music_pattern_unblock` |
 
 ### Heave
 
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
 |---|---|---|---|---|---|---|---|---|
-| `push.home` | A crate lands on a marking: it thumps and kicks up dust (not on the solving push) [pattern.md (Heave (push))] |  | 5–40 (per move) | recorded sound | `push.home` | 300 | game event | `push.home` |
-| `push.solve` | The crates thump in turn and the warehouse lights switch on in a row [pattern.md (Heave (push))] |  | 0–1 | recorded sound | `push.solve` | 1200 | success sting | `push.solve` |
+| `push.home` | A crate lands on a marking: it thumps and kicks up dust (not on the solving push) [pattern.md (Heave (push))] |  | 5–40 (per move) | recorded sound | `push.home` | 300 | game event | `push.home` |
+| `push.solve` | The crates thump in turn and the warehouse lights switch on in a row [pattern.md (Heave (push))] |  | 0–1 | recorded sound | `push.solve` | 1200 | success sting | `push.solve` |
 | `music.push` | Heave round bed: music_logic_3 (pattern bed shared with other games) |  | loop | recorded sound | `music_logic_3` (shared) | 60000 | music | `music_pattern_push` |
-
-### Jumbled
-
-| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
-|---|---|---|---|---|---|---|---|---|
-| `tiles.solve` | The colour ramp flows across the tiles from 1 to 8, then the gap glows [pattern.md (Jumbled (tiles))] |  | 0–1 | recorded sound | `tiles.solve` | 980 | success sting | `tiles.solve` |
-| `music.tiles` | Jumbled round bed: music_pattern_1 (pattern bed shared with other games) |  | loop | recorded sound | `music_pattern_1` (shared) | 60000 | music | `music_pattern_tiles` |
 
 ### Lightbender
 
@@ -990,36 +983,36 @@ Grouped by game or screen.
 |---|---|---|---|---|---|---|---|---|
 | `pz_laser_gem` | Lightbender: The beam reaches a gem (pitched up gem by gem) [core.md] |  | 3–8 | recorded sound | `pz_laser_gem` | 1012 | game event | `pz_laser_gem` |
 | `pz_laser_split` | Lightbender: The beam reaches a splitter [core.md] |  | 0–4 | recorded sound | `pz_laser_split` | 1042 | game event | `pz_laser_split` |
-| `laser.bomb` | The beam hits a bomb [pattern.md (Lightbender (laser))] |  | 5–40 (per move) | recorded sound | `laser.bomb` | 420 | game event | `laser.bomb` |
-| `laser.solve` | The beam flares to full and the gems burst with light in beam order [pattern.md (Lightbender (laser))] |  | 0–1 | recorded sound | `laser.solve` | 1150 | success sting | `laser.solve` |
+| `laser.bomb` | The beam hits a bomb [pattern.md (Lightbender (laser))] |  | 5–40 (per move) | recorded sound | `laser.bomb` | 420 | game event | `laser.bomb` |
+| `laser.solve` | The beam flares to full and the gems burst with light in beam order [pattern.md (Lightbender (laser))] |  | 0–1 | recorded sound | `laser.solve` | 1150 | success sting | `laser.solve` |
 | `music.laser` | Lightbender round bed: music_pattern_3 (pattern bed shared with other games) |  | loop | recorded sound | `music_pattern_3` (shared) | 60000 | music | `music_pattern_laser` |
 
 ### Pipeline
 
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
 |---|---|---|---|---|---|---|---|---|
-| `pipes.flow` | Water reaches more pipes after a turn (not on the solve) [pattern.md (Pipeline (pipes))] |  | 5–40 (per move) | recorded sound | `pipes.flow` | 220 | game event | `pipes.flow` |
-| `pipes.solve` | Water rushes from the source through every pipe [pattern.md (Pipeline (pipes))] |  | 0–1 | recorded sound | `pipes.solve` | 1200 | success sting | `pipes.solve` |
+| `pipes.flow` | Water reaches more pipes after a turn (not on the solve) [pattern.md (Pipeline (pipes))] |  | 5–40 (per move) | recorded sound | `pipes.flow` | 220 | game event | `pipes.flow` |
+| `pipes.solve` | Water rushes from the source through every pipe [pattern.md (Pipeline (pipes))] |  | 0–1 | recorded sound | `pipes.solve` | 1200 | success sting | `pipes.solve` |
 | `music.pipes` | Pipeline round bed: music_logic_2 (pattern bed shared with other games) |  | loop | recorded sound | `music_logic_2` (shared) | 60000 | music | `music_pattern_pipes` |
 
 ### Skid
 
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
 |---|---|---|---|---|---|---|---|---|
-| `iceslide.portal` | The ball comes out of a portal; both cells of the pair flare [pattern.md (Skid (iceslide))] |  | 5–40 (per move) | recorded sound | `iceslide.portal` | 450 | game event | `iceslide.portal` |
-| `iceslide.crack` | Thin ice breaks as the ball leaves it (shards fly) [pattern.md (Skid (iceslide))] |  | 5–40 (per move) | recorded sound | `iceslide.crack` | 520 | game event | `iceslide.crack` |
-| `iceslide.fall` | The ball reaches a hole and spins down [pattern.md (Skid (iceslide))] |  | 5–40 (per move) | recorded sound | `iceslide.fall` | 400 | game event | `iceslide.fall` |
-| `iceslide.solve` | The ball arrives at the exit: gold burst, the ice frosts over and shatters into glints, the portals flare [pattern.md (Skid (iceslide))] |  | 0–1 | recorded sound | `iceslide.solve` | 1200 | success sting | `iceslide.solve` |
+| `iceslide.portal` | The ball comes out of a portal; both cells of the pair flare [pattern.md (Skid (iceslide))] |  | 5–40 (per move) | recorded sound | `iceslide.portal` | 450 | game event | `iceslide.portal` |
+| `iceslide.crack` | Thin ice breaks as the ball leaves it (shards fly) [pattern.md (Skid (iceslide))] |  | 5–40 (per move) | recorded sound | `iceslide.crack` | 520 | game event | `iceslide.crack` |
+| `iceslide.fall` | The ball reaches a hole and spins down [pattern.md (Skid (iceslide))] |  | 5–40 (per move) | recorded sound | `iceslide.fall` | 400 | game event | `iceslide.fall` |
+| `iceslide.solve` | The ball arrives at the exit: gold burst, the ice frosts over and shatters into glints, the portals flare [pattern.md (Skid (iceslide))] |  | 0–1 | recorded sound | `iceslide.solve` | 1200 | success sting | `iceslide.solve` |
 | `music.iceslide` | Skid round bed: music_pattern_2 (pattern bed shared with other games) |  | loop | recorded sound | `music_pattern_2` (shared) | 60000 | music | `music_pattern_iceslide` |
 
 ### Tessellate
 
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
 |---|---|---|---|---|---|---|---|---|
-| `blockparty.place` | A piece dropped legally on the board pops into place [pattern.md (Tessellate (blockparty))] |  | 5–40 (per move) | recorded sound | `blockparty.place` | 260 | UI tap | `blockparty.place` |
-| `blockparty.turn` | A single tap rotates a tray piece [pattern.md (Tessellate (blockparty))] |  | 5–40 (per move) | recorded sound | `blockparty.turn` | 180 | game event | `blockparty.turn` |
-| `blockparty.flip` | A double tap flips a tray piece [pattern.md (Tessellate (blockparty))] |  | 5–40 (per move) | recorded sound | `blockparty.flip` | 180 | game event | `blockparty.flip` |
-| `blockparty.solve` | All squares covered: rings leave the pegs, then a shine sweeps outwards [pattern.md (Tessellate (blockparty))] |  | 0–1 | recorded sound | `blockparty.solve` | 1100 | success sting | `blockparty.solve` |
+| `blockparty.place` | A piece dropped legally on the board pops into place [pattern.md (Tessellate (blockparty))] |  | 5–40 (per move) | recorded sound | `blockparty.place` | 260 | UI tap | `blockparty.place` |
+| `blockparty.turn` | A single tap rotates a tray piece [pattern.md (Tessellate (blockparty))] |  | 5–40 (per move) | recorded sound | `blockparty.turn` | 180 | game event | `blockparty.turn` |
+| `blockparty.flip` | A double tap flips a tray piece [pattern.md (Tessellate (blockparty))] |  | 5–40 (per move) | recorded sound | `blockparty.flip` | 180 | game event | `blockparty.flip` |
+| `blockparty.solve` | All squares covered: rings leave the pegs, then a shine sweeps outwards [pattern.md (Tessellate (blockparty))] |  | 0–1 | recorded sound | `blockparty.solve` | 1100 | success sting | `blockparty.solve` |
 | `music.blockparty` | Tessellate round bed: music_pattern_1 (pattern bed shared with other games) |  | loop | recorded sound | `music_pattern_1` (shared) | 60000 | music | `music_pattern_blockparty` |
 
 ### Topsy-Turvy
@@ -1027,15 +1020,15 @@ Grouped by game or screen.
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
 |---|---|---|---|---|---|---|---|---|
 | `pz_gravity_pull` | Topsy-Turvy: The board tilts [core.md] |  | 5–30 | recorded sound | `pz_gravity_pull` | 1100 | game event | `pz_gravity_pull` |
-| `gravity.lock` | A ball locks onto its target (not on the solving tilt) [pattern.md (Topsy-Turvy (gravity))] |  | 5–40 (per move) | recorded sound | `gravity.lock` | 460 | game event | `gravity.lock` |
-| `gravity.solve` | The solving tilt: the four balls light up on their targets one after another [pattern.md (Topsy-Turvy (gravity))] |  | 0–1 | recorded sound | `gravity.solve` | 1150 | success sting | `gravity.solve` |
+| `gravity.lock` | A ball locks onto its target (not on the solving tilt) [pattern.md (Topsy-Turvy (gravity))] |  | 5–40 (per move) | recorded sound | `gravity.lock` | 460 | game event | `gravity.lock` |
+| `gravity.solve` | The solving tilt: the four balls light up on their targets one after another [pattern.md (Topsy-Turvy (gravity))] |  | 0–1 | recorded sound | `gravity.solve` | 1150 | success sting | `gravity.solve` |
 | `music.gravity` | Topsy-Turvy round bed: music_pattern_3 (pattern bed shared with other games) |  | loop | recorded sound | `music_pattern_3` (shared) | 60000 | music | `music_pattern_gravity` |
 
 ### Turntable
 
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
 |---|---|---|---|---|---|---|---|---|
-| `rings.solve` | The record spins up through two turns with the spokes strobing [pattern.md (Turntable (rings))] |  | 0–1 | recorded sound | `rings.solve` | 1100 | success sting | `rings.solve` |
+| `rings.solve` | The record spins up through two turns with the spokes strobing [pattern.md (Turntable (rings))] |  | 0–1 | recorded sound | `rings.solve` | 1100 | success sting | `rings.solve` |
 | `music.rings` | Turntable round bed: music_pattern_1 (pattern bed shared with other games) |  | loop | recorded sound | `music_pattern_1` (shared) | 60000 | music | `music_pattern_rings` |
 
 ### Blackout
@@ -1130,6 +1123,13 @@ Grouped by game or screen.
 | `tents.clear` | A cell is cleared [logic.md] |  | 5–40 (per move) | recorded sound | `tents.clear` | 200 | game event | `tents.clear` |
 | `tents.solve` | The layout is valid [logic.md] |  | 0–1 | recorded sound | `tents.solve` | 1150 | success sting | `tents.solve` |
 | `music.tents` | Tents and Trees round bed: music_logic_1 (logic bed shared with other games) |  | loop | recorded sound | `music_logic_1` (shared) | 60000 | music | `music_logic_tents` |
+
+### Trail
+
+| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
+|---|---|---|---|---|---|---|---|---|
+| `trail.solve` | the trail is complete [number.md] |  | 0–1 | recorded sound | `trail.solve` | 1150 | success sting | `trail.solve` |
+| `music.trail` | Trail round bed: music_logic_3 (logic bed shared with other games) |  | loop | recorded sound | `music_logic_3` (shared) | 60000 | music | `music_logic_trail` |
 
 ### Ball Tracker
 
@@ -1282,13 +1282,13 @@ Grouped by game or screen.
 
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
 |---|---|---|---|---|---|---|---|---|
-| `skyline.floorsStreak` | Every 10th floor [arcade-effects.md] | n FLOORS banner | 1–4 | recorded sound | `skyline.floorsStreak` | 483 | game event | `skyline.floorsStreak` |
+| `skyline.floorsStreak` | Every 10th floor [arcade-effects.md] | n FLOORS banner | 1–4 | recorded sound | `skyline.floorsStreak` | 648 | game event | `skyline.floorsStreak` |
 | `skyline.windFlag` | The wind flag goes up (skylineRev 2+) [arcade-effects.md] | A flag is raised on the top block | 0–1 | recorded sound | `skyline.windFlag` | 400 | game event | `skyline.windFlag` |
-| `skyline.windPerfect` | A perfect drop in the wind [arcade-effects.md] | PERFECT pop at the seam in a gust | 0–5 | recorded sound | `skyline.windPerfect` | 209 | game event | `skyline.windPerfect` |
+| `skyline.windPerfect` | A perfect drop in the wind [arcade-effects.md] | PERFECT pop at the seam in a gust | 0–5 | recorded sound | `skyline.windPerfect` | 483 | game event | `skyline.windPerfect` |
 | `skyline.gust` | A gust starts blowing [arcade-effects.md] | Gust streaks cross the sky | 2–8 | recorded sound | `skyline.gust` | 600 | game event | `skyline.gust` |
 | `skyline.gustWarn` | The flag streams a second before a gust blows [arcade-effects.md] | The flag streams and ripples | 2–8 | recorded sound | `skyline.gustWarn` | 500 | game event | `skyline.gustWarn` |
 | `skyline.drop` | High Rise: A block lands [arcade.md] |  | 20–50 | recorded sound | `arc_clank` (shared) | 150 | game event | `skyline.drop` |
-| `skyline.perfect` | High Rise: A perfect drop [arcade.md] |  | 5–20 | recorded sound | `skyline.perfect` | 209 | success sting | `skyline.perfect` |
+| `skyline.perfect` | High Rise: A perfect drop [arcade.md] |  | 5–20 | recorded sound | `skyline.perfect` | 483 | success sting | `skyline.perfect` |
 | `skyline.streakDrop` | High Rise: A streak bonus drop (skylineRev 2+) [arcade.md] |  | 2–10 | recorded sound | `arc_retro_coin` (shared) | 120 | game event | `skyline.streakDrop` |
 | `skyline.miss` | High Rise: A block misses the tower [arcade.md] |  | 0–1 | recorded sound | `arc_crash` (shared) | 200 | fail sting | `skyline.miss` |
 | `music.skyline` | High Rise: music_skyline |  | loop | recorded sound | `music_skyline` | loop | music | `music_skyline` |
@@ -1668,7 +1668,7 @@ loops are not measured there). Files in `public/sounds/` are listed once per slo
 | `music_word_3` | music | `music.tilegrid`, `music.wordslide`, `music.swapword` | loop |
 | `music_number_1` | music | `music.measure`, `music.target`, `music.equation` | loop |
 | `music_number_2` | music | `music.checkout`, `music.balance`, `music.numpyramid` | loop |
-| `music_number_3` | music | `music.numline`, `music.tendrop`, `music.trail` | loop |
+| `music_number_3` | music | `music.numline`, `music.tendrop` | loop |
 | `music_speed_1` | music | `music.stopwatch`, `music.reaction` | loop |
 | `music_speed_2` | music | `music.numhunt`, `music.chain` | loop |
 | `music_speed_3` | music | `music.whack`, `music.clayshoot` | loop |
@@ -1680,7 +1680,7 @@ loops are not measured there). Files in `public/sounds/` are listed once per slo
 | `music_pattern_3` | music | `music.laser`, `music.gravity` | loop |
 | `music_logic_1` | music | `music.sudoku`, `music.dig`, `music.lightup`, `music.nonogram`, `music.shikaku`, `music.tents` | loop |
 | `music_logic_2` | music | `music.flow`, `music.pipes`, `music.lightsout`, `music.flood`, `music.safe` | loop |
-| `music_logic_3` | music | `music.push`, `music.bomb`, `music.tower`, `music.tubes` | loop |
+| `music_logic_3` | music | `music.push`, `music.bomb`, `music.tower`, `music.tubes`, `music.trail` | loop |
 | `standings_loop` | music | `music.standings` | loop |
 | `podium_loop` | music | `music.podium` | loop |
 | `music_burst` | music | `music.burst` | loop |
@@ -1994,7 +1994,7 @@ loops are not measured there). Files in `public/sounds/` are listed once per slo
 | `bubble.bomb` | effects | `bubble.bomb` | 662 |
 | `bubble.line` | effects | `bubble.line` | 600 |
 | `bubble.jokerLand` | effects | `bubble.jokerLand` | 680 |
-| `skyline.perfect` | effects | `skyline.perfect` | 209 |
+| `skyline.perfect` | effects | `skyline.perfect` | 483 |
 | `cross.hop` | effects | `cross.hop` | 528 |
 | `pinball.start` | effects | `pinball.start` | 486 |
 | `pinball.ballLost` | effects | `pinball.ballLost` | 587 |
@@ -2134,9 +2134,9 @@ loops are not measured there). Files in `public/sounds/` are listed once per slo
 | `balltrack.release` | effects | `balltrack.release` | 528 |
 | `balltrack.lost` | effects | `balltrack.lost` | 528 |
 | `balltrack.shuffle` | effects | `balltrack.shuffle` | 528 |
-| `skyline.floorsStreak` | effects | `skyline.floorsStreak` | 483 |
+| `skyline.floorsStreak` | effects | `skyline.floorsStreak` | 648 |
 | `skyline.windFlag` | effects | `skyline.windFlag` | 648 |
-| `skyline.windPerfect` | effects | `skyline.windPerfect` | 209 |
+| `skyline.windPerfect` | effects | `skyline.windPerfect` | 483 |
 | `skyline.gust` | effects | `skyline.gust` | 648 |
 | `matchup.lineOfFive` | effects | `matchup.lineOfFive` | 680 |
 | `matchup.jackpotMade` | effects | `matchup.jackpotMade` | 680 |

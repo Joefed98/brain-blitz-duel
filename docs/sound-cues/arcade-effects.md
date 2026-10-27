@@ -338,9 +338,9 @@ Already sounded: switch and tube turn (`balltrack.switch`), marble home and cup 
 
 | Cue | Trigger | Looks like | Plays today | Per round | Length |
 |---|---|---|---|---|---|
-| `skyline.floorsStreak` | Every 10th floor | n FLOORS banner | `banner.streak.mp3` · own file `skyline.floors.mp3` (sound batch 4, volume 0.8) | 1–4 | 483 ms |
+| `skyline.floorsStreak` | Every 10th floor | n FLOORS banner | the whoosh, `sky.gust.mp3` (Joe's phone notes, 27 Oct 2026; was `skyline.floors.mp3`, now the perfect drop's; the rev-7 zap no longer stacks on it) | 1–4 | 648 ms |
 | `skyline.windFlag` | The wind flag goes up (skylineRev 2+) | A flag is raised on the top block | `sky.gust.mp3` | 0–1 | 400 ms |
-| `skyline.windPerfect` | A perfect drop in the wind | PERFECT pop at the seam in a gust | `pop.perfect.mp3` · own file `skyline.perfectFit.mp3` (sound batch 4, volume 0.8) | 0–5 | 209 ms |
+| `skyline.windPerfect` | A perfect drop in the wind | PERFECT pop at the seam in a gust | `skyline.floors.mp3` (volume 0.8; Joe's phone notes, 27 Oct 2026: the old every-10-floors sound on every perfect drop; `skyline.perfectFit.mp3` retired) | 0–5 | 483 ms |
 | `skyline.gust` | A gust starts blowing | Gust streaks cross the sky | `sky.gust.mp3` | 2–8 | 600 ms |
 | `skyline.gustWarn` | The flag streams a second before a gust blows | The flag streams and ripples | `ui.warn.mp3` | 2–8 | 500 ms |
 

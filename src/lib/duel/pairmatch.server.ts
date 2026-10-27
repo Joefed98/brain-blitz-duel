@@ -5,7 +5,8 @@
  */
 
 import { randomBelow, shuffled } from "./random";
-import { PAIR_DEPTH_REV } from "./depth/matchmaker";
+import { PAIR_DEPTH_REV, PAIR_NOTES_REV } from "./depth/matchmaker";
+import { dealtNotesRev } from "./phoneNotes";
 import {
   PAIR_SHAPES,
   PAIR_PAIRS,
@@ -31,5 +32,6 @@ export function generatePairMatch(): PairPuzzleData {
   const cards = shuffled(chosen.flatMap((card) => [card, { ...card }]));
   // Depth to 200 (25 Oct 2026, depth/matchmaker.ts): one pair is gold, drawn after the deal so the board is as before.
   const gold = chosen[randomBelow(PAIR_PAIRS)]!;
-  return { type: "pairmatch", cards, pairRev: PAIR_DEPTH_REV, gold: { ...gold } };
+  // Joe's phone notes (27 Oct 2026): pairRev 2, the gold pair pays in full any time in the first 30 s.
+  return { type: "pairmatch", cards, pairRev: dealtNotesRev(PAIR_NOTES_REV, PAIR_DEPTH_REV), gold: { ...gold } };
 }

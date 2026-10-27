@@ -241,6 +241,8 @@ interface Started {
   rate: number;
   loop: boolean;
   offset?: number;
+  loopStart?: number;
+  loopEnd?: number;
 }
 const started: Started[] = [];
 let tones = 0;
@@ -314,7 +316,7 @@ class FakeContext {
       onended: null,
       start(_when?: number, offset?: number) {
         if (source.buffer?.url)
-          started.push({ url: source.buffer.url, rate: source.rate, loop: source.loop, offset });
+          started.push({ url: source.buffer.url, rate: source.rate, loop: source.loop, offset, loopStart: source.loopStart, loopEnd: source.loopEnd });
       },
       stop() {},
     };
@@ -322,10 +324,12 @@ class FakeContext {
   }
   decodeAudioData(bytes: ArrayBuffer): Promise<FakeBuffer> {
     const url = new TextDecoder().decode(bytes);
-    const data = new Float32Array(4800).fill(0.5);
+    // Tempo's track stands in at its real length (60 s), so its groove loop (8–56 s) fits.
+    const length = url.includes("music_beat") ? 60 * 48000 : 4800;
+    const data = new Float32Array(length).fill(0.5);
     return Promise.resolve({
-      duration: 0.1,
-      length: 4800,
+      duration: length / 48000,
+      length,
       numberOfChannels: 1,
       sampleRate: 48000,
       url,
@@ -536,35 +540,53 @@ await settle();
 check(take().length === 0, "a 404 music slot leaves the round silent");
 sound.leaveRoundMusic("check");
 
-// Tempo's track (sound batch 4): tick-locked to the chart, the synth until it has decoded.
+// Tempo's track (sound batch 4): tick-locked to the chart, the synth until it has decoded. Phone notes
+// (27 Oct 2026): decoded during the intro, played from the run's first tick, looping its full groove
+// (file seconds 8–56; the first beat on the groove's first downbeat), louder.
 check(!sound.beatTrackReady(), "Tempo's track is not ready before it loads (the synth plays)");
-sound.syncBeatTrack(null, 60_000);
+sound.prepareBeatTrack();
 await settle();
-check(sound.beatTrackReady(), "Tempo's track loads on the stage's first frame");
-check(take().length === 0, "Tempo's track stays quiet before the first beat");
+check(sound.beatTrackReady(), "Tempo's track loads during the intro (prepareBeatTrack)");
+check(take().length === 0, "Preparing Tempo's track plays nothing");
 const clock = fakeContexts.at(-1)!;
 clock.currentTime = 10;
-sound.syncBeatTrack(0, 58_000);
+sound.syncBeatTrack(-2, 75_000);
 let beatStarts = take();
 check(
-  beatStarts.length === 1 && beatStarts[0]!.url === testUrl("music_beat") && beatStarts[0]!.offset === 0 && !beatStarts[0]!.loop,
-  "Tempo's track starts on the first beat at its downbeat, once, not looped",
+  beatStarts.length === 1 && beatStarts[0]!.url === testUrl("music_beat") && Math.abs(beatStarts[0]!.offset! - 54) < 1e-9 &&
+    beatStarts[0]!.loop && beatStarts[0]!.loopStart === 8 && beatStarts[0]!.loopEnd === 56,
+  "Tempo's track starts on the run's first tick on the groove's last bar, once, looping the groove (8–56 s)",
 );
 clock.currentTime = 10.02;
-sound.syncBeatTrack(1 / 60, 58_000);
+sound.syncBeatTrack(-2 + 1 / 60, 75_000);
 check(take().length === 0, "Tempo's track within 40 ms of the chart is left alone");
-clock.currentTime = 10.02;
-sound.syncBeatTrack(4 / 60, 58_000);
+clock.currentTime = 12;
+sound.syncBeatTrack(0, 73_000);
+check(take().length === 0, "Tempo's track reaches the first beat on the groove's first downbeat (wrapped, not restarted)");
+clock.currentTime = 12.02;
+sound.syncBeatTrack(4 / 60, 73_000);
 beatStarts = take();
 check(
-  beatStarts.length === 1 && Math.abs(beatStarts[0]!.offset! - 4 / 60) < 1e-9,
+  beatStarts.length === 1 && Math.abs(beatStarts[0]!.offset! - (8 + 4 / 60)) < 1e-9 && beatStarts[0]!.loop,
   "Tempo's track drifting past 40 ms jumps back to the chart's position",
+);
+clock.currentTime = 12.02 + 48;
+sound.syncBeatTrack(48 + 4 / 60, 25_000);
+check(take().length === 0, "Tempo's track loops past the file's groove end on the chart's clock (a 75 s song)");
+check(
+  sound.beatTrackLevel(75_000) === sound.BEAT_TRACK_LEVEL_FLOOR && sound.BEAT_TRACK_LEVEL_FLOOR >= 0.9 && sound.beatTrackLevel(0) === 1,
+  "Tempo's track plays at 0.9 rising to 1 at the end (louder than the arcade ramp's 0.5)",
 );
 sound.syncBeatTrack(null, 0);
 sound.syncBeatTrack(null, 0);
 check(take().length === 0, "Tempo's track stops at the end of the run");
 sound.stopBeatTrack(true);
 check(!sound.beatTrackReady(), "Tempo's track is released when its stage goes away");
+sound.syncBeatTrack(null, 75_000);
+await settle();
+check(sound.beatTrackReady(), "Tempo's track still loads on the stage's first frame without an intro");
+check(take().length === 0, "Tempo's track stays quiet until the run starts");
+sound.stopBeatTrack(true);
 clock.currentTime = 0;
 
 // Play caps (arcade-gaps-oct-2026.md section 3): a second play inside a slot's gap is dropped, the
