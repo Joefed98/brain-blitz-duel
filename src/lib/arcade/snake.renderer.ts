@@ -40,7 +40,6 @@ const ROCK_DARK = "#8A3614";
 const ROCK_SPECK = "#FFD08A";
 /** Polish A1: the stars' white-gold glow. */
 const STAR_GLOW = "#FFE9A8";
-const PICKUP_TAILS=["#FF6545","#FFD84A","#3DFFE0"] as const;
 const PELLET = "#FFD84A";
 const EYE = RETRO_BLACK;
 const SPRITE_RATIO = 2;
@@ -161,9 +160,8 @@ export function paintStamp(c: CanvasRenderingContext2D, kind: "bead" | "head" | 
         } else {
           // Flat flame tongues, not gradients: each bead remains a discrete cell.
           const tongue = ((x / 2 + y / 2) % 5 === 0) && dy < 1;
-          // (The white-hot and amber squares behind the head keep their colour whatever the tail shade.)
           // (The white-hot square straight behind the head carries amber streaks.)
-          c.fillStyle = tail===0 || level < 2 ? (tongue && level < 4 ? (level === 0 ? COMET_AMBER : FLAMES[level - 1] ?? flame) : flame) : PICKUP_TAILS[tail%PICKUP_TAILS.length]??flame;
+          c.fillStyle = tongue && level < 4 ? (level === 0 ? COMET_AMBER : FLAMES[level - 1] ?? flame) : flame;
           if (level === LEVELS - 1 && (x / 2 + y / 2) % 4 === 0) c.fillStyle = SMOKE;
         }
         c.fillRect(x, y, 2, 2);
@@ -292,7 +290,7 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: SnakeState, key: Canvas
     const head = point(headCell);
     // Light only between contiguous centres; no interpolation or moved segments.
     if (motion && !state.dead) {
-      const lengthFactor = Math.min(1, state.body.length / 25); ctx.fillStyle = ACCENT; ctx.globalAlpha = 0.12 + 0.16 * lengthFactor;
+      const lengthFactor = Math.min(1, state.body.length / 25); ctx.fillStyle = COMET_ORANGE; ctx.globalAlpha = 0.12 + 0.16 * lengthFactor;
       for (let i = 1; i < state.body.length; i++) {
         const cell = state.body[i], ahead = state.body[i - 1];
         if (cell === undefined || ahead === undefined) continue;
@@ -322,8 +320,8 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: SnakeState, key: Canvas
       // The trail cools from the head: white-hot, then amber, then along the body to embers and smoke.
       const level = i <= 2 ? i - 1 : Math.max(2, Math.min(LEVELS - 1, Math.round(i / Math.max(1, state.body.length - 1) * (LEVELS - 1))));
       ctx.globalAlpha = state.dead && motion ? 1 - 0.35 * Math.min(1, deathAge / DEATH_MS) : 1;
-      const shift=Math.floor(state.eaten/5)%3;
-      blit(ctx, stamp(i === 0 ? "head" : "bead", i === 0 ? 0 : level, state.dir,shift), p.x, p.y);
+      // The whole body is the comet's trail (Joe's phone notes): fire cooling to embers, no longer re-tinted every 5 stars.
+      blit(ctx, stamp(i === 0 ? "head" : "bead", i === 0 ? 0 : level, state.dir), p.x, p.y);
     }
     ctx.globalAlpha = 1;
     eyes(ctx, head.x, head.y, state.dir);

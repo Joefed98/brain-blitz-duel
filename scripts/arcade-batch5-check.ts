@@ -280,8 +280,9 @@ if (want("rally")) {
 if (want("beat")) {
   section("Tempo beatRev 2 (swipe notes in the second half)");
   const game = beatGameFor(BEAT_REV);
-  // Expansion E2 (25 Oct 2026) then moved Tempo on to beatRev 9 (expansion-e2-check).
-  ok(playRevOf("beat", generateBeat().beatRev) === BEAT_REV_TUNEF + 4 && BEAT_REV_TUNEC === 4, "new rounds are stamped beatRev 9 (expansion E2, after beatRev 6: rev 2 play on the score bands; Tuning C curve; Tuning F thinner chart, arcade-tuning-f-check; the taller lanes, arcade-tuning-g2-check)");
+  // Expansion E2 (25 Oct 2026) then moved Tempo on to beatRev 9 (expansion-e2-check), and Joe's phone notes
+  // (27 Oct 2026) to beatRev 10 (tempo-ease-check).
+  ok(playRevOf("beat", generateBeat().beatRev) === BEAT_REV_TUNEF + 5 && BEAT_REV_TUNEC === 4, "new rounds are stamped beatRev 10 (the phone notes, after expansion E2's beatRev 9 and after beatRev 6: rev 2 play on the score bands; Tuning C curve; Tuning F thinner chart, arcade-tuning-f-check; the taller lanes, arcade-tuning-g2-check)");
   ok(beatGameFor(undefined) === beatGame && beatGame.init(5).chart.swipes === undefined, "unstamped rounds keep the original game");
   let swipeTotal = 0;
   for (const seed of SEEDS(200, 7919)) {
