@@ -5,11 +5,14 @@
  * sparks live in one Float32Array of CELEBRATION_PARTICLES slots, the strike's bolt in another,
  * the hero in one reused pose, so a frame allocates nothing.
  */
-import { HERO_VICTORY_LOOP_MS, drawHero, heroPose, heroRunPose, heroVictoryPose } from "@/lib/arcade/hero.renderer";
+import { HERO_VICTORY_LOOP_MS, drawHero, heroDancePose, heroPose, heroRunPose, heroVictoryPose } from "@/lib/arcade/hero.renderer";
 
 import {
   CELEBRATION_PARTICLES,
+  HERO_DANCE_MS,
+  HERO_GRAND_MS,
   HERO_RUN_MS,
+  HERO_STILL_MS,
   PODIUM_HERO_BOB_MS,
   STRIKE_IN_MS,
   STRIKE_MS,
@@ -25,6 +28,20 @@ const GRAVITY = 420;
 const BOLT_MAIN = 33;
 const BOLT_BRANCH = 9;
 const BRANCHES = 2;
+
+/** The 200 lap's fireworks: when each bursts (ms into the lap) and where (fractions of the screen's width and height). */
+export const FIREWORK_AT = new Float32Array([150, 600, 1050, 1500, 1950, 2400]);
+const FIREWORK_X = new Float32Array([0.25, 0.75, 0.5, 0.2, 0.8, 0.5]);
+const FIREWORK_Y = new Float32Array([0.22, 0.17, 0.3, 0.38, 0.33, 0.14]);
+/** Sparks per firework (the pool's cap still holds: older sparks are reused first). */
+export const FIREWORK_SPARKS = 30;
+/** The 190–199 dance: on (ms), dance, off over the last HERO_DANCE_OFF_MS. */
+export const HERO_DANCE_ON_MS = 300;
+export const HERO_DANCE_OFF_MS = 350;
+/** The 200 lap's legs (ms): the run right, the leap back left, the dance, then off to the right. */
+export const GRAND_RUN_END = 1000;
+export const GRAND_LEAP_END = 1700;
+export const GRAND_DANCE_END = 2300;
 
 /** The hero's height (px) when running and on the podium. */
 export const HERO_RUN_H = 58;
@@ -61,6 +78,10 @@ export class CelebrationScene {
   private sprite: { canvas: SpriteCanvas; ratio: number; calm: boolean } | null = null;
   podium: { scope: number; at: number; calm: boolean; box: SceneBox } | null = null;
   strikeAt = -1;
+  /** The reveal's hero moment (dance or the 200 lap; `calm`: reduced motion's still hero and glow). */
+  show: { scope: number; at: number; kind: "dance" | "grand"; calm: boolean; fired: number } | null = null;
+  /** Fireworks burst so far, across every lap (the layer plays a crackle for each new one). */
+  fireworks = 0;
   private readonly bolt = new Float32Array((BOLT_MAIN + BRANCHES * BOLT_BRANCH) * 2);
 
   /** A seeded stream for spark spread and the bolt's shape (presentation only). */
@@ -101,6 +122,24 @@ export class CelebrationScene {
 
   heroRun(scope: number, now: number): void {
     this.run = { scope, at: now };
+  }
+
+  heroShow(scope: number, kind: "dance" | "grand", calm: boolean, now: number): void {
+    this.show = { scope, at: now, kind, calm, fired: 0 };
+  }
+
+  /** How long a hero moment lasts. */
+  showMs(show: { kind: "dance" | "grand"; calm: boolean }): number {
+    return show.calm ? HERO_STILL_MS : show.kind === "grand" ? HERO_GRAND_MS : HERO_DANCE_MS;
+  }
+
+  /** A tap skipped the reveal's moment: its hero, run and sparks go now (a podium's hero stays). */
+  skip(scope: number): void {
+    for (let s = 0; s < CELEBRATION_PARTICLES; s++) {
+      if (this.sparks[s * F + 7] === scope) this.sparks[s * F + 5] = 0;
+    }
+    if (this.run?.scope === scope) this.run = null;
+    if (this.show?.scope === scope) this.show = null;
   }
 
   podiumHero(scope: number, box: SceneBox, calm: boolean, now: number): void {
@@ -174,16 +213,19 @@ export class CelebrationScene {
     }
   }
 
-  /** The hero's box: its joints, the cape's reach and the outline round them. */
-  private markHero(): void {
+  /**
+   * The hero's box: its joints, the cape's reach and the outline round them (`mirrorX`: drawn mirrored
+   * about it). The cape hangs about 5 head radii from the shoulders, so the pad covers it trailing.
+   */
+  private markHero(mirrorX = NaN): void {
     const p = this.pose;
-    const pad = p.headR * 3;
-    this.mark(
-      Math.min(p.headX, p.handAX, p.handBX, p.footAX, p.footBX, p.shoulderX) - pad,
-      Math.min(p.headY, p.handAY, p.handBY) - pad,
-      Math.max(p.headX, p.handAX, p.handBX, p.footAX, p.footBX, p.shoulderX) + pad,
-      Math.max(p.footAY, p.footBY) + pad,
-    );
+    const pad = p.headR * 5.5;
+    const l = Math.min(p.headX, p.handAX, p.handBX, p.footAX, p.footBX, p.shoulderX, p.hipX) - pad;
+    const r = Math.max(p.headX, p.handAX, p.handBX, p.footAX, p.footBX, p.shoulderX, p.hipX) + pad;
+    const t = Math.min(p.headY, p.handAY, p.handBY) - pad;
+    const b = Math.max(p.footAY, p.footBY) + pad;
+    if (Number.isNaN(mirrorX)) this.mark(l, t, r, b);
+    else this.mark(Math.min(l, 2 * mirrorX - r), t, Math.max(r, 2 * mirrorX - l), b);
   }
 
   clear(scope: number): void {
@@ -192,11 +234,13 @@ export class CelebrationScene {
     }
     if (this.run?.scope === scope) this.run = null;
     if (this.podium?.scope === scope) this.podium = null;
+    if (this.show?.scope === scope) this.show = null;
   }
 
   clearAll(): void {
     this.sparks.fill(0);
     this.run = null;
+    this.show = null;
     this.podium = null;
     this.strikeAt = -1;
   }
@@ -205,6 +249,7 @@ export class CelebrationScene {
   animating(now: number): boolean {
     if (this.live > 0) return true;
     if (this.run && now - this.run.at < HERO_RUN_MS) return true;
+    if (this.show && now - this.show.at < this.showMs(this.show)) return true;
     if (this.strikeAt >= 0 && now - this.strikeAt < STRIKE_MS) return true;
     if (this.podium && !this.podium.calm && now - this.podium.at < PODIUM_HERO_BOB_MS) return true;
     return false;
@@ -219,6 +264,7 @@ export class CelebrationScene {
     this.drawStrike(ctx, width, height, now);
     this.drawPodium(ctx, now);
     this.drawRun(ctx, width, height, bottomInset, now);
+    this.drawShow(ctx, width, height, bottomInset, now);
     this.drawSparks(ctx, now);
   }
 
@@ -287,6 +333,119 @@ export class CelebrationScene {
     ctx.globalAlpha = Math.min(1, Math.min(age, HERO_RUN_MS - age) / 120);
     drawHero(ctx, this.pose);
     this.markHero();
+    ctx.restore();
+  }
+
+  /** The hero drawn from the scene's pose, mirrored (facing left) when `dir` is -1. */
+  private drawPoseAt(ctx: CanvasRenderingContext2D, mirrorX: number, dir: number): void {
+    if (dir < 0) {
+      ctx.save();
+      ctx.translate(2 * mirrorX, 0);
+      ctx.scale(-1, 1);
+      drawHero(ctx, this.pose);
+      ctx.restore();
+      this.markHero(mirrorX);
+    } else {
+      drawHero(ctx, this.pose);
+      this.markHero();
+    }
+  }
+
+  /** A soft gold glow round a point: a few faint discs, no gradient (nothing allocated). */
+  private drawGlow(ctx: CanvasRenderingContext2D, x: number, y: number, r: number, alpha: number): void {
+    ctx.save();
+    ctx.fillStyle = "#FFE08A";
+    for (let i = 4; i >= 1; i--) {
+      ctx.globalAlpha = alpha * 0.07 * (5 - i);
+      ctx.beginPath();
+      ctx.arc(x, y, (r * i) / 4, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.restore();
+    this.mark(x - r, y - r, x + r, y + r);
+  }
+
+  /**
+   * The reveal's hero moment. Dance (190–199): on from the left, dancing near the left edge, off the way
+   * it came, clear of the screen's centre where the score sits. Grand (200): a run right along the
+   * bottom, a leap back left in the victory pose, a dance, then off to the right, under fireworks.
+   * Calm (reduced motion): the hero standing in the victory pose, still, with a short glow.
+   */
+  private drawShow(ctx: CanvasRenderingContext2D, width: number, height: number, bottomInset: number, now: number): void {
+    const show = this.show;
+    if (!show) return;
+    const age = now - show.at;
+    const total = this.showMs(show);
+    if (age >= total || age < 0) {
+      if (age >= total) this.show = null;
+      return;
+    }
+    const footY = height - bottomInset - 18;
+    const spot = Math.max(44, width * 0.18);
+    const h = HERO_RUN_H;
+    ctx.save();
+    if (show.calm) {
+      const alpha = Math.min(1, age / 250, (total - age) / 300);
+      ctx.globalAlpha = alpha;
+      this.drawGlow(ctx, spot, footY - h * 0.5, h * 1.1, alpha * Math.max(0, 1 - age / total));
+      heroVictoryPose(this.pose, spot, footY, h, 0, true);
+      this.drawPoseAt(ctx, spot, 1);
+      ctx.restore();
+      return;
+    }
+    if (show.kind === "dance") {
+      ctx.globalAlpha = Math.min(1, age / 120, (total - age) / 120);
+      if (age < HERO_DANCE_ON_MS) {
+        const x = -40 + (spot + 40) * (age / HERO_DANCE_ON_MS);
+        heroRunPose(this.pose, x, footY, h, age / 400);
+        this.drawPoseAt(ctx, x, 1);
+      } else if (age < total - HERO_DANCE_OFF_MS) {
+        heroDancePose(this.pose, spot, footY, h, age - HERO_DANCE_ON_MS);
+        this.drawPoseAt(ctx, spot, 1);
+      } else {
+        const k = (age - (total - HERO_DANCE_OFF_MS)) / HERO_DANCE_OFF_MS;
+        const x = spot - (spot + 40) * k;
+        heroRunPose(this.pose, x, footY, h, age / 400);
+        this.drawPoseAt(ctx, x, -1);
+      }
+      ctx.restore();
+      return;
+    }
+    // The 200 lap: fireworks on their schedule, a brightening glow at the start, then the hero's legs.
+    while (show.fired < FIREWORK_AT.length && age >= FIREWORK_AT[show.fired]!) {
+      const i = show.fired;
+      this.burst(show.scope, width * FIREWORK_X[i]!, height * FIREWORK_Y[i]!, 0, FIREWORK_SPARKS, show.at + FIREWORK_AT[i]!);
+      show.fired++;
+      this.fireworks++;
+    }
+    const glow = Math.max(0, 1 - Math.abs(age - 500) / 500);
+    if (glow > 0) {
+      ctx.globalAlpha = glow * 0.08;
+      ctx.fillStyle = "#FFE08A";
+      ctx.fillRect(0, 0, width, height);
+      this.mark(0, 0, width, height);
+    }
+    ctx.globalAlpha = Math.min(1, age / 120, (total - age) / 120);
+    const far = Math.min(width - 44, width * 0.8);
+    if (age < GRAND_RUN_END) {
+      const x = -40 + (far + 40) * (age / GRAND_RUN_END);
+      heroRunPose(this.pose, x, footY, h, age / 380);
+      this.drawPoseAt(ctx, x, 1);
+    } else if (age < GRAND_LEAP_END) {
+      const k = (age - GRAND_RUN_END) / (GRAND_LEAP_END - GRAND_RUN_END);
+      const x = far + (spot - far) * k;
+      const lift = Math.min(height * 0.3, 240) * 4 * k * (1 - k);
+      heroVictoryPose(this.pose, x, footY - lift, h, age, false);
+      this.drawPoseAt(ctx, x, -1);
+    } else if (age < GRAND_DANCE_END) {
+      heroDancePose(this.pose, spot, footY, h, age - GRAND_LEAP_END);
+      this.drawPoseAt(ctx, spot, 1);
+    } else {
+      const k = (age - GRAND_DANCE_END) / (total - GRAND_DANCE_END);
+      const x = spot + (width + 40 - spot) * k;
+      heroRunPose(this.pose, x, footY, h, age / 380);
+      this.drawPoseAt(ctx, x, 1);
+    }
     ctx.restore();
   }
 

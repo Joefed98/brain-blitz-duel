@@ -40,3 +40,6 @@ target length with a 15 ms fade, mono 44.1 kHz 112 kbps, levelled to sfx_joulz_z
 | `shared.celebrate.streak` | The daily results' 3- and 7-day streak banners. `sfx_streak_flourish.mp3`. | 1.2 s |
 | `shared.celebrate.streakBig` | The 30-day streak banner. `sfx_streak_flourish_big.mp3`. | 2.0 s |
 | `shared.celebrate.logoCharge` | The app header's logo charges in, only if sound is already unlocked (an iPhone blocks sound before the first tap: the app's first charge-in is silent); none under reduced motion. `sfx_logo_charge.mp3`. | 0.69 s |
+| `shared.celebrate.heroDance` | The hero's dance on a reveal of 190–199 (rooms, practice, daily), as it comes on; with reduced motion it plays with the still hero. Shares `sfx_streak_flourish.mp3`. | 1.2 s |
+| `shared.celebrate.heroGrand` | The hero's lap of the screen on a reveal of 200, with `heroRun`'s whoosh as it starts (no whoosh under reduced motion, where the hero stands still). Shares `sfx_streak_flourish_big.mp3`. | 2.0 s |
+| `shared.celebrate.firework` | Each firework of the 200 lap as it bursts (six, 450 ms apart; one sound if two land in a frame); none under reduced motion. Shares `sfx_meter_crackle_1.mp3`, at 0.6. | 0.45 s |

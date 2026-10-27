@@ -377,3 +377,47 @@ export function heroRunPose(p: HeroPose, x: number, footY: number, h: number, ph
   p.gentle = false;
   return p;
 }
+
+/** The dance's beat (ms): one step, one arm pump. */
+export const HERO_DANCE_BEAT_MS = 300;
+
+/**
+ * Dancing on the spot (a 190–199 reveal): the body sways and bounces on the beat, the feet lift in
+ * turn and the arms pump, one up as the other swings out (`t` in ms since the dance began).
+ */
+export function heroDancePose(p: HeroPose, cx: number, footY: number, h: number, t: number): HeroPose {
+  const u = h / 100;
+  const s = Math.sin((t / HERO_DANCE_BEAT_MS) * Math.PI);
+  const bounce = Math.abs(s) * 4 * u;
+  const sway = s * 5 * u;
+  p.scale = 1;
+  p.detailScale = NaN;
+  p.stick = 3 * u;
+  p.headR = 10 * u;
+  p.footAX = cx - 11 * u;
+  p.footAY = footY - Math.max(0, s) * 6 * u;
+  p.footBX = cx + 11 * u;
+  p.footBY = footY - Math.max(0, -s) * 6 * u;
+  p.hipX = cx + sway;
+  p.hipY = footY - 38 * u + bounce;
+  p.neckX = cx + sway * 1.3;
+  p.neckY = p.hipY - 30 * u;
+  p.shoulderX = p.neckX;
+  p.shoulderY = p.neckY + 4 * u;
+  p.headX = p.neckX + sway * 0.3;
+  p.headY = p.neckY - 12 * u;
+  // Arm A up as B swings out, then the other way.
+  const a = (1 + s) / 2;
+  const b = 1 - a;
+  p.handAX = p.shoulderX - (14 + 8 * (1 - a)) * u;
+  p.handAY = p.shoulderY + (6 - 36 * a) * u;
+  p.handBX = p.shoulderX + (14 + 8 * (1 - b)) * u;
+  p.handBY = p.shoulderY + (6 - 36 * b) * u;
+  p.moveX = s >= 0 ? 1 : -1;
+  p.moveY = 0.2;
+  p.speed = 0.35 + 0.25 * Math.abs(s);
+  p.face = 0;
+  p.core = null;
+  p.gentle = false;
+  return p;
+}

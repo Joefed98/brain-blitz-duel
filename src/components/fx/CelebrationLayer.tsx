@@ -4,6 +4,7 @@ import {
   BANNER_HOLD_MS,
   BANNER_IN_MS,
   BANNER_OUT_MS,
+  fireworkPop,
   setCelebrationSink,
   type CelebrationRequest,
 } from "@/lib/fx/celebrations";
@@ -85,7 +86,10 @@ export function CelebrationLayer() {
         ctx.clearRect(l, t, Math.min(canvas.width, Math.ceil(clearR * ratio) + 2) - l, Math.min(canvas.height, Math.ceil(clearB * ratio) + 2) - t);
       }
       ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+      const popped = scene.fireworks;
       scene.draw(ctx, width, height, bottomInset, time);
+      // The 200 lap's fireworks crackle as they burst (one sound however many burst this frame).
+      if (scene.fireworks > popped) fireworkPop();
       clearL = scene.dirtyL;
       clearT = scene.dirtyT;
       clearR = scene.dirtyR;
@@ -155,6 +159,14 @@ export function CelebrationLayer() {
           return;
         case "heroRun":
           scene.heroRun(request_.scope, now);
+          request();
+          return;
+        case "heroShow":
+          scene.heroShow(request_.scope, request_.show, request_.calm, now);
+          request();
+          return;
+        case "skip":
+          scene.skip(request_.scope);
           request();
           return;
         case "podiumHero": {

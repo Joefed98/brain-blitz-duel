@@ -1,18 +1,15 @@
 /**
  * The round games' icons as pictures for the results card (resultCard.ts), drawn from the same
- * art GameIcon shows: arcade games by their renderer's painter on a canvas; puzzle games by
- * mounting their GameIcon off screen and turning each of its <svg>s into a picture (styles that
- * come from CSS — colours, currentColor, hidden text — are written onto the copy, and the
- * gradients it points at are copied in), so the card matches the app. Presentation only. Any icon
- * that can't be drawn is left out (the card shows its category tile with the app's bolt).
+ * drawing GameIcon shows (gameIcons/conceptIcons.tsx): each game's GameIcon is mounted off screen
+ * and its <svg> turned into a picture (styles that come from CSS — colours, currentColor — are
+ * written onto the copy, and any gradients it points at are copied in), so the card matches the
+ * app. Presentation only. Any icon that can't be drawn is left out (the card shows its category
+ * tile with the app's bolt).
  */
 import { createRoot } from "react-dom/client";
 import { flushSync } from "react-dom";
 
-import { GameIcon } from "@/components/app/GameIcon";
-import { ARCADE_ICON_PAINTERS } from "@/components/app/gameIcons/arcadeIcons.renderer";
-import { PUZZLE_ICON_ART } from "@/components/app/gameIcons/puzzleIcons";
-import { preloadGameArt } from "@/lib/arcade/gameArt.renderer";
+import { GameIcon, hasGameIcon } from "@/components/app/GameIcon";
 import type { PuzzleType } from "@/lib/duel/types";
 
 const SVG_NS = "http://www.w3.org/2000/svg";
@@ -50,25 +47,6 @@ function loadImage(src: string): Promise<HTMLImageElement | null> {
     img.onerror = () => resolve(null);
     img.src = src;
   });
-}
-
-function arcadeIcon(type: string, px: number): HTMLCanvasElement | null {
-  const painter = ARCADE_ICON_PAINTERS[type];
-  if (!painter) return null;
-  const canvas = document.createElement("canvas");
-  canvas.width = px;
-  canvas.height = px;
-  const c = canvas.getContext("2d");
-  if (!c) return null;
-  const k = px / 64;
-  c.setTransform(k, 0, 0, k, 0, 0);
-  c.imageSmoothingEnabled = true;
-  try {
-    painter(c, k);
-  } catch {
-    return null;
-  }
-  return canvas;
 }
 
 /** A self-contained copy of one <svg>: computed styles inlined, the defs it points at included. */
@@ -130,7 +108,7 @@ function rotationOf(el: Element): number {
   return m ? Math.atan2(Number(m[2]), Number(m[1])) : 0;
 }
 
-async function puzzleIcon(
+async function iconImage(
   type: PuzzleType,
   px: number,
   host: HTMLElement,
@@ -215,11 +193,8 @@ export async function gameIconImages(
   document.body.appendChild(host);
   try {
     for (const type of new Set(types)) {
-      if (type in ARCADE_ICON_PAINTERS) {
-        await preloadGameArt(type).catch(() => undefined);
-        out.set(type, arcadeIcon(type, px));
-      } else if (type in PUZZLE_ICON_ART) {
-        out.set(type, await puzzleIcon(type as PuzzleType, px, host));
+      if (hasGameIcon(type)) {
+        out.set(type, await iconImage(type as PuzzleType, px, host));
       } else {
         out.set(type, null);
       }

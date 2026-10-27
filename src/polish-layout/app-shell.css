@@ -62,7 +62,6 @@ html:has([data-tab-screen]) {
   justify-content: center;
   overflow: hidden;
   border-radius: 28%;
-  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.08), inset 0 -2px 0 rgb(0 0 0 / 0.18);
 }
 .game-icon > canvas,
 .game-icon > svg {
@@ -74,35 +73,9 @@ html:has([data-tab-screen]) {
   position: absolute;
   inset: 0;
 }
-/* An art component placed in the tile: its own <svg> fills the box, whatever classes it carries in play. */
-.game-icon-box {
-  position: absolute;
-  display: block;
-}
-.game-icon-box > svg,
-.game-icon-box > span > svg {
-  position: absolute;
-  inset: 0;
-  width: 100% !important;
-  height: 100% !important;
-  max-width: none;
-}
-.game-icon-box > span {
-  position: absolute;
-  inset: 0;
-  display: block;
-}
-/* No text in icons: numbers an art component prints in play (a kettlebell's weight) are hidden. */
+/* No text in icons (the drawings have none; kept as a guard). */
 .game-icon text {
   display: none;
-}
-/* Exact's faint bullseye, brightened to be read at icon size. */
-.game-icon-bright {
-  filter: brightness(3) saturate(1.4);
-}
-/* Eagle Eye's eagle in its target gold. */
-.game-icon-gold {
-  color: var(--primary);
 }
 
 /* The Play tab's late cards (PlaySlot, src/lib/playCards.ts, 22 Oct 2026): in the markup from the first

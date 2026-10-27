@@ -92,6 +92,11 @@ const SCREENS: Record<string, Screen> = {
   lobby10: { name: "lobby, 10 players", mode: "room", room: room("waiting", "starting", { players: 10 }), ready: "[data-host-label], [data-look-hint], ul li", waitMs: 1400 },
   reveal150: { name: "answer reveal, 150", mode: "room", room: revealWith(150), ready: "[data-reveal-score]", waitMs: 2600, plain: true },
   reveal149: { name: "answer reveal, 149", mode: "room", room: revealWith(149), ready: "[data-reveal-score]", waitMs: 2600, plain: true },
+  // The reveal's hero moments (27 Oct 2026): 189 the run, 190 and 199 the dance, 200 the lap (opened mid-lap).
+  reveal189: { name: "answer reveal, 189", mode: "room", room: revealWith(189), ready: "[data-reveal-score]", waitMs: 1200, plain: true },
+  reveal190: { name: "answer reveal, 190", mode: "room", room: revealWith(190), ready: "[data-reveal-score]", waitMs: 1200, plain: true },
+  reveal199: { name: "answer reveal, 199", mode: "room", room: revealWith(199), ready: "[data-reveal-score]", waitMs: 1200, plain: true },
+  reveal200: { name: "answer reveal, 200", mode: "room", room: revealWith(200), ready: "[data-reveal-score]", waitMs: 1400, plain: true },
   prepare: { name: "prepare to duel", mode: "room", room: room("in_progress", "starting"), ready: "#root *", waitMs: 2500, plain: true },
   home: { name: "play", mode: "home", ready: "[data-app-wordmark]", waitMs: 400 },
 };
@@ -461,6 +466,64 @@ try {
     await p.close();
   }
 
+  // On: 189 runs; 190 and 199 dance; 200 laps the screen under fireworks; a tap skips it and still lands.
+  {
+    for (const [key, want] of [["reveal189", "run"], ["reveal190", "dance"], ["reveal199", "dance"]] as const) {
+      const o = await open(browser, server.origin, key, true);
+      const log = await o.log();
+      const shows = log.filter((e) => e.kind === "heroShow").map((e) => e.text);
+      const runs = log.filter((e) => e.kind === "heroRun").length;
+      check(
+        want === "run" ? runs === 1 && shows.length === 0 : runs === 0 && shows.join() === "dance" && log.some((e) => e.kind === "sound:heroDance"),
+        `${key}: hero ${runs} run(s), shows ${shows.join() || "none"}; expected the ${want}`,
+      );
+      if (key === "reveal190") {
+        await o.page.waitForTimeout(2200);
+        await judgeLayout(o.page, "reveal 190");
+        await fire(o.page, `C.heroDance(scope);`);
+        await o.page.waitForTimeout(800);
+        await shot(o.page, "hero-dance-190");
+      }
+      await o.close();
+    }
+    const o = await open(browser, server.origin, "reveal200", true);
+    const log = await o.log();
+    check(log.filter((e) => e.kind === "heroShow").map((e) => e.text).join() === "grand" && !log.some((e) => e.kind === "heroRun"), `reveal 200: ${log.map((e) => e.text ?? e.kind).join(",")}; expected one lap`);
+    check(log.some((e) => e.kind === "sound:heroRun") && log.some((e) => e.kind === "sound:heroGrand"), "reveal 200: no whoosh and big flourish");
+    // Mid-lap: the canvas is up, the layer is never what is under a point, and a tap skips the lap.
+    const mid = await o.page.evaluate(() => {
+      const canvas = document.querySelector(".celebration-canvas") as HTMLElement | null;
+      const score = document.querySelector("[data-reveal-score]")!.getBoundingClientRect();
+      const points: [number, number][] = [[score.left + score.width / 2, score.top + score.height / 2], [60, innerHeight - 60], [innerWidth / 2, innerHeight / 3]];
+      return {
+        shown: !!canvas && getComputedStyle(canvas).display !== "none",
+        under: points.map(([x, y]) => document.elementFromPoint(x, y)?.closest("[data-celebration-layer]") != null),
+      };
+    });
+    check(mid.shown, "reveal 200: the lap is not on screen 1.4 s in");
+    check(mid.under.every((x) => !x), "reveal 200: the layer is what is under the score or a point");
+    await o.page.waitForTimeout(250);
+    check((await o.log()).some((e) => e.kind === "sound:firework"), "reveal 200: the fireworks make no sound");
+    const box = await o.page.locator("[data-reveal-score]").boundingBox();
+    await o.page.evaluate(() => {
+      (window as unknown as { __celTapped: number }).__celTapped = 0;
+      document.querySelector("[data-reveal-score]")!.addEventListener("pointerdown", () => ((window as unknown as { __celTapped: number }).__celTapped += 1));
+    });
+    await o.page.mouse.click(box!.x + box!.width / 2, box!.y + box!.height / 2);
+    await o.page.waitForTimeout(200);
+    check((await o.log()).some((e) => e.kind === "skip"), "reveal 200: a tap does not skip the lap");
+    check((await o.page.evaluate(() => (window as unknown as { __celTapped: number }).__celTapped)) === 1, "reveal 200: the skipping tap does not reach the screen under it");
+    check(await o.page.evaluate(() => getComputedStyle(document.querySelector(".celebration-canvas")!).display === "none"), "reveal 200: the lap is still drawn after the tap");
+    await o.page.waitForTimeout(1800);
+    await judgeLayout(o.page, "reveal 200");
+    await fire(o.page, `C.heroGrand(scope);`);
+    await o.page.waitForTimeout(1250);
+    await shot(o.page, "hero-lap-200-leap");
+    await o.page.waitForTimeout(800);
+    await shot(o.page, "hero-lap-200-dance");
+    await o.close();
+  }
+
   // On: GO's strike and zap, and none on Prepare to Duel.
   {
     const o = await open(browser, server.origin, "prepare", true);
@@ -547,6 +610,11 @@ try {
     const r = await open(browser, server.origin, "reveal150", true, { reduced: true });
     check(!(await r.log()).some((e) => e.kind === "heroRun"), "reduced motion: the hero runs");
     await r.close();
+    const g = await open(browser, server.origin, "reveal200", true, { reduced: true });
+    const glog = await g.log();
+    check(glog.filter((e) => e.kind === "heroShow").map((e) => e.text).join() === "grand:calm" && !glog.some((e) => e.kind === "heroRun" || e.kind === "burst" || e.kind === "sound:firework"), `reduced motion, reveal 200: ${glog.map((e) => e.text ?? e.kind).join(",")}; expected the still hero only`);
+    await shot(g.page, "hero-still-200-reduced");
+    await g.close();
   }
 } finally {
   await browser.close();

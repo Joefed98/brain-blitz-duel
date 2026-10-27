@@ -312,9 +312,9 @@ Lovable still hosts and publishes the app (https://brain-blitz-duel.lovable.app)
   the look (the lobby's `LookPicker`, saved with `rememberLook` for new rooms), rooms played / wins / podiums and recent
   rooms from this device's own record (`useDeviceRoomRecord` in the room route: each finished game it shows, place and
   points as the final screen shows them; server history can't answer this because Play again deletes results),
-  practice bests, settings (the gear: sound, direction controls, How it works). Game icons (`GameIcon`): every active game's
-  own art on a tile in its colour, arcade ones painted by the game's renderer (`gameIcons/arcadeIcons.renderer.ts`),
-  puzzles by their art components or their board element redrawn (`gameIcons/puzzleIcons.tsx`); no text.
+  practice bests, settings (the gear: sound, direction controls, How it works). Game icons (`GameIcon`): every game's
+  concept drawing on a black tile with its category-colour border (since 27 Oct 2026, "Hero moments and tile icons"
+  below; until then each game's own art); no text.
   app-shell-check (~2 min, `play15`) proves the tabs, Back, icons, rooms without the tab bar and the card's switch at lobby time.
 - **Page skin** (19 Oct 2026, presentation only; `src/polish-layout/theme.css`, `src/lib/theme.ts`): the four tab
   screens, lobby, round leaderboard, answer reveal, standings, results and podium, settings, dialogs and sheets carry
@@ -325,7 +325,7 @@ Lovable still hosts and publishes the app (https://brain-blitz-duel.lovable.app)
   skinned screen (reveal boards, replays). Fonts are self-hosted in `public/fonts` (OFL), preloaded from the root route:
   Saira 600–800 (headings, buttons), Manrope 500–800 (body, names), JetBrains Mono 600–700 as "Duelz Mono" (scores, times,
   codes; the games' own JetBrains Mono is untouched). Game screens, round intros and room moments are not skinned. Game
-  icon tiles are their category's glossy gradient; the art is unchanged. Round leaderboard rows keep time · verdict · summary
+  icon tiles are black with their category's colour as the border (27 Oct 2026). Round leaderboard rows keep time · verdict · summary
   on one line under the name (ellipsis; a tap opens the detail). theme-check (fonts, tokens, contrast ≥ 4.5:1,
   targets ≥ 44 px, `play16`) and no-wrap-check (single-line text never wraps or is cut off but names, at 414×896 app,
   375×667 and desktop; thirds on `play16`/`play17`) prove it; run both after changing a skinned screen.
@@ -588,6 +588,18 @@ Lovable still hosts and publishes the app (https://brain-blitz-duel.lovable.app)
   reachable on every seed) nine pass unchanged; Coral Pop deals `bubbleRev 9` (bubbleRev 8's play exactly; base units
   the larger of the reef's net shrink and a quarter of the bubbles burst or dropped, `BUB_V9_CREDIT_PER`), so a reef
   grown past its start no longer scores 0; every level's median unchanged.
+- **Hero moments and tile icons** (27 Oct 2026; display, sound and device only, no stamps): the answer reveal's hero
+  by this player's own stored score (`heroMomentFor` in `src/lib/fx/celebrations.ts`; lines `HERO_DANCE_SCORE` 190 and
+  `HERO_GRAND_SCORE` 200 in `betaConfig.ts`): 150–189 the run as before; 190–199 `heroDance` (on from the left, dances
+  `heroDancePose` near the left edge, off, 1.5 s); 200 `heroGrand` (a run, a leap back in the victory pose, a dance, off
+  to the right, six gold fireworks, 3 s). A tap anywhere skips it (`skipCelebration`; a passive capture listener, so the
+  tap still lands); reduced motion draws the hero still with a short glow (`HERO_STILL_MS`). Cues
+  `shared.celebrate.heroDance` / `heroGrand` / `firework` reuse existing files. Every game's tile (`GameIcon`) is now a
+  concept drawing (`src/components/app/gameIcons/conceptIcons.tsx`: one SVG style, INK / DIM / the category colour as
+  `currentColor`, stroke letters, no `<text>`) on black with a border in the exact `--category-*` colour (theme.css); the
+  share card draws the same. The old per-game icon art (`puzzleIcons.tsx`) is gone; `arcadeIcons.renderer.ts` stays
+  only for `scripts/shots/sharp-icons-shots.ts`. Contact sheet: `bun scripts/shots/tile-icons-sheet.ts`
+  (`screenshots/tile-icons-oct-2026/`). celebrations-off.json was re-recorded (only the icon markup changed).
 - `src/components/duel/` — room/round screens (PhoneShell, RoundIntro, TimerBar,
   AnswerReveal, ArcadeReveal, WinnerReveal…); `src/components/puzzles/` — shared puzzle
   widgets; `src/lib/fx/` — sound and visual feedback (presentation only).

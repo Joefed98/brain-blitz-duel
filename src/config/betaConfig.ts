@@ -52,3 +52,9 @@ export const FX_CELEBRATIONS = true;
 
 /** A round score at least this high sends the Joulz hero running across the screen once. */
 export const HERO_RUN_SCORE = 150;
+
+/** 190–199: the hero comes on, dances about 1.5 s and steps off (instead of the run). */
+export const HERO_DANCE_SCORE = 190;
+
+/** 200: the hero runs round the screen with fireworks, about 3 s (instead of the run). */
+export const HERO_GRAND_SCORE = 200;

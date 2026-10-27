@@ -96,10 +96,12 @@ chips and game icon tiles:
 
 - `data-cat` sets `--cat`, plus `--cat-hi` (62 % toward white, for text) and `--cat-lo` (62 % toward
   black, for gradients), mixed in oklab.
-- **Game icon tiles** (`.game-icon[data-cat]`, `GameIcon`): a glossy gradient from `--cat` to `--cat-lo`
-  (darkened), a white top gloss, a 1 px inner rim, a soft drop shadow. The art is the game's own (arcade
-  icons painted by the game's renderer at the icon's real pixel size, never an enlarged sprite; puzzle
-  icons as SVG). No text in an icon.
+- **Game icon tiles** (`.game-icon[data-cat]`, `GameIcon`; 27 Oct 2026): black (#000) inside, a border in the
+  category's exact colour (`--cat`, the `--category-*` token; about 4.5 % of the tile, at least 1.5 px), and a small
+  drawing of the game's idea (`gameIcons/conceptIcons.tsx`): a 64-unit box, art inside 7…57, 3-unit round strokes in
+  #F3F1EC for the main shapes, #6F6F7D for the secondary ones and the category colour (`currentColor`) for the one
+  thing that matters. Letters and digits are stroke glyphs (`Glyph`); no `<text>` in an icon. One style for every
+  game, retired ones included; the share card draws the same drawing on the same tile.
 - **Row icon squares** on the tab pages (`.ap-icon-sq`, 40 px, radius 11) take a tone from `data-tone`:
   puzzle #1A2236 / #7FA6F5, arcade #3A1E22 / #F08A6E, challenge #271F3A / #B79BF2; neutral without one.
 - **Play tab tiles** (`.ap-tile44`, `src/components/app/TabIcons.tsx`, 44 px, radius 12): glossy
@@ -196,7 +198,7 @@ is cut off, except player names, which ellipsise (no-wrap-check).
 ## The Joulz hero
 
 The hero (`src/lib/arcade/hero.renderer.ts`) replaces the stick figures in Grappler, Jaywalk and
-Roofbound and draws their game icons.
+Roofbound (their game icons are concept drawings since 27 Oct 2026).
 
 - Colours: black #0D0D0F (`HERO_BLACK`), gold #F7BF2F (`HERO_GOLD`), light gold #FFE08A, deep gold
   #C98A0E, cape edge #A86F08, the bolt's lower half #D99A14.
@@ -210,6 +212,9 @@ Roofbound and draws their game icons.
   eye slits and chest bolt are left out. Icons pass `detailScale` (the icon's real px per unit) and draw
   as vectors at the icon's real size, each paint on a fresh pose.
 - Reduced motion: the cape lifts only gently and snaps instead of easing.
+- On the answer reveal (celebrations, 27 Oct 2026): 150–189 the run along the bottom; 190–199 the dance
+  (`heroDancePose`, near the left edge, 1.5 s); 200 the lap with six gold fireworks (3 s). A tap anywhere skips it;
+  reduced motion shows the hero standing still with a short gold glow.
 
 ## Motion and effects
 
