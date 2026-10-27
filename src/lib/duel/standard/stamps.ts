@@ -33,7 +33,17 @@ export const STANDARD_STAMPS: Partial<Record<PuzzleType, StandardStamp>> = {
   codeword: s("codewordRev", 4),
   swapword: s("swapwordRev", 6),
 
-  // Number (number.server.ts)
+  // Number (number.server.ts). The eight puzzles share `depthRev` (numberDepth.ts), each one above its own live value;
+  // Exact is one part (no timeline). Tenfall scores in its sim (tenDrop.ts, tenRev 5): no StandardGame entry.
+  target: s("depthRev", 2, false),
+  equation: s("depthRev", 1),
+  balance: s("depthRev", 1),
+  numpyramid: s("depthRev", 1),
+  trail: s("depthRev", 1),
+  measure: s("depthRev", 2),
+  checkout: s("depthRev", 2),
+  numline: s("depthRev", 1),
+  tendrop: s("tenRev", 4, false),
 
   // Speed and Attention (attention.server.ts; Mixed Signals scores in its sim, colourClash.ts clashRev 10). Ascend's and
   // the Chain's answers carry their own tap times and Mixed Signals is an engine game, so they need no draft timeline.

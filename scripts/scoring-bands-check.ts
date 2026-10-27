@@ -41,6 +41,7 @@ import { decodeSafePending, decodeSafeTries, encodeSafeDraft } from "../src/lib/
 import { bandsFigures, bandsHelp } from "../src/lib/duel/puzzleBandsText";
 import { isNumberDepthType } from "../src/lib/duel/numberDepth";
 import { depthHelp } from "../src/lib/duel/numberDepthText";
+import { standardNumberHelp } from "../src/lib/duel/standard/numberText";
 import { PUZZLE_INSTRUCTIONS } from "../src/lib/duel/instructions";
 import { TEN_DROP_BANDS_MAP, TEN_DROP_BANDS_REV, TEN_DROP_DEPTH_REV, TEN_DROP_RAW_REV } from "../src/lib/arcade/tenDrop";
 import { CLASH_BANDS_MAP, CLASH_REV_BANDS, CLASH_REV_DEPTH, CLASH_REV_GREAT } from "../src/lib/arcade/colourClash";
@@ -311,7 +312,10 @@ const fixture = JSON.parse(gunzipSync(readFileSync(FIXTURE)).toString()) as { ar
       continue;
     }
     if (roundMaxFor(type) > 150 && !isNumberDepthType(type)) continue;
-    ok(PUZZLE_INSTRUCTIONS[type].score === (isNumberDepthType(type) ? depthHelp(type) : bandsHelp(type)), `${type}: the "?" help is not the puzzle's score text`);
+    // The scoring standard (27 Oct 2026): the Number puzzles' help states the standard stamp rooms deal (standard/numberText.ts;
+    // standard-number-check proves it); depthHelp stays the text of the depth stamps.
+    ok(PUZZLE_INSTRUCTIONS[type].score === (isNumberDepthType(type) ? standardNumberHelp(type) : bandsHelp(type)), `${type}: the "?" help is not the puzzle's score text`);
+    if (isNumberDepthType(type)) ok(depthHelp(type).length > 0, `${type}: the depth stamps keep their help text`);
   }
 }
 
