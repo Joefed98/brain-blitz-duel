@@ -1272,13 +1272,13 @@ Grouped by game or screen.
 
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
 |---|---|---|---|---|---|---|---|---|
-| `skyline.floorsStreak` | Every 10th floor [arcade-effects.md] | n FLOORS banner | 1–4 | recorded sound | `skyline.floorsStreak` | 483 | game event | `skyline.floorsStreak` |
+| `skyline.floorsStreak` | Every 10th floor [arcade-effects.md] | n FLOORS banner | 1–4 | recorded sound | `skyline.floorsStreak` | 648 | game event | `skyline.floorsStreak` |
 | `skyline.windFlag` | The wind flag goes up (skylineRev 2+) [arcade-effects.md] | A flag is raised on the top block | 0–1 | recorded sound | `skyline.windFlag` | 400 | game event | `skyline.windFlag` |
-| `skyline.windPerfect` | A perfect drop in the wind [arcade-effects.md] | PERFECT pop at the seam in a gust | 0–5 | recorded sound | `skyline.windPerfect` | 209 | game event | `skyline.windPerfect` |
+| `skyline.windPerfect` | A perfect drop in the wind [arcade-effects.md] | PERFECT pop at the seam in a gust | 0–5 | recorded sound | `skyline.windPerfect` | 483 | game event | `skyline.windPerfect` |
 | `skyline.gust` | A gust starts blowing [arcade-effects.md] | Gust streaks cross the sky | 2–8 | recorded sound | `skyline.gust` | 600 | game event | `skyline.gust` |
 | `skyline.gustWarn` | The flag streams a second before a gust blows [arcade-effects.md] | The flag streams and ripples | 2–8 | recorded sound | `skyline.gustWarn` | 500 | game event | `skyline.gustWarn` |
 | `skyline.drop` | High Rise: A block lands [arcade.md] |  | 20–50 | recorded sound | `arc_clank` (shared) | 150 | game event | `skyline.drop` |
-| `skyline.perfect` | High Rise: A perfect drop [arcade.md] |  | 5–20 | recorded sound | `skyline.perfect` | 209 | success sting | `skyline.perfect` |
+| `skyline.perfect` | High Rise: A perfect drop [arcade.md] |  | 5–20 | recorded sound | `skyline.perfect` | 483 | success sting | `skyline.perfect` |
 | `skyline.streakDrop` | High Rise: A streak bonus drop (skylineRev 2+) [arcade.md] |  | 2–10 | recorded sound | `arc_retro_coin` (shared) | 120 | game event | `skyline.streakDrop` |
 | `skyline.miss` | High Rise: A block misses the tower [arcade.md] |  | 0–1 | recorded sound | `arc_crash` (shared) | 200 | fail sting | `skyline.miss` |
 | `music.skyline` | High Rise: music_skyline |  | loop | recorded sound | `music_skyline` | loop | music | `music_skyline` |
@@ -1979,7 +1979,7 @@ loops are not measured there). Files in `public/sounds/` are listed once per slo
 | `bubble.bomb` | effects | `bubble.bomb` | 662 |
 | `bubble.line` | effects | `bubble.line` | 600 |
 | `bubble.jokerLand` | effects | `bubble.jokerLand` | 680 |
-| `skyline.perfect` | effects | `skyline.perfect` | 209 |
+| `skyline.perfect` | effects | `skyline.perfect` | 483 |
 | `cross.hop` | effects | `cross.hop` | 528 |
 | `pinball.start` | effects | `pinball.start` | 486 |
 | `pinball.ballLost` | effects | `pinball.ballLost` | 587 |
@@ -2114,9 +2114,9 @@ loops are not measured there). Files in `public/sounds/` are listed once per slo
 | `balltrack.release` | effects | `balltrack.release` | 528 |
 | `balltrack.lost` | effects | `balltrack.lost` | 528 |
 | `balltrack.shuffle` | effects | `balltrack.shuffle` | 528 |
-| `skyline.floorsStreak` | effects | `skyline.floorsStreak` | 483 |
+| `skyline.floorsStreak` | effects | `skyline.floorsStreak` | 648 |
 | `skyline.windFlag` | effects | `skyline.windFlag` | 648 |
-| `skyline.windPerfect` | effects | `skyline.windPerfect` | 209 |
+| `skyline.windPerfect` | effects | `skyline.windPerfect` | 483 |
 | `skyline.gust` | effects | `skyline.gust` | 648 |
 | `matchup.lineOfFive` | effects | `matchup.lineOfFive` | 680 |
 | `matchup.jackpotMade` | effects | `matchup.jackpotMade` | 680 |

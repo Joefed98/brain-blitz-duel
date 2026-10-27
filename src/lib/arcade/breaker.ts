@@ -233,6 +233,9 @@ export interface BrkState extends BandFields {
   comboPts?: number;
   /** brkRev 9, display only (never scored): times a chain stepped up to a new multiplier. */
   comboUps?: number;
+  /** brkRev 10 only (Joe's phone notes, 27 Oct 2026): the marker; gold bricks break after BRK_V10_GOLD_HITS hits of
+   * any kind and the wall holds a second double-ball brick in its lower rows. Absent on every earlier round. */
+  phone?: number;
   tick: number;
   rng: number;
   /** Hits left in each brick: 0 gone, otherwise 1–3. */
@@ -738,6 +741,8 @@ export function brkCheckpoint(state: BrkState): BrkCheckpoint {
   if (state.worldH) values.push(state.worldH);
   // brkRev 9 (the expansion): its own counters, last.
   if (state.deep) values.push(state.deep, state.worldW ?? 0, state.goldBroken ?? 0, state.clinks ?? 0, state.chain ?? 0, state.comboPts ?? 0);
+  // brkRev 10 (phone notes): its marker, last.
+  if (state.phone) values.push(state.phone);
   for (const value of values) {
     checksum ^= value | 0;
     checksum = Math.imul(checksum, 0x01000193) >>> 0;
@@ -917,6 +922,7 @@ const breakerGameV2: ArcadeGame<BrkState, ArcadeInputEvent | null> = { ...breake
 
 /** The game for a stored brkRev (absent = the original board and power-ups). */
 export function breakerGameFor(rev?: number | null): ArcadeGame<BrkState, ArcadeInputEvent | null> {
+  if (rev === BRK_REV_PHONE) return breakerPhoneGame;
   if (rev === BRK_REV_DEEP) return breakerDeepGame;
   if (rev === BRK_REV_STRICT) return breakerStrictGame;
   if (rev === BRK_REV_TARGET) return breakerTargetGame;
@@ -1006,13 +1012,13 @@ export const breakerTallGame: ArcadeGame<BrkState, ArcadeInputEvent | null> = {
 
 /** The world height (px) a stored round's brkRev plays in. */
 export function breakerWorldHFor(rev?: number | null): number {
-  if (rev === BRK_REV_DEEP) return BRK_V9_H;
+  if (rev === BRK_REV_DEEP || rev === BRK_REV_PHONE) return BRK_V9_H;
   return rev === BRK_REV_TALL || rev === BRK_REV_TARGET || rev === BRK_REV_STRICT ? BRK_TALL_H : BRK_WORLD_H;
 }
 
 /** The court width (px) a stored round's brkRev plays in. */
 export function breakerWorldWFor(rev?: number | null): number {
-  return rev === BRK_REV_DEEP ? BRK_V9_W : BRK_WORLD_W;
+  return rev === BRK_REV_DEEP || rev === BRK_REV_PHONE ? BRK_V9_W : BRK_WORLD_W;
 }
 
 /* ================= Scoring targets (brkRev 7, 18 Oct 2026) ================= */
@@ -1344,6 +1350,22 @@ function stepDeep(state: BrkState, input: ArcadeInputEvent | null): BrkState {
     }
   };
 
+  /** brkRev 10: one hit of any kind on a gold brick; the last of its BRK_V10_GOLD_HITS breaks it (a plain ball's break extends the chain, as on brkRev 9). */
+  const hitGold = (index: number, chainable: boolean): void => {
+    const left = bricks[index] ?? 0;
+    if (left <= 0) return;
+    bricks[index] = left - 1;
+    if (left - 1 > 0) {
+      clinks += 1;
+      return;
+    }
+    goldBroken += 1;
+    if (chainable) {
+      chain += 1;
+      if (chain > bestChain) bestChain = chain;
+    }
+  };
+
   if (press !== null && held === BRK_POWER_LASER + 1) {
     // The beam rises from the paddle centre, stops after four bricks, or at a gold brick it cannot break.
     let struck = 0;
@@ -1353,7 +1375,9 @@ function stepDeep(state: BrkState, input: ArcadeInputEvent | null): BrkState {
       if (index < 0 || (bricks[index] ?? 0) <= 0) continue;
       if (brkIsGold(state, index)) {
         top = BRK_WALL_Y + row * BRK_ROW_PITCH + BRK_BRICK_H;
-        clinks += 1;
+        // brkRev 10: the beam's stop counts as one of the gold brick's hits.
+        if (state.phone) hitGold(index, false);
+        else clinks += 1;
         break;
       }
       breakBrick(index, false);
@@ -1422,8 +1446,10 @@ function stepDeep(state: BrkState, input: ArcadeInputEvent | null): BrkState {
         const brick = brkBrickAtDeep(state, px(x), px(y), tick);
         if (brick >= 0 && (bricks[brick] ?? 0) > 0) {
           if (brkIsGold(state, brick)) {
-            // Only a direct hit from a plain ball breaks gold; everything else bounces off it.
-            if (d === 1 && spam === 0 && fire === 0) {
+            // brkRev 10: any hit counts (BRK_V10_GOLD_HITS break it); the ball bounces off as before.
+            if (state.phone) hitGold(brick, spam === 0 && fire === 0);
+            // brkRev 9: only a direct hit from a plain ball breaks gold; everything else bounces off it.
+            else if (d === 1 && spam === 0 && fire === 0) {
               bricks[brick] = 0;
               goldBroken += 1;
               chain += 1;
@@ -1547,7 +1573,7 @@ export function breakerDeepParts(state: BrkState): BandParts {
   const words = [`gold ${state.goldBroken ?? 0}`, `combo ${state.comboPts ?? 0}`];
   return {
     units,
-    points: bandPoints(BRK_V9_BAND_CURVE, units),
+    points: bandPoints(state.phone ? BRK_V10_BAND_CURVE : BRK_V9_BAND_CURVE, units),
     bonus: speedBonus + skill,
     penalty: 0,
     finished,
@@ -1563,4 +1589,69 @@ export const breakerDeepGame: ArcadeGame<BrkState, ArcadeInputEvent | null> = {
   isOver: isOverDeep,
   score: (state) => bandTotal(breakerDeepParts(state), Boolean(state.acted), BRK_V9_MAX),
   inputRanges: BRK_V9_INPUT_RANGES,
+};
+
+/* ================= Phone notes (brkRev 10, 27 Oct 2026) ================= */
+
+/**
+ * brkRev 10 (Joe's phone-test notes, docs/phone-notes-oct-2026/breaker.md): brkRev 9's court, wall, features and
+ * scoring, with two rule changes, the same for every player:
+ *  - Gold bricks no longer need a direct hit: any BRK_V10_GOLD_HITS hits break one (a plain ball, a Fireball, a
+ *    ×3 shot or the laser's stop each count one; the ball still bounces off). Every hit but the last is a clink.
+ *  - A second double-ball brick in the lower rows (BRK_V10_MULTI2_ROWS, a different row from the first where it
+ *    can), drawn from a stream of its own keyed by the seed after the brkRev 9 board, so the rest of the board, the
+ *    sliding rows and the first launch are brkRev 9's exactly. It sits on a 1-hit brick, never on armour.
+ * States carry `phone: 1` (folded into the checkpoint last); gold bricks start with BRK_V10_GOLD_HITS in `bricks`
+ * and `maxHp`. Scored on BRK_V10_BAND_CURVE (brkRev 9's points moved to the bricks each level now reaches) and
+ * BRK_V9_SKILL_PAY unchanged.
+ */
+export const BRK_REV_PHONE = 10;
+export const BRK_V10_GOLD_HITS = 4;
+export const BRK_V10_MULTI2_ROWS: readonly [number, number] = [8, 11];
+/**
+ * brkRev 10 band knots (wall bricks destroyed, of 105): the second double-ball brick lets the same players break more
+ * of the wall (the good bot's median 69.5 → 79.5 bricks), so brkRev 9's points are moved to the bricks each level now
+ * reaches (scripts/arcade-skill-bands.ts --rev=now, 60 tuning seeds; docs/phone-notes-oct-2026/breaker.md): an
+ * ordinary player's score stays where it was while better play still pays more. 140 at all 105, as before.
+ */
+export const BRK_V10_BAND_CURVE = bandCurve([0, 34, 56, 67, 80, 91, 101, 105], [0, 66, 80, 86, 98, 129, 137, 140]);
+
+function initPhone(seed: number): BrkState {
+  const base = initDeep(seed);
+  const bricks = base.bricks.slice();
+  const maxHp = base.maxHp.slice();
+  const gold = base.gold.slice();
+  const gild = base.gild ?? [];
+  for (let i = 0; i < bricks.length; i++) {
+    if (gild[i] === 1) {
+      bricks[i] = BRK_V10_GOLD_HITS;
+      maxHp[i] = BRK_V10_GOLD_HITS;
+    }
+  }
+  let rng = (seed ^ 0x4252cb10) | 0;
+  const draw = (bound: number): number => {
+    const d = rngBelow(rng, bound);
+    rng = d.state;
+    return d.value;
+  };
+  const firstRow = gold.findIndex((g) => g === BRK_POWER_MULTI + 1);
+  const avoidRow = firstRow >= 0 ? Math.trunc(firstRow / BRK_V9_COLS) : -1;
+  const [r0, r1] = BRK_V10_MULTI2_ROWS;
+  const span = (r1 - r0 + 1) * BRK_V9_COLS;
+  const fits = (index: number, strict: boolean) =>
+    gold[index] === 0 && gild[index] !== 1 && bricks[index] === 1 && (!strict || Math.trunc(index / BRK_V9_COLS) !== avoidRow);
+  let placed = -1;
+  for (let guard = 0; guard < 400 && placed < 0; guard++) {
+    const index = r0 * BRK_V9_COLS + draw(span);
+    if (fits(index, guard < 200)) placed = index;
+  }
+  // A scan as a last resort (never reached on a real board: the lower rows hold dozens of 1-hit bricks).
+  for (let index = r0 * BRK_V9_COLS; placed < 0 && index < (r1 + 1) * BRK_V9_COLS; index++) if (fits(index, false)) placed = index;
+  if (placed >= 0) gold[placed] = BRK_POWER_MULTI + 1;
+  return { ...base, bricks, maxHp, gold, phone: 1 };
+}
+
+export const breakerPhoneGame: ArcadeGame<BrkState, ArcadeInputEvent | null> = {
+  ...breakerDeepGame,
+  init: initPhone,
 };

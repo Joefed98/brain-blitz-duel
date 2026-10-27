@@ -291,6 +291,7 @@ export function unlockAudio(): void {
     resumeContext();
     unlocked = true;
     if (pendingRoundMusic) prepareRoundMusic(pendingRoundMusic);
+    if (pendingBeatTrack) prepareBeatTrack();
     loading ??= preload();
     if (desiredTrack && !currentTrack) startMusic(desiredTrack.name, desiredTrack.options);
   } catch (error) {
@@ -884,24 +885,72 @@ export function playBeatStep(step: number): void {
 
 /*
  * Tempo's recorded bed (`music_beat`, sound batch 4) is locked to the chart's own clock, not the
- * round's: the chart's first beat is tick 120 and it runs at exactly 120 BPM, so the track starts on
- * the audio clock when the sim reaches that tick, at file offset `downbeat + (tick - 120) / 60` s,
- * and is jumped back into place whenever it drifts more than 40 ms from that (a stalled frame, the
- * tab hidden and shown). It stops when the run ends or the player locks in. The 2.000 s lead-in is
- * the player's (the file starts on its first downbeat, and the loader trims leading silence anyway).
- * Presentation only: the chart, judging, input log and score never read it. Until the file has
- * decoded, or if it fails, Tempo plays the synthesised beat (playBeatStep) exactly as before.
+ * round's: the chart's first beat is tick 120 and it runs at exactly 120 BPM.
+ *
+ * Phone notes (27 Oct 2026, presentation only): the file opens with an 8 s quiet intro (about 14 dB
+ * under the groove, RMS measured with ffmpeg) and the stage only fetched it on its first frame, so on
+ * a phone the music seemed to "kick in" 5–10 s into the run. Now:
+ *  - the file is fetched and decoded while the intro shows (`prepareBeatTrack`, from RoundIntro,
+ *    RoundTitle and DuelStart), so it is usually ready on the stage's first frame;
+ *  - only the full groove plays, looped: file seconds [8, 56) after its first audible sample (24 bars,
+ *    each loop point a downbeat). The chart's first beat (tick 120) lands on the groove's first
+ *    downbeat, and from tick 0 the track plays the groove's last bar as the lead-in, so the music is
+ *    there from the very first frame and covers beatRev 9+'s 75 s song without the synth taking over;
+ *  - it is louder: level 0.9 rising to 1.0 over the last 15 s (was the arcade round ramp, 0.5 → 0.9).
+ * It is still tick-locked: the file position is `grooveStart + ((tick − 120) / 60 mod 48)` s, jumped
+ * back into place whenever it drifts more than 40 ms from that (a stalled frame, the tab hidden and
+ * shown). It fades out over 300 ms when the run ends or the player locks in. A file too short for the
+ * groove (the check's stand-ins) plays as before: from its start at tick 120, not looped. Until the
+ * file has decoded, or if it fails, Tempo plays the synthesised beat (playBeatStep), from tick 0.
+ * The chart, judging, input log and score never read any of this.
  */
 const BEAT_TRACK: SoundId = "music_beat";
 /** The file's first downbeat after its first audible sample (s), measured at the wire-in. */
 const BEAT_TRACK_DOWNBEAT_S = 0;
+/** The full groove (s after the first audible sample): from the end of the quiet intro to the fade. */
+export const BEAT_TRACK_GROOVE_FROM_S = 8;
+export const BEAT_TRACK_GROOVE_TO_S = 56;
 const BEAT_TRACK_DRIFT_S = 0.04;
-let beatTrack: { source: AudioBufferSourceNode; gain: GainNode; at: number; offset: number } | null = null;
+/** Tempo's track level: this floor, rising with the arcade round ramp to 1 (was the ramp itself, 0.5 → 0.9). */
+export const BEAT_TRACK_LEVEL_FLOOR = 0.9;
+const BEAT_TRACK_FADE_MS = 300;
+let beatTrack: { source: AudioBufferSourceNode; gain: GainNode; at: number; offset: number; loop: { from: number; period: number } | null } | null = null;
 let beatLevel = 0;
+let pendingBeatTrack = false;
 
 /** True once Tempo's own track is decoded and can play: the synthesised beat then stays quiet. */
 export function beatTrackReady(): boolean {
   return !!SOUND_MANIFEST[BEAT_TRACK]?.url && musicBuffers.has(BEAT_TRACK) && ready() && !demoHushed();
+}
+
+/** The groove loop in a decoded file (s), or null when the file is too short to hold it. */
+function beatTrackLoop(buffer: AudioBuffer): { from: number; to: number } | null {
+  const start = (loopPoints.get(BEAT_TRACK)?.start ?? 0) + BEAT_TRACK_DOWNBEAT_S;
+  const from = start + BEAT_TRACK_GROOVE_FROM_S;
+  const to = start + BEAT_TRACK_GROOVE_TO_S;
+  return buffer.duration >= to ? { from, to } : null;
+}
+
+/** True while Tempo's track can play the whole run (the groove loops), so the synth never takes over. */
+export function beatTrackLoops(): boolean {
+  const buffer = musicBuffers.get(BEAT_TRACK);
+  return !!buffer && beatTrackReady() && !!beatTrackLoop(buffer);
+}
+
+/** Starts fetching and decoding Tempo's track (its intro, title or Prepare to Duel): a no-op once loaded. */
+export function prepareBeatTrack(): void {
+  if (!SOUND_MANIFEST[BEAT_TRACK]?.url) return;
+  if (!ctx) {
+    pendingBeatTrack = true;
+    return;
+  }
+  pendingBeatTrack = false;
+  if (!musicBuffers.has(BEAT_TRACK) && !musicLoads.has(BEAT_TRACK)) void loadMusicBuffer(BEAT_TRACK);
+}
+
+/** Tempo's level for the time left: BEAT_TRACK_LEVEL_FLOOR, rising with the arcade ramp to 1. */
+export function beatTrackLevel(remainingMs: number): number {
+  return Math.min(1, roundMusicRamp(true, remainingMs) + (BEAT_TRACK_LEVEL_FLOOR - roundMusicRamp(true, Infinity)));
 }
 
 function beatTrackGain(): number {
@@ -919,8 +968,8 @@ function applyBeatTrackLevel(): void {
 
 /**
  * Called every frame by Tempo's stage: `beatSeconds` is the sim's time since the chart's first beat
- * ((tick - 120) / 60), or null before it, once the run is over or locked in (the track stops).
- * `remainingMs` sets the level on the arcade round ramp.
+ * ((tick - 120) / 60; negative before it), or null once the run is over or locked in (the track
+ * fades out). `remainingMs` sets the level.
  */
 export function syncBeatTrack(beatSeconds: number | null, remainingMs: number): void {
   if (!SOUND_MANIFEST[BEAT_TRACK]?.url) return;
@@ -931,19 +980,31 @@ export function syncBeatTrack(beatSeconds: number | null, remainingMs: number): 
   }
   if (ctx && !musicBuffers.has(BEAT_TRACK) && !musicLoads.has(BEAT_TRACK)) void loadMusicBuffer(BEAT_TRACK);
   if (beatSeconds === null || !beatTrackReady() || !ctx || !masterGain) {
-    stopBeatTrack();
+    stopBeatTrack(false, beatSeconds === null ? BEAT_TRACK_FADE_MS : 0);
     return;
   }
   const buffer = musicBuffers.get(BEAT_TRACK)!;
-  const level = roundMusicRamp(true, remainingMs);
+  const groove = beatTrackLoop(buffer);
+  // A file without the groove plays from its start at the first beat (sound batch 4's behaviour).
+  if (!groove && beatSeconds < 0) {
+    stopBeatTrack();
+    return;
+  }
+  const level = beatTrackLevel(remainingMs);
   if (Math.abs(level - beatLevel) >= 0.002) {
     beatLevel = level;
     applyBeatTrackLevel();
   }
-  const want = (loopPoints.get(BEAT_TRACK)?.start ?? 0) + BEAT_TRACK_DOWNBEAT_S + beatSeconds;
+  const period = groove ? groove.to - groove.from : 0;
+  const want = groove
+    ? groove.from + (((beatSeconds % period) + period) % period)
+    : (loopPoints.get(BEAT_TRACK)?.start ?? 0) + BEAT_TRACK_DOWNBEAT_S + beatSeconds;
   if (beatTrack) {
-    const at = beatTrack.offset + (ctx.currentTime - beatTrack.at);
-    if (Math.abs(at - want) <= BEAT_TRACK_DRIFT_S) return;
+    const elapsed = beatTrack.offset + (ctx.currentTime - beatTrack.at);
+    const loop = beatTrack.loop;
+    const at = loop ? loop.from + ((((elapsed - loop.from) % loop.period) + loop.period) % loop.period) : elapsed;
+    const gap = Math.abs(at - want);
+    if (Math.min(gap, loop ? loop.period - gap : gap) <= BEAT_TRACK_DRIFT_S) return;
     stopBeatTrack();
   }
   if (want >= buffer.duration) return;
@@ -957,27 +1018,37 @@ export function syncBeatTrack(beatSeconds: number | null, remainingMs: number): 
   try {
     const source = ctx.createBufferSource();
     source.buffer = buffer;
+    if (groove) {
+      source.loop = true;
+      source.loopStart = groove.from;
+      source.loopEnd = groove.to;
+    }
     const gain = ctx.createGain();
     gain.gain.setValueAtTime(beatTrackGain(), ctx.currentTime);
     source.connect(gain).connect(masterGain);
     source.start(ctx.currentTime, want);
-    beatTrack = { source, gain, at: ctx.currentTime, offset: want };
+    beatTrack = { source, gain, at: ctx.currentTime, offset: want, loop: groove ? { from: groove.from, period } : null };
   } catch (error) {
     warnOnce("beat track failed", error);
   }
 }
 
-/** Stops Tempo's track; `release` also drops its decoded file (the stage went away). */
-export function stopBeatTrack(release = false): void {
+/**
+ * Stops Tempo's track, over `fadeMs` (the run's end) or at once (a re-sync); `release` also drops its
+ * decoded file (the stage went away).
+ */
+export function stopBeatTrack(release = false, fadeMs = 0): void {
   const track = beatTrack;
   beatTrack = null;
   if (track) {
-    try {
-      track.source.stop();
-      track.source.disconnect();
-    } catch {
-      /* already stopped */
-    }
+    if (fadeMs > 0 && ctx) fadeOut(track, fadeMs);
+    else
+      try {
+        track.source.stop();
+        track.source.disconnect();
+      } catch {
+        /* already stopped */
+      }
   }
   if (release) releaseMusicBuffer(BEAT_TRACK);
 }

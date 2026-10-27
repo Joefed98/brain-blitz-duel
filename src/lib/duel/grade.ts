@@ -44,7 +44,7 @@ import { decodeRingTaps, replayRings } from "./rings";
 import { decodeHoverRun, replayHoverRun } from "./hover";
 import { decodeSwerveRun, replaySwerveRun } from "./swerve";
 import { decodeSkylineRun, replaySkylineRun } from "./skyline";
-import { SKYLINE_REV_EXPAND } from "@/lib/arcade/skyline";
+import { SKYLINE_REV_EXPAND, SKYLINE_REV_LIFT } from "@/lib/arcade/skyline";
 import { PIN_REV_EXPAND } from "@/lib/arcade/pinball";
 import { decodeSnakeRun, replaySnakeRun } from "./snake";
 import { decodeBreakerRun, replayBreakerRun } from "./breaker";
@@ -1203,8 +1203,8 @@ function gradeUnderRev(
         blocks: run.blocks,
         perfects: run.perfects,
         ...(puzzle.skylineRev ? { skylineRev: puzzle.skylineRev, bestStreak: run.bestStreak, streakPoints: run.streakPoints } : {}),
-        // skylineRev 7 (the expansion): gold blocks landed perfectly, the best streak multiplier, height milestones.
-        ...(puzzle.skylineRev === SKYLINE_REV_EXPAND ? { golds: run.golds, bestMult: run.bestMult, milestones: run.milestones } : {}),
+        // skylineRev 7+ (the expansion; 8 is its play on a gentler curve): gold blocks landed perfectly, the best streak multiplier, height milestones.
+        ...(puzzle.skylineRev === SKYLINE_REV_EXPAND || puzzle.skylineRev === SKYLINE_REV_LIFT ? { golds: run.golds, bestMult: run.bestMult, milestones: run.milestones } : {}),
         survived: run.survived,
         endedSeconds: run.endedSeconds,
         flagged: run.flagged,
