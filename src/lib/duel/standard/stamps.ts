@@ -15,9 +15,11 @@ export interface StandardStamp {
   rev: number;
   /** The game's "how early" extras need part times: the phone appends a draft timeline (timeline.ts). */
   timed?: boolean;
+  /** A rule the standard's stamp deals with it (Colour Flood's move limit), applied to the newly stamped puzzle. */
+  deal?: (puzzle: PuzzleData) => PuzzleData;
 }
 
-export const s = (key: string, live: number, timed = true): StandardStamp => ({ key, live, rev: live + 1, timed });
+export const s = (key: string, live: number, timed = true, deal?: StandardStamp["deal"]): StandardStamp => ({ key, live, rev: live + 1, timed, ...(deal ? { deal } : {}) });
 
 /** Every game on the standard, by category. */
 export const STANDARD_STAMPS: Partial<Record<PuzzleType, StandardStamp>> = {
@@ -27,7 +29,9 @@ export const STANDARD_STAMPS: Partial<Record<PuzzleType, StandardStamp>> = {
 
   // Speed and Attention (attention.server.ts)
 
-  // Pattern and Logic (logic.server.ts)
+  // Pattern and Logic: Gridlock, Tessellate, Skid, Topsy-Turvy, Gradient, Turntable, Lightbender, Chroma Lines, Pipeline, Heave (pattern.server.ts)
+
+  // Pattern and Logic: Blackout, Box Six, Hanoi, Polypotions, Safe Cracker, Bomb Defusal, Mosaic, Colour Flood, Tents and Trees, Shikaku, Lamplighter (logic.server.ts)
 
 };
 
@@ -71,5 +75,6 @@ export function dealStandard<T extends PuzzleData>(puzzle: T): T {
   const st = STANDARD_STAMPS[puzzle.type];
   if (!st || pinned) return puzzle;
   if (stampOf(puzzle, st.key) !== st.live) return puzzle;
-  return { ...puzzle, [st.key]: st.rev };
+  const stamped = { ...puzzle, [st.key]: st.rev } as T;
+  return st.deal ? (st.deal(stamped) as T) : stamped;
 }

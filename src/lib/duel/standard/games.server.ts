@@ -2,4 +2,5 @@
 import "./word.server";
 import "./number.server";
 import "./attention.server";
+import "./pattern.server";
 import "./logic.server";
