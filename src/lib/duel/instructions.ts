@@ -5,7 +5,9 @@ import { letterWheelJarHelp } from "./letterWheelText";
 import { CODEWORD_STRETCH, TILEGRID_STRETCH_TOPUP, stretchHelp, strikeoutDepthHelp } from "./depth/stretchShapes";
 import { parBonusHelp } from "./parBonusText";
 import { SLIDE_PAR_BONUS_TOPUP } from "./wordSlide";
-import { SWAP_PAR_BONUS_TOPUP } from "./swapword";
+import { SW6_SPARE_SWAPS, SWAP_PAR_BONUS_TOPUP } from "./swapword";
+import { STD_ROUNDABOUT, STD_STRIKEOUT, WORD_STANDARD_HELP } from "./standard/word";
+import { preStandardPinned } from "./standard/stamps";
 import { doubleTakeDepthHelp, eagleEyeDepthHelp, tallyDepthHelp } from "./depth/attentionTexts";
 import { depthHelp } from "./numberDepthText";
 import { d4Help } from "./depth4/text";
@@ -174,7 +176,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Red runs", detail: "need fixing.", helpOnly: true },
         { action: "Words are checked", detail: "against a standard British English dictionary.", helpOnly: true },
       ],
-      score: stretchHelp("tilegrid", TILEGRID_STRETCH_TOPUP),
+      score: preStandardPinned() ? stretchHelp("tilegrid", TILEGRID_STRETCH_TOPUP) : WORD_STANDARD_HELP.tilegrid,
     },
     balance: {
       goal: "Balance each of the four scales.",
@@ -199,7 +201,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Words are 5 letters.", detail: "Column swipes go around a locked row.", helpOnly: true },
         { action: "Words are checked", detail: "against a standard British English dictionary.", helpOnly: true },
       ],
-      score: parBonusHelp("wordslide", SLIDE_PAR_BONUS_TOPUP, "moves", "the par moves"),
+      score: preStandardPinned() ? parBonusHelp("wordslide", SLIDE_PAR_BONUS_TOPUP, "moves", "the par moves") : WORD_STANDARD_HELP.wordslide,
     },
     target: {
       goal: "Use the six numbers to make the target.",
@@ -1259,7 +1261,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Each chip shows", detail: "a hidden word's letter count until you find it; the word then fills it.", helpOnly: true },
         { action: "The bonus word", detail: "fills the gold star chip. Find it before the sixth word: the sixth ends the round.", helpOnly: true },
       ],
-      score: wordSearchBonusHelp(),
+      score: preStandardPinned() ? wordSearchBonusHelp() : WORD_STANDARD_HELP.wordsearch,
     },
     letterwheel: {
       goal: "Fill the crossword from the letter wheel.",
@@ -1269,11 +1271,11 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Other real words", detail: "fill the bonus jar." },
         { action: "Lift off the wheel or ×", detail: "to drop a trace.", helpOnly: true },
         { action: "Or tap letters", detail: "then Submit.", helpOnly: true },
-        { action: "The bonus jar", detail: "fills by word length; a full jar adds the top 50 points. Misses after the first 5 spill a drop each.", helpOnly: true },
+        { action: "The bonus jar", detail: preStandardPinned() ? "fills by word length; a full jar adds the top 50 points. Misses after the first 5 spill a drop each." : `fills by word length; the fuller it is, the more it adds (up to ${STD_ROUNDABOUT.jar}). Misses after the first 5 spill a drop each.`, helpOnly: true },
         { action: "A trace that is not a word", detail: "is a miss: the first 5 are free, then each costs 3.", helpOnly: true },
         { action: "Shuffle", detail: "rearranges the wheel without changing the crossword.", helpOnly: true },
       ],
-      score: letterWheelJarHelp(),
+      score: preStandardPinned() ? letterWheelJarHelp() : WORD_STANDARD_HELP.letterwheel,
     },
     strikeout: {
       goal: "Reveal five long words, one at a time, before twelve strikes.",
@@ -1282,13 +1284,13 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Three vowel guesses", detail: "per word (the dots)." },
         { action: "Vowels are A E I O U;", detail: "the keypad resets for each word.", helpOnly: true },
         { action: "Tap Solve", detail: "to guess the word; early earns more, wrong is a strike." },
-        { action: "Early solves:", detail: "the more letters still hidden when you Solve a word, the bigger its bonus.", helpOnly: true },
+        { action: "Early solves:", detail: preStandardPinned() ? "the more letters still hidden when you Solve a word, the bigger its bonus." : `Solve a word with ${STD_STRIKEOUT.earlyHidden}+ letters still hidden for ${STD_STRIKEOUT.earlySolve} more points (up to ${STD_STRIKEOUT.earlySolveMax}).`, helpOnly: true },
         { action: "Starting letters", detail: "show from the start (every copy; one more on words 1–3) and earn nothing.", helpOnly: true },
         { action: "Solve:", detail: "type the missing letters, then Solve. It must be a real word (others are refused for free).", helpOnly: true },
         { action: "A word is solved", detail: "once all its letters show; the next word starts.", helpOnly: true },
         { action: "Twelve strikes", detail: "in total (misses and wrong solves, over all five words) end the round.", helpOnly: true },
       ],
-      score: strikeoutDepthHelp(),
+      score: preStandardPinned() ? strikeoutDepthHelp() : WORD_STANDARD_HELP.strikeout,
     },
     codeword: {
       goal: "Crack the code: each number is one letter.",
@@ -1300,7 +1302,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "The strip above the keys", detail: "shows what you have decoded.", helpOnly: true },
         { action: "The grid completes", detail: "the moment every number is right.", helpOnly: true },
       ],
-      score: stretchHelp("codeword", CODEWORD_STRETCH),
+      score: preStandardPinned() ? stretchHelp("codeword", CODEWORD_STRETCH) : WORD_STANDARD_HELP.codeword,
     },
     swapword: {
       goal: "Swap tiles until all six words read correctly.",
@@ -1309,11 +1311,11 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Gold", detail: "is in place; teal belongs elsewhere." },
         { action: "Finish in par swaps", detail: "for a bonus. Swaps are limited." },
         { action: "Par", detail: "is the fewest swaps that solve the board, shown beside your swaps (gold while you are within it).", helpOnly: true },
-        { action: "The budget", detail: "is 8 more than par; running out ends the round.", helpOnly: true },
+        { action: "The budget", detail: `is ${SW6_SPARE_SWAPS} more than par; running out ends the round.`, helpOnly: true },
         { action: "Or tap one tile", detail: "then the other.", helpOnly: true },
         { action: "Teal tiles", detail: "belong elsewhere in a word through them; grey tiles fit neither word. A letter shows teal only as often as it is still needed.", helpOnly: true },
       ],
-      score: parBonusHelp("swapword", SWAP_PAR_BONUS_TOPUP, "swaps", "par swaps (the fewest that solve the board)"),
+      score: preStandardPinned() ? parBonusHelp("swapword", SWAP_PAR_BONUS_TOPUP, "swaps", "par swaps (the fewest that solve the board)") : WORD_STANDARD_HELP.swapword,
     },
     lightup: {
       goal: "Place bulbs so every white square is lit.",

@@ -127,3 +127,58 @@ true spot, falling evenly to 0 at 15 %).
 | Lamplighter (`lightup`) | `depthRev` 2 | up to 120 by share of bulbs on their solution squares, + up to 10 early | 40, full by 45 s | clean 10, −2.5 per wrong bulb |
 
 Each category's section below records its own decisions (how a row was read where the brief left room).
+
+## Word decisions
+
+Interlock, Slider, Lookout, Roundabout, Strikeout, Cryptogrid and Swapword (`src/lib/duel/standard/word.server.ts`;
+the numbers and the help / intro texts in `standard/word.ts`, shared). All seven are `timed` (the draft timeline gives
+each part's time). The real clocks match the table (100 / 100 / 120 / 100 / 100 / 120 / 120 s), so no "full by" time was
+scaled. Finished is each game's existing verdict (Interlock: all 15 tiles in a valid grid, as `puzzleScoreRev` 3).
+
+- **Interlock** (`tileGridRev` 2 → 3). Unfinished: 8 per tile inside a real word (the grader's own `wordTiles`, a run of
+  3+ letters the dictionary knows, crossings once; not rev 3's "word still being extended" prefix rule) + up to 1 each
+  early (parts = those tiles). Big words: each valid run of 5 / 6 / 7 letters in the grid adds 6 / 10 / 15, at most 30,
+  read as every distinct run (a crossing word counts on its own); they count unfinished too (only for a grid drawn from
+  the tray). No mistake efficiency (today's finish has none).
+- **Slider** (`wordSlideRev` 2 → 3). Unfinished: 24 per row the player turned into a word (a row that started as a word
+  and was never changed never counts) + up to 2 each early (parts = those rows, replayed per draft). Par moves 15 on the
+  replay's move count (Undo and Reset count, locks are free) against the stored public `par`; the par bonus replaces
+  today's move efficiency. The stage's gold "Par N" beside the moves still reads right (full points within par).
+- **Lookout** (`wordSearchRev` 3 → 4). Unfinished: 20 per listed word + up to 1.5 each early, less 2 per wrong drag after
+  the first 5 (today's penalty; never below 0), + 30 for the bonus word. The bonus counts on a finish only when found
+  before the sixth listed word (the stage submits on the sixth; the help says so). Wrong drags do not cut the finish's
+  speed (today's finish has no efficiency). Unfinished at most 100 + 7.5 + 30, capped at 130.
+- **Roundabout** (`wheelRev` 3 → 4). Unfinished: 120 × slots filled ÷ slots (linear; today's front-loaded 12-then-5 per
+  word is dropped) + up to 10 early (10 ÷ slots per slot), less 3 per miss after the first 5, + the jar. Jar: 30 × kept
+  drops ÷ the stored jar size (linear "by how full"; drops as today, each miss after 5 spilling one). On a finish the
+  speed points are scaled by today's accuracy efficiency ((15 − miss cost) ÷ 15, misses being today's finish mistake).
+- **Strikeout** (`strikeoutRev` 6 → 7; rev 4's board and rules). Unfinished: 28 per word solved + 2 per tile the
+  player revealed in the current word (starting letters earn nothing; "up to 2 per letter" read as today's 2 per tile)
+  + up to 2 per solved word early + early solves so far. Early solves: 4 per word solved with Solve while 3+ of its
+  tiles were still hidden (`so2EarlySolves`' `hiddenAtSolve`), at most 20. Strikes left: 1 per strike left of the 12 at
+  the finish, at most 10. Speed is not also scaled by strikes: the strike bonus is the strikes' cost (as a par bonus
+  replaces move efficiency). The old pace / early-share formula is gone on the new stamp, and the stage's early pill
+  shows the early-solve points (4 per qualifying word) instead of the hidden-letter count.
+- **Cryptogrid** (`codewordRev` 4 → 5). Unfinished: 120 × numbers right ÷ hidden numbers + up to 10 early (parts =
+  numbers right), less 5 per wrong letter left standing (today's penalty, which also keeps random fill at 0). Clean crack
+  10: no wrong letter ever entered, judged from every assignment in every draft of the timeline (an assignment the
+  replay ignores, on a given number or with a given letter, is not a mistake). Without a timeline the history is
+  unknown and the clean crack is 0. The phone compacts its action list past 850 actions; the timeline still holds the
+  earlier drafts, but a history longer than the timeline's 600 entries folds its later drafts into one, so a mistake
+  made and undone inside that fold can go unseen (only after 600 changes).
+- **Swapword** (`swapwordRev` 6 → 7; rev 6's boards and budget, par + 12). Unfinished: 120 × net tiles ÷ tiles to
+  place + up to 10 early (parts = net tiles). Net tiles = tiles put in place, less tiles that started in place and were
+  moved out (today's measure), **less blind swaps**: swaps that left neither of their two tiles in place. Every swap of
+  a solving line places at least one tile, so play toward the solution loses nothing; random swaps are nearly all blind.
+  Without it random swapping scored a median 20 (today's 21); with it 0. The round leaderboard's progress figure
+  (`progressFigures.ts`) shows the same net count and names the blind swaps as a cost. Par swaps 30 against the stored
+  `minSwaps`. Stale help fixed: the budget is 12 more than par (it said 8).
+
+Texts: each game's "?" help and intro SCORE line come from `standard/word.ts`. With the standard pinned off
+(`pinPreStandard(true)`) they read the texts of the stamps before it (the depth checks assert those); `liveRecord`
+(roundMax.ts) rebuilds the cached text records when the pin changes.
+
+Checks pinned to the stamps before the standard (`pinPreStandard(true)`): depth-codeword-check, depth-letterwheel-check,
+depth-strikeout-check, depth-swapword-check, depth-tilegrid-check, depth-wordsearch-check, depth-wordslide-check and
+phone-notes-check (its Swapword deal). `standard-word-check` (~3 s) proves the stamps, worked examples, the rules above,
+the texts and the kit order.

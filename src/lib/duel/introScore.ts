@@ -10,6 +10,8 @@ import { wordSearchBonusIntro } from "./wordSearchText";
 import { letterWheelJarIntro } from "./letterWheelText";
 import { CODEWORD_STRETCH, TILEGRID_STRETCH_TOPUP, stretchIntro, strikeoutDepthIntro } from "./depth/stretchShapes";
 import { parBonusIntro } from "./parBonusText";
+import { WORD_STANDARD_INTRO } from "./standard/word";
+import { preStandardPinned } from "./standard/stamps";
 import { doubleTakeDepthIntro, eagleEyeDepthIntro, tallyDepthIntro } from "./depth/attentionTexts";
 import { ASCEND_DEPTH_INTRO, BANGON_DEPTH_INTRO, FLASH_DEPTH_INTRO } from "./depth/speedTexts";
 import { depthIntro } from "./numberDepthText";
@@ -38,13 +40,14 @@ function introScoreTemplates(): Record<PuzzleType, string> {
     // Word
     wordsmith: "Longer words score more. The word using every tile adds a big bonus; {max} only with it.",
     wordhunt: "Longer words score more; 6+ letters and the gold tile add extra. {max} needs both.",
-    tilegrid: stretchIntro("tilegrid", TILEGRID_STRETCH_TOPUP),
-    wordslide: parBonusIntro("wordslide", "moves"),
-    wordsearch: wordSearchBonusIntro(),
-    letterwheel: letterWheelJarIntro(),
-    strikeout: strikeoutDepthIntro(),
-    codeword: stretchIntro("codeword", CODEWORD_STRETCH),
-    swapword: parBonusIntro("swapword", "swaps"),
+    // The scoring standard (standard/word.ts); a check that pins the standard off reads the texts of the stamps before it.
+    tilegrid: preStandardPinned() ? stretchIntro("tilegrid", TILEGRID_STRETCH_TOPUP) : WORD_STANDARD_INTRO.tilegrid,
+    wordslide: preStandardPinned() ? parBonusIntro("wordslide", "moves") : WORD_STANDARD_INTRO.wordslide,
+    wordsearch: preStandardPinned() ? wordSearchBonusIntro() : WORD_STANDARD_INTRO.wordsearch,
+    letterwheel: preStandardPinned() ? letterWheelJarIntro() : WORD_STANDARD_INTRO.letterwheel,
+    strikeout: preStandardPinned() ? strikeoutDepthIntro() : WORD_STANDARD_INTRO.strikeout,
+    codeword: preStandardPinned() ? stretchIntro("codeword", CODEWORD_STRETCH) : WORD_STANDARD_INTRO.codeword,
+    swapword: preStandardPinned() ? parBonusIntro("swapword", "swaps") : WORD_STANDARD_INTRO.swapword,
     wordfall: "Longer words score more; Qu counts as two letters. {max} for a big haul of words.",
 
     // Number
