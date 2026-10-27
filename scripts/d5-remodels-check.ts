@@ -62,6 +62,11 @@ import { JUMBLED_MIN_MOVES, generateJumbled, jumbledMinimum, jumbledSolutionMove
 import { paletteSpread } from "./d5-remodels/colour";
 import { BOT_LEVELS, makeRng, playJumbled, playTopsy } from "./d5-remodels/bots";
 import { rounds, table, tuning, type Row } from "./d5-remodels/tuning";
+import { pinPrePhoneNotes } from "../src/lib/duel/phoneNotes";
+
+// Written for gravityRev 3 and tilesRev 3: new deals stay on them here (Joe's phone notes, 27 Oct 2026, deal
+// gravityRev 4 and tilesRev 4; phone-notes-check proves those).
+pinPrePhoneNotes(true);
 
 const RUNS_FIXTURE = "scripts/fixtures/d5-remodels-runs.json.gz";
 const failures: string[] = [];

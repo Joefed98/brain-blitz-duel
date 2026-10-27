@@ -7,13 +7,19 @@
  * changes), and every frame within JUMBLED_HALF slides of the scramble is looked up in it. A board is kept
  * when its minimum is JUMBLED_MIN_MOVES or more; par is the minimum + JUMBLED_PAR_SLACK.
  */
-import { randomBelow } from "./random";
+import { generateGradientPalette } from "./gradientPalette";
+import { dealtNotesRev } from "./phoneNotes";
+import { random, randomBelow, shuffled } from "./random";
 import {
+  JUMBLED_CORNERS,
   JUMBLED_MOVES,
   JUMBLED_PAR_SLACK,
   JUMBLED_TIME_MS,
   TILES_REV_GRADIENT,
+  TILES_REV_SWAP,
   encodeJumbledMove,
+  gradientMinimum,
+  gradientSwap,
   jumbledInPlace,
   jumbledSlide,
   jumbledSolved,
@@ -98,6 +104,69 @@ function scramble(): number[] {
     last = move;
   }
   return frame;
+}
+
+/** Gradient (tilesRev 4): tiles out of place at the start; the other movable tiles start home and locked. */
+export const GRADIENT_OUT = 15;
+
+/** One shortest swap list for a tilesRev 4 frame: each swap brings the tile a cell needs home (a × 100 + b). */
+export function gradientRoute(frame: readonly number[]): number[] {
+  let f = [...frame];
+  const route: number[] = [];
+  for (let cell = 0; cell < f.length; cell++) {
+    if (f[cell] === cell) continue;
+    const from = f.indexOf(cell);
+    route.push(cell * 100 + from);
+    f = gradientSwap(f, { a: cell, b: from })!;
+  }
+  return route;
+}
+
+/**
+ * A tilesRev 4 Gradient round (Joe's phone notes, 27 Oct 2026): its own colour scheme, GRADIENT_OUT movable tiles
+ * shuffled with none left home, the fewest swaps (out of place less cycles, exact) and one shortest list
+ * (server-only), and par.
+ */
+export function generateGradient(): TilesPuzzleData {
+  const movable = Array.from({ length: 25 }, (_, cell) => cell).filter((cell) => !JUMBLED_CORNERS.includes(cell));
+  const cells = shuffled(movable).slice(0, GRADIENT_OUT).sort((a, b) => a - b);
+  // A random derangement of the chosen tiles over the chosen cells.
+  let order = shuffled(cells);
+  while (order.some((tile, k) => tile === cells[k])) order = shuffled(cells);
+  const frame = solvedJumbled();
+  cells.forEach((cell, k) => (frame[cell] = order[k]!));
+  const min = gradientMinimum(frame);
+  return {
+    type: "tiles",
+    tilesRev: TILES_REV_SWAP,
+    timeLimitMs: JUMBLED_TIME_MS,
+    frame,
+    palette: generateGradientPalette(random),
+    par: min + JUMBLED_PAR_SLACK,
+    minMoves: min,
+    solution: gradientRoute(frame),
+  };
+}
+
+/** Re-checks a stored tilesRev 4 round: a legal frame, the minimum, par, the route, a readable palette. */
+export function verifyGradientPuzzle(puzzle: TilesPuzzleData, readable: (palette: readonly string[]) => boolean): string | null {
+  if (puzzle.type !== "tiles" || puzzle.tilesRev !== TILES_REV_SWAP) return "not tilesRev 4";
+  const { frame } = puzzle;
+  if (frame.length !== 25 || new Set(frame).size !== 25 || frame.some((t) => !Number.isInteger(t) || t < 0 || t > 24)) return "frame";
+  for (const corner of JUMBLED_CORNERS) if (frame[corner] !== corner) return "an anchor moved";
+  if (frame.filter((t, cell) => t !== cell).length !== GRADIENT_OUT) return "tiles out of place";
+  if (puzzle.minMoves !== gradientMinimum(frame)) return "stored minimum";
+  if (puzzle.par !== gradientMinimum(frame) + JUMBLED_PAR_SLACK) return "par";
+  let f: number[] | null = [...frame];
+  for (const n of puzzle.solution ?? []) f = f && gradientSwap(f, { a: Math.floor(n / 100), b: n % 100 });
+  if (!f || !jumbledSolved(f) || (puzzle.solution ?? []).length !== puzzle.minMoves) return "stored route";
+  if (!puzzle.palette || !readable(puzzle.palette)) return "palette";
+  return null;
+}
+
+/** The board new rounds deal: Gradient (tilesRev 4), or tilesRev 3's slides while a check pins the stamps before the notes. */
+export function generateJumbledDealt(): TilesPuzzleData {
+  return dealtNotesRev(TILES_REV_SWAP, TILES_REV_GRADIENT) >= TILES_REV_SWAP ? generateGradient() : generateJumbled();
 }
 
 /** A tilesRev 3 board: the scramble, its proved minimum and one shortest route (server-only), and par. */

@@ -139,7 +139,7 @@ import { spotBonusFound, usesSpotDepth } from "./depth/doubleTake";
 import { puzzleTimeLimitMs } from "./registry";
 import { PUZZLE_SCORE_REV, puzzleScoreRevOf, recordParts, scoreRev1, takeScoreParts, wasteFactor, withPuzzleScoreRev } from "./puzzleScoreRev";
 import { isTopsy, replayTopsyPuzzle, scoreTopsy } from "./topsy";
-import { decodeJumbled, isJumbledGradient, replayJumbled, scoreJumbled } from "./jumbled";
+import { isJumbledGradient, replayGradientAnswer, scoreJumbled } from "./jumbled";
 import { sortedTubeCount } from "./tubes";
 import { madeDistance } from "./target";
 import { isWord } from "./dictionary.server";
@@ -1080,7 +1080,8 @@ function gradeUnderRev(
     case "tiles": {
       // tilesRev 3 (the remodel, jumbled.ts): the 5×5 gradient with row and column slides; scored to 200 here.
       if (isJumbledGradient(puzzle)) {
-        const replay = replayJumbled(puzzle.frame, decodeJumbled(answer));
+        // tilesRev 4 (Gradient, Joe's phone notes): swaps with locked tiles, scored the same way.
+        const replay = replayGradientAnswer(puzzle, answer);
         const graded = scoreJumbled(puzzle.frame, replay, puzzle.par ?? 0, ms, timeLimitMs, puzzle.minMoves);
         isCorrect = replay.solved;
         correctCount = replay.inPlace;

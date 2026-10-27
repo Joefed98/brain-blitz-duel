@@ -193,8 +193,36 @@ const STREAK_FULL = 20;
 const GOLD = "#F2C75C";
 const SKIP_INK = "#9C9CA8";
 
+/** The falling word's full size, and the smallest it shrinks to. */
+const WORD_PX = 30;
+const WORD_MIN_PX = 15;
+/** Clear space kept between a word's plate and the world's left and right edges. */
+const WORD_EDGE = 3;
+
+/**
+ * Fits a falling word into the world (Joe's phone notes, 27 Oct 2026; display only): a long colour name in a side
+ * lane shrinks until its plate fits between the lane centre and the nearer edge, and never below WORD_MIN_PX; if it
+ * still would not fit, its plate is moved in just far enough to stay whole. Sets ctx.font; returns the plate's
+ * centre and width.
+ */
+function fitWord(ctx: CanvasRenderingContext2D, word: string, x: number): { x: number; w: number; px: number; dy: number } {
+  const room = 2 * Math.min(x - LEFT, LEFT + LANES_W - x) - 2 * WORD_EDGE;
+  ctx.font = `bold ${WORD_PX}px ui-sans-serif, sans-serif`;
+  let px = WORD_PX;
+  let text = ctx.measureText(word).width;
+  if (text + 18 > room) {
+    px = Math.max(WORD_MIN_PX, Math.floor((WORD_PX * (room - 14)) / text));
+    ctx.font = `bold ${px}px ui-sans-serif, sans-serif`;
+    text = ctx.measureText(word).width;
+  }
+  const w = text + (px === WORD_PX ? 18 : 14);
+  const half = w / 2 + WORD_EDGE;
+  // dy keeps a shrunk word's capitals centred on the plate (the full-size word sits on the plate's own line).
+  return { x: Math.min(LEFT + LANES_W - half, Math.max(LEFT + half, x)), w, px, dy: px === WORD_PX ? 0 : Math.round(0.35 * px - 10) };
+}
+
 /** A "don't sort" word: grey ink on a darker plate in a dashed grey frame (let it fall). */
-function drawSkipWord(ctx: CanvasRenderingContext2D, word: string, x: number, y: number, w: number, spoiled: boolean): void {
+function drawSkipWord(ctx: CanvasRenderingContext2D, word: string, x: number, y: number, w: number, spoiled: boolean, dy = 0): void {
   ctx.fillStyle = "rgba(0,0,0,0.45)"; roundRect(ctx, x - w / 2 + 1, y + 8, w - 2, 4, 3); ctx.fill();
   ctx.fillStyle = "#15151C"; roundRect(ctx, x - w / 2, y - 28, w, 36, 9); ctx.fill();
   ctx.save();
@@ -202,8 +230,8 @@ function drawSkipWord(ctx: CanvasRenderingContext2D, word: string, x: number, y:
   ctx.setLineDash([6, 4]); ctx.strokeStyle = spoiled ? "#FF5A5A" : "#B4B4C0"; ctx.lineWidth = 2;
   roundRect(ctx, x - w / 2, y - 28, w, 36, 9); ctx.stroke();
   ctx.restore();
-  ctx.lineJoin = "round"; ctx.lineWidth = 4; ctx.strokeStyle = BG; ctx.strokeText(word, x, y);
-  ctx.fillStyle = SKIP_INK; ctx.fillText(word, x, y);
+  ctx.lineJoin = "round"; ctx.lineWidth = 4; ctx.strokeStyle = BG; ctx.strokeText(word, x, y + dy);
+  ctx.fillStyle = SKIP_INK; ctx.fillText(word, x, y + dy);
   if (spoiled) { ctx.fillStyle = "#FF5A5A"; ctx.fillRect(x - w / 2 + 8, y - 11, w - 16, 3); }
 }
 
@@ -225,9 +253,9 @@ function drawZip(ctx: CanvasRenderingContext2D, z: Zip, tick: number, laneW: num
   ctx.globalAlpha = 0.35 * (1 - age);
   roundRect(ctx, x - 16, top + (y - top) * 0.4, 32, Math.max(0, (y - top) * 0.6), 16); ctx.fill();
   ctx.globalAlpha = 0.8 * (1 - age);
-  ctx.font = "bold 30px ui-sans-serif, sans-serif";
+  const fit = fitWord(ctx, CLASH_NAMES[z.word]!, x);
   const scale = 1 - 0.35 * ease;
-  ctx.save(); ctx.translate(x, y); ctx.scale(scale, scale);
+  ctx.save(); ctx.translate(fit.x, y); ctx.scale(scale, scale);
   ctx.fillStyle = skip ? SKIP_INK : CLASH_COLOURS[z.ink]!; ctx.fillText(CLASH_NAMES[z.word]!, 0, 0);
   ctx.restore();
   ctx.globalAlpha = 1;
@@ -329,12 +357,12 @@ function draw(ctx: CanvasRenderingContext2D, state: ClashState, size: CanvasSize
 
   const current = state.items.at(-1);
   if (current) {
-    const x = LEFT + (state.lane + 0.5) * laneW, y = state.itemY / FP;
+    const y = state.itemY / FP;
     const word = CLASH_NAMES[current.word]!;
-    ctx.font = "bold 30px ui-sans-serif, sans-serif";
-    const w = ctx.measureText(word).width + 18;
+    // A long word in a side lane shrinks (or, at its smallest, moves in) so it is never cut off at the edge.
+    const { x, w, dy } = fitWord(ctx, word, LEFT + (state.lane + 0.5) * laneW);
     if (current.kind === 1) {
-      drawSkipWord(ctx, word, LEFT + (state.lane + 0.5) * laneW, y, w, Boolean(state.depth?.spoiled));
+      drawSkipWord(ctx, word, x, y, w, Boolean(state.depth?.spoiled), dy);
     } else {
     // clashRev 8: a gold word's plate wears a gold frame and glow outside it (its ink is never tinted).
     if (current.kind === 2) {
@@ -355,8 +383,8 @@ function draw(ctx: CanvasRenderingContext2D, state: ClashState, size: CanvasSize
     ctx.fillStyle = plate; roundRect(ctx, x - w / 2, y - 28, w, 36, 9); ctx.fill();
     ctx.strokeStyle = "rgba(255,255,255,0.16)"; ctx.lineWidth = 1; ctx.stroke();
     ctx.fillStyle = "rgba(255,255,255,0.3)"; ctx.fillRect(x - w / 2 + 8, y - 28, w - 16, 1);
-    ctx.lineJoin = "round"; ctx.lineWidth = 4; ctx.strokeStyle = BG; ctx.strokeText(word, x, y);
-    ctx.fillStyle = CLASH_COLOURS[current.ink]!; ctx.fillText(word, x, y);
+    ctx.lineJoin = "round"; ctx.lineWidth = 4; ctx.strokeStyle = BG; ctx.strokeText(word, x, y + dy);
+    ctx.fillStyle = CLASH_COLOURS[current.ink]!; ctx.fillText(word, x, y + dy);
     if (current.kind === 2) { ctx.strokeStyle = GOLD; ctx.lineWidth = 1.5; roundRect(ctx, x - w / 2 - 1, y - 29, w + 2, 38, 10); ctx.stroke(); }
     }
   }

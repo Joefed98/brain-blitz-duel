@@ -42,6 +42,11 @@ export const SWAP_PAR_BONUS: ParBonusCurve = { base: 6, fast: 0.75, elite: 0.89,
  */
 export const SWAPWORD_REV_TOPUP = 5;
 export const SWAP_PAR_BONUS_TOPUP: ParBonusCurve = { base: 15, fast: 0.75, elite: 0.89, power: 2 };
+/**
+ * Joe's phone-test notes (27 Oct 2026, swapwordRev 6; docs/phone-notes-oct-2026.md): rev 5's boards, par and
+ * scoring with 4 more swaps (budget minimum + 12).
+ */
+export const SWAPWORD_REV_NOTES = 6;
 /** The par bonus a stored round's stamp scores on. */
 export function swapParBonusFor(rev: number): ParBonusCurve {
   return rev >= SWAPWORD_REV_TOPUP ? SWAP_PAR_BONUS_TOPUP : SWAP_PAR_BONUS;
@@ -57,9 +62,12 @@ export const SW_SPARE_SWAPS = 5;
 export const SW_MIN_BUDGET = 16;
 /** Rev 3: extra swaps on top of the proven minimum. */
 export const SW3_SPARE_SWAPS = 8;
+/** Rev 6: extra swaps on top of the proven minimum (rev 3's 8 plus 4). */
+export const SW6_SPARE_SWAPS = 12;
 
 /** Swap budget for a board of this revision (stored on the puzzle as maxSwaps; the grader reads the stored value). */
 export function swapwordBudget(minSwaps: number, rev: number): number {
+  if (rev >= SWAPWORD_REV_NOTES) return minSwaps + SW6_SPARE_SWAPS;
   if (rev >= SWAPWORD_REV3) return minSwaps + SW3_SPARE_SWAPS;
   return rev >= SWAPWORD_REV2 ? Math.max(SW_MIN_BUDGET, minSwaps + SW_SPARE_SWAPS) : minSwaps + SW_SPARE_SWAPS;
 }

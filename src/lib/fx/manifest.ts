@@ -541,7 +541,7 @@ const ENTRIES = {
   "music_number_numpyramid": { channel: "music", frequency: 0, ms: 0, url: null },
   "music_number_equation": { channel: "music", frequency: 0, ms: 0, url: null },
   "music_number_tendrop": { channel: "music", frequency: 0, ms: 0, url: null },
-  "music_number_trail": { channel: "music", frequency: 0, ms: 0, url: null },
+  "music_logic_trail": { channel: "music", frequency: 0, ms: 0, url: null },
   "music_speed_numhunt": { channel: "music", frequency: 0, ms: 0, url: null },
   "music_speed_stopwatch": { channel: "music", frequency: 0, ms: 0, url: null },
   "music_speed_whack": { channel: "music", frequency: 0, ms: 0, url: null },

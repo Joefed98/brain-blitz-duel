@@ -8,6 +8,7 @@ import { answerWords } from "./dictionary.server";
 import {
   SWAPWORD_REV,
   SWAPWORD_REV_TOPUP,
+  SWAPWORD_REV_NOTES,
   SWAPWORD_REV3,
   SW_SLOTS,
   SW_SLOT_TILES,
@@ -19,6 +20,7 @@ import {
   type SwSwap,
   type SwView,
 } from "./swapword";
+import { dealtNotesRev } from "./phoneNotes";
 import type { SwapwordPuzzleData } from "./types";
 import { dealtDepthRev } from "./wordDepth";
 import { rngBelow, rngShuffle, seededRng } from "./wordSeed.server";
@@ -172,7 +174,12 @@ export function swapwordRuleBreak(p: SwapwordPuzzleData): string | null {
 export function generateSwapword(seed: number): SwapwordPuzzleData {
   // Word depth d1: rev 4 (par swaps) deals rev 3's boards and budget; a check pinning the pre-depth stamps gets rev 3.
   // The puzzle top-up (26 Oct 2026): rev 5 deals rev 4's boards (the stamp only changes the par bonus).
-  const rev = dealtDepthRev(dealtTopupRev(SWAPWORD_REV_TOPUP, SWAPWORD_REV), SWAPWORD_REV3);
+  // Joe's phone notes (27 Oct 2026): rev 6 deals rev 5's boards with 4 more swaps.
+  const rev = dealtNotesRev(
+    SWAPWORD_REV_NOTES,
+    SWAPWORD_REV_TOPUP,
+    dealtDepthRev(dealtTopupRev(SWAPWORD_REV_TOPUP, SWAPWORD_REV), SWAPWORD_REV3),
+  );
   const rng = seededRng(seed);
   for (let attempt = 0; attempt < 200; attempt++) {
     const solution = fillWords(rng);
