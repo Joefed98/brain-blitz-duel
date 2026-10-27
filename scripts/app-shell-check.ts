@@ -362,7 +362,8 @@ try {
     }
   }
   {
-    const { page, context } = await openApp("/");
+    // On the schedule's clock, as the Play tab tests above: the page draws the same cards on any day.
+    const { page, context } = await openApp("/", { clock: BEFORE_LOBBY });
     try {
       const tile = page.locator("[data-warm-up]").first();
       await tile.waitFor({ timeout: 60_000 });
