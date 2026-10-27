@@ -42,8 +42,9 @@ Art (display only, every revision; `src/lib/arcade/snake.renderer.ts`):
   2 px forward of the cell's centre. White-hot fire (#FFF4D2) hugs its leading edge, then an amber band (#FFB347),
   then an orange rim (#FF7A2E) with amber flame tongues trailing back. It stays inside its own 24 px cell.
 - **The trail:** the square right behind the head is white-hot with amber streaks, the next is amber, and the rest
-  cool through orange and red to smoke at the tail. Those first two squares keep their colours when the tail shade
-  changes every 5 stars. A bright white-hot or amber streak runs between the first squares while moving (motion only).
+  cool through orange and red to smoke at the tail. The whole body is the comet's trail: the tail is no longer
+  re-tinted red / yellow / teal every 5 stars (it read as a teal snake behind the comet), and the light between the
+  squares is orange, not teal. A bright white-hot or amber streak runs between the first squares while moving (motion only).
 - **2×2 rocks** are one 48 px pixel boulder over the block (`paintBigRock`, one cached sprite). The falling
   shadow's red floor and dashed rings cover the whole block, and the rock falls in at double size.
 - The second lane is drawn like the first. The third wormhole pair is green. The gold timer ring follows the
