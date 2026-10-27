@@ -15,6 +15,9 @@
  *   8. Trail is a Logic game; the display name "Gradient".
  */
 import { generatePuzzle, gradeAnswer } from "../src/lib/duel/generate.server";
+import { pinPreStandard } from "../src/lib/duel/standard/stamps";
+// Written for the stamps before the scoring standard (docs/scoring-standard.md): new deals keep them.
+pinPreStandard(true);
 import { pinPrePhoneNotes } from "../src/lib/duel/phoneNotes";
 import { withSeededRandom } from "../src/lib/duel/random";
 import { puzzleDef } from "../src/lib/duel/registry";
