@@ -17,13 +17,16 @@
  *  - Switched off: no layer, no meter, no requests, and each screen's markup the same as today's
  *    (scripts/fixtures/celebrations-off.json, recorded on main with --record-off).
  *
+ * Every screen is drawn on a fixed clock (scripts/fixed-clock.ts: Mon 26 Oct 2026, the recording's day),
+ * so a re-recording on any day draws the same dates; a failed markup comparison prints where they part.
+ *
  *   bun scripts/celebrations-browser.ts [--shots=<dir>] [--record-off]
  */
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import type { Browser, BrowserContext, Page } from "playwright";
 
 import { startSafeAreaServer } from "./safe-area-server";
-import { CHROMIUM_PATHS, openThemeScreen, room, type ThemeScreen, type ThemeViewport } from "./theme-screens";
+import { CHROMIUM_PATHS, fixThemeClock, openThemeScreen, room, type ThemeScreen, type ThemeViewport } from "./theme-screens";
 import { IPHONE11_APP } from "./device-emulation";
 import { INTRO_MS } from "../src/lib/duel/types";
 
@@ -253,6 +256,22 @@ const undate = (html: string) =>
     .replace(/(class="ap-date-num">)\d{1,2}</g, "$1#<")
     .replace(/\b(Mon|Tue|Wed|Thu|Fri|Sat|Sun) \d{1,2} (Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\b/g, "#date");
 
+/** Where two markups part: the differing stretch of each (with 160 characters of context), for a failure line. */
+function markupDiff(now: string, recorded: string): string {
+  let a = 0;
+  while (a < now.length && a < recorded.length && now[a] === recorded[a]) a++;
+  let b = 0;
+  while (b < now.length - a && b < recorded.length - a && now[now.length - 1 - b] === recorded[recorded.length - 1 - b]) b++;
+  const from = Math.max(0, a - 160);
+  return `\n    today:    …${now.slice(from, now.length - b + 160)}…\n    recorded: …${recorded.slice(from, recorded.length - b + 160)}…`;
+}
+
+/** Compares a screen's markup with the recorded copy, printing where they part on a difference. */
+async function sameMarkup(page: Page, recorded: string | undefined, where: string): Promise<void> {
+  const now = await markup(page);
+  check(now === recorded, `${where}: the screen's markup differs from today's${recorded === undefined ? " (not recorded)" : markupDiff(now, recorded)}`);
+}
+
 /** The screen's markup, with the clock's own figures taken out (both runs draw them at different moments). */
 async function markup(page: Page): Promise<string> {
   const html = await page.evaluate(() => document.getElementById("root")?.innerHTML ?? "");
@@ -267,6 +286,9 @@ async function markup(page: Page): Promise<string> {
 }
 
 const server = await startSafeAreaServer({ cacheDir: "node_modules/.vite-celebrations", buildId: "celebrations-check" });
+// The recording's clock (Mon 26 Oct 2026, scripts/fixed-clock.ts) and so its schedule (the harness's games
+// `day(2)` after it): the markup compares the same screens on any day, a public-game day included.
+fixThemeClock();
 const { chromium } = await import("playwright");
 const browser = await chromium.launch({ executablePath: CHROMIUM });
 try {
@@ -300,7 +322,7 @@ try {
       await o.page.waitForTimeout(300);
     }
     check((await o.log()).length === 0, `off, ${key}: celebration requests ${(await o.log()).map((e) => e.kind).join(",")}`);
-    if (before && key !== "home") check((await markup(o.page)) === before[key], `off, ${key}: the screen's markup differs from today's`);
+    if (before && key !== "home") await sameMarkup(o.page, before[key], `off, ${key}`);
     if (before && key === "home") check(true, "home markup is compared before Create");
     offFinal[key] = await o.page.evaluate(() => [
       ...Array.from(document.querySelectorAll("#root .th-score")).map((e) => e.textContent ?? ""),
@@ -312,7 +334,7 @@ try {
   {
     // The home screen's markup before any tap.
     const o = await open(browser, server.origin, "home", false);
-    if (before) check((await markup(o.page)) === before.home, "off, home: the screen's markup differs from today's");
+    if (before) await sameMarkup(o.page, before.home, "off, home");
     await o.close();
   }
 

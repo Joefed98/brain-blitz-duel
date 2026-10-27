@@ -22,7 +22,7 @@
 import { existsSync } from "node:fs";
 
 import { startSafeAreaServer } from "./safe-area-server";
-import { CHROMIUM_PATHS, THEME_SCREENS, VIEWPORTS, openThemeScreen, partOf } from "./theme-screens";
+import { CHROMIUM_PATHS, THEME_SCREENS, VIEWPORTS, fixThemeClock, openThemeScreen, partOf } from "./theme-screens";
 
 const args = process.argv.slice(2);
 const VERBOSE = args.includes("--verbose");
@@ -117,6 +117,9 @@ const server = await startSafeAreaServer({
   cacheDir: "node_modules/.vite-no-wrap",
   buildId: "no-wrap-check",
 });
+// A fixed clock (scripts/fixed-clock.ts): the Play tab's and Tournaments' dates, day names and lobby lines
+// are the same text on any day, so a line that fits today can't wrap on a public-game day.
+fixThemeClock();
 const { chromium } = await import("playwright");
 const browser = await chromium.launch({ executablePath: CHROMIUM });
 const failures: string[] = [];

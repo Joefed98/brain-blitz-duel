@@ -470,7 +470,9 @@ Lovable still hosts and publishes the app (https://brain-blitz-duel.lovable.app)
   `charge`, memory only; then #133's mark exactly); the zap on Create a room and GO; the lobby's charge meter (`ChargeMeter`, directly under the "{n} of 10 players" line, no label of its own, 20 px reserved); one
   lightning strike on GO (`RoundIntro`; never on Prepare to Duel). Reduced motion: no sparks, runs, strikes or
   count-ups, banners and the podium hero fade in still, sounds kept. Each screen's effects end when it unmounts
-  (`useCelebrationScope`). celebrations-check (~2 min with its browser pass, `play13`; `--shots=<dir>`);
+  (`useCelebrationScope`). celebrations-check (~2 min with its browser pass, `play13`; `--shots=<dir>`; drawn on a fixed clock, Mon 26 Oct 2026,
+  `scripts/fixed-clock.ts`, as are theme-check, no-wrap-check, play-tab-shift-check and screen-bottom-check, so dated Play tab
+  and Tournaments screens read the same on any day; the harness reserves the public card from the check's own schedule);
   `bun scripts/celebrations-perf.ts` measures the moments at 4× CPU slowdown. Screenshots:
   `screenshots/celebrations-oct-2026/`.
 - **Quick wins before the beta** (23 Oct 2026, Prompt Q; display, docs and checks only, no stamps): Prepare to Duel
