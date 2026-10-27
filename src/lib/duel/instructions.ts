@@ -1,5 +1,6 @@
 import { bandsHelp, openBandsLine } from "./puzzleBandsText";
-import { depthHelp as logicDepthHelp } from "./logicDepthText";
+import { logicStandardHelp } from "./standard/logicText";
+import { FLOOD_STANDARD_SPARE_MOVES } from "./standard/logicRules";
 import { wordSearchBonusHelp } from "./wordSearchText";
 import { letterWheelJarHelp } from "./letterWheelText";
 import { CODEWORD_STRETCH, TILEGRID_STRETCH_TOPUP, stretchHelp, strikeoutDepthHelp } from "./depth/stretchShapes";
@@ -350,7 +351,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Par:", detail: "all off in the fewest presses scores a bonus." },
         { action: "Neighbours", detail: "are the four lights above, below, left and right.", helpOnly: true },
       ],
-      score: logicDepthHelp("lightsout"),
+      score: logicStandardHelp("lightsout"),
     },
     pipes: {
       goal: "Connect every pipe to the source.",
@@ -370,7 +371,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Pencil marks", detail: "are for notes." },
         { action: "13 to 15 numbers", detail: "are given, and only one grid fits them.", helpOnly: true },
       ],
-      score: logicDepthHelp("sudoku"),
+      score: logicStandardHelp("sudoku"),
     },
     flow: {
       goal: "Join every colour pair and fill every square.",
@@ -425,7 +426,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Perfect solve:", detail: "the fewest moves (Par) scores a bonus." },
         { action: "Colour shows size.", detail: "Each puzzle has 3 or 4 posts.", helpOnly: true },
       ],
-      score: logicDepthHelp("tower"),
+      score: logicStandardHelp("tower"),
     },
     maze: {
       goal: "Draw a path from the start to the exit.",
@@ -450,7 +451,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "A full one-colour flask", detail: "gets a cork.", helpOnly: true },
         { action: "Pours are limited", detail: "(the counter). Undo and Reset don't give a pour back; out of pours, the board ends.", helpOnly: true },
       ],
-      score: logicDepthHelp("tubes"),
+      score: logicStandardHelp("tubes"),
     },
     safe: {
       goal: "Find the four-digit code that fits every clue.",
@@ -458,9 +459,9 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Use the arrows", detail: "to set each dial." },
         { action: "Tap TRY", detail: "to test it: three tries." },
         { action: "Only one code", detail: "fits every clue." },
-        { action: "Clean crack:", detail: "open it with tries to spare for a bonus." },
+        { action: "Clean crack:", detail: "open it on the first try for the full bonus." },
       ],
-      score: logicDepthHelp("safe"),
+      score: logicStandardHelp("safe"),
     },
     bomb: {
       goal: "Defuse the bomb in six steps.",
@@ -472,7 +473,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Only one order fits", detail: "the clues together allow exactly one six-step sequence, and every clue is needed.", helpOnly: true },
         { action: "Wires", detail: "are numbered 1-7 from the left.", helpOnly: true },
       ],
-      score: logicDepthHelp("bomb"),
+      score: logicStandardHelp("bomb"),
     },
     gravity: {
       // gravityRev 3 (the remodel, topsy.ts); stored older rounds keep their own reveal.
@@ -511,7 +512,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "The numbers", detail: "are the filled runs, in order." },
         { action: "A line dims", detail: "once it matches." },
       ],
-      score: logicDepthHelp("nonogram"),
+      score: logicStandardHelp("nonogram"),
     },
     pairmatch: {
       goal: "Find all fifteen pairs.",
@@ -530,9 +531,9 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Tap a colour", detail: "to repaint your region." },
         { action: "Your region grows", detail: "into touching cells of it." },
         { action: "You start", detail: "from the top-left corner." },
-        { action: "Moves are limited:", detail: "par + 2 (the counter). Out of moves, the board ends and scores 0.", helpOnly: true },
+        { action: "Moves are limited:", detail: `par + ${FLOOD_STANDARD_SPARE_MOVES} (the counter). Out of moves, the board ends and scores 0.`, helpOnly: true },
       ],
-      score: logicDepthHelp("flood"),
+      score: logicStandardHelp("flood"),
     },
     tiles: {
       // Gradient, tilesRev 4 (Joe's phone notes, 27 Oct 2026; jumbled.ts): swaps, locked tiles, a scheme a round.
@@ -1157,7 +1158,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Each number", detail: "is its rectangle's size." },
         { action: "Cover", detail: "every square." },
       ],
-      score: logicDepthHelp("shikaku"),
+      score: logicStandardHelp("shikaku"),
     },
     dig: {
       goal: "Dig a path so the water reaches the drain.",
@@ -1323,7 +1324,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "A wall's number", detail: "is how many bulbs touch it." },
         { action: "A number on a wall", detail: "says exactly how many bulbs touch that wall's four sides.", helpOnly: true },
       ],
-      score: logicDepthHelp("lightup"),
+      score: logicStandardHelp("lightup"),
     },
     tents: {
       goal: "Pitch one tent beside every tree.",
@@ -1333,7 +1334,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Signposts", detail: "give each row's and column's tents." },
         { action: "Tap a third time", detail: "to clear the cell.", helpOnly: true },
       ],
-      score: logicDepthHelp("tents"),
+      score: logicStandardHelp("tents"),
     },
   };
 }
