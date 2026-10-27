@@ -19,6 +19,7 @@ import {
   mazeSideBetween,
   mazeTurns,
 } from "./maze";
+import { dealtNotesRev } from "./phoneNotes";
 import { shuffled } from "./random";
 import {
   LAB_COLS,
@@ -28,6 +29,7 @@ import {
   LAB_STAR_DEPTH_MAX,
   LAB_STAR_DEPTH_MIN,
   MAZE_REV_DEPTH,
+  MAZE_REV_NOTES,
 } from "./depth/labyrinth";
 import {
   MAZE_BLIND_TAIL,
@@ -202,10 +204,45 @@ export function placeMazeStars(cells: number[], route: number[], cols: number): 
 }
 
 /**
+ * mazeRev 2 stars (Joe's phone notes, 27 Oct 2026): any open cell but the start and the exit, on the route or off
+ * it (every cell of a carved maze is reachable). Each cell belongs to the route square its branch leaves from (a
+ * route square to itself), and one star goes in each third of the route, as mazeRev 1's do.
+ */
+export function placeMazeStarsAnywhere(cells: number[], route: number[], cols: number, start: number, exit: number): number[] | null {
+  const thirds: number[][] = [[], [], []];
+  const third = (i: number) => Math.min(2, Math.floor((3 * i) / route.length));
+  const owner = new Map<number, number>();
+  let ring: number[] = [];
+  route.forEach((cell, i) => {
+    owner.set(cell, i);
+    ring.push(cell);
+  });
+  // Breadth-first out from the whole route: each branch cell takes its route square's place.
+  while (ring.length) {
+    const next: number[] = [];
+    for (const cell of ring)
+      for (const n of mazeCorridorNeighbours(cells, cell, cols)) {
+        if (owner.has(n)) continue;
+        owner.set(n, owner.get(cell)!);
+        next.push(n);
+      }
+    ring = next;
+  }
+  for (const [cell, i] of owner) if (cell !== start && cell !== exit) thirds[third(i)]!.push(cell);
+  const stars: number[] = [];
+  for (const options of thirds) {
+    if (!options.length) return null;
+    options.sort((a, b) => a - b);
+    stars.push(options[Math.floor(Math.random() * options.length)]!);
+  }
+  return stars.length === LAB_STARS ? stars : null;
+}
+
+/**
  * mazeRev 1 (depth to 200): the same carving and the same tests on a 19 × 23 board, the route no longer than
  * LAB_ROUTE_MAX (so the run takes the time it did and the extra corridors are side branches), and three detour stars.
  */
-export function generateMazeDepth(): MazePuzzleData {
+export function generateMazeDepth(rev: number = MAZE_REV_DEPTH): MazePuzzleData {
   const cols = LAB_COLS;
   const rows = LAB_ROWS;
   const start = 0;
@@ -220,16 +257,19 @@ export function generateMazeDepth(): MazePuzzleData {
     if (trails.filter((length) => length >= MAZE_DEAD_END_LENGTH).length < MAZE_MIN_DEAD_ENDS) continue;
     if (trails.filter((length) => length >= MAZE_LONG_DEAD_END_LENGTH).length < MAZE_MIN_LONG_DEAD_ENDS) continue;
     if (mazeExitInSight(cells, route, exit, cols)) continue;
-    const stars = placeMazeStars(cells, route, cols);
+    const stars = rev >= MAZE_REV_NOTES ? placeMazeStarsAnywhere(cells, route, cols, start, exit) : placeMazeStars(cells, route, cols);
     if (!stars) continue;
-    return { type: "maze", cells, start, exit, solution: route, mazeRev: MAZE_REV_DEPTH, cols, rows, stars };
+    return { type: "maze", cells, start, exit, solution: route, mazeRev: rev, cols, rows, stars };
   }
   throw new Error("Maze generator could not build a long enough route");
 }
 
-/** The maze rooms, practice and the daily deal today: mazeRev 1 (generateMazeClassic is the 19 × 19 builder before it). */
+/**
+ * The maze rooms, practice and the daily deal today: mazeRev 2 (Joe's phone notes: stars anywhere reachable), mazeRev 1
+ * while a check pins the stamps before the notes (generateMazeClassic is the 19 × 19 builder before both).
+ */
 export function generateMaze(): MazePuzzleData {
-  return generateMazeDepth();
+  return generateMazeDepth(dealtNotesRev(MAZE_REV_NOTES, MAZE_REV_DEPTH));
 }
 
 /** The 19 × 19 maze dealt before mazeRev 1 (kept for laser-tower-maze-check and depth-labyrinth-check). */

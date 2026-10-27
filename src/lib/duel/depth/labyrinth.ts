@@ -22,6 +22,11 @@ import { mazeOpen } from "../maze";
 import type { MazePuzzleData } from "../types";
 
 export const MAZE_REV_DEPTH = 1;
+/**
+ * mazeRev 2 (27 Oct 2026, Joe's phone notes; phoneNotes.ts): mazeRev 1's board, trail answer and scoring, with the
+ * three stars anywhere the ball can reach (on the route or off it), one in each third of the route as before.
+ */
+export const MAZE_REV_NOTES = 2;
 export const LAB_COLS = 19;
 export const LAB_ROWS = 23;
 export const LAB_CELLS = LAB_COLS * LAB_ROWS;
@@ -45,7 +50,7 @@ export const LAB_FAST_SHARE = 0.48;
 
 export function usesMazeDepth(puzzle: unknown): puzzle is MazePuzzleData & { mazeRev: number } {
   const p = puzzle as { type?: string; mazeRev?: number } | null;
-  return p?.type === "maze" && p.mazeRev === MAZE_REV_DEPTH;
+  return p?.type === "maze" && (p.mazeRev === MAZE_REV_DEPTH || p.mazeRev === MAZE_REV_NOTES);
 }
 
 /** A trail answer starts with this; each following letter is one step. */

@@ -1,5 +1,5 @@
 import { successFrame } from "./success.renderer";
-import { whackComboMultiplier, whackGame, WHACK_COLS, WHACK_DIAMOND_LIFE_TICKS, WHACK_HOLES, WHACK_GAP_PX, WHACK_STATUS_WRONG, WHACK_STATUS_RETIRED, WHACK_STATUS_UP, WHACK_STATUS_HIT, type WhackState } from './whack';
+import { whackComboMultiplier, whackGame, WHACK_COLS, whackDiamondLife, WHACK_HOLES, WHACK_GAP_PX, WHACK_STATUS_WRONG, WHACK_STATUS_RETIRED, WHACK_STATUS_UP, WHACK_STATUS_HIT, type WhackState } from './whack';
 import { reducedMotion } from './art.renderer';
 import { arcadeReducedEffects } from '@/lib/fx/lowEnd';
 import type { CanvasSize } from './engine';
@@ -387,7 +387,7 @@ function drawDiamonds(ctx: CanvasRenderingContext2D, state: WhackState, cellW: n
       paintDiamond(ctx, cx, cy + (1 - grow) * cellH * 0.35, r * (0.4 + 0.6 * grow));
       ctx.restore();
       // Twinkles round it, inside the cell; still under reduced motion or effects.
-      const left = Math.max(0, 1 - age / WHACK_DIAMOND_LIFE_TICKS);
+      const left = Math.max(0, 1 - age / whackDiamondLife(dp));
       ctx.save();
       ctx.fillStyle = `rgba(255,255,255,${0.55 + 0.4 * left})`;
       const phase = calm ? 0.5 : (age % 8) / 8;

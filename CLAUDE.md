@@ -11,7 +11,7 @@ override anything general here.
 
 Duelz: a multiplayer skill-game app. Up to 10 players (`MAX_PLAYERS`) join a room with a
 short code and play the same timed rounds; 73 active games across Word, Number, Speed, Attention,
-Pattern, Logic and Arcade (Word 9, Number 9, Speed 6, Attention 6, Pattern 10, Logic 11,
+Pattern, Logic and Arcade (Word 9, Number 8, Speed 6, Attention 6, Pattern 10, Logic 12 (Trail moved from Number on 27 Oct 2026),
 Arcade 22 with Pinball dealt in rooms; 10 retired to practice: Swerve, Steady, Dual, Ricochet,
 Bastion, Rooftop Run, Junction, Dig, Hot Floor and, since 20 Oct 2026, Letterfall). Every category the lobby offers keeps at
 least 6 active games (`category-pool-check`). On 14 Oct 2026, 19 retired games and the Memory
@@ -124,8 +124,8 @@ Lovable still hosts and publishes the app (https://brain-blitz-duel.lovable.app)
   49 recordings wired (trimmed, levelled to the library's median loudness); `shared.roundResults` on the Round results
   screen for everyone but the top scorer (who hears `round_won`, never both), `slice.specialIn`, `matchup.jackpotBlast`
   (in place of `arc_rainbow`; the bomb is unchanged), no generic combo on Gemstone cascades, Roofbound's speed-up sounded
-  on every third step only. Tempo's `music_beat` is tick-locked (`syncBeatTrack` in `src/lib/sound.ts`: starts at tick 120
-  on its downbeat, re-synced past 40 ms, never in `roundMusicFor`), the synth beat its fallback until it decodes.
+  on every third step only. Tempo's `music_beat` is tick-locked (`syncBeatTrack` in `src/lib/sound.ts`: since 27 Oct 2026 from tick 0, looping
+  seconds 8–56, preloaded during the intro; before that from tick 120 on its downbeat, re-synced past 40 ms, never in `roundMusicFor`), the synth beat its fallback until it decodes.
 - **Scoring targets** (18 Oct 2026, `docs/scoring-targets.md`): about 100 average, 120 good, 135 great, 140–150 near-perfect.
   Every arcade band game's new revision keeps its play and lifts its curve through `BAND_TARGET_MAP` (`band: 2` states,
   `bandCurveOf`), Wavefront on its own gentler curve, Swish with a 21 px spinner; Nucleus, Forage and Bonk score on new
@@ -588,7 +588,29 @@ Lovable still hosts and publishes the app (https://brain-blitz-duel.lovable.app)
   reachable on every seed) nine pass unchanged; Coral Pop deals `bubbleRev 9` (bubbleRev 8's play exactly; base units
   the larger of the reef's net shrink and a quarter of the bubbles burst or dropped, `BUB_V9_CREDIT_PER`), so a reef
   grown past its start no longer scores 0; every level's median unchanged.
-- **Joe's phone notes on six arcade games** (27 Oct 2026, `docs/phone-notes-oct-2026.md`): Roofbound `flipRev 9` and
+- **Joe's phone notes** (27 Oct 2026, `docs/phone-notes-oct-2026.md`; scoring formulas unchanged): Swapword
+  `swapwordRev 6` (4 more swaps), Counterweight `balanceRev 3` and Brimful `measureRev 3` (1.5× the hangs and pours),
+  Topsy-Turvy `gravityRev 4` (2× the tilts; a ball home blocks), Bonk `whackRev 4` (the diamond up 450 ms), Labyrinth
+  `mazeRev 2` (stars anywhere reachable), Matchmaker `pairRev 2` (the gold pair pays in the first 30 s; the answer
+  carries the gold match's time, `@ms`), Jumbled shown as **Gradient** (`tiles`, `tilesRev 4`: swaps, tiles lock once
+  home, a colour scheme per round from `gradientPalette.ts`); Trail is a Logic game; look only: Strikeout's solved
+  words above the tiles, Flash's light-orange trap, a softer Chain glow, Mixed Signals' words shrunk to fit their lane,
+  slimmer Hanoi discs. New stamps come from `dealtNotesRev` (`phoneNotes.ts`); checks written for older stamps pin
+  them with `pinPrePhoneNotes(true)`. phone-notes-check (~4 s) proves it. The Topsy-Turvy, Gradient and Bonk intro
+  demos stay stopped until re-recorded on the new stamps.
+- **Phone notes, eight arcade games** (27 Oct 2026, `docs/phone-notes-oct-2026/`; Joe's iPhone 11 tests): Breaker
+  `brkRev 10` (gold bricks break after any 4 hits, a second double-ball brick in rows 8–11, a refitted curve; power-up
+  bricks show their effect, no "+10" pops on any revision), Rally `rallyRev 11` (spin curves the ball for about 2/3 s,
+  gold targets 5 s; the ball warms white → orange → red), Tempo `beatRev 10` (wider windows, a lighter chart, easiest
+  from the fifth lane; `music_beat` preloaded during the intro and looped from its main groove, seconds 8–56, from
+  tick 0 and louder, `prepareBeatTrack`), Meteor `snakeRev 10` (gold stars 5 s, a third wormhole pair, a second
+  vertical lane, five seeded 2×2 rocks, a played run never 0; the comet art on every revision), High Rise
+  `skylineRev 8` (rev 7's play on a gentler curve; the crane bell on a perfect drop, the gust every 10 floors), Coral
+  Pop `bubbleRev 10` (the mine clears two rings; creatures drawn at 82 %), Slice `sliceRev 10` (onion and golden fruit
+  1.2× bigger; the onion #CFEDE6), Swish `binRev 8` (the +9 far bucket's mouth 60 %, a close miss 1 unit; a clearer
+  ball and a waving wind flag with the strength). Each new stamp draws its predecessor's seeded stream first, so older
+  stamps replay as before (each game's own check); the eight intro demos stay stopped until re-recorded.
+- **Joe's phone notes on six arcade games** (27 Oct 2026, `docs/arcade-phone-notes-oct-2026.md`): Roofbound `flipRev 9` and
   Tilt `tiltRev 9` keep flipRev 8's and tiltRev 8's play exactly on lifted curves (`FLIP_V9_*`, `TILT_V9_*`; states add
   `lift: 1`, outside the checksum; every run scores at least its rev-8 score; `playRevOf` maps 9 → 8 for older checks;
   their intro demos play only when recorded on 9). Display only: Hover's city gone for deep space with more stars, its
@@ -599,7 +621,7 @@ Lovable still hosts and publishes the app (https://brain-blitz-duel.lovable.app)
   Roofbound's far city replaced by the cave's depths (stalactites, cold crystals, mist, pale spores); Tilt's camera fixed
   on the disc's centre, scaled to fit the width (`tiltFixedZoom`), and fainter ice; Ball Tracker's reveal, leaderboard
   and final moment count btRev 7's 36 marbles, and the readout under the board counts the seconds to the next
-  switch-up ("20 to switch up"). phone-notes-check (~1 min).
+  switch-up ("20 to switch up"). arcade-phone-notes-check (~1 min).
 - `src/components/duel/` — room/round screens (PhoneShell, RoundIntro, TimerBar,
   AnswerReveal, ArcadeReveal, WinnerReveal…); `src/components/puzzles/` — shared puzzle
   widgets; `src/lib/fx/` — sound and visual feedback (presentation only).
@@ -797,7 +819,7 @@ Lovable still hosts and publishes the app (https://brain-blitz-duel.lovable.app)
    timing or scoring is gated on a stamp in the stored puzzle (e.g. `speedPar`,
    `clashRev`, `inkRev`, `snipRev`, `binRev`, `orbitRev`, `crossRev`, `flipRev`, `btRev`,
    `sliceRev`, `tapRev`, `chainTimeRev`, `chainCycleRev`, `bombVersion`, `rulesVersion`, `puzzleScoreRev`, `tenRev`, `pinRev`, `scanRev`, `spotRev`, and the move-limit stamps
-   `floodRev`, `tubesRev`, `gravityRev`, `balanceRev`, `equationRev`, `measureRev` 2, `countRev` 2; and Tuning F's `crossRev` 5, `sliceRev` 5, `bubbleRev` 4, `swingRev` 8, `matchupRev` 6, `snipRev` 7; and the Pattern / Logic batch's `tilesRev`, `sudokuRev`, `floodRev` 2, `bombVersion` 3; and taller worlds batch 1's `brkRev` 6, `rallyRev` 6, `wavRev` 6, `burstRev` 4; and batch 2's `beatRev` 6, `sliceRev` 6, `bubbleRev` 5, `clashRev` 5, `clayRev` 6; and batch 3's `swingRev` 9, `orbitRev` 8, `btRev` 4; and the scoring targets' (18 Oct 2026) `btRev` 5, `wavRev` 7, `flipRev` 5, `inkRev` 7, `matchupRev` 7, `bubbleRev` 6, `crossRev` 6, `rallyRev` 7, `snakeRev` 7, `binRev` 5, `snipRev` 8, `hoverRev` 6, `skylineRev` 5, `brkRev` 7, `tiltRev` 5, `orbitRev` 9, `beatRev` 7, `sliceRev` 7, `burstRev` 5, `swingRev` 10, `bullRev` 5, `pinRev` 2, `wordsmithRev` 1, `wordHuntRev` 1, `whackRev` 1; and the score bands' (19 Oct 2026) `puzzleScoreRev` 2, `btRev` 6, `wavRev` 8, `flipRev` 6, `inkRev` 8, `matchupRev` 8, `bubbleRev` 7, `crossRev` 7, `rallyRev` 8, `snakeRev` 8, `binRev` 6, `snipRev` 9, `hoverRev` 7, `skylineRev` 6, `brkRev` 8, `tiltRev` 6, `orbitRev` 10, `beatRev` 8, `sliceRev` 8, `burstRev` 6, `swingRev` 11, `bullRev` 6, `pinRev` 3, `tenRev` 2, `clashRev` 6, `whackRev` 2, `clayRev` 7, `wordfallRev` 3; and batch 1 of the scoring report's (20 Oct 2026) `puzzleScoreRev` 3, `floodRev` 3, `strikeoutRev` 4, `codewordRev` 3, `swapwordRev` 3, `wordSearchRev` 2; and the Number depth's (25 Oct 2026, `docs/depth/d2-number.md`) `depthRev` 1, `checkoutRev` 2, `tenRev` 4, with Exact, Brimful and Checkout on `depthRev` 2's gentler feature curve; and the puzzle top-up's (26 Oct 2026) `tapRev` 6, `chainDepthRev` 2, `clashRev` 9, `scanRev` 3, `countRev` 4, `wordsmithRev` 4, `tileGridRev` 2, `wordSlideRev` 2, `wordHuntRev` 4, `strikeoutRev` 6, `swapwordRev` 5, `wheelRev` 3, Logic `depthRev` 2, `blockRev` / `pipesRev` / `laserRev` / `ringsRev` / `pushRev` 2; and the x200 expansions' (26 Oct 2026) `wavRev` 10, `tiltRev` 8, `crossRev` 9, `inkRev` 10, `orbitRev` 12; and expansion E9's (26 Oct 2026) `rallyRev` 10, `burstRev` 8, `bullRev` 8; and the arcade re-measure's (26 Oct 2026) `bubbleRev` 9; and Joe's phone notes' (27 Oct 2026) `flipRev` 9, `tiltRev` 9). Unstamped/older rounds must replay and score exactly as before.   Arcade scoring follows the Oct 2026 score bands (`docs/arcade-score-bands-oct-2026.md`): change a curve only with a
+   `floodRev`, `tubesRev`, `gravityRev`, `balanceRev`, `equationRev`, `measureRev` 2, `countRev` 2; and Tuning F's `crossRev` 5, `sliceRev` 5, `bubbleRev` 4, `swingRev` 8, `matchupRev` 6, `snipRev` 7; and the Pattern / Logic batch's `tilesRev`, `sudokuRev`, `floodRev` 2, `bombVersion` 3; and taller worlds batch 1's `brkRev` 6, `rallyRev` 6, `wavRev` 6, `burstRev` 4; and batch 2's `beatRev` 6, `sliceRev` 6, `bubbleRev` 5, `clashRev` 5, `clayRev` 6; and batch 3's `swingRev` 9, `orbitRev` 8, `btRev` 4; and the scoring targets' (18 Oct 2026) `btRev` 5, `wavRev` 7, `flipRev` 5, `inkRev` 7, `matchupRev` 7, `bubbleRev` 6, `crossRev` 6, `rallyRev` 7, `snakeRev` 7, `binRev` 5, `snipRev` 8, `hoverRev` 6, `skylineRev` 5, `brkRev` 7, `tiltRev` 5, `orbitRev` 9, `beatRev` 7, `sliceRev` 7, `burstRev` 5, `swingRev` 10, `bullRev` 5, `pinRev` 2, `wordsmithRev` 1, `wordHuntRev` 1, `whackRev` 1; and the score bands' (19 Oct 2026) `puzzleScoreRev` 2, `btRev` 6, `wavRev` 8, `flipRev` 6, `inkRev` 8, `matchupRev` 8, `bubbleRev` 7, `crossRev` 7, `rallyRev` 8, `snakeRev` 8, `binRev` 6, `snipRev` 9, `hoverRev` 7, `skylineRev` 6, `brkRev` 8, `tiltRev` 6, `orbitRev` 10, `beatRev` 8, `sliceRev` 8, `burstRev` 6, `swingRev` 11, `bullRev` 6, `pinRev` 3, `tenRev` 2, `clashRev` 6, `whackRev` 2, `clayRev` 7, `wordfallRev` 3; and batch 1 of the scoring report's (20 Oct 2026) `puzzleScoreRev` 3, `floodRev` 3, `strikeoutRev` 4, `codewordRev` 3, `swapwordRev` 3, `wordSearchRev` 2; and the Number depth's (25 Oct 2026, `docs/depth/d2-number.md`) `depthRev` 1, `checkoutRev` 2, `tenRev` 4, with Exact, Brimful and Checkout on `depthRev` 2's gentler feature curve; and the puzzle top-up's (26 Oct 2026) `tapRev` 6, `chainDepthRev` 2, `clashRev` 9, `scanRev` 3, `countRev` 4, `wordsmithRev` 4, `tileGridRev` 2, `wordSlideRev` 2, `wordHuntRev` 4, `strikeoutRev` 6, `swapwordRev` 5, `wheelRev` 3, Logic `depthRev` 2, `blockRev` / `pipesRev` / `laserRev` / `ringsRev` / `pushRev` 2; and the x200 expansions' (26 Oct 2026) `wavRev` 10, `tiltRev` 8, `crossRev` 9, `inkRev` 10, `orbitRev` 12; and expansion E9's (26 Oct 2026) `rallyRev` 10, `burstRev` 8, `bullRev` 8; and the arcade re-measure's (26 Oct 2026) `bubbleRev` 9; and Joe's phone notes' (27 Oct 2026) `swapwordRev` 6, `balanceRev` 3, `measureRev` 3, `gravityRev` 4, `whackRev` 4, `mazeRev` 2, `pairRev` 2, `tilesRev` 4; and the arcade phone notes' (27 Oct 2026) `brkRev` 10, `rallyRev` 11, `beatRev` 10, `snakeRev` 10, `skylineRev` 8, `bubbleRev` 10, `sliceRev` 10, `binRev` 8; and the six-game arcade phone notes' (27 Oct 2026) `flipRev` 9, `tiltRev` 9). Unstamped/older rounds must replay and score exactly as before.   Arcade scoring follows the Oct 2026 score bands (`docs/arcade-score-bands-oct-2026.md`): change a curve only with a
    new band revision, re-measure with `scripts/arcade-skill-bands.ts`, and keep `arcade-score-bands-check` green.
    Prove it with the game's legacy-replay/identity check.
 3. **Arcade bounds rule.** Drawn art must sit within 2 px of the sim's collision bounds,

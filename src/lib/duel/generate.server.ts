@@ -47,7 +47,7 @@ import { generateGravity } from "./gravity.server";
 import { generateTiles } from "./tiles.server";
 import { dealsD5Remodels } from "./d5Remodels";
 import { generateTopsy } from "./topsy.server";
-import { generateJumbled } from "./jumbled.server";
+import { generateJumbledDealt } from "./jumbled.server";
 import { generateChain } from "./chain.server";
 import { generateNonogram } from "./nonogram.server";
 import { generatePairMatch } from "./pairmatch.server";
@@ -139,7 +139,7 @@ function generateUnstamped(type: PuzzleType, context: GenerateContext): PuzzleDa
   // The D5 remodels are dealt live (Topsy-Turvy's old bank stays for its checks and stored rounds; checks written
   // for the previous versions pin the old deal, d5Remodels.ts).
   if (type === "gravity" && dealsD5Remodels()) return generateTopsy();
-  if (type === "tiles" && dealsD5Remodels()) return generateJumbled();
+  if (type === "tiles" && dealsD5Remodels()) return generateJumbledDealt();
   // Depth batch 4 (docs/depth/d4-pattern.md): eight Pattern / Logic games deal their 200-point stamp.
   const depth = dealDepth4(type, context);
   if (depth) return depth;

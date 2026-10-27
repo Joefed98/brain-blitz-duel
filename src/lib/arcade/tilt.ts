@@ -2250,7 +2250,7 @@ export function tiltFieldX(m: Maze, target: number, keysGot: number): number[] {
 /* ================= tiltRev 9 (27 Oct 2026): the lifted curves ================= */
 
 /**
- * tiltRev 9 (Joe's phone notes, 27 Oct 2026: Tilt's scores read low; docs/phone-notes-oct-2026.md): tiltRev 8's
+ * tiltRev 9 (Joe's phone notes, 27 Oct 2026: Tilt's scores read low; docs/arcade-phone-notes-oct-2026.md): tiltRev 8's
  * mazes, rules, features and play exactly, so a tiltRev 8 log replays tick for tick; only the two curves change.
  * The base curve gives more for the same units through the middle (150 units still 140, so the ceiling stays 200)
  * and the skill pay a little more for a few skill points (the full 50 still needs TILT_X_SKILL_RAW). Every run

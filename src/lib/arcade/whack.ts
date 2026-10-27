@@ -456,6 +456,7 @@ export const whackTargetGame: ArcadeGame<WhackState, ArcadeInputEvent | null> = 
 
 /** The game for a stored whackRev (absent = the original score). */
 export function whackGameFor(rev?: number | null): ArcadeGame<WhackState, ArcadeInputEvent | null> {
+  if (rev === WHACK_REV_NOTES) return whackNotesGame;
   if (rev === WHACK_REV_DEPTH) return whackDepthGame;
   if (rev === WHACK_REV_BANDS) return whackBandsGame;
   return rev === WHACK_REV_TARGET ? whackTargetGame : whackGame;
@@ -500,6 +501,12 @@ export const WHACK_COMBO_FULL_PCT = 52;
 export const WHACK_DIAMONDS = 2;
 export const WHACK_DIAMOND_POINTS = 3;
 export const WHACK_DIAMOND_LIFE_TICKS = 18;
+/**
+ * whackRev 4 (27 Oct 2026, Joe's phone notes; src/lib/duel/phoneNotes.ts): whackRev 3 exactly, but each diamond
+ * stays up for WHACK_DIAMOND_LIFE_TICKS_NOTES (450 ms) instead of 300 ms; its burrow is kept free for that long.
+ */
+export const WHACK_REV_NOTES = 4;
+export const WHACK_DIAMOND_LIFE_TICKS_NOTES = 27;
 /** Each diamond rises in its own window of the run (ticks). */
 export const WHACK_DIAMOND_WINDOWS: readonly (readonly [number, number])[] = [[12 * TICKS_PER_SECOND, 28 * TICKS_PER_SECOND], [34 * TICKS_PER_SECOND, 52 * TICKS_PER_SECOND]];
 /** Hits in a row per multiplier step, and the top multiplier. */
@@ -517,6 +524,13 @@ export interface WhackDepth {
   status: number[];
   done: number[];
   hits: number;
+  /** whackRev 4: each diamond's life in ticks (absent = WHACK_DIAMOND_LIFE_TICKS, whackRev 3). */
+  life?: number;
+}
+
+/** A diamond's life in ticks for this run's state (whackRev 3 or 4). */
+export function whackDiamondLife(dp: Pick<WhackDepth, "life">): number {
+  return dp.life ?? WHACK_DIAMOND_LIFE_TICKS;
 }
 
 /** The multiplier for the `combo`-th right hit in a row (1-based). */
@@ -546,7 +560,7 @@ export function whackComboMaxPips(total: number): number {
   return pips;
 }
 
-function buildDiamonds(rngStart: number, schedule: WhackSchedule): { rng: number; at: number[]; hole: number[] } {
+function buildDiamonds(rngStart: number, schedule: WhackSchedule, life = WHACK_DIAMOND_LIFE_TICKS): { rng: number; at: number[]; hole: number[] } {
   let rng = rngStart | 0;
   const draw = (bound: number) => {
     const r = rngBelow(rng, bound);
@@ -563,7 +577,7 @@ function buildDiamonds(rngStart: number, schedule: WhackSchedule): { rng: number
       for (let i = 0; i < schedule.at.length; i++) {
         const from = schedule.at[i]!;
         const to = from + schedule.life[i]! + 12;
-        if (from <= tick + WHACK_DIAMOND_LIFE_TICKS + 6 && to >= tick) busy.add(schedule.hole[i]!);
+        if (from <= tick + life + 6 && to >= tick) busy.add(schedule.hole[i]!);
       }
       const free: number[] = [];
       for (let h = 0; h < WHACK_HOLES; h++) if (!busy.has(h)) free.push(h);
@@ -576,22 +590,29 @@ function buildDiamonds(rngStart: number, schedule: WhackSchedule): { rng: number
   return { rng, at, hole };
 }
 
-function initDepth(seed: number): WhackState {
+function initDepthWith(seed: number, life?: number): WhackState {
   const base = init(seed);
-  const d = buildDiamonds(base.rng, base.schedule);
+  const d = buildDiamonds(base.rng, base.schedule, life);
   return {
     ...base,
     rng: d.rng,
     sb: 1,
-    dp: { combo: 0, best: 0, pips: 0, at: d.at, hole: d.hole, status: d.at.map(() => WHACK_STATUS_WAITING), done: d.at.map(() => 0), hits: 0 },
+    dp: {
+      combo: 0, best: 0, pips: 0, at: d.at, hole: d.hole, status: d.at.map(() => WHACK_STATUS_WAITING), done: d.at.map(() => 0), hits: 0,
+      ...(life !== undefined ? { life } : {}),
+    },
   };
+}
+
+function initDepth(seed: number): WhackState {
+  return initDepthWith(seed);
 }
 
 function stepDiamonds(dp: WhackDepth, tick: number): WhackDepth {
   const status = [...dp.status];
   const done = [...dp.done];
   for (let i = 0; i < dp.at.length; i++) {
-    if (status[i] === WHACK_STATUS_UP && tick >= dp.at[i]! + WHACK_DIAMOND_LIFE_TICKS) { status[i] = WHACK_STATUS_RETIRED; done[i] = tick; }
+    if (status[i] === WHACK_STATUS_UP && tick >= dp.at[i]! + whackDiamondLife(dp)) { status[i] = WHACK_STATUS_RETIRED; done[i] = tick; }
     else if (status[i] === WHACK_STATUS_WAITING && tick >= dp.at[i]!) status[i] = WHACK_STATUS_UP;
   }
   return { ...dp, status, done };
@@ -630,3 +651,5 @@ function whackDepthChecksumValues(dp: WhackDepth): number[] {
 }
 
 export const whackDepthGame: ArcadeGame<WhackState, ArcadeInputEvent | null> = { ...whackGame, init: initDepth };
+/** whackRev 4: whackRev 3 with the longer diamond. */
+export const whackNotesGame: ArcadeGame<WhackState, ArcadeInputEvent | null> = { ...whackGame, init: (seed) => initDepthWith(seed, WHACK_DIAMOND_LIFE_TICKS_NOTES) };

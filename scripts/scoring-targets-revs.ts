@@ -25,8 +25,8 @@ export const STRICT_REVS: Partial<Record<LiveBandGame, number>> = Object.fromEnt
 
 /**
  * Later score-only revisions: type → [the revision, the revision whose play it keeps]. Joe's phone notes (27 Oct
- * 2026, docs/phone-notes-oct-2026.md): Roofbound flipRev 9 and Tilt tiltRev 9 keep flipRev 8's and tiltRev 8's play
- * on lifted curves (phone-notes-check proves it).
+ * 2026, docs/arcade-phone-notes-oct-2026.md): Roofbound flipRev 9 and Tilt tiltRev 9 keep flipRev 8's and tiltRev 8's play
+ * on lifted curves (arcade-phone-notes-check proves it).
  */
 export const LIFT_REVS: Partial<Record<LiveBandGame, readonly [lift: number, play: number]>> = { flip: [9, 8], tilt: [9, 8] };
 

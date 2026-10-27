@@ -77,7 +77,7 @@ import { SWING_V4_BANK } from "../src/lib/duel/swingBankV4.server";
 import { proveSwingSeedV4 } from "../src/lib/duel/swingProof.server";
 import { tiltCupReachable, tiltDealableX, tiltGameFor, tiltSeedCupsReachable, TILT_REV_BAND, TILT_REV_LIFT } from "../src/lib/arcade/tilt";
 import { generateOrbit, generateSkyline, generateSwing, generateTilt, generateWavefront } from "../src/lib/duel/arcade.server";
-import { skylineGameFor, SKYLINE_REV_EXPAND, SKYLINE_REV_TALL } from "../src/lib/arcade/skyline";
+import { skylineGameFor, SKYLINE_REV_EXPAND, SKYLINE_REV_LIFT, SKYLINE_REV_TALL } from "../src/lib/arcade/skyline";
 import { APP_FLAG_LOGO_URL } from "../src/lib/brand";
 import { PUZZLE_INSTRUCTIONS as INSTRUCTIONS } from "../src/lib/duel/instructions";
 import { playRevOf } from "./scoring-targets-revs";
@@ -117,7 +117,7 @@ if (want("skyline")) {
   // Tuning A changed no High Rise play; Tuning E (Oct 2026) later stamps its taller view, skylineRev 4, with the same play and curve.
   // Expansion E4 (25 Oct 2026) moved High Rise rooms on to skylineRev 7 (e4-expansion-check covers it); skylineRev 4, which
   // stored rounds play, keeps the band play and curve (Tuning E's taller view only).
-  ok(generateSkyline().skylineRev === SKYLINE_REV_EXPAND, "new High Rise rounds are dealt skylineRev 7 (expansion E4)");
+  ok(generateSkyline().skylineRev === SKYLINE_REV_LIFT, "new High Rise rounds are dealt skylineRev 8 (expansion E4 on a gentler curve)");
   ok(skylineGameFor(SKYLINE_REV_TALL).score === skylineGameFor(BAND_STAMPS.skyline![1]).score, "High Rise skylineRev 4 keeps the band play and curve (Tuning E's taller view only)");
   // Prompt R (23 Oct 2026): the manifest holds the new icon in three files (192, 512, maskable); the flag draws its
   // 512 px "any" icon (APP_FLAG_LOGO_URL), so the PWA icon and the flag are still one logo file.
@@ -418,7 +418,7 @@ if (want("tilt")) {
   const p = generateTilt();
   // Tuning C moved new Tilt rounds on to tiltRev 4 (arcade-tuning-c-check), the expansion (26 Oct 2026) on to tiltRev 8
   // (tilt-expand-check), Joe's phone notes (27 Oct 2026) on to tiltRev 9 (tiltRev 8's play on lifted curves,
-  // phone-notes-check); every cup stays reachable.
+  // arcade-phone-notes-check); every cup stays reachable.
   ok(p.tiltRev === TILT_REV_LIFT && tiltDealableX(p.seed), "new Tilt rounds are stamped tiltRev 9 (the expansion's play, lifted curves) and deal a seed with every key and cup reachable");
   ok(TILT_REV_BAND + 1 === 4 && typeof tiltSeedCupsReachable === "function", "tiltRev 4 still follows the band revision");
   const n = FULL ? 40_000 : 4_000;

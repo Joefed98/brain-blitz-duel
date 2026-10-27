@@ -4,7 +4,7 @@ import { serverNow } from "@/lib/duel/clock";
 import { DUEL_START_MS, DUEL_START_VOICE_MS, duelStartFrame } from "@/lib/duel/startPresentation";
 import type { PuzzleType } from "@/lib/duel/types";
 import { roundMusicFor } from "@/lib/fx/theme";
-import { playVoice, prepareRoundMusic, stopMusicExcept } from "@/lib/sound";
+import { playVoice, prepareBeatTrack, prepareRoundMusic, stopMusicExcept } from "@/lib/sound";
 import { PREPARE_SPEC } from "@/lib/fx/roomMoments";
 import { RoomMomentFx } from "./RoomMomentFx";
 import { LogoMark } from "@/components/brand/LogoMark";
@@ -20,6 +20,7 @@ export function DuelStart({ startedAt, type }: { startedAt: number; type: Puzzle
   useEffect(() => {
     stopMusicExcept("music_prepare", 0);
     if (type) prepareRoundMusic(roundMusicFor(type, puzzleDef(type).category));
+    if (type === "beat") prepareBeatTrack();
   }, [type]);
 
   useEffect(() => {

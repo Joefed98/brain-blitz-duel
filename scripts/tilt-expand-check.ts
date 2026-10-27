@@ -133,7 +133,7 @@ for (const run of runs) {
 }
 /* 3. The deal. */
 const dealt = generatePuzzle("tilt") as unknown as { tiltRev: number; seed: number };
-// Since 27 Oct 2026 rooms deal tiltRev 9, tiltRev 8's play on lifted curves (phone-notes-check proves it and its curve).
+// Since 27 Oct 2026 rooms deal tiltRev 9, tiltRev 8's play on lifted curves (arcade-phone-notes-check proves it and its curve).
 ok(playRevOf("tilt", dealt.tiltRev) === TILT_REV_EXPAND, `rooms deal tiltRev ${TILT_REV_EXPAND}'s play (got ${dealt.tiltRev})`);
 ok(tiltDealableX(dealt.seed) && TILT_BANK.includes(dealt.seed), "rooms deal a bank seed, which passes the dealer's rule");
 ok(TILT_BANK.length >= 260 && new Set(TILT_BANK).size === TILT_BANK.length, `the bank holds 260 or more distinct seeds (${TILT_BANK.length})`);

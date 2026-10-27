@@ -1798,7 +1798,7 @@ export const flipExpandGame: ArcadeGame<FlipState, ArcadeInputEvent | null> = {
 /* ================= flipRev 9 (27 Oct 2026): the lifted curves ================= */
 
 /**
- * flipRev 9 (Joe's phone notes, 27 Oct 2026: Roofbound's scores read low; docs/phone-notes-oct-2026.md): flipRev 8's
+ * flipRev 9 (Joe's phone notes, 27 Oct 2026: Roofbound's scores read low; docs/arcade-phone-notes-oct-2026.md): flipRev 8's
  * course, rules, features and play exactly, so a flipRev 8 log replays tick for tick; only the two curves change.
  * The survival curve gives more for the same units in the middle (half seconds + 3 per gold star; 150 units still
  * 140, so the ceiling stays 200) and the skill pay more for a little feature play (the full 50 still needs

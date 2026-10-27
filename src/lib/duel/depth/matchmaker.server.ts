@@ -12,7 +12,7 @@ import { rev3Efficiency, rev3Finish, rev3Unfinished } from "../puzzleScoreRev3";
 import { rev3Progress } from "../puzzleProgress";
 import { latestTapMs } from "../grade";
 import { puzzleTimeLimitMs } from "../registry";
-import { pairDepthReplay, pairUsesDepth } from "./matchmaker";
+import { pairDepthReplay, pairUsesDepth, splitPairGoldTime } from "./matchmaker";
 
 export const matchmakerDepth: DepthGrader = {
   // Only on puzzleScoreRev 3 (the dealt shape): a check pinning rev 1 / 2 keeps proving that shape.
@@ -29,7 +29,10 @@ export const matchmakerDepth: DepthGrader = {
           "pairmatch",
           rev3Progress({ puzzle, answer, extra: graded.extra, latestMs: latestTapMs(limit, receivedMsRemaining) }) ?? Math.max(0, parts1 ? parts1.base : graded.score) / 110,
         );
-    const d = pairDepthReplay(puzzle, decodePairFlips(answer));
+    // pairRev 2: the gold match's time, never later than the answer's receipt on the round clock.
+    const { goldMs: sentGoldMs } = splitPairGoldTime(answer);
+    const goldMs = sentGoldMs === null ? null : Math.min(sentGoldMs, latestTapMs(limit, receivedMsRemaining));
+    const d = pairDepthReplay(puzzle, decodePairFlips(answer), goldMs);
     const score = depthClamp(base.score + d.streakBonus + d.goldBonus);
     const shares = finished ? { time: base.time, efficiency: base.efficiency } : { progressShare: base.progress };
     return {
@@ -46,6 +49,7 @@ export const matchmakerDepth: DepthGrader = {
         bestStreak: d.bestStreak,
         goldTry: d.goldTry,
         goldBonus: d.goldBonus,
+        ...(d.goldMs !== null ? { goldMs: d.goldMs } : {}),
       },
     };
   },

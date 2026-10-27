@@ -69,6 +69,14 @@ export const EQUATION_LIMIT_REV = 1;
 /** Brimful's rules marker moves from 1 to 2 with the per-board move limit. */
 export const MEASURE_LIMIT_REV = 2;
 /**
+ * Joe's phone-test notes (27 Oct 2026, phoneNotes.ts): Counterweight balanceRev 3 and Brimful measureRev 3 deal
+ * the same boards with 1.5× the hangs and pours (rounded up); every rule reading the stored limit is unchanged.
+ */
+export const BALANCE_NOTES_REV = 3;
+export const MEASURE_NOTES_REV = 3;
+/** The notes' factor on the hang and pour limits. */
+export const NOTES_LIMIT_FACTOR = 1.5;
+/**
  * Tally's current count revision: 1 (13 Oct 2026) = the wider count ranges (generation
  * only); 2 (14 Oct 2026) = the same ranges plus the comparison tray and 60 s
  * (attentionRev.ts COUNT_COMPARE_REV); 3 (25 Oct 2026) = countRev 2's trays scored to 200 (depth/tally.ts

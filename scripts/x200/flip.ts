@@ -1,6 +1,6 @@
 /**
  * Roofbound's room proof for the arcade rule (flipRev 8, docs/expansions/x200-flip.md; rooms deal flipRev 9 since
- * 27 Oct 2026, flipRev 8's play on lifted curves, docs/phone-notes-oct-2026.md): the n-th room deal through
+ * 27 Oct 2026, flipRev 8's play on lifted curves, docs/arcade-phone-notes-oct-2026.md): the n-th room deal through
  * the server's own generator (generateFlip: its stamp; the seed is the skill-band runner's n-th room seed, since the
  * generator draws it at random), the five input styles from the skill-band bot, every seeded item a state shows (the
  * course: hazards and their slides, cave heights, speed zones, checkpoints, gold stars, star trails and sweet spots;

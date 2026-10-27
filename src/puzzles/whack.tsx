@@ -304,7 +304,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   return (
     <div ref={wrap} data-stage-column="2" data-polish="whack" className="flex min-h-0 w-full flex-1 flex-col gap-2" style={NO_SCROLL_STYLE}>
       <Banner red={hud.red} flash={hud.flash} />
-      {data.whackRev === 3 ? (
+      {(data.whackRev ?? 0) >= 3 ? (
         // whackRev 3: the same one line, with the gold combo's multiplier and the diamonds taken.
         <p data-bonk-depth className="whitespace-nowrap text-center font-mono text-sm text-muted-foreground">
           Hits <span className="text-primary">{hud.hits}</span>/{total} · Wrong <span className="text-destructive">{hud.wrong}</span> · Combo{" "}

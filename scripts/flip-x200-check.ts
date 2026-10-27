@@ -119,7 +119,7 @@ const gz = <T>(url: URL): T => JSON.parse(gunzipSync(readFileSync(url)).toString
 }
 
 /* 2. Stamp and wiring. */
-// Since 27 Oct 2026 rooms deal flipRev 9, flipRev 8's play on lifted curves (phone-notes-check proves it and its curve).
+// Since 27 Oct 2026 rooms deal flipRev 9, flipRev 8's play on lifted curves (arcade-phone-notes-check proves it and its curve).
 ok(playRevOf("flip", LIVE_BANDS.flip.rev) === FLIP_REV_EXPAND && liveStrictRev("flip") === FLIP_REV_STRICT, "LIVE_BANDS deals flipRev 8's play and keeps flipRev 6 as its strict revision");
 ok(LIVE_BANDS.flip.curve === FLIP_V9_BAND_CURVE && FLIP_V9_BAND_CURVE.units.join() === FLIP_V8_BAND_CURVE.units.join(), "LIVE_BANDS' curve is the dealt one, on flipRev 8's units");
 ok(playRevOf("flip", (generatePuzzle("flip") as { flipRev?: number }).flipRev) === FLIP_REV_EXPAND, "rooms deal flipRev 8's play");

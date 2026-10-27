@@ -14,12 +14,14 @@
 }
 .topsy-hole.is-home .topsy-mark { fill: rgba(10, 12, 18, 0.7); opacity: 1; }
 
-/* Balls: the shaded sphere with its mark; a ball home rolls to its hole and sinks into it. */
-.topsy-ball { display: grid; place-items: center; }
+/* Balls: the shaded sphere with its mark; a ball home rolls to its hole and sinks into it. Every ball rolls at one
+   constant speed (--roll-ms = squares × 45 ms, topsyBoard.tsx) with no overshoot, so a ball never runs into or
+   through the ball it stops against (Joe's phone notes, 27 Oct 2026). */
+.topsy-ball { display: grid; place-items: center; transition: transform var(--roll-ms, 260ms) linear; }
 .topsy-ball .topsy-mark { width: 50%; height: 50%; fill: rgba(10, 12, 18, 0.62); }
 .topsy-ball.is-home {
   opacity: 0;
-  transition: transform 260ms cubic-bezier(0.3, 0.8, 0.35, 1.1), opacity 160ms ease-in 200ms;
+  transition: transform var(--roll-ms, 260ms) linear, opacity 160ms ease-in var(--roll-ms, 200ms);
 }
 
 /* Stars: a small gold star on the felt; taken, it pops and is gone. */
@@ -77,7 +79,7 @@
 .topsy-routes { display: flex; flex-direction: column; gap: 2px; }
 
 @media (prefers-reduced-motion: reduce) {
-  .topsy-ball.is-home { transition: none; }
+  .topsy-ball, .topsy-ball.is-home { transition: none; }
   .topsy-star.is-taken { animation: none; opacity: 0; }
   .topsy-ring { transition: none; }
 }

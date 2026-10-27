@@ -125,7 +125,10 @@ export interface RallyBall {
   y: number;
   vx: number;
   vy: number;
-  /** rallyRev 10 only: the spin curving the ball (1/256 px a tick, a tick), and 1 while a spin return still curves it. */
+  /**
+   * rallyRev 10+ only: the spin curving the ball (rallyRev 10: 1/256 px a tick, a tick; rallyRev 11: sixteenths of
+   * that at the start speed, scaled with the ball's speed), and 1 while a spin return still curves it.
+   */
   spin?: number;
   spun?: number;
 }
@@ -173,7 +176,10 @@ export interface RallyState extends BandFields {
   bumped?: number;
   /** rallyRev 6 only (taller worlds): the court's height in px (RALLY_TALL_H). Absent = RALLY_WORLD_H. */
   worldH?: number;
-  /** rallyRev 10 only (the expansion, docs/expansions/e9.md). Absent on every earlier round. The marker and the court's width (420). */
+  /**
+   * rallyRev 10 only (the expansion, docs/expansions/e9.md). Absent on every earlier round. The marker (1 on rallyRev 10,
+   * 2 on rallyRev 11's curving spin and longer-lived targets) and the court's width (420).
+   */
   exp?: number;
   worldW?: number;
   /** Smoothed paddle speed (1/256 px a tick) and the blue ball's spin (spin shots aim; they pay nothing). */
@@ -608,6 +614,7 @@ export const rallyRev2Game: ArcadeGame<RallyState, ArcadeInputEvent | null> = { 
 
 /** Takes puzzle.rallyRev; anything else is the original game. */
 export function rallyGameFor(rev?: number | null): ArcadeGame<RallyState, ArcadeInputEvent | null> {
+  if (rev === RALLY_REV_CURVE) return rallyCurveGame;
   if (rev === RALLY_REV_BONUS) return rallyBonusGame;
   if (rev === RALLY_REV_STRICT) return rallyStrictGame;
   if (rev === RALLY_REV_TARGET) return rallyTargetGame;
@@ -747,13 +754,13 @@ export const rallyTallGame: ArcadeGame<RallyState, ArcadeInputEvent | null> = {
 
 /** The court height (px) a stored round's rallyRev plays on. */
 export function rallyWorldHFor(rev?: number | null): number {
-  if (rev === RALLY_REV_BONUS) return RALLY_V10_H;
+  if (rev === RALLY_REV_BONUS || rev === RALLY_REV_CURVE) return RALLY_V10_H;
   return rev === RALLY_REV_TALL || rev === RALLY_REV_TARGET || rev === RALLY_REV_STRICT ? RALLY_TALL_H : RALLY_WORLD_H;
 }
 
 /** The court width (px) a stored round's rallyRev plays on. */
 export function rallyWorldWFor(rev?: number | null): number {
-  return rev === RALLY_REV_BONUS ? RALLY_V10_W : RALLY_WORLD_W;
+  return rev === RALLY_REV_BONUS || rev === RALLY_REV_CURVE ? RALLY_V10_W : RALLY_WORLD_W;
 }
 
 /* ================= Scoring targets (rallyRev 7, 18 Oct 2026) ================= */
@@ -844,14 +851,19 @@ export function rallyBonusPadRange(k: number): { lo: number; span: number } {
 }
 
 /** rallyRev 10: whether bonus target n is up at a tick (appeared, not yet gone, not yet struck). */
-export function rallyBonusLive(state: Pick<RallyState, "bonus" | "bonusHit">, n: number, tick: number): boolean {
+export function rallyBonusLive(state: Pick<RallyState, "bonus" | "bonusHit" | "exp">, n: number, tick: number): boolean {
   const t = state.bonus?.[n];
   if (!t) return false;
-  return tick >= t.tick && tick < t.tick + RALLY_V10_BONUS_LIFE && ((state.bonusHit ?? 0) & (1 << n)) === 0;
+  return tick >= t.tick && tick < t.tick + rallyBonusLife(state) && ((state.bonusHit ?? 0) & (1 << n)) === 0;
+}
+
+/** How long a gold bonus target stays up (ticks): rallyRev 10's 4 s, rallyRev 11's 5 s. */
+export function rallyBonusLife(state: Pick<RallyState, "exp">): number {
+  return (state.exp ?? 0) >= RALLY_V11_EXP ? RALLY_V11_BONUS_LIFE : RALLY_V10_BONUS_LIFE;
 }
 
 /** rallyRev 10: the bonus target up at a tick, or -1 (the slots never overlap). */
-export function rallyBonusNow(state: Pick<RallyState, "bonus" | "bonusHit">, tick: number): number {
+export function rallyBonusNow(state: Pick<RallyState, "bonus" | "bonusHit" | "exp">, tick: number): number {
   for (let n = 0; n < (state.bonus ?? []).length; n++) if (rallyBonusLive(state, n, tick)) return n;
   return -1;
 }
@@ -879,7 +891,7 @@ function bonusBumperY(y: number): number {
  * rallyRev 10's start state for a seed: a stream of its own keyed by the seed, drawn in a fixed order
  * (the opening, the five gold balls, the pad spots, both bumpers, then the six bonus targets).
  */
-export function rallyBonusInit(seed: number): RallyState {
+export function rallyBonusInit(seed: number, exp = 1): RallyState {
   let rng = (seed ^ 0x52414c3a) | 0;
   const draw = (bound: number): number => {
     const d = rngBelow(rng, bound);
@@ -965,7 +977,7 @@ export function rallyBonusInit(seed: number): RallyState {
     bumped: 0,
     worldH: RALLY_V10_H,
     worldW: W,
-    exp: 1,
+    exp,
     pv: 0,
     spin: 0,
     spun: 0,
@@ -1017,6 +1029,8 @@ function stepBonus(state: RallyState, input: ArcadeInputEvent | null): RallyStat
   const paddleYFp = (RALLY_V10_H - RALLY_PADDLE_LIFT) * 256;
   const worldHFp = RALLY_V10_H * 256;
   const reachT = (RALLY_V10_BONUS_R + RALLY_BALL_R) * 256;
+  // rallyRev 11: the curving spin (rallyRev 10 keeps its own short bend exactly).
+  const curving = (state.exp ?? 0) >= RALLY_V11_EXP;
 
   let golds = state.golds.map((ball) => ({ ...ball }));
   for (const entry of state.entries) {
@@ -1029,7 +1043,22 @@ function stepBonus(state: RallyState, input: ArcadeInputEvent | null): RallyStat
     let spin = ball.spin ?? 0;
     let spun = ball.spun ?? 0;
     // A spin bends the flight a little every tick and wears off.
-    if (spin !== 0) {
+    if (spin !== 0 && curving) {
+      // rallyRev 11: a stronger bend that lasts most of the flight (so the curve shows), scaled with the ball's
+      // speed; a bend that would flatten the flight below RALLY_V11_STEEP of the speed ends the spin instead.
+      const bend = Math.trunc((spin * speed) / (16 * RALLY_SPEED_START));
+      const out = setLength(vx + bend, vy, speed);
+      const floor = Math.trunc((speed * RALLY_V11_STEEP) / 256);
+      if (Math.abs(out.vy) < floor && Math.abs(out.vy) < Math.abs(vy)) spin = 0;
+      else {
+        vx = out.vx;
+        vy = out.vy;
+        const wear = Math.max(1, Math.trunc(Math.abs(spin) / RALLY_V11_SPIN_DECAY));
+        spin = spin > 0 ? spin - wear : spin + wear;
+        if (Math.abs(spin) < RALLY_V11_SPIN_END) spin = 0;
+      }
+      if (spin === 0) spun = 0;
+    } else if (spin !== 0) {
       let out = setLength(vx + spin, vy, speed);
       if (Math.abs(out.vy) < RALLY_MIN_VY) out = setLength(out.vx, out.vy < 0 ? -RALLY_MIN_VY : RALLY_MIN_VY, speed);
       vx = out.vx;
@@ -1122,7 +1151,7 @@ function stepBonus(state: RallyState, input: ArcadeInputEvent | null): RallyStat
           vx = steered.vx;
           vy = steered.vy;
           y = paddleYFp - RALLY_BALL_R_FP;
-          spin = rallySpinFrom(pv);
+          spin = curving ? rallyCurveSpinFrom(pv) : rallySpinFrom(pv);
           spun = spin !== 0 ? 1 : 0;
         }
       }
@@ -1201,4 +1230,49 @@ export const rallyBonusGame: ArcadeGame<RallyState, ArcadeInputEvent | null> = {
   step: bandStep(stepBonus),
   score: (state) => bandTotal(rallyBonusParts(state), Boolean(state.acted), RALLY_V10_MAX),
   inputRanges: RALLY_V10_INPUT_RANGES,
+};
+
+/* ================= Phone notes (rallyRev 11, 27 Oct 2026) ================= */
+
+/**
+ * rallyRev 11 (Joe's phone notes, 27 Oct 2026, docs/phone-notes-oct-2026/rally.md): rallyRev 10's court, pads,
+ * bumpers, targets and scoring, with two changes, both the same for every player:
+ *
+ *  - Spin shots visibly curve. rallyRev 10's bend was small and gone in about a third of a second, so a spun
+ *    return looked straight. Here the paddle's speed at contact (above RALLY_V11_SPIN_MIN) gives a spin of
+ *    RALLY_V11_SPIN_K per px a tick, capped at RALLY_V11_SPIN_CAP; each tick it bends the flight by
+ *    spin / 16 (1/256 px a tick, scaled with the ball's speed) and wears off by a 1/RALLY_V11_SPIN_DECAY share
+ *    (at least 1), ending under RALLY_V11_SPIN_END: about two thirds of a second of curve, up to about 30°
+ *    at full spin. A bend never flattens the flight below RALLY_V11_STEEP of its speed (the spin ends there),
+ *    side walls mirror it, the far wall ends it. Spin still scores nothing itself.
+ *  - Gold bonus targets stay up 5 s (RALLY_V11_BONUS_LIFE; was 4). The 9 s slots and 0–3 s jitter still keep
+ *    them from ever overlapping.
+ *
+ * Init draws exactly rallyRev 10's stream (same opening, gold balls, pads, bumpers and targets for a seed);
+ * states carry `exp: 2`, folded into the checkpoint as rallyRev 10's `exp: 1` is.
+ */
+export const RALLY_REV_CURVE = 11;
+/** rallyRev 11's state marker (`exp`). */
+export const RALLY_V11_EXP = 2;
+export const RALLY_V11_BONUS_LIFE = 5 * TICKS_PER_SECOND;
+/** Smoothed paddle speed (1/256 px a tick) below which a return has no spin (1.5 px a tick). */
+export const RALLY_V11_SPIN_MIN = 384;
+/** Spin per 1/256 px a tick of paddle speed is pv × K / 256; capped (in sixteenths of a 1/256 px a tick bend). */
+export const RALLY_V11_SPIN_K = 40;
+export const RALLY_V11_SPIN_CAP = 256;
+/** The spin wears off by 1/DECAY a tick (at least 1) and stops under END. */
+export const RALLY_V11_SPIN_DECAY = 40;
+export const RALLY_V11_SPIN_END = 8;
+/** A bend never takes |vy| under this share of the speed (/256: 40 %). */
+export const RALLY_V11_STEEP = 102;
+
+/** rallyRev 11: one return's spin from the smoothed paddle speed: none when slow, then proportional, capped. */
+export function rallyCurveSpinFrom(pv: number): number {
+  if (Math.abs(pv) < RALLY_V11_SPIN_MIN) return 0;
+  return clampInt(Math.trunc((pv * RALLY_V11_SPIN_K) / 256), -RALLY_V11_SPIN_CAP, RALLY_V11_SPIN_CAP);
+}
+
+export const rallyCurveGame: ArcadeGame<RallyState, ArcadeInputEvent | null> = {
+  ...rallyBonusGame,
+  init: (seed) => rallyBonusInit(seed, RALLY_V11_EXP),
 };

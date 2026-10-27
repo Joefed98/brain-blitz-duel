@@ -10,11 +10,20 @@
  *
  * A frame is one tile per cell: tile t belongs on cell t. Stored rounds (tilesRev absent, 1 or 2) keep the
  * sliding-gap rules (tiles.ts).
+ *
+ * Gradient, tilesRev 4 (27 Oct 2026, Joe's phone notes; phoneNotes.ts, docs/phone-notes-oct-2026.md): the game is
+ * shown as "Gradient". Each round has its own colour scheme (`palette`, gradientPalette.ts) and a move swaps two
+ * tiles (tap one, then another). A tile on its own cell is locked (as the corner anchors are): it can't be picked
+ * or swapped. Row and column slides could not take locks: once the last few tiles were locked round them they
+ * were often stuck for good (98 % of simulated runs), so tilesRev 4 swaps instead, and any board can always be
+ * finished. Scoring is tilesRev 3's (scoreJumbled) on the swaps: par is the proved fewest swaps + par slack.
  */
 import { eliteStretchPoints } from "./d5Remodels";
 import type { TilesPuzzleData } from "./types";
 
 export const TILES_REV_GRADIENT = 3;
+/** Gradient (Joe's phone notes, 27 Oct 2026): swaps, locked tiles and a colour scheme per round. */
+export const TILES_REV_SWAP = 4;
 export const JUMBLED_N = 5;
 export const JUMBLED_CELLS = JUMBLED_N * JUMBLED_N;
 export const JUMBLED_CORNERS: readonly number[] = [0, JUMBLED_N - 1, JUMBLED_CELLS - JUMBLED_N, JUMBLED_CELLS - 1];
@@ -34,7 +43,7 @@ export interface JumbledMove {
   shift: number;
 }
 
-export function isJumbledGradient(puzzle: { type: string; tilesRev?: number } | null | undefined): puzzle is TilesPuzzleData & { tilesRev: 3 } {
+export function isJumbledGradient(puzzle: { type: string; tilesRev?: number } | null | undefined): puzzle is TilesPuzzleData & { tilesRev: 3 | 4 } {
   return Boolean(puzzle && puzzle.type === "tiles" && (puzzle.tilesRev ?? 0) >= TILES_REV_GRADIENT);
 }
 
@@ -154,6 +163,91 @@ export function replayJumbled(start: readonly number[], tokens: readonly Jumbled
   return { frame, solved: jumbledSolved(frame), moves, inPlace: jumbledInPlace(frame) };
 }
 
+/* ------------------------------------------------------------------ tilesRev 4: swaps and locked tiles */
+
+/** True for a tilesRev 4 round (swaps, locks, its own palette). */
+export function isGradientSwap(puzzle: { type: string; tilesRev?: number } | null | undefined): boolean {
+  return Boolean(puzzle && puzzle.type === "tiles" && (puzzle.tilesRev ?? 0) >= TILES_REV_SWAP);
+}
+
+/** A cell whose tile is locked: an anchor, or a tile on its own cell. */
+export function gradientLocked(frame: readonly number[], cell: number): boolean {
+  return JUMBLED_CORNERS.includes(cell) || frame[cell] === cell;
+}
+
+export interface GradientSwap {
+  a: number;
+  b: number;
+}
+
+/** "S0312" = swap the tiles on cells 3 and 12. */
+export function encodeGradientSwap(swap: GradientSwap): string {
+  return `S${String(swap.a).padStart(2, "0")}${String(swap.b).padStart(2, "0")}`;
+}
+
+export function encodeGradient(swaps: readonly GradientSwap[]): string {
+  return swaps.map(encodeGradientSwap).join(",");
+}
+
+/** A tilesRev 4 answer's swaps (anything else, slides included, is skipped). */
+export function decodeGradient(raw: string): GradientSwap[] {
+  const out: GradientSwap[] = [];
+  for (const part of String(raw ?? "").split(",").slice(0, 600)) {
+    const m = /^S(\d\d)(\d\d)$/.exec(part.trim().toUpperCase());
+    if (!m) continue;
+    const a = Number(m[1]);
+    const b = Number(m[2]);
+    if (a === b || a >= JUMBLED_CELLS || b >= JUMBLED_CELLS) continue;
+    out.push({ a, b });
+  }
+  return out;
+}
+
+/** One swap; null when either tile is locked (the move doesn't happen and doesn't count). */
+export function gradientSwap(frame: readonly number[], swap: GradientSwap): number[] | null {
+  if (swap.a === swap.b || gradientLocked(frame, swap.a) || gradientLocked(frame, swap.b)) return null;
+  const next = [...frame];
+  next[swap.a] = frame[swap.b]!;
+  next[swap.b] = frame[swap.a]!;
+  return next;
+}
+
+/** The one place a swap list is replayed (phone, server, reveal). Nothing counts after the board is solved. */
+export function replayGradient(start: readonly number[], swaps: readonly GradientSwap[], onFrame?: (frame: number[]) => void): JumbledReplay {
+  let frame = [...start];
+  let moves = 0;
+  for (const swap of swaps) {
+    if (jumbledSolved(frame)) break;
+    const next = gradientSwap(frame, swap);
+    if (!next) continue;
+    frame = next;
+    moves++;
+    onFrame?.(frame);
+  }
+  return { frame, solved: jumbledSolved(frame), moves, inPlace: jumbledInPlace(frame) };
+}
+
+/** Fewest swaps to solve a frame: the tiles out of place less their cycles. */
+export function gradientMinimum(frame: readonly number[]): number {
+  const seen = new Set<number>();
+  let out = 0;
+  let cycles = 0;
+  frame.forEach((tile, cell) => {
+    if (tile === cell || seen.has(cell)) return;
+    cycles++;
+    for (let c = cell; !seen.has(c); c = frame[c]!) {
+      seen.add(c);
+      out++;
+    }
+  });
+  return out - cycles;
+}
+
+/** A stored round's replay, slides (tilesRev 3) or swaps (tilesRev 4). */
+export function replayGradientAnswer(puzzle: TilesPuzzleData, answer: string | null | undefined): JumbledReplay {
+  return isGradientSwap(puzzle) ? replayGradient(puzzle.frame, decodeGradient(answer ?? "")) : replayJumbled(puzzle.frame, decodeJumbled(answer ?? ""));
+}
+
 /* ------------------------------------------------------------------ the gradient */
 
 /**
@@ -172,9 +266,10 @@ export const JUMBLED_PALETTE: readonly string[] = [
   "#b26ac3", "#da75be", "#fd84b3", "#feabb0", "#ffcbbf",
 ];
 
-/** The solved board's colours, cell by cell. */
-export function jumbledPalette(): readonly string[] {
-  return JUMBLED_PALETTE;
+/** The solved board's colours, cell by cell: the round's own scheme on tilesRev 4, else the fixed gradient. */
+export function jumbledPalette(puzzle?: Pick<TilesPuzzleData, "palette"> | null): readonly string[] {
+  const own = puzzle?.palette;
+  return own && own.length === JUMBLED_CELLS ? own : JUMBLED_PALETTE;
 }
 
 /* ------------------------------------------------------------------ scoring (tilesRev 3, to 200) */
@@ -262,8 +357,8 @@ export function jumbledEliteSeconds(limitMs = JUMBLED_TIME_MS): number {
 
 /** The "?" help SCORE text. */
 export function jumbledHelpScore(): string {
-  return `Finish: ${JUMBLED_FINISH_BASE}, + ${JUMBLED_PAR_POINTS} at or under par (${JUMBLED_PAR_POINTS - JUMBLED_OVER_PAR_STEP} one over), + up to ${JUMBLED_SPEED_POINTS} for speed (all of it if you finish in about ${jumbledFastSeconds()} s). Faster still, in the fewest moves, earns up to ${JUMBLED_ELITE_POINTS} more: {max} needs the fewest moves in about ${jumbledEliteSeconds()} s. Unfinished: up to ${JUMBLED_UNFINISHED_CAP} for the tiles you put in place.`;
+  return `Finish: ${JUMBLED_FINISH_BASE}, + ${JUMBLED_PAR_POINTS} at or under par (${JUMBLED_PAR_POINTS - JUMBLED_OVER_PAR_STEP} one over), + up to ${JUMBLED_SPEED_POINTS} for speed (all of it if you finish in about ${jumbledFastSeconds()} s). Faster still, in the fewest swaps, earns up to ${JUMBLED_ELITE_POINTS} more: {max} needs the fewest swaps in about ${jumbledEliteSeconds()} s. Unfinished: up to ${JUMBLED_UNFINISHED_CAP} for the tiles you put in place.`;
 }
 
 /** The round intro SCORE line (two phone lines, no scoring terms). */
-export const JUMBLED_INTRO_SCORE = "Points for tiles in place. Finish in few moves, and fast, for up to {max}.";
+export const JUMBLED_INTRO_SCORE = "Points for tiles in place. Finish in few swaps, and fast, for up to {max}.";
