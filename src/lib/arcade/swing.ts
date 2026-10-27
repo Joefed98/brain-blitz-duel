@@ -466,6 +466,27 @@ export interface SwingState extends Body, BandFields {
   gemsTaken?: number;
   gates?: SwingGate[];
   gatesLit?: number;
+  /**
+   * swingRev 14 only (the assault course, absent on every earlier round): the marker, the sections (each a start
+   * ledge, one or two hooks and the landing ledge, `ledges[k]` and `ledges[k + 1]`), the two squeezes, the section the
+   * hero is on, when it started, each section's clear tick, the furthest x reached in it, restarts, the respawn hold,
+   * the last miss and what was taken in the attempt so far (`bank*`: what an attempt started with, restored on a miss).
+   */
+  assault?: number;
+  sections?: SwingSection[];
+  squeezes?: SwingSqueeze[];
+  sec?: number;
+  secStart?: number;
+  secTicks?: number[];
+  secReach?: number;
+  restarts?: number;
+  respawn?: number;
+  missTick?: number;
+  bankGems?: number;
+  bankGates?: number;
+  bankStars?: number[];
+  /** swingRev 14: times the dragon caught the hero (each a restart). */
+  caught?: number;
   tick: number;
   rng: number;
   camX: number;
@@ -639,6 +660,8 @@ function isOver(state: SwingState): boolean {
 
 function step(state: SwingState, input: ArcadeInputEvent | null): SwingState {
   if (isOver(state)) return state;
+  // swingRev 14: the assault course has its own rules (below); every earlier revision steps on here.
+  if (state.assault) return stepAssault(state, input);
   const tick = state.tick + 1;
   const s: SwingState = { ...state, tick };
   // swingRev 13 (the expansion): standing on a ledge, only the walk to its centre and a press (a kick off it) move the body.
@@ -782,6 +805,7 @@ export function swingScoreV4(metres: number, stars: number): number {
 }
 
 function score(state: SwingState): number {
+  if (state.assault) return swingScoreV14(state);
   if (state.expand) return swingScoreV13(state);
   if (state.rev === SWING_REV) return swingScoreV4(swingMetres(state), state.stars ?? 0);
   const m = Math.min(SWING_FINISH_M, swingMetres(state));
@@ -797,6 +821,7 @@ export function swingExtra(s: SwingState) {
     ...(s.dragons ? { dragonTotal: s.dragons.length } : {}),
     ...(s.rev === SWING_REV ? { stars: s.stars ?? 0, starTotal: swingStarTotal(s), cause: s.cause ?? 0 } : {}),
     ...(s.expand ? swingFeatureCounts(s) : {}),
+    ...(s.assault ? swingAssaultCounts(s) : {}),
   };
 }
 
@@ -858,6 +883,8 @@ export function swingCheckpoint(state: SwingState): SwingCheckpoint {
     // swingRev 13: the expansion's state, after every earlier value.
     if (state.expand) values.push(state.expand, state.ledgeOn ?? -1, state.ledgeHold ?? 0, state.chain ?? 0, state.comboPts ?? 0, state.gemsTaken ?? 0, state.gatesLit ?? 0, ...(state.ledgeTicks ?? []), state.comboTiers ?? 0);
   }
+  // swingRev 14 (the assault course, which carries no `rev`): its own state, after every earlier value.
+  if (state.assault) values.push(state.assault, state.sec ?? 0, state.secStart ?? 0, state.secReach ?? 0, state.ledgeOn ?? -1, state.ledgeHold ?? 0, state.respawn ?? 0, state.restarts ?? 0, state.gemsTaken ?? 0, state.gatesLit ?? 0, state.stars ?? 0, state.chaseX ?? 0, state.chaseY ?? 0, state.caught ?? 0, ...(state.secTicks ?? []));
   for (const value of values) {
     checksum ^= value | 0;
     checksum = Math.imul(checksum, 0x01000193) >>> 0;
@@ -1020,6 +1047,7 @@ const dragonGameV2 = { ...swingGame, init: initDragonsV2 };
 const dragonGameV3 = { ...swingGame, init: initDragonsV3 };
 const chaseGameV4 = { ...swingGame, init: initV4 };
 export function swingGameFor(rev?: number): typeof swingGame {
+  if (rev === SWING_REV_ASSAULT) return swingAssaultGame;
   if (rev === SWING_REV_EXPAND) return swingExpandGame;
   if (rev === SWING_REV_STRICT) return swingStrictGame;
   if (rev === SWING_REV_TARGET) return swingTargetGame;
@@ -1041,6 +1069,7 @@ export const SWING_REV_BAND = 5;
 /** Metres count 1 and stars 5; 140 at 500 m with all ten stars; reaching 500 m adds 10. */
 export const SWING_BAND_CURVE = bandCurve([0, 86, 162, 245, 400, 499, 550], [0, 70, 100, 125, 136, 138, 140]);
 export function swingBandParts(state: SwingState): BandParts {
+  if (state.assault) return swingBandPartsV14(state);
   if (state.expand) return swingBandPartsV13(state);
   const units = Math.min(SWING_FINISH_M, swingMetres(state)) + 5 * clampInt(state.stars ?? 0, 0, SWING_STARS);
   const finished = swingMetres(state) >= SWING_FINISH_M;
@@ -1048,6 +1077,7 @@ export function swingBandParts(state: SwingState): BandParts {
 }
 
 function scoreBand(state: SwingState): number {
+  if (state.assault) return swingScoreV14(state);
   if (state.expand) return swingScoreV13(state);
   return bandTotal(swingBandParts(state), Boolean(state.acted));
 }
@@ -1345,7 +1375,7 @@ export function swingWorldH(state: { worldH?: number }): number {
 }
 /** The world height (px) a stored round's swingRev plays in. */
 export function swingWorldHFor(rev?: number | null): number {
-  if (rev === SWING_REV_EXPAND) return SWING_V13_H;
+  if (rev === SWING_REV_EXPAND || rev === SWING_REV_ASSAULT) return SWING_V13_H;
   return rev === SWING_REV_TALL || rev === SWING_REV_TARGET || rev === SWING_REV_STRICT ? SWING_TALL_H : SWING_WORLD_H;
 }
 
@@ -1725,14 +1755,14 @@ export function swingWorldW(state: { worldW?: number }): number {
 }
 /** The world width (px) a stored round's swingRev plays in. */
 export function swingWorldWFor(rev?: number | null): number {
-  return rev === SWING_REV_EXPAND ? SWING_V13_W : SWING_WORLD_W;
+  return rev === SWING_REV_EXPAND || rev === SWING_REV_ASSAULT ? SWING_V13_W : SWING_WORLD_W;
 }
 /**
  * The height (px) a stored round's reveal and demo draw at in the shared 390-wide reveal box: the
  * world's own height, or for swingRev 13's 450-wide view the height that keeps its shape (731).
  */
 export function swingRevealHFor(rev?: number | null): number {
-  return rev === SWING_REV_EXPAND ? Math.round((SWING_V13_H * SWING_WORLD_W) / SWING_V13_W) : swingWorldHFor(rev);
+  return rev === SWING_REV_EXPAND || rev === SWING_REV_ASSAULT ? Math.round((SWING_V13_H * SWING_WORLD_W) / SWING_V13_W) : swingWorldHFor(rev);
 }
 
 /** Grabbing from a ledge, the hero kicks off it: SWING_LEDGE_KICK of forward speed along the swing. */
@@ -2155,3 +2185,787 @@ function initV13(seed: number): SwingState {
 
 /** swingRev 13: the expansion. Band 3 like rev 11, so shared readers stay on strict curves; the score is swingScoreV13. */
 export const swingExpandGame: typeof swingGame = { ...swingTunecGame, init: (seed) => ({ ...bandInit(initV13(seed)), band: 3 }) };
+
+/* ================= The assault course (swingRev 14, 27 Oct 2026) ================= */
+
+/**
+ * swingRev 14 (docs/grappler-assault-oct-2026.md): Grappler as a tactical assault course. Every rule below is gated
+ * on the state's `assault` marker, so every earlier revision plays and scores exactly as before. The course is its
+ * own (it shares the rope physics, the world size of swingRev 13 and nothing else): SWING_V14_SECTIONS sections in
+ * a row, each a small decision built and proved from the seed alone, the same for every player.
+ *
+ *  - A section is a start ledge, one or two hooks and a landing ledge (the next section's start): the hero kicks
+ *    off the start ledge on to the section's first hook (a press), swings, lets go and lands. Only the section's
+ *    own hooks can be grabbed (the nearest of them within reach). A two-hook section catches its second hook in
+ *    flight. A squeeze (two a course) closes the cave's roof and floor to a narrow opening: one hook before it,
+ *    one behind it; fly through the gap, catch the far hook, swing on to the landing ledge.
+ *  - A miss (the lava, or a squeeze's rock) puts the hero back on the section's start ledge (after a short
+ *    SWING_V14_RESPAWN hold); the clock keeps running and what the attempt picked up is put back. No single miss
+ *    ends the run (only the clock does): the dragon (from section SWING_V14_CHASE_FROM, SWING_V14_CHASE_PACE: 40 %
+ *    slower than swingRev 4–13's) catching the hero is a restart too, and on every restart it backs off to at least
+ *    SWING_V14_CHASE_BACKOFF behind the start ledge.
+ *  - Speed gates (SWING_V14_GATES) sit on a one-hook section's flight line: a well-timed release passes through.
+ *    Gems (SWING_V14_GEMS) sit on a late release's line, stars (SWING_V14_STARS) on a reeled-in swing's: never
+ *    off-route, each proved to land.
+ *  - Each section's par: its fastest proved route plus SWING_V14_PAR_MARGIN, fixed when the course is built.
+ *  - Score: sections cleared (and the furthest point into the next) on SWING_V14_BAND_CURVE (to 120), 10 for the
+ *    last section, up to SWING_V14_PAR_POINTS for pars and 3 a gate, gem or star: 200 at most.
+ */
+export const SWING_REV_ASSAULT = 14;
+export const SWING_V14_SECTIONS = 36;
+export const SWING_V14_SQUEEZES = 2;
+export const SWING_V14_GATES = 4;
+export const SWING_V14_GEMS = 4;
+export const SWING_V14_STARS = 4;
+/** Every ledge's half-width (the start ledge of section 0 included). */
+export const SWING_V14_LEDGE_HALF = 30 * FP;
+export const SWING_V14_RESPAWN = 24;
+/** The dragon's pace: swingRev 4–13's 4 px a tick, 40 % slower. */
+export const SWING_V14_CHASE_PACE = Math.trunc((SWING_CHASE_PACE * 3) / 5);
+/** The dragon appears behind the hero when they start this section (0-based). */
+export const SWING_V14_CHASE_FROM = 3;
+/** On a restart the dragon is at least this far behind the start ledge. */
+export const SWING_V14_CHASE_BACKOFF = 300 * FP;
+/** The camera frames a section with its start ledge this far from the left edge. */
+export const SWING_V14_CAM_LEFT = 70 * FP;
+/** A gate lights on a forward pass through its opening at this speed or more (px a tick). */
+export const SWING_V14_GATE_SPEED = 5;
+/** A gate opening's half-height (1/256 px) around its flight line. */
+export const SWING_V14_GATE_HALF = 22 * FP;
+/** A squeeze's opening clears the planned flight by this much above and below the hero's body. */
+const V14_SQUEEZE_CLEAR = 14 * FP;
+export const SWING_V14_PICKUP_POINTS = 3;
+export const SWING_V14_PAR_POINTS = 34;
+/** Par = the fastest proved route + this margin (ticks); a section beaten by SWING_V14_PAR_FULL or more pays its whole share. */
+export const SWING_V14_PAR_MARGIN = 45;
+export const SWING_V14_PAR_FULL = 30;
+/** The walk allowance on a start ledge in the par (ticks: a landing up to the ledge's half-width from its centre). */
+export const SWING_V14_PAR_WALK = 5;
+export const SWING_V14_MAX = 200;
+/** Units: 10 a section cleared plus 0–9 for the furthest point into the next. */
+export const SWING_V14_BAND_CURVE = bandCurve([0, 2, 20, 60, 120, 200, 280, 360], [0, 3, 14, 36, 64, 92, 110, 120]);
+
+/** A section: kind (0 one hook, 1 two hooks, 2 squeeze), its first hook's index and hook count, its squeeze (-1: none) and par (ticks). */
+export interface SwingSection {
+  kind: number;
+  hook0: number;
+  hooks: number;
+  sq: number;
+  par: number;
+}
+
+/** A squeeze: rock above `top` and below `bottom` for x in [x0, x1] (1/256 px). */
+export interface SwingSqueeze {
+  x0: number;
+  x1: number;
+  top: number;
+  bottom: number;
+}
+
+/** True when the hero's 10 px body (its box) touches a squeeze's rock. */
+export function swingInSqueeze(sq: SwingSqueeze, x: number, y: number): boolean {
+  return x + RADIUS > sq.x0 && x - RADIUS < sq.x1 && (y - RADIUS < sq.top || y + RADIUS > sq.bottom);
+}
+
+/** The nearest of section k's hooks within reach of (x, y), or -1. */
+function assaultTarget(s: Pick<SwingState, "anchors" | "sections">, k: number, x: number, y: number): number {
+  const sec = s.sections?.[k];
+  if (!sec) return -1;
+  let best = -1;
+  let bestD = REACH * REACH;
+  for (let i = sec.hook0; i < sec.hook0 + sec.hooks; i++) {
+    const dx = s.anchors[i]!.x - x;
+    const dy = s.anchors[i]!.y - y;
+    const d = dx * dx + dy * dy;
+    if (d <= bestD) {
+      bestD = d;
+      best = i;
+    }
+  }
+  return best;
+}
+
+/** The section's start and landing ledges. */
+export function swingAssaultLedges(s: Pick<SwingState, "ledges">, k: number): { from: SwingLedge; to: SwingLedge } {
+  return { from: s.ledges![k]!, to: s.ledges![Math.min(k + 1, s.ledges!.length - 1)]! };
+}
+
+function bits(n: number): number {
+  let c = 0;
+  for (let b = n; b; b &= b - 1) c += 1;
+  return c;
+}
+
+/** A miss: back to the section's start ledge, what the attempt picked up put back, the dragon held off. */
+function assaultRestart(s: SwingState, tick: number): void {
+  const k = s.sec ?? 0;
+  const from = s.ledges![k]!;
+  s.x = from.x;
+  s.y = from.top - RADIUS;
+  s.vx = 0;
+  s.vy = 0;
+  if (s.rope >= 0) s.rope = -1;
+  s.reelLeft = 0;
+  s.om = 0;
+  s.ledgeOn = k;
+  s.ledgeHold = 0;
+  s.respawn = SWING_V14_RESPAWN;
+  s.restarts = (s.restarts ?? 0) + 1;
+  s.missTick = tick;
+  s.gemsTaken = s.bankGems ?? 0;
+  s.gatesLit = s.bankGates ?? 0;
+  s.starsTaken = [...(s.bankStars ?? [])];
+  s.stars = s.starsTaken.length;
+  if ((s.chaseX ?? 0) !== 0) s.chaseX = Math.min(s.chaseX!, from.x - SWING_V14_CHASE_BACKOFF);
+}
+
+/** One tick of the assault course (swingRev 14). */
+function stepAssault(state: SwingState, input: ArcadeInputEvent | null): SwingState {
+  const tick = state.tick + 1;
+  const s: SwingState = { ...state, tick };
+  const total = s.sections!.length;
+  const k = s.sec ?? 0;
+  const px = s.x;
+  const py = s.y;
+  let standing = (s.ledgeOn ?? -1) >= 0;
+  if ((s.respawn ?? 0) > 0) {
+    // Back on the start ledge: held still for a moment; a press made now waits for the next one.
+    s.respawn = s.respawn! - 1;
+  } else {
+    let press = input !== null && input.k === SWING_INPUT_HOLD && input.a === 1;
+    if (standing) {
+      // As swingRev 13: the hero walks to the ledge's centre first; a press on the way is held until they get there.
+      const centre = s.ledges![s.ledgeOn!]!.x;
+      if (s.x !== centre) s.x += clampInt(centre - s.x, -SWING_LEDGE_WALK, SWING_LEDGE_WALK);
+      if (input !== null && input.k === SWING_INPUT_HOLD) s.ledgeHold = input.a === 1 ? 1 : 0;
+      press = s.x === centre && s.ledgeHold === 1;
+      if (press) s.ledgeHold = 0;
+    }
+    if (standing ? press : input !== null && input.k === SWING_INPUT_HOLD) {
+      if (press) {
+        const target = assaultTarget(s, k, s.x, s.y);
+        if (target >= 0) {
+          if (s.rope >= 0) detach(s, s.anchors[s.rope]!);
+          attach(s, target, s.anchors[target]!);
+          if (standing) {
+            s.ledgeOn = -1;
+            standing = false;
+            kickOff(s);
+          }
+          s.grabTick = tick;
+        }
+      } else if (s.rope >= 0) detach(s, s.anchors[s.rope]!);
+    } else if (input !== null && input.k === SWING_INPUT_REEL && !standing) {
+      startReel(s, clampInt(input.a, 0, 1));
+    }
+  }
+  let missed = false;
+  if (!standing) {
+    missed = moveBody(s, s);
+    const sq = s.squeezes?.[s.sections![k]!.sq];
+    if (!missed && sq && swingInSqueeze(sq, s.x, s.y)) missed = true;
+  }
+  let cleared = false;
+  if (!missed && !standing) {
+    // Landing: falling on to the section's start or landing ledge from above, off the rope.
+    if (s.rope < 0 && s.vy > 0) {
+      for (const i of [k + 1, k]) {
+        const l = s.ledges![i]!;
+        if (Math.abs(s.x - l.x) > l.half || !(py + RADIUS <= l.top && s.y + RADIUS >= l.top)) continue;
+        s.y = l.top - RADIUS;
+        s.vx = 0;
+        s.vy = 0;
+        s.ledgeHold = 0;
+        s.ledgeOn = i;
+        cleared = i === k + 1;
+        break;
+      }
+    }
+    // Pickups (put back on a miss): stars and gems by touch, gates on a fast forward pass through the opening.
+    let taken = s.gemsTaken ?? 0;
+    (s.gems ?? []).forEach(([gx, gy], i) => {
+      const dx = s.x - gx;
+      const dy = s.y - gy;
+      if (!(taken & (1 << i)) && dx * dx + dy * dy <= SWING_GEM_TOUCH * SWING_GEM_TOUCH) taken |= 1 << i;
+    });
+    s.gemsTaken = taken;
+    (s.starSpots ?? []).forEach(([sx, sy], i) => {
+      if ((s.starsTaken ?? []).includes(i)) return;
+      const dx = s.x - sx;
+      const dy = s.y - sy;
+      if (dx * dx + dy * dy <= SWING_STAR_TOUCH * SWING_STAR_TOUCH) {
+        s.starsTaken = [...(s.starsTaken ?? []), i];
+        s.stars = s.starsTaken.length;
+      }
+    });
+    let lit = s.gatesLit ?? 0;
+    const dx = s.x - px;
+    const dy = s.y - py;
+    const fast = dx * dx + dy * dy >= SWING_V14_GATE_SPEED * SWING_V14_GATE_SPEED * FP * FP;
+    (s.gates ?? []).forEach((g, i) => {
+      if (lit & (1 << i) || !(px < g.x && s.x >= g.x)) return;
+      const y = py + Math.trunc((dy * (g.x - px)) / dx);
+      if (fast && y >= g.y0 && y <= g.y1) lit |= 1 << i;
+    });
+    s.gatesLit = lit;
+  }
+  if (s.x > s.maxX) s.maxX = s.x;
+  if (s.x > (s.secReach ?? 0)) s.secReach = s.x;
+  if (missed) assaultRestart(s, tick);
+  else if (cleared) {
+    const ticks = [...s.secTicks!];
+    ticks[k] = tick;
+    s.secTicks = ticks;
+    s.sec = k + 1;
+    s.secStart = tick;
+    s.secReach = s.x;
+    s.bankGems = s.gemsTaken ?? 0;
+    s.bankGates = s.gatesLit ?? 0;
+    s.bankStars = [...(s.starsTaken ?? [])];
+  }
+  const sec = s.sec ?? 0;
+  // The dragon: appears behind the hero as they start section SWING_V14_CHASE_FROM, then flies at its pace.
+  if ((s.chaseX ?? 0) === 0 && sec >= SWING_V14_CHASE_FROM && sec < total) {
+    s.chaseX = s.x - SWING_CHASE_GAP;
+    s.chaseY = s.y;
+  } else if ((s.chaseX ?? 0) !== 0 && sec < total) {
+    s.chaseX = s.chaseX! + SWING_V14_CHASE_PACE;
+    s.chaseY = s.chaseY! + clampInt(Math.trunc((s.y - s.chaseY!) / 4), -3 * FP, 3 * FP);
+    // Caught: like a miss, back to the start ledge (the dragon held off behind it). Nothing ends a run but the clock.
+    if (s.chaseX! + SWING_CHASE_REACH >= s.x - RADIUS) {
+      s.caught = (s.caught ?? 0) + 1;
+      assaultRestart(s, tick);
+    }
+  }
+  // The camera frames the section (its start ledge SWING_V14_CAM_LEFT from the left), easing on to the next one and
+  // never letting the hero leave the view.
+  const frame = s.ledges![Math.min(sec, total - 1)]!.x - SWING_V14_CAM_LEFT;
+  s.camX += Math.trunc((frame - s.camX) / 6);
+  const w = (s.worldW ?? SWING_WORLD_W) * FP;
+  if (s.x - s.camX > w - 40 * FP) s.camX = s.x - (w - 40 * FP);
+  if (s.x - s.camX < 30 * FP) s.camX = s.x - 30 * FP;
+  if (sec >= total || tick >= SWING_RUN_TICKS) {
+    s.ended = 1;
+    s.endedTick = tick;
+  }
+  return s;
+}
+
+/** Sections cleared and the 0–9 tenths of the next one reached (its furthest x between its two ledges). */
+export function swingAssaultProgress(s: SwingState): { cleared: number; partial: number } {
+  const total = s.sections?.length ?? 0;
+  const cleared = clampInt(s.sec ?? 0, 0, total);
+  if (cleared >= total) return { cleared, partial: 0 };
+  const { from, to } = swingAssaultLedges(s, cleared);
+  const span = Math.max(1, to.x - from.x);
+  return { cleared, partial: clampInt(Math.trunc((9 * ((s.secReach ?? from.x) - from.x)) / span), 0, 9) };
+}
+
+/** Section k's time (ticks from its start to its landing; -1 if not cleared) and how far under par it was. */
+export function swingAssaultPar(s: Pick<SwingState, "sections" | "secTicks">, k: number): { par: number; time: number; beat: number } {
+  const par = s.sections?.[k]?.par ?? 0;
+  const end = s.secTicks?.[k] ?? 0;
+  if (end <= 0) return { par, time: -1, beat: 0 };
+  const start = k === 0 ? 0 : s.secTicks![k - 1]!;
+  const time = end - start;
+  return { par, time, beat: par - time };
+}
+
+/** The rev-14 counts (reveal lines, effects, the score). */
+export function swingAssaultCounts(s: SwingState) {
+  const total = s.sections?.length ?? 0;
+  const pars = (s.sections ?? []).map((_, k) => swingAssaultPar(s, k));
+  return {
+    sections: clampInt(s.sec ?? 0, 0, total),
+    sectionTotal: total,
+    restarts: s.restarts ?? 0,
+    caught: s.caught ?? 0,
+    parsBeaten: pars.filter((p) => p.time >= 0 && p.beat > 0).length,
+    parBeat: pars.reduce((sum, p) => sum + (p.time >= 0 ? clampInt(p.beat, 0, SWING_V14_PAR_FULL) : 0), 0),
+    gems: bits(s.bankGems ?? 0),
+    gemTotal: (s.gems ?? []).length,
+    gates: bits(s.bankGates ?? 0),
+    gateTotal: (s.gates ?? []).length,
+    starsBanked: (s.bankStars ?? []).length,
+    starTotal: (s.starSpots ?? []).length,
+  };
+}
+
+/** Score parts (rev 14): sections on the curve, the last section's 10, pars and the pickups banked in cleared sections. */
+export function swingBandPartsV14(state: SwingState): BandParts {
+  const c = swingAssaultCounts(state);
+  const p = swingAssaultProgress(state);
+  const units = 10 * p.cleared + p.partial;
+  const finished = c.sections >= c.sectionTotal && c.sectionTotal > 0;
+  const parPts = c.sectionTotal ? Math.trunc((SWING_V14_PAR_POINTS * c.parBeat) / (SWING_V14_PAR_FULL * c.sectionTotal)) : 0;
+  const pickups = SWING_V14_PICKUP_POINTS * (c.gates + c.gems + c.starsBanked);
+  const words = `par +${parPts} (${c.parsBeaten} under) · gates ${c.gates} · gems ${c.gems} · stars ${c.starsBanked} +${pickups}`;
+  return {
+    units,
+    points: bandPoints(SWING_V14_BAND_CURVE, units),
+    bonus: (finished ? BAND_FINISH_BONUS : 0) + parPts + pickups,
+    penalty: 0,
+    finished,
+    text: `Section ${c.sections} / ${c.sectionTotal}`,
+    bonusText: finished ? `Course cleared +${BAND_FINISH_BONUS} · ${words}` : words,
+  };
+}
+
+export function swingScoreV14(state: SwingState): number {
+  return bandTotal(swingBandPartsV14(state), Boolean(state.acted), SWING_V14_MAX);
+}
+
+/** The par clock of the section running (display only): its par and the ticks since it started. */
+export function swingAssaultClock(s: SwingState): { section: number; par: number; elapsed: number } | null {
+  const k = s.sec ?? 0;
+  const sec = s.sections?.[k];
+  if (!sec || s.ended) return null;
+  return { section: k, par: sec.par, elapsed: s.tick - (s.secStart ?? 0) };
+}
+
+/* ---- The course builder (rev 14) ---- */
+
+interface V14Course {
+  ceil: number[];
+  floor: number[];
+  spikes: Spike[];
+  anchors: Anchor[];
+}
+
+/** A flight's outcome: the ledge it lands on (index into the list given) and the flight tick, or null (lava, rock, or still in the air). */
+interface V14Landing {
+  ledge: number;
+  t: number;
+  x: number;
+}
+
+/**
+ * Flies a body already let go (no grabs) for up to n ticks, as the game's step does: move, the squeeze's rock and the
+ * lava end it, a descending pass through a ledge's top within its half-width lands it. `path` collects each tick's body.
+ */
+function v14Fly(c: V14Course, b: Body, ledges: readonly SwingLedge[], sq: SwingSqueeze | null, n: number, path?: Body[]): V14Landing | null {
+  for (let t = 1; t <= n; t++) {
+    const py = b.y;
+    if (moveBody(b, c) || (sq && swingInSqueeze(sq, b.x, b.y))) return null;
+    path?.push({ ...b });
+    if (b.vy <= 0) continue;
+    for (let i = 0; i < ledges.length; i++) {
+      const l = ledges[i]!;
+      if (Math.abs(b.x - l.x) <= l.half && py + RADIUS <= l.top && b.y + RADIUS >= l.top) return { ledge: i, t, x: b.x };
+    }
+  }
+  return null;
+}
+
+/** The body on its rope, tick by tick, for its first forward pass (bodies[0] is the body given; stops at the forward apex or a miss). */
+function v14Pass(c: V14Course, b: Body, sq: SwingSqueeze | null, max = 160): Body[] {
+  const out: Body[] = [{ ...b }];
+  const body = { ...b };
+  for (let r = 1; r <= max; r++) {
+    if (moveBody(body, c) || (sq && swingInSqueeze(sq, body.x, body.y))) break;
+    out.push({ ...body });
+    if (body.om <= 0) break;
+  }
+  return out;
+}
+
+/** Lets go of the body at pass index r and flies it; the flight's path and landing (or null). */
+function v14Release(c: V14Course, pass: readonly Body[], r: number, ledges: readonly SwingLedge[], sq: SwingSqueeze | null, n = 150, path?: Body[]): V14Landing | null {
+  const b = { ...pass[r]! };
+  detach(b, c.anchors[b.rope]!);
+  return v14Fly(c, b, ledges, sq, n, path);
+}
+
+/** Where a flight comes down through the line y = top − RADIUS (descending), or null. */
+function v14Crossing(path: readonly Body[], top: number): number | null {
+  for (let t = 1; t < path.length; t++) {
+    const a = path[t - 1]!;
+    const b = path[t]!;
+    if (b.vy > 0 && a.y + RADIUS <= top && b.y + RADIUS >= top) return b.x;
+  }
+  return null;
+}
+
+function v14Ledge(x: number, top: number, section: number, kind: number): SwingLedge {
+  return { x, top, half: SWING_V14_LEDGE_HALF, kind, section, order: 0, crumble: 0 };
+}
+
+/** A section's build: its hooks, landing ledge, squeeze, and the proved plays (for the par and the features). */
+interface V14Built {
+  hooks: Anchor[];
+  to: SwingLedge;
+  sq: SwingSqueeze | null;
+  /** Pass index of each release from the first hook that lands (one-hook sections), with its landing tick. */
+  lands: [number, number][];
+  /** The fastest proved route's ticks from the press to the landing. */
+  fastest: number;
+}
+
+/**
+ * Builds one section from the start ledge `from` (one draw of its shape; null if this draw does not prove). The
+ * hooks are pushed on to c.anchors only for the probes and popped before returning.
+ */
+function v14Section(c: V14Course, from: SwingLedge, kind: number, k: number, draw: (n: number) => number): V14Built | null {
+  const floorAt = (x: number) => lerpAt(c.floor, x);
+  const ceilAt = (x: number) => lerpAt(c.ceil, x);
+  const n0 = c.anchors.length;
+  const pop = () => {
+    c.anchors.length = n0;
+    return null;
+  };
+  const a: Anchor = kind === 0 ? { x: from.x + (75 + draw(46)) * FP, y: from.top - RADIUS - (125 + draw(56)) * FP } : { x: from.x + (55 + draw(36)) * FP, y: from.top - RADIUS - (110 + draw(51)) * FP };
+  if (a.y < ceilAt(a.x) + 40 * FP) return pop();
+  c.anchors.push(a);
+  const kick = restBody(from.x, from.top - RADIUS);
+  attach(kick, n0, a);
+  kickOff(kick);
+  const pass1 = v14Pass(c, kick, null);
+  if (pass1.length < 20) return pop();
+  // The planned release: the seed picks one in the middle of the forward upswing.
+  const rising = pass1.map((b, r) => ({ b, r })).filter(({ b, r }) => r >= 4 && b.om > 0 && b.y < pass1[r - 1]!.y && b.x > a.x).map(({ r }) => r);
+  if (rising.length < 8) return pop();
+  const lo = Math.trunc(rising.length / 4);
+  const r1 = rising[lo + draw(Math.max(1, Math.trunc(rising.length / 2)))]!;
+  // One hook: the landing ledge 70 px above to 80 px below the start; two hooks and squeezes land a little higher (shorter flights).
+  const top = clampInt(from.top + (kind === 0 ? draw(151) - 70 : draw(131) - 100) * FP, 380 * FP, 650 * FP);
+  const maxSpan = (kind === 0 ? 360 : 400) * FP;
+  const landOn = (path: Body[], startX: number): SwingLedge | null => {
+    const x = v14Crossing(path, top);
+    if (x === null || x - from.x < 170 * FP || x - from.x > maxSpan || x - startX < 50 * FP) return null;
+    if (top > floorAt(x) - 120 * FP) return null;
+    return v14Ledge(x, top, k + 1, 1);
+  };
+  const pathOf = (pass: Body[], r: number, sq: SwingSqueeze | null, n = 150) => {
+    const path: Body[] = [];
+    const b = { ...pass[r]! };
+    detach(b, c.anchors[b.rope]!);
+    v14Fly(c, b, [], sq, n, path);
+    return path;
+  };
+  if (kind === 0) {
+    const path = pathOf(pass1, r1, null);
+    const to = landOn(path, a.x);
+    if (!to) return pop();
+    const lands: [number, number][] = [];
+    for (let r = 1; r < pass1.length; r++) {
+      const hit = v14Release(c, pass1, r, [from, to], null);
+      if (hit && hit.ledge === 1) lands.push([r, hit.t]);
+    }
+    if (lands.length < 4) return pop();
+    const fastest = Math.min(...lands.map(([r, t]) => r + t));
+    c.anchors.length = n0;
+    return { hooks: [a], to, sq: null, lands, fastest };
+  }
+  // Two hooks, or a squeeze: the planned release from the first hook flies on to the second (through the gap).
+  const flight = pathOf(pass1, r1, null, 90);
+  let sq: SwingSqueeze | null = null;
+  let g0 = 4 + draw(8);
+  if (kind === 2) {
+    // The gap near the top of the planned flight (where it runs flattest), a tick or two either side.
+    let apex = 5;
+    for (let t = 5; t <= 30 && t < flight.length; t++) if (Math.abs(flight[t]!.vy) < Math.abs(flight[apex]!.vy)) apex = t;
+    const f = apex + draw(5) - 2;
+    const p = flight[f];
+    if (!p) return pop();
+    const w = (24 + draw(13)) * FP;
+    const x0 = p.x - Math.trunc(w / 2);
+    const x1 = x0 + w;
+    let minY = Infinity;
+    let maxY = -Infinity;
+    for (const b of flight) if (b.x + RADIUS > x0 && b.x - RADIUS < x1) {
+      minY = Math.min(minY, b.y);
+      maxY = Math.max(maxY, b.y);
+    }
+    // A narrow opening: the planned flight runs nearly level through the rock (at most 24 px of rise or fall).
+    if (minY === Infinity || maxY - minY > 24 * FP) return pop();
+    sq = { x0, x1, top: minY - RADIUS - V14_SQUEEZE_CLEAR, bottom: maxY + RADIUS + V14_SQUEEZE_CLEAR };
+    if (sq.top < ceilAt(x0) + 30 * FP || sq.top < ceilAt(x1) + 30 * FP || sq.bottom > floorAt(x0) - 60 * FP || x0 < a.x + 20 * FP) return pop();
+    // The hook swing must clear the rock, and several releases around the planned one must pass the gap.
+    if (v14Pass(c, kick, sq).length < r1 + 1) return pop();
+    const exit = flight.findIndex((b) => b.x - RADIUS > x1 + 8 * FP);
+    if (exit < 0) return pop();
+    g0 = Math.max(g0, exit + draw(6));
+  }
+  const p = flight[g0];
+  if (!p || p.y > floorAt(p.x) - 140 * FP) return pop();
+  // The far hook ahead and above the grab point (behind a squeeze, where the flight is near its top, a little lower).
+  const b: Anchor = { x: p.x + (25 + draw(46)) * FP, y: p.y - (kind === 2 ? 60 + draw(61) : 90 + draw(51)) * FP };
+  if (b.y < ceilAt(b.x) + 40 * FP || (sq && b.x < sq.x1 + 50 * FP)) return pop();
+  const dA = (p.x - a.x) ** 2 + (p.y - a.y) ** 2;
+  const dB = (p.x - b.x) ** 2 + (p.y - b.y) ** 2;
+  if (dB >= dA || dB > (REACH - 20 * FP) ** 2) return pop();
+  c.anchors.push(b);
+  /** Grabs the second hook g ticks into the flight let go at r (or null if the flight is lost by then). */
+  const grabbed = (r: number, g: number): Body[] | null => {
+    const fl = pathOf(pass1, r, sq, g);
+    if (fl.length < g) return null;
+    const body = { ...fl[g - 1]! };
+    if (assaultTarget({ anchors: c.anchors, sections: [{ kind, hook0: n0, hooks: 2, sq: -1, par: 0 }] }, 0, body.x, body.y) !== n0 + 1) return null;
+    attach(body, n0 + 1, b);
+    const pass2 = v14Pass(c, body, sq);
+    return pass2.length >= 16 ? pass2 : null;
+  };
+  const pass2 = grabbed(r1, g0);
+  if (!pass2) return pop();
+  const rising2 = pass2.map((q, r) => ({ q, r })).filter(({ q, r }) => r >= 4 && q.om > 0 && q.y < pass2[r - 1]!.y && q.x > b.x).map(({ r }) => r);
+  if (rising2.length < 6) return pop();
+  // The planned release from the second hook: late on its upswing (a short, high flight on to the ledge).
+  const r2 = rising2[Math.trunc(rising2.length / 2) + draw(Math.max(1, Math.trunc((rising2.length * 2) / 5)))]!;
+  const to = landOn(pathOf(pass2, r2, sq), b.x);
+  if (!to) return pop();
+  /** Releases from the second hook (after a grab) that land on the ledge: [pass index, landing tick]. */
+  const landings = (pass: Body[]): [number, number][] => {
+    const out: [number, number][] = [];
+    for (let r = 1; r < pass.length; r++) {
+      const hit = v14Release(c, pass, r, [from, to], sq);
+      if (hit && hit.ledge === 1) out.push([r, hit.t]);
+    }
+    return out;
+  };
+  const planned = landings(pass2);
+  if (planned.length < 4) return pop();
+  // Fair: grabs two ticks either side, and releases a tick either side of the planned one, still have a landing.
+  let fastest = r1 + g0 + Math.min(...planned.map(([r, t]) => r + t));
+  for (const [dr, dg] of [[0, -2], [0, 2], [-1, 0], [1, 0]] as const) {
+    const pass = grabbed(r1 + dr, g0 + dg);
+    const got = pass ? landings(pass) : [];
+    if (got.length < 2) return pop();
+    fastest = Math.min(fastest, r1 + dr + g0 + dg + Math.min(...got.map(([r, t]) => r + t)));
+  }
+  c.anchors.length = n0;
+  return { hooks: [a, b], to, sq, lands: [], fastest };
+}
+
+const v14Cache = new Map<number, SwingState>();
+function initV14(seed: number): SwingState {
+  const cached = v14Cache.get(seed | 0);
+  if (cached) return { ...cached };
+  let rng = (seed ^ 0x2545f491) | 0;
+  const draw = (bound: number) => { const r = rngBelow(rng, bound); rng = r.state; return r.value; };
+  const total = SWING_V14_SECTIONS;
+  const cols = Math.trunc((START_X + (total * 420 + 1600) * FP) / COL) + 2;
+  const ceil: number[] = [];
+  const floor: number[] = [];
+  for (let i = 0; i < cols; i++) {
+    ceil.push((40 + draw(50)) * FP);
+    floor.push((790 + draw(24)) * FP);
+  }
+  const c: V14Course = { ceil, floor, spikes: [], anchors: [] };
+  // Kinds: two squeezes in seeded bands, two-hook sections mixed in after the first two.
+  const kinds: number[] = Array.from({ length: total }, (_, k) => (k >= 2 && draw(100) < 35 ? 1 : 0));
+  const sq1 = 8 + draw(8);
+  const sq2 = total - 14 + draw(7);
+  kinds[sq1] = 2;
+  kinds[sq2] = 2;
+  const ledges: SwingLedge[] = [v14Ledge(START_X + 60 * FP, 520 * FP, 0, 0)];
+  const sections: SwingSection[] = [];
+  const squeezes: SwingSqueeze[] = [];
+  const built: V14Built[] = [];
+  for (let k = 0; k < total; k++) {
+    const from = ledges[k]!;
+    let made: V14Built | null = null;
+    const squeeze = kinds[k] === 2;
+    // The seed's draws first; then the same kind with fresh draws; then a one-hook section (always found).
+    const tries = kinds[k] === 2 ? 240 : 60;
+    for (let attempt = 0; attempt < tries + 60 && !made; attempt++) {
+      const kind = attempt < tries ? kinds[k]! : 0;
+      made = v14Section(c, from, kind, k, draw);
+      if (made && attempt >= tries) kinds[k] = 0;
+    }
+    if (!made) throw new Error(`Grappler course ${seed}: section ${k} found no proved shape`);
+    // A squeeze that fell back to one hook moves to the next section, so every course keeps two.
+    if (squeeze && kinds[k] !== 2 && k + 1 < total) kinds[k + 1] = 2;
+    const hook0 = c.anchors.length;
+    c.anchors.push(...made.hooks);
+    if (made.sq) squeezes.push(made.sq);
+    sections.push({ kind: kinds[k]!, hook0, hooks: made.hooks.length, sq: made.sq ? squeezes.length - 1 : -1, par: SWING_V14_PAR_WALK + made.fastest + SWING_V14_PAR_MARGIN });
+    ledges.push({ ...made.to, kind: k + 1 === total ? 2 : 1 });
+    built.push(made);
+  }
+
+  // Features on one-hook sections from the third on, each spread over the course in its own bands.
+  const oneHook = sections.map((_, k) => k).filter((k) => k >= 1 && sections[k]!.kind === 0);
+  const bands = <T>(count: number, make: (k: number) => T | null, used: Set<number>): T[] => {
+    const out: T[] = [];
+    for (let i = 0; i < count; i++) {
+      const lo = Math.trunc((i * oneHook.length) / count);
+      const hi = Math.max(lo + 1, Math.trunc(((i + 1) * oneHook.length) / count));
+      const start = lo + draw(hi - lo);
+      for (let n = 0; n < oneHook.length; n++) {
+        const k = oneHook[(start + n) % oneHook.length]!;
+        if (used.has(k)) continue;
+      const got = make(k);
+        if (got) {
+          used.add(k);
+          out.push(got);
+          break;
+        }
+      }
+    }
+    return out;
+  };
+  const probe = (k: number) => {
+    const from = ledges[k]!;
+    const to = ledges[k + 1]!;
+    const a = c.anchors[sections[k]!.hook0]!;
+    const kick = restBody(from.x, from.top - RADIUS);
+    attach(kick, sections[k]!.hook0, a);
+    kickOff(kick);
+    return { from, to, a, kick, pass: v14Pass(c, kick, null), lands: built[k]!.lands };
+  };
+  const flightOf = (pass: Body[], r: number) => {
+    const path: Body[] = [];
+    const b = { ...pass[r]! };
+    detach(b, c.anchors[b.rope]!);
+    v14Fly(c, b, [], null, 150, path);
+    return path;
+  };
+  const touches = (path: readonly Body[], x: number, y: number, r: number, until?: (b: Body) => boolean) => {
+    for (const b of path) {
+      if (until && until(b)) break;
+      if ((b.x - x) ** 2 + (b.y - y) ** 2 <= r * r) return true;
+    }
+    return false;
+  };
+  /** A landing release's flight, up to the landing tick. */
+  const landedFlight = (pass: Body[], r: number, to: SwingLedge) => {
+    const path = flightOf(pass, r);
+    const end = path.findIndex((q, i) => i > 0 && q.vy > 0 && path[i - 1]!.y + RADIUS <= to.top && q.y + RADIUS >= to.top);
+    return end < 0 ? path : path.slice(0, end);
+  };
+  /** Does a path cross the line x = g.x inside its opening at gate speed (forward)? */
+  const passesGate = (path: readonly Body[], g: SwingGate) => {
+    for (let i = 1; i < path.length; i++) {
+      const p0 = path[i - 1]!;
+      const p1 = path[i]!;
+      if (!(p0.x < g.x && p1.x >= g.x)) continue;
+      const dx = p1.x - p0.x;
+      const dy = p1.y - p0.y;
+      const y = p0.y + Math.trunc((dy * (g.x - p0.x)) / dx);
+      if (dx * dx + dy * dy >= SWING_V14_GATE_SPEED * SWING_V14_GATE_SPEED * FP * FP && y >= g.y0 && y <= g.y1) return true;
+    }
+    return false;
+  };
+  // Speed gates: on the natural line (the middle release of the widest landing window), early in its flight while it is fast.
+  const gates = bands(SWING_V14_GATES, (k) => {
+    const { to, pass, lands } = probe(k);
+    const runs: number[][] = [];
+    for (const [r] of lands) {
+      const last = runs[runs.length - 1];
+      if (last && last[last.length - 1] === r - 1) last.push(r);
+      else runs.push([r]);
+    }
+    const widest = runs.reduce((p, q) => (q.length > p.length ? q : p));
+    const mid = widest[Math.trunc(widest.length / 2)]!;
+    const path = landedFlight(pass, mid, to);
+    for (let i = 4; i < path.length - 4; i++) {
+      const at = path[i]!;
+      const prev = path[i - 1]!;
+      if ((at.x - prev.x) ** 2 + (at.y - prev.y) ** 2 < (SWING_V14_GATE_SPEED + 0.5) ** 2 * FP * FP) continue;
+      const gate: SwingGate = { x: at.x, y0: at.y - SWING_V14_GATE_HALF, y1: at.y + SWING_V14_GATE_HALF };
+      if (gate.y0 < lerpAt(ceil, gate.x) + 30 * FP || passesGate(pass, gate)) continue;
+      const takers = lands.filter(([r]) => passesGate([pass[r]!, ...landedFlight(pass, r, to)], gate)).length;
+      if (takers >= 2 && takers < lands.length) return gate;
+    }
+    return null;
+  }, new Set());
+  // Gems: on a harder line (a landing flight only two or three of the landing releases share), never touched on the rope.
+  const pickupUsed = new Set<number>();
+  const gems = bands(SWING_V14_GEMS, (k) => {
+    const { to, pass, lands } = probe(k);
+    const flights = lands.map(([r]) => landedFlight(pass, r, to));
+    const options: [number, number][] = [];
+    flights.forEach((path) => {
+      for (let i = 4; i < path.length - 4; i += 2) {
+        const p = path[i]!;
+        if (p.y < lerpAt(ceil, p.x) + 30 * FP || touches(pass, p.x, p.y, SWING_GEM_TOUCH + 4 * FP)) continue;
+        const takers = flights.filter((f) => touches(f, p.x, p.y, SWING_GEM_TOUCH)).length;
+        if (takers >= 2 && takers <= 3 && takers * 2 < flights.length) options.push([p.x, p.y]);
+      }
+    });
+    return options.length ? options[draw(options.length)]! : null;
+  }, pickupUsed);
+  // Stars: on a tighter swing (the rope reeled in early on the first hook), where the plain swing never passes.
+  const starSpots = bands(SWING_V14_STARS, (k) => {
+    const { from, to, pass } = probe(k);
+    for (const u of [6, 8, 10, 12, 14, 16, 18]) {
+      if (u >= pass.length) break;
+      const body = { ...pass[u]! };
+      startReel(body, SWING_REEL_UP);
+      const reeled = v14Pass(c, body, null);
+      const lands: number[] = [];
+      for (let r = 1; r < reeled.length; r++) {
+        const hit = v14Release(c, reeled, r, [from, to], null);
+        if (hit && hit.ledge === 1) lands.push(r);
+      }
+      if (lands.length < 2) continue;
+      // The star: where the tighter swing runs furthest inside the plain one, at least two landing releases before its end.
+      const gap = (b: Body) => { let d = Infinity; for (const q of pass) d = Math.min(d, (q.x - b.x) ** 2 + (q.y - b.y) ** 2); return d; };
+      const until = lands[lands.length - 2]!;
+      let at = Math.min(8, until);
+      for (let i = at; i <= until; i++) if (gap(reeled[i]!) > gap(reeled[at]!)) at = i;
+      const low = reeled[at]!;
+      if (gap(low) < (SWING_STAR_TOUCH + 4 * FP) ** 2 || low.y < lerpAt(ceil, low.x) + 30 * FP) continue;
+      return [low.x, low.y] as [number, number];
+    }
+    return null;
+  }, pickupUsed);
+  gems.sort((p, q) => p[0] - q[0]);
+  starSpots.sort((p, q) => p[0] - q[0]);
+  gates.sort((p, q) => p.x - q.x);
+
+  const first = ledges[0]!;
+  const body = restBody(first.x, first.top - RADIUS);
+  const v14: SwingState = {
+    ...body,
+    tick: 0,
+    rng,
+    camX: first.x - SWING_V14_CAM_LEFT,
+    maxX: body.x,
+    grabTick: -100,
+    ended: 0,
+    endedTick: 0,
+    ceil,
+    floor,
+    anchors: c.anchors,
+    spikes: [],
+    assault: 1,
+    worldW: SWING_V13_W,
+    worldH: SWING_V13_H,
+    sections,
+    squeezes,
+    ledges,
+    ledgeOn: 0,
+    ledgeHold: 0,
+    sec: 0,
+    secStart: 0,
+    secTicks: sections.map(() => 0),
+    secReach: first.x,
+    restarts: 0,
+    respawn: 0,
+    missTick: 0,
+    gems,
+    gemsTaken: 0,
+    gates,
+    gatesLit: 0,
+    starSpots,
+    starsTaken: [],
+    stars: 0,
+    bankGems: 0,
+    bankGates: 0,
+    bankStars: [],
+    chaseX: 0,
+    chaseY: 0,
+    caught: 0,
+  };
+  if (v14Cache.size > 16) v14Cache.clear();
+  v14Cache.set(seed | 0, v14);
+  return { ...v14 };
+
+  function ceilAt(x: number): number {
+    return lerpAt(ceil, x);
+  }
+}
+
+/** swingRev 14: the assault course. Band 3 like rev 11 and 13; the score is swingScoreV14. */
+export const swingAssaultGame: typeof swingGame = { ...swingTunecGame, init: (seed) => ({ ...bandInit(initV14(seed)), band: 3 }) };

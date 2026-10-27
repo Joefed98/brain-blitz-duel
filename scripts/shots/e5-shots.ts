@@ -33,7 +33,7 @@ const { binTossArtGame, binTossArenaSceneV7 } = await import("../../src/lib/arca
 const { drawSliceArt } = await import("../../src/lib/arcade/slice.renderer");
 const { sliceFill } = await import("../../src/lib/arcade/arenaFills.renderer");
 const { BINTOSS_REV_EXPAND, BINTOSS_FLY } = await import("../../src/lib/arcade/binToss");
-const { SLICE_REV_EXPAND, sliceTicketAt } = await import("../../src/lib/arcade/slice");
+const { SLICE_REV_BIG, sliceTicketAt } = await import("../../src/lib/arcade/slice");
 type Any = any; // eslint-disable-line @typescript-eslint/no-explicit-any
 
 const W = 414;
@@ -114,12 +114,13 @@ function frame(name: string, sub: string, world: { w: number; h: number }, boxH:
 
 /* Slice: a ticket open, a golden fruit in the air, a bonus and a dodge streak running. */
 {
-  const hit = await playTo("slice", SLICE_REV_EXPAND, (s) => {
+  // sliceRev 10 (27 Oct 2026): the bigger onions and golden fruit, the onion light green.
+  const hit = await playTo("slice", SLICE_REV_BIG, (s) => {
     if (sliceTicketAt(s, s.tick) < 0 || (s.dodgeStreak ?? 0) < 1 || (s.goldPts ?? 0) < 3) return false;
     return s.objects.some((o: Any, i: number) => o.colour === 4 && !o.special && !s.slicedAt[i] && s.tick > o.launchTick + 20 && s.tick < o.lastTick - 20);
   }, 200);
   if (hit) {
     const frames = hit.frames;
-    frame("Slice", "Arcade · Practice · sliceRev 9", { w: 430, h: 805 }, 772, (ctx, size) => drawSliceArt(ctx, frames.shift() ?? hit.state, size), sliceFill, [...frames], "slice-414x896-features.png");
+    frame("Slice", "Arcade · Practice · sliceRev 10", { w: 430, h: 805 }, 772, (ctx, size) => drawSliceArt(ctx, frames.shift() ?? hit.state, size), sliceFill, [...frames], "slice-414x896-features.png");
   } else console.log("  slice: no moment found");
 }

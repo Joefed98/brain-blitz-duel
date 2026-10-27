@@ -187,7 +187,8 @@ const EXTRACT = String.raw`
       // swingRev 4: the chasing dragon and falling stalactites.
       if (s.chaseX) P.push(["dragon", fp(s.chaseX), fp(s.chaseY)]);
       (s.rocks ?? []).forEach((r, i) => { if (r.phase === 2) P.push(["rock" + i, fp(r.x), fp(r.y)]); });
-      reset = s.ended + ":" + (s.rocks ?? []).map((r) => r.phase).join("");
+      // swingRev 14: a restart (a miss or the dragon's catch) puts the hero back on the start ledge and the dragon behind it.
+      reset = s.ended + ":" + (s.rocks ?? []).map((r) => r.phase).join("") + ":" + (s.restarts ?? 0);
       break;
     case "snip": P.push(["candy", fp(s.sx), fp(s.sy)]); reset = s.eaten + ":" + s.level; break;
     case "tilt": P.push(["ball", fp(s.x), fp(s.y)]); reset = s.level + ":" + s.mazes + ":" + s.caught; break;

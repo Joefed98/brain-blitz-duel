@@ -444,6 +444,8 @@ export interface SliceState extends BandFields {
    * golden fruit, order tickets and the chilli-dodge streak; worldW is the board's width. Absent on every earlier round.
    */
   v9?: number;
+  /** sliceRev 10 (SLICE_V10): sliceRev 9 with onions and golden fruit 1.2× the size (SLICE_V10_RADIUS). Absent on every earlier round. */
+  v10?: number;
   worldW?: number;
   /** sliceRev 9: the value of the foods cut on the current path (it qualifies combos by count, credits by value). */
   strokeValue?: number;
@@ -870,6 +872,8 @@ export function sliceCheckpoint(state: SliceState): SliceCheckpoint {
   if (state.worldH) values.push(state.worldH);
   // sliceRev 9 (the expansion): its marker, width and feature counters, last.
   if (state.v9) values.push(state.v9, state.worldW ?? 0, state.golds ?? 0, state.goldPts ?? 0, sliceTicketsDone(state), state.dodgeStreak ?? 0, state.dodgePts ?? 0);
+  // sliceRev 10 (bigger onions and golden fruit): its marker, after that.
+  if (state.v10) values.push(state.v10);
   for (const value of values) {
     checksum ^= value | 0;
     checksum = Math.imul(checksum, 0x01000193) >>> 0;
@@ -1083,6 +1087,7 @@ const sliceRev2Game: ArcadeGame<SliceState, ArcadeInputEvent | null> = {
 
 /** Takes puzzle.sliceRev; anything else is the original kitchen. */
 export function sliceGameFor(rev?: number | null): ArcadeGame<SliceState, ArcadeInputEvent | null> {
+  if (rev === SLICE_REV_BIG) return sliceBigGame;
   if (rev === SLICE_REV_EXPAND) return sliceExpandGame;
   if (rev === SLICE_REV_STRICT) return sliceStrictGame;
   if (rev === SLICE_REV_TARGET) return sliceTargetGame;
@@ -1212,13 +1217,13 @@ export const sliceTallGame: ArcadeGame<SliceState, ArcadeInputEvent | null> = {
 
 /** The world height (px) a stored round's sliceRev plays in. */
 export function sliceWorldHFor(rev?: number | null): number {
-  if (rev === SLICE_REV_EXPAND) return SLICE_V9_H;
+  if (rev === SLICE_REV_EXPAND || rev === SLICE_REV_BIG) return SLICE_V9_H;
   return rev === SLICE_REV_TALL || rev === SLICE_REV_TARGET || rev === SLICE_REV_STRICT ? SLICE_TALL_H : SLICE_WORLD_H;
 }
 
-/** The board width (px) a stored round's sliceRev plays on (sliceRev 9's larger board, else 390). */
+/** The board width (px) a stored round's sliceRev plays on (sliceRev 9's larger board, also sliceRev 10's, else 390). */
 export function sliceWorldWFor(rev?: number | null): number {
-  return rev === SLICE_REV_EXPAND ? SLICE_V9_W : SLICE_WORLD_W;
+  return rev === SLICE_REV_EXPAND || rev === SLICE_REV_BIG ? SLICE_V9_W : SLICE_WORLD_W;
 }
 
 /* ================= Scoring targets (sliceRev 7, 18 Oct 2026) ================= */
@@ -1590,4 +1595,33 @@ export const sliceExpandGame: ArcadeGame<SliceState, ArcadeInputEvent | null> = 
   ...sliceStrictGame,
   init: initV9,
   inputRanges: SLICE_V9_INPUT_RANGES,
+};
+
+/* ============ Bigger onions and golden fruit (sliceRev 10, 27 Oct 2026, Joe's phone notes) ============ */
+
+/**
+ * sliceRev 10: sliceRev 9 exactly (the same schedule, throws, values, tickets, bonuses and curve), but the onion
+ * (colour 2) and the golden fruit (SLICE_V9_GOLD) are 1.2× the size: radius 17 and 12 px against 14 and 10 (rounded
+ * to whole px), on every throw and in every bottle's batch. Bigger targets are easier to cut, so it is a hit-size
+ * change on its own stamp. The radii are written into the objects after sliceRev 9's schedule is built, so every
+ * draw from the seed is unchanged. States add `v10: 1` (folded into the checkpoint checksum last).
+ */
+export const SLICE_REV_BIG = 10;
+export const SLICE_V10 = 1;
+export const SLICE_V10_RADIUS = [26, 20, 17, 20, 12] as const;
+
+function bigObject(object: SliceObject): SliceObject {
+  const r = !object.bomb && !object.special ? SLICE_V10_RADIUS[object.colour] : undefined;
+  return { ...object, ...(r !== undefined ? { r } : {}), payload: object.payload.map(bigObject) };
+}
+
+function initV10(seed: number): SliceState {
+  const base = initV9(seed);
+  return { ...base, objects: base.objects.map(bigObject), v10: SLICE_V10 };
+}
+
+/** sliceRev 10: sliceRev 9 with onions and golden fruit 1.2× the size. */
+export const sliceBigGame: ArcadeGame<SliceState, ArcadeInputEvent | null> = {
+  ...sliceExpandGame,
+  init: initV10,
 };

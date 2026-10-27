@@ -443,6 +443,7 @@ function initRev2(seed: number): SkylineState {
 
 export const skylineRev2Game: ArcadeGame<SkylineState> = { ...skylineGame, init: initRev2 };
 export function skylineGameFor(rev?: number | null): ArcadeGame<SkylineState> {
+  if (rev === SKYLINE_REV_LIFT) return skylineLiftGame;
   if (rev === SKYLINE_REV_EXPAND) return skylineExpandGame;
   if (rev === SKYLINE_REV_STRICT) return skylineStrictGame;
   if (rev === SKYLINE_REV_TARGET) return skylineTargetGame;
@@ -485,7 +486,7 @@ export const skylineTallGame: ArcadeGame<SkylineState> = { ...skylineBandGame, i
 
 /** The view height (px) a stored round's skylineRev draws in. */
 export function skylineWorldHFor(rev?: number | null): number {
-  if (rev === SKYLINE_REV_EXPAND) return SKYLINE_SKY_H;
+  if (rev === SKYLINE_REV_EXPAND || rev === SKYLINE_REV_LIFT) return SKYLINE_SKY_H;
   return rev === SKYLINE_REV_TALL || rev === SKYLINE_REV_TARGET || rev === SKYLINE_REV_STRICT ? SKYLINE_TALL_H : SKYLINE_WORLD_H;
 }
 
@@ -755,7 +756,7 @@ export function skylineExpandParts(state: SkylineState): BandParts {
   const u = skylineV7Units(state);
   return {
     units: u.total,
-    points: bandPoints(SKYLINE_V7_BAND_CURVE, u.total),
+    points: bandPoints(state.expandRev === SKYLINE_REV_LIFT ? SKYLINE_V8_BAND_CURVE : SKYLINE_V7_BAND_CURVE, u.total),
     bonus: 0,
     penalty: 0,
     finished: false,
@@ -772,4 +773,20 @@ export const skylineExpandGame: ArcadeGame<SkylineState> = {
   init: initExpand,
   step: bandStep(stepExpand),
   score: scoreExpand,
+};
+
+/* ============ A gentler curve (skylineRev 8, 27 Oct 2026, Joe's phone notes) ============ */
+
+/**
+ * skylineRev 8: skylineRev 7's play exactly (the same blocks, kinds, multiplier, milestones and units),
+ * scored on a gentler curve after Joe's phone test ("scores feel slightly low: lift them a little"):
+ * every knot below the top lifted about 7–8 %, the 200 ceiling and its unit count kept. The state carries
+ * `expandRev: 8` (folded into the checkpoint checksum as rev 7's 7 is); everything else reads it as rev 7.
+ */
+export const SKYLINE_REV_LIFT = 8;
+export const SKYLINE_V8_BAND_CURVE = bandCurve([0, 129, 203, 326, 613, 900, 1100], [0, 78, 107, 127, 177, 192, 200]);
+
+export const skylineLiftGame: ArcadeGame<SkylineState> = {
+  ...skylineExpandGame,
+  init: (seed: number) => ({ ...initExpand(seed), expandRev: SKYLINE_REV_LIFT }),
 };
