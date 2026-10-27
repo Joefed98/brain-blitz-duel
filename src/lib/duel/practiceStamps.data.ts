@@ -55,7 +55,7 @@ export const PRACTICE_STAMPS = {
   "skyline": "puzzleScoreRev=3 skylineRev=7 speedPar=1",
   "slice": "puzzleScoreRev=3 sliceRev=9 speedPar=1",
   "snake": "puzzleScoreRev=3 snakeRev=9 speedPar=1",
-  "snip": "puzzleScoreRev=3 snipRev=9 speedPar=1",
+  "snip": "puzzleScoreRev=3 snipRev=11 speedPar=1",
   "spotdiff": "puzzleScoreRev=3 speedPar=1 spotRev=2",
   "steady": "puzzleScoreRev=3 speedPar=1",
   "stopwatch": "puzzleScoreRev=3 speedPar=1 tapRev=6",

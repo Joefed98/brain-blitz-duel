@@ -1,7 +1,7 @@
 /**
  * arcade-room-schedule-check (26 Oct 2026, the arcade rule): two players in the same room get identical spawns,
  * pickups, par times and schedules whatever they do. For every 200-point expansion module in scripts/x200/
- * (Hover, Grappler and Roofbound), each room deal is played with every input style (idle, random, the
+ * (Hover, Grappler, Roofbound and Scrumper), each room deal is played with every input style (idle, random, the
  * weak, good and elite skill-band players) through the real sim; at every tick each scheduled item a run shows
  * is compared with the same item in every other run, and the deal's guaranteed opportunity counts must agree.
  * ~1 min.
@@ -19,8 +19,8 @@ const fail = (msg: string) => {
 const mods = readdirSync(new URL("./x200/", import.meta.url))
   .filter((f) => f.endsWith(".ts") && f !== "room.ts" && !f.includes("-"))
   .sort();
-// The expansions shipped (Scrumper is left out; docs/expansions/x200.md).
-const EXPECTED = ["flip", "hover", "swing"];
+// The four expansions shipped (docs/expansions/x200.md).
+const EXPECTED = ["flip", "hover", "snip", "swing"];
 for (const type of EXPECTED) if (!mods.includes(`${type}.ts`)) fail(`${type}: no scripts/x200/${type}.ts room module`);
 
 for (const file of mods) {

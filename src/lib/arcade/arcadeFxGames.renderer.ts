@@ -158,7 +158,7 @@ function bubSpecialPoint(s: BubState): { x: number; y: number } {
   const row = Math.floor(cell / BUB_COLS);
   return { x: bubCellX(row, cell % BUB_COLS), y: bubCellY(row, s.descents) };
 }
-import { SNIP_CONFIG, SNIP_EATEN, SNIP_H, SNIP_TALL_H, snipCamera, snipWorldH, type SnipState } from "./snip";
+import { SNIP_CONFIG, SNIP_COURSES, SNIP_EATEN, SNIP_H, SNIP_TALL_H, SNIP_X_LEVELS, SNIP_X_VIEW_H, snipCamera, snipWorldH, type SnipState } from "./snip";
 import { TILT_MAX_MAZES, TILT_WORLD_H, TILT_WORLD_W, type TiltState } from "./tilt";
 import { btWorldH, BT_BALLS, BT_H, BT_TALL_H, BT_V7_H, BT_W, type BtState } from "./ballTrack";
 import { wfWord, wfWorldH, WF_H, WF_H_V2, WF_PAR, WF_W, WF_WELL_Y, type WordfallState } from "./wordfall";
@@ -1208,7 +1208,13 @@ export const SWING_FX: ArcadeFxSpec<SwingState> = {
 /* ================================ Orchard ================================ */
 
 function snipCam(s: SnipState): number {
+  // snipRev 11 has no horizontal camera.
+  if (s.course) return 0;
   return snipCamera(s, s.sx / 256 - SNIP_CONFIG.viewW / 2, 1);
+}
+/** snipRev 11's vertical camera (0 on older rounds). */
+function snipCamY(s: SnipState): number {
+  return s.course ? (s.camY ?? 0) : 0;
 }
 
 export const SNIP_FX: ArcadeFxSpec<SnipState> = {
@@ -1222,23 +1228,29 @@ export const SNIP_FX: ArcadeFxSpec<SnipState> = {
   events: [
     {
       kind: "pop",
-      count: (s) => s.stars,
-      at: (s) => ({ x: s.sx / 256 - snipCam(s), y: s.sy / 256 }),
+      count: (s) => s.stars + (s.stars2 ?? 0),
+      at: (s) => ({ x: s.sx / 256 - snipCam(s), y: s.sy / 256 - snipCamY(s) }),
       label: () => "+LEAF",
     },
     {
       kind: "clear",
-      count: (s) => s.eaten,
-      when: (s) => s.eaten < SNIP_CONFIG.levels,
+      // snipRev 11: a level with every fruit fed.
+      count: (s) => (s.course ? (s.cleared ?? 0) : s.eaten),
+      when: (s) => (s.course ? (s.cleared ?? 0) < SNIP_X_LEVELS : s.eaten < SNIP_CONFIG.levels),
       label: (s, n) => snipClearLabel(s) ?? `LEVEL ${n}!`,
     },
     {
       kind: "final",
-      count: (s) => (s.eaten >= SNIP_CONFIG.levels ? 1 : 0),
-      label: () => "ALL 10 APPLES!",
+      count: (s) => (s.course ? ((s.cleared ?? 0) >= SNIP_X_LEVELS ? 1 : 0) : s.eaten >= SNIP_CONFIG.levels ? 1 : 0),
+      label: (s) => (s.course ? "EVERY FRUIT FED!" : "ALL 10 APPLES!"),
     },
     // snipRev 3 (springy branches exist only there): each bounce off one.
-    { kind: "pop", count: (s) => s.springHits ?? 0, at: (s) => ({ x: s.sx / 256 - snipCam(s), y: s.sy / 256 - 16 }), label: () => "BOING!" },
+    { kind: "pop", count: (s) => s.springHits ?? 0, at: (s) => ({ x: s.sx / 256 - snipCam(s), y: s.sy / 256 - 16 - snipCamY(s) }), label: () => "BOING!" },
+    // snipRev 11: a golden apple in the basket, and a ring's catch.
+    { kind: "pop", count: (s) => s.golden ?? 0, at: (s) => { const c = s.course ? SNIP_COURSES[s.template] : undefined; return { x: c ? c.mouth[0] : s.sx / 256, y: (c ? c.mouth[1] - 40 : s.sy / 256) - snipCamY(s) }; }, label: () => "GOLDEN!" },
+    { kind: "pop", count: (s) => (s.ringTick !== undefined && s.ringed ? s.ringTick : 0), at: (s) => ({ x: s.sx / 256, y: s.sy / 256 - 18 - snipCamY(s) }), label: () => "RINGED!" },
+    // snipRev 11: a level fed every fruit at par cuts and under its par time.
+    { kind: "pop", count: (s) => s.quickLevels ?? 0, at: (s) => { const c = SNIP_COURSES[s.order[Math.max(0, s.level - 1)] ?? s.template]; return { x: c ? c.mouth[0] : s.sx / 256, y: (c ? c.mouth[1] - 64 : s.sy / 256) - snipCamY(s) }; }, label: () => "QUICK!" },
   ],
   // A level that ended without the apple in the basket.
   misses: [{ count: (s) => (s.lastOutcome !== SNIP_EATEN && s.level > 0 ? s.endTick + 1 : 0), when: (s) => s.endTick >= 0 }],
@@ -1556,7 +1568,8 @@ export const ARCADE_FX_SPECS = {
   flip: FLIP_FX_TALL,
   // The live round's view (swingRev 13, the 200 expansion); older rounds draw through swingFxFor.
   swing: SWING_FX_V13,
-  snip: SNIP_FX_TALL,
+  // The live round's view (snipRev 11); older rounds draw through their state's spec (snipFxFor).
+  snip: fxSpecAt(SNIP_FX, SNIP_X_VIEW_H),
   tilt: TILT_FX,
   // Expansion E6: the worlds rooms deal now (Ball Tracker's 13-row board, Gemstone's 720 px world).
   balltrack: fxSpecAt(BALLTRACK_FX, BT_V7_H),

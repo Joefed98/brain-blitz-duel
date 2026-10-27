@@ -838,7 +838,15 @@ export function snipSounds(): GameSounds<SnipState> {
         const got = (s: SnipState) => s.starGot.reduce((n, g) => n + g, 0);
         const levelChanged = state.endTick !== prev.endTick;
         if (!levelChanged && state.level === prev.level && got(state) > got(prev)) sfx("snip.star", "arc_leaf_collect");
-        if (levelChanged) {
+        if (state.course) {
+          // snipRev 11: each fruit fed as it lands (the golden one with the spark chime), a ring's catch, a level
+          // fed under its par time at par cuts (the leaf's chime, higher and softer), a level missed.
+          if (state.eaten > prev.eaten) sfx("snip.basket", "arc_orchard_basket");
+          if ((state.golden ?? 0) > (prev.golden ?? 0)) sfx("shared.celebrate.chime", "arc_leaf_collect", 0.7);
+          if (state.ringTick !== undefined && state.ringTick !== prev.ringTick) sfx("snip.hook", "arc_bounce", 0.6, 1.2, true);
+          if ((state.quickLevels ?? 0) > (prev.quickLevels ?? 0)) sfx("snip.star", "arc_leaf_collect", 0.6, 1.35);
+          if (levelChanged && state.lastOutcome !== SNIP_EATEN) sfx("snip.miss", "arc_orchard_miss");
+        } else if (levelChanged) {
           if (state.stars > prev.stars && got(prev) === 0) sfx("snip.star", "arc_leaf_collect");
           if (state.lastOutcome === SNIP_EATEN) sfx("snip.basket", "arc_orchard_basket");
           else sfx("snip.miss", "arc_orchard_miss");

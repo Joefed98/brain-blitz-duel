@@ -442,6 +442,19 @@ const BUILDERS: Record<string, Builder> = {
     };
   },
   snip: (r, s) => {
+    // snipRev 11 (the 200-point expansion): six courses with 1–3 fruits each, golden apples, par cuts and par times.
+    if (n(r, "snipRev") >= 11)
+      return {
+        axis: { value: n(r, "eaten"), max: Math.max(1, n(r, "fruits")), label: "Fruit" },
+        lines: [`${n(r, "eaten")} / ${n(r, "fruits")} fruit · ${n(r, "cleared")} / 6 levels · skill +${n(r, "skill")} → ${s}`],
+        tiles: [
+          { label: "Golden", value: `${n(r, "golden")} / 3` },
+          { label: "At par", value: `${n(r, "parLevels")} / 6` },
+          { label: "Quick", value: `${n(r, "quickLevels")} / 6` },
+          { label: "Leaves", value: String(n(r, "stars") + n(r, "stars2")) },
+        ],
+        outcome: n(r, "cleared") >= 6 ? "finish" : "time",
+      };
     const done = n(r, "eaten") >= 10;
     return {
       axis: { value: n(r, "eaten"), max: 10, label: "Apples" },

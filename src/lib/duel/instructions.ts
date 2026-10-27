@@ -83,7 +83,8 @@ import { liveBandHelp } from "@/lib/arcade/liveBands";
 import { SWING_COMBO_CAP, SWING_FEATURE_CAP, SWING_GATES, SWING_GEMS, SWING_LEDGE_POINTS, SWING_PAR_POINTS, SWING_SKILL_PAY } from "@/lib/arcade/swing";
 import { BRK_V9_COLS, BRK_V9_COMBO_MAX, BRK_V9_COMBO_X2, BRK_V9_COMBO_X3, BRK_V9_GOLD, BRK_V9_GOLD_POINTS, BRK_V9_ROWS, BRK_V9_SKILL_MAX, BRK_V9_SKILL_PAY } from "@/lib/arcade/breaker";
 import { FLIP_V8_COMBO_CAP, FLIP_V8_CP_POINTS, FLIP_V8_FEATURE_CAP, FLIP_V8_SKILL_PAY, FLIP_V8_SWEETS, FLIP_V8_SWEET_POINTS, FLIP_V8_TRAILS, FLIP_V8_TRAIL_POINTS, FLIP_V8_TRAIL_STARS, FLIP_V8_ZONE_POINTS } from "@/lib/arcade/flip";
-import type { BandCurve } from "@/lib/arcade/scoreBands";
+import { bandCurve, type BandCurve } from "@/lib/arcade/scoreBands";
+import { SNIP_X_FEATURE_MAX, SNIP_X_FEED_UNITS, SNIP_X_GOLD_RAW, SNIP_X_LEVELS, SNIP_X_PAR_MARGIN, SNIP_X_PAR_RAW, SNIP_X_PERFECT_RAW, SNIP_X_QUICK_RAW, SNIP_X_RAW_TOP, SNIP_X_SKILL_PAY, SNIP_X_STAR2_RAW, SNIP_X_STAR_UNITS } from "@/lib/arcade/snip";
 import { fillMax, liveRecord, roundMaxFor } from "./roundMax";
 import { chainDepthHelp } from "./depth/chain";
 import { pairDepthHelp } from "./depth/matchmaker";
@@ -1008,22 +1009,24 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
     },
 
     snip: {
-      goal: "Drop the apple into the basket.",
+      goal: "Feed every fruit into the basket.",
       how: [
-        { action: "Swipe across a rope", detail: "to cut it. Order matters." },
-        { action: "Crooks catch falling apples:", detail: "cut the vine." },
-        { action: "Avoid wasp nests;", detail: "use planks and springs.", helpOnly: true },
-        { action: "Golden leaves:", detail: "the apple picks one up as it passes through; each counts 2.", helpOnly: true },
-        { action: "10 levels,", detail: "up to 12 s each." },
-        { action: "Picker's crooks:", detail: "a wooden pole with an iron hook open at the top. It snags the apple only when the apple falls freely down past its hook from above, then holds it on a green vine; swipe the vine to drop it again. Each crook catches once.", helpOnly: true },
-        { action: "Time it with the swing.", detail: "Cut the last rope and the apple drops; the walls bounce it without losing speed, and the camera follows across the wider arena.", helpOnly: true },
-        { action: "Orchard pieces:", detail: "the apple rolls along sloped planks and down tin gutters, bounces hard off springy green branches, and a touch on a wasp nest loses the level. Some baskets slide slowly side to side – drop it as one comes under.", helpOnly: true },
-        { action: "Several ropes?", detail: "Which one you cut first decides which way the apple swings.", helpOnly: true },
-        { action: "Don't let it settle", detail: "on a ledge or plank, or fly out the top or bottom.", helpOnly: true },
-        { action: "Taller levels:", detail: "two easy levels, three medium and five hard ones, many with several steps: a cut, a catch, another cut.", helpOnly: true },
-        { action: "Everyone", detail: "gets the same ten levels in the same order.", helpOnly: true },
+        { action: "Swipe a rope", detail: "to cut it; crooks catch fruit." },
+        { action: "Feed every fruit;", detail: "golden ones within 7 s." },
+        { action: "Par:", detail: "fewest cuts, under the par time." },
+        { action: `${SNIP_X_LEVELS} levels,`, detail: "up to 14 s each; 1–3 fruits a level. Pegs and rings catch falling fruit: cut the vine to drop it on.", helpOnly: true },
+        { action: "Taller courses:", detail: "each level opens with a look down the course from the basket up to the fruit; then the camera follows the fruit. The map at the side shows the whole course with your view boxed.", helpOnly: true },
+        { action: "Pegs:", detail: "a wooden pole with an iron hook open at the top. It snags a fruit only when it falls freely down past the hook from above. Rings snag a free fruit that passes through their middle from any side. Each catches once and holds the fruit on a green vine.", helpOnly: true },
+        { action: "Orchard pieces:", detail: "fruit rolls along sloped planks and down tin gutters and chutes, bounces hard off springy green branches, and a touch on a wasp nest loses it. Some baskets slide slowly side to side.", helpOnly: true },
+        { action: "Wind:", detail: "the windsock and the drifting leaves show it. It swings the ropes and the fruit they hold back and forth; a falling fruit is not blown.", helpOnly: true },
+        { action: "Fewest cuts:", detail: "every swipe counts as a cut, a miss too; one swipe across several ropes is one cut. Feed every fruit in no more cuts than the level's par (shown at the top left).", helpOnly: true },
+        { action: "Par time:", detail: `each course has its own, shown beside the cuts and on the small dial under the windsock, which runs down with the level's clock. Feed every fruit at par cuts before it and the level is quick: up to ${SNIP_X_QUICK_RAW / 10} skill points, the full amount ${SNIP_X_PAR_MARGIN / 60} s or more inside it.`, helpOnly: true },
+        { action: "Golden apples:", detail: "on levels 2, 4 and 6 one fruit is golden for the level's first 7 s (the gold ring round it runs down). Fed in time it scores extra; after that it ripens into an ordinary apple.", helpOnly: true },
+        { action: "Golden leaves:", detail: "two along each course; the first counts 2, the second is a bonus.", helpOnly: true },
+        { action: "Don't let fruit settle", detail: "on a ledge or plank, or fly out the top or bottom.", helpOnly: true },
+        { action: "Everyone", detail: "gets the same six courses, wind, golden apples and par times in the same order.", helpOnly: true },
       ],
-      score: liveBandHelp("snip", "Each apple counts 10 and each leaf 2.", { more: "More apples and leaves", good: (u) => `counts ${u} – about ${Math.round(u / 10)} apples`, finish: "All ten apples adds up to 10 for speed: the full 10 with at least half the time left, falling to 0 at the buzzer." }),
+      score: liveBandHelp("snip", `Each level's fruit count ${SNIP_X_FEED_UNITS} between them and a leaf ${SNIP_X_STAR_UNITS}.`, { more: "More fruit and leaves", good: (u) => `counts ${u} – about ${Math.round(u / 20)} levels fed`, finish: `Feeding every fruit adds up to 10 for speed: the full 10 by 48 s. Skill adds up to ${SNIP_X_FEATURE_MAX} more: ${SNIP_X_GOLD_RAW / 10} a golden apple fed while golden, ${SNIP_X_PAR_RAW / 10} a level at par cuts, ${SNIP_X_STAR2_RAW / 10} a second leaf, up to ${SNIP_X_QUICK_RAW / 10} a level under its par time and ${SNIP_X_PERFECT_RAW / 10} for a perfect run (${SNIP_X_RAW_TOP / 10} in all). ${skillPayLine(bandCurve(SNIP_X_SKILL_PAY.units.map((u) => u / 10), SNIP_X_SKILL_PAY.points))}` }),
     },
     swing: {
       goal: "Swing to 500 m via gems and gates.",

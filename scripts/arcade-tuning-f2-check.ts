@@ -70,7 +70,7 @@ import { encodeMatchupRun, replayMatchupRun } from "../src/lib/duel/matchup";
 import { generateBubble, generateCross, generateMatchup, generateSlice, generateSnip, generateSwing } from "../src/lib/duel/arcade.server";
 import { BUB_REV_TORPEDO } from "../src/lib/arcade/bubble";
 import { SWING_REV_SPREAD } from "../src/lib/arcade/swing";
-import { SNIP_REV_PROVEN } from "../src/lib/arcade/snip";
+import { SNIP_REV_EXPAND, SNIP_REV_PROVEN } from "../src/lib/arcade/snip";
 import { PUZZLE_INSTRUCTIONS } from "../src/lib/duel/instructions";
 import { playRevOf } from "./scoring-targets-revs";
 
@@ -150,7 +150,8 @@ section("New rounds carry the Tuning F stamps; runs on them replay unchanged");
   // Expansion E6 (25 Oct 2026) moved Coral Pop on to bubbleRev 8 and Gemstone on to matchupRev 9; e6-check covers them.
   // World expansion E5 (25 Oct 2026) moved Slice on again (sliceRev 9); expansion-e5-check covers it.
   // Grappler's 200 expansion (26 Oct 2026) moved Grappler on again (swingRev 13); swing-x200-check covers it.
-  const movedOn: Record<string, number> = { slice: SLICE_REV_EXPAND, bubble: BUB_REV_TORPEDO + 4, swing: SWING_REV_SPREAD + 5, matchup: 9 };
+  // The 200-point expansion (26 Oct 2026) moved Scrumper on to snipRev 11; snip-x200-check covers it.
+  const movedOn: Record<string, number> = { slice: SLICE_REV_EXPAND, bubble: BUB_REV_TORPEDO + 4, swing: SWING_REV_SPREAD + 5, matchup: 9, snip: SNIP_REV_EXPAND };
   for (const [type, field, got, rev] of stamps) {
     if (!want(type)) continue;
     ok(got === (movedOn[type] ?? rev), `${type}: new rounds stamped ${movedOn[type] ?? rev} (got ${got})`);

@@ -26,8 +26,8 @@ effects ([arcade-effects.md](arcade-effects.md)) so a sound can be written for e
 | fail sting | 4 | 0 | 36 | 40 |
 | success sting | 3 | 0 | 68 | 71 |
 | ambience | 0 | 1 | 8 | 9 |
-| replay | 0 | 0 | 148 | 148 |
-| **all** | 65 | 1 | 710 | 776 |
+| replay | 0 | 0 | 151 | 151 |
+| **all** | 65 | 1 | 713 | 779 |
 
 ## Silent and placeholder cues
 
@@ -645,6 +645,9 @@ Grouped by game or screen.
 | `snip.level` | Apple fed: the clip reaches the moment's key tick [replays.md] |  | 0–2 per highlight | recorded sound | `snip.level` | 250 | replay | `snip.level` |
 | `snip.all-apples` | All 10 apples: the clip reaches the moment's key tick [replays.md] |  | 0–2 per highlight | recorded sound | `snip.all-apples` | 250 | replay | `snip.all-apples` |
 | `snip.spring` | Off a springy branch: the clip reaches the moment's key tick [replays.md] |  | 0–2 per highlight | recorded sound | `snip.spring` | 250 | replay | `snip.spring` |
+| `snip.golden` | Golden apple fed in time (snipRev 11): the clip reaches the moment's key tick [replays.md] |  | 0–2 per highlight | recorded sound | `snip.golden` | 250 | replay | `snip.golden` |
+| `snip.ring` | Caught by a ring (snipRev 11): the clip reaches the moment's key tick [replays.md] |  | 0–2 per highlight | recorded sound | `snip.ring` | 250 | replay | `snip.ring` |
+| `snip.quick` | A level fed under its par time at par cuts (snipRev 11): the clip reaches the moment's key tick [replays.md] |  | 0–2 per highlight | recorded sound | `snip.quick` | 250 | replay | `snip.quick` |
 | `tilt.maze` | Maze done: the clip reaches the moment's key tick [replays.md] |  | 0–2 per highlight | recorded sound | `tilt.maze` | 250 | replay | `tilt.maze` |
 | `tilt.all-mazes` | All 4 mazes: the clip reaches the moment's key tick [replays.md] |  | 0–2 per highlight | recorded sound | `tilt.all-mazes` | 250 | replay | `tilt.all-mazes` |
 | `tilt.star` | Bonus star: the clip reaches the moment's key tick [replays.md] |  | 0–2 per highlight | recorded sound | `tilt.star` | 250 | replay | `tilt.star` |
@@ -1834,6 +1837,9 @@ loops are not measured there). Files in `public/sounds/` are listed once per slo
 | `snip.level` | effects | `snip.level` | 486 |
 | `snip.all-apples` | effects | `snip.all-apples` | 486 |
 | `snip.spring` | effects | `snip.spring` | 486 |
+| `snip.golden` | effects | `snip.golden` | 486 |
+| `snip.ring` | effects | `snip.ring` | 486 |
+| `snip.quick` | effects | `snip.quick` | 486 |
 | `tilt.maze` | effects | `tilt.maze` | 486 |
 | `tilt.all-mazes` | effects | `tilt.all-mazes` | 486 |
 | `tilt.star` | effects | `tilt.star` | 486 |

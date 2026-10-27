@@ -102,7 +102,7 @@ export const ROUND_MAX: Readonly<Record<PuzzleType, number>> = {
   skyline: 200,
   slice: 200,
   snake: 200, // expansion E2, snakeRev 9
-  snip: 150,
+  snip: 200, // expansion X200, snipRev 11
   swing: 200, // expansion x200, swingRev 13
   tilt: 150,
   wavefront: 150,

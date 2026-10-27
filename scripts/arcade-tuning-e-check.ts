@@ -78,6 +78,7 @@ import {
   SNIP_REV_BAND,
   SNIP_REV_PROVEN,
   SNIP_REV_TALL,
+  SNIP_REV_EXPAND,
   SNIP_RUN_TICKS,
   SNIP_TALL_FIRST,
   SNIP_TALL_H,
@@ -157,7 +158,8 @@ section("New rounds carry the Tuning E stamps; one world per stored revision");
     ["snake", "snakeRev", playRevOf("snake", generateSnake().snakeRev), SNAKE_REV_ROCKS + 3],
     // Scrumper rooms moved on to snipRev 6 (the same tall game on a bigger bank; scripts/snip-bank6-check.ts),
     // then snipRev 7 (the same game with every per-pin deal proven; scripts/snip-rev7-check.ts).
-    ["snip", "snipRev", playRevOf("snip", generateSnip().snipRev), SNIP_REV_PROVEN],
+    // The 200-point expansion (26 Oct 2026) then moved Scrumper on to its tall courses (snipRev 11); snip-x200-check covers it.
+    ["snip", "snipRev", playRevOf("snip", generateSnip().snipRev), SNIP_REV_EXPAND],
     // The 200 expansion (26 Oct 2026) then moved Hover on to hoverRev 9 (390 × 727, tight gates, centre lines, star
     // chains, shields); hover-x200-check covers it.
     ["hover", "hoverRev", playRevOf("hover", generateHover().hoverRev), HOVER_REV_TALL + 4],
@@ -177,7 +179,7 @@ section("New rounds carry the Tuning E stamps; one world per stored revision");
   ok(snipWorldHFor(SNIP_REV_TALL) === SNIP_TALL_H && SNIP_TALL_H === 640 && snipWorldHFor(SNIP_REV_BAND) === SNIP_H, "Scrumper: 360 × 640 on snipRev 5, 360 × 560 before");
   // The arena table (presentation-geometry) uses the worlds rooms deal today.
   // Hover: hoverRev 9's 727-high world since the 200 expansion (hover-x200-check).
-  ok(ARCADE_FX_SPECS.hover.height === hoverWorldHFor(generateHover().hoverRev) && hoverWorldHFor(generateHover().hoverRev) >= 727 && ARCADE_FX_SPECS.skyline.height === skylineWorldHFor(generateSkyline().skylineRev) && skylineWorldHFor(generateSkyline().skylineRev) >= SKYLINE_TALL_H && ARCADE_FX_SPECS.snake.height === SNAKE_V9_H && ARCADE_FX_SPECS.snake.width === SNAKE_V9_WORLD_W && SNAKE_V9_H > SNAKE_TALL_H && ARCADE_FX_SPECS.snip.height === SNIP_TALL_H, "the live arena sizes are the taller worlds (Meteor: snakeRev 9's bigger field since expansion E2; Hover: hoverRev 9's since the 200 expansion)");
+  ok(ARCADE_FX_SPECS.hover.height === hoverWorldHFor(generateHover().hoverRev) && hoverWorldHFor(generateHover().hoverRev) >= 727 && ARCADE_FX_SPECS.skyline.height === skylineWorldHFor(generateSkyline().skylineRev) && skylineWorldHFor(generateSkyline().skylineRev) >= SKYLINE_TALL_H && ARCADE_FX_SPECS.snake.height === SNAKE_V9_H && ARCADE_FX_SPECS.snake.width === SNAKE_V9_WORLD_W && SNAKE_V9_H > SNAKE_TALL_H && ARCADE_FX_SPECS.snip.height === snipWorldHFor(generateSnip().snipRev) && snipWorldHFor(generateSnip().snipRev) > SNIP_TALL_H, "the live arena sizes are the taller worlds (Meteor: snakeRev 9's bigger field since expansion E2; Hover: hoverRev 9's since the 200 expansion; Scrumper: snipRev 11's course view)");
   // Effects follow the state's own world; old states keep the old spec object.
   const states = {
     hover: [hoverGameFor(HOVER_REV_TUNEC).init(5), hoverGameFor(HOVER_REV_TALL).init(5)],
