@@ -4,7 +4,7 @@ import { INK_REV_EXPAND } from "@/lib/arcade/inkBridge";
 import { CLAY_REV_DEPTH } from "@/lib/arcade/clayShoot";
 import { WHACK_REV_DEPTH } from "@/lib/arcade/whack";
 import { WORDFALL_REV } from "@/lib/arcade/wordfall";
-import { BRK_REV_DEEP } from "@/lib/arcade/breaker";
+import { BRK_REV_PHONE } from "@/lib/arcade/breaker";
 import { TILT_REV_EXPAND } from "@/lib/arcade/tilt";
 import { CROSS_REV_EXPAND } from "@/lib/arcade/cross";
 import { FLIP_REV_EXPAND } from "@/lib/arcade/flip";
@@ -18,7 +18,7 @@ import { BEAT_REV_EASE } from "@/lib/arcade/beat";
 import { SNAKE_REV_10 } from "@/lib/arcade/snake";
 import { SLICE_REV_BIG, SLICE_REV_TALL } from "@/lib/arcade/slice";
 import { BINTOSS_REV_EXPAND } from "@/lib/arcade/binToss";
-import { BUB_REV_REEF } from "@/lib/arcade/bubble";
+import { BUB_REV_BLAST } from "@/lib/arcade/bubble";
 import { MATCHUP_REV_GOALS } from "@/lib/arcade/matchup";
 import { TEN_DROP_DEPTH_REV } from "@/lib/arcade/tenDrop";
 import { SKYLINE_REV_LIFT } from "@/lib/arcade/skyline";
@@ -112,7 +112,9 @@ export const getIntroDemoFn = createServerFn({ method: "GET" })
     // touches would land on the old paddle, ship or floor line), so these four stay stopped until one is recorded on the tall revision.
     // The 200-point expansion (25 Oct 2026, docs/expansions/e3.md): Breaker brkRev 9 plays on a wider, taller court with
     // new features, so its demo stays stopped (the intro shows its still) until one is recorded there.
-    if (data.type === "breaker" && demo?.puzzle.type === "breaker" && demo.puzzle.brkRev !== BRK_REV_DEEP) return null;
+    // Phone notes (27 Oct 2026): brkRev 10 changes the gold bricks (any 4 hits) and adds a second double-ball brick, so
+    // the demo stays stopped until one is recorded on brkRev 10.
+    if (data.type === "breaker" && demo?.puzzle.type === "breaker" && demo.puzzle.brkRev !== BRK_REV_PHONE) return null;
     // Tilt's expansion (tiltRev 8, 26 Oct 2026): three bigger mazes under a camera, keys, ice and quick stars. An older
     // demo would show the small disc, so the intro shows its still until a demo is recorded on tiltRev 8.
     if (data.type === "tilt" && demo?.puzzle.type === "tilt" && demo.puzzle.tiltRev !== TILT_REV_EXPAND) return null;
@@ -142,7 +144,8 @@ export const getIntroDemoFn = createServerFn({ method: "GET" })
     if (data.type === "beat" && demo?.puzzle.type === "beat" && demo.puzzle.beatRev !== BEAT_REV_EASE) return null;
     if (data.type === "slice" && demo?.puzzle.type === "slice" && demo.puzzle.sliceRev !== SLICE_REV_TALL) return null;
     // Expansion E6 (25 Oct 2026): Coral Pop's deeper reef (bubbleRev 8) replaces the tall tank's field; a demo stays stopped until one is recorded on it.
-    if (data.type === "bubble" && demo?.puzzle.type === "bubble" && demo.puzzle.bubbleRev !== BUB_REV_REEF) return null;
+    // Phone notes (27 Oct 2026): bubbleRev 10's mine blasts two rings, so the demo stays stopped until one is recorded on it.
+    if (data.type === "bubble" && demo?.puzzle.type === "bubble" && demo.puzzle.bubbleRev !== BUB_REV_BLAST) return null;
     // Depth to 200 (25 Oct 2026): Mixed Signals' clashRev 8 deals "don't sort" and gold words and a streak; a demo
     // recorded on an older revision shows none of them, so it stays stopped until one is recorded on clashRev 8.
     if (data.type === "stroop" && demo?.puzzle.type === "stroop" && demo.puzzle.clashRev !== CLASH_REV_DEPTH) return null;
