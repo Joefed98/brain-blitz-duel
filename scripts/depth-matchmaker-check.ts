@@ -35,6 +35,11 @@ import {
   pairUsesDepth,
 } from "../src/lib/duel/depth/matchmaker";
 import { hashText, makeRng, type Play, type Rng } from "./puzzle-fairness/kit";
+import { pinPrePhoneNotes } from "../src/lib/duel/phoneNotes";
+
+// Written for the stamps before Joe's phone notes (27 Oct 2026): new deals stay on them here; phone-notes-check proves
+// the stamps rooms deal now.
+pinPrePhoneNotes(true);
 import { BOT_LEVELS, ELITE, botRuns, levelRow, printTable } from "./depth/chain-pair-bots";
 
 let checks = 0;

@@ -68,8 +68,33 @@ export interface TopsyBoardProps {
   cleared?: boolean;
 }
 
+/** Roll time per square: every ball rolls at the same constant speed, so balls in a line keep their spacing. */
+const ROLL_MS_PER_CELL = 45;
+const ROLL_MIN_MS = 90;
+
+/**
+ * Each ball's roll time for its latest move (display only): squares travelled × ROLL_MS_PER_CELL, kept until the
+ * ball moves again, so a re-render mid-roll never changes a running transition.
+ */
+function useRollDurations(board: TopsyBoardData, balls: readonly number[]): number[] {
+  const last = useRef<{ cells: number[]; ms: number[] } | null>(null);
+  const cells = balls.map((cell, i) => (cell === TOPSY_HOME ? board.holes[i]! : cell));
+  const before = last.current;
+  const ms = cells.map((cell, i) => {
+    const from = before?.cells[i];
+    if (from === undefined || from === cell) return before?.ms[i] ?? ROLL_MIN_MS;
+    const squares = Math.abs((from % TOPSY_SIZE) - (cell % TOPSY_SIZE)) + Math.abs(Math.floor(from / TOPSY_SIZE) - Math.floor(cell / TOPSY_SIZE));
+    return Math.max(ROLL_MIN_MS, squares * ROLL_MS_PER_CELL);
+  });
+  useEffect(() => {
+    last.current = { cells, ms };
+  });
+  return ms;
+}
+
 export function TopsyBoardView({ board, state, size, lean, cleared = false }: TopsyBoardProps) {
   const gridRef = useRef<HTMLDivElement | null>(null);
+  const rollMs = useRollDurations(board, state.balls);
   const metrics = useGridMetrics(gridRef, TOPSY_SIZE, TOPSY_SIZE);
   const walls = useMemo(() => new Set(board.walls), [board.walls]);
   const ballSize = metrics ? Math.max(6, Math.min(metrics.cellW, metrics.cellH) * 0.8) : 0;
@@ -124,6 +149,7 @@ export function TopsyBoardView({ board, state, size, lean, cleared = false }: To
                     transform: `translate(${centre.x - ballSize / 2}px, ${centre.y - ballSize / 2}px)`,
                     ["--ball" as string]: TOPSY_COLOURS[index],
                     ["--order" as string]: index,
+                    ["--roll-ms" as string]: `${rollMs[index]}ms`,
                   }}
                 >
                   <BallMark index={index} />

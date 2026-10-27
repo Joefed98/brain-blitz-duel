@@ -9,6 +9,10 @@
  * ball rolls over other colours' holes. Any ball that rolls through a star collects it. A board is cleared
  * when every ball is home; the next tilt goes to the next board.
  *
+ * gravityRev 4 (27 Oct 2026, Joe's phone notes; phoneNotes.ts): a ball home fills its hole and blocks like a
+ * ball still rolling (the others stop against it; `homeBlocks` on each board), and 2× the tilts. Its boards are
+ * generated and solved under that rule. gravityRev 3 rounds keep balls rolling over a filled hole.
+ *
  * Stored rounds (gravityRev absent, 1 or 2) keep the old four-ball, locking-target rules (gravity.ts).
  */
 import { eliteStretchPoints } from "./d5Remodels";
@@ -16,6 +20,8 @@ import type { GravityDir, GravityPuzzleData } from "./types";
 
 /** The remodel's stamp. */
 export const GRAVITY_REV_TOPSY = 3;
+/** Joe's phone notes (27 Oct 2026): a ball home blocks, and 2× the tilts. */
+export const GRAVITY_REV_TOPSY_NOTES = 4;
 export const TOPSY_SIZE = 10;
 export const TOPSY_CELLS = TOPSY_SIZE * TOPSY_SIZE;
 export const TOPSY_BALLS = 6;
@@ -34,6 +40,8 @@ export interface TopsyBoard {
   holes: number[];
   /** Star squares. */
   stars: number[];
+  /** gravityRev 4: a ball home fills its hole and other balls stop against it (absent on gravityRev 3 boards). */
+  homeBlocks?: true;
 }
 
 /** Ball squares (TOPSY_HOME once home) and the stars still on the board. */
@@ -113,6 +121,8 @@ export function topsyTilt(board: TopsyBoard, walls: Set<number>, state: TopsySta
       if (at === TOPSY_HOME) continue;
       const next = stepOf(at, dir);
       if (next === null || walls.has(next) || balls.includes(next)) continue;
+      // gravityRev 4: a filled hole (another ball home) blocks like a ball.
+      if (board.homeBlocks && board.holes.some((hole, j) => hole === next && j !== i && balls[j] === TOPSY_HOME)) continue;
       balls[i] = next;
       paths[i]!.push(next);
       any = true;
@@ -163,8 +173,10 @@ export interface TopsyReplay {
 
 /** Spare tilts over a board's minimum before its limit (rounded up to a multiple of 5, so it never shows the minimum). */
 export const TOPSY_SPARE_TILTS = 8;
-export function topsyTiltLimit(min: number): number {
-  return Math.ceil((min + TOPSY_SPARE_TILTS) / 5) * 5;
+export function topsyTiltLimit(min: number, rev = GRAVITY_REV_TOPSY): number {
+  const limit = Math.ceil((min + TOPSY_SPARE_TILTS) / 5) * 5;
+  // gravityRev 4 (Joe's phone notes, 27 Oct 2026): 2× the tilts.
+  return rev >= GRAVITY_REV_TOPSY_NOTES ? limit * 2 : limit;
 }
 
 /**

@@ -16,7 +16,10 @@ export function encodePairFlips(flips: number[]): string {
 }
 
 export function decodePairFlips(raw: string): number[] {
-  return String(raw ?? "")
+  // pairRev 2 answers end "@<ms>" (the gold match's time, depth/matchmaker.ts); older answers never carry "@".
+  const text = String(raw ?? "");
+  const mark = text.indexOf("@");
+  return (mark < 0 ? text : text.slice(0, mark))
     .split(",")
     .map((part) => Number.parseInt(part, 10))
     .filter((value) => Number.isInteger(value) && value >= 0 && value < PAIR_CARDS);

@@ -16,7 +16,8 @@ import { SWING_REV_TALL, SWING_REV_TARGET, SWING_REV_STRICT, SWING_REV_EXPAND } 
 import { BURST_REV_TARGET, BURST_REV_STRICT, BURST_REV_CLEAN } from "@/lib/arcade/burst";
 import { BRK_REV_TARGET, BRK_REV_STRICT, BRK_REV_DEEP } from "@/lib/arcade/breaker";
 import { PIN_REV_TARGET, PIN_REV_STRICT, PIN_REV_EXPAND } from "@/lib/arcade/pinball";
-import { WHACK_REV_DEPTH } from "@/lib/arcade/whack";
+import { WHACK_REV_DEPTH, WHACK_REV_NOTES } from "@/lib/arcade/whack";
+import { dealtNotesRev } from "./phoneNotes";
 import { WAV_REV_TARGET, WAV_REV_STRICT, WAV_REV_EXPAND } from "@/lib/arcade/wavefront";
 import { ORBIT_REV_TARGET, ORBIT_REV_STRICT, ORBIT_REV_XP } from "@/lib/arcade/orbit";
 import { RALLY_REV_TARGET, RALLY_REV_STRICT, RALLY_REV_BONUS } from "@/lib/arcade/rally";
@@ -159,7 +160,8 @@ export function generateClayShoot(): ClayShootPuzzleData {
 }
 
 export function generateWhack(): WhackPuzzleData {
-  return { type: "whack", seed: arcadeSeed(), whackRev: WHACK_REV_DEPTH };
+  // Joe's phone notes (27 Oct 2026): whackRev 4, whackRev 3 with the diamond up 450 ms instead of 300 ms.
+  return { type: "whack", seed: arcadeSeed(), whackRev: dealtNotesRev(WHACK_REV_NOTES, WHACK_REV_DEPTH) };
 }
 
 export function generateWavefront(): WavefrontPuzzleData {

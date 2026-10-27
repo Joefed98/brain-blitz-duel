@@ -18,6 +18,7 @@ import {
   TOPSY_STARS,
   TOPSY_TIME_MS,
   GRAVITY_REV_TOPSY,
+  GRAVITY_REV_TOPSY_NOTES,
   replayTopsy,
   starCount,
   topsyCleared,
@@ -27,6 +28,7 @@ import {
   type TopsyBoard,
   type TopsyState,
 } from "./topsy";
+import { dealtNotesRev } from "./phoneNotes";
 import type { GravityDir, GravityPuzzleData } from "./types";
 
 const DIRS: GravityDir[] = ["U", "D", "L", "R"];
@@ -138,7 +140,7 @@ export interface TopsyBoardMade {
  * and each ball's hole goes on a square it rolls through in the walk's second half. Early drops change later
  * rolls, so the walk is only a seed: the board is then solved exactly and kept on its own merits.
  */
-function attemptBoard(): TopsyBoardMade | null {
+function attemptBoard(homeBlocks: boolean): TopsyBoardMade | null {
   const cells = shuffled(Array.from({ length: TOPSY_CELLS }, (_, cell) => cell));
   const starts = cells.slice(0, TOPSY_BALLS);
   const wallCount = randInt(TOPSY_MIN_WALLS, TOPSY_MAX_WALLS);
@@ -146,6 +148,7 @@ function attemptBoard(): TopsyBoardMade | null {
   const wallSet = new Set(walls);
   const walkLength = randInt(TOPSY_MIN_TILTS + 1, TOPSY_MAX_TILTS);
   const open: TopsyBoard = { walls, starts, holes: starts.map(() => -2), stars: [] };
+  const rule = homeBlocks ? { homeBlocks: true as const } : {};
   let state = topsyStart(open);
   const late: number[][] = starts.map(() => []);
   let last: GravityDir | null = null;
@@ -173,7 +176,7 @@ function attemptBoard(): TopsyBoardMade | null {
     holes.push(hole);
     used.add(hole);
   }
-  const bare: TopsyBoard = { walls, starts, holes, stars: [] };
+  const bare: TopsyBoard = { walls, starts, holes, stars: [], ...rule };
   // No ball may drop on the very first tilt.
   for (const dir of DIRS) if (topsyTilt(bare, wallSet, topsyStart(bare), dir).dropped.length) return null;
   const plain = topsySearch(bare, false, TOPSY_MAX_TILTS);
@@ -187,7 +190,7 @@ function attemptBoard(): TopsyBoardMade | null {
     const stars = shuffled(candidates).slice(0, TOPSY_STARS);
     // The plain shortest route must miss a star, so collecting both is a choice.
     if (stars.every((c) => onRoute.has(c))) continue;
-    const board: TopsyBoard = { walls, starts, holes, stars: stars.sort((a, b) => a - b) };
+    const board: TopsyBoard = { walls, starts, holes, stars: stars.sort((a, b) => a - b), ...rule };
     const full = topsySearch(board, true, plain.min + TOPSY_STAR_DETOUR);
     if (!full) continue;
     return { board, min: plain.min, starMin: full.min, solution: full.solution };
@@ -195,23 +198,28 @@ function attemptBoard(): TopsyBoardMade | null {
   return null;
 }
 
-/** One board; unlimited tries unless capped. */
-export function generateTopsyBoard(maxTries = Number.POSITIVE_INFINITY): TopsyBoardMade {
+/** One board; unlimited tries unless capped. `homeBlocks`: gravityRev 4's rule (a ball home blocks). */
+export function generateTopsyBoard(maxTries = Number.POSITIVE_INFINITY, homeBlocks = false): TopsyBoardMade {
   for (let tries = 1; tries <= maxTries; tries++) {
-    const made = attemptBoard();
+    const made = attemptBoard(homeBlocks);
     if (made) return made;
     if (tries % 5000 === 0) console.warn(`[topsy] ${tries} boards rejected so far`);
   }
   throw new Error(`Topsy-Turvy generator found no board in ${maxTries} tries`);
 }
 
-/** A gravityRev 3 round: three boards, the minimums and routes kept server-side. */
+/**
+ * A gravityRev 3 round: three boards, the minimums and routes kept server-side. gravityRev 4 (Joe's phone notes,
+ * 27 Oct 2026): boards generated and solved with a ball home blocking, and 2× the tilts.
+ */
 export function generateTopsy(maxTries = Number.POSITIVE_INFINITY): GravityPuzzleData {
-  const made = Array.from({ length: TOPSY_BOARDS }, () => generateTopsyBoard(maxTries));
+  const rev = dealtNotesRev(GRAVITY_REV_TOPSY_NOTES, GRAVITY_REV_TOPSY);
+  const homeBlocks = rev >= GRAVITY_REV_TOPSY_NOTES;
+  const made = Array.from({ length: TOPSY_BOARDS }, () => generateTopsyBoard(maxTries, homeBlocks));
   const first = made[0]!.board;
   return {
     type: "gravity",
-    gravityRev: GRAVITY_REV_TOPSY,
+    gravityRev: rev,
     timeLimitMs: TOPSY_TIME_MS,
     walls: [...first.walls],
     starts: [...first.starts],
@@ -219,7 +227,7 @@ export function generateTopsy(maxTries = Number.POSITIVE_INFINITY): GravityPuzzl
     boards: made.map((m) => m.board),
     minMoves: made.reduce((n, m) => n + m.min, 0),
     solution: made.map((m) => m.solution.join("")).join(""),
-    tiltLimits: made.map((m) => topsyTiltLimit(m.starMin)),
+    tiltLimits: made.map((m) => topsyTiltLimit(m.starMin, rev)),
     boardMins: made.map((m) => m.min),
     boardStarMins: made.map((m) => m.starMin),
     boardSolutions: made.map((m) => m.solution.join("")),
@@ -233,9 +241,11 @@ export function generateTopsy(maxTries = Number.POSITIVE_INFINITY): GravityPuzzl
  * with every star.
  */
 export function verifyTopsyPuzzle(puzzle: GravityPuzzleData): string | null {
-  if (puzzle.type !== "gravity" || puzzle.gravityRev !== GRAVITY_REV_TOPSY || !puzzle.boards) return "not gravityRev 3";
+  const rev = puzzle.gravityRev ?? 0;
+  if (puzzle.type !== "gravity" || (rev !== GRAVITY_REV_TOPSY && rev !== GRAVITY_REV_TOPSY_NOTES) || !puzzle.boards) return "not gravityRev 3 or 4";
   if (puzzle.boards.length !== TOPSY_BOARDS) return "board count";
   for (const [i, board] of puzzle.boards.entries()) {
+    if (Boolean(board.homeBlocks) !== (rev >= GRAVITY_REV_TOPSY_NOTES)) return `board ${i}: home-blocks rule does not match gravityRev ${rev}`;
     if (board.starts.length !== TOPSY_BALLS || board.holes.length !== TOPSY_BALLS || board.stars.length !== TOPSY_STARS) return `board ${i}: counts`;
     const all = [...board.walls, ...board.starts, ...board.holes, ...board.stars];
     if (new Set(all).size !== all.length || all.some((c) => !Number.isInteger(c) || c < 0 || c >= TOPSY_CELLS)) return `board ${i}: squares`;
@@ -248,7 +258,7 @@ export function verifyTopsyPuzzle(puzzle: GravityPuzzleData): string | null {
     if (!full || full.min !== puzzle.boardStarMins?.[i]) return `board ${i}: stored star minimum`;
   }
   const route = (puzzle.boardSolutions ?? []).join("").split("") as GravityDir[];
-  if (puzzle.tiltLimits?.length !== TOPSY_BOARDS || puzzle.tiltLimits.some((l, i) => l !== topsyTiltLimit(puzzle.boardStarMins![i]!))) return "tilt limits";
+  if (puzzle.tiltLimits?.length !== TOPSY_BOARDS || puzzle.tiltLimits.some((l, i) => l !== topsyTiltLimit(puzzle.boardStarMins![i]!, rev))) return "tilt limits";
   const replay = replayTopsy(puzzle.boards, route, puzzle.tiltLimits);
   if (!replay.solved || replay.stars !== TOPSY_BOARDS * TOPSY_STARS) return "stored routes do not clear every board with every star";
   return null;

@@ -659,6 +659,14 @@ function Stage2({ puzzle, locked, onSubmit, onDraftAnswer, checkMoves, stateKey 
       </div>
       <div data-game-arena="strikeout" className="flex min-h-0 w-full flex-1 items-center justify-center" style={{ containerType: "size" }}>
         <div ref={board} className="flex flex-col items-center gap-3" style={{ ["--so-tile" as string]: tileSize }}>
+          {/* The words already solved sit above the tiles (Joe's phone notes, 27 Oct 2026; display only). */}
+          <div className="flex min-h-5 flex-wrap justify-center gap-1" aria-label="Solved words">
+            {solvedWords.map((w, i) => (
+              <span key={i} data-so-solved={i} className="bw-lift rounded bg-primary/90 px-1.5 py-0.5 font-mono text-[11px] font-bold tracking-wider text-primary-foreground">
+                {w}
+              </span>
+            ))}
+          </div>
           <Row
             letters={letters}
             looks={looks}
@@ -668,13 +676,6 @@ function Stage2({ puzzle, locked, onSubmit, onDraftAnswer, checkMoves, stateKey 
             tileH={tileHeight}
             onTap={done ? undefined : toggleSolve}
           />
-          <div className="flex min-h-5 flex-wrap justify-center gap-1" aria-label="Solved words">
-            {solvedWords.map((w, i) => (
-              <span key={i} data-so-solved={i} className="bw-lift rounded bg-primary/90 px-1.5 py-0.5 font-mono text-[11px] font-bold tracking-wider text-primary-foreground">
-                {w}
-              </span>
-            ))}
-          </div>
         </div>
       </div>
       <div className="relative flex h-8 w-full shrink-0 items-center justify-center px-2 text-center font-mono text-xs uppercase tracking-widest text-muted-foreground" aria-live="polite">
