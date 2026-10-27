@@ -6,6 +6,7 @@
  */
 import type { PuzzleData, PuzzleType } from "../types";
 import { rebuildLiveRecords } from "../roundMax";
+import { FLOOD_STANDARD_SPARE_MOVES } from "./logicRules";
 
 export interface StandardStamp {
   /** The stamp's key on the stored puzzle. */
@@ -47,8 +48,31 @@ export const STANDARD_STAMPS: Partial<Record<PuzzleType, StandardStamp>> = {
   pairmatch: s("pairRev", 2),
 
   // Pattern and Logic: Gridlock, Tessellate, Skid, Topsy-Turvy, Gradient, Turntable, Lightbender, Chroma Lines, Pipeline, Heave (pattern.server.ts)
+  unblock: s("unblockRev", 1),
+  blockparty: s("blockRev", 2),
+  iceslide: s("slideRev", 1),
+  gravity: s("gravityRev", 4),
+  tiles: s("tilesRev", 4),
+  rings: s("ringsRev", 2),
+  // Lightbender times its gems from its own action log (the shots' times), so it needs no draft timeline.
+  laser: s("laserRev", 2, false),
+  flow: s("flowRev", 1),
+  pipes: s("pipesRev", 2),
+  push: s("pushRev", 2),
 
   // Pattern and Logic: Blackout, Box Six, Hanoi, Polypotions, Safe Cracker, Bomb Defusal, Mosaic, Colour Flood, Tents and Trees, Shikaku, Lamplighter (logic.server.ts)
+  lightsout: s("depthRev", 1),
+  sudoku: s("depthRev", 2),
+  tower: s("depthRev", 1),
+  tubes: s("depthRev", 1),
+  safe: s("depthRev", 2),
+  bomb: s("depthRev", 1),
+  nonogram: s("depthRev", 1),
+  // Colour Flood: the move limit is par + 10 on the standard's stamp (the par bonus reaches 0 there).
+  flood: s("depthRev", 2, true, (p) => (p.type === "flood" ? { ...p, moveLimit: Math.max(1, p.par) + FLOOD_STANDARD_SPARE_MOVES } : p)),
+  tents: s("depthRev", 1),
+  shikaku: s("depthRev", 2),
+  lightup: s("depthRev", 1),
 
 };
 

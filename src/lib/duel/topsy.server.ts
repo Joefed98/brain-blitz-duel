@@ -242,7 +242,8 @@ export function generateTopsy(maxTries = Number.POSITIVE_INFINITY): GravityPuzzl
  */
 export function verifyTopsyPuzzle(puzzle: GravityPuzzleData): string | null {
   const rev = puzzle.gravityRev ?? 0;
-  if (puzzle.type !== "gravity" || (rev !== GRAVITY_REV_TOPSY && rev !== GRAVITY_REV_TOPSY_NOTES) || !puzzle.boards) return "not gravityRev 3 or 4";
+  // gravityRev 5 (the scoring standard, standard/stamps.ts) deals gravityRev 4's boards and rules.
+  if (puzzle.type !== "gravity" || rev < GRAVITY_REV_TOPSY || rev > GRAVITY_REV_TOPSY_NOTES + 1 || !puzzle.boards) return "not gravityRev 3, 4 or 5";
   if (puzzle.boards.length !== TOPSY_BOARDS) return "board count";
   for (const [i, board] of puzzle.boards.entries()) {
     if (Boolean(board.homeBlocks) !== (rev >= GRAVITY_REV_TOPSY_NOTES)) return `board ${i}: home-blocks rule does not match gravityRev ${rev}`;

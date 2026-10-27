@@ -49,6 +49,10 @@ import { pinPreTopup } from "../src/lib/duel/depthTopup";
 // The puzzle top-up (26 Oct 2026, docs/depth/topup-oct-2026.md) deals newer stamps; this check proves the stamps it was
 // written for, so new deals are pinned to them (depth-topup-check proves the top-up's).
 pinPreTopup(true);
+import { pinPreStandard } from "../src/lib/duel/standard/stamps";
+// The scoring standard (27 Oct 2026, docs/scoring-standard.md) deals its own stamps one above these; this check proves
+// the stamps it was written for, so new deals are pinned to them (standard-*-checks prove the standard's).
+pinPreStandard(true);
 
 const FULL = process.env["CHECKS_FULL"] === "1";
 let passes = 0;

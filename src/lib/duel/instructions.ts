@@ -1,5 +1,6 @@
 import { openBandsLine } from "./puzzleBandsText";
-import { depthHelp as logicDepthHelp } from "./logicDepthText";
+import { logicStandardHelp } from "./standard/logicText";
+import { FLOOD_STANDARD_SPARE_MOVES } from "./standard/logicRules";
 import { wordSearchBonusHelp } from "./wordSearchText";
 import { letterWheelJarHelp } from "./letterWheelText";
 import { CODEWORD_STRETCH, TILEGRID_STRETCH_TOPUP, stretchHelp, strikeoutDepthHelp } from "./depth/stretchShapes";
@@ -10,7 +11,7 @@ import { STD_ROUNDABOUT, STD_STRIKEOUT, WORD_STANDARD_HELP } from "./standard/wo
 import { preStandardPinned } from "./standard/stamps";
 import { STANDARD_ATTENTION_HELP } from "./standard/attentionTexts";
 import { depthHelp } from "./numberDepthText";
-import { d4Help } from "./depth4/text";
+import { PATTERN_STD_HELP } from "./standard/patternText";
 import {
   scoreWordHunt,
   WORDHUNT_FREE_MISSES,
@@ -122,8 +123,6 @@ import { FLIP_V8_COMBO_CAP, FLIP_V8_CP_POINTS, FLIP_V8_FEATURE_CAP, FLIP_V8_SKIL
 import { bandCurve, type BandCurve } from "@/lib/arcade/scoreBands";
 import { SNIP_X_FEATURE_MAX, SNIP_X_FEED_UNITS, SNIP_X_GOLD_RAW, SNIP_X_LEVELS, SNIP_X_PAR_MARGIN, SNIP_X_PAR_RAW, SNIP_X_PERFECT_RAW, SNIP_X_QUICK_RAW, SNIP_X_RAW_TOP, SNIP_X_SKILL_PAY, SNIP_X_STAR2_RAW, SNIP_X_STAR_UNITS } from "@/lib/arcade/snip";
 import { fillMax, liveRecord } from "./roundMax";
-import { topsyHelpScore } from "./topsy";
-import { jumbledHelpScore } from "./jumbled";
 import type { PuzzleType } from "./types";
 
 /** A skill pay curve in words (E3): "Skill points pay on a rising scale: 15 pay 6, 30 pay 35, …, and the full 50 needs 85." Repeated values are skipped. */
@@ -329,7 +328,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Clear a path", detail: "for the gold block." },
         { action: "Par", detail: "is the fewest moves; the bar's gold mark shows it." },
       ],
-      score: d4Help("unblock"),
+      score: PATTERN_STD_HELP.unblock,
     },
     blockparty: {
       goal: "Fit every piece into the free squares.",
@@ -339,7 +338,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Fit every piece", detail: "around the fixed pegs." },
         { action: "Drag a piece's anchor", detail: "onto a free board square.", helpOnly: true },
       ],
-      score: d4Help("blockparty"),
+      score: PATTERN_STD_HELP.blockparty,
     },
     lightsout: {
       goal: "Turn every light off.",
@@ -349,7 +348,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Par:", detail: "all off in the fewest presses scores a bonus." },
         { action: "Neighbours", detail: "are the four lights above, below, left and right.", helpOnly: true },
       ],
-      score: logicDepthHelp("lightsout"),
+      score: logicStandardHelp("lightsout"),
     },
     pipes: {
       goal: "Connect every pipe to the source.",
@@ -359,7 +358,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "No leaks", detail: "at the edges." },
         { action: "Par", detail: "is the fewest taps; the bar's gold mark shows it." },
       ],
-      score: d4Help("pipes"),
+      score: PATTERN_STD_HELP.pipes,
     },
     sudoku: {
       goal: "Fill the 6 × 6 sudoku grid.",
@@ -369,7 +368,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Pencil marks", detail: "are for notes." },
         { action: "13 to 15 numbers", detail: "are given, and only one grid fits them.", helpOnly: true },
       ],
-      score: logicDepthHelp("sudoku"),
+      score: logicStandardHelp("sudoku"),
     },
     flow: {
       goal: "Join every colour pair and fill every square.",
@@ -379,7 +378,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Fill every square", detail: "with a path." },
         { action: "Drag from a loose end", detail: "to carry on; tap a dot to clear its path.", helpOnly: true },
       ],
-      score: d4Help("flow"),
+      score: PATTERN_STD_HELP.flow,
     },
     iceslide: {
       goal: "Slide the ball to the gold exit.",
@@ -390,7 +389,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Ice gems", detail: "off the direct route score a bonus." },
         { action: "Cracked ice", detail: "breaks after you cross it once.", helpOnly: true },
       ],
-      score: d4Help("iceslide"),
+      score: PATTERN_STD_HELP.iceslide,
     },
     push: {
       goal: "Push every crate onto a marked square.",
@@ -401,7 +400,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "The gold crate", detail: "on the gold mark scores a bonus." },
         { action: "The worker", detail: "moves one square at a time and pushes one crate at a time.", helpOnly: true },
       ],
-      score: d4Help("push"),
+      score: PATTERN_STD_HELP.push,
     },
     laser: {
       goal: "Light all six gems with one beam.",
@@ -413,7 +412,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "The splitter", detail: "forks the beam across its input axis.", helpOnly: true },
         { action: "Gem arrows:", detail: "marked gems only light from that direction.", helpOnly: true },
       ],
-      score: d4Help("laser"),
+      score: PATTERN_STD_HELP.laser,
     },
     tower: {
       goal: "Move the whole tower onto the gold post.",
@@ -424,7 +423,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Perfect solve:", detail: "the fewest moves (Par) scores a bonus." },
         { action: "Colour shows size.", detail: "Each puzzle has 3 or 4 posts.", helpOnly: true },
       ],
-      score: logicDepthHelp("tower"),
+      score: logicStandardHelp("tower"),
     },
     maze: {
       goal: "Draw a path from the start to the exit.",
@@ -449,7 +448,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "A full one-colour flask", detail: "gets a cork.", helpOnly: true },
         { action: "Pours are limited", detail: "(the counter). Undo and Reset don't give a pour back; out of pours, the board ends.", helpOnly: true },
       ],
-      score: logicDepthHelp("tubes"),
+      score: logicStandardHelp("tubes"),
     },
     safe: {
       goal: "Find the four-digit code that fits every clue.",
@@ -457,9 +456,9 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Use the arrows", detail: "to set each dial." },
         { action: "Tap TRY", detail: "to test it: three tries." },
         { action: "Only one code", detail: "fits every clue." },
-        { action: "Clean crack:", detail: "open it with tries to spare for a bonus." },
+        { action: "Clean crack:", detail: "open it on the first try for the full bonus." },
       ],
-      score: logicDepthHelp("safe"),
+      score: logicStandardHelp("safe"),
     },
     bomb: {
       goal: "Defuse the bomb in six steps.",
@@ -471,7 +470,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Only one order fits", detail: "the clues together allow exactly one six-step sequence, and every clue is needed.", helpOnly: true },
         { action: "Wires", detail: "are numbered 1-7 from the left.", helpOnly: true },
       ],
-      score: logicDepthHelp("bomb"),
+      score: logicStandardHelp("bomb"),
     },
     gravity: {
       // gravityRev 3 (the remodel, topsy.ts); stored older rounds keep their own reveal.
@@ -485,7 +484,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "The rings", detail: "above the board fill as balls go home; a clear board brings the next.", helpOnly: true },
         { action: "Tilts are limited", detail: "on each board (the counter). Undo and Reset don't give a tilt back; out of tilts, the next board comes.", helpOnly: true },
       ],
-      score: topsyHelpScore(),
+      score: PATTERN_STD_HELP.gravity,
     },
     chain: {
       goal: "Tap 40 charms, following the cycle.",
@@ -509,7 +508,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "The numbers", detail: "are the filled runs, in order." },
         { action: "A line dims", detail: "once it matches." },
       ],
-      score: logicDepthHelp("nonogram"),
+      score: logicStandardHelp("nonogram"),
     },
     pairmatch: {
       goal: "Find all fifteen pairs.",
@@ -528,9 +527,9 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Tap a colour", detail: "to repaint your region." },
         { action: "Your region grows", detail: "into touching cells of it." },
         { action: "You start", detail: "from the top-left corner." },
-        { action: "Moves are limited:", detail: "par + 2 (the counter). Out of moves, the board ends and scores 0.", helpOnly: true },
+        { action: "Moves are limited:", detail: `par + ${FLOOD_STANDARD_SPARE_MOVES} (the counter). Out of moves, the board ends and scores 0.`, helpOnly: true },
       ],
-      score: logicDepthHelp("flood"),
+      score: logicStandardHelp("flood"),
     },
     tiles: {
       // Gradient, tilesRev 4 (Joe's phone notes, 27 Oct 2026; jumbled.ts): swaps, locked tiles, a scheme a round.
@@ -542,7 +541,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Every round", detail: "has its own colours, so the board never looks the same twice.", helpOnly: true },
         { action: "Par", detail: "is shown with your swaps; every swap counts.", helpOnly: true },
       ],
-      score: jumbledHelpScore(),
+      score: PATTERN_STD_HELP.tiles,
     },
     rings: {
       goal: "Turn the rings until every spoke is one colour.",
@@ -554,7 +553,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Linked rings", detail: "turn the same way or the opposite way.", helpOnly: true },
         { action: "The selected ring", detail: "glows and the needle touches its edge.", helpOnly: true },
       ],
-      score: d4Help("rings"),
+      score: PATTERN_STD_HELP.rings,
     },
     hover: {
       goal: "Fly through the barrier gaps.",
@@ -1150,7 +1149,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Each number", detail: "is its rectangle's size." },
         { action: "Cover", detail: "every square." },
       ],
-      score: logicDepthHelp("shikaku"),
+      score: logicStandardHelp("shikaku"),
     },
     dig: {
       goal: "Dig a path so the water reaches the drain.",
@@ -1316,7 +1315,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "A wall's number", detail: "is how many bulbs touch it." },
         { action: "A number on a wall", detail: "says exactly how many bulbs touch that wall's four sides.", helpOnly: true },
       ],
-      score: logicDepthHelp("lightup"),
+      score: logicStandardHelp("lightup"),
     },
     tents: {
       goal: "Pitch one tent beside every tree.",
@@ -1326,7 +1325,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Signposts", detail: "give each row's and column's tents." },
         { action: "Tap a third time", detail: "to clear the cell.", helpOnly: true },
       ],
-      score: logicDepthHelp("tents"),
+      score: logicStandardHelp("tents"),
     },
   };
 }

@@ -32,7 +32,12 @@ import {
   FLOOD_REV2_SPARE_MOVES,
   floodMoveLimit,
 } from "../src/lib/duel/moveLimits";
+import { pinPreStandard } from "../src/lib/duel/standard/stamps";
 import { FLOOD_COLOURS, FLOOD_MAX_PAR, FLOOD_MIN_PAR, type FloodPuzzleData } from "../src/lib/duel/types";
+
+// Written for floodRev 3's par + 2 limit on depthRev 2: the scoring standard (depthRev 3, docs/scoring-standard.md)
+// deals par + 10, where blind cycling does finish (standard-logic-check records it); new deals are pinned before it.
+pinPreStandard(true);
 
 const started = performance.now();
 const failures: string[] = [];

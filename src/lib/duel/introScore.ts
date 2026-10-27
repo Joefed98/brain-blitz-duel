@@ -3,7 +3,7 @@ import { BINTOSS_FAR_POINTS, BINTOSS_THROWS } from "@/lib/arcade/binToss";
 import { INK_FEATURE_MAX, INK_LEVELS } from "@/lib/arcade/inkBridge";
 import { TILT_X_MAZES } from "@/lib/arcade/tilt";
 import { bandsIntro } from "./puzzleBandsText";
-import { depthIntro as logicDepthIntro } from "./logicDepthText";
+import { logicStandardIntro } from "./standard/logicText";
 import { wordSearchBonusIntro } from "./wordSearchText";
 import { letterWheelJarIntro } from "./letterWheelText";
 import { CODEWORD_STRETCH, TILEGRID_STRETCH_TOPUP, stretchIntro, strikeoutDepthIntro } from "./depth/stretchShapes";
@@ -13,10 +13,8 @@ import { preStandardPinned } from "./standard/stamps";
 import { STANDARD_ATTENTION_INTRO } from "./standard/attentionTexts";
 import { BANGON_DEPTH_INTRO, FLASH_DEPTH_INTRO } from "./depth/speedTexts";
 import { depthIntro } from "./numberDepthText";
-import { d4IntroTemplate } from "./depth4/text";
+import { PATTERN_STD_INTRO } from "./standard/patternText";
 import { fillMax, liveRecord } from "./roundMax";
-import { TOPSY_INTRO_SCORE } from "./topsy";
-import { JUMBLED_INTRO_SCORE } from "./jumbled";
 import type { PuzzleType } from "./types";
 
 /**
@@ -75,27 +73,27 @@ function introScoreTemplates(): Record<PuzzleType, string> {
     stroop: STANDARD_ATTENTION_INTRO.stroop,
 
     // Logic and pattern
-    unblock: d4IntroTemplate("unblock"),
-    lightsout: logicDepthIntro("lightsout"),
-    pipes: d4IntroTemplate("pipes"),
-    sudoku: logicDepthIntro("sudoku"),
-    flow: d4IntroTemplate("flow"),
-    iceslide: d4IntroTemplate("iceslide"),
-    push: d4IntroTemplate("push"),
-    laser: d4IntroTemplate("laser"),
-    tower: logicDepthIntro("tower"),
-    tubes: logicDepthIntro("tubes"),
-    safe: logicDepthIntro("safe"),
-    bomb: logicDepthIntro("bomb"),
-    gravity: TOPSY_INTRO_SCORE,
-    nonogram: logicDepthIntro("nonogram"),
-    flood: logicDepthIntro("flood"),
-    tiles: JUMBLED_INTRO_SCORE,
-    rings: d4IntroTemplate("rings"),
-    blockparty: d4IntroTemplate("blockparty"),
-    shikaku: logicDepthIntro("shikaku"),
-    lightup: logicDepthIntro("lightup"),
-    tents: logicDepthIntro("tents"),
+    unblock: PATTERN_STD_INTRO.unblock,
+    lightsout: logicStandardIntro("lightsout"),
+    pipes: PATTERN_STD_INTRO.pipes,
+    sudoku: logicStandardIntro("sudoku"),
+    flow: PATTERN_STD_INTRO.flow,
+    iceslide: PATTERN_STD_INTRO.iceslide,
+    push: PATTERN_STD_INTRO.push,
+    laser: PATTERN_STD_INTRO.laser,
+    tower: logicStandardIntro("tower"),
+    tubes: logicStandardIntro("tubes"),
+    safe: logicStandardIntro("safe"),
+    bomb: logicStandardIntro("bomb"),
+    gravity: PATTERN_STD_INTRO.gravity,
+    nonogram: logicStandardIntro("nonogram"),
+    flood: logicStandardIntro("flood"),
+    tiles: PATTERN_STD_INTRO.tiles,
+    rings: PATTERN_STD_INTRO.rings,
+    blockparty: PATTERN_STD_INTRO.blockparty,
+    shikaku: logicStandardIntro("shikaku"),
+    lightup: logicStandardIntro("lightup"),
+    tents: logicStandardIntro("tents"),
     dig: "Fill the drain with clean water for 100, more if you're quick and use few digs.",
 
     // Arcade

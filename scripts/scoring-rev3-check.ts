@@ -16,6 +16,8 @@
  *  6. The help and intro numbers: each game's dealt clock and "150 in about N s" agree with freshly dealt puzzles.
  *  7. Grading stays quick: every stored run grades in a few ms once a board's table is built.
  */
+import { patternStdHelp, patternStdIntro } from "../src/lib/duel/standard/patternText";
+import { isPatternStdType } from "../src/lib/duel/standard/patternRules";
 import { isD4Type } from "../src/lib/duel/depth4/stamps";
 import { d4Help, d4Intro } from "../src/lib/duel/depth4/text";
 import { readFileSync } from "node:fs";
@@ -56,6 +58,10 @@ import { pinPreDepthTapRev } from "../src/lib/duel/tapLog";
 import { roundMaxFor } from "../src/lib/duel/roundMax";
 // Flash, Bang On and Ascend deal tapRev 5 (Depth to 200, depth-*-check proves it); this check proves rev 3 on the stamps before it.
 pinPreDepthTapRev(true);
+import { pinPreStandard } from "../src/lib/duel/standard/stamps";
+// The scoring standard (27 Oct 2026, docs/scoring-standard.md) deals its own stamps; this check proves rev 3 and the
+// depth stamps on the stamps before it (standard-*-checks prove the standard's).
+pinPreStandard(true);
 
 let checks = 0;
 const failures: string[] = [];
@@ -278,6 +284,13 @@ for (const type of Object.keys(REV3_GAMES) as PuzzleType[]) {
   // Word depth (25 Oct 2026): the nine word games state their depth curves (proved by their depth-<game>-checks).
   if (WORD_DEPTH_GAMES.includes(type)) continue;
   // Depth batch 4's games (depth4/text.ts) keep the rev-3 finish time ("about N s") in their own text.
+  // The scoring standard's Pattern and Logic games (first half) state its own numbers (standard/patternText.ts;
+  // standard-pattern-check proves them).
+  if (isPatternStdType(type)) {
+    ok(PUZZLE_INSTRUCTIONS[type]?.score === patternStdHelp(type), `${type}: the "?" help is not the standard's text`);
+    ok(INTRO_SCORE[type] === patternStdIntro(type) && patternStdIntro(type).length <= 90, `${type}: intro line "${INTRO_SCORE[type]}"`);
+    continue;
+  }
   if (isD4Type(type)) {
     ok(d4Help(type).includes(`about ${n} s`) && PUZZLE_INSTRUCTIONS[type]?.score === d4Help(type), `${type}: the "?" help does not state the rev-3 numbers`);
     ok(INTRO_SCORE[type] === d4Intro(type) && d4Intro(type).length <= 90, `${type}: intro line "${INTRO_SCORE[type]}"`);
