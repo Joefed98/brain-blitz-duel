@@ -11,6 +11,8 @@
  *     ball), the skill cap and the 200 cap.
  *  4. 200 is reachable through the server replay: a near-perfect skill-band run
  *     (scripts/fixtures/expansion-e3-runs.json's `top` run).
+ *  5. brkRev 10 (phone notes, 27 Oct 2026): brkRev 9's board plus one double-ball brick in the lower rows, gold
+ *     bricks broken by any 4 hits (balls, Fireball, ×3 shots, the laser's stop), and real play through the server.
  *
  *   bun scripts/expansion-e3-check.ts      (~5 s)
  */
@@ -37,7 +39,11 @@ import {
   BRK_BRICK_W,
   BRK_POWER_LASER,
   BRK_REV_DEEP,
+  BRK_REV_PHONE,
   BRK_REV_STRICT,
+  BRK_POWER_MULTI,
+  BRK_V10_GOLD_HITS,
+  BRK_V10_MULTI2_ROWS,
   BRK_V9_COLS,
   BRK_V9_COMBO_MAX,
   BRK_V9_COMBO_X2,
@@ -107,8 +113,10 @@ section("The live effect specs count older rounds' moments as before");
 /* ============================== 2. New rounds ============================== */
 section("New rounds: stamps, maximum, courts, start states");
 {
-  ok(generateBreaker().brkRev === BRK_REV_DEEP, "rooms deal brkRev 9");
-  ok(LIVE_BANDS.breaker.rev === BRK_REV_DEEP && LIVE_BANDS.breaker.strictRev === BRK_REV_STRICT, "the help reads the new stamp; the score-bands revision is brkRev 8");
+  // Phone notes (27 Oct 2026) moved rooms on to brkRev 10 (brkRev 9's court and scoring; section 5 covers it).
+  ok(generateBreaker().brkRev === BRK_REV_PHONE, "rooms deal brkRev 10 (brkRev 9 with the phone notes)");
+  ok(LIVE_BANDS.breaker.rev === BRK_REV_PHONE && LIVE_BANDS.breaker.strictRev === BRK_REV_STRICT, "the help reads the new stamp; the score-bands revision is brkRev 8");
+  ok(breakerWorldWFor(BRK_REV_PHONE) === 420 && breakerWorldHFor(BRK_REV_PHONE) === 784, "brkRev 10 plays brkRev 9's 420 × 784 court");
   ok(roundMaxFor("breaker") === 200, "Breaker's maximum is 200");
   ok(breakerWorldWFor(BRK_REV_DEEP) === 420 && breakerWorldHFor(BRK_REV_DEEP) === 784 && breakerWorldWFor(BRK_REV_STRICT) === 390 && breakerWorldHFor(BRK_REV_STRICT) === 730, "Breaker courts by revision");
   // The courts keep the iPhone 11 play box's shape (414 × 772), so the world fills it edge to edge.
@@ -125,6 +133,7 @@ section("New rounds: stamps, maximum, courts, start states");
     for (const rev of [null, 2, 3, 4, 5, 6, 7, 8]) {
       ok(breakerGameFor(rev).init(seed).deep === undefined, `seed ${seed} rev ${rev}: an older start has no expansion fields`);
     }
+    ok(breakerGameFor(BRK_REV_DEEP).init(seed).phone === undefined, `seed ${seed}: a brkRev 9 start has no brkRev 10 marker`);
   }
 }
 
@@ -224,6 +233,103 @@ section("200 is reachable");
   const top = new Map((fixture.top ?? []).map((r) => [r.type, r]));
   ok(top.get("breaker")?.score === 200, `a near-perfect skill-band run reaches 200 (${top.get("breaker")?.score})`);
   ok(GAME_BY_TYPE.get("breaker" as never)!.replay(top.get("breaker")!.seed, gunzipSync(Buffer.from(top.get("breaker")!.raw, "base64")).toString(), BRK_REV_DEEP).score === top.get("breaker")!.score, "it replays to the same score");
+}
+
+/* ============================== 5. brkRev 10 (phone notes) ============================== */
+section("Breaker brkRev 10: gold bricks break after any 4 hits; a second double-ball brick in the lower rows");
+{
+  const phone = breakerGameFor(BRK_REV_PHONE);
+  const deep = breakerGameFor(BRK_REV_DEEP);
+  let otherRow = 0;
+  for (let seed = 1; seed <= 300; seed++) {
+    const p = phone.init(seed * 7919);
+    const d = deep.init(seed * 7919);
+    ok(JSON.stringify(p) === JSON.stringify(phone.init(seed * 7919)) && p.phone === 1, `seed ${seed}: the brkRev 10 start is fixed by the seed`);
+    const golds = d.bricks.map((_, i) => i).filter((i) => brkIsGold(d, i));
+    ok(golds.every((i) => p.bricks[i] === BRK_V10_GOLD_HITS && p.maxHp[i] === BRK_V10_GOLD_HITS), `seed ${seed}: gold bricks start with ${BRK_V10_GOLD_HITS} hits`);
+    ok(p.bricks.every((b, i) => brkIsGold(d, i) || b === d.bricks[i]) && p.maxHp.every((b, i) => brkIsGold(d, i) || b === d.maxHp[i]), `seed ${seed}: every other brick is brkRev 9's`);
+    const diff = p.gold.map((_, i) => i).filter((i) => p.gold[i] !== d.gold[i]);
+    const extra = diff[0] ?? -1;
+    const row = Math.trunc(extra / BRK_V9_COLS);
+    ok(diff.length === 1 && d.gold[extra] === 0 && p.gold[extra] === BRK_POWER_MULTI + 1, `seed ${seed}: exactly one more power-up brick, a double-ball`);
+    ok(row >= BRK_V10_MULTI2_ROWS[0] && row <= BRK_V10_MULTI2_ROWS[1] && p.bricks[extra] === 1 && !brkIsGold(p, extra), `seed ${seed}: it sits on a 1-hit brick in rows ${BRK_V10_MULTI2_ROWS.join("–")}`);
+    ok(p.gold.filter((g) => g === BRK_POWER_MULTI + 1).length === 2 && p.gold.filter((g) => g > 0).length === 5, `seed ${seed}: two double-ball bricks, five power-up bricks`);
+    const first = d.gold.findIndex((g) => g === BRK_POWER_MULTI + 1);
+    if (Math.trunc(first / BRK_V9_COLS) !== row) otherRow++;
+    ok(JSON.stringify(p.slide) === JSON.stringify(d.slide) && JSON.stringify(p.balls) === JSON.stringify(d.balls) && p.rng === d.rng && JSON.stringify(p.gild) === JSON.stringify(d.gild), `seed ${seed}: sliding rows, gold places and the first launch are brkRev 9's`);
+    ok(brkCheckpoint(p).checksum !== brkCheckpoint({ ...p, phone: undefined } as BrkState).checksum, `seed ${seed}: the checksum folds the marker in`);
+  }
+  ok(otherRow === 300, `the second double-ball brick sits in a different row from the first (${otherRow} of 300)`);
+  const noInputP = (s: BrkState, n: number) => {
+    for (let i = 0; i < n && !phone.isOver(s); i++) s = phone.step(s, null);
+    return s;
+  };
+  // A ball under a gold brick, rising straight up, its lane clear (as section 3), on brkRev 10.
+  const setupP = (d: number, left: number, extra: Partial<BrkState> = {}, spam = 0): { s: BrkState; gold: number } => {
+    const s = phone.init(4242);
+    const gold = s.bricks.findIndex((_, i) => brkIsGold(s, i));
+    const bricks = s.bricks.slice();
+    for (let i = gold + BRK_V9_COLS; i < bricks.length; i += BRK_V9_COLS) bricks[i] = 0;
+    bricks[gold] = left;
+    const at = brkDeepBrickXY(s, gold, 0);
+    const ball = { x: (at.x + BRK_BRICK_W / 2) * 256, y: (at.y + BRK_BRICK_H + 120) * 256, vx: 0, vy: -1024, spam, d };
+    return { s: { ...s, bricks, balls: [ball], ...extra }, gold };
+  };
+  {
+    const { s, gold } = setupP(1, BRK_V10_GOLD_HITS);
+    const after = noInputP(s, 40);
+    ok(after.bricks[gold] === BRK_V10_GOLD_HITS - 1 && (after.goldBroken ?? 0) === 0 && (after.clinks ?? 0) === 1, "a direct hit is one hit of four (no break, a clink)");
+  }
+  {
+    const { s, gold } = setupP(0, BRK_V10_GOLD_HITS);
+    const after = noInputP(s, 40);
+    ok(after.bricks[gold] === BRK_V10_GOLD_HITS - 1, "a ball that has touched a brick also counts a hit");
+  }
+  {
+    const { s, gold } = setupP(0, 1);
+    const after = noInputP(s, 40);
+    ok(after.bricks[gold] === 0 && after.goldBroken === 1 && brkSkillPoints(after) === BRK_V9_GOLD_POINTS, `the fourth hit breaks it, from any ball, for ${BRK_V9_GOLD_POINTS} skill points`);
+  }
+  {
+    const { s, gold } = setupP(1, 1, { fire: 200 });
+    const after = noInputP(s, 40);
+    ok(after.bricks[gold] === 0 && after.goldBroken === 1, "a Fireball ball's hit counts");
+  }
+  {
+    const { s, gold } = setupP(1, 2, {}, 1);
+    const after = noInputP(s, 40);
+    ok(after.bricks[gold] === 1 && (after.goldBroken ?? 0) === 0, "a ×3 shot's hit counts");
+  }
+  {
+    const { s, gold } = setupP(1, BRK_V10_GOLD_HITS);
+    const at = brkDeepBrickXY(s, gold, 0);
+    const laser = { ...s, held: BRK_POWER_LASER + 1, charges: 1, paddleX: at.x + BRK_BRICK_W / 2, aimX: at.x + BRK_BRICK_W / 2, balls: [{ x: 30 * 256, y: 600 * 256, vx: 0, vy: 1024, spam: 0, d: 0 }] };
+    const after = phone.step(laser, { t: laser.tick + 1, k: ARCADE_INPUT_BUTTON, a: 1, b: 0, c: 0, d: 0 });
+    ok(after.bricks[gold] === BRK_V10_GOLD_HITS - 1 && (after.beamTop ?? 0) === at.y + BRK_BRICK_H, "the laser stops at a gold brick and counts one hit");
+  }
+  // Real play through the server replay: scores stay within 200, played runs score above 0, gold bricks break.
+  const spec = GAME_BY_TYPE.get("breaker" as never)!;
+  const { bot } = await import("./arcade-skill-bands/bots/breaker.ts");
+  const { Human } = await import("./arcade-skill-bands/human.ts");
+  let golds = 0;
+  for (let n = 0; n < 8; n++) {
+    const seed = spec.seedFor(n);
+    const level = (["weak", "good", "near", "elite"] as const)[n % 4]!;
+    const res = bot({ game: phone, seed, rev: BRK_REV_PHONE, human: new Human("breaker", seed, level) });
+    let state = phone.init(seed);
+    const checkpoints: unknown[] = [];
+    const byTick = new Map((res.events ?? []).map((e: any) => [e.t, e]));
+    while (!phone.isOver(state) && state.tick < phone.runTicks) {
+      state = phone.step(state, byTick.get(state.tick + 1) ?? null);
+      if (state.tick % 300 === 0) checkpoints.push(spec.checkpoint(state));
+    }
+    const claimed = phone.score(state);
+    const raw = spec.encode({ seed, claimedScore: claimed, events: res.events ?? [], endTick: state.tick, checkpoints }, BRK_REV_PHONE, seed);
+    const result = spec.replay(seed, raw, BRK_REV_PHONE);
+    ok(!result.flagged && result.score === claimed && claimed > 0 && claimed <= 200, `breaker brkRev 10 seed ${seed} (${level}): ${claimed} replays through the server to ${result.score}`);
+    golds += state.goldBroken ?? 0;
+  }
+  ok(golds > 0, `real play breaks gold bricks on brkRev 10 (${golds})`);
 }
 
 if (failures.length) {

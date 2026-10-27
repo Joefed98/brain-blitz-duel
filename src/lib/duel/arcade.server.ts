@@ -14,7 +14,7 @@ import { JUNC_REV_BAND } from "@/lib/arcade/junction";
 import { BINTOSS_REV_TARGET, BINTOSS_REV_STRICT, BINTOSS_REV_EXPAND } from "@/lib/arcade/binToss";
 import { SWING_REV_TALL, SWING_REV_TARGET, SWING_REV_STRICT, SWING_REV_EXPAND } from "@/lib/arcade/swing";
 import { BURST_REV_TARGET, BURST_REV_STRICT, BURST_REV_CLEAN } from "@/lib/arcade/burst";
-import { BRK_REV_TARGET, BRK_REV_STRICT, BRK_REV_DEEP } from "@/lib/arcade/breaker";
+import { BRK_REV_TARGET, BRK_REV_STRICT, BRK_REV_DEEP, BRK_REV_PHONE } from "@/lib/arcade/breaker";
 import { PIN_REV_TARGET, PIN_REV_STRICT, PIN_REV_EXPAND } from "@/lib/arcade/pinball";
 import { WHACK_REV_DEPTH } from "@/lib/arcade/whack";
 import { WAV_REV_TARGET, WAV_REV_STRICT, WAV_REV_EXPAND } from "@/lib/arcade/wavefront";
@@ -117,7 +117,8 @@ export function generateRicochet(): RicoPuzzleData {
 }
 
 export function generateBreaker(): BreakerPuzzleData {
-  return { type: "breaker", seed: arcadeSeed(), brkRev: BRK_REV_DEEP };
+  // brkRev 10 (phone notes, 27 Oct 2026): brkRev 9 with gold bricks broken by any 4 hits and a second double-ball brick.
+  return { type: "breaker", seed: arcadeSeed(), brkRev: BRK_REV_PHONE };
 }
 
 export function generatePinball(): PinballPuzzleData {
