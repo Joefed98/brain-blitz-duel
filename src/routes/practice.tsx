@@ -35,7 +35,6 @@ import {
   puzzleDurationMs,
   puzzleName,
   puzzlePrepMs,
-  puzzleRevealMs,
   puzzleShowsTimer,
   puzzleTimeLimitMs,
   puzzleRunMs,
@@ -48,7 +47,6 @@ import { hasIntroDemo } from "@/components/duel/IntroDemo";
 import { INTRO_COUNTDOWN_MS, INTRO_MS, type PuzzleData, type PuzzleType } from "@/lib/duel/types";
 import { buzz } from "@/lib/motion";
 import {
-  playCorrect,
   playLock,
   releaseRoomMusic,
   holdMusicBed,
@@ -98,7 +96,7 @@ export const Route = createFileRoute("/practice")({
   component: PracticeScreen,
 });
 
-type Stage = "list" | "loading" | "intro" | "puzzle" | "reveal" | "result";
+type Stage = "list" | "loading" | "intro" | "puzzle" | "reveal";
 
 interface Graded {
   puzzle: PuzzleData;
@@ -154,7 +152,7 @@ function categoryLabel(category: PuzzleCategory): string {
 
 type PracticeFilter = PuzzleCategory | "all";
 
-/** The games rooms deal (the title's "73 games"). */
+/** The games rooms deal (the title's "72 games"). */
 const ACTIVE_GAME_COUNT = (() => {
   const counts = gameCounts();
   return counts.puzzle + counts.arcade;
@@ -423,7 +421,7 @@ function PracticeScreen() {
           ? roundEnded
             ? "early-end"
             : "timer"
-          : stage === "reveal" || stage === "result"
+          : stage === "reveal"
             ? "reveal"
             : "practice-back",
     },
@@ -445,24 +443,7 @@ function PracticeScreen() {
     void grade(draftAnswer.current);
   }, [stage, now, startedAt, durationMs, puzzle, grade]);
 
-  useEffect(() => {
-    if (stage !== "reveal") return;
-    if (now - startedAt < puzzleRevealMs(puzzle ?? undefined)) return;
-    setStage("result");
-  }, [stage, now, startedAt, puzzle]);
-
-  // The practice card takes the place of the podium fanfare.
-  const resultCued = useRef(0);
-  useEffect(() => {
-    if (stage !== "result" || resultCued.current === run) return;
-    resultCued.current = run;
-    playCorrect();
-  }, [stage, run]);
-  useEffect(() => {
-    if (stage !== "result" || !newBest) return;
-    const timer = setTimeout(() => setNewBest(false), 1600);
-    return () => clearTimeout(timer);
-  }, [stage, newBest]);
+  // Practice's reveal stays until Play again or Back (27 Oct 2026): no separate result page.
 
   if (stage === "list") {
     const visible = (key: PuzzleType) => matchesFilter(key, filter, query);
@@ -688,61 +669,9 @@ function PracticeScreen() {
           personalBest={newBest}
           startedAt={startedAt}
           now={now}
+          onPlayAgain={() => void load(type)}
+          onBack={() => setStage("list")}
         />
-        <SaveDemoButton
-          demoKey={demoKey}
-          puzzle={graded.puzzle}
-          sealed={sealed}
-          answer={graded.answer}
-          recording={recording}
-        />
-      </PhoneShell>
-    );
-  }
-
-  if (stage === "result" && graded) {
-    const secondsUsed = Math.max(0, Math.round((timeLimitMs - graded.msRemaining) / 100) / 10);
-    return (
-      <PhoneShell skin="practice" gameType={type}>
-        <div className="flex flex-1 flex-col items-center justify-center gap-6 text-center animate-phase-in">
-          <p className="th-kicker text-muted-foreground">{puzzleName(type)}</p>
-          <p className="th-score th-score-top font-mono text-6xl font-bold text-primary animate-pop-in">
-            {graded.score}
-          </p>
-          <div className="flex h-12 shrink-0 flex-col items-center gap-1" aria-live="polite">
-            <p className="font-mono text-sm text-muted-foreground">
-              Best: {deviceBest ?? "—"} · this device
-            </p>
-            {newBest ? (
-              <p className="font-display text-sm font-bold text-primary practice-new-best">
-                New best!
-              </p>
-            ) : null}
-          </div>
-          <p className="text-sm text-muted-foreground">
-            {graded.isCorrect ? "Correct" : graded.score > 0 ? "Partly solved" : "Not quite"} ·{" "}
-            {graded.reactionAvgMs !== null
-              ? `${graded.reactionAvgMs}ms average`
-              : `${secondsUsed}s`}
-          </p>
-
-          <div className="flex w-full max-w-xs flex-col gap-2">
-            <button
-              type="button"
-              onClick={() => void load(type)}
-              className="th-btn-gold press tap-target w-full rounded-xl bg-primary px-6 font-display text-base font-extrabold uppercase tracking-wide text-primary-foreground"
-            >
-              Play again
-            </button>
-            <button
-              type="button"
-              onClick={() => setStage("list")}
-              className="th-btn-ghost press tap-target w-full rounded-xl border border-border bg-card font-display text-xs font-semibold uppercase tracking-widest text-muted-foreground"
-            >
-              Back
-            </button>
-          </div>
-        </div>
         <SaveDemoButton
           demoKey={demoKey}
           puzzle={graded.puzzle}

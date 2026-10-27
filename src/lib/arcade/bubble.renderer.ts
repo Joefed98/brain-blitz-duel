@@ -36,6 +36,7 @@ import {
   bubRowsOf,
   BUB_V8_CHESTS,
   type BubState,
+  bubBombRadius,
 } from "./bubble";
 import { reducedMotion } from "./art.renderer";
 import { arcadeReducedEffects } from "@/lib/fx/lowEnd";
@@ -473,7 +474,8 @@ export function paintBubble(value: number) {
     c.arc(r, r, r - c.lineWidth, 0, Math.PI * 2);
     c.stroke();
     // Refinement (A3): the creature fills about 60 % of the bubble's diameter (was ~80 %), so more glass shows.
-    drawCreature(c, bubCreature(value), r, r + r * 0.03, r * 0.75);
+    // Phone notes (27 Oct 2026, display only, every revision): a little smaller again, 82 % of that (BUB_CREATURE_FIT).
+    drawCreature(c, bubCreature(value), r, r + r * 0.03, r * BUB_CREATURE_FIT);
     // Rim highlight, a round glint and the reflected light low on the far side.
     c.strokeStyle = "rgba(255,255,255,0.85)";
     c.lineWidth = Math.max(1, r * 0.12);
@@ -493,6 +495,9 @@ export function paintBubble(value: number) {
     bubbleGloss(c, r);
   };
 }
+
+/** The creature's fitting radius as a share of the bubble's (0.75 until the phone notes of 27 Oct 2026; 82 % of it). */
+const BUB_CREATURE_FIT = 0.615;
 
 /** Polish A3: the sand's colour at the world's very bottom, where the screen fill-in (bubbleFill) carries on. */
 export const BUB_SAND_FOOT = "#6E5A3E";
@@ -1033,7 +1038,9 @@ function drawBubbleArtWorld(ctx: CanvasRenderingContext2D, state: BubState, size
         ctx.strokeStyle = "#FFB347";
         ctx.lineWidth = Math.max(2, 5 * rs * (1 - k));
         ctx.beginPath();
-        ctx.arc(X(f.x), Y(f.y), (BUB_R + (still ? 2 : k * 2.4) * BUB_ROW_H) * rs, 0, Math.PI * 2);
+        // bubbleRev 10: the ring reaches out over the mine's second ring (2.4 rows on one ring, 3.6 on two).
+        const reach = 1.2 * (bubBombRadius(state) + 1);
+        ctx.arc(X(f.x), Y(f.y), (BUB_R + (still ? 2 : k * reach) * BUB_ROW_H) * rs, 0, Math.PI * 2);
         ctx.stroke();
         ctx.fillStyle = "rgba(255,240,200,0.5)";
         ctx.beginPath();
