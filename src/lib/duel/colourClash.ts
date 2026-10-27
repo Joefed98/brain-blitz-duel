@@ -3,7 +3,7 @@ import { CLASH_BANDS_MAP, CLASH_GREAT_MAP, clashCheckpoint, clashDepthScoreOf, t
 import { makeArcadeRun, type FlatReplay } from "./arcadeRun";
 
 const opts = { tag: "stroop", checkpoint: clashCheckpoint, keys: CLASH_CHECKPOINT_KEYS, interval: CLASH_CHECKPOINT_INTERVAL } as const;
-const runs = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9].map((variant) => makeArcadeRun<ClashState, ClashCheckpoint>({ ...opts, game: colourClashGameFor(variant) }));
+const runs = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((variant) => makeArcadeRun<ClashState, ClashCheckpoint>({ ...opts, game: colourClashGameFor(variant) }));
 export const encodeColourClashRun = runs[3]!.encode;
 export const decodeColourClashRun = runs[3]!.decode;
 export interface ColourClashResult extends FlatReplay<ClashState, ClashCheckpoint> {
@@ -13,7 +13,7 @@ export interface ColourClashResult extends FlatReplay<ClashState, ClashCheckpoin
   /** clashRev 5: words right less words wrong, the units of the unfinished credit; absent on older variants. */
   net?: number;
   /** clashRev 8 (depth to 200): the score's parts and the run's streak, gold and "don't sort" counts; absent on older variants. */
-  depth?: ClashDepthScore & { best: number; golds: number; goldWords: number; touched: number; passed: number; skips: number };
+  depth?: ClashDepthScore & { best: number; golds: number; goldWords: number; touched: number; passed: number; skips: number; standard?: boolean };
 }
 /** `variant` = clashVariantOf(stored puzzle): older rounds replay on their own rules. */
 export function replayColourClashRun(seed: number, raw: string, variant: number): ColourClashResult {
@@ -26,6 +26,16 @@ export function replayColourClashRun(seed: number, raw: string, variant: number)
   // clashRev 4 scores a finish (all sorted, at most 2 wrong) as 120 + its speed part, so the bonus
   // is the score above 120; a run with more wrong gates is unfinished and has none.
   // clashRev 5 finishes the same way (its unfinished credit is net words right, `net`).
+  if (variant === 10 && s.depth) {
+    // clashRev 10 (the scoring standard): 150 + speed + streak + gold on a finish; the share plus streak and gold otherwise.
+    const parts = clashDepthScoreOf(s);
+    const d = s.depth;
+    return {
+      ...result, correct: s.correct, wrong: s.wrong, missed: s.missed, total, queue: s.queue,
+      timeBonus: parts.finished ? parts.stretch : 0, finished: parts.finished, finishBase: parts.finished ? parts.base : 0, net: s.correct - s.wrong,
+      depth: { ...parts, best: d.best, golds: d.golds, goldWords: d.goldAt.length, touched: d.touched, passed: d.passed, skips: d.skips.length, standard: true },
+    };
+  }
   if ((variant === 8 || variant === 9) && s.depth) {
     // clashRev 8: clashRev 7's score (its finish base and speed part) plus the gold points and the speed stretch.
     const parts = clashDepthScoreOf(s);

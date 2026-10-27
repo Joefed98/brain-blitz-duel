@@ -14,6 +14,7 @@ import { playSound, playWrong } from "@/lib/sound";
 import { soundCue, usePrevious, useSolveFx } from "./logicFx";
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 import { usesDepth } from "@/lib/duel/logicDepth";
+import { usesStandard } from "@/lib/duel/standard/stamps";
 import "@/polish-depth-d6/depth-d6.css";
 
 /** One vertical drum, with arrows that repeat while held and a vertical swipe. */
@@ -216,7 +217,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "safe" }: P
             <p className="font-mono text-[11px] uppercase tracking-widest text-muted-foreground">
               tries left <span className="text-primary">{triesLeft}</span>
               {/* depthRev 1: opening with a try to spare is a clean crack (the top 50 by speed: all of it on try 1, half on try 2). */}
-              {isSafe && usesDepth(puzzle) && triesLeft > 1 ? (
+              {/* The scoring standard (depthRev 3): the clean crack is full only with no wrong try (2.5 off each). */}
+              {isSafe && usesDepth(puzzle) && (usesStandard(puzzle) ? triesLeft === SAFE_TRIES : triesLeft > 1) ? (
                 <span className="d6-clean"> · clean crack</span>
               ) : null}
             </p>
@@ -279,7 +281,7 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: Puz
       )}
       <p className="font-mono text-base uppercase tracking-widest text-muted-foreground">
         {myCorrect
-          ? `opened on try ${tries.length}${usesDepth(puzzle) && tries.length < SAFE_TRIES ? " · clean crack" : ""}${elapsed !== null ? ` · ${elapsed.toFixed(1)}s` : ""}`
+          ? `opened on try ${tries.length}${usesDepth(puzzle) && (usesStandard(puzzle) ? tries.length === 1 : tries.length < SAFE_TRIES) ? " · clean crack" : ""}${elapsed !== null ? ` · ${elapsed.toFixed(1)}s` : ""}`
           : `locked · ${last ? dialsCorrect(last, combination) : 0} / ${SAFE_DIALS} dials`}
       </p>
     </div>

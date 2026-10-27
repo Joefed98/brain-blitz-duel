@@ -54,6 +54,8 @@ const { generatePuzzle } = await import("../src/lib/duel/generate.server");
 const { withSeededRandom } = await import("../src/lib/duel/random");
 const { puzzleDef } = await import("../src/lib/duel/registry");
 const { decodeSteps } = await import("../src/lib/duel/target");
+// The scoring standard's draft timeline (standard/timeline.ts) rides after the answer on its stamps: read the plain answer.
+const { stripTimeline } = await import("../src/lib/duel/standard/timeline");
 type DraftStorage = import("../src/lib/duel/roomDraft").DraftStorage;
 type PuzzleData = import("../src/lib/duel/types").PuzzleData;
 
@@ -364,8 +366,8 @@ async function mountStage(room: Room, puzzle: PuzzleData) {
     await turnNew();
     await turnNew();
     const before = room.keeper.current(room.key);
-    const board = (x: string) => x.split("~")[0] ?? "";
-    const taps = (x: string) => x.split("~")[1] ?? "";
+    const board = (x: string) => stripTimeline(x).split("~")[0] ?? "";
+    const taps = (x: string) => stripTimeline(x).split("~")[1] ?? "";
     const diff = (x: string, y: string) => [...board(x)].filter((ch, i) => ch !== board(y)[i]).length;
     check(board(before).length === board(opening).length && diff(before, opening) === 2, `Pipes seed ${seed}: two turns were not drafted (${opening} → ${before})`);
     await unmount(root);

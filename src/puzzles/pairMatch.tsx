@@ -22,6 +22,7 @@ import { buzz } from "@/lib/motion";
 import { playCorrect, playCueSlot, playTone, playWrong } from "@/lib/sound";
 import { PAIR_GOLD_WINDOW_MS, isGoldCard, joinPairGoldTime, pairDepthReplay, pairGoldTimed, pairUsesDepth, splitPairGoldTime } from "@/lib/duel/depth/matchmaker";
 import { serverNow } from "@/lib/duel/clock";
+import { pairGoldPoints, pairStandard } from "@/lib/duel/standard/attention";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
@@ -165,6 +166,8 @@ function Stage({
   // pairRev 1 (Depth to 200): the streak multiplier and the gold pair, walked from the same flips as the server.
   const depth = data && pairUsesDepth(data) ? pairDepthReplay(data, flips, goldMs) : null;
   const timedGold = pairGoldTimed(data);
+  // The scoring standard (pairRev 3): the streak is the run of matches (no multiplier) and the gold pair is worth 15.
+  const standard = pairStandard(data);
   const encode = (list: number[], gold: number | null) => (timedGold ? joinPairGoldTime(encodePairFlips(list), gold) : encodePairFlips(list));
 
   useEffect(() => {
@@ -247,12 +250,12 @@ function Stage({
           <>
             {" · "}
             <span key={depth.multiplier} data-pair-streak={depth.multiplier} className={`pairmatch-streak ${depth.multiplier >= 2 ? "is-live animate-scale-in" : ""}`}>
-              streak ×{depth.multiplier}
+              {standard ? `streak ${depth.streak}` : `streak ×${depth.multiplier}`}
             </span>
             {depth.goldTry !== null ? (
               <>
                 {" · "}
-                <span data-pair-gold-found="" className="pairmatch-gold-found">gold +{depth.goldBonus}</span>
+                <span data-pair-gold-found="" className="pairmatch-gold-found">gold +{standard ? pairGoldPoints(depth.goldTry, depth.goldMs) : depth.goldBonus}</span>
               </>
             ) : timedGold && now - phaseStartedAt < PAIR_GOLD_WINDOW_MS ? (
               <>
@@ -268,12 +271,14 @@ function Stage({
   );
 }
 
-function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProps) {
+function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining, myExtra }: PuzzleRevealProps) {
   if (puzzle.type !== "pairmatch") return null;
   const replay = replayPairs(puzzle.cards, decodePairFlips(myAnswer ?? ""));
   const depth = pairUsesDepth(puzzle) ? pairDepthReplay(puzzle, decodePairFlips(myAnswer ?? ""), splitPairGoldTime(myAnswer).goldMs) : null;
   const elapsed =
     myMsRemaining === undefined ? null : Math.round((timeLimitMs - myMsRemaining) / 100) / 10;
+  // The scoring standard (pairRev 3): the streak and gold points as the server stored them (none shown before they arrive).
+  const stored = (key: string) => (typeof myExtra?.[key] === "number" ? `, +${myExtra[key] as number}` : "");
   const everything = new Set(Array.from({ length: PAIR_CARDS }, (_, index) => index));
 
   return (
@@ -289,7 +294,9 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: Puz
       </p>
       {depth ? (
         <p data-pair-reveal-bonus="" className="text-center font-mono text-xs text-muted-foreground">
-          Best streak {depth.bestStreak} · streak +{depth.streakBonus} · gold {depth.goldTry !== null ? (depth.goldMs !== null ? `${(depth.goldMs / 1000).toFixed(1)}s, +${depth.goldBonus}` : `try ${depth.goldTry}, +${depth.goldBonus}`) : "not found"}
+          {pairStandard(puzzle)
+            ? `Best streak ${depth.bestStreak}${stored("streakPoints")} · gold ${depth.goldTry !== null && depth.goldMs !== null ? `${(depth.goldMs / 1000).toFixed(1)}s${stored("goldPoints")}` : "not found"}`
+            : `Best streak ${depth.bestStreak} · streak +${depth.streakBonus} · gold ${depth.goldTry !== null ? (depth.goldMs !== null ? `${(depth.goldMs / 1000).toFixed(1)}s, +${depth.goldBonus}` : `try ${depth.goldTry}, +${depth.goldBonus}`) : "not found"}`}
         </p>
       ) : null}
     </div>

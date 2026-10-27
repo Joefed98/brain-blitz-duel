@@ -25,7 +25,10 @@ import { hashText, makeRng } from "./puzzle-fairness/kit";
 import { roomPuzzle } from "./puzzle-fairness/run";
 import { doubleTakeDepthIntro, doubleTakeDepthHelp } from "../src/lib/duel/depth/attentionTexts";
 import { TABLE_SEEDS, checkTexts, finish, median, ok, printTable, replayLegacy, scoreTable, top10 } from "./depth-attention-lib";
+import { pinPreStandard } from "../src/lib/duel/standard/stamps";
 
+// The scoring standard (27 Oct 2026) deals Double Take spotRev 3: this check proves spotRev 2, the stamp it was written for.
+pinPreStandard(true);
 const legacy = replayLegacy("spotdiff");
 
 const unshrink = (shapes: SpotShape[]) => shapes.map(({ small: _small, ...rest }) => rest);

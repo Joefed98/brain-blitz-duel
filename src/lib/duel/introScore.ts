@@ -1,24 +1,20 @@
-import { CLASH_DEPTH_MAX_WRONG, CLASH_QUEUE } from "@/lib/arcade/colourClash";
 import { BULLSEYE_INNER_BULL_POINTS, BULLSEYE_RING_VALUES } from "@/lib/arcade/bullseye";
 import { BINTOSS_FAR_POINTS, BINTOSS_THROWS } from "@/lib/arcade/binToss";
 import { INK_FEATURE_MAX, INK_LEVELS } from "@/lib/arcade/inkBridge";
 import { TILT_X_MAZES } from "@/lib/arcade/tilt";
 import { bandsIntro } from "./puzzleBandsText";
-import { depthIntro as logicDepthIntro } from "./logicDepthText";
+import { logicStandardIntro } from "./standard/logicText";
 import { wordSearchBonusIntro } from "./wordSearchText";
 import { letterWheelJarIntro } from "./letterWheelText";
 import { CODEWORD_STRETCH, TILEGRID_STRETCH_TOPUP, stretchIntro, strikeoutDepthIntro } from "./depth/stretchShapes";
 import { parBonusIntro } from "./parBonusText";
-import { doubleTakeDepthIntro, eagleEyeDepthIntro, tallyDepthIntro } from "./depth/attentionTexts";
-import { ASCEND_DEPTH_INTRO, BANGON_DEPTH_INTRO, FLASH_DEPTH_INTRO } from "./depth/speedTexts";
+import { WORD_STANDARD_INTRO } from "./standard/word";
+import { preStandardPinned } from "./standard/stamps";
+import { STANDARD_ATTENTION_INTRO } from "./standard/attentionTexts";
+import { BANGON_DEPTH_INTRO, FLASH_DEPTH_INTRO } from "./depth/speedTexts";
 import { depthIntro } from "./numberDepthText";
-import { d4IntroTemplate } from "./depth4/text";
+import { PATTERN_STD_INTRO } from "./standard/patternText";
 import { fillMax, liveRecord } from "./roundMax";
-import { CHAIN_DEPTH_INTRO } from "./depth/chain";
-import { PAIR_DEPTH_INTRO } from "./depth/matchmaker";
-import { labyrinthDepthIntro } from "./depth/labyrinth";
-import { TOPSY_INTRO_SCORE } from "./topsy";
-import { JUMBLED_INTRO_SCORE } from "./jumbled";
 import type { PuzzleType } from "./types";
 
 /**
@@ -37,13 +33,14 @@ function introScoreTemplates(): Record<PuzzleType, string> {
     // Word
     wordsmith: "Longer words score more. The word using every tile adds a big bonus; {max} only with it.",
     wordhunt: "Longer words score more; 6+ letters and the gold tile add extra. {max} needs both.",
-    tilegrid: stretchIntro("tilegrid", TILEGRID_STRETCH_TOPUP),
-    wordslide: parBonusIntro("wordslide", "moves"),
-    wordsearch: wordSearchBonusIntro(),
-    letterwheel: letterWheelJarIntro(),
-    strikeout: strikeoutDepthIntro(),
-    codeword: stretchIntro("codeword", CODEWORD_STRETCH),
-    swapword: parBonusIntro("swapword", "swaps"),
+    // The scoring standard (standard/word.ts); a check that pins the standard off reads the texts of the stamps before it.
+    tilegrid: preStandardPinned() ? stretchIntro("tilegrid", TILEGRID_STRETCH_TOPUP) : WORD_STANDARD_INTRO.tilegrid,
+    wordslide: preStandardPinned() ? parBonusIntro("wordslide", "moves") : WORD_STANDARD_INTRO.wordslide,
+    wordsearch: preStandardPinned() ? wordSearchBonusIntro() : WORD_STANDARD_INTRO.wordsearch,
+    letterwheel: preStandardPinned() ? letterWheelJarIntro() : WORD_STANDARD_INTRO.letterwheel,
+    strikeout: preStandardPinned() ? strikeoutDepthIntro() : WORD_STANDARD_INTRO.strikeout,
+    codeword: preStandardPinned() ? stretchIntro("codeword", CODEWORD_STRETCH) : WORD_STANDARD_INTRO.codeword,
+    swapword: preStandardPinned() ? parBonusIntro("swapword", "swaps") : WORD_STANDARD_INTRO.swapword,
     wordfall: "Longer words score more; Qu counts as two letters. {max} for a big haul of words.",
 
     // Number
@@ -63,39 +60,40 @@ function introScoreTemplates(): Record<PuzzleType, string> {
     // Depth to 200 (tapRev 5): depth/speedTexts.ts.
     reaction: FLASH_DEPTH_INTRO,
     stopwatch: BANGON_DEPTH_INTRO,
-    numhunt: ASCEND_DEPTH_INTRO,
-    chain: CHAIN_DEPTH_INTRO,
+    // The scoring standard (27 Oct 2026): standard/attentionTexts.ts.
+    numhunt: STANDARD_ATTENTION_INTRO.numhunt,
+    chain: STANDARD_ATTENTION_INTRO.chain,
     whack: "Points per target hit; combos and diamonds add more, up to {max}. Wrong taps cost.",
     clayshoot: "Points per clay, more for quick hits; doubles and streaks add up to {max}. Birds cost.",
-    symscan: eagleEyeDepthIntro(),
-    countup: tallyDepthIntro(),
-    spotdiff: doubleTakeDepthIntro(),
-    pairmatch: PAIR_DEPTH_INTRO,
-    maze: labyrinthDepthIntro(),
-    stroop: `Sort all ${CLASH_QUEUE}, ${CLASH_DEPTH_MAX_WRONG} wrong at most; gold words and a long streak on a quick run reach {max}.`,
+    symscan: STANDARD_ATTENTION_INTRO.symscan,
+    countup: STANDARD_ATTENTION_INTRO.countup,
+    spotdiff: STANDARD_ATTENTION_INTRO.spotdiff,
+    pairmatch: STANDARD_ATTENTION_INTRO.pairmatch,
+    maze: STANDARD_ATTENTION_INTRO.maze,
+    stroop: STANDARD_ATTENTION_INTRO.stroop,
 
     // Logic and pattern
-    unblock: d4IntroTemplate("unblock"),
-    lightsout: logicDepthIntro("lightsout"),
-    pipes: d4IntroTemplate("pipes"),
-    sudoku: logicDepthIntro("sudoku"),
-    flow: d4IntroTemplate("flow"),
-    iceslide: d4IntroTemplate("iceslide"),
-    push: d4IntroTemplate("push"),
-    laser: d4IntroTemplate("laser"),
-    tower: logicDepthIntro("tower"),
-    tubes: logicDepthIntro("tubes"),
-    safe: logicDepthIntro("safe"),
-    bomb: logicDepthIntro("bomb"),
-    gravity: TOPSY_INTRO_SCORE,
-    nonogram: logicDepthIntro("nonogram"),
-    flood: logicDepthIntro("flood"),
-    tiles: JUMBLED_INTRO_SCORE,
-    rings: d4IntroTemplate("rings"),
-    blockparty: d4IntroTemplate("blockparty"),
-    shikaku: logicDepthIntro("shikaku"),
-    lightup: logicDepthIntro("lightup"),
-    tents: logicDepthIntro("tents"),
+    unblock: PATTERN_STD_INTRO.unblock,
+    lightsout: logicStandardIntro("lightsout"),
+    pipes: PATTERN_STD_INTRO.pipes,
+    sudoku: logicStandardIntro("sudoku"),
+    flow: PATTERN_STD_INTRO.flow,
+    iceslide: PATTERN_STD_INTRO.iceslide,
+    push: PATTERN_STD_INTRO.push,
+    laser: PATTERN_STD_INTRO.laser,
+    tower: logicStandardIntro("tower"),
+    tubes: logicStandardIntro("tubes"),
+    safe: logicStandardIntro("safe"),
+    bomb: logicStandardIntro("bomb"),
+    gravity: PATTERN_STD_INTRO.gravity,
+    nonogram: logicStandardIntro("nonogram"),
+    flood: logicStandardIntro("flood"),
+    tiles: PATTERN_STD_INTRO.tiles,
+    rings: PATTERN_STD_INTRO.rings,
+    blockparty: PATTERN_STD_INTRO.blockparty,
+    shikaku: logicStandardIntro("shikaku"),
+    lightup: logicStandardIntro("lightup"),
+    tents: logicStandardIntro("tents"),
     dig: "Fill the drain with clean water for 100, more if you're quick and use few digs.",
 
     // Arcade

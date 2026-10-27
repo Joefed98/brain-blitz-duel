@@ -30,6 +30,7 @@ import { rightMoveFlash } from "@/lib/fx/gameToolkit";
 import { registerFxPreview } from "@/components/puzzles/speedFx";
 
 import { ASCEND_FLOW_TOP, ascendFlow, liveFlowMultiplier, usesAscendDepth } from "@/lib/duel/depth/ascend";
+import { ascendBestRun, ascendStandard } from "@/lib/duel/standard/attention";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
@@ -130,7 +131,7 @@ function IntroExample() {
           />
         </svg>
       </div>
-      <p className="text-center text-xs text-muted-foreground">Wrong taps cost you points; quick right taps in a row build a flow bonus.</p>
+      <p className="text-center text-xs text-muted-foreground">Wrong taps cost you points; right taps in a row build a flow bonus.</p>
     </div>
   );
 }
@@ -230,6 +231,7 @@ function AscendBoard({
   onTap,
   arenaRef,
   flow = null,
+  run = null,
 }: {
   spots: HuntSpot[];
   next: number;
@@ -242,6 +244,8 @@ function AscendBoard({
   arenaRef: RefObject<HTMLDivElement | null>;
   /** Depth (tapRev 5): the flow multiplier on show (null: an older round, no chip). */
   flow?: number | null;
+  /** The scoring standard (tapRev 6): the run of right taps since the last wrong one (null: an older round, no chip). */
+  run?: number | null;
 }) {
   const spotsRef = useRef(spots);
   spotsRef.current = spots;
@@ -252,6 +256,7 @@ function AscendBoard({
         <span className="flex min-w-0 items-center gap-2 font-mono text-xs uppercase tracking-widest text-muted-foreground">
           <span className="truncate">Next: {spots[Math.min(next, spots.length - 1)]?.n ?? ""}</span>
           {flow !== null ? <FlowChip level={flow} /> : null}
+          {run !== null ? <RunChip run={run} /> : null}
         </span>
         <MoveTimer elapsed={elapsed} />
         <span className="text-right font-mono text-xs text-muted-foreground">
@@ -298,6 +303,30 @@ function FlowChip({ level }: { level: number }) {
       </span>
     </span>
   );
+}
+
+/**
+ * The scoring standard (tapRev 6): the flow streak is the longest run of right taps with no wrong tap between, so the
+ * pill shows the run going now (its dot lit from 4). Display only; the server works it out from the same tap log.
+ */
+function RunChip({ run }: { run: number }) {
+  return (
+    <span
+      data-ascend-run={run}
+      aria-label={`${run} in a row`}
+      className="ascend-flow-chip inline-flex h-5 shrink-0 items-center gap-1 rounded-full px-1.5 font-mono text-xs font-bold normal-case tracking-normal tabular-nums"
+    >
+      <span aria-hidden="true" className="ascend-flow-dot" data-on={run >= 4 ? "" : undefined} />
+      {run} in a row
+    </span>
+  );
+}
+
+/** The run of right taps since the last wrong tap (the standard's flow streak, live). */
+function currentRun(outcomes: readonly string[]): number {
+  let run = 0;
+  for (const o of outcomes) run = o === "wrong" ? 0 : o === "correct" ? run + 1 : run;
+  return run;
 }
 
 /**
@@ -398,6 +427,7 @@ function LoggedStage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAns
       onTap={handleTap}
       arenaRef={arenaRef}
       flow={usesAscendDepth(puzzle) ? liveFlowMultiplier(ascendFlow(puzzle, taps.current), Math.max(0, now - phaseStartedAt)) : null}
+      run={ascendStandard(puzzle) ? currentRun(replay.outcomes) : null}
     />
   );
 }
@@ -415,6 +445,11 @@ function storedFlow(extra: Record<string, unknown> | null | undefined): { flow: 
 function Reveal({ puzzle, myAnswer, myExtra }: PuzzleRevealProps) {
   if (puzzle.type !== "numhunt") return null;
   const flow = usesAscendDepth(puzzle) ? storedFlow(myExtra) : null;
+  // The scoring standard (tapRev 6): the flow streak's best run (the stored grade's, else the log's) and its stored points.
+  const standard = ascendStandard(puzzle) && usesTapLog(puzzle);
+  const storedRun = myExtra?.["bestRun"];
+  const bestRun = !standard ? 0 : typeof storedRun === "number" ? storedRun : ascendBestRun(replayAscend(puzzle, decodeNumberTaps(myAnswer ?? "", NUMHUNT_TIME_MS, puzzle).taps).outcomes);
+  const flowPoints = typeof myExtra?.["flowPoints"] === "number" ? (myExtra["flowPoints"] as number) : null;
   const { reached, errors, elapsedMs } = usesTapLog(puzzle) ? loggedRun(puzzle, myAnswer) : parseRun(myAnswer);
   const finished = reached >= puzzle.spots.length;
 
@@ -439,6 +474,12 @@ function Reveal({ puzzle, myAnswer, myExtra }: PuzzleRevealProps) {
               ).toFixed(1)}s`
             : `Did not finish · reached ${Math.max(reached, 0)} of ${puzzle.spots.length}`}
         </p>
+        {standard ? (
+          <p data-ascend-flow-reveal="" className="text-center font-mono text-sm text-muted-foreground">
+            Flow: best run {bestRun} of {puzzle.spots.length}
+            {flowPoints !== null ? ` · +${flowPoints}` : ""}
+          </p>
+        ) : null}
         {flow ? (
           <p data-ascend-flow-reveal="" className="text-center font-mono text-sm text-muted-foreground">
             Flow bonus +{flow.flow} · best ×{flow.best}

@@ -67,10 +67,13 @@ import { reactionPuzzle } from "../src/puzzles/reaction";
 import { stopWatchPuzzle } from "../src/puzzles/stopWatch";
 import { numberHuntPuzzle } from "../src/puzzles/numberHunt";
 import { pinPreTopup } from "../src/lib/duel/depthTopup";
+import { pinPreStandard } from "../src/lib/duel/standard/stamps";
 
 // The puzzle top-up (26 Oct 2026, docs/depth/topup-oct-2026.md) deals newer stamps; this check proves the stamps it was
 // written for, so new deals are pinned to them (depth-topup-check proves the top-up's).
 pinPreTopup(true);
+// …and the scoring standard (27 Oct 2026, Ascend tapRev 6; standard-attention-check proves it).
+pinPreStandard(true);
 
 type Stored = { score: number; reactionAvgMs: number | null; storedMs: number; errors: number | null; correctCount: number | null; isCorrect: boolean };
 interface Run {

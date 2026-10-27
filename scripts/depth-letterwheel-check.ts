@@ -17,6 +17,9 @@
  *   bun scripts/depth-letterwheel-check.ts --record   # re-record the legacy fixture (only before the change)
  */
 import { readFileSync, writeFileSync } from "node:fs";
+import { pinPreStandard } from "../src/lib/duel/standard/stamps";
+// Written for the stamps before the scoring standard (docs/scoring-standard.md): new deals keep them.
+pinPreStandard(true);
 import { gunzipSync, gzipSync } from "node:zlib";
 
 import { gradeAnswer } from "../src/lib/duel/generate.server";

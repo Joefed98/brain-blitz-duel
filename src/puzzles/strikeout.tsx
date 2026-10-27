@@ -3,6 +3,8 @@ import { Delete } from "lucide-react";
 
 import { gameDisplayName } from "@/lib/duel/gameNames";
 import { useStageState } from "@/lib/duel/stageState";
+import { usesStandard } from "@/lib/duel/standard/stamps";
+import { STD_STRIKEOUT, strikeoutEarlySolvePoints } from "@/lib/duel/standard/word";
 import {
   SO2_VOWELS,
   SO2_WORDS,
@@ -372,14 +374,17 @@ function VowelsLeft({ left, max }: { left: number; max: number }) {
  * over the round. Absolutely centred in the dots row, so it never moves anything; empty until the first early solve.
  * The points are the server's (they also need a quick finish); this only counts what the board showed.
  */
-function EarlyPill({ hidden, pillRef }: { hidden: number; pillRef: Ref<HTMLSpanElement> }) {
+function EarlyPill({ hidden, pillRef, points = false }: { hidden: number; pillRef: Ref<HTMLSpanElement>; points?: boolean }) {
+  // The scoring standard (strikeoutRev 7): the pill counts the early-solve points themselves (word.ts), which the
+  // board shows in full: 4 per word solved with 3+ letters still hidden.
+  const label = points ? `Early solves: ${hidden} point${hidden === 1 ? "" : "s"}` : `Early solves: ${hidden} letter${hidden === 1 ? "" : "s"} still hidden`;
   return (
     <div className="pointer-events-none absolute inset-0 flex items-center justify-center" aria-live="polite">
       <span
         ref={pillRef}
         data-so-early={hidden}
         className={`so-early-pill rounded-full px-2 py-0.5 font-mono text-[11px] font-bold uppercase tracking-wider ${hidden > 0 ? "" : "invisible"}`}
-        aria-label={`Early solves: ${hidden} letter${hidden === 1 ? "" : "s"} still hidden`}
+        aria-label={label}
       >
         Early +{hidden}
       </span>
@@ -441,6 +446,8 @@ function Stage2({ puzzle, locked, onSubmit, onDraftAnswer, checkMoves, stateKey 
   const key = stateKey ?? "strikeout";
   const rev = data ? strikeoutRevOf(data) : STRIKEOUT_REV2;
   const rules = so2Rules(rev);
+  // The scoring standard (strikeoutRev 7, standard/word.ts): the early pill shows the early-solve points.
+  const standard = !!data && usesStandard(data);
   const [actions, setActions] = useStageState<So2Action[]>(key, "so2Actions", () => []);
   const [view, setView] = useStageState<SoView | null>(key, "so2View", () => null);
   const [solving, setSolving] = useStageState<boolean>(key, "so2Solving", () => false);
@@ -498,13 +505,14 @@ function Stage2({ puzzle, locked, onSubmit, onDraftAnswer, checkMoves, stateKey 
         const w = before?.word ?? 0;
         const hidden = [...(before?.rows[w] ?? words[w] ?? "")].filter((ch) => ch === "_").length;
         if (hidden > 0) {
+          const counts = !standard || hidden >= STD_STRIKEOUT.earlyHidden;
           setEarly((list) => {
             const out = [...list];
             while (out.length < w) out.push(0);
             out[w] = hidden;
             return out;
           });
-          popEarly(earlyRef.current);
+          if (counts) popEarly(earlyRef.current);
         }
       }
       setAccepted((a) => ({ word: solvedWord, points: 30, serial: (a?.serial ?? 0) + 1 }));
@@ -654,7 +662,13 @@ function Stage2({ puzzle, locked, onSubmit, onDraftAnswer, checkMoves, stateKey 
       </div>
       <div className="relative flex h-6 w-full shrink-0 items-center justify-between px-2">
         <WordDots solved={solvedCount} current={view?.word ?? 0} />
-        {rev >= STRIKEOUT_REV5 ? <EarlyPill hidden={early.reduce((a, b) => a + (b ?? 0), 0)} pillRef={earlyRef} /> : null}
+        {rev >= STRIKEOUT_REV5 ? (
+          standard ? (
+            <EarlyPill hidden={strikeoutEarlySolvePoints(early)} pillRef={earlyRef} points />
+          ) : (
+            <EarlyPill hidden={early.reduce((a, b) => a + (b ?? 0), 0)} pillRef={earlyRef} />
+          )
+        ) : null}
         <VowelsLeft left={vowelsLeft} max={rules.maxVowels} />
       </div>
       <div data-game-arena="strikeout" className="flex min-h-0 w-full flex-1 items-center justify-center" style={{ containerType: "size" }}>

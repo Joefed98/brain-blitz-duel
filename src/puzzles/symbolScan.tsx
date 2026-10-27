@@ -23,6 +23,7 @@ import {
 import { scanRev1StageResult, scanStageMatches, usesScanRev1 } from "@/lib/duel/attentionRev";
 import { SCAN_DEPTH_REV, SCAN_TOPUP_REV, scanCorrections, usesScanDepth } from "@/lib/duel/depth/eagleEye";
 import { dealtTopupRev } from "@/lib/duel/depthTopup";
+import { scanStandard } from "@/lib/duel/standard/attention";
 import { EagleArt as EagleIcon, playEagleTakeoff } from "./eagleEyeArt";
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 import { useBeforePaint } from "@/components/puzzles/useBeforePaint";
@@ -332,7 +333,8 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
           </button>
         ))}
       </div>
-      {usesScanDepth(puzzle) && scanCorrections(myAnswer) > 0 ? (
+      {/* The scoring standard (scanRev 4) scores clean grids from the round's history instead, so the count is not shown. */}
+      {usesScanDepth(puzzle) && !scanStandard(puzzle) && scanCorrections(myAnswer) > 0 ? (
         <p data-eye-undone="" className="text-center font-mono text-xs text-muted-foreground">
           {scanCorrections(myAnswer)} {scanCorrections(myAnswer) === 1 ? "tap" : "taps"} taken back
         </p>

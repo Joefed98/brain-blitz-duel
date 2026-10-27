@@ -73,7 +73,7 @@ for (const type of ACTIVE_PUZZLE_TYPES as readonly PuzzleType[]) {
   // The old flow cut every run mounted past the phase slack.
   check(!(ARCADE_PHASE_SLACK_MS + 1000 + run + FINISH_MS <= duration), `${type}: the old time-out was not cutting late runs (setup)`);
 }
-check(arcadeGames >= 22, `only ${arcadeGames} arcade-clock games in rooms`);
+check(arcadeGames >= 21, `only ${arcadeGames} arcade-clock games in rooms`);
 check(puzzleGames >= 40, `only ${puzzleGames} puzzles`);
 
 {

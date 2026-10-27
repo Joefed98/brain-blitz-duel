@@ -15,6 +15,8 @@
  *
  * Every function is shared (phone and server): the decoders and replays it uses are the graders'.
  */
+import { usesStandard } from "./standard/stamps";
+import { swapwordBlindSwaps } from "./standard/word";
 import { blockGeometry, decodePlacements, verifyPlacements } from "./blockParty";
 import { decodeFlowPaths, verifyFlow } from "./flow";
 import { acceptedRects, decodeShikaku, shikakuHeightOf } from "./shikaku";
@@ -165,7 +167,10 @@ export function solutionProgress(puzzle: PuzzleData, answer: string, extra?: Rec
       if (!solution) return null;
       const run = replaySwapword(puzzle.start, decodeSwapword(answer), puzzle.maxSwaps, solution);
       const { toPlace, placed, displaced } = swapwordCounts(puzzle.start, run.board, solution);
-      return { text: `${Math.max(0, placed - displaced)}/${toPlace} tiles placed`, cost: displaced > 0 ? `${displaced} moved out of place` : null };
+      // The scoring standard (swapwordRev 7, standard/word.ts): blind swaps count against the tiles placed too.
+      const blind = usesStandard(puzzle) ? swapwordBlindSwaps(puzzle.start, decodeSwapword(answer), run.swaps, solution) : 0;
+      const costs = [...(displaced > 0 ? [`${displaced} moved out of place`] : []), ...(blind > 0 ? [`${blind} blind swap${blind === 1 ? "" : "s"}`] : [])];
+      return { text: `${Math.max(0, placed - displaced - blind)}/${toPlace} tiles placed`, cost: costs.length ? costs.join(", ") : null };
     }
     case "wordslide": {
       const validRows = extra?.["validRows"];

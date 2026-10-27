@@ -144,6 +144,14 @@ export function roundMaxGeneration(): number {
   return generation;
 }
 
+/**
+ * Cached texts rebuild (liveRecord) when a check pins the scoring standard off or on (standard/stamps.ts
+ * pinPreStandard: the texts of the stamps before it). Never called by the app.
+ */
+export function rebuildLiveRecords(): void {
+  generation++;
+}
+
 /* ------------------------------------------------------------------ reads */
 
 /**
@@ -231,7 +239,8 @@ export function fillMax(text: string, type: string | null | undefined): string {
 
 /**
  * A record built by `build` (texts that state a game's maximum), rebuilt only when a check's
- * override changes the maximums (roundMaxGeneration), so the app builds it once.
+ * override changes the maximums (roundMaxGeneration) or a check pins the scoring standard off
+ * (rebuildLiveRecords: the texts of the stamps before it), so the app builds it once.
  */
 export function liveRecord<T extends object>(build: () => T): T {
   let built: T | null = null;
