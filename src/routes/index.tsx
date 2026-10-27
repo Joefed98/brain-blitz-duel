@@ -42,7 +42,7 @@ import { APP_DESCRIPTION, APP_TITLE } from "@/lib/brand";
 import { useScreenMusic } from "@/lib/useScreenMusic";
 
 const GAME_COUNTS = gameCounts();
-/** Every game rooms deal (the Warm up's "All 73 games"). */
+/** Every game rooms deal (the Warm up's "All 72 games"). */
 const ACTIVE_GAMES = GAME_COUNTS.puzzle + GAME_COUNTS.arcade;
 
 export const Route = createFileRoute("/")({

@@ -241,8 +241,8 @@ ok(/roundMaxFor\(game\)/.test(read("src/lib/arcade/liveBands.ts")), "the band ga
   };
   const { ARCADE_ROOM_BEST_PREFIX, RETIRED_ARCADE_ROOM_BEST_PREFIXES, recordArcadeRoomBest } = await import("../src/lib/fx/arcadeBest");
   ok(ARCADE_ROOM_BEST_PREFIX === "duelz-arcade-room-best:v2:" && !RETIRED_ARCADE_ROOM_BEST_PREFIXES.includes(ARCADE_ROOM_BEST_PREFIX as never), "room arcade bests are stored under the v2 prefix");
-  const arcade = ALL_TYPES.filter((t) => ["balltrack", "beat", "bintoss", "breaker", "pinball", "bubble", "bullseye", "burst", "cross", "flip", "hover", "inkbridge", "matchup", "orbit", "rally", "skyline", "slice", "snake", "snip", "swing", "tilt", "wavefront"].includes(t));
-  ok(arcade.length === 22, `the 22 active arcade games (${arcade.length})`);
+  const arcade = ALL_TYPES.filter((t) => ["balltrack", "beat", "bintoss", "breaker", "pinball", "bubble", "bullseye", "burst", "cross", "flip", "hover", "inkbridge", "matchup", "orbit", "rally", "skyline", "slice", "snake", "swing", "tilt", "wavefront"].includes(t));
+  ok(arcade.length === 21, `the 21 active arcade games (Scrumper practice only since 27 Oct 2026) (${arcade.length})`);
   for (const type of arcade) {
     // A device from before the switch: an old record that a low score would otherwise "beat" or lose to.
     const old = JSON.stringify({ best: 20, key: "old-run", improved: false });

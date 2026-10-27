@@ -132,6 +132,8 @@ export function swingSounds(): GameSounds<SwingState> {
       loopCue("swing.lava", running && state.ended === 0);
       if (prev && state.tick > prev.tick) {
         if (state.ended === 2 && prev.ended !== 2) sfx("swing.crash", "arc_crash");
+        // swingRev 14: a miss (or the dragon) puts the hero back on the start ledge: the same crash.
+        else if ((state.restarts ?? 0) > (prev.restarts ?? 0)) sfx("swing.crash", "arc_crash");
         else if (prev.rope < 0 && state.rope >= 0) sfx("swing.grapple", "arc_grapple");
         // swingRev 4: a star taken, the dragon appearing, a stalactite starting to shake, a jet erupting.
         if ((state.stars ?? 0) > (prev.stars ?? 0)) sfx("swing.starTaken", "arc_pickup", 0.9);
@@ -755,12 +757,12 @@ export function skylineSounds(): GameSounds<SkylineState> {
           if (state.perfectTick === state.tick) sfx("skyline.perfect", "correct");
           // skylineRev 2: a streak bonus drop (3rd perfect in a row or later).
           if ((state.streakPoints ?? 0) > (prev.streakPoints ?? 0)) sfx("skyline.streakDrop", "arc_retro_coin", 0.7);
-          // skylineRev 7 (the expansion, existing sounds only): a new streak multiplier tier dings, a gold block
-          // landed perfectly chimes, a height milestone zaps.
+          // skylineRev 7+ (the expansion, existing sounds only): a new streak multiplier tier dings, a gold block
+          // landed perfectly chimes. A height milestone is the whoosh alone (skyline.floorsStreak, momentCues.ts):
+          // Joe's phone notes (27 Oct 2026) moved the crane bell to the perfect drop and dropped the stacked zap.
           if (state.expandRev) {
             if (skylineStreakMult(state.streak ?? 0) > skylineStreakMult(prev.streak ?? 0)) sfx("shared.celebrate.countDing", "tick", 0.8);
             if ((state.golds ?? 0) > (prev.golds ?? 0)) sfx("shared.celebrate.chime", "correct", 0.9);
-            if ((state.milestones ?? 0) > (prev.milestones ?? 0)) sfx("shared.celebrate.zap", "arc_retro_pickup", 0.9);
           }
         }
         if (state.missed && !prev.missed) sfx("skyline.miss", "arc_crash");

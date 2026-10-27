@@ -1,5 +1,5 @@
 /**
- * Success-event declarations for the 22 active arcade games, read by the shared
+ * Success-event declarations for the 21 active arcade games (and practice-only Junction and Scrumper), read by the shared
  * layer in arcadeFx.renderer.ts. Every `count`/`at`/`when` below is a pure read
  * of a counter or position the sim already keeps for its own rules; nothing here
  * changes a sim, an input or a score. Pops show counter facts ("+1", "×3",
@@ -55,7 +55,7 @@ function brkSlideDestroyed(s: BrkState): number {
   return n;
 }
 import { PINBALL_IN_ROOMS, PIN_BUMPERS, PIN_LANE_POSTS, PIN_LANE_SENSOR_Y, PIN_LEFT_WALL, PIN_ORBIT_INNER, PIN_SPINNER_Y, PIN_TARGET_XS, PIN_TARGET_Y, PIN_WORLD_H, PIN_WORLD_W, type PinState } from "./pinball";
-import { rallyBonusCount, rallyPaddleY, rallyWorldH, RALLY_V10_BONUS_LIFE, RALLY_V10_BONUS_PTS, RALLY_V10_H, RALLY_V10_W, RALLY_SPEED_CAP, RALLY_SPEED_START, RALLY_TALL_H, RALLY_WORLD_H, RALLY_WORLD_W, type RallyState } from "./rally";
+import { rallyBonusCount, rallyBonusLife, rallyPaddleY, rallyWorldH, RALLY_V10_BONUS_PTS, RALLY_V10_H, RALLY_V10_W, RALLY_SPEED_CAP, RALLY_SPEED_START, RALLY_TALL_H, RALLY_WORLD_H, RALLY_WORLD_W, type RallyState } from "./rally";
 import { BEAT_TALL_H, BEAT_WORLD_H, BEAT_WORLD_W, beatHitLineY, beatLaneXOf, beatLanesAt, beatWorldH, type BeatState } from "./beat";
 /** Tempo's last judged lane centre (beatRev 9: in the five-lane section, five lanes). */
 const beatLastX = (s: BeatState) => beatLaneXOf(Math.max(0, s.lastLane), beatLanesAt(s, s.tick));
@@ -110,6 +110,8 @@ import {
   SWING_V13_W,
   swingFeatureCounts,
   swingParLabel,
+  swingAssaultCounts,
+  swingAssaultPar,
   type SwingState,
 } from "./swing";
 import {
@@ -271,10 +273,11 @@ export type ArcadeFxGame = keyof typeof ARCADE_GAME_WORLDS;
 
 /**
  * Arcade games with a world that rooms do not deal (practice only; registry RETIRED_TYPES):
- * Junction (retired in Tuning C) and Pinball until PINBALL_IN_ROOMS (pinball.ts) is switched on.
+ * Junction (retired in Tuning C), Scrumper (retired 27 Oct 2026) and Pinball until PINBALL_IN_ROOMS
+ * (pinball.ts) is switched on.
  */
-export const RETIRED_ARCADE_GAMES: readonly ArcadeFxGame[] = PINBALL_IN_ROOMS ? ["junction"] : ["junction", "pinball"];
-/** The 22 active arcade games (rooms deal these; Pinball joined on 14 Oct 2026 with PINBALL_IN_ROOMS on). */
+export const RETIRED_ARCADE_GAMES: readonly ArcadeFxGame[] = PINBALL_IN_ROOMS ? ["junction", "snip"] : ["junction", "snip", "pinball"];
+/** The 21 active arcade games (rooms deal these; Pinball joined on 14 Oct 2026 with PINBALL_IN_ROOMS on, Scrumper left on 27 Oct 2026). */
 export const ACTIVE_ARCADE_GAMES = (Object.keys(ARCADE_GAME_WORLDS) as ArcadeFxGame[]).filter((g) => !RETIRED_ARCADE_GAMES.includes(g));
 
 /**
@@ -1533,7 +1536,7 @@ export const RALLY_FX_BONUS: ArcadeFxSpec<RallyState> = {
       count: (s) => rallyBonusCount(s),
       at: (s) => {
         const at = s.bonusAt ?? 0;
-        const t = (s.bonus ?? []).find((b) => at >= b.tick && at < b.tick + RALLY_V10_BONUS_LIFE);
+        const t = (s.bonus ?? []).find((b) => at >= b.tick && at < b.tick + rallyBonusLife(s));
         return t ? { x: t.x, y: t.y } : { x: RALLY_V10_W / 2, y: 120 };
       },
       label: () => `GOLD TARGET +${RALLY_V10_BONUS_PTS}`,
@@ -1594,7 +1597,41 @@ export const SWING_FX_V13: ArcadeFxSpec<SwingState> = {
     { kind: "pop", count: (s) => swingFeatureCounts(s).parsBeaten, at: (s) => swingAt(s, -54), label: (s) => swingParLabel(s), colour: () => "#FFE9A8" },
   ],
 };
-export const swingFxFor = (s: SwingState): ArcadeFxSpec<SwingState> => (s.expand ? SWING_FX_V13 : fxSpecAt(SWING_FX, swingWorldH(s)));
+/**
+ * Grappler swingRev 14 (the assault course): the same view as rev 13; a pop for each gate lit, gem and star taken (on
+ * a restart they are put back, and taken again pop again), "CLEAR!" for each section landed, the time under par when
+ * one is beaten, the course cleared as the final banner, and each miss or catch (a restart) as the miss moment.
+ */
+const swingParPop = (s: SwingState) => {
+  const k = (s.sec ?? 1) - 1;
+  const p = swingAssaultPar(s, k);
+  return p.beat > 0 ? `−${(p.beat / 60).toFixed(1)} s UNDER PAR` : "CLEAR!";
+};
+const V14_EVENTS: ArcadeFxSpec<SwingState>["events"] = [
+  { kind: "pop", count: (s) => (s.gatesLit ? bitCountFx(s.gatesLit) : 0), at: (s) => swingAt(s, 26), label: () => "SPEED GATE!" },
+  { kind: "pop", count: (s) => (s.gemsTaken ? bitCountFx(s.gemsTaken) : 0), at: (s) => swingAt(s), label: () => "+GEM", colour: () => "#8FF4FF" },
+  { kind: "perfect", count: (s) => (s.starsTaken ?? []).length, at: (s) => swingAt(s, -22), label: () => "STAR!", colour: () => "#FFD84A" },
+  { kind: "pop", count: (s) => swingAssaultCounts(s).sections, at: (s) => swingAt(s, -30), label: (s) => swingParPop(s), colour: (s) => (swingAssaultPar(s, (s.sec ?? 1) - 1).beat > 0 ? "#FFE9A8" : "#FFFFFF") },
+  { kind: "final", count: (s) => (swingAssaultCounts(s).sections >= swingAssaultCounts(s).sectionTotal ? 1 : 0), label: () => "COURSE CLEARED!" },
+];
+/**
+ * One spec for every revision in rev 13's view (the live round's, ARCADE_FX_SPECS): rev 13's events first (their
+ * indices unchanged for the replay moments; they never fire on a rev-14 state) and then rev 14's (only on one).
+ */
+export const SWING_FX_V14: ArcadeFxSpec<SwingState> = {
+  ...SWING_FX_V13,
+  events: [
+    ...SWING_FX_V13.events.map((e) => ({ ...e, count: (s: SwingState) => (s.assault ? 0 : e.count(s)) })),
+    ...V14_EVENTS.map((e) => ({ ...e, count: (s: SwingState) => (s.assault ? e.count(s) : 0) })),
+  ],
+  misses: [...(SWING_FX_V13.misses ?? []), { count: (s) => s.restarts ?? 0, at: (s, before) => swingAt(before ?? s, 0) }],
+};
+function bitCountFx(n: number): number {
+  let c = 0;
+  for (let b = n; b; b &= b - 1) c += 1;
+  return c;
+}
+export const swingFxFor = (s: SwingState): ArcadeFxSpec<SwingState> => (s.assault ? SWING_FX_V14 : s.expand ? SWING_FX_V13 : fxSpecAt(SWING_FX, swingWorldH(s)));
 /** The live round's view size on orbitRev 12 (the expansion to 200), with ORBIT_FX's events (ARCADE_FX_SPECS). */
 const ORBIT_FX_XP_VIEW: ArcadeFxSpec<OrbitState> = { ...ORBIT_FX, width: 450, height: 782 };
 /** orbitRev 12 (the expansion to 200): the same events in the wider 450 × 782 view. */
@@ -1667,8 +1704,8 @@ export const ARCADE_FX_SPECS = {
   bullseye: BULLSEYE_FX_V8,
   bubble: BUBBLE_FX_TALL,
   flip: FLIP_FX_TALL,
-  // The live round's view (swingRev 13, the 200 expansion); older rounds draw through swingFxFor.
-  swing: SWING_FX_V13,
+  // The live round's view (swingRev 14, the assault course; rev 13's view); older rounds draw through swingFxFor.
+  swing: SWING_FX_V14,
   // The live round's view (snipRev 11); older rounds draw through their state's spec (snipFxFor).
   snip: fxSpecAt(SNIP_FX, SNIP_X_VIEW_H),
   // The live round's view (tiltRev 8's taller world); its art draws through TILT_X_FX, older rounds through TILT_FX.
