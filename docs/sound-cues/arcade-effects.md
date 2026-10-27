@@ -186,6 +186,11 @@ Already sounded: launch (`orbit.launch`), first checkpoint (`orbit.checkpoint`),
 | `swing.comboPoint` | Every fifth linked swing (swingRev 13) | SWING COMBO ×n streak | `banner.combo.mp3` (volume 0.85) | 0–10 | 500 ms |
 | `swing.sectionClear` | A set-route section's finish flag reached (swingRev 13) | SECTION CLEAR! banner | `done.chimeSweep.mp3` | 0–3 | 600 ms |
 | `swing.parBeaten` | A section finished under its par time (swingRev 13) | "−0.8 s UNDER PAR" pop above the hero (in place of the section chime) | `done.goldPulse.mp3` (shared recording, volume 0.8) | 0–3 | 600 ms |
+| `swing.assaultGate` | A speed gate lit on the assault course (swingRev 14) | SPEED GATE! pop under the hero | `sfx_joulz_zap.mp3` (shared recording, volume 0.8) | 0–4 | 380 ms |
+| `swing.assaultGem` | A gem taken on a harder line (swingRev 14; a miss puts it back) | +GEM pop in cyan at the hero | `sfx_spark_chime.mp3` (shared recording, volume 0.7) | 0–4 | 600 ms |
+| `swing.assaultStar` | A star taken on a tighter swing (swingRev 14; a miss puts it back) | STAR! burst in gold | `sfx_spark_chime.mp3` (shared recording, volume 0.8) | 0–4 | 600 ms |
+| `swing.assaultClear` | A section's landing ledge reached (swingRev 14) | CLEAR! (or "−0.4 s UNDER PAR") pop above the hero | `sfx_count_ding.mp3` (shared recording, volume 0.6) | 0–36 | 487 ms |
+| `swing.assaultCourse` | The last section cleared (swingRev 14) | COURSE CLEARED! banner | `banner.fullClear.mp3` (shared recording) | 0–1 | 1200 ms |
 
 Already sounded: rope catch and anchor flash (`swing.grapple`), star (`swing.starTaken`), dragon (`swing.dragon`), stalactite shake (`swing.rockShake`), stalactite lands and the replays' "dodged" pop (`swing.rockLand`), crash (`swing.crash`).
 

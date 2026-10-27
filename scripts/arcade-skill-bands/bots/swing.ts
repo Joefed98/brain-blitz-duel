@@ -34,6 +34,7 @@
 import { SWING_INPUT_HOLD, SWING_INPUT_REEL, SWING_REEL_UP, SWING_REEL_DOWN, type SwingState } from "../../../src/lib/arcade/swing";
 import type { SkillLevel } from "../human";
 import { driveEvents, Plan, type SkillBot } from "../bot";
+import { assaultBot } from "./swingAssault";
 
 const FP = 256;
 /** Mirrors of sim geometry the player sees (perception only). */
@@ -143,7 +144,13 @@ function nearest(s: SwingState): number {
   return best;
 }
 
-export const bot: SkillBot = ({ game, seed, human, fixes }) => {
+export const bot: SkillBot = (ctx) => {
+  // swingRev 14 (the assault course) has its own player (bots/swingAssault.ts); every earlier revision plays below.
+  if ((ctx.game.init(ctx.seed) as SwingState).assault) return assaultBot(ctx);
+  return legacyBot(ctx);
+};
+
+const legacyBot: SkillBot = ({ game, seed, human, fixes }) => {
   const level = human.level;
   const cfg = TIER_CFG[level] ?? TIER_CFG.near;
   /** swingRev 13: how long a player swings waiting to land on a start ledge (the elite and flawless wait longer). */

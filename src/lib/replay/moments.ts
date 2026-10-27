@@ -214,6 +214,11 @@ export const MOMENT_TABLE: readonly MomentRow[] = [
   fx("swing", 8, "streak", "combo", 40, "Swing combo point (swingRev 13)"),
   fx("swing", 9, "perfect", "section", 55, "Set-route section cleared (swingRev 13)"),
   fx("swing", 10, "pop", "par", 50, "Section finished under par (swingRev 13)"),
+  fx("swing", 11, "pop", "gate14", 25, "Speed gate lit (swingRev 14)"),
+  fx("swing", 12, "pop", "gem14", 25, "Gem on a harder line (swingRev 14)"),
+  fx("swing", 13, "perfect", "star14", 30, "Star on a tighter swing (swingRev 14)"),
+  fx("swing", 14, "pop", "clear14", 10, "Section cleared (swingRev 14)"),
+  fx("swing", 15, "final", "course14", 95, "Course cleared (swingRev 14)", "finish"),
   // Scrumper
   fx("snip", 0, "pop", "leaf", 15, "Leaf taken"),
   fx("snip", 1, "clear", "level", 35, "Apple fed"),

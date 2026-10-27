@@ -110,6 +110,8 @@ import {
   SWING_V13_W,
   swingFeatureCounts,
   swingParLabel,
+  swingAssaultCounts,
+  swingAssaultPar,
   type SwingState,
 } from "./swing";
 import {
@@ -1594,7 +1596,41 @@ export const SWING_FX_V13: ArcadeFxSpec<SwingState> = {
     { kind: "pop", count: (s) => swingFeatureCounts(s).parsBeaten, at: (s) => swingAt(s, -54), label: (s) => swingParLabel(s), colour: () => "#FFE9A8" },
   ],
 };
-export const swingFxFor = (s: SwingState): ArcadeFxSpec<SwingState> => (s.expand ? SWING_FX_V13 : fxSpecAt(SWING_FX, swingWorldH(s)));
+/**
+ * Grappler swingRev 14 (the assault course): the same view as rev 13; a pop for each gate lit, gem and star taken (on
+ * a restart they are put back, and taken again pop again), "CLEAR!" for each section landed, the time under par when
+ * one is beaten, the course cleared as the final banner, and each miss or catch (a restart) as the miss moment.
+ */
+const swingParPop = (s: SwingState) => {
+  const k = (s.sec ?? 1) - 1;
+  const p = swingAssaultPar(s, k);
+  return p.beat > 0 ? `−${(p.beat / 60).toFixed(1)} s UNDER PAR` : "CLEAR!";
+};
+const V14_EVENTS: ArcadeFxSpec<SwingState>["events"] = [
+  { kind: "pop", count: (s) => (s.gatesLit ? bitCountFx(s.gatesLit) : 0), at: (s) => swingAt(s, 26), label: () => "SPEED GATE!" },
+  { kind: "pop", count: (s) => (s.gemsTaken ? bitCountFx(s.gemsTaken) : 0), at: (s) => swingAt(s), label: () => "+GEM", colour: () => "#8FF4FF" },
+  { kind: "perfect", count: (s) => (s.starsTaken ?? []).length, at: (s) => swingAt(s, -22), label: () => "STAR!", colour: () => "#FFD84A" },
+  { kind: "pop", count: (s) => swingAssaultCounts(s).sections, at: (s) => swingAt(s, -30), label: (s) => swingParPop(s), colour: (s) => (swingAssaultPar(s, (s.sec ?? 1) - 1).beat > 0 ? "#FFE9A8" : "#FFFFFF") },
+  { kind: "final", count: (s) => (swingAssaultCounts(s).sections >= swingAssaultCounts(s).sectionTotal ? 1 : 0), label: () => "COURSE CLEARED!" },
+];
+/**
+ * One spec for every revision in rev 13's view (the live round's, ARCADE_FX_SPECS): rev 13's events first (their
+ * indices unchanged for the replay moments; they never fire on a rev-14 state) and then rev 14's (only on one).
+ */
+export const SWING_FX_V14: ArcadeFxSpec<SwingState> = {
+  ...SWING_FX_V13,
+  events: [
+    ...SWING_FX_V13.events.map((e) => ({ ...e, count: (s: SwingState) => (s.assault ? 0 : e.count(s)) })),
+    ...V14_EVENTS.map((e) => ({ ...e, count: (s: SwingState) => (s.assault ? e.count(s) : 0) })),
+  ],
+  misses: [...(SWING_FX_V13.misses ?? []), { count: (s) => s.restarts ?? 0, at: (s, before) => swingAt(before ?? s, 0) }],
+};
+function bitCountFx(n: number): number {
+  let c = 0;
+  for (let b = n; b; b &= b - 1) c += 1;
+  return c;
+}
+export const swingFxFor = (s: SwingState): ArcadeFxSpec<SwingState> => (s.assault ? SWING_FX_V14 : s.expand ? SWING_FX_V13 : fxSpecAt(SWING_FX, swingWorldH(s)));
 /** The live round's view size on orbitRev 12 (the expansion to 200), with ORBIT_FX's events (ARCADE_FX_SPECS). */
 const ORBIT_FX_XP_VIEW: ArcadeFxSpec<OrbitState> = { ...ORBIT_FX, width: 450, height: 782 };
 /** orbitRev 12 (the expansion to 200): the same events in the wider 450 × 782 view. */
@@ -1667,8 +1703,8 @@ export const ARCADE_FX_SPECS = {
   bullseye: BULLSEYE_FX_V8,
   bubble: BUBBLE_FX_TALL,
   flip: FLIP_FX_TALL,
-  // The live round's view (swingRev 13, the 200 expansion); older rounds draw through swingFxFor.
-  swing: SWING_FX_V13,
+  // The live round's view (swingRev 14, the assault course; rev 13's view); older rounds draw through swingFxFor.
+  swing: SWING_FX_V14,
   // The live round's view (snipRev 11); older rounds draw through their state's spec (snipFxFor).
   snip: fxSpecAt(SNIP_FX, SNIP_X_VIEW_H),
   // The live round's view (tiltRev 8's taller world); its art draws through TILT_X_FX, older rounds through TILT_FX.
