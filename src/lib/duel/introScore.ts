@@ -2,7 +2,6 @@ import { CLASH_DEPTH_MAX_WRONG, CLASH_QUEUE } from "@/lib/arcade/colourClash";
 import { BULLSEYE_INNER_BULL_POINTS, BULLSEYE_RING_VALUES } from "@/lib/arcade/bullseye";
 import { BINTOSS_FAR_POINTS, BINTOSS_THROWS } from "@/lib/arcade/binToss";
 import { INK_FEATURE_MAX, INK_LEVELS } from "@/lib/arcade/inkBridge";
-import { SWING_FINISH_M } from "@/lib/arcade/swing";
 import { TILT_X_MAZES } from "@/lib/arcade/tilt";
 import { bandsIntro } from "./puzzleBandsText";
 import { depthIntro as logicDepthIntro } from "./logicDepthText";
@@ -120,7 +119,7 @@ function introScoreTemplates(): Record<PuzzleType, string> {
     burst: "Atoms score; a lost life costs 5. Last 90 s for 10 more; clean waves add. Up to {max}.",
     orbit: "Planets and the sun, plus stardust, slingshots, fields and perfect orbits: up to {max}.",
     snip: "Points for fruit fed and leaves; golden apples, few cuts and speed add more. Up to {max}.",
-    swing: `Distance and stars. Reach ${SWING_FINISH_M} metres for 10 more. Gems, gates, ledges, pars: up to {max}.`,
+    swing: `Sections cleared, then pars, gates, gems and stars: up to {max}.`,
     tilt: `Mazes, progress and stars; quick stars and pace add more. All ${TILT_X_MAZES} quickly: up to {max}.`,
     balltrack: `Points per marble home; gold, boosted and in-a-row marbles add more. Up to {max}.`,
     swerve: arcadeOpen("each coin you collect"),

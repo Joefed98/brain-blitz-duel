@@ -151,11 +151,12 @@ section("New rounds carry the Tuning F stamps; runs on them replay unchanged");
   // Expansion E6 (25 Oct 2026) moved Coral Pop on to bubbleRev 8 and Gemstone on to matchupRev 9; e6-check covers them.
   // World expansion E5 (25 Oct 2026) moved Slice on again (sliceRev 9); expansion-e5-check covers it.
   // bubbleRev 9 (26 Oct 2026) keeps bubbleRev 8's play with burst credit in the base units.
-  // Grappler's 200 expansion (26 Oct 2026) moved Grappler on again (swingRev 13); swing-x200-check covers it.
+  // Grappler's 200 expansion (26 Oct 2026) moved Grappler on again (swingRev 13); swing-x200-check covers it. The assault
+  // course (27 Oct 2026) moved it on to swingRev 14; swing-assault-check covers it.
   // The 200-point expansion (26 Oct 2026) moved Scrumper on to snipRev 11; snip-x200-check covers it.
   // x200 (26 Oct 2026) moved Jaywalk on to crossRev 9 (the expansion); cross-x200-check covers it.
   // sliceRev 10 (27 Oct 2026, Joe's phone notes) is sliceRev 9 with bigger onions and golden fruit; expansion-e5-check covers it.
-  const movedOn: Record<string, number> = { slice: SLICE_REV_BIG, bubble: BUB_REV_TORPEDO + 6, swing: SWING_REV_SPREAD + 5, matchup: 9, snip: SNIP_REV_EXPAND, cross: CROSS_REV_EXPAND };
+  const movedOn: Record<string, number> = { slice: SLICE_REV_BIG, bubble: BUB_REV_TORPEDO + 6, swing: SWING_REV_SPREAD + 6, matchup: 9, snip: SNIP_REV_EXPAND, cross: CROSS_REV_EXPAND };
   for (const [type, field, got, rev] of stamps) {
     if (!want(type)) continue;
     ok(got === (movedOn[type] ?? rev), `${type}: new rounds stamped ${movedOn[type] ?? rev} (got ${got})`);
