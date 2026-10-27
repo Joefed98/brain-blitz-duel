@@ -1,4 +1,3 @@
-import { CLASH_DEPTH_MAX_WRONG, CLASH_QUEUE } from "@/lib/arcade/colourClash";
 import { BULLSEYE_INNER_BULL_POINTS, BULLSEYE_RING_VALUES } from "@/lib/arcade/bullseye";
 import { BINTOSS_FAR_POINTS, BINTOSS_THROWS } from "@/lib/arcade/binToss";
 import { INK_FEATURE_MAX, INK_LEVELS } from "@/lib/arcade/inkBridge";
@@ -12,14 +11,11 @@ import { CODEWORD_STRETCH, TILEGRID_STRETCH_TOPUP, stretchIntro, strikeoutDepthI
 import { parBonusIntro } from "./parBonusText";
 import { WORD_STANDARD_INTRO } from "./standard/word";
 import { preStandardPinned } from "./standard/stamps";
-import { doubleTakeDepthIntro, eagleEyeDepthIntro, tallyDepthIntro } from "./depth/attentionTexts";
-import { ASCEND_DEPTH_INTRO, BANGON_DEPTH_INTRO, FLASH_DEPTH_INTRO } from "./depth/speedTexts";
+import { STANDARD_ATTENTION_INTRO } from "./standard/attentionTexts";
+import { BANGON_DEPTH_INTRO, FLASH_DEPTH_INTRO } from "./depth/speedTexts";
 import { depthIntro } from "./numberDepthText";
 import { d4IntroTemplate } from "./depth4/text";
 import { fillMax, liveRecord } from "./roundMax";
-import { CHAIN_DEPTH_INTRO } from "./depth/chain";
-import { PAIR_DEPTH_INTRO } from "./depth/matchmaker";
-import { labyrinthDepthIntro } from "./depth/labyrinth";
 import { TOPSY_INTRO_SCORE } from "./topsy";
 import { JUMBLED_INTRO_SCORE } from "./jumbled";
 import type { PuzzleType } from "./types";
@@ -67,16 +63,17 @@ function introScoreTemplates(): Record<PuzzleType, string> {
     // Depth to 200 (tapRev 5): depth/speedTexts.ts.
     reaction: FLASH_DEPTH_INTRO,
     stopwatch: BANGON_DEPTH_INTRO,
-    numhunt: ASCEND_DEPTH_INTRO,
-    chain: CHAIN_DEPTH_INTRO,
+    // The scoring standard (27 Oct 2026): standard/attentionTexts.ts.
+    numhunt: STANDARD_ATTENTION_INTRO.numhunt,
+    chain: STANDARD_ATTENTION_INTRO.chain,
     whack: "Points per target hit; combos and diamonds add more, up to {max}. Wrong taps cost.",
     clayshoot: "Points per clay, more for quick hits; doubles and streaks add up to {max}. Birds cost.",
-    symscan: eagleEyeDepthIntro(),
-    countup: tallyDepthIntro(),
-    spotdiff: doubleTakeDepthIntro(),
-    pairmatch: PAIR_DEPTH_INTRO,
-    maze: labyrinthDepthIntro(),
-    stroop: `Sort all ${CLASH_QUEUE}, ${CLASH_DEPTH_MAX_WRONG} wrong at most; gold words and a long streak on a quick run reach {max}.`,
+    symscan: STANDARD_ATTENTION_INTRO.symscan,
+    countup: STANDARD_ATTENTION_INTRO.countup,
+    spotdiff: STANDARD_ATTENTION_INTRO.spotdiff,
+    pairmatch: STANDARD_ATTENTION_INTRO.pairmatch,
+    maze: STANDARD_ATTENTION_INTRO.maze,
+    stroop: STANDARD_ATTENTION_INTRO.stroop,
 
     // Logic and pattern
     unblock: d4IntroTemplate("unblock"),

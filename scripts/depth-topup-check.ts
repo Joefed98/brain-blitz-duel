@@ -16,9 +16,6 @@
  * Script-only.
  */
 import { readFileSync } from "node:fs";
-import { pinPreStandard } from "../src/lib/duel/standard/stamps";
-// Written for the stamps before the scoring standard (docs/scoring-standard.md): new deals keep them.
-pinPreStandard(true);
 import { gunzipSync } from "node:zlib";
 import { generatePuzzle, gradeAnswer } from "../src/lib/duel/generate.server";
 import { withSeededRandom } from "../src/lib/duel/random";
@@ -32,10 +29,13 @@ import { roomPuzzle } from "./puzzle-fairness/run";
 import { freshSeeds, measure, STRETCH_ONLY, TOPUP_GAMES, type GameMeasure } from "./depth-topup-bands";
 import { TOPUP_FIXTURE, type TopupFixture } from "./depth-topup-record";
 import { pinPrePhoneNotes } from "../src/lib/duel/phoneNotes";
+import { pinPreStandard } from "../src/lib/duel/standard/stamps";
 
 // Written for the top-up's stamps (Swapword swapwordRev 5): new deals stay on the stamps before Joe's phone notes (27 Oct 2026) here;
 // phone-notes-check proves the stamps rooms deal now.
 pinPrePhoneNotes(true);
+// …and on the stamps before the scoring standard (27 Oct 2026; standard-attention-check and the other standard checks prove those).
+pinPreStandard(true);
 
 const args = process.argv.slice(2);
 const opt = (name: string) => args.find((a) => a.startsWith(`--${name}=`))?.slice(name.length + 3);

@@ -23,6 +23,8 @@ export interface StandardInput {
   limitMs: number;
   /** Time left at the finish (the grade's trusted figure). */
   msLeft: number;
+  /** The last round-clock ms a logged tap or claimed time may carry (latestTapMs: the round's end, or a room answer's receipt). */
+  latestMs: number;
   /** The drafts the timeline describes (null without one). */
   drafts: TimedDraft[] | null;
 }
@@ -69,7 +71,8 @@ export function gradeStandard(args: {
   const game = GAMES[args.puzzle.type];
   if (!game) return null;
   const limitMs = puzzleTimeLimitMs(args.puzzle);
-  const drafts = decodeTimeline(args.timeline, args.answer, latestTapMs(limitMs, args.receivedMsRemaining));
+  const latestMs = latestTapMs(limitMs, args.receivedMsRemaining);
+  const drafts = decodeTimeline(args.timeline, args.answer, latestMs);
   const input: StandardInput = {
     puzzle: args.puzzle,
     answer: args.answer,
@@ -77,6 +80,7 @@ export function gradeStandard(args: {
     today: args.today,
     limitMs,
     msLeft: Math.max(0, Math.min(limitMs, args.graded.storedMs)),
+    latestMs,
     drafts,
   };
   let counts: { t: number; parts: number }[] | null = null;

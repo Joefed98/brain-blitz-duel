@@ -111,7 +111,14 @@ export async function checkTexts(type: PuzzleType, intro: string, help: string):
   const { INTRO_SCORE } = await import("../src/lib/duel/introScore");
   const { PUZZLE_INSTRUCTIONS } = await import("../src/lib/duel/instructions");
   const { fillMax } = await import("../src/lib/duel/roundMax");
-  ok(INTRO_SCORE[type] === fillMax(intro, type) && fillMax(intro, type).length <= 90, `${type}: the intro line is the depth line (${INTRO_SCORE[type]})`);
-  ok(fillMax(intro, type).includes("200"), `${type}: the intro states the 200 top (${fillMax(intro, type)})`);
-  ok(PUZZLE_INSTRUCTIONS[type]?.score === help && help.includes("200"), `${type}: the "?" help is the depth text`);
+  // The texts describe the live deal: since the scoring standard (27 Oct 2026) that is the standard's stamp, whose texts
+  // are standard/attentionTexts.ts; the depth texts are still checked for themselves.
+  const { STANDARD_STAMPS } = await import("../src/lib/duel/standard/stamps");
+  const { STANDARD_ATTENTION_INTRO, STANDARD_ATTENTION_HELP } = await import("../src/lib/duel/standard/attentionTexts");
+  const live = STANDARD_STAMPS[type] && type in STANDARD_ATTENTION_INTRO
+    ? { intro: STANDARD_ATTENTION_INTRO[type as keyof typeof STANDARD_ATTENTION_INTRO], help: STANDARD_ATTENTION_HELP[type as keyof typeof STANDARD_ATTENTION_HELP](), what: "standard" }
+    : { intro, help, what: "depth" };
+  ok(INTRO_SCORE[type] === fillMax(live.intro, type) && fillMax(intro, type).length <= 90 && INTRO_SCORE[type].length <= 90, `${type}: the intro line is the live deal's (${live.what}) line (${INTRO_SCORE[type]})`);
+  ok(fillMax(intro, type).includes("200") && INTRO_SCORE[type].includes("200"), `${type}: the intro states the 200 top (${fillMax(intro, type)})`);
+  ok(PUZZLE_INSTRUCTIONS[type]?.score === fillMax(live.help, type) && help.includes("200"), `${type}: the "?" help is the live deal's (${live.what}) text`);
 }
