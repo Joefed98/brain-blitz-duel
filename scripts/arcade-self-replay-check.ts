@@ -101,7 +101,7 @@ import { ORBIT_HOLE_BANK } from "@/lib/duel/orbitHoleBank.server";
 import { ORBIT_REV3_BANK } from "@/lib/duel/orbitRev3Bank.server";
 import { orbitRev3PlanetsForSeed } from "@/lib/duel/orbitRev3Course.server";
 import { binTossGameFor, BINTOSS_REV2, BINTOSS_REV3 } from "@/lib/arcade/binToss";
-import { inkBridgeGameFor, INK_REV3, INK_REV4, INK_REV_EXPAND } from "@/lib/arcade/inkBridge";
+import { inkBridgeGameFor, INK_REV3, INK_REV4, INK_REV_EXPAND, INK_REV_SPREAD } from "@/lib/arcade/inkBridge";
 import { swingGameFor, SWING_REV, SWING_REV_V3 } from "@/lib/arcade/swing";
 import { wordfallCheckpoint, wordfallGame, wordfallGameFor } from "@/lib/arcade/wordfall";
 import { encodeWordfallRun, replayWordfallRun } from "@/lib/duel/wordfall";
@@ -663,6 +663,18 @@ const GAMES: Game[] = [
   { key: "wavefront/phone", game: wavefrontGameFor(WAV_REV_PHONE), checkpoint: wavCheckpoint, mode: "events", rate: 300, encode: encodeWavefrontRun, replay: (seed: number, raw: string) => replayWavefrontRun(seed, raw, WAV_REV_PHONE) },
   // Pinball pinRev 5 (27 Oct 2026, Joe's phone notes), appended so every earlier entry keeps its index: the table for 90 s.
   { key: "pinball/90", game: pinball5Game, checkpoint: pin4Checkpoint, mode: "events", rate: 120, encode: encodePinballRun, replay: (seed: number, raw: string) => replayPinballRun(seed, raw, PIN_REV_LONG) },
+  // Phone notes (27 Oct 2026), appended so every earlier entry keeps its index: Rainbow Bridge inkRev 11 (no wind, two
+  // silver coins a level, the pickups spread out). Eight seeds in turn, as ink/v10.
+  {
+    key: "ink/v11",
+    game: inkBridgeGameFor(INK_REV_SPREAD),
+    seedFor: (n: number) => 9_000_001 + 7_919 * (n % 8),
+    checkpoint: inkCheckpoint,
+    mode: "events",
+    rate: 400,
+    encode: encodeInkBridgeRun,
+    replay: (seed: number, raw: string) => replayInkBridgeRun(seed, raw, INK_REV_SPREAD),
+  },
 ];
 
 /** A random candidate event, often outside the declared range (a finger off the edge). */

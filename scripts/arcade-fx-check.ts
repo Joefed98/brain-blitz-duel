@@ -127,7 +127,7 @@ const GAMES: Record<string, AnyGame> = {
   // The revision rooms deal (crossRev 9, x200: the island, coins and streak events too).
   cross: crossArtGameFor(9) as AnyGame,
   junction: junctionArtGame as AnyGame,
-  inkbridge: inkBridgeArtGameFor(10) as AnyGame, // inkRev 10 (x200): the taller world rooms deal, its spec ARCADE_FX_SPECS.inkbridge
+  inkbridge: inkBridgeArtGameFor(11) as AnyGame, // inkRev 11 (phone notes; inkRev 10's taller world, x200): what rooms deal, its spec ARCADE_FX_SPECS.inkbridge
   slice: sliceArtGameFor(2) as AnyGame,
   bintoss: { ...binTossArtGame, init: binTossGameFor(3).init } as AnyGame,
   bullseye: { ...bullseyeGame, init: bullseyeRev2Game.init, draw: drawBullseye } as AnyGame,

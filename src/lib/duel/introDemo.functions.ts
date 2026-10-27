@@ -1,6 +1,6 @@
 import { DEPTH_DEMO_STOPS, DEPTH_REV, depthRevOf } from "./logicDepth";
 import { SWING_REV_EXPAND } from "@/lib/arcade/swing";
-import { INK_REV_EXPAND } from "@/lib/arcade/inkBridge";
+import { INK_REV_SPREAD } from "@/lib/arcade/inkBridge";
 import { CLAY_REV_DEPTH } from "@/lib/arcade/clayShoot";
 import { WHACK_REV_DEPTH } from "@/lib/arcade/whack";
 import { WORDFALL_REV } from "@/lib/arcade/wordfall";
@@ -94,8 +94,9 @@ export const getIntroDemoFn = createServerFn({ method: "GET" })
     // help, so Strikeout's demo stays stopped until one is recorded on a rev-4 puzzle.
     if (data.type === "strikeout" && demo?.puzzle.type === "strikeout" && demo.puzzle.strikeoutRev !== STRIKEOUT_REV4) return null;
     // Block-era Rainbow Bridge demos would show red blocks under the birds wording.
-    // x200 (inkRev 10): a taller world with clouds, wind, coins and a shamrock; only a demo recorded on it plays (the still shows until then).
-    if (data.type === "inkbridge" && demo?.puzzle.type === "inkbridge" && demo.puzzle.inkRev !== INK_REV_EXPAND) return null;
+    // x200 (inkRev 10): a taller world with clouds, wind, coins and a shamrock; inkRev 11 (phone notes, 27 Oct 2026) drops
+    // the wind and spreads the pickups, so its levels differ: only a demo recorded on inkRev 11 plays (the still shows until then).
+    if (data.type === "inkbridge" && demo?.puzzle.type === "inkbridge" && demo.puzzle.inkRev !== INK_REV_SPREAD) return null;
     // clayRev 5 (14 Oct 2026) flies 14–16 birds and clayRev 6 (16 Oct 2026, taller worlds batch 2) flies them under a
     // taller sky: an older demo would show the old sky, so only a demo recorded on today's clayRev plays.
     // Depth to 200 (25 Oct 2026): clayRev 9 adds doubles and the hit streak, Bonk's whackRev 3 the gold combo and

@@ -15,7 +15,7 @@ import {
   INK_WORLD_W,
   inkWorldH,
   inkWorldHFor,
-  INK_REV_EXPAND,
+  INK_REV_SPREAD,
 } from "@/lib/arcade/inkBridge";
 import { encodeInkBridgeRun, replayInkBridgeRun } from "@/lib/duel/inkBridge";
 import { INKBRIDGE_TIME_MS, type InkBridgePuzzleData } from "@/lib/duel/types";
@@ -241,7 +241,7 @@ export const inkBridgePuzzle: PuzzleDefinition = {
   category: "arcade",
   timeLimitMs: INKBRIDGE_TIME_MS,
   revealMs: 6_000,
-  generate: () => ({ type: "inkbridge", seed: 1, inkRev: INK_REV_EXPAND }) satisfies InkBridgePuzzleData,
+  generate: () => ({ type: "inkbridge", seed: 1, inkRev: INK_REV_SPREAD }) satisfies InkBridgePuzzleData,
   check: () => false,
   revealHeading: "Your run",
   IntroExample,

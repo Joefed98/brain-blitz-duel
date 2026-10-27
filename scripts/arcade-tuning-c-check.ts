@@ -49,7 +49,7 @@ import {
 import { encodeMatchupRun, replayMatchupRun } from "../src/lib/duel/matchup";
 import { swingGameFor, SWING_BAND_CURVE, SWING_REV_TUNED, SWING_REV_TUNEC, SWING_V7_BAND_CURVE } from "../src/lib/arcade/swing";
 import { hoverGameFor, HOVER_BAND_CURVE, HOVER_REV_BAND, HOVER_REV_TALL, HOVER_REV_TUNEC, HOVER_V4_BAND_CURVE } from "../src/lib/arcade/hover";
-import { inkBridgeGameFor, INK_BAND_CURVE, INK_REV_BAND, INK_REV_EXPAND, INK_REV_STRICT, INK_REV_TUNEC, INK_V6_BAND_CURVE } from "../src/lib/arcade/inkBridge";
+import { inkBridgeGameFor, INK_BAND_CURVE, INK_REV_BAND, INK_REV_SPREAD, INK_REV_STRICT, INK_REV_TUNEC, INK_V6_BAND_CURVE } from "../src/lib/arcade/inkBridge";
 import { flipGameFor, flipWarpAmp, FLIP_BAND_CURVE, FLIP_REV, FLIP_REV_BAND, FLIP_REV_TUNEC, FLIP_V4_BAND_CURVE, FLIP_WARP_FROM_V4 } from "../src/lib/arcade/flip";
 import { beatGameFor, BEAT_BAND_CURVE, BEAT_REV_BAND, BEAT_REV_TUNEC, BEAT_REV_TUNEF, BEAT_V4_BAND_CURVE } from "../src/lib/arcade/beat";
 import {
@@ -172,7 +172,8 @@ section("New rounds carry the Tuning C stamps; Junction is practice only");
     // The 200 expansion (26 Oct 2026) then moved Hover on to hoverRev 9; hover-x200-check covers it.
     ["hover", playRevOf("hover", generateHover().hoverRev), HOVER_REV_TALL + 4],
     // x200 (26 Oct 2026) moved Rainbow Bridge on to inkRev 10 (ink-x200-check); inkRev 8, dealt before it, kept Tuning C's play.
-    ["inkbridge", generateInkBridge().inkRev === INK_REV_EXPAND ? playRevOf("inkbridge", INK_REV_STRICT) : -1, INK_REV_TUNEC],
+    // The phone notes (27 Oct 2026) then moved it on to inkRev 11 (ink-v11-check).
+    ["inkbridge", generateInkBridge().inkRev === INK_REV_SPREAD ? playRevOf("inkbridge", INK_REV_STRICT) : -1, INK_REV_TUNEC],
     // Expansion E7 (docs/expansions/x200-flip.md) then moved Roofbound on to flipRev 8; flip-x200-check covers it.
     ["flip", playRevOf("flip", generateFlip().flipRev), FLIP_REV_TUNEC + 4],
     // Tuning F (Oct 2026) moved Tempo on to a thinner chart on the same curve (beatRev 5); arcade-tuning-f-check covers it.

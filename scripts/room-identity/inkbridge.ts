@@ -1,5 +1,6 @@
 /**
- * Room identity, Rainbow Bridge inkRev 10 (x200): what the seed deals, as a given input log sees it.
+ * Room identity, Rainbow Bridge inkRev 11 (what rooms deal since the phone notes, 27 Oct 2026; inkRev 10, x200, by
+ * passing its rev): what the seed deals, as a given input log sees it.
  *
  * Every level of a Rainbow Bridge run, with its birds, pot, clouds, wind zone, ink star, silver coins and the
  * shamrock, is built at init from the seed (buildLevelsRev10), so it is all dealt on tick 0 and the input can only
@@ -9,7 +10,7 @@
  * Two different logs on the same seed must therefore give the same list.
  */
 import type { ArcadeInputEvent } from "../../src/lib/arcade/engine";
-import { inkBridgeGameFor, INK_REV_EXPAND, type InkLevel, type InkState } from "../../src/lib/arcade/inkBridge";
+import { inkBridgeGameFor, INK_REV_SPREAD, type InkLevel, type InkState } from "../../src/lib/arcade/inkBridge";
 import { inkOracleRun } from "../ink-x200-oracle";
 import { bot } from "../arcade-skill-bands/bots/inkbridge";
 import { Human } from "../arcade-skill-bands/human";
@@ -47,10 +48,10 @@ export function scheduleOf(seed: number, rev: number, events: unknown): { t: num
 }
 
 /** A few very different logs for a seed: idle, random inputs, a weak bot, an elite bot and the perfect run. */
-function logs(seed: number): ArcadeInputEvent[][] {
-  const game = inkBridgeGameFor(INK_REV_EXPAND);
-  const play = (level: "weak" | "elite") => bot({ game, seed, rev: INK_REV_EXPAND, human: new Human("inkbridge", seed, level) }).events ?? [];
-  return [[], randomInkLog(INK_REV_EXPAND, seed), play("weak"), play("elite"), inkOracleRun(seed).events];
+function logs(seed: number, rev: number = INK_REV_SPREAD): ArcadeInputEvent[][] {
+  const game = inkBridgeGameFor(rev);
+  const play = (level: "weak" | "elite") => bot({ game, seed, rev, human: new Human("inkbridge", seed, level) }).events ?? [];
+  return [[], randomInkLog(rev, seed), play("weak"), play("elite"), inkOracleRun(seed, rev).events];
 }
 
-export const roomIdentity = { type: "inkbridge", rev: INK_REV_EXPAND, scheduleOf, logs };
+export const roomIdentity = { type: "inkbridge", rev: INK_REV_SPREAD, scheduleOf, logs };
