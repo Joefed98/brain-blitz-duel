@@ -1828,14 +1828,14 @@ export interface BullseyePuzzleData {
 
 /* ================================ Matchup ================================ */
 
-/** A fixed 60-second run; the round clock adds three seconds of slack. */
+/** A fixed 60-second run (matchupRev 10: 90 s, on its definition's clock); the round clock adds three seconds of slack. */
 export const MATCHUP_TIME_MS = 63_000;
 
 export interface MatchupPuzzleData {
   type: "matchup";
   /** Draws the board and each column's refill queue — identical for everyone. */
   seed: number;
-  /** Rule revision (2 = Jackpot gem, constant play, own par; 3 = original fall speed; 4 = score bands; 5 = wait for gems to fall, par 2,500, Tuning C); absent = original rules. */
+  /** Rule revision (2 = Jackpot gem, constant play, own par; 3 = original fall speed; 4 = score bands; 5 = wait for gems to fall, par 2,500, Tuning C; 9 = the taller board with goals, ice and treasure; 10 = 9 over 90 s, swaps into and out of ice that make a line, ice laid once); absent = original rules. */
   matchupRev?: number;
 }
 
