@@ -161,8 +161,9 @@
    Presentation only; kept after the rules above, which they refine. */
 
 /* ------------------------------------------------------------ Flash */
-/* Near-gold amber: a little deeper and warmer than the gold surface. */
-.flash-decoy-amber { background-color: oklch(0.76 0.165 64); }
+/* The orange trap: a light orange (Joe's phone notes, 27 Oct 2026: the old dark amber, oklch(0.76 0.165 64), read as
+   gold). Display only; the decoy and its scoring are unchanged. */
+.flash-decoy-amber { background-color: #ffaa70; }
 .flash-arena[data-flash-decoy-kind="border"] .flash-art,
 .flash-arena[data-flash-decoy-kind="word"] .flash-art,
 .flash-arena[data-flash-decoy-kind="half"] .flash-art {

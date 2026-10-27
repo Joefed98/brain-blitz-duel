@@ -55,7 +55,7 @@ const PUZZLE_MUSIC: Partial<Record<PuzzleType, SoundId>> = {
   equation: "music_number_1",
   balance: "music_number_2",
   numpyramid: "music_number_2",
-  trail: "music_number_3",
+  trail: "music_logic_3",
   measure: "music_number_1",
   checkout: "music_number_2",
   numline: "music_number_3",

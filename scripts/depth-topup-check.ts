@@ -28,6 +28,11 @@ import { SKILLS, hashText, makeRng } from "./puzzle-fairness/kit";
 import { roomPuzzle } from "./puzzle-fairness/run";
 import { freshSeeds, measure, STRETCH_ONLY, TOPUP_GAMES, type GameMeasure } from "./depth-topup-bands";
 import { TOPUP_FIXTURE, type TopupFixture } from "./depth-topup-record";
+import { pinPrePhoneNotes } from "../src/lib/duel/phoneNotes";
+
+// Written for the top-up's stamps (Swapword swapwordRev 5): new deals stay on the stamps before Joe's phone notes (27 Oct 2026) here;
+// phone-notes-check proves the stamps rooms deal now.
+pinPrePhoneNotes(true);
 
 const args = process.argv.slice(2);
 const opt = (name: string) => args.find((a) => a.startsWith(`--${name}=`))?.slice(name.length + 3);

@@ -137,7 +137,7 @@ function IntroExample() {
         </span>
       </div>
       <p className="text-center text-xs text-muted-foreground">
-        Traps: teal, red or blue, near-gold amber, a gold border, the word GOLD, half the screen gold. Tapping a trap, a
+        Traps: teal, red or blue, light orange, a gold border, the word GOLD, half the screen gold. Tapping a trap, a
         dark screen, or within {FLASH_FASTEST_MS} ms of the gold is a false start: −8 each for the first two, −11 each
         after that. Score: {roundMaxFor("reaction")} at {FLASH_REV6_CURVE[0][0]} ms average with a steady hand (every reaction
         close together), {knots(FLASH_REV6_CURVE, 150)} at 150 ms, {knots(FLASH_REV6_CURVE, 200)} at 200 ms; a missed flash counts 1,200 ms.

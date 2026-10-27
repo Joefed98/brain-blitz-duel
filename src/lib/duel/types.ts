@@ -1717,9 +1717,12 @@ export interface TilesPuzzleData {
   frame: number[];
   /**
    * 1 = the extra-cell board (tiles.ts); absent on stored 3×3 rounds. 3 (25 Oct 2026, the remodel,
-   * jumbled.ts) = the 5×5 colour gradient with row and column slides; `frame` is then 25 tiles.
+   * jumbled.ts) = the 5×5 colour gradient with row and column slides; `frame` is then 25 tiles. 4 (27 Oct 2026,
+   * Gradient, Joe's phone notes) = the 5×5 board with swaps, locked tiles and the round's own `palette`.
    */
-  tilesRev?: 1 | 2 | 3;
+  tilesRev?: 1 | 2 | 3 | 4;
+  /** tilesRev 4: the solved board's colours, cell by cell (the round's colour scheme, gradientPalette.ts). */
+  palette?: string[];
   /** tilesRev 3: par moves, shown on the phone (the proved minimum + JUMBLED_PAR_SLACK). */
   par?: number;
   /** tilesRev 2: the round's own clock (90 s); absent = TILES_TIME_MS. */
@@ -1728,7 +1731,7 @@ export interface TilesPuzzleData {
   extra?: TilesExtra;
   /** Server-side only: the exact minimum number of slides. */
   minMoves?: number;
-  /** Server-side only: one minimum-length slide order (tile values). */
+  /** Server-side only: one minimum-length slide order (tile values); tilesRev 4, swaps as a × 100 + b. */
   solution?: number[];
 }
 
@@ -2059,7 +2062,7 @@ export interface BalancePuzzleData {
   solutions?: number[][];
   /** Placement limit revision (moveLimits.ts, 13 Oct 2026): 1 = harder small scales, `placeLimits` hangs per scale, the hang counts recorded in the answer. 2 (14 Oct 2026) = as 1, plus a fourth 10-notch scale, 120 s and the rev-2 scale points (balance.ts). Absent = no limit. */
   balanceRev?: number;
-  /** Hangs allowed per scale (balanceRev 1: 6 / 8 / 10; 2: 6 / 8 / 10 / 12). */
+  /** Hangs allowed per scale (balanceRev 1: 6 / 8 / 10; 2: 6 / 8 / 10 / 12; 3: 9 / 12 / 15 / 18). */
   placeLimits?: number[];
   /** balanceRev 2: the round clock (120,000 ms). Absent on stored rounds, which keep the registry's 90 s. */
   timeLimitMs?: number;

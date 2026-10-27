@@ -2,7 +2,7 @@ import { DEPTH_DEMO_STOPS, DEPTH_REV, depthRevOf } from "./logicDepth";
 import { SWING_REV_EXPAND } from "@/lib/arcade/swing";
 import { INK_REV_EXPAND } from "@/lib/arcade/inkBridge";
 import { CLAY_REV_DEPTH } from "@/lib/arcade/clayShoot";
-import { WHACK_REV_DEPTH } from "@/lib/arcade/whack";
+import { WHACK_REV_NOTES } from "@/lib/arcade/whack";
 import { WORDFALL_REV } from "@/lib/arcade/wordfall";
 import { BRK_REV_PHONE } from "@/lib/arcade/breaker";
 import { TILT_REV_EXPAND } from "@/lib/arcade/tilt";
@@ -85,8 +85,10 @@ export const getIntroDemoFn = createServerFn({ method: "GET" })
     if (data.type === "stroop" && demo?.puzzle.type === "stroop" && !clashPlays3(demo.puzzle.clashRev)) return null;
     // The D5 remodels (25 Oct 2026): Topsy-Turvy gravityRev 3 and Jumbled tilesRev 3 are new games on new boards, so an
     // older demo stays stopped (the intro shows its still) until one is recorded on the new stamp.
-    if (data.type === "gravity" && demo?.puzzle.type === "gravity" && (demo.puzzle.gravityRev ?? 0) < 3) return null;
-    if (data.type === "tiles" && demo?.puzzle.type === "tiles" && (demo.puzzle.tilesRev ?? 0) < 3) return null;
+    // Joe's phone notes (27 Oct 2026): Topsy-Turvy gravityRev 4 (a ball home blocks) and Gradient tilesRev 4 (tiles lock,
+    // new colour schemes) play differently, so only demos recorded on those stamps play.
+    if (data.type === "gravity" && demo?.puzzle.type === "gravity" && (demo.puzzle.gravityRev ?? 0) < 4) return null;
+    if (data.type === "tiles" && demo?.puzzle.type === "tiles" && (demo.puzzle.tilesRev ?? 0) < 4) return null;
     // Four-step bomb demos cannot replay the six-step example, and version-2 demos show the old clue wording (version 3 rewrote every clue, 14 Oct 2026).
     if (data.type === "bomb" && demo?.puzzle.type === "bomb" && demo.puzzle.bombVersion !== 3) return null;
     // strikeoutRev 3 (15 Oct 2026) shows ten strike markers, three vowel dots and an extra starting letter on words 1–3,
@@ -101,7 +103,8 @@ export const getIntroDemoFn = createServerFn({ method: "GET" })
     // Depth to 200 (25 Oct 2026): clayRev 9 adds doubles and the hit streak, Bonk's whackRev 3 the gold combo and
     // diamonds; an older demo shows none of them, so each stays stopped (the intro shows its still) until re-recorded.
     if (data.type === "clayshoot" && demo?.puzzle.type === "clayshoot" && demo.puzzle.clayRev !== CLAY_REV_DEPTH) return null;
-    if (data.type === "whack" && demo?.puzzle.type === "whack" && demo.puzzle.whackRev !== WHACK_REV_DEPTH) return null;
+    // Joe's phone notes (27 Oct 2026): whackRev 4 keeps the diamond up longer, so only a demo recorded on it plays.
+    if (data.type === "whack" && demo?.puzzle.type === "whack" && demo.puzzle.whackRev !== WHACK_REV_NOTES) return null;
     if (data.type === "chain" && demo?.puzzle.type === "chain" && !chainDemoCompatible(demo.puzzle)) return null;
     // Depth to 200 (25 Oct 2026): Matchmaker's pairRev 1 deals a gold pair and shows the streak; an older demo has
     // neither, so it stays stopped (the intro shows its still) until one is recorded on pairRev 1.

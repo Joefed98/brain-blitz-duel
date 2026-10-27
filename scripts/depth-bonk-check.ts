@@ -21,7 +21,7 @@ import { inputAt, recordInput, type ArcadeInputEvent } from "../src/lib/arcade/e
 import {
   whackCheckpoint, whackComboMultiplier, whackDepthScore, whackGameFor, whackRule,
   WHACK_COMBO_POINTS, WHACK_DIAMOND_LIFE_TICKS, WHACK_DIAMOND_POINTS, WHACK_DIAMOND_WINDOWS, WHACK_DIAMONDS,
-  WHACK_INPUT_TAP, WHACK_REV_BANDS, WHACK_REV_DEPTH, WHACK_STATUS_HIT, WHACK_STATUS_UP, type WhackState,
+  WHACK_INPUT_TAP, WHACK_REV_BANDS, WHACK_REV_DEPTH, WHACK_REV_NOTES, WHACK_STATUS_HIT, WHACK_STATUS_UP, type WhackState,
 } from "../src/lib/arcade/whack";
 import { encodeWhackRun, replayWhackRun } from "../src/lib/duel/whack";
 import { generatePuzzle, gradeAnswer } from "../src/lib/duel/generate.server";
@@ -51,7 +51,7 @@ for (const r of legacy) {
 }
 
 /* 2. Stamp, schedule, diamonds */
-ok((generatePuzzle("whack") as unknown as { whackRev: number }).whackRev === WHACK_REV_DEPTH, "rooms deal whackRev 3");
+ok((generatePuzzle("whack") as unknown as { whackRev: number }).whackRev === WHACK_REV_NOTES, "rooms deal whackRev 4");
 ok(roundMaxFor("whack") === 200, "Bonk's round maximum is 200");
 const old = whackGameFor(WHACK_REV_BANDS);
 const now = whackGameFor(WHACK_REV_DEPTH);

@@ -42,6 +42,11 @@ import {
   mazeTrailWalk,
 } from "../src/lib/duel/depth/labyrinth";
 import { makeRng, hashText, type Rng } from "./puzzle-fairness/kit";
+import { pinPrePhoneNotes } from "../src/lib/duel/phoneNotes";
+
+// Written for the stamps before Joe's phone notes (27 Oct 2026): new deals stay on them here; phone-notes-check proves
+// the stamps rooms deal now.
+pinPrePhoneNotes(true);
 
 let checks = 0;
 const failures: string[] = [];
