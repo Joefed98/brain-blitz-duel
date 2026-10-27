@@ -170,6 +170,8 @@ section("New rounds carry the Tuning F stamps and score on the bands");
   // to 200 (docs/expansions/x200-orbit.md) moved Orbit on to orbitRev 12; orbit-expand-check covers it.
   // Expansion E9 (docs/expansions/e9.md) then moved Rally on to rallyRev 10; expansion-e9-check covers it.
   const movedOn: Record<string, number> = { breaker: BRK_REV_TUNEF + 4, orbit: ORBIT_REV_XP, rally: RALLY_REV_TUNEF + 5 };
+  // Joe's phone notes (27 Oct 2026) moved Meteor on to snakeRev 10; snake-rev10-check covers it.
+  movedOn.snake = SNAKE_REV_ROCKS + 4;
   for (const [type, field, got, rev, n] of stamps) {
     ok(got === (movedOn[type] ?? rev) && rev === n, `${type}: new rounds stamped ${field} ${movedOn[type] ?? n} (got ${got})`);
     ok(puzzleUsesBands({ type, [field]: rev } as never), `${type} ${rev} scores on the bands`);

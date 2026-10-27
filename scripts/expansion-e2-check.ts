@@ -26,7 +26,7 @@ import { Human, LEVELS } from "./arcade-skill-bands/human";
 import { generatePuzzle } from "../src/lib/duel/generate.server";
 import { ROUND_MAX } from "../src/lib/duel/roundMax";
 import { LIVE_BANDS, liveStrictRev } from "../src/lib/arcade/liveBands";
-import { snakeV9Bonus, snakeRow, snakeCol, SNAKE_REV_200, SNAKE_REV_STRICT, SNAKE_V9_CAPS, SNAKE_V9_COLS, SNAKE_V9_ROWS, SNAKE_V9_BAND_CURVE } from "../src/lib/arcade/snake";
+import { snakeV9Bonus, snakeRow, snakeCol, SNAKE_REV_200, SNAKE_REV_10, SNAKE_REV_STRICT, SNAKE_V9_CAPS, SNAKE_V9_COLS, SNAKE_V9_ROWS, SNAKE_V9_BAND_CURVE } from "../src/lib/arcade/snake";
 import { BURST_REV_CLEAN, BURST_REV_STRICT, BURST_V6_BAND_CURVE } from "../src/lib/arcade/burst";
 import { beatV9Bonus, BEAT_REV_200, BEAT_REV_EASE, BEAT_REV_STRICT, BEAT_V9_CAPS, BEAT_V9_FIVE_FROM, BEAT_V9_BREAK, BEAT_DOUBLE_GAP, BEAT_V9_BAND_CURVE, BEAT_V9_RUN_TICKS } from "../src/lib/arcade/beat";
 
@@ -57,8 +57,8 @@ for (const [type, top] of [["snake", SNAKE_REV_STRICT], ["beat", BEAT_REV_STRICT
   for (let rev = 1; rev <= top; rev++) ok(legacy.runs.some((r) => r.type === type && r.rev === rev), `${type}: legacy runs on rev ${rev}`);
 
 /* 2. Dealt revisions, maxima and help curves. */
-ok((generatePuzzle("snake") as any).snakeRev === SNAKE_REV_200, "rooms deal snakeRev 9");
-// Phone notes (27 Oct 2026): rooms moved on to beatRev 10 (tempo-ease-check); beatRev 9 stays proved below.
+// Joe's phone notes (27 Oct 2026): rooms moved on to snakeRev 10 (snake-rev10-check) and beatRev 10 (tempo-ease-check); snakeRev 9 and beatRev 9 stay proved below.
+ok((generatePuzzle("snake") as any).snakeRev === SNAKE_REV_10, "rooms deal snakeRev 10");
 ok((generatePuzzle("beat") as any).beatRev === BEAT_REV_EASE, "rooms deal beatRev 10 (beatRev 9 before the phone notes)");
 ok(ROUND_MAX.snake === 200 && ROUND_MAX.beat === 200, "ROUND_MAX: Meteor and Tempo are 200");
 ok(LIVE_BANDS.snake.curve === SNAKE_V9_BAND_CURVE && LIVE_BANDS.beat.curve === BEAT_V9_BAND_CURVE, "the help reads the new curves");
