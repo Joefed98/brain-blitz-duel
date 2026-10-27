@@ -23,7 +23,6 @@ import { withSeededRandom } from "../src/lib/duel/random";
 import { puzzleTimeLimitMs } from "../src/lib/duel/registry";
 import { ROUND_MAX, roundMaxFor } from "../src/lib/duel/roundMax";
 import { INTRO_SCORE } from "../src/lib/duel/introScore";
-import { PUZZLE_INSTRUCTIONS } from "../src/lib/duel/instructions";
 import { DEPTH_DEMO_STOPS, DEPTH_GAMES, DEPTH_REV, DEPTH_TYPES, depthFinish, depthGame, depthStretchShare } from "../src/lib/duel/logicDepth";
 import { storedScoreParts } from "../src/lib/duel/puzzleScoreRev";
 import { cluesFor, countNonoSolutions, encodeNonoCells, nonoSizeOf, NONO_DEPTH_SIZE, type NonoMarks } from "../src/lib/duel/nonogram";
@@ -36,10 +35,15 @@ import { encodePresses } from "../src/lib/duel/logic";
 import type { PuzzleData, PuzzleType } from "../src/lib/duel/types";
 import { legacyRoomPuzzle, stripDepth } from "./depth-d6-legacy";
 import { pinPreTopup } from "../src/lib/duel/depthTopup";
+import { pinPreStandard } from "../src/lib/duel/standard/stamps";
+import { depthHelp } from "../src/lib/duel/logicDepthText";
 
 // The puzzle top-up (26 Oct 2026, docs/depth/topup-oct-2026.md) deals newer stamps; this check proves the stamps it was
 // written for, so new deals are pinned to them (depth-topup-check proves the top-up's).
 pinPreTopup(true);
+// The scoring standard (27 Oct 2026, docs/scoring-standard.md) deals the next depthRev and states its own texts; this
+// check proves the depth revision's deals, grades and texts (logicDepthText.ts), so new deals are pinned before it.
+pinPreStandard(true);
 
 let passes = 0;
 const failures: string[] = [];
@@ -207,7 +211,8 @@ ok(LIGHTUP_BANK.slice(0, 40).every((p) => verifyLightUpPuzzle(p) === null), "the
 for (const type of DEPTH_TYPES) {
   ok(ROUND_MAX[type] === 200 && roundMaxFor(type) === 200, `${type}: ROUND_MAX is 200`);
   ok(/\b200\b/.test(INTRO_SCORE[type]) && INTRO_SCORE[type].length <= 90 && !/\bpar\b/i.test(INTRO_SCORE[type]), `${type}: the intro states 200 in two lines without "par" ("${INTRO_SCORE[type]}")`);
-  ok(/120 to 200/.test(PUZZLE_INSTRUCTIONS[type].score) && (depthGame(type).route === "par" ? /for 20 more, and up to 30 more/ : /50 more|up to 50/).test(PUZZLE_INSTRUCTIONS[type].score), `${type}: the help states the 200 top and what earns it`);
+  // The depth revision's help text (the live help states the scoring standard's, standard-logic-check).
+  ok(/120 to 200/.test(depthHelp(type)) && (depthGame(type).route === "par" ? /for 20 more, and up to 30 more/ : /50 more|up to 50/).test(depthHelp(type)), `${type}: the help states the 200 top and what earns it`);
 }
 ok(Object.keys(DEPTH_GAMES).length === 11, "eleven depth games");
 for (const t of ["nonogram", "tents", "shikaku", "lightup", "lightsout", "tower", "tubes", "safe"]) ok(DEPTH_DEMO_STOPS.has(t), `${t}: an older intro demo is stopped`);

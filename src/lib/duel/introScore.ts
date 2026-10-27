@@ -4,7 +4,7 @@ import { INK_FEATURE_MAX, INK_LEVELS } from "@/lib/arcade/inkBridge";
 import { SWING_FINISH_M } from "@/lib/arcade/swing";
 import { TILT_X_MAZES } from "@/lib/arcade/tilt";
 import { bandsIntro } from "./puzzleBandsText";
-import { depthIntro as logicDepthIntro } from "./logicDepthText";
+import { logicStandardIntro } from "./standard/logicText";
 import { wordSearchBonusIntro } from "./wordSearchText";
 import { letterWheelJarIntro } from "./letterWheelText";
 import { CODEWORD_STRETCH, TILEGRID_STRETCH_TOPUP, stretchIntro, strikeoutDepthIntro } from "./depth/stretchShapes";
@@ -75,26 +75,26 @@ function introScoreTemplates(): Record<PuzzleType, string> {
 
     // Logic and pattern
     unblock: PATTERN_STD_INTRO.unblock,
-    lightsout: logicDepthIntro("lightsout"),
+    lightsout: logicStandardIntro("lightsout"),
     pipes: PATTERN_STD_INTRO.pipes,
-    sudoku: logicDepthIntro("sudoku"),
+    sudoku: logicStandardIntro("sudoku"),
     flow: PATTERN_STD_INTRO.flow,
     iceslide: PATTERN_STD_INTRO.iceslide,
     push: PATTERN_STD_INTRO.push,
     laser: PATTERN_STD_INTRO.laser,
-    tower: logicDepthIntro("tower"),
-    tubes: logicDepthIntro("tubes"),
-    safe: logicDepthIntro("safe"),
-    bomb: logicDepthIntro("bomb"),
+    tower: logicStandardIntro("tower"),
+    tubes: logicStandardIntro("tubes"),
+    safe: logicStandardIntro("safe"),
+    bomb: logicStandardIntro("bomb"),
     gravity: PATTERN_STD_INTRO.gravity,
-    nonogram: logicDepthIntro("nonogram"),
-    flood: logicDepthIntro("flood"),
+    nonogram: logicStandardIntro("nonogram"),
+    flood: logicStandardIntro("flood"),
     tiles: PATTERN_STD_INTRO.tiles,
     rings: PATTERN_STD_INTRO.rings,
     blockparty: PATTERN_STD_INTRO.blockparty,
-    shikaku: logicDepthIntro("shikaku"),
-    lightup: logicDepthIntro("lightup"),
-    tents: logicDepthIntro("tents"),
+    shikaku: logicStandardIntro("shikaku"),
+    lightup: logicStandardIntro("lightup"),
+    tents: logicStandardIntro("tents"),
     dig: "Fill the drain with clean water for 100, more if you're quick and use few digs.",
 
     // Arcade
