@@ -15,7 +15,7 @@ import { WAV_REV_STRICT, WAV_V8_BAND_CURVE } from "./wavefront";
 import { FLIP_REV_STRICT, FLIP_V6_BAND_CURVE } from "./flip";
 import { INK_REV_STRICT, INK_V8_BAND_CURVE } from "./inkBridge";
 import { MATCHUP_REV_GOALS, MATCHUP_REV_STRICT, MATCHUP_V9_BAND_CURVE } from "./matchup";
-import { BUB_REV_REEF, BUB_REV_STRICT, BUB_V8_BAND_CURVE } from "./bubble";
+import { BUB_REV_CREDIT, BUB_REV_STRICT, BUB_V8_BAND_CURVE } from "./bubble";
 import { CROSS_REV_STRICT, CROSS_V7_BAND_CURVE } from "./cross";
 import { RALLY_REV_BONUS, RALLY_REV_STRICT, RALLY_V10_BAND_CURVE } from "./rally";
 import { SNAKE_REV_200, SNAKE_REV_STRICT, SNAKE_V9_BAND_CURVE } from "./snake";
@@ -55,7 +55,7 @@ export const LIVE_BANDS = {
   flip: { field: "flipRev", rev: FLIP_REV_STRICT, curve: FLIP_V6_BAND_CURVE },
   inkbridge: { field: "inkRev", rev: INK_REV_STRICT, curve: INK_V8_BAND_CURVE },
   matchup: { field: "matchupRev", rev: MATCHUP_REV_GOALS, curve: MATCHUP_V9_BAND_CURVE, strictRev: MATCHUP_REV_STRICT },
-  bubble: { field: "bubbleRev", rev: BUB_REV_REEF, curve: BUB_V8_BAND_CURVE, strictRev: BUB_REV_STRICT },
+  bubble: { field: "bubbleRev", rev: BUB_REV_CREDIT, curve: BUB_V8_BAND_CURVE, strictRev: BUB_REV_STRICT },
   cross: { field: "crossRev", rev: CROSS_REV_STRICT, curve: CROSS_V7_BAND_CURVE },
   rally: { field: "rallyRev", rev: RALLY_REV_BONUS, curve: RALLY_V10_BAND_CURVE, strictRev: RALLY_REV_STRICT },
   snake: { field: "snakeRev", rev: SNAKE_REV_200, curve: SNAKE_V9_BAND_CURVE, strictRev: SNAKE_REV_STRICT },

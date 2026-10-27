@@ -169,6 +169,8 @@ export interface BubState extends BandFields {
    * streak now and at best, the shot in flight's wall bounces, and the removed count when it was fired.
    */
   reef?: number;
+  /** bubbleRev 9: base units credit a quarter of the bubbles burst or dropped (bubbleReefParts). */
+  credit?: number;
   chests?: number;
   banks?: number;
   combos?: number;
@@ -980,6 +982,7 @@ export const bubbleRev2Game: ArcadeGame<BubState, ArcadeInputEvent | null> = { .
 
 /** The game for a stored round: its bubbleRev picks the rules (absent = original). */
 export function bubbleGameFor(rev?: number | null): ArcadeGame<BubState, ArcadeInputEvent | null> {
+  if (rev === BUB_REV_CREDIT) return bubbleCreditGame;
   if (rev === BUB_REV_REEF) return bubbleReefGame;
   if (rev === BUB_REV_STRICT) return bubbleStrictGame;
   if (rev === BUB_REV_TARGET) return bubbleTargetGame;
@@ -1096,7 +1099,7 @@ export const bubbleTallGame: ArcadeGame<BubState, ArcadeInputEvent | null> = {
 
 /** The tank height (px) a stored round's bubbleRev plays in. */
 export function bubbleWorldHFor(rev?: number | null): number {
-  return rev === BUB_REV_TALL || rev === BUB_REV_TARGET || rev === BUB_REV_STRICT || rev === BUB_REV_REEF ? BUB_TALL_H : BUB_WORLD_H;
+  return rev === BUB_REV_TALL || rev === BUB_REV_TARGET || rev === BUB_REV_STRICT || rev === BUB_REV_REEF || rev === BUB_REV_CREDIT ? BUB_TALL_H : BUB_WORLD_H;
 }
 
 /* ================= Scoring targets (bubbleRev 6, 18 Oct 2026) ================= */
@@ -1222,7 +1225,9 @@ function initReef(seed: number): BubState {
 
 export function bubbleReefParts(state: BubState): BandParts {
   const start = Math.max(1, state.startCount);
-  const units = state.cleared ? start : clampInt(start - bubRemaining(state), 0, start);
+  const net = state.cleared ? start : clampInt(start - bubRemaining(state), 0, start);
+  // bubbleRev 9: a reef grown past its start still credits a quarter of the bubbles burst or dropped.
+  const units = state.credit ? Math.max(net, clampInt(Math.floor(((state.popped ?? 0) + (state.dropped ?? 0)) / BUB_V9_CREDIT_PER), 0, start)) : net;
   const finished = Boolean(state.cleared);
   const scaled = Math.floor((units * BUB_V8_UNIT_SCALE) / start);
   const speed = finished ? speedBonusCurve(BAND_FINISH_BONUS, BUB_RUN_TICKS - clampInt(state.endedTick, 0, BUB_RUN_TICKS), BUB_RUN_TICKS) : 0;
@@ -1249,4 +1254,22 @@ export const bubbleReefGame: ArcadeGame<BubState, ArcadeInputEvent | null> = {
   ...bubbleGame,
   init: initReef,
   score: (state) => (state.reef ? scoreReef(state) : bubbleGame.score(state)),
+};
+
+/* ================= bubbleRev 9 (26 Oct 2026): credit for bubbles burst ================= */
+
+/**
+ * bubbleRev 9 (docs/arcade-200-remeasure.md): bubbleRev 8's reef, features, curves and play exactly; only the
+ * base units change. bubbleRev 8 counts the reef's net shrink (start − remaining), so a player whose reef grew
+ * past its start through the descents scored 0 however many bubbles they burst (about 1 weak run in 25 with
+ * the fixed bots). bubbleRev 9 counts the larger of that and a quarter of the bubbles burst or dropped
+ * (BUB_V9_CREDIT_PER), which only ever lifts runs that were held near 0: a good player's net shrink is
+ * already well above it. States add `credit: 1` (not in the checkpoint checksum: play is unchanged).
+ */
+export const BUB_REV_CREDIT = 9;
+export const BUB_V9_CREDIT_PER = 4;
+
+export const bubbleCreditGame: ArcadeGame<BubState, ArcadeInputEvent | null> = {
+  ...bubbleReefGame,
+  init: (seed) => ({ ...initReef(seed), credit: 1 }),
 };
