@@ -5,6 +5,7 @@
  * before it (`pinPreStandard`). Shared by phone and server, pure.
  */
 import type { PuzzleData, PuzzleType } from "../types";
+import { rebuildLiveRecords } from "../roundMax";
 
 export interface StandardStamp {
   /** The stamp's key on the stored puzzle. */
@@ -48,6 +49,8 @@ let pinned = false;
 export function pinPreStandard(on: boolean): boolean {
   const prev = pinned;
   pinned = on;
+  // The help and intro texts (liveRecord) describe the stamps dealt: rebuild them for the pinned world.
+  if (prev !== on) rebuildLiveRecords();
   return prev;
 }
 
