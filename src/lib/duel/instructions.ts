@@ -8,7 +8,7 @@ import { SLIDE_PAR_BONUS_TOPUP } from "./wordSlide";
 import { SWAP_PAR_BONUS_TOPUP } from "./swapword";
 import { doubleTakeDepthHelp, eagleEyeDepthHelp, tallyDepthHelp } from "./depth/attentionTexts";
 import { depthHelp } from "./numberDepthText";
-import { d4Help } from "./depth4/text";
+import { PATTERN_STD_HELP } from "./standard/patternText";
 import {
   scoreWordHunt,
   WORDHUNT_FREE_MISSES,
@@ -125,8 +125,6 @@ import { chainDepthHelp } from "./depth/chain";
 import { pairDepthHelp } from "./depth/matchmaker";
 import { labyrinthDepthHelp } from "./depth/labyrinth";
 import { rev3UnfinishedScore } from "./puzzleScoreRev3";
-import { topsyHelpScore } from "./topsy";
-import { jumbledHelpScore } from "./jumbled";
 import type { PuzzleType } from "./types";
 
 /** A skill pay curve in words (E3): "Skill points pay on a rising scale: 15 pay 6, 30 pay 35, …, and the full 50 needs 85." Repeated values are skipped. */
@@ -330,7 +328,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Clear a path", detail: "for the gold block." },
         { action: "Par", detail: "is the fewest moves; the bar's gold mark shows it." },
       ],
-      score: d4Help("unblock"),
+      score: PATTERN_STD_HELP.unblock,
     },
     blockparty: {
       goal: "Fit every piece into the free squares.",
@@ -340,7 +338,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Fit every piece", detail: "around the fixed pegs." },
         { action: "Drag a piece's anchor", detail: "onto a free board square.", helpOnly: true },
       ],
-      score: d4Help("blockparty"),
+      score: PATTERN_STD_HELP.blockparty,
     },
     lightsout: {
       goal: "Turn every light off.",
@@ -360,7 +358,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "No leaks", detail: "at the edges." },
         { action: "Par", detail: "is the fewest taps; the bar's gold mark shows it." },
       ],
-      score: d4Help("pipes"),
+      score: PATTERN_STD_HELP.pipes,
     },
     sudoku: {
       goal: "Fill the 6 × 6 sudoku grid.",
@@ -380,7 +378,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Fill every square", detail: "with a path." },
         { action: "Drag from a loose end", detail: "to carry on; tap a dot to clear its path.", helpOnly: true },
       ],
-      score: d4Help("flow"),
+      score: PATTERN_STD_HELP.flow,
     },
     iceslide: {
       goal: "Slide the ball to the gold exit.",
@@ -391,7 +389,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Ice gems", detail: "off the direct route score a bonus." },
         { action: "Cracked ice", detail: "breaks after you cross it once.", helpOnly: true },
       ],
-      score: d4Help("iceslide"),
+      score: PATTERN_STD_HELP.iceslide,
     },
     push: {
       goal: "Push every crate onto a marked square.",
@@ -402,7 +400,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "The gold crate", detail: "on the gold mark scores a bonus." },
         { action: "The worker", detail: "moves one square at a time and pushes one crate at a time.", helpOnly: true },
       ],
-      score: d4Help("push"),
+      score: PATTERN_STD_HELP.push,
     },
     laser: {
       goal: "Light all six gems with one beam.",
@@ -414,7 +412,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "The splitter", detail: "forks the beam across its input axis.", helpOnly: true },
         { action: "Gem arrows:", detail: "marked gems only light from that direction.", helpOnly: true },
       ],
-      score: d4Help("laser"),
+      score: PATTERN_STD_HELP.laser,
     },
     tower: {
       goal: "Move the whole tower onto the gold post.",
@@ -486,7 +484,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "The rings", detail: "above the board fill as balls go home; a clear board brings the next.", helpOnly: true },
         { action: "Tilts are limited", detail: "on each board (the counter). Undo and Reset don't give a tilt back; out of tilts, the next board comes.", helpOnly: true },
       ],
-      score: topsyHelpScore(),
+      score: PATTERN_STD_HELP.gravity,
     },
     chain: {
       goal: "Tap 40 charms, following the cycle.",
@@ -544,7 +542,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Every round", detail: "has its own colours, so the board never looks the same twice.", helpOnly: true },
         { action: "Par", detail: "is shown with your swaps; every swap counts.", helpOnly: true },
       ],
-      score: jumbledHelpScore(),
+      score: PATTERN_STD_HELP.tiles,
     },
     rings: {
       goal: "Turn the rings until every spoke is one colour.",
@@ -556,7 +554,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Linked rings", detail: "turn the same way or the opposite way.", helpOnly: true },
         { action: "The selected ring", detail: "glows and the needle touches its edge.", helpOnly: true },
       ],
-      score: d4Help("rings"),
+      score: PATTERN_STD_HELP.rings,
     },
     hover: {
       goal: "Fly through the barrier gaps.",

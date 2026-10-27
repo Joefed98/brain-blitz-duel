@@ -50,6 +50,11 @@ import type {
   TilesPuzzleData,
 } from "../src/lib/duel/types";
 
+import { pinPreStandard } from "../src/lib/duel/standard/stamps";
+// The scoring standard (27 Oct 2026, docs/scoring-standard.md) deals its own stamps one above these; this check proves
+// the stamps it was written for, so new deals are pinned to them (standard-*-checks prove the standard's).
+pinPreStandard(true);
+
 let checks = 0;
 const failures: string[] = [];
 const ok = (cond: boolean, msg: string) => {

@@ -352,7 +352,8 @@ export function TopsyReveal({ puzzle, myAnswer, myCorrect, scoreParts }: PuzzleR
   const shownIndex = replay.solved ? TOPSY_BOARDS - 1 : last;
   const state = currentBoardState(data, replay, shownIndex);
   const routes = data.boardSolutions ?? [];
-  const parts = scoreParts && scoreParts.kind === "finish" ? `${scoreParts.base} + ${scoreParts.efficiency ?? 0} stars + ${scoreParts.speed ?? 0} speed` : null;
+  // gravityRev 5 (the scoring standard) stores its bonus's name ("stars + par"); older rounds' bonus is the stars.
+  const parts = scoreParts && scoreParts.kind === "finish" ? `${scoreParts.base} + ${scoreParts.efficiency ?? 0} ${scoreParts.measure ?? "stars"} + ${scoreParts.speed ?? 0} speed` : null;
   return (
     <div className="grav-reveal flex min-h-0 w-full flex-1 flex-col items-center gap-3" data-topsy-reveal="">
       <TopsyRings state={state} />
