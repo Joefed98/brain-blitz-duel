@@ -99,8 +99,8 @@ export const ROUND_MAX: Readonly<Record<PuzzleType, number>> = {
   matchup: 200, // expansion E6, matchupRev 9
   orbit: 200,
   rally: 200, // expansion E9, rallyRev 10
-  skyline: 200,
-  slice: 200,
+  skyline: 200, // expansion E4, skylineRev 7 (skylineRev 8: a gentler curve)
+  slice: 200, // expansion E5, sliceRev 9 (sliceRev 10: bigger onions and golden fruit)
   snake: 200, // expansion E2, snakeRev 9 (snakeRev 10, Joe's phone notes, keeps 200)
   snip: 200, // expansion X200, snipRev 11
   swing: 200, // expansion x200, swingRev 13

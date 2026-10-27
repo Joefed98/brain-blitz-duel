@@ -16,12 +16,12 @@ import { BURST_REV_CLEAN } from "@/lib/arcade/burst";
 import { BULLSEYE_REV_EXPAND } from "@/lib/arcade/bullseye";
 import { BEAT_REV_EASE } from "@/lib/arcade/beat";
 import { SNAKE_REV_10 } from "@/lib/arcade/snake";
-import { SLICE_REV_EXPAND, SLICE_REV_TALL } from "@/lib/arcade/slice";
+import { SLICE_REV_BIG, SLICE_REV_TALL } from "@/lib/arcade/slice";
 import { BINTOSS_REV_EXPAND } from "@/lib/arcade/binToss";
 import { BUB_REV_REEF } from "@/lib/arcade/bubble";
 import { MATCHUP_REV_GOALS } from "@/lib/arcade/matchup";
 import { TEN_DROP_DEPTH_REV } from "@/lib/arcade/tenDrop";
-import { SKYLINE_REV_EXPAND } from "@/lib/arcade/skyline";
+import { SKYLINE_REV_LIFT } from "@/lib/arcade/skyline";
 import { PIN_REV_EXPAND } from "@/lib/arcade/pinball";
 import { chainDemoCompatible } from "./chain";
 import { pairUsesDepth } from "./depth/matchmaker";
@@ -176,15 +176,17 @@ export const getIntroDemoFn = createServerFn({ method: "GET" })
     if (isD4Type(data.type) && demo && !isDepth4(demo.puzzle)) return null;
     // Expansion E4 (25 Oct 2026, docs/expansions/e4.md): High Rise's skylineRev 7 (taller view, special blocks, the
     // next-block preview, milestones). An older demo would show the old view without them, so the intro shows the
-    // still until a demo is recorded on skylineRev 7.
-    if (data.type === "skyline" && demo?.puzzle.type === "skyline" && demo.puzzle.skylineRev !== SKYLINE_REV_EXPAND) return null;
+    // still until a demo is recorded on skylineRev 7. skylineRev 8 (27 Oct 2026, Joe's phone notes) keeps rev 7's play on a
+    // gentler curve: only a skylineRev 8 demo plays (its score is the one the help states).
+    if (data.type === "skyline" && demo?.puzzle.type === "skyline" && demo.puzzle.skylineRev !== SKYLINE_REV_LIFT) return null;
     // Pinball's pinRev 4 (the taller table, its ramps, lanes, lock and plunger): only a pinRev 4 demo plays.
     if (data.type === "pinball" && demo?.puzzle.type === "pinball" && demo.puzzle.pinRev !== PIN_REV_EXPAND) return null;
     // World expansion E5 (25 Oct 2026, docs/expansions/e5.md): Swish binRev 7 and Slice sliceRev 9
     // play in larger worlds with new features; an older demo would show the old world (and its touches would land
     // elsewhere), so each shows its still until a demo is recorded on its new revision.
     if (data.type === "bintoss" && demo?.puzzle.type === "bintoss" && demo.puzzle.binRev !== BINTOSS_REV_EXPAND) return null;
-    if (data.type === "slice" && demo?.puzzle.type === "slice" && demo.puzzle.sliceRev !== SLICE_REV_EXPAND) return null;
+    // Slice sliceRev 10 (27 Oct 2026, Joe's phone notes): bigger onions and golden fruit; only a sliceRev 10 demo plays.
+    if (data.type === "slice" && demo?.puzzle.type === "slice" && demo.puzzle.sliceRev !== SLICE_REV_BIG) return null;
 
     return demo;
   });

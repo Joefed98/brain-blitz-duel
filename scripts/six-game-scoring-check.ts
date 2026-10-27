@@ -194,7 +194,7 @@ for (const type of ["junction"]) eq(demoGuard.includes(`data.type === "${type}"`
 eq(demoGuard.includes('data.type === "bullseye" && demo?.puzzle.type === "bullseye" && demo.puzzle.bullRev !== BULLSEYE_REV_EXPAND'), true, "Flightpath demo stopped until recorded on bullRev 8");
 // Expansion E4 (25 Oct 2026, docs/expansions/e4.md) stops High Rise's intro demo the same way: only a skylineRev 7 demo
 // plays (the taller view, special blocks and the preview). It flips back once the demo is re-recorded on skylineRev 7.
-eq(demoGuard.includes('data.type === "skyline" && demo?.puzzle.type === "skyline" && demo.puzzle.skylineRev !== SKYLINE_REV_EXPAND) return null'), true, "skyline demo stopped until re-recorded on skylineRev 7");
+eq(demoGuard.includes('data.type === "skyline" && demo?.puzzle.type === "skyline" && demo.puzzle.skylineRev !== SKYLINE_REV_LIFT) return null'), true, "skyline demo stopped until re-recorded on skylineRev 8");
 // Taller worlds batch 1 (16 Oct 2026) deliberately stops Rally's intro demo: a demo recorded before rallyRev 6 shows the
 // 620 px court, so only a rallyRev 6 demo plays (arcade-tuning-g1-check). This flips back to "not invalidated" (and the
 // guard comes out of introDemo.functions.ts) once Rally's demo is re-recorded on rallyRev 6.

@@ -50,7 +50,7 @@ import {
   hoverWorldHFor,
   type HoverState,
 } from "../src/lib/arcade/hover";
-import { skylineGameFor, SKYLINE_REV_BAND, SKYLINE_REV_EXPAND, SKYLINE_REV_TALL, SKYLINE_TALL_H, SKYLINE_WORLD_H, skylineWorldHFor } from "../src/lib/arcade/skyline";
+import { skylineGameFor, SKYLINE_REV_BAND, SKYLINE_REV_EXPAND, SKYLINE_REV_LIFT, SKYLINE_REV_TALL, SKYLINE_TALL_H, SKYLINE_WORLD_H, skylineWorldHFor } from "../src/lib/arcade/skyline";
 import {
   snakeCol,
   snakeGameFor,
@@ -167,7 +167,7 @@ section("New rounds carry the Tuning E stamps; one world per stored revision");
   ];
   // Expansion E4 (25 Oct 2026) moved High Rise on to skylineRev 7 (e4-expansion-check covers it); its tall world
   // started with skylineRev 4, which stored rounds still play and score on the bands.
-  ok(generateSkyline().skylineRev === SKYLINE_REV_EXPAND, `skyline: rooms deal skylineRev ${SKYLINE_REV_EXPAND} (expansion E4, after skylineRev ${SKYLINE_REV_TALL})`);
+  ok(generateSkyline().skylineRev === SKYLINE_REV_LIFT, `skyline: rooms deal skylineRev ${SKYLINE_REV_LIFT} (expansion E4 on a gentler curve, after skylineRev ${SKYLINE_REV_TALL})`);
   ok(puzzleUsesBands({ type: "skyline", skylineRev: SKYLINE_REV_TALL } as never), `skyline ${SKYLINE_REV_TALL} scores on the bands`);
   for (const [type, field, got, rev] of stamps) {
     ok(got === rev, `${type}: new rounds stamped ${rev} (got ${got})`);
