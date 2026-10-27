@@ -127,3 +127,87 @@ true spot, falling evenly to 0 at 15 %).
 | Lamplighter (`lightup`) | `depthRev` 2 | up to 120 by share of bulbs on their solution squares, + up to 10 early | 40, full by 45 s | clean 10, −2.5 per wrong bulb |
 
 Each category's section below records its own decisions (how a row was read where the brief left room).
+
+## Speed and Attention decisions
+
+Graders: `src/lib/duel/standard/attention.server.ts`; the shared numbers and small rules (also read by the phone and the
+help texts): `standard/attention.ts`; texts: `standard/attentionTexts.ts`; Mixed Signals in its sim
+(`src/lib/arcade/colourClash.ts`, clashRev 10). Check: `scripts/standard-attention-check.ts`. Every clock in the table is
+the game's real clock (Ascend 60 s, the Chain 45 s, Mixed Signals' run 75 s, Eagle Eye 30 s, Double Take, Tally and
+Labyrinth 60 s, Matchmaker 90 s), so no "full by" time was scaled.
+
+Foundation change (additive): `StandardInput.latestMs` (the last round-clock ms a logged tap or claimed time may carry,
+`latestTapMs`, already worked out in `gradeStandard`), so Ascend's tap log and Matchmaker's gold time are held to a room
+answer's receipt exactly as today's graders hold them.
+
+- **Ascend** (`tapRev` 5 → 6; Flash and Bang On stay on their own tapRev 6, outside the standard). Not timed: each
+  number's early extra (10 ÷ 24) uses its own tap time from the log. Unfinished = 120 × reached ÷ 24 + early − 5 per wrong
+  tap (today's cost) + flow. Finish = 150 + speed 40 (full by 40 s) × (1 − 5 × wrong ÷ 30) (today's 5 off the 30 speed
+  points per wrong tap, as a share) + flow. **Flow streak** (the row left it open): the longest run of right taps with no
+  wrong tap between (taps that change nothing don't break it; no pause limit), 10 × best run ÷ 24; it is earned
+  mid-round, so it counts unfinished too. The phone's flow multiplier chip becomes "n in a row" on tapRev 6 and the
+  reveal shows "Flow: best run n of 24 · +k"; tapRev 5's chip and line are unchanged.
+- **Don't Break the Chain** (`chainDepthRev` 2 → 3). Not timed (each link's own tap time). Unfinished = 120 × links ÷ 40 +
+  early (10 ÷ 40 per link). Finish = 150 + speed 50 (full by 30 s). No mistake cost exists today (a wrong tap ends the
+  chain), so none is added. The milestones are gone on the new stamp: no points, and the phone's milestone pips, the
+  milestone banner and the reveal's milestone line show only on chainDepthRev 1–2; the "Milestones" how-line is removed
+  from the help.
+- **Mixed Signals** (`clashRev` 9 → 10, engine game, no StandardGame entry). The play is clashRev 9's exactly (the same
+  plan, words, specials and checkpoints; `depth.scoreRev` is 10 and never in the checkpoint); only `score()` differs,
+  integer arithmetic only (`clashStandardScoreOf`). Finish = clashRev 8's (all 52 sorted or let fall, at most 3 wrong) =
+  150 + speed 15 (full when the last word lands by 50 s of the run, measured as clashRev 8 does with words let fall timed
+  as quick sorts, falling evenly to 0 at 75 s) less a sixth per wrong word (today's 5 off 30) + **streak** 20 × (longest
+  streak − 12) ÷ 40 (from clashRev 8's streak measure, linear instead of squared) + **gold** 3 per gold word sorted right
+  (five golds, 15). Unfinished = 130 × max(0, right − wrong) ÷ 52 + streak + gold, at most 130, and 0 while right does
+  not outnumber wrong (an idle run lets "don't sort" words fall and may drop a gold word in the right lane by chance;
+  that must not score). The row's "up to 130" is
+  read literally; the cap keeps it below every finish). The reveal's lines and the help describe clashRev 10.
+- **Eagle Eye** (`scanRev` 3 → 4). **Rule change at grading (no deal change): the finish** is every eagle found in all
+  three grids with at most 3 wrong eagles left marked in each grid (today: all three grids perfect). Wrong eagles left on
+  a finish cost the clean bonus, not the finish; the per-grid limit keeps "mark everything" from finishing (it scores 0).
+  Unfinished = 40 × found ÷ eagles per grid (grid 3 now weighs 40 like the others) + up to 3 for each grid completed
+  early (a grid's part counts when every eagle in it is marked) − 3 per wrong eagle left marked (today's cost). Finish =
+  150 + speed 10 (full by 20 s) + **clean grids** 40 ÷ 3 per grid in which no wrong eagle was ever marked, read from the
+  draft timeline (a wrong eagle marked and taken back makes the grid unclean; no timeline, no clean grid). The answer's
+  "taps taken back" count (scanRev 2–3) is no longer used or shown on scanRev 4. The mistake cost does not scale the speed
+  points (today's finish allowed no mistakes, so it never did).
+- **Double Take** (`spotRev` 2 → 3). Finish = today's (all 12, at most 5 wrong taps in each picture). Unfinished = 10 per
+  difference + 0.8 each early − 4 per wrong tap (today's cost) + the hidden difference 20 (counts unfinished). Finish =
+  150 + speed 20 (full by 40 s) + hidden 20 + clean taps 10 (no wrong tap at all, all or nothing; the answer keeps every
+  tap, so the final answer is the history). Wrong taps don't scale the speed points (today's finish had no mistake cut).
+- **Tally** (`countRev` 4 → 5; still dealt by moveLimits.server.ts, the stamp the deal ends on). Unfinished = 30 per tray
+  exact + 30 × 0.15 per tray one off (today's 15 % near-miss credit, kept as partial credit) + 2.5 each early for exact
+  trays. Finish (all four exact) = 150 + speed 50 (full by 30 s). No bonus.
+- **Labyrinth** (`mazeRev` 2 → 3; `usesMazeDepth` now reads mazeRev 1 and later, so mazeRev 3 keeps the 19 × 23 board,
+  stars and trail answer). Unfinished = 120 × today's progress share (the route's furthest step beyond the start, times
+  today's waste factor, less today's 5 % dead zone) + up to 10 early (10 ÷ the route's steps per step reached, by when
+  the furthest step was reached), the early extras scaled by the same waste factor + stars. Finish = 150 + speed 20
+  (full by 40 s) + stars. **Stars**: 30 shared over the maze's stars (10 each), finished or not (the old stars counted only
+  with a fast finish). The reveal and round summary show the stars' stored points for unfinished rounds too; the intro
+  example and help say stars count finished or not.
+- **Matchmaker** (`pairRev` 2 → 3). Unfinished = 8 per pair + 0.6 each early (by when each pair was matched, from the
+  timeline) − today's miss cost as points (misses beyond 14 cost a third of a pair, 8 ÷ 3, each; never below 0 before
+  the extras) + streak + gold. Finish = 150 + speed 30 (full by 60 s; no mistake cut, as today) + streak + gold. **Match
+  streak** (the row left it open): 1 for each match in the longest run of matches beyond the first 3, up to 5 (an 8-match
+  run earns all 5; a short run cashing the last known pairs earns little). **Gold**: 15 for the gold pair matched in the
+  round's first 30 s (pairRev 2's rule; the gold time is the phone's, held to the answer's receipt). The phone's streak
+  shows the run's length ("streak n") and the gold line its 15 on pairRev 3.
+
+Kit play (puzzle-fairness kits) needed two fixes for these boards, both script-only: Labyrinth's kit sends the trail
+answer (mazeRev 1+) instead of the old path answer (which graded 0 on the 19 × 23 boards) and detours to stars with the
+chance depth-labyrinth-check uses (25 / 50 / 80 / 100 %); Matchmaker's kit adds the gold match's time (`@ms`) on pairRev
+2+. Older boards play exactly as before (the same random draws).
+
+Checks pinned to the world they were written for (`pinPreStandard(true)`): depth-ascend-check, depth-doubletake-check,
+depth-topup-check. Text assertions that compared the live intro/help with a depth text now compare them with the live
+deal's (the standard's) text and still check the depth texts for themselves: depth-attention-lib's `checkTexts` (Eagle
+Eye, Double Take, Tally), depth-chain-check, depth-matchmaker-check.
+
+Kit bands (`bun scripts/standard-bands.ts`, medians on 8 room seeds 6100 + 7k; nothing / spam / average / good / great /
+near-perfect): Ascend 0 / 0 / 79 / 165 / 183 / 200; Chain 0 / 0 / 10 / 64 / 61 / 200; Mixed Signals 0 / 0 / 57 / 113 /
+130 / 196; Eagle Eye 0 / 0 / 68 / 107 / 183 / 187; Double Take 0 / 0 / 79 / 164 / 180 / 200; Tally 0 / 5 / 66 / 100 / 100 /
+200; Labyrinth 0 / 10 / 57 / 104 / 173 / 189; Matchmaker 0 / 0 / 72 / 185 / 197 / 198. The Chain (a slip ends the chain)
+and Tally (one miscount costs the finish) are lumpy on 8 seeds; on 24 seeds they rise strictly (Chain 13 / 60 / 111 /
+200, Tally 63 / 98 / 181 / 200), which is what standard-attention-check measures for them. standard-attention-check asserts nothing ≤ spam ≤ 10 < average < good < great < near (or near at 200) and every finish
+above every unfinished score for all eight games. Labyrinth's spam median is about 10: a blind depth-first scribble
+explores enough of the maze to earn route credit (as today) and a scribble that rolls over a star keeps its 10.

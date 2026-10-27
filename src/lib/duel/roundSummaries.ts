@@ -1,5 +1,6 @@
 import { PUZZLE_SCORE_REV, puzzleScoreRevOf } from "./puzzleScoreRev";
 import { LAB_STARS } from "./depth/labyrinth";
+import { usesStandard } from "./standard/stamps";
 import { solutionProgress } from "./progressFigures";
 import { PUZZLE_SCORE_REV_BANDS } from "./puzzleScoreRev2";
 import {
@@ -718,6 +719,11 @@ const mazeSummary: SummaryBuilder = (result, puzzle) => {
       summary: `Solved · ${seconds(elapsedMs(result, puzzle))}${starText}`,
       detail: [`${Number(result.extra?.["wasted"] ?? 0)} wasted squares`, ...(stars === null ? [] : [`${stars} of ${LAB_STARS} stars · +${bonus}`])],
     };
+  }
+  // The scoring standard (mazeRev 3, standard/attention.ts): stars count finished or not, with their stored points.
+  if (usesStandard(puzzle)) {
+    const bonus = Number(result.extra?.["starBonus"] ?? 0);
+    return { summary: `${progress}%${starText}`, detail: [`${progress}% of the way to the exit`, ...(stars ? [`${stars} of ${LAB_STARS} stars · +${bonus}`] : [])] };
   }
   return { summary: `${progress}%${starText}`, detail: [`${progress}% of the way to the exit`, ...(stars ? ["Stars count only with a finish"] : [])] };
 };

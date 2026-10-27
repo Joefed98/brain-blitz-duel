@@ -48,9 +48,13 @@ export const LAB_STAR_ZERO_SHARE = 0.45;
 /** Speed share of the clock for today's 150 (puzzleScoreRev 3's Labyrinth fastShare). */
 export const LAB_FAST_SHARE = 0.48;
 
+/**
+ * True for mazeRev 1 and later: the 19 × 23 board, stars and trail answer. The scoring standard's mazeRev 3 (27 Oct 2026,
+ * standard/attention.ts) keeps mazeRev 2's board and play; only its score differs (the standard grader runs first).
+ */
 export function usesMazeDepth(puzzle: unknown): puzzle is MazePuzzleData & { mazeRev: number } {
   const p = puzzle as { type?: string; mazeRev?: number } | null;
-  return p?.type === "maze" && (p.mazeRev === MAZE_REV_DEPTH || p.mazeRev === MAZE_REV_NOTES);
+  return p?.type === "maze" && typeof p.mazeRev === "number" && p.mazeRev >= MAZE_REV_DEPTH;
 }
 
 /** A trail answer starts with this; each following letter is one step. */
