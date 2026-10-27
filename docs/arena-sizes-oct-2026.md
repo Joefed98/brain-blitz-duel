@@ -42,7 +42,7 @@ revisions keep their own world in reveals and replays.
 | Coral Pop | 390x730 | 375x591 → 316x591 | 390x624 → 333x624 | 390x768 → 390x730 | 414x772 → 412x772 | 430x856 → 430x805 | 1280x724 → 387x724 | 1.000x | 60px | 0px | 38px | 0px | - |
 | Roofbound | 390x730 | 375x591 → 316x591 | 390x624 → 333x624 | 390x768 → 390x730 | 414x772 → 412x772 | 430x856 → 430x805 | 1280x724 → 387x724 | 1.000x | 60px | 0px | 38px | 0px | - |
 | Grappler | 450x844 | 375x591 → 315x591 | 390x624 → 333x624 | 390x768 → 390x731 | 414x772 → 412x772 | 430x856 → 430x806 | 1280x724 → 386x724 | 0.867x | 60px | 0px | 37px | 0px | - |
-| Scrumper | 360x640 | 375x567 → 319x567 | 390x600 → 338x600 | 390x744 → 390x693 | 414x748 → 414x736 | 430x832 → 430x764 | 1280x700 → 394x700 | 1.083x | 84px | 25px | 25px | 0px | - |
+| Scrumper | 360x672 | 375x567 → 304x567 | 390x600 → 321x600 | 390x744 → 390x728 | 414x748 → 401x748 | 430x832 → 430x803 | 1280x700 → 375x700 | 1.083x | 84px | 8px | 8px | 0px | - |
 | Tilt | 440x470 | 375x591 → 375x401 | 390x624 → 390x417 | 390x768 → 390x417 | 414x772 → 414x442 | 430x856 → 430x459 | 1280x724 → 678x724 | 0.886x | 60px | 176px | 176px | 0px | - |
 | Ball Tracker | 700x1400 | 375x555 → 278x555 | 390x588 → 294x588 | 390x732 → 366x732 | 414x736 → 368x736 | 430x820 → 410x820 | 1280x688 → 344x688 | 0.523x | 60px | 0px | -0px | 24px | Ball Tracker's status row (28px): 16px |
 | Gemstone | 390x720 | 375x591 → 320x591 | 390x624 → 338x624 | 390x768 → 390x720 | 414x772 → 414x764 | 430x856 → 430x794 | 1280x724 → 392x724 | 1.000x | 60px | 24px | 24px | 0px | - |
@@ -85,7 +85,7 @@ stars, walkers, lava, reactions) that holds still under reduced motion or reduce
 | Coral Pop | 375x591 → 316x591 | 390x624 → 333x624 | 390x768 → 390x730 | 414x772 → 412x772 | 430x856 → 430x805 | 1280x724 → 387x724 | the deep water settles onto soft sand |
 | Roofbound | 375x591 → 316x591 | 390x624 → 333x624 | 390x768 → 390x730 | 414x772 → 412x772 | 430x856 → 430x805 | 1280x724 → 387x724 | deep rock below the floor's rock, faint lava streaks drifting and bubbling (still under reduced motion) |
 | Grappler | 375x591 → 315x591 | 390x624 → 333x624 | 390x768 → 390x731 | 414x772 → 412x772 | 430x856 → 430x806 | 1280x724 → 386x724 | more lava under the cavern's lava, then dark rock |
-| Scrumper | 375x567 → 319x567 | 390x600 → 338x600 | 390x744 → 390x693 | 414x748 → 414x736 | 430x832 → 430x764 | 1280x700 → 394x700 | the orchard grass runs on below, a deeper green (world centred) |
+| Scrumper | 375x567 → 304x567 | 390x600 → 321x600 | 390x744 → 390x728 | 414x748 → 401x748 | 430x832 → 430x803 | 1280x700 → 375x700 | the orchard grass runs on below, a deeper green (world centred) |
 | Tilt | 375x591 → 375x401 | 390x624 → 390x417 | 390x768 → 390x417 | 414x772 → 414x442 | 430x856 → 430x459 | 1280x724 → 678x724 | the board's oak runs on to the screen's edges, settling darker (no rim) |
 | Ball Tracker | 375x555 → 278x555 | 390x588 → 294x588 | 390x732 → 366x732 | 414x736 → 368x736 | 430x820 → 410x820 | 1280x688 → 344x688 | the wooden board runs on across the sides and to the bottom |
 | Gemstone | 375x591 → 320x591 | 390x624 → 338x624 | 390x768 → 390x720 | 414x772 → 414x764 | 430x856 → 430x794 | 1280x724 → 392x724 | the sparkly purple velvet over the whole screen, behind the header too (world centred) |
@@ -122,7 +122,7 @@ than half hidden; Hover's world is cut the same way, its disc at the top).
 | Coral Pop | 414x724 → 387x724, 64px | 414x772 → 412x772, 16px | world 32px |
 | Roofbound | 414x724 → 387x724, 64px | 414x772 → 412x772, 16px | world 32px |
 | Grappler | 414x724 → 386x724, 64px | 414x772 → 412x772, 16px | world 32px |
-| Scrumper | 414x700 → 394x700, 64px | 414x748 → 414x736, 16px | world 20px |
+| Scrumper | 414x700 → 375x700, 64px | 414x748 → 401x748, 16px | world 32px |
 | Tilt | 414x724 → 414x442, 64px | 414x772 → 414x442, 16px | world none |
 | Ball Tracker | 414x688 → 344x688, 64px | 414x736 → 368x736, 16px | world none, Ball Tracker's status row (28px) 32px |
 | Gemstone | 414x724 → 392x724, 64px | 414x772 → 414x764, 16px | world 24px |
@@ -158,7 +158,7 @@ bottom; the spare space was the game's arena fill or the page colour. Same arith
 | Coral Pop | 367x543 → 290x543 | 382x576 → 308x576 | 382x720 → 382x715 | 422x808 → 422x790 | 1272x676 → 361x676 |
 | Roofbound | 367x543 → 290x543 | 382x576 → 308x576 | 382x720 → 382x715 | 422x808 → 422x790 | 1272x676 → 361x676 |
 | Grappler | 367x543 → 290x543 | 382x576 → 307x576 | 382x720 → 382x716 | 422x808 → 422x791 | 1272x676 → 360x676 |
-| Scrumper | 367x503 → 283x503 | 382x536 → 302x536 | 382x680 → 382x679 | 422x768 → 422x750 | 1272x636 → 358x636 |
+| Scrumper | 367x503 → 269x503 | 382x536 → 287x536 | 382x680 → 364x680 | 422x768 → 411x768 | 1272x636 → 341x636 |
 | Tilt | 367x503 → 367x392 | 382x536 → 382x408 | 382x680 → 382x408 | 422x768 → 422x451 | 1272x636 → 595x636 |
 | Ball Tracker | 367x503 → 251x503 | 382x536 → 268x536 | 382x680 → 340x680 | 422x768 → 384x768 | 1272x636 → 318x636 |
 | Gemstone | 367x543 → 294x543 | 382x576 → 312x576 | 382x720 → 382x705 | 422x808 → 422x779 | 1272x676 → 366x676 |
