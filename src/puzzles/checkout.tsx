@@ -31,6 +31,8 @@ import {
   type CheckoutDart,
 } from "@/lib/duel/checkout";
 import { checkoutBigFinish } from "@/lib/duel/checkout";
+import { usesStandard } from "@/lib/duel/standard/stamps";
+import { checkoutBigBoards } from "@/lib/duel/standard/number";
 import { useGameKeys } from "@/lib/desktop";
 import { useStageState } from "@/lib/duel/stageState";
 import {
@@ -641,6 +643,8 @@ function Stage({
 
   if (!data) return null;
   const current = data.stages[stage]!;
+  // The scoring standard: the big finish pays only on a board of 100 or more a big finish can end (number.ts).
+  const bigPays = !usesStandard(data) || checkoutBigBoards(data.stages)[stage] === true;
   const isSolved = (index: number) => Boolean(solved[index]);
   const darts = isSolved(stage)
     ? decodeCheckoutDarts(solved[stage]!, current.maxDarts)
@@ -745,12 +749,12 @@ function Stage({
         data-checkout-rule
       >
         {current.bigFinish ? (
-          correct && endedBig(current, solved[stage]) ? (
+          correct && bigPays && endedBig(current, solved[stage]) ? (
             <span className="co-big">★ Big finish!</span>
           ) : (
             <>
               <span className="text-primary">{bigFinishRule(current).split(" · ")[0]}</span>
-              {" · "}<span className="co-big">{bigFinishRule(current).split(" · ")[1]}</span>{" · "}
+              {" · "}{bigPays ? <span className="co-big">{bigFinishRule(current).split(" · ")[1]}</span> : <span>{bigFinishRule(current).split(" · ")[1]!.replace("★ ", "")}</span>}{" · "}
               {dartsRule(current)}
             </>
           )
@@ -850,6 +854,7 @@ const REVEAL_LABEL = "#CFC8BA";
 function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   if (puzzle.type !== "checkout") return null;
   const parts = splitCheckoutRound(myAnswer);
+  const pays = usesStandard(puzzle) ? checkoutBigBoards(puzzle.stages) : puzzle.stages.map(() => true);
   return (
     <div className="flex w-full flex-col items-stretch gap-1.5 px-1" data-checkout-root>
       <PolishStyle id="checkout" css={CHECKOUT_CSS} />
@@ -874,7 +879,7 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
               <div className="flex items-center justify-between gap-1 text-sm">
                 <span className="text-xs" style={{ color: REVEAL_LABEL }}>
                   {index + 1}. {stage.target} · {finishWord(stage)}
-                  {ok && checkoutBigFinish(stage, mine[mine.length - 1]) ? <span style={{ color: GOLD }}> · ★ big finish</span> : null}
+                  {ok && pays[index] && checkoutBigFinish(stage, mine[mine.length - 1]) ? <span style={{ color: GOLD }}> · ★ big finish</span> : null}
                 </span>
                 <span className={ok ? "font-bold text-primary" : "text-warn"}>
                   {ok
