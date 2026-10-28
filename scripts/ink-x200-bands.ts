@@ -24,6 +24,7 @@ import {
   INK_INPUT_UNDO,
   INK_LEVELS,
   INK_REV_EXPAND,
+  INK_REV_SPREAD,
   INK_REV_STRICT,
   INK_RUN_TICKS,
   INK_TALL_H,
@@ -129,13 +130,13 @@ export function randomInkLog(rev: number, seed: number): ArcadeInputEvent[] {
   return events;
 }
 
-/** Today's inkRev 10 score for a saved row (the curves as they are now). */
+/** Today's inkRev 10 / 11 score for a saved row (the curves as they are now). */
 export function inkRescore(r: InkRow): number {
-  if (r.rev !== INK_REV_EXPAND) return r.score;
+  if (r.rev !== INK_REV_EXPAND && r.rev !== INK_REV_SPREAD) return r.score;
   const finished = r.levels >= INK_LEVELS;
   const speed = finished ? Math.min(BAND_FINISH_BONUS, Math.round((BAND_FINISH_BONUS * (INK_RUN_TICKS - Math.max(0, Math.min(INK_RUN_TICKS, r.ended)))) / INK_V10_SPEED_PAR)) : 0;
   if (r.score === 0 && r.levels === 0 && r.raw === 0) return 0;
-  return Math.max(0, Math.min(INK_EXPAND_MAX, bandPoints(INK_V10_BAND_CURVE, 10 * r.levels) + speed + inkFeaturePaid(r.raw)));
+  return Math.max(0, Math.min(INK_EXPAND_MAX, bandPoints(INK_V10_BAND_CURVE, 10 * r.levels) + speed + inkFeaturePaid(r.raw, r.rev)));
 }
 
 const q = (v: readonly number[], p: number) => {

@@ -44,6 +44,7 @@ import {
   WAV_FORMS_X,
   WAV_PAR_X,
   WAV_REV_EXPAND,
+  WAV_REV_PHONE,
   WAV_REV_STRICT,
   WAV_SAUCER_EVERY,
   WAV_V10_BAND_CURVE,
@@ -77,7 +78,7 @@ import { roomSeed } from "./arcade-skill-bands/games";
 import { LEGACY_REVS, stateDigest } from "./wavefront-expand-record";
 import { RECORDED_SEEDS } from "./wavefront-expand-bands";
 import { ALL_LEVELS } from "./arcade-skill-bands/human";
-import { randomLog, roomIdentity, scheduleOf } from "./room-identity/wavefront";
+import { botLog, randomLog, scheduleOf } from "./room-identity/wavefront";
 import type { ArcadeInputEvent } from "../src/lib/arcade/engine";
 
 let checks = 0;
@@ -135,10 +136,12 @@ section("Old rounds replay unchanged on every older revision");
 }
 
 /* 2. Dealing. */
-section("Rooms deal wavRev 10, scored to 200");
-ok(generateWavefront().wavRev === WAV_REV_EXPAND && WAV_REV_EXPAND === 10, "rooms deal wavRev 10");
-ok((wavefrontPuzzle.generate() as { wavRev?: number }).wavRev === WAV_REV_EXPAND, "practice's definition deals wavRev 10");
-ok(LIVE_BANDS.wavefront.rev === WAV_REV_EXPAND && LIVE_BANDS.wavefront.curve === WAV_V10_BAND_CURVE && LIVE_BANDS.wavefront.strictRev === WAV_REV_STRICT, "LIVE_BANDS: wavRev 10 on WAV_V10_BAND_CURVE, wavRev 8 its strictRev");
+// Since 27 Oct 2026 rooms deal wavRev 11 (Joe's phone notes, wavefront-phone-check proves its dealing); wavRev 10 rounds
+// keep replaying and scoring exactly as below.
+section("Rooms deal wavRev 11 (after wavRev 10), scored to 200");
+ok(generateWavefront().wavRev === WAV_REV_PHONE && WAV_REV_EXPAND === 10 && WAV_REV_PHONE === 11, "rooms deal wavRev 11, the revision after wavRev 10");
+ok((wavefrontPuzzle.generate() as { wavRev?: number }).wavRev === WAV_REV_PHONE, "practice's definition deals wavRev 11");
+ok(LIVE_BANDS.wavefront.strictRev === WAV_REV_STRICT && WAV_V10_BAND_CURVE.points.at(-1) === 140, "LIVE_BANDS: wavRev 8 is still the strictRev; wavRev 10's base curve still tops at 140");
 ok(roundMaxFor("wavefront") === 200, "Wavefront's round maximum is 200");
 ok(wavefrontWorldHFor(WAV_REV_EXPAND) === WAV_X_H && WAV_X_H === 800, "wavRev 10 plays in the 390 × 800 world");
 
@@ -223,7 +226,8 @@ export function wavCeiling(seed: number): { raw: number; score: number } {
 section("Room identity: what the seed deals never depends on the play");
 for (const n of [0, 7, 10001]) {
   const seed = roomSeed(n);
-  const logs = roomIdentity.logs(seed);
+  // wavRev 10's own bots (the room-identity module now plays the revision rooms deal).
+  const logs = [[], randomLog(seed), botLog(seed, "weak", WAV_REV_EXPAND), botLog(seed, "elite", WAV_REV_EXPAND)];
   const runs = logs.map((log) => ({ ...play(seed, log), schedule: scheduleOf(seed, WAV_REV_EXPAND, log) }));
   for (let a = 1; a < runs.length; a++) {
     const lived = Math.min(runs[0]!.end.tick, runs[a]!.end.tick);
@@ -356,4 +360,4 @@ if (failures.length) {
   console.log(`FAIL wavefront-expand-check: ${failures.length} of ${checks} checks failed`);
   process.exit(1);
 }
-console.log(`PASS wavefront-expand-check: ${checks} checks — old rounds unchanged on every revision, rooms deal wavRev 10, recorded runs and a 200 replay, the counted ceiling and the oracle's 200 on all 260 seeds, room identity, the new rules`);
+console.log(`PASS wavefront-expand-check: ${checks} checks — old rounds unchanged on every revision, wavRev 10 (rooms now deal 11): recorded runs and a 200 replay, the counted ceiling and the oracle's 200 on all 260 seeds, room identity, the new rules`);

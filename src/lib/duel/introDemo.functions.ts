@@ -1,6 +1,6 @@
 import { DEPTH_DEMO_STOPS, DEPTH_REV, depthRevOf } from "./logicDepth";
 import { SWING_REV_ASSAULT } from "@/lib/arcade/swing";
-import { INK_REV_EXPAND } from "@/lib/arcade/inkBridge";
+import { INK_REV_SPREAD } from "@/lib/arcade/inkBridge";
 import { CLAY_REV_DEPTH } from "@/lib/arcade/clayShoot";
 import { WHACK_REV_NOTES } from "@/lib/arcade/whack";
 import { WORDFALL_REV } from "@/lib/arcade/wordfall";
@@ -11,18 +11,18 @@ import { FLIP_REV_EXPAND } from "@/lib/arcade/flip";
 import { SNIP_REV_EXPAND } from "@/lib/arcade/snip";
 import { HOVER_REV_EXPAND } from "@/lib/arcade/hover";
 import { RALLY_REV_CURVE } from "@/lib/arcade/rally";
-import { WAV_REV_EXPAND } from "@/lib/arcade/wavefront";
-import { BURST_REV_CLEAN } from "@/lib/arcade/burst";
+import { WAV_REV_PHONE } from "@/lib/arcade/wavefront";
+import { BURST_REV_CARRY } from "@/lib/arcade/burst";
 import { BULLSEYE_REV_EXPAND } from "@/lib/arcade/bullseye";
 import { BEAT_REV_EASE } from "@/lib/arcade/beat";
 import { SNAKE_REV_10 } from "@/lib/arcade/snake";
 import { SLICE_REV_BIG, SLICE_REV_TALL } from "@/lib/arcade/slice";
 import { BINTOSS_REV_SMALL_FAR } from "@/lib/arcade/binToss";
 import { BUB_REV_BLAST } from "@/lib/arcade/bubble";
-import { MATCHUP_REV_GOALS } from "@/lib/arcade/matchup";
+import { MATCHUP_REV_ICE } from "@/lib/arcade/matchup";
 import { TEN_DROP_DEPTH_REV } from "@/lib/arcade/tenDrop";
 import { SKYLINE_REV_LIFT } from "@/lib/arcade/skyline";
-import { PIN_REV_EXPAND } from "@/lib/arcade/pinball";
+import { pinIsExpanded } from "@/lib/arcade/pinball";
 import { chainDemoCompatible } from "./chain";
 import { pairUsesDepth } from "./depth/matchmaker";
 import { STRIKEOUT_REV4 } from "./strikeout";
@@ -96,8 +96,9 @@ export const getIntroDemoFn = createServerFn({ method: "GET" })
     // help, so Strikeout's demo stays stopped until one is recorded on a rev-4 puzzle.
     if (data.type === "strikeout" && demo?.puzzle.type === "strikeout" && demo.puzzle.strikeoutRev !== STRIKEOUT_REV4) return null;
     // Block-era Rainbow Bridge demos would show red blocks under the birds wording.
-    // x200 (inkRev 10): a taller world with clouds, wind, coins and a shamrock; only a demo recorded on it plays (the still shows until then).
-    if (data.type === "inkbridge" && demo?.puzzle.type === "inkbridge" && demo.puzzle.inkRev !== INK_REV_EXPAND) return null;
+    // x200 (inkRev 10): a taller world with clouds, wind, coins and a shamrock; inkRev 11 (phone notes, 27 Oct 2026) drops
+    // the wind and spreads the pickups, so its levels differ: only a demo recorded on inkRev 11 plays (the still shows until then).
+    if (data.type === "inkbridge" && demo?.puzzle.type === "inkbridge" && demo.puzzle.inkRev !== INK_REV_SPREAD) return null;
     // clayRev 5 (14 Oct 2026) flies 14–16 birds and clayRev 6 (16 Oct 2026, taller worlds batch 2) flies them under a
     // taller sky: an older demo would show the old sky, so only a demo recorded on today's clayRev plays.
     // Depth to 200 (25 Oct 2026): clayRev 9 adds doubles and the hit streak, Bonk's whackRev 3 the gold combo and
@@ -131,9 +132,12 @@ export const getIntroDemoFn = createServerFn({ method: "GET" })
     // Rally rallyRev 11 (phone notes, 27 Oct 2026): spin shots now curve visibly and targets last 5 s, so an older demo
     // would play differently; it stays stopped until one is recorded on rallyRev 11.
     if (data.type === "rally" && demo?.puzzle.type === "rally" && demo.puzzle.rallyRev !== RALLY_REV_CURVE) return null;
-    // The 200 expansion (wavRev 10): a demo recorded on an older revision shows the shorter arena and no power-ups, so it stays stopped until one is recorded on wavRev 10.
-    if (data.type === "wavefront" && demo?.puzzle.type === "wavefront" && demo.puzzle.wavRev !== WAV_REV_EXPAND) return null;
-    if (data.type === "burst" && demo?.puzzle.type === "burst" && demo.puzzle.burstRev !== BURST_REV_CLEAN) return null;
+    // The 200 expansion (wavRev 10), then Joe's phone notes (wavRev 11: power-ups from carriers, no streak, the mothership
+    // only after wave 5): an older demo shows other play, so it stays stopped until one is recorded on wavRev 11.
+    if (data.type === "wavefront" && demo?.puzzle.type === "wavefront" && demo.puzzle.wavRev !== WAV_REV_PHONE) return null;
+    // Phone-test notes (27 Oct 2026): Fission burstRev 9's power-ups ride on atoms and its golden atom bounces, so an
+    // older demo stays stopped until one is recorded on burstRev 9.
+    if (data.type === "burst" && demo?.puzzle.type === "burst" && demo.puzzle.burstRev !== BURST_REV_CARRY) return null;
     // Expansion E9 (26 Oct 2026, docs/expansions/e9.md): Flightpath bullRev 8 too (Rally and Fission above).
     if (data.type === "bullseye" && demo?.puzzle.type === "bullseye" && demo.puzzle.bullRev !== BULLSEYE_REV_EXPAND) return null;
     // Expansion E2 (25 Oct 2026): Meteor and Tempo demos stay stopped until one is recorded on the 200-point revision.
@@ -166,7 +170,9 @@ export const getIntroDemoFn = createServerFn({ method: "GET" })
     // Expansion E6 (25 Oct 2026): Ball Tracker's 13-row board, Gemstone's taller board with goals: each stays stopped
     // until a demo is recorded on its new revision (btRev 7, matchupRev 9).
     if (data.type === "balltrack" && demo?.puzzle.type === "balltrack" && demo.puzzle.btRev !== BT_REV_RUSH) return null;
-    if (data.type === "matchup" && demo?.puzzle.type === "matchup" && demo.puzzle.matchupRev !== MATCHUP_REV_GOALS) return null;
+    // Gemstone's matchupRev 10 (27 Oct 2026: 90 s, swaps into and out of ice, ice laid once) plays differently again, so
+    // only a demo recorded on matchupRev 10 plays; until one is, the intro shows its still.
+    if (data.type === "matchup" && demo?.puzzle.type === "matchup" && demo.puzzle.matchupRev !== MATCHUP_REV_ICE) return null;
     // The 200-point expansion (26 Oct 2026, docs/expansions/x200-snip.md): Scrumper's snipRev 11 tall courses with several
     // fruits and a vertical camera. An older demo shows the old one-apple levels, so the intro shows its still until a demo
     // is recorded on snipRev 11.
@@ -187,8 +193,9 @@ export const getIntroDemoFn = createServerFn({ method: "GET" })
     // still until a demo is recorded on skylineRev 7. skylineRev 8 (27 Oct 2026, Joe's phone notes) keeps rev 7's play on a
     // gentler curve: only a skylineRev 8 demo plays (its score is the one the help states).
     if (data.type === "skyline" && demo?.puzzle.type === "skyline" && demo.puzzle.skylineRev !== SKYLINE_REV_LIFT) return null;
-    // Pinball's pinRev 4 (the taller table, its ramps, lanes, lock and plunger): only a pinRev 4 demo plays.
-    if (data.type === "pinball" && demo?.puzzle.type === "pinball" && demo.puzzle.pinRev !== PIN_REV_EXPAND) return null;
+    // Pinball's pinRev 4 (the taller table, its ramps, lanes, lock and plunger): only a demo on that table plays
+    // (pinRev 4 or 5: pinRev 5 plays the same table tick for tick, only for 90 s instead of 60).
+    if (data.type === "pinball" && demo?.puzzle.type === "pinball" && !pinIsExpanded(demo.puzzle.pinRev)) return null;
     // World expansion E5 (25 Oct 2026, docs/expansions/e5.md): Swish binRev 7 and Slice sliceRev 9
     // play in larger worlds with new features; an older demo would show the old world (and its touches would land
     // elsewhere), so each shows its still until a demo is recorded on its new revision.

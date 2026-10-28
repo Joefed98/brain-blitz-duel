@@ -1560,7 +1560,7 @@ export const BURST_FX_CLEAN: ArcadeFxSpec<BurstState> = {
   events: [
     ...BURST_FX_TALL.events,
     { kind: "perfect", count: (s) => burstGoldenCount(s), at: (s) => ({ x: s.popX / 256, y: s.popY / 256 }), label: () => null, textOnly: true, bulbs: { pattern: "flash", colours: COOL_LIGHTS } },
-    { kind: "clear", count: (s) => s.cleanWaves ?? 0, at: (s) => ({ x: BURST_WORLD_W / 2, y: burstFloorY(s) / 2 }), label: () => null, textOnly: true, bulbs: { pattern: "flash", colours: COOL_LIGHTS, strong: true } },
+    { kind: "clear", count: (s) => (s.cleanWaves ?? 0) + (s.quickWaves ?? 0), at: (s) => ({ x: BURST_WORLD_W / 2, y: burstFloorY(s) / 2 }), label: () => null, textOnly: true, bulbs: { pattern: "flash", colours: COOL_LIGHTS, strong: true } },
   ],
 };
 /** Taller worlds batch 2 (Oct 2026): Tempo beatRev 6, Slice sliceRev 6, Coral Pop bubbleRev 5. */

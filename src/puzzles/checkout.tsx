@@ -4,7 +4,6 @@ import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react"
 import { hapticTick } from "@/components/puzzles/GridDrag";
 import { PolishStyle, soundCue, useSolveFx } from "@/components/puzzles/numberPolish";
 import { StageCorrect } from "@/components/puzzles/StageCorrect";
-import { FLIGHTPATH_COLOURS } from "@/lib/arcade/flightpathPalette.renderer";
 import {
   FAIR_BULB,
   FAIR_CHALK,
@@ -56,8 +55,9 @@ const ROOT_STYLE: CSSProperties = {
   WebkitTapHighlightColor: "transparent",
 };
 
-/* Flightpath's fairground palette: gold, burgundy, blue, pink, charcoal, cream. */
-const [GOLD, BURGUNDY, BLUE, PINK, CHARCOAL, CREAM] = FLIGHTPATH_COLOURS;
+/* Flightpath's original fairground palette: gold, burgundy, blue, pink, charcoal, cream (kept here when Flightpath's
+ * own board moved to lighter golds and pinks, 27 Oct 2026, so Checkout's board is unchanged). */
+const [GOLD, BURGUNDY, BLUE, PINK, CHARCOAL, CREAM] = ["#F5B82E", "#9B2335", "#2471B5", "#E8A7DC", "#30343B", "#F7F7F8"] as const;
 const NEGATIVE_INK = "#FF8FA3";
 const WIRE = "#D5D9E0";
 

@@ -77,25 +77,22 @@ import { HOVER_CENTRE_POINTS, HOVER_CENTRE_TOP, HOVER_CENTRE_TOL, HOVER_SKILL_SL
 import {
   WAV_BOSS_HP,
   wavPrecision,
-  WAV_X_BOSS_BY,
   WAV_X_SKILL_PRECISE,
   WAV_X_CANNON_HP,
   WAV_X_CORE_DAMAGE,
   WAV_X_CORE_PERIOD,
-  WAV_X_DROPS,
   WAV_X_EDGE_MAX,
   WAV_X_SHAPES,
   WAV_X_SHIELD_TICKS,
   WAV_X_SKILL_CANNON,
   WAV_X_SKILL_CORE,
   WAV_X_SKILL_DROP,
-  WAV_X_SKILL_PAY,
   WAV_X_SKILL_SAUCER,
   WAV_X_SPREAD_VOLLEYS,
-  WAV_X_STREAK_CAP,
-  WAV_X_STREAK_STEP,
+  WAV_R11_CARRIERS,
+  WAV_R11_SKILL_PAY,
 } from "@/lib/arcade/wavefront";
-import { INK_CLOUD_LEVELS, INK_FEATURE_MAX, INK_RAW_SHAMROCK, INK_RAW_SILVER, INK_RAW_STAR, INK_RAW_TRICK, INK_SILVER_PER_LEVEL, INK_V10_SKILL_PAY, INK_WIND_LEVELS } from "@/lib/arcade/inkBridge";
+import { INK_CLOUD_LEVELS, INK_FEATURE_MAX, INK_RAW_SHAMROCK, INK_RAW_SILVER, INK_RAW_STAR, INK_RAW_TRICK, INK_V11_SILVER_PER_LEVEL, INK_V11_SKILL_PAY } from "@/lib/arcade/inkBridge";
 import { SNAKE_V9_CAPS, SNAKE_V9_COLS, SNAKE_V9_ROWS } from "@/lib/arcade/snake";
 import { BEAT_V9_CAPS, BEAT_V9_SKILL_PAY } from "@/lib/arcade/beat";
 import {
@@ -112,7 +109,7 @@ import { BINTOSS_FAR_CAP, BINTOSS_FAR_POINTS, BINTOSS_FAR_THROWS, BINTOSS_V7_BAN
 import { P4_PTS_COMBO, P4_PTS_JACKPOT, P4_PTS_JOULZ, P4_PTS_RAMP, P4_PTS_SKILL } from "@/lib/arcade/pinball4";
 import { BULLSEYE_INNER_BULL_POINTS, BULLSEYE_RING_VALUES, BULLSEYE_V8_DEAD_CAP, BULLSEYE_V8_DEAD_PTS, BULLSEYE_V8_STREAK_CAP, BULLSEYE_V8_STREAK_STEP } from "@/lib/arcade/bullseye";
 import { RALLY_V10_BONUS_COUNT, RALLY_V10_BONUS_PTS, RALLY_V11_BONUS_LIFE } from "@/lib/arcade/rally";
-import { BURST_V8_CAPS, BURST_V8_CLEAN_PTS, BURST_V8_GOLDEN_PTS, BURST_V8_GOLDENS } from "@/lib/arcade/burst";
+import { BURST_V9_CAPS, BURST_V9_CLEAR_MAX, BURST_V8_GOLDEN_PTS, BURST_V8_GOLDENS } from "@/lib/arcade/burst";
 import { liveBandHelp } from "@/lib/arcade/liveBands";
 import { ORBIT_V12_PACE_FROM, ORBIT_V12_PACE_FULL, ORBIT_V12_SKILL_MAX, ORBIT_V12_SKILL_PACED_FROM, ORBIT_V12_SKILL_PAY, ORBIT_XP_DUST_CAP, ORBIT_XP_DUST_FULL, ORBIT_XP_FIELDS, ORBIT_XP_MOONS, ORBIT_XP_MOTES, ORBIT_XP_PERFECT_CAP, ORBIT_XP_PERFECT_PER, ORBIT_XP_SLING_CAP, ORBIT_XP_SLING_PTS, ORBIT_XP_THREAD_CAP, ORBIT_XP_THREAD_PTS, ORBIT_XP_TRAILS } from "@/lib/arcade/orbitRev3";
 import { CROSS_V9_SKILL_PAY, CROSS_X_BONUS_MAX, CROSS_X_CLOSE_MAX, CROSS_X_CLOSE_POINTS, CROSS_X_COIN_CROSSINGS, CROSS_X_COIN_POINTS, CROSS_X_COINS_PER_RUN } from "@/lib/arcade/cross";
@@ -653,7 +650,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         },
         {
           action: "The wind moves your dart by that many rings.",
-          detail: "Wind 2 to the right? Aim two rings to the left.",
+          detail: "The flag flies the way the wind blows, with its strength on it. Flag flying right with a 2? Aim two rings to the left.",
           helpOnly: true,
         },
         { action: "Every dart's board stands at its own distance:", detail: "near boards low and big, far ones high and small. The same boards for everyone in the room.", helpOnly: true },
@@ -690,15 +687,15 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Match on frozen gems", detail: "to break the ice." },
         { action: "Clear below treasure", detail: "to bring it down." },
         { action: "4, 5 or an L / T", detail: "makes a bomb or a star; 5 plus an L / T in one swap makes a jackpot.", helpOnly: true },
-        { action: "Each level", detail: "asks for a count of two or three colours (shown under the board); meet it and the next level starts, with more ice.", helpOnly: true },
-        { action: "A frozen gem", detail: "can't be swapped. Clear it in a line, a cascade or a blast and the ice breaks.", helpOnly: true },
+        { action: "Each level", detail: "asks for a count of two or three colours (shown under the board); meet it and the next level starts.", helpOnly: true },
+        { action: "A frozen gem", detail: "can be swapped into or out of the ice only when the swap makes a line of three. Clear the gem in the ice (in a line, a cascade or a blast) and the ice breaks; it never comes back.", helpOnly: true },
         { action: "A treasure gem", detail: "can't be matched, swapped or blasted: it falls as the gems under it clear and is collected on the bottom row.", helpOnly: true },
         { action: "Cascades multiply:", detail: "each step after a swap's own clear counts ×2, ×3 and so on.", helpOnly: true },
         { action: "Drag one gem onto its neighbour", detail: "to swap them. Matched gems clear and new ones fall in; your next swap waits until the board has settled.", helpOnly: true },
         { action: "Line of 4: a bomb", detail: "(clears around it). Line of 5: a white four-point star (its row and column). An L or T: a six-point star (both diagonals).", helpOnly: true },
         { action: "A line of 5 and an L / T in one swap", detail: "makes a jackpot gem: it clears every gem of its colour plus its row and column.", helpOnly: true },
         { action: "Specials", detail: "go off when you swap them or match next to them, and set each other off.", helpOnly: true },
-        { action: "Sixty seconds", detail: "on the same board for everyone; new gems drop from the same fixed queues.", helpOnly: true },
+        { action: "Ninety seconds", detail: "on the same board for everyone; new gems drop from the same fixed queues.", helpOnly: true },
       ],
       score: liveBandHelp("matchup", `Match points: longer lines, cascades and special gems score more. Goals met, ice broken, treasure collected and the cascade multiplier add up to ${MATCHUP_V9_FEATURE_MAX} more.`, { more: "More match points", good: (u) => `scores ${u.toLocaleString("en-GB")} match points` }),
     },
@@ -781,7 +778,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Ramps and J-O-U-L-Z", detail: "raise the multiplier." },
         { action: "Lock 3 balls", detail: "for multiball and a jackpot." },
         { action: "Hold the left or right half", detail: "of the screen to raise that flipper; two thumbs raise both.", helpOnly: true },
-        { action: "Three balls, one minute:", detail: "a lost ball comes back on the plunger.", helpOnly: true },
+        { action: "Three balls, 90 seconds:", detail: "a lost ball comes back on the plunger.", helpOnly: true },
         { action: "Skill shot:", detail: `the power meter in the right-hand lane rises and falls; tap to plunge. Soft drops the ball into Z, full power into J. Plunge into the flashing letter for ${P4_PTS_SKILL.toLocaleString("en-GB")}.`, helpOnly: true },
         { action: "J-O-U-L-Z lanes:", detail: `a ball through a lane lights its letter (lit letters stay lit from ball to ball). Each flipper press shifts the lit letters, so line a dark one up under the ball. All five: ${P4_PTS_JOULZ.toLocaleString("en-GB")} and the next multiplier (up to ×${PIN_MULT_MAX}), which counts on bumpers, targets, the spinner and letters.`, helpOnly: true },
         { action: "Two ramps:", detail: `roll the ball up a ramp fast enough for ${P4_PTS_RAMP.toLocaleString("en-GB")} and the next multiplier. The left ramp drops the ball onto the U lane; the right one brings it back through the spinner. Ramps back to back build a combo (${P4_PTS_COMBO.toLocaleString("en-GB")} more each).`, helpOnly: true },
@@ -954,22 +951,21 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
       goal: "Five waves and two bosses in 90 s.",
       how: [
         { action: "Drag to move;", detail: "you fire on your own." },
-        { action: "Catch power-ups;", detail: "keep a hit streak going." },
+        { action: "Shoot glowing carriers;", detail: "catch what they drop." },
         { action: "Bosses:", detail: "hit weak points dead centre." },
         { action: "Red bolts and divers cost a life:", detail: "you have 3.", helpOnly: true },
         { action: "The run lasts 90 seconds.", detail: "Each new wave flies in from the top 2 seconds after you clear one. Don't let a formation reach your line.", helpOnly: true },
         { action: "From wave 3, ships peel off and dive at you,", detail: "then fly back to their place. Shoot them on the way; one that rams you costs a life.", helpOnly: true },
         { action: "Each wave flies its own shape:", detail: `a grid, then a triangle, a circle, a pentagon and an octagon – ${WAV_X_SHAPES} ships each, with six escorts under the shapes. Waves 3 and 4 come down more slowly.`, helpOnly: true },
         { action: "From wave 2, a grey armoured ship", detail: "sits in the middle of the shape and takes 6-12 hits – every hit counts.", helpOnly: true },
-        { action: "Power-ups:", detail: `${WAV_X_DROPS} fall from the top at set moments in every run, the same for everyone in a room, ${WAV_X_DROPS / 3} of each. Laser: 5 shots that pierce up to 3 enemies. Spread: ${WAV_X_SPREAD_VOLLEYS} volleys with two extra bolts angled out. Shield: absorbs the next hit (${WAV_X_SHIELD_TICKS / 60} s).`, helpOnly: true },
-        { action: "A saucer flies over every 15 seconds:", detail: "shoot it down for skill points.", helpOnly: true },
-        { action: "Streak:", detail: `every hit in a row counts; ×2 from ${WAV_X_STREAK_STEP} in a row, ×3 from ${2 * WAV_X_STREAK_STEP} (the most). A shot that flies off without hitting, or a lost life, ends it; spread bolts, shots fired while a wave flies in and hits on a boss's hull don't.`, helpOnly: true },
-        { action: "After wave 3 a gunship flies in; after wave 5, the boss.", detail: `The boss comes ${WAV_X_BOSS_BY / 60} s into the run at the latest (whatever is still flying leaves). Each has two cannons (${WAV_X_CANNON_HP} hits each; a destroyed one stops firing) and a core that opens for half of every ${WAV_X_CORE_PERIOD / 60} s: a hit on the open core counts ${WAV_X_CORE_DAMAGE}. The boss's bar shows its ${WAV_BOSS_HP} hit points; destroying it ends the run – the sooner after it arrives, the more it scores.`, helpOnly: true },
+        { action: "Power-ups:", detail: `in every wave ${WAV_R11_CARRIERS} ships carry one (they glow green or cyan), the same ships for everyone in a room; shoot one down and its power-up falls from where it was. Spread (green): ${WAV_X_SPREAD_VOLLEYS} volleys with two extra bolts angled out. Shield (cyan): absorbs the next hit (${WAV_X_SHIELD_TICKS / 60} s).`, helpOnly: true },
+        { action: "A saucer flies over every 15 seconds:", detail: "shoot it down for skill points; it drops the purple laser (5 shots that pierce up to 3 enemies).", helpOnly: true },
+        { action: "After wave 3 a gunship flies in; after wave 5, the boss.", detail: `The boss comes only once wave 5 is destroyed. Each has two cannons (${WAV_X_CANNON_HP} hits each; a destroyed one stops firing) and a core that opens for half of every ${WAV_X_CORE_PERIOD / 60} s: a hit on the open core counts ${WAV_X_CORE_DAMAGE}. The boss's bar shows its ${WAV_BOSS_HP} hit points; destroying it ends the run – the sooner after it arrives, the more it scores.`, helpOnly: true },
         { action: "Weak points pay for precision:", detail: "a hit on a cannon or the open core scores more skill points the nearer its centre it lands – most within a pixel or so.", helpOnly: true },
       ],
       score: liveBandHelp("wavefront", "Ships, armour hits and boss hit points count 1, and cleared waves (the gunship too) 15.", {
         more: "More ships, hits and waves",
-        finish: `Destroying the boss adds up to 10 for speed: the full 10 within 20 s of its arrival, falling to 0 at 40 s. Skill adds up to ${WAV_X_EDGE_MAX} more: the streak's points (1 a hit at ×2, 2 at ×3, up to ${WAV_X_STREAK_CAP}), ${WAV_X_SKILL_DROP} a power-up caught, ${WAV_X_SKILL_SAUCER} a saucer, ${WAV_X_SKILL_CANNON} a cannon destroyed, ${WAV_X_SKILL_CORE} an open-core hit, and ${WAV_X_SKILL_PRECISE * wavPrecision(1)} / ${WAV_X_SKILL_PRECISE * wavPrecision(3)} / ${WAV_X_SKILL_PRECISE * wavPrecision(5)} for a weak-point hit within 1 / 3 / 5 px of its centre. ${skillPayLine(WAV_X_SKILL_PAY)}`,
+        finish: `Destroying the boss adds up to 10 for speed: the full 10 within 20 s of its arrival, falling to 0 at 40 s. Skill adds up to ${WAV_X_EDGE_MAX} more: ${WAV_X_SKILL_DROP} a power-up caught, ${WAV_X_SKILL_SAUCER} a saucer, ${WAV_X_SKILL_CANNON} a cannon destroyed, ${WAV_X_SKILL_CORE} an open-core hit, and ${WAV_X_SKILL_PRECISE * wavPrecision(1)} / ${WAV_X_SKILL_PRECISE * wavPrecision(3)} / ${WAV_X_SKILL_PRECISE * wavPrecision(5)} for a weak-point hit within 1 / 3 / 5 px of its centre. ${skillPayLine(WAV_R11_SKILL_PAY)}`,
       }),
     },
     bastion: {
@@ -1033,31 +1029,29 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Levels 1-4", detail: "Draw lines around the white birds, then tap RELEASE to drop the coin into a still pot.", helpOnly: true },
         { action: "Levels 5-8", detail: "The pot moves! Time your release so the coin rolls into it.", helpOnly: true },
         { action: "Levels 9-10: LIVE", detail: "Draw one line, RELEASE, then keep drawing as the coin falls. Faded strokes commit when you lift your finger; you can't draw through birds or near the coin.", helpOnly: true },
-        { action: "Bonus routes:", detail: `every one of levels 1-8 has an ink star and ${INK_SILVER_PER_LEVEL} silver coins on a harder route than the easy one; one level in the run also has the shamrock. Roll the coin through them and into the pot: they count only once the coin is potted. You never need them to finish a level.`, helpOnly: true },
+        { action: "Bonus routes:", detail: `every one of levels 1-8 has an ink star and ${INK_V11_SILVER_PER_LEVEL} silver coins spread out along a harder route, well away from the easy one; one level in the run also has the shamrock. Roll the coin through them and into the pot: they count only once the coin is potted. You never need them to finish a level.`, helpOnly: true },
         { action: "Bounce clouds:", detail: `${INK_CLOUD_LEVELS} levels have a springy cloud that throws the coin back up. On them the bonus route bounces off it: pot the coin after a bounce for a trick shot.`, helpOnly: true },
-        { action: "Wind:", detail: `${INK_WIND_LEVELS} levels have a wind zone (streaks show which way it blows). A coin in the air inside it is pushed sideways; a coin rolling on a line is not.`, helpOnly: true },
         { action: "Ink is limited", detail: "Each level has a budget, with a larger shared supply for live levels.", helpOnly: true },
         { action: "Three failed drops", detail: "and you're out.", helpOnly: true },
       ],
-      score: liveBandHelp("inkbridge", "Each level counts 10.", { more: "More levels", good: (u) => `counts ${u} – about ${Math.round(u / 10)} levels`, finish: `All ten levels adds up to 10 for speed: the full 10 with at least 45 s left, falling to 0 at the buzzer. Bonuses add up to ${INK_FEATURE_MAX} more: ${INK_RAW_STAR} an ink star, ${INK_RAW_TRICK} a trick shot, ${INK_RAW_SILVER} a silver coin and ${INK_RAW_SHAMROCK} the shamrock. ${skillPayLine(INK_V10_SKILL_PAY)}` }),
+      score: liveBandHelp("inkbridge", "Each level counts 10.", { more: "More levels", good: (u) => `counts ${u} – about ${Math.round(u / 10)} levels`, finish: `All ten levels adds up to 10 for speed: the full 10 with at least 45 s left, falling to 0 at the buzzer. Bonuses add up to ${INK_FEATURE_MAX} more: ${INK_RAW_STAR} an ink star, ${INK_RAW_TRICK} a trick shot, ${INK_RAW_SILVER} a silver coin and ${INK_RAW_SHAMROCK} the shamrock. ${skillPayLine(INK_V11_SKILL_PAY)}` }),
     },
 
     burst: {
       goal: "Split the atoms. Don't get hit.",
       how: [
         { action: "◀ ▶ to move,", detail: "tap the arena to shoot up." },
-        { action: "Clear a wave with no miss:", detail: `+${BURST_V8_CLEAN_PTS}.` },
+        { action: "Clear a wave quickly:", detail: `up to +${BURST_V9_CLEAR_MAX}.` },
         { action: "Golden atom:", detail: `+${BURST_V8_GOLDEN_PTS} before it fades.` },
         { action: "An atom touching you", detail: "costs a life (3 lives).", helpOnly: true },
         { action: "Hold ◀ or ▶ to walk; tap anywhere on the arena to fire straight up.", detail: "There is no FIRE button: every tap on the arena is a shot.", helpOnly: true },
         { action: "Big atoms split into smaller ones;", detail: "the smallest pop.", helpOnly: true },
-        { action: "Clean wave:", detail: `clear a wave without a single miss for ${BURST_V8_CLEAN_PTS} more. A miss is a shot that hits nothing (both beams of a double shot); one miss ends the bonus for that wave. The counter (CLEAN 7/7) shows shots that hit / shots fired.`, helpOnly: true },
-        { action: "Fast wave:", detail: "3 more for clearing a wave within 5 s of it appearing, 2 within 8 s, 1 within 12 s.", helpOnly: true },
-        { action: `${BURST_V8_GOLDENS} golden atoms:`, detail: `each appears at its own moment and spot (the same for everyone in the room) and fades after about 4 seconds. A beam that reaches one scores ${BURST_V8_GOLDEN_PTS}.`, helpOnly: true },
-        { action: "Power-ups fall on a fixed schedule", detail: "(the same for everyone): DOUBLE fires two beams a shot for 8 s; FREEZE stops every atom for 3 s. Frozen atoms still hurt if you walk into one. They score nothing themselves.", helpOnly: true },
+        { action: "Wave-clear bonus:", detail: `each wave you clear pays up to ${BURST_V9_CLEAR_MAX}: the full amount if you clear it quickly (bigger waves get longer), then one less every 2 s. The counter (CLEAR +${BURST_V9_CLEAR_MAX}) shows what the wave on screen still pays.`, helpOnly: true },
+        { action: `${BURST_V8_GOLDENS} golden atoms:`, detail: `each appears at its own moment (the same for everyone in the room), bounces like the other atoms and fades after about 5 seconds. It never hurts you. A shot that reaches one scores ${BURST_V8_GOLDEN_PTS}.`, helpOnly: true },
+        { action: "Power-ups ride on atoms:", detail: "an atom showing a small icon drops that power-up when you split it (the same atoms for everyone). Walk under it to catch it. DOUBLE fires two beams a shot for 8 s; BURST fires three quick short shots a tap for 8 s; FREEZE stops every atom for 3 s. Frozen atoms still hurt if you walk into one. They score nothing themselves.", helpOnly: true },
       ],
-      // burstRev 8 (docs/expansions/e9.md): the atoms on their curve, lasting, plus clean waves, fast waves and golden atoms.
-      score: liveBandHelp("burst", "Each atom hit counts 1 unit; each life lost takes 5 units off (never below a quarter of the atoms hit).", { more: "More atoms, fewer lives lost", good: (u) => `counts ${u} units`, finish: `Lasting the 90 s adds 10. Clean waves add up to ${BURST_V8_CAPS.clean}, fast waves up to ${BURST_V8_CAPS.clear} and golden atoms up to ${BURST_V8_CAPS.gold}.` }),
+      // burstRev 9 (docs/phone-notes-oct-2026/fission.md): the atoms on their curve, lasting, plus wave clears and golden atoms.
+      score: liveBandHelp("burst", "Each atom hit counts 1 unit; each life lost takes 5 units off (never below a quarter of the atoms hit).", { more: "More atoms, fewer lives lost", good: (u) => `counts ${u} units`, finish: `Lasting the 90 s adds 10. Quick wave clears add up to ${BURST_V9_CAPS.clear} and golden atoms up to ${BURST_V9_CAPS.gold}.` }),
     },
     orbit: {
       goal: "Fly planet to planet to the sun.",

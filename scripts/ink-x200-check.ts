@@ -52,6 +52,7 @@ import {
   INK_INPUT_STROKE,
   INK_LEVELS,
   INK_REV_EXPAND,
+  INK_REV_SPREAD,
   INK_REV_STRICT,
   INK_SHAMROCK_R,
   INK_SILVER_PER_LEVEL,
@@ -110,10 +111,10 @@ section("Legacy identity (unstamped … inkRev 8)");
 }
 
 /* 2. Rooms deal inkRev 10. */
-section("Rooms deal inkRev 10 (390 × 674, scored to 200)");
+section("inkRev 10 (390 × 674, scored to 200); rooms deal inkRev 11 since the phone notes (ink-v11-check)");
 {
   const live = LIVE_BANDS.inkbridge as { rev: number; strictRev?: number };
-  ok(generateInkBridge().inkRev === INK_REV_EXPAND && INK_REV_EXPAND === 10 && live.rev === INK_REV_EXPAND && live.strictRev === INK_REV_STRICT, "rooms deal inkRev 10; LIVE_BANDS measures it against inkRev 8");
+  ok(generateInkBridge().inkRev === INK_REV_SPREAD && INK_REV_EXPAND === 10 && INK_REV_SPREAD === 11 && live.rev === INK_REV_SPREAD && live.strictRev === INK_REV_STRICT, "rooms deal inkRev 11 (inkRev 10's world, ink-v11-check); LIVE_BANDS measures it against inkRev 8");
   ok(roundMaxFor("inkbridge") === 200, "Rainbow Bridge's maximum is 200");
   ok(inkWorldHFor(INK_REV_EXPAND) === INK_TALL_H && INK_TALL_H === 674 && inkWorldHFor(INK_REV_STRICT) === 620 && inkWorldHFor(undefined) === 620, "the world is 674 tall on inkRev 10, 620 before");
   const s = game.init(SAMPLE[0]!);
@@ -312,7 +313,7 @@ section("Scoring: the skill pay, the 200 cap, no input, random input");
 /* 9. Room identity. */
 section("Room identity: different logs see the same dealt run");
 for (const seed of SAMPLE.slice(0, 1)) {
-  const logs = roomIdentity.logs(seed);
+  const logs = roomIdentity.logs(seed, INK_REV_EXPAND);
   const lists = logs.map((log) => JSON.stringify(roomIdentity.scheduleOf(seed, INK_REV_EXPAND, log)));
   ok(lists.every((l) => l === lists[0]) && lists[0]!.length > 100, `seed ${seed}: ${logs.length} logs (idle, random, weak, elite, perfect) see the same levels and features`);
   const ends = logs.map((log) => {
@@ -376,4 +377,4 @@ if (failures.length) {
   console.log(`FAIL ink-x200-check: ${failures.length} of ${checks} checks failed`);
   process.exit(1);
 }
-console.log(`PASS ink-x200-check: ${checks} checks in ${((performance.now() - t0) / 1000).toFixed(1)} s — legacy identity, inkRev 10 dealt, fixed and proved features, a 200 ceiling and recorded runs through the server replay, the rules, the scoring, room identity, the art's bounds`);
+console.log(`PASS ink-x200-check: ${checks} checks in ${((performance.now() - t0) / 1000).toFixed(1)} s — legacy identity, inkRev 10 kept (rooms deal inkRev 11), fixed and proved features, a 200 ceiling and recorded runs through the server replay, the rules, the scoring, room identity, the art's bounds`);

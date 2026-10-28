@@ -393,7 +393,7 @@ const BUILDERS: Record<string, Builder> = {
   burst: (r, s) => ({
     axis: { value: Math.max(1, n(r, "wave")), max: null, label: "Waves" },
     lines:
-      typeof r["cleanWaves"] === "number"
+      typeof r["cleanWaves"] === "number" || typeof r["quickWaves"] === "number"
         ? [`${n(r, "hits")} atoms · ${n(r, "livesLost")} lives lost · skill +${n(r, "skill")} → ${s}`]
         : n(r, "burstRev") > 0
         ? [
@@ -406,6 +406,8 @@ const BUILDERS: Record<string, Builder> = {
       { label: "Atoms", value: String(n(r, "hits")) },
       { label: "Lives lost", value: String(n(r, "livesLost")) },
       // burstRev 8: clean waves and golden atoms.
+      // burstRev 9: quick waves (cleared with a time bonus) and golden atoms.
+      ...(typeof r["quickWaves"] === "number" ? [{ label: "Quick waves", value: String(n(r, "quickWaves")) }, { label: "Golden atoms", value: `${n(r, "goldens")} / 6` }] : []),
       ...(typeof r["cleanWaves"] === "number" ? [{ label: "Clean waves", value: String(n(r, "cleanWaves")) }, { label: "Golden atoms", value: `${n(r, "goldens")} / 6` }] : []),
       ...(n(r, "burstRev") > 0 ? [{ label: "Waves cleared", value: String(n(r, "cleared")) }, { label: "Freezes", value: String(n(r, "freezes")) }] : []),
     ],

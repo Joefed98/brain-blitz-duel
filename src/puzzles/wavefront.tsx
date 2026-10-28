@@ -8,7 +8,7 @@ import {
   WAV_CHECKPOINT_INTERVAL,
   WAV_COLOURS,
   WAV_GOLD,
-  WAV_REV_EXPAND,
+  WAV_REV_PHONE,
   wavDragZoneTop,
   wavefrontWorldHFor,
   WAV_WORLD_W,
@@ -43,7 +43,8 @@ function IntroExample() {
         {shapes.map((shape, i) => {
           const cx = 44 + (i % 3) * 40;
           const cy = 24 + Math.trunc(i / 3) * 30;
-          const colour = WAV_COLOURS[shape.c];
+          // The enemy craft in silver, steel grey and black chrome (phone notes, 27 Oct 2026).
+          const colour = ["#E6E9EE", "#9AA1AB", "#5A606A"][shape.c] ?? WAV_COLOURS[shape.c];
           if (shape.kind === "ring")
             return <circle key={i} cx={cx} cy={cy} r={10} fill="none" stroke={colour} strokeWidth={3} />;
           const n = shape.kind === "tri" ? 3 : 6;
@@ -58,7 +59,7 @@ function IntroExample() {
         <rect x={82} y={78} width={4} height={12} fill={WAV_GOLD} />
         <polygon points="84,100 104,118 84,112 64,118" fill={WAV_GOLD} />
       </svg>
-      <p className="text-center text-xs text-muted-foreground">Your ship fires on its own. Catch power-ups, keep a streak, hit the bosses' weak points.</p>
+      <p className="text-center text-xs text-muted-foreground">Your ship fires on its own. Shoot the glowing carriers for power-ups, hit the bosses' weak points.</p>
     </div>
   );
 }
@@ -140,7 +141,7 @@ export const wavefrontPuzzle: PuzzleDefinition = {
   category: "arcade",
   timeLimitMs: WAVEFRONT_TIME_MS,
   revealMs: 6_000,
-  generate: () => ({ type: "wavefront", seed: 1, wavRev: WAV_REV_EXPAND }) satisfies WavefrontPuzzleData,
+  generate: () => ({ type: "wavefront", seed: 1, wavRev: WAV_REV_PHONE }) satisfies WavefrontPuzzleData,
   check: () => false,
   revealHeading: "Your run",
   IntroExample,

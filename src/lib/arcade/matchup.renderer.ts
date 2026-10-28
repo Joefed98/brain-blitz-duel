@@ -300,20 +300,26 @@ export function paintMatchupGem(ctx: CanvasRenderingContext2D, kind: number, cx:
     ctx.arc(cx, cy, radius - 0.8, 0, Math.PI * 2);
     ctx.stroke();
   } else if (kind === MATCHUP_TREASURE) {
-    // matchupRev 9's treasure gem: a gold octagon medallion (no colour gem's cut) round a ruby, in a bright rim.
+    // The treasure gem (matchupRev 9 on): a shiny bronze octagon medallion (no colour gem's cut) round a polished
+    // bronze boss, in a bright copper rim with a white glint (27 Oct 2026: bronze, was gold round a ruby; look only).
     const pts: Array<[number, number]> = [];
     for (let k = 0; k < 8; k++) {
       const a = -Math.PI / 2 + Math.PI / 8 + (k * Math.PI) / 4;
       pts.push([cx + Math.cos(a) * radius, cy + Math.sin(a) * radius]);
     }
-    facetedGem(ctx, pts, cx, cy, radius, "#FFCF4A");
+    facetedGem(ctx, pts, cx, cy, radius, "#C8803E");
     pathOf(ctx, pts);
-    ctx.strokeStyle = "#FFF4C2";
+    ctx.strokeStyle = "#FFD3A1";
     ctx.lineWidth = 1.4;
     ctx.stroke();
-    const ruby = cutPoints("circle", cx, cy, radius * 0.42);
-    facetedGem(ctx, ruby, cx, cy, radius * 0.42, "#E0245E");
-    ctx.fillStyle = "#7A4A00";
+    const boss = cutPoints("circle", cx, cy, radius * 0.42);
+    facetedGem(ctx, boss, cx, cy, radius * 0.42, "#E39A55");
+    ctx.strokeStyle = "rgba(255,255,255,0.85)";
+    ctx.lineWidth = Math.max(1, radius * 0.08);
+    ctx.beginPath();
+    ctx.arc(cx, cy, radius * 0.62, -Math.PI * 0.85, -Math.PI * 0.55);
+    ctx.stroke();
+    ctx.fillStyle = "#5C2F10";
     for (let k = 0; k < 4; k++) {
       const a = -Math.PI / 4 + (k * Math.PI) / 2;
       ctx.beginPath();
@@ -794,77 +800,6 @@ interface SceneOptions {
   skip?: ReadonlySet<number>;
 }
 
-/**
- * The collection bar (Polish A3, presentation only): one small gem per colour with the number of
- * that colour cleared so far and a bar against the leading colour. Counted from the sim's own
- * animation steps (each new `lastAnimation`: the cleared cells' kinds in `before`), in memory per
- * canvas like the cascade labels; it shows only on a canvas that has watched the run from its
- * start (live play), never on a reveal or a demo joined part-way, and a rewind resets it.
- */
-interface CollectMemory { tick: number; start: number; anim: MatchupAnimStep[]; counts: number[]; flash: number[] }
-const collectMemories = new WeakMap<CanvasRenderingContext2D, CollectMemory>();
-const COLLECT_X = 176;
-const COLLECT_SLOT = (MATCHUP_WORLD_W - 10 - COLLECT_X) / 6;
-
-function drawCollection(ctx: CanvasRenderingContext2D, state: MatchupState, time: number): void {
-  let m = collectMemories.get(ctx);
-  if (!m || state.tick < m.tick) {
-    m = { tick: state.tick, start: state.tick, anim: state.lastAnimation, counts: [0, 0, 0, 0, 0, 0], flash: [-99, -99, -99, -99, -99, -99] };
-    collectMemories.set(ctx, m);
-  }
-  if (state.lastAnimation !== m.anim) {
-    m.anim = state.lastAnimation;
-    for (const step of state.lastAnimation) {
-      for (const index of new Set([...step.cleared, ...step.detonated])) {
-        const kind = step.before[index] ?? -1;
-        if (kind >= 0 && kind < 6) {
-          m.counts[kind] = (m.counts[kind] ?? 0) + 1;
-          m.flash[kind] = state.tick;
-        }
-      }
-    }
-  }
-  m.tick = state.tick;
-  if (m.start > 30) return;
-  const lead = Math.max(10, ...m.counts);
-  const still = reducedMotion();
-  ctx.save();
-  ctx.textAlign = "left";
-  ctx.textBaseline = "middle";
-  for (let kind = 0; kind < 6; kind++) {
-    const x = COLLECT_X + kind * COLLECT_SLOT;
-    const n = m.counts[kind] ?? 0;
-    const colour = MATCHUP_COLOURS[kind] ?? MATCHUP_GOLD;
-    const since = state.tick - (m.flash[kind] ?? -99);
-    // A just-collected colour glows for half a second.
-    if (since >= 0 && since < 30) {
-      const g = ctx.createRadialGradient(x + 8, 20, 0, x + 8, 20, 14);
-      g.addColorStop(0, colour);
-      g.addColorStop(1, "rgba(0,0,0,0)");
-      ctx.globalAlpha = 0.45 * (1 - since / 30);
-      ctx.fillStyle = g;
-      ctx.fillRect(x - 6, 6, 28, 28);
-      ctx.globalAlpha = 1;
-    }
-    drawMatchupGem(ctx, kind, x + 8, 20, still || since >= 12 || since < 0 ? 7 : 7 + (1 - since / 12) * 1.5, time);
-    ctx.fillStyle = n > 0 ? MATCHUP_TEXT : "rgba(247,247,248,0.45)";
-    // Three digits step down to 10 px so the count stays inside its slot.
-    ctx.font = n >= 100 ? "700 10px 'JetBrains Mono', ui-monospace, monospace" : "700 12px 'JetBrains Mono', ui-monospace, monospace";
-    ctx.fillText(`${n}`, x + 16.5, 21);
-    // The progress bar: a dark well and the colour's share of the leader.
-    const bw = COLLECT_SLOT - 6;
-    ctx.fillStyle = "rgba(0,0,0,0.45)";
-    ctx.fillRect(x, 32, bw, 3);
-    if (n > 0) {
-      ctx.fillStyle = colour;
-      ctx.fillRect(x, 32, Math.max(1.5, (bw * n) / lead), 3);
-      ctx.fillStyle = "rgba(255,255,255,0.35)";
-      ctx.fillRect(x, 32, Math.max(1.5, (bw * n) / lead), 1);
-    }
-  }
-  ctx.restore();
-}
-
 /* ============================ matchupRev 9: ice, goals, banners ============================ */
 
 /** A frozen cell: pale frosted glass over the gem, a white rim, two cracks and frost in the corners. */
@@ -1130,7 +1065,6 @@ function drawSceneWorld(ctx: CanvasRenderingContext2D, state: MatchupState, size
     ctx.fillStyle = "rgba(247,247,248,0.62)";
     ctx.fillText("pts", 12 + w + 5, 37);
   });
-  drawCollection(ctx, state, time);
   if (!options.cells) drawClearBursts(ctx, state);
   if (state.goals && !options.cells) drawBanners(ctx, state);
   ctx.restore();

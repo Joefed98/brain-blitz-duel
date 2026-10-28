@@ -13,6 +13,7 @@ import {
   PIN_CHECKPOINT_INTERVAL,
   PIN_INPUT_RANGES,
   PIN_RUN_TICKS,
+  PIN_V5_RUN_TICKS,
   type PinCheckpoint,
   type PinState,
 } from "@/lib/arcade/pinball";
@@ -46,7 +47,7 @@ export function decodePinballRun(raw: string): PinballRun {
   const checkpoints = checkpointPart
     .split(",")
     .filter(Boolean)
-    .slice(0, Math.ceil(PIN_RUN_TICKS / PIN_CHECKPOINT_INTERVAL))
+    .slice(0, Math.ceil(PIN_V5_RUN_TICKS / PIN_CHECKPOINT_INTERVAL))
     .map((encoded) => encoded.split(":").map((part) => Number.parseInt(part, 10)))
     .filter((values) => values.length === CHECKPOINT_FIELDS.length && values.every(Number.isInteger))
     .map((values) => {
@@ -97,12 +98,14 @@ export interface PinballResult {
 export function replayPinballRun(seed: number, raw: string, rev?: number | null): PinballResult {
   const game = pinballGameForAny(rev);
   const run = decodePinballRun(raw);
-  const endTick = run.endTick && run.endTick > 0 ? Math.min(run.endTick, PIN_RUN_TICKS) : 0;
-  const clientLag = endTick > 0 && endTick < PIN_RUN_TICKS;
-  const check = checkInputEvents(run.events, PIN_RUN_TICKS, PIN_INPUT_RANGES);
+  // The run's own length: 60 s, or 90 s on pinRev 5 (game.runTicks).
+  const runTicks = game.runTicks;
+  const endTick = run.endTick && run.endTick > 0 ? Math.min(run.endTick, runTicks) : 0;
+  const clientLag = endTick > 0 && endTick < runTicks;
+  const check = checkInputEvents(run.events, runTicks, PIN_INPUT_RANGES);
   const events = new Map<number, ArcadeInputEvent>();
   for (const event of check.events) events.set(event.t, event);
-  const lastTick = clientLag ? endTick : PIN_RUN_TICKS;
+  const lastTick = clientLag ? endTick : runTicks;
   const clientCheckpoints = new Map((run.checkpoints ?? []).map((item) => [item.tick, item]));
 
   let state = game.init(seed);

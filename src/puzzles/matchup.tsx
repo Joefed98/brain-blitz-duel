@@ -25,7 +25,7 @@ import {
   MATCHUP_BG,
   MATCHUP_CHECKPOINT_INTERVAL,
   MATCHUP_COLOURS,
-  MATCHUP_RUN_TICKS,
+  MATCHUP_V10_RUN_TICKS,
   MATCHUP_SIZE,
   type MatchupState,
   MATCHUP_WORLD_H,
@@ -306,7 +306,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       if (import.meta.env.DEV && time - secondAt >= 1000) {
         const rate = (ticksThisSecond * 1000) / (time - secondAt);
         console.log(
-          `[matchup] ${rate.toFixed(1)} sim ticks/s · tick ${state.current.tick}/${MATCHUP_RUN_TICKS}`,
+          `[matchup] ${rate.toFixed(1)} sim ticks/s · tick ${state.current.tick}/${matchupGame.runTicks}`,
         );
         secondAt = time;
         ticksThisSecond = 0;
@@ -500,7 +500,8 @@ export const matchupPuzzle: PuzzleDefinition = {
   key: "matchup",
   name: gameDisplayName("matchup"),
   category: "arcade",
-  timeLimitMs: (MATCHUP_RUN_TICKS / TICKS_PER_SECOND) * 1000 + 3000,
+  // matchupRev 10's 90 s run (older rounds run 60 s and end there; their clock shows the extra 30 s unused, as Tempo's).
+  timeLimitMs: (MATCHUP_V10_RUN_TICKS / TICKS_PER_SECOND) * 1000 + 3000,
   revealMs: 6_000,
   generate: () => ({ type: "matchup", seed: 1 }) satisfies MatchupPuzzleData,
   check: () => false,
