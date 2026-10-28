@@ -42,8 +42,18 @@ export const LOGIC_SHARE_POINTS = 120;
 /** …plus up to this many for how early, split evenly across the game's parts. */
 export const LOGIC_EARLY_POINTS = 10;
 
-/** Colour Flood: the standard's move limit is par + this, where the par bonus reaches 0 (4 less per move over par). */
-export const FLOOD_STANDARD_SPARE_MOVES = 10;
+/**
+ * Colour Flood: the standard's move limit is par + this, where the par bonus reaches 0. Par + 6 on the stamp dealt
+ * since 28 Oct 2026 (depthRev 4, FLOOD_REV_TIGHT); par + 10 on depthRev 3 (FLOOD_REV3_SPARE_MOVES).
+ */
+export const FLOOD_STANDARD_SPARE_MOVES = 6;
+export const FLOOD_REV3_SPARE_MOVES = 10;
+export const FLOOD_REV_TIGHT = 4;
+
+/** The spare moves a Colour Flood puzzle on the standard plays with, by its stamp. */
+export function floodSpareMoves(puzzle: { depthRev?: number }): number {
+  return (puzzle.depthRev ?? 0) >= FLOOD_REV_TIGHT ? FLOOD_STANDARD_SPARE_MOVES : FLOOD_REV3_SPARE_MOVES;
+}
 
 export function isLogicStandardType(type: string): type is LogicStandardType {
   return (LOGIC_STANDARD_TYPES as readonly string[]).includes(type);
