@@ -108,7 +108,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     const submitted = useRef(false);
   // btRev 7 deals 36 marbles (every earlier course 30).
   const total = course.balls.length || BT_BALLS;
-  const [hud, setHud] = useState({ home: 0, wrong: 0, left: total, streak: 0, golds: 0 });
+  const [hud, setHud] = useState({ home: 0, wrong: 0, left: total, streak: 0, golds: 0, switchIn: btSwitchUpIn(course, 0) });
   useNoTouchScroll(wrap);
 
   const lockedRef = useRef(locked);
@@ -193,10 +193,11 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         if (boosted > r7Seen.boosted) playSound("shared.celebrate.zap", 0.35);
         r7Seen = { golds: s.golds ?? 0, combos: s.combos ?? 0, crashes: s.crashes ?? 0, boosted };
       }
-      const key = `${s.home}|${s.wrong}|${s.next}|${s.streak ?? 0}|${s.golds ?? 0}`;
+      const switchIn = btSwitchUpIn(course, s.tick);
+      const key = `${s.home}|${s.wrong}|${s.next}|${s.streak ?? 0}|${s.golds ?? 0}|${switchIn}`;
       if (key !== shown) {
         shown = key;
-        setHud({ home: s.home, wrong: s.wrong, left: total - s.next, streak: s.streak ?? 0, golds: s.golds ?? 0 });
+        setHud({ home: s.home, wrong: s.wrong, left: total - s.next, streak: s.streak ?? 0, golds: s.golds ?? 0, switchIn });
       }
       reportArcadeTick(s.tick, game.isOver(s));
       feedback(s, game.isOver(s));
@@ -295,10 +296,17 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       </ArcadeArenaSlot>
       <div data-game-controls="status" className="flex h-7 w-full shrink-0 items-center justify-between px-1 font-mono text-xs text-muted-foreground">
         <span>{hud.home} home{hud.wrong ? ` · ${hud.wrong} wrong` : ""}{rev === BT_REV_RUSH && hud.streak >= 3 ? ` · combo ×${hud.streak}` : ""}</span>
-        <span>{rev === BT_REV_RUSH ? `${hud.golds} gold · ` : ""}{hud.left} to drop</span>
+        {/* The countdown (seconds) to the next switch-up: the drops' re-lay, then the colour shuffle; marbles left after both. */}
+        <span>{rev === BT_REV_RUSH ? `${hud.golds} gold · ` : ""}{hud.switchIn !== null ? `${hud.switchIn} to switch up` : `${hud.left} left`}</span>
       </div>
     </div>
   );
+}
+
+/** Whole seconds (rounded up) until the course's next switch-up (the re-lay, then the shuffle), or null after both. Display only. */
+function btSwitchUpIn(course: BtCourse, tick: number): number | null {
+  const next = [course.relay.tick, course.shuffle.tick].filter((t) => t > tick);
+  return next.length ? Math.ceil((Math.min(...next) - tick) / 60) : null;
 }
 
 /* --------------------------------- Reveal ---------------------------------- */

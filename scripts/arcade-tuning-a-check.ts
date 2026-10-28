@@ -75,7 +75,7 @@ import {
 import { encodeSwingRun, replaySwingRun } from "../src/lib/duel/swing";
 import { SWING_V4_BANK } from "../src/lib/duel/swingBankV4.server";
 import { proveSwingSeedV4 } from "../src/lib/duel/swingProof.server";
-import { tiltCupReachable, tiltDealableX, tiltGameFor, tiltSeedCupsReachable, TILT_REV_BAND, TILT_REV_EXPAND } from "../src/lib/arcade/tilt";
+import { tiltCupReachable, tiltDealableX, tiltGameFor, tiltSeedCupsReachable, TILT_REV_BAND, TILT_REV_LIFT } from "../src/lib/arcade/tilt";
 import { generateOrbit, generateSkyline, generateSwing, generateTilt, generateWavefront } from "../src/lib/duel/arcade.server";
 import { skylineGameFor, SKYLINE_REV_EXPAND, SKYLINE_REV_LIFT, SKYLINE_REV_TALL } from "../src/lib/arcade/skyline";
 import { APP_FLAG_LOGO_URL } from "../src/lib/brand";
@@ -332,6 +332,8 @@ if (want("orbit")) {
   ok(puzzleUsesBands({ type: "orbit", orbitRev: ORBIT_REV_TUNED }) && puzzleUsesBands({ type: "orbit", orbitRev: ORBIT_REV_BAND }), "orbitRev 5 and 6 both score on the band curve");
   const footer = readFileSync("src/puzzles/orbit.tsx", "utf8");
   // Superseded 15 Oct 2026 (arcade play screen): the 44 px row ends 16 px above the visible bottom, as every arcade control row.
+  // (orbitRev 12 since 27 Oct 2026, Joe's phone notes: the button sits in the world's reserved corner instead;
+  // play-control-clearance-check proves it. This revision and the others before 12 keep the row.)
   ok(/data-game-controls="checkpoint" className="flex h-11 shrink-0 items-center justify-center">/.test(footer) && /className="h-11 px-3 text-\[11px\] /.test(footer), "SET CHECKPOINT: a 44 px row ending 16 px above the bottom, still 44 px tall, narrower since 15 Oct 2026");
 }
 
@@ -415,8 +417,9 @@ if (want("tilt")) {
   section("Tilt: every cup reachable, the orange marble always drawn");
   const p = generateTilt();
   // Tuning C moved new Tilt rounds on to tiltRev 4 (arcade-tuning-c-check), the expansion (26 Oct 2026) on to tiltRev 8
-  // (tilt-expand-check); every cup stays reachable.
-  ok(p.tiltRev === TILT_REV_EXPAND && tiltDealableX(p.seed), "new Tilt rounds are stamped tiltRev 8 (the expansion) and deal a seed with every key and cup reachable");
+  // (tilt-expand-check), Joe's phone notes (27 Oct 2026) on to tiltRev 9 (tiltRev 8's play on lifted curves,
+  // arcade-phone-notes-check); every cup stays reachable.
+  ok(p.tiltRev === TILT_REV_LIFT && tiltDealableX(p.seed), "new Tilt rounds are stamped tiltRev 9 (the expansion's play, lifted curves) and deal a seed with every key and cup reachable");
   ok(TILT_REV_BAND + 1 === 4 && typeof tiltSeedCupsReachable === "function", "tiltRev 4 still follows the band revision");
   const n = FULL ? 40_000 : 4_000;
   let bad = 0;

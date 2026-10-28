@@ -1,6 +1,6 @@
 import { TEN_DROP_DEPTH_REV } from "@/lib/arcade/tenDrop";
 import { SLICE_REV_TARGET, SLICE_REV_STRICT, SLICE_REV_BIG } from "@/lib/arcade/slice";
-import { FLIP_REV_TARGET, FLIP_REV_STRICT, FLIP_REV_EXPAND } from "@/lib/arcade/flip";
+import { FLIP_REV_TARGET, FLIP_REV_STRICT, FLIP_REV_LIFT } from "@/lib/arcade/flip";
 import { CROSS_REV_EXPAND } from "@/lib/arcade/cross";
 import { INK_REV_SPREAD } from "@/lib/arcade/inkBridge";
 import { SNAKE_REV_TARGET, SNAKE_REV_10 } from "@/lib/arcade/snake";
@@ -8,7 +8,7 @@ import { BUB_REV_BLAST } from "@/lib/arcade/bubble";
 import { MATCHUP_REV_ICE } from "@/lib/arcade/matchup";
 import { SNIP_REV_TARGET, SNIP_REV_EXPAND } from "@/lib/arcade/snip";
 import { SKYLINE_REV_TARGET, SKYLINE_REV_STRICT, SKYLINE_REV_LIFT } from "@/lib/arcade/skyline";
-import { TILT_REV_EXPAND } from "@/lib/arcade/tilt";
+import { TILT_REV_LIFT } from "@/lib/arcade/tilt";
 import { TILT_BANK } from "./tiltBank.server";
 import { JUNC_REV_BAND } from "@/lib/arcade/junction";
 import { BINTOSS_REV_TARGET, BINTOSS_REV_STRICT, BINTOSS_REV_SMALL_FAR } from "@/lib/arcade/binToss";
@@ -190,8 +190,9 @@ export function generateColourClash(): StroopPuzzleData {
 }
 
 export function generateFlip(): FlipPuzzleData {
-  // flipRev 8 (expansion E7, docs/expansions/x200-flip.md): the taller cave, its features and sweet spots, scored to 200.
-  return { type: "flip", seed: arcadeSeed(), flipRev: FLIP_REV_EXPAND };
+  // flipRev 9: flipRev 8's taller cave, features and sweet spots (expansion E7, docs/expansions/x200-flip.md), scored to 200
+  // on the lifted curves (Joe's phone notes, 27 Oct 2026).
+  return { type: "flip", seed: arcadeSeed(), flipRev: FLIP_REV_LIFT };
 }
 
 export function generateJunction(): JunctionPuzzleData {
@@ -269,11 +270,12 @@ export function generateSwing(): SwingPuzzleData {
 }
 
 export function generateTilt(): TiltPuzzleData {
-  // tiltRev 8 (the expansion): a seed from the bank (TILT_BANK, scripts/tilt-bank.ts): every maze fully dealt
-  // (tiltDealableX) and played to 200 by the oracle through the server's replay (tilt-expand-check replays each).
+  // tiltRev 9: tiltRev 8's play (the expansion) on the lifted curves (Joe's phone notes, 27 Oct 2026). A seed from the
+  // bank (TILT_BANK, scripts/tilt-bank.ts): every maze fully dealt (tiltDealableX) and played to 200 by the oracle
+  // through the server's replay (tilt-expand-check replays each).
   const pick = arcadeSeed();
   const seed = TILT_BANK[((pick % TILT_BANK.length) + TILT_BANK.length) % TILT_BANK.length]!;
-  return { type: "tilt", seed, tiltRev: TILT_REV_EXPAND };
+  return { type: "tilt", seed, tiltRev: TILT_REV_LIFT };
 }
 
 export function generateHotFloor(): HotFloorPuzzleData {

@@ -640,38 +640,69 @@ function drawCrumble(ctx: CanvasRenderingContext2D, state: FlipState, index: num
 }
 
 /**
- * Polish A4: a far city skyline rising from below the floor between the roofs, very dark and
- * slow (a sixth of the run's speed), with a few warm windows lit. Seeded by building index.
+ * The cave's depths behind the tunnel (Joe's phone notes, 27 Oct 2026; was a far city skyline): dark
+ * stalactites hanging from the ceiling and stalagmites rising from the floor, two layers at a sixth and a tenth
+ * of the run's speed, very dark, with a few faint cold-glowing crystals on them and a pale mist drifting low over
+ * the floor. Scenery only, clipped to the tunnel and behind every hazard and the runner; nothing in it collides.
  */
-function drawFarCity(ctx: CanvasRenderingContext2D, run: number, floorY: (x: number) => number = () => FLIP_FLOOR_Y, count = 1): void {
-  const par = run / 6;
-  const stride = 34;
-  const k0 = Math.floor(par / stride) - 1;
-  for (let k = k0; k < k0 + Math.ceil(FLIP_WORLD_W / stride) + 3; k++) {
-    for (let row = 0; row < count; row++) {
-    const h = artHash(k + row * 7919, 1709);
-    const x = k * stride - par + row * (stride / 2);
-    const w = stride - 4 - (h % 8);
-    const base = floorY(x + w / 2);
-    const top = base - 60 - (h >>> 5) % (110 + row * 60) - row * 40;
-    ctx.fillStyle = row ? "rgba(5,5,8,0.36)" : h % 3 === 0 ? "rgba(6,6,9,0.48)" : "rgba(9,9,13,0.42)";
-    ctx.fillRect(x, top, w, base + 40 - top);
-    if (h % 5 === 0) ctx.fillRect(x + w * 0.4, top - 10, 2, 10);
-    // Two or three lit windows a building, the rest dark.
-    for (let n = 0; n < 3; n++) {
-      const wh = artHash(k, n + 1800);
-      if (wh % 3 === 0) continue;
-      const wx = x + 4 + (wh % Math.max(1, w - 8));
-      const wy = top + 8 + ((wh >>> 7) % 9) * 9;
-      if (wy > base - 6) continue;
-      ctx.fillStyle = wh % 4 === 0 ? "rgba(255,190,110,0.5)" : "rgba(255,214,150,0.32)";
-      ctx.fillRect(Math.round(wx), Math.round(wy), 2, 3);
+function drawCaveDepths(ctx: CanvasRenderingContext2D, run: number, tick: number, still: boolean,
+  floorY: (x: number) => number = () => FLIP_FLOOR_Y, ceilY: (x: number) => number = () => FLIP_CEIL_Y, rows = 1): void {
+  for (let row = rows - 1; row >= 0; row--) {
+    const par = run / (row ? 10 : 6);
+    const stride = row ? 52 : 38;
+    const k0 = Math.floor(par / stride) - 1;
+    ctx.fillStyle = row ? "rgba(4,6,8,0.34)" : "rgba(5,7,9,0.5)";
+    for (let k = k0; k < k0 + Math.ceil(FLIP_WORLD_W / stride) + 3; k++) {
+      const h = artHash(k + row * 7919, 1709);
+      const x = k * stride - par + (h % 12);
+      const w = 12 + (h % 14) + row * 6;
+      const gap = floorY(x + w / 2) - ceilY(x + w / 2);
+      for (const down of [true, false]) {
+        const hh = artHash(k, row * 2 + (down ? 0 : 1) + 1801);
+        if (hh % 3 === 0) continue;
+        const len = gap * (0.12 + ((hh >>> 5) % 24) / 100);
+        const base = down ? ceilY(x + w / 2) - 30 : floorY(x + w / 2) + 30;
+        const tip = down ? base + 30 + len : base - 30 - len;
+        ctx.beginPath();
+        ctx.moveTo(x, base);
+        ctx.lineTo(x + w, base);
+        ctx.lineTo(x + w * (0.5 + (((hh >>> 9) % 20) - 10) / 100), tip);
+        ctx.closePath();
+        ctx.fill();
+        // A faint cold crystal glinting on one in five.
+        if (row === 0 && hh % 5 === 1) {
+          const cy = base + (tip - base) * 0.55;
+          const cx = x + w * 0.5;
+          const glow = still ? 0.5 : 0.35 + 0.25 * Math.sin((tick + (hh % 200)) / 50);
+          ctx.save();
+          ctx.globalAlpha = glow * 0.5;
+          ctx.fillStyle = "#6FE3C8";
+          ctx.beginPath();
+          ctx.arc(cx, cy, 3.2, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.globalAlpha = glow;
+          ctx.fillStyle = "#C8FFF0";
+          ctx.fillRect(cx - 0.8, cy - 1.6, 1.6, 3.2);
+          ctx.restore();
+        }
+      }
     }
-    }
+  }
+  // A pale mist drifting low over the floor (still under reduced motion).
+  const drift = still ? 0 : (tick * 0.15) % FLIP_WORLD_W;
+  for (let k = 0; k < 4; k++) {
+    const h = artHash(k, 2311);
+    const x = ((((h % FLIP_WORLD_W) + drift * (k % 2 ? 1 : 0.6)) % (FLIP_WORLD_W + 160)) + FLIP_WORLD_W + 160) % (FLIP_WORLD_W + 160) - 80;
+    const y = floorY(x) - 14 - ((h >>> 8) % 18);
+    const mist = ctx.createRadialGradient(x, y, 4, x, y, 90);
+    mist.addColorStop(0, "rgba(150,190,185,0.07)");
+    mist.addColorStop(1, "rgba(150,190,185,0)");
+    ctx.fillStyle = mist;
+    ctx.fillRect(x - 90, y - 90, 180, 180);
   }
 }
 
-/** Polish A4: embers drifting slowly up through the tunnel, each with a faint glow; still under reduced motion. */
+/** Polish A4: spores (were embers) drifting slowly up through the tunnel, each with a faint glow; still under reduced motion. */
 function drawTunnelEmbers(ctx: CanvasRenderingContext2D, tick: number, still: boolean,
   floorY: (x: number) => number = () => FLIP_FLOOR_Y, ceilY: (x: number) => number = () => FLIP_CEIL_Y): void {
   for (let k = 0; k < 14; k++) {
@@ -681,13 +712,14 @@ function drawTunnelEmbers(ctx: CanvasRenderingContext2D, tick: number, still: bo
     const x = ((((h >>> 6) % FLIP_WORLD_W) - age * 0.25) % FLIP_WORLD_W + FLIP_WORLD_W) % FLIP_WORLD_W + (still ? 0 : Math.sin((tick + k * 37) / 40) * 6);
     const y = floorY(x) - 6 - age * ((floorY(x) - ceilY(x)) / life);
     const fade = Math.sin((age / life) * Math.PI);
-    ctx.globalAlpha = fade * 0.3;
-    ctx.fillStyle = "#FF6A2A";
+    // Pale, cold spores (since 27 Oct 2026; were warm embers): the cave is eerie, the lava alone is warm.
+    ctx.globalAlpha = fade * 0.22;
+    ctx.fillStyle = "#7FD9C4";
     ctx.beginPath();
     ctx.arc(x, y, 2.6, 0, Math.PI * 2);
     ctx.fill();
-    ctx.globalAlpha = fade * 0.85;
-    ctx.fillStyle = k % 3 ? "#FFB45A" : "#FFE2A0";
+    ctx.globalAlpha = fade * 0.7;
+    ctx.fillStyle = k % 3 ? "#BFEFE2" : "#E8FFF8";
     ctx.fillRect(x - 0.7, y - 0.7, 1.4, 1.4);
   }
   ctx.globalAlpha = 1;
@@ -733,21 +765,22 @@ function drawFlipArtWorld(ctx: CanvasRenderingContext2D, state: FlipState, size:
   const air = state.exp
     ? ctx.createLinearGradient(0, ceilAt(RUNNER_X) - 30, 0, floorAt(RUNNER_X) + 30)
     : ctx.createLinearGradient(0, ceilBase(RUNNER_X) - 30, 0, floorBase(RUNNER_X) + 30);
-  air.addColorStop(0, "#2A1714");
-  air.addColorStop(0.18, "#161518");
-  air.addColorStop(0.5, MATERIAL.tunnel);
-  air.addColorStop(0.82, "#161518");
-  air.addColorStop(1, "#2A1714");
+  // Darker and colder since 27 Oct 2026 (the eerie cave), with only a hint of the lava's warmth at the rails.
+  air.addColorStop(0, "#1E1412");
+  air.addColorStop(0.16, "#0E1113");
+  air.addColorStop(0.5, "#080A0C");
+  air.addColorStop(0.84, "#0E1113");
+  air.addColorStop(1, "#1E1412");
   ctx.fillStyle = air;
   ctx.fill();
-  // Polish A4 (25 Oct 2026, display only): a faint far city between the roofs and embers drifting up
-  // through it, clipped to the tunnel, behind every hazard and the runner. Nothing in it collides.
+  // Display only: the cave's depths (stalactites, stalagmites, cold crystals, mist; until 27 Oct 2026 a far city)
+  // and spores drifting up through them, clipped to the tunnel, behind every hazard and the runner. Nothing collides.
   if (!arcadeReducedEffects()) {
     ctx.save();
     bandPath(ctx, ceilAt, floorAt);
     ctx.clip();
-    // Rev 8: two rows of rooftops standing on the bent floor; earlier revisions keep one row on the fixed line.
-    drawFarCity(ctx, still ? 0 : state.x / FP, state.exp ? floorAt : floorBase, state.exp ? 2 : 1);
+    // Rev 8: two layers on the bent rails; earlier revisions keep one on the fixed lines.
+    drawCaveDepths(ctx, still ? 0 : state.x / FP, state.tick, still, state.exp ? floorAt : floorBase, state.exp ? ceilAt : ceilBase, state.exp ? 2 : 1);
     drawTunnelEmbers(ctx, state.tick, still, floorBase, ceilBase);
     ctx.restore();
   }

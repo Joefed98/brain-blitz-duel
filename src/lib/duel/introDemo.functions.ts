@@ -5,9 +5,9 @@ import { CLAY_REV_DEPTH } from "@/lib/arcade/clayShoot";
 import { WHACK_REV_NOTES } from "@/lib/arcade/whack";
 import { WORDFALL_REV } from "@/lib/arcade/wordfall";
 import { BRK_REV_PHONE } from "@/lib/arcade/breaker";
-import { TILT_REV_EXPAND } from "@/lib/arcade/tilt";
+import { TILT_REV_LIFT } from "@/lib/arcade/tilt";
 import { CROSS_REV_EXPAND } from "@/lib/arcade/cross";
-import { FLIP_REV_EXPAND } from "@/lib/arcade/flip";
+import { FLIP_REV_LIFT } from "@/lib/arcade/flip";
 import { SNIP_REV_EXPAND } from "@/lib/arcade/snip";
 import { HOVER_REV_EXPAND } from "@/lib/arcade/hover";
 import { RALLY_REV_CURVE } from "@/lib/arcade/rally";
@@ -121,11 +121,13 @@ export const getIntroDemoFn = createServerFn({ method: "GET" })
     if (data.type === "breaker" && demo?.puzzle.type === "breaker" && demo.puzzle.brkRev !== BRK_REV_PHONE) return null;
     // Tilt's expansion (tiltRev 8, 26 Oct 2026): three bigger mazes under a camera, keys, ice and quick stars. An older
     // demo would show the small disc, so the intro shows its still until a demo is recorded on tiltRev 8.
-    if (data.type === "tilt" && demo?.puzzle.type === "tilt" && demo.puzzle.tiltRev !== TILT_REV_EXPAND) return null;
+    // tiltRev 9 (27 Oct 2026) keeps tiltRev 8's play on lifted curves, under a fixed camera: only a demo recorded on 9 plays.
+    if (data.type === "tilt" && demo?.puzzle.type === "tilt" && demo.puzzle.tiltRev !== TILT_REV_LIFT) return null;
     // Roofbound flipRev 8 (expansion E7, docs/expansions/x200-flip.md): a taller cave whose height changes, moving spikes,
     // trails, checkpoints, speed zones and sweet spots. An older demo would show the short corridor (and none of them),
-    // so Roofbound's stays stopped (the intro shows its still) until one is recorded on flipRev 8.
-    if (data.type === "flip" && demo?.puzzle.type === "flip" && demo.puzzle.flipRev !== FLIP_REV_EXPAND) return null;
+    // so Roofbound's stays stopped (the intro shows its still) until one is recorded on flipRev 8. flipRev 9 (27 Oct 2026)
+    // keeps flipRev 8's play on lifted curves; its HUD shows the run's score, so only a demo recorded on flipRev 9 plays.
+    if (data.type === "flip" && demo?.puzzle.type === "flip" && demo.puzzle.flipRev !== FLIP_REV_LIFT) return null;
     // The 200-point expansion (26 Oct 2026, docs/expansions/x200-hover.md): Hover hoverRev 9 plays in a 390 × 727 world with
     // tight gates, centre lines, star chains and shields, so its demo stays stopped until one is recorded there.
     if (data.type === "hover" && demo?.puzzle.type === "hover" && demo.puzzle.hoverRev !== HOVER_REV_EXPAND) return null;

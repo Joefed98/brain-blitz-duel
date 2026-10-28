@@ -92,7 +92,7 @@ export const ROUND_MAX: Readonly<Record<PuzzleType, number>> = {
   bullseye: 200, // expansion E9, bullRev 8
   burst: 200, // expansion E9, burstRev 8
   cross: 200, // Jaywalk crossRev 9 (x200, 26 Oct 2026)
-  flip: 200, // expansion X200, flipRev 8
+  flip: 200, // expansion X200, flipRev 8 (flipRev 9: lifted curves)
   hover: 200, // expansion X200, hoverRev 9
   inkbridge: 200,
   junction: 150,
@@ -104,7 +104,7 @@ export const ROUND_MAX: Readonly<Record<PuzzleType, number>> = {
   snake: 200, // expansion E2, snakeRev 9 (snakeRev 10, Joe's phone notes, keeps 200)
   snip: 200, // expansion X200, snipRev 11
   swing: 200, // expansion x200, swingRev 13; the assault course, swingRev 14
-  tilt: 200,
+  tilt: 200, // x200, tiltRev 8 (tiltRev 9: lifted curves)
   wavefront: 200,
   // Retired to practice
   bastion: 150,

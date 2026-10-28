@@ -7,7 +7,7 @@ import type { ArcadeGame, ArcadeInputEvent, CanvasSize } from "./engine";
 import { drawArtSprite } from "./sprites.renderer";
 import { arcadeFx, type ArcadeFxSpec } from "./arcadeFx.renderer";
 import { TILT_FX } from "./arcadeFxGames.renderer";
-import { TILT_DISC_R, TILT_MAX_MAZES, TILT_WORLD_H, TILT_WORLD_W, tiltBandGame, tiltGame, tiltRev2Game, tiltStarPoint, tiltTotalStars, tiltTunecGame, tiltTargetGame, tiltStrictGame, tiltExpandGame, TILT_REV, TILT_REV_BAND, TILT_REV_TUNEC, TILT_REV_TARGET, TILT_REV_STRICT, TILT_REV_EXPAND, TILT_X_W, TILT_X_H, TILT_X_MAZES, TILT_X_QUICK_TAIL, TILT_X_FALL_HOLD, tiltCellCentre, tiltQuickLeftX, tiltQuickFullLeftX, type Maze, type TiltState } from "./tilt";
+import { TILT_DISC_R, TILT_MAX_MAZES, TILT_WORLD_H, TILT_WORLD_W, tiltBandGame, tiltGame, tiltRev2Game, tiltStarPoint, tiltTotalStars, tiltTunecGame, tiltTargetGame, tiltStrictGame, tiltExpandGame, tiltLiftGame, tiltIsExpand, TILT_REV, TILT_REV_BAND, TILT_REV_TUNEC, TILT_REV_TARGET, TILT_REV_STRICT, TILT_REV_EXPAND, TILT_REV_LIFT, TILT_X_W, TILT_X_H, TILT_X_MAZES, TILT_X_QUICK_TAIL, TILT_X_FALL_HOLD, tiltCellCentre, tiltQuickLeftX, tiltQuickFullLeftX, type Maze, type TiltState } from "./tilt";
 import {
   TOY_BRASS, TOY_BRASS_DARK, TOY_INK, TOY_OAK_LIGHT, TOY_TABLE, TOY_TABLE_LIT, TOY_WOOD_DARK,
   toyBoard, toyChangeAge, toyGrain, toyMarble,
@@ -716,6 +716,7 @@ const tiltTunecArtGame: ArcadeGame<TiltState, ArcadeInputEvent | null> = { ...ti
 const tiltTargetArtGame: ArcadeGame<TiltState, ArcadeInputEvent | null> = { ...tiltTargetGame, draw };
 const tiltStrictArtGame: ArcadeGame<TiltState, ArcadeInputEvent | null> = { ...tiltStrictGame, draw };
 export function tiltArtGameFor(rev?: number | null): ArcadeGame<TiltState, ArcadeInputEvent | null> {
+  if (rev === TILT_REV_LIFT) return tiltLiftArtGame;
   if (rev === TILT_REV_EXPAND) return tiltExpandArtGame;
   if (rev === TILT_REV_STRICT) return tiltStrictArtGame;
   if (rev === TILT_REV_TARGET) return tiltTargetArtGame;
@@ -737,25 +738,25 @@ export function tiltArenaScene(ctx: CanvasRenderingContext2D, view: ArenaSceneVi
 
 /** The arena scene for a stored round's revision (tiltRev 8: the taller world). */
 export function tiltArenaSceneFor(rev?: number | null): (ctx: CanvasRenderingContext2D, view: ArenaSceneView) => void {
-  if (rev !== TILT_REV_EXPAND) return tiltArenaScene;
+  if (!tiltIsExpand(rev)) return tiltArenaScene;
   return (ctx, view) => tiltFill(ctx, view, TILT_X_W, TILT_X_H);
 }
 
 /* ================= Expansion (tiltRev 8, 25 Oct 2026) ================= */
 
 /*
- * tiltRev 8 draws a maze bigger than the screen through a camera (display only): it follows the marbles
- * still rolling (their middle, pulled a third of the way toward the disc's centre, eased), stands at the screen's centre and the drawing turns about it, so
- * the marbles stay near the middle while the board spins round them. The sim never reads it: gravity is
- * turned into the maze frame by the angle alone, whichever point the drawing turns about. The table is
- * screen-fixed (as the board always was); the disc, its groove and rim move and turn with the maze.
+ * tiltRev 8 draws its bigger mazes through a fixed camera (display only; until 27 Oct 2026 it followed the
+ * marbles): the disc's centre stands at the screen's centre, scaled so the whole disc fits the width
+ * (tiltFixedZoom), and the drawing turns about it. The sim never reads it: gravity is turned into the maze
+ * frame by the angle alone. The table is screen-fixed (as the board always was); the disc turns with the maze.
  * Ice is frosted cells, keys are brass (or verdigris) keys with a matching gate across the route, quick
  * stars carry a draining ring for their window, and a marble the camera cannot show gets an edge arrow.
  */
 
-const ICE_FROST = "rgba(214,240,255,0.62)";
-const ICE_EDGE = "rgba(255,255,255,0.7)";
-const ICE_GLINT = "rgba(255,255,255,0.85)";
+// Subtler since 27 Oct 2026 (Joe's phone notes): a light frost, so the maze's walls and openings read through it.
+const ICE_FROST = "rgba(214,240,255,0.2)";
+const ICE_EDGE = "rgba(255,255,255,0.26)";
+const ICE_GLINT = "rgba(255,255,255,0.5)";
 /** Key and gate colours, by key: brass, then verdigris. */
 const KEY_COLOURS = [
   { body: TOY_BRASS, dark: TOY_BRASS_DARK, lit: "#FFE9A8" },
@@ -769,32 +770,16 @@ function discRadiusX(m: Maze): number {
   return (m.n * (m.cs / FP)) / 2 + 16;
 }
 
-/** The camera, per canvas: a point in the disc-centred maze frame (px), eased toward the rolling marbles. */
-const cameras = new WeakMap<CanvasRenderingContext2D, { x: number; y: number; at: number; level: number }>();
-/** The last camera and turn any canvas drew (the success layer's pops read it to place themselves). */
-let lastView = { x: 0, y: 0, rot: 0 };
+/** The last view any canvas drew: its turn and zoom (the success layer's pops read it to place themselves). */
+let lastView = { rot: 0, zoom: 1 };
 
-function cameraX(ctx: CanvasRenderingContext2D, state: TiltState, m: Maze, o: number): { x: number; y: number } {
-  const live: { x: number; y: number }[] = [];
-  if (!state.aHome) live.push({ x: state.x / FP - o, y: state.y / FP - o });
-  if (state.b && !state.bHome) live.push({ x: state.b.x / FP - o, y: state.b.y / FP - o });
-  const now = typeof performance === "undefined" ? 0 : performance.now();
-  const cam = cameras.get(ctx);
-  if (!live.length) return cam ?? { x: 0, y: 0 };
-  // The marbles' middle, drawn a third of the way back toward the disc's centre (which is 0, 0), so more of
-  // the maze is in view and a marble near the rim still sits well inside the screen.
-  const tx = (0.65 * live.reduce((a, p) => a + p.x, 0)) / live.length;
-  const ty = (0.65 * live.reduce((a, p) => a + p.y, 0)) / live.length;
-  if (!cam || cam.level !== state.level || now - cam.at > 500) {
-    cameras.set(ctx, { x: tx, y: ty, at: now, level: state.level });
-    return { x: tx, y: ty };
-  }
-  // A short glide (reduced motion: a quicker one, never a swing past the target).
-  const k = 1 - Math.exp(-(now - cam.at) / (reducedMotion() ? 60 : 140));
-  cam.x += (tx - cam.x) * k;
-  cam.y += (ty - cam.y) * k;
-  cam.at = now;
-  return cam;
+/**
+ * The fixed camera's zoom for a maze (display only; Joe's phone notes, 27 Oct 2026: the view no longer pans with
+ * the marbles): the disc, its rim and groove fill the world's width, centred, so the whole maze is always on
+ * screen and only the board turns. Mazes 1–3 draw at about 0.98, 0.86 and 0.77 of their size.
+ */
+function tiltFixedZoom(R: number): number {
+  return Math.min(1, (TILT_X_W / 2 - 4) / (R + 10));
 }
 
 /** The disc face for a radius (cached sprite per radius). */
@@ -1119,12 +1104,13 @@ function drawWorldX(ctx: CanvasRenderingContext2D, state: TiltState, size: Canva
   ctx.rect(0, 0, W, H);
   ctx.clip();
 
-  const cam = cameraX(ctx, state, m, o);
-  lastView = { x: cam.x, y: cam.y, rot };
-  // Screen = centre + rotate(angle) · (maze point − camera).
+  // The camera stays on the disc's centre (display only): screen = centre + zoom · rotate(angle) · maze point.
+  const cam = { x: 0, y: 0 };
+  const zoom = tiltFixedZoom(R);
+  lastView = { rot, zoom };
   ctx.translate(W / 2, H / 2);
+  ctx.scale(zoom, zoom);
   ctx.rotate(rot);
-  ctx.translate(-cam.x, -cam.y);
 
   // The groove and rim, turned with the disc (their light stays screen-fixed: drawn unrotated about the centre).
   ctx.save();
@@ -1250,8 +1236,8 @@ function drawWorldX(ctx: CanvasRenderingContext2D, state: TiltState, size: Canva
 
   // Edge arrows for a marble out of view, then the counts.
   const toScreen = (x: number, y: number) => {
-    const dx = x - cam.x;
-    const dy = y - cam.y;
+    const dx = (x - cam.x) * zoom;
+    const dy = (y - cam.y) * zoom;
     return { x: W / 2 + Math.cos(rot) * dx - Math.sin(rot) * dy, y: H / 2 + Math.sin(rot) * dx + Math.cos(rot) * dy };
   };
   if (!state.aHome && !done) {
@@ -1305,15 +1291,16 @@ export const TILT_X_FX: ArcadeFxSpec<TiltState> = {
   misses: [{ count: (s) => s.falls ?? 0, at: (s) => tiltMarbleAtX(s) }],
 };
 
-/** Where the marble nearest the last moment is on the screen (the last camera drawn). */
+/** Where the marble nearest the last moment is on the screen (the last view drawn). */
 function tiltMarbleAtX(s: TiltState): { x: number; y: number } {
   const m = s.list[Math.min(s.level, s.list.length - 1)]!;
   const o = (m.n * m.cs) / 2;
   const ball = !s.aHome || !s.b ? { x: s.x, y: s.y } : s.b;
-  const dx = (ball.x - o) / FP - lastView.x;
-  const dy = (ball.y - o) / FP - lastView.y;
+  const dx = ((ball.x - o) / FP) * lastView.zoom;
+  const dy = ((ball.y - o) / FP) * lastView.zoom;
   const a = lastView.rot;
   return { x: TILT_X_W / 2 + Math.cos(a) * dx - Math.sin(a) * dy, y: TILT_X_H / 2 + Math.sin(a) * dx + Math.cos(a) * dy };
 }
 
 const tiltExpandArtGame: ArcadeGame<TiltState, ArcadeInputEvent | null> = { ...tiltExpandGame, draw: drawX };
+const tiltLiftArtGame: ArcadeGame<TiltState, ArcadeInputEvent | null> = { ...tiltLiftGame, draw: drawX };

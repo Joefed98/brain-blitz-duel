@@ -1404,11 +1404,13 @@ const lightUpSummary: SummaryBuilder = (result, puzzle) => {
   };
 };
 
-const ballTrackSummary: SummaryBuilder = (result) => {
+const ballTrackSummary: SummaryBuilder = (result, puzzle) => {
   const home = Number(result.extra?.["home"] ?? 0);
   const speed = Number(result.extra?.["speed"] ?? 0);
   const tail = speed ? ` · +${speed} speed` : "";
-  return { summary: `${home} / ${BT_BALLS} home${tail}`, detail: ["Same track for everyone"] };
+  // btRev 7 drops 36 marbles (every earlier course 30).
+  const all = (puzzle.type === "balltrack" && puzzle.course.balls.length) || BT_BALLS;
+  return { summary: `${home} / ${all} home${tail}`, detail: ["Same track for everyone"] };
 };
 
 const numberPyramidSummary: SummaryBuilder = (result, puzzle) => {

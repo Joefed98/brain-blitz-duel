@@ -250,7 +250,8 @@ section("New rounds: stamps, start states, checksums, worlds by revision");
   // Expansion E6 (25 Oct 2026) moved Ball Tracker on to its 13-row board (1400 px; e6-check).
   // Grappler's 200 expansion (swingRev 13) deals its 450 × 844 view (swing-x200-check); the expansion to 200 moved Orbit
   // on to its 450 × 782 view (orbitRev 12; orbit-expand-check).
-  ok(fx.swing!.height === 844 && fx.orbit!.height === 782 && fx.balltrack!.height === 1400, "ARCADE_FX_SPECS hold the heights rooms deal");
+  // Orbit: orbitRev 12's 450 × 782 view, drawn 862 tall since 27 Oct 2026 (Joe's phone notes: 80 rows above the frame).
+  ok(fx.swing!.height === 844 && fx.orbit!.height === 862 && fx.balltrack!.height === 1400, "ARCADE_FX_SPECS hold the heights rooms deal");
   ok(swingFxFor({ worldH: 730 } as SwingState).height === 730 && swingFxFor({} as SwingState) === SWING_FX, "Grappler effects by state height");
   ok(orbit3FxFor({ worldH: 650 } as OrbitRev3State).height === 650 && orbit3FxFor({} as OrbitRev3State) === ORBIT3_FX, "Orbit effects by view height");
   ok(balltrackFxFor({ worldH: 1300 } as BtState).height === 1300 && balltrackFxFor({} as BtState) === BALLTRACK_FX, "Ball Tracker effects by state height");
@@ -262,7 +263,8 @@ section("New rounds: stamps, start states, checksums, worlds by revision");
   ok(rh("balltrack", { btRev: BT_REV_TALL }) === 1300 && rh("balltrack", { btRev: BT_REV_BAND }) === 1000 && rh("balltrack", {}) === 1000, "Ball Tracker reveal height by revision");
   // Stages size their arena slot from the stored revision.
   ok(/worldH=\{swingWorldHFor\(data\?\.swingRev\)\}/.test(read("src/puzzles/swing.tsx")), "Grappler's stage sizes its world from swingRev");
-  ok(/worldH=\{orbitWorldHFor\(data\?\.orbitRev\)\}/.test(read("src/puzzles/orbit.tsx")), "Orbit's stage sizes its view from orbitRev");
+  // Since 27 Oct 2026 through the drawn height (orbitDrawHFor: orbitWorldHFor's view, orbitRev 12 drawn taller below it).
+  ok(/worldH=\{orbitDrawHFor\(data\?\.orbitRev\)\}/.test(read("src/puzzles/orbit.tsx")), "Orbit's stage sizes its view from orbitRev");
   ok(/btLayout\(course\)/.test(read("src/puzzles/ballTrack.tsx")) && /ArcadeArenaSlot width=\{BT_W\} height=\{BT_H\}/.test(read("src/puzzles/ballTrack.tsx")), "Ball Tracker's stage sizes its board from the stored course");
 }
 

@@ -31,7 +31,7 @@ revisions keep their own world in reveals and replays.
 | Meteor | 468x868 | 375x591 → 319x591 | 390x624 → 336x624 | 390x768 → 390x723 | 414x772 → 414x768 | 430x856 → 430x798 | 1280x724 → 390x724 | 0.833x | 60px | 22px | 22px | 0px | - |
 | Fission | 390x650 | 375x507 → 304x507 | 390x540 → 324x540 | 390x684 → 390x650 | 414x688 → 413x688 | 430x772 → 430x717 | 1280x640 → 384x640 | 1.000x | 60px | 0px | 34px | 0px | Fission's two 76px arrows: 16px |
 | Wavefront | 390x800 | 375x591 → 288x591 | 390x624 → 304x624 | 390x768 → 374x768 | 414x772 → 376x772 | 430x856 → 417x856 | 1280x724 → 353x724 | 0.960x | 60px | 0px | 0px | 16px | - |
-| Orbit | 450x782 | 375x539 → 310x539 | 390x572 → 329x572 | 390x716 → 390x678 | 414x720 → 414x719 | 430x804 → 430x747 | 1280x672 → 387x672 | 0.867x | 60px | 0px | 38px | 0px | Orbit's SET CHECKPOINT (44px row): 16px |
+| Orbit | 450x862 | 375x591 → 309x591 | 390x624 → 326x624 | 390x768 → 390x747 | 414x772 → 403x772 | 430x856 → 430x824 | 1280x724 → 378x724 | 0.867x | 60px | 0px | 21px | 0px | - |
 | High Rise | 390x735 | 375x591 → 314x591 | 390x624 → 331x624 | 390x768 → 390x735 | 414x772 → 410x772 | 430x856 → 430x810 | 1280x724 → 384x724 | 1.000x | 60px | 0px | 33px | 0px | - |
 | Jaywalk | 390x727 | 375x591 → 317x591 | 390x624 → 335x624 | 390x768 → 390x727 | 414x772 → 414x772 | 430x856 → 430x802 | 1280x724 → 388x724 | 1.000x | 60px | 0px | 41px | 0px | - |
 | Junction | 390x620 | 375x591 → 372x591 | 390x624 → 390x620 | 390x768 → 390x620 | 414x772 → 414x658 | 430x856 → 430x684 | 1280x724 → 455x724 | 1.000x | 60px | 0px | 148px | 0px | - |
@@ -75,7 +75,7 @@ stars, walkers, lava, reactions) that holds still under reduced motion or reduce
 | Meteor | 375x591 → 319x591 | 390x624 → 336x624 | 390x768 → 390x723 | 414x772 → 414x768 | 430x856 → 430x798 | 1280x724 → 390x724 | a faint starfield round the board, its stars stepping through the border's colours (world centred) |
 | Fission | 375x507 → 304x507 | 390x540 → 324x540 | 390x684 → 390x650 | 414x688 → 413x688 | 430x772 → 430x717 | 1280x640 → 384x640 | the black arena runs on under the arrows, small faint reactions drifting together and bursting |
 | Wavefront | 375x591 → 288x591 | 390x624 → 304x624 | 390x768 → 374x768 | 414x772 → 376x772 | 430x856 → 417x856 | 1280x724 → 353x724 | the night sky's stars below and beside the world |
-| Orbit | 375x539 → 310x539 | 390x572 → 329x572 | 390x716 → 390x678 | 414x720 → 414x719 | 430x804 → 430x747 | 1280x672 → 387x672 | deep space with light stars under SET CHECKPOINT |
+| Orbit | 375x591 → 309x591 | 390x624 → 326x624 | 390x768 → 390x747 | 414x772 → 403x772 | 430x856 → 430x824 | 1280x724 → 378x724 | black space with light stars (SET CHECKPOINT in the world's reserved top-right corner) |
 | High Rise | 375x591 → 314x591 | 390x624 → 331x624 | 390x768 → 390x735 | 414x772 → 410x772 | 430x856 → 430x810 | 1280x724 → 384x724 | a dark road under the tower's base block, softly lit by street lamps |
 | Jaywalk | 375x591 → 317x591 | 390x624 → 335x624 | 390x768 → 390x727 | 414x772 → 414x772 | 430x856 → 430x802 | 1280x724 → 388x724 | the start pavement runs on between grass verges to a grass strip, two or three people strolling along it (none under reduced motion) |
 | Rainbow Bridge | 375x535 → 310x535 | 390x568 → 329x568 | 390x712 → 390x674 | 414x716 → 414x715 | 430x800 → 430x743 | 1280x668 → 387x668 | grass and hillside below the ground (sky, hills and ground beside the world) |
@@ -111,7 +111,7 @@ than half hidden; Hover's world is cut the same way, its disc at the top).
 | Meteor | 414x724 → 390x724, 64px | 414x772 → 414x768, 16px | world 28px |
 | Fission | 414x640 → 384x640, 64px | 414x688 → 413x688, 16px | world none, Fission's two 76px arrows 32px |
 | Wavefront | 414x724 → 353x724, 64px | 414x772 → 376x772, 16px | world 32px |
-| Orbit | 414x672 → 387x672, 64px | 414x720 → 414x719, 16px | world none, Orbit's SET CHECKPOINT (44px row) 32px |
+| Orbit | 414x724 → 378x724, 64px | 414x772 → 403x772, 16px | world 32px |
 | High Rise | 414x724 → 384x724, 64px | 414x772 → 410x772, 16px | world 32px |
 | Jaywalk | 414x724 → 388x724, 64px | 414x772 → 414x772, 16px | world 32px |
 | Junction | 414x724 → 414x658, 64px | 414x772 → 414x658, 16px | world none |
@@ -147,7 +147,7 @@ bottom; the spare space was the game's arena fill or the page colour. Same arith
 | Meteor | 367x543 → 293x543 | 382x576 → 311x576 | 382x720 → 382x708 | 422x808 → 422x783 | 1272x676 → 364x676 |
 | Fission | 367x451 → 271x451 | 382x484 → 290x484 | 382x628 → 377x628 | 422x716 → 422x703 | 1272x584 → 350x584 |
 | Wavefront | 367x543 → 265x543 | 382x576 → 281x576 | 382x720 → 351x720 | 422x808 → 394x808 | 1272x676 → 330x676 |
-| Orbit | 367x455 → 262x455 | 382x488 → 281x488 | 382x632 → 364x632 | 422x720 → 414x720 | 1272x588 → 338x588 |
+| Orbit | 367x455 → 238x455 | 382x488 → 255x488 | 382x632 → 330x632 | 422x720 → 376x720 | 1272x588 → 307x588 |
 | High Rise | 367x543 → 288x543 | 382x576 → 306x576 | 382x720 → 382x720 | 422x808 → 422x795 | 1272x676 → 359x676 |
 | Jaywalk | 367x543 → 291x543 | 382x576 → 309x576 | 382x720 → 382x712 | 422x808 → 422x787 | 1272x676 → 363x676 |
 | Junction | 367x543 → 342x543 | 382x576 → 362x576 | 382x720 → 382x607 | 422x808 → 422x671 | 1272x676 → 425x676 |

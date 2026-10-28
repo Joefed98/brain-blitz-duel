@@ -14,6 +14,7 @@ import { withSeededRandom } from "../src/lib/duel/random";
 import { INTRO_EXAMPLE_SEED } from "../src/lib/duel/puzzleDemo";
 import type { PuzzleType } from "../src/lib/duel/types";
 import { ACTIVE_ARCADE_GAMES, ARCADE_FX_SPECS } from "../src/lib/arcade/arcadeFxGames.renderer";
+import { ORBIT_REV_XP } from "../src/lib/arcade/orbit";
 
 // Happy DOM parses DOM only. Budgets below are CSS arithmetic, NOT pixel measurements.
 const room = readFileSync("src/routes/duel.$code.tsx", "utf8").split("const frameScore")[1] ?? "";
@@ -50,7 +51,22 @@ for (const [key, definition] of active) {
     assert.ok(!style.includes("--arena-fill"), `${key}: no per-game slot fill ${style}`);
     assert.equal([...slot.children].filter((c) => c.hasAttribute("data-game-arena")).length, 1, `${key}: one arena in the slot`);
     assert.equal(host.querySelectorAll("[data-game-arena]").length, 1, `${key}: no arena outside the slot`);
-    assert.equal(slot.querySelectorAll("[data-game-controls], button").length, 0, `${key}: controls sit below the slot`);
+    // Orbit orbitRev 12 (Joe's phone notes, 27 Oct 2026): its world reaches the screen's bottom, so SET CHECKPOINT sits in
+    // the reserved top-right zone of the world (ORBIT_XP_ZONE, where nothing in play is drawn and the rocket never goes;
+    // play-control-clearance-check proves both on every course and frame): exactly that one row in the arena, absolutely
+    // placed 4px in from its top and right, holding the one 44px button. Every other control still sits below the slot.
+    const inSlot = [...slot.querySelectorAll("[data-game-controls], button")];
+    if (key === "orbit" && (puzzle as { orbitRev?: number }).orbitRev === ORBIT_REV_XP) {
+      const row = slot.querySelector("[data-game-arena] > [data-orbit-zone]");
+      assert.ok(row && row.getAttribute("data-game-controls") === "checkpoint", `${key}: the checkpoint row sits in the world's reserved corner`);
+      const cls = ` ${row!.getAttribute("class") ?? ""} `;
+      for (const c of ["absolute", "right-1", "top-1", "h-11", "pointer-events-none"]) assert.ok(cls.includes(` ${c} `), `${key}: corner row class ${c}`);
+      const buttons = [...row!.querySelectorAll("button")];
+      assert.equal(buttons.length, 1, `${key}: one button in the corner`);
+      assert.ok(` ${buttons[0]!.getAttribute("class") ?? ""} `.includes(" h-11 "), `${key}: the corner button is 44px tall`);
+      assert.deepEqual(inSlot, [row, buttons[0]], `${key}: nothing else in the slot but the corner row and its button`);
+      assert.equal(host.querySelectorAll("[data-game-controls]").length, 1, `${key}: no row below the world on orbitRev 12`);
+    } else assert.equal(inSlot.length, 0, `${key}: controls sit below the slot`);
     arenas++;
   }
   for (const [width, height] of SIZES) {

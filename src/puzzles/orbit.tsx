@@ -20,8 +20,8 @@ import {
 import { encodeOrbitRun, replayOrbitRun } from "@/lib/duel/orbit";
 import { ORBIT_TIME_MS, type OrbitPuzzleData } from "@/lib/duel/types";
 import { ArcadeCanvasStage } from "@/components/puzzles/ArcadeCanvasStage";
-import { orbitArtGame, orbitRev3ArtGame } from "@/lib/arcade/orbit.renderer";
-import { initBandFrom, initRev3From, initRev4From, initSweptFrom, initTallFrom, initTargetFrom, initStrictFrom, initTunedFrom, decodeOrbitHoles, decodeRev3Planets, orbitStartForPuzzle, orbitWorldHFor, orbitWorldWFor, ORBIT_REV3_WORLD_W } from "@/lib/arcade/orbitRev3";
+import { orbitArtGame, orbitDrawHFor, orbitRev3ArtGame } from "@/lib/arcade/orbit.renderer";
+import { initBandFrom, initRev3From, initRev4From, initSweptFrom, initTallFrom, initTargetFrom, initStrictFrom, initTunedFrom, decodeOrbitHoles, decodeRev3Planets, orbitStartForPuzzle, orbitWorldWFor, ORBIT_REV3_WORLD_W } from "@/lib/arcade/orbitRev3";
 import { ORBIT_REV3, ORBIT_REV4, ORBIT_REV_BAND, ORBIT_REV_SWEPT, ORBIT_REV_TALL, ORBIT_REV_TARGET, ORBIT_REV_STRICT, ORBIT_REV_TUNED, ORBIT_REV_XP } from "@/lib/arcade/orbit";
 import { orbitSounds } from "@/lib/fx/gameSounds";
 
@@ -77,6 +77,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     }
     return orbitArtGame;
   }, [devPlanet, data]);
+  const xp = data?.orbitRev === ORBIT_REV_XP;
   const belts = useMemo(() => (devPlanet && data ? orbitBeltPlanets(orbitArtGame.init(data.seed)) : []), [devPlanet, data]);
   return (
     <>
@@ -96,8 +97,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       locked={locked}
       // orbitRev 12: the 450 × 782 view (390 wide on every earlier revision).
       worldW={data?.orbitRev === ORBIT_REV_XP ? orbitWorldWFor(data.orbitRev) : ORBIT_WORLD_W}
-      // orbitRev 8: the taller view (620 on every earlier revision).
-      worldH={orbitWorldHFor(data?.orbitRev)}
+      // orbitRev 8: the taller view (620 on every earlier revision); orbitRev 12 drawn to the screen's bottom (display only).
+      worldH={orbitDrawHFor(data?.orbitRev)}
       game={game}
       sounds={orbitSounds}
       checkpoint={orbitCheckpoint}
@@ -113,7 +114,24 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         }
         return null;
       }}
-      footer={(send) => (
+      // orbitRev 12 (Joe's phone notes, 27 Oct 2026): the world reaches the screen's bottom and SET CHECKPOINT sits in
+      // the reserved top-right corner of the rows drawn above the camera's frame (ORBIT_XP_ZONE, orbit.renderer.ts),
+      // where nothing in play is ever drawn: 4 px in from the world's top and right edges, 44 px tall, 11 px text and
+      // 12 px sides. Only the button takes a touch: a tap beside it reaches the canvas (a release). Earlier revisions
+      // keep the 44 px row under the world.
+      overlay={xp ? (send) => (
+        <div data-game-controls="checkpoint" data-orbit-zone="" className="pointer-events-none absolute right-1 top-1 flex h-11 items-start justify-end">
+          {canSet && !locked && (
+            <ArcadeControlButton
+              type="button"
+              aria-label="Set checkpoint"
+              className="pointer-events-auto h-11 px-3 text-[11px] font-bold before:content-['SET_CHECKPOINT']"
+              onPressStart={() => send({ k: ORBIT_INPUT_CHECKPOINT, a: 0, b: 0, c: 0 })}
+            />
+          )}
+        </div>
+      ) : undefined}
+      footer={xp ? undefined : (send) => (
         // The 44 px button's row ends 16 px above the bottom of the screen, as every arcade control row; the
         // button is 44 px tall with 11 px text and 12 px sides, narrower than before (15 Oct 2026, display only).
         <div data-game-controls="checkpoint" className="flex h-11 shrink-0 items-center justify-center">

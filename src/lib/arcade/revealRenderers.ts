@@ -41,7 +41,7 @@ import { junctionArtGame as junctionGame, junctionRevealGame } from "./junction.
 import { inkBridgeArtGame as inkBridgeGame } from "./inkBridge.renderer";
 import { BURST_FLOOR_Y, burstWorldHFor } from "./burst";
 import { burstArtGameFor } from "./burst.renderer";
-import { orbitArtGame as orbitGame, orbitArtGameFor, orbitRev3ArtGame } from "./orbit.renderer";
+import { orbitArtGame as orbitGame, orbitArtGameFor, orbitDrawHFor, orbitRev3ArtGame } from "./orbit.renderer";
 import { decodeOrbitRun } from "@/lib/duel/orbit";
 import { checkInputEvents } from "./engine";
 import { ORBIT_REV3, ORBIT_REV4, ORBIT_REV_BAND, ORBIT_REV_SWEPT, ORBIT_REV_TALL, ORBIT_REV_TARGET, ORBIT_REV_STRICT, ORBIT_REV_TUNED, ORBIT_REV_XP } from "./orbit";
@@ -219,7 +219,8 @@ export const ARCADE_REVEAL_RENDERERS: Record<string, ArcadeRevealRenderer> = {
     // orbitRev 8: the taller view; orbitRev 12: the wider 450 × 782 view, drawn into the 390-wide box at its own aspect.
     heightFor: (puzzle) => {
       const rev = puzzle.type === "orbit" ? puzzle.orbitRev : undefined;
-      return in390(orbitWorldWFor(rev), orbitWorldHFor(rev));
+      // orbitRev 12 is drawn taller than its framed view (orbitDrawHFor, display only).
+      return in390(orbitWorldWFor(rev), orbitDrawHFor(rev));
     },
     drawFinal: (ctx, puzzle, answer) => {
       const { state } = replayOrbitRun(seedOf(puzzle), answer, puzzle.type === "orbit" ? puzzle.orbitRev : undefined, puzzle.type === "orbit" ? puzzle.planets : undefined, puzzle.type === "orbit" ? puzzle.holes : undefined, puzzle.type === "orbit" ? puzzle.extras : undefined);
@@ -231,7 +232,7 @@ export const ARCADE_REVEAL_RENDERERS: Record<string, ArcadeRevealRenderer> = {
         const events = new Map(checked.events.map((event) => [event.t, event]));
         let visual: OrbitRev3State = xpStart();
         for (let tick = 1; tick <= state.tick; tick++) visual = orbitRev3ArtGame.step(visual, events.get(tick) ?? null);
-        orbitRev3ArtGame.draw(ctx, visual, { width: 390, height: in390(orbitWorldWFor(ORBIT_REV_XP), orbitWorldHFor(ORBIT_REV_XP)) });
+        orbitRev3ArtGame.draw(ctx, visual, { width: 390, height: in390(orbitWorldWFor(ORBIT_REV_XP), orbitDrawHFor(ORBIT_REV_XP)) });
         return null;
       }
       if (puzzle.type === "orbit" && (puzzle.orbitRev === ORBIT_REV3 || puzzle.orbitRev === ORBIT_REV4 || puzzle.orbitRev === ORBIT_REV_BAND || puzzle.orbitRev === ORBIT_REV_TUNED || puzzle.orbitRev === ORBIT_REV_SWEPT || puzzle.orbitRev === ORBIT_REV_TALL || puzzle.orbitRev === ORBIT_REV_TARGET || puzzle.orbitRev === ORBIT_REV_STRICT) && puzzle.planets) {
