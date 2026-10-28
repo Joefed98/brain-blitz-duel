@@ -21,7 +21,7 @@ import { generatePuzzle, gradeAnswer } from "../src/lib/duel/generate.server";
 import { withSeededRandom } from "../src/lib/duel/random";
 import { puzzleTimeLimitMs } from "../src/lib/duel/registry";
 import { STANDARD_STAMPS, pinPreStandard, standardTimesParts } from "../src/lib/duel/standard/stamps";
-import { isPatternStdType, PATTERN_STD_TYPES, type PatternStdType } from "../src/lib/duel/standard/patternRules";
+import { isPatternStdType, PATTERN_STD_TYPES, TILES_REV_FAST, type PatternStdType } from "../src/lib/duel/standard/patternRules";
 import { PATTERN_STD_INTRO, patternStdHelp, patternStdIntro } from "../src/lib/duel/standard/patternText";
 import { PUZZLE_INSTRUCTIONS } from "../src/lib/duel/instructions";
 import { INTRO_SCORE } from "../src/lib/duel/introScore";
@@ -229,7 +229,9 @@ for (const type of PATTERN_STD_TYPES) {
   const st = STANDARD_STAMPS[type]!;
   ok(st.rev === st.live + 1, `${type}: ${st.key} ${st.live} → ${st.rev}`);
   const fresh = deal(type) as unknown as Record<string, unknown>;
-  ok(fresh[st.key] === st.rev, `${type}: new deals carry ${st.key} ${st.rev} (got ${String(fresh[st.key])})`);
+  // Gradient is dealt tilesRev 6 (full speed within 30 s, 28 Oct 2026); every other game its standard stamp.
+  const want = type === "tiles" ? TILES_REV_FAST : st.rev;
+  ok(fresh[st.key] === want, `${type}: new deals carry ${st.key} ${want} (got ${String(fresh[st.key])})`);
   ok(standardTimesParts(fresh as unknown as PuzzleData) === (type !== "laser"), `${type}: the draft timeline ${type === "laser" ? "off (its own action log)" : "on"}`);
   const before = pinPreStandard(true);
   const old = deal(type) as unknown as Record<string, unknown>;
@@ -357,8 +359,8 @@ for (const type of PATTERN_STD_TYPES) {
   if (!sr.solved) ex("Topsy-Turvy random tilting", grade(p, spam, 0).score, Math.round((15 * sr.clearedStars) / 6));
 }
 
-// Gradient (120 s; speed 35 within 80 s; par swaps 15 at the stored par, the fewest + 3). Seed 6100: 15 tiles out of
-// place, the fewest swaps 14, par 17; the shortest list puts one tile home a swap (the last two).
+// Gradient (120 s; speed 35 within 30 s on tilesRev 6, 80 s on tilesRev 5; par swaps 15 at the stored par, the fewest
+// + 3). Seed 6100: 15 tiles out of place, the fewest swaps 14, par 17; the shortest list puts one tile home a swap (the last two).
 {
   const p = deal("tiles");
   const route = gradientRoute(p.frame).map((n) => ({ a: Math.floor(n / 100), b: n % 100 }));
@@ -366,12 +368,18 @@ for (const type of PATTERN_STD_TYPES) {
   const drafts = route.map((_, i) => encodeGradient(route.slice(0, i + 1)));
   // Fast: 14 swaps in 20 s: 150 + 35 + 15 = 200.
   ex("Gradient fast", grade(p, sentAt(p, drafts, 20_000), 100_000).score, 200);
-  // Slow: solved after 104 s: 35 × 16 ÷ 40 = 14: 150 + 14 + 15 = 179.
-  ex("Gradient slow", grade(p, sentAt(p, drafts, 100_000), 16_000).score, 179);
-  // Over par: one pair swapped and swapped back three times first (20 swaps), within 80 s: par 15 × (34 − 20) ÷ 17 = 12.4 → 12: 197.
+  // Slow: solved after 104 s: 35 × 16 ÷ 90 = 6.2 → 6: 150 + 6 + 15 = 171.
+  ex("Gradient slow", grade(p, sentAt(p, drafts, 100_000), 16_000).score, 171);
+  // Over par: one pair swapped and swapped back three times first (20 swaps), at 80 s: 35 × 40 ÷ 90 = 15.6 → 16;
+  // par 15 × (34 − 20) ÷ 17 = 12.4 → 12: 178.
   const free = p.frame.map((_, c) => c).filter((c) => !gradientLocked(p.frame, c));
   const pair = free.flatMap((a) => free.map((b) => ({ a, b }))).find(({ a, b }) => a < b && p.frame[a] !== b && p.frame[b] !== a)!;
-  ex("Gradient over par", grade(p, encodeGradient([pair, pair, pair, pair, pair, pair, ...route]), 40_000).score, 197);
+  ex("Gradient over par", grade(p, encodeGradient([pair, pair, pair, pair, pair, pair, ...route]), 40_000).score, 178);
+  // A tilesRev 5 deal (full speed within 80 s, stored before 28 Oct 2026) grades exactly as it did: 179 and 197.
+  const p5 = { ...p, tilesRev: 5 } as typeof p;
+  ex("Gradient tilesRev 5 fast", grade(p5, sentAt(p5, drafts, 20_000), 100_000).score, 200);
+  ex("Gradient tilesRev 5 slow", grade(p5, sentAt(p5, drafts, 100_000), 16_000).score, 179);
+  ex("Gradient tilesRev 5 over par", grade(p5, encodeGradient([pair, pair, pair, pair, pair, pair, ...route]), 40_000).score, 197);
   // Half: 7 swaps (7 tiles home), every draft at 60 s: 120 × 7 ÷ 15 = 56, + 7 × (10 ÷ 15) × ½ = 2.3 → 58.3 → 58.
   ex("Gradient half", grade(p, sentAt(p, drafts.slice(0, 7), 60_000), 0).score, 58);
 }

@@ -8,7 +8,7 @@ import { registerStandardGames, type StandardContext, type StandardGame, type St
 import { cleanPoints, parPoints, speedPoints } from "./shape";
 import { wasteFactor } from "../puzzleScoreRev";
 import type { TimedDraft } from "./timeline";
-import { BLOCK_STD, FLOW_STD, ICE_STD, LASER_STD, PATTERN_STD, PUSH_STD, SHARE_CREDIT, SHARE_EARLY, TOPSY_STD, type PatternStdType } from "./patternRules";
+import { BLOCK_STD, FLOW_STD, ICE_STD, LASER_STD, PATTERN_STD, PUSH_STD, SHARE_CREDIT, SHARE_EARLY, TOPSY_STD, patternFullByS, type PatternStdType } from "./patternRules";
 import type { PuzzleData, UnblockVehicle } from "../types";
 import { UNBLOCK_COLS } from "../types";
 import { applyMove, decodeMoves, isSolved as unblockSolved, vehicleCells } from "../unblock";
@@ -37,7 +37,7 @@ function num(extra: Record<string, unknown> | null | undefined, key: string): nu
 /** Speed points on the game's own rules (patternRules.ts). */
 function speed(type: PatternStdType, input: StandardInput): number {
   const r = PATTERN_STD[type];
-  return speedPoints(r.speed, input.msLeft, input.limitMs, r.fullByS * 1000);
+  return speedPoints(r.speed, input.msLeft, input.limitMs, patternFullByS(type, input.puzzle as { tilesRev?: number }) * 1000);
 }
 
 /** The par bonus on the game's own rules: full at par, 0 at twice par. */

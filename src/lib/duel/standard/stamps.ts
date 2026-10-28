@@ -6,7 +6,8 @@
  */
 import type { PuzzleData, PuzzleType } from "../types";
 import { rebuildLiveRecords } from "../roundMax";
-import { FLOOD_STANDARD_SPARE_MOVES } from "./logicRules";
+import { FLOOD_REV_TIGHT, floodSpareMoves } from "./logicRules";
+import { TILES_REV_FAST } from "./patternRules";
 
 export interface StandardStamp {
   /** The stamp's key on the stored puzzle. */
@@ -19,6 +20,11 @@ export interface StandardStamp {
   timed?: boolean;
   /** A rule the standard's stamp deals with it (Colour Flood's move limit), applied to the newly stamped puzzle. */
   deal?: (puzzle: PuzzleData) => PuzzleData;
+  /**
+   * The stamp new deals carry when the game's standard numbers were retuned after the standard (28 Oct 2026: Gradient
+   * tilesRev 6, Colour Flood depthRev 4); `rev` when absent. Every stamp from `rev` up is graded by the standard.
+   */
+  dealt?: number;
 }
 
 export const s = (key: string, live: number, timed = true, deal?: StandardStamp["deal"]): StandardStamp => ({ key, live, rev: live + 1, timed, ...(deal ? { deal } : {}) });
@@ -62,7 +68,8 @@ export const STANDARD_STAMPS: Partial<Record<PuzzleType, StandardStamp>> = {
   blockparty: s("blockRev", 2),
   iceslide: s("slideRev", 1),
   gravity: s("gravityRev", 4),
-  tiles: s("tilesRev", 4),
+  // Gradient: full speed within 30 s from tilesRev 6 (28 Oct 2026); tilesRev 5 keeps 80 s.
+  tiles: { ...s("tilesRev", 4), dealt: TILES_REV_FAST },
   rings: s("ringsRev", 2),
   // Lightbender times its gems from its own action log (the shots' times), so it needs no draft timeline.
   laser: s("laserRev", 2, false),
@@ -78,8 +85,12 @@ export const STANDARD_STAMPS: Partial<Record<PuzzleType, StandardStamp>> = {
   safe: s("depthRev", 2),
   bomb: s("depthRev", 1),
   nonogram: s("depthRev", 1),
-  // Colour Flood: the move limit is par + 10 on the standard's stamp (the par bonus reaches 0 there).
-  flood: s("depthRev", 2, true, (p) => (p.type === "flood" ? { ...p, moveLimit: Math.max(1, p.par) + FLOOD_STANDARD_SPARE_MOVES } : p)),
+  // Colour Flood: the move limit is par + 6 from depthRev 4 (28 Oct 2026), par + 10 on depthRev 3; the par bonus
+  // reaches 0 there.
+  flood: {
+    ...s("depthRev", 2, true, (p) => (p.type === "flood" ? { ...p, moveLimit: Math.max(1, p.par) + floodSpareMoves(p) } : p)),
+    dealt: FLOOD_REV_TIGHT,
+  },
   tents: s("depthRev", 1),
   shikaku: s("depthRev", 2),
   lightup: s("depthRev", 1),
@@ -128,6 +139,6 @@ export function dealStandard<T extends PuzzleData>(puzzle: T): T {
   const st = STANDARD_STAMPS[puzzle.type];
   if (!st || pinned) return puzzle;
   if (stampOf(puzzle, st.key) !== st.live) return puzzle;
-  const stamped = { ...puzzle, [st.key]: st.rev } as T;
+  const stamped = { ...puzzle, [st.key]: st.dealt ?? st.rev } as T;
   return st.deal ? (st.deal(stamped) as T) : stamped;
 }

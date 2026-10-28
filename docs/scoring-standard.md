@@ -108,7 +108,7 @@ true spot, falling evenly to 0 at 15 %).
 | Tessellate (`blockparty`) | `blockRev` 3 | 13 per piece on its solution cells, + up to 1.4 each early | 40, full by 40 s | right first time 10, shared across the pieces (counts unfinished) |
 | Skid (`iceslide`) | `slideRev` 2 | up to 120 by share of the route, + up to 10 early | 30, full by 60 s | ice gems 20, shared (counts unfinished) |
 | Topsy-Turvy (`gravity`) | `gravityRev` 5 | up to 120 by share of balls home, + up to 10 early | 30, full by 80 s (brief 60 s of 90; the clock is 120 s) | stars up to 15 (counts unfinished), par tilts 5 |
-| Gradient (`tiles`) | `tilesRev` 5 | up to 120 by share of tiles in place, + up to 10 early | 35, full by 80 s (brief 40 s of 60; the clock is 120 s) | par slides 15 |
+| Gradient (`tiles`) | `tilesRev` 6 (5) | up to 120 by share of tiles in place, + up to 10 early | 35, full by 30 s (tilesRev 5: 80 s, the brief's 40 s of 60 on the 120 s clock) | par slides 15 |
 | Turntable (`rings`) | `ringsRev` 3 | up to 120 by share of spokes solved, + up to 10 early | 35, full by 40 s | par turns 15 |
 | Lightbender (`laser`) | `laserRev` 3 | 20 per gem lit, + up to 1.5 each early | 40, full by 15 s | fewer mirrors 5 (full at the minimum, 0 at twice it) + first-shot solve 5 |
 | Chroma Lines (`flow`) | `flowRev` 2 | up to 120 by share of pairs on their solution route, + up to 10 early | 40, full by 20 s | no path redrawn 10, −2.5 per redraw |
@@ -121,7 +121,7 @@ true spot, falling evenly to 0 at 15 %).
 | Safe Cracker (`safe`) | `depthRev` 3 | up to 120 by share of dials right, + up to 10 early | 40, full by 30 s | clean crack 10, −2.5 per wrong attempt |
 | Bomb Defusal (`bomb`) | `depthRev` 2 | up to 120 by share of correct steps, + up to 10 early | 50, full by 30 s | none |
 | Mosaic (`nonogram`) | `depthRev` 2 | up to 120 by share of cells right, + up to 10 early | 40, full by 60 s | clean picture 10, −2.5 per wrong cell |
-| Colour Flood (`flood`) | `depthRev` 3 | up to 120 by share of the board flooded, + up to 10 early | 10, full by 30 s | par moves 40, 4 less per move over, 0 at par + 10; the move limit is par + 10 |
+| Colour Flood (`flood`) | `depthRev` 4 (3) | up to 120 by share of the board flooded, + up to 10 early | 10, full by 30 s | par moves 40, 0 at the move limit: par + 6 (depthRev 3: par + 10, 4 less per move over) |
 | Tents and Trees (`tents`) | `depthRev` 2 | up to 120 by share of tents right, + up to 10 early | 40, full by 45 s | clean camp 10, −2.5 per wrong tent |
 | Shikaku (`shikaku`) | `depthRev` 3 | up to 120 by share of the grid covered by correct rectangles, + up to 10 early | 40, full by 45 s | clean cuts 10, −2.5 per wrong rectangle drawn and removed |
 | Lamplighter (`lightup`) | `depthRev` 2 | up to 120 by share of bulbs on their solution squares, + up to 10 early | 40, full by 45 s | clean 10, −2.5 per wrong bulb |
@@ -558,3 +558,20 @@ puzzles together, Checkout's big finish names boards of 100+, Ballpark's bullsey
 `scoring-rev3-check` and `tendrop-depth-check` deal with `pinPreStandard(true)`; `number-depth-check` reads the depth
 texts from `numberDepthText.ts`; `scoring-rev3-check` compares a standard game's older text with the live help only
 when the game is not on the standard; `scoring-bands-check` and `number-batch-check` expect the standard's live texts.
+
+## Follow-up: Gradient and Colour Flood retuned (28 Oct 2026)
+
+Two games' numbers moved after the standard, each on a new stamp, so a puzzle dealt on the standard's first stamp grades
+exactly as before (`StandardStamp.dealt` in `stamps.ts` is the stamp new deals carry; the standard grades every stamp
+from `rev` up):
+
+- **Gradient `tilesRev` 6:** full speed within 30 s (`PATTERN_STD.tiles.fullByS`); `tilesRev` 5 keeps 80 s
+  (`TILES_REV5_FULL_BY_S`, `patternFullByS`).
+- **Colour Flood `depthRev` 4:** the move limit is par + 6 (`FLOOD_STANDARD_SPARE_MOVES`) and the par bonus reaches 0
+  there (40 ÷ 6 ≈ 6.7 less a move over par); `depthRev` 3 keeps par + 10 (`FLOOD_REV3_SPARE_MOVES`, `floodSpareMoves`).
+
+standard-pattern-check and standard-logic-check prove both stamps (the old stamps' examples: Gradient 179 and 197,
+Colour Flood 192). The help texts quote the dealt numbers.
+
+**The count.** The standard covers 45 games: the 51 active non-arcade games less Nucleus, Forage, Flash, Bang On, Bonk
+and Pull!, which stay outside it. The brief's 46 was a miscount; no game is missing from `STANDARD_STAMPS`.
