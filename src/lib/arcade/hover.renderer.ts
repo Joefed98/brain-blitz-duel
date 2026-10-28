@@ -297,10 +297,13 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: HoverState, crashIndica
 
 const STAR_GOLD = "#FFD84A";
 /**
- * The gold stars' drawn radius: 1.2× their 7 px collection radius (Joe's phone notes, 27 Oct 2026), so 8.4 px,
+ * The gap stars' drawn radius: 1.2× their 7 px collection radius (Joe's phone notes, 27 Oct 2026), so 8.4 px,
  * inside the arcade bounds rule's 2 px of the collision circle. Display only: the sim's pickup is unchanged.
+ * Since 28 Oct 2026 only the stars in a barrier's gap (drawStar) are drawn larger; chain stars are drawn
+ * at their collection radius again (CHAIN_STAR_DRAW_SCALE).
  */
 const STAR_DRAW_SCALE = 1.2;
+const CHAIN_STAR_DRAW_SCALE = 1;
 
 /** A gold star (hoverRev 2) drawn in 2 px blocks inside its collection circle; gone once taken. */
 export function drawStar(ctx: CanvasRenderingContext2D, state: HoverState, pillar: HoverState["pillars"][number], index: number, cx: number): void {
@@ -639,7 +642,7 @@ function chainStarSprite(): ArtCanvas | null {
   const c = layer && (artContext(layer) as CanvasRenderingContext2D | null);
   if (layer && c) {
     c.scale(2, 2);
-    const r = px(HOVER_STAR_R) * STAR_DRAW_SCALE;
+    const r = px(HOVER_STAR_R) * CHAIN_STAR_DRAW_SCALE;
     pixelShape(c, CHAIN_STAR_BOX / 2, CHAIN_STAR_BOX / 2, r, 2, (dx, dy) => {
       const ax = Math.abs(dx);
       const ay = Math.abs(dy);
@@ -661,7 +664,7 @@ function chainStarSprite(): ArtCanvas | null {
  */
 function drawChains(ctx: CanvasRenderingContext2D, state: HoverState): void {
   const hits = state.chainHits ?? [];
-  const r = px(HOVER_STAR_R) * STAR_DRAW_SCALE;
+  const r = px(HOVER_STAR_R) * CHAIN_STAR_DRAW_SCALE;
   const glow = !arcadeReducedEffects() ? starGlowSprite() : null;
   const sprite = chainStarSprite();
   const reachBack = HOVER_DISC_R + HOVER_STAR_R;

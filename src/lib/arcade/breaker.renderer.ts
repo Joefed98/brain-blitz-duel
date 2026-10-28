@@ -41,10 +41,8 @@ import {
   BRK_WORLD_W,
   BRK_REV_DEEP,
   BRK_REV_PHONE,
-  BRK_V9_COMBO_X2,
   BRK_V9_SKILL_MAX,
   brkCols,
-  brkComboMultiplier,
   brkIsGold,
   brkSkillPaid,
   brkWallSize,
@@ -427,22 +425,14 @@ function drawGoldBrick(ctx: CanvasRenderingContext2D, x: number, y: number, glin
   glow(ctx, GOLD, x + BRK_BRICK_W / 2, y + BRK_BRICK_H / 2, BRK_BRICK_W * 0.75, BRK_BRICK_H, glint ? 0.45 : 0.18);
 }
 
-/** brkRev 9's HUD: the skill points (top right), and the combo while a chain has a multiplier, above the paddle. */
+/** brkRev 9's HUD: the skill points (top right). */
 const clinkMemo = new WeakMap<CanvasRenderingContext2D, { clinks: number; at: number; tick: number }>();
 function drawDeepHud(ctx: CanvasRenderingContext2D, state: BrkState, key: CanvasRenderingContext2D): void {
   const W = brkWorldW(state);
   const skill = brkSkillPaid(state);
   // Right of the BRICKS readout, under the Fireball line and its bar.
   retroText(ctx, `SKILL ${skill}/${BRK_V9_SKILL_MAX}`, W - 14, 31, 11, skill >= BRK_V9_SKILL_MAX ? RETRO_WHITE : GOLD, "right");
-  const chain = state.chain ?? 0;
-  const mult = brkComboMultiplier(chain);
-  const paddleY = brkPaddleY(state);
-  if (mult > 1) {
-    glow(ctx, GOLD, state.paddleX, paddleY - 26, 46, 14, 0.35);
-    retroText(ctx, `COMBO ×${mult} · ${chain}`, state.paddleX, paddleY - 30, 11, mult >= 3 ? "#FF8A3C" : GOLD, "center");
-  } else if (chain >= BRK_V9_COMBO_X2 - 3 && chain > 0) {
-    retroText(ctx, `${chain} IN A ROW`, state.paddleX, paddleY - 30, 9, "rgba(255,216,74,0.7)", "center");
-  }
+  // The combo is no longer written above the paddle (Joe's phone notes, 28 Oct 2026): the chain still scores as before.
   // A ball bounced off gold (not a direct hit, or a Fireball, laser or ×3 shot): a short white ring on the presentation clock.
   const now = typeof performance === "undefined" ? 0 : performance.now();
   let memo2 = clinkMemo.get(key);

@@ -3,7 +3,7 @@ import { BRK_BALL_R, BRK_BRICK_H, BRK_BRICK_W } from "@/lib/arcade/breaker";
 import { PADDLE as BRK_PADDLE, RAINBOW as BRK_RAINBOW, paintBrick } from "@/lib/arcade/breaker.renderer";
 import { glow } from "@/lib/arcade/polishA1.renderer";
 import { RETRO_WHITE, drawRetroTrail, retroBall, retroPaddle, pixelRect } from "@/lib/arcade/retro.renderer";
-import { STAR_GLOW as METEOR_STAR_GLOW, eyes as meteorEyes, stamp as meteorStamp } from "@/lib/arcade/snake.renderer";
+import { STAR_GLOW as METEOR_STAR_GLOW, stamp as meteorStamp } from "@/lib/arcade/snake.renderer";
 import { SNAKE_CELL } from "@/lib/arcade/snake";
 import { apple, basket, leaf as goldLeaf, twine } from "@/lib/arcade/snip.renderer";
 import { drawFighter, drawHull, drawShipFlame, drawWavefrontBeam } from "@/lib/arcade/wavefront.renderer";
@@ -72,7 +72,7 @@ export const ARCADE_SCENES: SceneSet = {
     });
   }),
 
-  // Meteor: the flaming head and its tapering tail turning a corner on the grid, a star just ahead, a landed rock.
+  // Meteor: the glowing white-gold comet head and its tapering, fading tail turning a corner on the grid, a star just ahead, a landed rock.
   snake: canvasScene((c) => {
     const s = 104 / (4 * SNAKE_CELL);
     const cell = (col: number, row: number) => ({ x: col * SNAKE_CELL + SNAKE_CELL / 2, y: row * SNAKE_CELL + SNAKE_CELL / 2 });
@@ -93,7 +93,7 @@ export const ARCADE_SCENES: SceneSet = {
         blit(meteorStamp(i === 0 ? "head" : "bead", i === 0 ? 0 : level, 1, 0) as CanvasImageSource | null, body[i]![0], body[i]![1]);
       }
       const head = cell(2, 0);
-      meteorEyes(c, head.x, head.y, 1);
+      glow(c, "#FFC23E", head.x, head.y, 14, 14, 0.5);
     });
   }),
 

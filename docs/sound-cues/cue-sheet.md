@@ -1247,7 +1247,7 @@ Grouped by game or screen.
 | `arc_gem_zap` | Gemstone: A cross gem goes off (gem.crossBeam.mp3, sound batch 4, volume 0.8) [core.md] |  | 0–5 | recorded sound | `arc_gem_zap` | 450 | game event | `arc_gem_zap` |
 | `arc_gem_bomb` | Gemstone: A bomb gem goes off [core.md] |  | 0–5 | recorded sound | `arc_gem_bomb` | 722 | game event | `arc_gem_bomb` |
 | `arc_gem_star` | Gemstone: A star gem goes off (gem.starBurst.mp3, sound batch 4, volume 0.8) [core.md] |  | 0–5 | recorded sound | `arc_gem_star` | 800 | game event | `arc_gem_star` |
-| `music.matchup` | Gemstone: music_matchup |  | loop | recorded sound | `music_matchup` | loop | music | `music_matchup` |
+| `music.matchup` | Gemstone: music_matchup (music_matchup2.mp3, an energetic 150 BPM chiptune loop since 28 Oct 2026) |  | loop | recorded sound | `music_matchup` | 51200 | music | `music_matchup` |
 
 ### Grappler
 
@@ -1513,7 +1513,7 @@ Grouped by game or screen.
 | `beat.swipeArrive` | The first swipe notes come into the lanes (beatRev 2+, about 30 s) [arcade-effects.md] | Swipe arrows appear at the top of the lanes | 0–1 | recorded sound | `beat.swipeArrive` | 600 | game event | `beat.swipeArrive` |
 | `beat.start` | Tempo: The run starts [arcade.md] |  | 1 | recorded sound | `arc_retro_coin` (shared) | 120 | game event | `beat.start` |
 | `beat.miss` | Tempo: A note is missed (left out when it breaks a combo of 10+ and beat.comboLost has a file) [arcade.md] |  | 5–20 | recorded sound | `beat.miss` | 150 | fail sting | `beat.miss` |
-| `beat.note` | Tempo: A note is hit or a hold starts (pitched by lane; an own file keeps the lane pitch) [arcade.md] |  | 80–150 | recorded sound | `beat.note` | 120 | game event | `beat.note` |
+| `beat.note` | Tempo: A note is hit or a hold starts (pitched by lane; an own file keeps the lane pitch) [arcade.md] |  | 80–150 | recorded sound | `beat.note` | 140 | game event | `beat.note` |
 | `music.beat` | Tempo (arcade): none: the chart's synthesised beat is the music |  | loop | recorded sound | `music_beat` | 60000 | music | `music_beat` |
 
 ### Tilt
@@ -2017,7 +2017,7 @@ loops are not measured there). Files in `public/sounds/` are listed once per slo
 | `slice.frenzyStart` | effects | `slice.frenzyStart` | 350 |
 | `slice.slow` | effects | `slice.slow` | 479 |
 | `beat.miss` | effects | `beat.miss` | 150 |
-| `beat.note` | effects | `beat.note` | 120 |
+| `beat.note` | effects | `beat.note` | 140 |
 | `tilt.starTaken` | effects | `tilt.starTaken` | 450 |
 | `wavefront.fire` | effects | `wavefront.fire` | 90 |
 | `wavefront.formation` | effects | `wavefront.formation` | 830 |

@@ -514,12 +514,30 @@ function drawOrbitPaths(ctx: CanvasRenderingContext2D, state: { planets: Planet[
   ctx.restore();
 }
 
-/** A planet's soft atmosphere: a glow in its colour just past the disc, behind it (one cached glow sprite). */
-export function drawAtmosphere(ctx: CanvasRenderingContext2D, x: number, y: number, r: number, colour: string): void {
-  drawFxGlow(ctx, colour, x, y, r * 1.9 + 10, 0.85);
-  drawFxGlow(ctx, colour, x, y, r * 1.3 + 4, 0.55);
-  drawFxGlow(ctx, "#DDEBFF", x, y, r * 1.15 + 3, 0.25);
+/**
+ * A planet's soft atmosphere: a glow in its colour just past the disc, behind it (one cached glow sprite).
+ * `strength` scales it (Joe's phone notes, 28 Oct 2026: some planets full glow, some slight, some none;
+ * `orbitGlowStrength`); 0 draws nothing.
+ */
+export function drawAtmosphere(ctx: CanvasRenderingContext2D, x: number, y: number, r: number, colour: string, strength = 1): void {
+  if (strength <= 0) return;
+  drawFxGlow(ctx, colour, x, y, r * 1.9 + 10, 0.85 * strength);
+  drawFxGlow(ctx, colour, x, y, r * 1.3 + 4, 0.55 * strength);
+  drawFxGlow(ctx, "#DDEBFF", x, y, r * 1.15 + 3, 0.25 * strength);
   ctx.globalAlpha = 1;
+}
+
+/** The glow levels planets wear: full, slight, none. */
+export const ORBIT_GLOW_LEVELS = [1, 0.35, 0] as const;
+/**
+ * A planet's glow level (display only, every revision), fixed by its index and place on the stored course, so
+ * every player sees the same sky: a hash picks full, slight or none, about a third each.
+ */
+export function orbitGlowStrength(p: { x: number; y: number }, index: number): number {
+  let h = Math.imul(index + 1, 0x9e3779b1) ^ Math.imul((p.x >> 8) + 3, 0x85ebca6b) ^ Math.imul((p.y >> 8) + 5, 0xc2b2ae35);
+  h = Math.imul(h ^ (h >>> 16), 0x7feb352d);
+  h = (h ^ (h >>> 15)) >>> 0;
+  return ORBIT_GLOW_LEVELS[h % ORBIT_GLOW_LEVELS.length]!;
 }
 
 /**
@@ -676,7 +694,7 @@ function drawOrbitArtWorld(ctx: CanvasRenderingContext2D, state: OrbitState, siz
       if (!arcadeReducedEffects()) {
         ctx.save();
         ctx.globalCompositeOperation = "lighter";
-        bodies.forEach((bx, lobe) => drawAtmosphere(ctx, px + bx, py, (eight ? p.r * 0.8 : p.r) / FP, planetLook(p, i, lobe).colour));
+        bodies.forEach((bx, lobe) => drawAtmosphere(ctx, px + bx, py, (eight ? p.r * 0.8 : p.r) / FP, planetLook(p, i, lobe).colour, orbitGlowStrength(p, i)));
         ctx.restore();
       }
       bodies.forEach((bx, lobe) => drawPlanet(ctx, px + bx, py, (eight ? p.r * 0.8 : p.r) / FP, planetLook(p, i, lobe)));
@@ -888,7 +906,7 @@ function rev3GlowLayer(ctx: CanvasRenderingContext2D, state: OrbitRev3State, vis
       // Polish A4: every planet's soft atmosphere in its own colour.
       const eight = p.kind === ORBIT_EIGHT;
       const bodies = eight ? [-orbitLobes(p) / FP, orbitLobes(p) / FP] : [0];
-      bodies.forEach((bx, lobe) => drawAtmosphere(ctx, px + bx, py, (eight ? p.r * 0.8 : p.r) / FP, planetLook(p, i, lobe).colour));
+      bodies.forEach((bx, lobe) => drawAtmosphere(ctx, px + bx, py, (eight ? p.r * 0.8 : p.r) / FP, planetLook(p, i, lobe).colour, orbitGlowStrength(p, i)));
     }
     if (!sun && i === state.cur) {
       const glow = ctx.createRadialGradient(px, py, r * 0.8, px, py, r * 1.6);

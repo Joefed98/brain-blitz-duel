@@ -49,7 +49,7 @@ carry; a file in their slot plays under the voice line (voice lines duck music).
 | `music.bubble` | Coral Pop | `music_bubble` | `music_bubble` | loop |
 | `music.burst` | Fission | `music_burst` | `music_burst` | loop |
 | `music.bullseye` | Flightpath | `music_bullseye` | `music_bullseye` | loop |
-| `music.matchup` | Gemstone | `music_matchup` | `music_matchup` | loop |
+| `music.matchup` | Gemstone | `music_matchup` (`music_matchup2.mp3`, an energetic 150 BPM chiptune loop since 28 Oct 2026) | `music_matchup` | 51.2 s loop |
 | `music.swing` | Grappler | `music_swing` | `music_swing` | loop |
 | `music.skyline` | High Rise | `music_skyline` | `music_skyline` | loop |
 | `music.hover` | Hover | `music_hover` | `music_hover` | loop |
