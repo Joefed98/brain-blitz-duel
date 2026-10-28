@@ -39,7 +39,7 @@ const ROCK_BASE = "#C2561E";
 const ROCK_DARK = "#8A3614";
 const ROCK_SPECK = "#FFD08A";
 /** Polish A1: the stars' white-gold glow. */
-const STAR_GLOW = "#FFE9A8";
+export const STAR_GLOW = "#FFE9A8";
 const PELLET = "#FFD84A";
 const EYE = RETRO_BLACK;
 const SPRITE_RATIO = 2;
@@ -254,7 +254,7 @@ function memory(key: CanvasRenderingContext2D, state: SnakeState, now: number): 
   return memo;
 }
 
-function eyes(ctx: CanvasRenderingContext2D, x: number, y: number, dir: number): void {
+export function eyes(ctx: CanvasRenderingContext2D, x: number, y: number, dir: number): void {
   const d = direction(dir);
   ctx.fillStyle = EYE;
   for (const side of [-1, 1]) ctx.fillRect(x + d.x * 6 - d.y * side * 5 - 1, y + d.y * 6 + d.x * side * 5 - 1, 2, 2);

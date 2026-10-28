@@ -59,7 +59,7 @@ const SPARKS: { x: number; y: number; s: number; d: number }[] = [
   { x: 20, y: 30, s: 10, d: 260 },
   { x: 84, y: 32, s: 10, d: 320 },
 ];
-const MEASURE_CSS = `
+export const MEASURE_CSS = `
 [data-polish="measure"] { --mj-water: var(--measure-water); --mj-water-top: color-mix(in oklab, var(--measure-water) 62%, white); --mj-water-deep: color-mix(in oklab, var(--measure-water) 72%, #001433); }
 [data-puzzle-surface] [data-polish="measure"] [data-measure-jug][data-puzzle-cell] { box-shadow: none !important; background: transparent !important; border-radius: 0 !important; }
 /* The shared [data-polish] rule sizes the arena to its content; the jugs are fitted to the arena's height, so it must fill instead. */
@@ -202,7 +202,7 @@ function Stream({
  * gently moving surface); the pour stream arcs from the source jug to the
  * destination while it runs. Each jug's button is exactly its drawn glass plus label.
  */
-function Jugs({
+export function Jugs({
   board,
   amounts,
   litre,

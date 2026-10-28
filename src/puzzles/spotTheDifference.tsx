@@ -127,7 +127,7 @@ const SweetLayer = memo(function SweetLayer({ shapes, size, theme }: { shapes: S
   );
 });
 
-function Panel({
+export function Panel({
   shapes,
   found = [],
   hidden = [],

@@ -49,7 +49,7 @@ function grid(width: number, height: number): Grid {
 }
 
 /** Meadow + burrows, painted in board px (the caller scales). */
-function paintMeadow(c: Ctx, width: number, height: number): void {
+export function paintMeadow(c: Ctx, width: number, height: number): void {
   const g = c.createLinearGradient(0, 0, 0, height);
   g.addColorStop(0, PALETTE.meadowTop); g.addColorStop(1, PALETTE.meadowBottom);
   c.fillStyle = g; c.fillRect(0, 0, width, height);
@@ -230,7 +230,7 @@ function target(kind: number): ArtCanvas | null {
   }
   sprites.set(kind, canvas); return canvas;
 }
-function drawTarget(c: CanvasRenderingContext2D, x: number, y: number, r: number, kind: number): void { const sprite = target(kind); if (sprite) c.drawImage(sprite, x - r, y - r, r * 2, r * 2); }
+export function drawTarget(c: CanvasRenderingContext2D, x: number, y: number, r: number, kind: number): void { const sprite = target(kind); if (sprite) c.drawImage(sprite, x - r, y - r, r * 2, r * 2); }
 
 function pixelScale(ctx: CanvasRenderingContext2D): number {
   const t = typeof ctx.getTransform === 'function' ? ctx.getTransform() : null;

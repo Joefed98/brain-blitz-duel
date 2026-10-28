@@ -121,7 +121,7 @@ function drawGlow(c: CanvasRenderingContext2D, key: string, rgb: string, x: numb
   if (!g) return;
   c.globalAlpha = alpha; c.drawImage(g, x - rx, y - ry, rx * 2, ry * 2); c.globalAlpha = 1;
 }
-function drawPot(c: CanvasRenderingContext2D, x: number, y: number, flash: boolean): void {
+export function drawPot(c: CanvasRenderingContext2D, x: number, y: number, flash: boolean): void {
   // Polish A2: the gold glowing out of the pot's mouth (behind the pot, above its rim).
   const t = countryClock();
   drawGlow(c, 'gold', '255,214,80', x, y + 2, 46, 24, 0.75 + 0.15 * Math.sin(t * 2.2));
@@ -141,7 +141,7 @@ export function inkFailedOnBlock(state: InkState): boolean {
     return dx*dx+dy*dy<=BALL_R*BALL_R;
   });
 }
-function rainbow(c: CanvasRenderingContext2D, x0:number,y0:number,x1:number,y1:number,offset:number,len:number): CanvasGradient {
+export function rainbow(c: CanvasRenderingContext2D, x0:number,y0:number,x1:number,y1:number,offset:number,len:number): CanvasGradient {
   const gradient=c.createLinearGradient(x0,y0,x1,y1);
   const colour=(d:number)=>INK_RAINBOW[((Math.floor(d/3)%7)+7)%7] ?? INK_RAINBOW[0];
   gradient.addColorStop(0,colour(offset));

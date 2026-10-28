@@ -16,7 +16,7 @@ import "@/polish-layout/batch-w-wordsearch.css";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
-function Grid({
+export function Grid({
   grid,
   size,
   gold,

@@ -19,7 +19,7 @@ effects ([arcade-effects.md](arcade-effects.md)) so a sound can be written for e
 
 | Category | Silent | Placeholder | Recorded | Total |
 |---|---|---|---|---|
-| game event | 35 | 0 | 321 | 356 |
+| game event | 35 | 0 | 324 | 359 |
 | room moment | 1 | 0 | 34 | 35 |
 | music | 12 | 0 | 82 | 94 |
 | UI tap | 10 | 0 | 22 | 32 |
@@ -27,7 +27,7 @@ effects ([arcade-effects.md](arcade-effects.md)) so a sound can be written for e
 | success sting | 3 | 0 | 68 | 71 |
 | ambience | 0 | 1 | 8 | 9 |
 | replay | 0 | 0 | 162 | 162 |
-| **all** | 65 | 1 | 733 | 799 |
+| **all** | 65 | 1 | 736 | 802 |
 
 ## Silent and placeholder cues
 
@@ -136,53 +136,53 @@ Grouped by game or screen. These are the cues still missing a sound.
 
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
 |---|---|---|---|---|---|---|---|---|
-| `tiles.slide` | A tile changes cell (a slide or an undo) [pattern.md (Jumbled (tiles))] |  | 5–40 (per move) | silent | none | 160 | game event | `tiles.slide` |
+| `tiles.slide` | A tile changes cell (a slide or an undo) [pattern.md (Jumbled (tiles))] |  | 5–40 (per move) | silent | none | 160 | game event | `tiles.slide` |
 
 ### Gridlock
 
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
 |---|---|---|---|---|---|---|---|---|
-| `unblock.solve` | The solving drop: the gold car revs back and drives out through the exit with speed streaks [pattern.md (Gridlock (unblock))] |  | 0–1 | silent | none | 1160 | success sting | `unblock.solve` |
+| `unblock.solve` | The solving drop: the gold car revs back and drives out through the exit with speed streaks [pattern.md (Gridlock (unblock))] |  | 0–1 | silent | none | 1160 | success sting | `unblock.solve` |
 
 ### Heave
 
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
 |---|---|---|---|---|---|---|---|---|
-| `push.step` | A walking step [pattern.md (Heave (push))] |  | 5–40 (per move) | silent | none | 120 | game event | `push.step` |
-| `push.push` | A step that pushes a crate [pattern.md (Heave (push))] |  | 5–40 (per move) | silent | none | 120 | game event | `push.push` |
+| `push.step` | A walking step [pattern.md (Heave (push))] |  | 5–40 (per move) | silent | none | 120 | game event | `push.step` |
+| `push.push` | A step that pushes a crate [pattern.md (Heave (push))] |  | 5–40 (per move) | silent | none | 120 | game event | `push.push` |
 
 ### Lightbender
 
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
 |---|---|---|---|---|---|---|---|---|
-| `laser.place` | A mirror or splitter is placed or moved [pattern.md (Lightbender (laser))] |  | 5–40 (per move) | silent | none | 180 | UI tap | `laser.place` |
-| `laser.turn` | A placed mirror is flipped [pattern.md (Lightbender (laser))] |  | 5–40 (per move) | silent | none | 180 | game event | `laser.turn` |
-| `laser.fire` | The beam starts [pattern.md (Lightbender (laser))] |  | 5–40 (per move) | silent | none | 2000 | game event | `laser.fire` |
-| `laser.gem` | One or more gems light during a shot [pattern.md (Lightbender (laser))] |  | 5–40 (per move) | silent | none | 260 | game event | `laser.gem` |
+| `laser.place` | A mirror or splitter is placed or moved [pattern.md (Lightbender (laser))] |  | 5–40 (per move) | silent | none | 180 | UI tap | `laser.place` |
+| `laser.turn` | A placed mirror is flipped [pattern.md (Lightbender (laser))] |  | 5–40 (per move) | silent | none | 180 | game event | `laser.turn` |
+| `laser.fire` | The beam starts [pattern.md (Lightbender (laser))] |  | 5–40 (per move) | silent | none | 2000 | game event | `laser.fire` |
+| `laser.gem` | One or more gems light during a shot [pattern.md (Lightbender (laser))] |  | 5–40 (per move) | silent | none | 260 | game event | `laser.gem` |
 
 ### Pipeline
 
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
 |---|---|---|---|---|---|---|---|---|
-| `pipes.rotate` | Each tile tap (a quarter turn) [pattern.md (Pipeline (pipes))] |  | 5–40 (per move) | silent | none | 170 | game event | `pipes.rotate` |
+| `pipes.rotate` | Each tile tap (a quarter turn) [pattern.md (Pipeline (pipes))] |  | 5–40 (per move) | silent | none | 170 | game event | `pipes.rotate` |
 
 ### Skid
 
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
 |---|---|---|---|---|---|---|---|---|
-| `iceslide.slide` | A slide starts (the ball and its frost trail move) [pattern.md (Skid (iceslide))] |  | 5–40 (per move) | silent | none | 100 | game event | `iceslide.slide` |
+| `iceslide.slide` | A slide starts (the ball and its frost trail move) [pattern.md (Skid (iceslide))] |  | 5–40 (per move) | silent | none | 100 | game event | `iceslide.slide` |
 
 ### Topsy-Turvy
 
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
 |---|---|---|---|---|---|---|---|---|
-| `gravity.tilt` | An arrow press tilts the tray and the balls roll [pattern.md (Topsy-Turvy (gravity))] |  | 5–40 (per move) | silent | none | 200 | game event | `gravity.tilt` |
+| `gravity.tilt` | An arrow press tilts the tray and the balls roll [pattern.md (Topsy-Turvy (gravity))] |  | 5–40 (per move) | silent | none | 200 | game event | `gravity.tilt` |
 
 ### Turntable
 
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
 |---|---|---|---|---|---|---|---|---|
-| `rings.turn` | A turn: the ring rotates and every linked ring that moved flashes [pattern.md (Turntable (rings))] |  | 5–40 (per move) | silent | none | 210 | game event | `rings.turn` |
+| `rings.turn` | A turn: the ring rotates and every linked ring that moved flashes [pattern.md (Turntable (rings))] |  | 5–40 (per move) | silent | none | 210 | game event | `rings.turn` |
 
 ### Blackout
 
@@ -404,7 +404,7 @@ Grouped by game or screen. These are the cues still missing a sound.
 | Ricochet | arcade | practice only | **none** | `music_ricochet` |
 | Roofbound | arcade | yes | music_flip | `music_flip` |
 | Rooftop Run | arcade | practice only | **none** | `music_rooftop` |
-| Scrumper | arcade | yes | music_snip | `music_snip` |
+| Scrumper | arcade | practice only | music_snip | `music_snip` |
 | Slice | arcade | yes | music_slice | `music_slice` |
 | Steady | arcade | practice only | **none** | `music_steady` |
 | Swerve | arcade | practice only | **none** | `music_swerve` |
@@ -443,6 +443,9 @@ Grouped by game or screen.
 | `shared.celebrate.streak` | The daily results' 3- and 7-day streak banners. sfx_streak_flourish.mp3. [shared.md] |  | 5–40 (per move) | recorded sound | `shared.celebrate.streak` | 1200 | game event | `shared.celebrate.streak` |
 | `shared.celebrate.streakBig` | The 30-day streak banner. sfx_streak_flourish_big.mp3. [shared.md] |  | 5–40 (per move) | recorded sound | `shared.celebrate.streakBig` | 2000 | game event | `shared.celebrate.streakBig` |
 | `shared.celebrate.logoCharge` | The app header's logo charges in, only if sound is already unlocked (an iPhone blocks sound before the first tap: the app's first charge-in is silent); none under reduced motion. sfx_logo_charge.mp3. [shared.md] |  | 5–40 (per move) | recorded sound | `shared.celebrate.logoCharge` | 690 | game event | `shared.celebrate.logoCharge` |
+| `shared.celebrate.heroDance` | The hero's dance on a reveal of 190–199 (rooms, practice, daily), as it comes on; with reduced motion it plays with the still hero. Shares sfx_streak_flourish.mp3. [shared.md] |  | 5–40 (per move) | recorded sound | `shared.celebrate.heroDance` | 1200 | game event | `shared.celebrate.heroDance` |
+| `shared.celebrate.heroGrand` | The hero's lap of the screen on a reveal of 200, with heroRun's whoosh as it starts (no whoosh under reduced motion, where the hero stands still). Shares sfx_streak_flourish_big.mp3. [shared.md] |  | 5–40 (per move) | recorded sound | `shared.celebrate.heroGrand` | 2000 | game event | `shared.celebrate.heroGrand` |
+| `shared.celebrate.firework` | Each firework of the 200 lap as it bursts (six, 450 ms apart; one sound if two land in a frame); none under reduced motion. Shares sfx_meter_crackle_1.mp3, at 0.6. [shared.md] |  | 5–40 (per move) | recorded sound | `shared.celebrate.firework` | 450 | game event | `shared.celebrate.firework` |
 
 ### App-wide sounds
 
@@ -950,15 +953,15 @@ Grouped by game or screen.
 
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
 |---|---|---|---|---|---|---|---|---|
-| `flow.connect` | A pair is joined and a pulse runs along it (not on the solving join) [pattern.md (Chroma Lines (flow))] |  | 5–40 (per move) | recorded sound | `flow.connect` | 460 | game event | `flow.connect` |
-| `flow.solve` | Each path pulses end to end in its colour, then the board glows [pattern.md (Chroma Lines (flow))] |  | 0–1 | recorded sound | `flow.solve` | 1150 | success sting | `flow.solve` |
+| `flow.connect` | A pair is joined and a pulse runs along it (not on the solving join) [pattern.md (Chroma Lines (flow))] |  | 5–40 (per move) | recorded sound | `flow.connect` | 460 | game event | `flow.connect` |
+| `flow.solve` | Each path pulses end to end in its colour, then the board glows [pattern.md (Chroma Lines (flow))] |  | 0–1 | recorded sound | `flow.solve` | 1150 | success sting | `flow.solve` |
 | `music.flow` | Chroma Lines round bed: music_logic_2 (pattern bed shared with other games) |  | loop | recorded sound | `music_logic_2` (shared) | 60000 | music | `music_pattern_flow` |
 
 ### Gradient
 
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
 |---|---|---|---|---|---|---|---|---|
-| `tiles.solve` | The colour ramp flows across the tiles from 1 to 8, then the gap glows [pattern.md (Jumbled (tiles))] |  | 0–1 | recorded sound | `tiles.solve` | 980 | success sting | `tiles.solve` |
+| `tiles.solve` | The colour ramp flows across the tiles from 1 to 8, then the gap glows [pattern.md (Jumbled (tiles))] |  | 0–1 | recorded sound | `tiles.solve` | 980 | success sting | `tiles.solve` |
 | `music.tiles` | Gradient round bed: music_pattern_1 (pattern bed shared with other games) |  | loop | recorded sound | `music_pattern_1` (shared) | 60000 | music | `music_pattern_tiles` |
 
 ### Gridlock
@@ -966,15 +969,15 @@ Grouped by game or screen.
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
 |---|---|---|---|---|---|---|---|---|
 | `pz_car_escape` | Gridlock: The gold car drives out (solve) [core.md] |  | 0–1 | recorded sound | `pz_car_escape` | 2470 | game event | `pz_car_escape` |
-| `unblock.slide` | A car settles into a new bay (each kept move, each undo, a reset with moves to undo) [pattern.md (Gridlock (unblock))] |  | 5–40 (per move) | recorded sound | `unblock.slide` | 170 | game event | `unblock.slide` |
+| `unblock.slide` | A car settles into a new bay (each kept move, each undo, a reset with moves to undo) [pattern.md (Gridlock (unblock))] |  | 5–40 (per move) | recorded sound | `unblock.slide` | 170 | game event | `unblock.slide` |
 | `music.unblock` | Gridlock round bed: music_pattern_2 (pattern bed shared with other games) |  | loop | recorded sound | `music_pattern_2` (shared) | 60000 | music | `music_pattern_unblock` |
 
 ### Heave
 
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
 |---|---|---|---|---|---|---|---|---|
-| `push.home` | A crate lands on a marking: it thumps and kicks up dust (not on the solving push) [pattern.md (Heave (push))] |  | 5–40 (per move) | recorded sound | `push.home` | 300 | game event | `push.home` |
-| `push.solve` | The crates thump in turn and the warehouse lights switch on in a row [pattern.md (Heave (push))] |  | 0–1 | recorded sound | `push.solve` | 1200 | success sting | `push.solve` |
+| `push.home` | A crate lands on a marking: it thumps and kicks up dust (not on the solving push) [pattern.md (Heave (push))] |  | 5–40 (per move) | recorded sound | `push.home` | 300 | game event | `push.home` |
+| `push.solve` | The crates thump in turn and the warehouse lights switch on in a row [pattern.md (Heave (push))] |  | 0–1 | recorded sound | `push.solve` | 1200 | success sting | `push.solve` |
 | `music.push` | Heave round bed: music_logic_3 (pattern bed shared with other games) |  | loop | recorded sound | `music_logic_3` (shared) | 60000 | music | `music_pattern_push` |
 
 ### Lightbender
@@ -983,36 +986,36 @@ Grouped by game or screen.
 |---|---|---|---|---|---|---|---|---|
 | `pz_laser_gem` | Lightbender: The beam reaches a gem (pitched up gem by gem) [core.md] |  | 3–8 | recorded sound | `pz_laser_gem` | 1012 | game event | `pz_laser_gem` |
 | `pz_laser_split` | Lightbender: The beam reaches a splitter [core.md] |  | 0–4 | recorded sound | `pz_laser_split` | 1042 | game event | `pz_laser_split` |
-| `laser.bomb` | The beam hits a bomb [pattern.md (Lightbender (laser))] |  | 5–40 (per move) | recorded sound | `laser.bomb` | 420 | game event | `laser.bomb` |
-| `laser.solve` | The beam flares to full and the gems burst with light in beam order [pattern.md (Lightbender (laser))] |  | 0–1 | recorded sound | `laser.solve` | 1150 | success sting | `laser.solve` |
+| `laser.bomb` | The beam hits a bomb [pattern.md (Lightbender (laser))] |  | 5–40 (per move) | recorded sound | `laser.bomb` | 420 | game event | `laser.bomb` |
+| `laser.solve` | The beam flares to full and the gems burst with light in beam order [pattern.md (Lightbender (laser))] |  | 0–1 | recorded sound | `laser.solve` | 1150 | success sting | `laser.solve` |
 | `music.laser` | Lightbender round bed: music_pattern_3 (pattern bed shared with other games) |  | loop | recorded sound | `music_pattern_3` (shared) | 60000 | music | `music_pattern_laser` |
 
 ### Pipeline
 
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
 |---|---|---|---|---|---|---|---|---|
-| `pipes.flow` | Water reaches more pipes after a turn (not on the solve) [pattern.md (Pipeline (pipes))] |  | 5–40 (per move) | recorded sound | `pipes.flow` | 220 | game event | `pipes.flow` |
-| `pipes.solve` | Water rushes from the source through every pipe [pattern.md (Pipeline (pipes))] |  | 0–1 | recorded sound | `pipes.solve` | 1200 | success sting | `pipes.solve` |
+| `pipes.flow` | Water reaches more pipes after a turn (not on the solve) [pattern.md (Pipeline (pipes))] |  | 5–40 (per move) | recorded sound | `pipes.flow` | 220 | game event | `pipes.flow` |
+| `pipes.solve` | Water rushes from the source through every pipe [pattern.md (Pipeline (pipes))] |  | 0–1 | recorded sound | `pipes.solve` | 1200 | success sting | `pipes.solve` |
 | `music.pipes` | Pipeline round bed: music_logic_2 (pattern bed shared with other games) |  | loop | recorded sound | `music_logic_2` (shared) | 60000 | music | `music_pattern_pipes` |
 
 ### Skid
 
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
 |---|---|---|---|---|---|---|---|---|
-| `iceslide.portal` | The ball comes out of a portal; both cells of the pair flare [pattern.md (Skid (iceslide))] |  | 5–40 (per move) | recorded sound | `iceslide.portal` | 450 | game event | `iceslide.portal` |
-| `iceslide.crack` | Thin ice breaks as the ball leaves it (shards fly) [pattern.md (Skid (iceslide))] |  | 5–40 (per move) | recorded sound | `iceslide.crack` | 520 | game event | `iceslide.crack` |
-| `iceslide.fall` | The ball reaches a hole and spins down [pattern.md (Skid (iceslide))] |  | 5–40 (per move) | recorded sound | `iceslide.fall` | 400 | game event | `iceslide.fall` |
-| `iceslide.solve` | The ball arrives at the exit: gold burst, the ice frosts over and shatters into glints, the portals flare [pattern.md (Skid (iceslide))] |  | 0–1 | recorded sound | `iceslide.solve` | 1200 | success sting | `iceslide.solve` |
+| `iceslide.portal` | The ball comes out of a portal; both cells of the pair flare [pattern.md (Skid (iceslide))] |  | 5–40 (per move) | recorded sound | `iceslide.portal` | 450 | game event | `iceslide.portal` |
+| `iceslide.crack` | Thin ice breaks as the ball leaves it (shards fly) [pattern.md (Skid (iceslide))] |  | 5–40 (per move) | recorded sound | `iceslide.crack` | 520 | game event | `iceslide.crack` |
+| `iceslide.fall` | The ball reaches a hole and spins down [pattern.md (Skid (iceslide))] |  | 5–40 (per move) | recorded sound | `iceslide.fall` | 400 | game event | `iceslide.fall` |
+| `iceslide.solve` | The ball arrives at the exit: gold burst, the ice frosts over and shatters into glints, the portals flare [pattern.md (Skid (iceslide))] |  | 0–1 | recorded sound | `iceslide.solve` | 1200 | success sting | `iceslide.solve` |
 | `music.iceslide` | Skid round bed: music_pattern_2 (pattern bed shared with other games) |  | loop | recorded sound | `music_pattern_2` (shared) | 60000 | music | `music_pattern_iceslide` |
 
 ### Tessellate
 
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
 |---|---|---|---|---|---|---|---|---|
-| `blockparty.place` | A piece dropped legally on the board pops into place [pattern.md (Tessellate (blockparty))] |  | 5–40 (per move) | recorded sound | `blockparty.place` | 260 | UI tap | `blockparty.place` |
-| `blockparty.turn` | A single tap rotates a tray piece [pattern.md (Tessellate (blockparty))] |  | 5–40 (per move) | recorded sound | `blockparty.turn` | 180 | game event | `blockparty.turn` |
-| `blockparty.flip` | A double tap flips a tray piece [pattern.md (Tessellate (blockparty))] |  | 5–40 (per move) | recorded sound | `blockparty.flip` | 180 | game event | `blockparty.flip` |
-| `blockparty.solve` | All squares covered: rings leave the pegs, then a shine sweeps outwards [pattern.md (Tessellate (blockparty))] |  | 0–1 | recorded sound | `blockparty.solve` | 1100 | success sting | `blockparty.solve` |
+| `blockparty.place` | A piece dropped legally on the board pops into place [pattern.md (Tessellate (blockparty))] |  | 5–40 (per move) | recorded sound | `blockparty.place` | 260 | UI tap | `blockparty.place` |
+| `blockparty.turn` | A single tap rotates a tray piece [pattern.md (Tessellate (blockparty))] |  | 5–40 (per move) | recorded sound | `blockparty.turn` | 180 | game event | `blockparty.turn` |
+| `blockparty.flip` | A double tap flips a tray piece [pattern.md (Tessellate (blockparty))] |  | 5–40 (per move) | recorded sound | `blockparty.flip` | 180 | game event | `blockparty.flip` |
+| `blockparty.solve` | All squares covered: rings leave the pegs, then a shine sweeps outwards [pattern.md (Tessellate (blockparty))] |  | 0–1 | recorded sound | `blockparty.solve` | 1100 | success sting | `blockparty.solve` |
 | `music.blockparty` | Tessellate round bed: music_pattern_1 (pattern bed shared with other games) |  | loop | recorded sound | `music_pattern_1` (shared) | 60000 | music | `music_pattern_blockparty` |
 
 ### Topsy-Turvy
@@ -1020,15 +1023,15 @@ Grouped by game or screen.
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
 |---|---|---|---|---|---|---|---|---|
 | `pz_gravity_pull` | Topsy-Turvy: The board tilts [core.md] |  | 5–30 | recorded sound | `pz_gravity_pull` | 1100 | game event | `pz_gravity_pull` |
-| `gravity.lock` | A ball locks onto its target (not on the solving tilt) [pattern.md (Topsy-Turvy (gravity))] |  | 5–40 (per move) | recorded sound | `gravity.lock` | 460 | game event | `gravity.lock` |
-| `gravity.solve` | The solving tilt: the four balls light up on their targets one after another [pattern.md (Topsy-Turvy (gravity))] |  | 0–1 | recorded sound | `gravity.solve` | 1150 | success sting | `gravity.solve` |
+| `gravity.lock` | A ball locks onto its target (not on the solving tilt) [pattern.md (Topsy-Turvy (gravity))] |  | 5–40 (per move) | recorded sound | `gravity.lock` | 460 | game event | `gravity.lock` |
+| `gravity.solve` | The solving tilt: the four balls light up on their targets one after another [pattern.md (Topsy-Turvy (gravity))] |  | 0–1 | recorded sound | `gravity.solve` | 1150 | success sting | `gravity.solve` |
 | `music.gravity` | Topsy-Turvy round bed: music_pattern_3 (pattern bed shared with other games) |  | loop | recorded sound | `music_pattern_3` (shared) | 60000 | music | `music_pattern_gravity` |
 
 ### Turntable
 
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
 |---|---|---|---|---|---|---|---|---|
-| `rings.solve` | The record spins up through two turns with the spokes strobing [pattern.md (Turntable (rings))] |  | 0–1 | recorded sound | `rings.solve` | 1100 | success sting | `rings.solve` |
+| `rings.solve` | The record spins up through two turns with the spokes strobing [pattern.md (Turntable (rings))] |  | 0–1 | recorded sound | `rings.solve` | 1100 | success sting | `rings.solve` |
 | `music.rings` | Turntable round bed: music_pattern_1 (pattern bed shared with other games) |  | loop | recorded sound | `music_pattern_1` (shared) | 60000 | music | `music_pattern_rings` |
 
 ### Blackout
@@ -1722,6 +1725,9 @@ loops are not measured there). Files in `public/sounds/` are listed once per slo
 | `shared.celebrate.streak` | effects | `shared.celebrate.streak` | 1200 |
 | `shared.celebrate.streakBig` | effects | `shared.celebrate.streakBig` | 1993 |
 | `shared.celebrate.logoCharge` | effects | `shared.celebrate.logoCharge` | 687 |
+| `shared.celebrate.heroDance` | effects | `shared.celebrate.heroDance` | 1200 |
+| `shared.celebrate.heroGrand` | effects | `shared.celebrate.heroGrand` | 1993 |
+| `shared.celebrate.firework` | effects | `shared.celebrate.firework` | 450 |
 | `shared.help.open` | effects | `shared.help.open` | 486 |
 | `shared.help.close` | effects | `shared.help.close` | 486 |
 | `room.prepare` | effects | `room.prepare` | 5165 |

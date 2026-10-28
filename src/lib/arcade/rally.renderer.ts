@@ -53,14 +53,14 @@ import {
 } from "./retro.renderer";
 import { addPop, blob, drawPops, glow, linear, rise } from "./polishA1.renderer";
 
-const COURT = "#1F6F8B";
+export const COURT = "#1F6F8B";
 // Tuning D: a near-black court so the ball, paddle and lights carry the screen.
 const COURT_DIM = "#06141A";
 const FLOOR_A = "#020507";
 const FLOOR_B = "#04080B";
-const PADDLE = "#3DFFE0";
+export const PADDLE = "#3DFFE0";
 const GOLD = "#FFD84A";
-const PAD = "#FF6FD8";
+export const PAD = "#FF6FD8";
 const BUMPER = "#B49CFF";
 /** The blue ball's hottest colour (a warm red, apart from the crash flash's pink-red). */
 const HEAT_RED = "#FF3A24";
@@ -179,7 +179,7 @@ function drawWalls(ctx: CanvasRenderingContext2D, colour: string, _bloom: number
 }
 
 /** Rev 2: a target pad set into the far wall; the ball scores it by touching the wall within its span. */
-function drawPad(ctx: CanvasRenderingContext2D, left: number, bloom: number, blink: boolean): void {
+export function drawPad(ctx: CanvasRenderingContext2D, left: number, bloom: number, blink: boolean): void {
   const top = RALLY_HUD_H + RALLY_WALL;
   // Polish A1: a soft magenta light under the pad.
   glow(ctx, PAD, left + RALLY_TARGET_W / 2, top - 2, RALLY_TARGET_W * 0.8, 14, 0.55);
@@ -189,7 +189,7 @@ function drawPad(ctx: CanvasRenderingContext2D, left: number, bloom: number, bli
 }
 
 /** Rev 2: the round bumper post, drawn exactly as its bounce circle. */
-function drawBumper(ctx: CanvasRenderingContext2D, x: number, y: number, flash: boolean, bloom: number): void {
+export function drawBumper(ctx: CanvasRenderingContext2D, x: number, y: number, flash: boolean, bloom: number): void {
   const r = RALLY_BUMPER_R;
   pixelShape(ctx, x, y, r, 2, (dx, dy) => {
     const d = dx * dx + dy * dy;

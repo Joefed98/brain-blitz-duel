@@ -47,7 +47,7 @@ function isLarge(value: number): boolean {
 type TileState = "idle" | "selected" | "consumed";
 
 /* Exact polish (13 Oct 2026): drawing, animation and sound cues only; steps and submit untouched. */
-const EXACT_CSS = `
+export const EXACT_CSS = `
 [data-polish="target"] .exact-board { position: relative; display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 10px 10px 8px; border-radius: 16px; overflow: hidden;
   background: radial-gradient(120% 70% at 50% 0%, rgba(245,184,46,.10), transparent 60%), repeating-linear-gradient(0deg, rgba(255,255,255,.022) 0 1px, transparent 1px 22px), repeating-linear-gradient(90deg, rgba(255,255,255,.022) 0 1px, transparent 1px 22px), linear-gradient(180deg, #17171f, #101016);
   box-shadow: inset 0 0 0 1px rgba(245,184,46,.16), inset 0 1px 0 rgba(255,255,255,.05), 0 6px 18px rgba(0,0,0,.35); }

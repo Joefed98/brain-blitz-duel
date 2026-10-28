@@ -31,7 +31,7 @@ import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./ty
 
 const FILLS = ["var(--primary)", "var(--me)"];
 
-function Board({
+export function Board({
   size,
   rows = size,
   clues,

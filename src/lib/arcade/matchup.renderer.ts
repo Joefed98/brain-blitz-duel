@@ -382,7 +382,7 @@ function paintSocket(c: CanvasRenderingContext2D, x: number, y: number, parity: 
 }
 
 const sockets = new Map<number, ArtCanvas>();
-function drawSocket(c: CanvasRenderingContext2D, x: number, y: number, parity: number): void {
+export function drawSocket(c: CanvasRenderingContext2D, x: number, y: number, parity: number): void {
   let sprite = sockets.get(parity);
   if (!sprite) {
     const canvas = artCanvas(MATCHUP_CELL_PX * 2, MATCHUP_CELL_PX * 2);

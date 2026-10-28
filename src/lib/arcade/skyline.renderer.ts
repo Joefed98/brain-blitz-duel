@@ -32,7 +32,7 @@ import type { ArenaSceneView } from "./arenaScene.renderer";
 /** City glass tints, cycled per level. */
 const GLASS = ["#7FB3D5", "#9CC9C2", "#A9B8D8", "#8FBCE0", "#B5C7D3", "#7FA8C9", "#A4C4B4", "#98AEC8"];
 const STEEL = "#788DA4";
-const STEEL_LIGHT = "#A9BED0";
+export const STEEL_LIGHT = "#A9BED0";
 const TOWER_DARK = "#131D2C";
 const TOWER_NEAR = "#202C3D";
 const WINDOW_LIGHT = "#FFC966";

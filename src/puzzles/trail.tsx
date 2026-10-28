@@ -75,7 +75,7 @@ function Capsule({ a, b, width, className, fill, delay }: { a: { x: number; y: n
   );
 }
 
-function Grid({
+export function Grid({
   size,
   givens,
   path,

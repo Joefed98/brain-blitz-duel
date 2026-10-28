@@ -35,7 +35,7 @@ const CELL: Record<CellLook, string> = {
 };
 
 /** The numbered grid: black squares, then each white cell's number (corner) and letter. */
-function Grid({
+export function Grid({
   size,
   cells,
   letters,

@@ -82,7 +82,7 @@ interface BoardPointer {
  * placed from the grid's own measured cell centres, so the beam, the mirrors
  * and the drag ghost always sit exactly on the squares they belong to.
  */
-function LaserBoard({
+export function LaserBoard({
   source,
   dir,
   gems,

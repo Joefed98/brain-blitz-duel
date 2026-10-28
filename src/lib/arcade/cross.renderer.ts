@@ -56,7 +56,7 @@ const CROSS_X_FOOT_PAVING = "#5A5F69";
 // The evening palette (Joe's phone notes, 27 Oct 2026; display only): a darker road, dim grass, hedges and
 // paving, a blue dusk wash and warm lamp pools on the verges. Was Real World daylight (realworld.renderer's
 // REAL_* values; not imported, because realworld.renderer re-exports drawVehicle from this module).
-const REAL_ASPHALT = "#25292F";
+export const REAL_ASPHALT = "#25292F";
 const REAL_GRASS = "#2F4B31";
 const REAL_GRASS_DARK = "#223825";
 const REAL_INK = "#1E2630";

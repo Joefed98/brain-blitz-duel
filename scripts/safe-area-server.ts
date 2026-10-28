@@ -7,6 +7,7 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import type { Plugin } from "vite";
+import { THEME_FONTS } from "../src/lib/theme";
 
 const STUBBED = [
   /\/src\/lib\/.*\.functions\.ts$/,
@@ -75,10 +76,12 @@ function harnessEdge(): Plugin {
     configureServer(server) {
       server.middlewares.use(async (req, res, next) => {
         if (!req.url?.startsWith("/safe-area.html")) return next();
-        // The app's own viewport meta (src/routes/__root.tsx), so env(safe-area-inset-*) applies.
+        // The app's own viewport meta (src/routes/__root.tsx), so env(safe-area-inset-*) applies, and its font
+        // preloads, so the skin's fonts arrive as early as in the app (not only once text first needs them).
+        const preloads = THEME_FONTS.map((href) => `<link rel="preload" href="${href}" as="font" type="font/woff2" crossorigin="anonymous">`).join("");
         const html = await server.transformIndexHtml(
           req.url,
-          `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"></head><body><div id="root"></div><script type="module" src="/scripts/safe-area-harness.tsx"></script></body></html>`,
+          `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">${preloads}</head><body><div id="root"></div><script type="module" src="/scripts/safe-area-harness.tsx"></script></body></html>`,
         );
         res.setHeader("content-type", "text/html");
         res.end(html);

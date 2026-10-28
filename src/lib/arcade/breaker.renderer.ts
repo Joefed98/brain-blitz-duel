@@ -70,9 +70,9 @@ import {
 } from "./retro.renderer";
 import { addShatter, backdrop, clearPops, blob, drawPops, glow, linear, pixelStars } from "./polishA1.renderer";
 
-const PADDLE = "#FFD84A";
+export const PADDLE = "#FFD84A";
 const LASER = "#B4FF9A";
-const RAINBOW = [
+export const RAINBOW = [
   "#FF3B5C", // Red
   "#FF8A3C", // Orange
   "#FFD84A", // Gold

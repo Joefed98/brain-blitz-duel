@@ -38,7 +38,7 @@ const STAR_GOLD = "#FFD23F";
 const STAR_EDGE = "#9A6A10";
 const STRIP = "#8C5A30";
 const STRIP_TOP = "#B9824C";
-const CUP_GLASS = "#C4E9FA";
+export const CUP_GLASS = "#C4E9FA";
 const CUP_BLUE = "#83C9EA";
 const CUP_GLOW = "rgba(151,218,249,0.4)";
 
@@ -67,7 +67,7 @@ function edge(ctx: CanvasRenderingContext2D, m: Maze, c: number, d: number, o: n
  * rounds keep the marble-sized cup; rev 2 draws a larger cup (rim + colour) so
  * marble, dark hole and cup never read as three similar dots.
  */
-function cupOf(m: Maze, o: number, exit = m.exit, exitDir = m.exitDir, big = false) {
+export function cupOf(m: Maze, o: number, exit = m.exit, exitDir = m.exitDir, big = false) {
   const cs = m.cs / FP;
   const cx = (exit % m.n) * cs + cs / 2 - o + (DX[exitDir]! * cs) / 2;
   const cy = Math.trunc(exit / m.n) * cs + cs / 2 - o + (DY[exitDir]! * cs) / 2;
@@ -76,7 +76,7 @@ function cupOf(m: Maze, o: number, exit = m.exit, exitDir = m.exitDir, big = fal
 }
 
 /** tiltRev 2 cup: dark brass rim, coloured glass, a deep centre and a bright lip, in the marble's colour. */
-function drawBigCup(ctx: CanvasRenderingContext2D, cup: { x: number; y: number; r: number }, colour: string, glass: string, filled: boolean): void {
+export function drawBigCup(ctx: CanvasRenderingContext2D, cup: { x: number; y: number; r: number }, colour: string, glass: string, filled: boolean): void {
   ctx.fillStyle = TOY_BRASS_DARK;
   ctx.beginPath();
   ctx.arc(cup.x, cup.y, cup.r + 2.5, 0, Math.PI * 2);
@@ -232,7 +232,7 @@ function drawTableDressing(c: CanvasRenderingContext2D, TILT_WORLD_W = TILT_W0, 
 }
 
 /** The disc's carved groove and bevelled rim, about the disc's centre (static: in the cached board layer). */
-function drawDiscBed(ctx: CanvasRenderingContext2D, TILT_DISC_R = TILT_R0): void {
+export function drawDiscBed(ctx: CanvasRenderingContext2D, TILT_DISC_R = TILT_R0): void {
   // Polish G: the disc sits in a carved groove in the board, casting a soft shadow down-right.
   // Polish A4: a deeper drop shadow under it.
   const drop = ctx.createRadialGradient(8, 6, TILT_DISC_R - 12, 8, 6, TILT_DISC_R + 13);
@@ -279,7 +279,7 @@ function drawDiscBed(ctx: CanvasRenderingContext2D, TILT_DISC_R = TILT_R0): void
 }
 
 /** Polish A4: a soft marble shadow, cast down-right from the screen-fixed lamp (offset turned into the disc's frame). */
-function marbleShadow(ctx: CanvasRenderingContext2D, x: number, y: number, r: number, rot: number): void {
+export function marbleShadow(ctx: CanvasRenderingContext2D, x: number, y: number, r: number, rot: number): void {
   const dx = 1.6 * Math.cos(-rot) - 2.4 * Math.sin(-rot);
   const dy = 1.6 * Math.sin(-rot) + 2.4 * Math.cos(-rot);
   const g = ctx.createRadialGradient(x + dx, y + dy, r * 0.4, x + dx, y + dy, r * 1.25);
@@ -292,7 +292,7 @@ function marbleShadow(ctx: CanvasRenderingContext2D, x: number, y: number, r: nu
 }
 
 /** Polish A4: a glossy window highlight and a soft rim light over a marble, screen-fixed (inside its circle). */
-function marbleGloss(ctx: CanvasRenderingContext2D, x: number, y: number, r: number, rot: number): void {
+export function marbleGloss(ctx: CanvasRenderingContext2D, x: number, y: number, r: number, rot: number): void {
   ctx.save();
   ctx.translate(x, y);
   ctx.rotate(-rot);
@@ -379,7 +379,7 @@ function padlock(ctx: CanvasRenderingContext2D, x: number, y: number, w: number,
 }
 
 /** The maze's pits, in the disc's rotating frame. */
-function drawPits(ctx: CanvasRenderingContext2D, m: Maze): void {
+export function drawPits(ctx: CanvasRenderingContext2D, m: Maze): void {
   const cs = m.cs / FP;
   const o = (m.n * cs) / 2;
   // Full square collision footprint; rounded bevel stays inside the dark cut.
@@ -420,7 +420,7 @@ function drawPits(ctx: CanvasRenderingContext2D, m: Maze): void {
 }
 
 /** Raised wooden strips with a slight shadow, in the disc's rotating frame. */
-function drawStrips(ctx: CanvasRenderingContext2D, m: Maze, lite: boolean): void {
+export function drawStrips(ctx: CanvasRenderingContext2D, m: Maze, lite: boolean): void {
   const o = (m.n * (m.cs / FP)) / 2;
   // Reduced effects (lib/fx/lowEnd.ts, slow devices only): the strips keep their shadow, body and
   // top edge; the soft outer shadow and the faint highlight are skipped (the strips' footprint is unchanged).

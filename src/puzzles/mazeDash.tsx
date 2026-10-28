@@ -95,7 +95,7 @@ const MazeWalls = memo(function MazeWalls({ cells, cols, rows, k = 1 }: { cells:
 });
 
 /** Stone walls on a flagstone floor, with the drawn route over the top. */
-function MazeBoard({
+export function MazeBoard({
   cells,
   cols = MAZE_COLS,
   start,

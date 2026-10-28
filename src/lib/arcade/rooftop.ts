@@ -425,7 +425,7 @@ function persp(ahead: number): number {
   const b = PERSPECTIVE[Math.min(lo + 1, PERSPECTIVE.length - 1)]!;
   return a + (b - a) * f;
 }
-function project(lanePos: number, ahead: number) {
+export function project(lanePos: number, ahead: number) {
   const s = persp(ahead);
   return {
     x: ROOF_WORLD_W / 2 + (lanePos - 1) * LANE_W * s,

@@ -279,7 +279,7 @@ const HULL_SCALE = 3;
 const hullSprites = new Map<string, ArtCanvas | null>();
 
 /** One enemy hull filling the cell box (x, y, s x s): a cached sprite plus the live engine glints. */
-function drawHull(ctx: CanvasRenderingContext2D, kind: number, colour: string, x: number, y: number, s: number, t: number): void {
+export function drawHull(ctx: CanvasRenderingContext2D, kind: number, colour: string, x: number, y: number, s: number, t: number): void {
   const key = `s5:${kind}:${colour}:${s}`;
   let sprite = hullSprites.get(key);
   if (sprite === undefined) {
@@ -810,7 +810,7 @@ export function drawWavefrontBeam(ctx: CanvasRenderingContext2D, x: number, y: n
  * Polish A4: the player ship's engine flame, under its box (exhaust light, not a body): always a small
  * flickering flame, longer while the ship moves.
  */
-function drawShipFlame(ctx: CanvasRenderingContext2D, cx: number, bottom: number, moving: boolean, t: number, still: boolean): void {
+export function drawShipFlame(ctx: CanvasRenderingContext2D, cx: number, bottom: number, moving: boolean, t: number, still: boolean): void {
   const flick = still ? 1 : 0.75 + 0.25 * Math.sin(t * 30);
   const len = (moving ? 11 : 6) * flick;
   ctx.save();

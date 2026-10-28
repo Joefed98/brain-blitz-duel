@@ -303,7 +303,7 @@ const STAR_GOLD = "#FFD84A";
 const STAR_DRAW_SCALE = 1.2;
 
 /** A gold star (hoverRev 2) drawn in 2 px blocks inside its collection circle; gone once taken. */
-function drawStar(ctx: CanvasRenderingContext2D, state: HoverState, pillar: HoverState["pillars"][number], index: number, cx: number): void {
+export function drawStar(ctx: CanvasRenderingContext2D, state: HoverState, pillar: HoverState["pillars"][number], index: number, cx: number): void {
   const starY = hoverStarY(pillar, state.tick);
   if (starY === null || state.starsTaken?.includes(index)) return;
   const r = px(HOVER_STAR_R) * STAR_DRAW_SCALE;
@@ -401,7 +401,7 @@ function drawForkArrows(ctx: CanvasRenderingContext2D, x: number, wallTop: numbe
 }
 
 /** Stacked energy blocks fill the exact pillar rectangle, without a cap or lip. */
-function drawPipe(
+export function drawPipe(
   ctx: CanvasRenderingContext2D,
   x: number,
   y: number,
@@ -509,7 +509,7 @@ function shipLightSprite(): ArtCanvas | null {
   shipLight = layer && c ? layer : null;
   return shipLight;
 }
-function drawShipLight(ctx: CanvasRenderingContext2D, state: HoverState): void {
+export function drawShipLight(ctx: CanvasRenderingContext2D, state: HoverState): void {
   if (arcadeReducedEffects()) return;
   const sprite = shipLightSprite();
   if (!sprite) return;

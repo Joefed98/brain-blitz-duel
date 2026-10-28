@@ -46,7 +46,7 @@ function Disc({ value, fixed, width, height }: { value: number; fixed: boolean; 
   return <IronKettlebell value={value} fixed={fixed} width={width} height={height} />;
 }
 
-function BalanceArt() {
+export function BalanceArt() {
   return <>
     <PolishStyle id="balance" css={BALANCE_CSS} />
     {BALANCE_DEFS}
@@ -65,7 +65,7 @@ function visibleTilt(scale: BalanceScale, placement: Placement): number {
 /** Render-only beam tilt and peg offsets: a quick ease with a small settle past level. */
 const TILT_EASE = "transform 260ms cubic-bezier(.34,1.4,.55,1)";
 
-function Beam({ scale, placement, spacing, onWeightTap, onPlace, selected, showControls = false, height, compact = false, solving = false }: {
+export function Beam({ scale, placement, spacing, onWeightTap, onPlace, selected, showControls = false, height, compact = false, solving = false }: {
   scale: BalanceScale; placement: Placement; spacing: number;
   onWeightTap?: (tray: number) => void; onPlace?: (peg: number) => void;
   selected?: number | null; showControls?: boolean;

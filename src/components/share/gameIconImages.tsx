@@ -1,18 +1,16 @@
 /**
- * The round games' icons as pictures for the results card (resultCard.ts), drawn from the same
- * art GameIcon shows: arcade games by their renderer's painter on a canvas; puzzle games by
- * mounting their GameIcon off screen and turning each of its <svg>s into a picture (styles that
- * come from CSS — colours, currentColor, hidden text — are written onto the copy, and the
- * gradients it points at are copied in), so the card matches the app. Presentation only. Any icon
- * that can't be drawn is left out (the card shows its category tile with the app's bolt).
+ * The round games' icons as pictures for the results card (resultCard.ts), the same picture GameIcon
+ * shows: a game's tile scene image (public/tiles, tileSceneUrl) drawn as is; for a game without one,
+ * its line drawing (gameIcons/conceptIcons.tsx): its GameIcon is mounted off screen and its <svg>
+ * turned into a picture (styles that come from CSS — colours, currentColor — are
+ * written onto the copy, and any gradients it points at are copied in), so the card matches the
+ * app. Presentation only. Any icon that can't be drawn is left out (the card shows its category
+ * tile with the app's bolt).
  */
 import { createRoot } from "react-dom/client";
 import { flushSync } from "react-dom";
 
-import { GameIcon } from "@/components/app/GameIcon";
-import { ARCADE_ICON_PAINTERS } from "@/components/app/gameIcons/arcadeIcons.renderer";
-import { PUZZLE_ICON_ART } from "@/components/app/gameIcons/puzzleIcons";
-import { preloadGameArt } from "@/lib/arcade/gameArt.renderer";
+import { GameIcon, hasGameIcon, tileSceneUrl } from "@/components/app/GameIcon";
 import type { PuzzleType } from "@/lib/duel/types";
 
 const SVG_NS = "http://www.w3.org/2000/svg";
@@ -50,25 +48,6 @@ function loadImage(src: string): Promise<HTMLImageElement | null> {
     img.onerror = () => resolve(null);
     img.src = src;
   });
-}
-
-function arcadeIcon(type: string, px: number): HTMLCanvasElement | null {
-  const painter = ARCADE_ICON_PAINTERS[type];
-  if (!painter) return null;
-  const canvas = document.createElement("canvas");
-  canvas.width = px;
-  canvas.height = px;
-  const c = canvas.getContext("2d");
-  if (!c) return null;
-  const k = px / 64;
-  c.setTransform(k, 0, 0, k, 0, 0);
-  c.imageSmoothingEnabled = true;
-  try {
-    painter(c, k);
-  } catch {
-    return null;
-  }
-  return canvas;
 }
 
 /** A self-contained copy of one <svg>: computed styles inlined, the defs it points at included. */
@@ -130,7 +109,7 @@ function rotationOf(el: Element): number {
   return m ? Math.atan2(Number(m[2]), Number(m[1])) : 0;
 }
 
-async function puzzleIcon(
+async function iconImage(
   type: PuzzleType,
   px: number,
   host: HTMLElement,
@@ -196,6 +175,20 @@ async function puzzleIcon(
   }
 }
 
+/** A tile scene image on a `px` square canvas (null if it can't be loaded). */
+async function sceneIcon(url: string, px: number): Promise<HTMLCanvasElement | null> {
+  const img = await loadImage(url);
+  if (!img) return null;
+  const canvas = document.createElement("canvas");
+  canvas.width = px;
+  canvas.height = px;
+  const c = canvas.getContext("2d");
+  if (!c) return null;
+  c.imageSmoothingQuality = "high";
+  c.drawImage(img, 0, 0, px, px);
+  return canvas;
+}
+
 /** Each game's icon as a canvas at `px` square (null where it can't be drawn). */
 export async function gameIconImages(
   types: readonly string[],
@@ -215,11 +208,11 @@ export async function gameIconImages(
   document.body.appendChild(host);
   try {
     for (const type of new Set(types)) {
-      if (type in ARCADE_ICON_PAINTERS) {
-        await preloadGameArt(type).catch(() => undefined);
-        out.set(type, arcadeIcon(type, px));
-      } else if (type in PUZZLE_ICON_ART) {
-        out.set(type, await puzzleIcon(type as PuzzleType, px, host));
+      const scene = tileSceneUrl(type);
+      if (scene) {
+        out.set(type, await sceneIcon(scene, px));
+      } else if (hasGameIcon(type)) {
+        out.set(type, await iconImage(type as PuzzleType, px, host));
       } else {
         out.set(type, null);
       }

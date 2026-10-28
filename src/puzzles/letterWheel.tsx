@@ -19,7 +19,7 @@ import "@/polish-layout/batch-w-letterwheel.css";
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
 /** Crossword: only the slot cells are drawn; letters appear once a slot is filled. */
-function Crossword({
+export function Crossword({
   cols,
   rows,
   slots,
@@ -78,7 +78,7 @@ function wheelPos(i: number, n: number): [number, number] {
 }
 
 /** The wheel: drag through letters or tap them in sequence. */
-function Wheel({
+export function Wheel({
   letters,
   path,
   onPath,

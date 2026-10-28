@@ -54,7 +54,7 @@ export function CardFace({ card, size }: { card: PairCard; size: number }) {
 }
 
 /** A 6×5 board (or a small example board) of face-down cards. */
-function Board({
+export function Board({
   cards,
   faceUp,
   matched,

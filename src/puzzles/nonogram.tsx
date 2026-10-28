@@ -22,7 +22,7 @@ function clueText(clue: number[]): string {
 }
 
 /** One playable board: clues outside, the grid centred. */
-function Board({
+export function Board({
   rows,
   cols,
   marks,

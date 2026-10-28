@@ -52,7 +52,7 @@ function tileClass(t: string | undefined, onRoute: boolean): string {
   return "bg-background";
 }
 
-function Grid({
+export function Grid({
   board,
   state,
   pointer,

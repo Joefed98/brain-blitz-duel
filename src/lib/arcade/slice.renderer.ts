@@ -29,7 +29,7 @@ type Food = typeof SLICE_FOODS[number];
 const colours: Record<Food,string> = {bagel:K.bagel,cabbage:K.cabbage,onion:K.onion,meat:K.meat};
 const foodOf = (colour:number):Food => SLICE_FOODS[colour % SLICE_FOODS.length] ?? 'bagel';
 const cache = new Map<string,ArtCanvas>();
-function sprite(key:string,size:number,paint:(c:CanvasRenderingContext2D,s:number)=>void):ArtCanvas|null {
+export function sprite(key:string,size:number,paint:(c:CanvasRenderingContext2D,s:number)=>void):ArtCanvas|null {
   const px=Math.max(4,Math.round(size)); const id=`${key}@${px}`;
   const old=cache.get(id); if(old) return old;
   const canvas=artCanvas(px,px); const c=canvas ? artContext(canvas):null;

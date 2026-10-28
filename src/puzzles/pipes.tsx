@@ -91,7 +91,7 @@ const PipeTileView = memo(function PipeTileView({
 });
 
 /** Memoised with its tiles: a clock tick above it (unchanged props) skips the whole board. */
-const PipesBoard = memo(function PipesBoard({
+export const PipesBoard = memo(function PipesBoard({
   tiles,
   source,
   connected,

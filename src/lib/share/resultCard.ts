@@ -177,7 +177,7 @@ function medal(c: Ctx, cx: number, cy: number, r: number, place: number): void {
   c.fillText(String(place), cx, cy + r * 0.06);
 }
 
-/** A game's icon tile: the category's glossy gradient with the game's own art (or the app's bolt). */
+/** A game's icon tile as the app draws it (GameIcon): black, the game's drawing, a border in its category's colour (or the app's bolt). */
 function iconTile(
   c: Ctx,
   x: number,
@@ -193,19 +193,11 @@ function iconTile(
     /* a removed game keeps the default tile */
   }
   const colour = CATEGORY[cat] ?? GOLD;
+  const border = Math.max(1.5, Math.round(s * 0.045 * 2) / 2);
   c.save();
   roundRect(c, x, y, s, s, s * 0.28);
   c.clip();
-  const g = c.createLinearGradient(x, y, x + s * 0.6, y + s);
-  g.addColorStop(0, shade(colour, 0.72));
-  g.addColorStop(1, shade(colour, 0.36));
-  c.fillStyle = g;
-  c.fillRect(x, y, s, s);
-  const gloss = c.createLinearGradient(0, y, 0, y + s);
-  gloss.addColorStop(0, "rgb(255 255 255 / 0.2)");
-  gloss.addColorStop(0.46, "rgb(255 255 255 / 0.04)");
-  gloss.addColorStop(0.52, "rgb(255 255 255 / 0)");
-  c.fillStyle = gloss;
+  c.fillStyle = "#000";
   c.fillRect(x, y, s, s);
   if (art) {
     c.drawImage(art, x, y, s, s);
@@ -215,9 +207,9 @@ function iconTile(
   }
   c.restore();
   c.save();
-  roundRect(c, x + 1, y + 1, s - 2, s - 2, s * 0.28);
-  c.strokeStyle = "rgb(255 255 255 / 0.16)";
-  c.lineWidth = 2;
+  roundRect(c, x + border / 2, y + border / 2, s - border, s - border, s * 0.28 - border / 2);
+  c.strokeStyle = colour;
+  c.lineWidth = border;
   c.stroke();
   c.restore();
 }

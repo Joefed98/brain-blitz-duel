@@ -72,7 +72,7 @@ const EXAMPLE_SPOTS: HuntSpot[] = [
   { x: 54, y: 12, n: 95 },
 ];
 
-function Circle({
+export function Circle({
   n,
   done,
   wrong = false,

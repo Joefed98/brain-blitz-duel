@@ -86,7 +86,7 @@ const NP_CSS = `
 }
 `;
 
-function Pyramid({
+export function Pyramid({
   rows,
   givens,
   values,

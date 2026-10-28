@@ -87,6 +87,17 @@ check(!C.heroRunEarned(null) && !C.heroRunEarned(undefined) && !C.heroRunEarned(
 C.resetCelebrationMemory();
 check(C.claimHeroRun("round:sudoku:3:1000") && !C.claimHeroRun("round:sudoku:3:1000"), "the hero runs twice in one round");
 check(C.claimHeroRun("round:sudoku:4:2000") && C.claimHeroRun("practice:sudoku:1:3000"), "a later round or practice run does not get its hero run");
+// The reveal's hero moments (27 Oct 2026): 150–189 the run, 190–199 the dance, 200 the lap with fireworks.
+check(config.HERO_DANCE_SCORE === 190 && config.HERO_GRAND_SCORE === 200, "the dance and lap lines are not 190 and 200 in betaConfig.ts");
+check(C.heroMomentFor(149) === null, `149: ${C.heroMomentFor(149)}, expected no hero`);
+check(C.heroMomentFor(150) === "run", `150: ${C.heroMomentFor(150)}, expected the run`);
+check(C.heroMomentFor(189) === "run", `189: ${C.heroMomentFor(189)}, expected the run (no dance)`);
+check(C.heroMomentFor(190) === "dance", `190: ${C.heroMomentFor(190)}, expected the dance`);
+check(C.heroMomentFor(199) === "dance", `199: ${C.heroMomentFor(199)}, expected the dance (no lap)`);
+check(C.heroMomentFor(200) === "grand", `200: ${C.heroMomentFor(200)}, expected the lap with fireworks`);
+check(C.heroMomentFor(null) === null && C.heroMomentFor(undefined) === null, "a missing score has a hero moment");
+check(C.HERO_DANCE_MS >= 1300 && C.HERO_DANCE_MS <= 1700, `the dance lasts ${C.HERO_DANCE_MS} ms, about 1.5 s`);
+check(C.HERO_GRAND_MS >= 2700 && C.HERO_GRAND_MS <= 3300, `the lap lasts ${C.HERO_GRAND_MS} ms, about 3 s`);
 
 const today = "2026-10-27";
 const run = (n: number) => Array.from({ length: n }, (_, i) => shiftDayKey(today, -i));
@@ -126,6 +137,63 @@ check(C.movedUp(rows[0]!) && !C.movedUp(rows[1]!) && !C.movedUp(standing(4, 1, 1
   check(C.HERO_RUN_MS >= 1400 && C.HERO_RUN_MS <= 1800, `hero run ${C.HERO_RUN_MS} ms, about 1.6 s`);
   scene.clear(2);
   check(!scene.run, "clearing a scope leaves its hero running");
+  // The dance (190–199): on, dancing near the left edge (clear of the centred score), off; HERO_DANCE_MS long.
+  {
+    const show = new CelebrationScene();
+    const dc = createCanvas(414, 896);
+    const dctx = dc.getContext("2d") as unknown as CanvasRenderingContext2D;
+    show.heroShow(3, "dance", false, 0);
+    check(show.animating(C.HERO_DANCE_MS - 10) && !show.animating(C.HERO_DANCE_MS + 10), "the dance does not last HERO_DANCE_MS");
+    const xs: number[] = [];
+    for (let t = 0; t < C.HERO_DANCE_MS; t += 50) {
+      dctx.clearRect(0, 0, 414, 896);
+      show.draw(dctx, 414, 896, 34, t);
+      xs.push((show.dirtyL + show.dirtyR) / 2);
+      check(show.dirtyR > show.dirtyL, `the dance draws nothing at ${t} ms`);
+      check(show.dirtyB <= 896 && show.dirtyT > 896 * 0.7, `the dance leaves the screen's bottom at ${t} ms (${show.dirtyT.toFixed(0)}–${show.dirtyB.toFixed(0)})`);
+    }
+    const mid = xs.slice(8, 20);
+    check(xs[0]! < 40 && xs[xs.length - 1]! < 40, `the dancer does not come on and step off at the edge (${xs[0]!.toFixed(0)}, ${xs[xs.length - 1]!.toFixed(0)})`);
+    check(mid.every((x) => x < 414 * 0.35) && Math.max(...mid) - Math.min(...mid) > 2, `the dance is not on the spot near the left edge (${mid.map((x) => x.toFixed(0)).join(",")})`);
+    show.draw(dctx, 414, 896, 34, C.HERO_DANCE_MS + 1);
+    check(!show.show && !show.animating(C.HERO_DANCE_MS + 1), "the dance keeps drawing after it ends");
+    // The lap (200): six fireworks on schedule, the pool's cap held, the hero round the screen.
+    show.heroShow(4, "grand", false, 0);
+    check(show.animating(C.HERO_GRAND_MS - 10) && !show.animating(C.HERO_GRAND_MS + 10), "the lap does not last HERO_GRAND_MS");
+    let top = Infinity;
+    for (let t = 0; t < C.HERO_GRAND_MS; t += 25) {
+      show.draw(dctx, 414, 896, 34, t);
+      check(show.live <= C.CELEBRATION_PARTICLES, `${show.live} sparks alive in the lap (cap ${C.CELEBRATION_PARTICLES})`);
+      if (t > 1100 && t < 1600) top = Math.min(top, show.dirtyT);
+    }
+    check(show.fireworks === 6, `the lap bursts ${show.fireworks} fireworks, expected 6`);
+    check(top < 896 * 0.75, `the lap's leap stays on the bottom strip (top ${top.toFixed(0)})`);
+    // A tap skips it: the hero and its sparks go at once.
+    show.clearAll();
+    show.heroShow(5, "grand", false, 0);
+    show.draw(dctx, 414, 896, 34, 700);
+    check(show.live > 0, "the lap has no fireworks by 700 ms");
+    show.skip(5);
+    show.draw(dctx, 414, 896, 34, 716);
+    check(!show.show && show.live === 0 && !show.animating(716), "a skip leaves the lap's hero or sparks on screen");
+    // Reduced motion: the hero stands still with a short glow (no fireworks), HERO_STILL_MS long.
+    show.clearAll();
+    show.heroShow(6, "grand", true, 0);
+    check(show.animating(C.HERO_STILL_MS - 10) && !show.animating(C.HERO_STILL_MS + 10), "the calm hero does not last HERO_STILL_MS");
+    const before = show.fireworks;
+    const boxes: string[] = [];
+    for (let t = 300; t < C.HERO_STILL_MS - 300; t += 100) {
+      show.draw(dctx, 414, 896, 34, t);
+      boxes.push(`${show.dirtyL.toFixed(1)},${show.dirtyT.toFixed(1)}`);
+      check(show.live === 0, "reduced motion: the lap's fireworks burst");
+    }
+    check(show.fireworks === before, "reduced motion: fireworks counted");
+    check(new Set(boxes).size === 1, `reduced motion: the hero moves (${[...new Set(boxes)].join(" ")})`);
+    let lit = 0;
+    const px = (dctx as unknown as { getImageData: CanvasRenderingContext2D["getImageData"] }).getImageData(0, 600, 200, 296).data;
+    for (let i = 3; i < px.length; i += 4) if (px[i]! > 0) lit++;
+    check(lit > 400, "reduced motion: no still hero or glow drawn");
+  }
   check(C.STRIKE_IN_MS < 300, `the strike fades in over ${C.STRIKE_IN_MS} ms`);
   check(C.STRIKE_MS < 1000, "a strike outlasts a second (at most 2 a second, one per GO)");
   // The peak frame: lit pixels and no white flash across the screen.
@@ -385,6 +453,12 @@ for (const mineFirst of [true, false]) {
   C.sparkBurst(1, 10, 10);
   check(!requests.length, `reduced motion: ${requests.map((r) => r.kind).join(",")}`);
   check(sounds.join() === "zap,thunder", `reduced motion: GO's zap and thunder are not all that sounds (${sounds.join()})`);
+  reset();
+  C.heroDance(1);
+  C.heroGrand(1);
+  const calmShows = requests.filter((r) => r.kind === "heroShow");
+  check(calmShows.length === 2 && calmShows.every((r) => r.kind === "heroShow" && r.calm), `reduced motion: the dance and lap are not the still hero (${JSON.stringify(calmShows.map((r) => r.kind === "heroShow" && r.calm))})`);
+  check(sounds.join() === "heroDance,heroGrand", `reduced motion: the dance and lap sounds (${sounds.join()})`);
   reduced = false;
 }
 
@@ -452,6 +526,18 @@ for (const mineFirst of [true, false]) {
   C.heroRun(1);
   check(sounds.join() === "heroRun", `the hero run has no whoosh: ${sounds.join()}`);
   reset();
+  C.heroDance(1);
+  check(sounds.join() === "heroDance" && requests.some((r) => r.kind === "heroShow" && r.show === "dance" && !r.calm), `the dance: ${sounds.join()} / ${requests.map((r) => r.kind).join()}`);
+  reset();
+  C.heroGrand(1);
+  check(sounds.join() === "heroRun,heroGrand" && requests.some((r) => r.kind === "heroShow" && r.show === "grand" && !r.calm), `the lap has no whoosh and big flourish: ${sounds.join()}`);
+  reset();
+  C.fireworkPop();
+  check(sounds.join() === "firework", "a firework does not crackle");
+  reset();
+  C.skipCelebration(1);
+  check(requests.some((r) => r.kind === "skip" && r.scope === 1), "a skip is not sent");
+  reset();
   C.logoChargeSound();
   check(!sounds.length, "the logo charge sounds before sound is unlocked");
   // Prepare to Duel: no strike's thunder while the voice line plays, nor within 400 ms either side of it,
@@ -495,6 +581,8 @@ const src = (p: string) => readFileSync(p, "utf8");
 check(/celebrationsOn\(\)/.test(src("src/routes/__root.tsx")) && /<CelebrationLayer \/>/.test(src("src/routes/__root.tsx")), "the root does not mount the layer behind the switch");
 check(/pointer-events: none/.test(src("src/polish-layout/celebrations.css").split(".celebration-canvas")[0]!), "the layer is not pointer-events none");
 check(/heroRunEarned\(myScore\)/.test(src("src/components/duel/AnswerReveal.tsx")) && /heroRun=\{false\}/.test(src("src/components/async/AsyncResults.tsx")), "the hero run is not on the reveal (and off on reopened daily reveals)");
+check(/heroMomentFor\(myScore\)/.test(src("src/components/duel/AnswerReveal.tsx")) && /heroGrand\(scope\)/.test(src("src/components/duel/AnswerReveal.tsx")) && /heroDance\(scope\)/.test(src("src/components/duel/AnswerReveal.tsx")), "the dance and lap are not on the reveal");
+check(/addEventListener\("pointerdown", skip, \{ capture: true, passive: true \}\)/.test(src("src/components/duel/AnswerReveal.tsx")) && !/preventDefault|stopPropagation/.test(src("src/components/duel/AnswerReveal.tsx").split("const skip = () =>")[1]!.split("const timer")[0]!), "a tap does not skip the hero moment, or the skip swallows the tap");
 check(/goStrike\(\)/.test(src("src/components/duel/RoundIntro.tsx")) && !/goStrike|celebrat/i.test(src("src/components/duel/DuelStart.tsx")), "GO's strike is not on the countdown, or it is on Prepare to Duel");
 check(/celebrationsOn\(\)\) \{\s*unlockAudio\(\);\s*celebrationSound\("zap"\)/.test(src("src/routes/index.tsx")), "Create a room has no zap behind the switch");
 check(/streakMilestone\(dailyStreak\(/.test(src("src/routes/daily.tsx")) && /firstToday/.test(src("src/routes/daily.tsx")), "the streak banner is not from today's first daily");

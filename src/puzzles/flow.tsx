@@ -28,7 +28,7 @@ import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./ty
  * a line always runs dead through the middle of every square it covers and ends
  * exactly on the partner dot.
  */
-function FlowBoard({
+export function FlowBoard({
   pairs,
   paths,
   walls = [],

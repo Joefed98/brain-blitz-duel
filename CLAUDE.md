@@ -315,9 +315,9 @@ Lovable still hosts and publishes the app (https://brain-blitz-duel.lovable.app)
   the look (the lobby's `LookPicker`, saved with `rememberLook` for new rooms), rooms played / wins / podiums and recent
   rooms from this device's own record (`useDeviceRoomRecord` in the room route: each finished game it shows, place and
   points as the final screen shows them; server history can't answer this because Play again deletes results),
-  practice bests, settings (the gear: sound, direction controls, How it works). Game icons (`GameIcon`): every active game's
-  own art on a tile in its colour, arcade ones painted by the game's renderer (`gameIcons/arcadeIcons.renderer.ts`),
-  puzzles by their art components or their board element redrawn (`gameIcons/puzzleIcons.tsx`); no text.
+  practice bests, settings (the gear: sound, direction controls, How it works). Game icons (`GameIcon`): every game's
+  tile scene (a small scene of its own pieces) on a black tile with its category-colour border (since 27 Oct 2026,
+  "Hero moments and tile icons" below; until then each game's own art).
   app-shell-check (~2 min, `play15`) proves the tabs, Back, icons, rooms without the tab bar and the card's switch at lobby time.
 - **Page skin** (19 Oct 2026, presentation only; `src/polish-layout/theme.css`, `src/lib/theme.ts`): the four tab
   screens, lobby, round leaderboard, answer reveal, standings, results and podium, settings, dialogs and sheets carry
@@ -328,7 +328,7 @@ Lovable still hosts and publishes the app (https://brain-blitz-duel.lovable.app)
   skinned screen (reveal boards, replays). Fonts are self-hosted in `public/fonts` (OFL), preloaded from the root route:
   Saira 600–800 (headings, buttons), Manrope 500–800 (body, names), JetBrains Mono 600–700 as "Duelz Mono" (scores, times,
   codes; the games' own JetBrains Mono is untouched). Game screens, round intros and room moments are not skinned. Game
-  icon tiles are their category's glossy gradient; the art is unchanged. Round leaderboard rows keep time · verdict · summary
+  icon tiles are black with their category's colour as the border (27 Oct 2026). Round leaderboard rows keep time · verdict · summary
   on one line under the name (ellipsis; a tap opens the detail). theme-check (fonts, tokens, contrast ≥ 4.5:1,
   targets ≥ 44 px, `play16`) and no-wrap-check (single-line text never wraps or is cut off but names, at 414×896 app,
   375×667 and desktop; thirds on `play16`/`play17`) prove it; run both after changing a skinned screen.
@@ -681,6 +681,24 @@ Lovable still hosts and publishes the app (https://brain-blitz-duel.lovable.app)
   Gemstone and Pinball follow Tempo's precedent: the definition's clock is 93 s, older 60 s rounds end at 60 s. The
   Fission, Wavefront, Rainbow Bridge and Gemstone intro demos stay stopped until recorded on the new stamps. Review
   shots: `bun scripts/shots/phone-notes-page.ts --url=<origin> --tag=before|after` (`screenshots/phone-notes-oct-2026/`).
+- **Hero moments and tile icons** (27 Oct 2026; display, sound and device only, no stamps): the answer reveal's hero
+  by this player's own stored score (`heroMomentFor` in `src/lib/fx/celebrations.ts`; lines `HERO_DANCE_SCORE` 190 and
+  `HERO_GRAND_SCORE` 200 in `betaConfig.ts`): 150–189 the run as before; 190–199 `heroDance` (on from the left, dances
+  `heroDancePose` near the left edge, off, 1.5 s); 200 `heroGrand` (a run, a leap back in the victory pose, a dance, off
+  to the right, six gold fireworks, 3 s). A tap anywhere skips it (`skipCelebration`; a passive capture listener, so the
+  tap still lands); reduced motion draws the hero still with a short glow (`HERO_STILL_MS`). Cues
+  `shared.celebrate.heroDance` / `heroGrand` / `firework` reuse existing files. Every game's tile (`GameIcon`) is a
+  small scene drawn with the game's own art: a few of its real pieces in a hand-made state (renderer painters for the
+  arcade and engine games, the puzzle's own board components and CSS), defined in `scripts/shots/tile-scenes/<category>.tsx`
+  (rules in `scene.tsx`: 104 px square on black, few bold pieces, no HUD, timers, buttons or UI words) and exported by
+  `bun scripts/shots/tile-scenes.ts [types…] [--preview=<dir>]` as 208 px WebPs (`public/tiles/<type>.webp`, ~2–13 KB,
+  the same bytes every build) plus `src/components/app/gameIcons/tileScenes.data.ts` (content hash on each URL); scenes
+  import game art through plain `export`s added for them, nothing else changed in a game. The tile is black with a
+  border in the exact `--category-*` colour (theme.css); the share card draws the same image. A game without a scene
+  falls back to its line drawing (`conceptIcons.tsx`, today none). tile-scenes-check (~1 s) proves every active game has
+  an image, hashes, sizes and the fallback. `arcadeIcons.renderer.ts` stays only for `scripts/shots/sharp-icons-shots.ts`.
+  Contact sheet: `bun scripts/shots/tile-icons-sheet.ts` (`screenshots/tile-icons-oct-2026/`). celebrations-off.json was
+  re-recorded (only the icon markup changed). **Re-run tile-scenes.ts after changing a game's look.**
 - `src/components/duel/` — room/round screens (PhoneShell, RoundIntro, TimerBar,
   AnswerReveal, ArcadeReveal, WinnerReveal…); `src/components/puzzles/` — shared puzzle
   widgets; `src/lib/fx/` — sound and visual feedback (presentation only).

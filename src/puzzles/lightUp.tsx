@@ -61,7 +61,7 @@ function beams(board: LightUpBoard, bulbs: readonly number[]) {
   return { h, v, redH, redV };
 }
 
-function Board({
+export function Board({
   board,
   marks,
   wrong,

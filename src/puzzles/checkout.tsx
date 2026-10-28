@@ -274,7 +274,7 @@ export function BoardArt({ wedges, quad, bare }: { wedges: readonly number[]; qu
 }
 
 /** A steel dart stuck in the board: tip at the spot, flights up and to the right. */
-function Dart({ x, y, n, fresh, final }: { x: number; y: number; n: number; fresh: boolean; final: boolean }) {
+export function Dart({ x, y, n, fresh, final }: { x: number; y: number; n: number; fresh: boolean; final: boolean }) {
   const dx = Math.cos((-55 * Math.PI) / 180) * 20.5;
   const dy = Math.sin((-55 * Math.PI) / 180) * 20.5;
   return (
@@ -318,7 +318,7 @@ function Dart({ x, y, n, fresh, final }: { x: number; y: number; n: number; fres
  * a gold x4 ring where the board has one, and the bull. A whole wedge (any ring)
  * is one tap target; the selection is drawn as exactly that wedge.
  */
-function Board({
+export function Board({
   stage,
   selected,
   darts,

@@ -80,7 +80,7 @@ export function paintAtom(c: CanvasRenderingContext2D, r: number, colour: string
 }
 
 /** Pixel ship, 12 × 18 blocks of 2 px = exactly the 24 × 36 player box. */
-const SHIP_ROWS = [
+export const SHIP_ROWS = [
   ".....XX.....",
   ".....XX.....",
   "....XXXX....",
@@ -134,7 +134,7 @@ function cachedArt(key: string, width: number, height: number, colour: string, g
 function blit(ctx: CanvasRenderingContext2D, stamp: Stamp, left: number, top: number, width = stamp.width, height = stamp.height): void {
   ctx.drawImage(stamp.layer, left - stamp.pad, top - stamp.pad, width + stamp.pad * 2, height + stamp.pad * 2);
 }
-function plainSprite(ctx: CanvasRenderingContext2D, rows: readonly string[], left: number, top: number, block: number, colour: string): void {
+export function plainSprite(ctx: CanvasRenderingContext2D, rows: readonly string[], left: number, top: number, block: number, colour: string): void {
   ctx.fillStyle = colour;
   rows.forEach((row, y) => {
     for (let x = 0; x < row.length; x++) if (row[x] === "X") ctx.fillRect(left + x * block, top + y * block, block, block);

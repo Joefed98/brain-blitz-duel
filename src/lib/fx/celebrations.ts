@@ -18,7 +18,7 @@
  * running or count-ups; banners and the podium hero appear with a gentle fade; sounds still play.
  * celebrations-check proves it.
  */
-import { FX_CELEBRATIONS, HERO_RUN_SCORE } from "@/config/betaConfig";
+import { FX_CELEBRATIONS, HERO_DANCE_SCORE, HERO_GRAND_SCORE, HERO_RUN_SCORE } from "@/config/betaConfig";
 import { MAX_PLAYERS } from "@/lib/duel/types";
 import type { Standing } from "@/lib/duel/scoring";
 import { prefersReducedMotion } from "@/lib/motion";
@@ -32,6 +32,12 @@ export const BANNER_HOLD_MS = 1200;
 export const BANNER_OUT_MS = 320;
 /** The hero's run across the screen's bottom (ms). */
 export const HERO_RUN_MS = 1600;
+/** The hero's dance on a 190–199 reveal: on, dance, off (ms). */
+export const HERO_DANCE_MS = 1500;
+/** The hero's lap of the screen with fireworks on a 200 reveal (ms). */
+export const HERO_GRAND_MS = 3000;
+/** Reduced motion's stand-in for both: the hero standing still with a short glow (ms). */
+export const HERO_STILL_MS = 1400;
 /** The results count-up (ms), and the rows' slide into their new order. */
 export const COUNT_UP_MS = 1200;
 export const COUNT_UP_SLIDE_MS = 500;
@@ -45,7 +51,7 @@ export const STREAK_MILESTONES: readonly number[] = [3, 7, 30];
 /** The podium hero bobs this long, then holds its pose (so an idle podium costs no frames). */
 export const PODIUM_HERO_BOB_MS = 6000;
 
-export { HERO_RUN_SCORE };
+export { HERO_DANCE_SCORE, HERO_GRAND_SCORE, HERO_RUN_SCORE };
 
 /* ------------------------------------------------------------------ switch */
 
@@ -69,6 +75,15 @@ export function celebrationCalm(): boolean {
 /** The hero run: this player's own stored round score is HERO_RUN_SCORE or more. */
 export function heroRunEarned(score: number | null | undefined): boolean {
   return typeof score === "number" && score >= HERO_RUN_SCORE;
+}
+
+/** The reveal's hero moment for this player's own stored round score: 200 grand, 190–199 dance, 150+ run. */
+export type HeroMoment = "run" | "dance" | "grand";
+export function heroMomentFor(score: number | null | undefined): HeroMoment | null {
+  if (typeof score !== "number") return null;
+  if (score >= HERO_GRAND_SCORE) return "grand";
+  if (score >= HERO_DANCE_SCORE) return "dance";
+  return heroRunEarned(score) ? "run" : null;
 }
 
 /** A streak that gets a banner (3, 7 or 30 days); null for any other. */
@@ -182,6 +197,8 @@ export type CelebrationRequest =
   | { kind: "burst"; scope: number; x: number; y: number; w: number; count: number }
   | { kind: "banner"; scope: number; text: string; calm: boolean; burst: boolean }
   | { kind: "heroRun"; scope: number }
+  | { kind: "heroShow"; scope: number; show: "dance" | "grand"; calm: boolean }
+  | { kind: "skip"; scope: number }
   | { kind: "podiumHero"; scope: number; anchor: Element; calm: boolean }
   | { kind: "strike" }
   | { kind: "clear"; scope: number };
@@ -220,7 +237,13 @@ function pageLog(entry: { kind: string; text?: string; at: number }): void {
 
 function send(request: CelebrationRequest): void {
   if (logging) log.push(request);
-  if (request.kind !== "clear") pageLog({ kind: request.kind, ...(request.kind === "banner" ? { text: request.text } : {}), at: Date.now() });
+  if (request.kind !== "clear")
+    pageLog({
+      kind: request.kind,
+      ...(request.kind === "banner" ? { text: request.text } : {}),
+      ...(request.kind === "heroShow" ? { text: `${request.show}${request.calm ? ":calm" : ""}` } : {}),
+      at: Date.now(),
+    });
   sink?.(request);
 }
 
@@ -249,7 +272,10 @@ export type CelebrationSound =
   | "prepareThunder"
   | "streak"
   | "streakBig"
-  | "logoCharge";
+  | "logoCharge"
+  | "heroDance"
+  | "heroGrand"
+  | "firework";
 
 /** Each sound's manifest slot (src/lib/fx/manifest.ts); the crackle rotates through its three. */
 export const CELEBRATION_SOUND_SLOTS: Record<Exclude<CelebrationSound, "crackle">, string> & { crackle: readonly string[] } = {
@@ -266,6 +292,9 @@ export const CELEBRATION_SOUND_SLOTS: Record<Exclude<CelebrationSound, "crackle"
   streak: "shared.celebrate.streak",
   streakBig: "shared.celebrate.streakBig",
   logoCharge: "shared.celebrate.logoCharge",
+  heroDance: "shared.celebrate.heroDance",
+  heroGrand: "shared.celebrate.heroGrand",
+  firework: "shared.celebrate.firework",
 };
 
 let crackleTurn = 0;
@@ -331,6 +360,39 @@ export function heroRun(scope: number): void {
   if (!celebrationsOn() || celebrationCalm()) return;
   send({ kind: "heroRun", scope });
   celebrationSound("heroRun");
+}
+
+/**
+ * A 190–199 reveal: the hero runs on, dances about 1.5 s and steps off, with its flourish. Reduced
+ * motion: the hero stands still with a short glow instead (the sound still plays).
+ */
+export function heroDance(scope: number): void {
+  if (!celebrationsOn()) return;
+  send({ kind: "heroShow", scope, show: "dance", calm: celebrationCalm() });
+  celebrationSound("heroDance");
+}
+
+/**
+ * A 200 reveal: the hero runs a lap of the screen under fireworks (about 3 s), with the whoosh, the big
+ * flourish and a crackle per firework (the layer plays those as they burst). Reduced motion: the hero
+ * stands still with a short glow, and only the flourish plays.
+ */
+export function heroGrand(scope: number): void {
+  if (!celebrationsOn()) return;
+  const calm = celebrationCalm();
+  send({ kind: "heroShow", scope, show: "grand", calm });
+  if (!calm) celebrationSound("heroRun");
+  celebrationSound("heroGrand");
+}
+
+/** A firework bursting in the 200 lap (the layer calls it, at most every 450 ms). */
+export function fireworkPop(): void {
+  celebrationSound("firework", 0.8);
+}
+
+/** A tap anywhere skips the reveal's hero moment: the hero, its glow and its sparks go at once. */
+export function skipCelebration(scope: number): void {
+  send({ kind: "skip", scope });
 }
 
 /** The hero in the victory pose beside the winner's step (`anchor`); still under reduced motion. */

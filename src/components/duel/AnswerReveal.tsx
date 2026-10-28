@@ -19,7 +19,20 @@ import { useSolveFlourish } from "@/components/puzzles/useSolveFlourish";
 import { nearMiss } from "@/lib/duel/nearMiss";
 import { usePerfectBurst } from "@/lib/fx/useSignature";
 import { NewBestMoment } from "@/components/duel/NewBestMoment";
-import { claimHeroRun, heroRun, heroRunEarned } from "@/lib/fx/celebrations";
+import {
+  HERO_DANCE_MS,
+  HERO_GRAND_MS,
+  HERO_RUN_MS,
+  HERO_STILL_MS,
+  celebrationCalm,
+  claimHeroRun,
+  heroDance,
+  heroGrand,
+  heroMomentFor,
+  heroRun,
+  heroRunEarned,
+  skipCelebration,
+} from "@/lib/fx/celebrations";
 import { useCelebrationScope, useCelebrationsOn } from "@/components/fx/useCelebration";
 
 const REVEAL_SCORE_DELAY_MS = 350;
@@ -574,17 +587,40 @@ function LiveAnswerReveal({
   }, [round, myCorrect, myScore, puzzle.type, def.category]);
   useEffect(() => () => window.clearTimeout(scoreCue.current), []);
 
-  // Celebrations (src/lib/fx/celebrations.ts): a round score of HERO_RUN_SCORE or more sends the
-  // hero running along the bottom once, just after the score lands; it ends with the reveal.
+  // Celebrations (src/lib/fx/celebrations.ts), once per round, just after the score lands, ending with
+  // the reveal: a round score of HERO_RUN_SCORE or more sends the hero running along the bottom;
+  // 190–199 brings it on to dance (heroDance); 200 sends it round the screen under fireworks
+  // (heroGrand). A tap anywhere skips it (the tap still reaches whatever is under it: the layer is
+  // pointer-events none and the listener only observes).
   const celebrate = useCelebrationsOn();
   const scope = useCelebrationScope();
   useEffect(() => {
     if (!celebrate || !heroRunAllowed || !heroRunEarned(myScore)) return;
+    const moment = heroMomentFor(myScore);
     const key = `${practice ? "practice" : "round"}:${puzzle.type}:${round}:${startedAt}`;
+    let skipTimer = 0;
+    const skip = () => {
+      skipCelebration(scope);
+      stopListening();
+    };
+    const stopListening = () => {
+      window.clearTimeout(skipTimer);
+      window.removeEventListener("pointerdown", skip, true);
+    };
     const timer = window.setTimeout(() => {
-      if (claimHeroRun(key)) heroRun(scope);
+      if (!claimHeroRun(key)) return;
+      if (moment === "grand") heroGrand(scope);
+      else if (moment === "dance") heroDance(scope);
+      else heroRun(scope);
+      const lasts = celebrationCalm() ? (moment === "run" ? 0 : HERO_STILL_MS) : moment === "grand" ? HERO_GRAND_MS : moment === "dance" ? HERO_DANCE_MS : HERO_RUN_MS;
+      if (!lasts) return;
+      window.addEventListener("pointerdown", skip, { capture: true, passive: true });
+      skipTimer = window.setTimeout(stopListening, lasts);
     }, REVEAL_SCORE_DELAY_MS + 250);
-    return () => window.clearTimeout(timer);
+    return () => {
+      window.clearTimeout(timer);
+      stopListening();
+    };
   }, [celebrate, myScore, round, startedAt]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (

@@ -18,7 +18,7 @@ import { usesStandard } from "@/lib/duel/standard/stamps";
 import "@/polish-depth-d6/depth-d6.css";
 
 /** One vertical drum, with arrows that repeat while held and a vertical swipe. */
-function Dial({
+export function Dial({
   digit,
   onStep,
   disabled,
