@@ -21,7 +21,8 @@ import {
   type ChainTap,
 } from "@/lib/duel/chain";
 import { useStageState } from "@/lib/duel/stageState";
-import { CHAIN_MILESTONE_POINTS, CHAIN_MILESTONES, chainDepthRevOf, chainMilestones, chainUsesDepth, type ChainMilestone } from "@/lib/duel/depth/chain";
+import { CHAIN_MILESTONE_POINTS, CHAIN_MILESTONES, chainDepthRevOf, chainMilestones, chainUsesDepth as chainDepthStamp, type ChainMilestone } from "@/lib/duel/depth/chain";
+import { chainStandard } from "@/lib/duel/standard/attention";
 import {
   CHAIN_BLOCK,
   CHAIN_REVERSE_AT,
@@ -237,6 +238,11 @@ function ChainLine({ nodes, path, broken }: { nodes: ChainNode[]; path: number[]
       </g>
     </svg>
   );
+}
+
+/** The milestones (and their pips) belong to chainDepthRev 1 and 2; the scoring standard (chainDepthRev 3) drops them. */
+function chainUsesDepth(p: ChainPuzzleData | null | undefined): boolean {
+  return chainDepthStamp(p) && !chainStandard(p);
 }
 
 /**

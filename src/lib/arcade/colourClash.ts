@@ -51,6 +51,7 @@ export const CLASH_REV3_RUN_TICKS = 75 * TICKS_PER_SECOND;
 export const CLASH_REV3_FALL_TICKS = [107, 95, 83, 71, 59] as const;
 /** Variant key: 5 = the taller board (clashRev 5), 4 = rev-3 play with the puzzle score shape, 3 = 75 s rev 3, 2 = 52-word/60 s, 1 = 18-word, 0 = legacy stream. */
 export function clashVariantOf(p: { queue?: number | null; clashRev?: number | null } | null | undefined): number {
+  if (p?.clashRev === CLASH_REV_STANDARD) return 10;
   if (p?.clashRev === CLASH_REV_TOPUP) return 9;
   if (p?.clashRev === CLASH_REV_DEPTH) return 8;
   if (p?.clashRev === CLASH_REV_GREAT) return 7;
@@ -350,6 +351,7 @@ export const colourClashRev3Game: ArcadeGame<ClashState, ArcadeInputEvent | null
 export const colourClashRev4Game: ArcadeGame<ClashState, ArcadeInputEvent | null> = { ...colourClashGame, runTicks: CLASH_REV3_RUN_TICKS, init: initRev4 };
 /** Takes a clashVariantOf key. */
 export function colourClashGameFor(variant: number): ArcadeGame<ClashState, ArcadeInputEvent | null> {
+  if (variant === 10) return colourClashStandardGame;
   if (variant === 9) return colourClashTopupGame;
   if (variant === 8) return colourClashDepthGame;
   if (variant === 7) return colourClashGreatGame;
@@ -427,7 +429,7 @@ export const colourClashRev5Game: ArcadeGame<ClashState, ArcadeInputEvent | null
 
 /** The board height (px) a stored round plays in, by its clashVariantOf key. */
 export function clashWorldHFor(variant: number): number {
-  return variant === 5 || variant === 6 || variant === 7 || variant === 8 || variant === 9 ? CLASH_TALL_H : CLASH_WORLD_H;
+  return variant >= 5 && variant <= 10 ? CLASH_TALL_H : CLASH_WORLD_H;
 }
 
 /* ================= Score bands (clashRev 6, 19 Oct 2026) ================= */
@@ -589,8 +591,9 @@ export function clashDepthPaceTick(state: ClashState): number {
   return Math.max(1, state.finishTick - credit);
 }
 
-/** clashRev 8's score and its parts. */
+/** clashRev 8's score and its parts (clashRev 10: the scoring standard's, clashStandardScoreOf). */
 export function clashDepthScoreOf(state: ClashState): ClashDepthScore {
+  if (state.depth?.scoreRev === CLASH_REV_STANDARD) return clashStandardScoreOf(state);
   const run = clashRunTicksOf(state);
   const finished = clashDepthFinished(state.correct, state.wrong, state.queue, state.finishTick);
   const finishTick = clashDepthPaceTick(state);
@@ -649,3 +652,62 @@ function initTopup(seed: number): ClashState {
   return { ...s, depth: { ...s.depth!, scoreRev: CLASH_REV_TOPUP } };
 }
 export const colourClashTopupGame: ArcadeGame<ClashState, ArcadeInputEvent | null> = { ...colourClashRev5Game, init: initTopup };
+
+/* ================= The scoring standard (clashRev 10, 27 Oct 2026) ================= */
+
+/**
+ * clashRev 10 (the puzzle scoring standard, docs/scoring-standard.md "Speed and Attention decisions"): clashRev 9's
+ * play exactly (the same plan, words, specials and checkpoints; only `depth.scoreRev` differs, and it is never in the
+ * checkpoint), scored on the standard's shape. Integer arithmetic on the sim's own counters:
+ *   - a finish (clashDepthFinished: all 52 sorted or let fall, at most CLASH_DEPTH_MAX_WRONG wrong) = 150
+ *     + speed: CLASH_STD_SPEED in full by CLASH_STD_FULL_BY_TICK (50 s, words let fall timed as quick sorts,
+ *       clashDepthPaceTick), falling evenly to 0 at the end of the run (75 s), less a sixth for each wrong word
+ *       (today's 5 off the 30 speed points)
+ *     + streak: CLASH_STD_STREAK × (longest streak − CLASH_STREAK_FROM) ÷ (queue − CLASH_STREAK_FROM)
+ *     + gold: CLASH_STD_GOLD for each gold word sorted right (five of them);
+ *   - unfinished: CLASH_STD_SHARE × (words right − words wrong) ÷ the queue, plus the streak and gold points (both are
+ *     earned mid-run), at most CLASH_STD_UNFINISHED_TOP; nothing at all while the words right do not outnumber the
+ *     words wrong (an idle or random run).
+ * The breakdown's `base` is 150 on a finish (the share on an unfinished run), `stretch` the speed points.
+ */
+export const CLASH_REV_STANDARD = 10;
+export const CLASH_STD_SHARE = 130;
+export const CLASH_STD_SPEED = 15;
+export const CLASH_STD_FULL_BY_TICK = 50 * TICKS_PER_SECOND;
+export const CLASH_STD_STREAK = 20;
+export const CLASH_STD_GOLD = 3;
+export const CLASH_STD_FINISH = 150;
+export const CLASH_STD_UNFINISHED_TOP = 130;
+/** Wrong words take this share each (in sixths) off the speed points: today's 5 of 30. */
+const CLASH_STD_WRONG_SIXTHS = 6;
+
+/** Rounds num ÷ den (both whole, den > 0) to the nearest whole number, halves up. */
+function roundDiv(num: number, den: number): number {
+  return Math.floor((2 * num + den) / (2 * den));
+}
+
+export function clashStandardScoreOf(state: ClashState): ClashDepthScore {
+  const run = clashRunTicksOf(state);
+  const finished = clashDepthFinished(state.correct, state.wrong, state.queue, state.finishTick);
+  const span = Math.max(1, state.queue - CLASH_STREAK_FROM);
+  const streak = roundDiv(CLASH_STD_STREAK * clampInt((state.depth?.best ?? 0) - CLASH_STREAK_FROM, 0, span), span);
+  const gold = CLASH_STD_GOLD * (state.depth?.golds ?? 0);
+  if (!finished) {
+    const share = roundDiv(CLASH_STD_SHARE * Math.max(0, state.correct - state.wrong), Math.max(1, state.queue));
+    // The extras count only on a run that sorted more right than wrong: an idle or random run (words landing in the lane
+    // they fall to) earns nothing, though a gold word may land right by chance.
+    return { base: share, gold, streak, stretch: 0, total: share > 0 ? clampInt(share + streak + gold, 0, CLASH_STD_UNFINISHED_TOP) : 0, finished };
+  }
+  const window = run - CLASH_STD_FULL_BY_TICK;
+  const left = clampInt(run - clashDepthPaceTick(state), 0, window);
+  const keep = Math.max(0, CLASH_STD_WRONG_SIXTHS - state.wrong);
+  const speed = roundDiv(CLASH_STD_SPEED * left * keep, window * CLASH_STD_WRONG_SIXTHS);
+  return { base: CLASH_STD_FINISH, gold, streak, stretch: speed, total: clampInt(CLASH_STD_FINISH + speed + streak + gold, 0, 200), finished };
+}
+
+function initStandard(seed: number): ClashState {
+  const s = initDepth(seed);
+  return { ...s, depth: { ...s.depth!, scoreRev: CLASH_REV_STANDARD } };
+}
+/** clashRev 10: clashRev 9's play, scored on the standard. */
+export const colourClashStandardGame: ArcadeGame<ClashState, ArcadeInputEvent | null> = { ...colourClashRev5Game, init: initStandard };

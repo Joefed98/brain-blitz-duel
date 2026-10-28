@@ -1,5 +1,10 @@
 /**
- * Room identity for Wavefront wavRev 10 (docs/expansions/x200-wavefront.md, the 26 Oct 2026 arcade rule):
+ * Room identity for Wavefront wavRev 11 (Joe's phone notes, docs/phone-notes-oct-2026/wavefront.md; before it wavRev 10,
+ * docs/expansions/x200-wavefront.md, the 26 Oct 2026 arcade rule). On wavRev 11 nothing falls from the top: the
+ * power-ups are carried by seeded ships (wavCarriers) and dropped when they are shot, and a saucer shot down drops the
+ * laser. The schedule lists wave 1's carriers at the start and every saucer; every later wave's carriers are proved the
+ * same for every log that reaches the wave by wavefront-phone-check (a wave arrives when the one before is cleared).
+ * On wavRev 10:
  * `scheduleOf` replays an input log on the given revision and lists every seeded appearance on the run's
  * clock: each planned power-up (its tick, kind and x) and each saucer (its tick and side). Two very different logs on the same
  * seed must list the same entries over the ticks both runs lived: nothing appears because of how the player
@@ -10,7 +15,7 @@
  *   import { roomIdentity } from "./room-identity/wavefront";
  */
 import { ARCADE_INPUT_DRAG, type ArcadeInputEvent } from "../../src/lib/arcade/engine";
-import { wavefrontGameFor, WAV_REV_EXPAND, WAV_SAUCER_EVERY, WAV_WORLD_W, type WavState } from "../../src/lib/arcade/wavefront";
+import { wavefrontGameFor, WAV_REV_PHONE, WAV_SAUCER_EVERY, WAV_WORLD_W, type WavState } from "../../src/lib/arcade/wavefront";
 import { Human, type SkillLevel } from "../arcade-skill-bands/human";
 import { bot } from "../arcade-skill-bands/bots/wavefront";
 
@@ -22,6 +27,7 @@ export function scheduleOf(seed: number, rev: number, events: unknown): { t: num
   const byTick = new Map(log.map((e) => [e.t, e]));
   const out: { t: number; what: string }[] = [];
   let s = game.init(seed) as WavState;
+  if (s.r11) out.push({ t: 0, what: `wave 1 carriers ${(s.carry ?? []).map((k, i) => (k >= 0 ? `${i}:${KIND[k]}` : "")).filter(Boolean).join(" ")}` });
   while (!game.isOver(s) && s.tick < game.runTicks) {
     const prev = s;
     s = game.step(s, byTick.get(s.tick + 1) ?? null) as WavState;
@@ -52,15 +58,15 @@ export function randomLog(seed: number, ticks = 5400): ArcadeInputEvent[] {
   return events;
 }
 
-/** A skill-band bot's log on wavRev 10. */
-export function botLog(seed: number, level: SkillLevel): ArcadeInputEvent[] {
-  const game = wavefrontGameFor(WAV_REV_EXPAND);
-  return bot({ game, seed, rev: WAV_REV_EXPAND, human: new Human("wavefront", seed, level) }).events ?? [];
+/** A skill-band bot's log on a revision (the revision rooms deal by default). */
+export function botLog(seed: number, level: SkillLevel, rev: number = WAV_REV_PHONE): ArcadeInputEvent[] {
+  const game = wavefrontGameFor(rev);
+  return bot({ game, seed, rev, human: new Human("wavefront", seed, level) }).events ?? [];
 }
 
 export const roomIdentity = {
   type: "wavefront",
-  rev: WAV_REV_EXPAND,
+  rev: WAV_REV_PHONE,
   scheduleOf,
   logs: (seed: number): ArcadeInputEvent[][] => [[], randomLog(seed), botLog(seed, "weak"), botLog(seed, "elite")],
 };

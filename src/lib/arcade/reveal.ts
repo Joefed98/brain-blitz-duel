@@ -393,7 +393,7 @@ const BUILDERS: Record<string, Builder> = {
   burst: (r, s) => ({
     axis: { value: Math.max(1, n(r, "wave")), max: null, label: "Waves" },
     lines:
-      typeof r["cleanWaves"] === "number"
+      typeof r["cleanWaves"] === "number" || typeof r["quickWaves"] === "number"
         ? [`${n(r, "hits")} atoms · ${n(r, "livesLost")} lives lost · skill +${n(r, "skill")} → ${s}`]
         : n(r, "burstRev") > 0
         ? [
@@ -406,6 +406,8 @@ const BUILDERS: Record<string, Builder> = {
       { label: "Atoms", value: String(n(r, "hits")) },
       { label: "Lives lost", value: String(n(r, "livesLost")) },
       // burstRev 8: clean waves and golden atoms.
+      // burstRev 9: quick waves (cleared with a time bonus) and golden atoms.
+      ...(typeof r["quickWaves"] === "number" ? [{ label: "Quick waves", value: String(n(r, "quickWaves")) }, { label: "Golden atoms", value: `${n(r, "goldens")} / 6` }] : []),
       ...(typeof r["cleanWaves"] === "number" ? [{ label: "Clean waves", value: String(n(r, "cleanWaves")) }, { label: "Golden atoms", value: `${n(r, "goldens")} / 6` }] : []),
       ...(n(r, "burstRev") > 0 ? [{ label: "Waves cleared", value: String(n(r, "cleared")) }, { label: "Freezes", value: String(n(r, "freezes")) }] : []),
     ],
@@ -623,7 +625,26 @@ const BUILDERS: Record<string, Builder> = {
     // clashRev 4 (puzzle score shape): a finish is all sorted with at most 2 wrong = 120 + the time bonus
     // (−5 per wrong from it); otherwise 110 × correct ÷ N − 2 per wrong. The bonus is the stored one.
     // clashRev 8 (depth to 200): the same lines, then the gold, streak and speed-stretch points a finish added.
-    const depth = (r as { depth?: { base: number; gold: number; streak: number; stretch: number; best: number; golds: number; goldWords: number; touched: number } }).depth;
+    const depth = (r as { depth?: { base: number; gold: number; streak: number; stretch: number; best: number; golds: number; goldWords: number; touched: number; standard?: boolean } }).depth;
+    // clashRev 10 (the scoring standard): 150 + speed + streak + gold, or the share of words right less wrong plus both.
+    if (depth?.standard && n(r, "queue") > 0) {
+      const done = b(r, "finished");
+      const sorted = n(r, "correct") + n(r, "wrong") >= n(r, "queue");
+      return {
+        axis: { value: n(r, "correct"), max: n(r, "queue"), label: "Correct" },
+        lines: [
+          `${n(r, "correct")} / ${n(r, "queue")} correct → ${s}`,
+          done ? `${n(r, "wrong")} wrong · finish ${depth.base} · speed +${depth.stretch}` : `${n(r, "wrong")} wrong · ${Math.max(0, n(r, "net"))} net → ${depth.base} · ${sorted ? "more than 3 wrong" : "not all sorted"}`,
+          `streak +${depth.streak} (best ${depth.best}) · gold +${depth.gold} (${depth.golds}/${depth.goldWords})`,
+        ],
+        tiles: [
+          { label: "Correct", value: `${n(r, "correct")} / ${n(r, "queue")}` },
+          { label: "Best streak", value: String(depth.best) },
+          { label: "Bonus", value: `+${depth.gold + depth.streak}` },
+        ],
+        outcome: done ? "finish" : "time",
+      };
+    }
     if (depth && n(r, "queue") > 0) {
       const done = b(r, "finished");
       const sorted = n(r, "correct") + n(r, "wrong") >= n(r, "queue");

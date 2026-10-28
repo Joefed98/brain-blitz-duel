@@ -22,6 +22,9 @@
  * 7. Bands: the elite kit player reaches 190–200 on some seed; a good player's median stays within 10 % of rev 2's.
  */
 import { readFileSync, writeFileSync } from "node:fs";
+import { pinPreStandard } from "../src/lib/duel/standard/stamps";
+// Written for the stamps before the scoring standard (docs/scoring-standard.md): new deals keep them.
+pinPreStandard(true);
 import { gunzipSync, gzipSync } from "node:zlib";
 
 import { createElement } from "react";

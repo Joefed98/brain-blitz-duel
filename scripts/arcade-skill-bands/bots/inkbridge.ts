@@ -41,7 +41,7 @@ import {
   INK_STEP_PX,
   INK_WORLD_H,
   INK_WORLD_W,
-  INK_REV_EXPAND,
+  inkX,
   inkIsLive,
   inkPhoneLine,
   inkFeatureRaw,
@@ -281,7 +281,7 @@ type Game = ArcadeGame<InkState, ArcadeInputEvent | null>;
  */
 export function simulate(game: Game, from: InkState, strokes: number[][], rel: number | null, live: number[][], still = false, wantTrace = false, perturb = 0, liveDelay = IDEAL_LIVE_DELAY, liveSpeed = 0): { potted: boolean; star: boolean; trick: boolean; raw: number; flight: number; trace: { x: number; y: number; on: number }[] } {
   const trace: { x: number; y: number; on: number }[] = [];
-  phoneExact = from.rev === INK_REV_EXPAND;
+  phoneExact = inkX(from.rev);
   worldH = inkWorldH(from);
   let s: InkState = from;
   if (still) {
@@ -354,7 +354,7 @@ export function simulate(game: Game, from: InkState, strokes: number[][], rel: n
 export function inkIdeal(game: Game, seed: number, s: InkState, wantStar: boolean): Ideal {
   const key = `${seed}:${s.level}:${wantStar ? 1 : 0}:${s.rev}`;
   // inkRev 10: a cloud level's bonus line must also bounce (its star sits at the top of the bounce).
-  const bounce = s.rev === INK_REV_EXPAND && Boolean(s.list[s.level]!.clouds?.length);
+  const bounce = inkX(s.rev) && Boolean(s.list[s.level]!.clouds?.length);
   const hit = idealCache.get(key);
   if (hit) return hit;
   const lvl: InkLevel = s.list[s.level]!;
@@ -587,7 +587,7 @@ export function inkPlan(game: Game, seed: number, s: InkState, need: "pot" | "st
   const moving = lvl.slideAmp > 0;
   let sims = 0;
   // inkRev 10: a cloud level's bonus line must also bounce.
-  const bounce = s.rev === INK_REV_EXPAND && Boolean(lvl.clouds?.length);
+  const bounce = inkX(s.rev) && Boolean(lvl.clouds?.length);
   const wants = (r: { potted: boolean; star: boolean; trick: boolean }) => r.potted && (need === "pot" || (r.star && (!bounce || r.trick)));
   const run = (strokes: number[][], liveSt: number[][], rel: number | null, still: boolean, perturb = 0, delay = PLAN_DELAY, speed = PLAN_LIVE_SPEED) => {
     sims += 1;
@@ -967,7 +967,7 @@ export const bot: SkillBot = ({ game, seed, human, fixes }) => {
   const level = human.level;
   const init = game.init(seed) as InkState;
   worldH = inkWorldH(init);
-  const expand = init.rev === INK_REV_EXPAND;
+  const expand = inkX(init.rev);
   phoneExact = expand;
 
   const plan = new Plan();

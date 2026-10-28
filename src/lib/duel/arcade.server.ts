@@ -2,10 +2,10 @@ import { TEN_DROP_DEPTH_REV } from "@/lib/arcade/tenDrop";
 import { SLICE_REV_TARGET, SLICE_REV_STRICT, SLICE_REV_BIG } from "@/lib/arcade/slice";
 import { FLIP_REV_TARGET, FLIP_REV_STRICT, FLIP_REV_LIFT } from "@/lib/arcade/flip";
 import { CROSS_REV_EXPAND } from "@/lib/arcade/cross";
-import { INK_REV_EXPAND } from "@/lib/arcade/inkBridge";
+import { INK_REV_SPREAD } from "@/lib/arcade/inkBridge";
 import { SNAKE_REV_TARGET, SNAKE_REV_10 } from "@/lib/arcade/snake";
 import { BUB_REV_BLAST } from "@/lib/arcade/bubble";
-import { MATCHUP_REV_GOALS } from "@/lib/arcade/matchup";
+import { MATCHUP_REV_ICE } from "@/lib/arcade/matchup";
 import { SNIP_REV_TARGET, SNIP_REV_EXPAND } from "@/lib/arcade/snip";
 import { SKYLINE_REV_TARGET, SKYLINE_REV_STRICT, SKYLINE_REV_LIFT } from "@/lib/arcade/skyline";
 import { TILT_REV_LIFT } from "@/lib/arcade/tilt";
@@ -13,12 +13,12 @@ import { TILT_BANK } from "./tiltBank.server";
 import { JUNC_REV_BAND } from "@/lib/arcade/junction";
 import { BINTOSS_REV_TARGET, BINTOSS_REV_STRICT, BINTOSS_REV_SMALL_FAR } from "@/lib/arcade/binToss";
 import { SWING_REV_TALL, SWING_REV_TARGET, SWING_REV_STRICT, SWING_REV_EXPAND, SWING_REV_ASSAULT } from "@/lib/arcade/swing";
-import { BURST_REV_TARGET, BURST_REV_STRICT, BURST_REV_CLEAN } from "@/lib/arcade/burst";
+import { BURST_REV_TARGET, BURST_REV_STRICT, BURST_REV_CARRY } from "@/lib/arcade/burst";
 import { BRK_REV_TARGET, BRK_REV_STRICT, BRK_REV_DEEP, BRK_REV_PHONE } from "@/lib/arcade/breaker";
-import { PIN_REV_TARGET, PIN_REV_STRICT, PIN_REV_EXPAND } from "@/lib/arcade/pinball";
+import { PIN_REV_TARGET, PIN_REV_STRICT, PIN_REV_EXPAND, PIN_REV_LONG } from "@/lib/arcade/pinball";
 import { WHACK_REV_DEPTH, WHACK_REV_NOTES } from "@/lib/arcade/whack";
 import { dealtNotesRev } from "./phoneNotes";
-import { WAV_REV_TARGET, WAV_REV_STRICT, WAV_REV_EXPAND } from "@/lib/arcade/wavefront";
+import { WAV_REV_TARGET, WAV_REV_STRICT, WAV_REV_PHONE } from "@/lib/arcade/wavefront";
 import { ORBIT_REV_TARGET, ORBIT_REV_STRICT, ORBIT_REV_XP } from "@/lib/arcade/orbit";
 import { RALLY_REV_TARGET, RALLY_REV_STRICT, RALLY_REV_CURVE } from "@/lib/arcade/rally";
 import { BEAT_REV_TARGET, BEAT_REV_EASE } from "@/lib/arcade/beat";
@@ -98,8 +98,9 @@ export function generateBullseye(): BullseyePuzzleData {
 }
 
 export function generateMatchup(): MatchupPuzzleData {
-  // matchupRev 9 (expansion E6): the taller board with goals, ice and treasure.
-  return { type: "matchup", seed: arcadeSeed(), matchupRev: MATCHUP_REV_GOALS };
+  // matchupRev 10 (27 Oct 2026, phone-test notes): matchupRev 9's taller board with goals, ice and treasure, over 90 s,
+  // with swaps into and out of ice that make a line, and the ice laid once.
+  return { type: "matchup", seed: arcadeSeed(), matchupRev: MATCHUP_REV_ICE };
 }
 
 export function generateSnake(): SnakePuzzleData {
@@ -125,7 +126,8 @@ export function generateBreaker(): BreakerPuzzleData {
 }
 
 export function generatePinball(): PinballPuzzleData {
-  return { type: "pinball", seed: arcadeSeed(), pinRev: PIN_REV_EXPAND };
+  // pinRev 5 (27 Oct 2026, Joe's phone notes): pinRev 4's table for 90 s.
+  return { type: "pinball", seed: arcadeSeed(), pinRev: PIN_REV_LONG };
 }
 
 export function generateRally(): RallyPuzzleData {
@@ -171,7 +173,8 @@ export function generateWhack(): WhackPuzzleData {
 }
 
 export function generateWavefront(): WavefrontPuzzleData {
-  return { type: "wavefront", seed: arcadeSeed(), wavRev: WAV_REV_EXPAND };
+  // wavRev 11 (Joe's phone notes, 27 Oct 2026): power-ups from carrier ships and saucers, no streak, the mothership after wave 5.
+  return { type: "wavefront", seed: arcadeSeed(), wavRev: WAV_REV_PHONE };
 }
 
 export function generateBastion(): BastionPuzzleData {
@@ -197,11 +200,13 @@ export function generateJunction(): JunctionPuzzleData {
 }
 
 export function generateInkBridge(): InkBridgePuzzleData {
-  return { type: "inkbridge", seed: arcadeSeed(), inkRev: INK_REV_EXPAND };
+  // inkRev 11 (phone notes, 27 Oct 2026): no wind zones, fewer silver coins, the pickups spread out.
+  return { type: "inkbridge", seed: arcadeSeed(), inkRev: INK_REV_SPREAD };
 }
 
 export function generateBurst(): BurstPuzzleData {
-  return { type: "burst", seed: arcadeSeed(), burstRev: BURST_REV_CLEAN };
+  // burstRev 9 (phone-test notes, docs/phone-notes-oct-2026/fission.md): power-ups carried by seeded atoms, a bouncing golden atom, BURST shots, the wave-clear bonus.
+  return { type: "burst", seed: arcadeSeed(), burstRev: BURST_REV_CARRY };
 }
 
 export function generateOrbit(): OrbitPuzzleData {

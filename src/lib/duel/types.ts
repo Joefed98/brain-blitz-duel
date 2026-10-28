@@ -1831,14 +1831,14 @@ export interface BullseyePuzzleData {
 
 /* ================================ Matchup ================================ */
 
-/** A fixed 60-second run; the round clock adds three seconds of slack. */
+/** A fixed 60-second run (matchupRev 10: 90 s, on its definition's clock); the round clock adds three seconds of slack. */
 export const MATCHUP_TIME_MS = 63_000;
 
 export interface MatchupPuzzleData {
   type: "matchup";
   /** Draws the board and each column's refill queue — identical for everyone. */
   seed: number;
-  /** Rule revision (2 = Jackpot gem, constant play, own par; 3 = original fall speed; 4 = score bands; 5 = wait for gems to fall, par 2,500, Tuning C); absent = original rules. */
+  /** Rule revision (2 = Jackpot gem, constant play, own par; 3 = original fall speed; 4 = score bands; 5 = wait for gems to fall, par 2,500, Tuning C; 9 = the taller board with goals, ice and treasure; 10 = 9 over 90 s, swaps into and out of ice that make a line, ice laid once); absent = original rules. */
   matchupRev?: number;
 }
 
@@ -1895,14 +1895,14 @@ export interface BreakerPuzzleData {
 
 /* ================================ Pinball ================================ */
 
-/** A fixed 60-second, three-ball run; the round clock adds three of slack (63 s). */
+/** pinRev 1–4's fixed 60-second, three-ball run; the round clock adds three of slack (63 s). pinRev 5 runs 90 s on a 93 s clock (src/puzzles/pinball.tsx). */
 export const PINBALL_TIME_MS = 63_000;
 
 export interface PinballPuzzleData {
   type: "pinball";
   /** Stored like every arcade seed; the table itself is fixed, so it plays the same for everyone whatever the seed. */
   seed: number;
-  /** Rules revision (1 = the first table, scored on the Oct 2026 band shape). */
+  /** Rules revision (1 = the first table, scored on the Oct 2026 band shape; 4 the taller table; 5 it for 90 s). */
   pinRev?: number;
 }
 

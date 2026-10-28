@@ -11,6 +11,9 @@
  *   bun scripts/depth-tilegrid-check.ts [--record]
  */
 import { gradeAnswer } from "../src/lib/duel/generate.server";
+import { pinPreStandard } from "../src/lib/duel/standard/stamps";
+// Written for the stamps before the scoring standard (docs/scoring-standard.md): new deals keep them.
+pinPreStandard(true);
 import { INTRO_SCORE } from "../src/lib/duel/introScore";
 import { PUZZLE_INSTRUCTIONS } from "../src/lib/duel/instructions";
 import { rev3Game } from "../src/lib/duel/puzzleScoreRev3";

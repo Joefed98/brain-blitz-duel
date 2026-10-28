@@ -35,6 +35,10 @@ import {
 } from "../src/lib/duel/depth/chain";
 import { BOT_LEVELS, botRuns, levelRow, printTable, quantile } from "./depth/chain-pair-bots";
 import { pinPreTopup } from "../src/lib/duel/depthTopup";
+import { CHAIN_DEPTH_INTRO, chainDepthHelp } from "../src/lib/duel/depth/chain";
+import { rev3UnfinishedScore } from "../src/lib/duel/puzzleScoreRev3";
+import { fillMax } from "../src/lib/duel/roundMax";
+import { STANDARD_ATTENTION_HELP, STANDARD_ATTENTION_INTRO } from "../src/lib/duel/standard/attentionTexts";
 
 // The puzzle top-up (26 Oct 2026, docs/depth/topup-oct-2026.md) deals newer stamps; this check proves the stamps it was
 // written for, so new deals are pinned to them (depth-topup-check proves the top-up's).
@@ -117,10 +121,16 @@ for (const links of [9, 10, 19, 20, 30, 39]) {
 }
 
 /* ------------------------------------------------------------------ texts */
+// The milestone texts (depth/chain.ts) explain the milestones; since the scoring standard (27 Oct 2026, chainDepthRev 3,
+// no milestones) the live intro and help are the standard's (standard/attentionTexts.ts, proved by standard-attention-check).
+const depthIntro = fillMax(CHAIN_DEPTH_INTRO, "chain");
+ok(depthIntro.length <= 90 && /\b200\b/.test(depthIntro) && /10, 20 and 30/.test(depthIntro), `milestone intro: ${depthIntro}`);
+const depthHelp = fillMax(chainDepthHelp(rev3UnfinishedScore("chain", 0.5)), "chain");
+ok(/Milestones/.test(depthHelp) && /\b200\b/.test(depthHelp), "the milestone help explains the milestones");
 const intro = INTRO_SCORE.chain;
-ok(intro.length <= 90 && /\b200\b/.test(intro) && /10, 20 and 30/.test(intro), `intro: ${intro}`);
 const help = PUZZLE_INSTRUCTIONS.chain;
-ok(/Milestones/.test(help.score) && /\b200\b/.test(help.score) && help.how.some((h) => /Milestones/.test(h.action) && !h.helpOnly), "help and intro explain the milestones");
+ok(intro === fillMax(STANDARD_ATTENTION_INTRO.chain, "chain") && intro.length <= 90 && /\b200\b/.test(intro) && !/10, 20 and 30/.test(intro), `live intro is the standard's: ${intro}`);
+ok(help.score === fillMax(STANDARD_ATTENTION_HELP.chain(), "chain") && /\b200\b/.test(help.score) && !/Milestones/.test(help.score) && !help.how.some((h) => /Milestones/.test(h.action)), "the live help is the standard's, without milestones");
 
 /* ------------------------------------------------------------------ 4. bots */
 const strip = (p: PuzzleData) => ({ ...(p as ChainPuzzleData), chainDepthRev: undefined }) as PuzzleData;

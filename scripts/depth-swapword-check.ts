@@ -13,6 +13,9 @@
  *   bun scripts/depth-swapword-check.ts --record   # re-record the legacy fixture (pinned to the pre-depth stamp)
  */
 import { SWAPWORD_REV3, SWAPWORD_REV_PAR } from "../src/lib/duel/swapword";
+import { pinPreStandard } from "../src/lib/duel/standard/stamps";
+// Written for the stamps before the scoring standard (docs/scoring-standard.md): new deals keep them.
+pinPreStandard(true);
 import type { PuzzleData, SwapwordPuzzleData } from "../src/lib/duel/types";
 import { runParCheck } from "./depth-par-lib";
 import { pinPreTopup } from "../src/lib/duel/depthTopup";

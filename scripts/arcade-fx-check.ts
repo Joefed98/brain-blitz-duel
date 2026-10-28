@@ -60,7 +60,7 @@ const { rallyArtGame } = await import("../src/lib/arcade/rally.renderer");
 const { rallyRev2Game } = await import("../src/lib/arcade/rally");
 const { BRK_REV_DEEP } = await import("../src/lib/arcade/breaker");
 const { rallyGameFor, RALLY_REV_CURVE } = await import("../src/lib/arcade/rally");
-const { BURST_REV_CLEAN } = await import("../src/lib/arcade/burst");
+const { BURST_REV_CARRY } = await import("../src/lib/arcade/burst");
 const { beatArtGame } = await import("../src/lib/arcade/beat.renderer");
 const { beatRev2Game } = await import("../src/lib/arcade/beat");
 const { snakeArtGame } = await import("../src/lib/arcade/snake.renderer");
@@ -120,14 +120,14 @@ const GAMES: Record<string, AnyGame> = {
   rally: { ...rallyGameFor(RALLY_REV_CURVE), draw: rallyArtGame.draw } as AnyGame,
   beat: { ...beatArtGame, init: beatRev2Game.init } as AnyGame,
   snake: { ...snakeArtGame, init: snakeRev3Game.init } as AnyGame,
-  burst: burstArtGameFor(BURST_REV_CLEAN) as AnyGame,
+  burst: burstArtGameFor(BURST_REV_CARRY) as AnyGame,
   wavefront: wavefrontArtGameFor(2) as AnyGame,
   orbit: orbitArtGame as AnyGame,
   skyline: { ...skylineArtGame, init: skylineRev2Game.init } as AnyGame,
   // The revision rooms deal (crossRev 9, x200: the island, coins and streak events too).
   cross: crossArtGameFor(9) as AnyGame,
   junction: junctionArtGame as AnyGame,
-  inkbridge: inkBridgeArtGameFor(10) as AnyGame, // inkRev 10 (x200): the taller world rooms deal, its spec ARCADE_FX_SPECS.inkbridge
+  inkbridge: inkBridgeArtGameFor(11) as AnyGame, // inkRev 11 (phone notes; inkRev 10's taller world, x200): what rooms deal, its spec ARCADE_FX_SPECS.inkbridge
   slice: sliceArtGameFor(2) as AnyGame,
   bintoss: { ...binTossArtGame, init: binTossGameFor(3).init } as AnyGame,
   bullseye: { ...bullseyeGame, init: bullseyeRev2Game.init, draw: drawBullseye } as AnyGame,
@@ -147,7 +147,7 @@ const GAMES: Record<string, AnyGame> = {
   pinball: pinballArtGame as AnyGame,
 };
 
-assert.equal(Object.keys(GAMES).length, 23, "23 arcade games with a world (22 active with Pinball; Junction practice only)");
+assert.equal(Object.keys(GAMES).length, 23, "23 arcade games with a world (21 active with Pinball; Junction and Scrumper practice only)");
 assert.deepEqual(
   Object.keys(GAMES).sort(),
   Object.keys(specs.ARCADE_FX_SPECS).sort(),

@@ -8,7 +8,9 @@
  * reactions), so their plays return one step: the whole tap log at the last tap.
  */
 import { chainLongCycles, chainRequiredAt, chainReversedAt, chainBoardIndex, chainWindowMs, encodeChainAnswer, type ChainTap } from "../../src/lib/duel/chain";
-import { encodeMazePath, mazeCorridorNeighbours } from "../../src/lib/duel/maze";
+import { encodeMazePath, mazeColsOf, mazeCorridorNeighbours } from "../../src/lib/duel/maze";
+import { encodeMazeTrail, usesMazeDepth } from "../../src/lib/duel/depth/labyrinth";
+import { joinPairGoldTime, pairGoldTimed } from "../../src/lib/duel/depth/matchmaker";
 import { encodePairFlips, sameCard } from "../../src/lib/duel/pairmatch";
 import { joinStages } from "../../src/lib/duel/stagedRounds";
 import { markerState, targetCentre, watchLifeMs } from "../../src/lib/duel/stopWatch";
@@ -557,16 +559,63 @@ function branchWalk(m: MazePuzzleData, from: number, parent: number, max: number
   return walk;
 }
 
+/** mazeRev 1+ (depth/labyrinth.ts) answers are the whole trail; older mazes send the drawn path. Tracks both. */
+class MazeTrack {
+  readonly path: number[];
+  readonly trail: number[];
+  constructor(private m: MazePuzzleData) {
+    this.path = [m.start];
+    this.trail = [m.start];
+  }
+  push(cell: number): void {
+    this.path.push(cell);
+    this.trail.push(cell);
+  }
+  pop(): void {
+    if (this.path.length <= 1) return;
+    this.path.pop();
+    this.trail.push(this.path[this.path.length - 1]!);
+  }
+  answer(): string {
+    return usesMazeDepth(this.m) ? encodeMazeTrail(this.trail, mazeColsOf(this.m)) : encodeMazePath(this.path);
+  }
+}
+
+/** The branch cells from the route to a star (exclusive of the route cell), and the route cell it leaves from. */
+function mazeStarBranch(m: MazePuzzleData, star: number): { root: number; cells: number[] } {
+  const onRoute = new Set(m.solution ?? []);
+  const from = new Map<number, number>([[star, -1]]);
+  const queue = [star];
+  while (queue.length) {
+    const cell = queue.shift()!;
+    if (onRoute.has(cell)) {
+      const cells: number[] = [];
+      let c = from.get(cell)!;
+      while (c !== -1) {
+        cells.push(c);
+        c = from.get(c)!;
+      }
+      return { root: cell, cells };
+    }
+    for (const n of mazeCorridorNeighbours(m.cells, cell)) if (!from.has(n)) (from.set(n, cell), queue.push(n));
+  }
+  return { root: -1, cells: [] };
+}
+
+/** mazeRev 1+: the chance a player detours to each star off the route (depth-labyrinth-check's levels). */
+const MAZE_STAR_CHANCE: Record<Skill["level"], number> = { average: 0.25, good: 0.5, great: 0.8, near: 1 };
+
 const labyrinth: PuzzleKit = {
   type: "maze",
-  // The Stage's path starts as [start].
-  nothing: (p) => encodeMazePath([(p as MazePuzzleData).start]),
+  // The Stage's path starts as [start] (mazeRev 1+: an empty trail).
+  nothing: (p) => new MazeTrack(p as MazePuzzleData).answer(),
   spam(p, rng, limitMs) {
     const m = p as MazePuzzleData;
     // Finger scribbling: ~6 cells a second, every touch a random neighbour (retrace undoes).
     const moves = Math.floor((limitMs / 1000) * 6);
     const scribble = (bias: boolean) => {
-      const path = [m.start];
+      const track = new MazeTrack(m);
+      const path = track.path;
       for (let i = 0; i < moves; i++) {
         const last = path[path.length - 1]!;
         if (last === m.exit) break;
@@ -574,13 +623,14 @@ const labyrinth: PuzzleKit = {
         const fresh = options.filter((n) => n !== path[path.length - 2]);
         // Biased: keeps going forward until a dead end, then backs up (a blind depth-first scribble).
         const cell = bias && fresh.length ? rng.pick(fresh) : rng.pick(options);
-        if (path.length > 1 && cell === path[path.length - 2]) path.pop();
-        else path.push(cell);
+        if (path.length > 1 && cell === path[path.length - 2]) track.pop();
+        else track.push(cell);
       }
-      return encodeMazePath(path);
+      return track.answer();
     };
     const dfs = () => {
-      const path = [m.start];
+      const track = new MazeTrack(m);
+      const path = track.path;
       const seen = new Set([m.start]);
       for (let i = 0; i < moves; i++) {
         const last = path[path.length - 1]!;
@@ -589,10 +639,10 @@ const labyrinth: PuzzleKit = {
         if (fresh.length) {
           const cell = rng.pick(fresh);
           seen.add(cell);
-          path.push(cell);
-        } else if (path.length > 1) path.pop();
+          track.push(cell);
+        } else if (path.length > 1) track.pop();
       }
-      return encodeMazePath(path);
+      return track.answer();
     };
     return [
       { label: "random-scribble", answer: scribble(false) },
@@ -603,31 +653,50 @@ const labyrinth: PuzzleKit = {
   play(p, rng, skill) {
     const m = p as MazePuzzleData;
     const route = m.solution ?? [];
-    const path = [m.start];
+    const track = new MazeTrack(m);
     const steps: Step[] = [];
+    // mazeRev 1+: stars off the route, each taken (in and back out) with the level's chance. Older mazes have none,
+    // and their play draws exactly the random numbers it always did.
+    const branches = usesMazeDepth(m)
+      ? (m.stars ?? []).map((s) => mazeStarBranch(m, s)).filter((b) => b.cells.length > 0).map((b) => ({ ...b, take: rng.chance(MAZE_STAR_CHANCE[skill.level]) }))
+      : [];
     // BASE 0.4 s per route cell (tracing a 19×19 maze while reading ahead), 0.25 s per cell in a wrong
     // branch and back; 2 s to look the maze over first.
     let t = thinkMs(rng, 2, skill);
     for (let i = 1; i < route.length; i++) {
       const here = route[i - 1]!;
+      for (const b of branches) {
+        if (!b.take || b.root !== here) continue;
+        // Out along the branch to the star (cells listed from the route outwards), then back to the route.
+        for (const cell of b.cells) {
+          t += thinkMs(rng, 0.25, skill);
+          track.push(cell);
+          steps.push({ answer: track.answer(), atMs: t });
+        }
+        for (let k = 0; k < b.cells.length; k++) {
+          t += thinkMs(rng, 0.2, skill);
+          track.pop();
+          steps.push({ answer: track.answer(), atMs: t });
+        }
+      }
       const side = mazeCorridorNeighbours(m.cells, here).filter((n) => n !== route[i] && n !== route[i - 2]);
       if (side.length && rng.chance(skill.err)) {
         // Wrong turn at a junction: follows it until it is clearly a dead end, then retraces.
         const walk = branchWalk(m, rng.pick(side), here, rng.int(3, 12), rng);
         for (const cell of walk) {
           t += thinkMs(rng, 0.25, skill);
-          path.push(cell);
-          steps.push({ answer: encodeMazePath(path), atMs: t });
+          track.push(cell);
+          steps.push({ answer: track.answer(), atMs: t });
         }
         for (let k = 0; k < walk.length; k++) {
           t += thinkMs(rng, 0.2, skill);
-          path.pop();
-          steps.push({ answer: encodeMazePath(path), atMs: t });
+          track.pop();
+          steps.push({ answer: track.answer(), atMs: t });
         }
       }
       t += thinkMs(rng, 0.4, skill);
-      path.push(route[i]!);
-      steps.push({ answer: encodeMazePath(path), atMs: t });
+      track.push(route[i]!);
+      steps.push({ answer: track.answer(), atMs: t });
     }
     return { steps };
   },
@@ -642,16 +711,22 @@ const matchmaker: PuzzleKit = {
     const cards = (p as PairPuzzleData).cards;
     // A blind try (two flips plus the 600 ms flip-back) takes ~1.2 s.
     const tries = Math.floor(limitMs / 1_200);
+    const timedGold = pairGoldTimed(p as PairPuzzleData);
     const run = (choose: (open: number[], k: number) => [number, number]) => {
       const matched = new Set<number>();
       const flips: number[] = [];
+      let goldMs: number | null = null;
       for (let k = 0; k < tries && matched.size < cards.length; k++) {
         const open = cards.map((_, i) => i).filter((i) => !matched.has(i));
         const [a, b] = choose(open, k);
         flips.push(a, b);
-        if (sameCard(cards[a], cards[b])) matched.add(a).add(b);
+        if (sameCard(cards[a], cards[b])) {
+          matched.add(a).add(b);
+          // pairRev 2+: the gold match's time (each blind try takes about 1.2 s).
+          if (timedGold && goldMs === null && sameCard((p as PairPuzzleData).gold, cards[b])) goldMs = (k + 1) * 1_200;
+        }
       }
-      return encodePairFlips(flips);
+      return timedGold ? joinPairGoldTime(encodePairFlips(flips), goldMs) : encodePairFlips(flips);
     };
     let cursor = 0;
     return [
@@ -687,10 +762,14 @@ const matchmaker: PuzzleKit = {
     const see = (i: number) => {
       if (rng.chance(memory)) known.add(i);
     };
+    const pairs = p as PairPuzzleData;
+    const timedGold = pairGoldTimed(pairs);
+    let goldMs: number | null = null;
+    const encode = () => (timedGold ? joinPairGoldTime(encodePairFlips(flips), goldMs) : encodePairFlips(flips));
     const flip = (i: number) => {
       t += thinkMs(rng, 0.8, skill);
       flips.push(i);
-      steps.push({ answer: encodePairFlips(flips), atMs: t });
+      steps.push({ answer: encode(), atMs: t });
     };
     const unknown = (except: number) =>
       cards.map((_, i) => i).filter((i) => !matched.has(i) && !known.has(i) && i !== except);
@@ -727,6 +806,11 @@ const matchmaker: PuzzleKit = {
         matched.add(a).add(b);
         known.delete(a);
         known.delete(b);
+        // pairRev 2+: the Stage adds the gold match's round-clock time to the answer from then on.
+        if (timedGold && goldMs === null && sameCard(pairs.gold, cards[b])) {
+          goldMs = Math.round(t);
+          steps[steps.length - 1] = { answer: encode(), atMs: t };
+        }
       } else {
         see(a);
         see(b);

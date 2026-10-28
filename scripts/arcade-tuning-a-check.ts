@@ -136,7 +136,7 @@ if (want("wavefront")) {
   // Taller worlds batch 1 (16 Oct 2026) moved Wavefront on to wavRev 6 (arcade-tuning-g1-check).
   // Taller worlds batch 1 moved Wavefront on to wavRev 6, and the 200 expansion (26 Oct 2026) on to wavRev 10
   // (wavefront-expand-check), which still flies the shapes (with escorts).
-  ok(generateWavefront().wavRev === WAV_REV_SHAPES + 6 && wavefrontGameFor(WAV_REV_SHAPES + 6).init(1).shaped === 1, "new Wavefront rounds are stamped wavRev 10 (the expansion, after the taller world's wavRev 6), still shaped");
+  ok(generateWavefront().wavRev === WAV_REV_SHAPES + 7 && wavefrontGameFor(WAV_REV_SHAPES + 7).init(1).shaped === 1, "new Wavefront rounds are stamped wavRev 11 (the phone notes, after the expansion's wavRev 10 and the taller world's wavRev 6), still shaped");
   ok(puzzleUsesBands({ type: "wavefront", wavRev: WAV_REV_SHAPES }) && puzzleUsesBands({ type: "wavefront", wavRev: WAV_REV_BAND }), "wavRev 3 and 4 both score on the band curve");
   for (let wave = 2; wave <= WAV_V2_WAVES; wave++) {
     const form = WAV_FORMS[wave]!;

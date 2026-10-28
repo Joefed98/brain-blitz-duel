@@ -101,7 +101,7 @@ import { ORBIT_HOLE_BANK } from "@/lib/duel/orbitHoleBank.server";
 import { ORBIT_REV3_BANK } from "@/lib/duel/orbitRev3Bank.server";
 import { orbitRev3PlanetsForSeed } from "@/lib/duel/orbitRev3Course.server";
 import { binTossGameFor, BINTOSS_REV2, BINTOSS_REV3 } from "@/lib/arcade/binToss";
-import { inkBridgeGameFor, INK_REV3, INK_REV4, INK_REV_EXPAND } from "@/lib/arcade/inkBridge";
+import { inkBridgeGameFor, INK_REV3, INK_REV4, INK_REV_EXPAND, INK_REV_SPREAD } from "@/lib/arcade/inkBridge";
 import { swingGameFor, SWING_REV, SWING_REV_V3 } from "@/lib/arcade/swing";
 import { wordfallCheckpoint, wordfallGame, wordfallGameFor } from "@/lib/arcade/wordfall";
 import { encodeWordfallRun, replayWordfallRun } from "@/lib/duel/wordfall";
@@ -109,7 +109,7 @@ import { encodeWordfallRun, replayWordfallRun } from "@/lib/duel/wordfall";
 import "@/lib/duel/wordfallDict.server";
 
 import { BT_REV_BAND, BT_REV_TALL } from "@/lib/arcade/ballTrack";
-import { WAV_REV_BAND, WAV_REV_SHAPES, WAV_REV_TALL, WAV_REV_TUNEC } from "@/lib/arcade/wavefront";
+import { WAV_REV_BAND, WAV_REV_PHONE, WAV_REV_SHAPES, WAV_REV_TALL, WAV_REV_TUNEC } from "@/lib/arcade/wavefront";
 import { FLIP_REV_BAND, FLIP_REV_EXPAND, FLIP_REV_LIFT, FLIP_REV_TUNEC } from "@/lib/arcade/flip";
 import { INK_REV_BAND, INK_REV_TUNEC } from "@/lib/arcade/inkBridge";
 import { MATCHUP_REV_BAND, MATCHUP_REV_PAR, MATCHUP_REV_WAIT } from "@/lib/arcade/matchup";
@@ -124,6 +124,7 @@ import { HOVER_REV_BAND, HOVER_REV_EXPAND, HOVER_REV_TALL, HOVER_REV_TUNEC } fro
 import { JUNC_REV_BAND } from "@/lib/arcade/junction";
 import { BRK_REV_BAND, BRK_REV_TALL, BRK_REV_TUNED, BRK_REV_TUNEF } from "@/lib/arcade/breaker";
 import { pinballGameFor, pinCheckpoint, PIN_REV } from "@/lib/arcade/pinball";
+import { pin4Checkpoint, pinball5Game, PIN_REV_LONG } from "@/lib/arcade/pinball4";
 import { encodePinballRun, replayPinballRun } from "@/lib/duel/pinball";
 import { TILT_REV_BAND, TILT_REV_EXPAND, TILT_REV_LIFT, TILT_REV_TUNEC } from "@/lib/arcade/tilt";
 import { ORBIT_REV_BAND, ORBIT_REV_SWEPT, ORBIT_REV_TALL, ORBIT_REV_TUNED, ORBIT_REV_XP } from "@/lib/arcade/orbit";
@@ -661,6 +662,23 @@ const GAMES: Game[] = [
   { key: "snake/v10", game: snakeGameFor(SNAKE_REV_10), checkpoint: snakeCheckpoint, mode: "events", rate: 40, encode: encodeSnakeRun, replay: (seed: number, raw: string) => replaySnakeRun(seed, raw, SNAKE_REV_10) },
   // Grappler's assault course (swingRev 14, 27 Oct 2026), appended so every earlier entry keeps its index: any seed.
   { key: "swing/assault", game: swingGameFor(SWING_REV_ASSAULT), checkpoint: swingCheckpoint, mode: "events", rate: 30, encode: encodeSwingRun, replay: (seed: number, raw: string) => replaySwingRun(seed, raw, SWING_REV_ASSAULT) },
+  // Joe's phone notes (27 Oct 2026, docs/phone-notes-oct-2026/wavefront.md), appended so every earlier entry keeps its index:
+  // Wavefront wavRev 11, power-ups from carriers and saucers, no streak, the mothership after wave 5.
+  { key: "wavefront/phone", game: wavefrontGameFor(WAV_REV_PHONE), checkpoint: wavCheckpoint, mode: "events", rate: 300, encode: encodeWavefrontRun, replay: (seed: number, raw: string) => replayWavefrontRun(seed, raw, WAV_REV_PHONE) },
+  // Pinball pinRev 5 (27 Oct 2026, Joe's phone notes), appended so every earlier entry keeps its index: the table for 90 s.
+  { key: "pinball/90", game: pinball5Game, checkpoint: pin4Checkpoint, mode: "events", rate: 120, encode: encodePinballRun, replay: (seed: number, raw: string) => replayPinballRun(seed, raw, PIN_REV_LONG) },
+  // Phone notes (27 Oct 2026), appended so every earlier entry keeps its index: Rainbow Bridge inkRev 11 (no wind, two
+  // silver coins a level, the pickups spread out). Eight seeds in turn, as ink/v10.
+  {
+    key: "ink/v11",
+    game: inkBridgeGameFor(INK_REV_SPREAD),
+    seedFor: (n: number) => 9_000_001 + 7_919 * (n % 8),
+    checkpoint: inkCheckpoint,
+    mode: "events",
+    rate: 400,
+    encode: encodeInkBridgeRun,
+    replay: (seed: number, raw: string) => replayInkBridgeRun(seed, raw, INK_REV_SPREAD),
+  },
   // Joe's phone notes (27 Oct 2026, docs/arcade-phone-notes-oct-2026.md), appended so every earlier entry keeps its index:
   // Roofbound flipRev 9 and Tilt tiltRev 9, flipRev 8's and tiltRev 8's play on lifted curves.
   { key: "flip/lift", game: flipGameFor(FLIP_REV_LIFT), checkpoint: flipCheckpoint, mode: "events", rate: 50, encode: encodeFlipRun, replay: (seed: number, raw: string) => replayFlipRun(seed, raw, FLIP_REV_LIFT) },

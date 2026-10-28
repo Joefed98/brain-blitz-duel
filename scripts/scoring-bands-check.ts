@@ -20,6 +20,8 @@
  *   bun scripts/scoring-bands-check.ts
  */
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { patternStdHelp } from "../src/lib/duel/standard/patternText";
+import { isPatternStdType } from "../src/lib/duel/standard/patternRules";
 import { isD4Type } from "../src/lib/duel/depth4/stamps";
 import { d4Help } from "../src/lib/duel/depth4/text";
 import { generateMazeClassic } from "../src/lib/duel/maze.server";
@@ -39,6 +41,7 @@ import { decodeSafePending, decodeSafeTries, encodeSafeDraft } from "../src/lib/
 import { bandsFigures, bandsHelp } from "../src/lib/duel/puzzleBandsText";
 import { isNumberDepthType } from "../src/lib/duel/numberDepth";
 import { depthHelp } from "../src/lib/duel/numberDepthText";
+import { standardNumberHelp } from "../src/lib/duel/standard/numberText";
 import { PUZZLE_INSTRUCTIONS } from "../src/lib/duel/instructions";
 import { TEN_DROP_BANDS_MAP, TEN_DROP_BANDS_REV, TEN_DROP_DEPTH_REV, TEN_DROP_RAW_REV } from "../src/lib/arcade/tenDrop";
 import { CLASH_BANDS_MAP, CLASH_REV_BANDS, CLASH_REV_DEPTH, CLASH_REV_GREAT } from "../src/lib/arcade/colourClash";
@@ -298,12 +301,21 @@ const fixture = JSON.parse(gunzipSync(readFileSync(FIXTURE)).toString()) as { ar
     // Depth to 200: a D3 game raised to 200 states its own revision's help (its depth check proves it); the Number
     // puzzles to 200 (depthRev 1) state their own text (numberDepthText.ts; number-depth-check proves it).
     // Depth batch 4's games state their own text (depth4/text.ts; depth4-check proves the rest).
+    // The scoring standard's Pattern and Logic games (first half) state its text (standard/patternText.ts;
+    // standard-pattern-check proves the numbers).
+    if (isPatternStdType(type)) {
+      ok(PUZZLE_INSTRUCTIONS[type].score === patternStdHelp(type), `${type}: the "?" help is not the puzzle's score text`);
+      continue;
+    }
     if (isD4Type(type)) {
       ok(PUZZLE_INSTRUCTIONS[type].score === d4Help(type), `${type}: the "?" help is not the puzzle's score text`);
       continue;
     }
     if (roundMaxFor(type) > 150 && !isNumberDepthType(type)) continue;
-    ok(PUZZLE_INSTRUCTIONS[type].score === (isNumberDepthType(type) ? depthHelp(type) : bandsHelp(type)), `${type}: the "?" help is not the puzzle's score text`);
+    // The scoring standard (27 Oct 2026): the Number puzzles' help states the standard stamp rooms deal (standard/numberText.ts;
+    // standard-number-check proves it); depthHelp stays the text of the depth stamps.
+    ok(PUZZLE_INSTRUCTIONS[type].score === (isNumberDepthType(type) ? standardNumberHelp(type) : bandsHelp(type)), `${type}: the "?" help is not the puzzle's score text`);
+    if (isNumberDepthType(type)) ok(depthHelp(type).length > 0, `${type}: the depth stamps keep their help text`);
   }
 }
 

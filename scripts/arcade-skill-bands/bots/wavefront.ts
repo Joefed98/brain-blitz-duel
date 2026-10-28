@@ -14,6 +14,8 @@
  * the boss through its turns as the fixes do; without the fixes a player who counts the bolts in flight moves on
  * from a column they will empty (MOVE_ON; the fixes' COUNT_BOLTS does it with them), and saucers, worth skill points
  * on wavRev 10, are chased at every level the tables say (the elite's near-only saucer policy is wavRev 8's).
+ * wavRev 11 (`s.r11`): the power-ups fall from the carriers and saucers the player shoots down; the player chases
+ * the lowest one still above the ship (the same DROP chance per power-up).
  */
 import { ARCADE_INPUT_DRAG } from "../../../src/lib/arcade/engine";
 import {
@@ -136,15 +138,18 @@ export const bot: SkillBot = ({ game, seed, human, fixes }) => {
     let want = finger;
     let chasing = false;
     // Drop (piercing power-up): falls straight down from where the saucer died.
-    if (s.drop && s.drop.wait <= 0) {
-      const key = `${s.drop.x}`;
+    // wavRev 11: power-ups fall from carriers and saucers shot down; the lowest one still above the ship is the one to chase.
+    const falling = s.r11 ? (s.pickups ?? []).filter((p) => p.y / 256 < WAV_SHIP_Y + 4).sort((p, q) => q.y - p.y)[0] : undefined;
+    const drop = s.r11 ? (falling ? { x: falling.x, key: `p${falling.i}` } : null) : s.drop && s.drop.wait <= 0 ? { x: s.drop.x, key: `${s.drop.x}` } : null;
+    if (drop) {
+      const key = drop.key;
       if (key !== dropKey) {
         dropKey = key;
         dropGo = human.chance(DROP[level]!);
         dropAt = t + human.reactTicks();
       }
       if (dropGo && t >= dropAt) {
-        want = s.drop.x / 256 + human.aim(1);
+        want = drop.x / 256 + human.aim(1);
         chasing = true;
       }
     }

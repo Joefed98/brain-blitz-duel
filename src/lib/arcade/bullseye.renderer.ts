@@ -19,7 +19,7 @@ import { flightpathColour, flightpathInk } from "./flightpathPalette.renderer";
 import { reducedMotion } from "./art.renderer";
 import { artCanvas, artContext, type ArtCanvas } from "./cache.renderer";
 import {
-  FAIR_CHALK, FAIR_WOOD, FAIR_WOOD_DARK, fairArenaScene, fairChangeAge, fairPennant, fairScreen, fairTransform,
+  FAIR_CHALK, FAIR_WOOD, FAIR_WOOD_DARK, fairArenaScene, fairChangeAge, fairClock, fairScreen, fairTransform,
 } from "./fairground.renderer";
 import type { ArenaSceneView } from "./arenaScene.renderer";
 
@@ -28,67 +28,75 @@ const COUNTER_Y = 546;
 const DART_TIP_Y = BULLSEYE_BOW_Y - 26;
 const FLIGHT_COLOURS = ["#D9363E", "#2ED3B7", "#F5B82E", "#3B82F6", "#A78BFA"];
 
-/** A throwing dart, tip at (x, y) pointing up; `wobble` swings the flights. */
+/**
+ * A throwing dart, tip at (x, y) pointing up; `wobble` swings the flights. Phone-test notes (27 Oct 2026): matte
+ * black with a thin light edge, so it reads on the light rings, the dusk sky and the counter alike; the dart's own
+ * colour is the stripe down each flight. The tip is still exactly (x, y), the point the sim scores.
+ */
 export function drawDart(
   ctx: CanvasRenderingContext2D, x: number, y: number, scale: number, colour: string, wobble = 0,
 ): void {
   ctx.save();
   ctx.translate(x, y);
   ctx.scale(scale, scale);
-  // Steel point (Polish A3: polished, lit down its left side).
-  const point = ctx.createLinearGradient(-1.1, 0, 1.1, 0);
-  point.addColorStop(0, "#E4E8EE");
-  point.addColorStop(0.5, "#8E96A2");
-  point.addColorStop(1, "#4A515C");
-  ctx.fillStyle = point;
-  ctx.beginPath();
-  ctx.moveTo(0, 0);
-  ctx.lineTo(1.1, 8);
-  ctx.lineTo(-1.1, 8);
-  ctx.closePath();
-  ctx.fill();
-  // Chrome barrel with knurl lines and a bright streak.
-  const barrel = ctx.createLinearGradient(-2, 0, 2, 0);
-  barrel.addColorStop(0, "#7C8592");
-  barrel.addColorStop(0.3, "#F2F4F7");
-  barrel.addColorStop(0.55, "#9AA2AE");
-  barrel.addColorStop(1, "#3C424C");
-  ctx.fillStyle = barrel;
-  ctx.fillRect(-2, 8, 4, 9);
-  ctx.fillStyle = "rgba(40,44,52,0.55)";
-  for (let k = 10; k < 17; k += 2) ctx.fillRect(-2, k, 4, 0.7);
-  // Shaft.
-  ctx.fillStyle = "#2A2D33";
-  ctx.fillRect(-0.7, 17, 1.4, 6);
-  ctx.fillStyle = "rgba(255,255,255,0.35)";
-  ctx.fillRect(-0.7, 17, 0.5, 6);
-  // Gold flights, with the dart's own colour as a stripe down each.
-  ctx.translate(0, 21);
-  ctx.transform(1, 0, wobble, 1, 0, 0);
-  ctx.strokeStyle = "#6E4A10";
-  ctx.lineWidth = 0.6;
-  for (const side of [-1, 1]) {
-    const gold = ctx.createLinearGradient(0, 0, 5.5 * side, 10);
-    gold.addColorStop(0, "#FFE9A3");
-    gold.addColorStop(0.45, "#F2BE3C");
-    gold.addColorStop(1, "#B07A16");
-    ctx.fillStyle = gold;
+  const body = () => {
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.lineTo(1.3, 8);
+    ctx.lineTo(2.2, 8);
+    ctx.lineTo(2.2, 17);
+    ctx.lineTo(0.9, 17);
+    ctx.lineTo(0.9, 22);
+    ctx.lineTo(-0.9, 22);
+    ctx.lineTo(-0.9, 17);
+    ctx.lineTo(-2.2, 17);
+    ctx.lineTo(-2.2, 8);
+    ctx.lineTo(-1.3, 8);
+    ctx.closePath();
+  };
+  const flight = (side: number) => {
     ctx.beginPath();
     ctx.moveTo(0, 0);
     ctx.lineTo(5.5 * side, 4);
     ctx.lineTo(5 * side, 10);
     ctx.lineTo(0, 8);
     ctx.closePath();
-    ctx.fill();
+  };
+  // A light edge first (under the fill), then the black body.
+  ctx.lineJoin = "round";
+  ctx.strokeStyle = "rgba(255, 248, 235, 0.9)";
+  ctx.lineWidth = 1.6;
+  body();
+  ctx.stroke();
+  ctx.save();
+  ctx.translate(0, 21);
+  ctx.transform(1, 0, wobble, 1, 0, 0);
+  for (const side of [-1, 1]) {
+    flight(side);
     ctx.stroke();
+  }
+  ctx.restore();
+  ctx.fillStyle = "#0B0B0F";
+  body();
+  ctx.fill();
+  // A faint sheen down the barrel's left and a few knurl lines.
+  ctx.fillStyle = "rgba(255,255,255,0.22)";
+  ctx.fillRect(-1.6, 8.5, 0.6, 8);
+  ctx.fillStyle = "rgba(255,255,255,0.1)";
+  for (let k = 10; k < 17; k += 2) ctx.fillRect(-2.2, k, 4.4, 0.6);
+  // Black flights, with the dart's own colour as a stripe down each.
+  ctx.translate(0, 21);
+  ctx.transform(1, 0, wobble, 1, 0, 0);
+  for (const side of [-1, 1]) {
+    ctx.fillStyle = "#16171B";
+    flight(side);
+    ctx.fill();
     ctx.strokeStyle = colour;
-    ctx.lineWidth = 1;
+    ctx.lineWidth = 1.2;
     ctx.beginPath();
     ctx.moveTo(1 * side, 2.2);
     ctx.lineTo(3.6 * side, 7.6);
     ctx.stroke();
-    ctx.strokeStyle = "#6E4A10";
-    ctx.lineWidth = 0.6;
   }
   ctx.restore();
 }
@@ -435,29 +443,96 @@ export function paintBoard(ctx: CanvasRenderingContext2D, cx: number, cy: number
   ctx.restore();
 }
 
-function drawWind(ctx: CanvasRenderingContext2D, wind: number, top = 0): void {
-  const centreX = BULLSEYE_WORLD_W / 2;
-  const y = 84 + top;
+/**
+ * The wind (phone-test notes, 27 Oct 2026; look only): a small flag on a pole above the range, flying the way the
+ * wind blows and waving harder the stronger it is, with the strength on it. No wind: the flag hangs limp with a 0.
+ * Static under reduced motion (fairClock is 0). Replaces the arrow, the "→ n" line and the canopy pennant.
+ */
+export const BULLSEYE_FLAG_W = 40;
+export const BULLSEYE_FLAG_H = 24;
+export function drawWindFlag(ctx: CanvasRenderingContext2D, x: number, y: number, wind: number): void {
+  const t = fairClock();
+  const strength = Math.min(1, Math.abs(wind) / BULLSEYE_WIND_MAX);
+  const dir = wind < 0 ? -1 : 1;
+  const poleTop = y - 30;
+  const poleBottom = y + 8;
   ctx.save();
-  ctx.strokeStyle = wind === 0 ? "#F7F7F855" : BULLSEYE_GOLD;
-  ctx.lineWidth = 2.8;
-  if (wind !== 0) {
-    const dir = wind < 0 ? -1 : 1;
+  // Pole and finial.
+  ctx.strokeStyle = "#EDE3CF";
+  ctx.lineWidth = 2;
+  ctx.lineCap = "round";
+  ctx.beginPath();
+  ctx.moveTo(x, poleTop);
+  ctx.lineTo(x, poleBottom);
+  ctx.stroke();
+  ctx.fillStyle = BULLSEYE_GOLD;
+  ctx.beginPath();
+  ctx.arc(x, poleTop - 1, 2.4, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.translate(x, poleTop + 1);
+  if (wind === 0) {
+    // Limp: a narrow cloth hanging down the pole.
+    ctx.fillStyle = "#8A8FA0";
     ctx.beginPath();
-    ctx.moveTo(centreX - 33.6 * dir, y);
-    ctx.lineTo(centreX + 33.6 * dir, y);
-    ctx.lineTo(centreX + 22.4 * dir, y - 8.4);
-    ctx.moveTo(centreX + 33.6 * dir, y);
-    ctx.lineTo(centreX + 22.4 * dir, y + 8.4);
-    ctx.stroke();
+    ctx.moveTo(1, 0);
+    ctx.lineTo(11, 2);
+    ctx.lineTo(9, 30);
+    ctx.lineTo(1, 30);
+    ctx.closePath();
+    ctx.fill();
+    ctx.font = "800 12px 'JetBrains Mono', ui-monospace, monospace";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillStyle = "#0B0B0F";
+    ctx.fillText("0", 5.5, 15);
+    ctx.restore();
+    return;
   }
-  ctx.font = "600 18.2px 'JetBrains Mono', ui-monospace, monospace";
-  ctx.fillStyle = BULLSEYE_TEXT;
+  ctx.scale(dir, 1);
+  const w = BULLSEYE_FLAG_W;
+  const h = BULLSEYE_FLAG_H;
+  // The cloth's edges ripple along its length: amplitude and speed rise with the wind, fixed to the pole.
+  const amp = 1 + 2.2 * strength;
+  const phase = t === 0 ? 0 : t / (190 - 70 * strength);
+  const wave = (u: number) => Math.sin(u * Math.PI * 2 - phase) * amp * u;
+  // Droops a little in a light wind.
+  const sag = (1 - strength) * 6;
+  const steps = 10;
+  ctx.beginPath();
+  ctx.moveTo(0, 0);
+  for (let i = 1; i <= steps; i++) {
+    const u = i / steps;
+    ctx.lineTo(w * u, wave(u) + sag * u);
+  }
+  for (let i = steps; i >= 0; i--) {
+    const u = i / steps;
+    ctx.lineTo(w * u - (i === steps ? 4 : 0), h + wave(u) + sag * u);
+  }
+  ctx.closePath();
+  const cloth = ctx.createLinearGradient(0, 0, w, 0);
+  cloth.addColorStop(0, "#E9A923");
+  cloth.addColorStop(1, "#FFD46A");
+  ctx.fillStyle = cloth;
+  ctx.fill();
+  ctx.strokeStyle = "rgba(60, 36, 4, 0.7)";
+  ctx.lineWidth = 1;
+  ctx.stroke();
+  // The strength, upright whichever way the flag flies.
+  const mid = 0.55;
+  const tx = w * mid;
+  const ty = h / 2 + wave(mid) + sag * mid;
+  ctx.scale(dir, 1);
+  ctx.font = "800 16px 'JetBrains Mono', ui-monospace, monospace";
   ctx.textAlign = "center";
-  ctx.textBaseline = "alphabetic";
-  ctx.fillText(wind === 0 ? "no wind" : `${wind < 0 ? "←" : "→"} ${Math.abs(wind)}`, centreX, y - 18);
+  ctx.textBaseline = "middle";
+  ctx.fillStyle = "#0B0B0F";
+  ctx.fillText(String(Math.abs(wind)), tx * dir, ty + 1);
   ctx.restore();
-  fairPennant(ctx, BULLSEYE_WORLD_W - 30, 10 + top, wind, BULLSEYE_WIND_MAX);
+}
+
+function drawWind(ctx: CanvasRenderingContext2D, wind: number, top = 0): void {
+  // The flag's pole stands just off centre so the flag flies over the range's middle whichever way it points.
+  drawWindFlag(ctx, BULLSEYE_WORLD_W / 2 - (wind < 0 ? -1 : 1) * (BULLSEYE_FLAG_W / 2), 84 + top, wind);
 }
 
 /** The world a state draws in: bullRev 8's taller range (lift px above the original top), else 390 × 560. */
@@ -488,19 +563,49 @@ function drawExpandHud(ctx: CanvasRenderingContext2D, state: BullseyeState, top:
   ctx.restore();
 }
 
+/** A landed dart's size (was 0.45; larger and black since the phone-test notes so it shows on the board). */
+const BULLSEYE_LANDED_DART = 0.6;
 const flightColour = (arrow: number) => FLIGHT_COLOURS[arrow % FLIGHT_COLOURS.length]!;
 
+/** How long a landed dart's own board stays up (presentation clock) before the next dart's board is shown. */
+export const BULLSEYE_LAND_HOLD_MS = 700;
+
+/**
+ * What a frame shows (phone-test notes, 27 Oct 2026; display only): which dart's board, its drift, and where the
+ * landed dart's tip is drawn. A dart is scored against its own board where that board is when it lands
+ * (`hit.x − hit.tdx` on the board's own centre and size), so it is drawn there: on its own board, riding that board's
+ * drift (`hit.x − hit.tdx + dx` now). Before this, the next dart's board (another distance, height and size on
+ * bullRev 8) replaced it the moment the dart landed while the dart stayed at its old screen point, so the dart
+ * looked to sit in a ring it hadn't scored, and on a drifting board it slid off its ring. Now the landed board holds
+ * for BULLSEYE_LAND_HOLD_MS (the last dart's for good), then the next board shows with no old dart on it.
+ */
+export function bullseyeView(state: BullseyeState, landAge: number): { arrow: number; dx: number; dart: { x: number; y: number } | null } {
+  const expand = state.expand === BULLSEYE_EXPAND;
+  const dxOf = (arrow: number) => (expand ? bullseyeDxOf(state, arrow, state.tick) : bullseyeTargetDx(arrow, state.tick, state.driftPhase, state.driftDir));
+  const last = state.hits[state.hits.length - 1];
+  if (state.flightTick > 0) {
+    const arrow = Math.max(0, state.arrowIndex - 1);
+    return { arrow, dx: dxOf(arrow), dart: null };
+  }
+  const next = Math.min(state.arrowIndex, BULLSEYE_ARROWS - 1);
+  if (last && (last.arrow === next || landAge < BULLSEYE_LAND_HOLD_MS)) {
+    const dx = dxOf(last.arrow);
+    return { arrow: last.arrow, dx, dart: { x: last.x - last.tdx + dx, y: last.y } };
+  }
+  return { arrow: next, dx: dxOf(next), dart: null };
+}
+
 export function drawBullseye(ctx: CanvasRenderingContext2D, state: BullseyeState, size: CanvasSize): void {
-  const shown = state.flightTick > 0 ? Math.max(0, state.arrowIndex - 1)
-    : Math.min(state.arrowIndex, BULLSEYE_ARROWS - 1);
   const landAge = fairChangeAge(ctx, "bullseye-landed", state.flightTick === 0 ? state.hits.length : -1);
+  const view = bullseyeView(state, landAge);
+  const shown = view.arrow;
   // bullRev 8: the taller range, drawn `lift` px down so every sim coordinate keeps its place on the range.
   const world = bullseyeWorldOf(state);
   const expand = world.lift > 0;
   const streakAge = expand ? fairChangeAge(ctx, "bullseye-streak", (state.streak ?? 0) * 100 + (state.dead ?? 0)) : Infinity;
   fairScreen(ctx, size, world.w, world.h, COUNTER_Y + world.lift, () => { if (expand) ctx.translate(0, world.lift); arcadeFx(ctx, expand ? BULLSEYE_FX_V8 : BULLSEYE_FX, state, () => {
     const board = bullseyeBoard(state, shown);
-    const dx = expand ? bullseyeDxOf(state, shown, state.tick) : bullseyeTargetDx(shown, state.tick, state.driftPhase, state.driftDir);
+    const dx = view.dx;
     drawBoard(ctx, board.scalePct, dx, bullseyeRingValues(state, shown), shown >= BULLSEYE_DRIFT_FROM, board.cy, expand ? COUNTER_Y : 0);
     if (state.rev === BULLSEYE_REV && bullseyeRingValues(state, shown)[0] === 10) drawInnerBull(ctx, board.scalePct, dx, board.cy);
     if (expand && bullseyeRingValues(state, shown)[0] === 10) drawDeadCentre(ctx, board.scalePct, dx, board.cy);
@@ -516,17 +621,18 @@ export function drawBullseye(ctx: CanvasRenderingContext2D, state: BullseyeState
     if (last?.pop === 1 && state.flightTick === 0 && !reducedMotion()) {
       drawBalloonPop(ctx, last.x, last.y, balloonColour(state, last.arrow), landAge);
     }
-    if (last && state.flightTick === 0) {
-      // Stuck in at its exact sim point; flights wobble once on landing.
+    if (last && view.dart) {
+      // Stuck in at its scored point on its own board (bullseyeView); flights wobble once on landing.
+      const at = view.dart;
       const wobble = !reducedMotion() && landAge < 450
         ? Math.sin(landAge / 30) * 0.35 * (1 - landAge / 450) : 0;
       // Rev 2: a dart that popped a balloon is gone with it. bullRev 4: it carries on into the board.
-      if (last.pop !== 1 || tuned) drawDart(ctx, last.x, last.y, 0.45, flightColour(last.arrow), wobble);
+      if (last.pop !== 1 || tuned) drawDart(ctx, at.x, at.y, BULLSEYE_LANDED_DART, flightColour(last.arrow), wobble);
       if (landAge < 500) {
         const u = landAge / 500;
         const pop = reducedMotion() ? 1 : 1 + 0.2 * Math.sin(Math.min(1, u * 4) * Math.PI);
         ctx.save();
-        ctx.translate(last.x, last.y - 14 - (reducedMotion() ? 0 : u * 8));
+        ctx.translate(at.x, at.y - 14 - (reducedMotion() ? 0 : u * 8));
         ctx.scale(pop, pop);
         ctx.globalAlpha = u < 0.3 ? 1 : (1 - u) / 0.7;
         ctx.fillStyle = BULLSEYE_GOLD;
@@ -535,6 +641,11 @@ export function drawBullseye(ctx: CanvasRenderingContext2D, state: BullseyeState
         ctx.textBaseline = "bottom";
         // bullRev 4: the ring's points at the dart, and the balloon's own +n beside them in its colour.
         const bal = last.bal ?? 0;
+        // A dark edge keeps the gold figure readable over the light rings.
+        ctx.strokeStyle = "rgba(11,11,15,0.85)";
+        ctx.lineWidth = 3.5;
+        ctx.lineJoin = "round";
+        ctx.strokeText(String(last.value - bal), 0, 0);
         ctx.fillText(String(last.value - bal), 0, 0);
         // bullRev 8: a streak bull's own streak points, "×n +k", under the ring's points.
         if (last.sk && last.sk >= 2) {
@@ -579,7 +690,7 @@ export function drawBullseye(ctx: CanvasRenderingContext2D, state: BullseyeState
       ctx.save();
       ctx.translate(0, -world.lift);
     }
-    successFrame(ctx,{id:'bullseye',tick:state.tick,count:state.flightTick===0?state.hits.filter(isBull).length:Math.max(0,state.hits.filter(isBull).length-(last&&isBull(last)?1:0)),enabled:state.flightTick===0&&!!last&&isBull(last),colour:BULLSEYE_GOLD,width:world.w,height:world.h,point:{x:last?.x??BULLSEYE_CX,y:(last?.y??BULLSEYE_CY)+world.lift,shape:'spark'}});
+    successFrame(ctx,{id:'bullseye',tick:state.tick,count:state.flightTick===0?state.hits.filter(isBull).length:Math.max(0,state.hits.filter(isBull).length-(last&&isBull(last)?1:0)),enabled:state.flightTick===0&&!!last&&isBull(last),colour:BULLSEYE_GOLD,width:world.w,height:world.h,point:{x:view.dart?.x??last?.x??BULLSEYE_CX,y:(view.dart?.y??last?.y??BULLSEYE_CY)+world.lift,shape:'spark'}});
     if (expand) ctx.restore();
     if (last && state.flightTick > 0) {
       const progress = (BULLSEYE_FLIGHT_TICKS - state.flightTick) / BULLSEYE_FLIGHT_TICKS;
@@ -597,7 +708,7 @@ export function drawBullseye(ctx: CanvasRenderingContext2D, state: BullseyeState
         ctx.stroke();
         ctx.restore();
       }
-      drawDart(ctx, x, y, 1.2 - 0.75 * progress, flightColour(last.arrow));
+      drawDart(ctx, x, y, 1.2 - (1.2 - BULLSEYE_LANDED_DART) * progress, flightColour(last.arrow));
     }
     if (state.arrowIndex < BULLSEYE_ARROWS) drawWind(ctx, state.winds[state.arrowIndex] ?? 0, -world.lift);
     if (state.arrowIndex < BULLSEYE_ARROWS && state.flightTick === 0) {
