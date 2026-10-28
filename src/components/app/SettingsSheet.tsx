@@ -4,6 +4,7 @@ import { createPortal } from "react-dom";
 
 import { FeedbackLink } from "@/components/beta/FeedbackLink";
 import { Slider } from "@/components/ui/slider";
+import { APP_BUILD_ID, buildLabel } from "@/lib/appVersion";
 import {
   effectsVolume,
   isMuted,
@@ -61,6 +62,7 @@ export function SettingsSheet({
     }
   };
   const sound = useSoundSettings();
+  const server = useServerBuild();
   return createPortal(
     <div
       data-skin="profile"
@@ -140,10 +142,48 @@ export function SettingsSheet({
           ) : null}
           <FeedbackLink row />
         </div>
+        {/* About: which code is live (the build id baked in at build time, appVersion.ts); the server's own id
+            only when it differs, since the server is what deals and grades. */}
+        <div className="flex flex-col gap-2">
+          <span className="ap-group-title">About</span>
+          <div className="ap-panel">
+            <div data-build-marker className="ap-row">
+              <span className="ap-row-title flex-1">Build</span>
+              <span className="ap-meta tabular-nums">{buildLabel(APP_BUILD_ID)}</span>
+            </div>
+            {server && server !== APP_BUILD_ID ? (
+              <div data-server-build-marker className="ap-row">
+                <span className="ap-row-title flex-1">Server</span>
+                <span className="ap-meta tabular-nums">{buildLabel(server)}</span>
+              </div>
+            ) : null}
+          </div>
+        </div>
       </div>
     </div>,
     document.body,
   );
+}
+
+/** The deployed server's build id (appVersionFn), or null until it answers or when it can't be reached. */
+function useServerBuild(): string | null {
+  const [server, setServer] = useState<string | null>(null);
+  useEffect(() => {
+    let live = true;
+    void (async () => {
+      try {
+        const { appVersionFn } = await import("@/lib/appVersion.functions");
+        const answer = await appVersionFn();
+        if (live && typeof answer?.version === "string") setServer(answer.version);
+      } catch {
+        /* the marker is a nicety */
+      }
+    })();
+    return () => {
+      live = false;
+    };
+  }, []);
+  return server;
 }
 
 /** One switch row (role="switch"): the label left, the switch right; the whole row toggles. */
