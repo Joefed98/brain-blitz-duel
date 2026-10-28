@@ -93,7 +93,8 @@ section("The live effect specs count older rounds' moments as before");
 {
   const { BREAKER_FX, BREAKER_FX_DEEP, ARCADE_FX_SPECS } = await import("../src/lib/arcade/arcadeFxGames.renderer");
   ok(ARCADE_FX_SPECS.breaker === BREAKER_FX_DEEP, "the live spec is the expansion's");
-  ok(BREAKER_FX_DEEP.events.length === BREAKER_FX.events.length + 2, "the expansion's moments come after the original events");
+  // The expansion adds one moment (the gold brick); its combo pop was removed on 28 Oct 2026 (Joe's phone notes).
+  ok(BREAKER_FX_DEEP.events.length === BREAKER_FX.events.length + 1, "the expansion's moments come after the original events");
   const fixture = JSON.parse(read("scripts/fixtures/expansion-e3-legacy.json")) as { runs: E3Record[] };
   let compared = 0;
   for (const run of fixture.runs) {

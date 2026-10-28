@@ -84,7 +84,7 @@ export const MOMENT_TABLE: readonly MomentRow[] = [
   fx("breaker", 5, "final", "wall-cleared", 95, "Wall cleared", "finish"),
   // brkRev 9 (expansion E3): fire on brkRev 9 rounds only.
   fx("breaker", 6, "perfect", "gold-brick", 55, "Gold brick broken by a direct hit"),
-  fx("breaker", 7, "pop", "combo", 30, "No-touch combo stepped up (×2, ×3)"),
+  // No combo moment: the combo pop above the paddle is gone (Joe's phone notes, 28 Oct 2026).
   // Pinball
   fx("pinball", 0, "pop", "bumper", 0, "Bumper hit (border ripple only)"),
   fx("pinball", 1, "perfect", "target", 15, "Drop target knocked down"),
