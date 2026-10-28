@@ -913,6 +913,11 @@ export const BEAT_TRACK_GROOVE_TO_S = 56;
 const BEAT_TRACK_DRIFT_S = 0.04;
 /** Tempo's track level: this floor, rising with the arcade round ramp to 1 (was the ramp itself, 0.5 → 0.9). */
 export const BEAT_TRACK_LEVEL_FLOOR = 0.9;
+/**
+ * Louder again (Joe's phone notes, 28 Oct 2026): the track's own gain on top of the level, about +4 dB, with its
+ * manifest volume 0.8 → 1 (+2 dB). The file peaks at -7.6 dBFS, so the full-volume peak stays under -1.5 dBFS.
+ */
+export const BEAT_TRACK_BOOST = 1.6;
 const BEAT_TRACK_FADE_MS = 300;
 let beatTrack: { source: AudioBufferSourceNode; gain: GainNode; at: number; offset: number; loop: { from: number; period: number } | null } | null = null;
 let beatLevel = 0;
@@ -954,7 +959,7 @@ export function beatTrackLevel(remainingMs: number): number {
 }
 
 function beatTrackGain(): number {
-  return isMusicMuted() ? 0 : beatLevel * musicVolume() * entryVolume(BEAT_TRACK);
+  return isMusicMuted() ? 0 : beatLevel * musicVolume() * entryVolume(BEAT_TRACK) * BEAT_TRACK_BOOST;
 }
 
 function applyBeatTrackLevel(): void {

@@ -19,18 +19,27 @@ import { addPop, backdrop, blob, drawPops, glow, linear, pixelStars } from "./po
 // Meteor-only art roles; the grid and pellet retain their Retro palette.
 const ACCENT = "#FF8A28";
 /**
- * The comet (Joe's phone notes, 27 Oct 2026, display only): a dark rock core, an orange-to-amber flame
- * round it with a white-hot leading edge, and a white-hot trail streaming behind that cools through amber
- * and orange to red embers and smoke at the tail.
+ * The comet (Joe's phone notes, 28 Oct 2026, display only; replaces the 27 Oct rock-and-flame art; Joe's mockup
+ * meteor-mockup.png): a glowing white-gold head and a trail of round glowing segments that shrink, fade and
+ * darken along the body, with no line between them and no eyes. The tail's colours change every
+ * COMET_TAIL_EVERY stars (COMET_TAILS, in order, then round again); the head stays white-gold.
  */
-const COMET_CORE = "#5A2A12";
-const COMET_ORANGE = "#FF7A2E";
-const COMET_AMBER = "#FFB347";
-const FLAMES = ["#FFF4D2", COMET_AMBER, COMET_ORANGE, "#F44C20", "#982328", "#66646C"];
-const RIMS = [COMET_AMBER, COMET_ORANGE, "#D9531E", "#AB3519", "#5D2027", "#46444D"];
+/** The head: a white core, a white-gold body, a gold rim and a soft gold halo inside its cell. */
+const COMET_HEAD = { core: "#FFFFFF", body: "#FFF1C2", rim: "#FFD35C", halo: "#FFC23E" } as const;
+export const COMET_TAIL_EVERY = 5;
+/** Each tail: its colours from just behind the head to the tip (the segments blend between them). */
+export const COMET_TAILS: readonly (readonly string[])[] = [
+  ["#FFD45E", "#FFB940", "#FF9A30", "#F2742A", "#C95224", "#8C3A1E"], // gold to ember (the mockup)
+  ["#A8F0FF", "#6FD8FF", "#45B6F5", "#3488D8", "#2A62AE", "#1F4078"], // ice blue
+  ["#FFB0EC", "#FF7FD9", "#F05AC4", "#C8429F", "#952F7A", "#5E2052"], // pink
+  ["#D9C2FF", "#B497FF", "#9273F5", "#7158D2", "#5140A2", "#332A6C"], // violet
+  ["#B4FFE6", "#7AF5D0", "#4ADBB4", "#33B094", "#277F6E", "#1A524A"], // mint
+];
+/** The tail a run of this many stars wears. */
+export function cometTail(eaten: number): number {
+  return Math.floor(Math.max(0, eaten) / COMET_TAIL_EVERY) % COMET_TAILS.length;
+}
 const HOT = "#FFF4D2";
-const ROCK = "#29282D";
-const ROCK_FLECK = "#77747B";
 const SMOKE = "#85818B";
 /** Polish A1: the asteroids' orange shades, lit top left. */
 const ROCK_LIT = "#FFB060";
@@ -41,12 +50,12 @@ const ROCK_SPECK = "#FFD08A";
 /** Polish A1: the stars' white-gold glow. */
 export const STAR_GLOW = "#FFE9A8";
 const PELLET = "#FFD84A";
-const EYE = RETRO_BLACK;
 const SPRITE_RATIO = 2;
 const EAT_MS = 260;
 const DEATH_MS = 650;
 const TAIL_SPARKS = 6;
-const LEVELS = 6;
+/** The comet's tail steps from just behind the head to the tip (size, fade and colour). */
+const COMET_LEVELS = 12;
 const stamps = new Map<string, ArtCanvas>();
 
 type Memory = { tick: number; rng: number; eaten: number; pellet: number; dead: boolean; eatAt: number; eatCell: number; deathAt: number };
@@ -122,59 +131,59 @@ export function paintStamp(c: CanvasRenderingContext2D, kind: "bead" | "head" | 
     c.fillStyle = RETRO_WHITE;
     c.fillRect(middle - 1, middle - 1, 2, 2);
   } else {
-    // A full 24px outer bead always marks the sim cell. Only the bright inner
-    // bead tapers: 24 -> 18px (75%), never the collision-sized envelope.
-    const inner = kind === "head" ? SNAKE_CELL : SNAKE_CELL - Math.round(level / (LEVELS - 1) * 3) * 2;
-    const radius = inner / 2;
-    const inset = (SNAKE_CELL - inner) / 2;
-    const flame = FLAMES[level] ?? ACCENT;
-    c.fillStyle = kind === "head" ? COMET_ORANGE : RIMS[level] ?? ACCENT;
-    c.shadowColor = kind === "head" ? ACCENT : flame;
-    c.shadowBlur = 1.5 * ratio;
-    for (let y = 0; y < SNAKE_CELL; y += 2) {
-      for (let x = 0; x < SNAKE_CELL; x += 2) {
-        const dx = x + 1 - middle, dy = y + 1 - middle;
-        if (dx * dx + dy * dy <= middle * middle) c.fillRect(x, y, 2, 2);
+    paintComet(c, kind, level, tail);
+  }
+}
+
+const hexRgb = (hex: string) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
+/** `a` towards `b` by k (0–1), as rgb numbers. */
+function mixRgb(a: string, b: string, k: number): number[] {
+  const x = hexRgb(a), y = hexRgb(b);
+  return x.map((v, i) => Math.round(v + (y[i]! - v) * k));
+}
+const rgbHex = (rgb: number[]) => `#${rgb.map((v) => v.toString(16).padStart(2, "0")).join("")}`;
+
+/**
+ * One comet sprite (the head, or a tail segment at `level` of tail `tail`), painted once into its cached
+ * cell in half-pixel squares (one device pixel at SPRITE_RATIO 2), so the round segments and their glow
+ * read smooth like the mockup while every square stays inside the 24 px collision cell.
+ */
+function paintComet(c: CanvasRenderingContext2D, kind: "bead" | "head", level: number, tail: number): void {
+  const middle = SNAKE_CELL / 2;
+  const STEP = 0.5;
+  const colours = COMET_TAILS[tail % COMET_TAILS.length]!;
+  // Along the tail (0 just behind the head, 1 at the tip): the colour runs through the tail's steps.
+  const along = Math.min(1, level / (COMET_LEVELS - 1));
+  const at = along * (colours.length - 1);
+  const step = Math.min(colours.length - 2, Math.floor(at));
+  const colour = rgbHex(mixRgb(colours[step]!, colours[step + 1]!, at - step));
+  // Head: core to rim 10.5 px (larger than any segment) and a halo out to the cell's edge. Segments: 9 px
+  // just behind the head tapering to 4 px at the tip, fading as they go.
+  const solid = kind === "head" ? 10.5 : 9 - 5 * along;
+  const haloTo = kind === "head" ? middle : Math.min(middle, solid + 3);
+  const fade = kind === "head" ? 1 : 1 - 0.6 * along;
+  for (let y = 0; y < SNAKE_CELL; y += STEP) {
+    for (let x = 0; x < SNAKE_CELL; x += STEP) {
+      const dx = x + STEP / 2 - middle, dy = y + STEP / 2 - middle;
+      const r = Math.sqrt(dx * dx + dy * dy);
+      if (r > haloTo) continue;
+      let rgb: number[];
+      let alpha: number;
+      if (r <= solid) {
+        const k = r / solid;
+        if (kind === "head") rgb = k < 0.4 ? hexRgb(COMET_HEAD.core) : k < 0.75 ? mixRgb(COMET_HEAD.core, COMET_HEAD.body, (k - 0.4) / 0.35) : mixRgb(COMET_HEAD.body, COMET_HEAD.rim, (k - 0.75) / 0.25);
+        // A segment's lit heart: a little lighter at its centre, its own colour from half way out.
+        else rgb = k < 0.5 ? mixRgb(colour, "#FFFFFF", 0.3 * (1 - k / 0.5)) : hexRgb(colour);
+        // Half a pixel of soft edge.
+        alpha = fade * Math.min(1, (solid - r) / 0.75 + 0.55);
+      } else {
+        const k = (r - solid) / (haloTo - solid);
+        rgb = hexRgb(kind === "head" ? COMET_HEAD.halo : colour);
+        alpha = fade * (kind === "head" ? 0.6 : 0.4) * (1 - k) * (1 - k);
       }
-    }
-    c.shadowBlur = 0;
-    c.globalAlpha = kind === "head" ? 1 : 1 - level * 0.105;
-    const d = direction(dir);
-    for (let y = inset; y < SNAKE_CELL - inset; y += 2) {
-      for (let x = inset; x < SNAKE_CELL - inset; x += 2) {
-        const dx = x + 1 - middle, dy = y + 1 - middle;
-        if (dx * dx + dy * dy > radius * radius) continue;
-        if (kind === "head") {
-          // The comet: a dark rock core set a little forward, white-hot fire hugging its leading edge,
-          // amber flame round it cooling to orange at the rim, and flame tongues streaming back.
-          const front = dx * d.x + dy * d.y;
-          const ex = dx - 2 * d.x, ey = dy - 2 * d.y;
-          const core = ex * ex + ey * ey;
-          if (core < 30) {
-            // Lit from the top left: a warm highlight, the far rim in charcoal shadow.
-            c.fillStyle = ex + ey < -4 ? "#8A4A26" : core > 16 && ex + ey > 2 ? ROCK : COMET_CORE;
-          } else {
-            const tongue = front < -3 && ((x / 2 + y / 2) % 3 === 0);
-            c.fillStyle = core < 58 && front >= 0 ? HOT : core < 74 ? COMET_AMBER : tongue ? COMET_AMBER : COMET_ORANGE;
-          }
-        } else {
-          // Flat flame tongues, not gradients: each bead remains a discrete cell.
-          const tongue = ((x / 2 + y / 2) % 5 === 0) && dy < 1;
-          // (The white-hot square straight behind the head carries amber streaks.)
-          c.fillStyle = tongue && level < 4 ? (level === 0 ? COMET_AMBER : FLAMES[level - 1] ?? flame) : flame;
-          if (level === LEVELS - 1 && (x / 2 + y / 2) % 4 === 0) c.fillStyle = SMOKE;
-        }
-        c.fillRect(x, y, 2, 2);
-      }
-    }
-    c.globalAlpha = 1;
-    if (kind === "head") {
-      // Flecks on the rock core (it sits 2 px forward of the cell's middle).
-      const d = direction(dir);
-      const cx = middle + 2 * d.x, cy = middle + 2 * d.y;
-      c.fillStyle = ROCK_FLECK;
-      c.fillRect(cx - 2, cy, 2, 2);
-      c.fillRect(cx + 2, cy - 2, 2, 2);
+      if (alpha < 0.02) continue;
+      c.fillStyle = `rgba(${rgb[0]},${rgb[1]},${rgb[2]},${alpha.toFixed(3)})`;
+      c.fillRect(x, y, STEP, STEP);
     }
   }
 }
@@ -254,12 +263,6 @@ function memory(key: CanvasRenderingContext2D, state: SnakeState, now: number): 
   return memo;
 }
 
-export function eyes(ctx: CanvasRenderingContext2D, x: number, y: number, dir: number): void {
-  const d = direction(dir);
-  ctx.fillStyle = EYE;
-  for (const side of [-1, 1]) ctx.fillRect(x + d.x * 6 - d.y * side * 5 - 1, y + d.y * 6 + d.x * side * 5 - 1, 2, 2);
-}
-
 function drawWorld(ctx: CanvasRenderingContext2D, state: SnakeState, key: CanvasRenderingContext2D): void {
   const now = typeof performance === "undefined" ? 0 : performance.now();
   const motion = !reducedMotion();
@@ -288,43 +291,18 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: SnakeState, key: Canvas
   const headCell = state.body[0];
   if (headCell !== undefined) {
     const head = point(headCell);
-    // Light only between contiguous centres; no interpolation or moved segments.
-    if (motion && !state.dead) {
-      const lengthFactor = Math.min(1, state.body.length / 25); ctx.fillStyle = COMET_ORANGE; ctx.globalAlpha = 0.12 + 0.16 * lengthFactor;
-      for (let i = 1; i < state.body.length; i++) {
-        const cell = state.body[i], ahead = state.body[i - 1];
-        if (cell === undefined || ahead === undefined) continue;
-        const a = point(cell), b = point(ahead);
-        if (Math.abs(a.x - b.x) + Math.abs(a.y - b.y) !== SNAKE_CELL) continue;
-        ctx.fillRect(Math.min(a.x, b.x) - 1, Math.min(a.y, b.y) - 1, Math.abs(a.x - b.x) + 2, Math.abs(a.y - b.y) + 2);
-      }
-      // The comet's white-hot streaming trail: a bright core line from the head back along the first
-      // squares, thinning and fading (inside the body's own squares).
-      for (let i = 1; i < Math.min(5, state.body.length); i++) {
-        const cell = state.body[i], ahead = state.body[i - 1];
-        if (cell === undefined || ahead === undefined) continue;
-        const a = point(cell), b = point(ahead);
-        if (Math.abs(a.x - b.x) + Math.abs(a.y - b.y) !== SNAKE_CELL) break;
-        const w = i <= 2 ? 6 : 4;
-        ctx.fillStyle = i === 1 ? HOT : COMET_AMBER;
-        ctx.globalAlpha = 0.7 - 0.14 * i;
-        if (a.x !== b.x) ctx.fillRect(Math.min(a.x, b.x), Math.round(a.y - w / 2), SNAKE_CELL, w);
-        else ctx.fillRect(Math.round(a.x - w / 2), Math.min(a.y, b.y), w, SNAKE_CELL);
-      }
-      ctx.globalAlpha = 1;
-    }
+    const tail = cometTail(state.eaten);
     for (let i = state.body.length - 1; i >= 0; i--) {
       const cell = state.body[i];
       if (cell === undefined) continue;
       const p = point(cell);
-      // The trail cools from the head: white-hot, then amber, then along the body to embers and smoke.
-      const level = i <= 2 ? i - 1 : Math.max(2, Math.min(LEVELS - 1, Math.round(i / Math.max(1, state.body.length - 1) * (LEVELS - 1))));
+      // The segments shrink, fade and darken from the head to the tip (no line between them).
+      const level = Math.max(0, Math.min(COMET_LEVELS - 1, Math.round(((i - 1) / Math.max(1, state.body.length - 2)) * (COMET_LEVELS - 1))));
       ctx.globalAlpha = state.dead && motion ? 1 - 0.35 * Math.min(1, deathAge / DEATH_MS) : 1;
-      // The whole body is the comet's trail (Joe's phone notes): fire cooling to embers, no longer re-tinted every 5 stars.
-      blit(ctx, stamp(i === 0 ? "head" : "bead", i === 0 ? 0 : level, state.dir), p.x, p.y);
+      if (i === 0) glow(ctx, COMET_HEAD.halo, p.x, p.y, 18, 18, state.dead ? 0.3 : 0.65);
+      blit(ctx, stamp(i === 0 ? "head" : "bead", i === 0 ? 0 : level, state.dir, i === 0 ? 0 : tail), p.x, p.y);
     }
     ctx.globalAlpha = 1;
-    eyes(ctx, head.x, head.y, state.dir);
     if (age >= 0 && age < EAT_MS) {
       if (motion && memo.eatCell >= 0) {
         const start = point(memo.eatCell), d = direction(state.dir), k = Math.min(1, age / 150);
@@ -339,7 +317,6 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: SnakeState, key: Canvas
       if (d.x !== 0) ctx.fillRect(head.x + d.x * 8 - 1, head.y - 7, 2, 14);
       else ctx.fillRect(head.x - 7, head.y + d.y * 8 - 1, 14, 2);
       ctx.globalAlpha = 1;
-      eyes(ctx, head.x, head.y, state.dir);
     }
     if (motion) sparks(ctx, state, now, deathAge);
     if (state.exp) v9Pops(key, state, head);
@@ -509,7 +486,7 @@ function sparks(ctx: CanvasRenderingContext2D, state: SnakeState, now: number, d
     const dx = death ? Math.cos(angle) * spread : tailEffect ? (t.x - a.x) / SNAKE_CELL * (5 + k * 10) + Math.cos(angle) * spread : Math.cos(angle) * spread;
     const dy = death ? Math.sin(angle) * spread - (smoke ? k * 9 : 0) : tailEffect ? (t.y - a.y) / SNAKE_CELL * (5 + k * 10) + Math.sin(angle) * spread - k * 6 : -k * 16;
     ctx.globalAlpha = (1 - k) * 0.75;
-    ctx.fillStyle = smoke ? SMOKE : i % 2 === 0 ? ACCENT : HOT;
+    ctx.fillStyle = smoke ? SMOKE : i % 2 === 0 ? COMET_TAILS[cometTail(state.eaten)]![2]! : HOT;
     const size = smoke ? 4 : 2;
     ctx.fillRect(Math.round(p.x + dx) - size / 2, Math.round(p.y + dy) - size / 2, size, size);
   }

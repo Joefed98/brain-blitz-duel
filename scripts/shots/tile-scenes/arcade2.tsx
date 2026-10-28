@@ -4,7 +4,7 @@ import { brassPin, btMarble, strokeChannels, symbol } from "@/lib/arcade/ballTra
 import { BEAT_LANE_COLOURS } from "@/lib/arcade/beat";
 import { paintNote } from "@/lib/arcade/beat.renderer";
 import { BINTOSS_FLOOR_Y } from "@/lib/arcade/binToss";
-import { BINTOSS_RUBBER, drawBucket, drawRubberBall } from "@/lib/arcade/binTossArt.renderer";
+import { BINTOSS_BALL, drawBucket, drawRubberBall } from "@/lib/arcade/binTossArt.renderer";
 import { BURST_COLOURS, BURST_RADIUS } from "@/lib/arcade/burst";
 import { SHIP_ROWS, paintAtom, plainSprite } from "@/lib/arcade/burst.renderer";
 import { drawHero, heroPose, type HeroPose } from "@/lib/arcade/hero.renderer";
@@ -327,7 +327,7 @@ export const ARCADE2_SCENES: SceneSet = {
         [47, 400],
         [62, 393],
       ];
-      c.fillStyle = BINTOSS_RUBBER;
+      c.fillStyle = BINTOSS_BALL;
       arc.forEach(([x, y], i) => {
         c.globalAlpha = 0.45 * ((i + 1) / arc.length);
         c.beginPath();

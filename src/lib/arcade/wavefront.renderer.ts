@@ -99,7 +99,29 @@ const FINISHES: readonly HullFinish[] = [
 const GLASS = "#06070A";
 const STEEL_DARK = "#1B1E23";
 
+/**
+ * Phone notes (28 Oct 2026, display only, every revision): a few ships in dark coloured metal, dark maroon, navy
+ * and dark red; most stay black and silver. Which ships is fixed by the ship's cell and the wave
+ * (`wavHullTint`), so every player sees the same fleet; bosses and the armoured ship are unchanged.
+ */
+const TINT_FINISHES: Readonly<Record<string, HullFinish>> = {
+  maroon: { hi: "#A24A5C", mid: "#5E1F2C", lo: "#26090F", edge: "#E6BCC5" },
+  navy: { hi: "#5470AC", mid: "#1E2F5E", lo: "#09112C", edge: "#BCCAEE" },
+  darkred: { hi: "#C24A40", mid: "#761A16", lo: "#320706", edge: "#F0BCB4" },
+};
+const TINTS = ["maroon", "navy", "darkred"] as const;
+/** The coloured finish for the ship in this cell on this wave, or null (its silver, grey or black finish): 3 in 16. */
+export function wavHullTint(cell: number, wave: number): (typeof TINTS)[number] | null {
+  let h = Math.imul(cell + 1, 0x9e3779b1) ^ Math.imul(wave + 7, 0x85ebca6b);
+  h = Math.imul(h ^ (h >>> 15), 0x2c1b3c6d);
+  h = (h ^ (h >>> 13)) >>> 0;
+  const k = h % 16;
+  return k < TINTS.length ? TINTS[k]! : null;
+}
+
 function finishFor(colour: string): HullFinish {
+  const tinted = TINT_FINISHES[colour];
+  if (tinted) return tinted;
   const k = WAV_COLOURS.indexOf(colour);
   return FINISHES[k < 0 ? 0 : k]!;
 }
@@ -971,7 +993,7 @@ function drawWavefrontArtWorld(ctx: CanvasRenderingContext2D, state: WavState, s
     if (code === 0 || code === WAV_ARMOUR_CODE || away.has(i)) return;
     const box = wavShapeBox(state, i);
     const kind = Math.trunc((code - 1) / 3);
-    const colour = WAV_COLOURS[(code - 1) % 3] ?? WAV_GOLD;
+    const colour = wavHullTint(i, state.wave) ?? WAV_COLOURS[(code - 1) % 3] ?? WAV_GOLD;
     drawHull(ctx, kind, colour, box.x, box.y, WAV_CELL, t);
     if (state.r11 && (state.carry?.[i] ?? -1) >= 0) drawCarrierMark(ctx, box.x + WAV_CELL / 2, box.y + WAV_CELL / 2, state.carry![i]!, t);
   });
@@ -981,7 +1003,7 @@ function drawWavefrontArtWorld(ctx: CanvasRenderingContext2D, state: WavState, s
     const code = state.shapes[d.cell] ?? 0;
     if (code === 0) continue;
     const c = wavDiverCentre(d);
-    const colour = WAV_COLOURS[(code - 1) % 3] ?? WAV_GOLD;
+    const colour = wavHullTint(d.cell, state.wave) ?? WAV_COLOURS[(code - 1) % 3] ?? WAV_GOLD;
     ctx.globalAlpha = 0.25;
     ctx.fillStyle = "#C9CED6";
     ctx.fillRect(c.x - 2, c.y - WAV_CELL / 2 - 10, 4, 10);

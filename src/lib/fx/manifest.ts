@@ -125,7 +125,8 @@ const ENTRIES = {
   winner_crash: { channel: "effects", frequency: 0, ms: 2480, url: "/__l5e/assets-v1/accf8497-0738-4d9a-b584-81bd72469ba5/winner_crash.mp3" },
   lobby_loop: { channel: "music", frequency: 0, ms: 0, url: "/__l5e/assets-v1/62214736-57fe-4753-90ad-91545ad62fdb/lobby_loop.mp3" },
   music_bubble: { channel: "music", frequency: 0, ms: 0, url: "/__l5e/assets-v1/d6ff8836-5885-4575-8cba-325acf0ae98f/music_bubble.mp3" },
-  music_matchup: { channel: "music", frequency: 0, ms: 0, url: "/__l5e/assets-v1/f645e779-80bb-4696-be77-b144f028666f/music_matchup.mp3" },
+  // Gemstone: an energetic 150 BPM chiptune bed (Joe's phone notes, 28 Oct 2026; scripts/chiptune-sounds.ts) in place of the Oct 7 track.
+  music_matchup: { channel: "music", frequency: 0, ms: 0, url: "/sounds/music_matchup2.mp3" },
   // Puzzle round beds, three per category.
   music_word_1: { channel: "music", frequency: 0, ms: 0, url: "/__l5e/assets-v1/dcd07f6b-bd60-4926-997f-0b8375078b26/music_word_1.mp3" },
   music_word_2: { channel: "music", frequency: 0, ms: 0, url: "/__l5e/assets-v1/58d08163-52ab-44f5-a8f1-ebc01c9162f3/music_word_2.mp3" },
@@ -530,7 +531,7 @@ const ENTRIES = {
   "music_rooftop": { channel: "music", frequency: 0, ms: 0, url: null },
   "music_steady": { channel: "music", frequency: 0, ms: 0, url: null },
   "music_swerve": { channel: "music", frequency: 0, ms: 0, url: null },
-  "music_beat": { channel: "music", frequency: 0, ms: 60087, url: "/sounds/music_beat.mp3", volume: 0.8 },
+  "music_beat": { channel: "music", frequency: 0, ms: 60087, url: "/sounds/music_beat.mp3", volume: 1 },
   "music_word_codeword": { channel: "music", frequency: 0, ms: 0, url: null },
   "music_word_wordhunt": { channel: "music", frequency: 0, ms: 0, url: null },
   "music_word_tilegrid": { channel: "music", frequency: 0, ms: 0, url: null },
@@ -687,7 +688,7 @@ const ENTRIES = {
   "bintoss.perfect": { channel: "effects", frequency: 0, ms: 300, url: null },
   "beat.start": { channel: "effects", frequency: 0, ms: 120, url: null },
   "beat.miss": { channel: "effects", frequency: 0, ms: 150, url: "/sounds/beat.miss.mp3", volume: 0.6 },
-  "beat.note": { channel: "effects", frequency: 0, ms: 120, url: "/sounds/beat.noteHit.mp3", volume: 0.8 },
+  "beat.note": { channel: "effects", frequency: 0, ms: 140, url: "/sounds/beat.note8bit.mp3", volume: 0.8 },
   "tilt.roll": { channel: "effects", frequency: 0, ms: 0, url: null, loop: true },
   "tilt.caught": { channel: "effects", frequency: 0, ms: 200, url: null },
   "tilt.mazeDone": { channel: "effects", frequency: 0, ms: 120, url: null },

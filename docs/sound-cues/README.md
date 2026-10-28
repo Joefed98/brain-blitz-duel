@@ -79,6 +79,10 @@ Tempo's track, each trimmed (leading and trailing silence off, cut to about its 
 and levelled to the library's median loudness (about -15 LUFS momentary peak, the two constant repeaters
 `arcade.wallThock.mp3` and `wavefront.greenBolt.mp3` about -24, never above -1 dBFS); new hooks
 `shared.roundResults`, `slice.specialIn` and `matchup.jackpotBlast`; Roofbound's speed-up sounds on every third step.
+Sound batch 5 (Joe's iPhone 11 notes, 28 Oct 2026) is [batch5-chiptune.md](batch5-chiptune.md): two synthesised files
+made by `bun scripts/chiptune-sounds.ts` (deterministic, ffmpeg): Tempo's note hit `beat.note8bit.mp3` (replacing
+`beat.noteHit.mp3`, pitched per lane up a major pentatonic scale) and Gemstone's bed `music_matchup2.mp3`; Tempo's track
+plays louder (manifest volume 1, `BEAT_TRACK_BOOST` 1.6).
 
 What each kind of slot does once it has a file:
 

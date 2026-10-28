@@ -577,6 +577,10 @@ check(
   sound.beatTrackLevel(75_000) === sound.BEAT_TRACK_LEVEL_FLOOR && sound.BEAT_TRACK_LEVEL_FLOOR >= 0.9 && sound.beatTrackLevel(0) === 1,
   "Tempo's track plays at 0.9 rising to 1 at the end (louder than the arcade ramp's 0.5)",
 );
+check(
+  sound.BEAT_TRACK_BOOST >= 1.5 && SOUND_MANIFEST.music_beat.volume === 1,
+  "Tempo's track is louder again (phone notes, 28 Oct 2026): volume 1 and a gain of 1.5 or more on top of the level",
+);
 sound.syncBeatTrack(null, 0);
 sound.syncBeatTrack(null, 0);
 check(take().length === 0, "Tempo's track stops at the end of the run");

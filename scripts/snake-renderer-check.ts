@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict';
 import { snakeGame, SNAKE_CELL, snakeGameFor, SNAKE_REV_10, SNAKE_V9_COLS, SNAKE_V9_H, SNAKE_V9_WORLD_W, snakeBoardXOf, snakeCol, snakeRow, type SnakeState } from '../src/lib/arcade/snake';
 import { roomSeed } from './arcade-skill-bands/games';
-import { snakeArtGame } from '../src/lib/arcade/snake.renderer';
+import { snakeArtGame, cometTail, COMET_TAILS, COMET_TAIL_EVERY } from '../src/lib/arcade/snake.renderer';
 let allocations = 0, clock = 1000, reduced = false;
 Object.defineProperty(globalThis, 'performance', { configurable: true, value: { now: () => clock } });
 Object.defineProperty(globalThis, 'window', { configurable: true, value: { matchMedia: () => ({ get matches() { return reduced; } }) } });
@@ -29,13 +29,19 @@ for(const s of beadSurfaces)for(const [x,y,w,h] of s.stats.rects)assert(x>=0&&y>
 for(const s of beadSurfaces) {
  assert(!s.stats.colours.has('#4BFF7A') && !s.stats.colours.has('#1E9C45'), 'meteor/star sprites have no green');
 }
-assert(beadSurfaces.some(s=>s.stats.colours.has('#29282D')), 'charcoal head');
-assert(beadSurfaces.some(s=>s.stats.colours.has('#77747B')), 'rock flecks');
-assert(beadSurfaces.some(s=>s.stats.colours.has('#FFF4D2')), 'white-hot fire front');
-assert(beadSurfaces.some(s=>s.stats.colours.has('#85818B')), 'smoke-grey tail');
-// The comet (Joe's phone notes, 27 Oct 2026): a dark rock core, orange-to-amber flame, white-hot trail.
-assert(beadSurfaces.some(s=>s.stats.colours.has('#5A2A12')), 'comet: dark rock core');
-assert(beadSurfaces.some(s=>s.stats.colours.has('#FF7A2E')) && beadSurfaces.some(s=>s.stats.colours.has('#FFB347')), 'comet: orange-to-amber flame');
+// The comet (Joe's phone notes, 28 Oct 2026, replacing the 27 Oct rock-and-flame art): a glowing white-gold head
+// (white core, gold rim and halo) and round segments shrinking and darkening to the tip, the tail's colours
+// stepping every 5 stars.
+const has=(prefix:string)=>surfaces.filter(s=>s.width===48&&s.height===48).some(s=>[...s.stats.colours].some(c=>c.startsWith(prefix)));
+assert(has('rgba(255,255,255,1.000)'), 'comet: white-hot head core');
+const rgbs=beadSurfaces.flatMap(s=>[...s.stats.colours].map(c=>/^rgba\((\d+),(\d+),(\d+),/.exec(c)).filter(Boolean).map(m=>[+m![1]!,+m![2]!,+m![3]!]));
+assert(rgbs.some(([r,g,b])=>r===255&&g>=205&&g<=225&&b<130) && has('rgba(255,194,62,'), 'comet: gold rim and halo round the head');
+assert(has('rgba(255,212,94,') && has('rgba(140,58,30,'), 'comet: gold segments behind the head darkening to embers at the tip');
+assert(!has('rgba(168,240,255,'), 'comet: no ice-blue tail before 5 stars');
+assert(cometTail(0)===0 && cometTail(4)===0 && cometTail(5)===1 && cometTail(9)===1 && cometTail(10)===2 && cometTail(COMET_TAIL_EVERY*COMET_TAILS.length)===0, 'comet: the tail changes every 5 stars, round the tails in order');
+assert(COMET_TAILS.length>=5 && new Set(COMET_TAILS.map(t=>t[0])).size===COMET_TAILS.length && COMET_TAILS.every(t=>t.length===6), 'comet: five or more distinct tails, a colour per level');
+{const was=state.eaten;state.eaten=5;draw();assert(has('rgba(168,240,255,'), 'comet: the ice-blue tail at 5 stars');state.eaten=was;}
+stats.rects=[];draw();assert.equal(stats.rects.filter(r=>(r[2]===SNAKE_CELL+2&&r[3]===2)||(r[2]===2&&r[3]===SNAKE_CELL+2)).length,0,'comet: no line drawn between segments');
 for(let dir=0;dir<4;dir++){state.dir=dir;draw();}
 const directionCaches=allocations;
 for(let dir=0;dir<4;dir++){state.dir=dir;draw();}
@@ -45,8 +51,8 @@ stats.blits=[];draw();const beads=stats.blits.filter(b=>b[2]===24&&b[3]===24);as
 for(let i=0;i<300;i++){const x=15+i%15*24,y=44+Math.trunc(i/15)*24;assert(beads.some(b=>b[0]===x&&b[1]===y));}
 // Eat, death and frozen end frames are immutable and remain bounded.
 state.eaten++;state.pellet=150;state.tick++;draw();clock+=90;draw();
-state.dead=true;state.tick++;draw();clock+=300;stats.rects=[];draw();const particleRects=stats.rects.filter(r=>(r[2]===2&&r[3]===2)||(r[2]===4&&r[3]===4));assert(particleRects.length<=34,'32 embers/smoke plus two eyes');
-reduced=true;stats.rects=[];draw();assert.equal(stats.rects.filter(r=>r[2]===2&&r[3]===2).length,2,'reduced motion has only eyes, no sparks');
+state.dead=true;state.tick++;draw();clock+=300;stats.rects=[];draw();const particleRects=stats.rects.filter(r=>(r[2]===2&&r[3]===2)||(r[2]===4&&r[3]===4));assert(particleRects.length<=32,'32 embers/smoke (the comet has no eyes)');
+reduced=true;stats.rects=[];draw();assert.equal(stats.rects.filter(r=>r[2]===2&&r[3]===2).length,0,'reduced motion: no sparks (and the comet has no eyes)');
 assert.equal(stats.rects.filter(r=>r[2]===4&&r[3]===4).length,0,'no animated smoke under reduced motion');
 assert.equal(stats.depth,0);assert.equal(stats.blur,0);
 // snakeRev 10: a landed 2 × 2 rock is one 48 px boulder on its block (its sprite's pixels inside the block), and a
