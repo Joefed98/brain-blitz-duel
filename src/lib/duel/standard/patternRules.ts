@@ -14,6 +14,16 @@ export function isPatternStdType(type: PuzzleType | string): type is PatternStdT
   return (PATTERN_STD_TYPES as readonly string[]).includes(type);
 }
 
+/** Gradient's stamp with full speed within 30 s (28 Oct 2026), and tilesRev 5's full-speed time. */
+export const TILES_REV_FAST = 6;
+export const TILES_REV5_FULL_BY_S = 80;
+
+/** The full-speed time a puzzle on the standard is graded with, by its stamp (only Gradient's moved). */
+export function patternFullByS(type: PatternStdType, puzzle: { tilesRev?: number }): number {
+  if (type === "tiles" && (puzzle.tilesRev ?? 0) < TILES_REV_FAST) return TILES_REV5_FULL_BY_S;
+  return PATTERN_STD[type].fullByS;
+}
+
 /** Unfinished credit by share (the "up to 120 by share … + up to 10 early" rows). */
 export const SHARE_CREDIT = 120;
 export const SHARE_EARLY = 10;
@@ -32,8 +42,9 @@ export const PATTERN_STD: Record<PatternStdType, PatternStdRules> = {
   iceslide: { speed: 30, fullByS: 60 },
   // The brief's 60 s of a 90 s clock, on Topsy-Turvy's real 120 s clock.
   gravity: { speed: 30, fullByS: 80, par: 5 },
-  // The brief's 40 s of a 60 s clock, on Gradient's real 120 s clock.
-  tiles: { speed: 35, fullByS: 80, par: 15 },
+  // Full speed within 30 s from tilesRev 6 (28 Oct 2026); tilesRev 5 (the brief's 40 s of a 60 s clock on Gradient's
+  // real 120 s clock) keeps TILES_REV5_FULL_BY_S.
+  tiles: { speed: 35, fullByS: 30, par: 15 },
   rings: { speed: 35, fullByS: 40, par: 15 },
   laser: { speed: 40, fullByS: 15 },
   flow: { speed: 40, fullByS: 20 },

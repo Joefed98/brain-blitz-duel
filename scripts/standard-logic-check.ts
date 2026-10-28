@@ -17,7 +17,7 @@ import { generatePuzzle, gradeAnswer } from "../src/lib/duel/generate.server";
 import { withSeededRandom } from "../src/lib/duel/random";
 import { puzzleTimeLimitMs } from "../src/lib/duel/registry";
 import { pinPreStandard, STANDARD_STAMPS, usesStandard } from "../src/lib/duel/standard/stamps";
-import { FLOOD_STANDARD_SPARE_MOVES, LOGIC_STANDARD_TYPES, type LogicStandardType } from "../src/lib/duel/standard/logicRules";
+import { FLOOD_REV3_SPARE_MOVES, FLOOD_REV_TIGHT, FLOOD_STANDARD_SPARE_MOVES, LOGIC_STANDARD_TYPES, type LogicStandardType } from "../src/lib/duel/standard/logicRules";
 import { decodeSudoku as decodeSudokuGrid, encodePresses, encodeSudoku } from "../src/lib/duel/logic";
 import { decodeTowerMoves, encodeTowerMoves } from "../src/lib/duel/tower";
 import { canPour, decodeTubeMoves, encodeTubeLog, type TubeToken } from "../src/lib/duel/tubes";
@@ -60,7 +60,8 @@ for (const type of LOGIC_STANDARD_TYPES) {
   const st = STANDARD_STAMPS[type]!;
   for (const seed of [11, 12, 13]) {
     const fresh = withSeededRandom(seed, () => generatePuzzle(type, { bankSeed: seed })) as unknown as Record<string, unknown>;
-    expect(`${type} seed ${seed}: new deal ${st.key}`, fresh[st.key], st.rev);
+    // Colour Flood is dealt depthRev 4 (par + 6, 28 Oct 2026); every other game its standard stamp.
+    expect(`${type} seed ${seed}: new deal ${st.key}`, fresh[st.key], type === "flood" ? FLOOD_REV_TIGHT : st.rev);
     expect(`${type} seed ${seed}: graded by the standard`, usesStandard(fresh as unknown as PuzzleData), true);
     const before = pinPreStandard(true);
     const old = withSeededRandom(seed, () => generatePuzzle(type, { bankSeed: seed })) as unknown as Record<string, unknown>;
@@ -392,9 +393,13 @@ for (const type of LOGIC_STANDARD_TYPES) {
 
 /* ------------------------------------------------------------------ 4. Colour Flood: over par and the limit */
 
-/** Seed 6100: par 10; a wrong first colour, then greedy, floods in 12 moves by 7.6 s: 150 + 10 + (40 − 4 × 2 = 32) = 192. */
+/**
+ * Seed 6100: par 10; a wrong first colour, then greedy, floods in 12 moves by 7.6 s. depthRev 4 (par + 6):
+ * 150 + 10 + (40 − 40 ÷ 6 × 2 = 26.7 → 27) = 187; the same board on depthRev 3 (par + 10): 150 + 10 + (40 − 4 × 2) = 192.
+ */
 const OVER_MOVES = 12;
-const OVER_SCORE = 192;
+const OVER_SCORE = 187;
+const OVER_SCORE_REV3 = 192;
 
 {
   const p = deal("flood");
@@ -422,6 +427,10 @@ const OVER_SCORE = 192;
   // Flooded over par well inside 30 s: 150 + 10 speed + 40 less 4 a move over par.
   expect("flood over-par moves", moves.length, OVER_MOVES);
   expect("flood over par", play(p, timed(prefixes(moves, encodeFloodMoves), 1000, 600), true).score, OVER_SCORE);
+  // A depthRev 3 deal (par + 10, stored before 28 Oct 2026) grades exactly as it did.
+  const p3 = { ...p, depthRev: 3, moveLimit: p.par + FLOOD_REV3_SPARE_MOVES } as typeof p;
+  expect("flood depthRev 3 over par", play(p3, timed(prefixes(moves, encodeFloodMoves), 1000, 600), true).score, OVER_SCORE_REV3);
+  expect("flood depthRev 3 limit", floodMoveLimit(p3), p.par + 10);
   // Moves past the stored limit never count: two alternating colours never flood this board; 30 taps keep 20.
   const [a, b] = [...Array(FLOOD_COLOURS).keys()].filter((c) => c !== p.grid[0]).slice(0, 2) as [number, number];
   const taps = Array.from({ length: 30 }, (_, i) => (i % 2 ? b : a));

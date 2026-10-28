@@ -61,3 +61,25 @@ export function staleSubmissionNote(
   if (!isStaleVersion(client, serverId)) return null;
   return `stale_client ${kind}: client ${client}, server ${serverId} (${context})`;
 }
+
+/**
+ * The build id as Profile → Settings → About shows it: the commit's first 8 characters and the build time in UK
+ * time ("81ed1b5a · 28 Oct 02:30"), so anyone can tell which code is live. "no commit" when the build had no git.
+ */
+export function buildLabel(id: string): string {
+  if (!id || id === DEV_BUILD_ID) return DEV_BUILD_ID;
+  const cut = id.lastIndexOf("-");
+  const commit = cut > 0 ? id.slice(0, cut) : id;
+  const ms = cut > 0 ? parseInt(id.slice(cut + 1), 36) : NaN;
+  const name = commit === "build" ? "no commit" : commit.slice(0, 8);
+  if (!Number.isFinite(ms) || ms <= 0) return name;
+  const when = new Intl.DateTimeFormat("en-GB", {
+    timeZone: "Europe/London",
+    day: "numeric",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).format(new Date(ms));
+  return `${name} · ${when.replace(",", "")}`;
+}
