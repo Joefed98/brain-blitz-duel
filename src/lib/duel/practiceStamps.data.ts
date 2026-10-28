@@ -15,7 +15,7 @@ export const PRACTICE_STAMPS = {
   "checkout": "checkoutRev=2 depthRev=3 puzzleScoreRev=3 speedPar=1",
   "clayshoot": "clayRev=9 puzzleScoreRev=3 speedPar=1",
   "codeword": "codewordRev=5 puzzleScoreRev=3 speedPar=1",
-  "countup": "countRev=5 puzzleScoreRev=3 speedPar=1",
+  "countup": "countRev=6 puzzleScoreRev=3 speedPar=1",
   "cross": "crossRev=9 puzzleScoreRev=3 speedPar=1",
   "dig": "puzzleScoreRev=3 speedPar=1",
   "dual": "puzzleScoreRev=3 speedPar=1",
@@ -81,6 +81,6 @@ export const PRACTICE_STAMPS = {
   "wordfall": "puzzleScoreRev=3 speedPar=1 wordfallRev=3",
   "wordhunt": "puzzleScoreRev=3 speedPar=1 wordHuntRev=4",
   "wordsearch": "puzzleScoreRev=3 speedPar=1 wordSearchRev=4",
-  "wordslide": "puzzleScoreRev=3 speedPar=1 wordSlideRev=3",
+  "wordslide": "puzzleScoreRev=3 speedPar=1 wordSlideRev=4",
   "wordsmith": "puzzleScoreRev=3 speedPar=1 wordsmithRev=4",
 } as const;

@@ -15,6 +15,8 @@ import { puzzleTimeLimitMs } from "./registry";
 import { WORDHUNT_REV_TARGET, WORDSMITH_REV_DEPTH, WORDSMITH_REV_TARGET, WORDSMITH_REV_TOPUP } from "./scoring";
 import { dealtTopupRev } from "./depthTopup";
 import { dealStandard, usesStandard } from "./standard/stamps";
+import { dealPuzzleNotes } from "./puzzleNotes";
+import { varyTallyTray } from "@/puzzles/countUp";
 import { gradeStandard } from "./standard/grade.server";
 import "./standard/games.server";
 import { splitTimeline } from "./standard/timeline";
@@ -138,7 +140,9 @@ export function generatePuzzle(type: PuzzleType, context: GenerateContext = {}):
   // Number puzzles to 200 (numberDepth.ts) carry depthRev 1 on puzzleScoreRev 3.
   const stamped = stampNumberDepth({ ...(made as object), speedPar: SPEED_PAR_VERSION, puzzleScoreRev: dealtPuzzleScoreRev() } as unknown as PuzzleData);
   // The scoring standard (standard/stamps.ts): the game's live stamp moves up by one, on today's score revision only.
-  return puzzleScoreRevOf(stamped) === PUZZLE_SCORE_REV_DEALT ? dealStandard(stamped) : stamped;
+  if (puzzleScoreRevOf(stamped) !== PUZZLE_SCORE_REV_DEALT) return stamped;
+  // Joe's puzzle notes (28 Oct 2026, puzzleNotes.ts): Slider and Tally one stamp above the standard's.
+  return dealPuzzleNotes(dealStandard(stamped), (p) => (p.type === "countup" ? varyTallyTray(p) : p));
 }
 
 function generateUnstamped(type: PuzzleType, context: GenerateContext): PuzzleData {

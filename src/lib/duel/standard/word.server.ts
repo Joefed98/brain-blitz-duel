@@ -7,8 +7,8 @@
 import { isWord } from "../dictionary.server";
 import { decodeTileGrid, tileGridRuns, fitsTray } from "../tileGrid";
 import { judgeTileGrid } from "../tileGrid.server";
-import { decodeSlideTokens, markedRowWord, replayWordSlide, WS_MARKED_ROWS } from "../wordSlide";
-import { checkWordSlideRow } from "../wordSlide.server";
+import { decodeSlideTokens, markedRowWord, WS_MARKED_ROWS } from "../wordSlide";
+import { checkWordSlideRow, replayWordSlideFor } from "../wordSlide.server";
 import { swapwordCounts, wordSlideMadeRows } from "../progressFigures";
 import { wsDecode, wsGrade, wsSplitBonus } from "../wordSearch";
 import { LW_JAR_DROPS, lwDecodeLog, lwJarKept, lwJarTally, lwMissPenalty, lwTallyLog } from "../letterWheel";
@@ -71,7 +71,7 @@ const interlock: StandardGame = {
 
 /** Rows the player turned into words (a row still as it started is never counted). */
 function sliderMadeRows(puzzle: Extract<PuzzleData, { type: "wordslide" }>, answer: string): number {
-  const replay = replayWordSlide(puzzle.grid, decodeSlideTokens(answer));
+  const replay = replayWordSlideFor(puzzle, decodeSlideTokens(answer));
   const validRows = WS_MARKED_ROWS.filter((r) => checkWordSlideRow(markedRowWord(replay.grid, r)).valid);
   return wordSlideMadeRows(puzzle.grid, replay.grid, validRows);
 }

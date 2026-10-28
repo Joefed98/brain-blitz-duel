@@ -191,9 +191,7 @@ export function countUpStageTruth(stage: CountUpStage): number {
       stage.shapes.filter((s) => s.colour === less).length
     );
   }
-  return stage.shapes.filter(
-    (s) => s.shape === stage.targetShape && s.colour === stage.targetColour,
-  ).length;
+  return stage.shapes.filter((s) => countUpCounts(stage, s)).length;
 }
 
 /** Whether a shape is one the tray's question counts (both colours on a comparison tray). */
@@ -203,6 +201,9 @@ export function countUpCounts(
 ): boolean {
   if (stage.compare)
     return shape.colour === stage.compare.more || shape.colour === stage.compare.less;
+  // countRev 6's second tray may ask for a shape alone or a colour alone (types.ts `ask`).
+  if (stage.ask === "shape") return shape.shape === stage.targetShape;
+  if (stage.ask === "colour") return shape.colour === stage.targetColour;
   return shape.shape === stage.targetShape && shape.colour === stage.targetColour;
 }
 

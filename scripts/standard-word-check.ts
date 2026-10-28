@@ -28,8 +28,13 @@ import { roomPuzzle } from "./puzzle-fairness/run";
 import { gradeSteps, median, sentAnswer } from "./standard-lib";
 import { PUZZLE_INSTRUCTIONS } from "../src/lib/duel/instructions";
 import { INTRO_SCORE } from "../src/lib/duel/introScore";
+import { pinPrePuzzleNotes } from "../src/lib/duel/puzzleNotes";
 import { WORD_STANDARD_HELP, strikeoutEarlySolvePoints, swapwordBlindSwaps } from "../src/lib/duel/standard/word";
 import { solutionProgress } from "../src/lib/duel/progressFigures";
+
+// Written for the standard's stamps: Joe's puzzle notes (28 Oct 2026, puzzleNotes.ts) deal Slider and Tally one above,
+// so new deals here keep the standard's (puzzle-notes-check proves the new stamps).
+pinPrePuzzleNotes(true);
 
 const PRINT = process.argv.includes("--print");
 const GAMES: PuzzleType[] = ["tilegrid", "wordslide", "wordsearch", "letterwheel", "strikeout", "codeword", "swapword"];

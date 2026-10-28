@@ -241,35 +241,31 @@ function LegacyStage({ puzzle, phaseStartedAt, locked, onSubmit, onDraftAnswer }
       inactive={locked || done}
       runKey={key}
       fxScore={done ? localFlashScore(times, falseStarts, flashes.length) : null}
-      summary={flashes.length ? flashSummary(times, flashes.length) : ""}
+      summary={flashes.length ? flashSummary(times) : ""}
     />
   );
 }
 
 /**
  * Polish batch S (display only): the one-line live summary over the screen, from the times the stage
- * already shows ("Flash 3 of 5 · best 241 ms"). Misses count as settled, never as a best.
+ * already shows ("Best 241 ms"). Joe's phone notes (28 Oct 2026): it never shows how many flashes there are or
+ * which one is next ("Flash 3 of 5" is gone), so the count can't be read off the screen. Misses are never a best.
  */
-function flashSummary(times: readonly (number | null)[], total: number): string {
-  const settled = times.filter((v) => v !== null) as number[];
-  const hits = settled.filter((v) => v < REACTION_MISS_MS);
-  const shown = Math.min(total, settled.length + 1);
-  const best = hits.length ? ` · best ${Math.min(...hits)} ms` : "";
-  return settled.length >= total ? `All ${total} flashes${best}` : `Flash ${shown} of ${total}${best}`;
+function flashSummary(times: readonly (number | null)[]): string {
+  const hits = (times.filter((v) => v !== null) as number[]).filter((v) => v < REACTION_MISS_MS);
+  return hits.length ? `Best ${Math.min(...hits)} ms` : "";
 }
 
 /**
  * Depth (tapRev 5): the same line, with the steady-hand spread in place of the best while it is still on
- * ("Flash 4 of 6 · steady 38 ms"): every flash so far hit, no false start, and the fastest to slowest within the
- * loose spread. Gold while it is within the tight one. Display only; the server works the bonus out itself.
+ * ("Steady 38 ms"): every flash so far hit, no false start, and the fastest to slowest within the loose spread.
+ * Gold while it is within the tight one. Display only; the server works the bonus out itself. No flash count.
  */
-function flashSteadyLine(times: readonly (number | null)[], total: number, falseStarts: number): { text: string; steady: "tight" | "loose" | null } {
+function flashSteadyLine(times: readonly (number | null)[], falseStarts: number): { text: string; steady: "tight" | "loose" | null } {
   const settled = times.filter((v) => v !== null) as number[];
   const spread = settled.length >= 2 && falseStarts === 0 ? flashSpread(settled) : null;
-  if (spread === null || spread > FLASH_STEADY_LOOSE_MS) return { text: flashSummary(times, total), steady: null };
-  const shown = Math.min(total, settled.length + 1);
-  const head = settled.length >= total ? `All ${total} flashes` : `Flash ${shown} of ${total}`;
-  return { text: `${head} · steady ${spread} ms`, steady: spread <= FLASH_STEADY_TIGHT_MS ? "tight" : "loose" };
+  if (spread === null || spread > FLASH_STEADY_LOOSE_MS) return { text: flashSummary(times), steady: null };
+  return { text: `Steady ${spread} ms`, steady: spread <= FLASH_STEADY_TIGHT_MS ? "tight" : "loose" };
 }
 
 function surfaceFor(liveIndex: number, decoy: { color: ReactionDecoyColour } | null): string {
@@ -331,7 +327,7 @@ function ReactionArena({
   runKey?: string;
   /** The phone's local score once every flash is settled (read-only), else null. */
   fxScore?: number | null;
-  /** Polish batch S: the live summary line ("Flash 3 of 5 · best 241 ms"). */
+  /** Polish batch S: the live summary line ("Best 241 ms"; never the flash count). */
   summary?: string;
   /** Depth (tapRev 5): the steady hand still on, within the tight or the loose spread. */
   steady?: "tight" | "loose" | null;
@@ -450,7 +446,7 @@ function LoggedStage({ puzzle, phaseStartedAt, locked, onSubmit, onDraftAnswer }
 
   const liveIndex = flashes.findIndex((f, i) => replay.times[i] === null && t >= f && t < f + REACTION_FLASH_MS);
   const decoy = decoys.find((d) => t >= d.at && t < d.at + REACTION_DECOY_MS) ?? null;
-  const steadyLine = usesFlashDepth(puzzle) && flashes.length ? flashSteadyLine(replay.times, flashes.length, replay.falseStarts) : null;
+  const steadyLine = usesFlashDepth(puzzle) && flashes.length ? flashSteadyLine(replay.times, replay.falseStarts) : null;
 
   const handleTap = () => {
     if (locked || replay.done) return;
@@ -487,7 +483,7 @@ function LoggedStage({ puzzle, phaseStartedAt, locked, onSubmit, onDraftAnswer }
       inactive={locked || replay.done}
       runKey={key}
       // The live replay shows each reaction as tapped; the end-of-run score uses the credited ones (tapRev 4's decoy cut).
-      summary={steadyLine ? steadyLine.text : flashes.length ? flashSummary(replay.times, flashes.length) : ""}
+      summary={steadyLine ? steadyLine.text : flashes.length ? flashSummary(replay.times) : ""}
       steady={steadyLine?.steady ?? null}
       fxScore={replay.done ? localFlashScore(replayFlash({ flashes, decoys, tapRev: puzzle.type === "reaction" ? (puzzle.tapRev ?? 0) : 0 }, taps.current, Math.max(t, lastTap)).times, replay.falseStarts, flashes.length, tapRevOf(puzzle)) : null}
     />
