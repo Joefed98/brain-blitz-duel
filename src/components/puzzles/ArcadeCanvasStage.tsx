@@ -80,8 +80,8 @@ interface Props<S, C> {
   completeCue?: (state: S) => string | null;
   /** Render-side sound observer, created per run and stopped on teardown. */
   sounds?: () => { frame: (state: S, running: boolean) => void; stop: () => void };
-  /** Controls drawn over the canvas (absolute), never shrinking the play area. */
-  overlay?: ReactNode;
+  /** Controls drawn over the canvas (absolute), never shrinking the play area; a function gets the same `send` as `footer`. */
+  overlay?: ReactNode | ((send: (payload: PointerPayload) => void) => ReactNode);
   /** Controls below the canvas which can enqueue the same recorded inputs as pointer gestures. */
   footer?: ((send: (payload: PointerPayload) => void) => ReactNode) | undefined;
   pointer: (kind: "down" | "move" | "up", x: number, y: number) => PointerPayload | null;
@@ -337,7 +337,7 @@ export function ArcadeCanvasStage<S, C>(props: Props<S, C>) {
         onPointerUp={release}
         onPointerCancel={release}
       />
-      {props.overlay}
+      {typeof props.overlay === "function" ? props.overlay(push) : props.overlay}
     </div>
   );
 

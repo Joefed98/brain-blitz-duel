@@ -1717,9 +1717,12 @@ export interface TilesPuzzleData {
   frame: number[];
   /**
    * 1 = the extra-cell board (tiles.ts); absent on stored 3×3 rounds. 3 (25 Oct 2026, the remodel,
-   * jumbled.ts) = the 5×5 colour gradient with row and column slides; `frame` is then 25 tiles.
+   * jumbled.ts) = the 5×5 colour gradient with row and column slides; `frame` is then 25 tiles. 4 (27 Oct 2026,
+   * Gradient, Joe's phone notes) = the 5×5 board with swaps, locked tiles and the round's own `palette`.
    */
-  tilesRev?: 1 | 2 | 3;
+  tilesRev?: 1 | 2 | 3 | 4;
+  /** tilesRev 4: the solved board's colours, cell by cell (the round's colour scheme, gradientPalette.ts). */
+  palette?: string[];
   /** tilesRev 3: par moves, shown on the phone (the proved minimum + JUMBLED_PAR_SLACK). */
   par?: number;
   /** tilesRev 2: the round's own clock (90 s); absent = TILES_TIME_MS. */
@@ -1728,7 +1731,7 @@ export interface TilesPuzzleData {
   extra?: TilesExtra;
   /** Server-side only: the exact minimum number of slides. */
   minMoves?: number;
-  /** Server-side only: one minimum-length slide order (tile values). */
+  /** Server-side only: one minimum-length slide order (tile values); tilesRev 4, swaps as a × 100 + b. */
   solution?: number[];
 }
 
@@ -1828,14 +1831,14 @@ export interface BullseyePuzzleData {
 
 /* ================================ Matchup ================================ */
 
-/** A fixed 60-second run; the round clock adds three seconds of slack. */
+/** A fixed 60-second run (matchupRev 10: 90 s, on its definition's clock); the round clock adds three seconds of slack. */
 export const MATCHUP_TIME_MS = 63_000;
 
 export interface MatchupPuzzleData {
   type: "matchup";
   /** Draws the board and each column's refill queue — identical for everyone. */
   seed: number;
-  /** Rule revision (2 = Jackpot gem, constant play, own par; 3 = original fall speed; 4 = score bands; 5 = wait for gems to fall, par 2,500, Tuning C); absent = original rules. */
+  /** Rule revision (2 = Jackpot gem, constant play, own par; 3 = original fall speed; 4 = score bands; 5 = wait for gems to fall, par 2,500, Tuning C; 9 = the taller board with goals, ice and treasure; 10 = 9 over 90 s, swaps into and out of ice that make a line, ice laid once); absent = original rules. */
   matchupRev?: number;
 }
 
@@ -1892,14 +1895,14 @@ export interface BreakerPuzzleData {
 
 /* ================================ Pinball ================================ */
 
-/** A fixed 60-second, three-ball run; the round clock adds three of slack (63 s). */
+/** pinRev 1–4's fixed 60-second, three-ball run; the round clock adds three of slack (63 s). pinRev 5 runs 90 s on a 93 s clock (src/puzzles/pinball.tsx). */
 export const PINBALL_TIME_MS = 63_000;
 
 export interface PinballPuzzleData {
   type: "pinball";
   /** Stored like every arcade seed; the table itself is fixed, so it plays the same for everyone whatever the seed. */
   seed: number;
-  /** Rules revision (1 = the first table, scored on the Oct 2026 band shape). */
+  /** Rules revision (1 = the first table, scored on the Oct 2026 band shape; 4 the taller table; 5 it for 90 s). */
   pinRev?: number;
 }
 
@@ -2059,7 +2062,7 @@ export interface BalancePuzzleData {
   solutions?: number[][];
   /** Placement limit revision (moveLimits.ts, 13 Oct 2026): 1 = harder small scales, `placeLimits` hangs per scale, the hang counts recorded in the answer. 2 (14 Oct 2026) = as 1, plus a fourth 10-notch scale, 120 s and the rev-2 scale points (balance.ts). Absent = no limit. */
   balanceRev?: number;
-  /** Hangs allowed per scale (balanceRev 1: 6 / 8 / 10; 2: 6 / 8 / 10 / 12). */
+  /** Hangs allowed per scale (balanceRev 1: 6 / 8 / 10; 2: 6 / 8 / 10 / 12; 3: 9 / 12 / 15 / 18). */
   placeLimits?: number[];
   /** balanceRev 2: the round clock (120,000 ms). Absent on stored rounds, which keep the registry's 90 s. */
   timeLimitMs?: number;
@@ -2167,7 +2170,7 @@ export interface OrbitPuzzleData {
 
 export interface SwingPuzzleData {
   type: "swing";
-  /** 4 = dragon chase; 5 = score bands; 6 = touch stars (Tuning A); 7 = about 10% lower (Tuning C); 8 = stars spread evenly (Tuning F); 9 = the taller 390 × 730 cavern. */
+  /** 4 = dragon chase; 5 = score bands; 6 = touch stars (Tuning A); 7 = about 10% lower (Tuning C); 8 = stars spread evenly (Tuning F); 9 = the taller 390 × 730 cavern; 13 = the 200 expansion; 14 = the assault course (sections of ledges, hooks and squeezes). */
   swingRev?: number;
   /** Draws the cavern — identical for everyone. */
   seed: number;

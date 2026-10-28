@@ -6,7 +6,7 @@
  */
 
 import { CROSS_LANE_POINTS, CROSS_CROSSING_POINTS } from "./cross";
-import { BT_BALLS } from "./ballTrack";
+import { BT_BALLS, BT_V7_BALLS } from "./ballTrack";
 import { whackDepthScore, type WhackState } from "./whack";
 import { CLAY_DOUBLES, clayDepthScore, clayDoublesHit, type ClayState } from "./clayShoot";
 import { MATCHUP_PAR_RAW } from "./matchup";
@@ -393,7 +393,7 @@ const BUILDERS: Record<string, Builder> = {
   burst: (r, s) => ({
     axis: { value: Math.max(1, n(r, "wave")), max: null, label: "Waves" },
     lines:
-      typeof r["cleanWaves"] === "number"
+      typeof r["cleanWaves"] === "number" || typeof r["quickWaves"] === "number"
         ? [`${n(r, "hits")} atoms · ${n(r, "livesLost")} lives lost · skill +${n(r, "skill")} → ${s}`]
         : n(r, "burstRev") > 0
         ? [
@@ -406,6 +406,8 @@ const BUILDERS: Record<string, Builder> = {
       { label: "Atoms", value: String(n(r, "hits")) },
       { label: "Lives lost", value: String(n(r, "livesLost")) },
       // burstRev 8: clean waves and golden atoms.
+      // burstRev 9: quick waves (cleared with a time bonus) and golden atoms.
+      ...(typeof r["quickWaves"] === "number" ? [{ label: "Quick waves", value: String(n(r, "quickWaves")) }, { label: "Golden atoms", value: `${n(r, "goldens")} / 6` }] : []),
       ...(typeof r["cleanWaves"] === "number" ? [{ label: "Clean waves", value: String(n(r, "cleanWaves")) }, { label: "Golden atoms", value: `${n(r, "goldens")} / 6` }] : []),
       ...(n(r, "burstRev") > 0 ? [{ label: "Waves cleared", value: String(n(r, "cleared")) }, { label: "Freezes", value: String(n(r, "freezes")) }] : []),
     ],
@@ -436,6 +438,25 @@ const BUILDERS: Record<string, Builder> = {
     };
   },
   swing: (r, s) => {
+    // swingRev 14 (the assault course): sections on the axis; the lines add up to the stored score.
+    if (n(r, "swingRev") >= 14) {
+      const done = n(r, "sections") >= n(r, "sectionTotal") && n(r, "sectionTotal") > 0;
+      return {
+        axis: { value: n(r, "sections"), max: Math.max(1, n(r, "sectionTotal")), label: "Sections" },
+        lines: [
+          `Section ${n(r, "sections")} / ${n(r, "sectionTotal")} → ${n(r, "basePts")}`,
+          `Pars, gates, gems, stars${done ? ", course cleared" : ""} +${n(r, "bonusPts")}`,
+          `Total → ${s}`,
+        ],
+        tiles: [
+          { label: "Sections", value: `${n(r, "sections")} / ${n(r, "sectionTotal")}` },
+          { label: "Under par", value: `${n(r, "parsBeaten")}` },
+          { label: "Restarts", value: `${n(r, "restarts")}` },
+          { label: "Gates · gems · stars", value: `${n(r, "gates")} · ${n(r, "gems")} · ${n(r, "stars")}` },
+        ],
+        outcome: done ? "finish" : ended(r, false),
+      };
+    }
     const metres = n(r, "metres");
     const done = metres >= 500;
     return {
@@ -494,7 +515,7 @@ const BUILDERS: Record<string, Builder> = {
   },
   tilt: (r, s) => {
     // tiltRev 8 (the expansion, docs/expansions/x200-tilt.md): three mazes and quick stars.
-    const all = n(r, "tiltRev") === 8 ? 3 : 4;
+    const all = n(r, "tiltRev") === 8 || n(r, "tiltRev") === 9 ? 3 : 4;
     const done = n(r, "mazes") >= all;
     const quick = n(r, "totalQuick") > 0;
     return {
@@ -510,12 +531,14 @@ const BUILDERS: Record<string, Builder> = {
     };
   },
   balltrack: (r, s) => {
-    const done = n(r, "home") >= BT_BALLS;
+    // btRev 7 drops 36 marbles (every earlier course 30): the replay's own state says which.
+    const all = (r["state"] as { r7?: number } | undefined)?.r7 ? BT_V7_BALLS : BT_BALLS;
+    const done = n(r, "home") >= all;
     return {
-      axis: { value: n(r, "home"), max: BT_BALLS, label: "Marbles home" },
-      lines: [head(`${n(r, "home")} / ${BT_BALLS} home`, s, done)],
+      axis: { value: n(r, "home"), max: all, label: "Marbles home" },
+      lines: [head(`${n(r, "home")} / ${all} home`, s, done)],
       tiles: [
-        { label: "Marbles home", value: `${n(r, "home")} / ${BT_BALLS}` },
+        { label: "Marbles home", value: `${n(r, "home")} / ${all}` },
         { label: "Wrong tray", value: String(n(r, "wrong")) },
         { label: "Lost", value: String(n(r, "lost")) },
       ],
@@ -602,7 +625,26 @@ const BUILDERS: Record<string, Builder> = {
     // clashRev 4 (puzzle score shape): a finish is all sorted with at most 2 wrong = 120 + the time bonus
     // (−5 per wrong from it); otherwise 110 × correct ÷ N − 2 per wrong. The bonus is the stored one.
     // clashRev 8 (depth to 200): the same lines, then the gold, streak and speed-stretch points a finish added.
-    const depth = (r as { depth?: { base: number; gold: number; streak: number; stretch: number; best: number; golds: number; goldWords: number; touched: number } }).depth;
+    const depth = (r as { depth?: { base: number; gold: number; streak: number; stretch: number; best: number; golds: number; goldWords: number; touched: number; standard?: boolean } }).depth;
+    // clashRev 10 (the scoring standard): 150 + speed + streak + gold, or the share of words right less wrong plus both.
+    if (depth?.standard && n(r, "queue") > 0) {
+      const done = b(r, "finished");
+      const sorted = n(r, "correct") + n(r, "wrong") >= n(r, "queue");
+      return {
+        axis: { value: n(r, "correct"), max: n(r, "queue"), label: "Correct" },
+        lines: [
+          `${n(r, "correct")} / ${n(r, "queue")} correct → ${s}`,
+          done ? `${n(r, "wrong")} wrong · finish ${depth.base} · speed +${depth.stretch}` : `${n(r, "wrong")} wrong · ${Math.max(0, n(r, "net"))} net → ${depth.base} · ${sorted ? "more than 3 wrong" : "not all sorted"}`,
+          `streak +${depth.streak} (best ${depth.best}) · gold +${depth.gold} (${depth.golds}/${depth.goldWords})`,
+        ],
+        tiles: [
+          { label: "Correct", value: `${n(r, "correct")} / ${n(r, "queue")}` },
+          { label: "Best streak", value: String(depth.best) },
+          { label: "Bonus", value: `+${depth.gold + depth.streak}` },
+        ],
+        outcome: done ? "finish" : "time",
+      };
+    }
     if (depth && n(r, "queue") > 0) {
       const done = b(r, "finished");
       const sorted = n(r, "correct") + n(r, "wrong") >= n(r, "queue");

@@ -41,13 +41,14 @@ import { SOUND_MANIFEST } from "@/lib/fx/manifest";
 import { expansionSounds } from "@/lib/fx/expansionSounds";
 
 /**
- * beatRev 9's song runs past the recorded beat track (60 s): from about 2.5 s before the track's end the
- * synthesised beat (playBeatStep, the track's own fallback) carries the last section, on the same grid.
+ * beatRev 9's song runs past the recorded beat track (60 s). Since the phone notes (27 Oct 2026) the track
+ * loops its groove (syncBeatTrack, beatTrackLoops), so it covers the whole song; only a file too short for
+ * the groove still hands over to the synthesised beat (playBeatStep) about 2.5 s before its end.
  */
 const TRACK_TICKS = Math.floor(((SOUND_MANIFEST.music_beat.ms / 1000) - 2.5) * TICKS_PER_SECOND);
 import { decodeBeatRun, encodeBeatRun, replayBeatRun } from "@/lib/duel/beat";
 import type { BeatPuzzleData } from "@/lib/duel/types";
-import { beatTrackReady, playBeatStep, stopBeatTrack, syncBeatTrack } from "@/lib/sound";
+import { beatTrackLoops, beatTrackReady, playBeatStep, stopBeatTrack, syncBeatTrack } from "@/lib/sound";
 import { beatArtGame } from "@/lib/arcade/beat.renderer";
 import { beatSounds } from "@/lib/fx/gameSounds";
 import { arcadeFeedback } from "@/lib/fx/arcade";
@@ -195,10 +196,11 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
             checkpoints.current.push(beatCheckpoint(state.current));
           }
           // Sound is feedback only: the recorded track (syncBeatTrack, below) or, until it has
-          // decoded or if it fails, a synthesised bass + hat loop; never required to play.
+          // decoded or if it fails, a synthesised bass + hat loop from tick 0 (the lead-in bar
+          // included, phone notes 27 Oct 2026); never required to play.
           if (
-            (!beatTrackReady() || (state.current.exp && state.current.tick - BEAT_FIRST_BEAT >= TRACK_TICKS)) &&
-            state.current.tick >= BEAT_FIRST_BEAT &&
+            (!beatTrackReady() || (state.current.exp && !beatTrackLoops() && state.current.tick - BEAT_FIRST_BEAT >= TRACK_TICKS)) &&
+            state.current.tick > 0 &&
             (state.current.tick - BEAT_FIRST_BEAT) % BEAT_EIGHTH_TICKS === 0
           ) {
             playBeatStep((state.current.tick - BEAT_FIRST_BEAT) / BEAT_EIGHTH_TICKS);
@@ -208,11 +210,12 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       }
 
 
-      // Tempo's track follows the sim's own clock from the first beat; it stops at the end or a lock-in.
+      // Tempo's track follows the sim's own clock from the run's first tick (its lead-in bar before the
+      // first beat); it fades out at the end or a lock-in.
       const live = !beatGame.isOver(state.current) && !lockedRef.current;
-      const pastTrack = state.current.exp && state.current.tick - BEAT_FIRST_BEAT >= TRACK_TICKS;
+      const pastTrack = state.current.exp && !beatTrackLoops() && state.current.tick - BEAT_FIRST_BEAT >= TRACK_TICKS;
       syncBeatTrack(
-        live && !pastTrack && state.current.tick >= BEAT_FIRST_BEAT ? (state.current.tick - BEAT_FIRST_BEAT) / TICKS_PER_SECOND : null,
+        live && !pastTrack ? (state.current.tick - BEAT_FIRST_BEAT) / TICKS_PER_SECOND : null,
         ((beatGame.runTicks - state.current.tick) / TICKS_PER_SECOND) * 1000,
       );
 

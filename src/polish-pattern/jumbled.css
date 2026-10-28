@@ -89,3 +89,16 @@
   .jumbled-strip-run { transition: none !important; }
 }
 html[data-reduced-effects] .jumbled-strip-run { transition: none !important; }
+
+/* Gradient, tilesRev 4 (Joe's phone notes, 27 Oct 2026): the picked tile lifts with a white ring; a tile home
+   locks and carries the anchors' dot (data-anchor), so every dotted tile is one that can't move. */
+.jumbled-frame[data-gradient-swap] { cursor: pointer; }
+.jumbled-tile[data-selected] {
+  z-index: 3;
+  transform: scale(1.08);
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.95), 0 6px 14px rgba(0, 0, 0, 0.45);
+  transition: transform 120ms ease, box-shadow 120ms ease;
+}
+@media (prefers-reduced-motion: reduce) {
+  .jumbled-tile[data-selected] { transform: none; transition: none; }
+}

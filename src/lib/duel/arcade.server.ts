@@ -1,26 +1,27 @@
 import { TEN_DROP_DEPTH_REV } from "@/lib/arcade/tenDrop";
-import { SLICE_REV_TARGET, SLICE_REV_STRICT, SLICE_REV_EXPAND } from "@/lib/arcade/slice";
-import { FLIP_REV_TARGET, FLIP_REV_STRICT, FLIP_REV_EXPAND } from "@/lib/arcade/flip";
+import { SLICE_REV_TARGET, SLICE_REV_STRICT, SLICE_REV_BIG } from "@/lib/arcade/slice";
+import { FLIP_REV_TARGET, FLIP_REV_STRICT, FLIP_REV_LIFT } from "@/lib/arcade/flip";
 import { CROSS_REV_EXPAND } from "@/lib/arcade/cross";
-import { INK_REV_EXPAND } from "@/lib/arcade/inkBridge";
-import { SNAKE_REV_TARGET, SNAKE_REV_200 } from "@/lib/arcade/snake";
-import { BUB_REV_CREDIT } from "@/lib/arcade/bubble";
-import { MATCHUP_REV_GOALS } from "@/lib/arcade/matchup";
+import { INK_REV_SPREAD } from "@/lib/arcade/inkBridge";
+import { SNAKE_REV_TARGET, SNAKE_REV_10 } from "@/lib/arcade/snake";
+import { BUB_REV_BLAST } from "@/lib/arcade/bubble";
+import { MATCHUP_REV_ICE } from "@/lib/arcade/matchup";
 import { SNIP_REV_TARGET, SNIP_REV_EXPAND } from "@/lib/arcade/snip";
-import { SKYLINE_REV_TARGET, SKYLINE_REV_STRICT, SKYLINE_REV_EXPAND } from "@/lib/arcade/skyline";
-import { TILT_REV_EXPAND } from "@/lib/arcade/tilt";
+import { SKYLINE_REV_TARGET, SKYLINE_REV_STRICT, SKYLINE_REV_LIFT } from "@/lib/arcade/skyline";
+import { TILT_REV_LIFT } from "@/lib/arcade/tilt";
 import { TILT_BANK } from "./tiltBank.server";
 import { JUNC_REV_BAND } from "@/lib/arcade/junction";
-import { BINTOSS_REV_TARGET, BINTOSS_REV_STRICT, BINTOSS_REV_EXPAND } from "@/lib/arcade/binToss";
-import { SWING_REV_TALL, SWING_REV_TARGET, SWING_REV_STRICT, SWING_REV_EXPAND } from "@/lib/arcade/swing";
-import { BURST_REV_TARGET, BURST_REV_STRICT, BURST_REV_CLEAN } from "@/lib/arcade/burst";
-import { BRK_REV_TARGET, BRK_REV_STRICT, BRK_REV_DEEP } from "@/lib/arcade/breaker";
-import { PIN_REV_TARGET, PIN_REV_STRICT, PIN_REV_EXPAND } from "@/lib/arcade/pinball";
-import { WHACK_REV_DEPTH } from "@/lib/arcade/whack";
-import { WAV_REV_TARGET, WAV_REV_STRICT, WAV_REV_EXPAND } from "@/lib/arcade/wavefront";
+import { BINTOSS_REV_TARGET, BINTOSS_REV_STRICT, BINTOSS_REV_SMALL_FAR } from "@/lib/arcade/binToss";
+import { SWING_REV_TALL, SWING_REV_TARGET, SWING_REV_STRICT, SWING_REV_EXPAND, SWING_REV_ASSAULT } from "@/lib/arcade/swing";
+import { BURST_REV_TARGET, BURST_REV_STRICT, BURST_REV_CARRY } from "@/lib/arcade/burst";
+import { BRK_REV_TARGET, BRK_REV_STRICT, BRK_REV_DEEP, BRK_REV_PHONE } from "@/lib/arcade/breaker";
+import { PIN_REV_TARGET, PIN_REV_STRICT, PIN_REV_EXPAND, PIN_REV_LONG } from "@/lib/arcade/pinball";
+import { WHACK_REV_DEPTH, WHACK_REV_NOTES } from "@/lib/arcade/whack";
+import { dealtNotesRev } from "./phoneNotes";
+import { WAV_REV_TARGET, WAV_REV_STRICT, WAV_REV_PHONE } from "@/lib/arcade/wavefront";
 import { ORBIT_REV_TARGET, ORBIT_REV_STRICT, ORBIT_REV_XP } from "@/lib/arcade/orbit";
-import { RALLY_REV_TARGET, RALLY_REV_STRICT, RALLY_REV_BONUS } from "@/lib/arcade/rally";
-import { BEAT_REV_TARGET, BEAT_REV_200 } from "@/lib/arcade/beat";
+import { RALLY_REV_TARGET, RALLY_REV_STRICT, RALLY_REV_CURVE } from "@/lib/arcade/rally";
+import { BEAT_REV_TARGET, BEAT_REV_EASE } from "@/lib/arcade/beat";
 import { orbitXpCourseForSeed, orbitHolesForBankSeed, orbitRev3BankEntryForSeed, orbitRev3PlanetsForSeed, encodeRev3Planets } from "./orbitRev3Course.server";
 import { proveSwingSeed } from "./swingProof.server";
 import { SWING_V9_BANK } from "./swingBankV9.server";
@@ -83,11 +84,12 @@ export function generateSwerve(): SwervePuzzleData {
 }
 
 export function generateSkyline(): SkylinePuzzleData {
-  return { type: "skyline", seed: arcadeSeed(), skylineRev: SKYLINE_REV_EXPAND };
+  // skylineRev 8: skylineRev 7's play (expansion E4) on a gentler curve (Joe's phone notes, 27 Oct 2026).
+  return { type: "skyline", seed: arcadeSeed(), skylineRev: SKYLINE_REV_LIFT };
 }
 
 export function generateBinToss(): BinTossPuzzleData {
-  return { type: "bintoss", seed: arcadeSeed(), binRev: BINTOSS_REV_EXPAND };
+  return { type: "bintoss", seed: arcadeSeed(), binRev: BINTOSS_REV_SMALL_FAR };
 }
 
 export function generateBullseye(): BullseyePuzzleData {
@@ -96,12 +98,14 @@ export function generateBullseye(): BullseyePuzzleData {
 }
 
 export function generateMatchup(): MatchupPuzzleData {
-  // matchupRev 9 (expansion E6): the taller board with goals, ice and treasure.
-  return { type: "matchup", seed: arcadeSeed(), matchupRev: MATCHUP_REV_GOALS };
+  // matchupRev 10 (27 Oct 2026, phone-test notes): matchupRev 9's taller board with goals, ice and treasure, over 90 s,
+  // with swaps into and out of ice that make a line, and the ice laid once.
+  return { type: "matchup", seed: arcadeSeed(), matchupRev: MATCHUP_REV_ICE };
 }
 
 export function generateSnake(): SnakePuzzleData {
-  return { type: "snake", seed: arcadeSeed(), snakeRev: SNAKE_REV_200 };
+  // snakeRev 10 (Joe's phone notes, 27 Oct 2026): longer gold stars, a third wormhole pair, a second vertical lane, 2 × 2 rocks.
+  return { type: "snake", seed: arcadeSeed(), snakeRev: SNAKE_REV_10 };
 }
 
 export function generateCross(): CrossPuzzleData {
@@ -117,15 +121,17 @@ export function generateRicochet(): RicoPuzzleData {
 }
 
 export function generateBreaker(): BreakerPuzzleData {
-  return { type: "breaker", seed: arcadeSeed(), brkRev: BRK_REV_DEEP };
+  // brkRev 10 (phone notes, 27 Oct 2026): brkRev 9 with gold bricks broken by any 4 hits and a second double-ball brick.
+  return { type: "breaker", seed: arcadeSeed(), brkRev: BRK_REV_PHONE };
 }
 
 export function generatePinball(): PinballPuzzleData {
-  return { type: "pinball", seed: arcadeSeed(), pinRev: PIN_REV_EXPAND };
+  // pinRev 5 (27 Oct 2026, Joe's phone notes): pinRev 4's table for 90 s.
+  return { type: "pinball", seed: arcadeSeed(), pinRev: PIN_REV_LONG };
 }
 
 export function generateRally(): RallyPuzzleData {
-  return { type: "rally", seed: arcadeSeed(), rallyRev: RALLY_REV_BONUS };
+  return { type: "rally", seed: arcadeSeed(), rallyRev: RALLY_REV_CURVE };
 }
 
 export function generateSteady(): SteadyPuzzleData {
@@ -133,16 +139,19 @@ export function generateSteady(): SteadyPuzzleData {
 }
 
 export function generateSlice(): SlicePuzzleData {
-  return { type: "slice", seed: arcadeSeed(), sliceRev: SLICE_REV_EXPAND };
+  // sliceRev 10: sliceRev 9 (expansion E5) with onions and golden fruit 1.2× the size (Joe's phone notes, 27 Oct 2026).
+  return { type: "slice", seed: arcadeSeed(), sliceRev: SLICE_REV_BIG };
 }
 
 export function generateBubble(): BubblePuzzleData {
   // bubbleRev 9: bubbleRev 8's deeper reef (expansion E6) with credit for bubbles burst (no zero for a played run).
-  return { type: "bubble", seed: arcadeSeed(), bubbleRev: BUB_REV_CREDIT };
+  // bubbleRev 10 (phone notes, 27 Oct 2026): bubbleRev 9 with the mine's bigger blast (two rings).
+  return { type: "bubble", seed: arcadeSeed(), bubbleRev: BUB_REV_BLAST };
 }
 
 export function generateBeat(): BeatPuzzleData {
-  return { type: "beat", seed: arcadeSeed(), beatRev: BEAT_REV_200 };
+  // beatRev 10 (phone notes, 27 Oct 2026): beatRev 9's song with wider windows and a lighter chart, easiest from the fifth lane.
+  return { type: "beat", seed: arcadeSeed(), beatRev: BEAT_REV_EASE };
 }
 
 export function generateTenDrop(): TenDropPuzzleData {
@@ -159,11 +168,13 @@ export function generateClayShoot(): ClayShootPuzzleData {
 }
 
 export function generateWhack(): WhackPuzzleData {
-  return { type: "whack", seed: arcadeSeed(), whackRev: WHACK_REV_DEPTH };
+  // Joe's phone notes (27 Oct 2026): whackRev 4, whackRev 3 with the diamond up 450 ms instead of 300 ms.
+  return { type: "whack", seed: arcadeSeed(), whackRev: dealtNotesRev(WHACK_REV_NOTES, WHACK_REV_DEPTH) };
 }
 
 export function generateWavefront(): WavefrontPuzzleData {
-  return { type: "wavefront", seed: arcadeSeed(), wavRev: WAV_REV_EXPAND };
+  // wavRev 11 (Joe's phone notes, 27 Oct 2026): power-ups from carrier ships and saucers, no streak, the mothership after wave 5.
+  return { type: "wavefront", seed: arcadeSeed(), wavRev: WAV_REV_PHONE };
 }
 
 export function generateBastion(): BastionPuzzleData {
@@ -179,8 +190,9 @@ export function generateColourClash(): StroopPuzzleData {
 }
 
 export function generateFlip(): FlipPuzzleData {
-  // flipRev 8 (expansion E7, docs/expansions/x200-flip.md): the taller cave, its features and sweet spots, scored to 200.
-  return { type: "flip", seed: arcadeSeed(), flipRev: FLIP_REV_EXPAND };
+  // flipRev 9: flipRev 8's taller cave, features and sweet spots (expansion E7, docs/expansions/x200-flip.md), scored to 200
+  // on the lifted curves (Joe's phone notes, 27 Oct 2026).
+  return { type: "flip", seed: arcadeSeed(), flipRev: FLIP_REV_LIFT };
 }
 
 export function generateJunction(): JunctionPuzzleData {
@@ -188,11 +200,13 @@ export function generateJunction(): JunctionPuzzleData {
 }
 
 export function generateInkBridge(): InkBridgePuzzleData {
-  return { type: "inkbridge", seed: arcadeSeed(), inkRev: INK_REV_EXPAND };
+  // inkRev 11 (phone notes, 27 Oct 2026): no wind zones, fewer silver coins, the pickups spread out.
+  return { type: "inkbridge", seed: arcadeSeed(), inkRev: INK_REV_SPREAD };
 }
 
 export function generateBurst(): BurstPuzzleData {
-  return { type: "burst", seed: arcadeSeed(), burstRev: BURST_REV_CLEAN };
+  // burstRev 9 (phone-test notes, docs/phone-notes-oct-2026/fission.md): power-ups carried by seeded atoms, a bouncing golden atom, BURST shots, the wave-clear bonus.
+  return { type: "burst", seed: arcadeSeed(), burstRev: BURST_REV_CARRY };
 }
 
 export function generateOrbit(): OrbitPuzzleData {
@@ -218,11 +232,26 @@ export function generateSnip(): SnipPuzzleData {
 }
 
 /**
- * Room/practice generation picks a proved course from the bank by the room seed; on-the-spot proving is only a fallback if the bank is empty or unlucky.
+ * swingRev 14 (27 Oct 2026, the assault course) needs no bank: its sim builds every section from the seed and proves it
+ * as it goes. Before it (pinSwingPreAssault): room/practice generation picks a proved course from the bank by the room
+ * seed; on-the-spot proving is only a fallback if the bank is empty or unlucky.
  * swingRev 8 (Tuning F) only moves the touch stars, which never steer or end a run, so any input log plays a course the same on rev 7 and rev 8 (swing-rev8-check).
  */
+let swingPreAssault = false;
+/**
+ * Checks written for swingRev 13 (the 200 expansion) and earlier: deal the bank courses rooms dealt before the
+ * assault course (returns the previous setting), so they keep proving what they were written for.
+ */
+export function pinSwingPreAssault(on: boolean): boolean {
+  const prev = swingPreAssault;
+  swingPreAssault = on;
+  return prev;
+}
+
 export function generateSwing(): SwingPuzzleData {
   const roomSeed = arcadeSeed();
+  // swingRev 14 (the assault course): any seed; the course is built and proved from it, section by section, in the sim.
+  if (!swingPreAssault) return { type: "swing", seed: roomSeed, swingRev: SWING_REV_ASSAULT };
   // swingRev 13 (the 200 expansion): from the bank courses re-proved with every feature (scripts/swing-bank.ts --expand).
   if (SWING_V13_BANK.length > 0) {
     const index = ((roomSeed % SWING_V13_BANK.length) + SWING_V13_BANK.length) % SWING_V13_BANK.length;
@@ -241,11 +270,12 @@ export function generateSwing(): SwingPuzzleData {
 }
 
 export function generateTilt(): TiltPuzzleData {
-  // tiltRev 8 (the expansion): a seed from the bank (TILT_BANK, scripts/tilt-bank.ts): every maze fully dealt
-  // (tiltDealableX) and played to 200 by the oracle through the server's replay (tilt-expand-check replays each).
+  // tiltRev 9: tiltRev 8's play (the expansion) on the lifted curves (Joe's phone notes, 27 Oct 2026). A seed from the
+  // bank (TILT_BANK, scripts/tilt-bank.ts): every maze fully dealt (tiltDealableX) and played to 200 by the oracle
+  // through the server's replay (tilt-expand-check replays each).
   const pick = arcadeSeed();
   const seed = TILT_BANK[((pick % TILT_BANK.length) + TILT_BANK.length) % TILT_BANK.length]!;
-  return { type: "tilt", seed, tiltRev: TILT_REV_EXPAND };
+  return { type: "tilt", seed, tiltRev: TILT_REV_LIFT };
 }
 
 export function generateHotFloor(): HotFloorPuzzleData {

@@ -6,7 +6,7 @@ import {
   snakeGame, snakeCol, snakeRow, SNAKE_BOARD_W,
   SNAKE_BOARD_X, SNAKE_BOARD_Y, SNAKE_CELL, SNAKE_COLS,
   SNAKE_WORLD_W, SNAKE_ROCK_WARN_TICKS, snakeRowsOf, snakeWorldHFor, type SnakeState,
-  snakeBoardXOf, snakeColsOf, snakeWorldWOf, snakeV9Bonus, SNAKE_GOLD_LIFE,
+  snakeBoardXOf, snakeColsOf, snakeWorldWOf, snakeV9Bonus, SNAKE_GOLD_LIFE, snakeRockBig,
 } from "./snake";
 import type { ArcadeGame, ArcadeInputEvent, CanvasSize } from "./engine";
 import { reducedMotion } from "./art.renderer";
@@ -18,8 +18,16 @@ import { addPop, backdrop, blob, drawPops, glow, linear, pixelStars } from "./po
 
 // Meteor-only art roles; the grid and pellet retain their Retro palette.
 const ACCENT = "#FF8A28";
-const FLAMES = ["#FF9D32", "#FF7824", "#F44C20", "#D92C21", "#982328", "#66646C"];
-const RIMS = ["#B74419", "#AB3519", "#95261B", "#791E22", "#5D2027", "#46444D"];
+/**
+ * The comet (Joe's phone notes, 27 Oct 2026, display only): a dark rock core, an orange-to-amber flame
+ * round it with a white-hot leading edge, and a white-hot trail streaming behind that cools through amber
+ * and orange to red embers and smoke at the tail.
+ */
+const COMET_CORE = "#5A2A12";
+const COMET_ORANGE = "#FF7A2E";
+const COMET_AMBER = "#FFB347";
+const FLAMES = ["#FFF4D2", COMET_AMBER, COMET_ORANGE, "#F44C20", "#982328", "#66646C"];
+const RIMS = [COMET_AMBER, COMET_ORANGE, "#D9531E", "#AB3519", "#5D2027", "#46444D"];
 const HOT = "#FFF4D2";
 const ROCK = "#29282D";
 const ROCK_FLECK = "#77747B";
@@ -32,7 +40,6 @@ const ROCK_DARK = "#8A3614";
 const ROCK_SPECK = "#FFD08A";
 /** Polish A1: the stars' white-gold glow. */
 export const STAR_GLOW = "#FFE9A8";
-const PICKUP_TAILS=["#FF6545","#FFD84A","#3DFFE0"] as const;
 const PELLET = "#FFD84A";
 const EYE = RETRO_BLACK;
 const SPRITE_RATIO = 2;
@@ -51,16 +58,19 @@ const point = (cell: number) => ({ x: BX + snakeCol(cell, COLS) * SNAKE_CELL + S
 const direction = (dir: number) => ({ x: dir === 1 ? 1 : dir === 3 ? -1 : 0, y: dir === 2 ? 1 : dir === 0 ? -1 : 0 });
 
 /** Fixed DPR-2 sprites: only cache creation draws pixel planes and pays for blur. */
-export function stamp(kind: "bead" | "head" | "star" | "rock", level = 0, dir = 0, tail = 0): ArtCanvas | null {
+export function stamp(kind: "bead" | "head" | "star" | "rock" | "bigrock", level = 0, dir = 0, tail = 0): ArtCanvas | null {
   const id = `${kind}:${level}:${kind === "head" ? dir : 0}:${tail}`;
   const old = stamps.get(id);
   if (old) return old;
-  const canvas = artCanvas(SNAKE_CELL * SPRITE_RATIO, SNAKE_CELL * SPRITE_RATIO);
+  // snakeRev 10's 2 × 2 rock: one sprite over its whole block.
+  const side = kind === "bigrock" ? SNAKE_CELL * 2 : SNAKE_CELL;
+  const canvas = artCanvas(side * SPRITE_RATIO, side * SPRITE_RATIO);
   const c = canvas && artContext(canvas);
   if (!canvas || !c) return null;
   c.scale(SPRITE_RATIO, SPRITE_RATIO);
   c.imageSmoothingEnabled = false;
-  paintStamp(c as CanvasRenderingContext2D, kind, level, dir, tail, SPRITE_RATIO);
+  if (kind === "bigrock") paintBigRock(c as CanvasRenderingContext2D);
+  else paintStamp(c as CanvasRenderingContext2D, kind, level, dir, tail, SPRITE_RATIO);
   // Canvas itself clips every glow to the full-cell envelope.
   stamps.set(id, canvas);
   return canvas;
@@ -118,7 +128,7 @@ export function paintStamp(c: CanvasRenderingContext2D, kind: "bead" | "head" | 
     const radius = inner / 2;
     const inset = (SNAKE_CELL - inner) / 2;
     const flame = FLAMES[level] ?? ACCENT;
-    c.fillStyle = kind === "head" ? RIMS[0] ?? ACCENT : RIMS[level] ?? ACCENT;
+    c.fillStyle = kind === "head" ? COMET_ORANGE : RIMS[level] ?? ACCENT;
     c.shadowColor = kind === "head" ? ACCENT : flame;
     c.shadowBlur = 1.5 * ratio;
     for (let y = 0; y < SNAKE_CELL; y += 2) {
@@ -135,14 +145,23 @@ export function paintStamp(c: CanvasRenderingContext2D, kind: "bead" | "head" | 
         const dx = x + 1 - middle, dy = y + 1 - middle;
         if (dx * dx + dy * dy > radius * radius) continue;
         if (kind === "head") {
-          // Pixel fire bands face travel, while the rock stays cell-centred.
+          // The comet: a dark rock core set a little forward, white-hot fire hugging its leading edge,
+          // amber flame round it cooling to orange at the rim, and flame tongues streaming back.
           const front = dx * d.x + dy * d.y;
-          c.fillStyle = front >= 7 ? HOT : front >= -3 ? ACCENT : FLAMES[3] ?? ACCENT;
-          if (dx * dx + dy * dy < 43 && !(dx > 3 && dy < -2)) c.fillStyle = ROCK;
+          const ex = dx - 2 * d.x, ey = dy - 2 * d.y;
+          const core = ex * ex + ey * ey;
+          if (core < 30) {
+            // Lit from the top left: a warm highlight, the far rim in charcoal shadow.
+            c.fillStyle = ex + ey < -4 ? "#8A4A26" : core > 16 && ex + ey > 2 ? ROCK : COMET_CORE;
+          } else {
+            const tongue = front < -3 && ((x / 2 + y / 2) % 3 === 0);
+            c.fillStyle = core < 58 && front >= 0 ? HOT : core < 74 ? COMET_AMBER : tongue ? COMET_AMBER : COMET_ORANGE;
+          }
         } else {
           // Flat flame tongues, not gradients: each bead remains a discrete cell.
           const tongue = ((x / 2 + y / 2) % 5 === 0) && dy < 1;
-          c.fillStyle = tail===0 ? (tongue && level < 4 ? FLAMES[Math.max(0, level - 1)] ?? flame : flame) : PICKUP_TAILS[tail%PICKUP_TAILS.length]??flame;
+          // (The white-hot square straight behind the head carries amber streaks.)
+          c.fillStyle = tongue && level < 4 ? (level === 0 ? COMET_AMBER : FLAMES[level - 1] ?? flame) : flame;
           if (level === LEVELS - 1 && (x / 2 + y / 2) % 4 === 0) c.fillStyle = SMOKE;
         }
         c.fillRect(x, y, 2, 2);
@@ -150,12 +169,45 @@ export function paintStamp(c: CanvasRenderingContext2D, kind: "bead" | "head" | 
     }
     c.globalAlpha = 1;
     if (kind === "head") {
+      // Flecks on the rock core (it sits 2 px forward of the cell's middle).
+      const d = direction(dir);
+      const cx = middle + 2 * d.x, cy = middle + 2 * d.y;
       c.fillStyle = ROCK_FLECK;
-      c.fillRect(middle - 4, middle - 3, 2, 2);
-      c.fillRect(middle + 1, middle + 2, 2, 2);
-      c.fillRect(middle - 2, middle + 4, 2, 2);
+      c.fillRect(cx - 2, cy, 2, 2);
+      c.fillRect(cx + 2, cy - 2, 2, 2);
     }
   }
+}
+
+/**
+ * snakeRev 10's 2 × 2 rock: the asteroid's look (shaded orange, lit from the top left, craters) as one
+ * lumpy boulder filling its whole 48 px block, the head's collision area for all four squares.
+ */
+export function paintBigRock(c: CanvasRenderingContext2D): void {
+  const size = SNAKE_CELL * 2;
+  const middle = size / 2;
+  for (let y = 0; y < size; y += 2) {
+    for (let x = 0; x < size; x += 2) {
+      const dx = x + 1 - middle, dy = y + 1 - middle;
+      const lumpy = middle - 1 + (((x * 7 + y * 3) >> 2) % 3 === 0 ? -2 : 0) - (Math.abs(dx) > 14 && Math.abs(dy) > 14 ? 2 : 0);
+      if (dx * dx + dy * dy > lumpy * lumpy) continue;
+      const light = -(dx + dy) / (middle * 2);
+      const crater =
+        (dx - 7) * (dx - 7) + (dy + 5) * (dy + 5) < 34 || (dx + 9) * (dx + 9) + (dy - 8) * (dy - 8) < 22 || (dx - 4) * (dx - 4) + (dy - 13) * (dy - 13) < 12;
+      const rim = dx * dx + dy * dy > (lumpy - 3) * (lumpy - 3);
+      c.fillStyle = crater
+        ? (dx + dy < 0 ? "#6A2A10" : "#4A1C0C")
+        : light > 0.32 ? ROCK_LIT : light > 0.05 ? ROCK_MID : light > -0.3 ? ROCK_BASE : ROCK_DARK;
+      if (rim && light < -0.1) c.fillStyle = "#3E170A";
+      if (!crater && (x + y) % 14 === 0 && light > -0.3) c.fillStyle = ROCK_SPECK;
+      c.fillRect(x, y, 2, 2);
+    }
+  }
+  c.fillStyle = "#FFE2B8";
+  c.globalAlpha = 0.75;
+  c.fillRect(middle - 12, middle - 14, 4, 2);
+  c.fillRect(middle - 14, middle - 12, 2, 4);
+  c.globalAlpha = 1;
 }
 
 function blit(ctx: CanvasRenderingContext2D, sprite: ArtCanvas | null, x: number, y: number, fallback = ACCENT): void {
@@ -238,7 +290,7 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: SnakeState, key: Canvas
     const head = point(headCell);
     // Light only between contiguous centres; no interpolation or moved segments.
     if (motion && !state.dead) {
-      const lengthFactor = Math.min(1, state.body.length / 25); ctx.fillStyle = ACCENT; ctx.globalAlpha = 0.12 + 0.16 * lengthFactor;
+      const lengthFactor = Math.min(1, state.body.length / 25); ctx.fillStyle = COMET_ORANGE; ctx.globalAlpha = 0.12 + 0.16 * lengthFactor;
       for (let i = 1; i < state.body.length; i++) {
         const cell = state.body[i], ahead = state.body[i - 1];
         if (cell === undefined || ahead === undefined) continue;
@@ -246,16 +298,30 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: SnakeState, key: Canvas
         if (Math.abs(a.x - b.x) + Math.abs(a.y - b.y) !== SNAKE_CELL) continue;
         ctx.fillRect(Math.min(a.x, b.x) - 1, Math.min(a.y, b.y) - 1, Math.abs(a.x - b.x) + 2, Math.abs(a.y - b.y) + 2);
       }
+      // The comet's white-hot streaming trail: a bright core line from the head back along the first
+      // squares, thinning and fading (inside the body's own squares).
+      for (let i = 1; i < Math.min(5, state.body.length); i++) {
+        const cell = state.body[i], ahead = state.body[i - 1];
+        if (cell === undefined || ahead === undefined) continue;
+        const a = point(cell), b = point(ahead);
+        if (Math.abs(a.x - b.x) + Math.abs(a.y - b.y) !== SNAKE_CELL) break;
+        const w = i <= 2 ? 6 : 4;
+        ctx.fillStyle = i === 1 ? HOT : COMET_AMBER;
+        ctx.globalAlpha = 0.7 - 0.14 * i;
+        if (a.x !== b.x) ctx.fillRect(Math.min(a.x, b.x), Math.round(a.y - w / 2), SNAKE_CELL, w);
+        else ctx.fillRect(Math.round(a.x - w / 2), Math.min(a.y, b.y), w, SNAKE_CELL);
+      }
       ctx.globalAlpha = 1;
     }
     for (let i = state.body.length - 1; i >= 0; i--) {
       const cell = state.body[i];
       if (cell === undefined) continue;
       const p = point(cell);
-      const level = Math.min(LEVELS - 1, Math.round(i / Math.max(1, state.body.length - 1) * (LEVELS - 1)));
+      // The trail cools from the head: white-hot, then amber, then along the body to embers and smoke.
+      const level = i <= 2 ? i - 1 : Math.max(2, Math.min(LEVELS - 1, Math.round(i / Math.max(1, state.body.length - 1) * (LEVELS - 1))));
       ctx.globalAlpha = state.dead && motion ? 1 - 0.35 * Math.min(1, deathAge / DEATH_MS) : 1;
-      const shift=Math.floor(state.eaten/5)%3;
-      blit(ctx, stamp(i === 0 ? "head" : "bead", i === 0 ? 0 : level, state.dir,shift), p.x, p.y);
+      // The whole body is the comet's trail (Joe's phone notes): fire cooling to embers, no longer re-tinted every 5 stars.
+      blit(ctx, stamp(i === 0 ? "head" : "bead", i === 0 ? 0 : level, state.dir), p.x, p.y);
     }
     ctx.globalAlpha = 1;
     eyes(ctx, head.x, head.y, state.dir);
@@ -312,23 +378,26 @@ function drawRocks(ctx: CanvasRenderingContext2D, state: SnakeState, motion: boo
   if ((state.rockWarn ?? -1) >= 0) falling.push([state.rockWarn!, state.rockLandTick ?? 0]);
   for (const cell of state.showerWarn ?? []) falling.push([cell, state.showerLandTick ?? 0]);
   for (const [warn, landTick] of falling) {
-    const p = point(warn);
+    // snakeRev 10: a 2 × 2 rock's shadow covers its whole block (centred on the block).
+    const big = snakeRockBig(state, warn) && warn === state.rockWarn;
+    const p0 = point(warn);
+    const p = big ? { x: p0.x + SNAKE_CELL / 2, y: p0.y + SNAKE_CELL / 2 } : p0;
     const left = Math.max(0, landTick - state.tick);
     const k = 1 - Math.min(1, left / SNAKE_ROCK_WARN_TICKS);
-    const half = SNAKE_CELL / 2 - 1;
+    const half = big ? SNAKE_CELL - 1 : SNAKE_CELL / 2 - 1;
     // Polish A1: a faint red floor where it lands, under a pulsing dashed pixel ring that tightens and
     // quickens as the rock falls (the square's tint still deepens over the 2 s, timed by the sim tick).
     ctx.fillStyle = `rgba(255,59,92,${0.1 + 0.26 * k})`;
     ctx.fillRect(p.x - half + 2, p.y - half + 2, half * 2 - 4, half * 2 - 4);
     const beat = motion ? 0.5 + 0.5 * Math.sin(state.tick / (k > 0.6 ? 2.2 : 4.5)) : 1;
     // Inside the cell (never over the board's border), closing in from 10 px to 8 px as it falls.
-    const ring = half - 1 - 2 * k;
-    dashedRing(ctx, p.x, p.y, ring, 20, motion ? state.tick * 0.03 : 0, RETRO_RED, 0.55 + 0.45 * beat);
-    if (k > 0.5) dashedRing(ctx, p.x, p.y, ring - 4, 12, motion ? -state.tick * 0.05 : 0, "#FF8FA3", (k - 0.5) * 2 * (0.4 + 0.6 * beat));
+    const ring = half - 1 - (big ? 4 : 2) * k;
+    dashedRing(ctx, p.x, p.y, ring, big ? 36 : 20, motion ? state.tick * 0.03 : 0, RETRO_RED, 0.55 + 0.45 * beat);
+    if (k > 0.5) dashedRing(ctx, p.x, p.y, ring - (big ? 8 : 4), big ? 24 : 12, motion ? -state.tick * 0.05 : 0, "#FF8FA3", (k - 0.5) * 2 * (0.4 + 0.6 * beat));
     // The rock itself, small and high, growing as it nears the ground.
     if (motion && k > 0.35) {
-      const sprite = stamp("rock");
-      const size = Math.round(6 + 14 * k);
+      const sprite = stamp(big ? "bigrock" : "rock");
+      const size = Math.round((6 + 14 * k) * (big ? 2 : 1));
       const lift = Math.round((1 - k) * 40);
       ctx.globalAlpha = 0.5 + 0.5 * k;
       if (sprite) ctx.drawImage(sprite, Math.round(p.x - size / 2), Math.round(p.y - size / 2 - lift), size, size);
@@ -337,7 +406,13 @@ function drawRocks(ctx: CanvasRenderingContext2D, state: SnakeState, motion: boo
   }
   for (const rock of state.rocks ?? []) {
     const p = point(rock);
-    blit(ctx, stamp("rock"), p.x, p.y, ROCK_BASE);
+    if (snakeRockBig(state, rock)) {
+      // snakeRev 10: one boulder over the rock's 2 × 2 block (its top-left square is `rock`).
+      const sprite = stamp("bigrock");
+      const x = Math.round(p.x - SNAKE_CELL / 2), y = Math.round(p.y - SNAKE_CELL / 2);
+      if (sprite) ctx.drawImage(sprite, x, y, SNAKE_CELL * 2, SNAKE_CELL * 2);
+      else { ctx.fillStyle = ROCK_BASE; ctx.fillRect(x + 1, y + 1, SNAKE_CELL * 2 - 2, SNAKE_CELL * 2 - 2); }
+    } else blit(ctx, stamp("rock"), p.x, p.y, ROCK_BASE);
   }
 }
 
@@ -540,8 +615,8 @@ export const snakeArtGame: ArcadeGame<SnakeState, ArcadeInputEvent | null> = { .
 
 const GOLD = "#FFD84A";
 const GOLD_HOT = "#FFF4C4";
-/** Wormhole pair colours (Meteor's border palette's teal and magenta). */
-const WARP_COLOURS = ["#3DFFE0", "#FF4FD8"] as const;
+/** Wormhole pair colours (Meteor's border palette's teal and magenta; snakeRev 10's third pair its green). */
+const WARP_COLOURS = ["#3DFFE0", "#FF4FD8", "#4BFF7A"] as const;
 const LANE = "#9F8BFF";
 type V9Memory = { tick: number; golds: number; goldPts: number; warps: number; combo: number; laneCells: number };
 const v9Memories = new WeakMap<object, V9Memory>();
@@ -573,6 +648,8 @@ function drawFeatures(ctx: CanvasRenderingContext2D, state: SnakeState, motion: 
   const lanes: [number, number, number, number, boolean][] = [];
   if (state.laneRow !== undefined) lanes.push([BX, SNAKE_BOARD_Y + state.laneRow * SNAKE_CELL, boardW, SNAKE_CELL, true]);
   if (state.laneCol !== undefined) lanes.push([BX + state.laneCol * SNAKE_CELL, SNAKE_BOARD_Y, SNAKE_CELL, boardH, false]);
+  // snakeRev 10: the second vertical lane.
+  if (state.laneCol2 !== undefined) lanes.push([BX + state.laneCol2 * SNAKE_CELL, SNAKE_BOARD_Y, SNAKE_CELL, boardH, false]);
   for (const [x, y, w, h, across] of lanes) {
     ctx.fillStyle = "rgba(159,139,255,0.10)";
     ctx.fillRect(x, y, w, h);
@@ -621,7 +698,8 @@ function drawFeatures(ctx: CanvasRenderingContext2D, state: SnakeState, motion: 
   const gold = state.gold ?? -1;
   if (gold >= 0) {
     const p = point(gold);
-    const left = Math.max(0, (state.goldEnd ?? 0) - state.tick) / SNAKE_GOLD_LIFE;
+    // (snakeRev 10's gold stars stay longer: goldLife.)
+    const left = Math.min(1, Math.max(0, (state.goldEnd ?? 0) - state.tick) / (state.goldLife ?? SNAKE_GOLD_LIFE));
     const blink = motion && left < 0.3 ? (Math.floor(state.tick / 6) % 2 ? 0.45 : 1) : 1;
     glow(ctx, GOLD, p.x, p.y, 12, 12, (0.4 + 0.5 * left) * blink);
     ctx.globalAlpha = (0.45 + 0.55 * left) * blink;

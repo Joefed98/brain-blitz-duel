@@ -11,10 +11,10 @@ import {
   binTossCentreAt, binTossGame, binTossHalf, binTossPath, binTossSpinEnds, binTossSpinPivot,
   type BinTossGhost, type BinTossHoop, type BinTossLandingPresentation, type BinTossState,
   BINTOSS_EXPAND, BINTOSS_FAR_HALF, BINTOSS_FAR_POINTS, BINTOSS_V7_LIFT, BINTOSS_V7_WORLD_H, BINTOSS_V7_WORLD_W,
-  binTossWindAcc, binTossWindSub, binTossWorldOf,
+  binTossWindAcc, binTossWindSub, binTossWorldOf, binTossFarHalf,
 } from "./binToss";
 import { reducedMotion } from "./art.renderer";
-import { FAIR_TEXT, fairArenaScene, fairChangeAge, fairPennant, fairScreen, fairTransform } from "./fairground.renderer";
+import { FAIR_CREAM, FAIR_RED, FAIR_TEXT, fairArenaScene, fairChangeAge, fairClock, fairScreen, fairTransform } from "./fairground.renderer";
 import type { ArenaSceneView } from "./arenaScene.renderer";
 
 const px = (v: number) => v / 256;
@@ -27,7 +27,32 @@ const AIM_INK = "#453C53";
 const AIM_WHITE = "#FFFFFF";
 const FLOOR = px(BINTOSS_FLOOR_Y);
 
-export function drawRubberBall(ctx: CanvasRenderingContext2D, x: number, y: number, r: number, spin: number): void {
+/**
+ * The ball stands out (Joe's phone notes, 27 Oct 2026; look only): a soft warm halo round it, plainly light
+ * rather than ball (it fades to nothing by r + 9 px and never hides what is behind it), and a thin dark ring on
+ * its edge (inside the bounds rule's 2 px).
+ */
+function ballHalo(ctx: CanvasRenderingContext2D, x: number, y: number, r: number): void {
+  ctx.save();
+  const g = ctx.createRadialGradient(x, y, r, x, y, r + 9);
+  g.addColorStop(0, "rgba(255,240,210,0.7)");
+  g.addColorStop(0.4, "rgba(255,226,180,0.32)");
+  g.addColorStop(1, "rgba(255,220,170,0)");
+  ctx.fillStyle = g;
+  ctx.beginPath();
+  ctx.arc(x, y, r + 9, 0, Math.PI * 2);
+  ctx.fill();
+  // A thin dark ring hugging the ball (within 1.7 px of its edge), so it reads against the bright sunset too.
+  ctx.strokeStyle = "rgba(32,6,10,0.9)";
+  ctx.lineWidth = 1.6;
+  ctx.beginPath();
+  ctx.arc(x, y, r + 0.8, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.restore();
+}
+
+/** `outline`: a bright cream ring just inside the ball's edge (inside r, so the drawn ball is still exactly its collision circle). */
+export function drawRubberBall(ctx: CanvasRenderingContext2D, x: number, y: number, r: number, spin: number, outline = false): void {
   ctx.save();
   ctx.translate(x, y);
   ctx.rotate(spin);
@@ -71,6 +96,13 @@ export function drawRubberBall(ctx: CanvasRenderingContext2D, x: number, y: numb
   ctx.beginPath();
   ctx.arc(x - r * 0.38, y - r * 0.42, r * 0.18, 0, Math.PI * 2);
   ctx.fill();
+  if (outline) {
+    ctx.strokeStyle = "#FFF1DC";
+    ctx.lineWidth = 1.6;
+    ctx.beginPath();
+    ctx.arc(x, y, r - 0.8, 0, Math.PI * 2);
+    ctx.stroke();
+  }
   ctx.restore();
 }
 
@@ -335,34 +367,111 @@ function drawSpinner(ctx: CanvasRenderingContext2D, state: BinTossState, index: 
   ctx.restore();
 }
 
+/**
+ * The wind (Joe's phone notes, 27 Oct 2026; look only, every revision): a small flag on a pole at the top
+ * of the stall, flying the way the wind blows, longer the stronger it is, waving on the render clock (still
+ * under reduced motion), with the wind's strength printed on the cloth. No wind: the flag hangs limp, "0".
+ * It replaces the old arrow, bars and corner pennant (the same reading in one place).
+ */
 function drawWind(ctx: CanvasRenderingContext2D, wind: number, worldW = BINTOSS_WORLD_W, top = 0): void {
-  const centreX = worldW / 2;
-  const y = 84 + top;
   const strength = Math.abs(wind);
+  const dir = wind < 0 ? -1 : 1;
+  const poleX = worldW / 2 - dir * 20;
+  const poleTop = 52 + top;
+  const poleFoot = poleTop + 58;
+  const t = fairClock();
   ctx.save();
-  ctx.strokeStyle = wind === 0 ? "#F7F7F855" : BINTOSS_BIN_COLOUR;
-  ctx.lineWidth = 2.8;
-  if (wind !== 0) {
-    const dir = wind < 0 ? -1 : 1;
-    ctx.beginPath();
-    ctx.moveTo(centreX - 36.4 * dir, y);
-    ctx.lineTo(centreX + 36.4 * dir, y);
-    ctx.lineTo(centreX + 25.2 * dir, y - 8.4);
-    ctx.moveTo(centreX + 36.4 * dir, y);
-    ctx.lineTo(centreX + 25.2 * dir, y + 8.4);
-    ctx.stroke();
+  // The pole, its gold knob and a small foot.
+  ctx.strokeStyle = "#3A2A1C";
+  ctx.lineWidth = 3;
+  ctx.lineCap = "round";
+  ctx.beginPath();
+  ctx.moveTo(poleX, poleTop);
+  ctx.lineTo(poleX, poleFoot);
+  ctx.stroke();
+  ctx.strokeStyle = FAIR_CREAM;
+  ctx.lineWidth = 1.4;
+  ctx.stroke();
+  ctx.fillStyle = "#F5B82E";
+  ctx.beginPath();
+  ctx.arc(poleX, poleTop - 2, 3, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = "rgba(20,12,30,0.55)";
+  ctx.fillRect(poleX - 6, poleFoot - 1, 12, 3);
+
+  const h = 24;
+  const segments = 14;
+  // Top and bottom edges of the cloth at u (0 at the pole, 1 at the tip), in pole-relative x and y (limp: the
+  // strip's pole-side edge at u down its length).
+  const edge = (u: number, bottom: boolean): { x: number; y: number } => {
+    if (strength === 0) {
+      // Limp: the cloth hangs down the pole, a slight sway.
+      const sway = t === 0 ? 0 : Math.sin(t / 700 + u * 2) * 1.2 * u;
+      return { x: sway + u * 2, y: u * 30 };
+    }
+    const len = 34 + 6 * strength;
+    // Flies out level when strong, drooping a little when light; ripples travel from the pole to the tip.
+    const droop = (1 - Math.min(1, strength / BINTOSS_WIND_MAX)) * 10 * u * u;
+    const amp = (1.5 + 0.6 * strength) * u;
+    const wave = t === 0 ? Math.sin(u * 5) * amp * 0.5 : Math.sin(t / (150 - 12 * strength) - u * 6) * amp;
+    return { x: u * len, y: (bottom ? h : 0) + droop + wave };
+  };
+  const at = (pt: { x: number; y: number }) => ({ x: poleX + dir * pt.x, y: poleTop + 2 + pt.y });
+  const tops: { x: number; y: number }[] = [];
+  const bottoms: { x: number; y: number }[] = [];
+  for (let i = 0; i <= segments; i++) {
+    const u = i / segments;
+    if (strength === 0) {
+      // Limp cloth: a strip hanging beside the pole (its width across, its length down).
+      const a = edge(u, false);
+      tops.push({ x: poleX + dir * (1.5 + a.x), y: poleTop + 2 + a.y });
+      bottoms.push({ x: poleX + dir * (1.5 + a.x + 14), y: poleTop + 2 + a.y });
+    } else {
+      tops.push(at(edge(u, false)));
+      bottoms.push(at(edge(u, true)));
+    }
   }
-  for (let bar = 0; bar < BINTOSS_WIND_MAX; bar++) {
-    ctx.fillStyle = bar < strength ? BINTOSS_BIN_COLOUR : "#F7F7F833";
-    ctx.fillRect(centreX - 26 + bar * 11, y + 10, 8, 4);
+  ctx.fillStyle = FAIR_RED;
+  ctx.strokeStyle = "rgba(60,8,12,0.85)";
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(tops[0]!.x, tops[0]!.y);
+  for (const pt of tops) ctx.lineTo(pt.x, pt.y);
+  for (let i = bottoms.length - 1; i >= 0; i--) ctx.lineTo(bottoms[i]!.x, bottoms[i]!.y);
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+  // A cream stripe along the cloth's top edge, so it reads as a flag at a glance.
+  ctx.strokeStyle = "rgba(244,237,224,0.75)";
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  for (let i = 0; i <= segments; i++) {
+    const a = tops[i]!;
+    const b = bottoms[i]!;
+    const x = a.x + (b.x - a.x) * 0.18;
+    const y = a.y + (b.y - a.y) * 0.18;
+    if (i === 0) ctx.moveTo(x, y);
+    else ctx.lineTo(x, y);
   }
-  ctx.font = "600 18.2px 'JetBrains Mono', ui-monospace, monospace";
-  ctx.fillStyle = FAIR_TEXT;
+  ctx.stroke();
+  // The strength on the cloth, upright, at its middle.
+  const mid = Math.round(segments * (strength === 0 ? 0.5 : 0.45));
+  const cx = (tops[mid]!.x + bottoms[mid]!.x) / 2;
+  const cy = (tops[mid]!.y + bottoms[mid]!.y) / 2 + 1;
+  ctx.font = "800 16px 'JetBrains Mono', ui-monospace, monospace";
   ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.lineWidth = 3;
+  ctx.strokeStyle = "rgba(60,8,12,0.9)";
+  ctx.strokeText(String(strength), cx, cy);
+  ctx.fillStyle = FAIR_TEXT;
+  ctx.fillText(String(strength), cx, cy);
+  // "WIND" over the pole, small.
+  ctx.font = "700 10px 'JetBrains Mono', ui-monospace, monospace";
+  ctx.fillStyle = "rgba(247,247,248,0.7)";
   ctx.textBaseline = "alphabetic";
-  ctx.fillText(wind === 0 ? "no wind" : `${wind < 0 ? "←" : "→"} ${strength}`, centreX, y - 19);
+  ctx.fillText("WIND", poleX, poleTop - 9);
   ctx.restore();
-  fairPennant(ctx, worldW - 30, 10 + top, wind, BINTOSS_WIND_MAX);
 }
 
 /**
@@ -413,7 +522,7 @@ function drawTrail(ctx: CanvasRenderingContext2D, state: BinTossState): void {
   for (let i = 0; i < n - 1; i++) {
     const p = memo.points[i]!;
     const k = (i + 1) / n;
-    ctx.globalAlpha = 0.28 * k;
+    ctx.globalAlpha = 0.4 * k;
     ctx.beginPath();
     ctx.arc(px(p.x), px(p.y), px(BINTOSS_BALL_R) * (0.5 + 0.5 * k), 0, Math.PI * 2);
     ctx.fill();
@@ -445,8 +554,10 @@ function draw(ctx: CanvasRenderingContext2D, state: BinTossState, size: CanvasSi
       const fsince = state.tick - (state.farWobbleTick ?? 0);
       let farLean = (state.farWobbleTick ?? 0) > 0 && fsince >= 0 && fsince < 24 ? (fsince % 8 < 4 ? 2 : -2) : 0;
       if (!reducedMotion() && farAge < 500) farLean = Math.sin(farAge / 45) * 2 * (1 - farAge / 500);
-      counterShadow(ctx, px(farCentre), FLOOR + 1, px(BINTOSS_FAR_HALF) + 6, 0);
-      drawBucket(ctx, px(farCentre), px(BINTOSS_FAR_HALF), farLean, false);
+      // binRev 8: the smaller far bucket, drawn exactly on its mouth and walls.
+      const farHalf = px(binTossFarHalf(state));
+      counterShadow(ctx, px(farCentre), FLOOR + 1, farHalf + 6, 0);
+      drawBucket(ctx, px(farCentre), farHalf, farLean, false);
       drawFarTag(ctx, px(farCentre), px(BINTOSS_RIM_Y), farAge < 600);
     }
     // Rev 3: the hoop (glowing briefly after a swish) and the spinner.
@@ -476,7 +587,8 @@ function draw(ctx: CanvasRenderingContext2D, state: BinTossState, size: CanvasSi
         const u = resolvedAge / 420;
         y -= Math.abs(Math.sin(u * Math.PI * 2)) * 10 * (1 - u);
       }
-      drawRubberBall(ctx, px(state.x), y, r, ((state.tick * 11) % 360) * (Math.PI / 180));
+      ballHalo(ctx, px(state.x), y, r);
+      drawRubberBall(ctx, px(state.x), y, r, ((state.tick * 11) % 360) * (Math.PI / 180), true);
     }
     if (hoop) drawHoop(ctx, hoop, true, hoopGlow);
 
@@ -553,7 +665,7 @@ export function binTossArtLanding(
   const { scale, offsetX, offsetY } = fairTransform(size, world.w, world.h);
   const p = Math.max(0, Math.min(1, landing.progress));
   const centre = px(landing.binCentre);
-  const half = px(landing.far ? BINTOSS_FAR_HALF : binTossHalf(landing.binIndex, landing.rev));
+  const half = px(landing.far ? (landing.farHalf ?? BINTOSS_FAR_HALF) : binTossHalf(landing.binIndex, landing.rev));
   const rim = px(BINTOSS_RIM_Y);
   const radius = px(BINTOSS_BALL_R);
   let x = centre;

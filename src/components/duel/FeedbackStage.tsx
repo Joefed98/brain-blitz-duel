@@ -4,6 +4,45 @@ import { fx } from "@/lib/fx";
 import type { GameTheme } from "@/lib/fx/theme";
 import { setSignatureGame } from "@/lib/fx/signature";
 import type { PuzzleType } from "@/lib/duel/types";
+import { standardTimesParts } from "@/lib/duel/standard/stamps";
+import { TimelineRecorder } from "@/lib/duel/standard/timeline";
+
+/**
+ * The scoring standard's draft timelines (standard/timeline.ts), one per round (stateKey), kept outside the
+ * component tree so a remount mid-round keeps the record, and on the device so a reload mid-round carries on from it
+ * (only the latest round's is kept there). Only the latest few rounds are kept in memory.
+ */
+const timelines = new Map<string, TimelineRecorder>();
+const TIMELINE_STORE_PREFIX = "duelz.timeline.v1:";
+
+function timelineFor(key: string): TimelineRecorder {
+  let rec = timelines.get(key);
+  if (!rec) {
+    let kept: string | null = null;
+    try {
+      kept = typeof localStorage === "undefined" ? null : localStorage.getItem(TIMELINE_STORE_PREFIX + key);
+    } catch {
+      kept = null;
+    }
+    rec = TimelineRecorder.resume(kept);
+    timelines.set(key, rec);
+    while (timelines.size > 6) timelines.delete(timelines.keys().next().value!);
+  }
+  return rec;
+}
+
+function keepTimeline(key: string, rec: TimelineRecorder): void {
+  try {
+    if (typeof localStorage === "undefined") return;
+    for (let i = localStorage.length - 1; i >= 0; i--) {
+      const k = localStorage.key(i);
+      if (k?.startsWith(TIMELINE_STORE_PREFIX) && k !== TIMELINE_STORE_PREFIX + key) localStorage.removeItem(k);
+    }
+    localStorage.setItem(TIMELINE_STORE_PREFIX + key, rec.encoded());
+  } catch {
+    // Storage full or blocked: the record still stands in memory.
+  }
+}
 
 /** What the shared signature beat needs to know about the game on screen. */
 export interface SignatureGameInfo {
@@ -21,6 +60,20 @@ export function feedbackStage(Stage: ComponentType<PuzzleStageProps>, theme: Gam
     const latest = useRef(props);
     latest.current = props;
     const lastDraft = useRef("");
+    // The scoring standard's timeline: each draft with its round-clock time, appended to what is handed on.
+    const timed = !arcade && standardTimesParts(props.puzzle);
+    const timeline = useCallback(
+      (answer: string): string => {
+        if (!timed) return answer;
+        const p = latest.current;
+        const key = p.stateKey ?? `${p.puzzle.type}-${p.phaseStartedAt}`;
+        const rec = timelineFor(key);
+        // Round-clock time on the host's own clock (no standard game has preparation time).
+        if (rec.note(answer, p.now - p.phaseStartedAt)) keepTimeline(key, rec);
+        return rec.attach(answer);
+      },
+      [timed],
+    );
     useEffect(() => { fx.onRoundStart(undefined, theme); }, []);
     // The signature beat's common finish point (arcadeFeedback) reads the game on screen.
     useEffect(() => (signature ? setSignatureGame(signature) : undefined), []);
@@ -29,8 +82,9 @@ export function feedbackStage(Stage: ComponentType<PuzzleStageProps>, theme: Gam
         lastDraft.current = answer;
         fx.onMove(undefined, theme);
       }
-      latest.current.onDraftAnswer?.(answer);
-    }, []);
+      latest.current.onDraftAnswer?.(timeline(answer));
+    }, [timeline]);
+    const submit = useCallback<PuzzleStageProps["onSubmit"]>((answer, meta) => latest.current.onSubmit(timeline(answer), meta), [timeline]);
     const word = useCallback<CheckWord>(async (...args) => {
       const check = latest.current.checkWord;
       if (!check) return { valid: false, points: 0, word: args[0] };
@@ -43,6 +97,6 @@ export function feedbackStage(Stage: ComponentType<PuzzleStageProps>, theme: Gam
       return result;
     }, []);
     // No wrapper element: ancestor-dependent board sizing stays identical.
-    return <Stage {...props} {...(props.onDraftAnswer ? { onDraftAnswer: draft } : {})} {...(props.checkWord ? { checkWord: word } : {})} />;
+    return <Stage {...props} onSubmit={submit} {...(props.onDraftAnswer ? { onDraftAnswer: draft } : {})} {...(props.checkWord ? { checkWord: word } : {})} />;
   };
 }

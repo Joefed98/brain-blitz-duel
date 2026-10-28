@@ -1,5 +1,6 @@
 import { PUZZLE_SCORE_REV, puzzleScoreRevOf } from "./puzzleScoreRev";
 import { LAB_STARS } from "./depth/labyrinth";
+import { usesStandard } from "./standard/stamps";
 import { solutionProgress } from "./progressFigures";
 import { PUZZLE_SCORE_REV_BANDS } from "./puzzleScoreRev2";
 import {
@@ -719,6 +720,11 @@ const mazeSummary: SummaryBuilder = (result, puzzle) => {
       detail: [`${Number(result.extra?.["wasted"] ?? 0)} wasted squares`, ...(stars === null ? [] : [`${stars} of ${LAB_STARS} stars · +${bonus}`])],
     };
   }
+  // The scoring standard (mazeRev 3, standard/attention.ts): stars count finished or not, with their stored points.
+  if (usesStandard(puzzle)) {
+    const bonus = Number(result.extra?.["starBonus"] ?? 0);
+    return { summary: `${progress}%${starText}`, detail: [`${progress}% of the way to the exit`, ...(stars ? [`${stars} of ${LAB_STARS} stars · +${bonus}`] : [])] };
+  }
   return { summary: `${progress}%${starText}`, detail: [`${progress}% of the way to the exit`, ...(stars ? ["Stars count only with a finish"] : [])] };
 };
 
@@ -1314,6 +1320,14 @@ const snipSummary: SummaryBuilder = (result) => {
 };
 
 const swingSummary: SummaryBuilder = (result) => {
+  // swingRev 14 (the assault course): sections cleared, restarts, pars and pickups.
+  if (Number(result.extra?.["swingRev"] ?? 0) >= 14) {
+    const x = (k: string) => Number(result.extra?.[k] ?? 0);
+    return {
+      summary: `Section ${x("sections")} / ${x("sectionTotal")} · ${x("restarts")} restart${x("restarts") === 1 ? "" : "s"} · ${result.score ?? 0}`,
+      detail: ["Same course for everyone", `${x("parsBeaten")} under par · ${x("gates")} gates · ${x("gems")} gems · ${x("stars")} stars`],
+    };
+  }
   const metres = Number(result.extra?.["metres"] ?? 0);
   const survived = result.extra?.["survived"] !== false;
   const ended = Number(result.extra?.["survivedSeconds"] ?? 0);
@@ -1390,11 +1404,13 @@ const lightUpSummary: SummaryBuilder = (result, puzzle) => {
   };
 };
 
-const ballTrackSummary: SummaryBuilder = (result) => {
+const ballTrackSummary: SummaryBuilder = (result, puzzle) => {
   const home = Number(result.extra?.["home"] ?? 0);
   const speed = Number(result.extra?.["speed"] ?? 0);
   const tail = speed ? ` · +${speed} speed` : "";
-  return { summary: `${home} / ${BT_BALLS} home${tail}`, detail: ["Same track for everyone"] };
+  // btRev 7 drops 36 marbles (every earlier course 30).
+  const all = (puzzle.type === "balltrack" && puzzle.course.balls.length) || BT_BALLS;
+  return { summary: `${home} / ${all} home${tail}`, detail: ["Same track for everyone"] };
 };
 
 const numberPyramidSummary: SummaryBuilder = (result, puzzle) => {

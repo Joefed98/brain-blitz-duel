@@ -22,8 +22,11 @@ import { ASCEND_DEPTH_INTRO, ascendDepthHelp } from "../src/lib/duel/depth/speed
 import { roundMaxFor } from "../src/lib/duel/roundMax";
 import { INTRO_SCORE } from "../src/lib/duel/introScore";
 import type { NumberHuntPuzzleData, PuzzleData } from "../src/lib/duel/types";
+import { pinPreStandard } from "../src/lib/duel/standard/stamps";
 import { DEPTH_LEVELS, distTable, legacyMismatches, makeOk, median, playAnswer, quantile, roomPuzzle, SEEDS, spamAnswers, type Dist } from "./depth-speed-lib";
 
+// The scoring standard (27 Oct 2026) deals Ascend tapRev 6: this check proves tapRev 5, the stamp it was written for.
+pinPreStandard(true);
 const { ok, finish } = makeOk();
 const lines: string[] = [];
 

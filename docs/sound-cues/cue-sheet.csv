@@ -20,7 +20,6 @@ numpyramid.place,Integer Pyramid,a block is placed in a cell (tap or drag) [numb
 equation.drop,Operator,an operator drops into a slot [number.md],,5–40 (per move),silent,,200,game event,equation.drop,
 equation.advance,Operator,the next stage slides in [number.md],,1–5,silent,,240,game event,equation.advance,
 tendrop.refused,Tenfall,a ÷ or − tile is refused [number.md],,5–40 (per move),silent,,300,fail sting,tendrop.refused,
-trail.step,Trail,the path gains a step [number.md],,5–40 (per move),silent,,200,game event,trail.step,
 clayshoot.goldSparkle,Pull!,Pull!: 380 ms into the final burst: the fragments turn into gold sparkle across the sky [speed-attention.md],,0–1,silent,,700,success sting,clayshoot.goldSparkle,
 clayshoot.shatter,Pull!,Pull!: An orange clay is hit (new shard shatter) [speed-attention.md],,5–40 (per move),silent,,433,game event,clayshoot.shatter,
 clayshoot.goldShatter,Pull!,Pull!: A gold clay is hit (shatter with gold sparkle) [speed-attention.md],,5–40 (per move),silent,,433,game event,clayshoot.goldShatter,
@@ -29,10 +28,10 @@ spotdiff.miss,Double Take,Double Take: A wrong tap (the existing shake) [speed-a
 symscan.mark,Eagle Eye,Eagle Eye: A cell is marked (pop) [speed-attention.md],,5–40 (per move),silent,,200,UI tap,symscan.mark,
 symscan.unmark,Eagle Eye,Eagle Eye: A cell is unmarked [speed-attention.md],,5–40 (per move),silent,,150,UI tap,symscan.unmark,
 stroop.gatePulse,Mixed Signals,"Mixed Signals: A word lands in a gate (white pulse if right, grey if wrong) [speed-attention.md]",,5–40 (per move),silent,,300,game event,stroop.gatePulse,
+tiles.slide,Gradient,A tile changes cell (a slide or an undo) [pattern.md (Jumbled (tiles))],,5–40 (per move),silent,,160,game event,tiles.slide,
 unblock.solve,Gridlock,The solving drop: the gold car revs back and drives out through the exit with speed streaks [pattern.md (Gridlock (unblock))],,0–1,silent,,1160,success sting,unblock.solve,
 push.step,Heave,A walking step [pattern.md (Heave (push))],,5–40 (per move),silent,,120,game event,push.step,
 push.push,Heave,A step that pushes a crate [pattern.md (Heave (push))],,5–40 (per move),silent,,120,game event,push.push,
-tiles.slide,Jumbled,A tile changes cell (a slide or an undo) [pattern.md (Jumbled (tiles))],,5–40 (per move),silent,,160,game event,tiles.slide,
 laser.place,Lightbender,A mirror or splitter is placed or moved [pattern.md (Lightbender (laser))],,5–40 (per move),silent,,180,UI tap,laser.place,
 laser.turn,Lightbender,A placed mirror is flipped [pattern.md (Lightbender (laser))],,5–40 (per move),silent,,180,game event,laser.turn,
 laser.fire,Lightbender,The beam starts [pattern.md (Lightbender (laser))],,5–40 (per move),silent,,2000,game event,laser.fire,
@@ -56,6 +55,7 @@ shikaku.place,Shikaku,A rectangle is accepted [logic.md],,5–40 (per move),sile
 shikaku.remove,Shikaku,A rectangle is tapped away [logic.md],,5–40 (per move),silent,,200,game event,shikaku.remove,
 tents.pitch,Tents and Trees,A tent is placed [logic.md],,5–40 (per move),silent,,240,game event,tents.pitch,
 tents.grass,Tents and Trees,A cell is marked as grass [logic.md],,5–40 (per move),silent,,200,game event,tents.grass,
+trail.step,Trail,the path gains a step [number.md],,5–40 (per move),silent,,200,game event,trail.step,
 music.bastion,Bastion,"Bastion (retired, practice): none",,loop,silent,,60000,music,music_bastion,
 music.dual,Dual,"Dual (retired, practice): none",,loop,silent,,60000,music,music_dual,
 music.hotfloor,Hot Floor,"Hot Floor (retired, practice): none",,loop,silent,,60000,music,music_hotfloor,
@@ -274,6 +274,11 @@ swing.ledge,Replays,Landed on a ledge (swingRev 13): the clip reaches the moment
 swing.combo,Replays,Swing combo point (swingRev 13): the clip reaches the moment's key tick [replays.md],,0–2 per highlight,recorded sound,swing.combo,250,replay,swing.combo,
 swing.section,Replays,Set-route section cleared (swingRev 13): the clip reaches the moment's key tick [replays.md],,0–2 per highlight,recorded sound,swing.section,250,replay,swing.section,
 swing.par,Replays,Section finished under par (swingRev 13): the clip reaches the moment's key tick [replays.md],,0–2 per highlight,recorded sound,swing.par,250,replay,swing.par,
+swing.gate14,Replays,Speed gate lit (swingRev 14): the clip reaches the moment's key tick [replays.md],,0–2 per highlight,recorded sound,swing.gate14,250,replay,swing.gate14,
+swing.gem14,Replays,Gem on a harder line (swingRev 14): the clip reaches the moment's key tick [replays.md],,0–2 per highlight,recorded sound,swing.gem14,250,replay,swing.gem14,
+swing.star14,Replays,Star on a tighter swing (swingRev 14): the clip reaches the moment's key tick [replays.md],,0–2 per highlight,recorded sound,swing.star14,250,replay,swing.star14,
+swing.clear14,Replays,Section cleared (swingRev 14): the clip reaches the moment's key tick [replays.md],,0–2 per highlight,recorded sound,swing.clear14,250,replay,swing.clear14,
+swing.course14,Replays,Course cleared (swingRev 14): the clip reaches the moment's key tick [replays.md],,0–2 per highlight,recorded sound,swing.course14,250,replay,swing.course14,
 snip.leaf,Replays,Leaf taken: the clip reaches the moment's key tick [replays.md],,0–2 per highlight,recorded sound,snip.leaf,250,replay,snip.leaf,public/sounds/snip.leaf.mp3 (from replay.moment.mp3)
 snip.level,Replays,Apple fed: the clip reaches the moment's key tick [replays.md],,0–2 per highlight,recorded sound,snip.level,250,replay,snip.level,public/sounds/snip.level.mp3 (from replay.moment.mp3)
 snip.all-apples,Replays,All 10 apples: the clip reaches the moment's key tick [replays.md],,0–2 per highlight,recorded sound,snip.all-apples,250,replay,snip.all-apples,public/sounds/snip.all-apples.mp3 (from replay.moment.mp3)
@@ -363,8 +368,6 @@ tendrop.clear,Tenfall,a target is cleared [number.md],,5–40 (per move),recorde
 tendrop.reset,Tenfall,the total overshoots and resets [number.md],,5–40 (per move),recorded sound,tendrop.reset,360,fail sting,tendrop.reset,public/sounds/tendrop.reset.mp3 (from tendrop.reset.mp3)
 tendrop.solve,Tenfall,"all ten targets cleared: last target bursts, remaining tiles shimmer [number.md]",,0–1,recorded sound,tendrop.solve,1200,success sting,tendrop.solve,public/sounds/tendrop.solve.mp3 (from done.goldPulse.mp3)
 music.tendrop,Tenfall,Tenfall round bed: music_number_3 (number bed shared with other games),,loop,recorded sound,music_number_3 (shared),60000,music,music_number_tendrop,
-trail.solve,Trail,the trail is complete [number.md],,0–1,recorded sound,trail.solve,1150,success sting,trail.solve,public/sounds/trail.solve.mp3 (from done.glowSweep.mp3)
-music.trail,Trail,Trail round bed: music_number_3 (number bed shared with other games),,loop,recorded sound,music_number_3 (shared),60000,music,music_number_trail,
 numhunt.discsPop,Ascend,Ascend: Finish (last disc tapped): discs pop upwards in order [speed-attention.md],,0–1,recorded sound,numhunt.discsPop,1100,success sting,numhunt.discsPop,public/sounds/numhunt.discsPop.mp3 (from done.pops.mp3)
 music.numhunt,Ascend,Ascend round bed: music_speed_2 (speed bed shared with other games),,loop,recorded sound,music_speed_2 (shared),60000,music,music_speed_numhunt,
 stopwatch.goldFaces,Bang On,"Bang On: End of run (""All ten done""), local scoreStopWatch ≥ 120: the watch faces flash gold in turn [speed-attention.md]",,0–1,recorded sound,stopwatch.goldFaces,1100,success sting,stopwatch.goldFaces,public/sounds/stopwatch.goldFaces.mp3 (from done.goldPulse.mp3)
@@ -422,14 +425,14 @@ music.countup,Tally,Tally round bed: music_attention_1 (attention bed shared wit
 flow.connect,Chroma Lines,A pair is joined and a pulse runs along it (not on the solving join) [pattern.md (Chroma Lines (flow))],,5–40 (per move),recorded sound,flow.connect,460,game event,flow.connect,public/sounds/flow.connect.mp3 (from flow.connect.mp3)
 flow.solve,Chroma Lines,"Each path pulses end to end in its colour, then the board glows [pattern.md (Chroma Lines (flow))]",,0–1,recorded sound,flow.solve,1150,success sting,flow.solve,public/sounds/flow.solve.mp3 (from done.glowSweep.mp3)
 music.flow,Chroma Lines,Chroma Lines round bed: music_logic_2 (pattern bed shared with other games),,loop,recorded sound,music_logic_2 (shared),60000,music,music_pattern_flow,
+tiles.solve,Gradient,"The colour ramp flows across the tiles from 1 to 8, then the gap glows [pattern.md (Jumbled (tiles))]",,0–1,recorded sound,tiles.solve,980,success sting,tiles.solve,public/sounds/tiles.solve.mp3 (from done.glowSweep.mp3)
+music.tiles,Gradient,Gradient round bed: music_pattern_1 (pattern bed shared with other games),,loop,recorded sound,music_pattern_1 (shared),60000,music,music_pattern_tiles,
 pz_car_escape,Gridlock,Gridlock: The gold car drives out (solve) [core.md],,0–1,recorded sound,pz_car_escape,2470,game event,pz_car_escape,
 unblock.slide,Gridlock,"A car settles into a new bay (each kept move, each undo, a reset with moves to undo) [pattern.md (Gridlock (unblock))]",,5–40 (per move),recorded sound,unblock.slide,170,game event,unblock.slide,
 music.unblock,Gridlock,Gridlock round bed: music_pattern_2 (pattern bed shared with other games),,loop,recorded sound,music_pattern_2 (shared),60000,music,music_pattern_unblock,
 push.home,Heave,A crate lands on a marking: it thumps and kicks up dust (not on the solving push) [pattern.md (Heave (push))],,5–40 (per move),recorded sound,push.home,300,game event,push.home,public/sounds/push.home.mp3 (from push.home.mp3)
 push.solve,Heave,The crates thump in turn and the warehouse lights switch on in a row [pattern.md (Heave (push))],,0–1,recorded sound,push.solve,1200,success sting,push.solve,public/sounds/push.solve.mp3 (from done.crates.mp3)
 music.push,Heave,Heave round bed: music_logic_3 (pattern bed shared with other games),,loop,recorded sound,music_logic_3 (shared),60000,music,music_pattern_push,
-tiles.solve,Jumbled,"The colour ramp flows across the tiles from 1 to 8, then the gap glows [pattern.md (Jumbled (tiles))]",,0–1,recorded sound,tiles.solve,980,success sting,tiles.solve,public/sounds/tiles.solve.mp3 (from done.glowSweep.mp3)
-music.tiles,Jumbled,Jumbled round bed: music_pattern_1 (pattern bed shared with other games),,loop,recorded sound,music_pattern_1 (shared),60000,music,music_pattern_tiles,
 pz_laser_gem,Lightbender,Lightbender: The beam reaches a gem (pitched up gem by gem) [core.md],,3–8,recorded sound,pz_laser_gem,1012,game event,pz_laser_gem,
 pz_laser_split,Lightbender,Lightbender: The beam reaches a splitter [core.md],,0–4,recorded sound,pz_laser_split,1042,game event,pz_laser_split,
 laser.bomb,Lightbender,The beam hits a bomb [pattern.md (Lightbender (laser))],,5–40 (per move),recorded sound,laser.bomb,420,game event,laser.bomb,public/sounds/laser.bomb.mp3 (from laser.bomb.mp3)
@@ -487,6 +490,8 @@ music.shikaku,Shikaku,Shikaku round bed: music_logic_1 (logic bed shared with ot
 tents.clear,Tents and Trees,A cell is cleared [logic.md],,5–40 (per move),recorded sound,tents.clear,200,game event,tents.clear,
 tents.solve,Tents and Trees,The layout is valid [logic.md],,0–1,recorded sound,tents.solve,1150,success sting,tents.solve,public/sounds/tents.solve.mp3 (from done.pops.mp3)
 music.tents,Tents and Trees,Tents and Trees round bed: music_logic_1 (logic bed shared with other games),,loop,recorded sound,music_logic_1 (shared),60000,music,music_logic_tents,
+trail.solve,Trail,the trail is complete [number.md],,0–1,recorded sound,trail.solve,1150,success sting,trail.solve,public/sounds/trail.solve.mp3 (from done.glowSweep.mp3)
+music.trail,Trail,Trail round bed: music_logic_3 (logic bed shared with other games),,loop,recorded sound,music_logic_3 (shared),60000,music,music_logic_trail,
 balltrack.homeStreak,Ball Tracker,Every 5th marble home [arcade-effects.md],n HOME banner,1–6,recorded sound,balltrack.homeStreak,479,game event,balltrack.homeStreak,
 balltrack.allHome,Ball Tracker,All 30 marbles home [arcade-effects.md],"ALL 30 HOME! banner, confetti",0–1,recorded sound,balltrack.allHome,1200,game event,balltrack.allHome,
 balltrack.turnedHome,Ball Tracker,A marble home off a turned tube [arcade-effects.md],TURNED HOME! pop,0–10,recorded sound,balltrack.turnedHome,300,game event,balltrack.turnedHome,
@@ -587,6 +592,11 @@ swing.ledgeLanded,Grappler,Landed on a set-route ledge (swingRev 13) [arcade-eff
 swing.comboPoint,Grappler,Every fifth linked swing (swingRev 13) [arcade-effects.md],SWING COMBO ×n streak,0–10,recorded sound,swing.comboPoint,500,game event,swing.comboPoint,
 swing.sectionClear,Grappler,A set-route section's finish flag reached (swingRev 13) [arcade-effects.md],SECTION CLEAR! banner,0–3,recorded sound,swing.sectionClear,600,game event,swing.sectionClear,
 swing.parBeaten,Grappler,A section finished under its par time (swingRev 13) [arcade-effects.md],"""−0.8 s UNDER PAR"" pop above the hero (in place of the section chime)",0–3,recorded sound,swing.parBeaten,600,game event,swing.parBeaten,
+swing.assaultGate,Grappler,A speed gate lit on the assault course (swingRev 14) [arcade-effects.md],SPEED GATE! pop under the hero,0–4,recorded sound,swing.assaultGate,380,game event,swing.assaultGate,
+swing.assaultGem,Grappler,A gem taken on a harder line (swingRev 14; a miss puts it back) [arcade-effects.md],+GEM pop in cyan at the hero,0–4,recorded sound,swing.assaultGem,600,game event,swing.assaultGem,
+swing.assaultStar,Grappler,A star taken on a tighter swing (swingRev 14; a miss puts it back) [arcade-effects.md],STAR! burst in gold,0–4,recorded sound,swing.assaultStar,600,game event,swing.assaultStar,
+swing.assaultClear,Grappler,A section's landing ledge reached (swingRev 14) [arcade-effects.md],"CLEAR! (or ""−0.4 s UNDER PAR"") pop above the hero",0–36,recorded sound,swing.assaultClear,487,game event,swing.assaultClear,
+swing.assaultCourse,Grappler,The last section cleared (swingRev 14) [arcade-effects.md],COURSE CLEARED! banner,0–1,recorded sound,swing.assaultCourse,1200,game event,swing.assaultCourse,
 swing.crash,Grappler,Grappler: The run ends in a crash [arcade.md],,0–1,recorded sound,arc_crash (shared),200,fail sting,swing.crash,
 swing.grapple,Grappler,Grappler: The rope catches [arcade.md],,20–60,recorded sound,arc_grapple (shared),450,game event,swing.grapple,
 swing.starTaken,Grappler,Grappler: A star is taken (swingRev 4+) [arcade.md],,5–20,recorded sound,arc_pickup (shared),100,game event,swing.starTaken,
@@ -594,13 +604,13 @@ swing.dragon,Grappler,Grappler: The dragon appears behind the player [arcade.md]
 swing.rockShake,Grappler,Grappler: A stalactite starts to shake [arcade.md],,2–8,recorded sound,arc_clank (shared),150,game event,swing.rockShake,
 swing.rockLand,Grappler,Grappler: A stalactite hits the floor [arcade.md],,2–8,recorded sound,arc_wood_knock (shared),90,game event,swing.rockLand,
 music.swing,Grappler,Grappler: music_swing,,loop,recorded sound,music_swing,loop,music,music_swing,
-skyline.floorsStreak,High Rise,Every 10th floor [arcade-effects.md],n FLOORS banner,1–4,recorded sound,skyline.floorsStreak,483,game event,skyline.floorsStreak,
+skyline.floorsStreak,High Rise,Every 10th floor [arcade-effects.md],n FLOORS banner,1–4,recorded sound,skyline.floorsStreak,648,game event,skyline.floorsStreak,
 skyline.windFlag,High Rise,The wind flag goes up (skylineRev 2+) [arcade-effects.md],A flag is raised on the top block,0–1,recorded sound,skyline.windFlag,400,game event,skyline.windFlag,
-skyline.windPerfect,High Rise,A perfect drop in the wind [arcade-effects.md],PERFECT pop at the seam in a gust,0–5,recorded sound,skyline.windPerfect,209,game event,skyline.windPerfect,
+skyline.windPerfect,High Rise,A perfect drop in the wind [arcade-effects.md],PERFECT pop at the seam in a gust,0–5,recorded sound,skyline.windPerfect,483,game event,skyline.windPerfect,
 skyline.gust,High Rise,A gust starts blowing [arcade-effects.md],Gust streaks cross the sky,2–8,recorded sound,skyline.gust,600,game event,skyline.gust,
 skyline.gustWarn,High Rise,The flag streams a second before a gust blows [arcade-effects.md],The flag streams and ripples,2–8,recorded sound,skyline.gustWarn,500,game event,skyline.gustWarn,
 skyline.drop,High Rise,High Rise: A block lands [arcade.md],,20–50,recorded sound,arc_clank (shared),150,game event,skyline.drop,
-skyline.perfect,High Rise,High Rise: A perfect drop [arcade.md],,5–20,recorded sound,skyline.perfect,209,success sting,skyline.perfect,
+skyline.perfect,High Rise,High Rise: A perfect drop [arcade.md],,5–20,recorded sound,skyline.perfect,483,success sting,skyline.perfect,
 skyline.streakDrop,High Rise,High Rise: A streak bonus drop (skylineRev 2+) [arcade.md],,2–10,recorded sound,arc_retro_coin (shared),120,game event,skyline.streakDrop,
 skyline.miss,High Rise,High Rise: A block misses the tower [arcade.md],,0–1,recorded sound,arc_crash (shared),200,fail sting,skyline.miss,
 music.skyline,High Rise,High Rise: music_skyline,,loop,recorded sound,music_skyline,loop,music,music_skyline,

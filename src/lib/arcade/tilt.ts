@@ -298,6 +298,8 @@ export interface TiltState extends BandFields {
   tunec?: number;
   /** tiltRev 8 only (the expansion): 1. Keys taken in this maze (bit per key), quick stars taken in this maze, the tick the maze began. */
   xp?: number;
+  /** tiltRev 9 only: tiltRev 8's play scored on the lifted curves (TILT_V9_*); not in the checkpoint checksum. */
+  lift?: number;
   keysGot?: number;
   quickGot?: number[];
   mazeAt?: number;
@@ -1041,6 +1043,7 @@ export function tiltCellCentre(m: Maze, c: number): { x: number; y: number } {
 
 export const tiltRev2Game: ArcadeGame<TiltState, ArcadeInputEvent | null> = { ...tiltGame, init: initRev2, step: bandStep(stepRev2, tiltTrack), score: bandScoreOf(scoreRev2, scoreBand) };
 export function tiltGameFor(rev?: number | null): ArcadeGame<TiltState, ArcadeInputEvent | null> {
+  if (rev === TILT_REV_LIFT) return tiltLiftGame;
   if (rev === TILT_REV_EXPAND) return tiltExpandGame;
   if (rev === TILT_REV_STRICT) return tiltStrictGame;
   if (rev === TILT_REV_TARGET) return tiltTargetGame;
@@ -1468,7 +1471,7 @@ export const TILT_V8_BAND_CURVE = bandCurve([0, 2, 40, 80, 100, 120, 130, 140, 1
 
 /** The world height (px) a stored round's tiltRev plays in. */
 export function tiltWorldHFor(rev?: number | null): number {
-  return rev === TILT_REV_EXPAND ? TILT_X_H : TILT_WORLD_H;
+  return rev === TILT_REV_EXPAND || rev === TILT_REV_LIFT ? TILT_X_H : TILT_WORLD_H;
 }
 
 /** One carve step in this many grows from a random open cell instead of the newest (side passages all along a route). */
@@ -2143,7 +2146,7 @@ export function tiltSkillRaw(state: TiltState): number {
 
 /** The feature bonus: the skill points paid on TILT_X_SKILL_PAY (0–50). */
 export function tiltSkillPaid(state: TiltState): number {
-  return bandPoints(TILT_X_SKILL_PAY, tiltSkillRaw(state));
+  return bandPoints(state.lift ? TILT_V9_SKILL_PAY : TILT_X_SKILL_PAY, tiltSkillRaw(state));
 }
 
 export function tiltXBandParts(state: TiltState): BandParts {
@@ -2157,7 +2160,7 @@ export function tiltXBandParts(state: TiltState): BandParts {
   const words = [finished ? `All ${TILT_X_MAZES} mazes +${finish}` : "", skill > 0 ? `Quick stars and pace +${skill}` : ""].filter(Boolean);
   return {
     units,
-    points: bandPoints(TILT_V8_BAND_CURVE, units),
+    points: bandPoints(state.lift ? TILT_V9_BAND_CURVE : TILT_V8_BAND_CURVE, units),
     bonus: finish + skill,
     penalty: 0,
     finished,
@@ -2242,4 +2245,28 @@ export function tiltFieldX(m: Maze, target: number, keysGot: number): number[] {
     }
   }
   return dist;
+}
+
+/* ================= tiltRev 9 (27 Oct 2026): the lifted curves ================= */
+
+/**
+ * tiltRev 9 (Joe's phone notes, 27 Oct 2026: Tilt's scores read low; docs/arcade-phone-notes-oct-2026.md): tiltRev 8's
+ * mazes, rules, features and play exactly, so a tiltRev 8 log replays tick for tick; only the two curves change.
+ * The base curve gives more for the same units through the middle (150 units still 140, so the ceiling stays 200)
+ * and the skill pay a little more for a few skill points (the full 50 still needs TILT_X_SKILL_RAW). Every run
+ * scores at least what it did on tiltRev 8, and a better run never less than a worse one. States add `lift: 1`
+ * (not in the checkpoint checksum: play is unchanged).
+ */
+export const TILT_REV_LIFT = 9;
+export const TILT_V9_BAND_CURVE = bandCurve([0, 2, 40, 80, 100, 120, 130, 140, 150], [0, 5, 30, 62, 78, 98, 116, 132, 140]);
+export const TILT_V9_SKILL_PAY = bandCurve([0, 15, 25, 35, 45, 52, 60], [0, 10, 16, 36, 38, 48, 50]);
+
+export const tiltLiftGame: ArcadeGame<TiltState, ArcadeInputEvent | null> = {
+  ...tiltExpandGame,
+  init: (seed) => ({ ...initX(seed), lift: 1 }),
+};
+
+/** True for the revisions that play the expansion's mazes (tiltRev 8, and tiltRev 9 on its lifted curves). */
+export function tiltIsExpand(rev?: number | null): boolean {
+  return rev === TILT_REV_EXPAND || rev === TILT_REV_LIFT;
 }

@@ -262,9 +262,10 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "tower" }: 
             onPeg={tapPeg}
             dropped={dropped}
             discHeight={
-              // Batch P: in the frame the tray gives the tower more room, so the rings (and posts) grow.
+              // Batch P: in the frame the tray gives the tower more room, so the rings (and posts) grow. Slimmer since
+              // Joe's phone notes (27 Oct 2026): 0.6 of the room a ring has, at most 22 px (was 0.86 and 34 px).
               inFrame
-                ? `clamp(12px, calc(((100cqh - 112px) / ${discs + 1} - 4px) * 0.86), 34px)`
+                ? `clamp(10px, calc(((100cqh - 112px) / ${discs + 1} - 4px) * 0.6), 22px)`
                 : `clamp(9px, calc(((100cqh - 92px) / ${discs + 1} - 4px) * 0.55), 16px)`
             }
           />

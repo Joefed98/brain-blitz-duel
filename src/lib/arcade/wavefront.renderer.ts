@@ -44,7 +44,7 @@ import {
   wavShipY,
   wavWorldH,
   WAV_REV_TALL,
-  WAV_REV_TARGET, WAV_REV_STRICT, WAV_REV_EXPAND,
+  WAV_REV_TARGET, WAV_REV_STRICT, WAV_REV_EXPAND, WAV_REV_PHONE,
   wavBossW,
   wavCannonX,
   wavCoreOpen,
@@ -76,17 +76,33 @@ function shade(hex: string, amount: number): string {
 }
 
 /*
- * Polish A4 (25 Oct 2026, display only): the three enemy kinds redrawn as dark gunmetal craft with neon
- * trim in their old colour (teal, pink, blue) and glowing red eyes, at the same places and sizes: every
- * hull still fills its 28 px hit cell (x, y, s × s), nose down at the player.
- *   kind 0 (was the round-cored "crab") → a pincer fighter: bat-wing hull, two forward claws, two red eyes;
- *   kind 1 (was the arrow)             → a delta-wing interceptor: wing struts, twin engine lights, a red cockpit eye;
- *   kind 2 (was the octagon)           → an armoured gunship: plated hull, side cannons, a big red core eye.
+ * Phone notes (27 Oct 2026, display only, every revision): the three enemy kinds restyled as sleek craft in
+ * silver, black and grey: no neon trim and no red eyes. The same outlines at the same places and sizes (every
+ * hull still fills its 28 px hit cell, x, y, s × s, nose down at the player); a ship's old colour now picks its
+ * finish (WAV_COLOURS[0] polished silver, [1] steel grey, [2] black chrome), and the eyes are dark glass canopies
+ * with a silver glint.
+ *   kind 0 → a pincer fighter: bat-wing hull, two forward claws, twin canopies;
+ *   kind 1 → a delta-wing interceptor: wing struts, a long canopy;
+ *   kind 2 → an armoured gunship: plated hull, side cannons, a round glass core.
  */
-const GUNMETAL_HI = "#5A626E";
-const GUNMETAL = "#343A44";
-const GUNMETAL_LO = "#1A1E25";
-const EYE_RED = "#FF3B3B";
+interface HullFinish {
+  hi: string;
+  mid: string;
+  lo: string;
+  edge: string;
+}
+const FINISHES: readonly HullFinish[] = [
+  { hi: "#F4F6F9", mid: "#B9BFC8", lo: "#6A717C", edge: "#FFFFFF" },
+  { hi: "#C9CDD3", mid: "#7D838D", lo: "#3A3F47", edge: "#E6E9EE" },
+  { hi: "#6B717B", mid: "#2A2E35", lo: "#0B0C0F", edge: "#C9CED6" },
+];
+const GLASS = "#06070A";
+const STEEL_DARK = "#1B1E23";
+
+function finishFor(colour: string): HullFinish {
+  const k = WAV_COLOURS.indexOf(colour);
+  return FINISHES[k < 0 ? 0 : k]!;
+}
 
 /** The hull's outline for each kind, filling the cell box (x, y, s x s); nose points down at the player. */
 function hullPath(ctx: CanvasRenderingContext2D, kind: number, x: number, y: number, s: number): void {
@@ -112,46 +128,42 @@ function hullPath(ctx: CanvasRenderingContext2D, kind: number, x: number, y: num
   }
 }
 
-/** A glowing red eye: a soft red bloom, the red lens, a hot centre and a glint. */
-function paintEye(ctx: CanvasRenderingContext2D, x: number, y: number, r: number): void {
-  const bloom = ctx.createRadialGradient(x, y, r * 0.3, x, y, r * 2.4);
-  bloom.addColorStop(0, "rgba(255,70,60,0.55)");
-  bloom.addColorStop(1, "rgba(255,40,40,0)");
-  ctx.fillStyle = bloom;
+/** A dark glass canopy (ellipse) with a thin silver rim and a soft glint: no colour. */
+function paintCanopy(ctx: CanvasRenderingContext2D, x: number, y: number, rx: number, ry: number, rim: string): void {
+  const g = ctx.createLinearGradient(x - rx, y - ry, x + rx, y + ry);
+  g.addColorStop(0, "#2C323C");
+  g.addColorStop(0.55, GLASS);
+  g.addColorStop(1, "#000000");
+  ctx.fillStyle = g;
   ctx.beginPath();
-  ctx.arc(x, y, r * 2.4, 0, Math.PI * 2);
+  ctx.ellipse(x, y, rx, ry, 0, 0, Math.PI * 2);
   ctx.fill();
-  ctx.fillStyle = "#5A0A0E";
+  ctx.strokeStyle = rim;
+  ctx.globalAlpha = 0.8;
+  ctx.lineWidth = Math.max(0.5, rx * 0.25);
+  ctx.stroke();
+  ctx.globalAlpha = 1;
+  ctx.fillStyle = "rgba(255,255,255,0.75)";
   ctx.beginPath();
-  ctx.arc(x, y, r + 0.5, 0, Math.PI * 2);
+  ctx.ellipse(x - rx * 0.35, y - ry * 0.35, rx * 0.32, ry * 0.2, -0.5, 0, Math.PI * 2);
   ctx.fill();
-  const lens = ctx.createRadialGradient(x - r * 0.25, y - r * 0.25, r * 0.1, x, y, r);
-  lens.addColorStop(0, "#FFD0C0");
-  lens.addColorStop(0.35, "#FF6A5A");
-  lens.addColorStop(1, EYE_RED);
-  ctx.fillStyle = lens;
-  ctx.beginPath();
-  ctx.arc(x, y, r, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.fillStyle = "rgba(255,255,255,0.85)";
-  ctx.fillRect(x - r * 0.5, y - r * 0.55, Math.max(0.5, r * 0.35), Math.max(0.5, r * 0.3));
 }
 
-/** Neon trim: a soft wide stroke in the trim colour, then the bright line. */
-function trim(ctx: CanvasRenderingContext2D, colour: string, width: number): void {
-  ctx.save();
-  ctx.globalAlpha = 0.35;
-  ctx.strokeStyle = colour;
-  ctx.lineWidth = width * 3;
+/** A crisp edge: a thin dark keyline, then the lit edge just inside it. */
+function edgeLine(ctx: CanvasRenderingContext2D, f: HullFinish, width: number): void {
+  ctx.strokeStyle = "rgba(0,0,0,0.85)";
+  ctx.lineWidth = width * 1.8;
   ctx.stroke();
-  ctx.restore();
-  ctx.strokeStyle = shade(colour, 0.25);
-  ctx.lineWidth = width;
+  ctx.strokeStyle = f.edge;
+  ctx.globalAlpha = 0.7;
+  ctx.lineWidth = width * 0.7;
   ctx.stroke();
+  ctx.globalAlpha = 1;
 }
 
-/** The static hull (cached): gunmetal body, plating, neon trim and the red eyes. */
+/** The static hull (cached): a metal body in its finish, dark seams, a lit edge and glass canopies. */
 function paintHull(ctx: CanvasRenderingContext2D, kind: number, colour: string, x: number, y: number, s: number): void {
+  const f = finishFor(colour);
   const P = (u: number, v: number) => [x + u * s, y + v * s] as const;
   const line = (pts: (readonly [number, number])[]) => {
     ctx.beginPath();
@@ -163,31 +175,23 @@ function paintHull(ctx: CanvasRenderingContext2D, kind: number, colour: string, 
   ctx.clip();
   ctx.lineJoin = "round";
   ctx.lineCap = "round";
-  // A faint glow in the trim colour behind the craft, inside the cell.
-  const halo = ctx.createRadialGradient(x + s / 2, y + s * 0.45, s * 0.1, x + s / 2, y + s * 0.45, s * 0.62);
-  halo.addColorStop(0, `${colour}40`);
-  halo.addColorStop(1, `${colour}00`);
-  ctx.fillStyle = halo;
-  ctx.fillRect(x, y, s, s);
   if (kind === 2) {
-    // Side cannons first, under the hull: barrels pointing down, a trim ring at each muzzle.
+    // Side cannons first, under the hull: dark steel barrels pointing down, a silver band at each muzzle.
     for (const side of [0, 1]) {
       const cx = x + (side ? 0.94 : 0.06) * s;
       const g = ctx.createLinearGradient(cx - s * 0.06, 0, cx + s * 0.06, 0);
-      g.addColorStop(0, GUNMETAL_HI);
-      g.addColorStop(1, GUNMETAL_LO);
+      g.addColorStop(0, f.hi);
+      g.addColorStop(1, STEEL_DARK);
       ctx.fillStyle = g;
       ctx.fillRect(cx - s * 0.06, y + s * 0.3, s * 0.12, s * 0.58);
-      ctx.fillStyle = GUNMETAL_LO;
+      ctx.fillStyle = STEEL_DARK;
       ctx.fillRect(cx - s * 0.035, y + s * 0.84, s * 0.07, s * 0.1);
-      ctx.fillStyle = shade(colour, 0.2);
-      ctx.fillRect(cx - s * 0.06, y + s * 0.8, s * 0.12, s * 0.04);
-      ctx.fillStyle = "rgba(0,0,0,0.5)";
-      ctx.fillRect(x + (side ? 0.86 : 0.12) * s - (side ? 0 : s * 0.02), y + s * 0.4, s * 0.02, s * 0.3);
+      ctx.fillStyle = f.edge;
+      ctx.fillRect(cx - s * 0.06, y + s * 0.8, s * 0.12, s * 0.03);
     }
   }
   if (kind === 0) {
-    // Two forward claws curling in towards the nose, under the hull.
+    // Two forward claws curling in towards the nose, under the hull: black steel with a silver edge.
     for (const side of [-1, 1]) {
       const cx = x + s / 2;
       ctx.beginPath();
@@ -197,91 +201,76 @@ function paintHull(ctx: CanvasRenderingContext2D, kind: number, colour: string, 
       ctx.quadraticCurveTo(cx + side * s * 0.18, y + s * 0.72, cx + side * s * 0.12, y + s * 0.5);
       ctx.closePath();
       const g = ctx.createLinearGradient(0, y + s * 0.5, 0, y + s);
-      g.addColorStop(0, GUNMETAL);
-      g.addColorStop(1, GUNMETAL_LO);
+      g.addColorStop(0, f.mid);
+      g.addColorStop(1, STEEL_DARK);
       ctx.fillStyle = g;
       ctx.fill();
-      ctx.save();
-      ctx.globalAlpha = 0.9;
-      trim(ctx, colour, 0.7);
-      ctx.restore();
+      edgeLine(ctx, f, 0.6);
     }
   }
-  // The gunmetal body, lit from the upper left.
-  const body = ctx.createLinearGradient(x, y, x + s * 0.6, y + s);
-  body.addColorStop(0, GUNMETAL_HI);
-  body.addColorStop(0.45, GUNMETAL);
-  body.addColorStop(1, GUNMETAL_LO);
+  // The metal body: a brushed gradient lit from the upper left, with a bright specular band.
+  const body = ctx.createLinearGradient(x, y, x + s * 0.7, y + s);
+  body.addColorStop(0, f.hi);
+  body.addColorStop(0.35, f.mid);
+  body.addColorStop(0.5, f.hi);
+  body.addColorStop(0.62, f.mid);
+  body.addColorStop(1, f.lo);
   hullPath(ctx, kind, x, y, s);
   ctx.fillStyle = body;
   ctx.fill();
   ctx.save();
   ctx.clip();
-  // Plating seams and struts, dark with a faint lit edge.
-  ctx.strokeStyle = "rgba(0,0,0,0.55)";
-  ctx.lineWidth = 0.8;
+  // Panel seams, dark and fine.
+  ctx.strokeStyle = "rgba(0,0,0,0.45)";
+  ctx.lineWidth = 0.6;
   if (kind === 0) {
     line([P(0.5, 0.18), P(0.5, 0.74)]); ctx.stroke();
     line([P(0.16, 0.06), P(0.3, 0.42)]); ctx.stroke();
     line([P(0.84, 0.06), P(0.7, 0.42)]); ctx.stroke();
+    // Black wing tips.
+    ctx.fillStyle = STEEL_DARK;
+    for (const [u0, u1] of [[0, 0.12], [0.88, 1]] as const) ctx.fillRect(x + u0 * s, y, (u1 - u0) * s, s * 0.55);
   } else if (kind === 1) {
-    // Wing struts from the fuselage to each wing, dark with a faint trim-coloured edge.
     const struts: [readonly [number, number], readonly [number, number]][] = [[P(0.42, 0.3), P(0.12, 0.2)], [P(0.58, 0.3), P(0.88, 0.2)], [P(0.44, 0.44), P(0.24, 0.36)], [P(0.56, 0.44), P(0.76, 0.36)]];
-    ctx.lineWidth = 1.4;
+    ctx.lineWidth = 1;
     for (const st of struts) { line(st); ctx.stroke(); }
-    ctx.save();
-    ctx.globalAlpha = 0.6;
-    ctx.strokeStyle = colour;
-    ctx.lineWidth = 0.6;
-    for (const [[ax, ay], [bx, by]] of struts) { line([[ax, ay - 0.7], [bx, by - 0.7]]); ctx.stroke(); }
-    ctx.restore();
-    // The fuselage spine.
-    ctx.strokeStyle = "rgba(255,255,255,0.18)";
-    ctx.lineWidth = 0.7;
-    line([P(0.5, 0.05), P(0.5, 0.5)]); ctx.stroke();
+    // A black spine down the fuselage.
+    ctx.strokeStyle = STEEL_DARK;
+    ctx.lineWidth = s * 0.08;
+    line([P(0.5, 0.02), P(0.5, 0.42)]); ctx.stroke();
   } else {
     for (const v of [0.34, 0.66]) { line([P(0.12, v), P(0.88, v)]); ctx.stroke(); }
     for (const u of [0.34, 0.66]) { line([P(u, 0.02), P(u, 0.34)]); ctx.stroke(); line([P(u, 0.66), P(u, 0.98)]); ctx.stroke(); }
-    // Rivets on the plates.
-    ctx.fillStyle = "rgba(255,255,255,0.22)";
+    ctx.fillStyle = "rgba(0,0,0,0.35)";
     for (const [u, v] of [[0.24, 0.26], [0.76, 0.26], [0.24, 0.74], [0.76, 0.74], [0.5, 0.1], [0.5, 0.9]] as const) ctx.fillRect(x + u * s - 0.5, y + v * s - 0.5, 1, 1);
   }
-  // A lit upper-left edge and a dark lower-right one.
+  // A lit upper-left rim and a shadowed lower-right one.
   const rim = ctx.createLinearGradient(x, y, x + s, y + s);
-  rim.addColorStop(0, "rgba(255,255,255,0.4)");
+  rim.addColorStop(0, "rgba(255,255,255,0.55)");
   rim.addColorStop(0.5, "rgba(255,255,255,0)");
-  rim.addColorStop(1, "rgba(0,0,0,0.45)");
+  rim.addColorStop(1, "rgba(0,0,0,0.5)");
   ctx.strokeStyle = rim;
-  ctx.lineWidth = 2;
+  ctx.lineWidth = 1.6;
   hullPath(ctx, kind, x, y, s);
   ctx.stroke();
   ctx.restore();
-  // The neon trim round the hull.
   hullPath(ctx, kind, x, y, s);
-  trim(ctx, colour, 0.9);
-  if (kind === 1) {
-    // Neon leading edges along the wings.
-    ctx.save();
-    line([P(0.5, 0.97), P(0.97, 0.25)]); trim(ctx, colour, 0.6);
-    line([P(0.5, 0.97), P(0.03, 0.25)]); trim(ctx, colour, 0.6);
-    ctx.restore();
-  }
+  edgeLine(ctx, f, 0.8);
   if (kind === 2) {
-    // An armoured collar round the core eye.
+    // A black collar round the glass core.
     ctx.beginPath();
-    ctx.arc(x + s / 2, y + s * 0.5, s * 0.2, 0, Math.PI * 2);
-    ctx.fillStyle = GUNMETAL_LO;
+    ctx.arc(x + s / 2, y + s * 0.5, s * 0.21, 0, Math.PI * 2);
+    ctx.fillStyle = STEEL_DARK;
     ctx.fill();
-    trim(ctx, colour, 0.7);
   }
-  // The eyes.
+  // Canopies: dark glass, never a coloured eye.
   if (kind === 0) {
-    paintEye(ctx, x + s * 0.4, y + s * 0.36, s * 0.065);
-    paintEye(ctx, x + s * 0.6, y + s * 0.36, s * 0.065);
+    paintCanopy(ctx, x + s * 0.4, y + s * 0.36, s * 0.07, s * 0.055, f.edge);
+    paintCanopy(ctx, x + s * 0.6, y + s * 0.36, s * 0.07, s * 0.055, f.edge);
   } else if (kind === 1) {
-    paintEye(ctx, x + s * 0.5, y + s * 0.58, s * 0.08);
+    paintCanopy(ctx, x + s * 0.5, y + s * 0.6, s * 0.07, s * 0.14, f.edge);
   } else {
-    paintEye(ctx, x + s * 0.5, y + s * 0.5, s * 0.13);
+    paintCanopy(ctx, x + s * 0.5, y + s * 0.5, s * 0.14, s * 0.14, f.edge);
   }
   ctx.restore();
 }
@@ -289,9 +278,9 @@ function paintHull(ctx: CanvasRenderingContext2D, kind: number, colour: string, 
 const HULL_SCALE = 3;
 const hullSprites = new Map<string, ArtCanvas | null>();
 
-/** One enemy hull filling the cell box (x, y, s x s): a cached sprite plus the live engine lights. */
+/** One enemy hull filling the cell box (x, y, s x s): a cached sprite plus the live engine glints. */
 export function drawHull(ctx: CanvasRenderingContext2D, kind: number, colour: string, x: number, y: number, s: number, t: number): void {
-  const key = `a4:${kind}:${colour}:${s}`;
+  const key = `s5:${kind}:${colour}:${s}`;
   let sprite = hullSprites.get(key);
   if (sprite === undefined) {
     const canvas = artCanvas(Math.ceil(s * HULL_SCALE), Math.ceil(s * HULL_SCALE));
@@ -305,12 +294,12 @@ export function drawHull(ctx: CanvasRenderingContext2D, kind: number, colour: st
   }
   if (sprite) ctx.drawImage(sprite as CanvasImageSource, x, y, s, s);
   else paintHull(ctx, kind, colour, x, y, s);
-  // Engine lights at the rear (top), inside the box: twin for the interceptor, one for the others.
+  // Engine glints at the rear (top), inside the box: a cool white, twin for the interceptor.
   const pulse = 0.6 + 0.4 * Math.sin(t * 9 + x * 0.1);
-  ctx.fillStyle = kind === 1 ? `rgba(255,230,170,${0.75 * pulse})` : `rgba(255,200,120,${0.55 * pulse})`;
+  ctx.fillStyle = `rgba(225,235,250,${0.6 * pulse})`;
   for (const u of kind === 1 ? [0.44, 0.56] : [0.5]) {
     ctx.beginPath();
-    ctx.ellipse(x + s * u, y + s * (kind === 1 ? 0.06 : 0.12), s * (kind === 1 ? 0.06 : 0.12), s * 0.07, 0, 0, Math.PI * 2);
+    ctx.ellipse(x + s * u, y + s * (kind === 1 ? 0.06 : 0.12), s * (kind === 1 ? 0.05 : 0.1), s * 0.05, 0, 0, Math.PI * 2);
     ctx.fill();
   }
 }
@@ -490,13 +479,15 @@ function drawBoss(ctx: CanvasRenderingContext2D, state: WavState, t: number, las
   ctx.beginPath();
   ctx.rect(x, y, w, h);
   ctx.clip();
-  const hull = ctx.createLinearGradient(0, y, 0, y + h);
-  const crimson = Boolean(boss.mid);
-  hull.addColorStop(0, crimson ? "#4A0E18" : "#3B1450");
-  hull.addColorStop(0.5, crimson ? "#9A2436" : "#7A2A8C");
-  hull.addColorStop(1, crimson ? "#2A0810" : "#2A0E3A");
+  // Phone notes (27 Oct 2026, display only): both bosses in black and silver (the gunship a lighter graphite).
+  const hull = ctx.createLinearGradient(x, y, x + w * 0.4, y + h);
+  const gunship = Boolean(boss.mid);
+  hull.addColorStop(0, gunship ? "#4A5059" : "#2A2E35");
+  hull.addColorStop(0.45, gunship ? "#22262C" : "#0E1013");
+  hull.addColorStop(0.55, gunship ? "#3A3F47" : "#1E2228");
+  hull.addColorStop(1, "#050608");
   ctx.fillStyle = hull;
-  ctx.strokeStyle = "#E8B4FF";
+  ctx.strokeStyle = "#D8DDE5";
   ctx.lineWidth = 1.5;
   ctx.beginPath();
   // Swept wings to the full width, a heavy centre hull, the nose at the bottom edge.
@@ -512,15 +503,24 @@ function drawBoss(ctx: CanvasRenderingContext2D, state: WavState, t: number, las
   ctx.closePath();
   ctx.fill();
   ctx.stroke();
+  // Silver panel lines along the wings.
+  ctx.strokeStyle = "rgba(216,221,229,0.45)";
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(x + w * 0.06, y + h * 0.42);
+  ctx.lineTo(cx - w * 0.18, y + h * 0.14);
+  ctx.moveTo(x + w * 0.94, y + h * 0.42);
+  ctx.lineTo(cx + w * 0.18, y + h * 0.14);
+  ctx.stroke();
   // Gun pods (where the pattern's bolts leave) and a pulsing core.
-  ctx.fillStyle = "#1A0824";
+  ctx.fillStyle = "#050608";
   for (const gx of [8, w / 2, w - 8]) ctx.fillRect(x + gx - 4, y + h * 0.62 - 2, 8, 8);
   if (state.x10) drawWeakPoints(ctx, state, boss, x, y, w, h, t);
   else {
     const pulse = 0.6 + 0.4 * Math.sin(t * 6);
     const core = ctx.createRadialGradient(cx, y + h * 0.45, 1, cx, y + h * 0.45, 12);
-    core.addColorStop(0, `rgba(255,120,200,${pulse})`);
-    core.addColorStop(1, "rgba(255,60,160,0)");
+    core.addColorStop(0, `rgba(230,236,245,${pulse})`);
+    core.addColorStop(1, "rgba(200,210,225,0)");
     ctx.fillStyle = core;
     ctx.beginPath();
     ctx.arc(cx, y + h * 0.45, 12, 0, Math.PI * 2);
@@ -540,7 +540,7 @@ function drawBoss(ctx: CanvasRenderingContext2D, state: WavState, t: number, las
   ctx.fillStyle = "rgba(255,255,255,0.15)";
   ctx.fillRect(x, barY, w, 5);
   const maxHp = boss.maxHp ?? WAV_BOSS_HP;
-  ctx.fillStyle = boss.hp * 3 > maxHp ? "#FF4DB8" : WAV_RED;
+  ctx.fillStyle = boss.hp * 3 > maxHp ? "#E6E9EE" : WAV_RED;
   ctx.fillRect(x, barY, (w * boss.hp) / maxHp, 5);
 }
 
@@ -591,17 +591,17 @@ function drawWeakPoints(ctx: CanvasRenderingContext2D, state: WavState, boss: No
     const pulse = still ? 1 : 0.75 + 0.25 * Math.sin(t * 9);
     if (light) {
       const bloom = ctx.createRadialGradient(cx, cy, 2, cx, cy, r + 4);
-      bloom.addColorStop(0, `rgba(255,240,250,${0.95 * pulse})`);
-      bloom.addColorStop(0.5, `rgba(255,90,190,${0.8 * pulse})`);
-      bloom.addColorStop(1, "rgba(255,60,160,0)");
+      bloom.addColorStop(0, `rgba(255,255,255,${0.95 * pulse})`);
+      bloom.addColorStop(0.5, `rgba(190,215,255,${0.8 * pulse})`);
+      bloom.addColorStop(1, "rgba(160,190,255,0)");
       ctx.fillStyle = bloom;
       ctx.fillRect(cx - r - 4, cy - r - 4, 2 * r + 8, 2 * r + 8);
     }
-    ctx.fillStyle = "#FFE6F6";
+    ctx.fillStyle = "#FFFFFF";
     ctx.beginPath();
     ctx.arc(cx, cy, r * 0.45, 0, Math.PI * 2);
     ctx.fill();
-    ctx.strokeStyle = "#FF4DB8";
+    ctx.strokeStyle = "#C9D6FF";
     ctx.lineWidth = 2;
     ctx.beginPath();
     ctx.arc(cx, cy, r - 1, 0, Math.PI * 2);
@@ -666,6 +666,34 @@ function drawDrop(ctx: CanvasRenderingContext2D, dx: number, dy: number, kind: n
     ctx.fillRect(dx - 1, dy - 5, 2, 10);
   }
   void t;
+}
+
+/**
+ * wavRev 11: a carrier's mark, inside its 28 px cell: a small diamond in its power-up's colour (green spread, cyan
+ * shield) on the hull's centre, with a soft pulsing halo, so a player can pick the carriers out of the formation.
+ */
+function drawCarrierMark(ctx: CanvasRenderingContext2D, cx: number, cy: number, kind: number, t: number): void {
+  const colour = kind === WAV_DROP_SPREAD ? "#7CF29A" : kind === WAV_DROP_SHIELD ? "#4FD8FF" : WAV_PURPLE;
+  const r = 5;
+  if (!arcadeReducedEffects()) {
+    const pulse = reducedMotion() ? 0.7 : 0.55 + 0.3 * Math.sin(t * 6);
+    const g = ctx.createRadialGradient(cx, cy, 1, cx, cy, 11);
+    g.addColorStop(0, `${colour}${Math.round(pulse * 200).toString(16).padStart(2, "0")}`);
+    g.addColorStop(1, `${colour}00`);
+    ctx.fillStyle = g;
+    ctx.fillRect(cx - 11, cy - 11, 22, 22);
+  }
+  ctx.fillStyle = colour;
+  ctx.strokeStyle = "#06070A";
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(cx, cy - r);
+  ctx.lineTo(cx + r, cy);
+  ctx.lineTo(cx, cy + r);
+  ctx.lineTo(cx - r, cy);
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
 }
 
 /** wavRev 10: the shield round the ship (light, not a body): a soft cyan bubble, fading in its last 2 s. */
@@ -945,6 +973,7 @@ function drawWavefrontArtWorld(ctx: CanvasRenderingContext2D, state: WavState, s
     const kind = Math.trunc((code - 1) / 3);
     const colour = WAV_COLOURS[(code - 1) % 3] ?? WAV_GOLD;
     drawHull(ctx, kind, colour, box.x, box.y, WAV_CELL, t);
+    if (state.r11 && (state.carry?.[i] ?? -1) >= 0) drawCarrierMark(ctx, box.x + WAV_CELL / 2, box.y + WAV_CELL / 2, state.carry![i]!, t);
   });
   if (state.armour) drawArmourHull(ctx, state, state.armour);
   // wavRev 2 divers: the same hull in its 28 px box, with a short fading wake.
@@ -954,10 +983,11 @@ function drawWavefrontArtWorld(ctx: CanvasRenderingContext2D, state: WavState, s
     const c = wavDiverCentre(d);
     const colour = WAV_COLOURS[(code - 1) % 3] ?? WAV_GOLD;
     ctx.globalAlpha = 0.25;
-    ctx.fillStyle = colour;
+    ctx.fillStyle = "#C9CED6";
     ctx.fillRect(c.x - 2, c.y - WAV_CELL / 2 - 10, 4, 10);
     ctx.globalAlpha = 1;
     drawHull(ctx, Math.trunc((code - 1) / 3), colour, c.x - WAV_CELL / 2, c.y - WAV_CELL / 2, WAV_CELL, t);
+    if (state.r11 && (state.carry?.[d.cell] ?? -1) >= 0) drawCarrierMark(ctx, c.x, c.y, state.carry![d.cell]!, t);
   }
   if (state.boss) {
     let hit = bossHitMemo.get(ctx);
@@ -968,6 +998,8 @@ function drawWavefrontArtWorld(ctx: CanvasRenderingContext2D, state: WavState, s
     drawBoss(ctx, state, t, hit.tick);
   }
 
+  // wavRev 11: the power-ups falling from carriers and saucers.
+  for (const p of state.pickups ?? []) drawDrop(ctx, p.x / FP, p.y / FP, p.k, t);
   if (state.drop && state.drop.wait === 0 && state.x10) drawDrop(ctx, state.drop.x / FP, state.drop.y / FP, state.drop.k ?? 0, t);
   else if (state.drop && state.drop.wait === 0) {
     const dx = state.drop.x / FP;
@@ -1055,7 +1087,7 @@ function drawWavefrontArtWorld(ctx: CanvasRenderingContext2D, state: WavState, s
     ctx.font = "800 34px 'JetBrains Mono', ui-monospace, monospace";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    ctx.fillStyle = state.boss ? "#FF4DB8" : WAV_GOLD;
+    ctx.fillStyle = state.boss ? "#E6E9EE" : WAV_GOLD;
     ctx.fillText(state.boss?.mid ? "GUNSHIP" : state.boss ? "BOSS" : `WAVE ${state.wave}`, WAV_WORLD_W / 2, 300);
     ctx.font = "600 13px 'JetBrains Mono', ui-monospace, monospace";
     ctx.fillStyle = "#F7F7F8";
@@ -1080,7 +1112,8 @@ function drawWavefrontArtWorld(ctx: CanvasRenderingContext2D, state: WavState, s
 
 /**
  * wavRev 10 HUD, second line: the power-up held on the left (laser shots, spread volleys or the shield's
- * seconds) and the hit streak on the right ("STREAK 17 ×3", gold from ×2). Counter facts only, never points.
+ * seconds) and, on wavRev 10, the hit streak on the right ("STREAK 17 ×3", gold from ×2; wavRev 11 has no streak).
+ * Counter facts only, never points.
  */
 function drawExpandHud(ctx: CanvasRenderingContext2D, state: WavState): void {
   ctx.save();
@@ -1116,8 +1149,10 @@ const wavefrontArtGameTall = { ...wavefrontGameFor(WAV_REV_TALL), draw: drawWave
 const wavefrontArtGameTarget = { ...wavefrontGameFor(WAV_REV_TARGET), draw: drawWavefrontArt };
 const wavefrontArtGameStrict = { ...wavefrontGameFor(WAV_REV_STRICT), draw: drawWavefrontArt };
 const wavefrontArtGameExpand = { ...wavefrontGameFor(WAV_REV_EXPAND), draw: drawWavefrontArt };
+const wavefrontArtGamePhone = { ...wavefrontGameFor(WAV_REV_PHONE), draw: drawWavefrontArt };
 /** The art game for a stored wavRev; one cached object per revision. */
 export function wavefrontArtGameFor(rev?: number | null): typeof wavefrontArtGame {
+  if (rev === WAV_REV_PHONE) return wavefrontArtGamePhone;
   if (rev === WAV_REV_EXPAND) return wavefrontArtGameExpand;
   if (rev === WAV_REV_STRICT) return wavefrontArtGameStrict;
   if (rev === WAV_REV_TARGET) return wavefrontArtGameTarget;

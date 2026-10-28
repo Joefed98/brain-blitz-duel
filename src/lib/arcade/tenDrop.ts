@@ -301,6 +301,11 @@ export interface TenDropState {
   scoreRev?: number;
   /** tenRev 4 (absent before): gold tens, targets cleared by tapping a gold tile (the tile that makes the total). */
   goldTens?: number;
+  /**
+   * tenRev 5 (the scoring standard, absent before): the sum over cleared targets of the ticks left on the run when each
+   * cleared (TD_RUN_TICKS − clear tick), for the unfinished score's "how early" extras. Scoring only.
+   */
+  earlyTicks?: number;
 }
 
 function init(seed: number): TenDropState {
@@ -422,6 +427,7 @@ function step(state: TenDropState, input: ArcadeInputEvent | null): TenDropState
           next.total = result;
           next.log = pushLog(next.log, tick, TD_LOG_CLEAR, col);
           if (state.goldTens !== undefined && t.gold) next.goldTens = state.goldTens + 1;
+          if (state.earlyTicks !== undefined) next.earlyTicks = state.earlyTicks + Math.max(0, TD_RUN_TICKS - tick);
         } else {
           next.total = result;
           next.log = pushLog(next.log, tick, TD_LOG_APPLIED, col);
@@ -443,7 +449,9 @@ export function tenDropInit(seed: number, scoreRev?: number): TenDropState {
   if (scoreRev && scoreRev >= TEN_DROP_DEPTH_REV) {
     // tenRev 4: the same plan and rng as tenRev 3, plus each target's gold position (from a hash of the seed,
     // never the rng stream).
-    return { ...state, plan: { ...state.plan, gold: tdGoldPlan(seed, state.plan) }, scoreRev, goldTens: 0 };
+    const withGold = { ...state, plan: { ...state.plan, gold: tdGoldPlan(seed, state.plan) }, scoreRev, goldTens: 0 };
+    // tenRev 5 (the scoring standard): the same run, plus the early-clear sum the score reads.
+    return scoreRev >= TEN_DROP_STANDARD_REV ? { ...withGold, earlyTicks: 0 } : withGold;
   }
   return scoreRev && scoreRev >= TEN_DROP_SCORE_REV ? { ...state, scoreRev } : state;
 }
@@ -537,8 +545,9 @@ export function tdGoldPlan(seed: number, plan: TenDropPlan): number[] {
  * Rev 1: all ten = 120 + speedBonusCurve(30, …) (the full 30 when the last clears by 45 s);
  * otherwise floor(110 × targets ÷ 9) − 2 per reset beyond 5, so nine is 110.
  */
-export function tenDropScore(cleared: number, clearTick = TD_RUN_TICKS, scoreRev = 0, resets = 0, goldTens = 0): number {
+export function tenDropScore(cleared: number, clearTick = TD_RUN_TICKS, scoreRev = 0, resets = 0, goldTens = 0, earlyTicks = 0): number {
   const n = clampInt(cleared, 0, TD_TARGETS);
+  if (scoreRev >= TEN_DROP_STANDARD_REV) return tdStandardScore(n, clearTick, resets, goldTens, earlyTicks);
   if (scoreRev >= TEN_DROP_SCORE_REV) {
     if (n >= TD_TARGETS) {
       const left = clampInt(TD_RUN_TICKS - clearTick, 0, TD_RUN_TICKS);
@@ -563,7 +572,7 @@ export function tenDropScore(cleared: number, clearTick = TD_RUN_TICKS, scoreRev
 }
 
 function score(state: TenDropState): number {
-  const raw = tenDropScore(state.cleared, state.clearTick, state.scoreRev ?? 0, state.resets, state.goldTens ?? 0);
+  const raw = tenDropScore(state.cleared, state.clearTick, state.scoreRev ?? 0, state.resets, state.goldTens ?? 0, state.earlyTicks ?? 0);
   return state.scoreRev === TEN_DROP_BANDS_REV ? bandMapTotal(TEN_DROP_BANDS_MAP, raw) : raw;
 }
 
@@ -619,6 +628,47 @@ export function tdStretchBonus(left: number): number {
 /** tenRev 4's gold part for a finished run: TD_GOLD_POINTS per gold ten, at most TD_GOLD_MAX. */
 export function tdGoldBonus(goldTens: number): number {
   return Math.min(TD_GOLD_MAX, TD_GOLD_POINTS * clampInt(goldTens, 0, TD_TARGETS));
+}
+
+/**
+ * tenRev 5 (the scoring standard, 27 Oct 2026, docs/scoring-standard.md "Number decisions"): tenRev 4's plan, play and
+ * gold tiles, scored on the standard's shape in whole numbers:
+ *   unfinished = 12 per target cleared + up to 1 each for how early it cleared ((run ticks − clear tick) ÷ run ticks,
+ *                summed as `earlyTicks`) + 2 per gold ten, less tenRev 3's reset cost (5 per reset after the first 4),
+ *                at most 130;
+ *   all ten    = 150 + speed (30 when the last clears by 60 s, then evenly to 0 at the buzzer) + 2 per gold ten (≤ 20).
+ */
+export const TEN_DROP_STANDARD_REV = 5;
+export const TD_STD_TARGET_POINTS = 12;
+export const TD_STD_FINISH = 150;
+export const TD_STD_SPEED_POINTS = 30;
+/** The run tick by which the last clear earns the full speed points (60 s). */
+export const TD_STD_FULL_BY_TICKS = 3600;
+export const TD_STD_GOLD_POINTS = 2;
+export const TD_STD_GOLD_MAX = 20;
+export const TD_STD_UNFINISHED_CAP = 130;
+
+/** tenRev 5's speed points for `left` ticks on the run at the last clear. */
+export function tdStandardSpeed(left: number): number {
+  const window = TD_RUN_TICKS - TD_STD_FULL_BY_TICKS;
+  return Math.floor((TD_STD_SPEED_POINTS * clampInt(left, 0, window)) / window);
+}
+
+/** tenRev 5's gold part: TD_STD_GOLD_POINTS per gold ten, at most TD_STD_GOLD_MAX (finished or not). */
+export function tdStandardGold(goldTens: number): number {
+  return Math.min(TD_STD_GOLD_MAX, TD_STD_GOLD_POINTS * clampInt(goldTens, 0, TD_TARGETS));
+}
+
+function tdStandardScore(n: number, clearTick: number, resets: number, goldTens: number, earlyTicks: number): number {
+  const gold = tdStandardGold(goldTens);
+  if (n >= TD_TARGETS) {
+    const left = clampInt(TD_RUN_TICKS - clearTick, 0, TD_RUN_TICKS);
+    return clampInt(TD_STD_FINISH + tdStandardSpeed(left) + gold, 0, TD_DEPTH_MAX);
+  }
+  const early = clampInt(earlyTicks, 0, n * TD_RUN_TICKS);
+  const cost = TD_REV3_RESET_COST * Math.max(0, resets - TD_REV3_FREE_RESETS);
+  const credit = Math.floor((TD_STD_TARGET_POINTS * n * TD_RUN_TICKS + early) / TD_RUN_TICKS) + gold - cost;
+  return clampInt(credit, 0, TD_STD_UNFINISHED_CAP);
 }
 
 /* ============================= Checkpoints ============================= */

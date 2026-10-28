@@ -15,12 +15,14 @@
  *
  * Every function is shared (phone and server): the decoders and replays it uses are the graders'.
  */
+import { usesStandard } from "./standard/stamps";
+import { swapwordBlindSwaps } from "./standard/word";
 import { blockGeometry, decodePlacements, verifyPlacements } from "./blockParty";
 import { decodeFlowPaths, verifyFlow } from "./flow";
 import { acceptedRects, decodeShikaku, shikakuHeightOf } from "./shikaku";
 import { decodeBulbs } from "./lightUp";
 import { decodeTileMoves, replayTiles, tilesLayout } from "./tiles";
-import { decodeJumbled, isJumbledGradient, JUMBLED_MOVABLE, jumbledInPlace, jumbledProgress, replayJumbled } from "./jumbled";
+import { isJumbledGradient, JUMBLED_MOVABLE, jumbledInPlace, jumbledProgress, replayGradientAnswer } from "./jumbled";
 import { decodeSwapword, replaySwapword, swapwordPlaced } from "./swapword";
 import { decodeSlideTokens, markedRowWord, replayWordSlide, WS_MARKED_ROWS } from "./wordSlide";
 import { PUZZLE_SCORE_REV, puzzleScoreRevOf } from "./puzzleScoreRev";
@@ -145,7 +147,7 @@ export function solutionProgress(puzzle: PuzzleData, answer: string, extra?: Rec
     case "tiles": {
       // tilesRev 3 (the remodel): tiles put in place on the gradient.
       if (isJumbledGradient(puzzle)) {
-        const end = replayJumbled(puzzle.frame, decodeJumbled(answer)).frame;
+        const end = replayGradientAnswer(puzzle, answer).frame;
         const out = JUMBLED_MOVABLE - jumbledInPlace(puzzle.frame);
         return { text: `${Math.round(jumbledProgress(puzzle.frame, end) * out)}/${out} tiles placed`, cost: null };
       }
@@ -165,7 +167,10 @@ export function solutionProgress(puzzle: PuzzleData, answer: string, extra?: Rec
       if (!solution) return null;
       const run = replaySwapword(puzzle.start, decodeSwapword(answer), puzzle.maxSwaps, solution);
       const { toPlace, placed, displaced } = swapwordCounts(puzzle.start, run.board, solution);
-      return { text: `${Math.max(0, placed - displaced)}/${toPlace} tiles placed`, cost: displaced > 0 ? `${displaced} moved out of place` : null };
+      // The scoring standard (swapwordRev 7, standard/word.ts): blind swaps count against the tiles placed too.
+      const blind = usesStandard(puzzle) ? swapwordBlindSwaps(puzzle.start, decodeSwapword(answer), run.swaps, solution) : 0;
+      const costs = [...(displaced > 0 ? [`${displaced} moved out of place`] : []), ...(blind > 0 ? [`${blind} blind swap${blind === 1 ? "" : "s"}`] : [])];
+      return { text: `${Math.max(0, placed - displaced - blind)}/${toPlace} tiles placed`, cost: costs.length ? costs.join(", ") : null };
     }
     case "wordslide": {
       const validRows = extra?.["validRows"];

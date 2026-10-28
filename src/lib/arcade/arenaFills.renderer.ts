@@ -246,6 +246,25 @@ export function pinballFill(ctx: CanvasRenderingContext2D, view: ArenaSceneView)
 }
 export const pinballAmbient = lightRow("pinball", PIN_LAMPS);
 
+/**
+ * 7b. Pinball's taller table (pinRev 4 and 5): its rich purple bottom edge runs on into a darker purple, with the
+ * lamps in the table's own pink, gold and cyan (27 Oct 2026, Joe's phone notes, second pass).
+ */
+export function pinball4Fill(ctx: CanvasRenderingContext2D, view: ArenaSceneView): void {
+  const below = fillBelow(view);
+  const above = fillAbove(view);
+  if (above) fillGradient(ctx, above, above.y, above.y + above.h, [[0, "#070709"], [1, "#000000"]]);
+  if (!below) return;
+  fillGradient(ctx, below, below.y, below.y + below.h, [[0, "#0E0422"], [0.5, "#0A0318"], [1, "#0D0420"]]);
+  const glow = ctx.createRadialGradient(view.worldW / 2, below.y + below.h, 4, view.worldW / 2, below.y + below.h, view.worldW * 0.7);
+  glow.addColorStop(0, "rgba(255,79,216,0.08)");
+  glow.addColorStop(1, "rgba(255,79,216,0)");
+  ctx.fillStyle = glow;
+  ctx.fillRect(below.x, below.y, below.w, below.h);
+  lampsAtRest(ctx, view, PIN_LAMPS, "#160A26");
+}
+export const pinball4Ambient = lightRow("pinball", PIN_LAMPS);
+
 /** 8. Rally: the court's dark floor runs on, with five retro lamps in Rally's tones. */
 const RALLY_LAMPS = ["#3DFFE0", "#FFD84A", "#FF6FD8", "#B49CFF", "#3DFFE0"] as const;
 export function rallyFill(ctx: CanvasRenderingContext2D, view: ArenaSceneView): void {
@@ -493,16 +512,12 @@ export function wavefrontFill(ctx: CanvasRenderingContext2D, view: ArenaSceneVie
   ctx.fillRect(r.x, r.y, r.w, r.h);
 }
 
-/** 18. Orbit: deep space with light stars under the world (SET CHECKPOINT sits on top, unchanged). */
+/** 18. Orbit: black space with light stars under the world (no coloured nebula since 27 Oct 2026). */
 export function orbitFill(ctx: CanvasRenderingContext2D, view: ArenaSceneView): void {
   const r = fillBelow(view);
   if (!r) return;
-  fillGradient(ctx, r, r.y, r.y + r.h, [[0, "#0E0E24"], [0.5, "#0B0B1C"], [1, "#08080F"]]);
-  const neb = ctx.createRadialGradient(view.worldW * 0.25, r.y + r.h * 0.4, 6, view.worldW * 0.25, r.y + r.h * 0.4, 140);
-  neb.addColorStop(0, "rgba(90,60,150,0.08)");
-  neb.addColorStop(1, "rgba(90,60,150,0)");
-  ctx.fillStyle = neb;
-  ctx.fillRect(r.x, r.y, r.w, r.h);
+  // A deep navy (the screen fill must read lighter than the screen edge's black), with no coloured nebula.
+  fillGradient(ctx, r, r.y, r.y + r.h, [[0, "#0E0E24"], [0.5, "#0C0C1F"], [1, "#0B0B1C"]]);
   stars(ctx, r, 181, ["#FFFFFF", "#D9E2FF", "#BFD0FF"], 650, 0.42);
 }
 

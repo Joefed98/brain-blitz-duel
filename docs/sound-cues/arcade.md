@@ -111,7 +111,7 @@ when the run starts. Rooms deal Pinball since 14 Oct 2026; Junction is practice 
 | `junction.crash` | Junction | Two cars crash | `arc_crash` | 0–1 | 200 ms |
 | `junction.complete` | Junction | The run is completed | `stage_complete` | 0–1 | 160 ms |
 | `skyline.drop` | High Rise | A block lands | `arc_clank` (0.8, overlapping) | 20–50 | 150 ms |
-| `skyline.perfect` | High Rise | A perfect drop | `correct` · own file `skyline.perfectFit.mp3` (sound batch 4, volume 0.8) | 5–20 | 209 ms |
+| `skyline.perfect` | High Rise | A perfect drop | `correct` · own file `skyline.floors.mp3` (volume 0.8; Joe's phone notes, 27 Oct 2026: the crane bell that was the every-10-floors sound; `skyline.perfectFit.mp3` retired) | 5–20 | 483 ms |
 | `skyline.streakDrop` | High Rise | A streak bonus drop (skylineRev 2+) | `arc_retro_coin` (0.7) | 2–10 | 120 ms |
 | `skyline.miss` | High Rise | A block misses the tower | `arc_crash` | 0–1 | 200 ms |
 | `inkbridge.draw` | Rainbow Bridge | The first segment of each drawn stroke | `arc_rainbow` (0.6) | 10–30 | 910 ms |

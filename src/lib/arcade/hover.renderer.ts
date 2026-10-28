@@ -115,61 +115,66 @@ function capGlowSprite(w: number, colour: string): ArtCanvas | null {
 }
 
 /**
- * Polish A2 (display only): the night behind the course, painted once per canvas size into a
- * device layer: a deep navy sky lifting to purple low down, then a dark pixel city along the
- * bottom with a few dim windows. Seeded, so every phone and the reveal draw the same city.
+ * The deep space behind the course (display only; Joe's phone notes, 27 Oct 2026: no city), painted once
+ * per canvas size into a device layer: a near-black sky with a faint blue lift low down, a soft band of
+ * far star dust across it and a field of fixed stars (a few brighter, with a small four-point glint).
+ * Seeded, so every phone and the reveal draw the same sky.
  */
-export const HOVER_SKY_TOP = "#060A22";
-export const HOVER_SKY_MID = "#120F38";
-export const HOVER_SKY_LOW = "#22124A";
-export const HOVER_CITY = "#0C0A20";
-export const HOVER_CITY_FAR = "#171236";
-const WINDOW_TONES = ["#FFE6A0", "#9FD8FF", "#FFD27A"] as const;
-function cityRow(ctx: CanvasRenderingContext2D, H: number, seed: number, base: number, rise: number, colour: string, windows: number): void {
-  let x = -4;
-  let i = 0;
-  while (x < HOVER_WORLD_W + 4) {
-    const h = hash(seed, i++);
-    const w = 18 + (h % 5) * 6;
-    const tall = base + ((h >>> 4) % 9) * rise;
-    const top = H - tall;
-    ctx.fillStyle = colour;
-    ctx.fillRect(x, top, w, tall);
-    if ((h >>> 9) % 3 === 0) ctx.fillRect(x + Math.floor(w / 2) - 1, top - 6, 2, 6);
-    if (windows > 0) {
-      for (let wy = top + 5; wy < H - 6; wy += 6) {
-        for (let wx = x + 3; wx < x + w - 4; wx += 5) {
-          const lit = hash(wx * 7 + seed, wy);
-          if (lit % 100 >= windows) continue;
-          ctx.globalAlpha = 0.18 + (lit % 4) * 0.07;
-          ctx.fillStyle = WINDOW_TONES[lit % WINDOW_TONES.length]!;
-          ctx.fillRect(wx, wy, 2, 2);
-        }
-      }
-      ctx.globalAlpha = 1;
-    }
-    x += w + ((h >>> 13) % 3) * 2;
-  }
-}
+export const HOVER_SKY_TOP = "#02030A";
+export const HOVER_SKY_MID = "#050817";
+export const HOVER_SKY_LOW = "#080B20";
+const SPACE_STAR_TONES = ["#FFFFFF", "#CFD8FF", "#A9BDFF", "#FFE9C4"] as const;
 function hash(a: number, b: number): number {
   let h = Math.imul((a | 0) ^ Math.imul(b | 0, 0x9e3779b1), 0x85ebca6b) >>> 0;
   h ^= h >>> 13;
   h = Math.imul(h, 0xc2b2ae35) >>> 0;
   return (h ^ (h >>> 16)) >>> 0;
 }
+/** Fixed stars over a rectangle (in the layer's own units): density per 1,000 px², seeded. */
+function spaceStars(c: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, seed: number, density: number, alpha: number): void {
+  const count = Math.round((w * h * density) / 1000);
+  for (let k = 0; k < count; k++) {
+    const r = hash(seed, k);
+    const sx = Math.floor(x + ((r % 10000) / 10000) * w);
+    const sy = Math.floor(y + (((r >>> 14) % 10000) / 10000) * h);
+    const bright = r % 23 === 0;
+    c.globalAlpha = Math.min(1, alpha * (0.35 + ((r >>> 5) % 50) / 60) * (bright ? 1.6 : 1));
+    c.fillStyle = SPACE_STAR_TONES[(r >>> 9) % SPACE_STAR_TONES.length]!;
+    c.fillRect(sx, sy, bright ? 2 : 1, bright ? 2 : 1);
+    if (bright) {
+      // A small four-point glint on the brightest.
+      c.globalAlpha *= 0.45;
+      c.fillRect(sx - 2, sy, 2, 1);
+      c.fillRect(sx + 2, sy + 1, 2, 1);
+      c.fillRect(sx, sy - 2, 1, 2);
+      c.fillRect(sx + 1, sy + 2, 1, 2);
+    }
+  }
+  c.globalAlpha = 1;
+}
 function paintNight(c: CanvasRenderingContext2D, H: number): void {
   const sky = c.createLinearGradient(0, 0, 0, H);
   sky.addColorStop(0, HOVER_SKY_TOP);
   sky.addColorStop(0.55, HOVER_SKY_MID);
-  sky.addColorStop(0.86, HOVER_SKY_LOW);
   sky.addColorStop(1, HOVER_SKY_LOW);
   c.fillStyle = sky;
   c.fillRect(0, 0, HOVER_WORLD_W, H);
-  cityRow(c, H, 41, 34, 7, HOVER_CITY_FAR, 6);
-  cityRow(c, H, 7, 16, 6, HOVER_CITY, 10);
+  // A faint band of far star dust across the sky, top left to lower right.
+  c.save();
+  c.translate(HOVER_WORLD_W / 2, H * 0.45);
+  c.rotate(0.35);
+  const band = c.createLinearGradient(0, -90, 0, 90);
+  band.addColorStop(0, "rgba(120,140,255,0)");
+  band.addColorStop(0.5, "rgba(120,140,255,0.07)");
+  band.addColorStop(1, "rgba(120,140,255,0)");
+  c.fillStyle = band;
+  c.fillRect(-HOVER_WORLD_W, -90, HOVER_WORLD_W * 2, 180);
+  spaceStars(c, -HOVER_WORLD_W, -70, HOVER_WORLD_W * 2, 140, 77, 1.1, 0.5);
+  c.restore();
+  spaceStars(c, 0, 0, HOVER_WORLD_W, H, 41, 0.9, 0.55);
 }
 function drawNight(ctx: CanvasRenderingContext2D, H: number): void {
-  deviceLayer(ctx, `hover-night-${H}`, (c) => paintNight(c, H));
+  deviceLayer(ctx, `hover-space-${H}`, (c) => paintNight(c, H));
 }
 
 function draw(ctx: CanvasRenderingContext2D, state: HoverState, size: CanvasSize): void {
@@ -185,7 +190,7 @@ function drawReveal(ctx: CanvasRenderingContext2D, state: HoverState, size: Canv
  * sim's distance so every phone and the reveal draw the same sky. Kept well
  * under the barriers' and saucer's brightness.
  */
-const STAR_COUNT = 46;
+const STAR_COUNT = 90;
 const STARS = (() => {
   let v = 0x5eed_4a11 | 0;
   const next = () => {
@@ -291,12 +296,17 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: HoverState, crashIndica
 }
 
 const STAR_GOLD = "#FFD84A";
+/**
+ * The gold stars' drawn radius: 1.2× their 7 px collection radius (Joe's phone notes, 27 Oct 2026), so 8.4 px,
+ * inside the arcade bounds rule's 2 px of the collision circle. Display only: the sim's pickup is unchanged.
+ */
+const STAR_DRAW_SCALE = 1.2;
 
 /** A gold star (hoverRev 2) drawn in 2 px blocks inside its collection circle; gone once taken. */
 export function drawStar(ctx: CanvasRenderingContext2D, state: HoverState, pillar: HoverState["pillars"][number], index: number, cx: number): void {
   const starY = hoverStarY(pillar, state.tick);
   if (starY === null || state.starsTaken?.includes(index)) return;
-  const r = px(HOVER_STAR_R);
+  const r = px(HOVER_STAR_R) * STAR_DRAW_SCALE;
   const cy = px(starY);
   // Polish A2: a soft gold glow round the star (a cached sprite; skipped with reduced effects).
   const glow = !arcadeReducedEffects() ? starGlowSprite() : null;
@@ -311,8 +321,8 @@ export function drawStar(ctx: CanvasRenderingContext2D, state: HoverState, pilla
     // A four-point pixel star: a plus with a filled core.
     const ax = Math.abs(dx), ay = Math.abs(dy);
     if (ax * ax + ay * ay > r * r) return null;
-    if (ax <= 2 && ay <= 2) return RETRO_WHITE;
-    if (ax <= 2.5 || ay <= 2.5 || ax + ay <= r * 0.8) return STAR_GOLD;
+    if (ax <= 2.4 && ay <= 2.4) return RETRO_WHITE;
+    if (ax <= 3 || ay <= 3 || ax + ay <= r * 0.8) return STAR_GOLD;
     return null;
   });
   if (twinkle === 0) pixelRect(ctx, cx + r - 1, cy - r - 1, 2, 2, RETRO_WHITE);
@@ -544,28 +554,19 @@ export const hoverArtGame: ArcadeGame<HoverState> = { ...hoverGame, draw };
 export const hoverRevealGame = { draw: drawReveal };
 
 /**
- * Polish A2 (display only): the play screen's fill below the course. The city's dark street level
- * runs on from the world's bottom edge (its colour, so no seam), a few dim windows low in it, settling
- * darker towards the screen's bottom. Painted once per size (ArcadeArenaSlot's scene canvas).
+ * The play screen's fill round the course (display only): the sky's lowest colour runs on from the world's
+ * bottom edge (so no seam) with the same fixed stars, settling darker towards the screen's bottom. Painted
+ * once per size (ArcadeArenaSlot's scene canvas).
  */
 export function hoverNightFill(ctx: CanvasRenderingContext2D, view: ArenaSceneView): void {
   for (const r of [fillBelow(view), fillAbove(view)]) {
     if (!r) continue;
     fillGradient(ctx, r, r.y, r.y + r.h, [
-      [0, HOVER_CITY],
-      [0.6, "#0A081C"],
-      [1, "#08071A"],
+      [0, HOVER_SKY_LOW],
+      [0.6, "#05071A"],
+      [1, "#030410"],
     ]);
-    for (let wx = Math.floor(r.x) + 3; wx < r.x + r.w - 3; wx += 5) {
-      for (let wy = Math.floor(r.y) + 6; wy < r.y + Math.min(r.h, 40); wy += 6) {
-        const lit = hash(wx * 7 + 3, wy);
-        if (lit % 100 >= 7) continue;
-        ctx.globalAlpha = 0.14 + (lit % 4) * 0.05;
-        ctx.fillStyle = WINDOW_TONES[lit % WINDOW_TONES.length]!;
-        ctx.fillRect(wx, wy, 2, 2);
-      }
-    }
-    ctx.globalAlpha = 1;
+    spaceStars(ctx, r.x, r.y + 2, r.w, Math.max(0, r.h - 2), 3, 0.9, 0.45);
   }
 }
 
@@ -631,20 +632,20 @@ function drawTightRims(ctx: CanvasRenderingContext2D, state: HoverState, index: 
 
 /** The gold star's pixel art (the same shape drawStar paints), cached once at twice the world scale. */
 let chainStar: ArtCanvas | null | undefined;
-const CHAIN_STAR_BOX = 16;
+const CHAIN_STAR_BOX = 20;
 function chainStarSprite(): ArtCanvas | null {
   if (chainStar !== undefined) return chainStar;
   const layer = artCanvas(CHAIN_STAR_BOX * 2, CHAIN_STAR_BOX * 2);
   const c = layer && (artContext(layer) as CanvasRenderingContext2D | null);
   if (layer && c) {
     c.scale(2, 2);
-    const r = px(HOVER_STAR_R);
+    const r = px(HOVER_STAR_R) * STAR_DRAW_SCALE;
     pixelShape(c, CHAIN_STAR_BOX / 2, CHAIN_STAR_BOX / 2, r, 2, (dx, dy) => {
       const ax = Math.abs(dx);
       const ay = Math.abs(dy);
       if (ax * ax + ay * ay > r * r) return null;
-      if (ax <= 2 && ay <= 2) return RETRO_WHITE;
-      if (ax <= 2.5 || ay <= 2.5 || ax + ay <= r * 0.8) return STAR_GOLD;
+      if (ax <= 2.4 && ay <= 2.4) return RETRO_WHITE;
+      if (ax <= 3 || ay <= 3 || ax + ay <= r * 0.8) return STAR_GOLD;
       return null;
     });
   }
@@ -660,7 +661,7 @@ function chainStarSprite(): ArtCanvas | null {
  */
 function drawChains(ctx: CanvasRenderingContext2D, state: HoverState): void {
   const hits = state.chainHits ?? [];
-  const r = px(HOVER_STAR_R);
+  const r = px(HOVER_STAR_R) * STAR_DRAW_SCALE;
   const glow = !arcadeReducedEffects() ? starGlowSprite() : null;
   const sprite = chainStarSprite();
   const reachBack = HOVER_DISC_R + HOVER_STAR_R;

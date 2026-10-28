@@ -124,8 +124,9 @@ section("legacy identity");
 // Tuning A moved new Wavefront and Grappler rounds on to wavRev 4 / swingRev 6, Tuning C on to wavRev 5 / swingRev 7 (arcade-tuning-c-check), and Tuning F Grappler on to swingRev 8 (swing-rev8-check).
 // Taller worlds batch 1 (16 Oct 2026) moved Wavefront, Breaker and Fission on to wavRev 6, brkRev 6 and burstRev 4 (arcade-tuning-g1-check).
 // Expansion E3 (docs/expansions/e3.md) then moved Breaker on to brkRev 9 (expansion-e3-check), and expansion E9
-// (docs/expansions/e9.md) Fission on to burstRev 8 (expansion-e9-check); the 200 expansion (x200) moved Wavefront on to wavRev 10.
-ok(playRevOf("wavefront", generateWavefront().wavRev) === WAV_REV_TUNEC + 5 && playRevOf("breaker", generateBreaker().brkRev) === BRK_REV_TUNEF + 4 && playRevOf("burst", generateBurst().burstRev) === BURST_REV_BAND + 5 && playRevOf("swing", generateSwing().swingRev) === SWING_REV_TUNEC + 6, "new rounds are stamped with the score-band revisions (the batch-3 rules plus the Oct 2026 bands; Tuning A then Tuning C for Wavefront and Grappler, Tuning F's spread stars, taller worlds batch 3's taller cavern and the 200 expansion's swingRev 13 for Grappler, swing-x200-check; Breaker brkRev 4 adds Tuning B's 3.5 s Fireball, brkRev 5 Tuning F's 2.5 s one, arcade-tuning-f-check)");
+// (docs/expansions/e9.md) Fission on to burstRev 8 (expansion-e9-check), and the phone-test notes to burstRev 9 (fission-carry-check); the 200 expansion (x200) moved Wavefront on to wavRev 10, and the phone-test notes to wavRev 11.
+// The phone notes (27 Oct 2026) moved Breaker on to brkRev 10 (expansion-e3-check section 5).
+ok(playRevOf("wavefront", generateWavefront().wavRev) === WAV_REV_TUNEC + 6 && playRevOf("breaker", generateBreaker().brkRev) === BRK_REV_TUNEF + 5 && playRevOf("burst", generateBurst().burstRev) === BURST_REV_BAND + 6 && playRevOf("swing", generateSwing().swingRev) === SWING_REV_TUNEC + 7, "new rounds are stamped with the score-band revisions (the batch-3 rules plus the Oct 2026 bands; Tuning A then Tuning C for Wavefront and Grappler, Wavefront's wavRev 11, Fission's burstRev 9 and Breaker's brkRev 10 after the phone notes, Tuning F's spread stars, taller worlds batch 3's taller cavern, the 200 expansion's swingRev 13 and the assault course's swingRev 14 for Grappler, swing-x200-check and swing-assault-check; Breaker brkRev 4 adds Tuning B's 3.5 s Fireball, brkRev 5 Tuning F's 2.5 s one, arcade-tuning-f-check)");
 
 /* ================================ 2a. Wavefront ================================ */
 if (want("wavefront")) {
@@ -394,7 +395,8 @@ if (want("swing")) {
   }
   // Scoring: distance up to 120, stars up to 10 (130 unfinished), 500 m adds 20.
   ok(swingScoreV4(499, 10) === 130 && swingScoreV4(250, 0) === 60 && swingScoreV4(500, 10) === 150 && swingScoreV4(500, 3) === 143, "120 × m ÷ 500 + stars; 500 m adds 20");
-  ok(INTRO_SCORE.swing.includes("500 metres for 10 more") && !INTRO_SCORE.swing.includes("otherwise"), "intro states the 10 for 500 m and no partial cap (score bands)");
+  // The intro is the dealt revision's: since the assault course (swingRev 14) it states the sections (swing-assault-check).
+  ok(INTRO_SCORE.swing.includes("Sections cleared, then pars, gates, gems and stars") && !INTRO_SCORE.swing.includes("otherwise"), "intro states the sections and features (the assault course) and no partial cap (score bands)");
   // The bank: every entry has 10 stars; sampled entries reach 150 through the server replay.
   ok(SWING_V4_BANK.length >= 200 && SWING_V4_BANK.every((e) => e.stars === SWING_STARS), `${SWING_V4_BANK.length} banked courses, each proved with all 10 stars`);
   let reached = 0;

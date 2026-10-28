@@ -332,9 +332,11 @@ export function orbitCamera(state: Rev3Like, opts?: { reducedMotion?: boolean })
   return (opts?.reducedMotion ? frame?.reduced : frame?.normal) ?? framedPlanet(state);
 }
 /** Visible planet indices for the current camera (view rect + one ring margin either side). */
-export function orbitVisiblePlanets(state: Rev3Like, cam: OrbitCamOffset): number[] {
+export function orbitVisiblePlanets(state: Rev3Like, cam: OrbitCamOffset, drawnExtra = 0): number[] {
   if (!isRev3(state)) return [];
-  const ORBIT_CAM_VIEW_H = orbitViewH(state);
+  // drawnExtra: rows the renderer draws beyond the framed view (orbitRev 12's taller play screen, display only; `cam` is
+  // then the drawn view's top-left).
+  const ORBIT_CAM_VIEW_H = orbitViewH(state) + drawnExtra;
   const ORBIT_CAM_VIEW_W = orbitViewW(state);
   const planets = state.planets as PlanetLike[];
   const out: number[] = [];

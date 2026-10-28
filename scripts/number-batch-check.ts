@@ -62,8 +62,13 @@ import type {
   PuzzleType,
 } from "@/lib/duel/types";
 import { pinDealtPuzzleScoreRev } from "../src/lib/duel/puzzleScoreRev";
-import { depthIntro } from "../src/lib/duel/numberDepthText";
+import { standardNumberIntro } from "../src/lib/duel/standard/numberText";
 import { fillMax } from "../src/lib/duel/roundMax";
+import { pinPrePhoneNotes } from "../src/lib/duel/phoneNotes";
+
+// Written for Brimful measureRev 2: new deals stay on the stamps before Joe's phone notes (27 Oct 2026) here;
+// phone-notes-check proves the stamps rooms deal now.
+pinPrePhoneNotes(true);
 
 // Written for the rev-1 puzzle shape: new puzzles here carry puzzleScoreRev 1 (rooms deal rev 2 since 19 Oct 2026, scoring-bands-check).
 pinDealtPuzzleScoreRev(1);
@@ -93,11 +98,12 @@ const REV_KEY = { measure: "measureRev", checkout: "checkoutRev", numline: "numl
 const LIMIT = { measure: 120_000, checkout: 90_000, numline: 75_000 } as const;
 // The Oct 2026 puzzle score shape (puzzleScoreRev 1) lines; stored rounds keep their old scoring (anchors below).
 // The intro lines since the score bands (19 Oct 2026, puzzleBandsText.ts); the rev-1 numbers stay in this check's grading.
-// The intros state the rounds rooms deal today: depthRev 1, to 200 (numberDepthText.ts; number-depth-check proves them).
+// The intros state the rounds rooms deal today: the scoring standard's stamps since 27 Oct 2026 (standard/numberText.ts;
+// standard-number-check proves them).
 const SCORE_LINES = {
-  measure: fillMax(depthIntro("measure"), "measure"),
-  checkout: fillMax(depthIntro("checkout"), "checkout"),
-  numline: fillMax(depthIntro("numline"), "numline"),
+  measure: fillMax(standardNumberIntro("measure"), "measure"),
+  checkout: fillMax(standardNumberIntro("checkout"), "checkout"),
+  numline: fillMax(standardNumberIntro("numline"), "numline"),
 };
 /**
  * The same puzzle as a stored round from before the new shape (no puzzleScoreRev stamp). Ballpark's copy

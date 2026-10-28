@@ -51,7 +51,7 @@ import { ARCADE_CRASH_FREEZE_MS, type BullseyePuzzleData } from "@/lib/duel/type
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 import { arcadeCanvasRatio } from "@/lib/fx/lowEnd";
 
-/** Fixed intro still: the target, a wind arrow, a balloon and a dart ready to throw. */
+/** Fixed intro still: the target, the wind flag, a balloon and a dart ready to throw. */
 function IntroExample() {
   return (
     <div className="flex w-full flex-col items-center gap-2">
@@ -88,23 +88,19 @@ function IntroExample() {
             {value}
           </text>
         ))}
-        <g stroke={BULLSEYE_GOLD} strokeWidth="2">
-          <line x1="52" y1="14" x2="28" y2="14" />
-          <line x1="28" y1="14" x2="35" y2="9" />
-          <line x1="28" y1="14" x2="35" y2="19" />
-        </g>
-        <text x="58" y="18" fill="#F7F7F8" fontSize="11" fontFamily="monospace">
+        {/* The wind flag: flying left (the wind blows left), its strength on it. */}
+        <line x1="52" y1="6" x2="52" y2="30" stroke="#EDE3CF" strokeWidth="1.5" strokeLinecap="round" />
+        <circle cx="52" cy="5.5" r="1.8" fill={BULLSEYE_GOLD} />
+        <path d="M52 7 Q44 5 38 8 T24 8 L26 22 Q32 19 38 22 T52 21 Z" fill={BULLSEYE_GOLD} stroke="#3C2404B0" strokeWidth="0.8" />
+        <text x="38" y="15.5" fill="#0B0B0F" fontSize="10" fontWeight="800" fontFamily="monospace" textAnchor="middle" dominantBaseline="middle">
           2
         </text>
         {/* bullRev 8: the dead-centre ring inside the bull. */}
         <circle cx="98" cy="46" r="1.5" fill="none" stroke="#FFFFFF" strokeWidth="0.8" />
         <circle cx="150" cy="40" r="8" fill="#E8384F" />
         <circle cx="147" cy="37" r="2" fill="#FFFFFF" opacity="0.6" />
-        <g stroke={BULLSEYE_GOLD} strokeWidth="2" fill="none">
-          <line x1="98" y1="104" x2="98" y2="72" />
-          <line x1="93" y1="80" x2="98" y2="70" />
-          <line x1="103" y1="80" x2="98" y2="70" />
-        </g>
+        {/* A black dart with a light edge, ready to throw. */}
+        <path d="M98 70 L99.5 78 L100.5 78 L100.5 90 L99 90 L99 96 L103 103 L98 101 L93 103 L97 96 L97 90 L95.5 90 L95.5 78 L96.5 78 Z" fill="#0B0B0F" stroke="#FFF8EB" strokeWidth="0.9" strokeLinejoin="round" />
       </svg>
       <p className="text-center text-xs text-muted-foreground">
         Drag to aim. Bulls in a row build a streak; the white dead-centre ring adds more.

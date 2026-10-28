@@ -1,5 +1,6 @@
 /**
- * Rainbow Bridge inkRev 10 (x200): the perfect-play ceiling of a seed, played for real.
+ * Rainbow Bridge inkRev 10 (x200) and inkRev 11 (phone notes; `bun scripts/ink-x200-oracle.ts [from] [count] 11`):
+ * the perfect-play ceiling of a seed, played for real.
  *
  * A flawless player who knows every level's proved lines: on levels 1–8 the bonus line (starRef: the ink star,
  * the level's silver coins, the shamrock where it is, a cloud level's trick shot), on levels 9–10 the
@@ -27,7 +28,6 @@ import {
 import { encodeInkBridgeRun, replayInkBridgeRun } from "../src/lib/duel/inkBridge";
 import { roomSeed } from "./arcade-skill-bands/games";
 
-const game = inkBridgeGameFor(INK_REV_EXPAND);
 type Ev = Omit<ArcadeInputEvent, "t">;
 
 /** One level's inputs from `t0` (absolute ticks): the strokes a point a tick, RELEASE at `rel`, live strokes after it. */
@@ -56,7 +56,7 @@ function levelInputs(lines: readonly number[][], rel: number, live: readonly { s
 }
 
 /** Plays one level from state `s` with the given release; returns the state when the level ends (or the run does). */
-function playLevel(s0: InkState, lines: readonly number[][], rel: number, live: readonly { start: number; pts: number[] }[], log?: ArcadeInputEvent[]): InkState {
+function playLevel(game: ReturnType<typeof inkBridgeGameFor>, s0: InkState, lines: readonly number[][], rel: number, live: readonly { start: number; pts: number[] }[], log?: ArcadeInputEvent[]): InkState {
   const at = levelInputs(lines, rel, live, s0.tick + 1);
   let s = s0;
   const level = s.level;
@@ -82,8 +82,9 @@ export interface OracleRun {
   endedSeconds: number;
 }
 
-/** The perfect run for a seed (see the file's head). */
-export function inkOracleRun(seed: number): OracleRun {
+/** The perfect run for a seed (see the file's head), on inkRev 10 or inkRev 11 (`rev`). */
+export function inkOracleRun(seed: number, rev: number = INK_REV_EXPAND): OracleRun {
+  const game = inkBridgeGameFor(rev);
   let s = game.init(seed) as InkState;
   const events: ArcadeInputEvent[] = [];
   while (!game.isOver(s) && s.tick < game.runTicks) {
@@ -98,11 +99,11 @@ export function inkOracleRun(seed: number): OracleRun {
     if (lvl.slideAmp) {
       const span = lvl.slidePeriod + 2;
       let found = -1;
-      for (let r = s.tick + 1; r < s.tick + 80 + span && found < 0; r++) if (want(playLevel(s, lines, r, live))) found = r;
-      if (found < 0) for (let r = s.tick + 1; r < s.tick + 80 + span && found < 0; r++) if (playLevel(s, lines, r, live).levels > s.levels) found = r;
+      for (let r = s.tick + 1; r < s.tick + 80 + span && found < 0; r++) if (want(playLevel(game, s, lines, r, live))) found = r;
+      if (found < 0) for (let r = s.tick + 1; r < s.tick + 80 + span && found < 0; r++) if (playLevel(game, s, lines, r, live).levels > s.levels) found = r;
       if (found >= 0) rel = found;
     }
-    const next = playLevel(s, lines, rel, live, events);
+    const next = playLevel(game, s, lines, rel, live, events);
     if (next.level === s.level && next.levels === s.levels && !game.isOver(next) && next.fails === s.fails) break;
     s = next;
   }
@@ -117,7 +118,7 @@ export function inkOracleRun(seed: number): OracleRun {
     if (r.tick % 300 === 0) checkpoints.push(inkCheckpoint(r));
   }
   const raw = encodeInkBridgeRun({ seed, claimedScore: score, events, inputs: [], taps: [], endTick: r.tick, checkpoints } as never);
-  const replayed = replayInkBridgeRun(seed, raw, INK_REV_EXPAND).score;
+  const replayed = replayInkBridgeRun(seed, raw, rev).score;
   return { events, state: s, score, replayed, raw: inkFeatureRaw(s), levels: s.levels, endedSeconds: (s.endedTick || s.tick) / 60 };
 }
 
@@ -129,11 +130,12 @@ function featureOf(lvl: InkState["list"][number]): number {
 if (import.meta.main) {
   const from = Number(process.argv[2] ?? 0);
   const count = Number(process.argv[3] ?? 260);
+  const rev = Number(process.argv[4] ?? INK_REV_EXPAND);
   let min = Infinity;
   let below = 0;
   const lows: string[] = [];
   for (let n = from; n < from + count; n++) {
-    const o = inkOracleRun(roomSeed(n));
+    const o = inkOracleRun(roomSeed(n), rev);
     if (o.replayed !== o.score) throw new Error(`seed index ${n}: sim ${o.score} but the server replay ${o.replayed}`);
     min = Math.min(min, o.replayed);
     if (o.replayed < 200) {
@@ -142,5 +144,5 @@ if (import.meta.main) {
     }
     if ((n - from) % 20 === 19) console.error(`… ${n - from + 1} seeds, lowest ${min}`);
   }
-  console.log(`inkRev ${INK_REV_EXPAND} perfect-play ceiling, seed indices ${from}–${from + count - 1}: lowest ${min}, ${below} below 200${lows.length ? `: ${lows.join(", ")}` : ""}`);
+  console.log(`inkRev ${rev} perfect-play ceiling, seed indices ${from}–${from + count - 1}: lowest ${min}, ${below} below 200${lows.length ? `: ${lows.join(", ")}` : ""}`);
 }

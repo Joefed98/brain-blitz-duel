@@ -49,7 +49,7 @@ import {
 import { encodeMatchupRun, replayMatchupRun } from "../src/lib/duel/matchup";
 import { swingGameFor, SWING_BAND_CURVE, SWING_REV_TUNED, SWING_REV_TUNEC, SWING_V7_BAND_CURVE } from "../src/lib/arcade/swing";
 import { hoverGameFor, HOVER_BAND_CURVE, HOVER_REV_BAND, HOVER_REV_TALL, HOVER_REV_TUNEC, HOVER_V4_BAND_CURVE } from "../src/lib/arcade/hover";
-import { inkBridgeGameFor, INK_BAND_CURVE, INK_REV_BAND, INK_REV_EXPAND, INK_REV_STRICT, INK_REV_TUNEC, INK_V6_BAND_CURVE } from "../src/lib/arcade/inkBridge";
+import { inkBridgeGameFor, INK_BAND_CURVE, INK_REV_BAND, INK_REV_SPREAD, INK_REV_STRICT, INK_REV_TUNEC, INK_V6_BAND_CURVE } from "../src/lib/arcade/inkBridge";
 import { flipGameFor, flipWarpAmp, FLIP_BAND_CURVE, FLIP_REV, FLIP_REV_BAND, FLIP_REV_TUNEC, FLIP_V4_BAND_CURVE, FLIP_WARP_FROM_V4 } from "../src/lib/arcade/flip";
 import { beatGameFor, BEAT_BAND_CURVE, BEAT_REV_BAND, BEAT_REV_TUNEC, BEAT_REV_TUNEF, BEAT_V4_BAND_CURVE } from "../src/lib/arcade/beat";
 import {
@@ -82,7 +82,7 @@ import {
   TILT_V4_FINISH_MIN,
   type TiltState,
 } from "../src/lib/arcade/tilt";
-import { SLICE_REV_EXPAND, sliceGameFor, SLICE_BLADE_V4, SLICE_INPUT_BEGIN, SLICE_INPUT_SWIPE, SLICE_R, SLICE_REV_BAND, SLICE_REV_LONG, SLICE_REV_TUNEC, sliceObjectAt, type SliceState } from "../src/lib/arcade/slice";
+import { SLICE_REV_BIG, SLICE_REV_EXPAND, sliceGameFor, SLICE_BLADE_V4, SLICE_INPUT_BEGIN, SLICE_INPUT_SWIPE, SLICE_R, SLICE_REV_BAND, SLICE_REV_LONG, SLICE_REV_TUNEC, sliceObjectAt, type SliceState } from "../src/lib/arcade/slice";
 import { generateBeat, generateFlip, generateInkBridge, generateMatchup, generateSlice, generateSwing, generateTilt, generateWavefront } from "../src/lib/duel/arcade.server";
 import { generateHover } from "../src/lib/duel/hover.server";
 import { isRetired, typesInCategory } from "../src/lib/duel/registry";
@@ -163,28 +163,33 @@ section("New rounds carry the Tuning C stamps; Junction is practice only");
     // slice (sliceRev 5) and Grappler on to its evenly spread stars (swingRev 8), the same play
     // otherwise; arcade-tuning-f-check and swing-rev8-check cover them.
     // Expansion E6 (25 Oct 2026) then moved Gemstone on to its taller board with goals (matchupRev 9); e6-check covers it.
-    ["matchup", playRevOf("matchup", generateMatchup().matchupRev), MATCHUP_REV_PAR + 3],
+    // Joe's phone-test notes (27 Oct 2026) moved it on again (matchupRev 10: 90 s, ice swaps); gemstone-rev10-check covers it.
+    ["matchup", playRevOf("matchup", generateMatchup().matchupRev), MATCHUP_REV_PAR + 4],
     // Taller worlds batch 3 (16 Oct 2026) then moved Grappler on to its taller cavern (swingRev 9); arcade-tuning-g3-check covers it.
     // Grappler's 200 expansion (26 Oct 2026) moved Grappler on to swingRev 13 (after swingRev 9's taller cavern); swing-x200-check covers it.
-    ["swing", playRevOf("swing", generateSwing().swingRev), SWING_REV_TUNEC + 6],
+    // The assault course (27 Oct 2026) moved it on to swingRev 14; swing-assault-check covers it.
+    ["swing", playRevOf("swing", generateSwing().swingRev), SWING_REV_TUNEC + 7],
     // Tuning E (Oct 2026) moved Hover on to its taller world (hoverRev 5); arcade-tuning-e-check covers it.
     // The 200 expansion (26 Oct 2026) then moved Hover on to hoverRev 9; hover-x200-check covers it.
     ["hover", playRevOf("hover", generateHover().hoverRev), HOVER_REV_TALL + 4],
     // x200 (26 Oct 2026) moved Rainbow Bridge on to inkRev 10 (ink-x200-check); inkRev 8, dealt before it, kept Tuning C's play.
-    ["inkbridge", generateInkBridge().inkRev === INK_REV_EXPAND ? playRevOf("inkbridge", INK_REV_STRICT) : -1, INK_REV_TUNEC],
+    // The phone notes (27 Oct 2026) then moved it on to inkRev 11 (ink-v11-check).
+    ["inkbridge", generateInkBridge().inkRev === INK_REV_SPREAD ? playRevOf("inkbridge", INK_REV_STRICT) : -1, INK_REV_TUNEC],
     // Expansion E7 (docs/expansions/x200-flip.md) then moved Roofbound on to flipRev 8; flip-x200-check covers it.
     ["flip", playRevOf("flip", generateFlip().flipRev), FLIP_REV_TUNEC + 4],
     // Tuning F (Oct 2026) moved Tempo on to a thinner chart on the same curve (beatRev 5); arcade-tuning-f-check covers it.
     // Taller worlds batch 2 (16 Oct 2026) moved Tempo and Slice on to their taller worlds (beatRev 6, sliceRev 6); arcade-tuning-g2-check covers them.
     // Expansion E2 (25 Oct 2026) then moved Tempo on to its five-lane song with fever (beatRev 9); expansion-e2-check covers it.
-    ["beat", playRevOf("beat", generateBeat().beatRev), BEAT_REV_TUNEF + 4],
+    // Joe's phone notes (27 Oct 2026) then moved it on to beatRev 10 (wider windows, a lighter chart); tempo-ease-check covers it.
+    ["beat", playRevOf("beat", generateBeat().beatRev), BEAT_REV_TUNEF + 5],
     // Taller worlds batch 1 (16 Oct 2026) moved Wavefront on to its taller world (wavRev 6); arcade-tuning-g1-check covers it.
-    // The 200 expansion (26 Oct 2026) then moved it on to wavRev 10; wavefront-expand-check covers it.
-    ["wavefront", playRevOf("wavefront", generateWavefront().wavRev), WAV_REV_TUNEC + 5],
+    // The 200 expansion (26 Oct 2026) then moved it on to wavRev 10 (wavefront-expand-check), and the phone notes (27 Oct) to wavRev 11 (wavefront-phone-check).
+    ["wavefront", playRevOf("wavefront", generateWavefront().wavRev), WAV_REV_TUNEC + 6],
     // The expansion (x200, 26 Oct 2026) moved Tilt on to tiltRev 8 (bigger mazes, keys, quick stars, par); tilt-expand-check covers it.
     ["tilt", playRevOf("tilt", generateTilt().tiltRev), TILT_REV_EXPAND],
     // World expansion E5 (25 Oct 2026) moved Slice on to its larger board (sliceRev 9); expansion-e5-check covers it.
-    ["slice", playRevOf("slice", generateSlice().sliceRev), SLICE_REV_EXPAND],
+    // sliceRev 10 (27 Oct 2026, Joe's phone notes): sliceRev 9 with bigger onions and golden fruit; expansion-e5-check covers it.
+    ["slice", playRevOf("slice", generateSlice().sliceRev), SLICE_REV_BIG],
   ];
   const field: Record<string, string> = { matchup: "matchupRev", swing: "swingRev", hover: "hoverRev", inkbridge: "inkRev", flip: "flipRev", beat: "beatRev", wavefront: "wavRev", tilt: "tiltRev", slice: "sliceRev" };
   for (const [type, got, rev] of stamps) {
@@ -193,8 +198,9 @@ section("New rounds carry the Tuning C stamps; Junction is practice only");
   }
   ok(isRetired("junction"), "Junction is retired (practice only)");
   ok(!typesInCategory("arcade").includes("junction"), "rooms never deal Junction");
-  // 21 since Tuning C; 22 once Pinball (13 Oct, practice only until PINBALL_IN_ROOMS) is switched on.
-  const dealt = 21 + (PINBALL_IN_ROOMS ? 1 : 0);
+  // 21 since Tuning C; 22 once Pinball (13 Oct, practice only until PINBALL_IN_ROOMS) is switched on;
+  // one fewer since Scrumper retired to practice (27 Oct 2026).
+  const dealt = 20 + (PINBALL_IN_ROOMS ? 1 : 0);
   ok(typesInCategory("arcade").length === dealt, `rooms deal ${dealt} arcade games (got ${typesInCategory("arcade").length})`);
   ok(ACTIVE_ARCADE_GAMES.length === dealt && !ACTIVE_ARCADE_GAMES.includes("junction") && "junction" in ARCADE_GAME_WORLDS, `${dealt} active arcade worlds; Junction keeps its world for practice`);
   ok([...typesInCategory("arcade")].sort().join() === [...ACTIVE_ARCADE_GAMES].sort().join(), "the active arcade list is exactly the arcade types rooms deal");
@@ -235,8 +241,9 @@ section("Grappler, Hover, Rainbow Bridge and Tempo: same play, new curves");
   }
   // Hover's help now states its Tuning E curve (arcade-tuning-e-check).
   // Screen audit Oct 2026: the help gives a good run from the curve rooms deal (swingRev 9, inkRev 6, beatRev 9 since expansion E2; arcade-help-bands-check).
-  // Grappler's 200 expansion (swingRev 13) states a good run on its own base curve (swing-x200-check).
-  ok(PUZZLE_INSTRUCTIONS.swing.score.includes("A good run (100 points) counts 177") && PUZZLE_INSTRUCTIONS.inkbridge.score.includes("A good run (100 points) counts 73") /* inkRev 10 (x200) */ && PUZZLE_INSTRUCTIONS.beat.score.includes("A good run (100 points) reaches 824"), "the \"?\" help states a good run on the curves rooms deal");
+  // Grappler's 200 expansion (swingRev 13) stated a good run on its own base curve (swing-x200-check); the assault course
+  // (swingRev 14) on its sections' curve (swing-assault-check).
+  ok(PUZZLE_INSTRUCTIONS.swing.score.includes("A good run (100 points) counts 236") && PUZZLE_INSTRUCTIONS.inkbridge.score.includes("A good run (100 points) counts 73") /* inkRev 10 (x200) */ && PUZZLE_INSTRUCTIONS.beat.score.includes("A good run (100 points) reaches 824"), "the \"?\" help states a good run on the curves rooms deal");
 }
 
 /* ================================ 4a. Gemstone ================================ */
@@ -244,8 +251,9 @@ if (want("matchup")) {
   section("Gemstone matchupRev 5: wait for the gems to fall, par 2,500");
   const game = matchupGameFor(MATCHUP_REV_WAIT);
   ok(bandTop(MATCHUP_V5_BAND_CURVE) === 2500 && bandPoints(MATCHUP_V5_BAND_CURVE, 2500) === 150 && bandPoints(MATCHUP_V5_BAND_CURVE, 2499) < 150, "150 needs 2,500 match points");
-  // The live help shows the curve rooms deal today (Tuning F: 150 at 2,800; expansion E6: 150 at 3,200, e6-check).
-  ok(PUZZLE_INSTRUCTIONS.matchup.score.includes("3,200") && PUZZLE_INSTRUCTIONS.matchup.how.some((h) => h.detail.includes("wait")), "the \"?\" help and intro say so");
+  // The live help shows the curve rooms deal today (Tuning F: 150 at 2,800; expansion E6: 150 at 3,200, e6-check;
+  // matchupRev 10: 150 at 4,200, gemstone-rev10-check).
+  ok(PUZZLE_INSTRUCTIONS.matchup.score.includes("4,200") && PUZZLE_INSTRUCTIONS.matchup.how.some((h) => h.detail.includes("wait")), "the \"?\" help and intro say so");
   // Find a valid swap on a fresh board, make it, then check the wait.
   const swaps: [number, number, number, number][] = [];
   for (let r = 0; r < MATCHUP_ROWS; r++)

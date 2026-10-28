@@ -33,6 +33,7 @@ import {
 import { mazeColsOf } from "@/lib/duel/maze";
 import { MAZE_CELLS, MAZE_COLS, MAZE_TIME_MS, type MazePuzzleData } from "@/lib/duel/types";
 import { playCorrect, playSound } from "@/lib/sound";
+import { mazeStandard } from "@/lib/duel/standard/attention";
 
 import { playMazeTrace } from "./labyrinthArt";
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
@@ -303,7 +304,7 @@ function IntroExample() {
         <MazeBoard cells={cells} cols={3} start={0} exit={8} path={[0, 3, 4]} stars={[6]} />
       </div>
       <p className="text-xs text-muted-foreground">
-        Wrong turns cost you time. Stars on side paths add points if you finish fast.
+        Wrong turns cost you time. Every star you roll over adds points.
       </p>
     </div>
   );
@@ -508,7 +509,8 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining, myExt
         {myCorrect
           ? `Solved${elapsed === null ? "" : ` · ${elapsed.toFixed(1)}s`}`
           : `${Math.round(verdict.progress * 100)}% of the way`}
-        {taken ? ` · ★ ${taken.length}/${LAB_STARS}${myCorrect && starBonus > 0 ? ` +${starBonus}` : ""}` : ""}
+        {/* The scoring standard (mazeRev 3): stars count finished or not. */}
+        {taken ? ` · ★ ${taken.length}/${LAB_STARS}${(myCorrect || mazeStandard(puzzle)) && starBonus > 0 ? ` +${starBonus}` : ""}` : ""}
       </p>
     </div>
   );

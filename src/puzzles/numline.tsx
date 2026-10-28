@@ -39,6 +39,8 @@ import { horizontalOf, useGameKeys } from "@/lib/desktop";
 import { GoalLineContext } from "@/components/duel/GameFrame";
 import { LiveSummary } from "@/components/puzzles/batchW/LiveSummary";
 import { ballparkStreak, isBullseye, usesNumberDepth } from "@/lib/duel/numberDepth";
+import { usesStandard } from "@/lib/duel/standard/stamps";
+import { BALLPARK_STD_FULL, isStdBullseye } from "@/lib/duel/standard/number";
 import "@/polish-layout/batch-w-numline.css";
 
 /** iOS: no text selection or callout on long presses anywhere in the game. */
@@ -381,6 +383,8 @@ function Stage({
   const data: NumlinePuzzleData | null = puzzle.type === "numline" ? puzzle : null;
   const framed = Boolean(useContext(GoalLineContext));
   const depth = data !== null && usesNumberDepth(data);
+  // The scoring standard: bullseyes (within 1 %) pay 2 each; no streak.
+  const standard = data !== null && usesStandard(data);
   const [placements, setPlacements] = useStageState<number[]>(
     stateKey,
     "numlinePlacements",
@@ -741,7 +745,7 @@ function Stage({
                   `${placedHere.length} of ${NUMLINE_ITEMS} placed`,
                   marker === null ? "touch the line" : depth ? "drag, then Place" : "drag to adjust, then Place",
                   // depthRev 1: the bullseye streak (judged at the reveal; the exact values stay on the server).
-                  depth && <span style={{ color: "#F5B82E" }}>◎ Streak bonus</span>,
+                  depth && <span style={{ color: "#F5B82E" }}>{standard ? "◎ Bullseyes" : "◎ Streak bonus"}</span>,
                 ]
           }
         />
@@ -769,11 +773,14 @@ const REVEAL_LABEL_W = 8;
 function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   if (puzzle.type !== "numline") return null;
   const results = gradeNumlineItems(puzzle.stages, puzzle.values ?? [], myAnswer, puzzle.numlineRev);
-  const full = numlineFullError(puzzle.numlineRev);
+  // The scoring standard: full accuracy within 2 % (green), bullseyes within 1 %, no streak.
+  const standard = usesStandard(puzzle);
+  const full = standard ? BALLPARK_STD_FULL : numlineFullError(puzzle.numlineRev);
   const placed = decodeNumline(myAnswer).length;
   // depthRev 1: bullseyes (within a hair of exact) and the best run of them.
   const depth = usesNumberDepth(puzzle);
-  const streak = depth ? ballparkStreak(results.map((r) => r.error)) : null;
+  const streak = depth && !standard ? ballparkStreak(results.map((r) => r.error)) : null;
+  const bulls = standard ? results.filter((r) => isStdBullseye(r.error)).length : 0;
   return (
     <div className="flex w-full flex-col items-stretch gap-1.5 px-1">
       <PolishStyle id="numline" css={NUMLINE_CSS} />
@@ -863,7 +870,7 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
                         : undefined
                     }
                   >
-                    {depth && isBullseye(r.error) ? <span style={{ color: "#F5B82E" }}>◎ </span> : null}
+                    {(standard ? isStdBullseye(r.error) : depth && isBullseye(r.error)) ? <span style={{ color: "#F5B82E" }}>◎ </span> : null}
                     {numlineErrorLabel(r.error)}
                   </span>
                 </div>
@@ -878,6 +885,11 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
       {streak ? (
         <p className="text-center font-mono text-[13px]" style={{ color: "#F5B82E" }} data-bullseye-streak={streak.best}>
           ◎ {streak.runs.filter((r) => r > 0).length} bullseye{streak.runs.filter((r) => r > 0).length === 1 ? "" : "s"} · best streak {streak.best}
+        </p>
+      ) : null}
+      {standard ? (
+        <p className="text-center font-mono text-[13px]" style={{ color: "#F5B82E" }} data-bullseyes={bulls}>
+          ◎ {bulls} bullseye{bulls === 1 ? "" : "s"} (within 1%)
         </p>
       ) : null}
     </div>

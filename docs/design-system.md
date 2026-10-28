@@ -248,7 +248,7 @@ The frame uses the app's category colours (`--category-*`, "Tile and category pa
 arcade stage that belongs to another category (Tenfall, Bonk, Pull!, Mixed Signals) uses its own
 category's colour.
 
-### The header (all 73 games)
+### The header (all 72 games)
 
 One 60 px header replaces the app header, the old PRACTICE/name row and the 52 px arcade header. On a
 live round the Joulz app header is not drawn. It starts right under the notch (no extra margin) and runs

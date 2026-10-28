@@ -84,27 +84,27 @@ export const ROUND_MAX: Readonly<Record<PuzzleType, number>> = {
   tents: 200,
   // Arcade
   balltrack: 200, // expansion E6, btRev 7
-  beat: 200, // expansion E2, beatRev 9
+  beat: 200, // expansion E2, beatRev 9; beatRev 10 (phone notes, easier) keeps it
   bintoss: 200,
-  breaker: 200, // expansion E3, brkRev 9
+  breaker: 200, // expansion E3, brkRev 9 (brkRev 10: phone notes)
   pinball: 200,
-  bubble: 200, // expansion E6, bubbleRev 8 (bubbleRev 9: burst credit)
+  bubble: 200, // expansion E6, bubbleRev 8 (bubbleRev 9: burst credit; bubbleRev 10: the mine's bigger blast)
   bullseye: 200, // expansion E9, bullRev 8
   burst: 200, // expansion E9, burstRev 8
   cross: 200, // Jaywalk crossRev 9 (x200, 26 Oct 2026)
-  flip: 200, // expansion X200, flipRev 8
+  flip: 200, // expansion X200, flipRev 8 (flipRev 9: lifted curves)
   hover: 200, // expansion X200, hoverRev 9
   inkbridge: 200,
   junction: 150,
   matchup: 200, // expansion E6, matchupRev 9
   orbit: 200,
-  rally: 200, // expansion E9, rallyRev 10
-  skyline: 200,
-  slice: 200,
-  snake: 200, // expansion E2, snakeRev 9
+  rally: 200, // expansion E9, rallyRev 10 (rallyRev 11 the same scoring)
+  skyline: 200, // expansion E4, skylineRev 7 (skylineRev 8: a gentler curve)
+  slice: 200, // expansion E5, sliceRev 9 (sliceRev 10: bigger onions and golden fruit)
+  snake: 200, // expansion E2, snakeRev 9 (snakeRev 10, Joe's phone notes, keeps 200)
   snip: 200, // expansion X200, snipRev 11
-  swing: 200, // expansion x200, swingRev 13
-  tilt: 200,
+  swing: 200, // expansion x200, swingRev 13; the assault course, swingRev 14
+  tilt: 200, // x200, tiltRev 8 (tiltRev 9: lifted curves)
   wavefront: 200,
   // Retired to practice
   bastion: 150,
@@ -142,6 +142,14 @@ export function withRoundMax<T>(type: PuzzleType, max: number, fn: () => T): T {
 /** Bumped whenever a check's override starts or ends, so cached texts rebuild (liveRecord). */
 export function roundMaxGeneration(): number {
   return generation;
+}
+
+/**
+ * Cached texts rebuild (liveRecord) when a check pins the scoring standard off or on (standard/stamps.ts
+ * pinPreStandard: the texts of the stamps before it). Never called by the app.
+ */
+export function rebuildLiveRecords(): void {
+  generation++;
 }
 
 /* ------------------------------------------------------------------ reads */
@@ -231,7 +239,8 @@ export function fillMax(text: string, type: string | null | undefined): string {
 
 /**
  * A record built by `build` (texts that state a game's maximum), rebuilt only when a check's
- * override changes the maximums (roundMaxGeneration), so the app builds it once.
+ * override changes the maximums (roundMaxGeneration) or a check pins the scoring standard off
+ * (rebuildLiveRecords: the texts of the stamps before it), so the app builds it once.
  */
 export function liveRecord<T extends object>(build: () => T): T {
   let built: T | null = null;

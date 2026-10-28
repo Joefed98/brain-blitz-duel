@@ -68,6 +68,7 @@ import {
   SWING_REV_SPREAD,
   SWING_REV_TALL,
   SWING_REV_EXPAND,
+  SWING_REV_ASSAULT,
   SWING_ROCK_HALF_W,
   SWING_STARS,
   SWING_STAR_TOUCH,
@@ -123,7 +124,7 @@ import {
 } from "../src/lib/arcade/ballTrack";
 import { replaySwingRun } from "../src/lib/duel/swing";
 import { replayOrbitRun } from "../src/lib/duel/orbit";
-import { generateOrbit, generateSwing } from "../src/lib/duel/arcade.server";
+import { generateOrbit, generateSwing, pinSwingPreAssault } from "../src/lib/duel/arcade.server";
 import { generateBallTrack } from "../src/lib/duel/ballTrack.server";
 import { encodeSwingRun } from "../src/lib/duel/swing";
 import { proveSwingSeedV4 } from "../src/lib/duel/swingProof.server";
@@ -196,10 +197,14 @@ for (const [file, label] of [["scripts/fixtures/arcade-tuning-g3-legacy.json", "
 section("New rounds: stamps, start states, checksums, worlds by revision");
 {
   for (let k = 0; k < 12; k++) {
-    const swing = generateSwing();
     // Grappler's 200 expansion (26 Oct 2026) moved rooms on to swingRev 13: swingRev 9's cavern deepened and widened, on
-    // SWING_V9_BANK courses re-proved with every feature (swing-x200-check covers it).
+    // SWING_V9_BANK courses re-proved with every feature (swing-x200-check covers it). The assault course (27 Oct 2026)
+    // moved them on to swingRev 14 (swing-assault-check); pinned, the deal before it is still the bank's.
+    const was = pinSwingPreAssault(true);
+    const swing = generateSwing();
+    pinSwingPreAssault(was);
     ok(swing.swingRev === SWING_REV_EXPAND && SWING_V9_BANK.some((e) => e.seed === swing.seed), "rooms deal swingRev 13 (the expansion, after swingRev 9) on a course re-proved for the taller cavern");
+    ok(generateSwing().swingRev === SWING_REV_ASSAULT, "rooms deal swingRev 14 (the assault course) unpinned");
     const orbit = generateOrbit();
     // The expansion to 200 (docs/expansions/x200-orbit.md) moved Orbit on to orbitRev 12 (its 450 × 782 view); orbit-expand-check covers it.
     ok(orbit.orbitRev === ORBIT_REV_XP && orbit.planets?.length === ORBIT_TOTAL + 1, "rooms deal orbitRev 12 with the course's planets");
@@ -245,7 +250,8 @@ section("New rounds: stamps, start states, checksums, worlds by revision");
   // Expansion E6 (25 Oct 2026) moved Ball Tracker on to its 13-row board (1400 px; e6-check).
   // Grappler's 200 expansion (swingRev 13) deals its 450 × 844 view (swing-x200-check); the expansion to 200 moved Orbit
   // on to its 450 × 782 view (orbitRev 12; orbit-expand-check).
-  ok(fx.swing!.height === 844 && fx.orbit!.height === 782 && fx.balltrack!.height === 1400, "ARCADE_FX_SPECS hold the heights rooms deal");
+  // Orbit: orbitRev 12's 450 × 782 view, drawn 862 tall since 27 Oct 2026 (Joe's phone notes: 80 rows above the frame).
+  ok(fx.swing!.height === 844 && fx.orbit!.height === 862 && fx.balltrack!.height === 1400, "ARCADE_FX_SPECS hold the heights rooms deal");
   ok(swingFxFor({ worldH: 730 } as SwingState).height === 730 && swingFxFor({} as SwingState) === SWING_FX, "Grappler effects by state height");
   ok(orbit3FxFor({ worldH: 650 } as OrbitRev3State).height === 650 && orbit3FxFor({} as OrbitRev3State) === ORBIT3_FX, "Orbit effects by view height");
   ok(balltrackFxFor({ worldH: 1300 } as BtState).height === 1300 && balltrackFxFor({} as BtState) === BALLTRACK_FX, "Ball Tracker effects by state height");
@@ -257,7 +263,8 @@ section("New rounds: stamps, start states, checksums, worlds by revision");
   ok(rh("balltrack", { btRev: BT_REV_TALL }) === 1300 && rh("balltrack", { btRev: BT_REV_BAND }) === 1000 && rh("balltrack", {}) === 1000, "Ball Tracker reveal height by revision");
   // Stages size their arena slot from the stored revision.
   ok(/worldH=\{swingWorldHFor\(data\?\.swingRev\)\}/.test(read("src/puzzles/swing.tsx")), "Grappler's stage sizes its world from swingRev");
-  ok(/worldH=\{orbitWorldHFor\(data\?\.orbitRev\)\}/.test(read("src/puzzles/orbit.tsx")), "Orbit's stage sizes its view from orbitRev");
+  // Since 27 Oct 2026 through the drawn height (orbitDrawHFor: orbitWorldHFor's view, orbitRev 12 drawn taller below it).
+  ok(/worldH=\{orbitDrawHFor\(data\?\.orbitRev\)\}/.test(read("src/puzzles/orbit.tsx")), "Orbit's stage sizes its view from orbitRev");
   ok(/btLayout\(course\)/.test(read("src/puzzles/ballTrack.tsx")) && /ArcadeArenaSlot width=\{BT_W\} height=\{BT_H\}/.test(read("src/puzzles/ballTrack.tsx")), "Ball Tracker's stage sizes its board from the stored course");
 }
 
@@ -521,8 +528,8 @@ section("Refitted curves keep the band rules; 150 is reachable");
 section("Intro demos stay stopped until re-recorded on the taller revision");
 {
   const src = read("src/lib/duel/introDemo.functions.ts");
-  // Grappler's 200 expansion: its demo now plays only on swingRev 13 (swing-x200-check).
-  ok(/data\.type === "swing" && demo\?\.puzzle\.type === "swing" && demo\.puzzle\.swingRev !== SWING_REV_EXPAND\) return null/.test(src), "Grappler's demo plays only on swingRev 13");
+  // Grappler's 200 expansion: its demo played only on swingRev 13 (swing-x200-check); the assault course's only on swingRev 14.
+  ok(/data\.type === "swing" && demo\?\.puzzle\.type === "swing" && demo\.puzzle\.swingRev !== SWING_REV_ASSAULT\) return null/.test(src), "Grappler's demo plays only on swingRev 14");
   // The expansion to 200: Orbit's demo now waits for one recorded on orbitRev 12 (orbit-expand-check).
   ok(/data\.type === "orbit" && demo\?\.puzzle\.type === "orbit" && demo\.puzzle\.orbitRev !== ORBIT_REV_XP\) return null/.test(src), "Orbit's demo plays only on orbitRev 12");
   // Expansion E6: Ball Tracker's demo now plays only on btRev 7 (e6-check).

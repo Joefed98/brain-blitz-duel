@@ -44,8 +44,8 @@ import { decodeRingTaps, replayRings } from "./rings";
 import { decodeHoverRun, replayHoverRun } from "./hover";
 import { decodeSwerveRun, replaySwerveRun } from "./swerve";
 import { decodeSkylineRun, replaySkylineRun } from "./skyline";
-import { SKYLINE_REV_EXPAND } from "@/lib/arcade/skyline";
-import { PIN_REV_EXPAND } from "@/lib/arcade/pinball";
+import { SKYLINE_REV_EXPAND, SKYLINE_REV_LIFT } from "@/lib/arcade/skyline";
+import { pinIsExpanded } from "@/lib/arcade/pinball";
 import { decodeSnakeRun, replaySnakeRun } from "./snake";
 import { decodeBreakerRun, replayBreakerRun } from "./breaker";
 import { brkSkillPaid, brkWallSize } from "@/lib/arcade/breaker";
@@ -70,14 +70,14 @@ import { decodeFlipRun, replayFlipRun } from "./flip";
 import { decodeJunctionRun, replayJunctionRun } from "./junction";
 import { decodeInkBridgeRun, replayInkBridgeRun } from "./inkBridge";
 import { decodeBurstRun, replayBurstRun } from "./burst";
-import { burstCleanBonus, burstGoldenCount } from "@/lib/arcade/burst";
+import { burstCarryBonus, burstCleanBonus, burstGoldenCount } from "@/lib/arcade/burst";
 import { decodeOrbitRun, replayOrbitRun } from "./orbit";
 import { decodeSwingRun, replaySwingRun } from "./swing";
-import { SWING_REV, SWING_REV_BAND, SWING_REV_TUNED, SWING_REV_TUNEC, SWING_REV_SPREAD, SWING_REV_TALL, SWING_REV_TARGET, SWING_REV_STRICT, SWING_REV_EXPAND, swingFeaturePoints } from "@/lib/arcade/swing";
+import { SWING_REV, SWING_REV_BAND, SWING_REV_TUNED, SWING_REV_TUNEC, SWING_REV_SPREAD, SWING_REV_TALL, SWING_REV_TARGET, SWING_REV_STRICT, SWING_REV_EXPAND, swingFeaturePoints, swingAssaultCounts, swingBandPartsV14 } from "@/lib/arcade/swing";
 import { decodeSnipRun, replaySnipRun } from "./snip";
 import { snipFeatureBonus, SNIP_REV_EXPAND, SNIP_X_MAX } from "@/lib/arcade/snip";
 import { decodeTiltRun, replayTiltRun } from "./tilt";
-import { TILT_REV_EXPAND } from "@/lib/arcade/tilt";
+import { tiltIsExpand } from "@/lib/arcade/tilt";
 import { decodeHotFloorRun, replayHotFloorRun } from "./hotFloor";
 import { replayColourClashRun } from "./colourClash";
 import { clashRev4Finished, clashVariantOf, CLASH_REV, CLASH_REV_TALL, CLASH_REV_BANDS, CLASH_REV_GREAT } from "@/lib/arcade/colourClash";
@@ -139,7 +139,7 @@ import { spotBonusFound, usesSpotDepth } from "./depth/doubleTake";
 import { puzzleTimeLimitMs } from "./registry";
 import { PUZZLE_SCORE_REV, puzzleScoreRevOf, recordParts, scoreRev1, takeScoreParts, wasteFactor, withPuzzleScoreRev } from "./puzzleScoreRev";
 import { isTopsy, replayTopsyPuzzle, scoreTopsy } from "./topsy";
-import { decodeJumbled, isJumbledGradient, replayJumbled, scoreJumbled } from "./jumbled";
+import { isJumbledGradient, replayGradientAnswer, scoreJumbled } from "./jumbled";
 import { sortedTubeCount } from "./tubes";
 import { madeDistance } from "./target";
 import { isWord } from "./dictionary.server";
@@ -472,7 +472,8 @@ function gradeUnderRev(
       // clashRev 8: the score's parts and the streak / gold / "don't sort" counts, for the reveal.
       if (replay.depth) {
         const d = replay.depth;
-        extraDetail = { ...extraDetail, depth: { base: d.base, gold: d.gold, streak: d.streak, stretch: d.stretch, best: d.best, golds: d.golds, goldWords: d.goldWords, touched: d.touched, passed: d.passed, skips: d.skips } };
+        // clashRev 10 (the scoring standard): `standard` marks the standard's parts (base 150 or the share, stretch = speed).
+        extraDetail = { ...extraDetail, depth: { base: d.base, gold: d.gold, streak: d.streak, stretch: d.stretch, best: d.best, golds: d.golds, goldWords: d.goldWords, touched: d.touched, passed: d.passed, skips: d.skips, ...(d.standard ? { standard: 1 } : {}) } };
       }
       break;
     }
@@ -1080,7 +1081,8 @@ function gradeUnderRev(
     case "tiles": {
       // tilesRev 3 (the remodel, jumbled.ts): the 5×5 gradient with row and column slides; scored to 200 here.
       if (isJumbledGradient(puzzle)) {
-        const replay = replayJumbled(puzzle.frame, decodeJumbled(answer));
+        // tilesRev 4 (Gradient, Joe's phone notes): swaps with locked tiles, scored the same way.
+        const replay = replayGradientAnswer(puzzle, answer);
         const graded = scoreJumbled(puzzle.frame, replay, puzzle.par ?? 0, ms, timeLimitMs, puzzle.minMoves);
         isCorrect = replay.solved;
         correctCount = replay.inPlace;
@@ -1202,8 +1204,8 @@ function gradeUnderRev(
         blocks: run.blocks,
         perfects: run.perfects,
         ...(puzzle.skylineRev ? { skylineRev: puzzle.skylineRev, bestStreak: run.bestStreak, streakPoints: run.streakPoints } : {}),
-        // skylineRev 7 (the expansion): gold blocks landed perfectly, the best streak multiplier, height milestones.
-        ...(puzzle.skylineRev === SKYLINE_REV_EXPAND ? { golds: run.golds, bestMult: run.bestMult, milestones: run.milestones } : {}),
+        // skylineRev 7+ (the expansion; 8 is its play on a gentler curve): gold blocks landed perfectly, the best streak multiplier, height milestones.
+        ...(puzzle.skylineRev === SKYLINE_REV_EXPAND || puzzle.skylineRev === SKYLINE_REV_LIFT ? { golds: run.golds, bestMult: run.bestMult, milestones: run.milestones } : {}),
         survived: run.survived,
         endedSeconds: run.endedSeconds,
         flagged: run.flagged,
@@ -1378,7 +1380,7 @@ function gradeUnderRev(
         spins: run.spins,
         laneSets: run.laneSets,
         // pinRev 4 (the expansion): ramps, the best combo, multiballs, jackpots and skill shots.
-        ...(puzzle.pinRev === PIN_REV_EXPAND ? { ramps: run.ramps, bestCombo: run.bestCombo, multiballs: run.multiballs, jackpots: run.jackpots, skills: run.skills } : {}),
+        ...(pinIsExpanded(puzzle.pinRev) ? { ramps: run.ramps, bestCombo: run.bestCombo, multiballs: run.multiballs, jackpots: run.jackpots, skills: run.skills } : {}),
         lost: run.lost,
         ballsLeft: run.ballsLeft,
         endedSeconds: run.endedSeconds,
@@ -1873,7 +1875,8 @@ function gradeUnderRev(
         livesLost: run.livesLost,
         ...(puzzle.burstRev ? { burstRev: puzzle.burstRev, freezes: run.freezes } : {}),
         // burstRev 8 (expansion E9): clean waves, golden atoms and the features' points, for the reveal.
-        ...(run.state.exp ? { cleanWaves: run.state.cleanWaves ?? 0, goldens: burstGoldenCount(run.state), skill: burstCleanBonus(run.state).total } : {}),
+        // burstRev 9 (phone-test notes): waves cleared with a time bonus, golden atoms and the features' points.
+        ...(run.state.carry ? { quickWaves: run.state.quickWaves ?? 0, goldens: burstGoldenCount(run.state), skill: burstCarryBonus(run.state).total } : run.state.exp ? { cleanWaves: run.state.cleanWaves ?? 0, goldens: burstGoldenCount(run.state), skill: burstCleanBonus(run.state).total } : {}),
         survived: run.survived,
         survivedSeconds: run.survivedSeconds,
         endedSeconds: run.endedSeconds,
@@ -1981,6 +1984,8 @@ function gradeUnderRev(
         ...(puzzle.swingRev === SWING_REV || puzzle.swingRev === SWING_REV_BAND || puzzle.swingRev === SWING_REV_TUNED || puzzle.swingRev === SWING_REV_TUNEC || puzzle.swingRev === SWING_REV_SPREAD || puzzle.swingRev === SWING_REV_TALL || puzzle.swingRev === SWING_REV_TARGET || puzzle.swingRev === SWING_REV_STRICT || puzzle.swingRev === SWING_REV_EXPAND ? { swingRev: puzzle.swingRev, stars: run.stars ?? 0, starTotal: run.starTotal ?? 0, cause: run.cause ?? 0 } : {}),
         // swingRev 13 (the 200 expansion): the features and their payout (raw skill points and what they paid).
         ...(run.state.expand ? (({ comboPts, bestChain, gems, gemTotal, gates, gateTotal, ledges, ledgeTotal, sections, sectionTotal, parsBeaten, parBeat, parPts, raw, total }) => ({ comboPts, bestChain, gems, gemTotal, gates, gateTotal, ledges, ledgeTotal, sections, sectionTotal, parsBeaten, parBeat, parPts, skillRaw: raw, skill: total }))(swingFeaturePoints(run.state)) : {}),
+        // swingRev 14 (the assault course): sections, restarts, pars and the pickups banked, with the parts that add up to the score.
+        ...(run.state.assault ? (({ sections, sectionTotal, restarts, caught, parsBeaten, gems, gemTotal, gates, gateTotal, starsBanked, starTotal }, parts) => ({ swingRev: puzzle.swingRev, sections, sectionTotal, restarts, caught, parsBeaten, gems, gemTotal, gates, gateTotal, stars: starsBanked, starTotal, basePts: parts.points, bonusPts: parts.bonus }))(swingAssaultCounts(run.state), swingBandPartsV14(run.state)) : {}),
         endedSeconds: run.endedSeconds,
         flagged: run.flagged,
         clientLag: run.clientLag,
@@ -2006,7 +2011,7 @@ function gradeUnderRev(
         mazes: run.mazes,
         ...(puzzle.tiltRev ? { tiltRev: puzzle.tiltRev, stars: run.stars, totalStars: run.totalStars } : {}),
         // tiltRev 8 (the expansion): quick stars, falls and the paid skill points.
-        ...(puzzle.tiltRev === TILT_REV_EXPAND ? { quickStars: run.quickStars, totalQuick: run.totalQuick, falls: run.falls, skillPoints: run.skillPoints } : {}),
+        ...(tiltIsExpand(puzzle.tiltRev) ? { quickStars: run.quickStars, totalQuick: run.totalQuick, falls: run.falls, skillPoints: run.skillPoints } : {}),
         survived: run.survived,
         survivedSeconds: run.survivedSeconds,
         endedSeconds: run.endedSeconds,

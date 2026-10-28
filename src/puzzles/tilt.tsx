@@ -10,7 +10,7 @@ import {
   TILT_CHECKPOINT_INTERVAL,
   TILT_GOLD,
   TILT_RED,
-  TILT_REV_EXPAND,
+  TILT_REV_LIFT,
   TILT_TEAL,
   TILT_WORLD_W,
   tiltWorldHFor,
@@ -61,7 +61,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       enabled={data !== null}
       locked={locked}
       worldW={TILT_WORLD_W}
-      // tiltRev 8: the taller world (the bigger mazes scroll under a camera that follows the marbles).
+      // tiltRev 8: the taller world (the bigger mazes drawn whole through a fixed camera since 27 Oct 2026).
       worldH={tiltWorldHFor(data?.tiltRev)}
       renderAtCanvasSize
       game={tiltArtGameFor(data?.tiltRev)}
@@ -125,7 +125,7 @@ export const tiltPuzzle: PuzzleDefinition = {
   category: "arcade",
   timeLimitMs: TILT_TIME_MS,
   revealMs: 6_000,
-  generate: () => ({ type: "tilt", seed: 1, tiltRev: TILT_REV_EXPAND }) satisfies TiltPuzzleData,
+  generate: () => ({ type: "tilt", seed: 1, tiltRev: TILT_REV_LIFT }) satisfies TiltPuzzleData,
   check: () => false,
   revealHeading: "Your run",
   IntroExample,

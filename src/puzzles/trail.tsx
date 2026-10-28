@@ -456,7 +456,8 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
 export const trailPuzzle: PuzzleDefinition = {
   key: "trail",
   name: gameDisplayName("trail"),
-  category: "number",
+  // Logic since Joe's phone notes (27 Oct 2026; Number before). Display and the room's category mix only.
+  category: "logic",
   timeLimitMs: TRAIL_TIME_MS,
   revealMs: 8_000,
   generate: () => ({ type: "trail", givens: [1, ...new Array(34).fill(null), 36] }) satisfies TrailPuzzleData,

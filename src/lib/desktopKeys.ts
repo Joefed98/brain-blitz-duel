@@ -74,6 +74,6 @@ export const DESKTOP_KEYS: Partial<Record<PuzzleType, readonly (readonly [string
   laser: [["M / S", "mirror / splitter"], ["Space", "fire"], ["Z", "undo"], ["R", "reset"]],
   push: [["← → ↑ ↓", "move"], ["Z", "undo"], ["R", "reset"]],
   rings: [["↑ ↓", "ring"], ["← →", "turn"]],
-  tiles: [["← → ↑ ↓", "slide"], ["Z", "undo"], ["R", "reset"]],
+  tiles: [["Mouse", "swap two tiles"], ["Esc", "let go"]],
   unblock: [["Z", "undo"], ["R", "reset"]],
 };

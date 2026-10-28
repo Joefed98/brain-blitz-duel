@@ -69,6 +69,7 @@ import * as lightFile from "../src/lib/duel/lightUpBank.server";
 import * as slideFile from "../src/lib/duel/iceSlideBank.server";
 import { FULL_DEPTH } from "./check-depth";
 import { BANK_COUNT, entriesHash, liveIntroExample } from "./puzzle-bank-lib";
+import { dealStandard } from "../src/lib/duel/standard/stamps";
 import type { PuzzleData } from "../src/lib/duel/types";
 
 const self = fileURLToPath(import.meta.url);
@@ -243,7 +244,8 @@ if (PART === PARTS) {
   // Depth batch 4 (docs/depth/d4-pattern.md): Chroma Lines and Skid deal the seed's bank entry with their stamp (and
   // Skid's gems), Tessellate a board from its own 7×7 bank; a banked round is that deal, stamped like live rounds.
   const depthDeal = (type: BankedType, seed: number) => (isD4Type(type) ? dealDepth4(type, { bankSeed: seed }) : null);
-  const bankedDeal = (type: BankedType, seed: number) => stampMoveLimits(depthDeal(type, seed) ?? drawBankedPuzzle(type, seed));
+  // The scoring standard's stamp is dealt last, as generatePuzzle deals it on today's score revision (27 Oct 2026).
+  const bankedDeal = (type: BankedType, seed: number) => dealStandard(stampMoveLimits(depthDeal(type, seed) ?? drawBankedPuzzle(type, seed)));
   let depthOnBank = true;
   for (const seed of [1, 7, 4242, 987654]) {
     const entry = bankFor("flow")[bankIndexFor("flow", seed, BANK_COUNT)];
@@ -276,7 +278,7 @@ if (PART === PARTS) {
       const expected = depthDeal(puzzle.type as BankedType, seed) ?? bankFor(puzzle.type as BankedType)[bankIndexFor(puzzle.type as BankedType, seed, BANK_COUNT)];
       // Room rounds carry the per-puzzle stamps generatePuzzle sets (speedPar, and since 13 Oct 2026 puzzleScoreRev
       // and the per-game limit stamps of moveLimits.server.ts: Polypotions' tubesRev / pourLimit, Topsy-Turvy's gravityRev / tiltLimit).
-      if (speedPar !== live.speedPar || puzzleScoreRev !== live.puzzleScoreRev || JSON.stringify(rest) !== JSON.stringify(stampMoveLimits(expected!))) sameShape = false;
+      if (speedPar !== live.speedPar || puzzleScoreRev !== live.puzzleScoreRev || JSON.stringify(rest) !== JSON.stringify(dealStandard(stampMoveLimits(expected!)))) sameShape = false;
       const again = bankedDeal(puzzle.type as BankedType, seed);
       if (JSON.stringify(again) !== JSON.stringify(rest)) reproducible = false;
     }

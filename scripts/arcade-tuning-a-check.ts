@@ -75,9 +75,9 @@ import {
 import { encodeSwingRun, replaySwingRun } from "../src/lib/duel/swing";
 import { SWING_V4_BANK } from "../src/lib/duel/swingBankV4.server";
 import { proveSwingSeedV4 } from "../src/lib/duel/swingProof.server";
-import { tiltCupReachable, tiltDealableX, tiltGameFor, tiltSeedCupsReachable, TILT_REV_BAND, TILT_REV_EXPAND } from "../src/lib/arcade/tilt";
+import { tiltCupReachable, tiltDealableX, tiltGameFor, tiltSeedCupsReachable, TILT_REV_BAND, TILT_REV_LIFT } from "../src/lib/arcade/tilt";
 import { generateOrbit, generateSkyline, generateSwing, generateTilt, generateWavefront } from "../src/lib/duel/arcade.server";
-import { skylineGameFor, SKYLINE_REV_EXPAND, SKYLINE_REV_TALL } from "../src/lib/arcade/skyline";
+import { skylineGameFor, SKYLINE_REV_EXPAND, SKYLINE_REV_LIFT, SKYLINE_REV_TALL } from "../src/lib/arcade/skyline";
 import { APP_FLAG_LOGO_URL } from "../src/lib/brand";
 import { PUZZLE_INSTRUCTIONS as INSTRUCTIONS } from "../src/lib/duel/instructions";
 import { playRevOf } from "./scoring-targets-revs";
@@ -117,7 +117,7 @@ if (want("skyline")) {
   // Tuning A changed no High Rise play; Tuning E (Oct 2026) later stamps its taller view, skylineRev 4, with the same play and curve.
   // Expansion E4 (25 Oct 2026) moved High Rise rooms on to skylineRev 7 (e4-expansion-check covers it); skylineRev 4, which
   // stored rounds play, keeps the band play and curve (Tuning E's taller view only).
-  ok(generateSkyline().skylineRev === SKYLINE_REV_EXPAND, "new High Rise rounds are dealt skylineRev 7 (expansion E4)");
+  ok(generateSkyline().skylineRev === SKYLINE_REV_LIFT, "new High Rise rounds are dealt skylineRev 8 (expansion E4 on a gentler curve)");
   ok(skylineGameFor(SKYLINE_REV_TALL).score === skylineGameFor(BAND_STAMPS.skyline![1]).score, "High Rise skylineRev 4 keeps the band play and curve (Tuning E's taller view only)");
   // Prompt R (23 Oct 2026): the manifest holds the new icon in three files (192, 512, maskable); the flag draws its
   // 512 px "any" icon (APP_FLAG_LOGO_URL), so the PWA icon and the flag are still one logo file.
@@ -136,7 +136,7 @@ if (want("wavefront")) {
   // Taller worlds batch 1 (16 Oct 2026) moved Wavefront on to wavRev 6 (arcade-tuning-g1-check).
   // Taller worlds batch 1 moved Wavefront on to wavRev 6, and the 200 expansion (26 Oct 2026) on to wavRev 10
   // (wavefront-expand-check), which still flies the shapes (with escorts).
-  ok(generateWavefront().wavRev === WAV_REV_SHAPES + 6 && wavefrontGameFor(WAV_REV_SHAPES + 6).init(1).shaped === 1, "new Wavefront rounds are stamped wavRev 10 (the expansion, after the taller world's wavRev 6), still shaped");
+  ok(generateWavefront().wavRev === WAV_REV_SHAPES + 7 && wavefrontGameFor(WAV_REV_SHAPES + 7).init(1).shaped === 1, "new Wavefront rounds are stamped wavRev 11 (the phone notes, after the expansion's wavRev 10 and the taller world's wavRev 6), still shaped");
   ok(puzzleUsesBands({ type: "wavefront", wavRev: WAV_REV_SHAPES }) && puzzleUsesBands({ type: "wavefront", wavRev: WAV_REV_BAND }), "wavRev 3 and 4 both score on the band curve");
   for (let wave = 2; wave <= WAV_V2_WAVES; wave++) {
     const form = WAV_FORMS[wave]!;
@@ -332,6 +332,8 @@ if (want("orbit")) {
   ok(puzzleUsesBands({ type: "orbit", orbitRev: ORBIT_REV_TUNED }) && puzzleUsesBands({ type: "orbit", orbitRev: ORBIT_REV_BAND }), "orbitRev 5 and 6 both score on the band curve");
   const footer = readFileSync("src/puzzles/orbit.tsx", "utf8");
   // Superseded 15 Oct 2026 (arcade play screen): the 44 px row ends 16 px above the visible bottom, as every arcade control row.
+  // (orbitRev 12 since 27 Oct 2026, Joe's phone notes: the button sits in the world's reserved corner instead;
+  // play-control-clearance-check proves it. This revision and the others before 12 keep the row.)
   ok(/data-game-controls="checkpoint" className="flex h-11 shrink-0 items-center justify-center">/.test(footer) && /className="h-11 px-3 text-\[11px\] /.test(footer), "SET CHECKPOINT: a 44 px row ending 16 px above the bottom, still 44 px tall, narrower since 15 Oct 2026");
 }
 
@@ -341,7 +343,7 @@ if (want("swing")) {
   // Tuning F (Oct 2026) moved new Grappler rounds on to swingRev 8 (evenly spread stars); swing-rev8-check covers it.
   // Taller worlds batch 3 (16 Oct 2026) moved rooms on to swingRev 9 (the taller cavern); arcade-tuning-g3-check covers it.
   // Grappler's 200 expansion (26 Oct 2026) moved rooms on to swingRev 13 (swing-x200-check).
-  ok(playRevOf("swing", generateSwing().swingRev) === SWING_REV_TUNED + 7, "new Grappler rounds are stamped swingRev 13 (the 200 expansion, after swingRev 6, 7, 8 and 9)");
+  ok(playRevOf("swing", generateSwing().swingRev) === SWING_REV_TUNED + 8, "new Grappler rounds are stamped swingRev 14 (the assault course, after swingRev 6, 7, 8, 9 and 13)");
   ok(puzzleUsesBands({ type: "swing", swingRev: SWING_REV_TUNED }) && puzzleUsesBands({ type: "swing", swingRev: SWING_REV_BAND }), "swingRev 5 and 6 both score on the band curve");
   ok(SWING_CHASE_PACE === 4 * FP, "the chasing dragon keeps its pace (4 px a tick)");
   ok(SWING_ROCK_WARN === 60 && SWING_ROCK_WARN_V6 === 120, "stalactites crumble for 2 s on rev 6 (1 s before)");
@@ -415,8 +417,9 @@ if (want("tilt")) {
   section("Tilt: every cup reachable, the orange marble always drawn");
   const p = generateTilt();
   // Tuning C moved new Tilt rounds on to tiltRev 4 (arcade-tuning-c-check), the expansion (26 Oct 2026) on to tiltRev 8
-  // (tilt-expand-check); every cup stays reachable.
-  ok(p.tiltRev === TILT_REV_EXPAND && tiltDealableX(p.seed), "new Tilt rounds are stamped tiltRev 8 (the expansion) and deal a seed with every key and cup reachable");
+  // (tilt-expand-check), Joe's phone notes (27 Oct 2026) on to tiltRev 9 (tiltRev 8's play on lifted curves,
+  // arcade-phone-notes-check); every cup stays reachable.
+  ok(p.tiltRev === TILT_REV_LIFT && tiltDealableX(p.seed), "new Tilt rounds are stamped tiltRev 9 (the expansion's play, lifted curves) and deal a seed with every key and cup reachable");
   ok(TILT_REV_BAND + 1 === 4 && typeof tiltSeedCupsReachable === "function", "tiltRev 4 still follows the band revision");
   const n = FULL ? 40_000 : 4_000;
   let bad = 0;

@@ -45,16 +45,18 @@ import {
   SKYLINE_NARROW_MIN,
   SKYLINE_PERFECT_TOL,
   SKYLINE_REV_EXPAND,
+  SKYLINE_REV_LIFT,
   SKYLINE_REV_STRICT,
   SKYLINE_SKY_H,
   SKYLINE_SPECIAL_FROM,
   SKYLINE_START_W,
   SKYLINE_V7_BAND_CURVE,
+  SKYLINE_V8_BAND_CURVE,
   SKYLINE_WIDE_GROW,
   SKYLINE_WORLD_RIGHT,
   type SkylineState,
 } from "../src/lib/arcade/skyline";
-import { pinballGame, pinballGameFor, PIN_BALLS, PIN_INPUT_FLIPPERS, PIN_REV_EXPAND, PIN_REV_STRICT } from "../src/lib/arcade/pinball";
+import { pinballGame, pinballGameFor, PIN_BALLS, PIN_INPUT_FLIPPERS, PIN_REV_EXPAND, PIN_REV_LONG, PIN_REV_STRICT } from "../src/lib/arcade/pinball";
 import {
   p4PlungeLane,
   p4PlungeX,
@@ -79,6 +81,7 @@ import {
   P4_RIDE_LOCK,
   P4_WORLD_H,
   PIN_V4_BAND_CURVE,
+  PIN_V5_BAND_CURVE,
   type Pin4State,
 } from "../src/lib/arcade/pinball4";
 import { GAME_BY_TYPE } from "./arcade-skill-bands/games";
@@ -174,12 +177,14 @@ section("Rooms deal the expansions; recorded runs replay; 200 is the top");
 {
   const sky = generatePuzzle("skyline") as any;
   const pin = generatePuzzle("pinball") as any;
-  ok(sky.skylineRev === SKYLINE_REV_EXPAND && SKYLINE_REV_EXPAND === 7, `rooms deal skylineRev 7 (${sky.skylineRev})`);
-  ok(pin.pinRev === PIN_REV_EXPAND && PIN_REV_EXPAND === 4, `rooms deal pinRev 4 (${pin.pinRev})`);
+  // skylineRev 8 (27 Oct 2026, Joe's phone notes): skylineRev 7's play on a gentler curve (section 3b).
+  ok(sky.skylineRev === SKYLINE_REV_LIFT && SKYLINE_REV_LIFT === 8 && SKYLINE_REV_EXPAND === 7, `rooms deal skylineRev 8 (${sky.skylineRev})`);
+  // Since 27 Oct 2026 rooms deal pinRev 5: this table for 90 s (scripts/pinball-90-check.ts proves it plays as pinRev 4).
+  ok(pin.pinRev === PIN_REV_LONG && PIN_REV_EXPAND === 4 && PIN_REV_LONG === 5, `rooms deal pinRev 5, pinRev 4's table for 90 s (${pin.pinRev})`);
   ok(roundMaxFor("skyline") === 200 && roundMaxFor("pinball") === 200, "both games' round maximum is 200");
-  ok(LIVE_BANDS.skyline.rev === SKYLINE_REV_EXPAND && LIVE_BANDS.skyline.curve === SKYLINE_V7_BAND_CURVE, "the High Rise help reads skylineRev 7's curve");
-  ok(LIVE_BANDS.pinball.rev === PIN_REV_EXPAND && LIVE_BANDS.pinball.curve === PIN_V4_BAND_CURVE, "the Pinball help reads pinRev 4's curve");
-  for (const curve of [SKYLINE_V7_BAND_CURVE, PIN_V4_BAND_CURVE]) {
+  ok(LIVE_BANDS.skyline.rev === SKYLINE_REV_LIFT && LIVE_BANDS.skyline.curve === SKYLINE_V8_BAND_CURVE, "the High Rise help reads skylineRev 8's curve");
+  ok(LIVE_BANDS.pinball.rev === PIN_REV_LONG && LIVE_BANDS.pinball.curve === PIN_V5_BAND_CURVE, "the Pinball help reads the dealt pinRev 5's curve");
+  for (const curve of [SKYLINE_V7_BAND_CURVE, SKYLINE_V8_BAND_CURVE, PIN_V4_BAND_CURVE, PIN_V5_BAND_CURVE]) {
     ok(curve.points.at(-1) === 200 && curve.units[0] === 0 && curve.points[0] === 0, "the curve runs from (0, 0) to 200");
     for (let i = 1; i < curve.units.length; i++) ok(curve.units[i]! > curve.units[i - 1]! && curve.points[i]! > curve.points[i - 1]!, "the knots rise");
     ok(bandPoints(curve, 10_000_000) === 200, "nothing scores past 200");
@@ -189,7 +194,7 @@ section("Rooms deal the expansions; recorded runs replay; 200 is the top");
     ok(PUZZLE_INSTRUCTIONS[type].how.filter((l) => !l.helpOnly).length <= 3, `${type}: at most three intro HOW lines`);
     for (const l of PUZZLE_INSTRUCTIONS[type].how.filter((x) => !x.helpOnly)) ok(`${l.action} ${l.detail}`.length <= 46, `${type}: intro line fits one line: ${l.action} ${l.detail}`);
   }
-  ok(skylineWorldHFor(SKYLINE_REV_EXPAND) === SKYLINE_SKY_H && SKYLINE_SKY_H === 735, "High Rise draws in the 390 × 735 view (the widest fill on the iPhone 11)");
+  ok(skylineWorldHFor(SKYLINE_REV_EXPAND) === SKYLINE_SKY_H && skylineWorldHFor(SKYLINE_REV_LIFT) === SKYLINE_SKY_H && SKYLINE_SKY_H === 735, "High Rise draws in the 390 × 735 view (the widest fill on the iPhone 11)");
   ok(P4_WORLD_H === 820, "Pinball's table is 390 × 820");
 
   const fixture = JSON.parse(gunzipSync(readFileSync(NEW_FIXTURE)).toString()) as { runs: Run[] };
@@ -212,7 +217,7 @@ section("Rooms deal the expansions; recorded runs replay; 200 is the top");
     }
   }
   // No input scores 0 on both.
-  for (const game of [skylineGameFor(SKYLINE_REV_EXPAND), pinball4Game] as any[]) {
+  for (const game of [skylineGameFor(SKYLINE_REV_EXPAND), skylineGameFor(SKYLINE_REV_LIFT), pinball4Game] as any[]) {
     let s = game.init(99);
     while (!game.isOver(s)) s = game.step(s, game.key === "skyline" ? false : null);
     ok(game.score(s) === 0, `${game.key}: a run with no input scores 0`);
@@ -288,6 +293,58 @@ section("High Rise skylineRev 7: blocks, multiplier, milestones");
   ok(off.perfects === 0 && off.blocks[1]!.w === near.w, "an off-centre narrow block inside the top: not perfect, kept whole (no overhang)");
   const on = g.step({ ...near, x: centre - (near.w >> 1) + SKYLINE_PERFECT_TOL }, true) as SkylineState;
   ok(on.perfects === 1 && on.blocks[1]!.x === centre - (near.w >> 1), "a centred narrow block is perfect and snaps to the centre");
+}
+
+/* ============================== 3b. High Rise skylineRev 8 ============================== */
+
+section("High Rise skylineRev 8: skylineRev 7's play on a gentler curve");
+{
+  const g7 = skylineGameFor(SKYLINE_REV_EXPAND);
+  const g8 = skylineGameFor(SKYLINE_REV_LIFT);
+  ok(g8 !== g7 && g8.step === g7.step, "rev 8 steps with rev 7's step");
+  // The same inputs give the same run, field for field, but the stamp (expandRev 8 against 7).
+  const strip = (st: SkylineState) => JSON.stringify({ ...st, expandRev: 0 });
+  let rng = 12345;
+  const rand = (n: number) => {
+    rng = (Math.imul(rng, 1103515245) + 12345) >>> 0;
+    return (rng >>> 8) % n;
+  };
+  let lifted = 0;
+  for (let seed = 1; seed <= 40; seed++) {
+    let a = g7.init(seed) as SkylineState;
+    let b = g8.init(seed) as SkylineState;
+    ok(a.expandRev === SKYLINE_REV_EXPAND && b.expandRev === SKYLINE_REV_LIFT, `seed ${seed}: each state carries its own stamp`);
+    const gap = 12 + rand(40);
+    for (let t = 0; t < 4000 && !g7.isOver(a); t++) {
+      const tap = t % gap === gap - 1 || rand(90) === 0;
+      a = g7.step(a, tap) as SkylineState;
+      b = g8.step(b, tap) as SkylineState;
+    }
+    ok(g8.isOver(b) && strip(a) === strip(b), `seed ${seed}: rev 8 plays exactly as rev 7`);
+    const s7 = g7.score(a);
+    const s8 = g8.score(b);
+    ok(s8 >= s7 && s8 <= 200, `seed ${seed}: rev 8 scores at least rev 7's (${s7} → ${s8})`);
+    ok(s7 > 0 ? s8 > 0 : true, `seed ${seed}: a played run still scores`);
+    if (s8 > s7) lifted++;
+  }
+  ok(lifted >= 30, `the gentler curve lifts most played runs (${lifted}/40)`);
+  // Knot for knot: the same units, the points lifted (by at most 10 %), the top unchanged.
+  ok(JSON.stringify(SKYLINE_V8_BAND_CURVE.units) === JSON.stringify(SKYLINE_V7_BAND_CURVE.units), "the same unit knots as rev 7");
+  for (let i = 1; i < SKYLINE_V8_BAND_CURVE.points.length - 1; i++) {
+    const p7 = SKYLINE_V7_BAND_CURVE.points[i]!;
+    const p8 = SKYLINE_V8_BAND_CURVE.points[i]!;
+    ok(p8 > p7 && p8 <= Math.ceil(p7 * 1.1), `knot ${i}: ${p7} → ${p8} (a little higher)`);
+  }
+  // The recorded rev-7 runs, scored on rev 8: the same units, never lower.
+  const fixture = JSON.parse(gunzipSync(readFileSync(NEW_FIXTURE)).toString()) as { runs: Run[] };
+  for (const run of fixture.runs.filter((r) => r.type === "skyline")) {
+    const r = replay(run);
+    const st = { ...(r.state as SkylineState), expandRev: SKYLINE_REV_LIFT };
+    const s8 = g8.score(st);
+    ok(s8 >= run.score && s8 <= 200, `rev 7 ${run.level} #${run.n}: ${run.score} on rev 7, ${s8} on rev 8`);
+  }
+  // The ceiling: 200 at rev 7's unit count, never past it.
+  ok(bandPoints(SKYLINE_V8_BAND_CURVE, 1100) === 200 && bandPoints(SKYLINE_V8_BAND_CURVE, 5000) === 200, "the 200 ceiling at rev 7's unit count");
 }
 
 /* ============================== 4. Pinball ============================== */

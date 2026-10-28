@@ -39,7 +39,7 @@ const ARENA_SCENE_NOTES: Record<(typeof ARENA_SCENE_GAMES)[number], string> = {
   snake: "a faint starfield round the board, its stars stepping through the border's colours (world centred)",
   burst: "the black arena runs on under the arrows, small faint reactions drifting together and bursting",
   wavefront: "the night sky's stars below and beside the world",
-  orbit: "deep space with light stars under SET CHECKPOINT",
+  orbit: "black space with light stars (SET CHECKPOINT in the world's reserved top-right corner)",
   skyline: "a dark road under the tower's base block, softly lit by street lamps",
   slice: "a faded marble worktop under the chopping board",
   bubble: "the deep water settles onto soft sand",
@@ -233,7 +233,9 @@ const ABOVE: Record<string, number> = {
   clayshoot: 12 + 4 + 6 + 4,
 };
 /** Height taken below each slot: 8px gap + control row (Swish: its 72px cancel strip, flush). */
-const BELOW: Record<string, number> = { burst: 8 + 76, inkbridge: 8 + 48, orbit: 8 + 44, balltrack: 8 + 28, bintoss: 72, stroop: 8 + 52 };
+// Orbit: none since 27 Oct 2026 (orbitRev 12's SET CHECKPOINT sits in the world's reserved top-right corner; its 450 x 862
+// view reaches the bottom; play-control-clearance-check proves the corner).
+const BELOW: Record<string, number> = { burst: 8 + 76, inkbridge: 8 + 48, balltrack: 8 + 28, bintoss: 72, stroop: 8 + 52 };
 const BELOW_CONTROLS: Record<string, string> = {
   burst: "Fission's two 76px arrows", inkbridge: "Rainbow Bridge's Undo / Reset / Release / Drop again (48px)", orbit: "Orbit's SET CHECKPOINT (44px row)",
   balltrack: "Ball Tracker's status row (28px)", bintoss: "Swish's cancel strip (72px)", stroop: "Mixed Signals' arrows (44px) and joystick (52px), bottom-aligned",

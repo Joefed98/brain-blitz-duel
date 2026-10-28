@@ -22,6 +22,11 @@ import { mazeOpen } from "../maze";
 import type { MazePuzzleData } from "../types";
 
 export const MAZE_REV_DEPTH = 1;
+/**
+ * mazeRev 2 (27 Oct 2026, Joe's phone notes; phoneNotes.ts): mazeRev 1's board, trail answer and scoring, with the
+ * three stars anywhere the ball can reach (on the route or off it), one in each third of the route as before.
+ */
+export const MAZE_REV_NOTES = 2;
 export const LAB_COLS = 19;
 export const LAB_ROWS = 23;
 export const LAB_CELLS = LAB_COLS * LAB_ROWS;
@@ -43,9 +48,13 @@ export const LAB_STAR_ZERO_SHARE = 0.45;
 /** Speed share of the clock for today's 150 (puzzleScoreRev 3's Labyrinth fastShare). */
 export const LAB_FAST_SHARE = 0.48;
 
+/**
+ * True for mazeRev 1 and later: the 19 × 23 board, stars and trail answer. The scoring standard's mazeRev 3 (27 Oct 2026,
+ * standard/attention.ts) keeps mazeRev 2's board and play; only its score differs (the standard grader runs first).
+ */
 export function usesMazeDepth(puzzle: unknown): puzzle is MazePuzzleData & { mazeRev: number } {
   const p = puzzle as { type?: string; mazeRev?: number } | null;
-  return p?.type === "maze" && p.mazeRev === MAZE_REV_DEPTH;
+  return p?.type === "maze" && typeof p.mazeRev === "number" && p.mazeRev >= MAZE_REV_DEPTH;
 }
 
 /** A trail answer starts with this; each following letter is one step. */

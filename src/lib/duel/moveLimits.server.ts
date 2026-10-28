@@ -19,9 +19,13 @@ import {
   FLOOD_REV2_SPARE_MOVES,
   GRAVITY_PROGRESS_REV,
   MEASURE_LIMIT_REV,
+  MEASURE_NOTES_REV,
+  BALANCE_NOTES_REV,
+  NOTES_LIMIT_FACTOR,
   TUBES_PROGRESS_REV,
 } from "./moveLimits";
 import { BAL_REV2, BAL_REV2_SCALES } from "./balance";
+import { dealtNotesRev } from "./phoneNotes";
 import { stampLogicDepth } from "./logicDepthStamp.server";
 import type { PuzzleData } from "./types";
 
@@ -39,6 +43,8 @@ export const EQUATION_TRIES = 3;
 export const MEASURE_LIMIT_FACTOR = 3;
 
 const upTo5 = (n: number) => Math.max(5, Math.ceil(n / 5) * 5);
+/** Joe's phone notes (27 Oct 2026): 1.5× a limit, rounded up. */
+const notesLimit = (n: number) => Math.ceil(n * NOTES_LIMIT_FACTOR);
 
 export function stampMoveLimits(puzzle: PuzzleData): PuzzleData {
   // The eleven Logic games' depth revision (logicDepth.ts, 25 Oct 2026; docs/depth/d6-logic.md) rides on this stamp pass.
@@ -73,26 +79,34 @@ function stampLimitsOnly(puzzle: PuzzleData): PuzzleData {
         gravityRev: GRAVITY_PROGRESS_REV,
         tiltLimit: upTo5(puzzle.minMoves + GRAVITY_SPARE_TILTS),
       };
-    case "balance":
+    case "balance": {
+      // Four scales (generateBalance since 14 Oct 2026) are balanceRev 2; a three-scale puzzle stays 1.
+      // Joe's phone notes (27 Oct 2026): four-scale puzzles are balanceRev 3, the same scales with 1.5× the hangs.
+      const four = puzzle.scales.length === BAL_REV2_SCALES;
+      const balanceRev = four ? dealtNotesRev(BALANCE_NOTES_REV, BAL_REV2) : BALANCE_LIMIT_REV;
       return {
         ...puzzle,
-        // Four scales (generateBalance since 14 Oct 2026) are balanceRev 2; a three-scale puzzle stays 1.
-        balanceRev: puzzle.scales.length === BAL_REV2_SCALES ? BAL_REV2 : BALANCE_LIMIT_REV,
-        placeLimits: puzzle.scales.map(
-          (scale, i) =>
-            scale.tray.length +
-            (BALANCE_SPARE_HANGS[i] ?? BALANCE_SPARE_HANGS[BALANCE_SPARE_HANGS.length - 1]!),
-        ),
+        balanceRev,
+        placeLimits: puzzle.scales.map((scale, i) => {
+          const limit = scale.tray.length + (BALANCE_SPARE_HANGS[i] ?? BALANCE_SPARE_HANGS[BALANCE_SPARE_HANGS.length - 1]!);
+          return balanceRev >= BALANCE_NOTES_REV ? notesLimit(limit) : limit;
+        }),
       };
+    }
     case "equation":
       return { ...puzzle, equationRev: EQUATION_LIMIT_REV, tryLimit: EQUATION_TRIES };
     case "measure": {
       const mins = puzzle.minMoves ?? [];
       if (mins.length !== puzzle.boards.length || mins.some((m) => !(m > 0))) return puzzle;
+      // Joe's phone notes (27 Oct 2026): measureRev 3, the same boards with 1.5× the pours (rounded up).
+      const measureRev = dealtNotesRev(MEASURE_NOTES_REV, MEASURE_LIMIT_REV);
       return {
         ...puzzle,
-        measureRev: MEASURE_LIMIT_REV,
-        moveLimits: mins.map((m) => upTo5(MEASURE_LIMIT_FACTOR * m)),
+        measureRev,
+        moveLimits: mins.map((m) => {
+          const limit = upTo5(MEASURE_LIMIT_FACTOR * m);
+          return measureRev >= MEASURE_NOTES_REV ? notesLimit(limit) : limit;
+        }),
       };
     }
     case "countup":

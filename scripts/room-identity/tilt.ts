@@ -6,7 +6,7 @@
  * plus the ticks into that maze (0 for what is there from the maze's start; a quick star's entry is the tick its
  * full-points window ends), so two runs agree entry for entry over the mazes both reached.
  */
-import { tiltCheckpoint, tiltGameFor, TILT_CHECKPOINT_INTERVAL, TILT_INPUT_DRAG, TILT_REV_EXPAND, TILT_X_QUICK_TAIL, type Maze, type TiltState } from "../../src/lib/arcade/tilt";
+import { tiltCheckpoint, tiltGameFor, TILT_CHECKPOINT_INTERVAL, TILT_INPUT_DRAG, TILT_REV_LIFT, TILT_X_QUICK_TAIL, type Maze, type TiltState } from "../../src/lib/arcade/tilt";
 import type { ArcadeInputEvent } from "../../src/lib/arcade/engine";
 import { bot } from "../arcade-skill-bands/bots/tilt";
 import { Human } from "../arcade-skill-bands/human";
@@ -49,7 +49,7 @@ export function scheduleOf(seed: number, rev: number, events: unknown): { t: num
 
 /** Uniformly random drags at a human-ish rate (a re-grip now and then), as the phone records them. */
 export function randomLog(seed: number): Ev[] {
-  const game = tiltGameFor(TILT_REV_EXPAND);
+  const game = tiltGameFor(TILT_REV_LIFT);
   let s = game.init(seed) as TiltState;
   let v = seed | 0;
   let x = 220;
@@ -74,19 +74,19 @@ export function randomLog(seed: number): Ev[] {
 
 /** A skill-band bot's log at a level (the bots in scripts/arcade-skill-bands/bots/tilt.ts). */
 export function botLog(seed: number, level: "weak" | "average" | "elite"): Ev[] {
-  return bot({ game: tiltGameFor(TILT_REV_EXPAND), seed, rev: TILT_REV_EXPAND, human: new Human("tilt", seed, level) }).events ?? [];
+  return bot({ game: tiltGameFor(TILT_REV_LIFT), seed, rev: TILT_REV_LIFT, human: new Human("tilt", seed, level) }).events ?? [];
 }
 
 export const roomIdentity = {
   type: "tilt",
-  rev: TILT_REV_EXPAND,
+  rev: TILT_REV_LIFT,
   scheduleOf,
   logs: (seed: number): Ev[][] => [[], randomLog(seed), botLog(seed, "weak"), botLog(seed, "elite")],
 };
 
 /** Checkpoints for a log (the encode step needs them; kept here so callers can build a phone-shaped run). */
 export function checkpointsOf(seed: number, events: Ev[]): unknown[] {
-  const game = tiltGameFor(TILT_REV_EXPAND);
+  const game = tiltGameFor(TILT_REV_LIFT);
   const byTick = new Map(events.map((e) => [e.t, e]));
   let s = game.init(seed) as TiltState;
   const out: unknown[] = [];

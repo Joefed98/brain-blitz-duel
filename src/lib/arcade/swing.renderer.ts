@@ -43,6 +43,10 @@ import {
   SWING_LEDGE_CRUMBLE,
   SWING_LEDGE_THICK,
   SWING_REV_EXPAND,
+  SWING_REV_ASSAULT,
+  swingAssaultClock,
+  swingAssaultCounts,
+  swingAssaultLedges,
   type SwingState,
 } from "./swing";
 import { artHash, reducedMotion } from "./art.renderer";
@@ -347,8 +351,8 @@ function drawSwingArtWorld(ctx: CanvasRenderingContext2D, state: SwingState, siz
     if (x > -40 && x < SWING_WORLD_W + 40) drawGrapplerDragonV3(ctx, x, (state.chaseY ?? 0) / FP, still ? 0 : Math.floor(state.tick / 6));
   }
 
-  // Distance posts every 100 m; 500 m is a gold gate.
-  for (let m = 100; m <= SWING_FINISH_M; m += 100) {
+  // Distance posts every 100 m; 500 m is a gold gate (swingRev 14's course counts sections instead).
+  for (let m = 100; m <= (state.assault ? 0 : SWING_FINISH_M); m += 100) {
     const x = sx(START_X + m * METRE);
     if (x < -30 || x > SWING_WORLD_W + 30) continue;
     const floorY = lerpAt(state.floor, START_X + m * METRE) / FP;
@@ -610,11 +614,14 @@ function drawSwingArtWorld(ctx: CanvasRenderingContext2D, state: SwingState, siz
 
   // swingRev 13: speed gates, set-route ledges and gems.
   if (state.expand) drawExpand(ctx, state, sx, SWING_WORLD_W, still, lite);
+  // swingRev 14: the section in play (its squeeze, ledges, gate and gems); nothing past its landing ledge.
+  const ahead = state.assault ? assaultLimit(state) : Infinity;
+  if (state.assault) drawAssault(ctx, state, sx, SWING_WORLD_W, SWING_WORLD_H, still, lite, ahead);
 
   // swingRev 6: star pickups, taken by touching them.
   const spotsTaken = new Set(state.starSpots ? (state.starsTaken ?? []) : []);
   (state.starSpots ?? []).forEach(([wx, wy], i) => {
-    if (spotsTaken.has(i)) return;
+    if (spotsTaken.has(i) || wx > ahead) return;
     const x = sx(wx);
     if (x < -20 || x > SWING_WORLD_W + 20) return;
     drawCoin(ctx, x, wy / FP, SWING_STAR_R / FP, still ? 0 : state.tick + i * 17, lite);
@@ -623,9 +630,11 @@ function drawSwingArtWorld(ctx: CanvasRenderingContext2D, state: SwingState, siz
   // Anchors: iron rings bolted in the rock.
   const starAt = new Set(state.starAnchors ?? []);
   const taken = new Set(state.starsTaken ?? []);
+  // swingRev 14: only the hooks of the sections reached (the next section's appear when its start ledge is reached).
+  const hooksShown = state.assault ? (() => { const sec = state.sections![Math.min(state.sec ?? 0, state.sections!.length - 1)]!; return sec.hook0 + sec.hooks; })() : Infinity;
   state.anchors.forEach((a, i) => {
     const x = sx(a.x);
-    if (x < -20 || x > SWING_WORLD_W + 20) return;
+    if (x < -20 || x > SWING_WORLD_W + 20 || i >= hooksShown) return;
     // swingRev 4: a gold star around each star anchor until it is taken.
     if (starAt.has(i) && !taken.has(i)) drawCoin(ctx, x, a.y / FP, 11, still ? 0 : state.tick, lite);
     const flash = i === state.rope && state.tick - state.grabTick < 12;
@@ -701,10 +710,14 @@ function drawSwingArtWorld(ctx: CanvasRenderingContext2D, state: SwingState, siz
   hero.face = speed > 0 ? vx / speed : 0;
   hero.core = dead ? "#FF4D5E" : null;
   hero.gentle = still;
+  // swingRev 14: back on the start ledge after a miss, the hero blinks for the respawn hold (steady with reduced motion).
+  const blink = (state.respawn ?? 0) > 0 && !still && Math.floor(state.tick / 4) % 2 === 1;
+  if (blink) ctx.globalAlpha = 0.35;
   drawHero(ctx, hero);
+  ctx.globalAlpha = 1;
 
-  // swingRev 4 edge warnings: the dragon behind (off the left edge) and a shadow ahead (off the right).
-  if (state.rev === SWING_REV && state.ended === 0) {
+  // swingRev 4 edge warnings: the dragon behind (off the left edge) and a shadow ahead (off the right); swingRev 14's dragon too.
+  if ((state.rev === SWING_REV || state.assault) && state.ended === 0) {
     const chase = state.chaseX ?? 0;
     if (chase !== 0) {
       const behind = Math.max(0, Math.trunc((state.x - chase - SWING_CHASE_REACH) / (40 * FP)));
@@ -751,7 +764,8 @@ function drawSwingArtWorld(ctx: CanvasRenderingContext2D, state: SwingState, siz
   ctx.fillStyle = "#FFFFFF";
   ctx.font = "600 16px 'JetBrains Mono', ui-monospace, monospace";
   ctx.textAlign = "left";
-  successHud(ctx,'swing',state.tick,14,26,()=>ctx.fillText(`${Math.min(SWING_FINISH_M,swingMetres(state))} / ${SWING_FINISH_M} m`,14,26));
+  if (state.assault) drawAssaultHud(ctx, state, SWING_WORLD_W);
+  else successHud(ctx,'swing',state.tick,14,26,()=>ctx.fillText(`${Math.min(SWING_FINISH_M,swingMetres(state))} / ${SWING_FINISH_M} m`,14,26));
   if (state.rev === SWING_REV) {
     ctx.fillStyle = SWING_GOLD;
     ctx.textAlign = "right";
@@ -981,7 +995,9 @@ const tallArtGameV9 = { ...swingGameFor(SWING_REV_TALL), draw: drawSwingArt };
 const tallArtGameV9Target = { ...swingGameFor(SWING_REV_TARGET), draw: drawSwingArt };
 const tallArtGameV9Strict = { ...swingGameFor(SWING_REV_STRICT), draw: drawSwingArt };
 const expandArtGameV13 = { ...swingGameFor(SWING_REV_EXPAND), draw: drawSwingArt };
+const assaultArtGameV14 = { ...swingGameFor(SWING_REV_ASSAULT), draw: drawSwingArt };
 export function swingArtGameFor(rev?: number): typeof swingArtGame {
+  if (rev === SWING_REV_ASSAULT) return assaultArtGameV14;
   if (rev === SWING_REV_EXPAND) return expandArtGameV13;
   if (rev === SWING_REV_STRICT) return tallArtGameV9Strict;
   if (rev === SWING_REV_TARGET) return tallArtGameV9Target;
@@ -1259,4 +1275,119 @@ function drawExpandHud(ctx: CanvasRenderingContext2D, state: SwingState, width: 
   ctx.fillText(gems, width - 14, 46);
   drawCrystal(ctx, width - 24 - ctx.measureText(gems).width, 41, 6, 0, true);
   ctx.textAlign = "left";
+}
+
+/* ============================ swingRev 14 ============================ */
+
+/** The furthest x (1/256 px) drawn of the section in play: its landing ledge's far edge (nothing past it shows). */
+function assaultLimit(state: SwingState): number {
+  const { to } = swingAssaultLedges(state, Math.min(state.sec ?? 0, state.sections!.length - 1));
+  return to.x + to.half;
+}
+
+/**
+ * swingRev 14's course (presentation only, on the sim's geometry): the squeezes are rock exactly over the sim's two
+ * rectangles (the roof down to its top, the floor up from its bottom across x0–x1), their opening's edges lit; the
+ * ledges, gates and gems are swingRev 13's art (drawExpand) for the ones reached: the section's start ledge carries
+ * the gold arrow, the ledges behind gold trim, the last ledge the finish flag; nothing past the landing ledge is
+ * drawn, and a dark veil falls over the cave beyond it (no long preview).
+ */
+function drawAssault(ctx: CanvasRenderingContext2D, state: SwingState, sx: (x: number) => number, width: number, height: number, still: boolean, lite: boolean, limit: number): void {
+  const k = Math.min(state.sec ?? 0, state.sections!.length - 1);
+  const total = state.sections!.length;
+  const far = -1e9;
+  for (const sq of state.squeezes ?? []) {
+    const x0 = sx(sq.x0);
+    const x1 = sx(sq.x1);
+    if (x1 < -10 || x0 > width + 10 || sq.x0 > limit) continue;
+    const ceilY = (wx: number) => lerpAt(state.ceil, wx) / FP;
+    const floorY = (wx: number) => lerpAt(state.floor, wx) / FP;
+    const top = sq.top / FP;
+    const bottom = sq.bottom / FP;
+    const roofFrom = Math.min(ceilY(sq.x0), ceilY(sq.x1), top) - 2;
+    const floorTo = Math.min(height, Math.max(floorY(sq.x0), floorY(sq.x1)) + 4);
+    for (const [y0, y1, edge] of [[roofFrom, top, top], [bottom, floorTo, bottom]] as const) {
+      const stone = ctx.createLinearGradient(x0, 0, x1, 0);
+      stone.addColorStop(0, "#54404A");
+      stone.addColorStop(0.45, "#3A2B31");
+      stone.addColorStop(1, "#1A1215");
+      ctx.fillStyle = stone;
+      ctx.fillRect(x0, y0, x1 - x0, y1 - y0);
+      // Facets inside the rock (never past its edges).
+      ctx.strokeStyle = "rgba(0,0,0,0.45)";
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      for (let n = 1; n < 4; n++) {
+        const h = artHash(sq.x0, n * 7 + (edge === top ? 1 : 2));
+        const fy = y0 + ((h % 100) / 100) * (y1 - y0);
+        ctx.moveTo(x0 + 3, fy);
+        ctx.lineTo(x1 - 3, fy + ((h >>> 8) % 9) - 4);
+      }
+      ctx.stroke();
+      // The opening's edge: a warm lit rim on the rock's face.
+      ctx.fillStyle = "rgba(255,150,90,0.75)";
+      ctx.fillRect(x0, edge === top ? top - 2 : bottom, x1 - x0, 2);
+    }
+    if (!lite) {
+      // A faint glow through the gap, so the opening reads from afar.
+      const glow = ctx.createLinearGradient(0, top, 0, bottom);
+      glow.addColorStop(0, "rgba(255,214,140,0)");
+      glow.addColorStop(0.5, `rgba(255,214,140,${0.12 + (still ? 0 : 0.04 * Math.sin(state.tick * 0.1))})`);
+      glow.addColorStop(1, "rgba(255,214,140,0)");
+      ctx.fillStyle = glow;
+      ctx.fillRect(x0, top, x1 - x0, bottom - top);
+    }
+  }
+  const ledges = state.ledges!.map((l, i) =>
+    i > k + 1 ? { ...l, x: far } : { ...l, kind: i === total ? 2 : i === k ? 0 : 1, crumble: 0 },
+  );
+  const view: SwingState = {
+    ...state,
+    ledges,
+    ledgeTicks: ledges.map((_, i) => (i <= k ? 1 : 0)),
+    gates: (state.gates ?? []).map((g) => (g.x > limit ? { ...g, x: far } : g)),
+    gems: (state.gems ?? []).map(([x, y]) => (x > limit ? [far, y] : [x, y]) as [number, number]),
+  };
+  drawExpand(ctx, view, sx, width, still, lite);
+  // The veil beyond the landing ledge.
+  const veil = sx(limit) + 24;
+  if (veil < width) {
+    const g = ctx.createLinearGradient(veil, 0, veil + 60, 0);
+    g.addColorStop(0, "rgba(6,4,8,0)");
+    g.addColorStop(1, "rgba(6,4,8,0.55)");
+    ctx.fillStyle = g;
+    ctx.fillRect(veil, 0, width - veil, height);
+  }
+}
+
+/** swingRev 14's HUD: "SECTION x / y" left, the section's par clock in the middle, stars and gems right. */
+function drawAssaultHud(ctx: CanvasRenderingContext2D, state: SwingState, width: number): void {
+  const c = swingAssaultCounts(state);
+  const shown = Math.min(c.sectionTotal, c.sections + (c.sections < c.sectionTotal ? 1 : 0));
+  successHud(ctx, "swing", state.tick, 14, 26, () => ctx.fillText(`SECTION ${shown} / ${c.sectionTotal}`, 14, 26));
+  ctx.font = "600 13px 'JetBrains Mono', ui-monospace, monospace";
+  const clock = swingAssaultClock(state);
+  if (clock && clock.par > 0) {
+    ctx.textAlign = "center";
+    ctx.fillStyle = clock.elapsed < clock.par ? "rgba(255,224,138,0.9)" : "rgba(200,200,210,0.6)";
+    ctx.fillText(`${(clock.elapsed / 60).toFixed(1)} s · PAR ${(clock.par / 60).toFixed(1)}`, width / 2, 46);
+  }
+  ctx.textAlign = "right";
+  ctx.fillStyle = SWING_GOLD;
+  const stars = `${(state.starsTaken ?? []).length} / ${c.starTotal}`;
+  ctx.font = "600 16px 'JetBrains Mono', ui-monospace, monospace";
+  ctx.fillText(stars, width - 14, 26);
+  drawCoin(ctx, width - 22 - ctx.measureText(stars).width, 20, 8, 0, true);
+  ctx.font = "600 13px 'JetBrains Mono', ui-monospace, monospace";
+  ctx.fillStyle = "#BDF6FF";
+  const gems = `${bitsOf(state.gemsTaken ?? 0)} / ${c.gemTotal}`;
+  ctx.fillText(gems, width - 14, 46);
+  drawCrystal(ctx, width - 24 - ctx.measureText(gems).width, 41, 6, 0, true);
+  ctx.textAlign = "left";
+}
+
+function bitsOf(n: number): number {
+  let c = 0;
+  for (let b = n; b; b &= b - 1) c += 1;
+  return c;
 }

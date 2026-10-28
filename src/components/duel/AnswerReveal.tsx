@@ -71,6 +71,34 @@ interface AnswerRevealProps {
   heroRun?: boolean;
   startedAt: number;
   now: number;
+  /**
+   * Practice only: Play again and Back on the reveal itself (27 Oct 2026, no separate result page);
+   * the reveal then has no countdown. Rooms leave these out and keep their timed reveal.
+   */
+  onPlayAgain?: () => void;
+  onBack?: () => void;
+}
+
+/** Practice's two small actions under the reveal: Play again (gold, it plays) and Back to the list. */
+function PracticeRevealActions({ onPlayAgain, onBack }: { onPlayAgain?: (() => void) | undefined; onBack?: (() => void) | undefined }) {
+  return (
+    <div data-practice-reveal-actions className="flex shrink-0 items-center gap-2 pt-0.5">
+      {onBack ? (
+        <button type="button" onClick={onBack} className="rs-btn press tap-target h-11 flex-1">
+          Back
+        </button>
+      ) : null}
+      {onPlayAgain ? (
+        <button
+          type="button"
+          onClick={onPlayAgain}
+          className="th-btn-gold ap-btn-gold rs-btn-gold press tap-target h-11 flex-1 !text-[15px]"
+        >
+          Play again
+        </button>
+      ) : null}
+    </div>
+  );
 }
 
 /** Dev-only (?dev=1): what the server did with this arcade run. */
@@ -189,7 +217,14 @@ function useRevealTray(board: { current: HTMLElement | null }, tray: { current: 
       const left = Math.max(0, box.left - r.left - pad);
       const right = Math.min(b.clientWidth, box.right - r.left + pad);
       const top = Math.max(0, box.top - r.top + b.scrollTop - pad);
-      const bottom = box.bottom - r.top + b.scrollTop + pad;
+      // Never past the content's own end (or the box's height): the tray's padding alone must not make
+      // the reveal scroll or fade (a board that fills the box, the Logic reveals, ended 10 px short).
+      let end = b.clientHeight;
+      for (const child of Array.from(b.children)) {
+        if (child === t || getComputedStyle(child).position === "absolute") continue;
+        end = Math.max(end, child.getBoundingClientRect().bottom - r.top + b.scrollTop);
+      }
+      const bottom = Math.min(end, box.bottom - r.top + b.scrollTop + pad);
       if (right - left < 24 || bottom - top < 24) {
         t.style.display = "none";
         return;
@@ -213,6 +248,141 @@ function useRevealTray(board: { current: HTMLElement | null }, tray: { current: 
       cancelAnimationFrame(frame);
       resize?.disconnect();
       mutations.disconnect();
+    };
+  }, []);
+}
+
+/** Smallest a board is drawn to make the reveal fit (27 Oct 2026); below it the reveal scrolls as before. */
+const REVEAL_FIT_MIN = 0.5;
+/** The reveal's own lines never drop under this (px) when the whole reveal has to shrink. */
+const REVEAL_FIT_MIN_TEXT_PX = 13;
+
+/**
+ * The reveal fits the screen (27 Oct 2026, display only): when the board and its lines are taller
+ * than the space under the verdict row, the boards (each game's canvases, svgs and grids, the
+ * outermost ones) are drawn smaller, centred, until everything is in frame, so there is no faded
+ * edge and no scroll. Only when shrinking the boards to REVEAL_FIT_MIN is not enough does the whole
+ * reveal shrink too, never taking its lines under 13 px. A transform plus a matching negative
+ * margin, so each board's own layout, sizing and drawing are untouched. Run before the first
+ * paint and again when the space or the content changes.
+ */
+function useRevealFit(ref: { current: HTMLElement | null }) {
+  useIsoLayoutEffect(() => {
+    const root = ref.current;
+    if (!root) return;
+    const scaled: { el: HTMLElement; transform: string; origin: string; margin: string }[] = [];
+    const reset = () => {
+      for (const s of scaled.splice(0)) {
+        s.el.style.transform = s.transform;
+        s.el.style.transformOrigin = s.origin;
+        s.el.style.marginBottom = s.margin;
+      }
+      delete root.dataset["fit"];
+    };
+    const shrink = (el: HTMLElement, z: number) => {
+      const h = el.offsetHeight;
+      const margin = parseFloat(getComputedStyle(el).marginBottom) || 0;
+      scaled.push({ el, transform: el.style.transform, origin: el.style.transformOrigin, margin: el.style.marginBottom });
+      el.style.transformOrigin = "top center";
+      el.style.transform = `scale(${z})`;
+      el.style.marginBottom = `${margin - (1 - z) * h}px`;
+    };
+    const overflow = () => root.scrollHeight - root.clientHeight;
+    const boards = () => {
+      const out: HTMLElement[] = [];
+      const walk = (el: Element) => {
+        for (const child of Array.from(el.children)) {
+          if (!(child instanceof HTMLElement || child instanceof SVGElement)) continue;
+          const cs = getComputedStyle(child);
+          if (cs.display === "none" || cs.position === "absolute" || cs.position === "fixed") continue;
+          const r = child.getBoundingClientRect();
+          const board =
+            r.height >= 56 &&
+            (/^(CANVAS|svg|IMG)$/i.test(child.tagName) || cs.display === "grid" || cs.display === "inline-grid");
+          // An svg can't be moved by its own style in every browser: its html parent is.
+          if (board) out.push(child instanceof HTMLElement ? child : (child.parentElement as HTMLElement));
+          else walk(child);
+        }
+      };
+      walk(root);
+      return [...new Set(out)].filter((el) => el !== root && root.contains(el));
+    };
+    /** The boards' combined height down the page (side-by-side boards count once). */
+    const span = (els: HTMLElement[]) => {
+      const rows = els.map((el) => el.getBoundingClientRect()).map((r) => [r.top, r.bottom] as const).sort((a, b) => a[0] - b[0]);
+      let total = 0;
+      let end = -Infinity;
+      for (const [top, bottom] of rows) {
+        if (bottom <= end) continue;
+        total += bottom - Math.max(top, end);
+        end = bottom;
+      }
+      return total;
+    };
+    let frame = 0;
+    let fitted = "";
+    const fit = () => {
+      frame = 0;
+      // The tray (placed on the board's box) is left out of the measure: it follows the board.
+      const tray = root.querySelector<HTMLElement>("[data-reveal-tray]");
+      const trayDisplay = tray?.style.display ?? "";
+      if (tray) tray.style.display = "none";
+      reset();
+      let over = overflow();
+      if (over > 1) {
+        const els = boards();
+        const height = span(els);
+        let z = 1;
+        // Shrinking a board can rewrap what sits beside it: a few passes, each from the measured overflow.
+        for (let pass = 0; pass < 4 && over > 1 && height > 0 && z > REVEAL_FIT_MIN; pass++) {
+          z = Math.max(REVEAL_FIT_MIN, z - (over + 2) / height);
+          for (const s of scaled.splice(0)) {
+            s.el.style.transform = s.transform;
+            s.el.style.transformOrigin = s.origin;
+            s.el.style.marginBottom = s.margin;
+          }
+          for (const el of els) shrink(el, z);
+          over = overflow();
+        }
+        if (over > 1) {
+          // Last resort: the whole reveal, lines included, never under 13 px text.
+          let smallest = Infinity;
+          for (const el of Array.from(root.querySelectorAll<HTMLElement>("p, span, li, div"))) {
+            if (!Array.from(el.childNodes).some((n) => n.nodeType === 3 && (n.textContent ?? "").trim())) continue;
+            if (el.closest("svg, [data-reveal-fit-board]")) continue;
+            smallest = Math.min(smallest, parseFloat(getComputedStyle(el).fontSize) || Infinity);
+          }
+          const floor = Number.isFinite(smallest) ? Math.min(1, REVEAL_FIT_MIN_TEXT_PX / smallest) : 1;
+          const blocks = Array.from(root.children).filter(
+            (el): el is HTMLElement => el instanceof HTMLElement && getComputedStyle(el).position !== "absolute",
+          );
+          const total = blocks.reduce((n, el) => n + el.offsetHeight, 0);
+          const zz = total > 0 ? Math.max(floor, 1 - (over + 2) / total) : 1;
+          if (zz < 1) for (const el of blocks) shrink(el, zz);
+        }
+        root.dataset["fit"] = "";
+      }
+      if (tray) tray.style.display = trayDisplay;
+      fitted = `${root.clientWidth}x${root.clientHeight}:${root.scrollHeight}`;
+    };
+    fit();
+    const later = () => {
+      if (`${root.clientWidth}x${root.clientHeight}:${root.scrollHeight}` === fitted) return;
+      if (!frame) frame = requestAnimationFrame(fit);
+    };
+    const resize = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(later);
+    resize?.observe(root);
+    for (const child of Array.from(root.children)) resize?.observe(child);
+    const mutations = new MutationObserver(() => {
+      for (const child of Array.from(root.children)) resize?.observe(child);
+      if (!frame) frame = requestAnimationFrame(fit);
+    });
+    mutations.observe(root, { childList: true, subtree: true });
+    return () => {
+      cancelAnimationFrame(frame);
+      resize?.disconnect();
+      mutations.disconnect();
+      reset();
     };
   }, []);
 }
@@ -376,7 +546,10 @@ function LiveAnswerReveal({
   heroRun: heroRunAllowed = true,
   startedAt,
   now,
+  onPlayAgain,
+  onBack,
 }: AnswerRevealProps) {
+  const practiceActions = practice && (onPlayAgain || onBack);
   const secondsLeft = Math.max(
     0,
     Math.ceil((puzzleRevealMs(puzzle) - Math.max(0, now - startedAt)) / 1000),
@@ -389,6 +562,7 @@ function LiveAnswerReveal({
   const solvedBoard = useRef<HTMLDivElement>(null);
   useSolveFlourish(solvedBoard, puzzle.type, answersReady && myScore !== null && myCorrect);
   useRevealLabels(solvedBoard);
+  useRevealFit(solvedBoard);
   useRevealMore(solvedBoard);
   const trayRef = useRef<HTMLDivElement>(null);
   useRevealTray(solvedBoard, trayRef);
@@ -456,7 +630,7 @@ function LiveAnswerReveal({
       <div className="rs-head shrink-0">
         <span className="min-w-0 truncate text-[15px] font-bold text-foreground">{def.name}</span>
         <span className="rs-meta">
-          {practice ? "Practice" : `Round ${round} of ${totalRounds}`} · {secondsLeft}s
+          {practice ? (practiceActions ? "Practice" : `Practice · ${secondsLeft}s`) : `Round ${round} of ${totalRounds} · ${secondsLeft}s`}
         </span>
       </div>
 
@@ -521,6 +695,7 @@ function LiveAnswerReveal({
         {players && players.length > 1 ? <RevealPlayers players={players} secondsLeft={secondsLeft} /> : null}
       </div>
       )}
+      {practiceActions ? <PracticeRevealActions onPlayAgain={onPlayAgain} onBack={onBack} /> : null}
       <DevDiagnostics extra={myExtra ?? null} />
     </div>
   );

@@ -5,7 +5,7 @@
  */
 
 import { SPEED_PAR_VERSION, puzzleUsesSpeedPar, withSpeedCurve } from "./speedPar";
-import { dealtPuzzleScoreRev, puzzleScoreRevOf, storedScoreParts } from "./puzzleScoreRev";
+import { PUZZLE_SCORE_REV_DEALT, dealtPuzzleScoreRev, puzzleScoreRevOf, storedScoreParts } from "./puzzleScoreRev";
 import { PUZZLE_SCORE_REV_BANDS, rev2Applies, rev2Grade, rev2ResultOf } from "./puzzleScoreRev2";
 import { PUZZLE_SCORE_REV_HELPER, rev3Applies, rev3Efficiency, rev3Finish, rev3Unfinished } from "./puzzleScoreRev3";
 import { rev3EfficiencyOverride, rev3Progress } from "./puzzleProgress";
@@ -14,6 +14,10 @@ import { stampNumberDepth } from "./numberDepth.server";
 import { puzzleTimeLimitMs } from "./registry";
 import { WORDHUNT_REV_TARGET, WORDSMITH_REV_DEPTH, WORDSMITH_REV_TARGET, WORDSMITH_REV_TOPUP } from "./scoring";
 import { dealtTopupRev } from "./depthTopup";
+import { dealStandard, usesStandard } from "./standard/stamps";
+import { gradeStandard } from "./standard/grade.server";
+import "./standard/games.server";
+import { splitTimeline } from "./standard/timeline";
 import { stampMoveLimits } from "./moveLimits.server";
 import { stampTieRev } from "./tieBreak";
 import { dealDepth4 } from "./depth4/deal.server";
@@ -47,7 +51,7 @@ import { generateGravity } from "./gravity.server";
 import { generateTiles } from "./tiles.server";
 import { dealsD5Remodels } from "./d5Remodels";
 import { generateTopsy } from "./topsy.server";
-import { generateJumbled } from "./jumbled.server";
+import { generateJumbledDealt } from "./jumbled.server";
 import { generateChain } from "./chain.server";
 import { generateNonogram } from "./nonogram.server";
 import { generatePairMatch } from "./pairmatch.server";
@@ -132,14 +136,16 @@ export function generatePuzzle(type: PuzzleType, context: GenerateContext = {}):
   // The seven games with a 13 Oct 2026 limit or count-range revision carry their own stamp (moveLimits.ts).
   const made = stampMoveLimits(generateUnstamped(type, context));
   // Number puzzles to 200 (numberDepth.ts) carry depthRev 1 on puzzleScoreRev 3.
-  return stampNumberDepth({ ...(made as object), speedPar: SPEED_PAR_VERSION, puzzleScoreRev: dealtPuzzleScoreRev() } as unknown as PuzzleData);
+  const stamped = stampNumberDepth({ ...(made as object), speedPar: SPEED_PAR_VERSION, puzzleScoreRev: dealtPuzzleScoreRev() } as unknown as PuzzleData);
+  // The scoring standard (standard/stamps.ts): the game's live stamp moves up by one, on today's score revision only.
+  return puzzleScoreRevOf(stamped) === PUZZLE_SCORE_REV_DEALT ? dealStandard(stamped) : stamped;
 }
 
 function generateUnstamped(type: PuzzleType, context: GenerateContext): PuzzleData {
   // The D5 remodels are dealt live (Topsy-Turvy's old bank stays for its checks and stored rounds; checks written
   // for the previous versions pin the old deal, d5Remodels.ts).
   if (type === "gravity" && dealsD5Remodels()) return generateTopsy();
-  if (type === "tiles" && dealsD5Remodels()) return generateJumbled();
+  if (type === "tiles" && dealsD5Remodels()) return generateJumbledDealt();
   // Depth batch 4 (docs/depth/d4-pattern.md): eight Pattern / Logic games deal their 200-point stamp.
   const depth = dealDepth4(type, context);
   if (depth) return depth;
@@ -271,11 +277,14 @@ export function buildRoomPuzzles(options: RoundSelectionOptions & GenerateContex
  */
 export function gradeAnswer(
   puzzle: PuzzleData,
-  answer: string,
+  sent: string,
   msRemaining: number,
   extra?: SubmitExtra,
   receivedMsRemaining?: number,
 ): Graded {
+  // On a standard stamp the phone appends a draft timeline (standard/timeline.ts): graded and stored without it.
+  const std = usesStandard(puzzle);
+  const { body: answer, timeline } = std ? splitTimeline(sent) : { body: sent, timeline: null };
   const graded = withSpeedCurve(puzzleUsesSpeedPar(puzzle), () => {
     if (puzzle.type === "wordsmith") return gradeWordsmith(puzzle, answer, msRemaining);
     if (puzzle.type === "wordhunt") return gradeWordHunt(puzzle, answer, msRemaining);
@@ -283,9 +292,12 @@ export function gradeAnswer(
   });
   let todayGrade: Graded | null = null;
   const today = () => (todayGrade ??= gradeToday(puzzle, answer, graded, receivedMsRemaining));
+  const depthOrToday = () => gradeDepth200({ puzzle, answer, graded, today, receivedMsRemaining }) ?? today();
   // Depth to 200 (depth200.server.ts, the one depth path): a puzzle stamped with its game's depth revision scores to
   // 200 through that game's grader (from the game's own grade or today's); every other puzzle keeps today's grade.
-  return gradeDepth200({ puzzle, answer, graded, today, receivedMsRemaining }) ?? today();
+  // The scoring standard (standard/grade.server.ts): a puzzle on its game's standard stamp scores on the one shape.
+  if (std) return gradeStandard({ puzzle, answer, timeline, graded, today, receivedMsRemaining }) ?? depthOrToday();
+  return depthOrToday();
 }
 
 /** Today's grade before any depth revision: puzzleScoreRev 3's helper or rev 2's knots over the game's own grade. */

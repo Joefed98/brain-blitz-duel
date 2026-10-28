@@ -59,8 +59,8 @@ const { pinballArtGame } = await import("../src/lib/arcade/pinball.renderer");
 const { rallyArtGame } = await import("../src/lib/arcade/rally.renderer");
 const { rallyRev2Game } = await import("../src/lib/arcade/rally");
 const { BRK_REV_DEEP } = await import("../src/lib/arcade/breaker");
-const { rallyGameFor, RALLY_REV_BONUS } = await import("../src/lib/arcade/rally");
-const { BURST_REV_CLEAN } = await import("../src/lib/arcade/burst");
+const { rallyGameFor, RALLY_REV_CURVE } = await import("../src/lib/arcade/rally");
+const { BURST_REV_CARRY } = await import("../src/lib/arcade/burst");
 const { beatArtGame } = await import("../src/lib/arcade/beat.renderer");
 const { beatRev2Game } = await import("../src/lib/arcade/beat");
 const { snakeArtGame } = await import("../src/lib/arcade/snake.renderer");
@@ -116,25 +116,26 @@ const GAMES: Record<string, AnyGame> = {
   hover: { ...hoverArtGame, init: hoverExpandGame.init } as AnyGame,
   // Expansion E3: rooms deal brkRev 9 (ARCADE_FX_SPECS lists its 420 × 784 spec).
   breaker: breakerArtGameFor(BRK_REV_DEEP) as AnyGame,
-  // Expansion E9: rooms deal rallyRev 10 (ARCADE_FX_SPECS lists its 420 × 784 spec) and burstRev 8.
-  rally: { ...rallyGameFor(RALLY_REV_BONUS), draw: rallyArtGame.draw } as AnyGame,
+  // Expansion E9: rooms deal rallyRev 10 (ARCADE_FX_SPECS lists its 420 × 784 spec) and burstRev 8; rallyRev 11 since the phone notes (27 Oct 2026).
+  rally: { ...rallyGameFor(RALLY_REV_CURVE), draw: rallyArtGame.draw } as AnyGame,
   beat: { ...beatArtGame, init: beatRev2Game.init } as AnyGame,
   snake: { ...snakeArtGame, init: snakeRev3Game.init } as AnyGame,
-  burst: burstArtGameFor(BURST_REV_CLEAN) as AnyGame,
+  burst: burstArtGameFor(BURST_REV_CARRY) as AnyGame,
   wavefront: wavefrontArtGameFor(2) as AnyGame,
   orbit: orbitArtGame as AnyGame,
   skyline: { ...skylineArtGame, init: skylineRev2Game.init } as AnyGame,
   // The revision rooms deal (crossRev 9, x200: the island, coins and streak events too).
   cross: crossArtGameFor(9) as AnyGame,
   junction: junctionArtGame as AnyGame,
-  inkbridge: inkBridgeArtGameFor(10) as AnyGame, // inkRev 10 (x200): the taller world rooms deal, its spec ARCADE_FX_SPECS.inkbridge
+  inkbridge: inkBridgeArtGameFor(11) as AnyGame, // inkRev 11 (phone notes; inkRev 10's taller world, x200): what rooms deal, its spec ARCADE_FX_SPECS.inkbridge
   slice: sliceArtGameFor(2) as AnyGame,
   bintoss: { ...binTossArtGame, init: binTossGameFor(3).init } as AnyGame,
   bullseye: { ...bullseyeGame, init: bullseyeRev2Game.init, draw: drawBullseye } as AnyGame,
   bubble: { ...bubbleArtGame, init: bubbleRev2Game.init } as AnyGame,
   // Roofbound's expansion (flipRev 8, docs/expansions/x200-flip.md) is the live spec.
   flip: flipArtGameFor(8) as AnyGame,
-  // Grappler's 200 expansion (swingRev 13) is the live spec: its bank course, so every feature (sections included) is on it.
+  // Grappler's live spec is the assault course's (SWING_FX_V14: swingRev 13's events, then swingRev 14's own). Its first
+  // eleven events fire on a rev-13 state (the bank course, every feature on it); the last five on a rev-14 one (BUMPS).
   swing: { ...swingArtGameFor(13), init: () => swingArtGameFor(13).init(SWING_V13_BANK[0]!.seed) } as AnyGame,
   snip: { ...snipArtGame, init: snipRev3Game.init } as AnyGame,
   tilt: tiltArtGame as AnyGame,
@@ -146,7 +147,7 @@ const GAMES: Record<string, AnyGame> = {
   pinball: pinballArtGame as AnyGame,
 };
 
-assert.equal(Object.keys(GAMES).length, 23, "23 arcade games with a world (22 active with Pinball; Junction practice only)");
+assert.equal(Object.keys(GAMES).length, 23, "23 arcade games with a world (21 active with Pinball; Junction and Scrumper practice only)");
 assert.deepEqual(
   Object.keys(GAMES).sort(),
   Object.keys(specs.ARCADE_FX_SPECS).sort(),
@@ -250,6 +251,17 @@ for (const [name, game] of Object.entries(GAMES)) {
 // (a copy; the sim never sees it) and draw. The effect must fire and the draw
 // must complete. Index order matches each spec's `events`.
 const zeros = (n: number) => Array.from({ length: n }, () => 0);
+/** A swingRev 14 state 120 ticks in (the base every other game's bumps start from is that far in too). */
+let assaultBase: any = null;
+function assaultAt(): any {
+  if (!assaultBase) {
+    const g = swingArtGameFor(14);
+    let st: any = g.init(5);
+    for (let t = 0; t < 120; t++) st = g.step(st, null);
+    assaultBase = st;
+  }
+  return assaultBase;
+}
 const BUMPS: Record<string, ((s: any) => any)[]> = {
   hover: [
     (s) => ({ ...s, gates: s.gates + 1 }),
@@ -408,6 +420,13 @@ const BUMPS: Record<string, ((s: any) => any)[]> = {
     (s) => ({ ...s, comboPts: (s.comboPts ?? 0) + 2, comboTiers: (s.comboTiers ?? 0) + 1, chain: 5 }),
     (s) => ({ ...s, ledgeTicks: (s.ledges ?? []).map((l: any, i: number) => (l.section === 0 ? s.tick : (s.ledgeTicks ?? [])[i] ?? 0)) }),
     (s) => ({ ...s, ledgeTicks: (s.ledges ?? []).map((l: any, i: number) => (l.section === 1 ? (l.kind === 0 ? Math.max(1, s.tick - 60) : s.tick) : (s.ledgeTicks ?? [])[i] ?? 0)) }),
+    // swingRev 14 (the assault course), on a rev-14 state at the same tick: a gate lit, a gem, a star, a section cleared
+    // (its landing a few ticks before its par runs out), the course cleared.
+    () => ({ ...assaultAt(), gatesLit: 1 }),
+    () => ({ ...assaultAt(), gemsTaken: 1 }),
+    () => ({ ...assaultAt(), starsTaken: [0], stars: 1 }),
+    () => ({ ...assaultAt(), sec: 1, secTicks: assaultAt().secTicks.map((t: number, i: number) => (i === 0 ? 100 : t)) }),
+    () => ({ ...assaultAt(), sec: assaultAt().sections.length }),
   ],
   snip: [
     (s) => ({ ...s, stars: s.stars + 1 }),

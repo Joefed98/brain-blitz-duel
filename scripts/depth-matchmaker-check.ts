@@ -35,6 +35,15 @@ import {
   pairUsesDepth,
 } from "../src/lib/duel/depth/matchmaker";
 import { hashText, makeRng, type Play, type Rng } from "./puzzle-fairness/kit";
+import { pinPrePhoneNotes } from "../src/lib/duel/phoneNotes";
+import { PAIR_DEPTH_INTRO, pairDepthHelp } from "../src/lib/duel/depth/matchmaker";
+import { bandsHelp } from "../src/lib/duel/puzzleBandsText";
+import { fillMax } from "../src/lib/duel/roundMax";
+import { STANDARD_ATTENTION_HELP, STANDARD_ATTENTION_INTRO } from "../src/lib/duel/standard/attentionTexts";
+
+// Written for the stamps before Joe's phone notes (27 Oct 2026): new deals stay on them here; phone-notes-check proves
+// the stamps rooms deal now.
+pinPrePhoneNotes(true);
 import { BOT_LEVELS, ELITE, botRuns, levelRow, printTable } from "./depth/chain-pair-bots";
 
 let checks = 0;
@@ -116,10 +125,16 @@ for (let k = 0; k < 300; k++) {
 checks++;
 
 /* ------------------------------------------------------------------ texts */
+// The depth texts (depth/matchmaker.ts) state pairRev 1–2's scoring; since the scoring standard (27 Oct 2026, pairRev 3)
+// the live intro and help are the standard's (standard/attentionTexts.ts, proved by standard-attention-check).
+const depthIntro = fillMax(PAIR_DEPTH_INTRO, "pairmatch");
+ok(depthIntro.length <= 90 && /\b200\b/.test(depthIntro) && /gold pair/.test(depthIntro), `depth intro: ${depthIntro}`);
+const depthHelp = fillMax(pairDepthHelp(bandsHelp("pairmatch"), roundMaxFor("pairmatch")), "pairmatch");
+ok(/streak/.test(depthHelp) && /gold pair/.test(depthHelp) && /\b200 needs both/.test(depthHelp) && /120 to 150/.test(depthHelp), `depth help: ${depthHelp}`);
 const intro = INTRO_SCORE.pairmatch;
-ok(intro.length <= 90 && /\b200\b/.test(intro) && /gold pair/.test(intro), `intro: ${intro}`);
+ok(intro === fillMax(STANDARD_ATTENTION_INTRO.pairmatch, "pairmatch") && intro.length <= 90 && /\b200\b/.test(intro) && /gold pair/.test(intro), `live intro is the standard's: ${intro}`);
 const help = PUZZLE_INSTRUCTIONS.pairmatch;
-ok(/streak/.test(help.score) && /gold pair/.test(help.score) && /\b200 needs both/.test(help.score) && /120 to 150/.test(help.score), `help: ${help.score}`);
+ok(help.score === fillMax(STANDARD_ATTENTION_HELP.pairmatch(), "pairmatch") && /streak/.test(help.score) && /gold pair/.test(help.score) && /\b200\b/.test(help.score), `live help is the standard's: ${help.score}`);
 ok(help.how.some((h) => !h.helpOnly && /gold pair/.test(h.detail)), "the intro's how line names the features");
 
 /* ------------------------------------------------------------------ 4. bots */

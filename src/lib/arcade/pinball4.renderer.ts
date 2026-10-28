@@ -15,10 +15,10 @@
 import { arcadeFx, type ArcadeFxSpec } from "./arcadeFx.renderer";
 import { PINBALL_BULBS } from "./arcadeFxGames.renderer";
 import { artCanvas, artContext, type ArtCanvas } from "./cache.renderer";
-import { fillAbove, fillBelow, pinballFill } from "./arenaFills.renderer";
+import { fillAbove, fillBelow, pinball4Fill } from "./arenaFills.renderer";
 import type { ArenaSceneView } from "./arenaScene.renderer";
 import { type ArcadeGame, type ArcadeInputEvent, type CanvasSize } from "./engine";
-import { PIN_BALLS, PIN_BALL_R, PIN_MULT_MAX, PIN_RUN_TICKS, PIN_SLING, PIN_TARGET, PIN_GATE, PIN_WALL_R, type PinSegDef, type PinState } from "./pinball";
+import { pinIsExpanded, PIN_BALLS, PIN_BALL_R, PIN_MULT_MAX, pinRunTicksOf, PIN_SLING, PIN_TARGET, PIN_GATE, PIN_WALL_R, type PinSegDef, type PinState } from "./pinball";
 import {
   drawBall,
   drawBumperFlash,
@@ -51,6 +51,7 @@ import {
   p4PowerAt,
   p4RailTicks,
   pinball4Game,
+  pinball5Game,
   P4_ARCH,
   P4_BUMPERS,
   P4_COMBO_TICKS,
@@ -87,6 +88,7 @@ import {
   P4_WORLD_H,
   P4_WORLD_W,
   PIN_REV_EXPAND,
+  PIN_REV_LONG,
   type P4Ball,
   type Pin4State,
 } from "./pinball4";
@@ -96,8 +98,17 @@ import { arcadeReducedEffects } from "../fx/lowEnd";
 type Ctx = CanvasRenderingContext2D;
 
 const S = P4_SHIFT;
-/** The ramps' plastics: the left ramp cyan, the right magenta; the plunge rail chrome; the lock gold. */
+/**
+ * The table's palette. Joe's phone notes (27 Oct 2026, a second pass): the original vivid pinks, purples and greens
+ * (bumpers, targets, lanes, lights, flippers and accents) on a rich purple playfield, with the smoked ramp tubes, square
+ * portals and the LOCK label. The ramps' accents: the left one cyan, the right magenta; the plunge rail chrome; the lock gold.
+ */
+const TABLE_TOP = "#3A1468";
+const TABLE_MID = "#25094A";
+const TABLE_BOTTOM = "#13052A";
 const RAMP_COLOURS = ["#3DFFE0", "#FF4DFF"] as const;
+/** The ramps' accents as "r,g,b" (for translucent pools and edges). */
+const RAMP_RGB = ["61,255,224", "255,77,255"] as const;
 const LOCK_GOLD = "#FFD84A";
 const LETTER_ON = "#4BFF7A";
 
@@ -119,9 +130,9 @@ function playfieldPath(c: Ctx): void {
 /** The deep purple glow behind the table (pinball.renderer's, centred on the taller table). */
 export function paintTable4Glow(c: Ctx, x: number, y: number, w: number, h: number): void {
   const g = c.createRadialGradient(P4_MID_X, 420, 40, P4_MID_X, 420, 640);
-  g.addColorStop(0, "rgba(96,30,170,0.55)");
-  g.addColorStop(0.45, "rgba(70,20,130,0.32)");
-  g.addColorStop(1, "rgba(40,10,80,0)");
+  g.addColorStop(0, "rgba(120,36,200,0.55)");
+  g.addColorStop(0.45, "rgba(84,24,150,0.32)");
+  g.addColorStop(1, "rgba(48,12,96,0)");
   c.save();
   c.globalCompositeOperation = "lighter";
   c.fillStyle = g;
@@ -137,9 +148,9 @@ function paintPlayfield(c: Ctx, detail: boolean): void {
   playfieldPath(c);
   c.clip();
   const g = c.createLinearGradient(0, 40, 0, P4_WORLD_H);
-  g.addColorStop(0, "#1D0F45");
-  g.addColorStop(0.45, "#130A33");
-  g.addColorStop(1, "#08041A");
+  g.addColorStop(0, TABLE_TOP);
+  g.addColorStop(0.5, TABLE_MID);
+  g.addColorStop(1, TABLE_BOTTOM);
   c.fillStyle = g;
   c.fillRect(0, 0, P4_WORLD_W, P4_WORLD_H);
 
@@ -192,9 +203,9 @@ function paintPlayfield(c: Ctx, detail: boolean): void {
 
   // Shooter lane floor.
   const lg = c.createLinearGradient(P4_LANE_INNER, 0, P4_LANE_OUTER, 0);
-  lg.addColorStop(0, "#081217");
-  lg.addColorStop(0.5, "#13262E");
-  lg.addColorStop(1, "#081217");
+  lg.addColorStop(0, "#0E0620");
+  lg.addColorStop(0.5, "#1E0E3C");
+  lg.addColorStop(1, "#0E0620");
   c.fillStyle = lg;
   c.fillRect(P4_LANE_INNER, 150, P4_LANE_OUTER - P4_LANE_INNER, P4_WORLD_H - 150);
 
@@ -240,7 +251,7 @@ function paintInlays(c: Ctx): void {
   c.stroke();
   // Grooves leading up into each ramp mouth.
   P4_RAMPS.forEach((_, i) => {
-    for (let k = 0; k < 2; k++) groove(rampMouthX(i), RAMP_INSERT_Y + 22 + k * 13, 14, 6, i === 0 ? "rgba(61,255,224,0.2)" : "rgba(255,77,255,0.2)");
+    for (let k = 0; k < 2; k++) groove(rampMouthX(i), RAMP_INSERT_Y + 22 + k * 13, 14, 6, `rgba(${RAMP_RGB[i]},0.2)`);
   });
 
   // Unlit sockets: five letter lanes, the multiplier row, target lights, the spinner arrow, ramp arrows, the jackpot.
@@ -248,7 +259,7 @@ function paintInlays(c: Ctx): void {
   for (let m = 2; m <= PIN_MULT_MAX; m++) socket(c, () => ovalPath(c, multX(m), MULT_Y + 4.5, 12.5, 8), "#271B04", "rgba(255,216,74,0.32)");
   for (const x of P4_TARGET_XS) socket(c, () => ovalPath(c, x, TARGET_INSERT_Y, 4, 4), "#2A1206", "rgba(255,138,60,0.35)");
   socket(c, () => triPath(c, ORBIT_MID, SPIN_INSERT_Y - 6, SPIN_INSERT_Y + 6, 8), "#2A2004", "rgba(255,216,74,0.32)");
-  P4_RAMPS.forEach((_, i) => socket(c, () => triPath(c, rampMouthX(i), RAMP_INSERT_Y - 6, RAMP_INSERT_Y + 6, 9), "#10102A", i === 0 ? "rgba(61,255,224,0.4)" : "rgba(255,77,255,0.4)"));
+  P4_RAMPS.forEach((_, i) => socket(c, () => triPath(c, rampMouthX(i), RAMP_INSERT_Y - 6, RAMP_INSERT_Y + 6, 9), "#10102A", `rgba(${RAMP_RGB[i]},0.4)`));
   socket(c, () => ovalPath(c, P4_MID_X + 9, JACKPOT_INSERT_Y, 30, 7), "#2A0A26", "rgba(255,77,255,0.35)");
   for (const x of P4_TARGET_XS) {
     c.fillStyle = "rgba(0,0,0,0.6)";
@@ -291,10 +302,8 @@ function paintTable(c: Ctx, detail: boolean): void {
   }
   // Chrome caps on the lane and ramp-mouth posts (inside their capsules).
   for (const s of SEG_WALLS) if (s.a[0] === s.b[0] && s.b[1] - s.a[1] <= 32) chromePost(c, s.a[0], s.a[1], PIN_WALL_R);
-  // The ramps' level, translucent over the playfield (painted into the same layer: one image a frame).
-  c.globalAlpha = 0.88;
+  // The ramps' level over the playfield (painted into the same layer: one image a frame).
   paintRamps(c);
-  c.globalAlpha = 1;
   c.restore();
 }
 
@@ -335,49 +344,66 @@ function railPoint(u: number): [number, number] {
 }
 
 /**
- * The ramps on their raised level: plastic channels (a soft bed between two bright rails, drawn on the ramp's
- * path), the plunge rail as a chrome wire round the arch, and the lock hole on the right ramp. Painted once
- * into a layer and laid over the playfield, translucent, so a ball on the playfield under them still shows.
+ * The ramps on their raised level, drawn as tunnels (27 Oct 2026, Joe's phone notes: subtler, slicker, squared-off
+ * entrances): a smoked-glass tube on the ramp's path with a fine lit edge each side, faint hoops along it and a
+ * soft sheen, opening at the playfield in a square portal across the mouth; then the plunge rail as a chrome
+ * wire round the arch and the lock hole on the right ramp. Painted once into a layer over the playfield; the
+ * tube is translucent, so a ball on the playfield under it still shows. No collision: art only.
  */
 function paintRamps(c: Ctx): void {
   P4_RAMP_PATHS.forEach((path, i) => {
-    const colour = RAMP_COLOURS[i]!;
+    const rgb = RAMP_RGB[i]!;
     c.save();
-    c.lineCap = "round";
+    c.lineCap = "butt";
     c.lineJoin = "round";
+    // A soft drop shadow, then the edges (the full width) with the tube's body over all but their outer 1.5 px.
+    c.save();
+    c.translate(3, 4);
     linePath(c, path);
-    c.strokeStyle = "rgba(0,0,0,0.35)";
-    c.lineWidth = 26;
-    c.stroke();
-    linePath(c, path);
-    c.strokeStyle = colour;
+    c.strokeStyle = "rgba(0,0,0,0.28)";
     c.lineWidth = 22;
     c.stroke();
-    c.globalCompositeOperation = "destination-out";
+    c.restore();
     linePath(c, path);
-    c.lineWidth = 18;
+    c.strokeStyle = `rgba(${rgb},0.65)`;
+    c.lineWidth = 22;
     c.stroke();
-    c.globalCompositeOperation = "source-over";
     linePath(c, path);
-    c.strokeStyle = i === 0 ? "rgba(61,255,224,0.16)" : "rgba(255,77,255,0.16)";
-    c.lineWidth = 18;
+    c.strokeStyle = "rgba(16,7,30,0.8)";
+    c.lineWidth = 19;
     c.stroke();
-    // Cross ribs along the bed.
-    c.strokeStyle = i === 0 ? "rgba(61,255,224,0.32)" : "rgba(255,77,255,0.32)";
+    linePath(c, path);
+    c.strokeStyle = `rgba(${rgb},0.06)`;
+    c.lineWidth = 15;
+    c.stroke();
+    // The sheen: one thin highlight along the tube's upper-left side.
+    c.save();
+    c.translate(-3, -2);
+    linePath(c, path);
+    c.strokeStyle = "rgba(255,255,255,0.09)";
+    c.lineWidth = 2;
+    c.stroke();
+    c.restore();
+    // Hoops across the tube, faint, every 18 px.
+    c.strokeStyle = `rgba(${rgb},0.13)`;
     c.lineWidth = 1;
     for (let k = 0; k < path.length - 1; k++) {
       const [ax, ay] = path[k]!;
       const [bx, by] = path[k + 1]!;
       const len = Math.hypot(bx - ax, by - ay);
       const nx = -(by - ay) / len, ny = (bx - ax) / len;
-      for (let d = 10; d < len; d += 14) {
+      for (let d = 16; d < len; d += 18) {
         const x = ax + ((bx - ax) * d) / len, y = ay + ((by - ay) * d) / len;
         c.beginPath();
-        c.moveTo(x - nx * 8, y - ny * 8);
-        c.lineTo(x + nx * 8, y + ny * 8);
+        c.moveTo(x - nx * 9.5, y - ny * 9.5);
+        c.lineTo(x + nx * 9.5, y + ny * 9.5);
         c.stroke();
       }
     }
+    // The entrance: a square portal across the mouth (path[0], facing down the playfield), dark inside; the right
+    // ramp's far end, where it drops into the left orbit, gets the same portal. (The left ramp runs on onto the rail.)
+    tunnelPortal(c, path[0]!, path[1]!, rgb);
+    if (i === 1) tunnelPortal(c, path[path.length - 1]!, path[path.length - 2]!, rgb);
     c.restore();
   });
   // The plunge rail: two thin chrome wires.
@@ -410,6 +436,25 @@ function paintRamps(c: Ctx): void {
   c.strokeStyle = LOCK_GOLD;
   c.lineWidth = 2;
   c.stroke();
+  retroText(c, "LOCK", P4_LOCK_X, P4_LOCK_Y - 24, 7, "rgba(255,216,74,0.8)", "center");
+  c.restore();
+}
+
+/** A tunnel's square portal at `at`, its depth running toward `into` (a dark well, a lit frame and lip). */
+function tunnelPortal(c: Ctx, at: readonly [number, number], into: readonly [number, number], rgb: string): void {
+  c.save();
+  c.translate(at[0], at[1]);
+  c.rotate(Math.atan2(into[1] - at[1], into[0] - at[0]) - Math.PI / 2);
+  const g = c.createLinearGradient(0, -2, 0, 9);
+  g.addColorStop(0, "rgba(4,2,10,0.95)");
+  g.addColorStop(1, "rgba(16,7,30,0.6)");
+  c.fillStyle = g;
+  c.fillRect(-12, -2, 24, 11);
+  c.strokeStyle = `rgba(${rgb},0.75)`;
+  c.lineWidth = 1.5;
+  c.strokeRect(-12.25, -2.25, 24.5, 11.5);
+  c.fillStyle = `rgba(${rgb},0.85)`;
+  c.fillRect(-12.5, -3, 25, 1.5);
   c.restore();
 }
 
@@ -480,7 +525,7 @@ function drawLights(ctx: Ctx, s: Pin4State, bloom: number, t: number): void {
     const on = lockLit || comboOn;
     if (!on) return;
     const colour = lockLit ? LOCK_GOLD : RAMP_COLOURS[i]!;
-    if (glow) pool(ctx, x, RAMP_INSERT_Y, 18, lockLit ? "rgba(255,216,74,A)" : i === 0 ? "rgba(61,255,224,A)" : "rgba(255,77,255,A)", 0.3 + 0.08 * pulse);
+    if (glow) pool(ctx, x, RAMP_INSERT_Y, 18, lockLit ? "rgba(255,216,74,A)" : `rgba(${RAMP_RGB[i]},A)`, 0.3 + 0.08 * pulse);
     if (blink(t, 260) || !comboOn) {
       triPath(ctx, x, RAMP_INSERT_Y - 6, RAMP_INSERT_Y + 6, 9);
       ctx.fillStyle = colour;
@@ -666,7 +711,7 @@ function drawHud(ctx: Ctx, s: Pin4State): void {
     retroText(ctx, `MULTIBALL ${secs}`, 12, 26, 9, "#FF9BFF", "left", 3);
   } else if (s.locks > 0) retroText(ctx, s.lockLit && s.locks === 2 ? "2 LOCKED: MULTIBALL LIT" : `${s.locks} LOCKED`, 12, 26, 9, LOCK_GOLD, "left");
   else if (s.lockLit) retroText(ctx, "LOCK LIT", 12, 26, 9, LOCK_GOLD, "left");
-  if (s.lost >= PIN_BALLS && s.tick < PIN_RUN_TICKS) retroText(ctx, "GAME OVER", P4_WORLD_W / 2 - 12, 420 + S, 16, "#FF3B5C", "center", 6);
+  if (s.lost >= PIN_BALLS && s.tick < pinRunTicksOf(s)) retroText(ctx, "GAME OVER", P4_WORLD_W / 2 - 12, 420 + S, 16, "#FF3B5C", "center", 6);
 }
 
 function drawWorld(ctx: Ctx, s: Pin4State, key: Ctx): void {
@@ -751,9 +796,12 @@ function draw(ctx: Ctx, state: PinState, size: CanvasSize): void {
 }
 
 export const pinball4ArtGame: ArcadeGame<Pin4State, ArcadeInputEvent | null> = { ...pinball4Game, draw: (ctx, state, size) => draw(ctx, state, size) };
+/** pinRev 5's 90-second run on the same table and art. */
+export const pinball5ArtGame: ArcadeGame<Pin4State, ArcadeInputEvent | null> = { ...pinball5Game, draw: (ctx, state, size) => draw(ctx, state, size) };
 
-/** The art game for any stored pinRev: pinRev 4 this table, older ones pinball.renderer's. */
+/** The art game for any stored pinRev: pinRev 5 and 4 this table, older ones pinball.renderer's. */
 export function pinballArtGameForAny(rev?: number | null): ArcadeGame<PinState, ArcadeInputEvent | null> {
+  if (rev === PIN_REV_LONG) return pinball5ArtGame as unknown as ArcadeGame<PinState, ArcadeInputEvent | null>;
   return rev === PIN_REV_EXPAND ? (pinball4ArtGame as unknown as ArcadeGame<PinState, ArcadeInputEvent | null>) : pinballArtGameFor(rev);
 }
 
@@ -765,15 +813,15 @@ export function drawPinballAny(ctx: Ctx, state: PinState, size: CanvasSize): voi
 
 /** The world size a stored pinRev draws in. */
 export function pinballWorldHFor(rev?: number | null): number {
-  return rev === PIN_REV_EXPAND ? P4_WORLD_H : 700;
+  return pinIsExpanded(rev) ? P4_WORLD_H : 700;
 }
 
 /**
- * The play screen's fill round the taller table: pinball.renderer's (arenaFills' dark fill and lamps), with
- * the glow centred on this table.
+ * The play screen's fill round the taller table: arenaFills' purple fill and lamps (pinball4Fill), with the
+ * glow centred on this table.
  */
 export function pinball4GlowFill(ctx: CanvasRenderingContext2D, view: ArenaSceneView): void {
-  pinballFill(ctx, view);
+  pinball4Fill(ctx, view);
   const above = fillAbove(view);
   if (above) paintTable4Glow(ctx, above.x, above.y, above.w, above.h);
   const below = fillBelow(view);
@@ -781,8 +829,8 @@ export function pinball4GlowFill(ctx: CanvasRenderingContext2D, view: ArenaScene
   ctx.save();
   ctx.globalCompositeOperation = "lighter";
   const g = ctx.createLinearGradient(0, below.y, 0, below.y + below.h);
-  g.addColorStop(0, "rgba(70,20,130,0)");
-  g.addColorStop(1, "rgba(70,20,130,0.28)");
+  g.addColorStop(0, "rgba(84,24,150,0)");
+  g.addColorStop(1, "rgba(84,24,150,0.28)");
   ctx.fillStyle = g;
   ctx.fillRect(below.x, below.y, below.w, below.h);
   ctx.restore();

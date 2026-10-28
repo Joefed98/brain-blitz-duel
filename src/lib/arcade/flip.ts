@@ -501,6 +501,8 @@ export interface FlipState extends BandFields {
   tunec?: number;
   /** flipRev 8 only (the expansion, absent on every earlier round): see FlipV8Fields. */
   exp?: number;
+  /** flipRev 9 only: flipRev 8's play scored on the lifted curves (FLIP_V9_*); not in the checkpoint checksum. */
+  lift?: number;
   v8?: FlipV8Course;
   arcN?: number;
   land?: number;
@@ -822,6 +824,7 @@ const flipRev2Game: ArcadeGame<FlipState, ArcadeInputEvent | null> = { ...flipGa
 
 /** Takes puzzle.flipRev; anything else is the original corridor. */
 export function flipGameFor(rev?: number | null): ArcadeGame<FlipState, ArcadeInputEvent | null> {
+  if (rev === FLIP_REV_LIFT) return flipLiftGame;
   if (rev === FLIP_REV_EXPAND) return flipExpandGame;
   // 7 was the parked expansion's stamp, never dealt or stored: it would play as the revision before it.
   if (rev === FLIP_REV_STRICT || rev === FLIP_REV_STRICT + 1) return flipStrictGame;
@@ -1018,7 +1021,7 @@ export interface FlipV8Course {
 }
 
 export function flipWorldHFor(rev?: number | null): number {
-  return rev === FLIP_REV_EXPAND ? FLIP_V8_WORLD_H : FLIP_WORLD_H;
+  return rev === FLIP_REV_EXPAND || rev === FLIP_REV_LIFT ? FLIP_V8_WORLD_H : FLIP_WORLD_H;
 }
 export function flipWorldH(state: Pick<FlipState, "exp">): number {
   return state.exp ? FLIP_V8_WORLD_H : FLIP_WORLD_H;
@@ -1706,7 +1709,7 @@ export function flipV8Features(state: FlipState): { trails: number; sweets: numb
   const zones = FLIP_V8_ZONE_POINTS * (state.zonesOk ?? 0);
   const checkpoints = FLIP_V8_CP_POINTS * (state.cleanCps ?? 0);
   const raw = trails + sweets + combo + zones + checkpoints;
-  return { trails, sweets, combo, zones, checkpoints, raw, total: Math.min(FLIP_V8_FEATURE_CAP, bandPoints(FLIP_V8_SKILL_PAY, raw)) };
+  return { trails, sweets, combo, zones, checkpoints, raw, total: Math.min(FLIP_V8_FEATURE_CAP, bandPoints(state.lift ? FLIP_V9_SKILL_PAY : FLIP_V8_SKILL_PAY, raw)) };
 }
 
 /** What every rev-8 course offers, whatever the seed (the arcade rule's guaranteed opportunities). */
@@ -1738,7 +1741,7 @@ function flipV8Parts(state: FlipState): BandParts {
   const bits = f.raw ? [`skill ${f.total} (${parts.join(", ")})`] : [];
   return {
     units,
-    points: bandPoints(FLIP_V8_BAND_CURVE, units),
+    points: bandPoints(state.lift ? FLIP_V9_BAND_CURVE : FLIP_V8_BAND_CURVE, units),
     bonus: (finished ? BAND_FINISH_BONUS : 0) + f.total,
     penalty: 0,
     finished,
@@ -1790,4 +1793,23 @@ export const flipExpandGame: ArcadeGame<FlipState, ArcadeInputEvent | null> = {
   ...flipGame,
   init: initV8,
   step: bandStep(stepV8),
+};
+
+/* ================= flipRev 9 (27 Oct 2026): the lifted curves ================= */
+
+/**
+ * flipRev 9 (Joe's phone notes, 27 Oct 2026: Roofbound's scores read low; docs/arcade-phone-notes-oct-2026.md): flipRev 8's
+ * course, rules, features and play exactly, so a flipRev 8 log replays tick for tick; only the two curves change.
+ * The survival curve gives more for the same units in the middle (half seconds + 3 per gold star; 150 units still
+ * 140, so the ceiling stays 200) and the skill pay more for a little feature play (the full 50 still needs
+ * FLIP_V8_SKILL_FULL raw). Every run scores at least what it did on flipRev 8, and a better run never less than a
+ * worse one. States add `lift: 1` (not in the checkpoint checksum: play is unchanged).
+ */
+export const FLIP_REV_LIFT = 9;
+export const FLIP_V9_BAND_CURVE = bandCurve([0, 40, 105, 130, 140, 146, 150], [0, 20, 65, 80, 92, 118, 140]);
+export const FLIP_V9_SKILL_PAY = bandCurve([0, 12, 22, 53, 59, FLIP_V8_SKILL_FULL], [0, 5, 16, 26, 38, FLIP_V8_FEATURE_CAP]);
+
+export const flipLiftGame: ArcadeGame<FlipState, ArcadeInputEvent | null> = {
+  ...flipExpandGame,
+  init: (seed) => ({ ...initV8(seed), lift: 1 }),
 };

@@ -226,6 +226,14 @@ export interface WavDrop {
   k?: number;
 }
 
+/** wavRev 11: a power-up falling from where its carrier (or a saucer) was shot down. Position in 1/256 px; `i` its sequence number. */
+export interface WavPickup {
+  x: number;
+  y: number;
+  k: number;
+  i: number;
+}
+
 export interface WavBurst {
   x: number;
   y: number;
@@ -306,6 +314,14 @@ export interface WavState extends BandFields {
   seed?: number;
   plan?: WavPlan;
   dropsSeen?: number;
+  /**
+   * wavRev 11 only (Joe's phone notes, 27 Oct 2026): the marker; for each formation slot the power-up its ship
+   * carries (WAV_DROP_*), or -1; the power-ups falling (from carriers and saucers shot down); and how many fell.
+   */
+  r11?: number;
+  carry?: number[];
+  pickups?: WavPickup[];
+  pickupsMade?: number;
   /** wavRev 2: ships that rammed the player while diving (destroyed, no points), and divers shot down. */
   rammed?: number;
   diversDown?: number;
@@ -1046,6 +1062,11 @@ export function wavCheckpoint(state: WavState): WavCheckpoint {
       if (state.boss) extra.push(state.boss.mid ?? 0, ...(state.boss.guns ?? []));
       for (const b of state.bolts) extra.push(b.v ?? 0, b.sd ?? 0, b.h ?? 0);
     }
+    // wavRev 11 (phone notes): its marker, the carriers and the falling power-ups, last.
+    if (state.r11) {
+      extra.push(state.r11, state.pickupsMade ?? 0, ...(state.carry ?? []));
+      for (const p of state.pickups ?? []) extra.push(p.x, p.y, p.k, p.i);
+    }
     for (const value of extra) {
       checksum ^= value | 0;
       checksum = Math.imul(checksum, 0x01000193) >>> 0;
@@ -1272,6 +1293,7 @@ const wavefrontGameV2: ArcadeGame<WavState, ArcadeInputEvent | null> = {
 
 /** The game for a stored wavRev (absent = the original 60 s rules). */
 export function wavefrontGameFor(rev?: number | null): ArcadeGame<WavState, ArcadeInputEvent | null> {
+  if (rev === WAV_REV_PHONE) return wavefrontPhoneGame;
   if (rev === WAV_REV_EXPAND) return wavefrontExpandGame;
   if (rev === WAV_REV_STRICT) return wavefrontStrictGame;
   if (rev === WAV_REV_TARGET) return wavefrontTargetGame;
@@ -1289,6 +1311,7 @@ export const WAV_REV_BAND = 3;
 /** Ships, armour hits and boss hits count 1, saucers 5, waves 15; 140 at a perfect five waves plus every boss hit; destroying the boss adds 10. */
 export const WAV_BAND_CURVE = bandCurve([0, 100, 214, 235, 255, WAV_PAR_V2 - WAV_POINTS_BOSS], [0, 25, 72, 100, 120, 140]);
 export function wavefrontBandParts(state: WavState): BandParts {
+  if (state.r11) return wavefrontPhoneParts(state);
   if (state.x10) return wavefrontExpandParts(state);
   // wavRev 5: a saucer counts 1 like a ship and can stand in for one missed; at 5 it outweighed the boss fight that separates players.
   const saucer = state.tunec ? WAV_POINTS_SAUCER_V5 : WAV_POINTS_SAUCER;
@@ -1448,7 +1471,7 @@ export const wavefrontTallGame: ArcadeGame<WavState, ArcadeInputEvent | null> = 
 
 /** The world height (px) a stored round's wavRev plays in. */
 export function wavefrontWorldHFor(rev?: number | null): number {
-  if (rev === WAV_REV_EXPAND) return WAV_X_H;
+  if (rev === WAV_REV_EXPAND || rev === WAV_REV_PHONE) return WAV_X_H;
   return rev === WAV_REV_TALL || rev === WAV_REV_TARGET || rev === WAV_REV_STRICT ? WAV_TALL_H : WAV_WORLD_H;
 }
 
@@ -1691,6 +1714,8 @@ function initX(seed: number): WavState {
 
 /** wavRev 10: a hit landed (any target): the streak grows and pays its multiplier less one. */
 function streakHit(s: WavState): void {
+  // wavRev 11: no hit streak.
+  if (s.r11) return;
   s.streak = (s.streak ?? 0) + 1;
   s.bestStreak = Math.max(s.bestStreak ?? 0, s.streak);
   s.streakPts = (s.streakPts ?? 0) + wavStreakMult(s.streak) - 1;
@@ -1726,6 +1751,10 @@ function stepX(state: WavState, input: ArcadeInputEvent | null): WavState {
     divers: (state.divers ?? []).map((d) => ({ ...d })),
     boss: state.boss ? { ...state.boss, guns: [...(state.boss.guns ?? [])] } : null,
   };
+  if (state.r11) {
+    s.carry = (state.carry ?? []).slice();
+    s.pickups = (state.pickups ?? []).map((p) => ({ ...p }));
+  }
   const runTicks = WAV_V2_RUN_TICKS;
   const shipY = wavShipY(s);
   const worldH = wavWorldH(s);
@@ -1833,6 +1862,8 @@ function stepX(state: WavState, input: ArcadeInputEvent | null): WavState {
       if (Math.abs(c.x - s.shipX) < (WAV_SHIP_W + WAV_CELL) / 2 && Math.abs(c.y - shipY) < (WAV_SHIP_H + WAV_CELL) / 2) {
         shipHit(s);
         s.shapes[d.cell] = 0;
+        // wavRev 11: a carrier that rams the ship takes its power-up with it.
+        if (s.r11) s.carry![d.cell] = -1;
         s.rammed = (s.rammed ?? 0) + 1;
         s.bursts.push({ x: c.x, y: c.y, t: tick, c: 0 });
         continue;
@@ -1869,7 +1900,8 @@ function stepX(state: WavState, input: ArcadeInputEvent | null): WavState {
   }
   // The planned power-ups: each appears at its seeded moment and place, whatever the play.
   {
-    const next = s.plan?.drops[s.dropsSeen ?? 0];
+    // wavRev 11: none fall from the top; they come from the carriers and saucers shot down.
+    const next = s.r11 ? undefined : s.plan?.drops[s.dropsSeen ?? 0];
     if (next && tick === next.t) {
       s.drop = { x: next.x * FP, y: WAV_X_DROP_Y * FP, wait: 0, k: next.k };
       s.dropsSeen = (s.dropsSeen ?? 0) + 1;
@@ -1925,6 +1957,7 @@ function stepX(state: WavState, input: ArcadeInputEvent | null): WavState {
         s.shapesDown += 1;
         s.waveKills += 1;
         s.bursts.push({ x: box.x + WAV_CELL / 2, y: box.y + WAV_CELL / 2, t: tick, c: (code - 1) % 3 });
+        if (s.r11) dropCarried(s, i, box.x + WAV_CELL / 2, box.y + WAV_CELL / 2);
       }
     }
     if (!hit) {
@@ -1940,6 +1973,7 @@ function stepX(state: WavState, input: ArcadeInputEvent | null): WavState {
           s.diversDown = (s.diversDown ?? 0) + 1;
           streakHit(s);
           s.bursts.push({ x: c.x, y: c.y, t: tick, c: (code - 1) % 3 });
+          if (s.r11) dropCarried(s, d.cell, c.x, c.y);
           break;
         }
       }
@@ -1990,6 +2024,8 @@ function stepX(state: WavState, input: ArcadeInputEvent | null): WavState {
         s.saucers += 1;
         streakHit(s);
         s.bursts.push({ x: Math.trunc(s.saucerX / FP), y: SAUCER_Y, t: tick, c: 3 });
+        // wavRev 11: a saucer shot down drops the purple laser where it fell.
+        if (s.r11) s.pickups!.push({ x: clampInt(s.saucerX, WAV_X_DROP_MIN_X * FP, WAV_X_DROP_MAX_X * FP), y: SAUCER_Y * FP, k: WAV_DROP_PIERCE, i: (s.pickupsMade = (s.pickupsMade ?? 0) + 1) });
         s.saucerDir = 0;
         s.saucerX = 0;
       }
@@ -2013,6 +2049,20 @@ function stepX(state: WavState, input: ArcadeInputEvent | null): WavState {
         s.drop = null;
       } else if (s.drop.y > worldH * FP) s.drop = null;
     }
+  }
+  // wavRev 11: the power-ups falling from carriers and saucers, each caught as the planned ones were.
+  if (s.r11 && s.pickups!.length) {
+    const falling: WavPickup[] = [];
+    for (const p of s.pickups!) {
+      p.y += DROP_SPEED_FP;
+      if (Math.abs(p.x - s.shipX * FP) < (WAV_SHIP_W / 2 + WAV_DROP_R) * FP && Math.abs(p.y - shipY * FP) < (WAV_SHIP_H / 2 + WAV_DROP_R) * FP) {
+        if (p.k === WAV_DROP_SPREAD) s.spread = WAV_X_SPREAD_VOLLEYS;
+        else if (p.k === WAV_DROP_SHIELD) s.shield = WAV_X_SHIELD_TICKS;
+        else s.pierce = WAV_PIERCE_SHOTS;
+        s.powerups = (s.powerups ?? 0) + 1;
+      } else if (p.y <= worldH * FP) falling.push(p);
+    }
+    s.pickups = falling;
   }
 
   // Enemy fire from the lowest two rows of the formation.
@@ -2082,6 +2132,7 @@ function stepX(state: WavState, input: ArcadeInputEvent | null): WavState {
     s.waveKills = 0;
     s.stepIn = stepEvery(s);
     s.redIn = s.redBase;
+    if (s.r11) s.carry = s.shapes.map(() => -1);
     if (!midDown && s.wave === WAV_X_MID_AFTER + 1 && !s.midKilled) {
       s.shapes = s.shapes.map(() => 0);
       s.boss = bossX(true, WAV_X_MID_HP, tick);
@@ -2095,6 +2146,7 @@ function stepX(state: WavState, input: ArcadeInputEvent | null): WavState {
       const [cells, hp] = WAV_ARMOUR_BY_WAVE[Math.min(s.wave - 2, WAV_ARMOUR_BY_WAVE.length - 1)]!;
       for (let i = 0; i < cells; i++) s.shapes[i] = WAV_ARMOUR_CODE;
       s.armour = { col: 0, row: 0, w: cells / 2, h: 2, hp, maxHp: hp };
+      if (s.r11) s.carry = wavCarriers(s.seed ?? 0, s.wave, cells);
       const size = wavFormSizeX(s.wave);
       s.fx = Math.trunc((WAV_WORLD_W - size.w) / 2);
       s.fyTarget = START_Y + (s.wave - 2) * WAV_FORM_STEP_Y;
@@ -2105,7 +2157,8 @@ function stepX(state: WavState, input: ArcadeInputEvent | null): WavState {
 
   // wavRev 10: the mothership arrives by WAV_X_BOSS_BY on the run clock at the latest (sooner when wave 5 falls
   // sooner): whatever is left of the formations, or the gunship, leaves, so every player has its weak points.
-  if (s.x10 && tick === WAV_X_BOSS_BY && !s.bossAt && !s.bossKilled) {
+  // wavRev 11: never early; the mothership comes only once wave 5 (the last before it) is destroyed.
+  if (s.x10 && !s.r11 && tick === WAV_X_BOSS_BY && !s.bossAt && !s.bossKilled) {
     s.shapes = s.shapes.map(() => 0);
     s.divers = [];
     s.armour = null;
@@ -2219,5 +2272,98 @@ export function wavefrontExpandParts(state: WavState): BandParts {
 export const wavefrontExpandGame: ArcadeGame<WavState, ArcadeInputEvent | null> = {
   ...wavefrontGameV2,
   init: initX,
+  step: bandStep(stepX),
+};
+
+/* ================= Joe's phone notes (wavRev 11, 27 Oct 2026) ================= */
+
+/**
+ * wavRev 11 (docs/phone-notes-oct-2026/wavefront.md): wavRev 10's world, waves, bosses and weak points, with:
+ *  - power-ups carried by ships: each formation wave has WAV_R11_CARRIERS carriers (one SPREAD, one SHIELD), its
+ *    slots and order drawn at the wave's start from the seed's own stream for that wave (wavCarriers), so the same
+ *    ship carries the same power-up for every player; shot down, a carrier drops it where it fell (a carrier that
+ *    rams the ship takes it with it). Nothing falls from the top;
+ *  - a saucer shot down drops the purple laser (the piercing shot);
+ *  - no hit streak and no multiplier;
+ *  - the mothership only once wave 5 is destroyed (no 78 s arrival);
+ *  - higher scores: base units on WAV_V11_BAND_CURVE, skill points (no streak) on WAV_R11_SKILL_PAY.
+ * States carry `r11: 1` (with `x10: 1`), folded into the checkpoint last.
+ */
+export const WAV_REV_PHONE = 11;
+/** wavRev 11: carriers in each formation wave (one of each kind, WAV_DROP_SPREAD and WAV_DROP_SHIELD). */
+export const WAV_R11_CARRIERS = 2;
+
+/**
+ * wavRev 11: wave `wave`'s carriers, from the seed's own stream for that wave (independent of play): an array over
+ * the wave's slots, -1 or the power-up the ship in that slot carries. Armour slots (the first `skip`) carry none.
+ */
+export function wavCarriers(seed: number, wave: number, skip = 0): number[] {
+  const carry = Array.from({ length: WAV_X_SHAPES }, () => -1);
+  let r = planStream(seed, 30 + wave);
+  const order = rngBelow(r, 2);
+  r = order.state;
+  const kinds = order.value === 0 ? [WAV_DROP_SPREAD, WAV_DROP_SHIELD] : [WAV_DROP_SHIELD, WAV_DROP_SPREAD];
+  for (let k = 0; k < WAV_R11_CARRIERS; k++) {
+    let pick = rngBelow(r, WAV_X_SHAPES - skip);
+    r = pick.state;
+    while (carry[skip + pick.value] !== -1) {
+      pick = rngBelow(r, WAV_X_SHAPES - skip);
+      r = pick.state;
+    }
+    carry[skip + pick.value] = kinds[k % kinds.length]!;
+  }
+  return carry;
+}
+
+/** wavRev 11: the ship in `cell` was shot down at (x, y): its power-up, if it carried one, starts to fall. */
+function dropCarried(s: WavState, cell: number, x: number, y: number): void {
+  const k = s.carry?.[cell] ?? -1;
+  if (k < 0) return;
+  s.carry![cell] = -1;
+  s.pickupsMade = (s.pickupsMade ?? 0) + 1;
+  s.pickups!.push({ x: x * FP, y: y * FP, k, i: s.pickupsMade });
+}
+
+function initR11(seed: number): WavState {
+  return { ...initX(seed), r11: 1, carry: wavCarriers(seed, 1), pickups: [], pickupsMade: 0 };
+}
+
+/**
+ * wavRev 11's base curve on wavRev 10's base units (WAV_PAR_X = 330 for everything; 140 points): a steady rise in
+ * place of wavRev 10's flat 250–300 (53–67), so a run that clears most of the waves scores clearly more; the last
+ * 30 points are the mothership's final hit points. Fitted with the band bots on the tuning seeds
+ * (docs/phone-notes-oct-2026/wavefront.md).
+ */
+export const WAV_V11_BAND_CURVE = bandCurve([0, 100, 200, 250, 290, 310, 324, WAV_PAR_X], [0, 28, 55, 70, 86, 96, 110, 140]);
+/** wavRev 11's skill pay on its skill points (no streak): little for incidental play, the full 50 near a flawless run. */
+export const WAV_R11_SKILL_PAY = bandCurve([0, 50, 90, 120, 150, 180], [0, 3, 10, 20, 34, 50]);
+export function wavSkillRawR11(s: WavState): number {
+  return WAV_X_SKILL_DROP * (s.powerups ?? 0) + WAV_X_SKILL_SAUCER * s.saucers + WAV_X_SKILL_CANNON * (s.cannonsDown ?? 0) + WAV_X_SKILL_CORE * (s.weakHits ?? 0) + WAV_X_SKILL_PRECISE * (s.precise ?? 0);
+}
+export function wavSkillPaidR11(s: WavState): number {
+  return Math.min(WAV_X_EDGE_MAX, bandPoints(WAV_R11_SKILL_PAY, wavSkillRawR11(s)));
+}
+
+/** wavRev 11's breakdown: the base units on WAV_V11_BAND_CURVE, the kill's speed bonus and the paid skill points. */
+export function wavefrontPhoneParts(state: WavState): BandParts {
+  const units = state.shapesDown + state.armourHits + WAV_POINTS_WAVE * state.wavesCleared + (state.bossDmg ?? 0);
+  const finished = (state.bossKilled ?? 0) > 0;
+  const fight = state.tick - (state.bossAt ?? 0);
+  const kill = finished ? speedBonusCurve(BAND_FINISH_BONUS, clampInt(WAV_KILL_WINDOW_V5 - fight, 0, WAV_KILL_WINDOW_V5), WAV_KILL_WINDOW_V5) : 0;
+  const skill = wavSkillPaidR11(state);
+  return {
+    units,
+    points: bandPoints(WAV_V11_BAND_CURVE, units),
+    bonus: kill + skill,
+    penalty: 0,
+    finished,
+    text: `${state.wavesCleared} waves · ${state.shapesDown} ships · ${state.saucers} saucers · ${state.bossDmg ?? 0} boss damage`,
+    bonusText: finished ? `Boss destroyed (+${kill}) · weak points, saucers and power-ups` : "Weak points, saucers and power-ups",
+  };
+}
+
+export const wavefrontPhoneGame: ArcadeGame<WavState, ArcadeInputEvent | null> = {
+  ...wavefrontGameV2,
+  init: initR11,
   step: bandStep(stepX),
 };

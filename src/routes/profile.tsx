@@ -43,7 +43,7 @@ export const Route = createFileRoute("/profile")({
 /** No taken colours or icons outside a room: the look is this device's preference for new rooms. */
 const NONE_TAKEN = new Map<never, number>();
 
-/** Every game rooms deal ("Any of the 73 games"). */
+/** Every game rooms deal ("Any of the 72 games"). */
 const ACTIVE_GAMES = (() => {
   const counts = gameCounts();
   return counts.puzzle + counts.arcade;

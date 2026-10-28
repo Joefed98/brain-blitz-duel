@@ -1,25 +1,20 @@
-import { CLASH_DEPTH_MAX_WRONG, CLASH_QUEUE } from "@/lib/arcade/colourClash";
 import { BULLSEYE_INNER_BULL_POINTS, BULLSEYE_RING_VALUES } from "@/lib/arcade/bullseye";
 import { BINTOSS_FAR_POINTS, BINTOSS_THROWS } from "@/lib/arcade/binToss";
 import { INK_FEATURE_MAX, INK_LEVELS } from "@/lib/arcade/inkBridge";
-import { SWING_FINISH_M } from "@/lib/arcade/swing";
 import { TILT_X_MAZES } from "@/lib/arcade/tilt";
 import { bandsIntro } from "./puzzleBandsText";
-import { depthIntro as logicDepthIntro } from "./logicDepthText";
+import { logicStandardIntro } from "./standard/logicText";
 import { wordSearchBonusIntro } from "./wordSearchText";
 import { letterWheelJarIntro } from "./letterWheelText";
 import { CODEWORD_STRETCH, TILEGRID_STRETCH_TOPUP, stretchIntro, strikeoutDepthIntro } from "./depth/stretchShapes";
 import { parBonusIntro } from "./parBonusText";
-import { doubleTakeDepthIntro, eagleEyeDepthIntro, tallyDepthIntro } from "./depth/attentionTexts";
-import { ASCEND_DEPTH_INTRO, BANGON_DEPTH_INTRO, FLASH_DEPTH_INTRO } from "./depth/speedTexts";
-import { depthIntro } from "./numberDepthText";
-import { d4IntroTemplate } from "./depth4/text";
+import { WORD_STANDARD_INTRO } from "./standard/word";
+import { preStandardPinned } from "./standard/stamps";
+import { STANDARD_ATTENTION_INTRO } from "./standard/attentionTexts";
+import { BANGON_DEPTH_INTRO, FLASH_DEPTH_INTRO } from "./depth/speedTexts";
+import { PATTERN_STD_INTRO } from "./standard/patternText";
+import { standardNumberIntro } from "./standard/numberText";
 import { fillMax, liveRecord } from "./roundMax";
-import { CHAIN_DEPTH_INTRO } from "./depth/chain";
-import { PAIR_DEPTH_INTRO } from "./depth/matchmaker";
-import { labyrinthDepthIntro } from "./depth/labyrinth";
-import { TOPSY_INTRO_SCORE } from "./topsy";
-import { JUMBLED_INTRO_SCORE } from "./jumbled";
 import type { PuzzleType } from "./types";
 
 /**
@@ -38,65 +33,67 @@ function introScoreTemplates(): Record<PuzzleType, string> {
     // Word
     wordsmith: "Longer words score more. The word using every tile adds a big bonus; {max} only with it.",
     wordhunt: "Longer words score more; 6+ letters and the gold tile add extra. {max} needs both.",
-    tilegrid: stretchIntro("tilegrid", TILEGRID_STRETCH_TOPUP),
-    wordslide: parBonusIntro("wordslide", "moves"),
-    wordsearch: wordSearchBonusIntro(),
-    letterwheel: letterWheelJarIntro(),
-    strikeout: strikeoutDepthIntro(),
-    codeword: stretchIntro("codeword", CODEWORD_STRETCH),
-    swapword: parBonusIntro("swapword", "swaps"),
+    // The scoring standard (standard/word.ts); a check that pins the standard off reads the texts of the stamps before it.
+    tilegrid: preStandardPinned() ? stretchIntro("tilegrid", TILEGRID_STRETCH_TOPUP) : WORD_STANDARD_INTRO.tilegrid,
+    wordslide: preStandardPinned() ? parBonusIntro("wordslide", "moves") : WORD_STANDARD_INTRO.wordslide,
+    wordsearch: preStandardPinned() ? wordSearchBonusIntro() : WORD_STANDARD_INTRO.wordsearch,
+    letterwheel: preStandardPinned() ? letterWheelJarIntro() : WORD_STANDARD_INTRO.letterwheel,
+    strikeout: preStandardPinned() ? strikeoutDepthIntro() : WORD_STANDARD_INTRO.strikeout,
+    codeword: preStandardPinned() ? stretchIntro("codeword", CODEWORD_STRETCH) : WORD_STANDARD_INTRO.codeword,
+    swapword: preStandardPinned() ? parBonusIntro("swapword", "swaps") : WORD_STANDARD_INTRO.swapword,
     wordfall: "Longer words score more; Qu counts as two letters. {max} for a big haul of words.",
 
     // Number
-    target: depthIntro("target"),
-    equation: depthIntro("equation"),
-    balance: depthIntro("balance"),
-    numpyramid: depthIntro("numpyramid"),
-    trail: depthIntro("trail"),
-    measure: depthIntro("measure"),
+    target: standardNumberIntro("target"),
+    equation: standardNumberIntro("equation"),
+    balance: standardNumberIntro("balance"),
+    numpyramid: standardNumberIntro("numpyramid"),
+    trail: standardNumberIntro("trail"),
+    measure: standardNumberIntro("measure"),
     // "board" for the brief's "stage": the intro wording check rejects "stage".
-    checkout: depthIntro("checkout"),
+    checkout: standardNumberIntro("checkout"),
     // "speed points" for the brief's "speed bonus": the intro wording check rejects "speed bonus".
-    numline: depthIntro("numline"),
+    numline: standardNumberIntro("numline"),
     tendrop: "Points per target. Clear all ten fast, hitting targets with gold tiles, for up to {max}.",
 
     // Attention
     // Depth to 200 (tapRev 5): depth/speedTexts.ts.
     reaction: FLASH_DEPTH_INTRO,
     stopwatch: BANGON_DEPTH_INTRO,
-    numhunt: ASCEND_DEPTH_INTRO,
-    chain: CHAIN_DEPTH_INTRO,
+    // The scoring standard (27 Oct 2026): standard/attentionTexts.ts.
+    numhunt: STANDARD_ATTENTION_INTRO.numhunt,
+    chain: STANDARD_ATTENTION_INTRO.chain,
     whack: "Points per target hit; combos and diamonds add more, up to {max}. Wrong taps cost.",
     clayshoot: "Points per clay, more for quick hits; doubles and streaks add up to {max}. Birds cost.",
-    symscan: eagleEyeDepthIntro(),
-    countup: tallyDepthIntro(),
-    spotdiff: doubleTakeDepthIntro(),
-    pairmatch: PAIR_DEPTH_INTRO,
-    maze: labyrinthDepthIntro(),
-    stroop: `Sort all ${CLASH_QUEUE}, ${CLASH_DEPTH_MAX_WRONG} wrong at most; gold words and a long streak on a quick run reach {max}.`,
+    symscan: STANDARD_ATTENTION_INTRO.symscan,
+    countup: STANDARD_ATTENTION_INTRO.countup,
+    spotdiff: STANDARD_ATTENTION_INTRO.spotdiff,
+    pairmatch: STANDARD_ATTENTION_INTRO.pairmatch,
+    maze: STANDARD_ATTENTION_INTRO.maze,
+    stroop: STANDARD_ATTENTION_INTRO.stroop,
 
     // Logic and pattern
-    unblock: d4IntroTemplate("unblock"),
-    lightsout: logicDepthIntro("lightsout"),
-    pipes: d4IntroTemplate("pipes"),
-    sudoku: logicDepthIntro("sudoku"),
-    flow: d4IntroTemplate("flow"),
-    iceslide: d4IntroTemplate("iceslide"),
-    push: d4IntroTemplate("push"),
-    laser: d4IntroTemplate("laser"),
-    tower: logicDepthIntro("tower"),
-    tubes: logicDepthIntro("tubes"),
-    safe: logicDepthIntro("safe"),
-    bomb: logicDepthIntro("bomb"),
-    gravity: TOPSY_INTRO_SCORE,
-    nonogram: logicDepthIntro("nonogram"),
-    flood: logicDepthIntro("flood"),
-    tiles: JUMBLED_INTRO_SCORE,
-    rings: d4IntroTemplate("rings"),
-    blockparty: d4IntroTemplate("blockparty"),
-    shikaku: logicDepthIntro("shikaku"),
-    lightup: logicDepthIntro("lightup"),
-    tents: logicDepthIntro("tents"),
+    unblock: PATTERN_STD_INTRO.unblock,
+    lightsout: logicStandardIntro("lightsout"),
+    pipes: PATTERN_STD_INTRO.pipes,
+    sudoku: logicStandardIntro("sudoku"),
+    flow: PATTERN_STD_INTRO.flow,
+    iceslide: PATTERN_STD_INTRO.iceslide,
+    push: PATTERN_STD_INTRO.push,
+    laser: PATTERN_STD_INTRO.laser,
+    tower: logicStandardIntro("tower"),
+    tubes: logicStandardIntro("tubes"),
+    safe: logicStandardIntro("safe"),
+    bomb: logicStandardIntro("bomb"),
+    gravity: PATTERN_STD_INTRO.gravity,
+    nonogram: logicStandardIntro("nonogram"),
+    flood: logicStandardIntro("flood"),
+    tiles: PATTERN_STD_INTRO.tiles,
+    rings: PATTERN_STD_INTRO.rings,
+    blockparty: PATTERN_STD_INTRO.blockparty,
+    shikaku: logicStandardIntro("shikaku"),
+    lightup: logicStandardIntro("lightup"),
+    tents: logicStandardIntro("tents"),
     dig: "Fill the drain with clean water for 100, more if you're quick and use few digs.",
 
     // Arcade
@@ -113,14 +110,14 @@ function introScoreTemplates(): Record<PuzzleType, string> {
     bubble: "Clear bubbles; falling chests, bank shots and combos add more. Up to {max}.",
     slice: "Food by combo; gold fruit, tickets and dodges add more. Chilli: lose 10. Up to {max}.",
     beat: "Notes hit in time score; fever, gold notes, double taps and streaks add bonus. Up to {max}.",
-    wavefront: "Ships, waves, a fast boss kill; streaks, precise weak-point hits, power-ups: up to {max}.",
+    wavefront: "Ships, waves, a fast boss kill; precise weak-point hits, saucers, power-ups: up to {max}.",
     flip: "Time and stars score; trails, sweet spots, double flips, zones and checkpoints: up to {max}.",
     junction: "Points for each car and bus through, ± for ambulances. Last the minute for 10 more.",
     inkbridge: `Levels score; stars, coins, shamrock: up to ${INK_FEATURE_MAX} more. All ${INK_LEVELS} levels quickly: up to {max}.`,
-    burst: "Atoms score; a lost life costs 5. Last 90 s for 10 more; clean waves add. Up to {max}.",
+    burst: "Atoms score; a lost life costs 5. Last 90 s for 10 more; quick wave clears add. Up to {max}.",
     orbit: "Planets and the sun, plus stardust, slingshots, fields and perfect orbits: up to {max}.",
     snip: "Points for fruit fed and leaves; golden apples, few cuts and speed add more. Up to {max}.",
-    swing: `Distance and stars. Reach ${SWING_FINISH_M} metres for 10 more. Gems, gates, ledges, pars: up to {max}.`,
+    swing: `Sections cleared, then pars, gates, gems and stars: up to {max}.`,
     tilt: `Mazes, progress and stars; quick stars and pace add more. All ${TILT_X_MAZES} quickly: up to {max}.`,
     balltrack: `Points per marble home; gold, boosted and in-a-row marbles add more. Up to {max}.`,
     swerve: arcadeOpen("each coin you collect"),
