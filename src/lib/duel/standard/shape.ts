@@ -63,6 +63,11 @@ export interface StandardFinish {
   bonus: number;
   /** What the bonus measures, for the reveal line ("par", "bonus", "clean"…). */
   measure: string;
+  /**
+   * The finish's base when a game's row scores it below 150 (Ballpark: up to 150 by average accuracy); 150 when absent.
+   * Additive (Number batch): every other game leaves it out.
+   */
+  base?: number;
 }
 
 export interface StandardScore {
@@ -72,10 +77,11 @@ export interface StandardScore {
 
 /** 150 + speed + bonus, rounded part by part, at most 200; the parts add up to the score. */
 export function standardFinish(f: StandardFinish): StandardScore {
+  const base = f.base === undefined ? STANDARD_FINISH : Math.round(clamp(f.base, 0, STANDARD_FINISH));
   const bonus = Math.round(clamp(f.bonus, 0, STANDARD_MAX - STANDARD_FINISH));
   const speed = Math.round(clamp(f.speed, 0, STANDARD_MAX - STANDARD_FINISH - bonus));
-  const score = STANDARD_FINISH + speed + bonus;
-  return { score, parts: { kind: "finish", base: STANDARD_FINISH, efficiency: bonus, measure: f.measure, speed } };
+  const score = base + speed + bonus;
+  return { score, parts: { kind: "finish", base, efficiency: bonus, measure: f.measure, speed } };
 }
 
 /** An unfinished score: the credit, rounded, from 0 to 130. */

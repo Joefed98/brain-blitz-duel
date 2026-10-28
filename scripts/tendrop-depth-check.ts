@@ -47,6 +47,11 @@ import {
   TEN_DROP_RAW_REV,
   type TenDropState,
 } from "@/lib/arcade/tenDrop";
+import { pinPreStandard } from "@/lib/duel/standard/stamps";
+
+// Written for tenRev 4: rooms deal the scoring standard's tenRev 5 since 27 Oct 2026 (standard-number-check proves it);
+// new deals here keep tenRev 4.
+pinPreStandard(true);
 
 const FIXTURE = "scripts/fixtures/tendrop-rev3-legacy.json.gz";
 const REVS: (number | undefined)[] = [undefined, 1, 2, 3];
