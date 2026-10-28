@@ -24,7 +24,7 @@ import { lightUpBulbCounts, shikakuAreas } from "../progressFigures";
 import { tryEfficiency, PUZZLE_EFFICIENCY_POINTS } from "../puzzleScoreRev";
 import { cleanPoints, parPoints, speedPoints } from "./shape";
 import { registerStandardGames, type StandardContext, type StandardGame, type StandardInput, type StandardResult } from "./grade.server";
-import { FLOOD_STANDARD_SPARE_MOVES, LOGIC_EARLY_POINTS, LOGIC_SHARE_POINTS, LOGIC_STANDARD, type LogicStandardType } from "./logicRules";
+import { LOGIC_EARLY_POINTS, LOGIC_SHARE_POINTS, LOGIC_STANDARD, type LogicStandardType, floodSpareMoves } from "./logicRules";
 
 type Of<T extends PuzzleData["type"]> = Extract<PuzzleData, { type: T }>;
 
@@ -237,9 +237,9 @@ function floodState(p: Of<"flood">, answer: string) {
   return { replay, start, flooded: Math.max(0, replay.region - start), total: Math.max(1, p.grid.length - start) };
 }
 
-/** The standard's move limit (the stored one; par + 10 on every puzzle the standard deals). */
+/** The standard's move limit (the stored one: par + 6 on depthRev 4, par + 10 on depthRev 3). */
 function floodLimit(p: Of<"flood">): number {
-  return floodMoveLimit(p) ?? Math.max(1, p.par) + FLOOD_STANDARD_SPARE_MOVES;
+  return floodMoveLimit(p) ?? Math.max(1, p.par) + floodSpareMoves(p);
 }
 
 const flood: StandardGame = {
@@ -247,10 +247,10 @@ const flood: StandardGame = {
   grade(input, ctx) {
     const p = input.puzzle as Of<"flood">;
     const f = floodState(p, input.answer);
-    // Par moves 40, 4 less a move over par, 0 at par + 10.
-    if (input.graded.isCorrect) return parFinish("flood", input, f.replay.moves, p.par, p.par + FLOOD_STANDARD_SPARE_MOVES);
+    // Par moves 40, 0 at par + 6 (depthRev 4; par + 10 on depthRev 3), even steps between.
+    if (input.graded.isCorrect) return parFinish("flood", input, f.replay.moves, p.par, p.par + floodSpareMoves(p));
     // Moves past par shrink the credit as they shrink the par bonus (today's waste factor, 1 at par, 0 at the limit),
-    // so tapping colours at random until the limit stays near 0. A board out of moves scores 0 (with par + 10 moves,
+    // so tapping colours at random until the limit stays near 0. A board out of moves scores 0 (with the spare moves,
     // random taps flood most of the board by then, so the top-up's out-of-moves credit is not kept).
     const waste = moveWaste(f.replay.moves, p.par, floodLimit(p));
     return { finished: false, credit: shareCredit(ctx, f.flooded, f.total) * waste, facts: { flooded: f.flooded, moves: f.replay.moves, waste } };
