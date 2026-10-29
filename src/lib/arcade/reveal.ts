@@ -15,6 +15,8 @@ import { HOVER_CHAINS, HOVER_TIGHT_GATES, HOVER_V2_GATES_SCORE, HOVER_V2_STARS_S
 import { WAV_BOSS_HP, WAV_V2_WAVES } from "./wavefront";
 import { BAND_SPECS } from "./bandParts";
 import { bandLines } from "./scoreBands";
+import { stdLines } from "./arcadeStandard";
+import { arcadeStdParts } from "./standard";
 
 export interface ArcadeRevealTile {
   label: string;
@@ -724,6 +726,9 @@ export function buildArcadeReveal(type: string, run: unknown, score: number): Ar
   const builder = BUILDERS[type];
   if (!builder || !run || typeof run !== "object") return null;
   const data = builder(run as Run, score);
+  // The arcade scoring standard (arcadeStandard.ts): one line per part (core, then each feature) and the total.
+  const std = arcadeStdParts(type, (run as Run)["state"]);
+  if (std) return { ...data, lines: stdLines(std, score, Boolean(((run as Run)["state"] as { acted?: number }).acted)) };
   // Oct 2026 score-band rounds: same axis and tiles, breakdown lines from the band rules.
   const state = (run as Run)["state"] as { band?: number; acted?: number } | undefined;
   const band = BAND_SPECS[type];

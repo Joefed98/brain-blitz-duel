@@ -10,6 +10,7 @@
  */
 import { bandHelp, type BandCurve, type BandHelpWords } from "./scoreBands";
 import { roundMaxFor } from "../duel/roundMax";
+import { stdHelp, type StdSpec } from "./arcadeStandard";
 import { BT_REV_RUSH, BT_REV_STRICT, BT_V7_BAND_CURVE } from "./ballTrack";
 import { WAV_REV_PHONE, WAV_REV_STRICT, WAV_V11_BAND_CURVE } from "./wavefront";
 import { FLIP_REV_LIFT, FLIP_REV_STRICT, FLIP_V9_BAND_CURVE } from "./flip";
@@ -47,6 +48,11 @@ export interface LiveBand {
    * scores to 150 before the expansion's feature bonus); the strict-curve checks read this revision.
    */
   strictRev?: number;
+  /**
+   * A game on the arcade scoring standard (arcadeStandard.ts): its spec (core and features, summing to 200). `curve`
+   * is then the core's straight line (0 → the core's maximum at its full-at figure), and the help reads the spec.
+   */
+  std?: StdSpec;
 }
 
 export const LIVE_BANDS = {
@@ -88,4 +94,11 @@ export function liveStrictRev(game: LiveBandGame): number {
 /** The "?" help SCORE text for a band game, its numbers from the curve new rounds are dealt on. */
 export function liveBandHelp(game: LiveBandGame, units: string, words: BandHelpWords): string {
   return bandHelp(units, LIVE_BANDS[game].curve, words, roundMaxFor(game));
+}
+
+/** The "?" help SCORE text for a game on the arcade scoring standard: every part, its maximum and how it pays, 200 in all. */
+export function liveStdHelp(game: LiveBandGame, lead = ""): string {
+  const live: LiveBand = LIVE_BANDS[game];
+  if (!live.std) throw new Error(`liveStdHelp: ${game} is not on the arcade scoring standard`);
+  return stdHelp(live.std, lead);
 }

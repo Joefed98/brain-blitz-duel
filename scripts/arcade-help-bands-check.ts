@@ -15,7 +15,8 @@
  *   bun scripts/arcade-help-bands-check.ts
  */
 import { roundMaxFor } from "../src/lib/duel/roundMax";
-import { LIVE_BANDS, type LiveBandGame } from "../src/lib/arcade/liveBands";
+import { LIVE_BANDS, type LiveBand, type LiveBandGame } from "../src/lib/arcade/liveBands";
+import { stdHelp, STD_TOTAL } from "../src/lib/arcade/arcadeStandard";
 import { roundMaxFor } from "../src/lib/duel/roundMax";
 import { BAND_SPECS } from "../src/lib/arcade/bandParts";
 import {
@@ -106,6 +107,18 @@ for (const [type, live] of Object.entries(LIVE_BANDS) as [
   (typeof LIVE_BANDS)[LiveBandGame],
 ][]) {
   const score = PUZZLE_INSTRUCTIONS[type].score;
+  // The arcade scoring standard (arcadeStandard.ts): the help lists every part with its maximum and says they total 200
+  // (arcade-standard-check proves the parts); the core's straight line is the listed curve.
+  const std = (live as LiveBand).std;
+  if (std) {
+    ok(std.rev === live.rev && std.field === live.field, `${type}: the standard spec is for ${std.field} ${std.rev}, rooms deal ${live.field} ${live.rev}`);
+    ok(score.includes(stdHelp(std)), `${type}: the help states the standard's parts: ${score}`);
+    for (const p of std.parts) ok(score.includes(`${p.label} up to ${p.max}`), `${type}: the help names ${p.label} up to ${p.max}`);
+    ok(score.includes(`Together ${STD_TOTAL} points.`), `${type}: the help says the parts total ${STD_TOTAL}`);
+    ok(live.curve.units.length === 2 && live.curve.points[0] === 0 && live.curve.points[1] === std.parts[0]!.max, `${type}: the listed curve is the core's straight line to ${std.parts[0]!.max}`);
+    ok(!/→|Points follow|straight lines/.test(score), `${type}: no knot list in the help`);
+    continue;
+  }
   const curve = live.curve;
   const top = curve.points[curve.points.length - 1]!;
   const good = bandUnitsFor(curve, BAND_GOOD_POINTS);
