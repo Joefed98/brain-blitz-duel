@@ -15,7 +15,7 @@
  *   import { roomIdentity } from "./room-identity/wavefront";
  */
 import { ARCADE_INPUT_DRAG, type ArcadeInputEvent } from "../../src/lib/arcade/engine";
-import { wavefrontGameFor, WAV_REV_PHONE, WAV_SAUCER_EVERY, WAV_WORLD_W, type WavState } from "../../src/lib/arcade/wavefront";
+import { wavefrontGameFor, WAV_REV_PHONE, WAV_REV_STD, WAV_SAUCER_EVERY, WAV_WORLD_W, type WavState } from "../../src/lib/arcade/wavefront";
 import { Human, type SkillLevel } from "../arcade-skill-bands/human";
 import { bot } from "../arcade-skill-bands/bots/wavefront";
 
@@ -66,7 +66,8 @@ export function botLog(seed: number, level: SkillLevel, rev: number = WAV_REV_PH
 
 export const roomIdentity = {
   type: "wavefront",
-  rev: WAV_REV_PHONE,
+  // Rooms deal wavRev 12 (the arcade scoring standard, 29 Oct 2026): wavRev 11's play, so the same schedule.
+  rev: WAV_REV_STD,
   scheduleOf,
   logs: (seed: number): ArcadeInputEvent[][] => [[], randomLog(seed), botLog(seed, "weak"), botLog(seed, "elite")],
 };
