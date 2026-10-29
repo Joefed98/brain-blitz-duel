@@ -46,6 +46,9 @@ const SPECKLE = `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/sv
 ].map((d) => { const [x, y, r, c, a] = d.split(","); return `%3Ccircle cx='${x}' cy='${y}' r='${r}' fill='%23${c}' fill-opacity='${a}'/%3E`; }).join("")}%3C/g%3E%3C/svg%3E")`;
 const SANDSTONE = `${SPECKLE}, linear-gradient(165deg, #efd9aa 0%, #d5b27a 50%, #b48b52 100%)`;
 const SAND_SHADE = "inset 2px 2px 0 rgba(255,250,235,.55), inset -2px -3px 0 rgba(96,62,22,.4), 0 2px 0 rgba(0,0,0,.45)";
+/** The gold rows climb one row every 110 ms: five rows are gold well inside the 1 s CORRECT hold. */
+const NP_GOLD_ROW_MS = 110;
+
 const NP_CSS = `
 .np-art { --np-mortar: #342e26; }
 .np-row { border-radius: 5px; background: var(--np-mortar); box-shadow: 0 0 0 2px var(--np-mortar); }
@@ -80,9 +83,18 @@ const NP_CSS = `
 [data-bw-live] [data-game-arena="board"] > .relative { isolation: isolate; }
 [data-bw-live] [data-game-arena="board"] > .relative::before { content: ""; position: absolute; inset: -18% -6% -10%; z-index: -1; pointer-events: none; background: radial-gradient(60% 55% at 50% 52%, color-mix(in srgb, var(--category-accent) 30%, transparent), transparent 72%); }
 [data-bw-live] .np-quarry { background-image: ${SPECKLE}, linear-gradient(180deg, #100e0c, #221e19 60%, #2a251f); box-shadow: inset 0 4px 10px rgba(0,0,0,.8), inset 0 0 0 1px rgba(222,196,150,.2), 0 1px 0 rgba(255,255,255,.06); }
+/* Joe's phone notes (28 Oct 2026, display only): a completed pyramid's stones turn gold row by row from the bottom
+   during the short CORRECT hold (and the final board's finish). The layer tints each stone gold (blend "color" keeps
+   its light and dark, so the numbers stay readable), lifted by a screen layer with a warm rim; it stays until the next
+   pyramid shows. */
+.np-gold, .np-gold-lift { position: absolute; inset: 0; z-index: 4; border-radius: 4px; pointer-events: none; opacity: 0; animation: np-gold-in 240ms ease-out forwards; }
+.np-gold { background: linear-gradient(165deg, #ffe7a0 0%, #f2c75c 48%, #c9922a 100%); mix-blend-mode: color; }
+.np-gold-lift { z-index: 5; background: linear-gradient(180deg, rgba(242,199,92,.55), rgba(201,146,42,.35)); mix-blend-mode: screen; box-shadow: inset 0 0 0 2px rgba(255,222,130,.95), 0 0 8px rgba(255,196,64,.45); }
+@keyframes np-gold-in { 0% { opacity: 0; transform: scale(.9); } 60% { opacity: 1; transform: scale(1.04); } 100% { opacity: 1; transform: none; } }
 @media (prefers-reduced-motion: reduce) {
   .np-set, .np-loose { animation: none; transition: none; }
   .np-glow { animation: none; opacity: .7; transform: none; }
+  .np-gold, .np-gold-lift { animation: none; opacity: 1; }
 }
 `;
 
@@ -95,6 +107,7 @@ export function Pyramid({
   marks,
   dragFrom,
   lit,
+  gold = false,
   fontSize,
   gap = 4,
   plinth = false,
@@ -110,6 +123,8 @@ export function Pyramid({
   dragFrom?: number | null;
   /** Completion: every row's sums light, bottom row first. */
   lit?: boolean;
+  /** Completed: the stones turn gold, bottom row first (display only). */
+  gold?: boolean;
   fontSize?: number;
   gap?: number;
   plinth?: boolean;
@@ -138,6 +153,12 @@ export function Pyramid({
                   <span key={`${cell}:${value}`} className={`np-stone np-block${animate ? " np-set" : ""}${mark === false ? " np-wrong" : ""}`}>{value}</span>
                 ) : null}
                 {lit && <span className="np-glow" style={{ animationDelay: `${(rows - 1 - r) * 90}ms` }} />}
+                {gold && (
+                  <>
+                    <span className="np-gold" data-np-gold="" style={{ animationDelay: `${(rows - 1 - r) * NP_GOLD_ROW_MS}ms` }} />
+                    <span className="np-gold-lift" style={{ animationDelay: `${(rows - 1 - r) * NP_GOLD_ROW_MS}ms` }} />
+                  </>
+                )}
               </div>
             );
           })}
@@ -349,7 +370,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
       <StageCorrect visible={holding} />
       <div data-game-arena="board" className="flex min-h-0 w-full flex-1 items-center justify-center">
         <div className="relative" style={NO_TOUCH}>
-          <Pyramid rows={board.rows} givens={board.givens} values={filled.map((v, i) => (drag?.from === i ? null : v))} cellW={cellW} cellH={cellH} fontSize={fontSize} lit={lit} plinth />
+          <Pyramid rows={board.rows} givens={board.givens} values={filled.map((v, i) => (drag?.from === i ? null : v))} cellW={cellW} cellH={cellH} fontSize={fontSize} lit={lit} gold={complete} plinth />
           {/* The pick-up layer sits above the placed blocks (.np-block is z-index 1): below them, taps on a
               placed tile never reached it, so tiles could not be double-tapped back or dragged to another cell. */}
           <div className="absolute inset-0 flex flex-col items-center" style={{ gap: 4, zIndex: 3 }}>
