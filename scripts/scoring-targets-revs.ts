@@ -29,7 +29,15 @@ export const STRICT_REVS: Partial<Record<LiveBandGame, number>> = Object.fromEnt
  * on lifted curves (arcade-phone-notes-check proves it). The arcade scoring standard (29 Oct 2026): Breaker brkRev 11
  * keeps brkRev 10's play, scored in fixed parts (breaker-standard-check proves it).
  */
-export const LIFT_REVS: Partial<Record<LiveBandGame, readonly [lift: number, play: number]>> = { flip: [9, 8], tilt: [9, 8], breaker: [11, 10] };
+export const LIFT_REVS: Partial<Record<LiveBandGame, readonly [lift: number, play: number]>> = {
+  flip: [9, 8],
+  tilt: [9, 8],
+  // The arcade scoring standard (29 Oct 2026, docs/arcade-standard-oct-2026/hover.md): Hover hoverRev 10 keeps hoverRev 9's
+  // play in fixed parts to 200 (hover-standard-check proves it).
+  hover: [10, 9],
+  // The arcade scoring standard (29 Oct 2026, docs/arcade-standard-oct-2026/breaker.md): Breaker brkRev 11 keeps brkRev 10's play.
+  breaker: [11, 10],
+};
 
 /**
  * The revision whose play a dealt revision keeps: the target and score-bands revisions map to the target's

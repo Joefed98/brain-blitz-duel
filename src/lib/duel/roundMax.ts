@@ -93,7 +93,7 @@ export const ROUND_MAX: Readonly<Record<PuzzleType, number>> = {
   burst: 200, // expansion E9, burstRev 8
   cross: 200, // Jaywalk crossRev 9 (x200, 26 Oct 2026)
   flip: 200, // expansion X200, flipRev 8 (flipRev 9: lifted curves)
-  hover: 200, // expansion X200, hoverRev 9
+  hover: 200, // expansion X200, hoverRev 9 (hoverRev 10: the arcade scoring standard)
   inkbridge: 200,
   junction: 150,
   matchup: 200, // expansion E6, matchupRev 9

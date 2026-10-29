@@ -930,7 +930,8 @@ const hoverSummary: SummaryBuilder = (result) => {
     // hoverRev 9: the features and the skill points.
     detail: [
       survived ? "Flew the whole run" : "Run ended early",
-      ...(result.extra?.["tightGates"] !== undefined ? [`${Number(result.extra?.["tightGates"] ?? 0)} tight · ${Number(result.extra?.["starChains"] ?? 0)} chains · centre ${Number(result.extra?.["centrePts"] ?? 0)} · skill +${Number(result.extra?.["skill"] ?? 0)}`] : []),
+      // hoverRev 10 (the arcade scoring standard): the parts' points.
+      ...(result.extra?.["corePts"] !== undefined ? [`barriers ${Number(result.extra?.["corePts"] ?? 0)} · chains ${Number(result.extra?.["chainPts"] ?? 0)} · gold ${Number(result.extra?.["goldPts"] ?? 0)} · tight ${Number(result.extra?.["tightPts"] ?? 0)} · centre ${Number(result.extra?.["centreLinePts"] ?? 0)}`] : result.extra?.["tightGates"] !== undefined ? [`${Number(result.extra?.["tightGates"] ?? 0)} tight · ${Number(result.extra?.["starChains"] ?? 0)} chains · centre ${Number(result.extra?.["centrePts"] ?? 0)} · skill +${Number(result.extra?.["skill"] ?? 0)}`] : []),
     ],
   };
 };

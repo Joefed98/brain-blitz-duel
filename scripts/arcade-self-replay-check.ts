@@ -120,7 +120,7 @@ import { SNAKE_REV_BAND, SNAKE_REV_ROCKS, SNAKE_REV_TALL, SNAKE_REV_10 } from "@
 import { BINTOSS_REV_BAND } from "@/lib/arcade/binToss";
 import { SNIP_REV_BAND, SNIP_REV_BANK6, SNIP_REV_EXPAND, SNIP_REV_PROVEN, SNIP_REV_TALL } from "@/lib/arcade/snip";
 import { SKYLINE_REV_BAND, SKYLINE_REV_TALL } from "@/lib/arcade/skyline";
-import { HOVER_REV_BAND, HOVER_REV_EXPAND, HOVER_REV_TALL, HOVER_REV_TUNEC } from "@/lib/arcade/hover";
+import { HOVER_REV_BAND, HOVER_REV_EXPAND, HOVER_REV_STANDARD, HOVER_REV_TALL, HOVER_REV_TUNEC } from "@/lib/arcade/hover";
 import { JUNC_REV_BAND } from "@/lib/arcade/junction";
 import { BRK_REV_BAND, BRK_REV_STD, BRK_REV_TALL, BRK_REV_TUNED, BRK_REV_TUNEF } from "@/lib/arcade/breaker";
 import { pinballGameFor, pinCheckpoint, PIN_REV } from "@/lib/arcade/pinball";
@@ -686,6 +686,9 @@ const GAMES: Game[] = [
   // The arcade scoring standard (29 Oct 2026, docs/arcade-standard-oct-2026/breaker.md), appended so every earlier entry
   // keeps its index: Breaker brkRev 11, brkRev 10's play scored in fixed parts.
   { key: "breaker/std", game: breakerGameFor(BRK_REV_STD), checkpoint: brkCheckpoint, mode: "events", rate: 950, encode: encodeBreakerRun, replay: (seed: number, raw: string) => replayBreakerRun(seed, raw, BRK_REV_STD) },
+  // The arcade scoring standard (29 Oct 2026, docs/arcade-standard-oct-2026/hover.md), appended so every earlier entry
+  // keeps its index: Hover hoverRev 10, hoverRev 9's play in fixed parts to 200.
+  { key: "hover/std", game: hoverGameFor(HOVER_REV_STANDARD), checkpoint: hoverCheckpoint, mode: "taps", rate: 60, encode: encodeHoverRun, replay: (seed: number, raw: string) => replayHoverRun(seed, raw, HOVER_REV_STANDARD) },
 ];
 
 /** A random candidate event, often outside the declared range (a finger off the edge). */

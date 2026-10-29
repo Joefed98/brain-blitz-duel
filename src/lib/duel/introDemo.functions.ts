@@ -9,7 +9,7 @@ import { TILT_REV_LIFT } from "@/lib/arcade/tilt";
 import { CROSS_REV_EXPAND } from "@/lib/arcade/cross";
 import { FLIP_REV_LIFT } from "@/lib/arcade/flip";
 import { SNIP_REV_EXPAND } from "@/lib/arcade/snip";
-import { HOVER_REV_EXPAND } from "@/lib/arcade/hover";
+import { HOVER_REV_STANDARD } from "@/lib/arcade/hover";
 import { RALLY_REV_CURVE } from "@/lib/arcade/rally";
 import { WAV_REV_PHONE } from "@/lib/arcade/wavefront";
 import { BURST_REV_CARRY } from "@/lib/arcade/burst";
@@ -131,8 +131,10 @@ export const getIntroDemoFn = createServerFn({ method: "GET" })
     // keeps flipRev 8's play on lifted curves; its HUD shows the run's score, so only a demo recorded on flipRev 9 plays.
     if (data.type === "flip" && demo?.puzzle.type === "flip" && demo.puzzle.flipRev !== FLIP_REV_LIFT) return null;
     // The 200-point expansion (26 Oct 2026, docs/expansions/x200-hover.md): Hover hoverRev 9 plays in a 390 × 727 world with
-    // tight gates, centre lines, star chains and shields, so its demo stays stopped until one is recorded there.
-    if (data.type === "hover" && demo?.puzzle.type === "hover" && demo.puzzle.hoverRev !== HOVER_REV_EXPAND) return null;
+    // tight gates, centre lines, star chains and shields, so its demo stays stopped until one is recorded there. hoverRev 10
+    // (the arcade scoring standard, 29 Oct 2026) keeps hoverRev 9's play on new scoring (its HUD's centre figure is the
+    // new part), so only a demo recorded on hoverRev 10 plays.
+    if (data.type === "hover" && demo?.puzzle.type === "hover" && demo.puzzle.hoverRev !== HOVER_REV_STANDARD) return null;
     // Rally rallyRev 11 (phone notes, 27 Oct 2026): spin shots now curve visibly and targets last 5 s, so an older demo
     // would play differently; it stays stopped until one is recorded on rallyRev 11.
     if (data.type === "rally" && demo?.puzzle.type === "rally" && demo.puzzle.rallyRev !== RALLY_REV_CURVE) return null;

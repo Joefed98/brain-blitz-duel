@@ -49,7 +49,7 @@ import { pinIsExpanded } from "@/lib/arcade/pinball";
 import { decodeSnakeRun, replaySnakeRun } from "./snake";
 import { decodeBreakerRun, replayBreakerRun } from "./breaker";
 import { breakerStdParts, brkSkillPaid, brkWallSize } from "@/lib/arcade/breaker";
-import { hoverFeatureBonus } from "@/lib/arcade/hover";
+import { hoverFeatureBonus, hoverStandardParts } from "@/lib/arcade/hover";
 import { decodePinballRun, replayPinballRun } from "./pinball";
 import { decodeRallyRun, replayRallyRun } from "./rally";
 import { rallyBonusCount, rallyBonusPoints } from "@/lib/arcade/rally";
@@ -1152,6 +1152,8 @@ function gradeUnderRev(
         ...(puzzle.hoverRev ? { hoverRev: puzzle.hoverRev, stars: run.stars, totalStars: run.totalStars } : {}),
         // hoverRev 9 (the 200 expansion): the features and the skill points paid for them.
         ...(run.state.xp ? { tightGates: run.state.tight ?? 0, starChains: run.state.chainsDone ?? 0, centrePts: run.state.ctrPts ?? 0, centreLines: run.state.ctrLog?.length ?? 0, shieldBreaks: run.state.shieldBreaks ?? 0, skill: hoverFeatureBonus(run.state) } : {}),
+        // hoverRev 10 (the arcade scoring standard): each part's points; `skill` is then everything beyond the core.
+        ...(run.state.std ? (({ core, chains, gold, tight, centre }) => ({ corePts: core, chainPts: chains, goldPts: gold, tightPts: tight, centreLinePts: centre, skill: chains + gold + tight + centre }))(hoverStandardParts(run.state)) : {}),
         survived: run.survived,
         endedSeconds: run.endedSeconds,
         flagged: run.flagged,
