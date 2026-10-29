@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import { renderToStaticMarkup } from "react-dom/server";
 import { ArrowModeOverride, ArrowPad } from "../src/components/puzzles/GridDrag";
 import { BUTTON, ORBIT_XP_AHEAD, ORBIT_XP_DRAW_H, ORBIT_XP_ZONE, zoneFits, zoneProof } from "./orbit-zone-lib";
+import { orbitXpRev } from "../src/lib/arcade/orbit";
 
 const removed = {
   "mazeDash": "Tap or hold an arrow · or draw with your finger · go back to undo",
@@ -77,7 +78,8 @@ for (const { file, row, button, count, width, tall } of arcadeRows) {
 // camera modes, the rocket's drawn reach stays out of the zone (so nothing the rocket can meet is ever under the button).
 {
   const orbit = readFileSync("src/puzzles/orbit.tsx", "utf8");
-  assert.match(orbit, /const xp = data\?\.orbitRev === ORBIT_REV_XP;/, "orbit: orbitRev 12 picks the corner");
+  assert.match(orbit, /const xp = orbitXpRev\(data\?\.orbitRev\);/, "orbit: orbitRev 12 and 13 pick the corner");
+  assert.ok(orbitXpRev(12) && orbitXpRev(13) && !orbitXpRev(10) && !orbitXpRev(undefined), "orbit: orbitXpRev is orbitRev 12 and 13 only");
   assert.match(orbit, /overlay=\{xp \? \(send\) => \(\s*<div data-game-controls="checkpoint" data-orbit-zone="" className="pointer-events-none absolute right-1 top-1 flex h-11 items-start justify-end">/, "orbit: the button 4px in from the world's top and right");
   assert.match(orbit, /className="pointer-events-auto h-11 px-3 text-\[11px\] font-bold before:content-\['SET_CHECKPOINT'\]"/, "orbit: the corner button is 44px tall, 11px text, 12px sides");
   assert.match(orbit, /footer=\{xp \? undefined : \(send\) => \(/, "orbit: no row below the world on orbitRev 12");

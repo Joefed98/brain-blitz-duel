@@ -46,7 +46,7 @@ import {
   ORBIT_REV_TUNED,
   ORBIT_REV_SWEPT,
   ORBIT_REV_TALL,
-  ORBIT_REV_TARGET, ORBIT_REV_STRICT, ORBIT_REV_XP,
+  ORBIT_REV_TARGET, ORBIT_REV_STRICT, orbitXpRev,
 } from "@/lib/arcade/orbit";
 import {
   buildCourse3,
@@ -117,8 +117,8 @@ const seedOf = (p: PuzzleData): number => ("seed" in p ? Number((p as { seed: nu
 
 function orbitSource(p: PuzzleData): GameSource {
   const orbitRev = rev(p, "orbitRev");
-  // orbitRev 12 (the expansion to 200): the stamped course, holes and features.
-  if (orbitRev === ORBIT_REV_XP && p.type === "orbit") {
+  // orbitRev 12 (the expansion to 200) and 13 (the arcade standard): the stamped course, holes and features.
+  if (orbitXpRev(orbitRev) && p.type === "orbit") {
     const start = orbitStartForPuzzle(p);
     if (start) return { game: orbitRev3Game as AnyGame, init: start };
   }

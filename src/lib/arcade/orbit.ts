@@ -58,6 +58,17 @@ export const ORBIT_REV_STRICT = 10;
  * which alone earn the extra 50 to 200 (orbitRev3.ts "World expansion").
  */
 export const ORBIT_REV_XP = 12;
+/**
+ * orbitRev 13 (the arcade scoring standard, 29 Oct 2026, docs/arcade-standard/orbit.md): orbitRev 12's play exactly
+ * (the same feature-bank course, holes and features, the same view, an orbitRev 12 log replays tick for tick),
+ * scored on the standard (orbitRev3.ts ORBIT_STD): planets in a straight line, speed only at the sun, fixed
+ * feature shares, 200 in all.
+ */
+export const ORBIT_REV_STD = 13;
+/** The expansion's course, features and view: orbitRev 12 and its score-only successor orbitRev 13 (display, layout, bank). */
+export function orbitXpRev(rev: number | null | undefined): boolean {
+  return rev === ORBIT_REV_XP || rev === ORBIT_REV_STD;
+}
 const FLIGHT_MAX = 150;
 export const ORBIT_FLIGHT_MAX = FLIGHT_MAX;
 /** The current planet sits this far down the screen. */

@@ -111,7 +111,8 @@ import { BULLSEYE_INNER_BULL_POINTS, BULLSEYE_RING_VALUES, BULLSEYE_V8_DEAD_CAP,
 import { RALLY_V10_BONUS_COUNT, RALLY_V10_BONUS_PTS, RALLY_V11_BONUS_LIFE } from "@/lib/arcade/rally";
 import { BURST_V9_CAPS, BURST_V9_CLEAR_MAX, BURST_V8_GOLDEN_PTS, BURST_V8_GOLDENS } from "@/lib/arcade/burst";
 import { liveBandHelp } from "@/lib/arcade/liveBands";
-import { ORBIT_V12_PACE_FROM, ORBIT_V12_PACE_FULL, ORBIT_V12_SKILL_MAX, ORBIT_V12_SKILL_PACED_FROM, ORBIT_V12_SKILL_PAY, ORBIT_XP_DUST_CAP, ORBIT_XP_DUST_FULL, ORBIT_XP_FIELDS, ORBIT_XP_MOONS, ORBIT_XP_MOTES, ORBIT_XP_PERFECT_CAP, ORBIT_XP_PERFECT_PER, ORBIT_XP_SLING_CAP, ORBIT_XP_SLING_PTS, ORBIT_XP_THREAD_CAP, ORBIT_XP_THREAD_PTS, ORBIT_XP_TRAILS } from "@/lib/arcade/orbitRev3";
+import { ORBIT_STD, ORBIT_STD_PERFECT_OF, ORBIT_XP_FIELDS, ORBIT_XP_MOONS, ORBIT_XP_TRAILS } from "@/lib/arcade/orbitRev3";
+import { stdFeaturesHelp } from "@/lib/arcade/arcadeStandard";
 import { CROSS_V9_SKILL_PAY, CROSS_X_BONUS_MAX, CROSS_X_CLOSE_MAX, CROSS_X_CLOSE_POINTS, CROSS_X_COIN_CROSSINGS, CROSS_X_COIN_POINTS, CROSS_X_COINS_PER_RUN } from "@/lib/arcade/cross";
 import { SWING_V14_GATES, SWING_V14_GEMS, SWING_V14_PAR_POINTS, SWING_V14_PICKUP_POINTS, SWING_V14_SECTIONS, SWING_V14_STARS } from "@/lib/arcade/swing";
 import { BRK_V10_GOLD_HITS, BRK_V9_COLS, BRK_V9_COMBO_MAX, BRK_V9_COMBO_X2, BRK_V9_COMBO_X3, BRK_V9_GOLD, BRK_V9_GOLD_POINTS, BRK_V9_ROWS, BRK_V9_SKILL_MAX, BRK_V9_SKILL_PAY } from "@/lib/arcade/breaker";
@@ -1071,7 +1072,8 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Asteroid fields:", detail: `${ORBIT_XP_FIELDS} lines of rocks across some hops. Thread the gap in the middle of the line for a bonus; hitting a rock is a crash.`, helpOnly: true },
         { action: "Perfect orbits:", detail: "let go while the gold arc still shows – during your first lap round the planet – and land in the next orbit.", helpOnly: true },
       ],
-      score: liveBandHelp("orbit", "Each planet reached counts 1, and a crash still counts the part of the way to the next planet you flew.", { more: "More planets", good: (u) => `reaches ${u} planets`, finish: `Reaching the sun adds up to 10 for speed: the full 10 with at least half the time left, falling to 0 at the buzzer. Skill adds up to ${ORBIT_V12_SKILL_MAX} more: stardust up to ${ORBIT_XP_DUST_CAP} (all of it for ${ORBIT_XP_DUST_FULL} of the ${ORBIT_XP_TRAILS * ORBIT_XP_MOTES} motes), ${ORBIT_XP_SLING_PTS} for each slingshot (up to ${ORBIT_XP_SLING_CAP}), ${ORBIT_XP_THREAD_PTS} for each field threaded (up to ${ORBIT_XP_THREAD_CAP}) and 1 for every ${ORBIT_XP_PERFECT_PER} perfect orbits (up to ${ORBIT_XP_PERFECT_CAP}). ${skillPayLine(ORBIT_V12_SKILL_PAY)} Without the sun, skill pays at most ${ORBIT_V12_SKILL_PACED_FROM}; the last ${ORBIT_V12_SKILL_MAX - ORBIT_V12_SKILL_PACED_FROM} come for reaching it fast: a share from ${ORBIT_V12_PACE_FROM / 60} s left, all of them with about ${Math.round(ORBIT_V12_PACE_FULL / 60)} s left.` }),
+      // orbitRev 13 (the arcade scoring standard): planets on a straight line to 130, then speed and the features, 200 in all.
+      score: liveBandHelp("orbit", "Each planet reached counts 1, and a crash still counts the part of the way to the next planet you flew.", { more: "More planets", good: (u) => `reaches ${u} planets`, finish: `Planets pay on a straight line, all ${ORBIT_STD.core.max} at the sun. ${stdFeaturesHelp(ORBIT_STD, { speed: "only for reaching the sun: all 20 with half the time left, falling evenly to 0 at the buzzer", perfect: `an equal share for each perfect orbit, all ${ORBIT_STD.features.find((f) => f.key === "perfect")!.max} at ${ORBIT_STD_PERFECT_OF}` })}` }),
     },
 
     snip: {

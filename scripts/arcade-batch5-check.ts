@@ -81,7 +81,7 @@ import {
 import { encodeBinTossRun, replayBinTossRun } from "../src/lib/duel/binToss";
 import { BINTOSS_REV_EXPAND } from "../src/lib/arcade/binToss";
 import { generateBeat, generateBinToss, generateBullseye, generateInkBridge, generateOrbit, generateRally } from "../src/lib/duel/arcade.server";
-import { orbitCheckpoint, ORBIT_INPUT_CHECKPOINT, ORBIT_INPUT_TAP, ORBIT_REV4, ORBIT_REV_SWEPT, ORBIT_REV_TUNED, ORBIT_REV_XP, ORBIT_TOTAL } from "../src/lib/arcade/orbit";
+import { orbitCheckpoint, ORBIT_INPUT_CHECKPOINT, ORBIT_INPUT_TAP, ORBIT_REV4, ORBIT_REV_SWEPT, ORBIT_REV_TUNED, ORBIT_REV_STD, ORBIT_TOTAL } from "../src/lib/arcade/orbit";
 import { decodeOrbitHoles, decodeRev3Planets, initRev4From, orbitRev3Game, ORBIT_REV3_WORLD_W, type OrbitRev3State } from "../src/lib/arcade/orbitRev3";
 import { ORBIT_HOLE_BANK } from "../src/lib/duel/orbitHoleBank.server";
 import { ORBIT_REV3_BANK } from "../src/lib/duel/orbitRev3Bank.server";
@@ -359,8 +359,9 @@ if (want("orbit")) {
       // Score bands (Oct 2026), Tuning A, Tuning F, then taller worlds batch 3: every bank course is stamped orbitRev 8
       // (rev-7 play, swept holes, in the taller view; arcade-tuning-g3-check), with its holes when it has them.
       // The expansion to 200 (docs/expansions/x200-orbit.md) then moved every room to orbitRev 12 on a feature-bank
-      // course (all of them carry holes); orbit-expand-check covers it.
-      ok(p.orbitRev === ORBIT_REV_XP && ORBIT_REV_TUNED === 6 && p.planets?.length === ORBIT_TOTAL + 1, "new rounds are stamped orbitRev 12 and ship their planets");
+      // course (all of them carry holes); orbit-expand-check covers it. The arcade scoring standard (29 Oct 2026) then
+      // moved rooms to orbitRev 13, orbitRev 12's play on the standard (arcade-standard-check covers it).
+      ok(p.orbitRev === ORBIT_REV_STD && ORBIT_REV_TUNED === 6 && p.planets?.length === ORBIT_TOTAL + 1, "new rounds are stamped orbitRev 13 (orbitRev 12's play) and ship their planets");
       if ((p.holes?.length ?? 0) > 0) {
         stamped++;
         ok(p.holes?.length === 3, "courses with holes ship all three");

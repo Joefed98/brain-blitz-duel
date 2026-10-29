@@ -127,8 +127,8 @@ import { pinballGameFor, pinCheckpoint, PIN_REV } from "@/lib/arcade/pinball";
 import { pin4Checkpoint, pinball5Game, PIN_REV_LONG } from "@/lib/arcade/pinball4";
 import { encodePinballRun, replayPinballRun } from "@/lib/duel/pinball";
 import { TILT_REV_BAND, TILT_REV_EXPAND, TILT_REV_LIFT, TILT_REV_TUNEC } from "@/lib/arcade/tilt";
-import { ORBIT_REV_BAND, ORBIT_REV_SWEPT, ORBIT_REV_TALL, ORBIT_REV_TUNED, ORBIT_REV_XP } from "@/lib/arcade/orbit";
-import { decodeOrbitExtras, initBandFrom, initSweptFrom, initTallFrom, initTunedFrom, initXpFrom } from "@/lib/arcade/orbitRev3";
+import { ORBIT_REV_BAND, ORBIT_REV_SWEPT, ORBIT_REV_TALL, ORBIT_REV_TUNED, ORBIT_REV_XP, ORBIT_REV_STD } from "@/lib/arcade/orbit";
+import { decodeOrbitExtras, initBandFrom, initSweptFrom, initTallFrom, initTunedFrom, initXpFrom, initStdFrom } from "@/lib/arcade/orbitRev3";
 import { ORBIT_XP_BANK } from "@/lib/duel/orbitXpBank.server";
 import { BEAT_REV_BAND, BEAT_REV_TALL, BEAT_REV_TUNEC, BEAT_REV_TUNEF } from "@/lib/arcade/beat";
 import { SLICE_REV_BAND, SLICE_REV_LONG, SLICE_REV_TALL, SLICE_REV_TUNEC } from "@/lib/arcade/slice";
@@ -683,6 +683,19 @@ const GAMES: Game[] = [
   // Roofbound flipRev 9 and Tilt tiltRev 9, flipRev 8's and tiltRev 8's play on lifted curves.
   { key: "flip/lift", game: flipGameFor(FLIP_REV_LIFT), checkpoint: flipCheckpoint, mode: "events", rate: 50, encode: encodeFlipRun, replay: (seed: number, raw: string) => replayFlipRun(seed, raw, FLIP_REV_LIFT) },
   { key: "tilt/lift", game: tiltGameFor(TILT_REV_LIFT), checkpoint: tiltCheckpoint, mode: "events", rate: 500, encode: encodeTiltRun, replay: (seed: number, raw: string) => replayTiltRun(seed, raw, TILT_REV_LIFT) },
+  // The arcade scoring standard (29 Oct 2026), appended so every earlier entry keeps its index: Orbit orbitRev 13,
+  // orbitRev 12's play on its feature-bank courses scored on the standard.
+  {
+    key: "orbit/std",
+    game: orbitRev3Game,
+    gameFor: (seed: number) => ({ ...orbitRev3Game, init: () => initStdFrom(orbitCourse(seed), ORBIT_REV3_WORLD_W, decodeOrbitHoles(orbitHoles(seed)), decodeOrbitExtras(ORBIT_XP_BANK.find((e) => e.seed === seed)!.extras)) }),
+    seedFor: (n: number) => ORBIT_XP_BANK[n % ORBIT_XP_BANK.length]!.seed,
+    checkpoint: orbitCheckpoint,
+    mode: "events",
+    rate: 25,
+    encode: encodeOrbitRun,
+    replay: (seed: number, raw: string) => replayOrbitRun(seed, raw, ORBIT_REV_STD, encodeRev3Planets(orbitCourse(seed)), orbitHoles(seed), ORBIT_XP_BANK.find((e) => e.seed === seed)!.extras),
+  },
 ];
 
 /** A random candidate event, often outside the declared range (a finger off the edge). */
