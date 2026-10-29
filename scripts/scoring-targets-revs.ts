@@ -27,9 +27,9 @@ export const STRICT_REVS: Partial<Record<LiveBandGame, number>> = Object.fromEnt
  * Later score-only revisions: type → [the revision, the revision whose play it keeps]. Joe's phone notes (27 Oct
  * 2026, docs/arcade-phone-notes-oct-2026.md): Roofbound flipRev 9 and Tilt tiltRev 9 keep flipRev 8's and tiltRev 8's play
  * on lifted curves (arcade-phone-notes-check proves it). The arcade scoring standard (29 Oct 2026,
- * docs/arcade-standard/balltrack.md): Ball Tracker btRev 8 keeps btRev 7's play (arcade-standard-check), Rainbow Bridge inkRev 12 inkRev 11's (ink-v11-check), Orbit orbitRev 13 orbitRev 12's (orbit-expand-check).
+ * docs/arcade-standard/balltrack.md): Ball Tracker btRev 8 keeps btRev 7's play (arcade-standard-check), Rainbow Bridge inkRev 12 inkRev 11's (ink-v11-check), Orbit orbitRev 13 orbitRev 12's (orbit-expand-check), Wavefront wavRev 12 wavRev 11's (wavefront-phone-check).
  */
-export const LIFT_REVS: Partial<Record<LiveBandGame, readonly [lift: number, play: number]>> = { flip: [9, 8], tilt: [9, 8], balltrack: [8, 7], inkbridge: [12, 11], orbit: [13, 12] };
+export const LIFT_REVS: Partial<Record<LiveBandGame, readonly [lift: number, play: number]>> = { flip: [9, 8], tilt: [9, 8], balltrack: [8, 7], inkbridge: [12, 11], orbit: [13, 12], wavefront: [12, 11] };
 
 /**
  * The arcade scoring standard's score-only revisions (29 Oct 2026, src/lib/arcade/arcadeStandard.ts): type → [the

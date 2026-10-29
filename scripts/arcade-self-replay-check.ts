@@ -113,6 +113,8 @@ import "@/lib/duel/wordfallDict.server";
 import { BT_REV_BAND, BT_REV_TALL } from "@/lib/arcade/ballTrack";
 import { WAV_REV_BAND, WAV_REV_PHONE, WAV_REV_SHAPES, WAV_REV_TALL, WAV_REV_TUNEC } from "@/lib/arcade/wavefront";
 import { FLIP_REV_BAND, FLIP_REV_EXPAND, FLIP_REV_LIFT, FLIP_REV_STD, FLIP_REV_TUNEC } from "@/lib/arcade/flip";
+import { WAV_REV_BAND, WAV_REV_PHONE, WAV_REV_SHAPES, WAV_REV_STD, WAV_REV_TALL, WAV_REV_TUNEC } from "@/lib/arcade/wavefront";
+import { FLIP_REV_BAND, FLIP_REV_EXPAND, FLIP_REV_LIFT, FLIP_REV_TUNEC } from "@/lib/arcade/flip";
 import { INK_REV_BAND, INK_REV_TUNEC } from "@/lib/arcade/inkBridge";
 import { MATCHUP_REV_BAND, MATCHUP_REV_PAR, MATCHUP_REV_WAIT } from "@/lib/arcade/matchup";
 import { BUB_REV_BAND, BUB_REV_TALL, BUB_REV_TORPEDO } from "@/lib/arcade/bubble";
@@ -724,6 +726,9 @@ const GAMES: Game[] = [
   },
   // The arcade scoring standard (29 Oct 2026, docs/arcade-standard/flip.md), appended: Roofbound flipRev 10, flipRev 8's play.
   { key: "flip/std", game: flipGameFor(FLIP_REV_STD), checkpoint: flipCheckpoint, mode: "events", rate: 50, encode: encodeFlipRun, replay: (seed: number, raw: string) => replayFlipRun(seed, raw, FLIP_REV_STD) },
+  // The arcade scoring standard (29 Oct 2026, docs/arcade-standard/wavefront.md), appended so every earlier entry keeps its
+  // index: Wavefront wavRev 12, wavRev 11's play scored in fixed parts that total 200.
+  { key: "wavefront/std", game: wavefrontGameFor(WAV_REV_STD), checkpoint: wavCheckpoint, mode: "events", rate: 300, encode: encodeWavefrontRun, replay: (seed: number, raw: string) => replayWavefrontRun(seed, raw, WAV_REV_STD) },
 ];
 
 /** A random candidate event, often outside the declared range (a finger off the edge). */

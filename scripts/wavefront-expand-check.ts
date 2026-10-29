@@ -78,6 +78,7 @@ import { roomSeed } from "./arcade-skill-bands/games";
 import { LEGACY_REVS, stateDigest } from "./wavefront-expand-record";
 import { RECORDED_SEEDS } from "./wavefront-expand-bands";
 import { ALL_LEVELS } from "./arcade-skill-bands/human";
+import { playRevOf } from "./scoring-targets-revs";
 import { botLog, randomLog, scheduleOf } from "./room-identity/wavefront";
 import type { ArcadeInputEvent } from "../src/lib/arcade/engine";
 
@@ -139,8 +140,9 @@ section("Old rounds replay unchanged on every older revision");
 // Since 27 Oct 2026 rooms deal wavRev 11 (Joe's phone notes, wavefront-phone-check proves its dealing); wavRev 10 rounds
 // keep replaying and scoring exactly as below.
 section("Rooms deal wavRev 11 (after wavRev 10), scored to 200");
-ok(generateWavefront().wavRev === WAV_REV_PHONE && WAV_REV_EXPAND === 10 && WAV_REV_PHONE === 11, "rooms deal wavRev 11, the revision after wavRev 10");
-ok((wavefrontPuzzle.generate() as { wavRev?: number }).wavRev === WAV_REV_PHONE, "practice's definition deals wavRev 11");
+// Since 29 Oct 2026 rooms deal wavRev 12, wavRev 11's play on the arcade scoring standard (playRevOf maps it to 11).
+ok(playRevOf("wavefront", generateWavefront().wavRev) === WAV_REV_PHONE && WAV_REV_EXPAND === 10 && WAV_REV_PHONE === 11, "rooms deal wavRev 11's play (wavRev 12 since 29 Oct 2026), the revision after wavRev 10");
+ok(playRevOf("wavefront", (wavefrontPuzzle.generate() as { wavRev?: number }).wavRev) === WAV_REV_PHONE, "practice's definition deals wavRev 11's play");
 ok(LIVE_BANDS.wavefront.strictRev === WAV_REV_STRICT && WAV_V10_BAND_CURVE.points.at(-1) === 140, "LIVE_BANDS: wavRev 8 is still the strictRev; wavRev 10's base curve still tops at 140");
 ok(roundMaxFor("wavefront") === 200, "Wavefront's round maximum is 200");
 ok(wavefrontWorldHFor(WAV_REV_EXPAND) === WAV_X_H && WAV_X_H === 800, "wavRev 10 plays in the 390 × 800 world");

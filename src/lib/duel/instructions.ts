@@ -77,21 +77,17 @@ import { stdFeaturesHelp } from "@/lib/arcade/arcadeStandard";
 import { HOVER_CENTRE_POINTS, HOVER_CENTRE_TOP, HOVER_CENTRE_TOL, HOVER_SKILL_SLACK, HOVER_CHAIN_POINTS, HOVER_CHAINS, HOVER_PICKUPS, HOVER_REACHABLE_GATES, HOVER_SKILL_MAX, HOVER_SKILL_PAY, HOVER_STARS, HOVER_TIGHT_GATES, HOVER_TIGHT_POINTS, HOVER_V2_GATES_SCORE, HOVER_V2_STARS_SCORE } from "@/lib/arcade/hover";
 import {
   WAV_BOSS_HP,
-  wavPrecision,
-  WAV_X_SKILL_PRECISE,
   WAV_X_CANNON_HP,
   WAV_X_CORE_DAMAGE,
   WAV_X_CORE_PERIOD,
-  WAV_X_EDGE_MAX,
+  WAV_X_SAUCERS,
   WAV_X_SHAPES,
   WAV_X_SHIELD_TICKS,
-  WAV_X_SKILL_CANNON,
-  WAV_X_SKILL_CORE,
-  WAV_X_SKILL_DROP,
-  WAV_X_SKILL_SAUCER,
   WAV_X_SPREAD_VOLLEYS,
   WAV_R11_CARRIERS,
-  WAV_R11_SKILL_PAY,
+  WAV_STD_CORE_FULL,
+  WAV_STD_LIFE_COST,
+  WAVEFRONT_STD,
 } from "@/lib/arcade/wavefront";
 import { INK_CLOUD_LEVELS, INK_STD, INK_V11_SILVER_PER_LEVEL, INK_V12_CORE_MAX, INK_LEVELS } from "@/lib/arcade/inkBridge";
 import { SNAKE_V9_CAPS, SNAKE_V9_COLS, SNAKE_V9_ROWS } from "@/lib/arcade/snake";
@@ -960,14 +956,18 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Each wave flies its own shape:", detail: `a grid, then a triangle, a circle, a pentagon and an octagon – ${WAV_X_SHAPES} ships each, with six escorts under the shapes. Waves 3 and 4 come down more slowly.`, helpOnly: true },
         { action: "From wave 2, a grey armoured ship", detail: "sits in the middle of the shape and takes 6-12 hits – every hit counts.", helpOnly: true },
         { action: "Power-ups:", detail: `in every wave ${WAV_R11_CARRIERS} ships carry one (they glow green or cyan), the same ships for everyone in a room; shoot one down and its power-up falls from where it was. Spread (green): ${WAV_X_SPREAD_VOLLEYS} volleys with two extra bolts angled out. Shield (cyan): absorbs the next hit (${WAV_X_SHIELD_TICKS / 60} s).`, helpOnly: true },
-        { action: "A saucer flies over every 15 seconds:", detail: "shoot it down for skill points; it drops the purple laser (5 shots that pierce up to 3 enemies).", helpOnly: true },
+        { action: "A saucer flies over every 15 seconds:", detail: "shoot it down for points; it drops the purple laser (5 shots that pierce up to 3 enemies).", helpOnly: true },
         { action: "After wave 3 a gunship flies in; after wave 5, the boss.", detail: `The boss comes only once wave 5 is destroyed. Each has two cannons (${WAV_X_CANNON_HP} hits each; a destroyed one stops firing) and a core that opens for half of every ${WAV_X_CORE_PERIOD / 60} s: a hit on the open core counts ${WAV_X_CORE_DAMAGE}. The boss's bar shows its ${WAV_BOSS_HP} hit points; destroying it ends the run – the sooner after it arrives, the more it scores.`, helpOnly: true },
-        { action: "Weak points pay for precision:", detail: "a hit on a cannon or the open core scores more skill points the nearer its centre it lands – most within a pixel or so.", helpOnly: true },
+        { action: "Weak points score:", detail: "each cannon you destroy and each boss whose open core you hit (once is enough) – six in a run.", helpOnly: true },
       ],
-      score: liveBandHelp("wavefront", "Ships, armour hits and boss hit points count 1, and cleared waves (the gunship too) 15.", {
+      // wavRev 12 (the arcade scoring standard, docs/arcade-standard/wavefront.md): the core and fixed parts, 200 in all.
+      score: `${liveBandHelp("wavefront", `Ships, hits and waves: ships shot, armour hits and the gunship's hit points count 1, and cleared waves (the gunship too) 15; everything before the boss counts ${WAV_STD_CORE_FULL}.`, {
         more: "More ships, hits and waves",
-        finish: `Destroying the boss adds up to 10 for speed: the full 10 within 20 s of its arrival, falling to 0 at 40 s. Skill adds up to ${WAV_X_EDGE_MAX} more: ${WAV_X_SKILL_DROP} a power-up caught, ${WAV_X_SKILL_SAUCER} a saucer, ${WAV_X_SKILL_CANNON} a cannon destroyed, ${WAV_X_SKILL_CORE} an open-core hit, and ${WAV_X_SKILL_PRECISE * wavPrecision(1)} / ${WAV_X_SKILL_PRECISE * wavPrecision(3)} / ${WAV_X_SKILL_PRECISE * wavPrecision(5)} for a weak-point hit within 1 / 3 / 5 px of its centre. ${skillPayLine(WAV_R11_SKILL_PAY)}`,
-      }),
+      })} ${stdFeaturesHelp(WAVEFRONT_STD, {
+        speed: "only with the boss destroyed: the full 10 within 20 s of its arrival, falling to 0 at 40 s",
+        saucers: `${20 / WAV_X_SAUCERS} a saucer of the ${WAV_X_SAUCERS} a run flies; destroying the boss counts those still to come`,
+        weak: "each cannon destroyed and each boss's open core hit, six in all",
+      })} Power-ups score nothing; each life lost costs ${WAV_STD_LIFE_COST} (anyone who plays scores at least 1).`,
     },
     bastion: {
       goal: "Defend the base.",
