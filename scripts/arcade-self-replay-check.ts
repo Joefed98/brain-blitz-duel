@@ -118,7 +118,7 @@ import { FLIP_REV_BAND, FLIP_REV_EXPAND, FLIP_REV_LIFT, FLIP_REV_TUNEC } from "@
 import { INK_REV_BAND, INK_REV_TUNEC } from "@/lib/arcade/inkBridge";
 import { MATCHUP_REV_BAND, MATCHUP_REV_PAR, MATCHUP_REV_WAIT } from "@/lib/arcade/matchup";
 import { BUB_REV_BAND, BUB_REV_TALL, BUB_REV_TORPEDO } from "@/lib/arcade/bubble";
-import { CROSS_REV_BAND, CROSS_REV_EXPAND, CROSS_REV_SMALL } from "@/lib/arcade/cross";
+import { CROSS_REV_BAND, CROSS_REV_EXPAND, CROSS_REV_SMALL, CROSS_REV_STD } from "@/lib/arcade/cross";
 import { RALLY_REV_BAND, RALLY_REV_TALL, RALLY_REV_TUNED, RALLY_REV_TUNEF } from "@/lib/arcade/rally";
 import { SNAKE_REV_BAND, SNAKE_REV_ROCKS, SNAKE_REV_TALL, SNAKE_REV_10 } from "@/lib/arcade/snake";
 import { BINTOSS_REV_BAND } from "@/lib/arcade/binToss";
@@ -729,6 +729,8 @@ const GAMES: Game[] = [
   // The arcade scoring standard (29 Oct 2026, docs/arcade-standard/wavefront.md), appended so every earlier entry keeps its
   // index: Wavefront wavRev 12, wavRev 11's play scored in fixed parts that total 200.
   { key: "wavefront/std", game: wavefrontGameFor(WAV_REV_STD), checkpoint: wavCheckpoint, mode: "events", rate: 300, encode: encodeWavefrontRun, replay: (seed: number, raw: string) => replayWavefrontRun(seed, raw, WAV_REV_STD) },
+  // The arcade scoring standard (29 Oct 2026, docs/arcade-standard/cross.md), appended: Jaywalk crossRev 10, busier crossings.
+  { key: "cross/std", game: crossGameFor(CROSS_REV_STD), checkpoint: crossCheckpoint, mode: "events", rate: 60, encode: encodeCrossRun, replay: (seed: number, raw: string) => replayCrossRun(seed, raw, CROSS_REV_STD) },
 ];
 
 /** A random candidate event, often outside the declared range (a finger off the edge). */
