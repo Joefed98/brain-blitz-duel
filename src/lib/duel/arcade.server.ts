@@ -5,7 +5,7 @@ import { CROSS_REV_EXPAND } from "@/lib/arcade/cross";
 import { INK_REV_SPREAD } from "@/lib/arcade/inkBridge";
 import { SNAKE_REV_TARGET, SNAKE_REV_10 } from "@/lib/arcade/snake";
 import { BUB_REV_BLAST } from "@/lib/arcade/bubble";
-import { MATCHUP_REV_ICE } from "@/lib/arcade/matchup";
+import { MATCHUP_REV_STD } from "@/lib/arcade/matchup";
 import { SNIP_REV_TARGET, SNIP_REV_EXPAND } from "@/lib/arcade/snip";
 import { SKYLINE_REV_TARGET, SKYLINE_REV_STRICT, SKYLINE_REV_LIFT } from "@/lib/arcade/skyline";
 import { TILT_REV_LIFT } from "@/lib/arcade/tilt";
@@ -99,8 +99,10 @@ export function generateBullseye(): BullseyePuzzleData {
 
 export function generateMatchup(): MatchupPuzzleData {
   // matchupRev 10 (27 Oct 2026, phone-test notes): matchupRev 9's taller board with goals, ice and treasure, over 90 s,
-  // with swaps into and out of ice that make a line, and the ice laid once.
-  return { type: "matchup", seed: arcadeSeed(), matchupRev: MATCHUP_REV_ICE };
+  // with swaps into and out of ice that make a line, and the ice laid once. matchupRev 11 (the arcade scoring standard,
+  // docs/arcade-standard-oct-2026/matchup.md): four treasures that may swap with a gem that then makes a line, four goal
+  // levels, and the score as fixed parts to 200.
+  return { type: "matchup", seed: arcadeSeed(), matchupRev: MATCHUP_REV_STD };
 }
 
 export function generateSnake(): SnakePuzzleData {

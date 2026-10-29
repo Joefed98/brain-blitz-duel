@@ -9,7 +9,7 @@ import { CROSS_LANE_POINTS, CROSS_CROSSING_POINTS } from "./cross";
 import { BT_BALLS, BT_V7_BALLS } from "./ballTrack";
 import { whackDepthScore, type WhackState } from "./whack";
 import { CLAY_DOUBLES, clayDepthScore, clayDoublesHit, type ClayState } from "./clayShoot";
-import { MATCHUP_PAR_RAW } from "./matchup";
+import { MATCHUP_PAR_RAW, MATCHUP_V11_CORE_GEMS, MATCHUP_V11_GOALS, matchupGoalsMet, matchupTreasuresOf, type MatchupState } from "./matchup";
 import { WF_PAR } from "./wordfall";
 import { HOVER_CHAINS, HOVER_TIGHT_GATES, HOVER_V2_GATES_SCORE, HOVER_V2_STARS_SCORE } from "./hover";
 import { WAV_BOSS_HP, WAV_V2_WAVES } from "./wavefront";
@@ -55,6 +55,21 @@ function clayDepthLine(run: Run): string[] {
   return [`Doubles +${d.doubles} (${clayDoublesHit(state)} of ${CLAY_DOUBLES}) · streak +${d.streak} (best ${state.dp.best})`];
 }
 const sec = (value: number): string => `${value.toFixed(1)} s`;
+
+/** Gemstone before matchupRev 11: match points on the axis (unchanged). */
+function matchupRevealBefore(r: Run, s: number): ArcadeRevealData {
+  return {
+    axis: { value: n(r, "raw"), max: n(r, "parRaw") || MATCHUP_PAR_RAW, label: "Match points" },
+    lines: [`${n(r, "raw").toLocaleString("en-GB")} match points → ${s}`],
+    tiles: [
+      { label: "Best line", value: String(n(r, "bestLine")) },
+      ...(n(r, "jackpots") > 0 ? [{ label: "Jackpots", value: String(n(r, "jackpots")) }] : []),
+      { label: "Cascades", value: String(n(r, "cascades")) },
+      { label: "Swaps", value: String(n(r, "swaps")) },
+    ],
+    outcome: "time",
+  };
+}
 
 /** "x / y things → score", splitting the completion score into 130 + time when finished. */
 function head(text: string, score: number, complete: boolean): string {
@@ -167,17 +182,24 @@ const BUILDERS: Record<string, Builder> = {
       outcome: b(r, "finished") ? "finish" : "time",
     };
   },
-  matchup: (r, s) => ({
-    axis: { value: n(r, "raw"), max: n(r, "parRaw") || MATCHUP_PAR_RAW, label: "Match points" },
-    lines: [`${n(r, "raw").toLocaleString("en-GB")} match points → ${s}`],
-    tiles: [
-      { label: "Best line", value: String(n(r, "bestLine")) },
-      ...(n(r, "jackpots") > 0 ? [{ label: "Jackpots", value: String(n(r, "jackpots")) }] : []),
-      { label: "Cascades", value: String(n(r, "cascades")) },
-      { label: "Swaps", value: String(n(r, "swaps")) },
-    ],
-    outcome: "time",
-  }),
+  matchup: (r, s) => {
+    // matchupRev 11 (the arcade scoring standard): gems cleared on the axis, the parts as tiles (the lines come from
+    // the band breakdown, matchupStdBandParts).
+    const st = r["state"] as MatchupState | undefined;
+    if (st?.std)
+      return {
+        axis: { value: st.gemsCleared ?? 0, max: MATCHUP_V11_CORE_GEMS, label: "Gems cleared" },
+        lines: [`${(st.gemsCleared ?? 0).toLocaleString("en-GB")} gems cleared → ${s}`],
+        tiles: [
+          { label: "Treasure", value: `${st.treasures ?? 0} / ${matchupTreasuresOf(st)}` },
+          { label: "Goals", value: `${matchupGoalsMet(st)} / ${MATCHUP_V11_GOALS}` },
+          { label: "Ice", value: String(st.iceBroken ?? 0) },
+          { label: "Big lines", value: String(st.bigLines ?? 0) },
+        ],
+        outcome: "time",
+      };
+    return matchupRevealBefore(r, s);
+  },
   breaker: (r, s) => {
     const done = b(r, "cleared");
     // brkRev 9: a 105-brick wall, and the skill points (gold bricks, combos) as their own line and tiles.

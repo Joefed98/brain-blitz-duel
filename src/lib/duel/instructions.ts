@@ -71,7 +71,20 @@ import {
   TILT_X_TWO_FROM,
 } from "@/lib/arcade/tilt";
 import { BUB_SPECIAL_BLOCK, BUB_TORPEDO_HITS, BUB_V3_JOKER_BLOCK, BUB_V8_CHESTS, BUB_V8_CHEST_FP, BUB_V8_FEATURE_MAX } from "@/lib/arcade/bubble";
-import { MATCHUP_V3_PAR_RAW, MATCHUP_V9_FEATURE_MAX } from "@/lib/arcade/matchup";
+import {
+  MATCHUP_V3_PAR_RAW,
+  MATCHUP_V11_BIG_MAX,
+  MATCHUP_V11_BIG_PTS,
+  MATCHUP_V11_CORE_MAX,
+  MATCHUP_V11_GOAL_PTS,
+  MATCHUP_V11_GOALS,
+  MATCHUP_V11_GOALS_MAX,
+  MATCHUP_V11_ICE_MAX,
+  MATCHUP_V11_ICE_PTS,
+  MATCHUP_V11_TREASURE_MAX,
+  MATCHUP_V11_TREASURE_PTS,
+  MATCHUP_V11_TREASURES,
+} from "@/lib/arcade/matchup";
 import { BT_V7_BALLS, BT_V7_BOOST_STEPS, BT_V7_FEATURE_MAX, BT_V7_LAST_LAND_MIN } from "@/lib/arcade/ballTrack";
 import { HOVER_CENTRE_POINTS, HOVER_CENTRE_TOP, HOVER_CENTRE_TOL, HOVER_SKILL_SLACK, HOVER_CHAIN_POINTS, HOVER_CHAINS, HOVER_PICKUPS, HOVER_REACHABLE_GATES, HOVER_SKILL_MAX, HOVER_SKILL_PAY, HOVER_STARS, HOVER_TIGHT_GATES, HOVER_TIGHT_POINTS, HOVER_V2_GATES_SCORE, HOVER_V2_STARS_SCORE } from "@/lib/arcade/hover";
 import {
@@ -685,19 +698,23 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
       how: [
         { action: "Swap neighbours;", detail: "collect the goal's colours." },
         { action: "Match on frozen gems", detail: "to break the ice." },
-        { action: "Clear below treasure", detail: "to bring it down." },
+        { action: "Clear below treasure", detail: "or swap it down." },
         { action: "4, 5 or an L / T", detail: "makes a bomb or a star; 5 plus an L / T in one swap makes a jackpot.", helpOnly: true },
-        { action: "Each level", detail: "asks for a count of two or three colours (shown under the board); meet it and the next level starts.", helpOnly: true },
+        { action: "Four levels", detail: "each ask for a count of two or three colours (shown under the board); meet one and the next starts.", helpOnly: true },
         { action: "A frozen gem", detail: "can be swapped into or out of the ice only when the swap makes a line of three. Clear the gem in the ice (in a line, a cascade or a blast) and the ice breaks; it never comes back.", helpOnly: true },
-        { action: "A treasure gem", detail: "can't be matched, swapped or blasted: it falls as the gems under it clear and is collected on the bottom row.", helpOnly: true },
-        { action: "Cascades multiply:", detail: "each step after a swap's own clear counts ×2, ×3 and so on.", helpOnly: true },
+        { action: "A treasure gem", detail: `can't be matched or blasted. It falls as the gems under it clear, and it swaps with a gem that then makes a line of three. It is collected on the bottom row; ${MATCHUP_V11_TREASURES} come a round.`, helpOnly: true },
         { action: "Drag one gem onto its neighbour", detail: "to swap them. Matched gems clear and new ones fall in; your next swap waits until the board has settled.", helpOnly: true },
         { action: "Line of 4: a bomb", detail: "(clears around it). Line of 5: a white four-point star (its row and column). An L or T: a six-point star (both diagonals).", helpOnly: true },
         { action: "A line of 5 and an L / T in one swap", detail: "makes a jackpot gem: it clears every gem of its colour plus its row and column.", helpOnly: true },
         { action: "Specials", detail: "go off when you swap them or match next to them, and set each other off.", helpOnly: true },
         { action: "Ninety seconds", detail: "on the same board for everyone; new gems drop from the same fixed queues.", helpOnly: true },
       ],
-      score: liveBandHelp("matchup", `Match points: longer lines, cascades and special gems score more. Goals met, ice broken, treasure collected and the cascade multiplier add up to ${MATCHUP_V9_FEATURE_MAX} more.`, { more: "More match points", good: (u) => `scores ${u.toLocaleString("en-GB")} match points` }),
+      // matchupRev 11 (the arcade scoring standard): the core on its straight line, then fixed amounts, to 200.
+      score: liveBandHelp("matchup", "Every gem cleared counts, in a line, a cascade or a blast.", {
+        more: "More gems cleared",
+        good: (u) => `clears ${u.toLocaleString("en-GB")} gems`,
+        finish: `Then treasure: ${MATCHUP_V11_TREASURE_PTS} for each brought down (up to ${MATCHUP_V11_TREASURE_MAX}); goals: ${MATCHUP_V11_GOAL_PTS} for each of the ${MATCHUP_V11_GOALS} colour goals met (up to ${MATCHUP_V11_GOALS_MAX}); ice: ${MATCHUP_V11_ICE_PTS} for each frozen cell broken (up to ${MATCHUP_V11_ICE_MAX}); big lines: ${MATCHUP_V11_BIG_PTS} for each line of 4 or 5 you match (up to ${MATCHUP_V11_BIG_MAX}). Gems ${MATCHUP_V11_CORE_MAX} + ${MATCHUP_V11_TREASURE_MAX} + ${MATCHUP_V11_GOALS_MAX} + ${MATCHUP_V11_ICE_MAX} + ${MATCHUP_V11_BIG_MAX} make 200.`,
+      }),
     },
     snake: {
       goal: "Eat the stars; don't crash.",

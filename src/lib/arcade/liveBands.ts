@@ -14,7 +14,7 @@ import { BT_REV_RUSH, BT_REV_STRICT, BT_V7_BAND_CURVE } from "./ballTrack";
 import { WAV_REV_PHONE, WAV_REV_STRICT, WAV_V11_BAND_CURVE } from "./wavefront";
 import { FLIP_REV_LIFT, FLIP_REV_STRICT, FLIP_V9_BAND_CURVE } from "./flip";
 import { INK_REV_SPREAD, INK_REV_STRICT, INK_V10_BAND_CURVE } from "./inkBridge";
-import { MATCHUP_REV_ICE, MATCHUP_REV_STRICT, MATCHUP_V10_BAND_CURVE } from "./matchup";
+import { MATCHUP_REV_STD, MATCHUP_REV_STRICT, MATCHUP_V11_BAND_CURVE } from "./matchup";
 import { BUB_REV_BLAST, BUB_REV_STRICT, BUB_V8_BAND_CURVE } from "./bubble";
 import { CROSS_REV_EXPAND, CROSS_REV_STRICT, CROSS_V9_BAND_CURVE } from "./cross";
 import { RALLY_REV_CURVE, RALLY_REV_STRICT, RALLY_V10_BAND_CURVE } from "./rally";
@@ -54,7 +54,9 @@ export const LIVE_BANDS = {
   wavefront: { field: "wavRev", rev: WAV_REV_PHONE, curve: WAV_V11_BAND_CURVE, strictRev: WAV_REV_STRICT },
   flip: { field: "flipRev", rev: FLIP_REV_LIFT, curve: FLIP_V9_BAND_CURVE, strictRev: FLIP_REV_STRICT },
   inkbridge: { field: "inkRev", rev: INK_REV_SPREAD, curve: INK_V10_BAND_CURVE, strictRev: INK_REV_STRICT },
-  matchup: { field: "matchupRev", rev: MATCHUP_REV_ICE, curve: MATCHUP_V10_BAND_CURVE, strictRev: MATCHUP_REV_STRICT },
+  // matchupRev 11 (the arcade scoring standard): the core's straight line (gems cleared, to 110); treasure, goals, ice and
+  // big lines pay fixed amounts on top, to 200 (the help says so).
+  matchup: { field: "matchupRev", rev: MATCHUP_REV_STD, curve: MATCHUP_V11_BAND_CURVE, strictRev: MATCHUP_REV_STRICT },
   bubble: { field: "bubbleRev", rev: BUB_REV_BLAST, curve: BUB_V8_BAND_CURVE, strictRev: BUB_REV_STRICT },
   cross: { field: "crossRev", rev: CROSS_REV_EXPAND, curve: CROSS_V9_BAND_CURVE, strictRev: CROSS_REV_STRICT },
   rally: { field: "rallyRev", rev: RALLY_REV_CURVE, curve: RALLY_V10_BAND_CURVE, strictRev: RALLY_REV_STRICT },
