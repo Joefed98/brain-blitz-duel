@@ -94,7 +94,6 @@ import {
   WAV_R11_SKILL_PAY,
 } from "@/lib/arcade/wavefront";
 import { INK_CLOUD_LEVELS, INK_STD, INK_V11_SILVER_PER_LEVEL, INK_V12_CORE_MAX, INK_LEVELS } from "@/lib/arcade/inkBridge";
-import { stdFeaturesHelp } from "@/lib/arcade/arcadeStandard";
 import { SNAKE_V9_CAPS, SNAKE_V9_COLS, SNAKE_V9_ROWS } from "@/lib/arcade/snake";
 import { BEAT_V9_CAPS, BEAT_V9_SKILL_PAY } from "@/lib/arcade/beat";
 import {
@@ -114,7 +113,6 @@ import { RALLY_V10_BONUS_COUNT, RALLY_V10_BONUS_PTS, RALLY_V11_BONUS_LIFE } from
 import { BURST_V9_CAPS, BURST_V9_CLEAR_MAX, BURST_V8_GOLDEN_PTS, BURST_V8_GOLDENS } from "@/lib/arcade/burst";
 import { liveBandHelp } from "@/lib/arcade/liveBands";
 import { ORBIT_STD, ORBIT_STD_PERFECT_OF, ORBIT_XP_FIELDS, ORBIT_XP_MOONS, ORBIT_XP_TRAILS } from "@/lib/arcade/orbitRev3";
-import { stdFeaturesHelp } from "@/lib/arcade/arcadeStandard";
 import { CROSS_V9_SKILL_PAY, CROSS_X_BONUS_MAX, CROSS_X_CLOSE_MAX, CROSS_X_CLOSE_POINTS, CROSS_X_COIN_CROSSINGS, CROSS_X_COIN_POINTS, CROSS_X_COINS_PER_RUN } from "@/lib/arcade/cross";
 import { SWING_V14_GATES, SWING_V14_GEMS, SWING_V14_PAR_POINTS, SWING_V14_PICKUP_POINTS, SWING_V14_SECTIONS, SWING_V14_STARS } from "@/lib/arcade/swing";
 import { BRK_V10_GOLD_HITS, BRK_V9_COLS, BRK_V9_COMBO_MAX, BRK_V9_COMBO_X2, BRK_V9_COMBO_X3, BRK_V9_GOLD, BRK_V9_GOLD_POINTS, BRK_V9_ROWS, BRK_V9_SKILL_MAX, BRK_V9_SKILL_PAY } from "@/lib/arcade/breaker";
