@@ -105,7 +105,7 @@ function introScoreTemplates(): Record<PuzzleType, string> {
     snake: "Points per star; gold stars, combos, lane rides and warps add bonus. Up to {max}.",
     cross: "Points for rows and crossings; coins, close calls and clean streaks add more. Up to {max}.",
     breaker: "Bricks score; gold and combos add up to 50. Clear all 105 quickly for up to {max}.",
-    rally: "Gold-ball hits, each pink target and gold target score; blue returns a little. Up to {max}.",
+    rally: "Gold-ball hits, pink targets and gold targets. Up to {max}.",
     pinball: "Table points: ramps, J-O-U-L-Z, jackpots and skill shots score big. Up to {max}.",
     bubble: "Clear bubbles; falling chests, bank shots and combos add more. Up to {max}.",
     slice: "Food by combo; gold fruit, tickets and dodges add more. Chilli: lose 10. Up to {max}.",

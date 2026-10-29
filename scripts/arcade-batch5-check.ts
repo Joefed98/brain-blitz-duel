@@ -237,7 +237,7 @@ if (want("rally")) {
   section("Rally rallyRev 2 (far-wall targets, bumper from 30 s)");
   const game = rallyGameFor(RALLY_REV);
   // Expansion E9 (docs/expansions/e9.md) then moved Rally on to rallyRev 10; expansion-e9-check covers it.
-  ok(playRevOf("rally", generateRally().rallyRev) === RALLY_REV_TUNEF + 6 && RALLY_REV_TUNED === 4 && RALLY_REV_BAND === 3, "new rounds are stamped rallyRev 11 (phone notes 27 Oct 2026, after rallyRev 10: expansion E9, after rallyRev 6: the taller court, arcade-tuning-g1-check; rallyRev 5 = Tuning F second bumper, arcade-tuning-f-check; rallyRev 4 = Tuning B pads in their own halves; rallyRev 3 = rev 2 play on the score bands)");
+  ok(playRevOf("rally", generateRally().rallyRev) === RALLY_REV_TUNEF + 7 && RALLY_REV_TUNED === 4 && RALLY_REV_BAND === 3, "new rounds are stamped rallyRev 12 (the arcade scoring standard 29 Oct 2026, rally-standard-check; after rallyRev 11: phone notes 27 Oct 2026, after rallyRev 10: expansion E9, after rallyRev 6: the taller court, arcade-tuning-g1-check; rallyRev 5 = Tuning F second bumper, arcade-tuning-f-check; rallyRev 4 = Tuning B pads in their own halves; rallyRev 3 = rev 2 play on the score bands)");
   ok(rallyGameFor(undefined) === rallyGame && rallyGame.init(5).spots === undefined, "unstamped rounds keep the original game");
   for (const seed of SEEDS(200, 7919)) {
     const a = game.init(seed);

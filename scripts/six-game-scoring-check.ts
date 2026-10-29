@@ -71,7 +71,7 @@ eq(buildArcadeReveal("matchup", { raw: 2500 }, 150)?.axis.max, 2500, "Matchup re
 // Oct 2026 score bands: intros describe the band rules in plain words (the "?" help gives the top and a good run).
 // Expansion E6 (25 Oct 2026): Ball Tracker's intro names btRev 7's features; e6-check covers the new rules.
 for (const [type, text] of [["balltrack", "gold, boosted and in-a-row marbles"], ["junction", "± for ambulances"], ["rally", "pink target"], ["skyline", "perfects in a row"]] as const) eq(INTRO_SCORE[type].includes(text), true, `${type} intro`);
-for (const [type, text] of [["matchup", "4,200"], ["bullseye", "plus +1, +2 or +3 for each balloon"], ["junction", "one stopped takes 4 off"], ["skyline", "perfect drop counts 5"], ["rally", "gold-ball hit counts 5"], ["balltrack", "56.6 s"]] as const) eq(PUZZLE_INSTRUCTIONS[type].score.includes(text), true, `${type} help`);
+for (const [type, text] of [["matchup", "4,200"], ["bullseye", "plus +1, +2 or +3 for each balloon"], ["junction", "one stopped takes 4 off"], ["skyline", "perfect drop counts 5"], ["rally", "Gold-ball hits up to 140"], ["balltrack", "56.6 s"]] as const) eq(PUZZLE_INSTRUCTIONS[type].score.includes(text), true, `${type} help`);
 // The 11 Oct 130 / 150 split is gone from every intro: no partial cap is stated any more.
 for (const type of ["balltrack", "bintoss", "breaker", "bubble", "inkbridge", "orbit", "swing", "tilt"] as const) eq(/otherwise up to \d+/.test(INTRO_SCORE[type]), false, `${type} intro has no partial cap`);
 // The legacy split figures still hold for stored rounds (they replay on their original rules).
@@ -199,5 +199,5 @@ eq(demoGuard.includes('data.type === "skyline" && demo?.puzzle.type === "skyline
 // 620 px court, so only a rallyRev 6 demo plays (arcade-tuning-g1-check). This flips back to "not invalidated" (and the
 // guard comes out of introDemo.functions.ts) once Rally's demo is re-recorded on rallyRev 6.
 // Expansion E9 (26 Oct 2026, docs/expansions/e9.md) moved the guard on to rallyRev 10 (the 420 × 784 court and its gold targets).
-eq(demoGuard.includes('data.type === "rally" && demo?.puzzle.type === "rally" && demo.puzzle.rallyRev !== RALLY_REV_CURVE) return null'), true, "rally demo stopped until re-recorded on rallyRev 11 (phone notes, 27 Oct 2026)");
+eq(demoGuard.includes('data.type === "rally" && demo?.puzzle.type === "rally" && demo.puzzle.rallyRev !== RALLY_REV_STD) return null'), true, "rally demo stopped until re-recorded on rallyRev 12 (the arcade scoring standard, 29 Oct 2026; rallyRev 11 before)");
 console.log(`Six-game scoring: ${checks} formula/schedule/intro/reveal/demo checks passed (legacy rules and the Oct 2026 score bands); Bullseye anchors 100→150, 90→133, 70→99, 50→65; band 110→150, 72→70`);
