@@ -14,6 +14,7 @@ import { WF_PAR } from "./wordfall";
 import { HOVER_CHAINS, HOVER_TIGHT_GATES, HOVER_V2_GATES_SCORE, HOVER_V2_STARS_SCORE } from "./hover";
 import { WAV_BOSS_HP, WAV_V2_WAVES } from "./wavefront";
 import { BAND_SPECS } from "./bandParts";
+import { breakerStdParts, type BrkState } from "./breaker";
 import { bandLines } from "./scoreBands";
 
 export interface ArcadeRevealTile {
@@ -180,6 +181,22 @@ const BUILDERS: Record<string, Builder> = {
   }),
   breaker: (r, s) => {
     const done = b(r, "cleared");
+    // brkRev 11 (the arcade scoring standard): every brick on the axis (gold included, what the core counts), gold as a
+    // tile, no combo tile. Read from the replayed state the run carries, through the sim's own parts.
+    const stdState = r["state"] as BrkState | undefined;
+    const std = stdState?.std ? breakerStdParts(stdState) : null;
+    if (std)
+      return {
+        axis: { value: std.bricks, max: std.all, label: "Bricks destroyed" },
+        lines: [head(`${std.bricks} / ${std.all} bricks`, s, done)],
+        tiles: [
+          { label: "Gold bricks", value: `${std.goldBroken} / ${std.goldDealt}` },
+          { label: "Power-ups", value: String(n(r, "powerUps")) },
+          { label: "Balls lost", value: String(n(r, "losses")) },
+          { label: "Brick hits", value: String(n(r, "hits")) },
+        ],
+        outcome: done ? "finish" : n(r, "bricksLeft") > 0 && n(r, "endedSeconds") < 90 ? "crash" : "time",
+      };
     // brkRev 9: a 105-brick wall, and the skill points (gold bricks, combos) as their own line and tiles.
     const wall = n(r, "wall") || 80;
     const deep = n(r, "wall") > 0;

@@ -236,6 +236,9 @@ export interface BrkState extends BandFields {
   /** brkRev 10 only (Joe's phone notes, 27 Oct 2026): the marker; gold bricks break after BRK_V10_GOLD_HITS hits of
    * any kind and the wall holds a second double-ball brick in its lower rows. Absent on every earlier round. */
   phone?: number;
+  /** brkRev 11 only (the arcade scoring standard, 29 Oct 2026): the marker; brkRev 10's play scored in fixed parts
+   * (breakerStdParts). Absent on every earlier round. */
+  std?: number;
   tick: number;
   rng: number;
   /** Hits left in each brick: 0 gone, otherwise 1–3. */
@@ -743,6 +746,8 @@ export function brkCheckpoint(state: BrkState): BrkCheckpoint {
   if (state.deep) values.push(state.deep, state.worldW ?? 0, state.goldBroken ?? 0, state.clinks ?? 0, state.chain ?? 0, state.comboPts ?? 0);
   // brkRev 10 (phone notes): its marker, last.
   if (state.phone) values.push(state.phone);
+  // brkRev 11 (the scoring standard): its marker, last.
+  if (state.std) values.push(state.std);
   for (const value of values) {
     checksum ^= value | 0;
     checksum = Math.imul(checksum, 0x01000193) >>> 0;
@@ -922,6 +927,7 @@ const breakerGameV2: ArcadeGame<BrkState, ArcadeInputEvent | null> = { ...breake
 
 /** The game for a stored brkRev (absent = the original board and power-ups). */
 export function breakerGameFor(rev?: number | null): ArcadeGame<BrkState, ArcadeInputEvent | null> {
+  if (rev === BRK_REV_STD) return breakerStdGame;
   if (rev === BRK_REV_PHONE) return breakerPhoneGame;
   if (rev === BRK_REV_DEEP) return breakerDeepGame;
   if (rev === BRK_REV_STRICT) return breakerStrictGame;
@@ -940,6 +946,7 @@ export const BRK_REV_BAND = 3;
 /** Bricks destroyed; 140 at all 80 (the 130 cap is gone); clearing the wall adds up to 10 for speed. */
 export const BRK_BAND_CURVE = bandCurve([0, 60, 67, 76, 79, 80], [0, 70, 100, 125, 138, 140]);
 export function breakerBandParts(state: BrkState): BandParts {
+  if (state.std) return breakerStdBandParts(state);
   if (state.deep) return breakerDeepParts(state);
   const units = brkDestroyed(state);
   const finished = brkDestroyed(state) >= BRK_BRICKS;
@@ -1012,13 +1019,13 @@ export const breakerTallGame: ArcadeGame<BrkState, ArcadeInputEvent | null> = {
 
 /** The world height (px) a stored round's brkRev plays in. */
 export function breakerWorldHFor(rev?: number | null): number {
-  if (rev === BRK_REV_DEEP || rev === BRK_REV_PHONE) return BRK_V9_H;
+  if (rev === BRK_REV_DEEP || rev === BRK_REV_PHONE || rev === BRK_REV_STD) return BRK_V9_H;
   return rev === BRK_REV_TALL || rev === BRK_REV_TARGET || rev === BRK_REV_STRICT ? BRK_TALL_H : BRK_WORLD_H;
 }
 
 /** The court width (px) a stored round's brkRev plays in. */
 export function breakerWorldWFor(rev?: number | null): number {
-  return rev === BRK_REV_DEEP || rev === BRK_REV_PHONE ? BRK_V9_W : BRK_WORLD_W;
+  return rev === BRK_REV_DEEP || rev === BRK_REV_PHONE || rev === BRK_REV_STD ? BRK_V9_W : BRK_WORLD_W;
 }
 
 /* ================= Scoring targets (brkRev 7, 18 Oct 2026) ================= */
@@ -1654,4 +1661,115 @@ function initPhone(seed: number): BrkState {
 export const breakerPhoneGame: ArcadeGame<BrkState, ArcadeInputEvent | null> = {
   ...breakerDeepGame,
   init: initPhone,
+};
+
+/* ================= The arcade scoring standard (brkRev 11, 29 Oct 2026) ================= */
+
+/**
+ * brkRev 11 (the arcade scoring standard, docs/arcade-standard-oct-2026/breaker.md): brkRev 10's play exactly (the
+ * same court, board, gold bricks, power-ups, second double-ball brick and first launch; `initPhone` then the marker),
+ * scored in fixed parts that total 200:
+ *  - Bricks, up to BRK_V11_CORE_MAX (140): a straight line on the share of the board's bricks destroyed,
+ *    floor(140 × destroyed ÷ 108). Every brick counts, the 3 gold bricks and the power-up bricks included.
+ *  - Clearing the wall (the 105 bricks whose last one ends the run, as on every revision): BRK_V11_CLEAR_POINTS (10),
+ *    plus speed up to BRK_V11_SPEED_MAX (20): the full 20 with at least half the time left, then falling evenly to 0
+ *    at the buzzer. Only when cleared.
+ *  - Gold bricks, up to BRK_V11_GOLD_MAX (30), split evenly over the gold bricks dealt (10 each).
+ *  - Power-up bricks pay nothing extra (they are bricks, and their effect still helps); combos pay nothing; losing the
+ *    ball costs only its 3 s relaunch. brkRev 9's skill pay (BRK_V9_SKILL_PAY) is not used on this stamp.
+ * Any played run (an input at all) scores at least 1; a run with no input scores 0. States carry `std: 1`, folded into
+ * the checkpoint last. Every earlier revision keeps its own scoring.
+ */
+export const BRK_REV_STD = 11;
+export const BRK_V11_CORE_MAX = 140;
+export const BRK_V11_CLEAR_POINTS = 10;
+export const BRK_V11_SPEED_MAX = 20;
+export const BRK_V11_GOLD_MAX = 30;
+/** The round maximum the four parts add up to (ROUND_MAX.breaker). */
+export const BRK_V11_MAX = BRK_V11_CORE_MAX + BRK_V11_CLEAR_POINTS + BRK_V11_SPEED_MAX + BRK_V11_GOLD_MAX;
+/** Every brick on brkRev 11's board (9 × 12 = 108: 105 wall bricks and 3 gold). */
+export const BRK_V11_BRICKS = BRK_V9_COLS * BRK_V9_ROWS;
+/** The core's straight line: 140 at all 108 bricks (no knots in between). */
+export const BRK_V11_BAND_CURVE = bandCurve([0, BRK_V11_BRICKS], [0, BRK_V11_CORE_MAX]);
+
+/** Every brick destroyed, gold bricks included (brkDestroyed counts the wall only on brkRev 9+). */
+export function brkAllDestroyed(state: { bricks: number[] }): number {
+  let n = 0;
+  for (const left of state.bricks) if (left <= 0) n += 1;
+  return n;
+}
+
+/** Gold bricks dealt on a board (3 on brkRev 9+; 0 before). */
+export function brkGoldDealt(state: { gild?: number[] }): number {
+  let n = 0;
+  for (const g of state.gild ?? []) if (g === 1) n += 1;
+  return n;
+}
+
+/** brkRev 11's speed points for a wall cleared at `endedTick`: 20 with half the run left or more, then evenly to 0. */
+export function brkStdSpeed(endedTick: number): number {
+  const left = BRK_RUN_TICKS - clampInt(endedTick, 0, BRK_RUN_TICKS);
+  if (2 * left >= BRK_RUN_TICKS) return BRK_V11_SPEED_MAX;
+  return Math.floor((2 * BRK_V11_SPEED_MAX * left) / BRK_RUN_TICKS);
+}
+
+export interface BrkStdParts {
+  /** Bricks destroyed (gold included) of the board's `all`. */
+  bricks: number;
+  all: number;
+  core: number;
+  cleared: boolean;
+  clear: number;
+  speed: number;
+  goldBroken: number;
+  goldDealt: number;
+  gold: number;
+  /** The parts' sum (before the played-run floor of 1). */
+  sum: number;
+}
+
+/** brkRev 11's four parts for a state. */
+export function breakerStdParts(state: BrkState): BrkStdParts {
+  const all = state.bricks.length;
+  const bricks = brkAllDestroyed(state);
+  const core = all > 0 ? Math.floor((BRK_V11_CORE_MAX * bricks) / all) : 0;
+  const cleared = state.cleared;
+  const clear = cleared ? BRK_V11_CLEAR_POINTS : 0;
+  const speed = cleared ? brkStdSpeed(state.endedTick) : 0;
+  const goldDealt = brkGoldDealt(state);
+  const goldBroken = Math.min(goldDealt, state.goldBroken ?? 0);
+  const gold = goldDealt > 0 ? Math.floor((BRK_V11_GOLD_MAX * goldBroken) / goldDealt) : 0;
+  return { bricks, all, core, cleared, clear, speed, goldBroken, goldDealt, gold, sum: core + clear + speed + gold };
+}
+
+/** brkRev 11's score: the parts' sum, at least 1 for a played run, 0 with no input, never above 200. */
+export function brkStdScore(state: BrkState): number {
+  if (!state.acted) return 0;
+  return clampInt(Math.max(1, breakerStdParts(state).sum), 0, BRK_V11_MAX);
+}
+
+/** brkRev 11's reveal breakdown (bandLines): the bricks line, then clear, speed and gold on one bonus line. */
+export function breakerStdBandParts(state: BrkState): BandParts {
+  const p = breakerStdParts(state);
+  return {
+    units: p.bricks,
+    points: p.core,
+    bonus: p.clear + p.speed + p.gold,
+    penalty: 0,
+    finished: p.cleared,
+    text: `${p.bricks} / ${p.all} bricks`,
+    bonusText: p.cleared
+      ? `Wall cleared ${p.clear} · speed ${p.speed} · gold ${p.goldBroken} / ${p.goldDealt} ${p.gold}`
+      : `Gold ${p.goldBroken} / ${p.goldDealt}`,
+  };
+}
+
+function initStd(seed: number): BrkState {
+  return { ...initPhone(seed), std: 1 };
+}
+
+export const breakerStdGame: ArcadeGame<BrkState, ArcadeInputEvent | null> = {
+  ...breakerPhoneGame,
+  init: initStd,
+  score: brkStdScore,
 };

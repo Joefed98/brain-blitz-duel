@@ -122,7 +122,7 @@ import { SNIP_REV_BAND, SNIP_REV_BANK6, SNIP_REV_EXPAND, SNIP_REV_PROVEN, SNIP_R
 import { SKYLINE_REV_BAND, SKYLINE_REV_TALL } from "@/lib/arcade/skyline";
 import { HOVER_REV_BAND, HOVER_REV_EXPAND, HOVER_REV_TALL, HOVER_REV_TUNEC } from "@/lib/arcade/hover";
 import { JUNC_REV_BAND } from "@/lib/arcade/junction";
-import { BRK_REV_BAND, BRK_REV_TALL, BRK_REV_TUNED, BRK_REV_TUNEF } from "@/lib/arcade/breaker";
+import { BRK_REV_BAND, BRK_REV_STD, BRK_REV_TALL, BRK_REV_TUNED, BRK_REV_TUNEF } from "@/lib/arcade/breaker";
 import { pinballGameFor, pinCheckpoint, PIN_REV } from "@/lib/arcade/pinball";
 import { pin4Checkpoint, pinball5Game, PIN_REV_LONG } from "@/lib/arcade/pinball4";
 import { encodePinballRun, replayPinballRun } from "@/lib/duel/pinball";
@@ -683,6 +683,9 @@ const GAMES: Game[] = [
   // Roofbound flipRev 9 and Tilt tiltRev 9, flipRev 8's and tiltRev 8's play on lifted curves.
   { key: "flip/lift", game: flipGameFor(FLIP_REV_LIFT), checkpoint: flipCheckpoint, mode: "events", rate: 50, encode: encodeFlipRun, replay: (seed: number, raw: string) => replayFlipRun(seed, raw, FLIP_REV_LIFT) },
   { key: "tilt/lift", game: tiltGameFor(TILT_REV_LIFT), checkpoint: tiltCheckpoint, mode: "events", rate: 500, encode: encodeTiltRun, replay: (seed: number, raw: string) => replayTiltRun(seed, raw, TILT_REV_LIFT) },
+  // The arcade scoring standard (29 Oct 2026, docs/arcade-standard-oct-2026/breaker.md), appended so every earlier entry
+  // keeps its index: Breaker brkRev 11, brkRev 10's play scored in fixed parts.
+  { key: "breaker/std", game: breakerGameFor(BRK_REV_STD), checkpoint: brkCheckpoint, mode: "events", rate: 950, encode: encodeBreakerRun, replay: (seed: number, raw: string) => replayBreakerRun(seed, raw, BRK_REV_STD) },
 ];
 
 /** A random candidate event, often outside the declared range (a finger off the edge). */

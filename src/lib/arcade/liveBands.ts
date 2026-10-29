@@ -24,7 +24,7 @@ import { SNIP_REV_EXPAND, SNIP_REV_STRICT, SNIP_V11_BAND_CURVE } from "./snip";
 import { HOVER_REV_EXPAND, HOVER_REV_STRICT, HOVER_V9_BAND_CURVE } from "./hover";
 import { SKYLINE_REV_LIFT, SKYLINE_REV_STRICT, SKYLINE_V8_BAND_CURVE } from "./skyline";
 import { JUNC_REV_BAND, JUNC_BAND_CURVE } from "./junction";
-import { BRK_REV_PHONE, BRK_REV_STRICT, BRK_V10_BAND_CURVE } from "./breaker";
+import { BRK_REV_STD, BRK_REV_STRICT, BRK_V11_BAND_CURVE } from "./breaker";
 import { TILT_REV_LIFT, TILT_REV_STRICT, TILT_V9_BAND_CURVE } from "./tilt";
 import { ORBIT_REV_STRICT, ORBIT_REV_XP } from "./orbit";
 import { ORBIT_V12_BAND_CURVE } from "./orbitRev3";
@@ -64,7 +64,8 @@ export const LIVE_BANDS = {
   hover: { field: "hoverRev", rev: HOVER_REV_EXPAND, curve: HOVER_V9_BAND_CURVE, strictRev: HOVER_REV_STRICT },
   skyline: { field: "skylineRev", rev: SKYLINE_REV_LIFT, curve: SKYLINE_V8_BAND_CURVE, strictRev: SKYLINE_REV_STRICT },
   junction: { field: "junctionRev", rev: JUNC_REV_BAND, curve: JUNC_BAND_CURVE },
-  breaker: { field: "brkRev", rev: BRK_REV_PHONE, curve: BRK_V10_BAND_CURVE, strictRev: BRK_REV_STRICT },
+  // brkRev 11 (the arcade scoring standard): the bricks' straight line to 140; clear 10, speed 20 and gold 30 on top (the help says so).
+  breaker: { field: "brkRev", rev: BRK_REV_STD, curve: BRK_V11_BAND_CURVE, strictRev: BRK_REV_STRICT },
   tilt: { field: "tiltRev", rev: TILT_REV_LIFT, curve: TILT_V9_BAND_CURVE, strictRev: TILT_REV_STRICT },
   orbit: { field: "orbitRev", rev: ORBIT_REV_XP, curve: ORBIT_V12_BAND_CURVE, strictRev: ORBIT_REV_STRICT },
   // beatRev 10 (phone notes): beatRev 9's base curve and skill pay on an easier chart and wider windows.

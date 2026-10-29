@@ -86,7 +86,7 @@ export const ROUND_MAX: Readonly<Record<PuzzleType, number>> = {
   balltrack: 200, // expansion E6, btRev 7
   beat: 200, // expansion E2, beatRev 9; beatRev 10 (phone notes, easier) keeps it
   bintoss: 200,
-  breaker: 200, // expansion E3, brkRev 9 (brkRev 10: phone notes)
+  breaker: 200, // expansion E3, brkRev 9 (brkRev 10: phone notes; brkRev 11: the arcade scoring standard)
   pinball: 200,
   bubble: 200, // expansion E6, bubbleRev 8 (bubbleRev 9: burst credit; bubbleRev 10: the mine's bigger blast)
   bullseye: 200, // expansion E9, bullRev 8

@@ -48,7 +48,7 @@ import { SKYLINE_REV_EXPAND, SKYLINE_REV_LIFT } from "@/lib/arcade/skyline";
 import { pinIsExpanded } from "@/lib/arcade/pinball";
 import { decodeSnakeRun, replaySnakeRun } from "./snake";
 import { decodeBreakerRun, replayBreakerRun } from "./breaker";
-import { brkSkillPaid, brkWallSize } from "@/lib/arcade/breaker";
+import { breakerStdParts, brkSkillPaid, brkWallSize } from "@/lib/arcade/breaker";
 import { hoverFeatureBonus } from "@/lib/arcade/hover";
 import { decodePinballRun, replayPinballRun } from "./pinball";
 import { decodeRallyRun, replayRallyRun } from "./rally";
@@ -1346,7 +1346,11 @@ function gradeUnderRev(
         powerUps: run.powerUps,
         ...(puzzle.brkRev ? { brkRev: puzzle.brkRev, fireballs: run.fireballs } : {}),
         // brkRev 9 (the expansion): its wall size and skill points, for the reveal.
-        ...(run.state.deep ? { wall: brkWallSize(run.state), goldBroken: run.state.goldBroken ?? 0, comboPts: run.state.comboPts ?? 0, bestChain: run.state.bestChain ?? 0, skill: brkSkillPaid(run.state) } : {}),
+        ...(run.state.deep && !run.state.std ? { wall: brkWallSize(run.state), goldBroken: run.state.goldBroken ?? 0, comboPts: run.state.comboPts ?? 0, bestChain: run.state.bestChain ?? 0, skill: brkSkillPaid(run.state) } : {}),
+        // brkRev 11 (the arcade scoring standard): the four parts instead of the skill points (combos pay nothing).
+        ...(run.state.std
+          ? (({ bricks, all, core, clear, speed, goldBroken, goldDealt, gold }) => ({ std: 1, wall: brkWallSize(run.state), bricks, bricksAll: all, core, clearPts: clear, speedPts: speed, goldBroken, goldDealt, goldPts: gold, bestChain: run.state.bestChain ?? 0 }))(breakerStdParts(run.state))
+          : {}),
         cleared: run.cleared,
         endedSeconds: run.endedSeconds,
         flagged: run.flagged,
