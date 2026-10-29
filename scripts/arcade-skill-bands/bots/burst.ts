@@ -19,6 +19,11 @@
  * going for it reads its path like an atom's (with the same read error) and fires when that read crosses the
  * beam's line clear of atoms; power-ups now drop from the atoms that carry them and are chased like any icon,
  * and BURST shots are fired as short shots (also at the golden atom).
+ *
+ * burstRev 10 (the arcade scoring standard, docs/arcade-standard-oct-2026/burst.md): the golden atom hurts like any
+ * atom, so every player keeps its read path in the danger watch (a player going for it lines up under it only where
+ * that looks safe), and its fade time is the state's own (it appears with its wave). Gated on the state's `std`, so
+ * the bots play every earlier revision exactly as before.
  */
 import {
   burstFloorY,
@@ -36,6 +41,7 @@ import {
   BURST_GOLD_R,
   BURST_V9_GOLDEN_AS,
   BURST_V9_GOLDEN_LIFE,
+  burstGoldenUntil,
   type BurstBall,
   type BurstState,
 } from "../../../src/lib/arcade/burst";
@@ -56,6 +62,8 @@ const PRESS_GAP: Record<SkillLevel, number> = { weak: 11, average: 10, good: 9, 
 const CAREFUL: Record<SkillLevel, number> = { weak: 0, average: 0.1, good: 0.3, great: 0.6, near: 0.85, elite: 0.95, perfect: 1 };
 /** burstRev 8: chance of going for a golden atom when one appears. */
 const GOLDEN: Record<SkillLevel, number> = { weak: 0.2, average: 0.35, good: 0.55, great: 0.75, near: 0.9, elite: 1, perfect: 1 };
+/** burstRev 10: the flawless level's press gap (ticks). */
+const STD_PERFECT_GAP = 4;
 
 const FP = 256;
 const WALK = 4;
@@ -179,7 +187,9 @@ export const bot: SkillBot = ({ game, seed, human, fixes }) => {
   const level = human.level;
   const read = READ[level]!;
   const horizon = LOOKAHEAD[level]!;
-  const gap = PRESS_GAP[level]!;
+  // burstRev 10: the flawless level presses as fast as the phone allows (the ceiling of the standard's straight lines).
+  const std = Boolean((game.init(seed) as BurstState).std);
+  const gap = std && level === "perfect" ? STD_PERFECT_GAP : PRESS_GAP[level]!;
   const history: BurstState[] = [];
   const lag = human.lagTicks();
   const init = game.init(seed) as BurstState;
@@ -243,10 +253,19 @@ export const bot: SkillBot = ({ game, seed, human, fixes }) => {
     /** Where the figure would be k ticks from now walking to `to`. */
     const at = (to: number, k: number) => x + Math.max(-WALK * k, Math.min(WALK * k, to - x));
     const margin = 2 + human.p.aimSdPx * 0.5;
+    // burstRev 10: the golden atom hurts, so once noticed its read path is watched for danger like an atom's.
+    let goldDanger: { x: number; y: number }[] | null = null;
+    const gnStd = seen.std ? (seen.gn ?? -1) : -1;
+    if (gnStd >= 0) {
+      if (!goldenWill.has(gnStd)) goldenWill.set(gnStd, { go: human.chance(GOLDEN[level]!), at: t + human.reactTicks(), err: human.normal() });
+      const w = goldenWill.get(gnStd)!;
+      if (t >= w.at) goldDanger = goldenPath(seen, ceil, horizon + lag).slice(lag).map((p, k) => ({ x: p.x + w.err * read * (k + 1), y: p.y }));
+    }
     // Attention: only the few atoms nearest the figure are watched for danger.
     const watched = [...reads].sort((a, b) => Math.abs(a.pts[0]!.x - x) + Math.abs(a.pts[0]!.y - BURST_FLOOR_Y) / 2 - (Math.abs(b.pts[0]!.x - x) + Math.abs(b.pts[0]!.y - BURST_FLOOR_Y) / 2)).slice(0, WATCH[level]!);
     const safe = (to: number) => {
       for (const rd of watched) for (let k = 0; k < rd.pts.length; k++) if (touches(rd.pts[k]!.x, rd.pts[k]!.y, rd.r, at(to, k + 1), margin)) return false;
+      if (goldDanger) for (let k = 0; k < goldDanger.length; k++) if (touches(goldDanger[k]!.x, goldDanger[k]!.y, BURST_GOLD_R, at(to, k + 1), margin)) return false;
       return true;
     };
 
@@ -381,7 +400,7 @@ export const bot: SkillBot = ({ game, seed, human, fixes }) => {
       }
       // burstRev 9: the golden atom's read crossing the beam's line (still up then), with that line clear of atoms.
       if (gold && !go) {
-        const lasts = seen.goldens![gn]!.tick + BURST_V9_GOLDEN_LIFE - s.tick;
+        const lasts = (seen.std ? burstGoldenUntil(seen) : seen.goldens![gn]!.tick + BURST_V9_GOLDEN_LIFE) - s.tick;
         for (let k = 0; k < Math.min(gold.length, 40, lasts - 2) && !go; k++) {
           const p = gold[k]!;
           const lineTop = BURST_FLOOR_Y - SHOT_SPEED * (k + 1);

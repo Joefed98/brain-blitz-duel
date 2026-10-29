@@ -36,6 +36,7 @@ import {
   BURST_INPUT_FIRE,
   BURST_INPUT_MOVE,
   BURST_REV_CARRY,
+  BURST_REV_STD,
   BURST_REV_CLEAN,
   BURST_TALL_H,
   BURST_V8_GOLDENS,
@@ -65,9 +66,10 @@ const game = burstGameFor(BURST_REV_CARRY);
 const FP = 256;
 
 /* ============================== 1. Dealt ============================== */
-section("Rooms deal burstRev 9");
-ok(generateBurst().burstRev === BURST_REV_CARRY, "rooms deal burstRev 9");
-ok(LIVE_BANDS.burst.rev === BURST_REV_CARRY && roundMaxFor("burst") === 200, "LIVE_BANDS deals burstRev 9; ROUND_MAX 200");
+// Rooms deal burstRev 10 since the arcade scoring standard (29 Oct 2026; burst-standard-check proves it); burstRev 9 is still checked here.
+section("Rooms deal burstRev 10 (was 9)");
+ok(generateBurst().burstRev === BURST_REV_STD, "rooms deal burstRev 10 (was 9)");
+ok(LIVE_BANDS.burst.rev === BURST_REV_STD && roundMaxFor("burst") === 200, "LIVE_BANDS deals burstRev 10 (was 9); ROUND_MAX 200");
 ok(burstWorldHFor(BURST_REV_CARRY) === BURST_TALL_H, "the 390 × 650 world");
 for (let n = 0; n < 4; n++) {
   const seed = spec.seedFor(n);
@@ -252,4 +254,4 @@ if (failures.length) {
   for (const f of [...new Set(failures)].slice(0, 40)) console.log(`  ✗ ${f}`);
   process.exit(1);
 }
-console.log(`\nPASS fission-carry-check: ${checks} checks — rooms deal burstRev 9; the same carriers and golden atoms for every player, every drop from a carrier's split; the bouncing golden atom, BURST shots and the wave-clear bonus; scores ordered by skill`);
+console.log(`\nPASS fission-carry-check: ${checks} checks — rooms deal burstRev 10 (burstRev 9 still proven here); the same carriers and golden atoms for every player, every drop from a carrier's split; the bouncing golden atom, BURST shots and the wave-clear bonus; scores ordered by skill`);

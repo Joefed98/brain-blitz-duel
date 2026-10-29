@@ -109,7 +109,7 @@ import { BINTOSS_FAR_CAP, BINTOSS_FAR_POINTS, BINTOSS_FAR_THROWS, BINTOSS_V7_BAN
 import { P4_PTS_COMBO, P4_PTS_JACKPOT, P4_PTS_JOULZ, P4_PTS_RAMP, P4_PTS_SKILL } from "@/lib/arcade/pinball4";
 import { BULLSEYE_INNER_BULL_POINTS, BULLSEYE_RING_VALUES, BULLSEYE_V8_DEAD_CAP, BULLSEYE_V8_DEAD_PTS, BULLSEYE_V8_STREAK_CAP, BULLSEYE_V8_STREAK_STEP } from "@/lib/arcade/bullseye";
 import { RALLY_V10_BONUS_COUNT, RALLY_V10_BONUS_PTS, RALLY_V11_BONUS_LIFE } from "@/lib/arcade/rally";
-import { BURST_V9_CAPS, BURST_V9_CLEAR_MAX, BURST_V8_GOLDEN_PTS, BURST_V8_GOLDENS } from "@/lib/arcade/burst";
+import { BURST_V10_ATOMS, BURST_V10_CLEAR_MAX, BURST_V10_CLEAR_PER_WAVE, BURST_V10_CORE_MAX, BURST_V10_GOLDEN_MAX, BURST_V10_GOLDEN_PTS, BURST_V10_GOLDENS, BURST_V10_LIFE_COST, BURST_V10_WAVES } from "@/lib/arcade/burst";
 import { liveBandHelp } from "@/lib/arcade/liveBands";
 import { ORBIT_V12_PACE_FROM, ORBIT_V12_PACE_FULL, ORBIT_V12_SKILL_MAX, ORBIT_V12_SKILL_PACED_FROM, ORBIT_V12_SKILL_PAY, ORBIT_XP_DUST_CAP, ORBIT_XP_DUST_FULL, ORBIT_XP_FIELDS, ORBIT_XP_MOONS, ORBIT_XP_MOTES, ORBIT_XP_PERFECT_CAP, ORBIT_XP_PERFECT_PER, ORBIT_XP_SLING_CAP, ORBIT_XP_SLING_PTS, ORBIT_XP_THREAD_CAP, ORBIT_XP_THREAD_PTS, ORBIT_XP_TRAILS } from "@/lib/arcade/orbitRev3";
 import { CROSS_V9_SKILL_PAY, CROSS_X_BONUS_MAX, CROSS_X_CLOSE_MAX, CROSS_X_CLOSE_POINTS, CROSS_X_COIN_CROSSINGS, CROSS_X_COIN_POINTS, CROSS_X_COINS_PER_RUN } from "@/lib/arcade/cross";
@@ -1041,17 +1041,18 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
       goal: "Split the atoms. Don't get hit.",
       how: [
         { action: "◀ ▶ to move,", detail: "tap the arena to shoot up." },
-        { action: "Clear a wave quickly:", detail: `up to +${BURST_V9_CLEAR_MAX}.` },
-        { action: "Golden atom:", detail: `+${BURST_V8_GOLDEN_PTS} before it fades.` },
-        { action: "An atom touching you", detail: "costs a life (3 lives).", helpOnly: true },
+        { action: `${BURST_V10_WAVES} waves:`, detail: `clear each fast for up to +${BURST_V10_CLEAR_PER_WAVE}.` },
+        { action: "Golden atom:", detail: `+${BURST_V10_GOLDEN_PTS}, but it hurts like any atom.` },
+        { action: "An atom touching you (golden ones too)", detail: `costs a life and ${BURST_V10_LIFE_COST} points (3 lives).`, helpOnly: true },
         { action: "Hold ◀ or ▶ to walk; tap anywhere on the arena to fire straight up.", detail: "There is no FIRE button: every tap on the arena is a shot.", helpOnly: true },
         { action: "Big atoms split into smaller ones;", detail: "the smallest pop.", helpOnly: true },
-        { action: "Wave-clear bonus:", detail: `each wave you clear pays up to ${BURST_V9_CLEAR_MAX}: the full amount if you clear it quickly (bigger waves get longer), then one less every 2 s. The counter (CLEAR +${BURST_V9_CLEAR_MAX}) shows what the wave on screen still pays.`, helpOnly: true },
-        { action: `${BURST_V8_GOLDENS} golden atoms:`, detail: `each appears at its own moment (the same for everyone in the room), bounces like the other atoms and fades after about 5 seconds. It never hurts you. A shot that reaches one scores ${BURST_V8_GOLDEN_PTS}.`, helpOnly: true },
+        { action: `${BURST_V10_WAVES} waves, ${BURST_V10_ATOMS} atoms:`, detail: `counting every piece the splits make. Clear all ${BURST_V10_WAVES} waves and the run is complete.`, helpOnly: true },
+        { action: "Wave-clear bonus:", detail: `each wave you clear pays up to ${BURST_V10_CLEAR_PER_WAVE}: the full ${BURST_V10_CLEAR_PER_WAVE} within its quick time (1 s plus 0.6 s for every atom it holds, splits included), then evenly less, down to 0 at twice that. The counter (CLEAR +${BURST_V10_CLEAR_PER_WAVE}) shows what the wave on screen still pays.`, helpOnly: true },
+        { action: `${BURST_V10_GOLDENS} golden atoms:`, detail: `one with each wave, a second or two after it appears, at its own spot (the same for everyone in the room). It bounces like the other atoms and fades after about 5 seconds. A shot that reaches one scores ${BURST_V10_GOLDEN_PTS}. It hurts like any atom: touching it costs a life.`, helpOnly: true },
         { action: "Power-ups ride on atoms:", detail: "an atom showing a small icon drops that power-up when you split it (the same atoms for everyone). Walk under it to catch it. DOUBLE fires two beams a shot for 8 s; BURST fires three quick short shots a tap for 8 s; FREEZE stops every atom for 3 s. Frozen atoms still hurt if you walk into one. They score nothing themselves.", helpOnly: true },
       ],
-      // burstRev 9 (docs/phone-notes-oct-2026/fission.md): the atoms on their curve, lasting, plus wave clears and golden atoms.
-      score: liveBandHelp("burst", "Each atom hit counts 1 unit; each life lost takes 5 units off (never below a quarter of the atoms hit).", { more: "More atoms, fewer lives lost", good: (u) => `counts ${u} units`, finish: `Lasting the 90 s adds 10. Quick wave clears add up to ${BURST_V9_CAPS.clear} and golden atoms up to ${BURST_V9_CAPS.gold}.` }),
+      // burstRev 10 (the arcade scoring standard, docs/arcade-standard-oct-2026/burst.md): the atoms on a straight line, wave clears, golden atoms, lives.
+      score: liveBandHelp("burst", `Every atom you pop counts, each split piece too: ${BURST_V10_ATOMS} in the ${BURST_V10_WAVES} waves.`, { more: "More atoms", good: (u) => `pops ${u} atoms`, finish: `Wave clears add up to ${BURST_V10_CLEAR_MAX} (${BURST_V10_CLEAR_PER_WAVE} a wave) and golden atoms up to ${BURST_V10_GOLDEN_MAX} (${BURST_V10_GOLDEN_PTS} each): ${BURST_V10_CORE_MAX} + ${BURST_V10_CLEAR_MAX} + ${BURST_V10_GOLDEN_MAX} = 200. Each life lost costs ${BURST_V10_LIFE_COST}; power-ups score nothing.` }),
     },
     orbit: {
       goal: "Fly planet to planet to the sun.",

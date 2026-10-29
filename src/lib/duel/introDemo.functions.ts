@@ -12,7 +12,7 @@ import { SNIP_REV_EXPAND } from "@/lib/arcade/snip";
 import { HOVER_REV_EXPAND } from "@/lib/arcade/hover";
 import { RALLY_REV_CURVE } from "@/lib/arcade/rally";
 import { WAV_REV_PHONE } from "@/lib/arcade/wavefront";
-import { BURST_REV_CARRY } from "@/lib/arcade/burst";
+import { BURST_REV_STD } from "@/lib/arcade/burst";
 import { BULLSEYE_REV_EXPAND } from "@/lib/arcade/bullseye";
 import { BEAT_REV_EASE } from "@/lib/arcade/beat";
 import { SNAKE_REV_10 } from "@/lib/arcade/snake";
@@ -139,7 +139,9 @@ export const getIntroDemoFn = createServerFn({ method: "GET" })
     if (data.type === "wavefront" && demo?.puzzle.type === "wavefront" && demo.puzzle.wavRev !== WAV_REV_PHONE) return null;
     // Phone-test notes (27 Oct 2026): Fission burstRev 9's power-ups ride on atoms and its golden atom bounces, so an
     // older demo stays stopped until one is recorded on burstRev 9.
-    if (data.type === "burst" && demo?.puzzle.type === "burst" && demo.puzzle.burstRev !== BURST_REV_CARRY) return null;
+    // The arcade scoring standard (29 Oct 2026): burstRev 10's run is five waves with a golden atom that hurts, so an
+    // older demo stays stopped until one is recorded on burstRev 10.
+    if (data.type === "burst" && demo?.puzzle.type === "burst" && demo.puzzle.burstRev !== BURST_REV_STD) return null;
     // Expansion E9 (26 Oct 2026, docs/expansions/e9.md): Flightpath bullRev 8 too (Rally and Fission above).
     if (data.type === "bullseye" && demo?.puzzle.type === "bullseye" && demo.puzzle.bullRev !== BULLSEYE_REV_EXPAND) return null;
     // Expansion E2 (25 Oct 2026): Meteor and Tempo demos stay stopped until one is recorded on the 200-point revision.

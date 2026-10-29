@@ -277,6 +277,14 @@ export interface BurstState extends BandFields {
   gvy?: number;
   /** Waves cleared with a time bonus. */
   quickWaves?: number;
+  /** burstRev 10 only (the arcade scoring standard, docs/arcade-standard-oct-2026/burst.md): every field below is absent on earlier rounds. */
+  std?: number;
+  /** Each wave's golden atom: -1 its wave not reached yet, the tick it is due (its wave's entry plus its seeded delay), -2 once it has appeared. */
+  gDue?: number[];
+  /** The tick the golden atom in play fades. */
+  gUntil?: number;
+  /** 1 once every wave is cleared (and the last golden atom gone): the run is complete. */
+  done?: number;
   tick: number;
   rng: number;
   waves: BurstSpawn[][];
@@ -438,6 +446,8 @@ function step(state: BurstState, input: ArcadeInputEvent | null): BurstState {
       });
     });
     if (s.exp) s.waveAt = tick;
+    // burstRev 10: this wave's golden atom is due its seeded delay after the wave appears.
+    if (s.std && s.gDue && s.wave <= s.gDue.length) s.gDue = s.gDue.map((d, i) => (i === s.wave - 1 ? tick + s.goldens![i]!.tick : d));
   }
 
   // Balls bounce (burstRev 2: not while frozen).
@@ -445,7 +455,8 @@ function step(state: BurstState, input: ArcadeInputEvent | null): BurstState {
   const frozen = (s.freeze ?? 0) > 0;
   if (frozen) s.freeze = (s.freeze ?? 0) - 1;
   if (s.exp && (s.double ?? 0) > 0) s.double = (s.double ?? 0) - 1;
-  if (s.carry) burstGoldenStepV9(s, tick, geo, ceil, frozen);
+  if (s.std) burstGoldenStepV10(s, tick, geo, ceil, frozen);
+  else if (s.carry) burstGoldenStepV9(s, tick, geo, ceil, frozen);
   for (const ball of frozen ? [] : s.balls) {
     const r = BURST_RADIUS[ball.size]! * FP;
     ball.vy += GRAVITY;
@@ -561,7 +572,8 @@ function step(state: BurstState, input: ArcadeInputEvent | null): BurstState {
   s.icons = falling;
 
   // Touching the player costs a life and the BURST shots.
-  if (s.invuln === 0 && s.balls.some((ball) => touches(ball, s.x, FLOOR_Y))) {
+  // burstRev 10: the golden atom hurts like any other atom.
+  if (s.invuln === 0 && (s.balls.some((ball) => touches(ball, s.x, FLOOR_Y)) || (s.std && burstGoldenTouchesV10(s, FLOOR_Y)))) {
     if (s.shield) {
       // The shield takes the hit and vanishes; no life lost.
       s.shield = 0;
@@ -577,15 +589,22 @@ function step(state: BurstState, input: ArcadeInputEvent | null): BurstState {
     }
   }
 
-  if (s.balls.length === 0 && s.wave > 0 && s.nextWaveAt <= state.tick) {
+  // burstRev 10's run holds five waves: a cleared wave counts once (no waves follow the last).
+  if (s.balls.length === 0 && s.wave > 0 && s.nextWaveAt <= state.tick && !(s.std && s.cleared >= s.wave)) {
     s.cleared += 1;
     s.nextWaveAt = tick + WAVE_GAP;
-    if (s.carry) burstWaveClearV9(s, tick);
+    if (s.std) burstWaveClearV10(s, tick);
+    else if (s.carry) burstWaveClearV9(s, tick);
     else if (s.exp) burstWaveClearV8(s, tick);
   }
 
   if (s.lives <= 0) {
     s.ended = 2;
+    s.endedTick = tick;
+  } else if (s.std && burstCompleteV10(s)) {
+    // burstRev 10: every wave cleared and the last golden atom gone: the run is complete.
+    s.done = 1;
+    s.ended = 1;
     s.endedTick = tick;
   } else if (tick >= BURST_RUN_TICKS) {
     s.ended = 1;
@@ -669,6 +688,11 @@ export function burstCheckpoint(state: BurstState): BurstCheckpoint {
   if (state.carry) {
     values.push(state.carry, state.burstT ?? 0, state.bursts ?? 0, state.gn ?? -1, state.gx ?? 0, state.gy ?? 0, state.gvx ?? 0, state.gvy ?? 0, state.quickWaves ?? 0);
     for (const ball of state.balls) values.push(ball.id ?? 0);
+  }
+  // burstRev 10: its own state after that.
+  if (state.std) {
+    values.push(state.std, state.gUntil ?? 0, state.done ?? 0);
+    for (const due of state.gDue ?? []) values.push(due);
   }
   let checksum = 0x811c9dc5;
   for (const value of values) {
@@ -824,6 +848,7 @@ const burstGameV2: ArcadeGame<BurstState, ArcadeInputEvent | null> = { ...burstG
 
 /** The game for a stored burstRev (absent = the original drops). */
 export function burstGameFor(rev?: number | null): ArcadeGame<BurstState, ArcadeInputEvent | null> {
+  if (rev === BURST_REV_STD) return burstStdGame;
   if (rev === BURST_REV_CARRY) return burstCarryGame;
   if (rev === BURST_REV_CLEAN) return burstCleanGame;
   if (rev === BURST_REV_STRICT) return burstStrictGame;
@@ -840,6 +865,7 @@ export const BURST_REV_BAND = 3;
 /** Atoms hit, minus 5 a life lost; 140 at 100; lasting the 90 s adds 10 (no 130 cap, no 150 shortcut). */
 export const BURST_BAND_CURVE = bandCurve([0, 55, 76, 88, 100], [0, 70, 100, 125, 140]);
 export function burstBandParts(state: BurstState): BandParts {
+  if (state.std) return burstStdBandParts(state);
   if (state.carry) return burstCarryParts(state);
   if (state.exp) return burstCleanParts(state);
   const units = Math.max(0, state.hits - 5 * (BURST_LIVES - state.lives));
@@ -879,7 +905,7 @@ export const burstTallGame: ArcadeGame<BurstState, ArcadeInputEvent | null> = { 
 
 /** The drawn world's height (the floor, px) a stored round's burstRev plays in. */
 export function burstWorldHFor(rev?: number | null): number {
-  return rev === BURST_REV_CARRY || rev === BURST_REV_CLEAN || rev === BURST_REV_TALL || rev === BURST_REV_TARGET || rev === BURST_REV_STRICT ? BURST_TALL_H : BURST_FLOOR_Y;
+  return rev === BURST_REV_STD || rev === BURST_REV_CARRY || rev === BURST_REV_CLEAN || rev === BURST_REV_TALL || rev === BURST_REV_TARGET || rev === BURST_REV_STRICT ? BURST_TALL_H : BURST_FLOOR_Y;
 }
 
 /* ================= Scoring targets (burstRev 5, 18 Oct 2026) ================= */
@@ -1369,6 +1395,11 @@ function burstGoldenStepV9(s: BurstState, tick: number, geo: BurstGeometry, ceil
     s.gvy = 0;
   }
   if ((s.gn ?? -1) < 0 || frozen) return;
+  burstGoldenMove(s, geo, ceil);
+}
+
+/** burstRev 9 and 10: the golden atom in play moves one tick, bouncing as an S atom off the floor, ceiling and walls. */
+function burstGoldenMove(s: BurstState, geo: BurstGeometry, ceil: number): void {
   const r = BURST_GOLD_R * FP;
   let x = s.gx ?? 0;
   let y = s.gy ?? 0;
@@ -1470,4 +1501,222 @@ export const burstCarryGame: ArcadeGame<BurstState, ArcadeInputEvent | null> = {
   ...burstGame,
   init: initV9,
   score: (state) => bandTotal(burstCarryParts(state), Boolean(state.acted), BURST_V8_MAX),
+};
+
+/* ================= The arcade scoring standard (burstRev 10, 29 Oct 2026) ================= */
+
+/**
+ * burstRev 10 (the arcade scoring standard, docs/arcade-standard-oct-2026/burst.md): burstRev 9's arena, atoms,
+ * carried power-ups and BURST shots, with these changes:
+ *
+ *  - The run is five waves (burstRev 9's waves 1–5 from the seed: M; L; M M; L S S; L L), 87 atoms counting every
+ *    piece their splits make (burstV10Atoms). Clearing all five completes the run (once the last golden atom is
+ *    gone); otherwise it ends at 90 s or with the third life.
+ *  - One golden atom per wave (five a run), at a seeded spot, setting off to a seeded side, appearing a seeded
+ *    1–2 s after its wave does (a golden atom still up when the next is due holds it back until it fades). It
+ *    bounces as on burstRev 9 for 5 s, and it now takes a life if it hits the ship, like any atom.
+ *  - Score, straight lines only: core 140 × atoms popped ÷ 87 (every split piece counts; golden atoms are not
+ *    atoms here); each wave cleared pays up to 7 (the full 7 within its quick time, 1 s plus 0.6 s an atom, then
+ *    evenly less to 0 at twice that); each golden atom popped 25 ÷ 5 = 5; power-ups nothing; each life lost −5.
+ *    140 + 35 + 25 = 200. A run with any input scores at least 1, never below 0; no input scores 0.
+ *
+ * States keep burstRev 9's fields (`carry: 1`) and add `std: 1`, `gDue`, `gUntil` and `done`, folded into the
+ * checkpoint checksum after burstRev 9's, so every earlier checksum is unchanged.
+ */
+export const BURST_REV_STD = 10;
+export const BURST_V10_WAVES = 5;
+export const BURST_V10_CORE_MAX = 140;
+export const BURST_V10_CLEAR_PER_WAVE = 7;
+export const BURST_V10_CLEAR_MAX = BURST_V10_CLEAR_PER_WAVE * BURST_V10_WAVES;
+export const BURST_V10_GOLDENS = BURST_V10_WAVES;
+export const BURST_V10_GOLDEN_MAX = 25;
+export const BURST_V10_GOLDEN_PTS = BURST_V10_GOLDEN_MAX / BURST_V10_GOLDENS;
+export const BURST_V10_LIFE_COST = 5;
+/** The parts' maxima (they add up to 200). */
+export const BURST_V10_PARTS = { core: BURST_V10_CORE_MAX, clear: BURST_V10_CLEAR_MAX, gold: BURST_V10_GOLDEN_MAX } as const;
+/** A golden atom appears this long after its wave does: 1 s plus a seeded 0–1 s. */
+export const BURST_V10_GOLDEN_DELAY = TICKS_PER_SECOND;
+export const BURST_V10_GOLDEN_JITTER = TICKS_PER_SECOND;
+/** Atoms in burstRev 10's run, every split piece counted (the core's denominator): 7 + 15 + 14 + 21 + 30. */
+export const BURST_V10_ATOMS = 87;
+/** The core's straight line (atoms popped → points), for the "?" help: 140 at all 87. */
+export const BURST_V10_BAND_CURVE = bandCurve([0, BURST_V10_ATOMS], [0, BURST_V10_CORE_MAX]);
+
+/** Every atom a run's waves hold, each spawn with every piece its splits make (L 15, M 7, S 3, XS 1). */
+export function burstV10Atoms(waves: readonly BurstSpawn[][]): number {
+  return waves.reduce((n, wave) => n + wave.reduce((m, spawn) => m + burstAtomsOf(spawn.size), 0), 0);
+}
+
+/**
+ * A wave cleared `ticks` after it appeared: the full 7 within its quick time, then evenly less to 0 at twice the
+ * quick time (floored to whole points).
+ */
+export function burstV10ClearPoints(ticks: number, quick: number): number {
+  if (ticks <= quick) return BURST_V10_CLEAR_PER_WAVE;
+  const zero = 2 * quick;
+  if (ticks >= zero) return 0;
+  return Math.floor((BURST_V10_CLEAR_PER_WAVE * (zero - ticks)) / (zero - quick));
+}
+
+/**
+ * burstRev 10's schedules for a seed, on a stream of its own (the waves, drawn first from the seed, are burstRev 9's):
+ * each wave's golden atom (`tick` its delay after the wave appears, its spot, `kind` the side it sets off towards),
+ * then the carriers wave by wave as on burstRev 9. Pure: the same for every player and the server.
+ */
+export function burstScheduleV10(seed: number, waves: readonly BurstSpawn[][], floor: number = BURST_TALL_H): { goldens: BurstScheduled[]; carriers: BurstCarrier[] } {
+  let rng = (seed ^ 0x4649530a) | 0;
+  const draw = (bound: number): number => {
+    const d = rngBelow(rng, bound);
+    rng = d.state;
+    return d.value;
+  };
+  const top = burstGeometryV8(floor).ceilMax + BURST_V8_GOLDEN_BELOW;
+  const goldens: BurstScheduled[] = [];
+  for (let n = 0; n < waves.length; n++) {
+    const tick = BURST_V10_GOLDEN_DELAY + draw(BURST_V10_GOLDEN_JITTER + 1);
+    const x = BURST_V8_GOLDEN_SIDE + draw(BURST_WORLD_W - 2 * BURST_V8_GOLDEN_SIDE + 1);
+    const y = top + draw(BURST_V8_GOLDEN_BAND + 1);
+    goldens.push({ tick, x, y, kind: draw(2) });
+  }
+  const carriers: BurstCarrier[] = [];
+  const first = draw(BURST_V9_KINDS.length);
+  waves.forEach((wave, w) => {
+    const ids: number[] = [];
+    wave.forEach((spawn, index) => {
+      let level = [1];
+      for (let size = spawn.size; size < 3; size++) {
+        for (const path of level) ids.push(burstAtomId(w + 1, index, path));
+        level = level.flatMap((path) => [path * 2, path * 2 + 1]);
+      }
+    });
+    for (let k = 0; k < burstV9CarriersInWave(w + 1) && ids.length > 0; k++) {
+      const id = ids.splice(draw(ids.length), 1)[0]!;
+      carriers.push({ id, kind: BURST_V9_KINDS[(carriers.length + first) % BURST_V9_KINDS.length]! });
+    }
+  });
+  return { goldens, carriers };
+}
+
+/** burstRev 10: the golden atom in play fades on its time; the next one due appears (only one is up at once); it moves as on burstRev 9. */
+function burstGoldenStepV10(s: BurstState, tick: number, geo: BurstGeometry, ceil: number, frozen: boolean): void {
+  if ((s.gn ?? -1) >= 0 && tick >= (s.gUntil ?? 0)) s.gn = -1;
+  if ((s.gn ?? -1) < 0) {
+    const due = s.gDue ?? [];
+    const n = due.findIndex((d) => d >= 0 && d <= tick);
+    if (n >= 0) {
+      const g = s.goldens![n]!;
+      s.gn = n;
+      s.gx = g.x * FP;
+      s.gy = g.y * FP;
+      s.gvx = g.kind ? SPEED_X[BURST_V9_GOLDEN_AS]! : -SPEED_X[BURST_V9_GOLDEN_AS]!;
+      s.gvy = 0;
+      s.gUntil = tick + BURST_V9_GOLDEN_LIFE;
+      s.gDue = due.map((d, i) => (i === n ? -2 : d));
+    }
+  }
+  if ((s.gn ?? -1) < 0 || frozen) return;
+  burstGoldenMove(s, geo, ceil);
+}
+
+/** burstRev 10: whether the golden atom in play touches the ship's box (as touches() does for atoms). */
+function burstGoldenTouchesV10(s: BurstState, floor: number): boolean {
+  if ((s.gn ?? -1) < 0) return false;
+  const r = BURST_GOLD_R * FP;
+  const gx = s.gx ?? 0;
+  const gy = s.gy ?? 0;
+  const cx = clampInt(gx, s.x - PLAYER_HALF_W * FP, s.x + PLAYER_HALF_W * FP);
+  const cy = clampInt(gy, (floor - PLAYER_H) * FP, floor * FP);
+  const dx = gx - cx;
+  const dy = gy - cy;
+  return dx * dx + dy * dy <= r * r;
+}
+
+/** burstRev 10: a wave cleared pays its time bonus. */
+function burstWaveClearV10(s: BurstState, tick: number): void {
+  const pts = burstV10ClearPoints(tick - (s.waveAt ?? tick), burstV9QuickTicks(s.waves[s.wave - 1] ?? []));
+  s.clearPts = (s.clearPts ?? 0) + pts;
+  s.lastClear = pts;
+  if (pts > 0) s.quickWaves = (s.quickWaves ?? 0) + 1;
+}
+
+/** burstRev 10: every wave cleared, every golden atom has appeared and none is still up. */
+function burstCompleteV10(s: BurstState): boolean {
+  return s.cleared >= s.waves.length && (s.gn ?? -1) < 0 && (s.gDue ?? []).every((d) => d === -2);
+}
+
+/** burstRev 10: the wave-clear bonus the wave on screen would pay if cleared now (the HUD's "CLEAR +n"); 0 between waves. */
+export function burstV10ClearNow(state: BurstState): number {
+  if (state.balls.length === 0 || state.wave === 0) return 0;
+  return burstV10ClearPoints(state.tick - (state.waveAt ?? state.tick), burstV9QuickTicks(state.waves[state.wave - 1] ?? []));
+}
+
+/** burstRev 9 and 10: the tick the golden atom in play fades (-1 none). */
+export function burstGoldenUntil(state: BurstState): number {
+  const n = state.gn ?? -1;
+  if (n < 0) return -1;
+  return state.std ? (state.gUntil ?? 0) : state.goldens![n]!.tick + BURST_V9_GOLDEN_LIFE;
+}
+
+function initV10(seed: number): BurstState {
+  const base = initV8(seed);
+  const waves = base.waves.slice(0, BURST_V10_WAVES);
+  const { goldens, carriers } = burstScheduleV10(seed, waves, burstFloorY(base));
+  return {
+    ...base,
+    waves,
+    drops: [],
+    goldens,
+    carry: 1,
+    carriers,
+    burstT: 0,
+    bursts: 0,
+    gn: -1,
+    gx: 0,
+    gy: 0,
+    gvx: 0,
+    gvy: 0,
+    quickWaves: 0,
+    std: 1,
+    gDue: goldens.map(() => -1),
+    gUntil: 0,
+    done: 0,
+  };
+}
+
+/** burstRev 10's parts: core, wave clears, golden atoms (each at most its maximum) and the lives' cost. */
+export function burstStdParts(state: BurstState): { core: number; clear: number; gold: number; lives: number; atoms: number; total: number } {
+  const atoms = burstV10Atoms(state.waves);
+  const core = bandPoints(bandCurve([0, atoms], [0, BURST_V10_CORE_MAX]), state.hits);
+  const clear = Math.min(BURST_V10_CLEAR_MAX, state.clearPts ?? 0);
+  const gold = Math.min(BURST_V10_GOLDEN_MAX, BURST_V10_GOLDEN_PTS * burstGoldenCount(state));
+  const lives = BURST_V10_LIFE_COST * (BURST_LIVES - state.lives);
+  return { core, clear, gold, lives, atoms, total: core + clear + gold - lives };
+}
+
+/** burstRev 10's score: the parts' sum, at least 1 for a run with any input (0 without), at most 200. */
+export function burstStdScore(state: BurstState): number {
+  if (!state.acted) return 0;
+  return clampInt(burstStdParts(state).total, 1, BURST_V8_MAX);
+}
+
+/** burstRev 10's breakdown for the reveal (bandLines): core, the features as the bonus, the lives as the penalty. */
+export function burstStdBandParts(state: BurstState): BandParts {
+  const p = burstStdParts(state);
+  const lost = BURST_LIVES - state.lives;
+  return {
+    units: state.hits,
+    points: p.core,
+    bonus: p.clear + p.gold,
+    penalty: p.lives,
+    finished: state.done === 1,
+    text: `${state.hits} of ${p.atoms} atoms`,
+    bonusText: `Wave clears ${p.clear} · golden atoms ${p.gold}`,
+    penaltyText: `${lost} ${lost === 1 ? "life" : "lives"} lost × ${BURST_V10_LIFE_COST}`,
+  };
+}
+
+export const burstStdGame: ArcadeGame<BurstState, ArcadeInputEvent | null> = {
+  ...burstGame,
+  init: initV10,
+  score: burstStdScore,
 };
