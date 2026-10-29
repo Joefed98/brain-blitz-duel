@@ -110,7 +110,7 @@ import { P4_PTS_COMBO, P4_PTS_JACKPOT, P4_PTS_JOULZ, P4_PTS_RAMP, P4_PTS_SKILL }
 import { BULLSEYE_INNER_BULL_POINTS, BULLSEYE_RING_VALUES, BULLSEYE_V8_DEAD_CAP, BULLSEYE_V8_DEAD_PTS, BULLSEYE_V8_STREAK_CAP, BULLSEYE_V8_STREAK_STEP } from "@/lib/arcade/bullseye";
 import { RALLY_V10_BONUS_COUNT, RALLY_V10_BONUS_PTS, RALLY_V11_BONUS_LIFE } from "@/lib/arcade/rally";
 import { BURST_V9_CAPS, BURST_V9_CLEAR_MAX, BURST_V8_GOLDEN_PTS, BURST_V8_GOLDENS } from "@/lib/arcade/burst";
-import { liveBandHelp } from "@/lib/arcade/liveBands";
+import { liveBandHelp, liveStdHelp } from "@/lib/arcade/liveBands";
 import { ORBIT_V12_PACE_FROM, ORBIT_V12_PACE_FULL, ORBIT_V12_SKILL_MAX, ORBIT_V12_SKILL_PACED_FROM, ORBIT_V12_SKILL_PAY, ORBIT_XP_DUST_CAP, ORBIT_XP_DUST_FULL, ORBIT_XP_FIELDS, ORBIT_XP_MOONS, ORBIT_XP_MOTES, ORBIT_XP_PERFECT_CAP, ORBIT_XP_PERFECT_PER, ORBIT_XP_SLING_CAP, ORBIT_XP_SLING_PTS, ORBIT_XP_THREAD_CAP, ORBIT_XP_THREAD_PTS, ORBIT_XP_TRAILS } from "@/lib/arcade/orbitRev3";
 import { CROSS_V9_SKILL_PAY, CROSS_X_BONUS_MAX, CROSS_X_CLOSE_MAX, CROSS_X_CLOSE_POINTS, CROSS_X_COIN_CROSSINGS, CROSS_X_COIN_POINTS, CROSS_X_COINS_PER_RUN } from "@/lib/arcade/cross";
 import { SWING_V14_GATES, SWING_V14_GEMS, SWING_V14_PAR_POINTS, SWING_V14_PICKUP_POINTS, SWING_V14_SECTIONS, SWING_V14_STARS } from "@/lib/arcade/swing";
@@ -582,19 +582,19 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
       goal: "Stack blocks as high as you can.",
       how: [
         { action: "Tap to drop", detail: "the sliding block on the tower." },
-        { action: "Perfects in a row", detail: "multiply, up to ×4." },
+        { action: "Perfect drops", detail: "in a row build a streak." },
         { action: "Next block:", detail: "gold, narrow or wide." },
-        { action: "Next-block preview:", detail: "gold scores a bonus if you land it perfectly; narrow is harder and worth more; wide is easier and worth less.", helpOnly: true },
-        { action: "Every 10 floors", detail: "scores a height bonus and the camera pulls back to show the city.", helpOnly: true },
+        { action: "Next-block preview:", detail: "five gold blocks come in every run, at the same places for everyone; land one perfectly to score it. Narrow is harder and wide easier; both count as a floor like any other.", helpOnly: true },
+        { action: "Every 10 floors", detail: "the camera pulls back to show the city.", helpOnly: true },
         { action: "From block 20", detail: "a waving flag warns of wind.", helpOnly: true },
         { action: "Overhang is cut", detail: "so the next block is narrower. Line it up exactly (a perfect drop) and the block grows back a little.", helpOnly: true },
-        { action: "Streak multiplier:", detail: "from the 3rd perfect drop in a row a perfect drop counts double, from the 6th triple and from the 10th four times. A drop that isn't perfect resets it.", helpOnly: true },
+        { action: "Perfect streak:", detail: "your longest run of perfect drops in a row counts, up to 10. A drop that isn't perfect resets it.", helpOnly: true },
         { action: "Narrow and wide blocks", detail: "are perfect when centred on the top. A centred wide block stays whole, so the tower widens; off-centre, the overhang is cut as usual.", helpOnly: true },
         { action: "Wind:", detail: `once ${SKYLINE_WIND_FROM} blocks are placed, a flag flies from the top block. Still flag: no wind. It starts waving about a second before a gust and streams the way the gust blows. Every gust is the same strength and nudges the sliding block that way while it blows.`, helpOnly: true },
         { action: "Taller view, more sky:", detail: "the tower climbs higher before the camera pulls back.", helpOnly: true },
         { action: "Everyone", detail: "gets the same gusts at the same moments.", helpOnly: true },
       ],
-      score: liveBandHelp("skyline", "Each block counts 5 (narrow 8, wide 3), each perfect drop counts 5 times its streak multiplier, a gold block landed perfectly 15 more and every 10 floors 20.", { more: "More blocks and perfect streaks", good: (u) => `counts ${u}` }),
+      score: liveStdHelp("skyline", "Every floor you build counts the same."),
     },
     bintoss: {
       goal: "Throw the ball into the bucket.",

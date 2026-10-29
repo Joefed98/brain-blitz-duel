@@ -16,6 +16,7 @@ import {
 } from "./engine";
 import { bandStrictGame, bandStrict, bandRetarget, bandTargetGame, bandCurveOf, bandCurve, bandInit, bandPoints, bandScoreOf, bandStep, bandTotal, type BandFields, type BandParts } from "./scoreBands";
 import type { ArcadeGame } from "./engine";
+import { stdLinear, stdPart, stdScore, stdShare, stdSum, type StdPart, type StdSpec } from "./arcadeStandard";
 
 /* ============================== Constants ============================== */
 
@@ -443,6 +444,7 @@ function initRev2(seed: number): SkylineState {
 
 export const skylineRev2Game: ArcadeGame<SkylineState> = { ...skylineGame, init: initRev2 };
 export function skylineGameFor(rev?: number | null): ArcadeGame<SkylineState> {
+  if (rev === SKYLINE_REV_STD) return skylineStdGame;
   if (rev === SKYLINE_REV_LIFT) return skylineLiftGame;
   if (rev === SKYLINE_REV_EXPAND) return skylineExpandGame;
   if (rev === SKYLINE_REV_STRICT) return skylineStrictGame;
@@ -460,6 +462,7 @@ export const SKYLINE_REV_BAND = 3;
 export const SKYLINE_BAND_CURVE = bandCurve([0, 100, 165, 280, 480, 600], [0, 70, 100, 125, 145, 150]);
 
 export function skylineBandParts(state: SkylineState): BandParts {
+  if (state.expandRev === SKYLINE_REV_STD) return skylineStdBandParts(state);
   if (state.expandRev) return skylineExpandParts(state);
   const units = 5 * state.placed + 5 * state.perfects + 2 * (state.streakPoints ?? 0);
   return { units, points: bandPoints(bandCurveOf(state, SKYLINE_BAND_CURVE), units), bonus: 0, penalty: 0, finished: false, text: `${state.placed} blocks · ${state.perfects} perfect · +${state.streakPoints ?? 0} streak` };
@@ -486,7 +489,7 @@ export const skylineTallGame: ArcadeGame<SkylineState> = { ...skylineBandGame, i
 
 /** The view height (px) a stored round's skylineRev draws in. */
 export function skylineWorldHFor(rev?: number | null): number {
-  if (rev === SKYLINE_REV_EXPAND || rev === SKYLINE_REV_LIFT) return SKYLINE_SKY_H;
+  if (rev === SKYLINE_REV_EXPAND || rev === SKYLINE_REV_LIFT || rev === SKYLINE_REV_STD) return SKYLINE_SKY_H;
   return rev === SKYLINE_REV_TALL || rev === SKYLINE_REV_TARGET || rev === SKYLINE_REV_STRICT ? SKYLINE_TALL_H : SKYLINE_WORLD_H;
 }
 
@@ -789,4 +792,134 @@ export const SKYLINE_V8_BAND_CURVE = bandCurve([0, 129, 203, 326, 613, 900, 1100
 export const skylineLiftGame: ArcadeGame<SkylineState> = {
   ...skylineExpandGame,
   init: (seed: number) => ({ ...initExpand(seed), expandRev: SKYLINE_REV_LIFT }),
+};
+
+/* ============ The arcade scoring standard (skylineRev 9, 29 Oct 2026, docs/arcade-standard/skyline.md) ============ */
+
+/**
+ * skylineRev 9: skylineRev 8's play (the slide, the overhang rule, the wind from block 20, narrow and wide blocks,
+ * the height milestones' celebration and camera) scored on the arcade scoring standard (arcadeStandard.ts), with
+ * the gold blocks dealt differently:
+ *
+ *  - Floors (core) up to 140: floors built on a straight line, full at SKYLINE_V9_FULL_AT (the skill-band tool's
+ *    near-perfect median on the tuning seeds). Height milestones score nothing (the old 20 every 10 floors is in here);
+ *  - Perfect drops up to 30: by the share of drops that are perfect, counted over at least SKYLINE_V9_FULL_AT drops
+ *    (so one perfect drop and a quit can't take it all);
+ *  - Perfect streak up to 10: 1 for each perfect drop in the best streak (full at 10 in a row). The ×2 / ×3 / ×4
+ *    streak multiplier no longer scores (the sim still counts it, unread);
+ *  - Gold blocks up to 20: exactly SKYLINE_V9_GOLD_COUNT gold blocks a run, 4 each landed perfectly, at seeded places
+ *    from the room seed, one in each fifth of blocks SKYLINE_SPECIAL_FROM … SKYLINE_V9_FULL_AT − 1, never next to
+ *    another special (skylineKindsV9). Narrow and wide blocks stay where rev 8 deals them and score as any floor.
+ *
+ * The state carries `expandRev: 9` (folded into the checkpoint checksum as 7 and 8 are); every older revision plays
+ * and scores exactly as before.
+ */
+export const SKYLINE_REV_STD = 9;
+/** Floors at which the core is full: the near-perfect level's median floors (61 on rev 8 = rev 9 play, seeds 0–59). */
+export const SKYLINE_V9_FULL_AT = 61;
+export const SKYLINE_V9_CORE_MAX = 140;
+export const SKYLINE_V9_PERFECTS_MAX = 30;
+export const SKYLINE_V9_STREAK_MAX = 10;
+export const SKYLINE_V9_GOLD_COUNT = 5;
+export const SKYLINE_V9_GOLD_MAX = 20;
+/** The core's straight line (the help's curve, liveBands.ts): 140 at SKYLINE_V9_FULL_AT floors. */
+export const SKYLINE_V9_BAND_CURVE = bandCurve([0, SKYLINE_V9_FULL_AT], [0, SKYLINE_V9_CORE_MAX]);
+
+export const SKYLINE_STD_SPEC: StdSpec = {
+  field: "skylineRev",
+  rev: SKYLINE_REV_STD,
+  parts: [
+    { key: "core", label: "Floors", max: SKYLINE_V9_CORE_MAX, how: `full at ${SKYLINE_V9_FULL_AT} floors` },
+    { key: "perfects", label: "Perfect drops", max: SKYLINE_V9_PERFECTS_MAX, how: `by the share of your drops that are perfect, counted over at least ${SKYLINE_V9_FULL_AT} drops` },
+    { key: "streak", label: "Perfect streak", max: SKYLINE_V9_STREAK_MAX, how: `1 for each perfect drop in your best streak, full at ${SKYLINE_V9_STREAK_MAX} in a row` },
+    { key: "gold", label: "Gold blocks", max: SKYLINE_V9_GOLD_MAX, how: `${SKYLINE_V9_GOLD_MAX / SKYLINE_V9_GOLD_COUNT} for each of the ${SKYLINE_V9_GOLD_COUNT} gold blocks landed perfectly` },
+  ],
+};
+
+/**
+ * skylineRev 9's block kinds: rev 7's narrow and wide blocks where they were (its gold blocks made normal), then
+ * exactly SKYLINE_V9_GOLD_COUNT gold blocks from their own stream, one in each fifth of blocks
+ * [SKYLINE_SPECIAL_FROM, SKYLINE_V9_FULL_AT), each on a block whose neighbours are both normal (never two specials in a
+ * row). A fifth with no such block (rare) takes a seeded block whose neighbours are made normal.
+ */
+export function skylineKindsV9(seed: number): number[] {
+  const kinds = skylineKinds(seed).map((k) => (k === SKYLINE_KIND_GOLD ? SKYLINE_KIND_NORMAL : k));
+  let rng = (seed ^ 0x3c9e_71d5) | 0;
+  const draw = (bound: number) => {
+    const r = rngBelow(rng, bound);
+    rng = r.state;
+    return r.value;
+  };
+  const span = SKYLINE_V9_FULL_AT - SKYLINE_SPECIAL_FROM;
+  for (let g = 0; g < SKYLINE_V9_GOLD_COUNT; g++) {
+    const lo = SKYLINE_SPECIAL_FROM + Math.floor((span * g) / SKYLINE_V9_GOLD_COUNT);
+    const hi = SKYLINE_SPECIAL_FROM + Math.floor((span * (g + 1)) / SKYLINE_V9_GOLD_COUNT);
+    const eligible: number[] = [];
+    for (let i = lo; i < hi; i++)
+      if (kinds[i - 1] === SKYLINE_KIND_NORMAL && kinds[i] === SKYLINE_KIND_NORMAL && kinds[i + 1] === SKYLINE_KIND_NORMAL) eligible.push(i);
+    let pick: number;
+    if (eligible.length > 0) pick = eligible[draw(eligible.length)]!;
+    else {
+      pick = lo + 1 + draw(hi - lo - 2);
+      kinds[pick - 1] = SKYLINE_KIND_NORMAL;
+      kinds[pick + 1] = SKYLINE_KIND_NORMAL;
+    }
+    kinds[pick] = SKYLINE_KIND_GOLD;
+  }
+  return kinds;
+}
+
+const kindV9Cache = new Map<number, number[]>();
+function kindsV9For(seed: number): number[] {
+  let kinds = kindV9Cache.get(seed | 0);
+  if (!kinds) {
+    kinds = skylineKindsV9(seed);
+    if (kindV9Cache.size > 16) kindV9Cache.clear();
+    kindV9Cache.set(seed | 0, kinds);
+  }
+  return kinds;
+}
+
+/** Render and sound only: the streak multiplier a state's HUD, pops and cues show (1 on rev 9, which scores none). */
+export function skylineShownMult(state: SkylineState, streak: number = state.streak ?? 0): number {
+  return state.expandRev === SKYLINE_REV_STD ? 1 : skylineStreakMult(streak);
+}
+
+/** skylineRev 9's scored parts (null on every older revision). */
+export function skylineStdParts(state: SkylineState): StdPart[] | null {
+  if (state.expandRev !== SKYLINE_REV_STD) return null;
+  const placed = state.placed;
+  const perfects = state.perfects;
+  const best = state.bestStreak ?? 0;
+  const golds = state.golds ?? 0;
+  return [
+    stdPart(SKYLINE_STD_SPEC, "core", stdLinear(placed, SKYLINE_V9_FULL_AT, SKYLINE_V9_CORE_MAX), `${placed} floor${placed === 1 ? "" : "s"}`),
+    stdPart(SKYLINE_STD_SPEC, "perfects", stdShare(perfects, Math.max(placed, SKYLINE_V9_FULL_AT), SKYLINE_V9_PERFECTS_MAX), `${perfects} of ${placed} perfect`),
+    stdPart(SKYLINE_STD_SPEC, "streak", Math.min(best, SKYLINE_V9_STREAK_MAX), `best ${best} in a row`),
+    stdPart(SKYLINE_STD_SPEC, "gold", stdShare(golds, SKYLINE_V9_GOLD_COUNT, SKYLINE_V9_GOLD_MAX), `${golds} of ${SKYLINE_V9_GOLD_COUNT} gold`),
+  ];
+}
+
+/** skylineRev 9 for the skill-band tool: units = floors, points = the core, bonus = the features. */
+function skylineStdBandParts(state: SkylineState): BandParts {
+  const parts = skylineStdParts(state)!;
+  const core = parts[0]!.points;
+  return {
+    units: state.placed,
+    points: core,
+    bonus: stdSum(parts) - core,
+    penalty: 0,
+    finished: false,
+    text: parts.map((p) => `${p.label} ${p.points}`).join(" · "),
+  };
+}
+
+function scoreStd(state: SkylineState): number {
+  return stdScore(skylineStdParts(state)!, Boolean(state.acted));
+}
+
+export const skylineStdGame: ArcadeGame<SkylineState> = {
+  ...skylineExpandGame,
+  init: (seed: number) => ({ ...initExpand(seed), expandRev: SKYLINE_REV_STD, kinds: kindsV9For(seed) }),
+  score: scoreStd,
 };

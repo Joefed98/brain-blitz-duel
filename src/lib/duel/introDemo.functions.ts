@@ -21,7 +21,7 @@ import { BINTOSS_REV_SMALL_FAR } from "@/lib/arcade/binToss";
 import { BUB_REV_BLAST } from "@/lib/arcade/bubble";
 import { MATCHUP_REV_ICE } from "@/lib/arcade/matchup";
 import { TEN_DROP_DEPTH_REV } from "@/lib/arcade/tenDrop";
-import { SKYLINE_REV_LIFT } from "@/lib/arcade/skyline";
+import { SKYLINE_REV_STD } from "@/lib/arcade/skyline";
 import { pinIsExpanded } from "@/lib/arcade/pinball";
 import { chainDemoCompatible } from "./chain";
 import { pairUsesDepth } from "./depth/matchmaker";
@@ -193,8 +193,9 @@ export const getIntroDemoFn = createServerFn({ method: "GET" })
     // Expansion E4 (25 Oct 2026, docs/expansions/e4.md): High Rise's skylineRev 7 (taller view, special blocks, the
     // next-block preview, milestones). An older demo would show the old view without them, so the intro shows the
     // still until a demo is recorded on skylineRev 7. skylineRev 8 (27 Oct 2026, Joe's phone notes) keeps rev 7's play on a
-    // gentler curve: only a skylineRev 8 demo plays (its score is the one the help states).
-    if (data.type === "skyline" && demo?.puzzle.type === "skyline" && demo.puzzle.skylineRev !== SKYLINE_REV_LIFT) return null;
+    // gentler curve. skylineRev 9 (29 Oct 2026, the arcade scoring standard) deals five gold blocks at new places and
+    // scores on the standard: only a skylineRev 9 demo plays (its gold blocks and score are the ones the help states).
+    if (data.type === "skyline" && demo?.puzzle.type === "skyline" && demo.puzzle.skylineRev !== SKYLINE_REV_STD) return null;
     // Pinball's pinRev 4 (the taller table, its ramps, lanes, lock and plunger): only a demo on that table plays
     // (pinRev 4 or 5: pinRev 5 plays the same table tick for tick, only for 90 s instead of 60).
     if (data.type === "pinball" && demo?.puzzle.type === "pinball" && !pinIsExpanded(demo.puzzle.pinRev)) return null;

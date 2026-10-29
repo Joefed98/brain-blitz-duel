@@ -98,7 +98,7 @@ function introScoreTemplates(): Record<PuzzleType, string> {
 
     // Arcade
     hover: "Points for barriers and stars; tight gates, chains and centre lines add 50. Up to {max}.",
-    skyline: "Points for blocks, perfects in a row, gold blocks and every 10 floors. Up to {max}.",
+    skyline: "Floors, perfect drops, a perfect streak and gold blocks. Up to {max}.",
     bintoss: `Buckets, hoops, All ${BINTOSS_THROWS} in for 10 more: up to 150. Far buckets +${BINTOSS_FAR_POINTS} each: up to {max}.`,
     bullseye: `Rings ${BULLSEYE_RING_VALUES.join(" / ")}, inner bull ${BULLSEYE_INNER_BULL_POINTS}; streaks, dead-centre add more. Up to {max}.`,
     matchup: "Longer lines score more; goals, ice, treasure and cascades add more. Up to {max}.",

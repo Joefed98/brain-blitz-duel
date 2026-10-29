@@ -121,8 +121,13 @@ const BUILDERS: Record<string, Builder> = {
     tiles: [
       { label: "Blocks", value: String(n(r, "blocks")) },
       { label: "Perfect drops", value: String(n(r, "perfects")) },
-      ...(n(r, "skylineRev") > 0 ? [{ label: "Best streak", value: String(n(r, "bestStreak")) }] : []),
-      ...(n(r, "skylineRev") >= 7 ? [{ label: "Gold blocks", value: String(n(r, "golds")) }] : []),
+      ...(n(r, "skylineRev") > 0 || (r["state"] as { expandRev?: number } | undefined)?.expandRev === 9 ? [{ label: "Best streak", value: String(n(r, "bestStreak")) }] : []),
+      // skylineRev 9 (the arcade scoring standard; the replay's state carries expandRev 9): five gold blocks a run.
+      ...((r["state"] as { expandRev?: number } | undefined)?.expandRev === 9
+        ? [{ label: "Gold blocks", value: `${n(r, "golds")} / 5` }]
+        : n(r, "skylineRev") >= 7
+          ? [{ label: "Gold blocks", value: String(n(r, "golds")) }]
+          : []),
     ],
     outcome: ended(r, false),
   }),

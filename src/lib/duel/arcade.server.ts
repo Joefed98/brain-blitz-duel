@@ -7,7 +7,7 @@ import { SNAKE_REV_TARGET, SNAKE_REV_10 } from "@/lib/arcade/snake";
 import { BUB_REV_BLAST } from "@/lib/arcade/bubble";
 import { MATCHUP_REV_ICE } from "@/lib/arcade/matchup";
 import { SNIP_REV_TARGET, SNIP_REV_EXPAND } from "@/lib/arcade/snip";
-import { SKYLINE_REV_TARGET, SKYLINE_REV_STRICT, SKYLINE_REV_LIFT } from "@/lib/arcade/skyline";
+import { SKYLINE_REV_TARGET, SKYLINE_REV_STRICT, SKYLINE_REV_STD } from "@/lib/arcade/skyline";
 import { TILT_REV_LIFT } from "@/lib/arcade/tilt";
 import { TILT_BANK } from "./tiltBank.server";
 import { JUNC_REV_BAND } from "@/lib/arcade/junction";
@@ -84,8 +84,8 @@ export function generateSwerve(): SwervePuzzleData {
 }
 
 export function generateSkyline(): SkylinePuzzleData {
-  // skylineRev 8: skylineRev 7's play (expansion E4) on a gentler curve (Joe's phone notes, 27 Oct 2026).
-  return { type: "skyline", seed: arcadeSeed(), skylineRev: SKYLINE_REV_LIFT };
+  // skylineRev 9: skylineRev 8's play on the arcade scoring standard (29 Oct 2026, docs/arcade-standard/skyline.md).
+  return { type: "skyline", seed: arcadeSeed(), skylineRev: SKYLINE_REV_STD };
 }
 
 export function generateBinToss(): BinTossPuzzleData {

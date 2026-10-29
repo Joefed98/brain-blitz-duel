@@ -70,8 +70,8 @@ for (const home of [0, 15, 29, 30]) {
 eq(buildArcadeReveal("matchup", { raw: 2500 }, 150)?.axis.max, 2500, "Matchup reveal par");
 // Oct 2026 score bands: intros describe the band rules in plain words (the "?" help gives the top and a good run).
 // Expansion E6 (25 Oct 2026): Ball Tracker's intro names btRev 7's features; e6-check covers the new rules.
-for (const [type, text] of [["balltrack", "gold, boosted and in-a-row marbles"], ["junction", "± for ambulances"], ["rally", "pink target"], ["skyline", "perfects in a row"]] as const) eq(INTRO_SCORE[type].includes(text), true, `${type} intro`);
-for (const [type, text] of [["matchup", "4,200"], ["bullseye", "plus +1, +2 or +3 for each balloon"], ["junction", "one stopped takes 4 off"], ["skyline", "perfect drop counts 5"], ["rally", "gold-ball hit counts 5"], ["balltrack", "56.6 s"]] as const) eq(PUZZLE_INSTRUCTIONS[type].score.includes(text), true, `${type} help`);
+for (const [type, text] of [["balltrack", "gold, boosted and in-a-row marbles"], ["junction", "± for ambulances"], ["rally", "pink target"], ["skyline", "a perfect streak"]] as const) eq(INTRO_SCORE[type].includes(text), true, `${type} intro`);
+for (const [type, text] of [["matchup", "4,200"], ["bullseye", "plus +1, +2 or +3 for each balloon"], ["junction", "one stopped takes 4 off"], ["skyline", "Perfect streak up to 10 (1 for each perfect drop in your best streak"], ["rally", "gold-ball hit counts 5"], ["balltrack", "56.6 s"]] as const) eq(PUZZLE_INSTRUCTIONS[type].score.includes(text), true, `${type} help`);
 // The 11 Oct 130 / 150 split is gone from every intro: no partial cap is stated any more.
 for (const type of ["balltrack", "bintoss", "breaker", "bubble", "inkbridge", "orbit", "swing", "tilt"] as const) eq(/otherwise up to \d+/.test(INTRO_SCORE[type]), false, `${type} intro has no partial cap`);
 // The legacy split figures still hold for stored rounds (they replay on their original rules).
@@ -194,7 +194,8 @@ for (const type of ["junction"]) eq(demoGuard.includes(`data.type === "${type}"`
 eq(demoGuard.includes('data.type === "bullseye" && demo?.puzzle.type === "bullseye" && demo.puzzle.bullRev !== BULLSEYE_REV_EXPAND'), true, "Flightpath demo stopped until recorded on bullRev 8");
 // Expansion E4 (25 Oct 2026, docs/expansions/e4.md) stops High Rise's intro demo the same way: only a skylineRev 7 demo
 // plays (the taller view, special blocks and the preview). It flips back once the demo is re-recorded on skylineRev 7.
-eq(demoGuard.includes('data.type === "skyline" && demo?.puzzle.type === "skyline" && demo.puzzle.skylineRev !== SKYLINE_REV_LIFT) return null'), true, "skyline demo stopped until re-recorded on skylineRev 8");
+// The arcade scoring standard (29 Oct 2026): only a skylineRev 9 demo plays (five gold blocks at new places, the standard's score).
+eq(demoGuard.includes('data.type === "skyline" && demo?.puzzle.type === "skyline" && demo.puzzle.skylineRev !== SKYLINE_REV_STD) return null'), true, "skyline demo stopped until re-recorded on skylineRev 9");
 // Taller worlds batch 1 (16 Oct 2026) deliberately stops Rally's intro demo: a demo recorded before rallyRev 6 shows the
 // 620 px court, so only a rallyRev 6 demo plays (arcade-tuning-g1-check). This flips back to "not invalidated" (and the
 // guard comes out of introDemo.functions.ts) once Rally's demo is re-recorded on rallyRev 6.

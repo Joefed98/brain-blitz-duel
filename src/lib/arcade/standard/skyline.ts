@@ -1,10 +1,5 @@
 /**
  * The arcade scoring standard for `skyline` (arcadeStandard.ts): its spec and its parts, re-exported from the sim.
- * `parts` returns null for a state that is not on the standard revision.
+ * `parts` returns null for a state that is not on the standard revision (skylineRev 9).
  */
-import type { StdPart, StdSpec } from "../arcadeStandard";
-
-export const spec: StdSpec | null = null;
-export function parts(_state: unknown): StdPart[] | null {
-  return null;
-}
+export { SKYLINE_STD_SPEC as spec, skylineStdParts as parts } from "../skyline";
