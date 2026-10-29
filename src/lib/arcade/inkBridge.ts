@@ -27,6 +27,7 @@ import {
 } from "./engine";
 import { BAND_STRICT_MARK, bandStrictGame, bandStrict, bandRetarget, bandTargetGame, bandCurveOf, bandCurve, bandInit, bandPoints, bandScoreOf, bandStep, bandTotal, BAND_FINISH_BONUS, type BandFields, type BandParts } from "./scoreBands";
 import { isin, TRIG_ONE } from "./trig";
+import { stdBandParts, stdLine, stdSpeed, stdTotal, type StdScore, type StdSpec } from "./arcadeStandard";
 
 /* ============================== Constants ============================== */
 
@@ -116,9 +117,15 @@ export const INK_REV_EXPAND = 10;
  * each other (INK_V11_*), so taking them all needs a bolder bonus line. Features paid on INK_V11_SKILL_PAY.
  */
 export const INK_REV_SPREAD = 11;
-/** inkRev 10 and 11: the taller world and its features (x200). */
+/**
+ * inkRev 12 (the arcade scoring standard, 29 Oct 2026; docs/arcade-standard/inkbridge.md): inkRev 11's play exactly
+ * (its states carry rev 11 and `std: 1`, outside the checkpoint checksum, so an inkRev 11 log replays tick for tick),
+ * scored on the standard's straight lines and fixed feature shares (INK_STD).
+ */
+export const INK_REV_STD = 12;
+/** inkRev 10, 11 and 12: the taller world and its features (x200). */
 export function inkX(rev?: number | null): boolean {
-  return rev === INK_REV_EXPAND || rev === INK_REV_SPREAD;
+  return rev === INK_REV_EXPAND || rev === INK_REV_SPREAD || rev === INK_REV_STD;
 }
 export const INK_TALL_H = 674;
 /** How much lower every inkRev 10 pot sits (the extra sky): INK_TALL_H − INK_WORLD_H. */
@@ -1790,10 +1797,10 @@ const INK_SPEC_10: InkFeatureSpec = { rev: INK_REV_EXPAND, windLevels: INK_WIND_
 const INK_SPEC_11: InkFeatureSpec = { rev: INK_REV_SPREAD, windLevels: INK_V11_WIND_LEVELS, silverPerLevel: INK_V11_SILVER_PER_LEVEL, spread: true };
 /** Silver coins a level and wind levels a run on this revision (inkRev 10 or 11). */
 export function inkSilverPerLevel(rev?: number | null): number {
-  return rev === INK_REV_SPREAD ? INK_V11_SILVER_PER_LEVEL : INK_SILVER_PER_LEVEL;
+  return rev === INK_REV_SPREAD || rev === INK_REV_STD ? INK_V11_SILVER_PER_LEVEL : INK_SILVER_PER_LEVEL;
 }
 export function inkWindLevels(rev?: number | null): number {
-  return rev === INK_REV_SPREAD ? INK_V11_WIND_LEVELS : INK_WIND_LEVELS;
+  return rev === INK_REV_SPREAD || rev === INK_REV_STD ? INK_V11_WIND_LEVELS : INK_WIND_LEVELS;
 }
 /** Pickup radii (px): the coin takes one when its centre comes within this plus its own radius. */
 export const INK_SILVER_R = 6;
@@ -2603,7 +2610,7 @@ export function inkStarCheck(seed: number): { stars: number; proved: number; off
 
 function buildLevels(seed: number, rev?: number): { list: InkLevel[]; rng: number } {
   if (rev === INK_REV_EXPAND) return buildLevelsRev10(seed);
-  if (rev === INK_REV_SPREAD) return buildLevelsRev10(seed, INK_SPEC_11);
+  if (rev === INK_REV_SPREAD || rev === INK_REV_STD) return buildLevelsRev10(seed, INK_SPEC_11);
   if (rev === INK_REV4) return buildLevelsRev4(seed);
   if (rev === INK_REV3) return buildLevelsRev3(seed);
   const birds = rev === INK_REV;
@@ -2811,6 +2818,8 @@ export interface InkState extends BandFields {
   silverGot?: number;
   shamrocks?: number;
   shamrockGot?: number;
+  /** inkRev 12 only: 1 = inkRev 11's play scored on the arcade standard (INK_STD); not in the checkpoint checksum. */
+  std?: number;
 }
 
 const cache = new Map<string, ReturnType<typeof buildLevels>>();
@@ -3348,6 +3357,7 @@ export const inkBridgeBirdsGame: ArcadeGame<InkState, ArcadeInputEvent | null> =
 export const inkBridgeInkRev3Game: ArcadeGame<InkState, ArcadeInputEvent | null> = { ...inkBridgeGame, init: (seed) => initWith(seed, INK_REV3) };
 export const inkBridgeInkRev4Game: ArcadeGame<InkState, ArcadeInputEvent | null> = { ...inkBridgeGame, init: (seed) => initWith(seed, INK_REV4) };
 export function inkBridgeGameFor(rev?: number | null): ArcadeGame<InkState, ArcadeInputEvent | null> {
+  if (rev === INK_REV_STD) return inkBridgeStdGame;
   if (rev === INK_REV_SPREAD) return inkBridgeSpreadGame;
   if (rev === INK_REV_EXPAND) return inkBridgeExpandGame;
   if (rev === INK_REV_STRICT) return inkBridgeStrictGame;
@@ -3364,6 +3374,7 @@ export function inkBridgeGameFor(rev?: number | null): ArcadeGame<InkState, Arca
 /** Levels count 10 and gold stars 2; 140 at all ten levels and every star; finishing adds up to 10 for speed. */
 export const INK_BAND_CURVE = bandCurve([0, 10, 20, 40, 60, 80, 90, 108], [0, 35, 55, 85, 110, 128, 138, 140]);
 export function inkBridgeBandParts(state: InkState): BandParts {
+  if (state.std) return inkStdBandParts(state);
   if (inkX(state.rev)) return inkExpandBandParts(state);
   const units = 10 * clampInt(state.levels, 0, INK_LEVELS) + INK_STAR_POINTS * clampInt(state.stars ?? 0, 0, INK_STAR_LEVELS);
   const finished = state.levels >= INK_LEVELS;
@@ -3371,6 +3382,7 @@ export function inkBridgeBandParts(state: InkState): BandParts {
 }
 
 function scoreBand(state: InkState): number {
+  if (state.std) return stdTotal(inkStdScore(state), Boolean(state.acted));
   if (inkX(state.rev)) return bandTotal(inkBridgeBandParts(state), Boolean(state.acted), INK_EXPAND_MAX);
   return bandTotal(inkBridgeBandParts(state), Boolean(state.acted));
 }
@@ -3497,4 +3509,65 @@ export const inkBridgeExpandGame: ArcadeGame<InkState, ArcadeInputEvent | null> 
 export const inkBridgeSpreadGame: ArcadeGame<InkState, ArcadeInputEvent | null> = {
   ...inkBridgeExpandGame,
   init: (seed) => ({ ...initWith(seed, INK_REV_SPREAD), band: BAND_STRICT_MARK, acted: 0 }),
+};
+
+
+/* ================= The arcade scoring standard (inkRev 12, 29 Oct 2026) ================= */
+
+/** inkRev 12: core 14 a level potted (10 levels, a fixed maximum). */
+export const INK_V12_CORE_MAX = 140;
+/** inkRev 12's speed part: only with all ten levels potted, full with INK_V12_SPEED_FULL ticks left, 0 at the buzzer. */
+export const INK_V12_SPEED_MAX = 10;
+export const INK_V12_SPEED_FULL = 45 * TICKS_PER_SECOND;
+/** Silver coins a run on inkRev 11 / 12: two on each of levels 1–8. */
+export const INK_V12_SILVER = INK_BONUS_LEVELS * INK_V11_SILVER_PER_LEVEL;
+
+/**
+ * inkRev 12's standard (src/lib/arcade/arcadeStandard.ts): levels potted on a straight line (14 each, 140 at all ten),
+ * speed 10 on a finished run, ink stars 20 (2.5 each of 8), trick shots 12 (3 each of 4), the shamrock 10, silver
+ * coins 8 (0.5 each of 16). No mistake costs points (a failed drop costs one of three tries). Total 200.
+ */
+export const INK_STD: StdSpec = {
+  core: { key: "levels", label: "Levels", max: INK_V12_CORE_MAX, of: INK_LEVELS, item: "level" },
+  features: [
+    { key: "speed", label: "Speed", max: INK_V12_SPEED_MAX, of: 1 },
+    { key: "stars", label: "Ink stars", max: 20, of: INK_BONUS_LEVELS, item: "ink star" },
+    { key: "tricks", label: "Trick shots", max: 12, of: INK_CLOUD_LEVELS, item: "trick shot" },
+    { key: "shamrock", label: "Shamrock", max: 10, of: 1 },
+    { key: "silver", label: "Silver coins", max: 8, of: INK_V12_SILVER, item: "silver coin" },
+  ],
+};
+
+/** inkRev 12's core curve for the bands and help: one unit a level potted, a straight line to 140 at all ten (stdLine). */
+export const INK_V12_BAND_CURVE = bandCurve([0, INK_LEVELS], [0, INK_V12_CORE_MAX]);
+
+const stdPart = (key: string) => INK_STD.features.find((f) => f.key === key)!;
+const stdFeature = (key: string, got: number) => stdLine(stdPart(key).max, got, stdPart(key).of);
+
+/** inkRev 12: a run's standard breakdown (the core and each feature; nothing is taken off). */
+export function inkStdScore(state: InkState): StdScore {
+  const levels = clampInt(state.levels, 0, INK_LEVELS);
+  const left = INK_RUN_TICKS - clampInt(state.endedTick || state.tick, 0, INK_RUN_TICKS);
+  return {
+    core: stdLine(INK_STD.core.max, levels, INK_STD.core.of),
+    features: {
+      speed: levels >= INK_LEVELS ? stdSpeed(INK_V12_SPEED_MAX, left, INK_V12_SPEED_FULL, 0) : 0,
+      stars: stdFeature("stars", state.stars ?? 0),
+      tricks: stdFeature("tricks", state.tricks ?? 0),
+      shamrock: stdFeature("shamrock", state.shamrocks ?? 0),
+      silver: stdFeature("silver", state.silver ?? 0),
+    },
+    penalty: 0,
+  };
+}
+
+function inkStdBandParts(state: InkState): BandParts {
+  const levels = clampInt(state.levels, 0, INK_LEVELS);
+  return stdBandParts(INK_STD, inkStdScore(state), levels, `${levels} / ${INK_LEVELS} levels`, levels >= INK_LEVELS);
+}
+
+/** inkRev 12: inkRev 11's play exactly (the state is inkRev 11's plus `std: 1`), scored on the standard. */
+export const inkBridgeStdGame: ArcadeGame<InkState, ArcadeInputEvent | null> = {
+  ...inkBridgeSpreadGame,
+  init: (seed) => ({ ...inkBridgeSpreadGame.init(seed), std: 1 }),
 };

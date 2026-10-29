@@ -1,6 +1,6 @@
 import { BULLSEYE_INNER_BULL_POINTS, BULLSEYE_RING_VALUES } from "@/lib/arcade/bullseye";
 import { BINTOSS_FAR_POINTS, BINTOSS_THROWS } from "@/lib/arcade/binToss";
-import { INK_FEATURE_MAX, INK_LEVELS } from "@/lib/arcade/inkBridge";
+import { INK_LEVELS, INK_V12_CORE_MAX } from "@/lib/arcade/inkBridge";
 import { TILT_X_MAZES } from "@/lib/arcade/tilt";
 import { bandsIntro } from "./puzzleBandsText";
 import { logicStandardIntro } from "./standard/logicText";
@@ -113,7 +113,7 @@ function introScoreTemplates(): Record<PuzzleType, string> {
     wavefront: "Ships, waves, a fast boss kill; precise weak-point hits, saucers, power-ups: up to {max}.",
     flip: "Time and stars score; trails, sweet spots, double flips, zones and checkpoints: up to {max}.",
     junction: "Points for each car and bus through, ± for ambulances. Last the minute for 10 more.",
-    inkbridge: `Levels score; stars, coins, shamrock: up to ${INK_FEATURE_MAX} more. All ${INK_LEVELS} levels quickly: up to {max}.`,
+    inkbridge: `Levels ${INK_V12_CORE_MAX}; stars, tricks, shamrock, silver, speed ${200 - INK_V12_CORE_MAX}. All ${INK_LEVELS} levels quickly: up to {max}.`,
     burst: "Atoms score; a lost life costs 5. Last 90 s for 10 more; quick wave clears add. Up to {max}.",
     orbit: "Planets and the sun, plus stardust, slingshots, fields and perfect orbits: up to {max}.",
     snip: "Points for fruit fed and leaves; golden apples, few cuts and speed add more. Up to {max}.",

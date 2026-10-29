@@ -103,7 +103,7 @@ import { ORBIT_HOLE_BANK } from "@/lib/duel/orbitHoleBank.server";
 import { ORBIT_REV3_BANK } from "@/lib/duel/orbitRev3Bank.server";
 import { orbitRev3PlanetsForSeed } from "@/lib/duel/orbitRev3Course.server";
 import { binTossGameFor, BINTOSS_REV2, BINTOSS_REV3 } from "@/lib/arcade/binToss";
-import { inkBridgeGameFor, INK_REV3, INK_REV4, INK_REV_EXPAND, INK_REV_SPREAD } from "@/lib/arcade/inkBridge";
+import { inkBridgeGameFor, INK_REV3, INK_REV4, INK_REV_EXPAND, INK_REV_SPREAD, INK_REV_STD } from "@/lib/arcade/inkBridge";
 import { swingGameFor, SWING_REV, SWING_REV_V3 } from "@/lib/arcade/swing";
 import { wordfallCheckpoint, wordfallGame, wordfallGameFor } from "@/lib/arcade/wordfall";
 import { encodeWordfallRun, replayWordfallRun } from "@/lib/duel/wordfall";
@@ -696,6 +696,18 @@ const GAMES: Game[] = [
     rate: 30,
     encode: (run: any) => encodeBallTrackRun(BALL_TRACK_BANK_V7[run.seed % BALL_TRACK_BANK_V7.length]!.course, run, BT_REV_STD),
     replay: (seed: number, raw: string) => replayBallTrackRun(BALL_TRACK_BANK_V7[seed % BALL_TRACK_BANK_V7.length]!.course, seed, raw, BT_REV_STD),
+  },
+  // The arcade scoring standard (29 Oct 2026, docs/arcade-standard/inkbridge.md), appended so every earlier entry keeps
+  // its index: Rainbow Bridge inkRev 12, inkRev 11's play on the standard. Eight seeds in turn, as ink/v11.
+  {
+    key: "ink/std",
+    game: inkBridgeGameFor(INK_REV_STD),
+    seedFor: (n: number) => 9_000_001 + 7_919 * (n % 8),
+    checkpoint: inkCheckpoint,
+    mode: "events",
+    rate: 400,
+    encode: encodeInkBridgeRun,
+    replay: (seed: number, raw: string) => replayInkBridgeRun(seed, raw, INK_REV_STD),
   },
 ];
 
