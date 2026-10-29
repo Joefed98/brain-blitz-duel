@@ -19,7 +19,7 @@ import { PIN_REV_TARGET, PIN_REV_STRICT, PIN_REV_EXPAND, PIN_REV_LONG } from "@/
 import { WHACK_REV_DEPTH, WHACK_REV_NOTES } from "@/lib/arcade/whack";
 import { dealtNotesRev } from "./phoneNotes";
 import { WAV_REV_TARGET, WAV_REV_STRICT, WAV_REV_PHONE } from "@/lib/arcade/wavefront";
-import { ORBIT_REV_TARGET, ORBIT_REV_STRICT, ORBIT_REV_XP } from "@/lib/arcade/orbit";
+import { ORBIT_REV_TARGET, ORBIT_REV_STRICT, ORBIT_REV_STD } from "@/lib/arcade/orbit";
 import { RALLY_REV_TARGET, RALLY_REV_STRICT, RALLY_REV_CURVE } from "@/lib/arcade/rally";
 import { BEAT_REV_TARGET, BEAT_REV_EASE } from "@/lib/arcade/beat";
 import { orbitXpCourseForSeed, orbitHolesForBankSeed, orbitRev3BankEntryForSeed, orbitRev3PlanetsForSeed, encodeRev3Planets } from "./orbitRev3Course.server";
@@ -215,7 +215,8 @@ export function generateOrbit(): OrbitPuzzleData {
   // Rev 12 (the expansion to 200, 26 Oct 2026): one of the bank courses with proved holes and features
   // (scripts/orbit-xp-bank.ts), picked by the seed, in the bigger view. Every room deals it while the bank has courses.
   const xp = orbitXpCourseForSeed(seed);
-  if (xp) return { type: "orbit", seed, orbitRev: ORBIT_REV_XP, planets: xp.planets, holes: xp.holes, extras: xp.extras };
+  // Rev 13 (the arcade scoring standard, 29 Oct 2026): rev 12's course, features and play, scored on the standard.
+  if (xp) return { type: "orbit", seed, orbitRev: ORBIT_REV_STD, planets: xp.planets, holes: xp.holes, extras: xp.extras };
   // Rev 3 only from the proved bank: live proof is too slow for a room start, so an empty bank keeps rev 2.
   const bankPlanets = orbitRev3PlanetsForSeed(seed);
   if (!bankPlanets) return { type: "orbit", seed };

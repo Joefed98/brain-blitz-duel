@@ -22,7 +22,7 @@ import { ORBIT_TIME_MS, type OrbitPuzzleData } from "@/lib/duel/types";
 import { ArcadeCanvasStage } from "@/components/puzzles/ArcadeCanvasStage";
 import { orbitArtGame, orbitDrawHFor, orbitRev3ArtGame } from "@/lib/arcade/orbit.renderer";
 import { initBandFrom, initRev3From, initRev4From, initSweptFrom, initTallFrom, initTargetFrom, initStrictFrom, initTunedFrom, decodeOrbitHoles, decodeRev3Planets, orbitStartForPuzzle, orbitWorldWFor, ORBIT_REV3_WORLD_W } from "@/lib/arcade/orbitRev3";
-import { ORBIT_REV3, ORBIT_REV4, ORBIT_REV_BAND, ORBIT_REV_SWEPT, ORBIT_REV_TALL, ORBIT_REV_TARGET, ORBIT_REV_STRICT, ORBIT_REV_TUNED, ORBIT_REV_XP } from "@/lib/arcade/orbit";
+import { ORBIT_REV3, ORBIT_REV4, ORBIT_REV_BAND, ORBIT_REV_SWEPT, ORBIT_REV_TALL, ORBIT_REV_TARGET, ORBIT_REV_STRICT, ORBIT_REV_TUNED, orbitXpRev } from "@/lib/arcade/orbit";
 import { orbitSounds } from "@/lib/fx/gameSounds";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
@@ -62,8 +62,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const [devPlanet] = useState(() => (data ? orbitDevPlanet() : null));
   const game = useMemo(() => {
     if (devPlanet) return { ...orbitArtGame, init: (seed: number) => orbitDevStart(orbitArtGame.init(seed), devPlanet) };
-    // orbitRev 12 (world expansion): the bank course, holes and features in the bigger view.
-    const xpStart = data?.orbitRev === ORBIT_REV_XP ? orbitStartForPuzzle(data) : null;
+    // orbitRev 12 (world expansion) and 13 (its play on the arcade standard): the bank course, holes and features in the bigger view.
+    const xpStart = orbitXpRev(data?.orbitRev) ? orbitStartForPuzzle(data!) : null;
     if (xpStart) return { ...orbitRev3ArtGame, init: xpStart } as unknown as typeof orbitArtGame;
     if ((data?.orbitRev === ORBIT_REV4 || data?.orbitRev === ORBIT_REV_BAND || data?.orbitRev === ORBIT_REV_TUNED || data?.orbitRev === ORBIT_REV_SWEPT || data?.orbitRev === ORBIT_REV_TALL || data?.orbitRev === ORBIT_REV_TARGET || data?.orbitRev === ORBIT_REV_STRICT) && data.planets) {
       const planets = decodeRev3Planets(data.planets);
@@ -77,7 +77,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     }
     return orbitArtGame;
   }, [devPlanet, data]);
-  const xp = data?.orbitRev === ORBIT_REV_XP;
+  const xp = orbitXpRev(data?.orbitRev);
   const belts = useMemo(() => (devPlanet && data ? orbitBeltPlanets(orbitArtGame.init(data.seed)) : []), [devPlanet, data]);
   return (
     <>
@@ -95,8 +95,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       seed={data?.seed ?? 1}
       enabled={data !== null}
       locked={locked}
-      // orbitRev 12: the 450 × 782 view (390 wide on every earlier revision).
-      worldW={data?.orbitRev === ORBIT_REV_XP ? orbitWorldWFor(data.orbitRev) : ORBIT_WORLD_W}
+      // orbitRev 12 and 13: the 450 × 782 view (390 wide on every earlier revision).
+      worldW={orbitXpRev(data?.orbitRev) ? orbitWorldWFor(data?.orbitRev) : ORBIT_WORLD_W}
       // orbitRev 8: the taller view (620 on every earlier revision); orbitRev 12 drawn to the screen's bottom (display only).
       worldH={orbitDrawHFor(data?.orbitRev)}
       game={game}
@@ -114,7 +114,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         }
         return null;
       }}
-      // orbitRev 12 (Joe's phone notes, 27 Oct 2026): the world reaches the screen's bottom and SET CHECKPOINT sits in
+      // orbitRev 12 and 13 (Joe's phone notes, 27 Oct 2026): the world reaches the screen's bottom and SET CHECKPOINT sits in
       // the reserved top-right corner of the rows drawn above the camera's frame (ORBIT_XP_ZONE, orbit.renderer.ts),
       // where nothing in play is ever drawn: 4 px in from the world's top and right edges, 44 px tall, 11 px text and
       // 12 px sides. Only the button takes a touch: a tap beside it reaches the canvas (a release). Earlier revisions

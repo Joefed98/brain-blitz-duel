@@ -98,7 +98,7 @@ export function stdBandParts(
     finished,
     text,
     bonusText: paid.map((f) => `${f.label} ${score.features[f.key]}`).join(" · ") || "Features",
-    penaltyText,
+    ...(penaltyText === undefined ? {} : { penaltyText }),
   };
 }
 

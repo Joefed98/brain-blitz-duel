@@ -115,7 +115,7 @@ function introScoreTemplates(): Record<PuzzleType, string> {
     junction: "Points for each car and bus through, ± for ambulances. Last the minute for 10 more.",
     inkbridge: `Levels ${INK_V12_CORE_MAX}; stars, tricks, shamrock, silver, speed ${200 - INK_V12_CORE_MAX}. All ${INK_LEVELS} levels quickly: up to {max}.`,
     burst: "Atoms score; a lost life costs 5. Last 90 s for 10 more; quick wave clears add. Up to {max}.",
-    orbit: "Planets and the sun, plus stardust, slingshots, fields and perfect orbits: up to {max}.",
+    orbit: "Planets 130 + sun speed, stardust, slingshots, fields, perfect orbits: total up to {max}.",
     snip: "Points for fruit fed and leaves; golden apples, few cuts and speed add more. Up to {max}.",
     swing: `Sections cleared, then pars, gates, gems and stars: up to {max}.`,
     tilt: `Mazes, progress and stars; quick stars and pace add more. All ${TILT_X_MAZES} quickly: up to {max}.`,

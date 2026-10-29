@@ -26,8 +26,8 @@ import { SKYLINE_REV_LIFT, SKYLINE_REV_STRICT, SKYLINE_V8_BAND_CURVE } from "./s
 import { JUNC_REV_BAND, JUNC_BAND_CURVE } from "./junction";
 import { BRK_REV_PHONE, BRK_REV_STRICT, BRK_V10_BAND_CURVE } from "./breaker";
 import { TILT_REV_LIFT, TILT_REV_STRICT, TILT_V9_BAND_CURVE } from "./tilt";
-import { ORBIT_REV_STRICT, ORBIT_REV_XP } from "./orbit";
-import { ORBIT_V12_BAND_CURVE } from "./orbitRev3";
+import { ORBIT_REV_STRICT, ORBIT_REV_STD } from "./orbit";
+import { ORBIT_V13_BAND_CURVE } from "./orbitRev3";
 import { BEAT_REV_EASE, BEAT_REV_STRICT, BEAT_V10_BAND_CURVE } from "./beat";
 import { SLICE_REV_STRICT, SLICE_REV_BIG, SLICE_V9_BAND_CURVE } from "./slice";
 import { BURST_REV_CARRY, BURST_REV_STRICT, BURST_V9_BAND_CURVE } from "./burst";
@@ -67,7 +67,8 @@ export const LIVE_BANDS = {
   junction: { field: "junctionRev", rev: JUNC_REV_BAND, curve: JUNC_BAND_CURVE },
   breaker: { field: "brkRev", rev: BRK_REV_PHONE, curve: BRK_V10_BAND_CURVE, strictRev: BRK_REV_STRICT },
   tilt: { field: "tiltRev", rev: TILT_REV_LIFT, curve: TILT_V9_BAND_CURVE, strictRev: TILT_REV_STRICT },
-  orbit: { field: "orbitRev", rev: ORBIT_REV_XP, curve: ORBIT_V12_BAND_CURVE, strictRev: ORBIT_REV_STRICT },
+  // orbitRev 13 (the arcade scoring standard): planets on a straight line to 130; speed and features pay up to 70 more.
+  orbit: { field: "orbitRev", rev: ORBIT_REV_STD, curve: ORBIT_V13_BAND_CURVE, strictRev: ORBIT_REV_STRICT },
   // beatRev 10 (phone notes): beatRev 9's base curve and skill pay on an easier chart and wider windows.
   beat: { field: "beatRev", rev: BEAT_REV_EASE, curve: BEAT_V10_BAND_CURVE, strictRev: BEAT_REV_STRICT },
   slice: { field: "sliceRev", rev: SLICE_REV_BIG, curve: SLICE_V9_BAND_CURVE, strictRev: SLICE_REV_STRICT },

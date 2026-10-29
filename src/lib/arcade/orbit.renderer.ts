@@ -20,7 +20,7 @@ import {
   ORBIT_ELLIPSE,
   ORBIT_GOLD,
   ORBIT_RED,
-  ORBIT_REV_XP,
+  orbitXpRev,
   ORBIT_TOTAL,
   ORBIT_TRAIL_TICKS,
   ORBIT_WORLD_H,
@@ -990,7 +990,7 @@ export const ORBIT_XP_DRAW_H = 782 + ORBIT_XP_AHEAD;
  */
 export const ORBIT_XP_ZONE = { w: 210, h: ORBIT_XP_AHEAD - 6 } as const;
 export function orbitDrawHFor(rev?: number | null): number {
-  return rev === ORBIT_REV_XP ? ORBIT_XP_DRAW_H : orbitWorldHFor(rev);
+  return orbitXpRev(rev) ? ORBIT_XP_DRAW_H : orbitWorldHFor(rev);
 }
 /** The drawn height for a state: orbitRev 12's states carry the wider view (`viewW`). */
 function orbitDrawH(state: OrbitRev3State): number {
