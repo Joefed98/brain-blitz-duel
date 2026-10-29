@@ -116,7 +116,7 @@ import { ORBIT_STD, ORBIT_STD_PERFECT_OF, ORBIT_XP_FIELDS, ORBIT_XP_MOONS, ORBIT
 import { CROSS_V9_SKILL_PAY, CROSS_X_BONUS_MAX, CROSS_X_CLOSE_MAX, CROSS_X_CLOSE_POINTS, CROSS_X_COIN_CROSSINGS, CROSS_X_COIN_POINTS, CROSS_X_COINS_PER_RUN } from "@/lib/arcade/cross";
 import { SWING_V14_GATES, SWING_V14_GEMS, SWING_V14_PAR_POINTS, SWING_V14_PICKUP_POINTS, SWING_V14_SECTIONS, SWING_V14_STARS } from "@/lib/arcade/swing";
 import { BRK_V10_GOLD_HITS, BRK_V9_COLS, BRK_V9_COMBO_MAX, BRK_V9_COMBO_X2, BRK_V9_COMBO_X3, BRK_V9_GOLD, BRK_V9_GOLD_POINTS, BRK_V9_ROWS, BRK_V9_SKILL_MAX, BRK_V9_SKILL_PAY } from "@/lib/arcade/breaker";
-import { FLIP_V8_COMBO_CAP, FLIP_V8_CP_POINTS, FLIP_V8_FEATURE_CAP, FLIP_V9_SKILL_PAY, FLIP_V8_SWEETS, FLIP_V8_SWEET_POINTS, FLIP_V8_TRAILS, FLIP_V8_TRAIL_POINTS, FLIP_V8_TRAIL_STARS, FLIP_V8_ZONE_POINTS } from "@/lib/arcade/flip";
+import { FLIP_STD, FLIP_V8_SWEETS, FLIP_V8_TRAILS, FLIP_V8_TRAIL_STARS } from "@/lib/arcade/flip";
 import { bandCurve, type BandCurve } from "@/lib/arcade/scoreBands";
 import { SNIP_X_FEATURE_MAX, SNIP_X_FEED_UNITS, SNIP_X_GOLD_RAW, SNIP_X_LEVELS, SNIP_X_PAR_MARGIN, SNIP_X_PAR_RAW, SNIP_X_PERFECT_RAW, SNIP_X_QUICK_RAW, SNIP_X_RAW_TOP, SNIP_X_SKILL_PAY, SNIP_X_STAR2_RAW, SNIP_X_STAR_UNITS } from "@/lib/arcade/snip";
 import { fillMax, liveRecord } from "./roundMax";
@@ -995,15 +995,16 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Spikes or lava on one side?", detail: "Run on the other. Cracked tiles break less than half a second after you touch them: flip off fast.", helpOnly: true },
         { action: "Moving spikes", detail: "slide to and fro along the groove under them; time your flip to their slide.", helpOnly: true },
         { action: "The cave changes height:", detail: "in a tall stretch a flip takes longer to cross, in a tight one it is quicker. From 10 seconds the cave bends too, and hazards ride the bends with you.", helpOnly: true },
-        { action: "Double flips:", detail: "flip again within about an eighth of a second of landing with a hazard close by. A triple and longer chains count more, and twice as much in a speed zone.", helpOnly: true },
+        { action: "Double flips:", detail: "flip again within about an eighth of a second of landing with a hazard close by. Each one counts, chained or not.", helpOnly: true },
         { action: "Star trails:", detail: `${FLIP_V8_TRAILS} arcs of ${FLIP_V8_TRAIL_STARS} small stars, taken in the air. Leave the surface at the chevron and your flip sweeps through them.`, helpOnly: true },
         { action: "Sweet spots:", detail: `${FLIP_V8_SWEETS} roofs carry a short, faint pale strip. Time a flip so you touch down with your feet inside it for a sweet landing; it glints. Each counts once.`, helpOnly: true },
-        { action: "Checkpoints (15, 30 and 45 s):", detail: "pass one and your next crash is saved – a second of shield, but your survival time pauses for 10 seconds.", helpOnly: true },
+        { action: "Checkpoints (15, 30 and 45 s):", detail: "pass one and your next crash is saved – a second of shield, and you run on.", helpOnly: true },
       ],
-      score: liveBandHelp("flip", "Each half second you last counts 1 and each gold star 3.", {
-        more: "More time and stars",
-        finish: `Lasting the full minute adds 10. Skill adds up to ${FLIP_V8_FEATURE_CAP} more: ${FLIP_V8_TRAIL_POINTS} a full star trail, ${FLIP_V8_SWEET_POINTS} a sweet landing, ${FLIP_V8_ZONE_POINTS} a speed zone run through without a save, ${FLIP_V8_CP_POINTS} a checkpoint reached without a crash, and double-flip combo points (up to ${FLIP_V8_COMBO_CAP}). ${skillPayLine(FLIP_V9_SKILL_PAY)}`,
-      }),
+      // flipRev 10 (the arcade scoring standard): time survived on a straight line, then the features' fixed shares.
+      score: `${liveBandHelp("flip", "Time survived: each half second you last counts 1.25.", {
+        more: "More time survived",
+        good: (u) => `lasts ${u} half seconds (${u / 2} s)`,
+      })} ${stdFeaturesHelp(FLIP_STD)}`,
     },
     junction: {
       goal: "Keep traffic moving, no crashes.",

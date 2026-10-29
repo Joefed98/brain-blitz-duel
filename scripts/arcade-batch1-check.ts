@@ -330,7 +330,9 @@ ok(flipCracked > 0, "the winning runs stood on crumbling tiles and flipped off i
 console.log(`  150 reached through the server replay on ${flip150} of ${FLIP_SEEDS.length} seeds (survived 60 s, all 10 stars; ${flipCracked} crumbling tiles survived)`);
 // flipRev 8 (expansion E7, 26 Oct 2026) rewrote the intro line for its features and the 200 maximum (flip-x200-check); the
 // intro still states time and stars, and the "?" help still states the 10 for the minute.
-ok(/stars/.test(INTRO_SCORE.flip) && /\b200\b/.test(INTRO_SCORE.flip) && /Lasting the full minute adds 10/.test(PUZZLE_INSTRUCTIONS.flip.score), "Roofbound intro states time, stars and the top (flipRev 8: 200); the help the 10 for the minute");
+// flipRev 10 (the arcade scoring standard, 29 Oct 2026) pays the full minute through the core (time survived 150 at 120 half
+// seconds) instead of a 10 for lasting it: the help states that.
+ok(/stars/.test(INTRO_SCORE.flip) && /\b200\b/.test(INTRO_SCORE.flip) && /Time survived/.test(PUZZLE_INSTRUCTIONS.flip.score) && /150 at 120\./.test(PUZZLE_INSTRUCTIONS.flip.score), "Roofbound intro states time, stars and the top (200); the help the full minute's 150 for time survived");
 }
 
 /* ============================= 2c. Ball Tracker ============================= */

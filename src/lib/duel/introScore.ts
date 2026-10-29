@@ -111,7 +111,7 @@ function introScoreTemplates(): Record<PuzzleType, string> {
     slice: "Food by combo; gold fruit, tickets and dodges add more. Chilli: lose 10. Up to {max}.",
     beat: "Notes hit in time score; fever, gold notes, double taps and streaks add bonus. Up to {max}.",
     wavefront: "Ships, waves, a fast boss kill; precise weak-point hits, saucers, power-ups: up to {max}.",
-    flip: "Time and stars score; trails, sweet spots, double flips, zones and checkpoints: up to {max}.",
+    flip: "Time survived 150; gold stars, trails, sweet spots, double flips 50: they total {max}.",
     junction: "Points for each car and bus through, ± for ambulances. Last the minute for 10 more.",
     inkbridge: `Levels ${INK_V12_CORE_MAX}; stars, tricks, shamrock, silver, speed ${200 - INK_V12_CORE_MAX}. All ${INK_LEVELS} levels quickly: up to {max}.`,
     burst: "Atoms score; a lost life costs 5. Last 90 s for 10 more; quick wave clears add. Up to {max}.",

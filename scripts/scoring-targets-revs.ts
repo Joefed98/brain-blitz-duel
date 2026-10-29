@@ -32,10 +32,18 @@ export const STRICT_REVS: Partial<Record<LiveBandGame, number>> = Object.fromEnt
 export const LIFT_REVS: Partial<Record<LiveBandGame, readonly [lift: number, play: number]>> = { flip: [9, 8], tilt: [9, 8], balltrack: [8, 7], inkbridge: [12, 11], orbit: [13, 12] };
 
 /**
+ * The arcade scoring standard's score-only revisions (29 Oct 2026, src/lib/arcade/arcadeStandard.ts): type → [the
+ * revision, the revision whose play it keeps]. Roofbound flipRev 10 keeps flipRev 9's play, which is flipRev 8's.
+ */
+export const STD_REVS: Partial<Record<LiveBandGame, readonly [std: number, play: number]>> = { flip: [10, 8] };
+
+/**
  * The revision whose play a dealt revision keeps: the target and score-bands revisions map to the target's
- * predecessor, a later score-only revision (LIFT_REVS) to the revision it re-scores, any other is itself.
+ * predecessor, a later score-only revision (LIFT_REVS, STD_REVS) to the revision it re-scores, any other is itself.
  */
 export function playRevOf(type: string, rev: number | undefined | null): number | undefined | null {
+  const std = STD_REVS[type as LiveBandGame];
+  if (std && rev === std[0]) return std[1];
   const lift = LIFT_REVS[type as LiveBandGame];
   if (lift && rev === lift[0]) return lift[1];
   const pair = TARGET_REVS[type as LiveBandGame];
