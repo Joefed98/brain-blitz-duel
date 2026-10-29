@@ -117,7 +117,7 @@ export const ARCADE_ICON_PAINTERS: Record<string, IconPainter> = {
       drawBlock(c, 30, 27, 58, 36, 5, 40);
       drawBlock(c, 26, -9, 58, 36, 1, 40);
     }),
-  // Swish: the red rubber ball (binTossArt drawRubberBall).
+  // Swish: the white baseball (binTossArt drawRubberBall).
   bintoss: (c) => drawRubberBall(c, 32, 32, 19, 0.7),
   // Flightpath: the ring target (bullseye paintBoard) with a dart in it (drawDart).
   bullseye: (c) => {

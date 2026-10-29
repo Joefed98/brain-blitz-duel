@@ -288,7 +288,6 @@ const BUMPS: Record<string, ((s: any) => any)[]> = {
     }),
     (s) => ({ ...s, cleared: true }),
     (s) => ({ ...s, goldBroken: (s.goldBroken ?? 0) + 1 }),
-    (s) => ({ ...s, comboUps: (s.comboUps ?? 0) + 1, chain: 8 }),
   ],
   rally: [
     (s) => ({ ...s, hits: s.hits + 10 }),

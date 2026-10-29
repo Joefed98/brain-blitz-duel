@@ -39,7 +39,6 @@ import {
   brkWorldH,
   brkRowOffset,
   brkCols,
-  brkComboMultiplier,
   brkIsGold,
   brkRowsOf,
   brkWorldW,
@@ -1507,14 +1506,7 @@ export const BREAKER_FX_DEEP: ArcadeFxSpec<BrkState> = {
       colour: () => E3_GOLD,
       bulbs: { pattern: "chase", colours: [E3_GOLD, "#FFF3B0", "#B8860B"] },
     },
-    {
-      kind: "pop",
-      count: (s) => s.comboUps ?? 0,
-      at: (s) => ({ x: s.paddleX, y: brkWorldH(s) - 130 }),
-      label: (s) => `COMBO ×${brkComboMultiplier(s.chain ?? 0)}`,
-      ...BREAKER_TEXT,
-      colour: () => E3_GOLD,
-    },
+    // No combo pop above the paddle (Joe's phone notes, 28 Oct 2026); the combo step still sounds (gameSounds).
   ],
 };
 /** The spec a stored round draws with: the expansion's own, else the stored height's. */

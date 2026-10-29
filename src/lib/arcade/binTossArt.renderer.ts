@@ -18,8 +18,10 @@ import { FAIR_CREAM, FAIR_RED, FAIR_TEXT, fairArenaScene, fairChangeAge, fairClo
 import type { ArenaSceneView } from "./arenaScene.renderer";
 
 const px = (v: number) => v / 256;
-export const BINTOSS_RUBBER = "#A72B32";
-const SEAM = "#4A0F0B";
+/** The ball (Joe's phone notes, 28 Oct 2026): a white baseball with red stitching, no glow. */
+export const BINTOSS_BALL = "#F6F3EA";
+const STITCH = "#D2302C";
+const BALL_SHADE = "#B9B4A8";
 const TIN_LIGHT = "#ACB0B3";
 const TIN_MID = "#959A9E";
 const TIN_DARK = "#787E83";
@@ -28,79 +30,67 @@ const AIM_WHITE = "#FFFFFF";
 const FLOOR = px(BINTOSS_FLOOR_Y);
 
 /**
- * The ball stands out (Joe's phone notes, 27 Oct 2026; look only): a soft warm halo round it, plainly light
- * rather than ball (it fades to nothing by r + 9 px and never hides what is behind it), and a thin dark ring on
- * its edge (inside the bounds rule's 2 px).
+ * The ball (Joe's phone notes, 28 Oct 2026; look only, every revision): a white baseball with red stitching and
+ * no glow round it (the 27 Oct warm halo is gone). It is exactly its collision circle; a thin dark line on its
+ * edge (within the bounds rule's 2 px) keeps it readable against the bright sunset.
  */
-function ballHalo(ctx: CanvasRenderingContext2D, x: number, y: number, r: number): void {
-  ctx.save();
-  const g = ctx.createRadialGradient(x, y, r, x, y, r + 9);
-  g.addColorStop(0, "rgba(255,240,210,0.7)");
-  g.addColorStop(0.4, "rgba(255,226,180,0.32)");
-  g.addColorStop(1, "rgba(255,220,170,0)");
-  ctx.fillStyle = g;
-  ctx.beginPath();
-  ctx.arc(x, y, r + 9, 0, Math.PI * 2);
-  ctx.fill();
-  // A thin dark ring hugging the ball (within 1.7 px of its edge), so it reads against the bright sunset too.
-  ctx.strokeStyle = "rgba(32,6,10,0.9)";
-  ctx.lineWidth = 1.6;
-  ctx.beginPath();
-  ctx.arc(x, y, r + 0.8, 0, Math.PI * 2);
-  ctx.stroke();
-  ctx.restore();
-}
-
-/** `outline`: a bright cream ring just inside the ball's edge (inside r, so the drawn ball is still exactly its collision circle). */
 export function drawRubberBall(ctx: CanvasRenderingContext2D, x: number, y: number, r: number, spin: number, outline = false): void {
   ctx.save();
   ctx.translate(x, y);
   ctx.rotate(spin);
-  ctx.fillStyle = BINTOSS_RUBBER;
+  ctx.fillStyle = BINTOSS_BALL;
   ctx.beginPath();
   ctx.arc(0, 0, r, 0, Math.PI * 2);
   ctx.fill();
   ctx.clip();
-  ctx.strokeStyle = SEAM;
-  ctx.lineWidth = 1.2;
-  ctx.beginPath();
-  ctx.moveTo(-r, -r * 0.2);
-  ctx.quadraticCurveTo(0, r * 0.7, r, -r * 0.2);
-  ctx.stroke();
+  // The two seams: arcs bowing towards each other from either side, each with its row of V stitches.
+  for (const side of [-1, 1]) {
+    const cx = side * r * 1.45;
+    const R = r * 1.05;
+    const sweep = 0.78;
+    const mid = side < 0 ? 0 : Math.PI;
+    ctx.strokeStyle = STITCH;
+    ctx.lineWidth = Math.max(0.8, r * 0.07);
+    ctx.beginPath();
+    ctx.arc(cx, 0, R, mid - sweep, mid + sweep);
+    ctx.stroke();
+    const stitches = 6;
+    const tick = r * 0.17;
+    ctx.lineWidth = Math.max(0.7, r * 0.06);
+    for (let i = 0; i < stitches; i++) {
+      const a = mid - sweep + ((i + 0.5) / stitches) * sweep * 2;
+      const ox = cx + Math.cos(a) * R;
+      const oy = Math.sin(a) * R;
+      // Each stitch a small V across the seam, pointing along it.
+      const nx = Math.cos(a), ny = Math.sin(a);
+      const tx = -ny, ty = nx;
+      ctx.beginPath();
+      ctx.moveTo(ox - nx * tick + tx * tick * 0.6, oy - ny * tick + ty * tick * 0.6);
+      ctx.lineTo(ox, oy);
+      ctx.lineTo(ox + nx * tick + tx * tick * 0.6, oy + ny * tick + ty * tick * 0.6);
+      ctx.stroke();
+    }
+  }
   ctx.restore();
-  // Lamp-fixed shading over the spinning ball: lit upper left, shaded edge, one glint (inside r).
+  // Lamp-fixed shading over the spinning ball: lit upper left, a cool grey shade to the lower right, one glint (inside r).
   ctx.save();
   const g = ctx.createRadialGradient(x - r * 0.35, y - r * 0.4, r * 0.1, x, y, r);
-  g.addColorStop(0, "rgba(255,210,200,0.45)");
-  g.addColorStop(0.45, "rgba(255,255,255,0)");
-  g.addColorStop(1, "rgba(40,0,6,0.45)");
+  g.addColorStop(0, "rgba(255,255,255,0.5)");
+  g.addColorStop(0.5, "rgba(255,255,255,0)");
+  g.addColorStop(1, `${BALL_SHADE}AA`);
   ctx.fillStyle = g;
   ctx.beginPath();
   ctx.arc(x, y, r, 0, Math.PI * 2);
   ctx.fill();
-  // Polish A3: a warm sunset rim along the lower right and a soft second sheen (all inside r).
-  const rim = ctx.createRadialGradient(x - r * 0.3, y - r * 0.3, r * 0.55, x, y, r);
-  rim.addColorStop(0, "rgba(255,170,100,0)");
-  rim.addColorStop(0.82, "rgba(255,170,100,0)");
-  rim.addColorStop(1, "rgba(255,170,100,0.45)");
-  ctx.fillStyle = rim;
+  ctx.fillStyle = "rgba(255,255,255,0.85)";
   ctx.beginPath();
-  ctx.arc(x, y, r, -Math.PI * 0.15, Math.PI * 0.85);
-  ctx.closePath();
-  ctx.fill();
-  ctx.fillStyle = "rgba(255,255,255,0.22)";
-  ctx.beginPath();
-  ctx.ellipse(x - r * 0.28, y - r * 0.36, r * 0.42, r * 0.24, -0.6, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.fillStyle = "rgba(255,255,255,0.9)";
-  ctx.beginPath();
-  ctx.arc(x - r * 0.38, y - r * 0.42, r * 0.18, 0, Math.PI * 2);
+  ctx.arc(x - r * 0.38, y - r * 0.42, r * 0.16, 0, Math.PI * 2);
   ctx.fill();
   if (outline) {
-    ctx.strokeStyle = "#FFF1DC";
-    ctx.lineWidth = 1.6;
+    ctx.strokeStyle = "rgba(32,10,14,0.85)";
+    ctx.lineWidth = 1.2;
     ctx.beginPath();
-    ctx.arc(x, y, r - 0.8, 0, Math.PI * 2);
+    ctx.arc(x, y, r + 0.4, 0, Math.PI * 2);
     ctx.stroke();
   }
   ctx.restore();
@@ -517,7 +507,7 @@ function drawTrail(ctx: CanvasRenderingContext2D, state: BinTossState): void {
   trails.set(ctx, memo);
 
   ctx.save();
-  ctx.fillStyle = BINTOSS_RUBBER;
+  ctx.fillStyle = BINTOSS_BALL;
   const n = memo.points.length;
   for (let i = 0; i < n - 1; i++) {
     const p = memo.points[i]!;
@@ -587,7 +577,6 @@ function draw(ctx: CanvasRenderingContext2D, state: BinTossState, size: CanvasSi
         const u = resolvedAge / 420;
         y -= Math.abs(Math.sin(u * Math.PI * 2)) * 10 * (1 - u);
       }
-      ballHalo(ctx, px(state.x), y, r);
       drawRubberBall(ctx, px(state.x), y, r, ((state.tick * 11) % 360) * (Math.PI / 180), true);
     }
     if (hoop) drawHoop(ctx, hoop, true, hoopGlow);

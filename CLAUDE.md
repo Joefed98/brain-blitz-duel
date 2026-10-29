@@ -699,6 +699,14 @@ Lovable still hosts and publishes the app (https://brain-blitz-duel.lovable.app)
   an image, hashes, sizes and the fallback. `arcadeIcons.renderer.ts` stays only for `scripts/shots/sharp-icons-shots.ts`.
   Contact sheet: `bun scripts/shots/tile-icons-sheet.ts` (`screenshots/tile-icons-oct-2026/`). celebrations-off.json was
   re-recorded (only the icon markup changed). **Re-run tile-scenes.ts after changing a game's look.**
+- **Joe's iPhone 11 notes, eight arcade games** (28 Oct 2026, `docs/arcade-notes-oct28.md`; look and sound only, no
+  stamps): Hover's gap stars alone drawn 1.2× (chain stars at their pickup size); no combo text above Breaker's
+  paddle; Tempo's note an 8-bit pulse (`beat.note8bit.mp3`) up a major pentatonic scale by lane and its track louder
+  (`BEAT_TRACK_BOOST`); Meteor's comet from Joe's mockup (white-gold head, round fading segments, no eyes; the tail's
+  colours change every 5 stars, `COMET_TAILS`); a few Wavefront ships in maroon, navy or dark red (`wavHullTint`);
+  Orbit planets' glow full, slight or none (`orbitGlowStrength`); Swish's ball a white baseball with no glow;
+  Gemstone's bed `music_matchup2.mp3`. Both sounds come from `bun scripts/chiptune-sounds.ts`
+  (`docs/sound-cues/batch5-chiptune.md`). Shots: `bun scripts/shots/arcade-notes-oct28-shots.ts`.
 - **Joe's puzzle notes** (28 Oct 2026, `docs/puzzle-notes-oct-2026.md`; scoring formulas unchanged): Slider
   `wordSlideRev 4` (with four rows locked as words, tap two tiles of the last row to swap them; a move; the server
   applies a swap only while every locked row is a dictionary word, `replayWordSlideFor`), Tally `countRev 6` (tray 2
