@@ -103,7 +103,7 @@ function introScoreTemplates(): Record<PuzzleType, string> {
     bullseye: `Rings ${BULLSEYE_RING_VALUES.join(" / ")}, inner bull ${BULLSEYE_INNER_BULL_POINTS}; streaks, dead-centre add more. Up to {max}.`,
     matchup: "Longer lines score more; goals, ice, treasure and cascades add more. Up to {max}.",
     snake: "Points per star; gold stars, combos, lane rides and warps add bonus. Up to {max}.",
-    cross: "Points for rows and crossings; coins, close calls and clean streaks add more. Up to {max}.",
+    cross: "150 for rows and crossings, coins 30, a clean streak 10, close calls 10. Up to {max}.",
     breaker: "Bricks score; gold and combos add up to 50. Clear all 105 quickly for up to {max}.",
     rally: "Gold-ball hits, each pink target and gold target score; blue returns a little. Up to {max}.",
     pinball: "Table points: ramps, J-O-U-L-Z, jackpots and skill shots score big. Up to {max}.",

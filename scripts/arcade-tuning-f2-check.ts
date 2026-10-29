@@ -38,7 +38,7 @@ import {
   CROSS_PLAYER_HALF_FP,
   CROSS_REV_BAND,
   CROSS_REV_SMALL,
-  CROSS_REV_EXPAND,
+  CROSS_REV_STD,
   type CrossLane,
 } from "../src/lib/arcade/cross";
 import { SLICE_REV_BIG, SLICE_REV_EXPAND,
@@ -154,10 +154,11 @@ section("New rounds carry the Tuning F stamps; runs on them replay unchanged");
   // Grappler's 200 expansion (26 Oct 2026) moved Grappler on again (swingRev 13); swing-x200-check covers it. The assault
   // course (27 Oct 2026) moved it on to swingRev 14; swing-assault-check covers it.
   // The 200-point expansion (26 Oct 2026) moved Scrumper on to snipRev 11; snip-x200-check covers it.
-  // x200 (26 Oct 2026) moved Jaywalk on to crossRev 9 (the expansion); cross-x200-check covers it.
+  // x200 (26 Oct 2026) moved Jaywalk on to crossRev 9 (the expansion); cross-x200-check covers it. The arcade scoring
+  // standard (29 Oct 2026) moved it on to crossRev 10; arcade-standard-check covers it.
   // Gemstone's phone-test notes (27 Oct 2026) moved it on to matchupRev 10; gemstone-rev10-check covers it.
   // sliceRev 10 (27 Oct 2026, Joe's phone notes) is sliceRev 9 with bigger onions and golden fruit; expansion-e5-check covers it.
-  const movedOn: Record<string, number> = { slice: SLICE_REV_BIG, bubble: BUB_REV_TORPEDO + 6, swing: SWING_REV_SPREAD + 6, matchup: 10, snip: SNIP_REV_EXPAND, cross: CROSS_REV_EXPAND };
+  const movedOn: Record<string, number> = { slice: SLICE_REV_BIG, bubble: BUB_REV_TORPEDO + 6, swing: SWING_REV_SPREAD + 6, matchup: 10, snip: SNIP_REV_EXPAND, cross: CROSS_REV_STD };
   for (const [type, field, got, rev] of stamps) {
     if (!want(type)) continue;
     ok(got === (movedOn[type] ?? rev), `${type}: new rounds stamped ${movedOn[type] ?? rev} (got ${got})`);

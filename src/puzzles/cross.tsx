@@ -32,7 +32,7 @@ import {
   CROSS_SWIPE_PX,
   type CrossState,
   crossWorldHFor,
-  CROSS_REV_EXPAND,
+  CROSS_REV_STD,
   CROSS_WORLD_W,
 } from "@/lib/arcade/cross";
 import { decodeCrossRun, encodeCrossRun, replayCrossRun } from "@/lib/duel/cross";
@@ -315,7 +315,7 @@ export const crossPuzzle: PuzzleDefinition = {
   category: "arcade",
   timeLimitMs: (CROSS_RUN_TICKS / TICKS_PER_SECOND) * 1000 + 3000,
   revealMs: 6_000,
-  generate: () => ({ type: "cross", seed: 1, crossRev: CROSS_REV_EXPAND }) satisfies CrossPuzzleData,
+  generate: () => ({ type: "cross", seed: 1, crossRev: CROSS_REV_STD }) satisfies CrossPuzzleData,
   check: () => false,
   revealHeading: "Your run",
   IntroExample,

@@ -21,6 +21,7 @@ import {
 } from "./engine";
 import { BAND_STRICT_MARK, bandStrictGame, bandStrict, bandRetarget, bandTargetGame, bandCurveOf, bandCurve, bandInit, bandPoints, bandScoreOf, bandStep, bandTotal, type BandFields, type BandParts } from "./scoreBands";
 import { roundMaxFor } from "../duel/roundMax";
+import { stdBandParts, stdLine, stdTotal, type StdScore, type StdSpec } from "./arcadeStandard";
 
 /* ============================== Constants ============================== */
 
@@ -218,7 +219,7 @@ export function crossRowsOf(state: { wide?: number }): number {
 }
 /** The world height for a stored crossRev (reveals, intros and the arena slot). */
 export function crossWorldHFor(rev?: number | null): number {
-  return rev === CROSS_REV_EXPAND ? CROSS_X_WORLD_H : CROSS_WORLD_H;
+  return rev === CROSS_REV_EXPAND || rev === CROSS_REV_STD ? CROSS_X_WORLD_H : CROSS_WORLD_H;
 }
 /** The streak multiplier a crossing completed as the `streak`-th in a row without a hit pays. */
 export function crossMultiplierFor(streak: number): number {
@@ -777,6 +778,11 @@ export interface CrossState extends BandFields {
   /** crossRev 9 (x200 second addendum): close calls made, and the lanes (bits) of this crossing that gave one. */
   closeCalls?: number;
   closeLanes?: number;
+  /**
+   * crossRev 10 only (the arcade scoring standard, 29 Oct 2026): busier crossing by crossing, scored on CROSS_STD;
+   * `streakPts` then holds the standard's streak points (2 a back-to-back clean crossing after the first, at most 10).
+   */
+  std?: number;
 }
 
 function init(seed: number): CrossState {
@@ -900,7 +906,10 @@ function step(state: CrossState, input: ArcadeInputEvent | null): CrossState {
           // the streak pool. A new crossing has fresh coins and no island banked.
           if (!hitThisCrossing) {
             streak += 1;
-            streakPts += CROSS_X_STREAK_POINTS * (crossMultiplierFor(streak) - 1);
+            // crossRev 10: 2 for each clean crossing straight after a clean one, at most CROSS_STD_STREAK_MAX.
+            if (state.std) {
+              if (streak >= 2) streakPts = Math.min(CROSS_STD_STREAK_MAX, streakPts + CROSS_STD_STREAK_EACH);
+            } else streakPts += CROSS_X_STREAK_POINTS * (crossMultiplierFor(streak) - 1);
           }
           coins = 0;
           banked = 0;
@@ -1054,6 +1063,11 @@ export function crossCheckpoint(state: CrossState): CrossCheckpoint {
       checksum ^= value | 0;
       checksum = Math.imul(checksum, 0x01000193) >>> 0;
     }
+  }
+  // crossRev 10 folds its flag in after them.
+  if (state.std) {
+    checksum ^= state.std | 0;
+    checksum = Math.imul(checksum, 0x01000193) >>> 0;
   }
   return { ...snapshot, checksum };
 }
@@ -1266,6 +1280,7 @@ const crossRev3Game: ArcadeGame<CrossState, ArcadeInputEvent | null> = {
 
 /** Takes puzzle.crossRev (2 or 3); anything else is the original traffic. */
 export function crossGameFor(rev?: number | null): ArcadeGame<CrossState, ArcadeInputEvent | null> {
+  if (rev === CROSS_REV_STD) return crossStdGame;
   if (rev === CROSS_REV_EXPAND) return crossExpandGame;
   if (rev === CROSS_REV_STRICT) return crossStrictGame;
   if (rev === CROSS_REV_TARGET) return crossTargetGame;
@@ -1297,6 +1312,7 @@ export const CROSS_REV_BAND = 4;
 export const CROSS_BAND_CURVE = bandCurve([0, 41, 50, 59, 66, 77], [0, 70, 100, 125, 145, 150]);
 
 export function crossBandParts(state: CrossState): BandParts {
+  if (state.std) return crossStdParts(state);
   if (state.wide) return crossExpandParts(state);
   const lanes = crossTotalLanes(state);
   const units = lanes + 2 * state.crossings;
@@ -1304,6 +1320,8 @@ export function crossBandParts(state: CrossState): BandParts {
 }
 
 function scoreBand(state: CrossState): number {
+  // crossRev 10: the arcade scoring standard (core + coins + streak + close calls = 200).
+  if (state.std) return stdTotal(crossStdScore(state), Boolean(state.acted));
   // crossRev 9 scores to the game's maximum (200, roundMax.ts); every earlier revision to 150.
   return bandTotal(crossBandParts(state), Boolean(state.acted), state.wide ? roundMaxFor("cross") : undefined);
 }
@@ -1425,5 +1443,119 @@ export const crossExpandGame: ArcadeGame<CrossState, ArcadeInputEvent | null> = 
     banked: 0,
     closeCalls: 0,
     closeLanes: 0,
+  }),
+};
+
+
+/* ============ The arcade scoring standard (crossRev 10, 29 Oct 2026) ============ */
+
+/**
+ * crossRev 10 (docs/arcade-standard/cross.md): crossRev 9's world, lanes, coins and rules, with the traffic thinned
+ * on the first crossings and thickened after: each crossing is crossRev 9's own course for the seed (the same lanes,
+ * vehicles, speeds and phases, and the same twenty coins), with every traffic lane's period scaled so its vehicles
+ * come CROSS_STD_DENSITY_12[k] twelfths as often (6 = half the traffic on the first crossing, 12 = crossRev 9's full
+ * density from crossing 4, then busier, up to 15 = a quarter busier from crossing 7). Each scaled crossing must pass
+ * the same proofs as crossRev 9's (crossPassable over CROSS_X_SEARCH_TICKS, crossFairPassable on crossings 1–2); one
+ * that fails steps its density a twelfth toward 12 until one passes (12 is crossRev 9's proved course), so every
+ * crossing is proved and the same for every player. Scored on the arcade standard (CROSS_STD).
+ */
+export const CROSS_REV_STD = 10;
+/** Traffic density per crossing (index 0 = the first), in twelfths of crossRev 9's; the last entry holds on. */
+export const CROSS_STD_DENSITY_12: readonly number[] = [6, 8, 10, 12, 13, 14, 15, 15, 15, 15];
+/** Core: rows crossed + 2 a full crossing (crossRev 9's units), 150 on a straight line, full at the near-perfect median. */
+export const CROSS_STD_CORE_MAX = 150;
+export const CROSS_STD_CORE_FULL = 92;
+/** Streak: 2 for each clean crossing straight after a clean crossing, at most 10 (five of them). */
+export const CROSS_STD_STREAK_EACH = 2;
+export const CROSS_STD_STREAK_MAX = 10;
+
+export const CROSS_STD: StdSpec = {
+  core: { key: "core", label: "Rows and crossings", max: CROSS_STD_CORE_MAX, of: CROSS_STD_CORE_FULL, item: "unit" },
+  features: [
+    { key: "coins", label: "Coins", max: 30, of: CROSS_X_COINS_PER_RUN, item: "coin" },
+    { key: "streak", label: "Crossing streak", max: CROSS_STD_STREAK_MAX, of: CROSS_STD_STREAK_MAX / CROSS_STD_STREAK_EACH, items: "back-to-back clean crossings after the first" },
+    { key: "close", label: "Close calls", max: 10, of: 10, item: "close call" },
+  ],
+};
+/** crossRev 10's core curve: a straight line, 150 at CROSS_STD_CORE_FULL units. */
+export const CROSS_V10_BAND_CURVE = bandCurve([0, CROSS_STD_CORE_FULL], [0, CROSS_STD_CORE_MAX]);
+
+/** One traffic lane at `d12` twelfths of its density: the period (and riders' offsets) scaled by 12 ÷ d12. */
+function crossDensityLane(lane: CrossLane, d12: number): CrossLane {
+  if (d12 === 12 || lane.kind === CROSS_KIND_ROADWORKS || lane.kind === CROSS_KIND_ISLAND) return lane;
+  const scale = (v: number) => Math.trunc((v * 12) / d12);
+  return lane.offsets ? { ...lane, period: scale(lane.period), offsets: lane.offsets.map(scale) } : { ...lane, period: scale(lane.period) };
+}
+
+/** The density (twelfths of crossRev 9's) a crossRev 10 course was dealt at, against crossRev 9's course (checks and docs). */
+export function crossStdDensityOf(course: CrossCourse, base: CrossCourse): number {
+  for (let i = 0; i < course.lanes.length; i++) {
+    const a = course.lanes[i]!;
+    const b = base.lanes[i]!;
+    if (a.period !== b.period) return Math.round((b.period * 12) / a.period);
+  }
+  return 12;
+}
+
+function rollCourseV10(rng: number, index: number): { rng: number; course: CrossCourse } {
+  const base = rollCourseV9(rng, index);
+  const target = CROSS_STD_DENSITY_12[Math.min(index, CROSS_STD_DENSITY_12.length - 1)]!;
+  for (let d = target; d !== 12; d += d < 12 ? 1 : -1) {
+    const course: CrossCourse = { lanes: base.course.lanes.map((l) => crossDensityLane(l, d)), ...(base.course.coins ? { coins: base.course.coins } : {}) };
+    const fair = index >= CROSS_FAIR_COURSES || crossFairPassable(course, CROSS_X_SEARCH_TICKS);
+    if (fair && crossPassable(course, CROSS_X_SEARCH_TICKS)) return { rng: base.rng, course };
+  }
+  return base;
+}
+
+/** crossRev 10's breakdown on the standard. */
+export function crossStdScore(state: Pick<CrossState, "crossings" | "reached" | "wide" | "coinTotal" | "streakPts" | "closeCalls">): StdScore {
+  const units = crossTotalLanes(state) + 2 * state.crossings;
+  return {
+    core: stdLine(CROSS_STD_CORE_MAX, units, CROSS_STD_CORE_FULL),
+    features: {
+      coins: stdLine(30, state.coinTotal ?? 0, CROSS_X_COINS_PER_RUN),
+      streak: stdLine(CROSS_STD_STREAK_MAX, Math.trunc((state.streakPts ?? 0) / CROSS_STD_STREAK_EACH), CROSS_STD_STREAK_MAX / CROSS_STD_STREAK_EACH),
+      close: stdLine(10, state.closeCalls ?? 0, 10),
+    },
+    penalty: 0,
+  };
+}
+
+function crossStdParts(state: CrossState): BandParts {
+  const lanes = crossTotalLanes(state);
+  const units = lanes + 2 * state.crossings;
+  const coins = state.coinTotal ?? 0;
+  const close = state.closeCalls ?? 0;
+  const score = crossStdScore(state);
+  const parts = stdBandParts(CROSS_STD, score, units, `${lanes} rows · ${state.crossings} crossings`, false);
+  // Each feature with what earned it and its points (the points exactly as stdBandParts adds them).
+  const named: string[] = [];
+  const pCoins = score.features["coins"] ?? 0;
+  const pStreak = score.features["streak"] ?? 0;
+  const pClose = score.features["close"] ?? 0;
+  if (pCoins) named.push(`${coins} coin${coins === 1 ? "" : "s"} ${pCoins}`);
+  if (pStreak) named.push(`streak ${pStreak}`);
+  if (pClose) named.push(`${close} close call${close === 1 ? "" : "s"} ${pClose}`);
+  return named.length ? { ...parts, bonusText: named.join(" · ") } : parts;
+}
+
+export const crossStdGame: ArcadeGame<CrossState, ArcadeInputEvent | null> = {
+  ...crossExpandGame,
+  init: (seed: number) => ({
+    ...initFor(seed, rollCourseV10, "10"),
+    rev: CROSS_REV_STD,
+    band: BAND_STRICT_MARK,
+    acted: 0,
+    tunef: 1,
+    wide: 1,
+    coins: 0,
+    coinTotal: 0,
+    streak: 0,
+    streakPts: 0,
+    banked: 0,
+    closeCalls: 0,
+    closeLanes: 0,
+    std: 1,
   }),
 };
