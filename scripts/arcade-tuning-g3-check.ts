@@ -209,8 +209,9 @@ section("New rounds: stamps, start states, checksums, worlds by revision");
     // The expansion to 200 (docs/expansions/x200-orbit.md) moved Orbit on to orbitRev 12 (its 450 × 782 view); orbit-expand-check covers it.
     ok(orbit.orbitRev === ORBIT_REV_XP && orbit.planets?.length === ORBIT_TOTAL + 1, "rooms deal orbitRev 12 with the course's planets");
     const bt = generateBallTrack();
-    // Expansion E6 (25 Oct 2026) moved Ball Tracker on to its 13-row board (btRev 7, its own bank); e6-check covers it.
-    ok(bt.btRev === BT_REV_TALL + 3 && bt.course.rows === 13, "rooms deal btRev 7 (expansion E6, after btRev 4)");
+    // Expansion E6 (25 Oct 2026) moved Ball Tracker on to its 13-row board (btRev 7, its own bank); e6-check covers it. The arcade
+    // scoring standard (29 Oct 2026) deals btRev 8, btRev 7's play re-scored (arcade-standard-check).
+    ok(bt.btRev === BT_REV_TALL + 4 && bt.course.rows === 13, "rooms deal btRev 8 (btRev 7's play, expansion E6, after btRev 4)");
   }
   for (const [type, field, rev] of [["swing", "swingRev", SWING_REV_TALL], ["orbit", "orbitRev", ORBIT_REV_TALL], ["balltrack", "btRev", BT_REV_TALL]] as const)
     ok(puzzleUsesBands({ type, [field]: rev } as never), `${type} ${rev} scores on the bands`);
@@ -533,7 +534,8 @@ section("Intro demos stay stopped until re-recorded on the taller revision");
   // The expansion to 200: Orbit's demo now waits for one recorded on orbitRev 12 (orbit-expand-check).
   ok(/data\.type === "orbit" && demo\?\.puzzle\.type === "orbit" && demo\.puzzle\.orbitRev !== ORBIT_REV_XP\) return null/.test(src), "Orbit's demo plays only on orbitRev 12");
   // Expansion E6: Ball Tracker's demo now plays only on btRev 7 (e6-check).
-  ok(/data\.type === "balltrack" && demo\?\.puzzle\.type === "balltrack" && demo\.puzzle\.btRev !== BT_REV_RUSH\) return null/.test(src), "Ball Tracker's demo plays only on btRev 7");
+  // btRev 8 (the arcade scoring standard) keeps btRev 7's play: a demo recorded on 7 or 8 plays.
+  ok(/data\.type === "balltrack" && demo\?\.puzzle\.type === "balltrack" && !btIsV7Play\(demo\.puzzle\.btRev\)\) return null/.test(src), "Ball Tracker's demo plays only on btRev 7 or 8");
 }
 
 if (failures.length) {

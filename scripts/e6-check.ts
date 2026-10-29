@@ -146,7 +146,8 @@ ok(dealt("bubble").bubbleRev === BUB_REV_BLAST, "Coral Pop: rooms deal bubbleRev
 ok(dealt("matchup").matchupRev === MATCHUP_REV_ICE, "Gemstone: rooms deal matchupRev 10 (matchupRev 9's successor)");
 {
   const bt = dealt("balltrack");
-  ok(bt.btRev === BT_REV_RUSH, "Ball Tracker: rooms deal btRev 7");
+  // The arcade scoring standard (29 Oct 2026) deals btRev 8: btRev 7's play and bank, re-scored (arcade-standard-check).
+  ok(bt.btRev === BT_REV_RUSH + 1, "Ball Tracker: rooms deal btRev 8 (btRev 7's play on the scoring standard)");
   ok((bt.course as any)?.rows === BT_V7_ROWS && (bt.course as any)?.balls.length === BT_V7_BALLS, "Ball Tracker: a 13-row, 36-marble course from the btRev 7 bank");
 }
 for (const type of ["bubble", "matchup", "balltrack"]) ok(roundMaxFor(type) === 200, `${type}: ROUND_MAX is 200`);
@@ -154,7 +155,8 @@ for (const type of ["bubble", "matchup", "balltrack"]) ok(roundMaxFor(type) === 
   const demo = readFileSync("src/lib/duel/introDemo.functions.ts", "utf8");
   ok(/bubbleRev !== BUB_REV_BLAST\) return null/.test(demo), "Coral Pop's demo stays stopped until recorded on bubbleRev 10");
   ok(/matchupRev !== MATCHUP_REV_ICE\) return null/.test(demo), "Gemstone's demo stays stopped until recorded on matchupRev 10 (its successor to 9)");
-  ok(/btRev !== BT_REV_RUSH\) return null/.test(demo), "Ball Tracker's demo stays stopped until recorded on btRev 7");
+  // btRev 8 (the arcade scoring standard) keeps btRev 7's play: a demo recorded on either plays.
+  ok(/!btIsV7Play\(demo\.puzzle\.btRev\)\) return null/.test(demo), "Ball Tracker's demo stays stopped until recorded on btRev 7 (or 8, the same play)");
 }
 
 /* ============================== 3. Coral Pop ============================== */

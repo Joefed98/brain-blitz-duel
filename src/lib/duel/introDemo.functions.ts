@@ -32,7 +32,7 @@ import { isD4Type, isDepth4 } from "./depth4/stamps";
 import type { PuzzleData } from "./types";
 import type { PuzzleDemoLog } from "./puzzleDemo";
 import { ORBIT_BELT_PERIOD_TICKS, ORBIT_BELT_REVISION, ORBIT_REV3, ORBIT_REV4, ORBIT_REV_BAND, ORBIT_REV_TUNED, ORBIT_REV_XP } from "@/lib/arcade/orbit";
-import { BT_BALLS, BT_REV_RUSH, BT_V7_BALLS } from "@/lib/arcade/ballTrack";
+import { BT_BALLS, BT_V7_BALLS, btIsV7Play } from "@/lib/arcade/ballTrack";
 import { clashPlays3, CLASH_REV_DEPTH } from "@/lib/arcade/colourClash";
 
 export interface IntroDemoRow {
@@ -80,7 +80,7 @@ export const getIntroDemoFn = createServerFn({ method: "GET" })
     // The fixed-splitter demo cannot replay the new movable-piece example.
     if (data.type === "laser" && demo?.puzzle.type === "laser" && demo.puzzle.splitterPieces !== 1) return null;
     // Old Ball Track queues and release timings cannot replay the current run.
-    if (data.type === "balltrack" && demo?.puzzle.type === "balltrack" && demo.puzzle.course.balls.length !== (demo.puzzle.btRev === BT_REV_RUSH ? BT_V7_BALLS : BT_BALLS)) return null;
+    if (data.type === "balltrack" && demo?.puzzle.type === "balltrack" && demo.puzzle.course.balls.length !== (btIsV7Play(demo.puzzle.btRev) ? BT_V7_BALLS : BT_BALLS)) return null;
     // Open-stream Colour Clash demos cannot replay the fixed-queue run.
     if (data.type === "stroop" && demo?.puzzle.type === "stroop" && !clashPlays3(demo.puzzle.clashRev)) return null;
     // The D5 remodels (25 Oct 2026): Topsy-Turvy gravityRev 3 and Jumbled tilesRev 3 are new games on new boards, so an
@@ -170,8 +170,9 @@ export const getIntroDemoFn = createServerFn({ method: "GET" })
     // stays stopped (the intro shows its still) until one is recorded on orbitRev 12.
     if (data.type === "orbit" && demo?.puzzle.type === "orbit" && demo.puzzle.orbitRev !== ORBIT_REV_XP) return null;
     // Expansion E6 (25 Oct 2026): Ball Tracker's 13-row board, Gemstone's taller board with goals: each stays stopped
-    // until a demo is recorded on its new revision (btRev 7, matchupRev 9).
-    if (data.type === "balltrack" && demo?.puzzle.type === "balltrack" && demo.puzzle.btRev !== BT_REV_RUSH) return null;
+    // until a demo is recorded on its new revision (btRev 7, matchupRev 9). Ball Tracker btRev 8 (the arcade scoring
+    // standard, 29 Oct 2026) keeps btRev 7's play exactly (its board shows no score), so a demo recorded on 7 or 8 plays.
+    if (data.type === "balltrack" && demo?.puzzle.type === "balltrack" && !btIsV7Play(demo.puzzle.btRev)) return null;
     // Gemstone's matchupRev 10 (27 Oct 2026: 90 s, swaps into and out of ice, ice laid once) plays differently again, so
     // only a demo recorded on matchupRev 10 plays; until one is, the intro shows its still.
     if (data.type === "matchup" && demo?.puzzle.type === "matchup" && demo.puzzle.matchupRev !== MATCHUP_REV_ICE) return null;

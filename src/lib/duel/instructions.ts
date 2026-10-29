@@ -72,7 +72,8 @@ import {
 } from "@/lib/arcade/tilt";
 import { BUB_SPECIAL_BLOCK, BUB_TORPEDO_HITS, BUB_V3_JOKER_BLOCK, BUB_V8_CHESTS, BUB_V8_CHEST_FP, BUB_V8_FEATURE_MAX } from "@/lib/arcade/bubble";
 import { MATCHUP_V3_PAR_RAW, MATCHUP_V9_FEATURE_MAX } from "@/lib/arcade/matchup";
-import { BT_V7_BALLS, BT_V7_BOOST_STEPS, BT_V7_FEATURE_MAX, BT_V7_LAST_LAND_MIN } from "@/lib/arcade/ballTrack";
+import { BT_STD, BT_V7_BALLS, BT_V7_BOOST_STEPS } from "@/lib/arcade/ballTrack";
+import { stdFeaturesHelp } from "@/lib/arcade/arcadeStandard";
 import { HOVER_CENTRE_POINTS, HOVER_CENTRE_TOP, HOVER_CENTRE_TOL, HOVER_SKILL_SLACK, HOVER_CHAIN_POINTS, HOVER_CHAINS, HOVER_PICKUPS, HOVER_REACHABLE_GATES, HOVER_SKILL_MAX, HOVER_SKILL_PAY, HOVER_STARS, HOVER_TIGHT_GATES, HOVER_TIGHT_POINTS, HOVER_V2_GATES_SCORE, HOVER_V2_STARS_SCORE } from "@/lib/arcade/hover";
 import {
   WAV_BOSS_HP,
@@ -1232,7 +1233,17 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: `${BT_V7_BALLS} marbles drop, one about every 1.4 seconds`, detail: "until 49 seconds; the run lasts a minute.", helpOnly: true },
         { action: "Mid-round the bottom row moves and the cups swap colours;", detail: "the count under the board (\"20 to switch up\") gives the seconds to the next switch-up.", helpOnly: true },
       ],
-      score: liveBandHelp("balltrack", "Each marble home counts 1.", { more: "More marbles home", good: (u) => `gets ${u} marbles home`, finish: `All ${BT_V7_BALLS} home adds up to 10 for speed: the full 10 if the last marble lands by ${((BT_V7_LAST_LAND_MIN + (3600 - BT_V7_LAST_LAND_MIN) / 2) / 60).toFixed(1)} s, falling to 0 at the buzzer. Gold marbles, boosted marbles and combos add up to ${BT_V7_FEATURE_MAX} more.` }),
+      // btRev 8 (the arcade scoring standard, docs/arcade-standard/balltrack.md): marbles home on one even line, then the
+      // features' fixed shares; no speed part.
+      score: liveBandHelp("balltrack", "Each marble home counts 1.", {
+        more: "More marbles home",
+        good: (u) => `gets ${u} marbles home`,
+        finish: `Marbles home pay the same for every marble (all ${BT_V7_BALLS}: ${BT_STD.core.max}). ${stdFeaturesHelp(BT_STD, {
+          gold: `an equal share for each of the ${BT_STD.features[0]!.of} gold marbles home`,
+          combo: "1 a marble home from the third in a row",
+          boost: `an equal share for each of the ${BT_V7_BALLS} marbles home after a speed booster`,
+        })}`,
+      }),
     },
     wordsearch: {
       goal: "Find the six hidden words in the category.",

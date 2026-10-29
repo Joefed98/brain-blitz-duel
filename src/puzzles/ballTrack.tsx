@@ -22,7 +22,7 @@ import {
   BT_REV,
   BT_REV_BAND,
   BT_REV_TALL,
-  BT_REV_TARGET, BT_REV_STRICT, BT_REV_RUSH,
+  BT_REV_TARGET, BT_REV_STRICT, btIsV7Play,
   BT_PALETTE,
   BT_TILE,
   BT_W,
@@ -250,7 +250,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const tapCell = (row: number, col: number) => {
     const cell = row * BT_COLS + col;
     // Rev 2: bottom-row tray drops are switch points (the sim ignores taps where no tray is live).
-    const switchPoint = (rev === BT_REV || rev === BT_REV_BAND || rev === BT_REV_TALL || rev === BT_REV_TARGET || rev === BT_REV_STRICT || rev === BT_REV_RUSH) && row === BT_ROWS - 1 && col > 0;
+    const switchPoint = (rev === BT_REV || rev === BT_REV_BAND || rev === BT_REV_TALL || rev === BT_REV_TARGET || rev === BT_REV_STRICT || btIsV7Play(rev)) && row === BT_ROWS - 1 && col > 0;
     if (!game.rotatable.has(cell) && !switchPoint) return;
     push({ k: BT_K_ROTATE, a: cell, b: 0, c: 0, d: 0 });
   };
@@ -295,9 +295,9 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         </div>
       </ArcadeArenaSlot>
       <div data-game-controls="status" className="flex h-7 w-full shrink-0 items-center justify-between px-1 font-mono text-xs text-muted-foreground">
-        <span>{hud.home} home{hud.wrong ? ` · ${hud.wrong} wrong` : ""}{rev === BT_REV_RUSH && hud.streak >= 3 ? ` · combo ×${hud.streak}` : ""}</span>
+        <span>{hud.home} home{hud.wrong ? ` · ${hud.wrong} wrong` : ""}{btIsV7Play(rev) && hud.streak >= 3 ? ` · combo ×${hud.streak}` : ""}</span>
         {/* The countdown (seconds) to the next switch-up: the drops' re-lay, then the colour shuffle; marbles left after both. */}
-        <span>{rev === BT_REV_RUSH ? `${hud.golds} gold · ` : ""}{hud.switchIn !== null ? `${hud.switchIn} to switch up` : `${hud.left} left`}</span>
+        <span>{btIsV7Play(rev) ? `${hud.golds} gold · ` : ""}{hud.switchIn !== null ? `${hud.switchIn} to switch up` : `${hud.left} left`}</span>
       </div>
     </div>
   );

@@ -69,9 +69,10 @@ for (const home of [0, 15, 29, 30]) {
 }
 eq(buildArcadeReveal("matchup", { raw: 2500 }, 150)?.axis.max, 2500, "Matchup reveal par");
 // Oct 2026 score bands: intros describe the band rules in plain words (the "?" help gives the top and a good run).
-// Expansion E6 (25 Oct 2026): Ball Tracker's intro names btRev 7's features; e6-check covers the new rules.
+// Expansion E6 (25 Oct 2026): Ball Tracker's intro names btRev 7's features; e6-check covers the new rules. Its help named
+// btRev 7's speed line (56.6 s); btRev 8 (the arcade scoring standard, 29 Oct 2026) has no speed part and states its parts.
 for (const [type, text] of [["balltrack", "gold, boosted and in-a-row marbles"], ["junction", "± for ambulances"], ["rally", "pink target"], ["skyline", "perfects in a row"]] as const) eq(INTRO_SCORE[type].includes(text), true, `${type} intro`);
-for (const [type, text] of [["matchup", "4,200"], ["bullseye", "plus +1, +2 or +3 for each balloon"], ["junction", "one stopped takes 4 off"], ["skyline", "perfect drop counts 5"], ["rally", "gold-ball hit counts 5"], ["balltrack", "56.6 s"]] as const) eq(PUZZLE_INSTRUCTIONS[type].score.includes(text), true, `${type} help`);
+for (const [type, text] of [["matchup", "4,200"], ["bullseye", "plus +1, +2 or +3 for each balloon"], ["junction", "one stopped takes 4 off"], ["skyline", "perfect drop counts 5"], ["rally", "gold-ball hit counts 5"], ["balltrack", "Boosted marbles up to 15"]] as const) eq(PUZZLE_INSTRUCTIONS[type].score.includes(text), true, `${type} help`);
 // The 11 Oct 130 / 150 split is gone from every intro: no partial cap is stated any more.
 for (const type of ["balltrack", "bintoss", "breaker", "bubble", "inkbridge", "orbit", "swing", "tilt"] as const) eq(/otherwise up to \d+/.test(INTRO_SCORE[type]), false, `${type} intro has no partial cap`);
 // The legacy split figures still hold for stored rounds (they replay on their original rules).
@@ -138,8 +139,8 @@ eq(inkRev4Score(INK_LEVELS - 1, INK_STAR_LEVELS, 0), SPLIT_PARTIAL_MAX.inkbridge
 for (const game of [orbitGame, orbitRev3Game] as const) {
   eq(game.score({ ...game.init(1), best: ORBIT_TOTAL - 1, finished: 0 } as never), SPLIT_PARTIAL_MAX.orbit, "Orbit partial max");
 }
-// Expansion E6: Ball Tracker's btRev 7 intro names its features. Grappler (swingRev 14, the assault course): sections, then the features. Tilt (x200, tiltRev 8): three mazes. "{max}" is the game's own maximum (roundMax.ts: 150 today, 200 once its expansion raises it).
-for (const [type, goal] of [["balltrack", "in-a-row marbles add more. Up to {max}"], ["bintoss", "All 10 in for 10 more"], ["breaker", "Clear all 105 quickly for up to {max}"], ["inkbridge", "All 10 levels quickly: up to {max}"], ["swing", "Sections cleared, then pars, gates, gems and stars: up to {max}"], ["tilt", "All 3 quickly: up to {max}"]] as const) {
+// Expansion E6: Ball Tracker's btRev 7 intro names its features (btRev 8, the arcade scoring standard: and the 60 they add). Grappler (swingRev 14, the assault course): sections, then the features. Tilt (x200, tiltRev 8): three mazes. "{max}" is the game's own maximum (roundMax.ts: 150 today, 200 once its expansion raises it).
+for (const [type, goal] of [["balltrack", "in-a-row marbles add 60: they total up to {max}"], ["bintoss", "All 10 in for 10 more"], ["breaker", "Clear all 105 quickly for up to {max}"], ["inkbridge", "All 10 levels quickly: up to {max}"], ["swing", "Sections cleared, then pars, gates, gems and stars: up to {max}"], ["tilt", "All 3 quickly: up to {max}"]] as const) {
   eq(INTRO_SCORE[type].includes(goal.replace("{max}", String(roundMaxFor(type)))), true, `${type} intro goal`);
 }
 // Scrumper and Mixed Signals are not on the split: no partial cap at 130.
@@ -186,8 +187,8 @@ const b0 = bBand.init(1);
 for (let total = 0; total <= 120; total++) eq(bBand.score({ ...b0, ...acted, total }), clamp(line([0, 72, 82, 94, 102, 110], [0, 70, 100, 125, 145, 150], total)), "Flightpath band");
 for (const [score, total] of [[150, 110], [70, 72]] as const) eq(bBand.score({ ...b0, ...acted, total }), score, "Flightpath band anchor");
 const demoGuard = readFileSync("src/lib/duel/introDemo.functions.ts", "utf8");
-// Expansion E6 (25 Oct 2026): a btRev 7 demo carries 36 marbles; every older one 30.
-eq(demoGuard.includes('data.type === "balltrack"') && demoGuard.includes("course.balls.length !== (demo.puzzle.btRev === BT_REV_RUSH ? BT_V7_BALLS : BT_BALLS)"), true, "Old Ball Track demo rejected");
+// Expansion E6 (25 Oct 2026): a btRev 7 demo carries 36 marbles; every older one 30 (btRev 8 plays btRev 7, 29 Oct 2026).
+eq(demoGuard.includes('data.type === "balltrack"') && demoGuard.includes("course.balls.length !== (btIsV7Play(demo.puzzle.btRev) ? BT_V7_BALLS : BT_BALLS)"), true, "Old Ball Track demo rejected");
 // Expansion E6 deliberately stops Gemstone's demo until one is recorded on matchupRev 9 (e6-check).
 // Expansion E9 (26 Oct 2026, docs/expansions/e9.md) deliberately stops Flightpath's demo until one is recorded on bullRev 8 (expansion-e9-check).
 for (const type of ["junction"]) eq(demoGuard.includes(`data.type === "${type}"`), false, `${type} demo not invalidated`);

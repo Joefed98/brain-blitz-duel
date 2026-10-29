@@ -119,7 +119,7 @@ function introScoreTemplates(): Record<PuzzleType, string> {
     snip: "Points for fruit fed and leaves; golden apples, few cuts and speed add more. Up to {max}.",
     swing: `Sections cleared, then pars, gates, gems and stars: up to {max}.`,
     tilt: `Mazes, progress and stars; quick stars and pace add more. All ${TILT_X_MAZES} quickly: up to {max}.`,
-    balltrack: `Points per marble home; gold, boosted and in-a-row marbles add more. Up to {max}.`,
+    balltrack: `Marbles home 140; gold, boosted and in-a-row marbles add 60: they total up to {max}.`,
     swerve: arcadeOpen("each coin you collect"),
     dual: "The longer both runners survive, the more you score. The full minute is {max}.",
     steady: "Start on {max}. Touching the edge: lose 5.",

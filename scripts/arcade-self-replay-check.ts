@@ -95,6 +95,8 @@ import { btCheckpoint, makeBallTrackGame, BT_REV } from "@/lib/arcade/ballTrack"
 import { encodeBallTrackRun, replayBallTrackRun } from "@/lib/duel/ballTrack";
 import { BALL_TRACK_BANK } from "@/lib/duel/ballTrackBank.server";
 import { BALL_TRACK_BANK_TALL } from "@/lib/duel/ballTrackBankTall.server";
+import { BALL_TRACK_BANK_V7 } from "@/lib/duel/ballTrackBankV7.server";
+import { BT_REV_STD } from "@/lib/arcade/ballTrack";
 import { ORBIT_REV3, ORBIT_REV4 } from "@/lib/arcade/orbit";
 import { decodeOrbitHoles, decodeRev3Planets, encodeRev3Planets, initRev3From, initRev4From, orbitRev3Game, ORBIT_REV3_WORLD_W } from "@/lib/arcade/orbitRev3";
 import { ORBIT_HOLE_BANK } from "@/lib/duel/orbitHoleBank.server";
@@ -683,6 +685,18 @@ const GAMES: Game[] = [
   // Roofbound flipRev 9 and Tilt tiltRev 9, flipRev 8's and tiltRev 8's play on lifted curves.
   { key: "flip/lift", game: flipGameFor(FLIP_REV_LIFT), checkpoint: flipCheckpoint, mode: "events", rate: 50, encode: encodeFlipRun, replay: (seed: number, raw: string) => replayFlipRun(seed, raw, FLIP_REV_LIFT) },
   { key: "tilt/lift", game: tiltGameFor(TILT_REV_LIFT), checkpoint: tiltCheckpoint, mode: "events", rate: 500, encode: encodeTiltRun, replay: (seed: number, raw: string) => replayTiltRun(seed, raw, TILT_REV_LIFT) },
+  // The arcade scoring standard (29 Oct 2026, docs/arcade-standard/balltrack.md), appended so every earlier entry keeps its
+  // index: Ball Tracker btRev 8, btRev 7's play on its 13-row bank courses, scored on the standard.
+  {
+    key: "balltrack/std",
+    game: makeBallTrackGame(BALL_TRACK_BANK_V7[0]!.course, BT_REV_STD),
+    gameFor: (seed: number) => makeBallTrackGame(BALL_TRACK_BANK_V7[seed % BALL_TRACK_BANK_V7.length]!.course, BT_REV_STD),
+    checkpoint: btCheckpoint,
+    mode: "events",
+    rate: 30,
+    encode: (run: any) => encodeBallTrackRun(BALL_TRACK_BANK_V7[run.seed % BALL_TRACK_BANK_V7.length]!.course, run, BT_REV_STD),
+    replay: (seed: number, raw: string) => replayBallTrackRun(BALL_TRACK_BANK_V7[seed % BALL_TRACK_BANK_V7.length]!.course, seed, raw, BT_REV_STD),
+  },
 ];
 
 /** A random candidate event, often outside the declared range (a finger off the edge). */
