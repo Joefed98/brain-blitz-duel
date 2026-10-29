@@ -475,8 +475,8 @@ if (want("snip")) {
   ok(PUZZLE_INSTRUCTIONS.snip.how.some((l) => l.helpOnly && /from above/.test(l.detail)), "Scrumper's help says a crook catches only from above");
 }
 // Screen audit Oct 2026: a plain line and a good run from the curve rooms deal (arcade-help-bands-check).
-// Hover: the curve rooms deal since the 200 expansion (hoverRev 9; hover-x200-check).
-if (want("hover")) ok(PUZZLE_INSTRUCTIONS.hover.score.includes("A good run (100 points) counts 45 – about 15 barriers"), "Hover's help states a good run on the curve rooms deal (hoverRev 9 since the 200 expansion)");
+// Hover: the curve rooms deal since the arcade scoring standard (hoverRev 10, barriers on one line to 120; hover-standard-check).
+if (want("hover")) ok(PUZZLE_INSTRUCTIONS.hover.score.includes("A good run (100 points) passes 35 barriers"), "Hover's help states a good run on the curve rooms deal (hoverRev 10 since the arcade scoring standard)");
 if (want("snake")) ok(PUZZLE_INSTRUCTIONS.snake.score.includes("150 at 31") && PUZZLE_INSTRUCTIONS.snake.score.includes("A good run (100 points) eats 22 stars"), "Meteor's help states the top and a good run rooms deal (snakeRev 9 since expansion E2, expansion-e2-check)");
 
 if (failures.length) {

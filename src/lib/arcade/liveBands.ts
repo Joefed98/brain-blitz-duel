@@ -21,7 +21,7 @@ import { RALLY_REV_CURVE, RALLY_REV_STRICT, RALLY_V10_BAND_CURVE } from "./rally
 import { SNAKE_REV_10, SNAKE_REV_STRICT, SNAKE_V9_BAND_CURVE } from "./snake";
 import { BINTOSS_REV_STRICT, BINTOSS_REV_SMALL_FAR, BINTOSS_V7_BAND_CURVE } from "./binToss";
 import { SNIP_REV_EXPAND, SNIP_REV_STRICT, SNIP_V11_BAND_CURVE } from "./snip";
-import { HOVER_REV_EXPAND, HOVER_REV_STRICT, HOVER_V9_BAND_CURVE } from "./hover";
+import { HOVER_REV_STANDARD, HOVER_REV_STRICT, HOVER_V10_BAND_CURVE } from "./hover";
 import { SKYLINE_REV_LIFT, SKYLINE_REV_STRICT, SKYLINE_V8_BAND_CURVE } from "./skyline";
 import { JUNC_REV_BAND, JUNC_BAND_CURVE } from "./junction";
 import { BRK_REV_PHONE, BRK_REV_STRICT, BRK_V10_BAND_CURVE } from "./breaker";
@@ -61,7 +61,8 @@ export const LIVE_BANDS = {
   snake: { field: "snakeRev", rev: SNAKE_REV_10, curve: SNAKE_V9_BAND_CURVE, strictRev: SNAKE_REV_STRICT },
   bintoss: { field: "binRev", rev: BINTOSS_REV_SMALL_FAR, curve: BINTOSS_V7_BAND_CURVE, strictRev: BINTOSS_REV_STRICT },
   snip: { field: "snipRev", rev: SNIP_REV_EXPAND, curve: SNIP_V11_BAND_CURVE, strictRev: SNIP_REV_STRICT },
-  hover: { field: "hoverRev", rev: HOVER_REV_EXPAND, curve: HOVER_V9_BAND_CURVE, strictRev: HOVER_REV_STRICT },
+  // hoverRev 10 (the arcade scoring standard): the core, barriers on one straight line to 120; the features add 80 (the help says so).
+  hover: { field: "hoverRev", rev: HOVER_REV_STANDARD, curve: HOVER_V10_BAND_CURVE, strictRev: HOVER_REV_STRICT },
   skyline: { field: "skylineRev", rev: SKYLINE_REV_LIFT, curve: SKYLINE_V8_BAND_CURVE, strictRev: SKYLINE_REV_STRICT },
   junction: { field: "junctionRev", rev: JUNC_REV_BAND, curve: JUNC_BAND_CURVE },
   breaker: { field: "brkRev", rev: BRK_REV_PHONE, curve: BRK_V10_BAND_CURVE, strictRev: BRK_REV_STRICT },

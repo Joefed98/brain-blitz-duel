@@ -28,7 +28,13 @@ export const STRICT_REVS: Partial<Record<LiveBandGame, number>> = Object.fromEnt
  * 2026, docs/arcade-phone-notes-oct-2026.md): Roofbound flipRev 9 and Tilt tiltRev 9 keep flipRev 8's and tiltRev 8's play
  * on lifted curves (arcade-phone-notes-check proves it).
  */
-export const LIFT_REVS: Partial<Record<LiveBandGame, readonly [lift: number, play: number]>> = { flip: [9, 8], tilt: [9, 8] };
+export const LIFT_REVS: Partial<Record<LiveBandGame, readonly [lift: number, play: number]>> = {
+  flip: [9, 8],
+  tilt: [9, 8],
+  // The arcade scoring standard (29 Oct 2026, docs/arcade-standard-oct-2026/hover.md): Hover hoverRev 10 keeps hoverRev 9's
+  // play in fixed parts to 200 (hover-standard-check proves it).
+  hover: [10, 9],
+};
 
 /**
  * The revision whose play a dealt revision keeps: the target and score-bands revisions map to the target's
