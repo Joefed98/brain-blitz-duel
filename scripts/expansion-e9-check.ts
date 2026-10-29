@@ -127,6 +127,7 @@ import { bandPoints } from "../src/lib/arcade/scoreBands";
 import { generateBullseye, generateBurst, generateRally } from "../src/lib/duel/arcade.server";
 import { roundMaxFor } from "../src/lib/duel/roundMax";
 import { LIVE_BANDS } from "../src/lib/arcade/liveBands";
+import { playRevOf } from "./scoring-targets-revs";
 
 let checks = 0;
 const failures: string[] = [];
@@ -163,7 +164,9 @@ for (const [file, label] of [["scripts/fixtures/expansion-e9-legacy.json.gz", "b
 section("Rooms deal the new stamps at 200");
 // Fission deals burstRev 9 since the phone-test notes (27 Oct 2026; fission-carry-check proves it); burstRev 8 is still checked here.
 // Joe's phone notes (27 Oct 2026) moved Rally on to rallyRev 11 (section 7 below).
-ok(generateRally().rallyRev === RALLY_REV_CURVE && generateBurst().burstRev === BURST_REV_CARRY && generateBullseye().bullRev === BULLSEYE_REV_EXPAND, "rooms deal rallyRev 11, burstRev 9 (was 8) and bullRev 8");
+// The arcade scoring standard (29 Oct 2026) moved Flightpath on to bullRev 9, bullRev 8's play on the standard's parts
+// (playRevOf; bullseye-standard-check proves it).
+ok(generateRally().rallyRev === RALLY_REV_CURVE && generateBurst().burstRev === BURST_REV_CARRY && playRevOf("bullseye", generateBullseye().bullRev) === BULLSEYE_REV_EXPAND, "rooms deal rallyRev 11, burstRev 9 (was 8) and bullRev 8's play");
 for (const type of ["rally", "burst", "bullseye"] as const) ok(roundMaxFor(type) === 200, `${type}: ROUND_MAX is 200`);
 ok(LIVE_BANDS.rally.strictRev === RALLY_REV_STRICT && LIVE_BANDS.burst.strictRev === BURST_REV_STRICT && LIVE_BANDS.bullseye.strictRev === BULLSEYE_REV_STRICT, "LIVE_BANDS keeps the band-3 revisions rooms dealt before as strictRev");
 ok(rallyWorldWFor(RALLY_REV_BONUS) === RALLY_V10_W && rallyWorldHFor(RALLY_REV_BONUS) === RALLY_V10_H && rallyWorldWFor(RALLY_REV_STRICT) === 390 && rallyWorldHFor(RALLY_REV_STRICT) === 730, "Rally's worlds by revision (420 × 784 on rallyRev 10)");

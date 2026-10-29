@@ -191,7 +191,9 @@ eq(demoGuard.includes('data.type === "balltrack"') && demoGuard.includes("course
 // Expansion E6 deliberately stops Gemstone's demo until one is recorded on matchupRev 9 (e6-check).
 // Expansion E9 (26 Oct 2026, docs/expansions/e9.md) deliberately stops Flightpath's demo until one is recorded on bullRev 8 (expansion-e9-check).
 for (const type of ["junction"]) eq(demoGuard.includes(`data.type === "${type}"`), false, `${type} demo not invalidated`);
-eq(demoGuard.includes('data.type === "bullseye" && demo?.puzzle.type === "bullseye" && demo.puzzle.bullRev !== BULLSEYE_REV_EXPAND'), true, "Flightpath demo stopped until recorded on bullRev 8");
+// The arcade scoring standard (29 Oct 2026) moved the guard on to bullRev 9 (its dead-centre pop says +2), so every
+// demo recorded before it, bullRev 8's included, stays stopped.
+eq(demoGuard.includes('data.type === "bullseye" && demo?.puzzle.type === "bullseye" && demo.puzzle.bullRev !== BULLSEYE_REV_STD'), true, "Flightpath demo stopped until recorded on bullRev 9");
 // Expansion E4 (25 Oct 2026, docs/expansions/e4.md) stops High Rise's intro demo the same way: only a skylineRev 7 demo
 // plays (the taller view, special blocks and the preview). It flips back once the demo is re-recorded on skylineRev 7.
 eq(demoGuard.includes('data.type === "skyline" && demo?.puzzle.type === "skyline" && demo.puzzle.skylineRev !== SKYLINE_REV_LIFT) return null'), true, "skyline demo stopped until re-recorded on skylineRev 8");

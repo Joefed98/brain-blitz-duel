@@ -36,6 +36,7 @@ import type { SkillBot } from "./arcade-skill-bands/bot";
 import { appendClientCounters, arcadeCounters } from "../src/lib/arcade/diagnostics";
 import { BAND_STRICT_MARK } from "../src/lib/arcade/scoreBands";
 import { LIVE_BANDS } from "../src/lib/arcade/liveBands";
+import { playRevOf } from "./scoring-targets-revs";
 import { generatePuzzle } from "../src/lib/duel/generate.server";
 import { ROUND_MAX, roundMaxFor } from "../src/lib/duel/roundMax";
 import { INTRO_SCORE } from "../src/lib/duel/introScore";
@@ -153,7 +154,8 @@ for (const type of TYPES) {
   // Flightpath was split out of E5; expansion E9 (docs/expansions/e9.md) then moved rooms on to bullRev 8 at 200, with
   // bullRev 6 as its score-bands revision (expansion-e9-check covers it).
   const dealt = (generatePuzzle("bullseye") as unknown as Record<string, unknown>).bullRev;
-  ok(dealt === BULLSEYE_REV_EXPAND && LIVE_BANDS.bullseye.rev === BULLSEYE_REV_EXPAND && LIVE_BANDS.bullseye.strictRev === BULLSEYE_REV_STRICT, `bullseye: rooms deal E9's bullRev ${BULLSEYE_REV_EXPAND}, after bullRev ${BULLSEYE_REV_STRICT} (got ${String(dealt)})`);
+  // The arcade scoring standard (29 Oct 2026): bullRev 9 keeps bullRev 8's play (playRevOf; bullseye-standard-check).
+  ok(playRevOf("bullseye", dealt as number) === BULLSEYE_REV_EXPAND && playRevOf("bullseye", LIVE_BANDS.bullseye.rev) === BULLSEYE_REV_EXPAND && LIVE_BANDS.bullseye.strictRev === BULLSEYE_REV_STRICT, `bullseye: rooms deal E9's bullRev ${BULLSEYE_REV_EXPAND}, after bullRev ${BULLSEYE_REV_STRICT} (got ${String(dealt)})`);
   ok(ROUND_MAX.bullseye === 200, "bullseye: ROUND_MAX is 200 since expansion E9");
 }
 

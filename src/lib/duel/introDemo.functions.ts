@@ -13,7 +13,7 @@ import { HOVER_REV_EXPAND } from "@/lib/arcade/hover";
 import { RALLY_REV_CURVE } from "@/lib/arcade/rally";
 import { WAV_REV_PHONE } from "@/lib/arcade/wavefront";
 import { BURST_REV_CARRY } from "@/lib/arcade/burst";
-import { BULLSEYE_REV_EXPAND } from "@/lib/arcade/bullseye";
+import { BULLSEYE_REV_STD } from "@/lib/arcade/bullseye";
 import { BEAT_REV_EASE } from "@/lib/arcade/beat";
 import { SNAKE_REV_10 } from "@/lib/arcade/snake";
 import { SLICE_REV_BIG, SLICE_REV_TALL } from "@/lib/arcade/slice";
@@ -141,7 +141,9 @@ export const getIntroDemoFn = createServerFn({ method: "GET" })
     // older demo stays stopped until one is recorded on burstRev 9.
     if (data.type === "burst" && demo?.puzzle.type === "burst" && demo.puzzle.burstRev !== BURST_REV_CARRY) return null;
     // Expansion E9 (26 Oct 2026, docs/expansions/e9.md): Flightpath bullRev 8 too (Rally and Fission above).
-    if (data.type === "bullseye" && demo?.puzzle.type === "bullseye" && demo.puzzle.bullRev !== BULLSEYE_REV_EXPAND) return null;
+    // bullRev 9 (the arcade scoring standard, 29 Oct 2026) plays as bullRev 8 but a dead-centre dart shows +2, not +7, so
+    // only a demo recorded on bullRev 9 plays.
+    if (data.type === "bullseye" && demo?.puzzle.type === "bullseye" && demo.puzzle.bullRev !== BULLSEYE_REV_STD) return null;
     // Expansion E2 (25 Oct 2026): Meteor and Tempo demos stay stopped until one is recorded on the 200-point revision.
     // Joe's phone notes (27 Oct 2026): snakeRev 10 adds 2 × 2 rocks, a third wormhole pair and a second lane, so the
     // Meteor demo stays stopped until one is recorded on snakeRev 10.
