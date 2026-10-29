@@ -114,7 +114,7 @@ import { liveBandHelp } from "@/lib/arcade/liveBands";
 import { ORBIT_V12_PACE_FROM, ORBIT_V12_PACE_FULL, ORBIT_V12_SKILL_MAX, ORBIT_V12_SKILL_PACED_FROM, ORBIT_V12_SKILL_PAY, ORBIT_XP_DUST_CAP, ORBIT_XP_DUST_FULL, ORBIT_XP_FIELDS, ORBIT_XP_MOONS, ORBIT_XP_MOTES, ORBIT_XP_PERFECT_CAP, ORBIT_XP_PERFECT_PER, ORBIT_XP_SLING_CAP, ORBIT_XP_SLING_PTS, ORBIT_XP_THREAD_CAP, ORBIT_XP_THREAD_PTS, ORBIT_XP_TRAILS } from "@/lib/arcade/orbitRev3";
 import { CROSS_V9_SKILL_PAY, CROSS_X_BONUS_MAX, CROSS_X_CLOSE_MAX, CROSS_X_CLOSE_POINTS, CROSS_X_COIN_CROSSINGS, CROSS_X_COIN_POINTS, CROSS_X_COINS_PER_RUN } from "@/lib/arcade/cross";
 import { SWING_V14_GATES, SWING_V14_GEMS, SWING_V14_PAR_POINTS, SWING_V14_PICKUP_POINTS, SWING_V14_SECTIONS, SWING_V14_STARS } from "@/lib/arcade/swing";
-import { BRK_V10_GOLD_HITS, BRK_V9_COLS, BRK_V9_COMBO_MAX, BRK_V9_COMBO_X2, BRK_V9_COMBO_X3, BRK_V9_GOLD, BRK_V9_GOLD_POINTS, BRK_V9_ROWS, BRK_V9_SKILL_MAX, BRK_V9_SKILL_PAY } from "@/lib/arcade/breaker";
+import { BRK_V10_GOLD_HITS, BRK_V11_BRICKS, BRK_V11_CLEAR_POINTS, BRK_V11_CORE_MAX, BRK_V11_GOLD_MAX, BRK_V11_MAX, BRK_V11_SPEED_MAX, BRK_V9_GOLD } from "@/lib/arcade/breaker";
 import { FLIP_V8_COMBO_CAP, FLIP_V8_CP_POINTS, FLIP_V8_FEATURE_CAP, FLIP_V9_SKILL_PAY, FLIP_V8_SWEETS, FLIP_V8_SWEET_POINTS, FLIP_V8_TRAILS, FLIP_V8_TRAIL_POINTS, FLIP_V8_TRAIL_STARS, FLIP_V8_ZONE_POINTS } from "@/lib/arcade/flip";
 import { bandCurve, type BandCurve } from "@/lib/arcade/scoreBands";
 import { SNIP_X_FEATURE_MAX, SNIP_X_FEED_UNITS, SNIP_X_GOLD_RAW, SNIP_X_LEVELS, SNIP_X_PAR_MARGIN, SNIP_X_PAR_RAW, SNIP_X_PERFECT_RAW, SNIP_X_QUICK_RAW, SNIP_X_RAW_TOP, SNIP_X_SKILL_PAY, SNIP_X_STAR2_RAW, SNIP_X_STAR_UNITS } from "@/lib/arcade/snip";
@@ -756,7 +756,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
       how: [
         { action: "Drag the paddle;", detail: "tap to fire a power-up." },
         { action: "Gold bricks:", detail: `break after ${BRK_V10_GOLD_HITS} hits.` },
-        { action: "Combo ×2, ×3:", detail: "bricks with no paddle touch." },
+        { action: "Every brick scores;", detail: `gold bricks add ${BRK_V11_GOLD_MAX / BRK_V9_GOLD} each.` },
         { action: "Catch power-ups:", detail: "laser, ×3, ×2, Fireball.", helpOnly: true },
         { action: "Keep the ball up", detail: "– it gets faster with bricks and with time. Losing the last ball costs 3 seconds.", helpOnly: true },
         { action: "Cracked bricks take 2 or 3 hits", detail: "– each hit cracks them further.", helpOnly: true },
@@ -767,9 +767,9 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Orange flame = Fireball:", detail: "for 2.5 seconds your balls smash straight through bricks without bouncing.", helpOnly: true },
         { action: "Sliding rows:", detail: "one row starts at 30 s and another at 60 s, half a brick each way, slowly and always the same.", helpOnly: true },
         { action: `${BRK_V9_GOLD} gold bricks`, detail: `sit near the top, each behind an armoured brick. Any ${BRK_V10_GOLD_HITS} hits break one: balls, Fireball balls, ×3 shots and the laser all count, and each hit cracks it further.`, helpOnly: true },
-        { action: "Combo:", detail: `a ball that breaks bricks without touching the paddle goes ×2 from its ${BRK_V9_COMBO_X2}th brick and ×3 from its ${BRK_V9_COMBO_X3}th. A paddle touch or a lost ball ends it; Fireball, laser and ×3 bricks don't count.`, helpOnly: true },
       ],
-      score: liveBandHelp("breaker", "Each brick destroyed counts 1.", { more: "More bricks", good: (u) => `clears ${u} bricks`, finish: `Clearing all ${BRK_V9_COLS * BRK_V9_ROWS - BRK_V9_GOLD} adds up to 10 for speed: the full 10 with at least half the time left, falling to 0 at the buzzer. Skill adds up to ${BRK_V9_SKILL_MAX} more: ${BRK_V9_GOLD_POINTS} a gold brick, and 1 for each ×2 combo brick and 3 for each ×3 (up to ${BRK_V9_COMBO_MAX}). ${skillPayLine(BRK_V9_SKILL_PAY)}` }),
+      // brkRev 11 (the arcade scoring standard): four fixed parts that total 200.
+      score: liveBandHelp("breaker", `Every brick destroyed counts 1, the ${BRK_V9_GOLD} gold bricks included.`, { more: "More bricks", good: (u) => `breaks ${u} of the ${BRK_V11_BRICKS}`, finish: `Breaking the other ${BRK_V11_BRICKS - BRK_V9_GOLD} clears the wall and ends the run: clearing adds ${BRK_V11_CLEAR_POINTS}, plus up to ${BRK_V11_SPEED_MAX} for speed, the full ${BRK_V11_SPEED_MAX} with at least half the time left, falling evenly to 0 at the buzzer. Gold bricks add up to ${BRK_V11_GOLD_MAX}, ${BRK_V11_GOLD_MAX / BRK_V9_GOLD} each. Power-ups and combos add nothing extra, and a lost ball costs only time. Bricks ${BRK_V11_CORE_MAX} + clear ${BRK_V11_CLEAR_POINTS} + speed ${BRK_V11_SPEED_MAX} + gold ${BRK_V11_GOLD_MAX} = ${BRK_V11_MAX}.` }),
     },
     pinball: {
       goal: "Keep the ball in play and rack up table points.",
