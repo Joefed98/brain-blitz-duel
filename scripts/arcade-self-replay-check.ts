@@ -101,7 +101,7 @@ import { ORBIT_HOLE_BANK } from "@/lib/duel/orbitHoleBank.server";
 import { ORBIT_REV3_BANK } from "@/lib/duel/orbitRev3Bank.server";
 import { orbitRev3PlanetsForSeed } from "@/lib/duel/orbitRev3Course.server";
 import { binTossGameFor, BINTOSS_REV2, BINTOSS_REV3 } from "@/lib/arcade/binToss";
-import { inkBridgeGameFor, INK_REV3, INK_REV4, INK_REV_EXPAND, INK_REV_SPREAD } from "@/lib/arcade/inkBridge";
+import { inkBridgeGameFor, INK_REV3, INK_REV4, INK_REV_EXPAND, INK_REV_SPREAD, INK_REV_STD } from "@/lib/arcade/inkBridge";
 import { swingGameFor, SWING_REV, SWING_REV_V3 } from "@/lib/arcade/swing";
 import { wordfallCheckpoint, wordfallGame, wordfallGameFor } from "@/lib/arcade/wordfall";
 import { encodeWordfallRun, replayWordfallRun } from "@/lib/duel/wordfall";
@@ -683,6 +683,18 @@ const GAMES: Game[] = [
   // Roofbound flipRev 9 and Tilt tiltRev 9, flipRev 8's and tiltRev 8's play on lifted curves.
   { key: "flip/lift", game: flipGameFor(FLIP_REV_LIFT), checkpoint: flipCheckpoint, mode: "events", rate: 50, encode: encodeFlipRun, replay: (seed: number, raw: string) => replayFlipRun(seed, raw, FLIP_REV_LIFT) },
   { key: "tilt/lift", game: tiltGameFor(TILT_REV_LIFT), checkpoint: tiltCheckpoint, mode: "events", rate: 500, encode: encodeTiltRun, replay: (seed: number, raw: string) => replayTiltRun(seed, raw, TILT_REV_LIFT) },
+  // The arcade scoring standard (29 Oct 2026, docs/arcade-standard/inkbridge.md), appended so every earlier entry keeps
+  // its index: Rainbow Bridge inkRev 12, inkRev 11's play on the standard. Eight seeds in turn, as ink/v11.
+  {
+    key: "ink/std",
+    game: inkBridgeGameFor(INK_REV_STD),
+    seedFor: (n: number) => 9_000_001 + 7_919 * (n % 8),
+    checkpoint: inkCheckpoint,
+    mode: "events",
+    rate: 400,
+    encode: encodeInkBridgeRun,
+    replay: (seed: number, raw: string) => replayInkBridgeRun(seed, raw, INK_REV_STD),
+  },
 ];
 
 /** A random candidate event, often outside the declared range (a finger off the edge). */

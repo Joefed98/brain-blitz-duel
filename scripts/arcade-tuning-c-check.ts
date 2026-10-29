@@ -174,7 +174,7 @@ section("New rounds carry the Tuning C stamps; Junction is practice only");
     ["hover", playRevOf("hover", generateHover().hoverRev), HOVER_REV_TALL + 4],
     // x200 (26 Oct 2026) moved Rainbow Bridge on to inkRev 10 (ink-x200-check); inkRev 8, dealt before it, kept Tuning C's play.
     // The phone notes (27 Oct 2026) then moved it on to inkRev 11 (ink-v11-check).
-    ["inkbridge", generateInkBridge().inkRev === INK_REV_SPREAD ? playRevOf("inkbridge", INK_REV_STRICT) : -1, INK_REV_TUNEC],
+    ["inkbridge", playRevOf("inkbridge", generateInkBridge().inkRev) === INK_REV_SPREAD ? playRevOf("inkbridge", INK_REV_STRICT) : -1, INK_REV_TUNEC],
     // Expansion E7 (docs/expansions/x200-flip.md) then moved Roofbound on to flipRev 8; flip-x200-check covers it.
     ["flip", playRevOf("flip", generateFlip().flipRev), FLIP_REV_TUNEC + 4],
     // Tuning F (Oct 2026) moved Tempo on to a thinner chart on the same curve (beatRev 5); arcade-tuning-f-check covers it.
@@ -243,7 +243,7 @@ section("Grappler, Hover, Rainbow Bridge and Tempo: same play, new curves");
   // Screen audit Oct 2026: the help gives a good run from the curve rooms deal (swingRev 9, inkRev 6, beatRev 9 since expansion E2; arcade-help-bands-check).
   // Grappler's 200 expansion (swingRev 13) stated a good run on its own base curve (swing-x200-check); the assault course
   // (swingRev 14) on its sections' curve (swing-assault-check).
-  ok(PUZZLE_INSTRUCTIONS.swing.score.includes("A good run (100 points) counts 236") && PUZZLE_INSTRUCTIONS.inkbridge.score.includes("A good run (100 points) counts 73") /* inkRev 10 (x200) */ && PUZZLE_INSTRUCTIONS.beat.score.includes("A good run (100 points) reaches 824"), "the \"?\" help states a good run on the curves rooms deal");
+  ok(PUZZLE_INSTRUCTIONS.swing.score.includes("A good run (100 points) counts 236") && PUZZLE_INSTRUCTIONS.inkbridge.score.includes("A good run (100 points) pots 8 levels") /* inkRev 12 (the arcade scoring standard; inkRev 10 counted 73) */ && PUZZLE_INSTRUCTIONS.beat.score.includes("A good run (100 points) reaches 824"), "the \"?\" help states a good run on the curves rooms deal");
 }
 
 /* ================================ 4a. Gemstone ================================ */

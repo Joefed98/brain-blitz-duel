@@ -317,7 +317,7 @@ if (want("inkbridge")) {
   section("Rainbow Bridge inkRev 4 (optional gold stars)");
   const game = inkBridgeGameFor(INK_REV4);
   // Rooms dealt rev 4 play (inkRev 6 to 8) until x200 moved them on to inkRev 10 (ink-x200-check).
-  ok(generateInkBridge().inkRev === INK_REV_SPREAD && playRevOf("inkbridge", INK_REV_STRICT) === INK_REV_TUNEC, "rooms deal inkRev 11 (phone notes, on x200's inkRev 10 world); inkRev 8 kept rev 4 play on the score bands (Tuning C curve)");
+  ok(playRevOf("inkbridge", generateInkBridge().inkRev) === INK_REV_SPREAD && playRevOf("inkbridge", INK_REV_STRICT) === INK_REV_TUNEC, "rooms deal inkRev 11's play (phone notes, on x200's inkRev 10 world; inkRev 12 re-scores it on the arcade standard); inkRev 8 kept rev 4 play on the score bands (Tuning C curve)");
   ok(inkBridgeGameFor(INK_REV3).init(5).stars === undefined, "rev-3 rounds have no stars");
   const seeds = SEEDS(Number(process.env.BATCH5_INK_SEEDS ?? 12), 7919);
   for (const seed of seeds) {

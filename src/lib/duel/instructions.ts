@@ -92,7 +92,8 @@ import {
   WAV_R11_CARRIERS,
   WAV_R11_SKILL_PAY,
 } from "@/lib/arcade/wavefront";
-import { INK_CLOUD_LEVELS, INK_FEATURE_MAX, INK_RAW_SHAMROCK, INK_RAW_SILVER, INK_RAW_STAR, INK_RAW_TRICK, INK_V11_SILVER_PER_LEVEL, INK_V11_SKILL_PAY } from "@/lib/arcade/inkBridge";
+import { INK_CLOUD_LEVELS, INK_STD, INK_V11_SILVER_PER_LEVEL, INK_V12_CORE_MAX, INK_LEVELS } from "@/lib/arcade/inkBridge";
+import { stdFeaturesHelp } from "@/lib/arcade/arcadeStandard";
 import { SNAKE_V9_CAPS, SNAKE_V9_COLS, SNAKE_V9_ROWS } from "@/lib/arcade/snake";
 import { BEAT_V9_CAPS, BEAT_V9_SKILL_PAY } from "@/lib/arcade/beat";
 import {
@@ -1034,7 +1035,8 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Ink is limited", detail: "Each level has a budget, with a larger shared supply for live levels.", helpOnly: true },
         { action: "Three failed drops", detail: "and you're out.", helpOnly: true },
       ],
-      score: liveBandHelp("inkbridge", "Each level counts 10.", { more: "More levels", good: (u) => `counts ${u} – about ${Math.round(u / 10)} levels`, finish: `All ten levels adds up to 10 for speed: the full 10 with at least 45 s left, falling to 0 at the buzzer. Bonuses add up to ${INK_FEATURE_MAX} more: ${INK_RAW_STAR} an ink star, ${INK_RAW_TRICK} a trick shot, ${INK_RAW_SILVER} a silver coin and ${INK_RAW_SHAMROCK} the shamrock. ${skillPayLine(INK_V11_SKILL_PAY)}` }),
+      // inkRev 12 (the arcade scoring standard, 29 Oct 2026): levels on a straight line, fixed shares for the rest.
+      score: liveBandHelp("inkbridge", `Each level potted counts ${INK_V12_CORE_MAX / INK_LEVELS}.`, { more: "More levels", good: (u) => `pots ${u} levels`, finish: stdFeaturesHelp(INK_STD, { speed: "only with all ten levels: the full 10 with at least 45 s left, falling evenly to 0 at the buzzer" }) }),
     },
 
     burst: {
