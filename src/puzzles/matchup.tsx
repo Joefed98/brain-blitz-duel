@@ -35,6 +35,8 @@ import {
   MATCHUP_CELL_PX,
   matchupRowsFor,
   matchupWorldHFor,
+  matchupGoalsMet,
+  matchupStdParts,
 } from "@/lib/arcade/matchup";
 import { KeyCursor, useGridCursor } from "@/components/puzzles/KeyCursor";
 import { directionOf, useGameKeys } from "@/lib/desktop";
@@ -476,7 +478,12 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
         {result.swaps} swap{result.swaps === 1 ? "" : "s"} · best line {result.bestLine || "-"}
         {result.reshuffles > 0 ? ` · ${result.reshuffles} reshuffled` : ""}
       </p>
-      {result.state.goals ? (
+      {result.state.std ? (
+        // matchupRev 11: the parts, each with its points (they add up to the score).
+        <p className="shrink-0 text-center font-mono text-base text-muted-foreground">
+          {(result.state.gemsCleared ?? 0).toLocaleString("en-GB")} gems +{matchupStdParts(result.state).core} · {result.state.treasures ?? 0} treasure +{matchupStdParts(result.state).treasure} · {matchupGoalsMet(result.state)} goals +{matchupStdParts(result.state).goals} · {result.state.iceBroken ?? 0} ice +{matchupStdParts(result.state).ice} · {result.state.bigLines ?? 0} big lines +{matchupStdParts(result.state).big}
+        </p>
+      ) : result.state.goals ? (
         <p className="shrink-0 text-center font-mono text-base text-muted-foreground">
           {result.state.levels ?? 0} goal{result.state.levels === 1 ? "" : "s"} · {result.state.iceBroken ?? 0} ice · {result.state.treasures ?? 0} treasure · cascades +{result.state.cascadeExtra ?? 0}
         </p>
