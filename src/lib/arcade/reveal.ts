@@ -339,7 +339,8 @@ const BUILDERS: Record<string, Builder> = {
       // flipRev 2 rounds only: stars taken.
       ...(n(r, "starsTotal") > 0 ? [{ label: "Stars", value: `${n(r, "stars")} / ${n(r, "starsTotal")}` }] : []),
       // flipRev 8 rounds only: sweet landings and the skill points.
-      ...(n(r, "sweetsTotal") > 0 ? [{ label: "Sweet landings", value: `${n(r, "sweets")} / ${n(r, "sweetsTotal")}` }, { label: "Skill", value: `+${n(r, "skill")}` }] : []),
+      // flipRev 10 (the arcade scoring standard): the features' points under "Features" (no skill pay).
+      ...(n(r, "sweetsTotal") > 0 ? [{ label: "Sweet landings", value: `${n(r, "sweets")} / ${n(r, "sweetsTotal")}` }, { label: b(r, "std") ? "Features" : "Skill", value: `+${n(r, "skill")}` }] : []),
     ],
     outcome: b(r, "survived") ? "finish" : "crash",
   }),

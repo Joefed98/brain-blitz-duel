@@ -15,6 +15,7 @@ import {
   type InputRange,
 } from "./engine";
 import { bandStrictGame, bandStrict, bandRetarget, bandTargetGame, bandCurveOf, bandCurve, bandInit, bandPoints, bandScoreOf, bandStep, bandTotal, BAND_FINISH_BONUS, type BandFields, type BandParts } from "./scoreBands";
+import { stdBandParts, stdLine, stdTotal, type StdScore, type StdSpec } from "./arcadeStandard";
 import { isin, TRIG_ONE } from "./trig";
 import { drawFlipHazard, flipSurfaceLine } from "./flip.renderer";
 
@@ -503,6 +504,8 @@ export interface FlipState extends BandFields {
   exp?: number;
   /** flipRev 9 only: flipRev 8's play scored on the lifted curves (FLIP_V9_*); not in the checkpoint checksum. */
   lift?: number;
+  /** flipRev 10 only: flipRev 8's play scored on the arcade scoring standard (FLIP_STD); not in the checkpoint checksum. */
+  std?: number;
   v8?: FlipV8Course;
   arcN?: number;
   land?: number;
@@ -824,6 +827,7 @@ const flipRev2Game: ArcadeGame<FlipState, ArcadeInputEvent | null> = { ...flipGa
 
 /** Takes puzzle.flipRev; anything else is the original corridor. */
 export function flipGameFor(rev?: number | null): ArcadeGame<FlipState, ArcadeInputEvent | null> {
+  if (rev === FLIP_REV_STD) return flipStdGame;
   if (rev === FLIP_REV_LIFT) return flipLiftGame;
   if (rev === FLIP_REV_EXPAND) return flipExpandGame;
   // 7 was the parked expansion's stamp, never dealt or stored: it would play as the revision before it.
@@ -1021,7 +1025,7 @@ export interface FlipV8Course {
 }
 
 export function flipWorldHFor(rev?: number | null): number {
-  return rev === FLIP_REV_EXPAND || rev === FLIP_REV_LIFT ? FLIP_V8_WORLD_H : FLIP_WORLD_H;
+  return rev === FLIP_REV_EXPAND || rev === FLIP_REV_LIFT || rev === FLIP_REV_STD ? FLIP_V8_WORLD_H : FLIP_WORLD_H;
 }
 export function flipWorldH(state: Pick<FlipState, "exp">): number {
   return state.exp ? FLIP_V8_WORLD_H : FLIP_WORLD_H;
@@ -1732,6 +1736,7 @@ export function flipV8Units(state: FlipState): number {
 }
 
 function flipV8Parts(state: FlipState): BandParts {
+  if (state.std) return flipStdParts(state);
   const units = flipV8Units(state);
   const finished = state.ended === 1;
   const f = flipV8Features(state);
@@ -1754,6 +1759,7 @@ function flipV8Parts(state: FlipState): BandParts {
 const FLIP_V8_MAX = 200;
 
 function flipV8Score(state: FlipState): number {
+  if (state.std) return stdTotal(flipStdScore(state), Boolean(state.acted));
   return bandTotal(flipV8Parts(state), Boolean(state.acted), FLIP_V8_MAX);
 }
 
@@ -1812,4 +1818,73 @@ export const FLIP_V9_SKILL_PAY = bandCurve([0, 12, 22, 53, 59, FLIP_V8_SKILL_FUL
 export const flipLiftGame: ArcadeGame<FlipState, ArcadeInputEvent | null> = {
   ...flipExpandGame,
   init: (seed) => ({ ...initV8(seed), lift: 1 }),
+};
+
+/* ================= flipRev 10 (29 Oct 2026): the arcade scoring standard ================= */
+
+/**
+ * flipRev 10 (the arcade scoring standard, docs/arcade-standard/flip.md, src/lib/arcade/arcadeStandard.ts): flipRev 8's
+ * course, rules, features and play exactly (a flipRev 8 or 9 log replays tick for tick to the same checkpoints), scored
+ * in fixed parts that total 200:
+ *  - time survived 150, a straight line on the half seconds lasted: 1.25 each, the full minute (120) 150. Time counts
+ *    as lived: a checkpoint still saves the next crash, but the survival count no longer pauses after a save (the sim
+ *    still counts `lost` for the checksum, as on flipRev 8; this revision's score never reads it);
+ *  - gold stars 15 (1.5 each of the course's ten), full star trails 15 (3.75 each of four), sweet landings 10 (1.25
+ *    each of eight), double flips 10 (1 each, every double flip counting, up to ten);
+ *  - lasting the minute, checkpoints and speed zones pay nothing of their own; no rising scale, no skill pay.
+ * Anyone who plays scores at least 1, a run with no input 0 (stdTotal). States add `std: 1` (not in the checkpoint
+ * checksum: play is unchanged).
+ */
+export const FLIP_REV_STD = 10;
+/** Half seconds in the full minute: the core is full at 120. */
+export const FLIP_STD_HALF_SECONDS = FLIP_RUN_TICKS / 30;
+export const FLIP_STD_DOUBLES = 10;
+export const FLIP_STD: StdSpec = {
+  core: { key: "time", label: "Time survived", max: 150, of: FLIP_STD_HALF_SECONDS, item: "half second" },
+  features: [
+    { key: "stars", label: "Gold stars", max: 15, of: FLIP_STARS, item: "gold star" },
+    { key: "trails", label: "Star trails", max: 15, of: FLIP_V8_TRAILS, item: "full star trail" },
+    { key: "sweets", label: "Sweet landings", max: 10, of: FLIP_V8_SWEETS, item: "sweet landing" },
+    { key: "doubles", label: "Double flips", max: 10, of: FLIP_STD_DOUBLES, item: "double flip" },
+  ],
+};
+/** The core's straight line: half seconds survived → 0…150. */
+export const FLIP_V10_BAND_CURVE = bandCurve([0, FLIP_STD_HALF_SECONDS], [0, FLIP_STD.core.max]);
+
+/** Half seconds lasted on flipRev 10: the whole run as lived (no pause after a save). */
+export function flipStdUnits(state: Pick<FlipState, "ended" | "tick">): number {
+  const alive = state.ended === 1 ? FLIP_RUN_TICKS : clampInt(state.tick, 0, FLIP_RUN_TICKS);
+  return Math.floor(alive / 30);
+}
+
+/** A flipRev 10 run's parts: the core and each feature's points (no penalty). */
+export function flipStdScore(state: FlipState): StdScore {
+  const [stars, trails, sweets, doubles] = FLIP_STD.features;
+  return {
+    core: stdLine(FLIP_STD.core.max, flipStdUnits(state), FLIP_STD.core.of),
+    features: {
+      stars: stdLine(stars!.max, flipStarsTaken(state), stars!.of),
+      trails: stdLine(trails!.max, flipTrailStars(state).full, trails!.of),
+      sweets: stdLine(sweets!.max, flipSweetsTaken(state), sweets!.of),
+      doubles: stdLine(doubles!.max, state.combos ?? 0, doubles!.of),
+    },
+    penalty: 0,
+  };
+}
+
+/** The features' points on a flipRev 10 run (the reveal's "Features" tile). */
+export function flipStdFeatures(state: FlipState): number {
+  return Object.values(flipStdScore(state).features).reduce((a, p) => a + p, 0);
+}
+
+function flipStdParts(state: FlipState): BandParts {
+  const finished = state.ended === 1;
+  const secs = ((finished ? FLIP_RUN_TICKS : state.tick) / 60).toFixed(1);
+  const saves = state.saves ? ` · ${state.saves} saved` : "";
+  return stdBandParts(FLIP_STD, flipStdScore(state), flipStdUnits(state), `${secs} s survived${saves}`, finished);
+}
+
+export const flipStdGame: ArcadeGame<FlipState, ArcadeInputEvent | null> = {
+  ...flipExpandGame,
+  init: (seed) => ({ ...initV8(seed), std: 1 }),
 };

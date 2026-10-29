@@ -1,6 +1,6 @@
 import { TEN_DROP_DEPTH_REV } from "@/lib/arcade/tenDrop";
 import { SLICE_REV_TARGET, SLICE_REV_STRICT, SLICE_REV_BIG } from "@/lib/arcade/slice";
-import { FLIP_REV_TARGET, FLIP_REV_STRICT, FLIP_REV_LIFT } from "@/lib/arcade/flip";
+import { FLIP_REV_TARGET, FLIP_REV_STRICT, FLIP_REV_STD } from "@/lib/arcade/flip";
 import { CROSS_REV_EXPAND } from "@/lib/arcade/cross";
 import { INK_REV_SPREAD } from "@/lib/arcade/inkBridge";
 import { SNAKE_REV_TARGET, SNAKE_REV_10 } from "@/lib/arcade/snake";
@@ -191,8 +191,9 @@ export function generateColourClash(): StroopPuzzleData {
 
 export function generateFlip(): FlipPuzzleData {
   // flipRev 9: flipRev 8's taller cave, features and sweet spots (expansion E7, docs/expansions/x200-flip.md), scored to 200
-  // on the lifted curves (Joe's phone notes, 27 Oct 2026).
-  return { type: "flip", seed: arcadeSeed(), flipRev: FLIP_REV_LIFT };
+  // on the lifted curves (Joe's phone notes, 27 Oct 2026). flipRev 10 (29 Oct 2026): the same play on the arcade scoring
+  // standard (time survived 150, gold stars 15, star trails 15, sweet landings 10, double flips 10; docs/arcade-standard/flip.md).
+  return { type: "flip", seed: arcadeSeed(), flipRev: FLIP_REV_STD };
 }
 
 export function generateJunction(): JunctionPuzzleData {

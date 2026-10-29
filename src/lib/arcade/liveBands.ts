@@ -12,7 +12,7 @@ import { bandHelp, type BandCurve, type BandHelpWords } from "./scoreBands";
 import { roundMaxFor } from "../duel/roundMax";
 import { BT_REV_RUSH, BT_REV_STRICT, BT_V7_BAND_CURVE } from "./ballTrack";
 import { WAV_REV_PHONE, WAV_REV_STRICT, WAV_V11_BAND_CURVE } from "./wavefront";
-import { FLIP_REV_LIFT, FLIP_REV_STRICT, FLIP_V9_BAND_CURVE } from "./flip";
+import { FLIP_REV_STD, FLIP_REV_STRICT, FLIP_V10_BAND_CURVE } from "./flip";
 import { INK_REV_SPREAD, INK_REV_STRICT, INK_V10_BAND_CURVE } from "./inkBridge";
 import { MATCHUP_REV_ICE, MATCHUP_REV_STRICT, MATCHUP_V10_BAND_CURVE } from "./matchup";
 import { BUB_REV_BLAST, BUB_REV_STRICT, BUB_V8_BAND_CURVE } from "./bubble";
@@ -52,7 +52,8 @@ export interface LiveBand {
 export const LIVE_BANDS = {
   balltrack: { field: "btRev", rev: BT_REV_RUSH, curve: BT_V7_BAND_CURVE, strictRev: BT_REV_STRICT },
   wavefront: { field: "wavRev", rev: WAV_REV_PHONE, curve: WAV_V11_BAND_CURVE, strictRev: WAV_REV_STRICT },
-  flip: { field: "flipRev", rev: FLIP_REV_LIFT, curve: FLIP_V9_BAND_CURVE, strictRev: FLIP_REV_STRICT },
+  // flipRev 10 (the arcade scoring standard): the core's straight line (half seconds survived → 150); features up to 50 more.
+  flip: { field: "flipRev", rev: FLIP_REV_STD, curve: FLIP_V10_BAND_CURVE, strictRev: FLIP_REV_STRICT },
   inkbridge: { field: "inkRev", rev: INK_REV_SPREAD, curve: INK_V10_BAND_CURVE, strictRev: INK_REV_STRICT },
   matchup: { field: "matchupRev", rev: MATCHUP_REV_ICE, curve: MATCHUP_V10_BAND_CURVE, strictRev: MATCHUP_REV_STRICT },
   bubble: { field: "bubbleRev", rev: BUB_REV_BLAST, curve: BUB_V8_BAND_CURVE, strictRev: BUB_REV_STRICT },
