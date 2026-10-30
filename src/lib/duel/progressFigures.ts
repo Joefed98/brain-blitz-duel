@@ -24,7 +24,7 @@ import { decodeBulbs } from "./lightUp";
 import { decodeTileMoves, replayTiles, tilesLayout } from "./tiles";
 import { isJumbledGradient, JUMBLED_MOVABLE, jumbledInPlace, jumbledProgress, replayGradientAnswer } from "./jumbled";
 import { decodeSwapword, replaySwapword, swapwordPlaced } from "./swapword";
-import { decodeSlideTokens, markedRowWord, replayWordSlide, WS_MARKED_ROWS } from "./wordSlide";
+import { decodeSlideTokens, markedRowWord, replayWordSlide, slideSwapsOn, WS_MARKED_ROWS } from "./wordSlide";
 import { PUZZLE_SCORE_REV, puzzleScoreRevOf } from "./puzzleScoreRev";
 import { FLOW_PAIRS, type BlockPlacement, type PuzzleData } from "./types";
 
@@ -175,7 +175,8 @@ export function solutionProgress(puzzle: PuzzleData, answer: string, extra?: Rec
     case "wordslide": {
       const validRows = extra?.["validRows"];
       if (!Array.isArray(validRows)) return null;
-      const end = replayWordSlide(puzzle.grid, decodeSlideTokens(answer)).grid;
+      // wordSlideRev 4: the last row's swaps (the server's validRows already judged the locked rows).
+      const end = replayWordSlide(puzzle.grid, decodeSlideTokens(answer), { swaps: slideSwapsOn(puzzle) }).grid;
       const made = wordSlideMadeRows(puzzle.grid, end, validRows as number[]);
       return { text: `${made}/${WS_MARKED_ROWS.length} rows made`, cost: null };
     }

@@ -3,7 +3,7 @@ import { pick, randInt, randomBelow } from "./random";
 import type { WordSlidePuzzleData } from "./types";
 import { dealtDepthRev } from "./wordDepth";
 import { dealtTopupRev } from "./depthTopup";
-import { applyShift, markedRowWord, WORD_SLIDE_REV_PAR, WORD_SLIDE_REV_TOPUP, WS_MARKED_ROWS, WS_SIZE, type SlideShift } from "./wordSlide";
+import { applyShift, markedRowWord, replayWordSlide, slideSwapsOn, WORD_SLIDE_REV_PAR, WORD_SLIDE_REV_TOPUP, WS_MARKED_ROWS, WS_SIZE, type SlideShift } from "./wordSlide";
 
 let pool: string[] | null = null;
 function fiveLetterWords(): string[] {
@@ -71,4 +71,12 @@ function generateWordSlideBoard(): WordSlidePuzzleData {
 export function checkWordSlideRow(raw: string): { valid: boolean; points: number; word: string } {
   const word = String(raw ?? "").trim().toUpperCase();
   return { valid: word.length === WS_SIZE && isWord(word), points: 0, word };
+}
+
+/**
+ * The server's replay of a stored answer: on wordSlideRev 4 the last row's swaps apply, and only while every locked
+ * row is a word in the dictionary (a log that locks non-words to open swaps gets nothing from them).
+ */
+export function replayWordSlideFor(puzzle: Pick<WordSlidePuzzleData, "grid" | "wordSlideRev">, tokens: string[]) {
+  return replayWordSlide(puzzle.grid, tokens, slideSwapsOn(puzzle) ? { swaps: true, isWord: (w) => checkWordSlideRow(w).valid } : {});
 }

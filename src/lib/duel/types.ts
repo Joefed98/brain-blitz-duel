@@ -679,6 +679,12 @@ export interface CountUpStage {
    * targetColour is `more` there and targetShape is unused.
    */
   compare?: { more: GlyphColour; less: GlyphColour };
+  /**
+   * countRev 6 (Joe's phone notes, 28 Oct 2026; puzzleNotes.ts), tray 2 only: "shape" counts every shape of
+   * targetShape whatever its colour ("How many triangles?"), "colour" every shape of targetColour ("How many pink
+   * shapes?"). Absent: the colour and the shape together, as every tray before.
+   */
+  ask?: "shape" | "colour";
 }
 
 export interface CountUpPuzzleData {

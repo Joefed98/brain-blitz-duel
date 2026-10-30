@@ -62,6 +62,9 @@ export function countUpQuestion(colour: GlyphColour, shape: SceneShape): string 
 /** The tray's question: a count, or on countRev 2's fourth tray a comparison of two colours. */
 export function countUpStageQuestion(stage: CountUpStage): string {
   if (stage.compare) return `How many more ${tallyColourName(stage.compare.more)} than ${tallyColourName(stage.compare.less)}?`;
+  // countRev 6's second tray: a shape alone or a colour alone.
+  if (stage.ask === "shape") return `How many ${PLURAL[stage.targetShape]}?`;
+  if (stage.ask === "colour") return `How many ${tallyColourName(stage.targetColour)} shapes?`;
   return countUpQuestion(stage.targetColour, stage.targetShape);
 }
 
@@ -475,6 +478,59 @@ function buildCompareStage(total: number): { stage: CountUpStage; count: number 
     if (countUpSceneValid(stage)) return { stage, count: moreCount - lessCount };
   }
   throw new Error(`${gameDisplayName("countup")} comparison tray exhausted visibility attempts`);
+}
+
+/** countRev 6 (puzzleNotes.ts): the second tray's question kind, seeded (rooms deal it once, on the server). */
+export const TALLY_ASK_TRAY = 1;
+export const TALLY_ASK_KINDS = ["both", "shape", "colour"] as const;
+
+/**
+ * countRev 6's "shape" or "colour" tray, on the second tray's size and count range: the asked-for shapes (any
+ * colour, or any kind in the asked colour), a near-miss population just off the question (another shape, or a
+ * colour that is never a look-alike), and fillers that are neither.
+ */
+function buildAskStage(total: number, [min, max]: [number, number], ask: "shape" | "colour"): { stage: CountUpStage; count: number } {
+  const targetShape = pick(SHAPES);
+  const targetColour = pick(COLOURS);
+  const count = randInt(min, max);
+  const near = Math.max(2, count + pick([-2, -1, 1, 2]));
+  const asked = (slot: Slot) => (ask === "shape" ? slot.shape === targetShape : slot.colour === targetColour);
+  const slots: Slot[] = [];
+  if (ask === "shape") {
+    for (let i = 0; i < count; i++) slots.push({ shape: targetShape, colour: pick(COLOURS) });
+    const otherShape = pick(SHAPES.filter((x) => x !== targetShape));
+    for (let i = 0; i < near; i++) slots.push({ shape: otherShape, colour: pick(COLOURS) });
+    while (slots.length < total) {
+      const slot = { shape: pick(SHAPES), colour: pick(COLOURS) };
+      if (!asked(slot)) slots.push(slot);
+    }
+  } else {
+    for (let i = 0; i < count; i++) slots.push({ shape: pick(SHAPES), colour: targetColour });
+    const otherColour = pick(COLOURS.filter((c) => c !== targetColour && !tooClose(c, targetColour)));
+    for (let i = 0; i < near; i++) slots.push({ shape: pick(SHAPES), colour: otherColour });
+    // Fillers never take the asked colour or one that could be mistaken for it.
+    const fillers = COLOURS.filter((c) => c !== targetColour && !tooClose(c, targetColour));
+    while (slots.length < total) slots.push({ shape: pick(SHAPES), colour: pick(fillers) });
+  }
+  for (let attempt = 0; attempt < 200; attempt += 1) {
+    const shapes = spacedLayout(slots, total, asked, 48);
+    const stage = { cols: 10, rows: 10, shapes, targetShape, targetColour, ask } satisfies CountUpStage;
+    if (countUpSceneValid(stage)) return { stage, count };
+  }
+  throw new Error(`${gameDisplayName("countup")} ${ask} tray exhausted visibility attempts`);
+}
+
+/**
+ * countRev 6: the second tray's question is one of three kinds, seeded; "both" keeps the tray countRev 5 dealt, the
+ * other two rebuild it (same size and count range). generate.server.ts calls this once the stamp is dealt.
+ */
+export function varyTallyTray(puzzle: CountUpPuzzleData): CountUpPuzzleData {
+  const ask = pick([...TALLY_ASK_KINDS]);
+  if (ask === "both") return puzzle;
+  const built = buildAskStage(COUNTUP_STAGE_SIZES[TALLY_ASK_TRAY], COUNTUP_STAGE_COUNTS_REV2[TALLY_ASK_TRAY]!, ask);
+  const stages = puzzle.stages.map((stage, i) => (i === TALLY_ASK_TRAY ? built.stage : stage));
+  const counts = puzzle.counts ? puzzle.counts.map((c, i) => (i === TALLY_ASK_TRAY ? built.count : c)) : puzzle.counts;
+  return { ...puzzle, stages, ...(counts ? { counts } : {}) };
 }
 
 export function buildCountUp(): CountUpPuzzleData {

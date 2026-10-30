@@ -104,8 +104,8 @@ import { decodeMatchupRun, replayMatchupRun } from "./matchup";
 import { decodeTileGrid, scoreTileGrid } from "./tileGrid";
 import { judgeTileGrid } from "./tileGrid.server";
 import { balanceRoundScore, balanceScaleCount, balanceScalesSolved, balanceSolvedCount, decodeBalance } from "./balance";
-import { decodeSlideTokens, markedRowWord, replayWordSlide, WS_MARKED_ROWS } from "./wordSlide";
-import { checkWordSlideRow, markedRowsSolved } from "./wordSlide.server";
+import { decodeSlideTokens, markedRowWord, WS_MARKED_ROWS } from "./wordSlide";
+import { checkWordSlideRow, markedRowsSolved, replayWordSlideFor } from "./wordSlide.server";
 import { checkAnswer } from "./puzzles";
 import {
   TAP_LOG_ANSWER_CAP,
@@ -396,7 +396,7 @@ function gradeUnderRev(
     }
     case "wordslide": {
       // Every swipe, Undo and Reset is replayed on the stored grid.
-      const replay = replayWordSlide(puzzle.grid, decodeSlideTokens(answer));
+      const replay = replayWordSlideFor(puzzle, decodeSlideTokens(answer));
       const rows = markedRowsSolved(replay.grid);
       isCorrect = rows === WS_MARKED_ROWS.length;
       correctCount = rows;
