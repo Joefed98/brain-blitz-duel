@@ -965,6 +965,49 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
       // brkRev 11 (the arcade scoring standard): four fixed parts that total 200.
       score: liveBandHelp("breaker", `Every brick destroyed counts 1, the ${BRK_V9_GOLD} gold bricks included.`, { more: "More bricks", good: (u) => `breaks ${u} of the ${BRK_V11_BRICKS}`, finish: `Breaking the other ${BRK_V11_BRICKS - BRK_V9_GOLD} clears the wall and ends the run: clearing adds ${BRK_V11_CLEAR_POINTS}, plus up to ${BRK_V11_SPEED_MAX} for speed, the full ${BRK_V11_SPEED_MAX} with at least half the time left, falling evenly to 0 at the buzzer. Gold bricks add up to ${BRK_V11_GOLD_MAX}, ${BRK_V11_GOLD_MAX / BRK_V9_GOLD} each. Power-ups and combos add nothing extra, and a lost ball costs only time. Bricks ${BRK_V11_CORE_MAX} + clear ${BRK_V11_CLEAR_POINTS} + speed ${BRK_V11_SPEED_MAX} + gold ${BRK_V11_GOLD_MAX} = ${BRK_V11_MAX}.` }),
     },
+    // The Sports group (30 Oct 2026; docs/arcade-standard/homerun.md, freekick.md, racing.md).
+    homerun: {
+      goal: "Hit ten pitches as far as you can.",
+      how: [
+        { action: "Swipe through the ball", detail: "as it reaches the plate." },
+        { action: "Swipe height", detail: "meets the pitch; the angle aims it." },
+        { action: "Signs beyond the fence:", detail: "hit each one once." },
+        { action: "The swing starts", detail: "the moment your finger starts moving, not when it lifts. Start just before the ball reaches the plate.", helpOnly: true },
+        { action: "Height:", detail: "start your swipe level with where the ball will cross the faint box. Too high or too low hits it weakly.", helpOnly: true },
+        { action: "Angle:", detail: "a level swipe hits it to centre field, a rising swipe pulls it to left field, a falling swipe sends it to right. Too steep goes foul.", helpOnly: true },
+        { action: "Ten pitches, one about every 6 seconds:", detail: "fastballs, curves, drops and changeups at different speeds and heights. The chip at the top names each pitch.", helpOnly: true },
+        { action: "The four signs", detail: "stand beyond the fence, so a ball that hits one is always a home run.", helpOnly: true },
+        { action: "Everyone", detail: "faces the same pitches in the same order.", helpOnly: true },
+      ],
+      score: liveStdHelp("homerun", "Every pitch counts the same."),
+    },
+    freekick: {
+      goal: "Score ten free kicks past the wall and the keeper.",
+      how: [
+        { action: "Draw a stroke through the ball:", detail: "its direction aims, its speed is power." },
+        { action: "Bend the stroke", detail: "to curl the shot round the wall." },
+        { action: "Gold targets:", detail: "top corners or the bar." },
+        { action: "No aim line:", detail: "a short trail shows each shot's flight afterwards.", helpOnly: true },
+        { action: "Each kick", detail: "has its own spot, wall, keeper position and wind (the chip at the top). Wind pushes the ball the way its arrow points.", helpOnly: true },
+        { action: "Placement:", detail: "a goal further from the keeper is worth a little more.", helpOnly: true },
+        { action: "A bar target", detail: "counts only if the ball goes in off the bar.", helpOnly: true },
+        { action: "The keeper", detail: "reacts the same way to the same shot every time, for everyone.", helpOnly: true },
+      ],
+      score: liveStdHelp("freekick", "Every kick counts the same."),
+    },
+    racing: {
+      goal: "Drive two laps as fast and as cleanly as you can.",
+      how: [
+        { action: "Joystick:", detail: "left and right steer, push up to go, pull down to brake." },
+        { action: "Let go", detail: "to coast." },
+        { action: "Stay on the tarmac:", detail: "grass and walls cost time." },
+        { action: "Clean sectors:", detail: "the bars on the right light for each sector with no wall or grass contact.", helpOnly: true },
+        { action: "Braking boards", detail: "(150, 100, 50) count down to the tightest corners.", helpOnly: true },
+        { action: "Ghost cars", detail: "show the other players in the room. They can't touch you and passing them scores nothing.", helpOnly: true },
+        { action: "Everyone", detail: "races the same track.", helpOnly: true },
+      ],
+      score: liveStdHelp("racing", "Every metre of the track counts the same."),
+    },
     pinball: {
       goal: "Keep the ball in play and rack up table points.",
       how: [

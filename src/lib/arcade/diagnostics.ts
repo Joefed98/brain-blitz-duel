@@ -40,6 +40,9 @@ import { tiltCheckpoint } from "./tilt";
 import { hotfloorCheckpoint } from "./hotFloor";
 import { snipCheckpoint } from "./snip";
 import { btCheckpoint } from "./ballTrack";
+import { homerunCheckpoint } from "./homerun";
+import { freekickCheckpoint } from "./freekick";
+import { racingCheckpoint } from "./racing";
 import type { InputDiag } from "./engine";
 import { devDisplayAllowed } from "../devDisplay";
 
@@ -51,6 +54,9 @@ const SNAPSHOTS: Record<string, (state: any) => object> = {
   bintoss: binTossCheckpoint,
   breaker: brkCheckpoint,
   pinball: pinCheckpointAny,
+  homerun: homerunCheckpoint,
+  freekick: freekickCheckpoint,
+  racing: racingCheckpoint,
   bubble: bubCheckpoint,
   bullseye: bullseyeCheckpoint,
   cross: crossCheckpoint,

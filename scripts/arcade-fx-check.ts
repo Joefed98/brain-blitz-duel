@@ -16,6 +16,10 @@
  *
  *   bun scripts/arcade-fx-check.ts
  */
+import { ARCADE_GROUPS } from "../src/lib/duel/arcadeGroups";
+import { homerunArtGame } from "../src/lib/arcade/homerun.renderer";
+import { freekickArtGame } from "../src/lib/arcade/freekick.renderer";
+import { racingArtGame } from "../src/lib/arcade/racing.renderer";
 import assert from "node:assert/strict";
 import { createCanvas, Path2D as NapiPath2D } from "@napi-rs/canvas";
 
@@ -145,9 +149,13 @@ const GAMES: Record<string, AnyGame> = {
   } as AnyGame,
   matchup: { ...matchupArtGame, init: matchupRev2Game.init } as AnyGame,
   pinball: pinballArtGame as AnyGame,
+  // The Sports group (30 Oct 2026).
+  homerun: homerunArtGame as AnyGame,
+  freekick: freekickArtGame as AnyGame,
+  racing: racingArtGame as AnyGame,
 };
 
-assert.equal(Object.keys(GAMES).length, 23, "23 arcade games with a world (21 active with Pinball; Junction and Scrumper practice only)");
+assert.equal(Object.keys(GAMES).length, 23 + Object.keys(ARCADE_GROUPS).length, "23 arcade games with a world (21 active with Pinball; Junction and Scrumper practice only), plus the arcade groups' games (arcadeGroups.ts)");
 assert.deepEqual(
   Object.keys(GAMES).sort(),
   Object.keys(specs.ARCADE_FX_SPECS).sort(),

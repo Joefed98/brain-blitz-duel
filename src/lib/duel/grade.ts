@@ -52,6 +52,10 @@ import { decodeBreakerRun, replayBreakerRun } from "./breaker";
 import { breakerStdParts, brkSkillPaid, brkWallSize } from "@/lib/arcade/breaker";
 import { hoverFeatureBonus, hoverStandardParts } from "@/lib/arcade/hover";
 import { decodePinballRun, replayPinballRun } from "./pinball";
+import { decodeHomerunRun, replayHomerunRun } from "./homerun";
+import { decodeFreekickRun, replayFreekickRun } from "./freekick";
+import { decodeRacingRun, replayRacingRun } from "./racing";
+import type { StdPart } from "@/lib/arcade/arcadeStandard";
 import { decodeRallyRun, replayRallyRun } from "./rally";
 import { rallyBonusCount, rallyBonusPoints, rallyBonusPtsOf, RALLY_V12_EXP } from "@/lib/arcade/rally";
 import { decodeSteadyRun, replaySteadyRun } from "./steady";
@@ -1367,6 +1371,43 @@ function gradeUnderRev(
         desyncTick: run.desyncTick,
         inputs: decodeBreakerRun(answer).events.length,
         claimedScore: decodeBreakerRun(answer).claimedScore,
+        ...(run.reason ? { reason: run.reason } : {}),
+      };
+      break;
+    }
+    case "homerun":
+    case "freekick":
+    case "racing": {
+      // The Sports group (30 Oct 2026): as with every arcade game, only the server's own replay scores. Each is born
+      // on the arcade scoring standard; the stored extra carries each part's points (numbers only) for the reveal.
+      const replayStart = performance.now();
+      const field = puzzle.type === "homerun" ? "homerunRev" : puzzle.type === "freekick" ? "freekickRev" : "racingRev";
+      const rev = (puzzle as { homerunRev?: number; freekickRev?: number; racingRev?: number })[field] ?? 1;
+      const run: { score: number; flagged: boolean; clientLag: boolean; clientTick: number; desyncTick: number | null; endedSeconds: number; reason?: string; parts: StdPart[]; state: { acted?: number } } =
+        puzzle.type === "homerun"
+          ? replayHomerunRun(puzzle.seed, answer, rev)
+          : puzzle.type === "freekick"
+            ? replayFreekickRun(puzzle.seed, answer, rev)
+            : replayRacingRun(puzzle.seed, answer, rev);
+      const decoded = puzzle.type === "homerun" ? decodeHomerunRun(answer) : puzzle.type === "freekick" ? decodeFreekickRun(answer) : decodeRacingRun(answer);
+      revealRun = run as unknown as typeof revealRun;
+      arcadeDiag = buildArcadeDiag(puzzle.type, run as unknown as Parameters<typeof buildArcadeDiag>[1], answer, performance.now() - replayStart);
+      if (arcadeDiag.replayMs > 500) console.warn(`[arcade] slow replay ${puzzle.type}: ${arcadeDiag.replayMs}ms`);
+      const core = run.parts.find((part) => part.key === "core")?.points ?? 0;
+      isCorrect = run.score > 0;
+      correctCount = core;
+      score = run.score;
+      extraDetail = {
+        [field]: rev,
+        std: true,
+        ...Object.fromEntries(run.parts.map((part) => [`part_${part.key}`, part.points])),
+        endedSeconds: run.endedSeconds,
+        flagged: run.flagged,
+        clientLag: run.clientLag,
+        clientTick: run.clientTick,
+        desyncTick: run.desyncTick,
+        inputs: decoded.events.length,
+        claimedScore: decoded.claimedScore,
         ...(run.reason ? { reason: run.reason } : {}),
       };
       break;

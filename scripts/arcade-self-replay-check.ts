@@ -16,6 +16,15 @@
  *   bun scripts/arcade-self-replay-check.ts [runsPerGame] [keys,…] [--part=k/n]
  */
 
+import { homerunCheckpoint, homerunGameFor, HOMERUN_REV_STD } from "../src/lib/arcade/homerun";
+import { encodeHomerunRun, replayHomerunRun } from "../src/lib/duel/homerun";
+import { HOMERUN_DEAL } from "../src/lib/duel/homerunDeal.server";
+import { freekickCheckpoint, freekickGameFor, FREEKICK_REV_STD } from "../src/lib/arcade/freekick";
+import { encodeFreekickRun, replayFreekickRun } from "../src/lib/duel/freekick";
+import { FREEKICK_DEAL } from "../src/lib/duel/freekickDeal.server";
+import { racingCheckpoint, racingGameFor, RACING_REV_STD } from "../src/lib/arcade/racing";
+import { encodeRacingRun, replayRacingRun } from "../src/lib/duel/racing";
+import { RACING_DEAL } from "../src/lib/duel/racingDeal.server";
 import {
   inputAt,
   recordInput,
@@ -774,6 +783,11 @@ const GAMES: Game[] = [
   { key: "cross/std", game: crossGameFor(CROSS_REV_STD), checkpoint: crossCheckpoint, mode: "events", rate: 60, encode: encodeCrossRun, replay: (seed: number, raw: string) => replayCrossRun(seed, raw, CROSS_REV_STD) },
   // Grappler's swinging course (swingRev 15, 29 Oct 2026, docs/arcade-standard/swing.md), appended so every earlier entry keeps its index.
   { key: "swing/rework", game: swingGameFor(SWING_REV_REWORK), checkpoint: swingCheckpoint, mode: "events", rate: 30, encode: encodeSwingRun, replay: (seed: number, raw: string) => replaySwingRun(seed, raw, SWING_REV_REWORK) },
+  // The Sports group (30 Oct 2026, docs/arcade-standard/homerun.md, freekick.md, racing.md), appended so every earlier
+  // entry keeps its index: each on its proved deal's seeds.
+  { key: "homerun", game: homerunGameFor(HOMERUN_REV_STD), checkpoint: homerunCheckpoint, mode: "events", rate: 20, encode: encodeHomerunRun, replay: (seed: number, raw: string) => replayHomerunRun(seed, raw, HOMERUN_REV_STD), seedFor: (n: number) => HOMERUN_DEAL[n % HOMERUN_DEAL.length]! },
+  { key: "freekick", game: freekickGameFor(FREEKICK_REV_STD), checkpoint: freekickCheckpoint, mode: "events", rate: 20, encode: encodeFreekickRun, replay: (seed: number, raw: string) => replayFreekickRun(seed, raw, FREEKICK_REV_STD), seedFor: (n: number) => FREEKICK_DEAL[n % FREEKICK_DEAL.length]! },
+  { key: "racing", game: racingGameFor(RACING_REV_STD), checkpoint: racingCheckpoint, mode: "events", rate: 120, encode: encodeRacingRun, replay: (seed: number, raw: string) => replayRacingRun(seed, raw, RACING_REV_STD), seedFor: (n: number) => RACING_DEAL[n % RACING_DEAL.length]! },
 ];
 
 /** A random candidate event, often outside the declared range (a finger off the edge). */

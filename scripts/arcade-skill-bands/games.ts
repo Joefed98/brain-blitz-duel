@@ -66,6 +66,15 @@ import { encodeBullseyeRun, replayBullseyeRun } from "../../src/lib/duel/bullsey
 import { PIN_REV } from "../../src/lib/arcade/pinball";
 import { pinballGameForAny, pinCheckpointAny } from "../../src/lib/arcade/pinball4";
 import { encodePinballRun, replayPinballRun } from "../../src/lib/duel/pinball";
+import { homerunCheckpoint, homerunGameFor, HOMERUN_REV_STD } from "../../src/lib/arcade/homerun";
+import { encodeHomerunRun, replayHomerunRun } from "../../src/lib/duel/homerun";
+import { homerunDealSeed } from "../../src/lib/duel/homerunDeal.server";
+import { freekickCheckpoint, freekickGameFor, FREEKICK_REV_STD } from "../../src/lib/arcade/freekick";
+import { encodeFreekickRun, replayFreekickRun } from "../../src/lib/duel/freekick";
+import { freekickDealSeed } from "../../src/lib/duel/freekickDeal.server";
+import { racingCheckpoint, racingGameFor, RACING_REV_STD } from "../../src/lib/arcade/racing";
+import { encodeRacingRun, replayRacingRun } from "../../src/lib/duel/racing";
+import { racingDealSeed } from "../../src/lib/duel/racingDeal.server";
 
 export interface GameSpec {
   type: PuzzleType;
@@ -241,6 +250,11 @@ export const GAMES: GameSpec[] = [
   // Pinball (practice only until PINBALL_IN_ROOMS): born on the bands, so its one revision is both `live` and `next`.
   // pinRev 4 (E4, 25 Oct 2026): the taller table's game and checkpoint (pinball4.ts) through the same replay path.
   simple("pinball", PIN_REV, PIN_REV, pinballGameForAny, pinCheckpointAny, encodePinballRun, replayPinballRun),
+  // The Sports group (30 Oct 2026): born on the arcade scoring standard (rev 1 is live and next); rooms deal a seed from
+  // each game's proved deal (the oracle took it to 200 through the server replay), picked by the room seed.
+  { ...simple("homerun", HOMERUN_REV_STD, HOMERUN_REV_STD, homerunGameFor, homerunCheckpoint, encodeHomerunRun, replayHomerunRun), seedFor: (n) => homerunDealSeed(roomSeed(n)) },
+  { ...simple("freekick", FREEKICK_REV_STD, FREEKICK_REV_STD, freekickGameFor, freekickCheckpoint, encodeFreekickRun, replayFreekickRun), seedFor: (n) => freekickDealSeed(roomSeed(n)) },
+  { ...simple("racing", RACING_REV_STD, RACING_REV_STD, racingGameFor, racingCheckpoint, encodeRacingRun, replayRacingRun), seedFor: (n) => racingDealSeed(roomSeed(n)) },
 ];
 
 export const GAME_BY_TYPE = new Map(GAMES.map((g) => [g.type, g]));

@@ -11,6 +11,7 @@
  * shared red edge pulse and, where a point is given, the puff at the miss.
  */
 import type { ArcadeFxMiss, ArcadeFxSpec, ArcadeWorld } from "./arcadeFx.renderer";
+import { FREEKICK_FX, HOMERUN_FX, RACING_FX } from "./sportsFx.renderer";
 import { px } from "./engine";
 
 import { HOVER_DISC_X, HOVER_EXPAND_H, HOVER_TALL_H, HOVER_WORLD_H, HOVER_WORLD_W, hoverWorldH, type HoverState } from "./hover";
@@ -266,6 +267,10 @@ export const ARCADE_GAME_WORLDS = {
   balltrack: "toybox",
   matchup: "gem",
   pinball: "retro",
+  // The Sports group (30 Oct 2026): real-world venues (a ballpark, a stadium, a circuit).
+  homerun: "realworld",
+  freekick: "realworld",
+  racing: "realworld",
 } as const satisfies Record<string, ArcadeWorld>;
 
 export type ArcadeFxGame = keyof typeof ARCADE_GAME_WORLDS;
@@ -1714,6 +1719,9 @@ export const ARCADE_FX_SPECS = {
   matchup: fxSpecAt(MATCHUP_FX, MATCHUP_V9_WORLD_H),
 
   pinball: fxSpecAt(PINBALL_FX, 820),
+  homerun: HOMERUN_FX,
+  freekick: FREEKICK_FX,
+  racing: RACING_FX,
 } satisfies Record<ArcadeFxGame, ArcadeFxSpec<never>>;
 
 /* ============================ Engine word games ============================ */

@@ -101,6 +101,10 @@ const WORLD_MUSIC: Partial<Record<PuzzleType, SoundId>> = {
   breaker: "music_breaker",
   // Pinball has no track of its own yet: it borrows Rally's Retro track.
   pinball: "music_rally",
+  // The Sports group (30 Oct 2026) has no tracks of its own yet: it borrows existing real-world beds.
+  homerun: "music_skyline",
+  freekick: "music_cross",
+  racing: "music_junction",
   rally: "music_rally",
   burst: "music_burst",
   orbit: "music_orbit",

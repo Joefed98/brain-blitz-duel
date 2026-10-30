@@ -10,9 +10,9 @@ override anything general here.
 ## What this is
 
 Duelz: a multiplayer skill-game app. Up to 10 players (`MAX_PLAYERS`) join a room with a
-short code and play the same timed rounds; 72 active games across Word, Number, Speed, Attention,
+short code and play the same timed rounds; 75 active games across Word, Number, Speed, Attention,
 Pattern, Logic and Arcade (Word 9, Number 8, Speed 6, Attention 6, Pattern 10, Logic 12 (Trail moved from Number on 27 Oct 2026),
-Arcade 21 with Pinball dealt in rooms; 11 retired to practice: Swerve, Steady, Dual, Ricochet,
+Arcade 24 with Pinball dealt in rooms and, since 30 Oct 2026, the Sports group's three; 11 retired to practice: Swerve, Steady, Dual, Ricochet,
 Bastion, Rooftop Run, Junction, Dig, Hot Floor, since 20 Oct 2026 Letterfall and, since 27 Oct 2026
 (Joe's decision), Scrumper (`snip`: out of room draws and the Practice list's main shelves, in its
 Retired section; stored rounds replay and grade as before; icon and name kept; category-pool-check pins
@@ -781,6 +781,22 @@ Lovable still hosts and publishes the app (https://brain-blitz-duel.lovable.app)
   `scripts/arcade-standard/<type>.ts` (shape in `entry.ts`) and `STANDARD_ROSTER` listing the 21 games of batches A–C and
   Grappler's swingRev 15 (a game dealt on its standard stamp must have an entry). Don't add a second helper, check or docs
   location for a new game: add its entry, its page and its roster line.
+- **The Sports group** (30 Oct 2026; `docs/arcade-standard/homerun.md`, `freekick.md`, `racing.md`): three new arcade
+  games born on the arcade scoring standard at stamp 1, each dealt from a proved deal (`<game>Deal.server.ts`: 300 seeds
+  the game's oracle, `scripts/<game>-oracle.ts`, took to exactly 200 through the server replay; `scripts/<game>-deal.ts
+  [--check]` rebuilds it; `sports.server.ts` deals them). **Home Run Derby** (`homerun`, `homerunRev` 1, 60 s): ten
+  seeded pitches seen from the hitter's eye in a night ballpark; a swipe swings from the tick the finger starts moving
+  (12 px), its start height the contact point and its angle the direction; distance 130 (full at 450 ft a pitch), home
+  runs 50, signs beyond the fence 20. **Free Kick** (`freekick`, `freekickRev` 1, 75 s): ten seeded kicks (spot, wall,
+  keeper, wind); a stroke drawn through the ball aims, curls and powers the shot; goals 130 (10 + up to 3 placement),
+  targets 40, curled round the wall 20, five in a row 10. **Racing** (`racing`, `racingRev` 1, 90 s): two laps of a seeded
+  circuit from a chase camera at sunset, a one-thumb joystick; distance 140, clean sectors 30 (4 a lap), finish 10, speed
+  20 (par 80.8 s); other players in a room show as ghost cars (`raceGhosts.ts`: the room's broadcast channel, display
+  only, no collisions or points). Group map `src/lib/duel/arcadeGroups.ts` (Sports tiles take a green border,
+  `data-group`); counts that pinned 21 arcade games add the group's. Checks: homerun-check, freekick-check,
+  racing-check (each `CHECKS_FULL=1` proves all 300 deal seeds), arcade-standard-check's three entries; bands
+  `bun scripts/<game>-bands.ts`. No intro demos yet (the intros show their stills). Shared effects
+  `sportsFx.renderer.ts`.
 - `src/components/duel/` — room/round screens (PhoneShell, RoundIntro, TimerBar,
   AnswerReveal, ArcadeReveal, WinnerReveal…); `src/components/puzzles/` — shared puzzle
   widgets; `src/lib/fx/` — sound and visual feedback (presentation only).

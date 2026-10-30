@@ -138,6 +138,13 @@ export const MOMENT_TABLE: readonly MomentRow[] = [
   fx("orbit", 0, "streak", "planets", 35, "Planets streak (every 10)", "success", "orbit3"),
   fx("orbit", 1, "final", "all-planets", 95, "All 40 planets", "finish", "orbit3"),
   fx("orbit", 2, "clear", "black-hole", 60, "Through a black hole", "success", "orbit3"),
+  // The Sports group (30 Oct 2026)
+  fx("homerun", 0, "perfect", "home-run", 40, "Home run"),
+  fx("homerun", 1, "streak", "sign-hit", 60, "A sign beyond the fence struck"),
+  fx("freekick", 0, "perfect", "goal-scored", 35, "Goal"),
+  fx("freekick", 1, "streak", "target-hit", 60, "A target hit"),
+  fx("racing", 0, "pop", "clean-sector", 15, "Clean sector"),
+  fx("racing", 1, "clear", "lap-done", 60, "Lap complete", "finish"),
   // High Rise
   fx("skyline", 0, "perfect", "perfect-drop", 20, "Perfect drop"),
   fx("skyline", 1, "streak", "floors", 35, "Floors streak (every 10)"),

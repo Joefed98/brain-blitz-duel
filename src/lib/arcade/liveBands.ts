@@ -36,6 +36,9 @@ import { SWING_REV_REWORK, SWING_REV_STRICT, SWING_V15_BAND_CURVE } from "./swin
 import { BULLSEYE_REV_STD, BULLSEYE_REV_STRICT, BULLSEYE_STD_SPEC, BULLSEYE_V9_BAND_CURVE } from "./bullseye";
 import { PIN_REV_STD, PIN_STD_SPEC, PIN_V6_BAND_CURVE } from "./pinball4";
 import { PIN_REV_STRICT } from "./pinball";
+import { HOMERUN_REV_STD, HOMERUN_STD_SPEC, HOMERUN_V1_BAND_CURVE } from "./homerun";
+import { FREEKICK_REV_STD, FREEKICK_STD_SPEC, FREEKICK_V1_BAND_CURVE } from "./freekick";
+import { RACING_REV_STD, RACING_STD_SPEC, RACING_V1_BAND_CURVE } from "./racing";
 
 export interface LiveBand {
   /** The puzzle field that carries the stamp, and the revision new rounds are dealt. */
@@ -98,6 +101,10 @@ export const LIVE_BANDS = {
   bullseye: { field: "bullRev", rev: BULLSEYE_REV_STD, curve: BULLSEYE_V9_BAND_CURVE, strictRev: BULLSEYE_REV_STRICT, std: BULLSEYE_STD_SPEC },
   // pinRev 6 (29 Oct 2026): the arcade scoring standard (table points on a straight line to 130, four features to 70).
   pinball: { field: "pinRev", rev: PIN_REV_STD, curve: PIN_V6_BAND_CURVE, strictRev: PIN_REV_STRICT, std: PIN_STD_SPEC },
+  // The Sports group (30 Oct 2026), born on the arcade scoring standard (rev 1; no earlier band revision).
+  homerun: { field: "homerunRev", rev: HOMERUN_REV_STD, curve: HOMERUN_V1_BAND_CURVE, std: HOMERUN_STD_SPEC },
+  freekick: { field: "freekickRev", rev: FREEKICK_REV_STD, curve: FREEKICK_V1_BAND_CURVE, std: FREEKICK_STD_SPEC },
+  racing: { field: "racingRev", rev: RACING_REV_STD, curve: RACING_V1_BAND_CURVE, std: RACING_STD_SPEC },
 } as const satisfies Record<string, LiveBand>;
 
 export type LiveBandGame = keyof typeof LIVE_BANDS;

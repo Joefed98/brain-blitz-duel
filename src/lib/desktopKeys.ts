@@ -22,6 +22,7 @@ export const DESKTOP_KEYS: Partial<Record<PuzzleType, readonly (readonly [string
   orbit: [["Space", "release"], ["C", "checkpoint"]],
   pinball: [["← / Z", "left flipper"], ["→ / M", "right flipper"]],
   rally: [["← →", "paddle"]],
+  racing: [["← → / A D", "steer"], ["↑ / W", "accelerate"], ["↓ / S", "brake"]],
   skyline: [["Space", "drop"]],
   snake: [["← → ↑ ↓", "turn"]],
   swing: [["Space (hold)", "grapple"], ["↑ ↓", "reel"]],

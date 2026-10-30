@@ -389,9 +389,11 @@ Grouped by game or screen. These are the cues still missing a sound.
 | Dual | arcade | practice only | **none** | `music_dual` |
 | Fission | arcade | yes | music_burst | `music_burst` |
 | Flightpath | arcade | yes | music_bullseye | `music_bullseye` |
+| Free Kick | arcade | yes | **none** | `music_freekick` |
 | Gemstone | arcade | yes | music_matchup | `music_matchup` |
 | Grappler | arcade | yes | music_swing | `music_swing` |
 | High Rise | arcade | yes | music_skyline | `music_skyline` |
+| Home Run Derby | arcade | yes | **none** | `music_homerun` |
 | Hot Floor | arcade | practice only | **none** | `music_hotfloor` |
 | Hover | arcade | yes | music_hover | `music_hover` |
 | Jaywalk | arcade | yes | music_cross | `music_cross` |
@@ -399,6 +401,7 @@ Grouped by game or screen. These are the cues still missing a sound.
 | Meteor | arcade | yes | music_eatgrow | `music_eatgrow` |
 | Orbit | arcade | yes | music_orbit | `music_orbit` |
 | Pinball | arcade | yes | music_pinball | `music_pinball` |
+| Racing | arcade | yes | **none** | `music_racing` |
 | Rainbow Bridge | arcade | yes | music_inkbridge | `music_inkbridge` |
 | Rally | arcade | yes | music_rally | `music_rally` |
 | Ricochet | arcade | practice only | **none** | `music_ricochet` |
@@ -1801,6 +1804,12 @@ loops are not measured there). Files in `public/sounds/` are listed once per slo
 | `orbit.planets` | effects | `orbit.planets` | 486 |
 | `orbit.all-planets` | effects | `orbit.all-planets` | 486 |
 | `orbit.black-hole` | effects | `orbit.black-hole` | 486 |
+| `homerun.home-run` | effects | **unused** | 486 |
+| `homerun.sign-hit` | effects | **unused** | 486 |
+| `freekick.goal-scored` | effects | **unused** | 486 |
+| `freekick.target-hit` | effects | **unused** | 486 |
+| `racing.clean-sector` | effects | **unused** | 486 |
+| `racing.lap-done` | effects | **unused** | 486 |
 | `skyline.perfect-drop` | effects | `skyline.perfect-drop` | 486 |
 | `skyline.floors` | effects | `skyline.floors` | 486 |
 | `skyline.streak` | effects | `skyline.streak` | 486 |

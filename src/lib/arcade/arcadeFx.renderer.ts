@@ -231,6 +231,10 @@ export const ARCADE_FX_TEXT_COLOURS: Record<string, { fill: string; outline: str
   matchup: { fill: "#FF8FE0", outline: "#1A1030" },
   // Retro Pinball: bumper magenta.
   pinball: { fill: "#FF7AE6", outline: "#000000" },
+  // Sports: floodlight gold.
+  homerun: { fill: "#F2C75C", outline: "#0A0D16" },
+  freekick: { fill: "#F2C75C", outline: "#0A0D16" },
+  racing: { fill: "#FFC46B", outline: "#1A0F08" },
 };
 
 /**

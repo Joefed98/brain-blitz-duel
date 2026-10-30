@@ -1,4 +1,5 @@
 import { PUZZLE_SCORE_REV, puzzleScoreRevOf } from "./puzzleScoreRev";
+import { ARCADE_STANDARD } from "@/lib/arcade/standard";
 import { LAB_STARS } from "./depth/labyrinth";
 import { usesStandard } from "./standard/stamps";
 import { solutionProgress } from "./progressFigures";
@@ -118,6 +119,9 @@ import {
   TILT_TIME_MS,
   HOTFLOOR_TIME_MS,
   PINBALL_TIME_MS,
+  HOMERUN_TIME_MS,
+  FREEKICK_TIME_MS,
+  RACING_TIME_MS,
 } from "./types";
 
 import { TG_TIME_MS, tileGridResultLine } from "./tileGrid";
@@ -140,6 +144,9 @@ type AnswerBuilder = (puzzle: PuzzleData) => string | null;
 /** Types added after the ladder below; their limits are looked up directly. */
 const DIRECT_LIMITS: Partial<Record<PuzzleType, number>> = {
   pinball: PINBALL_TIME_MS,
+  homerun: HOMERUN_TIME_MS,
+  freekick: FREEKICK_TIME_MS,
+  racing: RACING_TIME_MS,
   nonogram: NONO_TIME_MS,
   pairmatch: PAIR_TIME_MS,
   flood: FLOOD_TIME_MS,
@@ -1099,6 +1106,22 @@ const pinballSummary: SummaryBuilder = (result) => {
   };
 };
 
+/**
+ * The Sports group (30 Oct 2026), born on the arcade scoring standard: the stored extra carries each part's points
+ * (`part_<key>`), so the summary names them in the spec's order with its maximums.
+ */
+function sportsSummary(type: "homerun" | "freekick" | "racing"): SummaryBuilder {
+  return (result) => {
+    const spec = ARCADE_STANDARD[type]?.spec;
+    const parts = (spec?.parts ?? []).map((p) => ({ label: p.label, max: p.max, points: Number(result.extra?.[`part_${p.key}`] ?? 0) }));
+    const [core, ...features] = parts;
+    return {
+      summary: core ? `${core.label} ${core.points}/${core.max}` : "",
+      detail: features.map((p) => `${p.label} ${p.points}/${p.max}`),
+    };
+  };
+}
+
 const rallySummary: SummaryBuilder = (result, puzzle) => {
   const hits = Number(result.extra?.["hits"] ?? 0);
   const goldHits = Number(result.extra?.["goldHits"] ?? 0);
@@ -1621,6 +1644,9 @@ export const ROUND_SUMMARIES: Record<PuzzleType, SummaryBuilder> = {
   ricochet: ricoSummary,
   breaker: breakerSummary,
   pinball: pinballSummary,
+  homerun: sportsSummary("homerun"),
+  freekick: sportsSummary("freekick"),
+  racing: sportsSummary("racing"),
   rally: rallySummary,
   steady: steadySummary,
   slice: sliceSummary,
@@ -1710,6 +1736,9 @@ export const CORRECT_ANSWERS: Record<PuzzleType, AnswerBuilder> = {
   ricochet: () => null,
   breaker: () => null,
   pinball: () => null,
+  homerun: () => null,
+  freekick: () => null,
+  racing: () => null,
   rally: () => null,
   steady: () => null,
   slice: () => null,

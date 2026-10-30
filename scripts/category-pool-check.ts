@@ -9,6 +9,7 @@
  * store only puzzle types (round_order) and the host's chosen categories
  * (selected_categories), so moving a game changes no stored round or history.
  */
+import { ARCADE_GROUPS } from "../src/lib/duel/arcadeGroups";
 import { readdirSync, readFileSync } from "node:fs";
 
 import { CATEGORY_ORDER } from "../src/lib/duel/categories";
@@ -54,13 +55,15 @@ for (const type of ["flow", "pipes", "push"] as const) expect(type, "pattern", f
 // Scrumper retired to practice (Joe's decision, 27 Oct 2026); its icon and name stay for history.
 expect("snip", "arcade", true);
 
-// The active pool per category (27 Oct 2026, after Scrumper's retirement, with Trail in Logic): 72 games.
-const POOL: Record<string, number> = { word: 9, number: 8, speed: 6, attention: 6, pattern: 10, logic: 12, arcade: 21 };
+// The active pool per category (27 Oct 2026, after Scrumper's retirement, with Trail in Logic): 72 games, plus the
+// arcade groups' games added since (30 Oct 2026: the Sports group, src/lib/duel/arcadeGroups.ts).
+const GROUPED = Object.keys(ARCADE_GROUPS).length;
+const POOL: Record<string, number> = { word: 9, number: 8, speed: 6, attention: 6, pattern: 10, logic: 12, arcade: 21 + GROUPED };
 for (const [category, want] of Object.entries(POOL)) {
   const got = typesInCategory(category as never).length;
   if (got !== want) fail(`${category}: ${got} active games, want ${want}`);
 }
-if (ACTIVE_PUZZLE_TYPES.length !== 72) fail(`${ACTIVE_PUZZLE_TYPES.length} active games, want 72`);
+if (ACTIVE_PUZZLE_TYPES.length !== 72 + GROUPED) fail(`${ACTIVE_PUZZLE_TYPES.length} active games, want ${72 + GROUPED}`);
 
 // The deleted games and Memory are gone: no registry entry, no category, no draw.
 for (const type of REMOVED_PUZZLE_TYPES)
