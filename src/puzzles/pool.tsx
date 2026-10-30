@@ -4,7 +4,6 @@ import { gameDisplayName } from "@/lib/duel/gameNames";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { ArcadeCanvasStage, type PointerPayload } from "@/components/puzzles/ArcadeCanvasStage";
-import { stdLines } from "@/lib/arcade/arcadeStandard";
 import type { ArcadeGame, ArcadeInputEvent } from "@/lib/arcade/engine";
 import {
   poolCheckpoint,
@@ -274,7 +273,7 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   if (puzzle.type !== "pool") return null;
   const result = replayPoolRun(puzzle.seed, myAnswer ?? "", puzzle.poolRev);
   const parts = poolStdParts(result.state);
-  const lines = parts ? stdLines(parts, result.score, result.state.acted === 1) : [];
+  const lines = parts ? parts.map((part) => `${part.label}: ${part.detail}`) : [];
   const penalty = poolPenalty(result.state);
   if (parts && penalty > 0 && result.state.acted === 1) lines.splice(parts.length, 0, `Fouls: ${result.fouls} → −${penalty}`);
   return (

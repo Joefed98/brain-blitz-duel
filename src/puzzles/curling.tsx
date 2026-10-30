@@ -3,7 +3,6 @@ import { CURLING_FX } from "@/lib/arcade/sportsFx.renderer";
 import { useMemo, useRef, useState } from "react";
 
 import { ArcadeCanvasStage, type PointerPayload } from "@/components/puzzles/ArcadeCanvasStage";
-import { stdLines } from "@/lib/arcade/arcadeStandard";
 import {
   curlingCheckpoint,
   curlingGameFor,
@@ -239,7 +238,7 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
       <p className="whitespace-normal break-words text-center font-mono text-base font-bold text-foreground">
         {result.thrown} of 8 thrown · {result.onButton} on the button · {result.takeouts} of {result.opponents} taken out
       </p>
-      {stdLines(parts, result.score, result.state.acted === 1).map((line) => (
+      {parts.map((part) => `${part.label}: ${part.detail}`).map((line) => (
         <p key={line} className="shrink-0 text-center font-mono text-sm text-muted-foreground">
           {line}
         </p>
