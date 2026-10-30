@@ -108,7 +108,27 @@ function sliceReveal(r: Run, s: number): ArcadeRevealData {
 
 type Builder = (run: Run, score: number) => ArcadeRevealData;
 
+/**
+ * The Sports group (30 Oct 2026: Home Run Derby, Free Kick, Racing), born on the arcade scoring standard: the axis is
+ * the core part, a tile for each feature part (points of its maximum); the lines come from the parts (below).
+ */
+function sportsBuilder(axisLabel: string, finished: (r: Run) => boolean): Builder {
+  return (r) => {
+    const parts = (r["parts"] as { key: string; label: string; points: number; max: number; detail: string }[] | undefined) ?? [];
+    const core = parts.find((p) => p.key === "core");
+    return {
+      axis: { value: core?.points ?? 0, max: core?.max ?? null, label: axisLabel },
+      lines: [],
+      tiles: parts.filter((p) => p.key !== "core").map((p) => ({ label: p.label, value: `${p.points} / ${p.max}` })),
+      outcome: finished(r) ? "finish" : "time",
+    };
+  };
+}
+
 const BUILDERS: Record<string, Builder> = {
+  homerun: sportsBuilder("Distance points", (r) => n(r, "pitches") >= 10),
+  freekick: sportsBuilder("Goal points", (r) => b(r, "finished")),
+  racing: sportsBuilder("Distance points", (r) => b(r, "finished")),
   // Cards & Board (30 Oct 2026; the lines come from each game's standard parts).
   freecell: (r, s) => ({
     axis: { value: n(r, "home"), max: 52, label: "Cards home" },
@@ -297,6 +317,26 @@ const BUILDERS: Record<string, Builder> = {
       outcome: done ? "finish" : n(r, "bricksLeft") > 0 && n(r, "endedSeconds") < 90 ? "crash" : "time",
     };
   },
+  // Cards & Board (30 Oct 2026; the lines come from the standard's parts).
+  minesweeper: (r, s) => ({
+    axis: { value: n(r, "revealed") - n(r, "opening"), max: n(r, "safe") - n(r, "opening"), label: "Safe squares" },
+    lines: [`${n(r, "revealed") - n(r, "opening")} safe squares → ${s}`],
+    tiles: [
+      { label: "Mines hit", value: String(n(r, "hits")) },
+      { label: "Flags", value: String(n(r, "flags")) },
+      { label: "Cleared", value: b(r, "cleared") ? sec(n(r, "clearedSeconds")) : "No" },
+    ],
+    outcome: b(r, "cleared") ? "finish" : "time",
+  }),
+  mahjong: (r, s) => ({
+    axis: { value: n(r, "pairs"), max: 36, label: "Pairs" },
+    lines: [`${n(r, "pairs")} / 36 pairs → ${s}`],
+    tiles: [
+      { label: "Shuffles", value: String(n(r, "shuffles")) },
+      { label: "Cleared", value: b(r, "cleared") ? sec(n(r, "clearedSeconds")) : "No" },
+    ],
+    outcome: b(r, "cleared") ? "finish" : "time",
+  }),
   pinball: (r, s) =>
     // pinRev 6 (the arcade scoring standard; the lines come from its parts): no multiplier tile, its features instead.
     (r["state"] as { rev6?: number } | undefined)?.rev6

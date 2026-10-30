@@ -19,15 +19,15 @@ effects ([arcade-effects.md](arcade-effects.md)) so a sound can be written for e
 
 | Category | Silent | Placeholder | Recorded | Total |
 |---|---|---|---|---|
-| game event | 35 | 0 | 324 | 359 |
+| game event | 35 | 0 | 341 | 376 |
 | room moment | 1 | 0 | 34 | 35 |
 | music | 12 | 0 | 82 | 94 |
 | UI tap | 10 | 0 | 22 | 32 |
 | fail sting | 4 | 0 | 36 | 40 |
-| success sting | 3 | 0 | 68 | 71 |
+| success sting | 3 | 0 | 69 | 72 |
 | ambience | 0 | 1 | 8 | 9 |
-| replay | 0 | 0 | 162 | 162 |
-| **all** | 65 | 1 | 736 | 802 |
+| replay | 0 | 0 | 168 | 168 |
+| **all** | 65 | 1 | 760 | 826 |
 
 ## Silent and placeholder cues
 
@@ -389,9 +389,11 @@ Grouped by game or screen. These are the cues still missing a sound.
 | Dual | arcade | practice only | **none** | `music_dual` |
 | Fission | arcade | yes | music_burst | `music_burst` |
 | Flightpath | arcade | yes | music_bullseye | `music_bullseye` |
+| Free Kick | arcade | yes | **none** | `music_freekick` |
 | Gemstone | arcade | yes | music_matchup | `music_matchup` |
 | Grappler | arcade | yes | music_swing | `music_swing` |
 | High Rise | arcade | yes | music_skyline | `music_skyline` |
+| Home Run Derby | arcade | yes | **none** | `music_homerun` |
 | Hot Floor | arcade | practice only | **none** | `music_hotfloor` |
 | Hover | arcade | yes | music_hover | `music_hover` |
 | Jaywalk | arcade | yes | music_cross | `music_cross` |
@@ -399,6 +401,7 @@ Grouped by game or screen. These are the cues still missing a sound.
 | Meteor | arcade | yes | music_eatgrow | `music_eatgrow` |
 | Orbit | arcade | yes | music_orbit | `music_orbit` |
 | Pinball | arcade | yes | music_pinball | `music_pinball` |
+| Racing | arcade | yes | **none** | `music_racing` |
 | Rainbow Bridge | arcade | yes | music_inkbridge | `music_inkbridge` |
 | Rally | arcade | yes | music_rally | `music_rally` |
 | Ricochet | arcade | practice only | **none** | `music_ricochet` |
@@ -590,6 +593,12 @@ Grouped by game or screen.
 | `skyline.floors` | Floors streak (every 10): the clip reaches the moment's key tick [replays.md] |  | 0–2 per highlight | recorded sound | `skyline.floors` | 250 | replay | `skyline.floors` |
 | `skyline.streak` | Perfect streak: the clip reaches the moment's key tick [replays.md] |  | 0–2 per highlight | recorded sound | `skyline.streak` | 250 | replay | `skyline.streak` |
 | `skyline.wind-perfect` | Perfect drop in the wind: the clip reaches the moment's key tick [replays.md] |  | 0–2 per highlight | recorded sound | `skyline.wind-perfect` | 250 | replay | `skyline.wind-perfect` |
+| `homerun.home-run` | Home run: the clip reaches the moment's key tick [replays.md] |  | 0–2 per highlight | recorded sound | `homerun.home-run` | 250 | replay | `homerun.home-run` |
+| `homerun.sign-hit` | A sign beyond the fence struck: the clip reaches the moment's key tick [replays.md] |  | 0–2 per highlight | recorded sound | `homerun.sign-hit` | 250 | replay | `homerun.sign-hit` |
+| `freekick.goal-scored` | Goal: the clip reaches the moment's key tick [replays.md] |  | 0–2 per highlight | recorded sound | `freekick.goal-scored` | 250 | replay | `freekick.goal-scored` |
+| `freekick.target-hit` | A target hit: the clip reaches the moment's key tick [replays.md] |  | 0–2 per highlight | recorded sound | `freekick.target-hit` | 250 | replay | `freekick.target-hit` |
+| `racing.clean-sector` | Clean sector: the clip reaches the moment's key tick [replays.md] |  | 0–2 per highlight | recorded sound | `racing.clean-sector` | 250 | replay | `racing.clean-sector` |
+| `racing.lap-done` | Lap complete: the clip reaches the moment's key tick [replays.md] |  | 0–2 per highlight | recorded sound | `racing.lap-done` | 250 | replay | `racing.lap-done` |
 | `cross.crossing` | Road crossed: the clip reaches the moment's key tick [replays.md] |  | 0–2 per highlight | recorded sound | `cross.crossing` | 250 | replay | `cross.crossing` |
 | `cross.bikes` | Past the cyclists: the clip reaches the moment's key tick [replays.md] |  | 0–2 per highlight | recorded sound | `cross.bikes` | 250 | replay | `cross.bikes` |
 | `cross.cones` | Through the roadworks: the clip reaches the moment's key tick [replays.md] |  | 0–2 per highlight | recorded sound | `cross.cones` | 250 | replay | `cross.cones` |
@@ -1232,6 +1241,17 @@ Grouped by game or screen.
 | `bullseye.perfect` | Flightpath: Every arrow in the 10 (once per run) [arcade.md] |  | 0–1 | recorded sound | `arc_fair_sting` (shared) | 300 | success sting | `bullseye.perfect` |
 | `music.bullseye` | Flightpath: music_bullseye |  | loop | recorded sound | `music_bullseye` | loop | music | `music_bullseye` |
 
+### Free Kick
+
+| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
+|---|---|---|---|---|---|---|---|---|
+| `freekick.kick` | Free Kick: The ball is struck [arcade.md] |  | 10 | recorded sound | `arc_fair_thud` (shared) | 150 | game event | `freekick.kick` |
+| `freekick.post` | Free Kick: The ball hits a post or the bar [arcade.md] |  | 0–5 | recorded sound | `arc_clank` (shared) | 200 | game event | `freekick.post` |
+| `freekick.save` | Free Kick: The keeper saves (the wall's block, quieter) [arcade.md] |  | 0–10 | recorded sound | `arc_wood_knock` (shared) | 200 | game event | `freekick.save` |
+| `freekick.goal` | Free Kick: A goal [arcade.md] |  | 0–10 | recorded sound | `arc_fair_sting` (shared) | 480 | game event | `freekick.goal` |
+| `freekick.target` | Free Kick: A target hit [arcade.md] |  | 0–4 | recorded sound | `arc_fair_bell` (shared) | 480 | game event | `freekick.target` |
+| `freekick.net` | Free Kick: The ball hits the net [arcade.md] |  | 0–10 | recorded sound | `arc_bounce` (shared) | 200 | game event | `freekick.net` |
+
 ### Gemstone
 
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
@@ -1295,6 +1315,17 @@ Grouped by game or screen.
 | `skyline.streakDrop` | High Rise: A streak bonus drop (skylineRev 2+) [arcade.md] |  | 2–10 | recorded sound | `arc_retro_coin` (shared) | 120 | game event | `skyline.streakDrop` |
 | `skyline.miss` | High Rise: A block misses the tower [arcade.md] |  | 0–1 | recorded sound | `arc_crash` (shared) | 200 | fail sting | `skyline.miss` |
 | `music.skyline` | High Rise: music_skyline |  | loop | recorded sound | `music_skyline` | loop | music | `music_skyline` |
+
+### Home Run Derby
+
+| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
+|---|---|---|---|---|---|---|---|---|
+| `homerun.swing` | Home Run Derby: A swing starts [arcade.md] |  | 10 | recorded sound | `arc_hover_tap` (shared) | 120 | game event | `homerun.swing` |
+| `homerun.crack` | Home Run Derby: Bat meets ball (a fair ball or a home run) [arcade.md] |  | 5–10 | recorded sound | `arc_wood_knock` (shared) | 200 | game event | `homerun.crack` |
+| `homerun.homer` | Home Run Derby: A home run [arcade.md] |  | 0–10 | recorded sound | `arc_fair_sting` (shared) | 480 | game event | `homerun.homer` |
+| `homerun.sign` | Home Run Derby: A sign beyond the fence is struck [arcade.md] |  | 0–4 | recorded sound | `arc_fair_bell` (shared) | 480 | game event | `homerun.sign` |
+| `homerun.foul` | Home Run Derby: A foul ball [arcade.md] |  | 0–5 | recorded sound | `arc_bounce` (shared) | 150 | game event | `homerun.foul` |
+| `homerun.strike` | Home Run Derby: A swing and a miss, or a pitch taken [arcade.md] |  | 0–10 | recorded sound | `arc_fair_thud` (shared) | 150 | game event | `homerun.strike` |
 
 ### Hover
 
@@ -1389,6 +1420,17 @@ Grouped by game or screen.
 | `pinball.spinner` | Pinball: The spinner turns [arcade.md] |  | 5–30 | recorded sound | `pinball.spinner` | 50 | game event | `pinball.spinner` |
 | `pinball.flipper` | Pinball: A flipper is raised (each side once per press) [arcade.md] |  | 50–150 | recorded sound | `pinball.flipper` | 50 | UI tap | `pinball.flipper` |
 | `music.pinball` | Pinball (arcade): music_rally (borrowed from Rally) |  | loop | recorded sound | `music_pinball` | 60000 | music | `music_pinball` |
+
+### Racing
+
+| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
+|---|---|---|---|---|---|---|---|---|
+| `racing.go` | Racing: The race starts [arcade.md] |  | 1 | recorded sound | `arc_horn` (shared) | 300 | game event | `racing.go` |
+| `racing.lap` | Racing: A lap is completed [arcade.md] |  | 1–2 | recorded sound | `arc_fair_bell` (shared) | 480 | game event | `racing.lap` |
+| `racing.sector` | Racing: A clean sector [arcade.md] |  | 0–8 | recorded sound | `arc_retro_coin` (shared) | 200 | game event | `racing.sector` |
+| `racing.wall` | Racing: The car hits the tyre wall [arcade.md] |  | 0–10 | recorded sound | `arc_crash` (shared) | 200 | game event | `racing.wall` |
+| `racing.grass` | Racing: The car runs onto the grass or gravel [arcade.md] |  | 0–20 | recorded sound | `arc_bounce` (shared) | 150 | game event | `racing.grass` |
+| `racing.finish` | Racing: The finish line after lap 2 [arcade.md] |  | 0–1 | recorded sound | `arc_fair_sting` (shared) | 480 | success sting | `racing.finish` |
 
 ### Rainbow Bridge
 
@@ -1586,27 +1628,27 @@ loops are not measured there). Files in `public/sounds/` are listed once per slo
 | `time_up` | effects | `time_up` | 250 |
 | `reveal_score` | effects | `reveal_score` | 140 |
 | `reaction` | effects | `reaction` | 100 |
-| `arc_crash` | effects | `swing.crash`, `skyline.miss`, `junction.crash`, `orbit.crash`, `flip.crash`, `slice.bomb`, `tilt.pitFall`, `tilt.caught` | 200 |
+| `arc_crash` | effects | `swing.crash`, `skyline.miss`, `junction.crash`, `orbit.crash`, `racing.wall`, `flip.crash`, `slice.bomb`, `tilt.pitFall`, `tilt.caught` | 200 |
 | `arc_pickup` | effects | `swing.starTaken`, `orbit.checkpoint`, `flip.starTaken`, `flip.trailStar` | 100 |
 | `arc_space_ambience` | effects | `orbit.ambience` | loop |
 | `arc_thruster` | effects | `orbit.launch` | 160 |
 | `arc_lose_life` | effects | `bubble.reefLost`, `burst.lifeLost`, `cross.lifeLost`, `wavefront.lifeLost` | 220 |
-| `arc_bounce` | effects | `rally.bumperBounce`, `snip.springBounce`, `snip.hook`, `bintoss.missBounce`, `bintoss.wobble` | 80 |
+| `arc_bounce` | effects | `freekick.net`, `homerun.foul`, `racing.grass`, `rally.bumperBounce`, `snip.springBounce`, `snip.hook`, `bintoss.missBounce`, `bintoss.wobble` | 80 |
 | `arc_retro_note` | effects | `hover.gate`, `snake.rockWarn`, `snake.showerAlarm`, `rally.goldHit` | 90 |
 | `arc_retro_pickup` | effects | `breaker.powerUp`, `burst.powerUp`, `wavefront.pierce` | 100 |
 | `arc_retro_blip` | effects | `breaker.relaunch`, `breaker.paddle`, `burst.shot`, `snake.eat`, `rally.hit`, `wavefront.dive` | 50 |
-| `arc_retro_coin` | effects | `breaker.start`, `breaker.fireballLit`, `burst.start`, `burst.freezeCaught`, `skyline.streakDrop`, `hover.start`, `hover.star`, `snake.start`, `rally.start`, `beat.start` | 120 |
+| `arc_retro_coin` | effects | `breaker.start`, `breaker.fireballLit`, `burst.start`, `burst.freezeCaught`, `skyline.streakDrop`, `hover.start`, `hover.star`, `snake.start`, `racing.sector`, `rally.start`, `beat.start` | 120 |
 | `arc_retro_explode` | effects | `whack.bomb`, `breaker.ballLost`, `burst.gameOver`, `hover.crash`, `snake.dead`, `rally.dead` | 260 |
 | `arc_retro_hit` | effects | `breaker.brickHit`, `burst.hit`, `snake.rockLand`, `wavefront.armourHit`, `wavefront.bossHit` | 120 |
-| `arc_fair_thud` | effects | `bullseye.thud` | 160 |
-| `arc_fair_bell` | effects | `bullseye.bull`, `bintoss.allBaskets` | 400 |
+| `arc_fair_thud` | effects | `bullseye.thud`, `freekick.kick`, `homerun.strike` | 160 |
+| `arc_fair_bell` | effects | `bullseye.bull`, `freekick.target`, `homerun.sign`, `racing.lap`, `bintoss.allBaskets` | 400 |
 | `arc_fair_bucket` | effects | `bintoss.basket` | 200 |
-| `arc_fair_sting` | effects | `bullseye.perfect`, `bintoss.perfect` | 300 |
+| `arc_fair_sting` | effects | `bullseye.perfect`, `freekick.goal`, `homerun.homer`, `racing.finish`, `bintoss.perfect` | 300 |
 | `arc_marble_roll` | effects | `balltrack.roll`, `inkbridge.coinRoll`, `tilt.roll` | 400 |
 | `arc_siren` | effects | `swing.dragon`, `junction.siren` | 600 |
-| `arc_wood_knock` | effects | `balltrack.wrong`, `swing.rockLand`, `bintoss.spinnerKnock`, `tilt.knock` | 90 |
-| `arc_clank` | effects | `swing.rockShake`, `skyline.drop`, `junction.newRoad` | 150 |
-| `arc_horn` | effects | `junction.horn` | 400 |
+| `arc_wood_knock` | effects | `balltrack.wrong`, `freekick.save`, `swing.rockLand`, `homerun.crack`, `bintoss.spinnerKnock`, `tilt.knock` | 90 |
+| `arc_clank` | effects | `freekick.post`, `swing.rockShake`, `skyline.drop`, `junction.newRoad` | 150 |
+| `arc_horn` | effects | `junction.horn`, `racing.go` | 400 |
 | `arc_latch` | effects | `balltrack.switch`, `pinball.bankReset`, `tilt.gate` | 100 |
 | `arc_marble_clink` | effects | `balltrack.marbleHome`, `inkbridge.coinLand`, `tilt.mazeDone`, `tilt.cup` | 120 |
 | `arc_sea_pop` | effects | `bubble.pop`, `bullseye.balloonPop` | 80 |
@@ -1617,7 +1659,7 @@ loops are not measured there). Files in `public/sounds/` are listed once per slo
 | `arc_rope_cut` | effects | `snip.cut` | 230 |
 | `arc_grapple` | effects | `swing.grapple` | 450 |
 | `arc_gravity_flip` | effects | `flip.flip` | 330 |
-| `arc_hover_tap` | effects | `arc_hover_tap` | 110 |
+| `arc_hover_tap` | effects | `homerun.swing`, `arc_hover_tap` | 110 |
 | `arc_gem_match` | effects | `arc_gem_match` | 400 |
 | `arc_ketchup` | effects | `arc_ketchup` | 230 |
 | `arc_knife_slice` | effects | `slice.cut` | 300 |
@@ -1801,6 +1843,12 @@ loops are not measured there). Files in `public/sounds/` are listed once per slo
 | `orbit.planets` | effects | `orbit.planets` | 486 |
 | `orbit.all-planets` | effects | `orbit.all-planets` | 486 |
 | `orbit.black-hole` | effects | `orbit.black-hole` | 486 |
+| `homerun.home-run` | effects | `homerun.home-run` | 486 |
+| `homerun.sign-hit` | effects | `homerun.sign-hit` | 486 |
+| `freekick.goal-scored` | effects | `freekick.goal-scored` | 486 |
+| `freekick.target-hit` | effects | `freekick.target-hit` | 486 |
+| `racing.clean-sector` | effects | `racing.clean-sector` | 486 |
+| `racing.lap-done` | effects | `racing.lap-done` | 486 |
 | `skyline.perfect-drop` | effects | `skyline.perfect-drop` | 486 |
 | `skyline.floors` | effects | `skyline.floors` | 486 |
 | `skyline.streak` | effects | `skyline.streak` | 486 |

@@ -12,6 +12,11 @@ import * as pinball from "./pinball";
 import * as rally from "./rally";
 import * as bubble from "./bubble";
 import * as beat from "./beat";
+import * as minesweeper from "./minesweeper";
+import * as mahjong from "./mahjong";
+import * as homerun from "./homerun";
+import * as freekick from "./freekick";
+import * as racing from "./racing";
 import * as freecell from "./freecell";
 import * as tripeaks from "./tripeaks";
 import * as pokersquares from "./pokersquares";
@@ -29,19 +34,15 @@ export const ARCADE_STANDARD: Readonly<Record<string, ArcadeStdEntry>> = {
   rally,
   bubble,
   beat,
+  minesweeper,
+  mahjong,
+  homerun,
+  freekick,
+  racing,
   freecell,
   tripeaks,
   pokersquares,
 };
-
-/**
- * The arcade games born on the standard (their standard spec is revision 1: no earlier revision was ever dealt), in
- * registry order of this table. The count pins (category-pool-check, round-max-check, arcade-fx-check) read their
- * totals from it, so each new game adds itself by joining the standard.
- */
-export const ARCADE_BORN_ON_STANDARD: readonly string[] = Object.entries(ARCADE_STANDARD)
-  .filter(([, e]) => e.spec?.rev === 1)
-  .map(([type]) => type);
 
 /** The standard parts of a final state, or null when the game or the state's revision is not on the standard. */
 export function arcadeStdParts(type: string, state: unknown): StdPart[] | null {

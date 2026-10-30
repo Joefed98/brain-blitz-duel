@@ -16,6 +16,15 @@
  *   bun scripts/arcade-self-replay-check.ts [runsPerGame] [keys,…] [--part=k/n]
  */
 
+import { homerunCheckpoint, homerunGameFor, HOMERUN_CHECKPOINT_INTERVAL, HOMERUN_REV_STD } from "../src/lib/arcade/homerun";
+import { encodeHomerunRun, replayHomerunRun } from "../src/lib/duel/homerun";
+import { HOMERUN_DEAL } from "../src/lib/duel/homerunDeal.server";
+import { freekickCheckpoint, freekickGameFor, FREEKICK_CHECKPOINT_INTERVAL, FREEKICK_REV_STD } from "../src/lib/arcade/freekick";
+import { encodeFreekickRun, replayFreekickRun } from "../src/lib/duel/freekick";
+import { FREEKICK_DEAL } from "../src/lib/duel/freekickDeal.server";
+import { racingCheckpoint, racingGameFor, RACING_CHECKPOINT_INTERVAL, RACING_REV_STD } from "../src/lib/arcade/racing";
+import { encodeRacingRun, replayRacingRun } from "../src/lib/duel/racing";
+import { RACING_DEAL } from "../src/lib/duel/racingDeal.server";
 import {
   inputAt,
   recordInput,
@@ -138,6 +147,10 @@ import { RALLY_REV_STD } from "@/lib/arcade/rally";
 import { BUB_REV_STD } from "@/lib/arcade/bubble";
 import { BEAT_REV_STD } from "@/lib/arcade/beat";
 import { encodePinballRun, replayPinballRun } from "@/lib/duel/pinball";
+import { minesCheckpoint, minesweeperGameFor, MINES_REV_STD } from "@/lib/arcade/minesweeper";
+import { encodeMinesweeperRun, replayMinesweeperRun } from "@/lib/duel/minesweeper";
+import { mahjongCheckpoint, mahjongGameFor, MAHJONG_REV_STD } from "@/lib/arcade/mahjong";
+import { encodeMahjongRun, replayMahjongRun } from "@/lib/duel/mahjong";
 import { fcCheckpoint, freecellGame } from "@/lib/arcade/cards/freecell";
 import { tpCheckpoint, tripeaksGame } from "@/lib/arcade/cards/tripeaks";
 import { psCheckpoint, pokerSquaresGame } from "@/lib/arcade/cards/pokerSquares";
@@ -184,6 +197,8 @@ interface Game {
   gameFor?: (seed: number) => any;
   /** Picks a seed live rooms could actually be dealt (e.g. a bank entry); default random. */
   seedFor?: (n: number) => number;
+  /** The game's checkpoint interval in ticks, when it is not INTERVAL (the run's server replay checks at its own). */
+  interval?: number;
 }
 
 /** Ball Tracker: the server deals a bank course; the replay is against that stored course. */
@@ -778,6 +793,15 @@ const GAMES: Game[] = [
   { key: "cross/std", game: crossGameFor(CROSS_REV_STD), checkpoint: crossCheckpoint, mode: "events", rate: 60, encode: encodeCrossRun, replay: (seed: number, raw: string) => replayCrossRun(seed, raw, CROSS_REV_STD) },
   // Grappler's swinging course (swingRev 15, 29 Oct 2026, docs/arcade-standard/swing.md), appended so every earlier entry keeps its index.
   { key: "swing/rework", game: swingGameFor(SWING_REV_REWORK), checkpoint: swingCheckpoint, mode: "events", rate: 30, encode: encodeSwingRun, replay: (seed: number, raw: string) => replaySwingRun(seed, raw, SWING_REV_REWORK) },
+  // Cards & Board (30 Oct 2026, docs/arcade-standard/minesweeper.md and mahjong.md), appended so every earlier entry keeps
+  // its index: Minesweeper minesRev 1 (random reveals and flags) and Mahjong Solitaire mahjongRev 1 (random taps and Shuffles).
+  { key: "minesweeper", game: minesweeperGameFor(MINES_REV_STD), checkpoint: minesCheckpoint, mode: "events", rate: 60, encode: encodeMinesweeperRun, replay: (seed: number, raw: string) => replayMinesweeperRun(seed, raw, MINES_REV_STD) },
+  { key: "mahjong", game: mahjongGameFor(MAHJONG_REV_STD), checkpoint: mahjongCheckpoint, mode: "events", rate: 80, encode: encodeMahjongRun, replay: (seed: number, raw: string) => replayMahjongRun(seed, raw, MAHJONG_REV_STD) },
+  // The Sports group (30 Oct 2026, docs/arcade-standard/homerun.md, freekick.md, racing.md), appended so every earlier
+  // entry keeps its index: each on its proved deal's seeds.
+  { key: "homerun", interval: HOMERUN_CHECKPOINT_INTERVAL, game: homerunGameFor(HOMERUN_REV_STD), checkpoint: homerunCheckpoint, mode: "events", rate: 20, encode: encodeHomerunRun, replay: (seed: number, raw: string) => replayHomerunRun(seed, raw, HOMERUN_REV_STD), seedFor: (n: number) => HOMERUN_DEAL[n % HOMERUN_DEAL.length]! },
+  { key: "freekick", interval: FREEKICK_CHECKPOINT_INTERVAL, game: freekickGameFor(FREEKICK_REV_STD), checkpoint: freekickCheckpoint, mode: "events", rate: 20, encode: encodeFreekickRun, replay: (seed: number, raw: string) => replayFreekickRun(seed, raw, FREEKICK_REV_STD), seedFor: (n: number) => FREEKICK_DEAL[n % FREEKICK_DEAL.length]! },
+  { key: "racing", interval: RACING_CHECKPOINT_INTERVAL, game: racingGameFor(RACING_REV_STD), checkpoint: racingCheckpoint, mode: "events", rate: 120, encode: encodeRacingRun, replay: (seed: number, raw: string) => replayRacingRun(seed, raw, RACING_REV_STD), seedFor: (n: number) => RACING_DEAL[n % RACING_DEAL.length]! },
   // Cards & Board (30 Oct 2026), appended so every earlier entry keeps its index: FreeCell, TriPeaks and Poker Squares at
   // revision 1. FreeCell and TriPeaks deal a bank index (any seed maps onto the bank).
   { key: "freecell", game: freecellGame, checkpoint: fcCheckpoint, mode: "events", rate: 120, encode: encodeFreecellRun, replay: (seed: number, raw: string) => replayFreecellRun(seed, raw, 1), seedFor: (n: number) => n % 300 },
@@ -881,7 +905,7 @@ for (const index of selected) {
         input = inputAt(events, t);
       }
       state = game.step(state, input);
-      if (state.tick % INTERVAL === 0) checkpoints.push(spec.checkpoint(state));
+      if (state.tick % (spec.interval ?? INTERVAL) === 0) checkpoints.push(spec.checkpoint(state));
     }
     const score = game.score(state);
     const body = {

@@ -85,6 +85,11 @@ export type PuzzleType =
   | "checkout"
   | "numline"
   | "pinball"
+  | "minesweeper"
+  | "mahjong"
+  | "homerun"
+  | "freekick"
+  | "racing"
   | "freecell"
   | "tripeaks"
   | "pokersquares";
@@ -399,6 +404,11 @@ export type PuzzleData =
   | TiltPuzzleData
   | HotFloorPuzzleData
   | PinballPuzzleData
+  | MinesweeperPuzzleData
+  | MahjongPuzzleData
+  | HomerunPuzzleData
+  | FreekickPuzzleData
+  | RacingPuzzleData
   | FreecellPuzzleData
   | TripeaksPuzzleData
   | PokerSquaresPuzzleData;
@@ -1916,6 +1926,63 @@ export interface PinballPuzzleData {
   seed: number;
   /** Rules revision (1 = the first table, scored on the Oct 2026 band shape; 4 the taller table; 5 it for 90 s). */
   pinRev?: number;
+}
+
+/* ====================== Cards & Board (30 Oct 2026) ====================== */
+
+/** Minesweeper: a 90 s run on a 93 s clock (the round clock adds three seconds of slack). */
+export const MINESWEEPER_TIME_MS = 93_000;
+
+export interface MinesweeperPuzzleData {
+  type: "minesweeper";
+  /** Deals the board (mines and the opening) in the sim, identical for everyone; solvable by logic alone. */
+  seed: number;
+  /** Rules revision (1 = the first board, on the arcade scoring standard). */
+  minesRev?: number;
+}
+
+/** Mahjong Solitaire: a 120 s run on a 123 s clock. */
+export const MAHJONG_TIME_MS = 123_000;
+
+export interface MahjongPuzzleData {
+  type: "mahjong";
+  /** Deals the faces (built backwards, so the board clears) in the sim, identical for everyone. */
+  seed: number;
+  /** Rules revision (1 = the first stack, on the arcade scoring standard). */
+  mahjongRev?: number;
+}
+
+/* =========================== Sports (Oct 2026) =========================== */
+
+/** Home Run Derby's 60-second, ten-pitch run; the round clock adds three of slack (63 s). */
+export const HOMERUN_TIME_MS = 63_000;
+/** Free Kick's 75-second, ten-kick run, plus three of slack. */
+export const FREEKICK_TIME_MS = 78_000;
+/** Racing's 90-second, two-lap race, plus three of slack. */
+export const RACING_TIME_MS = 93_000;
+
+export interface HomerunPuzzleData {
+  type: "homerun";
+  /** A proved seed (homerunDeal.server.ts): the whole pitch sequence and the signs come from it, identical for everyone. */
+  seed: number;
+  /** Rules revision (1 = the first run, on the arcade scoring standard). */
+  homerunRev?: number;
+}
+
+export interface FreekickPuzzleData {
+  type: "freekick";
+  /** A proved seed (freekickDeal.server.ts): every kick's spot, wall, keeper, wind and the targets. */
+  seed: number;
+  /** Rules revision (1 = the first run, on the arcade scoring standard). */
+  freekickRev?: number;
+}
+
+export interface RacingPuzzleData {
+  type: "racing";
+  /** A proved seed (racingDeal.server.ts): the track, identical for everyone. */
+  seed: number;
+  /** Rules revision (1 = the first race, on the arcade scoring standard). */
+  racingRev?: number;
 }
 
 /* ============================ Cards & Board ============================= */

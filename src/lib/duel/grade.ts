@@ -52,6 +52,13 @@ import { decodeBreakerRun, replayBreakerRun } from "./breaker";
 import { breakerStdParts, brkSkillPaid, brkWallSize } from "@/lib/arcade/breaker";
 import { hoverFeatureBonus, hoverStandardParts } from "@/lib/arcade/hover";
 import { decodePinballRun, replayPinballRun } from "./pinball";
+import { decodeMinesweeperRun, replayMinesweeperRun } from "./minesweeper";
+import { decodeMahjongRun, replayMahjongRun } from "./mahjong";
+import { MINES_SAFE } from "@/lib/arcade/minesweeper";
+import { decodeHomerunRun, replayHomerunRun } from "./homerun";
+import { decodeFreekickRun, replayFreekickRun } from "./freekick";
+import { decodeRacingRun, replayRacingRun } from "./racing";
+import type { StdPart } from "@/lib/arcade/arcadeStandard";
 import { decodeRallyRun, replayRallyRun } from "./rally";
 import { rallyBonusCount, rallyBonusPoints, rallyBonusPtsOf, RALLY_V12_EXP } from "@/lib/arcade/rally";
 import { decodeSteadyRun, replaySteadyRun } from "./steady";
@@ -1374,6 +1381,43 @@ function gradeUnderRev(
       };
       break;
     }
+    case "homerun":
+    case "freekick":
+    case "racing": {
+      // The Sports group (30 Oct 2026): as with every arcade game, only the server's own replay scores. Each is born
+      // on the arcade scoring standard; the stored extra carries each part's points (numbers only) for the reveal.
+      const replayStart = performance.now();
+      const field = puzzle.type === "homerun" ? "homerunRev" : puzzle.type === "freekick" ? "freekickRev" : "racingRev";
+      const rev = (puzzle as { homerunRev?: number; freekickRev?: number; racingRev?: number })[field] ?? 1;
+      const run: { score: number; flagged: boolean; clientLag: boolean; clientTick: number; desyncTick: number | null; endedSeconds: number; reason?: string; parts: StdPart[]; state: { acted?: number } } =
+        puzzle.type === "homerun"
+          ? replayHomerunRun(puzzle.seed, answer, rev)
+          : puzzle.type === "freekick"
+            ? replayFreekickRun(puzzle.seed, answer, rev)
+            : replayRacingRun(puzzle.seed, answer, rev);
+      const decoded = puzzle.type === "homerun" ? decodeHomerunRun(answer) : puzzle.type === "freekick" ? decodeFreekickRun(answer) : decodeRacingRun(answer);
+      revealRun = run as unknown as typeof revealRun;
+      arcadeDiag = buildArcadeDiag(puzzle.type, run as unknown as Parameters<typeof buildArcadeDiag>[1], answer, performance.now() - replayStart);
+      if (arcadeDiag.replayMs > 500) console.warn(`[arcade] slow replay ${puzzle.type}: ${arcadeDiag.replayMs}ms`);
+      const core = run.parts.find((part) => part.key === "core")?.points ?? 0;
+      isCorrect = run.score > 0;
+      correctCount = core;
+      score = run.score;
+      extraDetail = {
+        [field]: rev,
+        std: true,
+        ...Object.fromEntries(run.parts.map((part) => [`part_${part.key}`, part.points])),
+        endedSeconds: run.endedSeconds,
+        flagged: run.flagged,
+        clientLag: run.clientLag,
+        clientTick: run.clientTick,
+        desyncTick: run.desyncTick,
+        inputs: decoded.events.length,
+        claimedScore: decoded.claimedScore,
+        ...(run.reason ? { reason: run.reason } : {}),
+      };
+      break;
+    }
     case "pinball": {
       // As with every arcade game, only the server's own replay scores.
       const replayStart = performance.now();
@@ -1487,6 +1531,66 @@ function gradeUnderRev(
         desyncTick: run.desyncTick,
         inputs: decodePokerSquaresRun(answer).events.length,
         claimedScore: decodePokerSquaresRun(answer).claimedScore,
+        ...(run.reason ? { reason: run.reason } : {}),
+      };
+      break;
+    }
+    // Cards & Board (30 Oct 2026): the board is dealt from the stored seed and the run replayed; only that scores.
+    case "minesweeper": {
+      const replayStart = performance.now();
+      const run = replayMinesweeperRun(puzzle.seed, answer, puzzle.minesRev);
+      revealRun = run;
+      arcadeDiag = buildArcadeDiag(puzzle.type, run, answer, performance.now() - replayStart);
+      if (arcadeDiag.replayMs > 500)
+        console.warn(`[arcade] slow replay ${puzzle.type}: ${arcadeDiag.replayMs}ms`);
+      isCorrect = run.cleared;
+      correctCount = run.revealed - run.opening;
+      score = run.score;
+      extraDetail = {
+        minesRev: puzzle.minesRev ?? 1,
+        revealed: run.revealed,
+        opening: run.opening,
+        safe: MINES_SAFE,
+        hits: run.hits,
+        flags: run.flags,
+        chords: run.chords,
+        cleared: run.cleared,
+        clearedSeconds: run.clearedSeconds,
+        endedSeconds: run.endedSeconds,
+        flagged: run.flagged,
+        clientLag: run.clientLag,
+        clientTick: run.clientTick,
+        desyncTick: run.desyncTick,
+        inputs: decodeMinesweeperRun(answer).events.length,
+        claimedScore: decodeMinesweeperRun(answer).claimedScore,
+        ...(run.reason ? { reason: run.reason } : {}),
+      };
+      break;
+    }
+    case "mahjong": {
+      const replayStart = performance.now();
+      const run = replayMahjongRun(puzzle.seed, answer, puzzle.mahjongRev);
+      revealRun = run;
+      arcadeDiag = buildArcadeDiag(puzzle.type, run, answer, performance.now() - replayStart);
+      if (arcadeDiag.replayMs > 500)
+        console.warn(`[arcade] slow replay ${puzzle.type}: ${arcadeDiag.replayMs}ms`);
+      isCorrect = run.cleared;
+      correctCount = run.pairs;
+      score = run.score;
+      extraDetail = {
+        mahjongRev: puzzle.mahjongRev ?? 1,
+        pairs: run.pairs,
+        shuffles: run.shuffles,
+        misses: run.misses,
+        cleared: run.cleared,
+        clearedSeconds: run.clearedSeconds,
+        endedSeconds: run.endedSeconds,
+        flagged: run.flagged,
+        clientLag: run.clientLag,
+        clientTick: run.clientTick,
+        desyncTick: run.desyncTick,
+        inputs: decodeMahjongRun(answer).events.length,
+        claimedScore: decodeMahjongRun(answer).claimedScore,
         ...(run.reason ? { reason: run.reason } : {}),
       };
       break;

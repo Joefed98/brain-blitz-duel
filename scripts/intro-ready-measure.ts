@@ -19,6 +19,7 @@ import { spawn, type ChildProcess } from "node:child_process";
 import { existsSync } from "node:fs";
 
 import { gameDisplayName } from "../src/lib/duel/gameNames";
+import { showPracticeSide } from "./practice-side-lib";
 
 const args = process.argv.slice(2);
 const URL_ARG = args.find((a) => a.startsWith("--url="))?.slice(6);
@@ -60,6 +61,7 @@ try {
     for (const game of GAMES) {
       const page = await browser.newPage({ viewport: { width, height } });
       await page.goto(`${origin}/practice`, { waitUntil: "domcontentloaded" });
+      await showPracticeSide(page, game);
       const button = page.getByRole("button", { name: gameDisplayName(game as never), exact: true }).first();
       try {
         await button.waitFor({ timeout: ALL ? 15_000 : 60_000 });

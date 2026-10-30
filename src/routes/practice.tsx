@@ -29,7 +29,6 @@ import {
   PUZZLE_REGISTRY,
   RETIRED_PUZZLE_TYPES,
   PREVIEW_PUZZLE_TYPES,
-  gameCounts,
   puzzleCategories,
   puzzleDef,
   puzzleDurationMs,
@@ -66,6 +65,14 @@ import { useSignatureVerdict } from "@/lib/fx/useSignature";
 import { GameIcon } from "@/components/app/GameIcon";
 import { notePracticePlayed, recentPracticeTypes } from "@/lib/duel/practiceRecent";
 import type { PuzzleCategory } from "@/lib/duel/types";
+import { ARCADE_GROUPS, arcadeGroupInfo, arcadeGroupOf, arcadeGroupTypes, type ArcadeGroup } from "@/lib/duel/arcadeGroups";
+import {
+  practiceSideCounts,
+  practiceSideOf,
+  readPracticeSide,
+  rememberPracticeSide,
+  type PracticeSide,
+} from "@/lib/duel/practiceSide";
 
 export const Route = createFileRoute("/practice")({
   ssr: false,
@@ -151,19 +158,36 @@ function categoryLabel(category: PuzzleCategory): string {
 }
 
 type PracticeFilter = PuzzleCategory | "all";
+type ArcadeFilter = ArcadeGroup | "all";
 
-/** The games rooms deal (the title's "72 games"). */
-const ACTIVE_GAME_COUNT = (() => {
-  const counts = gameCounts();
-  return counts.puzzle + counts.arcade;
-})();
+/** The switch's counts (practiceSide.ts, from the registry: the active games on each side). */
+const SIDE_COUNTS = practiceSideCounts();
 
-/** The list's chips and search: the game's name or category, any case. */
-function matchesFilter(type: PuzzleType, filter: PracticeFilter, query: string): boolean {
+/** The Arcade side's chips: three across, Cards & Board over two columns (no sideways scrolling). */
+const ARCADE_CHIPS: { id: ArcadeFilter; label: string; span?: 2 }[] = [
+  { id: "all", label: "All games" },
+  { id: "retro", label: arcadeGroupInfo("retro").label },
+  { id: "sports", label: arcadeGroupInfo("sports").label },
+  { id: "cards", label: arcadeGroupInfo("cards").label, span: 2 },
+  { id: "action", label: arcadeGroupInfo("action").label },
+];
+
+/**
+ * The list's chips and search, scoped to the side shown: the game's name or category (on the Arcade
+ * side also its group), any case. A game on the other side never matches.
+ */
+function matchesFilter(type: PuzzleType, side: PracticeSide, filter: PracticeFilter | ArcadeFilter, query: string): boolean {
+  if (practiceSideOf(type) !== side) return false;
   const definition = PUZZLE_REGISTRY[type];
-  if (filter !== "all" && definition.category !== filter) return false;
+  const group = arcadeGroupOf(type);
+  if (filter !== "all") {
+    if (side === "puzzles" && definition.category !== filter) return false;
+    if (side === "arcade" && group !== filter) return false;
+  }
   const q = query.trim().toLowerCase();
-  return q === "" || definition.name.toLowerCase().includes(q) || definition.category.includes(q);
+  if (q === "") return true;
+  if (definition.name.toLowerCase().includes(q) || definition.category.includes(q)) return true;
+  return group !== null && arcadeGroupInfo(group).label.toLowerCase().includes(q);
 }
 
 /** The signature verdict for a graded practice run. */
@@ -180,8 +204,18 @@ function practiceVerdict(graded: Graded) {
 
 function PracticeScreen() {
   const [stage, setStage] = useState<Stage>("list");
-  const [filter, setFilter] = useState<PracticeFilter>("all");
+  const [side, setSideState] = useState<PracticeSide>(readPracticeSide);
+  const [puzzleFilter, setPuzzleFilter] = useState<PracticeFilter>("all");
+  const [arcadeFilter, setArcadeFilter] = useState<ArcadeFilter>("all");
   const [query, setQuery] = useState("");
+  // The switch: remembered on this device; the search starts empty on the other side.
+  const setSide = useCallback((next: PracticeSide) => {
+    rememberPracticeSide(next);
+    setSideState((was) => {
+      if (was !== next) setQuery("");
+      return next;
+    });
+  }, []);
   const search = Route.useSearch() as { game?: string };
   const navigate = useNavigate();
   // A new version reloads only on the list, never mid-run (lib/appUpdate).
@@ -446,11 +480,17 @@ function PracticeScreen() {
   // Practice's reveal stays until Play again or Back (27 Oct 2026): no separate result page.
 
   if (stage === "list") {
-    const visible = (key: PuzzleType) => matchesFilter(key, filter, query);
-    const groups = puzzleCategories()
-      .map((category) => ({ category, rows: typesInCategory(category).filter(visible) }))
-      .filter((group) => group.rows.length > 0);
-    const matches = groups.flatMap((group) => group.rows);
+    const filter = side === "puzzles" ? puzzleFilter : arcadeFilter;
+    const visible = (key: PuzzleType) => matchesFilter(key, side, filter, query);
+    // Puzzles: one section per category (Arcade is the other side). Arcade: one section per group.
+    const groups: { id: string; label: string; dot: string; rows: PuzzleType[] }[] =
+      side === "puzzles"
+        ? puzzleCategories()
+            .filter((category) => category !== "arcade")
+            .map((category) => ({ id: category, label: categoryLabel(category), dot: category, rows: typesInCategory(category).filter(visible) }))
+        : ARCADE_GROUPS.map((group) => ({ id: group.id, label: group.label, dot: group.id, rows: arcadeGroupTypes(group.id).filter(visible) }));
+    const shown = groups.filter((group) => group.rows.length > 0);
+    const matches = shown.flatMap((group) => group.rows);
     const previewRows = PREVIEW_PUZZLE_TYPES.filter(visible);
     const retiredRows = RETIRED_PUZZLE_TYPES.filter(
       (key) => !PREVIEW_PUZZLE_TYPES.includes(key),
@@ -474,8 +514,8 @@ function PracticeScreen() {
         <RowBest type={key} />
       </button>
     );
-    // A heading over a list: the category's dot, its name and count, and the BEST label over the column.
-    const listHead = (title: string, count: number, dot?: PuzzleCategory) => (
+    // A heading over a list: the category's (or group's) dot, its name and count, and the BEST label over the column.
+    const listHead = (title: string, count: number, dot?: string) => (
       <div className="ap-col-head">
         {dot ? <span aria-hidden="true" data-dot={dot} data-size="10" className="ap-dot" /> : null}
         <h2 className="ap-section-title">{title}</h2>
@@ -487,17 +527,41 @@ function PracticeScreen() {
         </span>
       </div>
     );
-    // Recently played (practiceRecent.ts), with All and no search: up to four, each with its best.
-    const recentRows = filter === "all" && query.trim() === "" ? recentPracticeTypes().filter(isLiveType).slice(0, 4) : [];
+    // Recently played (practiceRecent.ts), with All and no search: up to four of this side's games, each with its best.
+    const recentRows =
+      filter === "all" && query.trim() === ""
+        ? recentPracticeTypes()
+            .filter(isLiveType)
+            .filter((key) => practiceSideOf(key) === side)
+            .slice(0, 4)
+        : [];
+    const searchLabel = side === "puzzles" ? "Search puzzles" : "Search arcade games";
+    // A chosen group with no games yet (Cards & Board until its games are registered).
+    const emptyGroup =
+      side === "arcade" && arcadeFilter !== "all" && query.trim() === "" && matches.length === 0 ? arcadeGroupInfo(arcadeFilter) : null;
     return (
       <PhoneShell tabs="practice">
         <div className="ap-stack">
-          <div>
-            <div className="flex items-baseline justify-between gap-2.5">
-              <h1 className="ap-title">Practice</h1>
-              <span className="ap-meta text-[14px]">{ACTIVE_GAME_COUNT} games</span>
-            </div>
+          <div className="flex flex-col gap-3">
+            <h1 className="ap-title">Practice</h1>
             <DevKeyStatus status={demoStatus} />
+            {/* Puzzles | Arcade: one tab, two sides; the counts are the registry's active games. */}
+            <div role="group" aria-label="Game type" data-practice-switch={side} className="ap-switch">
+              {(["puzzles", "arcade"] as const).map((option) => (
+                <button
+                  key={option}
+                  type="button"
+                  aria-pressed={side === option}
+                  data-practice-side={option}
+                  data-count={SIDE_COUNTS[option]}
+                  onClick={() => setSide(option)}
+                  className="ap-switch-opt press"
+                >
+                  {option === "puzzles" ? "Puzzles" : "Arcade"}{" "}
+                  <span className="ap-switch-count">{SIDE_COUNTS[option]}</span>
+                </button>
+              ))}
+            </div>
           </div>
 
           {demoKey ? (
@@ -528,32 +592,51 @@ function PracticeScreen() {
                 type="search"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder="Search games"
-                aria-label="Search games"
+                placeholder={searchLabel}
+                aria-label={searchLabel}
                 autoComplete="off"
                 spellCheck={false}
                 className="ap-input ap-search"
               />
             </div>
-            {/* All games and the seven categories in a 4 × 2 grid: none is cut off at 375 px. */}
-            <div role="group" aria-label="Category" className="ap-chip-grid">
-              {(["all", ...puzzleCategories()] as const).map((chip) => {
-                const on = filter === chip;
-                return (
+            {side === "puzzles" ? (
+              // All games and the six puzzle categories in the 4-column grid: none is cut off at 375 px.
+              <div role="group" aria-label="Category" className="ap-chip-grid">
+                {(["all", ...puzzleCategories().filter((category) => category !== "arcade")] as const).map((chip) => {
+                  const on = puzzleFilter === chip;
+                  return (
+                    <button
+                      key={chip}
+                      type="button"
+                      aria-pressed={on}
+                      data-practice-filter={chip}
+                      onClick={() => setPuzzleFilter(chip)}
+                      className="ap-chip th-hit press"
+                    >
+                      {chip === "all" ? null : <span aria-hidden="true" data-dot={chip} className="ap-dot" />}
+                      {chip === "all" ? "All games" : categoryLabel(chip)}
+                    </button>
+                  );
+                })}
+              </div>
+            ) : (
+              <div role="group" aria-label="Arcade group" data-cols="3" className="ap-chip-grid">
+                {ARCADE_CHIPS.map((chip) => (
                   <button
-                    key={chip}
+                    key={chip.id}
                     type="button"
-                    aria-pressed={on}
-                    data-practice-filter={chip}
-                    onClick={() => setFilter(chip)}
+                    aria-pressed={arcadeFilter === chip.id}
+                    data-practice-filter={chip.id}
+                    data-span={chip.span}
+                    onClick={() => setArcadeFilter(chip.id)}
                     className="ap-chip th-hit press"
                   >
-                    {chip === "all" ? null : <span aria-hidden="true" data-dot={chip} className="ap-dot" />}
-                    {chip === "all" ? "All games" : categoryLabel(chip)}
+                    {chip.id === "all" ? null : <span aria-hidden="true" data-dot={chip.id} className="ap-dot" />}
+                    {chip.label}
                   </button>
-                );
-              })}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
 
           {recentRows.length > 0 ? (
@@ -585,13 +668,17 @@ function PracticeScreen() {
             </section>
           ) : null}
 
-          {groups.map(({ category, rows }) => (
-            <section key={category} aria-label={categoryLabel(category)} data-practice-group={category} className="ap-section">
-              {listHead(categoryLabel(category), rows.length, category)}
+          {shown.map(({ id, label, dot, rows }) => (
+            <section key={id} aria-label={label} data-practice-group={id} className="ap-section">
+              {listHead(label, rows.length, dot)}
               <div className="ap-panel">{rows.map((key) => row(key))}</div>
             </section>
           ))}
-          {matches.length === 0 && previewRows.length === 0 && retiredRows.length === 0 ? (
+          {emptyGroup ? (
+            <p data-practice-empty-group={emptyGroup.id} className="ap-panel ap-empty">
+              {emptyGroup.label} games are coming soon
+            </p>
+          ) : matches.length === 0 && previewRows.length === 0 && retiredRows.length === 0 ? (
             <p className="ap-panel ap-empty">No games match</p>
           ) : null}
 

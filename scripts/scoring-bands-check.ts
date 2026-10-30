@@ -140,7 +140,7 @@ function recordedPuzzle(type: PuzzleType, seed: number): PuzzleData {
 }
 
 /* ============================== 1. Arcade curves and stamps ============================== */
-// Junction is practice only; games born on the arcade standard (Cards & Board) have no strict band curve.
+// The Cards & Board and Sports games were born on the arcade scoring standard (no score-band revision; arcade-standard-check).
 const ARCADE = (Object.keys(LIVE_BANDS) as LiveBandGame[]).filter((t) => t !== "junction" && !liveBornOnStandard(t));
 for (const type of ARCADE) {
   const { base } = BASES[type]!;

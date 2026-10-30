@@ -214,6 +214,12 @@ skyline.perfect-drop,Replays,Perfect drop: the clip reaches the moment's key tic
 skyline.floors,Replays,Floors streak (every 10): the clip reaches the moment's key tick [replays.md],,0–2 per highlight,recorded sound,skyline.floors,250,replay,skyline.floors,public/sounds/skyline.floors.mp3 (from replay.moment.mp3)
 skyline.streak,Replays,Perfect streak: the clip reaches the moment's key tick [replays.md],,0–2 per highlight,recorded sound,skyline.streak,250,replay,skyline.streak,public/sounds/skyline.streak.mp3 (from replay.moment.mp3)
 skyline.wind-perfect,Replays,Perfect drop in the wind: the clip reaches the moment's key tick [replays.md],,0–2 per highlight,recorded sound,skyline.wind-perfect,250,replay,skyline.wind-perfect,public/sounds/skyline.wind-perfect.mp3 (from replay.moment.mp3)
+homerun.home-run,Replays,Home run: the clip reaches the moment's key tick [replays.md],,0–2 per highlight,recorded sound,homerun.home-run,250,replay,homerun.home-run,
+homerun.sign-hit,Replays,A sign beyond the fence struck: the clip reaches the moment's key tick [replays.md],,0–2 per highlight,recorded sound,homerun.sign-hit,250,replay,homerun.sign-hit,
+freekick.goal-scored,Replays,Goal: the clip reaches the moment's key tick [replays.md],,0–2 per highlight,recorded sound,freekick.goal-scored,250,replay,freekick.goal-scored,
+freekick.target-hit,Replays,A target hit: the clip reaches the moment's key tick [replays.md],,0–2 per highlight,recorded sound,freekick.target-hit,250,replay,freekick.target-hit,
+racing.clean-sector,Replays,Clean sector: the clip reaches the moment's key tick [replays.md],,0–2 per highlight,recorded sound,racing.clean-sector,250,replay,racing.clean-sector,
+racing.lap-done,Replays,Lap complete: the clip reaches the moment's key tick [replays.md],,0–2 per highlight,recorded sound,racing.lap-done,250,replay,racing.lap-done,
 cross.crossing,Replays,Road crossed: the clip reaches the moment's key tick [replays.md],,0–2 per highlight,recorded sound,cross.crossing,250,replay,cross.crossing,public/sounds/cross.crossing.mp3 (from replay.moment.mp3)
 cross.bikes,Replays,Past the cyclists: the clip reaches the moment's key tick [replays.md],,0–2 per highlight,recorded sound,cross.bikes,250,replay,cross.bikes,public/sounds/cross.bikes.mp3 (from replay.moment.mp3)
 cross.cones,Replays,Through the roadworks: the clip reaches the moment's key tick [replays.md],,0–2 per highlight,recorded sound,cross.cones,250,replay,cross.cones,public/sounds/cross.cones.mp3 (from replay.moment.mp3)
@@ -565,6 +571,12 @@ bullseye.thud,Flightpath,Flightpath: An arrow lands [arcade.md],,5–10,recorded
 bullseye.bull,Flightpath,Flightpath: An arrow lands in the 10 [arcade.md],,0–10,recorded sound,arc_fair_bell (shared),400,success sting,bullseye.bull,
 bullseye.perfect,Flightpath,Flightpath: Every arrow in the 10 (once per run) [arcade.md],,0–1,recorded sound,arc_fair_sting (shared),300,success sting,bullseye.perfect,
 music.bullseye,Flightpath,Flightpath: music_bullseye,,loop,recorded sound,music_bullseye,loop,music,music_bullseye,
+freekick.kick,Free Kick,Free Kick: The ball is struck [arcade.md],,10,recorded sound,arc_fair_thud (shared),150,game event,freekick.kick,
+freekick.post,Free Kick,Free Kick: The ball hits a post or the bar [arcade.md],,0–5,recorded sound,arc_clank (shared),200,game event,freekick.post,
+freekick.save,Free Kick,"Free Kick: The keeper saves (the wall's block, quieter) [arcade.md]",,0–10,recorded sound,arc_wood_knock (shared),200,game event,freekick.save,
+freekick.goal,Free Kick,Free Kick: A goal [arcade.md],,0–10,recorded sound,arc_fair_sting (shared),480,game event,freekick.goal,
+freekick.target,Free Kick,Free Kick: A target hit [arcade.md],,0–4,recorded sound,arc_fair_bell (shared),480,game event,freekick.target,
+freekick.net,Free Kick,Free Kick: The ball hits the net [arcade.md],,0–10,recorded sound,arc_bounce (shared),200,game event,freekick.net,
 matchup.lineOfFive,Gemstone,Five or more in a line [arcade-effects.md],n IN A LINE! text,0–5,recorded sound,matchup.lineOfFive,680,game event,matchup.lineOfFive,
 matchup.jackpotMade,Gemstone,A jackpot gem is made [arcade-effects.md],JACKPOT GEM! text in white,0–3,recorded sound,matchup.jackpotMade,680,game event,matchup.jackpotMade,
 matchup.parSmashed,Gemstone,The score passes par [arcade-effects.md],FULL CLEAR banner,0–1,recorded sound,matchup.parSmashed,1360,game event,matchup.parSmashed,
@@ -614,6 +626,12 @@ skyline.perfect,High Rise,High Rise: A perfect drop [arcade.md],,5–20,recorded
 skyline.streakDrop,High Rise,High Rise: A streak bonus drop (skylineRev 2+) [arcade.md],,2–10,recorded sound,arc_retro_coin (shared),120,game event,skyline.streakDrop,
 skyline.miss,High Rise,High Rise: A block misses the tower [arcade.md],,0–1,recorded sound,arc_crash (shared),200,fail sting,skyline.miss,
 music.skyline,High Rise,High Rise: music_skyline,,loop,recorded sound,music_skyline,loop,music,music_skyline,
+homerun.swing,Home Run Derby,Home Run Derby: A swing starts [arcade.md],,10,recorded sound,arc_hover_tap (shared),120,game event,homerun.swing,
+homerun.crack,Home Run Derby,Home Run Derby: Bat meets ball (a fair ball or a home run) [arcade.md],,5–10,recorded sound,arc_wood_knock (shared),200,game event,homerun.crack,
+homerun.homer,Home Run Derby,Home Run Derby: A home run [arcade.md],,0–10,recorded sound,arc_fair_sting (shared),480,game event,homerun.homer,
+homerun.sign,Home Run Derby,Home Run Derby: A sign beyond the fence is struck [arcade.md],,0–4,recorded sound,arc_fair_bell (shared),480,game event,homerun.sign,
+homerun.foul,Home Run Derby,Home Run Derby: A foul ball [arcade.md],,0–5,recorded sound,arc_bounce (shared),150,game event,homerun.foul,
+homerun.strike,Home Run Derby,"Home Run Derby: A swing and a miss, or a pitch taken [arcade.md]",,0–10,recorded sound,arc_fair_thud (shared),150,game event,homerun.strike,
 hover.newZone,Hover,Every 7th barrier passed (a new zone) [arcade-effects.md],The arena border flashes in the next zone colour with a STREAK banner,3–8,recorded sound,hover.newZone,480,game event,hover.newZone,
 hover.twoGap,Hover,Through a two-gap barrier (hoverRev 2+) [arcade-effects.md],"A +1 pop over the barrier, cyan glow",2–8,recorded sound,hover.twoGap,300,game event,hover.twoGap,
 hover.slippedThrough,Hover,Past a moving barrier (hoverRev 2+) [arcade-effects.md],A near-miss pop over the sliding barrier,2–8,recorded sound,hover.slippedThrough,350,game event,hover.slippedThrough,
@@ -678,6 +696,12 @@ pinball.laneLight,Pinball,Pinball: A top lane lights [arcade.md],,3–15,recorde
 pinball.spinner,Pinball,Pinball: The spinner turns [arcade.md],,5–30,recorded sound,pinball.spinner,50,game event,pinball.spinner,public/sounds/pinball.spinner.mp3 (from pinball.spinner.mp3)
 pinball.flipper,Pinball,Pinball: A flipper is raised (each side once per press) [arcade.md],,50–150,recorded sound,pinball.flipper,50,UI tap,pinball.flipper,public/sounds/pinball.flipper.mp3 (from pinball.flipper.mp3)
 music.pinball,Pinball,Pinball (arcade): music_rally (borrowed from Rally),,loop,recorded sound,music_pinball,60000,music,music_pinball,public/sounds/music_pinball.mp3 (from music_pinball.mp3)
+racing.go,Racing,Racing: The race starts [arcade.md],,1,recorded sound,arc_horn (shared),300,game event,racing.go,
+racing.lap,Racing,Racing: A lap is completed [arcade.md],,1–2,recorded sound,arc_fair_bell (shared),480,game event,racing.lap,
+racing.sector,Racing,Racing: A clean sector [arcade.md],,0–8,recorded sound,arc_retro_coin (shared),200,game event,racing.sector,
+racing.wall,Racing,Racing: The car hits the tyre wall [arcade.md],,0–10,recorded sound,arc_crash (shared),200,game event,racing.wall,
+racing.grass,Racing,Racing: The car runs onto the grass or gravel [arcade.md],,0–20,recorded sound,arc_bounce (shared),150,game event,racing.grass,
+racing.finish,Racing,Racing: The finish line after lap 2 [arcade.md],,0–1,recorded sound,arc_fair_sting (shared),480,success sting,racing.finish,
 inkbridge.goldStar,Rainbow Bridge,"The coin passes through the gold star (inkRev 4 only: rooms deal inkRev 7, so stored and practice rev-4 rounds) [arcade-effects.md]",A gold ring round the coin and a PERFECT pop,0 (rev 4: 2–10),recorded sound,inkbridge.goldStar,400,game event,inkbridge.goldStar,
 inkbridge.allLevels,Rainbow Bridge,All 10 levels cleared [arcade-effects.md],"FULL CLEAR banner, confetti",0–1,recorded sound,inkbridge.allLevels,1200,game event,inkbridge.allLevels,
 inkbridge.release,Rainbow Bridge,The coin is released [arcade-effects.md],The coin drops and its gold trail starts,10–20,recorded sound,inkbridge.release,200,game event,inkbridge.release,

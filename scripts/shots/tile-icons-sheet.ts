@@ -13,6 +13,7 @@ import { join } from "node:path";
 import { chromium } from "playwright";
 
 import { GAME_DISPLAY_NAMES } from "../../src/lib/duel/gameNames";
+import { ARCADE_GROUPS, arcadeGroupOf, arcadeGroupTypes } from "../../src/lib/duel/arcadeGroups";
 import { PUZZLE_REGISTRY } from "../../src/lib/duel/registry";
 import { startSafeAreaServer } from "../safe-area-server";
 import { CHROMIUM_PATHS, THEME_SCREENS, VIEWPORTS, openThemeScreen } from "../theme-screens";
@@ -21,14 +22,32 @@ const OUT = process.argv.find((a) => a.startsWith("--out="))?.slice(6) ?? "scree
 const CHROMIUM = CHROMIUM_PATHS.find((path): path is string => Boolean(path && existsSync(path)));
 mkdirSync(OUT, { recursive: true });
 
-const ORDER = ["word", "number", "speed", "attention", "pattern", "logic", "arcade"] as const;
-const games = ORDER.map((category) => ({
-  category,
-  games: Object.entries(PUZZLE_REGISTRY)
-    .filter(([, def]) => def.category === category)
-    .map(([type, def]) => ({ type, name: GAME_DISPLAY_NAMES[type as keyof typeof GAME_DISPLAY_NAMES], retired: Boolean(def.retired) }))
-    .sort((a, b) => Number(a.retired) - Number(b.retired) || a.name.localeCompare(b.name)),
-}));
+const ORDER = ["word", "number", "speed", "attention", "pattern", "logic"] as const;
+const entry = (type: string) => ({
+  type,
+  name: GAME_DISPLAY_NAMES[type as keyof typeof GAME_DISPLAY_NAMES],
+  retired: Boolean(PUZZLE_REGISTRY[type as keyof typeof PUZZLE_REGISTRY].retired),
+});
+// Puzzles by category; arcade games by their group (arcadeGroups.ts, 30 Oct 2026), then the retired arcade games.
+const games = [
+  ...ORDER.map((category) => ({
+    title: category[0]!.toUpperCase() + category.slice(1),
+    colour: `var(--category-${category})`,
+    games: Object.entries(PUZZLE_REGISTRY)
+      .filter(([, def]) => def.category === category)
+      .map(([type]) => entry(type))
+      .sort((a, b) => Number(a.retired) - Number(b.retired) || a.name.localeCompare(b.name)),
+  })),
+  ...ARCADE_GROUPS.map((group) => ({ title: `Arcade · ${group.label}`, colour: `var(--group-${group.id})`, games: arcadeGroupTypes(group.id).map(entry) })),
+  {
+    title: "Arcade · retired",
+    colour: "var(--category-arcade)",
+    games: Object.entries(PUZZLE_REGISTRY)
+      .filter(([type, def]) => def.category === "arcade" && def.retired && !arcadeGroupOf(type))
+      .map(([type]) => entry(type))
+      .sort((a, b) => a.name.localeCompare(b.name)),
+  },
+].filter((g) => g.games.length > 0);
 
 const server = await startSafeAreaServer({ cacheDir: "node_modules/.vite-tile-icons-sheet", buildId: "tile-icons-sheet" });
 const browser = await chromium.launch({ executablePath: CHROMIUM });
@@ -39,9 +58,18 @@ try {
     const { context, page } = await openThemeScreen(browser, server.origin, practice, viewport);
     try {
       await page.waitForSelector("[data-game-icon]");
+      // Practice shows one side at a time (Puzzles | Arcade): keep a copy of the Arcade side's tiles.
+      await page.locator("[data-practice-side='arcade']").click();
+      await page.waitForTimeout(600);
+      await page.evaluate(() => {
+        (window as unknown as { __arcadeIcons: Element[] }).__arcadeIcons = Array.from(document.querySelectorAll("[data-game-icon]")).map((el) => el.cloneNode(true) as Element);
+      });
+      await page.locator("[data-practice-side='puzzles']").click();
+      await page.waitForTimeout(600);
       const missing = await page.evaluate(({ groups, label }) => {
         const source = new Map<string, Element>();
-        for (const el of Array.from(document.querySelectorAll("[data-game-icon]"))) {
+        const arcade = (window as unknown as { __arcadeIcons: Element[] }).__arcadeIcons;
+        for (const el of [...Array.from(document.querySelectorAll("[data-game-icon]")), ...arcade]) {
           const type = el.getAttribute("data-game-icon")!;
           if (!source.has(type)) source.set(type, el);
         }
@@ -58,10 +86,10 @@ try {
         sub.textContent = "Each game: the 64 px tile and the 34 px tile. Retired (practice only) games are marked.";
         sub.style.cssText = "color:#BDBDCC;font-weight:500;margin-bottom:10px";
         sheet.appendChild(sub);
-        for (const { category, games: list } of groups) {
+        for (const { title: heading, colour, games: list } of groups) {
           const head = document.createElement("div");
-          head.textContent = `${category[0]!.toUpperCase()}${category.slice(1)} · ${list.length}`;
-          head.style.cssText = `font:800 13px Saira,system-ui,sans-serif;margin:14px 0 8px;color:var(--category-${category})`;
+          head.textContent = `${heading} · ${list.length}`;
+          head.style.cssText = `font:800 13px Saira,system-ui,sans-serif;margin:14px 0 8px;color:${colour}`;
           sheet.appendChild(head);
           const grid = document.createElement("div");
           grid.style.cssText = "display:grid;grid-template-columns:repeat(auto-fill,minmax(112px,1fr));gap:12px 6px";

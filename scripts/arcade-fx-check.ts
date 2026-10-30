@@ -16,6 +16,13 @@
  *
  *   bun scripts/arcade-fx-check.ts
  */
+import { minesweeperArtGameFor } from "../src/lib/arcade/minesweeper.renderer";
+import { mahjongArtGameFor } from "../src/lib/arcade/mahjong.renderer";
+import { MINES_REV_STD, MINES_SAFE } from "../src/lib/arcade/minesweeper";
+import { MAHJONG_REV_STD } from "../src/lib/arcade/mahjong";
+import { homerunArtGame } from "../src/lib/arcade/homerun.renderer";
+import { freekickArtGame } from "../src/lib/arcade/freekick.renderer";
+import { racingArtGame } from "../src/lib/arcade/racing.renderer";
 import assert from "node:assert/strict";
 import { createCanvas, Path2D as NapiPath2D } from "@napi-rs/canvas";
 
@@ -92,7 +99,6 @@ const { BALL_TRACK_BANK } = await import("../src/lib/duel/ballTrackBank.server")
 const { matchupArtGame } = await import("../src/lib/arcade/matchup.renderer");
 const { matchupRev2Game } = await import("../src/lib/arcade/matchup");
 const { freecellArt } = await import("../src/lib/arcade/cards/freecell.renderer");
-const { ARCADE_BORN_ON_STANDARD } = await import("../src/lib/arcade/standard");
 const { tripeaksArt } = await import("../src/lib/arcade/cards/tripeaks.renderer");
 const { pokerSquaresArt } = await import("../src/lib/arcade/cards/pokerSquares.renderer");
 
@@ -149,13 +155,20 @@ const GAMES: Record<string, AnyGame> = {
   } as AnyGame,
   matchup: { ...matchupArtGame, init: matchupRev2Game.init } as AnyGame,
   pinball: pinballArtGame as AnyGame,
+  // Cards & Board (30 Oct 2026): dealt from the start on minesRev 1 and mahjongRev 1.
+  minesweeper: minesweeperArtGameFor(MINES_REV_STD) as AnyGame,
+  mahjong: mahjongArtGameFor(MAHJONG_REV_STD) as AnyGame,
+  // The Sports group (30 Oct 2026).
+  homerun: homerunArtGame as AnyGame,
+  freekick: freekickArtGame as AnyGame,
+  racing: racingArtGame as AnyGame,
   // Cards & Board (30 Oct 2026).
   freecell: freecellArt as AnyGame,
   tripeaks: tripeaksArt as AnyGame,
   pokersquares: pokerSquaresArt as AnyGame,
 };
 
-assert.equal(Object.keys(GAMES).length, 23 + ARCADE_BORN_ON_STANDARD.length, "23 arcade games with a world (21 active with Pinball; Junction and Scrumper practice only), plus the games born on the arcade scoring standard (ARCADE_BORN_ON_STANDARD)");
+assert.equal(Object.keys(GAMES).length, Object.keys(specs.ARCADE_GAME_WORLDS).length, "every arcade game with a world (the active ones with Pinball; Junction and Scrumper practice only); the count reads the worlds registry");
 assert.deepEqual(
   Object.keys(GAMES).sort(),
   Object.keys(specs.ARCADE_FX_SPECS).sort(),
@@ -271,6 +284,10 @@ function assaultAt(): any {
   return assaultBase;
 }
 const BUMPS: Record<string, ((s: any) => any)[]> = {
+  // The Sports group (30 Oct 2026, sportsFx.renderer.ts).
+  homerun: [(s) => ({ ...s, homers: s.homers + 1 }), (s) => ({ ...s, signs: s.signs | 1 })],
+  freekick: [(s) => ({ ...s, goals: s.goals + 1 }), (s) => ({ ...s, targets: s.targets + 1 })],
+  racing: [(s) => ({ ...s, clean: s.clean + 1 }), (s) => ({ ...s, s: s.s + 6_000_000 })],
   hover: [
     (s) => ({ ...s, gates: s.gates + 1 }),
     (s) => ({ ...s, gates: s.gates + 7 }),
@@ -472,6 +489,15 @@ const BUMPS: Record<string, ((s: any) => any)[]> = {
     (s) => ({ ...s, jackpotsFired: (s.jackpotsFired ?? 0) + 1 }),
     (s) => ({ ...s, raw: 1e6 }),
   ],
+  minesweeper: [
+    (s) => ({ ...s, revealed: s.revealed + 8, lastOpen: s.start }),
+    (s) => ({ ...s, revealed: s.opening + 25, lastOpen: s.start }),
+    (s) => ({ ...s, revealed: MINES_SAFE, lastOpen: s.start }),
+  ],
+  mahjong: [
+    (s) => ({ ...s, pairs: s.pairs + 1, lastA: 0, lastB: 5 }),
+    (s) => ({ ...s, pairs: 6, lastA: 0, lastB: 5 }),
+    (s) => ({ ...s, pairs: 36 }),
   // Cards & Board: a card home, two full suits home, all home; a run of five, a peak top, the clear; a pair made, the target.
   freecell: [
     (s) => ({ ...s, home: [Math.min(13, s.home[0] + 1), s.home[1], s.home[2], s.home[3]] }),

@@ -109,7 +109,13 @@ function introScoreTemplates(): Record<PuzzleType, string> {
     cross: "150 for rows and crossings, coins 30, a clean streak 10, close calls 10. Up to {max}.",
     breaker: "Every brick scores; gold bricks add 30. Clear all 105 quickly for up to {max}.",
     rally: "Gold-ball hits, pink targets and gold targets. Up to {max}.",
+    // Cards & Board (30 Oct 2026), on the arcade scoring standard.
+    minesweeper: "Safe squares 150, no mines hit 20, a fast clear 30; a mine costs 5. Up to {max}.",
+    mahjong: "Pairs 150, no shuffles 20, a fast clear 30; a Shuffle costs 5. Up to {max}.",
     pinball: "Table points, plus J-O-U-L-Z sets, multiball, jackpots and ramp combos. Up to {max}.",
+    homerun: "Distance on every pitch, home runs and the signs beyond the fence. Up to {max}.",
+    freekick: "Goals away from the keeper, targets, curls round the wall and five in a row. Up to {max}.",
+    racing: "Distance round the track, clean sectors, the finish and your time. Up to {max}.",
     // Cards & Board (the arcade scoring standard from their first revision).
     freecell: "Cards 140 (home full, sorted runs half); finished: few moves 30, speed 30. Together {max}.",
     tripeaks: "Cards 120, peak tops 30, longest run 20; all cleared: 10 and speed 20. Together {max}.",

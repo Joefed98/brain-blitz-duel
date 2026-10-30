@@ -59,10 +59,13 @@ import { generatePairMatch } from "./pairmatch.server";
 import { generateFlood } from "./flood.server";
 import { generateRings } from "./rings.server";
 import { generateHover } from "./hover.server";
+import { generateFreekick, generateHomerun, generateRacing } from "./sports.server";
 import {
   generateBinToss,
   generateBullseye,
   generateMatchup,
+  generateMinesweeper,
+  generateMahjong,
   generateCross,
   generateDual,
   generateRicochet,
@@ -201,6 +204,11 @@ function generateUnstamped(type: PuzzleType, context: GenerateContext): PuzzleDa
   if (type === "ricochet") return generateRicochet();
   if (type === "breaker") return generateBreaker();
   if (type === "pinball") return generatePinball();
+  if (type === "minesweeper") return generateMinesweeper();
+  if (type === "mahjong") return generateMahjong();
+  if (type === "homerun") return generateHomerun();
+  if (type === "freekick") return generateFreekick();
+  if (type === "racing") return generateRacing();
   if (type === "freecell") return generateFreecell();
   if (type === "tripeaks") return generateTripeaks();
   if (type === "pokersquares") return generatePokerSquares();

@@ -1046,6 +1046,37 @@ const ARCADE: Partial<Record<PuzzleType, Art>> = {
       <circle cx={34} cy={38} r={4.6} fill={A} />
     </>
   ),
+  // Cards & Board (30 Oct 2026): line drawings behind the tile scenes.
+  minesweeper: () => (
+    <>
+      <rect x={8} y={8} width={48} height={48} rx={3} fill="none" stroke={DIM} strokeWidth={2} />
+      <Ink color={DIM} w={1.6}>
+        <polyline points={pts([[24, 8], [24, 56]])} />
+        <polyline points={pts([[40, 8], [40, 56]])} />
+        <polyline points={pts([[8, 24], [56, 24]])} />
+        <polyline points={pts([[8, 40], [56, 40]])} />
+      </Ink>
+      <Ink w={2.6}>
+        <polyline points={pts([[29, 44], [29, 52]])} />
+        <polyline points={pts([[13, 34], [19, 30]])} />
+      </Ink>
+      <polygon points={pts([[44, 28], [52, 31.5], [44, 35]])} fill={A} />
+      <polyline points={pts([[44, 28], [44, 38]])} fill="none" stroke={INK} strokeWidth={2} />
+      <circle cx={16} cy={16} r={4} fill={INK} />
+    </>
+  ),
+  mahjong: () => (
+    <>
+      <rect x={10} y={16} width={22} height={30} rx={3} fill="none" stroke={DIM} strokeWidth={2.4} />
+      <rect x={32} y={16} width={22} height={30} rx={3} fill="none" stroke={DIM} strokeWidth={2.4} />
+      <rect x={20} y={10} width={22} height={30} rx={3} fill={BG} stroke={A} strokeWidth={2.8} />
+      <circle cx={31} cy={20} r={3.4} fill="none" stroke={INK} strokeWidth={2} />
+      <circle cx={31} cy={30} r={3.4} fill="none" stroke={INK} strokeWidth={2} />
+      <Ink color={DIM} w={2}>
+        <polyline points={pts([[14, 52], [50, 52]])} />
+      </Ink>
+    </>
+  ),
   rally: () => (
     <>
       <rect x={22} y={7} width={20} height={5} rx={2.5} fill={DIM} />
@@ -1164,6 +1195,44 @@ const ARCADE: Partial<Record<PuzzleType, Art>> = {
       <Ink color={DIM} w={2}>
         <polyline points={pts([[8, 57], [56, 57]])} />
       </Ink>
+    </>
+  ),
+  // The Sports group (30 Oct 2026): a bat meeting a ball, a ball curling round a wall into the goal, a road to the line.
+  homerun: () => (
+    <>
+      <Ink color={DIM} w={2}>
+        <polyline points={pts([[6, 22], [58, 22]])} />
+      </Ink>
+      <path d="M10 52 L46 30 Q50 27.5 52 30.5 Q54 33.5 50 36 L14 56 Q11 57.5 10 55 Z" fill={INK} />
+      <circle cx={46} cy={16} r={5} fill={A} />
+      <Ink color={DIM} w={1.5}>
+        <polyline points={pts([[40, 20], [32, 26]])} />
+      </Ink>
+    </>
+  ),
+  freekick: () => (
+    <>
+      <Ink color={INK} w={2.5}>
+        <polyline points={pts([[10, 24], [10, 8], [54, 8], [54, 24]])} />
+      </Ink>
+      <rect x={22} y={26} width={5} height={14} rx={2} fill={DIM} />
+      <rect x={29} y={26} width={5} height={14} rx={2} fill={DIM} />
+      <rect x={36} y={26} width={5} height={14} rx={2} fill={DIM} />
+      <path d="M30 54 Q50 46 46 16" fill="none" stroke={A} strokeWidth={2} strokeDasharray="3 3" />
+      <circle cx={30} cy={54} r={4.5} fill={INK} />
+    </>
+  ),
+  racing: () => (
+    <>
+      <path d="M28 10 L36 10 L54 58 L10 58 Z" fill={DIM} />
+      <Ink color={INK} w={2}>
+        <polyline points={pts([[32, 14], [32, 20]])} />
+        <polyline points={pts([[32, 28], [32, 36]])} />
+      </Ink>
+      <rect x={22} y={42} width={20} height={11} rx={3} fill={INK} />
+      <rect x={30} y={42} width={4} height={11} fill={A} />
+      <rect x={23} y={49} width={4} height={2} fill={A} />
+      <rect x={37} y={49} width={4} height={2} fill={A} />
     </>
   ),
   balltrack: () => (

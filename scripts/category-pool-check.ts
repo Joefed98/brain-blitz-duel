@@ -10,7 +10,6 @@
  * (selected_categories), so moving a game changes no stored round or history.
  */
 import { readdirSync, readFileSync } from "node:fs";
-import { ARCADE_BORN_ON_STANDARD } from "../src/lib/arcade/standard";
 
 import { CATEGORY_ORDER } from "../src/lib/duel/categories";
 import {
@@ -24,6 +23,7 @@ import {
 } from "../src/lib/duel/registry";
 import type { PuzzleType } from "../src/lib/duel/types";
 import { REMOVED_PUZZLE_TYPES } from "../src/lib/duel/removedGames";
+import { ACTIVE_ARCADE_GAMES } from "../src/lib/arcade/arcadeFxGames.renderer";
 
 const MIN_ACTIVE = 6;
 const failures: string[] = [];
@@ -55,17 +55,18 @@ for (const type of ["flow", "pipes", "push"] as const) expect(type, "pattern", f
 // Scrumper retired to practice (Joe's decision, 27 Oct 2026); its icon and name stay for history.
 expect("snip", "arcade", true);
 
-// The active pool per category (27 Oct 2026, after Scrumper's retirement, with Trail in Logic): 72 games, plus the arcade
-// games born on the arcade scoring standard since (ARCADE_BORN_ON_STANDARD, src/lib/arcade/standard/index.ts; 30 Oct
-// 2026: the Cards & Board games FreeCell, TriPeaks and Poker Squares), each an active Arcade game.
-const BORN = ARCADE_BORN_ON_STANDARD.length;
-for (const type of ARCADE_BORN_ON_STANDARD) expect(type as PuzzleType, "arcade", false);
-const POOL: Record<string, number> = { word: 9, number: 8, speed: 6, attention: 6, pattern: 10, logic: 12, arcade: 21 + BORN };
+// The active pool per category (27 Oct 2026, after Scrumper's retirement, with Trail in Logic): 72 games.
+// Arcade's count reads the arcade worlds' active list (ACTIVE_ARCADE_GAMES), not a number: the arcade groups' sessions
+// add games in parallel (Cards & Board and Sports, 30 Oct 2026); each new game is pinned to Arcade, active, above.
+const POOL: Record<string, number> = { word: 9, number: 8, speed: 6, attention: 6, pattern: 10, logic: 12, arcade: ACTIVE_ARCADE_GAMES.length };
+for (const type of ["minesweeper", "mahjong", "homerun", "freekick", "racing", "freecell", "tripeaks", "pokersquares"] as const) expect(type, "arcade", false);
 for (const [category, want] of Object.entries(POOL)) {
   const got = typesInCategory(category as never).length;
   if (got !== want) fail(`${category}: ${got} active games, want ${want}`);
 }
-if (ACTIVE_PUZZLE_TYPES.length !== 72 + BORN) fail(`${ACTIVE_PUZZLE_TYPES.length} active games, want ${72 + BORN}`);
+if (ACTIVE_ARCADE_GAMES.length < 21) fail(`${ACTIVE_ARCADE_GAMES.length} active arcade worlds, at least the 21 dealt before the new groups`);
+const WANT_ACTIVE = Object.values(POOL).reduce((a, n) => a + n, 0);
+if (ACTIVE_PUZZLE_TYPES.length !== WANT_ACTIVE) fail(`${ACTIVE_PUZZLE_TYPES.length} active games, want ${WANT_ACTIVE}`);
 
 // The deleted games and Memory are gone: no registry entry, no category, no draw.
 for (const type of REMOVED_PUZZLE_TYPES)

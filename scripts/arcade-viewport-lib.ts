@@ -12,6 +12,7 @@ import { generatePuzzle } from "../src/lib/duel/generate.server";
 import { withSeededRandom } from "../src/lib/duel/random";
 import { splitPuzzle } from "../src/lib/duel/secrets";
 import type { PuzzleData } from "../src/lib/duel/types";
+import { showPracticeSide } from "./practice-side-lib";
 
 /**
  * The browser, found as play14's checks find it (room-extras-check, desktop-geometry-check): CI's
@@ -98,7 +99,10 @@ export async function harnessPage(browser: Browser, origin: string, mode: "pract
 /** From the practice list (or a result screen's Play again) through Ready to the live round. */
 export async function startPractice(page: Page, type: string, again = false): Promise<void> {
   if (again) await page.getByRole("button", { name: "Play again" }).click({ timeout: 60_000 });
-  else await page.getByRole("button", { name: gameDisplayName(type), exact: true }).first().click({ timeout: 120_000 });
+  else {
+    await showPracticeSide(page, type, 120_000);
+    await page.getByRole("button", { name: gameDisplayName(type), exact: true }).first().click({ timeout: 120_000 });
+  }
   await page.getByRole("button", { name: /^Ready/ }).first().click({ timeout: 60_000 });
   await page.waitForSelector("[data-arcade-play] [data-game-stage]", { timeout: 60_000 });
 }

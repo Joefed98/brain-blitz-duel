@@ -1,4 +1,6 @@
 /** Arcade games' tile scenes, painted with each game's own renderer (scene.ts has the rules). */
+import { MINES_ART, paintMinesCover, paintMinesFlag, paintMinesHexes, paintMinesMine, paintMinesOpen } from "@/lib/arcade/minesweeper.renderer";
+import { paintMahjongFace, paintMahjongTile } from "@/lib/arcade/mahjong.renderer";
 import { BRK_BALL_R, BRK_BRICK_H, BRK_BRICK_W } from "@/lib/arcade/breaker";
 import { PADDLE as BRK_PADDLE, RAINBOW as BRK_RAINBOW, paintBrick } from "@/lib/arcade/breaker.renderer";
 import { glow } from "@/lib/arcade/polishA1.renderer";
@@ -41,10 +43,10 @@ import { coin, drawPot, rainbow } from "@/lib/arcade/inkBridge.renderer";
 import { MATERIAL, drawFlipPool, drawRockObstacle, drawRunnerHero, drawStar as flipStar } from "@/lib/arcade/flipArt.renderer";
 import { FLIP_REV, type FlipState } from "@/lib/arcade/flip";
 
+import { at, canvasScene, noText, TILE, type SceneSet } from "./scene";
 import { cardOf } from "@/lib/arcade/cards/cards";
 import { drawCard, paintFelt } from "@/lib/arcade/cards/cards.renderer";
 
-import { at, canvasScene, noText, type SceneSet } from "./scene";
 
 /** Cards & Board tiles: the table's own felt, faded under the cards (the in-game background). */
 function cardsTable(c: CanvasRenderingContext2D): void {
@@ -219,6 +221,62 @@ export const ARCADE_SCENES: SceneSet = {
       drawFlippers(c, state);
       drawPinball(c, 162, 590);
     });
+  }),
+
+  // Minesweeper (Cards & Board): the slate board over its faint hexagons, bevelled covered squares, sunk revealed
+  // ones, a red pennant flag and a revealed mine (numbers are digits, so none: the tile rules).
+  minesweeper: canvasScene((c) => {
+    c.fillStyle = MINES_ART.bg;
+    c.fillRect(0, 0, TILE, TILE);
+    c.save();
+    c.globalAlpha = 0.6;
+    paintMinesHexes(c, TILE, TILE, "rgba(120,150,180,0.12)");
+    c.restore();
+    const size = 30;
+    const ox = 7, oy = 7;
+    c.fillStyle = MINES_ART.slate;
+    c.fillRect(ox - 2, oy - 2, size * 3 + 4, size * 3 + 4);
+    const grid = ["OOC", "OFC", "CCM"];
+    grid.forEach((row, r) =>
+      [...row].forEach((ch, col) => {
+        const x = ox + col * size;
+        const y = oy + r * size;
+        if (ch === "O") paintMinesOpen(c, x, y, size);
+        else if (ch === "M") {
+          c.fillStyle = MINES_ART.boom;
+          c.fillRect(x + 1, y + 1, size - 2, size - 2);
+          paintMinesMine(c, x + size / 2, y + size / 2, size);
+        } else {
+          paintMinesCover(c, x, y, size);
+          if (ch === "F") paintMinesFlag(c, x, y, size);
+        }
+      }),
+    );
+  }),
+
+  // Mahjong Solitaire (Cards & Board): two ivory tiles on the jade mat and a third stacked on them, glowing gold
+  // (selected): a dot, a bamboo and the red dragon.
+  mahjong: canvasScene((c) => {
+    c.fillStyle = "#14503A";
+    c.fillRect(0, 0, TILE, TILE);
+    c.save();
+    c.globalAlpha = 0.7;
+    c.strokeStyle = "#D9B45A";
+    c.setLineDash([4, 3]);
+    c.lineWidth = 1.2;
+    c.strokeRect(5, 5, TILE - 10, TILE - 10);
+    c.restore();
+    const w = 36, h = 48;
+    paintMahjongTile(c, 12, 46, w, h, 5);
+    paintMahjongFace(c, 13, 12, 46, w, h);
+    paintMahjongTile(c, 50, 46, w, h, 5);
+    paintMahjongFace(c, 2, 50, 46, w, h);
+    paintMahjongTile(c, 27, 14, w, h, 5);
+    paintMahjongFace(c, 31, 27, 14, w, h);
+    glow(c, "#F2C75C", 27 + w / 2, 14 + h / 2, w * 0.9, h * 0.75, 0.25);
+    c.strokeStyle = "#F2C75C";
+    c.lineWidth = 2.4;
+    c.strokeRect(26, 13, w + 2, h + 2);
   }),
 
   // Rally: the teal paddle, the ball bouncing up towards a pink pad in the far wall, a bumper post.

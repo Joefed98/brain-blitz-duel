@@ -11,6 +11,9 @@
  * shared red edge pulse and, where a point is given, the puff at the miss.
  */
 import type { ArcadeFxMiss, ArcadeFxSpec, ArcadeWorld } from "./arcadeFx.renderer";
+import { minesCellX, minesCellY, minesCleared, MINES_CELL, MINES_WORLD_H, MINES_WORLD_W, type MinesState } from "./minesweeper";
+import { mahjongCleared, mahjongSlotRect, MAHJONG_WORLD_H, MAHJONG_WORLD_W, type MahjongState } from "./mahjong";
+import { FREEKICK_FX, HOMERUN_FX, RACING_FX } from "./sportsFx.renderer";
 import { FREECELL_FX } from "./cards/freecell.renderer";
 import { TRIPEAKS_FX } from "./cards/tripeaks.renderer";
 import { POKERSQUARES_FX } from "./cards/pokerSquares.renderer";
@@ -270,6 +273,12 @@ export const ARCADE_GAME_WORLDS = {
   matchup: "gem",
   pinball: "retro",
   // Cards & Board (30 Oct 2026).
+  minesweeper: "cards",
+  mahjong: "cards",
+  // The Sports group (30 Oct 2026): real-world venues (a ballpark, a stadium, a circuit).
+  homerun: "realworld",
+  freekick: "realworld",
+  racing: "realworld",
   freecell: "cards",
   tripeaks: "cards",
   pokersquares: "cards",
@@ -1423,6 +1432,47 @@ export const MATCHUP_FX: ArcadeFxSpec<MatchupState> = {
   misses: [{ count: (s) => s.lastInvalidTick, when: (s) => s.lastInvalidA >= 0 && s.lastInvalidB >= 0, at: matchupInvalidPoint }],
 };
 
+/* ============================ Cards & Board ============================ */
+
+const minesPoint = (cell: number) => ({ x: minesCellX(Math.max(0, cell)) + MINES_CELL / 2, y: minesCellY(Math.max(0, cell)) + MINES_CELL / 2 });
+
+/** Minesweeper: a pop for a big opening, a streak every 25 squares, the clear; a mine hit is the miss. */
+export const MINESWEEPER_FX: ArcadeFxSpec<MinesState> = {
+  game: "minesweeper",
+  world: "cards",
+  width: MINES_WORLD_W,
+  height: MINES_WORLD_H,
+  shake: false,
+  events: [
+    { kind: "pop", count: (s) => s.revealed, minDelta: 8, at: (s) => minesPoint(s.lastOpen), label: (_s, _n, d) => `+${d}`, textOnly: true },
+    { kind: "streak", count: (s) => s.revealed - s.opening, every: 25, at: (s) => minesPoint(s.lastOpen), label: (_s, n) => `${n} SAFE`, textOnly: true },
+    { kind: "final", count: (s) => (minesCleared(s) ? 1 : 0), at: (s) => minesPoint(s.lastOpen), label: () => "CLEARED!" },
+  ],
+  misses: [{ count: (s) => s.hits, at: (s) => minesPoint(s.lastHit) }],
+};
+
+const mahjongPoint = (s: MahjongState) => {
+  if (s.lastA < 0) return null;
+  const a = mahjongSlotRect(s.lastA);
+  const b = mahjongSlotRect(s.lastB);
+  return { x: (a.x + b.x + a.w) / 2, y: (a.y + b.y + a.h) / 2 };
+};
+
+/** Mahjong Solitaire: a pop per pair, a streak every 6 pairs, the clear; a tap on a blocked tile is the miss. */
+export const MAHJONG_FX: ArcadeFxSpec<MahjongState> = {
+  game: "mahjong",
+  world: "cards",
+  width: MAHJONG_WORLD_W,
+  height: MAHJONG_WORLD_H,
+  shake: false,
+  events: [
+    { kind: "pop", count: (s) => s.pairs, at: mahjongPoint, label: () => null, textOnly: false },
+    { kind: "streak", count: (s) => s.pairs, every: 6, at: mahjongPoint, label: (_s, n) => `${n} PAIRS`, textOnly: true },
+    { kind: "final", count: (s) => (mahjongCleared(s) ? 1 : 0), label: () => "CLEARED!" },
+  ],
+  misses: [{ count: (s) => s.blocked, at: (s) => (s.lastBlocked >= 0 ? { x: mahjongSlotRect(s.lastBlocked).x + mahjongSlotRect(s.lastBlocked).w / 2, y: mahjongSlotRect(s.lastBlocked).y + mahjongSlotRect(s.lastBlocked).h / 2 } : null) }],
+};
+
 /** All 22 arcade game specs: the 21 active games and practice-only Junction (Orbit counts once; rev 3 has its own view-sized spec). */
 /**
  * Tuning E (Oct 2026): a game whose world height depends on the stored round
@@ -1721,6 +1771,11 @@ export const ARCADE_FX_SPECS = {
   matchup: fxSpecAt(MATCHUP_FX, MATCHUP_V9_WORLD_H),
 
   pinball: fxSpecAt(PINBALL_FX, 820),
+  minesweeper: MINESWEEPER_FX,
+  mahjong: MAHJONG_FX,
+  homerun: HOMERUN_FX,
+  freekick: FREEKICK_FX,
+  racing: RACING_FX,
   freecell: FREECELL_FX,
   tripeaks: TRIPEAKS_FX,
   pokersquares: POKERSQUARES_FX,
