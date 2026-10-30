@@ -16,8 +16,8 @@ import { decodeStrikeout2, replayStrikeout2, so2EarlySolves, so2Rules, so2Tally,
 import { codewordTally, decodeCodeword, replayCodeword } from "../codeword";
 import { decodeSwapword, replaySwapword } from "../swapword";
 import { PUZZLE_EFFICIENCY_POINTS } from "../puzzleScoreRev";
-import type { PuzzleData } from "../types";
-import { registerStandardGames, type StandardGame, type StandardInput } from "./grade.server";
+import type { PuzzleData, PuzzleType } from "../types";
+import type { StandardGame, StandardInput } from "./grade.server";
 import { cleanPoints, parPoints, speedPoints } from "./shape";
 import {
   STD_CRYPTOGRID,
@@ -255,4 +255,5 @@ const swapword: StandardGame = {
   },
 };
 
-registerStandardGames({ tilegrid: interlock, wordslide: slider, wordsearch: lookout, letterwheel: roundabout, strikeout, codeword: cryptogrid, swapword });
+/** This category's standard games, read by the grader (games.server.ts). */
+export const WORD_STANDARD_GAMES: Partial<Record<PuzzleType, StandardGame>> = { tilegrid: interlock, wordslide: slider, wordsearch: lookout, letterwheel: roundabout, strikeout, codeword: cryptogrid, swapword };

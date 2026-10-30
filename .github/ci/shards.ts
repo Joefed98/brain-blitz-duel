@@ -48,7 +48,9 @@ export const SHARDS: Record<string, string[]> = {
   // arcade-room-practice-check's other two thirds (25 Oct 2026, see play15) ride on the two lightest of these jobs.
   play7: ["bottom-clearance-check.ts@2/8", "arcade-device-bottom-check.ts@4/6", "arcade-room-practice-check.ts@2/3"],
   play8: ["bottom-clearance-check.ts@3/8", "arcade-device-bottom-check.ts@5/6", "arcade-room-practice-check.ts@3/3"],
-  play9: ["bottom-clearance-check.ts@4/8", "arcade-device-bottom-check.ts@6/6"],
+  // standard-live-check (29 Oct 2026: a production build of the app, then real practice rounds of nine standard puzzles
+  // in Chromium, ~4 min) needs Chromium, so it rides on one of the lightest play jobs.
+  play9: ["bottom-clearance-check.ts@4/8", "arcade-device-bottom-check.ts@6/6", "standard-live-check.ts"],
   play10: ["bottom-clearance-check.ts@5/8", "arcade-device-bottom-check.ts@3/6"],
   // arcade-fill-check (17 Oct 2026, the screen fill-ins: every active arcade game at 390x844 and as an iPhone 11
   // home-screen app, ~15-20 s a game with one page load each) in thirds alongside the lighter bottom-clearance parts.

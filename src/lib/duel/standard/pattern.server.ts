@@ -4,12 +4,12 @@
  * Heave. Each turns the game's own grade (grade.ts) and a replay of the answer with the game's own rules into the one
  * shape (shape.ts); the numbers are patternRules.ts's (the help texts quote the same). Server-only.
  */
-import { registerStandardGames, type StandardContext, type StandardGame, type StandardInput } from "./grade.server";
+import type { StandardContext, StandardGame, StandardInput } from "./grade.server";
 import { cleanPoints, parPoints, speedPoints } from "./shape";
 import { wasteFactor } from "../puzzleScoreRev";
 import type { TimedDraft } from "./timeline";
 import { BLOCK_STD, FLOW_STD, ICE_STD, LASER_STD, PATTERN_STD, PUSH_STD, SHARE_CREDIT, SHARE_EARLY, TOPSY_STD, patternFullByS, type PatternStdType } from "./patternRules";
-import type { PuzzleData, UnblockVehicle } from "../types";
+import type { PuzzleData, UnblockVehicle, PuzzleType } from "../types";
 import { UNBLOCK_COLS } from "../types";
 import { applyMove, decodeMoves, isSolved as unblockSolved, vehicleCells } from "../unblock";
 import { blockGeometry, decodePlacements, verifyPlacements } from "../blockParty";
@@ -482,7 +482,8 @@ const heave: StandardGame = {
   parts: (puzzle, draft) => heaveState(puzzle as Of<"push">, draft).home,
 };
 
-registerStandardGames({
+/** This category's standard games, read by the grader (games.server.ts). */
+export const PATTERN_STANDARD_GAMES: Partial<Record<PuzzleType, StandardGame>> = {
   unblock: gridlock,
   blockparty: tessellate,
   iceslide: skid,
@@ -493,5 +494,5 @@ registerStandardGames({
   flow: chroma,
   pipes: pipeline,
   push: heave,
-});
+};
 
