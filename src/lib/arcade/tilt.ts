@@ -17,6 +17,7 @@ import {
   type CanvasSize,
   type InputRange,
 } from "./engine";
+import { stdFinal, stdLine } from "./arcadeStandard";
 import { icos, isin, TRIG_ONE } from "./trig";
 import { speedBonusCurve } from "../duel/speedPar";
 import { bandStrictGame, bandStrict, bandRetarget, bandTargetGame, bandCurveOf, bandCurve, bandInit, bandPoints, bandScoreOf, bandStep, bandTotal, BAND_FINISH_BONUS, type BandFields, type BandParts } from "./scoreBands";
@@ -300,6 +301,8 @@ export interface TiltState extends BandFields {
   xp?: number;
   /** tiltRev 9 only: tiltRev 8's play scored on the lifted curves (TILT_V9_*); not in the checkpoint checksum. */
   lift?: number;
+  /** tiltRev 10 only (the arcade scoring standard): 1. Four mazes, scored by tiltStdParts; in the checkpoint checksum. */
+  std?: number;
   keysGot?: number;
   quickGot?: number[];
   mazeAt?: number;
@@ -505,7 +508,8 @@ function score(state: TiltState): number {
 }
 
 export function tiltExtra(s: TiltState) {
-  const all = s.xp ? TILT_X_MAZES : TILT_MAX_MAZES;
+  // Every revision's state lists its own mazes (4 originally, 3 on tiltRev 8 and 9, 4 on tiltRev 10).
+  const all = s.list.length;
   return {
     mazes: s.mazes,
     survived: s.ended !== 2,
@@ -518,7 +522,7 @@ export function tiltExtra(s: TiltState) {
     quickStars: s.quickTaken ?? 0,
     totalQuick: tiltTotalQuick(s),
     falls: s.falls ?? 0,
-    skillPoints: s.xp ? tiltSkillPaid(s) : 0,
+    skillPoints: s.xp && !s.std ? tiltSkillPaid(s) : 0,
   };
 }
 
@@ -580,6 +584,8 @@ export function tiltCheckpoint(state: TiltState): TiltCheckpoint {
   if (state.tunec) values.push(state.tunec);
   // tiltRev 8 adds its marker, keys, quick stars and maze start last.
   if (state.xp) values.push(state.xp, state.keysGot ?? 0, state.quickPts ?? 0, state.quickTaken ?? 0, state.mazeAt ?? 0, state.keysTaken ?? 0, state.falls ?? 0, state.pace ?? 0, state.holdA ?? 0, state.holdB ?? 0);
+  // tiltRev 10 adds its marker last.
+  if (state.std) values.push(state.std);
   for (const value of values) {
     checksum ^= value | 0;
     checksum = Math.imul(checksum, 0x01000193) >>> 0;
@@ -1043,6 +1049,7 @@ export function tiltCellCentre(m: Maze, c: number): { x: number; y: number } {
 
 export const tiltRev2Game: ArcadeGame<TiltState, ArcadeInputEvent | null> = { ...tiltGame, init: initRev2, step: bandStep(stepRev2, tiltTrack), score: bandScoreOf(scoreRev2, scoreBand) };
 export function tiltGameFor(rev?: number | null): ArcadeGame<TiltState, ArcadeInputEvent | null> {
+  if (rev === TILT_REV_STD) return tiltStdGame;
   if (rev === TILT_REV_LIFT) return tiltLiftGame;
   if (rev === TILT_REV_EXPAND) return tiltExpandGame;
   if (rev === TILT_REV_STRICT) return tiltStrictGame;
@@ -1102,7 +1109,8 @@ function tiltTrack(_prev: TiltState, next: TiltState): TiltState {
 }
 
 export function tiltBandParts(state: TiltState): BandParts {
-  // tiltRev 8 has its own units and bonuses.
+  // tiltRev 10 and tiltRev 8 have their own units and bonuses.
+  if (state.std) return tiltStdBandParts(state);
   if (state.xp) return tiltXBandParts(state);
   const mazes = clampInt(state.mazes, 0, TILT_MAX_MAZES);
   const prog = mazes < TILT_MAX_MAZES && state.progMaze === mazes ? clampInt(state.prog ?? 0, 0, TILT_BAND_PROGRESS) : 0;
@@ -1471,7 +1479,7 @@ export const TILT_V8_BAND_CURVE = bandCurve([0, 2, 40, 80, 100, 120, 130, 140, 1
 
 /** The world height (px) a stored round's tiltRev plays in. */
 export function tiltWorldHFor(rev?: number | null): number {
-  return rev === TILT_REV_EXPAND || rev === TILT_REV_LIFT ? TILT_X_H : TILT_WORLD_H;
+  return tiltIsExpand(rev) ? TILT_X_H : TILT_WORLD_H;
 }
 
 /** One carve step in this many grows from a random open cell instead of the newest (side passages all along a route). */
@@ -2076,7 +2084,8 @@ function stepX(state: TiltState, input: ArcadeInputEvent | null): TiltState {
   if (s.aHome && (!s.b || s.bHome)) {
     s.mazes += 1;
     s.pace = (s.pace ?? 0) + tiltPacePoints(elapsed, m.par ?? 1);
-    if (s.mazes >= TILT_X_MAZES) {
+    // The run's last maze (3 on tiltRev 8 and 9, 4 on tiltRev 10).
+    if (s.mazes >= s.list.length) {
       s.ended = 1;
       s.endedTick = tick;
       return s;
@@ -2268,5 +2277,220 @@ export const tiltLiftGame: ArcadeGame<TiltState, ArcadeInputEvent | null> = {
 
 /** True for the revisions that play the expansion's mazes (tiltRev 8, and tiltRev 9 on its lifted curves). */
 export function tiltIsExpand(rev?: number | null): boolean {
-  return rev === TILT_REV_EXPAND || rev === TILT_REV_LIFT;
+  return rev === TILT_REV_EXPAND || rev === TILT_REV_LIFT || rev === TILT_REV_STD;
 }
+
+/* ================= tiltRev 10 (29 Oct 2026): the arcade scoring standard ================= */
+
+/**
+ * tiltRev 10 (the arcade scoring standard, batch A; docs/arcade-standard/tilt.md). Play:
+ *  - mazes 1–3 are tiltRev 9's exactly (the same carve, holes, keys and gates, ice, cups, amber marble and gold
+ *    stars from the same streams), less the quick stars (tiltRev 10 pays no window or pace);
+ *  - then a 4th maze (`buildMazeS`, its own PRNG stream from the seed, so mazes 1–3 are untouched): a smaller disc
+ *    (TILT_S4_SIZE cells across at TILT_S4_CELL px) with a tighter, more packed passage net, the blue marble only,
+ *    no holes, stars, keys, gates or ice. Its carve is a spanning tree of the disc's cells, so its cup is always
+ *    reachable from the start (tiltSeedReachableS proves it per seed).
+ * Score (straight lines, no curves), 200 in all:
+ *  - core up to 140: 35 a finished maze, and in the maze being played up to 5 for how close the marbles got to its
+ *    exit (path distance, best reached; 30 + 5 = 35 once finished);
+ *  - all four mazes: 10, and speed up to 20 (full when all four are done by 75 s, falling evenly to 0 at the buzzer);
+ *  - gold stars up to 30, split evenly over the gold stars of mazes 1–3 (10 each on every dealt seed).
+ * A fall into a black hole costs time as before (no points). Any input scores at least 1. States add `std: 1`.
+ */
+export const TILT_REV_STD = 10;
+/** The fourth maze: cells across, px a cell, the blue route's length its cup is placed nearest, and the ball's radius (% of a cell). */
+export const TILT_S4_SIZE = 19;
+export const TILT_S4_CELL = 16;
+export const TILT_S4_ROUTE = 56;
+export const TILT_S4_BALL = 34;
+/** Mazes on tiltRev 10. */
+export const TILT_S_MAZES = 4;
+/** Core: a finished maze, and the most the maze being played's progress pays. */
+export const TILT_S_MAZE_POINTS = 30;
+export const TILT_S_PROGRESS_POINTS = 5;
+export const TILT_S_CORE_MAX = TILT_S_MAZES * (TILT_S_MAZE_POINTS + TILT_S_PROGRESS_POINTS);
+/** Progress is tracked in thousandths of the start-to-exit path. */
+export const TILT_S_PROGRESS_SCALE = 1000;
+/** All four mazes: the flat finish and the speed part (full by TILT_S_SPEED_FULL ticks, 0 at the buzzer). */
+export const TILT_S_FINISH_POINTS = 10;
+export const TILT_S_SPEED_POINTS = 20;
+export const TILT_S_SPEED_FULL = 75 * TICKS_PER_SECOND;
+/** Gold stars, split evenly over the gold stars of mazes 1–3. */
+export const TILT_S_STAR_POINTS = 30;
+/** The core's straight line (points = core points; the "?" help and LIVE_BANDS read it). */
+export const TILT_V10_BAND_CURVE = bandCurve([0, TILT_S_CORE_MAX], [0, TILT_S_CORE_MAX]);
+
+/** The fourth maze: tiltRev 8's growing-tree carve on a smaller, tighter disc; no holes; the cup the rim cell whose route is nearest TILT_S4_ROUTE. */
+function buildMazeS(draw: (n: number) => number): Maze {
+  const n = TILT_S4_SIZE;
+  const csPx = TILT_S4_CELL;
+  const cs = csPx * FP;
+  const half = Math.trunc((n * csPx) / 2);
+  const lim = half - Math.trunc(csPx / 2);
+  const inside: number[] = [];
+  for (let j = 0; j < n; j++)
+    for (let i = 0; i < n; i++) {
+      const x = i * csPx + Math.trunc(csPx / 2) - half;
+      const y = j * csPx + Math.trunc(csPx / 2) - half;
+      inside.push(x * x + y * y <= lim * lim ? 1 : 0);
+    }
+  const wallR = new Array<number>(n * n).fill(1);
+  const wallD = new Array<number>(n * n).fill(1);
+  const inCell = (i: number, j: number) => i >= 0 && j >= 0 && i < n && j < n && inside[j * n + i] === 1;
+  const mid = Math.trunc(n / 2);
+  const start = mid * n + mid;
+  const seen = new Array<number>(n * n).fill(0);
+  const stack = [start];
+  seen[start] = 1;
+  while (stack.length) {
+    const at = draw(TILT_X_BRANCH) === 0 ? draw(stack.length) : stack.length - 1;
+    const c = stack[at]!;
+    const ci = c % n;
+    const cj = Math.trunc(c / n);
+    const options: number[] = [];
+    for (let d = 0; d < 4; d++) {
+      const ni = ci + DX[d]!;
+      const nj = cj + DY[d]!;
+      if (inCell(ni, nj) && !seen[nj * n + ni]) options.push(d);
+    }
+    if (!options.length) {
+      stack.splice(at, 1);
+      continue;
+    }
+    const d = options[draw(options.length)]!;
+    const nc = (cj + DY[d]!) * n + ci + DX[d]!;
+    if (d === 0) wallR[c] = 0;
+    else if (d === 1) wallD[c] = 0;
+    else if (d === 2) wallR[nc] = 0;
+    else wallD[nc] = 0;
+    seen[nc] = 1;
+    stack.push(nc);
+  }
+  const base: Maze = { n, cs, inside, wallR, wallD, pits: [], start, exit: start, exitDir: 0, br: Math.trunc((cs * TILT_S4_BALL) / 100), crevice: -1, gateDir: -1, lock: -1 };
+  const { dist } = bfsFrom(base, start);
+  let far = -1;
+  let farDir = 0;
+  for (let c = 0; c < n * n; c++) {
+    if (!inside[c]) continue;
+    for (let d = 0; d < 4; d++) {
+      if (inCell((c % n) + DX[d]!, Math.trunc(c / n) + DY[d]!)) continue;
+      const off = Math.abs(dist[c]! - TILT_S4_ROUTE);
+      if (far < 0 || off < Math.abs(dist[far]! - TILT_S4_ROUTE)) {
+        far = c;
+        farDir = d;
+      }
+      break;
+    }
+  }
+  return { ...base, exit: far, exitDir: farDir, stars: [], starXY: [], start2: -1, exit2: -1, exitDir2: -1, keys: [], gates: [], ice: new Array<number>(n * n).fill(0), quick: [], quickAt: [], par: 0 };
+}
+
+const cacheS = new Map<number, Maze[]>();
+
+/** The four tiltRev 10 mazes of a seed (cached): tiltRev 9's three without quick stars, then the fourth from its own stream. */
+function mazesS(seed: number): Maze[] {
+  let list = cacheS.get(seed | 0);
+  if (!list) {
+    let rng = (seed ^ 0x4d5a_0004) | 0;
+    const draw = (bound: number) => {
+      const r = rngBelow(rng, bound);
+      rng = r.state;
+      return r.value;
+    };
+    list = [...mazesX(seed).map((m) => ({ ...m, quick: [], quickAt: [] })), buildMazeS(draw)];
+    if (cacheS.size > 16) cacheS.clear();
+    cacheS.set(seed | 0, list);
+  }
+  return list;
+}
+
+/** The four tiltRev 10 mazes a seed deals (the same for every player; checks and tools read them). */
+export function tiltMazesS(seed: number): readonly Maze[] {
+  return mazesS(seed);
+}
+
+/** True when the fourth maze is plain (no holes, stars, keys) and its cup reachable from its start (its carve is a spanning tree; checks prove it per seed). */
+export function tiltSeedReachableS(seed: number): boolean {
+  const m = mazesS(seed)[TILT_S_MAZES - 1]!;
+  return tiltCupReachableX(m, 0) && m.pits.length === 0 && (m.stars?.length ?? 0) === 0 && (m.keys?.length ?? 0) === 0;
+}
+
+function initS(seed: number): TiltState {
+  const base = init(seed);
+  const list = mazesS(seed);
+  return bandInit(enterMazeX({ ...base, rev: TILT_REV, list, stars: 0, cupped: 0, starTick: -1000, xp: 1, std: 1, quickPts: 0, quickTaken: 0, keysTaken: 0, keyTick: -1000, quickTick: -1000, falls: 0, fallTick: -1000, pace: 0 }, 0));
+}
+
+/** Progress in the maze being played, in thousandths of the start-to-exit path (averaged over its marbles; integer only). */
+export function tiltMazeProgressS(s: TiltState): number {
+  const m = s.list[s.level];
+  if (!m || s.mazes >= s.list.length) return 0;
+  const d = tiltExitDist(m);
+  const share = (home: number | undefined, x: number, y: number, dist: number[], d0: number) => {
+    if (home) return TILT_S_PROGRESS_SCALE;
+    const c = cellOf(m, x, y);
+    const left = c >= 0 ? dist[c]! : 0;
+    return left < 0 ? 0 : clampInt(Math.trunc((TILT_S_PROGRESS_SCALE * (d0 - left)) / d0), 0, TILT_S_PROGRESS_SCALE);
+  };
+  const pa = share(s.aHome, s.x, s.y, d.a, d.a0);
+  if (!d.b || !s.b) return pa;
+  return Math.trunc((pa + share(s.bHome, s.b.x, s.b.y, d.b, d.b0)) / 2);
+}
+
+function tiltTrackS(_prev: TiltState, next: TiltState): TiltState {
+  const same = next.progMaze === next.mazes;
+  const best = same ? (next.prog ?? 0) : 0;
+  const now = tiltMazeProgressS(next);
+  if (same && now <= best) return next;
+  return { ...next, prog: Math.max(best, now), progMaze: next.mazes };
+}
+
+/** Gold stars on offer in mazes 1–3 of a tiltRev 10 state. */
+export function tiltStarsOnOfferS(state: TiltState): number {
+  return state.list.slice(0, TILT_S_MAZES - 1).reduce((t, m) => t + (m.stars?.length ?? 0), 0);
+}
+
+/** tiltRev 10's parts: core (mazes and progress), finish, speed and gold stars (integer only). */
+export function tiltStdParts(state: TiltState): { core: number; finish: number; speed: number; stars: number; mazes: number; progress: number } {
+  const mazes = clampInt(state.mazes, 0, TILT_S_MAZES);
+  const finished = mazes >= TILT_S_MAZES;
+  const prog = !finished && state.progMaze === mazes ? clampInt(state.prog ?? 0, 0, TILT_S_PROGRESS_SCALE) : 0;
+  const progress = Math.trunc((TILT_S_PROGRESS_POINTS * prog) / TILT_S_PROGRESS_SCALE);
+  const core = (TILT_S_MAZE_POINTS + TILT_S_PROGRESS_POINTS) * mazes + progress;
+  const finish = finished ? TILT_S_FINISH_POINTS : 0;
+  const end = clampInt(state.endedTick, 0, TILT_RUN_TICKS);
+  const speed = finished ? (end <= TILT_S_SPEED_FULL ? TILT_S_SPEED_POINTS : Math.trunc((TILT_S_SPEED_POINTS * (TILT_RUN_TICKS - end)) / (TILT_RUN_TICKS - TILT_S_SPEED_FULL))) : 0;
+  const offer = tiltStarsOnOfferS(state);
+  const got = clampInt(state.stars ?? 0, 0, offer);
+  const stars = stdLine(TILT_S_STAR_POINTS, got, offer);
+  return { core, finish, speed, stars, mazes, progress };
+}
+
+export function tiltStdBandParts(state: TiltState): BandParts {
+  const p = tiltStdParts(state);
+  const finished = p.mazes >= TILT_S_MAZES;
+  const offer = tiltStarsOnOfferS(state);
+  const words = [`Gold stars ${clampInt(state.stars ?? 0, 0, offer)} / ${offer} +${p.stars}`, finished ? `all ${TILT_S_MAZES} mazes +${p.finish} · speed +${p.speed}` : ""].filter(Boolean);
+  return {
+    units: p.core,
+    points: p.core,
+    bonus: p.finish + p.speed + p.stars,
+    penalty: 0,
+    finished,
+    text: `${p.mazes} / ${TILT_S_MAZES} mazes × ${TILT_S_MAZE_POINTS + TILT_S_PROGRESS_POINTS}${finished ? "" : ` + ${p.progress} for progress in maze ${p.mazes + 1}`}`,
+    bonusText: words.join(" · "),
+  };
+}
+
+/** tiltRev 10's score: core + finish + speed + gold stars, 0–200; any input scores at least 1, none scores 0. */
+function scoreS(state: TiltState): number {
+  const p = tiltStdParts(state);
+  return stdFinal(p.core + p.finish + p.speed + p.stars, Boolean(state.acted));
+}
+
+export const tiltStdGame: ArcadeGame<TiltState, ArcadeInputEvent | null> = {
+  ...tiltExpandGame,
+  init: initS,
+  step: bandStep(stepX, tiltTrackS),
+  score: scoreS,
+};

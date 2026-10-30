@@ -1,5 +1,5 @@
 /**
- * arcade-standard-check's case for `bintoss` (see ./case.ts): Swish binRev 9 (docs/arcade-standard/bintoss.md).
+ * arcade-standard-check's case for `bintoss` (see ./entry.ts): Swish binRev 9 (docs/arcade-standard/bintoss.md).
  * Buckets 13 each plus 1 a close miss, up to 130; Far buckets 6 each (throws 1–6), up to 36; Hoops 8 each of 3, up to
  * 24; All ten in 10. The core counts `baskets`; All ten in reads the per-throw `results` (every one of ten a basket).
  */
@@ -18,7 +18,8 @@ import {
   BINTOSS_V9_HOOP,
   type BinTossState,
 } from "../../src/lib/arcade/binToss";
-import type { StdCase } from "./case";
+import { ARCADE_STANDARD } from "../../src/lib/arcade/standard";
+import { caseEntry, type StdCase } from "./entry";
 
 const game = binTossGameFor(BINTOSS_REV_STD);
 const SEED = 4242;
@@ -75,3 +76,5 @@ export const stdCase: StdCase = {
     ok(three === 400, `bintoss: every binRev 9 run has exactly three hoops (${three} of 400)`);
   },
 };
+
+export const entry = caseEntry("bintoss", ARCADE_STANDARD.bintoss.spec!, ARCADE_STANDARD.bintoss.parts, stdCase);

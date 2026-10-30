@@ -13,11 +13,11 @@ Perfect streak. Only the score changes. beatRev 1–10 replay and score exactly 
 
 | Part | Max | How it pays |
 |---|---:|---|
-| Accuracy (core) | 130 | The song's per mille: Perfect 4, Good 3, OK 1, a missed note −2, out of 4 a note, never below 0. Straight line, `stdLinear(perMille, 1000, 130)`: full at 1,000 (every note Perfect). |
-| Fever | 25 | `stdShare(min(fevers, 4), 4, 25)`: 6, 12, 18, 25 for 1, 2, 3, 4 fevers started. |
-| Golden notes | 15 | `stdShare(golden notes hit dead on, golden notes in the song, 15)`. |
-| Double taps | 15 | `stdShare(double taps with both hits Perfect, double taps in the song, 15)`. |
-| Perfect streak | 15 | `stdShare(longest Perfect streak, notes in the song, 15)`: full for every note Perfect in one streak. |
+| Accuracy (core) | 130 | The song's per mille: Perfect 4, Good 3, OK 1, a missed note −2, out of 4 a note, never below 0. Straight line, `stdLine(130, perMille, 1000)`: full at 1,000 (every note Perfect). |
+| Fever | 25 | `stdLine(25, min(fevers, 4), 4)`: 6, 12, 18, 25 for 1, 2, 3, 4 fevers started. |
+| Golden notes | 15 | `stdLine(15, golden notes hit dead on, golden notes in the song)`. |
+| Double taps | 15 | `stdLine(15, double taps with both hits Perfect, double taps in the song)`. |
+| Perfect streak | 15 | `stdLine(15, longest Perfect streak, notes in the song)`: full for every note Perfect in one streak. |
 
 The score is `stdScore(parts, acted)`: 0 with no input, else the sum held to 1…200.
 

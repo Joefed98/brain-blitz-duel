@@ -5,7 +5,7 @@ import { PUZZLE_INSTRUCTIONS } from "../src/lib/duel/instructions";
 import { BAND_SPECS } from "../src/lib/arcade/bandParts";
 import { roundMaxFor } from "../src/lib/duel/roundMax";
 import { LIVE_BANDS, type LiveBand } from "../src/lib/arcade/liveBands";
-import { stdHelp, STD_TOTAL } from "../src/lib/arcade/arcadeStandard";
+import { stdHelp, STD_MAX } from "../src/lib/arcade/arcadeStandard";
 
 /** About two lines of text-sm on a 360 px phone. */
 const MAX_CHARS = 90;
@@ -39,7 +39,7 @@ for (const type of Object.keys(BAND_SPECS) as (keyof typeof INTRO_SCORE)[]) {
   const std = (LIVE_BANDS as Record<string, LiveBand>)[type]?.std;
   if (std) {
     if (!help.includes(stdHelp(std))) failures.push(`${type}: "?" help does not state the standard's parts`);
-    if (!help.includes(`Together ${STD_TOTAL} points.`)) failures.push(`${type}: "?" help does not say the standard's parts total ${STD_TOTAL}`);
+    if (!help.includes(`Together ${STD_MAX} points.`)) failures.push(`${type}: "?" help does not say the standard's parts total ${STD_MAX}`);
   } else if (!help.includes("higher score") || !help.includes("A good run (100 points)")) failures.push(`${type}: "?" help has no plain band line`);
   if (/→|Points follow/.test(help)) failures.push(`${type}: "?" help still lists band knots`);
 }

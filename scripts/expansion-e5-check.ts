@@ -142,7 +142,8 @@ section("Rooms deal the new stamps; the maximum is 200 and the texts say so");
 for (const type of TYPES) {
   const live = LIVE_BANDS[type];
   const dealt = (generatePuzzle(type as PuzzleType) as unknown as Record<string, unknown>)[live.field];
-  ok(dealt === DEALT[type] && LIVE_BANDS[type].rev === DEALT[type], `${type}: rooms deal ${live.field} ${DEALT[type]} (got ${String(dealt)})`);
+  // Slice sliceRev 11 (the arcade scoring standard, 29 Oct 2026) re-scores sliceRev 10's play: playRevOf maps it back (slice-standard-check covers it).
+  ok(playRevOf(type, dealt as number) === DEALT[type] && playRevOf(type, LIVE_BANDS[type].rev) === DEALT[type], `${type}: rooms deal ${live.field} ${DEALT[type]} (got ${String(dealt)})`);
   ok(ROUND_MAX[type] === 200 && roundMaxFor(type) === 200, `${type}: ROUND_MAX is 200`);
   ok(fillMax(INTRO_SCORE[type], type).includes("200"), `${type}: the intro states 200: ${fillMax(INTRO_SCORE[type], type)}`);
   // A game on the arcade scoring standard states its 200 in the standard's words (arcade-help-bands-check proves them).

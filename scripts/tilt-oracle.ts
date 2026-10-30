@@ -5,18 +5,19 @@
  * reaches each one by a beam search over held tilts turned at a finger's speed (`ORACLE_FINGER` px a tick,
  * re-gripping at the screen's edges as a hand does). It never lets the marble it is steering fall in.
  *
- *   bun scripts/tilt-oracle.ts [--from=0] [--seeds=260] [--write=<file>]   # per seed: the oracle's score
+ *   bun scripts/tilt-oracle.ts [--from=0] [--seeds=260] [--rev=8|10] [--write=<file>]   # per seed: the oracle's score
  *
  * tilt-expand-check replays stored oracle runs; this script proves every seed can be played to 200.
  */
 import { appendFileSync, writeFileSync } from "node:fs";
 import { gzipSync } from "node:zlib";
 import type { ArcadeInputEvent } from "../src/lib/arcade/engine";
-import { tiltCellCentre, tiltCheckpoint, tiltExpandGame, tiltFieldX, tiltParWalksX, tiltWalkTurnsX, TILT_CHECKPOINT_INTERVAL, TILT_INPUT_DRAG, TILT_REV_EXPAND, type Maze, type TiltState } from "../src/lib/arcade/tilt";
+import { tiltCellCentre, tiltCheckpoint, tiltExpandGame, tiltFieldX, tiltParWalksX, tiltStdGame, tiltWalkTurnsX, TILT_CHECKPOINT_INTERVAL, TILT_INPUT_DRAG, TILT_REV_EXPAND, TILT_REV_STD, type Maze, type TiltState } from "../src/lib/arcade/tilt";
 import { decodeTiltRun, encodeTiltRun, replayTiltRun } from "../src/lib/duel/tilt";
 import { GAME_BY_TYPE } from "./arcade-skill-bands/games";
 
-const game = tiltExpandGame;
+/** The game the oracle plays: tiltRev 8's (the bank's proofs), or tiltRev 10's (`oracleRun(seed, TILT_REV_STD)`: four mazes, no quick stars). */
+let game = tiltExpandGame;
 const TURN = 65536;
 const ANG_PER_PX = 91;
 /** Finger speed (world px a tick, ≈ 12 phone px: a quick, controlled spin). */
@@ -178,9 +179,10 @@ function playGoals(node: Node, m: Maze, level: number, goals: Goal[]): Node | nu
 }
 
 /** Plays a seed; returns the log and the server's score for it. */
-export function oracleRun(seed: number): { raw: string; score: number; state: TiltState } {
+export function oracleRun(seed: number, rev: number = TILT_REV_EXPAND): { raw: string; score: number; state: TiltState } {
+  game = rev === TILT_REV_STD ? tiltStdGame : tiltExpandGame;
   let node: Node = { s: game.init(seed), log: [] };
-  for (let level = 0; level < 3 && !game.isOver(node.s); level++) {
+  for (let level = 0; level < node.s.list.length && !game.isOver(node.s); level++) {
     const m = node.s.list[level]!;
     const goals = waypoints(m);
     const cups = goals.filter((g) => g.kind === "cup");
@@ -204,7 +206,8 @@ export function oracleRun(seed: number): { raw: string; score: number; state: Ti
     if (s.tick % TILT_CHECKPOINT_INTERVAL === 0) checkpoints.push(tiltCheckpoint(s));
   }
   const raw = encodeTiltRun({ seed, claimedScore: game.score(s), events: node.log, endTick: s.tick, checkpoints: checkpoints as never });
-  const r = replayTiltRun(seed, raw, TILT_REV_EXPAND);
+  const r = replayTiltRun(seed, raw, rev);
+  game = tiltExpandGame;
   return { raw, score: r.flagged ? -1 : r.score, state: r.state };
 }
 
@@ -251,7 +254,7 @@ if (import.meta.main) {
   for (let n = from; n < from + seeds; n++) {
     const seed = spec.seedFor(n);
     const t0 = performance.now();
-    const r = oracleRun(seed);
+    const r = oracleRun(seed, Number(opt("rev") ?? TILT_REV_EXPAND));
     const s = r.state;
     const line: Record<string, unknown> = { n, seed, score: r.score, mazes: s.mazes, stars: s.stars, quick: s.quickTaken, quickPts: s.quickPts, pace: s.pace, end: s.endedTick, ms: Math.round(performance.now() - t0) };
     if (opt("stats")) line.mazeStats = mazeStats(seed, r.raw);

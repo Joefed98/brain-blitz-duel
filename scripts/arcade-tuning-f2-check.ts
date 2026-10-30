@@ -158,7 +158,7 @@ section("New rounds carry the Tuning F stamps; runs on them replay unchanged");
   // Gemstone's phone-test notes (27 Oct 2026) moved it on to matchupRev 10; gemstone-rev10-check covers it.
   // sliceRev 10 (27 Oct 2026, Joe's phone notes) is sliceRev 9 with bigger onions and golden fruit; expansion-e5-check covers it.
   // The arcade scoring standard (29 Oct 2026) moved Coral Pop on to bubbleRev 11; bubble-standard-check covers it.
-  const movedOn: Record<string, number> = { slice: SLICE_REV_BIG, bubble: BUB_REV_TORPEDO + 7, swing: SWING_REV_SPREAD + 6, matchup: 10, snip: SNIP_REV_EXPAND, cross: CROSS_REV_EXPAND };
+  const movedOn: Record<string, number> = { slice: SLICE_REV_BIG, bubble: BUB_REV_TORPEDO + 7, swing: SWING_REV_SPREAD + 6, matchup: 11, snip: SNIP_REV_EXPAND, cross: CROSS_REV_EXPAND };
   for (const [type, field, got, rev] of stamps) {
     if (!want(type)) continue;
     ok(got === (movedOn[type] ?? rev), `${type}: new rounds stamped ${movedOn[type] ?? rev} (got ${got})`);
@@ -297,8 +297,9 @@ if (want("matchup")) {
   }
   ok(best === 150, `150 is reachable through the server replay (best ${best}, ${bestRaw} match points)`);
   // Expansion E6's matchupRev 9 scores on its own curve (150 at 3,200 before its feature bonus); e6-check covers it.
-  // matchupRev 10 (27 Oct 2026, the 90 s run) tops its base curve at 4,200.
-  ok(PUZZLE_INSTRUCTIONS.matchup.score.includes("4,200"), "the \"?\" help shows the curve rooms deal (150 at 4,200)");
+  // matchupRev 10 (27 Oct 2026, the 90 s run) topped its base curve at 4,200; matchupRev 11 (the arcade scoring standard)
+  // pays gems cleared on a straight line to 110, then fixed parts to 200.
+  ok(PUZZLE_INSTRUCTIONS.matchup.score.includes("More gems cleared") && PUZZLE_INSTRUCTIONS.matchup.score.includes("make 200"), "the \"?\" help shows the scoring rooms deal (gems cleared, parts to 200)");
 }
 
 console.log(failures.length === 0 ? `PASS arcade-tuning-f2-check (${checks} checks)` : `FAIL arcade-tuning-f2-check: ${failures.length} of ${checks} failed`);

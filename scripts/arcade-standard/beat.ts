@@ -1,9 +1,10 @@
 /**
- * arcade-standard-check's case for `beat` (see ./case.ts): Tempo beatRev 11 (docs/arcade-standard/beat.md).
+ * arcade-standard-check's case for `beat` (see ./entry.ts): Tempo beatRev 11 (docs/arcade-standard/beat.md).
  * States are built by hand from beatRev 11's init; the sim's rules are read, never copied.
  */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import type { StdCase } from "./case";
+import { ARCADE_STANDARD } from "../../src/lib/arcade/standard";
+import { caseEntry, type StdCase } from "./entry";
 import {
   beatAccuracy,
   beatFeatureCounts,
@@ -92,3 +93,5 @@ export const stdCase: StdCase = {
     ok(game.score(game.init(SEED)) === 0, "beat: no input scores 0");
   },
 };
+
+export const entry = caseEntry("beat", ARCADE_STANDARD.beat.spec!, ARCADE_STANDARD.beat.parts, stdCase);

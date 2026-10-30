@@ -71,6 +71,8 @@ import {
   HOVER_TIGHT_POINTS,
   HOVER_TIGHT_WALL,
   HOVER_V9_BAND_CURVE,
+  HOVER_V10_BAND_CURVE,
+  HOVER_REV_STANDARD,
   HOVER_V9_MAX,
   hoverBottom,
   centreFlyable,
@@ -98,6 +100,7 @@ import { fixtureOf, type HoverFixtureRun } from "./hover-x200-record";
 import { solveHover } from "./hover-x200-solver";
 import { replayWitness, WITNESS_FIXTURE, WITNESS_INDICES, type HoverWitness } from "./hover-x200-witness";
 import { roomSeed } from "./arcade-skill-bands/games";
+import { playRevOf } from "./scoring-targets-revs";
 import { Human } from "./arcade-skill-bands/human";
 import { randomBot } from "./arcade-skill-bands/bots/hover";
 
@@ -149,15 +152,17 @@ section("legacy identity");
 /* 2. Dealing and wiring. */
 section("dealing and wiring");
 {
-  ok(generateHover().hoverRev === HOVER_REV_EXPAND && HOVER_REV_EXPAND === 9, "rooms deal hoverRev 9");
+  // Since 29 Oct 2026 rooms and practice deal hoverRev 10, hoverRev 9's play under the arcade scoring standard
+  // (hover-standard-check proves it and its scoring).
+  ok(playRevOf("hover", generateHover().hoverRev) === HOVER_REV_EXPAND && HOVER_REV_EXPAND === 9, "rooms deal hoverRev 9's play");
   const stage = readFileSync("src/puzzles/hover.tsx", "utf8");
-  ok(/hoverRev: HOVER_REV_EXPAND \}\) satisfies HoverPuzzleData/.test(stage), "practice deals hoverRev 9");
+  ok(/hoverRev: HOVER_REV_STANDARD \}\) satisfies HoverPuzzleData/.test(stage) && playRevOf("hover", HOVER_REV_STANDARD) === HOVER_REV_EXPAND, "practice deals hoverRev 9's play");
   ok(/height=\{hoverWorldHFor\(data\.hoverRev\)\}/.test(stage), "the stage sizes its arena from the stored revision");
   ok(hoverWorldHFor(HOVER_REV_EXPAND) === 727 && HOVER_EXPAND_H === 727, "hoverRev 9's world is 390 × 727 (fills a 414 × 772 arena edge to edge)");
   ok(ARCADE_FX_SPECS.hover.height === HOVER_EXPAND_H && hoverFxFor(game.init(5) as HoverState).height === HOVER_EXPAND_H, "the effects spec draws at 727 for the rounds dealt now");
-  ok(LIVE_BANDS.hover.rev === HOVER_REV_EXPAND && LIVE_BANDS.hover.curve === HOVER_V9_BAND_CURVE, "the help reads hoverRev 9's base curve");
+  ok(playRevOf("hover", LIVE_BANDS.hover.rev) === HOVER_REV_EXPAND && LIVE_BANDS.hover.curve === HOVER_V10_BAND_CURVE, "the help reads the dealt revision's curve (hoverRev 10's core, on hoverRev 9's play)");
   ok(roundMaxFor("hover") === 200, "Hover's round maximum is 200");
-  ok(/data\.type === "hover" && demo\?\.puzzle\.type === "hover" && demo\.puzzle\.hoverRev !== HOVER_REV_EXPAND/.test(readFileSync("src/lib/duel/introDemo.functions.ts", "utf8")), "a demo recorded before hoverRev 9 is stopped");
+  ok(/data\.type === "hover" && demo\?\.puzzle\.type === "hover" && demo\.puzzle\.hoverRev !== HOVER_REV_STANDARD/.test(readFileSync("src/lib/duel/introDemo.functions.ts", "utf8")), "a demo recorded before hoverRev 10 (so before hoverRev 9 too) is stopped");
   ok(/state\.ctrLog/.test(readFileSync("src/lib/fx/gameSounds.ts", "utf8")) && /state\.xp/.test(readFileSync("src/lib/fx/gameSounds.ts", "utf8")), "the sound observer handles the new moments, the centre line included");
 }
 

@@ -15,7 +15,7 @@ up to 2). Multiball started 20. Jackpots 15 (5 each, up to 3). Ramp combos 15 (5
 
 | Part | Max | How it pays |
 | --- | ---: | --- |
-| Table points (core) | 130 | `stdLinear(table points, 61,000, 130)`: a straight line, full at 61,000 |
+| Table points (core) | 130 | `stdLine(130, table points, 61,000)`: a straight line, full at 61,000 |
 | J-O-U-L-Z | 20 | 10 for each completed set of all five letters, up to 2 |
 | Multiball | 20 | once multiball has started (any number) |
 | Jackpots | 15 | 5 each, up to 3 |

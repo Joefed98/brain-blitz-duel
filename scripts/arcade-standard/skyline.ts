@@ -2,7 +2,8 @@
  * arcade-standard-check's case for `skyline` (High Rise, skylineRev 9; see ./case.ts and
  * docs/arcade-standard/skyline.md). States are built by hand from skylineRev 9's init.
  */
-import type { StdCase } from "./case";
+import { ARCADE_STANDARD } from "../../src/lib/arcade/standard";
+import { caseEntry, type StdCase } from "./entry";
 import {
   skylineGameFor,
   skylineKinds,
@@ -92,3 +93,5 @@ export const stdCase: StdCase = {
     ok(JSON.stringify(skylineKindsV9(SEED)) === JSON.stringify(skylineKindsV9(SEED)), "the schedule comes from the seed alone");
   },
 };
+
+export const entry = caseEntry("skyline", ARCADE_STANDARD.skyline.spec!, ARCADE_STANDARD.skyline.parts, stdCase);

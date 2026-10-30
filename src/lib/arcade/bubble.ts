@@ -38,7 +38,7 @@ import {
   type InputRange,
 } from "./engine";
 import { speedBonusCurve } from "../duel/speedPar";
-import { stdEach, stdLinear, stdPart, stdScore, stdShare, type StdPart, type StdSpec } from "./arcadeStandard";
+import { stdEach, stdLine, stdPart, stdScore, type StdPart, type StdSpec } from "./arcadeStandard";
 import { bandStrictGame, bandStrict, bandRetarget, bandTargetGame, bandCurveOf, bandCurve, bandInit, bandPoints, bandTop, bandScoreOf, bandStep, bandTotal, BAND_FINISH_BONUS, type BandFields, type BandParts } from "./scoreBands";
 
 /* ============================== Constants ============================== */
@@ -1410,11 +1410,11 @@ export function bubbleStdParts(state: BubState): StdPart[] | null {
   const combos = state.combos ?? 0;
   const plural = (k: number, one: string, many: string) => `${k} ${k === 1 ? one : many}`;
   return [
-    stdPart(spec, "core", stdLinear(cleared, start, BUB_V11_CORE_MAX), `${cleared} of ${start} bubbles`),
+    stdPart(spec, "core", stdLine(BUB_V11_CORE_MAX, cleared, start), `${cleared} of ${start} bubbles`),
     stdPart(spec, "clear", state.cleared ? BUB_V11_CLEAR : 0, state.cleared ? "reef cleared" : "not cleared"),
-    stdPart(spec, "speed", state.cleared ? stdLinear(left, BUB_V11_SPEED_FULL_LEFT, BUB_V11_SPEED_MAX) : 0, state.cleared ? `${Math.floor(left / TICKS_PER_SECOND)} s left` : "not cleared"),
+    stdPart(spec, "speed", state.cleared ? stdLine(BUB_V11_SPEED_MAX, left, BUB_V11_SPEED_FULL_LEFT) : 0, state.cleared ? `${Math.floor(left / TICKS_PER_SECOND)} s left` : "not cleared"),
     stdPart(spec, "chests", stdEach(chests, BUB_V11_CHEST_EACH, BUB_V11_CHESTS_MAX), `${chests} of ${BUB_V8_CHESTS} fell`),
-    stdPart(spec, "banks", stdShare(banks, BUB_V11_BANK_PER * BUB_V11_BANK_MAX, BUB_V11_BANK_MAX), plural(banks, "bank shot", "bank shots")),
+    stdPart(spec, "banks", stdLine(BUB_V11_BANK_MAX, banks, BUB_V11_BANK_PER * BUB_V11_BANK_MAX), plural(banks, "bank shot", "bank shots")),
     stdPart(spec, "combos", stdEach(combos, BUB_V11_COMBO_EACH, BUB_V11_COMBO_MAX), plural(combos, "combo", "combos")),
   ];
 }
@@ -1423,7 +1423,7 @@ export function bubbleStdParts(state: BubState): StdPart[] | null {
 export function bubStdFeaturePoints(state: BubState): number {
   return (
     stdEach(state.chests ?? 0, BUB_V11_CHEST_EACH, BUB_V11_CHESTS_MAX) +
-    stdShare(state.banks ?? 0, BUB_V11_BANK_PER * BUB_V11_BANK_MAX, BUB_V11_BANK_MAX) +
+    stdLine(BUB_V11_BANK_MAX, state.banks ?? 0, BUB_V11_BANK_PER * BUB_V11_BANK_MAX) +
     stdEach(state.combos ?? 0, BUB_V11_COMBO_EACH, BUB_V11_COMBO_MAX)
   );
 }

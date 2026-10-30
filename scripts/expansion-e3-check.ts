@@ -58,6 +58,7 @@ import {
 } from "../src/lib/arcade/breaker";
 import { generateBreaker } from "../src/lib/duel/arcade.server";
 import { roundMaxFor } from "../src/lib/duel/roundMax";
+import { playRevOf } from "./scoring-targets-revs";
 import { LIVE_BANDS } from "../src/lib/arcade/liveBands";
 
 let checks = 0;
@@ -115,8 +116,10 @@ section("The live effect specs count older rounds' moments as before");
 section("New rounds: stamps, maximum, courts, start states");
 {
   // Phone notes (27 Oct 2026) moved rooms on to brkRev 10 (brkRev 9's court and scoring; section 5 covers it).
-  ok(generateBreaker().brkRev === BRK_REV_PHONE, "rooms deal brkRev 10 (brkRev 9 with the phone notes)");
-  ok(LIVE_BANDS.breaker.rev === BRK_REV_PHONE && LIVE_BANDS.breaker.strictRev === BRK_REV_STRICT, "the help reads the new stamp; the score-bands revision is brkRev 8");
+  // The arcade scoring standard (29 Oct 2026) then moved rooms on to brkRev 11: brkRev 10's play, scored in fixed parts
+  // (breaker-standard-check), so playRevOf maps it back to brkRev 10 here.
+  ok(playRevOf("breaker", generateBreaker().brkRev) === BRK_REV_PHONE, "rooms deal brkRev 10's play (brkRev 9 with the phone notes)");
+  ok(playRevOf("breaker", LIVE_BANDS.breaker.rev) === BRK_REV_PHONE && LIVE_BANDS.breaker.strictRev === BRK_REV_STRICT, "the help reads the new stamp; the score-bands revision is brkRev 8");
   ok(breakerWorldWFor(BRK_REV_PHONE) === 420 && breakerWorldHFor(BRK_REV_PHONE) === 784, "brkRev 10 plays brkRev 9's 420 × 784 court");
   ok(roundMaxFor("breaker") === 200, "Breaker's maximum is 200");
   ok(breakerWorldWFor(BRK_REV_DEEP) === 420 && breakerWorldHFor(BRK_REV_DEEP) === 784 && breakerWorldWFor(BRK_REV_STRICT) === 390 && breakerWorldHFor(BRK_REV_STRICT) === 730, "Breaker courts by revision");

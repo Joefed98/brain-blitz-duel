@@ -20,7 +20,7 @@ import {
   type DragLaunch,
   type InputRange,
 } from "./engine";
-import { stdLinear, stdPart, stdScore, stdShare, type StdPart, type StdSpec } from "./arcadeStandard";
+import { stdLine, stdPart, stdScore, type StdPart, type StdSpec } from "./arcadeStandard";
 import { BAND_STRICT_MARK, bandStrictGame, bandStrict, bandRetarget, bandTargetGame, bandCurveOf, BAND_TARGET_MARK, bandCurve, bandInit, bandPoints, bandScoreOf, bandStep, bandTotal, type BandFields, type BandParts } from "./scoreBands";
 
 /* ============================== Constants ============================== */
@@ -1239,7 +1239,7 @@ export function bullseyeDeadDarts(state: Pick<BullseyeState, "ringValues">): num
  * bullRev 9: BULLSEYE_V9_DEAD_CAP shared between the darts that have a dead-centre ring, floor(20 × hit ÷ darts).
  */
 export function bullseyeDeadPoints(state: Pick<BullseyeState, "dead"> & Partial<Pick<BullseyeState, "std" | "ringValues">>): number {
-  if (state.std === BULLSEYE_STD) return stdShare(state.dead ?? 0, state.ringValues ? bullseyeDeadDarts(state as Pick<BullseyeState, "ringValues">) : 0, BULLSEYE_V9_DEAD_CAP);
+  if (state.std === BULLSEYE_STD) return stdLine(BULLSEYE_V9_DEAD_CAP, state.dead ?? 0, state.ringValues ? bullseyeDeadDarts(state as Pick<BullseyeState, "ringValues">) : 0);
   return Math.min(BULLSEYE_V8_DEAD_CAP, BULLSEYE_V8_DEAD_PTS * (state.dead ?? 0));
 }
 
@@ -1355,7 +1355,7 @@ export function bullseyeStdParts(state: BullseyeState): StdPart[] | null {
   const total = Math.max(0, state.total);
   const dead = state.dead ?? 0;
   return [
-    stdPart(BULLSEYE_STD_SPEC, "core", stdLinear(total, BULLSEYE_V9_FULL_AT, BULLSEYE_V9_CORE_MAX), `${total} points from ${state.arrowIndex} darts`),
+    stdPart(BULLSEYE_STD_SPEC, "core", stdLine(BULLSEYE_V9_CORE_MAX, total, BULLSEYE_V9_FULL_AT), `${total} points from ${state.arrowIndex} darts`),
     stdPart(BULLSEYE_STD_SPEC, "streak", bullseyeStreakPoints(state), `${state.streakPts ?? 0} streak points`),
     stdPart(BULLSEYE_STD_SPEC, "dead", bullseyeDeadPoints(state), `${dead} of ${bullseyeDeadDarts(state)} dead-centre`),
   ];

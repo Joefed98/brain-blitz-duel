@@ -11,7 +11,7 @@ folded into core). Perfect drops 30 (by share of drops that are perfect). Perfec
 
 | Part | Max | How it pays |
 | --- | --- | --- |
-| Floors (core) | 140 | `stdLinear(floors, 61, 140)`: a straight line, full at **61 floors** |
+| Floors (core) | 140 | `stdLine(140, floors, 61)`: a straight line, full at **61 floors** |
 | Perfect drops | 30 | `30 × perfect drops ÷ max(floors, 61)`, rounded down: the share of drops that are perfect, counted over at least 61 drops |
 | Perfect streak | 10 | 1 for each perfect drop in the best streak, full at 10 in a row |
 | Gold blocks | 20 | 4 for each of the 5 gold blocks landed perfectly |

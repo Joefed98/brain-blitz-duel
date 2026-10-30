@@ -15,9 +15,9 @@ cleared, full at clearing the reef. Clearing the reef 10 + speed 10. Chests 30 (
 | --- | --- | --- |
 | Bubbles cleared (core) | 120 | 120 × bubbles cleared ÷ 95 (the reef's starting bubbles), rounded down: a straight line, full only when the reef is cleared |
 | Reef cleared | 10 | the whole reef cleared |
-| Speed | 10 | a cleared reef only: full with half the clock (45 s) or more left, then even to 0 at the buzzer (`stdLinear(ticks left, 2700, 10)`) |
+| Speed | 10 | a cleared reef only: full with half the clock (45 s) or more left, then even to 0 at the buzzer (`stdLine(10, ticks left, 2700)`) |
 | Chests | 30 | 5 for each of the 6 seeded chests that falls with a cluster (bubbleRev 10's chest rule) |
-| Bank shots | 15 | 1 for every 2 bank shots (`stdShare(banks, 30, 15)`), so 30 bank shots fill it |
+| Bank shots | 15 | 1 for every 2 bank shots (`stdLine(15, banks, 30)`), so 30 bank shots fill it |
 | Combos | 15 | 1 each (bubbleRev 10's rule: every removing shot straight after another removing shot) |
 
 Anyone who plays scores at least 1, a run with no input 0 (`stdScore`). No feature curve or rising scale is left

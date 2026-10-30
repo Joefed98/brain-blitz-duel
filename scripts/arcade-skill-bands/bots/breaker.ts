@@ -32,6 +32,8 @@ import {
   BRK_WALL_Y,
   BRK_WORLD_W,
   BRK_ZONES,
+  BRK_V11_GOLD_MAX,
+  brkGoldDealt,
   type BrkBall,
   type BrkState,
 } from "../../../src/lib/arcade/breaker";
@@ -78,6 +80,22 @@ let PAID_VALUE = false;
 let PADDLE_Y = 0;
 let CATCH_Y = 0;
 
+/**
+ * brkRev 11 (the arcade scoring standard): combos pay nothing and a gold brick pays its fixed share of
+ * BRK_V11_GOLD_MAX, so the look-ahead values gold bricks only (gated on the state's `std`, so every
+ * earlier revision's bot plays exactly as before).
+ */
+function stdGoldPoints(s: BrkState): number {
+  const dealt = brkGoldDealt(s);
+  return dealt > 0 ? (BRK_V11_GOLD_MAX * Math.min(dealt, s.goldBroken ?? 0)) / dealt : 0;
+}
+function skillOf(s: BrkState): number {
+  return s.std ? stdGoldPoints(s) : brkSkillPoints(s);
+}
+function paidOf(s: BrkState): number {
+  return s.std ? stdGoldPoints(s) : brkSkillPaid(s);
+}
+
 /** Where and when a falling ball reaches the paddle line, bouncing off the side walls only. */
 function landing(b: BrkBall): { x: number; t: number } | null {
   if (b.vy <= 0) return null;
@@ -112,12 +130,12 @@ function zoneValue(game: { step: (s: BrkState, e: unknown) => BrkState; isOver: 
     s = game.step(s, { t: s.tick + 1, k: ARCADE_INPUT_DRAG, a: Math.max(0, Math.min(WORLD_W, a)), b: 0, c: 0, d: 0 });
     if (committed && s.balls.some((b) => b.vy < 0 && b.y > (CATCH_Y - 20) * 256)) committed = false;
     if (s.losses > start.losses) {
-      if (PAID_VALUE) return BASE_PER_HIT * (s.hits - start.hits - 20) + brkSkillPaid(s) - brkSkillPaid(start);
-      return s.hits - start.hits - 20 + SKILL_W * (brkSkillPoints(s) - brkSkillPoints(start));
+      if (PAID_VALUE) return BASE_PER_HIT * (s.hits - start.hits - 20) + paidOf(s) - paidOf(start);
+      return s.hits - start.hits - 20 + SKILL_W * (skillOf(s) - skillOf(start));
     }
   }
-  if (PAID_VALUE) return BASE_PER_HIT * (s.hits - start.hits) + (start.deep ? brkSkillPaid(s) - brkSkillPaid(start) : 0);
-  return s.hits - start.hits + SKILL_W * (brkSkillPoints(s) - brkSkillPoints(start));
+  if (PAID_VALUE) return BASE_PER_HIT * (s.hits - start.hits) + (start.deep ? paidOf(s) - paidOf(start) : 0);
+  return s.hits - start.hits + SKILL_W * (skillOf(s) - skillOf(start));
 }
 
 /** Live bricks above the paddle centre, bottom-up (what a laser or a fired ball would meet). */

@@ -16,7 +16,7 @@ import {
 } from "./engine";
 import { bandStrictGame, bandStrict, bandRetarget, bandTargetGame, bandCurveOf, bandCurve, bandInit, bandPoints, bandScoreOf, bandStep, bandTotal, type BandFields, type BandParts } from "./scoreBands";
 import type { ArcadeGame } from "./engine";
-import { stdLinear, stdPart, stdScore, stdShare, stdSum, type StdPart, type StdSpec } from "./arcadeStandard";
+import { stdLine, stdPart, stdScore, stdSum, type StdPart, type StdSpec } from "./arcadeStandard";
 
 /* ============================== Constants ============================== */
 
@@ -893,10 +893,10 @@ export function skylineStdParts(state: SkylineState): StdPart[] | null {
   const best = state.bestStreak ?? 0;
   const golds = state.golds ?? 0;
   return [
-    stdPart(SKYLINE_STD_SPEC, "core", stdLinear(placed, SKYLINE_V9_FULL_AT, SKYLINE_V9_CORE_MAX), `${placed} floor${placed === 1 ? "" : "s"}`),
-    stdPart(SKYLINE_STD_SPEC, "perfects", stdShare(perfects, Math.max(placed, SKYLINE_V9_FULL_AT), SKYLINE_V9_PERFECTS_MAX), `${perfects} of ${placed} perfect`),
+    stdPart(SKYLINE_STD_SPEC, "core", stdLine(SKYLINE_V9_CORE_MAX, placed, SKYLINE_V9_FULL_AT), `${placed} floor${placed === 1 ? "" : "s"}`),
+    stdPart(SKYLINE_STD_SPEC, "perfects", stdLine(SKYLINE_V9_PERFECTS_MAX, perfects, Math.max(placed, SKYLINE_V9_FULL_AT)), `${perfects} of ${placed} perfect`),
     stdPart(SKYLINE_STD_SPEC, "streak", Math.min(best, SKYLINE_V9_STREAK_MAX), `best ${best} in a row`),
-    stdPart(SKYLINE_STD_SPEC, "gold", stdShare(golds, SKYLINE_V9_GOLD_COUNT, SKYLINE_V9_GOLD_MAX), `${golds} of ${SKYLINE_V9_GOLD_COUNT} gold`),
+    stdPart(SKYLINE_STD_SPEC, "gold", stdLine(SKYLINE_V9_GOLD_MAX, golds, SKYLINE_V9_GOLD_COUNT), `${golds} of ${SKYLINE_V9_GOLD_COUNT} gold`),
   ];
 }
 

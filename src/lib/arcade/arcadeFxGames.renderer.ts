@@ -1006,7 +1006,8 @@ export const SLICE_FX: ArcadeFxSpec<SliceState> = {
       count: (s) => (s.comboLive ? sliceMultiplier(s.streak) : 1),
       min: 2,
       at: (s) => (s.strokeX >= 0 ? { x: s.strokeX, y: s.strokeY } : null),
-      label: (_s, n) => `COMBO ×${n}`,
+      // sliceRev 11: no multiplier, so the combo (started or renewed) shows without one.
+      label: (s, n) => (s.v11 ? "COMBO!" : `COMBO ×${n}`),
     },
     { kind: "perfect", count: (s) => s.frenzyFrom.length, label: () => "SAUCY!" },
     { kind: "perfect", count: (s) => s.slowFrom.length, label: () => "SIMMER!" },

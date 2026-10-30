@@ -1,7 +1,7 @@
 import { BULLSEYE_INNER_BULL_POINTS, BULLSEYE_RING_VALUES } from "@/lib/arcade/bullseye";
 import { BINTOSS_THROWS, BINTOSS_V9_BUCKET, BINTOSS_V9_FAR, BINTOSS_V9_FINISH, BINTOSS_V9_HOOP } from "@/lib/arcade/binToss";
 import { INK_FEATURE_MAX, INK_LEVELS } from "@/lib/arcade/inkBridge";
-import { TILT_X_MAZES } from "@/lib/arcade/tilt";
+import { TILT_S_MAZES } from "@/lib/arcade/tilt";
 import { bandsIntro } from "./puzzleBandsText";
 import { logicStandardIntro } from "./standard/logicText";
 import { wordSearchBonusIntro } from "./wordSearchText";
@@ -97,28 +97,30 @@ function introScoreTemplates(): Record<PuzzleType, string> {
     dig: "Fill the drain with clean water for 100, more if you're quick and use few digs.",
 
     // Arcade
-    hover: "Points for barriers and stars; tight gates, chains and centre lines add 50. Up to {max}.",
+    // hoverRev 10 (the arcade scoring standard): the five parts and their maximums.
+    hover: "Points: barriers 120, chains 30, gold stars 20, tight gates 20, centre lines 10 = {max}.",
     skyline: "Floors, perfect drops, a perfect streak and gold blocks. Up to {max}.",
     bintoss: `Buckets ${BINTOSS_V9_BUCKET}, far buckets +${BINTOSS_V9_FAR}, hoops +${BINTOSS_V9_HOOP}. All ${BINTOSS_THROWS} in for ${BINTOSS_V9_FINISH} more: up to {max}.`,
     bullseye: `Rings ${BULLSEYE_RING_VALUES.join(" / ")}, inner bull ${BULLSEYE_INNER_BULL_POINTS}; streaks, dead-centre add more. Up to {max}.`,
-    matchup: "Longer lines score more; goals, ice, treasure and cascades add more. Up to {max}.",
-    snake: "Points per star; gold stars, combos, lane rides and warps add bonus. Up to {max}.",
+    // matchupRev 11 (the arcade scoring standard): gems cleared, then treasure, goals, ice and big lines.
+    matchup: "Every gem cleared scores; treasure, goals, ice and lines of 4 or 5 add more. Up to {max}.",
+    snake: "Stars score up to 120; gold stars, combos, lanes and warps add 80 more. Up to {max}.",
     cross: "Points for rows and crossings; coins, close calls and clean streaks add more. Up to {max}.",
-    breaker: "Bricks score; gold and combos add up to 50. Clear all 105 quickly for up to {max}.",
+    breaker: "Every brick scores; gold bricks add 30. Clear all 105 quickly for up to {max}.",
     rally: "Gold-ball hits, pink targets and gold targets. Up to {max}.",
     pinball: "Table points, plus J-O-U-L-Z sets, multiball, jackpots and ramp combos. Up to {max}.",
     bubble: "Bubbles cleared, a fast clear, falling chests, bank shots and combos. Up to {max}.",
-    slice: "Food by combo; gold fruit, tickets and dodges add more. Chilli: lose 10. Up to {max}.",
+    slice: "Food 120, combos 40, gold fruit 20, tickets 10, dodges 10. Chilli: lose 10. Up to {max}.",
     beat: "Notes hit in time, fevers, golden notes, double taps and a Perfect streak. Up to {max}.",
     wavefront: "Ships, waves, a fast boss kill; precise weak-point hits, saucers, power-ups: up to {max}.",
     flip: "Time and stars score; trails, sweet spots, double flips, zones and checkpoints: up to {max}.",
     junction: "Points for each car and bus through, ± for ambulances. Last the minute for 10 more.",
     inkbridge: `Levels score; stars, coins, shamrock: up to ${INK_FEATURE_MAX} more. All ${INK_LEVELS} levels quickly: up to {max}.`,
-    burst: "Atoms score; a lost life costs 5. Last 90 s for 10 more; quick wave clears add. Up to {max}.",
+    burst: "Atoms up to 140, fast waves 35, golden atoms 25; a lost life costs 5. Up to {max}.",
     orbit: "Planets and the sun, plus stardust, slingshots, fields and perfect orbits: up to {max}.",
     snip: "Points for fruit fed and leaves; golden apples, few cuts and speed add more. Up to {max}.",
     swing: `Sections cleared, then pars, gates, gems and stars: up to {max}.`,
-    tilt: `Mazes, progress and stars; quick stars and pace add more. All ${TILT_X_MAZES} quickly: up to {max}.`,
+    tilt: `35 a maze (up to 5 for nearing its exit), gold stars 30. All ${TILT_S_MAZES} quickly: up to {max}.`,
     balltrack: `Points per marble home; gold, boosted and in-a-row marbles add more. Up to {max}.`,
     swerve: arcadeOpen("each coin you collect"),
     dual: "The longer both runners survive, the more you score. The full minute is {max}.",

@@ -26,7 +26,7 @@ import {
 } from "./engine";
 import { BAND_STRICT_MARK, bandStrictGame, bandStrict, bandRetarget, bandCurveOf, bandTargetGame, bandCurve, bandInit, bandPoints, bandScoreOf, bandStep, bandTotal, BAND_FINISH_BONUS, type BandFields, type BandParts } from "./scoreBands";
 import { icos, isin } from "./trig";
-import { stdEach, stdLinear, stdPart, stdScore, type StdPart, type StdSpec } from "./arcadeStandard";
+import { stdEach, stdLine, stdPart, stdScore, type StdPart, type StdSpec } from "./arcadeStandard";
 
 /* ============================== Constants ============================== */
 
@@ -1572,7 +1572,7 @@ export function binTossStdParts(state: BinTossState): StdPart[] | null {
   const hoops = clampInt(state.swishes ?? 0, 0, BINTOSS_HOOP_COUNT);
   // All ten in: each of the ten throws' results is a basket.
   const allIn = state.results.length >= BINTOSS_THROWS && state.results.every((r) => r === 1);
-  const core = Math.min(BINTOSS_V9_CORE_MAX, stdLinear(baskets, BINTOSS_THROWS, BINTOSS_V9_CORE_MAX) + close);
+  const core = Math.min(BINTOSS_V9_CORE_MAX, stdLine(BINTOSS_V9_CORE_MAX, baskets, BINTOSS_THROWS) + close);
   return [
     stdPart(BINTOSS_STD_SPEC, "core", core, `${baskets} / ${BINTOSS_THROWS} buckets${close ? ` · ${close} close` : ""}`),
     stdPart(BINTOSS_STD_SPEC, "far", stdEach(far, BINTOSS_V9_FAR, BINTOSS_V9_FAR_MAX), `${far} of ${BINTOSS_FAR_THROWS} far`),

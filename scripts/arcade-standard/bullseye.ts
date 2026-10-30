@@ -1,12 +1,13 @@
 /**
- * arcade-standard-check's case for `bullseye` (see ./case.ts): Flightpath bullRev 9 (docs/arcade-standard/bullseye.md).
+ * arcade-standard-check's case for `bullseye` (see ./entry.ts): Flightpath bullRev 9 (docs/arcade-standard/bullseye.md).
  * Dart total (core, full at 112) up to 150, bull streaks up to 30 (bullRev 8's streak points), dead-centre darts up to 20
  * shared between the darts that have a dead-centre ring. The perfect state is a real run (scripts/bullseye-best-run.ts);
  * the others are built by hand from bullRev 9's init. scripts/bullseye-standard-check.ts proves real play on every seed.
  */
 import { bullseyeDeadDarts, bullseyeGameFor, bullseyeStdParts, BULLSEYE_REV_EXPAND, BULLSEYE_REV_STD, BULLSEYE_V9_FULL_AT, type BullseyeState } from "../../src/lib/arcade/bullseye";
 import { bullseyeBestRun } from "../bullseye-best-run";
-import type { StdCase } from "./case";
+import { ARCADE_STANDARD } from "../../src/lib/arcade/standard";
+import { caseEntry, type StdCase } from "./entry";
 
 const game = bullseyeGameFor(BULLSEYE_REV_STD);
 const SEED = 4242;
@@ -41,3 +42,5 @@ export const stdCase: StdCase = {
     ok(bullseyeStdParts(old) === null && bullseyeGameFor(BULLSEYE_REV_EXPAND).score(old) !== game.score(s), "bullseye: a bullRev 8 state keeps bullRev 8's score");
   },
 };
+
+export const entry = caseEntry("bullseye", ARCADE_STANDARD.bullseye.spec!, ARCADE_STANDARD.bullseye.parts, stdCase);

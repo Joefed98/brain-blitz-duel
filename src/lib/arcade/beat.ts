@@ -17,7 +17,7 @@ import {
   type CanvasSize,
   type InputRange,
 } from "./engine";
-import { stdLinear, stdPart, stdScore, stdShare, type StdPart, type StdSpec } from "./arcadeStandard";
+import { stdLine, stdPart, stdScore, type StdPart, type StdSpec } from "./arcadeStandard";
 import { bandStrictGame, bandStrict, bandRetarget, bandTargetGame, bandCurveOf, bandCurve, bandInit, bandPoints, bandScoreOf, bandStep, bandTotal, type BandFields, type BandParts } from "./scoreBands";
 
 /* ============================== Constants ============================== */
@@ -1305,11 +1305,11 @@ export function beatStdParts(state: BeatState): StdPart[] | null {
   const done = state.doublesDone ?? 0;
   const streak = state.maxStreak ?? 0;
   return [
-    stdPart(BEAT_STD_SPEC, "core", stdLinear(acc, BEAT_V11_ACC_FULL, BEAT_V11_MAX.core), `${acc} of 1,000`),
-    stdPart(BEAT_STD_SPEC, "fever", stdShare(Math.min(fevers, BEAT_V11_FEVERS_FULL), BEAT_V11_FEVERS_FULL, BEAT_V11_MAX.fever), `${fevers} fever${fevers === 1 ? "" : "s"}`),
-    stdPart(BEAT_STD_SPEC, "gold", stdShare(goldsHit, golds, BEAT_V11_MAX.gold), `${goldsHit} of ${golds}`),
-    stdPart(BEAT_STD_SPEC, "double", stdShare(done, doubles, BEAT_V11_MAX.double), `${done} of ${doubles}`),
-    stdPart(BEAT_STD_SPEC, "streak", stdShare(streak, notes, BEAT_V11_MAX.streak), `${streak} of ${notes} notes`),
+    stdPart(BEAT_STD_SPEC, "core", stdLine(BEAT_V11_MAX.core, acc, BEAT_V11_ACC_FULL), `${acc} of 1,000`),
+    stdPart(BEAT_STD_SPEC, "fever", stdLine(BEAT_V11_MAX.fever, Math.min(fevers, BEAT_V11_FEVERS_FULL), BEAT_V11_FEVERS_FULL), `${fevers} fever${fevers === 1 ? "" : "s"}`),
+    stdPart(BEAT_STD_SPEC, "gold", stdLine(BEAT_V11_MAX.gold, goldsHit, golds), `${goldsHit} of ${golds}`),
+    stdPart(BEAT_STD_SPEC, "double", stdLine(BEAT_V11_MAX.double, done, doubles), `${done} of ${doubles}`),
+    stdPart(BEAT_STD_SPEC, "streak", stdLine(BEAT_V11_MAX.streak, streak, notes), `${streak} of ${notes} notes`),
   ];
 }
 

@@ -33,7 +33,7 @@
 
 import { clampInt, TICKS_PER_SECOND, type ArcadeGame, type ArcadeInputEvent, type CanvasSize } from "./engine";
 import { bandCurve, bandInit, bandPoints, bandStep, bandTotal, type BandFields, type BandParts } from "./scoreBands";
-import { stdEach, stdLinear, stdPart, stdScore, stdSum, type StdPart, type StdSpec } from "./arcadeStandard";
+import { stdEach, stdLine, stdPart, stdScore, stdSum, type StdPart, type StdSpec } from "./arcadeStandard";
 import { icos, isin, isqrt, TRIG_ONE } from "./trig";
 import {
   capSpeed,
@@ -1266,7 +1266,7 @@ export function pinballStdParts(state: Pin4State): StdPart[] | null {
   const points = Math.max(0, state.points);
   const combos = state.combos ?? 0;
   return [
-    stdPart(PIN_STD_SPEC, "core", stdLinear(points, PIN_V6_FULL_AT, PIN_V6_CORE_MAX), `${fmt(points)} table points`),
+    stdPart(PIN_STD_SPEC, "core", stdLine(PIN_V6_CORE_MAX, points, PIN_V6_FULL_AT), `${fmt(points)} table points`),
     stdPart(PIN_STD_SPEC, "joulz", stdEach(state.laneSets, PIN_V6_JOULZ_EACH, PIN_V6_JOULZ_MAX), plural(state.laneSets, "set", "sets")),
     stdPart(PIN_STD_SPEC, "multiball", state.multiballs > 0 ? PIN_V6_MULTIBALL : 0, state.multiballs > 0 ? plural(state.multiballs, "multiball", "multiballs") : "not started"),
     stdPart(PIN_STD_SPEC, "jackpots", stdEach(state.jackpots, PIN_V6_JACKPOT_EACH, PIN_V6_JACKPOT_MAX), plural(state.jackpots, "jackpot", "jackpots")),

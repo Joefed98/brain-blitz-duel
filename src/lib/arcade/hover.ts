@@ -31,6 +31,7 @@ import {
   type ArcadeGame,
   type CanvasSize,
 } from "./engine";
+import { stdFinal, stdLine } from "./arcadeStandard";
 import { BAND_STRICT_MARK, bandStrictGame, bandStrict, bandRetarget, bandTargetGame, bandCurveOf, bandCurve, bandInit, bandPoints, bandScoreOf, bandStep, bandTotal, BAND_FINISH_BONUS, type BandFields, type BandParts } from "./scoreBands";
 
 /* ============================== Constants ============================== */
@@ -183,6 +184,13 @@ export interface HoverState extends BandFields {
   ctrDev?: number;
   ctrLog?: number[];
   ctrPts?: number;
+  /**
+   * hoverRev 10 only (the arcade scoring standard; absent on every earlier round): `std` marks the standard's scoring and
+   * `ctrFine` sums each cleanly threaded gate's centre-line credit (hoverCentreCredit of its furthest stray, 0 to
+   * HOVER_STD_CENTRE_SPAN). Play is hoverRev 9's exactly, so neither is in the checkpoint checksum.
+   */
+  std?: number;
+  ctrFine?: number;
 }
 
 /** The world height a state plays in (px): the taller Tuning E world, or the original 560. */
@@ -599,6 +607,7 @@ export const hoverRev2Game: ArcadeGame<HoverState> = { ...hoverGame, init: initR
 
 /** The game for a stored round: its hoverRev picks the rules (absent = original). */
 export function hoverGameFor(rev?: number | null): ArcadeGame<HoverState> {
+  if (rev === HOVER_REV_STANDARD) return hoverStandardGame;
   if (rev === HOVER_REV_EXPAND) return hoverExpandGame;
   if (rev === HOVER_REV_STRICT || rev === HOVER_REV_PARKED) return hoverStrictGame;
   if (rev === HOVER_REV_TARGET) return hoverTargetGame;
@@ -615,6 +624,7 @@ export const HOVER_REV_BAND = 3;
 /** Barriers count 3 and gold stars 2; 140 at every barrier and star; lasting the minute adds 10. */
 export const HOVER_BAND_CURVE = bandCurve([0, 24, 45, 65, 100, 123, 146], [0, 70, 100, 125, 136, 138, 140]);
 export function hoverBandParts(state: HoverState): BandParts {
+  if (state.std) return hoverStandardBandParts(state);
   if (state.xp) return hoverExpandParts(state);
   const units = 3 * Math.max(0, state.gates) + 2 * (state.stars ?? 0);
   const finished = hoverSurvived(state);
@@ -622,6 +632,7 @@ export function hoverBandParts(state: HoverState): BandParts {
 }
 
 function scoreBand(state: HoverState): number {
+  if (state.std) return hoverStandardScore(state);
   if (state.xp) return bandTotal(hoverExpandParts(state), Boolean(state.acted), HOVER_V9_MAX);
   return bandTotal(hoverBandParts(state), Boolean(state.acted));
 }
@@ -698,7 +709,7 @@ export const hoverTallGame: ArcadeGame<HoverState> = { ...hoverTunecGame, init: 
 
 /** The world height (px) a stored round's hoverRev plays in. */
 export function hoverWorldHFor(rev?: number | null): number {
-  if (rev === HOVER_REV_EXPAND) return HOVER_EXPAND_H;
+  if (rev === HOVER_REV_EXPAND || rev === HOVER_REV_STANDARD) return HOVER_EXPAND_H;
   return rev === HOVER_REV_TALL || rev === HOVER_REV_TARGET || rev === HOVER_REV_STRICT || rev === HOVER_REV_PARKED ? HOVER_TALL_H : HOVER_WORLD_H;
 }
 
@@ -1312,10 +1323,13 @@ function stepExpand(state: HoverState, tapped: boolean): HoverState {
   let ctrDev = state.ctrDev ?? 0;
   let ctrLog = state.ctrLog ?? [];
   let ctrPts = state.ctrPts ?? 0;
+  let ctrFine = state.ctrFine ?? 0;
   for (let g = state.gates; g < gates; g++) {
     if (tightOn === g) {
       tight += 1;
       tightTaken = [...tightTaken, g];
+      // hoverRev 10: the centre line's straight-line credit, on the same clean thread and the same furthest stray.
+      if (state.std && ctrOn === g) ctrFine += hoverCentreCredit(ctrDev);
       // The centre line pays on a clean thread only, graded by the furthest the saucer strayed from it.
       const grade = ctrOn === g ? hoverCentreGrade(ctrDev) : 0;
       if (grade > 0) {
@@ -1404,6 +1418,7 @@ function stepExpand(state: HoverState, tapped: boolean): HoverState {
     ctrDev,
     ctrLog,
     ctrPts,
+    ...(state.std ? { ctrFine } : {}),
   };
   if (crashed) return { ...next, crashed: true, endedTick: tick };
   if (tick >= HOVER_RUN_TICKS) return { ...next, endedTick: tick };
@@ -1476,3 +1491,108 @@ export function hoverExpandParts(state: HoverState): BandParts {
 }
 
 export const hoverExpandGame: ArcadeGame<HoverState> = { ...hoverStrictGame, init: initExpand };
+
+/* ================= The arcade scoring standard (hoverRev 10, 29 Oct 2026) ================= */
+
+/**
+ * hoverRev 10 (the arcade scoring standard, docs/arcade-standard/hover.md): hoverRev 9's course, features,
+ * shields and play exactly (a hoverRev 9 log replays tick for tick, with the same checkpoints), scored in fixed parts
+ * that add up to 200, each a straight line with no curve, knot or pay scale:
+ *
+ *  - Core, up to HOVER_STD_CORE (120): barriers passed, 120 × barriers ÷ 42 (HOVER_V10_BAND_CURVE, one straight line).
+ *  - Star chains, up to HOVER_STD_CHAINS (30): 6 a chain, 4 by the share of its stars touched and 2 for the whole chain.
+ *  - Gold stars, up to HOVER_STD_GOLD (20): 2 each of the 10.
+ *  - Tight gates, up to HOVER_STD_TIGHT (20): 4 each of the 5, threaded cleanly.
+ *  - The centre line, up to HOVER_STD_CENTRE (10): up to 2 a cleanly threaded tight gate, 2 when the saucer's centre
+ *    strays at most 6 px from the line across the barrier's columns, falling in a straight line to 0 at 15 px.
+ *  - Lasting the minute: 0. Shields: 0.
+ *
+ * Every course holds exactly 42 reachable barriers, 10 gold stars, 5 tight gates and 5 chains (hover-x200-check); were a
+ * count ever different each part keeps its maximum, split evenly over what the course holds. A run with any input scores
+ * at least 1; no input scores 0. Nothing costs points (a crash ends the run). States add `std: 1` and `ctrFine`.
+ */
+export const HOVER_REV_STANDARD = 10;
+export const HOVER_STD_CORE = 120;
+export const HOVER_STD_CHAINS = 30;
+export const HOVER_STD_GOLD = 20;
+export const HOVER_STD_TIGHT = 20;
+export const HOVER_STD_CENTRE = 10;
+export const HOVER_STD_MAX = HOVER_STD_CORE + HOVER_STD_CHAINS + HOVER_STD_GOLD + HOVER_STD_TIGHT + HOVER_STD_CENTRE;
+/** Of a chain's 6: 4 by the share of its stars touched, 2 for the whole chain. */
+export const HOVER_STD_CHAIN_SHARE = 4;
+export const HOVER_STD_CHAIN_WHOLE = 2;
+/** The centre line's full credit within 6 px (fixed-point; the old dead-centre grade), none from 15 px. */
+export const HOVER_STD_CENTRE_FULL = HOVER_CENTRE_TOL[0];
+export const HOVER_STD_CENTRE_ZERO = HOVER_CENTRE_TOL[2];
+export const HOVER_STD_CENTRE_SPAN = HOVER_STD_CENTRE_ZERO - HOVER_STD_CENTRE_FULL;
+/** The core: barriers passed on one straight line, 0 → 0 and every reachable barrier → 120. */
+export const HOVER_V10_BAND_CURVE = bandCurve([0, HOVER_REACHABLE_GATES], [0, HOVER_STD_CORE]);
+
+/** One gate's centre-line credit (0 … HOVER_STD_CENTRE_SPAN) for the furthest the saucer strayed from the line (fixed-point). */
+export function hoverCentreCredit(dev: number): number {
+  return clampInt(HOVER_STD_CENTRE_ZERO - dev, 0, HOVER_STD_CENTRE_SPAN);
+}
+
+export interface HoverStandardParts {
+  core: number;
+  chains: number;
+  gold: number;
+  tight: number;
+  centre: number;
+  /** The parts' sum before the floor of 1 (at most 200). */
+  sum: number;
+}
+
+/** hoverRev 10's parts (integer maths only; each floors its own straight line). */
+export function hoverStandardParts(state: HoverState): HoverStandardParts {
+  const totalGates = Math.max(1, state.totalGates);
+  const core = stdLine(HOVER_STD_CORE, state.gates, totalGates);
+  const chainList = state.chains ?? [];
+  let chains = 0;
+  if (chainList.length) {
+    // Σ (share of chain c's stars) over the chains, as one exact fraction: num / den.
+    const hits = state.chainHits ?? [];
+    const den = chainList.reduce((d, c) => d * Math.max(1, c.stars.length), 1);
+    let num = 0;
+    let whole = 0;
+    chainList.forEach((c, k) => {
+      const n = Math.max(1, c.stars.length);
+      const got = c.stars.filter((_, j) => hits.includes(k * 8 + j)).length;
+      num += got * (den / n);
+      if (got === c.stars.length) whole += 1;
+    });
+    const share = Math.floor((HOVER_STD_CHAIN_SHARE * HOVER_CHAINS * num) / (den * chainList.length));
+    chains = Math.min(HOVER_STD_CHAINS, share + Math.floor((HOVER_STD_CHAIN_WHOLE * HOVER_CHAINS * whole) / chainList.length));
+  }
+  const totalStars = state.totalStars ?? 0;
+  const gold = stdLine(HOVER_STD_GOLD, state.stars ?? 0, totalStars);
+  const gates = hoverFeatureTotals(state).tight;
+  const tight = stdLine(HOVER_STD_TIGHT, state.tight ?? 0, gates);
+  const centre = gates ? Math.min(HOVER_STD_CENTRE, Math.floor((HOVER_STD_CENTRE * (state.ctrFine ?? 0)) / (HOVER_STD_CENTRE_SPAN * gates))) : 0;
+  return { core, chains, gold, tight, centre, sum: Math.min(HOVER_STD_MAX, core + chains + gold + tight + centre) };
+}
+
+/** hoverRev 10's score: the parts' sum, at least 1 once the player has given any input; no input scores 0. */
+export function hoverStandardScore(state: HoverState): number {
+  return stdFinal(hoverStandardParts(state).sum, Boolean(state.acted));
+}
+
+/** hoverRev 10's breakdown for the reveal: the core on its line, the features as one line of parts. */
+export function hoverStandardBandParts(state: HoverState): BandParts {
+  const p = hoverStandardParts(state);
+  const finished = hoverSurvived(state);
+  return {
+    units: state.gates,
+    points: p.core,
+    bonus: p.chains + p.gold + p.tight + p.centre,
+    penalty: 0,
+    finished,
+    text: `${state.gates} / ${state.totalGates} barriers`,
+    bonusText: `Star chains ${p.chains} · gold stars ${p.gold} · tight gates ${p.tight} · centre line ${p.centre}`,
+  };
+}
+
+export const hoverStandardGame: ArcadeGame<HoverState> = {
+  ...hoverExpandGame,
+  init: (seed) => ({ ...initExpand(seed), std: 1, ctrFine: 0 }),
+};

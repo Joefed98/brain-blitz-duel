@@ -1,10 +1,11 @@
 /**
- * arcade-standard-check's case for `pinball` (see ./case.ts): pinRev 6, the 90 s table on the standard. Table points
+ * arcade-standard-check's case for `pinball` (see ./entry.ts): pinRev 6, the 90 s table on the standard. Table points
  * (no multiplier) on a straight line to 130, J-O-U-L-Z 10 a set (up to 2), multiball started 20, jackpots 5 each (up to
  * 3), ramp combos 5 each (up to 3). States are built from pinRev 6's own init; pinball-standard-check proves the play.
  */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import type { StdCase } from "./case";
+import { ARCADE_STANDARD } from "../../src/lib/arcade/standard";
+import { caseEntry, type StdCase } from "./entry";
 import {
   pinball6Game,
   pinballGameForAny,
@@ -48,3 +49,5 @@ export const stdCase: StdCase = {
     ok(fresh.rev6 === 1 && fresh.combos === 0 && fresh.rev5 === 1 && fresh.mult === 1, "pinball: pinRev 6 states carry rev6, combos and the 90 s flag");
   },
 };
+
+export const entry = caseEntry("pinball", ARCADE_STANDARD.pinball.spec!, ARCADE_STANDARD.pinball.parts, stdCase);

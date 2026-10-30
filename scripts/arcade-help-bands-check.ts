@@ -16,7 +16,7 @@
  */
 import { roundMaxFor } from "../src/lib/duel/roundMax";
 import { LIVE_BANDS, type LiveBand, type LiveBandGame } from "../src/lib/arcade/liveBands";
-import { stdHelp, STD_TOTAL } from "../src/lib/arcade/arcadeStandard";
+import { stdHelp, STD_MAX } from "../src/lib/arcade/arcadeStandard";
 import { roundMaxFor } from "../src/lib/duel/roundMax";
 import { BAND_SPECS } from "../src/lib/arcade/bandParts";
 import {
@@ -114,7 +114,7 @@ for (const [type, live] of Object.entries(LIVE_BANDS) as [
     ok(std.rev === live.rev && std.field === live.field, `${type}: the standard spec is for ${std.field} ${std.rev}, rooms deal ${live.field} ${live.rev}`);
     ok(score.includes(stdHelp(std)), `${type}: the help states the standard's parts: ${score}`);
     for (const p of std.parts) ok(score.includes(`${p.label} up to ${p.max}`), `${type}: the help names ${p.label} up to ${p.max}`);
-    ok(score.includes(`Together ${STD_TOTAL} points.`), `${type}: the help says the parts total ${STD_TOTAL}`);
+    ok(score.includes(`Together ${STD_MAX} points.`), `${type}: the help says the parts total ${STD_MAX}`);
     ok(live.curve.units.length === 2 && live.curve.points[0] === 0 && live.curve.points[1] === std.parts[0]!.max, `${type}: the listed curve is the core's straight line to ${std.parts[0]!.max}`);
     ok(!/→|Points follow|straight lines/.test(score), `${type}: no knot list in the help`);
     continue;

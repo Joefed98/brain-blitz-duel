@@ -527,8 +527,7 @@ section("Intro and \"?\" help");
   // rallyRev 12: its help states the standard's parts (rally-standard-check) and one value for a pink pad (3).
   if (want("rally")) ok(/second bumper/.test(help("rally")) && /45 s/.test(help("rally")) && PUZZLE_INSTRUCTIONS.rally.score.includes(stdHelp(RALLY_STD_SPEC)) && help("rally").includes(`scores ${RALLY_V12_PAD_PTS}, and the pad`) && !/counts 6|5 a hit/.test(help("rally")), "Rally: the second bumper from 45 s, the standard's parts new rooms score on (rallyRev 12 since the arcade scoring standard) and one value for a pink pad (3)");
   // The arcade scoring standard (29 Oct 2026): Tempo's beatRev 11 help states its standard parts (beat-standard-check).
-  if (want("beat")) ok(PUZZLE_INSTRUCTIONS.beat.score.includes(stdHelp(BEAT_STD_SPEC)), "Tempo: the help states the scoring rooms deal (beatRev 9 since expansion E2, beatRev 11's standard since 29 Oct 2026)");
-  if (want("snake")) ok(/length 9/.test(help("snake")) && /every 4 stars, up to 11/.test(help("snake")) && /at most 14 rocks/.test(help("snake")) && PUZZLE_INSTRUCTIONS.snake.score.includes("150 at 31"), "Meteor: rocks from length 9, every 4 stars, up to 11 (14 with the shower), and the snakeRev 9 top (expansion E2)");
+  if (want("snake")) ok(/length 9/.test(help("snake")) && /every 4 stars, up to 11/.test(help("snake")) && /at most 14 rocks/.test(help("snake")) && PUZZLE_INSTRUCTIONS.snake.score.includes("up to 120"), "Meteor: rocks from length 9, every 4 stars, up to 11 (14 with the shower), and the top rooms deal (snakeRev 11's core since the arcade scoring standard)");
   if (want("orbit")) ok(/Any black hole ahead/.test(help("orbit")) && /any part of the rocket/.test(help("orbit")), "Orbit: any black hole ahead swallows any part of the rocket");
 }
 

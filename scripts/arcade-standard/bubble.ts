@@ -26,7 +26,8 @@ import {
   type BubState,
 } from "../../src/lib/arcade/bubble";
 import { TICKS_PER_SECOND } from "../../src/lib/arcade/engine";
-import type { StdCase } from "./case";
+import { ARCADE_STANDARD } from "../../src/lib/arcade/standard";
+import { caseEntry, type StdCase } from "./entry";
 
 const game = bubbleGameFor(BUB_REV_STD);
 const SEED = 4242;
@@ -117,3 +118,5 @@ export const stdCase: StdCase = {
     ok(blast.bombR === 2 && blast.minePops === undefined && (game.init(SEED) as BubState).bombR === undefined, "bubbleRev 10 keeps its two-ring blast; bubbleRev 11 carries the 4-pop mine");
   },
 };
+
+export const entry = caseEntry("bubble", ARCADE_STANDARD.bubble.spec!, ARCADE_STANDARD.bubble.parts, stdCase);

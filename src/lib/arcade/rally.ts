@@ -23,7 +23,7 @@ import {
   type CanvasSize,
   type InputRange,
 } from "./engine";
-import { stdEach, stdLinear, stdPart, stdScore, type StdPart, type StdSpec } from "./arcadeStandard";
+import { stdEach, stdLine, stdPart, stdScore, type StdPart, type StdSpec } from "./arcadeStandard";
 import { bandStrictGame, bandStrict, bandRetarget, bandTargetGame, bandCurveOf, bandCurve, bandInit, bandPoints, bandScoreOf, bandStep, bandTotal, type BandFields, type BandParts } from "./scoreBands";
 
 /* ============================== Constants ============================== */
@@ -1343,7 +1343,7 @@ export function rallyStdParts(state: RallyState): StdPart[] | null {
   const pads = state.targetHits ?? 0;
   const targets = rallyBonusCount(state);
   return [
-    stdPart(RALLY_STD_SPEC, "core", stdLinear(gold, RALLY_V12_FULL_AT, RALLY_V12_CORE_MAX), `${gold} gold-ball hit${gold === 1 ? "" : "s"}`),
+    stdPart(RALLY_STD_SPEC, "core", stdLine(RALLY_V12_CORE_MAX, gold, RALLY_V12_FULL_AT), `${gold} gold-ball hit${gold === 1 ? "" : "s"}`),
     stdPart(RALLY_STD_SPEC, "pads", stdEach(pads, RALLY_V12_PAD_PTS, RALLY_V12_PADS_MAX), `${pads} pink pad${pads === 1 ? "" : "s"}`),
     stdPart(RALLY_STD_SPEC, "targets", stdEach(targets, RALLY_V12_TARGET_PTS, RALLY_V12_TARGETS_MAX), `${targets} of ${RALLY_V10_BONUS_COUNT}`),
   ];

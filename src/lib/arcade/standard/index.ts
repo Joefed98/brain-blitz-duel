@@ -1,5 +1,5 @@
 /**
- * The arcade games on the scoring standard (arcadeStandard.ts, docs/arcade-standard.md): each game's spec (its parts
+ * The arcade games on the scoring standard (arcadeStandard.ts, docs/arcade-standard/README.md): each game's spec (its parts
  * and their maximums, summing to 200) and its parts for a final state (null for a state on an older revision).
  * Read by the arcade reveal (breakdown lines), the "?" help and arcade-standard-check.
  */

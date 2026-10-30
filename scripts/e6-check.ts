@@ -66,7 +66,7 @@ import {
   matchupIndex,
   matchupRowsOf,
   MATCHUP_REV_GOALS,
-  MATCHUP_REV_ICE,
+  MATCHUP_REV_STD,
   MATCHUP_SIZE,
   MATCHUP_TREASURE,
   MATCHUP_V9_BAND_CURVE,
@@ -145,7 +145,8 @@ const dealt = (type: PuzzleType) => generatePuzzle(type) as unknown as Record<st
 // Coral Pop moved on to bubbleRev 11 (29 Oct 2026, the arcade scoring standard; bubble-standard-check); bubbleRev 10 replays here as before.
 ok(dealt("bubble").bubbleRev === BUB_REV_STD, "Coral Pop: rooms deal bubbleRev 11 (bubbleRev 10's successor)");
 // Gemstone moved on to matchupRev 10 (27 Oct 2026, phone-test notes; gemstone-rev10-check); matchupRev 9 replays here as before.
-ok(dealt("matchup").matchupRev === MATCHUP_REV_ICE, "Gemstone: rooms deal matchupRev 10 (matchupRev 9's successor)");
+// The arcade scoring standard then moved it on to matchupRev 11 (gemstone-standard-check).
+ok(dealt("matchup").matchupRev === MATCHUP_REV_STD, "Gemstone: rooms deal matchupRev 11 (a successor of matchupRev 9)");
 {
   const bt = dealt("balltrack");
   ok(bt.btRev === BT_REV_RUSH, "Ball Tracker: rooms deal btRev 7");
@@ -155,7 +156,7 @@ for (const type of ["bubble", "matchup", "balltrack"]) ok(roundMaxFor(type) === 
 {
   const demo = readFileSync("src/lib/duel/introDemo.functions.ts", "utf8");
   ok(/bubbleRev !== BUB_REV_STD\) return null/.test(demo), "Coral Pop's demo stays stopped until recorded on bubbleRev 11 (its successor to 10)");
-  ok(/matchupRev !== MATCHUP_REV_ICE\) return null/.test(demo), "Gemstone's demo stays stopped until recorded on matchupRev 10 (its successor to 9)");
+  ok(/matchupRev !== MATCHUP_REV_STD\) return null/.test(demo), "Gemstone's demo stays stopped until recorded on matchupRev 11 (a successor of 9)");
   ok(/btRev !== BT_REV_RUSH\) return null/.test(demo), "Ball Tracker's demo stays stopped until recorded on btRev 7");
 }
 

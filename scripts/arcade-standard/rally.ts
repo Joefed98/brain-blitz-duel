@@ -1,9 +1,10 @@
 /**
- * arcade-standard-check's case for `rally` (see ./case.ts): rallyRev 12, gold-ball hits on a straight line (140),
+ * arcade-standard-check's case for `rally` (see ./entry.ts): rallyRev 12, gold-ball hits on a straight line (140),
  * pink pads 3 each up to 10 (30) and the six gold targets 5 each (30). The spin fix and the replays are proved by
  * scripts/rally-standard-check.ts.
  */
-import type { StdCase } from "./case";
+import { ARCADE_STANDARD } from "../../src/lib/arcade/standard";
+import { caseEntry, type StdCase } from "./entry";
 import {
   rallyGameFor,
   rallyStdParts,
@@ -50,3 +51,5 @@ export const stdCase: StdCase = {
     ok(points(made(12, 10, 6), "core") === points(made(12, 0, 0), "core"), "rally: pads and targets never cost core points");
   },
 };
+
+export const entry = caseEntry("rally", ARCADE_STANDARD.rally.spec!, ARCADE_STANDARD.rally.parts, stdCase);

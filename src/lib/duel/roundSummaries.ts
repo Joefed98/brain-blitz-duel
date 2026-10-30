@@ -930,7 +930,8 @@ const hoverSummary: SummaryBuilder = (result) => {
     // hoverRev 9: the features and the skill points.
     detail: [
       survived ? "Flew the whole run" : "Run ended early",
-      ...(result.extra?.["tightGates"] !== undefined ? [`${Number(result.extra?.["tightGates"] ?? 0)} tight · ${Number(result.extra?.["starChains"] ?? 0)} chains · centre ${Number(result.extra?.["centrePts"] ?? 0)} · skill +${Number(result.extra?.["skill"] ?? 0)}`] : []),
+      // hoverRev 10 (the arcade scoring standard): the parts' points.
+      ...(result.extra?.["corePts"] !== undefined ? [`barriers ${Number(result.extra?.["corePts"] ?? 0)} · chains ${Number(result.extra?.["chainPts"] ?? 0)} · gold ${Number(result.extra?.["goldPts"] ?? 0)} · tight ${Number(result.extra?.["tightPts"] ?? 0)} · centre ${Number(result.extra?.["centreLinePts"] ?? 0)}`] : result.extra?.["tightGates"] !== undefined ? [`${Number(result.extra?.["tightGates"] ?? 0)} tight · ${Number(result.extra?.["starChains"] ?? 0)} chains · centre ${Number(result.extra?.["centrePts"] ?? 0)} · skill +${Number(result.extra?.["skill"] ?? 0)}`] : []),
     ],
   };
 };
@@ -1067,7 +1068,15 @@ const breakerSummary: SummaryBuilder = (result) => {
       ? `Cleared at ${ended.toFixed(1)}s`
       : `${Number(result.extra?.["destroyed"] ?? 80 - left)} / ${Number(result.extra?.["wall"] ?? 80)} bricks · ${hits} hits · ${powerUps} power-up${powerUps === 1 ? "" : "s"}`,
     // brkRev 9: the skill points too.
-    detail: [`${Number(result.extra?.["losses"] ?? 0)} relaunches`, ...(result.extra?.["wall"] !== undefined ? [`${Number(result.extra?.["goldBroken"] ?? 0)} gold · combo ${Number(result.extra?.["comboPts"] ?? 0)} · skill +${Number(result.extra?.["skill"] ?? 0)}`] : [])],
+    detail: [
+      `${Number(result.extra?.["losses"] ?? 0)} relaunches`,
+      // brkRev 11 (the arcade scoring standard): the gold, clear and speed parts.
+      ...(result.extra?.["std"] !== undefined
+        ? [`${Number(result.extra?.["goldBroken"] ?? 0)} / ${Number(result.extra?.["goldDealt"] ?? 0)} gold +${Number(result.extra?.["goldPts"] ?? 0)}${cleared ? ` · clear +${Number(result.extra?.["clearPts"] ?? 0)} · speed +${Number(result.extra?.["speedPts"] ?? 0)}` : ""}`]
+        : result.extra?.["wall"] !== undefined
+          ? [`${Number(result.extra?.["goldBroken"] ?? 0)} gold · combo ${Number(result.extra?.["comboPts"] ?? 0)} · skill +${Number(result.extra?.["skill"] ?? 0)}`]
+          : []),
+    ],
   };
 };
 
@@ -1370,8 +1379,9 @@ const tiltSummary: SummaryBuilder = (result) => {
   const survived = result.extra?.["survived"] !== false;
   const ended = Number(result.extra?.["survivedSeconds"] ?? 0);
   const head = `${mazes} ${mazes === 1 ? "maze" : "mazes"} completed`;
-  // tiltRev 8 (the expansion): three mazes, quick stars, and falls that cost time instead of the run.
-  const all = Number(result.extra?.["tiltRev"] ?? 0) === 8 ? 3 : 4;
+  // tiltRev 8 and 9 (the expansion): three mazes, quick stars, and falls that cost time instead of the run; tiltRev 10 four mazes.
+  const rev = Number(result.extra?.["tiltRev"] ?? 0);
+  const all = rev === 8 || rev === 9 ? 3 : 4;
   const quick = Number(result.extra?.["totalQuick"] ?? 0);
   return {
     summary:
