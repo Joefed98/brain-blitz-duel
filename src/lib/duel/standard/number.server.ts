@@ -22,8 +22,9 @@ import type {
   NumlinePuzzleData,
   TargetNumberPuzzleData,
   TrailPuzzleData,
+  PuzzleType,
 } from "../types";
-import { registerStandardGames, type StandardGame } from "./grade.server";
+import type { StandardGame } from "./grade.server";
 import {
   BALLPARK_STD_BULL_MAX,
   BALLPARK_STD_BULL_POINTS,
@@ -368,7 +369,8 @@ const ballpark: StandardGame = {
   },
 };
 
-registerStandardGames({
+/** This category's standard games, read by the grader (games.server.ts). */
+export const NUMBER_STANDARD_GAMES: Partial<Record<PuzzleType, StandardGame>> = {
   target: exact,
   equation: operator,
   balance: counterweight,
@@ -377,4 +379,4 @@ registerStandardGames({
   measure: brimful,
   checkout,
   numline: ballpark,
-});
+};
