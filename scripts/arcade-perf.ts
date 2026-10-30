@@ -35,6 +35,7 @@ import { ACTIVE_ARCADE_GAMES, ENGINE_GAME_WORLDS } from "../src/lib/arcade/arcad
 import { gameDisplayName } from "../src/lib/duel/gameNames";
 import { gotoRetried, warmUp } from "./browser-load";
 import { SETTLE_MS, SLOW_WORK_MS, STALL_MS, WINDOW_MS } from "../src/lib/fx/lowEnd";
+import { showPracticeSide } from "./practice-side-lib";
 
 export const ARCADE_STAGE_GAMES = [...ACTIVE_ARCADE_GAMES, ...Object.keys(ENGINE_GAME_WORLDS), "tendrop", "stroop", "whack", "clayshoot"] as string[];
 
@@ -344,6 +345,7 @@ export async function measure(browser: import("playwright").Browser, origin: str
     while (gaps.reduce((a, b) => a + b, 0) < wantMs && runs < 12) {
       runs++;
       await gotoRetried(page, `${origin}/practice`, game, { waitUntil: "domcontentloaded" });
+      await showPracticeSide(page, game);
       const button = page.getByRole("button", { name: gameDisplayName(game as never), exact: true }).first();
       await button.waitFor({ timeout: 90_000 });
       await page.waitForTimeout(1500);
@@ -466,7 +468,7 @@ async function main() {
   const browser = await chromium.launch({ executablePath: CHROMIUM });
   const results: PerfResult[] = [];
   try {
-    await warmUp(browser, `${origin}/practice`, (page) => page.getByRole("button", { name: gameDisplayName(games[0] as never), exact: true }).first().waitFor({ timeout: 180_000 }));
+    await warmUp(browser, `${origin}/practice`, (page) => showPracticeSide(page, games[0], 180_000).then(() => page.getByRole("button", { name: gameDisplayName(games[0] as never), exact: true }).first().waitFor({ timeout: 180_000 })));
     for (const game of games) {
       for (const rate of RATES) {
         const r = await measure(browser, origin, game, rate, { width: VW, height: VH, dpr: DPR, seconds: SECONDS, profile: PROFILE, raster: RASTER, warmupMs: WARMUP, raf30: RAF30, stallMs: STALL, ...(EFFECTS ? { effects: EFFECTS } : {}) });

@@ -28,6 +28,7 @@ import { CLAY_TALL_H, CLAY_W } from "../src/lib/arcade/clayShoot";
 import { CLASH_TALL_H, CLASH_WORLD_W } from "../src/lib/arcade/colourClash";
 import { gameDisplayName } from "../src/lib/duel/gameNames";
 import { ARENA_SCENE_GAMES } from "../src/lib/arcade/arenaScene.renderer";
+import { showPracticeSide } from "./practice-side-lib";
 
 const args = process.argv.slice(2);
 const URL_ARG = args.find((a) => a.startsWith("--url="))?.slice(6);
@@ -108,6 +109,7 @@ async function run(browser: import("playwright").Browser, origin: string, game: 
   });
   try {
     await page.goto(`${origin}/practice`, { waitUntil: "domcontentloaded" });
+    await showPracticeSide(page, game);
     const button = page.getByRole("button", { name: gameDisplayName(game as never), exact: true }).first();
     await button.waitFor({ timeout: 60_000 });
     await page.waitForTimeout(1500);
@@ -151,6 +153,7 @@ async function openLive(browser: import("playwright").Browser, origin: string, g
   const cdp = await page.context().newCDPSession(page);
   await cdp.send("Emulation.setSafeAreaInsetsOverride" as never, { insets: { top: 47, bottom: 34, left: 0, right: 0 } } as never);
   await page.goto(`${origin}/practice`, { waitUntil: "domcontentloaded" });
+  await showPracticeSide(page, game);
   const button = page.getByRole("button", { name: gameDisplayName(game as never), exact: true }).first();
   await button.waitFor({ timeout: 60_000 });
   await page.waitForTimeout(1500);

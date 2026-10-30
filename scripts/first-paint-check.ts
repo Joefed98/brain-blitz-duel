@@ -43,6 +43,7 @@ import { withSeededRandom } from "../src/lib/duel/random";
 import { splitPuzzle } from "../src/lib/duel/secrets";
 import type { PuzzleData, PuzzleType } from "../src/lib/duel/types";
 import { gameDisplayName } from "../src/lib/duel/gameNames";
+import { showPracticeSide } from "./practice-side-lib";
 
 const args = process.argv.slice(2);
 const VERBOSE = args.includes("--verbose");
@@ -401,6 +402,7 @@ async function practiceRound(game: PuzzleType, late: boolean) {
   const where = `${late ? "standalone late " : ""}practice ${game} (${gameDisplayName(game)})`;
   const { page, close } = await open("practice", null, where, late);
   try {
+    await showPracticeSide(page, game);
     const button = page.getByRole("button", { name: gameDisplayName(game), exact: true }).first();
     await button.waitFor({ timeout: 60_000 });
     await page.waitForTimeout(600);
