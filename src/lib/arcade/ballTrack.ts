@@ -815,7 +815,7 @@ function btV7Score(state: BtState): number {
 
 /**
  * btRev 8 (docs/arcade-standard/balltrack.md, src/lib/arcade/arcadeStandard.ts): btRev 7's course, rules, features
- * and play exactly (same bank, same deal), so a btRev 7 log replays tick for tick; only the scoring changes. States
+ * and play exactly (the same bank, less course 56 in the deal), so a btRev 7 log replays tick for tick; only the scoring changes. States
  * add `std: 1` (outside the checkpoint checksum). Parts, totalling 200:
  *  - Marbles home (core) 140 on a straight line: 140 × home ÷ 36 (a fixed maximum: all 36 home).
  *  - Gold marbles 25: an equal share for each of the course's BT_V7_GOLDS gold marbles home.
@@ -824,7 +824,7 @@ function btV7Score(state: BtState): number {
  *  - Boosted marbles 15: an equal share (15 ÷ 36) for each marble home after a speed booster. Whether a marble
  *    passes a booster depends on the route its player sets, and any of the 36 can be routed through one, so the
  *    part is shared over all BT_V8_BOOSTS_FULL marbles (docs/arcade-standard/balltrack.md: an oracle brings all 36
- *    home boosted on 289 of the 300 bank courses).
+ *    home boosted on 299 of the 300 bank courses; btRev 8 deals only those, BT_V8_DEAL).
  * No speed part and no all-home bonus; wrong cups and lost marbles cost nothing beyond what they don't earn.
  * Every feature counts only marbles home, so none asks a player to give up a marble.
  */

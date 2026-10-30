@@ -2,12 +2,15 @@ import { gameDisplayName } from "./gameNames";
 import { BALL_TRACK_BANK_V7 } from "./ballTrackBankV7.server";
 import type { BallTrackPuzzleData } from "./types";
 import { BT_REV_STD } from "@/lib/arcade/ballTrack";
+import { BT_V8_DEAL } from "./ballTrackDealV8.server";
 
 /** Draws one pre-proven course from the bank (built by scripts/ball-track-bank.ts). */
 export function generateBallTrack(): BallTrackPuzzleData {
   // btRev 7 (expansion E6): the 13-row board with gold marbles, boosters and crossovers, from its own proved bank
   // (scripts/ball-track-bank.ts --v7). Older rounds keep their stored course (btRev 4–6: the 12-row bank).
-  const index = Math.floor(Math.random() * BALL_TRACK_BANK_V7.length);
+  // btRev 8 deals only the bank courses on its deal list (BT_V8_DEAL: every one reaches 200; the courses on which
+  // not every marble can be routed home through a booster are left out). The same one draw picks from the list.
+  const index = BT_V8_DEAL[Math.floor(Math.random() * BT_V8_DEAL.length)]!;
   const entry = BALL_TRACK_BANK_V7[index];
   if (!entry) throw new Error(`${gameDisplayName("balltrack")} bank is empty`);
   return {

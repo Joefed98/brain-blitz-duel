@@ -54,5 +54,5 @@ bots' own misses; each game's oracle or built perfect run scores 200 (arcade-sta
 - The Jaywalk, Wavefront, Roofbound and Orbit intro demos stay stopped until recorded on the new stamps.
 - Jaywalk's in-game ×2–×4 streak pill and "STREAK ×n" pop are unchanged; no multiplier pays on crossRev 10.
 - Roofbound: the 10 s survival pause after a checkpoint save is dropped (time survived is literal), so a saved crash costs nothing.
-- Ball Tracker: on 11 of the 300 bank courses not every marble can be routed through a booster (top 196–199 there).
+- Ball Tracker (second pass, 30 Oct 2026): btRev 8 deals 299 of the 300 bank courses (`BT_V8_DEAL`, course 56 left out), every one proved to reach 200 by a stronger boosted oracle through the server replay (balltrack-deal-check); the first pass's 11 short courses were its weaker oracle's misses.
 - Wavefront deals 5 saucers a run, not 6, so each pays 4.
