@@ -23,6 +23,7 @@ import { Human } from "./arcade-skill-bands/human";
 import { bot as beatBot } from "./arcade-skill-bands/bots/beat";
 import { generatePuzzle } from "../src/lib/duel/generate.server";
 import { replayBeatRun } from "../src/lib/duel/beat";
+import { beatWorldH, beatWorldHFor, BEAT_REV_STD as STD_REV, BEAT_TALL_H, beatGameFor as gameForRev } from "../src/lib/arcade/beat";
 import { arcadeCounters } from "../src/lib/arcade/diagnostics";
 import { stdScore } from "../src/lib/arcade/arcadeStandard";
 import {
@@ -47,6 +48,8 @@ const spec = GAME_BY_TYPE.get("beat" as never)!;
 
 /* 1. Older stamps. */
 const legacy = JSON.parse(gunzipSync(readFileSync("scripts/fixtures/beat-standard-legacy.json.gz")).toString()) as { runs: any[] };
+// The play screen, reveal and replays size the world from the stamp: beatRev 11 draws beatRev 10's tall world.
+ok(beatWorldHFor(STD_REV) === BEAT_TALL_H && beatWorldH(gameForRev(STD_REV).init(1)) === BEAT_TALL_H, "beatRev 11's world is the tall one, by stamp and by state");
 ok(legacy.runs.length === 28 && legacy.runs.every((r) => r.rev === BEAT_REV_EASE), `28 stored beatRev 10 runs (got ${legacy.runs.length})`);
 for (const run of legacy.runs) {
   const now = replayBeatRun(run.seed, run.raw, run.rev);
