@@ -74,6 +74,9 @@ import {
   SWERVE_TIME_MS,
   SKYLINE_TIME_MS,
   BINTOSS_TIME_MS,
+  MINIGOLF_TIME_MS,
+  POOL_TIME_MS,
+  CURLING_TIME_MS,
   BULLSEYE_TIME_MS,
   MATCHUP_TIME_MS,
   SNAKE_TIME_MS,
@@ -140,6 +143,9 @@ type AnswerBuilder = (puzzle: PuzzleData) => string | null;
 /** Types added after the ladder below; their limits are looked up directly. */
 const DIRECT_LIMITS: Partial<Record<PuzzleType, number>> = {
   pinball: PINBALL_TIME_MS,
+  minigolf: MINIGOLF_TIME_MS,
+  pool: POOL_TIME_MS,
+  curling: CURLING_TIME_MS,
   nonogram: NONO_TIME_MS,
   pairmatch: PAIR_TIME_MS,
   flood: FLOOD_TIME_MS,
@@ -1080,6 +1086,42 @@ const breakerSummary: SummaryBuilder = (result) => {
   };
 };
 
+/** Sports (30 Oct 2026): what each part of the arcade standard paid, as the grader stored it. */
+const partsLine = (result: RoundResultRow, keys: [string, string][]): string =>
+  keys.map(([key, label]) => `${label} ${Number(result.extra?.[key] ?? 0)}`).join(" · ");
+
+const minigolfSummary: SummaryBuilder = (result) => {
+  const n = (key: string) => Number(result.extra?.[key] ?? 0);
+  return {
+    summary: `${n("holed")} of 5 holed · ${n("strokes")} strokes · ${n("atPar")} at par or better`,
+    detail: [
+      partsLine(result, [["corePts", "Holes"], ["parPts", "Par"], ["underPts", "Under par"], ["speedPts", "Speed"]]),
+      ...(n("waters") > 0 ? [`${n("waters")} in the water`] : []),
+    ],
+  };
+};
+
+const poolSummary: SummaryBuilder = (result) => {
+  const n = (key: string) => Number(result.extra?.[key] ?? 0);
+  return {
+    summary: `${n("spots")} of 7 spots potted${n("black") ? " · the black" : ""} · best run ${n("streakBest")}`,
+    detail: [
+      partsLine(result, [["corePts", "Spots"], ["blackPts", "Black"], ["streakPts", "Pots in a row"], ["speedPts", "Speed"]]),
+      ...(n("fouls") > 0 ? [`${n("fouls")} foul${n("fouls") === 1 ? "" : "s"} −${n("fouls") * 10}`] : []),
+    ],
+  };
+};
+
+const curlingSummary: SummaryBuilder = (result) => {
+  const n = (key: string) => Number(result.extra?.[key] ?? 0);
+  return {
+    summary: `${n("onButton")} on the button · ${n("inFourFoot")} in the 4-foot · ${n("takeouts")} of ${n("opponents")} taken out`,
+    detail: [
+      partsLine(result, [["corePts", "Stones"], ["takeoutPts", "Takeouts"], ["ringPts", "Red ring"], ["holdPts", "Holding shot"]]),
+    ],
+  };
+};
+
 const pinballSummary: SummaryBuilder = (result) => {
   const n = (key: string) => Number(result.extra?.[key] ?? 0);
   const left = n("ballsLeft");
@@ -1621,6 +1663,9 @@ export const ROUND_SUMMARIES: Record<PuzzleType, SummaryBuilder> = {
   ricochet: ricoSummary,
   breaker: breakerSummary,
   pinball: pinballSummary,
+  minigolf: minigolfSummary,
+  pool: poolSummary,
+  curling: curlingSummary,
   rally: rallySummary,
   steady: steadySummary,
   slice: sliceSummary,
@@ -1710,6 +1755,9 @@ export const CORRECT_ANSWERS: Record<PuzzleType, AnswerBuilder> = {
   ricochet: () => null,
   breaker: () => null,
   pinball: () => null,
+  minigolf: () => null,
+  pool: () => null,
+  curling: () => null,
   rally: () => null,
   steady: () => null,
   slice: () => null,

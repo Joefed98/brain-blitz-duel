@@ -86,6 +86,9 @@ export const MOMENT_TABLE: readonly MomentRow[] = [
   fx("breaker", 6, "perfect", "gold-brick", 55, "Gold brick broken by a direct hit"),
   // No combo moment: the combo pop above the paddle is gone (Joe's phone notes, 28 Oct 2026).
   // Pinball
+  fx("minigolf", 0, "pop", "hole-done", 20, "A hole holed at par or worse"),
+  fx("minigolf", 1, "perfect", "under-par", 60, "A hole under par (a birdie or better)"),
+  fx("minigolf", 2, "final", "all-holed", 90, "All five holes holed", "finish"),
   fx("pinball", 0, "pop", "bumper", 0, "Bumper hit (border ripple only)"),
   fx("pinball", 1, "perfect", "target", 15, "Drop target knocked down"),
   fx("pinball", 2, "clear", "bank-down", 50, "Whole bank of drop targets down"),

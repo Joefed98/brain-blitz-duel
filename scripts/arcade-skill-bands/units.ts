@@ -25,6 +25,9 @@ import { swingBandParts } from "../../src/lib/arcade/swing";
 import { bullseyeBandParts } from "../../src/lib/arcade/bullseye";
 import { pinballBandParts } from "../../src/lib/arcade/pinball";
 import { pinball6BandParts } from "../../src/lib/arcade/pinball4";
+import { stdBandParts } from "../../src/lib/arcade/arcadeStandard";
+import { minigolfStdParts, MINIGOLF_STD_SPEC } from "../../src/lib/arcade/minigolf";
+import { STD_SPORTS } from "./sportsUnits";
 
 export const BAND_PARTS: Record<string, (s: any) => BandParts> = {
   balltrack: btBandParts,
@@ -51,6 +54,14 @@ export const BAND_PARTS: Record<string, (s: any) => BandParts> = {
   bullseye: bullseyeBandParts,
   // pinRev 6 (the arcade scoring standard): table points without a multiplier, core and features from its parts.
   pinball: (s: any) => (s?.rev6 ? pinball6BandParts(s) : pinballBandParts(s)),
+  // The Sports group (30 Oct 2026): units are the core's measure (holes holed, spots potted, stones on the button).
+  minigolf: (s: any) => {
+    const parts = minigolfStdParts(s) ?? [];
+    const pts = (k: string) => parts.find((p) => p.key === k)?.points ?? 0;
+    const holed = (s.holed as number[]).reduce((a, v) => a + v, 0);
+    return stdBandParts(MINIGOLF_STD_SPEC, { core: pts("core"), features: { par: pts("par"), under: pts("under"), speed: pts("speed") }, penalty: 0 }, holed, `${holed} holed`, holed === 5);
+  },
+  ...STD_SPORTS,
 };
 
 export const UNITS: Record<string, (s: any) => { u: number; finished: boolean }> = Object.fromEntries(

@@ -965,6 +965,50 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
       // brkRev 11 (the arcade scoring standard): four fixed parts that total 200.
       score: liveBandHelp("breaker", `Every brick destroyed counts 1, the ${BRK_V9_GOLD} gold bricks included.`, { more: "More bricks", good: (u) => `breaks ${u} of the ${BRK_V11_BRICKS}`, finish: `Breaking the other ${BRK_V11_BRICKS - BRK_V9_GOLD} clears the wall and ends the run: clearing adds ${BRK_V11_CLEAR_POINTS}, plus up to ${BRK_V11_SPEED_MAX} for speed, the full ${BRK_V11_SPEED_MAX} with at least half the time left, falling evenly to 0 at the buzzer. Gold bricks add up to ${BRK_V11_GOLD_MAX}, ${BRK_V11_GOLD_MAX / BRK_V9_GOLD} each. Power-ups and combos add nothing extra, and a lost ball costs only time. Bricks ${BRK_V11_CORE_MAX} + clear ${BRK_V11_CLEAR_POINTS} + speed ${BRK_V11_SPEED_MAX} + gold ${BRK_V11_GOLD_MAX} = ${BRK_V11_MAX}.` }),
     },
+    // The Sports group (30 Oct 2026; docs/arcade-standard/minigolf.md, pool.md, curling.md): on the arcade scoring
+    // standard from their first stamps.
+    minigolf: {
+      goal: "Hole all five holes in as few putts as you can.",
+      how: [
+        { action: "Pull back from the ball", detail: "to aim and set the power; let go to putt." },
+        { action: "Par for each hole", detail: "is shown at the top; beat it for a bonus." },
+        { action: "The dotted line", detail: "points where the ball will start; the pill shows the power.", helpOnly: true },
+        { action: "Six strokes a hole:", detail: "after the sixth you move on, with points for how close you finished.", helpOnly: true },
+        { action: "Water:", detail: "one stroke added, and the ball goes back where you played it from.", helpOnly: true },
+        { action: "Slopes:", detail: "dark at the bottom, light at the crest, the arrows point uphill. The ball curls and slows going up, speeds up coming down.", helpOnly: true },
+        { action: "Logs, boulders and planters", detail: "bounce the ball; use the timber rails and logs as banks.", helpOnly: true },
+        { action: "Par is the best route we found plus one,", detail: "so a birdie is always possible. The same five holes for everyone.", helpOnly: true },
+      ],
+      score: liveStdHelp("minigolf", "120 seconds for five holes."),
+    },
+    pool: {
+      goal: "Pot all seven spots, then the black, without a miss.",
+      how: [
+        { action: "Drag on the table", detail: "to aim: the line runs to a ghost ball." },
+        { action: "Pull the cue back", detail: "on the panel and let go to shoot." },
+        { action: "Spot balls first:", detail: "hitting or potting a stripe is a foul (−10)." },
+        { action: "The short line", detail: "shows where the object ball goes, the faint one the cue ball's path.", helpOnly: true },
+        { action: "Power:", detail: "the further you pull the cue, the harder the shot; red is full power, green soft.", helpOnly: true },
+        { action: "Spin:", detail: "the ball button sets top spin (follow), back spin (draw) or side.", helpOnly: true },
+        { action: "Cue ball potted:", detail: "it comes back to its spot and costs you time.", helpOnly: true },
+        { action: "The black too early", detail: "ends your run with no black or speed points.", helpOnly: true },
+        { action: "Every layout is proved clearable", detail: "without a miss. The same table for everyone.", helpOnly: true },
+      ],
+      score: liveStdHelp("pool", "120 seconds. Fouls cost 10 each."),
+    },
+    curling: {
+      goal: "Draw your eight stones onto the button.",
+      how: [
+        { action: "Drag the gold broom", detail: "in the house to aim, then tap In or Out for the turn." },
+        { action: "Swipe up the lane", detail: "to throw: the faster the swipe, the heavier the stone." },
+        { action: "Rub ahead of the stone", detail: "to sweep: it runs further and curls less." },
+        { action: "The stone curls", detail: "towards the side its turn takes it, more as it slows. No line shows the curl.", helpOnly: true },
+        { action: "Red-handled stones", detail: "are the opponent's: knock them out of the house. Every one can be hit with your stone staying in the 4-foot.", helpOnly: true },
+        { action: "The inset, top right,", detail: "shows exactly where every stone sits.", helpOnly: true },
+        { action: "A stone short of the far hog line,", detail: "or through the back or the sides, is out of play.", helpOnly: true },
+      ],
+      score: liveStdHelp("curling", "120 seconds, eight stones; each stone counts where it stops when you throw it."),
+    },
     pinball: {
       goal: "Keep the ball in play and rack up table points.",
       how: [

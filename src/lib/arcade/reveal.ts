@@ -264,6 +264,38 @@ const BUILDERS: Record<string, Builder> = {
       outcome: done ? "finish" : n(r, "bricksLeft") > 0 && n(r, "endedSeconds") < 90 ? "crash" : "time",
     };
   },
+  // The Sports group (30 Oct 2026; the lines come from the arcade standard's parts).
+  minigolf: (r, s) => ({
+    axis: { value: n(r, "holed"), max: 5, label: "Holes holed" },
+    lines: [`${n(r, "holed")} of 5 holed → ${s}`],
+    tiles: [
+      { label: "Strokes", value: String(n(r, "strokes")) },
+      { label: "At par or better", value: `${n(r, "pars")} / 5` },
+      { label: "Under par", value: String(n(r, "birdies")) },
+      { label: "In the water", value: String(n(r, "waters")) },
+    ],
+    outcome: n(r, "holed") >= 5 ? "finish" : "time",
+  }),
+  pool: (r, s) => ({
+    axis: { value: n(r, "spots"), max: 7, label: "Spots potted" },
+    lines: [`${n(r, "spots")} of 7 spots → ${s}`],
+    tiles: [
+      { label: "The black", value: b(r, "black") ? "Potted" : "–" },
+      { label: "Best run", value: String(n(r, "streakBest")) },
+      { label: "Fouls", value: String(n(r, "fouls")) },
+    ],
+    outcome: b(r, "black") ? "finish" : "time",
+  }),
+  curling: (r, s) => ({
+    axis: { value: n(r, "onButton"), max: 8, label: "Stones on the button" },
+    lines: [`${n(r, "onButton")} of 8 on the button → ${s}`],
+    tiles: [
+      { label: "In the 4-foot", value: `${n(r, "inFourFoot")} / 8` },
+      { label: "Takeouts", value: `${n(r, "takeouts")} / ${n(r, "opponents")}` },
+      { label: "Holding shot", value: b(r, "holding") ? "Yes" : "No" },
+    ],
+    outcome: "finish",
+  }),
   pinball: (r, s) =>
     // pinRev 6 (the arcade scoring standard; the lines come from its parts): no multiplier tile, its features instead.
     (r["state"] as { rev6?: number } | undefined)?.rev6

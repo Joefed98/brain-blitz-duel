@@ -41,6 +41,9 @@ import { bullseyePuzzle } from "@/puzzles/bullseye";
 import { matchupPuzzle } from "@/puzzles/matchup";
 import { breakerPuzzle } from "@/puzzles/breaker";
 import { pinballPuzzle } from "@/puzzles/pinball";
+import { minigolfPuzzle } from "@/puzzles/minigolf";
+import { poolPuzzle } from "@/puzzles/pool";
+import { curlingPuzzle } from "@/puzzles/curling";
 import { removedGameDefinition } from "@/puzzles/removedGame";
 import { PINBALL_IN_ROOMS } from "@/lib/arcade/pinball";
 import { rallyPuzzle } from "@/puzzles/rally";
@@ -188,6 +191,9 @@ const BASE_REGISTRY: Record<PuzzleType, Omit<PuzzleDefinition, "instructions">> 
   matchup: matchupPuzzle,
   breaker: breakerPuzzle,
   pinball: pinballPuzzle,
+  minigolf: minigolfPuzzle,
+  pool: poolPuzzle,
+  curling: curlingPuzzle,
   rally: rallyPuzzle,
   steady: steadyPuzzle,
   slice: slicePuzzle,

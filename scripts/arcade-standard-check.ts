@@ -59,6 +59,10 @@ const STANDARD_ROSTER: readonly { type: string; field: string; rev: number; batc
   { type: "orbit", field: "orbitRev", rev: 13, batch: "C" },
   { type: "balltrack", field: "btRev", rev: 8, batch: "C" },
   { type: "swing", field: "swingRev", rev: 15, batch: "D" },
+  // The Sports group (30 Oct 2026): on the standard from their first stamp.
+  { type: "minigolf", field: "golfRev", rev: 1, batch: "Sports" },
+  { type: "pool", field: "poolRev", rev: 1, batch: "Sports" },
+  { type: "curling", field: "curlRev", rev: 1, batch: "Sports" },
 ];
 
 const only = process.argv.slice(2).filter((a) => !a.startsWith("--"));

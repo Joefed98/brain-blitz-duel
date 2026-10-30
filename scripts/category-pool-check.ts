@@ -12,6 +12,7 @@
 import { readdirSync, readFileSync } from "node:fs";
 
 import { CATEGORY_ORDER } from "../src/lib/duel/categories";
+import { ACTIVE_ARCADE_GAMES } from "../src/lib/arcade/arcadeFxGames.renderer";
 import {
   ACTIVE_PUZZLE_TYPES,
   gameCounts,
@@ -55,12 +56,16 @@ for (const type of ["flow", "pipes", "push"] as const) expect(type, "pattern", f
 expect("snip", "arcade", true);
 
 // The active pool per category (27 Oct 2026, after Scrumper's retirement, with Trail in Logic): 72 games.
-const POOL: Record<string, number> = { word: 9, number: 8, speed: 6, attention: 6, pattern: 10, logic: 12, arcade: 21 };
+// Arcade's count reads the arcade worlds' active list (ACTIVE_ARCADE_GAMES), not a number: other sessions add arcade
+// games in parallel (the Sports group, 30 Oct 2026, added three).
+const POOL: Record<string, number> = { word: 9, number: 8, speed: 6, attention: 6, pattern: 10, logic: 12, arcade: ACTIVE_ARCADE_GAMES.length };
 for (const [category, want] of Object.entries(POOL)) {
   const got = typesInCategory(category as never).length;
   if (got !== want) fail(`${category}: ${got} active games, want ${want}`);
 }
-if (ACTIVE_PUZZLE_TYPES.length !== 72) fail(`${ACTIVE_PUZZLE_TYPES.length} active games, want 72`);
+if (ACTIVE_ARCADE_GAMES.length < 21) fail(`${ACTIVE_ARCADE_GAMES.length} active arcade worlds, at least the 21 dealt before the Sports group`);
+const WANT_ACTIVE = Object.values(POOL).reduce((a, n) => a + n, 0);
+if (ACTIVE_PUZZLE_TYPES.length !== WANT_ACTIVE) fail(`${ACTIVE_PUZZLE_TYPES.length} active games, want ${WANT_ACTIVE}`);
 
 // The deleted games and Memory are gone: no registry entry, no category, no draw.
 for (const type of REMOVED_PUZZLE_TYPES)

@@ -13,6 +13,7 @@ import { preloadGameArt } from "@/lib/arcade/gameArt.renderer";
 import { TILE, type SceneSet, type TileScene } from "./scene";
 import { ARCADE_SCENES } from "./arcade";
 import { ARCADE2_SCENES } from "./arcade2";
+import { SPORTS_SCENES } from "./sports";
 import { ATTENTION_SCENES } from "./attention";
 import { LOGIC_SCENES } from "./logic";
 import { NUMBER_SCENES } from "./number";
@@ -29,6 +30,7 @@ export const ALL_SCENES: SceneSet = {
   ...LOGIC_SCENES,
   ...ARCADE_SCENES,
   ...ARCADE2_SCENES,
+  ...SPORTS_SCENES,
 };
 
 function CanvasBox({ scene }: { scene: Extract<TileScene, { kind: "canvas" }> }) {

@@ -66,6 +66,9 @@ import { encodeBullseyeRun, replayBullseyeRun } from "../../src/lib/duel/bullsey
 import { PIN_REV } from "../../src/lib/arcade/pinball";
 import { pinballGameForAny, pinCheckpointAny } from "../../src/lib/arcade/pinball4";
 import { encodePinballRun, replayPinballRun } from "../../src/lib/duel/pinball";
+import { minigolfCheckpoint, minigolfGameFor, MINIGOLF_REV } from "../../src/lib/arcade/minigolf";
+import { encodeMinigolfRun, replayMinigolfRun } from "../../src/lib/duel/minigolf";
+import { MINIGOLF_BANK, minigolfBankEntryFor } from "../../src/lib/duel/minigolfBank.server";
 
 export interface GameSpec {
   type: PuzzleType;
@@ -132,6 +135,8 @@ export function roomSeed(n: number): number {
 }
 
 const plain = (n: number) => roomSeed(n);
+/** Minigolf's stored pars for a bank seed (the puzzle carries them). */
+const minigolfParsOf = (seed: number) => MINIGOLF_BANK.find((e) => e.seed === seed)?.pars;
 const btCourse = (seed: number) => BALL_TRACK_BANK[seed % BALL_TRACK_BANK.length]!.course;
 /** btRev 4 deals from the 12-row bank (the same seed picks a course there); btRev 8 from its deal list (courses that reach 200). */
 const btCourseFor = (rev: number | null, seed: number) => (rev === BT_REV_STD ? BALL_TRACK_BANK_V7[btV8DealIndex(seed)]!.course : btIsV7Play(rev) ? BALL_TRACK_BANK_V7[seed % BALL_TRACK_BANK_V7.length]!.course : rev === BT_REV_TALL || rev === BT_REV_TARGET || rev === BT_REV_STRICT ? BALL_TRACK_BANK_TALL[seed % BALL_TRACK_BANK_TALL.length]!.course : btCourse(seed));
@@ -241,6 +246,16 @@ export const GAMES: GameSpec[] = [
   // Pinball (practice only until PINBALL_IN_ROOMS): born on the bands, so its one revision is both `live` and `next`.
   // pinRev 4 (E4, 25 Oct 2026): the taller table's game and checkpoint (pinball4.ts) through the same replay path.
   simple("pinball", PIN_REV, PIN_REV, pinballGameForAny, pinCheckpointAny, encodePinballRun, replayPinballRun),
+  // The Sports group (30 Oct 2026): Minigolf deals a bank course (seed and pars), golfRev 1 from its first round.
+  {
+    type: "minigolf",
+    live: MINIGOLF_REV,
+    seedFor: (n) => minigolfBankEntryFor(n).seed,
+    gameFor: (_rev, seed) => minigolfGameFor(minigolfParsOf(seed)),
+    checkpoint: minigolfCheckpoint,
+    encode: (run) => encodeMinigolfRun(run),
+    replay: (seed, raw) => replayMinigolfRun(seed, raw, minigolfParsOf(seed)),
+  },
 ];
 
 export const GAME_BY_TYPE = new Map(GAMES.map((g) => [g.type, g]));

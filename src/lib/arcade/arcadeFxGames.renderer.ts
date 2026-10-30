@@ -10,6 +10,7 @@
  * from the same counters its sound observer uses (src/lib/fx/gameSounds.ts), for the
  * shared red edge pulse and, where a point is given, the puff at the miss.
  */
+import { CURLING_FX, MINIGOLF_FX, POOL_FX } from "./sportsFx.renderer";
 import type { ArcadeFxMiss, ArcadeFxSpec, ArcadeWorld } from "./arcadeFx.renderer";
 import { px } from "./engine";
 
@@ -266,6 +267,10 @@ export const ARCADE_GAME_WORLDS = {
   balltrack: "toybox",
   matchup: "gem",
   pinball: "retro",
+  // The Sports group (30 Oct 2026): realistic venues.
+  minigolf: "realworld",
+  pool: "realworld",
+  curling: "realworld",
 } as const satisfies Record<string, ArcadeWorld>;
 
 export type ArcadeFxGame = keyof typeof ARCADE_GAME_WORLDS;
@@ -1714,6 +1719,9 @@ export const ARCADE_FX_SPECS = {
   matchup: fxSpecAt(MATCHUP_FX, MATCHUP_V9_WORLD_H),
 
   pinball: fxSpecAt(PINBALL_FX, 820),
+  minigolf: MINIGOLF_FX,
+  pool: POOL_FX,
+  curling: CURLING_FX,
 } satisfies Record<ArcadeFxGame, ArcadeFxSpec<never>>;
 
 /* ============================ Engine word games ============================ */

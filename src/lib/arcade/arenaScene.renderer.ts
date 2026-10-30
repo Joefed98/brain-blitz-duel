@@ -75,6 +75,9 @@ export const ARENA_SCENE_GAMES = [
   "balltrack",
   "matchup",
   "pinball",
+  "minigolf",
+  "pool",
+  "curling",
   "stroop",
 ] as const;
 

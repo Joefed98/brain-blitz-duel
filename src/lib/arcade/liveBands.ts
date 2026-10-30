@@ -8,7 +8,7 @@
  * arcade-help-bands-check fails if a generator deals another revision than the one
  * listed here, or if a sim exports a newer band curve than the one listed.
  */
-import { bandHelp, type BandCurve, type BandHelpWords } from "./scoreBands";
+import { bandCurve, bandHelp, type BandCurve, type BandHelpWords } from "./scoreBands";
 import { roundMaxFor } from "../duel/roundMax";
 import { BT_REV_STD, BT_REV_STRICT, BT_V8_BAND_CURVE } from "./ballTrack";
 import { WAV_REV_STD, WAV_REV_STRICT, WAV_V12_BAND_CURVE } from "./wavefront";
@@ -36,6 +36,9 @@ import { SWING_REV_REWORK, SWING_REV_STRICT, SWING_V15_BAND_CURVE } from "./swin
 import { BULLSEYE_REV_STD, BULLSEYE_REV_STRICT, BULLSEYE_STD_SPEC, BULLSEYE_V9_BAND_CURVE } from "./bullseye";
 import { PIN_REV_STD, PIN_STD_SPEC, PIN_V6_BAND_CURVE } from "./pinball4";
 import { PIN_REV_STRICT } from "./pinball";
+import { MINIGOLF_REV, MINIGOLF_STD_SPEC } from "./minigolf";
+import { POOL_REV, POOL_STD_SPEC } from "./pool";
+import { CURLING_REV, CURLING_STD_SPEC } from "./curling";
 
 export interface LiveBand {
   /** The puzzle field that carries the stamp, and the revision new rounds are dealt. */
@@ -53,6 +56,12 @@ export interface LiveBand {
    * is then the core's straight line (0 → the core's maximum at its full-at figure), and the help reads the spec.
    */
   std?: StdSpec;
+}
+
+/** A standard game's core as a band curve: its straight line from 0 to the core's maximum at its full-at figure. */
+function stdCoreCurve(spec: StdSpec): BandCurve {
+  const core = spec.parts[0]!;
+  return bandCurve([0, core.of ?? 1], [0, core.max]);
 }
 
 export const LIVE_BANDS = {
@@ -98,6 +107,10 @@ export const LIVE_BANDS = {
   bullseye: { field: "bullRev", rev: BULLSEYE_REV_STD, curve: BULLSEYE_V9_BAND_CURVE, strictRev: BULLSEYE_REV_STRICT, std: BULLSEYE_STD_SPEC },
   // pinRev 6 (29 Oct 2026): the arcade scoring standard (table points on a straight line to 130, four features to 70).
   pinball: { field: "pinRev", rev: PIN_REV_STD, curve: PIN_V6_BAND_CURVE, strictRev: PIN_REV_STRICT, std: PIN_STD_SPEC },
+  // The Sports group (30 Oct 2026): on the arcade scoring standard from their first stamp (the core's straight line, the spec's parts).
+  minigolf: { field: "golfRev", rev: MINIGOLF_REV, curve: stdCoreCurve(MINIGOLF_STD_SPEC), std: MINIGOLF_STD_SPEC },
+  pool: { field: "poolRev", rev: POOL_REV, curve: stdCoreCurve(POOL_STD_SPEC), std: POOL_STD_SPEC },
+  curling: { field: "curlRev", rev: CURLING_REV, curve: stdCoreCurve(CURLING_STD_SPEC), std: CURLING_STD_SPEC },
 } as const satisfies Record<string, LiveBand>;
 
 export type LiveBandGame = keyof typeof LIVE_BANDS;

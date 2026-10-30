@@ -181,6 +181,8 @@ const EXTRACT = String.raw`
     case "skyline": P.push(["block", fp(s.x), 0]); reset = s.placed; break;
     case "inkbridge": if (s.ball) P.push(["ball", fp(s.ball.x), fp(s.ball.y)]); reset = s.level + ":" + s.levels + ":" + s.fails + ":" + s.dropping; break;
     case "bintoss": P.push(["ball", fp(s.x), fp(s.y)]); reset = s.throwIndex + ":" + s.phase; break;
+    // Minigolf (30 Oct 2026): the ball; a new hole, water (the ball back where it was played) and holing out move it at once.
+    case "minigolf": P.push(["ball", fp(s.x), fp(s.y)]); reset = s.hole + ":" + s.waters + ":" + s.holedTick + ":" + s.phase; break;
     case "bubble": if (s.flightColour) P.push(["shot", fp(s.x), fp(s.y)]); reset = s.shots + ":" + s.descents + ":" + s.flightColour; break;
     case "swing":
       P.push(["player", fp(s.x), fp(s.y)]);
