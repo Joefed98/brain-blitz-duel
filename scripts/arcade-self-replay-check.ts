@@ -145,7 +145,7 @@ import { ORBIT_XP_BANK } from "@/lib/duel/orbitXpBank.server";
 import { BEAT_REV_BAND, BEAT_REV_TALL, BEAT_REV_TUNEC, BEAT_REV_TUNEF } from "@/lib/arcade/beat";
 import { SLICE_REV_BAND, SLICE_REV_LONG, SLICE_REV_TALL, SLICE_REV_TUNEC } from "@/lib/arcade/slice";
 import { BURST_REV_BAND, BURST_REV_TALL } from "@/lib/arcade/burst";
-import { SWING_REV_BAND, SWING_REV_TUNED, SWING_REV_TUNEC, SWING_REV_SPREAD, SWING_REV_TALL, SWING_REV_EXPAND, SWING_REV_ASSAULT } from "@/lib/arcade/swing";
+import { SWING_REV_BAND, SWING_REV_TUNED, SWING_REV_TUNEC, SWING_REV_SPREAD, SWING_REV_TALL, SWING_REV_EXPAND, SWING_REV_ASSAULT, SWING_REV_REWORK } from "@/lib/arcade/swing";
 import { SWING_V13_BANK } from "@/lib/duel/swingBankV13.server";
 import { BULLSEYE_REV_BAND, BULLSEYE_REV_TUNED, bullseyeInitFor } from "@/lib/arcade/bullseye";
 
@@ -772,6 +772,8 @@ const GAMES: Game[] = [
   { key: "wavefront/std", game: wavefrontGameFor(WAV_REV_STD), checkpoint: wavCheckpoint, mode: "events", rate: 300, encode: encodeWavefrontRun, replay: (seed: number, raw: string) => replayWavefrontRun(seed, raw, WAV_REV_STD) },
   // The arcade scoring standard (29 Oct 2026, docs/arcade-standard/cross.md), appended: Jaywalk crossRev 10, busier crossings.
   { key: "cross/std", game: crossGameFor(CROSS_REV_STD), checkpoint: crossCheckpoint, mode: "events", rate: 60, encode: encodeCrossRun, replay: (seed: number, raw: string) => replayCrossRun(seed, raw, CROSS_REV_STD) },
+  // Grappler's swinging course (swingRev 15, 29 Oct 2026, docs/arcade-standard/swing.md), appended so every earlier entry keeps its index.
+  { key: "swing/rework", game: swingGameFor(SWING_REV_REWORK), checkpoint: swingCheckpoint, mode: "events", rate: 30, encode: encodeSwingRun, replay: (seed: number, raw: string) => replaySwingRun(seed, raw, SWING_REV_REWORK) },
 ];
 
 /** A random candidate event, often outside the declared range (a finger off the edge). */
@@ -807,6 +809,8 @@ const ENTRY_COST: Record<number, number> = {
   136: 16.9,
   // Grappler's 200 expansion (26 Oct 2026, swing/expand: about 10 s at 40 runs on a loaded machine).
   129: 8.0,
+  // Grappler's swinging course (29 Oct 2026, swing/rework: 3.9 s at 40 runs locally).
+  144: 3.9,
 };
 
 /** Entry indexes of group k of n (1-based): costliest first onto the lightest group, ties by index. */

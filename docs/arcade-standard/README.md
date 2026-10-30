@@ -279,3 +279,13 @@ bots' own misses; each game's oracle or built perfect run scores 200 (arcade-sta
 - Roofbound: the 10 s survival pause after a checkpoint save is dropped (time survived is literal), so a saved crash costs nothing.
 - Ball Tracker (second pass, 30 Oct 2026): btRev 8 deals 299 of the 300 bank courses (`BT_V8_DEAL`, course 56 left out), every one proved to reach 200 by a stronger boosted oracle through the server replay (balltrack-deal-check); the first pass's 11 short courses were its weaker oracle's misses.
 - Wavefront deals 5 saucers a run, not 6, so each pays 4.
+
+## Grappler (D): swingRev 15, the swinging course
+
+Grappler's rework (Joe's direction after swingRev 14) scores on the standard: the course 140 (a straight line on the
+share of the course's length behind the hero), pars 30 (shared evenly by the stretches, each full at 30 ticks under
+par) and gates, gems and stars 30 (2 each for the 5 of each kind); clearing the course pays nothing more; no input 0,
+any input at least 1 (`swingScoreV15`, the shared `stdFinal`). The course, its rules, the bots and the skill-band
+medians are on its page, [swing.md](swing.md); swing-rework-check proves every older revision replays as before and
+every course's own route clears it under par.
+

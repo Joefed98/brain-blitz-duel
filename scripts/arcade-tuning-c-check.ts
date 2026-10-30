@@ -170,8 +170,9 @@ section("New rounds carry the Tuning C stamps; Junction is practice only");
     ["matchup", playRevOf("matchup", generateMatchup().matchupRev), MATCHUP_REV_PAR + 5],
     // Taller worlds batch 3 (16 Oct 2026) then moved Grappler on to its taller cavern (swingRev 9); arcade-tuning-g3-check covers it.
     // Grappler's 200 expansion (26 Oct 2026) moved Grappler on to swingRev 13 (after swingRev 9's taller cavern); swing-x200-check covers it.
-    // The assault course (27 Oct 2026) moved it on to swingRev 14; swing-assault-check covers it.
-    ["swing", playRevOf("swing", generateSwing().swingRev), SWING_REV_TUNEC + 7],
+    // The assault course (27 Oct 2026) moved it on to swingRev 14 (swing-assault-check), the swinging course (29 Oct 2026)
+    // to swingRev 15 (swing-rework-check).
+    ["swing", playRevOf("swing", generateSwing().swingRev), SWING_REV_TUNEC + 8],
     // Tuning E (Oct 2026) moved Hover on to its taller world (hoverRev 5); arcade-tuning-e-check covers it.
     // The 200 expansion (26 Oct 2026) then moved Hover on to hoverRev 9; hover-x200-check covers it.
     ["hover", playRevOf("hover", generateHover().hoverRev), HOVER_REV_TALL + 4],
@@ -246,9 +247,9 @@ section("Grappler, Hover, Rainbow Bridge and Tempo: same play, new curves");
   // Hover's help now states its Tuning E curve (arcade-tuning-e-check).
   // Screen audit Oct 2026: the help gives a good run from the curve rooms deal (swingRev 9, inkRev 6, beatRev 9 since expansion E2; arcade-help-bands-check).
   // Grappler's 200 expansion (swingRev 13) stated a good run on its own base curve (swing-x200-check); the assault course
-  // (swingRev 14) on its sections' curve (swing-assault-check). Tempo's beatRev 11 (the arcade scoring standard) states its
-  // standard parts instead (arcade-help-bands-check, beat-standard-check).
-  ok(PUZZLE_INSTRUCTIONS.swing.score.includes("A good run (100 points) counts 236") && PUZZLE_INSTRUCTIONS.inkbridge.score.includes("A good run (100 points) pots 8 levels") /* inkRev 12 (the arcade scoring standard; inkRev 10 counted 73) */ && PUZZLE_INSTRUCTIONS.beat.score.includes(stdHelp(BEAT_STD_SPEC)), "the \"?\" help states a good run on the curves rooms deal");
+  // (swingRev 14) on its sections' curve (swing-assault-check); the swinging course (swingRev 15) as a share of the course. Tempo's beatRev 11 (the arcade scoring
+  // standard) states its standard parts instead (arcade-help-bands-check, beat-standard-check).
+  ok(PUZZLE_INSTRUCTIONS.swing.score.includes("A good run (100 points) counts 715") && PUZZLE_INSTRUCTIONS.inkbridge.score.includes("A good run (100 points) pots 8 levels") /* inkRev 12 (the arcade scoring standard; inkRev 10 counted 73) */ && PUZZLE_INSTRUCTIONS.beat.score.includes(stdHelp(BEAT_STD_SPEC)), "the \"?\" help states a good run on the curves rooms deal");
 }
 
 /* ================================ 4a. Gemstone ================================ */

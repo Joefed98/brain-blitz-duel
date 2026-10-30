@@ -13,7 +13,7 @@ import {
   SWING_REV_TUNED,
   SWING_REV_TUNEC,
   SWING_REV_SPREAD,
-  SWING_REV_TALL, SWING_REV_TARGET, SWING_REV_STRICT, SWING_REV_EXPAND, SWING_REV_ASSAULT,
+  SWING_REV_TALL, SWING_REV_TARGET, SWING_REV_STRICT, SWING_REV_EXPAND, SWING_REV_ASSAULT, SWING_REV_REWORK,
   swingWorldHFor,
   swingWorldWFor,
   SWING_BG,
@@ -30,30 +30,30 @@ import { swingSounds } from "@/lib/fx/gameSounds";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
-/** Fixed intro still (swingRev 14): a start ledge, a hook and the landing ledge, a squeeze's gap with its far hook. */
+/** Fixed intro still (swingRev 15): hook-to-hook swinging with a gate and a star on the way, then a short ledge run with a squeeze. */
 function IntroExample() {
   return (
     <div className="flex w-full flex-col items-center gap-2">
       <svg viewBox="0 0 168 130" width={168} height={130} aria-hidden="true" style={{ background: SWING_BG, borderRadius: 10 }}>
         <polyline points="0,14 20,20 40,10 60,18 80,12 100,22 120,14 140,20 168,12" fill="none" stroke={SWING_GOLD} strokeWidth={2} />
         <polygon points="0,118 8,108 16,118 24,108 32,118 40,108 48,118 56,108 64,118 72,108 80,118 88,108 96,118 104,108 112,118 120,108 128,118 136,108 144,118 152,108 160,118 168,108 168,130 0,130" fill={SWING_RED} />
-        {/* The start ledge (gold arrow), the hook, the rope and the flight on to the landing ledge. */}
-        <rect x={6} y={80} width={30} height={6} rx={1} fill="#5A4A50" stroke={SWING_GOLD} strokeWidth={0.8} />
-        <path d="M17 81 L22 83 L17 85 Z" fill={SWING_GOLD} />
-        <circle cx={46} cy={30} r={5} fill="none" stroke={SWING_GOLD} strokeWidth={2} />
-        <line x1={46} y1={30} x2={52} y2={70} stroke={SWING_GOLD} strokeWidth={2} />
-        <rect x={46} y={66} width={12} height={20} rx={6} fill="var(--ice-wall)" stroke="var(--grappler-rim)" strokeWidth={1} />
-        <path d="M 58 70 Q 74 48 88 70" fill="none" stroke={SWING_GOLD} strokeOpacity={0.45} strokeDasharray="3 4" />
-        <rect x={76} y={74} width={28} height={6} rx={1} fill="#5A4A50" stroke="rgba(255,190,140,0.6)" strokeWidth={0.8} />
-        {/* A squeeze: roof and floor closing to a gap, a gem on the line, the far hook behind it. */}
-        <rect x={122} y={14} width={12} height={36} fill="#3A2B31" />
-        <rect x={122} y={78} width={12} height={34} fill="#3A2B31" />
-        <rect x={122} y={48} width={12} height={2} fill="rgba(255,150,90,0.8)" />
-        <rect x={122} y={78} width={12} height={2} fill="rgba(255,150,90,0.8)" />
-        <polygon points="113,58 117,61 116,66 110,66 109,61" fill="#5FDCF0" stroke="#E6FDFF" strokeWidth={0.8} />
-        <circle cx={154} cy={34} r={5} fill="none" stroke={SWING_GOLD} strokeWidth={2} />
+        {/* Swinging: the hero on the first hook, the flight to the next (through a speed gate), a star on the tighter swing. */}
+        <circle cx={22} cy={34} r={5} fill="none" stroke={SWING_GOLD} strokeWidth={2} />
+        <line x1={22} y1={34} x2={34} y2={76} stroke={SWING_GOLD} strokeWidth={2} />
+        <rect x={28} y={72} width={12} height={20} rx={6} fill="var(--ice-wall)" stroke="var(--grappler-rim)" strokeWidth={1} />
+        <path d="M 40 76 Q 56 44 72 58" fill="none" stroke={SWING_GOLD} strokeOpacity={0.45} strokeDasharray="3 4" />
+        <line x1={52} y1={46} x2={52} y2={66} stroke="#FFE08A" strokeWidth={1.2} strokeDasharray="3 3" />
+        <circle cx={78} cy={30} r={5} fill="none" stroke={SWING_GOLD} strokeWidth={2} />
+        <circle cx={92} cy={70} r={3.5} fill={SWING_GOLD} />
+        <circle cx={112} cy={36} r={5} fill="none" stroke={SWING_GOLD} strokeWidth={2} />
+        {/* A short ledge run: a landing ledge, then a squeeze's gap. */}
+        <rect x={120} y={84} width={24} height={6} rx={1} fill="#5A4A50" stroke={SWING_GOLD} strokeWidth={0.8} />
+        <rect x={152} y={14} width={10} height={40} fill="#3A2B31" />
+        <rect x={152} y={80} width={10} height={32} fill="#3A2B31" />
+        <rect x={152} y={52} width={10} height={2} fill="rgba(255,150,90,0.8)" />
+        <rect x={152} y={80} width={10} height={2} fill="rgba(255,150,90,0.8)" />
       </svg>
-      <p className="text-center text-xs text-muted-foreground">Kick off the ledge, swing, let go and land the next one. Two hooks? Catch the far one in the air. Squeezes: fly through the gap. Miss and you restart the section.</p>
+      <p className="text-center text-xs text-muted-foreground">Swing hook to hook: let go to fly, hold to grab the next. Short ledge runs and squeezes between. Miss: back to your last hook.</p>
     </div>
   );
 }
@@ -72,7 +72,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       seed={data?.seed ?? 1}
       enabled={data !== null}
       locked={locked}
-      // swingRev 13 and 14: the wider view (450 × 844); 390 wide on every earlier revision.
+      // swingRev 13, 14 and 15: the wider view (450 × 844); 390 wide on every earlier revision.
       worldW={swingWorldWFor(data?.swingRev)}
       // swingRev 9: the taller cavern; every phone draws the stored revision's world.
       worldH={swingWorldHFor(data?.swingRev)}
@@ -124,7 +124,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
 }
 
 export function swingLine(r: { metres: number; survived: boolean; survivedSeconds: number; cause?: number; sections?: number; sectionTotal?: number; restarts?: number }): string {
-  // swingRev 14 (the assault course): sections cleared and restarts.
+  // swingRev 14 and 15 (the assault and swinging courses): sections cleared and restarts.
   if (r.sectionTotal !== undefined && r.restarts !== undefined) return `Section ${r.sections ?? 0} / ${r.sectionTotal} · ${r.restarts} restart${r.restarts === 1 ? "" : "s"}`;
   if (r.survived) return `${r.metres} m · survived`;
   return r.cause === 1 ? `${r.metres} m · caught by the dragon at ${r.survivedSeconds.toFixed(1)}s` : `${r.metres} m · fell at ${r.survivedSeconds.toFixed(1)}s`;
@@ -143,7 +143,7 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
           {result.stars ?? 0} / {result.starTotal ?? 0} stars
         </p>
       )}
-      {puzzle.swingRev === SWING_REV_ASSAULT && "starsBanked" in result && (
+      {(puzzle.swingRev === SWING_REV_ASSAULT || puzzle.swingRev === SWING_REV_REWORK) && "starsBanked" in result && (
         <p className="shrink-0 whitespace-normal break-words text-center font-mono text-sm text-muted-foreground">
           {result.parsBeaten} under par · {result.gates} / {result.gateTotal} gates · {result.gems} / {result.gemTotal} gems · {result.starsBanked} / {result.starTotal} stars
         </p>
@@ -153,7 +153,7 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
           {result.gems} / {result.gemTotal} gems · {result.gates} / {result.gateTotal} gates · {result.ledges} / {result.ledgeTotal} ledges · best chain {result.bestChain}
         </p>
       )}
-      <p className="shrink-0 text-center font-mono text-base text-muted-foreground">{puzzle.swingRev === SWING_REV_ASSAULT ? "Same course for everyone" : "Same cavern for everyone"}</p>
+      <p className="shrink-0 text-center font-mono text-base text-muted-foreground">{puzzle.swingRev === SWING_REV_ASSAULT || puzzle.swingRev === SWING_REV_REWORK ? "Same course for everyone" : "Same cavern for everyone"}</p>
     </div>
   );
 }
