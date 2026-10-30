@@ -15,6 +15,9 @@ import {
   parseToken,
   replayWordSlide,
   shiftToken,
+  slideSwapRow,
+  slideSwapsOn,
+  swapToken,
   WS_MARKED_ROWS,
   WS_REVEAL_MS,
   WS_SHIFT_MS,
@@ -51,6 +54,8 @@ export function Board({
   locked,
   onLock,
   shut = false,
+  swapRow = null,
+  picked = null,
 }: {
   grid: string[];
   cell: number;
@@ -61,6 +66,9 @@ export function Board({
   onLock?: (row: number) => void;
   /** Solved: every padlock is drawn shut (display only). */
   shut?: boolean;
+  /** wordSlideRev 4: the last unlocked row, whose tiles swap, and the tile picked to swap (display only). */
+  swapRow?: number | null;
+  picked?: number | null;
 }) {
   const board = (
     <div
@@ -69,17 +77,20 @@ export function Board({
       className="puzzle-board grid shrink-0 rounded-xl border-2 border-border bg-card p-1.5"
       style={{ gridTemplateColumns: `repeat(${WS_SIZE}, ${cell}px)`, gap: GAP, ...(onPointerDown ? NO_SCROLL_STYLE : {}) }}
       aria-label={`${gameDisplayName("wordslide")} board`}
+      data-slide-swap-row={swapRow ?? undefined}
     >
       {grid.map((letter, i) => {
         const row = Math.floor(i / WS_SIZE);
         const tone = locked?.has(row)
           ? "border-primary bg-opponent/15"
           : good.has(row) ? "border-opponent bg-opponent/15" : "border-transparent bg-background/40";
+        const swappable = swapRow === row;
         return (
           <span
             key={i}
             data-cell={i}
             data-valid-row={good.has(row) ? "true" : undefined}
+            data-slide-swap={swappable ? (picked === i % WS_SIZE ? "picked" : "open") : undefined}
              className={`word-letter-tile flex items-center justify-center rounded-lg border-2 font-display font-bold text-foreground ${tone}`}
             style={{ height: cell, fontSize: Math.round(cell * 0.5) }}
           >
@@ -158,6 +169,9 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, c
   const board = useRef<HTMLDivElement | null>(null);
   const root = useRef<HTMLDivElement | null>(null);
   const lastShift = useRef<SlideShift | null>(null);
+  const lastSwap = useRef<[number, number, number] | null>(null);
+  // wordSlideRev 4: the tile picked in the last row, waiting for the tile to swap with (display state only).
+  const [picked, setPicked] = useState<number | null>(null);
   useNoTouchScroll(root);
 
   useBeforePaint(() => {
@@ -170,9 +184,15 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, c
     return () => observer.disconnect();
   }, []);
 
-  const replay = useMemo(() => (data ? replayWordSlide(data.grid, tokens) : null), [data, tokens]);
+  const swapsOn = slideSwapsOn(data);
+  const replay = useMemo(() => (data ? replayWordSlide(data.grid, tokens, { swaps: slideSwapsOn(data) }) : null), [data, tokens]);
   const encoded = tokens.join(",");
   const lockedRows = new Set(replay?.locked ?? []);
+  // Four rows locked as words: the last row's tiles can be swapped (the server checks the locked rows are words).
+  const swapRow = swapsOn ? slideSwapRow(lockedRows) : null;
+  useEffect(() => {
+    if (swapRow === null) setPicked(null);
+  }, [swapRow]);
   // Par moves (word depth d1): the phone shows the public par beside the moves; the server scores the bonus.
   const parOn = wordSlideRevOf(data) >= WORD_SLIDE_REV_PAR;
   const withinPar = !!data && !!replay && replay.moves <= data.par;
@@ -233,8 +253,16 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, c
     onSubmit(encoded);
   }, [now, phaseStartedAt, locked, data, encoded, onSubmit]);
 
-  // A shift slides its line in over 120 ms.
+  // A shift slides its line in over 120 ms; a swap slides its two tiles past each other.
   useLayoutEffect(() => {
+    const swap = lastSwap.current;
+    lastSwap.current = null;
+    if (swap && board.current && !prefersReducedMotion()) {
+      const [row, a, b] = swap;
+      const step = (cell + GAP) * (b - a);
+      board.current.querySelector<HTMLElement>(`[data-cell="${row * WS_SIZE + a}"]`)?.animate([{ transform: `translateX(${step}px)` }, { transform: "none" }], { duration: WS_SHIFT_MS + 60, easing: "ease-out" });
+      board.current.querySelector<HTMLElement>(`[data-cell="${row * WS_SIZE + b}"]`)?.animate([{ transform: `translateX(${-step}px)` }, { transform: "none" }], { duration: WS_SHIFT_MS + 60, easing: "ease-out" });
+    }
     const shift = lastShift.current;
     lastShift.current = null;
     if (!shift || !board.current || prefersReducedMotion()) return;
@@ -288,7 +316,10 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, c
   const push = (token: string) => {
     if (frozen) return;
     const parsed = parseToken(token);
-    if (parsed && typeof parsed === "object" && !("lock" in parsed)) {
+    if (parsed && typeof parsed === "object" && "swap" in parsed) {
+      if (swapRow === null) return puzzleReject(board.current);
+      lastSwap.current = [swapRow, parsed.swap[0], parsed.swap[1]];
+    } else if (parsed && typeof parsed === "object" && !("lock" in parsed)) {
       if (parsed.axis === "r" && lockedRows.has(parsed.index)) return puzzleReject(board.current);
       lastShift.current = parsed;
     }
@@ -308,7 +339,21 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, c
       window.removeEventListener("pointercancel", up);
       const dx = e.clientX - sx;
       const dy = e.clientY - sy;
-      if (Math.max(Math.abs(dx), Math.abs(dy)) < 16) return;
+      if (Math.max(Math.abs(dx), Math.abs(dy)) < 16) {
+        // wordSlideRev 4: a tap in the open last row picks a tile; a tap on another tile there swaps the two.
+        if (swapRow === null) return;
+        const col = start % WS_SIZE;
+        if (Math.floor(start / WS_SIZE) !== swapRow) return setPicked(null);
+        if (picked === null) {
+          hapticTick();
+          return setPicked(col);
+        }
+        if (picked === col) return setPicked(null);
+        setPicked(null);
+        push(swapToken(picked, col));
+        return;
+      }
+      setPicked(null);
       const shift: SlideShift =
         Math.abs(dx) >= Math.abs(dy)
           ? { axis: "r", index: Math.floor(start / WS_SIZE), dir: dx > 0 ? 1 : -1 }
@@ -325,7 +370,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, c
       <div className="word-moment-float top-0">
         <FoundWordMoment value={accepted} />
       </div>
-      <Board grid={replay.grid} cell={cell} good={good} boardRef={board} onPointerDown={onPointerDown} locked={lockedRows} shut={finished} onLock={(row) => { playSound("pz_padlock"); push(`L${row}`); }} />
+      <Board grid={replay.grid} cell={cell} good={good} boardRef={board} onPointerDown={onPointerDown} locked={lockedRows} shut={finished} swapRow={frozen ? null : swapRow} picked={picked} onLock={(row) => { playSound("pz_padlock"); push(`L${row}`); }} />
       <div data-game-controls="status" data-word-controls-first="" className="relative flex h-8 shrink-0 items-center justify-center font-mono text-xs uppercase tracking-widest text-muted-foreground">
         {/* Batch W live summary (display only): rows reading as words, rows locked, moves. */}
         <span data-live-summary="wordslide" className="whitespace-nowrap font-sans text-[13px] font-semibold normal-case tracking-normal tabular-nums text-[#a09da6]">
@@ -365,7 +410,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, c
 
 function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining, validRows }: PuzzleRevealProps) {
   if (puzzle.type !== "wordslide") return null;
-  const replay = replayWordSlide(puzzle.grid, decodeSlideTokens(myAnswer ?? ""));
+  const replay = replayWordSlide(puzzle.grid, decodeSlideTokens(myAnswer ?? ""), { swaps: slideSwapsOn(puzzle) });
   const words = puzzle.words ?? [];
   const good = new Set<number>(WS_MARKED_ROWS.filter((r) => myCorrect || validRows?.includes(r)));
   const elapsed = myMsRemaining === undefined ? null : ((timeLimitMs - myMsRemaining) / 1000).toFixed(1);
