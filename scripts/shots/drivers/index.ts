@@ -27,6 +27,8 @@ import { driver as numline } from "./numline";
 import { driver as tendrop } from "./tendrop";
 // Depth to 200 (D3)
 import { driver as maze } from "./maze";
+// Cards & Board (30 Oct 2026)
+import { mahjongDriver, minesweeperDriver } from "./cardsBoard";
 
 export const DRIVERS: Record<string, Driver> = {
   ...LOGIC_DRIVERS,
@@ -52,4 +54,6 @@ export const DRIVERS: Record<string, Driver> = {
   numline,
   tendrop,
   maze,
+  minesweeper: minesweeperDriver,
+  mahjong: mahjongDriver,
 };

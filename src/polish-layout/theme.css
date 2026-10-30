@@ -100,6 +100,8 @@
 [data-cat="pattern"] { --cat: var(--category-pattern); }
 [data-cat="logic"] { --cat: var(--category-logic); }
 [data-cat="arcade"] { --cat: var(--category-arcade); }
+/* Arcade's Cards & Board group (30 Oct 2026): its game tiles take the group's pink border. */
+.game-icon[data-group="cards"] { --cat: #FF6FA8; }
 [data-cat] {
   --cat-hi: color-mix(in oklab, var(--cat) 62%, #fff);
   --cat-lo: color-mix(in oklab, var(--cat) 62%, #000);

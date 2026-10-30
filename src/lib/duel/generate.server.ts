@@ -63,6 +63,8 @@ import {
   generateBinToss,
   generateBullseye,
   generateMatchup,
+  generateMinesweeper,
+  generateMahjong,
   generateCross,
   generateDual,
   generateRicochet,
@@ -198,6 +200,8 @@ function generateUnstamped(type: PuzzleType, context: GenerateContext): PuzzleDa
   if (type === "ricochet") return generateRicochet();
   if (type === "breaker") return generateBreaker();
   if (type === "pinball") return generatePinball();
+  if (type === "minesweeper") return generateMinesweeper();
+  if (type === "mahjong") return generateMahjong();
   if (type === "rally") return generateRally();
   if (type === "steady") return generateSteady();
   if (type === "slice") return generateSlice();

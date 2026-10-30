@@ -2,7 +2,7 @@ import type { CSSProperties } from "react";
 
 import { CONCEPT_ICONS, ConceptIcon } from "./gameIcons/conceptIcons";
 import { TILE_SCENES } from "./gameIcons/tileScenes.data";
-import { puzzleDef } from "@/lib/duel/registry";
+import { CARDS_BOARD_TYPES, puzzleDef } from "@/lib/duel/registry";
 import type { PuzzleType } from "@/lib/duel/types";
 
 /** True when a game has its own icon (a tile scene or, failing that, a line drawing; app-shell-check proves it for the active ones). */
@@ -41,6 +41,7 @@ export function GameIcon({ type, size = 44 }: { type: PuzzleType; size?: number 
       data-game-icon={type}
       data-icon-art={scene ? "img" : type in CONCEPT_ICONS ? "svg" : "none"}
       data-cat={puzzleDef(type).category}
+      data-group={CARDS_BOARD_TYPES.includes(type) ? "cards" : undefined}
       className="game-icon"
       style={style}
     >

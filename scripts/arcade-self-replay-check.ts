@@ -138,6 +138,10 @@ import { RALLY_REV_STD } from "@/lib/arcade/rally";
 import { BUB_REV_STD } from "@/lib/arcade/bubble";
 import { BEAT_REV_STD } from "@/lib/arcade/beat";
 import { encodePinballRun, replayPinballRun } from "@/lib/duel/pinball";
+import { minesCheckpoint, minesweeperGameFor, MINES_REV_STD } from "@/lib/arcade/minesweeper";
+import { encodeMinesweeperRun, replayMinesweeperRun } from "@/lib/duel/minesweeper";
+import { mahjongCheckpoint, mahjongGameFor, MAHJONG_REV_STD } from "@/lib/arcade/mahjong";
+import { encodeMahjongRun, replayMahjongRun } from "@/lib/duel/mahjong";
 import { TILT_REV_BAND, TILT_REV_EXPAND, TILT_REV_LIFT, TILT_REV_STD, TILT_REV_TUNEC } from "@/lib/arcade/tilt";
 import { ORBIT_REV_BAND, ORBIT_REV_SWEPT, ORBIT_REV_TALL, ORBIT_REV_TUNED, ORBIT_REV_XP, ORBIT_REV_STD } from "@/lib/arcade/orbit";
 import { decodeOrbitExtras, initBandFrom, initSweptFrom, initTallFrom, initTunedFrom, initXpFrom, initStdFrom } from "@/lib/arcade/orbitRev3";
@@ -774,6 +778,10 @@ const GAMES: Game[] = [
   { key: "cross/std", game: crossGameFor(CROSS_REV_STD), checkpoint: crossCheckpoint, mode: "events", rate: 60, encode: encodeCrossRun, replay: (seed: number, raw: string) => replayCrossRun(seed, raw, CROSS_REV_STD) },
   // Grappler's swinging course (swingRev 15, 29 Oct 2026, docs/arcade-standard/swing.md), appended so every earlier entry keeps its index.
   { key: "swing/rework", game: swingGameFor(SWING_REV_REWORK), checkpoint: swingCheckpoint, mode: "events", rate: 30, encode: encodeSwingRun, replay: (seed: number, raw: string) => replaySwingRun(seed, raw, SWING_REV_REWORK) },
+  // Cards & Board (30 Oct 2026, docs/arcade-standard/minesweeper.md and mahjong.md), appended so every earlier entry keeps
+  // its index: Minesweeper minesRev 1 (random reveals and flags) and Mahjong Solitaire mahjongRev 1 (random taps and Shuffles).
+  { key: "minesweeper", game: minesweeperGameFor(MINES_REV_STD), checkpoint: minesCheckpoint, mode: "events", rate: 60, encode: encodeMinesweeperRun, replay: (seed: number, raw: string) => replayMinesweeperRun(seed, raw, MINES_REV_STD) },
+  { key: "mahjong", game: mahjongGameFor(MAHJONG_REV_STD), checkpoint: mahjongCheckpoint, mode: "events", rate: 80, encode: encodeMahjongRun, replay: (seed: number, raw: string) => replayMahjongRun(seed, raw, MAHJONG_REV_STD) },
 ];
 
 /** A random candidate event, often outside the declared range (a finger off the edge). */

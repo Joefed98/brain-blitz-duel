@@ -43,7 +43,7 @@ table is imported by name (no-side-effect-imports-check).
 ## The check: `scripts/arcade-standard-check.ts`
 
 One check, one entry per game in `scripts/arcade-standard/<type>.ts` (the entry shape is
-`scripts/arcade-standard/entry.ts`). `STANDARD_ROSTER` in the check lists all 21 games; once rooms deal a game's
+`scripts/arcade-standard/entry.ts`). `STANDARD_ROSTER` in the check lists all 23 games; once rooms deal a game's
 standard stamp it must have an entry. For every entry it proves: the parts (core first) sum to exactly 200 and the round
 maximum is 200; rooms deal the stamp and LIVE_BANDS lists it; every perfect run, through the game's real scoring path
 (a server replay or the sim's own score), scores exactly 200, each part at its maximum where the run is split. Where an
@@ -80,6 +80,8 @@ replay exactly as before; standard-live-check grades every stored arcade run thr
 | Orbit | `orbit` | `orbitRev` 13 | C | [orbit.md](orbit.md) |
 | Ball Tracker | `balltrack` | `btRev` 8 | C | [balltrack.md](balltrack.md) |
 | Grappler | `swing` | `swingRev` 15 | D | [swing.md](swing.md) |
+| Minesweeper | `minesweeper` | `minesRev` 1 | Cards & Board | [minesweeper.md](minesweeper.md) |
+| Mahjong Solitaire | `mahjong` | `mahjongRev` 1 | Cards & Board | [mahjong.md](mahjong.md) |
 
 The batches land one at a time on top of this; each adds its games' entries, pages and its summary section below.
 
@@ -289,3 +291,18 @@ any input at least 1 (`swingScoreV15`, the shared `stdFinal`). The course, its r
 medians are on its page, [swing.md](swing.md); swing-rework-check proves every older revision replays as before and
 every course's own route clears it under par.
 
+
+## Cards & Board: Minesweeper and Mahjong Solitaire (30 Oct 2026)
+
+Two new arcade games, born on the standard (their first revision, `minesRev` 1 and `mahjongRev` 1), dealt in rooms from
+the start. Each deals its whole board in the sim from the room seed, proved by the deal itself: Minesweeper's board is
+the first the logic solver clears from its opening (no guessing), Mahjong's stack is built backwards so its build order
+clears it. cards-board-check replays both proofs through the server to 200 on every tuning and fresh seed.
+
+| Game | Stamp | Core | Features | Cost | Speed full by |
+| --- | --- | --- | --- | --- | --- |
+| Minesweeper | `minesRev` 1 | Safe squares 150 (share beyond the opening) | No mines hit 20 (the same share, no hit), Speed 30 (cleared) | −5 a mine hit | 50 s (near-perfect median 49.7 s) |
+| Mahjong Solitaire | `mahjongRev` 1 | Pairs 150 (share of 36) | No shuffles 20 (the same share, no Shuffle), Speed 30 (cleared) | −5 a Shuffle | 65 s (near-perfect median 65.0 s) |
+
+Medians (tuning seeds 0–59), weak → flawless: Minesweeper 115 / 140.5 / 173.5 / 190.5 / 200 / 200 / 200; Mahjong
+103 / 136 / 174 / 189.5 / 199 / 200 / 200. The pages have the tables, the bots and the assumptions.

@@ -101,6 +101,9 @@ const WORLD_MUSIC: Partial<Record<PuzzleType, SoundId>> = {
   breaker: "music_breaker",
   // Pinball has no track of its own yet: it borrows Rally's Retro track.
   pinball: "music_rally",
+  // Cards & Board (30 Oct 2026): no tracks of their own yet; both borrow Gemstone's calm bed.
+  minesweeper: "music_matchup",
+  mahjong: "music_matchup",
   rally: "music_rally",
   burst: "music_burst",
   orbit: "music_orbit",

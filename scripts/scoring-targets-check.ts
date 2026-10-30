@@ -26,7 +26,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { readFileSync } from "node:fs";
 import { gunzipSync } from "node:zlib";
-import { LIVE_BANDS, liveStrictRev, type LiveBandGame } from "../src/lib/arcade/liveBands";
+import { LIVE_BANDS, liveStrictRev, STD_BORN_GAMES, type LiveBandGame } from "../src/lib/arcade/liveBands";
 import { BAND_SPECS } from "../src/lib/arcade/bandParts";
 import { BAND_TARGET_MAP, BAND_TARGET_MARK, bandPoints, bandRetarget, bandTop, type BandCurve } from "../src/lib/arcade/scoreBands";
 import { WAV_V6_BAND_CURVE, WAV_V7_BAND_CURVE } from "../src/lib/arcade/wavefront";
@@ -132,7 +132,8 @@ section("Rooms deal the revisions after the target ones (score bands); older rev
 for (const [type, live] of Object.entries(LIVE_BANDS) as [LiveBandGame, (typeof LIVE_BANDS)[LiveBandGame]][]) {
   const dealt = (generatePuzzle(type as PuzzleType) as unknown as Record<string, unknown>)[live.field];
   ok(dealt === live.rev, `${type}: rooms deal ${live.field} ${live.rev} (got ${String(dealt)})`);
-  if (type === "junction") continue;
+  // Junction keeps its old bands; the Cards & Board games were born on the arcade scoring standard (no band history).
+  if (type === "junction" || STD_BORN_GAMES.includes(type)) continue;
   ok(TARGET_REVS[type]?.[0] === liveStrictRev(type) - 1 && TARGET_REVS[type]?.[1] === liveStrictRev(type) - 2, `${type}: the target revision follows the one rooms dealt before it (and the score-bands revision follows it)`);
   ok(BAND_SPECS[type] !== undefined, `${type}: a band game`);
 }

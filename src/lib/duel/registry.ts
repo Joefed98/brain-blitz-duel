@@ -41,6 +41,8 @@ import { bullseyePuzzle } from "@/puzzles/bullseye";
 import { matchupPuzzle } from "@/puzzles/matchup";
 import { breakerPuzzle } from "@/puzzles/breaker";
 import { pinballPuzzle } from "@/puzzles/pinball";
+import { minesweeperPuzzle } from "@/puzzles/minesweeper";
+import { mahjongPuzzle } from "@/puzzles/mahjong";
 import { removedGameDefinition } from "@/puzzles/removedGame";
 import { PINBALL_IN_ROOMS } from "@/lib/arcade/pinball";
 import { rallyPuzzle } from "@/puzzles/rally";
@@ -141,6 +143,12 @@ const RETIRED_TYPES = new Set<PuzzleType>([
   ...(PINBALL_IN_ROOMS ? [] : (["pinball"] as const)),
 ]);
 
+/**
+ * Arcade's Cards & Board group (30 Oct 2026): Minesweeper and Mahjong Solitaire, dealt in rooms from the start. The
+ * arcade group map is not on main yet, so the group is named here (the checks that pin the active counts add it).
+ */
+export const CARDS_BOARD_TYPES: readonly PuzzleType[] = ["minesweeper", "mahjong"];
+
 /** Slack added to every arcade phase beyond its run; never shown to players. */
 export const ARCADE_PHASE_SLACK_MS = 3000;
 
@@ -188,6 +196,9 @@ const BASE_REGISTRY: Record<PuzzleType, Omit<PuzzleDefinition, "instructions">> 
   matchup: matchupPuzzle,
   breaker: breakerPuzzle,
   pinball: pinballPuzzle,
+  // Cards & Board (30 Oct 2026): dealt in rooms from the start.
+  minesweeper: minesweeperPuzzle,
+  mahjong: mahjongPuzzle,
   rally: rallyPuzzle,
   steady: steadyPuzzle,
   slice: slicePuzzle,
