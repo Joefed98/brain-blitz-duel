@@ -20,7 +20,7 @@
  * beam's line clear of atoms; power-ups now drop from the atoms that carry them and are chased like any icon,
  * and BURST shots are fired as short shots (also at the golden atom).
  *
- * burstRev 10 (the arcade scoring standard, docs/arcade-standard-oct-2026/burst.md): the golden atom hurts like any
+ * burstRev 10 (the arcade scoring standard, docs/arcade-standard/burst.md): the golden atom hurts like any
  * atom, so every player keeps its read path in the danger watch (a player going for it lines up under it only where
  * that looks safe), and its fade time is the state's own (it appears with its wave). Gated on the state's `std`, so
  * the bots play every earlier revision exactly as before.

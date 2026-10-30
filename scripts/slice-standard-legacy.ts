@@ -1,5 +1,5 @@
 /**
- * Old-round records for Slice sliceRev 11 (29 Oct 2026, the arcade scoring standard, docs/arcade-standard-oct-2026/slice.md).
+ * Old-round records for Slice sliceRev 11 (29 Oct 2026, the arcade scoring standard, docs/arcade-standard/slice.md).
  * Skill-band runs on every revision rooms ever stamped for Slice (unstamped included), played by the skill-band bot
  * through the server encode + replay path of the code at <root>, recorded as score + FNV-1a of the replayed final
  * state together with the encoded log: two runs per level on sliceRev 10 (what rooms dealt before), one per level on

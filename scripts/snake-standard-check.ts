@@ -1,5 +1,5 @@
 /**
- * snake-standard-check (29 Oct 2026, docs/arcade-standard-oct-2026/snake.md): Meteor snakeRev 11, the arcade scoring
+ * snake-standard-check (29 Oct 2026, docs/arcade-standard/snake.md): Meteor snakeRev 11, the arcade scoring
  * standard. snakeRev 10's world and play exactly, scored in straight-line parts that add up to 200.
  *
  *  1. Wiring: rooms deal snakeRev 11, the "?" help reads it (SNAKE_V11_BAND_CURVE, the core's straight line), 200 at
@@ -26,7 +26,8 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { GAME_BY_TYPE } from "./arcade-skill-bands/games";
 import { Human } from "./arcade-skill-bands/human";
-import { STANDARD } from "./arcade-standard/snake";
+import { entry } from "./arcade-standard/snake";
+import type { StdRun } from "./arcade-standard/entry";
 import { generatePuzzle } from "../src/lib/duel/generate.server";
 import { ROUND_MAX } from "../src/lib/duel/roundMax";
 import { LIVE_BANDS } from "../src/lib/arcade/liveBands";
@@ -39,6 +40,18 @@ import {
   SNAKE_STD_LANE_RIDE, SNAKE_COMBO_TICKS, SNAKE_WARP_STAR_TICKS, SNAKE_INPUT_TURN,
   type SnakeState,
 } from "../src/lib/arcade/snake";
+
+/** The game's arcade-standard-check entry, read as this check always has (the first perfect run, split into parts). */
+const STANDARD = {
+  id: entry.type,
+  stampKey: entry.field,
+  stamp: entry.rev,
+  parts: entry.parts,
+  perfect: () => {
+    const r = (entry.perfect() as StdRun[])[0]!;
+    return { score: r.score, parts: r.parts! };
+  },
+};
 
 const RECORD = process.argv.includes("--record");
 const LEGACY = "scripts/fixtures/snake-standard-legacy.json.gz";

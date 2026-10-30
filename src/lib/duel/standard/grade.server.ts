@@ -9,6 +9,7 @@ import { latestTapMs } from "../grade";
 import { puzzleTimeLimitMs } from "../registry";
 import type { PuzzleData, PuzzleType } from "../types";
 import { STANDARD_UNFINISHED_CAP, earlyPoints, standardFinish, standardUnfinished, type StandardFinish, type StandardScore } from "./shape";
+import { STANDARD_GAMES } from "./games.server";
 import { decodeTimeline, partTimes, type TimedDraft } from "./timeline";
 
 export interface StandardInput {
@@ -48,15 +49,8 @@ export interface StandardContext {
   early(perPart: number, count: number): number;
 }
 
-const GAMES: Partial<Record<PuzzleType, StandardGame>> = {};
-
-/** Each category module registers its games. */
-export function registerStandardGames(games: Partial<Record<PuzzleType, StandardGame>>): void {
-  Object.assign(GAMES, games);
-}
-
 export function standardGame(type: PuzzleType): StandardGame | undefined {
-  return GAMES[type];
+  return STANDARD_GAMES[type];
 }
 
 /** The standard grade of a puzzle on its standard stamp. */
@@ -68,7 +62,7 @@ export function gradeStandard(args: {
   today: () => Graded;
   receivedMsRemaining?: number | undefined;
 }): Graded | null {
-  const game = GAMES[args.puzzle.type];
+  const game = STANDARD_GAMES[args.puzzle.type];
   if (!game) return null;
   const limitMs = puzzleTimeLimitMs(args.puzzle);
   const latestMs = latestTapMs(limitMs, args.receivedMsRemaining);

@@ -1,5 +1,5 @@
 /**
- * Old-round records for Gemstone's arcade scoring standard (matchupRev 11, docs/arcade-standard-oct-2026/matchup.md).
+ * Old-round records for Gemstone's arcade scoring standard (matchupRev 11, docs/arcade-standard/matchup.md).
  * Skill-band bot runs on every revision rooms dealt before it (matchupRev 2–10 and unstamped), played through the
  * server encode + replay path of the code at <root>, recorded as score + FNV-1a of the replayed final state with the
  * encoded log. gemstone-standard-check replays every log on today's code and must reach the same score and the same

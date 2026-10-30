@@ -683,19 +683,19 @@ const GAMES: Game[] = [
   // Roofbound flipRev 9 and Tilt tiltRev 9, flipRev 8's and tiltRev 8's play on lifted curves.
   { key: "flip/lift", game: flipGameFor(FLIP_REV_LIFT), checkpoint: flipCheckpoint, mode: "events", rate: 50, encode: encodeFlipRun, replay: (seed: number, raw: string) => replayFlipRun(seed, raw, FLIP_REV_LIFT) },
   { key: "tilt/lift", game: tiltGameFor(TILT_REV_LIFT), checkpoint: tiltCheckpoint, mode: "events", rate: 500, encode: encodeTiltRun, replay: (seed: number, raw: string) => replayTiltRun(seed, raw, TILT_REV_LIFT) },
-  // The arcade scoring standard (29 Oct 2026, docs/arcade-standard-oct-2026/breaker.md), appended so every earlier entry
+  // The arcade scoring standard (29 Oct 2026, docs/arcade-standard/breaker.md), appended so every earlier entry
   // keeps its index: Breaker brkRev 11, brkRev 10's play scored in fixed parts.
   { key: "breaker/std", game: breakerGameFor(BRK_REV_STD), checkpoint: brkCheckpoint, mode: "events", rate: 950, encode: encodeBreakerRun, replay: (seed: number, raw: string) => replayBreakerRun(seed, raw, BRK_REV_STD) },
-  // The arcade scoring standard (29 Oct 2026, docs/arcade-standard-oct-2026/hover.md), appended so every earlier entry
+  // The arcade scoring standard (29 Oct 2026, docs/arcade-standard/hover.md), appended so every earlier entry
   // keeps its index: Hover hoverRev 10, hoverRev 9's play in fixed parts to 200.
   { key: "hover/std", game: hoverGameFor(HOVER_REV_STANDARD), checkpoint: hoverCheckpoint, mode: "taps", rate: 60, encode: encodeHoverRun, replay: (seed: number, raw: string) => replayHoverRun(seed, raw, HOVER_REV_STANDARD) },
-  // The arcade scoring standard (Oct 2026, docs/arcade-standard-oct-2026/matchup.md), appended so every earlier entry keeps
+  // The arcade scoring standard (Oct 2026, docs/arcade-standard/matchup.md), appended so every earlier entry keeps
   // its index: Gemstone matchupRev 11 (four treasures that swap with a gem making a line, four goal levels, parts to 200).
   { key: "matchup/std", game: matchupGameFor(MATCHUP_REV_STD), checkpoint: matchupCheckpoint, mode: "events", rate: 40, encode: encodeMatchupRun, replay: (seed: number, raw: string) => replayMatchupRun(seed, raw, MATCHUP_REV_STD) },
-  // The arcade scoring standard (29 Oct 2026, docs/arcade-standard-oct-2026/snake.md), appended so every earlier entry keeps
+  // The arcade scoring standard (29 Oct 2026, docs/arcade-standard/snake.md), appended so every earlier entry keeps
   // its index: Meteor snakeRev 11, snakeRev 10's play scored in straight-line parts to 200.
   { key: "snake/std", game: snakeGameFor(SNAKE_REV_STD), checkpoint: snakeCheckpoint, mode: "events", rate: 40, encode: encodeSnakeRun, replay: (seed: number, raw: string) => replaySnakeRun(seed, raw, SNAKE_REV_STD) },
-  // The arcade scoring standard (29 Oct 2026, docs/arcade-standard-oct-2026/tilt.md), appended: Tilt tiltRev 10, four mazes.
+  // The arcade scoring standard (29 Oct 2026, docs/arcade-standard/tilt.md), appended: Tilt tiltRev 10, four mazes.
   { key: "tilt/std", game: tiltGameFor(TILT_REV_STD), checkpoint: tiltCheckpoint, mode: "events", rate: 500, encode: encodeTiltRun, replay: (seed: number, raw: string) => replayTiltRun(seed, raw, TILT_REV_STD) },
 ];
 

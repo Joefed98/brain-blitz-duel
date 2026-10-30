@@ -878,7 +878,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Saucy (ketchup): 3 chilli-free seconds.", detail: "Simmer (mustard): 4 slow seconds. Squeeze (mayo): nearby food gathers where you cut it.", helpOnly: true },
         { action: "One finger-down-to-up path counts together", detail: "– curves too, up to the full height of the screen.", helpOnly: true },
       ],
-      // sliceRev 11 (the arcade scoring standard, docs/arcade-standard-oct-2026/slice.md): the share of food cut on a
+      // sliceRev 11 (the arcade scoring standard, docs/arcade-standard/slice.md): the share of food cut on a
       // straight line to 120, then the four parts.
       score: `Each food cut counts, out of every food thrown (bottles and chillies don't count), in thousandths. More food sliced, higher score – up to ${SLICE_V11_CORE}. A good run (${BAND_GOOD_POINTS} points) slices ${bandUnitsFor(SLICE_V11_BAND_CURVE, BAND_GOOD_POINTS)}. Combos add up to ${SLICE_V11_COMBO_CAP}, golden fruit ${SLICE_V11_GOLD_CAP}, bread tickets ${SLICE_V11_TICKET_CAP} and dodges ${SLICE_V11_DODGE_CAP}: ${SLICE_V11_CORE + SLICE_V11_COMBO_CAP + SLICE_V11_GOLD_CAP + SLICE_V11_TICKET_CAP + SLICE_V11_DODGE_CAP} in all. Each chilli costs ${SLICE_V11_CHILLI} and ends the combo. Up to ${SLICE_V9_MAX}.`,
     },
@@ -1090,7 +1090,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: `${BURST_V10_GOLDENS} golden atoms:`, detail: `one with each wave, a second or two after it appears, at its own spot (the same for everyone in the room). It bounces like the other atoms and fades after about 5 seconds. A shot that reaches one scores ${BURST_V10_GOLDEN_PTS}. It hurts like any atom: touching it costs a life.`, helpOnly: true },
         { action: "Power-ups ride on atoms:", detail: "an atom showing a small icon drops that power-up when you split it (the same atoms for everyone). Walk under it to catch it. DOUBLE fires two beams a shot for 8 s; BURST fires three quick short shots a tap for 8 s; FREEZE stops every atom for 3 s. Frozen atoms still hurt if you walk into one. They score nothing themselves.", helpOnly: true },
       ],
-      // burstRev 10 (the arcade scoring standard, docs/arcade-standard-oct-2026/burst.md): the atoms on a straight line, wave clears, golden atoms, lives.
+      // burstRev 10 (the arcade scoring standard, docs/arcade-standard/burst.md): the atoms on a straight line, wave clears, golden atoms, lives.
       score: liveBandHelp("burst", `Every atom you pop counts, each split piece too: ${BURST_V10_ATOMS} in the ${BURST_V10_WAVES} waves.`, { more: "More atoms", good: (u) => `pops ${u} atoms`, finish: `Wave clears add up to ${BURST_V10_CLEAR_MAX} (${BURST_V10_CLEAR_PER_WAVE} a wave) and golden atoms up to ${BURST_V10_GOLDEN_MAX} (${BURST_V10_GOLDEN_PTS} each): ${BURST_V10_CORE_MAX} + ${BURST_V10_CLEAR_MAX} + ${BURST_V10_GOLDEN_MAX} = 200. Each life lost costs ${BURST_V10_LIFE_COST}; power-ups score nothing.` }),
     },
     orbit: {

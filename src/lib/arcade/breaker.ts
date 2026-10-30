@@ -26,6 +26,7 @@ import {
   type CanvasSize,
   type InputRange,
 } from "./engine";
+import { stdFinal, stdLine } from "./arcadeStandard";
 import { bandStrictGame, bandStrict, bandRetarget, bandTargetGame, bandCurveOf, bandCurve, bandInit, bandPoints, bandScoreOf, bandStep, bandTotal, BAND_FINISH_BONUS, type BandFields, type BandParts } from "./scoreBands";
 
 /* ============================== Constants ============================== */
@@ -1666,7 +1667,7 @@ export const breakerPhoneGame: ArcadeGame<BrkState, ArcadeInputEvent | null> = {
 /* ================= The arcade scoring standard (brkRev 11, 29 Oct 2026) ================= */
 
 /**
- * brkRev 11 (the arcade scoring standard, docs/arcade-standard-oct-2026/breaker.md): brkRev 10's play exactly (the
+ * brkRev 11 (the arcade scoring standard, docs/arcade-standard/breaker.md): brkRev 10's play exactly (the
  * same court, board, gold bricks, power-ups, second double-ball brick and first launch; `initPhone` then the marker),
  * scored in fixed parts that total 200:
  *  - Bricks, up to BRK_V11_CORE_MAX (140): a straight line on the share of the board's bricks destroyed,
@@ -1732,20 +1733,19 @@ export interface BrkStdParts {
 export function breakerStdParts(state: BrkState): BrkStdParts {
   const all = state.bricks.length;
   const bricks = brkAllDestroyed(state);
-  const core = all > 0 ? Math.floor((BRK_V11_CORE_MAX * bricks) / all) : 0;
+  const core = stdLine(BRK_V11_CORE_MAX, bricks, all);
   const cleared = state.cleared;
   const clear = cleared ? BRK_V11_CLEAR_POINTS : 0;
   const speed = cleared ? brkStdSpeed(state.endedTick) : 0;
   const goldDealt = brkGoldDealt(state);
   const goldBroken = Math.min(goldDealt, state.goldBroken ?? 0);
-  const gold = goldDealt > 0 ? Math.floor((BRK_V11_GOLD_MAX * goldBroken) / goldDealt) : 0;
+  const gold = stdLine(BRK_V11_GOLD_MAX, goldBroken, goldDealt);
   return { bricks, all, core, cleared, clear, speed, goldBroken, goldDealt, gold, sum: core + clear + speed + gold };
 }
 
 /** brkRev 11's score: the parts' sum, at least 1 for a played run, 0 with no input, never above 200. */
 export function brkStdScore(state: BrkState): number {
-  if (!state.acted) return 0;
-  return clampInt(Math.max(1, breakerStdParts(state).sum), 0, BRK_V11_MAX);
+  return stdFinal(breakerStdParts(state).sum, Boolean(state.acted));
 }
 
 /** brkRev 11's reveal breakdown (bandLines): the bricks line, then clear, speed and gold on one bonus line. */

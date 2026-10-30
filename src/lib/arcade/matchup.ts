@@ -37,6 +37,7 @@ import {
   type CanvasSize,
   type InputRange,
 } from "./engine";
+import { stdFinal } from "./arcadeStandard";
 import { bandStrictGame, bandStrict, bandRetarget, bandTargetGame, bandCurveOf, bandCurve, bandInit, bandPoints, bandTop, bandScoreOf, bandStep, bandTotal, type BandCurve, type BandFields, type BandParts } from "./scoreBands";
 
 /* ============================== Constants ============================== */
@@ -2210,7 +2211,7 @@ export const matchupIceGame: ArcadeGame<MatchupState, ArcadeInputEvent | null> =
   score: (state) => (state.iceSwap ? bandTotal(matchupIceParts(state), Boolean(state.acted), MATCHUP_V9_MAX) : matchupGoalsGame.score(state)),
 };
 
-/* ======== The arcade scoring standard (matchupRev 11, docs/arcade-standard-oct-2026/matchup.md) ======== */
+/* ======== The arcade scoring standard (matchupRev 11, docs/arcade-standard/matchup.md) ======== */
 
 /**
  * matchupRev 11: matchupRev 10's 90 s board (ice swaps that make a line, ice laid once), with three rule changes
@@ -2281,9 +2282,8 @@ export function matchupStdParts(state: MatchupState): MatchupStdParts {
 
 /** matchupRev 11's score: the parts' sum; a run with any input scores at least 1, one with none 0. */
 export function matchupStdScore(state: MatchupState): number {
-  if (!state.acted) return 0;
   const p = matchupStdParts(state);
-  return clampInt(Math.max(1, p.core + p.treasure + p.goals + p.ice + p.big), 1, MATCHUP_V11_MAX);
+  return stdFinal(p.core + p.treasure + p.goals + p.ice + p.big, Boolean(state.acted));
 }
 
 /** matchupRev 11 as a band breakdown (the reveal's lines): the core, then the features as one bonus line. */

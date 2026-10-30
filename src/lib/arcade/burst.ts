@@ -18,6 +18,7 @@ import {
   type CanvasSize,
   type InputRange,
 } from "./engine";
+import { stdFinal } from "./arcadeStandard";
 import { bandStrictGame, bandStrict, bandRetarget, bandTargetGame, bandCurveOf, bandCurve, bandInit, bandPoints, bandScoreOf, bandStep, bandTotal, BAND_FINISH_BONUS, type BandFields, type BandParts } from "./scoreBands";
 
 /* ============================== Constants ============================== */
@@ -277,7 +278,7 @@ export interface BurstState extends BandFields {
   gvy?: number;
   /** Waves cleared with a time bonus. */
   quickWaves?: number;
-  /** burstRev 10 only (the arcade scoring standard, docs/arcade-standard-oct-2026/burst.md): every field below is absent on earlier rounds. */
+  /** burstRev 10 only (the arcade scoring standard, docs/arcade-standard/burst.md): every field below is absent on earlier rounds. */
   std?: number;
   /** Each wave's golden atom: -1 its wave not reached yet, the tick it is due (its wave's entry plus its seeded delay), -2 once it has appeared. */
   gDue?: number[];
@@ -1506,7 +1507,7 @@ export const burstCarryGame: ArcadeGame<BurstState, ArcadeInputEvent | null> = {
 /* ================= The arcade scoring standard (burstRev 10, 29 Oct 2026) ================= */
 
 /**
- * burstRev 10 (the arcade scoring standard, docs/arcade-standard-oct-2026/burst.md): burstRev 9's arena, atoms,
+ * burstRev 10 (the arcade scoring standard, docs/arcade-standard/burst.md): burstRev 9's arena, atoms,
  * carried power-ups and BURST shots, with these changes:
  *
  *  - The run is five waves (burstRev 9's waves 1–5 from the seed: M; L; M M; L S S; L L), 87 atoms counting every
@@ -1695,8 +1696,7 @@ export function burstStdParts(state: BurstState): { core: number; clear: number;
 
 /** burstRev 10's score: the parts' sum, at least 1 for a run with any input (0 without), at most 200. */
 export function burstStdScore(state: BurstState): number {
-  if (!state.acted) return 0;
-  return clampInt(burstStdParts(state).total, 1, BURST_V8_MAX);
+  return stdFinal(burstStdParts(state).total, Boolean(state.acted));
 }
 
 /** burstRev 10's breakdown for the reveal (bandLines): core, the features as the bonus, the lives as the penalty. */

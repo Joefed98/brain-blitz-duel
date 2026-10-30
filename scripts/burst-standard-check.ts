@@ -1,5 +1,5 @@
 /**
- * Fission burstRev 10: the arcade scoring standard (29 Oct 2026, docs/arcade-standard-oct-2026/burst.md).
+ * Fission burstRev 10: the arcade scoring standard (29 Oct 2026, docs/arcade-standard/burst.md).
  *
  *  1. Rooms and practice deal burstRev 10 at 200 in the 390 × 650 world; the "?" help reads its core line; the intro
  *     demo stays stopped until one is recorded on it.
@@ -28,7 +28,8 @@ import { createHash } from "node:crypto";
 import { GAME_BY_TYPE } from "./arcade-skill-bands/games";
 import { Human, ALL_LEVELS, type SkillLevel } from "./arcade-skill-bands/human";
 import { bot as burstBot } from "./arcade-skill-bands/bots/burst";
-import { STANDARD, playOracle } from "./arcade-standard/burst";
+import { entry, playOracle } from "./arcade-standard/burst";
+import type { StdRun } from "./arcade-standard/entry";
 import type { ArcadeInputEvent } from "../src/lib/arcade/engine";
 import {
   burstAtomsOf,
@@ -75,6 +76,18 @@ import { bandPoints, bandTotal } from "../src/lib/arcade/scoreBands";
 import { PUZZLE_INSTRUCTIONS } from "../src/lib/duel/instructions";
 import { INTRO_SCORE } from "../src/lib/duel/introScore";
 import { burstPuzzle } from "../src/puzzles/burst";
+
+/** The game's arcade-standard-check entry, read as this check always has (the first perfect run, split into parts). */
+const STANDARD = {
+  id: entry.type,
+  stampKey: entry.field,
+  stamp: entry.rev,
+  parts: entry.parts,
+  perfect: () => {
+    const r = (entry.perfect() as StdRun[])[0]!;
+    return { score: r.score, parts: r.parts! };
+  },
+};
 
 let checks = 0;
 const failures: string[] = [];

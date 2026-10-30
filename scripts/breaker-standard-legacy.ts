@@ -1,6 +1,6 @@
 /**
  * Old-round records for Breaker's arcade scoring standard (brkRev 11, 29 Oct 2026,
- * docs/arcade-standard-oct-2026/breaker.md). Skill-band bot runs on every revision rooms ever stamped for Breaker
+ * docs/arcade-standard/breaker.md). Skill-band bot runs on every revision rooms ever stamped for Breaker
  * (unstamped included, brkRev 10 the one rooms dealt before the standard), played through the server encode + replay
  * path of the code at <root>, recorded as score + FNV-1a of the replayed final state with the encoded log.
  * breaker-standard-check replays every log on today's code and must reach the same score and the same state.

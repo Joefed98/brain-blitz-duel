@@ -1,5 +1,5 @@
 /**
- * Hover under the arcade scoring standard (hoverRev 10, docs/arcade-standard-oct-2026/hover.md).
+ * Hover under the arcade scoring standard (hoverRev 10, docs/arcade-standard/hover.md).
  *
  * perfect(): a stored witness run (scripts/fixtures/hover-x200-witness.json.gz: every barrier, gold star, tight gate on
  * its centre line and star chain, found by the course solver on hoverRev 9, whose play hoverRev 10 keeps exactly) played
@@ -21,6 +21,7 @@ import {
   type HoverState,
 } from "../../src/lib/arcade/hover";
 import { encodeHoverRun, replayHoverRun } from "../../src/lib/duel/hover";
+import type { StdEntry, StdRun } from "./entry";
 
 const WITNESS = new URL("../fixtures/hover-x200-witness.json.gz", import.meta.url);
 
@@ -38,10 +39,10 @@ export function replayStandard(seed: number, taps: number[]) {
   return replayHoverRun(seed, raw, HOVER_REV_STANDARD);
 }
 
-export const STANDARD = {
-  id: "hover",
-  stampKey: "hoverRev",
-  stamp: HOVER_REV_STANDARD,
+export const entry: StdEntry = {
+  type: "hover",
+  field: "hoverRev",
+  rev: HOVER_REV_STANDARD,
   parts: [
     { key: "core", label: "Barriers passed", max: HOVER_STD_CORE },
     { key: "chains", label: "Star chains", max: HOVER_STD_CHAINS },
@@ -50,11 +51,11 @@ export const STANDARD = {
     { key: "centre", label: "Centre line", max: HOVER_STD_CENTRE },
   ],
   /** The first stored witness run (room seed index 0), replayed by the server on hoverRev 10. */
-  perfect(): { score: number; parts: Record<string, number> } {
+  perfect(): StdRun[] {
     const witnesses = JSON.parse(gunzipSync(readFileSync(WITNESS)).toString()) as { n: number; seed: number; taps: number[] }[];
     const w = witnesses.find((x) => x.n === 0)!;
     const r = replayStandard(w.seed, w.taps);
     const p = hoverStandardParts(r.state);
-    return { score: r.score, parts: { core: p.core, chains: p.chains, gold: p.gold, tight: p.tight, centre: p.centre } };
+    return [{ label: "the stored witness run, server replay", score: r.score, parts: { core: p.core, chains: p.chains, gold: p.gold, tight: p.tight, centre: p.centre } }];
   },
 };

@@ -100,7 +100,7 @@ export function generateBullseye(): BullseyePuzzleData {
 export function generateMatchup(): MatchupPuzzleData {
   // matchupRev 10 (27 Oct 2026, phone-test notes): matchupRev 9's taller board with goals, ice and treasure, over 90 s,
   // with swaps into and out of ice that make a line, and the ice laid once. matchupRev 11 (the arcade scoring standard,
-  // docs/arcade-standard-oct-2026/matchup.md): four treasures that may swap with a gem that then makes a line, four goal
+  // docs/arcade-standard/matchup.md): four treasures that may swap with a gem that then makes a line, four goal
   // levels, and the score as fixed parts to 200.
   return { type: "matchup", seed: arcadeSeed(), matchupRev: MATCHUP_REV_STD };
 }
@@ -144,7 +144,7 @@ export function generateSteady(): SteadyPuzzleData {
 
 export function generateSlice(): SlicePuzzleData {
   // sliceRev 10: sliceRev 9 (expansion E5) with onions and golden fruit 1.2× the size (Joe's phone notes, 27 Oct 2026).
-  // sliceRev 11: sliceRev 10's play on the arcade scoring standard (29 Oct 2026, docs/arcade-standard-oct-2026/slice.md).
+  // sliceRev 11: sliceRev 10's play on the arcade scoring standard (29 Oct 2026, docs/arcade-standard/slice.md).
   return { type: "slice", seed: arcadeSeed(), sliceRev: SLICE_REV_STANDARD };
 }
 
@@ -211,7 +211,7 @@ export function generateInkBridge(): InkBridgePuzzleData {
 
 export function generateBurst(): BurstPuzzleData {
   // burstRev 9 (phone-test notes, docs/phone-notes-oct-2026/fission.md): power-ups carried by seeded atoms, a bouncing golden atom, BURST shots, the wave-clear bonus.
-  // burstRev 10 (the arcade scoring standard, docs/arcade-standard-oct-2026/burst.md): five waves, the golden atom hurts, straight-line parts to 200.
+  // burstRev 10 (the arcade scoring standard, docs/arcade-standard/burst.md): five waves, the golden atom hurts, straight-line parts to 200.
   return { type: "burst", seed: arcadeSeed(), burstRev: BURST_REV_STD };
 }
 

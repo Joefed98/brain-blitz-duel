@@ -1,5 +1,5 @@
 /**
- * Gemstone matchupRev 11 (the arcade scoring standard, docs/arcade-standard-oct-2026/matchup.md): records the runs
+ * Gemstone matchupRev 11 (the arcade scoring standard, docs/arcade-standard/matchup.md): records the runs
  * gemstone-standard-check and scripts/arcade-standard/matchup.ts replay.
  *  - perfect: the first flawless skill-band bot run (room seeds from 0 on) that the server's replay scores 200, every
  *    part at its maximum;

@@ -31,6 +31,7 @@ import {
   type ArcadeGame,
   type CanvasSize,
 } from "./engine";
+import { stdFinal, stdLine } from "./arcadeStandard";
 import { BAND_STRICT_MARK, bandStrictGame, bandStrict, bandRetarget, bandTargetGame, bandCurveOf, bandCurve, bandInit, bandPoints, bandScoreOf, bandStep, bandTotal, BAND_FINISH_BONUS, type BandFields, type BandParts } from "./scoreBands";
 
 /* ============================== Constants ============================== */
@@ -1494,7 +1495,7 @@ export const hoverExpandGame: ArcadeGame<HoverState> = { ...hoverStrictGame, ini
 /* ================= The arcade scoring standard (hoverRev 10, 29 Oct 2026) ================= */
 
 /**
- * hoverRev 10 (the arcade scoring standard, docs/arcade-standard-oct-2026/hover.md): hoverRev 9's course, features,
+ * hoverRev 10 (the arcade scoring standard, docs/arcade-standard/hover.md): hoverRev 9's course, features,
  * shields and play exactly (a hoverRev 9 log replays tick for tick, with the same checkpoints), scored in fixed parts
  * that add up to 200, each a straight line with no curve, knot or pay scale:
  *
@@ -1545,7 +1546,7 @@ export interface HoverStandardParts {
 /** hoverRev 10's parts (integer maths only; each floors its own straight line). */
 export function hoverStandardParts(state: HoverState): HoverStandardParts {
   const totalGates = Math.max(1, state.totalGates);
-  const core = Math.floor((HOVER_STD_CORE * clampInt(state.gates, 0, totalGates)) / totalGates);
+  const core = stdLine(HOVER_STD_CORE, state.gates, totalGates);
   const chainList = state.chains ?? [];
   let chains = 0;
   if (chainList.length) {
@@ -1564,17 +1565,16 @@ export function hoverStandardParts(state: HoverState): HoverStandardParts {
     chains = Math.min(HOVER_STD_CHAINS, share + Math.floor((HOVER_STD_CHAIN_WHOLE * HOVER_CHAINS * whole) / chainList.length));
   }
   const totalStars = state.totalStars ?? 0;
-  const gold = totalStars ? Math.floor((HOVER_STD_GOLD * clampInt(state.stars ?? 0, 0, totalStars)) / totalStars) : 0;
+  const gold = stdLine(HOVER_STD_GOLD, state.stars ?? 0, totalStars);
   const gates = hoverFeatureTotals(state).tight;
-  const tight = gates ? Math.floor((HOVER_STD_TIGHT * clampInt(state.tight ?? 0, 0, gates)) / gates) : 0;
+  const tight = stdLine(HOVER_STD_TIGHT, state.tight ?? 0, gates);
   const centre = gates ? Math.min(HOVER_STD_CENTRE, Math.floor((HOVER_STD_CENTRE * (state.ctrFine ?? 0)) / (HOVER_STD_CENTRE_SPAN * gates))) : 0;
   return { core, chains, gold, tight, centre, sum: Math.min(HOVER_STD_MAX, core + chains + gold + tight + centre) };
 }
 
 /** hoverRev 10's score: the parts' sum, at least 1 once the player has given any input; no input scores 0. */
 export function hoverStandardScore(state: HoverState): number {
-  if (!state.acted) return 0;
-  return Math.max(1, hoverStandardParts(state).sum);
+  return stdFinal(hoverStandardParts(state).sum, Boolean(state.acted));
 }
 
 /** hoverRev 10's breakdown for the reveal: the core on its line, the features as one line of parts. */

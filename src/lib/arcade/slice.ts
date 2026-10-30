@@ -25,6 +25,7 @@ import {
   type CanvasSize,
   type InputRange,
 } from "./engine";
+import { stdFinal } from "./arcadeStandard";
 import { bandStrictGame, bandStrict, bandRetarget, bandTargetGame, bandCurveOf, bandCurve, bandInit, bandPoints, bandScoreOf, bandStep, bandTotal, type BandFields, type BandParts } from "./scoreBands";
 
 /* ============================== Constants ============================== */
@@ -1660,7 +1661,7 @@ export const sliceBigGame: ArcadeGame<SliceState, ArcadeInputEvent | null> = {
   init: initV10,
 };
 
-/* ============ The arcade scoring standard (sliceRev 11, 29 Oct 2026; docs/arcade-standard-oct-2026/slice.md) ============ */
+/* ============ The arcade scoring standard (sliceRev 11, 29 Oct 2026; docs/arcade-standard/slice.md) ============ */
 
 /**
  * sliceRev 11: sliceRev 10's play exactly (the same schedule, board, sizes, bottles, chillies, blade and combo rule:
@@ -1733,8 +1734,7 @@ export function sliceV11Parts(state: SliceState): SliceV11Parts {
 
 /** sliceRev 11's score: the parts less the chillies, 0 with no input, at least 1 with any, at most 200. */
 function sliceV11Score(state: SliceState): number {
-  if (!state.acted) return 0;
-  return clampInt(sliceV11Parts(state).total, 1, SLICE_V9_MAX);
+  return stdFinal(sliceV11Parts(state).total, Boolean(state.acted));
 }
 
 function sliceV11BandParts(state: SliceState): BandParts {

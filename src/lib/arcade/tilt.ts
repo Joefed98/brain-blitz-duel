@@ -17,6 +17,7 @@ import {
   type CanvasSize,
   type InputRange,
 } from "./engine";
+import { stdFinal, stdLine } from "./arcadeStandard";
 import { icos, isin, TRIG_ONE } from "./trig";
 import { speedBonusCurve } from "../duel/speedPar";
 import { bandStrictGame, bandStrict, bandRetarget, bandTargetGame, bandCurveOf, bandCurve, bandInit, bandPoints, bandScoreOf, bandStep, bandTotal, BAND_FINISH_BONUS, type BandFields, type BandParts } from "./scoreBands";
@@ -2282,7 +2283,7 @@ export function tiltIsExpand(rev?: number | null): boolean {
 /* ================= tiltRev 10 (29 Oct 2026): the arcade scoring standard ================= */
 
 /**
- * tiltRev 10 (the arcade scoring standard, batch A; docs/arcade-standard-oct-2026/tilt.md). Play:
+ * tiltRev 10 (the arcade scoring standard, batch A; docs/arcade-standard/tilt.md). Play:
  *  - mazes 1–3 are tiltRev 9's exactly (the same carve, holes, keys and gates, ice, cups, amber marble and gold
  *    stars from the same streams), less the quick stars (tiltRev 10 pays no window or pace);
  *  - then a 4th maze (`buildMazeS`, its own PRNG stream from the seed, so mazes 1–3 are untouched): a smaller disc
@@ -2461,7 +2462,7 @@ export function tiltStdParts(state: TiltState): { core: number; finish: number; 
   const speed = finished ? (end <= TILT_S_SPEED_FULL ? TILT_S_SPEED_POINTS : Math.trunc((TILT_S_SPEED_POINTS * (TILT_RUN_TICKS - end)) / (TILT_RUN_TICKS - TILT_S_SPEED_FULL))) : 0;
   const offer = tiltStarsOnOfferS(state);
   const got = clampInt(state.stars ?? 0, 0, offer);
-  const stars = offer > 0 ? Math.trunc((TILT_S_STAR_POINTS * got) / offer) : 0;
+  const stars = stdLine(TILT_S_STAR_POINTS, got, offer);
   return { core, finish, speed, stars, mazes, progress };
 }
 
@@ -2483,9 +2484,8 @@ export function tiltStdBandParts(state: TiltState): BandParts {
 
 /** tiltRev 10's score: core + finish + speed + gold stars, 0–200; any input scores at least 1, none scores 0. */
 function scoreS(state: TiltState): number {
-  if (!state.acted) return 0;
   const p = tiltStdParts(state);
-  return clampInt(p.core + p.finish + p.speed + p.stars, 1, 200);
+  return stdFinal(p.core + p.finish + p.speed + p.stars, Boolean(state.acted));
 }
 
 export const tiltStdGame: ArcadeGame<TiltState, ArcadeInputEvent | null> = {

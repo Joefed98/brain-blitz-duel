@@ -1,5 +1,5 @@
 /**
- * hover-standard-check (the arcade scoring standard, 29 Oct 2026; docs/arcade-standard-oct-2026/hover.md): Hover
+ * hover-standard-check (the arcade scoring standard, 29 Oct 2026; docs/arcade-standard/hover.md): Hover
  * hoverRev 10 keeps hoverRev 9's play and scores it in five fixed parts that add up to 200.
  *
  *  1. Older stamps unchanged: 54 runs recorded on main before the change (hoverRev 9 at five levels on 8 room seeds,
@@ -66,7 +66,20 @@ import { bot, randomBot } from "./arcade-skill-bands/bots/hover";
 import { HOVER_STANDARD_LEGACY, legacyOf, type HoverStandardLegacyRun } from "./hover-standard-record";
 import { WITNESS_FIXTURE, WITNESS_INDICES, type HoverWitness } from "./hover-x200-witness";
 import { playRevOf } from "./scoring-targets-revs";
-import { STANDARD } from "./arcade-standard/hover";
+import { entry } from "./arcade-standard/hover";
+import type { StdRun } from "./arcade-standard/entry";
+
+/** The game's arcade-standard-check entry, read as this check always has (the first perfect run, split into parts). */
+const STANDARD = {
+  id: entry.type,
+  stampKey: entry.field,
+  stamp: entry.rev,
+  parts: entry.parts,
+  perfect: () => {
+    const r = (entry.perfect() as StdRun[])[0]!;
+    return { score: r.score, parts: r.parts! };
+  },
+};
 
 const failures: string[] = [];
 let passes = 0;

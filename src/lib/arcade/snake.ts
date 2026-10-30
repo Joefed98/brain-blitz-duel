@@ -29,6 +29,7 @@ import {
   type CanvasSize,
   type InputRange,
 } from "./engine";
+import { stdFinal } from "./arcadeStandard";
 import { BAND_STRICT_MARK, bandStrictGame, bandStrict, bandRetarget, bandTargetGame, bandCurveOf, bandCurve, bandInit, bandPoints, bandScoreOf, bandStep, bandTotal, type BandFields, type BandParts } from "./scoreBands";
 
 /* ============================== Constants ============================== */
@@ -1231,7 +1232,7 @@ export const snakeV10Game: ArcadeGame<SnakeState, ArcadeInputEvent | null> = { .
 /* ================= The arcade scoring standard (snakeRev 11, 29 Oct 2026) ================= */
 
 /**
- * snakeRev 11 (docs/arcade-standard-oct-2026/snake.md): snakeRev 10's world and play exactly (the same stars, rocks,
+ * snakeRev 11 (docs/arcade-standard/snake.md): snakeRev 10's world and play exactly (the same stars, rocks,
  * shower, lanes, wormholes and gold schedule, drawn the same way from the room seed), scored to the arcade standard:
  * straight-line parts with fixed maxima that add up to 200.
  *
@@ -1252,7 +1253,7 @@ export const SNAKE_REV_STD = 11;
 export const SNAKE_STD_CORE_MAX = 120;
 /**
  * Stars for the full core: the near-perfect level's median (27 on 100 room seeds, scripts/arcade-skill-bands.ts). The first target, 22,
- * was the great level's median, so great players would have filled the core; docs/arcade-standard-oct-2026/snake.md.
+ * was the great level's median, so great players would have filled the core; docs/arcade-standard/snake.md.
  */
 export const SNAKE_STD_CORE_STARS = 27;
 export const SNAKE_STD_CAPS = { gold: 40, combo: 20, lane: 10, warp: 10 } as const;
@@ -1307,9 +1308,8 @@ export function snakeStdParts(state: SnakeState): SnakeStdParts {
 
 /** snakeRev 11's score: the parts' sum (at most 200), at least 1 for a played run, 0 with no input. */
 export function snakeStdScore(state: SnakeState): number {
-  if (!state.acted) return 0;
   const p = snakeStdParts(state);
-  return clampInt(Math.max(SNAKE_STD_PLAYED_MIN, p.core + p.gold + p.combo + p.lane + p.warp), 0, SNAKE_STD_MAX);
+  return stdFinal(p.core + p.gold + p.combo + p.lane + p.warp, Boolean(state.acted));
 }
 
 function snakeStdBandParts(state: SnakeState): BandParts {

@@ -34,14 +34,14 @@ export const STRICT_REVS: Partial<Record<LiveBandGame, number>> = Object.fromEnt
 export const LIFT_REVS: Partial<Record<LiveBandGame, readonly [lift: number, play: number]>> = {
   flip: [9, 8],
   tilt: [9, 8],
-  // The arcade scoring standard (29 Oct 2026, docs/arcade-standard-oct-2026/hover.md): Hover hoverRev 10 keeps hoverRev 9's
+  // The arcade scoring standard (29 Oct 2026, docs/arcade-standard/hover.md): Hover hoverRev 10 keeps hoverRev 9's
   // play in fixed parts to 200 (hover-standard-check proves it).
   hover: [10, 9],
-  // The arcade scoring standard (29 Oct 2026, docs/arcade-standard-oct-2026/breaker.md): Breaker brkRev 11 keeps brkRev 10's play.
+  // The arcade scoring standard (29 Oct 2026, docs/arcade-standard/breaker.md): Breaker brkRev 11 keeps brkRev 10's play.
   breaker: [11, 10],
-  // The arcade scoring standard (29 Oct 2026, docs/arcade-standard-oct-2026/snake.md): Meteor snakeRev 11 keeps snakeRev 10's play.
+  // The arcade scoring standard (29 Oct 2026, docs/arcade-standard/snake.md): Meteor snakeRev 11 keeps snakeRev 10's play.
   snake: [11, 10],
-  // The arcade scoring standard (29 Oct 2026, docs/arcade-standard-oct-2026/slice.md): Slice sliceRev 11 keeps sliceRev 10's play.
+  // The arcade scoring standard (29 Oct 2026, docs/arcade-standard/slice.md): Slice sliceRev 11 keeps sliceRev 10's play.
   slice: [11, 10],
 };
 

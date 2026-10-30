@@ -1,5 +1,5 @@
 /**
- * Gemstone matchupRev 11, the arcade scoring standard (docs/arcade-standard-oct-2026/matchup.md):
+ * Gemstone matchupRev 11, the arcade scoring standard (docs/arcade-standard/matchup.md):
  *  1. Older stamps unchanged: every run in scripts/fixtures/gemstone-standard-legacy.json (bot runs on matchupRev 2–10
  *     and unstamped, recorded on main before the change by scripts/gemstone-standard-legacy.ts) replays through the
  *     server to the same score and the same final state; older states carry no matchupRev 11 field.
@@ -25,7 +25,8 @@ import { GAME_BY_TYPE } from "./arcade-skill-bands/games";
 import { Human, type SkillLevel } from "./arcade-skill-bands/human";
 import { bot } from "./arcade-skill-bands/bots/matchup";
 import { roomIdentity } from "./room-identity/matchup";
-import { STANDARD } from "./arcade-standard/matchup";
+import { entry } from "./arcade-standard/matchup";
+import type { StdRun } from "./arcade-standard/entry";
 import { bandPoints } from "../src/lib/arcade/scoreBands";
 import { LIVE_BANDS } from "../src/lib/arcade/liveBands";
 import { buildArcadeReveal } from "../src/lib/arcade/reveal";
@@ -67,6 +68,18 @@ import {
   MATCHUP_V9_WORLD_H,
   type MatchupState,
 } from "../src/lib/arcade/matchup";
+
+/** The game's arcade-standard-check entry, read as this check always has (the first perfect run, split into parts). */
+const STANDARD = {
+  id: entry.type,
+  stampKey: entry.field,
+  stamp: entry.rev,
+  parts: entry.parts,
+  perfect: () => {
+    const r = (entry.perfect() as StdRun[])[0]!;
+    return { score: r.score, parts: r.parts! };
+  },
+};
 
 let checks = 0;
 const failures: string[] = [];

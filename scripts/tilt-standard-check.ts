@@ -1,6 +1,6 @@
 /**
  * tilt-standard-check (29 Oct 2026): Tilt tiltRev 10 on the arcade scoring standard
- * (docs/arcade-standard-oct-2026/tilt.md).
+ * (docs/arcade-standard/tilt.md).
  *
  *  1. Older stamps are unchanged: 48 runs recorded on main before the change (unstamped, tiltRev 2–6, 8 and 9;
  *     random drags and weak and elite bots; scripts/fixtures/tilt-standard-legacy.json.gz) replay unflagged to their
@@ -56,7 +56,20 @@ import { buildArcadeReveal } from "../src/lib/arcade/reveal";
 import { roundMaxFor } from "../src/lib/duel/roundMax";
 import { tiltStateDigest } from "./tilt-expand-record";
 import { botLog, randomLog, scheduleOf } from "./room-identity/tilt";
-import { STANDARD } from "./arcade-standard/tilt";
+import { entry } from "./arcade-standard/tilt";
+import type { StdRun } from "./arcade-standard/entry";
+
+/** The game's arcade-standard-check entry, read as this check always has (the first perfect run, split into parts). */
+const STANDARD = {
+  id: entry.type,
+  stampKey: entry.field,
+  stamp: entry.rev,
+  parts: entry.parts,
+  perfect: () => {
+    const r = (entry.perfect() as StdRun[])[0]!;
+    return { score: r.score, parts: r.parts! };
+  },
+};
 
 let checks = 0;
 const failures: string[] = [];

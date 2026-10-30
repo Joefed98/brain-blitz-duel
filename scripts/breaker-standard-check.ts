@@ -1,5 +1,5 @@
 /**
- * Breaker under the arcade scoring standard (brkRev 11, 29 Oct 2026; docs/arcade-standard-oct-2026/breaker.md).
+ * Breaker under the arcade scoring standard (brkRev 11, 29 Oct 2026; docs/arcade-standard/breaker.md).
  *
  *  1. Older stamps unchanged: skill-band bot runs on every earlier revision (unstamped, 2–10), recorded on main
  *     before the change (scripts/fixtures/breaker-standard-legacy.json, scripts/breaker-standard-legacy.ts), replay on
@@ -48,7 +48,20 @@ import { PUZZLE_INSTRUCTIONS } from "../src/lib/duel/instructions";
 import { INTRO_SCORE } from "../src/lib/duel/introScore";
 import { roundMaxFor } from "../src/lib/duel/roundMax";
 import { breakerPuzzle } from "../src/puzzles/breaker";
-import { STANDARD } from "./arcade-standard/breaker";
+import { entry } from "./arcade-standard/breaker";
+import type { StdRun } from "./arcade-standard/entry";
+
+/** The game's arcade-standard-check entry, read as this check always has (the first perfect run, split into parts). */
+const STANDARD = {
+  id: entry.type,
+  stampKey: entry.field,
+  stamp: entry.rev,
+  parts: entry.parts,
+  perfect: () => {
+    const r = (entry.perfect() as StdRun[])[0]!;
+    return { score: r.score, parts: r.parts! };
+  },
+};
 
 let checks = 0;
 const failures: string[] = [];

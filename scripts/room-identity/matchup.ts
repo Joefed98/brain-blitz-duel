@@ -1,5 +1,5 @@
 /**
- * Room identity for Gemstone matchupRev 11 (the arcade scoring standard, docs/arcade-standard-oct-2026/matchup.md; matchupRev 10 before it, docs/phone-notes-oct-2026/gemstone.md): `scheduleOf`
+ * Room identity for Gemstone matchupRev 11 (the arcade scoring standard, docs/arcade-standard/matchup.md; matchupRev 10 before it, docs/phone-notes-oct-2026/gemstone.md): `scheduleOf`
  * replays an input log and lists what the seed alone decides: the ice (laid once at the start), each level's goal
  * (colours and count) and each treasure gem's column, numbered by order (entry t = k for the k-th level and the k-th
  * treasure, t = 0 for the ice), since when a level is met or a treasure is placed is the player's play. Two very

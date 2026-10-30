@@ -664,7 +664,12 @@ Lovable still hosts and publishes the app (https://brain-blitz-duel.lovable.app)
   extras and the history-based clean bonuses (none without a valid timeline). standard-legacy-check regrades 5,400
   cases recorded on main 158fd83 (`scripts/standard-legacy-record.ts`); standard-shape-check, standard-timeline-check
   and one `standard-<group>-check` per group prove the rest; `bun scripts/standard-bands.ts [types]` is the sanity
-  report (kit players nothing → near-perfect).
+  report (kit players nothing → near-perfect). The graders are imported by name (`STANDARD_GAMES` in `standard/games.server.ts`): until 29 Oct 2026 they were
+  registered by bare side-effect imports, which the production build drops (`"sideEffects": false`), so the live app
+  graded every standard puzzle on the older path. **Never register anything by a bare `import "./x"`.**
+  standard-live-check (~3 min, `play9`) builds the app for production and plays practice rounds in Chromium and room
+  rounds on the built bundle, failing unless the server stores the standard's 150 base, and grades every stored arcade
+  run through the built bundle; no-side-effect-imports-check (~1 s) fails on any bare side-effect import under `src/`.
 - **Joe's phone-test notes** (27 Oct 2026, `docs/phone-notes-oct-2026/`): Fission `burstRev 9` (power-ups carried by
   seeded atoms and dropped as they split, never from the top; the golden atom bounces; BURST back as the third carried
   power-up; a wave-clear time bonus, up to 5 a wave, in place of the clean-wave and fast-wave bonuses; fission-carry-check),
@@ -707,7 +712,7 @@ Lovable still hosts and publishes the app (https://brain-blitz-duel.lovable.app)
   Orbit planets' glow full, slight or none (`orbitGlowStrength`); Swish's ball a white baseball with no glow;
   Gemstone's bed `music_matchup2.mp3`. Both sounds come from `bun scripts/chiptune-sounds.ts`
   (`docs/sound-cues/batch5-chiptune.md`). Shots: `bun scripts/shots/arcade-notes-oct28-shots.ts`.
-- **Arcade scoring standard, batch A** (29 Oct 2026, `docs/arcade-standard-oct-2026/`): Slice `sliceRev 11`, Breaker
+- **Arcade scoring standard, batch A** (29 Oct 2026, `docs/arcade-standard/`): Slice `sliceRev 11`, Breaker
   `brkRev 11`, Tilt `tiltRev 10`, Fission `burstRev 10`, Gemstone `matchupRev 11`, Meteor `snakeRev 11` and Hover
   `hoverRev 10` score in fixed parts that sum to exactly 200: a core on a straight line (no curve, knots or rising scale)
   plus fixed-amount features; speed only on a completed run; any played run scores at least 1. Gameplay changes on the
@@ -727,6 +732,13 @@ Lovable still hosts and publishes the app (https://brain-blitz-duel.lovable.app)
   bottom row first on every completed pyramid, Flash's summary without the flash count. Stamps one above the standard's
   (`dealPuzzleNotes` in `puzzleNotes.ts`, after `dealStandard`); checks written for the standard's pin them with
   `pinPrePuzzleNotes(true)`. puzzle-notes-check (~5 s); shots `bun scripts/shots/puzzle-notes-shots.ts`.
+- **The arcade scoring standard** (29 Oct 2026, `docs/arcade-standard/README.md`, one page per game in that folder): core on
+  a straight line, features fixed amounts, parts summing to exactly 200, at least 1 for any played run, each game on a new
+  stamp one above its live one. ONE helper, `src/lib/arcade/arcadeStandard.ts` (`STD_MAX`, `StdSpec`, `stdLine`, `stdEach`,
+  `stdSpeed`, `stdFinal`, parts lists and breakdowns); ONE check, `arcade-standard-check`, with an entry per game in
+  `scripts/arcade-standard/<type>.ts` (shape in `entry.ts`) and `STANDARD_ROSTER` listing the 21 games of batches A–C and
+  Grappler's swingRev 15 (a game dealt on its standard stamp must have an entry). Don't add a second helper, check or docs
+  location for a new game: add its entry, its page and its roster line.
 - `src/components/duel/` — room/round screens (PhoneShell, RoundIntro, TimerBar,
   AnswerReveal, ArcadeReveal, WinnerReveal…); `src/components/puzzles/` — shared puzzle
   widgets; `src/lib/fx/` — sound and visual feedback (presentation only).

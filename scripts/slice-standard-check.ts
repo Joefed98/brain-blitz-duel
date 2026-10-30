@@ -1,5 +1,5 @@
 /**
- * slice-standard-check (29 Oct 2026, the arcade scoring standard, docs/arcade-standard-oct-2026/slice.md): Slice
+ * slice-standard-check (29 Oct 2026, the arcade scoring standard, docs/arcade-standard/slice.md): Slice
  * sliceRev 11 scores sliceRev 10's play in straight-line parts that add up to 200.
  *
  *  1. Older stamps are untouched: runs recorded on unmodified main on every revision rooms ever stamped (unstamped,
@@ -29,7 +29,8 @@ import { fnv } from "./arcade-tuning-a-legacy";
 import { playRevOf } from "./scoring-targets-revs";
 import { SLICE_BEFORE, type SliceLegacyRecord } from "./slice-standard-legacy";
 import { sliceOracleEvents, sliceOracleRun } from "./slice-standard-oracle";
-import { STANDARD } from "./arcade-standard/slice";
+import { entry } from "./arcade-standard/slice";
+import type { StdRun } from "./arcade-standard/entry";
 import { BAND_STRICT_MARK } from "../src/lib/arcade/scoreBands";
 import { LIVE_BANDS } from "../src/lib/arcade/liveBands";
 import type { ArcadeInputEvent } from "../src/lib/arcade/engine";
@@ -72,6 +73,18 @@ import { generatePuzzle } from "../src/lib/duel/generate.server";
 import { ROUND_MAX, fillMax } from "../src/lib/duel/roundMax";
 import { INTRO_SCORE } from "../src/lib/duel/introScore";
 import { PUZZLE_INSTRUCTIONS } from "../src/lib/duel/instructions";
+
+/** The game's arcade-standard-check entry, read as this check always has (the first perfect run, split into parts). */
+const STANDARD = {
+  id: entry.type,
+  stampKey: entry.field,
+  stamp: entry.rev,
+  parts: entry.parts,
+  perfect: () => {
+    const r = (entry.perfect() as StdRun[])[0]!;
+    return { score: r.score, parts: r.parts! };
+  },
+};
 
 const failures: string[] = [];
 let passes = 0;

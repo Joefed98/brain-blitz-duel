@@ -1,5 +1,5 @@
 /**
- * Slice sliceRev 11 (the arcade scoring standard, docs/arcade-standard-oct-2026/slice.md): an oracle player that
+ * Slice sliceRev 11 (the arcade scoring standard, docs/arcade-standard/slice.md): an oracle player that
  * reads the sim's own state and plays a flawless run. It holds one path at a time (renewing the combo with a new path
  * before the old one runs out), cuts one food a tick with a short segment on its centre (the most urgent food first,
  * never a bottle), keeps every segment clear of the chillies, and makes its dodges by running a cutting segment from a

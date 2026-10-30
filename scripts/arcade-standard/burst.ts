@@ -1,5 +1,5 @@
 /**
- * Fission (`burst`) under the arcade scoring standard: burstRev 10 (docs/arcade-standard-oct-2026/burst.md).
+ * Fission (`burst`) under the arcade scoring standard: burstRev 10 (docs/arcade-standard/burst.md).
  *
  * Parts (straight lines, 200 in all): core 140 × atoms popped ÷ 87 (every split piece counts; golden atoms are not
  * atoms), wave clears up to 35 (7 a wave × 5), golden atoms up to 25 (5 each × 5), power-ups 0; each life lost −5.
@@ -27,6 +27,7 @@ import {
 } from "../../src/lib/arcade/burst";
 import type { ArcadeInputEvent } from "../../src/lib/arcade/engine";
 import { encodeBurstRun, replayBurstRun } from "../../src/lib/duel/burst";
+import type { StdEntry, StdRun } from "./entry";
 
 const FP = 256;
 const game = burstGameFor(BURST_REV_STD);
@@ -131,17 +132,17 @@ export function playOracle(seed: number): { events: ArcadeInputEvent[]; state: B
 /** A room seed on which the oracle plays a perfect run (found by scanning; see the check). */
 export const PERFECT_SEED = 1453580015;
 
-export const STANDARD = {
-  id: "burst",
-  stampKey: "burstRev",
-  stamp: BURST_REV_STD,
+export const entry: StdEntry = {
+  type: "burst",
+  field: "burstRev",
+  rev: BURST_REV_STD,
   parts: [
     { key: "core", label: "Atoms popped (every split piece counts), 140 × popped ÷ 87", max: BURST_V10_PARTS.core },
     { key: "clear", label: "Wave clears: up to 7 a wave × 5, full within the quick time, 0 at twice it", max: BURST_V10_PARTS.clear },
     { key: "gold", label: "Golden atoms: 5 each × 5", max: BURST_V10_PARTS.gold },
   ],
   /** The oracle's run on PERFECT_SEED, encoded as the phone does and scored by the server's replay. */
-  perfect(): { score: number; parts: Record<string, number> } {
+  perfect(): StdRun[] {
     const { events, state } = playOracle(PERFECT_SEED);
     const checkpoints: unknown[] = [];
     let s = game.init(PERFECT_SEED);
@@ -153,6 +154,6 @@ export const STANDARD = {
     const raw = encodeBurstRun({ seed: PERFECT_SEED, claimedScore: game.score(state), events, endTick: state.tick, checkpoints } as never);
     const replay = replayBurstRun(PERFECT_SEED, raw, BURST_REV_STD);
     const p = burstStdParts(replay.state);
-    return { score: replay.score, parts: { core: p.core, clear: p.clear, gold: p.gold } };
+    return [{ label: "an oracle run, server replay", score: replay.score, parts: { core: p.core, clear: p.clear, gold: p.gold } }];
   },
 };
