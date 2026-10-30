@@ -493,6 +493,11 @@
   --category-pattern: #B26BFF;
   --category-logic: #2ED3B7;
   --category-arcade: #FF4D4D;
+  /* Arcade groups (Practice browsing and arcade tile borders only; src/lib/duel/arcadeGroups.ts). */
+  --group-retro: #36E2F5;
+  --group-sports: #4CC24A;
+  --group-cards: #FF5C93;
+  --group-action: var(--category-arcade);
   --category-accent: var(--category-logic);
   --puzzle-surface: oklch(0.205 0.012 285);
   --puzzle-edge: oklch(0.36 0.014 285);

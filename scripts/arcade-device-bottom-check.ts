@@ -90,6 +90,7 @@ import { gameDisplayName } from "../src/lib/duel/gameNames";
 import type { PuzzleType } from "../src/lib/duel/types";
 import { freezeClock, gotoRetried, warmUp } from "./browser-load";
 import { DEVICE_INIT, IPHONE11_APP, emulateDevice, type Clip, type DeviceConfig } from "./device-emulation";
+import { showPracticeSide } from "./practice-side-lib";
 
 const args = process.argv.slice(2);
 const opt = (name: string) => args.find((a) => a.startsWith(`--${name}=`))?.slice(name.length + 3);
@@ -401,6 +402,7 @@ async function meteorEdgePass(browser: import("playwright").Browser, origin: str
   await page.clock.install();
   try {
     await gotoRetried(page, `${origin}/practice`, "snake", { waitUntil: "domcontentloaded" });
+    await showPracticeSide(page, "snake");
     const button = page.getByRole("button", { name: gameDisplayName("snake"), exact: true }).first();
     await button.waitFor({ timeout: 90_000 });
     await page.waitForTimeout(1200);
@@ -730,7 +732,7 @@ async function main() {
   try {
     const first = games[0] ?? (meteorModes.length ? "snake" : undefined);
     if (first)
-      await warmUp(browser, `${origin}/practice`, (page) => page.getByRole("button", { name: gameDisplayName(first), exact: true }).first().waitFor({ timeout: 180_000 }), { verbose: VERBOSE });
+      await warmUp(browser, `${origin}/practice`, (page) => showPracticeSide(page, first, 180_000).then(() => page.getByRole("button", { name: gameDisplayName(first), exact: true }).first().waitFor({ timeout: 180_000 })), { verbose: VERBOSE });
     for (const game of games) {
       phase = `${game}'s layout pass`;
       const context = await browser.newContext({ viewport: { width: 375, height: 667 } });
@@ -750,6 +752,7 @@ async function main() {
       const before = failures.length;
       try {
         await gotoRetried(page, `${origin}/practice`, game, { waitUntil: "domcontentloaded" });
+        await showPracticeSide(page, game);
         const button = page.getByRole("button", { name: gameDisplayName(game), exact: true }).first();
         await button.waitFor({ timeout: 90_000 });
         await page.waitForTimeout(1200);

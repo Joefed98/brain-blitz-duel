@@ -781,6 +781,21 @@ Lovable still hosts and publishes the app (https://brain-blitz-duel.lovable.app)
   `scripts/arcade-standard/<type>.ts` (shape in `entry.ts`) and `STANDARD_ROSTER` listing the 21 games of batches A–C and
   Grappler's swingRev 15 (a game dealt on its standard stamp must have an entry). Don't add a second helper, check or docs
   location for a new game: add its entry, its page and its roster line.
+- **Practice switch, arcade groups and tile backgrounds** (30 Oct 2026; presentation and device storage only, no
+  stamps): the Practice tab has a Puzzles | Arcade switch under its title ("Puzzles 51" | "Arcade 21", counts from
+  the registry through `practiceSideCounts`, `src/lib/duel/practiceSide.ts`; the side shown gold, remembered as
+  `duelz-practice-side:v1`); search ("Search puzzles" / "Search arcade games"), Recently played, sections and Retired
+  show only that side's games. Puzzles: the six categories (no Arcade chip). Arcade: chips three across (All games,
+  Retro, Sports / Cards & Board over two, Action) and one section per group. Groups by registry id in
+  `src/lib/duel/arcadeGroups.ts` (Retro #36E2F5 with a soft glow, Sports #4CC24A, Cards & Board #FF5C93, Action the
+  arcade colour; tokens `--group-*`; the 11 new Sports and Cards & Board ids are listed and skipped until registered):
+  browsing and arcade tile borders (`GameIcon` `data-group`, the share card) only; rooms, the room category picker,
+  arcade rounds, the daily arcade and scoring keep Arcade as one category. **A new arcade game needs a line in
+  arcadeGroups.ts** (practice-switch-check fails on an active arcade game in no group). Every tile's inside now
+  echoes its game's screen (`scripts/shots/tile-scenes/backgrounds.ts`, painted under the scene into the same WebP;
+  style rules in `docs/design-system.md` "Tile backgrounds"; tile-scenes-check fails on a scene with no background).
+  practice-switch-check (~1 min, headless Chromium); shots `bun scripts/shots/practice-switch-shots.ts` and
+  `bun scripts/shots/tile-icons-sheet.ts` (`screenshots/practice-arcade-oct-2026/`).
 - `src/components/duel/` — room/round screens (PhoneShell, RoundIntro, TimerBar,
   AnswerReveal, ArcadeReveal, WinnerReveal…); `src/components/puzzles/` — shared puzzle
   widgets; `src/lib/fx/` — sound and visual feedback (presentation only).
