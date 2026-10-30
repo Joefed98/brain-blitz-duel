@@ -41,6 +41,9 @@ import {
   BRK_WORLD_W,
   BRK_REV_DEEP,
   BRK_REV_PHONE,
+  BRK_REV_STD,
+  brkAllDestroyed,
+  brkGoldDealt,
   BRK_V9_SKILL_MAX,
   brkCols,
   brkIsGold,
@@ -342,7 +345,7 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: BrkState, key: CanvasRe
 
   const changed=state.bricks.findIndex((hp,i)=>hp<(m.bricks[i]??hp));
   const hitPoint=changed>=0?brickXY(changed,state,false):brickXY(m.deaths.at(-1)?.index??0,state,false);
-  const reward=successFrame(ctx,{id:'breaker',tick:state.tick,count:state.hits,misses:state.losses,colour:PADDLE,width:BRK_WORLD_W,height:BRK_WORLD_H,point:{x:hitPoint.x+BRK_BRICK_W/2,y:hitPoint.y+BRK_BRICK_H/2,shape:'pixel'},hud:{x:14,y:26,text:`BRICKS ${brkDestroyed(state)}/${brkWallSize(state)}`}});
+  const reward=successFrame(ctx,{id:'breaker',tick:state.tick,count:state.hits,misses:state.losses,colour:PADDLE,width:BRK_WORLD_W,height:BRK_WORLD_H,point:{x:hitPoint.x+BRK_BRICK_W/2,y:hitPoint.y+BRK_BRICK_H/2,shape:'pixel'},hud:{x:14,y:26,text:brkHudBricks(state)}});
   if(reward.chain>=10){ctx.save();ctx.globalAlpha=.3;ctx.strokeStyle=PADDLE;ctx.lineWidth=3;ctx.strokeRect(state.paddleX-BRK_PADDLE_W/2-2,BRK_PADDLE_Y-2,BRK_PADDLE_W+4,BRK_PADDLE_H+4);ctx.restore();}
   // Polish A1: the paddle's gold light.
   glow(ctx, PADDLE, state.paddleX, BRK_PADDLE_Y + BRK_PADDLE_H / 2, BRK_PADDLE_W / 2 + 18, 16, 0.42);
@@ -374,7 +377,7 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: BrkState, key: CanvasRe
     );
   }
 
-  successHud(ctx,'breaker',state.tick,14,26,()=>{retroReadout(ctx, 14, 8, `BRICKS ${brkDestroyed(state)}/${brkWallSize(state)}`, RETRO_WHITE);});
+  successHud(ctx,'breaker',state.tick,14,26,()=>{retroReadout(ctx, 14, 8, brkHudBricks(state), RETRO_WHITE);});
   if ((state.fire ?? 0) > 0) {
     const fire = state.fire ?? 0;
     retroText(ctx, `FIREBALL ${Math.ceil(fire / 60)}`, BRK_WORLD_W - 14, 10, 12, FIRE, "right");
@@ -425,13 +428,25 @@ function drawGoldBrick(ctx: CanvasRenderingContext2D, x: number, y: number, glin
   glow(ctx, GOLD, x + BRK_BRICK_W / 2, y + BRK_BRICK_H / 2, BRK_BRICK_W * 0.75, BRK_BRICK_H, glint ? 0.45 : 0.18);
 }
 
-/** brkRev 9's HUD: the skill points (top right). */
+/** The HUD's bricks readout: the wall (brkRev 9–10: of 105), or every brick, gold included, on brkRev 11 (of 108, what its core counts). */
+function brkHudBricks(state: BrkState): string {
+  if (state.std) return `BRICKS ${brkAllDestroyed(state)}/${state.bricks.length}`;
+  return `BRICKS ${brkDestroyed(state)}/${brkWallSize(state)}`;
+}
+
+/** brkRev 9's HUD: the skill points (top right); brkRev 11's gold bricks broken (its skill pay is gone). */
 const clinkMemo = new WeakMap<CanvasRenderingContext2D, { clinks: number; at: number; tick: number }>();
 function drawDeepHud(ctx: CanvasRenderingContext2D, state: BrkState, key: CanvasRenderingContext2D): void {
   const W = brkWorldW(state);
-  const skill = brkSkillPaid(state);
   // Right of the BRICKS readout, under the Fireball line and its bar.
-  retroText(ctx, `SKILL ${skill}/${BRK_V9_SKILL_MAX}`, W - 14, 31, 11, skill >= BRK_V9_SKILL_MAX ? RETRO_WHITE : GOLD, "right");
+  if (state.std) {
+    const dealt = brkGoldDealt(state);
+    const broken = Math.min(dealt, state.goldBroken ?? 0);
+    retroText(ctx, `GOLD ${broken}/${dealt}`, W - 14, 31, 11, broken >= dealt ? RETRO_WHITE : GOLD, "right");
+  } else {
+    const skill = brkSkillPaid(state);
+    retroText(ctx, `SKILL ${skill}/${BRK_V9_SKILL_MAX}`, W - 14, 31, 11, skill >= BRK_V9_SKILL_MAX ? RETRO_WHITE : GOLD, "right");
+  }
   // The combo is no longer written above the paddle (Joe's phone notes, 28 Oct 2026): the chain still scores as before.
   // A ball bounced off gold (not a direct hit, or a Fireball, laser or ×3 shot): a short white ring on the presentation clock.
   const now = typeof performance === "undefined" ? 0 : performance.now();
@@ -512,8 +527,10 @@ const breakerArtGameTarget: ArcadeGame<BrkState, ArcadeInputEvent | null> = { ..
 const breakerArtGameStrict: ArcadeGame<BrkState, ArcadeInputEvent | null> = { ...breakerGameFor(BRK_REV_STRICT), draw };
 const breakerArtGameDeep: ArcadeGame<BrkState, ArcadeInputEvent | null> = { ...breakerGameFor(BRK_REV_DEEP), draw };
 const breakerArtGamePhone: ArcadeGame<BrkState, ArcadeInputEvent | null> = { ...breakerGameFor(BRK_REV_PHONE), draw };
+const breakerArtGameStd: ArcadeGame<BrkState, ArcadeInputEvent | null> = { ...breakerGameFor(BRK_REV_STD), draw };
 /** The art game for a stored brkRev; one cached object per revision. */
 export function breakerArtGameFor(rev?: number | null): ArcadeGame<BrkState, ArcadeInputEvent | null> {
+  if (rev === BRK_REV_STD) return breakerArtGameStd;
   if (rev === BRK_REV_PHONE) return breakerArtGamePhone;
   if (rev === BRK_REV_DEEP) return breakerArtGameDeep;
   if (rev === BRK_REV_STRICT) return breakerArtGameStrict;

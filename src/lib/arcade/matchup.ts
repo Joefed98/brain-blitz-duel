@@ -37,6 +37,7 @@ import {
   type CanvasSize,
   type InputRange,
 } from "./engine";
+import { stdFinal } from "./arcadeStandard";
 import { bandStrictGame, bandStrict, bandRetarget, bandTargetGame, bandCurveOf, bandCurve, bandInit, bandPoints, bandTop, bandScoreOf, bandStep, bandTotal, type BandCurve, type BandFields, type BandParts } from "./scoreBands";
 
 /* ============================== Constants ============================== */
@@ -389,6 +390,13 @@ export interface MatchupState extends BandFields {
    * iced cell when the swap makes a line of three, and the ice is laid once at the start (never refreshed).
    */
   iceSwap?: number;
+  /**
+   * matchupRev 11 only (the arcade scoring standard, absent on every earlier round): the standard mark, gems cleared
+   * (every cleared cell but a treasure collected) and lines of 4 or 5 made by a swap's own match.
+   */
+  std?: number;
+  gemsCleared?: number;
+  bigLines?: number;
 }
 
 /** matchupRev 9: the run's seeded levels (goal colours and counts, ice cells) and treasure columns, drawn at init. */
@@ -921,7 +929,9 @@ function step(state: MatchupState, input: ArcadeInputEvent | null): MatchupState
 }
 
 /** The par a round scores against: matchupRev 2 has its own. */
-export function matchupParRaw(state: Pick<MatchupState, "rev" | "band" | "goals" | "iceSwap">): number {
+export function matchupParRaw(state: Pick<MatchupState, "rev" | "band" | "goals" | "iceSwap" | "std">): number {
+  // matchupRev 11 scores gems cleared, not match points: its par is the gems that fill the core.
+  if (state.std) return MATCHUP_V11_CORE_GEMS;
   if (state.iceSwap) return bandTop(MATCHUP_V10_BAND_CURVE);
   if (state.goals) return bandTop(MATCHUP_V9_BAND_CURVE);
   // Score-band rounds (matchupRev 4) reach 150 at the band curve's top; matchupRev 5 at 2,500.
@@ -988,6 +998,8 @@ export function matchupCheckpoint(state: MatchupState): MatchupCheckpoint {
   // matchupRev 6 (tunef) changes only the curve, so its checksum is matchupRev 5's: the same play replays without desync.
   // matchupRev 9 (goals): its level, goals, ice, treasure and cascade counters, last.
   if (state.goals) extra.push(state.goals, state.level ?? 0, state.levels ?? 0, state.iceBroken ?? 0, state.treasures ?? 0, state.treasurePlaced ?? 0, state.cascadeExtra ?? 0, fnv(state.ice ?? []), fnv(state.goalLeft ?? []));
+  // matchupRev 11 (std): its gem and big-line counters, last.
+  if (state.std) extra.push(state.std, state.gemsCleared ?? 0, state.bigLines ?? 0);
   return { ...snapshot, checksum: fnv([...Object.values(snapshot), ...extra]) };
 }
 
@@ -1443,6 +1455,7 @@ export const matchupRev3Game: ArcadeGame<MatchupState, ArcadeInputEvent | null> 
 
 /** The game for a stored round: its matchupRev picks the rules (absent = original). */
 export function matchupGameFor(rev?: number | null): ArcadeGame<MatchupState, ArcadeInputEvent | null> {
+  if (rev === MATCHUP_REV_STD) return matchupStdGame;
   if (rev === MATCHUP_REV_ICE) return matchupIceGame;
   if (rev === MATCHUP_REV_GOALS) return matchupGoalsGame;
   if (rev === MATCHUP_REV_STRICT) return matchupStrictGame;
@@ -1462,6 +1475,8 @@ export const MATCHUP_REV_BAND = 4;
 export const MATCHUP_BAND_CURVE = bandCurve([0, 560, 760, 980, 1150, 1300], [0, 70, 100, 125, 145, 150]);
 
 export function matchupBandParts(state: MatchupState): BandParts {
+  // matchupRev 11 (the arcade scoring standard): its own parts (the reveal and the skill-band tool read them here).
+  if (state.std) return matchupStdBandParts(state);
   const units = Math.max(0, state.raw);
   return { units, points: bandPoints(bandCurveOf(state, matchupBandCurve(state)), units), bonus: 0, penalty: 0, finished: false, text: `${units.toLocaleString("en-GB")} match points` };
 }
@@ -1691,11 +1706,11 @@ export function matchupWorldH(state: { goals?: number }): number {
 }
 /** The world height (px) a stored round's matchupRev plays in. */
 export function matchupWorldHFor(rev?: number | null): number {
-  return rev === MATCHUP_REV_GOALS || rev === MATCHUP_REV_ICE ? MATCHUP_V9_WORLD_H : MATCHUP_WORLD_H;
+  return rev === MATCHUP_REV_GOALS || rev === MATCHUP_REV_ICE || rev === MATCHUP_REV_STD ? MATCHUP_V9_WORLD_H : MATCHUP_WORLD_H;
 }
 /** The board rows a stored round's matchupRev plays on. */
 export function matchupRowsFor(rev?: number | null): number {
-  return rev === MATCHUP_REV_GOALS || rev === MATCHUP_REV_ICE ? MATCHUP_V9_ROWS : MATCHUP_ROWS;
+  return rev === MATCHUP_REV_GOALS || rev === MATCHUP_REV_ICE || rev === MATCHUP_REV_STD ? MATCHUP_V9_ROWS : MATCHUP_ROWS;
 }
 
 /** matchupRev 9: the treasure gems in the bottom row (collected this step). */
@@ -1781,8 +1796,47 @@ export function matchupFindSwapV10(cells: readonly number[], ice: readonly numbe
   return null;
 }
 
-/** The swap finder a state's rules use (matchupRev 9 minds ice; matchupRev 10 lets a matching swap through it). */
-function findSwapFor(state: Pick<MatchupState, "iceSwap">): (cells: readonly number[], ice: readonly number[]) => MatchupSwap | null {
+/**
+ * matchupRev 11: matchupRev 10's finder, plus a treasure gem swapped with a plain gem when that gem then makes a line
+ * of three (the treasure takes the gem's old cell). A treasure never swaps with a special or another treasure.
+ */
+export function matchupFindSwapV11(cells: readonly number[], ice: readonly number[]): MatchupSwap | null {
+  const board = [...cells];
+  const rows = matchupRowsOf(cells);
+  const test = (row1: number, col1: number, row2: number, col2: number): MatchupSwap | null => {
+    const a = matchupIndex(row1, col1);
+    const b = matchupIndex(row2, col2);
+    const treasure = board[a] === MATCHUP_TREASURE || board[b] === MATCHUP_TREASURE;
+    if (treasure && !isNormal(board[a] === MATCHUP_TREASURE ? (board[b] ?? -1) : (board[a] ?? -1))) return null;
+    const iced = Boolean(ice[a] || ice[b]);
+    if (!treasure && !iced && (isSpecial(board[a] ?? -1) || isSpecial(board[b] ?? -1))) return { row1, col1, row2, col2 };
+    if (board[a] === board[b]) return null;
+    const av = board[a] ?? 0;
+    const bv = board[b] ?? 0;
+    board[a] = bv;
+    board[b] = av;
+    const made = matchupRuns(board).some((run) => run.cells.includes(a) || run.cells.includes(b));
+    board[a] = av;
+    board[b] = bv;
+    return made ? { row1, col1, row2, col2 } : null;
+  };
+  for (let row = 0; row < rows; row++)
+    for (let col = 0; col < MATCHUP_SIZE; col++) {
+      if (col + 1 < MATCHUP_SIZE) {
+        const found = test(row, col, row, col + 1);
+        if (found) return found;
+      }
+      if (row + 1 < rows) {
+        const found = test(row, col, row + 1, col);
+        if (found) return found;
+      }
+    }
+  return null;
+}
+
+/** The swap finder a state's rules use (matchupRev 9 minds ice; matchupRev 10 lets a matching swap through it; 11 the treasure too). */
+function findSwapFor(state: Pick<MatchupState, "iceSwap" | "std">): (cells: readonly number[], ice: readonly number[]) => MatchupSwap | null {
+  if (state.std) return matchupFindSwapV11;
   return state.iceSwap ? matchupFindSwapV10 : matchupFindSwapV9;
 }
 
@@ -1856,16 +1910,21 @@ function layIce(ice: number[], cells: readonly number[], plan: MatchupV9Plan, le
   return next;
 }
 
+/** The treasure gems a run places: MATCHUP_V9_TREASURES (8), matchupRev 11 MATCHUP_V11_TREASURES (4). */
+export function matchupTreasuresOf(state: Pick<MatchupState, "std">): number {
+  return state.std ? MATCHUP_V11_TREASURES : MATCHUP_V9_TREASURES;
+}
+
 /** matchupRev 9: places the next treasure gem in the top row when none is on the board. */
 function placeTreasure(state: MatchupState, cells: number[]): number {
   const placed = state.treasurePlaced ?? 0;
-  if (placed >= MATCHUP_V9_TREASURES || cells.includes(MATCHUP_TREASURE)) return placed;
+  if (placed >= matchupTreasuresOf(state) || cells.includes(MATCHUP_TREASURE)) return placed;
   const col = state.plan?.treasureCols[placed] ?? 0;
   cells[matchupIndex(MATCHUP_V9_TREASURE_ROW, col)] = MATCHUP_TREASURE;
   return placed + 1;
 }
 
-function initGoals(seed: number, iceSwap = false): MatchupState {
+function initGoals(seed: number, iceSwap = false, std = false): MatchupState {
   const rolled = rollBoard(seed | 0, MATCHUP_V9_CELLS);
   let rng = rolled.state;
   const queues: number[][] = [];
@@ -1903,11 +1962,26 @@ function initGoals(seed: number, iceSwap = false): MatchupState {
     plan: planned.plan,
   };
   if (iceSwap) state.iceSwap = 1;
+  if (std) {
+    state.std = 1;
+    state.gemsCleared = 0;
+    state.bigLines = 0;
+  }
   const find = findSwapFor(state);
   const cells = [...state.cells];
   state.treasurePlaced = placeTreasure(state, cells);
   // matchupRev 10 lays its ice once, at the start: the plan's largest set (the last level's, MATCHUP_V10_ICE cells).
   state.ice = layIce(state.ice!, cells, planned.plan, iceSwap ? MATCHUP_V9_LEVELS - 1 : 0);
+  // matchupRev 11: exactly MATCHUP_V10_ICE cells (should the seeded draw ever fall short, the first free cells from
+  // row MATCHUP_V9_ICE_FROM_ROW on make it up; no PRNG is drawn, so the board and queues are matchupRev 10's).
+  if (std) {
+    let count = state.ice.reduce((n, v) => n + (v ? 1 : 0), 0);
+    for (let index = MATCHUP_V9_ICE_FROM_ROW * MATCHUP_SIZE; index < MATCHUP_V9_CELLS && count < MATCHUP_V10_ICE; index++)
+      if (!state.ice[index] && cells[index] !== MATCHUP_TREASURE) {
+        state.ice[index] = 1;
+        count += 1;
+      }
+  }
   state.cells = cells;
   if (!find(cells, state.ice) || matchupHasLine(cells)) {
     const shuffled = reshuffleV9(cells, state.ice, state.rng, find);
@@ -1939,9 +2013,16 @@ function stepGoals(state: MatchupState, input: ArcadeInputEvent | null): Matchup
       const own = matchupRuns(cells).some((run) => run.cells.includes(a) || run.cells.includes(b));
       // Ice and treasure never move: such a swap is refused like one that makes no line. matchupRev 10: treasure
       // never moves, and a gem may go into or out of ice only when the swap makes a line of three.
-      const refused = state.iceSwap
-        ? state.cells[a] === MATCHUP_TREASURE || state.cells[b] === MATCHUP_TREASURE || ((ice[a] || ice[b]) && !own) || (!own && specialSeeds.length === 0)
-        : !movable(state.cells, ice, a) || !movable(state.cells, ice, b) || (!own && specialSeeds.length === 0);
+      // matchupRev 11: a treasure gem may swap with a plain gem when that gem then makes a line of three.
+      const treasureA = state.cells[a] === MATCHUP_TREASURE;
+      const treasureB = state.cells[b] === MATCHUP_TREASURE;
+      const refused = state.std
+        ? treasureA || treasureB
+          ? !own || !isNormal((treasureA ? state.cells[b] : state.cells[a]) ?? -1)
+          : ((ice[a] || ice[b]) && !own) || (!own && specialSeeds.length === 0)
+        : state.iceSwap
+          ? state.cells[a] === MATCHUP_TREASURE || state.cells[b] === MATCHUP_TREASURE || ((ice[a] || ice[b]) && !own) || (!own && specialSeeds.length === 0)
+          : !movable(state.cells, ice, a) || !movable(state.cells, ice, b) || (!own && specialSeeds.length === 0);
       if (refused) {
         return done({
           ...state,
@@ -1975,14 +2056,23 @@ function stepGoals(state: MatchupState, input: ArcadeInputEvent | null): Matchup
         }
       let extra = 0;
       resolved.stepGains.forEach((gain, k) => (extra += k * gain));
+      // matchupRev 11: gems cleared (a treasure collected is not a gem) and the swap's own lines of 4 or 5.
+      let gemsNow = 0;
+      let bigNow = 0;
+      if (state.std) {
+        for (const anim of resolved.animation) for (const index of anim.cleared) if (anim.before[index] !== MATCHUP_TREASURE) gemsNow += 1;
+        const first = resolved.animation[0];
+        if (first) bigNow = matchupRuns(first.before).filter((run) => run.length >= 4).length;
+      }
       // Goals: a finished level starts the next one at once (more gems, more ice).
       let level = state.level ?? 0;
       let levels = state.levels ?? 0;
       let goalLeft = (state.goalLeft ?? []).map((left, colour) => Math.max(0, left - (counts[colour] ?? 0)));
-      if (goalLeft.every((left) => left === 0)) {
+      // matchupRev 11: the run's goals are its first MATCHUP_V11_GOAL_LEVELS levels; once they are met none follow.
+      if (goalLeft.every((left) => left === 0) && !(state.std && level >= MATCHUP_V11_GOAL_LEVELS)) {
         levels += 1;
         level += 1;
-        goalLeft = goalFor(state.plan!, level);
+        goalLeft = state.std && level >= MATCHUP_V11_GOAL_LEVELS ? [0, 0, 0, 0, 0, 0] : goalFor(state.plan!, level);
         // matchupRev 10: the ice never refreshes (it was all laid at the start).
         if (!state.iceSwap) iceNow = layIce(iceNow, cells, state.plan!, level);
       }
@@ -2029,6 +2119,7 @@ function stepGoals(state: MatchupState, input: ArcadeInputEvent | null): Matchup
         treasurePlaced: placed,
         cascadeExtra: (state.cascadeExtra ?? 0) + extra,
         lastMult: resolved.steps,
+        ...(state.std ? { gemsCleared: (state.gemsCleared ?? 0) + gemsNow, bigLines: (state.bigLines ?? 0) + bigNow } : {}),
       });
     }
   }
@@ -2118,4 +2209,101 @@ export const matchupIceGame: ArcadeGame<MatchupState, ArcadeInputEvent | null> =
   runTicks: MATCHUP_V10_RUN_TICKS,
   init: (seed) => initGoals(seed, true),
   score: (state) => (state.iceSwap ? bandTotal(matchupIceParts(state), Boolean(state.acted), MATCHUP_V9_MAX) : matchupGoalsGame.score(state)),
+};
+
+/* ======== The arcade scoring standard (matchupRev 11, docs/arcade-standard/matchup.md) ======== */
+
+/**
+ * matchupRev 11: matchupRev 10's 90 s board (ice swaps that make a line, ice laid once), with three rule changes
+ * (states add `std: 1`, `gemsCleared` and `bigLines`, folded into the checksum last):
+ *  - four treasure gems a run (MATCHUP_V11_TREASURES, the plan's first four seeded columns), not eight;
+ *  - a treasure gem may be swapped with a plain gem when that gem then makes a line of three (the treasure takes the
+ *    gem's old cell); never with a special or another treasure;
+ *  - the goals are the run's first MATCHUP_V11_GOAL_LEVELS levels (2 + 2 + 3 + 3 = 10 colour goals); once all are
+ *    met no more follow. The ice is exactly MATCHUP_V10_ICE cells.
+ * Score (the arcade standard: straight lines and fixed amounts, no curve or rising scale; parts total 200):
+ *  - core: gems cleared, a straight line to MATCHUP_V11_CORE_MAX at MATCHUP_V11_CORE_GEMS (the skill-band tool's
+ *    near-flawless median);
+ *  - treasure: MATCHUP_V11_TREASURE_PTS for each brought down (up to 40);
+ *  - goals: MATCHUP_V11_GOAL_PTS for each colour goal met (10 goals, up to 30);
+ *  - ice: MATCHUP_V11_ICE_PTS a frozen cell broken (10 cells, up to 10);
+ *  - big lines: MATCHUP_V11_BIG_PTS for each line of 4 or 5 a swap's own match makes (up to 10).
+ * Anyone who plays (any input) scores at least 1; nothing costs points.
+ */
+export const MATCHUP_REV_STD = 11;
+export const MATCHUP_V11_TREASURES = 4;
+export const MATCHUP_V11_GOAL_LEVELS = 4;
+/** Colour goals over the four levels (two colours on levels 1–2, three on 3–4). */
+export const MATCHUP_V11_GOALS = 10;
+export const MATCHUP_V11_CORE_MAX = 110;
+/** Gems cleared for the full core: the near-flawless level's median over 90 s (376 on room seeds 0–29 with scripts/arcade-skill-bands.ts, rounded to 375). */
+export const MATCHUP_V11_CORE_GEMS = 375;
+export const MATCHUP_V11_TREASURE_PTS = 10;
+export const MATCHUP_V11_TREASURE_MAX = 40;
+export const MATCHUP_V11_GOAL_PTS = 3;
+export const MATCHUP_V11_GOALS_MAX = 30;
+export const MATCHUP_V11_ICE_PTS = 1;
+export const MATCHUP_V11_ICE_MAX = 10;
+export const MATCHUP_V11_BIG_PTS = 2;
+export const MATCHUP_V11_BIG_MAX = 10;
+export const MATCHUP_V11_MAX = 200;
+/** The core: gems cleared on one straight line, 0 → MATCHUP_V11_CORE_MAX at MATCHUP_V11_CORE_GEMS (the help reads it). */
+export const MATCHUP_V11_BAND_CURVE = bandCurve([0, MATCHUP_V11_CORE_GEMS], [0, MATCHUP_V11_CORE_MAX]);
+
+/** matchupRev 11: colour goals met (every goal of a finished level, and this level's colours already collected). */
+export function matchupGoalsMet(state: MatchupState): number {
+  const plan = state.plan;
+  if (!plan) return 0;
+  const level = state.level ?? 0;
+  let met = 0;
+  for (let l = 0; l < Math.min(level, MATCHUP_V11_GOAL_LEVELS); l++) met += plan.colours[l]?.length ?? 0;
+  if (level < MATCHUP_V11_GOAL_LEVELS) for (const colour of plan.colours[level] ?? []) if ((state.goalLeft?.[colour] ?? 1) === 0) met += 1;
+  return Math.min(MATCHUP_V11_GOALS, met);
+}
+
+export interface MatchupStdParts {
+  core: number;
+  treasure: number;
+  goals: number;
+  ice: number;
+  big: number;
+}
+
+/** matchupRev 11's parts (each capped at its maximum; they total at most 200). */
+export function matchupStdParts(state: MatchupState): MatchupStdParts {
+  return {
+    core: bandPoints(MATCHUP_V11_BAND_CURVE, state.gemsCleared ?? 0),
+    treasure: Math.min(MATCHUP_V11_TREASURE_MAX, (state.treasures ?? 0) * MATCHUP_V11_TREASURE_PTS),
+    goals: Math.min(MATCHUP_V11_GOALS_MAX, matchupGoalsMet(state) * MATCHUP_V11_GOAL_PTS),
+    ice: Math.min(MATCHUP_V11_ICE_MAX, (state.iceBroken ?? 0) * MATCHUP_V11_ICE_PTS),
+    big: Math.min(MATCHUP_V11_BIG_MAX, (state.bigLines ?? 0) * MATCHUP_V11_BIG_PTS),
+  };
+}
+
+/** matchupRev 11's score: the parts' sum; a run with any input scores at least 1, one with none 0. */
+export function matchupStdScore(state: MatchupState): number {
+  const p = matchupStdParts(state);
+  return stdFinal(p.core + p.treasure + p.goals + p.ice + p.big, Boolean(state.acted));
+}
+
+/** matchupRev 11 as a band breakdown (the reveal's lines): the core, then the features as one bonus line. */
+export function matchupStdBandParts(state: MatchupState): BandParts {
+  const p = matchupStdParts(state);
+  const gems = state.gemsCleared ?? 0;
+  const treasures = state.treasures ?? 0;
+  return {
+    units: gems,
+    points: p.core,
+    bonus: p.treasure + p.goals + p.ice + p.big,
+    penalty: 0,
+    finished: false,
+    text: `${gems.toLocaleString("en-GB")} gems cleared`,
+    bonusText: `Treasure ${treasures} +${p.treasure} · goals ${matchupGoalsMet(state)}/${MATCHUP_V11_GOALS} +${p.goals} · ice ${state.iceBroken ?? 0} +${p.ice} · big lines ${state.bigLines ?? 0} +${p.big}`,
+  };
+}
+
+export const matchupStdGame: ArcadeGame<MatchupState, ArcadeInputEvent | null> = {
+  ...matchupIceGame,
+  init: (seed) => initGoals(seed, true, true),
+  score: (state) => (state.std ? matchupStdScore(state) : matchupIceGame.score(state)),
 };

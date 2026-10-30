@@ -1,20 +1,20 @@
 import { TEN_DROP_DEPTH_REV } from "@/lib/arcade/tenDrop";
-import { SLICE_REV_TARGET, SLICE_REV_STRICT, SLICE_REV_BIG } from "@/lib/arcade/slice";
+import { SLICE_REV_TARGET, SLICE_REV_STRICT, SLICE_REV_STANDARD } from "@/lib/arcade/slice";
 import { FLIP_REV_TARGET, FLIP_REV_STRICT, FLIP_REV_LIFT } from "@/lib/arcade/flip";
 import { CROSS_REV_EXPAND } from "@/lib/arcade/cross";
 import { INK_REV_SPREAD } from "@/lib/arcade/inkBridge";
-import { SNAKE_REV_TARGET, SNAKE_REV_10 } from "@/lib/arcade/snake";
+import { SNAKE_REV_TARGET, SNAKE_REV_STD } from "@/lib/arcade/snake";
 import { BUB_REV_BLAST } from "@/lib/arcade/bubble";
-import { MATCHUP_REV_ICE } from "@/lib/arcade/matchup";
+import { MATCHUP_REV_STD } from "@/lib/arcade/matchup";
 import { SNIP_REV_TARGET, SNIP_REV_EXPAND } from "@/lib/arcade/snip";
 import { SKYLINE_REV_TARGET, SKYLINE_REV_STRICT, SKYLINE_REV_LIFT } from "@/lib/arcade/skyline";
-import { TILT_REV_LIFT } from "@/lib/arcade/tilt";
+import { TILT_REV_STD } from "@/lib/arcade/tilt";
 import { TILT_BANK } from "./tiltBank.server";
 import { JUNC_REV_BAND } from "@/lib/arcade/junction";
 import { BINTOSS_REV_TARGET, BINTOSS_REV_STRICT, BINTOSS_REV_SMALL_FAR } from "@/lib/arcade/binToss";
 import { SWING_REV_TALL, SWING_REV_TARGET, SWING_REV_STRICT, SWING_REV_EXPAND, SWING_REV_ASSAULT } from "@/lib/arcade/swing";
-import { BURST_REV_TARGET, BURST_REV_STRICT, BURST_REV_CARRY } from "@/lib/arcade/burst";
-import { BRK_REV_TARGET, BRK_REV_STRICT, BRK_REV_DEEP, BRK_REV_PHONE } from "@/lib/arcade/breaker";
+import { BURST_REV_TARGET, BURST_REV_STRICT, BURST_REV_STD } from "@/lib/arcade/burst";
+import { BRK_REV_TARGET, BRK_REV_STRICT, BRK_REV_DEEP, BRK_REV_PHONE, BRK_REV_STD } from "@/lib/arcade/breaker";
 import { PIN_REV_TARGET, PIN_REV_STRICT, PIN_REV_EXPAND, PIN_REV_LONG } from "@/lib/arcade/pinball";
 import { WHACK_REV_DEPTH, WHACK_REV_NOTES } from "@/lib/arcade/whack";
 import { dealtNotesRev } from "./phoneNotes";
@@ -99,13 +99,16 @@ export function generateBullseye(): BullseyePuzzleData {
 
 export function generateMatchup(): MatchupPuzzleData {
   // matchupRev 10 (27 Oct 2026, phone-test notes): matchupRev 9's taller board with goals, ice and treasure, over 90 s,
-  // with swaps into and out of ice that make a line, and the ice laid once.
-  return { type: "matchup", seed: arcadeSeed(), matchupRev: MATCHUP_REV_ICE };
+  // with swaps into and out of ice that make a line, and the ice laid once. matchupRev 11 (the arcade scoring standard,
+  // docs/arcade-standard/matchup.md): four treasures that may swap with a gem that then makes a line, four goal
+  // levels, and the score as fixed parts to 200.
+  return { type: "matchup", seed: arcadeSeed(), matchupRev: MATCHUP_REV_STD };
 }
 
 export function generateSnake(): SnakePuzzleData {
   // snakeRev 10 (Joe's phone notes, 27 Oct 2026): longer gold stars, a third wormhole pair, a second vertical lane, 2 × 2 rocks.
-  return { type: "snake", seed: arcadeSeed(), snakeRev: SNAKE_REV_10 };
+  // snakeRev 11 (the arcade scoring standard, 29 Oct 2026): snakeRev 10's play, scored in straight-line parts to 200.
+  return { type: "snake", seed: arcadeSeed(), snakeRev: SNAKE_REV_STD };
 }
 
 export function generateCross(): CrossPuzzleData {
@@ -122,7 +125,8 @@ export function generateRicochet(): RicoPuzzleData {
 
 export function generateBreaker(): BreakerPuzzleData {
   // brkRev 10 (phone notes, 27 Oct 2026): brkRev 9 with gold bricks broken by any 4 hits and a second double-ball brick.
-  return { type: "breaker", seed: arcadeSeed(), brkRev: BRK_REV_PHONE };
+  // brkRev 11 (the arcade scoring standard, 29 Oct 2026): brkRev 10's play scored in fixed parts to 200.
+  return { type: "breaker", seed: arcadeSeed(), brkRev: BRK_REV_STD };
 }
 
 export function generatePinball(): PinballPuzzleData {
@@ -140,7 +144,8 @@ export function generateSteady(): SteadyPuzzleData {
 
 export function generateSlice(): SlicePuzzleData {
   // sliceRev 10: sliceRev 9 (expansion E5) with onions and golden fruit 1.2× the size (Joe's phone notes, 27 Oct 2026).
-  return { type: "slice", seed: arcadeSeed(), sliceRev: SLICE_REV_BIG };
+  // sliceRev 11: sliceRev 10's play on the arcade scoring standard (29 Oct 2026, docs/arcade-standard/slice.md).
+  return { type: "slice", seed: arcadeSeed(), sliceRev: SLICE_REV_STANDARD };
 }
 
 export function generateBubble(): BubblePuzzleData {
@@ -206,7 +211,8 @@ export function generateInkBridge(): InkBridgePuzzleData {
 
 export function generateBurst(): BurstPuzzleData {
   // burstRev 9 (phone-test notes, docs/phone-notes-oct-2026/fission.md): power-ups carried by seeded atoms, a bouncing golden atom, BURST shots, the wave-clear bonus.
-  return { type: "burst", seed: arcadeSeed(), burstRev: BURST_REV_CARRY };
+  // burstRev 10 (the arcade scoring standard, docs/arcade-standard/burst.md): five waves, the golden atom hurts, straight-line parts to 200.
+  return { type: "burst", seed: arcadeSeed(), burstRev: BURST_REV_STD };
 }
 
 export function generateOrbit(): OrbitPuzzleData {
@@ -273,9 +279,11 @@ export function generateTilt(): TiltPuzzleData {
   // tiltRev 9: tiltRev 8's play (the expansion) on the lifted curves (Joe's phone notes, 27 Oct 2026). A seed from the
   // bank (TILT_BANK, scripts/tilt-bank.ts): every maze fully dealt (tiltDealableX) and played to 200 by the oracle
   // through the server's replay (tilt-expand-check replays each).
+  // tiltRev 10 (the arcade scoring standard, 29 Oct 2026): the same bank; mazes 1–3 are tiltRev 9's less the quick stars,
+  // and the fourth maze is carved from the seed in the sim (a spanning tree, so always passable; tilt-standard-check).
   const pick = arcadeSeed();
   const seed = TILT_BANK[((pick % TILT_BANK.length) + TILT_BANK.length) % TILT_BANK.length]!;
-  return { type: "tilt", seed, tiltRev: TILT_REV_LIFT };
+  return { type: "tilt", seed, tiltRev: TILT_REV_STD };
 }
 
 export function generateHotFloor(): HotFloorPuzzleData {

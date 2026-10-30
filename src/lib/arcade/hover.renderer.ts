@@ -24,6 +24,7 @@ import {
   hoverCentreGrade,
   hoverCentreY,
   hoverFeatureTotals,
+  hoverStandardParts,
   hoverWorldH,
   HOVER_CENTRE_TOL,
   type HoverState,
@@ -286,7 +287,7 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: HoverState, crashIndica
   if ((state.totalStars ?? 0) > 0) retroText(ctx, `STARS ${state.stars ?? 0}/${state.totalStars}`, 10, 46, 14, STAR_GOLD, "left", 4);
   if (state.xp) {
     const totals = hoverFeatureTotals(state);
-    retroText(ctx, `TIGHT ${state.tight ?? 0}/${totals.tight}  CHAINS ${state.chainsDone ?? 0}/${totals.chains}  CENTRE ${state.ctrPts ?? 0}`, 10, 64, 12, STAR_GOLD, "left");
+    retroText(ctx, `TIGHT ${state.tight ?? 0}/${totals.tight}  CHAINS ${state.chainsDone ?? 0}/${totals.chains}  CENTRE ${state.std ? hoverStandardParts(state).centre : state.ctrPts ?? 0}`, 10, 64, 12, STAR_GOLD, "left");
   }
 
   if (state.crashed && crashIndicator) {

@@ -58,23 +58,34 @@ import {
   TILT_V2_MAZE_POINTS,
   TILT_V2_PARTIAL_MAX,
   TILT_V2_STAR_POINTS,
-  TILT_X_MAZES,
-  TILT_X_MAZE_UNITS,
-  TILT_X_PACE_POINTS,
-  TILT_X_PACE_SLOW,
-  TILT_X_PROGRESS,
-  TILT_X_QUICK,
-  TILT_X_QUICK_POINTS,
-  TILT_X_QUICK_TAIL,
-  TILT_V9_SKILL_PAY,
+  TILT_S_CORE_MAX,
+  TILT_S_FINISH_POINTS,
+  TILT_S_MAZE_POINTS,
+  TILT_S_MAZES,
+  TILT_S_PROGRESS_POINTS,
+  TILT_S_SPEED_FULL,
+  TILT_S_SPEED_POINTS,
+  TILT_S_STAR_POINTS,
   TILT_X_STARS,
-  TILT_X_STAR_UNITS,
   TILT_X_TWO_FROM,
 } from "@/lib/arcade/tilt";
 import { BUB_SPECIAL_BLOCK, BUB_TORPEDO_HITS, BUB_V3_JOKER_BLOCK, BUB_V8_CHESTS, BUB_V8_CHEST_FP, BUB_V8_FEATURE_MAX } from "@/lib/arcade/bubble";
-import { MATCHUP_V3_PAR_RAW, MATCHUP_V9_FEATURE_MAX } from "@/lib/arcade/matchup";
+import {
+  MATCHUP_V3_PAR_RAW,
+  MATCHUP_V11_BIG_MAX,
+  MATCHUP_V11_BIG_PTS,
+  MATCHUP_V11_CORE_MAX,
+  MATCHUP_V11_GOAL_PTS,
+  MATCHUP_V11_GOALS,
+  MATCHUP_V11_GOALS_MAX,
+  MATCHUP_V11_ICE_MAX,
+  MATCHUP_V11_ICE_PTS,
+  MATCHUP_V11_TREASURE_MAX,
+  MATCHUP_V11_TREASURE_PTS,
+  MATCHUP_V11_TREASURES,
+} from "@/lib/arcade/matchup";
 import { BT_V7_BALLS, BT_V7_BOOST_STEPS, BT_V7_FEATURE_MAX, BT_V7_LAST_LAND_MIN } from "@/lib/arcade/ballTrack";
-import { HOVER_CENTRE_POINTS, HOVER_CENTRE_TOP, HOVER_CENTRE_TOL, HOVER_SKILL_SLACK, HOVER_CHAIN_POINTS, HOVER_CHAINS, HOVER_PICKUPS, HOVER_REACHABLE_GATES, HOVER_SKILL_MAX, HOVER_SKILL_PAY, HOVER_STARS, HOVER_TIGHT_GATES, HOVER_TIGHT_POINTS, HOVER_V2_GATES_SCORE, HOVER_V2_STARS_SCORE } from "@/lib/arcade/hover";
+import { HOVER_CHAINS, HOVER_PICKUPS, HOVER_REACHABLE_GATES, HOVER_STARS, HOVER_STD_CENTRE, HOVER_STD_CENTRE_FULL, HOVER_STD_CENTRE_ZERO, HOVER_STD_CHAIN_SHARE, HOVER_STD_CHAIN_WHOLE, HOVER_STD_CHAINS, HOVER_STD_CORE, HOVER_STD_GOLD, HOVER_STD_MAX, HOVER_STD_TIGHT, HOVER_TIGHT_GATES, HOVER_V2_GATES_SCORE, HOVER_V2_STARS_SCORE } from "@/lib/arcade/hover";
 import {
   WAV_BOSS_HP,
   wavPrecision,
@@ -94,7 +105,18 @@ import {
   WAV_R11_SKILL_PAY,
 } from "@/lib/arcade/wavefront";
 import { INK_CLOUD_LEVELS, INK_FEATURE_MAX, INK_RAW_SHAMROCK, INK_RAW_SILVER, INK_RAW_STAR, INK_RAW_TRICK, INK_V11_SILVER_PER_LEVEL, INK_V11_SKILL_PAY } from "@/lib/arcade/inkBridge";
-import { SNAKE_V9_CAPS, SNAKE_V9_COLS, SNAKE_V9_ROWS } from "@/lib/arcade/snake";
+import {
+  SNAKE_STD_CAPS,
+  SNAKE_STD_COMBO_TICKS,
+  SNAKE_STD_CORE_MAX,
+  SNAKE_STD_GOLDS,
+  SNAKE_STD_LANE_POINTS,
+  SNAKE_STD_LANE_RIDE,
+  SNAKE_STD_WARP_TICKS,
+  SNAKE_V9_COLS,
+  SNAKE_V9_ROWS,
+  SNAKE_STD_WARP_POINTS,
+} from "@/lib/arcade/snake";
 import { BEAT_V9_CAPS, BEAT_V9_SKILL_PAY } from "@/lib/arcade/beat";
 import {
   PIN_MULT_MAX,
@@ -105,17 +127,17 @@ import {
   PIN_PTS_SPIN_LIT,
   PIN_PTS_TARGET,
 } from "@/lib/arcade/pinball";
-import { SLICE_V9_BAND_CURVE, SLICE_V9_BONUS_CAP, SLICE_V9_DODGE_POINTS, SLICE_V9_GOLD_POINTS, SLICE_V9_TICKET_POINTS, SLICE_V9_VALUE } from "@/lib/arcade/slice";
+import { SLICE_V9_GOLDS, SLICE_V9_MAX, SLICE_V11_BAND_CURVE, SLICE_V11_CHILLI, SLICE_V11_CLOSE, SLICE_V11_COMBO_CAP, SLICE_V11_COMBO_FOODS, SLICE_V11_COMBO_POINTS, SLICE_V11_CORE, SLICE_V11_DODGE_CAP, SLICE_V11_DODGE_POINTS, SLICE_V11_GOLD_CAP, SLICE_V11_TICKET_BREADS, SLICE_V11_TICKET_CAP } from "@/lib/arcade/slice";
 import { BINTOSS_FAR_CAP, BINTOSS_FAR_POINTS, BINTOSS_FAR_THROWS, BINTOSS_V7_BAND_CURVE } from "@/lib/arcade/binToss";
 import { P4_PTS_COMBO, P4_PTS_JACKPOT, P4_PTS_JOULZ, P4_PTS_RAMP, P4_PTS_SKILL } from "@/lib/arcade/pinball4";
 import { BULLSEYE_INNER_BULL_POINTS, BULLSEYE_RING_VALUES, BULLSEYE_V8_DEAD_CAP, BULLSEYE_V8_DEAD_PTS, BULLSEYE_V8_STREAK_CAP, BULLSEYE_V8_STREAK_STEP } from "@/lib/arcade/bullseye";
 import { RALLY_V10_BONUS_COUNT, RALLY_V10_BONUS_PTS, RALLY_V11_BONUS_LIFE } from "@/lib/arcade/rally";
-import { BURST_V9_CAPS, BURST_V9_CLEAR_MAX, BURST_V8_GOLDEN_PTS, BURST_V8_GOLDENS } from "@/lib/arcade/burst";
+import { BURST_V10_ATOMS, BURST_V10_CLEAR_MAX, BURST_V10_CLEAR_PER_WAVE, BURST_V10_CORE_MAX, BURST_V10_GOLDEN_MAX, BURST_V10_GOLDEN_PTS, BURST_V10_GOLDENS, BURST_V10_LIFE_COST, BURST_V10_WAVES } from "@/lib/arcade/burst";
 import { liveBandHelp } from "@/lib/arcade/liveBands";
 import { ORBIT_V12_PACE_FROM, ORBIT_V12_PACE_FULL, ORBIT_V12_SKILL_MAX, ORBIT_V12_SKILL_PACED_FROM, ORBIT_V12_SKILL_PAY, ORBIT_XP_DUST_CAP, ORBIT_XP_DUST_FULL, ORBIT_XP_FIELDS, ORBIT_XP_MOONS, ORBIT_XP_MOTES, ORBIT_XP_PERFECT_CAP, ORBIT_XP_PERFECT_PER, ORBIT_XP_SLING_CAP, ORBIT_XP_SLING_PTS, ORBIT_XP_THREAD_CAP, ORBIT_XP_THREAD_PTS, ORBIT_XP_TRAILS } from "@/lib/arcade/orbitRev3";
 import { CROSS_V9_SKILL_PAY, CROSS_X_BONUS_MAX, CROSS_X_CLOSE_MAX, CROSS_X_CLOSE_POINTS, CROSS_X_COIN_CROSSINGS, CROSS_X_COIN_POINTS, CROSS_X_COINS_PER_RUN } from "@/lib/arcade/cross";
 import { SWING_V14_GATES, SWING_V14_GEMS, SWING_V14_PAR_POINTS, SWING_V14_PICKUP_POINTS, SWING_V14_SECTIONS, SWING_V14_STARS } from "@/lib/arcade/swing";
-import { BRK_V10_GOLD_HITS, BRK_V9_COLS, BRK_V9_COMBO_MAX, BRK_V9_COMBO_X2, BRK_V9_COMBO_X3, BRK_V9_GOLD, BRK_V9_GOLD_POINTS, BRK_V9_ROWS, BRK_V9_SKILL_MAX, BRK_V9_SKILL_PAY } from "@/lib/arcade/breaker";
+import { BRK_V10_GOLD_HITS, BRK_V11_BRICKS, BRK_V11_CLEAR_POINTS, BRK_V11_CORE_MAX, BRK_V11_GOLD_MAX, BRK_V11_MAX, BRK_V11_SPEED_MAX, BRK_V9_GOLD } from "@/lib/arcade/breaker";
 import { FLIP_V8_COMBO_CAP, FLIP_V8_CP_POINTS, FLIP_V8_FEATURE_CAP, FLIP_V9_SKILL_PAY, FLIP_V8_SWEETS, FLIP_V8_SWEET_POINTS, FLIP_V8_TRAILS, FLIP_V8_TRAIL_POINTS, FLIP_V8_TRAIL_STARS, FLIP_V8_ZONE_POINTS } from "@/lib/arcade/flip";
 import { bandCurve, type BandCurve } from "@/lib/arcade/scoreBands";
 import { SNIP_X_FEATURE_MAX, SNIP_X_FEED_UNITS, SNIP_X_GOLD_RAW, SNIP_X_LEVELS, SNIP_X_PAR_MARGIN, SNIP_X_PAR_RAW, SNIP_X_PERFECT_RAW, SNIP_X_QUICK_RAW, SNIP_X_RAW_TOP, SNIP_X_SKILL_PAY, SNIP_X_STAR2_RAW, SNIP_X_STAR_UNITS } from "@/lib/arcade/snip";
@@ -565,15 +587,16 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Star chains:", detail: "sweep them; shields take a crash." },
         { action: "Touch gold stars", detail: "in tight gaps for a bonus. Later barriers have two gaps, or slide.", helpOnly: true },
         { action: "Hit anything", detail: "and the run ends. Gold stars sit near the edge of a gap, so they are risky.", helpOnly: true },
-        { action: `${HOVER_TIGHT_GATES} tight gates:`, detail: `a narrow gold-rimmed second gap on a barrier. Fly through it without touching anything for ${HOVER_TIGHT_POINTS} skill points.`, helpOnly: true },
-        { action: "The centre line:", detail: `a faint line through each tight gate lights up as you fly along it. Stay within ${HOVER_CENTRE_TOL[0] / 256} px of it across the barrier for ${HOVER_CENTRE_POINTS[3]} more, within ${HOVER_CENTRE_TOL[1] / 256} px for ${HOVER_CENTRE_POINTS[2]}, within ${HOVER_CENTRE_TOL[2] / 256} px for ${HOVER_CENTRE_POINTS[1]}.`, helpOnly: true },
-        { action: `${HOVER_CHAINS} star chains:`, detail: `5 to 7 stars on one flap's arc between two barriers. Touch every star of a chain for ${HOVER_CHAIN_POINTS} skill points.`, helpOnly: true },
+        { action: `${HOVER_TIGHT_GATES} tight gates:`, detail: `a narrow gold-rimmed second gap on a barrier. Fly through it without touching anything for ${HOVER_STD_TIGHT / HOVER_TIGHT_GATES} points.`, helpOnly: true },
+        { action: "The centre line:", detail: `a faint line through each tight gate lights up as you fly along it. Stay within ${HOVER_STD_CENTRE_FULL / 256} px of it across the barrier for ${HOVER_STD_CENTRE / HOVER_TIGHT_GATES} more, less the further you stray, none from ${HOVER_STD_CENTRE_ZERO / 256} px.`, helpOnly: true },
+        { action: `${HOVER_CHAINS} star chains:`, detail: `5 to 7 stars on one flap's arc between two barriers. Each chain pays up to ${HOVER_STD_CHAINS / HOVER_CHAINS}: ${HOVER_STD_CHAIN_SHARE} shared by its stars, ${HOVER_STD_CHAIN_WHOLE} more for every one of them.`, helpOnly: true },
         { action: `${HOVER_PICKUPS} shield bubbles`, detail: "sit at the same places for everyone. Touch one for a shield: your next crash breaks it instead and you fly on, untouchable for a moment.", helpOnly: true },
         { action: "Two-gap barriers:", detail: "fly through either gap. Sliding barriers move slowly and steadily up and down.", helpOnly: true },
         { action: "Taller sky:", detail: "the flight area fills your screen, and gaps sit anywhere from near the top to near the bottom. The faint stars behind are scenery only.", helpOnly: true },
         { action: "Everyone flies", detail: `the same course for sixty seconds: ${HOVER_REACHABLE_GATES} barriers in a clean run (the first a wide warm-up gap) and ${HOVER_STARS} gold stars.`, helpOnly: true },
       ],
-      score: liveBandHelp("hover", `Each of the ${HOVER_REACHABLE_GATES} barriers counts 3 and each gold star 2; staying up half a second (or reaching the first barrier) counts 1.`, { more: "More barriers and stars", good: (u) => `counts ${u} – about ${Math.round(u / 3)} barriers`, finish: `Lasting the minute adds 10. Skill adds up to ${HOVER_SKILL_MAX} more: ${HOVER_TIGHT_POINTS} a tight gate, ${HOVER_CHAIN_POINTS} a whole star chain and up to ${HOVER_CENTRE_TOP} a centre line. ${skillPayLine(HOVER_SKILL_PAY)} That is ${HOVER_SKILL_SLACK} short of everything, so one slip is forgiven.` }),
+      // hoverRev 10 (the arcade scoring standard): five parts, each with its maximum, adding up to 200.
+      score: liveBandHelp("hover", `Barriers passed: ${HOVER_STD_CORE} for all ${HOVER_REACHABLE_GATES} barriers, each one worth the same.`, { more: "More barriers", good: (u) => `passes ${u} barriers`, finish: `Star chains add up to ${HOVER_STD_CHAINS} (${HOVER_STD_CHAINS / HOVER_CHAINS} a chain: ${HOVER_STD_CHAIN_SHARE} by the share of its stars you touch, ${HOVER_STD_CHAIN_WHOLE} for the whole chain), gold stars up to ${HOVER_STD_GOLD} (${HOVER_STD_GOLD / HOVER_STARS} each), tight gates up to ${HOVER_STD_TIGHT} (${HOVER_STD_TIGHT / HOVER_TIGHT_GATES} each) and centre lines up to ${HOVER_STD_CENTRE} (${HOVER_STD_CENTRE / HOVER_TIGHT_GATES} a gate). Barriers ${HOVER_STD_CORE} + chains ${HOVER_STD_CHAINS} + gold stars ${HOVER_STD_GOLD} + tight gates ${HOVER_STD_TIGHT} + centre lines ${HOVER_STD_CENTRE} = ${HOVER_STD_MAX}; lasting the minute adds nothing. Any run you play scores at least 1.` }),
     },
     swerve: {
       goal: "Collect coins while dodging the blocks.",
@@ -691,19 +714,23 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
       how: [
         { action: "Swap neighbours;", detail: "collect the goal's colours." },
         { action: "Match on frozen gems", detail: "to break the ice." },
-        { action: "Clear below treasure", detail: "to bring it down." },
+        { action: "Clear below treasure", detail: "or swap it down." },
         { action: "4, 5 or an L / T", detail: "makes a bomb or a star; 5 plus an L / T in one swap makes a jackpot.", helpOnly: true },
-        { action: "Each level", detail: "asks for a count of two or three colours (shown under the board); meet it and the next level starts.", helpOnly: true },
+        { action: "Four levels", detail: "each ask for a count of two or three colours (shown under the board); meet one and the next starts.", helpOnly: true },
         { action: "A frozen gem", detail: "can be swapped into or out of the ice only when the swap makes a line of three. Clear the gem in the ice (in a line, a cascade or a blast) and the ice breaks; it never comes back.", helpOnly: true },
-        { action: "A treasure gem", detail: "can't be matched, swapped or blasted: it falls as the gems under it clear and is collected on the bottom row.", helpOnly: true },
-        { action: "Cascades multiply:", detail: "each step after a swap's own clear counts ×2, ×3 and so on.", helpOnly: true },
+        { action: "A treasure gem", detail: `can't be matched or blasted. It falls as the gems under it clear, and it swaps with a gem that then makes a line of three. It is collected on the bottom row; ${MATCHUP_V11_TREASURES} come a round.`, helpOnly: true },
         { action: "Drag one gem onto its neighbour", detail: "to swap them. Matched gems clear and new ones fall in; your next swap waits until the board has settled.", helpOnly: true },
         { action: "Line of 4: a bomb", detail: "(clears around it). Line of 5: a white four-point star (its row and column). An L or T: a six-point star (both diagonals).", helpOnly: true },
         { action: "A line of 5 and an L / T in one swap", detail: "makes a jackpot gem: it clears every gem of its colour plus its row and column.", helpOnly: true },
         { action: "Specials", detail: "go off when you swap them or match next to them, and set each other off.", helpOnly: true },
         { action: "Ninety seconds", detail: "on the same board for everyone; new gems drop from the same fixed queues.", helpOnly: true },
       ],
-      score: liveBandHelp("matchup", `Match points: longer lines, cascades and special gems score more. Goals met, ice broken, treasure collected and the cascade multiplier add up to ${MATCHUP_V9_FEATURE_MAX} more.`, { more: "More match points", good: (u) => `scores ${u.toLocaleString("en-GB")} match points` }),
+      // matchupRev 11 (the arcade scoring standard): the core on its straight line, then fixed amounts, to 200.
+      score: liveBandHelp("matchup", "Every gem cleared counts, in a line, a cascade or a blast.", {
+        more: "More gems cleared",
+        good: (u) => `clears ${u.toLocaleString("en-GB")} gems`,
+        finish: `Then treasure: ${MATCHUP_V11_TREASURE_PTS} for each brought down (up to ${MATCHUP_V11_TREASURE_MAX}); goals: ${MATCHUP_V11_GOAL_PTS} for each of the ${MATCHUP_V11_GOALS} colour goals met (up to ${MATCHUP_V11_GOALS_MAX}); ice: ${MATCHUP_V11_ICE_PTS} for each frozen cell broken (up to ${MATCHUP_V11_ICE_MAX}); big lines: ${MATCHUP_V11_BIG_PTS} for each line of 4 or 5 you match (up to ${MATCHUP_V11_BIG_MAX}). Gems ${MATCHUP_V11_CORE_MAX} + ${MATCHUP_V11_TREASURE_MAX} + ${MATCHUP_V11_GOALS_MAX} + ${MATCHUP_V11_ICE_MAX} + ${MATCHUP_V11_BIG_MAX} make 200.`,
+      }),
     },
     snake: {
       goal: "Eat the stars; don't crash.",
@@ -713,10 +740,10 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Gold stars, lanes, wormholes:", detail: "bonus points." },
         { action: "Quick stars build a combo;", detail: "wormholes and violet lanes are quick, risky shortcuts.", helpOnly: true },
         { action: "At 20 stars,", detail: "a meteor shower drops 3 rocks!", helpOnly: true },
-        { action: "Wormholes:", detail: "three pairs of swirling mouths. Go into one and you come straight out of its twin, still heading the same way, so look before you leap. A star eaten within a second of a trip is a warp star (+2).", helpOnly: true },
-        { action: "Gold comet stars:", detail: "about every 7 s a gold star appears for 5 s and fades. Eat it for 1 to 5 bonus points, more the sooner you get there. It doesn't make you longer.", helpOnly: true },
-        { action: "Violet speed lanes:", detail: "one row and two columns. Travelling along one you move faster; from a ride's sixth square, every 4 squares score 1.", helpOnly: true },
-        { action: "Combo:", detail: "eat stars within 1.25 s of each other; from the third in a row each star adds 1 to 3 bonus points.", helpOnly: true },
+        { action: "Wormholes:", detail: `three pairs of swirling mouths. Go into one and you come straight out of its twin, still heading the same way, so look before you leap. A star eaten within ${SNAKE_STD_WARP_TICKS / 60} s of a trip is a warp star (+${SNAKE_STD_WARP_POINTS}).`, helpOnly: true },
+        { action: "Gold comet stars:", detail: `about every 7 s a gold star appears for 5 s and fades. The ${SNAKE_STD_GOLDS} gold stars share ${SNAKE_STD_CAPS.gold} points: each is worth about ${(SNAKE_STD_CAPS.gold / SNAKE_STD_GOLDS).toFixed(1)} the moment it appears, falling evenly to 0 as it fades. It doesn't make you longer.`, helpOnly: true },
+        { action: "Violet speed lanes:", detail: `one row and two columns. Travelling along one you move faster; every ride of ${SNAKE_STD_LANE_RIDE} squares in a row along a lane scores ${SNAKE_STD_LANE_POINTS}.`, helpOnly: true },
+        { action: "Combo:", detail: `eat stars within ${SNAKE_STD_COMBO_TICKS / 60} s of each other; from the third in a row each star adds 1 bonus point.`, helpOnly: true },
         { action: "Rocks hit only your head.", detail: "A rock on your tail does nothing, and your tail passes through rocks. A big rock fills a 2 × 2 block: keep your head off all four squares.", helpOnly: true },
         { action: "Rocks start at length 9:", detail: "one more every 4 stars, up to 11. Stars never appear on a rock.", helpOnly: true },
         { action: "The meteor shower", detail: "comes once, when you reach 20 stars: three red shadows, then three rocks land together 2 s later. With the shower, at most 14 rocks.", helpOnly: true },
@@ -724,7 +751,12 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Taller and wider field:", detail: `${SNAKE_V9_COLS} squares across and ${SNAKE_V9_ROWS} down, so stars can be further away.`, helpOnly: true },
         { action: "Everyone gets", detail: "the same stars, and every rock lands on the same square at the same moment.", helpOnly: true },
       ],
-      score: `${liveBandHelp("snake", "Each star eaten counts 1.", { more: "More stars", good: (u) => `eats ${u} stars` })} Gold stars (up to ${SNAKE_V9_CAPS.gold}), combos (up to ${SNAKE_V9_CAPS.combo}), lane rides (up to ${SNAKE_V9_CAPS.lane}) and warp stars (up to ${SNAKE_V9_CAPS.warp}) add up to 50 more, to {max}.`,
+      // snakeRev 11 (the arcade scoring standard): stars on a straight line to 120, then four fixed feature parts, 200 in all.
+      score: liveBandHelp("snake", "Each star eaten counts the same.", {
+        more: "More stars",
+        good: (u) => `eats ${u} stars`,
+        finish: `Gold stars add up to ${SNAKE_STD_CAPS.gold}, combos up to ${SNAKE_STD_CAPS.combo}, lane rides up to ${SNAKE_STD_CAPS.lane} and warp stars up to ${SNAKE_STD_CAPS.warp}: ${SNAKE_STD_CORE_MAX} + ${SNAKE_STD_CAPS.gold + SNAKE_STD_CAPS.combo + SNAKE_STD_CAPS.lane + SNAKE_STD_CAPS.warp} = ${SNAKE_STD_CORE_MAX + SNAKE_STD_CAPS.gold + SNAKE_STD_CAPS.combo + SNAKE_STD_CAPS.lane + SNAKE_STD_CAPS.warp}. A crash ends the run.`,
+      }),
     },
     cross: {
       goal: "Get across the traffic as many times as you can.",
@@ -762,7 +794,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
       how: [
         { action: "Drag the paddle;", detail: "tap to fire a power-up." },
         { action: "Gold bricks:", detail: `break after ${BRK_V10_GOLD_HITS} hits.` },
-        { action: "Combo ×2, ×3:", detail: "bricks with no paddle touch." },
+        { action: "Every brick scores;", detail: `gold bricks add ${BRK_V11_GOLD_MAX / BRK_V9_GOLD} each.` },
         { action: "Catch power-ups:", detail: "laser, ×3, ×2, Fireball.", helpOnly: true },
         { action: "Keep the ball up", detail: "– it gets faster with bricks and with time. Losing the last ball costs 3 seconds.", helpOnly: true },
         { action: "Cracked bricks take 2 or 3 hits", detail: "– each hit cracks them further.", helpOnly: true },
@@ -773,9 +805,9 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Orange flame = Fireball:", detail: "for 2.5 seconds your balls smash straight through bricks without bouncing.", helpOnly: true },
         { action: "Sliding rows:", detail: "one row starts at 30 s and another at 60 s, half a brick each way, slowly and always the same.", helpOnly: true },
         { action: `${BRK_V9_GOLD} gold bricks`, detail: `sit near the top, each behind an armoured brick. Any ${BRK_V10_GOLD_HITS} hits break one: balls, Fireball balls, ×3 shots and the laser all count, and each hit cracks it further.`, helpOnly: true },
-        { action: "Combo:", detail: `a ball that breaks bricks without touching the paddle goes ×2 from its ${BRK_V9_COMBO_X2}th brick and ×3 from its ${BRK_V9_COMBO_X3}th. A paddle touch or a lost ball ends it; Fireball, laser and ×3 bricks don't count.`, helpOnly: true },
       ],
-      score: liveBandHelp("breaker", "Each brick destroyed counts 1.", { more: "More bricks", good: (u) => `clears ${u} bricks`, finish: `Clearing all ${BRK_V9_COLS * BRK_V9_ROWS - BRK_V9_GOLD} adds up to 10 for speed: the full 10 with at least half the time left, falling to 0 at the buzzer. Skill adds up to ${BRK_V9_SKILL_MAX} more: ${BRK_V9_GOLD_POINTS} a gold brick, and 1 for each ×2 combo brick and 3 for each ×3 (up to ${BRK_V9_COMBO_MAX}). ${skillPayLine(BRK_V9_SKILL_PAY)}` }),
+      // brkRev 11 (the arcade scoring standard): four fixed parts that total 200.
+      score: liveBandHelp("breaker", `Every brick destroyed counts 1, the ${BRK_V9_GOLD} gold bricks included.`, { more: "More bricks", good: (u) => `breaks ${u} of the ${BRK_V11_BRICKS}`, finish: `Breaking the other ${BRK_V11_BRICKS - BRK_V9_GOLD} clears the wall and ends the run: clearing adds ${BRK_V11_CLEAR_POINTS}, plus up to ${BRK_V11_SPEED_MAX} for speed, the full ${BRK_V11_SPEED_MAX} with at least half the time left, falling evenly to 0 at the buzzer. Gold bricks add up to ${BRK_V11_GOLD_MAX}, ${BRK_V11_GOLD_MAX / BRK_V9_GOLD} each. Power-ups and combos add nothing extra, and a lost ball costs only time. Bricks ${BRK_V11_CORE_MAX} + clear ${BRK_V11_CLEAR_POINTS} + speed ${BRK_V11_SPEED_MAX} + gold ${BRK_V11_GOLD_MAX} = ${BRK_V11_MAX}.` }),
     },
     pinball: {
       goal: "Keep the ball in play and rack up table points.",
@@ -833,21 +865,22 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
     slice: {
       goal: "Slice the flying food. Don't cut the chillies.",
       how: [
-        { action: "Swipe through food.", detail: "3+ in one swipe: combo ×2, ×3." },
-        { action: "Small is worth more:", detail: "onion 3, golden fruit 5." },
-        { action: "Fill the ticket; skim chillies,", detail: "never cut one." },
-        { action: "Never cut a chilli:", detail: "it costs 10 points and ends your combo.", helpOnly: true },
+        { action: "Swipe through food.", detail: "3+ in one swipe is a combo." },
+        { action: "Golden fruit and 3 breads in a row", detail: "score more." },
+        { action: "Cut food near a chilli;", detail: "never cut one." },
+        { action: "Never cut a chilli:", detail: `it costs ${SLICE_V11_CHILLI} points and ends your combo.`, helpOnly: true },
         { action: "Cut a bottle:", detail: "ketchup, mustard or mayo power-up.", helpOnly: true },
-        { action: "Food sizes:", detail: `bread is big and worth ${SLICE_V9_VALUE[0]}, cabbage and meat ${SLICE_V9_VALUE[1]}, onions small and worth ${SLICE_V9_VALUE[2]}, golden fruit tiny and worth ${SLICE_V9_VALUE[4]}.`, helpOnly: true },
-        { action: "Golden fruit:", detail: `cut one while a combo is live for +${SLICE_V9_GOLD_POINTS} at ×2 or +${2 * SLICE_V9_GOLD_POINTS} at ×3.`, helpOnly: true },
-        { action: "Order tickets:", detail: `the ticket at the top right asks for one food, 1–3 in a row, before its time runs out (cutting another food starts the count again). Filling it adds ${SLICE_V9_TICKET_POINTS}.`, helpOnly: true },
-        { action: "Dodge streak:", detail: `slice food close past a chilli (it shows DODGE) and let the chilli fall: ${SLICE_V9_DODGE_POINTS}, ${2 * SLICE_V9_DODGE_POINTS}, then ${3 * SLICE_V9_DODGE_POINTS} for each dodge in a row. Cutting a chilli ends the streak.`, helpOnly: true },
-        { action: "Bottles:", detail: "ketchup stops chillies, mustard slows time, mayo pulls food together.", helpOnly: true },
+        { action: "Combo:", detail: `three foods in one swipe start it and each one renews its 10 seconds. Every ${SLICE_V11_COMBO_FOODS} foods cut while it is live add ${SLICE_V11_COMBO_POINTS} (up to ${SLICE_V11_COMBO_CAP}).`, helpOnly: true },
+        { action: "Golden fruit:", detail: `the tiny gold apples, ${SLICE_V9_GOLDS} a run, share ${SLICE_V11_GOLD_CAP} points.`, helpOnly: true },
+        { action: "Bread tickets:", detail: `${SLICE_V11_TICKET_BREADS} breads cut in a row fill a ticket (other food in between is fine; a bread you miss starts the count again). Tickets share ${SLICE_V11_TICKET_CAP} points.`, helpOnly: true },
+        { action: "Dodges:", detail: `cut a food while it is within ${SLICE_V11_CLOSE} px of a chilli (and don't cut the chilli): ${SLICE_V11_DODGE_POINTS} each, up to ${SLICE_V11_DODGE_CAP}.`, helpOnly: true },
+        { action: "Bottles:", detail: "ketchup stops chillies, mustard slows time, mayo pulls food together. They score nothing themselves.", helpOnly: true },
         { action: "Saucy (ketchup): 3 chilli-free seconds.", detail: "Simmer (mustard): 4 slow seconds. Squeeze (mayo): nearby food gathers where you cut it.", helpOnly: true },
-        { action: "One finger-down-to-up path counts together", detail: "– curves too, up to the full height of the screen. Each combo resets a 10-second timer.", helpOnly: true },
+        { action: "One finger-down-to-up path counts together", detail: "– curves too, up to the full height of the screen.", helpOnly: true },
       ],
-      // sliceRev 9 (docs/expansions/e5.md): the value-weighted share on its curve, plus the bonus points.
-      score: `Combo-weighted food values (bread ${SLICE_V9_VALUE[0]}, cabbage and meat ${SLICE_V9_VALUE[1]}, onion ${SLICE_V9_VALUE[2]}, golden fruit ${SLICE_V9_VALUE[4]}) out of the most the run offers (every food at ×3), in thousandths. More combo slices, higher score – 150 at ${bandTop(SLICE_V9_BAND_CURVE)}. A good run (${BAND_GOOD_POINTS} points) reaches ${bandUnitsFor(SLICE_V9_BAND_CURVE, BAND_GOOD_POINTS)}. Golden fruit in a combo, filled tickets and dodges add up to ${SLICE_V9_BONUS_CAP} more. Each chilli costs 10 and ends the combo. Up to {max}.`,
+      // sliceRev 11 (the arcade scoring standard, docs/arcade-standard/slice.md): the share of food cut on a
+      // straight line to 120, then the four parts.
+      score: `Each food cut counts, out of every food thrown (bottles and chillies don't count), in thousandths. More food sliced, higher score – up to ${SLICE_V11_CORE}. A good run (${BAND_GOOD_POINTS} points) slices ${bandUnitsFor(SLICE_V11_BAND_CURVE, BAND_GOOD_POINTS)}. Combos add up to ${SLICE_V11_COMBO_CAP}, golden fruit ${SLICE_V11_GOLD_CAP}, bread tickets ${SLICE_V11_TICKET_CAP} and dodges ${SLICE_V11_DODGE_CAP}: ${SLICE_V11_CORE + SLICE_V11_COMBO_CAP + SLICE_V11_GOLD_CAP + SLICE_V11_TICKET_CAP + SLICE_V11_DODGE_CAP} in all. Each chilli costs ${SLICE_V11_CHILLI} and ends the combo. Up to ${SLICE_V9_MAX}.`,
     },
     bubble: {
       goal: "Pop threes and free the treasure.",
@@ -1047,17 +1080,18 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
       goal: "Split the atoms. Don't get hit.",
       how: [
         { action: "◀ ▶ to move,", detail: "tap the arena to shoot up." },
-        { action: "Clear a wave quickly:", detail: `up to +${BURST_V9_CLEAR_MAX}.` },
-        { action: "Golden atom:", detail: `+${BURST_V8_GOLDEN_PTS} before it fades.` },
-        { action: "An atom touching you", detail: "costs a life (3 lives).", helpOnly: true },
+        { action: `${BURST_V10_WAVES} waves:`, detail: `clear each fast for up to +${BURST_V10_CLEAR_PER_WAVE}.` },
+        { action: "Golden atom:", detail: `+${BURST_V10_GOLDEN_PTS}, but it hurts like any atom.` },
+        { action: "An atom touching you (golden ones too)", detail: `costs a life and ${BURST_V10_LIFE_COST} points (3 lives).`, helpOnly: true },
         { action: "Hold ◀ or ▶ to walk; tap anywhere on the arena to fire straight up.", detail: "There is no FIRE button: every tap on the arena is a shot.", helpOnly: true },
         { action: "Big atoms split into smaller ones;", detail: "the smallest pop.", helpOnly: true },
-        { action: "Wave-clear bonus:", detail: `each wave you clear pays up to ${BURST_V9_CLEAR_MAX}: the full amount if you clear it quickly (bigger waves get longer), then one less every 2 s. The counter (CLEAR +${BURST_V9_CLEAR_MAX}) shows what the wave on screen still pays.`, helpOnly: true },
-        { action: `${BURST_V8_GOLDENS} golden atoms:`, detail: `each appears at its own moment (the same for everyone in the room), bounces like the other atoms and fades after about 5 seconds. It never hurts you. A shot that reaches one scores ${BURST_V8_GOLDEN_PTS}.`, helpOnly: true },
+        { action: `${BURST_V10_WAVES} waves, ${BURST_V10_ATOMS} atoms:`, detail: `counting every piece the splits make. Clear all ${BURST_V10_WAVES} waves and the run is complete.`, helpOnly: true },
+        { action: "Wave-clear bonus:", detail: `each wave you clear pays up to ${BURST_V10_CLEAR_PER_WAVE}: the full ${BURST_V10_CLEAR_PER_WAVE} within its quick time (1 s plus 0.6 s for every atom it holds, splits included), then evenly less, down to 0 at twice that. The counter (CLEAR +${BURST_V10_CLEAR_PER_WAVE}) shows what the wave on screen still pays.`, helpOnly: true },
+        { action: `${BURST_V10_GOLDENS} golden atoms:`, detail: `one with each wave, a second or two after it appears, at its own spot (the same for everyone in the room). It bounces like the other atoms and fades after about 5 seconds. A shot that reaches one scores ${BURST_V10_GOLDEN_PTS}. It hurts like any atom: touching it costs a life.`, helpOnly: true },
         { action: "Power-ups ride on atoms:", detail: "an atom showing a small icon drops that power-up when you split it (the same atoms for everyone). Walk under it to catch it. DOUBLE fires two beams a shot for 8 s; BURST fires three quick short shots a tap for 8 s; FREEZE stops every atom for 3 s. Frozen atoms still hurt if you walk into one. They score nothing themselves.", helpOnly: true },
       ],
-      // burstRev 9 (docs/phone-notes-oct-2026/fission.md): the atoms on their curve, lasting, plus wave clears and golden atoms.
-      score: liveBandHelp("burst", "Each atom hit counts 1 unit; each life lost takes 5 units off (never below a quarter of the atoms hit).", { more: "More atoms, fewer lives lost", good: (u) => `counts ${u} units`, finish: `Lasting the 90 s adds 10. Quick wave clears add up to ${BURST_V9_CAPS.clear} and golden atoms up to ${BURST_V9_CAPS.gold}.` }),
+      // burstRev 10 (the arcade scoring standard, docs/arcade-standard/burst.md): the atoms on a straight line, wave clears, golden atoms, lives.
+      score: liveBandHelp("burst", `Every atom you pop counts, each split piece too: ${BURST_V10_ATOMS} in the ${BURST_V10_WAVES} waves.`, { more: "More atoms", good: (u) => `pops ${u} atoms`, finish: `Wave clears add up to ${BURST_V10_CLEAR_MAX} (${BURST_V10_CLEAR_PER_WAVE} a wave) and golden atoms up to ${BURST_V10_GOLDEN_MAX} (${BURST_V10_GOLDEN_PTS} each): ${BURST_V10_CORE_MAX} + ${BURST_V10_CLEAR_MAX} + ${BURST_V10_GOLDEN_MAX} = 200. Each life lost costs ${BURST_V10_LIFE_COST}; power-ups score nothing.` }),
     },
     orbit: {
       goal: "Fly planet to planet to the sun.",
@@ -1121,16 +1155,15 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
       goal: "Roll each marble into its own cup.",
       how: [
         { action: "Drag left or right", detail: "to spin the maze." },
-        { action: "Keys open gates;", detail: "quick stars pay early." },
+        { action: "Keys open gates;", detail: `maze ${TILT_S_MAZES}: small and tight.` },
         { action: `From maze ${TILT_X_TWO_FROM}, two marbles,`, detail: "each to its own cup." },
-        { action: "Marbles always roll down.", detail: `${TILT_X_MAZES} mazes, each bigger than the last, always all on screen. A marble that falls into a black hole goes back to its start.`, helpOnly: true },
+        { action: "Marbles always roll down.", detail: `${TILT_S_MAZES} mazes, always all on screen: three big ones, then a smaller, tighter one with the blue marble alone and no holes or stars. A marble that falls into a black hole goes back to its start (it costs time, not points).`, helpOnly: true },
         { action: "Keys and gates:", detail: "a gate across the way to the cup stays shut until either marble rolls over its key, which waits in a side passage before the gate. A gate and its key share a colour.", helpOnly: true },
-        { action: "Quick stars:", detail: `${TILT_X_QUICK} per maze, a few cells into an icy side passage before the gate. Each is worth ${TILT_X_QUICK_POINTS} while its ring is pale gold (until a run at the maze's par pace would reach it), then less as the ring turns amber, and it is gone ${TILT_X_QUICK_TAIL / 60} s later.`, helpOnly: true },
         { action: "Ice:", detail: "on the faintly frosted cells the marble keeps its speed and slides further, so ease off before a turn or a hole.", helpOnly: true },
         { action: "Cups:", detail: "the blue marble goes in the blue cup, the amber marble in the amber cup, which always starts well away from it. Each marble can only leave through the gap by its own cup, and the maze is done when both are in. The marbles roll through each other.", helpOnly: true },
-        { action: "Gold stars:", detail: `${TILT_X_STARS === 1 ? "one" : TILT_X_STARS} per maze, a step or two off the route. Roll either marble over ${TILT_X_STARS === 1 ? "it" : "one"} to collect it.`, helpOnly: true },
+        { action: "Gold stars:", detail: `${TILT_X_STARS === 1 ? "one" : TILT_X_STARS} in each of mazes 1–${TILT_S_MAZES - 1}, a step or two off the route. Roll either marble over ${TILT_X_STARS === 1 ? "it" : "one"} to collect it.`, helpOnly: true },
       ],
-      score: liveBandHelp("tilt", `Each finished maze counts ${TILT_X_MAZE_UNITS}, getting closer to the exit in the maze you are on up to ${TILT_X_PROGRESS} more, and each gold star ${TILT_X_STAR_UNITS}.`, { more: "Further through the mazes and more stars", good: (u) => `counts ${u} – about ${Math.round(u / TILT_X_MAZE_UNITS)} mazes`, finish: `All ${TILT_X_MAZES} mazes adds 10. Skill adds up to 50 more: ${TILT_X_QUICK_POINTS} for each quick star in time, and up to ${TILT_X_PACE_POINTS} for each maze finished at its par (the time its shortest tour of stars and key to the cup takes, so long and short mazes pay alike), none at ${TILT_X_PACE_SLOW / 100}× par. ${skillPayLine(TILT_V9_SKILL_PAY)}` }),
+      score: liveBandHelp("tilt", `Each finished maze counts ${TILT_S_MAZE_POINTS + TILT_S_PROGRESS_POINTS}, and getting closer to the exit in the maze you are on up to ${TILT_S_PROGRESS_POINTS} more (an even share of the way), so the core is up to ${TILT_S_CORE_MAX}.`, { more: "Further through the mazes", good: (u) => `has about ${Math.round(u / (TILT_S_MAZE_POINTS + TILT_S_PROGRESS_POINTS))} mazes done, or fewer with stars`, finish: `All ${TILT_S_MAZES} mazes adds ${TILT_S_FINISH_POINTS}, and up to ${TILT_S_SPEED_POINTS} for speed: all of it if all ${TILT_S_MAZES} are done by ${TILT_S_SPEED_FULL / 60} s, then evenly less to none at the buzzer. Gold stars add up to ${TILT_S_STAR_POINTS}, shared evenly by the stars of mazes 1–${TILT_S_MAZES - 1} (${TILT_S_STAR_POINTS / (TILT_X_STARS * (TILT_S_MAZES - 1))} each). ${TILT_S_CORE_MAX} + ${TILT_S_FINISH_POINTS} + ${TILT_S_SPEED_POINTS} + ${TILT_S_STAR_POINTS} = 200; any play scores at least 1.` }),
     },
     hotfloor: {
       goal: "Plan a route to the exit before the floor falls.",

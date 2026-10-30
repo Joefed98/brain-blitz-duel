@@ -47,9 +47,10 @@ import { decodeSkylineRun, replaySkylineRun } from "./skyline";
 import { SKYLINE_REV_EXPAND, SKYLINE_REV_LIFT } from "@/lib/arcade/skyline";
 import { pinIsExpanded } from "@/lib/arcade/pinball";
 import { decodeSnakeRun, replaySnakeRun } from "./snake";
+import { snakeStdParts } from "@/lib/arcade/snake";
 import { decodeBreakerRun, replayBreakerRun } from "./breaker";
-import { brkSkillPaid, brkWallSize } from "@/lib/arcade/breaker";
-import { hoverFeatureBonus } from "@/lib/arcade/hover";
+import { breakerStdParts, brkSkillPaid, brkWallSize } from "@/lib/arcade/breaker";
+import { hoverFeatureBonus, hoverStandardParts } from "@/lib/arcade/hover";
 import { decodePinballRun, replayPinballRun } from "./pinball";
 import { decodeRallyRun, replayRallyRun } from "./rally";
 import { rallyBonusCount, rallyBonusPoints } from "@/lib/arcade/rally";
@@ -70,7 +71,7 @@ import { decodeFlipRun, replayFlipRun } from "./flip";
 import { decodeJunctionRun, replayJunctionRun } from "./junction";
 import { decodeInkBridgeRun, replayInkBridgeRun } from "./inkBridge";
 import { decodeBurstRun, replayBurstRun } from "./burst";
-import { burstCarryBonus, burstCleanBonus, burstGoldenCount } from "@/lib/arcade/burst";
+import { burstCarryBonus, burstCleanBonus, burstGoldenCount, burstStdParts, BURST_V10_GOLDENS } from "@/lib/arcade/burst";
 import { decodeOrbitRun, replayOrbitRun } from "./orbit";
 import { decodeSwingRun, replaySwingRun } from "./swing";
 import { SWING_REV, SWING_REV_BAND, SWING_REV_TUNED, SWING_REV_TUNEC, SWING_REV_SPREAD, SWING_REV_TALL, SWING_REV_TARGET, SWING_REV_STRICT, SWING_REV_EXPAND, swingFeaturePoints, swingAssaultCounts, swingBandPartsV14 } from "@/lib/arcade/swing";
@@ -1152,6 +1153,8 @@ function gradeUnderRev(
         ...(puzzle.hoverRev ? { hoverRev: puzzle.hoverRev, stars: run.stars, totalStars: run.totalStars } : {}),
         // hoverRev 9 (the 200 expansion): the features and the skill points paid for them.
         ...(run.state.xp ? { tightGates: run.state.tight ?? 0, starChains: run.state.chainsDone ?? 0, centrePts: run.state.ctrPts ?? 0, centreLines: run.state.ctrLog?.length ?? 0, shieldBreaks: run.state.shieldBreaks ?? 0, skill: hoverFeatureBonus(run.state) } : {}),
+        // hoverRev 10 (the arcade scoring standard): each part's points; `skill` is then everything beyond the core.
+        ...(run.state.std ? (({ core, chains, gold, tight, centre }) => ({ corePts: core, chainPts: chains, goldPts: gold, tightPts: tight, centreLinePts: centre, skill: chains + gold + tight + centre }))(hoverStandardParts(run.state)) : {}),
         survived: run.survived,
         endedSeconds: run.endedSeconds,
         flagged: run.flagged,
@@ -1232,6 +1235,8 @@ function gradeUnderRev(
       extraDetail = {
         pellets: run.pellets,
         ...(puzzle.snakeRev ? { snakeRev: puzzle.snakeRev, rocks: run.rocks, rocksDodged: run.rocksDodged, rockHit: run.rockHit } : {}),
+        // snakeRev 11 (the arcade scoring standard): each part's points (core, gold, combo, lane, warp).
+        ...(run.state.std ? { meteorParts: snakeStdParts(run.state) } : {}),
         length: run.length,
         survived: run.survived,
         endedSeconds: run.endedSeconds,
@@ -1346,7 +1351,11 @@ function gradeUnderRev(
         powerUps: run.powerUps,
         ...(puzzle.brkRev ? { brkRev: puzzle.brkRev, fireballs: run.fireballs } : {}),
         // brkRev 9 (the expansion): its wall size and skill points, for the reveal.
-        ...(run.state.deep ? { wall: brkWallSize(run.state), goldBroken: run.state.goldBroken ?? 0, comboPts: run.state.comboPts ?? 0, bestChain: run.state.bestChain ?? 0, skill: brkSkillPaid(run.state) } : {}),
+        ...(run.state.deep && !run.state.std ? { wall: brkWallSize(run.state), goldBroken: run.state.goldBroken ?? 0, comboPts: run.state.comboPts ?? 0, bestChain: run.state.bestChain ?? 0, skill: brkSkillPaid(run.state) } : {}),
+        // brkRev 11 (the arcade scoring standard): the four parts instead of the skill points (combos pay nothing).
+        ...(run.state.std
+          ? (({ bricks, all, core, clear, speed, goldBroken, goldDealt, gold }) => ({ std: 1, wall: brkWallSize(run.state), bricks, bricksAll: all, core, clearPts: clear, speedPts: speed, goldBroken, goldDealt, goldPts: gold, bestChain: run.state.bestChain ?? 0 }))(breakerStdParts(run.state))
+          : {}),
         cleared: run.cleared,
         endedSeconds: run.endedSeconds,
         flagged: run.flagged,
@@ -1876,7 +1885,8 @@ function gradeUnderRev(
         ...(puzzle.burstRev ? { burstRev: puzzle.burstRev, freezes: run.freezes } : {}),
         // burstRev 8 (expansion E9): clean waves, golden atoms and the features' points, for the reveal.
         // burstRev 9 (phone-test notes): waves cleared with a time bonus, golden atoms and the features' points.
-        ...(run.state.carry ? { quickWaves: run.state.quickWaves ?? 0, goldens: burstGoldenCount(run.state), skill: burstCarryBonus(run.state).total } : run.state.exp ? { cleanWaves: run.state.cleanWaves ?? 0, goldens: burstGoldenCount(run.state), skill: burstCleanBonus(run.state).total } : {}),
+        // burstRev 10 (the arcade scoring standard): each part's points, golden atoms of the five dealt, and whether all five waves were cleared.
+        ...(run.state.std ? (() => { const p = burstStdParts(run.state); return { quickWaves: run.state.quickWaves ?? 0, goldens: burstGoldenCount(run.state), goldensDealt: BURST_V10_GOLDENS, atoms: p.atoms, core: p.core, clearPts: p.clear, goldPts: p.gold, lifeCost: p.lives, done: run.state.done ?? 0, skill: p.clear + p.gold }; })() : run.state.carry ? { quickWaves: run.state.quickWaves ?? 0, goldens: burstGoldenCount(run.state), skill: burstCarryBonus(run.state).total } : run.state.exp ? { cleanWaves: run.state.cleanWaves ?? 0, goldens: burstGoldenCount(run.state), skill: burstCleanBonus(run.state).total } : {}),
         survived: run.survived,
         survivedSeconds: run.survivedSeconds,
         endedSeconds: run.endedSeconds,

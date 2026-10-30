@@ -73,6 +73,15 @@ const TREASURE_HUNT: Record<SkillLevel, number> = { weak: 0, average: 0.1, good:
 const TREASURE_SETUP: Record<SkillLevel, number> = { weak: 0, average: 0, good: 0.1, great: 0.3, near: 0.6, elite: 0.75, perfect: 1 };
 /** How much a set-up swap is worth to the player, in gems: about what the treasure is worth against plain clearing. */
 const SETUP_VALUE = 8;
+/**
+ * matchupRev 11 (std states only, so every older revision's bot plays exactly as before): the treasure gem may be
+ * swapped with a gem that then makes a line, so a player who knows it values a swap that pulls the treasure itself
+ * down, per row (and bringing it home), in gems, weighed by FEATURE_EYE like the other features.
+ */
+const PULL_ROW_VALUE = 3;
+const PULL_HOME_VALUE = 10;
+/** matchupRev 11: the treasure is a quarter of the round (4 × 10); stronger players chase it harder, per level. */
+const TREASURE_FOCUS: Record<SkillLevel, number> = { weak: 0.5, average: 0.75, good: 1, great: 1.5, near: 2, elite: 3, perfect: 4 };
 
 type Move = [number, number, number, number];
 const special = (k: number) => k === MATCHUP_BOMB || k === MATCHUP_CROSS || k === MATCHUP_STAR || matchupIsJackpot(k);
@@ -95,6 +104,8 @@ export const bot: SkillBot = ({ game, seed, human, fixes }) => {
   const ROWS = matchupRowsOf(init.cells);
   const SWAPS = allSwaps(ROWS);
   const eyeFor = init.goals ? FEATURE_EYE[level]! : 0;
+  /** matchupRev 11: how much more the treasure counts (1 on every older revision, so their bot is unchanged). */
+  const focus = init.std ? TREASURE_FOCUS[level]! : 1;
   /** matchupRev 9: what a swap's own clear does for the goals, the ice and the treasure gem, as the player sees it. */
   const featureValue = (s: MatchupState, cleared: readonly number[]): number => {
     if (!eyeFor) return 0;
@@ -104,7 +115,7 @@ export const bot: SkillBot = ({ game, seed, human, fixes }) => {
       const kind = s.cells[i] ?? -1;
       if (kind >= 0 && kind < 6 && (s.goalLeft?.[kind] ?? 0) > 0) v += 0.8;
       if (s.ice?.[i]) v += 2.5;
-      if (treasure >= 0 && i % MATCHUP_SIZE === treasure % MATCHUP_SIZE && i > treasure) v += 4;
+      if (treasure >= 0 && i % MATCHUP_SIZE === treasure % MATCHUP_SIZE && i > treasure) v += 4 * focus;
     }
     return eyeFor * v;
   };
@@ -141,9 +152,16 @@ export const bot: SkillBot = ({ game, seed, human, fixes }) => {
       const step0 = after.lastAnimation[0];
       // Gems cleared now and specials made; players who know the game favour moves low on the board.
       const low = Math.max(m[0], m[2]) / (ROWS - 1);
-      const value = after.lastCleared.length + 5 * (step0?.created.length ?? 0) + 2 * LOW_BIAS[level]! * low + featureValue(s, step0?.cleared ?? []);
+      let value = after.lastCleared.length + 5 * (step0?.created.length ?? 0) + 2 * LOW_BIAS[level]! * low + featureValue(s, step0?.cleared ?? []);
+      // matchupRev 11: the swap moves the treasure gem itself (down a row, or home).
+      const pulls = Boolean(s.std) && treasureAt >= 0 && (m.some((v, i) => i % 2 === 0 && matchupIndex(m[i]!, m[i + 1]!) === treasureAt));
+      if (pulls) {
+        const home = (after.treasures ?? 0) > (s.treasures ?? 0);
+        const rows = home ? ROWS : Math.floor(after.cells.indexOf(MATCHUP_TREASURE) / MATCHUP_SIZE) - Math.floor(treasureAt / MATCHUP_SIZE);
+        value += eyeFor * focus * (Math.max(0, rows) * PULL_ROW_VALUE + (home ? PULL_HOME_VALUE : 0));
+      }
       const eye = special(s.cells[matchupIndex(m[0], m[1])]!) || special(s.cells[matchupIndex(m[2], m[3])]!);
-      const look = hunt && under(step0?.cleared ?? []) ? 0.25 : 1;
+      const look = hunt && (under(step0?.cleared ?? []) || pulls) ? 0.25 : 1;
       found.push({ m, u: human.u() * (eye ? 0.5 : 1) * look, value });
     }
     if (found.length === 0) {

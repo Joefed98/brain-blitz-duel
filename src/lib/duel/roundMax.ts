@@ -86,14 +86,14 @@ export const ROUND_MAX: Readonly<Record<PuzzleType, number>> = {
   balltrack: 200, // expansion E6, btRev 7
   beat: 200, // expansion E2, beatRev 9; beatRev 10 (phone notes, easier) keeps it
   bintoss: 200,
-  breaker: 200, // expansion E3, brkRev 9 (brkRev 10: phone notes)
+  breaker: 200, // expansion E3, brkRev 9 (brkRev 10: phone notes; brkRev 11: the arcade scoring standard)
   pinball: 200,
   bubble: 200, // expansion E6, bubbleRev 8 (bubbleRev 9: burst credit; bubbleRev 10: the mine's bigger blast)
   bullseye: 200, // expansion E9, bullRev 8
   burst: 200, // expansion E9, burstRev 8
   cross: 200, // Jaywalk crossRev 9 (x200, 26 Oct 2026)
   flip: 200, // expansion X200, flipRev 8 (flipRev 9: lifted curves)
-  hover: 200, // expansion X200, hoverRev 9
+  hover: 200, // expansion X200, hoverRev 9 (hoverRev 10: the arcade scoring standard)
   inkbridge: 200,
   junction: 150,
   matchup: 200, // expansion E6, matchupRev 9
@@ -104,7 +104,7 @@ export const ROUND_MAX: Readonly<Record<PuzzleType, number>> = {
   snake: 200, // expansion E2, snakeRev 9 (snakeRev 10, Joe's phone notes, keeps 200)
   snip: 200, // expansion X200, snipRev 11
   swing: 200, // expansion x200, swingRev 13; the assault course, swingRev 14
-  tilt: 200, // x200, tiltRev 8 (tiltRev 9: lifted curves)
+  tilt: 200, // x200, tiltRev 8 (tiltRev 9: lifted curves; tiltRev 10: the arcade scoring standard)
   wavefront: 200,
   // Retired to practice
   bastion: 150,

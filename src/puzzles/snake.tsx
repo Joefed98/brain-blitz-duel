@@ -169,7 +169,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       { count: (s) => s.goldsEaten ?? 0, sound: "chime" },
       { count: (s) => s.warpsUsed ?? 0, sound: "zap", volume: 0.8 },
       { count: (s) => ((s.combo ?? 0) >= 3 ? s.comboPts ?? 0 : 0), sound: "ding", volume: 0.7 },
-      { count: (s) => Math.trunc((s.laneCells ?? 0) / 4), sound: "tick", volume: 0.5 },
+      // snakeRev 11: a lane ride scores once it reaches its length (laneRides); older rounds every 4 squares.
+      { count: (s) => (s.std ? s.laneRides ?? 0 : Math.trunc((s.laneCells ?? 0) / 4)), sound: "tick", volume: 0.5 },
     ]);
 
     const finish = () => {
