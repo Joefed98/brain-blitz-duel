@@ -77,7 +77,7 @@ import {
   SWING_V9_BAND_CURVE,
   type SwingState,
 } from "../src/lib/arcade/swing";
-import { orbitCheckpoint, ORBIT_INPUT_TAP, ORBIT_REV_SWEPT, ORBIT_REV_TALL, ORBIT_REV_XP, ORBIT_TOTAL } from "../src/lib/arcade/orbit";
+import { orbitCheckpoint, ORBIT_INPUT_TAP, ORBIT_REV_SWEPT, ORBIT_REV_TALL, ORBIT_REV_STD, ORBIT_TOTAL } from "../src/lib/arcade/orbit";
 import {
   decodeOrbitHoles,
   decodeRev3Planets,
@@ -208,10 +208,12 @@ section("New rounds: stamps, start states, checksums, worlds by revision");
     ok(generateSwing().swingRev === SWING_REV_REWORK, "rooms deal swingRev 15 (the swinging course) unpinned");
     const orbit = generateOrbit();
     // The expansion to 200 (docs/expansions/x200-orbit.md) moved Orbit on to orbitRev 12 (its 450 × 782 view); orbit-expand-check covers it.
-    ok(orbit.orbitRev === ORBIT_REV_XP && orbit.planets?.length === ORBIT_TOTAL + 1, "rooms deal orbitRev 12 with the course's planets");
+    // The arcade scoring standard (29 Oct 2026) then moved it to orbitRev 13, orbitRev 12's play and view on the standard.
+    ok(orbit.orbitRev === ORBIT_REV_STD && orbit.planets?.length === ORBIT_TOTAL + 1, "rooms deal orbitRev 13 (orbitRev 12's play) with the course's planets");
     const bt = generateBallTrack();
-    // Expansion E6 (25 Oct 2026) moved Ball Tracker on to its 13-row board (btRev 7, its own bank); e6-check covers it.
-    ok(bt.btRev === BT_REV_TALL + 3 && bt.course.rows === 13, "rooms deal btRev 7 (expansion E6, after btRev 4)");
+    // Expansion E6 (25 Oct 2026) moved Ball Tracker on to its 13-row board (btRev 7, its own bank); e6-check covers it. The arcade
+    // scoring standard (29 Oct 2026) deals btRev 8, btRev 7's play re-scored (arcade-standard-check).
+    ok(bt.btRev === BT_REV_TALL + 4 && bt.course.rows === 13, "rooms deal btRev 8 (btRev 7's play, expansion E6, after btRev 4)");
   }
   for (const [type, field, rev] of [["swing", "swingRev", SWING_REV_TALL], ["orbit", "orbitRev", ORBIT_REV_TALL], ["balltrack", "btRev", BT_REV_TALL]] as const)
     ok(puzzleUsesBands({ type, [field]: rev } as never), `${type} ${rev} scores on the bands`);
@@ -532,10 +534,12 @@ section("Intro demos stay stopped until re-recorded on the taller revision");
   // Grappler's 200 expansion: its demo played only on swingRev 13 (swing-x200-check); the assault course's only on swingRev
   // 14; the swinging course's only on swingRev 15.
   ok(/data\.type === "swing" && demo\?\.puzzle\.type === "swing" && demo\.puzzle\.swingRev !== SWING_REV_REWORK\) return null/.test(src), "Grappler's demo plays only on swingRev 15");
-  // The expansion to 200: Orbit's demo now waits for one recorded on orbitRev 12 (orbit-expand-check).
-  ok(/data\.type === "orbit" && demo\?\.puzzle\.type === "orbit" && demo\.puzzle\.orbitRev !== ORBIT_REV_XP\) return null/.test(src), "Orbit's demo plays only on orbitRev 12");
+  // The expansion to 200: Orbit's demo waited for one recorded on orbitRev 12 (orbit-expand-check); the arcade scoring
+  // standard (orbitRev 13, as flipRev 9) waits for one recorded on orbitRev 13.
+  ok(/data\.type === "orbit" && demo\?\.puzzle\.type === "orbit" && demo\.puzzle\.orbitRev !== ORBIT_REV_STD\) return null/.test(src), "Orbit's demo plays only on orbitRev 13");
   // Expansion E6: Ball Tracker's demo now plays only on btRev 7 (e6-check).
-  ok(/data\.type === "balltrack" && demo\?\.puzzle\.type === "balltrack" && demo\.puzzle\.btRev !== BT_REV_RUSH\) return null/.test(src), "Ball Tracker's demo plays only on btRev 7");
+  // btRev 8 (the arcade scoring standard) keeps btRev 7's play: a demo recorded on 7 or 8 plays.
+  ok(/data\.type === "balltrack" && demo\?\.puzzle\.type === "balltrack" && !btIsV7Play\(demo\.puzzle\.btRev\)\) return null/.test(src), "Ball Tracker's demo plays only on btRev 7 or 8");
 }
 
 if (failures.length) {

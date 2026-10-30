@@ -1,5 +1,5 @@
 /**
- * Grappler's swinging course (swingRev 15, docs/grappler-rework-oct-2026.md): a person swinging hook to hook with
+ * Grappler's swinging course (swingRev 15, docs/arcade-standard/swing.md): a person swinging hook to hook with
  * short ledge runs between. On a rope they pick the release for the line they want (the next hook caught well, or
  * the landing ledge), a keen player swiping up first for a star on a tighter swing; in the air they pick the moment
  * to grab. Standing on a ledge they look at the section (reaction and thinking time) and press. Every moment is an

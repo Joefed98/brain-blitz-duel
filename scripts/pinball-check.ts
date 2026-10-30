@@ -413,8 +413,9 @@ let replayMs = 0;
   ok(RETIRED_ARCADE_GAMES.includes("pinball") === !PINBALL_IN_ROOMS && ACTIVE_ARCADE_GAMES.includes("pinball") === PINBALL_IN_ROOMS && ACTIVE_ARCADE_GAMES.length === 20 + (PINBALL_IN_ROOMS ? 1 : 0), "the active arcade list follows the switch");
   const puzzle = generatePuzzle("pinball") as any;
   // pinRev 4 (E4, 25 Oct 2026): the taller table's expansion follows the score-bands pinRev 3 (e4-expansion-check); pinRev 5
-  // (27 Oct 2026) plays it for 90 s (pinball-90-check).
-  ok(puzzle.type === "pinball" && puzzle.pinRev === PIN_REV_TARGET + 3 && Number.isInteger(puzzle.seed), "the generator stamps pinRev 5 (the 90 s table, after the expansion pinRev 4, after pinRev 1 play on the scoring targets pinRev 2, scoring-targets-check, and on the score bands pinRev 3, scoring-bands-check)");
+  // (27 Oct 2026) plays it for 90 s (pinball-90-check); pinRev 6 (29 Oct 2026) scores pinRev 5's play on the arcade
+  // scoring standard (pinball-standard-check).
+  ok(puzzle.type === "pinball" && puzzle.pinRev === PIN_REV_TARGET + 4 && Number.isInteger(puzzle.seed), "the generator stamps pinRev 6 (pinRev 5's 90 s table on the arcade scoring standard, after the expansion pinRev 4, after pinRev 1 play on the scoring targets pinRev 2, scoring-targets-check, and on the score bands pinRev 3, scoring-bands-check)");
 }
 
 /* ------------------------------------------------------------------ 6 */

@@ -24,7 +24,7 @@ import {
   bullseyeAimPointFor,
   bullseyeBoard,
   bullseyeIsBull,
-  BULLSEYE_REV_EXPAND,
+  bullseyeTallRev,
   BULLSEYE_V8_LIFT,
   BULLSEYE_ARROWS,
   BULLSEYE_BG,
@@ -113,8 +113,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const data: BullseyePuzzleData | null = puzzle.type === "bullseye" ? puzzle : null;
   const seed = data?.seed ?? 1;
   const fairSceneKey = useFairSceneKey();
-  // bullRev 8: the taller range (lift px above the original top); every phone draws the stored revision's world.
-  const lift = data?.bullRev === BULLSEYE_REV_EXPAND ? BULLSEYE_V8_LIFT : 0;
+  // bullRev 8 and 9: the taller range (lift px above the original top); every phone draws the stored revision's world.
+  const lift = bullseyeTallRev(data?.bullRev) ? BULLSEYE_V8_LIFT : 0;
   const worldH = BULLSEYE_WORLD_H + lift;
 
   const wrap = useRef<HTMLDivElement | null>(null);
@@ -416,7 +416,7 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
           {result.innerBulls} inner bull{result.innerBulls === 1 ? "" : "s"} · {result.pops} of {result.balloons} balloons{result.tuned ? ` (+${result.balloonPoints})` : ""}
         </p>
       ) : null}
-      {puzzle.bullRev === BULLSEYE_REV_EXPAND ? (
+      {bullseyeTallRev(puzzle.bullRev) ? (
         <p className="shrink-0 text-center font-mono text-base text-muted-foreground">
           {result.hits.filter(bullseyeIsBull).length} bulls · best streak ×{bestStreak(result.hits)} · dead-centre {result.hits.filter((hit) => hit.dc === 1).length}
         </p>

@@ -9,7 +9,7 @@ import {
   WAV_REV_SHAPES,
   WAV_REV_TUNEC,
   WAV_REV_TALL,
-  WAV_REV_TARGET, WAV_REV_STRICT, WAV_REV_EXPAND, WAV_REV_PHONE,
+  WAV_REV_TARGET, WAV_REV_STRICT, WAV_REV_EXPAND, WAV_REV_PHONE, WAV_REV_STD,
   WAV_CHECKPOINT_INTERVAL,
   WAV_CHECKPOINT_KEYS,
   type WavCheckpoint,
@@ -102,6 +102,15 @@ const runPhone = makeArcadeRun<WavState, WavCheckpoint>({
   interval: WAV_CHECKPOINT_INTERVAL,
 });
 
+/** The arcade scoring standard (wavRev 12): wavRev 11 play scored in fixed parts that total 200. */
+const runStd = makeArcadeRun<WavState, WavCheckpoint>({
+  tag: "wavefront",
+  game: wavefrontGameFor(WAV_REV_STD),
+  checkpoint: wavCheckpoint,
+  keys: WAV_CHECKPOINT_KEYS,
+  interval: WAV_CHECKPOINT_INTERVAL,
+});
+
 export type WavefrontRun = FlatRun<WavCheckpoint>;
 
 export interface WavefrontResult extends FlatReplay<WavState, WavCheckpoint> {
@@ -129,7 +138,7 @@ export const decodeWavefrontRun = run.decode;
 
 /** The single place a Wavefront score is worked out. */
 export function replayWavefrontRun(seed: number, raw: string, rev?: number | null): WavefrontResult {
-  const result = (rev === WAV_REV_PHONE ? runPhone : rev === WAV_REV_EXPAND ? runExpand : rev === WAV_REV_STRICT ? runStrict : rev === WAV_REV_TARGET ? runTarget : rev === WAV_REV_TALL ? runTall : rev === WAV_REV_TUNEC ? runTunec : rev === WAV_REV_SHAPES ? runShapes : rev === WAV_REV_BAND ? runBand : rev === WAV_REV ? runV2 : run).replay(seed, raw);
+  const result = (rev === WAV_REV_STD ? runStd : rev === WAV_REV_PHONE ? runPhone : rev === WAV_REV_EXPAND ? runExpand : rev === WAV_REV_STRICT ? runStrict : rev === WAV_REV_TARGET ? runTarget : rev === WAV_REV_TALL ? runTall : rev === WAV_REV_TUNEC ? runTunec : rev === WAV_REV_SHAPES ? runShapes : rev === WAV_REV_BAND ? runBand : rev === WAV_REV ? runV2 : run).replay(seed, raw);
   const s = result.state;
   return {
     ...result,

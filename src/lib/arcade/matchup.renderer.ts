@@ -14,7 +14,7 @@ import {
   MATCHUP_CLEAR_MS, MATCHUP_COLOURS, MATCHUP_CROSS, MATCHUP_DETONATE_MS, MATCHUP_DROP_MS, MATCHUP_GOLD,
   MATCHUP_NEXT_H, MATCHUP_NEXT_Y, MATCHUP_QUEUE_LEN, MATCHUP_ROWS, MATCHUP_SHAPES, MATCHUP_SIZE, MATCHUP_STAR,
   MATCHUP_SYMBOL_PCT, MATCHUP_TEXT, MATCHUP_JACKPOT, MATCHUP_WORLD_H, MATCHUP_WORLD_W, matchupIsJackpot, matchupPending, matchupStepTiming,
-  matchupHintSwap, matchupRowsOf, matchupWorldH, MATCHUP_TREASURE, MATCHUP_V9_PANEL_Y, MATCHUP_V9_TREASURES,
+  matchupHintSwap, matchupRowsOf, matchupWorldH, MATCHUP_TREASURE, MATCHUP_V9_PANEL_Y, matchupTreasuresOf, MATCHUP_V11_GOAL_LEVELS,
   type MatchupAnimStep, type MatchupState,
 } from "./matchup";
 import { artHash, reducedMotion } from "./art.renderer";
@@ -881,13 +881,15 @@ function drawGoalsPanel(ctx: CanvasRenderingContext2D, state: MatchupState, time
   ctx.textAlign = "left";
   ctx.font = "700 12px 'JetBrains Mono', ui-monospace, monospace";
   ctx.fillStyle = MATCHUP_GOLD;
-  ctx.fillText(`LEVEL ${(state.level ?? 0) + 1}`, x + 12, y + 17);
+  // matchupRev 11: four goal levels; once all are met the panel says so (no level 5).
+  const allMet = Boolean(state.std) && (state.level ?? 0) >= MATCHUP_V11_GOAL_LEVELS;
+  ctx.fillText(allMet ? "ALL GOALS MET" : state.std ? `LEVEL ${(state.level ?? 0) + 1}/${MATCHUP_V11_GOAL_LEVELS}` : `LEVEL ${(state.level ?? 0) + 1}`, x + 12, y + 17);
   ctx.fillStyle = "rgba(247,247,248,0.62)";
-  ctx.fillText("COLLECT", x + 12, y + 33);
+  if (!allMet) ctx.fillText("COLLECT", x + 12, y + 33);
   // Goal gems: a gem, then the count still needed (a tick once done).
   const goal = state.goalLeft ?? [];
   const need = state.plan?.need[Math.min(state.level ?? 0, (state.plan?.need.length ?? 1) - 1)] ?? 0;
-  const colours = goal.flatMap((left, kind) => ((state.plan?.colours[Math.min(state.level ?? 0, (state.plan?.colours.length ?? 1) - 1)] ?? []).includes(kind) ? [{ kind, left }] : []));
+  const colours = allMet ? [] : goal.flatMap((left, kind) => ((state.plan?.colours[Math.min(state.level ?? 0, (state.plan?.colours.length ?? 1) - 1)] ?? []).includes(kind) ? [{ kind, left }] : []));
   colours.forEach(({ kind, left }, i) => {
     const gx = x + 96 + i * 66;
     drawMatchupGem(ctx, kind, gx, y + 25, 11, time);
@@ -907,10 +909,11 @@ function drawGoalsPanel(ctx: CanvasRenderingContext2D, state: MatchupState, time
   if (iceSprite) ctx.drawImage(iceSprite as CanvasImageSource, x + 12, y + 54, 20, 20);
   ctx.fillText(`${iceLeft} left`, x + 37, y + 64);
   drawMatchupGem(ctx, MATCHUP_TREASURE, x + 120, y + 64, 9, time);
-  ctx.fillText(`${state.treasures ?? 0}/${MATCHUP_V9_TREASURES}`, x + 134, y + 64);
+  ctx.fillText(`${state.treasures ?? 0}/${matchupTreasuresOf(state)}`, x + 134, y + 64);
   ctx.fillStyle = MATCHUP_GOLD;
   ctx.textAlign = "right";
-  ctx.fillText(`cascades +${state.cascadeExtra ?? 0}`, x + w - 12, y + 64);
+  // matchupRev 11 pays lines of 4 or 5 (the cascade multiplier no longer scores); older revisions keep the cascade count.
+  ctx.fillText(state.std ? `big lines ${state.bigLines ?? 0}` : `cascades +${state.cascadeExtra ?? 0}`, x + w - 12, y + 64);
   ctx.restore();
 }
 

@@ -14,7 +14,7 @@ import { withSeededRandom } from "../src/lib/duel/random";
 import { INTRO_EXAMPLE_SEED } from "../src/lib/duel/puzzleDemo";
 import type { PuzzleType } from "../src/lib/duel/types";
 import { ACTIVE_ARCADE_GAMES, ARCADE_FX_SPECS } from "../src/lib/arcade/arcadeFxGames.renderer";
-import { ORBIT_REV_XP } from "../src/lib/arcade/orbit";
+import { orbitXpRev } from "../src/lib/arcade/orbit";
 
 // Happy DOM parses DOM only. Budgets below are CSS arithmetic, NOT pixel measurements.
 const room = readFileSync("src/routes/duel.$code.tsx", "utf8").split("const frameScore")[1] ?? "";
@@ -56,7 +56,7 @@ for (const [key, definition] of active) {
     // play-control-clearance-check proves both on every course and frame): exactly that one row in the arena, absolutely
     // placed 4px in from its top and right, holding the one 44px button. Every other control still sits below the slot.
     const inSlot = [...slot.querySelectorAll("[data-game-controls], button")];
-    if (key === "orbit" && (puzzle as { orbitRev?: number }).orbitRev === ORBIT_REV_XP) {
+    if (key === "orbit" && orbitXpRev((puzzle as { orbitRev?: number }).orbitRev)) {
       const row = slot.querySelector("[data-game-arena] > [data-orbit-zone]");
       assert.ok(row && row.getAttribute("data-game-controls") === "checkpoint", `${key}: the checkpoint row sits in the world's reserved corner`);
       const cls = ` ${row!.getAttribute("class") ?? ""} `;

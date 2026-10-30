@@ -81,7 +81,7 @@ import {
 import { encodeBinTossRun, replayBinTossRun } from "../src/lib/duel/binToss";
 import { BINTOSS_REV_EXPAND } from "../src/lib/arcade/binToss";
 import { generateBeat, generateBinToss, generateBullseye, generateInkBridge, generateOrbit, generateRally } from "../src/lib/duel/arcade.server";
-import { orbitCheckpoint, ORBIT_INPUT_CHECKPOINT, ORBIT_INPUT_TAP, ORBIT_REV4, ORBIT_REV_SWEPT, ORBIT_REV_TUNED, ORBIT_REV_XP, ORBIT_TOTAL } from "../src/lib/arcade/orbit";
+import { orbitCheckpoint, ORBIT_INPUT_CHECKPOINT, ORBIT_INPUT_TAP, ORBIT_REV4, ORBIT_REV_SWEPT, ORBIT_REV_TUNED, ORBIT_REV_STD, ORBIT_TOTAL } from "../src/lib/arcade/orbit";
 import { decodeOrbitHoles, decodeRev3Planets, initRev4From, orbitRev3Game, ORBIT_REV3_WORLD_W, type OrbitRev3State } from "../src/lib/arcade/orbitRev3";
 import { ORBIT_HOLE_BANK } from "../src/lib/duel/orbitHoleBank.server";
 import { ORBIT_REV3_BANK } from "../src/lib/duel/orbitRev3Bank.server";
@@ -116,7 +116,7 @@ section("legacy identity");
 if (want("bintoss")) {
   section("Swish binRev 3 (bonus hoops, spinners, wind on today's bucket)");
   const game = binTossGameFor(BINTOSS_REV3);
-  ok([BINTOSS_REV_BAND + 2, BINTOSS_REV_EXPAND + 1].includes(generateBinToss().binRev ?? -1), "new rounds are stamped binRev 6 (rev 4 play with the shorter spinner: binRev 5, scoring-targets-check; on the score bands: binRev 6, scoring-bands-check) or binRev 8 (binRev 7, the world expansion, with the smaller far bucket of the phone notes; expansion-e5-check)");
+  ok([BINTOSS_REV_BAND + 2, BINTOSS_REV_EXPAND + 1, BINTOSS_REV_EXPAND + 2].includes(generateBinToss().binRev ?? -1), "new rounds are stamped binRev 6 (rev 4 play with the shorter spinner: binRev 5, scoring-targets-check; on the score bands: binRev 6, scoring-bands-check) or binRev 8 (binRev 7, the world expansion, with the smaller far bucket of the phone notes; expansion-e5-check) or binRev 9 (binRev 8 on the arcade scoring standard; bintoss-standard-check)");
   ok(binTossGameFor(undefined) === binTossGame && binTossGame.init(5).hoops === undefined, "unstamped rounds keep the original game");
   ok(binTossGameFor(BINTOSS_REV2).init(5).hoops === undefined, "rev-2 rounds have no hoops or spinners");
   ok(JSON.stringify(game.init(77)) === JSON.stringify(game.init(77)), "hoops and spinners are seeded");
@@ -237,7 +237,7 @@ if (want("rally")) {
   section("Rally rallyRev 2 (far-wall targets, bumper from 30 s)");
   const game = rallyGameFor(RALLY_REV);
   // Expansion E9 (docs/expansions/e9.md) then moved Rally on to rallyRev 10; expansion-e9-check covers it.
-  ok(playRevOf("rally", generateRally().rallyRev) === RALLY_REV_TUNEF + 6 && RALLY_REV_TUNED === 4 && RALLY_REV_BAND === 3, "new rounds are stamped rallyRev 11 (phone notes 27 Oct 2026, after rallyRev 10: expansion E9, after rallyRev 6: the taller court, arcade-tuning-g1-check; rallyRev 5 = Tuning F second bumper, arcade-tuning-f-check; rallyRev 4 = Tuning B pads in their own halves; rallyRev 3 = rev 2 play on the score bands)");
+  ok(playRevOf("rally", generateRally().rallyRev) === RALLY_REV_TUNEF + 7 && RALLY_REV_TUNED === 4 && RALLY_REV_BAND === 3, "new rounds are stamped rallyRev 12 (the arcade scoring standard 29 Oct 2026, rally-standard-check; after rallyRev 11: phone notes 27 Oct 2026, after rallyRev 10: expansion E9, after rallyRev 6: the taller court, arcade-tuning-g1-check; rallyRev 5 = Tuning F second bumper, arcade-tuning-f-check; rallyRev 4 = Tuning B pads in their own halves; rallyRev 3 = rev 2 play on the score bands)");
   ok(rallyGameFor(undefined) === rallyGame && rallyGame.init(5).spots === undefined, "unstamped rounds keep the original game");
   for (const seed of SEEDS(200, 7919)) {
     const a = game.init(seed);
@@ -317,7 +317,7 @@ if (want("inkbridge")) {
   section("Rainbow Bridge inkRev 4 (optional gold stars)");
   const game = inkBridgeGameFor(INK_REV4);
   // Rooms dealt rev 4 play (inkRev 6 to 8) until x200 moved them on to inkRev 10 (ink-x200-check).
-  ok(generateInkBridge().inkRev === INK_REV_SPREAD && playRevOf("inkbridge", INK_REV_STRICT) === INK_REV_TUNEC, "rooms deal inkRev 11 (phone notes, on x200's inkRev 10 world); inkRev 8 kept rev 4 play on the score bands (Tuning C curve)");
+  ok(playRevOf("inkbridge", generateInkBridge().inkRev) === INK_REV_SPREAD && playRevOf("inkbridge", INK_REV_STRICT) === INK_REV_TUNEC, "rooms deal inkRev 11's play (phone notes, on x200's inkRev 10 world; inkRev 12 re-scores it on the arcade standard); inkRev 8 kept rev 4 play on the score bands (Tuning C curve)");
   ok(inkBridgeGameFor(INK_REV3).init(5).stars === undefined, "rev-3 rounds have no stars");
   const seeds = SEEDS(Number(process.env.BATCH5_INK_SEEDS ?? 12), 7919);
   for (const seed of seeds) {
@@ -359,8 +359,9 @@ if (want("orbit")) {
       // Score bands (Oct 2026), Tuning A, Tuning F, then taller worlds batch 3: every bank course is stamped orbitRev 8
       // (rev-7 play, swept holes, in the taller view; arcade-tuning-g3-check), with its holes when it has them.
       // The expansion to 200 (docs/expansions/x200-orbit.md) then moved every room to orbitRev 12 on a feature-bank
-      // course (all of them carry holes); orbit-expand-check covers it.
-      ok(p.orbitRev === ORBIT_REV_XP && ORBIT_REV_TUNED === 6 && p.planets?.length === ORBIT_TOTAL + 1, "new rounds are stamped orbitRev 12 and ship their planets");
+      // course (all of them carry holes); orbit-expand-check covers it. The arcade scoring standard (29 Oct 2026) then
+      // moved rooms to orbitRev 13, orbitRev 12's play on the standard (arcade-standard-check covers it).
+      ok(p.orbitRev === ORBIT_REV_STD && ORBIT_REV_TUNED === 6 && p.planets?.length === ORBIT_TOTAL + 1, "new rounds are stamped orbitRev 13 (orbitRev 12's play) and ship their planets");
       if ((p.holes?.length ?? 0) > 0) {
         stamped++;
         ok(p.holes?.length === 3, "courses with holes ship all three");

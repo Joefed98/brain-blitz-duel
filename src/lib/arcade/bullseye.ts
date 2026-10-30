@@ -20,6 +20,7 @@ import {
   type DragLaunch,
   type InputRange,
 } from "./engine";
+import { stdLine, stdPart, stdScore, type StdPart, type StdSpec } from "./arcadeStandard";
 import { BAND_STRICT_MARK, bandStrictGame, bandStrict, bandRetarget, bandTargetGame, bandCurveOf, BAND_TARGET_MARK, bandCurve, bandInit, bandPoints, bandScoreOf, bandStep, bandTotal, type BandFields, type BandParts } from "./scoreBands";
 
 /* ============================== Constants ============================== */
@@ -364,6 +365,8 @@ export interface BullseyeState extends BandFields {
   streakPts?: number;
   /** bullRev 8: darts in the dead-centre ring so far. */
   dead?: number;
+  /** bullRev 9 only (the arcade scoring standard): 1 marks a run scored on BULLSEYE_STD_SPEC. Absent on every earlier round. */
+  std?: number;
 }
 
 export function bullseyeWinds(seed: number): number[] {
@@ -566,6 +569,8 @@ export function bullseyeCheckpoint(state: BullseyeState): BullseyeCheckpoint {
   if (state.tune === BULLSEYE_TUNE) values.push(state.tune, bullseyeBalloonPoints(state));
   // bullRev 8 adds its marker, the streak and its points last; every older sum is unchanged.
   if (state.expand === BULLSEYE_EXPAND) values.push(state.expand, state.streak ?? 0, state.streakPts ?? 0, state.dead ?? 0);
+  // bullRev 9 adds its marker last; every older sum is unchanged.
+  if (state.std === BULLSEYE_STD) values.push(state.std);
   for (const value of values) {
     checksum ^= value | 0;
     checksum = Math.imul(checksum, 0x01000193) >>> 0;
@@ -815,6 +820,7 @@ export const bullseyeRev2Game: ArcadeGame<BullseyeState, ArcadeInputEvent | null
 
 /** Takes puzzle.bullRev; anything else is the original game. */
 export function bullseyeGameFor(rev?: number | null): ArcadeGame<BullseyeState, ArcadeInputEvent | null> {
+  if (rev === BULLSEYE_REV_STD) return bullseyeStdGame;
   if (rev === BULLSEYE_REV_EXPAND) return bullseyeExpandGame;
   if (rev === BULLSEYE_REV_STRICT) return bullseyeStrictGame;
   if (rev === BULLSEYE_REV_TARGET) return bullseyeTargetGame;
@@ -825,6 +831,7 @@ export function bullseyeGameFor(rev?: number | null): ArcadeGame<BullseyeState, 
 
 /** Start state for a stored round: its own winds and its own revision. */
 export function bullseyeInitFor(seed: number, storedWinds: readonly number[] | undefined, rev?: number | null): BullseyeState {
+  if (rev === BULLSEYE_REV_STD) return bullseyeInitRev9(seed, storedWinds);
   if (rev === BULLSEYE_REV_EXPAND) return bullseyeInitRev8(seed, storedWinds);
   if (rev === BULLSEYE_REV_STRICT) return { ...bandInit(bullseyeInitRev4(seed, storedWinds)), band: BAND_STRICT_MARK };
   if (rev === BULLSEYE_REV_TARGET) return { ...bandInit(bullseyeInitRev4(seed, storedWinds)), band: BAND_TARGET_MARK };
@@ -996,6 +1003,7 @@ export const BULLSEYE_REV_BAND = 3;
 export const BULLSEYE_BAND_CURVE = bandCurve([0, 72, 82, 94, 102, 110], [0, 70, 100, 125, 145, 150]);
 
 export function bullseyeBandParts(state: BullseyeState): BandParts {
+  if (state.std === BULLSEYE_STD) return bullseyeV9BandParts(state);
   if (state.expand === BULLSEYE_EXPAND) return bullseyeV8Parts(state);
   const units = Math.max(0, state.total);
   const curve = bandCurveOf(state, state.tune === BULLSEYE_TUNE ? BULLSEYE_V4_BAND_CURVE : BULLSEYE_BAND_CURVE);
@@ -1003,6 +1011,7 @@ export function bullseyeBandParts(state: BullseyeState): BandParts {
 }
 
 function scoreBand(state: BullseyeState): number {
+  if (state.std === BULLSEYE_STD) return stdScore(bullseyeStdParts(state)!, Boolean(state.acted));
   if (state.expand === BULLSEYE_EXPAND) return bandTotal(bullseyeBandParts(state), Boolean(state.acted), BULLSEYE_V8_MAX);
   return bandTotal(bullseyeBandParts(state), Boolean(state.acted));
 }
@@ -1215,9 +1224,33 @@ export function bullseyeInDeadCentre(x: number, y: number, scalePct: number, val
   return (dx * dx + dy * dy) * BULLSEYE_V8_DEAD_DIV * BULLSEYE_V8_DEAD_DIV * 10_000 <= (BULLSEYE_OUTER_R * scalePct) ** 2;
 }
 
-/** bullRev 8's dead-centre points as the score counts them. */
-export function bullseyeDeadPoints(state: Pick<BullseyeState, "dead">): number {
+/**
+ * The darts that have a dead-centre ring on this run: those whose centre ring is the 10 (darts 1–6 always, darts 7–10
+ * when the shuffle left the 10 in the middle). Fixed at init from the seed (ringValues).
+ */
+export function bullseyeDeadDarts(state: Pick<BullseyeState, "ringValues">): number {
+  let n = 0;
+  for (let arrow = 0; arrow < BULLSEYE_ARROWS; arrow++) if (bullseyeRingValues(state, arrow)[0] === 10) n++;
+  return n;
+}
+
+/**
+ * Dead-centre points as the score counts them. bullRev 8: BULLSEYE_V8_DEAD_PTS each, up to BULLSEYE_V8_DEAD_CAP.
+ * bullRev 9: BULLSEYE_V9_DEAD_CAP shared between the darts that have a dead-centre ring, floor(20 × hit ÷ darts).
+ */
+export function bullseyeDeadPoints(state: Pick<BullseyeState, "dead"> & Partial<Pick<BullseyeState, "std" | "ringValues">>): number {
+  if (state.std === BULLSEYE_STD) return stdLine(BULLSEYE_V9_DEAD_CAP, state.dead ?? 0, state.ringValues ? bullseyeDeadDarts(state as Pick<BullseyeState, "ringValues">) : 0);
   return Math.min(BULLSEYE_V8_DEAD_CAP, BULLSEYE_V8_DEAD_PTS * (state.dead ?? 0));
+}
+
+/**
+ * What the latest dead-centre dart added (the renderer's "DEAD CENTRE +n"): bullRev 8's 7; on bullRev 9 its share of the
+ * 20 (the points with this dart less the points without it; 2–4 depending on the seed's dead-centre darts).
+ */
+export function bullseyeDeadEach(state: Pick<BullseyeState, "dead"> & Partial<Pick<BullseyeState, "std" | "ringValues">>): number {
+  if (state.std !== BULLSEYE_STD) return BULLSEYE_V8_DEAD_PTS;
+  const d = Math.max(1, state.dead ?? 0);
+  return bullseyeDeadPoints({ ...state, dead: d }) - bullseyeDeadPoints({ ...state, dead: d - 1 });
 }
 
 /** bullRev 8's start state: bullRev 6's draws (winds, drift, ring swaps), then each dart's board, then the value balloons. */
@@ -1264,3 +1297,93 @@ function bullseyeV8Parts(state: BullseyeState): BandParts {
 
 /** bullRev 8: the taller range with boards at five distances, the bullseye streak and the dead-centre ring, scored to 200. */
 export const bullseyeExpandGame: ArcadeGame<BullseyeState, ArcadeInputEvent | null> = { ...bullseyeRev2Game, init: (seed) => bullseyeInitRev8(seed) };
+
+/* ============ The arcade scoring standard (bullRev 9, 29 Oct 2026; docs/arcade-standard/bullseye.md) ============ */
+
+/**
+ * bullRev 9: bullRev 8's play exactly (the range, boards, winds, sway, drift, shuffles, balloons, the bull streak and
+ * the dead-centre ring, all drawn from the seed at init as before), scored on the arcade scoring standard
+ * (arcadeStandard.ts), with no curve:
+ *
+ *  - core, up to BULLSEYE_V9_CORE_MAX (150): the dart total exactly as bullRev 8 counts it (rings, 12 for an inner
+ *    bull, +1 / +2 / +3 for each balloon popped) on a straight line, full at BULLSEYE_V9_FULL_AT (112). Joe's row said
+ *    130, but no seed allows that: a dart scores at most 12, and only where the 10 is the centre ring, and a balloon
+ *    often can't be popped by a dart that also lands in the dead centre. Every dart a bull and every dead centre hit
+ *    is a total of at least 100 + 2 × (6 or more dead-centre darts) = 112 on any seed, so a perfect run fills the core
+ *    (and scores 200) on every seed;
+ *  - bull streak, up to BULLSEYE_V8_STREAK_CAP (30): bullRev 8's streak points exactly ("as today": the third bull in a
+ *    row +2, the fourth +4, and so on);
+ *  - dead-centre, up to BULLSEYE_V9_DEAD_CAP (20): shared between the darts that have bullRev 8's dead-centre ring (those
+ *    whose centre ring is the 10, 6–9 a seed): floor(20 × hit ÷ darts), so every dead centre hit fills it on any seed
+ *    (Joe's row said 2 a dart, which would top out at 12–18).
+ *
+ * Both features are earned only by bulls, so earning one never costs dart total. States add `std: 1` (folded into the
+ * checkpoint checksum last); a run with no input scores 0, any played run at least 1.
+ */
+export const BULLSEYE_REV_STD = 9;
+export const BULLSEYE_STD = 1;
+export const BULLSEYE_V9_CORE_MAX = 150;
+/** The dart total at which the core is full: what a perfect run reaches on any seed (docs/arcade-standard/bullseye.md). */
+export const BULLSEYE_V9_FULL_AT = 112;
+export const BULLSEYE_V9_DEAD_CAP = 20;
+/** bullRev 9's core line: 0 → BULLSEYE_V9_CORE_MAX at BULLSEYE_V9_FULL_AT (LIVE_BANDS' listed curve). */
+export const BULLSEYE_V9_BAND_CURVE = bandCurve([0, BULLSEYE_V9_FULL_AT], [0, BULLSEYE_V9_CORE_MAX]);
+
+export const BULLSEYE_STD_SPEC: StdSpec = {
+  field: "bullRev",
+  rev: BULLSEYE_REV_STD,
+  parts: [
+    {
+      key: "core",
+      label: "Dart total",
+      max: BULLSEYE_V9_CORE_MAX,
+      how: `full at a total of ${BULLSEYE_V9_FULL_AT}: rings ${BULLSEYE_RING_VALUES.join(" / ")} from the centre out, the inner bull ${BULLSEYE_INNER_BULL_POINTS}, plus +1, +2 or +3 for each balloon popped`,
+    },
+    {
+      key: "streak",
+      label: "Bull streaks",
+      max: BULLSEYE_V8_STREAK_CAP,
+      how: `the third gold 10 in a row +${BULLSEYE_V8_STREAK_STEP}, the fourth +${2 * BULLSEYE_V8_STREAK_STEP}, and so on`,
+    },
+    { key: "dead", label: "Dead-centre darts", max: BULLSEYE_V9_DEAD_CAP, how: "shared between the darts whose 10 is the middle ring, about 2 or 3 each" },
+  ],
+};
+
+/** bullRev 9's parts (core, bull streak, dead-centre); null for a state on any earlier revision. */
+export function bullseyeStdParts(state: BullseyeState): StdPart[] | null {
+  if (!state || state.std !== BULLSEYE_STD) return null;
+  const total = Math.max(0, state.total);
+  const dead = state.dead ?? 0;
+  return [
+    stdPart(BULLSEYE_STD_SPEC, "core", stdLine(BULLSEYE_V9_CORE_MAX, total, BULLSEYE_V9_FULL_AT), `${total} points from ${state.arrowIndex} darts`),
+    stdPart(BULLSEYE_STD_SPEC, "streak", bullseyeStreakPoints(state), `${state.streakPts ?? 0} streak points`),
+    stdPart(BULLSEYE_STD_SPEC, "dead", bullseyeDeadPoints(state), `${dead} of ${bullseyeDeadDarts(state)} dead-centre`),
+  ];
+}
+
+/** bullRev 9 for the skill-band tool and the band reveal: units the dart total, points the core, bonus the features. */
+function bullseyeV9BandParts(state: BullseyeState): BandParts {
+  const parts = bullseyeStdParts(state)!;
+  return {
+    units: Math.max(0, state.total),
+    points: parts[0]!.points,
+    bonus: parts[1]!.points + parts[2]!.points,
+    penalty: 0,
+    finished: false,
+    text: parts[0]!.detail,
+    bonusText: `Bull streak +${parts[1]!.points} · dead-centre ${state.dead ?? 0} +${parts[2]!.points}`,
+  };
+}
+
+/** bullRev 9's start state: bullRev 8's exactly (every draw), plus the standard's marker. */
+export function bullseyeInitRev9(seed: number, storedWinds?: readonly number[]): BullseyeState {
+  return { ...bullseyeInitRev8(seed, storedWinds), std: BULLSEYE_STD };
+}
+
+/** bullRev 9: bullRev 8's play on the arcade scoring standard. */
+export const bullseyeStdGame: ArcadeGame<BullseyeState, ArcadeInputEvent | null> = { ...bullseyeRev2Game, init: (seed) => bullseyeInitRev9(seed) };
+
+/** The revisions that play on bullRev 8's taller range: 8 and the standard's 9. */
+export function bullseyeTallRev(rev?: number | null): boolean {
+  return rev === BULLSEYE_REV_EXPAND || rev === BULLSEYE_REV_STD;
+}

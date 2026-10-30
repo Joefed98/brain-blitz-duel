@@ -1039,7 +1039,8 @@ function drawBubbleArtWorld(ctx: CanvasRenderingContext2D, state: BubState, size
         ctx.lineWidth = Math.max(2, 5 * rs * (1 - k));
         ctx.beginPath();
         // bubbleRev 10: the ring reaches out over the mine's second ring (2.4 rows on one ring, 3.6 on two).
-        const reach = 1.2 * (bubBombRadius(state) + 1);
+        // bubbleRev 11: the mine pops only its 4 nearest bubbles (they pop in `fx`), so the ring stays over them (1.2 rows).
+        const reach = state.minePops ? 1.2 : 1.2 * (bubBombRadius(state) + 1);
         ctx.arc(X(f.x), Y(f.y), (BUB_R + (still ? 2 : k * reach) * BUB_ROW_H) * rs, 0, Math.PI * 2);
         ctx.stroke();
         ctx.fillStyle = "rgba(255,240,200,0.5)";

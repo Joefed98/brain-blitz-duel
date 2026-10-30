@@ -25,6 +25,7 @@ import {
   type BeatState,
   beatLanesAt,
   beatLaneXOf,
+  beatStdBonus,
   beatV9Bonus,
   BEAT_FEVER_FULL,
   BEAT_FEVER_TICKS,
@@ -445,10 +446,11 @@ function drawMeter(ctx: CanvasRenderingContext2D, state: BeatState): void {
   pixelRect(ctx, x, y, Math.round(w * share), h, fever > 0 ? FEVER_PINK : full ? GOLD : NEON[0]!);
   pixelRect(ctx, x, y, w, 1, "rgba(255,255,255,0.4)");
   const blink = reducedMotion() || Math.floor(state.tick / 15) % 2 === 0;
-  if (fever > 0) retroText(ctx, "FEVER x2", x + w / 2, y + 2, 8, RETRO_WHITE, "center");
+  // beatRev 11 (the scoring standard): fever is its own fixed part, no longer ×2.
+  if (fever > 0) retroText(ctx, state.std ? "FEVER!" : "FEVER x2", x + w / 2, y + 2, 8, RETRO_WHITE, "center");
   else if (full) retroText(ctx, "TAP FEVER!", x + w / 2, y + 2, 8, blink ? "#000000" : RETRO_WHITE, "center");
   else retroText(ctx, "FEVER", x + w / 2, y + 2, 8, "rgba(255,255,255,0.75)", "center");
-  retroText(ctx, `+${beatV9Bonus(state).paid}`, BEAT_WORLD_W - 10, y + 2, 8, GOLD, "right");
+  retroText(ctx, `+${state.std ? beatStdBonus(state) : beatV9Bonus(state).paid}`, BEAT_WORLD_W - 10, y + 2, 8, GOLD, "right");
   let memo = v9Memos.get(ctx);
   const now = { tick: state.tick, gold: state.goldsHit ?? 0, fevers: state.fevers ?? 0, doubles: state.doublesDone ?? 0 };
   if (!memo || state.tick < memo.tick) memo = { ...now, at: -99, text: "", colour: GOLD };

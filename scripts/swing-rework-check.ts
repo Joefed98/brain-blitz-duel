@@ -1,5 +1,5 @@
 /**
- * Grappler's swinging course (swingRev 15, 29 Oct 2026, docs/grappler-rework-oct-2026.md): mostly hook-to-hook
+ * Grappler's swinging course (swingRev 15, 29 Oct 2026, docs/arcade-standard/swing.md): mostly hook-to-hook
  * swinging with fewer hooks than the old cave, short ledge runs and two squeezes mixed in, the dragon over the last
  * quarter only; scored 140 for the course + 30 for pars + 30 for gates, gems and stars.
  *

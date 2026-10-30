@@ -1,6 +1,6 @@
 /**
  * Grappler's room proof (the arcade rule; swingRev 15 since 29 Oct 2026, the swinging course,
- * docs/grappler-rework-oct-2026.md; swingRev 14's (the assault course) and 13's modules before it). A room deal is the
+ * docs/arcade-standard/swing.md; swingRev 14's (the assault course) and 13's modules before it). A room deal is the
  * server's own generator (generateSwing: any seed, the course built from it) under a fixed seed; every seeded item a
  * state shows is listed by `schedule`: the stretches (kind, hooks, squeeze, par, ledges, span), the hooks, the ledges,
  * the squeezes, the gates, gems and stars, the dragon's stretch, the cave's roof and lava. None of it depends on play

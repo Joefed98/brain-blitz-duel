@@ -7,7 +7,7 @@ import type { ArcadeGame, ArcadeInputEvent, CanvasSize } from "./engine";
 import { drawArtSprite } from "./sprites.renderer";
 import { arcadeFx, type ArcadeFxSpec } from "./arcadeFx.renderer";
 import { TILT_FX } from "./arcadeFxGames.renderer";
-import { TILT_DISC_R, TILT_MAX_MAZES, TILT_WORLD_H, TILT_WORLD_W, tiltBandGame, tiltGame, tiltRev2Game, tiltStarPoint, tiltTotalStars, tiltTunecGame, tiltTargetGame, tiltStrictGame, tiltExpandGame, tiltLiftGame, tiltIsExpand, TILT_REV, TILT_REV_BAND, TILT_REV_TUNEC, TILT_REV_TARGET, TILT_REV_STRICT, TILT_REV_EXPAND, TILT_REV_LIFT, TILT_X_W, TILT_X_H, TILT_X_MAZES, TILT_X_QUICK_TAIL, TILT_X_FALL_HOLD, tiltCellCentre, tiltQuickLeftX, tiltQuickFullLeftX, type Maze, type TiltState } from "./tilt";
+import { TILT_DISC_R, TILT_MAX_MAZES, TILT_WORLD_H, TILT_WORLD_W, tiltBandGame, tiltGame, tiltRev2Game, tiltStarPoint, tiltTotalStars, tiltTunecGame, tiltTargetGame, tiltStrictGame, tiltExpandGame, tiltLiftGame, tiltStdGame, tiltIsExpand, TILT_REV, TILT_REV_BAND, TILT_REV_TUNEC, TILT_REV_TARGET, TILT_REV_STRICT, TILT_REV_EXPAND, TILT_REV_LIFT, TILT_REV_STD, TILT_X_W, TILT_X_H, TILT_X_QUICK_TAIL, TILT_X_FALL_HOLD, tiltCellCentre, tiltQuickLeftX, tiltQuickFullLeftX, type Maze, type TiltState } from "./tilt";
 import {
   TOY_BRASS, TOY_BRASS_DARK, TOY_INK, TOY_OAK_LIGHT, TOY_TABLE, TOY_TABLE_LIT, TOY_WOOD_DARK,
   toyBoard, toyChangeAge, toyGrain, toyMarble,
@@ -716,6 +716,7 @@ const tiltTunecArtGame: ArcadeGame<TiltState, ArcadeInputEvent | null> = { ...ti
 const tiltTargetArtGame: ArcadeGame<TiltState, ArcadeInputEvent | null> = { ...tiltTargetGame, draw };
 const tiltStrictArtGame: ArcadeGame<TiltState, ArcadeInputEvent | null> = { ...tiltStrictGame, draw };
 export function tiltArtGameFor(rev?: number | null): ArcadeGame<TiltState, ArcadeInputEvent | null> {
+  if (rev === TILT_REV_STD) return tiltStdArtGame;
   if (rev === TILT_REV_LIFT) return tiltLiftArtGame;
   if (rev === TILT_REV_EXPAND) return tiltExpandArtGame;
   if (rev === TILT_REV_STRICT) return tiltStrictArtGame;
@@ -776,7 +777,8 @@ let lastView = { rot: 0, zoom: 1 };
 /**
  * The fixed camera's zoom for a maze (display only; Joe's phone notes, 27 Oct 2026: the view no longer pans with
  * the marbles): the disc, its rim and groove fill the world's width, centred, so the whole maze is always on
- * screen and only the board turns. Mazes 1–3 draw at about 0.98, 0.86 and 0.77 of their size.
+ * screen and only the board turns. Mazes 1–3 draw at about 0.98, 0.86 and 0.77 of their size; tiltRev 10's fourth maze
+ * (19 cells of 16 px, a 336 px disc) at full size, a smaller disc on screen than maze 3's.
  */
 function tiltFixedZoom(R: number): number {
   return Math.min(1, (TILT_X_W / 2 - 4) / (R + 10));
@@ -1181,7 +1183,9 @@ function drawWorldX(ctx: CanvasRenderingContext2D, state: TiltState, size: Canva
   type Cup = { x: number; y: number; r: number };
   type Finish = { blue: Cup; amber: Cup | null; aHome: boolean; bHome: boolean; r: number; level: number };
   const mr = m.br / FP;
-  const done = state.ended === 1 && state.mazes >= TILT_X_MAZES;
+  // The run's last maze: 3 on tiltRev 8 and 9, 4 on tiltRev 10 (each state lists its own mazes).
+  const all = state.list.length;
+  const done = state.ended === 1 && state.mazes >= all;
   const prev = finish.before as Finish | undefined;
   if (prev && finish.age < 400 && !reducedMotion() && prev.level !== state.level) {
     // The previous maze is gone from view; its cup's marble sinks at the screen's centre instead.
@@ -1251,7 +1255,7 @@ function drawWorldX(ctx: CanvasRenderingContext2D, state: TiltState, size: Canva
   ctx.fillStyle = TOY_INK;
   ctx.font = "600 16px ui-monospace, monospace";
   ctx.textAlign = "left";
-  ctx.fillText(`Maze ${Math.min(TILT_X_MAZES, state.mazes + 1)} / ${TILT_X_MAZES}`, 14, 26);
+  ctx.fillText(`Maze ${Math.min(all, state.mazes + 1)} / ${all}`, 14, 26);
   ctx.textAlign = "right";
   ctx.fillText(`Stars ${state.stars ?? 0} / ${tiltTotalStars(state)}`, W - 14, 26);
   // Quick stars left in this maze, with the window's ring.
@@ -1274,8 +1278,9 @@ export const TILT_X_FX: ArcadeFxSpec<TiltState> = {
   height: TILT_X_H,
   // The old moments first, in their order (the replay moments read them by index), then the new ones.
   events: [
-    { kind: "clear", count: (s) => s.mazes, when: (s) => s.mazes < TILT_X_MAZES, label: (_s, n) => `MAZE ${n} DONE!` },
-    { kind: "final", count: (s) => (s.mazes >= TILT_X_MAZES ? 1 : 0), label: () => `ALL ${TILT_X_MAZES} MAZES!` },
+    // Each state lists its own mazes (3 on tiltRev 8 and 9, 4 on tiltRev 10).
+    { kind: "clear", count: (s) => s.mazes, when: (s) => s.mazes < s.list.length, label: (_s, n) => `MAZE ${n} DONE!` },
+    { kind: "final", count: (s) => (s.mazes >= s.list.length ? 1 : 0), label: (s) => `ALL ${s.list.length} MAZES!` },
     { kind: "pop", count: (s) => s.stars ?? 0, at: (s) => tiltMarbleAtX(s), label: () => "BONUS STAR!" },
     {
       kind: "pop",
@@ -1304,3 +1309,4 @@ function tiltMarbleAtX(s: TiltState): { x: number; y: number } {
 
 const tiltExpandArtGame: ArcadeGame<TiltState, ArcadeInputEvent | null> = { ...tiltExpandGame, draw: drawX };
 const tiltLiftArtGame: ArcadeGame<TiltState, ArcadeInputEvent | null> = { ...tiltLiftGame, draw: drawX };
+const tiltStdArtGame: ArcadeGame<TiltState, ArcadeInputEvent | null> = { ...tiltStdGame, draw: drawX };

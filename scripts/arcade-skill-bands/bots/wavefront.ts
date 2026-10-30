@@ -59,6 +59,11 @@ const SAUCER_NEAR = 60;
 /** wavRev 10: chance of aiming at a boss's open core, and at a cannon still firing, when deciding. */
 const CORE: Record<SkillLevel, number> = { weak: 0.05, average: 0.15, good: 0.4, great: 0.7, near: 0.9, elite: 1, perfect: 1 };
 const CANNON: Record<SkillLevel, number> = { weak: 0.05, average: 0.1, good: 0.3, great: 0.55, near: 0.8, elite: 1, perfect: 1 };
+/** wavRev 12 only: chance, at each boss decision, that the player goes for a standing cannon before anything else. */
+const STD_CANNON_FIRST: Record<SkillLevel, number> = { weak: 0, average: 0, good: 0.1, great: 0.25, near: 0.45, elite: 0.75, perfect: 1 };
+/** wavRev 12 only: chance of holding off a shut core's boss until its core is hit, and of a saucer before a power-up. */
+const STD_CORE_WAIT: Record<SkillLevel, number> = { weak: 0, average: 0, good: 0, great: 0.1, near: 0.3, elite: 0.7, perfect: 1 };
+const STD_SAUCER_FIRST: Record<SkillLevel, number> = { weak: 0, average: 0, good: 0.1, great: 0.25, near: 0.45, elite: 0.75, perfect: 1 };
 /** wavRev 10 without the fixes: chance that, choosing a column, the player counts the bolts already in flight. */
 const MOVE_ON: Record<SkillLevel, number> = { weak: 0.05, average: 0.15, good: 0.35, great: 0.6, near: 0.8, elite: 1, perfect: 1 };
 const BOSS_MIN_X = 12;
@@ -73,6 +78,9 @@ let SHIP_TOP = 0;
 const MIN_X = 24;
 const MAX_X = WAV_WORLD_W - 24;
 const SAUCER_Y = 62;
+/** The boss's top and height (px; WAV_BOSS_Y, WAV_BOSS_H). */
+const WAV_BOSS_Y_PX = 84;
+const WAV_BOSS_H_PX = 48;
 
 interface Red {
   x: number;
@@ -106,6 +114,10 @@ export const bot: SkillBot = ({ game, seed, human, fixes }) => {
   let saucerGo = false;
   let saucerAt = 0;
   let saucerErr = 0;
+  let stdSaucerKey = "";
+  let stdSaucerFirst = false;
+  /** wavRev 12 only: whether the player is following the cannons-then-core plan on the boss this half second. */
+  let stdPlan = false;
   let dropKey = "";
   let dropGo = false;
   let dropAt = 0;
@@ -141,7 +153,15 @@ export const bot: SkillBot = ({ game, seed, human, fixes }) => {
     // wavRev 11: power-ups fall from carriers and saucers shot down; the lowest one still above the ship is the one to chase.
     const falling = s.r11 ? (s.pickups ?? []).filter((p) => p.y / 256 < WAV_SHIP_Y + 4).sort((p, q) => q.y - p.y)[0] : undefined;
     const drop = s.r11 ? (falling ? { x: falling.x, key: `p${falling.i}` } : null) : s.drop && s.drop.wait <= 0 ? { x: s.drop.x, key: `${s.drop.x}` } : null;
-    if (drop) {
+    // wavRev 12 only: a saucer pays and a power-up does not, so a planning player lets a power-up go while a saucer passes.
+    if (seen.std && seen.saucerDir !== 0) {
+      const key = `${seen.saucerDir}:${Math.trunc(seen.tick / 600)}`;
+      if (key !== stdSaucerKey) {
+        stdSaucerKey = key;
+        stdSaucerFirst = human.chance(STD_SAUCER_FIRST[level]);
+      }
+    }
+    if (drop && !(seen.std && seen.saucerDir !== 0 && stdSaucerFirst)) {
       const key = drop.key;
       if (key !== dropKey) {
         dropKey = key;
@@ -194,7 +214,30 @@ export const bot: SkillBot = ({ game, seed, human, fixes }) => {
           const guns = seen.boss.guns ?? [0, 0];
           if ((t & 31) === 0 || bossMode < 0) {
             const open = wavCoreOpen(seen.boss, Math.round(t + flight + lag * (1 + human.normal() * 0.3)));
-            bossMode = open && human.chance(CORE[level]) ? 2 : guns.some((g) => g > 0) && human.chance(CANNON[level]) ? (guns[0]! > 0 && (guns[1]! <= 0 || human.chance(0.5)) ? 0 : 1) : 3;
+            // wavRev 12 (the arcade scoring standard; only `seen.std` states, so every older revision plays as before):
+            // each cannon destroyed and one open-core hit a boss pay, so a player who plans it takes the cannons first
+            // (every hit on the open core takes 3 of the boss's hit points, and the boss can fall with a cannon standing).
+            // With the clock short for what is left of the boss, the kill (20) comes first: no cannons first, no holding off.
+            const late = seen.std && !seen.boss.mid && game.runTicks - seen.tick < seen.boss.hp * 20 + 180;
+            stdPlan = Boolean(seen.std) && !late && human.chance(STD_CANNON_FIRST[level]);
+            const cannonFirst = stdPlan && guns.some((g) => g > 0);
+            if (cannonFirst) bossMode = guns[0]! > 0 && (guns[1]! <= 0 || guns[0]! <= guns[1]!) ? 0 : 1;
+            else bossMode = open && human.chance(CORE[level]) ? 2 : guns.some((g) => g > 0) && human.chance(CANNON[level]) ? (guns[0]! > 0 && (guns[1]! <= 0 || human.chance(0.5)) ? 0 : 1) : 3;
+            // wavRev 12 only: this boss's open core not hit yet and it is shut: a planning player holds off the hull
+            // (stands clear of the boss, mode 4) so the boss does not fall before its core opens.
+            const coreBit = seen.boss.mid ? 1 : 2;
+            if (seen.std && !late && bossMode === 3 && !((seen.coresHit ?? 0) & coreBit) && human.chance(STD_CORE_WAIT[level])) bossMode = 4;
+          }
+          if (stdPlan) {
+            // wavRev 12's plan, every tick: a cannon until the bolts already up will finish it (then the other), then
+            // the core once while it is open (holding off while it is shut), then the open core or the hull.
+            const up = seen.bolts.filter((b) => !b.sd && b.y / 256 > WAV_BOSS_Y_PX + WAV_BOSS_H_PX).length;
+            const left = (k: number) => guns[k]! - (bossMode === k ? up : 0);
+            const openAt = wavCoreOpen(seen.boss, Math.round(t + flight + lag));
+            if (left(0) > 0 || left(1) > 0) {
+              if (!((bossMode === 0 || bossMode === 1) && left(bossMode) > 0)) bossMode = left(0) > 0 ? 0 : 1;
+            } else if (!((seen.coresHit ?? 0) & (seen.boss.mid ? 1 : 2))) bossMode = openAt ? 2 : 4;
+            else bossMode = openAt ? 2 : 3;
           }
           if (bossMode === 2) {
             spread = human.p.aimSdPx * 0.8;
@@ -217,6 +260,8 @@ export const bot: SkillBot = ({ game, seed, human, fixes }) => {
             if (x > maxX) x = 2 * maxX - x;
           }
           want = x + offset + bossErr * human.p.aimSdPx * (weak ? 0.8 : 2.1);
+          // wavRev 12's hold (mode 4): stand beside where the boss will be, on its wider side, so the bolts pass it.
+          if (bossMode === 4) want = x + w / 2 > WAV_WORLD_W / 2 ? x - 30 : x + w + 30;
         } else if (fixes) {
           // Fixes: where the boss will be when the bolt arrives, through its turn at a wall for a player who reads it;
           // the aim's spread is the player's own (v1: 15 % of the boss's width at every level).

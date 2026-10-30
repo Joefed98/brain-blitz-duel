@@ -35,6 +35,7 @@ import {
   BEAT_INPUT_FEVER,
   BEAT_V9_RUN_TICKS,
   beatLanesAt,
+  beatStdBonus,
   beatV9Bonus,
 } from "@/lib/arcade/beat";
 import { SOUND_MANIFEST } from "@/lib/fx/manifest";
@@ -372,7 +373,7 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
       </p>
       {result.state.exp ? (
         <p className="shrink-0 text-center font-mono text-sm text-muted-foreground">
-          {`${result.state.fevers ?? 0} fever · ${result.state.goldsHit ?? 0} golden · ${result.state.doublesDone ?? 0} doubles · best streak ${result.state.maxStreak ?? 0} · skill ${beatV9Bonus(result.state).total} → +${beatV9Bonus(result.state).paid}`}
+          {`${result.state.fevers ?? 0} fever · ${result.state.goldsHit ?? 0} golden · ${result.state.doublesDone ?? 0} doubles · best streak ${result.state.maxStreak ?? 0} · ${result.state.std ? `features +${beatStdBonus(result.state)}` : `skill ${beatV9Bonus(result.state).total} → +${beatV9Bonus(result.state).paid}`}`}
         </p>
       ) : null}
     </div>

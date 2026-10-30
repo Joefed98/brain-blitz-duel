@@ -7,10 +7,11 @@
  *  - at t = 0 every planet (place, orbit kind, belt), black hole, stardust mote, slingshot moon and asteroid rock;
  *  - every 60 ticks the run lived, each asteroid belt's opening (a pure function of the tick) and a digest of the
  *    course the sim is carrying (planets, holes, motes, moons, fields), which must never change mid-run.
- * Two logs on the same seed must give the same schedule over the ticks both runs lived.
+ * Two logs on the same seed must give the same schedule over the ticks both runs lived. orbitRev 13 (the arcade
+ * scoring standard, 29 Oct 2026; what rooms deal) plays orbitRev 12 exactly and is checked the same way.
  */
-import { decodeOrbitExtras, decodeOrbitHoles, decodeRev3Planets, initXpFrom, orbitRev3Game, ORBIT_REV3_WORLD_W, type OrbitRev3State } from "../../src/lib/arcade/orbitRev3";
-import { orbitBeltStart, ORBIT_INPUT_TAP, ORBIT_REV_XP } from "../../src/lib/arcade/orbit";
+import { decodeOrbitExtras, decodeOrbitHoles, decodeRev3Planets, initXpFrom, orbitRev3Game, orbitRev3StartFor, ORBIT_REV3_WORLD_W, type OrbitRev3State } from "../../src/lib/arcade/orbitRev3";
+import { orbitBeltStart, ORBIT_INPUT_TAP, ORBIT_REV_STD, ORBIT_REV_XP, orbitXpRev } from "../../src/lib/arcade/orbit";
 import type { ArcadeInputEvent } from "../../src/lib/arcade/engine";
 import { orbitXpCourseForSeed } from "../../src/lib/duel/orbitRev3Course.server";
 import { Human } from "../arcade-skill-bands/human";
@@ -19,13 +20,15 @@ import { bot } from "../arcade-skill-bands/bots/orbit";
 const FP = 256;
 const px = (v: number) => Math.round(v / FP);
 
-function startFor(seed: number): () => OrbitRev3State {
+function startFor(seed: number, rev = ORBIT_REV_XP): () => OrbitRev3State {
   const course = orbitXpCourseForSeed(seed);
   if (!course) throw new Error("orbit room identity: the feature bank is empty");
   const planets = decodeRev3Planets(course.planets);
   const holes = decodeOrbitHoles(course.holes);
   const extras = decodeOrbitExtras(course.extras);
-  return () => initXpFrom(planets, ORBIT_REV3_WORLD_W, holes, extras);
+  if (rev === ORBIT_REV_XP) return () => initXpFrom(planets, ORBIT_REV3_WORLD_W, holes, extras);
+  const start = orbitRev3StartFor(rev, extras)!;
+  return () => start(planets, ORBIT_REV3_WORLD_W, holes);
 }
 
 function digest(s: OrbitRev3State): string {
@@ -36,10 +39,10 @@ function digest(s: OrbitRev3State): string {
 }
 
 export function scheduleOf(seed: number, rev: number, events: unknown): { t: number; what: string }[] {
-  if (rev !== ORBIT_REV_XP) throw new Error(`orbit room identity: orbitRev ${rev} is not the expansion (${ORBIT_REV_XP})`);
+  if (!orbitXpRev(rev)) throw new Error(`orbit room identity: orbitRev ${rev} is not the expansion (${ORBIT_REV_XP}) or the standard (${ORBIT_REV_STD})`);
   const log = (events as ArcadeInputEvent[]) ?? [];
   const byTick = new Map(log.map((e) => [e.t, e]));
-  let s = startFor(seed)();
+  let s = startFor(seed, rev)();
   const out: { t: number; what: string }[] = [];
   s.planets.forEach((p, i) => out.push({ t: 0, what: `planet ${i} at ${px(p.x)},${px(p.y)} kind ${p.kind} belt ${p.hazard}` }));
   (s.holes ?? []).forEach((h, i) => out.push({ t: 0, what: `black hole ${i} at ${px(h.x)},${px(h.y)} from ${h.from} to ${h.to}` }));
@@ -79,7 +82,8 @@ function botLog(seed: number, level: "weak" | "elite"): ArcadeInputEvent[] {
 
 export const roomIdentity = {
   type: "orbit",
-  rev: ORBIT_REV_XP,
+  // What rooms deal: orbitRev 13 (orbitRev 12's play on the arcade standard); orbit-expand-check checks orbitRev 12.
+  rev: ORBIT_REV_STD,
   scheduleOf,
   logs: (seed: number): ArcadeInputEvent[][] => [[], randomTaps(seed), botLog(seed, "weak"), botLog(seed, "elite")],
 };

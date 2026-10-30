@@ -23,6 +23,7 @@ import {
   type CanvasSize,
   type InputRange,
 } from "./engine";
+import { stdEach, stdLine, stdPart, stdScore, type StdPart, type StdSpec } from "./arcadeStandard";
 import { bandStrictGame, bandStrict, bandRetarget, bandTargetGame, bandCurveOf, bandCurve, bandInit, bandPoints, bandScoreOf, bandStep, bandTotal, type BandFields, type BandParts } from "./scoreBands";
 
 /* ============================== Constants ============================== */
@@ -614,6 +615,7 @@ export const rallyRev2Game: ArcadeGame<RallyState, ArcadeInputEvent | null> = { 
 
 /** Takes puzzle.rallyRev; anything else is the original game. */
 export function rallyGameFor(rev?: number | null): ArcadeGame<RallyState, ArcadeInputEvent | null> {
+  if (rev === RALLY_REV_STD) return rallyStdGame;
   if (rev === RALLY_REV_CURVE) return rallyCurveGame;
   if (rev === RALLY_REV_BONUS) return rallyBonusGame;
   if (rev === RALLY_REV_STRICT) return rallyStrictGame;
@@ -637,6 +639,7 @@ export function rallyBandUnits(goldHits: number, targetHits: number): number {
 }
 
 export function rallyBandParts(state: RallyState): BandParts {
+  if ((state.exp ?? 0) >= RALLY_V12_EXP) return rallyStdBandParts(state);
   if (state.exp) return rallyBonusParts(state);
   const units = rallyBandUnits(state.goldHits, state.targetHits ?? 0);
   const curve = bandCurveOf(state, state.worldH ? RALLY_V6_BAND_CURVE : state.bumper2 ? RALLY_V5_BAND_CURVE : state.tune === RALLY_TUNE ? RALLY_V4_BAND_CURVE : RALLY_BAND_CURVE);
@@ -754,13 +757,13 @@ export const rallyTallGame: ArcadeGame<RallyState, ArcadeInputEvent | null> = {
 
 /** The court height (px) a stored round's rallyRev plays on. */
 export function rallyWorldHFor(rev?: number | null): number {
-  if (rev === RALLY_REV_BONUS || rev === RALLY_REV_CURVE) return RALLY_V10_H;
+  if (rev === RALLY_REV_BONUS || rev === RALLY_REV_CURVE || rev === RALLY_REV_STD) return RALLY_V10_H;
   return rev === RALLY_REV_TALL || rev === RALLY_REV_TARGET || rev === RALLY_REV_STRICT ? RALLY_TALL_H : RALLY_WORLD_H;
 }
 
 /** The court width (px) a stored round's rallyRev plays on. */
 export function rallyWorldWFor(rev?: number | null): number {
-  return rev === RALLY_REV_BONUS || rev === RALLY_REV_CURVE ? RALLY_V10_W : RALLY_WORLD_W;
+  return rev === RALLY_REV_BONUS || rev === RALLY_REV_CURVE || rev === RALLY_REV_STD ? RALLY_V10_W : RALLY_WORLD_W;
 }
 
 /* ================= Scoring targets (rallyRev 7, 18 Oct 2026) ================= */
@@ -1031,6 +1034,8 @@ function stepBonus(state: RallyState, input: ArcadeInputEvent | null): RallyStat
   const reachT = (RALLY_V10_BONUS_R + RALLY_BALL_R) * 256;
   // rallyRev 11: the curving spin (rallyRev 10 keeps its own short bend exactly).
   const curving = (state.exp ?? 0) >= RALLY_V11_EXP;
+  // rallyRev 12: a swipe's spin is reversed (the ball leaves the way the paddle moved and curves back).
+  const reversed = (state.exp ?? 0) >= RALLY_V12_EXP;
 
   let golds = state.golds.map((ball) => ({ ...ball }));
   for (const entry of state.entries) {
@@ -1152,6 +1157,13 @@ function stepBonus(state: RallyState, input: ArcadeInputEvent | null): RallyStat
           vy = steered.vy;
           y = paddleYFp - RALLY_BALL_R_FP;
           spin = curving ? rallyCurveSpinFrom(pv) : rallySpinFrom(pv);
+          // rallyRev 12: the swipe sends the ball off its way first, then the spin curves it back round the other way.
+          if (reversed && spin !== 0) {
+            const kicked = setLength(vx + Math.trunc((spin * RALLY_V12_KICK_NUM) / RALLY_V12_KICK_DEN), vy, speed);
+            vx = kicked.vx;
+            vy = kicked.vy;
+            spin = -spin;
+          }
           spun = spin !== 0 ? 1 : 0;
         }
       }
@@ -1276,3 +1288,88 @@ export const rallyCurveGame: ArcadeGame<RallyState, ArcadeInputEvent | null> = {
   ...rallyBonusGame,
   init: (seed) => rallyBonusInit(seed, RALLY_V11_EXP),
 };
+
+/* ================= The arcade scoring standard (rallyRev 12, 29 Oct 2026) ================= */
+
+/**
+ * rallyRev 12 (the arcade scoring standard, docs/arcade-standard/rally.md; Joe's row): rallyRev 11's court, balls,
+ * pads, bumpers, gold targets and timings, with one gameplay fix and the standard's scoring:
+ *
+ *  - Spin the right way round. On rallyRev 10/11 a return's spin bent the ball the way the paddle moved (a swipe left
+ *    curved it further left). Here a swipe sends the ball off the way the paddle moved (its launch gets a sideways
+ *    kick of RALLY_V12_KICK_NUM / RALLY_V12_KICK_DEN of the spin) and the spin then curves it back round the other
+ *    way: a swipe left goes left, then curves round to the right (mirror for right). Strength, wear, the steep floor,
+ *    side walls mirroring it and the far wall ending it are rallyRev 11's. Spin still scores nothing itself.
+ *  - Score (arcadeStandard.ts): core = gold-ball hits on a straight line, 140 at RALLY_V12_FULL_AT; pink pads
+ *    RALLY_V12_PAD_PTS each up to 30; gold targets 5 each of the 6 (30). Blue returns and lasting the minute pay
+ *    nothing; losing the blue ball ends the run (as on every revision), the score standing at what was earned.
+ *
+ * Init draws exactly rallyRev 10's stream (same opening, gold balls, pads, bumpers and targets for a seed); states
+ * carry `exp: 3`, folded into the checkpoint as rallyRev 10's `exp` is.
+ */
+export const RALLY_REV_STD = 12;
+/** rallyRev 12's state marker (`exp`). */
+export const RALLY_V12_EXP = 3;
+/** The launch kick a spun return gets the way the paddle moved: spin × NUM / DEN (1/256 px a tick). */
+export const RALLY_V12_KICK_NUM = 3;
+export const RALLY_V12_KICK_DEN = 2;
+/** Gold-ball hits at which the core is full: the near-perfect skill-band level's median on tuning seeds 0–59. */
+export const RALLY_V12_FULL_AT = 23;
+export const RALLY_V12_CORE_MAX = 140;
+/** Pink pads: this many points each, up to RALLY_V12_PADS_MAX. */
+export const RALLY_V12_PAD_PTS = 3;
+export const RALLY_V12_PADS_MAX = 30;
+/** Gold targets: this many points for each of the RALLY_V10_BONUS_COUNT. */
+export const RALLY_V12_TARGET_PTS = 5;
+export const RALLY_V12_TARGETS_MAX = RALLY_V12_TARGET_PTS * RALLY_V10_BONUS_COUNT;
+
+/** rallyRev 12's core line (gold-ball hits → 0…140), the curve LIVE_BANDS lists. */
+export const RALLY_V12_BAND_CURVE = bandCurve([0, RALLY_V12_FULL_AT], [0, RALLY_V12_CORE_MAX]);
+
+export const RALLY_STD_SPEC: StdSpec = {
+  field: "rallyRev",
+  rev: RALLY_REV_STD,
+  parts: [
+    { key: "core", label: "Gold-ball hits", max: RALLY_V12_CORE_MAX, how: `full at ${RALLY_V12_FULL_AT} gold-ball hits` },
+    { key: "pads", label: "Pink pads", max: RALLY_V12_PADS_MAX, how: `${RALLY_V12_PAD_PTS} a pad a gold ball strikes, up to ${RALLY_V12_PADS_MAX / RALLY_V12_PAD_PTS}` },
+    { key: "targets", label: "Gold targets", max: RALLY_V12_TARGETS_MAX, how: `${RALLY_V12_TARGET_PTS} each of the ${RALLY_V10_BONUS_COUNT}` },
+  ],
+};
+
+/** rallyRev 12's parts (null on any other revision). */
+export function rallyStdParts(state: RallyState): StdPart[] | null {
+  if ((state.exp ?? 0) < RALLY_V12_EXP) return null;
+  const gold = state.goldHits;
+  const pads = state.targetHits ?? 0;
+  const targets = rallyBonusCount(state);
+  return [
+    stdPart(RALLY_STD_SPEC, "core", stdLine(RALLY_V12_CORE_MAX, gold, RALLY_V12_FULL_AT), `${gold} gold-ball hit${gold === 1 ? "" : "s"}`),
+    stdPart(RALLY_STD_SPEC, "pads", stdEach(pads, RALLY_V12_PAD_PTS, RALLY_V12_PADS_MAX), `${pads} pink pad${pads === 1 ? "" : "s"}`),
+    stdPart(RALLY_STD_SPEC, "targets", stdEach(targets, RALLY_V12_TARGET_PTS, RALLY_V12_TARGETS_MAX), `${targets} of ${RALLY_V10_BONUS_COUNT}`),
+  ];
+}
+
+/** rallyRev 12 for the skill-band tool: units = gold-ball hits (the core's measure), points the core's, bonus the features'. */
+export function rallyStdBandParts(state: RallyState): BandParts {
+  const parts = rallyStdParts(state)!;
+  return {
+    units: state.goldHits,
+    points: parts[0]!.points,
+    bonus: parts[1]!.points + parts[2]!.points,
+    penalty: 0,
+    finished: false,
+    text: `${state.goldHits} gold hits · ${state.targetHits ?? 0} pads · ${state.hits} returns`,
+    bonusText: `Gold targets: ${rallyBonusCount(state)} of ${RALLY_V10_BONUS_COUNT}`,
+  };
+}
+
+export const rallyStdGame: ArcadeGame<RallyState, ArcadeInputEvent | null> = {
+  ...rallyBonusGame,
+  init: (seed) => rallyBonusInit(seed, RALLY_V12_EXP),
+  score: (state) => stdScore(rallyStdParts(state)!, Boolean(state.acted)),
+};
+
+/** What a gold bonus target shows it pays on a state's revision (display only): 5 on rallyRev 12, 6 before. */
+export function rallyBonusPtsOf(state: Pick<RallyState, "exp">): number {
+  return (state.exp ?? 0) >= RALLY_V12_EXP ? RALLY_V12_TARGET_PTS : RALLY_V10_BONUS_PTS;
+}

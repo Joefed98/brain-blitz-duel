@@ -6,7 +6,7 @@ import {
   snakeGame, snakeCol, snakeRow, SNAKE_BOARD_W,
   SNAKE_BOARD_X, SNAKE_BOARD_Y, SNAKE_CELL, SNAKE_COLS,
   SNAKE_WORLD_W, SNAKE_ROCK_WARN_TICKS, snakeRowsOf, snakeWorldHFor, type SnakeState,
-  snakeBoardXOf, snakeColsOf, snakeWorldWOf, snakeV9Bonus, SNAKE_GOLD_LIFE, snakeRockBig,
+  snakeBoardXOf, snakeColsOf, snakeWorldWOf, snakeV9Bonus, SNAKE_GOLD_LIFE, snakeRockBig, SNAKE_STD_COMBO_TICKS,
 } from "./snake";
 import type { ArcadeGame, ArcadeInputEvent, CanvasSize } from "./engine";
 import { reducedMotion } from "./art.renderer";
@@ -338,7 +338,8 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: SnakeState, key: Canvas
   if (state.exp) {
     // snakeRev 9's HUD line: the combo (gold while it scores) and the skill bonus so far.
     const combo = state.combo ?? 0;
-    const quick = state.tick - (state.lastStar ?? -9999) <= 150;
+    // snakeRev 11: the combo shows while its 3 s window is open.
+    const quick = state.tick - (state.lastStar ?? -9999) <= (state.std ? SNAKE_STD_COMBO_TICKS : 150);
     retroText(ctx, combo >= 2 && quick ? `COMBO x${combo}` : "", W / 2, 22, 10, combo >= 3 ? GOLD : RETRO_WHITE, "center");
     retroText(ctx, `BONUS +${snakeV9Bonus(state).total}`, W - 14, 8, 8, GOLD, "right");
   }

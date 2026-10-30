@@ -54,7 +54,7 @@ function brkSlideDestroyed(s: BrkState): number {
   return n;
 }
 import { PINBALL_IN_ROOMS, PIN_BUMPERS, PIN_LANE_POSTS, PIN_LANE_SENSOR_Y, PIN_LEFT_WALL, PIN_ORBIT_INNER, PIN_SPINNER_Y, PIN_TARGET_XS, PIN_TARGET_Y, PIN_WORLD_H, PIN_WORLD_W, type PinState } from "./pinball";
-import { rallyBonusCount, rallyBonusLife, rallyPaddleY, rallyWorldH, RALLY_V10_BONUS_PTS, RALLY_V10_H, RALLY_V10_W, RALLY_SPEED_CAP, RALLY_SPEED_START, RALLY_TALL_H, RALLY_WORLD_H, RALLY_WORLD_W, type RallyState } from "./rally";
+import { rallyBonusCount, rallyBonusLife, rallyBonusPtsOf, rallyPaddleY, rallyWorldH,RALLY_V10_H, RALLY_V10_W, RALLY_SPEED_CAP, RALLY_SPEED_START, RALLY_TALL_H, RALLY_WORLD_H, RALLY_WORLD_W, type RallyState } from "./rally";
 import { BEAT_TALL_H, BEAT_WORLD_H, BEAT_WORLD_W, beatHitLineY, beatLaneXOf, beatLanesAt, beatWorldH, type BeatState } from "./beat";
 /** Tempo's last judged lane centre (beatRev 9: in the five-lane section, five lanes). */
 const beatLastX = (s: BeatState) => beatLaneXOf(Math.max(0, s.lastLane), beatLanesAt(s, s.tick));
@@ -1006,7 +1006,8 @@ export const SLICE_FX: ArcadeFxSpec<SliceState> = {
       count: (s) => (s.comboLive ? sliceMultiplier(s.streak) : 1),
       min: 2,
       at: (s) => (s.strokeX >= 0 ? { x: s.strokeX, y: s.strokeY } : null),
-      label: (_s, n) => `COMBO ×${n}`,
+      // sliceRev 11: no multiplier, so the combo (started or renewed) shows without one.
+      label: (s, n) => (s.v11 ? "COMBO!" : `COMBO ×${n}`),
     },
     { kind: "perfect", count: (s) => s.frenzyFrom.length, label: () => "SAUCY!" },
     { kind: "perfect", count: (s) => s.slowFrom.length, label: () => "SIMMER!" },
@@ -1532,7 +1533,7 @@ export const RALLY_FX_BONUS: ArcadeFxSpec<RallyState> = {
         const t = (s.bonus ?? []).find((b) => at >= b.tick && at < b.tick + rallyBonusLife(s));
         return t ? { x: t.x, y: t.y } : { x: RALLY_V10_W / 2, y: 120 };
       },
-      label: () => `GOLD TARGET +${RALLY_V10_BONUS_PTS}`,
+      label: (s) => `GOLD TARGET +${rallyBonusPtsOf(s)}`,
       textOnly: true,
       colour: () => "#FFD84A",
       bulbs: { pattern: "flash", colours: RALLY_GOLD_BULBS, heat: rallyHeat, strong: true },

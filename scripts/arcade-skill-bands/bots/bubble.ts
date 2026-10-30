@@ -15,7 +15,7 @@
  * jitter over the drag length, larger for bank shots.
  */
 import { dragLaunch, type ArcadeInputEvent } from "../../../src/lib/arcade/engine";
-import { bubDangerLine, bubIsSpecial, bubRemaining, bubRowsOf, bubCellY, bubV8FeaturePoints, BUB_COLS, BUB_INPUT_SHOT, BUB_R, BUB_SPEED, bubSpeed, type BubState } from "../../../src/lib/arcade/bubble";
+import { bubDangerLine, bubIsSpecial, bubRemaining, bubRowsOf, bubCellY, bubV8FeaturePoints, bubStdFeaturePoints, BUB_COLS, BUB_INPUT_SHOT, BUB_R, BUB_SPEED, bubSpeed, type BubState } from "../../../src/lib/arcade/bubble";
 import type { SkillLevel } from "../human";
 import { driveEvents, Plan, type SkillBot } from "../bot";
 
@@ -141,6 +141,10 @@ export const bot: SkillBot = ({ game, seed, human }) => {
       // 0.9 bubbles a point: the curve is steepest at its top, so points taken early pay later.)
       let featureWeight = eye * 0.9;
       if (init.reef && (level === "elite" || level === "perfect") && bubV8FeaturePoints(s) >= BUB_V8_FEATURE_TOP) featureWeight = 0;
+      // bubbleRev 11 (the arcade scoring standard): features pay fixed score points, each capped (a capped one adds
+      // nothing), weighed against a bubble's 120 / 95 core points.
+      const featurePts = init.std ? bubStdFeaturePoints : bubV8FeaturePoints;
+      if (init.std) featureWeight = (eye * 95) / 120;
       for (const w of windows) {
         if (w.o.bank && !human.chance(BANK_SEE[level]!)) continue;
         const a = w.o.after;
@@ -149,7 +153,7 @@ export const bot: SkillBot = ({ game, seed, human }) => {
         let sensible = removed > 0;
         if (a.cleared) value += 40;
         // bubbleRev 8: the feature points this shot earns (a dropped chest, a bank shot, a combo), as the player weighs them.
-        if (eye) value += featureWeight * (bubV8FeaturePoints(a) - bubV8FeaturePoints(s));
+        if (eye) value += featureWeight * (featurePts(a) - featurePts(s));
         if (a.dead) value -= 60;
         if (removed <= 0) {
           // Nothing popped: a bubble placed by its own colour sets up the next pop.

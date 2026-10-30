@@ -17,6 +17,7 @@ import {
   type CanvasSize,
   type InputRange,
 } from "./engine";
+import { stdFinal } from "./arcadeStandard";
 import { bandStrictGame, bandStrict, bandRetarget, bandTargetGame, bandCurveOf, bandCurve, bandInit, bandPoints, bandScoreOf, bandStep, bandTotal, BAND_FINISH_BONUS, type BandFields, type BandParts } from "./scoreBands";
 import { ANG_PER_RAD, iatan2, icos, isin, isqrt, TRIG_ONE } from "./trig";
 
@@ -2994,7 +2995,7 @@ export const swingAssaultGame: typeof swingGame = { ...swingTunecGame, init: (se
 /* ================= The swinging course (swingRev 15, 29 Oct 2026) ================= */
 
 /**
- * swingRev 15 (docs/grappler-rework-oct-2026.md): Joe's direction after swingRev 14 ("all ledges and hooks"): the
+ * swingRev 15 (docs/arcade-standard/swing.md): Joe's direction after swingRev 14 ("all ledges and hooks"): the
  * course is mostly the old swinging game again, with short stretches of the assault course mixed in. Every rule
  * below is gated on the state's `rework` marker (rev-15 states also carry rev 14's `assault`, so the sections, the
  * restart, the banked pickups and the reveal's counts are rev 14's machinery); every earlier revision plays and
@@ -3323,7 +3324,8 @@ export function swingBandPartsV15(state: SwingState): BandParts {
 
 /** A rev-15 score: the parts' sum (at most 200); a run with any input scores at least 1 (its core does), none scores 0. */
 export function swingScoreV15(state: SwingState): number {
-  return bandTotal(swingBandPartsV15(state), Boolean(state.acted), SWING_V15_MAX);
+  const p = swingReworkParts(state);
+  return stdFinal(p.core + p.par + p.pickups, Boolean(state.acted));
 }
 
 /* ---- The course builder (rev 15) ---- */

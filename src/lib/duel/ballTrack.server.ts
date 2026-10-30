@@ -1,7 +1,7 @@
 import { gameDisplayName } from "./gameNames";
 import { BALL_TRACK_BANK_V7 } from "./ballTrackBankV7.server";
 import type { BallTrackPuzzleData } from "./types";
-import { BT_REV_RUSH } from "@/lib/arcade/ballTrack";
+import { BT_REV_STD } from "@/lib/arcade/ballTrack";
 
 /** Draws one pre-proven course from the bank (built by scripts/ball-track-bank.ts). */
 export function generateBallTrack(): BallTrackPuzzleData {
@@ -19,6 +19,7 @@ export function generateBallTrack(): BallTrackPuzzleData {
     playbook: entry.playbook,
     // Rev 2 only adds options (turning occupied tubes, switch points), so every banked playbook still proves the course;
     // rev 3 plays rev 2 on the Oct 2026 score bands; rev 4 plays rev 3 on the taller board; rev 7 adds the expansion.
-    btRev: BT_REV_RUSH,
+    // btRev 8 (the arcade scoring standard, 29 Oct 2026): btRev 7's play on the same bank, scored to 200 on BT_STD.
+    btRev: BT_REV_STD,
   };
 }

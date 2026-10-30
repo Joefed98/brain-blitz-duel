@@ -29,6 +29,7 @@ import {
   type CanvasSize,
   type InputRange,
 } from "./engine";
+import { stdFinal } from "./arcadeStandard";
 import { BAND_STRICT_MARK, bandStrictGame, bandStrict, bandRetarget, bandTargetGame, bandCurveOf, bandCurve, bandInit, bandPoints, bandScoreOf, bandStep, bandTotal, type BandFields, type BandParts } from "./scoreBands";
 
 /* ============================== Constants ============================== */
@@ -181,6 +182,12 @@ export interface SnakeState extends BandFields {
   goldLife?: number;
   /** Top-left squares of the room's 2 × 2 rocks (each a rock slot's cell); every other rock fills one square. */
   bigRocks?: number[];
+  /** snakeRev 11 only (the arcade scoring standard, 29 Oct 2026): 1 on the new scoring; absent on every earlier round. */
+  std?: number;
+  /** Gold stars' worth so far, as the sum of each eaten gold's ticks left (from its life on arrival down to 1). */
+  goldLeft?: number;
+  /** Lane rides: rides that reached SNAKE_STD_LANE_RIDE squares along a lane. */
+  laneRides?: number;
 }
 
 /** Grid rows a state plays on: Tuning E's taller grid, or the original 20. */
@@ -586,6 +593,8 @@ export function snakeCheckpoint(state: SnakeState): SnakeCheckpoint {
   if (state.exp) extra.push(...snakeV9Fold(state));
   // snakeRev 10: its fixed features' marker after that, so every snakeRev 9 checksum is unchanged.
   if (state.bigRocks) extra.push(state.laneCol2 ?? -1, state.goldLife ?? 0, ...state.bigRocks);
+  // snakeRev 11 (the arcade scoring standard): its marker and its own counters after that, so every snakeRev 10 checksum is unchanged.
+  if (state.std) extra.push(state.std, state.goldLeft ?? 0, state.laneRides ?? 0);
   for (const value of [...Object.values(snapshot), ...extra]) {
     checksum ^= value | 0;
     checksum = Math.imul(checksum, 0x01000193) >>> 0;
@@ -704,6 +713,7 @@ export const snakeRev3Game: ArcadeGame<SnakeState, ArcadeInputEvent | null> = { 
 
 /** The game for a stored round: its snakeRev picks the rules (absent = original). */
 export function snakeGameFor(rev?: number | null): ArcadeGame<SnakeState, ArcadeInputEvent | null> {
+  if (rev === SNAKE_REV_STD) return snakeStdGame;
   if (rev === SNAKE_REV_10) return snakeV10Game;
   if (rev === SNAKE_REV_200) return snakeV9Game;
   if (rev === SNAKE_REV_STRICT) return snakeStrictGame;
@@ -754,7 +764,7 @@ export const snakeTallGame: ArcadeGame<SnakeState, ArcadeInputEvent | null> = { 
 
 /** The world height (px) a stored round's snakeRev plays in. */
 export function snakeWorldHForRev(rev?: number | null): number {
-  if (rev === SNAKE_REV_200 || rev === SNAKE_REV_10) return SNAKE_V9_H;
+  if (rev === SNAKE_REV_200 || rev === SNAKE_REV_10 || rev === SNAKE_REV_STD) return SNAKE_V9_H;
   return rev === SNAKE_REV_TALL || rev === SNAKE_REV_ROCKS || rev === SNAKE_REV_TARGET || rev === SNAKE_REV_STRICT ? SNAKE_TALL_H : SNAKE_WORLD_H;
 }
 
@@ -861,7 +871,7 @@ export function snakeWorldWOf(state: { cols?: number }): number {
 }
 /** The world width (px) a stored round's snakeRev plays in. */
 export function snakeWorldWForRev(rev?: number | null): number {
-  return rev === SNAKE_REV_200 || rev === SNAKE_REV_10 ? SNAKE_V9_WORLD_W : SNAKE_WORLD_W;
+  return rev === SNAKE_REV_200 || rev === SNAKE_REV_10 || rev === SNAKE_REV_STD ? SNAKE_V9_WORLD_W : SNAKE_WORLD_W;
 }
 
 /** The other mouth of a wormhole, or the square itself when it is not a mouth. */
@@ -991,15 +1001,18 @@ function stepV9(state: SnakeState, input: ArcadeInputEvent | null): SnakeState {
       const run = (state.laneRun ?? 0) + 1;
       extra.laneRun = run;
       if (run >= SNAKE_LANE_FROM) extra.laneCells = (state.laneCells ?? 0) + 1;
+      // snakeRev 11: a ride counts once, when it reaches SNAKE_STD_LANE_RIDE squares.
+      if (state.std && run === SNAKE_STD_LANE_RIDE) extra.laneRides = (state.laneRides ?? 0) + 1;
     } else extra.laneRun = 0;
     if (next.eaten > state.eaten) {
-      const quick = tick - (state.lastStar ?? -9999) <= SNAKE_COMBO_TICKS;
+      // snakeRev 11: a 3 s combo window, 1 a star from the third in a row; a 2 s warp window.
+      const quick = tick - (state.lastStar ?? -9999) <= (state.std ? SNAKE_STD_COMBO_TICKS : SNAKE_COMBO_TICKS);
       const combo = quick ? (state.combo ?? 0) + 1 : 1;
       extra.combo = combo;
       extra.maxCombo = Math.max(state.maxCombo ?? 0, combo);
-      extra.comboPts = (state.comboPts ?? 0) + clampInt(combo - 2, 0, SNAKE_COMBO_STEP_MAX);
+      extra.comboPts = (state.comboPts ?? 0) + (state.std ? (combo >= SNAKE_STD_COMBO_FROM ? 1 : 0) : clampInt(combo - 2, 0, SNAKE_COMBO_STEP_MAX));
       extra.lastStar = tick;
-      if (tick - (extra.lastWarp ?? state.lastWarp ?? -9999) <= SNAKE_WARP_STAR_TICKS) extra.warpPts = (state.warpPts ?? 0) + SNAKE_WARP_STAR_POINTS;
+      if (tick - (extra.lastWarp ?? state.lastWarp ?? -9999) <= (state.std ? SNAKE_STD_WARP_TICKS : SNAKE_WARP_STAR_TICKS)) extra.warpPts = (state.warpPts ?? 0) + (state.std ? SNAKE_STD_WARP_POINTS : SNAKE_WARP_STAR_POINTS);
     }
   }
   // Gold stars: eaten by the head, faded at their end, the next appears at its tick.
@@ -1008,7 +1021,13 @@ function stepV9(state: SnakeState, input: ArcadeInputEvent | null): SnakeState {
   let goldAt = state.goldAt ?? 0;
   if (gold >= 0 && moved && head === gold) {
     extra.goldsEaten = (state.goldsEaten ?? 0) + 1;
-    extra.goldPts = (state.goldPts ?? 0) + snakeGoldWorth(tick, goldEnd, state.goldLife ?? SNAKE_GOLD_LIFE);
+    if (state.std) {
+      // snakeRev 11: worth falls in a straight line from its full share on the first tick it can be eaten to 0 as it fades.
+      const life = state.goldLife ?? SNAKE_GOLD_LIFE;
+      const goldLeft = (state.goldLeft ?? 0) + clampInt(goldEnd - tick + 1, 0, life);
+      extra.goldLeft = goldLeft;
+      extra.goldPts = snakeStdGoldPoints(goldLeft, (state.golds ?? []).length, life);
+    } else extra.goldPts = (state.goldPts ?? 0) + snakeGoldWorth(tick, goldEnd, state.goldLife ?? SNAKE_GOLD_LIFE);
     gold = -1;
   }
   if (gold >= 0 && tick >= goldEnd) gold = -1;
@@ -1034,6 +1053,11 @@ function snakeV9Fold(state: SnakeState): number[] {
 
 /** snakeRev 9's feature points, each capped (SNAKE_V9_CAPS). */
 export function snakeV9Bonus(state: SnakeState): { gold: number; combo: number; lane: number; warp: number; total: number } {
+  // snakeRev 11: the standard's feature parts.
+  if (state.std) {
+    const p = snakeStdParts(state);
+    return { gold: p.gold, combo: p.combo, lane: p.lane, warp: p.warp, total: p.gold + p.combo + p.lane + p.warp };
+  }
   const gold = Math.min(SNAKE_V9_CAPS.gold, state.goldPts ?? 0);
   const combo = Math.min(SNAKE_V9_CAPS.combo, state.comboPts ?? 0);
   const lane = Math.min(SNAKE_V9_CAPS.lane, Math.trunc((state.laneCells ?? 0) / SNAKE_LANE_PER));
@@ -1048,6 +1072,7 @@ export function snakeV9Bonus(state: SnakeState): { gold: number; combo: number; 
 export const SNAKE_V9_BAND_CURVE = bandCurve([0, 8, 16, 21, 24, 27, 31], [0, 35, 76, 98, 120, 138, 150]);
 
 export function snakeV9Parts(state: SnakeState): BandParts {
+  if (state.std) return snakeStdBandParts(state);
   const units = Math.max(0, state.eaten);
   const b = snakeV9Bonus(state);
   const bits = [b.gold && `gold ${b.gold}`, b.combo && `combo ${b.combo}`, b.lane && `lanes ${b.lane}`, b.warp && `warps ${b.warp}`].filter(Boolean);
@@ -1203,3 +1228,109 @@ function initV10(seed: number): SnakeState {
 }
 
 export const snakeV10Game: ArcadeGame<SnakeState, ArcadeInputEvent | null> = { ...snakeV9Game, init: initV10 };
+
+/* ================= The arcade scoring standard (snakeRev 11, 29 Oct 2026) ================= */
+
+/**
+ * snakeRev 11 (docs/arcade-standard/snake.md): snakeRev 10's world and play exactly (the same stars, rocks,
+ * shower, lanes, wormholes and gold schedule, drawn the same way from the room seed), scored to the arcade standard:
+ * straight-line parts with fixed maxima that add up to 200.
+ *
+ *  - Core, up to 120: stars eaten, a straight line, 120 × stars ÷ SNAKE_STD_CORE_STARS (full at that many).
+ *  - Gold stars, up to 40: the run deals `golds.length` gold stars (7 on every seed: the snakeRev 9 schedule), each
+ *    worth up to 40 ÷ that count, falling in a straight line from its full worth on the first tick it can be eaten to
+ *    0 as it fades (snakeStdGoldPoints, from the sum of ticks left; rounded down once, on the total).
+ *  - Combos, up to 20: a star eaten within SNAKE_STD_COMBO_TICKS (3 s) of the last raises the combo; from the third in
+ *    a row each star scores 1.
+ *  - Lane rides, up to 10: a ride along a speed lane that reaches SNAKE_STD_LANE_RIDE squares in a row scores
+ *    SNAKE_STD_LANE_POINTS, once per ride.
+ *  - Warp stars, up to 10: a star eaten within SNAKE_STD_WARP_TICKS (2 s) of a wormhole trip scores 2.
+ *
+ * A crash ends the run, as before. Any played run scores at least 1; no input scores 0. States add `std: 1`, `goldLeft`
+ * and `laneRides`, folded into the checkpoint checksum last.
+ */
+export const SNAKE_REV_STD = 11;
+export const SNAKE_STD_CORE_MAX = 120;
+/**
+ * Stars for the full core: the near-perfect level's median (27 on 100 room seeds, scripts/arcade-skill-bands.ts). The first target, 22,
+ * was the great level's median, so great players would have filled the core; docs/arcade-standard/snake.md.
+ */
+export const SNAKE_STD_CORE_STARS = 27;
+export const SNAKE_STD_CAPS = { gold: 40, combo: 20, lane: 10, warp: 10 } as const;
+/** Gold stars a run deals: the snakeRev 9 gold schedule fits 7 in the 60 s run (8 s, then about every 7 s) on every seed, so each is worth up to 40 ÷ 7. */
+export const SNAKE_STD_GOLDS = 7;
+export const SNAKE_STD_COMBO_TICKS = 3 * TICKS_PER_SECOND;
+export const SNAKE_STD_COMBO_FROM = 3;
+export const SNAKE_STD_WARP_TICKS = 2 * TICKS_PER_SECOND;
+export const SNAKE_STD_WARP_POINTS = 2;
+export const SNAKE_STD_LANE_RIDE = 10;
+export const SNAKE_STD_LANE_POINTS = 1;
+export const SNAKE_STD_MAX = 200;
+export const SNAKE_STD_PLAYED_MIN = 1;
+/** The core as a band curve (a straight line, two knots), for the "?" help (liveBands.ts); snakeStdCore is the same line. */
+export const SNAKE_V11_BAND_CURVE = bandCurve([0, SNAKE_STD_CORE_STARS], [0, SNAKE_STD_CORE_MAX]);
+
+/** Gold stars' points from the sum of ticks left on eating: 40 × left ÷ (count × life), rounded down, at most 40. */
+export function snakeStdGoldPoints(goldLeft: number, count: number, life: number): number {
+  if (count <= 0 || life <= 0) return 0;
+  return Math.min(SNAKE_STD_CAPS.gold, Math.trunc((SNAKE_STD_CAPS.gold * goldLeft) / (count * life)));
+}
+
+/** One gold star's worth (exact, for texts and bots) if eaten on `tick`. */
+export function snakeStdGoldWorth(tick: number, end: number, count: number, life: number): number {
+  if (count <= 0) return 0;
+  return (SNAKE_STD_CAPS.gold * clampInt(end - tick + 1, 0, life)) / (count * life);
+}
+
+/** Core points for this many stars: the straight line to SNAKE_STD_CORE_MAX at SNAKE_STD_CORE_STARS. */
+export function snakeStdCore(eaten: number): number {
+  return Math.trunc((SNAKE_STD_CORE_MAX * clampInt(eaten, 0, SNAKE_STD_CORE_STARS)) / SNAKE_STD_CORE_STARS);
+}
+
+export interface SnakeStdParts {
+  core: number;
+  gold: number;
+  combo: number;
+  lane: number;
+  warp: number;
+}
+
+/** snakeRev 11's parts, each within its maximum. */
+export function snakeStdParts(state: SnakeState): SnakeStdParts {
+  return {
+    core: snakeStdCore(state.eaten),
+    gold: snakeStdGoldPoints(state.goldLeft ?? 0, (state.golds ?? []).length, state.goldLife ?? SNAKE_GOLD_LIFE),
+    combo: Math.min(SNAKE_STD_CAPS.combo, state.comboPts ?? 0),
+    lane: Math.min(SNAKE_STD_CAPS.lane, SNAKE_STD_LANE_POINTS * (state.laneRides ?? 0)),
+    warp: Math.min(SNAKE_STD_CAPS.warp, state.warpPts ?? 0),
+  };
+}
+
+/** snakeRev 11's score: the parts' sum (at most 200), at least 1 for a played run, 0 with no input. */
+export function snakeStdScore(state: SnakeState): number {
+  const p = snakeStdParts(state);
+  return stdFinal(p.core + p.gold + p.combo + p.lane + p.warp, Boolean(state.acted));
+}
+
+function snakeStdBandParts(state: SnakeState): BandParts {
+  const p = snakeStdParts(state);
+  const bonus = p.gold + p.combo + p.lane + p.warp;
+  const units = Math.max(0, state.eaten);
+  if (p.core + bonus === 0) return { units, points: 0, bonus: SNAKE_STD_PLAYED_MIN, penalty: 0, finished: false, text: `${units} stars`, bonusText: "Run played" };
+  const C = SNAKE_STD_CAPS;
+  return {
+    units,
+    points: p.core,
+    bonus,
+    penalty: 0,
+    finished: false,
+    text: `${units} stars (${SNAKE_STD_CORE_MAX} at ${SNAKE_STD_CORE_STARS})`,
+    bonusText: `Gold ${p.gold}/${C.gold} · combos ${p.combo}/${C.combo} · lanes ${p.lane}/${C.lane} · warps ${p.warp}/${C.warp}`,
+  };
+}
+
+function initStd(seed: number): SnakeState {
+  return { ...initV10(seed), std: 1, goldLeft: 0, laneRides: 0 };
+}
+
+export const snakeStdGame: ArcadeGame<SnakeState, ArcadeInputEvent | null> = { ...snakeV10Game, init: initStd, score: snakeStdScore };

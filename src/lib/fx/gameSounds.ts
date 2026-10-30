@@ -26,7 +26,7 @@ import { BINTOSS_AIM, BINTOSS_FLY, BINTOSS_NARROW_FROM, BINTOSS_THROWS, BINTOSS_
 import type { TiltState } from "@/lib/arcade/tilt";
 import { btEventCountdown, type BtCourse, type BtState } from "@/lib/arcade/ballTrack";
 import { JUNC_BUILD_EVERY, JUNC_BUILDS, type JuncState } from "@/lib/arcade/junction";
-import { skylineFlagAt, skylineGustAt, skylineStreakMult, type SkylineState } from "@/lib/arcade/skyline";
+import { skylineFlagAt, skylineGustAt, skylineShownMult, SKYLINE_REV_STD, SKYLINE_V9_STREAK_MAX, type SkylineState } from "@/lib/arcade/skyline";
 import { INK_LIVE_PRE_CAP, inkIsLive, type InkState } from "@/lib/arcade/inkBridge";
 import { inkFailedOnBlock } from "@/lib/arcade/inkBridge.renderer";
 import { BULLSEYE_ARROWS, type BullseyeState } from "@/lib/arcade/bullseye";
@@ -767,7 +767,9 @@ export function skylineSounds(): GameSounds<SkylineState> {
           // landed perfectly chimes. A height milestone is the whoosh alone (skyline.floorsStreak, momentCues.ts):
           // Joe's phone notes (27 Oct 2026) moved the crane bell to the perfect drop and dropped the stacked zap.
           if (state.expandRev) {
-            if (skylineStreakMult(state.streak ?? 0) > skylineStreakMult(prev.streak ?? 0)) sfx("shared.celebrate.countDing", "tick", 0.8);
+            if (skylineShownMult(state) > skylineShownMult(prev, prev.streak ?? 0)) sfx("shared.celebrate.countDing", "tick", 0.8);
+            // skylineRev 9 (no multiplier): the ding marks the streak filling its part, 10 in a row.
+            if (state.expandRev === SKYLINE_REV_STD && (state.streak ?? 0) === SKYLINE_V9_STREAK_MAX && (prev.streak ?? 0) < SKYLINE_V9_STREAK_MAX) sfx("shared.celebrate.countDing", "tick", 0.8);
             if ((state.golds ?? 0) > (prev.golds ?? 0)) sfx("shared.celebrate.chime", "correct", 0.9);
           }
         }

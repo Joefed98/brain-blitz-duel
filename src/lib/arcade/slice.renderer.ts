@@ -11,7 +11,8 @@ import { SLICE_BLADE_V4, sliceFrenzyOn, sliceGame, sliceGameFor, sliceMayoOn, sl
   SLICE_COMBO_TICKS, SLICE_COMBO_FLASH_TICKS, SLICE_FLASH_TICKS, SLICE_HALVES_TICKS, SLICE_HUD_H, SLICE_R,
   SLICE_SPECIAL_FRENZY, SLICE_SPECIAL_NONE, SLICE_SPECIAL_R, SLICE_SPECIAL_SLOW,
   SLICE_WORLD_W, SLICE_RAINBOW, SLICE_SILVER, sliceWorldH, type SliceState,
-  SLICE_V9_GOLD, SLICE_V9_TICKET_TICKS, sliceRadius, sliceTicketAt, sliceTicketsDone, sliceV9Bonus, sliceWorldW } from './slice';
+  SLICE_V9_GOLD, SLICE_V9_TICKET_TICKS, sliceRadius, sliceTicketAt, sliceTicketsDone, sliceV9Bonus, sliceWorldW,
+  SLICE_V11_TICKET_BREADS, sliceV11Parts } from './slice';
 import { artCanvas, artContext, type ArtCanvas } from './cache.renderer';
 import { reducedMotion } from './art.renderer';
 import { FX_PARTICLE_LIMIT } from '../fx/limits';
@@ -377,6 +378,7 @@ function drawSqueeze(ctx:CanvasRenderingContext2D,state:SliceState,still:boolean
 
 /** Qualifying-combo progress only: labels do not replace the sim's scoring multiplier. */
 export function drawSliceComboMeter(ctx:CanvasRenderingContext2D,state:SliceState):void {
+  if(state.v11){drawSliceComboMeterV11(ctx,state);return;}
   const left=Math.max(0,state.comboUntil-state.tick);
   const filled=state.comboLive&&left>0?Math.max(0,Math.min(3,state.streak)):0;
   const shown=Math.min(3,filled+1),remaining=Math.min(1,left/SLICE_COMBO_TICKS);
@@ -390,6 +392,21 @@ export function drawSliceComboMeter(ctx:CanvasRenderingContext2D,state:SliceStat
   }
   if(filled>0){ctx.save();ctx.fillStyle=K.chilli;ctx.beginPath();ctx.moveTo(x0+98,y+18);ctx.quadraticCurveTo(x0+85,y+8,x0+96,y-3);ctx.quadraticCurveTo(x0+96,y+6,x0+104,y+10);ctx.quadraticCurveTo(x0+111,y+18,x0+98,y+18);ctx.fill();ctx.fillStyle=K.mustard;circle(ctx,x0+99,y+12,3,K.mustard);ctx.restore();}
   if(filled>0){ctx.font="14px 'JetBrains Mono', monospace";ctx.fillText(`${Math.ceil(left/TICKS_PER_SECOND)}s`,x0+(shown*(w+gap)-gap)/2,y+h+21);}
+  ctx.restore();
+}
+
+/**
+ * sliceRev 11: no multiplier, so the meter is one bar (the same box): it fills while a combo is live and drains
+ * over its 10 s, "COMBO" under it and the seconds left.
+ */
+function drawSliceComboMeterV11(ctx:CanvasRenderingContext2D,state:SliceState):void {
+  const left=Math.max(0,state.comboUntil-state.tick),live=state.comboLive&&left>0;
+  const x0=14,y=SLICE_HUD_H+14,w=30,h=14,gap=4,bw=3*(w+gap)-gap;
+  ctx.save();drawComboTag(ctx,x0-6,y-6,bw+12,h+44);ctx.lineWidth=1.5;ctx.strokeStyle=K.gold;
+  if(live){ctx.fillStyle=K.gold;ctx.fillRect(x0+1,y+1,(bw-2)*Math.min(1,left/SLICE_COMBO_TICKS),h-2);}
+  ctx.strokeRect(x0,y,bw,h);
+  ctx.font="bold 14px 'JetBrains Mono', monospace";ctx.textAlign='center';ctx.textBaseline='top';ctx.fillStyle='#F6EEE2';
+  ctx.fillText(live?`COMBO ${Math.ceil(left/TICKS_PER_SECOND)}s`:'COMBO',x0+bw/2,y+h+4);
   ctx.restore();
 }
 
@@ -444,9 +461,12 @@ const goldPops=new WeakMap<object,{pts:number;at:number;x:number;y:number;gain:n
 function drawSliceV9Hud(ctx:CanvasRenderingContext2D,state:SliceState,W:number,still:boolean,now:number):void {
   let memo=goldPops.get(ctx);
   const tickets=sliceTicketsDone(state);
-  if(!memo||memo.pts>(state.goldPts??0)||state.tick<5){memo={pts:state.goldPts??0,at:-Infinity,x:0,y:0,gain:0,tickets,ticketAt:-Infinity,dodges:state.dodges??0,dodgeAt:-Infinity};goldPops.set(ctx,memo);}
-  if((state.goldPts??0)>memo.pts){
-    memo.gain=(state.goldPts??0)-memo.pts;memo.pts=state.goldPts??0;memo.at=now;
+  // sliceRev 11: the golden-fruit points are the standard's gold part (each fruit counts, combo or not).
+  const v11=state.v11?sliceV11Parts(state):null;
+  const goldPts=v11?v11.gold:(state.goldPts??0);
+  if(!memo||memo.pts>goldPts||state.tick<5){memo={pts:goldPts,at:-Infinity,x:0,y:0,gain:0,tickets,ticketAt:-Infinity,dodges:state.dodges??0,dodgeAt:-Infinity};goldPops.set(ctx,memo);}
+  if(goldPts>memo.pts){
+    memo.gain=goldPts-memo.pts;memo.pts=goldPts;memo.at=now;
     // Where the last golden fruit was cut.
     let best=-1;state.slicedAt.forEach((t,i)=>{const o=state.objects[i];if(t&&o&&o.colour===SLICE_V9_GOLD&&!o.special&&(best<0||t>(state.slicedAt[best]??0)))best=i;});
     const o=best>=0?state.objects[best]:undefined,at=o?sliceObjectAt(o,state.slicedAt[best]!,state.slowFrom,state.mayo):null;
@@ -455,8 +475,23 @@ function drawSliceV9Hud(ctx:CanvasRenderingContext2D,state:SliceState,W:number,s
   if(tickets>memo.tickets){memo.tickets=tickets;memo.ticketAt=now;}
   if((state.dodges??0)>memo.dodges){memo.dodges=state.dodges??0;memo.dodgeAt=now;}
   ctx.save();
+  // sliceRev 11: the bread ticket (three breads in a row, none missed) in the order ticket's place.
+  if(state.v11){
+    const got=Math.min(SLICE_V11_TICKET_BREADS,state.breadRun??0),done=state.breadTickets??0;
+    const x=W-118,y=SLICE_HUD_H+8,w=108,h=58;
+    ctx.fillStyle='#FFF9EB';ctx.beginPath();ctx.roundRect(x,y,w,h,6);ctx.fill();
+    ctx.fillStyle='rgba(60,40,20,0.12)';ctx.fillRect(x,y+18,w,1);
+    ctx.fillStyle='#232721';ctx.font="800 11px 'JetBrains Mono', monospace";ctx.textAlign='left';ctx.textBaseline='middle';
+    ctx.fillText('TICKETS',x+7,y+10);
+    ctx.textAlign='right';ctx.fillText(`${done}`,x+w-7,y+10);
+    const icon=sprite('bagel',26,paintFood('bagel'));
+    if(icon)ctx.drawImage(icon as CanvasImageSource,x+7,y+21,22,22);
+    ctx.textAlign='left';ctx.font="800 14px 'JetBrains Mono', monospace";ctx.fillText(`×${SLICE_V11_TICKET_BREADS}`,x+33,y+32);ctx.font="700 9px 'JetBrains Mono', monospace";ctx.fillText('IN A ROW',x+60,y+33);
+    for(let p=0;p<SLICE_V11_TICKET_BREADS;p++){ctx.fillStyle=p<got?K.gold:'rgba(60,40,20,0.25)';ctx.beginPath();ctx.arc(x+10+p*12,y+h-5,3.5,0,Math.PI*2);ctx.fill();}
+    if(!still&&now-memo.ticketAt<600){ctx.globalAlpha=1-(now-memo.ticketAt)/600;ctx.strokeStyle=K.gold;ctx.lineWidth=3;ctx.beginPath();ctx.roundRect(x-2,y-2,w+4,h+4,8);ctx.stroke();ctx.globalAlpha=1;}
+  }
   // The order ticket.
-  const k=sliceTicketAt(state,state.tick);
+  const k=state.v11?-1:sliceTicketAt(state,state.tick);
   if(k>=0){
     const t=state.tickets![k]!,got=Math.min(t.count,state.ticketCuts?.[k]??0),done=got>=t.count;
     const x=W-118,y=SLICE_HUD_H+8,w=108,h=58;
@@ -477,7 +512,8 @@ function drawSliceV9Hud(ctx:CanvasRenderingContext2D,state:SliceState,W:number,s
     if(done&&!still&&now-memo.ticketAt<600){ctx.globalAlpha=1-(now-memo.ticketAt)/600;ctx.strokeStyle=K.gold;ctx.lineWidth=3;ctx.beginPath();ctx.roundRect(x-2,y-2,w+4,h+4,8);ctx.stroke();ctx.globalAlpha=1;}
   }
   // Bonus and dodge streak, on a dark plate under the combo tag.
-  const bonus=sliceV9Bonus(state),streak=state.dodgeStreak??0;
+  // sliceRev 11: the bonus is the combo, golden fruit, tickets and dodges parts; there is no dodge streak.
+  const bonus=v11?v11.combo+v11.gold+v11.tickets+v11.dodges:sliceV9Bonus(state),streak=v11?0:state.dodgeStreak??0;
   const by=SLICE_HUD_H+72;
   ctx.font="800 13px 'JetBrains Mono', monospace";ctx.textAlign='left';ctx.textBaseline='middle';
   const line=`BONUS +${bonus}${streak>0?`  DODGE ×${streak}`:''}`;

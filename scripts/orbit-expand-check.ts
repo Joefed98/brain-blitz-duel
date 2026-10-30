@@ -26,7 +26,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { gunzipSync } from "node:zlib";
 import { bandPoints, bandStrict } from "../src/lib/arcade/scoreBands";
-import { lapPhases, orbitCheckpoint, ORBIT_INPUT_CHECKPOINT, ORBIT_INPUT_TAP, ORBIT_REV_STRICT, ORBIT_REV_XP, ORBIT_TOTAL } from "../src/lib/arcade/orbit";
+import { lapPhases, orbitCheckpoint, ORBIT_INPUT_CHECKPOINT, ORBIT_INPUT_TAP, ORBIT_REV_STRICT, ORBIT_REV_XP, ORBIT_REV_STD, ORBIT_TOTAL } from "../src/lib/arcade/orbit";
 import {
   decodeOrbitExtras,
   decodeOrbitHoles,
@@ -47,6 +47,7 @@ import {
   ORBIT_MOON_ASSIST,
   ORBIT_REV3_WORLD_W,
   ORBIT_V12_BAND_CURVE,
+  ORBIT_V13_BAND_CURVE,
   ORBIT_V12_SKILL_MAX,
   ORBIT_V12_SKILL_PAY,
   ORBIT_V12_SKILL_PACED_FROM,
@@ -324,21 +325,24 @@ const fly = (s: OrbitRev3State, ticks: number, until: (s: OrbitRev3State) => boo
   for (let k = 0; k < 200; k++) {
     const p = generateOrbit() as any;
     dealt++;
-    if (p.orbitRev === ORBIT_REV_XP && p.extras && p.planets && p.holes) {
+    // The arcade scoring standard (29 Oct 2026) deals orbitRev 13: orbitRev 12's play (its `xp` start) scored on the standard.
+    if (p.orbitRev === ORBIT_REV_STD && p.extras && p.planets && p.holes) {
       const start = orbitStartForPuzzle(p);
-      if (start && start().xp === 1) xp++;
+      if (start && start().xp === 1 && start().std === 1) xp++;
     }
   }
-  ok(xp === dealt, `generateOrbit deals orbitRev 12 on a feature-bank course with its planets, holes and extras (${xp} / ${dealt})`);
+  ok(xp === dealt, `generateOrbit deals orbitRev 13 (orbitRev 12's play) on a feature-bank course with its planets, holes and extras (${xp} / ${dealt})`);
 }
 ok(ORBIT_REV_XP === 12, "the expansion's stamp is orbitRev 12 (above every stamp used before, the parked 11 included)");
-ok((LIVE_BANDS as any).orbit.rev === ORBIT_REV_XP && (LIVE_BANDS as any).orbit.strictRev === ORBIT_REV_STRICT && (LIVE_BANDS as any).orbit.curve === ORBIT_V12_BAND_CURVE, "LIVE_BANDS lists orbitRev 12 with its curve and orbitRev 10 as its score-band revision");
-ok(orbitWorldWFor(ORBIT_REV_XP) === 450 && orbitWorldHFor(ORBIT_REV_XP) === 782 && orbitWorldWFor(ORBIT_REV_STRICT) === 390 && orbitWorldHFor(ORBIT_REV_STRICT) === 650 && orbitWorldWFor(11) === 390, "the view is 450 × 782 on orbitRev 12 and unchanged before (11 was never dealt)");
+ok(ORBIT_REV_STD === 13, "the arcade standard's stamp is orbitRev 13, the next after the expansion");
+ok((LIVE_BANDS as any).orbit.rev === ORBIT_REV_STD && (LIVE_BANDS as any).orbit.strictRev === ORBIT_REV_STRICT && (LIVE_BANDS as any).orbit.curve === ORBIT_V13_BAND_CURVE, "LIVE_BANDS lists orbitRev 13 (orbitRev 12's play on the arcade standard) with its curve and orbitRev 10 as its score-band revision");
+ok(orbitWorldWFor(ORBIT_REV_XP) === 450 && orbitWorldHFor(ORBIT_REV_XP) === 782 && orbitWorldWFor(ORBIT_REV_STRICT) === 390 && orbitWorldHFor(ORBIT_REV_STRICT) === 650 && orbitWorldWFor(11) === 390 && orbitWorldWFor(ORBIT_REV_STD) === 450 && orbitWorldHFor(ORBIT_REV_STD) === 782, "the view is 450 × 782 on orbitRev 12 and 13 and unchanged before (11 was never dealt)");
 ok(roundMaxFor("orbit") === ORBIT_XP_MAX, "ROUND_MAX for orbit is 200");
 ok(ORBIT_TOTAL === 40, "the course keeps 40 planets and the sun");
 {
   const src = readFileSync("src/lib/duel/introDemo.functions.ts", "utf8");
-  ok(/data\.type === "orbit" && demo\?\.puzzle\.type === "orbit" && demo\.puzzle\.orbitRev !== ORBIT_REV_XP\) return null/.test(src), "Orbit's intro demo stays stopped (the still shows) until one is recorded on orbitRev 12");
+  // orbitRev 13 (the arcade standard, as flipRev 9): the demo waits for one recorded on orbitRev 13.
+  ok(/data\.type === "orbit" && demo\?\.puzzle\.type === "orbit" && demo\.puzzle\.orbitRev !== ORBIT_REV_STD\) return null/.test(src), "Orbit's intro demo stays stopped (the still shows) until one is recorded on orbitRev 13");
 }
 void ORBIT_INPUT_CHECKPOINT;
 

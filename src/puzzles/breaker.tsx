@@ -32,7 +32,7 @@ import {
   BRK_TEAL,
   breakerWorldHFor,
   breakerWorldWFor,
-  BRK_REV_PHONE,
+  BRK_REV_STD,
   brkWallSize,
   type BrkState,
 } from "@/lib/arcade/breaker";
@@ -43,7 +43,7 @@ import { NO_SCROLL_STYLE, useNoTouchScroll } from "@/components/puzzles/noScroll
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 import { arcadeCanvasRatio } from "@/lib/fx/lowEnd";
 
-/** Fixed intro still (brkRev 9; text brkRev 10): the wall with its gold bricks behind armour, a shot up a cleared lane, a ×2 combo. */
+/** Fixed intro still (brkRev 9; text brkRev 11): the wall with its gold bricks behind armour, a shot up a cleared lane (combos pay nothing since brkRev 11). */
 function IntroExample() {
   const gold = (row: number, col: number) => row === 0 && (col === 1 || col === 4);
   const armour = (row: number, col: number) => row === 1 && (col === 1 || col === 4);
@@ -75,12 +75,9 @@ function IntroExample() {
         <path d="M108 94 L108 26" stroke="#FFD84A" strokeWidth={1.5} strokeDasharray="3 3" />
         <circle cx={108} cy={70} r={4} fill="#F7F7F8" />
         <rect x={86} y={100} width={44} height={7} rx={2} fill={BRK_GOLD} />
-        <text x={36} y={92} fill="#FFD84A" fontSize={11} fontWeight={700} fontFamily="'JetBrains Mono', ui-monospace, monospace">
-          COMBO ×2
-        </text>
       </svg>
       <p className="text-center text-xs text-muted-foreground">
-        Gold bricks break after 4 hits; bricks without a paddle touch build a combo.
+        Every brick scores; gold bricks break after 4 hits and add 10 each.
       </p>
     </div>
   );
@@ -410,7 +407,7 @@ export const breakerPuzzle: PuzzleDefinition = {
   category: "arcade",
   timeLimitMs: (BRK_RUN_TICKS / TICKS_PER_SECOND) * 1000 + 3000,
   revealMs: 6_000,
-  generate: () => ({ type: "breaker", seed: 1, brkRev: BRK_REV_PHONE }) satisfies BreakerPuzzleData,
+  generate: () => ({ type: "breaker", seed: 1, brkRev: BRK_REV_STD }) satisfies BreakerPuzzleData,
   check: () => false,
   revealHeading: "Your run",
   IntroExample,
