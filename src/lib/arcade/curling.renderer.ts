@@ -554,13 +554,23 @@ export function drawCurling(ctx: CanvasRenderingContext2D, s: CurlingState, aim:
   }
 }
 
-/** The scenery beyond the world (display only): the arena's dark above, the sheet's floor below and to the sides. */
+/**
+ * The scenery beyond the world (display only): the world's own static layer (the arena, the floor and the dimmed
+ * neighbouring sheets, which already run past the world's edges) carried on out to the box, so the ice and the
+ * arena continue across every edge with no seam, then settling darker below the world.
+ */
 export function curlingScene(ctx: CanvasRenderingContext2D, view: ArenaSceneView): void {
-  const farEdge = curlProject(0, BACK_FAR - 120).sy;
-  ctx.fillStyle = "#05070C";
-  ctx.fillRect(view.left, view.top, view.right - view.left, farEdge - view.top);
   ctx.fillStyle = "#0E1520";
-  ctx.fillRect(view.left, farEdge, view.right - view.left, view.bottom - farEdge);
+  ctx.fillRect(view.left, view.top, view.right - view.left, view.bottom - view.top);
+  paintStatic(ctx);
+  const below = view.bottom - CURLING_H;
+  if (below > 0.01) {
+    const g = ctx.createLinearGradient(0, CURLING_H, 0, view.bottom);
+    g.addColorStop(0, "rgba(10,16,28,0)");
+    g.addColorStop(1, "rgba(10,16,28,0.55)");
+    ctx.fillStyle = g;
+    ctx.fillRect(view.left, CURLING_H, view.right - view.left, below);
+  }
 }
 
 /** The canvas background behind the world. */
