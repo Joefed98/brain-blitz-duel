@@ -25,7 +25,7 @@ import { HOVER_REV_EXPAND, HOVER_REV_STRICT, HOVER_V9_BAND_CURVE } from "./hover
 import { SKYLINE_REV_LIFT, SKYLINE_REV_STRICT, SKYLINE_V8_BAND_CURVE } from "./skyline";
 import { JUNC_REV_BAND, JUNC_BAND_CURVE } from "./junction";
 import { BRK_REV_PHONE, BRK_REV_STRICT, BRK_V10_BAND_CURVE } from "./breaker";
-import { TILT_REV_LIFT, TILT_REV_STRICT, TILT_V9_BAND_CURVE } from "./tilt";
+import { TILT_REV_STD, TILT_REV_STRICT, TILT_V10_BAND_CURVE } from "./tilt";
 import { ORBIT_REV_STRICT, ORBIT_REV_XP } from "./orbit";
 import { ORBIT_V12_BAND_CURVE } from "./orbitRev3";
 import { BEAT_REV_EASE, BEAT_REV_STRICT, BEAT_V10_BAND_CURVE } from "./beat";
@@ -65,7 +65,8 @@ export const LIVE_BANDS = {
   skyline: { field: "skylineRev", rev: SKYLINE_REV_LIFT, curve: SKYLINE_V8_BAND_CURVE, strictRev: SKYLINE_REV_STRICT },
   junction: { field: "junctionRev", rev: JUNC_REV_BAND, curve: JUNC_BAND_CURVE },
   breaker: { field: "brkRev", rev: BRK_REV_PHONE, curve: BRK_V10_BAND_CURVE, strictRev: BRK_REV_STRICT },
-  tilt: { field: "tiltRev", rev: TILT_REV_LIFT, curve: TILT_V9_BAND_CURVE, strictRev: TILT_REV_STRICT },
+  // tiltRev 10 (the arcade scoring standard): the core's straight line (35 a maze, to 140); finish, speed and gold stars add up to 60 (the help says so).
+  tilt: { field: "tiltRev", rev: TILT_REV_STD, curve: TILT_V10_BAND_CURVE, strictRev: TILT_REV_STRICT },
   orbit: { field: "orbitRev", rev: ORBIT_REV_XP, curve: ORBIT_V12_BAND_CURVE, strictRev: ORBIT_REV_STRICT },
   // beatRev 10 (phone notes): beatRev 9's base curve and skill pay on an easier chart and wider windows.
   beat: { field: "beatRev", rev: BEAT_REV_EASE, curve: BEAT_V10_BAND_CURVE, strictRev: BEAT_REV_STRICT },

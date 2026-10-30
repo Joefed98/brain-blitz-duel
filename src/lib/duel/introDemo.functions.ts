@@ -5,7 +5,7 @@ import { CLAY_REV_DEPTH } from "@/lib/arcade/clayShoot";
 import { WHACK_REV_NOTES } from "@/lib/arcade/whack";
 import { WORDFALL_REV } from "@/lib/arcade/wordfall";
 import { BRK_REV_PHONE } from "@/lib/arcade/breaker";
-import { TILT_REV_LIFT } from "@/lib/arcade/tilt";
+import { TILT_REV_STD } from "@/lib/arcade/tilt";
 import { CROSS_REV_EXPAND } from "@/lib/arcade/cross";
 import { FLIP_REV_LIFT } from "@/lib/arcade/flip";
 import { SNIP_REV_EXPAND } from "@/lib/arcade/snip";
@@ -122,7 +122,8 @@ export const getIntroDemoFn = createServerFn({ method: "GET" })
     // Tilt's expansion (tiltRev 8, 26 Oct 2026): three bigger mazes under a camera, keys, ice and quick stars. An older
     // demo would show the small disc, so the intro shows its still until a demo is recorded on tiltRev 8.
     // tiltRev 9 (27 Oct 2026) keeps tiltRev 8's play on lifted curves, under a fixed camera: only a demo recorded on 9 plays.
-    if (data.type === "tilt" && demo?.puzzle.type === "tilt" && demo.puzzle.tiltRev !== TILT_REV_LIFT) return null;
+    // tiltRev 10 (29 Oct 2026, the arcade scoring standard) adds a fourth maze: only a demo recorded on 10 plays.
+    if (data.type === "tilt" && demo?.puzzle.type === "tilt" && demo.puzzle.tiltRev !== TILT_REV_STD) return null;
     // Roofbound flipRev 8 (expansion E7, docs/expansions/x200-flip.md): a taller cave whose height changes, moving spikes,
     // trails, checkpoints, speed zones and sweet spots. An older demo would show the short corridor (and none of them),
     // so Roofbound's stays stopped (the intro shows its still) until one is recorded on flipRev 8. flipRev 9 (27 Oct 2026)

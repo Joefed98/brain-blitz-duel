@@ -514,7 +514,7 @@ const BUILDERS: Record<string, Builder> = {
     };
   },
   tilt: (r, s) => {
-    // tiltRev 8 (the expansion, docs/expansions/x200-tilt.md): three mazes and quick stars.
+    // tiltRev 8 (the expansion, docs/expansions/x200-tilt.md): three mazes and quick stars; tiltRev 10 four mazes again.
     const all = n(r, "tiltRev") === 8 || n(r, "tiltRev") === 9 ? 3 : 4;
     const done = n(r, "mazes") >= all;
     const quick = n(r, "totalQuick") > 0;
