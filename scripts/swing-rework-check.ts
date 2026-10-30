@@ -42,6 +42,7 @@ import {
   swingAssaultPar,
   swingReworkParts,
   swingReworkPlan,
+  prepareSwingCourse,
   swingReworkProgress,
   swingWorldHFor,
   swingWorldWFor,
@@ -516,6 +517,15 @@ console.log(`witness: ${playSeeds.length} courses cleared by their own planned r
   ok(/140/.test(INTRO_SCORE.swing) && /pars \(30\)/.test(INTRO_SCORE.swing) && /gems/.test(INTRO_SCORE.swing) && /up to (\{max\}|200)/.test(INTRO_SCORE.swing), `the intro score line: "${INTRO_SCORE.swing}"`);
   const demo = readFileSync("src/lib/duel/introDemo.functions.ts", "utf8");
   ok(/data\.type === "swing" && demo\?\.puzzle\.type === "swing" && demo\.puzzle\.swingRev !== SWING_REV_REWORK\) return null/.test(demo), "Grappler's intro demo stays stopped until one is recorded on swingRev 15");
+  const introSrc = readFileSync("src/components/duel/RoundIntro.tsx", "utf8");
+  ok(/puzzle\?\.type !== "swing"\) return;[\s\S]{0,200}setTimeout\(\(\) => prepareSwingCourse\(seed, swingRev\)/.test(introSrc), "the round's intro builds the course ahead (the round's own init is a cache hit)");
+  {
+    const seed = roomSeed(9) ^ 0x2468ace;
+    prepareSwingCourse(seed, SWING_REV_REWORK);
+    const t0 = performance.now();
+    const s0 = game.init(seed);
+    ok(performance.now() - t0 < 5 && s0.rework === 1, "after prepareSwingCourse the round's init takes under 5 ms");
+  }
   const art = readFileSync("src/lib/arcade/swing.renderer.ts", "utf8");
   ok(/STRETCH \$\{/.test(art) && /PAR \$\{/.test(art) && /state\.assault && !state\.rework \? assaultLimit/.test(art), "the HUD shows the stretch count and par; the swinging course has no veil");
   const s = game.init(roomSeed(3));

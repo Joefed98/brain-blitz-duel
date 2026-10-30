@@ -3979,6 +3979,15 @@ function reworkCourse(c: V14Course, sections: SwingSection[], ledges: SwingLedge
   return { state, features };
 }
 
+/**
+ * Builds a swingRev 14 or 15 course ahead of its round (RoundIntro calls it while the intro is up): the build proves
+ * the course in the sim (swingRev 15: about 100 ms, several hundred on a slow phone), and its cache makes the round's
+ * own init at the start instant. Display timing only: the course is the seed's whatever builds it, and when.
+ */
+export function prepareSwingCourse(seed: number, rev?: number): void {
+  if (rev === SWING_REV_REWORK || rev === SWING_REV_ASSAULT) swingGameFor(rev).init(seed);
+}
+
 /** The rope's body (swingRev 15's look-ahead kit below). */
 export type SwingBody = Body;
 /**

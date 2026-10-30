@@ -654,7 +654,10 @@ Lovable still hosts and publishes the app (https://brain-blitz-duel.lovable.app)
   `scripts/arcade-skill-bands/bots/swingRework.ts` (look-ahead through `swingBotKit`, perception only).
   swing-rework-check (~3 min; `scripts/fixtures/swing-rework-legacy.json` recorded on main, `swing-rework-runs.json`,
   `--record`); `pinSwingPreRework` deals swingRev 14 for the checks written for it; shots
-  `bun scripts/shots/swing-rework-shots.ts`. **The intro demo needs recording on swingRev 15.**
+  `bun scripts/shots/swing-rework-shots.ts`. A build takes ~60–130 ms here, 260–550 ms at a 4× CPU throttle in Chromium,
+  so RoundIntro builds the course while the intro is up (`prepareSwingCourse`; rooms and practice) and the round's own
+  init is a cache hit (an async round's seed only arrives at its start, so it builds then).
+  `bun scripts/swing-rework-bands.ts` measures the bands on any courses. **The intro demo needs recording on swingRev 15.**
 - **Practice reveal, fitting reveals, Scrumper retired** (27 Oct 2026, from Joe's phone tests; display and room
   draw only, no stamps, no scoring or grading changed): practice has no separate points page after the answer
   reveal; the reveal (puzzles and arcade) stays up with small Back (the Practice list) and Play again (a new round of

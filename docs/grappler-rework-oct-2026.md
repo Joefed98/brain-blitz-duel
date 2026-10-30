@@ -73,6 +73,15 @@ Medians on the six stored courses (`scripts/fixtures/swing-rework-runs.json`):
 On every course flawless > great > good. Only flawless (and some elite runs) clear the course inside the minute;
 an ordinary (average) player stays within 68–88. Every played run scores 1 or more; no input scores 0.
 
+## Build time
+
+The build proves every hop in the sim. Measured in headless Chromium on 40 courses each: about 60–130 ms a course
+unthrottled (the first in a fresh page 110–170 ms), **260–550 ms at a 4× CPU throttle** (median 267, first in a fresh
+page 430–545) and 390–770 ms at 6×. That would be a visible pause at round start on an iPhone 11, so RoundIntro builds
+the course while the intro is up (`prepareSwingCourse`, 120 ms after the intro's first paint; rooms and practice); the
+round's own init is then a cache hit (under 0.1 ms at 4×). Async rounds (the daily, challenges) only receive their seed
+when the round starts (by design), so they still build then.
+
 ## Checks
 
 swing-rework-check (old rounds, dealing and identity, the course's structure on sampled seeds, the witness played

@@ -1,4 +1,5 @@
 import { puzzleDef, puzzleName, typeTimeLimitMs, usesArcadeClock } from "@/lib/duel/registry";
+import { prepareSwingCourse } from "@/lib/arcade/swing";
 import { INTRO_COUNTDOWN_MS, INTRO_MS, TOTAL_ROUNDS, type PuzzleType } from "@/lib/duel/types";
 import type { Outcome } from "@/lib/duel/scoring";
 import type { PuzzleData } from "@/lib/duel/types";
@@ -144,6 +145,15 @@ export function RoundIntro({
     // Tempo's tick-locked track (no round bed): decoded during the intro so it plays from the first frame.
     if (type === "beat") prepareBeatTrack();
   }, [type, practice]);
+
+  // Grappler (swingRev 14 and 15) builds and proves its course from the seed: built while the intro is up (after its
+  // first paint), so the round itself starts at once (rooms and practice; an async round's seed arrives at its start).
+  useEffect(() => {
+    if (puzzle?.type !== "swing") return;
+    const { seed, swingRev } = puzzle;
+    const timer = window.setTimeout(() => prepareSwingCourse(seed, swingRev), 120);
+    return () => window.clearTimeout(timer);
+  }, [puzzle]);
 
   // Arcade art: start loading the game's world sprites as the intro begins, so the
   // demo (which waits for them) and the round itself draw the art from frame one.
