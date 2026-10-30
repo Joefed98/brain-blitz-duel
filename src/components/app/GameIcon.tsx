@@ -2,6 +2,7 @@ import type { CSSProperties } from "react";
 
 import { CONCEPT_ICONS, ConceptIcon } from "./gameIcons/conceptIcons";
 import { TILE_SCENES } from "./gameIcons/tileScenes.data";
+import { arcadeGroupOf } from "@/lib/duel/arcadeGroups";
 import { puzzleDef } from "@/lib/duel/registry";
 import type { PuzzleType } from "@/lib/duel/types";
 
@@ -28,7 +29,8 @@ export function gameIconBorder(size: number): number {
 /**
  * A game's icon (27 Oct 2026): a small scene of the game drawn with its own art (tileSceneUrl), or
  * for a game without one its line drawing (gameIcons/conceptIcons.tsx), on a black tile with a
- * border in its category's colour (`--category-*` through `data-cat`, polish-layout/theme.css).
+ * border in its category's colour (`--category-*` through `data-cat`, polish-layout/theme.css); an
+ * arcade game's border is its group's colour (`data-group`, arcadeGroups.ts; Retro's glows).
  * The same icon is used on Play, Practice, Profile, the results screens and the share card.
  * Decorative: the game's name is always beside it.
  */
@@ -41,6 +43,7 @@ export function GameIcon({ type, size = 44 }: { type: PuzzleType; size?: number 
       data-game-icon={type}
       data-icon-art={scene ? "img" : type in CONCEPT_ICONS ? "svg" : "none"}
       data-cat={puzzleDef(type).category}
+      data-group={arcadeGroupOf(type) ?? undefined}
       className="game-icon"
       style={style}
     >

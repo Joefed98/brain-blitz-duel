@@ -14,6 +14,7 @@ import {
   LOGO_TRAIL,
   LOGO_UPPER,
 } from "@/components/brand/logoGeometry";
+import { arcadeGroupInfo, arcadeGroupOf } from "@/lib/duel/arcadeGroups";
 import { ordinal } from "@/lib/duel/ordinal";
 import { puzzleDef } from "@/lib/duel/registry";
 
@@ -192,7 +193,8 @@ function iconTile(
   } catch {
     /* a removed game keeps the default tile */
   }
-  const colour = CATEGORY[cat] ?? GOLD;
+  const group = arcadeGroupOf(type);
+  const colour = (group ? arcadeGroupInfo(group).colour : CATEGORY[cat]) ?? GOLD;
   const border = Math.max(1.5, Math.round(s * 0.045 * 2) / 2);
   c.save();
   roundRect(c, x, y, s, s, s * 0.28);

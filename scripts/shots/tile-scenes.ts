@@ -10,7 +10,8 @@
  *
  * No types: every scene; listed types: only those (the others' files are kept). --preview writes
  * <dir>/preview.png: each image at 208 px (as exported), then at 64 and 34 px on its category-colour
- * tile, for judging. --cache gives this run its own Vite cache (for runs in parallel).
+ * tile (an arcade game's group colour), for judging. Each scene is drawn over its game's
+ * background (tile-scenes/backgrounds.ts), in the same image. --cache gives this run its own Vite cache (for runs in parallel).
  */
 import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
@@ -106,6 +107,7 @@ ${entries.join("\n")}
 );
 if (PREVIEW && Object.keys(written).length) {
   const { PUZZLE_REGISTRY } = await import("../../src/lib/duel/registry");
+  const { arcadeGroupInfo, arcadeGroupOf } = await import("../../src/lib/duel/arcadeGroups");
   mkdirSync(PREVIEW, { recursive: true });
   const types = Object.keys(written);
   const rowH = 208 + 24;
@@ -117,7 +119,8 @@ if (PREVIEW && Object.keys(written).length) {
     const img = await loadImage(readFileSync(join(OUT_DIR, `${type}.webp`)));
     const y = i * rowH + 12;
     g.drawImage(img, 0, y, 208, 208);
-    const colour = CATEGORY_HEX[PUZZLE_REGISTRY[type as keyof typeof PUZZLE_REGISTRY]?.category ?? "arcade"] ?? "#fff";
+    const group = arcadeGroupOf(type);
+    const colour = group ? arcadeGroupInfo(group).colour : (CATEGORY_HEX[PUZZLE_REGISTRY[type as keyof typeof PUZZLE_REGISTRY]?.category ?? "arcade"] ?? "#fff");
     for (const [x, size] of [[224, 64], [304, 34]] as const) {
       const b = Math.max(1.5, Math.round(size * 0.045 * 2) / 2);
       g.save();
