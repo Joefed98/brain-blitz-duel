@@ -16,6 +16,11 @@ export interface StdCase {
   core(value: number): any;
   /** The core measure at which the core part is full (its straight line's end). */
   fullAt: number;
+  /**
+   * Feature keys that a full core earns by itself (a finish, e.g. Swish's "All ten in"): on the core line they must be
+   * 0 below `fullAt` and are allowed from it on. Every other feature must stay 0 on the whole line.
+   */
+  finishParts?: readonly string[];
   /** An initial state on the revision before the standard: its parts must be null. */
   older(): any;
   /** Game-specific assertions (feature amounts, mistakes, gameplay changes). */

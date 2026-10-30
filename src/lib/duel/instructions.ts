@@ -105,7 +105,7 @@ import {
   PIN_PTS_TARGET,
 } from "@/lib/arcade/pinball";
 import { SLICE_V9_BAND_CURVE, SLICE_V9_BONUS_CAP, SLICE_V9_DODGE_POINTS, SLICE_V9_GOLD_POINTS, SLICE_V9_TICKET_POINTS, SLICE_V9_VALUE } from "@/lib/arcade/slice";
-import { BINTOSS_FAR_CAP, BINTOSS_FAR_POINTS, BINTOSS_FAR_THROWS, BINTOSS_V7_BAND_CURVE } from "@/lib/arcade/binToss";
+import { BINTOSS_FAR_THROWS, BINTOSS_V9_FAR, BINTOSS_V9_FAR_MAX, BINTOSS_V9_HOOP } from "@/lib/arcade/binToss";
 import { P4_PTS_COMBO, P4_PTS_JACKPOT, P4_PTS_JOULZ, P4_PTS_RAMP, P4_PTS_SKILL } from "@/lib/arcade/pinball4";
 import { BULLSEYE_INNER_BULL_POINTS, BULLSEYE_RING_VALUES, BULLSEYE_V8_DEAD_CAP, BULLSEYE_V8_DEAD_PTS, BULLSEYE_V8_STREAK_CAP, BULLSEYE_V8_STREAK_STEP } from "@/lib/arcade/bullseye";
 import { RALLY_V10_BONUS_COUNT, RALLY_V11_BONUS_LIFE, RALLY_V12_PAD_PTS, RALLY_V12_TARGET_PTS } from "@/lib/arcade/rally";
@@ -601,11 +601,11 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
       how: [
         { action: "Drag to aim,", detail: "then let go to throw." },
         { action: "Wind 1 = a quarter bucket.", detail: "Aim into the flag." },
-        { action: "Small far bucket:", detail: `+${BINTOSS_FAR_POINTS}, and its hoop +3.` },
-        { action: "Through the hoop, then in:", detail: "+3 bonus.", helpOnly: true },
+        { action: "Small far bucket:", detail: `+${BINTOSS_V9_FAR}, and its hoop +${BINTOSS_V9_HOOP}.` },
+        { action: "Through the hoop, then in:", detail: `+${BINTOSS_V9_HOOP} bonus.`, helpOnly: true },
         {
           action: "Far buckets:",
-          detail: `on throws 1-${BINTOSS_FAR_THROWS} a small bucket (about half the main one's width) stands still further back. Either bucket counts; the far one adds ${BINTOSS_FAR_POINTS} more (up to ${BINTOSS_FAR_CAP} in all). The hoops hang over it.`,
+          detail: `on throws 1-${BINTOSS_FAR_THROWS} a small bucket (about half the main one's width) stands still further back. Either bucket counts; the far one adds ${BINTOSS_V9_FAR} more (up to ${BINTOSS_V9_FAR_MAX} in all). The hoops hang over it.`,
           helpOnly: true,
         },
         {
@@ -617,7 +617,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "From throw 7 the bucket slides", detail: "side to side – time your release.", helpOnly: true },
         {
           action: "Hoops:",
-          detail: "on three of throws 2-5 a hoop hangs over the far bucket. Go down through it and into a bucket for 3 bonus points. Its gold ends bounce the ball away.",
+          detail: `on three of throws 2-5 a hoop hangs over the far bucket (now and then over the main one). Go down through it and into a bucket for ${BINTOSS_V9_HOOP} bonus points. Its gold ends bounce the ball away.`,
           helpOnly: true,
         },
         {
@@ -627,8 +627,8 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         },
         { action: "Drag down to the cancel strip", detail: "to put a throw back.", helpOnly: true },
       ],
-      // binRev 7 (docs/expansions/e5.md): binRev 6's units on their own curve, plus the far points; binRev 8 (phone notes) adds a unit a close miss.
-      score: `Each bucket counts 10, each hoop bonus 3 and each throw that only just misses a bucket 1. More buckets and hoops, higher score – up to ${BINTOSS_V7_BAND_CURVE.points.at(-1)}. A good run (${BAND_GOOD_POINTS} points) counts ${bandUnitsFor(BINTOSS_V7_BAND_CURVE, BAND_GOOD_POINTS)} – about ${Math.round(bandUnitsFor(BINTOSS_V7_BAND_CURVE, BAND_GOOD_POINTS) / 10)} buckets. All ten in adds 10, and each far bucket ${BINTOSS_FAR_POINTS} (up to ${BINTOSS_FAR_CAP}). Up to {max}.`,
+      // binRev 9 (the arcade scoring standard, docs/arcade-standard/bintoss.md): fixed amounts, no curve.
+      score: liveStdHelp("bintoss", "Ten throws, the same for everyone."),
     },
     bullseye: {
       goal: "Hit the gold 10, near and far.",

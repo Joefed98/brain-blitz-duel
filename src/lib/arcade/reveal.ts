@@ -148,6 +148,8 @@ const BUILDERS: Record<string, Builder> = {
       tiles: [
         { label: "Buckets", value: `${n(r, "baskets")} / 10` },
         ...(hoops > 0 ? [{ label: "Hoop bonuses", value: `${n(r, "swishes")} / ${hoops}` }] : []),
+        // binRev 9 (the arcade scoring standard): the far buckets made.
+        ...(r["far"] !== undefined ? [{ label: "Far buckets", value: `${n(r, "far")} / 6` }] : []),
         { label: "Throws", value: String(n(r, "throws")) },
       ],
       outcome: done ? "finish" : "time",

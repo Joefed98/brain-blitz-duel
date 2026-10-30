@@ -87,7 +87,9 @@ for (const [type, entry] of Object.entries(ARCADE_STANDARD)) {
       failures.push(`${type}: core at ${v} is ${core?.points ?? "missing"}, the straight line gives ${want}`);
       break;
     }
-    const features = parts!.filter((p) => p.key !== "core").reduce((t, p) => t + p.points, 0);
+    // A finish part (c.finishParts) comes with a full core: 0 below fullAt, allowed from it on.
+    const finish = new Set(c.finishParts ?? []);
+    const features = parts!.filter((p) => p.key !== "core" && (v < c.fullAt || !finish.has(p.key))).reduce((t, p) => t + p.points, 0);
     if (features !== 0) {
       lineOk = false;
       failures.push(`${type}: a core-only state at ${v} earned ${features} feature points`);
