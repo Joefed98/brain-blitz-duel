@@ -751,7 +751,7 @@ Lovable still hosts and publishes the app (https://brain-blitz-duel.lovable.app)
   unchanged on all but Jaywalk (states add `std: 1`; `LIFT_REVS` / `STD_REVS` in `scripts/scoring-targets-revs.ts` map each
   to the revision whose play it keeps); Jaywalk's crossings get busier (the first at half crossRev 9's traffic, full by the
   fourth, up to 15/12 later, each crossing still proved passable; `scripts/cross-std-density.ts`). Orbit's orbitRev 12
-  display and bank rules apply to 13 through `orbitXpRev`. arcade-standard-check (one entry per game in
+  display and bank rules apply to 13 through `orbitXpRev`. Ball Tracker btRev 8 deals 299 of the 300 bank courses (`BT_V8_DEAL` in `ballTrackDealV8.server.ts`, course 56 left out), every one proved to reach 200 by the boosted oracle through the server replay (balltrack-deal-check, all at full depth, 24 at quick, in halves on shards a and b). arcade-standard-check (one entry per game in
   `scripts/arcade-standard/`) proves 200 in parts, perfect runs at 200 through the server replay, a played run ≥ 1 and the
   help's wording. **The Jaywalk, Wavefront, Roofbound and Orbit intro demos stay stopped until recorded on the new stamps**
   (Ball Tracker's and Rainbow Bridge's older demos still play: their HUDs show no score).
