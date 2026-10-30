@@ -52,6 +52,9 @@ import { decodeBreakerRun, replayBreakerRun } from "./breaker";
 import { breakerStdParts, brkSkillPaid, brkWallSize } from "@/lib/arcade/breaker";
 import { hoverFeatureBonus, hoverStandardParts } from "@/lib/arcade/hover";
 import { decodePinballRun, replayPinballRun } from "./pinball";
+import { decodeMinesweeperRun, replayMinesweeperRun } from "./minesweeper";
+import { decodeMahjongRun, replayMahjongRun } from "./mahjong";
+import { MINES_SAFE } from "@/lib/arcade/minesweeper";
 import { decodeRallyRun, replayRallyRun } from "./rally";
 import { rallyBonusCount, rallyBonusPoints, rallyBonusPtsOf, RALLY_V12_EXP } from "@/lib/arcade/rally";
 import { decodeSteadyRun, replaySteadyRun } from "./steady";
@@ -1404,6 +1407,66 @@ function gradeUnderRev(
         desyncTick: run.desyncTick,
         inputs: decodePinballRun(answer).events.length,
         claimedScore: decodePinballRun(answer).claimedScore,
+        ...(run.reason ? { reason: run.reason } : {}),
+      };
+      break;
+    }
+    // Cards & Board (30 Oct 2026): the board is dealt from the stored seed and the run replayed; only that scores.
+    case "minesweeper": {
+      const replayStart = performance.now();
+      const run = replayMinesweeperRun(puzzle.seed, answer, puzzle.minesRev);
+      revealRun = run;
+      arcadeDiag = buildArcadeDiag(puzzle.type, run, answer, performance.now() - replayStart);
+      if (arcadeDiag.replayMs > 500)
+        console.warn(`[arcade] slow replay ${puzzle.type}: ${arcadeDiag.replayMs}ms`);
+      isCorrect = run.cleared;
+      correctCount = run.revealed - run.opening;
+      score = run.score;
+      extraDetail = {
+        minesRev: puzzle.minesRev ?? 1,
+        revealed: run.revealed,
+        opening: run.opening,
+        safe: MINES_SAFE,
+        hits: run.hits,
+        flags: run.flags,
+        chords: run.chords,
+        cleared: run.cleared,
+        clearedSeconds: run.clearedSeconds,
+        endedSeconds: run.endedSeconds,
+        flagged: run.flagged,
+        clientLag: run.clientLag,
+        clientTick: run.clientTick,
+        desyncTick: run.desyncTick,
+        inputs: decodeMinesweeperRun(answer).events.length,
+        claimedScore: decodeMinesweeperRun(answer).claimedScore,
+        ...(run.reason ? { reason: run.reason } : {}),
+      };
+      break;
+    }
+    case "mahjong": {
+      const replayStart = performance.now();
+      const run = replayMahjongRun(puzzle.seed, answer, puzzle.mahjongRev);
+      revealRun = run;
+      arcadeDiag = buildArcadeDiag(puzzle.type, run, answer, performance.now() - replayStart);
+      if (arcadeDiag.replayMs > 500)
+        console.warn(`[arcade] slow replay ${puzzle.type}: ${arcadeDiag.replayMs}ms`);
+      isCorrect = run.cleared;
+      correctCount = run.pairs;
+      score = run.score;
+      extraDetail = {
+        mahjongRev: puzzle.mahjongRev ?? 1,
+        pairs: run.pairs,
+        shuffles: run.shuffles,
+        misses: run.misses,
+        cleared: run.cleared,
+        clearedSeconds: run.clearedSeconds,
+        endedSeconds: run.endedSeconds,
+        flagged: run.flagged,
+        clientLag: run.clientLag,
+        clientTick: run.clientTick,
+        desyncTick: run.desyncTick,
+        inputs: decodeMahjongRun(answer).events.length,
+        claimedScore: decodeMahjongRun(answer).claimedScore,
         ...(run.reason ? { reason: run.reason } : {}),
       };
       break;

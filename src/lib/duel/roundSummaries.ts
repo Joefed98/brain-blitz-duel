@@ -118,6 +118,8 @@ import {
   TILT_TIME_MS,
   HOTFLOOR_TIME_MS,
   PINBALL_TIME_MS,
+  MINESWEEPER_TIME_MS,
+  MAHJONG_TIME_MS,
 } from "./types";
 
 import { TG_TIME_MS, tileGridResultLine } from "./tileGrid";
@@ -140,6 +142,8 @@ type AnswerBuilder = (puzzle: PuzzleData) => string | null;
 /** Types added after the ladder below; their limits are looked up directly. */
 const DIRECT_LIMITS: Partial<Record<PuzzleType, number>> = {
   pinball: PINBALL_TIME_MS,
+  minesweeper: MINESWEEPER_TIME_MS,
+  mahjong: MAHJONG_TIME_MS,
   nonogram: NONO_TIME_MS,
   pairmatch: PAIR_TIME_MS,
   flood: FLOOD_TIME_MS,
@@ -1099,6 +1103,31 @@ const pinballSummary: SummaryBuilder = (result) => {
   };
 };
 
+/** Cards & Board (30 Oct 2026): what the run did, by the server's replay. */
+const minesweeperSummary: SummaryBuilder = (result) => {
+  const n = (key: string) => Number(result.extra?.[key] ?? 0);
+  const hits = n("hits");
+  return {
+    summary: `${n("revealed") - n("opening")} of ${n("safe") - n("opening")} safe squares${result.extra?.["cleared"] === true ? " · cleared" : ""}`,
+    detail: [
+      hits === 0 ? "No mine hit" : `${hits} mine${hits === 1 ? "" : "s"} hit`,
+      result.extra?.["cleared"] === true ? `Cleared in ${n("clearedSeconds").toFixed(1)} s` : "Board not cleared",
+    ],
+  };
+};
+
+const mahjongSummary: SummaryBuilder = (result) => {
+  const n = (key: string) => Number(result.extra?.[key] ?? 0);
+  const shuffles = n("shuffles");
+  return {
+    summary: `${n("pairs")} of 36 pairs${result.extra?.["cleared"] === true ? " · cleared" : ""}`,
+    detail: [
+      shuffles === 0 ? "No shuffle" : `${shuffles} shuffle${shuffles === 1 ? "" : "s"}`,
+      result.extra?.["cleared"] === true ? `Cleared in ${n("clearedSeconds").toFixed(1)} s` : "Board not cleared",
+    ],
+  };
+};
+
 const rallySummary: SummaryBuilder = (result, puzzle) => {
   const hits = Number(result.extra?.["hits"] ?? 0);
   const goldHits = Number(result.extra?.["goldHits"] ?? 0);
@@ -1621,6 +1650,8 @@ export const ROUND_SUMMARIES: Record<PuzzleType, SummaryBuilder> = {
   ricochet: ricoSummary,
   breaker: breakerSummary,
   pinball: pinballSummary,
+  minesweeper: minesweeperSummary,
+  mahjong: mahjongSummary,
   rally: rallySummary,
   steady: steadySummary,
   slice: sliceSummary,
@@ -1710,6 +1741,8 @@ export const CORRECT_ANSWERS: Record<PuzzleType, AnswerBuilder> = {
   ricochet: () => null,
   breaker: () => null,
   pinball: () => null,
+  minesweeper: () => null,
+  mahjong: () => null,
   rally: () => null,
   steady: () => null,
   slice: () => null,

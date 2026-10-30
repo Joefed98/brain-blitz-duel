@@ -66,6 +66,10 @@ import { encodeBullseyeRun, replayBullseyeRun } from "../../src/lib/duel/bullsey
 import { PIN_REV } from "../../src/lib/arcade/pinball";
 import { pinballGameForAny, pinCheckpointAny } from "../../src/lib/arcade/pinball4";
 import { encodePinballRun, replayPinballRun } from "../../src/lib/duel/pinball";
+import { minesCheckpoint, minesweeperGameFor, MINES_REV_STD } from "../../src/lib/arcade/minesweeper";
+import { encodeMinesweeperRun, replayMinesweeperRun } from "../../src/lib/duel/minesweeper";
+import { mahjongCheckpoint, mahjongGameFor, MAHJONG_REV_STD } from "../../src/lib/arcade/mahjong";
+import { encodeMahjongRun, replayMahjongRun } from "../../src/lib/duel/mahjong";
 
 export interface GameSpec {
   type: PuzzleType;
@@ -241,6 +245,9 @@ export const GAMES: GameSpec[] = [
   // Pinball (practice only until PINBALL_IN_ROOMS): born on the bands, so its one revision is both `live` and `next`.
   // pinRev 4 (E4, 25 Oct 2026): the taller table's game and checkpoint (pinball4.ts) through the same replay path.
   simple("pinball", PIN_REV, PIN_REV, pinballGameForAny, pinCheckpointAny, encodePinballRun, replayPinballRun),
+  // Cards & Board (30 Oct 2026): born on the arcade scoring standard (one revision each, measured with --rev=now).
+  simple("minesweeper", MINES_REV_STD, MINES_REV_STD, minesweeperGameFor, minesCheckpoint, encodeMinesweeperRun, replayMinesweeperRun),
+  simple("mahjong", MAHJONG_REV_STD, MAHJONG_REV_STD, mahjongGameFor, mahjongCheckpoint, encodeMahjongRun, replayMahjongRun),
 ];
 
 export const GAME_BY_TYPE = new Map(GAMES.map((g) => [g.type, g]));

@@ -25,6 +25,8 @@ import { swingBandParts } from "../../src/lib/arcade/swing";
 import { bullseyeBandParts } from "../../src/lib/arcade/bullseye";
 import { pinballBandParts } from "../../src/lib/arcade/pinball";
 import { pinball6BandParts } from "../../src/lib/arcade/pinball4";
+import { minesBandParts } from "../../src/lib/arcade/minesweeper";
+import { mahjongBandParts } from "../../src/lib/arcade/mahjong";
 
 export const BAND_PARTS: Record<string, (s: any) => BandParts> = {
   balltrack: btBandParts,
@@ -51,6 +53,9 @@ export const BAND_PARTS: Record<string, (s: any) => BandParts> = {
   bullseye: bullseyeBandParts,
   // pinRev 6 (the arcade scoring standard): table points without a multiplier, core and features from its parts.
   pinball: (s: any) => (s?.rev6 ? pinball6BandParts(s) : pinballBandParts(s)),
+  // Cards & Board (30 Oct 2026): safe squares beyond the opening, and pairs.
+  minesweeper: minesBandParts,
+  mahjong: mahjongBandParts,
 };
 
 export const UNITS: Record<string, (s: any) => { u: number; finished: boolean }> = Object.fromEntries(

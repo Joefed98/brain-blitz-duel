@@ -72,6 +72,12 @@ import { replayBullseyeRun } from "@/lib/duel/bullseye";
 import { replayMatchupRun } from "@/lib/duel/matchup";
 import { replayBreakerRun } from "@/lib/duel/breaker";
 import { replayPinballRun } from "@/lib/duel/pinball";
+import { replayMinesweeperRun } from "@/lib/duel/minesweeper";
+import { replayMahjongRun } from "@/lib/duel/mahjong";
+import { drawMinesweeper } from "./minesweeper.renderer";
+import { drawMahjong } from "./mahjong.renderer";
+import { MINES_WORLD_H, MINES_WORLD_W } from "./minesweeper";
+import { MAHJONG_WORLD_H, MAHJONG_WORLD_W } from "./mahjong";
 import { replayRallyRun } from "@/lib/duel/rally";
 import { replaySliceRun } from "@/lib/duel/slice";
 import { replayBubbleRun } from "@/lib/duel/bubble";
@@ -181,6 +187,9 @@ export const ARCADE_REVEAL_RENDERERS: Record<string, ArcadeRevealRenderer> = {
   },
   // pinRev 4 (E4) draws its own taller table (drawPinballAny reads the state's revision).
   pinball: simple("#FF4DFF", PIN_WORLD_W, PIN_WORLD_H, { draw: drawPinballAny }, (p, a) => replayPinballRun(seedOf(p), a, p.type === "pinball" ? p.pinRev : undefined), undefined, undefined, (p) => pinballWorldHFor(p.type === "pinball" ? p.pinRev : undefined)),
+  // Cards & Board (30 Oct 2026): the final board as the run left it.
+  minesweeper: simple("#F2C75C", MINES_WORLD_W, MINES_WORLD_H, { draw: drawMinesweeper }, (p, a) => replayMinesweeperRun(seedOf(p), a, p.type === "minesweeper" ? p.minesRev : undefined)),
+  mahjong: simple("#F2C75C", MAHJONG_WORLD_W, MAHJONG_WORLD_H, { draw: drawMahjong }, (p, a) => replayMahjongRun(seedOf(p), a, p.type === "mahjong" ? p.mahjongRev : undefined)),
   rally: simple("#4D8CFF", 390, 620, rallyGame, (p, a) => replayRallyRun(seedOf(p), a, p.type === "rally" ? p.rallyRev : undefined), undefined, rallyRevealGame, (p) => in390(rallyWorldWFor(p.type === "rally" ? p.rallyRev : undefined), rallyWorldHFor(p.type === "rally" ? p.rallyRev : undefined))),
   slice: simple("#C9CED6", 390, 620, sliceArtGame, (p, a) => replaySliceRun(seedOf(p), a, p.type === "slice" ? p.sliceRev : undefined), undefined, undefined, (p) => (p.type === "slice" && (p.sliceRev === SLICE_REV_EXPAND || p.sliceRev === SLICE_REV_BIG || p.sliceRev === SLICE_REV_STANDARD) ? Math.round((390 * SLICE_V9_H) / SLICE_V9_W) : sliceWorldHFor(p.type === "slice" ? p.sliceRev : undefined))),
   bubble: simple(GOLD, 390, 620, bubbleGame, (p, a) => replayBubbleRun(seedOf(p), a, p.type === "bubble" ? p.bubbleRev : undefined), undefined, undefined, (p) => bubbleWorldHFor(p.type === "bubble" ? p.bubbleRev : undefined)),

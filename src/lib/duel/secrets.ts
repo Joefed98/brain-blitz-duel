@@ -67,6 +67,9 @@ const SECRET_KEYS: Record<PuzzleType, string[]> = {
   breaker: [],
   // A fixed table; the run is replayed on the server.
   pinball: [],
+  // Cards & Board (30 Oct 2026): the seed deals the board in the sim; the run is replayed on the server.
+  minesweeper: [],
+  mahjong: [],
   rally: [],
   steady: [],
   slice: [],

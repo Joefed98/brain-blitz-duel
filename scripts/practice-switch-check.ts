@@ -62,7 +62,8 @@ check(NEW_IDS.every((t) => ARCADE_GROUPS.some((g) => g.games.includes(t))), "the
 const BRIEF: Record<string, string[]> = {
   retro: ["Hover", "Breaker", "Rally", "Wavefront", "Fission", "Tempo", "Meteor", "Orbit", "Jaywalk", "Pinball"],
   sports: ["Flightpath", "Swish"],
-  cards: [],
+  // Minesweeper and Mahjong Solitaire registered on 30 Oct 2026 (#205); the group's other ids join as they register.
+  cards: ["Minesweeper", "Mahjong Solitaire"],
   action: ["Slice", "Tilt", "Gemstone", "High Rise", "Coral Pop", "Roofbound", "Rainbow Bridge", "Ball Tracker", "Grappler"],
 };
 for (const g of ARCADE_GROUPS) {
@@ -213,7 +214,12 @@ try {
       check(JSON.stringify(await listed(page)) === JSON.stringify(arcadeGroupTypes("retro")), `${at}: the Retro chip shows only Retro's games`);
       await page.locator("[data-practice-filter='cards']").click();
       await settle(page);
-      check((await listed(page)).length === 0 && (await page.locator("[data-practice-empty-group='cards']").count()) === 1, `${at}: Cards & Board (no registered games yet) shows coming soon and no rows`);
+      // A group with registered games lists exactly them; one with none yet shows "coming soon" and no rows.
+      const cardsTypes = arcadeGroupTypes("cards");
+      if (cardsTypes.length)
+        check(JSON.stringify(await listed(page)) === JSON.stringify(cardsTypes) && (await page.locator("[data-practice-empty-group='cards']").count()) === 0, `${at}: the Cards & Board chip shows only its registered games (${cardsTypes.join(", ")})`);
+      else
+        check((await listed(page)).length === 0 && (await page.locator("[data-practice-empty-group='cards']").count()) === 1, `${at}: Cards & Board (no registered games yet) shows coming soon and no rows`);
       await page.locator("[data-practice-filter='all']").click();
       await settle(page);
 

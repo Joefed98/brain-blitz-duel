@@ -248,6 +248,20 @@ function cells(c: Ctx, n: number, colour: string, inset = 8): void {
 /* ------------------------------------------------------------------ the arcade games */
 
 const ARCADE_BACKGROUNDS: Partial<Record<PuzzleType, TileBackground>> = {
+  // Minesweeper (Cards & Board): its slate field of raised squares, low-contrast, under a soft vignette.
+  minesweeper: bg((c) => {
+    vgrad(c, [[0, "#15181D"], [1, "#0B0D11"]]);
+    const step = 13;
+    for (let y = 0; y < T; y += step) for (let x = 0; x < T; x += step) {
+      c.fillStyle = (x / step + y / step) % 2 ? "#1A1F25" : "#1E2329";
+      c.fillRect(x + 1, y + 1, step - 2, step - 2);
+    }
+  }, { fade: 0.25, spot: 0.4 }),
+  // Mahjong Solitaire (Cards & Board): its green baize table, a faint warm wood edge round it.
+  mahjong: bg((c) => {
+    vgrad(c, [[0, "#2A1A10"], [0.08, "#160D07"], [0.1, "#1F6B4E"], [0.9, "#14503A"], [0.92, "#160D07"], [1, "#2A1A10"]]);
+    cloud(c, T / 2, T / 2, 56, "#1E7A58", 0.3);
+  }, { fade: 0.3, spot: 0.35 }),
   // Hover: its deep space lifting to a synthwave violet at the horizon, a faint magenta grid floor below.
   hover: bg((c) => {
     vgrad(c, [[0, "#02030A"], [0.35, "#080B20"], [0.62, "#2A0E4A"], [0.7, "#5A1A6E"], [0.7, "#0A0614"], [1, "#05030A"]]);

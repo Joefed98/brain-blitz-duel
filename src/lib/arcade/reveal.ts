@@ -264,6 +264,26 @@ const BUILDERS: Record<string, Builder> = {
       outcome: done ? "finish" : n(r, "bricksLeft") > 0 && n(r, "endedSeconds") < 90 ? "crash" : "time",
     };
   },
+  // Cards & Board (30 Oct 2026; the lines come from the standard's parts).
+  minesweeper: (r, s) => ({
+    axis: { value: n(r, "revealed") - n(r, "opening"), max: n(r, "safe") - n(r, "opening"), label: "Safe squares" },
+    lines: [`${n(r, "revealed") - n(r, "opening")} safe squares → ${s}`],
+    tiles: [
+      { label: "Mines hit", value: String(n(r, "hits")) },
+      { label: "Flags", value: String(n(r, "flags")) },
+      { label: "Cleared", value: b(r, "cleared") ? sec(n(r, "clearedSeconds")) : "No" },
+    ],
+    outcome: b(r, "cleared") ? "finish" : "time",
+  }),
+  mahjong: (r, s) => ({
+    axis: { value: n(r, "pairs"), max: 36, label: "Pairs" },
+    lines: [`${n(r, "pairs")} / 36 pairs → ${s}`],
+    tiles: [
+      { label: "Shuffles", value: String(n(r, "shuffles")) },
+      { label: "Cleared", value: b(r, "cleared") ? sec(n(r, "clearedSeconds")) : "No" },
+    ],
+    outcome: b(r, "cleared") ? "finish" : "time",
+  }),
   pinball: (r, s) =>
     // pinRev 6 (the arcade scoring standard; the lines come from its parts): no multiplier tile, its features instead.
     (r["state"] as { rev6?: number } | undefined)?.rev6

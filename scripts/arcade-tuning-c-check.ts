@@ -87,7 +87,7 @@ import {
 import { SLICE_REV_BIG, SLICE_REV_EXPAND, sliceGameFor, SLICE_BLADE_V4, SLICE_INPUT_BEGIN, SLICE_INPUT_SWIPE, SLICE_R, SLICE_REV_BAND, SLICE_REV_LONG, SLICE_REV_TUNEC, sliceObjectAt, type SliceState } from "../src/lib/arcade/slice";
 import { generateBeat, generateFlip, generateInkBridge, generateMatchup, generateSlice, generateSwing, generateTilt, generateWavefront } from "../src/lib/duel/arcade.server";
 import { generateHover } from "../src/lib/duel/hover.server";
-import { isRetired, typesInCategory } from "../src/lib/duel/registry";
+import { isRetired, puzzleDef, PUZZLE_TYPES, typesInCategory } from "../src/lib/duel/registry";
 import { PUZZLE_INSTRUCTIONS } from "../src/lib/duel/instructions";
 import { encodeTiltRun, replayTiltRun } from "../src/lib/duel/tilt";
 import { playTilt } from "./tilt-bot";
@@ -204,8 +204,11 @@ section("New rounds carry the Tuning C stamps; Junction is practice only");
   ok(isRetired("junction"), "Junction is retired (practice only)");
   ok(!typesInCategory("arcade").includes("junction"), "rooms never deal Junction");
   // 21 since Tuning C; 22 once Pinball (13 Oct, practice only until PINBALL_IN_ROOMS) is switched on;
-  // one fewer since Scrumper retired to practice (27 Oct 2026).
-  const dealt = 20 + (PINBALL_IN_ROOMS ? 1 : 0);
+  // one fewer since Scrumper retired to practice (27 Oct 2026). Since the new groups (30 Oct 2026) the count reads the
+  // registry (sessions add games in parallel): every arcade type registered that is not retired.
+  const dealt = PUZZLE_TYPES.filter((t) => puzzleDef(t).category === "arcade" && !isRetired(t)).length;
+  ok(dealt >= 20 + (PINBALL_IN_ROOMS ? 1 : 0), `at least the ${20 + (PINBALL_IN_ROOMS ? 1 : 0)} arcade games dealt before the new groups (${dealt})`);
+  ok(["minesweeper", "mahjong"].every((t) => typesInCategory("arcade").includes(t as never)), "rooms deal the two Cards & Board games");
   ok(typesInCategory("arcade").length === dealt, `rooms deal ${dealt} arcade games (got ${typesInCategory("arcade").length})`);
   ok(ACTIVE_ARCADE_GAMES.length === dealt && !ACTIVE_ARCADE_GAMES.includes("junction") && "junction" in ARCADE_GAME_WORLDS, `${dealt} active arcade worlds; Junction keeps its world for practice`);
   ok([...typesInCategory("arcade")].sort().join() === [...ACTIVE_ARCADE_GAMES].sort().join(), "the active arcade list is exactly the arcade types rooms deal");

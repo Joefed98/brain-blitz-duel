@@ -84,7 +84,9 @@ export type PuzzleType =
   | "measure"
   | "checkout"
   | "numline"
-  | "pinball";
+  | "pinball"
+  | "minesweeper"
+  | "mahjong";
 
 /** A type id as stored rooms hold it: a live type, or a game deleted since (removedGames.ts). */
 export type StoredPuzzleType = PuzzleType | RemovedPuzzleType;
@@ -395,7 +397,9 @@ export type PuzzleData =
   | SnipPuzzleData
   | TiltPuzzleData
   | HotFloorPuzzleData
-  | PinballPuzzleData;
+  | PinballPuzzleData
+  | MinesweeperPuzzleData
+  | MahjongPuzzleData;
 
 /** Every timed screen of a round, driven by a shared timestamp. */
 export type DuelPhase = "starting" | "round_title" | "intro" | "puzzle" | "reveal" | "result" | "standings" | "winner_reveal";
@@ -1910,6 +1914,30 @@ export interface PinballPuzzleData {
   seed: number;
   /** Rules revision (1 = the first table, scored on the Oct 2026 band shape; 4 the taller table; 5 it for 90 s). */
   pinRev?: number;
+}
+
+/* ====================== Cards & Board (30 Oct 2026) ====================== */
+
+/** Minesweeper: a 90 s run on a 93 s clock (the round clock adds three seconds of slack). */
+export const MINESWEEPER_TIME_MS = 93_000;
+
+export interface MinesweeperPuzzleData {
+  type: "minesweeper";
+  /** Deals the board (mines and the opening) in the sim, identical for everyone; solvable by logic alone. */
+  seed: number;
+  /** Rules revision (1 = the first board, on the arcade scoring standard). */
+  minesRev?: number;
+}
+
+/** Mahjong Solitaire: a 120 s run on a 123 s clock. */
+export const MAHJONG_TIME_MS = 123_000;
+
+export interface MahjongPuzzleData {
+  type: "mahjong";
+  /** Deals the faces (built backwards, so the board clears) in the sim, identical for everyone. */
+  seed: number;
+  /** Rules revision (1 = the first stack, on the arcade scoring standard). */
+  mahjongRev?: number;
 }
 
 export interface RallyPuzzleData {

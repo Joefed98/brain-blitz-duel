@@ -24,6 +24,7 @@ import { BAND_SPECS, BAND_STAMPS } from "../src/lib/arcade/bandParts";
 import { bandPoints, bandTop, bandTotal, BAND_FINISH_BONUS, BAND_PARTIAL_TOP } from "../src/lib/arcade/scoreBands";
 import { bubbleGameFor, BUB_BOMB, BUB_JOKER, BUB_LINE, BUB_QUEUE, BUB_REV, BUB_REV_BAND, BUB_SPECIAL_FROM, BUB_V3_JOKER_BLOCK } from "../src/lib/arcade/bubble";
 import { GAMES, GAME_BY_TYPE } from "./arcade-skill-bands/games";
+import { liveBornOnStandard } from "../src/lib/arcade/liveBands";
 
 const failures: string[] = [];
 let checks = 0;
@@ -86,7 +87,8 @@ for (const spec of GAMES) {
   const seed = spec.seedFor(3);
   const game = spec.gameFor(spec.next!, seed);
   let state = game.init(seed);
-  ok(Boolean(state.band) && state[BAND_STAMPS[spec.type]![0]] === undefined, `${spec.type}: band init not stamped`);
+  // Games born on the arcade scoring standard (Cards & Board, Sports) have no band revision; the idle-0 proofs below still hold for them.
+  if (!liveBornOnStandard(spec.type)) ok(Boolean(state.band) && state[BAND_STAMPS[spec.type]![0]] === undefined, `${spec.type}: band init not stamped`);
   while (!game.isOver(state) && state.tick < game.runTicks) state = game.step(state, spec.taps ? false : null);
   ok(game.score(state) === 0, `${spec.type}: an idle run scores ${game.score(state)}`);
   const replay = spec.replay(seed, spec.encode({ seed, claimedScore: 0, events: [], inputs: [], taps: [], endTick: state.tick, checkpoints: [] }, spec.next!, seed), spec.next!);

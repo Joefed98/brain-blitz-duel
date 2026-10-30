@@ -27,6 +27,8 @@ import { bullseyeGame, bullseyeInitFor } from "@/lib/arcade/bullseye";
 import { matchupGameFor } from "@/lib/arcade/matchup";
 import { breakerGameFor } from "@/lib/arcade/breaker";
 import { pinballGameForAny } from "@/lib/arcade/pinball4";
+import { minesweeperGameFor } from "@/lib/arcade/minesweeper";
+import { mahjongGameFor } from "@/lib/arcade/mahjong";
 import { rallyGameFor } from "@/lib/arcade/rally";
 import { sliceGameFor } from "@/lib/arcade/slice";
 import { bubbleGameFor } from "@/lib/arcade/bubble";
@@ -182,6 +184,8 @@ const SOURCES: Record<string, (p: PuzzleData) => GameSource> = {
   matchup: (p) => ({ game: matchupGameFor(rev(p, "matchupRev")) as AnyGame }),
   breaker: (p) => ({ game: breakerGameFor(rev(p, "brkRev")) as AnyGame }),
   pinball: (p) => ({ game: pinballGameForAny(rev(p, "pinRev")) as AnyGame }),
+  minesweeper: (p) => ({ game: minesweeperGameFor(rev(p, "minesRev")) as AnyGame }),
+  mahjong: (p) => ({ game: mahjongGameFor(rev(p, "mahjongRev")) as AnyGame }),
   rally: (p) => ({ game: rallyGameFor(rev(p, "rallyRev")) as AnyGame }),
   slice: (p) => ({ game: sliceGameFor(rev(p, "sliceRev")) as AnyGame }),
   bubble: (p) => ({ game: bubbleGameFor(rev(p, "bubbleRev")) as AnyGame }),

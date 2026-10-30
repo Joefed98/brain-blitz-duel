@@ -41,6 +41,8 @@ import { bullseyePuzzle } from "@/puzzles/bullseye";
 import { matchupPuzzle } from "@/puzzles/matchup";
 import { breakerPuzzle } from "@/puzzles/breaker";
 import { pinballPuzzle } from "@/puzzles/pinball";
+import { minesweeperPuzzle } from "@/puzzles/minesweeper";
+import { mahjongPuzzle } from "@/puzzles/mahjong";
 import { removedGameDefinition } from "@/puzzles/removedGame";
 import { PINBALL_IN_ROOMS } from "@/lib/arcade/pinball";
 import { rallyPuzzle } from "@/puzzles/rally";
@@ -188,6 +190,9 @@ const BASE_REGISTRY: Record<PuzzleType, Omit<PuzzleDefinition, "instructions">> 
   matchup: matchupPuzzle,
   breaker: breakerPuzzle,
   pinball: pinballPuzzle,
+  // Cards & Board (30 Oct 2026): dealt in rooms from the start.
+  minesweeper: minesweeperPuzzle,
+  mahjong: mahjongPuzzle,
   rally: rallyPuzzle,
   steady: steadyPuzzle,
   slice: slicePuzzle,
