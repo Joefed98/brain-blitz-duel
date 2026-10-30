@@ -37,6 +37,7 @@ import type { BubState } from "@/lib/arcade/bubble";
 import { SLICE_SPECIAL_NONE, type SliceState } from "@/lib/arcade/slice";
 import { SNIP_EATEN, type SnipState } from "@/lib/arcade/snip";
 import { arenaLight } from "@/lib/arcade/arenaFills.renderer";
+import { MG_AIM, MG_ROLL, type MinigolfState } from "@/lib/arcade/minigolf";
 
 /** Sounds a success-effect cue with a file stands in for on this frame (momentCues.ts). */
 let quiet: ReadonlySet<string> = new Set();
@@ -956,6 +957,31 @@ export function colourClashSounds(): GameSounds<ClashState> {
         if (!state.ended && !state.finishTick && Math.trunc(state.tick / 900) > Math.trunc(prev.tick / 900)) {
           if (prev.tick < CLASH_LANE_EXPAND_TICK && state.tick >= CLASH_LANE_EXPAND_TICK) effectCue("stroop.lanesGrow");
           else effectCue("stroop.ruleFlash");
+        }
+      }
+      prev = state;
+    },
+    stop: () => {},
+  };
+}
+
+/* ================================ Sports (30 Oct 2026) ================================ */
+
+/** Minigolf: the putt's knock, rail and log bounces, the cup's rattle, a splash, and a bell for a hole under par. */
+export function minigolfSounds(): GameSounds<MinigolfState> {
+  let prev: MinigolfState | null = null;
+  return {
+    frame(state) {
+      beginFrame("minigolf", state);
+      if (prev && state.tick > prev.tick) {
+        if (prev.phase === MG_AIM && state.phase === MG_ROLL) sfx("minigolf.putt", "arc_wood_knock", 0.8);
+        if (state.bounces > prev.bounces) sfx("minigolf.bounce", "arc_bounce", 0.6);
+        if (state.waters > prev.waters) sfx("minigolf.water", "arc_sea_pop", 0.9);
+        if (state.holedTick > prev.holedTick) {
+          const h = state.hole;
+          const under = (state.taken[h] ?? 9) < (state.pars[h] ?? 0);
+          sfx("minigolf.holed", "arc_marble_clink");
+          if (under) sfx("minigolf.birdie", "arc_fair_bell", 0.8);
         }
       }
       prev = state;

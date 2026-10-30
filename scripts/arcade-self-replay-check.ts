@@ -155,6 +155,15 @@ import { fcCheckpoint, freecellGame } from "@/lib/arcade/cards/freecell";
 import { tpCheckpoint, tripeaksGame } from "@/lib/arcade/cards/tripeaks";
 import { psCheckpoint, pokerSquaresGame } from "@/lib/arcade/cards/pokerSquares";
 import { encodeFreecellRun, encodePokerSquaresRun, encodeTripeaksRun, replayFreecellRun, replayPokerSquaresRun, replayTripeaksRun } from "@/lib/duel/cards";
+import { minigolfCheckpoint, minigolfGameFor } from "@/lib/arcade/minigolf";
+import { encodeMinigolfRun, replayMinigolfRun } from "@/lib/duel/minigolf";
+import { MINIGOLF_BANK } from "@/lib/duel/minigolfBank.server";
+import { poolCheckpoint, poolGameFor, POOL_REV } from "@/lib/arcade/pool";
+import { encodePoolRun, replayPoolRun } from "@/lib/duel/pool";
+import { POOL_BANK } from "@/lib/duel/poolBank.server";
+import { curlingCheckpoint, curlingGameFor, CURLING_REV } from "@/lib/arcade/curling";
+import { encodeCurlingRun, replayCurlingRun } from "@/lib/duel/curling";
+import { CURLING_BANK } from "@/lib/duel/curlingBank.server";
 import { TILT_REV_BAND, TILT_REV_EXPAND, TILT_REV_LIFT, TILT_REV_STD, TILT_REV_TUNEC } from "@/lib/arcade/tilt";
 import { ORBIT_REV_BAND, ORBIT_REV_SWEPT, ORBIT_REV_TALL, ORBIT_REV_TUNED, ORBIT_REV_XP, ORBIT_REV_STD } from "@/lib/arcade/orbit";
 import { decodeOrbitExtras, initBandFrom, initSweptFrom, initTallFrom, initTunedFrom, initXpFrom, initStdFrom } from "@/lib/arcade/orbitRev3";
@@ -807,6 +816,22 @@ const GAMES: Game[] = [
   { key: "freecell", game: freecellGame, checkpoint: fcCheckpoint, mode: "events", rate: 120, encode: encodeFreecellRun, replay: (seed: number, raw: string) => replayFreecellRun(seed, raw, 1), seedFor: (n: number) => n % 300 },
   { key: "tripeaks", game: tripeaksGame, checkpoint: tpCheckpoint, mode: "events", rate: 120, encode: encodeTripeaksRun, replay: (seed: number, raw: string) => replayTripeaksRun(seed, raw, 1), seedFor: (n: number) => n % 300 },
   { key: "pokersquares", game: pokerSquaresGame, checkpoint: psCheckpoint, mode: "events", rate: 60, encode: encodePokerSquaresRun, replay: (seed: number, raw: string) => replayPokerSquaresRun(seed, raw, 1) },
+  // The Sports group (30 Oct 2026), appended so every earlier entry keeps its index: Minigolf golfRev 1 (bank courses and
+  // their stored pars) and Speed Pool poolRev 1 (bank layouts).
+  {
+    key: "minigolf",
+    game: minigolfGameFor(MINIGOLF_BANK[0]!.pars),
+    gameFor: (seed: number) => minigolfGameFor(MINIGOLF_BANK.find((e) => e.seed === seed)!.pars),
+    seedFor: (n: number) => MINIGOLF_BANK[n % MINIGOLF_BANK.length]!.seed,
+    checkpoint: minigolfCheckpoint,
+    mode: "events",
+    rate: 40,
+    encode: encodeMinigolfRun,
+    replay: (seed: number, raw: string) => replayMinigolfRun(seed, raw, MINIGOLF_BANK.find((e) => e.seed === seed)!.pars),
+  },
+  { key: "pool", game: poolGameFor(POOL_REV), seedFor: (n: number) => POOL_BANK[n % POOL_BANK.length]!, checkpoint: poolCheckpoint, mode: "events", rate: 40, encode: encodePoolRun, replay: (seed: number, raw: string) => replayPoolRun(seed, raw, POOL_REV) },
+  // Curling curlRev 1 (bank sheets), appended after them.
+  { key: "curling", game: curlingGameFor(), seedFor: (n: number) => CURLING_BANK[n % CURLING_BANK.length]!, checkpoint: curlingCheckpoint, mode: "events", rate: 40, encode: encodeCurlingRun, replay: (seed: number, raw: string) => replayCurlingRun(seed, raw, CURLING_REV) },
 ];
 
 /** A random candidate event, often outside the declared range (a finger off the edge). */

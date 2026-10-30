@@ -25,7 +25,6 @@ import { BAND_SPECS, BAND_STAMPS } from "../src/lib/arcade/bandParts";
 import { bandPoints, bandTop, bandTotal, BAND_FINISH_BONUS, BAND_PARTIAL_TOP } from "../src/lib/arcade/scoreBands";
 import { bubbleGameFor, BUB_BOMB, BUB_JOKER, BUB_LINE, BUB_QUEUE, BUB_REV, BUB_REV_BAND, BUB_SPECIAL_FROM, BUB_V3_JOKER_BLOCK } from "../src/lib/arcade/bubble";
 import { GAMES, GAME_BY_TYPE } from "./arcade-skill-bands/games";
-import { liveBornOnStandard } from "../src/lib/arcade/liveBands";
 
 const failures: string[] = [];
 let checks = 0;

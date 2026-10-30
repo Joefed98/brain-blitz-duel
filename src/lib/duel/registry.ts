@@ -49,6 +49,9 @@ import { racingPuzzle } from "@/puzzles/racing";
 import { freecellPuzzle } from "@/puzzles/freecell";
 import { tripeaksPuzzle } from "@/puzzles/tripeaks";
 import { pokerSquaresPuzzle } from "@/puzzles/pokerSquares";
+import { minigolfPuzzle } from "@/puzzles/minigolf";
+import { poolPuzzle } from "@/puzzles/pool";
+import { curlingPuzzle } from "@/puzzles/curling";
 import { removedGameDefinition } from "@/puzzles/removedGame";
 import { PINBALL_IN_ROOMS } from "@/lib/arcade/pinball";
 import { rallyPuzzle } from "@/puzzles/rally";
@@ -206,6 +209,9 @@ const BASE_REGISTRY: Record<PuzzleType, Omit<PuzzleDefinition, "instructions">> 
   freecell: freecellPuzzle,
   tripeaks: tripeaksPuzzle,
   pokersquares: pokerSquaresPuzzle,
+  minigolf: minigolfPuzzle,
+  pool: poolPuzzle,
+  curling: curlingPuzzle,
   rally: rallyPuzzle,
   steady: steadyPuzzle,
   slice: slicePuzzle,

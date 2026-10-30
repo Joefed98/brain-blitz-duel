@@ -98,6 +98,10 @@ export const ROUND_MAX: Readonly<Record<PuzzleType, number>> = {
   freecell: 200,
   tripeaks: 200,
   pokersquares: 200,
+  // Sports (30 Oct 2026): on the arcade scoring standard from their first stamp.
+  minigolf: 200,
+  pool: 200,
+  curling: 200,
   bubble: 200, // expansion E6, bubbleRev 8 (bubbleRev 9: burst credit; bubbleRev 10: the mine's bigger blast)
   bullseye: 200, // expansion E9, bullRev 8
   burst: 200, // expansion E9, burstRev 8

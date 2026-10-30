@@ -91,6 +91,15 @@ import { replayFreecellRun, replayPokerSquaresRun, replayTripeaksRun } from "@/l
 import { freecellArt, FC_WORLD_H, FC_WORLD_W } from "./cards/freecell.renderer";
 import { tripeaksArt, TP_WORLD_H, TP_WORLD_W } from "./cards/tripeaks.renderer";
 import { pokerSquaresArt, PS_WORLD_H, PS_WORLD_W } from "./cards/pokerSquares.renderer";
+import { replayMinigolfRun } from "@/lib/duel/minigolf";
+import { replayPoolRun } from "@/lib/duel/pool";
+import { replayCurlingRun } from "@/lib/duel/curling";
+import { drawCurling } from "./curling.renderer";
+import { CURLING_H, CURLING_W, type CurlingState } from "./curling";
+import { drawPool } from "./pool.renderer";
+import { POOL_H, POOL_W, type PoolState } from "./pool";
+import { drawMinigolf } from "./minigolf.renderer";
+import { MINIGOLF_H, MINIGOLF_W, type MinigolfState } from "./minigolf";
 import { replayRallyRun } from "@/lib/duel/rally";
 import { replaySliceRun } from "@/lib/duel/slice";
 import { replayBubbleRun } from "@/lib/duel/bubble";
@@ -207,6 +216,10 @@ export const ARCADE_REVEAL_RENDERERS: Record<string, ArcadeRevealRenderer> = {
     },
   },
   // pinRev 4 (E4) draws its own taller table (drawPinballAny reads the state's revision).
+  // The Sports group (30 Oct 2026): each final state drawn by its own art, without the aim.
+  minigolf: simple("#7FD58A", MINIGOLF_W, MINIGOLF_H, { draw: (ctx, s: MinigolfState) => drawMinigolf(ctx, s, null) }, (p, a) => replayMinigolfRun(seedOf(p), a, p.type === "minigolf" ? p.pars : undefined)),
+  curling: simple("#E8C35A", CURLING_W, CURLING_H, { draw: (ctx, s: CurlingState) => drawCurling(ctx, s, null) }, (p, a) => replayCurlingRun(seedOf(p), a, p.type === "curling" ? p.curlRev : undefined)),
+  pool: simple("#3FA672", POOL_W, POOL_H, { draw: (ctx, s: PoolState) => drawPool(ctx, s, null) }, (p, a) => replayPoolRun(seedOf(p), a, p.type === "pool" ? p.poolRev : undefined)),
   pinball: simple("#FF4DFF", PIN_WORLD_W, PIN_WORLD_H, { draw: drawPinballAny }, (p, a) => replayPinballRun(seedOf(p), a, p.type === "pinball" ? p.pinRev : undefined), undefined, undefined, (p) => pinballWorldHFor(p.type === "pinball" ? p.pinRev : undefined)),
   // Cards & Board (30 Oct 2026): the final board as the run left it.
   minesweeper: simple("#F2C75C", MINES_WORLD_W, MINES_WORLD_H, { draw: drawMinesweeper }, (p, a) => replayMinesweeperRun(seedOf(p), a, p.type === "minesweeper" ? p.minesRev : undefined)),

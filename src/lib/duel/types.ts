@@ -92,7 +92,10 @@ export type PuzzleType =
   | "racing"
   | "freecell"
   | "tripeaks"
-  | "pokersquares";
+  | "pokersquares"
+  | "minigolf"
+  | "pool"
+  | "curling";
 
 /** A type id as stored rooms hold it: a live type, or a game deleted since (removedGames.ts). */
 export type StoredPuzzleType = PuzzleType | RemovedPuzzleType;
@@ -411,7 +414,10 @@ export type PuzzleData =
   | RacingPuzzleData
   | FreecellPuzzleData
   | TripeaksPuzzleData
-  | PokerSquaresPuzzleData;
+  | PokerSquaresPuzzleData
+  | MinigolfPuzzleData
+  | PoolPuzzleData
+  | CurlingPuzzleData;
 
 /** Every timed screen of a round, driven by a shared timestamp. */
 export type DuelPhase = "starting" | "round_title" | "intro" | "puzzle" | "reveal" | "result" | "standings" | "winner_reveal";
@@ -2618,4 +2624,37 @@ export interface LightUpPuzzleData {
   wallNumbers: number[];
   /** The unique bulb layout — private until the reveal. */
   solution?: number[];
+}
+
+/* ============================ Sports (30 Oct 2026) ============================ */
+
+/** The three Sports games run 120 s; the round clock adds three seconds of slack. */
+export const MINIGOLF_TIME_MS = 123_000;
+export const POOL_TIME_MS = 123_000;
+export const CURLING_TIME_MS = 123_000;
+
+export interface MinigolfPuzzleData {
+  type: "minigolf";
+  /** Lays out the five holes (a course from the proven bank, minigolfBank.server.ts): identical for everyone in the room. */
+  seed: number;
+  /** golfRev 1: the arcade scoring standard (docs/arcade-standard/minigolf.md). */
+  golfRev?: number;
+  /** Each hole's par (its best proven route + 1), stored with the round. */
+  pars: number[];
+}
+
+export interface PoolPuzzleData {
+  type: "pool";
+  /** Deals the layout (a table from the proven bank, poolBank.server.ts): identical for everyone in the room. */
+  seed: number;
+  /** poolRev 1: the arcade scoring standard (docs/arcade-standard/pool.md). */
+  poolRev?: number;
+}
+
+export interface CurlingPuzzleData {
+  type: "curling";
+  /** Places the opponent's stones (a sheet from the proven bank, curlingBank.server.ts): identical for everyone in the room. */
+  seed: number;
+  /** curlRev 1: the arcade scoring standard (docs/arcade-standard/curling.md). */
+  curlRev?: number;
 }

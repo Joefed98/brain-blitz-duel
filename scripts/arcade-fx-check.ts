@@ -56,6 +56,17 @@ if (typeof (globalThis as { Path2D?: unknown }).Path2D === "undefined")
 
 const { inputAt, recordInput } = await import("../src/lib/arcade/engine");
 const fx = await import("../src/lib/arcade/arcadeFx.renderer");
+import { withArcadeFx } from "../src/lib/arcade/arcadeFx.renderer";
+import { CURLING_FX, MINIGOLF_FX, POOL_FX } from "../src/lib/arcade/sportsFx.renderer";
+import { minigolfGameFor } from "../src/lib/arcade/minigolf";
+import { drawMinigolf } from "../src/lib/arcade/minigolf.renderer";
+import { poolGameFor } from "../src/lib/arcade/pool";
+import { drawPool } from "../src/lib/arcade/pool.renderer";
+import { curlingGameFor } from "../src/lib/arcade/curling";
+import { drawCurling } from "../src/lib/arcade/curling.renderer";
+import { MINIGOLF_BANK } from "../src/lib/duel/minigolfBank.server";
+import { POOL_BANK } from "../src/lib/duel/poolBank.server";
+import { CURLING_BANK } from "../src/lib/duel/curlingBank.server";
 const specs = await import("../src/lib/arcade/arcadeFxGames.renderer");
 const sprites = await import("../src/lib/arcade/sprites.renderer");
 
@@ -166,6 +177,10 @@ const GAMES: Record<string, AnyGame> = {
   freecell: freecellArt as AnyGame,
   tripeaks: tripeaksArt as AnyGame,
   pokersquares: pokerSquaresArt as AnyGame,
+  // The Sports group (30 Oct 2026): each sim with its own art drawn through its success layer, on a bank deal.
+  minigolf: { ...minigolfGameFor(MINIGOLF_BANK[0]!.pars), init: () => minigolfGameFor(MINIGOLF_BANK[0]!.pars).init(MINIGOLF_BANK[0]!.seed), draw: withArcadeFx(MINIGOLF_FX, (c, st) => drawMinigolf(c, st, null)) } as AnyGame,
+  pool: { ...poolGameFor(1), init: () => poolGameFor(1).init(POOL_BANK[0]!), draw: withArcadeFx(POOL_FX, (c, st) => drawPool(c, st, null)) } as AnyGame,
+  curling: { ...curlingGameFor(), init: () => curlingGameFor().init(CURLING_BANK[0]!), draw: withArcadeFx(CURLING_FX, (c, st) => drawCurling(c, st, null)) } as AnyGame,
 };
 
 assert.equal(Object.keys(GAMES).length, Object.keys(specs.ARCADE_GAME_WORLDS).length, "every arcade game with a world (the active ones with Pinball; Junction and Scrumper practice only); the count reads the worlds registry");
@@ -473,6 +488,23 @@ const BUMPS: Record<string, ((s: any) => any)[]> = {
     (s) => ({ ...s, home: 30 }),
     (s) => ({ ...s, rideHomes: (s.rideHomes ?? 0) + 1 }),
     (s) => ({ ...s, switchHomes: (s.switchHomes ?? 0) + 1 }),
+  ],
+  // The Sports group: Minigolf (a hole at par, a hole in one, all five holed), Speed Pool (a pot after a pot, the
+  // spots down, the black) and Curling (a stone on the button, a takeout, holding shot at the end).
+  minigolf: [
+    (s) => ({ ...s, holed: [1, 0, 0, 0, 0], taken: [s.pars[0], 0, 0, 0, 0] }),
+    (s) => ({ ...s, holed: [1, 0, 0, 0, 0], taken: [1, 0, 0, 0, 0] }),
+    (s) => ({ ...s, holed: [1, 1, 1, 1, 1], taken: [...s.pars] }),
+  ],
+  pool: [
+    (s) => ({ ...s, follows: s.follows + 1, streak: 2 }),
+    (s) => ({ ...s, spotsDown: 7 }),
+    (s) => ({ ...s, black: 1 }),
+  ],
+  curling: [
+    (s) => ({ ...s, thrown: 1, pts: [15] }),
+    (s) => ({ ...s, live: s.live.map((v: number, i: number) => (i === 0 ? 0 : v)) }),
+    (s) => ({ ...s, thrown: 8, over: 1, x: [...s.x, 0], y: [...s.y, 0], vx: [...s.vx, 0], vy: [...s.vy, 0], team: [...s.team, 0], live: [...s.live.map(() => 0), 1], curl: [...s.curl, 1] }),
   ],
   pinball: [
     (s) => ({ ...s, bumps: s.bumps + 1, bumperAt: [s.tick + 1, -999, -999] }),

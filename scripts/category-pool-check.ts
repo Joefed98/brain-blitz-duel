@@ -12,6 +12,7 @@
 import { readdirSync, readFileSync } from "node:fs";
 
 import { CATEGORY_ORDER } from "../src/lib/duel/categories";
+import { ACTIVE_ARCADE_GAMES } from "../src/lib/arcade/arcadeFxGames.renderer";
 import {
   ACTIVE_PUZZLE_TYPES,
   gameCounts,
@@ -23,7 +24,6 @@ import {
 } from "../src/lib/duel/registry";
 import type { PuzzleType } from "../src/lib/duel/types";
 import { REMOVED_PUZZLE_TYPES } from "../src/lib/duel/removedGames";
-import { ACTIVE_ARCADE_GAMES } from "../src/lib/arcade/arcadeFxGames.renderer";
 
 const MIN_ACTIVE = 6;
 const failures: string[] = [];
@@ -59,7 +59,7 @@ expect("snip", "arcade", true);
 // Arcade's count reads the arcade worlds' active list (ACTIVE_ARCADE_GAMES), not a number: the arcade groups' sessions
 // add games in parallel (Cards & Board and Sports, 30 Oct 2026); each new game is pinned to Arcade, active, above.
 const POOL: Record<string, number> = { word: 9, number: 8, speed: 6, attention: 6, pattern: 10, logic: 12, arcade: ACTIVE_ARCADE_GAMES.length };
-for (const type of ["minesweeper", "mahjong", "homerun", "freekick", "racing", "freecell", "tripeaks", "pokersquares"] as const) expect(type, "arcade", false);
+for (const type of ["minesweeper", "mahjong", "homerun", "freekick", "racing", "freecell", "tripeaks", "pokersquares", "minigolf", "pool", "curling"] as const) expect(type, "arcade", false);
 for (const [category, want] of Object.entries(POOL)) {
   const got = typesInCategory(category as never).length;
   if (got !== want) fail(`${category}: ${got} active games, want ${want}`);

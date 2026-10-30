@@ -124,7 +124,7 @@ const PORT = 5179;
 
 /** Max drawn movement per sim tick, px (world units), where the default (24) is too tight. */
 // Jaywalk sidesteps are an instant 26 px column change; Meteor moves a whole cell per step.
-const SPEED_LIMIT: Record<string, number> = { cross: 27, flip: 40, slice: 32, balltrack: 26.5, snake: 40, orbit: 40, swing: 40 };
+const SPEED_LIMIT: Record<string, number> = { curling: 40, cross: 27, flip: 40, slice: 32, balltrack: 26.5, snake: 40, orbit: 40, swing: 40 };
 const DEFAULT_LIMIT = 24;
 
 /**
@@ -182,6 +182,12 @@ const EXTRACT = String.raw`
     case "skyline": P.push(["block", fp(s.x), 0]); reset = s.placed; break;
     case "inkbridge": if (s.ball) P.push(["ball", fp(s.ball.x), fp(s.ball.y)]); reset = s.level + ":" + s.levels + ":" + s.fails + ":" + s.dropping; break;
     case "bintoss": P.push(["ball", fp(s.x), fp(s.y)]); reset = s.throwIndex + ":" + s.phase; break;
+    // Minigolf (30 Oct 2026): the ball; a new hole, water (the ball back where it was played) and holing out move it at once.
+    // Speed Pool: every ball on the table; a pot (a ball gone) or a scratch (the cue ball respotted) is a reset.
+    case "pool": s.balls.forEach((b) => { if (!b.down) P.push(["ball" + b.id, fp(b.x), fp(b.y)]); }); reset = s.pots + ":" + s.scratches + ":" + s.balls.filter((b) => b.down).length; break;
+    // Curling: every stone in play as drawn (the broadcast view's projection); a throw, a stone leaving play and a new stone are resets.
+    case "curling": s.x.forEach((x, i) => { if (s.live[i]) { const p = m.curlingRenderer.curlProject(x / 4096, s.y[i] / 4096); P.push(["stone" + i, p.sx, p.sy]); } }); reset = s.thrown + ":" + s.live.join("") + ":" + s.phase; break;
+    case "minigolf": P.push(["ball", fp(s.x), fp(s.y)]); reset = s.hole + ":" + s.waters + ":" + s.holedTick + ":" + s.phase; break;
     case "bubble": if (s.flightColour) P.push(["shot", fp(s.x), fp(s.y)]); reset = s.shots + ":" + s.descents + ":" + s.flightColour; break;
     case "swing":
       P.push(["player", fp(s.x), fp(s.y)]);
@@ -716,12 +722,12 @@ async function playOne(browser: import("playwright").Browser, origin: string, ga
         const w = window as unknown as Record<string, unknown>;
         w.__extract = (0, eval)(src);
         const imp = (p: string) => import(/* @vite-ignore */ p);
-        const [cross, slice, flip, snake, bt] = await Promise.all([
+        const [cross, slice, flip, snake, bt, curlingRenderer] = await Promise.all([
           imp("/src/lib/arcade/cross.ts"), imp("/src/lib/arcade/slice.ts"), imp("/src/lib/arcade/flip.ts"),
-          imp("/src/lib/arcade/snake.ts"), imp("/src/lib/arcade/ballTrackArt.renderer.ts"),
+          imp("/src/lib/arcade/snake.ts"), imp("/src/lib/arcade/ballTrackArt.renderer.ts"), imp("/src/lib/arcade/curling.renderer.ts"),
         ]);
         // Only turned tiles (state.turned) can swing a marble, so every cell may count as rotatable here.
-        w.__mods = { cross, slice, flip, snake, bt, btRot: { has: () => true } };
+        w.__mods = { cross, slice, flip, snake, bt, curlingRenderer, btRot: { has: () => true } };
         w.__arcadeLog = { game: g, frames: [], errors: [] };
         w.__frameGaps = [];
       }, { src: EXTRACT, g: game });

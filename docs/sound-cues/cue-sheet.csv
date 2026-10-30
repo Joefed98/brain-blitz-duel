@@ -242,6 +242,15 @@ slice.simmer,Replays,Simmer (slow time): the clip reaches the moment's key tick 
 slice.sliced,Replays,Sliced streak (every 25): the clip reaches the moment's key tick [replays.md],,0–2 per highlight,recorded sound,slice.sliced,250,replay,slice.sliced,public/sounds/slice.sliced.mp3 (from replay.moment.mp3)
 slice.mayo,Replays,Mayonnaise squeezed: the clip reaches the moment's key tick [replays.md],,0–2 per highlight,recorded sound,slice.mayo,250,replay,slice.mayo,public/sounds/slice.mayo.mp3 (from replay.moment.mp3)
 slice.many-in-one,Replays,Four or more in one cut: the clip reaches the moment's key tick [replays.md],,0–2 per highlight,recorded sound,slice.many-in-one,250,replay,slice.many-in-one,public/sounds/slice.many-in-one.mp3 (from replay.moment.mp3)
+minigolf.hole-done,Replays,A hole holed at par or worse: the clip reaches the moment's key tick [replays.md],,0–2 per highlight,recorded sound,minigolf.hole-done,250,replay,minigolf.hole-done,
+minigolf.under-par,Replays,A hole under par (a birdie or better): the clip reaches the moment's key tick [replays.md],,0–2 per highlight,recorded sound,minigolf.under-par,250,replay,minigolf.under-par,
+minigolf.all-holed,Replays,All five holes holed: the clip reaches the moment's key tick [replays.md],,0–2 per highlight,recorded sound,minigolf.all-holed,250,replay,minigolf.all-holed,
+pool.pots-in-a-row,Replays,Pots in a row: the clip reaches the moment's key tick [replays.md],,0–2 per highlight,recorded sound,pool.pots-in-a-row,250,replay,pool.pots-in-a-row,
+pool.spots-cleared,Replays,All seven spots down: the clip reaches the moment's key tick [replays.md],,0–2 per highlight,recorded sound,pool.spots-cleared,250,replay,pool.spots-cleared,
+pool.cleared,Replays,"The black, table cleared: the clip reaches the moment's key tick [replays.md]",,0–2 per highlight,recorded sound,pool.cleared,250,replay,pool.cleared,
+curling.on-the-button,Replays,A stone on the button: the clip reaches the moment's key tick [replays.md],,0–2 per highlight,recorded sound,curling.on-the-button,250,replay,curling.on-the-button,
+curling.takeout,Replays,An opponent stone out of the house: the clip reaches the moment's key tick [replays.md],,0–2 per highlight,recorded sound,curling.takeout,250,replay,curling.takeout,
+curling.shot-stone,Replays,Holding shot at the end: the clip reaches the moment's key tick [replays.md],,0–2 per highlight,recorded sound,curling.shot-stone,250,replay,curling.shot-stone,
 bintoss.in-a-row,Replays,Buckets in a row (3+): the clip reaches the moment's key tick [replays.md],,0–2 per highlight,recorded sound,bintoss.in-a-row,250,replay,bintoss.in-a-row,public/sounds/bintoss.in-a-row.mp3 (from replay.moment.mp3)
 bintoss.hoop,Replays,Through the hoop: the clip reaches the moment's key tick [replays.md],,0–2 per highlight,recorded sound,bintoss.hoop,250,replay,bintoss.hoop,public/sounds/bintoss.hoop.mp3 (from replay.moment.mp3)
 bintoss.spinner,Replays,Past the spinner: the clip reaches the moment's key tick [replays.md],,0–2 per highlight,recorded sound,bintoss.spinner,250,replay,bintoss.spinner,public/sounds/bintoss.spinner.mp3 (from replay.moment.mp3)
@@ -670,6 +679,11 @@ snake.rockLand,Meteor,Meteor: A rock lands clear of the head (snakeRev 2+) [arca
 snake.rockWarn,Meteor,Meteor: A rock's shadow appears [arcade.md],,5–20,recorded sound,arc_retro_note (shared),90,game event,snake.rockWarn,
 snake.showerAlarm,Meteor,Meteor: A meteor shower's three shadows appear (snakeRev 3+) [arcade.md],,1–3,recorded sound,arc_retro_note (shared),180,game event,snake.showerAlarm,
 music.snake,Meteor,Meteor: music_eatgrow,,loop,recorded sound,music_eatgrow,loop,music,music_eatgrow,
+minigolf.putt,Minigolf,Minigolf: A putt is struck [arcade.md],,5–30,recorded sound,arc_wood_knock (shared),80,game event,minigolf.putt,
+minigolf.bounce,Minigolf,"Minigolf: The ball bounces off a rail, log, boulder or planter [arcade.md]",,0–40,recorded sound,arc_bounce (shared),60,game event,minigolf.bounce,
+minigolf.water,Minigolf,Minigolf: The ball goes in a pond [arcade.md],,0–6,recorded sound,arc_sea_pop (shared),200,game event,minigolf.water,
+minigolf.holed,Minigolf,Minigolf: The ball drops in the cup [arcade.md],,0–5,recorded sound,arc_marble_clink (shared),200,game event,minigolf.holed,
+minigolf.birdie,Minigolf,Minigolf: A hole holed under par [arcade.md],,0–5,recorded sound,arc_fair_bell (shared),300,game event,minigolf.birdie,
 orbit.planetCaught,Orbit,"The rocket is caught by a planet (at most one per 200 ms, volume 0.5) [arcade-effects.md]",A glow bloom and an easing ring round the planet,20–40,recorded sound,orbit.planetCaught,200,game event,orbit.planetCaught,
 orbit.shootingStar,Orbit,Every 10th planet caught [arcade-effects.md],A shooting star crosses the sky,0–4,recorded sound,orbit.shootingStar,800,game event,orbit.shootingStar,
 orbit.planetsStreak,Orbit,Best run reaches a multiple of 10 [arcade-effects.md],STREAK banner with star particles,0–4,recorded sound,orbit.planetsStreak,400,game event,orbit.planetsStreak,

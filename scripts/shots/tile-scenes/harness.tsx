@@ -14,13 +14,13 @@ import { TILE, type SceneSet, type TileScene } from "./scene";
 import { TILE_BACKGROUNDS, paintTileBackground } from "./backgrounds";
 import { ARCADE_SCENES } from "./arcade";
 import { ARCADE2_SCENES } from "./arcade2";
+import { SPORTS_SCENES } from "./sports";
 import { ATTENTION_SCENES } from "./attention";
 import { LOGIC_SCENES } from "./logic";
 import { NUMBER_SCENES } from "./number";
 import { PATTERN_SCENES } from "./pattern";
 import { SPEED_SCENES } from "./speed";
 import { WORD_SCENES } from "./word";
-import { SPORTS_SCENES } from "./sports";
 
 export const ALL_SCENES: SceneSet = {
   ...WORD_SCENES,

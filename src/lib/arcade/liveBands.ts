@@ -8,7 +8,7 @@
  * arcade-help-bands-check fails if a generator deals another revision than the one
  * listed here, or if a sim exports a newer band curve than the one listed.
  */
-import { bandHelp, type BandCurve, type BandHelpWords } from "./scoreBands";
+import { bandCurve, bandHelp, type BandCurve, type BandHelpWords } from "./scoreBands";
 import { roundMaxFor } from "../duel/roundMax";
 import { BT_REV_STD, BT_REV_STRICT, BT_V8_BAND_CURVE } from "./ballTrack";
 import { WAV_REV_STD, WAV_REV_STRICT, WAV_V12_BAND_CURVE } from "./wavefront";
@@ -44,6 +44,9 @@ import { RACING_REV_STD, RACING_STD_SPEC, RACING_V1_BAND_CURVE } from "./racing"
 import { FC_REV, FC_STD_SPEC, FC_V1_BAND_CURVE } from "./cards/freecell";
 import { TP_REV, TP_STD_SPEC, TP_V1_BAND_CURVE } from "./cards/tripeaks";
 import { PS_REV, PS_STD_SPEC, PS_V1_BAND_CURVE } from "./cards/pokerSquares";
+import { MINIGOLF_REV, MINIGOLF_STD_SPEC } from "./minigolf";
+import { POOL_REV, POOL_STD_SPEC } from "./pool";
+import { CURLING_REV, CURLING_STD_SPEC } from "./curling";
 
 export interface LiveBand {
   /** The puzzle field that carries the stamp, and the revision new rounds are dealt. */
@@ -67,6 +70,12 @@ export interface LiveBand {
    * (liveBornOnStandard); arcade-standard-check proves its standard instead.
    */
   born?: true;
+}
+
+/** A standard game's core as a band curve: its straight line from 0 to the core's maximum at its full-at figure. */
+function stdCoreCurve(spec: StdSpec): BandCurve {
+  const core = spec.parts[0]!;
+  return bandCurve([0, core.of ?? 1], [0, core.max]);
 }
 
 export const LIVE_BANDS = {
@@ -124,6 +133,10 @@ export const LIVE_BANDS = {
   freecell: { field: "freecellRev", rev: FC_REV, curve: FC_V1_BAND_CURVE, std: FC_STD_SPEC, born: true },
   tripeaks: { field: "tripeaksRev", rev: TP_REV, curve: TP_V1_BAND_CURVE, std: TP_STD_SPEC, born: true },
   pokersquares: { field: "pokerSquaresRev", rev: PS_REV, curve: PS_V1_BAND_CURVE, std: PS_STD_SPEC, born: true },
+  // The Sports group (30 Oct 2026): on the arcade scoring standard from their first stamp (the core's straight line, the spec's parts).
+  minigolf: { field: "golfRev", rev: MINIGOLF_REV, curve: stdCoreCurve(MINIGOLF_STD_SPEC), std: MINIGOLF_STD_SPEC, born: true },
+  pool: { field: "poolRev", rev: POOL_REV, curve: stdCoreCurve(POOL_STD_SPEC), std: POOL_STD_SPEC, born: true },
+  curling: { field: "curlRev", rev: CURLING_REV, curve: stdCoreCurve(CURLING_STD_SPEC), std: CURLING_STD_SPEC, born: true },
 } as const satisfies Record<string, LiveBand>;
 
 export type LiveBandGame = keyof typeof LIVE_BANDS;

@@ -59,6 +59,12 @@ import { decodeHomerunRun, replayHomerunRun } from "./homerun";
 import { decodeFreekickRun, replayFreekickRun } from "./freekick";
 import { decodeRacingRun, replayRacingRun } from "./racing";
 import type { StdPart } from "@/lib/arcade/arcadeStandard";
+import { replayMinigolfRun } from "./minigolf";
+import { replayPoolRun } from "./pool";
+import { replayCurlingRun } from "./curling";
+import { minigolfStdParts } from "@/lib/arcade/minigolf";
+import { poolStdParts } from "@/lib/arcade/pool";
+import { curlingStdParts } from "@/lib/arcade/curling";
 import { decodeRallyRun, replayRallyRun } from "./rally";
 import { rallyBonusCount, rallyBonusPoints, rallyBonusPtsOf, RALLY_V12_EXP } from "@/lib/arcade/rally";
 import { decodeSteadyRun, replaySteadyRun } from "./steady";
@@ -1379,6 +1385,91 @@ function gradeUnderRev(
         claimedScore: decodeBreakerRun(answer).claimedScore,
         ...(run.reason ? { reason: run.reason } : {}),
       };
+      break;
+    }
+    case "minigolf":
+    case "pool":
+    case "curling": {
+      // Sports (30 Oct 2026): as with every arcade game, only the server's own replay scores (sportsKit.ts); the
+      // stored extras name what each part of the arcade standard paid.
+      const replayStart = performance.now();
+      const common = (run: { endedSeconds: number; flagged: boolean; clientLag: boolean; clientTick: number; desyncTick: number | null; inputs: number; claimedScore: number; reason?: string }) => ({
+        endedSeconds: run.endedSeconds,
+        flagged: run.flagged,
+        clientLag: run.clientLag,
+        clientTick: run.clientTick,
+        desyncTick: run.desyncTick,
+        inputs: run.inputs,
+        claimedScore: run.claimedScore,
+        ...(run.reason ? { reason: run.reason } : {}),
+      });
+      const pts = (parts: { key: string; points: number }[] | null, key: string) => parts?.find((p) => p.key === key)?.points ?? 0;
+      if (puzzle.type === "minigolf") {
+        const run = replayMinigolfRun(puzzle.seed, answer, puzzle.pars);
+        revealRun = run;
+        arcadeDiag = buildArcadeDiag(puzzle.type, run, answer, performance.now() - replayStart);
+        const parts = minigolfStdParts(run.state);
+        isCorrect = run.perfect;
+        correctCount = run.holed;
+        score = run.score;
+        extraDetail = {
+          golfRev: puzzle.golfRev ?? 1,
+          holed: run.holed,
+          strokes: run.strokes,
+          atPar: run.pars,
+          birdies: run.birdies,
+          waters: run.waters,
+          taken: run.state.taken,
+          pars: run.state.pars,
+          corePts: pts(parts, "core"),
+          parPts: pts(parts, "par"),
+          underPts: pts(parts, "under"),
+          speedPts: pts(parts, "speed"),
+          ...common(run),
+        };
+      } else if (puzzle.type === "pool") {
+        const run = replayPoolRun(puzzle.seed, answer, puzzle.poolRev);
+        revealRun = run;
+        arcadeDiag = buildArcadeDiag(puzzle.type, run, answer, performance.now() - replayStart);
+        const parts = poolStdParts(run.state);
+        isCorrect = run.perfect;
+        correctCount = run.spots;
+        score = run.score;
+        extraDetail = {
+          poolRev: puzzle.poolRev ?? 1,
+          spots: run.spots,
+          black: run.black ? 1 : 0,
+          fouls: run.fouls,
+          streakBest: run.streakBest,
+          corePts: pts(parts, "core"),
+          blackPts: pts(parts, "black"),
+          streakPts: pts(parts, "streak"),
+          speedPts: pts(parts, "speed"),
+          ...common(run),
+        };
+      } else if (puzzle.type === "curling") {
+        const run = replayCurlingRun(puzzle.seed, answer, puzzle.curlRev);
+        revealRun = run;
+        arcadeDiag = buildArcadeDiag(puzzle.type, run, answer, performance.now() - replayStart);
+        const parts = curlingStdParts(run.state);
+        isCorrect = run.perfect;
+        correctCount = run.onButton;
+        score = run.score;
+        extraDetail = {
+          curlRev: puzzle.curlRev ?? 1,
+          onButton: run.onButton,
+          inFourFoot: run.inFourFoot,
+          takeouts: run.takeouts,
+          opponents: run.opponents,
+          holding: run.holding ? 1 : 0,
+          corePts: pts(parts, "core"),
+          takeoutPts: pts(parts, "takeouts"),
+          ringPts: pts(parts, "redring"),
+          holdPts: pts(parts, "hold"),
+          ...common(run),
+        };
+      }
+      if (arcadeDiag && arcadeDiag.replayMs > 500) console.warn(`[arcade] slow replay ${puzzle.type}: ${arcadeDiag.replayMs}ms`);
       break;
     }
     case "homerun":

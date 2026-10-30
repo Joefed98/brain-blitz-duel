@@ -63,6 +63,10 @@ const REV_KEY: Record<string, string> = {
   freecell: "freecellRev",
   tripeaks: "tripeaksRev",
   pokersquares: "pokerSquaresRev",
+  // The Sports group (30 Oct 2026).
+  minigolf: "golfRev",
+  pool: "poolRev",
+  curling: "curlRev",
 };
 
 /** A fixed seed per game, so a rebuild deals the same rooms (the generator's own seed is overwritten where it is free). */

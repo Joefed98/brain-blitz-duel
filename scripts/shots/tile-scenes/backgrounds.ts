@@ -272,6 +272,11 @@ const ARCADE_BACKGROUNDS: Partial<Record<PuzzleType, TileBackground>> = {
   freecell: bg((c) => { vgrad(c, [[0, "#0E2A57"], [1, "#081A38"]]); cloud(c, T / 2, T / 2, 56, "#1A3F7A", 0.3); }, { fade: 0.3, spot: 0.35 }),
   tripeaks: bg((c) => { vgrad(c, [[0, "#0E2A57"], [1, "#081A38"]]); cloud(c, T / 2, T / 2, 56, "#1A3F7A", 0.3); }, { fade: 0.3, spot: 0.35 }),
   pokersquares: bg((c) => { vgrad(c, [[0, "#0E2A57"], [1, "#081A38"]]); cloud(c, T / 2, T / 2, 56, "#1A3F7A", 0.3); }, { fade: 0.3, spot: 0.35 }),
+  // Minigolf, Speed Pool and Curling (Sports): their scenes fill the tile with the game's own course, table or sheet;
+  // these paint each game's base under them (night turf, the cloth, the ice settling to its far blue).
+  minigolf: bg((c) => vgrad(c, [[0, "#0C2216"], [1, "#071510"]]), { fade: 0.2 }),
+  pool: bg((c) => { vgrad(c, [[0, "#1F6B45"], [1, "#0F3F28"]]); cloud(c, T / 2, T / 2, 56, "#2A7F55", 0.3); }, { fade: 0.25, spot: 0.35 }),
+  curling: bg((c) => vgrad(c, [[0, "#B9C9D6"], [1, "#E9F1F6"]]), { fade: 0.2 }),
   // Hover: its deep space lifting to a synthwave violet at the horizon, a faint magenta grid floor below.
   hover: bg((c) => {
     vgrad(c, [[0, "#02030A"], [0.35, "#080B20"], [0.62, "#2A0E4A"], [0.7, "#5A1A6E"], [0.7, "#0A0614"], [1, "#05030A"]]);

@@ -85,6 +85,15 @@ import { tpCheckpoint, tripeaksGameFor, TP_REV } from "../../src/lib/arcade/card
 import { TP_DEALS } from "../../src/lib/arcade/cards/tripeaksDeals.data";
 import { psCheckpoint, pokerSquaresGameFor, PS_REV } from "../../src/lib/arcade/cards/pokerSquares";
 import { encodeFreecellRun, encodePokerSquaresRun, encodeTripeaksRun, replayFreecellRun, replayPokerSquaresRun, replayTripeaksRun } from "../../src/lib/duel/cards";
+import { minigolfCheckpoint, minigolfGameFor, MINIGOLF_REV } from "../../src/lib/arcade/minigolf";
+import { encodeMinigolfRun, replayMinigolfRun } from "../../src/lib/duel/minigolf";
+import { MINIGOLF_BANK, minigolfBankEntryFor } from "../../src/lib/duel/minigolfBank.server";
+import { poolCheckpoint, poolGameFor, POOL_REV } from "../../src/lib/arcade/pool";
+import { encodePoolRun, replayPoolRun } from "../../src/lib/duel/pool";
+import { poolBankSeedFor } from "../../src/lib/duel/poolBank.server";
+import { curlingCheckpoint, curlingGameFor, CURLING_REV } from "../../src/lib/arcade/curling";
+import { encodeCurlingRun, replayCurlingRun } from "../../src/lib/duel/curling";
+import { curlingBankSeedFor } from "../../src/lib/duel/curlingBank.server";
 
 export interface GameSpec {
   type: PuzzleType;
@@ -151,6 +160,8 @@ export function roomSeed(n: number): number {
 }
 
 const plain = (n: number) => roomSeed(n);
+/** Minigolf's stored pars for a bank seed (the puzzle carries them). */
+const minigolfParsOf = (seed: number) => MINIGOLF_BANK.find((e) => e.seed === seed)?.pars;
 const btCourse = (seed: number) => BALL_TRACK_BANK[seed % BALL_TRACK_BANK.length]!.course;
 /** btRev 4 deals from the 12-row bank (the same seed picks a course there); btRev 8 from its deal list (courses that reach 200). */
 const btCourseFor = (rev: number | null, seed: number) => (rev === BT_REV_STD ? BALL_TRACK_BANK_V7[btV8DealIndex(seed)]!.course : btIsV7Play(rev) ? BALL_TRACK_BANK_V7[seed % BALL_TRACK_BANK_V7.length]!.course : rev === BT_REV_TALL || rev === BT_REV_TARGET || rev === BT_REV_STRICT ? BALL_TRACK_BANK_TALL[seed % BALL_TRACK_BANK_TALL.length]!.course : btCourse(seed));
@@ -273,6 +284,36 @@ export const GAMES: GameSpec[] = [
   { ...simple("freecell", FC_REV, FC_REV, freecellGameFor, fcCheckpoint, encodeFreecellRun, replayFreecellRun), seedFor: (n) => roomSeed(n) % FC_DEALS.length },
   { ...simple("tripeaks", TP_REV, TP_REV, tripeaksGameFor, tpCheckpoint, encodeTripeaksRun, replayTripeaksRun), seedFor: (n) => roomSeed(n) % TP_DEALS.length },
   simple("pokersquares", PS_REV, PS_REV, pokerSquaresGameFor, psCheckpoint, encodePokerSquaresRun, replayPokerSquaresRun),
+  // The Sports group (30 Oct 2026): Minigolf deals a bank course (seed and pars), golfRev 1 from its first round.
+  {
+    type: "minigolf",
+    live: MINIGOLF_REV,
+    seedFor: (n) => minigolfBankEntryFor(n).seed,
+    gameFor: (_rev, seed) => minigolfGameFor(minigolfParsOf(seed)),
+    checkpoint: minigolfCheckpoint,
+    encode: (run) => encodeMinigolfRun(run),
+    replay: (seed, raw) => replayMinigolfRun(seed, raw, minigolfParsOf(seed)),
+  },
+  // Speed Pool deals a bank layout (proved clearable without a miss), poolRev 1.
+  {
+    type: "pool",
+    live: POOL_REV,
+    seedFor: poolBankSeedFor,
+    gameFor: (rev) => poolGameFor(rev),
+    checkpoint: poolCheckpoint,
+    encode: (run) => encodePoolRun(run),
+    replay: (seed, raw, rev) => replayPoolRun(seed, raw, rev),
+  },
+  // Curling deals a bank sheet (opponent stones the oracle took out with every stone on the button), curlRev 1.
+  {
+    type: "curling",
+    live: CURLING_REV,
+    seedFor: curlingBankSeedFor,
+    gameFor: () => curlingGameFor(),
+    checkpoint: curlingCheckpoint,
+    encode: (run) => encodeCurlingRun(run),
+    replay: (seed, raw, rev) => replayCurlingRun(seed, raw, rev),
+  },
 ];
 
 export const GAME_BY_TYPE = new Map(GAMES.map((g) => [g.type, g]));

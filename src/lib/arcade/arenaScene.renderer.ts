@@ -78,6 +78,9 @@ export const ARENA_SCENE_GAMES = [
   "homerun",
   "freekick",
   "racing",
+  "minigolf",
+  "pool",
+  "curling",
   "stroop",
   // Cards & Board (30 Oct 2026): the hexagon background and the wooden table run on round the world.
   "minesweeper",

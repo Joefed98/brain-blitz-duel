@@ -48,6 +48,9 @@ import { btCheckpoint } from "./ballTrack";
 import { homerunCheckpoint } from "./homerun";
 import { freekickCheckpoint } from "./freekick";
 import { racingCheckpoint } from "./racing";
+import { minigolfCheckpoint } from "./minigolf";
+import { poolCheckpoint } from "./pool";
+import { curlingCheckpoint } from "./curling";
 import type { InputDiag } from "./engine";
 import { devDisplayAllowed } from "../devDisplay";
 
@@ -57,6 +60,9 @@ export type ArcadeCounters = Record<string, number>;
 const SNAPSHOTS: Record<string, (state: any) => object> = {
   beat: beatCheckpoint,
   bintoss: binTossCheckpoint,
+  minigolf: minigolfCheckpoint,
+  pool: poolCheckpoint,
+  curling: curlingCheckpoint,
   breaker: brkCheckpoint,
   pinball: pinCheckpointAny,
   minesweeper: minesCheckpoint,

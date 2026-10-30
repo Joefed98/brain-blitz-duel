@@ -19,15 +19,15 @@ effects ([arcade-effects.md](arcade-effects.md)) so a sound can be written for e
 
 | Category | Silent | Placeholder | Recorded | Total |
 |---|---|---|---|---|
-| game event | 35 | 0 | 341 | 376 |
+| game event | 35 | 0 | 346 | 381 |
 | room moment | 1 | 0 | 34 | 35 |
 | music | 12 | 0 | 82 | 94 |
 | UI tap | 10 | 0 | 22 | 32 |
 | fail sting | 4 | 0 | 36 | 40 |
 | success sting | 3 | 0 | 69 | 72 |
 | ambience | 0 | 1 | 8 | 9 |
-| replay | 0 | 0 | 168 | 168 |
-| **all** | 65 | 1 | 760 | 826 |
+| replay | 0 | 0 | 177 | 177 |
+| **all** | 65 | 1 | 774 | 840 |
 
 ## Silent and placeholder cues
 
@@ -386,10 +386,12 @@ Grouped by game or screen. These are the cues still missing a sound.
 | Bastion | arcade | practice only | **none** | `music_bastion` |
 | Breaker | arcade | yes | music_breaker | `music_breaker` |
 | Coral Pop | arcade | yes | music_bubble | `music_bubble` |
+| Curling | arcade | yes | **none** | `music_curling` |
 | Dual | arcade | practice only | **none** | `music_dual` |
 | Fission | arcade | yes | music_burst | `music_burst` |
 | Flightpath | arcade | yes | music_bullseye | `music_bullseye` |
 | Free Kick | arcade | yes | **none** | `music_freekick` |
+| FreeCell | arcade | yes | **none** | `music_freecell` |
 | Gemstone | arcade | yes | music_matchup | `music_matchup` |
 | Grappler | arcade | yes | music_swing | `music_swing` |
 | High Rise | arcade | yes | music_skyline | `music_skyline` |
@@ -398,9 +400,13 @@ Grouped by game or screen. These are the cues still missing a sound.
 | Hover | arcade | yes | music_hover | `music_hover` |
 | Jaywalk | arcade | yes | music_cross | `music_cross` |
 | Junction | arcade | practice only | music_junction | `music_junction` |
+| Mahjong Solitaire | arcade | yes | **none** | `music_mahjong` |
 | Meteor | arcade | yes | music_eatgrow | `music_eatgrow` |
+| Minesweeper | arcade | yes | **none** | `music_minesweeper` |
+| Minigolf | arcade | yes | **none** | `music_minigolf` |
 | Orbit | arcade | yes | music_orbit | `music_orbit` |
 | Pinball | arcade | yes | music_pinball | `music_pinball` |
+| Poker Squares | arcade | yes | **none** | `music_pokersquares` |
 | Racing | arcade | yes | **none** | `music_racing` |
 | Rainbow Bridge | arcade | yes | music_inkbridge | `music_inkbridge` |
 | Rally | arcade | yes | music_rally | `music_rally` |
@@ -409,11 +415,13 @@ Grouped by game or screen. These are the cues still missing a sound.
 | Rooftop Run | arcade | practice only | **none** | `music_rooftop` |
 | Scrumper | arcade | practice only | music_snip | `music_snip` |
 | Slice | arcade | yes | music_slice | `music_slice` |
+| Speed Pool | arcade | yes | **none** | `music_pool` |
 | Steady | arcade | practice only | **none** | `music_steady` |
 | Swerve | arcade | practice only | **none** | `music_swerve` |
 | Swish | arcade | yes | music_bintoss | `music_bintoss` |
 | Tempo | arcade | yes | music_beat | `music_beat` |
 | Tilt | arcade | yes | music_tilt | `music_tilt` |
+| TriPeaks | arcade | yes | **none** | `music_tripeaks` |
 | Wavefront | arcade | yes | music_wavefront | `music_wavefront` |
 
 ## Recorded cues
@@ -621,6 +629,15 @@ Grouped by game or screen.
 | `slice.sliced` | Sliced streak (every 25): the clip reaches the moment's key tick [replays.md] |  | 0–2 per highlight | recorded sound | `slice.sliced` | 250 | replay | `slice.sliced` |
 | `slice.mayo` | Mayonnaise squeezed: the clip reaches the moment's key tick [replays.md] |  | 0–2 per highlight | recorded sound | `slice.mayo` | 250 | replay | `slice.mayo` |
 | `slice.many-in-one` | Four or more in one cut: the clip reaches the moment's key tick [replays.md] |  | 0–2 per highlight | recorded sound | `slice.many-in-one` | 250 | replay | `slice.many-in-one` |
+| `minigolf.hole-done` | A hole holed at par or worse: the clip reaches the moment's key tick [replays.md] |  | 0–2 per highlight | recorded sound | `minigolf.hole-done` | 250 | replay | `minigolf.hole-done` |
+| `minigolf.under-par` | A hole under par (a birdie or better): the clip reaches the moment's key tick [replays.md] |  | 0–2 per highlight | recorded sound | `minigolf.under-par` | 250 | replay | `minigolf.under-par` |
+| `minigolf.all-holed` | All five holes holed: the clip reaches the moment's key tick [replays.md] |  | 0–2 per highlight | recorded sound | `minigolf.all-holed` | 250 | replay | `minigolf.all-holed` |
+| `pool.pots-in-a-row` | Pots in a row: the clip reaches the moment's key tick [replays.md] |  | 0–2 per highlight | recorded sound | `pool.pots-in-a-row` | 250 | replay | `pool.pots-in-a-row` |
+| `pool.spots-cleared` | All seven spots down: the clip reaches the moment's key tick [replays.md] |  | 0–2 per highlight | recorded sound | `pool.spots-cleared` | 250 | replay | `pool.spots-cleared` |
+| `pool.cleared` | The black, table cleared: the clip reaches the moment's key tick [replays.md] |  | 0–2 per highlight | recorded sound | `pool.cleared` | 250 | replay | `pool.cleared` |
+| `curling.on-the-button` | A stone on the button: the clip reaches the moment's key tick [replays.md] |  | 0–2 per highlight | recorded sound | `curling.on-the-button` | 250 | replay | `curling.on-the-button` |
+| `curling.takeout` | An opponent stone out of the house: the clip reaches the moment's key tick [replays.md] |  | 0–2 per highlight | recorded sound | `curling.takeout` | 250 | replay | `curling.takeout` |
+| `curling.shot-stone` | Holding shot at the end: the clip reaches the moment's key tick [replays.md] |  | 0–2 per highlight | recorded sound | `curling.shot-stone` | 250 | replay | `curling.shot-stone` |
 | `bintoss.in-a-row` | Buckets in a row (3+): the clip reaches the moment's key tick [replays.md] |  | 0–2 per highlight | recorded sound | `bintoss.in-a-row` | 250 | replay | `bintoss.in-a-row` |
 | `bintoss.hoop` | Through the hoop: the clip reaches the moment's key tick [replays.md] |  | 0–2 per highlight | recorded sound | `bintoss.hoop` | 250 | replay | `bintoss.hoop` |
 | `bintoss.spinner` | Past the spinner: the clip reaches the moment's key tick [replays.md] |  | 0–2 per highlight | recorded sound | `bintoss.spinner` | 250 | replay | `bintoss.spinner` |
@@ -1385,6 +1402,16 @@ Grouped by game or screen.
 | `snake.showerAlarm` | Meteor: A meteor shower's three shadows appear (snakeRev 3+) [arcade.md] |  | 1–3 | recorded sound | `arc_retro_note` (shared) | 180 | game event | `snake.showerAlarm` |
 | `music.snake` | Meteor: music_eatgrow |  | loop | recorded sound | `music_eatgrow` | loop | music | `music_eatgrow` |
 
+### Minigolf
+
+| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
+|---|---|---|---|---|---|---|---|---|
+| `minigolf.putt` | Minigolf: A putt is struck [arcade.md] |  | 5–30 | recorded sound | `arc_wood_knock` (shared) | 80 | game event | `minigolf.putt` |
+| `minigolf.bounce` | Minigolf: The ball bounces off a rail, log, boulder or planter [arcade.md] |  | 0–40 | recorded sound | `arc_bounce` (shared) | 60 | game event | `minigolf.bounce` |
+| `minigolf.water` | Minigolf: The ball goes in a pond [arcade.md] |  | 0–6 | recorded sound | `arc_sea_pop` (shared) | 200 | game event | `minigolf.water` |
+| `minigolf.holed` | Minigolf: The ball drops in the cup [arcade.md] |  | 0–5 | recorded sound | `arc_marble_clink` (shared) | 200 | game event | `minigolf.holed` |
+| `minigolf.birdie` | Minigolf: A hole holed under par [arcade.md] |  | 0–5 | recorded sound | `arc_fair_bell` (shared) | 300 | game event | `minigolf.birdie` |
+
 ### Orbit
 
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
@@ -1633,7 +1660,7 @@ loops are not measured there). Files in `public/sounds/` are listed once per slo
 | `arc_space_ambience` | effects | `orbit.ambience` | loop |
 | `arc_thruster` | effects | `orbit.launch` | 160 |
 | `arc_lose_life` | effects | `bubble.reefLost`, `burst.lifeLost`, `cross.lifeLost`, `wavefront.lifeLost` | 220 |
-| `arc_bounce` | effects | `freekick.net`, `homerun.foul`, `racing.grass`, `rally.bumperBounce`, `snip.springBounce`, `snip.hook`, `bintoss.missBounce`, `bintoss.wobble` | 80 |
+| `arc_bounce` | effects | `freekick.net`, `homerun.foul`, `minigolf.bounce`, `racing.grass`, `rally.bumperBounce`, `snip.springBounce`, `snip.hook`, `bintoss.missBounce`, `bintoss.wobble` | 80 |
 | `arc_retro_note` | effects | `hover.gate`, `snake.rockWarn`, `snake.showerAlarm`, `rally.goldHit` | 90 |
 | `arc_retro_pickup` | effects | `breaker.powerUp`, `burst.powerUp`, `wavefront.pierce` | 100 |
 | `arc_retro_blip` | effects | `breaker.relaunch`, `breaker.paddle`, `burst.shot`, `snake.eat`, `rally.hit`, `wavefront.dive` | 50 |
@@ -1641,17 +1668,17 @@ loops are not measured there). Files in `public/sounds/` are listed once per slo
 | `arc_retro_explode` | effects | `whack.bomb`, `breaker.ballLost`, `burst.gameOver`, `hover.crash`, `snake.dead`, `rally.dead` | 260 |
 | `arc_retro_hit` | effects | `breaker.brickHit`, `burst.hit`, `snake.rockLand`, `wavefront.armourHit`, `wavefront.bossHit` | 120 |
 | `arc_fair_thud` | effects | `bullseye.thud`, `freekick.kick`, `homerun.strike` | 160 |
-| `arc_fair_bell` | effects | `bullseye.bull`, `freekick.target`, `homerun.sign`, `racing.lap`, `bintoss.allBaskets` | 400 |
+| `arc_fair_bell` | effects | `bullseye.bull`, `freekick.target`, `homerun.sign`, `minigolf.birdie`, `racing.lap`, `bintoss.allBaskets` | 400 |
 | `arc_fair_bucket` | effects | `bintoss.basket` | 200 |
 | `arc_fair_sting` | effects | `bullseye.perfect`, `freekick.goal`, `homerun.homer`, `racing.finish`, `bintoss.perfect` | 300 |
 | `arc_marble_roll` | effects | `balltrack.roll`, `inkbridge.coinRoll`, `tilt.roll` | 400 |
 | `arc_siren` | effects | `swing.dragon`, `junction.siren` | 600 |
-| `arc_wood_knock` | effects | `balltrack.wrong`, `freekick.save`, `swing.rockLand`, `homerun.crack`, `bintoss.spinnerKnock`, `tilt.knock` | 90 |
+| `arc_wood_knock` | effects | `balltrack.wrong`, `freekick.save`, `swing.rockLand`, `homerun.crack`, `minigolf.putt`, `bintoss.spinnerKnock`, `tilt.knock` | 90 |
 | `arc_clank` | effects | `freekick.post`, `swing.rockShake`, `skyline.drop`, `junction.newRoad` | 150 |
 | `arc_horn` | effects | `junction.horn`, `racing.go` | 400 |
 | `arc_latch` | effects | `balltrack.switch`, `pinball.bankReset`, `tilt.gate` | 100 |
-| `arc_marble_clink` | effects | `balltrack.marbleHome`, `inkbridge.coinLand`, `tilt.mazeDone`, `tilt.cup` | 120 |
-| `arc_sea_pop` | effects | `bubble.pop`, `bullseye.balloonPop` | 80 |
+| `arc_marble_clink` | effects | `balltrack.marbleHome`, `minigolf.holed`, `inkbridge.coinLand`, `tilt.mazeDone`, `tilt.cup` | 120 |
+| `arc_sea_pop` | effects | `bubble.pop`, `bullseye.balloonPop`, `minigolf.water` | 80 |
 | `arc_sea_waves` | effects | `bubble.waves` | 600 |
 | `arc_sea_bubble` | effects | `bubble.load` | 120 |
 | `arc_leaf_collect` | effects | `arc_leaf_collect` | 840 |
@@ -1875,6 +1902,15 @@ loops are not measured there). Files in `public/sounds/` are listed once per slo
 | `slice.sliced` | effects | `slice.sliced` | 486 |
 | `slice.mayo` | effects | `slice.mayo` | 486 |
 | `slice.many-in-one` | effects | `slice.many-in-one` | 486 |
+| `curling.on-the-button` | effects | `curling.on-the-button` | 486 |
+| `curling.takeout` | effects | `curling.takeout` | 486 |
+| `curling.shot-stone` | effects | `curling.shot-stone` | 486 |
+| `pool.pots-in-a-row` | effects | `pool.pots-in-a-row` | 486 |
+| `pool.spots-cleared` | effects | `pool.spots-cleared` | 486 |
+| `pool.cleared` | effects | `pool.cleared` | 486 |
+| `minigolf.hole-done` | effects | `minigolf.hole-done` | 486 |
+| `minigolf.under-par` | effects | `minigolf.under-par` | 486 |
+| `minigolf.all-holed` | effects | `minigolf.all-holed` | 486 |
 | `bintoss.in-a-row` | effects | `bintoss.in-a-row` | 486 |
 | `bintoss.hoop` | effects | `bintoss.hoop` | 486 |
 | `bintoss.spinner` | effects | `bintoss.spinner` | 486 |

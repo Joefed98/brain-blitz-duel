@@ -75,6 +75,12 @@ export function nearMissInfo(
     }
     case "bintoss":
       return remaining("baskets", 10, "basket");
+    case "minigolf":
+      return remaining("holed", 5, "hole");
+    case "pool":
+      return remaining("spots", 7, "spot");
+    case "curling":
+      return remaining("onButton", 8, "stone");
     case "tilt":
       return remaining("mazes", 4, "maze");
     case "balltrack":

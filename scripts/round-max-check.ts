@@ -19,6 +19,8 @@ import { readFileSync } from "node:fs";
 
 import { chartLabels, chartPoint, chartRow, chartScore, layoutMarkers } from "../src/lib/duel/arcadeChart";
 import { GAME_DISPLAY_NAMES } from "../src/lib/duel/gameNames";
+import { typesInCategory } from "../src/lib/duel/registry";
+import { ACTIVE_ARCADE_GAMES } from "../src/lib/arcade/arcadeFxGames.renderer";
 import { INTRO_SCORE } from "../src/lib/duel/introScore";
 import { PUZZLE_INSTRUCTIONS } from "../src/lib/duel/instructions";
 import { podiumAwards, type AwardRound } from "../src/lib/duel/podiumAwards";
@@ -39,8 +41,6 @@ import type { DuelPlayerRow, PuzzleType, RoundResultRow } from "../src/lib/duel/
 import { WORD_DEPTH_GAMES } from "../src/lib/duel/wordDepth";
 import { NUMBER_DEPTH_GAMES } from "../src/lib/duel/numberDepth";
 import { SIGNATURE_MIN_SCORE, signatureMinScore, signatureTierForVerdict } from "../src/lib/fx/signature";
-import { typesInCategory } from "../src/lib/duel/registry";
-import { ACTIVE_ARCADE_GAMES } from "../src/lib/arcade/arcadeFxGames.renderer";
 
 const failures: string[] = [];
 let passes = 0;
@@ -70,6 +70,8 @@ const RAISED: PuzzleType[] = [
   "lightsout", "sudoku", "tower", "tubes", "safe", "bomb", "nonogram", "flood", "tents", "shikaku", "lightup",
   // Depth batch 4 (docs/depth/d4-pattern.md): eight Pattern / Logic games.
   "unblock", "blockparty", "pipes", "flow", "iceslide", "push", "laser", "rings",
+  // The Sports group (30 Oct 2026): Minigolf, Speed Pool and Curling, on the arcade standard from their first stamp.
+  "minigolf", "pool", "curling",
   // Expansion E4 (docs/expansions/e4.md): High Rise and Pinball.
   "skyline", "pinball",
   // The Sports group (30 Oct 2026, docs/arcade-standard/): born on the arcade scoring standard at 200.

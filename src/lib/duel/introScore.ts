@@ -112,6 +112,9 @@ function introScoreTemplates(): Record<PuzzleType, string> {
     // Cards & Board (30 Oct 2026), on the arcade scoring standard.
     minesweeper: "Safe squares 150, no mines hit 20, a fast clear 30; a mine costs 5. Up to {max}.",
     mahjong: "Pairs 150, no shuffles 20, a fast clear 30; a Shuffle costs 5. Up to {max}.",
+    minigolf: "Holes 120, few putts 40, birdies 20, speed 20: up to {max}.",
+    pool: "Spots 140, the black 10, pots in a row 30, speed 20; fouls −10. Up to {max}.",
+    curling: "Stones near the button 120, takeouts 30, the 4-foot 30, holding shot 20: {max}.",
     pinball: "Table points, plus J-O-U-L-Z sets, multiball, jackpots and ramp combos. Up to {max}.",
     homerun: "Distance on every pitch, home runs and the signs beyond the fence. Up to {max}.",
     freekick: "Goals away from the keeper, targets, curls round the wall and five in a row. Up to {max}.",
