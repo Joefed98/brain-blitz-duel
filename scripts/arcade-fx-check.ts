@@ -498,6 +498,7 @@ const BUMPS: Record<string, ((s: any) => any)[]> = {
     (s) => ({ ...s, pairs: s.pairs + 1, lastA: 0, lastB: 5 }),
     (s) => ({ ...s, pairs: 6, lastA: 0, lastB: 5 }),
     (s) => ({ ...s, pairs: 36 }),
+  ],
   // Cards & Board: a card home, two full suits home, all home; a run of five, a peak top, the clear; a pair made, the target.
   freecell: [
     (s) => ({ ...s, home: [Math.min(13, s.home[0] + 1), s.home[1], s.home[2], s.home[3]] }),
