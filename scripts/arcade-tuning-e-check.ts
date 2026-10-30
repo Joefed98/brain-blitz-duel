@@ -477,7 +477,9 @@ if (want("snip")) {
 // Screen audit Oct 2026: a plain line and a good run from the curve rooms deal (arcade-help-bands-check).
 // Hover: the curve rooms deal since the 200 expansion (hoverRev 9; hover-x200-check).
 if (want("hover")) ok(PUZZLE_INSTRUCTIONS.hover.score.includes("A good run (100 points) counts 45 – about 15 barriers"), "Hover's help states a good run on the curve rooms deal (hoverRev 9 since the 200 expansion)");
-if (want("snake")) ok(PUZZLE_INSTRUCTIONS.snake.score.includes("150 at 31") && PUZZLE_INSTRUCTIONS.snake.score.includes("A good run (100 points) eats 22 stars"), "Meteor's help states the top and a good run rooms deal (snakeRev 9 since expansion E2, expansion-e2-check)");
+// The arcade scoring standard (29 Oct 2026) moved Meteor on to snakeRev 11: stars on a straight line to 120 at 27, then the
+// feature parts to 200 (snake-standard-check).
+if (want("snake")) ok(PUZZLE_INSTRUCTIONS.snake.score.includes("up to 120") && PUZZLE_INSTRUCTIONS.snake.score.includes("A good run (100 points) eats 23 stars") && PUZZLE_INSTRUCTIONS.snake.score.endsWith("Up to 200."), "Meteor's help states the top and a good run rooms deal (snakeRev 11 since the arcade scoring standard, snake-standard-check)");
 
 if (failures.length) {
   console.log(failures.slice(0, 60).join("\n"));

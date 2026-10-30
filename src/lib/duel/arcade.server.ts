@@ -3,7 +3,7 @@ import { SLICE_REV_TARGET, SLICE_REV_STRICT, SLICE_REV_BIG } from "@/lib/arcade/
 import { FLIP_REV_TARGET, FLIP_REV_STRICT, FLIP_REV_LIFT } from "@/lib/arcade/flip";
 import { CROSS_REV_EXPAND } from "@/lib/arcade/cross";
 import { INK_REV_SPREAD } from "@/lib/arcade/inkBridge";
-import { SNAKE_REV_TARGET, SNAKE_REV_10 } from "@/lib/arcade/snake";
+import { SNAKE_REV_TARGET, SNAKE_REV_STD } from "@/lib/arcade/snake";
 import { BUB_REV_BLAST } from "@/lib/arcade/bubble";
 import { MATCHUP_REV_ICE } from "@/lib/arcade/matchup";
 import { SNIP_REV_TARGET, SNIP_REV_EXPAND } from "@/lib/arcade/snip";
@@ -105,7 +105,8 @@ export function generateMatchup(): MatchupPuzzleData {
 
 export function generateSnake(): SnakePuzzleData {
   // snakeRev 10 (Joe's phone notes, 27 Oct 2026): longer gold stars, a third wormhole pair, a second vertical lane, 2 × 2 rocks.
-  return { type: "snake", seed: arcadeSeed(), snakeRev: SNAKE_REV_10 };
+  // snakeRev 11 (the arcade scoring standard, 29 Oct 2026): snakeRev 10's play, scored in straight-line parts to 200.
+  return { type: "snake", seed: arcadeSeed(), snakeRev: SNAKE_REV_STD };
 }
 
 export function generateCross(): CrossPuzzleData {

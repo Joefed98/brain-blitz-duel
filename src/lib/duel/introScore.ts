@@ -102,7 +102,7 @@ function introScoreTemplates(): Record<PuzzleType, string> {
     bintoss: `Buckets, hoops, All ${BINTOSS_THROWS} in for 10 more: up to 150. Far buckets +${BINTOSS_FAR_POINTS} each: up to {max}.`,
     bullseye: `Rings ${BULLSEYE_RING_VALUES.join(" / ")}, inner bull ${BULLSEYE_INNER_BULL_POINTS}; streaks, dead-centre add more. Up to {max}.`,
     matchup: "Longer lines score more; goals, ice, treasure and cascades add more. Up to {max}.",
-    snake: "Points per star; gold stars, combos, lane rides and warps add bonus. Up to {max}.",
+    snake: "Stars score up to 120; gold stars, combos, lanes and warps add 80 more. Up to {max}.",
     cross: "Points for rows and crossings; coins, close calls and clean streaks add more. Up to {max}.",
     breaker: "Bricks score; gold and combos add up to 50. Clear all 105 quickly for up to {max}.",
     rally: "Gold-ball hits, each pink target and gold target score; blue returns a little. Up to {max}.",

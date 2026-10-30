@@ -26,9 +26,11 @@ export const STRICT_REVS: Partial<Record<LiveBandGame, number>> = Object.fromEnt
 /**
  * Later score-only revisions: type → [the revision, the revision whose play it keeps]. Joe's phone notes (27 Oct
  * 2026, docs/arcade-phone-notes-oct-2026.md): Roofbound flipRev 9 and Tilt tiltRev 9 keep flipRev 8's and tiltRev 8's play
- * on lifted curves (arcade-phone-notes-check proves it).
+ * on lifted curves (arcade-phone-notes-check proves it). The arcade scoring standard (29 Oct 2026,
+ * docs/arcade-standard-oct-2026/snake.md): Meteor snakeRev 11 keeps snakeRev 10's play exactly on new scoring
+ * (snake-standard-check proves it).
  */
-export const LIFT_REVS: Partial<Record<LiveBandGame, readonly [lift: number, play: number]>> = { flip: [9, 8], tilt: [9, 8] };
+export const LIFT_REVS: Partial<Record<LiveBandGame, readonly [lift: number, play: number]>> = { flip: [9, 8], tilt: [9, 8], snake: [11, 10] };
 
 /**
  * The revision whose play a dealt revision keeps: the target and score-bands revisions map to the target's
