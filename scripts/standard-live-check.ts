@@ -61,7 +61,7 @@ const SHOTS = args.find((a) => a.startsWith("--shots="))?.slice(8);
 /** Engine games: scored in their sims (tenRev 5, clashRev 10), never by the standard's grader modules. */
 const SIM_SCORED = new Set<PuzzleType>(["tendrop", "stroop"]);
 /** At least one per category: Logic, Pattern, Number, Word, Speed and Attention; real-UI solves where a driver has one. */
-const DEFAULT_GAMES: PuzzleType[] = ["flood", "lightsout", "unblock", "tiles", "equation", "wordslide", "codeword", "spotdiff", "chain"];
+const DEFAULT_GAMES: PuzzleType[] = ["flood", "lightsout", "unblock", "tiles", "equation", "wordslide", "codeword", "symscan", "chain"];
 const named = args.filter((a) => !a.startsWith("--")) as PuzzleType[];
 const games: PuzzleType[] = named.length
   ? named
@@ -276,11 +276,14 @@ function storedParts(body: string | null): { kind: string; base: number; standar
   return m ? { kind: m[1]!, base: Number(m[2]), standard: /"standard":1\b/.test(flat) } : null;
 }
 
-async function playOne(browser: Browser, game: PuzzleType): Promise<void> {
+/** Whether a game's driver can solve a fresh production round through the UI (seeded drivers need the dev server). */
+function hasUiSolve(game: PuzzleType): boolean {
+  const driver = DRIVERS[game];
+  return Boolean(driver?.solve && !driver.seedNearSolved && !driver.seedMid);
+}
+
+async function playOne(browser: Browser, game: PuzzleType, ui: boolean): Promise<void> {
   const driver: Driver | undefined = DRIVERS[game];
-  // A real-UI solve where the driver can play it from the start of a fresh production round (seeded drivers need the
-  // dev server's seed module); otherwise the full answer at the buzzer.
-  const ui = Boolean(driver?.solve && !driver.seedNearSolved && !driver.seedMid);
   let answer: string | null = null;
   const run = await openRound(browser, game, !ui, ui ? null : () => answer);
   const full = run.deal;
@@ -380,11 +383,22 @@ const { chromium } = await import("playwright");
 const browser = await chromium.launch({ executablePath: CHROMIUM });
 try {
   for (const game of games) {
-    try {
-      await playOne(browser, game);
-    } catch (e) {
-      failures.push(`${game}: ${(e as Error).message.split("\n")[0]}`);
-      report.push(`${game.padEnd(12)} ERROR ${(e as Error).message.split("\n")[0]}`);
+    // A real-UI solve where the driver has one; when it cannot finish this live board (drivers were written for the
+    // fixed intro example), the same game is played again with the full answer at the buzzer, and the report says so.
+    const tries = hasUiSolve(game) ? [true, false] : [false];
+    for (const [i, ui] of tries.entries()) {
+      try {
+        await playOne(browser, game, ui);
+        break;
+      } catch (e) {
+        const message = (e as Error).message.split("\n")[0]!;
+        if (i < tries.length - 1) {
+          report.push(`${game.padEnd(12)} ui solve did not finish (${message}); playing the full answer instead`);
+          continue;
+        }
+        failures.push(`${game}: ${message}`);
+        report.push(`${game.padEnd(12)} ERROR ${message}`);
+      }
     }
   }
 } finally {

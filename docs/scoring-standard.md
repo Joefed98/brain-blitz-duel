@@ -575,3 +575,21 @@ Colour Flood 192). The help texts quote the dealt numbers.
 
 **The count.** The standard covers 45 games: the 51 active non-arcade games less Nucleus, Forage, Flash, Bang On, Bonk
 and Pull!, which stay outside it. The brief's 46 was a miscount; no game is missing from `STANDARD_STAMPS`.
+
+## Fix: the graders were missing from the production build (29 Oct 2026)
+
+Joe's live Colour Flood round (par 12, 13 moves, 56.8 s) read "120 + 2 speed" = 122 on a `depthRev 4` deal (the par + 6
+limit). The five category grader modules were registered by side-effect imports (`generate.server.ts` →
+`import "./standard/games.server"` → `import "./word.server"` …), and `package.json` declares `"sideEffects": false`,
+so the production build (Vite/Rollup; Lovable's Cloudflare build and the Node preset alike) dropped them: `gradeStandard`
+found no game and every standard puzzle fell back to the older path, in practice, rooms, the daily and challenges.
+bun and the Vite dev server never tree-shake, so every check passed. Now each module exports its table
+(`WORD_STANDARD_GAMES` …), `games.server.ts` combines them into `STANDARD_GAMES` and the grader imports that by name.
+No scoring rule changed. **Never register anything by a bare `import "./x"` in app code.**
+
+standard-live-check (~3 min, shard `play9`) builds the app for production (Nitro's node-server preset), starts it and
+plays practice rounds through the app in Chromium on live deals (real-UI solve drivers, else the full answer at the
+buzzer), then deals and grades room rounds through the built bundle's `buildRoomPuzzles` and `gradeRoomAnswer`; it
+fails unless the server stores a finish on the standard's 150 base. On main before the fix every round stored base 120.
+`--all` plays all 43 standard puzzles graded by the standard's modules (Mixed Signals and Tenfall score in their sims).
+
