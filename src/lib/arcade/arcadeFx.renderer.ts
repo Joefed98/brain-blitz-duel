@@ -251,6 +251,10 @@ export const ARCADE_FX_TEXT_COLOURS: Record<string, { fill: string; outline: str
   homerun: { fill: "#F2C75C", outline: "#0A0D16" },
   freekick: { fill: "#F2C75C", outline: "#0A0D16" },
   racing: { fill: "#FFC46B", outline: "#1A0F08" },
+  // Cards & Board: the felt's gold on navy.
+  freecell: { fill: "#F2C75C", outline: "#0A1736" },
+  tripeaks: { fill: "#F2C75C", outline: "#0A1736" },
+  pokersquares: { fill: "#F2C75C", outline: "#0A1736" },
 };
 
 /**

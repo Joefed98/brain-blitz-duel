@@ -98,6 +98,8 @@ const RAISED: PuzzleType[] = [
   "rally", "burst", "bullseye",
   // Cards & Board (30 Oct 2026, docs/arcade-standard/minesweeper.md and mahjong.md): born on the arcade scoring standard.
   "minesweeper", "mahjong",
+  // Cards & Board (30 Oct 2026, docs/arcade-standard/freecell.md, tripeaks.md, pokersquares.md): born on the standard.
+  "freecell", "tripeaks", "pokersquares",
 ];
 /** The games still at 150: section 2 raises each of them in turn. */
 const TYPES = ALL_TYPES.filter((t) => ROUND_MAX[t] === DEFAULT_ROUND_MAX);

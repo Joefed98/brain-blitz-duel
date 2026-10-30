@@ -79,6 +79,12 @@ import { freekickDealSeed } from "../../src/lib/duel/freekickDeal.server";
 import { racingCheckpoint, racingGameFor, RACING_REV_STD } from "../../src/lib/arcade/racing";
 import { encodeRacingRun, replayRacingRun } from "../../src/lib/duel/racing";
 import { racingDealSeed } from "../../src/lib/duel/racingDeal.server";
+import { fcCheckpoint, freecellGameFor, FC_REV } from "../../src/lib/arcade/cards/freecell";
+import { FC_DEALS } from "../../src/lib/arcade/cards/freecellDeals.data";
+import { tpCheckpoint, tripeaksGameFor, TP_REV } from "../../src/lib/arcade/cards/tripeaks";
+import { TP_DEALS } from "../../src/lib/arcade/cards/tripeaksDeals.data";
+import { psCheckpoint, pokerSquaresGameFor, PS_REV } from "../../src/lib/arcade/cards/pokerSquares";
+import { encodeFreecellRun, encodePokerSquaresRun, encodeTripeaksRun, replayFreecellRun, replayPokerSquaresRun, replayTripeaksRun } from "../../src/lib/duel/cards";
 
 export interface GameSpec {
   type: PuzzleType;
@@ -262,6 +268,11 @@ export const GAMES: GameSpec[] = [
   { ...simple("homerun", HOMERUN_REV_STD, HOMERUN_REV_STD, homerunGameFor, homerunCheckpoint, encodeHomerunRun, replayHomerunRun), seedFor: (n) => homerunDealSeed(roomSeed(n)) },
   { ...simple("freekick", FREEKICK_REV_STD, FREEKICK_REV_STD, freekickGameFor, freekickCheckpoint, encodeFreekickRun, replayFreekickRun), seedFor: (n) => freekickDealSeed(roomSeed(n)) },
   { ...simple("racing", RACING_REV_STD, RACING_REV_STD, racingGameFor, racingCheckpoint, encodeRacingRun, replayRacingRun), seedFor: (n) => racingDealSeed(roomSeed(n)) },
+  // Cards & Board (30 Oct 2026): born on the arcade standard, one revision each. FreeCell and TriPeaks deal a bank
+  // index (the room seed modulo the bank); Poker Squares any seed.
+  { ...simple("freecell", FC_REV, FC_REV, freecellGameFor, fcCheckpoint, encodeFreecellRun, replayFreecellRun), seedFor: (n) => roomSeed(n) % FC_DEALS.length },
+  { ...simple("tripeaks", TP_REV, TP_REV, tripeaksGameFor, tpCheckpoint, encodeTripeaksRun, replayTripeaksRun), seedFor: (n) => roomSeed(n) % TP_DEALS.length },
+  simple("pokersquares", PS_REV, PS_REV, pokerSquaresGameFor, psCheckpoint, encodePokerSquaresRun, replayPokerSquaresRun),
 ];
 
 export const GAME_BY_TYPE = new Map(GAMES.map((g) => [g.type, g]));

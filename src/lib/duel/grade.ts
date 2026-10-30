@@ -76,6 +76,9 @@ import { decodeWavefrontRun, replayWavefrontRun } from "./wavefront";
 import { decodeBastionRun, replayBastionRun } from "./bastion";
 import { decodeRooftopRun, replayRooftopRun } from "./rooftop";
 import { decodeFlipRun, replayFlipRun } from "./flip";
+import {
+  decodeFreecellRun, decodePokerSquaresRun, decodeTripeaksRun, replayFreecellRun, replayPokerSquaresRun, replayTripeaksRun,
+} from "./cards";
 import { decodeJunctionRun, replayJunctionRun } from "./junction";
 import { decodeInkBridgeRun, replayInkBridgeRun } from "./inkBridge";
 import { decodeBurstRun, replayBurstRun } from "./burst";
@@ -1448,6 +1451,86 @@ function gradeUnderRev(
         desyncTick: run.desyncTick,
         inputs: decodePinballRun(answer).events.length,
         claimedScore: decodePinballRun(answer).claimedScore,
+        ...(run.reason ? { reason: run.reason } : {}),
+      };
+      break;
+    }
+    // Cards & Board (30 Oct 2026): the server's own replay of the move log on the stored deal.
+    case "freecell": {
+      const replayStart = performance.now();
+      const run = replayFreecellRun(puzzle.seed, answer, puzzle.freecellRev);
+      revealRun = run;
+      arcadeDiag = buildArcadeDiag(puzzle.type, run, answer, performance.now() - replayStart);
+      isCorrect = run.finished;
+      correctCount = run.home;
+      score = run.score;
+      extraDetail = {
+        freecellRev: puzzle.freecellRev ?? 1,
+        home: run.home,
+        sorted: run.sorted,
+        moves: run.moves,
+        par: run.par,
+        finished: run.finished,
+        finishSeconds: run.finishSeconds,
+        endedSeconds: run.endedSeconds,
+        flagged: run.flagged,
+        clientLag: run.clientLag,
+        clientTick: run.clientTick,
+        desyncTick: run.desyncTick,
+        inputs: decodeFreecellRun(answer).events.length,
+        claimedScore: decodeFreecellRun(answer).claimedScore,
+        ...(run.reason ? { reason: run.reason } : {}),
+      };
+      break;
+    }
+    case "tripeaks": {
+      const replayStart = performance.now();
+      const run = replayTripeaksRun(puzzle.seed, answer, puzzle.tripeaksRev);
+      revealRun = run;
+      arcadeDiag = buildArcadeDiag(puzzle.type, run, answer, performance.now() - replayStart);
+      isCorrect = run.finished;
+      correctCount = run.cleared;
+      score = run.score;
+      extraDetail = {
+        tripeaksRev: puzzle.tripeaksRev ?? 1,
+        cleared: run.cleared,
+        peaks: run.peaks,
+        bestRun: run.bestRun,
+        stockLeft: run.stockLeft,
+        finished: run.finished,
+        finishSeconds: run.finishSeconds,
+        endedSeconds: run.endedSeconds,
+        flagged: run.flagged,
+        clientLag: run.clientLag,
+        clientTick: run.clientTick,
+        desyncTick: run.desyncTick,
+        inputs: decodeTripeaksRun(answer).events.length,
+        claimedScore: decodeTripeaksRun(answer).claimedScore,
+        ...(run.reason ? { reason: run.reason } : {}),
+      };
+      break;
+    }
+    case "pokersquares": {
+      const replayStart = performance.now();
+      const run = replayPokerSquaresRun(puzzle.seed, answer, puzzle.pokerSquaresRev);
+      revealRun = run;
+      arcadeDiag = buildArcadeDiag(puzzle.type, run, answer, performance.now() - replayStart);
+      isCorrect = run.placed === 25;
+      correctCount = run.made;
+      score = run.score;
+      extraDetail = {
+        pokerSquaresRev: puzzle.pokerSquaresRev ?? 1,
+        total: run.total,
+        target: run.target,
+        made: run.made,
+        placed: run.placed,
+        endedSeconds: run.endedSeconds,
+        flagged: run.flagged,
+        clientLag: run.clientLag,
+        clientTick: run.clientTick,
+        desyncTick: run.desyncTick,
+        inputs: decodePokerSquaresRun(answer).events.length,
+        claimedScore: decodePokerSquaresRun(answer).claimedScore,
         ...(run.reason ? { reason: run.reason } : {}),
       };
       break;

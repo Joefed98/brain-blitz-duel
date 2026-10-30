@@ -124,6 +124,9 @@ import {
   HOMERUN_TIME_MS,
   FREEKICK_TIME_MS,
   RACING_TIME_MS,
+  FREECELL_TIME_MS,
+  TRIPEAKS_TIME_MS,
+  POKERSQUARES_TIME_MS,
 } from "./types";
 
 import { TG_TIME_MS, tileGridResultLine } from "./tileGrid";
@@ -151,6 +154,9 @@ const DIRECT_LIMITS: Partial<Record<PuzzleType, number>> = {
   homerun: HOMERUN_TIME_MS,
   freekick: FREEKICK_TIME_MS,
   racing: RACING_TIME_MS,
+  freecell: FREECELL_TIME_MS,
+  tripeaks: TRIPEAKS_TIME_MS,
+  pokersquares: POKERSQUARES_TIME_MS,
   nonogram: NONO_TIME_MS,
   pairmatch: PAIR_TIME_MS,
   flood: FLOOD_TIME_MS,
@@ -1091,6 +1097,33 @@ const breakerSummary: SummaryBuilder = (result) => {
   };
 };
 
+/** Cards & Board: the run's headline figures from the stored replay (grade.ts' extra). */
+const freecellSummary: SummaryBuilder = (result) => {
+  const n = (key: string) => Number(result.extra?.[key] ?? 0);
+  const done = result.extra?.["finished"] === true;
+  return {
+    summary: done ? `All 52 home · ${n("moves")} moves (par ${n("par")})` : `${n("home")} of 52 home · ${n("sorted")} in sorted runs`,
+    detail: [done ? `Finished in ${n("finishSeconds").toFixed(1)} s` : `${n("moves")} moves, par ${n("par")}`],
+  };
+};
+
+const tripeaksSummary: SummaryBuilder = (result) => {
+  const n = (key: string) => Number(result.extra?.[key] ?? 0);
+  const done = result.extra?.["finished"] === true;
+  return {
+    summary: `${n("cleared")} of 28 cleared · ${n("peaks")} peak tops · best run ${n("bestRun")}`,
+    detail: [done ? `Cleared in ${n("finishSeconds").toFixed(1)} s` : `${n("stockLeft")} stock cards left`],
+  };
+};
+
+const pokerSquaresSummary: SummaryBuilder = (result) => {
+  const n = (key: string) => Number(result.extra?.[key] ?? 0);
+  return {
+    summary: `${n("total")} hand points · ${n("made")} of 10 lines`,
+    detail: [`${n("placed")} of 25 cards placed`],
+  };
+};
+
 const pinballSummary: SummaryBuilder = (result) => {
   const n = (key: string) => Number(result.extra?.[key] ?? 0);
   const left = n("ballsLeft");
@@ -1677,6 +1710,9 @@ export const ROUND_SUMMARIES: Record<PuzzleType, SummaryBuilder> = {
   homerun: sportsSummary("homerun"),
   freekick: sportsSummary("freekick"),
   racing: sportsSummary("racing"),
+  freecell: freecellSummary,
+  tripeaks: tripeaksSummary,
+  pokersquares: pokerSquaresSummary,
   rally: rallySummary,
   steady: steadySummary,
   slice: sliceSummary,
@@ -1771,6 +1807,9 @@ export const CORRECT_ANSWERS: Record<PuzzleType, AnswerBuilder> = {
   homerun: () => null,
   freekick: () => null,
   racing: () => null,
+  freecell: () => null,
+  tripeaks: () => null,
+  pokersquares: () => null,
   rally: () => null,
   steady: () => null,
   slice: () => null,

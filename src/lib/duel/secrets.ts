@@ -73,6 +73,10 @@ const SECRET_KEYS: Record<PuzzleType, string[]> = {
   homerun: [],
   freekick: [],
   racing: [],
+  // Cards & Board: the deal is the seed (a bank index, or a seeded target grid); runs are replayed on the server.
+  freecell: [],
+  tripeaks: [],
+  pokersquares: [],
   rally: [],
   steady: [],
   slice: [],

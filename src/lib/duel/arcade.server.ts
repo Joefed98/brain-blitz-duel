@@ -39,6 +39,12 @@ import { CLASH_QUEUE, CLASH_REV_TALL, CLASH_REV_DEPTH, CLASH_REV_TOPUP } from "@
  */
 
 import { randomBelow } from "./random";
+import { FC_REV } from "@/lib/arcade/cards/freecell";
+import { FC_DEALS } from "@/lib/arcade/cards/freecellDeals.data";
+import { TP_REV } from "@/lib/arcade/cards/tripeaks";
+import { TP_DEALS } from "@/lib/arcade/cards/tripeaksDeals.data";
+import { PS_REV } from "@/lib/arcade/cards/pokerSquares";
+import type { FreecellPuzzleData, PokerSquaresPuzzleData, TripeaksPuzzleData } from "./types";
 import { bullseyeWinds, BULLSEYE_REV_TARGET, BULLSEYE_REV_STRICT, BULLSEYE_REV_STD } from "@/lib/arcade/bullseye";
 import type {
   BinTossPuzzleData,
@@ -81,6 +87,23 @@ import type {
 /** A fresh 32-bit seed from the platform CSPRNG. */
 export function arcadeSeed(): number {
   return randomBelow(0x7fff_ffff) + 1;
+}
+
+/* Cards & Board (30 Oct 2026): the arcade scoring standard from revision 1. */
+
+/** FreeCell: a bank deal (its index), proved solvable with a known par. */
+export function generateFreecell(): FreecellPuzzleData {
+  return { type: "freecell", seed: randomBelow(FC_DEALS.length), freecellRev: FC_REV };
+}
+
+/** TriPeaks: a bank deal (its index), proved clearable with a run of ten. */
+export function generateTripeaks(): TripeaksPuzzleData {
+  return { type: "tripeaks", seed: randomBelow(TP_DEALS.length), tripeaksRev: TP_REV };
+}
+
+/** Poker Squares: any seed; the sim builds the target grid and dealing order from it. */
+export function generatePokerSquares(): PokerSquaresPuzzleData {
+  return { type: "pokersquares", seed: arcadeSeed(), pokerSquaresRev: PS_REV };
 }
 
 export function generateSwerve(): SwervePuzzleData {

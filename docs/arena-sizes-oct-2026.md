@@ -52,6 +52,9 @@ revisions keep their own world in reveals and replays.
 | Home Run Derby | 390x720 | 375x591 → 320x591 | 390x624 → 338x624 | 390x768 → 390x720 | 414x772 → 414x764 | 430x856 → 430x794 | 1280x724 → 392x724 | 1.000x | 60px | 0px | 48px | 0px | - |
 | Free Kick | 390x720 | 375x591 → 320x591 | 390x624 → 338x624 | 390x768 → 390x720 | 414x772 → 414x764 | 430x856 → 430x794 | 1280x724 → 392x724 | 1.000x | 60px | 0px | 48px | 0px | - |
 | Racing | 390x720 | 375x591 → 320x591 | 390x624 → 338x624 | 390x768 → 390x720 | 414x772 → 414x764 | 430x856 → 430x794 | 1280x724 → 392x724 | 1.000x | 60px | 0px | 48px | 0px | - |
+| FreeCell | 414x772 | 375x591 → 317x591 | 390x624 → 335x624 | 390x768 → 390x727 | 414x772 → 414x772 | 430x856 → 430x802 | 1280x724 → 388x724 | 0.942x | 60px | 0px | 41px | 0px | - |
+| TriPeaks | 414x772 | 375x591 → 317x591 | 390x624 → 335x624 | 390x768 → 390x727 | 414x772 → 414x772 | 430x856 → 430x802 | 1280x724 → 388x724 | 0.942x | 60px | 0px | 41px | 0px | - |
+| Poker Squares | 414x772 | 375x591 → 317x591 | 390x624 → 335x624 | 390x768 → 390x727 | 414x772 → 414x772 | 430x856 → 430x802 | 1280x724 → 388x724 | 0.942x | 60px | 0px | 41px | 0px | - |
 | Letterfall | 390x700 | 375x591 → 329x591 | 390x624 → 348x624 | 390x768 → 390x700 | 414x772 → 414x743 | 430x856 → 430x772 | 1280x724 → 403x724 | 1.000x | 60px | 0px | 68px | 0px | - |
 | Tenfall | 360x520 | 375x535 → 370x535 | 390x568 → 390x563 | 390x712 → 390x563 | 414x716 → 414x598 | 430x800 → 430x621 | 1280x668 → 462x668 | 1.083x | 116px | 0px | 149px | 0px | - |
 | Bonk | square | 375x491 → 375x375 | 390x524 → 390x390 | 390x668 → 390x390 | 414x672 → 414x414 | 430x756 → 430x430 | 1280x624 → 624x624 | 390.000x | 159.6px | 139px | 139px | 0px | - |
@@ -101,6 +104,9 @@ stars, walkers, lava, reactions) that holds still under reduced motion or reduce
 | Mixed Signals | 375x531 → 319x531 | 390x564 → 338x564 | 390x708 → 390x650 | 414x712 → 414x690 | 430x796 → 430x717 | 1280x664 → 398x664 | the night board runs on under the arrows: its faint dot grid, lifting from the board's black to a soft indigo glow |
 | Minesweeper | 375x591 → 348x591 | 390x624 → 368x624 | 390x768 → 390x662 | 414x772 → 414x703 | 430x856 → 430x730 | 1280x724 → 427x724 | the faint hexagon background runs on beside and below the framed board, easing darker to the screen's bottom |
 | Mahjong Solitaire | 375x591 → 375x585 | 390x624 → 390x608 | 390x768 → 390x608 | 414x772 → 414x645 | 430x856 → 430x670 | 1280x724 → 464x724 | the dark wooden table runs on beside and below the jade mat, its grain unbroken, settling darker |
+| FreeCell | 375x591 → 317x591 | 390x624 → 335x624 | 390x768 → 390x727 | 414x772 → 414x772 | 430x856 → 430x802 | 1280x724 → 388x724 | the felt's darker edge runs on beside and below the world, settling darker towards the screen's bottom |
+| TriPeaks | 375x591 → 317x591 | 390x624 → 335x624 | 390x768 → 390x727 | 414x772 → 414x772 | 430x856 → 430x802 | 1280x724 → 388x724 | the felt's darker edge runs on beside and below the world, settling darker towards the screen's bottom |
+| Poker Squares | 375x591 → 317x591 | 390x624 → 335x624 | 390x768 → 390x727 | 414x772 → 414x772 | 430x856 → 430x802 | 1280x724 → 388x724 | the felt's darker edge runs on beside and below the world, settling darker towards the screen's bottom |
 
 ## iPhone 11 home-screen app, before and after the 15 Oct 2026 fix
 
@@ -142,6 +148,9 @@ than half hidden; Hover's world is cut the same way, its disc at the top).
 | Home Run Derby | 414x724 → 392x724, 64px | 414x772 → 414x764, 16px | world 24px |
 | Free Kick | 414x724 → 392x724, 64px | 414x772 → 414x764, 16px | world 24px |
 | Racing | 414x724 → 392x724, 64px | 414x772 → 414x764, 16px | world 24px |
+| FreeCell | 414x724 → 388x724, 64px | 414x772 → 414x772, 16px | world 32px |
+| TriPeaks | 414x724 → 388x724, 64px | 414x772 → 414x772, 16px | world 32px |
+| Poker Squares | 414x724 → 388x724, 64px | 414x772 → 414x772, 16px | world 32px |
 | Letterfall | 414x724 → 403x724, 64px | 414x772 → 414x743, 16px | world 3px |
 | Tenfall | 414x668 → 414x598, 64px | 414x716 → 414x598, 16px | world none |
 | Bonk | 414x624 → 414x414, 64px | 414x672 → 414x414, 16px | world none |
@@ -183,3 +192,6 @@ bottom; the spare space was the game's arena fill or the page colour. Same arith
 | Home Run Derby | 367x543 → 294x543 | 382x576 → 312x576 | 382x720 → 382x705 | 422x808 → 422x779 | 1272x676 → 366x676 |
 | Free Kick | 367x543 → 294x543 | 382x576 → 312x576 | 382x720 → 382x705 | 422x808 → 422x779 | 1272x676 → 366x676 |
 | Racing | 367x543 → 294x543 | 382x576 → 312x576 | 382x720 → 382x705 | 422x808 → 422x779 | 1272x676 → 366x676 |
+| FreeCell | 367x543 → 291x543 | 382x576 → 309x576 | 382x720 → 382x712 | 422x808 → 422x787 | 1272x676 → 363x676 |
+| TriPeaks | 367x543 → 291x543 | 382x576 → 309x576 | 382x720 → 382x712 | 422x808 → 422x787 | 1272x676 → 363x676 |
+| Poker Squares | 367x543 → 291x543 | 382x576 → 309x576 | 382x720 → 382x712 | 422x808 → 422x787 | 1272x676 → 363x676 |

@@ -100,6 +100,15 @@ export const MOMENT_TABLE: readonly MomentRow[] = [
   fx("mahjong", 0, "pop", "pair", 5, "Pair taken away"),
   fx("mahjong", 1, "streak", "pairs", 30, "Pairs streak (every 6)"),
   fx("mahjong", 2, "final", "stack-cleared", 95, "Stack cleared", "finish"),
+  // Cards & Board (30 Oct 2026)
+  fx("freecell", 0, "pop", "home", 0, "Card home (burst only)"),
+  fx("freecell", 1, "streak", "suit-home", 40, "Thirteen more cards home"),
+  fx("freecell", 2, "final", "all-home", 95, "All 52 cards home", "finish"),
+  fx("tripeaks", 0, "combo", "run", 25, "A run of five or more"),
+  fx("tripeaks", 1, "perfect", "peak", 40, "A peak top cleared"),
+  fx("tripeaks", 2, "final", "cleared", 95, "All 28 peak cards cleared", "finish"),
+  fx("pokersquares", 0, "pop", "hand", 20, "A row or column makes a hand"),
+  fx("pokersquares", 1, "final", "target", 70, "The deal's target reached"),
   // Rally
   fx("rally", 0, "streak", "long-rally", 35, "Long rally (every 10 returns)"),
   fx("rally", 1, "pop", "gold", 25, "Gold ball returned"),

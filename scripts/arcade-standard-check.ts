@@ -66,6 +66,10 @@ const STANDARD_ROSTER: readonly { type: string; field: string; rev: number; batc
   { type: "homerun", field: "homerunRev", rev: 1, batch: "Sports" },
   { type: "freekick", field: "freekickRev", rev: 1, batch: "Sports" },
   { type: "racing", field: "racingRev", rev: 1, batch: "Sports" },
+  // Cards & Board (30 Oct 2026): born on the standard at revision 1.
+  { type: "freecell", field: "freecellRev", rev: 1, batch: "Cards" },
+  { type: "tripeaks", field: "tripeaksRev", rev: 1, batch: "Cards" },
+  { type: "pokersquares", field: "pokerSquaresRev", rev: 1, batch: "Cards" },
 ];
 
 const only = process.argv.slice(2).filter((a) => !a.startsWith("--"));

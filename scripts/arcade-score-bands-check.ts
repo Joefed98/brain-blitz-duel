@@ -18,6 +18,7 @@
  *   bun scripts/arcade-score-bands-check.ts
  */
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { liveBornOnStandard } from "../src/lib/arcade/liveBands";
 import { readFileSync } from "node:fs";
 import { gunzipSync } from "node:zlib";
 import { BAND_SPECS, BAND_STAMPS } from "../src/lib/arcade/bandParts";

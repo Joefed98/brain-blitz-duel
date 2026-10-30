@@ -85,6 +85,9 @@ replay exactly as before; standard-live-check grades every stored arcade run thr
 | Home Run Derby | `homerun` | `homerunRev` 1 | Sports | [homerun.md](homerun.md) |
 | Free Kick | `freekick` | `freekickRev` 1 | Sports | [freekick.md](freekick.md) |
 | Racing | `racing` | `racingRev` 1 | Sports | [racing.md](racing.md) |
+| FreeCell | `freecell` | `freecellRev` 1 | Cards & Board | [freecell.md](freecell.md) |
+| TriPeaks | `tripeaks` | `tripeaksRev` 1 | Cards & Board | [tripeaks.md](tripeaks.md) |
+| Poker Squares | `pokersquares` | `pokerSquaresRev` 1 | Cards & Board | [pokersquares.md](pokersquares.md) |
 
 The batches land one at a time on top of this; each adds its games' entries, pages and its summary section below.
 
@@ -329,4 +332,16 @@ Medians, weak → flawless (each game's `bun scripts/<game>-bands.ts`, room seed
 | Home Run Derby | 46 | 71 | 114 | 163 | 190 | 197 | 200 |
 | Free Kick | 23 | 36 | 66 | 102 | 148 | 165 | 200 |
 | Racing | 131 | 155 | 182 | 192.5 | 198 | 200 | 200 |
+## Cards & Board: FreeCell, TriPeaks, Poker Squares (30 Oct 2026)
+
+Three new Arcade games, born on the standard at revision 1 (LIVE_BANDS marks them `born`: no score-band history).
+
+| Game | Stamp | Core | Features | Sum |
+| --- | --- | --- | --- | --- |
+| FreeCell | `freecellRev` 1 | 140, cards home (full) and in sorted runs (half), full at all 52 home | par moves 30, speed 30 (finished; full by 66 s) | 200 |
+| TriPeaks | `tripeaksRev` 1 | 120, share of the 28 peak cards cleared (60 s run) | peak tops 30, longest run 20, clear 10, speed 20 (full by 27 s) | 200 |
+| Poker Squares | `pokerSquaresRev` 1 | 160, hand points, full at 68 (the near-perfect median) | made hands 40 (4 a line) | 200 |
+
+Speed's "full by" times are the near-perfect bots' median finish (`bun scripts/cards-bands.ts`). cards-check proves
+every dealt deal reaches 200 through the server's replay.
 

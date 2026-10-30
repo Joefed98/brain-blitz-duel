@@ -89,7 +89,10 @@ export type PuzzleType =
   | "mahjong"
   | "homerun"
   | "freekick"
-  | "racing";
+  | "racing"
+  | "freecell"
+  | "tripeaks"
+  | "pokersquares";
 
 /** A type id as stored rooms hold it: a live type, or a game deleted since (removedGames.ts). */
 export type StoredPuzzleType = PuzzleType | RemovedPuzzleType;
@@ -405,7 +408,10 @@ export type PuzzleData =
   | MahjongPuzzleData
   | HomerunPuzzleData
   | FreekickPuzzleData
-  | RacingPuzzleData;
+  | RacingPuzzleData
+  | FreecellPuzzleData
+  | TripeaksPuzzleData
+  | PokerSquaresPuzzleData;
 
 /** Every timed screen of a round, driven by a shared timestamp. */
 export type DuelPhase = "starting" | "round_title" | "intro" | "puzzle" | "reveal" | "result" | "standings" | "winner_reveal";
@@ -1977,6 +1983,39 @@ export interface RacingPuzzleData {
   seed: number;
   /** Rules revision (1 = the first race, on the arcade scoring standard). */
   racingRev?: number;
+}
+
+/* ============================ Cards & Board ============================= */
+
+/** FreeCell: a 120-second run; the round clock adds three of slack. */
+export const FREECELL_TIME_MS = 123_000;
+/** TriPeaks: a 60-second run. */
+export const TRIPEAKS_TIME_MS = 63_000;
+/** Poker Squares: a 60-second run. */
+export const POKERSQUARES_TIME_MS = 63_000;
+
+export interface FreecellPuzzleData {
+  type: "freecell";
+  /** The bank deal's index (src/lib/arcade/cards/freecellDeals.data.ts): the same deal and par for everyone. */
+  seed: number;
+  /** Rules revision (1 = the first rules, on the arcade scoring standard). */
+  freecellRev?: number;
+}
+
+export interface TripeaksPuzzleData {
+  type: "tripeaks";
+  /** The bank deal's index (src/lib/arcade/cards/tripeaksDeals.data.ts), every one proved clearable. */
+  seed: number;
+  /** Rules revision (1 = the first rules, on the arcade scoring standard). */
+  tripeaksRev?: number;
+}
+
+export interface PokerSquaresPuzzleData {
+  type: "pokersquares";
+  /** Builds the target grid and its dealing order in the sim: the same 25 cards in the same order for everyone. */
+  seed: number;
+  /** Rules revision (1 = the first rules, on the arcade scoring standard). */
+  pokerSquaresRev?: number;
 }
 
 export interface RallyPuzzleData {

@@ -64,7 +64,7 @@ const BRIEF: Record<string, string[]> = {
   // Home Run Derby, Free Kick and Racing registered on 30 Oct 2026 (#203).
   sports: ["Flightpath", "Swish", "Home Run Derby", "Free Kick", "Racing"],
   // Minesweeper and Mahjong Solitaire registered on 30 Oct 2026 (#205); the group's other ids join as they register.
-  cards: ["Minesweeper", "Mahjong Solitaire"],
+  cards: ["Minesweeper", "FreeCell", "Mahjong Solitaire", "TriPeaks", "Poker Squares"],
   action: ["Slice", "Tilt", "Gemstone", "High Rise", "Coral Pop", "Roofbound", "Rainbow Bridge", "Ball Tracker", "Grappler"],
 };
 for (const g of ARCADE_GROUPS) {

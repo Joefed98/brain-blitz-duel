@@ -267,6 +267,11 @@ const ARCADE_BACKGROUNDS: Partial<Record<PuzzleType, TileBackground>> = {
     vgrad(c, [[0, "#2A1A10"], [0.08, "#160D07"], [0.1, "#1F6B4E"], [0.9, "#14503A"], [0.92, "#160D07"], [1, "#2A1A10"]]);
     cloud(c, T / 2, T / 2, 56, "#1E7A58", 0.3);
   }, { fade: 0.3, spot: 0.35 }),
+  // FreeCell, TriPeaks and Poker Squares (Cards & Board): their scenes lay the game's own blue felt over the whole tile;
+  // these paint its base under them (deep navy, lamp-lit at the centre).
+  freecell: bg((c) => { vgrad(c, [[0, "#0E2A57"], [1, "#081A38"]]); cloud(c, T / 2, T / 2, 56, "#1A3F7A", 0.3); }, { fade: 0.3, spot: 0.35 }),
+  tripeaks: bg((c) => { vgrad(c, [[0, "#0E2A57"], [1, "#081A38"]]); cloud(c, T / 2, T / 2, 56, "#1A3F7A", 0.3); }, { fade: 0.3, spot: 0.35 }),
+  pokersquares: bg((c) => { vgrad(c, [[0, "#0E2A57"], [1, "#081A38"]]); cloud(c, T / 2, T / 2, 56, "#1A3F7A", 0.3); }, { fade: 0.3, spot: 0.35 }),
   // Hover: its deep space lifting to a synthwave violet at the horizon, a faint magenta grid floor below.
   hover: bg((c) => {
     vgrad(c, [[0, "#02030A"], [0.35, "#080B20"], [0.62, "#2A0E4A"], [0.7, "#5A1A6E"], [0.7, "#0A0614"], [1, "#05030A"]]);

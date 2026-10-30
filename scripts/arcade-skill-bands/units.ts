@@ -27,6 +27,9 @@ import { pinballBandParts } from "../../src/lib/arcade/pinball";
 import { pinball6BandParts } from "../../src/lib/arcade/pinball4";
 import { minesBandParts } from "../../src/lib/arcade/minesweeper";
 import { mahjongBandParts } from "../../src/lib/arcade/mahjong";
+import { freecellBandParts } from "../../src/lib/arcade/cards/freecell";
+import { tripeaksBandParts } from "../../src/lib/arcade/cards/tripeaks";
+import { pokerSquaresBandParts } from "../../src/lib/arcade/cards/pokerSquares";
 
 import { homerunBandParts } from "../../src/lib/arcade/homerun";
 import { freekickBandParts } from "../../src/lib/arcade/freekick";
@@ -62,6 +65,9 @@ export const BAND_PARTS: Record<string, (s: any) => BandParts> = {
   homerun: homerunBandParts,
   freekick: freekickBandParts,
   racing: racingBandParts,
+  freecell: freecellBandParts,
+  tripeaks: tripeaksBandParts,
+  pokersquares: pokerSquaresBandParts,
 };
 
 export const UNITS: Record<string, (s: any) => { u: number; finished: boolean }> = Object.fromEntries(

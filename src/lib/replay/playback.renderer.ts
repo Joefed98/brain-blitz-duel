@@ -21,6 +21,9 @@ import { drawMahjong } from "@/lib/arcade/mahjong.renderer";
 import { homerunArtGame } from "@/lib/arcade/homerun.renderer";
 import { freekickArtGame } from "@/lib/arcade/freekick.renderer";
 import { racingArtGame } from "@/lib/arcade/racing.renderer";
+import { freecellArt } from "@/lib/arcade/cards/freecell.renderer";
+import { tripeaksArt } from "@/lib/arcade/cards/tripeaks.renderer";
+import { pokerSquaresArt } from "@/lib/arcade/cards/pokerSquares.renderer";
 import { rallyArtGame } from "@/lib/arcade/rally.renderer";
 import { sliceArtGame } from "@/lib/arcade/slice.renderer";
 import { bubbleArtGame } from "@/lib/arcade/bubble.renderer";
@@ -78,6 +81,9 @@ const SIMPLE: Record<string, (p: PuzzleData) => Draw> = {
   homerun: () => homerunArtGame.draw as Draw,
   freekick: () => freekickArtGame.draw as Draw,
   racing: () => racingArtGame.draw as Draw,
+  freecell: () => freecellArt.draw as Draw,
+  tripeaks: () => tripeaksArt.draw as Draw,
+  pokersquares: () => pokerSquaresArt.draw as Draw,
   rally: () => rallyArtGame.draw as Draw,
   slice: () => sliceArtGame.draw as Draw,
   bubble: () => bubbleArtGame.draw as Draw,

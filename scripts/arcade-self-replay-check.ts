@@ -151,6 +151,10 @@ import { minesCheckpoint, minesweeperGameFor, MINES_REV_STD } from "@/lib/arcade
 import { encodeMinesweeperRun, replayMinesweeperRun } from "@/lib/duel/minesweeper";
 import { mahjongCheckpoint, mahjongGameFor, MAHJONG_REV_STD } from "@/lib/arcade/mahjong";
 import { encodeMahjongRun, replayMahjongRun } from "@/lib/duel/mahjong";
+import { fcCheckpoint, freecellGame } from "@/lib/arcade/cards/freecell";
+import { tpCheckpoint, tripeaksGame } from "@/lib/arcade/cards/tripeaks";
+import { psCheckpoint, pokerSquaresGame } from "@/lib/arcade/cards/pokerSquares";
+import { encodeFreecellRun, encodePokerSquaresRun, encodeTripeaksRun, replayFreecellRun, replayPokerSquaresRun, replayTripeaksRun } from "@/lib/duel/cards";
 import { TILT_REV_BAND, TILT_REV_EXPAND, TILT_REV_LIFT, TILT_REV_STD, TILT_REV_TUNEC } from "@/lib/arcade/tilt";
 import { ORBIT_REV_BAND, ORBIT_REV_SWEPT, ORBIT_REV_TALL, ORBIT_REV_TUNED, ORBIT_REV_XP, ORBIT_REV_STD } from "@/lib/arcade/orbit";
 import { decodeOrbitExtras, initBandFrom, initSweptFrom, initTallFrom, initTunedFrom, initXpFrom, initStdFrom } from "@/lib/arcade/orbitRev3";
@@ -798,6 +802,11 @@ const GAMES: Game[] = [
   { key: "homerun", interval: HOMERUN_CHECKPOINT_INTERVAL, game: homerunGameFor(HOMERUN_REV_STD), checkpoint: homerunCheckpoint, mode: "events", rate: 20, encode: encodeHomerunRun, replay: (seed: number, raw: string) => replayHomerunRun(seed, raw, HOMERUN_REV_STD), seedFor: (n: number) => HOMERUN_DEAL[n % HOMERUN_DEAL.length]! },
   { key: "freekick", interval: FREEKICK_CHECKPOINT_INTERVAL, game: freekickGameFor(FREEKICK_REV_STD), checkpoint: freekickCheckpoint, mode: "events", rate: 20, encode: encodeFreekickRun, replay: (seed: number, raw: string) => replayFreekickRun(seed, raw, FREEKICK_REV_STD), seedFor: (n: number) => FREEKICK_DEAL[n % FREEKICK_DEAL.length]! },
   { key: "racing", interval: RACING_CHECKPOINT_INTERVAL, game: racingGameFor(RACING_REV_STD), checkpoint: racingCheckpoint, mode: "events", rate: 120, encode: encodeRacingRun, replay: (seed: number, raw: string) => replayRacingRun(seed, raw, RACING_REV_STD), seedFor: (n: number) => RACING_DEAL[n % RACING_DEAL.length]! },
+  // Cards & Board (30 Oct 2026), appended so every earlier entry keeps its index: FreeCell, TriPeaks and Poker Squares at
+  // revision 1. FreeCell and TriPeaks deal a bank index (any seed maps onto the bank).
+  { key: "freecell", game: freecellGame, checkpoint: fcCheckpoint, mode: "events", rate: 120, encode: encodeFreecellRun, replay: (seed: number, raw: string) => replayFreecellRun(seed, raw, 1), seedFor: (n: number) => n % 300 },
+  { key: "tripeaks", game: tripeaksGame, checkpoint: tpCheckpoint, mode: "events", rate: 120, encode: encodeTripeaksRun, replay: (seed: number, raw: string) => replayTripeaksRun(seed, raw, 1), seedFor: (n: number) => n % 300 },
+  { key: "pokersquares", game: pokerSquaresGame, checkpoint: psCheckpoint, mode: "events", rate: 60, encode: encodePokerSquaresRun, replay: (seed: number, raw: string) => replayPokerSquaresRun(seed, raw, 1) },
 ];
 
 /** A random candidate event, often outside the declared range (a finger off the edge). */

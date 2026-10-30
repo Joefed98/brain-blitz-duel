@@ -32,6 +32,9 @@ import { mahjongGameFor } from "@/lib/arcade/mahjong";
 import { homerunGameFor } from "@/lib/arcade/homerun";
 import { freekickGameFor } from "@/lib/arcade/freekick";
 import { racingGameFor } from "@/lib/arcade/racing";
+import { freecellGameFor } from "@/lib/arcade/cards/freecell";
+import { tripeaksGameFor } from "@/lib/arcade/cards/tripeaks";
+import { pokerSquaresGameFor } from "@/lib/arcade/cards/pokerSquares";
 import { rallyGameFor } from "@/lib/arcade/rally";
 import { sliceGameFor } from "@/lib/arcade/slice";
 import { bubbleGameFor } from "@/lib/arcade/bubble";
@@ -192,6 +195,9 @@ const SOURCES: Record<string, (p: PuzzleData) => GameSource> = {
   homerun: (p) => ({ game: homerunGameFor(rev(p, "homerunRev")) as AnyGame }),
   freekick: (p) => ({ game: freekickGameFor(rev(p, "freekickRev")) as AnyGame }),
   racing: (p) => ({ game: racingGameFor(rev(p, "racingRev")) as AnyGame }),
+  freecell: (p) => ({ game: freecellGameFor(rev(p, "freecellRev")) as AnyGame }),
+  tripeaks: (p) => ({ game: tripeaksGameFor(rev(p, "tripeaksRev")) as AnyGame }),
+  pokersquares: (p) => ({ game: pokerSquaresGameFor(rev(p, "pokerSquaresRev")) as AnyGame }),
   rally: (p) => ({ game: rallyGameFor(rev(p, "rallyRev")) as AnyGame }),
   slice: (p) => ({ game: sliceGameFor(rev(p, "sliceRev")) as AnyGame }),
   bubble: (p) => ({ game: bubbleGameFor(rev(p, "bubbleRev")) as AnyGame }),

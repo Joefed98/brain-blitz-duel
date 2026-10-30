@@ -17,6 +17,9 @@ import * as mahjong from "./mahjong";
 import * as homerun from "./homerun";
 import * as freekick from "./freekick";
 import * as racing from "./racing";
+import * as freecell from "./freecell";
+import * as tripeaks from "./tripeaks";
+import * as pokersquares from "./pokersquares";
 
 export interface ArcadeStdEntry {
   spec: StdSpec | null;
@@ -36,6 +39,9 @@ export const ARCADE_STANDARD: Readonly<Record<string, ArcadeStdEntry>> = {
   homerun,
   freekick,
   racing,
+  freecell,
+  tripeaks,
+  pokersquares,
 };
 
 /** The standard parts of a final state, or null when the game or the state's revision is not on the standard. */

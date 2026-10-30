@@ -94,6 +94,10 @@ export const ROUND_MAX: Readonly<Record<PuzzleType, number>> = {
   homerun: 200,
   freekick: 200,
   racing: 200,
+  // Cards & Board (30 Oct 2026): born on the arcade scoring standard.
+  freecell: 200,
+  tripeaks: 200,
+  pokersquares: 200,
   bubble: 200, // expansion E6, bubbleRev 8 (bubbleRev 9: burst credit; bubbleRev 10: the mine's bigger blast)
   bullseye: 200, // expansion E9, bullRev 8
   burst: 200, // expansion E9, burstRev 8
