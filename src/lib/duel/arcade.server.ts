@@ -1,5 +1,5 @@
 import { TEN_DROP_DEPTH_REV } from "@/lib/arcade/tenDrop";
-import { SLICE_REV_TARGET, SLICE_REV_STRICT, SLICE_REV_BIG } from "@/lib/arcade/slice";
+import { SLICE_REV_TARGET, SLICE_REV_STRICT, SLICE_REV_STANDARD } from "@/lib/arcade/slice";
 import { FLIP_REV_TARGET, FLIP_REV_STRICT, FLIP_REV_LIFT } from "@/lib/arcade/flip";
 import { CROSS_REV_EXPAND } from "@/lib/arcade/cross";
 import { INK_REV_SPREAD } from "@/lib/arcade/inkBridge";
@@ -140,7 +140,8 @@ export function generateSteady(): SteadyPuzzleData {
 
 export function generateSlice(): SlicePuzzleData {
   // sliceRev 10: sliceRev 9 (expansion E5) with onions and golden fruit 1.2× the size (Joe's phone notes, 27 Oct 2026).
-  return { type: "slice", seed: arcadeSeed(), sliceRev: SLICE_REV_BIG };
+  // sliceRev 11: sliceRev 10's play on the arcade scoring standard (29 Oct 2026, docs/arcade-standard-oct-2026/slice.md).
+  return { type: "slice", seed: arcadeSeed(), sliceRev: SLICE_REV_STANDARD };
 }
 
 export function generateBubble(): BubblePuzzleData {

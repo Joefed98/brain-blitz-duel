@@ -446,6 +446,22 @@ export interface SliceState extends BandFields {
   v9?: number;
   /** sliceRev 10 (SLICE_V10): sliceRev 9 with onions and golden fruit 1.2× the size (SLICE_V10_RADIUS). Absent on every earlier round. */
   v10?: number;
+  /**
+   * sliceRev 11 (SLICE_V11, the arcade scoring standard): sliceRev 10's play scored in straight-line parts. Food cut
+   * and food that left the board uncut (bottles never count), foods cut while a combo was live, the current path's
+   * foods and how many of them the combo already counted, breads cut in a row with none missed, bread tickets filled,
+   * the most tickets the schedule allows and the golden fruit it throws. Absent on every earlier round.
+   */
+  v11?: number;
+  foodCut?: number;
+  foodMissed?: number;
+  comboFoods?: number;
+  strokeFood?: number;
+  strokeCombo?: number;
+  breadRun?: number;
+  breadTickets?: number;
+  breadMax?: number;
+  goldDealt?: number;
   worldW?: number;
   /** sliceRev 9: the value of the foods cut on the current path (it qualifies combos by count, credits by value). */
   strokeValue?: number;
@@ -675,6 +691,10 @@ function step(state: SliceState, rawInput: ArcadeInputEvent | null): SliceState 
     next.strokeWeighted = 0;
     next.strokeQualified = 0;
     if (state.v9) next.strokeValue = 0;
+    if (state.v11) {
+      next.strokeFood = 0;
+      next.strokeCombo = 0;
+    }
   }
   const clipped =
     input && input.k === SLICE_INPUT_SWIPE
@@ -730,7 +750,7 @@ function step(state: SliceState, rawInput: ArcadeInputEvent | null): SliceState 
     }
 
     // sliceRev 9: a cutting swipe that passes close to a chilli without cutting it marks it for a dodge.
-    if (state.v9 === SLICE_V9 && cut > 0) {
+    if (state.v9 === SLICE_V9 && !state.v11 && cut > 0) {
       for (let index = 0; index < state.objects.length; index++) {
         const object = state.objects[index]!;
         if (!object.bomb || state.slicedAt[index] || slicedAt?.[index] || state.brushed?.includes(index) || sliceSuppressed(state, object)) continue;
@@ -767,7 +787,7 @@ function step(state: SliceState, rawInput: ArcadeInputEvent | null): SliceState 
       next.weighted += (v9 ? cutValue : cut) * multiplier;
       next.strokeWeighted += (v9 ? cutValue : cut) * multiplier;
     }
-    if (v9) sliceV9Cuts(next, state, hitDiscs, bombs, tick);
+    if (v9 && !state.v11) sliceV9Cuts(next, state, hitDiscs, bombs, tick);
     if (cut > 0) next.bestMult = Math.max(next.bestMult, multiplier);
     if (added.length > 0) {
       next.objects = [...state.objects, ...added];
@@ -787,10 +807,12 @@ function step(state: SliceState, rawInput: ArcadeInputEvent | null): SliceState 
         next.strokeQualified = 1;
       }
     }
+    // sliceRev 11: the standard's counters (after the chilli has ended the combo).
+    if (state.v11) sliceV11Cuts(next, state, hitDiscs, bombs, qualifies, tick);
   }
 
   // sliceRev 9: chillies that leave the board uncut while you keep slicing build the dodge streak.
-  if (state.v9 === SLICE_V9) sliceV9Dodges(next, tick);
+  if (state.v9 === SLICE_V9 && !state.v11) sliceV9Dodges(next, tick);
   // Misses remain diagnostic only: the timer alone governs combo expiry.
   for (let index = 0; index < next.objects.length; index++) {
     const object = next.objects[index]!;
@@ -798,6 +820,11 @@ function step(state: SliceState, rawInput: ArcadeInputEvent | null): SliceState 
     if (worldAge(object, tick - 1, next.slowFrom) === null) continue;
     if (worldAge(object, tick, next.slowFrom) !== null) continue;
     next.missed += 1;
+    // sliceRev 11: a food (never a bottle) left the board uncut; a missed bread breaks the bread run.
+    if (state.v11 && !object.special) {
+      next.foodMissed = (next.foodMissed ?? 0) + 1;
+      if (object.colour === SLICE_V11_BREAD) next.breadRun = 0;
+    }
   }
 
   return next;
@@ -874,6 +901,8 @@ export function sliceCheckpoint(state: SliceState): SliceCheckpoint {
   if (state.v9) values.push(state.v9, state.worldW ?? 0, state.golds ?? 0, state.goldPts ?? 0, sliceTicketsDone(state), state.dodgeStreak ?? 0, state.dodgePts ?? 0);
   // sliceRev 10 (bigger onions and golden fruit): its marker, after that.
   if (state.v10) values.push(state.v10);
+  // sliceRev 11 (the scoring standard): its marker and counters, last.
+  if (state.v11) values.push(state.v11, state.foodCut ?? 0, state.foodMissed ?? 0, state.comboFoods ?? 0, state.breadRun ?? 0, state.breadTickets ?? 0, state.dodges ?? 0, state.golds ?? 0);
   for (const value of values) {
     checksum ^= value | 0;
     checksum = Math.imul(checksum, 0x01000193) >>> 0;
@@ -1087,6 +1116,7 @@ const sliceRev2Game: ArcadeGame<SliceState, ArcadeInputEvent | null> = {
 
 /** Takes puzzle.sliceRev; anything else is the original kitchen. */
 export function sliceGameFor(rev?: number | null): ArcadeGame<SliceState, ArcadeInputEvent | null> {
+  if (rev === SLICE_REV_STANDARD) return sliceStandardGame;
   if (rev === SLICE_REV_BIG) return sliceBigGame;
   if (rev === SLICE_REV_EXPAND) return sliceExpandGame;
   if (rev === SLICE_REV_STRICT) return sliceStrictGame;
@@ -1106,6 +1136,7 @@ export const SLICE_REV_BAND = 3;
 export const SLICE_BAND_CURVE = bandCurve([0, 410, 645, 745, 830, 900], [0, 78, 105, 130, 147, 150]);
 
 export function sliceBandParts(state: SliceState): BandParts {
+  if (state.v11 === SLICE_V11) return sliceV11BandParts(state);
   if (state.v9 === SLICE_V9) return sliceV9Parts(state);
   const total = Math.max(1, sliceTotalDiscs(state));
   const units = Math.floor((1000 * Math.min(state.weighted, total * SLICE_COMBO_MAX)) / (total * SLICE_COMBO_MAX));
@@ -1122,6 +1153,7 @@ export function sliceBandParts(state: SliceState): BandParts {
 }
 
 function scoreBand(state: SliceState): number {
+  if (state.v11 === SLICE_V11) return sliceV11Score(state);
   if (state.v9 === SLICE_V9) return bandTotal(sliceBandParts(state), Boolean(state.acted), SLICE_V9_MAX);
   return bandTotal(sliceBandParts(state), Boolean(state.acted));
 }
@@ -1217,13 +1249,13 @@ export const sliceTallGame: ArcadeGame<SliceState, ArcadeInputEvent | null> = {
 
 /** The world height (px) a stored round's sliceRev plays in. */
 export function sliceWorldHFor(rev?: number | null): number {
-  if (rev === SLICE_REV_EXPAND || rev === SLICE_REV_BIG) return SLICE_V9_H;
+  if (rev === SLICE_REV_EXPAND || rev === SLICE_REV_BIG || rev === SLICE_REV_STANDARD) return SLICE_V9_H;
   return rev === SLICE_REV_TALL || rev === SLICE_REV_TARGET || rev === SLICE_REV_STRICT ? SLICE_TALL_H : SLICE_WORLD_H;
 }
 
-/** The board width (px) a stored round's sliceRev plays on (sliceRev 9's larger board, also sliceRev 10's, else 390). */
+/** The board width (px) a stored round's sliceRev plays on (sliceRev 9's larger board, also sliceRev 10's and 11's, else 390). */
 export function sliceWorldWFor(rev?: number | null): number {
-  return rev === SLICE_REV_EXPAND || rev === SLICE_REV_BIG ? SLICE_V9_W : SLICE_WORLD_W;
+  return rev === SLICE_REV_EXPAND || rev === SLICE_REV_BIG || rev === SLICE_REV_STANDARD ? SLICE_V9_W : SLICE_WORLD_W;
 }
 
 /* ================= Scoring targets (sliceRev 7, 18 Oct 2026) ================= */
@@ -1331,7 +1363,9 @@ export function sliceTicketAt(state: Pick<SliceState, "tickets">, tick: number):
 }
 
 /** sliceRev 9: tickets filled so far. */
-export function sliceTicketsDone(state: Pick<SliceState, "tickets" | "ticketCuts">): number {
+export function sliceTicketsDone(state: Pick<SliceState, "tickets" | "ticketCuts" | "v11" | "breadTickets">): number {
+  // sliceRev 11: bread tickets (three breads in a row with none missed).
+  if (state.v11) return state.breadTickets ?? 0;
   const tickets = state.tickets ?? [];
   let done = 0;
   for (let k = 0; k < tickets.length; k++) if ((state.ticketCuts?.[k] ?? 0) >= tickets[k]!.count) done += 1;
@@ -1624,4 +1658,207 @@ function initV10(seed: number): SliceState {
 export const sliceBigGame: ArcadeGame<SliceState, ArcadeInputEvent | null> = {
   ...sliceExpandGame,
   init: initV10,
+};
+
+/* ============ The arcade scoring standard (sliceRev 11, 29 Oct 2026; docs/arcade-standard-oct-2026/slice.md) ============ */
+
+/**
+ * sliceRev 11: sliceRev 10's play exactly (the same schedule, board, sizes, bottles, chillies, blade and combo rule:
+ * three foods in one path start a combo, every combo-starting path renews its 10 s, a chilli ends it), scored in
+ * straight-line parts that add up to 200:
+ *  - Core, up to 120: 120 × foods cut ÷ foods thrown. A food is any bread, cabbage, onion, meat or golden fruit,
+ *    a ketchup bottle's batch included once it is thrown; chillies and bottles never count. "Thrown" means cut, or
+ *    left the board uncut; a food still in the air at the buzzer counts only if it was cut.
+ *  - Combo, up to 40: 2 points for every 5 foods cut while a combo is live (rounded down; the foods of the path
+ *    that starts it included), no multiplier.
+ *  - Golden fruit, up to 20: 20 × golden fruit cut ÷ golden fruit thrown (six), rounded down.
+ *  - Tickets, up to 10: three breads cut in a row with no bread missed in between fill a ticket (other foods in
+ *    between don't break the run; a bread leaving the board uncut does); 10 × tickets ÷ the most the schedule allows
+ *    (a third of its breads thrown at least a second before the buzzer), capped at 10.
+ *  - Dodges, 2 each up to 10: a food cut close to a chilli, its skin within SLICE_V11_CLOSE (60) px of the skin of a
+ *    chilli on the board, by a segment that cuts no chilli. Each food counts once (it is cut once).
+ *  - Bottles pay nothing (their effects still help); each chilli cut costs 10 and ends the combo.
+ * The order tickets of sliceRev 9 and the dodge streak are gone (the state holds no order tickets). Any input scores
+ * at least 1, never more than 200. States add `v11: 1` and the counters above (folded into the checkpoint last).
+ */
+export const SLICE_REV_STANDARD = 11;
+export const SLICE_V11 = 1;
+export const SLICE_V11_CORE = 120;
+export const SLICE_V11_COMBO_CAP = 40;
+/** Combo: SLICE_V11_COMBO_POINTS points for every SLICE_V11_COMBO_FOODS foods cut while a combo is live (40 at 100). */
+export const SLICE_V11_COMBO_POINTS = 2;
+export const SLICE_V11_COMBO_FOODS = 5;
+export const SLICE_V11_GOLD_CAP = 20;
+export const SLICE_V11_TICKET_CAP = 10;
+export const SLICE_V11_TICKET_BREADS = 3;
+/** Breads thrown in the last second can hardly be cut: the tickets' maximum leaves them out. */
+export const SLICE_V11_TICKET_BEFORE = TICKS_PER_SECOND;
+export const SLICE_V11_DODGE_POINTS = 2;
+export const SLICE_V11_DODGE_CAP = 10;
+/** A dodge: the cut food's skin within this many px of a chilli's skin. */
+export const SLICE_V11_CLOSE = 60;
+export const SLICE_V11_CHILLI = 10;
+/** The bread (colour 0). */
+export const SLICE_V11_BREAD = 0;
+/** Core: per mille of the foods thrown that were cut, a straight line to 120. */
+export const SLICE_V11_BAND_CURVE = bandCurve([0, 1000], [0, SLICE_V11_CORE]);
+
+export interface SliceV11Parts {
+  core: number;
+  combo: number;
+  gold: number;
+  tickets: number;
+  dodges: number;
+  chillies: number;
+  /** Per mille of the foods thrown that were cut (the core's units). */
+  units: number;
+  total: number;
+}
+
+/** sliceRev 11's parts and total for a state (the total before the "at least 1" rule). */
+export function sliceV11Parts(state: SliceState): SliceV11Parts {
+  const cut = state.foodCut ?? 0;
+  const thrown = cut + (state.foodMissed ?? 0);
+  const units = thrown > 0 ? Math.floor((1000 * cut) / thrown) : 0;
+  const core = bandPoints(SLICE_V11_BAND_CURVE, units);
+  const combo = Math.min(SLICE_V11_COMBO_CAP, Math.floor((SLICE_V11_COMBO_POINTS * (state.comboFoods ?? 0)) / SLICE_V11_COMBO_FOODS));
+  const dealt = Math.max(1, state.goldDealt ?? SLICE_V9_GOLDS);
+  const gold = Math.floor((SLICE_V11_GOLD_CAP * Math.min(dealt, state.golds ?? 0)) / dealt);
+  const most = Math.max(1, state.breadMax ?? 1);
+  const tickets = Math.min(SLICE_V11_TICKET_CAP, Math.floor((SLICE_V11_TICKET_CAP * (state.breadTickets ?? 0)) / most));
+  const dodges = Math.min(SLICE_V11_DODGE_CAP, SLICE_V11_DODGE_POINTS * (state.dodges ?? 0));
+  const chillies = SLICE_V11_CHILLI * Math.max(0, state.bombsHit);
+  return { core, combo, gold, tickets, dodges, chillies, units, total: core + combo + gold + tickets + dodges - chillies };
+}
+
+/** sliceRev 11's score: the parts less the chillies, 0 with no input, at least 1 with any, at most 200. */
+function sliceV11Score(state: SliceState): number {
+  if (!state.acted) return 0;
+  return clampInt(sliceV11Parts(state).total, 1, SLICE_V9_MAX);
+}
+
+function sliceV11BandParts(state: SliceState): BandParts {
+  const p = sliceV11Parts(state);
+  const cut = state.foodCut ?? 0;
+  const thrown = cut + (state.foodMissed ?? 0);
+  const chillies = Math.max(0, state.bombsHit);
+  return {
+    units: p.units,
+    points: p.core,
+    bonus: p.combo + p.gold + p.tickets + p.dodges,
+    penalty: p.chillies,
+    finished: false,
+    text: `${cut} / ${thrown} foods sliced`,
+    bonusText: `Combo +${p.combo} (${state.comboFoods ?? 0} foods) · golden ${state.golds ?? 0}/${state.goldDealt ?? SLICE_V9_GOLDS} +${p.gold} · tickets ${state.breadTickets ?? 0}/${state.breadMax ?? 1} +${p.tickets} · dodges ${state.dodges ?? 0} +${p.dodges}`,
+    penaltyText: `${chillies} ${chillies === 1 ? "chilli" : "chillies"}`,
+  };
+}
+
+/**
+ * sliceRev 11: what this tick's cuts did. `hitDiscs` are the non-chilli objects the segment cut; bottles among them
+ * count for nothing here. Called after the chilli rule, so `next.comboLive` is already off when a chilli was cut.
+ */
+function sliceV11Cuts(next: SliceState, state: SliceState, hitDiscs: readonly number[], bombs: number, qualifies: boolean, tick: number): void {
+  let food = 0;
+  let breadRun = state.breadRun ?? 0;
+  let breadTickets = state.breadTickets ?? 0;
+  let golds = state.golds ?? 0;
+  for (const index of hitDiscs) {
+    const object = state.objects[index]!;
+    if (object.special) continue;
+    food += 1;
+    if (object.colour === SLICE_V9_GOLD) golds += 1;
+    if (object.colour === SLICE_V11_BREAD) {
+      breadRun += 1;
+      if (breadRun >= SLICE_V11_TICKET_BREADS) {
+        breadTickets += 1;
+        breadRun = 0;
+      }
+    }
+  }
+  next.foodCut = (state.foodCut ?? 0) + food;
+  next.breadRun = breadRun;
+  next.breadTickets = breadTickets;
+  next.golds = golds;
+  if (food > 0) next.lastCutTick = tick;
+  const strokeFood = (next.strokeFood ?? 0) + food;
+  next.strokeFood = strokeFood;
+  if (bombs === 0) {
+    if (qualifies) {
+      // The path that starts (or renews) the combo: every food on it the combo hasn't counted yet.
+      next.comboFoods = (state.comboFoods ?? 0) + strokeFood - (next.strokeCombo ?? 0);
+      next.strokeCombo = strokeFood;
+    } else if (next.comboLive && food > 0) {
+      next.comboFoods = (state.comboFoods ?? 0) + food;
+      next.strokeCombo = (next.strokeCombo ?? 0) + food;
+    }
+  }
+  // Dodges: each food cut, by a segment that cuts no chilli, while its skin is within SLICE_V11_CLOSE px of an
+  // on-board chilli's skin.
+  if (food === 0 || bombs > 0) return;
+  const chillies: number[] = [];
+  for (let index = 0; index < state.objects.length; index++) {
+    const object = state.objects[index]!;
+    if (!object.bomb || state.slicedAt[index] || sliceSuppressed(state, object)) continue;
+    const at = sliceObjectAt(object, tick, state.slowFrom, state.mayo);
+    if (!at) continue;
+    const bx = Math.trunc(at.x / 256);
+    const by = Math.trunc(at.y / 256);
+    const radius = sliceRadius(object);
+    if (by - radius > sliceWorldH(state) || by + radius < SLICE_HUD_H) continue;
+    chillies.push(bx, by, radius);
+  }
+  if (chillies.length === 0) return;
+  let dodges = next.dodges ?? 0;
+  for (const index of hitDiscs) {
+    const object = state.objects[index]!;
+    if (object.special) continue;
+    const at = sliceObjectAt(object, tick, state.slowFrom, state.mayo);
+    if (!at) continue;
+    const fx = Math.trunc(at.x / 256);
+    const fy = Math.trunc(at.y / 256);
+    const fr = sliceRadius(object);
+    for (let k = 0; k + 2 < chillies.length; k += 3) {
+      const dx = chillies[k]! - fx;
+      const dy = chillies[k + 1]! - fy;
+      const reach = chillies[k + 2]! + fr + SLICE_V11_CLOSE;
+      if (dx * dx + dy * dy > reach * reach) continue;
+      dodges += 1;
+      break;
+    }
+  }
+  next.dodges = dodges;
+}
+
+function initV11(seed: number): SliceState {
+  const base = initV10(seed);
+  let breads = 0;
+  let golds = 0;
+  for (const object of base.objects) {
+    if (object.bomb || object.special) continue;
+    if (object.colour === SLICE_V9_GOLD) golds += 1;
+    if (object.colour === SLICE_V11_BREAD && object.launchTick <= SLICE_RUN_TICKS - SLICE_V11_TICKET_BEFORE) breads += 1;
+  }
+  return {
+    ...base,
+    // No order tickets on this stamp: bread tickets replace them.
+    tickets: [],
+    ticketCuts: [],
+    v11: SLICE_V11,
+    foodCut: 0,
+    foodMissed: 0,
+    comboFoods: 0,
+    strokeFood: 0,
+    strokeCombo: 0,
+    breadRun: 0,
+    breadTickets: 0,
+    breadMax: Math.max(1, Math.floor(breads / SLICE_V11_TICKET_BREADS)),
+    goldDealt: golds,
+  };
+}
+
+/** sliceRev 11: sliceRev 10's play on the arcade scoring standard's parts. */
+export const sliceStandardGame: ArcadeGame<SliceState, ArcadeInputEvent | null> = {
+  ...sliceBigGame,
+  init: initV11,
 };
