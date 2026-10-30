@@ -29,7 +29,7 @@ import { BRK_REV_PHONE, BRK_REV_STRICT, BRK_V10_BAND_CURVE } from "./breaker";
 import { TILT_REV_LIFT, TILT_REV_STRICT, TILT_V9_BAND_CURVE } from "./tilt";
 import { ORBIT_REV_STRICT, ORBIT_REV_XP } from "./orbit";
 import { ORBIT_V12_BAND_CURVE } from "./orbitRev3";
-import { BEAT_REV_EASE, BEAT_REV_STRICT, BEAT_V10_BAND_CURVE } from "./beat";
+import { BEAT_REV_STD, BEAT_REV_STRICT, BEAT_STD_SPEC, BEAT_V11_BAND_CURVE } from "./beat";
 import { SLICE_REV_STRICT, SLICE_REV_BIG, SLICE_V9_BAND_CURVE } from "./slice";
 import { BURST_REV_CARRY, BURST_REV_STRICT, BURST_V9_BAND_CURVE } from "./burst";
 import { SWING_REV_ASSAULT, SWING_REV_STRICT, SWING_V14_BAND_CURVE } from "./swing";
@@ -75,8 +75,8 @@ export const LIVE_BANDS = {
   breaker: { field: "brkRev", rev: BRK_REV_PHONE, curve: BRK_V10_BAND_CURVE, strictRev: BRK_REV_STRICT },
   tilt: { field: "tiltRev", rev: TILT_REV_LIFT, curve: TILT_V9_BAND_CURVE, strictRev: TILT_REV_STRICT },
   orbit: { field: "orbitRev", rev: ORBIT_REV_XP, curve: ORBIT_V12_BAND_CURVE, strictRev: ORBIT_REV_STRICT },
-  // beatRev 10 (phone notes): beatRev 9's base curve and skill pay on an easier chart and wider windows.
-  beat: { field: "beatRev", rev: BEAT_REV_EASE, curve: BEAT_V10_BAND_CURVE, strictRev: BEAT_REV_STRICT },
+  // beatRev 11 (the arcade scoring standard): beatRev 10's play; accuracy on a straight line to 130, four fixed features.
+  beat: { field: "beatRev", rev: BEAT_REV_STD, curve: BEAT_V11_BAND_CURVE, strictRev: BEAT_REV_STRICT, std: BEAT_STD_SPEC },
   slice: { field: "sliceRev", rev: SLICE_REV_BIG, curve: SLICE_V9_BAND_CURVE, strictRev: SLICE_REV_STRICT },
   burst: { field: "burstRev", rev: BURST_REV_CARRY, curve: BURST_V9_BAND_CURVE, strictRev: BURST_REV_STRICT },
   // swingRev 14 (the assault course): the sections' curve; pars, gates, gems and stars pay up to 70 more (the help says so).

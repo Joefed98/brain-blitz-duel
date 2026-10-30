@@ -57,6 +57,7 @@ import { decodeSteadyRun, replaySteadyRun } from "./steady";
 import { decodeSliceRun, replaySliceRun } from "./slice";
 import { decodeBubbleRun, replayBubbleRun } from "./bubble";
 import { decodeBeatRun, replayBeatRun } from "./beat";
+import { beatAccuracy, beatFeatureCounts } from "@/lib/arcade/beat";
 import { decodeWhackRun, replayWhackRun, whackDepthDetail } from "./whack";
 import { decodeTenDropRun, replayTenDropRun } from "./tenDrop";
 import { decodeWordfallRun, replayWordfallRun } from "./wordfall";
@@ -1545,6 +1546,8 @@ function gradeUnderRev(
         clientLag: run.clientLag,
         clientTick: run.clientTick,
         desyncTick: run.desyncTick,
+        // beatRev 11 (the arcade scoring standard): the core measure and each feature against the song's own count.
+        ...(run.state.std ? { beatRev: puzzle.beatRev, accuracy: beatAccuracy(run.state), fevers: run.state.fevers ?? 0, goldsHit: run.state.goldsHit ?? 0, golds: beatFeatureCounts(run.state).golds, doublesDone: run.state.doublesDone ?? 0, doubles: beatFeatureCounts(run.state).doubles, maxStreak: run.state.maxStreak ?? 0 } : {}),
         inputs: decodeBeatRun(answer).events.length,
         claimedScore: decodeBeatRun(answer).claimedScore,
         ...(run.reason ? { reason: run.reason } : {}),
