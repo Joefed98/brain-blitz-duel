@@ -77,7 +77,7 @@ export const MG_SPEED_PTS = 20;
  * Speed: full when all five are holed by this many seconds (the near-perfect skill-band median finish, measured with
  * scripts/arcade-skill-bands.ts minigolf --levels=near), 0 at the buzzer.
  */
-export const MINIGOLF_FULL_BY_S = 33;
+export const MINIGOLF_FULL_BY_S = 50;
 
 export const MINIGOLF_STD_SPEC: StdSpec = {
   field: "golfRev",
