@@ -720,6 +720,13 @@ Lovable still hosts and publishes the app (https://brain-blitz-duel.lovable.app)
   bottom row first on every completed pyramid, Flash's summary without the flash count. Stamps one above the standard's
   (`dealPuzzleNotes` in `puzzleNotes.ts`, after `dealStandard`); checks written for the standard's pin them with
   `pinPrePuzzleNotes(true)`. puzzle-notes-check (~5 s); shots `bun scripts/shots/puzzle-notes-shots.ts`.
+- **The arcade scoring standard** (29 Oct 2026, `docs/arcade-standard/README.md`, one page per game in that folder): core on
+  a straight line, features fixed amounts, parts summing to exactly 200, at least 1 for any played run, each game on a new
+  stamp one above its live one. ONE helper, `src/lib/arcade/arcadeStandard.ts` (`STD_MAX`, `StdSpec`, `stdLine`, `stdEach`,
+  `stdSpeed`, `stdFinal`, parts lists and breakdowns); ONE check, `arcade-standard-check`, with an entry per game in
+  `scripts/arcade-standard/<type>.ts` (shape in `entry.ts`) and `STANDARD_ROSTER` listing the 21 games of batches A–C and
+  Grappler's swingRev 15 (a game dealt on its standard stamp must have an entry). Don't add a second helper, check or docs
+  location for a new game: add its entry, its page and its roster line.
 - `src/components/duel/` — room/round screens (PhoneShell, RoundIntro, TimerBar,
   AnswerReveal, ArcadeReveal, WinnerReveal…); `src/components/puzzles/` — shared puzzle
   widgets; `src/lib/fx/` — sound and visual feedback (presentation only).
