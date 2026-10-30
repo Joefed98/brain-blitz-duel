@@ -86,6 +86,7 @@ import {
   BURST_RADIUS,
   BURST_REV_CLEAN,
   BURST_REV_CARRY,
+  BURST_REV_STD,
   BURST_REV_STRICT,
   BURST_TALL_H,
   BURST_V8_CAPS,
@@ -161,9 +162,10 @@ for (const [file, label] of [["scripts/fixtures/expansion-e9-legacy.json.gz", "b
 
 /* ============================== 2. New rounds ============================== */
 section("Rooms deal the new stamps at 200");
-// Fission deals burstRev 9 since the phone-test notes (27 Oct 2026; fission-carry-check proves it); burstRev 8 is still checked here.
+// Fission deals burstRev 9 since the phone-test notes (27 Oct 2026; fission-carry-check proves it) and burstRev 10 since the
+// arcade scoring standard (29 Oct 2026; burst-standard-check proves it); burstRev 8 is still checked here.
 // Joe's phone notes (27 Oct 2026) moved Rally on to rallyRev 11 (section 7 below).
-ok(generateRally().rallyRev === RALLY_REV_CURVE && generateBurst().burstRev === BURST_REV_CARRY && generateBullseye().bullRev === BULLSEYE_REV_EXPAND, "rooms deal rallyRev 11, burstRev 9 (was 8) and bullRev 8");
+ok(generateRally().rallyRev === RALLY_REV_CURVE && generateBurst().burstRev === BURST_REV_STD && generateBullseye().bullRev === BULLSEYE_REV_EXPAND, "rooms deal rallyRev 11, burstRev 10 (was 8, then 9) and bullRev 8");
 for (const type of ["rally", "burst", "bullseye"] as const) ok(roundMaxFor(type) === 200, `${type}: ROUND_MAX is 200`);
 ok(LIVE_BANDS.rally.strictRev === RALLY_REV_STRICT && LIVE_BANDS.burst.strictRev === BURST_REV_STRICT && LIVE_BANDS.bullseye.strictRev === BULLSEYE_REV_STRICT, "LIVE_BANDS keeps the band-3 revisions rooms dealt before as strictRev");
 ok(rallyWorldWFor(RALLY_REV_BONUS) === RALLY_V10_W && rallyWorldHFor(RALLY_REV_BONUS) === RALLY_V10_H && rallyWorldWFor(RALLY_REV_STRICT) === 390 && rallyWorldHFor(RALLY_REV_STRICT) === 730, "Rally's worlds by revision (420 × 784 on rallyRev 10)");
@@ -466,4 +468,4 @@ if (failures.length) {
   for (const f of [...new Set(failures)].slice(0, 40)) console.log(`  ✗ ${f}`);
   process.exit(1);
 }
-console.log(`\nPASS expansion-e9-check: ${checks} checks — older stamps replay as on main; rooms deal rallyRev 10, burstRev 9 and bullRev 8 at 200; the same targets, pads, power-ups, golden atoms and boards for every player; the new rules; Flightpath's ceiling 200 on ${TUNE_SEEDS.length + FRESH_SEEDS.length} seeds`);
+console.log(`\nPASS expansion-e9-check: ${checks} checks — older stamps replay as on main; rooms deal rallyRev 10, burstRev 10 and bullRev 8 at 200; the same targets, pads, power-ups, golden atoms and boards for every player; the new rules; Flightpath's ceiling 200 on ${TUNE_SEEDS.length + FRESH_SEEDS.length} seeds`);

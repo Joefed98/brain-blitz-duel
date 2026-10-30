@@ -15,6 +15,7 @@ import { HOVER_CHAINS, HOVER_TIGHT_GATES, HOVER_V2_GATES_SCORE, HOVER_V2_STARS_S
 import { WAV_BOSS_HP, WAV_V2_WAVES } from "./wavefront";
 import { BAND_SPECS } from "./bandParts";
 import { breakerStdParts, type BrkState } from "./breaker";
+import { burstGoldenCount, burstStdParts, BURST_V10_GOLDENS, BURST_V10_WAVES, type BurstState } from "./burst";
 import { bandLines } from "./scoreBands";
 
 export interface ArcadeRevealTile {
@@ -429,10 +430,19 @@ const BUILDERS: Record<string, Builder> = {
       outcome: done ? "finish" : "time",
     };
   },
-  burst: (r, s) => ({
-    axis: { value: Math.max(1, n(r, "wave")), max: null, label: "Waves" },
+  burst: (r, s) => {
+    // burstRev 10 (the arcade scoring standard): the replayed state's parts (the stored result carries them flat).
+    const st = (r["state"] && typeof r["state"] === "object" ? r["state"] : null) as BurstState | null;
+    const std = st?.std ? burstStdParts(st) : null;
+    const flat = typeof r["goldensDealt"] === "number";
+    return {
+    axis: { value: Math.max(1, n(r, "wave")), max: std || flat ? BURST_V10_WAVES : null, label: "Waves" },
     lines:
-      typeof r["cleanWaves"] === "number" || typeof r["quickWaves"] === "number"
+      std
+        ? [`${n(r, "hits")} of ${std.atoms} atoms ${std.core} · wave clears ${std.clear} · golden ${std.gold}${std.lives > 0 ? ` · lives −${std.lives}` : ""} → ${s}`]
+        : flat
+        ? [`${n(r, "hits")} of ${n(r, "atoms")} atoms ${n(r, "core")} · wave clears ${n(r, "clearPts")} · golden ${n(r, "goldPts")}${n(r, "lifeCost") > 0 ? ` · lives −${n(r, "lifeCost")}` : ""} → ${s}`]
+        : typeof r["cleanWaves"] === "number" || typeof r["quickWaves"] === "number"
         ? [`${n(r, "hits")} atoms · ${n(r, "livesLost")} lives lost · skill +${n(r, "skill")} → ${s}`]
         : n(r, "burstRev") > 0
         ? [
@@ -446,12 +456,16 @@ const BUILDERS: Record<string, Builder> = {
       { label: "Lives lost", value: String(n(r, "livesLost")) },
       // burstRev 8: clean waves and golden atoms.
       // burstRev 9: quick waves (cleared with a time bonus) and golden atoms.
-      ...(typeof r["quickWaves"] === "number" ? [{ label: "Quick waves", value: String(n(r, "quickWaves")) }, { label: "Golden atoms", value: `${n(r, "goldens")} / 6` }] : []),
+      // burstRev 10: golden atoms of the five dealt (the waves cleared tile below counts of five).
+      ...(std && st ? [{ label: "Golden atoms", value: `${burstGoldenCount(st)} / ${BURST_V10_GOLDENS}` }] : flat ? [{ label: "Golden atoms", value: `${n(r, "goldens")} / ${n(r, "goldensDealt")}` }] : []),
+      ...(typeof r["quickWaves"] === "number" && !flat ? [{ label: "Quick waves", value: String(n(r, "quickWaves")) }, { label: "Golden atoms", value: `${n(r, "goldens")} / 6` }] : []),
       ...(typeof r["cleanWaves"] === "number" ? [{ label: "Clean waves", value: String(n(r, "cleanWaves")) }, { label: "Golden atoms", value: `${n(r, "goldens")} / 6` }] : []),
-      ...(n(r, "burstRev") > 0 ? [{ label: "Waves cleared", value: String(n(r, "cleared")) }, { label: "Freezes", value: String(n(r, "freezes")) }] : []),
+      ...(n(r, "burstRev") > 0 ? [{ label: "Waves cleared", value: std || flat ? `${n(r, "cleared")} / ${BURST_V10_WAVES}` : String(n(r, "cleared")) }, { label: "Freezes", value: String(n(r, "freezes")) }] : []),
     ],
-    outcome: ended(r, false),
-  }),
+    // burstRev 10: clearing all five waves completes the run.
+    outcome: ended(r, Boolean(st?.done) || n(r, "done") === 1),
+    };
+  },
   orbit: (r, s) => {
     const done = b(r, "finished");
     // orbitRev 12: the features taken, on the replay (its `xp`) or as the stored result's flat numbers.

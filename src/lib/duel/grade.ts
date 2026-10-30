@@ -70,7 +70,7 @@ import { decodeFlipRun, replayFlipRun } from "./flip";
 import { decodeJunctionRun, replayJunctionRun } from "./junction";
 import { decodeInkBridgeRun, replayInkBridgeRun } from "./inkBridge";
 import { decodeBurstRun, replayBurstRun } from "./burst";
-import { burstCarryBonus, burstCleanBonus, burstGoldenCount } from "@/lib/arcade/burst";
+import { burstCarryBonus, burstCleanBonus, burstGoldenCount, burstStdParts, BURST_V10_GOLDENS } from "@/lib/arcade/burst";
 import { decodeOrbitRun, replayOrbitRun } from "./orbit";
 import { decodeSwingRun, replaySwingRun } from "./swing";
 import { SWING_REV, SWING_REV_BAND, SWING_REV_TUNED, SWING_REV_TUNEC, SWING_REV_SPREAD, SWING_REV_TALL, SWING_REV_TARGET, SWING_REV_STRICT, SWING_REV_EXPAND, swingFeaturePoints, swingAssaultCounts, swingBandPartsV14 } from "@/lib/arcade/swing";
@@ -1882,7 +1882,8 @@ function gradeUnderRev(
         ...(puzzle.burstRev ? { burstRev: puzzle.burstRev, freezes: run.freezes } : {}),
         // burstRev 8 (expansion E9): clean waves, golden atoms and the features' points, for the reveal.
         // burstRev 9 (phone-test notes): waves cleared with a time bonus, golden atoms and the features' points.
-        ...(run.state.carry ? { quickWaves: run.state.quickWaves ?? 0, goldens: burstGoldenCount(run.state), skill: burstCarryBonus(run.state).total } : run.state.exp ? { cleanWaves: run.state.cleanWaves ?? 0, goldens: burstGoldenCount(run.state), skill: burstCleanBonus(run.state).total } : {}),
+        // burstRev 10 (the arcade scoring standard): each part's points, golden atoms of the five dealt, and whether all five waves were cleared.
+        ...(run.state.std ? (() => { const p = burstStdParts(run.state); return { quickWaves: run.state.quickWaves ?? 0, goldens: burstGoldenCount(run.state), goldensDealt: BURST_V10_GOLDENS, atoms: p.atoms, core: p.core, clearPts: p.clear, goldPts: p.gold, lifeCost: p.lives, done: run.state.done ?? 0, skill: p.clear + p.gold }; })() : run.state.carry ? { quickWaves: run.state.quickWaves ?? 0, goldens: burstGoldenCount(run.state), skill: burstCarryBonus(run.state).total } : run.state.exp ? { cleanWaves: run.state.cleanWaves ?? 0, goldens: burstGoldenCount(run.state), skill: burstCleanBonus(run.state).total } : {}),
         survived: run.survived,
         survivedSeconds: run.survivedSeconds,
         endedSeconds: run.endedSeconds,

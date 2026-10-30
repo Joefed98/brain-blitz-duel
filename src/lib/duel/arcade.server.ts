@@ -13,7 +13,7 @@ import { TILT_BANK } from "./tiltBank.server";
 import { JUNC_REV_BAND } from "@/lib/arcade/junction";
 import { BINTOSS_REV_TARGET, BINTOSS_REV_STRICT, BINTOSS_REV_SMALL_FAR } from "@/lib/arcade/binToss";
 import { SWING_REV_TALL, SWING_REV_TARGET, SWING_REV_STRICT, SWING_REV_EXPAND, SWING_REV_ASSAULT } from "@/lib/arcade/swing";
-import { BURST_REV_TARGET, BURST_REV_STRICT, BURST_REV_CARRY } from "@/lib/arcade/burst";
+import { BURST_REV_TARGET, BURST_REV_STRICT, BURST_REV_STD } from "@/lib/arcade/burst";
 import { BRK_REV_TARGET, BRK_REV_STRICT, BRK_REV_DEEP, BRK_REV_PHONE, BRK_REV_STD } from "@/lib/arcade/breaker";
 import { PIN_REV_TARGET, PIN_REV_STRICT, PIN_REV_EXPAND, PIN_REV_LONG } from "@/lib/arcade/pinball";
 import { WHACK_REV_DEPTH, WHACK_REV_NOTES } from "@/lib/arcade/whack";
@@ -209,7 +209,8 @@ export function generateInkBridge(): InkBridgePuzzleData {
 
 export function generateBurst(): BurstPuzzleData {
   // burstRev 9 (phone-test notes, docs/phone-notes-oct-2026/fission.md): power-ups carried by seeded atoms, a bouncing golden atom, BURST shots, the wave-clear bonus.
-  return { type: "burst", seed: arcadeSeed(), burstRev: BURST_REV_CARRY };
+  // burstRev 10 (the arcade scoring standard, docs/arcade-standard-oct-2026/burst.md): five waves, the golden atom hurts, straight-line parts to 200.
+  return { type: "burst", seed: arcadeSeed(), burstRev: BURST_REV_STD };
 }
 
 export function generateOrbit(): OrbitPuzzleData {
