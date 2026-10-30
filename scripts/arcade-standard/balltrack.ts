@@ -86,6 +86,7 @@ export const entry: StdEntry = {
   field: "btRev",
   rev: BT_REV_STD,
   before: BT_REV_RUSH,
+  parts: BT_STD.parts,
   spec: BT_STD,
   perfect: () => {
     const runs: StdRun[] = [];
@@ -118,5 +119,5 @@ export const entry: StdEntry = {
     const course = BALL_TRACK_BANK_V7[0]!.course;
     return [{ label: "no input (server replay)", score: replayed(course, 1, []).score }];
   },
-  helpTerms: ["Marbles home", "Gold marbles", "Combos", "Boosted marbles", "from the third in a row"],
+  help: { terms: ["Marbles home", "Gold marbles", "Combos", "Boosted marbles", "from the third in a row"] },
 };

@@ -27,7 +27,7 @@ import { puzzleRunMs, typeTimeLimitMs } from "../src/lib/duel/registry";
 import { LIVE_BANDS } from "../src/lib/arcade/liveBands";
 import { bandPoints } from "../src/lib/arcade/scoreBands";
 import { TICKS_PER_SECOND } from "../src/lib/arcade/engine";
-import { pinballGame, pinIsExpanded, pinRunTicksFor, PIN_REV_EXPAND, PIN_REV_LONG, PIN_RUN_TICKS, PIN_V5_RUN_TICKS } from "../src/lib/arcade/pinball";
+import { pinballGame, pinIsExpanded, pinRunTicksFor, PIN_REV_EXPAND, PIN_REV_LONG, PIN_REV_STD, PIN_RUN_TICKS, PIN_V5_RUN_TICKS } from "../src/lib/arcade/pinball";
 import { pin4Checkpoint, pinball4Game, pinball5Game, pinballGameForAny, PIN_V4_BAND_CURVE, PIN_V5_BAND_CURVE, type Pin4State } from "../src/lib/arcade/pinball4";
 
 const RECORD = process.argv.includes("--record");
@@ -140,15 +140,18 @@ section("pinRev 5 plays pinRev 4 tick for tick for 60 s, then on to 90 s");
 
 /* ============================== 3. Dealing and the clock ============================== */
 
-section("Rooms deal pinRev 5; the round clock, the run length and the help follow it");
+// Since 29 Oct 2026 rooms deal pinRev 6 (the arcade scoring standard), which plays pinRev 5's 90 s table tick for tick
+// (pinball-standard-check proves it), so the clock, run length and help below are pinRev 5's as they were.
+section("Rooms deal pinRev 5's 90 s play (pinRev 6 since the standard); the round clock, the run length and the help follow it");
 {
   const pin = generatePuzzle("pinball") as any;
-  ok(pin.pinRev === PIN_REV_LONG && PIN_REV_LONG === 5, `rooms deal pinRev 5 (${pin.pinRev})`);
+  ok(PIN_REV_LONG === 5 && pin.pinRev === PIN_REV_STD && pinRunTicksFor(pin.pinRev) === pinRunTicksFor(PIN_REV_LONG), `rooms deal pinRev 5's 90 s play: pinRev 6 (${pin.pinRev})`);
   ok(PIN_V5_RUN_TICKS === 90 * TICKS_PER_SECOND && pinRunTicksFor(PIN_REV_LONG) === PIN_V5_RUN_TICKS && pinball5Game.runTicks === PIN_V5_RUN_TICKS, "a 90 s run");
   ok(typeTimeLimitMs("pinball") === 93_000, `the round clock is 93 s (${typeTimeLimitMs("pinball")})`);
   ok(puzzleRunMs(pin) === 90_000, `the arcade header shows a 90 s run (${puzzleRunMs(pin)})`);
   ok(roundMaxFor("pinball") === 200, "the round maximum is 200");
-  ok(LIVE_BANDS.pinball.rev === PIN_REV_LONG && LIVE_BANDS.pinball.curve === PIN_V5_BAND_CURVE, "the help reads pinRev 5's curve");
+  // pinRev 6's help reads its standard spec (pinball-standard-check); pinRev 5 keeps its own curve for its rounds.
+  ok(LIVE_BANDS.pinball.rev === PIN_REV_STD && pinball5Game.score === pinballGameForAny(PIN_REV_LONG).score, "the help reads pinRev 6 (pinRev 5's rounds keep their curve)");
   const help = PUZZLE_INSTRUCTIONS.pinball.how.map((l) => `${l.action} ${l.detail}`).join(" ");
   ok(/90 seconds/.test(help) && !/one minute/.test(help), "the help says 90 seconds");
 }

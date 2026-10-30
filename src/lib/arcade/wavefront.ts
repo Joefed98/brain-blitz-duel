@@ -22,7 +22,7 @@ import {
 import { BAND_STRICT_MARK, bandStrictGame, bandStrict, bandCurve, bandInit, bandTargetGame, BAND_TARGET_MARK, bandPoints, bandScoreOf, bandStep, bandTotal, BAND_FINISH_BONUS, type BandFields, type BandParts } from "./scoreBands";
 import { isin, TRIG_ONE } from "./trig";
 import { speedBonusCurve } from "../duel/speedPar";
-import { stdBandParts, stdLine, stdSpeed, stdTotal, type StdScore, type StdSpec } from "./arcadeStandard";
+import { stdBandParts, stdLine, stdSpeed, stdTotal, type StdBreakdown, type StdSpec } from "./arcadeStandard";
 
 /* ============================== Constants ============================== */
 
@@ -2409,8 +2409,10 @@ export const WAV_STD_KILL_FULL = 20 * TICKS_PER_SECOND;
 export const WAV_STD_KILL_ZERO = 40 * TICKS_PER_SECOND;
 export const WAV_STD_LIFE_COST = 5;
 export const WAVEFRONT_STD: StdSpec = {
-  core: { key: "core", label: "Ships, hits and waves", max: WAV_STD_CORE_MAX, of: WAV_STD_CORE_FULL, item: "unit" },
-  features: [
+  field: "wavRev",
+  rev: WAV_REV_STD,
+  parts: [
+    { key: "core", label: "Ships, hits and waves", max: WAV_STD_CORE_MAX, of: WAV_STD_CORE_FULL, item: "unit" },
     { key: "boss", label: "Boss destroyed", max: 10, of: 1 },
     { key: "speed", label: "Boss speed", max: 10, of: 1 },
     { key: "saucers", label: "Saucers", max: 20, of: WAV_X_SAUCERS, item: "saucer" },
@@ -2438,7 +2440,7 @@ export function wavStdWeakPoints(s: WavState): number {
   return (s.cannonsDown ?? 0) + (cores & 1) + ((cores >> 1) & 1);
 }
 /** wavRev 12's breakdown in the standard's parts. */
-export function wavStdScore(s: WavState): StdScore {
+export function wavStdScore(s: WavState): StdBreakdown {
   const killed = (s.bossKilled ?? 0) > 0;
   const fight = s.tick - (s.bossAt ?? 0);
   return {

@@ -51,7 +51,8 @@ import { swingGameFor, SWING_BAND_CURVE, SWING_REV_TUNED, SWING_REV_TUNEC, SWING
 import { hoverGameFor, HOVER_BAND_CURVE, HOVER_REV_BAND, HOVER_REV_TALL, HOVER_REV_TUNEC, HOVER_V4_BAND_CURVE } from "../src/lib/arcade/hover";
 import { inkBridgeGameFor, INK_BAND_CURVE, INK_REV_BAND, INK_REV_SPREAD, INK_REV_STRICT, INK_REV_TUNEC, INK_V6_BAND_CURVE } from "../src/lib/arcade/inkBridge";
 import { flipGameFor, flipWarpAmp, FLIP_BAND_CURVE, FLIP_REV, FLIP_REV_BAND, FLIP_REV_TUNEC, FLIP_V4_BAND_CURVE, FLIP_WARP_FROM_V4 } from "../src/lib/arcade/flip";
-import { beatGameFor, BEAT_BAND_CURVE, BEAT_REV_BAND, BEAT_REV_TUNEC, BEAT_REV_TUNEF, BEAT_V4_BAND_CURVE } from "../src/lib/arcade/beat";
+import { beatGameFor, BEAT_BAND_CURVE, BEAT_REV_BAND, BEAT_REV_TUNEC, BEAT_REV_TUNEF, BEAT_STD_SPEC, BEAT_V4_BAND_CURVE } from "../src/lib/arcade/beat";
+import { stdHelp } from "../src/lib/arcade/arcadeStandard";
 import {
   wavDropPx,
   wavefrontGameFor,
@@ -76,6 +77,7 @@ import {
   tiltStarPoint,
   TILT_REV_BAND,
   TILT_REV_EXPAND,
+  TILT_REV_STD,
   TILT_REV_TUNEC,
   TILT_STARS_PER_MAZE,
   TILT_STAR_MOUTH,
@@ -164,7 +166,8 @@ section("New rounds carry the Tuning C stamps; Junction is practice only");
     // otherwise; arcade-tuning-f-check and swing-rev8-check cover them.
     // Expansion E6 (25 Oct 2026) then moved Gemstone on to its taller board with goals (matchupRev 9); e6-check covers it.
     // Joe's phone-test notes (27 Oct 2026) moved it on again (matchupRev 10: 90 s, ice swaps); gemstone-rev10-check covers it.
-    ["matchup", playRevOf("matchup", generateMatchup().matchupRev), MATCHUP_REV_PAR + 4],
+    // The arcade scoring standard (Oct 2026) moved it on to matchupRev 11; gemstone-standard-check covers it.
+    ["matchup", playRevOf("matchup", generateMatchup().matchupRev), MATCHUP_REV_PAR + 5],
     // Taller worlds batch 3 (16 Oct 2026) then moved Grappler on to its taller cavern (swingRev 9); arcade-tuning-g3-check covers it.
     // Grappler's 200 expansion (26 Oct 2026) moved Grappler on to swingRev 13 (after swingRev 9's taller cavern); swing-x200-check covers it.
     // The assault course (27 Oct 2026) moved it on to swingRev 14; swing-assault-check covers it.
@@ -186,7 +189,8 @@ section("New rounds carry the Tuning C stamps; Junction is practice only");
     // The 200 expansion (26 Oct 2026) then moved it on to wavRev 10 (wavefront-expand-check), and the phone notes (27 Oct) to wavRev 11 (wavefront-phone-check).
     ["wavefront", playRevOf("wavefront", generateWavefront().wavRev), WAV_REV_TUNEC + 6],
     // The expansion (x200, 26 Oct 2026) moved Tilt on to tiltRev 8 (bigger mazes, keys, quick stars, par); tilt-expand-check covers it.
-    ["tilt", playRevOf("tilt", generateTilt().tiltRev), TILT_REV_EXPAND],
+    // The arcade scoring standard (29 Oct 2026) then moved it on to tiltRev 10 (a fourth maze, straight-line parts); tilt-standard-check covers it.
+    ["tilt", playRevOf("tilt", generateTilt().tiltRev), TILT_REV_STD],
     // World expansion E5 (25 Oct 2026) moved Slice on to its larger board (sliceRev 9); expansion-e5-check covers it.
     // sliceRev 10 (27 Oct 2026, Joe's phone notes): sliceRev 9 with bigger onions and golden fruit; expansion-e5-check covers it.
     ["slice", playRevOf("slice", generateSlice().sliceRev), SLICE_REV_BIG],
@@ -242,8 +246,9 @@ section("Grappler, Hover, Rainbow Bridge and Tempo: same play, new curves");
   // Hover's help now states its Tuning E curve (arcade-tuning-e-check).
   // Screen audit Oct 2026: the help gives a good run from the curve rooms deal (swingRev 9, inkRev 6, beatRev 9 since expansion E2; arcade-help-bands-check).
   // Grappler's 200 expansion (swingRev 13) stated a good run on its own base curve (swing-x200-check); the assault course
-  // (swingRev 14) on its sections' curve (swing-assault-check).
-  ok(PUZZLE_INSTRUCTIONS.swing.score.includes("A good run (100 points) counts 236") && PUZZLE_INSTRUCTIONS.inkbridge.score.includes("A good run (100 points) pots 8 levels") /* inkRev 12 (the arcade scoring standard; inkRev 10 counted 73) */ && PUZZLE_INSTRUCTIONS.beat.score.includes("A good run (100 points) reaches 824"), "the \"?\" help states a good run on the curves rooms deal");
+  // (swingRev 14) on its sections' curve (swing-assault-check). Tempo's beatRev 11 (the arcade scoring standard) states its
+  // standard parts instead (arcade-help-bands-check, beat-standard-check).
+  ok(PUZZLE_INSTRUCTIONS.swing.score.includes("A good run (100 points) counts 236") && PUZZLE_INSTRUCTIONS.inkbridge.score.includes("A good run (100 points) pots 8 levels") /* inkRev 12 (the arcade scoring standard; inkRev 10 counted 73) */ && PUZZLE_INSTRUCTIONS.beat.score.includes(stdHelp(BEAT_STD_SPEC)), "the \"?\" help states a good run on the curves rooms deal");
 }
 
 /* ================================ 4a. Gemstone ================================ */
@@ -252,8 +257,9 @@ if (want("matchup")) {
   const game = matchupGameFor(MATCHUP_REV_WAIT);
   ok(bandTop(MATCHUP_V5_BAND_CURVE) === 2500 && bandPoints(MATCHUP_V5_BAND_CURVE, 2500) === 150 && bandPoints(MATCHUP_V5_BAND_CURVE, 2499) < 150, "150 needs 2,500 match points");
   // The live help shows the curve rooms deal today (Tuning F: 150 at 2,800; expansion E6: 150 at 3,200, e6-check;
-  // matchupRev 10: 150 at 4,200, gemstone-rev10-check).
-  ok(PUZZLE_INSTRUCTIONS.matchup.score.includes("4,200") && PUZZLE_INSTRUCTIONS.matchup.how.some((h) => h.detail.includes("wait")), "the \"?\" help and intro say so");
+  // matchupRev 10: 150 at 4,200, gemstone-rev10-check; matchupRev 11: gems cleared to 110, then fixed parts to 200,
+  // gemstone-standard-check).
+  ok(PUZZLE_INSTRUCTIONS.matchup.score.includes("More gems cleared") && PUZZLE_INSTRUCTIONS.matchup.how.some((h) => h.detail.includes("wait")), "the \"?\" help and intro say so");
   // Find a valid swap on a fresh board, make it, then check the wait.
   const swaps: [number, number, number, number][] = [];
   for (let r = 0; r < MATCHUP_ROWS; r++)

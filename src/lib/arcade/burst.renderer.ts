@@ -10,9 +10,12 @@ import {
   BURST_REV,
   BURST_REV_BAND,
   burstFloorY,
-  BURST_REV_TALL, BURST_REV_TARGET, BURST_REV_STRICT, BURST_REV_CLEAN, BURST_REV_CARRY,
+  BURST_REV_TALL, BURST_REV_TARGET, BURST_REV_STRICT, BURST_REV_CLEAN, BURST_REV_CARRY, BURST_REV_STD,
   BURST_V9_GOLDEN_LIFE,
   burstV9ClearNow,
+  burstV10ClearNow,
+  burstGoldenUntil,
+  BURST_V10_GOLDEN_PTS,
   burstCeilingOf,
   burstGoldenNow,
   BURST_V8_CLEAN_PTS,
@@ -326,7 +329,7 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: BurstState, lifeFlash: 
     ctx.globalAlpha = 1;
   }
 
-  const score = burstGameFor(state.carry ? BURST_REV_CARRY : state.exp ? BURST_REV_CLEAN : null).score(state);
+  const score = burstGameFor(state.std ? BURST_REV_STD : state.carry ? BURST_REV_CARRY : state.exp ? BURST_REV_CLEAN : null).score(state);
   const on = Math.floor(retroClock() / 500) % 2 === 0;
   if (state.carry) {
     // burstRev 9: wave and score, a live power-up, the wave-clear bonus still to win ("CLEAR +n") and the lives.
@@ -337,7 +340,8 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: BurstState, lifeFlash: 
       const status = freeze > 0 ? [`FREEZE ${Math.ceil(freeze / 60)}`, ICE] : double > 0 ? [`DOUBLE ${Math.ceil(double / 60)}`, BEAM] : [`BURST ${Math.ceil(burstT / 60)}`, SHIP];
       retroText(ctx, status[0]!, BURST_WORLD_W / 2 - 10, 7, 8, status[1]!, "center");
     }
-    const clear = burstV9ClearNow(state);
+    // burstRev 10: up to 7 a wave, on its straight line.
+    const clear = state.std ? burstV10ClearNow(state) : burstV9ClearNow(state);
     if (state.balls.length > 0) retroText(ctx, `CLEAR +${clear}`, BURST_WORLD_W - 56, 7, 8, clear > 0 ? CLEAN : "rgba(255,255,255,0.4)", "right");
     for (let i = 0; i < BURST_LIVES; i++) sprite(ctx, SHIP_ROWS, BURST_WORLD_W - 48 + i * 14, 4, 0.75, i < state.lives ? SHIP : "rgba(255,216,74,0.2)");
   } else if (state.exp) {
@@ -432,7 +436,9 @@ const burstArtGameStrict: ArcadeGame<BurstState, ArcadeInputEvent | null> = { ..
 /** The art game for a stored burstRev; cached so the stage sees one object per revision. */
 const burstArtGameV8: ArcadeGame<BurstState, ArcadeInputEvent | null> = { ...burstGameFor(BURST_REV_CLEAN), draw };
 const burstArtGameV9: ArcadeGame<BurstState, ArcadeInputEvent | null> = { ...burstGameFor(BURST_REV_CARRY), draw };
+const burstArtGameV10: ArcadeGame<BurstState, ArcadeInputEvent | null> = { ...burstGameFor(BURST_REV_STD), draw };
 export function burstArtGameFor(rev?: number | null): ArcadeGame<BurstState, ArcadeInputEvent | null> {
+  if (rev === BURST_REV_STD) return burstArtGameV10;
   if (rev === BURST_REV_CARRY) return burstArtGameV9;
   if (rev === BURST_REV_CLEAN) return burstArtGameV8;
   if (rev === BURST_REV_STRICT) return burstArtGameStrict;
@@ -531,7 +537,8 @@ function drawV9(ctx: CanvasRenderingContext2D, state: BurstState, key: object): 
   if (n >= 0) {
     const g = state.goldens![n]!;
     const x = (state.gx ?? 0) / FP, y = (state.gy ?? 0) / FP;
-    const left = 1 - Math.max(0, state.tick - g.tick) / BURST_V9_GOLDEN_LIFE;
+    // burstRev 10's golden atom appears with its wave, so its fade time is in the state.
+    const left = state.std ? Math.max(0, burstGoldenUntil(state) - state.tick) / BURST_V9_GOLDEN_LIFE : 1 - Math.max(0, state.tick - g.tick) / BURST_V9_GOLDEN_LIFE;
     glow(ctx, GOLD_ATOM, x, y, BURST_GOLD_R + 10, BURST_GOLD_R + 10, 0.75);
     const stamp = cachedArt("atom:golden", BURST_GOLD_R * 2, BURST_GOLD_R * 2, GOLDEN_BODY, 0, (c) => paintAtom(c, BURST_GOLD_R, GOLDEN_BODY, 3));
     if (stamp) blit(ctx, stamp, x - BURST_GOLD_R, y - BURST_GOLD_R);
@@ -548,7 +555,7 @@ function drawV9(ctx: CanvasRenderingContext2D, state: BurstState, key: object): 
       const a = -Math.PI / 2 + (i / dots) * Math.PI * 2;
       ctx.fillRect(Math.round(x + Math.cos(a) * (BURST_GOLD_R + 5)) - 1, Math.round(y + Math.sin(a) * (BURST_GOLD_R + 5)) - 1, 2, 2);
     }
-    retroText(ctx, `+${BURST_V8_GOLDEN_PTS}`, x, y - BURST_GOLD_R - 16, 8, GOLD_ATOM, "center");
+    retroText(ctx, `+${state.std ? BURST_V10_GOLDEN_PTS : BURST_V8_GOLDEN_PTS}`, x, y - BURST_GOLD_R - 16, 8, GOLD_ATOM, "center");
   }
   let golds = 0;
   for (let bits = state.goldHit ?? 0; bits; bits &= bits - 1) golds++;
@@ -557,7 +564,7 @@ function drawV9(ctx: CanvasRenderingContext2D, state: BurstState, key: object): 
   if (!memo || state.tick < memo.tick) memo = now;
   const px = state.popX / FP, py = state.popY / FP;
   const floor = burstFloorY(state);
-  if (now.golds > memo.golds) addPop(key, px, py - 12, `GOLD +${BURST_V8_GOLDEN_PTS}`, GOLD_ATOM, 10, 4);
+  if (now.golds > memo.golds) addPop(key, px, py - 12, `GOLD +${state.std ? BURST_V10_GOLDEN_PTS : BURST_V8_GOLDEN_PTS}`, GOLD_ATOM, 10, 4);
   if (now.cleared > memo.cleared && (state.lastClear ?? 0) > 0) addPop(key, BURST_WORLD_W / 2, floor / 2, `CLEAR +${state.lastClear}`, CLEAN, 10, 4);
   if (now.doubles > memo.doubles) addPop(key, state.x / FP, floor - 50, "DOUBLE!", BEAM, 10, 4);
   if (now.freezes > memo.freezes) addPop(key, state.x / FP, floor - 50, "FREEZE!", ICE, 10, 4);

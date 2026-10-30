@@ -9,12 +9,16 @@ import { CROSS_LANE_POINTS, CROSS_CROSSING_POINTS } from "./cross";
 import { BT_BALLS, BT_V7_BALLS } from "./ballTrack";
 import { whackDepthScore, type WhackState } from "./whack";
 import { CLAY_DOUBLES, clayDepthScore, clayDoublesHit, type ClayState } from "./clayShoot";
-import { MATCHUP_PAR_RAW } from "./matchup";
+import { MATCHUP_PAR_RAW, MATCHUP_V11_CORE_GEMS, MATCHUP_V11_GOALS, matchupGoalsMet, matchupTreasuresOf, type MatchupState } from "./matchup";
 import { WF_PAR } from "./wordfall";
 import { HOVER_CHAINS, HOVER_TIGHT_GATES, HOVER_V2_GATES_SCORE, HOVER_V2_STARS_SCORE } from "./hover";
 import { WAV_BOSS_HP, WAV_V2_WAVES } from "./wavefront";
 import { BAND_SPECS } from "./bandParts";
+import { breakerStdParts, type BrkState } from "./breaker";
+import { burstGoldenCount, burstStdParts, BURST_V10_GOLDENS, BURST_V10_WAVES, type BurstState } from "./burst";
 import { bandLines } from "./scoreBands";
+import { stdLines } from "./arcadeStandard";
+import { arcadeStdParts } from "./standard";
 
 export interface ArcadeRevealTile {
   label: string;
@@ -56,6 +60,21 @@ function clayDepthLine(run: Run): string[] {
 }
 const sec = (value: number): string => `${value.toFixed(1)} s`;
 
+/** Gemstone before matchupRev 11: match points on the axis (unchanged). */
+function matchupRevealBefore(r: Run, s: number): ArcadeRevealData {
+  return {
+    axis: { value: n(r, "raw"), max: n(r, "parRaw") || MATCHUP_PAR_RAW, label: "Match points" },
+    lines: [`${n(r, "raw").toLocaleString("en-GB")} match points → ${s}`],
+    tiles: [
+      { label: "Best line", value: String(n(r, "bestLine")) },
+      ...(n(r, "jackpots") > 0 ? [{ label: "Jackpots", value: String(n(r, "jackpots")) }] : []),
+      { label: "Cascades", value: String(n(r, "cascades")) },
+      { label: "Swaps", value: String(n(r, "swaps")) },
+    ],
+    outcome: "time",
+  };
+}
+
 /** "x / y things → score", splitting the completion score into 130 + time when finished. */
 function head(text: string, score: number, complete: boolean): string {
   return complete && score >= 130 ? `${text} → 130 · time +${score - 130}` : `${text} → ${score}`;
@@ -65,6 +84,25 @@ function ended(run: Run, complete: boolean): ArcadeRevealData["outcome"] {
   if (complete) return "finish";
   if (run["survived"] === false) return "crash";
   return "time";
+}
+
+/** Slice before sliceRev 11. */
+function sliceReveal(r: Run, s: number): ArcadeRevealData {
+  return {
+    axis: { value: n(r, "slices"), max: n(r, "totalDiscs"), label: "Foods sliced" },
+    lines: [
+      `${n(r, "slices")} / ${n(r, "totalDiscs")} foods → ${s}`,
+      ...(n(r, "bombsHit") > 0 ? [`−10 × ${n(r, "bombsHit")} ${n(r, "bombsHit") === 1 ? "chilli" : "chillies"}`] : []),
+    ],
+    tiles: [
+      { label: "Best combo", value: `×${n(r, "bestMult")}` },
+      { label: "Ketchup / mustard", value: String(n(r, "bonuses")) },
+      { label: "Chillies", value: String(n(r, "bombsHit")) },
+      // sliceRev 2 rounds only: mayonnaise bottles cut.
+      ...(("mayoOn" in r ? b(r, "mayoOn") : "mayo" in r) ? [{ label: "Mayo", value: String(n(r, "mayo")) }] : []),
+    ],
+    outcome: "time",
+  };
 }
 
 type Builder = (run: Run, score: number) => ArcadeRevealData;
@@ -119,8 +157,13 @@ const BUILDERS: Record<string, Builder> = {
     tiles: [
       { label: "Blocks", value: String(n(r, "blocks")) },
       { label: "Perfect drops", value: String(n(r, "perfects")) },
-      ...(n(r, "skylineRev") > 0 ? [{ label: "Best streak", value: String(n(r, "bestStreak")) }] : []),
-      ...(n(r, "skylineRev") >= 7 ? [{ label: "Gold blocks", value: String(n(r, "golds")) }] : []),
+      ...(n(r, "skylineRev") > 0 || (r["state"] as { expandRev?: number } | undefined)?.expandRev === 9 ? [{ label: "Best streak", value: String(n(r, "bestStreak")) }] : []),
+      // skylineRev 9 (the arcade scoring standard; the replay's state carries expandRev 9): five gold blocks a run.
+      ...((r["state"] as { expandRev?: number } | undefined)?.expandRev === 9
+        ? [{ label: "Gold blocks", value: `${n(r, "golds")} / 5` }]
+        : n(r, "skylineRev") >= 7
+          ? [{ label: "Gold blocks", value: String(n(r, "golds")) }]
+          : []),
     ],
     outcome: ended(r, false),
   }),
@@ -141,6 +184,8 @@ const BUILDERS: Record<string, Builder> = {
       tiles: [
         { label: "Buckets", value: `${n(r, "baskets")} / 10` },
         ...(hoops > 0 ? [{ label: "Hoop bonuses", value: `${n(r, "swishes")} / ${hoops}` }] : []),
+        // binRev 9 (the arcade scoring standard): the far buckets made.
+        ...(r["far"] !== undefined ? [{ label: "Far buckets", value: `${n(r, "far")} / 6` }] : []),
         { label: "Throws", value: String(n(r, "throws")) },
       ],
       outcome: done ? "finish" : "time",
@@ -167,19 +212,42 @@ const BUILDERS: Record<string, Builder> = {
       outcome: b(r, "finished") ? "finish" : "time",
     };
   },
-  matchup: (r, s) => ({
-    axis: { value: n(r, "raw"), max: n(r, "parRaw") || MATCHUP_PAR_RAW, label: "Match points" },
-    lines: [`${n(r, "raw").toLocaleString("en-GB")} match points → ${s}`],
-    tiles: [
-      { label: "Best line", value: String(n(r, "bestLine")) },
-      ...(n(r, "jackpots") > 0 ? [{ label: "Jackpots", value: String(n(r, "jackpots")) }] : []),
-      { label: "Cascades", value: String(n(r, "cascades")) },
-      { label: "Swaps", value: String(n(r, "swaps")) },
-    ],
-    outcome: "time",
-  }),
+  matchup: (r, s) => {
+    // matchupRev 11 (the arcade scoring standard): gems cleared on the axis, the parts as tiles (the lines come from
+    // the band breakdown, matchupStdBandParts).
+    const st = r["state"] as MatchupState | undefined;
+    if (st?.std)
+      return {
+        axis: { value: st.gemsCleared ?? 0, max: MATCHUP_V11_CORE_GEMS, label: "Gems cleared" },
+        lines: [`${(st.gemsCleared ?? 0).toLocaleString("en-GB")} gems cleared → ${s}`],
+        tiles: [
+          { label: "Treasure", value: `${st.treasures ?? 0} / ${matchupTreasuresOf(st)}` },
+          { label: "Goals", value: `${matchupGoalsMet(st)} / ${MATCHUP_V11_GOALS}` },
+          { label: "Ice", value: String(st.iceBroken ?? 0) },
+          { label: "Big lines", value: String(st.bigLines ?? 0) },
+        ],
+        outcome: "time",
+      };
+    return matchupRevealBefore(r, s);
+  },
   breaker: (r, s) => {
     const done = b(r, "cleared");
+    // brkRev 11 (the arcade scoring standard): every brick on the axis (gold included, what the core counts), gold as a
+    // tile, no combo tile. Read from the replayed state the run carries, through the sim's own parts.
+    const stdState = r["state"] as BrkState | undefined;
+    const std = stdState?.std ? breakerStdParts(stdState) : null;
+    if (std)
+      return {
+        axis: { value: std.bricks, max: std.all, label: "Bricks destroyed" },
+        lines: [head(`${std.bricks} / ${std.all} bricks`, s, done)],
+        tiles: [
+          { label: "Gold bricks", value: `${std.goldBroken} / ${std.goldDealt}` },
+          { label: "Power-ups", value: String(n(r, "powerUps")) },
+          { label: "Balls lost", value: String(n(r, "losses")) },
+          { label: "Brick hits", value: String(n(r, "hits")) },
+        ],
+        outcome: done ? "finish" : n(r, "bricksLeft") > 0 && n(r, "endedSeconds") < 90 ? "crash" : "time",
+      };
     // brkRev 9: a 105-brick wall, and the skill points (gold bricks, combos) as their own line and tiles.
     const wall = n(r, "wall") || 80;
     const deep = n(r, "wall") > 0;
@@ -196,7 +264,22 @@ const BUILDERS: Record<string, Builder> = {
       outcome: done ? "finish" : n(r, "bricksLeft") > 0 && n(r, "endedSeconds") < 90 ? "crash" : "time",
     };
   },
-  pinball: (r, s) => ({
+  pinball: (r, s) =>
+    // pinRev 6 (the arcade scoring standard; the lines come from its parts): no multiplier tile, its features instead.
+    (r["state"] as { rev6?: number } | undefined)?.rev6
+      ? {
+          axis: { value: n(r, "points"), max: null, label: "Table points" },
+          lines: [`${n(r, "points").toLocaleString("en-GB")} table points → ${s}`],
+          tiles: [
+            { label: "J-O-U-L-Z", value: String(n(r, "laneSets")) },
+            { label: "Multiball", value: String(n(r, "multiballs")) },
+            { label: "Jackpots", value: String(n(r, "jackpots")) },
+            { label: "Ramps", value: `${n(r, "ramps")} · ${n(r, "combos")} combo${n(r, "combos") === 1 ? "" : "s"}` },
+            { label: "Balls left", value: String(n(r, "ballsLeft")) },
+          ],
+          outcome: n(r, "ballsLeft") > 0 ? "time" : "crash",
+        }
+      : {
     axis: { value: n(r, "points"), max: null, label: "Table points" },
     lines:
       n(r, "pinRev") >= 4
@@ -210,7 +293,7 @@ const BUILDERS: Record<string, Builder> = {
       { label: "Balls left", value: String(n(r, "ballsLeft")) },
     ],
     outcome: n(r, "ballsLeft") > 0 ? "time" : "crash",
-  }),
+  },
   rally: (r, s) => ({
     axis: { value: n(r, "goldHits"), max: null, label: "Gold-ball hits" },
     lines: [
@@ -229,21 +312,26 @@ const BUILDERS: Record<string, Builder> = {
     ],
     outcome: ended(r, false),
   }),
-  slice: (r, s) => ({
-    axis: { value: n(r, "slices"), max: n(r, "totalDiscs"), label: "Foods sliced" },
-    lines: [
-      `${n(r, "slices")} / ${n(r, "totalDiscs")} foods → ${s}`,
-      ...(n(r, "bombsHit") > 0 ? [`−10 × ${n(r, "bombsHit")} ${n(r, "bombsHit") === 1 ? "chilli" : "chillies"}`] : []),
-    ],
-    tiles: [
-      { label: "Best combo", value: `×${n(r, "bestMult")}` },
-      { label: "Ketchup / mustard", value: String(n(r, "bonuses")) },
-      { label: "Chillies", value: String(n(r, "bombsHit")) },
-      // sliceRev 2 rounds only: mayonnaise bottles cut.
-      ...(("mayoOn" in r ? b(r, "mayoOn") : "mayo" in r) ? [{ label: "Mayo", value: String(n(r, "mayo")) }] : []),
-    ],
-    outcome: "time",
-  }),
+  slice: (r, s) => {
+    // sliceRev 11 (the arcade scoring standard): the axis is foods cut out of foods thrown, its tiles the parts.
+    const st = r["state"] as { v11?: number; foodCut?: number; foodMissed?: number; comboFoods?: number; golds?: number; breadTickets?: number; dodges?: number } | undefined;
+    if (st && typeof st === "object" && st.v11) {
+      const cut = st.foodCut ?? 0;
+      return {
+        axis: { value: cut, max: cut + (st.foodMissed ?? 0), label: "Foods sliced" },
+        lines: [`${cut} / ${cut + (st.foodMissed ?? 0)} foods → ${s}`],
+        tiles: [
+          { label: "Combo foods", value: String(st.comboFoods ?? 0) },
+          { label: "Golden fruit", value: String(st.golds ?? 0) },
+          { label: "Tickets", value: String(st.breadTickets ?? 0) },
+          { label: "Dodges", value: String(st.dodges ?? 0) },
+          { label: "Chillies", value: String(n(r, "bombsHit")) },
+        ],
+        outcome: "time",
+      };
+    }
+    return sliceReveal(r, s);
+  },
   bubble: (r, s) => {
     // Replay results keep the original board count on state; persisted flat facts
     // also carry startCount. Neither popped nor shots is the starting total.
@@ -391,10 +479,19 @@ const BUILDERS: Record<string, Builder> = {
       outcome: done ? "finish" : "time",
     };
   },
-  burst: (r, s) => ({
-    axis: { value: Math.max(1, n(r, "wave")), max: null, label: "Waves" },
+  burst: (r, s) => {
+    // burstRev 10 (the arcade scoring standard): the replayed state's parts (the stored result carries them flat).
+    const st = (r["state"] && typeof r["state"] === "object" ? r["state"] : null) as BurstState | null;
+    const std = st?.std ? burstStdParts(st) : null;
+    const flat = typeof r["goldensDealt"] === "number";
+    return {
+    axis: { value: Math.max(1, n(r, "wave")), max: std || flat ? BURST_V10_WAVES : null, label: "Waves" },
     lines:
-      typeof r["cleanWaves"] === "number" || typeof r["quickWaves"] === "number"
+      std
+        ? [`${n(r, "hits")} of ${std.atoms} atoms ${std.core} · wave clears ${std.clear} · golden ${std.gold}${std.lives > 0 ? ` · lives −${std.lives}` : ""} → ${s}`]
+        : flat
+        ? [`${n(r, "hits")} of ${n(r, "atoms")} atoms ${n(r, "core")} · wave clears ${n(r, "clearPts")} · golden ${n(r, "goldPts")}${n(r, "lifeCost") > 0 ? ` · lives −${n(r, "lifeCost")}` : ""} → ${s}`]
+        : typeof r["cleanWaves"] === "number" || typeof r["quickWaves"] === "number"
         ? [`${n(r, "hits")} atoms · ${n(r, "livesLost")} lives lost · skill +${n(r, "skill")} → ${s}`]
         : n(r, "burstRev") > 0
         ? [
@@ -408,12 +505,16 @@ const BUILDERS: Record<string, Builder> = {
       { label: "Lives lost", value: String(n(r, "livesLost")) },
       // burstRev 8: clean waves and golden atoms.
       // burstRev 9: quick waves (cleared with a time bonus) and golden atoms.
-      ...(typeof r["quickWaves"] === "number" ? [{ label: "Quick waves", value: String(n(r, "quickWaves")) }, { label: "Golden atoms", value: `${n(r, "goldens")} / 6` }] : []),
+      // burstRev 10: golden atoms of the five dealt (the waves cleared tile below counts of five).
+      ...(std && st ? [{ label: "Golden atoms", value: `${burstGoldenCount(st)} / ${BURST_V10_GOLDENS}` }] : flat ? [{ label: "Golden atoms", value: `${n(r, "goldens")} / ${n(r, "goldensDealt")}` }] : []),
+      ...(typeof r["quickWaves"] === "number" && !flat ? [{ label: "Quick waves", value: String(n(r, "quickWaves")) }, { label: "Golden atoms", value: `${n(r, "goldens")} / 6` }] : []),
       ...(typeof r["cleanWaves"] === "number" ? [{ label: "Clean waves", value: String(n(r, "cleanWaves")) }, { label: "Golden atoms", value: `${n(r, "goldens")} / 6` }] : []),
-      ...(n(r, "burstRev") > 0 ? [{ label: "Waves cleared", value: String(n(r, "cleared")) }, { label: "Freezes", value: String(n(r, "freezes")) }] : []),
+      ...(n(r, "burstRev") > 0 ? [{ label: "Waves cleared", value: std || flat ? `${n(r, "cleared")} / ${BURST_V10_WAVES}` : String(n(r, "cleared")) }, { label: "Freezes", value: String(n(r, "freezes")) }] : []),
     ],
-    outcome: ended(r, false),
-  }),
+    // burstRev 10: clearing all five waves completes the run.
+    outcome: ended(r, Boolean(st?.done) || n(r, "done") === 1),
+    };
+  },
   orbit: (r, s) => {
     const done = b(r, "finished");
     // orbitRev 12: the features taken, on the replay (its `xp`) or as the stored result's flat numbers.
@@ -515,7 +616,7 @@ const BUILDERS: Record<string, Builder> = {
     };
   },
   tilt: (r, s) => {
-    // tiltRev 8 (the expansion, docs/expansions/x200-tilt.md): three mazes and quick stars.
+    // tiltRev 8 (the expansion, docs/expansions/x200-tilt.md): three mazes and quick stars; tiltRev 10 four mazes again.
     const all = n(r, "tiltRev") === 8 || n(r, "tiltRev") === 9 ? 3 : 4;
     const done = n(r, "mazes") >= all;
     const quick = n(r, "totalQuick") > 0;
@@ -725,6 +826,9 @@ export function buildArcadeReveal(type: string, run: unknown, score: number): Ar
   const builder = BUILDERS[type];
   if (!builder || !run || typeof run !== "object") return null;
   const data = builder(run as Run, score);
+  // The arcade scoring standard (arcadeStandard.ts): one line per part (core, then each feature) and the total.
+  const std = arcadeStdParts(type, (run as Run)["state"]);
+  if (std) return { ...data, lines: stdLines(std, score, Boolean(((run as Run)["state"] as { acted?: number }).acted)) };
   // Oct 2026 score-band rounds: same axis and tiles, breakdown lines from the band rules.
   const state = (run as Run)["state"] as { band?: number; acted?: number } | undefined;
   const band = BAND_SPECS[type];

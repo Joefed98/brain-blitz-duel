@@ -49,6 +49,7 @@ export const entry: StdEntry = {
   field: "wavRev",
   rev: WAV_REV_STD,
   before: WAV_REV_PHONE,
+  parts: WAVEFRONT_STD.parts,
   spec: WAVEFRONT_STD,
   perfect: (): StdRun[] => {
     const data = JSON.parse(gunzipSync(readFileSync("scripts/fixtures/wavefront-std-runs.json.gz")).toString()) as { runs: { n: number; seed: number; raw: string }[] };
@@ -81,5 +82,5 @@ export const entry: StdEntry = {
     { label: "no input for the whole run (server replay)", score: serverRun(roomSeed(2), []) },
     { label: "built: a full board but no input", score: game.score({ ...(game.init(roomSeed(2)) as WavState), acted: 0, shapesDown: 100, saucers: 3 }) },
   ],
-  helpTerms: ["Ships, hits and waves", "150 at 294", "within 20 s", "4 a saucer", "each life lost costs 5", "Power-ups score nothing"],
+  help: { terms: ["Ships, hits and waves", "150 at 294", "within 20 s", "4 a saucer", "each life lost costs 5", "Power-ups score nothing"] },
 };

@@ -38,9 +38,11 @@ import {
   tiltWorldHFor,
   TILT_REV_EXPAND,
   TILT_REV_LIFT,
+  TILT_REV_STD,
   TILT_V8_BAND_CURVE,
   TILT_V9_BAND_CURVE,
   TILT_V9_SKILL_PAY,
+  TILT_V10_BAND_CURVE,
   TILT_X_H,
   TILT_X_SKILL_PAY,
 } from "../src/lib/arcade/tilt";
@@ -154,9 +156,10 @@ lifts("Tilt skill pay", TILT_X_SKILL_PAY, TILT_V9_SKILL_PAY);
 /* 3. Deals, bands, maximums, help. */
 // Since 29 Oct 2026 rooms deal flipRev 10, flipRev 9's play (flipRev 8's) on the arcade scoring standard (arcade-standard-check).
 ok((generatePuzzle("flip") as { flipRev?: number }).flipRev === FLIP_REV_STD, "rooms deal flipRev 10 (flipRev 9's play)");
-ok((generatePuzzle("tilt") as { tiltRev?: number }).tiltRev === TILT_REV_LIFT, "rooms deal tiltRev 9");
+// Tilt moved on again on 29 Oct 2026 (tiltRev 10, the arcade scoring standard; tilt-standard-check); tiltRev 9 replays here as before.
+ok((generatePuzzle("tilt") as { tiltRev?: number }).tiltRev === TILT_REV_STD, "rooms deal tiltRev 10 (tiltRev 9's successor)");
 ok(LIVE_BANDS.flip.rev === FLIP_REV_STD && LIVE_BANDS.flip.curve === FLIP_V10_BAND_CURVE, "LIVE_BANDS: Roofbound on flipRev 10's curve");
-ok(LIVE_BANDS.tilt.rev === TILT_REV_LIFT && LIVE_BANDS.tilt.curve === TILT_V9_BAND_CURVE, "LIVE_BANDS: Tilt on tiltRev 9's curve");
+ok(LIVE_BANDS.tilt.rev === TILT_REV_STD && LIVE_BANDS.tilt.curve === TILT_V10_BAND_CURVE, "LIVE_BANDS: Tilt on tiltRev 10's core line (tiltRev 9's successor)");
 ok(roundMaxFor("flip") === 200 && roundMaxFor("tilt") === 200, "both round maximums stay 200");
 ok(flipWorldHFor(FLIP_REV_LIFT) === FLIP_V8_WORLD_H && tiltWorldHFor(TILT_REV_LIFT) === TILT_X_H && tiltIsExpand(TILT_REV_LIFT), "the new stamps play in the expansions' worlds");
 ok(flipGameFor(FLIP_REV_LIFT).init(7).lift === 1 && !flipGameFor(FLIP_REV_EXPAND).init(7).lift, "flipRev 9 states carry lift; flipRev 8's do not");
@@ -164,10 +167,10 @@ ok(flipGameFor(FLIP_REV_STD).init(7).std === 1 && !flipGameFor(FLIP_REV_STD).ini
 ok(tiltGameFor(TILT_REV_LIFT).init(7).lift === 1 && !tiltGameFor(TILT_REV_EXPAND).init(7).lift, "tiltRev 9 states carry lift; tiltRev 8's do not");
 {
   const help = read("src/lib/duel/instructions.ts");
-  // Roofbound's dealt stamp is flipRev 10 since 29 Oct 2026: the help states the standard's parts (no skill pay).
-  ok(/stdFeaturesHelp\(FLIP_STD\)/.test(help) && /skillPayLine\(TILT_V9_SKILL_PAY\)/.test(help), "the help states the dealt pay (Roofbound's standard parts, Tilt's skill pay)");
+  // Roofbound's (flipRev 10) and Tilt's (tiltRev 10) dealt stamps state the standard's parts since 29 Oct 2026 (no skill pay).
+  ok(/stdFeaturesHelp\(FLIP_STD\)/.test(help) && /TILT_S_CORE_MAX\} \+ \$\{TILT_S_FINISH_POINTS\} \+ \$\{TILT_S_SPEED_POINTS\} \+ \$\{TILT_S_STAR_POINTS\} = 200/.test(help), "the help states the dealt parts (Roofbound's and Tilt's standard parts)");
   const demos = read("src/lib/duel/introDemo.functions.ts");
-  ok(/flipRev !== FLIP_REV_STD\) return null/.test(demos) && /tiltRev !== TILT_REV_LIFT\) return null/.test(demos), "intro demos play only when recorded on the dealt stamps (Roofbound flipRev 10, Tilt tiltRev 9)");
+  ok(/flipRev !== FLIP_REV_STD\) return null/.test(demos) && /tiltRev !== TILT_REV_STD\) return null/.test(demos), "intro demos play only when recorded on the dealt stamps (Roofbound flipRev 10, Tilt tiltRev 10)");
 }
 
 /* 4. Ball Tracker's counts. */

@@ -59,6 +59,7 @@ export const entry: StdEntry = {
   field: "orbitRev",
   rev: ORBIT_REV_STD,
   before: ORBIT_REV_XP,
+  parts: ORBIT_STD.parts,
   spec: ORBIT_STD,
   perfect: () => {
     const runs: StdRun[] = [];
@@ -88,5 +89,5 @@ export const entry: StdEntry = {
     return runs;
   },
   idle: () => [{ label: "no input (server replay)", score: serverScore(ORBIT_XP_BANK[0]!, []).score }],
-  helpTerms: ["Planets", "130", "half the time left"],
+  help: { terms: ["Planets", "130", "half the time left"] },
 };

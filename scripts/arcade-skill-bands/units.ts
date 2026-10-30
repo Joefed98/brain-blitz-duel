@@ -24,6 +24,7 @@ import { burstBandParts } from "../../src/lib/arcade/burst";
 import { swingBandParts } from "../../src/lib/arcade/swing";
 import { bullseyeBandParts } from "../../src/lib/arcade/bullseye";
 import { pinballBandParts } from "../../src/lib/arcade/pinball";
+import { pinball6BandParts } from "../../src/lib/arcade/pinball4";
 
 export const BAND_PARTS: Record<string, (s: any) => BandParts> = {
   balltrack: btBandParts,
@@ -48,7 +49,8 @@ export const BAND_PARTS: Record<string, (s: any) => BandParts> = {
   burst: burstBandParts,
   swing: swingBandParts,
   bullseye: bullseyeBandParts,
-  pinball: pinballBandParts,
+  // pinRev 6 (the arcade scoring standard): table points without a multiplier, core and features from its parts.
+  pinball: (s: any) => (s?.rev6 ? pinball6BandParts(s) : pinballBandParts(s)),
 };
 
 export const UNITS: Record<string, (s: any) => { u: number; finished: boolean }> = Object.fromEntries(

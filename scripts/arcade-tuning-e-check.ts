@@ -50,7 +50,7 @@ import {
   hoverWorldHFor,
   type HoverState,
 } from "../src/lib/arcade/hover";
-import { skylineGameFor, SKYLINE_REV_BAND, SKYLINE_REV_EXPAND, SKYLINE_REV_LIFT, SKYLINE_REV_TALL, SKYLINE_TALL_H, SKYLINE_WORLD_H, skylineWorldHFor } from "../src/lib/arcade/skyline";
+import { skylineGameFor, SKYLINE_REV_BAND, SKYLINE_REV_EXPAND, SKYLINE_REV_LIFT, SKYLINE_REV_STD, SKYLINE_REV_TALL, SKYLINE_TALL_H, SKYLINE_WORLD_H, skylineWorldHFor } from "../src/lib/arcade/skyline";
 import {
   snakeCol,
   snakeGameFor,
@@ -167,7 +167,8 @@ section("New rounds carry the Tuning E stamps; one world per stored revision");
   ];
   // Expansion E4 (25 Oct 2026) moved High Rise on to skylineRev 7 (e4-expansion-check covers it); its tall world
   // started with skylineRev 4, which stored rounds still play and score on the bands.
-  ok(generateSkyline().skylineRev === SKYLINE_REV_LIFT, `skyline: rooms deal skylineRev ${SKYLINE_REV_LIFT} (expansion E4 on a gentler curve, after skylineRev ${SKYLINE_REV_TALL})`);
+  // The arcade scoring standard (29 Oct 2026) moved it on to skylineRev 9 (rev 8's play; skyline-standard-check covers it).
+  ok(generateSkyline().skylineRev === SKYLINE_REV_STD, `skyline: rooms deal skylineRev ${SKYLINE_REV_STD} (the arcade scoring standard, after skylineRev ${SKYLINE_REV_LIFT} and ${SKYLINE_REV_TALL})`);
   ok(puzzleUsesBands({ type: "skyline", skylineRev: SKYLINE_REV_TALL } as never), `skyline ${SKYLINE_REV_TALL} scores on the bands`);
   for (const [type, field, got, rev] of stamps) {
     ok(got === rev, `${type}: new rounds stamped ${rev} (got ${got})`);
@@ -475,9 +476,11 @@ if (want("snip")) {
   ok(PUZZLE_INSTRUCTIONS.snip.how.some((l) => l.helpOnly && /from above/.test(l.detail)), "Scrumper's help says a crook catches only from above");
 }
 // Screen audit Oct 2026: a plain line and a good run from the curve rooms deal (arcade-help-bands-check).
-// Hover: the curve rooms deal since the 200 expansion (hoverRev 9; hover-x200-check).
-if (want("hover")) ok(PUZZLE_INSTRUCTIONS.hover.score.includes("A good run (100 points) counts 45 – about 15 barriers"), "Hover's help states a good run on the curve rooms deal (hoverRev 9 since the 200 expansion)");
-if (want("snake")) ok(PUZZLE_INSTRUCTIONS.snake.score.includes("150 at 31") && PUZZLE_INSTRUCTIONS.snake.score.includes("A good run (100 points) eats 22 stars"), "Meteor's help states the top and a good run rooms deal (snakeRev 9 since expansion E2, expansion-e2-check)");
+// Hover: the curve rooms deal since the arcade scoring standard (hoverRev 10, barriers on one line to 120; hover-standard-check).
+if (want("hover")) ok(PUZZLE_INSTRUCTIONS.hover.score.includes("A good run (100 points) passes 35 barriers"), "Hover's help states a good run on the curve rooms deal (hoverRev 10 since the arcade scoring standard)");
+// The arcade scoring standard (29 Oct 2026) moved Meteor on to snakeRev 11: stars on a straight line to 120 at 27, then the
+// feature parts to 200 (snake-standard-check).
+if (want("snake")) ok(PUZZLE_INSTRUCTIONS.snake.score.includes("up to 120") && PUZZLE_INSTRUCTIONS.snake.score.includes("A good run (100 points) eats 23 stars") && PUZZLE_INSTRUCTIONS.snake.score.endsWith("Up to 200."), "Meteor's help states the top and a good run rooms deal (snakeRev 11 since the arcade scoring standard, snake-standard-check)");
 
 if (failures.length) {
   console.log(failures.slice(0, 60).join("\n"));

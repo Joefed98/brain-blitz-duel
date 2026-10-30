@@ -12,6 +12,8 @@ import {
   TILT_REV_EXPAND,
   TILT_REV_LIFT,
   tiltLiftGame,
+  tiltStdGame,
+  TILT_REV_STD,
   TILT_REV_TUNEC,
   TILT_REV_TARGET, TILT_REV_STRICT,
   TILT_REV_BAND,
@@ -72,6 +74,14 @@ const runLift = makeArcadeRun<TiltState, TiltCheckpoint>({
   keys: TILT_CHECKPOINT_KEYS,
   interval: TILT_CHECKPOINT_INTERVAL,
 });
+/** tiltRev 10 (the arcade scoring standard): tiltRev 9's mazes less the quick stars, a fourth maze, straight-line parts to 200. */
+const runStd = makeArcadeRun<TiltState, TiltCheckpoint>({
+  tag: "tilt",
+  game: tiltStdGame,
+  checkpoint: tiltCheckpoint,
+  keys: TILT_CHECKPOINT_KEYS,
+  interval: TILT_CHECKPOINT_INTERVAL,
+});
 /** tiltRev 8 (the expansion): three bigger mazes, ice, keys and gates, quick stars; up to 200. */
 const runExpand = makeArcadeRun<TiltState, TiltCheckpoint>({
   tag: "tilt",
@@ -95,6 +105,6 @@ export const decodeTiltRun = run.decode;
 
 /** The single place a Tilt score is worked out. */
 export function replayTiltRun(seed: number, raw: string, rev?: number | null): TiltResult {
-  const result = (rev === TILT_REV_LIFT ? runLift : rev === TILT_REV_EXPAND ? runExpand : rev === TILT_REV_STRICT ? runStrict : rev === TILT_REV_TARGET ? runTarget : rev === TILT_REV_TUNEC ? runTunec : rev === TILT_REV_BAND ? runBand : rev === TILT_REV ? runRev2 : run).replay(seed, raw);
+  const result = (rev === TILT_REV_STD ? runStd : rev === TILT_REV_LIFT ? runLift : rev === TILT_REV_EXPAND ? runExpand : rev === TILT_REV_STRICT ? runStrict : rev === TILT_REV_TARGET ? runTarget : rev === TILT_REV_TUNEC ? runTunec : rev === TILT_REV_BAND ? runBand : rev === TILT_REV ? runRev2 : run).replay(seed, raw);
   return { ...result, ...tiltExtra(result.state) };
 }

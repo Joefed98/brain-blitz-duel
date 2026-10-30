@@ -26,10 +26,36 @@ export const STRICT_REVS: Partial<Record<LiveBandGame, number>> = Object.fromEnt
 /**
  * Later score-only revisions: type → [the revision, the revision whose play it keeps]. Joe's phone notes (27 Oct
  * 2026, docs/arcade-phone-notes-oct-2026.md): Roofbound flipRev 9 and Tilt tiltRev 9 keep flipRev 8's and tiltRev 8's play
- * on lifted curves (arcade-phone-notes-check proves it). The arcade scoring standard (29 Oct 2026,
- * docs/arcade-standard/balltrack.md): Ball Tracker btRev 8 keeps btRev 7's play (arcade-standard-check), Rainbow Bridge inkRev 12 inkRev 11's (ink-v11-check), Orbit orbitRev 13 orbitRev 12's (orbit-expand-check), Wavefront wavRev 12 wavRev 11's (wavefront-phone-check).
+ * on lifted curves (arcade-phone-notes-check proves it). The arcade scoring standard (29 Oct 2026): Breaker brkRev 11
+ * keeps brkRev 10's play, scored in fixed parts (breaker-standard-check proves it). Meteor snakeRev 11 keeps snakeRev 10's play
+ * exactly on new scoring (snake-standard-check proves it). Slice sliceRev 11 keeps
+ * sliceRev 10's play (slice-standard-check proves it). Flightpath bullRev 9
+ * keeps bullRev 8's play on the standard's parts (bullseye-standard-check proves it). Ball Tracker btRev 8
+ * keeps btRev 7's play (arcade-standard-check), Rainbow Bridge inkRev 12 inkRev 11's (ink-v11-check), Orbit orbitRev 13
+ * orbitRev 12's (orbit-expand-check), Wavefront wavRev 12 wavRev 11's (wavefront-phone-check) (docs/arcade-standard/balltrack.md).
  */
-export const LIFT_REVS: Partial<Record<LiveBandGame, readonly [lift: number, play: number]>> = { flip: [9, 8], tilt: [9, 8], balltrack: [8, 7], inkbridge: [12, 11], orbit: [13, 12], wavefront: [12, 11] };
+export const LIFT_REVS: Partial<Record<LiveBandGame, readonly [lift: number, play: number]>> = {
+  flip: [9, 8],
+  tilt: [9, 8],
+  // The arcade scoring standard (29 Oct 2026, docs/arcade-standard/hover.md): Hover hoverRev 10 keeps hoverRev 9's
+  // play in fixed parts to 200 (hover-standard-check proves it).
+  hover: [10, 9],
+  // The arcade scoring standard (29 Oct 2026, docs/arcade-standard/breaker.md): Breaker brkRev 11 keeps brkRev 10's play.
+  breaker: [11, 10],
+  // The arcade scoring standard (29 Oct 2026, docs/arcade-standard/snake.md): Meteor snakeRev 11 keeps snakeRev 10's play.
+  snake: [11, 10],
+  // The arcade scoring standard (29 Oct 2026, docs/arcade-standard/slice.md): Slice sliceRev 11 keeps sliceRev 10's play.
+  slice: [11, 10],
+  // The arcade scoring standard (29 Oct 2026, docs/arcade-standard/beat.md): Tempo beatRev 11 keeps beatRev 10's play.
+  beat: [11, 10],
+  // The arcade scoring standard (29 Oct 2026, docs/arcade-standard/bullseye.md): Flightpath bullRev 9 keeps bullRev 8's play.
+  bullseye: [9, 8],
+  // The arcade scoring standard (29 Oct 2026, docs/arcade-standard/README.md, batch C): each keeps its predecessor's play.
+  balltrack: [8, 7],
+  inkbridge: [12, 11],
+  orbit: [13, 12],
+  wavefront: [12, 11],
+};
 
 /**
  * The arcade scoring standard's score-only revisions (29 Oct 2026, src/lib/arcade/arcadeStandard.ts): type → [the

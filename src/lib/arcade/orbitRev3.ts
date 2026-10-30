@@ -21,7 +21,7 @@ import {
 } from "./engine";
 import { BAND_STRICT_MARK, bandStrict, bandRetarget, bandCurveOf, BAND_TARGET_MARK, bandCurve, bandInit, bandPoints, bandScoreOf, bandStep, bandTotal, BAND_FINISH_BONUS, type BandFields, type BandParts } from "./scoreBands";
 import { speedBonusCurve } from "../duel/speedPar";
-import { stdBandParts, stdLine, stdSpeed, stdTotal, type StdScore, type StdSpec } from "./arcadeStandard";
+import { stdBandParts, stdCore, stdPartLine, stdSpecPart, stdSpeed, stdTotal, type StdBreakdown, type StdSpec } from "./arcadeStandard";
 import { ANG_QUARTER } from "./trig";
 import {
   FP,
@@ -1610,8 +1610,10 @@ export const ORBIT_STD_SPEED_FULL_LEFT = ORBIT_REV3_RUN_TICKS / 2;
 /** Perfect orbits paid in equal shares of this many (every feature-bank course's witness flies at least 21). */
 export const ORBIT_STD_PERFECT_OF = 21;
 export const ORBIT_STD: StdSpec = {
-  core: { key: "planets", label: "Planets", max: 130, of: ORBIT_STD_CORE_OF, item: "planet" },
-  features: [
+  field: "orbitRev",
+  rev: ORBIT_REV_STD,
+  parts: [
+    { key: "core", label: "Planets", max: 130, of: ORBIT_STD_CORE_OF, item: "planet" },
     { key: "speed", label: "Speed", max: 20, of: 1 },
     { key: "dust", label: "Stardust", max: 15, of: ORBIT_XP_TRAILS * ORBIT_XP_MOTES, item: "mote" },
     { key: "slings", label: "Slingshots", max: 12, of: ORBIT_XP_MOONS, item: "slingshot" },
@@ -1620,25 +1622,25 @@ export const ORBIT_STD: StdSpec = {
   ],
 };
 /** orbitRev 13's core line on planets reached (whole planets; the partial flight adds its sixteenths between them). */
-export const ORBIT_V13_BAND_CURVE = bandCurve([0, ORBIT_TOTAL], [0, ORBIT_STD.core.max]);
+export const ORBIT_V13_BAND_CURVE = bandCurve([0, ORBIT_TOTAL], [0, stdCore(ORBIT_STD).max]);
 
-const stdPart = (key: string) => ORBIT_STD.features.find((f) => f.key === key)!;
+const stdPart = (key: string) => stdSpecPart(ORBIT_STD, key);
 
 /** orbitRev 13's breakdown on the standard (no penalty: a crash costs only the planets it leaves unreached). */
-export function orbitStdScore(state: OrbitRev3State): StdScore {
+export function orbitStdScore(state: OrbitRev3State): StdBreakdown {
   const finished = Boolean(state.finished);
   const best = clampInt(state.best, 0, ORBIT_TOTAL);
   const sixteenths = finished || best >= ORBIT_TOTAL ? ORBIT_STD_CORE_OF : best * 16 + clampInt(state.reach ?? 0, 0, 15);
   const c = orbitXpCounts(state);
   const left = ORBIT_REV3_RUN_TICKS - clampInt(state.endedTick, 0, ORBIT_REV3_RUN_TICKS);
   return {
-    core: stdLine(ORBIT_STD.core.max, sixteenths, ORBIT_STD.core.of),
+    core: stdPartLine(stdCore(ORBIT_STD), sixteenths),
     features: {
       speed: finished ? stdSpeed(stdPart("speed").max, left, ORBIT_STD_SPEED_FULL_LEFT, 0) : 0,
-      dust: stdLine(stdPart("dust").max, c.dust, stdPart("dust").of),
-      slings: stdLine(stdPart("slings").max, c.slings, stdPart("slings").of),
-      fields: stdLine(stdPart("fields").max, c.threads, stdPart("fields").of),
-      perfect: stdLine(stdPart("perfect").max, c.perfect, stdPart("perfect").of),
+      dust: stdPartLine(stdPart("dust"), c.dust),
+      slings: stdPartLine(stdPart("slings"), c.slings),
+      fields: stdPartLine(stdPart("fields"), c.threads),
+      perfect: stdPartLine(stdPart("perfect"), c.perfect),
     },
     penalty: 0,
   };

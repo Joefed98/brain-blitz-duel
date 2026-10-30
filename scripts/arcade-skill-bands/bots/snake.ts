@@ -10,7 +10,7 @@
  * next star) the player steers away from what is right ahead of the head.
  */
 import { bandPoints } from "../../../src/lib/arcade/scoreBands";
-import { snakeGoldWorth, SNAKE_V9_BAND_CURVE, SNAKE_V9_CAPS, snakeReversal, snakeStepTicks, snakeStepTicksFor, snakeColsOf, snakeWarpExit, SNAKE_INPUT_TURN, snakeRowsOf, SNAKE_GOLD_LIFE, snakeRockCells, snakeRockSpan, snakeWarnCells, snakeOnLane, type SnakeState } from "../../../src/lib/arcade/snake";
+import { snakeGoldWorth, snakeStdGoldWorth, snakeStdCore, SNAKE_V9_BAND_CURVE, SNAKE_V9_CAPS, snakeReversal, snakeStepTicks, snakeStepTicksFor, snakeColsOf, snakeWarpExit, SNAKE_INPUT_TURN, snakeRowsOf, SNAKE_GOLD_LIFE, snakeRockCells, snakeRockSpan, snakeWarnCells, snakeOnLane, type SnakeState } from "../../../src/lib/arcade/snake";
 import type { SkillLevel } from "../human";
 import { driveEvents, type SkillBot } from "../bot";
 import type { Human } from "../human";
@@ -30,6 +30,12 @@ let COLS = 15;
 let WARPS: number[] = [];
 /** snakeRev 9 speed lanes this player rides on purpose. */
 let LANES = false;
+/**
+ * What a lane square costs a route (a plain square costs 1). snakeRev 11 (the arcade standard) pays per lane ride, and
+ * a flawless player, who never mistimes a swipe, takes the long rides on purpose.
+ */
+let LANE_COST = 0.6;
+const SNAKE_STD_FLAWLESS_LANE_COST = 0.4;
 
 /**
  * snakeRev 9: whether the bots play the expansion's features (gold stars, lanes, wormholes). The
@@ -119,7 +125,7 @@ function route(s: SnakeState, first: number, goal: number, blocked: Set<number>,
         // snakeRev 9: a player who uses the speed lanes values a lane square as a quicker one.
         // (snakeOnLane: snakeRev 10's second vertical lane too.)
         const lane = LANES && snakeOnLane(s, cell, nd);
-        const nc = cost + (lane ? 0.6 : 1) + (turn ? 0.4 : 0);
+        const nc = cost + (lane ? LANE_COST : 1) + (turn ? 0.4 : 0);
         if (nc < (best.get(nk) ?? Infinity)) {
           best.set(nk, nc);
           prev.set(nk, k);
@@ -296,6 +302,7 @@ export const bot: SkillBot = ({ game, seed, human }) => {
   const features = Boolean(init.exp) && snakeBotOptions.features;
   WARPS = features ? (init.warps ?? []) : [];
   LANES = features;
+  LANE_COST = features && init.std && level === "perfect" ? SNAKE_STD_FLAWLESS_LANE_COST : 0.6;
   /** The gold star this player is going for, and the golds already decided on. */
   let goldGoal = -1;
   const goldSeen = new Set<number>();
@@ -390,18 +397,23 @@ export const bot: SkillBot = ({ game, seed, human }) => {
         // (snakeRev 10's gold stars stay longer: goldLife.)
         const life = s.goldLife ?? SNAKE_GOLD_LIFE;
         let worth = dist * snakeStepTicks(s.eaten) + 40 < life;
-        if (worth && (level === "elite" || level === "perfect")) {
+        // snakeRev 11 (the arcade standard): a gold star (about 5.7) beats a star on the core's straight line (about 4.4,
+        // nothing past the core's full count), so elite and flawless players take every gold they can reach in time.
+        if (worth && (level === "elite" || level === "perfect") && !s.std) {
           // Elite and flawless (Oct 2026): stars first. The gold is taken only when what it still pays (its
           // worth on arrival, nothing past the gold cap) beats the star points the detour's extra squares cost
           // at the run's own star rate, valued on the band curve where the run is heading.
           const step = snakeStepTicks(s.eaten);
           const md = (a: number, b: number) => Math.abs(Math.trunc(a / COLS) - Math.trunc(b / COLS)) + Math.abs((a % COLS) - (b % COLS));
           const extra = Math.max(0, dist + md(g, s.pellet) - md(head, s.pellet));
-          const pays = Math.min(snakeGoldWorth(t + dist * step + 20, s.goldEnd ?? 0, life), SNAKE_V9_CAPS.gold - (s.goldPts ?? 0));
+          // snakeRev 11 (the arcade standard): a gold's straight-line share of 40, and the core's straight line.
+          const pays = s.std
+            ? snakeStdGoldWorth(t + dist * step + 20, s.goldEnd ?? 0, (s.golds ?? []).length, life)
+            : Math.min(snakeGoldWorth(t + dist * step + 20, s.goldEnd ?? 0, life), SNAKE_V9_CAPS.gold - (s.goldPts ?? 0));
           // A star's worth is the curve's slope where the run is heading (its final count at this pace).
           const ticksPerStar = s.eaten > 2 ? t / s.eaten : 120;
           const final = Math.round(s.eaten + Math.max(0, game.runTicks - t) / ticksPerStar);
-          const perStar = bandPoints(SNAKE_V9_BAND_CURVE, final) - bandPoints(SNAKE_V9_BAND_CURVE, final - 1);
+          const perStar = s.std ? snakeStdCore(final) - snakeStdCore(final - 1) : bandPoints(SNAKE_V9_BAND_CURVE, final) - bandPoints(SNAKE_V9_BAND_CURVE, final - 1);
           worth = pays > (extra * step * perStar) / ticksPerStar;
         }
         if (worth) {

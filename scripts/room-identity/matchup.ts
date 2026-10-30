@@ -1,5 +1,5 @@
 /**
- * Room identity for Gemstone matchupRev 10 (27 Oct 2026, docs/phone-notes-oct-2026/gemstone.md): `scheduleOf`
+ * Room identity for Gemstone matchupRev 11 (the arcade scoring standard, docs/arcade-standard/matchup.md; matchupRev 10 before it, docs/phone-notes-oct-2026/gemstone.md): `scheduleOf`
  * replays an input log and lists what the seed alone decides: the ice (laid once at the start), each level's goal
  * (colours and count) and each treasure gem's column, numbered by order (entry t = k for the k-th level and the k-th
  * treasure, t = 0 for the ice), since when a level is met or a treasure is placed is the player's play. Two very
@@ -9,7 +9,7 @@
  *   import { roomIdentity } from "./room-identity/matchup";
  */
 import type { ArcadeInputEvent } from "../../src/lib/arcade/engine";
-import { matchupGameFor, MATCHUP_INPUT_SWAP, MATCHUP_REV_ICE, MATCHUP_SIZE, MATCHUP_TREASURE, MATCHUP_V9_ROWS, type MatchupState } from "../../src/lib/arcade/matchup";
+import { matchupGameFor, MATCHUP_INPUT_SWAP, MATCHUP_REV_STD, MATCHUP_SIZE, MATCHUP_TREASURE, MATCHUP_V9_ROWS, type MatchupState } from "../../src/lib/arcade/matchup";
 import { Human, type SkillLevel } from "../arcade-skill-bands/human";
 import { bot } from "../arcade-skill-bands/bots/matchup";
 
@@ -55,13 +55,13 @@ export function randomLog(seed: number, ticks = 5400): ArcadeInputEvent[] {
 }
 
 export function botLog(seed: number, level: SkillLevel): ArcadeInputEvent[] {
-  const game = matchupGameFor(MATCHUP_REV_ICE);
-  return bot({ game, seed, rev: MATCHUP_REV_ICE, human: new Human("matchup", seed, level), fixes: true }).events ?? [];
+  const game = matchupGameFor(MATCHUP_REV_STD);
+  return bot({ game, seed, rev: MATCHUP_REV_STD, human: new Human("matchup", seed, level), fixes: true }).events ?? [];
 }
 
 export const roomIdentity = {
   type: "matchup",
-  rev: MATCHUP_REV_ICE,
+  rev: MATCHUP_REV_STD,
   logs: (seed: number) => [
     // Bots at three levels (a random log rarely brings a treasure down, so it would cap the comparison at the first).
     { name: "weak", log: botLog(seed, "weak") },

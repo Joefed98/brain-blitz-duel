@@ -29,6 +29,7 @@ export const entry: StdEntry = {
   field: "crossRev",
   rev: CROSS_REV_STD,
   before: CROSS_REV_EXPAND,
+  parts: CROSS_STD.parts,
   spec: CROSS_STD,
   perfect: (): StdRun[] =>
     [0, 7, 61].map((n) => {
@@ -38,5 +39,5 @@ export const entry: StdEntry = {
   played: (): StdRun[] =>
     [3, 40].map((n) => ({ label: `seed index ${n}: one sideways step`, score: serverScore(roomSeed(n), [{ t: 5, k: CROSS_INPUT_MOVE, a: 2, b: 0, c: 0, d: 0 }]) })),
   idle: (): StdRun[] => [3, 40].map((n) => ({ label: `seed index ${n}: no input`, score: serverScore(roomSeed(n), []) })),
-  helpTerms: ["Rows and crossings", "150 at", "Crossing streak", "Close calls"],
+  help: { terms: ["Rows and crossings", "150 at", "Crossing streak", "Close calls"] },
 };

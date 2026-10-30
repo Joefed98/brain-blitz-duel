@@ -34,6 +34,8 @@ const TIMEOUT_OVERRIDES: Record<string, number> = {
   // Low-end performance (16 Oct 2026): five heavy arcade games at 4× CPU slowdown plus one unthrottled, ~4 min.
   "arcade-lowend-check.ts": 900_000,
   "puzzle-bank-rebuild-check.ts": 3_600_000,
+  // A production build of the app, then nine real practice rounds in headless Chromium (29 Oct 2026).
+  "standard-live-check.ts": 600_000,
 };
 const OPTIONAL_CHECKS = new Set(["orbit-outside-belt-deep-check.ts", "puzzle-bank-rebuild-check.ts", "puzzle-bands-depth-check.ts"]);
 

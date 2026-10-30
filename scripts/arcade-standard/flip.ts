@@ -25,6 +25,7 @@ export const entry: StdEntry = {
   field: "flipRev",
   rev: FLIP_REV_STD,
   before: FLIP_REV_LIFT,
+  parts: FLIP_STD.parts,
   spec: FLIP_STD,
   perfect() {
     const out: StdRun[] = [];
@@ -59,5 +60,5 @@ export const entry: StdEntry = {
     const r = replayFlipRun(seed, encodeFlipLog(FLIP_REV_STD, seed, []).raw, FLIP_REV_STD);
     return [{ label: `no input (seed ${seed}, ${r.survivedSeconds.toFixed(1)} s)`, score: r.flagged ? -1 : r.score }];
   },
-  helpTerms: ["Time survived", "half second", "150 at 120"],
+  help: { terms: ["Time survived", "half second", "150 at 120"] },
 };

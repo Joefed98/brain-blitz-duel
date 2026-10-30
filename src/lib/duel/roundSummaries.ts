@@ -930,7 +930,8 @@ const hoverSummary: SummaryBuilder = (result) => {
     // hoverRev 9: the features and the skill points.
     detail: [
       survived ? "Flew the whole run" : "Run ended early",
-      ...(result.extra?.["tightGates"] !== undefined ? [`${Number(result.extra?.["tightGates"] ?? 0)} tight · ${Number(result.extra?.["starChains"] ?? 0)} chains · centre ${Number(result.extra?.["centrePts"] ?? 0)} · skill +${Number(result.extra?.["skill"] ?? 0)}`] : []),
+      // hoverRev 10 (the arcade scoring standard): the parts' points.
+      ...(result.extra?.["corePts"] !== undefined ? [`barriers ${Number(result.extra?.["corePts"] ?? 0)} · chains ${Number(result.extra?.["chainPts"] ?? 0)} · gold ${Number(result.extra?.["goldPts"] ?? 0)} · tight ${Number(result.extra?.["tightPts"] ?? 0)} · centre ${Number(result.extra?.["centreLinePts"] ?? 0)}`] : result.extra?.["tightGates"] !== undefined ? [`${Number(result.extra?.["tightGates"] ?? 0)} tight · ${Number(result.extra?.["starChains"] ?? 0)} chains · centre ${Number(result.extra?.["centrePts"] ?? 0)} · skill +${Number(result.extra?.["skill"] ?? 0)}`] : []),
     ],
   };
 };
@@ -961,7 +962,12 @@ const skylineSummary: SummaryBuilder = (result) => {
       `${perfects} perfect drop${perfects === 1 ? "" : "s"}`,
       ...(result.extra?.["skylineRev"] ? [`Best streak ${Number(result.extra?.["bestStreak"] ?? 0)} in a row`] : []),
       // skylineRev 7: the expansion's gold blocks and height milestones.
-      ...(Number(result.extra?.["skylineRev"] ?? 0) >= 7 ? [`${Number(result.extra?.["golds"] ?? 0)} gold · ${Number(result.extra?.["milestones"] ?? 0)} milestones`] : []),
+      // skylineRev 9 (the arcade scoring standard): five gold blocks a run; milestones no longer score.
+      ...(Number(result.extra?.["skylineRev"] ?? 0) === 9
+        ? [`${Number(result.extra?.["golds"] ?? 0)} of 5 gold blocks`]
+        : Number(result.extra?.["skylineRev"] ?? 0) >= 7
+          ? [`${Number(result.extra?.["golds"] ?? 0)} gold · ${Number(result.extra?.["milestones"] ?? 0)} milestones`]
+          : []),
     ],
   };
 };
@@ -1062,7 +1068,15 @@ const breakerSummary: SummaryBuilder = (result) => {
       ? `Cleared at ${ended.toFixed(1)}s`
       : `${Number(result.extra?.["destroyed"] ?? 80 - left)} / ${Number(result.extra?.["wall"] ?? 80)} bricks · ${hits} hits · ${powerUps} power-up${powerUps === 1 ? "" : "s"}`,
     // brkRev 9: the skill points too.
-    detail: [`${Number(result.extra?.["losses"] ?? 0)} relaunches`, ...(result.extra?.["wall"] !== undefined ? [`${Number(result.extra?.["goldBroken"] ?? 0)} gold · combo ${Number(result.extra?.["comboPts"] ?? 0)} · skill +${Number(result.extra?.["skill"] ?? 0)}`] : [])],
+    detail: [
+      `${Number(result.extra?.["losses"] ?? 0)} relaunches`,
+      // brkRev 11 (the arcade scoring standard): the gold, clear and speed parts.
+      ...(result.extra?.["std"] !== undefined
+        ? [`${Number(result.extra?.["goldBroken"] ?? 0)} / ${Number(result.extra?.["goldDealt"] ?? 0)} gold +${Number(result.extra?.["goldPts"] ?? 0)}${cleared ? ` · clear +${Number(result.extra?.["clearPts"] ?? 0)} · speed +${Number(result.extra?.["speedPts"] ?? 0)}` : ""}`]
+        : result.extra?.["wall"] !== undefined
+          ? [`${Number(result.extra?.["goldBroken"] ?? 0)} gold · combo ${Number(result.extra?.["comboPts"] ?? 0)} · skill +${Number(result.extra?.["skill"] ?? 0)}`]
+          : []),
+    ],
   };
 };
 
@@ -1072,9 +1086,14 @@ const pinballSummary: SummaryBuilder = (result) => {
   return {
     summary: `${n("points").toLocaleString("en-GB")} table points · ${n("bumps")} bumper hits · ${n("drops")} targets`,
     detail: [
-      `Multiplier ×${Math.max(1, n("mult"))}`,
+      // pinRev 6 (the arcade scoring standard) has no multiplier; it counts J-O-U-L-Z sets and ramp combos instead.
+      ...(n("pinRev") >= 6 ? [] : [`Multiplier ×${Math.max(1, n("mult"))}`]),
       // pinRev 4 (the expansion): ramps, multiball, jackpots and skill shots.
-      ...(n("pinRev") >= 4 ? [`${n("ramps")} ramps · ${n("multiballs")} multiball · ${n("jackpots")} jackpots · ${n("skills")} skill shots`] : []),
+      ...(n("pinRev") >= 6
+        ? [`${n("ramps")} ramps · ${n("combos")} combos · ${n("laneSets")} J-O-U-L-Z · ${n("multiballs")} multiball · ${n("jackpots")} jackpots`]
+        : n("pinRev") >= 4
+          ? [`${n("ramps")} ramps · ${n("multiballs")} multiball · ${n("jackpots")} jackpots · ${n("skills")} skill shots`]
+          : []),
       left > 0 ? `Clock ran out with ${left} ball${left === 1 ? "" : "s"} left` : "All three balls drained",
     ],
   };
@@ -1132,7 +1151,13 @@ const bubbleSummary: SummaryBuilder = (result) => {
     summary: cleared
       ? `Cleared at ${ended.toFixed(1)}s`
       : `${Number(result.extra?.["bubblesLeft"] ?? 0)} bubbles left · popped ${popped} · dropped ${dropped}`,
-    detail: [`${Number(result.extra?.["shots"] ?? 0)} shots`],
+    detail: [
+      `${Number(result.extra?.["shots"] ?? 0)} shots`,
+      // bubbleRev 11 (the arcade scoring standard): the scored features.
+      ...(result.extra?.["chests"] !== undefined
+        ? [`${Number(result.extra["chests"])} chests · ${Number(result.extra?.["banks"] ?? 0)} bank shots · ${Number(result.extra?.["combos"] ?? 0)} combos`]
+        : []),
+    ],
   };
 };
 
@@ -1143,7 +1168,13 @@ const beatSummary: SummaryBuilder = (result) => {
   const misses = Number(result.extra?.["misses"] ?? 0);
   return {
     summary: `${hits} / ${notes} · ${perfect} perfect · ${misses} miss${misses === 1 ? "" : "es"}`,
-    detail: [`best combo ${Number(result.extra?.["maxCombo"] ?? 0)}`],
+    detail: [
+      `best combo ${Number(result.extra?.["maxCombo"] ?? 0)}`,
+      // beatRev 11 (the arcade scoring standard): the features against the song's own counts.
+      ...(typeof result.extra?.["accuracy"] === "number"
+        ? [`${Number(result.extra?.["fevers"] ?? 0)} fever${Number(result.extra?.["fevers"] ?? 0) === 1 ? "" : "s"} · golden ${Number(result.extra?.["goldsHit"] ?? 0)} / ${Number(result.extra?.["golds"] ?? 0)} · doubles ${Number(result.extra?.["doublesDone"] ?? 0)} / ${Number(result.extra?.["doubles"] ?? 0)} · best Perfect streak ${Number(result.extra?.["maxStreak"] ?? 0)}`]
+        : []),
+    ],
   };
 };
 
@@ -1348,8 +1379,9 @@ const tiltSummary: SummaryBuilder = (result) => {
   const survived = result.extra?.["survived"] !== false;
   const ended = Number(result.extra?.["survivedSeconds"] ?? 0);
   const head = `${mazes} ${mazes === 1 ? "maze" : "mazes"} completed`;
-  // tiltRev 8 (the expansion): three mazes, quick stars, and falls that cost time instead of the run.
-  const all = Number(result.extra?.["tiltRev"] ?? 0) === 8 ? 3 : 4;
+  // tiltRev 8 and 9 (the expansion): three mazes, quick stars, and falls that cost time instead of the run; tiltRev 10 four mazes.
+  const rev = Number(result.extra?.["tiltRev"] ?? 0);
+  const all = rev === 8 || rev === 9 ? 3 : 4;
   const quick = Number(result.extra?.["totalQuick"] ?? 0);
   return {
     summary:

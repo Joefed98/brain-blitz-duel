@@ -27,7 +27,7 @@ import {
 } from "./engine";
 import { BAND_STRICT_MARK, bandStrictGame, bandStrict, bandRetarget, bandTargetGame, bandCurveOf, bandCurve, bandInit, bandPoints, bandScoreOf, bandStep, bandTotal, BAND_FINISH_BONUS, type BandFields, type BandParts } from "./scoreBands";
 import { isin, TRIG_ONE } from "./trig";
-import { stdBandParts, stdLine, stdSpeed, stdTotal, type StdScore, type StdSpec } from "./arcadeStandard";
+import { stdBandParts, stdCore, stdPartLine, stdSpecPart, stdSpeed, stdTotal, type StdBreakdown, type StdSpec } from "./arcadeStandard";
 
 /* ============================== Constants ============================== */
 
@@ -3528,8 +3528,10 @@ export const INK_V12_SILVER = INK_BONUS_LEVELS * INK_V11_SILVER_PER_LEVEL;
  * coins 8 (0.5 each of 16). No mistake costs points (a failed drop costs one of three tries). Total 200.
  */
 export const INK_STD: StdSpec = {
-  core: { key: "levels", label: "Levels", max: INK_V12_CORE_MAX, of: INK_LEVELS, item: "level" },
-  features: [
+  field: "inkRev",
+  rev: INK_REV_STD,
+  parts: [
+    { key: "core", label: "Levels", max: INK_V12_CORE_MAX, of: INK_LEVELS, item: "level" },
     { key: "speed", label: "Speed", max: INK_V12_SPEED_MAX, of: 1 },
     { key: "stars", label: "Ink stars", max: 20, of: INK_BONUS_LEVELS, item: "ink star" },
     { key: "tricks", label: "Trick shots", max: 12, of: INK_CLOUD_LEVELS, item: "trick shot" },
@@ -3541,15 +3543,15 @@ export const INK_STD: StdSpec = {
 /** inkRev 12's core curve for the bands and help: one unit a level potted, a straight line to 140 at all ten (stdLine). */
 export const INK_V12_BAND_CURVE = bandCurve([0, INK_LEVELS], [0, INK_V12_CORE_MAX]);
 
-const stdPart = (key: string) => INK_STD.features.find((f) => f.key === key)!;
-const stdFeature = (key: string, got: number) => stdLine(stdPart(key).max, got, stdPart(key).of);
+const stdPart = (key: string) => stdSpecPart(INK_STD, key);
+const stdFeature = (key: string, got: number) => stdPartLine(stdPart(key), got);
 
 /** inkRev 12: a run's standard breakdown (the core and each feature; nothing is taken off). */
-export function inkStdScore(state: InkState): StdScore {
+export function inkStdScore(state: InkState): StdBreakdown {
   const levels = clampInt(state.levels, 0, INK_LEVELS);
   const left = INK_RUN_TICKS - clampInt(state.endedTick || state.tick, 0, INK_RUN_TICKS);
   return {
-    core: stdLine(INK_STD.core.max, levels, INK_STD.core.of),
+    core: stdPartLine(stdCore(INK_STD), levels),
     features: {
       speed: levels >= INK_LEVELS ? stdSpeed(INK_V12_SPEED_MAX, left, INK_V12_SPEED_FULL, 0) : 0,
       stars: stdFeature("stars", state.stars ?? 0),

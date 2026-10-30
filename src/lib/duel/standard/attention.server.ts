@@ -15,9 +15,9 @@ import { wasteFactor } from "../puzzleScoreRev";
 import { decodePairFlips, replayPairs } from "../pairmatch";
 import { pairDepthReplay, splitPairGoldTime } from "../depth/matchmaker";
 import { spotBonusFound } from "../depth/doubleTake";
-import type { CountUpPuzzleData, MazePuzzleData, SymbolScanPuzzleData } from "../types";
+import type { CountUpPuzzleData, MazePuzzleData, SymbolScanPuzzleData, PuzzleType } from "../types";
 import { earlyPoints, speedPoints } from "./shape";
-import { registerStandardGames, type StandardGame } from "./grade.server";
+import type { StandardGame } from "./grade.server";
 import { ASCEND_STD, CHAIN_STD, COUNT_STD, MAZE_STD, PAIR_STD, SCAN_STD, SPOT_STD, ascendBestRun, ascendFlowPoints, mazeStarPoints, pairGoldPoints, pairStreakPoints } from "./attention";
 
 const speedFor = (max: number, fullByS: number, msLeft: number, limitMs: number) => speedPoints(max, msLeft, limitMs, fullByS * 1000);
@@ -214,7 +214,8 @@ const matchmaker: StandardGame = {
   },
 };
 
-registerStandardGames({
+/** This category's standard games, read by the grader (games.server.ts). */
+export const ATTENTION_STANDARD_GAMES: Partial<Record<PuzzleType, StandardGame>> = {
   numhunt: ascend,
   chain,
   symscan: eagleEye,
@@ -222,7 +223,7 @@ registerStandardGames({
   countup: tally,
   maze: labyrinth,
   pairmatch: matchmaker,
-});
+};
 
 /** For the checks: the Eagle Eye grids and the maze run as the grader reads them. */
 export const attentionInternals = { scanGrids, mazeRun, tallyCounts } as const;

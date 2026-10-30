@@ -14,8 +14,10 @@ import {
   BURST_GOLD,
   BURST_INPUT_FIRE,
   BURST_INPUT_MOVE,
-  BURST_REV_CARRY,
+  BURST_REV_STD,
   BURST_V8_GOLDENS,
+  BURST_V10_GOLDENS,
+  burstStdParts,
   burstCleanBonus,
   burstCarryBonus,
   burstGoldenCount,
@@ -158,7 +160,14 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
         {burstLine(result)}
       </p>
       <p className="shrink-0 text-center font-mono text-base text-muted-foreground">Same waves for everyone</p>
-      {result.state.carry ? (
+      {result.state.std ? (
+        <p className="shrink-0 text-center font-mono text-sm text-muted-foreground">
+          {(() => {
+            const p = burstStdParts(result.state);
+            return `${result.hits}/${p.atoms} atoms ${p.core} · wave clears ${p.clear} · golden ${burstGoldenCount(result.state)}/${BURST_V10_GOLDENS} ${p.gold}${p.lives ? ` · lives −${p.lives}` : ""}`;
+          })()}
+        </p>
+      ) : result.state.carry ? (
         <p className="shrink-0 text-center font-mono text-sm text-muted-foreground">
           {`${result.state.quickWaves ?? 0} quick wave${result.state.quickWaves === 1 ? "" : "s"} · ${burstGoldenCount(result.state)}/${BURST_V8_GOLDENS} golden · bonus +${burstCarryBonus(result.state).total}`}
         </p>
@@ -178,7 +187,7 @@ export const burstPuzzle: PuzzleDefinition = {
   category: "arcade",
   timeLimitMs: BURST_TIME_MS,
   revealMs: 6_000,
-  generate: () => ({ type: "burst", seed: 1, burstRev: BURST_REV_CARRY }) satisfies BurstPuzzleData,
+  generate: () => ({ type: "burst", seed: 1, burstRev: BURST_REV_STD }) satisfies BurstPuzzleData,
   check: () => false,
   revealHeading: "Your run",
   IntroExample,

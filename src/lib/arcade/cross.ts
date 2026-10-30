@@ -21,7 +21,7 @@ import {
 } from "./engine";
 import { BAND_STRICT_MARK, bandStrictGame, bandStrict, bandRetarget, bandTargetGame, bandCurveOf, bandCurve, bandInit, bandPoints, bandScoreOf, bandStep, bandTotal, type BandFields, type BandParts } from "./scoreBands";
 import { roundMaxFor } from "../duel/roundMax";
-import { stdBandParts, stdLine, stdTotal, type StdScore, type StdSpec } from "./arcadeStandard";
+import { stdBandParts, stdLine, stdTotal, type StdBreakdown, type StdSpec } from "./arcadeStandard";
 
 /* ============================== Constants ============================== */
 
@@ -1470,8 +1470,10 @@ export const CROSS_STD_STREAK_EACH = 2;
 export const CROSS_STD_STREAK_MAX = 10;
 
 export const CROSS_STD: StdSpec = {
-  core: { key: "core", label: "Rows and crossings", max: CROSS_STD_CORE_MAX, of: CROSS_STD_CORE_FULL, item: "unit" },
-  features: [
+  field: "crossRev",
+  rev: CROSS_REV_STD,
+  parts: [
+    { key: "core", label: "Rows and crossings", max: CROSS_STD_CORE_MAX, of: CROSS_STD_CORE_FULL, item: "unit" },
     { key: "coins", label: "Coins", max: 30, of: CROSS_X_COINS_PER_RUN, item: "coin" },
     { key: "streak", label: "Crossing streak", max: CROSS_STD_STREAK_MAX, of: CROSS_STD_STREAK_MAX / CROSS_STD_STREAK_EACH, items: "back-to-back clean crossings after the first" },
     { key: "close", label: "Close calls", max: 10, of: 10, item: "close call" },
@@ -1509,7 +1511,7 @@ function rollCourseV10(rng: number, index: number): { rng: number; course: Cross
 }
 
 /** crossRev 10's breakdown on the standard. */
-export function crossStdScore(state: Pick<CrossState, "crossings" | "reached" | "wide" | "coinTotal" | "streakPts" | "closeCalls">): StdScore {
+export function crossStdScore(state: Pick<CrossState, "crossings" | "reached" | "wide" | "coinTotal" | "streakPts" | "closeCalls">): StdBreakdown {
   const units = crossTotalLanes(state) + 2 * state.crossings;
   return {
     core: stdLine(CROSS_STD_CORE_MAX, units, CROSS_STD_CORE_FULL),

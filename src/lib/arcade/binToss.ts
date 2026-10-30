@@ -26,6 +26,7 @@ import {
 } from "./engine";
 import { BAND_STRICT_MARK, bandStrictGame, bandStrict, bandRetarget, bandCurveOf, bandTargetGame, bandCurve, bandInit, bandPoints, bandScoreOf, bandStep, bandTotal, BAND_FINISH_BONUS, type BandFields, type BandParts } from "./scoreBands";
 import { icos, isin } from "./trig";
+import { stdEach, stdLine, stdPart, stdScore, type StdPart, type StdSpec } from "./arcadeStandard";
 
 /* ============================== Constants ============================== */
 
@@ -468,6 +469,8 @@ export interface BinTossState extends BandFields {
   /** binRev 8 only: missed throws that came close (BINTOSS_V8_CLOSE), and 1 while the throw in flight has. */
   close?: number;
   closeNow?: number;
+  /** binRev 9 only (the arcade scoring standard): 1 marks a state scored on BINTOSS_STD_SPEC. */
+  std?: number;
   tick: number;
   rng: number;
   /** The throw now in hand, 0-based; reaches ten when they are all done. */
@@ -835,6 +838,8 @@ export function binTossCheckpoint(state: BinTossState): BinTossCheckpoint {
   if (state.expand === BINTOSS_EXPAND) values.push(state.expand, state.farIn ?? 0);
   // binRev 8 only, last: the smaller far bucket and the close misses.
   if (state.farHalf !== undefined) values.push(state.farHalf, state.close ?? 0);
+  // binRev 9 only, after that: its marker.
+  if (state.std !== undefined) values.push(state.std);
   for (const value of values) {
     checksum ^= value | 0;
     checksum = Math.imul(checksum, 0x01000193) >>> 0;
@@ -1259,6 +1264,7 @@ export const binTossRev3Game: ArcadeGame<BinTossState, ArcadeInputEvent | null> 
 
 /** Takes puzzle.binRev; anything else is the original bin. */
 export function binTossGameFor(rev?: number | null): ArcadeGame<BinTossState, ArcadeInputEvent | null> {
+  if (rev === BINTOSS_REV_STD) return binTossStdGame;
   if (rev === BINTOSS_REV_SMALL_FAR) return binTossSmallFarGame;
   if (rev === BINTOSS_REV_EXPAND) return binTossExpandGame;
   if (rev === BINTOSS_REV_STRICT) return binTossStrictGame;
@@ -1275,6 +1281,7 @@ export const BINTOSS_REV_BAND = 4;
 /** Buckets count 10 and hoop swishes 3; 140 at every bucket and hoop; all ten in adds 10 (no 99 cap). */
 export const BINTOSS_BAND_CURVE = bandCurve([0, 45, 70, 80, 90, 109], [0, 70, 100, 118, 138, 140]);
 export function binTossBandParts(state: BinTossState): BandParts {
+  if (state.std === BINTOSS_STD) return binTossV9Parts(state);
   if (state.expand === BINTOSS_EXPAND) return binTossV7Parts(state);
   const units = 10 * clampInt(state.baskets, 0, BINTOSS_THROWS) + BINTOSS_HOOP_POINTS * clampInt(state.swishes ?? 0, 0, BINTOSS_HOOP_COUNT);
   const finished = state.baskets >= BINTOSS_THROWS;
@@ -1282,6 +1289,8 @@ export function binTossBandParts(state: BinTossState): BandParts {
 }
 
 function scoreBand(state: BinTossState): number {
+  // binRev 9: the arcade scoring standard (no curve).
+  if (state.std === BINTOSS_STD) return stdScore(binTossStdParts(state)!, Boolean(state.acted));
   if (state.expand === BINTOSS_EXPAND) return bandTotal(binTossBandParts(state), Boolean(state.acted), BINTOSS_V7_MAX);
   return bandTotal(binTossBandParts(state), Boolean(state.acted));
 }
@@ -1359,7 +1368,7 @@ export const BINTOSS_FAR_CAP = 50;
 
 /** The aim launch for a drag on this revision (binRev 7 throws 1.2 times as fast). */
 export function binTossDragFor(rev: number | null | undefined, dx: number, dy: number): DragLaunch | null {
-  if (rev !== BINTOSS_REV_EXPAND && rev !== BINTOSS_REV_SMALL_FAR) return binTossDrag(dx, dy);
+  if (!binTossIsExpand(rev)) return binTossDrag(dx, dy);
   const launch = dragLaunch(dx, dy, BINTOSS_V7_REF_V);
   if (!launch) return null;
   return { ...launch, vx: clampInt(launch.vx, -BINTOSS_VX_MAX, BINTOSS_VX_MAX), vy: clampInt(launch.vy, -BINTOSS_VY_MAX, -1) };
@@ -1381,6 +1390,11 @@ export function binTossFarPoints(state: Pick<BinTossState, "farIn">): number {
 }
 
 function initRev7(seed: number): BinTossState {
+  return drawRev7(seed).state;
+}
+
+/** binRev 7's init, plus which throws its hoop draw picked (binRev 9 re-places a picked hoop placeHoop could not fit). */
+function drawRev7(seed: number): { state: BinTossState; hoopPicked: boolean[] } {
   // Winds and slides first, exactly as every revision draws them; then the far buckets, then rev 3's draws.
   const base = init(seed);
   let rng = base.rng;
@@ -1419,7 +1433,7 @@ function initRev7(seed: number): BinTossState {
     }
     spinners.push(spinner);
   }
-  return {
+  const state: BinTossState = {
     ...bandInit({ ...base, rng, rev: BINTOSS_REV3, hoops, spinners, hooped: 0, swishes: 0, spinBaskets: 0, knockTick: 0 }),
     band: BAND_STRICT_MARK,
     spinHalf: BINTOSS_SPIN_HALF_SHORT,
@@ -1429,6 +1443,7 @@ function initRev7(seed: number): BinTossState {
     farResults: [],
     farWobbleTick: 0,
   };
+  return { state, hoopPicked: hoopPick.picked };
 }
 
 /**
@@ -1486,7 +1501,172 @@ export const binTossSmallFarGame: ArcadeGame<BinTossState, ArcadeInputEvent | nu
   init: (seed: number) => ({ ...initRev7(seed), farHalf: BINTOSS_V8_FAR_HALF, close: 0, closeNow: 0 }),
 };
 
-/** Whether a stored binRev plays in binRev 7's wider fairground (binRev 7 and 8). */
+/** Whether a stored binRev plays in binRev 7's wider fairground (binRev 7, 8 and 9). */
 export function binTossIsExpand(rev: number | null | undefined): boolean {
-  return rev === BINTOSS_REV_EXPAND || rev === BINTOSS_REV_SMALL_FAR;
+  return rev === BINTOSS_REV_EXPAND || rev === BINTOSS_REV_SMALL_FAR || rev === BINTOSS_REV_STD;
 }
+
+/* ============ The arcade scoring standard (binRev 9, 29 Oct 2026; docs/arcade-standard/bintoss.md) ============ */
+
+/**
+ * binRev 9 (the arcade scoring standard, arcadeStandard.ts): binRev 8's play exactly (the same world, ten throws,
+ * winds, slides, buckets, far buckets on throws 1–6, hoops over them, spinners and close misses), with two changes:
+ *
+ *  - exactly three hoops: binRev 8's hoop draw picks three of throws 2–5, but a picked hoop that no makeable throw
+ *    fits was dropped (about one seed in six had two or fewer). binRev 9 places such a hoop again from further draws
+ *    on the same seeded stream (after every binRev 8 draw), up to 16 tries over the same throw's far bucket; only if
+ *    those all fail does it hang over the main bucket on one of throws 7–10 (no far bucket there; spinner-free throws
+ *    first), so a hoop never stands where it rules out a far basket and 200 is reachable on every seed (no seed of
+ *    20,000 needs that fallback). Every run has the same three hoop chances; winds, slides, far buckets, spinners and
+ *    the hoops binRev 8 placed are unchanged;
+ *  - scored on the standard, in straight lines with fixed amounts and no curve: Buckets 13 each and 1 for each
+ *    missed throw that came close (binRev 8's close miss), up to 130; Far buckets 6 each (throws 1–6), up to 36;
+ *    Hoops 8 each (a ball through the hoop and into a bucket), up to 24; All ten in 10. Together 200.
+ *
+ * A far bucket is still a bucket (13 + 6), and a hoop's swish is still a bucket (13 + 8), so no feature costs core.
+ * States add `std: 1` (folded into the checkpoint last). Every older stamp keeps its own init and score.
+ */
+export const BINTOSS_REV_STD = 9;
+export const BINTOSS_STD = 1;
+export const BINTOSS_V9_BUCKET = 13;
+export const BINTOSS_V9_CORE_MAX = 130;
+export const BINTOSS_V9_FAR = 6;
+export const BINTOSS_V9_FAR_MAX = BINTOSS_V9_FAR * BINTOSS_FAR_THROWS;
+export const BINTOSS_V9_HOOP = 8;
+export const BINTOSS_V9_HOOP_MAX = BINTOSS_V9_HOOP * BINTOSS_HOOP_COUNT;
+export const BINTOSS_V9_FINISH = 10;
+/** Seeded tries at a re-placed hoop's height and arc (over a far bucket, or over the main bucket on a later throw). */
+export const BINTOSS_V9_HOOP_TRIES = 16;
+/** binRev 9: a hoop no far bucket could take moves to a throw from here on (0-based 6: throws 7–10, no far bucket). */
+export const BINTOSS_V9_MAIN_HOOP_FROM = BINTOSS_FAR_THROWS;
+/** The core's straight line: 130 at all ten buckets (a fixed-maximum game; close misses add within the 130). */
+export const BINTOSS_V9_BAND_CURVE = bandCurve([0, BINTOSS_THROWS], [0, BINTOSS_V9_CORE_MAX]);
+
+export const BINTOSS_STD_SPEC: StdSpec = {
+  field: "binRev",
+  rev: BINTOSS_REV_STD,
+  parts: [
+    { key: "core", label: "Buckets", max: BINTOSS_V9_CORE_MAX, how: `${BINTOSS_V9_BUCKET} a bucket, 1 a throw that only just misses` },
+    { key: "far", label: "Far buckets", max: BINTOSS_V9_FAR_MAX, how: `${BINTOSS_V9_FAR} each on throws 1-${BINTOSS_FAR_THROWS}` },
+    { key: "hoops", label: "Hoops", max: BINTOSS_V9_HOOP_MAX, how: `${BINTOSS_V9_HOOP} each of ${BINTOSS_HOOP_COUNT}, through the hoop and in` },
+    { key: "finish", label: "All ten in", max: BINTOSS_V9_FINISH, how: "every throw in a bucket" },
+  ],
+};
+
+/** Far points per far basket as a state's revision counts them (binRev 9: 6; binRev 7 and 8: 9). Render and help only. */
+export function binTossFarEach(state: Pick<BinTossState, "std">): number {
+  return state.std === BINTOSS_STD ? BINTOSS_V9_FAR : BINTOSS_FAR_POINTS;
+}
+
+/** The far points a state has earned as its own revision counts them (HUD only). */
+export function binTossFarShown(state: Pick<BinTossState, "std" | "farIn">): number {
+  return state.std === BINTOSS_STD ? stdEach(state.farIn ?? 0, BINTOSS_V9_FAR, BINTOSS_V9_FAR_MAX) : binTossFarPoints(state);
+}
+
+/** binRev 9's standard parts; null for a state on any earlier revision. */
+export function binTossStdParts(state: BinTossState): StdPart[] | null {
+  if (!state || state.std !== BINTOSS_STD) return null;
+  const baskets = clampInt(state.baskets, 0, BINTOSS_THROWS);
+  const close = clampInt(state.close ?? 0, 0, BINTOSS_THROWS);
+  const far = clampInt(state.farIn ?? 0, 0, BINTOSS_FAR_THROWS);
+  const hoops = clampInt(state.swishes ?? 0, 0, BINTOSS_HOOP_COUNT);
+  // All ten in: each of the ten throws' results is a basket.
+  const allIn = state.results.length >= BINTOSS_THROWS && state.results.every((r) => r === 1);
+  const core = Math.min(BINTOSS_V9_CORE_MAX, stdLine(BINTOSS_V9_CORE_MAX, baskets, BINTOSS_THROWS) + close);
+  return [
+    stdPart(BINTOSS_STD_SPEC, "core", core, `${baskets} / ${BINTOSS_THROWS} buckets${close ? ` · ${close} close` : ""}`),
+    stdPart(BINTOSS_STD_SPEC, "far", stdEach(far, BINTOSS_V9_FAR, BINTOSS_V9_FAR_MAX), `${far} of ${BINTOSS_FAR_THROWS} far`),
+    stdPart(BINTOSS_STD_SPEC, "hoops", stdEach(hoops, BINTOSS_V9_HOOP, BINTOSS_V9_HOOP_MAX), `${hoops} of ${BINTOSS_HOOP_COUNT} hoops`),
+    stdPart(BINTOSS_STD_SPEC, "finish", allIn ? BINTOSS_V9_FINISH : 0, allIn ? "all ten in" : `${baskets} of ${BINTOSS_THROWS} in`),
+  ];
+}
+
+/** binRev 9's band parts (the skill-band tool, the band reveal): units are the buckets, points the core part. */
+function binTossV9Parts(state: BinTossState): BandParts {
+  const parts = binTossStdParts(state)!;
+  const bonus = parts.slice(1).reduce((t, p) => t + p.points, 0);
+  const finished = state.baskets >= BINTOSS_THROWS;
+  return {
+    units: clampInt(state.baskets, 0, BINTOSS_THROWS),
+    points: parts[0]!.points,
+    bonus,
+    penalty: 0,
+    finished,
+    text: parts[0]!.detail,
+    bonusText: `${state.farIn ?? 0} far · ${state.swishes ?? 0} hoops${finished ? " · all ten in" : ""}`,
+  };
+}
+
+/** Which bucket each binRev 9 hoop was placed over (placeHoop's reference throw lands in it), null for no hoop. */
+export type BinTossHoopOver = "far" | "main" | null;
+
+function initRev9(seed: number): BinTossState {
+  return planRev9(seed).state;
+}
+
+/**
+ * binRev 9's hoops and which bucket each hangs over (for the checks: every hoop on throws 1–6 is over the far bucket,
+ * so a run can take the far bucket and the hoop on the same throw and 200 is reachable on every seed).
+ */
+export function binTossV9HoopOver(seed: number): BinTossHoopOver[] {
+  return planRev9(seed).over;
+}
+
+function planRev9(seed: number): { state: BinTossState; over: BinTossHoopOver[] } {
+  const { state: base, hoopPicked } = drawRev7(seed);
+  let rng = base.rng;
+  const hoops = [...(base.hoops ?? [])];
+  // binRev 8 placed every hoop it kept over the far bucket (throws 2–5 always have one).
+  const over: BinTossHoopOver[] = hoops.map((h, index) => (h ? ((base.fars?.[index] ?? 0) > 0 ? "far" : "main") : null));
+  // A picked hoop binRev 8 dropped: further seeded tries over that throw's far bucket first.
+  let missing = 0;
+  for (let index = 0; index < BINTOSS_THROWS; index++) {
+    if (!hoopPicked[index] || hoops[index]) continue;
+    const wind = base.winds[index] ?? 0;
+    let hoop: BinTossHoop | null = null;
+    for (let k = 0; k < BINTOSS_V9_HOOP_TRIES && !hoop; k++) {
+      const lift = rngBelow(rng, BINTOSS_HOOP_LIFT_SPAN);
+      const apex = rngBelow(lift.state, 41);
+      rng = apex.state;
+      hoop = placeHoop(index, wind, BINTOSS_HOOP_LIFT_MIN + lift.value, 30 + apex.value, base.fars?.[index] || binTossBinCentre(index), BINTOSS_V7_MAX_SPEED);
+    }
+    hoops[index] = hoop;
+    over[index] = hoop ? ((base.fars?.[index] ?? 0) > 0 ? "far" : "main") : null;
+    if (!hoop) missing++;
+  }
+  // Still missing: the hoop moves to a throw with no far bucket (7–10, BINTOSS_V9_MAIN_HOOP_FROM on), over the main
+  // bucket, so it never stands where a far basket would rule it out. Throws without a spinner first, each pool in a
+  // seeded order.
+  if (missing > 0) {
+    const free: number[] = [];
+    const spun: number[] = [];
+    for (let index = BINTOSS_V9_MAIN_HOOP_FROM; index < BINTOSS_THROWS; index++) (base.spinners?.[index] ? spun : free).push(index);
+    const order: number[] = [];
+    for (const pool of [free, spun]) {
+      while (pool.length > 0) {
+        const draw = rngBelow(rng, pool.length);
+        rng = draw.state;
+        order.push(pool.splice(draw.value, 1)[0]!);
+      }
+    }
+    for (const index of order) {
+      if (missing === 0) break;
+      const wind = base.winds[index] ?? 0;
+      let hoop: BinTossHoop | null = null;
+      for (let k = 0; k < BINTOSS_V9_HOOP_TRIES && !hoop; k++) {
+        const lift = rngBelow(rng, BINTOSS_HOOP_LIFT_SPAN);
+        const apex = rngBelow(lift.state, 41);
+        rng = apex.state;
+        hoop = placeHoop(index, wind, BINTOSS_HOOP_LIFT_MIN + lift.value, 30 + apex.value, binTossBinCentre(index), BINTOSS_V7_MAX_SPEED);
+      }
+      if (!hoop) continue;
+      hoops[index] = hoop;
+      over[index] = "main";
+      missing--;
+    }
+  }
+  return { state: { ...base, rng, hoops, farHalf: BINTOSS_V8_FAR_HALF, close: 0, closeNow: 0, std: BINTOSS_STD }, over };
+}
+
+/** binRev 9: binRev 8's play with exactly three hoops, scored on the arcade standard. */
+export const binTossStdGame: ArcadeGame<BinTossState, ArcadeInputEvent | null> = { ...binTossSmallFarGame, init: initRev9 };

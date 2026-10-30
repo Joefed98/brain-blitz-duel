@@ -30,6 +30,7 @@ export const entry: StdEntry = {
   field: "inkRev",
   rev: INK_REV_STD,
   before: INK_REV_SPREAD,
+  parts: INK_STD.parts,
   spec: INK_STD,
   perfect: () => {
     const runs: StdRun[] = [0, 7, 141].map((n) => {
@@ -46,5 +47,5 @@ export const entry: StdEntry = {
     return { label: `seed ${seed}: one stroke point, never released`, score: replayed(seed, [{ t: 30, k: INK_INPUT_STROKE, a: 100, b: 100, c: 1, d: 0 }]) };
   }),
   idle: () => [0, 1].map((n) => ({ label: `seed ${roomSeed(n)}: no input`, score: replayed(roomSeed(n), []) })),
-  helpTerms: ["45 s", "14"],
+  help: { terms: ["45 s", "14"] },
 };

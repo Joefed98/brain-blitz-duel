@@ -15,7 +15,7 @@ import {
   type InputRange,
 } from "./engine";
 import { bandStrictGame, bandStrict, bandRetarget, bandTargetGame, bandCurveOf, bandCurve, bandInit, bandPoints, bandScoreOf, bandStep, bandTotal, BAND_FINISH_BONUS, type BandFields, type BandParts } from "./scoreBands";
-import { stdBandParts, stdLine, stdTotal, type StdScore, type StdSpec } from "./arcadeStandard";
+import { stdBandParts, stdCore, stdFeatures, stdPartLine, stdTotal, type StdBreakdown, type StdSpec } from "./arcadeStandard";
 import { isin, TRIG_ONE } from "./trig";
 import { drawFlipHazard, flipSurfaceLine } from "./flip.renderer";
 
@@ -1840,8 +1840,10 @@ export const FLIP_REV_STD = 10;
 export const FLIP_STD_HALF_SECONDS = FLIP_RUN_TICKS / 30;
 export const FLIP_STD_DOUBLES = 10;
 export const FLIP_STD: StdSpec = {
-  core: { key: "time", label: "Time survived", max: 150, of: FLIP_STD_HALF_SECONDS, item: "half second" },
-  features: [
+  field: "flipRev",
+  rev: FLIP_REV_STD,
+  parts: [
+    { key: "core", label: "Time survived", max: 150, of: FLIP_STD_HALF_SECONDS, item: "half second" },
     { key: "stars", label: "Gold stars", max: 15, of: FLIP_STARS, item: "gold star" },
     { key: "trails", label: "Star trails", max: 15, of: FLIP_V8_TRAILS, item: "full star trail" },
     { key: "sweets", label: "Sweet landings", max: 10, of: FLIP_V8_SWEETS, item: "sweet landing" },
@@ -1849,7 +1851,7 @@ export const FLIP_STD: StdSpec = {
   ],
 };
 /** The core's straight line: half seconds survived → 0…150. */
-export const FLIP_V10_BAND_CURVE = bandCurve([0, FLIP_STD_HALF_SECONDS], [0, FLIP_STD.core.max]);
+export const FLIP_V10_BAND_CURVE = bandCurve([0, FLIP_STD_HALF_SECONDS], [0, stdCore(FLIP_STD).max]);
 
 /** Half seconds lasted on flipRev 10: the whole run as lived (no pause after a save). */
 export function flipStdUnits(state: Pick<FlipState, "ended" | "tick">): number {
@@ -1858,15 +1860,15 @@ export function flipStdUnits(state: Pick<FlipState, "ended" | "tick">): number {
 }
 
 /** A flipRev 10 run's parts: the core and each feature's points (no penalty). */
-export function flipStdScore(state: FlipState): StdScore {
-  const [stars, trails, sweets, doubles] = FLIP_STD.features;
+export function flipStdScore(state: FlipState): StdBreakdown {
+  const [stars, trails, sweets, doubles] = stdFeatures(FLIP_STD);
   return {
-    core: stdLine(FLIP_STD.core.max, flipStdUnits(state), FLIP_STD.core.of),
+    core: stdPartLine(stdCore(FLIP_STD), flipStdUnits(state)),
     features: {
-      stars: stdLine(stars!.max, flipStarsTaken(state), stars!.of),
-      trails: stdLine(trails!.max, flipTrailStars(state).full, trails!.of),
-      sweets: stdLine(sweets!.max, flipSweetsTaken(state), sweets!.of),
-      doubles: stdLine(doubles!.max, state.combos ?? 0, doubles!.of),
+      stars: stdPartLine(stars!, flipStarsTaken(state)),
+      trails: stdPartLine(trails!, flipTrailStars(state).full),
+      sweets: stdPartLine(sweets!, flipSweetsTaken(state)),
+      doubles: stdPartLine(doubles!, state.combos ?? 0),
     },
     penalty: 0,
   };

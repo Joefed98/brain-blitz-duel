@@ -52,11 +52,13 @@ import {
   SKYLINE_START_W,
   SKYLINE_V7_BAND_CURVE,
   SKYLINE_V8_BAND_CURVE,
+  SKYLINE_V9_BAND_CURVE,
+  SKYLINE_REV_STD,
   SKYLINE_WIDE_GROW,
   SKYLINE_WORLD_RIGHT,
   type SkylineState,
 } from "../src/lib/arcade/skyline";
-import { pinballGame, pinballGameFor, PIN_BALLS, PIN_INPUT_FLIPPERS, PIN_REV_EXPAND, PIN_REV_LONG, PIN_REV_STRICT } from "../src/lib/arcade/pinball";
+import { pinballGame, pinballGameFor, PIN_BALLS, PIN_INPUT_FLIPPERS, PIN_REV_EXPAND, PIN_REV_LONG, PIN_REV_STD, PIN_REV_STRICT, pinIsExpanded } from "../src/lib/arcade/pinball";
 import {
   p4PlungeLane,
   p4PlungeX,
@@ -178,12 +180,14 @@ section("Rooms deal the expansions; recorded runs replay; 200 is the top");
   const sky = generatePuzzle("skyline") as any;
   const pin = generatePuzzle("pinball") as any;
   // skylineRev 8 (27 Oct 2026, Joe's phone notes): skylineRev 7's play on a gentler curve (section 3b).
-  ok(sky.skylineRev === SKYLINE_REV_LIFT && SKYLINE_REV_LIFT === 8 && SKYLINE_REV_EXPAND === 7, `rooms deal skylineRev 8 (${sky.skylineRev})`);
+  // skylineRev 9 (29 Oct 2026, the arcade scoring standard): rev 8's play on the standard (skyline-standard-check).
+  ok(sky.skylineRev === SKYLINE_REV_STD && SKYLINE_REV_STD === 9 && SKYLINE_REV_LIFT === 8 && SKYLINE_REV_EXPAND === 7, `rooms deal skylineRev 9 (${sky.skylineRev})`);
   // Since 27 Oct 2026 rooms deal pinRev 5: this table for 90 s (scripts/pinball-90-check.ts proves it plays as pinRev 4).
-  ok(pin.pinRev === PIN_REV_LONG && PIN_REV_EXPAND === 4 && PIN_REV_LONG === 5, `rooms deal pinRev 5, pinRev 4's table for 90 s (${pin.pinRev})`);
+  // Since 29 Oct 2026 rooms deal pinRev 6: pinRev 5's play on the arcade scoring standard (scripts/pinball-standard-check.ts).
+  ok(pin.pinRev === PIN_REV_STD && PIN_REV_EXPAND === 4 && PIN_REV_LONG === 5 && pinIsExpanded(pin.pinRev), `rooms deal pinRev 6, pinRev 4's table for 90 s (${pin.pinRev})`);
   ok(roundMaxFor("skyline") === 200 && roundMaxFor("pinball") === 200, "both games' round maximum is 200");
-  ok(LIVE_BANDS.skyline.rev === SKYLINE_REV_LIFT && LIVE_BANDS.skyline.curve === SKYLINE_V8_BAND_CURVE, "the High Rise help reads skylineRev 8's curve");
-  ok(LIVE_BANDS.pinball.rev === PIN_REV_LONG && LIVE_BANDS.pinball.curve === PIN_V5_BAND_CURVE, "the Pinball help reads the dealt pinRev 5's curve");
+  ok(LIVE_BANDS.skyline.rev === SKYLINE_REV_STD && LIVE_BANDS.skyline.curve === SKYLINE_V9_BAND_CURVE, "the High Rise help reads skylineRev 9's core line (the arcade scoring standard)");
+  ok(LIVE_BANDS.pinball.rev === PIN_REV_STD && (LIVE_BANDS.pinball as { std?: unknown }).std !== undefined, "the Pinball help reads the dealt pinRev 6's standard");
   for (const curve of [SKYLINE_V7_BAND_CURVE, SKYLINE_V8_BAND_CURVE, PIN_V4_BAND_CURVE, PIN_V5_BAND_CURVE]) {
     ok(curve.points.at(-1) === 200 && curve.units[0] === 0 && curve.points[0] === 0, "the curve runs from (0, 0) to 200");
     for (let i = 1; i < curve.units.length; i++) ok(curve.units[i]! > curve.units[i - 1]! && curve.points[i]! > curve.points[i - 1]!, "the knots rise");

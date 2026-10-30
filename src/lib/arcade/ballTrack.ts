@@ -6,7 +6,7 @@
 
 import { clampInt, finishScore, inputRange, type ArcadeGame, type ArcadeInputEvent } from "./engine";
 import { speedBonusCurve } from "../duel/speedPar";
-import { stdBandParts, stdLine, stdTotal, type StdScore, type StdSpec } from "./arcadeStandard";
+import { stdBandParts, stdCore, stdFeatures, stdPartLine, stdTotal, type StdBreakdown, type StdSpec } from "./arcadeStandard";
 import { BAND_STRICT_MARK, bandStrict, bandRetarget, bandCurveOf, BAND_TARGET_MARK, bandCurve, bandInit, bandPoints, bandScoreOf, bandStep, bandTotal, BAND_FINISH_BONUS, type BandFields, type BandParts } from "./scoreBands";
 
 /* ================================ Config ================================ */
@@ -835,8 +835,10 @@ export const BT_V8_BOOSTS_FULL = BT_V7_BALLS;
 export const BT_V8_COMBOS_FULL = 20;
 /** The arcade standard's parts for btRev 8 (core 140 + gold 25 + combos 20 + boosted 15 = 200). */
 export const BT_STD: StdSpec = {
-  core: { key: "home", label: "Marbles home", max: 140, of: BT_V7_BALLS, item: "marble" },
-  features: [
+  field: "btRev",
+  rev: BT_REV_STD,
+  parts: [
+    { key: "core", label: "Marbles home", max: 140, of: BT_V7_BALLS, item: "marble" },
     { key: "gold", label: "Gold marbles", max: 25, of: BT_V7_GOLDS, item: "gold marble" },
     { key: "combo", label: "Combos", max: 20, of: BT_V8_COMBOS_FULL, item: "combo landing" },
     { key: "boost", label: "Boosted marbles", max: 15, of: BT_V8_BOOSTS_FULL, item: "boosted marble" },
@@ -851,14 +853,14 @@ export function btIsV7Play(rev?: number | null): boolean {
 }
 
 /** btRev 8's breakdown on the standard. */
-export function btStdScore(state: BtState): StdScore {
-  const [gold, combo, boost] = BT_STD.features;
+export function btStdScore(state: BtState): StdBreakdown {
+  const [gold, combo, boost] = stdFeatures(BT_STD);
   return {
-    core: stdLine(BT_STD.core.max, state.home, BT_STD.core.of),
+    core: stdPartLine(stdCore(BT_STD), state.home),
     features: {
-      gold: stdLine(gold!.max, state.golds ?? 0, gold!.of),
-      combo: stdLine(combo!.max, state.combos ?? 0, combo!.of),
-      boost: stdLine(boost!.max, state.boosts ?? 0, boost!.of),
+      gold: stdPartLine(gold!, state.golds ?? 0),
+      combo: stdPartLine(combo!, state.combos ?? 0),
+      boost: stdPartLine(boost!, state.boosts ?? 0),
     },
     penalty: 0,
   };
