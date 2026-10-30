@@ -63,7 +63,8 @@ import {
   RALLY_V10_BAND_CURVE,
   RALLY_V10_BASE_TOP,
 } from "../src/lib/arcade/rally";
-import { beatGameFor, beatThinned, BEAT_LANE_GAP, BEAT_REV_TUNEC, BEAT_REV_TUNEF, BEAT_V5_BAND_CURVE, type BeatState } from "../src/lib/arcade/beat";
+import { beatGameFor, beatThinned, BEAT_LANE_GAP, BEAT_REV_TUNEC, BEAT_REV_TUNEF, BEAT_STD_SPEC, BEAT_V5_BAND_CURVE, type BeatState } from "../src/lib/arcade/beat";
+import { stdHelp } from "../src/lib/arcade/arcadeStandard";
 import { snakeGameFor, snakeRocksEarned, SNAKE_REV_ROCKS, SNAKE_REV_TALL, SNAKE_ROCK_MAX_V6, SNAKE_V6_BAND_CURVE, type SnakeState } from "../src/lib/arcade/snake";
 import { FP, orbitFlightBeltK, ORBIT_REV_SWEPT, ORBIT_REV_TUNED, ORBIT_REV_XP, ORBIT_ROCKET_DIAMETER, ORBIT_TOTAL } from "../src/lib/arcade/orbit";
 import {
@@ -523,7 +524,8 @@ section("Intro and \"?\" help");
   if (want("breaker")) ok(help("breaker").includes("2.5 seconds") && !help("breaker").includes("3.5 seconds"), "Breaker: the Fireball lasts 2.5 seconds");
   // Expansion E9 (docs/expansions/e9.md) moved Rally on to rallyRev 10: its help reads that curve (a good run and the base top).
   if (want("rally")) ok(/second bumper/.test(help("rally")) && /45 s/.test(help("rally")) && PUZZLE_INSTRUCTIONS.rally.score.includes(`up to ${RALLY_V10_BASE_TOP}. A good run (100 points) counts ${bandUnitsFor(RALLY_V10_BAND_CURVE, 100)}`) && /5 a hit/.test(help("rally")) && /counts 6/.test(help("rally")) && !/\+3|scores 3/.test(help("rally")), "Rally: the second bumper from 45 s, the top and a good run new rooms score on (rallyRev 10 since expansion E9) and one value each for a gold hit (5) and a pink pad (6)");
-  if (want("beat")) ok(PUZZLE_INSTRUCTIONS.beat.score.includes("A good run (100 points) reaches 824"), "Tempo: a good run on the curve rooms deal (beatRev 9 since expansion E2)");
+  // The arcade scoring standard (29 Oct 2026): Tempo's beatRev 11 help states its standard parts (beat-standard-check).
+  if (want("beat")) ok(PUZZLE_INSTRUCTIONS.beat.score.includes(stdHelp(BEAT_STD_SPEC)), "Tempo: the help states the scoring rooms deal (beatRev 9 since expansion E2, beatRev 11's standard since 29 Oct 2026)");
   if (want("snake")) ok(/length 9/.test(help("snake")) && /every 4 stars, up to 11/.test(help("snake")) && /at most 14 rocks/.test(help("snake")) && PUZZLE_INSTRUCTIONS.snake.score.includes("150 at 31"), "Meteor: rocks from length 9, every 4 stars, up to 11 (14 with the shower), and the snakeRev 9 top (expansion E2)");
   if (want("orbit")) ok(/Any black hole ahead/.test(help("orbit")) && /any part of the rocket/.test(help("orbit")), "Orbit: any black hole ahead swallows any part of the rocket");
 }

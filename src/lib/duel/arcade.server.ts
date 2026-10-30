@@ -21,7 +21,7 @@ import { dealtNotesRev } from "./phoneNotes";
 import { WAV_REV_TARGET, WAV_REV_STRICT, WAV_REV_PHONE } from "@/lib/arcade/wavefront";
 import { ORBIT_REV_TARGET, ORBIT_REV_STRICT, ORBIT_REV_XP } from "@/lib/arcade/orbit";
 import { RALLY_REV_TARGET, RALLY_REV_STRICT, RALLY_REV_CURVE } from "@/lib/arcade/rally";
-import { BEAT_REV_TARGET, BEAT_REV_EASE } from "@/lib/arcade/beat";
+import { BEAT_REV_TARGET, BEAT_REV_STD } from "@/lib/arcade/beat";
 import { orbitXpCourseForSeed, orbitHolesForBankSeed, orbitRev3BankEntryForSeed, orbitRev3PlanetsForSeed, encodeRev3Planets } from "./orbitRev3Course.server";
 import { proveSwingSeed } from "./swingProof.server";
 import { SWING_V9_BANK } from "./swingBankV9.server";
@@ -151,7 +151,8 @@ export function generateBubble(): BubblePuzzleData {
 
 export function generateBeat(): BeatPuzzleData {
   // beatRev 10 (phone notes, 27 Oct 2026): beatRev 9's song with wider windows and a lighter chart, easiest from the fifth lane.
-  return { type: "beat", seed: arcadeSeed(), beatRev: BEAT_REV_EASE };
+  // beatRev 11 (the arcade scoring standard, 29 Oct 2026): beatRev 10's play scored on the standard (docs/arcade-standard/beat.md).
+  return { type: "beat", seed: arcadeSeed(), beatRev: BEAT_REV_STD };
 }
 
 export function generateTenDrop(): TenDropPuzzleData {

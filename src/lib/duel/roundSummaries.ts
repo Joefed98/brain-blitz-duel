@@ -1143,7 +1143,13 @@ const beatSummary: SummaryBuilder = (result) => {
   const misses = Number(result.extra?.["misses"] ?? 0);
   return {
     summary: `${hits} / ${notes} · ${perfect} perfect · ${misses} miss${misses === 1 ? "" : "es"}`,
-    detail: [`best combo ${Number(result.extra?.["maxCombo"] ?? 0)}`],
+    detail: [
+      `best combo ${Number(result.extra?.["maxCombo"] ?? 0)}`,
+      // beatRev 11 (the arcade scoring standard): the features against the song's own counts.
+      ...(typeof result.extra?.["accuracy"] === "number"
+        ? [`${Number(result.extra?.["fevers"] ?? 0)} fever${Number(result.extra?.["fevers"] ?? 0) === 1 ? "" : "s"} · golden ${Number(result.extra?.["goldsHit"] ?? 0)} / ${Number(result.extra?.["golds"] ?? 0)} · doubles ${Number(result.extra?.["doublesDone"] ?? 0)} / ${Number(result.extra?.["doubles"] ?? 0)} · best Perfect streak ${Number(result.extra?.["maxStreak"] ?? 0)}`]
+        : []),
+    ],
   };
 };
 

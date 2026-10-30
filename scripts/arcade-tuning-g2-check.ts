@@ -30,7 +30,7 @@
  *   bun scripts/arcade-tuning-g2-check.ts
  */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { BEAT_REV_EASE } from "../src/lib/arcade/beat";
+import { BEAT_REV_STD } from "../src/lib/arcade/beat";
 import { readFileSync } from "node:fs";
 import { gunzipSync } from "node:zlib";
 import { fnv } from "./arcade-tuning-a-legacy";
@@ -536,7 +536,7 @@ section("Mixed Signals clashRev 5: the gentler unfinished credit");
 section("Intro demos stay stopped until re-recorded on the taller revision");
 {
   const src = read("src/lib/duel/introDemo.functions.ts");
-  ok(/data\.type === "beat" && demo\?\.puzzle\.type === "beat" && demo\.puzzle\.beatRev !== BEAT_REV_EASE\) return null/.test(src), "Tempo's demo plays only on beatRev 10 (phone notes; beatRev 9 and 6 before it)");
+  ok(/data\.type === "beat" && demo\?\.puzzle\.type === "beat" && demo\.puzzle\.beatRev !== BEAT_REV_STD\) return null/.test(src), "Tempo's demo plays only on beatRev 11 (the scoring standard; beatRev 10, 9 and 6 before it)");
   ok(/data\.type === "slice" && demo\?\.puzzle\.type === "slice" && demo\.puzzle\.sliceRev !== SLICE_REV_TALL\) return null/.test(src), "Slice's demo plays only on sliceRev 6");
   // Expansion E6: Coral Pop's demo now plays only on bubbleRev 8 (e6-check).
   ok(/data\.type === "bubble" && demo\?\.puzzle\.type === "bubble" && demo\.puzzle\.bubbleRev !== (BUB_REV_REEF|BUB_REV_BLAST)\) return null/.test(src), "Coral Pop's demo plays only on bubbleRev 8 (bubbleRev 10 since the phone notes)");

@@ -17,6 +17,7 @@ import {
   type CanvasSize,
   type InputRange,
 } from "./engine";
+import { stdLinear, stdPart, stdScore, stdShare, type StdPart, type StdSpec } from "./arcadeStandard";
 import { bandStrictGame, bandStrict, bandRetarget, bandTargetGame, bandCurveOf, bandCurve, bandInit, bandPoints, bandScoreOf, bandStep, bandTotal, type BandFields, type BandParts } from "./scoreBands";
 
 /* ============================== Constants ============================== */
@@ -218,6 +219,8 @@ export interface BeatState extends BandFields {
   exp?: number;
   /** beatRev 10 only (phone notes, 27 Oct 2026): 1 = the wider hit windows (BEAT_V10_WINDOWS) and the lighter chart. */
   ease?: number;
+  /** beatRev 11 only (the arcade scoring standard, 29 Oct 2026): 1 = scored on BEAT_STD_SPEC (beatRev 10's play). */
+  std?: number;
   /** Fever: the meter (half steps, to BEAT_FEVER_FULL), ticks of fever left, fevers had, quarters earned in fever. */
   meter?: number;
   fever?: number;
@@ -561,6 +564,8 @@ export function beatCheckpoint(state: BeatState): BeatCheckpoint {
   if (state.exp) values.push(state.exp, state.meter ?? 0, state.fever ?? 0, state.fevers ?? 0, state.feverQ ?? 0, state.goldPts ?? 0, state.doublesDone ?? 0, state.streak ?? 0, state.maxStreak ?? 0, state.goldsHit ?? 0, ...state.holding);
   // beatRev 10 (phone notes): its marker, last.
   if (state.ease) values.push(state.ease);
+  // beatRev 11 (the scoring standard): its marker, last.
+  if (state.std) values.push(state.std);
   for (const value of values) {
     checksum ^= value | 0;
     checksum = Math.imul(checksum, 0x01000193) >>> 0;
@@ -722,6 +727,7 @@ export const beatRev2Game: ArcadeGame<BeatState, ArcadeInputEvent | null> = { ..
 
 /** Takes puzzle.beatRev; anything else is the original game. */
 export function beatGameFor(rev?: number | null): ArcadeGame<BeatState, ArcadeInputEvent | null> {
+  if (rev === BEAT_REV_STD) return beatV11Game;
   if (rev === BEAT_REV_EASE) return beatV10Game;
   if (rev === BEAT_REV_200) return beatV9Game;
   if (rev === BEAT_REV_STRICT) return beatStrictGame;
@@ -749,6 +755,7 @@ export const BEAT_REV_BAND = 3;
 export const BEAT_BAND_CURVE = bandCurve([0, 590, 810, 920, 975, 1000], [0, 70, 100, 125, 145, 150]);
 
 export function beatBandParts(state: BeatState): BandParts {
+  if (state.std) return beatV11Parts(state);
   if (state.exp) return beatV9Parts(state);
   const quarters = Math.max(0, BEAT_PERFECT_Q * state.perfect + BEAT_GOOD_Q * state.good + BEAT_OK_Q * state.ok - 2 * state.misses);
   const units = Math.floor((1000 * quarters) / Math.max(1, BEAT_PERFECT_Q * beatNoteCount(state)));
@@ -1231,4 +1238,106 @@ export const BEAT_V10_BAND_CURVE = BEAT_V9_BAND_CURVE;
 export const beatV10Game: ArcadeGame<BeatState, ArcadeInputEvent | null> = {
   ...beatV9Game,
   init: (seed) => ({ ...initV9(seed, V10_PLAN), ease: 1 }),
+};
+
+/* ================= The arcade scoring standard (beatRev 11, 29 Oct 2026) ================= */
+
+/**
+ * beatRev 11 (the arcade scoring standard, docs/arcade-standard/beat.md): beatRev 10's song, chart, windows and
+ * features exactly (the same notes, judging, fever meter, golden notes, double taps and streaks), scored on the
+ * standard (arcadeStandard.ts), with no curve, knots or rising scale:
+ *  - Accuracy up to 130: the chart's per mille (Perfect 4, Good 3, OK 1, a missed note −2, of 4 a note, never
+ *    below 0) on a straight line, full at 1,000 (every note Perfect);
+ *  - Fever up to 25: a share of 25 for each fever started, full at 4 (6, 12, 18, 25). Fever no longer counts
+ *    notes again (no ×2): it is its own fixed part;
+ *  - Golden notes up to 15: the share of the chart's golden notes hit dead on;
+ *  - Double taps up to 15: the share of the chart's double taps with both hits Perfect;
+ *  - Perfect streak up to 15: the longest run of Perfects as a share of the chart's notes (full for every note
+ *    Perfect in one streak).
+ * Earning a feature never costs accuracy: the parts only read the judgements the shared step makes. States add
+ * `std: 1`, folded into the checkpoint checksum last.
+ */
+export const BEAT_REV_STD = 11;
+/** Accuracy (per mille of the chart) at which the core is full: fixed by Joe at 1,000. */
+export const BEAT_V11_ACC_FULL = 1000;
+export const BEAT_V11_CORE_MAX = 130;
+/** Fever is full at this many fevers started (a flawless run starts 4 in the 75 s song). */
+export const BEAT_V11_FEVERS_FULL = 4;
+export const BEAT_V11_MAX = { core: BEAT_V11_CORE_MAX, fever: 25, gold: 15, double: 15, streak: 15 } as const;
+/** The core's straight line (per mille → points), for the help and arcade-help-bands-check. */
+export const BEAT_V11_BAND_CURVE = bandCurve([0, BEAT_V11_ACC_FULL], [0, BEAT_V11_CORE_MAX]);
+
+export const BEAT_STD_SPEC: StdSpec = {
+  field: "beatRev",
+  rev: BEAT_REV_STD,
+  parts: [
+    { key: "core", label: "Accuracy", max: BEAT_V11_MAX.core, how: "Perfect 4, Good 3, OK 1 and a missed note −2, of 4 a note, in thousandths of the song; full at 1,000, every note Perfect" },
+    { key: "fever", label: "Fever", max: BEAT_V11_MAX.fever, how: "for each fever you start, full at 4 fevers" },
+    { key: "gold", label: "Golden notes", max: BEAT_V11_MAX.gold, how: "the share of the song's golden notes hit dead on" },
+    { key: "double", label: "Double taps", max: BEAT_V11_MAX.double, how: "the share of the song's double taps with both hits Perfect" },
+    { key: "streak", label: "Perfect streak", max: BEAT_V11_MAX.streak, how: "your longest run of Perfects as a share of the song's notes" },
+  ],
+};
+
+/** The chart's per mille: Perfect 4, Good 3, OK 1, a miss −2 (floor 0), over 4 × notes. */
+export function beatAccuracy(state: BeatState): number {
+  const quarters = Math.max(0, BEAT_PERFECT_Q * state.perfect + BEAT_GOOD_Q * state.good + BEAT_OK_Q * state.ok - 2 * state.misses);
+  return Math.floor((1000 * quarters) / Math.max(1, BEAT_PERFECT_Q * beatNoteCount(state)));
+}
+
+/** Golden notes and double taps in the chart (both fixed at init from the seed). */
+export function beatFeatureCounts(state: BeatState): { golds: number; doubles: number } {
+  let golds = 0;
+  let doubles = 0;
+  for (const g of state.chart.golds ?? []) if (g) golds += 1;
+  for (const p of state.chart.pairs ?? []) if (p >= 0) doubles += 1;
+  return { golds, doubles };
+}
+
+/** beatRev 11's parts (core first), or null for a state not on the standard. */
+export function beatStdParts(state: BeatState): StdPart[] | null {
+  if (!state.std) return null;
+  const acc = beatAccuracy(state);
+  const { golds, doubles } = beatFeatureCounts(state);
+  const notes = beatNoteCount(state);
+  const fevers = state.fevers ?? 0;
+  const goldsHit = state.goldsHit ?? 0;
+  const done = state.doublesDone ?? 0;
+  const streak = state.maxStreak ?? 0;
+  return [
+    stdPart(BEAT_STD_SPEC, "core", stdLinear(acc, BEAT_V11_ACC_FULL, BEAT_V11_MAX.core), `${acc} of 1,000`),
+    stdPart(BEAT_STD_SPEC, "fever", stdShare(Math.min(fevers, BEAT_V11_FEVERS_FULL), BEAT_V11_FEVERS_FULL, BEAT_V11_MAX.fever), `${fevers} fever${fevers === 1 ? "" : "s"}`),
+    stdPart(BEAT_STD_SPEC, "gold", stdShare(goldsHit, golds, BEAT_V11_MAX.gold), `${goldsHit} of ${golds}`),
+    stdPart(BEAT_STD_SPEC, "double", stdShare(done, doubles, BEAT_V11_MAX.double), `${done} of ${doubles}`),
+    stdPart(BEAT_STD_SPEC, "streak", stdShare(streak, notes, BEAT_V11_MAX.streak), `${streak} of ${notes} notes`),
+  ];
+}
+
+/** The features' points on beatRev 11 (what the HUD's "+n" shows); 0 off the standard. */
+export function beatStdBonus(state: BeatState): number {
+  const parts = beatStdParts(state);
+  if (!parts) return 0;
+  let total = 0;
+  for (const p of parts) if (p.key !== "core") total += p.points;
+  return total;
+}
+
+/** beatRev 11 for the skill-band tool: units = the chart's per mille, points = accuracy, bonus = the features. */
+export function beatV11Parts(state: BeatState): BandParts {
+  const parts = beatStdParts(state) ?? [];
+  return {
+    units: beatAccuracy(state),
+    points: parts[0]?.points ?? 0,
+    bonus: beatStdBonus(state),
+    penalty: 0,
+    finished: false,
+    text: `${state.perfect} perfect · ${state.good} good · ${state.ok} OK · ${state.misses} missed`,
+    bonusText: parts.slice(1).map((p) => `${p.label} ${p.points}`).join(" · "),
+  };
+}
+
+export const beatV11Game: ArcadeGame<BeatState, ArcadeInputEvent | null> = {
+  ...beatV10Game,
+  init: (seed) => ({ ...beatV10Game.init(seed), std: 1 }),
+  score: (state) => stdScore(beatStdParts(state) ?? [], Boolean(state.acted)),
 };

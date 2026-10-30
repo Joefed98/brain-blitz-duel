@@ -43,6 +43,8 @@ import {
   BEAT_JUDGE_PERFECT,
   BEAT_REV_200,
   BEAT_REV_EASE,
+  BEAT_REV_STD,
+  BEAT_STD_SPEC,
   BEAT_V10_BAND_CURVE,
   BEAT_V10_WINDOWS,
   BEAT_V9_BAND_CURVE,
@@ -67,10 +69,12 @@ const digest = (state: unknown) => createHash("sha256").update(JSON.stringify(st
 const spec = GAME_BY_TYPE.get("beat" as never)!;
 
 /* 1. Wiring. */
-ok((generatePuzzle("beat") as any).beatRev === BEAT_REV_EASE && BEAT_REV_EASE === BEAT_REV_200 + 1, "rooms deal beatRev 10 (one above beatRev 9)");
-ok(LIVE_BANDS.beat.rev === BEAT_REV_EASE && LIVE_BANDS.beat.curve === BEAT_V10_BAND_CURVE && BEAT_V10_BAND_CURVE === BEAT_V9_BAND_CURVE, "the help reads beatRev 10's curve (beatRev 9's)");
+// The arcade scoring standard (29 Oct 2026) moved rooms on to beatRev 11, beatRev 10's play on the standard
+// (beat-standard-check); beatRev 10 stays proved here.
+ok((generatePuzzle("beat") as any).beatRev === BEAT_REV_STD && BEAT_REV_STD === BEAT_REV_EASE + 1 && BEAT_REV_EASE === BEAT_REV_200 + 1, "rooms deal beatRev 11 (beatRev 10, one above beatRev 9, before the scoring standard)");
+ok(LIVE_BANDS.beat.rev === BEAT_REV_STD && LIVE_BANDS.beat.std === BEAT_STD_SPEC && BEAT_V10_BAND_CURVE === BEAT_V9_BAND_CURVE, "beatRev 10 scored on beatRev 9's curve; the help reads beatRev 11's standard");
 ok(ROUND_MAX.beat === 200, "Tempo's round maximum stays 200");
-ok(/data\.type === "beat" && demo\?\.puzzle\.type === "beat" && demo\.puzzle\.beatRev !== BEAT_REV_EASE\) return null/.test(readFileSync("src/lib/duel/introDemo.functions.ts", "utf8")), "Tempo's intro demo is stopped until recorded on beatRev 10");
+ok(/data\.type === "beat" && demo\?\.puzzle\.type === "beat" && demo\.puzzle\.beatRev !== BEAT_REV_STD\) return null/.test(readFileSync("src/lib/duel/introDemo.functions.ts", "utf8")), "Tempo's intro demo is stopped until recorded on beatRev 11 (beatRev 10 before the scoring standard)");
 ok(beatGameFor(BEAT_REV_EASE).runTicks === BEAT_V9_RUN_TICKS, "beatRev 10 keeps the 75 s song");
 
 /* 2. The windows. */
