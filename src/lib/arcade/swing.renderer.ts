@@ -1370,11 +1370,12 @@ function drawAssault(ctx: CanvasRenderingContext2D, state: SwingState, sx: (x: n
   }
 }
 
-/** swingRev 14's HUD: "SECTION x / y" left, the section's par clock in the middle, stars and gems right. */
+/** swingRev 14's HUD (and 15's, "STRETCH x / y"): "SECTION x / y" left, the section's par clock in the middle, stars and gems right. */
 function drawAssaultHud(ctx: CanvasRenderingContext2D, state: SwingState, width: number): void {
   const c = swingAssaultCounts(state);
   const shown = Math.min(c.sectionTotal, c.sections + (c.sections < c.sectionTotal ? 1 : 0));
-  successHud(ctx, "swing", state.tick, 14, 26, () => ctx.fillText(`SECTION ${shown} / ${c.sectionTotal}`, 14, 26));
+  // swingRev 15 counts stretches (the help's word); swingRev 14 sections.
+  successHud(ctx, "swing", state.tick, 14, 26, () => ctx.fillText(state.rework ? `STRETCH ${shown} / ${c.sectionTotal}` : `SECTION ${shown} / ${c.sectionTotal}`, 14, 26));
   ctx.font = "600 13px 'JetBrains Mono', ui-monospace, monospace";
   const clock = swingAssaultClock(state);
   if (clock && clock.par > 0) {

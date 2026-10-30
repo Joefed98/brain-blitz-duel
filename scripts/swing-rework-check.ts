@@ -262,6 +262,26 @@ function witness(seed: number) {
   return { plan, final: s, starts, times, total: s.tick + moved };
 }
 
+/**
+ * A grab worth having, in the real sim: from the state just after it, the rope's first forward pass (no input) stays
+ * clear of a miss for 16 ticks or more and rises ahead of its hook for 6 or more (the build's v15Good, tick by tick).
+ */
+function goodSwing(after: SwingState): boolean {
+  if (after.om <= 0) return false;
+  let s = after;
+  const ax = s.anchors[s.rope]!.x;
+  let length = 2;
+  let rising = 0;
+  for (let r = 2; r <= 160; r++) {
+    const py = s.y;
+    s = step(s, null);
+    if ((s.restarts ?? 0) > (after.restarts ?? 0) || s.rope !== after.rope) return false;
+    length += 1;
+    if (r >= 4 && s.om > 0 && s.y < py && s.x > ax) rising += 1;
+    if (s.om <= 0) break;
+  }
+  return length >= 16 && rising >= 6;
+}
 const playSeeds = courseSeeds.slice(0, FULL ? 16 : 4);
 let worstBeat = Infinity;
 let featuresProved = 0;
@@ -294,10 +314,11 @@ for (const seed of playSeeds) {
     const R = G + (f.reel >= 0 ? f.reel : 0) + f.r;
     events.set(R, hold(0));
     while (s.tick < R) s = step(s, events.get(s.tick + 1) ?? null);
+    // The line's grab: the first press that takes the next hook with a good swing after it (the proof's own rule).
     let caught: SwingState | null = null;
     for (let g = 1; g <= 60 && !caught; g++) {
       const on = step(s, hold(1));
-      if (on.rope === next && (on.restarts ?? 0) === 0) caught = on;
+      if (on.rope === next && (on.restarts ?? 0) === 0 && goodSwing(on)) caught = on;
       s = step(s, null);
       if ((s.restarts ?? 0) > 0) break;
     }
@@ -496,7 +517,7 @@ console.log(`witness: ${playSeeds.length} courses cleared by their own planned r
   const demo = readFileSync("src/lib/duel/introDemo.functions.ts", "utf8");
   ok(/data\.type === "swing" && demo\?\.puzzle\.type === "swing" && demo\.puzzle\.swingRev !== SWING_REV_REWORK\) return null/.test(demo), "Grappler's intro demo stays stopped until one is recorded on swingRev 15");
   const art = readFileSync("src/lib/arcade/swing.renderer.ts", "utf8");
-  ok(/SECTION \$\{/.test(art) && /PAR \$\{/.test(art) && /state\.assault && !state\.rework \? assaultLimit/.test(art), "the HUD shows the stretch count and par; the swinging course has no veil");
+  ok(/STRETCH \$\{/.test(art) && /PAR \$\{/.test(art) && /state\.assault && !state\.rework \? assaultLimit/.test(art), "the HUD shows the stretch count and par; the swinging course has no veil");
   const s = game.init(roomSeed(3));
   ok(swingAssaultPar(s, 0).time === -1, "an uncleared stretch has no time");
 }
