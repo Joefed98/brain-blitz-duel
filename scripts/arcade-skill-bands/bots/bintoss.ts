@@ -138,7 +138,10 @@ export const bot: SkillBot = ({ game, seed, human, fixes }) => {
     // binRev 7: go for the far bucket (its hoop hangs over it), or play the main bucket and leave the hoop.
     const farAt = expand ? (s.fars?.[index] ?? 0) : 0;
     const goFar = farAt > 0 && human.chance(GO_FAR[level]!);
-    const wantHoop = Boolean(s.hoops?.[index]) && (!expand || goFar || !farAt);
+    // binRev 9: a hoop binRev 8 dropped may be re-placed over the main bucket; the player then takes it on a main throw.
+    const hoopAt = s.hoops?.[index] ?? null;
+    const hoopOverMain = s.std !== undefined && hoopAt !== null && farAt > 0 && Math.abs(hoopAt.x - binTossBinCentre(index)) < Math.abs(hoopAt.x - farAt);
+    const wantHoop = Boolean(hoopAt) && (hoopOverMain ? !goFar : !expand || goFar || !farAt);
     const spinner = Boolean(s.spinners?.[index]);
     const slide = s.slides[index]!;
     const sliding = slide.amp > 0;

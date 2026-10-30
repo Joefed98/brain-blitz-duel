@@ -52,6 +52,7 @@ import {
   p4RailTicks,
   pinball4Game,
   pinball5Game,
+  pinball6Game,
   P4_ARCH,
   P4_BUMPERS,
   P4_COMBO_TICKS,
@@ -89,6 +90,7 @@ import {
   P4_WORLD_W,
   PIN_REV_EXPAND,
   PIN_REV_LONG,
+  PIN_REV_STD,
   type P4Ball,
   type Pin4State,
 } from "./pinball4";
@@ -780,9 +782,9 @@ export const PINBALL4_FX: ArcadeFxSpec<Pin4State> = {
     { kind: "perfect", count: (s) => s.drops, at: () => ({ x: 190, y: P4_TARGET_Y }), label: () => "TARGET!", textOnly: true, bulbs: RIPPLE },
     { kind: "clear", count: (s) => s.banks, at: () => ({ x: 190, y: P4_TARGET_Y }), label: () => "BANK DOWN!", textOnly: true, neon: true, bulbs: STRONG },
     { kind: "pop", count: (s) => s.laneLights, at: () => ({ x: 186, y: P4_LANE_SENSOR_Y + 40 }), label: () => null, textOnly: true, bulbs: RIPPLE },
-    { kind: "streak", count: (s) => s.laneSets, at: () => ({ x: 186, y: P4_LANE_SENSOR_Y + 70 }), label: (s) => `J-O-U-L-Z! x${s.mult}`, textOnly: true, neon: true, bulbs: STRONG },
+    { kind: "streak", count: (s) => s.laneSets, at: () => ({ x: 186, y: P4_LANE_SENSOR_Y + 70 }), label: (s) => (s.rev6 ? "J-O-U-L-Z!" : `J-O-U-L-Z! x${s.mult}`), textOnly: true, neon: true, bulbs: STRONG },
     { kind: "combo", count: (s) => s.spins, minDelta: 8, at: () => ({ x: ORBIT_MID + 30, y: P4_SPINNER_Y }), label: () => "SPINNER!", textOnly: true, bulbs: RIPPLE },
-    { kind: "combo", count: (s) => s.ramps, at: (s) => ({ x: s.rampSide === 2 ? 270 : 110, y: P4_RAMP_Y + 60 }), label: (s) => (s.combo > 1 ? `COMBO x${s.combo}!` : `RAMP! x${s.mult}`), textOnly: true, bulbs: RIPPLE },
+    { kind: "combo", count: (s) => s.ramps, at: (s) => ({ x: s.rampSide === 2 ? 270 : 110, y: P4_RAMP_Y + 60 }), label: (s) => (s.rev6 ? (s.combo > 1 ? "COMBO!" : "RAMP!") : s.combo > 1 ? `COMBO x${s.combo}!` : `RAMP! x${s.mult}`), textOnly: true, bulbs: RIPPLE },
     { kind: "perfect", count: (s) => s.locksMade, at: () => ({ x: P4_MID_X, y: 236 }), label: (s) => (s.locks === 0 ? "MULTIBALL!" : `BALL ${s.locks} LOCKED`), textOnly: true, neon: true, bulbs: STRONG },
     { kind: "clear", count: (s) => s.jackpots, at: () => ({ x: P4_MID_X, y: P4_JACKPOT.a[1] - 30 }), label: () => "JACKPOT!", textOnly: true, neon: true, sweep: true, bulbs: STRONG },
     { kind: "perfect", count: (s) => s.skills, at: (s) => ({ x: laneCentre(Math.max(0, s.skillLane)), y: P4_LANE_SENSOR_Y + 50 }), label: () => "SKILL SHOT!", textOnly: true, neon: true, bulbs: STRONG },
@@ -799,8 +801,12 @@ export const pinball4ArtGame: ArcadeGame<Pin4State, ArcadeInputEvent | null> = {
 /** pinRev 5's 90-second run on the same table and art. */
 export const pinball5ArtGame: ArcadeGame<Pin4State, ArcadeInputEvent | null> = { ...pinball5Game, draw: (ctx, state, size) => draw(ctx, state, size) };
 
-/** The art game for any stored pinRev: pinRev 5 and 4 this table, older ones pinball.renderer's. */
+/** pinRev 6 (the arcade scoring standard): pinRev 5's run on the same table and art. */
+export const pinball6ArtGame: ArcadeGame<Pin4State, ArcadeInputEvent | null> = { ...pinball6Game, draw: (ctx, state, size) => draw(ctx, state, size) };
+
+/** The art game for any stored pinRev: pinRev 6, 5 and 4 this table, older ones pinball.renderer's. */
 export function pinballArtGameForAny(rev?: number | null): ArcadeGame<PinState, ArcadeInputEvent | null> {
+  if (rev === PIN_REV_STD) return pinball6ArtGame as unknown as ArcadeGame<PinState, ArcadeInputEvent | null>;
   if (rev === PIN_REV_LONG) return pinball5ArtGame as unknown as ArcadeGame<PinState, ArcadeInputEvent | null>;
   return rev === PIN_REV_EXPAND ? (pinball4ArtGame as unknown as ArcadeGame<PinState, ArcadeInputEvent | null>) : pinballArtGameFor(rev);
 }

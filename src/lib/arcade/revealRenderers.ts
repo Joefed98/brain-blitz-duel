@@ -16,7 +16,7 @@ import { matchupWorldHFor } from "./matchup";
 import { breakerArtGameFor } from "./breaker.renderer";
 import { breakerWorldHFor, breakerWorldWFor } from "./breaker";
 import { rallyWorldHFor, rallyWorldWFor } from "./rally";
-import { BULLSEYE_REV_EXPAND, BULLSEYE_V8_WORLD_H } from "./bullseye";
+import { BULLSEYE_V8_WORLD_H, bullseyeTallRev } from "./bullseye";
 /** A stored round's world height in the reveal's 390-wide box: the 420-wide expansion court (brkRev 9) scales down whole. */
 const in390 = (w: number, h: number) => (w === 390 ? h : Math.round((h * 390) / w));
 import { drawPinballAny, pinballWorldHFor } from "./pinball4.renderer";
@@ -164,8 +164,8 @@ export const ARCADE_REVEAL_RENDERERS: Record<string, ArcadeRevealRenderer> = {
     (p) => (p.type === "bintoss" && binTossIsExpand(p.binRev) ? Math.round((390 * BINTOSS_V7_WORLD_H) / BINTOSS_V7_WORLD_W) : 560)),
   bullseye: simple(GOLD, 390, 560, { draw: drawBullseye }, (p, a) =>
     replayBullseyeRun(seedOf(p), a, p.type === "bullseye" ? p.winds : [], p.type === "bullseye" ? p.bullRev : undefined),
-    // bullRev 8 (expansion E9): the taller range.
-    undefined, undefined, (p) => (p.type === "bullseye" && p.bullRev === BULLSEYE_REV_EXPAND ? BULLSEYE_V8_WORLD_H : 560),
+    // bullRev 8 (expansion E9) and 9 (the scoring standard): the taller range.
+    undefined, undefined, (p) => (p.type === "bullseye" && bullseyeTallRev(p.bullRev) ? BULLSEYE_V8_WORLD_H : 560),
   ),
   matchup: simple(GOLD, 390, 560, matchupGame, (p, a) => replayMatchupRun(seedOf(p), a, p.type === "matchup" ? p.matchupRev : undefined), undefined, undefined, (p) => matchupWorldHFor(p.type === "matchup" ? p.matchupRev : undefined)),
   breaker: {

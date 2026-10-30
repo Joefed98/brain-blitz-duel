@@ -38,6 +38,7 @@ import {
   type InputRange,
 } from "./engine";
 import { speedBonusCurve } from "../duel/speedPar";
+import { stdEach, stdLine, stdPart, stdScore, type StdPart, type StdSpec } from "./arcadeStandard";
 import { bandStrictGame, bandStrict, bandRetarget, bandTargetGame, bandCurveOf, bandCurve, bandInit, bandPoints, bandTop, bandScoreOf, bandStep, bandTotal, BAND_FINISH_BONUS, type BandFields, type BandParts } from "./scoreBands";
 
 /* ============================== Constants ============================== */
@@ -173,6 +174,12 @@ export interface BubState extends BandFields {
   credit?: number;
   /** bubbleRev 10 only (phone notes, 27 Oct 2026): the mine's blast radius in hex rings (BUB_V10_BOMB_RADIUS). Absent = BUB_BOMB_RADIUS. */
   bombR?: number;
+  /**
+   * bubbleRev 11 only (the arcade scoring standard, 29 Oct 2026): the mine pops this many bubbles, those nearest
+   * where it lands (BUB_V11_MINE_POPS), and `std` marks a state scored on the standard (BUB_V11_STD_SPEC).
+   */
+  minePops?: number;
+  std?: number;
   chests?: number;
   banks?: number;
   combos?: number;
@@ -577,7 +584,9 @@ function step(state: BubState, input: ArcadeInputEvent | null): BubState {
       next.flightColour = 0;
       next.shots = next.shots + 1;
       // bubbleRev 10: the mine's bigger blast (state.bombR); every earlier stamp keeps BUB_BOMB_RADIUS.
-      const { cleared, keep } = resolveSpecial(grid, landed, kind, next.bombR ?? BUB_BOMB_RADIUS);
+      // bubbleRev 11: the mine pops only the state.minePops bubbles nearest where it lands (bubMineNearest).
+      const { cleared, keep } =
+        kind === BUB_BOMB && next.minePops ? { cleared: bubMineNearest(grid, landed, next.minePops), keep: 0 } : resolveSpecial(grid, landed, kind, next.bombR ?? BUB_BOMB_RADIUS);
       for (const index of cleared) grid[index] = 0;
       grid[landed] = keep;
       // A Joker that popped groups counts itself among the popped, as a matching shot does.
@@ -803,6 +812,8 @@ export function bubCheckpoint(state: BubState): BubCheckpoint {
   if (state.reef) extra.push(state.reef, state.chests ?? 0, state.banks ?? 0, state.combos ?? 0, state.streak ?? 0, state.bounce ?? 0);
   // bubbleRev 10 (phone notes): the mine's blast radius, last.
   if (state.bombR) extra.push(state.bombR);
+  // bubbleRev 11 (the arcade scoring standard): the mine's pop count, last.
+  if (state.minePops) extra.push(state.minePops);
   for (const value of [...Object.values(snapshot), ...extra]) {
     checksum ^= value | 0;
     checksum = Math.imul(checksum, 0x01000193) >>> 0;
@@ -987,6 +998,7 @@ export const bubbleRev2Game: ArcadeGame<BubState, ArcadeInputEvent | null> = { .
 
 /** The game for a stored round: its bubbleRev picks the rules (absent = original). */
 export function bubbleGameFor(rev?: number | null): ArcadeGame<BubState, ArcadeInputEvent | null> {
+  if (rev === BUB_REV_STD) return bubbleStdGame;
   if (rev === BUB_REV_BLAST) return bubbleBlastGame;
   if (rev === BUB_REV_CREDIT) return bubbleCreditGame;
   if (rev === BUB_REV_REEF) return bubbleReefGame;
@@ -1012,6 +1024,8 @@ export const BUB_V3_JOKER_BLOCK = 22;
 export const BUB_BAND_CURVE = bandCurve([0, 36, 50, 60, 64, 66, 67], [0, 70, 100, 120, 132, 138, 140]);
 
 export function bubbleBandParts(state: BubState): BandParts {
+  // bubbleRev 11 (the arcade scoring standard): units are the core's bubbles cleared, points the core's, bonus the features.
+  if (state.std) return bubbleStdBandParts(state);
   const start = Math.max(1, state.startCount);
   const units = state.cleared ? start : clampInt(start - bubRemaining(state), 0, start);
   const finished = Boolean(state.cleared);
@@ -1105,7 +1119,7 @@ export const bubbleTallGame: ArcadeGame<BubState, ArcadeInputEvent | null> = {
 
 /** The tank height (px) a stored round's bubbleRev plays in. */
 export function bubbleWorldHFor(rev?: number | null): number {
-  return rev === BUB_REV_TALL || rev === BUB_REV_TARGET || rev === BUB_REV_STRICT || rev === BUB_REV_REEF || rev === BUB_REV_CREDIT || rev === BUB_REV_BLAST ? BUB_TALL_H : BUB_WORLD_H;
+  return rev === BUB_REV_STD || rev === BUB_REV_TALL || rev === BUB_REV_TARGET || rev === BUB_REV_STRICT || rev === BUB_REV_REEF || rev === BUB_REV_CREDIT || rev === BUB_REV_BLAST ? BUB_TALL_H : BUB_WORLD_H;
 }
 
 /* ================= Scoring targets (bubbleRev 6, 18 Oct 2026) ================= */
@@ -1299,4 +1313,147 @@ export function bubBombRadius(state: { bombR?: number }): number {
 export const bubbleBlastGame: ArcadeGame<BubState, ArcadeInputEvent | null> = {
   ...bubbleCreditGame,
   init: (seed) => ({ ...bubbleCreditGame.init(seed), bombR: BUB_V10_BOMB_RADIUS }),
+};
+
+/* ================= bubbleRev 11 (29 Oct 2026): the arcade scoring standard ================= */
+
+/**
+ * bubbleRev 11 (the arcade scoring standard, docs/arcade-standard/bubble.md): bubbleRev 10's reef, queue, chests,
+ * bank shots and combos, with two changes:
+ *  - Play: the mine pops only the BUB_V11_MINE_POPS bubbles nearest where it lands (bubMineNearest: by the squared
+ *    distance in px between cell centres, ties to the lower cell index; a chest is a bubble here, as on every earlier
+ *    revision, and one popped by the mine pays nothing) instead of bubbleRev 10's two rings. Bubbles left hanging then
+ *    drop as after any pop and count as cleared. States add `minePops` (folded into the checkpoint checksum last) and
+ *    `std`, and carry no `bombR`.
+ *  - Score (arcadeStandard.ts, 200 in all, integer maths): core up to 120 on a straight line, 120 × bubbles cleared ÷
+ *    the reef's starting bubbles (95 on every seed), full only when the reef is cleared; clearing the reef 10; speed up
+ *    to 10 (a cleared reef only: full with half the clock or more left, then even to 0 at the buzzer); 5 for each of the
+ *    6 seeded chests that falls; 1 for every BUB_V11_BANK_PER bank shots up to 15; BUB_V11_COMBO_EACH for each combo up to
+ *    15. No feature curve. Bubbles cleared are the reef's net shrink, or a quarter of the bubbles burst or dropped when
+ *    that is more (bubbleRev 9's credit, bubStdCleared).
+ */
+export const BUB_REV_STD = 11;
+export const BUB_V11_MINE_POPS = 4;
+export const BUB_V11_CORE_MAX = 120;
+export const BUB_V11_CLEAR = 10;
+export const BUB_V11_SPEED_MAX = 10;
+/** Speed is full when the reef is cleared with this many ticks or more left (half the clock). */
+export const BUB_V11_SPEED_FULL_LEFT = BUB_RUN_TICKS / 2;
+export const BUB_V11_CHEST_EACH = 5;
+export const BUB_V11_CHESTS_MAX = 30;
+/** Bank shots pay 1 for every BUB_V11_BANK_PER (half a point each), up to 15 (30 bank shots): near-perfect play makes about 25. */
+export const BUB_V11_BANK_PER = 2;
+export const BUB_V11_BANK_MAX = 15;
+export const BUB_V11_COMBO_EACH = 1;
+export const BUB_V11_COMBO_MAX = 15;
+/** The reef's starting bubbles (BUB_V8_START_ROWS rows of 10 and 9, chests included): the core's full-at figure. */
+export const BUB_V11_REEF = 95;
+
+/**
+ * bubbleRev 11: the `count` bubbles nearest the mine's landing cell (the landing cell itself excluded), nearest first
+ * by squared distance between cell centres in px (integers; descents shift every row alike), ties to the lower index.
+ */
+export function bubMineNearest(grid: readonly number[], landed: number, count: number): number[] {
+  const lr = Math.floor(landed / BUB_COLS);
+  const lx = bubCellX(lr, landed % BUB_COLS);
+  const ly = bubCellY(lr, 0);
+  const near: Array<[number, number]> = [];
+  for (let index = 0; index < grid.length; index++) {
+    if (index === landed || !grid[index]) continue;
+    const row = Math.floor(index / BUB_COLS);
+    const dx = bubCellX(row, index % BUB_COLS) - lx;
+    const dy = bubCellY(row, 0) - ly;
+    near.push([dx * dx + dy * dy, index]);
+  }
+  near.sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+  return near
+    .slice(0, count)
+    .map(([, index]) => index)
+    .sort((a, b) => a - b);
+}
+
+export const BUB_V11_STD_SPEC: StdSpec = {
+  field: "bubbleRev",
+  rev: BUB_REV_STD,
+  parts: [
+    { key: "core", label: "Bubbles cleared", max: BUB_V11_CORE_MAX, how: `in proportion, full when all ${BUB_V11_REEF} reef bubbles are cleared` },
+    { key: "clear", label: "Reef cleared", max: BUB_V11_CLEAR, how: "clear the whole reef" },
+    { key: "speed", label: "Speed", max: BUB_V11_SPEED_MAX, how: "when the reef is cleared: full with half the clock left, falling to 0 at the buzzer" },
+    { key: "chests", label: "Chests", max: BUB_V11_CHESTS_MAX, how: `${BUB_V11_CHEST_EACH} for each of the ${BUB_V8_CHESTS} chests that falls` },
+    { key: "banks", label: "Bank shots", max: BUB_V11_BANK_MAX, how: `1 for every ${BUB_V11_BANK_PER}` },
+    { key: "combos", label: "Combos", max: BUB_V11_COMBO_MAX, how: `${BUB_V11_COMBO_EACH} each` },
+  ],
+};
+
+/**
+ * bubbleRev 11: the core's bubbles cleared, 0…the reef's starting count: the whole reef when it is cleared, else its
+ * net shrink, or a quarter of the bubbles burst or dropped when that is more (at most (95 + 120 shots) ÷ 4 = 53 in play,
+ * so only a cleared reef reaches the full count).
+ */
+export function bubStdCleared(state: BubState): number {
+  const start = Math.max(1, state.startCount);
+  if (state.cleared) return start;
+  const net = clampInt(start - bubRemaining(state), 0, start);
+  const burst = clampInt(Math.floor(((state.popped ?? 0) + (state.dropped ?? 0)) / BUB_V9_CREDIT_PER), 0, start);
+  return Math.max(net, burst);
+}
+
+/** bubbleRev 11's standard parts (null for any other revision's state). */
+export function bubbleStdParts(state: BubState): StdPart[] | null {
+  if (!state?.std) return null;
+  const spec = BUB_V11_STD_SPEC;
+  const start = Math.max(1, state.startCount);
+  const cleared = bubStdCleared(state);
+  const left = state.cleared ? BUB_RUN_TICKS - clampInt(state.endedTick, 0, BUB_RUN_TICKS) : 0;
+  const chests = state.chests ?? 0;
+  const banks = state.banks ?? 0;
+  const combos = state.combos ?? 0;
+  const plural = (k: number, one: string, many: string) => `${k} ${k === 1 ? one : many}`;
+  return [
+    stdPart(spec, "core", stdLine(BUB_V11_CORE_MAX, cleared, start), `${cleared} of ${start} bubbles`),
+    stdPart(spec, "clear", state.cleared ? BUB_V11_CLEAR : 0, state.cleared ? "reef cleared" : "not cleared"),
+    stdPart(spec, "speed", state.cleared ? stdLine(BUB_V11_SPEED_MAX, left, BUB_V11_SPEED_FULL_LEFT) : 0, state.cleared ? `${Math.floor(left / TICKS_PER_SECOND)} s left` : "not cleared"),
+    stdPart(spec, "chests", stdEach(chests, BUB_V11_CHEST_EACH, BUB_V11_CHESTS_MAX), `${chests} of ${BUB_V8_CHESTS} fell`),
+    stdPart(spec, "banks", stdLine(BUB_V11_BANK_MAX, banks, BUB_V11_BANK_PER * BUB_V11_BANK_MAX), plural(banks, "bank shot", "bank shots")),
+    stdPart(spec, "combos", stdEach(combos, BUB_V11_COMBO_EACH, BUB_V11_COMBO_MAX), plural(combos, "combo", "combos")),
+  ];
+}
+
+/** bubbleRev 11's feature points so far (chests, bank shots and combos, as scored). */
+export function bubStdFeaturePoints(state: BubState): number {
+  return (
+    stdEach(state.chests ?? 0, BUB_V11_CHEST_EACH, BUB_V11_CHESTS_MAX) +
+    stdLine(BUB_V11_BANK_MAX, state.banks ?? 0, BUB_V11_BANK_PER * BUB_V11_BANK_MAX) +
+    stdEach(state.combos ?? 0, BUB_V11_COMBO_EACH, BUB_V11_COMBO_MAX)
+  );
+}
+
+/** bubbleRev 11 as BandParts (the skill-band tool reads `units`): the core's bubbles cleared, its points, the rest as bonus. */
+function bubbleStdBandParts(state: BubState): BandParts {
+  const parts = bubbleStdParts(state) ?? [];
+  const start = Math.max(1, state.startCount);
+  const units = bubStdCleared(state);
+  let bonus = 0;
+  for (const p of parts.slice(1)) bonus += p.points;
+  return {
+    units,
+    points: parts[0]?.points ?? 0,
+    bonus,
+    penalty: 0,
+    finished: Boolean(state.cleared),
+    text: state.cleared ? "Reef cleared" : `${units} / ${start} bubbles cleared`,
+    bonusText: parts
+      .slice(1)
+      .map((p) => `${p.label} ${p.points}`)
+      .join(" · "),
+  };
+}
+
+/** The bubbleRev 11 band curve: the core's straight line (0 → 120 at the whole reef). */
+export const BUB_V11_BAND_CURVE = bandCurve([0, BUB_V11_REEF], [0, BUB_V11_CORE_MAX]);
+
+export const bubbleStdGame: ArcadeGame<BubState, ArcadeInputEvent | null> = {
+  ...bubbleCreditGame,
+  init: (seed) => ({ ...initReef(seed), credit: 1, minePops: BUB_V11_MINE_POPS, std: 1 }),
+  score: (state) => (state.std ? stdScore(bubbleStdParts(state) ?? [], Boolean(state.acted)) : bubbleCreditGame.score(state)),
 };

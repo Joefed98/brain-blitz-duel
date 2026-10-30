@@ -51,7 +51,8 @@ import { swingGameFor, SWING_BAND_CURVE, SWING_REV_TUNED, SWING_REV_TUNEC, SWING
 import { hoverGameFor, HOVER_BAND_CURVE, HOVER_REV_BAND, HOVER_REV_TALL, HOVER_REV_TUNEC, HOVER_V4_BAND_CURVE } from "../src/lib/arcade/hover";
 import { inkBridgeGameFor, INK_BAND_CURVE, INK_REV_BAND, INK_REV_SPREAD, INK_REV_STRICT, INK_REV_TUNEC, INK_V6_BAND_CURVE } from "../src/lib/arcade/inkBridge";
 import { flipGameFor, flipWarpAmp, FLIP_BAND_CURVE, FLIP_REV, FLIP_REV_BAND, FLIP_REV_TUNEC, FLIP_V4_BAND_CURVE, FLIP_WARP_FROM_V4 } from "../src/lib/arcade/flip";
-import { beatGameFor, BEAT_BAND_CURVE, BEAT_REV_BAND, BEAT_REV_TUNEC, BEAT_REV_TUNEF, BEAT_V4_BAND_CURVE } from "../src/lib/arcade/beat";
+import { beatGameFor, BEAT_BAND_CURVE, BEAT_REV_BAND, BEAT_REV_TUNEC, BEAT_REV_TUNEF, BEAT_STD_SPEC, BEAT_V4_BAND_CURVE } from "../src/lib/arcade/beat";
+import { stdHelp } from "../src/lib/arcade/arcadeStandard";
 import {
   wavDropPx,
   wavefrontGameFor,
@@ -245,8 +246,9 @@ section("Grappler, Hover, Rainbow Bridge and Tempo: same play, new curves");
   // Hover's help now states its Tuning E curve (arcade-tuning-e-check).
   // Screen audit Oct 2026: the help gives a good run from the curve rooms deal (swingRev 9, inkRev 6, beatRev 9 since expansion E2; arcade-help-bands-check).
   // Grappler's 200 expansion (swingRev 13) stated a good run on its own base curve (swing-x200-check); the assault course
-  // (swingRev 14) on its sections' curve (swing-assault-check).
-  ok(PUZZLE_INSTRUCTIONS.swing.score.includes("A good run (100 points) counts 236") && PUZZLE_INSTRUCTIONS.inkbridge.score.includes("A good run (100 points) counts 73") /* inkRev 10 (x200) */ && PUZZLE_INSTRUCTIONS.beat.score.includes("A good run (100 points) reaches 824"), "the \"?\" help states a good run on the curves rooms deal");
+  // (swingRev 14) on its sections' curve (swing-assault-check). Tempo's beatRev 11 (the arcade scoring standard) states its
+  // standard parts instead (arcade-help-bands-check, beat-standard-check).
+  ok(PUZZLE_INSTRUCTIONS.swing.score.includes("A good run (100 points) counts 236") && PUZZLE_INSTRUCTIONS.inkbridge.score.includes("A good run (100 points) counts 73") /* inkRev 10 (x200) */ && PUZZLE_INSTRUCTIONS.beat.score.includes(stdHelp(BEAT_STD_SPEC)), "the \"?\" help states a good run on the curves rooms deal");
 }
 
 /* ================================ 4a. Gemstone ================================ */

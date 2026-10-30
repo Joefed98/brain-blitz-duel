@@ -4,24 +4,24 @@ import { FLIP_REV_TARGET, FLIP_REV_STRICT, FLIP_REV_LIFT } from "@/lib/arcade/fl
 import { CROSS_REV_EXPAND } from "@/lib/arcade/cross";
 import { INK_REV_SPREAD } from "@/lib/arcade/inkBridge";
 import { SNAKE_REV_TARGET, SNAKE_REV_STD } from "@/lib/arcade/snake";
-import { BUB_REV_BLAST } from "@/lib/arcade/bubble";
+import { BUB_REV_STD } from "@/lib/arcade/bubble";
 import { MATCHUP_REV_STD } from "@/lib/arcade/matchup";
 import { SNIP_REV_TARGET, SNIP_REV_EXPAND } from "@/lib/arcade/snip";
-import { SKYLINE_REV_TARGET, SKYLINE_REV_STRICT, SKYLINE_REV_LIFT } from "@/lib/arcade/skyline";
+import { SKYLINE_REV_TARGET, SKYLINE_REV_STRICT, SKYLINE_REV_STD } from "@/lib/arcade/skyline";
 import { TILT_REV_STD } from "@/lib/arcade/tilt";
 import { TILT_BANK } from "./tiltBank.server";
 import { JUNC_REV_BAND } from "@/lib/arcade/junction";
-import { BINTOSS_REV_TARGET, BINTOSS_REV_STRICT, BINTOSS_REV_SMALL_FAR } from "@/lib/arcade/binToss";
+import { BINTOSS_REV_TARGET, BINTOSS_REV_STRICT, BINTOSS_REV_STD } from "@/lib/arcade/binToss";
 import { SWING_REV_TALL, SWING_REV_TARGET, SWING_REV_STRICT, SWING_REV_EXPAND, SWING_REV_ASSAULT } from "@/lib/arcade/swing";
 import { BURST_REV_TARGET, BURST_REV_STRICT, BURST_REV_STD } from "@/lib/arcade/burst";
 import { BRK_REV_TARGET, BRK_REV_STRICT, BRK_REV_DEEP, BRK_REV_PHONE, BRK_REV_STD } from "@/lib/arcade/breaker";
-import { PIN_REV_TARGET, PIN_REV_STRICT, PIN_REV_EXPAND, PIN_REV_LONG } from "@/lib/arcade/pinball";
+import { PIN_REV_TARGET, PIN_REV_STRICT, PIN_REV_EXPAND, PIN_REV_LONG, PIN_REV_STD } from "@/lib/arcade/pinball";
 import { WHACK_REV_DEPTH, WHACK_REV_NOTES } from "@/lib/arcade/whack";
 import { dealtNotesRev } from "./phoneNotes";
 import { WAV_REV_TARGET, WAV_REV_STRICT, WAV_REV_PHONE } from "@/lib/arcade/wavefront";
 import { ORBIT_REV_TARGET, ORBIT_REV_STRICT, ORBIT_REV_XP } from "@/lib/arcade/orbit";
-import { RALLY_REV_TARGET, RALLY_REV_STRICT, RALLY_REV_CURVE } from "@/lib/arcade/rally";
-import { BEAT_REV_TARGET, BEAT_REV_EASE } from "@/lib/arcade/beat";
+import { RALLY_REV_TARGET, RALLY_REV_STRICT, RALLY_REV_STD } from "@/lib/arcade/rally";
+import { BEAT_REV_TARGET, BEAT_REV_STD } from "@/lib/arcade/beat";
 import { orbitXpCourseForSeed, orbitHolesForBankSeed, orbitRev3BankEntryForSeed, orbitRev3PlanetsForSeed, encodeRev3Planets } from "./orbitRev3Course.server";
 import { proveSwingSeed } from "./swingProof.server";
 import { SWING_V9_BANK } from "./swingBankV9.server";
@@ -37,7 +37,7 @@ import { CLASH_QUEUE, CLASH_REV_TALL, CLASH_REV_DEPTH, CLASH_REV_TOPUP } from "@
  */
 
 import { randomBelow } from "./random";
-import { bullseyeWinds, BULLSEYE_REV_TARGET, BULLSEYE_REV_STRICT, BULLSEYE_REV_EXPAND } from "@/lib/arcade/bullseye";
+import { bullseyeWinds, BULLSEYE_REV_TARGET, BULLSEYE_REV_STRICT, BULLSEYE_REV_STD } from "@/lib/arcade/bullseye";
 import type {
   BinTossPuzzleData,
   BullseyePuzzleData,
@@ -84,17 +84,18 @@ export function generateSwerve(): SwervePuzzleData {
 }
 
 export function generateSkyline(): SkylinePuzzleData {
-  // skylineRev 8: skylineRev 7's play (expansion E4) on a gentler curve (Joe's phone notes, 27 Oct 2026).
-  return { type: "skyline", seed: arcadeSeed(), skylineRev: SKYLINE_REV_LIFT };
+  // skylineRev 9: skylineRev 8's play on the arcade scoring standard (29 Oct 2026, docs/arcade-standard/skyline.md).
+  return { type: "skyline", seed: arcadeSeed(), skylineRev: SKYLINE_REV_STD };
 }
 
 export function generateBinToss(): BinTossPuzzleData {
-  return { type: "bintoss", seed: arcadeSeed(), binRev: BINTOSS_REV_SMALL_FAR };
+  // binRev 9: binRev 8's play with exactly three hoops, scored on the arcade standard (docs/arcade-standard/bintoss.md).
+  return { type: "bintoss", seed: arcadeSeed(), binRev: BINTOSS_REV_STD };
 }
 
 export function generateBullseye(): BullseyePuzzleData {
   const seed = arcadeSeed();
-  return { type: "bullseye", seed, winds: bullseyeWinds(seed), bullRev: BULLSEYE_REV_EXPAND };
+  return { type: "bullseye", seed, winds: bullseyeWinds(seed), bullRev: BULLSEYE_REV_STD };
 }
 
 export function generateMatchup(): MatchupPuzzleData {
@@ -130,12 +131,13 @@ export function generateBreaker(): BreakerPuzzleData {
 }
 
 export function generatePinball(): PinballPuzzleData {
-  // pinRev 5 (27 Oct 2026, Joe's phone notes): pinRev 4's table for 90 s.
-  return { type: "pinball", seed: arcadeSeed(), pinRev: PIN_REV_LONG };
+  // pinRev 5 (27 Oct 2026, Joe's phone notes): pinRev 4's table for 90 s (PIN_REV_LONG).
+  // pinRev 6 (29 Oct 2026): pinRev 5's play on the arcade scoring standard (docs/arcade-standard/pinball.md).
+  return { type: "pinball", seed: arcadeSeed(), pinRev: PIN_REV_STD };
 }
 
 export function generateRally(): RallyPuzzleData {
-  return { type: "rally", seed: arcadeSeed(), rallyRev: RALLY_REV_CURVE };
+  return { type: "rally", seed: arcadeSeed(), rallyRev: RALLY_REV_STD };
 }
 
 export function generateSteady(): SteadyPuzzleData {
@@ -151,12 +153,14 @@ export function generateSlice(): SlicePuzzleData {
 export function generateBubble(): BubblePuzzleData {
   // bubbleRev 9: bubbleRev 8's deeper reef (expansion E6) with credit for bubbles burst (no zero for a played run).
   // bubbleRev 10 (phone notes, 27 Oct 2026): bubbleRev 9 with the mine's bigger blast (two rings).
-  return { type: "bubble", seed: arcadeSeed(), bubbleRev: BUB_REV_BLAST };
+  // bubbleRev 11 (the arcade scoring standard, 29 Oct 2026): the mine pops the 4 nearest bubbles; scored on the standard.
+  return { type: "bubble", seed: arcadeSeed(), bubbleRev: BUB_REV_STD };
 }
 
 export function generateBeat(): BeatPuzzleData {
   // beatRev 10 (phone notes, 27 Oct 2026): beatRev 9's song with wider windows and a lighter chart, easiest from the fifth lane.
-  return { type: "beat", seed: arcadeSeed(), beatRev: BEAT_REV_EASE };
+  // beatRev 11 (the arcade scoring standard, 29 Oct 2026): beatRev 10's play scored on the standard (docs/arcade-standard/beat.md).
+  return { type: "beat", seed: arcadeSeed(), beatRev: BEAT_REV_STD };
 }
 
 export function generateTenDrop(): TenDropPuzzleData {

@@ -10,19 +10,20 @@ import { CROSS_REV_EXPAND } from "@/lib/arcade/cross";
 import { FLIP_REV_LIFT } from "@/lib/arcade/flip";
 import { SNIP_REV_EXPAND } from "@/lib/arcade/snip";
 import { HOVER_REV_STANDARD } from "@/lib/arcade/hover";
-import { RALLY_REV_CURVE } from "@/lib/arcade/rally";
+import { RALLY_REV_STD } from "@/lib/arcade/rally";
 import { WAV_REV_PHONE } from "@/lib/arcade/wavefront";
 import { BURST_REV_STD } from "@/lib/arcade/burst";
-import { BULLSEYE_REV_EXPAND } from "@/lib/arcade/bullseye";
-import { BEAT_REV_EASE } from "@/lib/arcade/beat";
+import { BULLSEYE_REV_STD } from "@/lib/arcade/bullseye";
+import { BEAT_REV_STD } from "@/lib/arcade/beat";
 import { SNAKE_REV_STD } from "@/lib/arcade/snake";
 import { SLICE_REV_BIG, SLICE_REV_STANDARD, SLICE_REV_TALL } from "@/lib/arcade/slice";
-import { BINTOSS_REV_SMALL_FAR } from "@/lib/arcade/binToss";
-import { BUB_REV_BLAST } from "@/lib/arcade/bubble";
+import { BINTOSS_REV_STD } from "@/lib/arcade/binToss";
+import { BUB_REV_STD } from "@/lib/arcade/bubble";
 import { MATCHUP_REV_STD } from "@/lib/arcade/matchup";
 import { TEN_DROP_DEPTH_REV } from "@/lib/arcade/tenDrop";
-import { SKYLINE_REV_LIFT } from "@/lib/arcade/skyline";
+import { SKYLINE_REV_STD } from "@/lib/arcade/skyline";
 import { pinIsExpanded } from "@/lib/arcade/pinball";
+import { PIN_REV_STD } from "@/lib/arcade/pinball";
 import { chainDemoCompatible } from "./chain";
 import { pairUsesDepth } from "./depth/matchmaker";
 import { STRIKEOUT_REV4 } from "./strikeout";
@@ -137,8 +138,9 @@ export const getIntroDemoFn = createServerFn({ method: "GET" })
     // new part), so only a demo recorded on hoverRev 10 plays.
     if (data.type === "hover" && demo?.puzzle.type === "hover" && demo.puzzle.hoverRev !== HOVER_REV_STANDARD) return null;
     // Rally rallyRev 11 (phone notes, 27 Oct 2026): spin shots now curve visibly and targets last 5 s, so an older demo
-    // would play differently; it stays stopped until one is recorded on rallyRev 11.
-    if (data.type === "rally" && demo?.puzzle.type === "rally" && demo.puzzle.rallyRev !== RALLY_REV_CURVE) return null;
+    // would play differently; it stays stopped until one is recorded on rallyRev 11. rallyRev 12 (the arcade scoring
+    // standard, 29 Oct 2026) reverses the spin and scores 200 on the standard, so only a rallyRev 12 demo plays.
+    if (data.type === "rally" && demo?.puzzle.type === "rally" && demo.puzzle.rallyRev !== RALLY_REV_STD) return null;
     // The 200 expansion (wavRev 10), then Joe's phone notes (wavRev 11: power-ups from carriers, no streak, the mothership
     // only after wave 5): an older demo shows other play, so it stays stopped until one is recorded on wavRev 11.
     if (data.type === "wavefront" && demo?.puzzle.type === "wavefront" && demo.puzzle.wavRev !== WAV_REV_PHONE) return null;
@@ -148,7 +150,9 @@ export const getIntroDemoFn = createServerFn({ method: "GET" })
     // older demo stays stopped until one is recorded on burstRev 10.
     if (data.type === "burst" && demo?.puzzle.type === "burst" && demo.puzzle.burstRev !== BURST_REV_STD) return null;
     // Expansion E9 (26 Oct 2026, docs/expansions/e9.md): Flightpath bullRev 8 too (Rally and Fission above).
-    if (data.type === "bullseye" && demo?.puzzle.type === "bullseye" && demo.puzzle.bullRev !== BULLSEYE_REV_EXPAND) return null;
+    // bullRev 9 (the arcade scoring standard, 29 Oct 2026) plays as bullRev 8 but a dead-centre dart shows +2, not +7, so
+    // only a demo recorded on bullRev 9 plays.
+    if (data.type === "bullseye" && demo?.puzzle.type === "bullseye" && demo.puzzle.bullRev !== BULLSEYE_REV_STD) return null;
     // Expansion E2 (25 Oct 2026): Meteor and Tempo demos stay stopped until one is recorded on the 200-point revision.
     // Joe's phone notes (27 Oct 2026): snakeRev 10 adds 2 × 2 rocks, a third wormhole pair and a second lane, so the
     // Meteor demo stays stopped until one is recorded on snakeRev 10. The arcade scoring standard (29 Oct 2026): snakeRev 11
@@ -160,11 +164,14 @@ export const getIntroDemoFn = createServerFn({ method: "GET" })
     // Taller worlds batch 2 (16 Oct 2026): the same for Tempo, Slice, Coral Pop and Mixed Signals (Pull! above), each stopped
     // until a demo is recorded on its tall revision.
     // Phone notes (27 Oct 2026): Tempo's beatRev 10 plays a lighter chart with wider windows; stopped until one is recorded on it.
-    if (data.type === "beat" && demo?.puzzle.type === "beat" && demo.puzzle.beatRev !== BEAT_REV_EASE) return null;
+    // The arcade scoring standard (beatRev 11, 29 Oct 2026): beatRev 10's play, but its HUD shows the standard's points
+    // (no "FEVER x2"), so only a demo recorded on beatRev 11 plays.
+    if (data.type === "beat" && demo?.puzzle.type === "beat" && demo.puzzle.beatRev !== BEAT_REV_STD) return null;
     if (data.type === "slice" && demo?.puzzle.type === "slice" && demo.puzzle.sliceRev !== SLICE_REV_TALL) return null;
     // Expansion E6 (25 Oct 2026): Coral Pop's deeper reef (bubbleRev 8) replaces the tall tank's field; a demo stays stopped until one is recorded on it.
     // Phone notes (27 Oct 2026): bubbleRev 10's mine blasts two rings, so the demo stays stopped until one is recorded on it.
-    if (data.type === "bubble" && demo?.puzzle.type === "bubble" && demo.puzzle.bubbleRev !== BUB_REV_BLAST) return null;
+    // Arcade scoring standard (29 Oct 2026): bubbleRev 11's mine pops only the 4 nearest bubbles; stopped until recorded on it.
+    if (data.type === "bubble" && demo?.puzzle.type === "bubble" && demo.puzzle.bubbleRev !== BUB_REV_STD) return null;
     // Depth to 200 (25 Oct 2026): Mixed Signals' clashRev 8 deals "don't sort" and gold words and a streak; a demo
     // recorded on an older revision shows none of them, so it stays stopped until one is recorded on clashRev 8.
     if (data.type === "stroop" && demo?.puzzle.type === "stroop" && demo.puzzle.clashRev !== CLASH_REV_DEPTH) return null;
@@ -202,17 +209,23 @@ export const getIntroDemoFn = createServerFn({ method: "GET" })
     // Expansion E4 (25 Oct 2026, docs/expansions/e4.md): High Rise's skylineRev 7 (taller view, special blocks, the
     // next-block preview, milestones). An older demo would show the old view without them, so the intro shows the
     // still until a demo is recorded on skylineRev 7. skylineRev 8 (27 Oct 2026, Joe's phone notes) keeps rev 7's play on a
-    // gentler curve: only a skylineRev 8 demo plays (its score is the one the help states).
-    if (data.type === "skyline" && demo?.puzzle.type === "skyline" && demo.puzzle.skylineRev !== SKYLINE_REV_LIFT) return null;
+    // gentler curve. skylineRev 9 (29 Oct 2026, the arcade scoring standard) deals five gold blocks at new places and
+    // scores on the standard: only a skylineRev 9 demo plays (its gold blocks and score are the ones the help states).
+    if (data.type === "skyline" && demo?.puzzle.type === "skyline" && demo.puzzle.skylineRev !== SKYLINE_REV_STD) return null;
     // Pinball's pinRev 4 (the taller table, its ramps, lanes, lock and plunger): only a demo on that table plays
     // (pinRev 4 or 5: pinRev 5 plays the same table tick for tick, only for 90 s instead of 60).
-    if (data.type === "pinball" && demo?.puzzle.type === "pinball" && !pinIsExpanded(demo.puzzle.pinRev)) return null;
+    // pinRev 6 (29 Oct 2026, the arcade scoring standard): the same play with no multiplier, so an older demo's table
+    // would light multiplier inserts and count table points the help no longer states; only a pinRev 6 demo plays
+    // (as High Rise's skylineRev 8), and until one is recorded the intro shows its still.
+    if (data.type === "pinball" && demo?.puzzle.type === "pinball" && demo.puzzle.pinRev !== PIN_REV_STD) return null;
     // World expansion E5 (25 Oct 2026, docs/expansions/e5.md): Swish binRev 7 and Slice sliceRev 9
     // play in larger worlds with new features; an older demo would show the old world (and its touches would land
     // elsewhere), so each shows its still until a demo is recorded on its new revision.
     // Swish binRev 8 (phone notes, 27 Oct 2026): the far bucket is 60 % of its size, so an older demo's far baskets
     // could miss; it stays stopped until one is recorded on binRev 8.
-    if (data.type === "bintoss" && demo?.puzzle.type === "bintoss" && demo.puzzle.binRev !== BINTOSS_REV_SMALL_FAR) return null;
+    // Swish binRev 9 (the arcade scoring standard, 29 Oct 2026): new scoring and, on some seeds, a re-placed hoop; only a
+    // binRev 9 demo plays (its score is the one the help states).
+    if (data.type === "bintoss" && demo?.puzzle.type === "bintoss" && demo.puzzle.binRev !== BINTOSS_REV_STD) return null;
     // Slice sliceRev 10 (27 Oct 2026, Joe's phone notes): bigger onions and golden fruit; only a sliceRev 10 demo plays.
     if (data.type === "slice" && demo?.puzzle.type === "slice" && demo.puzzle.sliceRev !== SLICE_REV_BIG) return null;
     // Slice sliceRev 11 (29 Oct 2026, the arcade scoring standard): the new parts and bread tickets; only a sliceRev 11 demo plays.

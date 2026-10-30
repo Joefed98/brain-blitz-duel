@@ -78,6 +78,8 @@ export interface PinballResult {
   multiballs: number;
   jackpots: number;
   skills: number;
+  /** pinRev 6 (0 on older rounds): back-to-back ramp shots (the standard's ramp combos). */
+  combos: number;
   /** Balls drained, and balls the run still had when it ended. */
   lost: number;
   ballsLeft: number;
@@ -142,6 +144,7 @@ export function replayPinballRun(seed: number, raw: string, rev?: number | null)
     multiballs: (state as Partial<Pin4State>).multiballs ?? 0,
     jackpots: (state as Partial<Pin4State>).jackpots ?? 0,
     skills: (state as Partial<Pin4State>).skills ?? 0,
+    combos: (state as Partial<Pin4State>).combos ?? 0,
     lost: state.lost,
     ballsLeft: pinBallsLeft(state),
     endedSeconds: Math.round((reached / TICKS_PER_SECOND) * 10) / 10,

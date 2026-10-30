@@ -21,7 +21,7 @@ import {
   SKYLINE_CHECKPOINT_INTERVAL,
   SKYLINE_COLOURS,
   SKYLINE_FLASH,
-  SKYLINE_REV_LIFT,
+  SKYLINE_REV_STD,
   skylineWorldHFor,
   SKYLINE_RUN_TICKS,
   type SkylineState,
@@ -59,7 +59,7 @@ function IntroExample() {
         <rect x="167" y="10" width="18" height="2" fill="#FFF1B8" />
       </svg>
       <p className="text-center text-xs text-muted-foreground">
-        The overhang is cut away. Perfect drops in a row multiply; the preview shows the next block: gold, narrow or wide.
+        The overhang is cut away. Line blocks up for perfect drops; the preview shows the next block: gold, narrow or wide.
       </p>
     </div>
   );
@@ -290,7 +290,7 @@ export const skylinePuzzle: PuzzleDefinition = {
   category: "arcade",
   timeLimitMs: (SKYLINE_RUN_TICKS / TICKS_PER_SECOND) * 1000 + 3000,
   revealMs: 6_000,
-  generate: () => ({ type: "skyline", seed: 1, skylineRev: SKYLINE_REV_LIFT }) satisfies SkylinePuzzleData,
+  generate: () => ({ type: "skyline", seed: 1, skylineRev: SKYLINE_REV_STD }) satisfies SkylinePuzzleData,
   check: () => false,
   revealHeading: "Your run",
   IntroExample,

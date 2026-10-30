@@ -962,7 +962,12 @@ const skylineSummary: SummaryBuilder = (result) => {
       `${perfects} perfect drop${perfects === 1 ? "" : "s"}`,
       ...(result.extra?.["skylineRev"] ? [`Best streak ${Number(result.extra?.["bestStreak"] ?? 0)} in a row`] : []),
       // skylineRev 7: the expansion's gold blocks and height milestones.
-      ...(Number(result.extra?.["skylineRev"] ?? 0) >= 7 ? [`${Number(result.extra?.["golds"] ?? 0)} gold · ${Number(result.extra?.["milestones"] ?? 0)} milestones`] : []),
+      // skylineRev 9 (the arcade scoring standard): five gold blocks a run; milestones no longer score.
+      ...(Number(result.extra?.["skylineRev"] ?? 0) === 9
+        ? [`${Number(result.extra?.["golds"] ?? 0)} of 5 gold blocks`]
+        : Number(result.extra?.["skylineRev"] ?? 0) >= 7
+          ? [`${Number(result.extra?.["golds"] ?? 0)} gold · ${Number(result.extra?.["milestones"] ?? 0)} milestones`]
+          : []),
     ],
   };
 };
@@ -1081,9 +1086,14 @@ const pinballSummary: SummaryBuilder = (result) => {
   return {
     summary: `${n("points").toLocaleString("en-GB")} table points · ${n("bumps")} bumper hits · ${n("drops")} targets`,
     detail: [
-      `Multiplier ×${Math.max(1, n("mult"))}`,
+      // pinRev 6 (the arcade scoring standard) has no multiplier; it counts J-O-U-L-Z sets and ramp combos instead.
+      ...(n("pinRev") >= 6 ? [] : [`Multiplier ×${Math.max(1, n("mult"))}`]),
       // pinRev 4 (the expansion): ramps, multiball, jackpots and skill shots.
-      ...(n("pinRev") >= 4 ? [`${n("ramps")} ramps · ${n("multiballs")} multiball · ${n("jackpots")} jackpots · ${n("skills")} skill shots`] : []),
+      ...(n("pinRev") >= 6
+        ? [`${n("ramps")} ramps · ${n("combos")} combos · ${n("laneSets")} J-O-U-L-Z · ${n("multiballs")} multiball · ${n("jackpots")} jackpots`]
+        : n("pinRev") >= 4
+          ? [`${n("ramps")} ramps · ${n("multiballs")} multiball · ${n("jackpots")} jackpots · ${n("skills")} skill shots`]
+          : []),
       left > 0 ? `Clock ran out with ${left} ball${left === 1 ? "" : "s"} left` : "All three balls drained",
     ],
   };
@@ -1141,7 +1151,13 @@ const bubbleSummary: SummaryBuilder = (result) => {
     summary: cleared
       ? `Cleared at ${ended.toFixed(1)}s`
       : `${Number(result.extra?.["bubblesLeft"] ?? 0)} bubbles left · popped ${popped} · dropped ${dropped}`,
-    detail: [`${Number(result.extra?.["shots"] ?? 0)} shots`],
+    detail: [
+      `${Number(result.extra?.["shots"] ?? 0)} shots`,
+      // bubbleRev 11 (the arcade scoring standard): the scored features.
+      ...(result.extra?.["chests"] !== undefined
+        ? [`${Number(result.extra["chests"])} chests · ${Number(result.extra?.["banks"] ?? 0)} bank shots · ${Number(result.extra?.["combos"] ?? 0)} combos`]
+        : []),
+    ],
   };
 };
 
@@ -1152,7 +1168,13 @@ const beatSummary: SummaryBuilder = (result) => {
   const misses = Number(result.extra?.["misses"] ?? 0);
   return {
     summary: `${hits} / ${notes} · ${perfect} perfect · ${misses} miss${misses === 1 ? "" : "es"}`,
-    detail: [`best combo ${Number(result.extra?.["maxCombo"] ?? 0)}`],
+    detail: [
+      `best combo ${Number(result.extra?.["maxCombo"] ?? 0)}`,
+      // beatRev 11 (the arcade scoring standard): the features against the song's own counts.
+      ...(typeof result.extra?.["accuracy"] === "number"
+        ? [`${Number(result.extra?.["fevers"] ?? 0)} fever${Number(result.extra?.["fevers"] ?? 0) === 1 ? "" : "s"} · golden ${Number(result.extra?.["goldsHit"] ?? 0)} / ${Number(result.extra?.["golds"] ?? 0)} · doubles ${Number(result.extra?.["doublesDone"] ?? 0)} / ${Number(result.extra?.["doubles"] ?? 0)} · best Perfect streak ${Number(result.extra?.["maxStreak"] ?? 0)}`]
+        : []),
+    ],
   };
 };
 

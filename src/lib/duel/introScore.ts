@@ -1,5 +1,5 @@
 import { BULLSEYE_INNER_BULL_POINTS, BULLSEYE_RING_VALUES } from "@/lib/arcade/bullseye";
-import { BINTOSS_FAR_POINTS, BINTOSS_THROWS } from "@/lib/arcade/binToss";
+import { BINTOSS_THROWS, BINTOSS_V9_BUCKET, BINTOSS_V9_FAR, BINTOSS_V9_FINISH, BINTOSS_V9_HOOP } from "@/lib/arcade/binToss";
 import { INK_FEATURE_MAX, INK_LEVELS } from "@/lib/arcade/inkBridge";
 import { TILT_S_MAZES } from "@/lib/arcade/tilt";
 import { bandsIntro } from "./puzzleBandsText";
@@ -99,19 +99,19 @@ function introScoreTemplates(): Record<PuzzleType, string> {
     // Arcade
     // hoverRev 10 (the arcade scoring standard): the five parts and their maximums.
     hover: "Points: barriers 120, chains 30, gold stars 20, tight gates 20, centre lines 10 = {max}.",
-    skyline: "Points for blocks, perfects in a row, gold blocks and every 10 floors. Up to {max}.",
-    bintoss: `Buckets, hoops, All ${BINTOSS_THROWS} in for 10 more: up to 150. Far buckets +${BINTOSS_FAR_POINTS} each: up to {max}.`,
+    skyline: "Floors, perfect drops, a perfect streak and gold blocks. Up to {max}.",
+    bintoss: `Buckets ${BINTOSS_V9_BUCKET}, far buckets +${BINTOSS_V9_FAR}, hoops +${BINTOSS_V9_HOOP}. All ${BINTOSS_THROWS} in for ${BINTOSS_V9_FINISH} more: up to {max}.`,
     bullseye: `Rings ${BULLSEYE_RING_VALUES.join(" / ")}, inner bull ${BULLSEYE_INNER_BULL_POINTS}; streaks, dead-centre add more. Up to {max}.`,
     // matchupRev 11 (the arcade scoring standard): gems cleared, then treasure, goals, ice and big lines.
     matchup: "Every gem cleared scores; treasure, goals, ice and lines of 4 or 5 add more. Up to {max}.",
     snake: "Stars score up to 120; gold stars, combos, lanes and warps add 80 more. Up to {max}.",
     cross: "Points for rows and crossings; coins, close calls and clean streaks add more. Up to {max}.",
     breaker: "Every brick scores; gold bricks add 30. Clear all 105 quickly for up to {max}.",
-    rally: "Gold-ball hits, each pink target and gold target score; blue returns a little. Up to {max}.",
-    pinball: "Table points: ramps, J-O-U-L-Z, jackpots and skill shots score big. Up to {max}.",
-    bubble: "Clear bubbles; falling chests, bank shots and combos add more. Up to {max}.",
+    rally: "Gold-ball hits, pink targets and gold targets. Up to {max}.",
+    pinball: "Table points, plus J-O-U-L-Z sets, multiball, jackpots and ramp combos. Up to {max}.",
+    bubble: "Bubbles cleared, a fast clear, falling chests, bank shots and combos. Up to {max}.",
     slice: "Food 120, combos 40, gold fruit 20, tickets 10, dodges 10. Chilli: lose 10. Up to {max}.",
-    beat: "Notes hit in time score; fever, gold notes, double taps and streaks add bonus. Up to {max}.",
+    beat: "Notes hit in time, fevers, golden notes, double taps and a Perfect streak. Up to {max}.",
     wavefront: "Ships, waves, a fast boss kill; precise weak-point hits, saucers, power-ups: up to {max}.",
     flip: "Time and stars score; trails, sweet spots, double flips, zones and checkpoints: up to {max}.",
     junction: "Points for each car and bus through, ± for ambulances. Last the minute for 10 more.",

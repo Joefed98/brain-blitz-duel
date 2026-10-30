@@ -69,9 +69,10 @@ import {
   TILT_X_STARS,
   TILT_X_TWO_FROM,
 } from "@/lib/arcade/tilt";
-import { BUB_SPECIAL_BLOCK, BUB_TORPEDO_HITS, BUB_V3_JOKER_BLOCK, BUB_V8_CHESTS, BUB_V8_CHEST_FP, BUB_V8_FEATURE_MAX } from "@/lib/arcade/bubble";
+import { BUB_SPECIAL_BLOCK, BUB_TORPEDO_HITS, BUB_V3_JOKER_BLOCK, BUB_V8_CHESTS, BUB_V11_MINE_POPS, BUB_V8_CHEST_FP, BUB_V8_FEATURE_MAX } from "@/lib/arcade/bubble";
 import {
   MATCHUP_V3_PAR_RAW,
+  MATCHUP_V9_FEATURE_MAX,
   MATCHUP_V11_BIG_MAX,
   MATCHUP_V11_BIG_PTS,
   MATCHUP_V11_CORE_MAX,
@@ -106,6 +107,9 @@ import {
 } from "@/lib/arcade/wavefront";
 import { INK_CLOUD_LEVELS, INK_FEATURE_MAX, INK_RAW_SHAMROCK, INK_RAW_SILVER, INK_RAW_STAR, INK_RAW_TRICK, INK_V11_SILVER_PER_LEVEL, INK_V11_SKILL_PAY } from "@/lib/arcade/inkBridge";
 import {
+  SNAKE_V9_CAPS,
+  SNAKE_V9_COLS,
+  SNAKE_V9_ROWS,
   SNAKE_STD_CAPS,
   SNAKE_STD_COMBO_TICKS,
   SNAKE_STD_CORE_MAX,
@@ -113,8 +117,6 @@ import {
   SNAKE_STD_LANE_POINTS,
   SNAKE_STD_LANE_RIDE,
   SNAKE_STD_WARP_TICKS,
-  SNAKE_V9_COLS,
-  SNAKE_V9_ROWS,
   SNAKE_STD_WARP_POINTS,
 } from "@/lib/arcade/snake";
 import { BEAT_V9_CAPS, BEAT_V9_SKILL_PAY } from "@/lib/arcade/beat";
@@ -127,13 +129,56 @@ import {
   PIN_PTS_SPIN_LIT,
   PIN_PTS_TARGET,
 } from "@/lib/arcade/pinball";
-import { SLICE_V9_GOLDS, SLICE_V9_MAX, SLICE_V11_BAND_CURVE, SLICE_V11_CHILLI, SLICE_V11_CLOSE, SLICE_V11_COMBO_CAP, SLICE_V11_COMBO_FOODS, SLICE_V11_COMBO_POINTS, SLICE_V11_CORE, SLICE_V11_DODGE_CAP, SLICE_V11_DODGE_POINTS, SLICE_V11_GOLD_CAP, SLICE_V11_TICKET_BREADS, SLICE_V11_TICKET_CAP } from "@/lib/arcade/slice";
-import { BINTOSS_FAR_CAP, BINTOSS_FAR_POINTS, BINTOSS_FAR_THROWS, BINTOSS_V7_BAND_CURVE } from "@/lib/arcade/binToss";
+import {
+  SLICE_V9_BAND_CURVE,
+  SLICE_V9_BONUS_CAP,
+  SLICE_V9_DODGE_POINTS,
+  SLICE_V9_GOLD_POINTS,
+  SLICE_V9_TICKET_POINTS,
+  SLICE_V9_VALUE,
+  SLICE_V9_GOLDS,
+  SLICE_V9_MAX,
+  SLICE_V11_BAND_CURVE,
+  SLICE_V11_CHILLI,
+  SLICE_V11_CLOSE,
+  SLICE_V11_COMBO_CAP,
+  SLICE_V11_COMBO_FOODS,
+  SLICE_V11_COMBO_POINTS,
+  SLICE_V11_CORE,
+  SLICE_V11_DODGE_CAP,
+  SLICE_V11_DODGE_POINTS,
+  SLICE_V11_GOLD_CAP,
+  SLICE_V11_TICKET_BREADS,
+  SLICE_V11_TICKET_CAP,
+} from "@/lib/arcade/slice";
+import { BINTOSS_FAR_THROWS, BINTOSS_V9_FAR, BINTOSS_V9_FAR_MAX, BINTOSS_V9_HOOP, BINTOSS_FAR_CAP, BINTOSS_FAR_POINTS, BINTOSS_V7_BAND_CURVE } from "@/lib/arcade/binToss";
 import { P4_PTS_COMBO, P4_PTS_JACKPOT, P4_PTS_JOULZ, P4_PTS_RAMP, P4_PTS_SKILL } from "@/lib/arcade/pinball4";
-import { BULLSEYE_INNER_BULL_POINTS, BULLSEYE_RING_VALUES, BULLSEYE_V8_DEAD_CAP, BULLSEYE_V8_DEAD_PTS, BULLSEYE_V8_STREAK_CAP, BULLSEYE_V8_STREAK_STEP } from "@/lib/arcade/bullseye";
-import { RALLY_V10_BONUS_COUNT, RALLY_V10_BONUS_PTS, RALLY_V11_BONUS_LIFE } from "@/lib/arcade/rally";
-import { BURST_V10_ATOMS, BURST_V10_CLEAR_MAX, BURST_V10_CLEAR_PER_WAVE, BURST_V10_CORE_MAX, BURST_V10_GOLDEN_MAX, BURST_V10_GOLDEN_PTS, BURST_V10_GOLDENS, BURST_V10_LIFE_COST, BURST_V10_WAVES } from "@/lib/arcade/burst";
-import { liveBandHelp } from "@/lib/arcade/liveBands";
+import {
+  BULLSEYE_V8_STREAK_CAP,
+  BULLSEYE_V8_STREAK_STEP,
+  BULLSEYE_V9_DEAD_CAP,
+  BULLSEYE_INNER_BULL_POINTS,
+  BULLSEYE_RING_VALUES,
+  BULLSEYE_V8_DEAD_CAP,
+  BULLSEYE_V8_DEAD_PTS,
+} from "@/lib/arcade/bullseye";
+import { liveStdHelp as bullseyeStdHelp, liveBandHelp, liveStdHelp } from "@/lib/arcade/liveBands";
+import { RALLY_V10_BONUS_COUNT, RALLY_V11_BONUS_LIFE, RALLY_V12_PAD_PTS, RALLY_V12_TARGET_PTS, RALLY_V10_BONUS_PTS } from "@/lib/arcade/rally";
+import {
+  BURST_V9_CAPS,
+  BURST_V9_CLEAR_MAX,
+  BURST_V8_GOLDEN_PTS,
+  BURST_V8_GOLDENS,
+  BURST_V10_ATOMS,
+  BURST_V10_CLEAR_MAX,
+  BURST_V10_CLEAR_PER_WAVE,
+  BURST_V10_CORE_MAX,
+  BURST_V10_GOLDEN_MAX,
+  BURST_V10_GOLDEN_PTS,
+  BURST_V10_GOLDENS,
+  BURST_V10_LIFE_COST,
+  BURST_V10_WAVES,
+} from "@/lib/arcade/burst";
 import { ORBIT_V12_PACE_FROM, ORBIT_V12_PACE_FULL, ORBIT_V12_SKILL_MAX, ORBIT_V12_SKILL_PACED_FROM, ORBIT_V12_SKILL_PAY, ORBIT_XP_DUST_CAP, ORBIT_XP_DUST_FULL, ORBIT_XP_FIELDS, ORBIT_XP_MOONS, ORBIT_XP_MOTES, ORBIT_XP_PERFECT_CAP, ORBIT_XP_PERFECT_PER, ORBIT_XP_SLING_CAP, ORBIT_XP_SLING_PTS, ORBIT_XP_THREAD_CAP, ORBIT_XP_THREAD_PTS, ORBIT_XP_TRAILS } from "@/lib/arcade/orbitRev3";
 import { CROSS_V9_SKILL_PAY, CROSS_X_BONUS_MAX, CROSS_X_CLOSE_MAX, CROSS_X_CLOSE_POINTS, CROSS_X_COIN_CROSSINGS, CROSS_X_COIN_POINTS, CROSS_X_COINS_PER_RUN } from "@/lib/arcade/cross";
 import { SWING_V14_GATES, SWING_V14_GEMS, SWING_V14_PAR_POINTS, SWING_V14_PICKUP_POINTS, SWING_V14_SECTIONS, SWING_V14_STARS } from "@/lib/arcade/swing";
@@ -611,30 +656,30 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
       goal: "Stack blocks as high as you can.",
       how: [
         { action: "Tap to drop", detail: "the sliding block on the tower." },
-        { action: "Perfects in a row", detail: "multiply, up to ×4." },
+        { action: "Perfect drops", detail: "in a row build a streak." },
         { action: "Next block:", detail: "gold, narrow or wide." },
-        { action: "Next-block preview:", detail: "gold scores a bonus if you land it perfectly; narrow is harder and worth more; wide is easier and worth less.", helpOnly: true },
-        { action: "Every 10 floors", detail: "scores a height bonus and the camera pulls back to show the city.", helpOnly: true },
+        { action: "Next-block preview:", detail: "five gold blocks come in every run, at the same places for everyone; land one perfectly to score it. Narrow is harder and wide easier; both count as a floor like any other.", helpOnly: true },
+        { action: "Every 10 floors", detail: "the camera pulls back to show the city.", helpOnly: true },
         { action: "From block 20", detail: "a waving flag warns of wind.", helpOnly: true },
         { action: "Overhang is cut", detail: "so the next block is narrower. Line it up exactly (a perfect drop) and the block grows back a little.", helpOnly: true },
-        { action: "Streak multiplier:", detail: "from the 3rd perfect drop in a row a perfect drop counts double, from the 6th triple and from the 10th four times. A drop that isn't perfect resets it.", helpOnly: true },
+        { action: "Perfect streak:", detail: "your longest run of perfect drops in a row counts, up to 10. A drop that isn't perfect resets it.", helpOnly: true },
         { action: "Narrow and wide blocks", detail: "are perfect when centred on the top. A centred wide block stays whole, so the tower widens; off-centre, the overhang is cut as usual.", helpOnly: true },
         { action: "Wind:", detail: `once ${SKYLINE_WIND_FROM} blocks are placed, a flag flies from the top block. Still flag: no wind. It starts waving about a second before a gust and streams the way the gust blows. Every gust is the same strength and nudges the sliding block that way while it blows.`, helpOnly: true },
         { action: "Taller view, more sky:", detail: "the tower climbs higher before the camera pulls back.", helpOnly: true },
         { action: "Everyone", detail: "gets the same gusts at the same moments.", helpOnly: true },
       ],
-      score: liveBandHelp("skyline", "Each block counts 5 (narrow 8, wide 3), each perfect drop counts 5 times its streak multiplier, a gold block landed perfectly 15 more and every 10 floors 20.", { more: "More blocks and perfect streaks", good: (u) => `counts ${u}` }),
+      score: liveStdHelp("skyline", "Every floor you build counts the same."),
     },
     bintoss: {
       goal: "Throw the ball into the bucket.",
       how: [
         { action: "Drag to aim,", detail: "then let go to throw." },
         { action: "Wind 1 = a quarter bucket.", detail: "Aim into the flag." },
-        { action: "Small far bucket:", detail: `+${BINTOSS_FAR_POINTS}, and its hoop +3.` },
-        { action: "Through the hoop, then in:", detail: "+3 bonus.", helpOnly: true },
+        { action: "Small far bucket:", detail: `+${BINTOSS_V9_FAR}, and its hoop +${BINTOSS_V9_HOOP}.` },
+        { action: "Through the hoop, then in:", detail: `+${BINTOSS_V9_HOOP} bonus.`, helpOnly: true },
         {
           action: "Far buckets:",
-          detail: `on throws 1-${BINTOSS_FAR_THROWS} a small bucket (about half the main one's width) stands still further back. Either bucket counts; the far one adds ${BINTOSS_FAR_POINTS} more (up to ${BINTOSS_FAR_CAP} in all). The hoops hang over it.`,
+          detail: `on throws 1-${BINTOSS_FAR_THROWS} a small bucket (about half the main one's width) stands still further back. Either bucket counts; the far one adds ${BINTOSS_V9_FAR} more (up to ${BINTOSS_V9_FAR_MAX} in all). The hoops hang over it.`,
           helpOnly: true,
         },
         {
@@ -646,7 +691,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "From throw 7 the bucket slides", detail: "side to side – time your release.", helpOnly: true },
         {
           action: "Hoops:",
-          detail: "on three of throws 2-5 a hoop hangs over the far bucket. Go down through it and into a bucket for 3 bonus points. Its gold ends bounce the ball away.",
+          detail: `on three of throws 2-5 a hoop hangs over the far bucket. Go down through it and into a bucket for ${BINTOSS_V9_HOOP} bonus points. Its gold ends bounce the ball away.`,
           helpOnly: true,
         },
         {
@@ -656,15 +701,15 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         },
         { action: "Drag down to the cancel strip", detail: "to put a throw back.", helpOnly: true },
       ],
-      // binRev 7 (docs/expansions/e5.md): binRev 6's units on their own curve, plus the far points; binRev 8 (phone notes) adds a unit a close miss.
-      score: `Each bucket counts 10, each hoop bonus 3 and each throw that only just misses a bucket 1. More buckets and hoops, higher score – up to ${BINTOSS_V7_BAND_CURVE.points.at(-1)}. A good run (${BAND_GOOD_POINTS} points) counts ${bandUnitsFor(BINTOSS_V7_BAND_CURVE, BAND_GOOD_POINTS)} – about ${Math.round(bandUnitsFor(BINTOSS_V7_BAND_CURVE, BAND_GOOD_POINTS) / 10)} buckets. All ten in adds 10, and each far bucket ${BINTOSS_FAR_POINTS} (up to ${BINTOSS_FAR_CAP}). Up to {max}.`,
+      // binRev 9 (the arcade scoring standard, docs/arcade-standard/bintoss.md): fixed amounts, no curve.
+      score: liveStdHelp("bintoss", "Ten throws, the same for everyone."),
     },
     bullseye: {
       goal: "Hit the gold 10, near and far.",
       how: [
         { action: "Drag to aim,", detail: "let go to throw." },
         { action: "Bulls in a row:", detail: `from the 3rd, +${BULLSEYE_V8_STREAK_STEP}, +${2 * BULLSEYE_V8_STREAK_STEP}, +${3 * BULLSEYE_V8_STREAK_STEP}…` },
-        { action: "White dead-centre ring:", detail: `+${BULLSEYE_V8_DEAD_PTS} more.` },
+        { action: "White dead-centre ring:", detail: "about +2 or +3 more." },
         { action: "Wind 2?", detail: "Aim two rings into the wind.", helpOnly: true },
         { action: "Inner bull 12.", detail: "Balloons add +1, +2 or +3.", helpOnly: true },
         {
@@ -690,7 +735,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         },
         {
           action: "Dead-centre:",
-          detail: `the thin white ring in the middle of the bull (a quarter of its width, shown whenever the 10 is the centre ring). A dart inside it adds ${BULLSEYE_V8_DEAD_PTS} on top of the streak, up to ${BULLSEYE_V8_DEAD_CAP} in all, and keeps the streak going like any bull.`,
+          detail: `the thin white ring in the middle of the bull (a quarter of its width, shown whenever the 10 is the centre ring). ${BULLSEYE_V9_DEAD_CAP} points are shared between the darts that have one (6 to 9 of the 10, the same for everyone), about 2 or 3 a dart, so hitting every one gives all ${BULLSEYE_V9_DEAD_CAP}. A dart inside it scores its share on top of the streak and keeps the streak going like any bull.`,
           helpOnly: true,
         },
         { action: "From the fourth dart the target moves – lead it.", detail: "It is scored where it is when the dart lands.", helpOnly: true },
@@ -706,8 +751,9 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
           helpOnly: true,
         },
       ],
-      // bullRev 8 (docs/expansions/e9.md): the dart total on its curve, plus the streak and dead-centre points.
-      score: `${liveBandHelp("bullseye", `Your dart total: rings ${BULLSEYE_RING_VALUES.join(" / ")} from the centre out (the inner bull ${BULLSEYE_INNER_BULL_POINTS}), plus +1, +2 or +3 for each balloon popped on the way in.`, { more: "A higher dart total", good: (u) => `totals ${u}` })} Bull streaks add up to ${BULLSEYE_V8_STREAK_CAP} more and dead-centre darts ${BULLSEYE_V8_DEAD_PTS} each, up to ${BULLSEYE_V8_DEAD_CAP}. Up to {max}.`,
+      // bullRev 9 (the arcade scoring standard, docs/arcade-standard/bullseye.md): the dart total on a straight line, plus
+      // the bull streak and dead-centre darts.
+      score: bullseyeStdHelp("bullseye", "Every dart point counts the same."),
     },
     matchup: {
       goal: "Match gems to meet each goal.",
@@ -813,13 +859,13 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
       goal: "Keep the ball in play and rack up table points.",
       how: [
         { action: "Hold left or right", detail: "to flip; tap to plunge." },
-        { action: "Ramps and J-O-U-L-Z", detail: "raise the multiplier." },
+        { action: "Ramps, J-O-U-L-Z and jackpots", detail: "score bonuses." },
         { action: "Lock 3 balls", detail: "for multiball and a jackpot." },
         { action: "Hold the left or right half", detail: "of the screen to raise that flipper; two thumbs raise both.", helpOnly: true },
         { action: "Three balls, 90 seconds:", detail: "a lost ball comes back on the plunger.", helpOnly: true },
         { action: "Skill shot:", detail: `the power meter in the right-hand lane rises and falls; tap to plunge. Soft drops the ball into Z, full power into J. Plunge into the flashing letter for ${P4_PTS_SKILL.toLocaleString("en-GB")}.`, helpOnly: true },
-        { action: "J-O-U-L-Z lanes:", detail: `a ball through a lane lights its letter (lit letters stay lit from ball to ball). Each flipper press shifts the lit letters, so line a dark one up under the ball. All five: ${P4_PTS_JOULZ.toLocaleString("en-GB")} and the next multiplier (up to ×${PIN_MULT_MAX}), which counts on bumpers, targets, the spinner and letters.`, helpOnly: true },
-        { action: "Two ramps:", detail: `roll the ball up a ramp fast enough for ${P4_PTS_RAMP.toLocaleString("en-GB")} and the next multiplier. The left ramp drops the ball onto the U lane; the right one brings it back through the spinner. Ramps back to back build a combo (${P4_PTS_COMBO.toLocaleString("en-GB")} more each).`, helpOnly: true },
+        { action: "J-O-U-L-Z lanes:", detail: `a ball through a lane lights its letter (lit letters stay lit from ball to ball). Each flipper press shifts the lit letters, so line a dark one up under the ball. All five: ${P4_PTS_JOULZ.toLocaleString("en-GB")} table points and a J-O-U-L-Z bonus.`, helpOnly: true },
+        { action: "Two ramps:", detail: `roll the ball up a ramp fast enough for ${P4_PTS_RAMP.toLocaleString("en-GB")}. The left ramp drops the ball onto the U lane; the right one brings it back through the spinner. A ramp shot within 4 seconds of the last one is a combo: ${P4_PTS_COMBO.toLocaleString("en-GB")} more and a combo bonus.`, helpOnly: true },
         { action: "Multiball:", detail: `a ramp shot lights the lock; with it lit, each ramp shot sinks the ball in the lock hole and a new one comes up. The third releases all three for 20 seconds with the jackpot lit: the target behind the drop targets, ${P4_PTS_JACKPOT.toLocaleString("en-GB")} a hit from below. A ball lost while another is in play costs nothing.`, helpOnly: true },
         { action: "One table for everyone,", detail: "with no luck in it.", helpOnly: true },
         { action: "Pink pop bumpers:", detail: `${PIN_PTS_BUMPER} a hit, and they kick the ball away.`, helpOnly: true },
@@ -828,26 +874,26 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Yellow slingshots", detail: `kick the ball back across (${PIN_PTS_SLING} each).`, helpOnly: true },
         { action: "A ball between the flippers drains.", detail: "Hold a flipper up to catch the ball on it, then let go and flip again to aim.", helpOnly: true },
       ],
-      score: liveBandHelp("pinball", "Your table points count, multiplier, ramps, jackpots and skill shots included.", { more: "More table points", good: (u) => `scores ${u.toLocaleString("en-GB")} table points` }),
+      score: liveStdHelp("pinball", "Every switch, ramp, lock, jackpot and skill shot scores table points (no multiplier)."),
     },
     rally: {
       goal: "Keep the rally going.",
       how: [
         { action: "Drag the paddle.", detail: "Miss the blue ball: over." },
-        { action: "Gold balls score:", detail: "5 a hit, 6 a pink pad." },
-        { action: "Gold target:", detail: `+${RALLY_V10_BONUS_PTS} before its ring runs out.` },
+        { action: "Gold balls score:", detail: `each hit, +${RALLY_V12_PAD_PTS} a pink pad.` },
+        { action: "Gold target:", detail: `+${RALLY_V12_TARGET_PTS} before its ring runs out.` },
         { action: "Drag to move the paddle", detail: "along the bottom.", helpOnly: true },
         { action: "Every hit", detail: "makes the paddle smaller and the ball faster.", helpOnly: true },
         { action: "A gold ball drops in", detail: "every ten seconds – only gold balls score.", helpOnly: true },
-        { action: "Two pink target pads", detail: "sit on the far wall, one in each half. A gold ball that hits one counts 6, and the pad moves to a new spot in its own half, so the two never overlap. The spots are the same for everyone in the room.", helpOnly: true },
-        { action: `${RALLY_V10_BONUS_COUNT} gold targets a round:`, detail: `each appears at its own moment and spot in the upper court (the same for everyone in the room) and stays about ${RALLY_V11_BONUS_LIFE / 60} seconds, its ring counting down. Any ball that touches it scores ${RALLY_V10_BONUS_PTS}; a miss costs nothing.`, helpOnly: true },
-        { action: "Aim with the paddle:", detail: "where the ball meets it sets the angle; move the paddle as you hit to spin the return: the faster the paddle, the more the ball swerves the way it moved. Spin scores nothing itself.", helpOnly: true },
+        { action: "Two pink target pads", detail: `sit on the far wall, one in each half. A gold ball that hits one scores ${RALLY_V12_PAD_PTS}, and the pad moves to a new spot in its own half, so the two never overlap. The spots are the same for everyone in the room.`, helpOnly: true },
+        { action: `${RALLY_V10_BONUS_COUNT} gold targets a round:`, detail: `each appears at its own moment and spot in the upper court (the same for everyone in the room) and stays about ${RALLY_V11_BONUS_LIFE / 60} seconds, its ring counting down. Any ball that touches it scores ${RALLY_V12_TARGET_PTS}; a miss costs nothing.`, helpOnly: true },
+        { action: "Aim with the paddle:", detail: "where the ball meets it sets the angle; swipe the paddle as you hit to spin the return: the ball sets off the way you swiped, then curves back round the other way (swipe left: it goes left, then bends right). The faster the swipe, the bigger the curve. Spin scores nothing itself.", helpOnly: true },
         { action: "From 30 seconds a bumper", detail: "appears mid-court (it blinks a warning first). Balls bounce off it like a mirror, at the same speed.", helpOnly: true },
         { action: "For the last 15 seconds", detail: "a second bumper joins it (from 45 s, with the same blinking warning), always far enough away for a ball to pass between them.", helpOnly: true },
-        { action: "Miss the blue ball", detail: "and the run is over.", helpOnly: true },
+        { action: "Miss the blue ball", detail: "and the run is over: you keep what you have scored. Blue returns and lasting the minute score nothing themselves.", helpOnly: true },
       ],
-      // rallyRev 10 (docs/expansions/e9.md): the gold hits and pads on their curve, plus the gold targets.
-      score: liveBandHelp("rally", "Each gold-ball hit counts 5, each pink target 6 and each blue-ball return 1; losing the blue ball ends the run.", { more: "More gold hits and pink targets", good: (u) => `counts ${u} – about ${Math.round(u / 5)} gold-ball hits`, finish: `Each gold target struck adds ${RALLY_V10_BONUS_PTS} (${RALLY_V10_BONUS_COUNT} a round).` }),
+      // rallyRev 12 (the arcade scoring standard, docs/arcade-standard/rally.md): gold-ball hits on a straight line, pads and gold targets fixed.
+      score: liveStdHelp("rally", "Only gold balls and gold targets score; losing the blue ball ends the run."),
     },
 
     steady: {
@@ -892,12 +938,13 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: `${BUB_V8_CHESTS} treasure chests`, detail: "sit in the reef. Nothing matches a chest: cut what holds it up so it falls. A mine or torpedo that destroys one pays nothing.", helpOnly: true },
         { action: "A bank shot", detail: "comes off a wall before it pops anything; every popping shot straight after another is a combo.", helpOnly: true },
         { action: "Three of a colour pop", detail: "when they touch; bubbles left hanging fall. Bounce shots off the walls.", helpOnly: true },
-        { action: "The Joker (a black bubble with a gold crown and a rainbow rim)", detail: "joins every colour it touches and pops each group that reaches three. A mine clears every bubble within two rings of where it lands.", helpOnly: true },
+        { action: "The Joker (a black bubble with a gold crown and a rainbow rim)", detail: `joins every colour it touches and pops each group that reaches three. A mine pops the ${BUB_V11_MINE_POPS} bubbles nearest where it lands; bubbles left hanging then fall.`, helpOnly: true },
         { action: "A torpedo never sticks:", detail: `it flies where you aim it, bank shots included, and destroys up to ${BUB_TORPEDO_HITS} bubbles it runs into on the way up. Bubbles left hanging then fall.`, helpOnly: true },
         { action: "Specials come in the queue:", detail: `a Joker every ${BUB_V3_JOKER_BLOCK} shots or so, and one mine or torpedo somewhere in the first ${BUB_SPECIAL_BLOCK}.`, helpOnly: true },
         { action: "Ninety seconds", detail: "on the same field and queue for everyone.", helpOnly: true },
       ],
-      score: liveBandHelp("bubble", "Each bubble cleared from the reef counts 1.", { more: "More bubbles cleared", good: (u) => `clears ${u} bubbles`, finish: `Clearing the reef adds up to 10 for speed. Chests that fall (${BUB_V8_CHEST_FP} each), bank shots and combos add up to ${BUB_V8_FEATURE_MAX} more.` }),
+      // bubbleRev 11 (the arcade scoring standard): every part, its maximum and how it pays, 200 in all.
+      score: liveStdHelp("bubble", "Clear the reef's bubbles; falling chests, bank shots and combos add more."),
     },
     beat: {
       goal: "Tap the notes in time.",
@@ -909,17 +956,17 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Tail notes:", detail: "hold, let go at the end.", helpOnly: true },
         { action: "Arrow notes:", detail: "swipe that way on the line.", helpOnly: true },
         { action: "A 75-second song:", detail: "from 40 s, after a short break, the lanes become five (a pink fifth lane), easing in with a few seconds of single notes, and the last section is the busiest.", helpOnly: true },
-        { action: "Fever:", detail: "Perfects (and Goods, half as much) fill the meter at the top; a miss empties it. When it flashes TAP FEVER!, tap it: for 8 seconds every note you hit counts twice.", helpOnly: true },
-        { action: "Golden notes:", detail: "hit one dead on – on the very moment it meets the line – for a bonus point.", helpOnly: true },
-        { action: "Double taps:", detail: "two notes with white dots, close together in one lane. Tap both; both Perfect earns a bonus point.", helpOnly: true },
-        { action: "Perfect streak:", detail: "a bonus point for every 10 Perfects in your longest run of Perfects.", helpOnly: true },
+        { action: "Fever:", detail: "Perfects (and Goods, half as much) fill the meter at the top; a miss empties it. When it flashes TAP FEVER!, tap it to start 8 seconds of fever. Each fever you start earns a fixed bonus.", helpOnly: true },
+        { action: "Golden notes:", detail: "hit one dead on – on the very moment it meets the line – for a bonus.", helpOnly: true },
+        { action: "Double taps:", detail: "two notes with white dots, close together in one lane. Tap both; both Perfect earns a bonus.", helpOnly: true },
+        { action: "Perfect streak:", detail: "the longer your longest run of Perfects, the bigger the bonus (all of it for every note Perfect).", helpOnly: true },
         { action: "Closer is better", detail: "– perfect, good, or just OK.", helpOnly: true },
         { action: "A tap with no note", detail: "costs nothing.", helpOnly: true },
         { action: "Notes with a tail are holds", detail: "– press as the head reaches the line, release as the tail reaches it. Both ends must be Perfect for Perfect, or within Good for Good; otherwise Miss.", helpOnly: true },
         { action: "Swipe notes (from 30 seconds)", detail: "show a left or right arrow. Flick your finger that way in the lane as the note reaches the line. A plain tap won't hit them, and the wrong way is a miss.", helpOnly: true },
         { action: "Keep a combo going", detail: "to light up the lanes at 10, 25 and 50 – a miss resets it.", helpOnly: true },
       ],
-      score: `${liveBandHelp("beat", "Perfect counts 4, Good 3, OK 1 and a missed note −2, out of 4 a note, in thousandths of the chart.", { more: "More notes, closer to the beat", good: (u) => `reaches ${u}` })} Fever (up to ${BEAT_V9_CAPS.fever}), golden notes (up to ${BEAT_V9_CAPS.gold}), double taps (up to ${BEAT_V9_CAPS.double}) and the Perfect streak (up to ${BEAT_V9_CAPS.streak}) earn up to 50 skill points, paid on a rising scale (20 pay ${bandPoints(BEAT_V9_SKILL_PAY, 20)}, 40 pay ${bandPoints(BEAT_V9_SKILL_PAY, 40)}, all 50 pay 50), to {max}.`,
+      score: liveStdHelp("beat", "Notes hit closer to the beat score more."),
     },
 
     ricochet: {

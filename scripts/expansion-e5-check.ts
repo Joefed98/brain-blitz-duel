@@ -53,6 +53,7 @@ import {
   BINTOSS_HOOP_HALF,
   BINTOSS_REV_EXPAND,
   BINTOSS_REV_SMALL_FAR,
+  BINTOSS_REV_STD,
   BINTOSS_V8_FAR_HALF,
   binTossFarHalf,
   binTossDragFor,
@@ -104,7 +105,9 @@ const RUNS = "scripts/fixtures/expansion-e5-runs.json.gz";
 const NEW_REV: Record<"bintoss" | "slice", number> = { bintoss: BINTOSS_REV_EXPAND, slice: SLICE_REV_EXPAND };
 const TYPES = Object.keys(NEW_REV) as (keyof typeof NEW_REV)[];
 /** What rooms deal today: Swish moved on to binRev 8 (phone notes, 27 Oct 2026; section 5) and Slice to sliceRev 10 (sliceRev 9 with bigger onions and golden fruit); NEW_REV stays the stamp the stored runs were recorded on. */
-const DEALT: Record<"bintoss" | "slice", number> = { bintoss: BINTOSS_REV_SMALL_FAR, slice: SLICE_REV_BIG };
+// Swish then moved on to binRev 9 (the arcade scoring standard, 29 Oct 2026, docs/arcade-standard/bintoss.md: binRev 8's play with
+// exactly three hoops, its help in the standard's words, "Together 200 points.").
+const DEALT: Record<"bintoss" | "slice", number> = { bintoss: BINTOSS_REV_STD, slice: SLICE_REV_BIG };
 /** The legacy fixture also holds Flightpath's older stamps, which still replay on main's (unchanged) Flightpath. */
 const LEGACY_TYPES = [...TYPES, "bullseye"];
 const spec = (type: string) => GAMES.find((g) => g.type === type)!;
@@ -143,7 +146,9 @@ for (const type of TYPES) {
   ok(playRevOf(type, dealt as number) === DEALT[type] && playRevOf(type, LIVE_BANDS[type].rev) === DEALT[type], `${type}: rooms deal ${live.field} ${DEALT[type]} (got ${String(dealt)})`);
   ok(ROUND_MAX[type] === 200 && roundMaxFor(type) === 200, `${type}: ROUND_MAX is 200`);
   ok(fillMax(INTRO_SCORE[type], type).includes("200"), `${type}: the intro states 200: ${fillMax(INTRO_SCORE[type], type)}`);
-  ok(fillMax(PUZZLE_INSTRUCTIONS[type].score, type).includes("Up to 200."), `${type}: the help ends "Up to 200."`);
+  // A game on the arcade scoring standard states its 200 in the standard's words (arcade-help-bands-check proves them).
+  const helpEnd = LIVE_BANDS[type].std ? "Together 200 points." : "Up to 200.";
+  ok(fillMax(PUZZLE_INSTRUCTIONS[type].score, type).includes(helpEnd),`${type}: the help ends "${helpEnd}"`);
   const how = PUZZLE_INSTRUCTIONS[type].how.filter((line) => !line.helpOnly);
   // One phone line each (46 characters, as batch 5's; Slice's first line was written before that rule, 50).
   ok(how.length <= 3 && how.every((line) => `${line.action} ${line.detail}`.length <= (type === "slice" ? 50 : 46)), `${type}: intro HOW fits three short lines`);
@@ -155,7 +160,8 @@ for (const type of TYPES) {
   // Flightpath was split out of E5; expansion E9 (docs/expansions/e9.md) then moved rooms on to bullRev 8 at 200, with
   // bullRev 6 as its score-bands revision (expansion-e9-check covers it).
   const dealt = (generatePuzzle("bullseye") as unknown as Record<string, unknown>).bullRev;
-  ok(dealt === BULLSEYE_REV_EXPAND && LIVE_BANDS.bullseye.rev === BULLSEYE_REV_EXPAND && LIVE_BANDS.bullseye.strictRev === BULLSEYE_REV_STRICT, `bullseye: rooms deal E9's bullRev ${BULLSEYE_REV_EXPAND}, after bullRev ${BULLSEYE_REV_STRICT} (got ${String(dealt)})`);
+  // The arcade scoring standard (29 Oct 2026): bullRev 9 keeps bullRev 8's play (playRevOf; bullseye-standard-check).
+  ok(playRevOf("bullseye", dealt as number) === BULLSEYE_REV_EXPAND && playRevOf("bullseye", LIVE_BANDS.bullseye.rev) === BULLSEYE_REV_EXPAND && LIVE_BANDS.bullseye.strictRev === BULLSEYE_REV_STRICT, `bullseye: rooms deal E9's bullRev ${BULLSEYE_REV_EXPAND}, after bullRev ${BULLSEYE_REV_STRICT} (got ${String(dealt)})`);
   ok(ROUND_MAX.bullseye === 200, "bullseye: ROUND_MAX is 200 since expansion E9");
 }
 
@@ -404,7 +410,7 @@ section("Slice sliceRev 10: sliceRev 9 with onions and golden fruit 1.2× the si
 
 console.log(
   failures.length === 0
-    ? `PASS expansion-e5-check: ${passes} checks — older stamps replay as on main; rooms deal binRev 8 (binRev 7 with the smaller far bucket) and sliceRev 10 (sliceRev 9 with bigger onions and golden fruit) at 200 (Flightpath split out, then moved on by expansion E9); stored new-stamp runs and a 200 each; the new rules`
+    ? `PASS expansion-e5-check: ${passes} checks — older stamps replay as on main; rooms deal binRev 9 (binRev 8, binRev 7 with the smaller far bucket, on the arcade scoring standard) and sliceRev 10 (sliceRev 9 with bigger onions and golden fruit) at 200 (Flightpath split out, then moved on by expansion E9); stored new-stamp runs and a 200 each; the new rules`
     : `FAIL expansion-e5-check: ${failures.length} of ${passes + failures.length} checks failed\n${failures.map((f) => `  ✗ ${f}`).join("\n")}`,
 );
 if (failures.length > 0) process.exit(1);

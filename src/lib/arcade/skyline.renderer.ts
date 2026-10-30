@@ -13,7 +13,9 @@ import { skylineGame, SKYLINE_BLOCK_H, SKYLINE_MIN_ZOOM, SKYLINE_PERFECT_GROW, S
 import {
   skylineKindAt,
   skylineNextMult,
-  skylineStreakMult,
+  skylineShownMult,
+  SKYLINE_REV_STD,
+  SKYLINE_V9_STREAK_MAX,
   SKYLINE_KIND_GOLD,
   SKYLINE_KIND_NARROW,
   SKYLINE_KIND_NORMAL,
@@ -626,8 +628,8 @@ const PERFECT_POP_TICKS = 45;
  */
 function drawPerfectPop(ctx: CanvasRenderingContext2D, state: SkylineState, x: number, seamY: number): void {
   const age = state.tick - state.perfectTick;
-  // skylineRev 7: the pop carries the streak multiplier the drop scored at.
-  const mult = state.expandRev ? skylineStreakMult(state.streak ?? 0) : 1;
+  // skylineRev 7–8: the pop carries the streak multiplier the drop scored at (rev 9 scores none: plain PERFECT).
+  const mult = state.expandRev ? skylineShownMult(state) : 1;
   const word = mult > 1 ? `PERFECT ×${mult}` : "PERFECT";
   if (state.perfectTick <= 0 || age < 0 || age >= PERFECT_POP_TICKS) return;
   const p = age / PERFECT_POP_TICKS;
@@ -804,13 +806,15 @@ function hudPill(ctx: CanvasRenderingContext2D, x: number, y: number, w: number,
  */
 function drawExpandHud(ctx: CanvasRenderingContext2D, state: SkylineState): void {
   const streak = state.streak ?? 0;
-  const mult = skylineStreakMult(streak);
+  const mult = skylineShownMult(state);
+  // skylineRev 9: no multiplier; the streak turns gold once it fills the streak part (10 in a row).
+  const std = state.expandRev === SKYLINE_REV_STD;
   ctx.save();
   ctx.font = "600 16px 'JetBrains Mono', ui-monospace, monospace";
   ctx.textBaseline = "top";
   ctx.textAlign = "right";
   if (streak > 0) {
-    ctx.fillStyle = mult > 1 ? REAL_GOLD : REAL_NIGHT_TEXT;
+    ctx.fillStyle = mult > 1 || (std && streak >= SKYLINE_V9_STREAK_MAX) ? REAL_GOLD : REAL_NIGHT_TEXT;
     ctx.fillText(mult > 1 ? `Streak ${streak} ×${mult}` : `Streak ${streak}`, SKYLINE_WORLD_W - 12, 12);
   }
   // The next block: a pill under the crane's jib, right side.
@@ -842,7 +846,7 @@ function drawExpandHud(ctx: CanvasRenderingContext2D, state: SkylineState): void
     }
   }
   // The multiplier the next perfect drop would score at, once it is more than ×1.
-  const nextMult = skylineNextMult(state);
+  const nextMult = std ? 1 : skylineNextMult(state);
   if (!state.missed && nextMult > mult && streak > 0) {
     ctx.font = "700 10px 'JetBrains Mono', ui-monospace, monospace";
     ctx.textAlign = "right";
@@ -927,7 +931,8 @@ function drawMilestone(ctx: CanvasRenderingContext2D, state: SkylineState, x: nu
   ctx.shadowBlur = 0;
   ctx.font = "700 11px 'JetBrains Mono', ui-monospace, monospace";
   ctx.fillStyle = "#FFF1C8";
-  ctx.fillText("CITY BONUS", SKYLINE_WORLD_W / 2, y + 12);
+  // skylineRev 9: a milestone is a celebration only (its floors are in the core), so no "bonus".
+  ctx.fillText(state.expandRev === SKYLINE_REV_STD ? "CITY VIEW" : "CITY BONUS", SKYLINE_WORLD_W / 2, y + 12);
   ctx.restore();
 }
 
@@ -943,7 +948,13 @@ export const SKYLINE_FX_EXPAND: ArcadeFxSpec<SkylineState> = {
     { kind: "perfect", count: (s) => s.perfects, at: () => ({ x: SKYLINE_WORLD_W / 2, y: SKYLINE_SKY_H * 0.42 }), label: () => null },
     // The milestone's banner is the game's own; this adds the edge glow and burst only.
     { kind: "streak", count: (s) => s.milestones ?? 0, at: () => ({ x: SKYLINE_WORLD_W / 2, y: SKYLINE_SKY_H * 0.3 }), label: () => null },
-    { kind: "combo", count: (s) => skylineStreakMult(s.streak ?? 0), min: 2, label: (_s, n) => `STREAK ×${n}` },
+    // skylineRev 9: no multiplier; the banner counts the perfect streak from its 3rd drop.
+    {
+      kind: "combo",
+      count: (s) => (s.expandRev === SKYLINE_REV_STD ? ((s.streak ?? 0) >= 3 ? s.streak ?? 0 : 0) : skylineShownMult(s)),
+      min: 2,
+      label: (s, n) => (s.expandRev === SKYLINE_REV_STD ? `STREAK ${n}` : `STREAK ×${n}`),
+    },
     { kind: "pop", count: (s) => (s.rev && s.placed >= 20 ? 1 : 0), at: () => ({ x: SKYLINE_WORLD_W / 2, y: SKYLINE_SKY_H * 0.3 }), label: () => "FLAG UP: WATCH THE WIND!" },
     { kind: "perfect", count: (s) => s.golds ?? 0, at: () => ({ x: SKYLINE_WORLD_W / 2, y: SKYLINE_SKY_H * 0.36 }), label: () => null, lights: ["#FFD24A", "#FFF1B8"] },
     { kind: "perfect", count: (s) => s.gustPerfects ?? 0, at: () => ({ x: SKYLINE_WORLD_W / 2, y: SKYLINE_SKY_H * 0.36 }), label: () => "PERFECT IN THE WIND!" },

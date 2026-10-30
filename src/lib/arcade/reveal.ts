@@ -17,6 +17,8 @@ import { BAND_SPECS } from "./bandParts";
 import { breakerStdParts, type BrkState } from "./breaker";
 import { burstGoldenCount, burstStdParts, BURST_V10_GOLDENS, BURST_V10_WAVES, type BurstState } from "./burst";
 import { bandLines } from "./scoreBands";
+import { stdLines } from "./arcadeStandard";
+import { arcadeStdParts } from "./standard";
 
 export interface ArcadeRevealTile {
   label: string;
@@ -155,8 +157,13 @@ const BUILDERS: Record<string, Builder> = {
     tiles: [
       { label: "Blocks", value: String(n(r, "blocks")) },
       { label: "Perfect drops", value: String(n(r, "perfects")) },
-      ...(n(r, "skylineRev") > 0 ? [{ label: "Best streak", value: String(n(r, "bestStreak")) }] : []),
-      ...(n(r, "skylineRev") >= 7 ? [{ label: "Gold blocks", value: String(n(r, "golds")) }] : []),
+      ...(n(r, "skylineRev") > 0 || (r["state"] as { expandRev?: number } | undefined)?.expandRev === 9 ? [{ label: "Best streak", value: String(n(r, "bestStreak")) }] : []),
+      // skylineRev 9 (the arcade scoring standard; the replay's state carries expandRev 9): five gold blocks a run.
+      ...((r["state"] as { expandRev?: number } | undefined)?.expandRev === 9
+        ? [{ label: "Gold blocks", value: `${n(r, "golds")} / 5` }]
+        : n(r, "skylineRev") >= 7
+          ? [{ label: "Gold blocks", value: String(n(r, "golds")) }]
+          : []),
     ],
     outcome: ended(r, false),
   }),
@@ -177,6 +184,8 @@ const BUILDERS: Record<string, Builder> = {
       tiles: [
         { label: "Buckets", value: `${n(r, "baskets")} / 10` },
         ...(hoops > 0 ? [{ label: "Hoop bonuses", value: `${n(r, "swishes")} / ${hoops}` }] : []),
+        // binRev 9 (the arcade scoring standard): the far buckets made.
+        ...(r["far"] !== undefined ? [{ label: "Far buckets", value: `${n(r, "far")} / 6` }] : []),
         { label: "Throws", value: String(n(r, "throws")) },
       ],
       outcome: done ? "finish" : "time",
@@ -255,7 +264,22 @@ const BUILDERS: Record<string, Builder> = {
       outcome: done ? "finish" : n(r, "bricksLeft") > 0 && n(r, "endedSeconds") < 90 ? "crash" : "time",
     };
   },
-  pinball: (r, s) => ({
+  pinball: (r, s) =>
+    // pinRev 6 (the arcade scoring standard; the lines come from its parts): no multiplier tile, its features instead.
+    (r["state"] as { rev6?: number } | undefined)?.rev6
+      ? {
+          axis: { value: n(r, "points"), max: null, label: "Table points" },
+          lines: [`${n(r, "points").toLocaleString("en-GB")} table points → ${s}`],
+          tiles: [
+            { label: "J-O-U-L-Z", value: String(n(r, "laneSets")) },
+            { label: "Multiball", value: String(n(r, "multiballs")) },
+            { label: "Jackpots", value: String(n(r, "jackpots")) },
+            { label: "Ramps", value: `${n(r, "ramps")} · ${n(r, "combos")} combo${n(r, "combos") === 1 ? "" : "s"}` },
+            { label: "Balls left", value: String(n(r, "ballsLeft")) },
+          ],
+          outcome: n(r, "ballsLeft") > 0 ? "time" : "crash",
+        }
+      : {
     axis: { value: n(r, "points"), max: null, label: "Table points" },
     lines:
       n(r, "pinRev") >= 4
@@ -269,7 +293,7 @@ const BUILDERS: Record<string, Builder> = {
       { label: "Balls left", value: String(n(r, "ballsLeft")) },
     ],
     outcome: n(r, "ballsLeft") > 0 ? "time" : "crash",
-  }),
+  },
   rally: (r, s) => ({
     axis: { value: n(r, "goldHits"), max: null, label: "Gold-ball hits" },
     lines: [
@@ -801,6 +825,9 @@ export function buildArcadeReveal(type: string, run: unknown, score: number): Ar
   const builder = BUILDERS[type];
   if (!builder || !run || typeof run !== "object") return null;
   const data = builder(run as Run, score);
+  // The arcade scoring standard (arcadeStandard.ts): one line per part (core, then each feature) and the total.
+  const std = arcadeStdParts(type, (run as Run)["state"]);
+  if (std) return { ...data, lines: stdLines(std, score, Boolean(((run as Run)["state"] as { acted?: number }).acted)) };
   // Oct 2026 score-band rounds: same axis and tiles, breakdown lines from the band rules.
   const state = (run as Run)["state"] as { band?: number; acted?: number } | undefined;
   const band = BAND_SPECS[type];

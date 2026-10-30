@@ -1009,17 +1009,22 @@ export const PIN_REV_LONG = 5;
 export const PIN_V5_RUN_SECONDS = 90;
 export const PIN_V5_RUN_TICKS = PIN_V5_RUN_SECONDS * TICKS_PER_SECOND;
 
+/* ============ The arcade scoring standard (pinRev 6, 29 Oct 2026, docs/arcade-standard/pinball.md) ============ */
+
+/** pinRev 6: pinRev 5's table and 90 s play, scored on the arcade scoring standard (pinball4.ts, PIN_STD_SPEC). */
+export const PIN_REV_STD = 6;
+
 /** The taller table (pinball4.ts) plays on pinRev 4 and every later revision. */
 export function pinIsExpanded(rev?: number | null): boolean {
-  return rev === PIN_REV_EXPAND || rev === PIN_REV_LONG;
+  return rev === PIN_REV_EXPAND || rev === PIN_REV_LONG || rev === PIN_REV_STD;
 }
 
-/** The run length of a stored pinRev: 90 s on pinRev 5, 60 s on every older revision. */
+/** The run length of a stored pinRev: 90 s on pinRev 5 and 6, 60 s on every older revision. */
 export function pinRunTicksFor(rev?: number | null): number {
-  return rev === PIN_REV_LONG ? PIN_V5_RUN_TICKS : PIN_RUN_TICKS;
+  return rev === PIN_REV_LONG || rev === PIN_REV_STD ? PIN_V5_RUN_TICKS : PIN_RUN_TICKS;
 }
 
-/** The run length of a live state (pinRev 5's states carry `rev5`). */
+/** The run length of a live state (pinRev 5's and 6's states carry `rev5`). */
 export function pinRunTicksOf(state: PinState): number {
   return (state as PinState & { rev5?: number }).rev5 ? PIN_V5_RUN_TICKS : PIN_RUN_TICKS;
 }

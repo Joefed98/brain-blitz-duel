@@ -44,8 +44,8 @@ import { decodeRingTaps, replayRings } from "./rings";
 import { decodeHoverRun, replayHoverRun } from "./hover";
 import { decodeSwerveRun, replaySwerveRun } from "./swerve";
 import { decodeSkylineRun, replaySkylineRun } from "./skyline";
-import { SKYLINE_REV_EXPAND, SKYLINE_REV_LIFT } from "@/lib/arcade/skyline";
-import { pinIsExpanded } from "@/lib/arcade/pinball";
+import { SKYLINE_REV_EXPAND, SKYLINE_REV_LIFT, SKYLINE_REV_STD } from "@/lib/arcade/skyline";
+import { pinIsExpanded, PIN_REV_STD } from "@/lib/arcade/pinball";
 import { decodeSnakeRun, replaySnakeRun } from "./snake";
 import { snakeStdParts } from "@/lib/arcade/snake";
 import { decodeBreakerRun, replayBreakerRun } from "./breaker";
@@ -53,11 +53,12 @@ import { breakerStdParts, brkSkillPaid, brkWallSize } from "@/lib/arcade/breaker
 import { hoverFeatureBonus, hoverStandardParts } from "@/lib/arcade/hover";
 import { decodePinballRun, replayPinballRun } from "./pinball";
 import { decodeRallyRun, replayRallyRun } from "./rally";
-import { rallyBonusCount, rallyBonusPoints } from "@/lib/arcade/rally";
+import { rallyBonusCount, rallyBonusPoints, rallyBonusPtsOf, RALLY_V12_EXP } from "@/lib/arcade/rally";
 import { decodeSteadyRun, replaySteadyRun } from "./steady";
 import { decodeSliceRun, replaySliceRun } from "./slice";
 import { decodeBubbleRun, replayBubbleRun } from "./bubble";
 import { decodeBeatRun, replayBeatRun } from "./beat";
+import { beatAccuracy, beatFeatureCounts } from "@/lib/arcade/beat";
 import { decodeWhackRun, replayWhackRun, whackDepthDetail } from "./whack";
 import { decodeTenDropRun, replayTenDropRun } from "./tenDrop";
 import { decodeWordfallRun, replayWordfallRun } from "./wordfall";
@@ -1209,6 +1210,8 @@ function gradeUnderRev(
         ...(puzzle.skylineRev ? { skylineRev: puzzle.skylineRev, bestStreak: run.bestStreak, streakPoints: run.streakPoints } : {}),
         // skylineRev 7+ (the expansion; 8 is its play on a gentler curve): gold blocks landed perfectly, the best streak multiplier, height milestones.
         ...(puzzle.skylineRev === SKYLINE_REV_EXPAND || puzzle.skylineRev === SKYLINE_REV_LIFT ? { golds: run.golds, bestMult: run.bestMult, milestones: run.milestones } : {}),
+        // skylineRev 9 (the arcade scoring standard): gold blocks landed perfectly (of 5) and height milestones (no multiplier).
+        ...(puzzle.skylineRev === SKYLINE_REV_STD ? { golds: run.golds, milestones: run.milestones } : {}),
         survived: run.survived,
         endedSeconds: run.endedSeconds,
         flagged: run.flagged,
@@ -1390,6 +1393,8 @@ function gradeUnderRev(
         laneSets: run.laneSets,
         // pinRev 4 (the expansion): ramps, the best combo, multiballs, jackpots and skill shots.
         ...(pinIsExpanded(puzzle.pinRev) ? { ramps: run.ramps, bestCombo: run.bestCombo, multiballs: run.multiballs, jackpots: run.jackpots, skills: run.skills } : {}),
+        // pinRev 6 (the arcade scoring standard): back-to-back ramp shots, one of its features.
+        ...(puzzle.pinRev === PIN_REV_STD ? { combos: run.combos } : {}),
         lost: run.lost,
         ballsLeft: run.ballsLeft,
         endedSeconds: run.endedSeconds,
@@ -1419,7 +1424,8 @@ function gradeUnderRev(
         targetHits: run.targetHits,
         rallyRev: run.rallyRev,
         // rallyRev 10 (expansion E9): the gold bonus targets struck, for the reveal.
-        ...(run.state.exp ? { bonusHits: rallyBonusCount(run.state), bonusPts: rallyBonusPoints(run.state) } : {}),
+        // rallyRev 12 (the arcade scoring standard): 5 a target (6 before).
+        ...(run.state.exp ? { bonusHits: rallyBonusCount(run.state), bonusPts: (run.state.exp ?? 0) >= RALLY_V12_EXP ? rallyBonusPtsOf(run.state) * rallyBonusCount(run.state) : rallyBonusPoints(run.state) } : {}),
         paddleWidth: run.paddleWidth,
         survived: run.survived,
         endedSeconds: run.endedSeconds,
@@ -1507,6 +1513,8 @@ function gradeUnderRev(
         shots: run.shots,
         bubblesLeft: run.bubblesLeft,
         ...(puzzle.bubbleRev ? { bubbleRev: puzzle.bubbleRev, jokers: run.jokers, bombs: run.bombs, lines: run.lines } : {}),
+        // bubbleRev 11 (the arcade scoring standard): the scored features' counts.
+        ...(run.state.std ? { chests: run.state.chests ?? 0, banks: run.state.banks ?? 0, combos: run.state.combos ?? 0 } : {}),
         startCount: run.state.startCount,
         cleared: run.cleared,
         survived: run.survived,
@@ -1551,6 +1559,8 @@ function gradeUnderRev(
         clientLag: run.clientLag,
         clientTick: run.clientTick,
         desyncTick: run.desyncTick,
+        // beatRev 11 (the arcade scoring standard): the core measure and each feature against the song's own count.
+        ...(run.state.std ? { beatRev: puzzle.beatRev, accuracy: beatAccuracy(run.state), fevers: run.state.fevers ?? 0, goldsHit: run.state.goldsHit ?? 0, golds: beatFeatureCounts(run.state).golds, doublesDone: run.state.doublesDone ?? 0, doubles: beatFeatureCounts(run.state).doubles, maxStreak: run.state.maxStreak ?? 0 } : {}),
         inputs: decodeBeatRun(answer).events.length,
         claimedScore: decodeBeatRun(answer).claimedScore,
         ...(run.reason ? { reason: run.reason } : {}),
@@ -2371,6 +2381,8 @@ function gradeUnderRev(
         desyncTick: run.desyncTick,
         inputs: decodeBinTossRun(answer).events.length,
         claimedScore: decodeBinTossRun(answer).claimedScore,
+        // binRev 9 (the arcade scoring standard): far baskets and close misses, for the reveal and summaries.
+        ...(run.far !== undefined ? { far: run.far, close: run.close ?? 0 } : {}),
         ...(run.reason ? { reason: run.reason } : {}),
       };
       break;
