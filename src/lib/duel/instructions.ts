@@ -106,7 +106,8 @@ import {
 import { SLICE_V9_BAND_CURVE, SLICE_V9_BONUS_CAP, SLICE_V9_DODGE_POINTS, SLICE_V9_GOLD_POINTS, SLICE_V9_TICKET_POINTS, SLICE_V9_VALUE } from "@/lib/arcade/slice";
 import { BINTOSS_FAR_THROWS, BINTOSS_V9_FAR, BINTOSS_V9_FAR_MAX, BINTOSS_V9_HOOP } from "@/lib/arcade/binToss";
 import { P4_PTS_COMBO, P4_PTS_JACKPOT, P4_PTS_JOULZ, P4_PTS_RAMP, P4_PTS_SKILL } from "@/lib/arcade/pinball4";
-import { BULLSEYE_INNER_BULL_POINTS, BULLSEYE_RING_VALUES, BULLSEYE_V8_DEAD_CAP, BULLSEYE_V8_DEAD_PTS, BULLSEYE_V8_STREAK_CAP, BULLSEYE_V8_STREAK_STEP } from "@/lib/arcade/bullseye";
+import { BULLSEYE_V8_STREAK_CAP, BULLSEYE_V8_STREAK_STEP, BULLSEYE_V9_DEAD_CAP } from "@/lib/arcade/bullseye";
+import { liveStdHelp as bullseyeStdHelp } from "@/lib/arcade/liveBands";
 import { RALLY_V10_BONUS_COUNT, RALLY_V11_BONUS_LIFE, RALLY_V12_PAD_PTS, RALLY_V12_TARGET_PTS } from "@/lib/arcade/rally";
 import { BURST_V9_CAPS, BURST_V9_CLEAR_MAX, BURST_V8_GOLDEN_PTS, BURST_V8_GOLDENS } from "@/lib/arcade/burst";
 import { liveBandHelp, liveStdHelp } from "@/lib/arcade/liveBands";
@@ -634,7 +635,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
       how: [
         { action: "Drag to aim,", detail: "let go to throw." },
         { action: "Bulls in a row:", detail: `from the 3rd, +${BULLSEYE_V8_STREAK_STEP}, +${2 * BULLSEYE_V8_STREAK_STEP}, +${3 * BULLSEYE_V8_STREAK_STEP}…` },
-        { action: "White dead-centre ring:", detail: `+${BULLSEYE_V8_DEAD_PTS} more.` },
+        { action: "White dead-centre ring:", detail: "about +2 or +3 more." },
         { action: "Wind 2?", detail: "Aim two rings into the wind.", helpOnly: true },
         { action: "Inner bull 12.", detail: "Balloons add +1, +2 or +3.", helpOnly: true },
         {
@@ -660,7 +661,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         },
         {
           action: "Dead-centre:",
-          detail: `the thin white ring in the middle of the bull (a quarter of its width, shown whenever the 10 is the centre ring). A dart inside it adds ${BULLSEYE_V8_DEAD_PTS} on top of the streak, up to ${BULLSEYE_V8_DEAD_CAP} in all, and keeps the streak going like any bull.`,
+          detail: `the thin white ring in the middle of the bull (a quarter of its width, shown whenever the 10 is the centre ring). ${BULLSEYE_V9_DEAD_CAP} points are shared between the darts that have one (6 to 9 of the 10, the same for everyone), about 2 or 3 a dart, so hitting every one gives all ${BULLSEYE_V9_DEAD_CAP}. A dart inside it scores its share on top of the streak and keeps the streak going like any bull.`,
           helpOnly: true,
         },
         { action: "From the fourth dart the target moves – lead it.", detail: "It is scored where it is when the dart lands.", helpOnly: true },
@@ -676,8 +677,9 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
           helpOnly: true,
         },
       ],
-      // bullRev 8 (docs/expansions/e9.md): the dart total on its curve, plus the streak and dead-centre points.
-      score: `${liveBandHelp("bullseye", `Your dart total: rings ${BULLSEYE_RING_VALUES.join(" / ")} from the centre out (the inner bull ${BULLSEYE_INNER_BULL_POINTS}), plus +1, +2 or +3 for each balloon popped on the way in.`, { more: "A higher dart total", good: (u) => `totals ${u}` })} Bull streaks add up to ${BULLSEYE_V8_STREAK_CAP} more and dead-centre darts ${BULLSEYE_V8_DEAD_PTS} each, up to ${BULLSEYE_V8_DEAD_CAP}. Up to {max}.`,
+      // bullRev 9 (the arcade scoring standard, docs/arcade-standard/bullseye.md): the dart total on a straight line, plus
+      // the bull streak and dead-centre darts.
+      score: bullseyeStdHelp("bullseye", "Every dart point counts the same."),
     },
     matchup: {
       goal: "Match gems to meet each goal.",

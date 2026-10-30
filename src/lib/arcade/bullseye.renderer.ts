@@ -13,7 +13,7 @@ import {
   BULLSEYE_RING_STEP, BULLSEYE_TEXT, BULLSEYE_WIND_MAX, BULLSEYE_WORLD_H, BULLSEYE_WORLD_W,
   BULLSEYE_BALLOON_R, BULLSEYE_INNER_BULL_DIV, BULLSEYE_REV, BULLSEYE_TUNE,
   bullseyeBalloonPos, bullseyeBalloonValue, bullseyeRingValues, bullseyeScalePct, bullseyeTargetDx, type BullseyeState,
-  BULLSEYE_EXPAND, BULLSEYE_V8_LIFT, BULLSEYE_V8_DEAD_DIV, BULLSEYE_V8_DEAD_PTS, bullseyeBoard, bullseyeDxOf, bullseyeIsBull,
+  BULLSEYE_EXPAND, BULLSEYE_V8_LIFT, BULLSEYE_V8_DEAD_DIV, bullseyeDeadEach, bullseyeBoard, bullseyeDxOf, bullseyeIsBull,
 } from "./bullseye";
 import { flightpathColour, flightpathInk } from "./flightpathPalette.renderer";
 import { reducedMotion } from "./art.renderer";
@@ -667,7 +667,8 @@ export function drawBullseye(ctx: CanvasRenderingContext2D, state: BullseyeState
           ctx.strokeStyle = "rgba(11,11,15,0.8)";
           ctx.lineWidth = 3;
           ctx.lineJoin = "round";
-          const t = `DEAD CENTRE +${BULLSEYE_V8_DEAD_PTS}`;
+          // bullRev 9 (the scoring standard): 2 a dart; bullRev 8: 7.
+          const t = `DEAD CENTRE +${bullseyeDeadEach(state)}`;
           ctx.strokeText(t, 0, bal > 0 ? -44 : -30);
           ctx.fillText(t, 0, bal > 0 ? -44 : -30);
           ctx.font = "700 20px 'JetBrains Mono', ui-monospace, monospace";

@@ -33,7 +33,7 @@ import { BEAT_REV_STD, BEAT_REV_STRICT, BEAT_STD_SPEC, BEAT_V11_BAND_CURVE } fro
 import { SLICE_REV_STRICT, SLICE_REV_BIG, SLICE_V9_BAND_CURVE } from "./slice";
 import { BURST_REV_CARRY, BURST_REV_STRICT, BURST_V9_BAND_CURVE } from "./burst";
 import { SWING_REV_ASSAULT, SWING_REV_STRICT, SWING_V14_BAND_CURVE } from "./swing";
-import { BULLSEYE_REV_EXPAND, BULLSEYE_REV_STRICT, BULLSEYE_V8_BAND_CURVE } from "./bullseye";
+import { BULLSEYE_REV_STD, BULLSEYE_REV_STRICT, BULLSEYE_STD_SPEC, BULLSEYE_V9_BAND_CURVE } from "./bullseye";
 import { PIN_REV_LONG, PIN_V5_BAND_CURVE } from "./pinball4";
 import { PIN_REV_STRICT } from "./pinball";
 
@@ -81,7 +81,9 @@ export const LIVE_BANDS = {
   burst: { field: "burstRev", rev: BURST_REV_CARRY, curve: BURST_V9_BAND_CURVE, strictRev: BURST_REV_STRICT },
   // swingRev 14 (the assault course): the sections' curve; pars, gates, gems and stars pay up to 70 more (the help says so).
   swing: { field: "swingRev", rev: SWING_REV_ASSAULT, curve: SWING_V14_BAND_CURVE, strictRev: SWING_REV_STRICT },
-  bullseye: { field: "bullRev", rev: BULLSEYE_REV_EXPAND, curve: BULLSEYE_V8_BAND_CURVE, strictRev: BULLSEYE_REV_STRICT },
+  // bullRev 9 (the arcade scoring standard, docs/arcade-standard/bullseye.md): the dart total on a straight line, plus the
+  // bull streak and dead-centre darts.
+  bullseye: { field: "bullRev", rev: BULLSEYE_REV_STD, curve: BULLSEYE_V9_BAND_CURVE, strictRev: BULLSEYE_REV_STRICT, std: BULLSEYE_STD_SPEC },
   pinball: { field: "pinRev", rev: PIN_REV_LONG, curve: PIN_V5_BAND_CURVE, strictRev: PIN_REV_STRICT },
 } as const satisfies Record<string, LiveBand>;
 
