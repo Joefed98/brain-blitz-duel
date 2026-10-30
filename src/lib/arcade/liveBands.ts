@@ -109,6 +109,15 @@ export const LIVE_BANDS = {
 
 export type LiveBandGame = keyof typeof LIVE_BANDS;
 
+/**
+ * Games born on the arcade scoring standard (the Sports group, 30 Oct 2026): a standard spec and no earlier band
+ * revision, so the band-era checks (strict curves, target revisions, band stamps) skip them.
+ */
+export function liveBornOnStandard(game: string): boolean {
+  const live = (LIVE_BANDS as Record<string, LiveBand>)[game];
+  return Boolean(live?.std) && live?.strictRev === undefined && (live?.rev ?? 0) === 1;
+}
+
 /** The score-band (strict curve) revision of a game: its `strictRev` once an expansion moved rooms past it, else the dealt one. */
 export function liveStrictRev(game: LiveBandGame): number {
   const live: LiveBand = LIVE_BANDS[game];

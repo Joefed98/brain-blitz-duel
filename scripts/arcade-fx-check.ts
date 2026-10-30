@@ -271,6 +271,10 @@ function assaultAt(): any {
   return assaultBase;
 }
 const BUMPS: Record<string, ((s: any) => any)[]> = {
+  // The Sports group (30 Oct 2026, sportsFx.renderer.ts).
+  homerun: [(s) => ({ ...s, homers: s.homers + 1 }), (s) => ({ ...s, signs: s.signs | 1 })],
+  freekick: [(s) => ({ ...s, goals: s.goals + 1 }), (s) => ({ ...s, targets: s.targets + 1 })],
+  racing: [(s) => ({ ...s, clean: s.clean + 1 }), (s) => ({ ...s, s: s.s + 6_000_000 })],
   hover: [
     (s) => ({ ...s, gates: s.gates + 1 }),
     (s) => ({ ...s, gates: s.gates + 7 }),

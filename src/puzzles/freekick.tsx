@@ -1,7 +1,6 @@
 import { useRef } from "react";
 
 import { gameDisplayName } from "@/lib/duel/gameNames";
-import { stdLines } from "@/lib/arcade/arcadeStandard";
 import {
   FK_AIM,
   FK_BALL_R,
@@ -217,7 +216,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
 function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   if (puzzle.type !== "freekick") return null;
   const result = replayFreekickRun(puzzle.seed, myAnswer ?? "", puzzle.freekickRev);
-  const lines = stdLines(result.parts, result.score, result.state.acted > 0);
+  // What the run did, part by part (the points are the stored score's, shown by the arcade reveal above).
+  const lines = result.parts.map((part) => `${part.label}: ${part.detail}`);
   return (
     <div className="flex min-h-0 w-full flex-1 flex-col items-center justify-start gap-2 overflow-y-auto">
       <p className="whitespace-normal break-words text-center font-mono text-base font-bold text-foreground">

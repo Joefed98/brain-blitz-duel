@@ -310,6 +310,6 @@ Medians, weak → flawless (each game's `bun scripts/<game>-bands.ts`, room seed
 | Game | Weak | Average | Good | Great | Near | Elite | Flawless |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | Home Run Derby | 46 | 71 | 114 | 163 | 190 | 197 | 200 |
-| Free Kick | FK_W | FK_A | FK_G | FK_GR | FK_N | FK_E | FK_F |
+| Free Kick | 23 | 36 | 66 | 102 | 148 | 165 | 200 |
 | Racing | 131 | 155 | 182 | 192.5 | 198 | 200 | 200 |
 

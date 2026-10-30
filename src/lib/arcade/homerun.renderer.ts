@@ -874,11 +874,22 @@ export function homerunScene(ctx: CanvasRenderingContext2D, view: ArenaSceneView
 export function paintHomerunTile(ctx: CanvasRenderingContext2D, size: number, seed = 7): void {
   const plan = homerunPlan(seed);
   ctx.save();
-  const s = size / 300;
+  // A close crop: the lit wall, a sign and the pitcher, a ball climbing toward the seats.
+  const s = size / 180;
   ctx.scale(s, s);
-  ctx.translate(-45, -40);
+  ctx.translate(-92, -190);
   paintHomerunPark(ctx, plan);
-  paintPitcher(ctx, PITCHER_FEET.x + 4, PITCHER_FEET.y - 2, PITCHER_H, 1.2);
-  paintBall(ctx, 250, 200, 6, 0.4);
+  paintPitcher(ctx, PITCHER_FEET.x + 4, PITCHER_FEET.y - 2, PITCHER_H * 1.15, 1.2);
+  ctx.save();
+  ctx.globalCompositeOperation = "lighter";
+  ctx.strokeStyle = "rgba(255,255,255,0.35)";
+  ctx.lineWidth = 3;
+  ctx.lineCap = "round";
+  ctx.beginPath();
+  ctx.moveTo(250, 330);
+  ctx.quadraticCurveTo(232, 262, 215, 238);
+  ctx.stroke();
+  ctx.restore();
+  paintBall(ctx, 214, 236, 5.5, 0.4);
   ctx.restore();
 }

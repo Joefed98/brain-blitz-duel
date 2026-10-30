@@ -28,7 +28,7 @@ import { generateMazeClassic } from "../src/lib/duel/maze.server";
 import { withSeededRandom } from "../src/lib/duel/random";
 import { readFileSync } from "node:fs";
 import { gunzipSync } from "node:zlib";
-import { LIVE_BANDS, liveStrictRev, type LiveBandGame } from "../src/lib/arcade/liveBands";
+import { LIVE_BANDS, liveBornOnStandard, liveStrictRev, type LiveBandGame } from "../src/lib/arcade/liveBands";
 import { BAND_STRICT_MARK, BAND_TARGET_MARK, bandHasStrict, bandMapTotal, bandStrict, bandTop, type BandCurve } from "../src/lib/arcade/scoreBands";
 import { BASES } from "./arcade-bands-fit";
 import { GAMES } from "./arcade-skill-bands/games";
@@ -140,7 +140,7 @@ function recordedPuzzle(type: PuzzleType, seed: number): PuzzleData {
 }
 
 /* ============================== 1. Arcade curves and stamps ============================== */
-const ARCADE = (Object.keys(LIVE_BANDS) as LiveBandGame[]).filter((t) => t !== "junction");
+const ARCADE = (Object.keys(LIVE_BANDS) as LiveBandGame[]).filter((t) => t !== "junction" && !liveBornOnStandard(t));
 for (const type of ARCADE) {
   const { base } = BASES[type]!;
   const live = LIVE_BANDS[type];

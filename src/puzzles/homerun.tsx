@@ -10,7 +10,6 @@ import {
   HOMERUN_WORLD_W,
 } from "@/lib/arcade/homerun";
 import { drawHomerunArt, homerunScene } from "@/lib/arcade/homerun.renderer";
-import { stdLines } from "@/lib/arcade/arcadeStandard";
 import { encodeHomerunRun, replayHomerunRun } from "@/lib/duel/homerun";
 import { HOMERUN_TIME_MS, type HomerunPuzzleData } from "@/lib/duel/types";
 import { ArcadeCanvasStage } from "@/components/puzzles/ArcadeCanvasStage";
@@ -114,7 +113,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
 function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   if (puzzle.type !== "homerun") return null;
   const result = replayHomerunRun(puzzle.seed, myAnswer ?? "", puzzle.homerunRev);
-  const lines = stdLines(result.parts, result.score, result.state.acted > 0);
+  // What the run did, part by part (the points are the stored score's, shown by the arcade reveal above).
+  const lines = result.parts.map((part) => `${part.label}: ${part.detail}`);
   return (
     <div className="flex min-h-0 w-full flex-1 flex-col items-center justify-start gap-2 overflow-y-auto">
       <p className="whitespace-normal break-words text-center font-mono text-base font-bold text-foreground">

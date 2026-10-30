@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useRef } from "react";
 
 import { gameDisplayName } from "@/lib/duel/gameNames";
-import { stdLines } from "@/lib/arcade/arcadeStandard";
 import {
   racingCheckpoint,
   racingGameFor,
@@ -162,7 +161,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
 function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   if (puzzle.type !== "racing") return null;
   const result = replayRacingRun(puzzle.seed, myAnswer ?? "", puzzle.racingRev);
-  const lines = stdLines(result.parts, result.score, result.state.acted > 0);
+  // What the run did, part by part (the points are the stored score's, shown by the arcade reveal above).
+  const lines = result.parts.map((part) => `${part.label}: ${part.detail}`);
   const headline = result.finished
     ? `Finished in ${(result.finishTick / 60).toFixed(1)} s`
     : `${(result.distancePermille / 10).toFixed(1)}% of the race`;
