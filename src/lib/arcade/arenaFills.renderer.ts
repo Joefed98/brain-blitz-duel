@@ -22,11 +22,13 @@
 import { artHash, reducedMotion } from "./art.renderer";
 import { SCENE_TUCK, type ArenaAmbient, type ArenaSceneView } from "./arenaScene.renderer";
 import { METEOR_BORDER_COLOURS } from "./snake.renderer";
+import { MINES_ART, paintMinesHexes } from "./minesweeper.renderer";
+import { paintMahjongWood } from "./mahjong.renderer";
 
 /** Games whose fill moves (slowly); everything else is painted once per size. */
 export const ARENA_FILL_MOVING = ["pinball", "rally", "beat", "snake", "cross", "flip", "burst"] as const;
 /** Games whose fill also runs down their sides when the world is narrower than the screen. */
-export const ARENA_FILL_SIDES = ["wavefront", "snake", "balltrack", "beat", "matchup", "clayshoot"] as const;
+export const ARENA_FILL_SIDES = ["wavefront", "snake", "balltrack", "beat", "matchup", "clayshoot", "minesweeper", "mahjong"] as const;
 /** Games centred on the play screen (item 23), their world's size unchanged. */
 export const ARENA_FILL_CENTRED = ["pinball", "snake", "snip", "matchup", "whack"] as const;
 
@@ -843,4 +845,45 @@ export function stroopFill(ctx: CanvasRenderingContext2D, view: ArenaSceneView):
     for (let y = Math.ceil((r.y + 4) / 16) * 16 + 8; y < r.y + r.h; y += 16) for (let x = x0 + 8 + ((y / 16) % 2) * 8; x < r.x + r.w; x += 16) ctx.fillRect(x, y, 1, 1);
     settle(ctx, r, "#07070D", 0.6, 0.35);
   }
+}
+
+/**
+ * Cards & Board (30 Oct 2026). Minesweeper: the dark hexagon background runs on beside and below the board's world (the
+ * same lattice, anchored to the world), easing a touch darker towards the screen's bottom.
+ */
+export function minesweeperFill(ctx: CanvasRenderingContext2D, view: ArenaSceneView): void {
+  const below = fillBelow(view);
+  for (const r of [...fillSides(view), ...(below ? [below] : [])]) {
+    ctx.fillStyle = MINES_ART.bg;
+    ctx.fillRect(r.x, r.y, r.w, r.h);
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(r.x, r.y, r.w, r.h);
+    ctx.clip();
+    paintMinesHexesIn(ctx, r);
+    ctx.restore();
+  }
+  if (below) fillGradient(ctx, below, below.y + 20, below.y + below.h, [[0, "rgba(6,7,9,0)"], [1, "rgba(6,7,9,0.55)"]]);
+}
+
+/** The hexagon lattice over a rectangle outside the world (the lattice keeps the world's origin). */
+function paintMinesHexesIn(ctx: CanvasRenderingContext2D, r: Rect): void {
+  ctx.save();
+  // The lattice's rows repeat every 42 units and its columns every 14 × √3: shift to a whole repeat at or before the rect.
+  const rowRep = 42;
+  const colRep = 14 * Math.sqrt(3);
+  const ox = Math.floor(r.x / colRep) * colRep;
+  const oy = Math.floor(r.y / rowRep) * rowRep;
+  ctx.translate(ox, oy);
+  paintMinesHexes(ctx, r.w + (r.x - ox) + colRep, r.h + (r.y - oy) + rowRep);
+  ctx.restore();
+}
+
+/** Mahjong Solitaire: the dark wooden table runs on beside and below the world, its grain unbroken. */
+export function mahjongFill(ctx: CanvasRenderingContext2D, view: ArenaSceneView): void {
+  for (const r of fillSides(view)) paintMahjongWood(ctx, r.x, r.y, r.w, r.h, view.worldH);
+  const below = fillBelow(view);
+  if (!below) return;
+  paintMahjongWood(ctx, below.x, below.y, below.w, below.h, view.worldH);
+  fillGradient(ctx, below, below.y, below.y + below.h, [[0, "rgba(22,13,7,0)"], [1, "rgba(10,6,3,0.6)"]]);
 }

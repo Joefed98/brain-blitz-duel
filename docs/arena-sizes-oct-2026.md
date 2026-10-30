@@ -47,6 +47,11 @@ revisions keep their own world in reveals and replays.
 | Ball Tracker | 700x1400 | 375x555 → 278x555 | 390x588 → 294x588 | 390x732 → 366x732 | 414x736 → 368x736 | 430x820 → 410x820 | 1280x688 → 344x688 | 0.523x | 60px | 0px | -0px | 24px | Ball Tracker's status row (28px): 16px |
 | Gemstone | 390x720 | 375x591 → 320x591 | 390x624 → 338x624 | 390x768 → 390x720 | 414x772 → 414x764 | 430x856 → 430x794 | 1280x724 → 392x724 | 1.000x | 60px | 24px | 24px | 0px | - |
 | Pinball | 390x820 | 375x591 → 281x591 | 390x624 → 297x624 | 390x768 → 365x768 | 414x772 → 367x772 | 430x856 → 407x856 | 1280x724 → 344x724 | 0.937x | 60px | 0px | 0px | 25px | - |
+| Minesweeper | 390x662 | 375x591 → 348x591 | 390x624 → 368x624 | 390x768 → 390x662 | 414x772 → 414x703 | 430x856 → 430x730 | 1280x724 → 427x724 | 1.000x | 60px | 0px | 106px | 0px | - |
+| Mahjong Solitaire | 390x608 | 375x591 → 375x585 | 390x624 → 390x608 | 390x768 → 390x608 | 414x772 → 414x645 | 430x856 → 430x670 | 1280x724 → 464x724 | 1.000x | 60px | 0px | 160px | 0px | - |
+| Home Run Derby | 390x720 | 375x591 → 320x591 | 390x624 → 338x624 | 390x768 → 390x720 | 414x772 → 414x764 | 430x856 → 430x794 | 1280x724 → 392x724 | 1.000x | 60px | 0px | 48px | 0px | - |
+| Free Kick | 390x720 | 375x591 → 320x591 | 390x624 → 338x624 | 390x768 → 390x720 | 414x772 → 414x764 | 430x856 → 430x794 | 1280x724 → 392x724 | 1.000x | 60px | 0px | 48px | 0px | - |
+| Racing | 390x720 | 375x591 → 320x591 | 390x624 → 338x624 | 390x768 → 390x720 | 414x772 → 414x764 | 430x856 → 430x794 | 1280x724 → 392x724 | 1.000x | 60px | 0px | 48px | 0px | - |
 | Letterfall | 390x700 | 375x591 → 329x591 | 390x624 → 348x624 | 390x768 → 390x700 | 414x772 → 414x743 | 430x856 → 430x772 | 1280x724 → 403x724 | 1.000x | 60px | 0px | 68px | 0px | - |
 | Tenfall | 360x520 | 375x535 → 370x535 | 390x568 → 390x563 | 390x712 → 390x563 | 414x716 → 414x598 | 430x800 → 430x621 | 1280x668 → 462x668 | 1.083x | 116px | 0px | 149px | 0px | - |
 | Bonk | square | 375x491 → 375x375 | 390x524 → 390x390 | 390x668 → 390x390 | 414x672 → 414x414 | 430x756 → 430x430 | 1280x624 → 624x624 | 390.000x | 159.6px | 139px | 139px | 0px | - |
@@ -90,7 +95,12 @@ stars, walkers, lava, reactions) that holds still under reduced motion or reduce
 | Ball Tracker | 375x555 → 278x555 | 390x588 → 294x588 | 390x732 → 366x732 | 414x736 → 368x736 | 430x820 → 410x820 | 1280x688 → 344x688 | the wooden board runs on across the sides and to the bottom |
 | Gemstone | 375x591 → 320x591 | 390x624 → 338x624 | 390x768 → 390x720 | 414x772 → 414x764 | 430x856 → 430x794 | 1280x724 → 392x724 | the sparkly purple velvet over the whole screen, behind the header too (world centred) |
 | Pinball | 375x591 → 281x591 | 390x624 → 297x624 | 390x768 → 365x768 | 414x772 → 367x772 | 430x856 → 407x856 | 1280x724 → 344x724 | the dark table, five retro lamps lit by the table's good moments (world centred) |
+| Home Run Derby | 375x591 → 320x591 | 390x624 → 338x624 | 390x768 → 390x720 | 414x772 → 414x764 | 430x856 → 430x794 | 1280x724 → 392x724 | the park's bands carried out to the sides (sky, stands, wall, grass, dirt), each a shade darker, the plate's dirt settling darker below |
+| Free Kick | 375x591 → 320x591 | 390x624 → 338x624 | 390x768 → 390x720 | 414x772 → 414x764 | 430x856 → 430x794 | 1280x724 → 392x724 | the stands' dark carried out above the horizon, the grass below, settling darker under the world |
+| Racing | 375x591 → 320x591 | 390x624 → 338x624 | 390x768 → 390x720 | 414x772 → 414x764 | 430x856 → 430x794 | 1280x724 → 392x724 | the sky above, grass at the sides, dark tarmac below |
 | Mixed Signals | 375x531 → 319x531 | 390x564 → 338x564 | 390x708 → 390x650 | 414x712 → 414x690 | 430x796 → 430x717 | 1280x664 → 398x664 | the night board runs on under the arrows: its faint dot grid, lifting from the board's black to a soft indigo glow |
+| Minesweeper | 375x591 → 348x591 | 390x624 → 368x624 | 390x768 → 390x662 | 414x772 → 414x703 | 430x856 → 430x730 | 1280x724 → 427x724 | the faint hexagon background runs on beside and below the framed board, easing darker to the screen's bottom |
+| Mahjong Solitaire | 375x591 → 375x585 | 390x624 → 390x608 | 390x768 → 390x608 | 414x772 → 414x645 | 430x856 → 430x670 | 1280x724 → 464x724 | the dark wooden table runs on beside and below the jade mat, its grain unbroken, settling darker |
 
 ## iPhone 11 home-screen app, before and after the 15 Oct 2026 fix
 
@@ -127,6 +137,11 @@ than half hidden; Hover's world is cut the same way, its disc at the top).
 | Ball Tracker | 414x688 → 344x688, 64px | 414x736 → 368x736, 16px | world none, Ball Tracker's status row (28px) 32px |
 | Gemstone | 414x724 → 392x724, 64px | 414x772 → 414x764, 16px | world 24px |
 | Pinball | 414x724 → 344x724, 64px | 414x772 → 367x772, 16px | world 32px |
+| Minesweeper | 414x724 → 414x703, 64px | 414x772 → 414x703, 16px | world none |
+| Mahjong Solitaire | 414x724 → 414x645, 64px | 414x772 → 414x645, 16px | world none |
+| Home Run Derby | 414x724 → 392x724, 64px | 414x772 → 414x764, 16px | world 24px |
+| Free Kick | 414x724 → 392x724, 64px | 414x772 → 414x764, 16px | world 24px |
+| Racing | 414x724 → 392x724, 64px | 414x772 → 414x764, 16px | world 24px |
 | Letterfall | 414x724 → 403x724, 64px | 414x772 → 414x743, 16px | world 3px |
 | Tenfall | 414x668 → 414x598, 64px | 414x716 → 414x598, 16px | world none |
 | Bonk | 414x624 → 414x414, 64px | 414x672 → 414x414, 16px | world none |
@@ -163,3 +178,8 @@ bottom; the spare space was the game's arena fill or the page colour. Same arith
 | Ball Tracker | 367x503 → 251x503 | 382x536 → 268x536 | 382x680 → 340x680 | 422x768 → 384x768 | 1272x636 → 318x636 |
 | Gemstone | 367x543 → 294x543 | 382x576 → 312x576 | 382x720 → 382x705 | 422x808 → 422x779 | 1272x676 → 366x676 |
 | Pinball | 367x543 → 258x543 | 382x576 → 274x576 | 382x720 → 342x720 | 422x808 → 384x808 | 1272x676 → 322x676 |
+| Minesweeper | 367x543 → 320x543 | 382x576 → 339x576 | 382x720 → 382x648 | 422x808 → 422x716 | 1272x676 → 398x676 |
+| Mahjong Solitaire | 367x543 → 348x543 | 382x576 → 369x576 | 382x720 → 382x596 | 422x808 → 422x658 | 1272x676 → 434x676 |
+| Home Run Derby | 367x543 → 294x543 | 382x576 → 312x576 | 382x720 → 382x705 | 422x808 → 422x779 | 1272x676 → 366x676 |
+| Free Kick | 367x543 → 294x543 | 382x576 → 312x576 | 382x720 → 382x705 | 422x808 → 422x779 | 1272x676 → 366x676 |
+| Racing | 367x543 → 294x543 | 382x576 → 312x576 | 382x720 → 382x705 | 422x808 → 422x779 | 1272x676 → 366x676 |

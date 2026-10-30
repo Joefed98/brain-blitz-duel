@@ -37,6 +37,7 @@ import { splitPuzzle } from "../src/lib/duel/secrets";
 import { gameDisplayName } from "../src/lib/duel/gameNames";
 import { DESKTOP_KEYS } from "../src/lib/desktopKeys";
 import type { PuzzleData, PuzzleType } from "../src/lib/duel/types";
+import { showPracticeSide } from "./practice-side-lib";
 
 const args = process.argv.slice(2);
 const VERBOSE = args.includes("--verbose");
@@ -304,6 +305,7 @@ async function report(where: string, problems: string[], page?: Page) {
 
 /** Opens a game from the practice list and starts its live round; checks the intro's keys on the way. */
 async function startRound(page: Page, type: PuzzleType, problems: string[]) {
+  await showPracticeSide(page, type);
   await page.getByRole("button", { name: gameDisplayName(type), exact: true }).first().click();
   const ready = page.getByRole("button", { name: /^Ready/ }).first();
   await ready.waitFor({ timeout: 30_000 });
@@ -354,6 +356,7 @@ try {
     for (const dpr of arcade && HIGH_DPI.includes(type) ? [1, 2] : [1]) {
       const { page, close } = await open("practice", { size: SIZES[0], dpr });
       try {
+        await showPracticeSide(page, type);
         await page.getByRole("button", { name: gameDisplayName(type), exact: true }).first().waitFor({ timeout: 60_000 });
         const intro: string[] = [];
         await startRound(page, type, intro);
@@ -375,6 +378,7 @@ try {
   {
     const { page, close } = await open("practice", { size: [1920, 1080] });
     try {
+      await showPracticeSide(page, "burst");
       await page.getByRole("button", { name: gameDisplayName("burst"), exact: true }).first().waitFor({ timeout: 60_000 });
       await startRound(page, "burst", []);
       const steps: [number, number][] = [];
@@ -399,6 +403,7 @@ try {
     const { page, close } = await open("practice", { size: [1440, 900] });
     const problems: string[] = [];
     try {
+      await showPracticeSide(page, "wordsmith");
       await page.getByRole("button", { name: gameDisplayName("wordsmith"), exact: true }).first().waitFor({ timeout: 60_000 });
       await startRound(page, "wordsmith", []);
       const letter = ((await page.locator(".wordsmith-ring-letter").first().textContent()) ?? "").trim();
@@ -414,6 +419,7 @@ try {
     }
     const gem = await open("practice", { size: [1440, 900] });
     try {
+      await showPracticeSide(gem.page, "matchup");
       await gem.page.getByRole("button", { name: gameDisplayName("matchup"), exact: true }).first().waitFor({ timeout: 60_000 });
       await startRound(gem.page, "matchup", []);
       if (await gem.page.locator("[data-key-cursor]").count()) problems.push("Gemstone: the key cursor shows before any key");
@@ -430,8 +436,10 @@ try {
   {
     const { page, close } = await open("practice", { size: [1440, 900], touch: true });
     try {
+      await showPracticeSide(page, "matchup");
       await page.getByRole("button", { name: gameDisplayName("matchup"), exact: true }).first().waitFor({ timeout: 60_000 });
       const problems: string[] = [];
+      await showPracticeSide(page, "matchup");
       await page.getByRole("button", { name: gameDisplayName("matchup"), exact: true }).first().click();
       const ready = page.getByRole("button", { name: /^Ready/ }).first();
       await ready.waitFor({ timeout: 30_000 });

@@ -12,6 +12,8 @@ import * as pinball from "./pinball";
 import * as rally from "./rally";
 import * as bubble from "./bubble";
 import * as beat from "./beat";
+import * as minesweeper from "./minesweeper";
+import * as mahjong from "./mahjong";
 import * as homerun from "./homerun";
 import * as freekick from "./freekick";
 import * as racing from "./racing";
@@ -29,6 +31,8 @@ export const ARCADE_STANDARD: Readonly<Record<string, ArcadeStdEntry>> = {
   rally,
   bubble,
   beat,
+  minesweeper,
+  mahjong,
   homerun,
   freekick,
   racing,

@@ -6,6 +6,8 @@ import { INK_REV_STD } from "@/lib/arcade/inkBridge";
 import { SNAKE_REV_TARGET, SNAKE_REV_STD } from "@/lib/arcade/snake";
 import { BUB_REV_STD } from "@/lib/arcade/bubble";
 import { MATCHUP_REV_STD } from "@/lib/arcade/matchup";
+import { minesBoard, minesSolve, MINES_REV_STD } from "@/lib/arcade/minesweeper";
+import { mahjongBuildClears, MAHJONG_REV_STD } from "@/lib/arcade/mahjong";
 import { SNIP_REV_TARGET, SNIP_REV_EXPAND } from "@/lib/arcade/snip";
 import { SKYLINE_REV_TARGET, SKYLINE_REV_STRICT, SKYLINE_REV_STD } from "@/lib/arcade/skyline";
 import { TILT_REV_STD } from "@/lib/arcade/tilt";
@@ -50,6 +52,8 @@ import type {
   SwervePuzzleData,
   BreakerPuzzleData,
   PinballPuzzleData,
+  MinesweeperPuzzleData,
+  MahjongPuzzleData,
   RallyPuzzleData,
   SteadyPuzzleData,
   SlicePuzzleData,
@@ -134,6 +138,30 @@ export function generatePinball(): PinballPuzzleData {
   // pinRev 5 (27 Oct 2026, Joe's phone notes): pinRev 4's table for 90 s (PIN_REV_LONG).
   // pinRev 6 (29 Oct 2026): pinRev 5's play on the arcade scoring standard (docs/arcade-standard/pinball.md).
   return { type: "pinball", seed: arcadeSeed(), pinRev: PIN_REV_STD };
+}
+
+/**
+ * Cards & Board (30 Oct 2026). Minesweeper deals its board in the sim from the seed, always one the logic solver clears
+ * from its opening; a seed whose tries all failed (it would fall back to MINES_FALLBACK_SEED's board) is dropped here,
+ * so every dealt seed is proved by its own solve (minesweeper-check plays each proof to 200).
+ */
+export function generateMinesweeper(): MinesweeperPuzzleData {
+  for (;;) {
+    const seed = arcadeSeed();
+    const board = minesBoard(seed);
+    if (board.tries >= 0 && minesSolve(board.mines, board.start).solved) return { type: "minesweeper", seed, minesRev: MINES_REV_STD };
+  }
+}
+
+/**
+ * Mahjong Solitaire deals its faces in the sim by building the stack backwards; the build's own order is the proof it
+ * clears, checked here before the seed is dealt (mahjong-check plays it to 200).
+ */
+export function generateMahjong(): MahjongPuzzleData {
+  for (;;) {
+    const seed = arcadeSeed();
+    if (mahjongBuildClears(seed)) return { type: "mahjong", seed, mahjongRev: MAHJONG_REV_STD };
+  }
 }
 
 export function generateRally(): RallyPuzzleData {

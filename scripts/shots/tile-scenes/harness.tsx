@@ -11,6 +11,7 @@ import { flushSync } from "react-dom";
 import { preloadGameArt } from "@/lib/arcade/gameArt.renderer";
 
 import { TILE, type SceneSet, type TileScene } from "./scene";
+import { TILE_BACKGROUNDS, paintTileBackground } from "./backgrounds";
 import { ARCADE_SCENES } from "./arcade";
 import { ARCADE2_SCENES } from "./arcade2";
 import { ATTENTION_SCENES } from "./attention";
@@ -46,7 +47,23 @@ function CanvasBox({ scene }: { scene: Extract<TileScene, { kind: "canvas" }> })
     c.imageSmoothingEnabled = true;
     scene.paint(c, k);
   }, [scene]);
-  return <canvas ref={ref} style={{ width: TILE, height: TILE, display: "block" }} />;
+  return <canvas ref={ref} style={{ position: "relative", width: TILE, height: TILE, display: "block" }} />;
+}
+
+/** The tile's in-game background (backgrounds.ts), under the scene, faded where it would compete with the picture. */
+function BackgroundBox({ type }: { type: string }) {
+  const ref = useRef<HTMLCanvasElement>(null);
+  useLayoutEffect(() => {
+    const canvas = ref.current;
+    const c = canvas?.getContext("2d");
+    const bg = TILE_BACKGROUNDS[type as keyof typeof TILE_BACKGROUNDS];
+    if (!canvas || !c || !bg) return;
+    canvas.width = TILE * 2;
+    canvas.height = TILE * 2;
+    c.setTransform(2, 0, 0, 2, 0, 0);
+    paintTileBackground(c, bg);
+  }, [type]);
+  return <canvas ref={ref} style={{ position: "absolute", inset: 0, width: TILE, height: TILE, display: "block" }} />;
 }
 
 /** Mounts the scenes for `types` (all when empty); resolves with the types mounted once art and fonts have loaded. */
@@ -73,7 +90,12 @@ export async function mountScenes(types: string[]): Promise<string[]> {
               data-tile-scene={type}
               style={{ position: "relative", width: TILE, height: TILE, overflow: "hidden", background: "#000", contain: "strict" }}
             >
-              {scene.kind === "canvas" ? <CanvasBox scene={scene} /> : scene.render()}
+              <BackgroundBox type={type} />
+              {scene.kind === "canvas" ? (
+                <CanvasBox scene={scene} />
+              ) : (
+                <div style={{ position: "absolute", inset: 0 }}>{scene.render()}</div>
+              )}
             </div>
           );
         })}

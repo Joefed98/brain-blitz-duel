@@ -192,6 +192,16 @@ export const IPHONE_SAFARI_UA =
 export const THEME_SCREENS: ThemeScreen[] = [
   { name: "play", mode: "home", daily: () => dailyFixture().after, challenge: () => challengeFixture("create") },
   { name: "practice list", mode: "practice" },
+  // Practice's Arcade side (30 Oct 2026: the Puzzles | Arcade switch).
+  {
+    name: "practice list, arcade side",
+    mode: "practice",
+    go: async (page) => {
+      await page.locator("[data-practice-side='arcade']").click();
+      await page.locator("[data-practice-switch='arcade']").waitFor({ timeout: 10_000 });
+      await page.waitForTimeout(400);
+    },
+  },
   { name: "tournaments", mode: "tournaments" },
   { name: "profile", mode: "profile", daily: () => dailyFixture().after, challenge: () => challengeFixture("create") },
   ...CHALLENGE_SCREENS,

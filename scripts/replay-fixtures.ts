@@ -55,6 +55,8 @@ const REV_KEY: Record<string, string> = {
   tilt: "tiltRev",
   balltrack: "btRev",
   pinball: "pinRev",
+  minesweeper: "minesRev",
+  mahjong: "mahjongRev",
   homerun: "homerunRev",
   freekick: "freekickRev",
   racing: "racingRev",

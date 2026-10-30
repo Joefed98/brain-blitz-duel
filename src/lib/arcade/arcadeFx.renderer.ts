@@ -42,7 +42,8 @@ export type ArcadeWorld =
   | "cavelava"
   | "orchard"
   | "toybox"
-  | "gem";
+  | "gem"
+  | "cards";
 
 export type FxParticleShape =
   "pixel" | "star" | "confetti" | "drop" | "bubble" | "ember" | "leaf" | "diamond";
@@ -185,6 +186,18 @@ export const ARCADE_WORLD_THEMES: Record<ArcadeWorld, ArcadeWorldTheme> = {
     font: DISPLAY,
     weight: DISPLAY_WEIGHT,
   },
+  // Cards & Board (30 Oct 2026): table gold and card-room pink.
+  cards: {
+    label: "Cards & Board",
+    primary: "#F2C75C",
+    secondary: "#FF6FA8",
+    highlight: "#FFF4D6",
+    text: "#FFFFFF",
+    outline: "#14110C",
+    particle: "confetti",
+    font: DISPLAY,
+    weight: DISPLAY_WEIGHT,
+  },
 };
 
 /**
@@ -231,6 +244,9 @@ export const ARCADE_FX_TEXT_COLOURS: Record<string, { fill: string; outline: str
   matchup: { fill: "#FF8FE0", outline: "#1A1030" },
   // Retro Pinball: bumper magenta.
   pinball: { fill: "#FF7AE6", outline: "#000000" },
+  // Cards & Board: table gold.
+  minesweeper: { fill: "#F2C75C", outline: "#0B0D11" },
+  mahjong: { fill: "#F2C75C", outline: "#160D07" },
   // Sports: floodlight gold.
   homerun: { fill: "#F2C75C", outline: "#0A0D16" },
   freekick: { fill: "#F2C75C", outline: "#0A0D16" },

@@ -20,6 +20,7 @@ const SCENE_FILES: Record<(typeof ARENA_SCENE_GAMES)[number], string> = {
   hover: "hover", breaker: "breaker", rally: "rally", beat: "beat", snake: "snake", burst: "burst",
   wavefront: "wavefront", orbit: "orbit", skyline: "skyline", slice: "slice", bubble: "bubble",
   swing: "swing", snip: "snip", balltrack: "ballTrack", pinball: "pinball", stroop: "stroop",
+  minesweeper: "minesweeper", mahjong: "mahjong", homerun: "homerun", freekick: "freekick", racing: "racing",
 };
 const ARENA_SCENE_NOTES: Record<(typeof ARENA_SCENE_GAMES)[number], string> = {
   matchup: "the sparkly purple velvet over the whole screen, behind the header too (world centred)",
@@ -48,6 +49,11 @@ const ARENA_SCENE_NOTES: Record<(typeof ARENA_SCENE_GAMES)[number], string> = {
   balltrack: "the wooden board runs on across the sides and to the bottom",
   pinball: "the dark table, five retro lamps lit by the table's good moments (world centred)",
   stroop: "the night board runs on under the arrows: its faint dot grid, lifting from the board's black to a soft indigo glow",
+  minesweeper: "the faint hexagon background runs on beside and below the framed board, easing darker to the screen's bottom",
+  mahjong: "the dark wooden table runs on beside and below the jade mat, its grain unbroken, settling darker",
+  homerun: "the park's bands carried out to the sides (sky, stands, wall, grass, dirt), each a shade darker, the plate's dirt settling darker below",
+  freekick: "the stands' dark carried out above the horizon, the grass below, settling darker under the world",
+  racing: "the sky above, grass at the sides, dark tarmac below",
 };
 
 // Markup and analytic geometry only: no browser and no simulated layout engine.

@@ -9,6 +9,8 @@ import { SLIDE_PAR_BONUS_TOPUP } from "./wordSlide";
 import { SW6_SPARE_SWAPS, SWAP_PAR_BONUS_TOPUP } from "./swapword";
 import { STD_ROUNDABOUT, STD_STRIKEOUT, WORD_STANDARD_HELP } from "./standard/word";
 import { preStandardPinned } from "./standard/stamps";
+import { MINES_COUNT, MINES_HIT_COST } from "@/lib/arcade/minesweeper";
+import { MAHJONG_SHUFFLE_COST } from "@/lib/arcade/mahjong";
 import { puzzleNotesDealt } from "./puzzleNotes";
 import { STANDARD_ATTENTION_HELP } from "./standard/attentionTexts";
 import { PATTERN_STD_HELP } from "./standard/patternText";
@@ -964,6 +966,31 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
       ],
       // brkRev 11 (the arcade scoring standard): four fixed parts that total 200.
       score: liveBandHelp("breaker", `Every brick destroyed counts 1, the ${BRK_V9_GOLD} gold bricks included.`, { more: "More bricks", good: (u) => `breaks ${u} of the ${BRK_V11_BRICKS}`, finish: `Breaking the other ${BRK_V11_BRICKS - BRK_V9_GOLD} clears the wall and ends the run: clearing adds ${BRK_V11_CLEAR_POINTS}, plus up to ${BRK_V11_SPEED_MAX} for speed, the full ${BRK_V11_SPEED_MAX} with at least half the time left, falling evenly to 0 at the buzzer. Gold bricks add up to ${BRK_V11_GOLD_MAX}, ${BRK_V11_GOLD_MAX / BRK_V9_GOLD} each. Power-ups and combos add nothing extra, and a lost ball costs only time. Bricks ${BRK_V11_CORE_MAX} + clear ${BRK_V11_CLEAR_POINTS} + speed ${BRK_V11_SPEED_MAX} + gold ${BRK_V11_GOLD_MAX} = ${BRK_V11_MAX}.` }),
+    },
+    // Cards & Board (30 Oct 2026; docs/arcade-standard/minesweeper.md and mahjong.md).
+    minesweeper: {
+      goal: "Reveal every safe square without hitting a mine.",
+      how: [
+        { action: "Tap a square", detail: "to reveal it; the number counts the mines around it." },
+        { action: "Flag a mine", detail: "with the Reveal / Flag switch, or a long press." },
+        { action: "Tap a number", detail: "whose flags are all placed to reveal the rest round it." },
+        { action: "The opening is revealed for you:", detail: "every board can be solved by logic alone, no guessing.", helpOnly: true },
+        { action: "A mine costs 5", detail: "and stays marked; play goes on.", helpOnly: true },
+        { action: "One board for everyone,", detail: `${MINES_COUNT} mines on 10 × 16, 90 seconds.`, helpOnly: true },
+      ],
+      score: liveStdHelp("minesweeper", `A mine hit costs ${MINES_HIT_COST}.`),
+    },
+    mahjong: {
+      goal: "Clear the stack in matching pairs.",
+      how: [
+        { action: "Tap two matching tiles", detail: "to take them away." },
+        { action: "Only free tiles:", detail: "nothing on top, and open on the left or right." },
+        { action: "Stuck? Shuffle", detail: `re-deals the tiles that are left (−${MAHJONG_SHUFFLE_COST}).` },
+        { action: "Every stack can be cleared:", detail: "it is built backwards from an empty board, and a Shuffle keeps it clearable.", helpOnly: true },
+        { action: "Faces:", detail: "dots, bamboo and characters 1–9, the four winds and three dragons; a face matches only itself.", helpOnly: true },
+        { action: "One stack for everyone,", detail: "72 tiles in four layers, 2 minutes.", helpOnly: true },
+      ],
+      score: liveStdHelp("mahjong", `A Shuffle costs ${MAHJONG_SHUFFLE_COST}.`),
     },
     // The Sports group (30 Oct 2026; docs/arcade-standard/homerun.md, freekick.md, racing.md).
     homerun: {

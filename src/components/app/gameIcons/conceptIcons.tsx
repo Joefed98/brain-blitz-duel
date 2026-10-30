@@ -1046,6 +1046,37 @@ const ARCADE: Partial<Record<PuzzleType, Art>> = {
       <circle cx={34} cy={38} r={4.6} fill={A} />
     </>
   ),
+  // Cards & Board (30 Oct 2026): line drawings behind the tile scenes.
+  minesweeper: () => (
+    <>
+      <rect x={8} y={8} width={48} height={48} rx={3} fill="none" stroke={DIM} strokeWidth={2} />
+      <Ink color={DIM} w={1.6}>
+        <polyline points={pts([[24, 8], [24, 56]])} />
+        <polyline points={pts([[40, 8], [40, 56]])} />
+        <polyline points={pts([[8, 24], [56, 24]])} />
+        <polyline points={pts([[8, 40], [56, 40]])} />
+      </Ink>
+      <Ink w={2.6}>
+        <polyline points={pts([[29, 44], [29, 52]])} />
+        <polyline points={pts([[13, 34], [19, 30]])} />
+      </Ink>
+      <polygon points={pts([[44, 28], [52, 31.5], [44, 35]])} fill={A} />
+      <polyline points={pts([[44, 28], [44, 38]])} fill="none" stroke={INK} strokeWidth={2} />
+      <circle cx={16} cy={16} r={4} fill={INK} />
+    </>
+  ),
+  mahjong: () => (
+    <>
+      <rect x={10} y={16} width={22} height={30} rx={3} fill="none" stroke={DIM} strokeWidth={2.4} />
+      <rect x={32} y={16} width={22} height={30} rx={3} fill="none" stroke={DIM} strokeWidth={2.4} />
+      <rect x={20} y={10} width={22} height={30} rx={3} fill={BG} stroke={A} strokeWidth={2.8} />
+      <circle cx={31} cy={20} r={3.4} fill="none" stroke={INK} strokeWidth={2} />
+      <circle cx={31} cy={30} r={3.4} fill="none" stroke={INK} strokeWidth={2} />
+      <Ink color={DIM} w={2}>
+        <polyline points={pts([[14, 52], [50, 52]])} />
+      </Ink>
+    </>
+  ),
   rally: () => (
     <>
       <rect x={22} y={7} width={20} height={5} rx={2.5} fill={DIM} />

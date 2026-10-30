@@ -16,7 +16,10 @@
  *
  *   bun scripts/arcade-fx-check.ts
  */
-import { ARCADE_GROUPS } from "../src/lib/duel/arcadeGroups";
+import { minesweeperArtGameFor } from "../src/lib/arcade/minesweeper.renderer";
+import { mahjongArtGameFor } from "../src/lib/arcade/mahjong.renderer";
+import { MINES_REV_STD, MINES_SAFE } from "../src/lib/arcade/minesweeper";
+import { MAHJONG_REV_STD } from "../src/lib/arcade/mahjong";
 import { homerunArtGame } from "../src/lib/arcade/homerun.renderer";
 import { freekickArtGame } from "../src/lib/arcade/freekick.renderer";
 import { racingArtGame } from "../src/lib/arcade/racing.renderer";
@@ -149,13 +152,16 @@ const GAMES: Record<string, AnyGame> = {
   } as AnyGame,
   matchup: { ...matchupArtGame, init: matchupRev2Game.init } as AnyGame,
   pinball: pinballArtGame as AnyGame,
+  // Cards & Board (30 Oct 2026): dealt from the start on minesRev 1 and mahjongRev 1.
+  minesweeper: minesweeperArtGameFor(MINES_REV_STD) as AnyGame,
+  mahjong: mahjongArtGameFor(MAHJONG_REV_STD) as AnyGame,
   // The Sports group (30 Oct 2026).
   homerun: homerunArtGame as AnyGame,
   freekick: freekickArtGame as AnyGame,
   racing: racingArtGame as AnyGame,
 };
 
-assert.equal(Object.keys(GAMES).length, 23 + Object.keys(ARCADE_GROUPS).length, "23 arcade games with a world (21 active with Pinball; Junction and Scrumper practice only), plus the arcade groups' games (arcadeGroups.ts)");
+assert.equal(Object.keys(GAMES).length, Object.keys(specs.ARCADE_GAME_WORLDS).length, "every arcade game with a world (the active ones with Pinball; Junction and Scrumper practice only); the count reads the worlds registry");
 assert.deepEqual(
   Object.keys(GAMES).sort(),
   Object.keys(specs.ARCADE_FX_SPECS).sort(),
@@ -475,6 +481,16 @@ const BUMPS: Record<string, ((s: any) => any)[]> = {
     (s) => ({ ...s, jackpots: (s.jackpots ?? 0) + 1 }),
     (s) => ({ ...s, jackpotsFired: (s.jackpotsFired ?? 0) + 1 }),
     (s) => ({ ...s, raw: 1e6 }),
+  ],
+  minesweeper: [
+    (s) => ({ ...s, revealed: s.revealed + 8, lastOpen: s.start }),
+    (s) => ({ ...s, revealed: s.opening + 25, lastOpen: s.start }),
+    (s) => ({ ...s, revealed: MINES_SAFE, lastOpen: s.start }),
+  ],
+  mahjong: [
+    (s) => ({ ...s, pairs: s.pairs + 1, lastA: 0, lastB: 5 }),
+    (s) => ({ ...s, pairs: 6, lastA: 0, lastB: 5 }),
+    (s) => ({ ...s, pairs: 36 }),
   ],
 };
 for (const [name, game] of Object.entries(GAMES)) {

@@ -8,6 +8,7 @@
  *  - each image is a 208 × 208 WebP (2× the largest tile, Practice's 104 px shelf) of at most 16 KB;
  *  - every active game (and every listed retired one) has a scene in scripts/shots/tile-scenes/, so a
  *    regeneration remakes every image; a game without an image keeps its line drawing;
+ *  - every scene has its game's background (tile-scenes/backgrounds.ts, 30 Oct 2026);
  *  - GameIcon draws the image (data-icon-art="img") for a game with one and the line drawing otherwise.
  */
 import { createHash } from "node:crypto";
@@ -58,10 +59,13 @@ const sceneSrc = readdirSync("scripts/shots/tile-scenes")
   .filter((f) => /\.tsx?$/.test(f))
   .map((f) => readFileSync(join("scripts/shots/tile-scenes", f), "utf8"))
   .join("\n");
+const backgroundSrc = readFileSync("scripts/shots/tile-scenes/backgrounds.ts", "utf8");
 for (const [type, def] of Object.entries(PUZZLE_REGISTRY) as [PuzzleType, (typeof PUZZLE_REGISTRY)[PuzzleType]][]) {
   const has = type in TILE_SCENES;
   if (!def.retired) check(has, `${type} (${def.name}): no tile scene image`);
   if (has) check(new RegExp(`^\\s*${type}: (canvasScene|domScene)\\(`, "m").test(sceneSrc), `${type}: an image with no scene in scripts/shots/tile-scenes/`);
+  // 30 Oct 2026: every scene sits on its game's own background (tile-scenes/backgrounds.ts).
+  if (has) check(new RegExp(`^\\s*${type}: (bg|pz)\\(`, "m").test(backgroundSrc), `${type}: no background in scripts/shots/tile-scenes/backgrounds.ts`);
   if (!has) check(type in CONCEPT_ICONS, `${type}: neither a scene nor a line drawing`);
   const html = renderToStaticMarkup(createElement(GameIcon, { type, size: 64 }));
   if (has)

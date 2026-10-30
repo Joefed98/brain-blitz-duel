@@ -11,6 +11,8 @@ export const GAME_DISPLAY_NAMES: Record<PuzzleType, string> = {
   bomb: "Bomb Defusal",
   breaker: "Breaker",
   pinball: "Pinball",
+  minesweeper: "Minesweeper",
+  mahjong: "Mahjong Solitaire",
   homerun: "Home Run Derby",
   freekick: "Free Kick",
   racing: "Racing",
