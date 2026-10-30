@@ -28,6 +28,7 @@ import { encodePairFlips, sameCard } from "../src/lib/duel/pairmatch";
 import { joinPairGoldTime } from "../src/lib/duel/depth/matchmaker";
 import { wasteFactor } from "../src/lib/duel/puzzleScoreRev";
 import { MAZE_REV1_DEAD_ZONE } from "../src/lib/duel/scoring";
+import { pinPrePuzzleNotes } from "../src/lib/duel/puzzleNotes";
 import { CLASH_QUEUE, CLASH_REV_STANDARD, CLASH_REV_TOPUP, clashCheckpoint, clashStandardScoreOf, colourClashGameFor, type ClashState } from "../src/lib/arcade/colourClash";
 import { replayColourClashRun } from "../src/lib/duel/colourClash";
 import { KITS } from "./puzzle-fairness/kits";
@@ -35,6 +36,10 @@ import { hashText, makeRng, LEVELS, SKILLS } from "./puzzle-fairness/kit";
 import { roomPuzzle } from "./puzzle-fairness/run";
 import { gradeSteps, kitBands, median, sentAnswer } from "./standard-lib";
 import type { ChainPuzzleData, CountUpPuzzleData, MazePuzzleData, NumberHuntPuzzleData, PairPuzzleData, PuzzleData, PuzzleType, SpotPuzzleData, SymbolScanPuzzleData } from "../src/lib/duel/types";
+
+// Written for the standard's stamps: Joe's puzzle notes (28 Oct 2026, puzzleNotes.ts) deal Slider and Tally one above,
+// so new deals here keep the standard's (puzzle-notes-check proves the new stamps).
+pinPrePuzzleNotes(true);
 
 const args = process.argv.slice(2);
 const SEEDS = Number(args.find((a) => a.startsWith("--seeds="))?.slice(8) ?? 8);

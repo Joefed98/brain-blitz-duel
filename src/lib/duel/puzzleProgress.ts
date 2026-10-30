@@ -32,8 +32,8 @@
  */
 import { judgeTileGrid } from "./tileGrid.server";
 import { decodeTileGrid, fitsTray as tileGridFitsTray, tileGridRuns } from "./tileGrid";
-import { decodeSlideTokens, replayWordSlide, WS_MARKED_ROWS } from "./wordSlide";
-import { checkWordSlideRow } from "./wordSlide.server";
+import { decodeSlideTokens, WS_MARKED_ROWS } from "./wordSlide";
+import { checkWordSlideRow, replayWordSlideFor } from "./wordSlide.server";
 import { markedRowWord } from "./wordSlide";
 import { wordSlideMadeRows } from "./progressFigures";
 import { trCorrectPrefix, trCorrectTiles, trDecode } from "./trail";
@@ -93,7 +93,7 @@ export function rev3Progress(input: ProgressInput): number | null {
   const { puzzle, answer } = input;
   switch (puzzle.type) {
     case "wordslide": {
-      const replay = replayWordSlide(puzzle.grid, decodeSlideTokens(answer));
+      const replay = replayWordSlideFor(puzzle, decodeSlideTokens(answer));
       const validRows = WS_MARKED_ROWS.filter((r) => checkWordSlideRow(markedRowWord(replay.grid, r)).valid);
       const made = wordSlideMadeRows(puzzle.grid, replay.grid, validRows);
       const top = SLIDER_ROW_POINTS.length - 1;
