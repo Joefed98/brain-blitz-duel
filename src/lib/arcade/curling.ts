@@ -1,0 +1,463 @@
+/**
+ * Curling (`curling`, Sports group, 30 Oct 2026; docs/arcade-standard/curling.md): eight stones in 120 s, thrown down
+ * the whole sheet to the far house, seen from behind the thrower. Drag the gold broom target in the house, tap In or
+ * Out for the turn, swipe up the lane for the weight; rub ahead of a moving stone to sweep it.
+ *
+ * Deterministic (engine.ts): the seed places the opponent's stones (red handles) in the house at init and nothing
+ * random happens after. Stones slide in 1/4096 cm (finer than the other Sports games' 1/256: a curl's sideways pull is
+ * a few thousandths of a cm a tick) with a constant slowing, curl across their travel that grows as they slow, and
+ * equal-mass collisions (a hit and roll: the thrower keeps a fifth of its speed through a full hit). Real sheet
+ * proportions; a draw takes about 6 s from the near hog line to the far tee.
+ *
+ * Rules: a stone that stops short of the far hog line is removed; a stone touching a side board or fully past the
+ * back line is out of play. Sweeping fills a meter that decays: while it is up the stone slows less and curls less.
+ * Stone k "comes to rest when thrown" when everything stops after throw k; that is where it is judged.
+ *
+ * Rooms deal seeds from the proven bank (src/lib/duel/curlingBank.server.ts, scripts/curling-bank.ts): every opponent
+ * stone there can be hit out of the house leaving the thrower on the button, so a perfect run reaches 200.
+ *
+ * Scoring (curlRev 1, the arcade standard; arcadeStandard.ts): Stones up to 120 (up to 15 a stone by its closeness to
+ * the button where it comes to rest when thrown: a straight line from 0 at the house's edge to 15 on the button),
+ * (a stone counts as on the button, in the 4-foot or in the house when any of it is over that circle, as curlers judge it),
+ * Takeouts up to 30 (the opponent's stones out of the house at the end, shared evenly), Red ring up to 30 (3.75 a stone
+ * finishing in the 4-foot when thrown), Holding shot 20 (your stone nearest the button at the end). Together 200; any
+ * throw scores at least 1, no input 0.
+ */
+import { clampInt, inputRange, isqrt, type ArcadeGame, type ArcadeInputEvent, type CanvasSize } from "./engine";
+import { stdFinal, stdLine, stdPart, type StdPart, type StdSpec } from "./arcadeStandard";
+import { collideEqual, idiv, ilen, sumInts, type SportsCheckpoint } from "./sportsKit";
+
+/* ================================ Constants ================================ */
+
+export const CURLING_REV = 1;
+export const CURLING_RUN_S = 120;
+export const CURLING_RUN_TICKS = CURLING_RUN_S * 60;
+export const CURLING_STONES = 8;
+
+/** The world the canvas draws (the broadcast view), world px. */
+export const CURLING_W = 390;
+export const CURLING_H = 720;
+
+/** Sheet units: 1 cm = CU. */
+export const CU = 4096;
+export const cm = (v: number): number => Math.round(v * CU);
+
+/** The sheet, in cm: x across (0 on the centre line), y along it (0 on the far tee line, growing towards the thrower). */
+export const SHEET_HALF_W = 237.5;
+export const HOUSE_R = 183;
+export const FOUR_FOOT_R = 61;
+export const EIGHT_FOOT_R = 122;
+export const BUTTON_R = 15;
+export const STONE_R = 14.5;
+export const BACK_FAR = -183;
+export const HOG_FAR = 640;
+/** The thrower lets go on the near hog line. */
+export const HOG_NEAR = 2835;
+export const TEE_NEAR = 3475;
+export const BACK_NEAR = 3658;
+
+/** Release speeds (cm a tick) at weight 1 and 1000; a draw to the button is about 15.75 (6 s). */
+export const CURL_VMIN = 13;
+export const CURL_VMAX = 22;
+/** The slowing a tick (units a tick²) and the speed below which a stone stops. */
+export const CURL_DECEL = 179;
+export const CURL_STOP_V = 60;
+/** Curl: sideways pull CURL_A × CURL_VS ÷ (speed + CURL_VS), units a tick², across the travel. */
+export const CURL_A = 48;
+export const CURL_VS = 4 * CU;
+/**
+ * Stone on stone restitution (256ths): 0.6, so a stone struck full on takes 80 % of the speed and the thrower keeps 20 %
+ * and rolls on (a hit and roll): a takeout of a stone near the button can leave the thrower on it.
+ */
+export const CURL_E = 154;
+/** Sweeping: the meter's cap and decay a tick; at full effect the slowing falls 30 % and the curl halves. */
+export const SWEEP_MAX = 600;
+export const SWEEP_FULL = 240;
+export const SWEEP_DECAY = 4;
+/** A throw that has not settled by this many ticks is stopped where it is. */
+export const CURL_TRAVEL_CAP = 900;
+/** Substeps a tick (a stone moves at most about 6 cm a substep). */
+const SUB = 4;
+
+/** Input kind 1: a throw. a = broom x (cm), b = broom y (cm from the far tee), c = weight × 2 + turn (0 In, 1 Out). */
+export const CURL_INPUT_THROW = 1;
+/** Input kind 2: a sweep stroke, a = its strength 1…100. */
+export const CURL_INPUT_SWEEP = 2;
+export const CURL_WEIGHT_MAX = 1000;
+export const CURLING_INPUT_RANGES = [
+  inputRange(CURL_INPUT_THROW, [-200, 200], [-183, 183], [2, CURL_WEIGHT_MAX * 2 + 1]),
+  inputRange(CURL_INPUT_SWEEP, [1, 100]),
+] as const;
+
+export const CURL_AIM = 0;
+export const CURL_TRAVEL = 1;
+export const CURL_DONE = 2;
+
+export const TEAM_MINE = 0;
+export const TEAM_THEIRS = 1;
+
+/* ============================== The standard ============================== */
+
+export const CURL_STONE_PTS = 15;
+export const CURL_TAKEOUT_PTS = 30;
+export const CURL_RED_PTS = 30;
+export const CURL_HOLD_PTS = 20;
+
+export const CURLING_STD_SPEC: StdSpec = {
+  field: "curlRev",
+  rev: CURLING_REV,
+  parts: [
+    { key: "core", label: "Stones", max: 120, of: CURLING_STONES, item: "stone", how: `up to ${CURL_STONE_PTS} a stone by how close to the button it comes to rest` },
+    { key: "takeouts", label: "Takeouts", max: CURL_TAKEOUT_PTS, of: 1, item: "takeout", how: "the opponent's stones knocked out of the house, shared evenly" },
+    { key: "redring", label: "Red ring", max: CURL_RED_PTS, of: CURLING_STONES, item: "stone", how: "3.75 a stone finishing in the 4-foot" },
+    { key: "hold", label: "Holding shot", max: CURL_HOLD_PTS, of: 1, item: "shot", how: "your stone nearest the button at the end" },
+  ],
+};
+
+/* ================================= State ================================= */
+
+export interface CurlingState {
+  tick: number;
+  rev: number;
+  seed: number;
+  phase: number;
+  /** Stones in play order: the opponent's first (placed at init), then each thrown one. Positions in units. */
+  x: number[];
+  y: number[];
+  vx: number[];
+  vy: number[];
+  team: number[];
+  /** 1 while in play. */
+  live: number[];
+  /** The thrown stone's turn (+1 In, −1 Out); 0 for the opponent's. */
+  curl: number[];
+  /** How many opponent stones the seed placed. */
+  theirs: number;
+  /** Stones thrown so far. */
+  thrown: number;
+  /** The stone in travel (index), or −1. */
+  active: number;
+  travelTicks: number;
+  sweep: number;
+  /** Per throw: closeness points (0–15) and whether it came to rest in the 4-foot, when thrown. */
+  pts: number[];
+  four: number[];
+  acted: number;
+  over: number;
+  /** Effects (display only): hits so far and the last hit's tick; the last throw's settle tick. */
+  hits: number;
+  hitTick: number;
+  restTick: number;
+  sweeps: number;
+}
+
+/** A tiny integer PRNG for the deal only (mulberry32); play never draws. */
+function dealRng(seed: number): (n: number) => number {
+  let a = seed >>> 0;
+  return (n: number) => {
+    a = (a + 0x6d2b79f5) >>> 0;
+    let t = a;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return n <= 1 ? 0 : ((t ^ (t >>> 14)) >>> 0) % n;
+  };
+}
+
+/** The opponent's stones for a seed: 2 or 3 in the house, 25–85 cm from the button, clear of each other (cm). */
+export function curlingOpponents(seed: number): { x: number; y: number }[] {
+  const rnd = dealRng(seed ^ 0xc0e11e);
+  const n = 2 + rnd(2);
+  const out: { x: number; y: number }[] = [];
+  for (let tries = 0; out.length < n && tries < 400; tries++) {
+    const x = rnd(171) - 85;
+    const y = rnd(171) - 85;
+    const d2 = x * x + y * y;
+    if (d2 < 25 * 25 || d2 > 85 * 85) continue;
+    if (out.some((o) => (o.x - x) * (o.x - x) + (o.y - y) * (o.y - y) < 40 * 40)) continue;
+    out.push({ x, y });
+  }
+  return out;
+}
+
+function initState(seed: number): CurlingState {
+  const opp = curlingOpponents(seed);
+  return {
+    tick: 0,
+    rev: CURLING_REV,
+    seed,
+    phase: CURL_AIM,
+    x: opp.map((o) => o.x * CU),
+    y: opp.map((o) => o.y * CU),
+    vx: opp.map(() => 0),
+    vy: opp.map(() => 0),
+    team: opp.map(() => TEAM_THEIRS),
+    live: opp.map(() => 1),
+    curl: opp.map(() => 0),
+    theirs: opp.length,
+    thrown: 0,
+    active: -1,
+    travelTicks: 0,
+    sweep: 0,
+    pts: [],
+    four: [],
+    acted: 0,
+    over: 0,
+    hits: 0,
+    hitTick: 0,
+    restTick: 0,
+    sweeps: 0,
+  };
+}
+
+/** A throw's release velocity (units a tick) towards the broom (cm) at a weight 1…1000. */
+export function curlRelease(broomX: number, broomY: number, weight: number): { vx: number; vy: number } {
+  const w = clampInt(Math.trunc(weight), 1, CURL_WEIGHT_MAX);
+  const speed = CURL_VMIN * CU + idiv((CURL_VMAX - CURL_VMIN) * CU * w, CURL_WEIGHT_MAX);
+  const dx = broomX * CU;
+  const dy = (broomY - HOG_NEAR) * CU;
+  const l = ilen(dx, dy);
+  return { vx: idiv(dx * speed, l), vy: idiv(dy * speed, l) };
+}
+
+/** A stone centre's distance from the button (units). */
+export function curlDist(x: number, y: number): number {
+  return isqrt(x * x + y * y);
+}
+
+/**
+ * A stone is judged as curlers see it, by the circles it touches: "on the button" when any of it is over the button,
+ * "in the 4-foot" or "in the house" likewise (its centre within the circle's radius plus its own).
+ */
+export const ON_BUTTON = BUTTON_R + STONE_R;
+export const IN_FOUR_FOOT = FOUR_FOOT_R + STONE_R;
+export const IN_HOUSE = HOUSE_R + STONE_R;
+
+/** Closeness points for a stone resting at (x, y): 15 on the button, falling evenly to 0 where it leaves the house. */
+export function curlStonePoints(x: number, y: number): number {
+  const d = curlDist(x, y);
+  return stdLine(CURL_STONE_PTS, Math.max(0, cm(IN_HOUSE) - d), cm(IN_HOUSE - ON_BUTTON));
+}
+
+/** True when a stone at (x, y) is in the house (touching it counts). */
+export function curlInHouse(x: number, y: number): boolean {
+  return curlDist(x, y) <= cm(IN_HOUSE);
+}
+
+/**
+ * The sheet's motion for one tick (mutates the stone arrays): substeps of travel and collisions, then each moving
+ * stone's curl, slowing, stop and out-of-play checks. The sim and every script that searches throws
+ * (scripts/curling-oracle.ts) move stones through this one function. Returns hits this tick and whether anything moves.
+ */
+export function curlMotionTick(s: Pick<CurlingState, "x" | "y" | "vx" | "vy" | "live" | "curl">, sweep: number): { hits: number; moving: boolean } {
+  const n = s.x.length;
+  const reach = cm(STONE_R * 2);
+  let hits = 0;
+  const a = { x: 0, y: 0, vx: 0, vy: 0 };
+  const b = { x: 0, y: 0, vx: 0, vy: 0 };
+  for (let sub = 0; sub < SUB; sub++) {
+    for (let i = 0; i < n; i++) {
+      if (!s.live[i] || (s.vx[i] === 0 && s.vy[i] === 0)) continue;
+      s.x[i] = s.x[i]! + idiv(s.vx[i]!, SUB);
+      s.y[i] = s.y[i]! + idiv(s.vy[i]!, SUB);
+    }
+    for (let i = 0; i < n; i++) {
+      if (!s.live[i]) continue;
+      for (let j = i + 1; j < n; j++) {
+        if (!s.live[j]) continue;
+        if (s.vx[i] === 0 && s.vy[i] === 0 && s.vx[j] === 0 && s.vy[j] === 0) continue;
+        const dx = s.x[j]! - s.x[i]!;
+        const dy = s.y[j]! - s.y[i]!;
+        if (dx > reach || dx < -reach || dy > reach || dy < -reach) continue;
+        a.x = s.x[i]!; a.y = s.y[i]!; a.vx = s.vx[i]!; a.vy = s.vy[i]!;
+        b.x = s.x[j]!; b.y = s.y[j]!; b.vx = s.vx[j]!; b.vy = s.vy[j]!;
+        if (collideEqual(a, b, reach, CURL_E)) {
+          if (a.vx !== s.vx[i] || a.vy !== s.vy[i]) hits++;
+          s.x[i] = a.x; s.y[i] = a.y; s.vx[i] = a.vx; s.vy[i] = a.vy;
+          s.x[j] = b.x; s.y[j] = b.y; s.vx[j] = b.vx; s.vy[j] = b.vy;
+        }
+      }
+    }
+  }
+  const eff = Math.min(sweep, SWEEP_FULL);
+  const decel = CURL_DECEL - idiv(CURL_DECEL * 3 * eff, SWEEP_FULL * 10);
+  let moving = false;
+  const edge = cm(SHEET_HALF_W - STONE_R);
+  const back = cm(BACK_FAR - STONE_R);
+  for (let i = 0; i < n; i++) {
+    if (!s.live[i]) continue;
+    let vx = s.vx[i]!;
+    let vy = s.vy[i]!;
+    if (vx === 0 && vy === 0) continue;
+    const sp = ilen(vx, vy);
+    if (s.curl[i]) {
+      // Across the travel (right of it for an in-turn), stronger as the stone slows; sweeping halves it at full effect.
+      let pull = idiv(CURL_A * CURL_VS, sp + CURL_VS);
+      pull -= idiv(pull * eff, SWEEP_FULL * 2);
+      const ox = vx;
+      vx += idiv(-vy * pull * s.curl[i]!, sp);
+      vy += idiv(ox * pull * s.curl[i]!, sp);
+    }
+    const sp2 = ilen(vx, vy);
+    const ns = sp2 - decel;
+    if (ns <= CURL_STOP_V) {
+      vx = 0;
+      vy = 0;
+    } else {
+      vx = idiv(vx * ns, sp2);
+      vy = idiv(vy * ns, sp2);
+      moving = true;
+    }
+    s.vx[i] = vx;
+    s.vy[i] = vy;
+    if (s.x[i]! > edge || s.x[i]! < -edge || s.y[i]! < back) {
+      s.live[i] = 0;
+      s.vx[i] = 0;
+      s.vy[i] = 0;
+    }
+  }
+  return { hits, moving };
+}
+
+/** Judges the stone just thrown once everything has stopped (the hog line first). */
+function settle(s: CurlingState): void {
+  const i = s.active;
+  if (s.live[i] && s.y[i]! > cm(HOG_FAR)) s.live[i] = 0;
+  const inPlay = s.live[i] === 1;
+  // A stone at rest has stopped turning: if it is struck later it slides straight.
+  s.curl[i] = 0;
+  s.pts.push(inPlay ? curlStonePoints(s.x[i]!, s.y[i]!) : 0);
+  s.four.push(inPlay && curlDist(s.x[i]!, s.y[i]!) <= cm(IN_FOUR_FOOT) ? 1 : 0);
+  s.active = -1;
+  s.sweep = 0;
+  s.restTick = s.tick;
+  if (s.thrown >= CURLING_STONES) {
+    s.over = 1;
+    s.phase = CURL_DONE;
+  } else s.phase = CURL_AIM;
+}
+
+function copy(p: CurlingState): CurlingState {
+  return { ...p, x: p.x.slice(), y: p.y.slice(), vx: p.vx.slice(), vy: p.vy.slice(), live: p.live.slice(), team: p.team, curl: p.curl.slice(), pts: p.pts.slice(), four: p.four.slice() };
+}
+
+function stepState(prev: CurlingState, input: ArcadeInputEvent | null): CurlingState {
+  if (prev.over) return prev;
+  const s = copy(prev);
+  s.tick += 1;
+  if (s.phase === CURL_AIM) {
+    if (input && input.k === CURL_INPUT_THROW) {
+      const weight = input.c >> 1;
+      const turn = input.c & 1;
+      const v = curlRelease(input.a, input.b, weight);
+      s.x.push(0);
+      s.y.push(HOG_NEAR * CU);
+      s.vx.push(v.vx);
+      s.vy.push(v.vy);
+      s.team = [...s.team, TEAM_MINE];
+      s.live.push(1);
+      s.curl.push(turn === 0 ? 1 : -1);
+      s.active = s.x.length - 1;
+      s.thrown += 1;
+      s.travelTicks = 0;
+      s.sweep = 0;
+      s.phase = CURL_TRAVEL;
+      s.acted = 1;
+    }
+  } else if (s.phase === CURL_TRAVEL) {
+    if (input && input.k === CURL_INPUT_SWEEP && s.live[s.active]) {
+      s.sweep = Math.min(SWEEP_MAX, s.sweep + clampInt(input.a, 1, 100) * 3);
+      s.sweeps += 1;
+    }
+    s.travelTicks += 1;
+    const r = curlMotionTick(s, s.sweep);
+    s.sweep = Math.max(0, s.sweep - SWEEP_DECAY);
+    if (r.hits > 0) {
+      s.hits += r.hits;
+      s.hitTick = s.tick;
+    }
+    if (!r.moving || s.travelTicks >= CURL_TRAVEL_CAP) {
+      for (let i = 0; i < s.x.length; i++) {
+        s.vx[i] = 0;
+        s.vy[i] = 0;
+      }
+      settle(s);
+    }
+  }
+  if (!s.over && s.tick >= CURLING_RUN_TICKS) {
+    // The buzzer: a stone still sliding is judged where it is.
+    if (s.phase === CURL_TRAVEL) settle(s);
+    s.over = 1;
+    s.phase = CURL_DONE;
+  }
+  return s;
+}
+
+/* ================================= Score ================================= */
+
+/** The opponent's stones out of the house now. */
+export function curlTakeouts(s: CurlingState): number {
+  let out = 0;
+  for (let i = 0; i < s.theirs; i++) if (!s.live[i] || !curlInHouse(s.x[i]!, s.y[i]!)) out++;
+  return out;
+}
+
+/** The team holding shot (the in-house stone nearest the button), or −1 with the house empty. */
+export function curlShotTeam(s: CurlingState): number {
+  let best = -1;
+  let bestD = Infinity;
+  for (let i = 0; i < s.x.length; i++) {
+    if (!s.live[i] || !curlInHouse(s.x[i]!, s.y[i]!)) continue;
+    const d = curlDist(s.x[i]!, s.y[i]!);
+    if (d < bestD) {
+      bestD = d;
+      best = s.team[i]!;
+    }
+  }
+  return best;
+}
+
+export function curlingStdParts(s: CurlingState): StdPart[] | null {
+  if (s.rev !== CURLING_REV) return null;
+  const core = s.pts.reduce((a, p) => a + p, 0);
+  const onButton = s.pts.filter((p) => p === CURL_STONE_PTS).length;
+  const out = curlTakeouts(s);
+  const red = s.four.reduce((a, p) => a + p, 0);
+  const holding = s.acted === 1 && curlShotTeam(s) === TEAM_MINE;
+  const spec = CURLING_STD_SPEC;
+  return [
+    stdPart(spec, "core", core, `${s.pts.length} thrown, ${onButton} on the button`),
+    stdPart(spec, "takeouts", stdLine(CURL_TAKEOUT_PTS, out, Math.max(1, s.theirs)), `${out} of ${s.theirs} out of the house`),
+    stdPart(spec, "redring", stdLine(CURL_RED_PTS, red, CURLING_STONES), `${red} in the 4-foot`),
+    stdPart(spec, "hold", holding ? CURL_HOLD_PTS : 0, holding ? "yours is shot stone" : "not holding shot"),
+  ];
+}
+
+export function curlingScore(s: CurlingState): number {
+  const parts = curlingStdParts(s);
+  if (!parts) return 0;
+  return stdFinal(parts.reduce((a, p) => a + p.points, 0), s.acted === 1);
+}
+
+export function curlingCheckpoint(s: CurlingState): SportsCheckpoint & { thrown: number } {
+  return {
+    tick: s.tick,
+    thrown: s.thrown,
+    checksum: sumInts([s.tick, s.phase, s.thrown, s.active, s.sweep, ...s.x, ...s.y, ...s.vx, ...s.vy, ...s.live, ...s.pts, ...s.four]),
+  };
+}
+
+const noDraw = (_ctx: CanvasRenderingContext2D, _s: CurlingState, _size: CanvasSize) => {};
+
+/** The game rooms deal (curlRev 1). */
+export function curlingGameFor(): ArcadeGame<CurlingState, ArcadeInputEvent | null> {
+  return {
+    key: "curling",
+    runTicks: CURLING_RUN_TICKS,
+    init: initState,
+    step: stepState,
+    isOver: (s) => s.over === 1,
+    score: curlingScore,
+    draw: noDraw,
+    inputRanges: CURLING_INPUT_RANGES,
+  };
+}

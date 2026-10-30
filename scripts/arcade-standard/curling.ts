@@ -6,6 +6,7 @@
  */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { readFileSync } from "node:fs";
+import { witnessRaw, type Witness } from "../curling-bank";
 import { curlingGameFor, curlingStdParts, CURLING_REV, CURLING_STD_SPEC, CURLING_STONES, CURL_STONE_PTS, type CurlingState } from "../../src/lib/arcade/curling";
 import { replayCurlingRun } from "../../src/lib/duel/curling";
 import { CURLING_BANK } from "../../src/lib/duel/curlingBank.server";
@@ -13,7 +14,10 @@ import type { StdEntry } from "./entry";
 
 const game = curlingGameFor();
 const SEED = CURLING_BANK[0]!;
-const witness = JSON.parse(readFileSync(new URL("../fixtures/curling-witness.json", import.meta.url), "utf8")) as Record<string, string>;
+// The fixture holds each sheet's throw plan; witnessRaw plays it into the log the phone would send.
+const witness: Record<string, string> = Object.fromEntries(
+  (JSON.parse(readFileSync(new URL("../fixtures/curling-witness.json", import.meta.url), "utf8")) as Witness[]).map((w) => [String(w.seed), witnessRaw(w)]),
+);
 const record = (s: CurlingState) => Object.fromEntries((curlingStdParts(s) ?? []).map((p) => [p.key, p.points]));
 
 /** A built final state: the opponent's stones untouched (in the house, holding), `pts` and `four` per throw as given. */

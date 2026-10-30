@@ -85,6 +85,11 @@ when the run starts. Rooms deal Pinball since 14 Oct 2026; Junction is practice 
 | `burst.powerUp` | Fission | A shield or burst power-up is caught | `arc_retro_pickup` | 1–5 | 100 ms |
 | `burst.freezeCaught` | Fission | A FREEZE icon is caught (burstRev 2+) | `arc_retro_coin` (0.8) | 0–3 | 120 ms |
 | `burst.shot` | Fission | A shot is fired (at most one per 70 ms, two at once) | `arc_retro_blip` (0.6, overlapping) | 50–200 | 50 ms |
+| `minigolf.putt` | Minigolf | A putt is struck | `arc_wood_knock` (0.8) | 5–30 | 80 ms |
+| `minigolf.bounce` | Minigolf | The ball bounces off a rail, log, boulder or planter | `arc_bounce` (0.6) | 0–40 | 60 ms |
+| `minigolf.water` | Minigolf | The ball goes in a pond | `arc_sea_pop` (0.9) | 0–6 | 200 ms |
+| `minigolf.holed` | Minigolf | The ball drops in the cup | `arc_marble_clink` | 0–5 | 200 ms |
+| `minigolf.birdie` | Minigolf | A hole holed under par | `arc_fair_bell` (0.8) | 0–5 | 300 ms |
 | `bintoss.basket` | Swish | A throw goes in | `arc_fair_bucket` | 3–10 | 200 ms |
 | `bintoss.allBaskets` | Swish | The last throw goes in with every throw in | `arc_fair_bell` | 0–1 | 400 ms |
 | `bintoss.missBounce` | Swish | A throw misses | `arc_bounce` (0.7) | 0–7 | 80 ms |

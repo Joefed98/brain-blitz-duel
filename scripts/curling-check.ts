@@ -12,6 +12,7 @@
  *   bun scripts/curling-check.ts
  */
 import { readFileSync } from "node:fs";
+import { witnessRaw, type Witness } from "./curling-bank";
 import { curlingCheckpoint, curlingGameFor, curlingOpponents, curlInHouse, CURL_AIM, CURL_INPUT_SWEEP, CURL_INPUT_THROW, CURLING_REV, CURLING_STONES, CU, TEAM_THEIRS, type CurlingState } from "../src/lib/arcade/curling";
 import { encodeCurlingRun, replayCurlingRun } from "../src/lib/duel/curling";
 import { CURLING_BANK } from "../src/lib/duel/curlingBank.server";
@@ -23,7 +24,10 @@ function ok(cond: boolean, label: string): void {
   checks++;
   if (!cond) failures.push(label);
 }
-const witness = JSON.parse(readFileSync(new URL("./fixtures/curling-witness.json", import.meta.url), "utf8")) as Record<string, string>;
+// The fixture holds each sheet's throw plan; witnessRaw plays it into the log the phone would send.
+const witness: Record<string, string> = Object.fromEntries(
+  (JSON.parse(readFileSync(new URL("./fixtures/curling-witness.json", import.meta.url), "utf8")) as Witness[]).map((w) => [String(w.seed), witnessRaw(w)]),
+);
 
 /* The bank. */
 ok(CURLING_BANK.length >= 40 && new Set(CURLING_BANK).size === CURLING_BANK.length, `at least 40 unique bank sheets (${CURLING_BANK.length})`);

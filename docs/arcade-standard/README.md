@@ -43,7 +43,7 @@ table is imported by name (no-side-effect-imports-check).
 ## The check: `scripts/arcade-standard-check.ts`
 
 One check, one entry per game in `scripts/arcade-standard/<type>.ts` (the entry shape is
-`scripts/arcade-standard/entry.ts`). `STANDARD_ROSTER` in the check lists all 21 games; once rooms deal a game's
+`scripts/arcade-standard/entry.ts`). `STANDARD_ROSTER` in the check lists all 21 games (and the Sports group's three, on the standard from their first stamp); once rooms deal a game's
 standard stamp it must have an entry. For every entry it proves: the parts (core first) sum to exactly 200 and the round
 maximum is 200; rooms deal the stamp and LIVE_BANDS lists it; every perfect run, through the game's real scoring path
 (a server replay or the sim's own score), scores exactly 200, each part at its maximum where the run is split. Where an
@@ -80,6 +80,9 @@ replay exactly as before; standard-live-check grades every stored arcade run thr
 | Orbit | `orbit` | `orbitRev` 13 | C | [orbit.md](orbit.md) |
 | Ball Tracker | `balltrack` | `btRev` 8 | C | [balltrack.md](balltrack.md) |
 | Grappler | `swing` | `swingRev` 15 | D | [swing.md](swing.md) |
+| Minigolf | `minigolf` | `golfRev` 1 | Sports | [minigolf.md](minigolf.md) |
+| Speed Pool | `pool` | `poolRev` 1 | Sports | [pool.md](pool.md) |
+| Curling | `curling` | `curlRev` 1 | Sports | [curling.md](curling.md) |
 
 The batches land one at a time on top of this; each adds its games' entries, pages and its summary section below.
 

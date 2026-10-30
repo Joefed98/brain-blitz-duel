@@ -108,6 +108,15 @@ game the round was.
 | `slice.sliced` | Sliced streak (every 25): the clip reaches the moment's key tick | instant (the moment lands; about 0.5 s of half-speed play follows) |
 | `slice.mayo` | Mayonnaise squeezed: the clip reaches the moment's key tick | instant (the moment lands; about 0.5 s of half-speed play follows) |
 | `slice.many-in-one` | Four or more in one cut: the clip reaches the moment's key tick | instant (the moment lands; about 0.5 s of half-speed play follows) |
+| `minigolf.hole-done` | A hole holed at par or worse: the clip reaches the moment's key tick | instant (the moment lands; about 0.5 s of half-speed play follows) |
+| `minigolf.under-par` | A hole under par (a birdie or better): the clip reaches the moment's key tick | instant (the moment lands; about 0.5 s of half-speed play follows) |
+| `minigolf.all-holed` | All five holes holed: the clip reaches the moment's key tick | instant (the moment lands; about 0.5 s of half-speed play follows) |
+| `pool.pots-in-a-row` | Pots in a row: the clip reaches the moment's key tick | instant (the moment lands; about 0.5 s of half-speed play follows) |
+| `pool.spots-cleared` | All seven spots down: the clip reaches the moment's key tick | instant (the moment lands; about 0.5 s of half-speed play follows) |
+| `pool.cleared` | The black, table cleared: the clip reaches the moment's key tick | instant (the moment lands; about 0.5 s of half-speed play follows) |
+| `curling.on-the-button` | A stone on the button: the clip reaches the moment's key tick | instant (the moment lands; about 0.5 s of half-speed play follows) |
+| `curling.takeout` | An opponent stone out of the house: the clip reaches the moment's key tick | instant (the moment lands; about 0.5 s of half-speed play follows) |
+| `curling.shot-stone` | Holding shot at the end: the clip reaches the moment's key tick | instant (the moment lands; about 0.5 s of half-speed play follows) |
 | `bintoss.in-a-row` | Buckets in a row (3+): the clip reaches the moment's key tick | instant (the moment lands; about 0.5 s of half-speed play follows) |
 | `bintoss.hoop` | Through the hoop: the clip reaches the moment's key tick | instant (the moment lands; about 0.5 s of half-speed play follows) |
 | `bintoss.spinner` | Past the spinner: the clip reaches the moment's key tick | instant (the moment lands; about 0.5 s of half-speed play follows) |

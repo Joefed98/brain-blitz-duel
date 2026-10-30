@@ -19,6 +19,8 @@ import { readFileSync } from "node:fs";
 
 import { chartLabels, chartPoint, chartRow, chartScore, layoutMarkers } from "../src/lib/duel/arcadeChart";
 import { GAME_DISPLAY_NAMES } from "../src/lib/duel/gameNames";
+import { typesInCategory } from "../src/lib/duel/registry";
+import { ACTIVE_ARCADE_GAMES } from "../src/lib/arcade/arcadeFxGames.renderer";
 import { INTRO_SCORE } from "../src/lib/duel/introScore";
 import { PUZZLE_INSTRUCTIONS } from "../src/lib/duel/instructions";
 import { podiumAwards, type AwardRound } from "../src/lib/duel/podiumAwards";
@@ -68,6 +70,8 @@ const RAISED: PuzzleType[] = [
   "lightsout", "sudoku", "tower", "tubes", "safe", "bomb", "nonogram", "flood", "tents", "shikaku", "lightup",
   // Depth batch 4 (docs/depth/d4-pattern.md): eight Pattern / Logic games.
   "unblock", "blockparty", "pipes", "flow", "iceslide", "push", "laser", "rings",
+  // The Sports group (30 Oct 2026): Minigolf, Speed Pool and Curling, on the arcade standard from their first stamp.
+  "minigolf", "pool", "curling",
   // Expansion E4 (docs/expansions/e4.md): High Rise and Pinball.
   "skyline", "pinball",
   // World expansion E5 (docs/expansions/e5.md): Swish and Slice.
@@ -242,8 +246,6 @@ ok(/roundMaxFor\(game\)/.test(read("src/lib/arcade/liveBands.ts")), "the band ga
   const { ARCADE_ROOM_BEST_PREFIX, RETIRED_ARCADE_ROOM_BEST_PREFIXES, recordArcadeRoomBest } = await import("../src/lib/fx/arcadeBest");
   ok(ARCADE_ROOM_BEST_PREFIX === "duelz-arcade-room-best:v2:" && !RETIRED_ARCADE_ROOM_BEST_PREFIXES.includes(ARCADE_ROOM_BEST_PREFIX as never), "room arcade bests are stored under the v2 prefix");
   // The active arcade games as the registry deals them (the counts read the registry since the Sports group, 30 Oct 2026).
-  const { typesInCategory } = await import("../src/lib/duel/registry");
-  const { ACTIVE_ARCADE_GAMES } = await import("../src/lib/arcade/arcadeFxGames.renderer");
   const arcade = ALL_TYPES.filter((t) => typesInCategory("arcade").includes(t));
   ok(arcade.length === ACTIVE_ARCADE_GAMES.length && arcade.every((t) => (ACTIVE_ARCADE_GAMES as readonly string[]).includes(t)) && !arcade.includes("snip"), `the active arcade games, the arcade worlds' active list (Scrumper practice only since 27 Oct 2026) (${arcade.length})`);
   for (const type of arcade) {
