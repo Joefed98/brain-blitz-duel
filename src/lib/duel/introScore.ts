@@ -113,7 +113,7 @@ function introScoreTemplates(): Record<PuzzleType, string> {
     mahjong: "Pairs 150, no shuffles 20, a fast clear 30; a Shuffle costs 5. Up to {max}.",
     pinball: "Table points, plus J-O-U-L-Z sets, multiball, jackpots and ramp combos. Up to {max}.",
     homerun: "Distance on every pitch, home runs and the signs beyond the fence. Up to {max}.",
-    freekick: "Goals placed away from the keeper, the targets, curling round the wall and five in a row. Up to {max}.",
+    freekick: "Goals away from the keeper, targets, curls round the wall and five in a row. Up to {max}.",
     racing: "Distance round the track, clean sectors, the finish and your time. Up to {max}.",
     bubble: "Bubbles cleared, a fast clear, falling chests, bank shots and combos. Up to {max}.",
     slice: "Food 120, combos 40, gold fruit 20, tickets 10, dodges 10. Chilli: lose 10. Up to {max}.",
