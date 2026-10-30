@@ -200,6 +200,8 @@ export const bot: SkillBot = ({ game, seed, human, fixes }) => {
 
   let mazeLevel = -1;
   let thinkUntil = 0;
+  /** tiltRev 10: the ticks spent studying the mazes entered so far (the player knows rolling from reading). */
+  let thinkSpent = 0;
   let focus = 0;
   let starPlan: number[] = [];
   let quickPlan: number[] = [];
@@ -231,6 +233,7 @@ export const bot: SkillBot = ({ game, seed, human, fixes }) => {
     const m = s.list[s.level]!;
     const two = !!s.b;
     thinkUntil = t + human.thinkTicks(2600 + 700 * s.level + (two ? 1200 : 0));
+    thinkSpent += thinkUntil - t;
     decided.clear();
     detour = null;
     burnt.clear();
@@ -262,18 +265,35 @@ export const bot: SkillBot = ({ game, seed, human, fixes }) => {
   };
   /** Fixes: whether the detour to `star` still leaves time to finish every maze at the player's pace. */
   const starAffordable = (s: TiltState, m: Maze, which: number, c: number, star: number, t: number): boolean => {
+    // tiltRev 10: the player reckons the trips with the maze's gate open (they will take its key on the way), not as
+    // cut off; with no quick stars first, the amber marble is often steered while the blue one's gate is still shut.
+    const keys = KEYS;
+    if (s.std) KEYS = (1 << (m.keys?.length ?? 0)) - 1;
+    try {
+      return starAffordableAt(s, m, which, c, star, t);
+    } finally {
+      KEYS = keys;
+    }
+  };
+  const starAffordableAt = (s: TiltState, m: Maze, which: number, c: number, star: number, t: number): boolean => {
     const left = (b: { x: number; y: number } | null, exit: number) => (b ? (field(m, exit)[cellAt(m, b.x, b.y)] ?? 0) : 0);
     const here = left(bodyOf(s, 0), m.exit) + (s.b ? left(bodyOf(s, 1), m.exit2!) : 0);
     let later = 0;
-    for (let k = s.level + 1; k < TILT_MAX_MAZES && k < s.list.length; k++) later += routeCells(s.list[k]!);
+    // tiltRev 10: a later maze's cells count by their size against this maze's (the fourth maze's small cells roll quicker).
+    for (let k = s.level + 1; k < TILT_MAX_MAZES && k < s.list.length; k++) later += s.std ? (routeCells(s.list[k]!) * s.list[k]!.cs) / m.cs : routeCells(s.list[k]!);
     let done = 0;
     for (let k = 0; k < s.level; k++) done += routeCells(s.list[k]!);
     done += Math.max(0, routeCells(m) - here);
     const exit = which === 0 ? m.exit : m.exit2!;
     const detour = Math.max(0, (field(m, c)[star] ?? 0) + (field(m, exit)[star] ?? 0) - (field(m, exit)[c] ?? 0));
     // Pace (ticks a route cell, thinking included): the run's own once it has some, else a typical one.
-    const pace = done >= 40 ? Math.max(9, Math.min(30, t / done)) : PACE_PRIOR;
-    const need = pace * (here + later + detour + 4) * Math.exp(human.p.judgement * human.normal());
+    // tiltRev 10 (four mazes, a star 10 points): the player reckons their rolling pace apart from the time spent
+    // reading each maze, and adds that reading time for the mazes still to come (no extra random draw).
+    const rolled = s.std ? Math.max(1, t - thinkSpent) : t;
+    const pace = done >= 40 ? Math.max(9, Math.min(30, rolled / done)) : PACE_PRIOR;
+    let reading = 0;
+    if (s.std) for (let k = s.level + 1; k < s.list.length; k++) reading += Math.round(((2600 + 700 * k) * human.p.thinkScale * 60) / 1000);
+    const need = (pace * (here + later + detour + 4) + reading) * Math.exp(human.p.judgement * human.normal());
     return t + need < TILT_RUN_TICKS - 60;
   };
 

@@ -1357,8 +1357,9 @@ const tiltSummary: SummaryBuilder = (result) => {
   const survived = result.extra?.["survived"] !== false;
   const ended = Number(result.extra?.["survivedSeconds"] ?? 0);
   const head = `${mazes} ${mazes === 1 ? "maze" : "mazes"} completed`;
-  // tiltRev 8 (the expansion): three mazes, quick stars, and falls that cost time instead of the run.
-  const all = Number(result.extra?.["tiltRev"] ?? 0) === 8 ? 3 : 4;
+  // tiltRev 8 and 9 (the expansion): three mazes, quick stars, and falls that cost time instead of the run; tiltRev 10 four mazes.
+  const rev = Number(result.extra?.["tiltRev"] ?? 0);
+  const all = rev === 8 || rev === 9 ? 3 : 4;
   const quick = Number(result.extra?.["totalQuick"] ?? 0);
   return {
     summary:

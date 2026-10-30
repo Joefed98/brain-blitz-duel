@@ -1,7 +1,7 @@
 import { BULLSEYE_INNER_BULL_POINTS, BULLSEYE_RING_VALUES } from "@/lib/arcade/bullseye";
 import { BINTOSS_FAR_POINTS, BINTOSS_THROWS } from "@/lib/arcade/binToss";
 import { INK_FEATURE_MAX, INK_LEVELS } from "@/lib/arcade/inkBridge";
-import { TILT_X_MAZES } from "@/lib/arcade/tilt";
+import { TILT_S_MAZES } from "@/lib/arcade/tilt";
 import { bandsIntro } from "./puzzleBandsText";
 import { logicStandardIntro } from "./standard/logicText";
 import { wordSearchBonusIntro } from "./wordSearchText";
@@ -120,7 +120,7 @@ function introScoreTemplates(): Record<PuzzleType, string> {
     orbit: "Planets and the sun, plus stardust, slingshots, fields and perfect orbits: up to {max}.",
     snip: "Points for fruit fed and leaves; golden apples, few cuts and speed add more. Up to {max}.",
     swing: `Sections cleared, then pars, gates, gems and stars: up to {max}.`,
-    tilt: `Mazes, progress and stars; quick stars and pace add more. All ${TILT_X_MAZES} quickly: up to {max}.`,
+    tilt: `35 a maze (up to 5 for nearing its exit), gold stars 30. All ${TILT_S_MAZES} quickly: up to {max}.`,
     balltrack: `Points per marble home; gold, boosted and in-a-row marbles add more. Up to {max}.`,
     swerve: arcadeOpen("each coin you collect"),
     dual: "The longer both runners survive, the more you score. The full minute is {max}.",

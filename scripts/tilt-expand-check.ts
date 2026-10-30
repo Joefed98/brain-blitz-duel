@@ -38,9 +38,12 @@ import {
   TILT_CHECKPOINT_INTERVAL,
   TILT_RUN_TICKS,
   TILT_REV_EXPAND,
+  TILT_REV_LIFT,
+  TILT_REV_STD,
   TILT_REV_STRICT,
   TILT_V8_BAND_CURVE,
   TILT_V9_BAND_CURVE,
+  TILT_V10_BAND_CURVE,
   TILT_X_FALL_HOLD,
   TILT_X_MAZES,
   TILT_X_PACE_POINTS,
@@ -63,9 +66,8 @@ import { LIVE_BANDS } from "../src/lib/arcade/liveBands";
 import { roundMaxFor } from "../src/lib/duel/roundMax";
 import { GAME_BY_TYPE } from "./arcade-skill-bands/games";
 import { tiltStateDigest } from "./tilt-expand-record";
-import { randomLog, roomIdentity, scheduleOf } from "./room-identity/tilt";
+import { logsFor, randomLog, scheduleOf } from "./room-identity/tilt";
 import { TILT_BANK } from "../src/lib/duel/tiltBank.server";
-import { playRevOf } from "./scoring-targets-revs";
 
 /** Cells on the way into a black hole (between it and the route) or within two cells of one. */
 function nearHoles(m: Maze): Set<number> {
@@ -133,8 +135,10 @@ for (const run of runs) {
 }
 /* 3. The deal. */
 const dealt = generatePuzzle("tilt") as unknown as { tiltRev: number; seed: number };
-// Since 27 Oct 2026 rooms deal tiltRev 9, tiltRev 8's play on lifted curves (arcade-phone-notes-check proves it and its curve).
-ok(playRevOf("tilt", dealt.tiltRev) === TILT_REV_EXPAND, `rooms deal tiltRev ${TILT_REV_EXPAND}'s play (got ${dealt.tiltRev})`);
+// Since 27 Oct 2026 rooms deal tiltRev 9, tiltRev 8's play on lifted curves (arcade-phone-notes-check proves it and its curve), and
+// since 29 Oct 2026 tiltRev 10 (the arcade scoring standard: tiltRev 8's three mazes less the quick stars, then a fourth;
+// tilt-standard-check proves it). The deal below (the same bank) is still checked on tiltRev 8's rule.
+ok(dealt.tiltRev === TILT_REV_STD, `rooms deal tiltRev ${TILT_REV_STD}, tiltRev 8's mazes and a fourth (got ${dealt.tiltRev})`);
 ok(tiltDealableX(dealt.seed) && TILT_BANK.includes(dealt.seed), "rooms deal a bank seed, which passes the dealer's rule");
 ok(TILT_BANK.length >= 260 && new Set(TILT_BANK).size === TILT_BANK.length, `the bank holds 260 or more distinct seeds (${TILT_BANK.length})`);
 /** Hops from a cell to the nearest cell of a marble's route. */
@@ -247,7 +251,8 @@ ok(lowest.tuning === 200 && lowest.fresh === 200 && lowestBank === 200, `the ora
 /* 5. Room identity. */
 for (const n of [0, 1, 2]) {
   const seed = spec.seedFor(n);
-  const logs = roomIdentity.logs(seed);
+  // The logs played on tiltRev 9 (tiltRev 8's play), as before rooms moved on to tiltRev 10.
+  const logs = logsFor(seed, TILT_REV_LIFT);
   const lists = logs.map((log) => scheduleOf(seed, TILT_REV_EXPAND, log));
   const reached = lists.map((l) => new Set(l.map((e) => Math.floor(e.t / 100_000))));
   for (let a = 0; a < lists.length; a++)
@@ -315,7 +320,7 @@ for (const n of [0, 1, 2]) {
   const scores: number[] = [];
   for (let k = 0; k < 8; k++) {
     const sd = spec.seedFor(10 + k);
-    const events = randomLog(sd);
+    const events = randomLog(sd, TILT_REV_LIFT);
     const byTick = new Map(events.map((e) => [e.t, e]));
     let st: TiltState = tiltExpandGame.init(sd);
     const checkpoints: unknown[] = [];
@@ -340,7 +345,8 @@ for (const n of [0, 1, 2]) {
   ok(TILT_V8_BAND_CURVE.points.at(-1) === 140 && TILT_V8_BAND_CURVE.units.at(-1) === 150, "the base curve tops out at 140 at 150 units");
   ok(roundMaxFor("tilt") === 200, "Tilt's round maximum is 200");
   const live = LIVE_BANDS.tilt as { rev: number; curve: unknown; strictRev?: number };
-  ok(playRevOf("tilt", live.rev) === TILT_REV_EXPAND && live.curve === TILT_V9_BAND_CURVE && TILT_V9_BAND_CURVE.units.join() === TILT_V8_BAND_CURVE.units.join() && live.strictRev === TILT_REV_STRICT, "LIVE_BANDS lists tiltRev 8's play on the dealt curve (its units), tiltRev 6 as its strict revision");
+  // tiltRev 9 kept tiltRev 8's units on its lifted curve; since 29 Oct 2026 rooms deal tiltRev 10 on its core's straight line (tilt-standard-check).
+  ok(live.rev === TILT_REV_STD && live.curve === TILT_V10_BAND_CURVE && TILT_V9_BAND_CURVE.units.join() === TILT_V8_BAND_CURVE.units.join() && live.strictRev === TILT_REV_STRICT, "LIVE_BANDS lists the dealt tiltRev 10 on its curve (tiltRev 9 on tiltRev 8's units), tiltRev 6 as its strict revision");
 }
 
 if (failures.length) {
