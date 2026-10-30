@@ -672,14 +672,18 @@ function Stage2({ puzzle, locked, onSubmit, onDraftAnswer, checkMoves, stateKey 
         <VowelsLeft left={vowelsLeft} max={rules.maxVowels} />
       </div>
       <div data-game-arena="strikeout" className="flex min-h-0 w-full flex-1 items-center justify-center" style={{ containerType: "size" }}>
-        <div ref={board} className="flex flex-col items-center gap-3" style={{ ["--so-tile" as string]: tileSize }}>
-          {/* The words already solved sit above the tiles (Joe's phone notes, 27 Oct 2026; display only). */}
-          <div className="flex min-h-5 flex-wrap justify-center gap-1" aria-label="Solved words">
-            {solvedWords.map((w, i) => (
-              <span key={i} data-so-solved={i} className="bw-lift rounded bg-primary/90 px-1.5 py-0.5 font-mono text-[11px] font-bold tracking-wider text-primary-foreground">
-                {w}
-              </span>
-            ))}
+        <div ref={board} className="flex h-full w-full flex-col items-center" style={{ ["--so-tile" as string]: tileSize }}>
+          {/* The words already solved (Joe's phone notes, 27 Oct 2026; display only) sit centred in the space between
+              the top bar and the tiles (his notes of 28 Oct 2026). The tiles keep their place: this space takes what
+              the arena leaves above them, and the words float in it (absolute), so the board tray still hugs the tiles. */}
+          <div data-so-solved-space="" className="relative w-full min-h-0 flex-1">
+            <div className="absolute inset-x-2 top-1/2 flex -translate-y-1/2 flex-wrap justify-center gap-1" aria-label="Solved words">
+              {solvedWords.map((w, i) => (
+                <span key={i} data-so-solved={i} className="bw-lift rounded bg-primary/90 px-1.5 py-0.5 font-mono text-[11px] font-bold tracking-wider text-primary-foreground">
+                  {w}
+                </span>
+              ))}
+            </div>
           </div>
           <Row
             letters={letters}

@@ -9,6 +9,7 @@ import { SLIDE_PAR_BONUS_TOPUP } from "./wordSlide";
 import { SW6_SPARE_SWAPS, SWAP_PAR_BONUS_TOPUP } from "./swapword";
 import { STD_ROUNDABOUT, STD_STRIKEOUT, WORD_STANDARD_HELP } from "./standard/word";
 import { preStandardPinned } from "./standard/stamps";
+import { puzzleNotesDealt } from "./puzzleNotes";
 import { STANDARD_ATTENTION_HELP } from "./standard/attentionTexts";
 import { PATTERN_STD_HELP } from "./standard/patternText";
 import { standardNumberHelp } from "./standard/numberText";
@@ -186,6 +187,10 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
       how: [
         { action: "Swipe a row or column;", detail: "letters wrap round." },
         { action: "Lock a finished word", detail: "with its padlock." },
+        // Joe's puzzle notes (28 Oct 2026, wordSlideRev 4): the last row's tiles swap once four words are locked.
+        ...(puzzleNotesDealt()
+          ? [{ action: "Four words locked?", detail: "Tap two tiles in the last row to swap them; each swap is a move." }]
+          : []),
         { action: "Finish within par", detail: "moves for a bonus; Undo and Reset count." },
         { action: "Par", detail: "is the number of slides that scrambled the board, shown beside your moves (gold while you are within it).", helpOnly: true },
         { action: "Words are 5 letters.", detail: "Column swipes go around a locked row.", helpOnly: true },
@@ -294,7 +299,8 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
     countup: {
       goal: "Count the shapes each question asks for.",
       how: [
-        { action: "Read the question:", detail: "a shape and a colour." },
+        // Joe's puzzle notes (28 Oct 2026, countRev 6): the second tray may ask for a shape alone or a colour alone.
+        { action: "Read the question:", detail: puzzleNotesDealt() ? "a shape, a colour, or both." : "a shape and a colour." },
         { action: "Type the total;", detail: "ENTER goes to the next." },
         { action: "Tray 4 compares:", detail: "how many more of one colour than another?" },
         { action: "Four trays", detail: "share 60 seconds.", helpOnly: true },

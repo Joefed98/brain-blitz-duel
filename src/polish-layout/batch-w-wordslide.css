@@ -59,3 +59,20 @@
   background-image: linear-gradient(180deg, rgb(0 0 0 / 0.35), rgb(0 0 0 / 0.1));
   box-shadow: inset 0 3px 7px rgb(0 0 0 / 0.65);
 }
+
+/* Joe's phone notes (28 Oct 2026, wordSlideRev 4): with four rows locked, the last row's tiles swap. The open row
+   gets a dashed teal outline; the picked tile lifts with a gold ring until the second tap. Display only. */
+[data-polish="wordslide"] [data-slide-swap] {
+  outline: 2px dashed color-mix(in srgb, var(--opponent) 70%, transparent);
+  outline-offset: -5px;
+  cursor: pointer;
+}
+[data-polish="wordslide"] [data-slide-swap="picked"] {
+  outline: 3px solid var(--primary);
+  outline-offset: -3px;
+  transform: translateY(-4px);
+  transition: transform 120ms ease-out;
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-polish="wordslide"] [data-slide-swap="picked"] { transform: none; transition: none; }
+}
