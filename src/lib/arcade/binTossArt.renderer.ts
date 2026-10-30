@@ -10,7 +10,7 @@ import {
   BINTOSS_HOOP_CAP_R, BINTOSS_HOOP_HALF, BINTOSS_SPIN_THICK,
   binTossCentreAt, binTossGame, binTossHalf, binTossPath, binTossSpinEnds, binTossSpinPivot,
   type BinTossGhost, type BinTossHoop, type BinTossLandingPresentation, type BinTossState,
-  BINTOSS_EXPAND, BINTOSS_FAR_HALF, BINTOSS_FAR_POINTS, BINTOSS_V7_LIFT, BINTOSS_V7_WORLD_H, BINTOSS_V7_WORLD_W,
+  BINTOSS_EXPAND, BINTOSS_FAR_HALF, BINTOSS_V7_LIFT, BINTOSS_V7_WORLD_H, BINTOSS_V7_WORLD_W, binTossFarEach, binTossFarShown,
   binTossWindAcc, binTossWindSub, binTossWorldOf, binTossFarHalf,
 } from "./binToss";
 import { reducedMotion } from "./art.renderer";
@@ -466,9 +466,9 @@ function drawWind(ctx: CanvasRenderingContext2D, wind: number, worldW = BINTOSS_
 
 /**
  * binRev 7: the far bucket's tag, a small gold pennant on a pole standing in the bucket's mouth (scenery
- * above the rim, never in the ball's way: the rim is the bucket's top), "+9" on it.
+ * above the rim, never in the ball's way: the rim is the bucket's top), "+9" on it ("+6" on binRev 9).
  */
-function drawFarTag(ctx: CanvasRenderingContext2D, centre: number, top: number, made: boolean): void {
+function drawFarTag(ctx: CanvasRenderingContext2D, centre: number, top: number, made: boolean, each: number): void {
   ctx.save();
   const x = centre + 8;
   ctx.strokeStyle = "#4E3019";
@@ -491,7 +491,7 @@ function drawFarTag(ctx: CanvasRenderingContext2D, centre: number, top: number, 
   ctx.font = "800 9px 'JetBrains Mono', ui-monospace, monospace";
   ctx.textAlign = "left";
   ctx.textBaseline = "middle";
-  ctx.fillText(`+${BINTOSS_FAR_POINTS}`, x + 3, top - 27.5);
+  ctx.fillText(`+${each}`, x + 3, top - 27.5);
   ctx.restore();
 }
 
@@ -548,7 +548,7 @@ function draw(ctx: CanvasRenderingContext2D, state: BinTossState, size: CanvasSi
       const farHalf = px(binTossFarHalf(state));
       counterShadow(ctx, px(farCentre), FLOOR + 1, farHalf + 6, 0);
       drawBucket(ctx, px(farCentre), farHalf, farLean, false);
-      drawFarTag(ctx, px(farCentre), px(BINTOSS_RIM_Y), farAge < 600);
+      drawFarTag(ctx, px(farCentre), px(BINTOSS_RIM_Y), farAge < 600, binTossFarEach(state));
     }
     // Rev 3: the hoop (glowing briefly after a swish) and the spinner.
     const hoop = state.throwIndex < BINTOSS_THROWS ? (state.hoops?.[index] ?? null) : null;
@@ -593,7 +593,7 @@ function draw(ctx: CanvasRenderingContext2D, state: BinTossState, size: CanvasSi
       ctx.font = "700 14px 'JetBrains Mono', ui-monospace, monospace";
       ctx.textBaseline = "top";
       ctx.fillStyle = (state.farIn ?? 0) > 0 ? "#F5B82E" : "rgba(247,247,248,0.6)";
-      ctx.fillText(`FAR ${state.farIn ?? 0} · +${Math.min(50, BINTOSS_FAR_POINTS * (state.farIn ?? 0))}`, 12, 40 - world.lift);
+      ctx.fillText(`FAR ${state.farIn ?? 0} · +${binTossFarShown(state)}`, 12, 40 - world.lift);
       ctx.restore();
     }
     for (let i = 0; i < BINTOSS_THROWS; i++) {

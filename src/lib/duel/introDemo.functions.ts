@@ -17,7 +17,7 @@ import { BULLSEYE_REV_EXPAND } from "@/lib/arcade/bullseye";
 import { BEAT_REV_EASE } from "@/lib/arcade/beat";
 import { SNAKE_REV_10 } from "@/lib/arcade/snake";
 import { SLICE_REV_BIG, SLICE_REV_TALL } from "@/lib/arcade/slice";
-import { BINTOSS_REV_SMALL_FAR } from "@/lib/arcade/binToss";
+import { BINTOSS_REV_STD } from "@/lib/arcade/binToss";
 import { BUB_REV_BLAST } from "@/lib/arcade/bubble";
 import { MATCHUP_REV_ICE } from "@/lib/arcade/matchup";
 import { TEN_DROP_DEPTH_REV } from "@/lib/arcade/tenDrop";
@@ -203,7 +203,9 @@ export const getIntroDemoFn = createServerFn({ method: "GET" })
     // elsewhere), so each shows its still until a demo is recorded on its new revision.
     // Swish binRev 8 (phone notes, 27 Oct 2026): the far bucket is 60 % of its size, so an older demo's far baskets
     // could miss; it stays stopped until one is recorded on binRev 8.
-    if (data.type === "bintoss" && demo?.puzzle.type === "bintoss" && demo.puzzle.binRev !== BINTOSS_REV_SMALL_FAR) return null;
+    // Swish binRev 9 (the arcade scoring standard, 29 Oct 2026): new scoring and, on some seeds, a re-placed hoop; only a
+    // binRev 9 demo plays (its score is the one the help states).
+    if (data.type === "bintoss" && demo?.puzzle.type === "bintoss" && demo.puzzle.binRev !== BINTOSS_REV_STD) return null;
     // Slice sliceRev 10 (27 Oct 2026, Joe's phone notes): bigger onions and golden fruit; only a sliceRev 10 demo plays.
     if (data.type === "slice" && demo?.puzzle.type === "slice" && demo.puzzle.sliceRev !== SLICE_REV_BIG) return null;
 

@@ -2361,6 +2361,8 @@ function gradeUnderRev(
         desyncTick: run.desyncTick,
         inputs: decodeBinTossRun(answer).events.length,
         claimedScore: decodeBinTossRun(answer).claimedScore,
+        // binRev 9 (the arcade scoring standard): far baskets and close misses, for the reveal and summaries.
+        ...(run.far !== undefined ? { far: run.far, close: run.close ?? 0 } : {}),
         ...(run.reason ? { reason: run.reason } : {}),
       };
       break;

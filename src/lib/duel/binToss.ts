@@ -114,6 +114,9 @@ export interface BinTossResult {
   replayTick: number;
   checkpoints: BinTossCheckpoint[];
   reason?: string;
+  /** binRev 9 only (the arcade scoring standard): far baskets and missed throws that came close. */
+  far?: number;
+  close?: number;
   state: BinTossState;
 }
 
@@ -172,6 +175,10 @@ export function replayBinTossRun(seed: number, raw: string, rev?: number | null)
     checkpoints: serverCheckpoints,
     state,
   };
+  if (state.std !== undefined) {
+    result.far = state.farIn ?? 0;
+    result.close = state.close ?? 0;
+  }
   if (check.reason) result.reason = check.reason;
   else if (mismatch) result.reason = "score did not match the replay";
   return result;
