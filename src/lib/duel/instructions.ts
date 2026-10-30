@@ -616,7 +616,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "From throw 7 the bucket slides", detail: "side to side – time your release.", helpOnly: true },
         {
           action: "Hoops:",
-          detail: `on three of throws 2-5 a hoop hangs over the far bucket (now and then over the main one). Go down through it and into a bucket for ${BINTOSS_V9_HOOP} bonus points. Its gold ends bounce the ball away.`,
+          detail: `on three of throws 2-5 a hoop hangs over the far bucket. Go down through it and into a bucket for ${BINTOSS_V9_HOOP} bonus points. Its gold ends bounce the ball away.`,
           helpOnly: true,
         },
         {

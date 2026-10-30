@@ -34,11 +34,19 @@ interpretation says. For reference, the skill-band tool's `near` level (default 
   makeable throw fits: about one seed in six had two or fewer (20,000 seeds: 16,574 with 3, 3,235 with 2, 182 with 1,
   9 with none). binRev 9 keeps every binRev 8 draw and every hoop binRev 8 placed, then, for each picked throw whose
   hoop was dropped, makes further seeded draws on the same stream (after every binRev 8 draw): up to 16 tries at a
-  new height and arc over the far bucket, then up to 16 over the main bucket (`BINTOSS_V9_HOOP_TRIES`). Every one of
-  20,000 seeds then has three hoops. Fixed at init from the room seed, the same for every player.
-- About 3 % of seeds get a re-placed hoop over the main bucket (its far bucket out of reach for any hoop there); on
-  that throw the far bucket and the hoop cannot both be earned, so those seeds top out at 192 (200 need not be
-  reachable on every seed). The help says the hoop hangs over the far bucket "now and then over the main one".
+  new height and arc over the same throw's far bucket (`BINTOSS_V9_HOOP_TRIES`). Only if all 16 fail does the hoop
+  move to one of throws 7–10 (`BINTOSS_V9_MAIN_HOOP_FROM`; no far bucket there, spinner-free throws first, seeded
+  order) and hang over the main bucket. Every one of 20,000 seeds then has three hoops, and none needs the fallback.
+  Fixed at init from the room seed, the same for every player.
+- **200 is reachable on every seed.** Every hoop on throws 1–6 (binRev 8's and the re-placed ones) hangs over the far
+  bucket, placed on a makeable throw through it into the far bucket, so one throw can earn the far bucket and the hoop
+  together; a main-bucket hoop can only stand on throws 7–10, where there is no far bucket to give up.
+  bintoss-standard-check proves this on 20,000 seeds (`binTossV9HoopOver`) and proves 79 sampled hoops with a launch.
+- Correction to the first version of this note: it said about 3 % of seeds topped out at 192 with a hoop over the main
+  bucket. That came from classifying hoops by the nearer bucket (a far-bucket hoop may sit up to 60 px towards the
+  main bucket); in fact the main-bucket fallback was never used on those seeds. The rework moved the fallback to
+  throws 7–10; the deal on every measured seed is unchanged (the stored binRev 9 runs replay to the same scores and
+  states), so the medians below stand. The flawless level's occasional 192 is the bot missing, not the deal.
 - States add `std: 1` (folded into the checkpoint checksum last), so older states and checksums are unchanged.
 
 ## Texts and display
@@ -91,7 +99,7 @@ binRev 9's straight line spreads them 20 apart (144 / 164) and 36 below flawless
 
 - `scripts/bintoss-standard-check.ts`: binRev 8 and 7 replays of 42 skill-band runs recorded on 99115b0
   (`scripts/fixtures/bintoss-standard-legacy.json.gz`) replay to the same score and state; rooms deal binRev 9 from
-  binRev 8's draws with exactly three hoops (3,000 seeds), re-placed hoops proved makeable; the same log plays the same
+  binRev 8's draws with exactly three hoops and every hoop on throws 1–6 over the far bucket (20,000 seeds; 200 reachable on each), sampled hoops proved makeable into the bucket they hang over (~50 s in all); the same log plays the same
   on binRev 8 and 9; 42 stored binRev 9 runs (`scripts/fixtures/bintoss-standard-runs.json.gz`, `--record=<dir>` from
   a skill-band `--save`) replay to their scores, with the reveal's lines adding up.
 - `scripts/arcade-standard/bintoss.ts`: arcade-standard-check's case (the core line on `baskets`; All ten in reads

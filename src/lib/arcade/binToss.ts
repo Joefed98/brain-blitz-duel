@@ -1514,9 +1514,11 @@ export function binTossIsExpand(rev: number | null | undefined): boolean {
  *
  *  - exactly three hoops: binRev 8's hoop draw picks three of throws 2–5, but a picked hoop that no makeable throw
  *    fits was dropped (about one seed in six had two or fewer). binRev 9 places such a hoop again from further draws
- *    on the same seeded stream (after every binRev 8 draw), over the far bucket first and then the main one, so
- *    every run has the same three hoop chances; winds, slides, far buckets, spinners and the hoops binRev 8 placed
- *    are unchanged;
+ *    on the same seeded stream (after every binRev 8 draw), up to 16 tries over the same throw's far bucket; only if
+ *    those all fail does it hang over the main bucket on one of throws 7–10 (no far bucket there; spinner-free throws
+ *    first), so a hoop never stands where it rules out a far basket and 200 is reachable on every seed (no seed of
+ *    20,000 needs that fallback). Every run has the same three hoop chances; winds, slides, far buckets, spinners and
+ *    the hoops binRev 8 placed are unchanged;
  *  - scored on the standard, in straight lines with fixed amounts and no curve: Buckets 13 each and 1 for each
  *    missed throw that came close (binRev 8's close miss), up to 130; Far buckets 6 each (throws 1–6), up to 36;
  *    Hoops 8 each (a ball through the hoop and into a bucket), up to 24; All ten in 10. Together 200.
@@ -1533,8 +1535,10 @@ export const BINTOSS_V9_FAR_MAX = BINTOSS_V9_FAR * BINTOSS_FAR_THROWS;
 export const BINTOSS_V9_HOOP = 8;
 export const BINTOSS_V9_HOOP_MAX = BINTOSS_V9_HOOP * BINTOSS_HOOP_COUNT;
 export const BINTOSS_V9_FINISH = 10;
-/** Seeded tries at a picked hoop's height and arc over the far bucket, then as many over the main one. */
+/** Seeded tries at a re-placed hoop's height and arc (over a far bucket, or over the main bucket on a later throw). */
 export const BINTOSS_V9_HOOP_TRIES = 16;
+/** binRev 9: a hoop no far bucket could take moves to a throw from here on (0-based 6: throws 7–10, no far bucket). */
+export const BINTOSS_V9_MAIN_HOOP_FROM = BINTOSS_FAR_THROWS;
 /** The core's straight line: 130 at all ten buckets (a fixed-maximum game; close misses add within the 130). */
 export const BINTOSS_V9_BAND_CURVE = bandCurve([0, BINTOSS_THROWS], [0, BINTOSS_V9_CORE_MAX]);
 
@@ -1593,25 +1597,75 @@ function binTossV9Parts(state: BinTossState): BandParts {
   };
 }
 
+/** Which bucket each binRev 9 hoop was placed over (placeHoop's reference throw lands in it), null for no hoop. */
+export type BinTossHoopOver = "far" | "main" | null;
+
 function initRev9(seed: number): BinTossState {
+  return planRev9(seed).state;
+}
+
+/**
+ * binRev 9's hoops and which bucket each hangs over (for the checks: every hoop on throws 1–6 is over the far bucket,
+ * so a run can take the far bucket and the hoop on the same throw and 200 is reachable on every seed).
+ */
+export function binTossV9HoopOver(seed: number): BinTossHoopOver[] {
+  return planRev9(seed).over;
+}
+
+function planRev9(seed: number): { state: BinTossState; over: BinTossHoopOver[] } {
   const { state: base, hoopPicked } = drawRev7(seed);
   let rng = base.rng;
   const hoops = [...(base.hoops ?? [])];
+  // binRev 8 placed every hoop it kept over the far bucket (throws 2–5 always have one).
+  const over: BinTossHoopOver[] = hoops.map((h, index) => (h ? ((base.fars?.[index] ?? 0) > 0 ? "far" : "main") : null));
+  // A picked hoop binRev 8 dropped: further seeded tries over that throw's far bucket first.
+  let missing = 0;
   for (let index = 0; index < BINTOSS_THROWS; index++) {
     if (!hoopPicked[index] || hoops[index]) continue;
-    // A picked hoop binRev 8 dropped: further seeded tries over the far bucket, then over the main one.
     const wind = base.winds[index] ?? 0;
     let hoop: BinTossHoop | null = null;
-    for (let k = 0; k < 2 * BINTOSS_V9_HOOP_TRIES && !hoop; k++) {
+    for (let k = 0; k < BINTOSS_V9_HOOP_TRIES && !hoop; k++) {
       const lift = rngBelow(rng, BINTOSS_HOOP_LIFT_SPAN);
       const apex = rngBelow(lift.state, 41);
       rng = apex.state;
-      const over = k < BINTOSS_V9_HOOP_TRIES ? base.fars?.[index] || binTossBinCentre(index) : binTossBinCentre(index);
-      hoop = placeHoop(index, wind, BINTOSS_HOOP_LIFT_MIN + lift.value, 30 + apex.value, over, BINTOSS_V7_MAX_SPEED);
+      hoop = placeHoop(index, wind, BINTOSS_HOOP_LIFT_MIN + lift.value, 30 + apex.value, base.fars?.[index] || binTossBinCentre(index), BINTOSS_V7_MAX_SPEED);
     }
     hoops[index] = hoop;
+    over[index] = hoop ? ((base.fars?.[index] ?? 0) > 0 ? "far" : "main") : null;
+    if (!hoop) missing++;
   }
-  return { ...base, rng, hoops, farHalf: BINTOSS_V8_FAR_HALF, close: 0, closeNow: 0, std: BINTOSS_STD };
+  // Still missing: the hoop moves to a throw with no far bucket (7–10, BINTOSS_V9_MAIN_HOOP_FROM on), over the main
+  // bucket, so it never stands where a far basket would rule it out. Throws without a spinner first, each pool in a
+  // seeded order.
+  if (missing > 0) {
+    const free: number[] = [];
+    const spun: number[] = [];
+    for (let index = BINTOSS_V9_MAIN_HOOP_FROM; index < BINTOSS_THROWS; index++) (base.spinners?.[index] ? spun : free).push(index);
+    const order: number[] = [];
+    for (const pool of [free, spun]) {
+      while (pool.length > 0) {
+        const draw = rngBelow(rng, pool.length);
+        rng = draw.state;
+        order.push(pool.splice(draw.value, 1)[0]!);
+      }
+    }
+    for (const index of order) {
+      if (missing === 0) break;
+      const wind = base.winds[index] ?? 0;
+      let hoop: BinTossHoop | null = null;
+      for (let k = 0; k < BINTOSS_V9_HOOP_TRIES && !hoop; k++) {
+        const lift = rngBelow(rng, BINTOSS_HOOP_LIFT_SPAN);
+        const apex = rngBelow(lift.state, 41);
+        rng = apex.state;
+        hoop = placeHoop(index, wind, BINTOSS_HOOP_LIFT_MIN + lift.value, 30 + apex.value, binTossBinCentre(index), BINTOSS_V7_MAX_SPEED);
+      }
+      if (!hoop) continue;
+      hoops[index] = hoop;
+      over[index] = "main";
+      missing--;
+    }
+  }
+  return { state: { ...base, rng, hoops, farHalf: BINTOSS_V8_FAR_HALF, close: 0, closeNow: 0, std: BINTOSS_STD }, over };
 }
 
 /** binRev 9: binRev 8's play with exactly three hoops, scored on the arcade standard. */
