@@ -124,7 +124,15 @@ import { HOVER_REV_BAND, HOVER_REV_EXPAND, HOVER_REV_TALL, HOVER_REV_TUNEC } fro
 import { JUNC_REV_BAND } from "@/lib/arcade/junction";
 import { BRK_REV_BAND, BRK_REV_TALL, BRK_REV_TUNED, BRK_REV_TUNEF } from "@/lib/arcade/breaker";
 import { pinballGameFor, pinCheckpoint, PIN_REV } from "@/lib/arcade/pinball";
-import { pin4Checkpoint, pinball5Game, PIN_REV_LONG } from "@/lib/arcade/pinball4";
+import { pin4Checkpoint, pinball5Game, pinball6Game, PIN_REV_LONG } from "@/lib/arcade/pinball4";
+// The arcade scoring standard, batch B (29 Oct 2026): each game's standard stamp.
+import { SKYLINE_REV_STD } from "@/lib/arcade/skyline";
+import { BINTOSS_REV_STD } from "@/lib/arcade/binToss";
+import { BULLSEYE_REV_STD } from "@/lib/arcade/bullseye";
+import { PIN_REV_STD } from "@/lib/arcade/pinball";
+import { RALLY_REV_STD } from "@/lib/arcade/rally";
+import { BUB_REV_STD } from "@/lib/arcade/bubble";
+import { BEAT_REV_STD } from "@/lib/arcade/beat";
 import { encodePinballRun, replayPinballRun } from "@/lib/duel/pinball";
 import { TILT_REV_BAND, TILT_REV_EXPAND, TILT_REV_LIFT, TILT_REV_TUNEC } from "@/lib/arcade/tilt";
 import { ORBIT_REV_BAND, ORBIT_REV_SWEPT, ORBIT_REV_TALL, ORBIT_REV_TUNED, ORBIT_REV_XP } from "@/lib/arcade/orbit";
@@ -683,6 +691,25 @@ const GAMES: Game[] = [
   // Roofbound flipRev 9 and Tilt tiltRev 9, flipRev 8's and tiltRev 8's play on lifted curves.
   { key: "flip/lift", game: flipGameFor(FLIP_REV_LIFT), checkpoint: flipCheckpoint, mode: "events", rate: 50, encode: encodeFlipRun, replay: (seed: number, raw: string) => replayFlipRun(seed, raw, FLIP_REV_LIFT) },
   { key: "tilt/lift", game: tiltGameFor(TILT_REV_LIFT), checkpoint: tiltCheckpoint, mode: "events", rate: 500, encode: encodeTiltRun, replay: (seed: number, raw: string) => replayTiltRun(seed, raw, TILT_REV_LIFT) },
+  // The arcade scoring standard, batch B (29 Oct 2026, docs/arcade-standard.md), appended so every earlier entry keeps its
+  // index: High Rise skylineRev 9, Swish binRev 9, Flightpath bullRev 9, Pinball pinRev 6, Rally rallyRev 12 (the spin
+  // reversed), Coral Pop bubbleRev 11 (the four-bubble mine) and Tempo beatRev 11.
+  { key: "skyline/std", game: skylineGameFor(SKYLINE_REV_STD), checkpoint: skylineCheckpoint, mode: "taps", rate: 15, encode: encodeSkylineRun, replay: (seed: number, raw: string) => replaySkylineRun(seed, raw, SKYLINE_REV_STD) },
+  { key: "bintoss/std", game: binTossGameFor(BINTOSS_REV_STD), checkpoint: binTossCheckpoint, mode: "events", rate: 15, encode: encodeBinTossRun, replay: (seed: number, raw: string) => replayBinTossRun(seed, raw, BINTOSS_REV_STD) },
+  {
+    key: "bullseye/std",
+    game: bullseyeGameFor(BULLSEYE_REV_STD),
+    checkpoint: bullseyeCheckpoint,
+    init: (seed: number) => bullseyeInitFor(seed, bullseyeWinds(seed), BULLSEYE_REV_STD),
+    mode: "events",
+    rate: 25,
+    encode: encodeBullseyeRun,
+    replay: (seed: number, raw: string) => replayBullseyeRun(seed, raw, bullseyeWinds(seed), BULLSEYE_REV_STD),
+  },
+  { key: "pinball/std", game: pinball6Game, checkpoint: pin4Checkpoint, mode: "events", rate: 120, encode: encodePinballRun, replay: (seed: number, raw: string) => replayPinballRun(seed, raw, PIN_REV_STD) },
+  { key: "rally/std", game: rallyGameFor(RALLY_REV_STD), checkpoint: rallyCheckpoint, mode: "events", rate: 120, encode: encodeRallyRun, replay: (seed: number, raw: string) => replayRallyRun(seed, raw, RALLY_REV_STD) },
+  { key: "bubble/std", game: bubbleGameFor(BUB_REV_STD), checkpoint: bubCheckpoint, mode: "events", rate: 15, encode: encodeBubbleRun, replay: (seed: number, raw: string) => replayBubbleRun(seed, raw, BUB_REV_STD) },
+  { key: "beat/std", game: beatGameFor(BEAT_REV_STD), checkpoint: beatCheckpoint, mode: "events", rate: 200, encode: encodeBeatRun, replay: (seed: number, raw: string) => replayBeatRun(seed, raw, BEAT_REV_STD) },
 ];
 
 /** A random candidate event, often outside the declared range (a finger off the edge). */
