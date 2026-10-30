@@ -20,7 +20,7 @@ import {
   type DragLaunch,
   type InputRange,
 } from "./engine";
-import { stdLinear, stdPart, stdScore, type StdPart, type StdSpec } from "./arcadeStandard";
+import { stdLinear, stdPart, stdScore, stdShare, type StdPart, type StdSpec } from "./arcadeStandard";
 import { BAND_STRICT_MARK, bandStrictGame, bandStrict, bandRetarget, bandTargetGame, bandCurveOf, BAND_TARGET_MARK, bandCurve, bandInit, bandPoints, bandScoreOf, bandStep, bandTotal, type BandFields, type BandParts } from "./scoreBands";
 
 /* ============================== Constants ============================== */
@@ -1224,15 +1224,33 @@ export function bullseyeInDeadCentre(x: number, y: number, scalePct: number, val
   return (dx * dx + dy * dy) * BULLSEYE_V8_DEAD_DIV * BULLSEYE_V8_DEAD_DIV * 10_000 <= (BULLSEYE_OUTER_R * scalePct) ** 2;
 }
 
-/** bullRev 8's dead-centre points as the score counts them (bullRev 9: BULLSEYE_V9_DEAD_PTS each, up to BULLSEYE_V9_DEAD_CAP). */
-export function bullseyeDeadPoints(state: Pick<BullseyeState, "dead"> & Partial<Pick<BullseyeState, "std">>): number {
-  if (state.std === BULLSEYE_STD) return Math.min(BULLSEYE_V9_DEAD_CAP, BULLSEYE_V9_DEAD_PTS * (state.dead ?? 0));
+/**
+ * The darts that have a dead-centre ring on this run: those whose centre ring is the 10 (darts 1–6 always, darts 7–10
+ * when the shuffle left the 10 in the middle). Fixed at init from the seed (ringValues).
+ */
+export function bullseyeDeadDarts(state: Pick<BullseyeState, "ringValues">): number {
+  let n = 0;
+  for (let arrow = 0; arrow < BULLSEYE_ARROWS; arrow++) if (bullseyeRingValues(state, arrow)[0] === 10) n++;
+  return n;
+}
+
+/**
+ * Dead-centre points as the score counts them. bullRev 8: BULLSEYE_V8_DEAD_PTS each, up to BULLSEYE_V8_DEAD_CAP.
+ * bullRev 9: BULLSEYE_V9_DEAD_CAP shared between the darts that have a dead-centre ring, floor(20 × hit ÷ darts).
+ */
+export function bullseyeDeadPoints(state: Pick<BullseyeState, "dead"> & Partial<Pick<BullseyeState, "std" | "ringValues">>): number {
+  if (state.std === BULLSEYE_STD) return stdShare(state.dead ?? 0, state.ringValues ? bullseyeDeadDarts(state as Pick<BullseyeState, "ringValues">) : 0, BULLSEYE_V9_DEAD_CAP);
   return Math.min(BULLSEYE_V8_DEAD_CAP, BULLSEYE_V8_DEAD_PTS * (state.dead ?? 0));
 }
 
-/** What one dead-centre dart adds on this state's revision (the renderer's "DEAD CENTRE +n"). */
-export function bullseyeDeadEach(state: Partial<Pick<BullseyeState, "std">>): number {
-  return state.std === BULLSEYE_STD ? BULLSEYE_V9_DEAD_PTS : BULLSEYE_V8_DEAD_PTS;
+/**
+ * What the latest dead-centre dart added (the renderer's "DEAD CENTRE +n"): bullRev 8's 7; on bullRev 9 its share of the
+ * 20 (the points with this dart less the points without it; 2–4 depending on the seed's dead-centre darts).
+ */
+export function bullseyeDeadEach(state: Pick<BullseyeState, "dead"> & Partial<Pick<BullseyeState, "std" | "ringValues">>): number {
+  if (state.std !== BULLSEYE_STD) return BULLSEYE_V8_DEAD_PTS;
+  const d = Math.max(1, state.dead ?? 0);
+  return bullseyeDeadPoints({ ...state, dead: d }) - bullseyeDeadPoints({ ...state, dead: d - 1 });
 }
 
 /** bullRev 8's start state: bullRev 6's draws (winds, drift, ring swaps), then each dart's board, then the value balloons. */
@@ -1288,10 +1306,16 @@ export const bullseyeExpandGame: ArcadeGame<BullseyeState, ArcadeInputEvent | nu
  * (arcadeStandard.ts), with no curve:
  *
  *  - core, up to BULLSEYE_V9_CORE_MAX (150): the dart total exactly as bullRev 8 counts it (rings, 12 for an inner
- *    bull, +1 / +2 / +3 for each balloon popped) on a straight line, full at BULLSEYE_V9_FULL_AT (130, Joe's figure);
+ *    bull, +1 / +2 / +3 for each balloon popped) on a straight line, full at BULLSEYE_V9_FULL_AT (112). Joe's row said
+ *    130, but no seed allows that: a dart scores at most 12, and only where the 10 is the centre ring, and a balloon
+ *    often can't be popped by a dart that also lands in the dead centre. Every dart a bull and every dead centre hit
+ *    is a total of at least 100 + 2 × (6 or more dead-centre darts) = 112 on any seed, so a perfect run fills the core
+ *    (and scores 200) on every seed;
  *  - bull streak, up to BULLSEYE_V8_STREAK_CAP (30): bullRev 8's streak points exactly ("as today": the third bull in a
  *    row +2, the fourth +4, and so on);
- *  - dead-centre, up to BULLSEYE_V9_DEAD_CAP (20): BULLSEYE_V9_DEAD_PTS (2) for each dart in bullRev 8's dead-centre ring.
+ *  - dead-centre, up to BULLSEYE_V9_DEAD_CAP (20): shared between the darts that have bullRev 8's dead-centre ring (those
+ *    whose centre ring is the 10, 6–9 a seed): floor(20 × hit ÷ darts), so every dead centre hit fills it on any seed
+ *    (Joe's row said 2 a dart, which would top out at 12–18).
  *
  * Both features are earned only by bulls, so earning one never costs dart total. States add `std: 1` (folded into the
  * checkpoint checksum last); a run with no input scores 0, any played run at least 1.
@@ -1299,9 +1323,8 @@ export const bullseyeExpandGame: ArcadeGame<BullseyeState, ArcadeInputEvent | nu
 export const BULLSEYE_REV_STD = 9;
 export const BULLSEYE_STD = 1;
 export const BULLSEYE_V9_CORE_MAX = 150;
-/** The dart total at which the core is full (Joe's row, fixed at 130; docs/arcade-standard/bullseye.md). */
-export const BULLSEYE_V9_FULL_AT = 130;
-export const BULLSEYE_V9_DEAD_PTS = 2;
+/** The dart total at which the core is full: what a perfect run reaches on any seed (docs/arcade-standard/bullseye.md). */
+export const BULLSEYE_V9_FULL_AT = 112;
 export const BULLSEYE_V9_DEAD_CAP = 20;
 /** bullRev 9's core line: 0 → BULLSEYE_V9_CORE_MAX at BULLSEYE_V9_FULL_AT (LIVE_BANDS' listed curve). */
 export const BULLSEYE_V9_BAND_CURVE = bandCurve([0, BULLSEYE_V9_FULL_AT], [0, BULLSEYE_V9_CORE_MAX]);
@@ -1322,7 +1345,7 @@ export const BULLSEYE_STD_SPEC: StdSpec = {
       max: BULLSEYE_V8_STREAK_CAP,
       how: `the third gold 10 in a row +${BULLSEYE_V8_STREAK_STEP}, the fourth +${2 * BULLSEYE_V8_STREAK_STEP}, and so on`,
     },
-    { key: "dead", label: "Dead-centre darts", max: BULLSEYE_V9_DEAD_CAP, how: `${BULLSEYE_V9_DEAD_PTS} each` },
+    { key: "dead", label: "Dead-centre darts", max: BULLSEYE_V9_DEAD_CAP, how: "shared between the darts whose 10 is the middle ring, about 2 or 3 each" },
   ],
 };
 
@@ -1334,7 +1357,7 @@ export function bullseyeStdParts(state: BullseyeState): StdPart[] | null {
   return [
     stdPart(BULLSEYE_STD_SPEC, "core", stdLinear(total, BULLSEYE_V9_FULL_AT, BULLSEYE_V9_CORE_MAX), `${total} points from ${state.arrowIndex} darts`),
     stdPart(BULLSEYE_STD_SPEC, "streak", bullseyeStreakPoints(state), `${state.streakPts ?? 0} streak points`),
-    stdPart(BULLSEYE_STD_SPEC, "dead", bullseyeDeadPoints(state), `${dead} dead-centre`),
+    stdPart(BULLSEYE_STD_SPEC, "dead", bullseyeDeadPoints(state), `${dead} of ${bullseyeDeadDarts(state)} dead-centre`),
   ];
 }
 

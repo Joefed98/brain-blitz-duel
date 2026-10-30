@@ -7,12 +7,17 @@
  *  2. Same play: bullRev 9 starts from bullRev 8's exact state (only `std` added), and every bullRev 8 log replayed
  *     on bullRev 9 reaches bullRev 8's final state (plus `std`); the band tool's bots throw the same darts on both.
  *     Its score is the standard's sum, worked out here from the final state with no sim helper: the dart total on a
- *     straight line to 150 at 130, bullRev 8's streak points up to 30, 2 a dead-centre dart up to 20, at least 1 for a
- *     run that threw, 0 for none.
+ *     straight line to 150 at 112, bullRev 8's streak points up to 30, 20 shared between the darts that have a
+ *     dead-centre ring (floor(20 × hit ÷ darts)), at least 1 for a run that threw, 0 for none.
+ *  6. A perfect run scores 200 on every seed: on every tuning (0–59) and fresh (10000–10199) room seed the best
+ *     possible run (scripts/bullseye-best-run.ts: every dart a bull, every dead centre, the balloons wherever a
+ *     dead-centre or bull landing can also pop them) is played for real, encoded and replayed through the server
+ *     (replayBullseyeRun) to exactly 200, and its dart total is at least 100 + 2 × (dead-centre darts) ≥ 112.
  *  3. New-stamp runs (bots at every level on room seeds) replay through the server path (replayBullseyeRun) to the
  *     score the phone claimed, unflagged; the reveal's lines are the standard's parts and add up to the stored score;
  *     the grade extras carry bullRev 9's dead-centre points.
- *  4. Rooms deal bullRev 9; the help states the parts; the renderer's dead-centre pop says +2 on bullRev 9, +7 on 8.
+ *  4. Rooms deal bullRev 9; the help states the parts; the renderer's dead-centre pop shows each dart's share (adding up
+ *     to 20) on bullRev 9, +7 on 8.
  *  5. Features never cost dart total: a dead-centre dart is always a bull (the gold 10 or the inner bull), and every
  *     streak point comes from a bull.
  *
@@ -26,6 +31,7 @@ import type { E9Record } from "./expansion-e9-legacy";
 import { GAME_BY_TYPE } from "./arcade-skill-bands/games";
 import { Human, type SkillLevel } from "./arcade-skill-bands/human";
 import { bot } from "./arcade-skill-bands/bots/bullseye";
+import { bullseyeBestRun } from "./bullseye-best-run";
 import {
   bullseyeCheckpoint,
   bullseyeDeadEach,
@@ -63,8 +69,13 @@ function expected(s: BullseyeState): number {
   if (!s.acted) return 0;
   const core = Math.floor((150 * Math.min(Math.max(0, s.total), BULLSEYE_V9_FULL_AT)) / BULLSEYE_V9_FULL_AT);
   const streak = Math.min(30, Math.max(0, s.streakPts ?? 0));
-  const dead = Math.min(20, 2 * (s.dead ?? 0));
+  const dead = deadShare(s);
   return Math.max(1, Math.min(200, core + streak + dead));
+}
+/** 20 shared between the darts whose centre ring is the 10 (counted here from the state's ring values). */
+function deadShare(s: BullseyeState): number {
+  const darts = s.ringValues.filter((v) => v[0] === 10).length;
+  return darts > 0 ? Math.floor((20 * Math.min(s.dead ?? 0, darts)) / darts) : 0;
 }
 const withoutStd = (s: BullseyeState) => {
   const { std: _std, ...rest } = s;
@@ -159,7 +170,7 @@ for (const level of levels) {
     const graded = gradeAnswer(puzzle as any, raw, 0) as any;
     ok(graded.score === result.score, `${level} ${n}: graded ${graded.score}, replayed ${result.score}`);
     const extra = graded.extra ?? {};
-    ok(extra.deadPts === Math.min(20, 2 * (result.state.dead ?? 0)), `${level} ${n}: the grade extras' dead-centre points are ${extra.deadPts}`);
+    ok(extra.deadPts === deadShare(result.state), `${level} ${n}: the grade extras' dead-centre points are ${extra.deadPts}`);
     const reveal = buildArcadeReveal("bullseye", { ...extra, state: result.state }, result.score);
     const lines = reveal?.lines ?? [];
     ok(lines.length === 4 && lines[0]!.startsWith("Dart total:") && lines[1]!.startsWith("Bull streaks:") && lines[2]!.startsWith("Dead-centre darts:"), `${level} ${n}: reveal lines ${JSON.stringify(lines)}`);
@@ -180,9 +191,54 @@ section("Rooms deal bullRev 9; help and art");
 ok(generateBullseye().bullRev === BULLSEYE_REV_STD, "rooms deal bullRev 9");
 ok(LIVE_BANDS.bullseye.rev === BULLSEYE_REV_STD && (LIVE_BANDS.bullseye as any).std === BULLSEYE_STD_SPEC, "LIVE_BANDS lists bullRev 9 and its spec");
 ok(PUZZLE_INSTRUCTIONS.bullseye.score.includes(stdHelp(BULLSEYE_STD_SPEC)), "the help states the standard's parts");
-ok(PUZZLE_INSTRUCTIONS.bullseye.how.some((h) => h.detail.includes("+2 more")) && !PUZZLE_INSTRUCTIONS.bullseye.how.some((h) => /\+7|42/.test(h.detail)), "the help's dead-centre lines say +2 (up to 20)");
-ok(bullseyeDeadEach(bullseyeInitFor(1, undefined, BULLSEYE_REV_STD)) === 2 && bullseyeDeadEach(bullseyeInitFor(1, undefined, BULLSEYE_REV_EXPAND)) === 7, "the dead-centre pop: +2 on bullRev 9, +7 on bullRev 8");
+ok(PUZZLE_INSTRUCTIONS.bullseye.how.some((h) => h.detail.includes("about +2 or +3 more")) && PUZZLE_INSTRUCTIONS.bullseye.how.some((h) => h.detail.includes("shared between the darts that have one")) && !PUZZLE_INSTRUCTIONS.bullseye.how.some((h) => /\+7|42/.test(h.detail)), "the help's dead-centre lines describe the shared 20");
+{
+  // The dead-centre pop shows what that dart added: its share on bullRev 9 (the pops add up to 20), 7 on bullRev 8.
+  let pops = 0;
+  for (let n = 0; n < 40; n++) {
+    const s = bullseyeInitFor(spec.seedFor(n), undefined, BULLSEYE_REV_STD);
+    const darts = s.ringValues.filter((v) => v[0] === 10).length;
+    let sum = 0;
+    for (let d = 1; d <= darts; d++) sum += bullseyeDeadEach({ ...s, dead: d });
+    ok(sum === 20, `seed ${n}: the dead-centre pops add up to ${sum}, not 20`);
+    pops++;
+  }
+  ok(pops === 40 && bullseyeDeadEach({ ...bullseyeInitFor(1, undefined, BULLSEYE_REV_EXPAND), dead: 1 }) === 7, "the dead-centre pop: a share of 20 on bullRev 9, +7 on bullRev 8");
+}
 ok(bullseyeTallRev(BULLSEYE_REV_STD) && bullseyeTallRev(BULLSEYE_REV_EXPAND) && !bullseyeTallRev(6) && !bullseyeTallRev(undefined), "bullRev 9 draws bullRev 8's taller range");
+
+/* ============================== 6. A perfect run scores 200 on every seed ============================== */
+section("A perfect run scores 200 on every tuning and fresh seed");
+{
+  const game = bullseyeGameFor(BULLSEYE_REV_STD);
+  const seedsN = [...Array.from({ length: 60 }, (_, i) => i), ...Array.from({ length: 200 }, (_, i) => 10000 + i)];
+  let full = 0;
+  let minTotal = 999;
+  for (const n of seedsN) {
+    const seed = spec.seedFor(n);
+    const best = bullseyeBestRun(game, seed);
+    const s = best.state;
+    const darts = s.ringValues.filter((v) => v[0] === 10).length;
+    const checkpoints: ReturnType<typeof bullseyeCheckpoint>[] = [];
+    {
+      // The checkpoints as the phone records them.
+      let r = game.init(seed);
+      const byTick = new Map(best.events.map((e) => [e.t, e]));
+      while (!game.isOver(r) && r.tick < game.runTicks) {
+        r = game.step(r, byTick.get(r.tick + 1) ?? null);
+        if (r.tick % 300 === 0) checkpoints.push(bullseyeCheckpoint(r));
+      }
+    }
+    const raw = encodeBullseyeRun({ seed, claimedScore: game.score(s), events: best.events, endTick: s.tick, checkpoints } as any);
+    const result = replayBullseyeRun(seed, raw, bullseyeWinds(seed), BULLSEYE_REV_STD);
+    ok(!result.flagged && result.score === 200, `seed ${n}: the best run replays to ${result.score}${result.flagged ? ` (flagged: ${result.reason})` : ""}, not 200`);
+    ok(result.state.hits.length === 10 && result.state.hits.every(bullseyeIsBull) && (result.state.dead ?? 0) === darts, `seed ${n}: the best run is ten bulls with every dead centre (${result.state.dead} of ${darts})`);
+    ok(result.state.total >= 100 + 2 * darts && result.state.total >= BULLSEYE_V9_FULL_AT, `seed ${n}: dart total ${result.state.total} under 100 + 2 × ${darts}`);
+    minTotal = Math.min(minTotal, result.state.total);
+    if (result.score === 200) full++;
+  }
+  console.log(`  ${full} of ${seedsN.length} seeds: the best run scores 200 (lowest dart total ${minTotal}, core full at ${BULLSEYE_V9_FULL_AT})`);
+}
 
 if (failures.length) {
   for (const f of failures.slice(0, 40)) console.log(`  - ${f}`);
