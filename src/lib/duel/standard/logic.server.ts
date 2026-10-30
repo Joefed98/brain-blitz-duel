@@ -7,7 +7,7 @@
  * 10 for how early its parts were done (10 ÷ N a part), less today's points off for wrong items left on the board.
  * The parts are the same items the share counts, judged by the server on each draft of the timeline.
  */
-import type { PuzzleData } from "../types";
+import type { PuzzleData, PuzzleType } from "../types";
 import { decodePresses, decodeSudoku, lightsOnCount, replayLights } from "../logic";
 import { gradeSudokuGrid } from "../logic.server";
 import { decodeTowerMoves, replayTower } from "../tower";
@@ -23,7 +23,7 @@ import { decodeBulbs } from "../lightUp";
 import { lightUpBulbCounts, shikakuAreas } from "../progressFigures";
 import { tryEfficiency, PUZZLE_EFFICIENCY_POINTS } from "../puzzleScoreRev";
 import { cleanPoints, parPoints, speedPoints } from "./shape";
-import { registerStandardGames, type StandardContext, type StandardGame, type StandardInput, type StandardResult } from "./grade.server";
+import type { StandardContext, StandardGame, StandardInput, StandardResult } from "./grade.server";
 import { LOGIC_EARLY_POINTS, LOGIC_SHARE_POINTS, LOGIC_STANDARD, type LogicStandardType, floodSpareMoves } from "./logicRules";
 
 type Of<T extends PuzzleData["type"]> = Extract<PuzzleData, { type: T }>;
@@ -326,4 +326,5 @@ const lightup: StandardGame = {
   },
 };
 
-registerStandardGames({ lightsout, sudoku, tower, tubes, safe, bomb, nonogram, flood, tents, shikaku, lightup });
+/** This category's standard games, read by the grader (games.server.ts). */
+export const LOGIC_STANDARD_GAMES: Partial<Record<PuzzleType, StandardGame>> = { lightsout, sudoku, tower, tubes, safe, bomb, nonogram, flood, tents, shikaku, lightup };
