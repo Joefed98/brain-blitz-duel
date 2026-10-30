@@ -55,7 +55,9 @@ check(grouped.length === arcadeActive.length, `the groups list ${grouped.length}
 const wrongCategory = ARCADE_GROUPS.flatMap((g) => g.games).filter((t) => isRegisteredType(t) && PUZZLE_REGISTRY[t].category !== "arcade");
 check(wrongCategory.length === 0, `every registered id in a group is an arcade game${wrongCategory.length ? `: ${wrongCategory.join(", ")}` : ""}`);
 const unregistered = ARCADE_GROUPS.flatMap((g) => g.games).filter((t) => !isRegisteredType(t));
-check(unregistered.length > 0 && unregistered.every((t) => !grouped.includes(t as never)), `ids not registered are skipped (${unregistered.join(", ")})`);
+check(unregistered.every((t) => !grouped.includes(t as never)), `ids not registered are skipped (${unregistered.join(", ") || "none"})`);
+// Every Sports and Cards & Board game is in (30 Oct 2026): no listed id is waiting to be registered.
+check(unregistered.length === 0, `every id in a group is registered${unregistered.length ? `: waiting ${unregistered.join(", ")}` : ""}`);
 const NEW_IDS = ["minigolf", "pool", "curling", "homerun", "freekick", "racing", "minesweeper", "freecell", "mahjong", "tripeaks", "pokersquares"];
 check(NEW_IDS.every((t) => ARCADE_GROUPS.some((g) => g.games.includes(t))), "the 11 new ids are in the map");
 // The brief named games by their display names: the map's registered ids resolve to exactly those names.
