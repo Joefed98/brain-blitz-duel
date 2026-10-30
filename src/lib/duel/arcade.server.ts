@@ -4,7 +4,7 @@ import { FLIP_REV_TARGET, FLIP_REV_STRICT, FLIP_REV_LIFT } from "@/lib/arcade/fl
 import { CROSS_REV_EXPAND } from "@/lib/arcade/cross";
 import { INK_REV_SPREAD } from "@/lib/arcade/inkBridge";
 import { SNAKE_REV_TARGET, SNAKE_REV_10 } from "@/lib/arcade/snake";
-import { BUB_REV_BLAST } from "@/lib/arcade/bubble";
+import { BUB_REV_STD } from "@/lib/arcade/bubble";
 import { MATCHUP_REV_ICE } from "@/lib/arcade/matchup";
 import { SNIP_REV_TARGET, SNIP_REV_EXPAND } from "@/lib/arcade/snip";
 import { SKYLINE_REV_TARGET, SKYLINE_REV_STRICT, SKYLINE_REV_LIFT } from "@/lib/arcade/skyline";
@@ -146,7 +146,8 @@ export function generateSlice(): SlicePuzzleData {
 export function generateBubble(): BubblePuzzleData {
   // bubbleRev 9: bubbleRev 8's deeper reef (expansion E6) with credit for bubbles burst (no zero for a played run).
   // bubbleRev 10 (phone notes, 27 Oct 2026): bubbleRev 9 with the mine's bigger blast (two rings).
-  return { type: "bubble", seed: arcadeSeed(), bubbleRev: BUB_REV_BLAST };
+  // bubbleRev 11 (the arcade scoring standard, 29 Oct 2026): the mine pops the 4 nearest bubbles; scored on the standard.
+  return { type: "bubble", seed: arcadeSeed(), bubbleRev: BUB_REV_STD };
 }
 
 export function generateBeat(): BeatPuzzleData {

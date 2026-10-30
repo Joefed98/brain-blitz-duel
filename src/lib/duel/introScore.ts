@@ -107,7 +107,7 @@ function introScoreTemplates(): Record<PuzzleType, string> {
     breaker: "Bricks score; gold and combos add up to 50. Clear all 105 quickly for up to {max}.",
     rally: "Gold-ball hits, each pink target and gold target score; blue returns a little. Up to {max}.",
     pinball: "Table points: ramps, J-O-U-L-Z, jackpots and skill shots score big. Up to {max}.",
-    bubble: "Clear bubbles; falling chests, bank shots and combos add more. Up to {max}.",
+    bubble: "Bubbles cleared, a fast clear, falling chests, bank shots and combos. Up to {max}.",
     slice: "Food by combo; gold fruit, tickets and dodges add more. Chilli: lose 10. Up to {max}.",
     beat: "Notes hit in time score; fever, gold notes, double taps and streaks add bonus. Up to {max}.",
     wavefront: "Ships, waves, a fast boss kill; precise weak-point hits, saucers, power-ups: up to {max}.",

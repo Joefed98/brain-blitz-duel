@@ -1498,6 +1498,8 @@ function gradeUnderRev(
         shots: run.shots,
         bubblesLeft: run.bubblesLeft,
         ...(puzzle.bubbleRev ? { bubbleRev: puzzle.bubbleRev, jokers: run.jokers, bombs: run.bombs, lines: run.lines } : {}),
+        // bubbleRev 11 (the arcade scoring standard): the scored features' counts.
+        ...(run.state.std ? { chests: run.state.chests ?? 0, banks: run.state.banks ?? 0, combos: run.state.combos ?? 0 } : {}),
         startCount: run.state.startCount,
         cleared: run.cleared,
         survived: run.survived,
