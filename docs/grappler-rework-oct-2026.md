@@ -8,7 +8,9 @@ unmodified main, `scripts/fixtures/swing-rework-legacy.json`, 12 of them swingRe
 
 ## The course
 
-- **24 blocks** (`SWING_V15_BLOCKS`): 20 swinging stretches and 4 ledge runs (in seeded bands, never first or last).
+- **27 blocks** (`SWING_V15_BLOCKS`): 23 swinging stretches and 4 ledge runs (in seeded bands, never first or last): 33
+  stretches in all. The course is long enough that only the fastest players finish inside the minute (a flawless run
+  in about 55 s), so distance still separates the best players (clearing the course itself pays nothing).
 - **Swinging stretches (about 80 % of the course's length):** 3–5 hooks each, swung hook to hook through the cave
   with no ledges. Hooks are spaced at least 140 px apart (the old cave's were 110–190 px with many more in reach),
   so about one hook is in reach at a time and each grab is a choice. Hold grabs the nearest of the stretch's hooks
@@ -57,7 +59,19 @@ The bots (`scripts/arcade-skill-bands/bots/swingRework.ts`) look ahead with the 
 chase par and pickups, reel in for stars and (near-perfect and up) pick grabs that set up the next swing's pickups.
 Medians on the six stored courses (`scripts/fixtures/swing-rework-runs.json`):
 
-BANDS_TABLE
+| Level | Median | Range (6 courses) |
+|---|---|---|
+| Weak | 52 | 28–57 |
+| Average | 76 | 68–88 |
+| Good | 91 | 83–103 |
+| Great | 132 | 116–141 |
+| Near-perfect | 172 | 152–175 |
+| Elite | 179 | 169–192 |
+| Flawless | 188 | 162–192 |
+| Random | 7 | 5–14 |
+
+On every course flawless > great > good. Only flawless (and some elite runs) clear the course inside the minute;
+an ordinary (average) player stays within 68–88. Every played run scores 1 or more; no input scores 0.
 
 ## Checks
 

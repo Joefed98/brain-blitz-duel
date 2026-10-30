@@ -3024,7 +3024,7 @@ export const swingAssaultGame: typeof swingGame = { ...swingTunecGame, init: (se
  *    clearing the course; anyone who plays scores at least 1.
  */
 export const SWING_REV_REWORK = 15;
-export const SWING_V15_BLOCKS = 24;
+export const SWING_V15_BLOCKS = 27;
 /** The ledge runs' sizes (sections), in course order; SWING_V15_SQUEEZE_RUNS carry a squeeze. */
 export const SWING_V15_RUNS = [3, 2, 2, 3] as const;
 export const SWING_V15_SQUEEZE_RUNS: readonly number[] = [0, 3];
@@ -3615,7 +3615,7 @@ function initV15(seed: number): SwingState {
 }
 
 function buildV15(draw: (n: number) => number): { state: SwingState; plan: SwingReworkPlan } | null {
-  const cols = Math.trunc((START_X + 46000 * FP) / COL) + 2;
+  const cols = Math.trunc((START_X + 52000 * FP) / COL) + 2;
   const ceil: number[] = [];
   const floor: number[] = [];
   for (let i = 0; i < cols; i++) {
@@ -3624,7 +3624,7 @@ function buildV15(draw: (n: number) => number): { state: SwingState; plan: Swing
   }
   const c: V14Course = { ceil, floor, spikes: [], anchors: [] };
   // The plan: SWING_V15_BLOCKS blocks, swinging stretches but for the ledge runs (in seeded bands; squeezes in the first and last).
-  const runAt = SWING_V15_RUNS.map((_, i) => 3 + i * 6 + draw(2));
+  const runAt = SWING_V15_RUNS.map((_, i) => 3 + i * 7 + draw(2));
   const sections: SwingSection[] = [];
   const ledges: SwingLedge[] = [];
   const squeezes: SwingSqueeze[] = [];

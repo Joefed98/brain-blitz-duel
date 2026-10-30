@@ -644,7 +644,7 @@ Lovable still hosts and publishes the app (https://brain-blitz-duel.lovable.app)
   wider-spaced hooks (each grab a choice), with four short ledge runs of rev 14's sections (3, 2, 2 and 3; two
   squeezes) mixed in; gated on the state's `rework` (rev-15 states also carry `assault`, so rev 14's sections,
   restarts, banked pickups, effects and reveal counts carry on; every earlier revision plays and scores as before).
-  24 blocks (`SWING_V15_BLOCKS`): swinging stretches of 3–5 hooks (grab the stretch's hooks or the next stretch's
+  27 blocks (`SWING_V15_BLOCKS`): swinging stretches of 3–5 hooks (grab the stretch's hooks or the next stretch's
   first, which clears it) and the ledge runs; a miss puts the hero back hanging from the last hook of the stretch held
   (a ledge section: its start ledge; pickups bank at each new hook); the dragon only over the last quarter (`chaseFrom`); 5 gates on the natural line between hooks (3.5 px
   a tick), 5 gems on harder lines, 5 stars on a reeled-in swing, a par per stretch. Built and proved from any seed in
