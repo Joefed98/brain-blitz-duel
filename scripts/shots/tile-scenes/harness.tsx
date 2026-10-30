@@ -20,6 +20,7 @@ import { NUMBER_SCENES } from "./number";
 import { PATTERN_SCENES } from "./pattern";
 import { SPEED_SCENES } from "./speed";
 import { WORD_SCENES } from "./word";
+import { SPORTS_SCENES } from "./sports";
 
 export const ALL_SCENES: SceneSet = {
   ...WORD_SCENES,
@@ -30,6 +31,7 @@ export const ALL_SCENES: SceneSet = {
   ...LOGIC_SCENES,
   ...ARCADE_SCENES,
   ...ARCADE2_SCENES,
+  ...SPORTS_SCENES,
 };
 
 function CanvasBox({ scene }: { scene: Extract<TileScene, { kind: "canvas" }> }) {

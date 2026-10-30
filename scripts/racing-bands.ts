@@ -1,0 +1,67 @@
+/**
+ * Racing's skill bands (racingRev 1): every level weak → flawless on room seeds n = 0…59 (the dealt seed
+ * racingDealSeed(roomSeed(n))), each run replayed through the server path (replayRacingRun); prints the median
+ * table (score, each part, finish time) and the near-perfect median finish tick (RACING_PAR_TICKS is set from it).
+ *
+ *   bun scripts/racing-bands.ts [--seeds=60] [--from=0] [--raw]   (--raw: room seeds themselves, not the deal)
+ */
+import { racingGame } from "../src/lib/arcade/racing";
+import { replayRacingRun } from "../src/lib/duel/racing";
+import { racingSubmission } from "./racing-deal";
+import { racingDealSeed } from "../src/lib/duel/racingDeal.server";
+import { roomSeed } from "./arcade-skill-bands/games";
+import { ALL_LEVELS, Human, LEVEL_LABEL } from "./arcade-skill-bands/human";
+import { bot, randomBot } from "./arcade-skill-bands/bots/racing";
+
+const arg = (name: string, fallback: number) => {
+  const hit = process.argv.find((a) => a.startsWith(`--${name}=`));
+  return hit ? Number(hit.split("=")[1]) : fallback;
+};
+const n = arg("seeds", 60);
+const from = arg("from", 0);
+const raw = process.argv.includes("--raw");
+
+const median = (xs: number[]) => {
+  const s = [...xs].sort((a, b) => a - b);
+  if (s.length === 0) return 0;
+  const m = s.length >> 1;
+  return s.length % 2 ? s[m]! : (s[m - 1]! + s[m]!) / 2;
+};
+const pct = (xs: number[], p: number) => {
+  const s = [...xs].sort((a, b) => a - b);
+  return s[Math.min(s.length - 1, Math.floor(p * s.length))] ?? 0;
+};
+
+console.log(`Racing bands: ${n} room seeds from ${from}${raw ? " (raw room seeds)" : " (dealt seeds)"}`);
+console.log("| Level | Score (p10–p90) | Distance | Clean sectors | Finish | Speed | Finished | Finish time (median of finishers) | Zeros |");
+console.log("| --- | --- | --- | --- | --- | --- | --- | --- | --- |");
+const levels = [...ALL_LEVELS, "random"] as const;
+let nearFinish = 0;
+for (const level of levels) {
+  const scores: number[] = [];
+  const parts: number[][] = [[], [], [], []];
+  const finishes: number[] = [];
+  let zeros = 0;
+  let finished = 0;
+  for (let i = from; i < from + n; i++) {
+    const seed = raw ? roomSeed(i) : racingDealSeed(roomSeed(i));
+    const human = new Human("racing", seed, level === "random" ? "average" : level);
+    const res = (level === "random" ? randomBot : bot)({ game: racingGame, seed, rev: 1, human });
+    const events = res.events ?? [];
+    // Through the server path, as a phone would send it.
+    const r = replayRacingRun(seed, racingSubmission(seed, events), 1);
+    if (r.flagged) console.error(`flagged ${level} ${i}: ${r.reason}`);
+    scores.push(r.score);
+    r.parts.forEach((p, k) => parts[k]!.push(p.points));
+    if (r.score === 0) zeros++;
+    if (r.finished) {
+      finished++;
+      finishes.push(r.finishTick);
+    }
+  }
+  const label = level === "random" ? "Random" : LEVEL_LABEL[level];
+  const ft = finishes.length ? `${(median(finishes) / 60).toFixed(1)} s (tick ${median(finishes)})` : "–";
+  console.log(`| ${label} | ${median(scores)} (${pct(scores, 0.1)}–${pct(scores, 0.9)}) | ${median(parts[0]!)} | ${median(parts[1]!)} | ${median(parts[2]!)} | ${median(parts[3]!)} | ${finished}/${n} | ${ft} | ${zeros} |`);
+  if (level === "near") nearFinish = median(finishes);
+}
+console.log(`\nNear-perfect median finish tick: ${nearFinish} (RACING_PAR_TICKS)`);

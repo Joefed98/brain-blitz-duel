@@ -248,6 +248,11 @@ function cells(c: Ctx, n: number, colour: string, inset = 8): void {
 /* ------------------------------------------------------------------ the arcade games */
 
 const ARCADE_BACKGROUNDS: Partial<Record<PuzzleType, TileBackground>> = {
+  // The Sports group's scenes (Home Run Derby, Free Kick, Racing) fill the whole tile with their own venue, drawn in
+  // this style by their session; these paint each game's base colour under them (night sky, pitch, dusk tarmac).
+  homerun: bg((c) => vgrad(c, [[0, "#070C1C"], [0.55, "#111A33"], [0.6, "#0F5A3A"], [1, "#0B3A26"]]), { fade: 0.2 }),
+  freekick: bg((c) => vgrad(c, [[0, "#05070B"], [0.4, "#0B1A12"], [0.42, "#0F5A3A"], [1, "#0B4A30"]]), { fade: 0.2 }),
+  racing: bg((c) => vgrad(c, [[0, "#2C2F5E"], [0.3, "#6B4778"], [0.32, "#1A1418"], [1, "#121014"]]), { fade: 0.2 }),
   // Minesweeper (Cards & Board): its slate field of raised squares, low-contrast, under a soft vignette.
   minesweeper: bg((c) => {
     vgrad(c, [[0, "#15181D"], [1, "#0B0D11"]]);

@@ -70,6 +70,15 @@ import { minesCheckpoint, minesweeperGameFor, MINES_REV_STD } from "../../src/li
 import { encodeMinesweeperRun, replayMinesweeperRun } from "../../src/lib/duel/minesweeper";
 import { mahjongCheckpoint, mahjongGameFor, MAHJONG_REV_STD } from "../../src/lib/arcade/mahjong";
 import { encodeMahjongRun, replayMahjongRun } from "../../src/lib/duel/mahjong";
+import { homerunCheckpoint, homerunGameFor, HOMERUN_REV_STD } from "../../src/lib/arcade/homerun";
+import { encodeHomerunRun, replayHomerunRun } from "../../src/lib/duel/homerun";
+import { homerunDealSeed } from "../../src/lib/duel/homerunDeal.server";
+import { freekickCheckpoint, freekickGameFor, FREEKICK_REV_STD } from "../../src/lib/arcade/freekick";
+import { encodeFreekickRun, replayFreekickRun } from "../../src/lib/duel/freekick";
+import { freekickDealSeed } from "../../src/lib/duel/freekickDeal.server";
+import { racingCheckpoint, racingGameFor, RACING_REV_STD } from "../../src/lib/arcade/racing";
+import { encodeRacingRun, replayRacingRun } from "../../src/lib/duel/racing";
+import { racingDealSeed } from "../../src/lib/duel/racingDeal.server";
 
 export interface GameSpec {
   type: PuzzleType;
@@ -248,6 +257,11 @@ export const GAMES: GameSpec[] = [
   // Cards & Board (30 Oct 2026): born on the arcade scoring standard (one revision each, measured with --rev=now).
   simple("minesweeper", MINES_REV_STD, MINES_REV_STD, minesweeperGameFor, minesCheckpoint, encodeMinesweeperRun, replayMinesweeperRun),
   simple("mahjong", MAHJONG_REV_STD, MAHJONG_REV_STD, mahjongGameFor, mahjongCheckpoint, encodeMahjongRun, replayMahjongRun),
+  // The Sports group (30 Oct 2026): born on the arcade scoring standard (rev 1 is live and next); rooms deal a seed from
+  // each game's proved deal (the oracle took it to 200 through the server replay), picked by the room seed.
+  { ...simple("homerun", HOMERUN_REV_STD, HOMERUN_REV_STD, homerunGameFor, homerunCheckpoint, encodeHomerunRun, replayHomerunRun), seedFor: (n) => homerunDealSeed(roomSeed(n)) },
+  { ...simple("freekick", FREEKICK_REV_STD, FREEKICK_REV_STD, freekickGameFor, freekickCheckpoint, encodeFreekickRun, replayFreekickRun), seedFor: (n) => freekickDealSeed(roomSeed(n)) },
+  { ...simple("racing", RACING_REV_STD, RACING_REV_STD, racingGameFor, racingCheckpoint, encodeRacingRun, replayRacingRun), seedFor: (n) => racingDealSeed(roomSeed(n)) },
 ];
 
 export const GAME_BY_TYPE = new Map(GAMES.map((g) => [g.type, g]));

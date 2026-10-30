@@ -20,6 +20,9 @@ import { minesweeperArtGameFor } from "../src/lib/arcade/minesweeper.renderer";
 import { mahjongArtGameFor } from "../src/lib/arcade/mahjong.renderer";
 import { MINES_REV_STD, MINES_SAFE } from "../src/lib/arcade/minesweeper";
 import { MAHJONG_REV_STD } from "../src/lib/arcade/mahjong";
+import { homerunArtGame } from "../src/lib/arcade/homerun.renderer";
+import { freekickArtGame } from "../src/lib/arcade/freekick.renderer";
+import { racingArtGame } from "../src/lib/arcade/racing.renderer";
 import assert from "node:assert/strict";
 import { createCanvas, Path2D as NapiPath2D } from "@napi-rs/canvas";
 
@@ -152,6 +155,10 @@ const GAMES: Record<string, AnyGame> = {
   // Cards & Board (30 Oct 2026): dealt from the start on minesRev 1 and mahjongRev 1.
   minesweeper: minesweeperArtGameFor(MINES_REV_STD) as AnyGame,
   mahjong: mahjongArtGameFor(MAHJONG_REV_STD) as AnyGame,
+  // The Sports group (30 Oct 2026).
+  homerun: homerunArtGame as AnyGame,
+  freekick: freekickArtGame as AnyGame,
+  racing: racingArtGame as AnyGame,
 };
 
 assert.equal(Object.keys(GAMES).length, Object.keys(specs.ARCADE_GAME_WORLDS).length, "every arcade game with a world (the active ones with Pinball; Junction and Scrumper practice only); the count reads the worlds registry");
@@ -270,6 +277,10 @@ function assaultAt(): any {
   return assaultBase;
 }
 const BUMPS: Record<string, ((s: any) => any)[]> = {
+  // The Sports group (30 Oct 2026, sportsFx.renderer.ts).
+  homerun: [(s) => ({ ...s, homers: s.homers + 1 }), (s) => ({ ...s, signs: s.signs | 1 })],
+  freekick: [(s) => ({ ...s, goals: s.goals + 1 }), (s) => ({ ...s, targets: s.targets + 1 })],
+  racing: [(s) => ({ ...s, clean: s.clean + 1 }), (s) => ({ ...s, s: s.s + 6_000_000 })],
   hover: [
     (s) => ({ ...s, gates: s.gates + 1 }),
     (s) => ({ ...s, gates: s.gates + 7 }),

@@ -82,6 +82,9 @@ replay exactly as before; standard-live-check grades every stored arcade run thr
 | Grappler | `swing` | `swingRev` 15 | D | [swing.md](swing.md) |
 | Minesweeper | `minesweeper` | `minesRev` 1 | Cards & Board | [minesweeper.md](minesweeper.md) |
 | Mahjong Solitaire | `mahjong` | `mahjongRev` 1 | Cards & Board | [mahjong.md](mahjong.md) |
+| Home Run Derby | `homerun` | `homerunRev` 1 | Sports | [homerun.md](homerun.md) |
+| Free Kick | `freekick` | `freekickRev` 1 | Sports | [freekick.md](freekick.md) |
+| Racing | `racing` | `racingRev` 1 | Sports | [racing.md](racing.md) |
 
 The batches land one at a time on top of this; each adds its games' entries, pages and its summary section below.
 
@@ -306,3 +309,24 @@ clears it. cards-board-check replays both proofs through the server to 200 on ev
 
 Medians (tuning seeds 0–59), weak → flawless: Minesweeper 115 / 140.5 / 173.5 / 190.5 / 200 / 200 / 200; Mahjong
 103 / 136 / 174 / 189.5 / 199 / 200 / 200. The pages have the tables, the bots and the assumptions.
+## The Sports group (30 Oct 2026): Home Run Derby, Free Kick, Racing
+
+Three new arcade games, born on the standard at stamp 1 (no older revision to replay). Each deals a seed from its own
+proved deal (`src/lib/duel/<game>Deal.server.ts`: 300 seeds, each taken to exactly 200 by the game's oracle,
+`scripts/<game>-oracle.ts`, through the server replay; any seed it could not take to 200 was dropped). Each has its own
+`<game>-check` (`CHECKS_FULL=1` re-proves all 300 seeds) and an arcade-standard-check entry.
+
+| Game | Stamp | Core | Features | Sum |
+| --- | --- | --- | --- | --- |
+| Home Run Derby | `homerunRev` 1 | 130, distance (13 a pitch, full at 450 ft) | home runs 50 (5 each), sign hits 20 (5 each of 4) | 200 |
+| Free Kick | `freekickRev` 1 | 130, 13 a kick (10 a goal + up to 3 placement) | targets 40 (10 each of 4), curled round the wall 20 (2 a goal), five in a row 10 | 200 |
+| Racing | `racingRev` 1 | 140, distance (full at two laps) | clean sectors 30 (8 passes), finish 10, speed 20 (full by par 80.8 s) | 200 |
+
+Medians, weak → flawless (each game's `bun scripts/<game>-bands.ts`, room seeds 0–59 on the dealt seeds):
+
+| Game | Weak | Average | Good | Great | Near | Elite | Flawless |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| Home Run Derby | 46 | 71 | 114 | 163 | 190 | 197 | 200 |
+| Free Kick | 23 | 36 | 66 | 102 | 148 | 165 | 200 |
+| Racing | 131 | 155 | 182 | 192.5 | 198 | 200 | 200 |
+

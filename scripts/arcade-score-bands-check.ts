@@ -82,8 +82,9 @@ for (const [type, spec] of Object.entries(BAND_SPECS)) {
   }
 }
 
-/* 3: doing nothing scores 0, on the band revision of every game */
-for (const spec of GAMES) {
+/* 3: doing nothing scores 0, on the band revision of every game (games born on the arcade scoring standard, the
+   Sports group, have no band revision: BAND_STAMPS lists the band games) */
+for (const spec of GAMES.filter((g) => g.type in BAND_STAMPS)) {
   const seed = spec.seedFor(3);
   const game = spec.gameFor(spec.next!, seed);
   let state = game.init(seed);

@@ -15,6 +15,9 @@ import { replayBreakerRun } from "../src/lib/duel/breaker";
 import { replayPinballRun } from "../src/lib/duel/pinball";
 import { replayMinesweeperRun } from "../src/lib/duel/minesweeper";
 import { replayMahjongRun } from "../src/lib/duel/mahjong";
+import { replayHomerunRun } from "../src/lib/duel/homerun";
+import { replayFreekickRun } from "../src/lib/duel/freekick";
+import { replayRacingRun } from "../src/lib/duel/racing";
 import { replayRallyRun } from "../src/lib/duel/rally";
 import { replaySliceRun } from "../src/lib/duel/slice";
 import { replayBubbleRun } from "../src/lib/duel/bubble";
@@ -53,6 +56,9 @@ const TABLE: Record<string, (p: any, a: string) => ServerReplay> = {
   pinball: (p, a) => replayPinballRun(p.seed, a, p.pinRev),
   minesweeper: (p, a) => replayMinesweeperRun(p.seed, a, p.minesRev),
   mahjong: (p, a) => replayMahjongRun(p.seed, a, p.mahjongRev),
+  homerun: (p, a) => replayHomerunRun(p.seed, a, p.homerunRev),
+  freekick: (p, a) => replayFreekickRun(p.seed, a, p.freekickRev),
+  racing: (p, a) => replayRacingRun(p.seed, a, p.racingRev),
   rally: (p, a) => replayRallyRun(p.seed, a, p.rallyRev),
   slice: (p, a) => replaySliceRun(p.seed, a, p.sliceRev),
   bubble: (p, a) => replayBubbleRun(p.seed, a, p.bubbleRev),

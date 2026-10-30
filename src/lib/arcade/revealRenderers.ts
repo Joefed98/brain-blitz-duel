@@ -67,6 +67,15 @@ import { colourClashArtGameFor } from "./colourClash.renderer";
 
 import { replayHoverRun } from "@/lib/duel/hover";
 import { replaySkylineRun } from "@/lib/duel/skyline";
+import { replayHomerunRun } from "@/lib/duel/homerun";
+import { replayFreekickRun } from "@/lib/duel/freekick";
+import { replayRacingRun } from "@/lib/duel/racing";
+import { homerunArtGame } from "./homerun.renderer";
+import { freekickArtGame } from "./freekick.renderer";
+import { racingArtGame } from "./racing.renderer";
+import { HOMERUN_WORLD_H, HOMERUN_WORLD_W } from "./homerun";
+import { FREEKICK_WORLD_H, FREEKICK_WORLD_W } from "./freekick";
+import { RACING_WORLD_H, RACING_WORLD_W } from "./racing";
 import { replayBinTossRun } from "@/lib/duel/binToss";
 import { replayBullseyeRun } from "@/lib/duel/bullseye";
 import { replayMatchupRun } from "@/lib/duel/matchup";
@@ -163,6 +172,10 @@ function drawTenDropArt(ctx: CanvasRenderingContext2D, state: TenDropState, size
 const seedOf = (puzzle: PuzzleData): number => ("seed" in puzzle ? Number(puzzle.seed) : 1);
 
 export const ARCADE_REVEAL_RENDERERS: Record<string, ArcadeRevealRenderer> = {
+  // The Sports group (30 Oct 2026): each game's final frame at world size.
+  homerun: simple(GOLD, HOMERUN_WORLD_W, HOMERUN_WORLD_H, homerunArtGame, (p, a) => replayHomerunRun(seedOf(p), a, p.type === "homerun" ? p.homerunRev : undefined)),
+  freekick: simple(GOLD, FREEKICK_WORLD_W, FREEKICK_WORLD_H, freekickArtGame, (p, a) => replayFreekickRun(seedOf(p), a, p.type === "freekick" ? p.freekickRev : undefined)),
+  racing: simple(GOLD, RACING_WORLD_W, RACING_WORLD_H, racingArtGame, (p, a) => replayRacingRun(seedOf(p), a, p.type === "racing" ? p.racingRev : undefined)),
   hover: simple("#2ED3B7", 390, 560, hoverGame, (p, a) => replayHoverRun(seedOf(p), a, p.type === "hover" ? p.hoverRev : undefined), undefined, hoverRevealGame, (p) => hoverWorldHFor(p.type === "hover" ? p.hoverRev : undefined)),
   skyline: simple(GOLD, 390, 560, skylineGame, (p, a) => replaySkylineRun(seedOf(p), a, p.type === "skyline" ? p.skylineRev : undefined), undefined, skylineRevealGame, (p) => skylineWorldHFor(p.type === "skyline" ? p.skylineRev : undefined)),
   // binRev 7: the wider fairground (430 × 728) drawn at 390 wide, so 660 tall.

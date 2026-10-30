@@ -57,6 +57,9 @@ const REV_KEY: Record<string, string> = {
   pinball: "pinRev",
   minesweeper: "minesRev",
   mahjong: "mahjongRev",
+  homerun: "homerunRev",
+  freekick: "freekickRev",
+  racing: "racingRev",
 };
 
 /** A fixed seed per game, so a rebuild deals the same rooms (the generator's own seed is overwritten where it is free). */

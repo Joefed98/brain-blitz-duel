@@ -72,6 +72,8 @@ const RAISED: PuzzleType[] = [
   "unblock", "blockparty", "pipes", "flow", "iceslide", "push", "laser", "rings",
   // Expansion E4 (docs/expansions/e4.md): High Rise and Pinball.
   "skyline", "pinball",
+  // The Sports group (30 Oct 2026, docs/arcade-standard/): born on the arcade scoring standard at 200.
+  "homerun", "freekick", "racing",
   // World expansion E5 (docs/expansions/e5.md): Swish and Slice.
   "bintoss", "slice",
   // Expansion E3 (docs/expansions/e3.md): Breaker.

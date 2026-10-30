@@ -135,7 +135,8 @@ import {
 } from "@/lib/duel/types";
 import type { SubmitMeta } from "@/puzzles/types";
 import { nearMiss } from "@/lib/duel/nearMiss";
-import { lookColumnsPresent, resolvePlayerLooks } from "@/lib/duel/playerLook";
+import { lookColumnsPresent, PLAYER_COLOURS, resolvePlayerLooks } from "@/lib/duel/playerLook";
+import { startRaceGhosts } from "@/lib/duel/raceGhosts";
 import { podiumAwards } from "@/lib/duel/podiumAwards";
 import { awardRoundsFor } from "@/lib/duel/awardRounds";
 import { roomInvite } from "@/lib/duel/roomLink";
@@ -420,6 +421,16 @@ function DuelScreen() {
       if (code) void import("@/lib/duel/challengeApi").then(({ sendChallengeFollowup }) => sendChallengeFollowup("room", code));
     });
   }, [playing]);
+  // Racing's ghost cars (display only, raceGhosts.ts): the room's broadcast channel, joined only while a Racing round
+  // is on screen (intro to reveal); nothing from it reaches the sim, the log or the score.
+  const ghostRound = duel?.status === "in_progress" && me && puzzle?.type === "racing" && (phase === "intro" || phase === "puzzle") ? round : null;
+  const ghostLook = me ? looks.get(mySlot) : undefined;
+  useEffect(() => {
+    if (ghostRound === null || !duel || !me) return;
+    const colour = PLAYER_COLOURS[ghostLook?.colour ?? 0]?.hex ?? "#C9CCD6";
+    return startRaceGhosts(duel.id, ghostRound, { key: String(mySlot), name: me.display_name, colour });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ghostRound, duel?.id, mySlot]);
   const finishedPings = useFinishedPings(players, round, mySlot, duel?.status === "in_progress" && phase === "puzzle", stateKey);
   const table = standings(roomPlayers, results, scoredThrough, roundDetails, tieRounds).map((row) => {
     const line = phase === "result" && puzzle ? nearMiss(puzzle.type, resultFor(results, row.slot, round)?.extra) : null;

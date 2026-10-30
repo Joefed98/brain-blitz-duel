@@ -247,6 +247,10 @@ export const ARCADE_FX_TEXT_COLOURS: Record<string, { fill: string; outline: str
   // Cards & Board: table gold.
   minesweeper: { fill: "#F2C75C", outline: "#0B0D11" },
   mahjong: { fill: "#F2C75C", outline: "#160D07" },
+  // Sports: floodlight gold.
+  homerun: { fill: "#F2C75C", outline: "#0A0D16" },
+  freekick: { fill: "#F2C75C", outline: "#0A0D16" },
+  racing: { fill: "#FFC46B", outline: "#1A0F08" },
 };
 
 /**

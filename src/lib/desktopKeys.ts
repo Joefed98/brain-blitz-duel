@@ -24,6 +24,7 @@ export const DESKTOP_KEYS: Partial<Record<PuzzleType, readonly (readonly [string
   minesweeper: [["Click", "reveal (or flag)"], ["F", "Reveal / Flag switch"]],
   mahjong: [["Click", "pick a tile"], ["S", "shuffle"]],
   rally: [["← →", "paddle"]],
+  racing: [["← → / A D", "steer"], ["↑ / W", "accelerate"], ["↓ / S", "brake"]],
   skyline: [["Space", "drop"]],
   snake: [["← → ↑ ↓", "turn"]],
   swing: [["Space (hold)", "grapple"], ["↑ ↓", "reel"]],

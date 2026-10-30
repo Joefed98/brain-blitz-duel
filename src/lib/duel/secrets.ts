@@ -70,6 +70,9 @@ const SECRET_KEYS: Record<PuzzleType, string[]> = {
   // Cards & Board (30 Oct 2026): the seed deals the board in the sim; the run is replayed on the server.
   minesweeper: [],
   mahjong: [],
+  homerun: [],
+  freekick: [],
+  racing: [],
   rally: [],
   steady: [],
   slice: [],

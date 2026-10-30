@@ -13,6 +13,7 @@
 import type { ArcadeFxMiss, ArcadeFxSpec, ArcadeWorld } from "./arcadeFx.renderer";
 import { minesCellX, minesCellY, minesCleared, MINES_CELL, MINES_WORLD_H, MINES_WORLD_W, type MinesState } from "./minesweeper";
 import { mahjongCleared, mahjongSlotRect, MAHJONG_WORLD_H, MAHJONG_WORLD_W, type MahjongState } from "./mahjong";
+import { FREEKICK_FX, HOMERUN_FX, RACING_FX } from "./sportsFx.renderer";
 import { px } from "./engine";
 
 import { HOVER_DISC_X, HOVER_EXPAND_H, HOVER_TALL_H, HOVER_WORLD_H, HOVER_WORLD_W, hoverWorldH, type HoverState } from "./hover";
@@ -271,6 +272,10 @@ export const ARCADE_GAME_WORLDS = {
   // Cards & Board (30 Oct 2026).
   minesweeper: "cards",
   mahjong: "cards",
+  // The Sports group (30 Oct 2026): real-world venues (a ballpark, a stadium, a circuit).
+  homerun: "realworld",
+  freekick: "realworld",
+  racing: "realworld",
 } as const satisfies Record<string, ArcadeWorld>;
 
 export type ArcadeFxGame = keyof typeof ARCADE_GAME_WORLDS;
@@ -1762,6 +1767,9 @@ export const ARCADE_FX_SPECS = {
   pinball: fxSpecAt(PINBALL_FX, 820),
   minesweeper: MINESWEEPER_FX,
   mahjong: MAHJONG_FX,
+  homerun: HOMERUN_FX,
+  freekick: FREEKICK_FX,
+  racing: RACING_FX,
 } satisfies Record<ArcadeFxGame, ArcadeFxSpec<never>>;
 
 /* ============================ Engine word games ============================ */

@@ -107,7 +107,27 @@ function sliceReveal(r: Run, s: number): ArcadeRevealData {
 
 type Builder = (run: Run, score: number) => ArcadeRevealData;
 
+/**
+ * The Sports group (30 Oct 2026: Home Run Derby, Free Kick, Racing), born on the arcade scoring standard: the axis is
+ * the core part, a tile for each feature part (points of its maximum); the lines come from the parts (below).
+ */
+function sportsBuilder(axisLabel: string, finished: (r: Run) => boolean): Builder {
+  return (r) => {
+    const parts = (r["parts"] as { key: string; label: string; points: number; max: number; detail: string }[] | undefined) ?? [];
+    const core = parts.find((p) => p.key === "core");
+    return {
+      axis: { value: core?.points ?? 0, max: core?.max ?? null, label: axisLabel },
+      lines: [],
+      tiles: parts.filter((p) => p.key !== "core").map((p) => ({ label: p.label, value: `${p.points} / ${p.max}` })),
+      outcome: finished(r) ? "finish" : "time",
+    };
+  };
+}
+
 const BUILDERS: Record<string, Builder> = {
+  homerun: sportsBuilder("Distance points", (r) => n(r, "pitches") >= 10),
+  freekick: sportsBuilder("Goal points", (r) => b(r, "finished")),
+  racing: sportsBuilder("Distance points", (r) => b(r, "finished")),
   hover: (r, s) => {
     const done = n(r, "gates") >= n(r, "totalGates") && n(r, "totalGates") > 0;
     // hoverRev 9 (the 200 expansion): the base, then the skill points (tight gates, chains, centre lines).

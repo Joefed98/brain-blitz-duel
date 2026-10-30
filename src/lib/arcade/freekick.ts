@@ -1,0 +1,812 @@
+/**
+ * Free Kick (`freekick`, freekickRev 1, Oct 2026): ten free kicks in 75 seconds, on the arcade scoring standard.
+ *
+ * The whole run is dealt at init from the seed (fkSeedPlan): every kick's spot (distance and angle to goal), the
+ * wall (3–5 players and where it stands), the keeper's starting place, the wind, and the four targets. The player
+ * draws a stroke through the ball; on release the phone records ONE event (kind FREEKICK_INPUT_KICK): `a` = aim (the
+ * launch yaw in milliradians off the line from the ball to the goal's centre, + to the right), `b` = curl (−100…100,
+ * + bends to the right), `c` = power (0…1000: launch speed and loft rise together, so power sets how high the ball
+ * arrives). The stroke's speed is measured on the phone; only these integers are replayed.
+ *
+ * World units: 1/65536 m (FK_M per metre), velocities per tick, 60 ticks a second. x across (goal centre 0, + right
+ * as the camera sees it), y up (ground 0), z toward the goal (goal line front at z 0, the ball at −distance).
+ * Integer maths only: products stay far under 2^53 and every division is truncated, so phone and server agree.
+ *
+ * Ball flight: gravity, air drag, Magnus curl (acceleration b × the velocity turned a quarter, so the curl bends the
+ * path sideways), wind across the pitch, the wall (one box per player, shoulder to shoulder, jumping on a fixed
+ * schedule after the kick), the keeper (reacts a fixed time after the ball passes the wall, then dives toward the
+ * straight-line prediction of the ball from the sim's own state, at a fixed top speed; saves inside a fixed reach
+ * ellipse), the posts and crossbar (cylinders, sub-stepped, deterministic bounce), the net.
+ *
+ * Score (FREEKICK_STD_SPEC, 200): core 130 = per goal 10 + up to 3 for placement away from the keeper (straight line
+ * on the distance from where the ball crosses the goal plane to the keeper's body centre at that moment, full at
+ * FREEKICK_PLACE_FULL_CM); targets 40 (10 for each of the 4 seeded targets hit); round the wall 20 (2 per goal that
+ * bends round the wall, FREEKICK_CURL_MIN); five in a row 10 (five consecutive goals at any point). No speed part.
+ */
+import { clampInt, inputRange, isqrt, rngBelow, type ArcadeGame, type ArcadeInputEvent, type CanvasSize, type InputRange } from "./engine";
+import { bandCurve, type BandParts } from "./scoreBands";
+import { stdEach, stdLine, stdPart, stdScore, stdSum, type StdPart, type StdSpec } from "./arcadeStandard";
+
+/* ================================ Constants ================================ */
+
+export const FREEKICK_REV_STD = 1;
+export const FREEKICK_RUN_SECONDS = 75;
+export const FREEKICK_RUN_TICKS = FREEKICK_RUN_SECONDS * 60;
+export const FREEKICK_KICKS = 10;
+
+/** The world in CSS px (the renderer's 2.5-D view; the sim itself is in metres). */
+export const FREEKICK_WORLD_W = 390;
+export const FREEKICK_WORLD_H = 720;
+export const FREEKICK_BG = "#05070B";
+
+/** Fixed-point units per metre. */
+export const FK_M = 65536;
+const m = (metres: number) => Math.round(metres * FK_M);
+
+export const FREEKICK_INPUT_KICK = 1;
+export const FREEKICK_AIM_MAX = 500;
+export const FREEKICK_CURL_MAX = 100;
+export const FREEKICK_POWER_MAX = 1000;
+export const FREEKICK_INPUT_RANGES: readonly InputRange[] = [
+  inputRange(FREEKICK_INPUT_KICK, [-FREEKICK_AIM_MAX, FREEKICK_AIM_MAX], [-FREEKICK_CURL_MAX, FREEKICK_CURL_MAX], [0, FREEKICK_POWER_MAX]),
+];
+
+/** Phases of a kick. */
+export const FK_SETUP = 0;
+export const FK_AIM = 1;
+export const FK_FLIGHT = 2;
+export const FK_SETTLE = 3;
+export const FK_OVER = 4;
+
+/** Whistle and camera settle before a kick can be taken. */
+export const FREEKICK_SETUP_TICKS = 30;
+/** The longest a flight runs before it is judged short. */
+export const FREEKICK_FLIGHT_MAX = 110;
+/** Settle after the outcome (the ball plays on, the result shows) before the next kick. */
+export const FREEKICK_SETTLE_TICKS = 70;
+/** Each kick has its own 450-tick slot; kick k must be taken by FREEKICK_SLOT × k + this, so all ten fit in 75 s. */
+export const FREEKICK_SLOT = 450;
+export const FREEKICK_DEADLINE_IN_SLOT = FREEKICK_SLOT - FREEKICK_FLIGHT_MAX - FREEKICK_SETTLE_TICKS;
+
+/** Outcomes. */
+export const FK_OUT_NONE = 0;
+export const FK_OUT_GOAL = 1;
+export const FK_OUT_SAVED = 2;
+export const FK_OUT_WALL = 3;
+export const FK_OUT_WIDE = 4;
+export const FK_OUT_SHORT = 5;
+export const FK_OUT_UNTAKEN = 6;
+
+/* Pitch geometry (metres as fixed point). */
+export const FK_BALL_R = m(0.11);
+export const FK_GOAL_HALF_W = m(3.66);
+export const FK_GOAL_H = m(2.44);
+export const FK_POST_R = m(0.06);
+/** Post and bar centres: just behind the line's front. */
+export const FK_POST_X = FK_GOAL_HALF_W + FK_POST_R;
+export const FK_POST_Z = FK_POST_R;
+export const FK_BAR_Y = FK_GOAL_H + FK_POST_R;
+/** The goal plane: the whole ball over the line. */
+export const FK_GOAL_Z = 2 * FK_POST_R + FK_BALL_R;
+export const FK_NET_Z = m(2.0);
+
+/** The wall: 9.15 m from the ball, players 0.55 m apart shoulder to shoulder, 1.85 m tall, jumping 0.18 m. */
+export const FK_WALL_DIST = m(9.15);
+export const FK_WALL_SPACING = m(0.55);
+export const FK_WALL_H = m(1.85);
+export const FK_WALL_JUMP = m(0.18);
+export const FK_WALL_JUMP_FROM = 6;
+export const FK_WALL_JUMP_PEAK = 18;
+export const FK_WALL_JUMP_TO = 30;
+
+/** The keeper: stands 0.4 m off the line; body centre 1.0 m high; reach ellipse 0.95 m across, 1.35 m up (plus the ball). */
+export const FK_KEEPER_Z = -m(0.4);
+export const FK_KEEPER_Y = m(1.0);
+export const FK_KEEPER_AX_CM = 95 + 11;
+export const FK_KEEPER_AY_CM = 135 + 11;
+/** Reaction: this many ticks after the ball passes the wall's line. */
+export const FK_KEEPER_REACT = 10;
+export const FK_KEEPER_VMAX = m(0.085);
+export const FK_KEEPER_ACC = m(0.008);
+export const FK_KEEPER_LIMIT = m(3.3);
+
+/** Physics. */
+const G = 179; // 9.81 m/s² in units a tick²
+const DRAG = 230;
+const CURL_DIV = 16000;
+const WIND_K = 6;
+const SPEED_MIN = Math.round((14 * FK_M) / 60);
+const SPEED_SPAN = Math.round((18 * FK_M) / 60);
+const ELEV_MIN_MRAD = 209;
+const ELEV_SPAN_MRAD = 175;
+const RESTITUTION_256 = 140;
+const SUBSTEPS = 6;
+
+/** Targets: a hoop in a top corner (radius 0.55 m, centred 0.55 m in from the post and the bar) or the crossbar. */
+export const FK_TARGET_NONE = 0;
+export const FK_TARGET_LEFT = 1;
+export const FK_TARGET_RIGHT = 2;
+export const FK_TARGET_BAR = 3;
+export const FK_HOOP_R = m(0.55);
+export const FK_HOOP_X = FK_GOAL_HALF_W - FK_HOOP_R;
+export const FK_HOOP_Y = FK_GOAL_H - FK_HOOP_R;
+export const FREEKICK_TARGETS = 4;
+
+/* ================================ Scoring ================================ */
+
+/** Placement is full when the ball crosses the goal plane this far (cm) from the keeper's body centre. */
+export const FREEKICK_PLACE_FULL_CM = 150;
+/** Round the wall: the curl alone moved the ball at least this far back across the line of the kick. */
+export const FREEKICK_CURL_MIN = m(0.75);
+export const FREEKICK_CORE_MAX = 130;
+export const FREEKICK_GOAL_UNITS = 100;
+export const FREEKICK_PLACE_UNITS = 30;
+/** Core units: 100 a goal + 0…30 for placement; full at 1300 (every kick a goal, every one placed in full). */
+export const FREEKICK_CORE_FULL = FREEKICK_KICKS * (FREEKICK_GOAL_UNITS + FREEKICK_PLACE_UNITS);
+export const FREEKICK_TARGETS_MAX = 40;
+export const FREEKICK_CURL_MAX_PTS = 20;
+export const FREEKICK_STREAK_MAX = 10;
+export const FREEKICK_STREAK_RUN = 5;
+export const FREEKICK_V1_BAND_CURVE = bandCurve([0, FREEKICK_CORE_FULL], [0, FREEKICK_CORE_MAX]);
+
+export const FREEKICK_STD_SPEC: StdSpec = {
+  field: "freekickRev",
+  rev: FREEKICK_REV_STD,
+  parts: [
+    { key: "core", label: "Goals", max: FREEKICK_CORE_MAX, of: FREEKICK_KICKS, item: "goal", how: `10 a goal plus up to 3 for placing it away from the keeper (full at ${FREEKICK_PLACE_FULL_CM / 100} m)` },
+    { key: "targets", label: "Targets", max: FREEKICK_TARGETS_MAX, of: FREEKICK_TARGETS, item: "target", how: `10 for each of the ${FREEKICK_TARGETS} targets scored through` },
+    { key: "curl", label: "Round the wall", max: FREEKICK_CURL_MAX_PTS, of: FREEKICK_KICKS, item: "curler", how: "2 for each goal curled round the end of the wall" },
+    { key: "streak", label: "Five in a row", max: FREEKICK_STREAK_MAX, of: 1, item: "streak", how: "10 for five goals in a row" },
+  ],
+};
+
+/* ================================ The deal ================================ */
+
+export interface FkKick {
+  /** Ball spot (x across, z = −distance). */
+  bx: number;
+  bz: number;
+  /** Unit vector from the ball to the goal's centre, in 4096ths (fx across, fz forward). */
+  fx: number;
+  fz: number;
+  /** Wall: players, and its ends across the line of the kick (u, from the ball; + to the right). */
+  wallN: number;
+  wallL: number;
+  wallR: number;
+  /** −1: the wall covers the left post; +1 the right. */
+  side: number;
+  keeperX: number;
+  /** −5…5, + blows to the right. */
+  wind: number;
+  target: number;
+}
+
+export interface FkPlan {
+  kicks: FkKick[];
+}
+
+function draw(rng: { s: number }, bound: number): number {
+  const r = rngBelow(rng.s, bound);
+  rng.s = r.state;
+  return r.value;
+}
+
+/** The local frame of a kick: u across (to the right), w along the line from the ball to the goal centre. */
+export function fkLocal(k: FkKick, x: number, z: number): { u: number; w: number } {
+  const dx = x - k.bx;
+  const dz = z - k.bz;
+  return { u: Math.trunc((dx * k.fz - dz * k.fx) / 4096), w: Math.trunc((dx * k.fx + dz * k.fz) / 4096) };
+}
+
+/** World x, z from a kick's local u, w. */
+export function fkWorld(k: FkKick, u: number, w: number): { x: number; z: number } {
+  return { x: k.bx + Math.trunc((u * k.fz + w * k.fx) / 4096), z: k.bz + Math.trunc((-u * k.fx + w * k.fz) / 4096) };
+}
+
+function makeKick(rng: { s: number }, target: number): FkKick {
+  const dist = m(17.5) + draw(rng, m(7.5));
+  const maxX = Math.trunc((dist * 45) / 100);
+  const bx = draw(rng, 2 * maxX + 1) - maxX;
+  const bz = -dist;
+  const dx = -bx;
+  const dz = dist;
+  const len = isqrt(dx * dx + dz * dz);
+  const fx = Math.trunc((dx * 4096) / len);
+  const fz = Math.trunc((dz * 4096) / len);
+  const side = bx < -m(1.5) ? -1 : bx > m(1.5) ? 1 : draw(rng, 2) === 0 ? -1 : 1;
+  const central = Math.abs(bx) < m(4) && dist < m(21);
+  const wallN = 3 + draw(rng, central ? 3 : 2) + (central ? 0 : 0);
+  const extra = m(0.15) + draw(rng, m(0.35));
+  const post = { x: side * FK_GOAL_HALF_W, z: 0 };
+  const kk: FkKick = { bx, bz, fx, fz, wallN, wallL: 0, wallR: 0, side, keeperX: 0, wind: 0, target };
+  const p = fkLocal(kk, post.x, post.z);
+  const uPost = Math.trunc((p.u * FK_WALL_DIST) / p.w);
+  if (side < 0) {
+    kk.wallL = uPost - extra;
+    kk.wallR = kk.wallL + wallN * FK_WALL_SPACING;
+  } else {
+    kk.wallR = uPost + extra;
+    kk.wallL = kk.wallR - wallN * FK_WALL_SPACING;
+  }
+  kk.keeperX = -side * (m(0.3) + draw(rng, m(0.9)));
+  kk.wind = draw(rng, 11) - 5;
+  return kk;
+}
+
+const planCache = new Map<number, FkPlan>();
+
+/** The run's schedule from the seed: identical for every player and the server. */
+export function fkSeedPlan(seed: number): FkPlan {
+  const key = seed | 0;
+  const hit = planCache.get(key);
+  if (hit) return hit;
+  const rng = { s: (key ^ 0x5f3d_9a17) | 0 };
+  // The four target kicks (distinct) and their kinds.
+  const order = Array.from({ length: FREEKICK_KICKS }, (_, i) => i);
+  for (let i = order.length - 1; i > 0; i--) {
+    const j = draw(rng, i + 1);
+    [order[i], order[j]] = [order[j]!, order[i]!];
+  }
+  const targets = new Array<number>(FREEKICK_KICKS).fill(FK_TARGET_NONE);
+  // 2 of 3 targets are the top corner behind the wall's end (the classic free kick), 1 of 3 the crossbar.
+  for (let i = 0; i < FREEKICK_TARGETS; i++) targets[order[i]!] = draw(rng, 3) === 0 ? FK_TARGET_BAR : FK_TARGET_LEFT;
+  const kicks = targets.map((t) => {
+    const kick = makeKick(rng, t);
+    if (t === FK_TARGET_LEFT) kick.target = kick.side < 0 ? FK_TARGET_LEFT : FK_TARGET_RIGHT;
+    return kick;
+  });
+  const plan = { kicks };
+  if (planCache.size > 64) planCache.clear();
+  planCache.set(key, plan);
+  return plan;
+}
+
+/* ================================ Flight ================================ */
+
+export interface FkFlight {
+  x: number;
+  y: number;
+  z: number;
+  vx: number;
+  vy: number;
+  vz: number;
+  /** Curl (the input's b). */
+  b: number;
+  /** Ticks since the kick. */
+  t: number;
+  /** The curl's own displacement across the line of the kick (velocity and distance). */
+  cuv: number;
+  cu: number;
+  kx: number;
+  kv: number;
+  /** Tick (flight time) the keeper starts to move, or −1. */
+  react: number;
+  out: number;
+  /** At the wall's line: 0 not yet, −1 beside its left end, 1 beside its right end, 2 over it, 3 blocked. */
+  wallSide: number;
+  crossX: number;
+  crossY: number;
+  crossK: number;
+  /** Where the ball passed the keeper's line (x, y) and the keeper's x then: placement is measured here. */
+  passX: number;
+  passY: number;
+  passK: number;
+  bar: number;
+  post: number;
+}
+
+/** Integer sine and cosine (4096ths) of an angle in milliradians, |angle| ≤ ~800. */
+export function fkSinCos(mrad: number): { s: number; c: number } {
+  const t = Math.trunc(mrad);
+  const t2 = t * t; // ≤ 6.4e5
+  // sin = t − t³/6 + t⁵/120 (t in 1/1000), scaled to 4096.
+  const t3 = t2 * t;
+  const t5 = t3 * t2;
+  const s = Math.trunc((t * 4096) / 1000) - Math.trunc((t3 * 4096) / 6e9) + Math.trunc((t5 * 4096) / 1.2e17);
+  const t4 = t2 * t2;
+  const c = 4096 - Math.trunc((t2 * 4096) / 2e6) + Math.trunc((t4 * 4096) / 2.4e13);
+  return { s, c };
+}
+
+/** The wall's jump height `t` ticks after the kick (fixed schedule). */
+export function fkWallJump(t: number): number {
+  if (t < FK_WALL_JUMP_FROM || t > FK_WALL_JUMP_TO) return 0;
+  const half = FK_WALL_JUMP_PEAK - FK_WALL_JUMP_FROM;
+  const d = t - FK_WALL_JUMP_PEAK;
+  return Math.max(0, FK_WALL_JUMP - Math.trunc((FK_WALL_JUMP * d * d) / (half * half)));
+}
+
+/** The flight a kick's input launches (the ball on its spot, the keeper on his). */
+export function fkLaunch(k: FkKick, a: number, b: number, c: number): FkFlight {
+  const aim = clampInt(Math.trunc(a), -FREEKICK_AIM_MAX, FREEKICK_AIM_MAX);
+  const curl = clampInt(Math.trunc(b), -FREEKICK_CURL_MAX, FREEKICK_CURL_MAX);
+  const power = clampInt(Math.trunc(c), 0, FREEKICK_POWER_MAX);
+  const speed = SPEED_MIN + Math.trunc((SPEED_SPAN * power) / 1000);
+  const elev = fkSinCos(ELEV_MIN_MRAD + Math.trunc((ELEV_SPAN_MRAD * power) / 1000));
+  const yaw = fkSinCos(aim);
+  const dirX = Math.trunc((k.fx * yaw.c + k.fz * yaw.s) / 4096);
+  const dirZ = Math.trunc((k.fz * yaw.c - k.fx * yaw.s) / 4096);
+  const h = Math.trunc((speed * elev.c) / 4096);
+  return {
+    x: k.bx,
+    y: FK_BALL_R,
+    z: k.bz,
+    vx: Math.trunc((h * dirX) / 4096),
+    vy: Math.trunc((speed * elev.s) / 4096),
+    vz: Math.trunc((h * dirZ) / 4096),
+    b: curl,
+    t: 0,
+    cuv: 0,
+    cu: 0,
+    kx: k.keeperX,
+    kv: 0,
+    react: -1,
+    out: FK_OUT_NONE,
+    wallSide: 0,
+    crossX: 0,
+    crossY: 0,
+    crossK: 0,
+    passX: 0,
+    passY: 0,
+    passK: 0,
+    bar: 0,
+    post: 0,
+  };
+}
+
+const cm = (units: number) => Math.trunc((units * 100) / FK_M);
+
+/** Reflects the ball off a cylinder whose axis runs along one world axis (deterministic bounce). */
+function bounce(f: FkFlight, axis: "x" | "y", ca: number, cb: number): boolean {
+  // The cylinder's cross-section is in the plane of the other two axes: (p, q) = (y, z) for the bar, (x, z) for a post.
+  const p = axis === "x" ? f.y : f.x;
+  const dp = p - ca;
+  const dq = f.z - cb;
+  const reach = FK_BALL_R + FK_POST_R;
+  const d2 = dp * dp + dq * dq;
+  if (d2 >= reach * reach) return false;
+  const len = Math.max(1, isqrt(d2));
+  const vp = axis === "x" ? f.vy : f.vx;
+  const vn = Math.trunc((vp * dp + f.vz * dq) / len);
+  // Push the ball out to touching distance.
+  const np = ca + Math.trunc((dp * reach) / len);
+  const nq = cb + Math.trunc((dq * reach) / len);
+  if (axis === "x") f.y = np;
+  else f.x = np;
+  f.z = nq;
+  if (vn >= 0) return true;
+  const j = Math.trunc((vn * (256 + RESTITUTION_256)) / 256);
+  const nvp = vp - Math.trunc((j * dp) / len);
+  f.vz -= Math.trunc((j * dq) / len);
+  if (axis === "x") f.vy = nvp;
+  else f.vx = nvp;
+  return true;
+}
+
+/** One tick of a flight (mutates `f`; the sim steps a copy). */
+export function fkFlightStep(k: FkKick, f: FkFlight, frame = true): void {
+  f.t += 1;
+  const px = f.x;
+  const py = f.y;
+  const pz = f.z;
+  // Forces: gravity, drag, Magnus curl (b × the velocity turned a quarter), wind across.
+  const axc = Math.trunc((f.b * f.vz) / CURL_DIV);
+  const azc = -Math.trunc((f.b * f.vx) / CURL_DIV);
+  f.vx += axc + k.wind * WIND_K - Math.trunc(f.vx / DRAG);
+  f.vz += azc - Math.trunc(f.vz / DRAG);
+  f.vy += -G - Math.trunc(f.vy / DRAG);
+  f.cuv += Math.trunc((axc * k.fz - azc * k.fx) / 4096);
+  f.cu += f.cuv;
+  // Move, sub-stepped near the goal frame so the posts and bar never tunnel.
+  const near = f.z > -m(1.5) && f.z < m(1.0);
+  const steps = near ? SUBSTEPS : 1;
+  for (let i = 0; i < steps; i++) {
+    const last = i === steps - 1;
+    f.x += last ? f.vx - Math.trunc(f.vx / steps) * (steps - 1) : Math.trunc(f.vx / steps);
+    f.y += last ? f.vy - Math.trunc(f.vy / steps) * (steps - 1) : Math.trunc(f.vy / steps);
+    f.z += last ? f.vz - Math.trunc(f.vz / steps) * (steps - 1) : Math.trunc(f.vz / steps);
+    if (frame && near && f.y < FK_BAR_Y + FK_BALL_R + FK_POST_R) {
+      if (Math.abs(f.x) <= FK_POST_X && bounce(f, "x", FK_BAR_Y, FK_POST_Z)) f.bar = 1;
+      if (f.y < FK_BAR_Y) {
+        if (bounce(f, "y", FK_POST_X, FK_POST_Z)) f.post = 1;
+        if (bounce(f, "y", -FK_POST_X, FK_POST_Z)) f.post = 1;
+      }
+    }
+  }
+  // Ground.
+  if (f.y < FK_BALL_R) {
+    f.y = FK_BALL_R;
+    f.vy = f.vy < -m(0.03) ? -Math.trunc(f.vy / 2) : 0;
+    f.vx -= Math.trunc(f.vx / 12);
+    f.vz -= Math.trunc(f.vz / 12);
+  }
+  // The wall: judged where the ball crosses its line.
+  if (f.wallSide === 0) {
+    const a = fkLocal(k, px, pz);
+    const bl = fkLocal(k, f.x, f.z);
+    if (a.w < FK_WALL_DIST && bl.w >= FK_WALL_DIST) {
+      const span = bl.w - a.w;
+      const u = a.u + Math.trunc(((bl.u - a.u) * (FK_WALL_DIST - a.w)) / Math.max(1, span));
+      const y = py + Math.trunc(((f.y - py) * (FK_WALL_DIST - a.w)) / Math.max(1, span));
+      const top = FK_WALL_H + fkWallJump(f.t);
+      if (f.out === FK_OUT_NONE && u > k.wallL - FK_BALL_R && u < k.wallR + FK_BALL_R && y < top + FK_BALL_R) {
+        f.wallSide = 3;
+        f.out = FK_OUT_WALL;
+        const back = fkWorld(k, u, FK_WALL_DIST - m(0.3));
+        f.x = back.x;
+        f.z = back.z;
+        f.y = y;
+        const vu = Math.trunc((f.vx * k.fz - f.vz * k.fx) / 4096);
+        const vw = -Math.trunc((3 * Math.trunc((f.vx * k.fx + f.vz * k.fz) / 4096)) / 10);
+        const nvu = Math.trunc(vu / 2);
+        f.vx = Math.trunc((nvu * k.fz + vw * k.fx) / 4096);
+        f.vz = Math.trunc((-nvu * k.fx + vw * k.fz) / 4096);
+        f.vy = Math.trunc(f.vy / 2);
+      } else {
+        f.wallSide = u <= k.wallL - FK_BALL_R ? -1 : u >= k.wallR + FK_BALL_R ? 1 : 2;
+        f.react = f.t + FK_KEEPER_REACT;
+      }
+    }
+  }
+  // The keeper: still until he reacts, then dives toward the straight-line prediction of the ball.
+  if (f.react >= 0 && f.t >= f.react) {
+    let goal = f.kx;
+    if (f.vz > 0 && f.z < FK_KEEPER_Z) goal = f.x + Math.trunc((f.vx * (FK_KEEPER_Z - f.z)) / f.vz);
+    goal = clampInt(goal, -FK_KEEPER_LIMIT, FK_KEEPER_LIMIT);
+    const want = clampInt(Math.trunc((goal - f.kx) / 3), -FK_KEEPER_VMAX, FK_KEEPER_VMAX);
+    f.kv += clampInt(want - f.kv, -FK_KEEPER_ACC, FK_KEEPER_ACC);
+    f.kx += f.kv;
+  }
+  if (f.out === FK_OUT_NONE && pz < FK_KEEPER_Z && f.z >= FK_KEEPER_Z && f.vz > 0) {
+    const span = Math.max(1, f.z - pz);
+    const x = px + Math.trunc(((f.x - px) * (FK_KEEPER_Z - pz)) / span);
+    const y = py + Math.trunc(((f.y - py) * (FK_KEEPER_Z - pz)) / span);
+    const dx = cm(x - f.kx);
+    const dy = cm(y - FK_KEEPER_Y);
+    f.passX = x;
+    f.passY = y;
+    f.passK = f.kx;
+    if (dx * dx * FK_KEEPER_AY_CM * FK_KEEPER_AY_CM + dy * dy * FK_KEEPER_AX_CM * FK_KEEPER_AX_CM <= FK_KEEPER_AX_CM * FK_KEEPER_AX_CM * FK_KEEPER_AY_CM * FK_KEEPER_AY_CM) {
+      f.out = FK_OUT_SAVED;
+      f.z = FK_KEEPER_Z - m(0.05);
+      f.x = x;
+      f.y = y;
+      f.vz = -Math.trunc(f.vz / 5);
+      f.vx = Math.trunc(f.vx / 3) + (x >= f.kx ? m(0.03) : -m(0.03));
+      f.vy = Math.trunc(f.vy / 3) + m(0.02);
+    }
+  }
+  // The goal plane.
+  if (f.out === FK_OUT_NONE && pz < FK_GOAL_Z && f.z >= FK_GOAL_Z) {
+    const span = Math.max(1, f.z - pz);
+    f.crossX = px + Math.trunc(((f.x - px) * (FK_GOAL_Z - pz)) / span);
+    f.crossY = py + Math.trunc(((f.y - py) * (FK_GOAL_Z - pz)) / span);
+    f.crossK = f.kx;
+    f.out = Math.abs(f.crossX) < FK_GOAL_HALF_W && f.crossY < FK_GOAL_H ? FK_OUT_GOAL : FK_OUT_WIDE;
+  }
+  // The net holds a goal.
+  if (f.out === FK_OUT_GOAL) {
+    if (f.z > FK_NET_Z) {
+      f.z = FK_NET_Z;
+      f.vz = -Math.trunc(f.vz / 6);
+      f.vx = Math.trunc(f.vx / 2);
+    }
+    if (f.y > FK_GOAL_H - FK_BALL_R && f.z > FK_GOAL_Z) {
+      f.y = FK_GOAL_H - FK_BALL_R;
+      if (f.vy > 0) f.vy = 0;
+    }
+    const lim = FK_GOAL_HALF_W - FK_BALL_R;
+    if (f.z > FK_GOAL_Z && Math.abs(f.x) > lim) {
+      f.x = f.x > 0 ? lim : -lim;
+      f.vx = -Math.trunc(f.vx / 4);
+    }
+  }
+  if (f.out === FK_OUT_NONE) {
+    const slow = f.y <= FK_BALL_R && Math.abs(f.vx) + Math.abs(f.vz) < m(0.02);
+    if (f.t >= FREEKICK_FLIGHT_MAX || slow || f.z < -m(60)) f.out = FK_OUT_SHORT;
+  }
+}
+
+/** What a finished flight earns: placement units (0…30), a target hit, curled round the wall. */
+export function fkJudge(k: FkKick, f: FkFlight): { goal: boolean; place: number; distCm: number; target: boolean; curled: boolean } {
+  const goal = f.out === FK_OUT_GOAL;
+  if (!goal) return { goal, place: 0, distCm: 0, target: false, curled: false };
+  const dx = cm(f.passX - f.passK);
+  const dy = cm(f.passY - FK_KEEPER_Y);
+  const distCm = isqrt(dx * dx + dy * dy);
+  const place = Math.min(FREEKICK_PLACE_UNITS, Math.trunc((FREEKICK_PLACE_UNITS * distCm) / FREEKICK_PLACE_FULL_CM));
+  let target = false;
+  if (k.target === FK_TARGET_BAR) target = f.bar === 1;
+  else if (k.target === FK_TARGET_LEFT || k.target === FK_TARGET_RIGHT) {
+    const hx = cm(f.crossX - (k.target === FK_TARGET_LEFT ? -FK_HOOP_X : FK_HOOP_X));
+    const hy = cm(f.crossY - FK_HOOP_Y);
+    const r = cm(FK_HOOP_R);
+    target = hx * hx + hy * hy <= r * r;
+  }
+  const curled = (f.wallSide === -1 && f.cu >= FREEKICK_CURL_MIN) || (f.wallSide === 1 && f.cu <= -FREEKICK_CURL_MIN);
+  return { goal, place, distCm, target, curled };
+}
+
+/* ================================ The sim ================================ */
+
+export interface FreekickState {
+  tick: number;
+  seed: number;
+  freekickRev: number;
+  acted: number;
+  /** The kick being played (0…9; 10 when done). */
+  k: number;
+  phase: number;
+  phaseTick: number;
+  /** The tick kick k must be taken by. */
+  deadline: number;
+  /** The current kick's flight (null before it is taken). */
+  fl: FkFlight | null;
+  kickTick: number;
+  /** Per kick: outcome (FK_OUT_*; −1 not played yet), placement units, flags. */
+  outs: number[];
+  places: number[];
+  /** Bit 1 target, bit 2 curled round the wall. */
+  flags: number[];
+  goals: number;
+  units: number;
+  targets: number;
+  curled: number;
+  streak: number;
+  best: number;
+}
+
+export function fkDeadline(k: number): number {
+  return FREEKICK_SLOT * k + FREEKICK_DEADLINE_IN_SLOT;
+}
+
+function init(seed: number): FreekickState {
+  fkSeedPlan(seed);
+  return {
+    tick: 0,
+    seed: seed | 0,
+    freekickRev: FREEKICK_REV_STD,
+    acted: 0,
+    k: 0,
+    phase: FK_SETUP,
+    phaseTick: 0,
+    deadline: fkDeadline(0),
+    fl: null,
+    kickTick: 0,
+    outs: new Array<number>(FREEKICK_KICKS).fill(-1),
+    places: new Array<number>(FREEKICK_KICKS).fill(0),
+    flags: new Array<number>(FREEKICK_KICKS).fill(0),
+    goals: 0,
+    units: 0,
+    targets: 0,
+    curled: 0,
+    streak: 0,
+    best: 0,
+  };
+}
+
+/** The kick being played (or the last one). */
+export function fkKickOf(state: FreekickState): FkKick {
+  const plan = fkSeedPlan(state.seed);
+  return plan.kicks[Math.min(state.k, FREEKICK_KICKS - 1)]!;
+}
+
+function resolve(s: FreekickState, kick: FkKick, out: number, f: FkFlight | null): void {
+  const outs = s.outs.slice();
+  outs[s.k] = out;
+  s.outs = outs;
+  if (out === FK_OUT_GOAL && f) {
+    const j = fkJudge(kick, f);
+    s.goals += 1;
+    s.units += FREEKICK_GOAL_UNITS + j.place;
+    const places = s.places.slice();
+    places[s.k] = j.place;
+    s.places = places;
+    const flags = s.flags.slice();
+    flags[s.k] = (j.target ? 1 : 0) | (j.curled ? 2 : 0);
+    s.flags = flags;
+    if (j.target) s.targets += 1;
+    if (j.curled) s.curled += 1;
+    s.streak += 1;
+    if (s.streak > s.best) s.best = s.streak;
+  } else s.streak = 0;
+  s.phase = FK_SETTLE;
+  s.phaseTick = s.tick;
+}
+
+function step(state: FreekickState, input: ArcadeInputEvent | null): FreekickState {
+  if (state.phase === FK_OVER || state.tick >= FREEKICK_RUN_TICKS) return state;
+  const s: FreekickState = { ...state, tick: state.tick + 1 };
+  const kick = fkKickOf(s);
+  if (s.phase === FK_SETUP) {
+    if (s.tick - s.phaseTick >= FREEKICK_SETUP_TICKS) {
+      s.phase = FK_AIM;
+      s.phaseTick = s.tick;
+    }
+  } else if (s.phase === FK_AIM) {
+    if (input && input.k === FREEKICK_INPUT_KICK) {
+      s.fl = fkLaunch(kick, input.a, input.b, input.c);
+      s.kickTick = s.tick;
+      s.acted += 1;
+      s.phase = FK_FLIGHT;
+      s.phaseTick = s.tick;
+    } else if (s.tick >= s.deadline) {
+      resolve(s, kick, FK_OUT_UNTAKEN, null);
+    }
+  } else if (s.phase === FK_FLIGHT || s.phase === FK_SETTLE) {
+    if (s.fl) {
+      const f = { ...s.fl };
+      fkFlightStep(kick, f);
+      s.fl = f;
+      if (s.phase === FK_FLIGHT && f.out !== FK_OUT_NONE) resolve(s, kick, f.out, f);
+    }
+    if (s.phase === FK_SETTLE && s.tick - s.phaseTick >= FREEKICK_SETTLE_TICKS) {
+      s.k += 1;
+      s.fl = null;
+      if (s.k >= FREEKICK_KICKS) s.phase = FK_OVER;
+      else {
+        s.phase = FK_SETUP;
+        s.phaseTick = s.tick;
+        s.deadline = fkDeadline(s.k);
+      }
+    }
+  }
+  return s;
+}
+
+function isOver(state: FreekickState): boolean {
+  return state.phase === FK_OVER || state.tick >= FREEKICK_RUN_TICKS;
+}
+
+/** freekickRev 1's scored parts (null on a state of any other revision). */
+export function freekickStdParts(state: FreekickState): StdPart[] | null {
+  if (state.freekickRev !== FREEKICK_REV_STD) return null;
+  const placed = state.units - state.goals * FREEKICK_GOAL_UNITS;
+  return [
+    stdPart(FREEKICK_STD_SPEC, "core", stdLine(FREEKICK_CORE_MAX, state.units, FREEKICK_CORE_FULL), `${state.goals} of ${FREEKICK_KICKS} scored · placement ${placed} of ${state.goals * FREEKICK_PLACE_UNITS}`),
+    stdPart(FREEKICK_STD_SPEC, "targets", stdEach(state.targets, 10, FREEKICK_TARGETS_MAX), `${state.targets} of ${FREEKICK_TARGETS} targets`),
+    stdPart(FREEKICK_STD_SPEC, "curl", stdEach(state.curled, 2, FREEKICK_CURL_MAX_PTS), `${state.curled} round the wall`),
+    stdPart(FREEKICK_STD_SPEC, "streak", state.best >= FREEKICK_STREAK_RUN ? FREEKICK_STREAK_MAX : 0, `best ${state.best} in a row`),
+  ];
+}
+
+function score(state: FreekickState): number {
+  const parts = freekickStdParts(state);
+  return parts ? stdScore(parts, state.acted > 0) : 0;
+}
+
+/** For the skill-band tool: units = core units, points = the core, bonus = the features. */
+export function freekickBandParts(state: FreekickState): BandParts {
+  const parts = freekickStdParts(state) ?? [];
+  const core = parts[0]?.points ?? 0;
+  return {
+    units: state.units,
+    points: core,
+    bonus: stdSum(parts) - core,
+    penalty: 0,
+    finished: false,
+    text: parts.map((p) => `${p.label} ${p.points}`).join(" · "),
+  };
+}
+
+/** A plain fallback draw (the art lives in freekick.renderer.ts). */
+function drawPlain(ctx: CanvasRenderingContext2D, state: FreekickState, size: CanvasSize): void {
+  ctx.fillStyle = FREEKICK_BG;
+  ctx.fillRect(0, 0, size.width, size.height);
+  ctx.fillStyle = "#F3F1EC";
+  ctx.font = "14px sans-serif";
+  ctx.fillText(`Kick ${Math.min(state.k + 1, FREEKICK_KICKS)}/${FREEKICK_KICKS} · ${state.goals} goals`, 12, 24);
+}
+
+export const freekickGame: ArcadeGame<FreekickState, ArcadeInputEvent | null> = {
+  key: "freekick",
+  runTicks: FREEKICK_RUN_TICKS,
+  init,
+  step,
+  isOver,
+  score,
+  draw: drawPlain,
+  inputRanges: FREEKICK_INPUT_RANGES,
+};
+
+/** Every revision plays freekickRev 1 (the only one so far). */
+export function freekickGameFor(_rev?: number | null): ArcadeGame<FreekickState, ArcadeInputEvent | null> {
+  return freekickGame;
+}
+
+/* ================================ Checkpoints ================================ */
+
+export const FREEKICK_CHECKPOINT_INTERVAL = 60;
+export const FREEKICK_CHECKPOINT_KEYS = ["tick", "k", "phase", "x", "y", "z", "goals", "units", "checksum"] as const;
+export interface FreekickCheckpoint {
+  tick: number;
+  k: number;
+  phase: number;
+  x: number;
+  y: number;
+  z: number;
+  goals: number;
+  units: number;
+  checksum: number;
+}
+
+export function freekickCheckpoint(state: FreekickState): FreekickCheckpoint {
+  const f = state.fl;
+  const snap = { tick: state.tick, k: state.k, phase: state.phase, x: f?.x ?? 0, y: f?.y ?? 0, z: f?.z ?? 0, goals: state.goals, units: state.units };
+  let checksum = 0x811c9dc5;
+  const extra = [state.acted, state.targets, state.curled, state.best, state.streak, state.kickTick, f?.kx ?? 0, f?.vx ?? 0, f?.vy ?? 0, f?.vz ?? 0, f?.out ?? 0, ...state.outs];
+  for (const value of [...Object.values(snap), ...extra]) {
+    checksum ^= value | 0;
+    checksum = Math.imul(checksum, 0x01000193) >>> 0;
+  }
+  return { ...snap, checksum };
+}
+
+/* ============================ The camera (display only) ============================ */
+
+/**
+ * The fixed camera for a kick: 6 m behind the ball on the line to the goal's centre, 2.2 m up, looking level along
+ * that line, focal length FREEKICK_FOCAL world px, the horizon at FREEKICK_HORIZON. Floats are fine here: the sim and
+ * the server never read it (the renderer, the phone's stroke mapping and the shared effects layer do).
+ */
+export const FREEKICK_FOCAL = 800;
+export const FREEKICK_HORIZON = 300;
+export const FREEKICK_CAM_BACK = 6;
+export const FREEKICK_CAM_H = 2.2;
+
+export interface FkCamera {
+  /** Camera position (metres). */
+  cx: number;
+  cz: number;
+  /** Forward unit vector across / forward (metres). */
+  fx: number;
+  fz: number;
+}
+
+export function fkCamera(k: FkKick): FkCamera {
+  const fx = k.fx / 4096;
+  const fz = k.fz / 4096;
+  const n = Math.hypot(fx, fz) || 1;
+  return { cx: k.bx / FK_M - (fx / n) * FREEKICK_CAM_BACK, cz: k.bz / FK_M - (fz / n) * FREEKICK_CAM_BACK, fx: fx / n, fz: fz / n };
+}
+
+/** Camera space (metres): u across (+ right), w forward, h height above the camera. */
+export function fkCamSpace(cam: FkCamera, x: number, y: number, z: number): { u: number; w: number; h: number } {
+  const dx = x - cam.cx;
+  const dz = z - cam.cz;
+  return { u: dx * cam.fz - dz * cam.fx, w: dx * cam.fx + dz * cam.fz, h: y - FREEKICK_CAM_H };
+}
+
+/** World metres to world px (null behind the camera). */
+export function fkProject(cam: FkCamera, x: number, y: number, z: number): { x: number; y: number; s: number } | null {
+  const c = fkCamSpace(cam, x, y, z);
+  if (c.w < 0.2) return null;
+  const s = FREEKICK_FOCAL / c.w;
+  return { x: FREEKICK_WORLD_W / 2 + c.u * s, y: FREEKICK_HORIZON - c.h * s, s };
+}
+
+/** World px on the ground plane back to world metres (x, z), or null above the horizon. */
+export function fkUnprojectGround(cam: FkCamera, sx: number, sy: number): { x: number; z: number } | null {
+  const dy = sy - FREEKICK_HORIZON;
+  if (dy <= 0.5) return null;
+  const w = (FREEKICK_FOCAL * FREEKICK_CAM_H) / dy;
+  const u = ((sx - FREEKICK_WORLD_W / 2) * w) / FREEKICK_FOCAL;
+  return { x: cam.cx + u * cam.fz + w * cam.fx, z: cam.cz - u * cam.fx + w * cam.fz };
+}
+
+/**
+ * The shared success/miss effects layer's counters (display only): goals scored, targets hit, kicks missed (saved,
+ * blocked, wide, short or not taken) so far, all monotonic, and the world-px point where the last kick crossed the
+ * goal plane (null when it never got there).
+ */
+export function freekickFxCounts(state: FreekickState): { goals: number; targets: number; misses: number; at: { x: number; y: number } | null } {
+  let misses = 0;
+  for (const o of state.outs) if (o >= 0 && o !== FK_OUT_GOAL) misses++;
+  const f = state.fl;
+  let at: { x: number; y: number } | null = null;
+  if (f && (f.out === FK_OUT_GOAL || f.out === FK_OUT_WIDE)) {
+    const p = fkProject(fkCamera(fkKickOf(state)), f.crossX / FK_M, f.crossY / FK_M, FK_GOAL_Z / FK_M);
+    if (p) at = { x: p.x, y: p.y };
+  }
+  return { goals: state.goals, targets: state.targets, misses, at };
+}

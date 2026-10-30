@@ -104,6 +104,10 @@ const WORLD_MUSIC: Partial<Record<PuzzleType, SoundId>> = {
   // Cards & Board (30 Oct 2026): no tracks of their own yet; both borrow Gemstone's calm bed.
   minesweeper: "music_matchup",
   mahjong: "music_matchup",
+  // The Sports group (30 Oct 2026) has no tracks of its own yet: it borrows existing real-world beds.
+  homerun: "music_skyline",
+  freekick: "music_cross",
+  racing: "music_junction",
   rally: "music_rally",
   burst: "music_burst",
   orbit: "music_orbit",

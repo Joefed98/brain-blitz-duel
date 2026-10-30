@@ -1,4 +1,5 @@
 import { PUZZLE_SCORE_REV, puzzleScoreRevOf } from "./puzzleScoreRev";
+import { ARCADE_STANDARD } from "@/lib/arcade/standard";
 import { LAB_STARS } from "./depth/labyrinth";
 import { usesStandard } from "./standard/stamps";
 import { solutionProgress } from "./progressFigures";
@@ -120,6 +121,9 @@ import {
   PINBALL_TIME_MS,
   MINESWEEPER_TIME_MS,
   MAHJONG_TIME_MS,
+  HOMERUN_TIME_MS,
+  FREEKICK_TIME_MS,
+  RACING_TIME_MS,
 } from "./types";
 
 import { TG_TIME_MS, tileGridResultLine } from "./tileGrid";
@@ -144,6 +148,9 @@ const DIRECT_LIMITS: Partial<Record<PuzzleType, number>> = {
   pinball: PINBALL_TIME_MS,
   minesweeper: MINESWEEPER_TIME_MS,
   mahjong: MAHJONG_TIME_MS,
+  homerun: HOMERUN_TIME_MS,
+  freekick: FREEKICK_TIME_MS,
+  racing: RACING_TIME_MS,
   nonogram: NONO_TIME_MS,
   pairmatch: PAIR_TIME_MS,
   flood: FLOOD_TIME_MS,
@@ -1127,6 +1134,21 @@ const mahjongSummary: SummaryBuilder = (result) => {
     ],
   };
 };
+/**
+ * The Sports group (30 Oct 2026), born on the arcade scoring standard: the stored extra carries each part's points
+ * (`part_<key>`), so the summary names them in the spec's order with its maximums.
+ */
+function sportsSummary(type: "homerun" | "freekick" | "racing"): SummaryBuilder {
+  return (result) => {
+    const spec = ARCADE_STANDARD[type]?.spec;
+    const parts = (spec?.parts ?? []).map((p) => ({ label: p.label, max: p.max, points: Number(result.extra?.[`part_${p.key}`] ?? 0) }));
+    const [core, ...features] = parts;
+    return {
+      summary: core ? `${core.label} ${core.points}/${core.max}` : "",
+      detail: features.map((p) => `${p.label} ${p.points}/${p.max}`),
+    };
+  };
+}
 
 const rallySummary: SummaryBuilder = (result, puzzle) => {
   const hits = Number(result.extra?.["hits"] ?? 0);
@@ -1652,6 +1674,9 @@ export const ROUND_SUMMARIES: Record<PuzzleType, SummaryBuilder> = {
   pinball: pinballSummary,
   minesweeper: minesweeperSummary,
   mahjong: mahjongSummary,
+  homerun: sportsSummary("homerun"),
+  freekick: sportsSummary("freekick"),
+  racing: sportsSummary("racing"),
   rally: rallySummary,
   steady: steadySummary,
   slice: sliceSummary,
@@ -1743,6 +1768,9 @@ export const CORRECT_ANSWERS: Record<PuzzleType, AnswerBuilder> = {
   pinball: () => null,
   minesweeper: () => null,
   mahjong: () => null,
+  homerun: () => null,
+  freekick: () => null,
+  racing: () => null,
   rally: () => null,
   steady: () => null,
   slice: () => null,
