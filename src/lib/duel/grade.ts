@@ -73,7 +73,7 @@ import { decodeBurstRun, replayBurstRun } from "./burst";
 import { burstCarryBonus, burstCleanBonus, burstGoldenCount } from "@/lib/arcade/burst";
 import { decodeOrbitRun, replayOrbitRun } from "./orbit";
 import { decodeSwingRun, replaySwingRun } from "./swing";
-import { SWING_REV, SWING_REV_BAND, SWING_REV_TUNED, SWING_REV_TUNEC, SWING_REV_SPREAD, SWING_REV_TALL, SWING_REV_TARGET, SWING_REV_STRICT, SWING_REV_EXPAND, swingFeaturePoints, swingAssaultCounts, swingBandPartsV14 } from "@/lib/arcade/swing";
+import { SWING_REV, SWING_REV_BAND, SWING_REV_TUNED, SWING_REV_TUNEC, SWING_REV_SPREAD, SWING_REV_TALL, SWING_REV_TARGET, SWING_REV_STRICT, SWING_REV_EXPAND, swingFeaturePoints, swingAssaultCounts, swingBandPartsV14, swingReworkParts } from "@/lib/arcade/swing";
 import { decodeSnipRun, replaySnipRun } from "./snip";
 import { snipFeatureBonus, SNIP_REV_EXPAND, SNIP_X_MAX } from "@/lib/arcade/snip";
 import { decodeTiltRun, replayTiltRun } from "./tilt";
@@ -1985,7 +1985,8 @@ function gradeUnderRev(
         // swingRev 13 (the 200 expansion): the features and their payout (raw skill points and what they paid).
         ...(run.state.expand ? (({ comboPts, bestChain, gems, gemTotal, gates, gateTotal, ledges, ledgeTotal, sections, sectionTotal, parsBeaten, parBeat, parPts, raw, total }) => ({ comboPts, bestChain, gems, gemTotal, gates, gateTotal, ledges, ledgeTotal, sections, sectionTotal, parsBeaten, parBeat, parPts, skillRaw: raw, skill: total }))(swingFeaturePoints(run.state)) : {}),
         // swingRev 14 (the assault course): sections, restarts, pars and the pickups banked, with the parts that add up to the score.
-        ...(run.state.assault ? (({ sections, sectionTotal, restarts, caught, parsBeaten, gems, gemTotal, gates, gateTotal, starsBanked, starTotal }, parts) => ({ swingRev: puzzle.swingRev, sections, sectionTotal, restarts, caught, parsBeaten, gems, gemTotal, gates, gateTotal, stars: starsBanked, starTotal, basePts: parts.points, bonusPts: parts.bonus }))(swingAssaultCounts(run.state), swingBandPartsV14(run.state)) : {}),
+        // swingRev 15 (the swinging course): the same counts, the course's share reached and the three parts (core, pars, pickups).
+        ...(run.state.rework ? (({ sections, sectionTotal, restarts, caught, parsBeaten, gems, gemTotal, gates, gateTotal, starsBanked, starTotal }, parts) => ({ swingRev: puzzle.swingRev, sections, sectionTotal, restarts, caught, parsBeaten, gems, gemTotal, gates, gateTotal, stars: starsBanked, starTotal, permille: parts.permille, basePts: parts.core, parPts: parts.par, pickupPts: parts.pickups, bonusPts: parts.par + parts.pickups }))(swingAssaultCounts(run.state), swingReworkParts(run.state)) : run.state.assault ? (({ sections, sectionTotal, restarts, caught, parsBeaten, gems, gemTotal, gates, gateTotal, starsBanked, starTotal }, parts) => ({ swingRev: puzzle.swingRev, sections, sectionTotal, restarts, caught, parsBeaten, gems, gemTotal, gates, gateTotal, stars: starsBanked, starTotal, basePts: parts.points, bonusPts: parts.bonus }))(swingAssaultCounts(run.state), swingBandPartsV14(run.state)) : {}),
         endedSeconds: run.endedSeconds,
         flagged: run.flagged,
         clientLag: run.clientLag,

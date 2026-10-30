@@ -68,7 +68,7 @@ import {
   SWING_REV_SPREAD,
   SWING_REV_TALL,
   SWING_REV_EXPAND,
-  SWING_REV_ASSAULT,
+  SWING_REV_REWORK,
   SWING_ROCK_HALF_W,
   SWING_STARS,
   SWING_STAR_TOUCH,
@@ -199,12 +199,13 @@ section("New rounds: stamps, start states, checksums, worlds by revision");
   for (let k = 0; k < 12; k++) {
     // Grappler's 200 expansion (26 Oct 2026) moved rooms on to swingRev 13: swingRev 9's cavern deepened and widened, on
     // SWING_V9_BANK courses re-proved with every feature (swing-x200-check covers it). The assault course (27 Oct 2026)
-    // moved them on to swingRev 14 (swing-assault-check); pinned, the deal before it is still the bank's.
+    // moved them on to swingRev 14 (swing-assault-check), the swinging course (29 Oct 2026) to swingRev 15
+    // (swing-rework-check); pinned, the deal before them is still the bank's.
     const was = pinSwingPreAssault(true);
     const swing = generateSwing();
     pinSwingPreAssault(was);
     ok(swing.swingRev === SWING_REV_EXPAND && SWING_V9_BANK.some((e) => e.seed === swing.seed), "rooms deal swingRev 13 (the expansion, after swingRev 9) on a course re-proved for the taller cavern");
-    ok(generateSwing().swingRev === SWING_REV_ASSAULT, "rooms deal swingRev 14 (the assault course) unpinned");
+    ok(generateSwing().swingRev === SWING_REV_REWORK, "rooms deal swingRev 15 (the swinging course) unpinned");
     const orbit = generateOrbit();
     // The expansion to 200 (docs/expansions/x200-orbit.md) moved Orbit on to orbitRev 12 (its 450 × 782 view); orbit-expand-check covers it.
     ok(orbit.orbitRev === ORBIT_REV_XP && orbit.planets?.length === ORBIT_TOTAL + 1, "rooms deal orbitRev 12 with the course's planets");
@@ -528,8 +529,9 @@ section("Refitted curves keep the band rules; 150 is reachable");
 section("Intro demos stay stopped until re-recorded on the taller revision");
 {
   const src = read("src/lib/duel/introDemo.functions.ts");
-  // Grappler's 200 expansion: its demo played only on swingRev 13 (swing-x200-check); the assault course's only on swingRev 14.
-  ok(/data\.type === "swing" && demo\?\.puzzle\.type === "swing" && demo\.puzzle\.swingRev !== SWING_REV_ASSAULT\) return null/.test(src), "Grappler's demo plays only on swingRev 14");
+  // Grappler's 200 expansion: its demo played only on swingRev 13 (swing-x200-check); the assault course's only on swingRev
+  // 14; the swinging course's only on swingRev 15.
+  ok(/data\.type === "swing" && demo\?\.puzzle\.type === "swing" && demo\.puzzle\.swingRev !== SWING_REV_REWORK\) return null/.test(src), "Grappler's demo plays only on swingRev 15");
   // The expansion to 200: Orbit's demo now waits for one recorded on orbitRev 12 (orbit-expand-check).
   ok(/data\.type === "orbit" && demo\?\.puzzle\.type === "orbit" && demo\.puzzle\.orbitRev !== ORBIT_REV_XP\) return null/.test(src), "Orbit's demo plays only on orbitRev 12");
   // Expansion E6: Ball Tracker's demo now plays only on btRev 7 (e6-check).

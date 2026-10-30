@@ -117,7 +117,7 @@ function introScoreTemplates(): Record<PuzzleType, string> {
     burst: "Atoms score; a lost life costs 5. Last 90 s for 10 more; quick wave clears add. Up to {max}.",
     orbit: "Planets and the sun, plus stardust, slingshots, fields and perfect orbits: up to {max}.",
     snip: "Points for fruit fed and leaves; golden apples, few cuts and speed add more. Up to {max}.",
-    swing: `Sections cleared, then pars, gates, gems and stars: up to {max}.`,
+    swing: `Distance along the course (140), pars (30), gates, gems and stars (30): up to {max}.`,
     tilt: `Mazes, progress and stars; quick stars and pace add more. All ${TILT_X_MAZES} quickly: up to {max}.`,
     balltrack: `Points per marble home; gold, boosted and in-a-row marbles add more. Up to {max}.`,
     swerve: arcadeOpen("each coin you collect"),

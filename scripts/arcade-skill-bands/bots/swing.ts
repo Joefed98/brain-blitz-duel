@@ -35,6 +35,7 @@ import { SWING_INPUT_HOLD, SWING_INPUT_REEL, SWING_REEL_UP, SWING_REEL_DOWN, typ
 import type { SkillLevel } from "../human";
 import { driveEvents, Plan, type SkillBot } from "../bot";
 import { assaultBot } from "./swingAssault";
+import { reworkBot } from "./swingRework";
 
 const FP = 256;
 /** Mirrors of sim geometry the player sees (perception only). */
@@ -145,8 +146,11 @@ function nearest(s: SwingState): number {
 }
 
 export const bot: SkillBot = (ctx) => {
-  // swingRev 14 (the assault course) has its own player (bots/swingAssault.ts); every earlier revision plays below.
-  if ((ctx.game.init(ctx.seed) as SwingState).assault) return assaultBot(ctx);
+  // swingRev 14 (the assault course) and 15 (the swinging course) have their own players (bots/swingAssault.ts,
+  // bots/swingRework.ts); every earlier revision plays below.
+  const first = ctx.game.init(ctx.seed) as SwingState;
+  if (first.rework) return reworkBot(ctx);
+  if (first.assault) return assaultBot(ctx);
   return legacyBot(ctx);
 };
 

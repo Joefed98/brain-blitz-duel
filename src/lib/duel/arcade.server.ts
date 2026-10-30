@@ -12,7 +12,7 @@ import { TILT_REV_LIFT } from "@/lib/arcade/tilt";
 import { TILT_BANK } from "./tiltBank.server";
 import { JUNC_REV_BAND } from "@/lib/arcade/junction";
 import { BINTOSS_REV_TARGET, BINTOSS_REV_STRICT, BINTOSS_REV_SMALL_FAR } from "@/lib/arcade/binToss";
-import { SWING_REV_TALL, SWING_REV_TARGET, SWING_REV_STRICT, SWING_REV_EXPAND, SWING_REV_ASSAULT } from "@/lib/arcade/swing";
+import { SWING_REV_TALL, SWING_REV_TARGET, SWING_REV_STRICT, SWING_REV_EXPAND, SWING_REV_ASSAULT, SWING_REV_REWORK } from "@/lib/arcade/swing";
 import { BURST_REV_TARGET, BURST_REV_STRICT, BURST_REV_CARRY } from "@/lib/arcade/burst";
 import { BRK_REV_TARGET, BRK_REV_STRICT, BRK_REV_DEEP, BRK_REV_PHONE } from "@/lib/arcade/breaker";
 import { PIN_REV_TARGET, PIN_REV_STRICT, PIN_REV_EXPAND, PIN_REV_LONG } from "@/lib/arcade/pinball";
@@ -232,7 +232,7 @@ export function generateSnip(): SnipPuzzleData {
 }
 
 /**
- * swingRev 14 (27 Oct 2026, the assault course) needs no bank: its sim builds every section from the seed and proves it
+ * swingRev 15 (29 Oct 2026, the swinging course) and swingRev 14 (27 Oct 2026, the assault course) need no bank: its sim builds every section from the seed and proves it
  * as it goes. Before it (pinSwingPreAssault): room/practice generation picks a proved course from the bank by the room
  * seed; on-the-spot proving is only a fallback if the bank is empty or unlucky.
  * swingRev 8 (Tuning F) only moves the touch stars, which never steer or end a run, so any input log plays a course the same on rev 7 and rev 8 (swing-rev8-check).
@@ -248,9 +248,21 @@ export function pinSwingPreAssault(on: boolean): boolean {
   return prev;
 }
 
+let swingPreRework = false;
+/**
+ * Checks written for swingRev 14 (the assault course): deal it as rooms did before the swinging course (returns the
+ * previous setting), so they keep proving what they were written for.
+ */
+export function pinSwingPreRework(on: boolean): boolean {
+  const prev = swingPreRework;
+  swingPreRework = on;
+  return prev;
+}
+
 export function generateSwing(): SwingPuzzleData {
   const roomSeed = arcadeSeed();
-  // swingRev 14 (the assault course): any seed; the course is built and proved from it, section by section, in the sim.
+  // swingRev 15 (the swinging course) and 14 (the assault course): any seed; the course is built and proved from it in the sim.
+  if (!swingPreAssault && !swingPreRework) return { type: "swing", seed: roomSeed, swingRev: SWING_REV_REWORK };
   if (!swingPreAssault) return { type: "swing", seed: roomSeed, swingRev: SWING_REV_ASSAULT };
   // swingRev 13 (the 200 expansion): from the bank courses re-proved with every feature (scripts/swing-bank.ts --expand).
   if (SWING_V13_BANK.length > 0) {

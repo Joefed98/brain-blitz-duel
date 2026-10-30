@@ -2170,7 +2170,7 @@ export interface OrbitPuzzleData {
 
 export interface SwingPuzzleData {
   type: "swing";
-  /** 4 = dragon chase; 5 = score bands; 6 = touch stars (Tuning A); 7 = about 10% lower (Tuning C); 8 = stars spread evenly (Tuning F); 9 = the taller 390 × 730 cavern; 13 = the 200 expansion; 14 = the assault course (sections of ledges, hooks and squeezes). */
+  /** 4 = dragon chase; 5 = score bands; 6 = touch stars (Tuning A); 7 = about 10% lower (Tuning C); 8 = stars spread evenly (Tuning F); 9 = the taller 390 × 730 cavern; 13 = the 200 expansion; 14 = the assault course (sections of ledges, hooks and squeezes); 15 = the swinging course (mostly hook-to-hook swinging, short ledge runs). */
   swingRev?: number;
   /** Draws the cavern — identical for everyone. */
   seed: number;

@@ -438,6 +438,26 @@ const BUILDERS: Record<string, Builder> = {
     };
   },
   swing: (r, s) => {
+    // swingRev 15 (the swinging course): the share of the course on the axis; the three parts add up to the stored score.
+    if (n(r, "swingRev") >= 15) {
+      const done = n(r, "sections") >= n(r, "sectionTotal") && n(r, "sectionTotal") > 0;
+      return {
+        axis: { value: Math.trunc(n(r, "permille") / 10), max: 100, label: "% of the course" },
+        lines: [
+          `${Math.trunc(n(r, "permille") / 10)} % of the course · ${n(r, "sections")} / ${n(r, "sectionTotal")} stretches → ${n(r, "basePts")}`,
+          `Pars (${n(r, "parsBeaten")} under) +${n(r, "parPts")}`,
+          `Gates, gems, stars (${n(r, "gates")} · ${n(r, "gems")} · ${n(r, "stars")}) +${n(r, "pickupPts")}`,
+          `Total → ${s}`,
+        ],
+        tiles: [
+          { label: "Course", value: `${Math.trunc(n(r, "permille") / 10)} %` },
+          { label: "Under par", value: `${n(r, "parsBeaten")}` },
+          { label: "Restarts", value: `${n(r, "restarts")}` },
+          { label: "Gates · gems · stars", value: `${n(r, "gates")} · ${n(r, "gems")} · ${n(r, "stars")}` },
+        ],
+        outcome: done ? "finish" : ended(r, false),
+      };
+    }
     // swingRev 14 (the assault course): sections on the axis; the lines add up to the stored score.
     if (n(r, "swingRev") >= 14) {
       const done = n(r, "sections") >= n(r, "sectionTotal") && n(r, "sectionTotal") > 0;

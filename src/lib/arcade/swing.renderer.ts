@@ -44,6 +44,7 @@ import {
   SWING_LEDGE_THICK,
   SWING_REV_EXPAND,
   SWING_REV_ASSAULT,
+  SWING_REV_REWORK,
   swingAssaultClock,
   swingAssaultCounts,
   swingAssaultLedges,
@@ -615,7 +616,8 @@ function drawSwingArtWorld(ctx: CanvasRenderingContext2D, state: SwingState, siz
   // swingRev 13: speed gates, set-route ledges and gems.
   if (state.expand) drawExpand(ctx, state, sx, SWING_WORLD_W, still, lite);
   // swingRev 14: the section in play (its squeeze, ledges, gate and gems); nothing past its landing ledge.
-  const ahead = state.assault ? assaultLimit(state) : Infinity;
+  // swingRev 15's swinging course shows the cave ahead (no veil): its hooks are the choices.
+  const ahead = state.assault && !state.rework ? assaultLimit(state) : Infinity;
   if (state.assault) drawAssault(ctx, state, sx, SWING_WORLD_W, SWING_WORLD_H, still, lite, ahead);
 
   // swingRev 6: star pickups, taken by touching them.
@@ -631,7 +633,7 @@ function drawSwingArtWorld(ctx: CanvasRenderingContext2D, state: SwingState, siz
   const starAt = new Set(state.starAnchors ?? []);
   const taken = new Set(state.starsTaken ?? []);
   // swingRev 14: only the hooks of the sections reached (the next section's appear when its start ledge is reached).
-  const hooksShown = state.assault ? (() => { const sec = state.sections![Math.min(state.sec ?? 0, state.sections!.length - 1)]!; return sec.hook0 + sec.hooks; })() : Infinity;
+  const hooksShown = state.assault && !state.rework ? (() => { const sec = state.sections![Math.min(state.sec ?? 0, state.sections!.length - 1)]!; return sec.hook0 + sec.hooks; })() : Infinity;
   state.anchors.forEach((a, i) => {
     const x = sx(a.x);
     if (x < -20 || x > SWING_WORLD_W + 20 || i >= hooksShown) return;
@@ -996,7 +998,9 @@ const tallArtGameV9Target = { ...swingGameFor(SWING_REV_TARGET), draw: drawSwing
 const tallArtGameV9Strict = { ...swingGameFor(SWING_REV_STRICT), draw: drawSwingArt };
 const expandArtGameV13 = { ...swingGameFor(SWING_REV_EXPAND), draw: drawSwingArt };
 const assaultArtGameV14 = { ...swingGameFor(SWING_REV_ASSAULT), draw: drawSwingArt };
+const reworkArtGameV15 = { ...swingGameFor(SWING_REV_REWORK), draw: drawSwingArt };
 export function swingArtGameFor(rev?: number): typeof swingArtGame {
+  if (rev === SWING_REV_REWORK) return reworkArtGameV15;
   if (rev === SWING_REV_ASSAULT) return assaultArtGameV14;
   if (rev === SWING_REV_EXPAND) return expandArtGameV13;
   if (rev === SWING_REV_STRICT) return tallArtGameV9Strict;
@@ -1338,20 +1342,26 @@ function drawAssault(ctx: CanvasRenderingContext2D, state: SwingState, sx: (x: n
       ctx.fillRect(x0, top, x1 - x0, bottom - top);
     }
   }
-  const ledges = state.ledges!.map((l, i) =>
-    i > k + 1 ? { ...l, x: far } : { ...l, kind: i === total ? 2 : i === k ? 0 : 1, crumble: 0 },
-  );
+  // swingRev 15: every ledge shows (the start ledge of the stretch in play carries the arrow, the last the flag; those
+  // reached gold trim); swingRev 14: only the section's two, by section index.
+  const cur = state.sections![k]!;
+  const reached = (i: number) => i === cur.from || state.sections!.some((sec, j) => j < (state.sec ?? 0) && sec.to === i);
+  const ledges = state.rework
+    ? state.ledges!.map((l, i) => ({ ...l, kind: i === state.ledges!.length - 1 ? 2 : i === cur.from ? 0 : 1, crumble: 0 }))
+    : state.ledges!.map((l, i) =>
+      i > k + 1 ? { ...l, x: far } : { ...l, kind: i === total ? 2 : i === k ? 0 : 1, crumble: 0 },
+    );
   const view: SwingState = {
     ...state,
     ledges,
-    ledgeTicks: ledges.map((_, i) => (i <= k ? 1 : 0)),
+    ledgeTicks: ledges.map((_, i) => (state.rework ? (reached(i) ? 1 : 0) : i <= k ? 1 : 0)),
     gates: (state.gates ?? []).map((g) => (g.x > limit ? { ...g, x: far } : g)),
     gems: (state.gems ?? []).map(([x, y]) => (x > limit ? [far, y] : [x, y]) as [number, number]),
   };
   drawExpand(ctx, view, sx, width, still, lite);
-  // The veil beyond the landing ledge.
+  // The veil beyond the landing ledge (swingRev 14; the limit is past the world on swingRev 15).
   const veil = sx(limit) + 24;
-  if (veil < width) {
+  if (veil < width && Number.isFinite(limit)) {
     const g = ctx.createLinearGradient(veil, 0, veil + 60, 0);
     g.addColorStop(0, "rgba(6,4,8,0)");
     g.addColorStop(1, "rgba(6,4,8,0.55)");
