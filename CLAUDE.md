@@ -787,7 +787,7 @@ Lovable still hosts and publishes the app (https://brain-blitz-duel.lovable.app)
   format; `replaySportsRun`, the one server replay). Each deals from a bank of seeds its oracle played to exactly 200
   through the server replay (`scripts/<game>-oracle.ts`, `scripts/<game>-bank.ts`, `src/lib/duel/<game>Bank.server.ts`,
   witnesses in `scripts/fixtures/<game>-witness.json`; `src/lib/duel/sports.server.ts` deals): Minigolf's five holes
-  (straight, dogleg, S-bend, split, grand; pars = best route + 1, stored in the puzzle), Speed Pool's layouts (cleared
+  (a ramp lane, dogleg, S-bend, two-route island, switchback finale; pars 3–5 = best route + 1, stored in the puzzle), Speed Pool's layouts (cleared
   without a miss or a foul), Curling's sheets (every opponent stone out, eight stones on the button). Effects
   `sportsFx.renderer.ts`; checks minigolf-check, pool-check, curling-check and arcade-standard-check's entries. No group
   map is on main yet: the tiles carry the Arcade border. Intro demos are stills until recorded.
