@@ -3,7 +3,7 @@
  * hole's par its best route + 1, and a witness run per seed (the best routes played back to back, each putt as soon
  * as the ball stops) that scores exactly 200 through the server's replay.
  *
- *   bun scripts/minigolf-bank.ts [--count=60] [--check]
+ *   bun scripts/minigolf-bank.ts [--count=60] [--jobs=4] [--candidates=90] [--check]
  *
  * Writes src/lib/duel/minigolfBank.server.ts and scripts/fixtures/minigolf-witness.json; `--check` rebuilds and
  * compares without writing. The candidate seeds are a fixed sequence, so a rebuild is byte for byte.
@@ -52,30 +52,53 @@ export function playRoutes(seed: number, pars: number[], routes: Putt[][]): { ev
   return { events, state: s, checkpoints };
 }
 
-if (import.meta.main) {
+/** Proves candidate n: its course's best routes (each par = best + 1, under the stroke limit) and a 200 witness. */
+function proveCandidate(n: number): { n: number; seed: number; pars: number[]; raw: string; finish: number } | { n: number; seed: number; dropped: string } {
+  const seed = candidateSeed(n);
+  const course = minigolfCourse(seed);
+  const routes = course.map((h) => bestRoute(h));
+  if (routes.some((r) => !r || r.strokes + 1 >= MINIGOLF_STROKE_LIMIT)) return { n, seed, dropped: "a hole without a proven route under the stroke limit" };
+  const pars = routes.map((r) => r!.strokes + 1);
+  const { events, state, checkpoints } = playRoutes(seed, pars, routes.map((r) => r!.putts));
+  const raw = encodeMinigolfRun({ seed, claimedScore: minigolfGameFor(pars).score(state), events, endTick: state.tick, checkpoints });
+  const replay = replayMinigolfRun(seed, raw, pars);
+  if (replay.score !== 200 || replay.flagged) return { n, seed, dropped: `witness scored ${replay.score}` };
+  return { n, seed, pars, raw, finish: state.finishTick };
+}
+
+const JOBS = Number(args.find((a) => a.startsWith("--jobs="))?.slice(7) ?? 4);
+const CANDIDATES = Number(args.find((a) => a.startsWith("--candidates="))?.slice(13) ?? Math.ceil(COUNT * 1.5));
+
+if (import.meta.main && args.includes("--child")) {
+  // One worker: every candidate n with n % jobs === part, one JSON line each.
+  const part = Number(args.find((a) => a.startsWith("--part="))?.slice(7) ?? 0);
+  for (let n = part; n < CANDIDATES; n += JOBS) console.log(JSON.stringify(proveCandidate(n)));
+} else if (import.meta.main) {
+  // The candidates are proved in JOBS worker processes; the bank keeps the first COUNT proven in candidate order, so
+  // a rebuild is byte for byte whatever the job count.
+  const outs = await Promise.all(
+    Array.from({ length: JOBS }, async (_, part) => {
+      const proc = Bun.spawn(["bun", new URL(import.meta.url).pathname, "--child", `--part=${part}`, `--jobs=${JOBS}`, `--candidates=${CANDIDATES}`], { stdout: "pipe", stderr: "ignore" });
+      return await new Response(proc.stdout).text();
+    }),
+  );
+  const results = outs
+    .flatMap((o) => o.split("\n").filter((l) => l.startsWith("{")))
+    .map((l) => JSON.parse(l) as ReturnType<typeof proveCandidate>)
+    .sort((a, b) => a.n - b.n);
   const bank: { seed: number; pars: number[] }[] = [];
   const witness: Record<string, string> = {};
   let tried = 0;
-  for (let n = 0; bank.length < COUNT && n < COUNT * 4; n++) {
+  for (const r of results) {
+    if (bank.length >= COUNT) break;
     tried++;
-    const seed = candidateSeed(n);
-    const course = minigolfCourse(seed);
-    const routes = course.map((h) => bestRoute(h));
-    if (routes.some((r) => !r || r.strokes + 1 >= MINIGOLF_STROKE_LIMIT)) {
-      console.log(`seed ${seed}: dropped (a hole without a proven route)`);
+    if ("dropped" in r) {
+      console.log(`seed ${r.seed}: dropped (${r.dropped})`);
       continue;
     }
-    const pars = routes.map((r) => r!.strokes + 1);
-    const { events, state, checkpoints } = playRoutes(seed, pars, routes.map((r) => r!.putts));
-    const raw = encodeMinigolfRun({ seed, claimedScore: minigolfGameFor(pars).score(state), events, endTick: state.tick, checkpoints });
-    const replay = replayMinigolfRun(seed, raw, pars);
-    if (replay.score !== 200 || replay.flagged) {
-      console.log(`seed ${seed}: dropped (witness scored ${replay.score})`);
-      continue;
-    }
-    bank.push({ seed, pars });
-    witness[String(seed)] = raw;
-    console.log(`seed ${seed}: pars ${pars.join(" ")} · witness ${(state.finishTick / 60).toFixed(1)} s`);
+    bank.push({ seed: r.seed, pars: r.pars });
+    witness[String(r.seed)] = r.raw;
+    console.log(`seed ${r.seed}: pars ${r.pars.join(" ")} · witness ${(r.finish / 60).toFixed(1)} s`);
   }
   const body = `/**
  * Minigolf golfRev 1's bank: ${bank.length} courses (of ${tried} candidates) whose five holes the putt search

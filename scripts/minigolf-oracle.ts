@@ -257,26 +257,41 @@ export interface Route {
 }
 
 /**
- * The fewest putts that hole h from its tee, searched to `maxDepth` (aces by a full sweep; two and three putts by
- * laying up to the spots nearest the cup and finding a holing putt from there). Null when none within maxDepth.
+ * The fewest putts that hole h from its tee, searched to `maxDepth` putts by a beam: each level keeps the `beam`
+ * resting spots nearest the cup by walking distance (one per 6 px cell) and tries a holing putt from each (the straight
+ * line), so a route of n putts is n − 1 lay-ups and a holing putt. Aces come from the first sweep. Null when none.
  */
-export function bestRoute(h: MgHole, maxDepth = 3, beam = 40): Route | null {
+export function bestRoute(h: MgHole, maxDepth = 4, beam = 14): Route | null {
+  type Node = { x: number; y: number; dist: number; putts: Putt[] };
   const t = h.tee;
-  const first = leaves(h, t.x, t.y, 1.5, 20);
-  const ace = first.find((l) => l.dist < 0);
-  if (ace) return { strokes: 1, putts: [ace.putt] };
-  for (const l of first.slice(0, beam)) {
-    const hole = holingPutts(h, l.x, l.y);
-    if (hole.length) return { strokes: 2, putts: [l.putt, hole[0]!] };
-  }
-  if (maxDepth < 3) return null;
-  for (const l of first.slice(0, Math.ceil(beam / 4))) {
-    const second = leaves(h, l.x, l.y, 3, 40);
-    for (const m of second.slice(0, 12)) {
-      if (m.dist < 0) return { strokes: 2, putts: [l.putt, m.putt] };
-      const hole = holingPutts(h, m.x, m.y);
-      if (hole.length) return { strokes: 3, putts: [l.putt, m.putt, hole[0]!] };
+  let frontier: Node[] = [{ x: t.x, y: t.y, dist: pathField(h).at(t.x, t.y), putts: [] }];
+  for (let depth = 1; depth <= maxDepth; depth++) {
+    const next: Node[] = [];
+    const seen = new Set<string>();
+    for (const n of frontier) {
+      // A holing putt from here finishes the route at this depth.
+      if (n.putts.length > 0) {
+        const hole = holingPutts(h, n.x, n.y);
+        if (hole.length) return { strokes: depth, putts: [...n.putts, hole[0]!] };
+      }
+      if (depth === maxDepth) continue;
+      const opts = leaves(h, n.x, n.y, depth === 1 ? 2 : 4, depth === 1 ? 25 : 50);
+      const ace = opts.find((l) => l.dist < 0);
+      if (ace) return { strokes: depth, putts: [...n.putts, ace.putt] };
+      for (const l of opts) {
+        if (!Number.isFinite(l.dist) || l.dist >= n.dist) continue;
+        const key = `${Math.round(l.x / 256 / 6)},${Math.round(l.y / 256 / 6)}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        next.push({ x: l.x, y: l.y, dist: l.dist, putts: [...n.putts, l.putt] });
+      }
     }
+    if (depth === 1 && frontier.length === 1 && frontier[0]!.putts.length === 0) {
+      // From the tee: no holing check above (an ace is the sweep's), so fall through to the lay-ups.
+    }
+    next.sort((a, b) => a.dist - b.dist);
+    frontier = next.slice(0, beam);
+    if (!frontier.length) return null;
   }
   return null;
 }

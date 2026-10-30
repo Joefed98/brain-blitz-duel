@@ -38,9 +38,9 @@ export const MG_CUP_R = 8;
 export const MG_CAPTURE_V = fp(3.2);
 /** A putt's speed from the softest to the hardest pull (units a tick). */
 export const MG_MIN_V = fp(0.8);
-export const MG_MAX_V = fp(11);
+export const MG_MAX_V = fp(8);
 /** Rolling friction: drag in 4096ths a tick and a constant slowing (units a tick). */
-export const MG_DRAG = 80;
+export const MG_DRAG = 96;
 export const MG_DECEL = 6;
 /** Below this speed a ball on a gentle slope stops. */
 export const MG_STOP_V = 22;
@@ -148,7 +148,9 @@ interface Template {
   cup: [number, number];
   /** Cup nudge range (px, each way). */
   cupJig: number;
-  /** Logs: ends (px) and a spare field (0). */
+  /** Fixed timber walls inside the outline (never nudged): ends (px) and a spare field (0). */
+  walls: [number, number, number, number, number][];
+  /** Diagonal timber banks (nudged by the seed): ends (px) and a spare field (0). */
   logs: [number, number, number, number, number][];
   rocks: [number, number, number][];
   planters: [number, number, number][];
@@ -159,82 +161,92 @@ interface Template {
   jig: number;
 }
 
-/** The five holes, each bigger than the last (px, hole space). */
+/**
+ * The five holes, each bigger and longer than the last (px, hole space; 30 Oct 2026, the longer course): a long lane
+ * up a ramp through a boulder field, a long dogleg round a pond, a three-leg S-bend, two routes round an island pond
+ * (a ramp one way, boulders the other) and a three-leg switchback finale. `walls` are fixed timber walls inside the
+ * outline (never nudged); `logs` are the diagonal banks the seed nudges.
+ */
 const TEMPLATES: readonly Template[] = [
   {
     shape: "straight",
-    w: 230,
-    h: 380,
-    poly: [0, 30, 30, 0, 200, 0, 230, 30, 230, 350, 200, 380, 30, 380, 0, 350],
-    tee: [115, 335],
-    cup: [115, 62],
-    cupJig: 30,
-    logs: [],
-    rocks: [[115, 200, 20]],
-    planters: [],
+    w: 300,
+    h: 520,
+    poly: [0, 40, 40, 0, 260, 0, 300, 40, 300, 480, 260, 520, 40, 520, 0, 480],
+    tee: [150, 482],
+    cup: [150, 52],
+    cupJig: 24,
+    walls: [],
+    logs: [[18, 200, 78, 150, 0], [282, 260, 222, 210, 0]],
+    rocks: [[110, 340, 17], [200, 305, 16], [150, 395, 13]],
+    planters: [[112, 92, 14], [188, 92, 14]],
     ponds: [],
-    slopes: [[20, 120, 210, 160, 0, 1, 2], [40, 30, 190, 100, 1, 0, 1]],
-    jig: 14,
+    slopes: [[14, 150, 286, 245, 0, 1, 2], [14, 14, 286, 125, 1, 0, 1]],
+    jig: 8,
   },
   {
     shape: "dogleg",
-    w: 300,
-    h: 440,
-    poly: [0, 40, 40, 0, 260, 0, 300, 40, 300, 150, 270, 170, 140, 170, 140, 440, 0, 440],
-    tee: [70, 400],
-    cup: [240, 80],
-    cupJig: 18,
-    logs: [[150, 120, 200, 168, 0]],
-    rocks: [[70, 250, 16]],
-    planters: [[268, 135, 15]],
-    ponds: [[34, 34, 20]],
-    slopes: [[10, 180, 130, 300, 0, 1, 2]],
-    jig: 10,
+    w: 340,
+    h: 580,
+    poly: [0, 40, 40, 0, 300, 0, 340, 40, 340, 170, 300, 205, 150, 205, 150, 580, 0, 580],
+    tee: [75, 545],
+    cup: [292, 70],
+    cupJig: 14,
+    walls: [],
+    logs: [[6, 90, 66, 16, 0]],
+    rocks: [[60, 330, 15], [105, 420, 13]],
+    planters: [[248, 48, 13], [262, 132, 12]],
+    ponds: [[190, 140, 24]],
+    slopes: [[8, 360, 142, 470, 0, 1, 2], [160, 10, 330, 195, 0, 1, 1]],
+    jig: 6,
   },
   {
     shape: "sbend",
-    w: 330,
-    h: 520,
-    poly: [0, 190, 190, 190, 190, 30, 220, 0, 300, 0, 330, 30, 330, 330, 140, 330, 140, 520, 0, 520],
-    tee: [70, 480],
-    cup: [262, 60],
-    cupJig: 16,
-    logs: [[150, 196, 186, 232, 0], [214, 290, 262, 326, 0]],
-    rocks: [[110, 262, 15]],
-    planters: [[304, 118, 14]],
-    ponds: [],
-    slopes: [[200, 200, 320, 320, -1, 1, 2], [200, 40, 320, 150, -1, 0, 1]],
-    jig: 8,
+    w: 370,
+    h: 620,
+    poly: [0, 230, 220, 230, 220, 30, 250, 0, 340, 0, 370, 30, 370, 390, 150, 390, 150, 620, 0, 620],
+    tee: [75, 585],
+    cup: [300, 52],
+    cupJig: 12,
+    walls: [],
+    logs: [[8, 300, 58, 240, 0], [362, 330, 318, 382, 0]],
+    rocks: [[105, 480, 14], [290, 210, 14], [180, 320, 12]],
+    planters: [[256, 74, 12], [346, 96, 12]],
+    ponds: [[288, 330, 18]],
+    slopes: [[226, 120, 364, 262, 0, 1, 2], [8, 400, 142, 560, 1, 0, 1]],
+    jig: 5,
   },
   {
     shape: "split",
-    w: 360,
-    h: 600,
-    poly: [0, 60, 60, 0, 300, 0, 360, 60, 360, 540, 300, 600, 60, 600, 0, 540],
-    tee: [180, 556],
-    cup: [180, 72],
-    cupJig: 22,
-    logs: [[20, 230, 70, 180, 0], [340, 230, 290, 180, 0]],
-    rocks: [[110, 440, 14], [250, 440, 14]],
-    planters: [[146, 120, 14], [214, 120, 14]],
-    ponds: [[180, 320, 64]],
-    slopes: [[30, 400, 150, 470, 0, 1, 1], [210, 400, 330, 470, 0, 1, 1]],
-    jig: 8,
+    w: 390,
+    h: 660,
+    poly: [0, 60, 60, 0, 330, 0, 390, 60, 390, 600, 330, 660, 60, 660, 0, 600],
+    tee: [195, 625],
+    cup: [195, 64],
+    cupJig: 16,
+    walls: [[195, 180, 195, 268, 0], [195, 432, 195, 540, 0]],
+    logs: [[16, 560, 62, 610, 0], [374, 150, 330, 104, 0]],
+    rocks: [[300, 310, 15], [282, 420, 14], [338, 365, 12]],
+    planters: [[150, 104, 14], [240, 104, 14]],
+    ponds: [[195, 350, 70]],
+    slopes: [[14, 250, 120, 450, 0, 1, 2], [30, 14, 360, 150, -1, 0, 1]],
+    jig: 5,
   },
   {
     shape: "grand",
-    w: 380,
-    h: 680,
-    poly: [0, 680, 170, 680, 170, 520, 380, 520, 380, 60, 320, 0, 120, 0, 60, 60, 60, 300, 0, 360],
-    tee: [85, 640],
-    cup: [190, 70],
-    cupJig: 14,
-    logs: [[230, 350, 270, 310, 0], [90, 230, 130, 270, 0]],
-    rocks: [[300, 420, 16], [140, 140, 14]],
-    planters: [[158, 72, 14], [222, 72, 14]],
-    ponds: [[300, 220, 44]],
-    slopes: [[180, 360, 370, 490, -1, 0, 2], [70, 160, 200, 250, 0, 1, 1]],
-    jig: 6,
+    w: 390,
+    h: 690,
+    poly: [0, 40, 40, 0, 350, 0, 390, 40, 390, 650, 350, 690, 40, 690, 0, 650],
+    tee: [55, 648],
+    cup: [330, 100],
+    cupJig: 8,
+    walls: [[0, 460, 245, 460, 0], [150, 230, 390, 230, 0]],
+    logs: [[310, 262, 365, 305, 0], [20, 420, 66, 376, 0]],
+    rocks: [[180, 600, 14], [235, 545, 12], [120, 300, 12]],
+    planters: [[288, 64, 13], [356, 150, 13], [232, 120, 11]],
+    ponds: [[215, 350, 30], [80, 120, 22]],
+    slopes: [[6, 240, 146, 452, 0, 1, 2], [10, 470, 384, 684, 0, 1, 1], [156, 8, 384, 222, 0, -1, 1]],
+    jig: 4,
   },
 ];
 
@@ -258,13 +270,19 @@ export function minigolfCourse(seed: number): MgHole[] {
     const tee = P(t.tee[0], t.tee[1]);
     const cupJx = jig() * t.cupJig / Math.max(1, t.jig);
     const cup = P(t.cup[0] + Math.trunc(cupJx), t.cup[1] + Math.trunc((jig() * t.cupJig) / Math.max(1, t.jig * 3)));
-    const logs: Seg[] = t.logs.map(([ax, ay, bx, by]) => {
+    const walls: Seg[] = t.walls.map(([ax, ay, bx, by]) => {
+      const a = P(ax, ay);
+      const b = P(bx, by);
+      return { ax: a.x, ay: a.y, bx: b.x, by: b.y, r: fp(5) };
+    });
+    const banks: Seg[] = t.logs.map(([ax, ay, bx, by]) => {
       const dx = jig();
       const dy = jig();
       const a = P(ax + dx, ay + dy);
       const b = P(bx + dx, by + dy);
       return { ax: a.x, ay: a.y, bx: b.x, by: b.y, r: fp(5) };
     });
+    const logs = [...walls, ...banks];
     const circ = ([x, y, r]: [number, number, number]): MgCircle => {
       const p = P(x + jig(), y + jig());
       return { x: p.x, y: p.y, r: fp(r) };

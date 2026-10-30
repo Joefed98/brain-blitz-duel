@@ -95,8 +95,28 @@ const settle = (s: MinigolfState) => {
   let s = game.init(e0.seed);
   const course = s.course;
   const split = course.findIndex((h) => h.ponds.length > 0);
-  s = { ...s, hole: split, x: course[split]!.tee.x, y: course[split]!.tee.y, fromX: course[split]!.tee.x, fromY: course[split]!.tee.y, strokes: 0 };
   const pond = course[split]!.ponds[0]!;
+  // A clear spot on the fairway 20 px off the pond's edge (the tee's straight line may cross a timber wall).
+  const h = course[split]!;
+  const clearAt = (x: number, y: number) =>
+    insidePoly(h.poly, x, y) &&
+    [...h.rocks, ...h.planters, ...h.ponds].every((c) => Math.hypot(c.x - x, c.y - y) > c.r + fp(MG_BALL_R + 2)) &&
+    h.segs.every((g) => {
+      const dx = g.bx - g.ax, dy = g.by - g.ay;
+      const t = Math.max(0, Math.min(1, ((x - g.ax) * dx + (y - g.ay) * dy) / (dx * dx + dy * dy || 1)));
+      return Math.hypot(g.ax + dx * t - x, g.ay + dy * t - y) > g.r + fp(MG_BALL_R + 2);
+    });
+  let from = { x: h.tee.x, y: h.tee.y };
+  for (let k = 0; k < 16; k++) {
+    const a = (k * Math.PI) / 8;
+    const x = Math.round(pond.x + Math.cos(a) * (pond.r + fp(20)));
+    const y = Math.round(pond.y + Math.sin(a) * (pond.r + fp(20)));
+    if (clearAt(x, y)) {
+      from = { x, y };
+      break;
+    }
+  }
+  s = { ...s, hole: split, x: from.x, y: from.y, fromX: from.x, fromY: from.y, strokes: 0 };
   // The first power on the straight line to the pond's centre that puts the ball in (a rock may stop a soft one).
   let after = s;
   for (let c = 200; c <= 1000 && after.waters === 0; c += 50) after = settle(putt(s, Math.round((pond.x - s.x) / 64), Math.round((pond.y - s.y) / 64), c));
