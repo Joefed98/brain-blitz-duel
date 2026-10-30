@@ -47,6 +47,7 @@ import { decodeSkylineRun, replaySkylineRun } from "./skyline";
 import { SKYLINE_REV_EXPAND, SKYLINE_REV_LIFT } from "@/lib/arcade/skyline";
 import { pinIsExpanded } from "@/lib/arcade/pinball";
 import { decodeSnakeRun, replaySnakeRun } from "./snake";
+import { snakeStdParts } from "@/lib/arcade/snake";
 import { decodeBreakerRun, replayBreakerRun } from "./breaker";
 import { breakerStdParts, brkSkillPaid, brkWallSize } from "@/lib/arcade/breaker";
 import { hoverFeatureBonus, hoverStandardParts } from "@/lib/arcade/hover";
@@ -1234,6 +1235,8 @@ function gradeUnderRev(
       extraDetail = {
         pellets: run.pellets,
         ...(puzzle.snakeRev ? { snakeRev: puzzle.snakeRev, rocks: run.rocks, rocksDodged: run.rocksDodged, rockHit: run.rockHit } : {}),
+        // snakeRev 11 (the arcade scoring standard): each part's points (core, gold, combo, lane, warp).
+        ...(run.state.std ? { meteorParts: snakeStdParts(run.state) } : {}),
         length: run.length,
         survived: run.survived,
         endedSeconds: run.endedSeconds,

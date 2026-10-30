@@ -106,7 +106,18 @@ import {
   WAV_R11_SKILL_PAY,
 } from "@/lib/arcade/wavefront";
 import { INK_CLOUD_LEVELS, INK_FEATURE_MAX, INK_RAW_SHAMROCK, INK_RAW_SILVER, INK_RAW_STAR, INK_RAW_TRICK, INK_V11_SILVER_PER_LEVEL, INK_V11_SKILL_PAY } from "@/lib/arcade/inkBridge";
-import { SNAKE_V9_CAPS, SNAKE_V9_COLS, SNAKE_V9_ROWS } from "@/lib/arcade/snake";
+import {
+  SNAKE_STD_CAPS,
+  SNAKE_STD_COMBO_TICKS,
+  SNAKE_STD_CORE_MAX,
+  SNAKE_STD_GOLDS,
+  SNAKE_STD_LANE_POINTS,
+  SNAKE_STD_LANE_RIDE,
+  SNAKE_STD_WARP_TICKS,
+  SNAKE_V9_COLS,
+  SNAKE_V9_ROWS,
+  SNAKE_STD_WARP_POINTS,
+} from "@/lib/arcade/snake";
 import { BEAT_V9_CAPS, BEAT_V9_SKILL_PAY } from "@/lib/arcade/beat";
 import {
   PIN_MULT_MAX,
@@ -725,10 +736,10 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Gold stars, lanes, wormholes:", detail: "bonus points." },
         { action: "Quick stars build a combo;", detail: "wormholes and violet lanes are quick, risky shortcuts.", helpOnly: true },
         { action: "At 20 stars,", detail: "a meteor shower drops 3 rocks!", helpOnly: true },
-        { action: "Wormholes:", detail: "three pairs of swirling mouths. Go into one and you come straight out of its twin, still heading the same way, so look before you leap. A star eaten within a second of a trip is a warp star (+2).", helpOnly: true },
-        { action: "Gold comet stars:", detail: "about every 7 s a gold star appears for 5 s and fades. Eat it for 1 to 5 bonus points, more the sooner you get there. It doesn't make you longer.", helpOnly: true },
-        { action: "Violet speed lanes:", detail: "one row and two columns. Travelling along one you move faster; from a ride's sixth square, every 4 squares score 1.", helpOnly: true },
-        { action: "Combo:", detail: "eat stars within 1.25 s of each other; from the third in a row each star adds 1 to 3 bonus points.", helpOnly: true },
+        { action: "Wormholes:", detail: `three pairs of swirling mouths. Go into one and you come straight out of its twin, still heading the same way, so look before you leap. A star eaten within ${SNAKE_STD_WARP_TICKS / 60} s of a trip is a warp star (+${SNAKE_STD_WARP_POINTS}).`, helpOnly: true },
+        { action: "Gold comet stars:", detail: `about every 7 s a gold star appears for 5 s and fades. The ${SNAKE_STD_GOLDS} gold stars share ${SNAKE_STD_CAPS.gold} points: each is worth about ${(SNAKE_STD_CAPS.gold / SNAKE_STD_GOLDS).toFixed(1)} the moment it appears, falling evenly to 0 as it fades. It doesn't make you longer.`, helpOnly: true },
+        { action: "Violet speed lanes:", detail: `one row and two columns. Travelling along one you move faster; every ride of ${SNAKE_STD_LANE_RIDE} squares in a row along a lane scores ${SNAKE_STD_LANE_POINTS}.`, helpOnly: true },
+        { action: "Combo:", detail: `eat stars within ${SNAKE_STD_COMBO_TICKS / 60} s of each other; from the third in a row each star adds 1 bonus point.`, helpOnly: true },
         { action: "Rocks hit only your head.", detail: "A rock on your tail does nothing, and your tail passes through rocks. A big rock fills a 2 × 2 block: keep your head off all four squares.", helpOnly: true },
         { action: "Rocks start at length 9:", detail: "one more every 4 stars, up to 11. Stars never appear on a rock.", helpOnly: true },
         { action: "The meteor shower", detail: "comes once, when you reach 20 stars: three red shadows, then three rocks land together 2 s later. With the shower, at most 14 rocks.", helpOnly: true },
@@ -736,7 +747,12 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Taller and wider field:", detail: `${SNAKE_V9_COLS} squares across and ${SNAKE_V9_ROWS} down, so stars can be further away.`, helpOnly: true },
         { action: "Everyone gets", detail: "the same stars, and every rock lands on the same square at the same moment.", helpOnly: true },
       ],
-      score: `${liveBandHelp("snake", "Each star eaten counts 1.", { more: "More stars", good: (u) => `eats ${u} stars` })} Gold stars (up to ${SNAKE_V9_CAPS.gold}), combos (up to ${SNAKE_V9_CAPS.combo}), lane rides (up to ${SNAKE_V9_CAPS.lane}) and warp stars (up to ${SNAKE_V9_CAPS.warp}) add up to 50 more, to {max}.`,
+      // snakeRev 11 (the arcade scoring standard): stars on a straight line to 120, then four fixed feature parts, 200 in all.
+      score: liveBandHelp("snake", "Each star eaten counts the same.", {
+        more: "More stars",
+        good: (u) => `eats ${u} stars`,
+        finish: `Gold stars add up to ${SNAKE_STD_CAPS.gold}, combos up to ${SNAKE_STD_CAPS.combo}, lane rides up to ${SNAKE_STD_CAPS.lane} and warp stars up to ${SNAKE_STD_CAPS.warp}: ${SNAKE_STD_CORE_MAX} + ${SNAKE_STD_CAPS.gold + SNAKE_STD_CAPS.combo + SNAKE_STD_CAPS.lane + SNAKE_STD_CAPS.warp} = ${SNAKE_STD_CORE_MAX + SNAKE_STD_CAPS.gold + SNAKE_STD_CAPS.combo + SNAKE_STD_CAPS.lane + SNAKE_STD_CAPS.warp}. A crash ends the run.`,
+      }),
     },
     cross: {
       goal: "Get across the traffic as many times as you can.",

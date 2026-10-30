@@ -524,7 +524,7 @@ section("Intro and \"?\" help");
   // Expansion E9 (docs/expansions/e9.md) moved Rally on to rallyRev 10: its help reads that curve (a good run and the base top).
   if (want("rally")) ok(/second bumper/.test(help("rally")) && /45 s/.test(help("rally")) && PUZZLE_INSTRUCTIONS.rally.score.includes(`up to ${RALLY_V10_BASE_TOP}. A good run (100 points) counts ${bandUnitsFor(RALLY_V10_BAND_CURVE, 100)}`) && /5 a hit/.test(help("rally")) && /counts 6/.test(help("rally")) && !/\+3|scores 3/.test(help("rally")), "Rally: the second bumper from 45 s, the top and a good run new rooms score on (rallyRev 10 since expansion E9) and one value each for a gold hit (5) and a pink pad (6)");
   if (want("beat")) ok(PUZZLE_INSTRUCTIONS.beat.score.includes("A good run (100 points) reaches 824"), "Tempo: a good run on the curve rooms deal (beatRev 9 since expansion E2)");
-  if (want("snake")) ok(/length 9/.test(help("snake")) && /every 4 stars, up to 11/.test(help("snake")) && /at most 14 rocks/.test(help("snake")) && PUZZLE_INSTRUCTIONS.snake.score.includes("150 at 31"), "Meteor: rocks from length 9, every 4 stars, up to 11 (14 with the shower), and the snakeRev 9 top (expansion E2)");
+  if (want("snake")) ok(/length 9/.test(help("snake")) && /every 4 stars, up to 11/.test(help("snake")) && /at most 14 rocks/.test(help("snake")) && PUZZLE_INSTRUCTIONS.snake.score.includes("up to 120"), "Meteor: rocks from length 9, every 4 stars, up to 11 (14 with the shower), and the top rooms deal (snakeRev 11's core since the arcade scoring standard)");
   if (want("orbit")) ok(/Any black hole ahead/.test(help("orbit")) && /any part of the rocket/.test(help("orbit")), "Orbit: any black hole ahead swallows any part of the rocket");
 }
 

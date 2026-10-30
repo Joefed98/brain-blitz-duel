@@ -32,7 +32,7 @@ import { LIVE_BANDS } from "../src/lib/arcade/liveBands";
 import {
   snakeGameFor, snakeGoldWorth, snakeRow, snakeCol, snakeRockCells, snakeRockSpan, snakeStepTicksFor, snakeStepTicks, snakeV9Bonus,
   snakeWorldHForRev, snakeWorldWForRev,
-  SNAKE_REV_200, SNAKE_REV_10, SNAKE_V9_BAND_CURVE, SNAKE_V9_CAPS, SNAKE_V9_COLS, SNAKE_V9_ROWS, SNAKE_V9_H, SNAKE_V9_WORLD_W,
+  SNAKE_REV_200, SNAKE_REV_10, SNAKE_REV_STD, SNAKE_V11_BAND_CURVE, SNAKE_V9_BAND_CURVE, SNAKE_V9_CAPS, SNAKE_V9_COLS, SNAKE_V9_ROWS, SNAKE_V9_H, SNAKE_V9_WORLD_W,
   SNAKE_GOLD_LIFE, SNAKE_V10_GOLD_LIFE, SNAKE_V10_BIG_ROCKS, SNAKE_INPUT_TURN, SNAKE_RUN_TICKS, SNAKE_GOLD_MIN, SNAKE_GOLD_SPAN,
   type SnakeState,
 } from "../src/lib/arcade/snake";
@@ -56,8 +56,10 @@ const c = (x: number) => snakeCol(x, COLS);
 const touching = (a: number, b: number) => Math.abs(r(a) - r(b)) <= 1 && Math.abs(c(a) - c(b)) <= 1;
 
 /* 1. Wiring. */
-ok((generatePuzzle("snake") as any).snakeRev === SNAKE_REV_10, "rooms deal snakeRev 10");
-ok(LIVE_BANDS.snake.rev === SNAKE_REV_10 && LIVE_BANDS.snake.curve === SNAKE_V9_BAND_CURVE, "the help reads snakeRev 10 on SNAKE_V9_BAND_CURVE");
+// The arcade scoring standard (29 Oct 2026): rooms moved on to snakeRev 11, snakeRev 10's play on new scoring
+// (snake-standard-check); snakeRev 10 itself stays proved below.
+ok((generatePuzzle("snake") as any).snakeRev === SNAKE_REV_STD, "rooms deal snakeRev 11 (snakeRev 10 before the arcade scoring standard)");
+ok(LIVE_BANDS.snake.rev === SNAKE_REV_STD && LIVE_BANDS.snake.curve === SNAKE_V11_BAND_CURVE, "the help reads snakeRev 11 on SNAKE_V11_BAND_CURVE (snakeRev 10: SNAKE_V9_BAND_CURVE)");
 ok(ROUND_MAX.snake === 200, "ROUND_MAX: Meteor is 200");
 ok(snakeWorldWForRev(SNAKE_REV_10) === SNAKE_V9_WORLD_W && snakeWorldHForRev(SNAKE_REV_10) === SNAKE_V9_H, "snakeRev 10 plays in snakeRev 9's world");
 
