@@ -20,6 +20,10 @@
  *   3. fails unless the server's stored breakdown (the grade response's parts) is a finish on the standard's 150 base,
  *      the stored score is at least 150, and any breakdown the reveal prints starts "150 + ".
  *
+ * Room rounds: the production bundle's own room deal (`buildRoomPuzzles`, rooms of every puzzle category from fixed
+ * seeds) and room grader (`gradeRoomAnswer`, an answer received in the puzzle phase), so the room path is proved on the
+ * built code too; only the database round trip is left out. The daily and challenges grade through the same function.
+ *
  * Default games: at least one from each standard category (Logic, Pattern, Number, Word, Speed and Attention), so every
  * category's grader module is proved present in the production bundle. Rooms, the daily and challenges grade through
  * the same gradeAnswer in the same server chunk (a room needs the database, which a check cannot reach). Pass game ids
@@ -29,10 +33,10 @@
  *   bun scripts/standard-live-check.ts [games…] [--all] [--shots=<dir>]
  */
 import { spawn, spawnSync, type ChildProcess } from "node:child_process";
-import { existsSync } from "node:fs";
+import { existsSync, readdirSync } from "node:fs";
+import { resolve } from "node:path";
 
 import type { Browser, Page } from "playwright";
-import { fromJSON } from "seroval";
 
 import { decodeSides, rotateMask, tileOpenings } from "../src/lib/duel/logic";
 import { encodePipesTapAnswer, pipesAfterTaps } from "../src/lib/duel/depth4/pipesTaps";
@@ -163,9 +167,30 @@ interface Round {
   deal: PuzzleData;
 }
 
+/** A server function's response node (seroval): the objects, arrays, strings, numbers and constants a deal holds. */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function decodeNode(node: any): unknown {
+  switch (node?.t) {
+    case 0:
+    case 1:
+      return node.s;
+    case 2:
+      return node.s === 2 ? true : node.s === 3 ? false : node.s === 0 ? null : undefined;
+    case 9:
+      return (node.a as unknown[]).map(decodeNode);
+    case 10: {
+      const out: Record<string, unknown> = {};
+      (node.p.k as string[]).forEach((k, i) => (out[k] = decodeNode(node.p.v[i])));
+      return out;
+    }
+    default:
+      return undefined;
+  }
+}
+
 /** The practice deal's response → the whole puzzle: its public half and its sealed half opened with the secret. */
 async function openDeal(text: string): Promise<PuzzleData> {
-  const out = fromJSON(JSON.parse(text)) as { result: { puzzle: Record<string, unknown>; sealed: string } };
+  const out = decodeNode(JSON.parse(text)) as { result: { puzzle: Record<string, unknown>; sealed: string } };
   const [iv, cipher] = out.result.sealed.split(".");
   const bytes = (b64: string) => Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
   const key = await crypto.subtle.importKey("raw", await crypto.subtle.digest("SHA-256", new TextEncoder().encode(SEAL_SECRET)), "AES-GCM", false, ["decrypt"]);
@@ -198,7 +223,11 @@ async function openRound(browser: Browser, game: PuzzleType, clock: boolean, swa
     if (/"k":\["type","example"\]/.test(body)) {
       const response = await route.fetch();
       const text = await response.text();
-      deal = await openDeal(text);
+      try {
+        deal = await openDeal(text);
+      } catch (e) {
+        errors.push(`deal: ${(e as Error).message} (${text.slice(0, 200)})`);
+      }
       return route.fulfill({ response, body: text });
     }
     if (/"sealed"/.test(body) && /"answer"/.test(body)) {
@@ -228,7 +257,7 @@ async function openRound(browser: Browser, game: PuzzleType, clock: boolean, swa
   await ready.click();
   await page.locator("[data-game-stage], [data-arcade-play]").first().waitFor({ timeout: 30_000 });
   await page.waitForTimeout(1200);
-  if (!deal) throw new Error("no practice deal seen");
+  if (!deal) throw new Error(`no practice deal opened${errors.length ? `: ${errors.join(" | ")}` : ""}`);
   return { page, close: () => context.close(), errors, graded: () => gradeBody, deal };
 }
 
@@ -299,6 +328,47 @@ async function playOne(browser: Browser, game: PuzzleType): Promise<void> {
   }
 }
 
+/** Room seeds whose rooms (every puzzle category) the room rounds are dealt from. */
+const ROOM_SEEDS = [6100, 6107, 6114];
+const ROOM_CATEGORIES = ["word", "number", "speed", "attention", "pattern", "logic"] as const;
+
+/**
+ * Room rounds on the production bundle: the built server chunks' own `buildRoomPuzzles` deals a room from a seed (what
+ * startGameFn stores) and their `gradeRoomAnswer` grades each round's full answer, received in the puzzle phase
+ * half-way through the clock (what submitAnswerFn calls). Only the database round trip is left out.
+ */
+async function roomRounds(): Promise<number> {
+  const dir = resolve(OUT, "server/_ssr");
+  const chunk = (prefix: string) => {
+    const name = readdirSync(dir).find((f) => f.startsWith(prefix) && f.endsWith(".mjs"));
+    if (!name) throw new Error(`no ${prefix}*.mjs in the production build`);
+    return resolve(dir, name);
+  };
+  const gen = (await import(chunk("generate.server-"))) as { buildRoomPuzzles: (o: object) => { puzzles: PuzzleData[] } };
+  const room = (await import(chunk("roomGrade.server-"))) as {
+    gradeRoomAnswer: (p: PuzzleData, r: { phase: string; phaseStartedAt: string | null; nowMs: number }, a: string, ms: number) => { graded: { score: number; isCorrect: boolean; extra?: Record<string, unknown> } };
+  };
+  let rounds = 0;
+  for (const seed of ROOM_SEEDS) {
+    const { puzzles } = gen.buildRoomPuzzles({ seed, categories: ROOM_CATEGORIES });
+    for (const p of puzzles) {
+      if (!STANDARD_STAMPS[p.type] || SIM_SCORED.has(p.type)) continue;
+      const answer = fullAnswer(p.type, p);
+      if (answer === null) continue;
+      const limit = puzzleTimeLimitMs(p);
+      const now = Date.now();
+      // Received with half the clock left (the prep time before the clock starts is added back by the receipt).
+      const { graded } = room.gradeRoomAnswer(p, { phase: "puzzle", phaseStartedAt: new Date(now - limit / 2 - 10_000).toISOString(), nowMs: now }, answer, limit / 2);
+      const parts = graded.extra?.["parts"] as { kind?: string; base?: number } | undefined;
+      const ok = graded.isCorrect && parts?.kind === "finish" && parts.base === 150 && graded.extra?.["standard"] === 1 && graded.score >= 150;
+      report.push(`${p.type.padEnd(12)} room   score ${String(graded.score).padStart(3)}  stored ${parts ? `${parts.kind} base ${parts.base}${graded.extra?.["standard"] === 1 ? " standard" : ""}` : "(no parts)"}  (room seed ${seed})`);
+      if (!ok) failures.push(`${p.type} (room seed ${seed}): the production room grade stored ${parts ? `${parts.kind} on base ${parts.base}` : "no parts"}, score ${graded.score}: not the standard's 150 + speed + bonus`);
+      rounds++;
+    }
+  }
+  return rounds;
+}
+
 if (!CHROMIUM) {
   console.log("FAIL: environment: no Chromium (set PLAYWRIGHT_CHROMIUM)");
   process.exit(1);
@@ -321,10 +391,16 @@ try {
   await browser.close();
   server.kill();
 }
+let roomCount = 0;
+try {
+  roomCount = await roomRounds();
+} catch (e) {
+  failures.push(`room rounds: ${(e as Error).message.split("\n")[0]}`);
+}
 console.log(report.join("\n"));
 if (failures.length) {
   console.log(failures.map((f) => `FAIL ${f}`).join("\n"));
-  console.log(`FAIL standard-live-check: ${failures.length} problem(s) in ${games.length} practice round(s) on the production build`);
+  console.log(`FAIL standard-live-check: ${failures.length} problem(s) in ${games.length} practice and ${roomCount} room round(s) on the production build`);
   process.exit(1);
 }
-console.log(`PASS standard-live-check: ${games.length} practice rounds on the production build grade and reveal the standard's 150 + speed + bonus`);
+console.log(`PASS standard-live-check: ${games.length} practice rounds (through the app) and ${roomCount} room rounds (the built room deal and grader) on the production build score the standard's 150 + speed + bonus`);
