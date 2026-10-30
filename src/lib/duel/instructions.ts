@@ -108,7 +108,7 @@ import { SLICE_V9_BAND_CURVE, SLICE_V9_BONUS_CAP, SLICE_V9_DODGE_POINTS, SLICE_V
 import { BINTOSS_FAR_CAP, BINTOSS_FAR_POINTS, BINTOSS_FAR_THROWS, BINTOSS_V7_BAND_CURVE } from "@/lib/arcade/binToss";
 import { P4_PTS_COMBO, P4_PTS_JACKPOT, P4_PTS_JOULZ, P4_PTS_RAMP, P4_PTS_SKILL } from "@/lib/arcade/pinball4";
 import { BULLSEYE_INNER_BULL_POINTS, BULLSEYE_RING_VALUES, BULLSEYE_V8_DEAD_CAP, BULLSEYE_V8_DEAD_PTS, BULLSEYE_V8_STREAK_CAP, BULLSEYE_V8_STREAK_STEP } from "@/lib/arcade/bullseye";
-import { RALLY_V10_BONUS_COUNT, RALLY_V10_BONUS_PTS, RALLY_V11_BONUS_LIFE } from "@/lib/arcade/rally";
+import { RALLY_V10_BONUS_COUNT, RALLY_V11_BONUS_LIFE, RALLY_V12_PAD_PTS, RALLY_V12_TARGET_PTS } from "@/lib/arcade/rally";
 import { BURST_V9_CAPS, BURST_V9_CLEAR_MAX, BURST_V8_GOLDEN_PTS, BURST_V8_GOLDENS } from "@/lib/arcade/burst";
 import { liveBandHelp, liveStdHelp } from "@/lib/arcade/liveBands";
 import { ORBIT_V12_PACE_FROM, ORBIT_V12_PACE_FULL, ORBIT_V12_SKILL_MAX, ORBIT_V12_SKILL_PACED_FROM, ORBIT_V12_SKILL_PAY, ORBIT_XP_DUST_CAP, ORBIT_XP_DUST_FULL, ORBIT_XP_FIELDS, ORBIT_XP_MOONS, ORBIT_XP_MOTES, ORBIT_XP_PERFECT_CAP, ORBIT_XP_PERFECT_PER, ORBIT_XP_SLING_CAP, ORBIT_XP_SLING_PTS, ORBIT_XP_THREAD_CAP, ORBIT_XP_THREAD_PTS, ORBIT_XP_TRAILS } from "@/lib/arcade/orbitRev3";
@@ -796,20 +796,20 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
       goal: "Keep the rally going.",
       how: [
         { action: "Drag the paddle.", detail: "Miss the blue ball: over." },
-        { action: "Gold balls score:", detail: "5 a hit, 6 a pink pad." },
-        { action: "Gold target:", detail: `+${RALLY_V10_BONUS_PTS} before its ring runs out.` },
+        { action: "Gold balls score:", detail: `each hit, +${RALLY_V12_PAD_PTS} a pink pad.` },
+        { action: "Gold target:", detail: `+${RALLY_V12_TARGET_PTS} before its ring runs out.` },
         { action: "Drag to move the paddle", detail: "along the bottom.", helpOnly: true },
         { action: "Every hit", detail: "makes the paddle smaller and the ball faster.", helpOnly: true },
         { action: "A gold ball drops in", detail: "every ten seconds – only gold balls score.", helpOnly: true },
-        { action: "Two pink target pads", detail: "sit on the far wall, one in each half. A gold ball that hits one counts 6, and the pad moves to a new spot in its own half, so the two never overlap. The spots are the same for everyone in the room.", helpOnly: true },
-        { action: `${RALLY_V10_BONUS_COUNT} gold targets a round:`, detail: `each appears at its own moment and spot in the upper court (the same for everyone in the room) and stays about ${RALLY_V11_BONUS_LIFE / 60} seconds, its ring counting down. Any ball that touches it scores ${RALLY_V10_BONUS_PTS}; a miss costs nothing.`, helpOnly: true },
-        { action: "Aim with the paddle:", detail: "where the ball meets it sets the angle; move the paddle as you hit to spin the return: the faster the paddle, the more the ball swerves the way it moved. Spin scores nothing itself.", helpOnly: true },
+        { action: "Two pink target pads", detail: `sit on the far wall, one in each half. A gold ball that hits one scores ${RALLY_V12_PAD_PTS}, and the pad moves to a new spot in its own half, so the two never overlap. The spots are the same for everyone in the room.`, helpOnly: true },
+        { action: `${RALLY_V10_BONUS_COUNT} gold targets a round:`, detail: `each appears at its own moment and spot in the upper court (the same for everyone in the room) and stays about ${RALLY_V11_BONUS_LIFE / 60} seconds, its ring counting down. Any ball that touches it scores ${RALLY_V12_TARGET_PTS}; a miss costs nothing.`, helpOnly: true },
+        { action: "Aim with the paddle:", detail: "where the ball meets it sets the angle; swipe the paddle as you hit to spin the return: the ball sets off the way you swiped, then curves back round the other way (swipe left: it goes left, then bends right). The faster the swipe, the bigger the curve. Spin scores nothing itself.", helpOnly: true },
         { action: "From 30 seconds a bumper", detail: "appears mid-court (it blinks a warning first). Balls bounce off it like a mirror, at the same speed.", helpOnly: true },
         { action: "For the last 15 seconds", detail: "a second bumper joins it (from 45 s, with the same blinking warning), always far enough away for a ball to pass between them.", helpOnly: true },
-        { action: "Miss the blue ball", detail: "and the run is over.", helpOnly: true },
+        { action: "Miss the blue ball", detail: "and the run is over: you keep what you have scored. Blue returns and lasting the minute score nothing themselves.", helpOnly: true },
       ],
-      // rallyRev 10 (docs/expansions/e9.md): the gold hits and pads on their curve, plus the gold targets.
-      score: liveBandHelp("rally", "Each gold-ball hit counts 5, each pink target 6 and each blue-ball return 1; losing the blue ball ends the run.", { more: "More gold hits and pink targets", good: (u) => `counts ${u} – about ${Math.round(u / 5)} gold-ball hits`, finish: `Each gold target struck adds ${RALLY_V10_BONUS_PTS} (${RALLY_V10_BONUS_COUNT} a round).` }),
+      // rallyRev 12 (the arcade scoring standard, docs/arcade-standard/rally.md): gold-ball hits on a straight line, pads and gold targets fixed.
+      score: liveStdHelp("rally", "Only gold balls and gold targets score; losing the blue ball ends the run."),
     },
 
     steady: {

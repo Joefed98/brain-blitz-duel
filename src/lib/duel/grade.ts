@@ -52,7 +52,7 @@ import { brkSkillPaid, brkWallSize } from "@/lib/arcade/breaker";
 import { hoverFeatureBonus } from "@/lib/arcade/hover";
 import { decodePinballRun, replayPinballRun } from "./pinball";
 import { decodeRallyRun, replayRallyRun } from "./rally";
-import { rallyBonusCount, rallyBonusPoints } from "@/lib/arcade/rally";
+import { rallyBonusCount, rallyBonusPoints, rallyBonusPtsOf, RALLY_V12_EXP } from "@/lib/arcade/rally";
 import { decodeSteadyRun, replaySteadyRun } from "./steady";
 import { decodeSliceRun, replaySliceRun } from "./slice";
 import { decodeBubbleRun, replayBubbleRun } from "./bubble";
@@ -1412,7 +1412,8 @@ function gradeUnderRev(
         targetHits: run.targetHits,
         rallyRev: run.rallyRev,
         // rallyRev 10 (expansion E9): the gold bonus targets struck, for the reveal.
-        ...(run.state.exp ? { bonusHits: rallyBonusCount(run.state), bonusPts: rallyBonusPoints(run.state) } : {}),
+        // rallyRev 12 (the arcade scoring standard): 5 a target (6 before).
+        ...(run.state.exp ? { bonusHits: rallyBonusCount(run.state), bonusPts: (run.state.exp ?? 0) >= RALLY_V12_EXP ? rallyBonusPtsOf(run.state) * rallyBonusCount(run.state) : rallyBonusPoints(run.state) } : {}),
         paddleWidth: run.paddleWidth,
         survived: run.survived,
         endedSeconds: run.endedSeconds,

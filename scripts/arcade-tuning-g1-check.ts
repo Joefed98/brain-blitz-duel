@@ -163,7 +163,7 @@ section("New rounds: stamps, start states, checksums, worlds by revision");
   // The phone notes (27 Oct 2026) then moved it on to brkRev 10 (expansion-e3-check section 5).
   ok(playRevOf("breaker", generateBreaker().brkRev) === BRK_REV_TALL + 4, "rooms deal brkRev 10 (the phone notes, after expansion E3's brkRev 9 and brkRev 6)");
   // Expansion E9 (docs/expansions/e9.md) then moved Rally on to rallyRev 10 and Fission on to burstRev 8; expansion-e9-check covers them.
-  ok(playRevOf("rally", generateRally().rallyRev) === RALLY_REV_TALL + 5, "rooms deal rallyRev 11 (phone notes 27 Oct 2026, after expansion E9's rallyRev 10 and rallyRev 6)");
+  ok(playRevOf("rally", generateRally().rallyRev) === RALLY_REV_TALL + 6, "rooms deal rallyRev 12 (the arcade scoring standard 29 Oct 2026, rally-standard-check; after rallyRev 11: phone notes 27 Oct 2026, after expansion E9's rallyRev 10 and rallyRev 6)");
   // The 200 expansion (26 Oct 2026) moved rooms on to wavRev 10 (wavefront-expand-check); wavRev 6 stays as it was.
   ok(playRevOf("wavefront", generateWavefront().wavRev) === WAV_REV_TALL + 5, "rooms deal wavRev 11 (the phone notes, after the expansion's wavRev 10 and wavRev 6)");
   ok(playRevOf("burst", generateBurst().burstRev) === BURST_REV_TALL + 5, "rooms deal burstRev 9 (the phone-test notes, after expansion E9's 8 and burstRev 4)");
@@ -354,7 +354,7 @@ section("Intro demos stay stopped until re-recorded on the taller revision");
 {
   const src = read("src/lib/duel/introDemo.functions.ts");
   ok(/data\.type === "breaker" && demo\?\.puzzle\.type === "breaker" && demo\.puzzle\.brkRev !== (BRK_REV_TALL|BRK_REV_DEEP|BRK_REV_PHONE)\) return null/.test(src), "Breaker's demo plays only on brkRev 6 (brkRev 9 since expansion E3, brkRev 10 since the phone notes)");
-  ok(/data\.type === "rally" && demo\?\.puzzle\.type === "rally" && demo\.puzzle\.rallyRev !== (RALLY_REV_TALL|RALLY_REV_BONUS|RALLY_REV_CURVE)\) return null/.test(src), "Rally's demo plays only on rallyRev 6 (rallyRev 10 since expansion E9, rallyRev 11 since the phone notes)");
+  ok(/data\.type === "rally" && demo\?\.puzzle\.type === "rally" && demo\.puzzle\.rallyRev !== (RALLY_REV_TALL|RALLY_REV_BONUS|RALLY_REV_CURVE|RALLY_REV_STD)\) return null/.test(src), "Rally's demo plays only on rallyRev 6 (rallyRev 10 since expansion E9, rallyRev 11 since the phone notes, rallyRev 12 since the arcade scoring standard)");
   // The 200 expansion: Wavefront's demo now plays only on wavRev 10 (none is recorded yet, so the intro shows its still).
   ok(/data\.type === "wavefront" && demo\?\.puzzle\.type === "wavefront" && demo\.puzzle\.wavRev !== WAV_REV_PHONE\) return null/.test(src), "Wavefront's demo plays only on wavRev 11");
   ok(/data\.type === "burst" && demo\?\.puzzle\.type === "burst" && demo\.puzzle\.burstRev !== (BURST_REV_TALL|BURST_REV_CLEAN|BURST_REV_CARRY)\) return null/.test(src), "Fission's demo plays only on burstRev 4 (burstRev 8 since expansion E9, burstRev 9 since the phone-test notes)");

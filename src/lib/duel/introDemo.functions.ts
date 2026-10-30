@@ -10,7 +10,7 @@ import { CROSS_REV_EXPAND } from "@/lib/arcade/cross";
 import { FLIP_REV_LIFT } from "@/lib/arcade/flip";
 import { SNIP_REV_EXPAND } from "@/lib/arcade/snip";
 import { HOVER_REV_EXPAND } from "@/lib/arcade/hover";
-import { RALLY_REV_CURVE } from "@/lib/arcade/rally";
+import { RALLY_REV_STD } from "@/lib/arcade/rally";
 import { WAV_REV_PHONE } from "@/lib/arcade/wavefront";
 import { BURST_REV_CARRY } from "@/lib/arcade/burst";
 import { BULLSEYE_REV_EXPAND } from "@/lib/arcade/bullseye";
@@ -132,8 +132,9 @@ export const getIntroDemoFn = createServerFn({ method: "GET" })
     // tight gates, centre lines, star chains and shields, so its demo stays stopped until one is recorded there.
     if (data.type === "hover" && demo?.puzzle.type === "hover" && demo.puzzle.hoverRev !== HOVER_REV_EXPAND) return null;
     // Rally rallyRev 11 (phone notes, 27 Oct 2026): spin shots now curve visibly and targets last 5 s, so an older demo
-    // would play differently; it stays stopped until one is recorded on rallyRev 11.
-    if (data.type === "rally" && demo?.puzzle.type === "rally" && demo.puzzle.rallyRev !== RALLY_REV_CURVE) return null;
+    // would play differently; it stays stopped until one is recorded on rallyRev 11. rallyRev 12 (the arcade scoring
+    // standard, 29 Oct 2026) reverses the spin and scores 200 on the standard, so only a rallyRev 12 demo plays.
+    if (data.type === "rally" && demo?.puzzle.type === "rally" && demo.puzzle.rallyRev !== RALLY_REV_STD) return null;
     // The 200 expansion (wavRev 10), then Joe's phone notes (wavRev 11: power-ups from carriers, no streak, the mothership
     // only after wave 5): an older demo shows other play, so it stays stopped until one is recorded on wavRev 11.
     if (data.type === "wavefront" && demo?.puzzle.type === "wavefront" && demo.puzzle.wavRev !== WAV_REV_PHONE) return null;

@@ -25,7 +25,7 @@ import {
   RALLY_WORLD_W,
   RALLY_V10_BONUS_COUNT,
   rallyBonusLife,
-  RALLY_V10_BONUS_PTS,
+  rallyBonusPtsOf,
   RALLY_V10_BONUS_R,
   rallyBonusCount,
   rallyBonusNow,
@@ -314,8 +314,8 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: RallyState, key: Canvas
 
 /**
  * rallyRev 10's gold bonus target: three gold rings drawn exactly over its touch circle (the ring's outer
- * edge is RALLY_V10_BONUS_R), a countdown arc round it emptying over its four seconds, "+6" above it; when
- * struck, a gold burst and "+6" rising where it was (presentation only, from the stored strike tick).
+ * edge is RALLY_V10_BONUS_R), a countdown arc round it emptying over its four seconds, "+6" (rallyRev 12: "+5") above
+ * it; when struck, a gold burst and its points rising where it was (presentation only, from the stored strike tick).
  */
 function drawBonusTarget(ctx: CanvasRenderingContext2D, state: RallyState, key: CanvasRenderingContext2D, live: boolean): void {
   const still = reducedMotion() || arcadeReducedEffects();
@@ -352,7 +352,7 @@ function drawBonusTarget(ctx: CanvasRenderingContext2D, state: RallyState, key: 
     ctx.arc(t.x, t.y, r + 4, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * left);
     ctx.stroke();
     ctx.restore();
-    retroText(ctx, `+${RALLY_V10_BONUS_PTS}`, t.x, t.y - r - 14, 8, GOLD, "center");
+    retroText(ctx, `+${rallyBonusPtsOf(state)}`, t.x, t.y - r - 14, 8, GOLD, "center");
   }
   // The latest strike: a burst and its points rising (render memory never needed: the strike tick is state).
   const at = state.bonusAt ?? 0;
@@ -365,7 +365,7 @@ function drawBonusTarget(ctx: CanvasRenderingContext2D, state: RallyState, key: 
         lightUp(ctx, t.x, t.y, GOLD, 30 + 30 * p, 0.8 * (1 - p));
         retroBurst(ctx, t.x, t.y, p, GOLD, 26);
       }
-      retroText(ctx, `+${RALLY_V10_BONUS_PTS}`, t.x, t.y - 10 - (still ? 0 : 18 * p), 12, GOLD, "center");
+      retroText(ctx, `+${rallyBonusPtsOf(state)}`, t.x, t.y - 10 - (still ? 0 : 18 * p), 12, GOLD, "center");
     }
   }
   void key;

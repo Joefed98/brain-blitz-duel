@@ -29,6 +29,7 @@ import {
   RALLY_REV_BAND,
   RALLY_RUN_TICKS,
   RALLY_REV_BONUS,
+  RALLY_REV_STD,
   RALLY_V10_BONUS_COUNT,
   rallyBonusCount,
   rallyWorldHFor,
@@ -297,8 +298,10 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
       </div>
       <p className="whitespace-normal break-words text-center font-mono text-base font-bold text-foreground">
         {/* The values the scorer uses: band revisions (rallyRev 3+) count 5 a gold hit and 6 a pad on the band curve. */}
-        {(puzzle.rallyRev ?? 0) >= RALLY_REV_BONUS
-          ? `${result.goldHits} gold hit${result.goldHits === 1 ? "" : "s"} × 5 + ${result.targetHits} pad${result.targetHits === 1 ? "" : "s"} × 6 · gold targets ${rallyBonusCount(result.state)}/${RALLY_V10_BONUS_COUNT}`
+        {(puzzle.rallyRev ?? 0) >= RALLY_REV_STD
+          ? `${result.goldHits} gold hit${result.goldHits === 1 ? "" : "s"} · ${result.targetHits} pad${result.targetHits === 1 ? "" : "s"} · gold targets ${rallyBonusCount(result.state)}/${RALLY_V10_BONUS_COUNT}`
+          : (puzzle.rallyRev ?? 0) >= RALLY_REV_BONUS
+          ?`${result.goldHits} gold hit${result.goldHits === 1 ? "" : "s"} × 5 + ${result.targetHits} pad${result.targetHits === 1 ? "" : "s"} × 6 · gold targets ${rallyBonusCount(result.state)}/${RALLY_V10_BONUS_COUNT}`
           : (puzzle.rallyRev ?? 0) >= RALLY_REV_BAND
           ? `${result.goldHits} gold hit${result.goldHits === 1 ? "" : "s"} × 5 + ${result.targetHits} pad${result.targetHits === 1 ? "" : "s"} × 6`
           : `${result.goldHits} gold hit${result.goldHits === 1 ? "" : "s"} × 2.5 (rounded down)${puzzle.rallyRev ? ` + ${result.targetHits} pad${result.targetHits === 1 ? "" : "s"} × 3` : ""}`} ·{" "}
