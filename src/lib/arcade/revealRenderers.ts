@@ -73,6 +73,9 @@ import { replayMatchupRun } from "@/lib/duel/matchup";
 import { replayBreakerRun } from "@/lib/duel/breaker";
 import { replayPinballRun } from "@/lib/duel/pinball";
 import { replayMinigolfRun } from "@/lib/duel/minigolf";
+import { replayPoolRun } from "@/lib/duel/pool";
+import { drawPool } from "./pool.renderer";
+import { POOL_H, POOL_W, type PoolState } from "./pool";
 import { drawMinigolf } from "./minigolf.renderer";
 import { MINIGOLF_H, MINIGOLF_W, type MinigolfState } from "./minigolf";
 import { replayRallyRun } from "@/lib/duel/rally";
@@ -185,6 +188,7 @@ export const ARCADE_REVEAL_RENDERERS: Record<string, ArcadeRevealRenderer> = {
   // pinRev 4 (E4) draws its own taller table (drawPinballAny reads the state's revision).
   // The Sports group (30 Oct 2026): each final state drawn by its own art, without the aim.
   minigolf: simple("#7FD58A", MINIGOLF_W, MINIGOLF_H, { draw: (ctx, s: MinigolfState) => drawMinigolf(ctx, s, null) }, (p, a) => replayMinigolfRun(seedOf(p), a, p.type === "minigolf" ? p.pars : undefined)),
+  pool: simple("#3FA672", POOL_W, POOL_H, { draw: (ctx, s: PoolState) => drawPool(ctx, s, null) }, (p, a) => replayPoolRun(seedOf(p), a, p.type === "pool" ? p.poolRev : undefined)),
   pinball: simple("#FF4DFF", PIN_WORLD_W, PIN_WORLD_H, { draw: drawPinballAny }, (p, a) => replayPinballRun(seedOf(p), a, p.type === "pinball" ? p.pinRev : undefined), undefined, undefined, (p) => pinballWorldHFor(p.type === "pinball" ? p.pinRev : undefined)),
   rally: simple("#4D8CFF", 390, 620, rallyGame, (p, a) => replayRallyRun(seedOf(p), a, p.type === "rally" ? p.rallyRev : undefined), undefined, rallyRevealGame, (p) => in390(rallyWorldWFor(p.type === "rally" ? p.rallyRev : undefined), rallyWorldHFor(p.type === "rally" ? p.rallyRev : undefined))),
   slice: simple("#C9CED6", 390, 620, sliceArtGame, (p, a) => replaySliceRun(seedOf(p), a, p.type === "slice" ? p.sliceRev : undefined), undefined, undefined, (p) => (p.type === "slice" && (p.sliceRev === SLICE_REV_EXPAND || p.sliceRev === SLICE_REV_BIG || p.sliceRev === SLICE_REV_STANDARD) ? Math.round((390 * SLICE_V9_H) / SLICE_V9_W) : sliceWorldHFor(p.type === "slice" ? p.sliceRev : undefined))),

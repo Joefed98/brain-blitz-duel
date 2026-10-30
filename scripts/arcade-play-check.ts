@@ -182,6 +182,8 @@ const EXTRACT = String.raw`
     case "inkbridge": if (s.ball) P.push(["ball", fp(s.ball.x), fp(s.ball.y)]); reset = s.level + ":" + s.levels + ":" + s.fails + ":" + s.dropping; break;
     case "bintoss": P.push(["ball", fp(s.x), fp(s.y)]); reset = s.throwIndex + ":" + s.phase; break;
     // Minigolf (30 Oct 2026): the ball; a new hole, water (the ball back where it was played) and holing out move it at once.
+    // Speed Pool: every ball on the table; a pot (a ball gone) or a scratch (the cue ball respotted) is a reset.
+    case "pool": s.balls.forEach((b) => { if (!b.down) P.push(["ball" + b.id, fp(b.x), fp(b.y)]); }); reset = s.pots + ":" + s.scratches + ":" + s.balls.filter((b) => b.down).length; break;
     case "minigolf": P.push(["ball", fp(s.x), fp(s.y)]); reset = s.hole + ":" + s.waters + ":" + s.holedTick + ":" + s.phase; break;
     case "bubble": if (s.flightColour) P.push(["shot", fp(s.x), fp(s.y)]); reset = s.shots + ":" + s.descents + ":" + s.flightColour; break;
     case "swing":

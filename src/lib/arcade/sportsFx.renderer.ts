@@ -5,6 +5,7 @@
 import type { ArcadeFxSpec } from "./arcadeFx.renderer";
 import { px } from "./engine";
 import { MINIGOLF_H, MINIGOLF_HOLES, MINIGOLF_W, type MinigolfState } from "./minigolf";
+import { POOL_H, POOL_SPOTS, POOL_W, type PoolState } from "./pool";
 
 const holedCount = (s: MinigolfState) => s.holed.reduce((a, v) => a + v, 0);
 const lastHole = (s: MinigolfState) => Math.max(0, Math.min(s.hole, MINIGOLF_HOLES - 1));
@@ -45,4 +46,20 @@ export const MINIGOLF_FX: ArcadeFxSpec<MinigolfState> = {
     { kind: "final", count: (s) => (holedCount(s) === MINIGOLF_HOLES ? 1 : 0), label: () => "ALL FIVE HOLED!" },
   ],
   misses: [{ count: (s) => s.waters, at: (s) => ({ x: px(s.x), y: px(s.y) }) }],
+};
+
+/** Speed Pool: a run of pots pops its count, the spots cleared and the black are banners; a foul or a scratch is a miss. */
+export const POOL_FX: ArcadeFxSpec<PoolState> = {
+  game: "pool",
+  world: "realworld",
+  width: POOL_W,
+  height: POOL_H,
+  fit: "world",
+  shake: false,
+  events: [
+    { kind: "combo", count: (s) => s.follows, at: () => ({ x: POOL_W / 2, y: 120 }), label: (s) => `${s.streak} IN A ROW` },
+    { kind: "clear", count: (s) => (s.spotsDown >= POOL_SPOTS ? 1 : 0), label: () => "NOW THE BLACK" },
+    { kind: "final", count: (s) => (s.black === 1 ? 1 : 0), label: () => "CLEARED!" },
+  ],
+  misses: [{ count: (s) => s.fouls + s.scratches }],
 };

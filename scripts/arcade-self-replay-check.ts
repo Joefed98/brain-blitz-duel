@@ -138,6 +138,12 @@ import { RALLY_REV_STD } from "@/lib/arcade/rally";
 import { BUB_REV_STD } from "@/lib/arcade/bubble";
 import { BEAT_REV_STD } from "@/lib/arcade/beat";
 import { encodePinballRun, replayPinballRun } from "@/lib/duel/pinball";
+import { minigolfCheckpoint, minigolfGameFor } from "@/lib/arcade/minigolf";
+import { encodeMinigolfRun, replayMinigolfRun } from "@/lib/duel/minigolf";
+import { MINIGOLF_BANK } from "@/lib/duel/minigolfBank.server";
+import { poolCheckpoint, poolGameFor, POOL_REV } from "@/lib/arcade/pool";
+import { encodePoolRun, replayPoolRun } from "@/lib/duel/pool";
+import { POOL_BANK } from "@/lib/duel/poolBank.server";
 import { TILT_REV_BAND, TILT_REV_EXPAND, TILT_REV_LIFT, TILT_REV_STD, TILT_REV_TUNEC } from "@/lib/arcade/tilt";
 import { ORBIT_REV_BAND, ORBIT_REV_SWEPT, ORBIT_REV_TALL, ORBIT_REV_TUNED, ORBIT_REV_XP, ORBIT_REV_STD } from "@/lib/arcade/orbit";
 import { decodeOrbitExtras, initBandFrom, initSweptFrom, initTallFrom, initTunedFrom, initXpFrom, initStdFrom } from "@/lib/arcade/orbitRev3";
@@ -774,6 +780,20 @@ const GAMES: Game[] = [
   { key: "cross/std", game: crossGameFor(CROSS_REV_STD), checkpoint: crossCheckpoint, mode: "events", rate: 60, encode: encodeCrossRun, replay: (seed: number, raw: string) => replayCrossRun(seed, raw, CROSS_REV_STD) },
   // Grappler's swinging course (swingRev 15, 29 Oct 2026, docs/arcade-standard/swing.md), appended so every earlier entry keeps its index.
   { key: "swing/rework", game: swingGameFor(SWING_REV_REWORK), checkpoint: swingCheckpoint, mode: "events", rate: 30, encode: encodeSwingRun, replay: (seed: number, raw: string) => replaySwingRun(seed, raw, SWING_REV_REWORK) },
+  // The Sports group (30 Oct 2026), appended so every earlier entry keeps its index: Minigolf golfRev 1 (bank courses and
+  // their stored pars) and Speed Pool poolRev 1 (bank layouts).
+  {
+    key: "minigolf",
+    game: minigolfGameFor(MINIGOLF_BANK[0]!.pars),
+    gameFor: (seed: number) => minigolfGameFor(MINIGOLF_BANK.find((e) => e.seed === seed)!.pars),
+    seedFor: (n: number) => MINIGOLF_BANK[n % MINIGOLF_BANK.length]!.seed,
+    checkpoint: minigolfCheckpoint,
+    mode: "events",
+    rate: 40,
+    encode: encodeMinigolfRun,
+    replay: (seed: number, raw: string) => replayMinigolfRun(seed, raw, MINIGOLF_BANK.find((e) => e.seed === seed)!.pars),
+  },
+  { key: "pool", game: poolGameFor(POOL_REV), seedFor: (n: number) => POOL_BANK[n % POOL_BANK.length]!, checkpoint: poolCheckpoint, mode: "events", rate: 40, encode: encodePoolRun, replay: (seed: number, raw: string) => replayPoolRun(seed, raw, POOL_REV) },
 ];
 
 /** A random candidate event, often outside the declared range (a finger off the edge). */

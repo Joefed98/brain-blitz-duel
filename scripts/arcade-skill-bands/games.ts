@@ -69,6 +69,9 @@ import { encodePinballRun, replayPinballRun } from "../../src/lib/duel/pinball";
 import { minigolfCheckpoint, minigolfGameFor, MINIGOLF_REV } from "../../src/lib/arcade/minigolf";
 import { encodeMinigolfRun, replayMinigolfRun } from "../../src/lib/duel/minigolf";
 import { MINIGOLF_BANK, minigolfBankEntryFor } from "../../src/lib/duel/minigolfBank.server";
+import { poolCheckpoint, poolGameFor, POOL_REV } from "../../src/lib/arcade/pool";
+import { encodePoolRun, replayPoolRun } from "../../src/lib/duel/pool";
+import { poolBankSeedFor } from "../../src/lib/duel/poolBank.server";
 
 export interface GameSpec {
   type: PuzzleType;
@@ -255,6 +258,16 @@ export const GAMES: GameSpec[] = [
     checkpoint: minigolfCheckpoint,
     encode: (run) => encodeMinigolfRun(run),
     replay: (seed, raw) => replayMinigolfRun(seed, raw, minigolfParsOf(seed)),
+  },
+  // Speed Pool deals a bank layout (proved clearable without a miss), poolRev 1.
+  {
+    type: "pool",
+    live: POOL_REV,
+    seedFor: poolBankSeedFor,
+    gameFor: (rev) => poolGameFor(rev),
+    checkpoint: poolCheckpoint,
+    encode: (run) => encodePoolRun(run),
+    replay: (seed, raw, rev) => replayPoolRun(seed, raw, rev),
   },
 ];
 

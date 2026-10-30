@@ -1,3 +1,5 @@
+import { withArcadeFx } from "@/lib/arcade/arcadeFx.renderer";
+import { POOL_FX } from "@/lib/arcade/sportsFx.renderer";
 import { gameDisplayName } from "@/lib/duel/gameNames";
 import { useEffect, useMemo, useRef, useState } from "react";
 
@@ -112,7 +114,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         last.current = s;
         const a = s.phase === POOL_AIM ? currentAim(s) : null;
         const view: PoolAim | null = a ? { dx: a.dx, dy: a.dy, power: pull.current, spin: spinCode() } : null;
-        drawPool(ctx, s, view);
+        withArcadeFx(POOL_FX, (c, st: PoolState) => drawPool(c, st, view))(ctx, s, { width: POOL_W, height: POOL_H });
       },
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
