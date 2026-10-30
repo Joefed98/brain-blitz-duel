@@ -5,7 +5,7 @@ import { useArcadeFrameTiming } from "@/components/puzzles/useArcadeFrameTiming"
 import { arcadeFeedback } from "@/lib/fx/arcade";
 import { pinballGlowFill, PIN_COLOURS } from "@/lib/arcade/pinball.renderer";
 import { pinball4GlowFill, pinballArtGameForAny, pinballWorldHFor } from "@/lib/arcade/pinball4.renderer";
-import { pinballGameForAny, pinCheckpointAny, PIN_REV_LONG } from "@/lib/arcade/pinball4";
+import { pinballGameForAny, pinCheckpointAny, PIN_REV_STD, type Pin4State } from "@/lib/arcade/pinball4";
 import { pinballSounds } from "@/lib/fx/gameSounds";
 import { appendClientCounters, arcadeCounters } from "@/lib/arcade/diagnostics";
 import { inputAt, recordInput } from "@/lib/arcade/engine";
@@ -238,14 +238,14 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   return (
     <div className="flex min-h-0 w-full flex-1 flex-col items-center justify-start gap-3 overflow-y-auto">
       <p className="whitespace-normal break-words text-center font-mono text-base font-bold text-foreground">
-        {result.points.toLocaleString("en-GB")} table points · ×{result.mult}
+        {result.points.toLocaleString("en-GB")} table points{(result.state as Partial<Pin4State>).rev6 ? "" : ` · ×${result.mult}`}
       </p>
       <p className="shrink-0 text-center font-mono text-base text-muted-foreground">
         {result.bumps} bumper hits · {result.drops} targets · {result.spins} spins
       </p>
       {pinIsExpanded(puzzle.pinRev) ? (
         <p className="shrink-0 text-center font-mono text-base text-muted-foreground">
-          {result.ramps} ramps · {result.multiballs} multiball · {result.jackpots} jackpots · {result.skills} skill shots
+          {result.ramps} ramps · {(result.state as Partial<Pin4State>).rev6 ? `${result.combos} combos · ` : ""}{result.multiballs} multiball · {result.jackpots} jackpots · {result.skills} skill shots
         </p>
       ) : null}
       <p className="shrink-0 text-center font-mono text-base text-muted-foreground">
@@ -263,7 +263,7 @@ export const pinballPuzzle: PuzzleDefinition = {
   // pinRev 5's 90 s run (older rounds run 60 s and end there; their clock shows the extra 30 s unused, as Tempo's beatRev 9).
   timeLimitMs: (PIN_V5_RUN_TICKS / TICKS_PER_SECOND) * 1000 + 3000,
   revealMs: 6_000,
-  generate: () => ({ type: "pinball", seed: 1, pinRev: PIN_REV_LONG }) satisfies PinballPuzzleData,
+  generate: () => ({ type: "pinball", seed: 1, pinRev: PIN_REV_STD }) satisfies PinballPuzzleData,
   check: () => false,
   revealHeading: "Your run",
   IntroExample,
