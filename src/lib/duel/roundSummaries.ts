@@ -1351,6 +1351,14 @@ const snipSummary: SummaryBuilder = (result) => {
 };
 
 const swingSummary: SummaryBuilder = (result) => {
+  // swingRev 15 (the swinging course): the share of the course, restarts, pars and pickups.
+  if (Number(result.extra?.["swingRev"] ?? 0) >= 15) {
+    const x = (k: string) => Number(result.extra?.[k] ?? 0);
+    return {
+      summary: `${Math.trunc(x("permille") / 10)} % of the course · ${x("restarts")} restart${x("restarts") === 1 ? "" : "s"} · ${result.score ?? 0}`,
+      detail: ["Same course for everyone", `${x("sections")} / ${x("sectionTotal")} stretches · ${x("parsBeaten")} under par · ${x("gates")} gates · ${x("gems")} gems · ${x("stars")} stars`],
+    };
+  }
   // swingRev 14 (the assault course): sections cleared, restarts, pars and pickups.
   if (Number(result.extra?.["swingRev"] ?? 0) >= 14) {
     const x = (k: string) => Number(result.extra?.[k] ?? 0);

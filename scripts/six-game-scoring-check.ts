@@ -139,8 +139,8 @@ eq(inkRev4Score(INK_LEVELS - 1, INK_STAR_LEVELS, 0), SPLIT_PARTIAL_MAX.inkbridge
 for (const game of [orbitGame, orbitRev3Game] as const) {
   eq(game.score({ ...game.init(1), best: ORBIT_TOTAL - 1, finished: 0 } as never), SPLIT_PARTIAL_MAX.orbit, "Orbit partial max");
 }
-// Expansion E6: Ball Tracker's btRev 7 intro names its features (btRev 8, the arcade scoring standard: and the 60 they add). Grappler (swingRev 14, the assault course): sections, then the features. Tilt (x200, tiltRev 8): three mazes. "{max}" is the game's own maximum (roundMax.ts: 150 today, 200 once its expansion raises it).
-for (const [type, goal] of [["balltrack", "in-a-row marbles add 60: they total up to {max}"], ["bintoss", "All 10 in for 10 more"], ["breaker", "Clear all 105 quickly for up to {max}"], ["inkbridge", "All 10 levels quickly: up to {max}"], ["swing", "Sections cleared, then pars, gates, gems and stars: up to {max}"], ["tilt", "All 4 quickly: up to {max}"]] as const) {
+// Expansion E6: Ball Tracker's btRev 7 intro names its features (btRev 8, the arcade scoring standard: and the 60 they add). Grappler (swingRev 15, the swinging course): the course, pars and the pickups. Tilt (x200, tiltRev 8): three mazes. "{max}" is the game's own maximum (roundMax.ts: 150 today, 200 once its expansion raises it).
+for (const [type, goal] of [["balltrack", "in-a-row marbles add 60: they total up to {max}"], ["bintoss", "All 10 in for 10 more"], ["breaker", "Clear all 105 quickly for up to {max}"], ["inkbridge", "All 10 levels quickly: up to {max}"], ["swing", "Distance along the course (140), pars (30), gates, gems and stars (30): up to {max}"], ["tilt", "All 4 quickly: up to {max}"]] as const) {
   eq(INTRO_SCORE[type].includes(goal.replace("{max}", String(roundMaxFor(type)))), true, `${type} intro goal`);
 }
 // Scrumper and Mixed Signals are not on the split: no partial cap at 130.

@@ -21,7 +21,9 @@
  *  7. Scores: no input 0; random play above 0 on every seed; never above 200; the stored skill-band runs
  *     (scripts/fixtures/swing-assault-runs.json, `--record` to re-record) replay exactly, every played run scores
  *     above 0, and the medians rise weak < average < good < great < near-perfect < elite ≤ flawless.
- *  8. Display and text: world, reveal and effect sizes, the help and intro on the new rules, the demo held to rev 14.
+ *  8. Display and text: world, reveal and effect sizes, the HUD. (Since the swinging course, swingRev 15, rooms deal
+ *     it and the help, intro, live band and demo rule describe it: those assertions moved to swing-rework-check on the
+ *     new text; this check deals swingRev 14 through pinSwingPreRework.)
  *  9. Building a course stays quick (it runs on the phone at the round's start).
  *
  *   bun scripts/swing-assault-check.ts          (CHECKS_FULL=1: more seeds in 3–5)
@@ -59,10 +61,7 @@ import {
   type SwingState,
 } from "../src/lib/arcade/swing";
 import { swingFxFor, SWING_FX_V14 } from "../src/lib/arcade/arcadeFxGames.renderer";
-import { LIVE_BANDS } from "../src/lib/arcade/liveBands";
-import { generateSwing } from "../src/lib/duel/arcade.server";
-import { INTRO_SCORE } from "../src/lib/duel/introScore";
-import { PUZZLE_INSTRUCTIONS } from "../src/lib/duel/instructions";
+import { generateSwing, pinSwingPreRework } from "../src/lib/duel/arcade.server";
 import { roundMaxFor } from "../src/lib/duel/roundMax";
 import { encodeSwingRun, replaySwingRun } from "../src/lib/duel/swing";
 import { roomSeed } from "./arcade-skill-bands/games";
@@ -81,6 +80,8 @@ const ok = (cond: boolean, label: string) => {
 };
 const started = performance.now();
 const game = swingGameFor(SWING_REV_ASSAULT);
+// The deal before the swinging course (swingRev 15): this check proves swingRev 14's.
+pinSwingPreRework(true);
 type Ev = { k: number; a: number; b: number; c: number; d: number };
 const hold = (a: number): Ev => ({ k: SWING_INPUT_HOLD, a, b: 0, c: 0, d: 0 });
 const reel: Ev = { k: SWING_INPUT_REEL, a: SWING_REEL_UP, b: 0, c: 0, d: 0 };
@@ -338,16 +339,8 @@ console.log(`courses: ${courseSeeds.length} built, ${sectionsPlayed} sections pl
 {
   ok(swingWorldWFor(SWING_REV_ASSAULT) === 450 && swingWorldHFor(SWING_REV_ASSAULT) === 844 && swingRevealHFor(SWING_REV_ASSAULT) === 731, "rev 14 plays in rev 13's 450 × 844 view (its reveal in the 390-wide box)");
   ok(swingFxFor({ assault: 1 } as SwingState) === SWING_FX_V14 && SWING_FX_V14.width === 450, "rev-14 effects use their own spec in that view");
-  ok(LIVE_BANDS.swing.rev === SWING_REV_ASSAULT, "the help's numbers come from the revision rooms deal");
-  const help = PUZZLE_INSTRUCTIONS.swing!;
-  const text = help.how.map((h) => `${h.action} ${h.detail}`).join(" ");
-  ok(/section/i.test(text) && /Squeezes/.test(text) && /far hook/.test(text) && /start ledge/.test(text) && /Par times/.test(text) && /gates/i.test(text) && /Gems/.test(text) && /stars/i.test(text) && /dragon/.test(text) && /same course/.test(text), "the help explains sections, squeezes, the far hook, restarts, par times, gates, gems, stars and the dragon");
-  const intro = help.how.filter((h) => !h.helpOnly);
-  ok(intro.length === 3 && intro.every((h) => `${h.action} ${h.detail}`.length <= 46) && help.goal.length <= 34, "the intro's goal and three lines fit");
-  ok(/Up to 200/.test(help.score) && /under par/.test(help.score) && /gate, gem and star/.test(help.score) && /section/i.test(help.score), "the help's score line states sections, pars, the pickups and the 200");
-  ok(/pars/.test(INTRO_SCORE.swing) && /gems/.test(INTRO_SCORE.swing) && /Sections/.test(INTRO_SCORE.swing) && /up to (\{max\}|200)/.test(INTRO_SCORE.swing), `the intro score line: "${INTRO_SCORE.swing}"`);
-  const demo = readFileSync("src/lib/duel/introDemo.functions.ts", "utf8");
-  ok(/data\.type === "swing" && demo\?\.puzzle\.type === "swing" && demo\.puzzle\.swingRev !== SWING_REV_ASSAULT\) return null/.test(demo), "Grappler's intro demo stays stopped until one is recorded on swingRev 14");
+  // The live help, intro score line, live band and demo rule describe the revision rooms deal: swingRev 15 since the
+  // swinging course (swing-rework-check holds those assertions on the new text).
   const art = readFileSync("src/lib/arcade/swing.renderer.ts", "utf8");
   ok(/SECTION \$\{/.test(art) && /PAR \$\{/.test(art) && /drawAssault/.test(art), "the HUD shows SECTION x / y and the section's par");
   const s = game.init(roomSeed(3));

@@ -1,15 +1,18 @@
 /**
- * Grappler's room proof (the arcade rule; swingRev 14 since 27 Oct 2026, the assault course,
- * docs/grappler-assault-oct-2026.md; swingRev 13's module before it, docs/expansions/x200-swing.md). A room deal is the
+ * Grappler's room proof (the arcade rule; swingRev 15 since 29 Oct 2026, the swinging course,
+ * docs/arcade-standard/swing.md; swingRev 14's (the assault course) and 13's modules before it). A room deal is the
  * server's own generator (generateSwing: any seed, the course built from it) under a fixed seed; every seeded item a
- * state shows is listed by `schedule`: the sections (kind, hooks, squeeze, par), the hooks, the ledges, the squeezes,
- * the gates, gems and stars, the cave's roof and lava. None of it depends on play (the dragon is not scheduled: it
- * appears behind the hero at section SWING_V14_CHASE_FROM, the same rule for everyone).
+ * state shows is listed by `schedule`: the stretches (kind, hooks, squeeze, par, ledges, span), the hooks, the ledges,
+ * the squeezes, the gates, gems and stars, the dragon's stretch, the cave's roof and lava. None of it depends on play
+ * (the dragon itself is not scheduled: it appears behind the hero at the stretch `chaseFrom`, the same rule for everyone).
  */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { generateSwing } from "../../src/lib/duel/arcade.server";
 import { withSeededRandom } from "../../src/lib/duel/random";
-import { swingGameFor, SWING_REV_ASSAULT, SWING_V14_GATES, SWING_V14_GEMS, SWING_V14_SECTIONS, SWING_V14_SQUEEZES, SWING_V14_STARS, type SwingState } from "../../src/lib/arcade/swing";
+import { swingGameFor, SWING_REV_REWORK, SWING_V15_BLOCKS, SWING_V15_GATES, SWING_V15_GEMS, SWING_V15_RUNS, SWING_V15_SQUEEZES, SWING_V15_STARS, type SwingState } from "../../src/lib/arcade/swing";
+
+/** Stretches a swingRev 15 course holds: a swinging stretch a block, the ledge runs' sections. */
+const STRETCHES = SWING_V15_BLOCKS - SWING_V15_RUNS.length + SWING_V15_RUNS.reduce((a, b) => a + b, 0);
 import { bot, randomBot } from "../arcade-skill-bands/bots/swing";
 import { Human } from "../arcade-skill-bands/human";
 import type { RoomDeal, RoomStyle, X200Room } from "./room";
@@ -43,23 +46,24 @@ function whole<T>(arr: readonly T[] | undefined, name: string, read: (x: T) => n
 
 export const x200Room: X200Room = {
   type: "swing",
-  rev: SWING_REV_ASSAULT,
+  rev: SWING_REV_REWORK,
   deals: 6,
   deal(n: number): RoomDeal {
     const puzzle = withSeededRandom(0x5917 + n * 7919, () => generateSwing());
-    if (puzzle.swingRev !== SWING_REV_ASSAULT) throw new Error(`room deal ${n}: swingRev ${puzzle.swingRev}, not ${SWING_REV_ASSAULT}`);
+    if (puzzle.swingRev !== SWING_REV_REWORK) throw new Error(`room deal ${n}: swingRev ${puzzle.swingRev}, not ${SWING_REV_REWORK}`);
     return { seed: puzzle.seed, game: swingGameFor(puzzle.swingRev) };
   },
   play(deal: RoomDeal, style: RoomStyle) {
     if (style === "idle") return { events: [] };
     const human = new Human("swing", deal.seed, style === "random" ? "weak" : style);
-    const ctx = { game: deal.game, seed: deal.seed, rev: SWING_REV_ASSAULT, human };
+    const ctx = { game: deal.game, seed: deal.seed, rev: SWING_REV_REWORK, human };
     return style === "random" ? randomBot(ctx) : bot(ctx);
   },
   schedule(state: SwingState) {
     return {
       // The features, item by item.
-      ...group(state.sections, "section", (k) => [k.kind, k.hook0, k.hooks, k.sq, k.par]),
+      ...group(state.sections, "section", (k) => [k.kind, k.hook0, k.hooks, k.sq, k.par, k.from, k.to, k.x0, k.x1]),
+      chaseFrom: state.chaseFrom,
       ...group(state.ledges, "ledge", (l) => [l.x, l.top, l.half, l.kind, l.section]),
       ...group(state.squeezes, "squeeze", (q) => [q.x0, q.x1, q.top, q.bottom]),
       ...group(state.starSpots, "star", (p) => p),
@@ -74,15 +78,15 @@ export const x200Room: X200Room = {
   opportunities(state: SwingState) {
     return {
       sections: (state.sections ?? []).length,
-      sectionTotal: SWING_V14_SECTIONS,
+      sectionTotal: STRETCHES,
       squeezes: (state.squeezes ?? []).length,
-      squeezeTotal: SWING_V14_SQUEEZES,
+      squeezeTotal: SWING_V15_SQUEEZES,
       stars: (state.starSpots ?? []).length,
-      starTotal: SWING_V14_STARS,
+      starTotal: SWING_V15_STARS,
       gems: (state.gems ?? []).length,
-      gemTotal: SWING_V14_GEMS,
+      gemTotal: SWING_V15_GEMS,
       gates: (state.gates ?? []).length,
-      gateTotal: SWING_V14_GATES,
+      gateTotal: SWING_V15_GATES,
       pars: (state.sections ?? []).filter((k) => k.par > 0).length,
     };
   },
