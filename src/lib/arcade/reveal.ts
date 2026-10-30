@@ -198,7 +198,22 @@ const BUILDERS: Record<string, Builder> = {
       outcome: done ? "finish" : n(r, "bricksLeft") > 0 && n(r, "endedSeconds") < 90 ? "crash" : "time",
     };
   },
-  pinball: (r, s) => ({
+  pinball: (r, s) =>
+    // pinRev 6 (the arcade scoring standard; the lines come from its parts): no multiplier tile, its features instead.
+    (r["state"] as { rev6?: number } | undefined)?.rev6
+      ? {
+          axis: { value: n(r, "points"), max: null, label: "Table points" },
+          lines: [`${n(r, "points").toLocaleString("en-GB")} table points → ${s}`],
+          tiles: [
+            { label: "J-O-U-L-Z", value: String(n(r, "laneSets")) },
+            { label: "Multiball", value: String(n(r, "multiballs")) },
+            { label: "Jackpots", value: String(n(r, "jackpots")) },
+            { label: "Ramps", value: `${n(r, "ramps")} · ${n(r, "combos")} combo${n(r, "combos") === 1 ? "" : "s"}` },
+            { label: "Balls left", value: String(n(r, "ballsLeft")) },
+          ],
+          outcome: n(r, "ballsLeft") > 0 ? "time" : "crash",
+        }
+      : {
     axis: { value: n(r, "points"), max: null, label: "Table points" },
     lines:
       n(r, "pinRev") >= 4
@@ -212,7 +227,7 @@ const BUILDERS: Record<string, Builder> = {
       { label: "Balls left", value: String(n(r, "ballsLeft")) },
     ],
     outcome: n(r, "ballsLeft") > 0 ? "time" : "crash",
-  }),
+  },
   rally: (r, s) => ({
     axis: { value: n(r, "goldHits"), max: null, label: "Gold-ball hits" },
     lines: [

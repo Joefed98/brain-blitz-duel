@@ -1072,9 +1072,14 @@ const pinballSummary: SummaryBuilder = (result) => {
   return {
     summary: `${n("points").toLocaleString("en-GB")} table points · ${n("bumps")} bumper hits · ${n("drops")} targets`,
     detail: [
-      `Multiplier ×${Math.max(1, n("mult"))}`,
+      // pinRev 6 (the arcade scoring standard) has no multiplier; it counts J-O-U-L-Z sets and ramp combos instead.
+      ...(n("pinRev") >= 6 ? [] : [`Multiplier ×${Math.max(1, n("mult"))}`]),
       // pinRev 4 (the expansion): ramps, multiball, jackpots and skill shots.
-      ...(n("pinRev") >= 4 ? [`${n("ramps")} ramps · ${n("multiballs")} multiball · ${n("jackpots")} jackpots · ${n("skills")} skill shots`] : []),
+      ...(n("pinRev") >= 6
+        ? [`${n("ramps")} ramps · ${n("combos")} combos · ${n("laneSets")} J-O-U-L-Z · ${n("multiballs")} multiball · ${n("jackpots")} jackpots`]
+        : n("pinRev") >= 4
+          ? [`${n("ramps")} ramps · ${n("multiballs")} multiball · ${n("jackpots")} jackpots · ${n("skills")} skill shots`]
+          : []),
       left > 0 ? `Clock ran out with ${left} ball${left === 1 ? "" : "s"} left` : "All three balls drained",
     ],
   };

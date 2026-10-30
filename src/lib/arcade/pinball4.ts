@@ -33,6 +33,7 @@
 
 import { clampInt, TICKS_PER_SECOND, type ArcadeGame, type ArcadeInputEvent, type CanvasSize } from "./engine";
 import { bandCurve, bandInit, bandPoints, bandStep, bandTotal, type BandFields, type BandParts } from "./scoreBands";
+import { stdEach, stdLinear, stdPart, stdScore, stdSum, type StdPart, type StdSpec } from "./arcadeStandard";
 import { icos, isin, isqrt, TRIG_ONE } from "./trig";
 import {
   capSpeed,
@@ -66,6 +67,7 @@ import {
   PIN_PTS_TARGET,
   PIN_REV_EXPAND,
   PIN_REV_LONG,
+  PIN_REV_STD,
   PIN_RIGHT,
   PIN_RUN_TICKS,
   PIN_V5_RUN_TICKS,
@@ -89,7 +91,7 @@ import {
   type Seg,
 } from "./pinball";
 
-export { PIN_REV_EXPAND, PIN_REV_LONG };
+export { PIN_REV_EXPAND, PIN_REV_LONG, PIN_REV_STD };
 
 /* ============================== Constants ============================== */
 
@@ -352,8 +354,14 @@ export interface P4Ball {
 
 export interface Pin4State extends PinState, BandFields {
   rev4: number;
-  /** pinRev 5 (1): the 90-second run (absent on pinRev 4). */
+  /** pinRev 5 (1): the 90-second run (absent on pinRev 4; pinRev 6 carries it too). */
   rev5?: number;
+  /**
+   * pinRev 6 (1): the arcade scoring standard (absent before it). No table multiplier (it stays x1) and a flat
+   * combo award, so table points are a straight count of what the ball did; `combos` counts back-to-back ramp shots.
+   */
+  rev6?: number;
+  combos?: number;
   seed: number;
   /** The main ball's ramp ride (as P4Ball). */
   ride: number;
@@ -675,7 +683,8 @@ function sensors(s: Pin4State, b: P4Ball, y0: number, ev: BallEvents): void {
           s.laneSets += 1;
           s.joulzAt = s.tick;
           s.points += P4_PTS_JOULZ;
-          s.mult = Math.min(PIN_MULT_MAX, s.mult + 1);
+          // pinRev 6: no multiplier (the standard pays J-O-U-L-Z as a feature instead).
+          if (!s.rev6) s.mult = Math.min(PIN_MULT_MAX, s.mult + 1);
         }
       }
     }
@@ -800,8 +809,14 @@ function startRide(s: Pin4State, b: P4Ball, side: number): void {
   s.ramps += 1;
   s.rampAt = s.tick;
   s.rampSide = side;
-  s.points += P4_PTS_RAMP + (s.combo > 1 ? P4_PTS_COMBO * (s.combo - 1) : 0);
-  s.mult = Math.min(PIN_MULT_MAX, s.mult + 1);
+  if (s.rev6) {
+    // pinRev 6: a flat award for each back-to-back shot (no rising scale) and no multiplier; combos counted.
+    s.points += P4_PTS_RAMP + (s.combo > 1 ? P4_PTS_COMBO : 0);
+    if (s.combo > 1) s.combos = (s.combos ?? 0) + 1;
+  } else {
+    s.points += P4_PTS_RAMP + (s.combo > 1 ? P4_PTS_COMBO * (s.combo - 1) : 0);
+    s.mult = Math.min(PIN_MULT_MAX, s.mult + 1);
+  }
   b.ride = side;
   b.rideT = 0;
   b.vx = 0;
@@ -1129,6 +1144,8 @@ export function pin4Checkpoint(state: Pin4State) {
     ...state.releases,
     // pinRev 5 folds its flag in last, so pinRev 4's checksum is unchanged.
     ...(state.rev5 ? [state.rev5] : []),
+    // pinRev 6 folds its flag and combo count in after it, so pinRev 5's checksum is unchanged.
+    ...(state.rev6 ? [state.rev6, state.combos ?? 0] : []),
   ];
   for (const value of values) {
     checksum ^= value | 0;
@@ -1205,13 +1222,81 @@ export const pinball5Game: ArcadeGame<Pin4State, ArcadeInputEvent | null> = {
   score: (state) => bandTotal(pinball5BandParts(state), Boolean(state.acted), PIN_V4_MAX),
 };
 
+/* ================= The arcade scoring standard (pinRev 6) ================= */
+
+/**
+ * pinRev 6 (29 Oct 2026, docs/arcade-standard/pinball.md): pinRev 5's table and 90 s play, scored on the arcade
+ * scoring standard (arcadeStandard.ts). Table points no longer carry a multiplier (it stays x1) and a back-to-back
+ * ramp shot adds a flat P4_PTS_COMBO, so the table's points are a straight count of what the ball did; the core pays
+ * them on a straight line, full at the skill-band tool's near-perfect median (PIN_V6_FULL_AT). The features pay fixed
+ * amounts on top: J-O-U-L-Z completed 10 each (up to 2), multiball started 20, jackpots 5 each (up to 3) and ramp
+ * combos 5 each (up to 3). Every feature also scores its table points, so earning one never costs core points.
+ */
+export const PIN_V6_FULL_AT = 61000;
+export const PIN_V6_CORE_MAX = 130;
+export const PIN_V6_JOULZ_EACH = 10;
+export const PIN_V6_JOULZ_MAX = 20;
+export const PIN_V6_MULTIBALL = 20;
+export const PIN_V6_JACKPOT_EACH = 5;
+export const PIN_V6_JACKPOT_MAX = 15;
+export const PIN_V6_COMBO_EACH = 5;
+export const PIN_V6_COMBO_MAX = 15;
+/** The core's straight line (the help and arcade-help-bands-check read it): 0 to 130 at PIN_V6_FULL_AT table points. */
+export const PIN_V6_BAND_CURVE = bandCurve([0, PIN_V6_FULL_AT], [0, PIN_V6_CORE_MAX]);
+
+const fmt = (n: number) => n.toLocaleString("en-GB");
+
+export const PIN_STD_SPEC: StdSpec = {
+  field: "pinRev",
+  rev: PIN_REV_STD,
+  parts: [
+    { key: "core", label: "Table points", max: PIN_V6_CORE_MAX, how: `a straight line, full at ${fmt(PIN_V6_FULL_AT)}` },
+    { key: "joulz", label: "J-O-U-L-Z", max: PIN_V6_JOULZ_MAX, how: `${PIN_V6_JOULZ_EACH} for each set of all five letters, up to ${PIN_V6_JOULZ_MAX / PIN_V6_JOULZ_EACH}` },
+    { key: "multiball", label: "Multiball", max: PIN_V6_MULTIBALL, how: "once multiball has started" },
+    { key: "jackpots", label: "Jackpots", max: PIN_V6_JACKPOT_MAX, how: `${PIN_V6_JACKPOT_EACH} each, up to ${PIN_V6_JACKPOT_MAX / PIN_V6_JACKPOT_EACH}` },
+    { key: "combos", label: "Ramp combos", max: PIN_V6_COMBO_MAX, how: `${PIN_V6_COMBO_EACH} for each ramp shot back to back, up to ${PIN_V6_COMBO_MAX / PIN_V6_COMBO_EACH}` },
+  ],
+};
+
+const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
+
+/** pinRev 6's parts (null on any earlier revision). */
+export function pinballStdParts(state: Pin4State): StdPart[] | null {
+  if (!state || !state.rev6) return null;
+  const points = Math.max(0, state.points);
+  const combos = state.combos ?? 0;
+  return [
+    stdPart(PIN_STD_SPEC, "core", stdLinear(points, PIN_V6_FULL_AT, PIN_V6_CORE_MAX), `${fmt(points)} table points`),
+    stdPart(PIN_STD_SPEC, "joulz", stdEach(state.laneSets, PIN_V6_JOULZ_EACH, PIN_V6_JOULZ_MAX), plural(state.laneSets, "set", "sets")),
+    stdPart(PIN_STD_SPEC, "multiball", state.multiballs > 0 ? PIN_V6_MULTIBALL : 0, state.multiballs > 0 ? plural(state.multiballs, "multiball", "multiballs") : "not started"),
+    stdPart(PIN_STD_SPEC, "jackpots", stdEach(state.jackpots, PIN_V6_JACKPOT_EACH, PIN_V6_JACKPOT_MAX), plural(state.jackpots, "jackpot", "jackpots")),
+    stdPart(PIN_STD_SPEC, "combos", stdEach(combos, PIN_V6_COMBO_EACH, PIN_V6_COMBO_MAX), plural(combos, "combo", "combos")),
+  ];
+}
+
+/** pinRev 6 for the skill-band tool: units the table points, points the core, bonus the features. */
+export function pinball6BandParts(state: Pin4State): BandParts {
+  const parts = pinballStdParts(state) ?? [];
+  const core = parts[0]?.points ?? 0;
+  const units = Math.max(0, state.points);
+  return { units, points: core, bonus: stdSum(parts) - core, penalty: 0, finished: false, text: `${fmt(units)} table points` };
+}
+
+/** The pinRev 6 game: pinRev 5's table and play for 90 s, scored on the standard (0 with no input, else 1 to 200). */
+export const pinball6Game: ArcadeGame<Pin4State, ArcadeInputEvent | null> = {
+  ...pinball5Game,
+  init: (seed) => ({ ...bandInit(init(seed)), band: 3, rev5: 1, rev6: 1, combos: 0 }),
+  score: (state) => stdScore(pinballStdParts(state) ?? [], Boolean(state.acted)),
+};
+
 /** Max speed note for the reveal and checks: the cap is pinRev 1's. */
 export const P4_MAX_SPEED = PIN_MAX_SPEED;
 
 /* ============================ Any revision ============================ */
 
-/** The game for any stored pinRev: pinRev 5 the 90-second table, pinRev 4 this table, anything else pinball.ts's (pinballGameFor). */
+/** The game for any stored pinRev: pinRev 6 the standard, pinRev 5 the 90-second table, pinRev 4 this table, anything else pinball.ts's (pinballGameFor). */
 export function pinballGameForAny(rev?: number | null): ArcadeGame<PinState, ArcadeInputEvent | null> {
+  if (rev === PIN_REV_STD) return pinball6Game as unknown as ArcadeGame<PinState, ArcadeInputEvent | null>;
   if (rev === PIN_REV_LONG) return pinball5Game as unknown as ArcadeGame<PinState, ArcadeInputEvent | null>;
   return rev === PIN_REV_EXPAND ? (pinball4Game as unknown as ArcadeGame<PinState, ArcadeInputEvent | null>) : pinballGameFor(rev);
 }
