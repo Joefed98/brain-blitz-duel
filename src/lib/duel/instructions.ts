@@ -126,7 +126,7 @@ import {
   PIN_PTS_SPIN_LIT,
   PIN_PTS_TARGET,
 } from "@/lib/arcade/pinball";
-import { SLICE_V9_BAND_CURVE, SLICE_V9_BONUS_CAP, SLICE_V9_DODGE_POINTS, SLICE_V9_GOLD_POINTS, SLICE_V9_TICKET_POINTS, SLICE_V9_VALUE } from "@/lib/arcade/slice";
+import { SLICE_V9_GOLDS, SLICE_V9_MAX, SLICE_V11_BAND_CURVE, SLICE_V11_CHILLI, SLICE_V11_CLOSE, SLICE_V11_COMBO_CAP, SLICE_V11_COMBO_FOODS, SLICE_V11_COMBO_POINTS, SLICE_V11_CORE, SLICE_V11_DODGE_CAP, SLICE_V11_DODGE_POINTS, SLICE_V11_GOLD_CAP, SLICE_V11_TICKET_BREADS, SLICE_V11_TICKET_CAP } from "@/lib/arcade/slice";
 import { BINTOSS_FAR_CAP, BINTOSS_FAR_POINTS, BINTOSS_FAR_THROWS, BINTOSS_V7_BAND_CURVE } from "@/lib/arcade/binToss";
 import { P4_PTS_COMBO, P4_PTS_JACKPOT, P4_PTS_JOULZ, P4_PTS_RAMP, P4_PTS_SKILL } from "@/lib/arcade/pinball4";
 import { BULLSEYE_INNER_BULL_POINTS, BULLSEYE_RING_VALUES, BULLSEYE_V8_DEAD_CAP, BULLSEYE_V8_DEAD_PTS, BULLSEYE_V8_STREAK_CAP, BULLSEYE_V8_STREAK_STEP } from "@/lib/arcade/bullseye";
@@ -859,21 +859,22 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
     slice: {
       goal: "Slice the flying food. Don't cut the chillies.",
       how: [
-        { action: "Swipe through food.", detail: "3+ in one swipe: combo ×2, ×3." },
-        { action: "Small is worth more:", detail: "onion 3, golden fruit 5." },
-        { action: "Fill the ticket; skim chillies,", detail: "never cut one." },
-        { action: "Never cut a chilli:", detail: "it costs 10 points and ends your combo.", helpOnly: true },
+        { action: "Swipe through food.", detail: "3+ in one swipe is a combo." },
+        { action: "Golden fruit and 3 breads in a row", detail: "score more." },
+        { action: "Cut food near a chilli;", detail: "never cut one." },
+        { action: "Never cut a chilli:", detail: `it costs ${SLICE_V11_CHILLI} points and ends your combo.`, helpOnly: true },
         { action: "Cut a bottle:", detail: "ketchup, mustard or mayo power-up.", helpOnly: true },
-        { action: "Food sizes:", detail: `bread is big and worth ${SLICE_V9_VALUE[0]}, cabbage and meat ${SLICE_V9_VALUE[1]}, onions small and worth ${SLICE_V9_VALUE[2]}, golden fruit tiny and worth ${SLICE_V9_VALUE[4]}.`, helpOnly: true },
-        { action: "Golden fruit:", detail: `cut one while a combo is live for +${SLICE_V9_GOLD_POINTS} at ×2 or +${2 * SLICE_V9_GOLD_POINTS} at ×3.`, helpOnly: true },
-        { action: "Order tickets:", detail: `the ticket at the top right asks for one food, 1–3 in a row, before its time runs out (cutting another food starts the count again). Filling it adds ${SLICE_V9_TICKET_POINTS}.`, helpOnly: true },
-        { action: "Dodge streak:", detail: `slice food close past a chilli (it shows DODGE) and let the chilli fall: ${SLICE_V9_DODGE_POINTS}, ${2 * SLICE_V9_DODGE_POINTS}, then ${3 * SLICE_V9_DODGE_POINTS} for each dodge in a row. Cutting a chilli ends the streak.`, helpOnly: true },
-        { action: "Bottles:", detail: "ketchup stops chillies, mustard slows time, mayo pulls food together.", helpOnly: true },
+        { action: "Combo:", detail: `three foods in one swipe start it and each one renews its 10 seconds. Every ${SLICE_V11_COMBO_FOODS} foods cut while it is live add ${SLICE_V11_COMBO_POINTS} (up to ${SLICE_V11_COMBO_CAP}).`, helpOnly: true },
+        { action: "Golden fruit:", detail: `the tiny gold apples, ${SLICE_V9_GOLDS} a run, share ${SLICE_V11_GOLD_CAP} points.`, helpOnly: true },
+        { action: "Bread tickets:", detail: `${SLICE_V11_TICKET_BREADS} breads cut in a row fill a ticket (other food in between is fine; a bread you miss starts the count again). Tickets share ${SLICE_V11_TICKET_CAP} points.`, helpOnly: true },
+        { action: "Dodges:", detail: `cut a food while it is within ${SLICE_V11_CLOSE} px of a chilli (and don't cut the chilli): ${SLICE_V11_DODGE_POINTS} each, up to ${SLICE_V11_DODGE_CAP}.`, helpOnly: true },
+        { action: "Bottles:", detail: "ketchup stops chillies, mustard slows time, mayo pulls food together. They score nothing themselves.", helpOnly: true },
         { action: "Saucy (ketchup): 3 chilli-free seconds.", detail: "Simmer (mustard): 4 slow seconds. Squeeze (mayo): nearby food gathers where you cut it.", helpOnly: true },
-        { action: "One finger-down-to-up path counts together", detail: "– curves too, up to the full height of the screen. Each combo resets a 10-second timer.", helpOnly: true },
+        { action: "One finger-down-to-up path counts together", detail: "– curves too, up to the full height of the screen.", helpOnly: true },
       ],
-      // sliceRev 9 (docs/expansions/e5.md): the value-weighted share on its curve, plus the bonus points.
-      score: `Combo-weighted food values (bread ${SLICE_V9_VALUE[0]}, cabbage and meat ${SLICE_V9_VALUE[1]}, onion ${SLICE_V9_VALUE[2]}, golden fruit ${SLICE_V9_VALUE[4]}) out of the most the run offers (every food at ×3), in thousandths. More combo slices, higher score – 150 at ${bandTop(SLICE_V9_BAND_CURVE)}. A good run (${BAND_GOOD_POINTS} points) reaches ${bandUnitsFor(SLICE_V9_BAND_CURVE, BAND_GOOD_POINTS)}. Golden fruit in a combo, filled tickets and dodges add up to ${SLICE_V9_BONUS_CAP} more. Each chilli costs 10 and ends the combo. Up to {max}.`,
+      // sliceRev 11 (the arcade scoring standard, docs/arcade-standard-oct-2026/slice.md): the share of food cut on a
+      // straight line to 120, then the four parts.
+      score: `Each food cut counts, out of every food thrown (bottles and chillies don't count), in thousandths. More food sliced, higher score – up to ${SLICE_V11_CORE}. A good run (${BAND_GOOD_POINTS} points) slices ${bandUnitsFor(SLICE_V11_BAND_CURVE, BAND_GOOD_POINTS)}. Combos add up to ${SLICE_V11_COMBO_CAP}, golden fruit ${SLICE_V11_GOLD_CAP}, bread tickets ${SLICE_V11_TICKET_CAP} and dodges ${SLICE_V11_DODGE_CAP}: ${SLICE_V11_CORE + SLICE_V11_COMBO_CAP + SLICE_V11_GOLD_CAP + SLICE_V11_TICKET_CAP + SLICE_V11_DODGE_CAP} in all. Each chilli costs ${SLICE_V11_CHILLI} and ends the combo. Up to ${SLICE_V9_MAX}.`,
     },
     bubble: {
       goal: "Pop threes and free the treasure.",

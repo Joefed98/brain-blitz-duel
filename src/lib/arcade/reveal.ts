@@ -84,6 +84,25 @@ function ended(run: Run, complete: boolean): ArcadeRevealData["outcome"] {
   return "time";
 }
 
+/** Slice before sliceRev 11. */
+function sliceReveal(r: Run, s: number): ArcadeRevealData {
+  return {
+    axis: { value: n(r, "slices"), max: n(r, "totalDiscs"), label: "Foods sliced" },
+    lines: [
+      `${n(r, "slices")} / ${n(r, "totalDiscs")} foods → ${s}`,
+      ...(n(r, "bombsHit") > 0 ? [`−10 × ${n(r, "bombsHit")} ${n(r, "bombsHit") === 1 ? "chilli" : "chillies"}`] : []),
+    ],
+    tiles: [
+      { label: "Best combo", value: `×${n(r, "bestMult")}` },
+      { label: "Ketchup / mustard", value: String(n(r, "bonuses")) },
+      { label: "Chillies", value: String(n(r, "bombsHit")) },
+      // sliceRev 2 rounds only: mayonnaise bottles cut.
+      ...(("mayoOn" in r ? b(r, "mayoOn") : "mayo" in r) ? [{ label: "Mayo", value: String(n(r, "mayo")) }] : []),
+    ],
+    outcome: "time",
+  };
+}
+
 type Builder = (run: Run, score: number) => ArcadeRevealData;
 
 const BUILDERS: Record<string, Builder> = {
@@ -269,21 +288,26 @@ const BUILDERS: Record<string, Builder> = {
     ],
     outcome: ended(r, false),
   }),
-  slice: (r, s) => ({
-    axis: { value: n(r, "slices"), max: n(r, "totalDiscs"), label: "Foods sliced" },
-    lines: [
-      `${n(r, "slices")} / ${n(r, "totalDiscs")} foods → ${s}`,
-      ...(n(r, "bombsHit") > 0 ? [`−10 × ${n(r, "bombsHit")} ${n(r, "bombsHit") === 1 ? "chilli" : "chillies"}`] : []),
-    ],
-    tiles: [
-      { label: "Best combo", value: `×${n(r, "bestMult")}` },
-      { label: "Ketchup / mustard", value: String(n(r, "bonuses")) },
-      { label: "Chillies", value: String(n(r, "bombsHit")) },
-      // sliceRev 2 rounds only: mayonnaise bottles cut.
-      ...(("mayoOn" in r ? b(r, "mayoOn") : "mayo" in r) ? [{ label: "Mayo", value: String(n(r, "mayo")) }] : []),
-    ],
-    outcome: "time",
-  }),
+  slice: (r, s) => {
+    // sliceRev 11 (the arcade scoring standard): the axis is foods cut out of foods thrown, its tiles the parts.
+    const st = r["state"] as { v11?: number; foodCut?: number; foodMissed?: number; comboFoods?: number; golds?: number; breadTickets?: number; dodges?: number } | undefined;
+    if (st && typeof st === "object" && st.v11) {
+      const cut = st.foodCut ?? 0;
+      return {
+        axis: { value: cut, max: cut + (st.foodMissed ?? 0), label: "Foods sliced" },
+        lines: [`${cut} / ${cut + (st.foodMissed ?? 0)} foods → ${s}`],
+        tiles: [
+          { label: "Combo foods", value: String(st.comboFoods ?? 0) },
+          { label: "Golden fruit", value: String(st.golds ?? 0) },
+          { label: "Tickets", value: String(st.breadTickets ?? 0) },
+          { label: "Dodges", value: String(st.dodges ?? 0) },
+          { label: "Chillies", value: String(n(r, "bombsHit")) },
+        ],
+        outcome: "time",
+      };
+    }
+    return sliceReveal(r, s);
+  },
   bubble: (r, s) => {
     // Replay results keep the original board count on state; persisted flat facts
     // also carry startCount. Neither popped nor shots is the starting total.

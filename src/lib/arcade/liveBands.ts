@@ -29,7 +29,7 @@ import { TILT_REV_STD, TILT_REV_STRICT, TILT_V10_BAND_CURVE } from "./tilt";
 import { ORBIT_REV_STRICT, ORBIT_REV_XP } from "./orbit";
 import { ORBIT_V12_BAND_CURVE } from "./orbitRev3";
 import { BEAT_REV_EASE, BEAT_REV_STRICT, BEAT_V10_BAND_CURVE } from "./beat";
-import { SLICE_REV_STRICT, SLICE_REV_BIG, SLICE_V9_BAND_CURVE } from "./slice";
+import { SLICE_REV_STRICT, SLICE_REV_STANDARD, SLICE_V11_BAND_CURVE } from "./slice";
 import { BURST_REV_STD, BURST_REV_STRICT, BURST_V10_BAND_CURVE } from "./burst";
 import { SWING_REV_ASSAULT, SWING_REV_STRICT, SWING_V14_BAND_CURVE } from "./swing";
 import { BULLSEYE_REV_EXPAND, BULLSEYE_REV_STRICT, BULLSEYE_V8_BAND_CURVE } from "./bullseye";
@@ -75,7 +75,8 @@ export const LIVE_BANDS = {
   orbit: { field: "orbitRev", rev: ORBIT_REV_XP, curve: ORBIT_V12_BAND_CURVE, strictRev: ORBIT_REV_STRICT },
   // beatRev 10 (phone notes): beatRev 9's base curve and skill pay on an easier chart and wider windows.
   beat: { field: "beatRev", rev: BEAT_REV_EASE, curve: BEAT_V10_BAND_CURVE, strictRev: BEAT_REV_STRICT },
-  slice: { field: "sliceRev", rev: SLICE_REV_BIG, curve: SLICE_V9_BAND_CURVE, strictRev: SLICE_REV_STRICT },
+  // sliceRev 11 (the arcade scoring standard): the core's straight line to 120; combo, golden fruit, tickets and dodges pay up to 80 more.
+  slice: { field: "sliceRev", rev: SLICE_REV_STANDARD, curve: SLICE_V11_BAND_CURVE, strictRev: SLICE_REV_STRICT },
   // burstRev 10 (the arcade scoring standard): the core's straight line (140 at all 87 atoms); wave clears, golden atoms and lives on top (the help says so).
   burst: { field: "burstRev", rev: BURST_REV_STD, curve: BURST_V10_BAND_CURVE, strictRev: BURST_REV_STRICT },
   // swingRev 14 (the assault course): the sections' curve; pars, gates, gems and stars pay up to 70 more (the help says so).

@@ -16,7 +16,7 @@ import { BURST_REV_STD } from "@/lib/arcade/burst";
 import { BULLSEYE_REV_EXPAND } from "@/lib/arcade/bullseye";
 import { BEAT_REV_EASE } from "@/lib/arcade/beat";
 import { SNAKE_REV_STD } from "@/lib/arcade/snake";
-import { SLICE_REV_BIG, SLICE_REV_TALL } from "@/lib/arcade/slice";
+import { SLICE_REV_BIG, SLICE_REV_STANDARD, SLICE_REV_TALL } from "@/lib/arcade/slice";
 import { BINTOSS_REV_SMALL_FAR } from "@/lib/arcade/binToss";
 import { BUB_REV_BLAST } from "@/lib/arcade/bubble";
 import { MATCHUP_REV_STD } from "@/lib/arcade/matchup";
@@ -215,6 +215,8 @@ export const getIntroDemoFn = createServerFn({ method: "GET" })
     if (data.type === "bintoss" && demo?.puzzle.type === "bintoss" && demo.puzzle.binRev !== BINTOSS_REV_SMALL_FAR) return null;
     // Slice sliceRev 10 (27 Oct 2026, Joe's phone notes): bigger onions and golden fruit; only a sliceRev 10 demo plays.
     if (data.type === "slice" && demo?.puzzle.type === "slice" && demo.puzzle.sliceRev !== SLICE_REV_BIG) return null;
+    // Slice sliceRev 11 (29 Oct 2026, the arcade scoring standard): the new parts and bread tickets; only a sliceRev 11 demo plays.
+    if (data.type === "slice" && demo?.puzzle.type === "slice" && demo.puzzle.sliceRev !== SLICE_REV_STANDARD) return null;
 
     return demo;
   });

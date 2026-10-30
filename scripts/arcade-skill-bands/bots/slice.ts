@@ -33,6 +33,9 @@ import {
   sliceTicketAt,
   sliceWorldW,
   SLICE_V9_GOLD,
+  SLICE_V11_CLOSE,
+  SLICE_V11_DODGE_CAP,
+  SLICE_V11_DODGE_POINTS,
   SLICE_R,
   sliceWorldH,
   type SliceObject,
@@ -40,6 +43,7 @@ import {
 } from "../../../src/lib/arcade/slice";
 import type { SkillLevel } from "../human";
 import { driveEvents, type SkillBot } from "../bot";
+import { sliceOracleEvents } from "../../slice-standard-oracle";
 
 /** Finger top speed while swiping, px a tick (world px are phone px here). */
 const FINGER: Record<SkillLevel, number> = { weak: 20, average: 26, good: 32, great: 38, near: 44, elite: 46, perfect: 48 };
@@ -75,12 +79,26 @@ const NEXT_MS = 260;
 /** sliceRev 9: the chance a swipe goes after a golden fruit or the ticket's food first, by level. */
 const FEATURE: Record<SkillLevel, number> = { weak: 0.05, average: 0.15, good: 0.35, great: 0.6, near: 0.75, elite: 0.85, perfect: 1 };
 
+/**
+ * sliceRev 11 (the arcade scoring standard): the chance a swipe goes first for a food close to a noticed chilli
+ * (a dodge: the food's skin within SLICE_V11_CLOSE px of the chilli's), by level, until the dodges are full. Only
+ * sliceRev 11 states read it, so every earlier revision plays as before.
+ */
+const DODGE: Record<SkillLevel, number> = { weak: 0, average: 0, good: 0.1, great: 0.3, near: 0.5, elite: 0.75, perfect: 1 };
+/** A dodge target keeps at least this much (px) between its centre and the chilli's, past the bomb clearance. */
+const DODGE_SAFE = SLICE_R * 2 + BOMB_MARGIN + 6;
+/** sliceRev 11: an elite player also reads that a food drifting off a side is about to be lost (its urgency). */
+const SIDES: Record<SkillLevel, boolean> = { weak: false, average: false, good: false, great: false, near: false, elite: true, perfect: true };
+
 interface Pt {
   x: number;
   y: number;
 }
 
 export const bot: SkillBot = ({ game, seed, human, fixes }) => {
+  // sliceRev 11: the flawless level (no error, each seed's ceiling) is the oracle player of the scoring standard
+  // (scripts/slice-standard-oracle.ts): every food cut, the combo kept live, golden fruit, tickets and dodges full.
+  if (human.level === "perfect" && (game.init(seed) as SliceState).v11) return { events: sliceOracleEvents(seed) };
   const level = human.level;
   // sliceRev 6: the taller board (the bot reads the stored round's own world).
   const SLICE_WORLD_H = sliceWorldH(game.init(seed) as SliceState);
@@ -111,6 +129,8 @@ export const bot: SkillBot = ({ game, seed, human, fixes }) => {
     for (let k = 0; k <= 180; k += 3) {
       const p = posAt(s, i, t + k);
       if (!p) return k;
+      // sliceRev 11, elite: a food drifting off a side can no longer be cut either.
+      if (s.v11 && SIDES[level] && (p.x - radius(o) > SLICE_WORLD_W || p.x + radius(o) < 0)) return k;
       if (k > 0 && p.y - radius(o) > SLICE_WORLD_H - 10) {
         const prev = posAt(s, i, t + k - 3);
         if (prev && p.y > prev.y) return k; // on its way down and out
@@ -209,7 +229,8 @@ export const bot: SkillBot = ({ game, seed, human, fixes }) => {
     // sliceRev 9: a player using the features puts a golden fruit, then the ticket's food, first.
     const ticket = s.v9 ? sliceTicketAt(s, t) : -1;
     let want = s.v9 && human.chance(FEATURE[level]!);
-    if (want && SAFE_FEATURE[level]) {
+    // sliceRev 11: a golden fruit (worth over three foods) is never left for the base.
+    if (want && SAFE_FEATURE[level] && !s.v11) {
       // Base first: leave the features while another food is about to fall, or once the bonus is full.
       const isFeature = (i: number) => {
         const o = s.objects[i]!;
@@ -218,15 +239,38 @@ export const bot: SkillBot = ({ game, seed, human, fixes }) => {
         return ticket >= 0 && o.colour === s.tickets![ticket]!.kind;
       };
       const urgent = foods.some((f) => !isFeature(f.i) && !s.objects[f.i]!.special && f.exit < SAFE_EXIT);
-      if (urgent || sliceV9Bonus(s) >= SLICE_V9_BONUS_CAP) want = false;
+      if (urgent || (!s.v11 && sliceV9Bonus(s) >= SLICE_V9_BONUS_CAP)) want = false;
+    }
+    // sliceRev 11: a food close to (but safely clear of) a noticed chilli goes first, for a dodge.
+    const dodgeFor = new Set<number>();
+    if (s.v11 && SLICE_V11_DODGE_POINTS * (s.dodges ?? 0) < SLICE_V11_DODGE_CAP && bombs.length && human.chance(DODGE[level]!)) {
+      for (const f of foods) {
+        const o = s.objects[f.i]!;
+        if (o.special) continue;
+        const p = posAt(s, f.i, t + 8);
+        if (!p) continue;
+        const close = bombs.some((b) => {
+          const q = posAt(s, b, t + 8);
+          if (!q) return false;
+          const d = Math.hypot(p.x - q.x, p.y - q.y);
+          return d >= DODGE_SAFE && d <= radius(o) + radius(s.objects[b]!) + SLICE_V11_CLOSE - 4;
+        });
+        if (close) dodgeFor.add(f.i);
+      }
     }
     const rank = (i: number) => {
       const o = s.objects[i]!;
+      if (dodgeFor.has(i)) return 3;
       if (!want) return 0;
       if (o.colour === SLICE_V9_GOLD && !o.special) return 2;
       return ticket >= 0 && !o.special && o.colour === s.tickets![ticket]!.kind ? 1 : 0;
     };
     foods.sort((a, b) => Number(b.special) - Number(a.special) || rank(b.i) - rank(a.i) || a.exit - b.exit);
+    if (dodgeFor.size) {
+      // A dodge target leads the swipe (bottles still first).
+      const k = foods.findIndex((f) => dodgeFor.has(f.i));
+      if (k > 0 && !foods[0]!.special) foods.unshift(...foods.splice(k, 1));
+    }
     // Working a ticket: only its food (and golden fruit, bottles) go in the swipe, so the count isn't reset.
     const open = ticket >= 0 && (s.ticketCuts?.[ticket] ?? 0) < s.tickets![ticket]!.count;
     const focus = want && open && foods.some((f) => rank(f.i) >= 1 && s.objects[f.i]!.colour !== SLICE_V9_GOLD);
@@ -264,7 +308,7 @@ export const bot: SkillBot = ({ game, seed, human, fixes }) => {
       if (trial && trial.length <= sliceMaxPath(s) - 25) ids.push(n.f.i);
     }
     // A combo player holds off for three in a line while nothing is about to drop.
-    if (combo && ids.length < 3 && anchor.exit > 45 && !anchor.special) {
+    if (combo && ids.length < 3 && anchor.exit > 45 && !anchor.special && !dodgeFor.has(anchor.i)) {
       readyAt = t + 4;
       return false;
     }
