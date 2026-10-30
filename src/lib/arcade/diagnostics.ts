@@ -10,6 +10,9 @@ import { beatCheckpoint } from "./beat";
 import { binTossCheckpoint } from "./binToss";
 import { brkCheckpoint } from "./breaker";
 import { pinCheckpointAny } from "./pinball4";
+import { fcCheckpoint } from "./cards/freecell";
+import { tpCheckpoint } from "./cards/tripeaks";
+import { psCheckpoint } from "./cards/pokerSquares";
 import { bubCheckpoint } from "./bubble";
 import { bullseyeCheckpoint } from "./bullseye";
 import { crossCheckpoint } from "./cross";
@@ -51,6 +54,9 @@ const SNAPSHOTS: Record<string, (state: any) => object> = {
   bintoss: binTossCheckpoint,
   breaker: brkCheckpoint,
   pinball: pinCheckpointAny,
+  freecell: fcCheckpoint,
+  tripeaks: tpCheckpoint,
+  pokersquares: psCheckpoint,
   bubble: bubCheckpoint,
   bullseye: bullseyeCheckpoint,
   cross: crossCheckpoint,

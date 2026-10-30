@@ -986,6 +986,45 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
       ],
       score: liveStdHelp("pinball", "Every switch, ramp, lock, jackpot and skill shot scores table points (no multiplier)."),
     },
+    // Cards & Board (30 Oct 2026): born on the arcade scoring standard; the SCORE text comes from each game's spec.
+    freecell: {
+      goal: "Get all 52 cards home in two minutes.",
+      how: [
+        { action: "Tap a card", detail: "to move it (and the run on it) to its best spot." },
+        { action: "Drag a card", detail: "to put it on a particular pile." },
+        { action: "Build down", detail: "in alternating colours; home piles build up by suit from the Ace." },
+        { action: "Four free cells", detail: "each hold one card. Empty cells and columns let you move longer runs at once.", helpOnly: true },
+        { action: "Safe cards go home by themselves:", detail: "aces and twos, and a card whose lower cards of the other colour are home. They are not counted as moves.", helpOnly: true },
+        { action: "Par", detail: "is the fewest moves our solver found for this deal.", helpOnly: true },
+        { action: "One deal for everyone,", detail: "always solvable.", helpOnly: true },
+      ],
+      score: liveStdHelp("freecell", "Three parts, which total 200:"),
+    },
+    tripeaks: {
+      goal: "Clear the three peaks.",
+      how: [
+        { action: "Tap a glowing card", detail: "one higher or lower than the discard; Ace and King wrap." },
+        { action: "Tap the stock", detail: "when you are stuck: it turns a new discard and ends the run." },
+        { action: "Uncover the tops", detail: "of all three peaks for the bonus." },
+        { action: "Face-down cards", detail: "turn up when both cards over them are cleared.", helpOnly: true },
+        { action: "Drag works too:", detail: "drop a card on the discard.", helpOnly: true },
+        { action: "One deal for everyone,", detail: "always clearable.", helpOnly: true },
+      ],
+      score: liveStdHelp("tripeaks", "Five parts, which total 200:"),
+    },
+    pokersquares: {
+      goal: "Build poker hands in every row and column.",
+      how: [
+        { action: "Tap an empty square", detail: "to place the next card. Placed cards stay." },
+        { action: "Rows and columns", detail: "each score as a poker hand." },
+        { action: "25 cards,", detail: "one at a time; the next card is at the bottom." },
+        { action: "Hands:", detail: "pair 3, two pair 6, three of a kind 8, straight 10, flush 11, full house 13, four of a kind 15, straight flush 16.", helpOnly: true },
+        { action: "The target", detail: "is a strong grid made from these same 25 cards; beat it if you can.", helpOnly: true },
+        { action: "Empty squares at the buzzer", detail: "score whatever their lines already hold.", helpOnly: true },
+        { action: "Same cards, same order,", detail: "for everyone.", helpOnly: true },
+      ],
+      score: liveStdHelp("pokersquares", "Two parts, which total 200:"),
+    },
     rally: {
       goal: "Keep the rally going.",
       how: [

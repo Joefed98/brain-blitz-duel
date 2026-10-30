@@ -11,6 +11,9 @@
  * shared red edge pulse and, where a point is given, the puff at the miss.
  */
 import type { ArcadeFxMiss, ArcadeFxSpec, ArcadeWorld } from "./arcadeFx.renderer";
+import { FREECELL_FX } from "./cards/freecell.renderer";
+import { TRIPEAKS_FX } from "./cards/tripeaks.renderer";
+import { POKERSQUARES_FX } from "./cards/pokerSquares.renderer";
 import { px } from "./engine";
 
 import { HOVER_DISC_X, HOVER_EXPAND_H, HOVER_TALL_H, HOVER_WORLD_H, HOVER_WORLD_W, hoverWorldH, type HoverState } from "./hover";
@@ -266,6 +269,10 @@ export const ARCADE_GAME_WORLDS = {
   balltrack: "toybox",
   matchup: "gem",
   pinball: "retro",
+  // Cards & Board (30 Oct 2026).
+  freecell: "cards",
+  tripeaks: "cards",
+  pokersquares: "cards",
 } as const satisfies Record<string, ArcadeWorld>;
 
 export type ArcadeFxGame = keyof typeof ARCADE_GAME_WORLDS;
@@ -276,7 +283,7 @@ export type ArcadeFxGame = keyof typeof ARCADE_GAME_WORLDS;
  * (pinball.ts) is switched on.
  */
 export const RETIRED_ARCADE_GAMES: readonly ArcadeFxGame[] = PINBALL_IN_ROOMS ? ["junction", "snip"] : ["junction", "snip", "pinball"];
-/** The 21 active arcade games (rooms deal these; Pinball joined on 14 Oct 2026 with PINBALL_IN_ROOMS on, Scrumper left on 27 Oct 2026). */
+/** The active arcade games (rooms deal these; Pinball joined on 14 Oct 2026 with PINBALL_IN_ROOMS on, Scrumper left on 27 Oct 2026, the three Cards & Board games joined on 30 Oct 2026). */
 export const ACTIVE_ARCADE_GAMES = (Object.keys(ARCADE_GAME_WORLDS) as ArcadeFxGame[]).filter((g) => !RETIRED_ARCADE_GAMES.includes(g));
 
 /**
@@ -1714,6 +1721,9 @@ export const ARCADE_FX_SPECS = {
   matchup: fxSpecAt(MATCHUP_FX, MATCHUP_V9_WORLD_H),
 
   pinball: fxSpecAt(PINBALL_FX, 820),
+  freecell: FREECELL_FX,
+  tripeaks: TRIPEAKS_FX,
+  pokersquares: POKERSQUARES_FX,
 } satisfies Record<ArcadeFxGame, ArcadeFxSpec<never>>;
 
 /* ============================ Engine word games ============================ */

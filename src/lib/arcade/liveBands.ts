@@ -36,6 +36,9 @@ import { SWING_REV_REWORK, SWING_REV_STRICT, SWING_V15_BAND_CURVE } from "./swin
 import { BULLSEYE_REV_STD, BULLSEYE_REV_STRICT, BULLSEYE_STD_SPEC, BULLSEYE_V9_BAND_CURVE } from "./bullseye";
 import { PIN_REV_STD, PIN_STD_SPEC, PIN_V6_BAND_CURVE } from "./pinball4";
 import { PIN_REV_STRICT } from "./pinball";
+import { FC_REV, FC_STD_SPEC, FC_V1_BAND_CURVE } from "./cards/freecell";
+import { TP_REV, TP_STD_SPEC, TP_V1_BAND_CURVE } from "./cards/tripeaks";
+import { PS_REV, PS_STD_SPEC, PS_V1_BAND_CURVE } from "./cards/pokerSquares";
 
 export interface LiveBand {
   /** The puzzle field that carries the stamp, and the revision new rounds are dealt. */
@@ -53,6 +56,11 @@ export interface LiveBand {
    * is then the core's straight line (0 → the core's maximum at its full-at figure), and the help reads the spec.
    */
   std?: StdSpec;
+  /**
+   * A game born on the arcade scoring standard (its first revision; the Cards & Board games, 30 Oct 2026): it has no
+   * score-band revision, target revision or strict curve behind it, so the band-history checks pass it by.
+   */
+  born?: true;
 }
 
 export const LIVE_BANDS = {
@@ -98,9 +106,18 @@ export const LIVE_BANDS = {
   bullseye: { field: "bullRev", rev: BULLSEYE_REV_STD, curve: BULLSEYE_V9_BAND_CURVE, strictRev: BULLSEYE_REV_STRICT, std: BULLSEYE_STD_SPEC },
   // pinRev 6 (29 Oct 2026): the arcade scoring standard (table points on a straight line to 130, four features to 70).
   pinball: { field: "pinRev", rev: PIN_REV_STD, curve: PIN_V6_BAND_CURVE, strictRev: PIN_REV_STRICT, std: PIN_STD_SPEC },
+  // Cards & Board (30 Oct 2026): born on the arcade scoring standard at revision 1.
+  freecell: { field: "freecellRev", rev: FC_REV, curve: FC_V1_BAND_CURVE, std: FC_STD_SPEC, born: true },
+  tripeaks: { field: "tripeaksRev", rev: TP_REV, curve: TP_V1_BAND_CURVE, std: TP_STD_SPEC, born: true },
+  pokersquares: { field: "pokerSquaresRev", rev: PS_REV, curve: PS_V1_BAND_CURVE, std: PS_STD_SPEC, born: true },
 } as const satisfies Record<string, LiveBand>;
 
 export type LiveBandGame = keyof typeof LIVE_BANDS;
+
+/** True for a game born on the arcade scoring standard (LiveBand `born`): no score-band history behind it. */
+export function liveBornOnStandard(game: string): boolean {
+  return (LIVE_BANDS as Record<string, LiveBand>)[game]?.born === true;
+}
 
 /** The score-band (strict curve) revision of a game: its `strictRev` once an expansion moved rooms past it, else the dealt one. */
 export function liveStrictRev(game: LiveBandGame): number {

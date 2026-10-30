@@ -41,6 +41,9 @@ import { bullseyePuzzle } from "@/puzzles/bullseye";
 import { matchupPuzzle } from "@/puzzles/matchup";
 import { breakerPuzzle } from "@/puzzles/breaker";
 import { pinballPuzzle } from "@/puzzles/pinball";
+import { freecellPuzzle } from "@/puzzles/freecell";
+import { tripeaksPuzzle } from "@/puzzles/tripeaks";
+import { pokerSquaresPuzzle } from "@/puzzles/pokerSquares";
 import { removedGameDefinition } from "@/puzzles/removedGame";
 import { PINBALL_IN_ROOMS } from "@/lib/arcade/pinball";
 import { rallyPuzzle } from "@/puzzles/rally";
@@ -188,6 +191,9 @@ const BASE_REGISTRY: Record<PuzzleType, Omit<PuzzleDefinition, "instructions">> 
   matchup: matchupPuzzle,
   breaker: breakerPuzzle,
   pinball: pinballPuzzle,
+  freecell: freecellPuzzle,
+  tripeaks: tripeaksPuzzle,
+  pokersquares: pokerSquaresPuzzle,
   rally: rallyPuzzle,
   steady: steadyPuzzle,
   slice: slicePuzzle,

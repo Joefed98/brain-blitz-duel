@@ -41,7 +41,17 @@ import { coin, drawPot, rainbow } from "@/lib/arcade/inkBridge.renderer";
 import { MATERIAL, drawFlipPool, drawRockObstacle, drawRunnerHero, drawStar as flipStar } from "@/lib/arcade/flipArt.renderer";
 import { FLIP_REV, type FlipState } from "@/lib/arcade/flip";
 
+import { cardOf } from "@/lib/arcade/cards/cards";
+import { drawCard, paintFelt } from "@/lib/arcade/cards/cards.renderer";
+
 import { at, canvasScene, noText, type SceneSet } from "./scene";
+
+/** Cards & Board tiles: the table's own felt, faded under the cards (the in-game background). */
+function cardsTable(c: CanvasRenderingContext2D): void {
+  paintFelt(c, 104, 104);
+  c.fillStyle = "rgba(0,0,0,0.45)";
+  c.fillRect(0, 0, 104, 104);
+}
 
 type Ctx = CanvasRenderingContext2D;
 
@@ -395,6 +405,33 @@ export const ARCADE_SCENES: SceneSet = {
     flipStar(c, 80, ceil + 16, 0, true);
     const state = { ended: 0, flipT: 0, side: 0, rev: FLIP_REV, tick: 0, segs: [] } as unknown as FlipState;
     at(c, 30 - 90, 0, 1, () => drawRunnerHero(c, state, floor - 18, true, null, tileHero(3.4, 2.4, 1.65, 1.65 * k)));
+  }),
+
+  // FreeCell: a column's sorted run (black 9, red 8, black 7) and an Ace sent home, glowing gold.
+  freecell: canvasScene((c) => {
+    cardsTable(c);
+    drawCard(c, cardOf(0, 9), 12, 10, 40, 56);
+    drawCard(c, cardOf(1, 8), 12, 30, 40, 56);
+    drawCard(c, cardOf(3, 7), 12, 50, 40, 56, { glow: 0.9 });
+    drawCard(c, cardOf(1, 1), 58, 34, 40, 56);
+  }),
+
+  // TriPeaks: one peak (a face-down top over two face-up cards) and the discard they follow.
+  tripeaks: canvasScene((c) => {
+    cardsTable(c);
+    drawCard(c, 0, 30, 6, 34, 48, { down: true });
+    drawCard(c, cardOf(2, 6), 13, 30, 34, 48, { glow: 0.8 });
+    drawCard(c, cardOf(0, 8), 47, 30, 34, 48);
+    drawCard(c, cardOf(1, 7), 56, 54, 36, 50);
+  }),
+
+  // Poker Squares: a row of four of a kind on the grid, with the next card dropping in.
+  pokersquares: canvasScene((c) => {
+    cardsTable(c);
+    for (let k = 0; k < 3; k++) drawCard(c, cardOf(k, 12), 6 + k * 32, 12, 28, 40);
+    drawCard(c, cardOf(3, 12), 70, 56, 28, 40, { glow: 1 });
+    drawCard(c, cardOf(1, 5), 6, 56, 28, 40);
+    drawCard(c, cardOf(2, 9), 38, 56, 28, 40);
   }),
 };
 

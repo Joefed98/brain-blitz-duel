@@ -12,6 +12,9 @@ import * as pinball from "./pinball";
 import * as rally from "./rally";
 import * as bubble from "./bubble";
 import * as beat from "./beat";
+import * as freecell from "./freecell";
+import * as tripeaks from "./tripeaks";
+import * as pokersquares from "./pokersquares";
 
 export interface ArcadeStdEntry {
   spec: StdSpec | null;
@@ -26,6 +29,9 @@ export const ARCADE_STANDARD: Readonly<Record<string, ArcadeStdEntry>> = {
   rally,
   bubble,
   beat,
+  freecell,
+  tripeaks,
+  pokersquares,
 };
 
 /** The standard parts of a final state, or null when the game or the state's revision is not on the standard. */

@@ -68,6 +68,9 @@ import {
   generateRicochet,
   generateBreaker,
   generatePinball,
+  generateFreecell,
+  generateTripeaks,
+  generatePokerSquares,
   generateRally,
   generateSteady,
   generateSlice,
@@ -198,6 +201,9 @@ function generateUnstamped(type: PuzzleType, context: GenerateContext): PuzzleDa
   if (type === "ricochet") return generateRicochet();
   if (type === "breaker") return generateBreaker();
   if (type === "pinball") return generatePinball();
+  if (type === "freecell") return generateFreecell();
+  if (type === "tripeaks") return generateTripeaks();
+  if (type === "pokersquares") return generatePokerSquares();
   if (type === "rally") return generateRally();
   if (type === "steady") return generateSteady();
   if (type === "slice") return generateSlice();

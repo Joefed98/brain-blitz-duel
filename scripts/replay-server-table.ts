@@ -13,6 +13,7 @@ import { replayBullseyeRun } from "../src/lib/duel/bullseye";
 import { replayMatchupRun } from "../src/lib/duel/matchup";
 import { replayBreakerRun } from "../src/lib/duel/breaker";
 import { replayPinballRun } from "../src/lib/duel/pinball";
+import { replayFreecellRun, replayPokerSquaresRun, replayTripeaksRun } from "../src/lib/duel/cards";
 import { replayRallyRun } from "../src/lib/duel/rally";
 import { replaySliceRun } from "../src/lib/duel/slice";
 import { replayBubbleRun } from "../src/lib/duel/bubble";
@@ -49,6 +50,9 @@ const TABLE: Record<string, (p: any, a: string) => ServerReplay> = {
   matchup: (p, a) => replayMatchupRun(p.seed, a, p.matchupRev),
   breaker: (p, a) => replayBreakerRun(p.seed, a, p.brkRev),
   pinball: (p, a) => replayPinballRun(p.seed, a, p.pinRev),
+  freecell: (p, a) => replayFreecellRun(p.seed, a, p.freecellRev),
+  tripeaks: (p, a) => replayTripeaksRun(p.seed, a, p.tripeaksRev),
+  pokersquares: (p, a) => replayPokerSquaresRun(p.seed, a, p.pokerSquaresRev),
   rally: (p, a) => replayRallyRun(p.seed, a, p.rallyRev),
   slice: (p, a) => replaySliceRun(p.seed, a, p.sliceRev),
   bubble: (p, a) => replayBubbleRun(p.seed, a, p.bubbleRev),

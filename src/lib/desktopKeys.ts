@@ -21,6 +21,10 @@ export const DESKTOP_KEYS: Partial<Record<PuzzleType, readonly (readonly [string
   matchup: [["← → ↑ ↓", "move"], ["Space", "pick"], ["Arrow", "swap picked gem"]],
   orbit: [["Space", "release"], ["C", "checkpoint"]],
   pinball: [["← / Z", "left flipper"], ["→ / M", "right flipper"]],
+  // Cards & Board: the mouse plays them (a click is a tap, a drag a drag).
+  freecell: [["Click", "move a card"], ["Drag", "to a pile"]],
+  tripeaks: [["Click", "play a card"], ["Space / S", "turn the stock"]],
+  pokersquares: [["Click", "place the card"]],
   rally: [["← →", "paddle"]],
   skyline: [["Space", "drop"]],
   snake: [["← → ↑ ↓", "turn"]],

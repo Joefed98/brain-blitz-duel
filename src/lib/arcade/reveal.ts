@@ -108,6 +108,38 @@ function sliceReveal(r: Run, s: number): ArcadeRevealData {
 type Builder = (run: Run, score: number) => ArcadeRevealData;
 
 const BUILDERS: Record<string, Builder> = {
+  // Cards & Board (30 Oct 2026; the lines come from each game's standard parts).
+  freecell: (r, s) => ({
+    axis: { value: n(r, "home"), max: 52, label: "Cards home" },
+    lines: [`${n(r, "home")} / 52 home → ${s}`],
+    tiles: [
+      { label: "Moves", value: `${n(r, "moves")} · par ${n(r, "par")}` },
+      { label: "Sorted runs", value: String(n(r, "sorted")) },
+      { label: "Time", value: b(r, "finished") ? sec(n(r, "finishSeconds")) : "—" },
+    ],
+    outcome: b(r, "finished") ? "finish" : "time",
+  }),
+  tripeaks: (r, s) => ({
+    axis: { value: n(r, "cleared"), max: 28, label: "Cards cleared" },
+    lines: [`${n(r, "cleared")} / 28 cleared → ${s}`],
+    tiles: [
+      { label: "Peak tops", value: `${n(r, "peaks")} / 3` },
+      { label: "Longest run", value: String(n(r, "bestRun")) },
+      { label: "Stock left", value: String(n(r, "stockLeft")) },
+      { label: "Time", value: b(r, "finished") ? sec(n(r, "finishSeconds")) : "—" },
+    ],
+    outcome: b(r, "finished") ? "finish" : n(r, "endedSeconds") < 90 ? "crash" : "time",
+  }),
+  pokersquares: (r, s) => ({
+    axis: { value: n(r, "total"), max: n(r, "target") || null, label: "Hand points" },
+    lines: [`${n(r, "total")} hand points (target ${n(r, "target")}) → ${s}`],
+    tiles: [
+      { label: "Made hands", value: `${n(r, "made")} / 10` },
+      { label: "Target", value: String(n(r, "target")) },
+      { label: "Placed", value: `${n(r, "placed")} / 25` },
+    ],
+    outcome: n(r, "placed") === 25 ? "finish" : "time",
+  }),
   hover: (r, s) => {
     const done = n(r, "gates") >= n(r, "totalGates") && n(r, "totalGates") > 0;
     // hoverRev 9 (the 200 expansion): the base, then the skill points (tight gates, chains, centre lines).

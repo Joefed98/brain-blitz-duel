@@ -80,6 +80,9 @@ replay exactly as before; standard-live-check grades every stored arcade run thr
 | Orbit | `orbit` | `orbitRev` 13 | C | [orbit.md](orbit.md) |
 | Ball Tracker | `balltrack` | `btRev` 8 | C | [balltrack.md](balltrack.md) |
 | Grappler | `swing` | `swingRev` 15 | D | [swing.md](swing.md) |
+| FreeCell | `freecell` | `freecellRev` 1 | Cards & Board | [freecell.md](freecell.md) |
+| TriPeaks | `tripeaks` | `tripeaksRev` 1 | Cards & Board | [tripeaks.md](tripeaks.md) |
+| Poker Squares | `pokersquares` | `pokerSquaresRev` 1 | Cards & Board | [pokersquares.md](pokersquares.md) |
 
 The batches land one at a time on top of this; each adds its games' entries, pages and its summary section below.
 
@@ -288,4 +291,17 @@ par) and gates, gems and stars 30 (2 each for the 5 of each kind); clearing the 
 any input at least 1 (`swingScoreV15`, the shared `stdFinal`). The course, its rules, the bots and the skill-band
 medians are on its page, [swing.md](swing.md); swing-rework-check proves every older revision replays as before and
 every course's own route clears it under par.
+
+## Cards & Board: FreeCell, TriPeaks, Poker Squares (30 Oct 2026)
+
+Three new Arcade games, born on the standard at revision 1 (LIVE_BANDS marks them `born`: no score-band history).
+
+| Game | Stamp | Core | Features | Sum |
+| --- | --- | --- | --- | --- |
+| FreeCell | `freecellRev` 1 | 140, cards home (full) and in sorted runs (half), full at all 52 home | par moves 30, speed 30 (finished; full by 66 s) | 200 |
+| TriPeaks | `tripeaksRev` 1 | 120, share of the 28 peak cards cleared | peak tops 30, longest run 20, clear 10, speed 20 (full by 27 s) | 200 |
+| Poker Squares | `pokerSquaresRev` 1 | 160, hand points ÷ the deal's target | made hands 40 (4 a line) | 200 |
+
+Speed's "full by" times are the near-perfect bots' median finish (`bun scripts/cards-bands.ts`). cards-check proves
+every dealt deal reaches 200 through the server's replay.
 

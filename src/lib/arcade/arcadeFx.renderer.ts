@@ -42,7 +42,8 @@ export type ArcadeWorld =
   | "cavelava"
   | "orchard"
   | "toybox"
-  | "gem";
+  | "gem"
+  | "cards";
 
 export type FxParticleShape =
   "pixel" | "star" | "confetti" | "drop" | "bubble" | "ember" | "leaf" | "diamond";
@@ -185,6 +186,18 @@ export const ARCADE_WORLD_THEMES: Record<ArcadeWorld, ArcadeWorldTheme> = {
     font: DISPLAY,
     weight: DISPLAY_WEIGHT,
   },
+  // Cards & Board (30 Oct 2026): FreeCell, TriPeaks and Poker Squares on the blue felt; gold on navy.
+  cards: {
+    label: "Cards & Board",
+    primary: "#E9C46A",
+    secondary: "#F6EBD0",
+    highlight: "#FFF4D0",
+    text: "#FFF8E8",
+    outline: "#0A1736",
+    particle: "star",
+    font: DISPLAY,
+    weight: DISPLAY_WEIGHT,
+  },
 };
 
 /**
@@ -231,6 +244,10 @@ export const ARCADE_FX_TEXT_COLOURS: Record<string, { fill: string; outline: str
   matchup: { fill: "#FF8FE0", outline: "#1A1030" },
   // Retro Pinball: bumper magenta.
   pinball: { fill: "#FF7AE6", outline: "#000000" },
+  // Cards & Board: the felt's gold on navy.
+  freecell: { fill: "#F2C75C", outline: "#0A1736" },
+  tripeaks: { fill: "#F2C75C", outline: "#0A1736" },
+  pokersquares: { fill: "#F2C75C", outline: "#0A1736" },
 };
 
 /**

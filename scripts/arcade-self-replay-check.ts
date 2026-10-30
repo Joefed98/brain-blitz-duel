@@ -138,6 +138,10 @@ import { RALLY_REV_STD } from "@/lib/arcade/rally";
 import { BUB_REV_STD } from "@/lib/arcade/bubble";
 import { BEAT_REV_STD } from "@/lib/arcade/beat";
 import { encodePinballRun, replayPinballRun } from "@/lib/duel/pinball";
+import { fcCheckpoint, freecellGame } from "@/lib/arcade/cards/freecell";
+import { tpCheckpoint, tripeaksGame } from "@/lib/arcade/cards/tripeaks";
+import { psCheckpoint, pokerSquaresGame } from "@/lib/arcade/cards/pokerSquares";
+import { encodeFreecellRun, encodePokerSquaresRun, encodeTripeaksRun, replayFreecellRun, replayPokerSquaresRun, replayTripeaksRun } from "@/lib/duel/cards";
 import { TILT_REV_BAND, TILT_REV_EXPAND, TILT_REV_LIFT, TILT_REV_STD, TILT_REV_TUNEC } from "@/lib/arcade/tilt";
 import { ORBIT_REV_BAND, ORBIT_REV_SWEPT, ORBIT_REV_TALL, ORBIT_REV_TUNED, ORBIT_REV_XP, ORBIT_REV_STD } from "@/lib/arcade/orbit";
 import { decodeOrbitExtras, initBandFrom, initSweptFrom, initTallFrom, initTunedFrom, initXpFrom, initStdFrom } from "@/lib/arcade/orbitRev3";
@@ -774,6 +778,11 @@ const GAMES: Game[] = [
   { key: "cross/std", game: crossGameFor(CROSS_REV_STD), checkpoint: crossCheckpoint, mode: "events", rate: 60, encode: encodeCrossRun, replay: (seed: number, raw: string) => replayCrossRun(seed, raw, CROSS_REV_STD) },
   // Grappler's swinging course (swingRev 15, 29 Oct 2026, docs/arcade-standard/swing.md), appended so every earlier entry keeps its index.
   { key: "swing/rework", game: swingGameFor(SWING_REV_REWORK), checkpoint: swingCheckpoint, mode: "events", rate: 30, encode: encodeSwingRun, replay: (seed: number, raw: string) => replaySwingRun(seed, raw, SWING_REV_REWORK) },
+  // Cards & Board (30 Oct 2026), appended so every earlier entry keeps its index: FreeCell, TriPeaks and Poker Squares at
+  // revision 1. FreeCell and TriPeaks deal a bank index (any seed maps onto the bank).
+  { key: "freecell", game: freecellGame, checkpoint: fcCheckpoint, mode: "events", rate: 120, encode: encodeFreecellRun, replay: (seed: number, raw: string) => replayFreecellRun(seed, raw, 1), seedFor: (n: number) => n % 300 },
+  { key: "tripeaks", game: tripeaksGame, checkpoint: tpCheckpoint, mode: "events", rate: 120, encode: encodeTripeaksRun, replay: (seed: number, raw: string) => replayTripeaksRun(seed, raw, 1), seedFor: (n: number) => n % 300 },
+  { key: "pokersquares", game: pokerSquaresGame, checkpoint: psCheckpoint, mode: "events", rate: 60, encode: encodePokerSquaresRun, replay: (seed: number, raw: string) => replayPokerSquaresRun(seed, raw, 1) },
 ];
 
 /** A random candidate event, often outside the declared range (a finger off the edge). */

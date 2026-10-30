@@ -47,6 +47,9 @@ revisions keep their own world in reveals and replays.
 | Ball Tracker | 700x1400 | 375x555 → 278x555 | 390x588 → 294x588 | 390x732 → 366x732 | 414x736 → 368x736 | 430x820 → 410x820 | 1280x688 → 344x688 | 0.523x | 60px | 0px | -0px | 24px | Ball Tracker's status row (28px): 16px |
 | Gemstone | 390x720 | 375x591 → 320x591 | 390x624 → 338x624 | 390x768 → 390x720 | 414x772 → 414x764 | 430x856 → 430x794 | 1280x724 → 392x724 | 1.000x | 60px | 24px | 24px | 0px | - |
 | Pinball | 390x820 | 375x591 → 281x591 | 390x624 → 297x624 | 390x768 → 365x768 | 414x772 → 367x772 | 430x856 → 407x856 | 1280x724 → 344x724 | 0.937x | 60px | 0px | 0px | 25px | - |
+| FreeCell | 414x772 | 375x591 → 317x591 | 390x624 → 335x624 | 390x768 → 390x727 | 414x772 → 414x772 | 430x856 → 430x802 | 1280x724 → 388x724 | 0.942x | 60px | 0px | 41px | 0px | - |
+| TriPeaks | 414x772 | 375x591 → 317x591 | 390x624 → 335x624 | 390x768 → 390x727 | 414x772 → 414x772 | 430x856 → 430x802 | 1280x724 → 388x724 | 0.942x | 60px | 0px | 41px | 0px | - |
+| Poker Squares | 414x772 | 375x591 → 317x591 | 390x624 → 335x624 | 390x768 → 390x727 | 414x772 → 414x772 | 430x856 → 430x802 | 1280x724 → 388x724 | 0.942x | 60px | 0px | 41px | 0px | - |
 | Letterfall | 390x700 | 375x591 → 329x591 | 390x624 → 348x624 | 390x768 → 390x700 | 414x772 → 414x743 | 430x856 → 430x772 | 1280x724 → 403x724 | 1.000x | 60px | 0px | 68px | 0px | - |
 | Tenfall | 360x520 | 375x535 → 370x535 | 390x568 → 390x563 | 390x712 → 390x563 | 414x716 → 414x598 | 430x800 → 430x621 | 1280x668 → 462x668 | 1.083x | 116px | 0px | 149px | 0px | - |
 | Bonk | square | 375x491 → 375x375 | 390x524 → 390x390 | 390x668 → 390x390 | 414x672 → 414x414 | 430x756 → 430x430 | 1280x624 → 624x624 | 390.000x | 159.6px | 139px | 139px | 0px | - |
@@ -127,6 +130,9 @@ than half hidden; Hover's world is cut the same way, its disc at the top).
 | Ball Tracker | 414x688 → 344x688, 64px | 414x736 → 368x736, 16px | world none, Ball Tracker's status row (28px) 32px |
 | Gemstone | 414x724 → 392x724, 64px | 414x772 → 414x764, 16px | world 24px |
 | Pinball | 414x724 → 344x724, 64px | 414x772 → 367x772, 16px | world 32px |
+| FreeCell | 414x724 → 388x724, 64px | 414x772 → 414x772, 16px | world 32px |
+| TriPeaks | 414x724 → 388x724, 64px | 414x772 → 414x772, 16px | world 32px |
+| Poker Squares | 414x724 → 388x724, 64px | 414x772 → 414x772, 16px | world 32px |
 | Letterfall | 414x724 → 403x724, 64px | 414x772 → 414x743, 16px | world 3px |
 | Tenfall | 414x668 → 414x598, 64px | 414x716 → 414x598, 16px | world none |
 | Bonk | 414x624 → 414x414, 64px | 414x672 → 414x414, 16px | world none |
@@ -163,3 +169,6 @@ bottom; the spare space was the game's arena fill or the page colour. Same arith
 | Ball Tracker | 367x503 → 251x503 | 382x536 → 268x536 | 382x680 → 340x680 | 422x768 → 384x768 | 1272x636 → 318x636 |
 | Gemstone | 367x543 → 294x543 | 382x576 → 312x576 | 382x720 → 382x705 | 422x808 → 422x779 | 1272x676 → 366x676 |
 | Pinball | 367x543 → 258x543 | 382x576 → 274x576 | 382x720 → 342x720 | 422x808 → 384x808 | 1272x676 → 322x676 |
+| FreeCell | 367x543 → 291x543 | 382x576 → 309x576 | 382x720 → 382x712 | 422x808 → 422x787 | 1272x676 → 363x676 |
+| TriPeaks | 367x543 → 291x543 | 382x576 → 309x576 | 382x720 → 382x712 | 422x808 → 422x787 | 1272x676 → 363x676 |
+| Poker Squares | 367x543 → 291x543 | 382x576 → 309x576 | 382x720 → 382x712 | 422x808 → 422x787 | 1272x676 → 363x676 |

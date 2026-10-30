@@ -66,6 +66,12 @@ import { encodeBullseyeRun, replayBullseyeRun } from "../../src/lib/duel/bullsey
 import { PIN_REV } from "../../src/lib/arcade/pinball";
 import { pinballGameForAny, pinCheckpointAny } from "../../src/lib/arcade/pinball4";
 import { encodePinballRun, replayPinballRun } from "../../src/lib/duel/pinball";
+import { fcCheckpoint, freecellGameFor, FC_REV } from "../../src/lib/arcade/cards/freecell";
+import { FC_DEALS } from "../../src/lib/arcade/cards/freecellDeals.data";
+import { tpCheckpoint, tripeaksGameFor, TP_REV } from "../../src/lib/arcade/cards/tripeaks";
+import { TP_DEALS } from "../../src/lib/arcade/cards/tripeaksDeals.data";
+import { psCheckpoint, pokerSquaresGameFor, PS_REV } from "../../src/lib/arcade/cards/pokerSquares";
+import { encodeFreecellRun, encodePokerSquaresRun, encodeTripeaksRun, replayFreecellRun, replayPokerSquaresRun, replayTripeaksRun } from "../../src/lib/duel/cards";
 
 export interface GameSpec {
   type: PuzzleType;
@@ -241,6 +247,11 @@ export const GAMES: GameSpec[] = [
   // Pinball (practice only until PINBALL_IN_ROOMS): born on the bands, so its one revision is both `live` and `next`.
   // pinRev 4 (E4, 25 Oct 2026): the taller table's game and checkpoint (pinball4.ts) through the same replay path.
   simple("pinball", PIN_REV, PIN_REV, pinballGameForAny, pinCheckpointAny, encodePinballRun, replayPinballRun),
+  // Cards & Board (30 Oct 2026): born on the arcade standard, one revision each. FreeCell and TriPeaks deal a bank
+  // index (the room seed modulo the bank); Poker Squares any seed.
+  { ...simple("freecell", FC_REV, FC_REV, freecellGameFor, fcCheckpoint, encodeFreecellRun, replayFreecellRun), seedFor: (n) => roomSeed(n) % FC_DEALS.length },
+  { ...simple("tripeaks", TP_REV, TP_REV, tripeaksGameFor, tpCheckpoint, encodeTripeaksRun, replayTripeaksRun), seedFor: (n) => roomSeed(n) % TP_DEALS.length },
+  simple("pokersquares", PS_REV, PS_REV, pokerSquaresGameFor, psCheckpoint, encodePokerSquaresRun, replayPokerSquaresRun),
 ];
 
 export const GAME_BY_TYPE = new Map(GAMES.map((g) => [g.type, g]));

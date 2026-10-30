@@ -25,6 +25,9 @@ import { swingBandParts } from "../../src/lib/arcade/swing";
 import { bullseyeBandParts } from "../../src/lib/arcade/bullseye";
 import { pinballBandParts } from "../../src/lib/arcade/pinball";
 import { pinball6BandParts } from "../../src/lib/arcade/pinball4";
+import { freecellBandParts } from "../../src/lib/arcade/cards/freecell";
+import { tripeaksBandParts } from "../../src/lib/arcade/cards/tripeaks";
+import { pokerSquaresBandParts } from "../../src/lib/arcade/cards/pokerSquares";
 
 export const BAND_PARTS: Record<string, (s: any) => BandParts> = {
   balltrack: btBandParts,
@@ -51,6 +54,9 @@ export const BAND_PARTS: Record<string, (s: any) => BandParts> = {
   bullseye: bullseyeBandParts,
   // pinRev 6 (the arcade scoring standard): table points without a multiplier, core and features from its parts.
   pinball: (s: any) => (s?.rev6 ? pinball6BandParts(s) : pinballBandParts(s)),
+  freecell: freecellBandParts,
+  tripeaks: tripeaksBandParts,
+  pokersquares: pokerSquaresBandParts,
 };
 
 export const UNITS: Record<string, (s: any) => { u: number; finished: boolean }> = Object.fromEntries(

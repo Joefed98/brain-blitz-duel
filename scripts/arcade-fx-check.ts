@@ -1,7 +1,7 @@
 /**
  * Shared arcade success layer + art pipeline checks (presentation only).
  *
- *  1. All 23 arcade games with a world (22 active with Pinball; Junction practice only): seeded random inputs, every frame drawn through
+ *  1. All 26 arcade games with a world (24 active with Pinball and the Cards & Board games; Junction and Scrumper practice only): seeded random inputs, every frame drawn through
  *     the game's real renderer (which now runs the shared effects layer). Drawing
  *     must never change state (deep-equal before/after every draw), and the run
  *     with drawing must end in exactly the state of the same run without drawing.
@@ -91,6 +91,9 @@ const { makeBallTrackGame } = await import("../src/lib/arcade/ballTrack");
 const { BALL_TRACK_BANK } = await import("../src/lib/duel/ballTrackBank.server");
 const { matchupArtGame } = await import("../src/lib/arcade/matchup.renderer");
 const { matchupRev2Game } = await import("../src/lib/arcade/matchup");
+const { freecellArt } = await import("../src/lib/arcade/cards/freecell.renderer");
+const { tripeaksArt } = await import("../src/lib/arcade/cards/tripeaks.renderer");
+const { pokerSquaresArt } = await import("../src/lib/arcade/cards/pokerSquares.renderer");
 
 type AnyGame = {
   init: (seed: number) => any;
@@ -145,9 +148,13 @@ const GAMES: Record<string, AnyGame> = {
   } as AnyGame,
   matchup: { ...matchupArtGame, init: matchupRev2Game.init } as AnyGame,
   pinball: pinballArtGame as AnyGame,
+  // Cards & Board (30 Oct 2026).
+  freecell: freecellArt as AnyGame,
+  tripeaks: tripeaksArt as AnyGame,
+  pokersquares: pokerSquaresArt as AnyGame,
 };
 
-assert.equal(Object.keys(GAMES).length, 23, "23 arcade games with a world (21 active with Pinball; Junction and Scrumper practice only)");
+assert.equal(Object.keys(GAMES).length, 26, "26 arcade games with a world (24 active with Pinball and the three Cards & Board games; Junction and Scrumper practice only)");
 assert.deepEqual(
   Object.keys(GAMES).sort(),
   Object.keys(specs.ARCADE_FX_SPECS).sort(),
@@ -463,6 +470,21 @@ const BUMPS: Record<string, ((s: any) => any)[]> = {
     (s) => ({ ...s, jackpots: (s.jackpots ?? 0) + 1 }),
     (s) => ({ ...s, jackpotsFired: (s.jackpotsFired ?? 0) + 1 }),
     (s) => ({ ...s, raw: 1e6 }),
+  ],
+  // Cards & Board: a card home, two full suits home, all home; a run of five, a peak top, the clear; a pair made, the target.
+  freecell: [
+    (s) => ({ ...s, home: [Math.min(13, s.home[0] + 1), s.home[1], s.home[2], s.home[3]] }),
+    (s) => ({ ...s, home: [13, 13, s.home[2], s.home[3]] }),
+    (s) => ({ ...s, ended: 1 }),
+  ],
+  tripeaks: [
+    (s) => ({ ...s, plays: s.plays + 1, run: 5 }),
+    (s) => ({ ...s, peaks: s.peaks + 1, lastPlay: 0 }),
+    (s) => ({ ...s, ended: 1 }),
+  ],
+  pokersquares: [
+    (s) => ({ ...s, grid: [5, 18, ...s.grid.slice(2)], lastSquare: 1 }),
+    (s) => ({ ...s, grid: [5, 18, ...s.grid.slice(2)], target: 1 }),
   ],
 };
 for (const [name, game] of Object.entries(GAMES)) {
@@ -1098,5 +1120,5 @@ const unit = (
 
 for (const line of summary) console.log(`  ${line}`);
 console.log(
-  `Arcade fx checks passed: ${checks} assertions; 23 games draw read-only with identical sims, director gates and caps, art fallback and bounds.`,
+  `Arcade fx checks passed: ${checks} assertions; ${Object.keys(GAMES).length} games draw read-only with identical sims, director gates and caps, art fallback and bounds.`,
 );

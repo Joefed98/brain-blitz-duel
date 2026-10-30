@@ -109,6 +109,10 @@ function introScoreTemplates(): Record<PuzzleType, string> {
     breaker: "Every brick scores; gold bricks add 30. Clear all 105 quickly for up to {max}.",
     rally: "Gold-ball hits, pink targets and gold targets. Up to {max}.",
     pinball: "Table points, plus J-O-U-L-Z sets, multiball, jackpots and ramp combos. Up to {max}.",
+    // Cards & Board (the arcade scoring standard from their first revision).
+    freecell: "Cards 140 (home full, sorted runs half); finished: few moves 30, speed 30. Together {max}.",
+    tripeaks: "Cards 120, peak tops 30, longest run 20; all cleared: 10 and speed 20. Together {max}.",
+    pokersquares: "Hand points 160 against the deal's target; made hands 40 (4 a line). Together {max}.",
     bubble: "Bubbles cleared, a fast clear, falling chests, bank shots and combos. Up to {max}.",
     slice: "Food 120, combos 40, gold fruit 20, tickets 10, dodges 10. Chilli: lose 10. Up to {max}.",
     beat: "Notes hit in time, fevers, golden notes, double taps and a Perfect streak. Up to {max}.",

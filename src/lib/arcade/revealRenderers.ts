@@ -72,6 +72,10 @@ import { replayBullseyeRun } from "@/lib/duel/bullseye";
 import { replayMatchupRun } from "@/lib/duel/matchup";
 import { replayBreakerRun } from "@/lib/duel/breaker";
 import { replayPinballRun } from "@/lib/duel/pinball";
+import { replayFreecellRun, replayPokerSquaresRun, replayTripeaksRun } from "@/lib/duel/cards";
+import { freecellArt, FC_WORLD_H, FC_WORLD_W } from "./cards/freecell.renderer";
+import { tripeaksArt, TP_WORLD_H, TP_WORLD_W } from "./cards/tripeaks.renderer";
+import { pokerSquaresArt, PS_WORLD_H, PS_WORLD_W } from "./cards/pokerSquares.renderer";
 import { replayRallyRun } from "@/lib/duel/rally";
 import { replaySliceRun } from "@/lib/duel/slice";
 import { replayBubbleRun } from "@/lib/duel/bubble";
@@ -157,6 +161,10 @@ function drawTenDropArt(ctx: CanvasRenderingContext2D, state: TenDropState, size
 const seedOf = (puzzle: PuzzleData): number => ("seed" in puzzle ? Number(puzzle.seed) : 1);
 
 export const ARCADE_REVEAL_RENDERERS: Record<string, ArcadeRevealRenderer> = {
+  // Cards & Board: the final table, drawn by the game's own art.
+  freecell: simple(GOLD, FC_WORLD_W, FC_WORLD_H, freecellArt, (p, a) => replayFreecellRun(seedOf(p), a)),
+  tripeaks: simple(GOLD, TP_WORLD_W, TP_WORLD_H, tripeaksArt, (p, a) => replayTripeaksRun(seedOf(p), a)),
+  pokersquares: simple(GOLD, PS_WORLD_W, PS_WORLD_H, pokerSquaresArt, (p, a) => replayPokerSquaresRun(seedOf(p), a)),
   hover: simple("#2ED3B7", 390, 560, hoverGame, (p, a) => replayHoverRun(seedOf(p), a, p.type === "hover" ? p.hoverRev : undefined), undefined, hoverRevealGame, (p) => hoverWorldHFor(p.type === "hover" ? p.hoverRev : undefined)),
   skyline: simple(GOLD, 390, 560, skylineGame, (p, a) => replaySkylineRun(seedOf(p), a, p.type === "skyline" ? p.skylineRev : undefined), undefined, skylineRevealGame, (p) => skylineWorldHFor(p.type === "skyline" ? p.skylineRev : undefined)),
   // binRev 7: the wider fairground (430 × 728) drawn at 390 wide, so 660 tall.
