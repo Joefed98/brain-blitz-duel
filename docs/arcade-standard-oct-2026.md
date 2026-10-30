@@ -44,11 +44,10 @@ dealt), after on this branch. Medians (p10–p90 after).
 | Orbit | 34 → 13 (3–47) | 62 → 51 (14–104) | 92 → 105 (48–152) | 146 → 157 (114–180) | 175 → 183 (166–191) | 179 → 191 (180–195) | 195 → 194 (186–200) |
 | Ball Tracker | 47 → 52 (31–61) | 66 → 75 (51–95) | 103 → 137 (100–172) | 132 → 172 (147–188) | 173 → 193 (177–197) | 188 → 198 (190–200) | 199 → 200 (195–200) |
 
-Every game's medians now rise weak < average < good < great < near-perfect < elite < flawless (before: Jaywalk's great and
-elite and Wavefront's top three were close or flat). Gaps at the top are 3–8 points: the straight cores are full for
+Every game's medians rise weak < average < good < great < near-perfect < elite < flawless. Gaps at the top are 3–8 points: the straight cores are full for
 near-perfect play, so the top is separated by the features alone. Wavefront's core is full from the average player up and
-Roofbound's (time survived) from the good player up, so their middle runs high. Jaywalk's flawless median is below 200
-because the bot's flawless runs miss a coin or a close call on some seeds; the oracle scores 200 (arcade-standard-check).
+Roofbound's (time survived) from the good player up, so their middle runs high. Flawless bot medians below 200 are the
+bots' own misses; each game's oracle or built perfect run scores 200 (arcade-standard-check).
 
 ## Open items for Joe
 
