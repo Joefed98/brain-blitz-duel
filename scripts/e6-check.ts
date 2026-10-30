@@ -50,6 +50,7 @@ import {
   BUB_REV_REEF,
   BUB_REV_CREDIT,
   BUB_REV_BLAST,
+  BUB_REV_STD,
   BUB_V10_BOMB_RADIUS,
   BUB_V8_BAND_CURVE,
   BUB_V8_CHESTS,
@@ -141,7 +142,8 @@ for (const file of ["scripts/fixtures/e6-legacy.json", "scripts/fixtures/e6-runs
 /* ============================== 2. Stamps ============================== */
 section("Rooms deal the new stamps; the maximum is 200; demos stay stopped");
 const dealt = (type: PuzzleType) => generatePuzzle(type) as unknown as Record<string, unknown>;
-ok(dealt("bubble").bubbleRev === BUB_REV_BLAST, "Coral Pop: rooms deal bubbleRev 10 (bubbleRev 9 with the mine's bigger blast)");
+// Coral Pop moved on to bubbleRev 11 (29 Oct 2026, the arcade scoring standard; bubble-standard-check); bubbleRev 10 replays here as before.
+ok(dealt("bubble").bubbleRev === BUB_REV_STD, "Coral Pop: rooms deal bubbleRev 11 (bubbleRev 10's successor)");
 // Gemstone moved on to matchupRev 10 (27 Oct 2026, phone-test notes; gemstone-rev10-check); matchupRev 9 replays here as before.
 ok(dealt("matchup").matchupRev === MATCHUP_REV_ICE, "Gemstone: rooms deal matchupRev 10 (matchupRev 9's successor)");
 {
@@ -152,7 +154,7 @@ ok(dealt("matchup").matchupRev === MATCHUP_REV_ICE, "Gemstone: rooms deal matchu
 for (const type of ["bubble", "matchup", "balltrack"]) ok(roundMaxFor(type) === 200, `${type}: ROUND_MAX is 200`);
 {
   const demo = readFileSync("src/lib/duel/introDemo.functions.ts", "utf8");
-  ok(/bubbleRev !== BUB_REV_BLAST\) return null/.test(demo), "Coral Pop's demo stays stopped until recorded on bubbleRev 10");
+  ok(/bubbleRev !== BUB_REV_STD\) return null/.test(demo), "Coral Pop's demo stays stopped until recorded on bubbleRev 11 (its successor to 10)");
   ok(/matchupRev !== MATCHUP_REV_ICE\) return null/.test(demo), "Gemstone's demo stays stopped until recorded on matchupRev 10 (its successor to 9)");
   ok(/btRev !== BT_REV_RUSH\) return null/.test(demo), "Ball Tracker's demo stays stopped until recorded on btRev 7");
 }

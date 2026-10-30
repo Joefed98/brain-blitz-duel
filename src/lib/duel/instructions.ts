@@ -70,7 +70,7 @@ import {
   TILT_X_STAR_UNITS,
   TILT_X_TWO_FROM,
 } from "@/lib/arcade/tilt";
-import { BUB_SPECIAL_BLOCK, BUB_TORPEDO_HITS, BUB_V3_JOKER_BLOCK, BUB_V8_CHESTS, BUB_V8_CHEST_FP, BUB_V8_FEATURE_MAX } from "@/lib/arcade/bubble";
+import { BUB_SPECIAL_BLOCK, BUB_TORPEDO_HITS, BUB_V3_JOKER_BLOCK, BUB_V8_CHESTS, BUB_V11_MINE_POPS } from "@/lib/arcade/bubble";
 import { MATCHUP_V3_PAR_RAW, MATCHUP_V9_FEATURE_MAX } from "@/lib/arcade/matchup";
 import { BT_V7_BALLS, BT_V7_BOOST_STEPS, BT_V7_FEATURE_MAX, BT_V7_LAST_LAND_MIN } from "@/lib/arcade/ballTrack";
 import { HOVER_CENTRE_POINTS, HOVER_CENTRE_TOP, HOVER_CENTRE_TOL, HOVER_SKILL_SLACK, HOVER_CHAIN_POINTS, HOVER_CHAINS, HOVER_PICKUPS, HOVER_REACHABLE_GATES, HOVER_SKILL_MAX, HOVER_SKILL_PAY, HOVER_STARS, HOVER_TIGHT_GATES, HOVER_TIGHT_POINTS, HOVER_V2_GATES_SCORE, HOVER_V2_STARS_SCORE } from "@/lib/arcade/hover";
@@ -854,12 +854,13 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: `${BUB_V8_CHESTS} treasure chests`, detail: "sit in the reef. Nothing matches a chest: cut what holds it up so it falls. A mine or torpedo that destroys one pays nothing.", helpOnly: true },
         { action: "A bank shot", detail: "comes off a wall before it pops anything; every popping shot straight after another is a combo.", helpOnly: true },
         { action: "Three of a colour pop", detail: "when they touch; bubbles left hanging fall. Bounce shots off the walls.", helpOnly: true },
-        { action: "The Joker (a black bubble with a gold crown and a rainbow rim)", detail: "joins every colour it touches and pops each group that reaches three. A mine clears every bubble within two rings of where it lands.", helpOnly: true },
+        { action: "The Joker (a black bubble with a gold crown and a rainbow rim)", detail: `joins every colour it touches and pops each group that reaches three. A mine pops the ${BUB_V11_MINE_POPS} bubbles nearest where it lands; bubbles left hanging then fall.`, helpOnly: true },
         { action: "A torpedo never sticks:", detail: `it flies where you aim it, bank shots included, and destroys up to ${BUB_TORPEDO_HITS} bubbles it runs into on the way up. Bubbles left hanging then fall.`, helpOnly: true },
         { action: "Specials come in the queue:", detail: `a Joker every ${BUB_V3_JOKER_BLOCK} shots or so, and one mine or torpedo somewhere in the first ${BUB_SPECIAL_BLOCK}.`, helpOnly: true },
         { action: "Ninety seconds", detail: "on the same field and queue for everyone.", helpOnly: true },
       ],
-      score: liveBandHelp("bubble", "Each bubble cleared from the reef counts 1.", { more: "More bubbles cleared", good: (u) => `clears ${u} bubbles`, finish: `Clearing the reef adds up to 10 for speed. Chests that fall (${BUB_V8_CHEST_FP} each), bank shots and combos add up to ${BUB_V8_FEATURE_MAX} more.` }),
+      // bubbleRev 11 (the arcade scoring standard): every part, its maximum and how it pays, 200 in all.
+      score: liveStdHelp("bubble", "Clear the reef's bubbles; falling chests, bank shots and combos add more."),
     },
     beat: {
       goal: "Tap the notes in time.",

@@ -1142,7 +1142,13 @@ const bubbleSummary: SummaryBuilder = (result) => {
     summary: cleared
       ? `Cleared at ${ended.toFixed(1)}s`
       : `${Number(result.extra?.["bubblesLeft"] ?? 0)} bubbles left · popped ${popped} · dropped ${dropped}`,
-    detail: [`${Number(result.extra?.["shots"] ?? 0)} shots`],
+    detail: [
+      `${Number(result.extra?.["shots"] ?? 0)} shots`,
+      // bubbleRev 11 (the arcade scoring standard): the scored features.
+      ...(result.extra?.["chests"] !== undefined
+        ? [`${Number(result.extra["chests"])} chests · ${Number(result.extra?.["banks"] ?? 0)} bank shots · ${Number(result.extra?.["combos"] ?? 0)} combos`]
+        : []),
+    ],
   };
 };
 
