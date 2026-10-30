@@ -67,6 +67,9 @@ const REV_KEY: Record<string, string> = {
   snip: "snipRev",
   tilt: "tiltRev",
   balltrack: "btRev",
+  homerun: "homerunRev",
+  freekick: "freekickRev",
+  racing: "racingRev",
 };
 
 /** The puzzle a live room stored for a legacy fixture run (seed + revision, plus the bank data it carries). */

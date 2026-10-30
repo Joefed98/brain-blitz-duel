@@ -308,7 +308,8 @@ try {
     try {
       await page.getByRole("heading", { level: 1, name: "Practice" }).waitFor({ timeout: 60_000 });
       await page.waitForTimeout(800);
-      const rows = await page.locator("[data-practice-game]").evaluateAll((els) =>
+      // The list has two sides (Puzzles | Arcade, 30 Oct 2026): every active game is on one of them.
+      const sideRows = async () => page.locator("[data-practice-game]").evaluateAll((els) =>
         els.map((el) => {
           const icon = el.querySelector("[data-game-icon]");
           const canvas = icon?.querySelector("canvas");
@@ -327,6 +328,22 @@ try {
           };
         }),
       );
+      const sideNames = async () => {
+        const out: string[] = [];
+        for (const type of ACTIVE_PUZZLE_TYPES) {
+          const name = PUZZLE_REGISTRY[type].name;
+          if ((await page.getByRole("button", { name, exact: true }).count()) >= 1) out.push(name);
+        }
+        return out;
+      };
+      const rows = await sideRows();
+      const named = await sideNames();
+      await page.locator("[data-practice-side='arcade']").click();
+      await page.waitForTimeout(400);
+      rows.push(...(await sideRows()));
+      named.push(...(await sideNames()));
+      await page.locator("[data-practice-side='puzzles']").click();
+      await page.waitForTimeout(300);
       const byType = new Map(rows.map((r) => [r.type, r]));
       const missing: string[] = [];
       for (const type of ACTIVE_PUZZLE_TYPES) {
@@ -336,21 +353,17 @@ try {
         else if (row.art === "svg" && row.svg < 2) missing.push(`${type} (empty svg)`);
       }
       check(missing.length === 0, `every active game (${ACTIVE_PUZZLE_TYPES.length}) has its own icon, drawn, with no text${missing.length ? `: ${missing.join(", ")}` : ""}`);
-      const names: string[] = [];
-      for (const type of ACTIVE_PUZZLE_TYPES) {
-        const name = PUZZLE_REGISTRY[type].name;
-        if ((await page.getByRole("button", { name, exact: true }).count()) < 1) names.push(name);
-      }
+      const names = ACTIVE_PUZZLE_TYPES.map((type) => PUZZLE_REGISTRY[type].name).filter((name) => !named.includes(name));
       check(names.length === 0, `every practice button is named exactly its game${names.length ? `: ${names.join(", ")}` : ""}`);
       check((await page.locator("[data-practice-filter]").first().textContent()) === "All games", "the filter chips start with All games");
       await page.locator("[data-practice-filter='logic']").click();
       const logic = await page.locator("[data-practice-game]").evaluateAll((els) => els.map((el) => el.getAttribute("data-practice-game")));
       check(logic.length > 0 && logic.every((t) => PUZZLE_REGISTRY[t as keyof typeof PUZZLE_REGISTRY]?.category === "logic"), "the Logic chip shows only logic games");
       await page.locator("[data-practice-filter='all']").click();
-      await page.getByRole("searchbox", { name: "Search games" }).fill("grid");
+      await page.getByRole("searchbox", { name: "Search puzzles" }).fill("grid");
       const found = await page.locator("[data-practice-game]").evaluateAll((els) => els.map((el) => el.getAttribute("data-practice-game")));
       check(found.includes("unblock") && found.every((t) => PUZZLE_REGISTRY[t as keyof typeof PUZZLE_REGISTRY]?.name.toLowerCase().includes("grid")), `search "grid" finds Gridlock and only names with "grid" (${found.join(",")})`);
-      await page.getByRole("searchbox", { name: "Search games" }).fill("");
+      await page.getByRole("searchbox", { name: "Search puzzles" }).fill("");
       await page.getByRole("button", { name: "Gridlock", exact: true }).click();
       await page.getByRole("button", { name: /^Ready/ }).first().waitFor({ timeout: 60_000 });
       check((await tabBar(page)) === 0, "a practice round's intro has no tab bar");

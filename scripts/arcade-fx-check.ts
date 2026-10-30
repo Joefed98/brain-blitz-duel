@@ -1,7 +1,7 @@
 /**
  * Shared arcade success layer + art pipeline checks (presentation only).
  *
- *  1. All 23 arcade games with a world (22 active with Pinball; Junction practice only): seeded random inputs, every frame drawn through
+ *  1. All 26 arcade games with a world (24 active with Pinball and the Cards & Board games; Junction and Scrumper practice only): seeded random inputs, every frame drawn through
  *     the game's real renderer (which now runs the shared effects layer). Drawing
  *     must never change state (deep-equal before/after every draw), and the run
  *     with drawing must end in exactly the state of the same run without drawing.
@@ -16,6 +16,13 @@
  *
  *   bun scripts/arcade-fx-check.ts
  */
+import { minesweeperArtGameFor } from "../src/lib/arcade/minesweeper.renderer";
+import { mahjongArtGameFor } from "../src/lib/arcade/mahjong.renderer";
+import { MINES_REV_STD, MINES_SAFE } from "../src/lib/arcade/minesweeper";
+import { MAHJONG_REV_STD } from "../src/lib/arcade/mahjong";
+import { homerunArtGame } from "../src/lib/arcade/homerun.renderer";
+import { freekickArtGame } from "../src/lib/arcade/freekick.renderer";
+import { racingArtGame } from "../src/lib/arcade/racing.renderer";
 import assert from "node:assert/strict";
 import { createCanvas, Path2D as NapiPath2D } from "@napi-rs/canvas";
 
@@ -102,6 +109,9 @@ const { makeBallTrackGame } = await import("../src/lib/arcade/ballTrack");
 const { BALL_TRACK_BANK } = await import("../src/lib/duel/ballTrackBank.server");
 const { matchupArtGame } = await import("../src/lib/arcade/matchup.renderer");
 const { matchupRev2Game } = await import("../src/lib/arcade/matchup");
+const { freecellArt } = await import("../src/lib/arcade/cards/freecell.renderer");
+const { tripeaksArt } = await import("../src/lib/arcade/cards/tripeaks.renderer");
+const { pokerSquaresArt } = await import("../src/lib/arcade/cards/pokerSquares.renderer");
 
 type AnyGame = {
   init: (seed: number) => any;
@@ -156,6 +166,17 @@ const GAMES: Record<string, AnyGame> = {
   } as AnyGame,
   matchup: { ...matchupArtGame, init: matchupRev2Game.init } as AnyGame,
   pinball: pinballArtGame as AnyGame,
+  // Cards & Board (30 Oct 2026): dealt from the start on minesRev 1 and mahjongRev 1.
+  minesweeper: minesweeperArtGameFor(MINES_REV_STD) as AnyGame,
+  mahjong: mahjongArtGameFor(MAHJONG_REV_STD) as AnyGame,
+  // The Sports group (30 Oct 2026).
+  homerun: homerunArtGame as AnyGame,
+  freekick: freekickArtGame as AnyGame,
+  racing: racingArtGame as AnyGame,
+  // Cards & Board (30 Oct 2026).
+  freecell: freecellArt as AnyGame,
+  tripeaks: tripeaksArt as AnyGame,
+  pokersquares: pokerSquaresArt as AnyGame,
   // The Sports group (30 Oct 2026): each sim with its own art drawn through its success layer, on a bank deal.
   minigolf: { ...minigolfGameFor(MINIGOLF_BANK[0]!.pars), init: () => minigolfGameFor(MINIGOLF_BANK[0]!.pars).init(MINIGOLF_BANK[0]!.seed), draw: withArcadeFx(MINIGOLF_FX, (c, st) => drawMinigolf(c, st, null)) } as AnyGame,
   pool: { ...poolGameFor(1), init: () => poolGameFor(1).init(POOL_BANK[0]!), draw: withArcadeFx(POOL_FX, (c, st) => drawPool(c, st, null)) } as AnyGame,
@@ -278,6 +299,10 @@ function assaultAt(): any {
   return assaultBase;
 }
 const BUMPS: Record<string, ((s: any) => any)[]> = {
+  // The Sports group (30 Oct 2026, sportsFx.renderer.ts).
+  homerun: [(s) => ({ ...s, homers: s.homers + 1 }), (s) => ({ ...s, signs: s.signs | 1 })],
+  freekick: [(s) => ({ ...s, goals: s.goals + 1 }), (s) => ({ ...s, targets: s.targets + 1 })],
+  racing: [(s) => ({ ...s, clean: s.clean + 1 }), (s) => ({ ...s, s: s.s + 6_000_000 })],
   hover: [
     (s) => ({ ...s, gates: s.gates + 1 }),
     (s) => ({ ...s, gates: s.gates + 7 }),
@@ -495,6 +520,32 @@ const BUMPS: Record<string, ((s: any) => any)[]> = {
     (s) => ({ ...s, jackpots: (s.jackpots ?? 0) + 1 }),
     (s) => ({ ...s, jackpotsFired: (s.jackpotsFired ?? 0) + 1 }),
     (s) => ({ ...s, raw: 1e6 }),
+  ],
+  minesweeper: [
+    (s) => ({ ...s, revealed: s.revealed + 8, lastOpen: s.start }),
+    (s) => ({ ...s, revealed: s.opening + 25, lastOpen: s.start }),
+    (s) => ({ ...s, revealed: MINES_SAFE, lastOpen: s.start }),
+  ],
+  mahjong: [
+    (s) => ({ ...s, pairs: s.pairs + 1, lastA: 0, lastB: 5 }),
+    (s) => ({ ...s, pairs: 6, lastA: 0, lastB: 5 }),
+    (s) => ({ ...s, pairs: 36 }),
+  ],
+  // Cards & Board: a card home, two full suits home, all home; a run of five, a peak top, the clear; a pair made, the target.
+  freecell: [
+    (s) => ({ ...s, home: [Math.min(13, s.home[0] + 1), s.home[1], s.home[2], s.home[3]] }),
+    (s) => ({ ...s, home: [13, 13, s.home[2], s.home[3]] }),
+    (s) => ({ ...s, ended: 1 }),
+  ],
+  tripeaks: [
+    (s) => ({ ...s, plays: s.plays + 1, run: 5 }),
+    (s) => ({ ...s, peaks: s.peaks + 1, lastPlay: 0 }),
+    (s) => ({ ...s, ended: 1 }),
+  ],
+  pokersquares: [
+    (s) => ({ ...s, grid: [5, 18, ...s.grid.slice(2)], lastSquare: 1 }),
+    // Five rows of four of a kind (75 hand points): the core's full figure reached.
+    (s) => ({ ...s, grid: Array.from({ length: 25 }, (_, i) => (i % 5 < 4 ? (i % 5) * 13 + Math.floor(i / 5) : 5 + Math.floor(i / 5))) }),
   ],
 };
 for (const [name, game] of Object.entries(GAMES)) {
@@ -1130,5 +1181,5 @@ const unit = (
 
 for (const line of summary) console.log(`  ${line}`);
 console.log(
-  `Arcade fx checks passed: ${checks} assertions; 23 games draw read-only with identical sims, director gates and caps, art fallback and bounds.`,
+  `Arcade fx checks passed: ${checks} assertions; ${Object.keys(GAMES).length} games draw read-only with identical sims, director gates and caps, art fallback and bounds.`,
 );

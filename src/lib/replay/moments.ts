@@ -101,6 +101,23 @@ export const MOMENT_TABLE: readonly MomentRow[] = [
   fx("pinball", 3, "pop", "lane-lit", 10, "Top lane lit"),
   fx("pinball", 4, "streak", "multiplier", 60, "All three lanes lit: multiplier up"),
   fx("pinball", 5, "combo", "spinner", 25, "Spinner ripped (8+ turns at once)"),
+  // Minesweeper (Cards & Board, 30 Oct 2026)
+  fx("minesweeper", 0, "pop", "big-opening", 15, "Eight or more squares opened at once"),
+  fx("minesweeper", 1, "streak", "safe-squares", 30, "Safe squares streak (every 25)"),
+  fx("minesweeper", 2, "final", "board-cleared", 95, "Board cleared", "finish"),
+  // Mahjong Solitaire (Cards & Board, 30 Oct 2026)
+  fx("mahjong", 0, "pop", "pair", 5, "Pair taken away"),
+  fx("mahjong", 1, "streak", "pairs", 30, "Pairs streak (every 6)"),
+  fx("mahjong", 2, "final", "stack-cleared", 95, "Stack cleared", "finish"),
+  // Cards & Board (30 Oct 2026)
+  fx("freecell", 0, "pop", "home", 0, "Card home (burst only)"),
+  fx("freecell", 1, "streak", "suit-home", 40, "Thirteen more cards home"),
+  fx("freecell", 2, "final", "all-home", 95, "All 52 cards home", "finish"),
+  fx("tripeaks", 0, "combo", "run", 25, "A run of five or more"),
+  fx("tripeaks", 1, "perfect", "peak", 40, "A peak top cleared"),
+  fx("tripeaks", 2, "final", "cleared", 95, "All 28 peak cards cleared", "finish"),
+  fx("pokersquares", 0, "pop", "hand", 20, "A row or column makes a hand"),
+  fx("pokersquares", 1, "final", "target", 70, "The deal's target reached"),
   // Rally
   fx("rally", 0, "streak", "long-rally", 35, "Long rally (every 10 returns)"),
   fx("rally", 1, "pop", "gold", 25, "Gold ball returned"),
@@ -147,6 +164,13 @@ export const MOMENT_TABLE: readonly MomentRow[] = [
   fx("orbit", 0, "streak", "planets", 35, "Planets streak (every 10)", "success", "orbit3"),
   fx("orbit", 1, "final", "all-planets", 95, "All 40 planets", "finish", "orbit3"),
   fx("orbit", 2, "clear", "black-hole", 60, "Through a black hole", "success", "orbit3"),
+  // The Sports group (30 Oct 2026)
+  fx("homerun", 0, "perfect", "home-run", 40, "Home run"),
+  fx("homerun", 1, "streak", "sign-hit", 60, "A sign beyond the fence struck"),
+  fx("freekick", 0, "perfect", "goal-scored", 35, "Goal"),
+  fx("freekick", 1, "streak", "target-hit", 60, "A target hit"),
+  fx("racing", 0, "pop", "clean-sector", 15, "Clean sector"),
+  fx("racing", 1, "clear", "lap-done", 60, "Lap complete", "finish"),
   // High Rise
   fx("skyline", 0, "perfect", "perfect-drop", 20, "Perfect drop"),
   fx("skyline", 1, "streak", "floors", 35, "Floors streak (every 10)"),

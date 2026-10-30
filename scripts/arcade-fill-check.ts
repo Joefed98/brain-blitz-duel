@@ -35,6 +35,7 @@ import { gameDisplayName } from "../src/lib/duel/gameNames";
 import type { PuzzleType } from "../src/lib/duel/types";
 import { freezeClock, gotoRetried, warmUp } from "./browser-load";
 import { BROWSER, DEVICE_INIT, IPHONE11_APP, emulateDevice, type DeviceConfig } from "./device-emulation";
+import { showPracticeSide } from "./practice-side-lib";
 
 const args = process.argv.slice(2);
 const opt = (name: string) => args.find((a) => a.startsWith(`--${name}=`))?.slice(name.length + 3);
@@ -246,6 +247,7 @@ function edgeProblems(p: Pixels, world: Rect, side: "bottom" | "top" | "left" | 
 
 async function openGame(page: Page, origin: string, game: PuzzleType): Promise<void> {
   await gotoRetried(page, `${origin}/practice`, game, { waitUntil: "domcontentloaded" });
+  await showPracticeSide(page, game);
   const button = page.getByRole("button", { name: gameDisplayName(game), exact: true }).first();
   await button.waitFor({ timeout: 90_000 });
   await page.waitForTimeout(1200);
@@ -279,7 +281,7 @@ async function main() {
   const browser = await chromium.launch({ executablePath: CHROMIUM });
   const failures: string[] = [];
   try {
-    await warmUp(browser, `${origin}/practice`, (page) => page.getByRole("button", { name: gameDisplayName(games[0]!), exact: true }).first().waitFor({ timeout: 180_000 }), { verbose: VERBOSE });
+    await warmUp(browser, `${origin}/practice`, (page) => showPracticeSide(page, games[0]!, 180_000).then(() => page.getByRole("button", { name: gameDisplayName(games[0]!), exact: true }).first().waitFor({ timeout: 180_000 })), { verbose: VERBOSE });
     for (const game of games) {
       const mine: string[] = [];
       // One page per game, its run frozen: 390x844 first, then the iPhone 11 home-screen app, then (moving

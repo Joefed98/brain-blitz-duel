@@ -56,14 +56,15 @@ for (const type of ["flow", "pipes", "push"] as const) expect(type, "pattern", f
 expect("snip", "arcade", true);
 
 // The active pool per category (27 Oct 2026, after Scrumper's retirement, with Trail in Logic): 72 games.
-// Arcade's count reads the arcade worlds' active list (ACTIVE_ARCADE_GAMES), not a number: other sessions add arcade
-// games in parallel (the Sports group, 30 Oct 2026, added three).
+// Arcade's count reads the arcade worlds' active list (ACTIVE_ARCADE_GAMES), not a number: the arcade groups' sessions
+// add games in parallel (Cards & Board and Sports, 30 Oct 2026); each new game is pinned to Arcade, active, above.
 const POOL: Record<string, number> = { word: 9, number: 8, speed: 6, attention: 6, pattern: 10, logic: 12, arcade: ACTIVE_ARCADE_GAMES.length };
+for (const type of ["minesweeper", "mahjong", "homerun", "freekick", "racing", "freecell", "tripeaks", "pokersquares", "minigolf", "pool", "curling"] as const) expect(type, "arcade", false);
 for (const [category, want] of Object.entries(POOL)) {
   const got = typesInCategory(category as never).length;
   if (got !== want) fail(`${category}: ${got} active games, want ${want}`);
 }
-if (ACTIVE_ARCADE_GAMES.length < 21) fail(`${ACTIVE_ARCADE_GAMES.length} active arcade worlds, at least the 21 dealt before the Sports group`);
+if (ACTIVE_ARCADE_GAMES.length < 21) fail(`${ACTIVE_ARCADE_GAMES.length} active arcade worlds, at least the 21 dealt before the new groups`);
 const WANT_ACTIVE = Object.values(POOL).reduce((a, n) => a + n, 0);
 if (ACTIVE_PUZZLE_TYPES.length !== WANT_ACTIVE) fail(`${ACTIVE_PUZZLE_TYPES.length} active games, want ${WANT_ACTIVE}`);
 

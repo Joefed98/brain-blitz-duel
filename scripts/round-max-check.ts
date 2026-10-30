@@ -74,6 +74,8 @@ const RAISED: PuzzleType[] = [
   "minigolf", "pool", "curling",
   // Expansion E4 (docs/expansions/e4.md): High Rise and Pinball.
   "skyline", "pinball",
+  // The Sports group (30 Oct 2026, docs/arcade-standard/): born on the arcade scoring standard at 200.
+  "homerun", "freekick", "racing",
   // World expansion E5 (docs/expansions/e5.md): Swish and Slice.
   "bintoss", "slice",
   // Expansion E3 (docs/expansions/e3.md): Breaker.
@@ -96,6 +98,10 @@ const RAISED: PuzzleType[] = [
   "cross",
   // Expansion E9 (docs/expansions/e9.md): Rally, Fission and Flightpath.
   "rally", "burst", "bullseye",
+  // Cards & Board (30 Oct 2026, docs/arcade-standard/minesweeper.md and mahjong.md): born on the arcade scoring standard.
+  "minesweeper", "mahjong",
+  // Cards & Board (30 Oct 2026, docs/arcade-standard/freecell.md, tripeaks.md, pokersquares.md): born on the standard.
+  "freecell", "tripeaks", "pokersquares",
 ];
 /** The games still at 150: section 2 raises each of them in turn. */
 const TYPES = ALL_TYPES.filter((t) => ROUND_MAX[t] === DEFAULT_ROUND_MAX);
@@ -245,7 +251,7 @@ ok(/roundMaxFor\(game\)/.test(read("src/lib/arcade/liveBands.ts")), "the band ga
   };
   const { ARCADE_ROOM_BEST_PREFIX, RETIRED_ARCADE_ROOM_BEST_PREFIXES, recordArcadeRoomBest } = await import("../src/lib/fx/arcadeBest");
   ok(ARCADE_ROOM_BEST_PREFIX === "duelz-arcade-room-best:v2:" && !RETIRED_ARCADE_ROOM_BEST_PREFIXES.includes(ARCADE_ROOM_BEST_PREFIX as never), "room arcade bests are stored under the v2 prefix");
-  // The active arcade games as the registry deals them (the counts read the registry since the Sports group, 30 Oct 2026).
+  // The active arcade games as the registry deals them (the counts read the registry since the new groups, 30 Oct 2026).
   const arcade = ALL_TYPES.filter((t) => typesInCategory("arcade").includes(t));
   ok(arcade.length === ACTIVE_ARCADE_GAMES.length && arcade.every((t) => (ACTIVE_ARCADE_GAMES as readonly string[]).includes(t)) && !arcade.includes("snip"), `the active arcade games, the arcade worlds' active list (Scrumper practice only since 27 Oct 2026) (${arcade.length})`);
   for (const type of arcade) {

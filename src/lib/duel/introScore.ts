@@ -1,3 +1,4 @@
+import { PS_CORE_FULL } from "@/lib/arcade/cards/pokerSquares";
 import { BULLSEYE_INNER_BULL_POINTS, BULLSEYE_RING_VALUES } from "@/lib/arcade/bullseye";
 import { BINTOSS_THROWS, BINTOSS_V9_BUCKET, BINTOSS_V9_FAR, BINTOSS_V9_FINISH, BINTOSS_V9_HOOP } from "@/lib/arcade/binToss";
 import { INK_LEVELS, INK_V12_CORE_MAX } from "@/lib/arcade/inkBridge";
@@ -108,10 +109,20 @@ function introScoreTemplates(): Record<PuzzleType, string> {
     cross: "150 for rows and crossings, coins 30, a clean streak 10, close calls 10. Up to {max}.",
     breaker: "Every brick scores; gold bricks add 30. Clear all 105 quickly for up to {max}.",
     rally: "Gold-ball hits, pink targets and gold targets. Up to {max}.",
+    // Cards & Board (30 Oct 2026), on the arcade scoring standard.
+    minesweeper: "Safe squares 150, no mines hit 20, a fast clear 30; a mine costs 5. Up to {max}.",
+    mahjong: "Pairs 150, no shuffles 20, a fast clear 30; a Shuffle costs 5. Up to {max}.",
     minigolf: "Holes 120, par 40, under par 20, speed 20: up to {max}.",
     pool: "Spots 140, the black 10, pots in a row 30, speed 20; fouls −10. Up to {max}.",
     curling: "Stones near the button 120, takeouts 30, the 4-foot 30, holding shot 20: {max}.",
     pinball: "Table points, plus J-O-U-L-Z sets, multiball, jackpots and ramp combos. Up to {max}.",
+    homerun: "Distance on every pitch, home runs and the signs beyond the fence. Up to {max}.",
+    freekick: "Goals away from the keeper, targets, curls round the wall and five in a row. Up to {max}.",
+    racing: "Distance round the track, clean sectors, the finish and your time. Up to {max}.",
+    // Cards & Board (the arcade scoring standard from their first revision).
+    freecell: "Cards 140 (home full, sorted runs half); finished: few moves 30, speed 30. Together {max}.",
+    tripeaks: "Cards 120, peak tops 30, longest run 20; all cleared: 10 and speed 20. Together {max}.",
+    pokersquares: `Hand points 160 (full at ${PS_CORE_FULL}); made hands 40 (4 a line). Together {max}.`,
     bubble: "Bubbles cleared, a fast clear, falling chests, bank shots and combos. Up to {max}.",
     slice: "Food 120, combos 40, gold fruit 20, tickets 10, dodges 10. Chilli: lose 10. Up to {max}.",
     beat: "Notes hit in time, fevers, golden notes, double taps and a Perfect streak. Up to {max}.",

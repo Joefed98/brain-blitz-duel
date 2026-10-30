@@ -10,6 +10,11 @@ import { beatCheckpoint } from "./beat";
 import { binTossCheckpoint } from "./binToss";
 import { brkCheckpoint } from "./breaker";
 import { pinCheckpointAny } from "./pinball4";
+import { minesCheckpoint } from "./minesweeper";
+import { mahjongCheckpoint } from "./mahjong";
+import { fcCheckpoint } from "./cards/freecell";
+import { tpCheckpoint } from "./cards/tripeaks";
+import { psCheckpoint } from "./cards/pokerSquares";
 import { bubCheckpoint } from "./bubble";
 import { bullseyeCheckpoint } from "./bullseye";
 import { crossCheckpoint } from "./cross";
@@ -40,6 +45,9 @@ import { tiltCheckpoint } from "./tilt";
 import { hotfloorCheckpoint } from "./hotFloor";
 import { snipCheckpoint } from "./snip";
 import { btCheckpoint } from "./ballTrack";
+import { homerunCheckpoint } from "./homerun";
+import { freekickCheckpoint } from "./freekick";
+import { racingCheckpoint } from "./racing";
 import { minigolfCheckpoint } from "./minigolf";
 import { poolCheckpoint } from "./pool";
 import { curlingCheckpoint } from "./curling";
@@ -57,6 +65,14 @@ const SNAPSHOTS: Record<string, (state: any) => object> = {
   curling: curlingCheckpoint,
   breaker: brkCheckpoint,
   pinball: pinCheckpointAny,
+  minesweeper: minesCheckpoint,
+  mahjong: mahjongCheckpoint,
+  homerun: homerunCheckpoint,
+  freekick: freekickCheckpoint,
+  racing: racingCheckpoint,
+  freecell: fcCheckpoint,
+  tripeaks: tpCheckpoint,
+  pokersquares: psCheckpoint,
   bubble: bubCheckpoint,
   bullseye: bullseyeCheckpoint,
   cross: crossCheckpoint,

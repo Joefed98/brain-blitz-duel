@@ -16,6 +16,14 @@ import { drawBullseye } from "@/lib/arcade/bullseye.renderer";
 import { matchupArtGame } from "@/lib/arcade/matchup.renderer";
 import { breakerArtGameFor } from "@/lib/arcade/breaker.renderer";
 import { pinballArtGameForAny } from "@/lib/arcade/pinball4.renderer";
+import { drawMinesweeper } from "@/lib/arcade/minesweeper.renderer";
+import { drawMahjong } from "@/lib/arcade/mahjong.renderer";
+import { homerunArtGame } from "@/lib/arcade/homerun.renderer";
+import { freekickArtGame } from "@/lib/arcade/freekick.renderer";
+import { racingArtGame } from "@/lib/arcade/racing.renderer";
+import { freecellArt } from "@/lib/arcade/cards/freecell.renderer";
+import { tripeaksArt } from "@/lib/arcade/cards/tripeaks.renderer";
+import { pokerSquaresArt } from "@/lib/arcade/cards/pokerSquares.renderer";
 import { drawMinigolf } from "@/lib/arcade/minigolf.renderer";
 import { drawPool } from "@/lib/arcade/pool.renderer";
 import { drawCurling } from "@/lib/arcade/curling.renderer";
@@ -71,6 +79,14 @@ const SIMPLE: Record<string, (p: PuzzleData) => Draw> = {
   matchup: () => matchupArtGame.draw as Draw,
   breaker: (p) => breakerArtGameFor(rev(p, "brkRev")).draw as Draw,
   pinball: (p) => pinballArtGameForAny(rev(p, "pinRev")).draw as Draw,
+  minesweeper: () => drawMinesweeper as Draw,
+  mahjong: () => drawMahjong as Draw,
+  homerun: () => homerunArtGame.draw as Draw,
+  freekick: () => freekickArtGame.draw as Draw,
+  racing: () => racingArtGame.draw as Draw,
+  freecell: () => freecellArt.draw as Draw,
+  tripeaks: () => tripeaksArt.draw as Draw,
+  pokersquares: () => pokerSquaresArt.draw as Draw,
   curling: () => ((ctx, s) => drawCurling(ctx, s, null)) as Draw,
   pool: () => ((ctx, s) => drawPool(ctx, s, null)) as Draw,
   minigolf: () => ((ctx, s) => drawMinigolf(ctx, s, null)) as Draw,

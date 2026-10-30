@@ -27,6 +27,14 @@ import { bullseyeGame, bullseyeInitFor } from "@/lib/arcade/bullseye";
 import { matchupGameFor } from "@/lib/arcade/matchup";
 import { breakerGameFor } from "@/lib/arcade/breaker";
 import { pinballGameForAny } from "@/lib/arcade/pinball4";
+import { minesweeperGameFor } from "@/lib/arcade/minesweeper";
+import { mahjongGameFor } from "@/lib/arcade/mahjong";
+import { homerunGameFor } from "@/lib/arcade/homerun";
+import { freekickGameFor } from "@/lib/arcade/freekick";
+import { racingGameFor } from "@/lib/arcade/racing";
+import { freecellGameFor } from "@/lib/arcade/cards/freecell";
+import { tripeaksGameFor } from "@/lib/arcade/cards/tripeaks";
+import { pokerSquaresGameFor } from "@/lib/arcade/cards/pokerSquares";
 import { minigolfGameFor } from "@/lib/arcade/minigolf";
 import { poolGameFor } from "@/lib/arcade/pool";
 import { curlingGameFor } from "@/lib/arcade/curling";
@@ -185,6 +193,14 @@ const SOURCES: Record<string, (p: PuzzleData) => GameSource> = {
   matchup: (p) => ({ game: matchupGameFor(rev(p, "matchupRev")) as AnyGame }),
   breaker: (p) => ({ game: breakerGameFor(rev(p, "brkRev")) as AnyGame }),
   pinball: (p) => ({ game: pinballGameForAny(rev(p, "pinRev")) as AnyGame }),
+  minesweeper: (p) => ({ game: minesweeperGameFor(rev(p, "minesRev")) as AnyGame }),
+  mahjong: (p) => ({ game: mahjongGameFor(rev(p, "mahjongRev")) as AnyGame }),
+  homerun: (p) => ({ game: homerunGameFor(rev(p, "homerunRev")) as AnyGame }),
+  freekick: (p) => ({ game: freekickGameFor(rev(p, "freekickRev")) as AnyGame }),
+  racing: (p) => ({ game: racingGameFor(rev(p, "racingRev")) as AnyGame }),
+  freecell: (p) => ({ game: freecellGameFor(rev(p, "freecellRev")) as AnyGame }),
+  tripeaks: (p) => ({ game: tripeaksGameFor(rev(p, "tripeaksRev")) as AnyGame }),
+  pokersquares: (p) => ({ game: pokerSquaresGameFor(rev(p, "pokerSquaresRev")) as AnyGame }),
   curling: () => ({ game: curlingGameFor() as AnyGame }),
   pool: (p) => ({ game: poolGameFor(rev(p, "poolRev")) as AnyGame }),
   minigolf: (p) => ({ game: minigolfGameFor(p.type === "minigolf" ? p.pars : undefined) as AnyGame }),

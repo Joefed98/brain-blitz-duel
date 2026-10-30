@@ -63,6 +63,7 @@ import { gameDisplayName } from "../src/lib/duel/gameNames";
 import type { PuzzleType } from "../src/lib/duel/types";
 import { freezeClock, gotoRetried, warmUp } from "./browser-load";
 import { BROWSER, DEVICE_INIT, IPHONE11_APP, emulateDevice, type Clip } from "./device-emulation";
+import { showPracticeSide } from "./practice-side-lib";
 
 const args = process.argv.slice(2);
 const opt = (name: string) => args.find((a) => a.startsWith(`--${name}=`))?.slice(name.length + 3);
@@ -712,10 +713,12 @@ async function main() {
         browser,
         `${origin}/practice`,
         (page) =>
-          page
-            .getByRole("button", { name: gameDisplayName(games[0]!), exact: true })
-            .first()
-            .waitFor({ timeout: 180_000 }),
+          showPracticeSide(page, games[0]!, 180_000).then(() =>
+            page
+              .getByRole("button", { name: gameDisplayName(games[0]!), exact: true })
+              .first()
+              .waitFor({ timeout: 180_000 }),
+          ),
         { verbose: VERBOSE },
       );
     for (const game of games) {
@@ -746,6 +749,7 @@ async function main() {
       const before = failures.length;
       try {
         await gotoRetried(page, `${origin}/practice`, game, { waitUntil: "domcontentloaded" });
+        await showPracticeSide(page, game);
         const button = page
           .getByRole("button", { name: gameDisplayName(game), exact: true })
           .first();

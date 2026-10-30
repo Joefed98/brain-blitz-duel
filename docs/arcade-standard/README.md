@@ -43,7 +43,7 @@ table is imported by name (no-side-effect-imports-check).
 ## The check: `scripts/arcade-standard-check.ts`
 
 One check, one entry per game in `scripts/arcade-standard/<type>.ts` (the entry shape is
-`scripts/arcade-standard/entry.ts`). `STANDARD_ROSTER` in the check lists all 21 games (and the Sports group's three, on the standard from their first stamp); once rooms deal a game's
+`scripts/arcade-standard/entry.ts`). `STANDARD_ROSTER` in the check lists all 33 games (batches A–C, Grappler, and the Cards & Board and Sports games born on it); once rooms deal a game's
 standard stamp it must have an entry. For every entry it proves: the parts (core first) sum to exactly 200 and the round
 maximum is 200; rooms deal the stamp and LIVE_BANDS lists it; every perfect run, through the game's real scoring path
 (a server replay or the sim's own score), scores exactly 200, each part at its maximum where the run is split. Where an
@@ -80,6 +80,14 @@ replay exactly as before; standard-live-check grades every stored arcade run thr
 | Orbit | `orbit` | `orbitRev` 13 | C | [orbit.md](orbit.md) |
 | Ball Tracker | `balltrack` | `btRev` 8 | C | [balltrack.md](balltrack.md) |
 | Grappler | `swing` | `swingRev` 15 | D | [swing.md](swing.md) |
+| Minesweeper | `minesweeper` | `minesRev` 1 | Cards & Board | [minesweeper.md](minesweeper.md) |
+| Mahjong Solitaire | `mahjong` | `mahjongRev` 1 | Cards & Board | [mahjong.md](mahjong.md) |
+| Home Run Derby | `homerun` | `homerunRev` 1 | Sports | [homerun.md](homerun.md) |
+| Free Kick | `freekick` | `freekickRev` 1 | Sports | [freekick.md](freekick.md) |
+| Racing | `racing` | `racingRev` 1 | Sports | [racing.md](racing.md) |
+| FreeCell | `freecell` | `freecellRev` 1 | Cards & Board | [freecell.md](freecell.md) |
+| TriPeaks | `tripeaks` | `tripeaksRev` 1 | Cards & Board | [tripeaks.md](tripeaks.md) |
+| Poker Squares | `pokersquares` | `pokerSquaresRev` 1 | Cards & Board | [pokersquares.md](pokersquares.md) |
 | Minigolf | `minigolf` | `golfRev` 1 | Sports | [minigolf.md](minigolf.md) |
 | Speed Pool | `pool` | `poolRev` 1 | Sports | [pool.md](pool.md) |
 | Curling | `curling` | `curlRev` 1 | Sports | [curling.md](curling.md) |
@@ -291,4 +299,52 @@ par) and gates, gems and stars 30 (2 each for the 5 of each kind); clearing the 
 any input at least 1 (`swingScoreV15`, the shared `stdFinal`). The course, its rules, the bots and the skill-band
 medians are on its page, [swing.md](swing.md); swing-rework-check proves every older revision replays as before and
 every course's own route clears it under par.
+
+
+## Cards & Board: Minesweeper and Mahjong Solitaire (30 Oct 2026)
+
+Two new arcade games, born on the standard (their first revision, `minesRev` 1 and `mahjongRev` 1), dealt in rooms from
+the start. Each deals its whole board in the sim from the room seed, proved by the deal itself: Minesweeper's board is
+the first the logic solver clears from its opening (no guessing), Mahjong's stack is built backwards so its build order
+clears it. cards-board-check replays both proofs through the server to 200 on every tuning and fresh seed.
+
+| Game | Stamp | Core | Features | Cost | Speed full by |
+| --- | --- | --- | --- | --- | --- |
+| Minesweeper | `minesRev` 1 | Safe squares 150 (share beyond the opening) | No mines hit 20 (the same share, no hit), Speed 30 (cleared) | −5 a mine hit | 50 s (near-perfect median 49.7 s) |
+| Mahjong Solitaire | `mahjongRev` 1 | Pairs 150 (share of 36) | No shuffles 20 (the same share, no Shuffle), Speed 30 (cleared) | −5 a Shuffle | 65 s (near-perfect median 65.0 s) |
+
+Medians (tuning seeds 0–59), weak → flawless: Minesweeper 115 / 140.5 / 173.5 / 190.5 / 200 / 200 / 200; Mahjong
+103 / 136 / 174 / 189.5 / 199 / 200 / 200. The pages have the tables, the bots and the assumptions.
+## The Sports group (30 Oct 2026): Home Run Derby, Free Kick, Racing
+
+Three new arcade games, born on the standard at stamp 1 (no older revision to replay). Each deals a seed from its own
+proved deal (`src/lib/duel/<game>Deal.server.ts`: 300 seeds, each taken to exactly 200 by the game's oracle,
+`scripts/<game>-oracle.ts`, through the server replay; any seed it could not take to 200 was dropped). Each has its own
+`<game>-check` (`CHECKS_FULL=1` re-proves all 300 seeds) and an arcade-standard-check entry.
+
+| Game | Stamp | Core | Features | Sum |
+| --- | --- | --- | --- | --- |
+| Home Run Derby | `homerunRev` 1 | 130, distance (13 a pitch, full at 450 ft) | home runs 50 (5 each), sign hits 20 (5 each of 4) | 200 |
+| Free Kick | `freekickRev` 1 | 130, 13 a kick (10 a goal + up to 3 placement) | targets 40 (10 each of 4), curled round the wall 20 (2 a goal), five in a row 10 | 200 |
+| Racing | `racingRev` 1 | 140, distance (full at two laps) | clean sectors 30 (8 passes), finish 10, speed 20 (full by par 80.8 s) | 200 |
+
+Medians, weak → flawless (each game's `bun scripts/<game>-bands.ts`, room seeds 0–59 on the dealt seeds):
+
+| Game | Weak | Average | Good | Great | Near | Elite | Flawless |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| Home Run Derby | 46 | 71 | 114 | 163 | 190 | 197 | 200 |
+| Free Kick | 23 | 36 | 66 | 102 | 148 | 165 | 200 |
+| Racing | 131 | 155 | 182 | 192.5 | 198 | 200 | 200 |
+## Cards & Board: FreeCell, TriPeaks, Poker Squares (30 Oct 2026)
+
+Three new Arcade games, born on the standard at revision 1 (LIVE_BANDS marks them `born`: no score-band history).
+
+| Game | Stamp | Core | Features | Sum |
+| --- | --- | --- | --- | --- |
+| FreeCell | `freecellRev` 1 | 140, cards home (full) and in sorted runs (half), full at all 52 home | par moves 30, speed 30 (finished; full by 66 s) | 200 |
+| TriPeaks | `tripeaksRev` 1 | 120, share of the 28 peak cards cleared (60 s run) | peak tops 30, longest run 20, clear 10, speed 20 (full by 27 s) | 200 |
+| Poker Squares | `pokerSquaresRev` 1 | 160, hand points, full at 68 (the near-perfect median) | made hands 40 (4 a line) | 200 |
+
+Speed's "full by" times are the near-perfect bots' median finish (`bun scripts/cards-bands.ts`). cards-check proves
+every dealt deal reaches 200 through the server's replay.
 

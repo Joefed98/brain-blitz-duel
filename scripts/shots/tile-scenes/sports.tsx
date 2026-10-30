@@ -1,15 +1,41 @@
 /**
- * Tile scenes for the Sports group (30 Oct 2026; see ./scene.tsx): each drawn by the game's own renderer.
+ * The Sports group's tile scenes (30 Oct 2026). Home Run Derby, Free Kick and Racing: each game's own in-game
+ * background at the tile's size (its renderer's tile painter), dimmed a little where it is busy so the tile reads at
+ * 44 px. Minigolf, Speed Pool and Curling: each drawn by the game's own renderer (see ./scene.tsx).
  */
+import { paintHomerunTile } from "@/lib/arcade/homerun.renderer";
+import { paintFreekickTile } from "@/lib/arcade/freekick.renderer";
+import { paintRacingTile } from "@/lib/arcade/racing.renderer";
 import { paintMinigolfTile } from "@/lib/arcade/minigolf.renderer";
 import { poolGameFor, POOL_H } from "@/lib/arcade/pool";
 import { drawPool } from "@/lib/arcade/pool.renderer";
 import { curlingGameFor, CU, TEAM_MINE, TEAM_THEIRS } from "@/lib/arcade/curling";
 import { curlProject, drawCurling } from "@/lib/arcade/curling.renderer";
 
-import { canvasScene, type SceneSet, TILE } from "./scene";
+import { TILE, canvasScene, noText, type SceneSet } from "./scene";
+
+/** A soft dark vignette over a busy scene (the "faded if busy" rule), leaving its middle clear. */
+function fade(c: CanvasRenderingContext2D, amount: number): void {
+  const g = c.createRadialGradient(TILE / 2, TILE / 2, TILE * 0.25, TILE / 2, TILE / 2, TILE * 0.75);
+  g.addColorStop(0, "rgba(0,0,0,0)");
+  g.addColorStop(1, `rgba(0,0,0,${amount})`);
+  c.fillStyle = g;
+  c.fillRect(0, 0, TILE, TILE);
+}
 
 export const SPORTS_SCENES: SceneSet = {
+  homerun: canvasScene((c) => {
+    noText(c, () => paintHomerunTile(c, TILE));
+    fade(c, 0.45);
+  }),
+  freekick: canvasScene((c) => {
+    noText(c, () => paintFreekickTile(c, TILE));
+    fade(c, 0.4);
+  }),
+  racing: canvasScene((c) => {
+    noText(c, () => paintRacingTile(c, TILE));
+    fade(c, 0.35);
+  }),
   // Minigolf: a corner of a hole at night, the ball lined up on the cup past a boulder.
   minigolf: canvasScene((c) => paintMinigolfTile(c, TILE)),
   // Speed Pool: the bottom-left corner pocket, a spot ball on the lip, a stripe and the cue ball lined up behind.

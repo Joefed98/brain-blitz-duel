@@ -259,8 +259,8 @@ const SHOTS: Shot[] = [
   { group: "practice", file: "practice-all-fresh", label: "All, no bests", mode: "practice", device: FRESH, scrollEnd: true },
   { group: "practice", file: "practice-all-bests", label: "All, with bests", mode: "practice", device: RETURNING },
   { group: "practice", file: "practice-category", label: "One category (Logic)", mode: "practice", device: RETURNING, go: (p) => p.locator("[data-practice-filter='logic']").click() },
-  { group: "practice", file: "practice-search", label: "Search \"ra\"", mode: "practice", device: RETURNING, go: (p) => p.getByRole("searchbox", { name: "Search games" }).fill("ra") },
-  { group: "practice", file: "practice-search-empty", label: "Search with no match", mode: "practice", device: RETURNING, go: (p) => p.getByRole("searchbox", { name: "Search games" }).fill("zzqx") },
+  { group: "practice", file: "practice-search", label: "Search \"ra\"", mode: "practice", device: RETURNING, go: (p) => p.getByRole("searchbox", { name: "Search puzzles" }).fill("ra") },
+  { group: "practice", file: "practice-search-empty", label: "Search with no match", mode: "practice", device: RETURNING, go: (p) => p.getByRole("searchbox", { name: "Search puzzles" }).fill("zzqx") },
   // Tournaments
   { group: "tournaments", file: "tournaments-scheduled", label: "Games scheduled, results", mode: "tournaments", device: RETURNING },
   { group: "tournaments", file: "tournaments-none", label: "None scheduled, no results", mode: "tournaments", device: { ...FRESH, schedule: "none" } },

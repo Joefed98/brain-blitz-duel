@@ -41,6 +41,14 @@ import { bullseyePuzzle } from "@/puzzles/bullseye";
 import { matchupPuzzle } from "@/puzzles/matchup";
 import { breakerPuzzle } from "@/puzzles/breaker";
 import { pinballPuzzle } from "@/puzzles/pinball";
+import { minesweeperPuzzle } from "@/puzzles/minesweeper";
+import { mahjongPuzzle } from "@/puzzles/mahjong";
+import { homerunPuzzle } from "@/puzzles/homerun";
+import { freekickPuzzle } from "@/puzzles/freekick";
+import { racingPuzzle } from "@/puzzles/racing";
+import { freecellPuzzle } from "@/puzzles/freecell";
+import { tripeaksPuzzle } from "@/puzzles/tripeaks";
+import { pokerSquaresPuzzle } from "@/puzzles/pokerSquares";
 import { minigolfPuzzle } from "@/puzzles/minigolf";
 import { poolPuzzle } from "@/puzzles/pool";
 import { curlingPuzzle } from "@/puzzles/curling";
@@ -191,6 +199,16 @@ const BASE_REGISTRY: Record<PuzzleType, Omit<PuzzleDefinition, "instructions">> 
   matchup: matchupPuzzle,
   breaker: breakerPuzzle,
   pinball: pinballPuzzle,
+  // Cards & Board (30 Oct 2026): dealt in rooms from the start.
+  minesweeper: minesweeperPuzzle,
+  mahjong: mahjongPuzzle,
+  // The Sports group (30 Oct 2026, docs/arcade-standard/homerun.md, freekick.md, racing.md).
+  homerun: homerunPuzzle,
+  freekick: freekickPuzzle,
+  racing: racingPuzzle,
+  freecell: freecellPuzzle,
+  tripeaks: tripeaksPuzzle,
+  pokersquares: pokerSquaresPuzzle,
   minigolf: minigolfPuzzle,
   pool: poolPuzzle,
   curling: curlingPuzzle,

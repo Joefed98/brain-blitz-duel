@@ -18,6 +18,7 @@ import { breakerStdParts, type BrkState } from "./breaker";
 import { burstGoldenCount, burstStdParts, BURST_V10_GOLDENS, BURST_V10_WAVES, type BurstState } from "./burst";
 import { bandLines } from "./scoreBands";
 import { stdLines } from "./arcadeStandard";
+import { PS_CORE_FULL } from "./cards/pokerSquares";
 import { arcadeStdParts } from "./standard";
 
 export interface ArcadeRevealTile {
@@ -107,7 +108,59 @@ function sliceReveal(r: Run, s: number): ArcadeRevealData {
 
 type Builder = (run: Run, score: number) => ArcadeRevealData;
 
+/**
+ * The Sports group (30 Oct 2026: Home Run Derby, Free Kick, Racing), born on the arcade scoring standard: the axis is
+ * the core part, a tile for each feature part (points of its maximum); the lines come from the parts (below).
+ */
+function sportsBuilder(axisLabel: string, finished: (r: Run) => boolean): Builder {
+  return (r) => {
+    const parts = (r["parts"] as { key: string; label: string; points: number; max: number; detail: string }[] | undefined) ?? [];
+    const core = parts.find((p) => p.key === "core");
+    return {
+      axis: { value: core?.points ?? 0, max: core?.max ?? null, label: axisLabel },
+      lines: [],
+      tiles: parts.filter((p) => p.key !== "core").map((p) => ({ label: p.label, value: `${p.points} / ${p.max}` })),
+      outcome: finished(r) ? "finish" : "time",
+    };
+  };
+}
+
 const BUILDERS: Record<string, Builder> = {
+  homerun: sportsBuilder("Distance points", (r) => n(r, "pitches") >= 10),
+  freekick: sportsBuilder("Goal points", (r) => b(r, "finished")),
+  racing: sportsBuilder("Distance points", (r) => b(r, "finished")),
+  // Cards & Board (30 Oct 2026; the lines come from each game's standard parts).
+  freecell: (r, s) => ({
+    axis: { value: n(r, "home"), max: 52, label: "Cards home" },
+    lines: [`${n(r, "home")} / 52 home → ${s}`],
+    tiles: [
+      { label: "Moves", value: `${n(r, "moves")} · par ${n(r, "par")}` },
+      { label: "Sorted runs", value: String(n(r, "sorted")) },
+      { label: "Time", value: b(r, "finished") ? sec(n(r, "finishSeconds")) : "—" },
+    ],
+    outcome: b(r, "finished") ? "finish" : "time",
+  }),
+  tripeaks: (r, s) => ({
+    axis: { value: n(r, "cleared"), max: 28, label: "Cards cleared" },
+    lines: [`${n(r, "cleared")} / 28 cleared → ${s}`],
+    tiles: [
+      { label: "Peak tops", value: `${n(r, "peaks")} / 3` },
+      { label: "Longest run", value: String(n(r, "bestRun")) },
+      { label: "Stock left", value: String(n(r, "stockLeft")) },
+      { label: "Time", value: b(r, "finished") ? sec(n(r, "finishSeconds")) : "—" },
+    ],
+    outcome: b(r, "finished") ? "finish" : n(r, "endedSeconds") < 60 ? "crash" : "time",
+  }),
+  pokersquares: (r, s) => ({
+    axis: { value: n(r, "total"), max: PS_CORE_FULL, label: "Hand points" },
+    lines: [`${n(r, "total")} hand points (full at ${PS_CORE_FULL}) → ${s}`],
+    tiles: [
+      { label: "Made hands", value: `${n(r, "made")} / 10` },
+      { label: "Full at", value: String(PS_CORE_FULL) },
+      { label: "Placed", value: `${n(r, "placed")} / 25` },
+    ],
+    outcome: n(r, "placed") === 25 ? "finish" : "time",
+  }),
   hover: (r, s) => {
     const done = n(r, "gates") >= n(r, "totalGates") && n(r, "totalGates") > 0;
     // hoverRev 9 (the 200 expansion): the base, then the skill points (tight gates, chains, centre lines).
@@ -264,6 +317,26 @@ const BUILDERS: Record<string, Builder> = {
       outcome: done ? "finish" : n(r, "bricksLeft") > 0 && n(r, "endedSeconds") < 90 ? "crash" : "time",
     };
   },
+  // Cards & Board (30 Oct 2026; the lines come from the standard's parts).
+  minesweeper: (r, s) => ({
+    axis: { value: n(r, "revealed") - n(r, "opening"), max: n(r, "safe") - n(r, "opening"), label: "Safe squares" },
+    lines: [`${n(r, "revealed") - n(r, "opening")} safe squares → ${s}`],
+    tiles: [
+      { label: "Mines hit", value: String(n(r, "hits")) },
+      { label: "Flags", value: String(n(r, "flags")) },
+      { label: "Cleared", value: b(r, "cleared") ? sec(n(r, "clearedSeconds")) : "No" },
+    ],
+    outcome: b(r, "cleared") ? "finish" : "time",
+  }),
+  mahjong: (r, s) => ({
+    axis: { value: n(r, "pairs"), max: 36, label: "Pairs" },
+    lines: [`${n(r, "pairs")} / 36 pairs → ${s}`],
+    tiles: [
+      { label: "Shuffles", value: String(n(r, "shuffles")) },
+      { label: "Cleared", value: b(r, "cleared") ? sec(n(r, "clearedSeconds")) : "No" },
+    ],
+    outcome: b(r, "cleared") ? "finish" : "time",
+  }),
   // The Sports group (30 Oct 2026; the lines come from the arcade standard's parts).
   minigolf: (r, s) => ({
     axis: { value: n(r, "holed"), max: 5, label: "Holes holed" },

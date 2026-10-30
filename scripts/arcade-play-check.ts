@@ -87,6 +87,7 @@ import { gameDisplayName } from "../src/lib/duel/gameNames";
 import { WORDFALL_META } from "../src/lib/arcade/wordfallWords.meta";
 import { freezeClock, gotoRetried, warmUp } from "./browser-load";
 import { BROWSER, DEVICE_INIT, IPHONE11_APP, emulateDevice, type Clip } from "./device-emulation";
+import { showPracticeSide } from "./practice-side-lib";
 
 const args = process.argv.slice(2);
 const RECORD = args.includes("--record");
@@ -632,6 +633,7 @@ async function throttle(page: import("playwright").Page): Promise<void> {
  * list's collapsed "Retired" section, so it is opened first; active games are found exactly as before.
  */
 async function practiceGameButton(page: import("playwright").Page, game: string, timeout: number) {
+  await showPracticeSide(page, game, timeout);
   const row = page.locator(`[data-practice-game="${game}"]`).first();
   await row.waitFor({ state: "attached", timeout });
   const retired = page.locator(`details:has([data-practice-game="${game}"])`).first();

@@ -1,4 +1,5 @@
 import { PUZZLE_SCORE_REV, puzzleScoreRevOf } from "./puzzleScoreRev";
+import { ARCADE_STANDARD } from "@/lib/arcade/standard";
 import { LAB_STARS } from "./depth/labyrinth";
 import { usesStandard } from "./standard/stamps";
 import { solutionProgress } from "./progressFigures";
@@ -121,6 +122,14 @@ import {
   TILT_TIME_MS,
   HOTFLOOR_TIME_MS,
   PINBALL_TIME_MS,
+  MINESWEEPER_TIME_MS,
+  MAHJONG_TIME_MS,
+  HOMERUN_TIME_MS,
+  FREEKICK_TIME_MS,
+  RACING_TIME_MS,
+  FREECELL_TIME_MS,
+  TRIPEAKS_TIME_MS,
+  POKERSQUARES_TIME_MS,
 } from "./types";
 
 import { TG_TIME_MS, tileGridResultLine } from "./tileGrid";
@@ -143,6 +152,14 @@ type AnswerBuilder = (puzzle: PuzzleData) => string | null;
 /** Types added after the ladder below; their limits are looked up directly. */
 const DIRECT_LIMITS: Partial<Record<PuzzleType, number>> = {
   pinball: PINBALL_TIME_MS,
+  minesweeper: MINESWEEPER_TIME_MS,
+  mahjong: MAHJONG_TIME_MS,
+  homerun: HOMERUN_TIME_MS,
+  freekick: FREEKICK_TIME_MS,
+  racing: RACING_TIME_MS,
+  freecell: FREECELL_TIME_MS,
+  tripeaks: TRIPEAKS_TIME_MS,
+  pokersquares: POKERSQUARES_TIME_MS,
   minigolf: MINIGOLF_TIME_MS,
   pool: POOL_TIME_MS,
   curling: CURLING_TIME_MS,
@@ -1086,6 +1103,33 @@ const breakerSummary: SummaryBuilder = (result) => {
   };
 };
 
+/** Cards & Board: the run's headline figures from the stored replay (grade.ts' extra). */
+const freecellSummary: SummaryBuilder = (result) => {
+  const n = (key: string) => Number(result.extra?.[key] ?? 0);
+  const done = result.extra?.["finished"] === true;
+  return {
+    summary: done ? `All 52 home · ${n("moves")} moves (par ${n("par")})` : `${n("home")} of 52 home · ${n("sorted")} in sorted runs`,
+    detail: [done ? `Finished in ${n("finishSeconds").toFixed(1)} s` : `${n("moves")} moves, par ${n("par")}`],
+  };
+};
+
+const tripeaksSummary: SummaryBuilder = (result) => {
+  const n = (key: string) => Number(result.extra?.[key] ?? 0);
+  const done = result.extra?.["finished"] === true;
+  return {
+    summary: `${n("cleared")} of 28 cleared · ${n("peaks")} peak tops · best run ${n("bestRun")}`,
+    detail: [done ? `Cleared in ${n("finishSeconds").toFixed(1)} s` : `${n("stockLeft")} stock cards left`],
+  };
+};
+
+const pokerSquaresSummary: SummaryBuilder = (result) => {
+  const n = (key: string) => Number(result.extra?.[key] ?? 0);
+  return {
+    summary: `${n("total")} hand points · ${n("made")} of 10 lines`,
+    detail: [`${n("placed")} of 25 cards placed`],
+  };
+};
+
 /** Sports (30 Oct 2026): what each part of the arcade standard paid, as the grader stored it. */
 const partsLine = (result: RoundResultRow, keys: [string, string][]): string =>
   keys.map(([key, label]) => `${label} ${Number(result.extra?.[key] ?? 0)}`).join(" · ");
@@ -1140,6 +1184,46 @@ const pinballSummary: SummaryBuilder = (result) => {
     ],
   };
 };
+
+/** Cards & Board (30 Oct 2026): what the run did, by the server's replay. */
+const minesweeperSummary: SummaryBuilder = (result) => {
+  const n = (key: string) => Number(result.extra?.[key] ?? 0);
+  const hits = n("hits");
+  return {
+    summary: `${n("revealed") - n("opening")} of ${n("safe") - n("opening")} safe squares${result.extra?.["cleared"] === true ? " · cleared" : ""}`,
+    detail: [
+      hits === 0 ? "No mine hit" : `${hits} mine${hits === 1 ? "" : "s"} hit`,
+      result.extra?.["cleared"] === true ? `Cleared in ${n("clearedSeconds").toFixed(1)} s` : "Board not cleared",
+    ],
+  };
+};
+
+const mahjongSummary: SummaryBuilder = (result) => {
+  const n = (key: string) => Number(result.extra?.[key] ?? 0);
+  const shuffles = n("shuffles");
+  return {
+    summary: `${n("pairs")} of 36 pairs${result.extra?.["cleared"] === true ? " · cleared" : ""}`,
+    detail: [
+      shuffles === 0 ? "No shuffle" : `${shuffles} shuffle${shuffles === 1 ? "" : "s"}`,
+      result.extra?.["cleared"] === true ? `Cleared in ${n("clearedSeconds").toFixed(1)} s` : "Board not cleared",
+    ],
+  };
+};
+/**
+ * The Sports group (30 Oct 2026), born on the arcade scoring standard: the stored extra carries each part's points
+ * (`part_<key>`), so the summary names them in the spec's order with its maximums.
+ */
+function sportsSummary(type: "homerun" | "freekick" | "racing"): SummaryBuilder {
+  return (result) => {
+    const spec = ARCADE_STANDARD[type]?.spec;
+    const parts = (spec?.parts ?? []).map((p) => ({ label: p.label, max: p.max, points: Number(result.extra?.[`part_${p.key}`] ?? 0) }));
+    const [core, ...features] = parts;
+    return {
+      summary: core ? `${core.label} ${core.points}/${core.max}` : "",
+      detail: features.map((p) => `${p.label} ${p.points}/${p.max}`),
+    };
+  };
+}
 
 const rallySummary: SummaryBuilder = (result, puzzle) => {
   const hits = Number(result.extra?.["hits"] ?? 0);
@@ -1663,6 +1747,14 @@ export const ROUND_SUMMARIES: Record<PuzzleType, SummaryBuilder> = {
   ricochet: ricoSummary,
   breaker: breakerSummary,
   pinball: pinballSummary,
+  minesweeper: minesweeperSummary,
+  mahjong: mahjongSummary,
+  homerun: sportsSummary("homerun"),
+  freekick: sportsSummary("freekick"),
+  racing: sportsSummary("racing"),
+  freecell: freecellSummary,
+  tripeaks: tripeaksSummary,
+  pokersquares: pokerSquaresSummary,
   minigolf: minigolfSummary,
   pool: poolSummary,
   curling: curlingSummary,
@@ -1755,6 +1847,14 @@ export const CORRECT_ANSWERS: Record<PuzzleType, AnswerBuilder> = {
   ricochet: () => null,
   breaker: () => null,
   pinball: () => null,
+  minesweeper: () => null,
+  mahjong: () => null,
+  homerun: () => null,
+  freekick: () => null,
+  racing: () => null,
+  freecell: () => null,
+  tripeaks: () => null,
+  pokersquares: () => null,
   minigolf: () => null,
   pool: () => null,
   curling: () => null,

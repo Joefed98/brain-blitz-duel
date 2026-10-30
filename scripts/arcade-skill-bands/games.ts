@@ -66,6 +66,25 @@ import { encodeBullseyeRun, replayBullseyeRun } from "../../src/lib/duel/bullsey
 import { PIN_REV } from "../../src/lib/arcade/pinball";
 import { pinballGameForAny, pinCheckpointAny } from "../../src/lib/arcade/pinball4";
 import { encodePinballRun, replayPinballRun } from "../../src/lib/duel/pinball";
+import { minesCheckpoint, minesweeperGameFor, MINES_REV_STD } from "../../src/lib/arcade/minesweeper";
+import { encodeMinesweeperRun, replayMinesweeperRun } from "../../src/lib/duel/minesweeper";
+import { mahjongCheckpoint, mahjongGameFor, MAHJONG_REV_STD } from "../../src/lib/arcade/mahjong";
+import { encodeMahjongRun, replayMahjongRun } from "../../src/lib/duel/mahjong";
+import { homerunCheckpoint, homerunGameFor, HOMERUN_REV_STD } from "../../src/lib/arcade/homerun";
+import { encodeHomerunRun, replayHomerunRun } from "../../src/lib/duel/homerun";
+import { homerunDealSeed } from "../../src/lib/duel/homerunDeal.server";
+import { freekickCheckpoint, freekickGameFor, FREEKICK_REV_STD } from "../../src/lib/arcade/freekick";
+import { encodeFreekickRun, replayFreekickRun } from "../../src/lib/duel/freekick";
+import { freekickDealSeed } from "../../src/lib/duel/freekickDeal.server";
+import { racingCheckpoint, racingGameFor, RACING_REV_STD } from "../../src/lib/arcade/racing";
+import { encodeRacingRun, replayRacingRun } from "../../src/lib/duel/racing";
+import { racingDealSeed } from "../../src/lib/duel/racingDeal.server";
+import { fcCheckpoint, freecellGameFor, FC_REV } from "../../src/lib/arcade/cards/freecell";
+import { FC_DEALS } from "../../src/lib/arcade/cards/freecellDeals.data";
+import { tpCheckpoint, tripeaksGameFor, TP_REV } from "../../src/lib/arcade/cards/tripeaks";
+import { TP_DEALS } from "../../src/lib/arcade/cards/tripeaksDeals.data";
+import { psCheckpoint, pokerSquaresGameFor, PS_REV } from "../../src/lib/arcade/cards/pokerSquares";
+import { encodeFreecellRun, encodePokerSquaresRun, encodeTripeaksRun, replayFreecellRun, replayPokerSquaresRun, replayTripeaksRun } from "../../src/lib/duel/cards";
 import { minigolfCheckpoint, minigolfGameFor, MINIGOLF_REV } from "../../src/lib/arcade/minigolf";
 import { encodeMinigolfRun, replayMinigolfRun } from "../../src/lib/duel/minigolf";
 import { MINIGOLF_BANK, minigolfBankEntryFor } from "../../src/lib/duel/minigolfBank.server";
@@ -252,6 +271,19 @@ export const GAMES: GameSpec[] = [
   // Pinball (practice only until PINBALL_IN_ROOMS): born on the bands, so its one revision is both `live` and `next`.
   // pinRev 4 (E4, 25 Oct 2026): the taller table's game and checkpoint (pinball4.ts) through the same replay path.
   simple("pinball", PIN_REV, PIN_REV, pinballGameForAny, pinCheckpointAny, encodePinballRun, replayPinballRun),
+  // Cards & Board (30 Oct 2026): born on the arcade scoring standard (one revision each, measured with --rev=now).
+  simple("minesweeper", MINES_REV_STD, MINES_REV_STD, minesweeperGameFor, minesCheckpoint, encodeMinesweeperRun, replayMinesweeperRun),
+  simple("mahjong", MAHJONG_REV_STD, MAHJONG_REV_STD, mahjongGameFor, mahjongCheckpoint, encodeMahjongRun, replayMahjongRun),
+  // The Sports group (30 Oct 2026): born on the arcade scoring standard (rev 1 is live and next); rooms deal a seed from
+  // each game's proved deal (the oracle took it to 200 through the server replay), picked by the room seed.
+  { ...simple("homerun", HOMERUN_REV_STD, HOMERUN_REV_STD, homerunGameFor, homerunCheckpoint, encodeHomerunRun, replayHomerunRun), seedFor: (n) => homerunDealSeed(roomSeed(n)) },
+  { ...simple("freekick", FREEKICK_REV_STD, FREEKICK_REV_STD, freekickGameFor, freekickCheckpoint, encodeFreekickRun, replayFreekickRun), seedFor: (n) => freekickDealSeed(roomSeed(n)) },
+  { ...simple("racing", RACING_REV_STD, RACING_REV_STD, racingGameFor, racingCheckpoint, encodeRacingRun, replayRacingRun), seedFor: (n) => racingDealSeed(roomSeed(n)) },
+  // Cards & Board (30 Oct 2026): born on the arcade standard, one revision each. FreeCell and TriPeaks deal a bank
+  // index (the room seed modulo the bank); Poker Squares any seed.
+  { ...simple("freecell", FC_REV, FC_REV, freecellGameFor, fcCheckpoint, encodeFreecellRun, replayFreecellRun), seedFor: (n) => roomSeed(n) % FC_DEALS.length },
+  { ...simple("tripeaks", TP_REV, TP_REV, tripeaksGameFor, tpCheckpoint, encodeTripeaksRun, replayTripeaksRun), seedFor: (n) => roomSeed(n) % TP_DEALS.length },
+  simple("pokersquares", PS_REV, PS_REV, pokerSquaresGameFor, psCheckpoint, encodePokerSquaresRun, replayPokerSquaresRun),
   // The Sports group (30 Oct 2026): Minigolf deals a bank course (seed and pars), golfRev 1 from its first round.
   {
     type: "minigolf",

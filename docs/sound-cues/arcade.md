@@ -119,6 +119,24 @@ when the run starts. Rooms deal Pinball since 14 Oct 2026; Junction is practice 
 | `skyline.perfect` | High Rise | A perfect drop | `correct` · own file `skyline.floors.mp3` (volume 0.8; Joe's phone notes, 27 Oct 2026: the crane bell that was the every-10-floors sound; `skyline.perfectFit.mp3` retired) | 5–20 | 483 ms |
 | `skyline.streakDrop` | High Rise | A streak bonus drop (skylineRev 2+) | `arc_retro_coin` (0.7) | 2–10 | 120 ms |
 | `skyline.miss` | High Rise | A block misses the tower | `arc_crash` | 0–1 | 200 ms |
+| `homerun.swing` | Home Run Derby | A swing starts | `arc_hover_tap` (0.5, rate 1.4) | 10 | 120 ms |
+| `homerun.crack` | Home Run Derby | Bat meets ball (a fair ball or a home run) | `arc_wood_knock` (rate 1.15 on a square hit) | 5–10 | 200 ms |
+| `homerun.homer` | Home Run Derby | A home run | `arc_fair_sting` (0.9) | 0–10 | 480 ms |
+| `homerun.sign` | Home Run Derby | A sign beyond the fence is struck | `arc_fair_bell` (0.9) | 0–4 | 480 ms |
+| `homerun.foul` | Home Run Derby | A foul ball | `arc_bounce` (0.7) | 0–5 | 150 ms |
+| `homerun.strike` | Home Run Derby | A swing and a miss, or a pitch taken | `arc_fair_thud` (0.6) | 0–10 | 150 ms |
+| `freekick.kick` | Free Kick | The ball is struck | `arc_fair_thud` | 10 | 150 ms |
+| `freekick.post` | Free Kick | The ball hits a post or the bar | `arc_clank` | 0–5 | 200 ms |
+| `freekick.save` | Free Kick | The keeper saves (the wall's block, quieter) | `arc_wood_knock` | 0–10 | 200 ms |
+| `freekick.goal` | Free Kick | A goal | `arc_fair_sting` | 0–10 | 480 ms |
+| `freekick.target` | Free Kick | A target hit | `arc_fair_bell` | 0–4 | 480 ms |
+| `freekick.net` | Free Kick | The ball hits the net | `arc_bounce` | 0–10 | 200 ms |
+| `racing.go` | Racing | The race starts | `arc_horn` | 1 | 300 ms |
+| `racing.lap` | Racing | A lap is completed | `arc_fair_bell` | 1–2 | 480 ms |
+| `racing.sector` | Racing | A clean sector | `arc_retro_coin` | 0–8 | 200 ms |
+| `racing.wall` | Racing | The car hits the tyre wall | `arc_crash` | 0–10 | 200 ms |
+| `racing.grass` | Racing | The car runs onto the grass or gravel | `arc_bounce` | 0–20 | 150 ms |
+| `racing.finish` | Racing | The finish line after lap 2 | `arc_fair_sting` | 0–1 | 480 ms |
 | `inkbridge.draw` | Rainbow Bridge | The first segment of each drawn stroke | `arc_rainbow` (0.6) | 10–30 | 910 ms |
 | `inkbridge.pot` | Rainbow Bridge | The pot of gold is reached | `arc_rainbow_pot` | 3–10 | 1000 ms |
 | `inkbridge.bump` | Rainbow Bridge | A level fails on a block | `arc_rainbow_bump` | 0–5 | 200 ms |

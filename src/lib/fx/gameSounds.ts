@@ -24,6 +24,9 @@ import { BURST_RADIUS, burstCeiling, burstFloorY, type BurstState } from "@/lib/
 import { BEAT_COMBO_TIERS, BEAT_FALL_TICKS, BEAT_JUDGE_PENDING, type BeatState } from "@/lib/arcade/beat";
 import { BINTOSS_AIM, BINTOSS_FLY, BINTOSS_NARROW_FROM, BINTOSS_THROWS, BINTOSS_WAIT, type BinTossState } from "@/lib/arcade/binToss";
 import type { TiltState } from "@/lib/arcade/tilt";
+import { OUT_FAIR, OUT_FOUL, OUT_HOMER, OUT_TAKEN, OUT_WHIFF, type HomerunState } from "@/lib/arcade/homerun";
+import { FK_FLIGHT, FK_NET_Z, FK_OUT_GOAL, FK_OUT_SAVED, FK_OUT_WALL, type FreekickState } from "@/lib/arcade/freekick";
+import { RACING_LAP, type RacingState } from "@/lib/arcade/racing";
 import { btEventCountdown, type BtCourse, type BtState } from "@/lib/arcade/ballTrack";
 import { JUNC_BUILD_EVERY, JUNC_BUILDS, type JuncState } from "@/lib/arcade/junction";
 import { skylineFlagAt, skylineGustAt, skylineShownMult, SKYLINE_REV_STD, SKYLINE_V9_STREAK_MAX, type SkylineState } from "@/lib/arcade/skyline";
@@ -984,5 +987,86 @@ export function minigolfSounds(): GameSounds<MinigolfState> {
       prev = state;
     },
     stop: () => {},
+  };
+}
+
+/* ============================ The Sports group (30 Oct 2026) ============================ */
+
+/** Home Run Derby: the swing, the crack of the bat, home runs, signs, fouls and strikes. */
+export function homerunSounds(): GameSounds<HomerunState> {
+  let prev: HomerunState | null = null;
+  return {
+    frame(state) {
+      beginFrame("homerun", state);
+      if (prev && state.tick > prev.tick) {
+        if (state.swingTick >= 0 && prev.swingTick < 0) sfx("homerun.swing", "arc_hover_tap", 0.5, 1.4);
+        if (state.hits.length > prev.hits.length) {
+          const hit = state.hits[state.hits.length - 1]!;
+          if (hit.out === OUT_HOMER || hit.out === OUT_FAIR) sfx("homerun.crack", "arc_wood_knock", 1, hit.q >= 900 ? 1.15 : 1);
+          if (hit.out === OUT_HOMER) sfx("homerun.homer", "arc_fair_sting", 0.9);
+          if (hit.sign >= 0) sfx("homerun.sign", "arc_fair_bell", 0.9);
+          if (hit.out === OUT_FOUL) sfx("homerun.foul", "arc_bounce", 0.7);
+          if (hit.out === OUT_WHIFF || hit.out === OUT_TAKEN) sfx("homerun.strike", "arc_fair_thud", 0.6);
+        }
+      }
+      prev = state;
+    },
+    stop() {
+      prev = null;
+    },
+  };
+}
+
+/** Free Kick: the strike, woodwork, saves (the wall's block quieter), goals, targets and the net. */
+export function freekickSounds(): GameSounds<FreekickState> {
+  let prev: FreekickState | null = null;
+  return {
+    frame(state) {
+      beginFrame("freekick", state);
+      if (prev && state.tick > prev.tick) {
+        const f = state.fl;
+        const was = prev.fl;
+        if (prev.phase !== FK_FLIGHT && state.phase === FK_FLIGHT) sfx("freekick.kick", "arc_fair_thud", 0.9, 1.1);
+        if (f && was && state.kickTick === prev.kickTick) {
+          if ((f.post && !was.post) || (f.bar && !was.bar)) sfx("freekick.post", "arc_clank", 0.9);
+          if (f.out === FK_OUT_SAVED && was.out !== FK_OUT_SAVED) sfx("freekick.save", "arc_wood_knock", 0.9);
+          if (f.out === FK_OUT_WALL && was.out !== FK_OUT_WALL) sfx("freekick.save", "arc_wood_knock", 0.65, 0.85);
+          if (f.out === FK_OUT_GOAL && was.out !== FK_OUT_GOAL) sfx("freekick.goal", "arc_fair_sting", 0.95);
+          if (f.out === FK_OUT_GOAL && f.z >= FK_NET_Z && was.z < FK_NET_Z) sfx("freekick.net", "arc_bounce", 0.6, 0.8);
+        }
+        if (state.targets > prev.targets) sfx("freekick.target", "arc_fair_bell", 0.9);
+      }
+      prev = state;
+    },
+    stop() {
+      prev = null;
+    },
+  };
+}
+
+/** Racing: the first throttle, the tyre wall, the grass, clean sectors, the lap and the finish. */
+export function racingSounds(): GameSounds<RacingState> {
+  let prev: RacingState | null = null;
+  let went = false;
+  return {
+    frame(state) {
+      beginFrame("racing", state);
+      if (prev && state.tick > prev.tick) {
+        if (!went && state.pedal > 0) {
+          went = true;
+          sfx("racing.go", "arc_horn", 0.5);
+        }
+        if (state.wallHits > prev.wallHits) sfx("racing.wall", "arc_crash", 0.8);
+        else if (state.off && !prev.off) sfx("racing.grass", "arc_bounce", 0.6, 0.8);
+        if (state.clean > prev.clean) sfx("racing.sector", "arc_retro_coin", 0.6);
+        if (state.finishTick > 0 && prev.finishTick === 0) sfx("racing.finish", "arc_fair_sting", 0.9);
+        else if (Math.floor(state.s / RACING_LAP) > Math.floor(prev.s / RACING_LAP)) sfx("racing.lap", "arc_fair_bell", 0.8);
+      }
+      prev = state;
+    },
+    stop() {
+      prev = null;
+      went = false;
+    },
   };
 }

@@ -59,6 +59,17 @@ const STANDARD_ROSTER: readonly { type: string; field: string; rev: number; batc
   { type: "orbit", field: "orbitRev", rev: 13, batch: "C" },
   { type: "balltrack", field: "btRev", rev: 8, batch: "C" },
   { type: "swing", field: "swingRev", rev: 15, batch: "D" },
+  // Cards & Board (30 Oct 2026): born on the standard (their first revision).
+  { type: "minesweeper", field: "minesRev", rev: 1, batch: "Cards & Board" },
+  { type: "mahjong", field: "mahjongRev", rev: 1, batch: "Cards & Board" },
+  // The Sports group (30 Oct 2026): new games born on the standard (rev 1).
+  { type: "homerun", field: "homerunRev", rev: 1, batch: "Sports" },
+  { type: "freekick", field: "freekickRev", rev: 1, batch: "Sports" },
+  { type: "racing", field: "racingRev", rev: 1, batch: "Sports" },
+  // Cards & Board (30 Oct 2026): born on the standard at revision 1.
+  { type: "freecell", field: "freecellRev", rev: 1, batch: "Cards" },
+  { type: "tripeaks", field: "tripeaksRev", rev: 1, batch: "Cards" },
+  { type: "pokersquares", field: "pokerSquaresRev", rev: 1, batch: "Cards" },
   // The Sports group (30 Oct 2026): on the standard from their first stamp.
   { type: "minigolf", field: "golfRev", rev: 1, batch: "Sports" },
   { type: "pool", field: "poolRev", rev: 1, batch: "Sports" },

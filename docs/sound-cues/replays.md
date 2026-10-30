@@ -86,6 +86,12 @@ game the round was.
 | `skyline.floors` | Floors streak (every 10): the clip reaches the moment's key tick | instant (the moment lands; about 0.5 s of half-speed play follows) |
 | `skyline.streak` | Perfect streak: the clip reaches the moment's key tick | instant (the moment lands; about 0.5 s of half-speed play follows) |
 | `skyline.wind-perfect` | Perfect drop in the wind: the clip reaches the moment's key tick | instant (the moment lands; about 0.5 s of half-speed play follows) |
+| `homerun.home-run` | Home run: the clip reaches the moment's key tick | instant (the moment lands; about 0.5 s of half-speed play follows) |
+| `homerun.sign-hit` | A sign beyond the fence struck: the clip reaches the moment's key tick | instant (the moment lands; about 0.5 s of half-speed play follows) |
+| `freekick.goal-scored` | Goal: the clip reaches the moment's key tick | instant (the moment lands; about 0.5 s of half-speed play follows) |
+| `freekick.target-hit` | A target hit: the clip reaches the moment's key tick | instant (the moment lands; about 0.5 s of half-speed play follows) |
+| `racing.clean-sector` | Clean sector: the clip reaches the moment's key tick | instant (the moment lands; about 0.5 s of half-speed play follows) |
+| `racing.lap-done` | Lap complete: the clip reaches the moment's key tick | instant (the moment lands; about 0.5 s of half-speed play follows) |
 | `cross.crossing` | Road crossed: the clip reaches the moment's key tick | instant (the moment lands; about 0.5 s of half-speed play follows) |
 | `cross.bikes` | Past the cyclists: the clip reaches the moment's key tick | instant (the moment lands; about 0.5 s of half-speed play follows) |
 | `cross.cones` | Through the roadworks: the clip reaches the moment's key tick | instant (the moment lands; about 0.5 s of half-speed play follows) |

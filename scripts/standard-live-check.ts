@@ -60,6 +60,7 @@ import type { Driver } from "./shots/driver";
 import { DRIVERS } from "./shots/drivers";
 import { wordAnswer } from "./shots/word-answers";
 import { playTenDropPerfect } from "./tendrop-depth-player";
+import { showPracticeSide } from "./practice-side-lib";
 
 const args = process.argv.slice(2);
 const ALL = args.includes("--all");
@@ -255,6 +256,7 @@ async function openRound(browser: Browser, game: PuzzleType, clock: boolean, swa
     return route.continue();
   });
   await page.goto(`${ORIGIN}/practice`, { waitUntil: "domcontentloaded" });
+  await showPracticeSide(page, game);
   const button = page.getByRole("button", { name: gameDisplayName(game), exact: true }).first();
   await button.waitFor({ timeout: 60_000 });
   await page.waitForTimeout(1500); // hydration
