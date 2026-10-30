@@ -18,6 +18,7 @@ import { breakerArtGameFor } from "@/lib/arcade/breaker.renderer";
 import { pinballArtGameForAny } from "@/lib/arcade/pinball4.renderer";
 import { drawMinigolf } from "@/lib/arcade/minigolf.renderer";
 import { drawPool } from "@/lib/arcade/pool.renderer";
+import { drawCurling } from "@/lib/arcade/curling.renderer";
 import { rallyArtGame } from "@/lib/arcade/rally.renderer";
 import { sliceArtGame } from "@/lib/arcade/slice.renderer";
 import { bubbleArtGame } from "@/lib/arcade/bubble.renderer";
@@ -70,6 +71,7 @@ const SIMPLE: Record<string, (p: PuzzleData) => Draw> = {
   matchup: () => matchupArtGame.draw as Draw,
   breaker: (p) => breakerArtGameFor(rev(p, "brkRev")).draw as Draw,
   pinball: (p) => pinballArtGameForAny(rev(p, "pinRev")).draw as Draw,
+  curling: () => ((ctx, s) => drawCurling(ctx, s, null)) as Draw,
   pool: () => ((ctx, s) => drawPool(ctx, s, null)) as Draw,
   minigolf: () => ((ctx, s) => drawMinigolf(ctx, s, null)) as Draw,
   rally: () => rallyArtGame.draw as Draw,

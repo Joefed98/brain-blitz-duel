@@ -6,6 +6,8 @@ import type { ArcadeFxSpec } from "./arcadeFx.renderer";
 import { px } from "./engine";
 import { MINIGOLF_H, MINIGOLF_HOLES, MINIGOLF_W, type MinigolfState } from "./minigolf";
 import { POOL_H, POOL_SPOTS, POOL_W, type PoolState } from "./pool";
+import { curlShotTeam, curlTakeouts, CURL_STONE_PTS, CURLING_H, CURLING_STONES, CURLING_W, TEAM_MINE, type CurlingState } from "./curling";
+import { curlProject } from "./curling.renderer";
 
 const holedCount = (s: MinigolfState) => s.holed.reduce((a, v) => a + v, 0);
 const lastHole = (s: MinigolfState) => Math.max(0, Math.min(s.hole, MINIGOLF_HOLES - 1));
@@ -62,4 +64,25 @@ export const POOL_FX: ArcadeFxSpec<PoolState> = {
     { kind: "final", count: (s) => (s.black === 1 ? 1 : 0), label: () => "CLEARED!" },
   ],
   misses: [{ count: (s) => s.fouls + s.scratches }],
+};
+
+const houseAt = () => {
+  const p = curlProject(0, 0);
+  return { x: p.sx, y: p.sy };
+};
+
+/** Curling: a stone on the button, a takeout and the shot stone at the end; a stone that stops outside the house is a miss. */
+export const CURLING_FX: ArcadeFxSpec<CurlingState> = {
+  game: "curling",
+  world: "realworld",
+  width: CURLING_W,
+  height: CURLING_H,
+  fit: "world",
+  shake: false,
+  events: [
+    { kind: "perfect", count: (s) => s.pts.filter((p) => p === CURL_STONE_PTS).length, at: houseAt, label: () => "ON THE BUTTON!" },
+    { kind: "pop", count: curlTakeouts, at: houseAt, label: () => "TAKEOUT!" },
+    { kind: "final", count: (s) => (s.thrown >= CURLING_STONES && s.over && curlShotTeam(s) === TEAM_MINE ? 1 : 0), label: () => "SHOT STONE!" },
+  ],
+  misses: [{ count: (s) => s.pts.filter((p, i) => i < s.thrown && p === 0).length }],
 };

@@ -14,6 +14,7 @@ import {
   MG_PAR_PTS,
   MG_UNDER_PTS,
   MINIGOLF_HOLES,
+  MINIGOLF_FULL_BY_S,
   MINIGOLF_REV,
   MINIGOLF_STD_SPEC,
   MINIGOLF_STROKE_LIMIT,
@@ -85,7 +86,7 @@ export const entry: StdEntry = {
       ok(part(s, "under") === (strokes < 3 ? 5 * MG_UNDER_PTS : 0), `minigolf: under par only below par (${strokes} strokes)`);
     }
     // Speed only with all five holed, full by the full-by time, 0 at the buzzer.
-    ok(part(final(5, 3, { finishTick: 60 * 40 }), "speed") === 20, "minigolf: all five holed in 40 s → speed 20");
+    ok(part(final(5, 3, { finishTick: 60 * MINIGOLF_FULL_BY_S }), "speed") === 20, `minigolf: all five holed by ${MINIGOLF_FULL_BY_S} s → speed 20`);
     ok(part(final(5, 3, { finishTick: 7200 }), "speed") === 0, "minigolf: all five holed at the buzzer → speed 0");
     ok(part(final(4, 3, { finishTick: 60 * 40 }), "speed") === 0, "minigolf: speed needs all five holed");
     // An unfinished hole: up to 20 by closeness, never more than a hole holed.

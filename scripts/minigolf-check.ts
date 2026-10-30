@@ -97,7 +97,9 @@ const settle = (s: MinigolfState) => {
   const split = course.findIndex((h) => h.ponds.length > 0);
   s = { ...s, hole: split, x: course[split]!.tee.x, y: course[split]!.tee.y, fromX: course[split]!.tee.x, fromY: course[split]!.tee.y, strokes: 0 };
   const pond = course[split]!.ponds[0]!;
-  const after = settle(putt(s, pond.x - s.x, pond.y - s.y, 700));
+  // The first power on the straight line to the pond's centre that puts the ball in (a rock may stop a soft one).
+  let after = s;
+  for (let c = 200; c <= 1000 && after.waters === 0; c += 50) after = settle(putt(s, Math.round((pond.x - s.x) / 64), Math.round((pond.y - s.y) / 64), c));
   ok(after.waters === 1 && after.strokes === 2 && after.x === s.x && after.y === s.y && after.phase === MG_AIM, `water: one stroke added and the ball back where it was played (strokes ${after.strokes}, waters ${after.waters})`);
   // Stroke limit: six soft putts away from the cup end the hole with closeness credit.
   let t = { ...s, hole: 0, x: course[0]!.tee.x, y: course[0]!.tee.y, strokes: 0 };

@@ -72,6 +72,9 @@ import { MINIGOLF_BANK, minigolfBankEntryFor } from "../../src/lib/duel/minigolf
 import { poolCheckpoint, poolGameFor, POOL_REV } from "../../src/lib/arcade/pool";
 import { encodePoolRun, replayPoolRun } from "../../src/lib/duel/pool";
 import { poolBankSeedFor } from "../../src/lib/duel/poolBank.server";
+import { curlingCheckpoint, curlingGameFor, CURLING_REV } from "../../src/lib/arcade/curling";
+import { encodeCurlingRun, replayCurlingRun } from "../../src/lib/duel/curling";
+import { curlingBankSeedFor } from "../../src/lib/duel/curlingBank.server";
 
 export interface GameSpec {
   type: PuzzleType;
@@ -268,6 +271,16 @@ export const GAMES: GameSpec[] = [
     checkpoint: poolCheckpoint,
     encode: (run) => encodePoolRun(run),
     replay: (seed, raw, rev) => replayPoolRun(seed, raw, rev),
+  },
+  // Curling deals a bank sheet (opponent stones the oracle took out with every stone on the button), curlRev 1.
+  {
+    type: "curling",
+    live: CURLING_REV,
+    seedFor: curlingBankSeedFor,
+    gameFor: () => curlingGameFor(),
+    checkpoint: curlingCheckpoint,
+    encode: (run) => encodeCurlingRun(run),
+    replay: (seed, raw, rev) => replayCurlingRun(seed, raw, rev),
   },
 ];
 

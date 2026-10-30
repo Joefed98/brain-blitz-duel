@@ -29,6 +29,7 @@ import { breakerGameFor } from "@/lib/arcade/breaker";
 import { pinballGameForAny } from "@/lib/arcade/pinball4";
 import { minigolfGameFor } from "@/lib/arcade/minigolf";
 import { poolGameFor } from "@/lib/arcade/pool";
+import { curlingGameFor } from "@/lib/arcade/curling";
 import { rallyGameFor } from "@/lib/arcade/rally";
 import { sliceGameFor } from "@/lib/arcade/slice";
 import { bubbleGameFor } from "@/lib/arcade/bubble";
@@ -184,6 +185,7 @@ const SOURCES: Record<string, (p: PuzzleData) => GameSource> = {
   matchup: (p) => ({ game: matchupGameFor(rev(p, "matchupRev")) as AnyGame }),
   breaker: (p) => ({ game: breakerGameFor(rev(p, "brkRev")) as AnyGame }),
   pinball: (p) => ({ game: pinballGameForAny(rev(p, "pinRev")) as AnyGame }),
+  curling: () => ({ game: curlingGameFor() as AnyGame }),
   pool: (p) => ({ game: poolGameFor(rev(p, "poolRev")) as AnyGame }),
   minigolf: (p) => ({ game: minigolfGameFor(p.type === "minigolf" ? p.pars : undefined) as AnyGame }),
   rally: (p) => ({ game: rallyGameFor(rev(p, "rallyRev")) as AnyGame }),
