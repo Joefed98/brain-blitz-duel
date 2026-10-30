@@ -1,7 +1,6 @@
 # Minesweeper on the arcade scoring standard (minesRev 1, 30 Oct 2026)
 
-Arcade, **Cards & Board** group (the arcade group map is not on main yet: the group is named by `CARDS_BOARD_TYPES` in
-`src/lib/duel/registry.ts`, and its tiles take the group's pink border). Dealt in rooms from the start. A 90 s run on a
+Arcade, **Cards & Board** group (`src/lib/duel/arcadeGroups.ts`; its tiles take the group's `--group-cards` border). Dealt in rooms from the start. A 90 s run on a
 93 s clock.
 
 ## The game

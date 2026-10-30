@@ -96,8 +96,10 @@ chips and game icon tiles:
 
 - `data-cat` sets `--cat`, plus `--cat-hi` (62 % toward white, for text) and `--cat-lo` (62 % toward
   black, for gradients), mixed in oklab.
-- **Game icon tiles** (`.game-icon[data-cat]`, `GameIcon`; 27 Oct 2026): black (#000) inside, a border in the
-  category's exact colour (`--cat`, the `--category-*` token; about 4.5 % of the tile, at least 1.5 px), and a
+- **Game icon tiles** (`.game-icon[data-cat]`, `GameIcon`; 27 Oct 2026, backgrounds 30 Oct 2026): a border in the
+  category's exact colour (`--cat`, the `--category-*` token; about 4.5 % of the tile, at least 1.5 px; an arcade
+  game's border is its **group's** colour, `data-group`, and Retro's carries a soft cyan glow), the game's own
+  background inside (see "Tile backgrounds" below), and a
   small scene of the game in its real look: a few of its own pieces (its renderer's sprites, its board components
   and CSS) in a hand-made state, composed for a square (Breaker's rainbow bricks, paddle and rising ball; Hanoi's
   posts and discs; Slider's letter rows and padlocks). Few bold pieces that read at 34 px; no HUD, timers, buttons or
@@ -105,6 +107,23 @@ chips and game icon tiles:
   exported as 208 px WebPs (`public/tiles/`) by `bun scripts/shots/tile-scenes.ts`; re-run it when a game's look
   changes. A game without a scene shows its line drawing (`gameIcons/conceptIcons.tsx`). The share card draws the
   same image on the same tile.
+- **Tile backgrounds** (30 Oct 2026; `scripts/shots/tile-scenes/backgrounds.ts`, painted under the scene into
+  the same WebP): every tile's inside echoes its game's screen, its colours and design: Hover's synthwave
+  sky and grid, Breaker's navy, Wavefront's purple nebula, Fission's green lab glow, Jaywalk's grass and
+  road; a puzzle's play-screen gradient in its category's colours and its board's surface and cells.
+  Rules for a new game's tile:
+  - the background fills the whole square (104 CSS px, exported at 2× as 208 px; the border is drawn
+    over its edge); start from the world's base colour or gradient, then one or two of its motifs
+    (grid, stars, scanlines, court lines, road stripes, water, wood, cells) in large, low-contrast
+    shapes that read at 34 px as texture, never as game pieces; no text, HUD or UI;
+  - quieter than the game: `fade` darkens the whole background (0–1; about 0.15–0.35 for most, more
+    for bright or busy worlds) and `spot` a soft disc behind the picture (0.3–0.6 when motifs run
+    under the main pieces), so the scene's pieces always stand clear;
+  - a bright world (Tilt's oak, Jaywalk's grass, a pale board) is darkened rather than recoloured, so
+    the tile stays recognisably the game's;
+  - seeded only (`rand(seed)`), no clock: the same image every build. Re-run
+    `bun scripts/shots/tile-scenes.ts <type>` after changing a background or a game's look, and judge
+    it at 104, 64 and 34 px (`--preview=<dir>`, `bun scripts/shots/tile-icons-sheet.ts`).
 - **Row icon squares** on the tab pages (`.ap-icon-sq`, 40 px, radius 11) take a tone from `data-tone`:
   puzzle #1A2236 / #7FA6F5, arcade #3A1E22 / #F08A6E, challenge #271F3A / #B79BF2; neutral without one.
 - **Play tab tiles** (`.ap-tile44`, `src/components/app/TabIcons.tsx`, 44 px, radius 12): glossy
@@ -404,7 +423,31 @@ Presentation only; review shots `bun scripts/shots/tab-refresh-shots.ts --tag=af
   in one divided panel with "Best 171" or "Not played").
 - **Practice**: All games and the seven categories in a 4 × 2 chip grid; Recently played (up to four,
   `practiceRecent.ts`); one list per category headed by its dot, name, count and a BEST label over a
-  56 px right-aligned column (`.ap-best`, "–" unplayed).
+  56 px right-aligned column (`.ap-best`, "–" unplayed). Since 30 Oct 2026 split by the Puzzles | Arcade
+  switch (below).
+
+## Practice: Puzzles | Arcade switch and arcade groups (30 Oct 2026)
+
+- One Practice tab (the tab bar is unchanged). Under the title a two-part switch (`.ap-switch`, 52 px:
+  two 44 px halves on a #17171B panel, radius 16 / 12): "Puzzles {n}" | "Arcade {n}", counts from the
+  registry (`practiceSideCounts`, `src/lib/duel/practiceSide.ts`: active arcade-category games on Arcade,
+  every other active game on Puzzles). The side shown takes the gold shine (an exception to the gold
+  rule asked for by Joe: it is this tab's way into play); the other half is muted (`--ap-faint`, no fill).
+  The device remembers the last side (`duelz-practice-side:v1`).
+- Search ("Search puzzles" / "Search arcade games"), Recently played, the sections and Retired show only
+  the side's games.
+- **Puzzles**: as before minus the Arcade chip: All games and the six puzzle categories in the 4-column
+  chip grid; one section per category.
+- **Arcade**: chips three across with no sideways scrolling (`.ap-chip-grid[data-cols="3"]`): All games,
+  Retro, Sports; Cards & Board over two columns (`data-span="2"`), Action. One section per group with
+  games ("Retro", "10 games", BEST), in the same row style as the puzzle sections. A chosen group with no
+  registered games yet says "{Group} games are coming soon".
+- **Groups** (`src/lib/duel/arcadeGroups.ts`, one data file by registry id; ids the registry lacks are
+  skipped, so a new game only needs registering): Retro `--group-retro` #36E2F5 (neon cyan, a soft glow on
+  its dots and tile borders), Sports `--group-sports` #4CC24A, Cards & Board `--group-cards` #FF5C93,
+  Action `--group-action` (the arcade colour #FF4D4D). Browsing and tile borders only: rooms, the room
+  category picker, arcade rounds, the daily arcade and scoring keep Arcade as one category.
+  practice-switch-check proves it.
 - **Tournaments**: Next up (the card above), Coming up rows with a calendar icon button, Your results
   titled by the schedule's event name with a place disc (`.ap-place`: gold, silver, bronze, outlined
   otherwise), date, "2nd of 14" and points. Nothing scheduled: an empty card with "Open the beta

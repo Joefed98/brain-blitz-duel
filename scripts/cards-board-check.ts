@@ -64,7 +64,8 @@ import type { ArcadeInputEvent } from "../src/lib/arcade/engine";
 import { replayMinesweeperRun } from "../src/lib/duel/minesweeper";
 import { replayMahjongRun } from "../src/lib/duel/mahjong";
 import { generatePuzzle } from "../src/lib/duel/generate.server";
-import { CARDS_BOARD_TYPES, puzzleTimeLimitMs, typesInCategory } from "../src/lib/duel/registry";
+import { puzzleTimeLimitMs, typesInCategory } from "../src/lib/duel/registry";
+import { arcadeGroupOf } from "../src/lib/duel/arcadeGroups";
 import { roomSeed } from "./arcade-skill-bands/games";
 import { encodeOracle, mahjongOracle, minesOracle } from "./cards-board-oracles";
 
@@ -307,7 +308,7 @@ const extra = Array.from({ length: FULL ? 3000 : 1500 }, (_, n) => roomSeed(2000
 
 /* ============================== The round ============================== */
 {
-  ok(CARDS_BOARD_TYPES.every((t) => typesInCategory("arcade").includes(t)), "rooms deal both Cards & Board games");
+  ok((["minesweeper", "mahjong"] as const).every((t) => typesInCategory("arcade").includes(t) && arcadeGroupOf(t) === "cards"), "rooms deal both Cards & Board games, in the Cards & Board group");
   ok(puzzleTimeLimitMs(generatePuzzle("minesweeper")) === 93_000 && puzzleTimeLimitMs(generatePuzzle("mahjong")) === 123_000, "Minesweeper's 90 s and Mahjong's 120 s runs on 93 s and 123 s clocks");
   void MINES_REV_STD;
 }

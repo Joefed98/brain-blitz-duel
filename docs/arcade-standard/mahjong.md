@@ -1,7 +1,7 @@
 # Mahjong Solitaire on the arcade scoring standard (mahjongRev 1, 30 Oct 2026)
 
-Arcade, **Cards & Board** group (named by `CARDS_BOARD_TYPES` in `src/lib/duel/registry.ts` until the group map lands;
-its tiles take the group's pink border). Dealt in rooms from the start. A 120 s run on a 123 s clock.
+Arcade, **Cards & Board** group (`src/lib/duel/arcadeGroups.ts`; its tiles take the group's
+`--group-cards` border). Dealt in rooms from the start. A 120 s run on a 123 s clock.
 
 ## The game
 

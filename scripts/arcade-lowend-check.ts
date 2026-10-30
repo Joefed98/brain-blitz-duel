@@ -41,6 +41,7 @@ import { MIN_FRAMES, SETTLE_MS, SLOW_SHARE, SLOW_WORK_MS, STALL_MS, WINDOW_MS, w
 import { gameDisplayName } from "../src/lib/duel/gameNames";
 import { warmUp } from "./browser-load";
 import { measure, startServer, type StepDown } from "./arcade-perf";
+import { showPracticeSide } from "./practice-side-lib";
 
 /**
  * The five heaviest games at 4× before this change (scripts/arcade-perf.ts, 390 × 844, DPR 1: Tilt 65 ms,
@@ -158,7 +159,7 @@ async function main() {
   const { origin, proc } = await startServer(URL_ARG, PORT);
   const browser = await chromium.launch({ executablePath: CHROMIUM });
   try {
-    await warmUp(browser, `${origin}/practice`, (page) => page.getByRole("button", { name: gameDisplayName(FAST_GAME as never), exact: true }).first().waitFor({ timeout: 180_000 }));
+    await warmUp(browser, `${origin}/practice`, (page) => showPracticeSide(page, FAST_GAME, 180_000).then(() => page.getByRole("button", { name: gameDisplayName(FAST_GAME as never), exact: true }).first().waitFor({ timeout: 180_000 })));
     // Normal speed must never switch reduced effects on: plain, on a screen capped at 30 Hz, and with one 500 ms stall.
     for (const [what, extra] of [
       ["unthrottled", {}],

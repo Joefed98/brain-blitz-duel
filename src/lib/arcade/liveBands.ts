@@ -55,6 +55,12 @@ export interface LiveBand {
    * is then the core's straight line (0 → the core's maximum at its full-at figure), and the help reads the spec.
    */
   std?: StdSpec;
+  /**
+   * A game born on the arcade scoring standard (its first revision; the Cards & Board and Sports games, 30 Oct 2026): it
+   * has no score-band revision, target revision or strict curve behind it, so the band-era checks pass it by
+   * (liveBornOnStandard); arcade-standard-check proves its standard instead.
+   */
+  born?: true;
 }
 
 export const LIVE_BANDS = {
@@ -102,18 +108,16 @@ export const LIVE_BANDS = {
   pinball: { field: "pinRev", rev: PIN_REV_STD, curve: PIN_V6_BAND_CURVE, strictRev: PIN_REV_STRICT, std: PIN_STD_SPEC },
   // Cards & Board (30 Oct 2026), on the arcade scoring standard from their first revision: the core's straight line
   // (Minesweeper in per mille of the safe squares beyond the opening, Mahjong in pairs) and fixed features to 200.
-  minesweeper: { field: "minesRev", rev: MINES_REV_STD, curve: MINES_V1_BAND_CURVE, std: MINES_STD_SPEC },
-  mahjong: { field: "mahjongRev", rev: MAHJONG_REV_STD, curve: MAHJONG_V1_BAND_CURVE, std: MAHJONG_STD_SPEC },
+  minesweeper: { field: "minesRev", rev: MINES_REV_STD, curve: MINES_V1_BAND_CURVE, std: MINES_STD_SPEC, born: true },
+  mahjong: { field: "mahjongRev", rev: MAHJONG_REV_STD, curve: MAHJONG_V1_BAND_CURVE, std: MAHJONG_STD_SPEC, born: true },
 } as const satisfies Record<string, LiveBand>;
 
 export type LiveBandGame = keyof typeof LIVE_BANDS;
 
-/**
- * Games on the arcade scoring standard from their first revision (Cards & Board, 30 Oct 2026): they never had a
- * score-band (Oct 2026) revision, so the checks of the band era (scoring-targets, scoring-bands) skip them;
- * arcade-standard-check proves their standard instead.
- */
-export const STD_BORN_GAMES: readonly LiveBandGame[] = ["minesweeper", "mahjong"];
+/** True for a game born on the arcade scoring standard (LiveBand `born`): no score-band history behind it. */
+export function liveBornOnStandard(game: string): boolean {
+  return (LIVE_BANDS as Record<string, LiveBand>)[game]?.born === true;
+}
 
 /** The score-band (strict curve) revision of a game: its `strictRev` once an expansion moved rooms past it, else the dealt one. */
 export function liveStrictRev(game: LiveBandGame): number {

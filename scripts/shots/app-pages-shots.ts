@@ -61,7 +61,7 @@ try {
       if (typeof act === "number") await page.evaluate((y) => window.scrollTo(0, y), act);
       else if (typeof act === "string" && act.startsWith("click:")) await page.locator(act.slice(6)).click();
       else if (typeof act === "string" && act.startsWith("fill:"))
-        await page.getByRole("searchbox", { name: "Search games" }).fill(act.slice(5));
+        await page.getByRole("searchbox", { name: "Search puzzles" }).fill(act.slice(5));
       else if (typeof act === "string")
         await page.evaluate((sel) => {
           const el = document.querySelector(sel);

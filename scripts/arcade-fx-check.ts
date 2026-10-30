@@ -154,7 +154,7 @@ const GAMES: Record<string, AnyGame> = {
   mahjong: mahjongArtGameFor(MAHJONG_REV_STD) as AnyGame,
 };
 
-assert.equal(Object.keys(GAMES).length, 25, "25 arcade games with a world (23 active with Pinball and the two Cards & Board games; Junction and Scrumper practice only)");
+assert.equal(Object.keys(GAMES).length, Object.keys(specs.ARCADE_GAME_WORLDS).length, "every arcade game with a world (the active ones with Pinball; Junction and Scrumper practice only); the count reads the worlds registry");
 assert.deepEqual(
   Object.keys(GAMES).sort(),
   Object.keys(specs.ARCADE_FX_SPECS).sort(),

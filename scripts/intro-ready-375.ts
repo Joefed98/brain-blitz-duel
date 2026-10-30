@@ -9,6 +9,7 @@
 import { spawn } from "node:child_process";
 import { mkdirSync } from "node:fs";
 import { gameDisplayName } from "../src/lib/duel/gameNames";
+import { showPracticeSide } from "./practice-side-lib";
 
 const [out = "/tmp/intro-ready", ...games] = process.argv.slice(2);
 mkdirSync(out, { recursive: true });
@@ -26,6 +27,7 @@ try {
   for (const game of games) {
     const page = await browser.newPage({ viewport: { width: 375, height: 667 }, deviceScaleFactor: 2 });
     await page.goto(`${origin}/practice`, { waitUntil: "domcontentloaded" });
+    await showPracticeSide(page, game);
     const button = page.getByRole("button", { name: gameDisplayName(game as never), exact: true }).first();
     await button.waitFor({ timeout: 60_000 });
     await page.waitForTimeout(1500);

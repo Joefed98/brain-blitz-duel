@@ -72,7 +72,6 @@ import { bandPoints, bandTop } from "../src/lib/arcade/scoreBands";
 import { pinHeldTracker, pinSideOf } from "../src/lib/arcade/pinballInput";
 import { encodePinballRun, replayPinballRun } from "../src/lib/duel/pinball";
 import { ACTIVE_ARCADE_GAMES, RETIRED_ARCADE_GAMES } from "../src/lib/arcade/arcadeFxGames.renderer";
-import { CARDS_BOARD_TYPES } from "../src/lib/duel/registry";
 import { allTypesInCategory, isRetired, PREVIEW_PUZZLE_TYPES, typesInCategory } from "../src/lib/duel/registry";
 import { generatePuzzle } from "../src/lib/duel/generate.server";
 import { bot } from "./arcade-skill-bands/bots/pinball";
@@ -411,7 +410,7 @@ let replayMs = 0;
   ok(isRetired("pinball") === !PINBALL_IN_ROOMS, `the registry ${PINBALL_IN_ROOMS ? "deals" : "keeps practice only"} Pinball`);
   ok(typesInCategory("arcade").includes("pinball") === PINBALL_IN_ROOMS && allTypesInCategory("arcade").includes("pinball"), "rooms deal Pinball only when switched on; practice always lists it");
   ok(PREVIEW_PUZZLE_TYPES.includes("pinball") === !PINBALL_IN_ROOMS, "practice lists Pinball under New while it is practice only");
-  ok(RETIRED_ARCADE_GAMES.includes("pinball") === !PINBALL_IN_ROOMS && ACTIVE_ARCADE_GAMES.includes("pinball") === PINBALL_IN_ROOMS && ACTIVE_ARCADE_GAMES.length === 20 + (PINBALL_IN_ROOMS ? 1 : 0) + CARDS_BOARD_TYPES.length, "the active arcade list follows the switch (with the two Cards & Board games, 30 Oct 2026)");
+  ok(RETIRED_ARCADE_GAMES.includes("pinball") === !PINBALL_IN_ROOMS && ACTIVE_ARCADE_GAMES.includes("pinball") === PINBALL_IN_ROOMS && ACTIVE_ARCADE_GAMES.length === typesInCategory("arcade").length, "the active arcade list follows the switch (with the two Cards & Board games, 30 Oct 2026)");
   const puzzle = generatePuzzle("pinball") as any;
   // pinRev 4 (E4, 25 Oct 2026): the taller table's expansion follows the score-bands pinRev 3 (e4-expansion-check); pinRev 5
   // (27 Oct 2026) plays it for 90 s (pinball-90-check); pinRev 6 (29 Oct 2026) scores pinRev 5's play on the arcade

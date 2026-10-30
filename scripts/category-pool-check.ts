@@ -23,6 +23,7 @@ import {
 } from "../src/lib/duel/registry";
 import type { PuzzleType } from "../src/lib/duel/types";
 import { REMOVED_PUZZLE_TYPES } from "../src/lib/duel/removedGames";
+import { ACTIVE_ARCADE_GAMES } from "../src/lib/arcade/arcadeFxGames.renderer";
 
 const MIN_ACTIVE = 6;
 const failures: string[] = [];
@@ -54,15 +55,18 @@ for (const type of ["flow", "pipes", "push"] as const) expect(type, "pattern", f
 // Scrumper retired to practice (Joe's decision, 27 Oct 2026); its icon and name stay for history.
 expect("snip", "arcade", true);
 
-// The active pool per category (27 Oct 2026, after Scrumper's retirement, with Trail in Logic): 72 games; 74 since
-// Arcade's Cards & Board group (Minesweeper, Mahjong Solitaire) joined on 30 Oct 2026.
-const POOL: Record<string, number> = { word: 9, number: 8, speed: 6, attention: 6, pattern: 10, logic: 12, arcade: 23 };
+// The active pool per category (27 Oct 2026, after Scrumper's retirement, with Trail in Logic): 72 games.
+// Arcade's count reads the arcade worlds' active list (ACTIVE_ARCADE_GAMES), not a number: the arcade groups' sessions
+// add games in parallel (Cards & Board and Sports, 30 Oct 2026); each new game is pinned to Arcade, active, above.
+const POOL: Record<string, number> = { word: 9, number: 8, speed: 6, attention: 6, pattern: 10, logic: 12, arcade: ACTIVE_ARCADE_GAMES.length };
 for (const type of ["minesweeper", "mahjong"] as const) expect(type, "arcade", false);
 for (const [category, want] of Object.entries(POOL)) {
   const got = typesInCategory(category as never).length;
   if (got !== want) fail(`${category}: ${got} active games, want ${want}`);
 }
-if (ACTIVE_PUZZLE_TYPES.length !== 74) fail(`${ACTIVE_PUZZLE_TYPES.length} active games, want 74`);
+if (ACTIVE_ARCADE_GAMES.length < 21) fail(`${ACTIVE_ARCADE_GAMES.length} active arcade worlds, at least the 21 dealt before the new groups`);
+const WANT_ACTIVE = Object.values(POOL).reduce((a, n) => a + n, 0);
+if (ACTIVE_PUZZLE_TYPES.length !== WANT_ACTIVE) fail(`${ACTIVE_PUZZLE_TYPES.length} active games, want ${WANT_ACTIVE}`);
 
 // The deleted games and Memory are gone: no registry entry, no category, no draw.
 for (const type of REMOVED_PUZZLE_TYPES)

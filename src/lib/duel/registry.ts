@@ -143,12 +143,6 @@ const RETIRED_TYPES = new Set<PuzzleType>([
   ...(PINBALL_IN_ROOMS ? [] : (["pinball"] as const)),
 ]);
 
-/**
- * Arcade's Cards & Board group (30 Oct 2026): Minesweeper and Mahjong Solitaire, dealt in rooms from the start. The
- * arcade group map is not on main yet, so the group is named here (the checks that pin the active counts add it).
- */
-export const CARDS_BOARD_TYPES: readonly PuzzleType[] = ["minesweeper", "mahjong"];
-
 /** Slack added to every arcade phase beyond its run; never shown to players. */
 export const ARCADE_PHASE_SLACK_MS = 3000;
 

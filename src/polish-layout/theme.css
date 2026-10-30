@@ -100,8 +100,6 @@
 [data-cat="pattern"] { --cat: var(--category-pattern); }
 [data-cat="logic"] { --cat: var(--category-logic); }
 [data-cat="arcade"] { --cat: var(--category-arcade); }
-/* Arcade's Cards & Board group (30 Oct 2026): its game tiles take the group's pink border. */
-.game-icon[data-group="cards"] { --cat: #FF6FA8; }
 [data-cat] {
   --cat-hi: color-mix(in oklab, var(--cat) 62%, #fff);
   --cat-lo: color-mix(in oklab, var(--cat) 62%, #000);
@@ -506,6 +504,14 @@
   background: #000;
   border: var(--gi-border, 2px) solid var(--cat);
   box-shadow: 0 4px 10px -3px rgb(0 0 0 / 0.65);
+}
+/* Arcade tiles take their group's colour (src/lib/duel/arcadeGroups.ts, 30 Oct 2026); Retro's border glows softly. */
+.game-icon[data-cat][data-group="retro"] { --cat: var(--group-retro); }
+.game-icon[data-cat][data-group="sports"] { --cat: var(--group-sports); }
+.game-icon[data-cat][data-group="cards"] { --cat: var(--group-cards); }
+.game-icon[data-cat][data-group="action"] { --cat: var(--group-action); }
+.game-icon[data-cat][data-group="retro"] {
+  box-shadow: 0 0 calc(var(--gi-border, 2px) * 3) rgb(54 226 245 / 0.55), 0 4px 10px -3px rgb(0 0 0 / 0.65);
 }
 
 /* ------------------------------------------------------------------ dialogs and sheets */
