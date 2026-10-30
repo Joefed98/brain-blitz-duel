@@ -11,7 +11,8 @@
  * the car is drawn exactly 2 × RACING_CAR_HALF wide at that depth, so its outer edge crosses the kerb's outer edge on
  * the tick the sim puts a wheel on the grass, and meets the tyre wall's face where the sim stops it.
  */
-import { ARCADE_FX_DISPLAY_FONT } from "./arcadeFx.renderer";
+import { arcadeFx, ARCADE_FX_DISPLAY_FONT } from "./arcadeFx.renderer";
+import { RACING_FX } from "./sportsFx.renderer";
 import type { ArenaSceneView } from "./arenaScene.renderer";
 import type { ArcadeGame, ArcadeInputEvent, CanvasSize } from "./engine";
 import {
@@ -1021,7 +1022,12 @@ function drawHud(ctx: Ctx2D, state: RacingState): void {
   ctx.restore();
 }
 
+/** The play screen's frame, under the shared success and miss effects (sportsFx.renderer.ts). */
 export function drawRacingArt(ctx: CanvasRenderingContext2D, state: RacingState, size: CanvasSize): void {
+  arcadeFx(ctx, RACING_FX, state, () => drawRacingWorld(ctx, state, size), size);
+}
+
+function drawRacingWorld(ctx: CanvasRenderingContext2D, state: RacingState, size: CanvasSize): void {
   const W = RACING_WORLD_W;
   const H = RACING_WORLD_H;
   ctx.save();

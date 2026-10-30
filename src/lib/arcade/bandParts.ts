@@ -69,15 +69,8 @@ export const BAND_SPECS: Record<string, BandSpec> = {
   bullseye: { parts: bullseyeBandParts, curve: BULLSEYE_BAND_CURVE, kind: "open" },
   // Practice only until PINBALL_IN_ROOMS; born on the bands (its first revision is band-stamped).
   pinball: { parts: pinballBandParts, curve: PIN_BAND_CURVE, kind: "open" },
-  // The Sports group (30 Oct 2026): born on the arcade scoring standard; the curve is the core's straight line.
-  homerun: { parts: homerunBandParts, curve: HOMERUN_V1_BAND_CURVE, kind: "open" },
-  freekick: { parts: freekickBandParts, curve: FREEKICK_V1_BAND_CURVE, kind: "open" },
-  racing: { parts: racingBandParts, curve: RACING_V1_BAND_CURVE, kind: "finish" },
 };
 
-import { homerunBandParts, HOMERUN_V1_BAND_CURVE } from "./homerun";
-import { freekickBandParts, FREEKICK_V1_BAND_CURVE } from "./freekick";
-import { racingBandParts, RACING_V1_BAND_CURVE } from "./racing";
 /**
  * The puzzle field and revision that stamp each game's score bands, then any
  * later revisions that changed play but still score on the same bands.

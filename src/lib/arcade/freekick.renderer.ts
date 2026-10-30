@@ -61,7 +61,8 @@ import {
   type FreekickState,
 } from "./freekick";
 import { sceneBelow, sceneSides, type ArenaSceneView } from "./arenaScene.renderer";
-import { ARCADE_FX_DISPLAY_FONT } from "./arcadeFx.renderer";
+import { arcadeFx, ARCADE_FX_DISPLAY_FONT } from "./arcadeFx.renderer";
+import { FREEKICK_FX } from "./sportsFx.renderer";
 
 const W = FREEKICK_WORLD_W;
 const H = FREEKICK_WORLD_H;
@@ -815,7 +816,12 @@ function resultText(state: FreekickState): { big: string; small: string; gold: b
 }
 
 /** The play screen's frame. */
+/** The play screen's frame, under the shared success and miss effects (sportsFx.renderer.ts). */
 export function drawFreekickArt(ctx: CanvasRenderingContext2D, state: FreekickState, size: CanvasSize): void {
+  arcadeFx(ctx, FREEKICK_FX, state, () => drawFreekickWorld(ctx, state, size), size);
+}
+
+function drawFreekickWorld(ctx: CanvasRenderingContext2D, state: FreekickState, size: CanvasSize): void {
   void size;
   const plan = fkSeedPlan(state.seed);
   const index = Math.min(state.k, FREEKICK_KICKS - 1);

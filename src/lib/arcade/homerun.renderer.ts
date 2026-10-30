@@ -375,11 +375,11 @@ function paintField(ctx: CanvasRenderingContext2D): void {
     ctx.fillStyle = (h >>> 22) % 2 ? "rgba(255,225,190,0.06)" : "rgba(30,18,10,0.16)";
     ctx.fillRect(x, y, 1 + ((h >>> 3) % 2), 1);
   }
-  ctx.fillStyle = "rgba(10,6,3,0.22)";
-  for (let i = 0; i < 7; i++) {
-    const f = proj(-3.2 + (i % 2) * 0.6, -1.6 + i * 0.5);
+  ctx.fillStyle = "rgba(10,6,3,0.1)";
+  for (let i = 0; i < 5; i++) {
+    const f = proj(-3.2 + (i % 2) * 0.6, -1.2 + i * 0.5);
     ctx.beginPath();
-    ctx.ellipse(f.x, f.y, 9, 3.5, 0.2, 0, Math.PI * 2);
+    ctx.ellipse(f.x, f.y, 7 + (i % 3), 2.4, 0.15 * (i % 2 ? 1 : -1), 0, Math.PI * 2);
     ctx.fill();
   }
   const sh = ctx.createLinearGradient(0, 560, 0, H);
