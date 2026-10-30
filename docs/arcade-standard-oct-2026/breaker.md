@@ -66,3 +66,17 @@ recorded on main (`scripts/fixtures/breaker-standard-legacy.json`, `bun scripts/
 checkout>`); brkRev 11 runs (`breaker-standard-runs.json`, `--after`); the dealt stamp; brkRev 10's play on brkRev 11;
 every part's rule, the floor of 1 and the cap; the stored flawless run (`breaker-standard-perfect.json`) at 200 with
 every part at its maximum. `scripts/arcade-standard/breaker.ts` exports `STANDARD` for the umbrella check.
+
+## Can a player break all 108 bricks? (30 Oct 2026)
+
+Yes. The run ends when every non-gold brick is broken (`stepDeep`: `cleared` = every brick broken or gold); the 3 gold
+bricks are never needed for the clear, but any 4 hits break one at any time before it. A player who breaks the gold
+before the last wall brick breaks all 108, so the full core (140) and 200 are reachable in real play. The stored perfect
+run (`scripts/fixtures/breaker-standard-perfect.json`, seed 301794028) replays through `replayBreakerRun` to 108 of 108,
+gold 3 of 3, the wall cleared at 35.3 s, no ball lost: 140 + 10 + 20 + 30 = 200. Bot runs reaching 108 (room seeds 0–29 /
+fresh 10000–10029): great 3 / 0, near 6 / 5, elite 5 / 10, flawless 11 / 11; every other clear without 108 left a gold
+brick when the last wall brick went. The 108 denominator stays.
+
+Fresh-seed medians (`--from=10000`): weak 49, average 74, good 99, great 126, near 153, elite 166, flawless 182. Flawless
+sits under 200 because the bot runs out of time (it looks one ball trip ahead), not because 200 is out of reach; by Joe's
+decision (30 Oct 2026) the ceiling, speed and clear rules are not reworked.
