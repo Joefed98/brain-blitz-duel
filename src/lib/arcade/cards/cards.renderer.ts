@@ -234,11 +234,57 @@ function paintFace(ctx: CanvasRenderingContext2D, card: number, w: number, h: nu
   roundRect(ctx, 0.5, 0.5, w - 1, h - 1, r);
   ctx.stroke();
 
-  // Indexes in both corners.
   const label = RANK_LABELS[rank]!;
   const big = w < PIP_MIN_W;
-  const fs = Math.round(w * (big ? 0.3 : 0.2) * (label.length > 1 ? 0.86 : 1));
-  const ix = w * (big ? 0.07 : 0.07);
+  const cx = w / 2;
+  if (big) {
+    // A small or overlapped card: the large index, rank and suit side by side across the top strip (and mirrored at
+    // the bottom), bold enough to read at a glance in the strip an overlapping card leaves showing; one large suit,
+    // emblem or ringed Ace in the body below it.
+    const strip = (flip: boolean) => {
+      ctx.save();
+      if (flip) {
+        ctx.translate(w, h);
+        ctx.rotate(Math.PI);
+      }
+      const fs = Math.round(w * (label.length > 1 ? 0.36 : 0.42));
+      ctx.fillStyle = colour;
+      ctx.font = `900 ${fs}px ${CARD_FONT}`;
+      ctx.textAlign = "left";
+      ctx.textBaseline = "middle";
+      const top = Math.max(2, w * 0.05);
+      const mid = top + fs * 0.5;
+      const x0 = Math.max(2, w * 0.07);
+      ctx.fillText(label, x0, mid + fs * 0.04);
+      const tw = ctx.measureText(label).width;
+      const ss = Math.min(fs * 0.86, w - (x0 + tw) - w * 0.1);
+      drawSuit(ctx, suit, x0 + tw + w * 0.05 + ss / 2, mid, ss);
+      ctx.restore();
+    };
+    strip(false);
+    strip(true);
+    // The body between the two strips.
+    const by = h * 0.52;
+    const room = Math.min(w * 0.62, h - 2 * (w * 0.5));
+    if (rank === 1) {
+      const ring = Math.max(4, room * 0.5);
+      ctx.strokeStyle = CARD_GOLD;
+      ctx.lineWidth = Math.max(1, w * 0.03);
+      ctx.beginPath();
+      ctx.arc(cx, by, ring, 0, Math.PI * 2);
+      ctx.stroke();
+      drawSuit(ctx, suit, cx, by, ring * 1.15);
+    } else if (rank >= 11) {
+      drawEmblem(ctx, rank, suit, cx, by, Math.max(8, room * 0.9));
+    } else {
+      drawSuit(ctx, suit, cx, by, Math.max(6, room));
+    }
+    return;
+  }
+
+  // Pip-size cards: indexes in both corners (enlarged 30 Oct 2026), pips or a court or Ace in the middle.
+  const fs = Math.round(w * 0.26 * (label.length > 1 ? 0.86 : 1));
+  const ix = w * 0.06;
   const corner = (flip: boolean) => {
     ctx.save();
     if (flip) {
@@ -246,45 +292,39 @@ function paintFace(ctx: CanvasRenderingContext2D, card: number, w: number, h: nu
       ctx.rotate(Math.PI);
     }
     ctx.fillStyle = colour;
-    ctx.font = `800 ${fs}px ${CARD_FONT}`;
+    ctx.font = `900 ${fs}px ${CARD_FONT}`;
     ctx.textAlign = "left";
     ctx.textBaseline = "top";
-    ctx.fillText(label, ix, h * 0.04);
-    drawSuit(ctx, suit, ix + fs * 0.36, h * 0.04 + fs * 1.22, fs * 0.72);
+    ctx.fillText(label, ix, h * 0.035);
+    drawSuit(ctx, suit, ix + fs * 0.38, h * 0.035 + fs * 1.25, fs * 0.74);
     ctx.restore();
   };
   corner(false);
   corner(true);
 
-  const cx = w / 2;
   if (rank === 1) {
     // Ace: a large suit inside a thin gold ring.
-    const ring = Math.min(w, h) * (big ? 0.3 : 0.32);
-    const cy = big ? h * 0.6 : h / 2;
+    const ring = Math.min(w, h) * 0.28;
     ctx.strokeStyle = CARD_GOLD;
     ctx.lineWidth = Math.max(1, w * 0.025);
     ctx.beginPath();
-    ctx.arc(cx + (big ? w * 0.08 : 0), cy, ring, 0, Math.PI * 2);
+    ctx.arc(cx, h / 2, ring, 0, Math.PI * 2);
     ctx.stroke();
-    drawSuit(ctx, suit, cx + (big ? w * 0.08 : 0), cy, ring * 1.15);
+    drawSuit(ctx, suit, cx, h / 2, ring * 1.15);
   } else if (rank >= 11) {
     // Court: a gold emblem above a large letter, no panel.
-    const ox = big ? w * 0.1 : 0;
-    drawEmblem(ctx, rank, suit, cx + ox, h * (big ? 0.42 : 0.33), w * (big ? 0.46 : 0.42));
+    drawEmblem(ctx, rank, suit, cx, h * 0.36, w * 0.38);
     ctx.fillStyle = colour;
-    ctx.font = `800 ${Math.round(h * (big ? 0.34 : 0.36))}px ${CARD_FONT}`;
+    ctx.font = `800 ${Math.round(h * 0.32)}px ${CARD_FONT}`;
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    ctx.fillText(label, cx + ox, h * (big ? 0.74 : 0.64));
-  } else if (big) {
-    // A small card: one large suit.
-    drawSuit(ctx, suit, cx + w * 0.1, h * 0.62, w * 0.5);
+    ctx.fillText(label, cx, h * 0.64);
   } else {
-    const px0 = w * 0.18;
+    const px0 = w * 0.25;
     const pw = w - 2 * px0;
-    const py0 = h * 0.12;
+    const py0 = h * 0.14;
     const ph = h - 2 * py0;
-    const s = Math.min(w * 0.2, ph * 0.17);
+    const s = Math.min(w * 0.18, ph * 0.16);
     for (const [ux, uy] of PIPS[rank]!) {
       const x = px0 + pw * ux;
       const y = py0 + ph * uy;

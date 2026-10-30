@@ -15,6 +15,7 @@
  *
  *   bun scripts/round-max-check.ts
  */
+import { ARCADE_BORN_ON_STANDARD } from "../src/lib/arcade/standard";
 import { readFileSync } from "node:fs";
 
 import { chartLabels, chartPoint, chartRow, chartScore, layoutMarkers } from "../src/lib/duel/arcadeChart";
@@ -92,8 +93,8 @@ const RAISED: PuzzleType[] = [
   "cross",
   // Expansion E9 (docs/expansions/e9.md): Rally, Fission and Flightpath.
   "rally", "burst", "bullseye",
-  // Cards & Board (30 Oct 2026): born on the arcade scoring standard at 200.
-  "freecell", "tripeaks", "pokersquares",
+  // The arcade games born on the arcade scoring standard at 200 (ARCADE_BORN_ON_STANDARD; 30 Oct 2026: Cards & Board).
+  ...(ARCADE_BORN_ON_STANDARD as PuzzleType[]),
 ];
 /** The games still at 150: section 2 raises each of them in turn. */
 const TYPES = ALL_TYPES.filter((t) => ROUND_MAX[t] === DEFAULT_ROUND_MAX);

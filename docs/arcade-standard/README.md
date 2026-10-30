@@ -299,8 +299,8 @@ Three new Arcade games, born on the standard at revision 1 (LIVE_BANDS marks the
 | Game | Stamp | Core | Features | Sum |
 | --- | --- | --- | --- | --- |
 | FreeCell | `freecellRev` 1 | 140, cards home (full) and in sorted runs (half), full at all 52 home | par moves 30, speed 30 (finished; full by 66 s) | 200 |
-| TriPeaks | `tripeaksRev` 1 | 120, share of the 28 peak cards cleared | peak tops 30, longest run 20, clear 10, speed 20 (full by 27 s) | 200 |
-| Poker Squares | `pokerSquaresRev` 1 | 160, hand points ÷ the deal's target | made hands 40 (4 a line) | 200 |
+| TriPeaks | `tripeaksRev` 1 | 120, share of the 28 peak cards cleared (60 s run) | peak tops 30, longest run 20, clear 10, speed 20 (full by 27 s) | 200 |
+| Poker Squares | `pokerSquaresRev` 1 | 160, hand points, full at 68 (the near-perfect median) | made hands 40 (4 a line) | 200 |
 
 Speed's "full by" times are the near-perfect bots' median finish (`bun scripts/cards-bands.ts`). cards-check proves
 every dealt deal reaches 200 through the server's replay.

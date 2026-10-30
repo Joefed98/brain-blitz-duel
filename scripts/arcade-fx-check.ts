@@ -92,6 +92,7 @@ const { BALL_TRACK_BANK } = await import("../src/lib/duel/ballTrackBank.server")
 const { matchupArtGame } = await import("../src/lib/arcade/matchup.renderer");
 const { matchupRev2Game } = await import("../src/lib/arcade/matchup");
 const { freecellArt } = await import("../src/lib/arcade/cards/freecell.renderer");
+const { ARCADE_BORN_ON_STANDARD } = await import("../src/lib/arcade/standard");
 const { tripeaksArt } = await import("../src/lib/arcade/cards/tripeaks.renderer");
 const { pokerSquaresArt } = await import("../src/lib/arcade/cards/pokerSquares.renderer");
 
@@ -154,7 +155,7 @@ const GAMES: Record<string, AnyGame> = {
   pokersquares: pokerSquaresArt as AnyGame,
 };
 
-assert.equal(Object.keys(GAMES).length, 26, "26 arcade games with a world (24 active with Pinball and the three Cards & Board games; Junction and Scrumper practice only)");
+assert.equal(Object.keys(GAMES).length, 23 + ARCADE_BORN_ON_STANDARD.length, "23 arcade games with a world (21 active with Pinball; Junction and Scrumper practice only), plus the games born on the arcade scoring standard (ARCADE_BORN_ON_STANDARD)");
 assert.deepEqual(
   Object.keys(GAMES).sort(),
   Object.keys(specs.ARCADE_FX_SPECS).sort(),
@@ -484,7 +485,8 @@ const BUMPS: Record<string, ((s: any) => any)[]> = {
   ],
   pokersquares: [
     (s) => ({ ...s, grid: [5, 18, ...s.grid.slice(2)], lastSquare: 1 }),
-    (s) => ({ ...s, grid: [5, 18, ...s.grid.slice(2)], target: 1 }),
+    // Five rows of four of a kind (75 hand points): the core's full figure reached.
+    (s) => ({ ...s, grid: Array.from({ length: 25 }, (_, i) => (i % 5 < 4 ? (i % 5) * 13 + Math.floor(i / 5) : 5 + Math.floor(i / 5))) }),
   ],
 };
 for (const [name, game] of Object.entries(GAMES)) {

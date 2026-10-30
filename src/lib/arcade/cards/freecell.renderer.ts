@@ -16,19 +16,20 @@ export const FC_WORLD_W = 414;
 export const FC_WORLD_H = 772;
 export const FC_BG = "#0E2A57";
 
-/* ---- Layout ---- */
-export const FC_BIG_W = 64;
-export const FC_BIG_H = 90;
+/* ---- Layout (30 Oct 2026 legibility pass: free cells and home piles the size of the column cards, so the columns
+   get the room; columns spread down the screen and compress only when one would reach the home piles) ---- */
+export const FC_COL_W = 48;
+export const FC_COL_H = 68;
+export const FC_BIG_W = FC_COL_W;
+export const FC_BIG_H = FC_COL_H;
 export const FC_CELL_Y = 44;
-export const FC_COL_W = 46;
-export const FC_COL_H = 64;
-export const FC_COL_Y = 148;
-export const FC_COL_BOTTOM = 668;
+export const FC_COL_Y = FC_CELL_Y + FC_BIG_H + 14;
 export const FC_HOME_Y = FC_WORLD_H - FC_BIG_H - 10;
+export const FC_COL_BOTTOM = FC_HOME_Y - 8;
 const BIG_GAP = (FC_WORLD_W - FC_CELLS * FC_BIG_W) / (FC_CELLS + 1);
 const COL_GAP = (FC_WORLD_W - FC_COLS * FC_COL_W) / (FC_COLS + 1);
-/** The most a column's cards step down. */
-const STEP_MAX = 24;
+/** The most a column's cards step down: the large index and a good part of each card's body show. */
+const STEP_MAX = 40;
 
 export function fcBigX(i: number): number {
   return BIG_GAP + i * (FC_BIG_W + BIG_GAP);
@@ -132,7 +133,7 @@ function drawFreecellWorld(ctx: CanvasRenderingContext2D, state: FcState, size: 
   // The free cells over a faint FREECELL.
   ctx.save();
   ctx.fillStyle = "rgba(233,196,106,0.07)";
-  ctx.font = `900 58px ${CARD_FONT}`;
+  ctx.font = `900 52px ${CARD_FONT}`;
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
   ctx.fillText("FREECELL", W / 2, FC_CELL_Y + FC_BIG_H / 2 + 2);
@@ -180,7 +181,7 @@ function drawFreecellWorld(ctx: CanvasRenderingContext2D, state: FcState, size: 
     const h = big ? FC_BIG_H : FC_COL_H;
     cards.forEach((card, k) => {
       if (card === NO_CARD) return;
-      drawCard(ctx, card, dragging.x - dragging.ox, dragging.y - dragging.oy + k * 22, w, h, { glow: k === 0 ? 1 : 0 });
+      drawCard(ctx, card, dragging.x - dragging.ox, dragging.y - dragging.oy + k * 30, w, h, { glow: k === 0 ? 1 : 0 });
     });
   }
 

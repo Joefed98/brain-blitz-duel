@@ -7,7 +7,7 @@ import type { ArcadeGame, ArcadeInputEvent, CanvasSize } from "../engine";
 import { arcadeFx, type ArcadeFxSpec } from "../arcadeFx.renderer";
 import { NO_CARD } from "./cards";
 import { CARD_FONT, drawCard, drawChip, drawFelt, drawSlot, roundRect } from "./cards.renderer";
-import { PS_LINES, PS_SIZE, PS_SQUARES, psLineHand, psTotals, pokerSquaresGame, type PsState } from "./pokerSquares";
+import { PS_CORE_FULL, PS_LINES, PS_SIZE, PS_SQUARES, psLineHand, psTotals, pokerSquaresGame, type PsState } from "./pokerSquares";
 
 export const PS_WORLD_W = 414;
 export const PS_WORLD_H = 772;
@@ -110,7 +110,7 @@ function bestThrough(grid: readonly number[], sq: number): string | null {
   return best.points > 0 ? best.name.toUpperCase() : null;
 }
 
-/** The shared success layer: a pop naming the hand when a line first makes one, and the target reached. */
+/** The shared success layer: a pop naming the hand when a line first makes one, and the core filled (PS_CORE_FULL). */
 export const POKERSQUARES_FX: ArcadeFxSpec<PsState> = {
   game: "pokersquares",
   world: "cards",
@@ -124,7 +124,7 @@ export const POKERSQUARES_FX: ArcadeFxSpec<PsState> = {
       at: (s) => (s.lastSquare >= 0 ? { x: psCellBox(s.lastSquare).x + PS_CELL_W / 2, y: psCellBox(s.lastSquare).y + PS_CELL_H / 2 } : null),
       label: (s) => (s.lastSquare >= 0 ? bestThrough(s.grid, s.lastSquare) : null),
     },
-    { kind: "final", count: (s) => (s.target > 0 && psTotals(s.grid).total >= s.target ? 1 : 0), label: () => "TARGET!" },
+    { kind: "final", count: (s) => (psTotals(s.grid).total >= PS_CORE_FULL ? 1 : 0), label: () => "FULL POINTS!" },
   ],
   misses: [{ count: (s) => s.rejects }],
 };
@@ -141,8 +141,8 @@ function drawPokerSquaresWorld(ctx: CanvasRenderingContext2D, state: PsState, si
   drawFelt(ctx, W, H);
 
   const { total, made } = psTotals(state.grid);
-  drawChip(ctx, 10, 9, "POINTS", `${total}`, { gold: total >= state.target });
-  drawChip(ctx, W / 2, 9, "TARGET", `${state.target}`, { align: "center" });
+  drawChip(ctx, 10, 9, "POINTS", `${total}`, { gold: total >= PS_CORE_FULL });
+  drawChip(ctx, W / 2, 9, "FULL AT", `${PS_CORE_FULL}`, { align: "center" });
   drawChip(ctx, W - 10, 9, "HANDS", `${made}/${PS_LINES}`, { align: "right", gold: made === PS_LINES });
 
   const fresh = state.lastTick > 0 ? Math.max(0, 1 - (state.tick - state.lastTick) / 16) : 0;

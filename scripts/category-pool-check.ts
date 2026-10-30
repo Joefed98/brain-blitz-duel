@@ -10,6 +10,7 @@
  * (selected_categories), so moving a game changes no stored round or history.
  */
 import { readdirSync, readFileSync } from "node:fs";
+import { ARCADE_BORN_ON_STANDARD } from "../src/lib/arcade/standard";
 
 import { CATEGORY_ORDER } from "../src/lib/duel/categories";
 import {
@@ -54,14 +55,17 @@ for (const type of ["flow", "pipes", "push"] as const) expect(type, "pattern", f
 // Scrumper retired to practice (Joe's decision, 27 Oct 2026); its icon and name stay for history.
 expect("snip", "arcade", true);
 
-// The active pool per category (30 Oct 2026, after Scrumper's retirement, with Trail in Logic and the three Cards & Board
-// arcade games, FreeCell, TriPeaks and Poker Squares): 75 games.
-const POOL: Record<string, number> = { word: 9, number: 8, speed: 6, attention: 6, pattern: 10, logic: 12, arcade: 24 };
+// The active pool per category (27 Oct 2026, after Scrumper's retirement, with Trail in Logic): 72 games, plus the arcade
+// games born on the arcade scoring standard since (ARCADE_BORN_ON_STANDARD, src/lib/arcade/standard/index.ts; 30 Oct
+// 2026: the Cards & Board games FreeCell, TriPeaks and Poker Squares), each an active Arcade game.
+const BORN = ARCADE_BORN_ON_STANDARD.length;
+for (const type of ARCADE_BORN_ON_STANDARD) expect(type as PuzzleType, "arcade", false);
+const POOL: Record<string, number> = { word: 9, number: 8, speed: 6, attention: 6, pattern: 10, logic: 12, arcade: 21 + BORN };
 for (const [category, want] of Object.entries(POOL)) {
   const got = typesInCategory(category as never).length;
   if (got !== want) fail(`${category}: ${got} active games, want ${want}`);
 }
-if (ACTIVE_PUZZLE_TYPES.length !== 75) fail(`${ACTIVE_PUZZLE_TYPES.length} active games, want 75`);
+if (ACTIVE_PUZZLE_TYPES.length !== 72 + BORN) fail(`${ACTIVE_PUZZLE_TYPES.length} active games, want ${72 + BORN}`);
 
 // The deleted games and Memory are gone: no registry entry, no category, no draw.
 for (const type of REMOVED_PUZZLE_TYPES)

@@ -1,7 +1,7 @@
 import { useMemo, useRef } from "react";
 
 import { gameDisplayName } from "@/lib/duel/gameNames";
-import { PS_CHECKPOINT_INTERVAL, PS_INPUT_PLACE, PS_REV, psCheckpoint, type PsState } from "@/lib/arcade/cards/pokerSquares";
+import { PS_CHECKPOINT_INTERVAL, PS_CORE_FULL, PS_INPUT_PLACE, PS_REV, psCheckpoint, type PsState } from "@/lib/arcade/cards/pokerSquares";
 import { drawPokerSquares, pokerSquaresArtGame, psHit, psNewView, psOnNext, PS_BG, PS_WORLD_H, PS_WORLD_W } from "@/lib/arcade/cards/pokerSquares.renderer";
 import { cardsFill } from "@/lib/arcade/cards/cardsFill.renderer";
 import { encodePokerSquaresRun, replayPokerSquaresRun } from "@/lib/duel/cards";
@@ -77,8 +77,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   );
 }
 
-export function pokerSquaresLine(r: { total: number; target: number; made: number }): string {
-  return `${r.total} hand points (target ${r.target}) · ${r.made} of 10 lines made`;
+export function pokerSquaresLine(r: { total: number; made: number }): string {
+  return `${r.total} hand points (full at ${PS_CORE_FULL}) · ${r.made} of 10 lines made`;
 }
 
 function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {

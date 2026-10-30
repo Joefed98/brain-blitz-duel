@@ -18,6 +18,7 @@ import { breakerStdParts, type BrkState } from "./breaker";
 import { burstGoldenCount, burstStdParts, BURST_V10_GOLDENS, BURST_V10_WAVES, type BurstState } from "./burst";
 import { bandLines } from "./scoreBands";
 import { stdLines } from "./arcadeStandard";
+import { PS_CORE_FULL } from "./cards/pokerSquares";
 import { arcadeStdParts } from "./standard";
 
 export interface ArcadeRevealTile {
@@ -128,14 +129,14 @@ const BUILDERS: Record<string, Builder> = {
       { label: "Stock left", value: String(n(r, "stockLeft")) },
       { label: "Time", value: b(r, "finished") ? sec(n(r, "finishSeconds")) : "—" },
     ],
-    outcome: b(r, "finished") ? "finish" : n(r, "endedSeconds") < 90 ? "crash" : "time",
+    outcome: b(r, "finished") ? "finish" : n(r, "endedSeconds") < 60 ? "crash" : "time",
   }),
   pokersquares: (r, s) => ({
-    axis: { value: n(r, "total"), max: n(r, "target") || null, label: "Hand points" },
-    lines: [`${n(r, "total")} hand points (target ${n(r, "target")}) → ${s}`],
+    axis: { value: n(r, "total"), max: PS_CORE_FULL, label: "Hand points" },
+    lines: [`${n(r, "total")} hand points (full at ${PS_CORE_FULL}) → ${s}`],
     tiles: [
       { label: "Made hands", value: `${n(r, "made")} / 10` },
-      { label: "Target", value: String(n(r, "target")) },
+      { label: "Full at", value: String(PS_CORE_FULL) },
       { label: "Placed", value: `${n(r, "placed")} / 25` },
     ],
     outcome: n(r, "placed") === 25 ? "finish" : "time",

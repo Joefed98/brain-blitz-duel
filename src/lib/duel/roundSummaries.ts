@@ -1108,7 +1108,7 @@ const tripeaksSummary: SummaryBuilder = (result) => {
 const pokerSquaresSummary: SummaryBuilder = (result) => {
   const n = (key: string) => Number(result.extra?.[key] ?? 0);
   return {
-    summary: `${n("total")} hand points (target ${n("target")}) · ${n("made")} of 10 lines`,
+    summary: `${n("total")} hand points · ${n("made")} of 10 lines`,
     detail: [`${n("placed")} of 25 cards placed`],
   };
 };

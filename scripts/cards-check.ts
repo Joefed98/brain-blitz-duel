@@ -4,7 +4,8 @@
  *  1. Every FreeCell bank deal (all 300) replays its stored par line through the server's replay to exactly 200, with
  *     par moves equal to the bank's par; every TriPeaks bank deal (all 300) replays its line to a full clear with a run
  *     of ten and exactly 200; Poker Squares' target grid scores exactly 200 on 200 seeds (any seed is dealt: the
- *     builder only returns a grid whose ten lines all hold a pair or better, so 200 is reachable by construction).
+ *     builder only returns a grid whose ten lines all hold a pair or better and whose total reaches PS_CORE_FULL, so
+ *     200 is reachable by construction).
  *  2. Determinism: the same seed deals the same cards in the same order every time (and the server's replay agrees
  *     with the phone's sim tick for tick); rooms deal a bank index (FreeCell, TriPeaks) or any seed (Poker Squares).
  *  3. Rules: FreeCell's moves (alternating colours, home by suit, capacity, auto moves home not counted as moves),
@@ -25,7 +26,7 @@ import {
 } from "../src/lib/arcade/cards/freecell";
 import { TP_DEALS } from "../src/lib/arcade/cards/tripeaksDeals.data";
 import { TP_STOCK_PILE, tpApply, tpFree, tpNext, tpPlayable, tripeaksGame } from "../src/lib/arcade/cards/tripeaks";
-import { PS_HANDS, PS_INPUT_PLACE, psHand, psTargetGrid, psTotals, pokerSquaresGame } from "../src/lib/arcade/cards/pokerSquares";
+import { PS_CORE_FULL, PS_HANDS, PS_INPUT_PLACE, psHand, psTargetGrid, psTotals, pokerSquaresGame } from "../src/lib/arcade/cards/pokerSquares";
 import { generatePuzzle } from "../src/lib/duel/generate.server";
 import { replayFreecellRun, replayPokerSquaresRun, replayTripeaksRun } from "../src/lib/duel/cards";
 import { freecellFlawless, pokerSquaresFlawless, tripeaksFlawless } from "./cards/flawless";
@@ -65,7 +66,7 @@ for (let n = 0; n < 200; n++) {
   const seed = (Math.imul(n + 1, 0x9e3779b1) >>> 1) + 1;
   const { raw } = pokerSquaresFlawless(seed);
   const r = replayPokerSquaresRun(seed, raw);
-  if (r.score !== 200 || r.made !== 10 || r.total !== r.target) {
+  if (r.score !== 200 || r.made !== 10 || r.total !== r.target || r.target < PS_CORE_FULL) {
     psAll = false;
     failures.push(`pokersquares: seed ${seed}'s target grid replays to ${r.score}`);
   }

@@ -1,5 +1,5 @@
 /**
- * TriPeaks (Cards & Board, 30 Oct 2026; docs/arcade-standard/tripeaks.md): a 90-second run on the arcade engine.
+ * TriPeaks (Cards & Board, 30 Oct 2026; docs/arcade-standard/tripeaks.md): a 60-second run on the arcade engine (90 s until the 30 Oct 2026 review, before rooms dealt it).
  *
  * Three peaks of 28 cards (the bottom row of ten face up, the rest face down until uncovered) and a 24-card stock
  * whose first card starts the discard. Tap a face-up card one higher or lower than the discard (Ace and King wrap)
@@ -22,7 +22,7 @@ export const TP_STOCK = 24;
 /** Input: a tap, `a` the peak card's index (0–27) or TP_STOCK_PILE for the stock. */
 export const TP_INPUT_TAP = 1;
 export const TP_STOCK_PILE = 28;
-export const TP_RUN_TICKS = 90 * 60;
+export const TP_RUN_TICKS = 60 * 60;
 
 /** Rows: three tops (0–2), six (3–8), nine (9–17), ten face up (18–27). */
 export const TP_ROWS = [[0, 3], [3, 9], [9, 18], [18, 28]] as const;

@@ -1019,7 +1019,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Rows and columns", detail: "each score as a poker hand." },
         { action: "25 cards,", detail: "one at a time; the next card is at the bottom." },
         { action: "Hands:", detail: "pair 3, two pair 6, three of a kind 8, straight 10, flush 11, full house 13, four of a kind 15, straight flush 16.", helpOnly: true },
-        { action: "The target", detail: "is a strong grid made from these same 25 cards; beat it if you can.", helpOnly: true },
+        { action: "Every deal", detail: "has a grid of these same 25 cards that makes a hand in all ten lines and fills the points.", helpOnly: true },
         { action: "Empty squares at the buzzer", detail: "score whatever their lines already hold.", helpOnly: true },
         { action: "Same cards, same order,", detail: "for everyone.", helpOnly: true },
       ],

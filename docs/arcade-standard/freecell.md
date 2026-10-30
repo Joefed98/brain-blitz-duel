@@ -23,6 +23,13 @@ Multi-card moves carry up to (free cells + 1) × 2^(empty columns), one empty co
 every move, and at the deal, safe cards go home by themselves (Aces and twos, and a card whose lower cards of the other
 colour are home); they are not moves. A tap that can do nothing is refused (counted, no cost).
 
+## Layout (30 Oct 2026 legibility pass)
+
+Free cells (top) and home piles (bottom, faint suit symbols) are the size of the column cards (48 × 68), so the
+columns get the room: each column steps 40 px a card and compresses only when it would reach the home piles. Cards
+narrower than pip size draw the large index (rank and suit side by side across the top strip, and mirrored at the
+bottom), so an overlapped card reads at a glance.
+
 ## Parts (200 in all)
 
 | Part | Max | How it pays |

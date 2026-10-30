@@ -787,15 +787,19 @@ Lovable still hosts and publishes the app (https://brain-blitz-duel.lovable.app)
   shared card model; one sim each; integer moves on the engine's 60-tick clock, nothing random after the deal), art in
   `cards.renderer.ts` (the shared deck, backs and blue felt, cached per size) and one `<game>.renderer.ts` each (layout,
   hit tests, HUD chips, the success layer in the new `cards` arcade world), replay plumbing in `src/lib/duel/cards.ts`.
-  FreeCell (120 s) and TriPeaks (90 s) deal a bank index: `freecellDeals.data.ts` (300 deals, each solved by
+  FreeCell (120 s) and TriPeaks (60 s) deal a bank index: `freecellDeals.data.ts` (300 deals, each solved by
   `scripts/cards/freecellSolver.ts`, par its shortest line) and `tripeaksDeals.data.ts` (300 deals proved to clear with
   a run of ten), built by `scripts/freecell-bank.ts` / `tripeaks-bank.ts` (`--check` rebuilds byte for byte); the proved
   lines are `scripts/fixtures/*-solutions.json`, never shipped. Poker Squares (60 s) builds its target grid from any
-  seed in the sim (a seeded hill climb; every line a pair or better) and shuffles it into the dealing order. Speed
+  seed in the sim (a seeded hill climb; every line a pair or better, the total at least the core's full 68) and
+  shuffles it into the dealing order; its core is full at 68 hand points, the near-perfect median. Speed
   "full by" times are the near-perfect bots' median finish (`bun scripts/cards-bands.ts`): FreeCell 66 s, TriPeaks 27 s.
   cards-check (~8 s) replays every bank deal's line (and 200 Poker Squares targets) to 200 through the server replay.
-  No group map on main yet: the tiles keep the Arcade border (pink waits for the group map). LIVE_BANDS marks them
-  `born` (no score-band history; the band-history checks pass them by).
+  Small cards draw a large index (rank and suit side by side across the top strip). Their pink Cards & Board border
+  comes from #202's group map (`arcadeGroups.ts`, which already lists them) once it is on main. LIVE_BANDS marks them
+  `born` (no score-band history; the band-history checks pass them by); `ARCADE_BORN_ON_STANDARD`
+  (`src/lib/arcade/standard/index.ts`) lists every arcade game born on the standard, and the count pins
+  (category-pool, round-max, arcade-fx) read their totals from it.
 - `src/components/duel/` — room/round screens (PhoneShell, RoundIntro, TimerBar,
   AnswerReveal, ArcadeReveal, WinnerReveal…); `src/components/puzzles/` — shared puzzle
   widgets; `src/lib/fx/` — sound and visual feedback (presentation only).

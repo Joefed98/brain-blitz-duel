@@ -24,13 +24,15 @@ async function taps({ page, wait }: DriverCtx, points: readonly (readonly [numbe
 /** FreeCell: the top cards of each column in turn (each tap sends a card to its best spot). */
 const freecell: Driver = {
   board: "[data-play-area]",
-  partial: (ctx) => taps(ctx, [0, 1, 2, 3, 4, 5, 6, 7, 0, 2, 4, 6].map((c, k) => [5 + c * 51 + 23, k < 4 || c < 4 ? 310 : 286] as const)),
+  // Columns 48 wide on a 3.3 gap from y 126, 40 a card: the top card of a 7-card column at 366, of a 6-card one at 326.
+  partial: (ctx) => taps(ctx, [0, 1, 2, 3, 4, 5, 6, 7, 0, 2, 4, 6].map((c, k) => [3.33 + c * 51.33 + 24, k < 4 && c < 4 ? 400 : 360] as const)),
 };
 
 /** TriPeaks: across the face-up bottom row, then the stock, twice. */
 const tripeaks: Driver = {
   board: "[data-play-area]",
-  partial: (ctx) => taps(ctx, [...Array.from({ length: 10 }, (_, j) => [6 + j * 38.7 + 27, 300] as const), [114, 610], ...Array.from({ length: 10 }, (_, j) => [6 + j * 38.7 + 27, 300] as const), [114, 610]], 350),
+  // The bottom row's ten cards (39 × 70, 40.8 apart from x 4, at y 346) and the stock (74 × 104 at 84, 636).
+  partial: (ctx) => taps(ctx, [...Array.from({ length: 10 }, (_, j) => [4 + j * 40.78 + 19.5, 380] as const), [121, 688], ...Array.from({ length: 10 }, (_, j) => [4 + j * 40.78 + 19.5, 380] as const), [121, 688]], 350),
 };
 
 /** Poker Squares: twelve cards placed across the top rows. */

@@ -34,6 +34,15 @@ export const ARCADE_STANDARD: Readonly<Record<string, ArcadeStdEntry>> = {
   pokersquares,
 };
 
+/**
+ * The arcade games born on the standard (their standard spec is revision 1: no earlier revision was ever dealt), in
+ * registry order of this table. The count pins (category-pool-check, round-max-check, arcade-fx-check) read their
+ * totals from it, so each new game adds itself by joining the standard.
+ */
+export const ARCADE_BORN_ON_STANDARD: readonly string[] = Object.entries(ARCADE_STANDARD)
+  .filter(([, e]) => e.spec?.rev === 1)
+  .map(([type]) => type);
+
 /** The standard parts of a final state, or null when the game or the state's revision is not on the standard. */
 export function arcadeStdParts(type: string, state: unknown): StdPart[] | null {
   if (!state || typeof state !== "object") return null;

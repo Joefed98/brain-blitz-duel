@@ -12,18 +12,24 @@ export const TP_WORLD_W = 414;
 export const TP_WORLD_H = 772;
 export const TP_BG = "#0E2A57";
 
-export const TP_CARD_W = 54;
-export const TP_CARD_H = 78;
-const UNIT = (TP_WORLD_W - 12 - TP_CARD_W) / 9;
-const ROW_Y0 = 50;
-const ROW_STEP = 70;
-export const TP_FLAME_Y = 404;
-export const TP_PANEL_Y = 470;
-export const TP_PILE_W = 100;
-export const TP_PILE_H = 140;
-export const TP_PILE_Y = 540;
-export const TP_STOCK_X = 64;
-export const TP_DISCARD_X = TP_WORLD_W - 64 - TP_PILE_W;
+/*
+ * Layout (30 Oct 2026 legibility pass): the bottom row's ten face-up cards side by side, never overlapping (so the card
+ * is as wide as a tenth of the world allows), the peaks taller (taller cards, more space between rows), and a smaller
+ * stock and discard panel at the bottom, within thumb reach.
+ */
+export const TP_CARD_W = 39;
+export const TP_CARD_H = 70;
+const MARGIN = 4;
+const UNIT = (TP_WORLD_W - 2 * MARGIN - TP_CARD_W) / 9;
+const ROW_Y0 = 58;
+const ROW_STEP = 96;
+export const TP_FLAME_Y = 486;
+export const TP_PANEL_Y = 598;
+export const TP_PILE_W = 74;
+export const TP_PILE_H = 104;
+export const TP_PILE_Y = 636;
+export const TP_STOCK_X = 84;
+export const TP_DISCARD_X = TP_WORLD_W - 84 - TP_PILE_W;
 
 /** A peak card's box. */
 export function tpCardBox(i: number): { x: number; y: number } {
@@ -43,7 +49,7 @@ export function tpCardBox(i: number): { x: number; y: number } {
     row = 3;
     u = i - 18;
   }
-  return { x: 6 + u * UNIT, y: ROW_Y0 + row * ROW_STEP };
+  return { x: MARGIN + u * UNIT, y: ROW_Y0 + row * ROW_STEP };
 }
 
 /** What a tap at a point hits: a peak card's index, TP_STOCK_PILE, or -1 (covered cards are under the ones drawn over them). */
@@ -164,8 +170,8 @@ function drawTripeaksWorld(ctx: CanvasRenderingContext2D, state: TpState, size: 
   const left = TP_STOCK - state.stockPos;
   ctx.fillStyle = "rgba(246,235,208,0.75)";
   ctx.font = `700 12px ${CARD_FONT}`;
-  ctx.fillText(`STOCK ${left}`, TP_STOCK_X + TP_PILE_W / 2, TP_PANEL_Y + 18);
-  ctx.fillText("DISCARD", TP_DISCARD_X + TP_PILE_W / 2, TP_PANEL_Y + 18);
+  ctx.fillText(`STOCK ${left}`, TP_STOCK_X + TP_PILE_W / 2, TP_PANEL_Y + 12);
+  ctx.fillText("DISCARD", TP_DISCARD_X + TP_PILE_W / 2, TP_PANEL_Y + 12);
   if (left > 0) {
     for (let k = Math.min(3, left) - 1; k >= 0; k--) drawCard(ctx, 0, TP_STOCK_X + k * 3, TP_PILE_Y - k * 3, TP_PILE_W, TP_PILE_H, { down: true, glow: k === 0 && view?.pressed === TP_STOCK_PILE ? 1 : 0 });
   } else drawSlot(ctx, TP_STOCK_X, TP_PILE_Y, TP_PILE_W, TP_PILE_H, -1, "EMPTY");

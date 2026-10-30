@@ -6,11 +6,13 @@
  * hold.
  *
  * The deal: the sim builds a strong target grid from the seed (a seeded hill climb over 25 cards in which every row
- * and column holds a pair or better), takes its total as the deal's target, then shuffles its 25 cards into the
- * dealing order. Placing every card where the target grid has it makes the target and ten made hands: 200.
+ * and column holds a pair or better and the total reaches PS_CORE_FULL), then shuffles its 25 cards into the dealing
+ * order. Placing every card where the target grid has it fills the core and makes ten hands: 200 on every seed.
  *
  * Scoring (pokerSquaresRev 1, the arcade standard; 200 in all): the core 160 on a straight line, total hand points ÷
- * the deal's target × 160; made hands 40 (4 for each line with a pair or better).
+ * PS_CORE_FULL × 160, full at the near-perfect skill-band median (the standard's rule for an open-ended core: the
+ * target grid is built knowing all 25 cards, which no player sees, so it is the proof of 200, not the bar); made hands
+ * 40 (4 for each line with a pair or better).
  */
 import { inputRange, rngBelow, type ArcadeGame, type ArcadeInputEvent } from "../engine";
 import { stdEach, stdLine, stdPart, stdScore, stdSum, type StdPart, type StdSpec } from "../arcadeStandard";
@@ -27,14 +29,19 @@ export const PS_RUN_TICKS = 60 * 60;
 export const PS_CORE_MAX = 160;
 export const PS_HAND_EACH = 4;
 export const PS_HANDS_MAX = 40;
-/** The core's straight line in per mille of the target (LIVE_BANDS reads it). */
-export const PS_V1_BAND_CURVE = bandCurve([0, 1000], [0, PS_CORE_MAX]);
+/**
+ * The core is full at this many hand points: the near-perfect skill-band median (`bun scripts/cards-bands.ts
+ * pokersquares`, docs/arcade-standard/pokersquares.md). Every dealt target grid reaches it (psTargetGrid).
+ */
+export const PS_CORE_FULL = 68;
+/** The core's straight line (LIVE_BANDS and arcade-help-bands-check read it). */
+export const PS_V1_BAND_CURVE = bandCurve([0, PS_CORE_FULL], [0, PS_CORE_MAX]);
 
 export const PS_STD_SPEC: StdSpec = {
   field: "pokerSquaresRev",
   rev: PS_REV,
   parts: [
-    { key: "core", label: "Hand points", max: PS_CORE_MAX, of: 1000, item: "thousandth of the target", how: "a straight line: your total ÷ the deal's target × 160" },
+    { key: "core", label: "Hand points", max: PS_CORE_MAX, of: PS_CORE_FULL, item: "hand point", how: `a straight line, full at ${PS_CORE_FULL} hand points` },
     { key: "hands", label: "Made hands", max: PS_HANDS_MAX, of: PS_LINES, item: "line", how: "4 for each row or column with a pair or better" },
   ],
 };
@@ -189,7 +196,7 @@ export function psTargetGrid(seed: number): { grid: number[]; target: number; rn
       }
     }
     const totals = psTotals(grid);
-    if (totals.made === PS_LINES) return { grid, target: totals.total, rng };
+    if (totals.made === PS_LINES && totals.total >= PS_CORE_FULL) return { grid, target: totals.total, rng };
   }
 }
 
@@ -272,7 +279,7 @@ export function pokerSquaresStdParts(state: PsState): StdPart[] | null {
   if (!state || !state.std) return null;
   const { total, made } = psTotals(state.grid);
   return [
-    stdPart(PS_STD_SPEC, "core", stdLine(PS_CORE_MAX, total, state.target), `${total} of the target ${state.target}`),
+    stdPart(PS_STD_SPEC, "core", stdLine(PS_CORE_MAX, total, PS_CORE_FULL), `${total} hand points`),
     stdPart(PS_STD_SPEC, "hands", stdEach(made, PS_HAND_EACH, PS_HANDS_MAX), `${made} / ${PS_LINES} lines`),
   ];
 }
@@ -285,7 +292,7 @@ export function pokerSquaresBandParts(state: PsState): BandParts {
   const parts = pokerSquaresStdParts(state) ?? [];
   const core = parts[0]?.points ?? 0;
   const { total } = psTotals(state.grid);
-  return { units: Math.floor((1000 * Math.min(total, state.target)) / Math.max(1, state.target)), points: core, bonus: stdSum(parts) - core, penalty: 0, finished: state.ended === 1, text: `${total} / ${state.target} points` };
+  return { units: total, points: core, bonus: stdSum(parts) - core, penalty: 0, finished: state.ended === 1, text: `${total} hand points` };
 }
 
 /* ============================== Checkpoints ============================== */

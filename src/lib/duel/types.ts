@@ -1922,8 +1922,8 @@ export interface PinballPuzzleData {
 
 /** FreeCell: a 120-second run; the round clock adds three of slack. */
 export const FREECELL_TIME_MS = 123_000;
-/** TriPeaks: a 90-second run. */
-export const TRIPEAKS_TIME_MS = 93_000;
+/** TriPeaks: a 60-second run. */
+export const TRIPEAKS_TIME_MS = 63_000;
 /** Poker Squares: a 60-second run. */
 export const POKERSQUARES_TIME_MS = 63_000;
 
