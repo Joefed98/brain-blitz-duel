@@ -6,7 +6,7 @@
  * crossing as deep as the clock allows. The path is turned into an input log and played through the real
  * sim (`game.step`) and the server replay, so the ceiling reported is a score the server gives a real log.
  *
- *   bun scripts/cross-ceiling.ts [--from=0] [--seeds=260] [--gap=1]
+ *   bun scripts/cross-ceiling.ts [--from=0] [--seeds=260] [--gap=1] [--rev=9|10]
  *
  * `--gap=n` keeps at least n ticks between any two inputs (1 = the sim's own limit; 8 ≈ 7.5 swipes a second).
  * Not a check: cross-x200-check runs a sample of seeds through `crossCeilingRun`.
@@ -189,9 +189,9 @@ export interface CeilingResult {
   raw: string;
 }
 
-/** The oracle's run on a seed (crossRev 9), replayed through the server. */
-export function crossCeilingRun(seed: number, gap = 1): CeilingResult {
-  const game = crossGameFor(CROSS_REV_EXPAND);
+/** The oracle's run on a seed (crossRev 9, or crossRev 10's busier-each-crossing courses), replayed through the server. */
+export function crossCeilingRun(seed: number, gap = 1, rev: number = CROSS_REV_EXPAND): CeilingResult & { closeCalls: number } {
+  const game = crossGameFor(rev);
   const init = game.init(seed) as CrossState;
   const half = crossPlayerHalfFp(init);
   void crossRowsOf;
@@ -224,7 +224,7 @@ export function crossCeilingRun(seed: number, gap = 1): CeilingResult {
   }
   const score = game.score(state);
   const raw = encodeCrossRun({ seed, claimedScore: score, events, endTick: state.tick, checkpoints });
-  const server = replayCrossRun(seed, raw, CROSS_REV_EXPAND);
+  const server = replayCrossRun(seed, raw, rev);
   return {
     seed,
     score: server.score,
@@ -232,6 +232,7 @@ export function crossCeilingRun(seed: number, gap = 1): CeilingResult {
     coins: state.coinTotal ?? 0,
     coinsOffered: offered,
     streakPts: state.streakPts ?? 0,
+    closeCalls: state.closeCalls ?? 0,
     flagged: server.score !== score,
     raw,
   };
@@ -242,14 +243,15 @@ if (import.meta.main) {
   const from = Number(opt("from") ?? 0);
   const count = Number(opt("seeds") ?? 260);
   const gap = Number(opt("gap") ?? 1);
+  const rev = Number(opt("rev") ?? CROSS_REV_EXPAND);
   const rows: CeilingResult[] = [];
   const t0 = Date.now();
   for (let i = from; i < from + count; i++) {
-    const r = crossCeilingRun(roomSeed(i), gap);
+    const r = crossCeilingRun(roomSeed(i), gap, rev);
     rows.push(r);
-    if (process.argv.includes("--verbose")) console.log(`#${i} seed ${r.seed}: ${r.score} (crossings ${r.crossings}, coins ${r.coins}/${r.coinsOffered}, streak ${r.streakPts})`);
+    if (process.argv.includes("--verbose")) console.log(`#${i} seed ${r.seed}: ${r.score} (crossings ${r.crossings}, coins ${r.coins}/${r.coinsOffered}, streak ${r.streakPts}, close calls ${r.closeCalls})`);
   }
   const scores = rows.map((r) => r.score).sort((a, b) => a - b);
   const min = rows.reduce((m, r) => (r.score < m.score ? r : m), rows[0]!);
-  console.log(`seeds ${from}–${from + count - 1}, gap ${gap}: ceiling min ${scores[0]} (seed ${min.seed}), median ${scores[scores.length >> 1]}, below 200: ${rows.filter((r) => r.score < 200).length}; crossings min ${Math.min(...rows.map((r) => r.crossings))}; coins min ${Math.min(...rows.map((r) => r.coins))}; streak min ${Math.min(...rows.map((r) => r.streakPts))}; flagged ${rows.filter((r) => r.flagged).length}; ${((Date.now() - t0) / 1000).toFixed(1)} s`);
+  console.log(`seeds ${from}–${from + count - 1}, gap ${gap}: ceiling min ${scores[0]} (seed ${min.seed}), median ${scores[scores.length >> 1]}, below 200: ${rows.filter((r) => r.score < 200).length}; crossings min ${Math.min(...rows.map((r) => r.crossings))}; coins min ${Math.min(...rows.map((r) => r.coins))}; streak min ${Math.min(...rows.map((r) => r.streakPts))}; close calls min ${Math.min(...rows.map((r) => r.closeCalls))}; flagged ${rows.filter((r) => r.flagged).length}; ${((Date.now() - t0) / 1000).toFixed(1)} s`);
 }

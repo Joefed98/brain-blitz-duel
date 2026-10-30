@@ -1,8 +1,8 @@
 import { TEN_DROP_DEPTH_REV } from "@/lib/arcade/tenDrop";
 import { SLICE_REV_TARGET, SLICE_REV_STRICT, SLICE_REV_STANDARD } from "@/lib/arcade/slice";
-import { FLIP_REV_TARGET, FLIP_REV_STRICT, FLIP_REV_LIFT } from "@/lib/arcade/flip";
-import { CROSS_REV_EXPAND } from "@/lib/arcade/cross";
-import { INK_REV_SPREAD } from "@/lib/arcade/inkBridge";
+import { FLIP_REV_TARGET, FLIP_REV_STRICT, FLIP_REV_STD } from "@/lib/arcade/flip";
+import { CROSS_REV_STD } from "@/lib/arcade/cross";
+import { INK_REV_STD } from "@/lib/arcade/inkBridge";
 import { SNAKE_REV_TARGET, SNAKE_REV_STD } from "@/lib/arcade/snake";
 import { BUB_REV_STD } from "@/lib/arcade/bubble";
 import { MATCHUP_REV_STD } from "@/lib/arcade/matchup";
@@ -18,8 +18,8 @@ import { BRK_REV_TARGET, BRK_REV_STRICT, BRK_REV_DEEP, BRK_REV_PHONE, BRK_REV_ST
 import { PIN_REV_TARGET, PIN_REV_STRICT, PIN_REV_EXPAND, PIN_REV_LONG, PIN_REV_STD } from "@/lib/arcade/pinball";
 import { WHACK_REV_DEPTH, WHACK_REV_NOTES } from "@/lib/arcade/whack";
 import { dealtNotesRev } from "./phoneNotes";
-import { WAV_REV_TARGET, WAV_REV_STRICT, WAV_REV_PHONE } from "@/lib/arcade/wavefront";
-import { ORBIT_REV_TARGET, ORBIT_REV_STRICT, ORBIT_REV_XP } from "@/lib/arcade/orbit";
+import { WAV_REV_TARGET, WAV_REV_STRICT, WAV_REV_STD } from "@/lib/arcade/wavefront";
+import { ORBIT_REV_TARGET, ORBIT_REV_STRICT, ORBIT_REV_STD } from "@/lib/arcade/orbit";
 import { RALLY_REV_TARGET, RALLY_REV_STRICT, RALLY_REV_STD } from "@/lib/arcade/rally";
 import { BEAT_REV_TARGET, BEAT_REV_STD } from "@/lib/arcade/beat";
 import { orbitXpCourseForSeed, orbitHolesForBankSeed, orbitRev3BankEntryForSeed, orbitRev3PlanetsForSeed, encodeRev3Planets } from "./orbitRev3Course.server";
@@ -113,7 +113,7 @@ export function generateSnake(): SnakePuzzleData {
 }
 
 export function generateCross(): CrossPuzzleData {
-  return { type: "cross", seed: arcadeSeed(), crossRev: CROSS_REV_EXPAND };
+  return { type: "cross", seed: arcadeSeed(), crossRev: CROSS_REV_STD };
 }
 
 export function generateDual(): DualPuzzleData {
@@ -183,7 +183,8 @@ export function generateWhack(): WhackPuzzleData {
 
 export function generateWavefront(): WavefrontPuzzleData {
   // wavRev 11 (Joe's phone notes, 27 Oct 2026): power-ups from carrier ships and saucers, no streak, the mothership after wave 5.
-  return { type: "wavefront", seed: arcadeSeed(), wavRev: WAV_REV_PHONE };
+  // wavRev 12 (the arcade scoring standard, 29 Oct 2026): wavRev 11 play scored in fixed parts that total 200.
+  return { type: "wavefront", seed: arcadeSeed(), wavRev: WAV_REV_STD };
 }
 
 export function generateBastion(): BastionPuzzleData {
@@ -200,8 +201,9 @@ export function generateColourClash(): StroopPuzzleData {
 
 export function generateFlip(): FlipPuzzleData {
   // flipRev 9: flipRev 8's taller cave, features and sweet spots (expansion E7, docs/expansions/x200-flip.md), scored to 200
-  // on the lifted curves (Joe's phone notes, 27 Oct 2026).
-  return { type: "flip", seed: arcadeSeed(), flipRev: FLIP_REV_LIFT };
+  // on the lifted curves (Joe's phone notes, 27 Oct 2026). flipRev 10 (29 Oct 2026): the same play on the arcade scoring
+  // standard (time survived 150, gold stars 15, star trails 15, sweet landings 10, double flips 10; docs/arcade-standard/flip.md).
+  return { type: "flip", seed: arcadeSeed(), flipRev: FLIP_REV_STD };
 }
 
 export function generateJunction(): JunctionPuzzleData {
@@ -210,7 +212,8 @@ export function generateJunction(): JunctionPuzzleData {
 
 export function generateInkBridge(): InkBridgePuzzleData {
   // inkRev 11 (phone notes, 27 Oct 2026): no wind zones, fewer silver coins, the pickups spread out.
-  return { type: "inkbridge", seed: arcadeSeed(), inkRev: INK_REV_SPREAD };
+  // inkRev 12 (the arcade scoring standard, 29 Oct 2026): inkRev 11's play scored on straight lines and fixed shares.
+  return { type: "inkbridge", seed: arcadeSeed(), inkRev: INK_REV_STD };
 }
 
 export function generateBurst(): BurstPuzzleData {
@@ -224,7 +227,8 @@ export function generateOrbit(): OrbitPuzzleData {
   // Rev 12 (the expansion to 200, 26 Oct 2026): one of the bank courses with proved holes and features
   // (scripts/orbit-xp-bank.ts), picked by the seed, in the bigger view. Every room deals it while the bank has courses.
   const xp = orbitXpCourseForSeed(seed);
-  if (xp) return { type: "orbit", seed, orbitRev: ORBIT_REV_XP, planets: xp.planets, holes: xp.holes, extras: xp.extras };
+  // Rev 13 (the arcade scoring standard, 29 Oct 2026): rev 12's course, features and play, scored on the standard.
+  if (xp) return { type: "orbit", seed, orbitRev: ORBIT_REV_STD, planets: xp.planets, holes: xp.holes, extras: xp.extras };
   // Rev 3 only from the proved bank: live proof is too slow for a room start, so an empty bank keeps rev 2.
   const bankPlanets = orbitRev3PlanetsForSeed(seed);
   if (!bankPlanets) return { type: "orbit", seed };

@@ -6,6 +6,7 @@
 
 import { clampInt, finishScore, inputRange, type ArcadeGame, type ArcadeInputEvent } from "./engine";
 import { speedBonusCurve } from "../duel/speedPar";
+import { stdBandParts, stdCore, stdFeatures, stdPartLine, stdTotal, type StdBreakdown, type StdSpec } from "./arcadeStandard";
 import { BAND_STRICT_MARK, bandStrict, bandRetarget, bandCurveOf, BAND_TARGET_MARK, bandCurve, bandInit, bandPoints, bandScoreOf, bandStep, bandTotal, BAND_FINISH_BONUS, type BandFields, type BandParts } from "./scoreBands";
 
 /* ================================ Config ================================ */
@@ -237,6 +238,8 @@ export interface BtState extends BandFields {
   golds?: number;
   boosts?: number;
   crashes?: number;
+  /** btRev 8 only (the arcade scoring standard): btRev 7's play scored on BT_STD; not in the checkpoint checksum. */
+  std?: number;
 }
 
 export function btInit(course: BtCourse): BtState {
@@ -609,7 +612,7 @@ export function makeBallTrackGame(course: BtCourse, rev?: number | null): BtGame
     rotatable,
     init: () => {
       // btRev 3 (score bands) and btRev 4 (taller worlds) play the rev-2 rules.
-      const state = rev === BT_REV || rev === BT_REV_BAND || rev === BT_REV_TALL || rev === BT_REV_TARGET || rev === BT_REV_STRICT || rev === BT_REV_RUSH
+      const state = rev === BT_REV || rev === BT_REV_BAND || rev === BT_REV_TALL || rev === BT_REV_TARGET || rev === BT_REV_STRICT || btIsV7Play(rev)
         ? { ...btInit(course), rev: BT_REV, sw: 0, turned: layout.kind.map(() => -1000), rideHomes: 0, switchHomes: 0 }
         : btInit(course);
       // btRev 4 adds the board's height (folded into the checkpoint checksum last).
@@ -620,11 +623,13 @@ export function makeBallTrackGame(course: BtCourse, rev?: number | null): BtGame
       if (rev === BT_REV_STRICT) return { ...bandInit({ ...state, worldH: layout.h }), band: BAND_STRICT_MARK };
       // btRev 7 (expansion E6): the rev-2 rules on the 13-row board with the expansion's features.
       if (rev === BT_REV_RUSH) return bandInit({ ...state, worldH: layout.h, r7: 1, streak: 0, bestStreak: 0, combos: 0, golds: 0, boosts: 0, crashes: 0 });
+      // btRev 8 (the arcade scoring standard): btRev 7's play exactly, scored on BT_STD (`std` stays out of the checksum).
+      if (rev === BT_REV_STD) return { ...bandInit({ ...state, worldH: layout.h, r7: 1, streak: 0, bestStreak: 0, combos: 0, golds: 0, boosts: 0, crashes: 0 }), std: 1 };
       return rev === BT_REV_BAND ? bandInit(state) : state;
     },
     step: bandStep((state, input) => btStep(course, rotatable, state, input)),
     isOver: btOver,
-    score: (state) => (state.r7 ? btV7Score(state) : bandScoreOf(btScore, scoreBand)(state)),
+    score: (state) => (state.std ? btStdTotal(state) : state.r7 ? btV7Score(state) : bandScoreOf(btScore, scoreBand)(state)),
     draw: (ctx, state) => btDraw(ctx, course, state, rotatable),
     inputRanges: layout.rows === BT_TALL_ROWS ? BT_INPUT_RANGES_TALL : layout.rows === BT_V7_ROWS ? BT_INPUT_RANGES_V7 : BT_INPUT_RANGES,
   };
@@ -638,6 +643,8 @@ export const BT_REV_BAND = 3;
 export const BT_BAND_CURVE = bandCurve([0, 10, 19, 26, 28, 29, 30], [0, 32, 70, 104, 126, 138, 140]);
 
 export function btBandParts(state: BtState): BandParts {
+  // btRev 8 (the arcade scoring standard) has its own parts.
+  if (state.std) return btStdParts(state);
   const units = clampInt(state.home, 0, BT_BALLS);
   const finished = units >= BT_BALLS;
   // btRev 4: the last marble has three more rows to fall, so its landing window starts later.
@@ -688,7 +695,7 @@ export const BT_V4_BAND_CURVE = bandCurve([0, 10, 20, 26, 28, 29, 30], [0, 32, 7
 
 /** The world height (px) a stored round's btRev plays in. */
 export function ballTrackWorldHFor(rev?: number | null): number {
-  if (rev === BT_REV_RUSH) return BT_V7_H;
+  if (btIsV7Play(rev)) return BT_V7_H;
   return rev === BT_REV_TALL || rev === BT_REV_TARGET || rev === BT_REV_STRICT ? BT_TALL_H : BT_H;
 }
 
@@ -801,4 +808,70 @@ export function btV7Parts(state: BtState): BandParts {
 
 function btV7Score(state: BtState): number {
   return bandTotal(btV7Parts(state), Boolean(state.acted), BT_V7_MAX);
+}
+
+
+/* ================= The arcade scoring standard (btRev 8, 29 Oct 2026) ================= */
+
+/**
+ * btRev 8 (docs/arcade-standard/balltrack.md, src/lib/arcade/arcadeStandard.ts): btRev 7's course, rules, features
+ * and play exactly (the same bank, less course 56 in the deal), so a btRev 7 log replays tick for tick; only the scoring changes. States
+ * add `std: 1` (outside the checkpoint checksum). Parts, totalling 200:
+ *  - Marbles home (core) 140 on a straight line: 140 × home ÷ 36 (a fixed maximum: all 36 home).
+ *  - Gold marbles 25: an equal share for each of the course's BT_V7_GOLDS gold marbles home.
+ *  - Combos 20: 1 for each combo landing (a correct landing at a streak of BT_V7_COMBO_FROM or more in a row; a
+ *    wrong cup, a lost marble or a crash ends the streak), up to 20.
+ *  - Boosted marbles 15: an equal share (15 ÷ 36) for each marble home after a speed booster. Whether a marble
+ *    passes a booster depends on the route its player sets, and any of the 36 can be routed through one, so the
+ *    part is shared over all BT_V8_BOOSTS_FULL marbles (docs/arcade-standard/balltrack.md: an oracle brings all 36
+ *    home boosted on 299 of the 300 bank courses; btRev 8 deals only those, BT_V8_DEAL).
+ * No speed part and no all-home bonus; wrong cups and lost marbles cost nothing beyond what they don't earn.
+ * Every feature counts only marbles home, so none asks a player to give up a marble.
+ */
+export const BT_REV_STD = 8;
+/** Boosted marbles home that fill the boost part: every marble of the run (15 ÷ 36 each). */
+export const BT_V8_BOOSTS_FULL = BT_V7_BALLS;
+/** Combo landings that fill the combo part (1 point each). */
+export const BT_V8_COMBOS_FULL = 20;
+/** The arcade standard's parts for btRev 8 (core 140 + gold 25 + combos 20 + boosted 15 = 200). */
+export const BT_STD: StdSpec = {
+  field: "btRev",
+  rev: BT_REV_STD,
+  parts: [
+    { key: "core", label: "Marbles home", max: 140, of: BT_V7_BALLS, item: "marble" },
+    { key: "gold", label: "Gold marbles", max: 25, of: BT_V7_GOLDS, item: "gold marble" },
+    { key: "combo", label: "Combos", max: 20, of: BT_V8_COMBOS_FULL, item: "combo landing" },
+    { key: "boost", label: "Boosted marbles", max: 15, of: BT_V8_BOOSTS_FULL, item: "boosted marble" },
+  ],
+};
+/** btRev 8's core line: marbles home of 36 → 0…140, straight. */
+export const BT_V8_BAND_CURVE = bandCurve([0, BT_V7_BALLS], [0, 140]);
+
+/** True for the revisions that play btRev 7's rules on its 13-row board (7, and 8 scored on the standard). */
+export function btIsV7Play(rev?: number | null): boolean {
+  return rev === BT_REV_RUSH || rev === BT_REV_STD;
+}
+
+/** btRev 8's breakdown on the standard. */
+export function btStdScore(state: BtState): StdBreakdown {
+  const [gold, combo, boost] = stdFeatures(BT_STD);
+  return {
+    core: stdPartLine(stdCore(BT_STD), state.home),
+    features: {
+      gold: stdPartLine(gold!, state.golds ?? 0),
+      combo: stdPartLine(combo!, state.combos ?? 0),
+      boost: stdPartLine(boost!, state.boosts ?? 0),
+    },
+    penalty: 0,
+  };
+}
+
+/** btRev 8's breakdown as BandParts (the reveal, the bands): core as the points, the features as one bonus line. */
+export function btStdParts(state: BtState): BandParts {
+  const units = clampInt(state.home, 0, BT_V7_BALLS);
+  return stdBandParts(BT_STD, btStdScore(state), units, `${units} / ${BT_V7_BALLS} marbles home`, units >= BT_V7_BALLS);
+}
+
+function btStdTotal(state: BtState): number {
+  return stdTotal(btStdScore(state), Boolean(state.acted));
 }

@@ -22,6 +22,7 @@ import {
 import { BAND_STRICT_MARK, bandStrictGame, bandStrict, bandCurve, bandInit, bandTargetGame, BAND_TARGET_MARK, bandPoints, bandScoreOf, bandStep, bandTotal, BAND_FINISH_BONUS, type BandFields, type BandParts } from "./scoreBands";
 import { isin, TRIG_ONE } from "./trig";
 import { speedBonusCurve } from "../duel/speedPar";
+import { stdBandParts, stdLine, stdSpeed, stdTotal, type StdBreakdown, type StdSpec } from "./arcadeStandard";
 
 /* ============================== Constants ============================== */
 
@@ -322,6 +323,12 @@ export interface WavState extends BandFields {
   carry?: number[];
   pickups?: WavPickup[];
   pickupsMade?: number;
+  /**
+   * wavRev 12 only (the arcade scoring standard, 29 Oct 2026): the marker, and which bosses' open cores were hit
+   * (bit 1 the gunship, bit 2 the mothership). Not in the checkpoint checksum: play is wavRev 11's exactly.
+   */
+  std?: number;
+  coresHit?: number;
   /** wavRev 2: ships that rammed the player while diving (destroyed, no points), and divers shot down. */
   rammed?: number;
   diversDown?: number;
@@ -1293,6 +1300,7 @@ const wavefrontGameV2: ArcadeGame<WavState, ArcadeInputEvent | null> = {
 
 /** The game for a stored wavRev (absent = the original 60 s rules). */
 export function wavefrontGameFor(rev?: number | null): ArcadeGame<WavState, ArcadeInputEvent | null> {
+  if (rev === WAV_REV_STD) return wavefrontStdGame;
   if (rev === WAV_REV_PHONE) return wavefrontPhoneGame;
   if (rev === WAV_REV_EXPAND) return wavefrontExpandGame;
   if (rev === WAV_REV_STRICT) return wavefrontStrictGame;
@@ -1311,6 +1319,7 @@ export const WAV_REV_BAND = 3;
 /** Ships, armour hits and boss hits count 1, saucers 5, waves 15; 140 at a perfect five waves plus every boss hit; destroying the boss adds 10. */
 export const WAV_BAND_CURVE = bandCurve([0, 100, 214, 235, 255, WAV_PAR_V2 - WAV_POINTS_BOSS], [0, 25, 72, 100, 120, 140]);
 export function wavefrontBandParts(state: WavState): BandParts {
+  if (state.std) return wavefrontStdParts(state);
   if (state.r11) return wavefrontPhoneParts(state);
   if (state.x10) return wavefrontExpandParts(state);
   // wavRev 5: a saucer counts 1 like a ship and can stand in for one missed; at 5 it outweighed the boss fight that separates players.
@@ -1326,6 +1335,8 @@ export function wavefrontBandParts(state: WavState): BandParts {
 }
 
 function scoreBand(state: WavState): number {
+  // wavRev 12: the arcade scoring standard (at least 1 for anyone who plays).
+  if (state.std) return stdTotal(wavStdScore(state), Boolean(state.acted));
   return bandTotal(wavefrontBandParts(state), Boolean(state.acted), state.x10 ? WAV_X_MAX : undefined);
 }
 
@@ -1471,7 +1482,7 @@ export const wavefrontTallGame: ArcadeGame<WavState, ArcadeInputEvent | null> = 
 
 /** The world height (px) a stored round's wavRev plays in. */
 export function wavefrontWorldHFor(rev?: number | null): number {
-  if (rev === WAV_REV_EXPAND || rev === WAV_REV_PHONE) return WAV_X_H;
+  if (rev === WAV_REV_EXPAND || rev === WAV_REV_PHONE || rev === WAV_REV_STD) return WAV_X_H;
   return rev === WAV_REV_TALL || rev === WAV_REV_TARGET || rev === WAV_REV_STRICT ? WAV_TALL_H : WAV_WORLD_H;
 }
 
@@ -2003,6 +2014,8 @@ function stepX(state: WavState, input: ArcadeInputEvent | null): WavState {
           streakHit(s);
           dmg = WAV_X_CORE_DAMAGE;
           s.weakHits = (s.weakHits ?? 0) + 1;
+          // wavRev 12: which bosses' cores were hit (scoring only).
+          if (s.std) s.coresHit = (s.coresHit ?? 0) | (boss.mid ? 1 : 2);
           s.precise = (s.precise ?? 0) + wavPrecision(Math.abs(bx - w / 2));
         }
         const taken = Math.min(dmg, boss.hp);
@@ -2365,5 +2378,101 @@ export function wavefrontPhoneParts(state: WavState): BandParts {
 export const wavefrontPhoneGame: ArcadeGame<WavState, ArcadeInputEvent | null> = {
   ...wavefrontGameV2,
   init: initR11,
+  step: bandStep(stepX),
+};
+
+/* ================= The arcade scoring standard (wavRev 12, 29 Oct 2026) ================= */
+
+/**
+ * wavRev 12 (the arcade scoring standard, docs/arcade-standard/wavefront.md; src/lib/arcade/arcadeStandard.ts):
+ * wavRev 11's play exactly (a wavRev 11 log replays tick for tick; states add `std: 1` and the cores hit, outside the
+ * checkpoint checksum), scored in fixed parts that total 200:
+ *  - core, up to 150 on a straight line: ships shot, armour hits, 15 a cleared wave (the gunship counts as one) and
+ *    the gunship's hit points, full at WAV_STD_CORE_FULL, everything before the mothership (WAV_PAR_X less its hit points);
+ *  - Boss destroyed 10, and Boss speed up to 10 (only with the boss destroyed: full within 20 s of its arrival, 0 at
+ *    40 s, a straight line between);
+ *  - Saucers up to 20: 4 a saucer of the WAV_X_SAUCERS (5) the 90 s clock flies. A run that ends by destroying the
+ *    boss is credited the saucers its clock would still have flown (it can no longer meet them), so a quick kill never
+ *    costs saucers; a run lost or timed out is not;
+ *  - Cannons and weak points up to 10: equal shares of the six the run offers, each boss's two cannons destroyed and
+ *    each boss's open core hit (at least once);
+ *  - power-ups pay nothing; each life lost costs WAV_STD_LIFE_COST. Anyone who plays scores at least 1.
+ */
+export const WAV_REV_STD = 12;
+/** The core's full figure: every unit before the mothership (all five waves, the gunship and its hit points; 294). */
+export const WAV_STD_CORE_FULL = WAV_PAR_X - WAV_X_BOSS_HP;
+export const WAV_STD_CORE_MAX = 150;
+/** The weak points a run offers: two cannons and a core on each of the two bosses. */
+export const WAV_STD_WEAK_POINTS = 6;
+/** The boss's speed part: full within this many ticks of its arrival, 0 at the second. */
+export const WAV_STD_KILL_FULL = 20 * TICKS_PER_SECOND;
+export const WAV_STD_KILL_ZERO = 40 * TICKS_PER_SECOND;
+export const WAV_STD_LIFE_COST = 5;
+export const WAVEFRONT_STD: StdSpec = {
+  field: "wavRev",
+  rev: WAV_REV_STD,
+  parts: [
+    { key: "core", label: "Ships, hits and waves", max: WAV_STD_CORE_MAX, of: WAV_STD_CORE_FULL, item: "unit" },
+    { key: "boss", label: "Boss destroyed", max: 10, of: 1 },
+    { key: "speed", label: "Boss speed", max: 10, of: 1 },
+    { key: "saucers", label: "Saucers", max: 20, of: WAV_X_SAUCERS, item: "saucer" },
+    { key: "weak", label: "Cannons and weak points", max: 10, of: WAV_STD_WEAK_POINTS, items: "cannons and cores" },
+  ],
+};
+/** wavRev 12's core on a straight line: 150 at WAV_STD_CORE_FULL units (arcade-help-bands-check reads the newest curve). */
+export const WAV_V12_BAND_CURVE = bandCurve([0, WAV_STD_CORE_FULL], [0, WAV_STD_CORE_MAX]);
+
+/** wavRev 12's core units: ships, armour hits, 15 a cleared wave and the gunship's hit points (never the mothership's). */
+export function wavStdUnits(s: WavState): number {
+  return s.shapesDown + s.armourHits + WAV_POINTS_WAVE * s.wavesCleared + Math.min(s.bossDmg ?? 0, WAV_X_MID_HP);
+}
+/** wavRev 12: saucers the run's clock had flown by its end (one every WAV_SAUCER_EVERY ticks, WAV_X_SAUCERS at most). */
+export function wavStdSaucersFlown(s: WavState): number {
+  return Math.min(WAV_X_SAUCERS, Math.trunc(s.tick / SAUCER_EVERY));
+}
+/** wavRev 12: the saucers counted: those shot, plus on a run ended by the boss's kill the ones still to come. */
+export function wavStdSaucers(s: WavState): number {
+  return s.saucers + ((s.bossKilled ?? 0) > 0 ? WAV_X_SAUCERS - wavStdSaucersFlown(s) : 0);
+}
+/** wavRev 12: weak points taken: cannons destroyed and bosses whose open core was hit. */
+export function wavStdWeakPoints(s: WavState): number {
+  const cores = s.coresHit ?? 0;
+  return (s.cannonsDown ?? 0) + (cores & 1) + ((cores >> 1) & 1);
+}
+/** wavRev 12's breakdown in the standard's parts. */
+export function wavStdScore(s: WavState): StdBreakdown {
+  const killed = (s.bossKilled ?? 0) > 0;
+  const fight = s.tick - (s.bossAt ?? 0);
+  return {
+    core: stdLine(WAV_STD_CORE_MAX, wavStdUnits(s), WAV_STD_CORE_FULL),
+    features: {
+      boss: killed ? 10 : 0,
+      speed: killed ? stdSpeed(10, fight, WAV_STD_KILL_FULL, WAV_STD_KILL_ZERO) : 0,
+      saucers: stdLine(20, wavStdSaucers(s), WAV_X_SAUCERS),
+      weak: stdLine(10, wavStdWeakPoints(s), WAV_STD_WEAK_POINTS),
+    },
+    penalty: WAV_STD_LIFE_COST * Math.max(0, WAV_LIVES - Math.max(0, s.lives)),
+  };
+}
+/** wavRev 12's reveal and band breakdown. */
+export function wavefrontStdParts(state: WavState): BandParts {
+  const lost = Math.max(0, WAV_LIVES - Math.max(0, state.lives));
+  return stdBandParts(
+    WAVEFRONT_STD,
+    wavStdScore(state),
+    wavStdUnits(state),
+    `${state.wavesCleared} waves · ${state.shapesDown} ships · ${state.armourHits} armour hits · gunship ${Math.min(state.bossDmg ?? 0, WAV_X_MID_HP)}/${WAV_X_MID_HP}`,
+    (state.bossKilled ?? 0) > 0,
+    `${lost} ${lost === 1 ? "life" : "lives"} lost`,
+  );
+}
+
+function initStd(seed: number): WavState {
+  return { ...initR11(seed), std: 1, coresHit: 0 };
+}
+
+export const wavefrontStdGame: ArcadeGame<WavState, ArcadeInputEvent | null> = {
+  ...wavefrontGameV2,
+  init: initStd,
   step: bandStep(stepX),
 };

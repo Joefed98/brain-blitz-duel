@@ -53,6 +53,7 @@ import { roomSeed } from "./arcade-skill-bands/games";
 import { inkOracleRun } from "./ink-x200-oracle";
 import { randomInkLog } from "./ink-x200-bands";
 import { roomIdentity } from "./room-identity/inkbridge";
+import { playRevOf } from "./scoring-targets-revs";
 
 const t0 = performance.now();
 const failures: string[] = [];
@@ -71,7 +72,7 @@ const SAMPLE = [0, 7, 141, 259].map(roomSeed);
 section("Rooms deal inkRev 11; older stamps unchanged");
 {
   const live = LIVE_BANDS.inkbridge as { rev: number; strictRev?: number };
-  ok(generateInkBridge().inkRev === INK_REV_SPREAD && INK_REV_SPREAD === INK_REV_EXPAND + 1 && live.rev === INK_REV_SPREAD && live.strictRev === INK_REV_STRICT, "rooms deal inkRev 11; LIVE_BANDS measures it against inkRev 8");
+  ok(playRevOf("inkbridge", generateInkBridge().inkRev) === INK_REV_SPREAD && INK_REV_SPREAD === INK_REV_EXPAND + 1 && playRevOf("inkbridge", live.rev) === INK_REV_SPREAD && live.strictRev === INK_REV_STRICT, "rooms deal inkRev 11's play (inkRev 12 re-scores it on the arcade standard); LIVE_BANDS measures it against inkRev 8");
   ok(roundMaxFor("inkbridge") === 200 && inkWorldHFor(INK_REV_SPREAD) === INK_TALL_H, "still 200 at most, in the 674-tall world");
   const s = game.init(SAMPLE[0]!);
   ok(s.rev === INK_REV_SPREAD && s.worldH === INK_TALL_H && s.silver === 0 && s.shamrocks === 0 && s.tricks === 0 && s.stars === 0, "the state carries the taller world and the counters");
@@ -181,7 +182,7 @@ section("Scoring: the skill pay, the 200 cap, no input, random input; the help")
 section("Room identity: different logs see the same dealt run");
 for (const seed of SAMPLE.slice(0, 1)) {
   const logs = roomIdentity.logs(seed);
-  ok(roomIdentity.rev === INK_REV_SPREAD, "room identity is measured on the dealt stamp");
+  ok(roomIdentity.rev === generateInkBridge().inkRev && playRevOf("inkbridge", roomIdentity.rev) === INK_REV_SPREAD, "room identity is measured on the dealt stamp (inkRev 11's play)");
   const lists = logs.map((log) => JSON.stringify(roomIdentity.scheduleOf(seed, INK_REV_SPREAD, log)));
   ok(lists.every((l) => l === lists[0]) && lists[0]!.length > 100 && !lists[0]!.includes("wind"), `seed ${seed}: ${logs.length} logs (idle, random, weak, elite, perfect) see the same levels and features`);
   const ends = logs.map((log) => {

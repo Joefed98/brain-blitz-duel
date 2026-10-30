@@ -71,6 +71,7 @@ import { roomSeed } from "./arcade-skill-bands/games";
 import { inkOracleRun } from "./ink-x200-oracle";
 import { randomInkLog } from "./ink-x200-bands";
 import { roomIdentity } from "./room-identity/inkbridge";
+import { playRevOf } from "./scoring-targets-revs";
 
 Object.defineProperty(globalThis, "window", { configurable: true, value: { matchMedia: () => ({ matches: false }) } });
 const { INK_BCLOUD_ART, INK_PICKUP_ART } = await import("../src/lib/arcade/inkBridge.renderer");
@@ -114,7 +115,7 @@ section("Legacy identity (unstamped … inkRev 8)");
 section("inkRev 10 (390 × 674, scored to 200); rooms deal inkRev 11 since the phone notes (ink-v11-check)");
 {
   const live = LIVE_BANDS.inkbridge as { rev: number; strictRev?: number };
-  ok(generateInkBridge().inkRev === INK_REV_SPREAD && INK_REV_EXPAND === 10 && INK_REV_SPREAD === 11 && live.rev === INK_REV_SPREAD && live.strictRev === INK_REV_STRICT, "rooms deal inkRev 11 (inkRev 10's world, ink-v11-check); LIVE_BANDS measures it against inkRev 8");
+  ok(playRevOf("inkbridge", generateInkBridge().inkRev) === INK_REV_SPREAD && INK_REV_EXPAND === 10 && INK_REV_SPREAD === 11 && playRevOf("inkbridge", live.rev) === INK_REV_SPREAD && live.strictRev === INK_REV_STRICT, "rooms deal inkRev 11's play (inkRev 10's world, ink-v11-check; inkRev 12 re-scores it on the arcade standard); LIVE_BANDS measures it against inkRev 8");
   ok(roundMaxFor("inkbridge") === 200, "Rainbow Bridge's maximum is 200");
   ok(inkWorldHFor(INK_REV_EXPAND) === INK_TALL_H && INK_TALL_H === 674 && inkWorldHFor(INK_REV_STRICT) === 620 && inkWorldHFor(undefined) === 620, "the world is 674 tall on inkRev 10, 620 before");
   const s = game.init(SAMPLE[0]!);

@@ -21,6 +21,7 @@ import {
 } from "./engine";
 import { BAND_STRICT_MARK, bandStrict, bandRetarget, bandCurveOf, BAND_TARGET_MARK, bandCurve, bandInit, bandPoints, bandScoreOf, bandStep, bandTotal, BAND_FINISH_BONUS, type BandFields, type BandParts } from "./scoreBands";
 import { speedBonusCurve } from "../duel/speedPar";
+import { stdBandParts, stdCore, stdPartLine, stdSpecPart, stdSpeed, stdTotal, type StdBreakdown, type StdSpec } from "./arcadeStandard";
 import { ANG_QUARTER } from "./trig";
 import {
   FP,
@@ -51,6 +52,8 @@ import {
   ORBIT_REV_TARGET,
   ORBIT_REV_STRICT,
   ORBIT_REV_XP,
+  ORBIT_REV_STD,
+  orbitXpRev,
   inside,
   lapPhases,
   orbitBeltOffset,
@@ -583,6 +586,8 @@ export interface OrbitRev3State extends BandFields {
   moonIn?: number;
   /** orbitRev 12: the furthest a flight from planet `best` got toward planet best + 1, in sixteenths (0–15). */
   reach?: number;
+  /** orbitRev 13 only: orbitRev 12's play scored on the arcade standard (ORBIT_STD); not in the checkpoint checksum. */
+  std?: number;
   tick: number;
   rng: number;
   cur: number;
@@ -1079,6 +1084,7 @@ export function initBandFrom(planets: Planet[], worldW: number, holes: OrbitHole
 }
 
 export function orbitBandParts(state: OrbitRev3State): BandParts {
+  if (state.std) return orbitStdParts(state);
   if (state.xp) return orbitXpParts(state);
   const finished = Boolean(state.finished);
   const units = finished ? ORBIT_TOTAL : clampInt(state.best, 0, ORBIT_TOTAL);
@@ -1094,6 +1100,7 @@ export function orbitBandParts(state: OrbitRev3State): BandParts {
 }
 
 function scoreBand(state: OrbitRev3State): number {
+  if (state.std) return stdTotal(orbitStdScore(state), Boolean(state.acted));
   if (state.xp) return bandTotal(orbitBandParts(state), Boolean(state.acted), ORBIT_XP_MAX);
   return bandTotal(orbitBandParts(state), Boolean(state.acted));
 }
@@ -1247,17 +1254,18 @@ export function initStrictFrom(planets: Planet[], worldW: number, holes: OrbitHo
 
 /** The view height (px) a stored round's orbitRev is framed in (620 for every earlier revision). */
 export function orbitWorldHFor(rev?: number | null): number {
-  if (rev === ORBIT_REV_XP) return ORBIT_XP_VIEW_H;
+  if (orbitXpRev(rev)) return ORBIT_XP_VIEW_H;
   return rev === ORBIT_REV_TALL || rev === ORBIT_REV_TARGET || rev === ORBIT_REV_STRICT ? ORBIT_TALL_H : 620;
 }
 
 /** The view width (px) a stored round's orbitRev is framed in: orbitRev 12's wider view, 390 on every earlier one. */
 export function orbitWorldWFor(rev?: number | null): number {
-  return rev === ORBIT_REV_XP ? ORBIT_XP_VIEW_W : 390;
+  return orbitXpRev(rev) ? ORBIT_XP_VIEW_W : 390;
 }
 
 /** The start for a stored bank-course orbitRev (4–8), or null for an earlier one. */
 export function orbitRev3StartFor(rev: number | null | undefined, extras?: OrbitExtras | null): ((planets: Planet[], worldW: number, holes: OrbitHole[]) => OrbitRev3State) | null {
+  if (rev === ORBIT_REV_STD) return (planets, worldW, holes) => initStdFrom(planets, worldW, holes, extras ?? ORBIT_NO_EXTRAS);
   if (rev === ORBIT_REV_XP) return (planets, worldW, holes) => initXpFrom(planets, worldW, holes, extras ?? ORBIT_NO_EXTRAS);
   if (rev === ORBIT_REV_STRICT) return initStrictFrom;
   if (rev === ORBIT_REV_TARGET) return initTargetFrom;
@@ -1573,11 +1581,81 @@ export function initXpFrom(planets: Planet[], worldW: number, holes: OrbitHole[]
   };
 }
 
-/** A stored round's start from its puzzle fields (every bank-course revision, 4–12), or null for rev 3 and earlier. */
+/** A stored round's start from its puzzle fields (every bank-course revision, 4–13), or null for rev 3 and earlier. */
 export function orbitStartForPuzzle(p: { orbitRev?: number | undefined; planets?: OrbitRev3CompactPlanet[] | undefined; holes?: OrbitHoleRow[] | undefined; extras?: OrbitExtrasRow | undefined }): (() => OrbitRev3State) | null {
-  const start = orbitRev3StartFor(p.orbitRev, p.orbitRev === ORBIT_REV_XP ? decodeOrbitExtras(p.extras) : null);
+  const start = orbitRev3StartFor(p.orbitRev, orbitXpRev(p.orbitRev) ? decodeOrbitExtras(p.extras) : null);
   if (!start || !p.planets || p.planets.length === 0) return null;
   const planets = decodeRev3Planets(p.planets);
   const holes = decodeOrbitHoles(p.holes ?? []);
   return () => start(planets, ORBIT_REV3_WORLD_W, holes);
+}
+
+/* ============== The arcade scoring standard (orbitRev 13, 29 Oct 2026) ============== */
+/*
+ * orbitRev 13 plays orbitRev 12 exactly (initXpFrom plus `std: 1`, outside the checkpoint checksum, so an orbitRev 12
+ * log replays tick for tick) and scores on the arcade standard (arcadeStandard.ts, docs/arcade-standard/orbit.md):
+ *  - Planets (core) 130 on a straight line over the course's 40 planets, counted in sixteenths: a planet reached is
+ *    16 and the furthest flight from the last one reached adds the sixteenths of the way it flew toward the next
+ *    (`reach`, 0–15, orbitRev 12's partial credit); floor(130 × (16 × planets + reach) ÷ 640), full at the sun.
+ *  - Speed 20, only on reaching the sun: full with half the run (2,700 ticks, 45 s) or more left, 0 at the buzzer,
+ *    a straight line between.
+ *  - Stardust 15 (30 motes, 0.5 each), Slingshots 12 (4 moons, 3 each), Asteroid fields 12 (3 fields, 4 each),
+ *    Perfect orbits 11 (equal shares of 21, the most every course's proved witness run flies: 11/21 each).
+ * No rising scales, no pace cap; 0 with no input, at least 1 with any.
+ */
+/** The planets core counts sixteenths of a planet (orbitRev 12's partial credit): 40 × 16. */
+export const ORBIT_STD_CORE_OF = ORBIT_TOTAL * 16;
+/** Speed is full with this many ticks left (half the 90 s run). */
+export const ORBIT_STD_SPEED_FULL_LEFT = ORBIT_REV3_RUN_TICKS / 2;
+/** Perfect orbits paid in equal shares of this many (every feature-bank course's witness flies at least 21). */
+export const ORBIT_STD_PERFECT_OF = 21;
+export const ORBIT_STD: StdSpec = {
+  field: "orbitRev",
+  rev: ORBIT_REV_STD,
+  parts: [
+    { key: "core", label: "Planets", max: 130, of: ORBIT_STD_CORE_OF, item: "planet" },
+    { key: "speed", label: "Speed", max: 20, of: 1 },
+    { key: "dust", label: "Stardust", max: 15, of: ORBIT_XP_TRAILS * ORBIT_XP_MOTES, item: "mote" },
+    { key: "slings", label: "Slingshots", max: 12, of: ORBIT_XP_MOONS, item: "slingshot" },
+    { key: "fields", label: "Asteroid fields", max: 12, of: ORBIT_XP_FIELDS, item: "field" },
+    { key: "perfect", label: "Perfect orbits", max: 11, of: ORBIT_STD_PERFECT_OF, item: "perfect orbit" },
+  ],
+};
+/** orbitRev 13's core line on planets reached (whole planets; the partial flight adds its sixteenths between them). */
+export const ORBIT_V13_BAND_CURVE = bandCurve([0, ORBIT_TOTAL], [0, stdCore(ORBIT_STD).max]);
+
+const stdPart = (key: string) => stdSpecPart(ORBIT_STD, key);
+
+/** orbitRev 13's breakdown on the standard (no penalty: a crash costs only the planets it leaves unreached). */
+export function orbitStdScore(state: OrbitRev3State): StdBreakdown {
+  const finished = Boolean(state.finished);
+  const best = clampInt(state.best, 0, ORBIT_TOTAL);
+  const sixteenths = finished || best >= ORBIT_TOTAL ? ORBIT_STD_CORE_OF : best * 16 + clampInt(state.reach ?? 0, 0, 15);
+  const c = orbitXpCounts(state);
+  const left = ORBIT_REV3_RUN_TICKS - clampInt(state.endedTick, 0, ORBIT_REV3_RUN_TICKS);
+  return {
+    core: stdPartLine(stdCore(ORBIT_STD), sixteenths),
+    features: {
+      speed: finished ? stdSpeed(stdPart("speed").max, left, ORBIT_STD_SPEED_FULL_LEFT, 0) : 0,
+      dust: stdPartLine(stdPart("dust"), c.dust),
+      slings: stdPartLine(stdPart("slings"), c.slings),
+      fields: stdPartLine(stdPart("fields"), c.threads),
+      perfect: stdPartLine(stdPart("perfect"), c.perfect),
+    },
+    penalty: 0,
+  };
+}
+
+function orbitStdParts(state: OrbitRev3State): BandParts {
+  const finished = Boolean(state.finished);
+  const units = finished ? ORBIT_TOTAL : clampInt(state.best, 0, ORBIT_TOTAL);
+  const reach = finished || units >= ORBIT_TOTAL ? 0 : clampInt(state.reach ?? 0, 0, 15);
+  const c = orbitXpCounts(state);
+  const text = `${finished ? "Sun reached" : `${units} / ${ORBIT_TOTAL} planets${reach ? ` and ${reach}/16 of the next` : ""}`} · ${c.dust} dust · ${c.slings} slingshot${c.slings === 1 ? "" : "s"} · ${c.threads} threaded · ${c.perfect} perfect`;
+  return stdBandParts(ORBIT_STD, orbitStdScore(state), units, text, finished);
+}
+
+/** orbitRev 13 start: orbitRev 12's start (the same course, features and view), scored on the standard. */
+export function initStdFrom(planets: Planet[], worldW: number, holes: OrbitHole[], extras: OrbitExtras): OrbitRev3State {
+  return { ...initXpFrom(planets, worldW, holes, extras), std: 1 };
 }

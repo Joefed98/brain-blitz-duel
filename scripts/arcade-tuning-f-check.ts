@@ -173,6 +173,7 @@ section("New rounds carry the Tuning F stamps and score on the bands");
   // rallyRev 11; expansion-e9-check covers both. The arcade scoring standard (29 Oct 2026) moved it on to rallyRev 12
   // (rally-standard-check). The phone notes also moved Breaker on again, to brkRev 10
   // (expansion-e3-check section 5), Meteor on to snakeRev 10 (snake-rev10-check) and Tempo on to beatRev 10 (tempo-ease-check).
+  // The arcade scoring standard (29 Oct 2026) moved Orbit on again, to orbitRev 13, whose play (playRevOf) is orbitRev 12's.
   const movedOn: Record<string, number> = { breaker: BRK_REV_TUNEF + 5, orbit: ORBIT_REV_XP, rally: RALLY_REV_TUNEF + 7 };
   movedOn.snake = SNAKE_REV_ROCKS + 4;
   movedOn.beat = BEAT_REV_TUNEF + 5;

@@ -56,6 +56,7 @@ import {
   CROSS_KIND_MOTO,
   CROSS_KIND_ROADWORKS,
   CROSS_REV_EXPAND,
+  CROSS_REV_STD,
   CROSS_REV_STRICT,
   CROSS_X_BONUS_MAX,
   CROSS_X_BUS_FROM,
@@ -73,7 +74,7 @@ import { decodeCrossRun, replayCrossRun } from "../src/lib/duel/cross";
 import { roundMaxFor } from "../src/lib/duel/roundMax";
 import { crossStateDigest, playCrossRun, type CrossFixtureRun } from "./cross-expand-record";
 import { crossCeilingRun, crossingPath } from "./cross-ceiling";
-import { roomIdentity, uniformLog } from "./room-identity/cross";
+import { botLog, randomLog, roomIdentity, uniformLog } from "./room-identity/cross";
 import { generateCross } from "../src/lib/duel/arcade.server";
 import { bandPoints, bandTop } from "../src/lib/arcade/scoreBands";
 import { roomSeed } from "./arcade-skill-bands/games";
@@ -190,7 +191,9 @@ for (let n = 0; n < 6; n++) {
     most = Math.max(most, total);
   }
   ok(worst === CROSS_X_COINS_PER_RUN && most === CROSS_X_COINS_PER_RUN && CROSS_X_COINS_PER_RUN === 20, `every run holds exactly ${CROSS_X_COINS_PER_RUN} coins (${worst}-${most} on 60 seeds)`);
-  ok(generateCross().crossRev === CROSS_REV_EXPAND, "rooms deal crossRev 9");
+  // The arcade scoring standard (29 Oct 2026) moved rooms on to crossRev 10 (crossRev 9's courses, busier crossing by
+  // crossing, scored on the standard); arcade-standard-check covers it, and crossRev 9 replays as before here.
+  ok(generateCross().crossRev === CROSS_REV_STD, "rooms deal crossRev 10, the standard's revision on crossRev 9's world");
 }
 
 /* 4. Features through every recorded and fresh run, tick by tick. */
@@ -354,7 +357,9 @@ for (const n of [5, 17, 61]) {
 /* 8. Room identity: very different logs on one seed meet the same seeded courses and coins. */
 for (const n of [3, 77]) {
   const seed = roomSeed(n);
-  const lists = roomIdentity.logs(seed).map((log) => roomIdentity.scheduleOf(seed, CROSS_REV_EXPAND, log));
+  // crossRev 9 logs (roomIdentity.logs plays the bots on the revision rooms deal, crossRev 10 since the standard).
+  const logs = [[], randomLog(seed), botLog(seed, "weak", CROSS_REV_EXPAND), botLog(seed, "elite", CROSS_REV_EXPAND)];
+  const lists = logs.map((log) => roomIdentity.scheduleOf(seed, CROSS_REV_EXPAND, log));
   const reached = lists.map((l) => l.length);
   ok(Math.max(...reached) >= 3 && Math.min(...reached) >= 1 && new Set(reached).size >= 2, `seed ${seed}: the logs reach different crossings (${reached.join(", ")})`);
   const longest = lists.reduce((best, l) => (l.length > best.length ? l : best));

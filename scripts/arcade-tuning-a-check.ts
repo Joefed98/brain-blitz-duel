@@ -39,7 +39,7 @@ import {
   type WavState,
 } from "../src/lib/arcade/wavefront";
 import { encodeWavefrontRun, replayWavefrontRun } from "../src/lib/duel/wavefront";
-import { orbitCanSetCheckpoint, orbitCheckpoint, ORBIT_INPUT_CHECKPOINT, ORBIT_INPUT_TAP, ORBIT_REV_BAND, ORBIT_REV_TUNED, ORBIT_REV_XP, ORBIT_TOTAL, orbitPos } from "../src/lib/arcade/orbit";
+import { orbitCanSetCheckpoint, orbitCheckpoint, ORBIT_INPUT_CHECKPOINT, ORBIT_INPUT_TAP, ORBIT_REV_BAND, ORBIT_REV_TUNED, ORBIT_REV_STD, ORBIT_TOTAL, orbitPos } from "../src/lib/arcade/orbit";
 import {
   decodeOrbitHoles,
   decodeRev3Planets,
@@ -137,7 +137,8 @@ if (want("wavefront")) {
   // Taller worlds batch 1 (16 Oct 2026) moved Wavefront on to wavRev 6 (arcade-tuning-g1-check).
   // Taller worlds batch 1 moved Wavefront on to wavRev 6, and the 200 expansion (26 Oct 2026) on to wavRev 10
   // (wavefront-expand-check), which still flies the shapes (with escorts).
-  ok(generateWavefront().wavRev === WAV_REV_SHAPES + 7 && wavefrontGameFor(WAV_REV_SHAPES + 7).init(1).shaped === 1, "new Wavefront rounds are stamped wavRev 11 (the phone notes, after the expansion's wavRev 10 and the taller world's wavRev 6), still shaped");
+  // The arcade scoring standard (29 Oct 2026) deals wavRev 12, wavRev 11's play in fixed parts (playRevOf maps it to 11).
+  ok(playRevOf("wavefront", generateWavefront().wavRev) === WAV_REV_SHAPES + 7 && wavefrontGameFor(generateWavefront().wavRev).init(1).shaped === 1, "new Wavefront rounds play wavRev 11 (the phone notes, after the expansion's wavRev 10 and the taller world's wavRev 6; dealt as wavRev 12 since 29 Oct 2026), still shaped");
   ok(puzzleUsesBands({ type: "wavefront", wavRev: WAV_REV_SHAPES }) && puzzleUsesBands({ type: "wavefront", wavRev: WAV_REV_BAND }), "wavRev 3 and 4 both score on the band curve");
   for (let wave = 2; wave <= WAV_V2_WAVES; wave++) {
     const form = WAV_FORMS[wave]!;
@@ -230,7 +231,8 @@ if (want("orbit")) {
     // Tuning F (Oct 2026) moved rooms on to orbitRev 7 (rev-6 play with swept black holes), and taller worlds batch 3
     // (16 Oct 2026) to orbitRev 8 (rev 7 in a taller view); arcade-tuning-f-check and arcade-tuning-g3-check cover them.
     // The expansion to 200 (docs/expansions/x200-orbit.md) then moved rooms on to orbitRev 12; orbit-expand-check covers it.
-    ok(p.orbitRev === ORBIT_REV_XP && p.planets?.length === ORBIT_TOTAL + 1, "new Orbit rounds are stamped orbitRev 12 (the expansion to 200) with their planets");
+    // The arcade scoring standard (29 Oct 2026) then moved rooms to orbitRev 13, orbitRev 12's play on the standard.
+    ok(p.orbitRev === ORBIT_REV_STD && p.planets?.length === ORBIT_TOTAL + 1, "new Orbit rounds are stamped orbitRev 13 (orbitRev 12's play, the expansion to 200, on the arcade standard) with their planets");
   }
   const bankBySeed = new Map(ORBIT_REV3_BANK.map((e) => [e.seed, e]));
   const courses = ORBIT_HOLE_BANK.slice(0, FULL ? 40 : 6);

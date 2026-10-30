@@ -43,6 +43,7 @@ import {
   flipWorldHFor,
   FLIP_REV_EXPAND,
   FLIP_V9_BAND_CURVE,
+  FLIP_V10_BAND_CURVE,
   FLIP_REV_STRICT,
   FLIP_RUN_TICKS,
   FLIP_STARS,
@@ -121,7 +122,9 @@ const gz = <T>(url: URL): T => JSON.parse(gunzipSync(readFileSync(url)).toString
 /* 2. Stamp and wiring. */
 // Since 27 Oct 2026 rooms deal flipRev 9, flipRev 8's play on lifted curves (arcade-phone-notes-check proves it and its curve).
 ok(playRevOf("flip", LIVE_BANDS.flip.rev) === FLIP_REV_EXPAND && liveStrictRev("flip") === FLIP_REV_STRICT, "LIVE_BANDS deals flipRev 8's play and keeps flipRev 6 as its strict revision");
-ok(LIVE_BANDS.flip.curve === FLIP_V9_BAND_CURVE && FLIP_V9_BAND_CURVE.units.join() === FLIP_V8_BAND_CURVE.units.join(), "LIVE_BANDS' curve is the dealt one, on flipRev 8's units");
+// Since 29 Oct 2026 rooms deal flipRev 10 (the arcade scoring standard, arcade-standard-check proves its parts): LIVE_BANDS
+// lists its core's straight line; flipRev 9's lifted curve stays on flipRev 8's units.
+ok(LIVE_BANDS.flip.curve === FLIP_V10_BAND_CURVE && FLIP_V9_BAND_CURVE.units.join() === FLIP_V8_BAND_CURVE.units.join(), "LIVE_BANDS' curve is the dealt one (flipRev 10's); flipRev 9's is on flipRev 8's units");
 ok(playRevOf("flip", (generatePuzzle("flip") as { flipRev?: number }).flipRev) === FLIP_REV_EXPAND, "rooms deal flipRev 8's play");
 ok(roundMaxFor("flip") === 200, "Roofbound's round maximum is 200");
 ok(flipWorldHFor(FLIP_REV_EXPAND) === FLIP_V8_WORLD_H && FLIP_V8_WORLD_H === 730, "flipRev 8: the 730 px world");
@@ -298,7 +301,9 @@ const v8Runs = gz<FlipLegacyRun[]>(FLIP_RUNS_FIXTURE);
   for (const word of ["double flip", "trail", "Checkpoint", "Speed zone", "slide", "tall", "sweet spot", "sweet landing"])
     ok(new RegExp(word, "i").test(all), `the help explains ${word}`);
   ok(/\b200\b/.test(INTRO_SCORE.flip) && INTRO_SCORE.flip.length <= 90 && /sweet spots/.test(INTRO_SCORE.flip), `intro SCORE states 200 and the sweet spots: ${INTRO_SCORE.flip}`);
-  ok(/Up to 200\.$/.test(help.score) && /sweet landing/.test(help.score) && /rising scale/.test(help.score), `"?" score help: ${help.score}`);
+  // Since 29 Oct 2026 rooms deal flipRev 10 (the arcade scoring standard): the help states its parts, which total 200,
+  // with no rising scale (on flipRev 8 and 9 it ended "Up to 200." after the skill pay's rising scale).
+  ok(/the parts total 200\.$/.test(help.score) && /sweet landing/.test(help.score) && !/rising scale/.test(help.score), `"?" score help: ${help.score}`);
 }
 
 if (failures.length) {

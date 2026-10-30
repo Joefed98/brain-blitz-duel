@@ -30,7 +30,9 @@ export const STRICT_REVS: Partial<Record<LiveBandGame, number>> = Object.fromEnt
  * keeps brkRev 10's play, scored in fixed parts (breaker-standard-check proves it). Meteor snakeRev 11 keeps snakeRev 10's play
  * exactly on new scoring (snake-standard-check proves it). Slice sliceRev 11 keeps
  * sliceRev 10's play (slice-standard-check proves it). Flightpath bullRev 9
- * keeps bullRev 8's play on the standard's parts (bullseye-standard-check proves it).
+ * keeps bullRev 8's play on the standard's parts (bullseye-standard-check proves it). Ball Tracker btRev 8
+ * keeps btRev 7's play (arcade-standard-check), Rainbow Bridge inkRev 12 inkRev 11's (ink-v11-check), Orbit orbitRev 13
+ * orbitRev 12's (orbit-expand-check), Wavefront wavRev 12 wavRev 11's (wavefront-phone-check) (docs/arcade-standard/balltrack.md).
  */
 export const LIFT_REVS: Partial<Record<LiveBandGame, readonly [lift: number, play: number]>> = {
   flip: [9, 8],
@@ -48,13 +50,26 @@ export const LIFT_REVS: Partial<Record<LiveBandGame, readonly [lift: number, pla
   beat: [11, 10],
   // The arcade scoring standard (29 Oct 2026, docs/arcade-standard/bullseye.md): Flightpath bullRev 9 keeps bullRev 8's play.
   bullseye: [9, 8],
+  // The arcade scoring standard (29 Oct 2026, docs/arcade-standard/README.md, batch C): each keeps its predecessor's play.
+  balltrack: [8, 7],
+  inkbridge: [12, 11],
+  orbit: [13, 12],
+  wavefront: [12, 11],
 };
 
 /**
+ * The arcade scoring standard's score-only revisions (29 Oct 2026, src/lib/arcade/arcadeStandard.ts): type → [the
+ * revision, the revision whose play it keeps]. Roofbound flipRev 10 keeps flipRev 9's play, which is flipRev 8's.
+ */
+export const STD_REVS: Partial<Record<LiveBandGame, readonly [std: number, play: number]>> = { flip: [10, 8] };
+
+/**
  * The revision whose play a dealt revision keeps: the target and score-bands revisions map to the target's
- * predecessor, a later score-only revision (LIFT_REVS) to the revision it re-scores, any other is itself.
+ * predecessor, a later score-only revision (LIFT_REVS, STD_REVS) to the revision it re-scores, any other is itself.
  */
 export function playRevOf(type: string, rev: number | undefined | null): number | undefined | null {
+  const std = STD_REVS[type as LiveBandGame];
+  if (std && rev === std[0]) return std[1];
   const lift = LIFT_REVS[type as LiveBandGame];
   if (lift && rev === lift[0]) return lift[1];
   const pair = TARGET_REVS[type as LiveBandGame];

@@ -110,6 +110,8 @@ export const SHARDS: Record<string, string[]> = {
     "tap-log-check.tsx",
     "tiles-rings-check.ts",
     "arcade-self-replay-check.ts@1/2",
+    // Ball Tracker btRev 8's deal list: every dealt course reaches 200 (a sample at quick depth, all ~4.5 min at full), in halves.
+    "balltrack-deal-check.ts@1/2",
     "puzzle-bank-check.ts@3/4",
     // The puzzle top-up (26 Oct 2026): legacy grades, deals and the bar on 40 fresh seeds, ~95 s whole locally, in halves.
     "depth-topup-check.ts@1/2",
@@ -141,6 +143,7 @@ export const SHARDS: Record<string, string[]> = {
     // Round replays: fixture replays and moments, the serve-after-close gate, results/podium flow.
     "replay-check.ts",
     "depth-topup-check.ts@2/2",
+    "balltrack-deal-check.ts@2/2",
     "reveal-window-check.ts",
     "room-continue-check.ts",
     "signature-beat-check.ts",

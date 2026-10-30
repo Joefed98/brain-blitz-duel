@@ -69,7 +69,7 @@ import {
   TILT_X_STARS,
   TILT_X_TWO_FROM,
 } from "@/lib/arcade/tilt";
-import { BUB_SPECIAL_BLOCK, BUB_TORPEDO_HITS, BUB_V3_JOKER_BLOCK, BUB_V8_CHESTS, BUB_V11_MINE_POPS, BUB_V8_CHEST_FP, BUB_V8_FEATURE_MAX } from "@/lib/arcade/bubble";
+import { BUB_SPECIAL_BLOCK, BUB_TORPEDO_HITS, BUB_V3_JOKER_BLOCK, BUB_V8_CHESTS, BUB_V8_CHEST_FP, BUB_V8_FEATURE_MAX, BUB_V11_MINE_POPS } from "@/lib/arcade/bubble";
 import {
   MATCHUP_V3_PAR_RAW,
   MATCHUP_V9_FEATURE_MAX,
@@ -85,27 +85,62 @@ import {
   MATCHUP_V11_TREASURE_PTS,
   MATCHUP_V11_TREASURES,
 } from "@/lib/arcade/matchup";
-import { BT_V7_BALLS, BT_V7_BOOST_STEPS, BT_V7_FEATURE_MAX, BT_V7_LAST_LAND_MIN } from "@/lib/arcade/ballTrack";
-import { HOVER_CHAINS, HOVER_PICKUPS, HOVER_REACHABLE_GATES, HOVER_STARS, HOVER_STD_CENTRE, HOVER_STD_CENTRE_FULL, HOVER_STD_CENTRE_ZERO, HOVER_STD_CHAIN_SHARE, HOVER_STD_CHAIN_WHOLE, HOVER_STD_CHAINS, HOVER_STD_CORE, HOVER_STD_GOLD, HOVER_STD_MAX, HOVER_STD_TIGHT, HOVER_TIGHT_GATES, HOVER_V2_GATES_SCORE, HOVER_V2_STARS_SCORE } from "@/lib/arcade/hover";
+import { BT_STD, BT_V7_BALLS, BT_V7_BOOST_STEPS, BT_V7_FEATURE_MAX, BT_V7_LAST_LAND_MIN } from "@/lib/arcade/ballTrack";
+import { stdCore, stdFeatures, stdFeaturesHelp } from "@/lib/arcade/arcadeStandard";
+import {
+  HOVER_CENTRE_POINTS,
+  HOVER_CENTRE_TOP,
+  HOVER_CENTRE_TOL,
+  HOVER_SKILL_SLACK,
+  HOVER_CHAIN_POINTS,
+  HOVER_CHAINS,
+  HOVER_PICKUPS,
+  HOVER_REACHABLE_GATES,
+  HOVER_SKILL_MAX,
+  HOVER_SKILL_PAY,
+  HOVER_STARS,
+  HOVER_TIGHT_GATES,
+  HOVER_TIGHT_POINTS,
+  HOVER_V2_GATES_SCORE,
+  HOVER_V2_STARS_SCORE,
+  HOVER_STD_CENTRE,
+  HOVER_STD_CENTRE_FULL,
+  HOVER_STD_CENTRE_ZERO,
+  HOVER_STD_CHAIN_SHARE,
+  HOVER_STD_CHAIN_WHOLE,
+  HOVER_STD_CHAINS,
+  HOVER_STD_CORE,
+  HOVER_STD_GOLD,
+  HOVER_STD_MAX,
+  HOVER_STD_TIGHT,
+} from "@/lib/arcade/hover";
 import {
   WAV_BOSS_HP,
-  wavPrecision,
-  WAV_X_SKILL_PRECISE,
   WAV_X_CANNON_HP,
   WAV_X_CORE_DAMAGE,
   WAV_X_CORE_PERIOD,
-  WAV_X_EDGE_MAX,
+  WAV_X_SAUCERS,
   WAV_X_SHAPES,
   WAV_X_SHIELD_TICKS,
-  WAV_X_SKILL_CANNON,
-  WAV_X_SKILL_CORE,
-  WAV_X_SKILL_DROP,
-  WAV_X_SKILL_SAUCER,
   WAV_X_SPREAD_VOLLEYS,
   WAV_R11_CARRIERS,
-  WAV_R11_SKILL_PAY,
+  WAV_STD_CORE_FULL,
+  WAV_STD_LIFE_COST,
+  WAVEFRONT_STD,
 } from "@/lib/arcade/wavefront";
-import { INK_CLOUD_LEVELS, INK_FEATURE_MAX, INK_RAW_SHAMROCK, INK_RAW_SILVER, INK_RAW_STAR, INK_RAW_TRICK, INK_V11_SILVER_PER_LEVEL, INK_V11_SKILL_PAY } from "@/lib/arcade/inkBridge";
+import {
+  INK_CLOUD_LEVELS,
+  INK_STD,
+  INK_V11_SILVER_PER_LEVEL,
+  INK_V12_CORE_MAX,
+  INK_LEVELS,
+  INK_FEATURE_MAX,
+  INK_RAW_SHAMROCK,
+  INK_RAW_SILVER,
+  INK_RAW_STAR,
+  INK_RAW_TRICK,
+  INK_V11_SKILL_PAY,
+} from "@/lib/arcade/inkBridge";
 import {
   SNAKE_V9_CAPS,
   SNAKE_V9_COLS,
@@ -154,16 +189,15 @@ import {
 import { BINTOSS_FAR_THROWS, BINTOSS_V9_FAR, BINTOSS_V9_FAR_MAX, BINTOSS_V9_HOOP, BINTOSS_FAR_CAP, BINTOSS_FAR_POINTS, BINTOSS_V7_BAND_CURVE } from "@/lib/arcade/binToss";
 import { P4_PTS_COMBO, P4_PTS_JACKPOT, P4_PTS_JOULZ, P4_PTS_RAMP, P4_PTS_SKILL } from "@/lib/arcade/pinball4";
 import {
-  BULLSEYE_V8_STREAK_CAP,
-  BULLSEYE_V8_STREAK_STEP,
-  BULLSEYE_V9_DEAD_CAP,
   BULLSEYE_INNER_BULL_POINTS,
   BULLSEYE_RING_VALUES,
   BULLSEYE_V8_DEAD_CAP,
   BULLSEYE_V8_DEAD_PTS,
+  BULLSEYE_V8_STREAK_CAP,
+  BULLSEYE_V8_STREAK_STEP,
+  BULLSEYE_V9_DEAD_CAP,
 } from "@/lib/arcade/bullseye";
-import { liveStdHelp as bullseyeStdHelp, liveBandHelp, liveStdHelp } from "@/lib/arcade/liveBands";
-import { RALLY_V10_BONUS_COUNT, RALLY_V11_BONUS_LIFE, RALLY_V12_PAD_PTS, RALLY_V12_TARGET_PTS, RALLY_V10_BONUS_PTS } from "@/lib/arcade/rally";
+import { RALLY_V10_BONUS_COUNT, RALLY_V10_BONUS_PTS, RALLY_V11_BONUS_LIFE, RALLY_V12_PAD_PTS, RALLY_V12_TARGET_PTS } from "@/lib/arcade/rally";
 import {
   BURST_V9_CAPS,
   BURST_V9_CLEAR_MAX,
@@ -179,11 +213,72 @@ import {
   BURST_V10_LIFE_COST,
   BURST_V10_WAVES,
 } from "@/lib/arcade/burst";
-import { ORBIT_V12_PACE_FROM, ORBIT_V12_PACE_FULL, ORBIT_V12_SKILL_MAX, ORBIT_V12_SKILL_PACED_FROM, ORBIT_V12_SKILL_PAY, ORBIT_XP_DUST_CAP, ORBIT_XP_DUST_FULL, ORBIT_XP_FIELDS, ORBIT_XP_MOONS, ORBIT_XP_MOTES, ORBIT_XP_PERFECT_CAP, ORBIT_XP_PERFECT_PER, ORBIT_XP_SLING_CAP, ORBIT_XP_SLING_PTS, ORBIT_XP_THREAD_CAP, ORBIT_XP_THREAD_PTS, ORBIT_XP_TRAILS } from "@/lib/arcade/orbitRev3";
-import { CROSS_V9_SKILL_PAY, CROSS_X_BONUS_MAX, CROSS_X_CLOSE_MAX, CROSS_X_CLOSE_POINTS, CROSS_X_COIN_CROSSINGS, CROSS_X_COIN_POINTS, CROSS_X_COINS_PER_RUN } from "@/lib/arcade/cross";
+import { liveBandHelp, liveStdHelp as bullseyeStdHelp, liveStdHelp } from "@/lib/arcade/liveBands";
+import {
+  ORBIT_STD,
+  ORBIT_STD_PERFECT_OF,
+  ORBIT_XP_FIELDS,
+  ORBIT_XP_MOONS,
+  ORBIT_XP_TRAILS,
+  ORBIT_V12_PACE_FROM,
+  ORBIT_V12_PACE_FULL,
+  ORBIT_V12_SKILL_MAX,
+  ORBIT_V12_SKILL_PACED_FROM,
+  ORBIT_V12_SKILL_PAY,
+  ORBIT_XP_DUST_CAP,
+  ORBIT_XP_DUST_FULL,
+  ORBIT_XP_MOTES,
+  ORBIT_XP_PERFECT_CAP,
+  ORBIT_XP_PERFECT_PER,
+  ORBIT_XP_SLING_CAP,
+  ORBIT_XP_SLING_PTS,
+  ORBIT_XP_THREAD_CAP,
+  ORBIT_XP_THREAD_PTS,
+} from "@/lib/arcade/orbitRev3";
+import {
+  CROSS_STD,
+  CROSS_STD_STREAK_EACH,
+  CROSS_STD_STREAK_MAX,
+  CROSS_X_COIN_CROSSINGS,
+  CROSS_X_COINS_PER_RUN,
+  CROSS_V9_SKILL_PAY,
+  CROSS_X_BONUS_MAX,
+  CROSS_X_CLOSE_MAX,
+  CROSS_X_CLOSE_POINTS,
+  CROSS_X_COIN_POINTS,
+} from "@/lib/arcade/cross";
 import { SWING_V14_GATES, SWING_V14_GEMS, SWING_V14_PAR_POINTS, SWING_V14_PICKUP_POINTS, SWING_V14_SECTIONS, SWING_V14_STARS } from "@/lib/arcade/swing";
-import { BRK_V10_GOLD_HITS, BRK_V11_BRICKS, BRK_V11_CLEAR_POINTS, BRK_V11_CORE_MAX, BRK_V11_GOLD_MAX, BRK_V11_MAX, BRK_V11_SPEED_MAX, BRK_V9_GOLD } from "@/lib/arcade/breaker";
-import { FLIP_V8_COMBO_CAP, FLIP_V8_CP_POINTS, FLIP_V8_FEATURE_CAP, FLIP_V9_SKILL_PAY, FLIP_V8_SWEETS, FLIP_V8_SWEET_POINTS, FLIP_V8_TRAILS, FLIP_V8_TRAIL_POINTS, FLIP_V8_TRAIL_STARS, FLIP_V8_ZONE_POINTS } from "@/lib/arcade/flip";
+import {
+  BRK_V10_GOLD_HITS,
+  BRK_V9_COLS,
+  BRK_V9_COMBO_MAX,
+  BRK_V9_COMBO_X2,
+  BRK_V9_COMBO_X3,
+  BRK_V9_GOLD,
+  BRK_V9_GOLD_POINTS,
+  BRK_V9_ROWS,
+  BRK_V9_SKILL_MAX,
+  BRK_V9_SKILL_PAY,
+  BRK_V11_BRICKS,
+  BRK_V11_CLEAR_POINTS,
+  BRK_V11_CORE_MAX,
+  BRK_V11_GOLD_MAX,
+  BRK_V11_MAX,
+  BRK_V11_SPEED_MAX,
+} from "@/lib/arcade/breaker";
+import {
+  FLIP_STD,
+  FLIP_V8_SWEETS,
+  FLIP_V8_TRAILS,
+  FLIP_V8_TRAIL_STARS,
+  FLIP_V8_COMBO_CAP,
+  FLIP_V8_CP_POINTS,
+  FLIP_V8_FEATURE_CAP,
+  FLIP_V9_SKILL_PAY,
+  FLIP_V8_SWEET_POINTS,
+  FLIP_V8_TRAIL_POINTS,
+  FLIP_V8_ZONE_POINTS,
+} from "@/lib/arcade/flip";
 import { bandCurve, type BandCurve } from "@/lib/arcade/scoreBands";
 import { SNIP_X_FEATURE_MAX, SNIP_X_FEED_UNITS, SNIP_X_GOLD_RAW, SNIP_X_LEVELS, SNIP_X_PAR_MARGIN, SNIP_X_PAR_RAW, SNIP_X_PERFECT_RAW, SNIP_X_QUICK_RAW, SNIP_X_RAW_TOP, SNIP_X_SKILL_PAY, SNIP_X_STAR2_RAW, SNIP_X_STAR_UNITS } from "@/lib/arcade/snip";
 import { fillMax, liveRecord } from "./roundMax";
@@ -808,20 +903,20 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
       goal: "Get across the traffic as many times as you can.",
       how: [
         { action: "Swipe to hop.", detail: "Up goes forward; down and sideways step." },
-        { action: "Grab gold coins;", detail: "cross without a hit for a ×2–×4 streak." },
+        { action: "Grab gold coins;", detail: "cross again and again without a hit for a streak." },
         { action: "Reach the grass island:", detail: "after a hit you restart there." },
         { action: "Buses from crossing 2,", detail: "bikes and motorbikes from 3, cones from 4.", helpOnly: true },
         { action: "Buses are long and slow with small gaps:", detail: "time the gap or walk along to it. Motorbikes are narrow and very fast.", helpOnly: true },
         { action: "Bikes race along the green lanes;", detail: "cones block part of the road.", helpOnly: true },
         { action: "Three lives.", detail: "A hit sends you back to the start of this crossing, or to the island once you've reached it in that crossing.", helpOnly: true },
         { action: "Coins:", detail: `${CROSS_X_COINS_PER_RUN} a run, four on each of the first ${CROSS_X_COIN_CROSSINGS} crossings, in the riskiest lanes (two each side of the island, out near the edges); step onto one to grab it. Everyone meets the same coins in the same places.`, helpOnly: true },
-        { action: "Streak:", detail: `each crossing without a hit raises it (×2, ×3, then ×4) and adds its multiplier less 1 in streak points; a hit ends it.`, helpOnly: true },
-        { action: "Close calls:", detail: `hop into a lane just as a vehicle has passed your spot (within a tenth of a second) for ${CROSS_X_CLOSE_POINTS} skill point, once a lane each crossing, up to ${CROSS_X_CLOSE_MAX} a run.`, helpOnly: true },
-        { action: "The first two crossings", detail: "always leave wide gaps in every lane. Later traffic is tighter and faster.", helpOnly: true },
+        { action: "Streak:", detail: `each crossing without a hit straight after another one adds ${CROSS_STD_STREAK_EACH} (up to ${CROSS_STD_STREAK_MAX}); a hit ends the run of them.`, helpOnly: true },
+        { action: "Close calls:", detail: `hop into a lane just as a vehicle has passed your spot (within a tenth of a second) for 1 point, once a lane each crossing, up to 10 a run.`, helpOnly: true },
+        { action: "Busier each crossing:", detail: "the first has half the traffic, the next ones more, full traffic by crossing 4 and busier still after it. The first two always leave wide gaps; later traffic is tighter and faster.", helpOnly: true },
         { action: "After each crossing", detail: "you get a second on the kerb before the next one.", helpOnly: true },
         { action: "Only the walker counts:", detail: "traffic has to touch the figure itself (its arms' reach), not the space around it.", helpOnly: true },
       ],
-      score: `${liveBandHelp("cross", "Each row crossed counts 1 and each full crossing 2 more.", { more: "More rows and crossings" })} Skill adds up to ${CROSS_X_BONUS_MAX} more: ${CROSS_X_COIN_POINTS} a coin, the streak points and close calls. ${skillPayLine(CROSS_V9_SKILL_PAY)} The total stops at {max}.`,
+      score: `Rows and crossings: ${liveBandHelp("cross", "Each row crossed counts 1 and each full crossing 2 more.", { more: "More rows and crossings" })} ${stdFeaturesHelp(CROSS_STD, { streak: `${CROSS_STD_STREAK_EACH} for each clean crossing straight after a clean one, five of them` })}`,
     },
     dual: {
       goal: "Keep both runners alive.",
@@ -1045,14 +1140,18 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Each wave flies its own shape:", detail: `a grid, then a triangle, a circle, a pentagon and an octagon – ${WAV_X_SHAPES} ships each, with six escorts under the shapes. Waves 3 and 4 come down more slowly.`, helpOnly: true },
         { action: "From wave 2, a grey armoured ship", detail: "sits in the middle of the shape and takes 6-12 hits – every hit counts.", helpOnly: true },
         { action: "Power-ups:", detail: `in every wave ${WAV_R11_CARRIERS} ships carry one (they glow green or cyan), the same ships for everyone in a room; shoot one down and its power-up falls from where it was. Spread (green): ${WAV_X_SPREAD_VOLLEYS} volleys with two extra bolts angled out. Shield (cyan): absorbs the next hit (${WAV_X_SHIELD_TICKS / 60} s).`, helpOnly: true },
-        { action: "A saucer flies over every 15 seconds:", detail: "shoot it down for skill points; it drops the purple laser (5 shots that pierce up to 3 enemies).", helpOnly: true },
+        { action: "A saucer flies over every 15 seconds:", detail: "shoot it down for points; it drops the purple laser (5 shots that pierce up to 3 enemies).", helpOnly: true },
         { action: "After wave 3 a gunship flies in; after wave 5, the boss.", detail: `The boss comes only once wave 5 is destroyed. Each has two cannons (${WAV_X_CANNON_HP} hits each; a destroyed one stops firing) and a core that opens for half of every ${WAV_X_CORE_PERIOD / 60} s: a hit on the open core counts ${WAV_X_CORE_DAMAGE}. The boss's bar shows its ${WAV_BOSS_HP} hit points; destroying it ends the run – the sooner after it arrives, the more it scores.`, helpOnly: true },
-        { action: "Weak points pay for precision:", detail: "a hit on a cannon or the open core scores more skill points the nearer its centre it lands – most within a pixel or so.", helpOnly: true },
+        { action: "Weak points score:", detail: "each cannon you destroy and each boss whose open core you hit (once is enough) – six in a run.", helpOnly: true },
       ],
-      score: liveBandHelp("wavefront", "Ships, armour hits and boss hit points count 1, and cleared waves (the gunship too) 15.", {
+      // wavRev 12 (the arcade scoring standard, docs/arcade-standard/wavefront.md): the core and fixed parts, 200 in all.
+      score: `${liveBandHelp("wavefront", `Ships, hits and waves: ships shot, armour hits and the gunship's hit points count 1, and cleared waves (the gunship too) 15; everything before the boss counts ${WAV_STD_CORE_FULL}.`, {
         more: "More ships, hits and waves",
-        finish: `Destroying the boss adds up to 10 for speed: the full 10 within 20 s of its arrival, falling to 0 at 40 s. Skill adds up to ${WAV_X_EDGE_MAX} more: ${WAV_X_SKILL_DROP} a power-up caught, ${WAV_X_SKILL_SAUCER} a saucer, ${WAV_X_SKILL_CANNON} a cannon destroyed, ${WAV_X_SKILL_CORE} an open-core hit, and ${WAV_X_SKILL_PRECISE * wavPrecision(1)} / ${WAV_X_SKILL_PRECISE * wavPrecision(3)} / ${WAV_X_SKILL_PRECISE * wavPrecision(5)} for a weak-point hit within 1 / 3 / 5 px of its centre. ${skillPayLine(WAV_R11_SKILL_PAY)}`,
-      }),
+      })} ${stdFeaturesHelp(WAVEFRONT_STD, {
+        speed: "only with the boss destroyed: the full 10 within 20 s of its arrival, falling to 0 at 40 s",
+        saucers: `${20 / WAV_X_SAUCERS} a saucer of the ${WAV_X_SAUCERS} a run flies; destroying the boss counts those still to come`,
+        weak: "each cannon destroyed and each boss's open core hit, six in all",
+      })} Power-ups score nothing; each life lost costs ${WAV_STD_LIFE_COST} (anyone who plays scores at least 1).`,
     },
     bastion: {
       goal: "Defend the base.",
@@ -1080,15 +1179,16 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Spikes or lava on one side?", detail: "Run on the other. Cracked tiles break less than half a second after you touch them: flip off fast.", helpOnly: true },
         { action: "Moving spikes", detail: "slide to and fro along the groove under them; time your flip to their slide.", helpOnly: true },
         { action: "The cave changes height:", detail: "in a tall stretch a flip takes longer to cross, in a tight one it is quicker. From 10 seconds the cave bends too, and hazards ride the bends with you.", helpOnly: true },
-        { action: "Double flips:", detail: "flip again within about an eighth of a second of landing with a hazard close by. A triple and longer chains count more, and twice as much in a speed zone.", helpOnly: true },
+        { action: "Double flips:", detail: "flip again within about an eighth of a second of landing with a hazard close by. Each one counts, chained or not.", helpOnly: true },
         { action: "Star trails:", detail: `${FLIP_V8_TRAILS} arcs of ${FLIP_V8_TRAIL_STARS} small stars, taken in the air. Leave the surface at the chevron and your flip sweeps through them.`, helpOnly: true },
         { action: "Sweet spots:", detail: `${FLIP_V8_SWEETS} roofs carry a short, faint pale strip. Time a flip so you touch down with your feet inside it for a sweet landing; it glints. Each counts once.`, helpOnly: true },
-        { action: "Checkpoints (15, 30 and 45 s):", detail: "pass one and your next crash is saved – a second of shield, but your survival time pauses for 10 seconds.", helpOnly: true },
+        { action: "Checkpoints (15, 30 and 45 s):", detail: "pass one and your next crash is saved – a second of shield, and you run on.", helpOnly: true },
       ],
-      score: liveBandHelp("flip", "Each half second you last counts 1 and each gold star 3.", {
-        more: "More time and stars",
-        finish: `Lasting the full minute adds 10. Skill adds up to ${FLIP_V8_FEATURE_CAP} more: ${FLIP_V8_TRAIL_POINTS} a full star trail, ${FLIP_V8_SWEET_POINTS} a sweet landing, ${FLIP_V8_ZONE_POINTS} a speed zone run through without a save, ${FLIP_V8_CP_POINTS} a checkpoint reached without a crash, and double-flip combo points (up to ${FLIP_V8_COMBO_CAP}). ${skillPayLine(FLIP_V9_SKILL_PAY)}`,
-      }),
+      // flipRev 10 (the arcade scoring standard): time survived on a straight line, then the features' fixed shares.
+      score: `${liveBandHelp("flip", "Time survived: each half second you last counts 1.25.", {
+        more: "More time survived",
+        good: (u) => `lasts ${u} half seconds (${u / 2} s)`,
+      })} ${stdFeaturesHelp(FLIP_STD)}`,
     },
     junction: {
       goal: "Keep traffic moving, no crashes.",
@@ -1120,7 +1220,8 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Ink is limited", detail: "Each level has a budget, with a larger shared supply for live levels.", helpOnly: true },
         { action: "Three failed drops", detail: "and you're out.", helpOnly: true },
       ],
-      score: liveBandHelp("inkbridge", "Each level counts 10.", { more: "More levels", good: (u) => `counts ${u} – about ${Math.round(u / 10)} levels`, finish: `All ten levels adds up to 10 for speed: the full 10 with at least 45 s left, falling to 0 at the buzzer. Bonuses add up to ${INK_FEATURE_MAX} more: ${INK_RAW_STAR} an ink star, ${INK_RAW_TRICK} a trick shot, ${INK_RAW_SILVER} a silver coin and ${INK_RAW_SHAMROCK} the shamrock. ${skillPayLine(INK_V11_SKILL_PAY)}` }),
+      // inkRev 12 (the arcade scoring standard, 29 Oct 2026): levels on a straight line, fixed shares for the rest.
+      score: liveBandHelp("inkbridge", `Each level potted counts ${INK_V12_CORE_MAX / INK_LEVELS}.`, { more: "More levels", good: (u) => `pots ${u} levels`, finish: stdFeaturesHelp(INK_STD, { speed: "only with all ten levels: the full 10 with at least 45 s left, falling evenly to 0 at the buzzer" }) }),
     },
 
     burst: {
@@ -1158,7 +1259,8 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Asteroid fields:", detail: `${ORBIT_XP_FIELDS} lines of rocks across some hops. Thread the gap in the middle of the line for a bonus; hitting a rock is a crash.`, helpOnly: true },
         { action: "Perfect orbits:", detail: "let go while the gold arc still shows – during your first lap round the planet – and land in the next orbit.", helpOnly: true },
       ],
-      score: liveBandHelp("orbit", "Each planet reached counts 1, and a crash still counts the part of the way to the next planet you flew.", { more: "More planets", good: (u) => `reaches ${u} planets`, finish: `Reaching the sun adds up to 10 for speed: the full 10 with at least half the time left, falling to 0 at the buzzer. Skill adds up to ${ORBIT_V12_SKILL_MAX} more: stardust up to ${ORBIT_XP_DUST_CAP} (all of it for ${ORBIT_XP_DUST_FULL} of the ${ORBIT_XP_TRAILS * ORBIT_XP_MOTES} motes), ${ORBIT_XP_SLING_PTS} for each slingshot (up to ${ORBIT_XP_SLING_CAP}), ${ORBIT_XP_THREAD_PTS} for each field threaded (up to ${ORBIT_XP_THREAD_CAP}) and 1 for every ${ORBIT_XP_PERFECT_PER} perfect orbits (up to ${ORBIT_XP_PERFECT_CAP}). ${skillPayLine(ORBIT_V12_SKILL_PAY)} Without the sun, skill pays at most ${ORBIT_V12_SKILL_PACED_FROM}; the last ${ORBIT_V12_SKILL_MAX - ORBIT_V12_SKILL_PACED_FROM} come for reaching it fast: a share from ${ORBIT_V12_PACE_FROM / 60} s left, all of them with about ${Math.round(ORBIT_V12_PACE_FULL / 60)} s left.` }),
+      // orbitRev 13 (the arcade scoring standard): planets on a straight line to 130, then speed and the features, 200 in all.
+      score: liveBandHelp("orbit", "Each planet reached counts 1, and a crash still counts the part of the way to the next planet you flew.", { more: "More planets", good: (u) => `reaches ${u} planets`, finish: `Planets pay on a straight line, all ${stdCore(ORBIT_STD).max} at the sun. ${stdFeaturesHelp(ORBIT_STD, { speed: "only for reaching the sun: all 20 with half the time left, falling evenly to 0 at the buzzer", perfect: `an equal share for each perfect orbit, all ${stdFeatures(ORBIT_STD).find((f) => f.key === "perfect")!.max} at ${ORBIT_STD_PERFECT_OF}` })}` }),
     },
 
     snip: {
@@ -1318,7 +1420,17 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: `${BT_V7_BALLS} marbles drop, one about every 1.4 seconds`, detail: "until 49 seconds; the run lasts a minute.", helpOnly: true },
         { action: "Mid-round the bottom row moves and the cups swap colours;", detail: "the count under the board (\"20 to switch up\") gives the seconds to the next switch-up.", helpOnly: true },
       ],
-      score: liveBandHelp("balltrack", "Each marble home counts 1.", { more: "More marbles home", good: (u) => `gets ${u} marbles home`, finish: `All ${BT_V7_BALLS} home adds up to 10 for speed: the full 10 if the last marble lands by ${((BT_V7_LAST_LAND_MIN + (3600 - BT_V7_LAST_LAND_MIN) / 2) / 60).toFixed(1)} s, falling to 0 at the buzzer. Gold marbles, boosted marbles and combos add up to ${BT_V7_FEATURE_MAX} more.` }),
+      // btRev 8 (the arcade scoring standard, docs/arcade-standard/balltrack.md): marbles home on one even line, then the
+      // features' fixed shares; no speed part.
+      score: liveBandHelp("balltrack", "Each marble home counts 1.", {
+        more: "More marbles home",
+        good: (u) => `gets ${u} marbles home`,
+        finish: `Marbles home pay the same for every marble (all ${BT_V7_BALLS}: ${stdCore(BT_STD).max}). ${stdFeaturesHelp(BT_STD, {
+          gold: `an equal share for each of the ${stdFeatures(BT_STD)[0]!.of} gold marbles home`,
+          combo: "1 a marble home from the third in a row",
+          boost: `an equal share for each of the ${BT_V7_BALLS} marbles home after a speed booster`,
+        })}`,
+      }),
     },
     wordsearch: {
       goal: "Find the six hidden words in the category.",
