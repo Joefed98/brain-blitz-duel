@@ -668,7 +668,8 @@ Lovable still hosts and publishes the app (https://brain-blitz-duel.lovable.app)
   registered by bare side-effect imports, which the production build drops (`"sideEffects": false`), so the live app
   graded every standard puzzle on the older path. **Never register anything by a bare `import "./x"`.**
   standard-live-check (~3 min, `play9`) builds the app for production and plays practice rounds in Chromium and room
-  rounds on the built bundle, failing unless the server stores the standard's 150 base.
+  rounds on the built bundle, failing unless the server stores the standard's 150 base, and grades every stored arcade
+  run through the built bundle; no-side-effect-imports-check (~1 s) fails on any bare side-effect import under `src/`.
 - **Joe's phone-test notes** (27 Oct 2026, `docs/phone-notes-oct-2026/`): Fission `burstRev 9` (power-ups carried by
   seeded atoms and dropped as they split, never from the top; the golden atom bounces; BURST back as the third carried
   power-up; a wave-clear time bonus, up to 5 a wave, in place of the clean-wave and fast-wave bonuses; fission-carry-check),

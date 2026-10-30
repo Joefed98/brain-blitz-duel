@@ -20,6 +20,10 @@
  *   3. fails unless the server's stored breakdown (the grade response's parts) is a finish on the standard's 150 base,
  *      the stored score is at least 150, and any breakdown the reveal prints starts "150 + ".
  *
+ * Arcade and engine games: every stored run in replay-runs.json (all replayable arcade games and the engine games, every
+ * recorded revision) graded by the built bundle's gradeAnswer must score exactly as the source does, and a finished
+ * Mixed Signals (clashRev 10) and Tenfall (tenRev 5) run, graded by the built room grader, must be a finish of 150+.
+ *
  * Room rounds: the production bundle's own room deal (`buildRoomPuzzles`, rooms of every puzzle category from fixed
  * seeds) and room grader (`gradeRoomAnswer`, an answer received in the puzzle phase), so the room path is proved on the
  * built code too; only the database round trip is left out. The daily and challenges grade through the same function.
@@ -33,14 +37,16 @@
  *   bun scripts/standard-live-check.ts [games…] [--all] [--shots=<dir>]
  */
 import { spawn, spawnSync, type ChildProcess } from "node:child_process";
-import { existsSync, readdirSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 import type { Browser, Page } from "playwright";
 
 import { decodeSides, rotateMask, tileOpenings } from "../src/lib/duel/logic";
 import { encodePipesTapAnswer, pipesAfterTaps } from "../src/lib/duel/depth4/pipesTaps";
+import { generatePuzzle, gradeAnswer } from "../src/lib/duel/generate.server";
 import { gameDisplayName } from "../src/lib/duel/gameNames";
+import { withSeededRandom } from "../src/lib/duel/random";
 import { encodeGradient } from "../src/lib/duel/jumbled";
 import { gradientRoute } from "../src/lib/duel/jumbled.server";
 import { topsyStart, topsyTilt } from "../src/lib/duel/topsy";
@@ -53,6 +59,7 @@ import { KITS } from "./puzzle-fairness/kits";
 import type { Driver } from "./shots/driver";
 import { DRIVERS } from "./shots/drivers";
 import { wordAnswer } from "./shots/word-answers";
+import { playTenDropPerfect } from "./tendrop-depth-player";
 
 const args = process.argv.slice(2);
 const ALL = args.includes("--all");
@@ -347,11 +354,42 @@ async function roomRounds(): Promise<number> {
     if (!name) throw new Error(`no ${prefix}*.mjs in the production build`);
     return resolve(dir, name);
   };
-  const gen = (await import(chunk("generate.server-"))) as { buildRoomPuzzles: (o: object) => { puzzles: PuzzleData[] } };
+  const gen = (await import(chunk("generate.server-"))) as {
+    buildRoomPuzzles: (o: object) => { puzzles: PuzzleData[] };
+    gradeAnswer: (p: PuzzleData, a: string, ms: number) => { score: number };
+  };
   const room = (await import(chunk("roomGrade.server-"))) as {
     gradeRoomAnswer: (p: PuzzleData, r: { phase: string; phaseStartedAt: string | null; nowMs: number }, a: string, ms: number) => { graded: { score: number; isCorrect: boolean; extra?: Record<string, unknown> } };
   };
   let rounds = 0;
+  // Every stored arcade and engine run (replay-runs.json: all replayable games, every revision recorded) graded by the
+  // built bundle's gradeAnswer must score exactly what the source's does: arcade scoring is present and identical in
+  // the production build (the daily and challenges grade arcade rounds through the same function).
+  const fixture = JSON.parse(readFileSync("scripts/fixtures/replay-runs.json", "utf8")) as { runs: { type: PuzzleType; label: string; puzzle: PuzzleData; answer: string }[] };
+  const builtGrade = gen.gradeAnswer;
+  let arcadeRuns = 0;
+  for (const run of fixture.runs) {
+    const built = builtGrade(run.puzzle, run.answer, 0).score;
+    const source = gradeAnswer(run.puzzle, run.answer, 0).score;
+    if (built !== source) failures.push(`${run.type} (${run.label}): the production bundle scores the stored run ${built}, the source ${source}`);
+    arcadeRuns++;
+  }
+  report.push(`arcade       ${arcadeRuns} stored runs graded identically by the production bundle (${new Set(fixture.runs.map((r) => r.type)).size} games)`);
+  // Mixed Signals (clashRev 10) and Tenfall (tenRev 5) score the standard in their sims: a finished run on today's deal,
+  // graded by the built room grader, must be a finish of 150 or more and match the source.
+  for (const type of ["stroop", "tendrop"] as const) {
+    const p = withSeededRandom(6100, () => generatePuzzle(type, { bankSeed: 6100 }));
+    const answer = type === "tendrop" ? playTenDropPerfect((p as unknown as { seed: number }).seed, (p as unknown as { tenRev: number }).tenRev).raw : fullAnswer(type, p);
+    if (answer === null) {
+      failures.push(`${type}: no finished run to grade`);
+      continue;
+    }
+    const { graded } = room.gradeRoomAnswer(p, { phase: "reveal", phaseStartedAt: null, nowMs: Date.now() }, answer, 0);
+    const source = gradeAnswer(p, answer, 0).score;
+    const stamp = type === "tendrop" ? `tenRev ${(p as unknown as { tenRev: number }).tenRev}` : `clashRev ${(p as unknown as { clashRev: number }).clashRev}`;
+    report.push(`${type.padEnd(12)} engine score ${String(graded.score).padStart(3)}  ${graded.isCorrect ? "finished" : "unfinished"} on ${stamp} (the sim's standard score; source ${source})`);
+    if (!graded.isCorrect || graded.score < 150 || graded.score !== source) failures.push(`${type}: the production bundle graded a finished ${stamp} run ${graded.score} (finished: ${graded.isCorrect}; source ${source}), not a finish of 150 or more`);
+  }
   for (const seed of ROOM_SEEDS) {
     const { puzzles } = gen.buildRoomPuzzles({ seed, categories: ROOM_CATEGORIES });
     for (const p of puzzles) {

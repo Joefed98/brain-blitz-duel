@@ -591,5 +591,9 @@ standard-live-check (~3 min, shard `play9`) builds the app for production (Nitro
 plays practice rounds through the app in Chromium on live deals (real-UI solve drivers, else the full answer at the
 buzzer), then deals and grades room rounds through the built bundle's `buildRoomPuzzles` and `gradeRoomAnswer`; it
 fails unless the server stores a finish on the standard's 150 base. On main before the fix every round stored base 120.
-`--all` plays all 43 standard puzzles graded by the standard's modules (Mixed Signals and Tenfall score in their sims).
+`--all` plays all 43 standard puzzles graded by the standard's modules (Mixed Signals and Tenfall score in their sims). It also grades every stored run in `replay-runs.json` (157 runs, 28 arcade and engine games) through the built
+bundle's `gradeAnswer` against the source's score, and a finished Mixed Signals (`clashRev 10`) and Tenfall (`tenRev 5`)
+run through the built room grader (a finish of 150+). The daily and challenges grade through `gradeRoomAnswer`, the
+room rounds' function. no-side-effect-imports-check (~1 s) fails on any bare `import "./x"` under `src/` (stylesheets
+aside; Lovable's `src/server.ts` → `./lib/error-capture` is the one listed exception).
 
