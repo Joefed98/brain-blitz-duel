@@ -12,7 +12,7 @@
  * compares without writing. The candidate seeds are a fixed sequence, so a rebuild is byte for byte.
  */
 import { readFileSync, writeFileSync } from "node:fs";
-import { minigolfCheckpoint, minigolfCourse, minigolfCourseV2, minigolfGameFor, MG_AIM, MG_HOLE_PAUSE, MINIGOLF_HOLES, MINIGOLF_STROKE_LIMIT, type MinigolfState } from "../src/lib/arcade/minigolf";
+import { minigolfCheckpoint, minigolfCourse, minigolfCourseV2, minigolfGameFor, MG_AIM, MG_HOLE_PAUSE, MINIGOLF_HOLES, mgStrokeLimit, type MinigolfState } from "../src/lib/arcade/minigolf";
 import { recordInput, inputAt, type ArcadeInputEvent } from "../src/lib/arcade/engine";
 import { encodeMinigolfRun, replayMinigolfRun } from "../src/lib/duel/minigolf";
 import { SPORTS_CHECKPOINT_INTERVAL, type SportsCheckpoint } from "../src/lib/arcade/sportsKit";
@@ -81,7 +81,7 @@ function proveCandidate(n: number): { n: number; seed: number; pars: number[]; r
       start = r.holedTick! + MG_HOLE_PAUSE + 1;
     }
   } else routes = minigolfCourse(seed).map((h) => bestRoute(h));
-  if (routes.length < MINIGOLF_HOLES || routes.some((r) => !r || r.strokes + 1 >= MINIGOLF_STROKE_LIMIT)) return { n, seed, dropped: "a hole without a proven route under the stroke limit" };
+  if (routes.length < MINIGOLF_HOLES || routes.some((r) => !r || r.strokes + 1 >= mgStrokeLimit(REV, r.strokes + 1))) return { n, seed, dropped: "a hole without a proven route under the stroke limit" };
   const pars = routes.map((r) => r!.strokes + 1);
   const { events, state, checkpoints } = playRoutes(seed, pars, routes.map((r) => r!.putts), REV);
   const raw = encodeMinigolfRun({ seed, claimedScore: minigolfGameFor(pars, REV).score(state), events, endTick: state.tick, checkpoints });

@@ -18,7 +18,7 @@ Sports kit (`src/lib/arcade/sportsKit.ts`: integer ball physics, the run's wire 
 - Diagonal timber banks, boulders, bushes in stone planters guarding every cup, ponds, uphill ramps and cross-slopes
   (dark at the bottom, light at the crest, a bright crest edge, fading arrows pointing uphill).
 - The hardest putt carries about 300 px (8 px a tick at most), so the holes take several shots.
-- 6 strokes a hole; after the sixth the hole ends with closeness credit. Water: +1 stroke, the ball back where it was
+- 6 strokes a hole (golfRev 2: par + 3); after the last the hole ends with closeness credit. Water: +1 stroke, the ball back where it was
   played. A ball drops when its centre is inside the cup and it is moving no faster than 3.2 px a tick.
 - Par per hole = the best route the putt search (`scripts/minigolf-oracle.ts`, a beam search to 4 putts) found + 1, so
   a birdie is always possible. Rooms deal a course from the bank (`src/lib/duel/minigolfBank.server.ts`, 60 courses
@@ -107,24 +107,34 @@ score exactly 200 through the server's replay. `bun scripts/minigolf-bank.ts --r
 rebuilds byte for byte. **60 courses of 60 candidates** (none dropped); pars **3 4 4 3 5** on 41, **3 4 4 4 5** on 18,
 **3 3 4 3 5** on 1 (par 19–20); the witnesses finish in 21–24 s.
 
-**Speed** is full by **51 s** on golfRev 2 (`MINIGOLF_FULL_BY_S`; golfRev 1 keeps 50, `minigolfFullByS(rev)`): the
-near-perfect level's median finish over the runs that holed all five (51.0 s, 13 of 30).
+**Stroke limit (31 Oct 2026, still golfRev 2: not yet dealt in a live room).** golfRev 2's limit is **par + 3 a hole**
+(`mgStrokeLimit(rev, par)`: 6, 7 or 8 on its par 3, 4 and 5 holes; golfRev 1 keeps the flat six), so the par-5 finale
+leaves as much room as a par 3. Reaching it ends the hole with closeness credit as before, and par points fall evenly
+from par to the limit (three strokes on every hole). The flat six cut the near-perfect bot off on the finale, which is
+why near-perfect (148) sat below great (167) and flawless below elite. The bank was re-proved under the new limit:
+`bun scripts/minigolf-bank.ts --rev=2 --jobs=4 --check` rebuilds all 60 courses byte for byte, every witness 200
+through the server replay (a witness never reaches a limit: pars are its strokes + 1).
+
+**Speed** is full by **53 s** on golfRev 2 (`MINIGOLF_FULL_BY_S`; golfRev 1 keeps 50, `minigolfFullByS(rev)`): the
+near-perfect level's median finish over the runs that holed all five (52.9 s, 28 of 30). (Under the flat six it was
+51 s, from 13 of 30.)
 
 | Level | Median (p10–p90) | Holes holed (median) | All five holed | Median finish |
 | --- | --- | --- | --- | --- |
-| Weak | 125 (109–134) | 4 | 0/30 | – |
-| Average | 131 (120–147) | 4 | 2/30 | 88.7 s |
-| Good | 137 (123–161) | 4 | 4/30 | 74.8 s |
-| Great | 167 (134–181) | 5 | 18/30 | 58.4 s |
-| Near-perfect | 148 (136–183) | 4 | 13/30 | 51.0 s |
-| Elite | 177 (147–192) | 5 | 19/30 | 46.5 s |
-| Flawless | 175 (156–196) | 4.5 | 15/30 | 32.5 s |
+| Weak | 129 (114–139) | 4 | 1/30 | 108.3 s |
+| Average | 141 (124–158) | 4 | 9/30 | 90.3 s |
+| Good | 159 (138–168) | 5 | 21/30 | 75.6 s |
+| Great | 175.5 (160–183) | 5 | 27/30 | 59.4 s |
+| Near-perfect | 177.5 (165–185) | 5 | 28/30 | 52.9 s |
+| Elite | 185 (178–192) | 5 | 30/30 | 45.3 s |
+| Flawless | 196 (190–196) | 5 | 30/30 | 32.5 s |
 
-(`bun scripts/arcade-skill-bands.ts minigolf --levels=all --rev=now --seeds=30`, 30 golfRev 2 bank courses; the bot
-reads each putt for the moment it will be played and waits for the sails' gap with its level's timing error. Speed
-points are shown at the 51 s full-by.) As on golfRev 1, the near-perfect bot often runs out of strokes on the finale
-(and now hole 5's windmill and archway), so it holes all five less often than the great bot; the flawless bot's
-greedy planner reaches 196 at best, the oracle's witnesses 200 on every course.
+(`bun scripts/arcade-skill-bands.ts minigolf --levels=all --rev=now --seeds=30`, 30 golfRev 2 bank courses, Speed at
+the 53 s full-by.) The bot reads each putt for the moment it will be played and waits for the sails' gap with its
+level's timing error. Its competence fix (`fixes`, the band tool only; checks play the old bot): when the best lay-up
+leaves the ball where it is, it looks one putt ahead. That's the ramp under hole 5's castle gate, where every way
+out is further at first, and the bot used to nudge the ball against the slope until the hole was cut off. The flawless
+bot's greedy planner reaches 196; the oracle's witnesses reach 200 on every course.
 
 Proofs: minigolf-check (golfRev 2's bank, witnesses, courses and rules, and golfRev 1 unchanged),
 arcade-standard-check's entry (both banks' witnesses at 200).

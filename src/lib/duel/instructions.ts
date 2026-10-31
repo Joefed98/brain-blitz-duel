@@ -1048,7 +1048,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Pull back from the ball", detail: "to aim and set the power; let go to putt." },
         { action: "Par for each hole", detail: "is shown at the top; beat it for a bonus." },
         { action: "The dotted line", detail: "points where the ball will start; the pill shows the power.", helpOnly: true },
-        { action: "Six strokes a hole:", detail: "after the sixth you move on, with points for how close you finished.", helpOnly: true },
+        { action: "Par + 3 strokes a hole:", detail: "after the last you move on, with points for how close you finished.", helpOnly: true },
         { action: "Windmills:", detail: "the sails turn across the doorway. Wait for the gap, then putt through; a sail knocks the ball back.", helpOnly: true },
         { action: "Tunnels:", detail: "roll over a dark hole and the ball pops out of the outlet ringed in the same colour, heading the way its arrows point. Some holes have two, to different places.", helpOnly: true },
         { action: "Sand traps", detail: "stop the ball fast; hills push it off their top; the striped curved walls carry it round a corner; castle gates have one archway.", helpOnly: true },
