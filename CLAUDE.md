@@ -922,6 +922,22 @@ Lovable still hosts and publishes the app (https://brain-blitz-duel.lovable.app)
   30 fps (`capPuzzleFrames`; never arcade or Speed). battery-check (headless Chromium, ~2 min; `--report`,
   `--arcade=<ids> [--dpr=3]` for CPU per frame) proves idle screens at ~0 fps, loops stopping when hidden or parked, the
   ratio cap and the audio suspend.
+- **Offline practice** (31 Oct 2026, `docs/offline-practice.md`; presentation, device storage and practice grading
+  plumbing only, no game's rules, scoring or stamps changed): a hand-written service worker
+  (`src/lib/offline/sw.template.js`, written per build to `/sw.js` by `swPlugin.ts` from vite.config.ts with the build id,
+  every client file, the public files and the kept pages; production only) keeps the app, fonts, tiles, sounds and music;
+  a new build's worker waits and takes over only while the updater's gate is "now" (`serviceWorker.ts`; the updater's
+  reload hands over to it instead of unregistering it). Practice packs (`packs.ts`, `practicePackFn`: up to 10 deals a
+  game, the public half plus the server's sealed token, tied to the game's stamps, replaced when they change) are topped
+  up in the background (not with Settings' Offline practice switch off, on a metered connection or while a round is on
+  screen). A run from a pack, or with no connection, is queued in IndexedDB (`queue.ts`) and sent oldest first, after a
+  sign-in refresh, to `practiceGradeQueuedFn` (practice's own grading; a deal changed on the phone is rejected:
+  "Couldn't be confirmed"); confirmed runs update practice bests only. Arcade runs show the phone's own score as
+  provisional, puzzles "Score pending", both with a clock (`src/components/offline/`). The nine games whose stage asks
+  the server during play are online only (`ONLINE_ONLY_TYPES`, no pack). Play, Tournaments, rooms, the daily and
+  challenges show an offline state (`OnlineOnly`); a slim banner and Practice's iPhone install card are shown from
+  `<html data-offline>` / `data-offline-install` (`OFFLINE_BOOT`). offline-check (headless Chromium on a production
+  build, 414×896 and 375×667, shard `play20`, ~5 min) proves it; ~16 MB stored with every pack full.
 - `src/components/duel/` — room/round screens (PhoneShell, RoundIntro, TimerBar,
   AnswerReveal, ArcadeReveal, WinnerReveal…); `src/components/puzzles/` — shared puzzle
   widgets; `src/lib/fx/` — sound and visual feedback (presentation only).

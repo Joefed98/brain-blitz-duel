@@ -47,6 +47,7 @@ import type { PuzzleCategory } from "@/lib/duel/types";
 import { buzz } from "@/lib/motion";
 import { noteLinkArrival } from "@/lib/share/shareRef";
 import { unlockAudio } from "@/lib/sound";
+import { OnlineOnly } from "@/components/offline/OnlineOnly";
 
 export const Route = createFileRoute("/challenge")({
   ssr: false,
@@ -67,8 +68,17 @@ export const Route = createFileRoute("/challenge")({
       { name: "robots", content: "noindex" },
     ],
   }),
-  component: GatedChallengeScreen,
+  component: OfflineChallenge,
 });
+
+/** Offline practice (31 Oct 2026): with no connection, the offline state and a way to Practice. */
+function OfflineChallenge() {
+  return (
+    <OnlineOnly body="Challenges need a connection. Practice games are saved on this phone, so they still work.">
+      <GatedChallengeScreen />
+    </OnlineOnly>
+  );
+}
 
 /** The beta terms come first: shown once on this device before its first room, daily or challenge. */
 function GatedChallengeScreen() {

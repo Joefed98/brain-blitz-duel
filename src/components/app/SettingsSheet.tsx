@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 
 import { FeedbackLink } from "@/components/beta/FeedbackLink";
+import { OfflineSettingsRow } from "@/components/offline/OfflineSettingsRow";
 import { Slider } from "@/components/ui/slider";
 import { APP_BUILD_ID, buildLabel } from "@/lib/appVersion";
 import { setBatterySaver, useBatterySaver } from "@/lib/battery";
@@ -130,6 +131,10 @@ export function SettingsSheet({
             ))}
           </div>
           <span className="ap-row-sub pl-1">For games played with arrows</span>
+        </div>
+        {/* Offline practice (31 Oct 2026): storage used and the pack downloads switch. */}
+        <div className="ap-panel">
+          <OfflineSettingsRow />
         </div>
         <div className="ap-panel">
           {/* Battery saver (lib/battery.ts, off by default): fewer particles and glows, puzzles at 30 fps. */}

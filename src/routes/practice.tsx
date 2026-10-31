@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { Search } from "lucide-react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { CloudOff, Search } from "lucide-react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 
 import { AnswerReveal } from "@/components/duel/AnswerReveal";
 import { WaitingLine } from "@/components/duel/Dots";
@@ -74,6 +74,35 @@ import {
   type PracticeSide,
 } from "@/lib/duel/practiceSide";
 
+import { OfflineInstallCard } from "@/components/offline/OfflineInstallCard";
+import { OfflineRunResult } from "@/components/offline/OfflineRunResult";
+import { OfflineRuns } from "@/components/offline/OfflineRuns";
+import { PendingClock } from "@/components/offline/PendingClock";
+import { useOfflinePractice } from "@/components/offline/useOfflinePractice";
+import { isOnline, useOnline } from "@/lib/offline/online";
+import { ONLINE_ONLY_TYPES } from "@/lib/offline/offlineStatus";
+import { takePackDeal } from "@/lib/offline/packs";
+import { flushQueue, queueRun } from "@/lib/offline/queue";
+
+/** How long a live deal may take before practice falls back to a saved pack deal (a weak signal underground). */
+const LIVE_DEAL_TIMEOUT_MS = 10_000;
+
+function withTimeout<T>(work: Promise<T>, ms: number): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = window.setTimeout(() => reject(new Error("timeout")), ms);
+    work.then(
+      (value) => {
+        window.clearTimeout(timer);
+        resolve(value);
+      },
+      (error: unknown) => {
+        window.clearTimeout(timer);
+        reject(error);
+      },
+    );
+  });
+}
+
 export const Route = createFileRoute("/practice")({
   ssr: false,
   // ?game=<type>: open that game's round at once (the Play tab's Warm up tiles).
@@ -103,7 +132,7 @@ export const Route = createFileRoute("/practice")({
   component: PracticeScreen,
 });
 
-type Stage = "list" | "loading" | "intro" | "puzzle" | "reveal";
+type Stage = "list" | "loading" | "intro" | "puzzle" | "reveal" | "offline";
 
 interface Graded {
   puzzle: PuzzleData;
@@ -132,16 +161,23 @@ function useTicker(active: boolean): number {
  * Kept out of the row's accessible name (aria-hidden; the button points at it with aria-describedby),
  * so the button is always named exactly the game, before and after a best.
  */
+/** Offline practice: the games with a run waiting for the server (their rows' best carries the clock). */
+const PendingTypes = createContext<ReadonlySet<PuzzleType>>(new Set());
+
 function RowBest({ type }: { type: PuzzleType }) {
   const best = readPracticeBest(type, currentPracticeStamp(type));
+  const pending = useContext(PendingTypes).has(type);
   return (
     <span
       id={cardBestId(type)}
       aria-hidden="true"
       data-card-best={best ?? undefined}
       data-none={best === null || undefined}
+      data-pending={pending || undefined}
       className="ap-best"
     >
+      {/* Offline practice: a run of this game is waiting for the server (the best may still change). */}
+      {pending ? <PendingClock /> : null}
       {best ?? "–"}
     </span>
   );
@@ -231,6 +267,13 @@ function PracticeScreen() {
   const [newBest, setNewBest] = useState(false);
   const [run, setRun] = useState(0);
   const [helpOpen, setHelpOpen] = useState(false);
+  // Offline practice (31 Oct 2026): the pack seed of a run dealt from a saved pack (null: a live deal), the
+  // run waiting for the server whose result is on screen, and a line for a game that can't be played now.
+  const packSeed = useRef<number | null>(null);
+  const [offlineRunId, setOfflineRunId] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+  const online = useOnline();
+  const offlineStore = useOfflinePractice();
   const grading = useRef(false);
   const introCancelled = useRef(false);
   const draftAnswer = useRef("");
@@ -302,7 +345,42 @@ function PracticeScreen() {
       recorder.current = null;
       setRecording(null);
       exampleRun.current = exampleMode;
-      const made = await practiceGenerateFn({ data: { type: next, example: exampleMode } });
+      setNotice(null);
+      setOfflineRunId(null);
+      packSeed.current = null;
+      // A live deal when there is a connection; else (or when it doesn't come) a deal from the game's saved pack.
+      // A slow live deal with no saved deal to fall back on is still waited for: only a failed request (or no
+      // connection) ends in the "not saved" notice.
+      type Made = { puzzle: unknown; sealed: string };
+      let made: Made | null = null;
+      let live: Promise<Made | null> | null = null;
+      let slow = false;
+      if (isOnline() || exampleMode) {
+        live = practiceGenerateFn({ data: { type: next, example: exampleMode } }).then(
+          (m) => m as Made,
+          () => null,
+        );
+        try {
+          made = await withTimeout(live, LIVE_DEAL_TIMEOUT_MS);
+        } catch {
+          slow = true;
+        }
+      }
+      if (!made && !exampleMode) {
+        const deal = await takePackDeal(next);
+        if (deal) {
+          made = { puzzle: deal.puzzle, sealed: deal.sealed };
+          packSeed.current = deal.id;
+        }
+      }
+      if (!made && slow && live) made = await live;
+      if (!made) {
+        const name = PUZZLE_REGISTRY[next].name;
+        setNotice(ONLINE_ONLY_TYPES.has(next) ? `${name} is online only.` : `No ${name} games are saved for offline play yet.`);
+        setType(null);
+        setStage("list");
+        return;
+      }
       setPuzzle(made.puzzle as PuzzleData);
       // The best under the stamps this puzzle was actually dealt with.
       setDeviceBest(readPracticeBest(next, stampSignature(made.puzzle as PuzzleData)));
@@ -377,20 +455,50 @@ function PracticeScreen() {
       const remaining =
         clockDeadline === null ? timeLimitMs : Math.max(0, clockDeadline - Date.now());
       const wasExample = exampleRun.current;
-      const result = await practiceGradeFn({
-        data: {
+      // Offline practice: a pack deal (or any run with no connection) is queued on the phone and graded by the
+      // server when there is one; the result screen waits on it. A live deal whose answer can't be sent too.
+      const queueThisRun = async () => {
+        const run = await queueRun({
+          type: puzzle.type,
+          packSeed: packSeed.current,
           puzzle,
           sealed,
           answer,
           msRemaining: remaining,
-          clientVersion: APP_BUILD_ID,
-          extra: {
-            reactionAvgMs: meta?.reactionAvgMs,
-            correctCount: meta?.correctCount,
-            errors: meta?.errors,
+          extra: { reactionAvgMs: meta?.reactionAvgMs, correctCount: meta?.correctCount, errors: meta?.errors },
+          playedAt: Date.now(),
+          arcade: isArcadeScreenType(puzzle.type),
+        });
+        clearStageState(stateKey);
+        setOfflineRunId(run.id);
+        setStage("offline");
+        void flushQueue();
+      };
+      if (!wasExample && (packSeed.current !== null || !isOnline())) {
+        await queueThisRun();
+        return;
+      }
+      let result: Awaited<ReturnType<typeof practiceGradeFn>>;
+      try {
+        result = await practiceGradeFn({
+          data: {
+            puzzle,
+            sealed,
+            answer,
+            msRemaining: remaining,
+            clientVersion: APP_BUILD_ID,
+            extra: {
+              reactionAvgMs: meta?.reactionAvgMs,
+              correctCount: meta?.correctCount,
+              errors: meta?.errors,
+            },
           },
-        },
-      });
+        });
+      } catch (error) {
+        if (wasExample) throw error;
+        await queueThisRun();
+        return;
+      }
       const { extraJson, ...rest } = result as typeof result & { extraJson?: string | null };
       let extra: Record<string, unknown> | null = null;
       try {
@@ -495,6 +603,26 @@ function PracticeScreen() {
     const retiredRows = RETIRED_PUZZLE_TYPES.filter(
       (key) => !PREVIEW_PUZZLE_TYPES.includes(key),
     ).filter(visible);
+    // Offline practice: which games wait on the server, and (with no connection) which can't be played now.
+    const pendingTypes = new Set(offlineStore.runs.filter((r) => r.status === "queued").map((r) => r.type));
+    const offlineMark = (key: PuzzleType) => {
+      if (online || !offlineStore.loaded) return null;
+      if (ONLINE_ONLY_TYPES.has(key))
+        return (
+          <span data-online-only className="of-mark">
+            <CloudOff aria-hidden="true" />
+            Online only
+          </span>
+        );
+      if ((offlineStore.counts[key] ?? 0) === 0)
+        return (
+          <span data-none-saved className="of-mark">
+            <CloudOff aria-hidden="true" />
+            None saved
+          </span>
+        );
+      return null;
+    };
     // One row per game: a tap opens its round. The best sits in one fixed-width BEST column.
     const row = (key: PuzzleType, retired = false) => (
       <button
@@ -511,6 +639,7 @@ function PracticeScreen() {
         <span data-ellipsis aria-hidden="true" className="ap-row-title min-w-0 flex-1">
           {PUZZLE_REGISTRY[key].name}
         </span>
+        {offlineMark(key)}
         <RowBest type={key} />
       </button>
     );
@@ -541,165 +670,185 @@ function PracticeScreen() {
       side === "arcade" && arcadeFilter !== "all" && query.trim() === "" && matches.length === 0 ? arcadeGroupInfo(arcadeFilter) : null;
     return (
       <PhoneShell tabs="practice">
-        <div className="ap-stack">
-          <div className="flex flex-col gap-3">
-            <h1 className="ap-title">Practice</h1>
-            <DevKeyStatus status={demoStatus} />
-            {/* Puzzles | Arcade: one tab, two sides; the counts are the registry's active games. */}
-            <div role="group" aria-label="Game type" data-practice-switch={side} className="ap-switch">
-              {(["puzzles", "arcade"] as const).map((option) => (
-                <button
-                  key={option}
-                  type="button"
-                  aria-pressed={side === option}
-                  data-practice-side={option}
-                  data-count={SIDE_COUNTS[option]}
-                  onClick={() => setSide(option)}
-                  className="ap-switch-opt press"
-                >
-                  {option === "puzzles" ? "Puzzles" : "Arcade"}{" "}
-                  <span className="ap-switch-count">{SIDE_COUNTS[option]}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {demoKey ? (
-            <label className="ap-panel ap-row">
-              <span className="ap-row-text">
-                <span className="ap-row-title">Intro examples</span>
-                <span className="ap-row-sub whitespace-normal">
-                  Each game loads its fixed intro example, for recording demos.
-                </span>
-              </span>
-              <input
-                type="checkbox"
-                role="switch"
-                checked={exampleMode}
-                onChange={(e) => setExampleMode(e.target.checked)}
-                className="h-5 w-5 shrink-0 accent-[var(--primary)]"
-              />
-            </label>
-          ) : null}
-
-          <div className="flex flex-col gap-3">
-            <div className="relative">
-              <Search
-                aria-hidden="true"
-                className="pointer-events-none absolute left-3.5 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-[var(--ap-faint)]"
-              />
-              <input
-                type="search"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder={searchLabel}
-                aria-label={searchLabel}
-                autoComplete="off"
-                spellCheck={false}
-                className="ap-input ap-search"
-              />
-            </div>
-            {side === "puzzles" ? (
-              // All games and the six puzzle categories in the 4-column grid: none is cut off at 375 px.
-              <div role="group" aria-label="Category" className="ap-chip-grid">
-                {(["all", ...puzzleCategories().filter((category) => category !== "arcade")] as const).map((chip) => {
-                  const on = puzzleFilter === chip;
-                  return (
-                    <button
-                      key={chip}
-                      type="button"
-                      aria-pressed={on}
-                      data-practice-filter={chip}
-                      onClick={() => setPuzzleFilter(chip)}
-                      className="ap-chip th-hit press"
-                    >
-                      {chip === "all" ? null : <span aria-hidden="true" data-dot={chip} className="ap-dot" />}
-                      {chip === "all" ? "All games" : categoryLabel(chip)}
-                    </button>
-                  );
-                })}
-              </div>
-            ) : (
-              <div role="group" aria-label="Arcade group" data-cols="3" className="ap-chip-grid">
-                {ARCADE_CHIPS.map((chip) => (
+        <PendingTypes.Provider value={pendingTypes}>
+          <div className="ap-stack">
+            <div className="flex flex-col gap-3">
+              <h1 className="ap-title">Practice</h1>
+              <DevKeyStatus status={demoStatus} />
+              {/* Puzzles | Arcade: one tab, two sides; the counts are the registry's active games. */}
+              <div role="group" aria-label="Game type" data-practice-switch={side} className="ap-switch">
+                {(["puzzles", "arcade"] as const).map((option) => (
                   <button
-                    key={chip.id}
+                    key={option}
                     type="button"
-                    aria-pressed={arcadeFilter === chip.id}
-                    data-practice-filter={chip.id}
-                    data-span={chip.span}
-                    onClick={() => setArcadeFilter(chip.id)}
-                    className="ap-chip th-hit press"
+                    aria-pressed={side === option}
+                    data-practice-side={option}
+                    data-count={SIDE_COUNTS[option]}
+                    onClick={() => setSide(option)}
+                    className="ap-switch-opt press"
                   >
-                    {chip.id === "all" ? null : <span aria-hidden="true" data-dot={chip.id} className="ap-dot" />}
-                    {chip.label}
+                    {option === "puzzles" ? "Puzzles" : "Arcade"}{" "}
+                    <span className="ap-switch-count">{SIDE_COUNTS[option]}</span>
                   </button>
                 ))}
               </div>
-            )}
-          </div>
+            </div>
 
-          {recentRows.length > 0 ? (
-            <section aria-label="Recently played" data-practice-recent-list className="ap-section">
-              <h2 className="ap-section-title">Recently played</h2>
-              <div className="ap-panel ap-game-strip">
-                {recentRows.map((key) => {
-                  const best = readPracticeBest(key, currentPracticeStamp(key));
-                  return (
-                    <button
-                      key={key}
-                      type="button"
-                      data-practice-recent={key}
-                      aria-label={`${PUZZLE_REGISTRY[key].name}, recently played`}
-                      onClick={() => void load(key)}
-                      className="press"
-                    >
-                      <GameIcon type={key} size={52} />
-                      <span aria-hidden="true" className="ap-strip-name">
-                        {PUZZLE_REGISTRY[key].name}
-                      </span>
-                      <span aria-hidden="true" data-none={best === null || undefined} className="ap-strip-best">
-                        {best ?? "–"}
-                      </span>
-                    </button>
-                  );
-                })}
+            {/* Offline practice: Add to Home Screen (iPhone Safari only, shown from <html data-offline-install>). */}
+            <OfflineInstallCard />
+            {notice ? (
+              <p role="status" data-practice-notice className="ap-panel ap-empty">
+                {notice}
+              </p>
+            ) : null}
+
+            {demoKey ? (
+              <label className="ap-panel ap-row">
+                <span className="ap-row-text">
+                  <span className="ap-row-title">Intro examples</span>
+                  <span className="ap-row-sub whitespace-normal">
+                    Each game loads its fixed intro example, for recording demos.
+                  </span>
+                </span>
+                <input
+                  type="checkbox"
+                  role="switch"
+                  checked={exampleMode}
+                  onChange={(e) => setExampleMode(e.target.checked)}
+                  className="h-5 w-5 shrink-0 accent-[var(--primary)]"
+                />
+              </label>
+            ) : null}
+
+            <div className="flex flex-col gap-3">
+              <div className="relative">
+                <Search
+                  aria-hidden="true"
+                  className="pointer-events-none absolute left-3.5 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-[var(--ap-faint)]"
+                />
+                <input
+                  type="search"
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  placeholder={searchLabel}
+                  aria-label={searchLabel}
+                  autoComplete="off"
+                  spellCheck={false}
+                  className="ap-input ap-search"
+                />
               </div>
-            </section>
-          ) : null}
+              {side === "puzzles" ? (
+                // All games and the six puzzle categories in the 4-column grid: none is cut off at 375 px.
+                <div role="group" aria-label="Category" className="ap-chip-grid">
+                  {(["all", ...puzzleCategories().filter((category) => category !== "arcade")] as const).map((chip) => {
+                    const on = puzzleFilter === chip;
+                    return (
+                      <button
+                        key={chip}
+                        type="button"
+                        aria-pressed={on}
+                        data-practice-filter={chip}
+                        onClick={() => setPuzzleFilter(chip)}
+                        className="ap-chip th-hit press"
+                      >
+                        {chip === "all" ? null : <span aria-hidden="true" data-dot={chip} className="ap-dot" />}
+                        {chip === "all" ? "All games" : categoryLabel(chip)}
+                      </button>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div role="group" aria-label="Arcade group" data-cols="3" className="ap-chip-grid">
+                  {ARCADE_CHIPS.map((chip) => (
+                    <button
+                      key={chip.id}
+                      type="button"
+                      aria-pressed={arcadeFilter === chip.id}
+                      data-practice-filter={chip.id}
+                      data-span={chip.span}
+                      onClick={() => setArcadeFilter(chip.id)}
+                      className="ap-chip th-hit press"
+                    >
+                      {chip.id === "all" ? null : <span aria-hidden="true" data-dot={chip.id} className="ap-dot" />}
+                      {chip.label}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
 
-          {shown.map(({ id, label, dot, rows }) => (
-            <section key={id} aria-label={label} data-practice-group={id} className="ap-section">
-              {listHead(label, rows.length, dot)}
-              <div className="ap-panel">{rows.map((key) => row(key))}</div>
-            </section>
-          ))}
-          {emptyGroup ? (
-            <p data-practice-empty-group={emptyGroup.id} className="ap-panel ap-empty">
-              {emptyGroup.label} games are coming soon
-            </p>
-          ) : matches.length === 0 && previewRows.length === 0 && retiredRows.length === 0 ? (
-            <p className="ap-panel ap-empty">No games match</p>
-          ) : null}
+            {recentRows.length > 0 ? (
+              <section aria-label="Recently played" data-practice-recent-list className="ap-section">
+                <h2 className="ap-section-title">Recently played</h2>
+                <div className="ap-panel ap-game-strip">
+                  {recentRows.map((key) => {
+                    const best = readPracticeBest(key, currentPracticeStamp(key));
+                    return (
+                      <button
+                        key={key}
+                        type="button"
+                        data-practice-recent={key}
+                        aria-label={`${PUZZLE_REGISTRY[key].name}, recently played`}
+                        onClick={() => void load(key)}
+                        className="press"
+                      >
+                        <GameIcon type={key} size={52} />
+                        <span aria-hidden="true" className="ap-strip-name">
+                          {PUZZLE_REGISTRY[key].name}
+                        </span>
+                        <span aria-hidden="true" data-none={best === null || undefined} className="ap-strip-best">
+                          {best ?? "–"}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </section>
+            ) : null}
 
-          {previewRows.length > 0 && (
-            <section aria-label="Practice only" className="ap-section">
-              {listHead("New · practice only", previewRows.length)}
-              <div className="ap-panel">{previewRows.map((key) => row(key))}</div>
-            </section>
-          )}
+            <OfflineRuns runs={offlineStore.runs} now={Date.now()} />
 
-          {retiredRows.length > 0 && (
-            <details className="flex flex-col gap-2.5" open={query.trim() !== "" || undefined}>
-              <summary className="ap-section-title th-hit press cursor-pointer">
-                Retired ({retiredRows.length})
-              </summary>
-              <div className="ap-panel mt-2.5">{retiredRows.map((key) => row(key, true))}</div>
-            </details>
-          )}
+            {shown.map(({ id, label, dot, rows }) => (
+              <section key={id} aria-label={label} data-practice-group={id} className="ap-section">
+                {listHead(label, rows.length, dot)}
+                <div className="ap-panel">{rows.map((key) => row(key))}</div>
+              </section>
+            ))}
+            {emptyGroup ? (
+              <p data-practice-empty-group={emptyGroup.id} className="ap-panel ap-empty">
+                {emptyGroup.label} games are coming soon
+              </p>
+            ) : matches.length === 0 && previewRows.length === 0 && retiredRows.length === 0 ? (
+              <p className="ap-panel ap-empty">No games match</p>
+            ) : null}
 
-          <p className="ap-faint text-center text-[13px]">Personal bests stay on this device.</p>
-        </div>
+            {previewRows.length > 0 && (
+              <section aria-label="Practice only" className="ap-section">
+                {listHead("New · practice only", previewRows.length)}
+                <div className="ap-panel">{previewRows.map((key) => row(key))}</div>
+              </section>
+            )}
+
+            {retiredRows.length > 0 && (
+              <details className="flex flex-col gap-2.5" open={query.trim() !== "" || undefined}>
+                <summary className="ap-section-title th-hit press cursor-pointer">
+                  Retired ({retiredRows.length})
+                </summary>
+                <div className="ap-panel mt-2.5">{retiredRows.map((key) => row(key, true))}</div>
+              </details>
+            )}
+
+            <p className="ap-faint text-center text-[13px]">Personal bests stay on this device.</p>
+          </div>
+        </PendingTypes.Provider>
+      </PhoneShell>
+    );
+  }
+
+  if (stage === "offline" && type) {
+    return (
+      <PhoneShell skin="room">
+        <OfflineRunResult runId={offlineRunId} type={type} onPlayAgain={() => void load(type)} onBack={() => setStage("list")} />
       </PhoneShell>
     );
   }
