@@ -438,18 +438,19 @@ export const joinRoomFn = createServerFn({ method: "POST" })
     const slot = seat.slot;
     try {
       await insertPlayer(client, room.id, slot, context.userId, data.displayName, data.look ?? {});
+      await recordJoin(client, {
+        duel_id: room.id,
+        user_id: context.userId,
+        player_slot: slot,
+        game_index: gameIndexOf(room),
+        via,
+      });
     } catch (error) {
-      // Before the 16-player migration the database still refuses slots past 10 (seatsBefore16).
+      // Before the 16-player migration the database still refuses slots past 10 (seatsBefore16). Only insertPlayer
+      // throws RoomSeatsError; anything else, recordJoin's included, is rethrown as before.
       if (error instanceof RoomSeatsError) return { ok: false as const, message: roomFullMessage(error.seats) };
       throw error;
     }
-    await recordJoin(client, {
-      duel_id: room.id,
-      user_id: context.userId,
-      player_slot: slot,
-      game_index: gameIndexOf(room),
-      via,
-    });
     return { ok: true as const, roomId: room.id, roomCode: room.room_code };
   });
 
