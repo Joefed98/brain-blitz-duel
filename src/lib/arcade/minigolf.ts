@@ -8,7 +8,8 @@
  * and a grand finale. Pars come with the puzzle (each hole's best proven route + 1, scripts/minigolf-bank.ts), so a
  * birdie is always possible.
  *
- * Rules: 6 strokes a hole; a sixth that stays out ends the hole with closeness credit. Water costs a stroke and puts
+ * Rules: 6 strokes a hole on golfRev 1, par + 3 on golfRev 2 (mgStrokeLimit); the last that stays out ends the hole
+ * with closeness credit. Water costs a stroke and puts
  * the ball back where it was played from. A hole holed moves on to the next tee after a short pause.
  *
  * Scoring (golfRev 1, the arcade standard; arcadeStandard.ts): Holes up to 120 (24 a hole holed; an unfinished hole up
@@ -38,6 +39,14 @@ export const MINIGOLF_RUN_S = 120;
 export const MINIGOLF_RUN_TICKS = MINIGOLF_RUN_S * 60;
 export const MINIGOLF_HOLES = 5;
 export const MINIGOLF_STROKE_LIMIT = 6;
+
+/**
+ * A hole's stroke limit: 6 on golfRev 1; par + 3 on golfRev 2 (31 Oct 2026), so a par-5 finale leaves as much
+ * room for mistakes as a par 3. Reaching it ends the hole with closeness credit, as before.
+ */
+export function mgStrokeLimit(rev: number, par: number): number {
+  return rev >= 2 ? par + 3 : MINIGOLF_STROKE_LIMIT;
+}
 
 /** The world every hole is laid out in (world px); the holes grow inside it. */
 export const MINIGOLF_W = 390;
@@ -88,10 +97,10 @@ export const MG_UNDER_PTS = 4;
 export const MG_SPEED_PTS = 20;
 /**
  * Speed: full when all five are holed by this many seconds (the near-perfect skill-band median finish, measured with
- * scripts/arcade-skill-bands.ts minigolf --levels=near), 0 at the buzzer. golfRev 2: 51 s (51.0 s, 13 of 30 near-perfect
- * runs holing all five on the golfRev 2 bank, 31 Oct 2026).
+ * scripts/arcade-skill-bands.ts minigolf --levels=near), 0 at the buzzer. golfRev 2: 53 s (52.9 s, 28 of 30 near-perfect
+ * runs holing all five on the golfRev 2 bank with the par + 3 stroke limit, 31 Oct 2026; 51 s under the flat six).
  */
-export const MINIGOLF_FULL_BY_S = 51;
+export const MINIGOLF_FULL_BY_S = 53;
 /** golfRev 1's speed full-by (its near-perfect median, 30 Oct 2026). */
 export const MINIGOLF_FULL_BY_S_V1 = 50;
 /** Speed's full-by time for a revision (seconds). */
@@ -1159,10 +1168,10 @@ function stepState(prev: MinigolfState, input: ArcadeInputEvent | null): Minigol
       s.y = s.fromY;
       s.vx = 0;
       s.vy = 0;
-      if (s.strokes >= MINIGOLF_STROKE_LIMIT) endHole(s, false);
+      if (s.strokes >= mgStrokeLimit(s.rev, s.pars[s.hole]!)) endHole(s, false);
       else s.phase = MG_AIM;
     } else if (r.end === MG_END_REST) {
-      if (s.strokes >= MINIGOLF_STROKE_LIMIT) endHole(s, false);
+      if (s.strokes >= mgStrokeLimit(s.rev, s.pars[s.hole]!)) endHole(s, false);
       else s.phase = MG_AIM;
     }
   }
@@ -1197,7 +1206,8 @@ export function minigolfStdParts(s: MinigolfState): StdPart[] | null {
       core += MG_HOLE_PTS;
       const strokes = s.taken[i]!;
       const p = s.pars[i]!;
-      const pp = strokes <= p ? MG_PAR_PTS : stdLine(MG_PAR_PTS, MINIGOLF_STROKE_LIMIT - strokes, MINIGOLF_STROKE_LIMIT - p);
+      const limit = mgStrokeLimit(s.rev, p);
+      const pp = strokes <= p ? MG_PAR_PTS : stdLine(MG_PAR_PTS, limit - strokes, limit - p);
       par += pp;
       if (strokes <= p) pars++;
       if (strokes < p) {
