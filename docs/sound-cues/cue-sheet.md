@@ -387,7 +387,9 @@ Grouped by game or screen. These are the cues still missing a sound.
 | Bastion | arcade | practice only | **none** | `music_bastion` |
 | Breaker | arcade | yes | music_breaker | `music_breaker` |
 | Coral Pop | arcade | yes | music_bubble | `music_bubble` |
-| Curling | arcade | yes | music_curling | `music_curling` |
+| Crazy Golf | arcade | yes | music_minigolf | `music_minigolf` |
+| Cue Ball | arcade | yes | music_pool | `music_pool` |
+| Curl Champ | arcade | yes | music_curling | `music_curling` |
 | Dual | arcade | practice only | **none** | `music_dual` |
 | Fission | arcade | yes | music_burst | `music_burst` |
 | Five Hands | arcade | yes | music_fivehands | `music_fivehands` |
@@ -405,7 +407,6 @@ Grouped by game or screen. These are the cues still missing a sound.
 | Mahjong Solitaire | arcade | yes | music_mahjong | `music_mahjong` |
 | Meteor | arcade | yes | music_eatgrow | `music_eatgrow` |
 | Minefield | arcade | yes | music_minesweeper | `music_minesweeper` |
-| Minigolf | arcade | yes | music_minigolf | `music_minigolf` |
 | Orbit | arcade | yes | music_orbit | `music_orbit` |
 | Pinball | arcade | yes | music_pinball | `music_pinball` |
 | Rainbow Bridge | arcade | yes | music_inkbridge | `music_inkbridge` |
@@ -415,7 +416,6 @@ Grouped by game or screen. These are the cues still missing a sound.
 | Rooftop Run | arcade | practice only | **none** | `music_rooftop` |
 | Scrumper | arcade | practice only | music_snip | `music_snip` |
 | Slice | arcade | yes | music_slice | `music_slice` |
-| Speed Pool | arcade | yes | music_pool | `music_pool` |
 | Steady | arcade | practice only | **none** | `music_steady` |
 | Summit | arcade | yes | music_tripeaks | `music_tripeaks` |
 | Swerve | arcade | practice only | **none** | `music_swerve` |
@@ -1241,18 +1241,46 @@ Grouped by game or screen.
 | `bubble.jokerLand` | Coral Pop: A joker bubble lands (bubbleRev 2+) [arcade.md] |  | 0–5 | recorded sound | `bubble.jokerLand` | 680 | game event | `bubble.jokerLand` |
 | `music.bubble` | Coral Pop: music_bubble |  | loop | recorded sound | `music_bubble` | loop | music | `music_bubble` |
 
-### Curling
+### Crazy Golf
 
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
 |---|---|---|---|---|---|---|---|---|
-| `curling.release` | Curling: A stone released [batch6-sports-cards.md] |  | 8 | recorded sound | `curling.release` | 484 | game event | `curling.release` |
-| `curling.slide` | Curling: While a thrown stone travels (0.32) [batch6-sports-cards.md] |  | loop | recorded sound | `curling.slide` | loop | ambience | `curling.slide` |
-| `curling.sweep` | Curling: While the brooms are sweeping a travelling stone (0.32) [batch6-sports-cards.md] |  | loop | recorded sound | `curling.sweep` | loop | ambience | `curling.sweep` |
-| `curling.hit` | Curling: Stone on stone (at most one per 80 ms) [batch6-sports-cards.md] |  | 0–15 | recorded sound | `curling.hit` | 400 | game event | `curling.hit` |
-| `curling.board` | Curling: A moving stone goes out over a side or back board [batch6-sports-cards.md] |  | 0–5 | recorded sound | `curling.board` | 400 | game event | `curling.board` |
-| `curling.applause` | Curling: A thrown stone settles in the 4-foot or knocks a stone out [batch6-sports-cards.md] |  | 0–8 | recorded sound | `curling.applause` | 1995 | game event | `curling.applause` |
-| `curling.shot` | Curling: A thrown stone settles and takes shot (nearest the button) [batch6-sports-cards.md] |  | 0–8 | recorded sound | `curling.shot` | 998 | game event | `curling.shot` |
-| `music.curling` | Curling: music_curling |  | loop | recorded sound | `music_curling` | 39300 | music | `music_curling` |
+| `minigolf.putt` | Crazy Golf: A putt is struck [arcade.md] |  | 5–30 | recorded sound | `minigolf.putt` | 80 | game event | `minigolf.putt` |
+| `minigolf.bounce` | Crazy Golf: The ball bounces off a rail, log or (golfRev 2) a windmill sail or castle wall (a boulder or planter plays minigolf.stone) [arcade.md] |  | 0–40 | recorded sound | `minigolf.bounce` | 60 | game event | `minigolf.bounce` |
+| `minigolf.water` | Crazy Golf: The ball goes in a pond [arcade.md] |  | 0–6 | recorded sound | `minigolf.water` | 200 | game event | `minigolf.water` |
+| `minigolf.holed` | Crazy Golf: The ball drops in the cup [arcade.md] |  | 0–5 | recorded sound | `minigolf.holed` | 200 | game event | `minigolf.holed` |
+| `minigolf.birdie` | Crazy Golf: A hole holed under par [arcade.md] |  | 0–5 | recorded sound | `minigolf.birdie` | 300 | game event | `minigolf.birdie` |
+| `minigolf.stone` | Crazy Golf: The ball bounces off a boulder or a planter [arcade.md] |  | 0–20 | recorded sound | `minigolf.stone` | 300 | game event | `minigolf.stone` |
+| `minigolf.roll` | Crazy Golf: While the ball rolls (0.32) [batch6-sports-cards.md] |  | loop | recorded sound | `minigolf.roll` | loop | ambience | `minigolf.roll` |
+| `minigolf.bush` | Crazy Golf: The ball strikes a planter's bush (with minigolf.stone; at most one per 120 ms) [batch6-sports-cards.md] |  | 0–10 | recorded sound | `minigolf.bush` | 439 | game event | `minigolf.bush` |
+| `music.minigolf` | Crazy Golf: music_minigolf |  | loop | recorded sound | `music_minigolf` | 52200 | music | `music_minigolf` |
+
+### Cue Ball
+
+| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
+|---|---|---|---|---|---|---|---|---|
+| `pool.click` | Cue Ball: Ball meets ball [arcade.md] |  | 10–60 | recorded sound | `pool.click` | 200 | game event | `pool.click` |
+| `pool.pocket` | Cue Ball: A ball drops into a pocket (the cue ball too): poolRev 1 on the drop, poolRev 2 as the rolling ball reaches the mouth, 10 ticks into its 18-tick drop (POOL_DROP_MOUTH_TICKS, pool.renderer.ts) (without its file: shared.celebrate.countDing, 0.9, as before) [batch6-sports-cards.md] |  | 5–12 | recorded sound | `pool.pocket` | 908 | game event | `pool.pocket` |
+| `pool.foul` | Cue Ball: A foul (without its file: shared.celebrate.zap, 0.7, as before) [batch6-sports-cards.md] |  | 0–5 | recorded sound | `pool.foul` | 484 | game event | `pool.foul` |
+| `pool.blackWin` | Cue Ball: The black potted after every spot (without its file: shared.celebrate.chime, as before) [batch6-sports-cards.md] |  | 0–1 | recorded sound | `pool.blackWin` | 1327 | game event | `pool.blackWin` |
+| `pool.chalk` | Cue Ball: The run starts [batch6-sports-cards.md] |  | 1 | recorded sound | `pool.chalk` | 733 | game event | `pool.chalk` |
+| `pool.cueSoft` | Cue Ball: A shot under 55 % of the cue's speed range [batch6-sports-cards.md] |  | 5–20 | recorded sound | `pool.cueSoft` | 400 | game event | `pool.cueSoft` |
+| `pool.cueHard` | Cue Ball: A power shot (55 % of the range or more) [batch6-sports-cards.md] |  | 2–15 | recorded sound | `pool.cueHard` | 400 | game event | `pool.cueHard` |
+| `pool.cushion` | Cue Ball: A ball hits a cushion (at most one per 60 ms) [batch6-sports-cards.md] |  | 10–60 | recorded sound | `pool.cushion` | 300 | game event | `pool.cushion` |
+| `music.pool` | Cue Ball: music_pool |  | loop | recorded sound | `music_pool` | 49100 | music | `music_pool` |
+
+### Curl Champ
+
+| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
+|---|---|---|---|---|---|---|---|---|
+| `curling.release` | Curl Champ: A stone released (curlRev 2: the swipe-up throw) [batch6-sports-cards.md] |  | 8 | recorded sound | `curling.release` | 484 | game event | `curling.release` |
+| `curling.slide` | Curl Champ: While a thrown stone travels (0.32) [batch6-sports-cards.md] |  | loop | recorded sound | `curling.slide` | loop | ambience | `curling.slide` |
+| `curling.sweep` | Curl Champ: While broom strokes keep coming on a travelling stone, held 1/3 s after the last (curlRev 1's sweeps and curlRev 2's brushing on either side; 0.32) [batch6-sports-cards.md] |  | loop | recorded sound | `curling.sweep` | loop | ambience | `curling.sweep` |
+| `curling.hit` | Curl Champ: Stone on stone (at most one per 80 ms) [batch6-sports-cards.md] |  | 0–15 | recorded sound | `curling.hit` | 400 | game event | `curling.hit` |
+| `curling.board` | Curl Champ: A moving stone goes out over a side or back board [batch6-sports-cards.md] |  | 0–5 | recorded sound | `curling.board` | 400 | game event | `curling.board` |
+| `curling.applause` | Curl Champ: A thrown stone settles in the 4-foot or knocks a stone out [batch6-sports-cards.md] |  | 0–8 | recorded sound | `curling.applause` | 1995 | game event | `curling.applause` |
+| `curling.shot` | Curl Champ: A thrown stone settles and takes shot (nearest the button) [batch6-sports-cards.md] |  | 0–8 | recorded sound | `curling.shot` | 998 | game event | `curling.shot` |
+| `music.curling` | Curl Champ: music_curling |  | loop | recorded sound | `music_curling` | 39300 | music | `music_curling` |
 
 ### Fission
 
@@ -1491,20 +1519,6 @@ Grouped by game or screen.
 | `minesweeper.unflag` | Minefield: A flag is lifted [batch6-sports-cards.md] |  | 0–10 | recorded sound | `minesweeper.unflag` | 350 | game event | `minesweeper.unflag` |
 | `music.minesweeper` | Minefield: music_minesweeper |  | loop | recorded sound | `music_minesweeper` | 55900 | music | `music_minesweeper` |
 
-### Minigolf
-
-| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
-|---|---|---|---|---|---|---|---|---|
-| `minigolf.putt` | Minigolf: A putt is struck [arcade.md] |  | 5–30 | recorded sound | `minigolf.putt` | 80 | game event | `minigolf.putt` |
-| `minigolf.bounce` | Minigolf: The ball bounces off a rail, log, boulder or planter [arcade.md] |  | 0–40 | recorded sound | `minigolf.bounce` | 60 | game event | `minigolf.bounce` |
-| `minigolf.water` | Minigolf: The ball goes in a pond [arcade.md] |  | 0–6 | recorded sound | `minigolf.water` | 200 | game event | `minigolf.water` |
-| `minigolf.holed` | Minigolf: The ball drops in the cup [arcade.md] |  | 0–5 | recorded sound | `minigolf.holed` | 200 | game event | `minigolf.holed` |
-| `minigolf.birdie` | Minigolf: A hole holed under par [arcade.md] |  | 0–5 | recorded sound | `minigolf.birdie` | 300 | game event | `minigolf.birdie` |
-| `minigolf.stone` | Minigolf: The ball bounces off a boulder or a planter [arcade.md] |  | 0–20 | recorded sound | `minigolf.stone` | 300 | game event | `minigolf.stone` |
-| `minigolf.roll` | Minigolf: While the ball rolls (0.32) [batch6-sports-cards.md] |  | loop | recorded sound | `minigolf.roll` | loop | ambience | `minigolf.roll` |
-| `minigolf.bush` | Minigolf: The ball strikes a planter's bush (with minigolf.stone; at most one per 120 ms) [batch6-sports-cards.md] |  | 0–10 | recorded sound | `minigolf.bush` | 439 | game event | `minigolf.bush` |
-| `music.minigolf` | Minigolf: music_minigolf |  | loop | recorded sound | `music_minigolf` | 52200 | music | `music_minigolf` |
-
 ### Orbit
 
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
@@ -1634,20 +1648,6 @@ Grouped by game or screen.
 | `slice.slow` | Slice: Mustard slow-motion starts [arcade.md] |  | 0–3 | recorded sound | `slice.slow` | 479 | game event | `slice.slow` |
 | `slice.comboUp` | Slice: A combo grows past 1 [arcade.md] |  | 5–20 | recorded sound | `arc_slice_combo` (shared) | 721 | game event | `slice.comboUp` |
 | `music.slice` | Slice: music_slice |  | loop | recorded sound | `music_slice` | loop | music | `music_slice` |
-
-### Speed Pool
-
-| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
-|---|---|---|---|---|---|---|---|---|
-| `pool.click` | Speed Pool: Ball meets ball [arcade.md] |  | 10–60 | recorded sound | `pool.click` | 200 | game event | `pool.click` |
-| `pool.pocket` | Speed Pool: A ball drops into a pocket (the cue ball too) (without its file: shared.celebrate.countDing, 0.9, as before) [batch6-sports-cards.md] |  | 5–12 | recorded sound | `pool.pocket` | 908 | game event | `pool.pocket` |
-| `pool.foul` | Speed Pool: A foul (without its file: shared.celebrate.zap, 0.7, as before) [batch6-sports-cards.md] |  | 0–5 | recorded sound | `pool.foul` | 484 | game event | `pool.foul` |
-| `pool.blackWin` | Speed Pool: The black potted after every spot (without its file: shared.celebrate.chime, as before) [batch6-sports-cards.md] |  | 0–1 | recorded sound | `pool.blackWin` | 1327 | game event | `pool.blackWin` |
-| `pool.chalk` | Speed Pool: The run starts [batch6-sports-cards.md] |  | 1 | recorded sound | `pool.chalk` | 733 | game event | `pool.chalk` |
-| `pool.cueSoft` | Speed Pool: A shot under 55 % of the cue's speed range [batch6-sports-cards.md] |  | 5–20 | recorded sound | `pool.cueSoft` | 400 | game event | `pool.cueSoft` |
-| `pool.cueHard` | Speed Pool: A power shot (55 % of the range or more) [batch6-sports-cards.md] |  | 2–15 | recorded sound | `pool.cueHard` | 400 | game event | `pool.cueHard` |
-| `pool.cushion` | Speed Pool: A ball hits a cushion (at most one per 60 ms) [batch6-sports-cards.md] |  | 10–60 | recorded sound | `pool.cushion` | 300 | game event | `pool.cushion` |
-| `music.pool` | Speed Pool: music_pool |  | loop | recorded sound | `music_pool` | 49100 | music | `music_pool` |
 
 ### Summit
 

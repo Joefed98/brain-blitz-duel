@@ -85,11 +85,11 @@ when the run starts. Rooms deal Pinball since 14 Oct 2026; Junction is practice 
 | `burst.powerUp` | Fission | A shield or burst power-up is caught | `arc_retro_pickup` | 1–5 | 100 ms |
 | `burst.freezeCaught` | Fission | A FREEZE icon is caught (burstRev 2+) | `arc_retro_coin` (0.8) | 0–3 | 120 ms |
 | `burst.shot` | Fission | A shot is fired (at most one per 70 ms, two at once) | `arc_retro_blip` (0.6, overlapping) | 50–200 | 50 ms |
-| `minigolf.putt` | Minigolf | A putt is struck | `arc_wood_knock` (0.8) | 5–30 | 80 ms |
-| `minigolf.bounce` | Minigolf | The ball bounces off a rail, log, boulder or planter | `arc_bounce` (0.6) | 0–40 | 60 ms |
-| `minigolf.water` | Minigolf | The ball goes in a pond | `arc_sea_pop` (0.9) | 0–6 | 200 ms |
-| `minigolf.holed` | Minigolf | The ball drops in the cup | `arc_marble_clink` | 0–5 | 200 ms |
-| `minigolf.birdie` | Minigolf | A hole holed under par | `arc_fair_bell` (0.8) | 0–5 | 300 ms |
+| `minigolf.putt` | Crazy Golf | A putt is struck | `arc_wood_knock` (0.8) | 5–30 | 80 ms |
+| `minigolf.bounce` | Crazy Golf | The ball bounces off a rail, log or (golfRev 2) a windmill sail or castle wall (a boulder or planter plays `minigolf.stone`) | `arc_bounce` (0.6) | 0–40 | 60 ms |
+| `minigolf.water` | Crazy Golf | The ball goes in a pond | `arc_sea_pop` (0.9) | 0–6 | 200 ms |
+| `minigolf.holed` | Crazy Golf | The ball drops in the cup | `arc_marble_clink` | 0–5 | 200 ms |
+| `minigolf.birdie` | Crazy Golf | A hole holed under par | `arc_fair_bell` (0.8) | 0–5 | 300 ms |
 | `bintoss.basket` | Swish | A throw goes in | `arc_fair_bucket` | 3–10 | 200 ms |
 | `bintoss.allBaskets` | Swish | The last throw goes in with every throw in | `arc_fair_bell` | 0–1 | 400 ms |
 | `bintoss.missBounce` | Swish | A throw misses | `arc_bounce` (0.7) | 0–7 | 80 ms |
@@ -138,9 +138,9 @@ when the run starts. Rooms deal Pinball since 14 Oct 2026; Junction is practice 
 | `racing.wall` | Apex | The car hits the tyre wall | `arc_crash` | 0–10 | 200 ms |
 | `racing.grass` | Apex | The car runs onto the grass or gravel | `arc_bounce` | 0–20 | 150 ms |
 | `racing.finish` | Apex | The finish line after lap 2 | `arc_fair_sting` | 0–1 | 480 ms |
-| `minigolf.stone` | Minigolf | The ball bounces off a boulder or a planter | `arc_bounce` (0.6) | 0–20 | 300 ms |
+| `minigolf.stone` | Crazy Golf | The ball bounces off a boulder or a planter | `arc_bounce` (0.6) | 0–20 | 300 ms |
 | `freekick.wall` | Top Bins | The wall blocks the kick | `arc_wood_knock` (0.65, rate 0.85) | 0–10 | 300 ms |
-| `pool.click` | Speed Pool | Ball meets ball | `tick` (0.5, overlapping) | 10–60 | 200 ms |
+| `pool.click` | Cue Ball | Ball meets ball | `tick` (0.5, overlapping) | 10–60 | 200 ms |
 | `minesweeper.reveal` | Minefield | A tap opens a square (or a few) | `tick` (0.6) | 20–80 | 80 ms |
 | `minesweeper.cascade` | Minefield | A tap opens six or more squares (an area opens) | `tick` (0.6) | 2–10 | 604 ms |
 | `minesweeper.flag` | Minefield | A flag is placed | `tick` (0.35) | 5–25 | 300 ms |

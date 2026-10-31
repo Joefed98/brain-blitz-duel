@@ -17,6 +17,11 @@
  *     run (no idle suspend mid-run); hiding the app suspends it and returning resumes it with the same loop and bed
  *     sources (paused, never stopped or restarted); once they stop, the context is suspended after the idle delay, and
  *     the next loop wakes it; Racing's engine pitch reaches the playing loop.
+ *  7. The games' rev-2 moments, through the real observers on sim states (the stubbed context records what plays):
+ *     Apex racingRev 2 plays racing_light on each of the five red lights and racing_go once at lights out (racingRev 1:
+ *     racing_go on the first throttle, no lights); Cue Ball poolRev 2's pocket sounds as the potted ball reaches the
+ *     mouth (POOL_DROP_MOUTH_TICKS after its drop), poolRev 1's on the drop; Curl Champ's brooms start with the strokes
+ *     and stop a third of a second after the last; its release sounds on the throw.
  *
  *   bun scripts/sound-batch6-check.ts
  */
@@ -325,6 +330,100 @@ sound.ensureCueLoop("curling.slide", 0.32);
 await advance(10);
 check(sound.audioPowerState().state === "running" && live("/sounds/curling_slide_loop.mp3").length === 1, "power: the next loop wakes the context and plays");
 sound.stopCueLoop("curling.slide", 0);
+
+/* ------------------------------------------------------- 7. rev-2 moments */
+
+sound.installSoundCueBridge();
+const { racingSounds, poolSounds, curlingSounds } = await import("../src/lib/fx/gameSounds");
+const { racingGameFor, RACING_V2_GO, RACING_V2_LIGHTS, RACING_INPUT_STICK } = await import("../src/lib/arcade/racing");
+const { poolGameFor } = await import("../src/lib/arcade/pool");
+const { POOL_DROP_MOUTH_TICKS } = await import("../src/lib/arcade/pool.renderer");
+const { curlingGameFor } = await import("../src/lib/arcade/curling");
+for (let i = 0; i < 200 && !["racing.light", "pool.pocket", "curling.sweep"].every((id) => sound.soundDiagnostics().loaded.includes(id)); i++) await flush();
+const plays = (file: string) => sources.filter((x) => x.url === `/sounds/${file}.mp3`).length;
+const playing = (file: string) => sources.some((x) => x.url === `/sounds/${file}.mp3` && !x.stopped);
+const settle = async () => {
+  for (let i = 0; i < 3; i++) await flush();
+};
+
+// Apex: racingRev 2's lights, racingRev 1's throttle.
+{
+  const game = racingGameFor(2);
+  const obs = racingSounds();
+  let st = game.init(7);
+  const before = { light: plays("racing_light"), go: plays("racing_go") };
+  let goAt = -1;
+  for (let t = 0; t < RACING_V2_GO + 30; t++) {
+    st = game.step(st, null);
+    const goes = plays("racing_go");
+    obs.frame(st, true);
+    await settle();
+    if (plays("racing_go") > goes && goAt < 0) goAt = st.tick;
+  }
+  obs.stop();
+  check(plays("racing_light") - before.light === RACING_V2_LIGHTS, `Apex rev 2: racing_light on each of the ${RACING_V2_LIGHTS} lights (${plays("racing_light") - before.light})`);
+  check(plays("racing_go") - before.go === 1 && goAt === RACING_V2_GO, `Apex rev 2: racing_go once, at lights out (tick ${goAt}, lights out ${RACING_V2_GO})`);
+  const game1 = racingGameFor(1);
+  const obs1 = racingSounds();
+  let s1 = game1.init(7);
+  const b1 = { light: plays("racing_light"), go: plays("racing_go") };
+  for (let t = 0; t < 120; t++) {
+    s1 = game1.step(s1, t === 90 ? { k: RACING_INPUT_STICK, a: 0, b: 100, c: 0 } : null);
+    obs1.frame(s1, true);
+    await settle();
+    if (t === 80) check(plays("racing_go") === b1.go, "Apex rev 1: no racing_go before the first throttle");
+  }
+  obs1.stop();
+  check(plays("racing_go") - b1.go === 1 && plays("racing_light") === b1.light, "Apex rev 1: racing_go on the first throttle, no lights");
+}
+
+// Cue Ball: poolRev 2 at the mouth, poolRev 1 on the drop.
+for (const rev of [2, 1]) {
+  const base = poolGameFor(rev).init(3);
+  const obs = poolSounds();
+  obs.frame(base, true);
+  const before = plays("pool_pocket");
+  const at = 200;
+  let soundedAt = -1;
+  for (let t = at - 2; t <= at + POOL_DROP_MOUTH_TICKS + 4; t++) {
+    const dropped = t >= at;
+    const balls = base.balls.map((b, i) => (i === 1 && dropped ? { ...b, down: 1, ...(rev === 2 ? { downAt: at } : {}) } : b));
+    const state = { ...base, tick: t, balls, pots: base.pots + (dropped ? 1 : 0), potTick: dropped ? at : base.potTick };
+    const n = plays("pool_pocket");
+    obs.frame(state, true);
+    await settle();
+    if (plays("pool_pocket") > n && soundedAt < 0) soundedAt = t;
+  }
+  obs.stop();
+  const want = rev === 2 ? at + POOL_DROP_MOUTH_TICKS : at;
+  check(plays("pool_pocket") - before === 1 && soundedAt === want, `Cue Ball poolRev ${rev}: pool_pocket once at tick ${want} (got ${soundedAt})`);
+}
+
+// Curl Champ: the release on the throw, the brooms with the strokes.
+{
+  const base = curlingGameFor(2).init(5);
+  const obs = curlingSounds();
+  obs.frame(base, true);
+  const rel = plays("curling_release");
+  let st = { ...base, tick: base.tick + 1, thrown: base.thrown + 1, active: 0 };
+  obs.frame(st, true);
+  await settle();
+  check(plays("curling_release") - rel === 1, "Curl Champ: curling_release on the throw");
+  let sweepOnAt = -1;
+  let sweepOffAt = -1;
+  for (let t = 2; t < 90; t++) {
+    // Strokes every 4 ticks (the stage's 70 ms) from tick 10 to tick 40, then none.
+    const stroke = t >= 10 && t <= 40 && t % 4 === 2;
+    st = { ...st, tick: base.tick + t, sweeps: st.sweeps + (stroke ? 1 : 0) };
+    obs.frame(st, true);
+    await settle();
+    if (sweepOnAt < 0 && playing("curling_sweep_loop")) sweepOnAt = t;
+    if (sweepOnAt >= 0 && sweepOffAt < 0 && !playing("curling_sweep_loop")) sweepOffAt = t;
+  }
+  obs.stop();
+  check(sweepOnAt === 10, `Curl Champ: the sweep loop starts with the first stroke (tick ${sweepOnAt})`);
+  check(sweepOffAt > 40 && sweepOffAt <= 40 + 21, `Curl Champ: the sweep loop held through the strokes and off a third of a second after the last (tick ${sweepOffAt})`);
+}
 
 console.log(
   `sound-batch6-check: ${rows.length} files, ${listed.size} slots, ${(totalBytes / 1e6).toFixed(2)} MB; ${passes} assertions.`,

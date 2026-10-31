@@ -37,9 +37,10 @@ import type { BubState } from "@/lib/arcade/bubble";
 import { SLICE_SPECIAL_NONE, type SliceState } from "@/lib/arcade/slice";
 import { SNIP_EATEN, type SnipState } from "@/lib/arcade/snip";
 import { arenaLight } from "@/lib/arcade/arenaFills.renderer";
+import { POOL_DROP_MOUTH_TICKS } from "@/lib/arcade/pool.renderer";
 import { MG_AIM, MG_BALL_R, MG_ROLL, MG_STOP_V, type MinigolfState } from "@/lib/arcade/minigolf";
 import { POOL_AIM, POOL_CUE, POOL_MAX_V, POOL_MIN_V, POOL_ROLL, type PoolState } from "@/lib/arcade/pool";
-import { curlShotTeam, curlTakeouts, SWEEP_DECAY, TEAM_MINE, type CurlingState } from "@/lib/arcade/curling";
+import { curlShotTeam, curlTakeouts, TEAM_MINE, type CurlingState } from "@/lib/arcade/curling";
 import type { MinesState } from "@/lib/arcade/minesweeper";
 import type { MahjongState } from "@/lib/arcade/mahjong";
 import { fcHomeCount, type FcState } from "@/lib/arcade/cards/freecell";
@@ -1049,7 +1050,15 @@ export function poolSounds(): GameSounds<PoolState> {
         }
         if (state.hits > prev.hits) sfx("pool.click", "tick", 0.5, 1, true);
         if (state.cushionTick !== prev.cushionTick) effectCue("pool.cushion", 60);
-        if (state.pots > prev.pots || state.scratches > prev.scratches) ownCue("pool.pocket", "shared.celebrate.countDing", 0.9);
+        // poolRev 2 rolls a potted ball into the mouth before it drops away (the art, from its drop tick): the pocket
+        // sounds as it reaches the mouth. poolRev 1 sounds on the drop itself.
+        if (state.rev >= 2) {
+          for (const b of state.balls) {
+            if (b.downAt === undefined) continue;
+            const at = b.downAt + POOL_DROP_MOUTH_TICKS;
+            if (prev.tick < at && state.tick >= at) ownCue("pool.pocket", "shared.celebrate.countDing", 0.9);
+          }
+        } else if (state.pots > prev.pots || state.scratches > prev.scratches) ownCue("pool.pocket", "shared.celebrate.countDing", 0.9);
         if (state.fouls > prev.fouls) ownCue("pool.foul", "shared.celebrate.zap", 0.7);
         if (state.black === 1 && prev.black !== 1) ownCue("pool.blackWin", "shared.celebrate.chime");
       }
@@ -1063,15 +1072,23 @@ export function poolSounds(): GameSounds<PoolState> {
 /** A shot at least this fast (units a tick) is a power shot: the upper 45 % of the cue's range. */
 const POOL_HARD_V = POOL_MIN_V + Math.floor(((POOL_MAX_V - POOL_MIN_V) * 55) / 100);
 
+/** The sweep loop holds this long after a broom stroke (ticks): strokes come every few frames while brushing. */
+const SWEEP_HOLD_TICKS = 20;
+
 /** Curling: the release, the stone's slide and the brooms, stone on stone, the boards, applause for a good stone and the shot stone. */
 export function curlingSounds(): GameSounds<CurlingState> {
   let prev: CurlingState | null = null;
+  let lastStroke = -1;
   return {
     frame(state, running) {
       beginFrame("curling", state);
       const travelling = running && state.active >= 0;
       loopCue("curling.slide", travelling, SURFACE_VOLUME);
-      loopCue("curling.sweep", travelling && state.sweep > SWEEP_DECAY * 20, SURFACE_VOLUME);
+      // The brooms sound while strokes keep coming (curlRev 1's sweeps and curlRev 2's brushing either side alike):
+      // on with a stroke, off a third of a second after the last one.
+      if (state.sweeps > (prev?.sweeps ?? state.sweeps)) lastStroke = state.tick;
+      else if (prev && state.tick < prev.tick) lastStroke = -1;
+      loopCue("curling.sweep", travelling && lastStroke >= 0 && state.tick - lastStroke < SWEEP_HOLD_TICKS, SURFACE_VOLUME);
       if (prev && state.tick > prev.tick) {
         if (state.thrown > prev.thrown) effectCue("curling.release");
         if (state.hits > prev.hits) effectCue("curling.hit", 80);
@@ -1094,6 +1111,7 @@ export function curlingSounds(): GameSounds<CurlingState> {
       loopCue("curling.slide", false);
       loopCue("curling.sweep", false);
       prev = null;
+      lastStroke = -1;
     },
   };
 }

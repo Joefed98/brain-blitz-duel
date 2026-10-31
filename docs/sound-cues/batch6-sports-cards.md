@@ -1,6 +1,6 @@
 # Sound cues: sound batch 6, Sports and Cards & Board (31 Oct 2026)
 
-Joe's ElevenLabs recordings for the eleven new arcade games (Minigolf, Speed Pool, Curling, Home Run, Top Bins,
+Joe's ElevenLabs recordings for the eleven new arcade games (Crazy Golf, Cue Ball, Curl Champ, Home Run, Top Bins,
 Apex, Minefield, Free Cell, Mahjong Solitaire, Summit, Full House, and Five Hands on Full House's sounds), trimmed, looped and levelled into
 `public/sounds/<slot>.mp3` ([batch6-mapping.csv](batch6-mapping.csv): each file, its game, event, length budget, loop
 flag and the cues that play it). sound-batch6-check proves every slot has its file, every file is within its length
@@ -9,6 +9,7 @@ budget (plus 150 ms) and every loop file is a `loop: true` slot.
 Moments that already played a shared sound are in [arcade.md](arcade.md) (the game's own file now plays in place of the
 shared one); the observers are in `src/lib/fx/gameSounds.ts`. The moments below had no sound before: each plays its own
 file (through `effectCue` / `loopCue` in the observer, `liveCue` in FreeCell's stage) and stays silent without it. Loops are faded in over 500 ms and out when they stop or the run ends.
+Crazy Golf's golfRev 2 tunnels and sand have no sound of their own (no recording in the batch fits them).
 Each game's music bed is `music_<gameId>` ([music.md](music.md)), started with the run and looped until the buzzer.
 
 How the files were made: leading silence cut to under 3 ms (quiet pre-roll more than 24 dB under the peak removed, a 3 ms
@@ -22,27 +23,27 @@ than 2 dB over the library's median loudest 100 ms (-13.8 dBFS), music to -18 LU
 
 | Cue | Game | Trigger | File | Per round | Length |
 |---|---|---|---|---|---|
-| `pool.pocket` | Speed Pool | A ball drops into a pocket (the cue ball too) (without its file: `shared.celebrate.countDing`, 0.9, as before) | `pool_pocket.mp3` | 5–12 | 908 ms |
-| `pool.foul` | Speed Pool | A foul (without its file: `shared.celebrate.zap`, 0.7, as before) | `pool_foul.mp3` | 0–5 | 484 ms |
-| `pool.blackWin` | Speed Pool | The black potted after every spot (without its file: `shared.celebrate.chime`, as before) | `pool_black_win.mp3` | 0–1 | 1327 ms |
+| `pool.pocket` | Cue Ball | A ball drops into a pocket (the cue ball too): poolRev 1 on the drop, poolRev 2 as the rolling ball reaches the mouth, 10 ticks into its 18-tick drop (`POOL_DROP_MOUTH_TICKS`, pool.renderer.ts) (without its file: `shared.celebrate.countDing`, 0.9, as before) | `pool_pocket.mp3` | 5–12 | 908 ms |
+| `pool.foul` | Cue Ball | A foul (without its file: `shared.celebrate.zap`, 0.7, as before) | `pool_foul.mp3` | 0–5 | 484 ms |
+| `pool.blackWin` | Cue Ball | The black potted after every spot (without its file: `shared.celebrate.chime`, as before) | `pool_black_win.mp3` | 0–1 | 1327 ms |
 | `minesweeper.hit` | Minefield | A mine is hit (without its file: `shared.celebrate.zap`, as before) | `mines_hit.mp3` | 0–5 | 474 ms |
 | `minesweeper.clear` | Minefield | Every safe square open (without its file: `shared.celebrate.chime`, as before) | `mines_clear.mp3` | 0–1 | 998 ms |
 | `mahjong.match` | Mahjong Solitaire | A pair is taken away (without its file: `shared.celebrate.countDing`, 0.7, as before) | `mahjong_match.mp3` | 10–36 | 359 ms |
 | `mahjong.shuffle` | Mahjong Solitaire | Shuffle (without its file: `shared.celebrate.zap`, as before) | `mahjong_shuffle.mp3` | 0–3 | 1043 ms |
 | `mahjong.clear` | Mahjong Solitaire | The board cleared (without its file: `shared.celebrate.chime`, as before) | `mahjong_clear.mp3` | 0–1 | 1806 ms |
-| `minigolf.roll` | Minigolf | While the ball rolls (0.32) | `minigolf_roll_loop.mp3` | loop | loop |
-| `minigolf.bush` | Minigolf | The ball strikes a planter's bush (with `minigolf.stone`; at most one per 120 ms) | `minigolf_bush.mp3` | 0–10 | 439 ms |
-| `pool.chalk` | Speed Pool | The run starts | `pool_chalk.mp3` | 1 | 733 ms |
-| `pool.cueSoft` | Speed Pool | A shot under 55 % of the cue's speed range | `pool_cue_soft.mp3` | 5–20 | 400 ms |
-| `pool.cueHard` | Speed Pool | A power shot (55 % of the range or more) | `pool_cue_hard.mp3` | 2–15 | 400 ms |
-| `pool.cushion` | Speed Pool | A ball hits a cushion (at most one per 60 ms) | `pool_cushion.mp3` | 10–60 | 300 ms |
-| `curling.release` | Curling | A stone released | `curling_release.mp3` | 8 | 484 ms |
-| `curling.slide` | Curling | While a thrown stone travels (0.32) | `curling_slide_loop.mp3` | loop | loop |
-| `curling.sweep` | Curling | While the brooms are sweeping a travelling stone (0.32) | `curling_sweep_loop.mp3` | loop | loop |
-| `curling.hit` | Curling | Stone on stone (at most one per 80 ms) | `curling_hit.mp3` | 0–15 | 400 ms |
-| `curling.board` | Curling | A moving stone goes out over a side or back board | `curling_board.mp3` | 0–5 | 400 ms |
-| `curling.applause` | Curling | A thrown stone settles in the 4-foot or knocks a stone out | `curling_applause.mp3` | 0–8 | 1995 ms |
-| `curling.shot` | Curling | A thrown stone settles and takes shot (nearest the button) | `curling_shot.mp3` | 0–8 | 998 ms |
+| `minigolf.roll` | Crazy Golf | While the ball rolls (0.32) | `minigolf_roll_loop.mp3` | loop | loop |
+| `minigolf.bush` | Crazy Golf | The ball strikes a planter's bush (with `minigolf.stone`; at most one per 120 ms) | `minigolf_bush.mp3` | 0–10 | 439 ms |
+| `pool.chalk` | Cue Ball | The run starts | `pool_chalk.mp3` | 1 | 733 ms |
+| `pool.cueSoft` | Cue Ball | A shot under 55 % of the cue's speed range | `pool_cue_soft.mp3` | 5–20 | 400 ms |
+| `pool.cueHard` | Cue Ball | A power shot (55 % of the range or more) | `pool_cue_hard.mp3` | 2–15 | 400 ms |
+| `pool.cushion` | Cue Ball | A ball hits a cushion (at most one per 60 ms) | `pool_cushion.mp3` | 10–60 | 300 ms |
+| `curling.release` | Curl Champ | A stone released (curlRev 2: the swipe-up throw) | `curling_release.mp3` | 8 | 484 ms |
+| `curling.slide` | Curl Champ | While a thrown stone travels (0.32) | `curling_slide_loop.mp3` | loop | loop |
+| `curling.sweep` | Curl Champ | While broom strokes keep coming on a travelling stone, held 1/3 s after the last (curlRev 1's sweeps and curlRev 2's brushing on either side; 0.32) | `curling_sweep_loop.mp3` | loop | loop |
+| `curling.hit` | Curl Champ | Stone on stone (at most one per 80 ms) | `curling_hit.mp3` | 0–15 | 400 ms |
+| `curling.board` | Curl Champ | A moving stone goes out over a side or back board | `curling_board.mp3` | 0–5 | 400 ms |
+| `curling.applause` | Curl Champ | A thrown stone settles in the 4-foot or knocks a stone out | `curling_applause.mp3` | 0–8 | 1995 ms |
+| `curling.shot` | Curl Champ | A thrown stone settles and takes shot (nearest the button) | `curling_shot.mp3` | 0–8 | 998 ms |
 | `homerun.crowd` | Home Run | While the run is live (0.26) | `sports_crowd_loop.mp3` | loop | loop |
 | `homerun.pitch` | Home Run | The pitcher releases the ball | `homerun_pitch.mp3` | 10 | 259 ms |
 | `homerun.whiff` | Home Run | A swing and a miss (with `homerun.strike`, the mitt) | `homerun_whiff.mp3` | 0–10 | 400 ms |

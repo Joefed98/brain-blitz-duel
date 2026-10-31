@@ -65,9 +65,9 @@ carry; a file in their slot plays under the voice line (voice lines duck music).
 | `music.tilt` | Tilt | `music_tilt` | `music_tilt` | loop |
 | `music.wavefront` | Wavefront | `music_wavefront` | `music_wavefront` | loop |
 | `music.junction` | Junction (retired, practice) | `music_junction` | `music_junction` | loop |
-| `music.minigolf` | Minigolf | `music_minigolf` | `music_minigolf` | 52.2 s loop |
-| `music.pool` | Speed Pool | `music_pool` | `music_pool` | 49.1 s loop |
-| `music.curling` | Curling | `music_curling` | `music_curling` | 39.3 s loop |
+| `music.minigolf` | Crazy Golf | `music_minigolf` | `music_minigolf` | 52.2 s loop |
+| `music.pool` | Cue Ball | `music_pool` | `music_pool` | 49.1 s loop |
+| `music.curling` | Curl Champ | `music_curling` | `music_curling` | 39.3 s loop |
 | `music.homerun` | Home Run | `music_homerun` | `music_homerun` | 52.0 s loop |
 | `music.freekick` | Top Bins | `music_freekick` | `music_freekick` | 53.7 s loop |
 | `music.racing` | Apex | `music_racing` | `music_racing` | 56.0 s loop |
