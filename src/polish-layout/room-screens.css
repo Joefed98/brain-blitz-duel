@@ -195,6 +195,30 @@
     transform: none;
   }
 }
+/* Intro colours (31 Oct 2026): every intro takes its game's colour, the category's for a puzzle, the arcade
+   group's for an arcade game (RoundIntro data-intro-accent; arcadeGroups.ts, the --group-* tokens), as its tile
+   border and the room settings chip: the screen's gradient, the title, the dot, the Goal / How / Score labels, the
+   tray, the auto-start ring and the waiting dots. Gold stays for Ready. */
+.round-intro[data-intro-accent="retro"],
+[data-category]:has(.round-intro[data-intro-accent="retro"]) { --category-accent: var(--group-retro); }
+.round-intro[data-intro-accent="sports"],
+[data-category]:has(.round-intro[data-intro-accent="sports"]) { --category-accent: var(--group-sports); }
+.round-intro[data-intro-accent="cards"],
+[data-category]:has(.round-intro[data-intro-accent="cards"]) { --category-accent: var(--group-cards); }
+.round-intro[data-intro-accent="action"],
+[data-category]:has(.round-intro[data-intro-accent="action"]) { --category-accent: var(--group-action); }
+/* The title in the accent lifted a fifth towards white: the large name stays clear of the gradient's tinted top
+   (theme-check: 4.5:1 or more for every category and group, Action's red included). */
+.round-intro {
+  --intro-title: color-mix(in srgb, var(--category-accent) 80%, #fff);
+}
+.round-intro .round-intro-title {
+  color: var(--intro-title);
+}
+.round-intro .intro-footer .animate-dot-bounce {
+  background: var(--category-accent);
+}
+
 /* The intro takes the play screen's category gradient (game-frame.css "the puzzle background"). */
 [data-category]:has(.round-intro) {
   --frame-deep: color-mix(in srgb, var(--category-accent) 10%, #0d0d0f);
@@ -574,6 +598,78 @@
   .rs-scroll[data-more] {
     -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 28px), transparent);
     mask-image: linear-gradient(to bottom, #000 calc(100% - 28px), transparent);
+  }
+
+  /* Room settings (31 Oct 2026): the summary line under the room code, then the host's sheet. */
+  .rs-summary {
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 1.4;
+    color: var(--ap-text-2);
+  }
+  .rss-sheet {
+    max-height: calc(100dvh - env(safe-area-inset-top, 0px) - 12px);
+    background: var(--ap-bg);
+    font-family: var(--ap-font);
+  }
+  .rss-body {
+    overscroll-behavior: contain;
+  }
+  .rss-footer {
+    padding-bottom: max(20px, calc(env(safe-area-inset-bottom, 0px) + 12px));
+  }
+  .rss-picks {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+  .rss-picks > .rs-cat {
+    min-width: 0;
+    justify-content: flex-start;
+  }
+  /* The last chip on can't be turned off: shown as it is, the tap does nothing. */
+  .rss-picks > .rs-cat[aria-disabled="true"] {
+    cursor: default;
+  }
+  .rss-note {
+    font-size: 13px;
+    font-weight: 500;
+    line-height: 1.35;
+    color: var(--ap-text-2);
+  }
+  .rs-seg > button:disabled {
+    color: var(--ap-faint);
+    opacity: 0.55;
+  }
+  /* The rounds slider: a 44 px tall touch strip, a 26 px thumb, the range past the picks' cap hatched. */
+  .rss-slider {
+    height: 44px;
+  }
+  .rss-slider::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    right: 0;
+    width: var(--rss-cap, 0%);
+    height: 6px;
+    transform: translateY(-50%);
+    border-radius: 999px;
+    background: repeating-linear-gradient(135deg, var(--ap-line) 0 4px, transparent 4px 8px);
+    pointer-events: none;
+  }
+  .rss-slider [role="slider"] {
+    width: 26px;
+    height: 26px;
+    border: 2px solid var(--ap-text);
+    background: var(--ap-bg);
+  }
+  .rss-save {
+    min-height: 48px;
+    border-color: transparent;
+    background: var(--ap-text);
+    color: var(--ap-bg);
+    font-size: 16px;
+    font-weight: 750;
   }
 
   /* The lobby's room code, white and large. */

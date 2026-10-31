@@ -5,6 +5,8 @@ import { staleSubmissionNote } from "@/lib/appVersion";
 
 import { type SubmitExtra } from "./grade";
 import { normaliseCategories, STANDARD_CATEGORIES } from "./categories";
+import { dealRoomRounds } from "./roomDeal";
+import { encodeRoomSettings, readRoomSettings } from "./roomSettings";
 import { puzzleRevealMs, typesInCategory } from "./registry";
 import { puzzleCloseReason } from "./roomClose";
 import { generateRoomCode } from "./puzzles";
@@ -195,7 +197,8 @@ async function createRoomRow(
   client: any,
   userId: string,
   displayName: string,
-  categories: readonly PuzzleCategory[] = STANDARD_CATEGORIES,
+  /** The room's stored settings (roomSettings.ts: picks then `rounds:N`), or a legacy category list. */
+  categories: readonly string[] = STANDARD_CATEGORIES,
   look: LookPreference = {},
 ): Promise<DuelRow> {
   for (let attempt = 0; attempt < 8; attempt++) {
@@ -331,7 +334,8 @@ export const createRoomFn = createServerFn({ method: "POST" })
     const { CREATE_ROOM_LIMIT, withinRateLimit } = await import("./rateLimit.server");
     if (!(await withinRateLimit(client, context.userId, CREATE_ROOM_LIMIT)))
       throw new Error("You've made a lot of rooms. Try again later.");
-    // Remember the host's category choices from their last room.
+    // Remember the host's room settings from their last room (roomSettings.server.ts: a room from before
+    // settings is read as settings, Arcade as its four groups; a first room gets Mixed, 6 rounds).
     const { data: previous } = await client
       .from("duels")
       .select("selected_categories")
@@ -339,11 +343,12 @@ export const createRoomFn = createServerFn({ method: "POST" })
       .order("created_at", { ascending: false })
       .limit(1)
       .maybeSingle();
+    const { rememberedSettings } = await import("./roomSettings.server");
     const room = await createRoomRow(
       client,
       context.userId,
       data.displayName,
-      normaliseCategories(previous?.selected_categories),
+      rememberedSettings(previous?.selected_categories),
       data.look ?? {},
     );
     return { roomId: room.id, roomCode: room.room_code };
@@ -467,24 +472,28 @@ export const startRoomFn = createServerFn({ method: "POST" })
     const unblockRow = await drawUnblockRow(client);
     const recent = await recentRoundOrders(client, room, room.host_user_id);
     const recentBanked = await recentBankKeys(client, room.host_user_id);
-    const categories = normaliseCategories(room.selected_categories);
+    // A room saved with settings (roomSettings.ts) deals from them (roomDeal.ts); an older room keeps its
+    // category rule exactly (roomRoundCount rounds shared between the selected categories).
+    const stored = readRoomSettings(room.selected_categories);
+    const categories = stored.legacy ? normaliseCategories(room.selected_categories) : stored.categories;
     if (!categories.some((category) => typesInCategory(category).length > 0))
       return {
         ok: false as const,
         message: "Choose at least one category with active games.",
       };
-    // Rounds shared between the selected categories (roomRoundCount), ordered by this room's seed.
     const { newRoomSeed } = await import("./selection");
     const roomSeed = newRoomSeed();
+    const dealt = stored.legacy ? undefined : dealRoomRounds(stored.settings, { seed: roomSeed, recent }).types;
     const { roundOrder, puzzles } = buildRoomPuzzles({
       seed: roomSeed,
       recent,
       categories,
       unblockRow,
       recentBankKeys: recentBanked,
+      roundOrder: dealt,
     });
     console.log(
-      `[room-selection] room=${room.room_code} seed=${roomSeed} categories=${categories.join(",")} recentRooms=${recent.length} order=${roundOrder.join(",")}`,
+      `[room-selection] room=${room.room_code} seed=${roomSeed} ${stored.legacy ? `categories=${categories.join(",")}` : `settings=${encodeRoomSettings(stored.settings).join(",")}`} recentRooms=${recent.length} order=${roundOrder.join(",")}`,
     );
 
     const split = puzzles.map(splitPuzzle);
@@ -562,6 +571,21 @@ export const setRoomModesFn = createServerFn({ method: "POST" })
     console.log(`[room-selection] room=${room.room_code} categories=${categories.join(",")}`);
 
     return { ok: true as const };
+  });
+
+/**
+ * Host only, in the lobby: the room settings sheet's categories and round count (roomSettings.ts),
+ * validated and stored by changeRoomSettings; a guest's or a started room's change is refused.
+ */
+export const setRoomSettingsFn = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { roomId: string; picks: string[]; rounds: number }) => input)
+  .handler(async ({ data, context }) => {
+    const client = await db();
+    await requireParticipant(client, data.roomId, context.userId);
+    const { changeRoomSettings } = await import("./roomSettings.server");
+    const result = await changeRoomSettings(client, data.roomId, context.userId, { picks: data.picks, rounds: data.rounds });
+    return result.ok ? { ok: true as const } : result;
   });
 
 /**

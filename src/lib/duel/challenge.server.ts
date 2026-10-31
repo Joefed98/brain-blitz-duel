@@ -58,6 +58,7 @@ import { randomBelow } from "./random";
 import { isLiveType, puzzleDef, puzzlePrepMs, puzzleTimeLimitMs } from "./registry";
 import { mergePuzzle } from "./secrets";
 import { newRoomSeed, pickRoundOrder } from "./selection";
+import { isSettingsRoom, readRoomSettings } from "./roomSettings";
 import { roomTieRounds, stampTieRev } from "./tieBreak";
 import type { UnblockBankRow } from "./unblock.server";
 import type {
@@ -329,7 +330,10 @@ export async function createChallengeFromRoom(
     source: "room",
     sourceDuelId: room.id,
     sourceGameIndex: gameIndex,
-    categories: room.selected_categories ?? [],
+    // A room saved with settings lists its categories (Arcade for any arcade group), as older rooms do.
+    categories: isSettingsRoom(room.selected_categories)
+      ? readRoomSettings(room.selected_categories).categories
+      : (room.selected_categories ?? []),
   });
   // Every player of the game: anyone who answered a round, and anyone still in it.
   const imported = players.filter(

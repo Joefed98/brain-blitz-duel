@@ -271,13 +271,18 @@ function gameSeed(type: PuzzleType, context: GenerateContext): number {
 }
 
 /** Generated ONCE per room so every player receives identical puzzles. */
-export function buildRoomPuzzles(options: RoundSelectionOptions & GenerateContext = {}): {
+export function buildRoomPuzzles(
+  options: RoundSelectionOptions & GenerateContext & {
+    /** A room saved with settings: its rounds as dealt from them (roomDeal.ts) on this seed. */
+    roundOrder?: readonly PuzzleType[] | undefined;
+  } = {},
+): {
   roundOrder: PuzzleType[];
   puzzles: PuzzleData[];
 } {
   // The room seed orders the categories and picks every banked board.
   const seed = options.seed ?? newRoomSeed();
-  const roundOrder = pickRoundOrder({ ...options, seed });
+  const roundOrder = options.roundOrder ? [...options.roundOrder] : pickRoundOrder({ ...options, seed });
   return {
     roundOrder,
     // Every room puzzle carries the tie-break stamp (tieBreak.ts), so a room's

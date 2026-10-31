@@ -29,7 +29,7 @@ export const EXCLUDE_MIN_ALTERNATIVES = 3;
 export type RecentRounds = readonly (readonly StoredPuzzleType[])[];
 
 /** 1.0 unless the value appears in one of the recent rooms. */
-function recencyWeight<T>(value: T, seen: readonly (readonly T[])[]): number {
+export function recencyWeight<T>(value: T, seen: readonly (readonly T[])[]): number {
   for (let index = 0; index < seen.length && index < RECENT_WEIGHTS.length; index++) {
     if (seen[index]!.includes(value)) return RECENT_WEIGHTS[index]!;
   }
@@ -50,7 +50,7 @@ export function newRoomSeed(): number {
 }
 
 /** mulberry32: a small, well-mixed PRNG for the seeded category order. */
-function seededRng(seed: number): () => number {
+export function seededRng(seed: number): () => number {
   let state = seed >>> 0;
   return () => {
     state = (state + 0x6d2b79f5) >>> 0;
