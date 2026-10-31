@@ -166,6 +166,7 @@ import { curlingCheckpoint, curlingGameFor, CURLING_REV } from "@/lib/arcade/cur
 import { encodeCurlingRun, replayCurlingRun } from "@/lib/duel/curling";
 import { CURLING_BANK } from "@/lib/duel/curlingBank.server";
 import { CURLING_BANK_V2 } from "@/lib/duel/curlingBankV2.server";
+import { MINIGOLF_BANK_V2 } from "@/lib/duel/minigolfBankV2.server";
 import { TILT_REV_BAND, TILT_REV_EXPAND, TILT_REV_LIFT, TILT_REV_STD, TILT_REV_TUNEC } from "@/lib/arcade/tilt";
 import { ORBIT_REV_BAND, ORBIT_REV_SWEPT, ORBIT_REV_TALL, ORBIT_REV_TUNED, ORBIT_REV_XP, ORBIT_REV_STD } from "@/lib/arcade/orbit";
 import { decodeOrbitExtras, initBandFrom, initSweptFrom, initTallFrom, initTunedFrom, initXpFrom, initStdFrom } from "@/lib/arcade/orbitRev3";
@@ -838,6 +839,18 @@ const GAMES: Game[] = [
   { key: "pool", game: poolGameFor(POOL_REV), seedFor: (n: number) => POOL_BANK_V2[n % POOL_BANK_V2.length]!, checkpoint: poolCheckpoint, mode: "events", rate: 40, encode: encodePoolRun, replay: (seed: number, raw: string) => replayPoolRun(seed, raw, POOL_REV) },
   // Curl Champ curlRev 2 (the V2 bank, the start along the hog line, side brushing), appended 31 Oct 2026.
   { key: "curling", game: curlingGameFor(CURLING_REV), seedFor: (n: number) => CURLING_BANK_V2[n % CURLING_BANK_V2.length]!, checkpoint: curlingCheckpoint, mode: "events", rate: 40, encode: encodeCurlingRun, replay: (seed: number, raw: string) => replayCurlingRun(seed, raw, CURLING_REV) },
+  // Crazy Golf golfRev 2 (windmills, tunnels, sand, hills, banked curves, castle gates; 31 Oct 2026): its own bank courses and stored pars.
+  {
+    key: "minigolf",
+    game: minigolfGameFor(MINIGOLF_BANK_V2[0]!.pars, 2),
+    gameFor: (seed: number) => minigolfGameFor(MINIGOLF_BANK_V2.find((e) => e.seed === seed)!.pars, 2),
+    seedFor: (n: number) => MINIGOLF_BANK_V2[n % MINIGOLF_BANK_V2.length]!.seed,
+    checkpoint: minigolfCheckpoint,
+    mode: "events",
+    rate: 40,
+    encode: encodeMinigolfRun,
+    replay: (seed: number, raw: string) => replayMinigolfRun(seed, raw, MINIGOLF_BANK_V2.find((e) => e.seed === seed)!.pars, 2),
+  },
 ];
 
 /** A random candidate event, often outside the declared range (a finger off the edge). */

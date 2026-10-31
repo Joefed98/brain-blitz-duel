@@ -71,7 +71,7 @@ const STANDARD_ROSTER: readonly { type: string; field: string; rev: number; batc
   { type: "tripeaks", field: "tripeaksRev", rev: 1, batch: "Cards" },
   { type: "pokersquares", field: "pokerSquaresRev", rev: 1, batch: "Cards" },
   // The Sports group (30 Oct 2026): on the standard from their first stamp.
-  { type: "minigolf", field: "golfRev", rev: 1, batch: "Sports" },
+  { type: "minigolf", field: "golfRev", rev: 2, batch: "Sports" }, // golfRev 2 (crazy golf, 31 Oct 2026); golfRev 1 was on the standard too
   { type: "pool", field: "poolRev", rev: 2, batch: "Sports" },
   // Curling deals curlRev 2 since 31 Oct 2026 (the start along the hog line, side brushing; the same parts).
   { type: "curling", field: "curlRev", rev: 2, batch: "Sports" },

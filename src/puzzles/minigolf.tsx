@@ -11,6 +11,7 @@ import {
   MG_POWER_MAX,
   MINIGOLF_H,
   MINIGOLF_HOLES,
+  MINIGOLF_REV,
   MINIGOLF_RUN_TICKS,
   MINIGOLF_W,
   type MinigolfState,
@@ -41,7 +42,14 @@ function IntroExample() {
         <circle cx="140" cy="36" r="5" fill="#111" stroke="#E9EDE6" strokeWidth="1.4" />
         <line x1="140" y1="36" x2="142" y2="18" stroke="#E8E2D2" strokeWidth="1.4" />
         <path d="M142 18 L154 21 L142 25 Z" fill="#C8283A" />
-        <circle cx="122" cy="62" r="9" fill="#6E6A64" />
+        {/* A windmill's doorway: brick walls either side and the four sails on their hub. */}
+        <rect x="22" y="52" width="66" height="7" rx="3.5" fill="#9E4A30" />
+        <rect x="118" y="52" width="55" height="7" rx="3.5" fill="#9E4A30" />
+        <g transform="rotate(20 103 55.5)">
+          <rect x="101.5" y="40" width="3" height="31" rx="1.5" fill="#EFE6D2" stroke="#6B4426" strokeWidth="0.8" />
+          <rect x="88" y="54" width="31" height="3" rx="1.5" fill="#EFE6D2" stroke="#6B4426" strokeWidth="0.8" />
+        </g>
+        <circle cx="103" cy="55.5" r="3.2" fill="#D8B25A" />
         <circle cx="52" cy="78" r="4" fill="#F4F6F8" />
         {[0, 1, 2, 3, 4, 5].map((i) => (
           <circle key={i} cx={60 + i * 9} cy={74 - i * 4.4} r="1.4" fill="#FFFFFF" opacity={0.9 - i * 0.12} />
@@ -59,10 +67,10 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const pars = data?.pars;
   // The game the stage runs: the stored pars' sim, drawn with the aim the finger is holding (presentation only).
   const game = useMemo<ArcadeGame<MinigolfState, ArcadeInputEvent | null>>(() => {
-    const base = minigolfGameFor(pars ?? undefined);
+    const base = minigolfGameFor(pars ?? undefined, data?.golfRev);
     return { ...base, draw: withArcadeFx(MINIGOLF_FX, (ctx, s) => drawMinigolf(ctx, s, aim.current)) };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pars?.join(",")]);
+  }, [pars?.join(","), data?.golfRev]);
 
   /** The pull from the touch-down point to the finger: the putt goes the other way. */
   const pullOf = (x: number, y: number) => {
@@ -147,7 +155,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
 
 function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   if (puzzle.type !== "minigolf") return null;
-  const result = replayMinigolfRun(puzzle.seed, myAnswer ?? "", puzzle.pars);
+  const result = replayMinigolfRun(puzzle.seed, myAnswer ?? "", puzzle.pars, puzzle.golfRev);
   const s = result.state;
   const parts = minigolfStdParts(s);
   return (
@@ -190,7 +198,7 @@ export const minigolfPuzzle: PuzzleDefinition = {
   category: "arcade",
   timeLimitMs: (MINIGOLF_RUN_TICKS / TICKS_PER_SECOND) * 1000 + 3000,
   revealMs: 6_000,
-  generate: () => ({ type: "minigolf", seed: 1, golfRev: 1, pars: [2, 3, 3, 3, 3] }) satisfies MinigolfPuzzleData,
+  generate: () => ({ type: "minigolf", seed: 1, golfRev: MINIGOLF_REV, pars: [2, 3, 3, 3, 3] }) satisfies MinigolfPuzzleData,
   check: () => false,
   revealHeading: "Your round",
   IntroExample,

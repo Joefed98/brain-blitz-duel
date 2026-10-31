@@ -17,7 +17,7 @@ import { MINIGOLF_REV } from "@/lib/arcade/minigolf";
 import { POOL_REV } from "@/lib/arcade/pool";
 import { CURLING_REV } from "@/lib/arcade/curling";
 import { CURLING_BANK_V2 } from "./curlingBankV2.server";
-import { MINIGOLF_BANK } from "./minigolfBank.server";
+import { MINIGOLF_BANK_V2 } from "./minigolfBankV2.server";
 import { POOL_BANK_V2 } from "./poolBankV2.server";
 import type { CurlingPuzzleData, FreekickPuzzleData, HomerunPuzzleData, MinigolfPuzzleData, PoolPuzzleData, RacingPuzzleData } from "./types";
 
@@ -34,7 +34,8 @@ export function generateRacing(): RacingPuzzleData {
 }
 
 export function generateMinigolf(): MinigolfPuzzleData {
-  const entry = MINIGOLF_BANK[arcadeSeed() % MINIGOLF_BANK.length]!;
+  // golfRev 2 (crazy golf, 31 Oct 2026) deals from its own proven bank; golfRev 1's bank (minigolfBank.server.ts) still replays.
+  const entry = MINIGOLF_BANK_V2[arcadeSeed() % MINIGOLF_BANK_V2.length]!;
   return { type: "minigolf", seed: entry.seed, golfRev: MINIGOLF_REV, pars: [...entry.pars] };
 }
 
