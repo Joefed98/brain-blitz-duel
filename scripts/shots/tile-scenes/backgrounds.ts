@@ -267,11 +267,13 @@ const ARCADE_BACKGROUNDS: Partial<Record<PuzzleType, TileBackground>> = {
     vgrad(c, [[0, "#2A1A10"], [0.08, "#160D07"], [0.1, "#1F6B4E"], [0.9, "#14503A"], [0.92, "#160D07"], [1, "#2A1A10"]]);
     cloud(c, T / 2, T / 2, 56, "#1E7A58", 0.3);
   }, { fade: 0.3, spot: 0.35 }),
-  // FreeCell, TriPeaks and Poker Squares (Cards & Board): their scenes lay the game's own blue felt over the whole tile;
+  // Free Cell, Summit and Full House (Cards & Board): their scenes lay the game's own blue felt over the whole tile;
   // these paint its base under them (deep navy, lamp-lit at the centre).
   freecell: bg((c) => { vgrad(c, [[0, "#0E2A57"], [1, "#081A38"]]); cloud(c, T / 2, T / 2, 56, "#1A3F7A", 0.3); }, { fade: 0.3, spot: 0.35 }),
   tripeaks: bg((c) => { vgrad(c, [[0, "#0E2A57"], [1, "#081A38"]]); cloud(c, T / 2, T / 2, 56, "#1A3F7A", 0.3); }, { fade: 0.3, spot: 0.35 }),
   pokersquares: bg((c) => { vgrad(c, [[0, "#0E2A57"], [1, "#081A38"]]); cloud(c, T / 2, T / 2, 56, "#1A3F7A", 0.3); }, { fade: 0.3, spot: 0.35 }),
+  // Five Hands (Cards & Board, 31 Oct 2026): the same blue felt.
+  fivehands: bg((c) => { vgrad(c, [[0, "#0E2A57"], [1, "#081A38"]]); cloud(c, T / 2, T / 2, 56, "#1A3F7A", 0.3); }, { fade: 0.3, spot: 0.35 }),
   // Minigolf, Speed Pool and Curling (Sports): their scenes fill the tile with the game's own course, table or sheet;
   // these paint each game's base under them (night turf, the cloth, the ice settling to its far blue).
   minigolf: bg((c) => vgrad(c, [[0, "#0C2216"], [1, "#071510"]]), { fade: 0.2 }),

@@ -17,12 +17,13 @@ export const SHARDS: Record<string, string[]> = {
   // frame times compare fairly with the CI baseline; the groups are unchanged). The workflow
   // installs the browser and swaps in the CI frame-time baseline for these.
   // arcade-device-bottom-check (15 Oct 2026: every arcade play screen on iPhone 11 / 14 home-screen
-  // app and Safari geometry) is in six parts (17 Oct 2026: in halves, a half with the Meteor passes ran
-  // past run-checks' 300 s on CI): its games' layout passes in thirds (@1/6, @2/6 here, @3/6 on play10;
-  // ~3-3.5 min each locally), and its three Meteor bottom-edge passes (full, reduced motion, reduced
-  // effects; ~1.5-2 min each with a dev server) one each on play7-play9 (@4/6-@6/6).
-  play1: ["arcade-play-check.ts@1/5", "arcade-device-bottom-check.ts@1/6"],
-  play2: ["arcade-play-check.ts@2/5", "arcade-device-bottom-check.ts@2/6"],
+  // app and Safari geometry) is in seven parts (17 Oct 2026: in halves, a half with the Meteor passes ran
+  // past run-checks' 300 s on CI; 31 Oct 2026: with the Cards & Board and Sports games a third of the layout
+  // passes, 13 games, reached the check's 270 s watchdog on CI): its games' layout passes in quarters (@1/7,
+  // @2/7 here, @3/7 on play10, @4/7 on play19; ~10 games each), and its three Meteor bottom-edge passes (full,
+  // reduced motion, reduced effects; ~1.5-2 min each with a dev server) one each on play7-play9 (@5/7-@7/7).
+  play1: ["arcade-play-check.ts@1/5", "arcade-device-bottom-check.ts@1/7"],
+  play2: ["arcade-play-check.ts@2/5", "arcade-device-bottom-check.ts@2/7"],
   // beat-hold-browser-check (real practice and room screens in Chromium, ~50 s) and
   // onboarding-check (16 Oct 2026: the first-time intro on home, ~60 s with its dev server) ride here.
   play3: [
@@ -46,12 +47,12 @@ export const SHARDS: Record<string, string[]> = {
   // ~1 min with its dev server) rides beside screen-bottom-check, through the same harness.
   play6: ["bottom-clearance-check.ts@1/8", "screen-bottom-check.tsx", "touch-highlight-check.tsx"],
   // arcade-room-practice-check's other two thirds (25 Oct 2026, see play15) ride on the two lightest of these jobs.
-  play7: ["bottom-clearance-check.ts@2/8", "arcade-device-bottom-check.ts@4/6", "arcade-room-practice-check.ts@2/3"],
-  play8: ["bottom-clearance-check.ts@3/8", "arcade-device-bottom-check.ts@5/6", "arcade-room-practice-check.ts@3/3"],
+  play7: ["bottom-clearance-check.ts@2/8", "arcade-device-bottom-check.ts@5/7", "arcade-room-practice-check.ts@2/3"],
+  play8: ["bottom-clearance-check.ts@3/8", "arcade-device-bottom-check.ts@6/7", "arcade-room-practice-check.ts@3/3"],
   // standard-live-check (29 Oct 2026: a production build of the app, then real practice rounds of nine standard puzzles
   // in Chromium, ~4 min) needs Chromium, so it rides on one of the lightest play jobs.
-  play9: ["bottom-clearance-check.ts@4/8", "arcade-device-bottom-check.ts@6/6", "standard-live-check.ts"],
-  play10: ["bottom-clearance-check.ts@5/8", "arcade-device-bottom-check.ts@3/6"],
+  play9: ["bottom-clearance-check.ts@4/8", "arcade-device-bottom-check.ts@7/7", "standard-live-check.ts"],
+  play10: ["bottom-clearance-check.ts@5/8", "arcade-device-bottom-check.ts@3/7"],
   // arcade-fill-check (17 Oct 2026, the screen fill-ins: every active arcade game at 390x844 and as an iPhone 11
   // home-screen app, ~15-20 s a game with one page load each) in thirds alongside the lighter bottom-clearance parts.
   // beta-extras-check (22 Oct 2026: the beta terms, the Add to Home Screen hint, Send feedback and crash reporting
@@ -88,7 +89,7 @@ export const SHARDS: Record<string, string[]> = {
   // with and without a demo, as an iPhone 11 home-screen app; ~8 s a game, so in thirds of ~25 games, ~3 min each
   // with its dev server) and replay-board-check (46 puzzle replays on the room's results screen, ~2 min).
   play18: ["demo-intro-check.ts@1/3", "demo-intro-check.ts@2/3"],
-  play19: ["demo-intro-check.ts@3/3", "replay-board-check.ts"],
+  play19: ["demo-intro-check.ts@3/3", "replay-board-check.ts", "arcade-device-bottom-check.ts@4/7"],
   // Offline practice (31 Oct 2026): offline-check builds the app for production, installs the service worker, fills
   // every practice pack, plays three games offline, uploads the queue and swaps in a new build's worker (~5 min).
   play20: ["offline-check.ts"],

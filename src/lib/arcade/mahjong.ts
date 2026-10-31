@@ -17,6 +17,12 @@
  * (on the same line, only while no Shuffle has been used), Speed 30 (board cleared only: full by
  * MAHJONG_SPEED_FULL_TICKS, 0 at the buzzer); −5 a Shuffle. Together 200.
  *
+ * mahjongRev 2 (31 Oct 2026, Joe's notes; docs/arcade-standard/mahjong.md): the same deal and score, plus Undo and Reset,
+ * two more button presses in the move log (MAHJONG_INPUT_BUTTON with `a` MAHJONG_BUTTON_UNDO / MAHJONG_BUTTON_RESET;
+ * on rev 1 every button press is a Shuffle, its `a` clamped to 0). Undo is free and unlimited: it puts back the board
+ * as it was before the last pair taken or the last Shuffle (a Shuffle undone still counts). Reset puts back the
+ * original deal (no undo history after it); Shuffles already used still count. The clock runs on through both.
+ *
  * Integer maths only; the state is never mutated.
  */
 import { type ArcadeGame, type ArcadeInputEvent, type CanvasSize, inputRange, type InputRange, rngBelow, rngStep, TICKS_PER_SECOND, ARCADE_INPUT_BUTTON } from "./engine";
@@ -26,6 +32,9 @@ import { bandCurve, type BandParts } from "./scoreBands";
 export const MAHJONG_RUN_SECONDS = 120;
 export const MAHJONG_RUN_TICKS = MAHJONG_RUN_SECONDS * TICKS_PER_SECOND;
 export const MAHJONG_REV_STD = 1;
+/** Undo and Reset (31 Oct 2026); the revision rooms deal. */
+export const MAHJONG_REV_UNDO = 2;
+export const MAHJONG_REV_DEALT = MAHJONG_REV_UNDO;
 
 /* ================================ Layout ================================ */
 
@@ -240,7 +249,18 @@ export function mahjongMoves(face: readonly number[]): [number, number][] {
 
 export const MAHJONG_INPUT_TAP = 1;
 export const MAHJONG_INPUT_SHUFFLE = ARCADE_INPUT_BUTTON;
+/** The button kind's `a` on mahjongRev 2: 0 Shuffle, 1 Undo, 2 Reset. */
+export const MAHJONG_INPUT_BUTTON = ARCADE_INPUT_BUTTON;
+export const MAHJONG_BUTTON_SHUFFLE = 0;
+export const MAHJONG_BUTTON_UNDO = 1;
+export const MAHJONG_BUTTON_RESET = 2;
 export const MAHJONG_INPUT_RANGES: readonly InputRange[] = [inputRange(MAHJONG_INPUT_TAP, [0, MAHJONG_TILES - 1]), inputRange(MAHJONG_INPUT_SHUFFLE)];
+export const MAHJONG_V2_INPUT_RANGES: readonly InputRange[] = [inputRange(MAHJONG_INPUT_TAP, [0, MAHJONG_TILES - 1]), inputRange(MAHJONG_INPUT_BUTTON, [0, MAHJONG_BUTTON_RESET])];
+
+/** The input ranges a revision's runs are validated against. */
+export function mahjongInputRanges(rev?: number | null): readonly InputRange[] {
+  return (rev ?? MAHJONG_REV_STD) >= MAHJONG_REV_UNDO ? MAHJONG_V2_INPUT_RANGES : MAHJONG_INPUT_RANGES;
+}
 
 /* ================================ World ================================ */
 
@@ -306,12 +326,23 @@ export interface MahjongState {
   lastBlockedTick: number;
   lastShuffleTick: number;
   acted: number;
+  /** mahjongRev 2 only: the original deal (Reset), the boards before each pair taken or Shuffle (Undo), the counts and the last one's tick. */
+  start?: readonly number[];
+  history?: readonly (readonly number[])[];
+  undos?: number;
+  resets?: number;
+  lastUndoTick?: number;
+  lastResetTick?: number;
 }
 
 function init(seed: number): MahjongState {
+  return initRev(seed, MAHJONG_REV_STD);
+}
+
+function initRev(seed: number, rev: number): MahjongState {
   const deal = mahjongBuild(seed);
-  return {
-    rev: MAHJONG_REV_STD,
+  const base: MahjongState = {
+    rev,
     tick: 0,
     seed,
     face: deal.face,
@@ -330,6 +361,30 @@ function init(seed: number): MahjongState {
     lastShuffleTick: 0,
     acted: 0,
   };
+  return rev >= MAHJONG_REV_UNDO ? { ...base, start: deal.face, history: [], undos: 0, resets: 0, lastUndoTick: 0, lastResetTick: 0 } : base;
+}
+
+/** On mahjongRev 2, the board before a change goes on the undo history. */
+function remember(s: MahjongState): Partial<MahjongState> {
+  return s.history ? { history: [...s.history, s.face] } : {};
+}
+
+function pairsOn(face: readonly number[]): number {
+  let gone = 0;
+  for (const f of face) if (f < 0) gone++;
+  return gone / 2;
+}
+
+function applyUndo(s: MahjongState, tick: number): MahjongState {
+  const history = s.history ?? [];
+  if (mahjongCleared(s) || history.length === 0) return s;
+  const face = history[history.length - 1]!;
+  return { ...s, face, pairs: pairsOn(face), sel: -1, history: history.slice(0, -1), undos: (s.undos ?? 0) + 1, lastUndoTick: tick };
+}
+
+function applyReset(s: MahjongState, tick: number): MahjongState {
+  if (mahjongCleared(s) || !s.start) return s;
+  return { ...s, face: s.start, pairs: 0, sel: -1, history: [], resets: (s.resets ?? 0) + 1, lastResetTick: tick };
 }
 
 function applyTap(s: MahjongState, slot: number, tick: number): MahjongState {
@@ -344,6 +399,7 @@ function applyTap(s: MahjongState, slot: number, tick: number): MahjongState {
   const pairs = s.pairs + 1;
   return {
     ...s,
+    ...remember(s),
     face,
     sel: -1,
     pairs,
@@ -357,7 +413,7 @@ function applyTap(s: MahjongState, slot: number, tick: number): MahjongState {
 function applyShuffle(s: MahjongState, tick: number): MahjongState {
   if (s.pairs >= MAHJONG_PAIRS) return s;
   const out = mahjongReshuffle(s.face, s.rng);
-  return { ...s, face: out.face, rng: out.rng, sel: -1, shuffles: s.shuffles + 1, lastShuffleTick: tick };
+  return { ...s, ...remember(s), face: out.face, rng: out.rng, sel: -1, shuffles: s.shuffles + 1, lastShuffleTick: tick };
 }
 
 function step(s: MahjongState, input: ArcadeInputEvent | null): MahjongState {
@@ -366,6 +422,8 @@ function step(s: MahjongState, input: ArcadeInputEvent | null): MahjongState {
   let next: MahjongState = s;
   if (input) {
     if (input.k === MAHJONG_INPUT_TAP && input.a >= 0 && input.a < MAHJONG_TILES) next = applyTap(s, input.a, tick);
+    else if (input.k === MAHJONG_INPUT_BUTTON && s.rev >= MAHJONG_REV_UNDO && input.a === MAHJONG_BUTTON_UNDO) next = applyUndo(s, tick);
+    else if (input.k === MAHJONG_INPUT_BUTTON && s.rev >= MAHJONG_REV_UNDO && input.a === MAHJONG_BUTTON_RESET) next = applyReset(s, tick);
     else if (input.k === MAHJONG_INPUT_SHUFFLE) next = applyShuffle(s, tick);
     if (!next.acted) next = { ...next, acted: 1 };
   }
@@ -398,7 +456,7 @@ export const MAHJONG_V1_BAND_CURVE = bandCurve([0, MAHJONG_PAIRS], [0, MAHJONG_C
 
 export const MAHJONG_STD_SPEC: StdSpec = {
   field: "mahjongRev",
-  rev: MAHJONG_REV_STD,
+  rev: MAHJONG_REV_DEALT,
   parts: [
     { key: "core", label: "Pairs", max: MAHJONG_CORE_MAX, item: "pair", how: `a share of the ${MAHJONG_PAIRS} pairs cleared` },
     { key: "clean", label: "No shuffles", max: MAHJONG_CLEAN_MAX, how: "the same share, while you have not shuffled" },
@@ -423,7 +481,7 @@ const secs = (ticks: number) => `${(ticks / TICKS_PER_SECOND).toFixed(1)} s`;
 /** The standard's parts list (the reveal's lines and arcade-standard-check). */
 export function mahjongStdParts(state: unknown): StdPart[] | null {
   const s = state as Partial<MahjongState> | null;
-  if (!s || s.rev !== MAHJONG_REV_STD || !Array.isArray(s.face)) return null;
+  if (!s || (s.rev !== MAHJONG_REV_STD && s.rev !== MAHJONG_REV_UNDO) || !Array.isArray(s.face)) return null;
   const st = s as MahjongState;
   const p = mahjongParts(st);
   return [
@@ -472,6 +530,13 @@ export const mahjongGame: ArcadeGame<MahjongState, ArcadeInputEvent | null> = {
   inputRanges: MAHJONG_INPUT_RANGES,
 };
 
-export function mahjongGameFor(_rev?: number | null): ArcadeGame<MahjongState, ArcadeInputEvent | null> {
-  return mahjongGame;
+/** mahjongRev 2: the same deal and score with Undo and Reset. */
+export const mahjongUndoGame: ArcadeGame<MahjongState, ArcadeInputEvent | null> = {
+  ...mahjongGame,
+  init: (seed: number) => initRev(seed, MAHJONG_REV_UNDO),
+  inputRanges: MAHJONG_V2_INPUT_RANGES,
+};
+
+export function mahjongGameFor(rev?: number | null): ArcadeGame<MahjongState, ArcadeInputEvent | null> {
+  return (rev ?? MAHJONG_REV_STD) >= MAHJONG_REV_UNDO ? mahjongUndoGame : mahjongGame;
 }

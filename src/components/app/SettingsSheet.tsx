@@ -6,6 +6,7 @@ import { FeedbackLink } from "@/components/beta/FeedbackLink";
 import { OfflineSettingsRow } from "@/components/offline/OfflineSettingsRow";
 import { Slider } from "@/components/ui/slider";
 import { APP_BUILD_ID, buildLabel } from "@/lib/appVersion";
+import { setBatterySaver, useBatterySaver } from "@/lib/battery";
 import {
   effectsVolume,
   isMuted,
@@ -32,7 +33,7 @@ function readArrows(): "arrows" | "joystick" {
 /**
  * Profile's settings (the gear): the existing device settings in one sheet, nothing new. Sound: a
  * switch each for effects and music and one volume row (both channels; the same settings as every
- * screen's header MuteToggle); direction controls are the arrows/joystick choice the grid games offer in play
+ * screen's header MuteToggle); the battery saver (lib/battery.ts); direction controls are the arrows/joystick choice the grid games offer in play
  * (GridDrag's own key); "How it works" reopens the first-time intro.
  */
 export function SettingsSheet({
@@ -63,6 +64,7 @@ export function SettingsSheet({
     }
   };
   const sound = useSoundSettings();
+  const saver = useBatterySaver();
   const server = useServerBuild();
   return createPortal(
     <div
@@ -135,6 +137,8 @@ export function SettingsSheet({
           <OfflineSettingsRow />
         </div>
         <div className="ap-panel">
+          {/* Battery saver (lib/battery.ts, off by default): fewer particles and glows, puzzles at 30 fps. */}
+          <SwitchRow label="Battery saver" on={saver} onChange={setBatterySaver} />
           <button type="button" onClick={onHowItWorks} className="ap-row press">
             <span className="ap-row-title flex-1">How it works</span>
             <ChevronRight aria-hidden="true" className="ap-chevron" />

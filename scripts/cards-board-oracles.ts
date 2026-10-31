@@ -7,7 +7,7 @@
  */
 import { inputAt, type ArcadeInputEvent, type ArcadeGame } from "../src/lib/arcade/engine";
 import { minesBoard, minesCheckpoint, minesSolve, minesweeperGame, MINES_CHECKPOINT_INTERVAL, MINES_INPUT_TAP, MINES_MODE_REVEAL } from "../src/lib/arcade/minesweeper";
-import { mahjongBuild, mahjongCheckpoint, mahjongGame, MAHJONG_CHECKPOINT_INTERVAL, MAHJONG_INPUT_TAP } from "../src/lib/arcade/mahjong";
+import { mahjongBuild, mahjongCheckpoint, mahjongGameFor, MAHJONG_CHECKPOINT_INTERVAL, MAHJONG_INPUT_TAP } from "../src/lib/arcade/mahjong";
 import { encodeMinesweeperRun } from "../src/lib/duel/minesweeper";
 import { encodeMahjongRun } from "../src/lib/duel/mahjong";
 
@@ -51,8 +51,9 @@ function phoneRun(game: ArcadeGame<any, ArcadeInputEvent | null>, seed: number, 
 }
 
 /** An encoded run for the replay functions, as the phone would send it (claimed score and checkpoints included). */
-export function encodeOracle(seed: number, events: readonly ArcadeInputEvent[], type: "minesweeper" | "mahjong"): string {
+/** The run the phone would send; `rev` picks Mahjong's revision (1 by default; 2 plays Undo and Reset). */
+export function encodeOracle(seed: number, events: readonly ArcadeInputEvent[], type: "minesweeper" | "mahjong", rev = 1): string {
   return type === "minesweeper"
     ? phoneRun(minesweeperGame, seed, events, MINES_CHECKPOINT_INTERVAL, minesCheckpoint, encodeMinesweeperRun)
-    : phoneRun(mahjongGame, seed, events, MAHJONG_CHECKPOINT_INTERVAL, mahjongCheckpoint, encodeMahjongRun);
+    : phoneRun(mahjongGameFor(rev), seed, events, MAHJONG_CHECKPOINT_INTERVAL, mahjongCheckpoint, encodeMahjongRun);
 }

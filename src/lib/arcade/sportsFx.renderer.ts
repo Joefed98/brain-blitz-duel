@@ -10,8 +10,8 @@ import { racingFxCounts, RACING_WORLD_H, RACING_WORLD_W, type RacingState } from
 import { px } from "./engine";
 import { MINIGOLF_H, MINIGOLF_HOLES, MINIGOLF_W, type MinigolfState } from "./minigolf";
 import { POOL_H, POOL_SPOTS, POOL_W, type PoolState } from "./pool";
-import { curlShotTeam, curlTakeouts, CURL_STONE_PTS, CURLING_H, CURLING_STONES, CURLING_W, TEAM_MINE, type CurlingState } from "./curling";
-import { curlProject } from "./curling.renderer";
+import { curlShotTeam, curlTakeouts, CURL_STONE_PTS, CURLING_H, CURLING_H_V2, CURLING_STONES, CURLING_W, TEAM_MINE, type CurlingState } from "./curling";
+import { curlProject, CURL_VIEW_V1, CURL_VIEW_V2 } from "./curling.renderer";
 
 const homerunMisses = (s: HomerunState) => s.hits.filter((h) => h.out === OUT_WHIFF || h.out === OUT_TAKEN || h.out === OUT_FOUL).length;
 
@@ -23,9 +23,10 @@ export const HOMERUN_FX: ArcadeFxSpec<HomerunState> = {
   shake: false,
   textInset: 40,
   events: [
-    // The renderer writes the call ("HOME RUN", the distance); the layer adds the burst over the stands.
-    { kind: "perfect", count: (s) => s.homers, at: () => ({ x: HOMERUN_WORLD_W / 2, y: 230 }), label: () => null, lights: ["#F2C75C", "#FFF1C2", "#FFFFFF"] },
-    { kind: "streak", count: (s) => homerunSignCount(s), at: () => ({ x: HOMERUN_WORLD_W / 2, y: 250 }), label: () => null, neon: true },
+    // The renderer writes the call ("HOME RUN", the distance); the layer adds the burst over the stands (31 Oct 2026:
+    // the stands sit higher with the camera behind the batter).
+    { kind: "perfect", count: (s) => s.homers, at: () => ({ x: HOMERUN_WORLD_W / 2, y: 120 }), label: () => null, lights: ["#F2C75C", "#FFF1C2", "#FFFFFF"] },
+    { kind: "streak", count: (s) => homerunSignCount(s), at: () => ({ x: HOMERUN_WORLD_W / 2, y: 140 }), label: () => null, neon: true },
   ],
   misses: [{ count: homerunMisses }],
 };
@@ -115,23 +116,32 @@ export const POOL_FX: ArcadeFxSpec<PoolState> = {
   misses: [{ count: (s) => s.fouls + s.scratches }],
 };
 
-const houseAt = () => {
-  const p = curlProject(0, 0);
-  return { x: p.sx, y: p.sy };
-};
+/** Curling's success layer on a revision's view (curlRev 1: 390 × 720; curlRev 2: 390 × 540). */
+function curlingFx(rev: 1 | 2): ArcadeFxSpec<CurlingState> {
+  const view = rev === 2 ? CURL_VIEW_V2 : CURL_VIEW_V1;
+  const houseAt = () => {
+    const p = curlProject(0, 0, view);
+    return { x: p.sx, y: p.sy };
+  };
+  return {
+    game: "curling",
+    world: "realworld",
+    width: CURLING_W,
+    height: rev === 2 ? CURLING_H_V2 : CURLING_H,
+    fit: "world",
+    shake: false,
+    events: [
+      { kind: "perfect", count: (s) => s.pts.filter((p) => p === CURL_STONE_PTS).length, at: houseAt, label: () => "ON THE BUTTON!" },
+      { kind: "pop", count: curlTakeouts, at: houseAt, label: () => "TAKEOUT!" },
+      { kind: "final", count: (s) => (s.thrown >= CURLING_STONES && s.over && curlShotTeam(s) === TEAM_MINE ? 1 : 0), label: () => "SHOT STONE!" },
+    ],
+    misses: [{ count: (s) => s.pts.filter((p, i) => i < s.thrown && p === 0).length }],
+  };
+}
 
-/** Curling: a stone on the button, a takeout and the shot stone at the end; a stone that stops outside the house is a miss. */
-export const CURLING_FX: ArcadeFxSpec<CurlingState> = {
-  game: "curling",
-  world: "realworld",
-  width: CURLING_W,
-  height: CURLING_H,
-  fit: "world",
-  shake: false,
-  events: [
-    { kind: "perfect", count: (s) => s.pts.filter((p) => p === CURL_STONE_PTS).length, at: houseAt, label: () => "ON THE BUTTON!" },
-    { kind: "pop", count: curlTakeouts, at: houseAt, label: () => "TAKEOUT!" },
-    { kind: "final", count: (s) => (s.thrown >= CURLING_STONES && s.over && curlShotTeam(s) === TEAM_MINE ? 1 : 0), label: () => "SHOT STONE!" },
-  ],
-  misses: [{ count: (s) => s.pts.filter((p, i) => i < s.thrown && p === 0).length }],
-};
+/** Curling: a stone on the button, a takeout and the shot stone at the end; a stone that stops outside the house is a miss (the dealt curlRev 2's view). */
+export const CURLING_FX: ArcadeFxSpec<CurlingState> = curlingFx(2);
+/** curlRev 1's success layer (its taller world). */
+export const CURLING_FX_V1: ArcadeFxSpec<CurlingState> = curlingFx(1);
+/** The success layer for a stored curlRev. */
+export const curlingFxFor = (rev: number | null | undefined): ArcadeFxSpec<CurlingState> => ((rev ?? 1) >= 2 ? CURLING_FX : CURLING_FX_V1);

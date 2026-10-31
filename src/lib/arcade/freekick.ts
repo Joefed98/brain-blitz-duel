@@ -30,6 +30,14 @@ import { stdEach, stdLine, stdPart, stdScore, stdSum, type StdPart, type StdSpec
 /* ================================ Constants ================================ */
 
 export const FREEKICK_REV_STD = 1;
+/**
+ * freekickRev 2 (Top Bins, 31 Oct 2026; docs/arcade-standard/freekick.md "freekickRev 2"): no wind; each kick's spot
+ * seeded 18–32 yards from the goal's centre at up to 35° either side; the wall (3–5) and the keeper set for the spot.
+ * The flight, the keeper's reactions and the scoring are rev 1's.
+ */
+export const FREEKICK_REV_2 = 2;
+/** The revision rooms deal. */
+export const FREEKICK_REV_DEALT = FREEKICK_REV_2;
 export const FREEKICK_RUN_SECONDS = 75;
 export const FREEKICK_RUN_TICKS = FREEKICK_RUN_SECONDS * 60;
 export const FREEKICK_KICKS = 10;
@@ -160,6 +168,10 @@ export const FREEKICK_STD_SPEC: StdSpec = {
   ],
 };
 
+/** freekickRev 2's spec: rev 1's parts exactly, on its own stamp. */
+export const FREEKICK_V2_STD_SPEC: StdSpec = { ...FREEKICK_STD_SPEC, rev: FREEKICK_REV_2 };
+export const FREEKICK_V2_BAND_CURVE = bandCurve([0, FREEKICK_CORE_FULL], [0, FREEKICK_CORE_MAX]);
+
 /* ================================ The deal ================================ */
 
 export interface FkKick {
@@ -176,9 +188,12 @@ export interface FkKick {
   /** −1: the wall covers the left post; +1 the right. */
   side: number;
   keeperX: number;
-  /** −5…5, + blows to the right. */
+  /** −5…5, + blows to the right (always 0 on freekickRev 2). */
   wind: number;
   target: number;
+  /** freekickRev 2 (display): the spot's distance in yards from the goal's centre and its angle in degrees (+ right). */
+  yards?: number;
+  degrees?: number;
 }
 
 export interface FkPlan {
@@ -233,10 +248,60 @@ function makeKick(rng: { s: number }, target: number): FkKick {
   return kk;
 }
 
+/** freekickRev 2's spot range: 18–32 yards from the goal's centre, up to 35° (611 mrad) either side. */
+export const FK_V2_YARD = m(0.9144);
+export const FK_V2_DIST_MIN = 18 * FK_V2_YARD;
+export const FK_V2_DIST_MAX = 32 * FK_V2_YARD;
+export const FK_V2_ANGLE_MAX = 611;
+/** The keeper's start: this far beyond the bisector of the posts' angle, away from the wall (0.3–1.0 m), held to ±3 m. */
+export const FK_V2_KEEPER_SHIFT_MIN = m(0.3);
+export const FK_V2_KEEPER_SHIFT_SPAN = m(0.7);
+export const FK_V2_KEEPER_START_MAX = m(3.0);
+
+/**
+ * A freekickRev 2 kick: the spot by distance and angle; the wall by the spot (4–5 for a central kick inside 25 yards,
+ * 3 from a wide angle or beyond 30 yards, else 3–4), covering the near post as on rev 1; the keeper on the bisector of
+ * the angle the posts make at the ball, stepped toward the far post. No wind.
+ */
+function makeKickV2(rng: { s: number }, target: number): FkKick {
+  const dist = FK_V2_DIST_MIN + draw(rng, FK_V2_DIST_MAX - FK_V2_DIST_MIN + 1);
+  const ang = draw(rng, 2 * FK_V2_ANGLE_MAX + 1) - FK_V2_ANGLE_MAX;
+  const sc = fkSinCos(ang);
+  const bx = Math.trunc((dist * sc.s) / 4096);
+  const bz = -Math.trunc((dist * sc.c) / 4096);
+  const len = isqrt(bx * bx + bz * bz);
+  const fx = Math.trunc((-bx * 4096) / len);
+  const fz = Math.trunc((-bz * 4096) / len);
+  const side = bx < -m(1.5) ? -1 : bx > m(1.5) ? 1 : draw(rng, 2) === 0 ? -1 : 1;
+  const central = Math.abs(ang) <= 210 && dist <= 25 * FK_V2_YARD;
+  const wide = Math.abs(ang) >= 436 || dist >= 30 * FK_V2_YARD;
+  const wallN = central ? 4 + draw(rng, 2) : wide ? 3 : 3 + draw(rng, 2);
+  const extra = m(0.15) + draw(rng, m(0.35));
+  const kk: FkKick = { bx, bz, fx, fz, wallN, wallL: 0, wallR: 0, side, keeperX: 0, wind: 0, target };
+  const p = fkLocal(kk, side * FK_GOAL_HALF_W, 0);
+  const uPost = Math.trunc((p.u * FK_WALL_DIST) / p.w);
+  if (side < 0) {
+    kk.wallL = uPost - extra;
+    kk.wallR = kk.wallL + wallN * FK_WALL_SPACING;
+  } else {
+    kk.wallR = uPost + extra;
+    kk.wallL = kk.wallR - wallN * FK_WALL_SPACING;
+  }
+  // The bisector meets the goal line where it splits the mouth in the ratio of the ball's distances to the posts.
+  const dL = isqrt((bx + FK_GOAL_HALF_W) * (bx + FK_GOAL_HALF_W) + bz * bz);
+  const dR = isqrt((bx - FK_GOAL_HALF_W) * (bx - FK_GOAL_HALF_W) + bz * bz);
+  const xb = -FK_GOAL_HALF_W + Math.trunc((2 * FK_GOAL_HALF_W * dL) / (dL + dR));
+  kk.keeperX = clampInt(xb - side * (FK_V2_KEEPER_SHIFT_MIN + draw(rng, FK_V2_KEEPER_SHIFT_SPAN)), -FK_V2_KEEPER_START_MAX, FK_V2_KEEPER_START_MAX);
+  kk.yards = Math.round(dist / FK_V2_YARD);
+  kk.degrees = Math.round((ang * 180) / 3141.59);
+  return kk;
+}
+
 const planCache = new Map<number, FkPlan>();
 
-/** The run's schedule from the seed: identical for every player and the server. */
-export function fkSeedPlan(seed: number): FkPlan {
+/** The run's schedule from the seed (and the revision): identical for every player and the server. */
+export function fkSeedPlan(seed: number, rev: number = FREEKICK_REV_STD): FkPlan {
+  if (rev >= FREEKICK_REV_2) return fkSeedPlanV2(seed);
   const key = seed | 0;
   const hit = planCache.get(key);
   if (hit) return hit;
@@ -258,6 +323,32 @@ export function fkSeedPlan(seed: number): FkPlan {
   const plan = { kicks };
   if (planCache.size > 64) planCache.clear();
   planCache.set(key, plan);
+  return plan;
+}
+
+const planCacheV2 = new Map<number, FkPlan>();
+
+/** freekickRev 2's schedule: the targets as rev 1 (four kicks; two in three the corner behind the wall, else the bar). */
+function fkSeedPlanV2(seed: number): FkPlan {
+  const key = seed | 0;
+  const hit = planCacheV2.get(key);
+  if (hit) return hit;
+  const rng = { s: (key ^ 0x2b7e_15a6) | 0 };
+  const order = Array.from({ length: FREEKICK_KICKS }, (_, i) => i);
+  for (let i = order.length - 1; i > 0; i--) {
+    const j = draw(rng, i + 1);
+    [order[i], order[j]] = [order[j]!, order[i]!];
+  }
+  const targets = new Array<number>(FREEKICK_KICKS).fill(FK_TARGET_NONE);
+  for (let i = 0; i < FREEKICK_TARGETS; i++) targets[order[i]!] = draw(rng, 3) === 0 ? FK_TARGET_BAR : FK_TARGET_LEFT;
+  const kicks = targets.map((t) => {
+    const kick = makeKickV2(rng, t);
+    if (t === FK_TARGET_LEFT) kick.target = kick.side < 0 ? FK_TARGET_LEFT : FK_TARGET_RIGHT;
+    return kick;
+  });
+  const plan = { kicks };
+  if (planCacheV2.size > 64) planCacheV2.clear();
+  planCacheV2.set(key, plan);
   return plan;
 }
 
@@ -560,12 +651,16 @@ export function fkDeadline(k: number): number {
   return FREEKICK_SLOT * k + FREEKICK_DEADLINE_IN_SLOT;
 }
 
-function init(seed: number): FreekickState {
-  fkSeedPlan(seed);
+function initFor(rev: number) {
+  return (seed: number) => init(seed, rev);
+}
+
+function init(seed: number, rev: number = FREEKICK_REV_STD): FreekickState {
+  fkSeedPlan(seed, rev);
   return {
     tick: 0,
     seed: seed | 0,
-    freekickRev: FREEKICK_REV_STD,
+    freekickRev: rev,
     acted: 0,
     k: 0,
     phase: FK_SETUP,
@@ -587,7 +682,7 @@ function init(seed: number): FreekickState {
 
 /** The kick being played (or the last one). */
 export function fkKickOf(state: FreekickState): FkKick {
-  const plan = fkSeedPlan(state.seed);
+  const plan = fkSeedPlan(state.seed, state.freekickRev);
   return plan.kicks[Math.min(state.k, FREEKICK_KICKS - 1)]!;
 }
 
@@ -658,15 +753,16 @@ function isOver(state: FreekickState): boolean {
   return state.phase === FK_OVER || state.tick >= FREEKICK_RUN_TICKS;
 }
 
-/** freekickRev 1's scored parts (null on a state of any other revision). */
+/** freekickRev 1's and 2's scored parts (the same parts, each on its own spec; null on any other revision). */
 export function freekickStdParts(state: FreekickState): StdPart[] | null {
-  if (state.freekickRev !== FREEKICK_REV_STD) return null;
+  const spec = state.freekickRev === FREEKICK_REV_STD ? FREEKICK_STD_SPEC : state.freekickRev === FREEKICK_REV_2 ? FREEKICK_V2_STD_SPEC : null;
+  if (!spec) return null;
   const placed = state.units - state.goals * FREEKICK_GOAL_UNITS;
   return [
-    stdPart(FREEKICK_STD_SPEC, "core", stdLine(FREEKICK_CORE_MAX, state.units, FREEKICK_CORE_FULL), `${state.goals} of ${FREEKICK_KICKS} scored · placement ${placed} of ${state.goals * FREEKICK_PLACE_UNITS}`),
-    stdPart(FREEKICK_STD_SPEC, "targets", stdEach(state.targets, 10, FREEKICK_TARGETS_MAX), `${state.targets} of ${FREEKICK_TARGETS} targets`),
-    stdPart(FREEKICK_STD_SPEC, "curl", stdEach(state.curled, 2, FREEKICK_CURL_MAX_PTS), `${state.curled} round the wall`),
-    stdPart(FREEKICK_STD_SPEC, "streak", state.best >= FREEKICK_STREAK_RUN ? FREEKICK_STREAK_MAX : 0, `best ${state.best} in a row`),
+    stdPart(spec, "core", stdLine(FREEKICK_CORE_MAX, state.units, FREEKICK_CORE_FULL), `${state.goals} of ${FREEKICK_KICKS} scored · placement ${placed} of ${state.goals * FREEKICK_PLACE_UNITS}`),
+    stdPart(spec, "targets", stdEach(state.targets, 10, FREEKICK_TARGETS_MAX), `${state.targets} of ${FREEKICK_TARGETS} targets`),
+    stdPart(spec, "curl", stdEach(state.curled, 2, FREEKICK_CURL_MAX_PTS), `${state.curled} round the wall`),
+    stdPart(spec, "streak", state.best >= FREEKICK_STREAK_RUN ? FREEKICK_STREAK_MAX : 0, `best ${state.best} in a row`),
   ];
 }
 
@@ -701,7 +797,7 @@ function drawPlain(ctx: CanvasRenderingContext2D, state: FreekickState, size: Ca
 export const freekickGame: ArcadeGame<FreekickState, ArcadeInputEvent | null> = {
   key: "freekick",
   runTicks: FREEKICK_RUN_TICKS,
-  init,
+  init: initFor(FREEKICK_REV_STD),
   step,
   isOver,
   score,
@@ -709,9 +805,12 @@ export const freekickGame: ArcadeGame<FreekickState, ArcadeInputEvent | null> = 
   inputRanges: FREEKICK_INPUT_RANGES,
 };
 
-/** Every revision plays freekickRev 1 (the only one so far). */
-export function freekickGameFor(_rev?: number | null): ArcadeGame<FreekickState, ArcadeInputEvent | null> {
-  return freekickGame;
+/** freekickRev 2's game: the same step (the kick plan follows the state's stamp), started on rev 2. */
+export const freekickGameV2: ArcadeGame<FreekickState, ArcadeInputEvent | null> = { ...freekickGame, init: initFor(FREEKICK_REV_2) };
+
+/** The game for a stored stamp: rev 2 on freekickRev 2 and above, else rev 1 (unstamped rounds included). */
+export function freekickGameFor(rev?: number | null): ArcadeGame<FreekickState, ArcadeInputEvent | null> {
+  return (rev ?? FREEKICK_REV_STD) >= FREEKICK_REV_2 ? freekickGameV2 : freekickGame;
 }
 
 /* ================================ Checkpoints ================================ */

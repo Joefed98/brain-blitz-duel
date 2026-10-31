@@ -18,7 +18,8 @@ import { breakerStdParts, type BrkState } from "./breaker";
 import { burstGoldenCount, burstStdParts, BURST_V10_GOLDENS, BURST_V10_WAVES, type BurstState } from "./burst";
 import { bandLines } from "./scoreBands";
 import { stdLines } from "./arcadeStandard";
-import { PS_CORE_FULL } from "./cards/pokerSquares";
+import { psCoreFullFor } from "./cards/pokerSquares";
+import { FH_CORE_FULL } from "./cards/fiveHands";
 import { arcadeStdParts } from "./standard";
 
 export interface ArcadeRevealTile {
@@ -151,15 +152,28 @@ const BUILDERS: Record<string, Builder> = {
     ],
     outcome: b(r, "finished") ? "finish" : n(r, "endedSeconds") < 60 ? "crash" : "time",
   }),
-  pokersquares: (r, s) => ({
-    axis: { value: n(r, "total"), max: PS_CORE_FULL, label: "Hand points" },
-    lines: [`${n(r, "total")} hand points (full at ${PS_CORE_FULL}) → ${s}`],
+  pokersquares: (r, s) => {
+    const full = psCoreFullFor(n(r, "pokerSquaresRev") || 1);
+    return {
+      axis: { value: n(r, "total"), max: full, label: "Hand points" },
+      lines: [`${n(r, "total")} hand points (full at ${full}) → ${s}`],
+      tiles: [
+        { label: "Made hands", value: `${n(r, "made")} / 10` },
+        { label: "Full at", value: String(full) },
+        { label: "Placed", value: `${n(r, "placed")} / 25` },
+      ],
+      outcome: n(r, "placed") === 25 ? "finish" : "time",
+    };
+  },
+  fivehands: (r, s) => ({
+    axis: { value: n(r, "total"), max: FH_CORE_FULL, label: "Hand points" },
+    lines: [`${n(r, "total")} hand points (full at ${FH_CORE_FULL}) → ${s}`],
     tiles: [
-      { label: "Made hands", value: `${n(r, "made")} / 10` },
-      { label: "Full at", value: String(PS_CORE_FULL) },
-      { label: "Placed", value: `${n(r, "placed")} / 25` },
+      { label: "Made hands", value: `${n(r, "made")} / 5` },
+      { label: "Full at", value: String(FH_CORE_FULL) },
+      { label: "Placed", value: `${n(r, "placed")} / 20` },
     ],
-    outcome: n(r, "placed") === 25 ? "finish" : "time",
+    outcome: n(r, "placed") === 20 ? "finish" : "time",
   }),
   hover: (r, s) => {
     const done = n(r, "gates") >= n(r, "totalGates") && n(r, "totalGates") > 0;

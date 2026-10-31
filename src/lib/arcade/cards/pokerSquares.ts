@@ -13,13 +13,19 @@
  * PS_CORE_FULL × 160, full at the near-perfect skill-band median (the standard's rule for an open-ended core: the
  * target grid is built knowing all 25 cards, which no player sees, so it is the proof of 200, not the bar); made hands
  * 40 (4 for each line with a pair or better).
+ *
+ * pokerSquaresRev 2 (31 Oct 2026, shown as "Full House"; Joe: top marks should need elite placement): the same deals
+ * and play, the core full at PS_CORE_FULL_V2, the elite skill-band median (73 hand points, against rev 1's 68 at the
+ * near-perfect median). Every target grid reaches it (psTargetGrid's acceptance is the revision's full figure; every
+ * grid measured reaches 99 or more, so the deals are rev 1's). Rev-1 runs score as before (pokerSquaresGameFor(1)).
  */
 import { inputRange, rngBelow, type ArcadeGame, type ArcadeInputEvent } from "../engine";
 import { stdEach, stdLine, stdPart, stdScore, stdSum, type StdPart, type StdSpec } from "../arcadeStandard";
 import { bandCurve, type BandParts } from "../scoreBands";
 import { DECK, hashInts, NO_CARD, rankOf, shuffledDeck, suitOf } from "./cards";
 
-export const PS_REV = 1;
+/** The dealt revision (rev 2: the core full at the elite median). */
+export const PS_REV = 2;
 export const PS_SIZE = 5;
 export const PS_SQUARES = 25;
 export const PS_LINES = 10;
@@ -34,17 +40,33 @@ export const PS_HANDS_MAX = 40;
  * pokersquares`, docs/arcade-standard/pokersquares.md). Every dealt target grid reaches it (psTargetGrid).
  */
 export const PS_CORE_FULL = 68;
+/**
+ * pokerSquaresRev 2's full figure: the elite skill-band median (`bun scripts/cards-bands.ts pokersquares
+ * --seeds=100`; the elite bot plans ahead with rollouts, docs/arcade-standard/pokersquares.md).
+ */
+export const PS_CORE_FULL_V2 = 73;
+/** The core's full figure on a revision. */
+export function psCoreFullFor(rev: number | null | undefined): number {
+  return (rev ?? 1) >= 2 ? PS_CORE_FULL_V2 : PS_CORE_FULL;
+}
 /** The core's straight line (LIVE_BANDS and arcade-help-bands-check read it). */
 export const PS_V1_BAND_CURVE = bandCurve([0, PS_CORE_FULL], [0, PS_CORE_MAX]);
+export const PS_V2_BAND_CURVE = bandCurve([0, PS_CORE_FULL_V2], [0, PS_CORE_MAX]);
 
-export const PS_STD_SPEC: StdSpec = {
-  field: "pokerSquaresRev",
-  rev: PS_REV,
-  parts: [
-    { key: "core", label: "Hand points", max: PS_CORE_MAX, of: PS_CORE_FULL, item: "hand point", how: `a straight line, full at ${PS_CORE_FULL} hand points` },
-    { key: "hands", label: "Made hands", max: PS_HANDS_MAX, of: PS_LINES, item: "line", how: "4 for each row or column with a pair or better" },
-  ],
-};
+function psSpec(rev: number): StdSpec {
+  const full = psCoreFullFor(rev);
+  return {
+    field: "pokerSquaresRev",
+    rev,
+    parts: [
+      { key: "core", label: "Hand points", max: PS_CORE_MAX, of: full, item: "hand point", how: `a straight line, full at ${full} hand points` },
+      { key: "hands", label: "Made hands", max: PS_HANDS_MAX, of: PS_LINES, item: "line", how: "4 for each row or column with a pair or better" },
+    ],
+  };
+}
+/** The dealt revision's spec (the help, LIVE_BANDS); rev 1's is PS_STD_SPEC_V1. */
+export const PS_STD_SPEC: StdSpec = psSpec(PS_REV);
+export const PS_STD_SPEC_V1: StdSpec = psSpec(1);
 
 /** Hand names and points, best first. */
 export const PS_HANDS = [
@@ -139,7 +161,8 @@ function lineValue(grid: readonly number[], l: number): number {
  * or a square with an unused card; kept when no worse, judged on the lines it touches) until every line holds a pair
  * or better. Integer maths and the engine's PRNG only. Also returns the PRNG's state for the dealing order.
  */
-export function psTargetGrid(seed: number): { grid: number[]; target: number; rng: number } {
+export function psTargetGrid(seed: number, rev = 1): { grid: number[]; target: number; rng: number } {
+  const full = psCoreFullFor(rev);
   for (let attempt = 0; ; attempt++) {
     const shuffled = shuffledDeck((seed ^ Math.imul(attempt, 0x9e3779b1)) | 0);
     let rng = shuffled.rng;
@@ -196,17 +219,18 @@ export function psTargetGrid(seed: number): { grid: number[]; target: number; rn
       }
     }
     const totals = psTotals(grid);
-    if (totals.made === PS_LINES && totals.total >= PS_CORE_FULL) return { grid, target: totals.total, rng };
+    if (totals.made === PS_LINES && totals.total >= full) return { grid, target: totals.total, rng };
   }
 }
 
 /** The deal: the target grid's 25 cards in a seeded dealing order, and the target. */
-const DEAL_CACHE = new Map<number, { order: number[]; target: number }>();
+const DEAL_CACHE = new Map<string, { order: number[]; target: number }>();
 
-export function psDeal(seed: number): { order: number[]; target: number } {
-  const cached = DEAL_CACHE.get(seed);
+export function psDeal(seed: number, rev = 1): { order: number[]; target: number } {
+  const key = `${seed}:${psCoreFullFor(rev)}`;
+  const cached = DEAL_CACHE.get(key);
   if (cached) return { order: cached.order.slice(), target: cached.target };
-  const { grid, target, rng: start } = psTargetGrid(seed);
+  const { grid, target, rng: start } = psTargetGrid(seed, rev);
   const order = grid.slice();
   let rng = start;
   for (let i = order.length - 1; i > 0; i--) {
@@ -218,7 +242,7 @@ export function psDeal(seed: number): { order: number[]; target: number } {
   }
   // A few deals kept: the phone's stage builds its first state on every render (the seed's work is the same each time).
   if (DEAL_CACHE.size >= 8) DEAL_CACHE.delete(DEAL_CACHE.keys().next().value!);
-  DEAL_CACHE.set(seed, { order: order.slice(), target });
+  DEAL_CACHE.set(key, { order: order.slice(), target });
   return { order, target };
 }
 
@@ -241,10 +265,10 @@ export interface PsState {
   std: number;
 }
 
-export function psInit(seed: number): PsState {
-  const { order, target } = psDeal(seed);
+export function psInit(seed: number, rev = 1): PsState {
+  const { order, target } = psDeal(seed, rev);
   return {
-    tick: 0, rev: PS_REV, order, next: 0, target, grid: new Array<number>(PS_SQUARES).fill(NO_CARD),
+    tick: 0, rev, order, next: 0, target, grid: new Array<number>(PS_SQUARES).fill(NO_CARD),
     rejects: 0, acted: 0, ended: 0, finishTick: 0, lastSquare: -1, lastTick: 0, std: 1,
   };
 }
@@ -278,9 +302,10 @@ function step(state: PsState, input: ArcadeInputEvent | null): PsState {
 export function pokerSquaresStdParts(state: PsState): StdPart[] | null {
   if (!state || !state.std) return null;
   const { total, made } = psTotals(state.grid);
+  const spec = (state.rev ?? 1) >= 2 ? PS_STD_SPEC : PS_STD_SPEC_V1;
   return [
-    stdPart(PS_STD_SPEC, "core", stdLine(PS_CORE_MAX, total, PS_CORE_FULL), `${total} hand points`),
-    stdPart(PS_STD_SPEC, "hands", stdEach(made, PS_HAND_EACH, PS_HANDS_MAX), `${made} / ${PS_LINES} lines`),
+    stdPart(spec, "core", stdLine(PS_CORE_MAX, total, psCoreFullFor(state.rev)), `${total} hand points`),
+    stdPart(spec, "hands", stdEach(made, PS_HAND_EACH, PS_HANDS_MAX), `${made} / ${PS_LINES} lines`),
   ];
 }
 
@@ -310,10 +335,11 @@ export function psCheckpoint(state: PsState): PsCheckpoint {
   return { tick: state.tick, next: state.next, ended: state.ended, checksum: hashInts([state.tick, state.next, state.target, state.ended, ...state.grid]) };
 }
 
+/** pokerSquaresRev 1's game (the checks and tools that play Poker Squares without a stamp mean rev 1). */
 export const pokerSquaresGame: ArcadeGame<PsState, ArcadeInputEvent | null> = {
   key: "pokersquares",
   runTicks: PS_RUN_TICKS,
-  init: psInit,
+  init: (seed) => psInit(seed, 1),
   step,
   isOver: (state) => state.ended !== 0,
   score: pokerSquaresScore,
@@ -321,6 +347,9 @@ export const pokerSquaresGame: ArcadeGame<PsState, ArcadeInputEvent | null> = {
   inputRanges: [inputRange(PS_INPUT_PLACE, [0, PS_SQUARES - 1])],
 };
 
-export function pokerSquaresGameFor(_rev?: number | null): ArcadeGame<PsState, ArcadeInputEvent | null> {
-  return pokerSquaresGame;
+/** pokerSquaresRev 2's game: the same play, the core full at PS_CORE_FULL_V2. */
+export const pokerSquaresGameV2: ArcadeGame<PsState, ArcadeInputEvent | null> = { ...pokerSquaresGame, init: (seed) => psInit(seed, 2) };
+
+export function pokerSquaresGameFor(rev?: number | null): ArcadeGame<PsState, ArcadeInputEvent | null> {
+  return (rev ?? 1) >= 2 ? pokerSquaresGameV2 : pokerSquaresGame;
 }

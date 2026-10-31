@@ -1,16 +1,29 @@
 /**
  * Minigolf's art (display only; never imported by the sim or the server): a night garden terrace seen from above.
  * Stone tiles in warm lamp light, mown turf in stripes inside timber rails with brass studs, diagonal logs, boulders,
- * bushes in stone planters, ponds, and slopes that read at a glance (dark at the bottom, light at the crest, a bright
- * crest edge and fading arrows pointing uphill). Every solid thing is drawn on the sim's own geometry (the bounds
- * rule: within 2 px of what the ball collides with).
+ * bushes in stone planters, ponds, and ramps drawn raised (a lit deck from a shaded toe to a bright crest lip, bold
+ * chevrons uphill, the rail drawn taller towards the crest). golfRev 2's crazy-golf pieces: bunkers, hills, tunnel
+ * entrances and exits (a colour per pair), striped banked curves, castle gates and brick windmill houses, and the
+ * windmill's sails (drawn every frame from the sim tick). Every solid thing is drawn on the sim's own geometry (the
+ * bounds rule: within 2 px of what the ball collides with); the windmill's overhead sails are see-through and only
+ * their foot, solid, sits in the doorway where it collides.
  *
  * The terrace and the hole are painted once per hole and size into a cached canvas; a frame draws that, the flag,
- * the ball, the aim and the HUD chips.
+ * the ball, the windmills' sails, the aim and the HUD chips.
  */
 import { px } from "./engine";
+import { ANG_FULL } from "./trig";
 import {
+  mgMillAngle,
+  mgSails,
   MG_AIM,
+  MG_GATE_R,
+  MG_HUB_R,
+  MG_MILL_H,
+  MG_SAIL_LEN,
+  MG_SAIL_W,
+  MG_SAIL_R,
+  MG_TUNNEL_R,
   MG_BALL_R,
   MG_CUP_R,
   MG_DONE,
@@ -171,68 +184,163 @@ function paintTurf(ctx: CanvasRenderingContext2D, h: MgHole): void {
   ctx.restore();
 }
 
-/** A slope: dark at the bottom, light at the crest, a bright crest edge and fading arrows pointing uphill. */
+/** A slope's geometry in world px: its box, the downhill unit vector, the low and crest edges' centres. */
+function slopeGeom(s: MgHole["slopes"][number]) {
+  const x0 = px(s.x0);
+  const y0 = px(s.y0);
+  const x1 = px(s.x1);
+  const y1 = px(s.y1);
+  const len = Math.hypot(s.ax, s.ay) || 1;
+  const dx = s.ax / len;
+  const dy = s.ay / len;
+  const cx = (x0 + x1) / 2;
+  const cy = (y0 + y1) / 2;
+  // Half the box's extent along the slope, and its full width across it.
+  const hw = (Math.abs(dx) * (x1 - x0) + Math.abs(dy) * (y1 - y0)) / 2;
+  const span = Math.abs(dy) * (x1 - x0) + Math.abs(dx) * (y1 - y0);
+  return { x0, y0, x1, y1, dx, dy, cx, cy, hw, span, strength: len };
+}
+
+/**
+ * A ramp drawn as a raised slope (art only; the pull is the sim's box): the deck lit from the crest down to a shaded
+ * toe, boards across it closing up towards the bottom, a bright lip and a cast shadow at the crest, and bold chevrons
+ * pointing uphill. Its side rails (raised where the ramp runs along the course's rails) are drawn by paintRampRails.
+ */
 function paintSlopes(ctx: CanvasRenderingContext2D, h: MgHole): void {
   ctx.save();
   polyPath(ctx, h.poly);
   ctx.clip();
   for (const s of h.slopes) {
-    const x0 = px(s.x0);
-    const y0 = px(s.y0);
-    const x1 = px(s.x1);
-    const y1 = px(s.y1);
-    const len = Math.hypot(s.ax, s.ay) || 1;
-    // Downhill unit vector (the pull), uphill is its opposite.
-    const dx = s.ax / len;
-    const dy = s.ay / len;
-    const cx = (x0 + x1) / 2;
-    const cy = (y0 + y1) / 2;
-    const hw = (Math.abs(dx) * (x1 - x0) + Math.abs(dy) * (y1 - y0)) / 2;
+    const g0 = slopeGeom(s);
+    const { x0, y0, x1, y1, dx, dy, cx, cy, hw, span } = g0;
     const lowX = cx + dx * hw;
     const lowY = cy + dy * hw;
     const crestX = cx - dx * hw;
     const crestY = cy - dy * hw;
+    // The deck: a darker toe rising to a lit crest.
     const g = ctx.createLinearGradient(lowX, lowY, crestX, crestY);
-    g.addColorStop(0, "rgba(6,28,10,0.55)");
-    g.addColorStop(0.55, "rgba(60,120,60,0.10)");
-    g.addColorStop(1, "rgba(200,255,190,0.30)");
+    g.addColorStop(0, "#1D4F25");
+    g.addColorStop(0.5, "#3A8A43");
+    g.addColorStop(1, "#6FC172");
     ctx.fillStyle = g;
     ctx.fillRect(x0, y0, x1 - x0, y1 - y0);
-    // The crest edge: a bright line along the box's uphill side.
-    ctx.strokeStyle = "rgba(225,255,215,0.75)";
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    if (Math.abs(dy) >= Math.abs(dx)) {
-      const yy = dy > 0 ? y0 : y1;
-      ctx.moveTo(x0, yy);
-      ctx.lineTo(x1, yy);
-    } else {
-      const xx = dx > 0 ? x0 : x1;
-      ctx.moveTo(xx, y0);
-      ctx.lineTo(xx, y1);
-    }
-    ctx.stroke();
-    // Fading chevrons pointing uphill, in a row across the slope.
+    // Boards across the slope, closer together at the toe (foreshortened), lighter towards the crest.
     const across = { x: -dy, y: dx };
-    const span = Math.abs(across.x) * (x1 - x0) + Math.abs(across.y) * (y1 - y0);
-    const n = Math.max(2, Math.floor(span / 46));
-    for (let i = 0; i < n; i++) {
-      const t = (i + 0.5) / n - 0.5;
+    const n = 9;
+    for (let i = 1; i < n; i++) {
+      const t = Math.pow(i / n, 0.8);
+      const bx = lowX - dx * hw * 2 * t;
+      const by = lowY - dy * hw * 2 * t;
+      ctx.strokeStyle = `rgba(${t > 0.5 ? "230,255,220" : "0,20,4"},${0.1 + Math.abs(t - 0.5) * 0.18})`;
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(bx - across.x * span / 2, by - across.y * span / 2);
+      ctx.lineTo(bx + across.x * span / 2, by + across.y * span / 2);
+      ctx.stroke();
+    }
+    // The toe: a dark crease where the ramp meets the flat.
+    const edge = (ex: number, ey: number, colour: string, w: number) => {
+      ctx.strokeStyle = colour;
+      ctx.lineWidth = w;
+      ctx.beginPath();
+      ctx.moveTo(ex - across.x * span / 2, ey - across.y * span / 2);
+      ctx.lineTo(ex + across.x * span / 2, ey + across.y * span / 2);
+      ctx.stroke();
+    };
+    edge(lowX, lowY, "rgba(0,0,0,0.45)", 3);
+    // The crest: a soft shadow cast onto the flat beyond it, then the bright lip.
+    const sh = ctx.createLinearGradient(crestX, crestY, crestX - dx * 12, crestY - dy * 12);
+    sh.addColorStop(0, "rgba(0,0,0,0.35)");
+    sh.addColorStop(1, "rgba(0,0,0,0)");
+    ctx.save();
+    ctx.fillStyle = sh;
+    ctx.beginPath();
+    const ax = across.x * span / 2;
+    const ay = across.y * span / 2;
+    ctx.moveTo(crestX - ax, crestY - ay);
+    ctx.lineTo(crestX + ax, crestY + ay);
+    ctx.lineTo(crestX + ax - dx * 12, crestY + ay - dy * 12);
+    ctx.lineTo(crestX - ax - dx * 12, crestY - ay - dy * 12);
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+    edge(crestX + dx * 1.5, crestY + dy * 1.5, "rgba(240,255,230,0.9)", 2.5);
+    // Bold chevrons pointing uphill, brighter the higher they sit.
+    const cols = Math.max(2, Math.floor(span / 48));
+    for (let i = 0; i < cols; i++) {
+      const t = (i + 0.5) / cols - 0.5;
       for (let k = 0; k < 3; k++) {
-        const along = -hw * 0.55 + k * hw * 0.5;
-        const ax = cx + across.x * t * span - dx * along;
-        const ay = cy + across.y * t * span - dy * along;
-        ctx.strokeStyle = `rgba(235,255,225,${0.14 + k * 0.16})`;
-        ctx.lineWidth = 2;
+        const along = -hw * 0.5 + k * hw * 0.5;
+        const ax2 = cx + across.x * t * span - dx * along;
+        const ay2 = cy + across.y * t * span - dy * along;
+        ctx.strokeStyle = `rgba(245,255,235,${0.28 + k * 0.22})`;
+        ctx.lineWidth = 2.6;
+        ctx.lineCap = "round";
+        ctx.lineJoin = "round";
         ctx.beginPath();
-        ctx.moveTo(ax + across.x * 6 + dx * 4, ay + across.y * 6 + dy * 4);
-        ctx.lineTo(ax - dx * 3, ay - dy * 3);
-        ctx.lineTo(ax - across.x * 6 + dx * 4, ay - across.y * 6 + dy * 4);
+        ctx.moveTo(ax2 + across.x * 7 + dx * 5, ay2 + across.y * 7 + dy * 5);
+        ctx.lineTo(ax2 - dx * 3, ay2 - dy * 3);
+        ctx.lineTo(ax2 - across.x * 7 + dx * 5, ay2 - across.y * 7 + dy * 5);
         ctx.stroke();
       }
     }
   }
   ctx.restore();
+}
+
+/**
+ * A ramp's side rails, raised where a side of the ramp runs along the course's rail: the rail drawn taller (wider,
+ * outwards, off the fairway) from the toe to the crest, a lit top and a shaded face, so the climb reads at a glance.
+ * Art only and never on the fairway: the ball's rail stays on the course outline.
+ */
+function paintRampRails(ctx: CanvasRenderingContext2D, h: MgHole): void {
+  for (const s of h.slopes) {
+    const { x0, y0, x1, y1, dx, dy, cx, cy, hw } = slopeGeom(s);
+    const across = { x: -dy, y: dx };
+    for (const side of [-1, 1]) {
+      // The side's line, from the toe to the crest, and its outward direction.
+      const half = Math.abs(across.x) * (x1 - x0) / 2 + Math.abs(across.y) * (y1 - y0) / 2;
+      const sx = cx + across.x * half * side;
+      const sy = cy + across.y * half * side;
+      const toe = { x: sx + dx * hw, y: sy + dy * hw };
+      const crest = { x: sx - dx * hw, y: sy - dy * hw };
+      const out = { x: across.x * side, y: across.y * side };
+      // Only where the side sits on the course outline: just outside it is off the fairway, just inside on it.
+      const mid = { x: (toe.x + crest.x) / 2, y: (toe.y + crest.y) / 2 };
+      if (pointInPoly(h.poly, mid.x + out.x * 4, mid.y + out.y * 4) || !pointInPoly(h.poly, mid.x - out.x * 4, mid.y - out.y * 4)) continue;
+      const face = ctx.createLinearGradient(toe.x, toe.y, crest.x, crest.y);
+      face.addColorStop(0, "#4A2E18");
+      face.addColorStop(1, "#8A5A33");
+      ctx.fillStyle = face;
+      ctx.beginPath();
+      ctx.moveTo(toe.x, toe.y);
+      ctx.lineTo(crest.x, crest.y);
+      ctx.lineTo(crest.x + out.x * 11, crest.y + out.y * 11);
+      ctx.lineTo(toe.x + out.x * 4, toe.y + out.y * 4);
+      ctx.closePath();
+      ctx.fill();
+      // The rail's lit top edge, rising with the ramp.
+      ctx.strokeStyle = "#D9A56C";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(toe.x + out.x * 3, toe.y + out.y * 3);
+      ctx.lineTo(crest.x + out.x * 10, crest.y + out.y * 10);
+      ctx.stroke();
+      // Posts down the face.
+      ctx.strokeStyle = "rgba(30,16,6,0.7)";
+      ctx.lineWidth = 1.5;
+      for (let k = 0; k <= 4; k++) {
+        const t = k / 4;
+        const w = 4 + 6 * t;
+        const qx = toe.x + (crest.x - toe.x) * t;
+        const qy = toe.y + (crest.y - toe.y) * t;
+        ctx.beginPath();
+        ctx.moveTo(qx + out.x, qy + out.y);
+        ctx.lineTo(qx + out.x * w, qy + out.y * w);
+        ctx.stroke();
+      }
+    }
+  }
 }
 
 function paintPond(ctx: CanvasRenderingContext2D, x: number, y: number, r: number): void {
@@ -481,6 +589,355 @@ function paintTee(ctx: CanvasRenderingContext2D, h: MgHole): void {
   ctx.stroke();
 }
 
+/* ======================= golfRev 2: the crazy-golf pieces ======================= */
+
+/** A bunker: pale sand inside a darker lip, raked lines (the sim's circle: the friction starts at its edge). */
+function paintSand(ctx: CanvasRenderingContext2D, x: number, y: number, r: number, k: number): void {
+  ctx.fillStyle = "rgba(60,40,10,0.55)";
+  ctx.beginPath();
+  ctx.arc(x, y, r, 0, Math.PI * 2);
+  ctx.fill();
+  const g = ctx.createRadialGradient(x - r * 0.3, y - r * 0.35, r * 0.1, x, y, r - 1.5);
+  g.addColorStop(0, "#F3DFA6");
+  g.addColorStop(0.7, "#DCC07E");
+  g.addColorStop(1, "#B8975A");
+  ctx.fillStyle = g;
+  ctx.beginPath();
+  ctx.arc(x, y, r - 1.5, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(x, y, r - 3, 0, Math.PI * 2);
+  ctx.clip();
+  ctx.strokeStyle = "rgba(120,90,40,0.35)";
+  ctx.lineWidth = 1;
+  const a = hash(k) * Math.PI;
+  for (let i = -r; i <= r; i += 4) {
+    ctx.beginPath();
+    for (let t = -r; t <= r; t += 3) {
+      const wob = Math.sin((t + k * 7) / 5) * 0.8;
+      const px2 = x + Math.cos(a) * t - Math.sin(a) * (i + wob);
+      const py2 = y + Math.sin(a) * t + Math.cos(a) * (i + wob);
+      if (t === -r) ctx.moveTo(px2, py2);
+      else ctx.lineTo(px2, py2);
+    }
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+/** A hill: a dome lit from the top left, contour rings and a soft shadow round its foot (the sim's circle). */
+function paintHill(ctx: CanvasRenderingContext2D, x: number, y: number, r: number): void {
+  const sh = ctx.createRadialGradient(x + r * 0.25, y + r * 0.3, r * 0.4, x + r * 0.1, y + r * 0.12, r);
+  sh.addColorStop(0, "rgba(0,20,4,0)");
+  sh.addColorStop(1, "rgba(0,20,4,0.45)");
+  const g = ctx.createRadialGradient(x - r * 0.3, y - r * 0.35, r * 0.05, x, y, r);
+  g.addColorStop(0, "#9BE08F");
+  g.addColorStop(0.45, "#4FA154");
+  g.addColorStop(1, "#24622C");
+  ctx.fillStyle = g;
+  ctx.beginPath();
+  ctx.arc(x, y, r, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = sh;
+  ctx.fill();
+  ctx.strokeStyle = "rgba(225,255,215,0.22)";
+  ctx.lineWidth = 1;
+  for (const f of [0.75, 0.5, 0.25]) {
+    ctx.beginPath();
+    ctx.arc(x - r * (1 - f) * 0.12, y - r * (1 - f) * 0.14, r * f, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+  // The crest: a small bright cap.
+  ctx.fillStyle = "rgba(240,255,230,0.55)";
+  ctx.beginPath();
+  ctx.arc(x - r * 0.1, y - r * 0.12, 2.2, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+/** Tunnel pairs' colours, so a player can tell which entrance leads where. */
+const TUNNEL_COLOURS = ["#F2C75C", "#5FD3E8", "#F28CB0"];
+
+/** A tunnel's entrance: a dark hole in a stone ring (the sim's capture circle) and its pair's colour. */
+function paintTunnelIn(ctx: CanvasRenderingContext2D, x: number, y: number, colour: string): void {
+  ctx.fillStyle = "rgba(0,0,0,0.4)";
+  ctx.beginPath();
+  ctx.arc(x + 1.5, y + 2, MG_TUNNEL_R + 4, 0, Math.PI * 2);
+  ctx.fill();
+  const ring = ctx.createRadialGradient(x - 3, y - 3, 2, x, y, MG_TUNNEL_R + 4);
+  ring.addColorStop(0, "#CFC6B8");
+  ring.addColorStop(1, "#6E665C");
+  ctx.fillStyle = ring;
+  ctx.beginPath();
+  ctx.arc(x, y, MG_TUNNEL_R + 4, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = colour;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.arc(x, y, MG_TUNNEL_R + 2.6, 0, Math.PI * 2);
+  ctx.stroke();
+  const hole = ctx.createRadialGradient(x + 2, y + 2, 1, x, y, MG_TUNNEL_R);
+  hole.addColorStop(0, "#000");
+  hole.addColorStop(1, "#1B1612");
+  ctx.fillStyle = hole;
+  ctx.beginPath();
+  ctx.arc(x, y, MG_TUNNEL_R, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+/** A tunnel's exit: a dark outlet flush with the turf, its pair's colour and chevrons the way the ball comes out. */
+function paintTunnelOut(ctx: CanvasRenderingContext2D, x: number, y: number, dx: number, dy: number, colour: string): void {
+  const ang = Math.atan2(dy, dx);
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(ang);
+  // The outlet behind the ball's exit point: a half-round mouth facing the way out.
+  ctx.fillStyle = "rgba(0,0,0,0.55)";
+  ctx.beginPath();
+  ctx.arc(-2, 0, 8, Math.PI / 2, (Math.PI * 3) / 2);
+  ctx.closePath();
+  ctx.fill();
+  ctx.strokeStyle = colour;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.arc(-2, 0, 9.5, Math.PI / 2, (Math.PI * 3) / 2);
+  ctx.stroke();
+  for (let k = 0; k < 3; k++) {
+    ctx.strokeStyle = `rgba(255,255,255,${0.55 - k * 0.15})`;
+    ctx.lineWidth = 2;
+    ctx.lineCap = "round";
+    ctx.beginPath();
+    ctx.moveTo(8 + k * 7, -4);
+    ctx.lineTo(12 + k * 7, 0);
+    ctx.lineTo(8 + k * 7, 4);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+/** A banked curved wall: a stone kerb on the sim's own segments (its width the segments' thickness), lit on its face. */
+function paintCurve(ctx: CanvasRenderingContext2D, c: NonNullable<MgHole["curves"]>[number]): void {
+  const r = px(c.segs[0]?.r ?? 0);
+  const path = () => {
+    ctx.beginPath();
+    c.segs.forEach((s, i) => {
+      if (i === 0) ctx.moveTo(px(s.ax), px(s.ay));
+      ctx.lineTo(px(s.bx), px(s.by));
+    });
+  };
+  ctx.save();
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
+  ctx.translate(2, 3);
+  path();
+  ctx.strokeStyle = "rgba(0,0,0,0.4)";
+  ctx.lineWidth = r * 2;
+  ctx.stroke();
+  ctx.restore();
+  ctx.save();
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
+  path();
+  ctx.strokeStyle = "#8F8576";
+  ctx.lineWidth = r * 2;
+  ctx.stroke();
+  path();
+  ctx.strokeStyle = "#D8CFBF";
+  ctx.lineWidth = r * 0.9;
+  ctx.stroke();
+  // Red and white banking stripes along the kerb.
+  ctx.setLineDash([6, 6]);
+  path();
+  ctx.strokeStyle = "rgba(200,40,58,0.85)";
+  ctx.lineWidth = r * 0.9;
+  ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.restore();
+}
+
+/** One piece of a gate's wall as a capsule on the sim's segment: stone (castle) or whitewashed brick (windmill house). */
+function paintWallPiece(ctx: CanvasRenderingContext2D, ax: number, ay: number, bx: number, by: number, r: number, kind: "castle" | "mill"): void {
+  const ang = Math.atan2(by - ay, bx - ax);
+  const len = Math.hypot(bx - ax, by - ay);
+  ctx.save();
+  ctx.translate(ax, ay);
+  ctx.rotate(ang);
+  ctx.fillStyle = "rgba(0,0,0,0.4)";
+  ctx.beginPath();
+  ctx.roundRect(-r + 2, -r + 3, len + r * 2, r * 2, r);
+  ctx.fill();
+  const g = ctx.createLinearGradient(0, -r, 0, r);
+  if (kind === "castle") {
+    g.addColorStop(0, "#C9C0B2");
+    g.addColorStop(0.5, "#9C9284");
+    g.addColorStop(1, "#5E574E");
+  } else {
+    g.addColorStop(0, "#C8714E");
+    g.addColorStop(0.5, "#9E4A30");
+    g.addColorStop(1, "#5E2A1A");
+  }
+  ctx.fillStyle = g;
+  ctx.beginPath();
+  ctx.roundRect(-r, -r, len + r * 2, r * 2, r);
+  ctx.fill();
+  if (kind === "castle") {
+    // Battlements: merlons along the wall's top.
+    ctx.fillStyle = "rgba(60,54,46,0.75)";
+    for (let t = 2; t < len - 2; t += 8) ctx.fillRect(t, -r + 1.5, 4, r * 2 - 3);
+    ctx.fillStyle = "rgba(230,224,214,0.6)";
+    for (let t = 2; t < len - 2; t += 8) ctx.fillRect(t, -r + 1.5, 4, 1.5);
+  } else {
+    // Brick courses with pale mortar, and a slate coping along the top.
+    ctx.strokeStyle = "rgba(240,220,200,0.35)";
+    ctx.lineWidth = 0.7;
+    for (const row of [-r * 0.5, r * 0.5]) {
+      ctx.beginPath();
+      ctx.moveTo(-r * 0.6, row);
+      ctx.lineTo(len + r * 0.6, row);
+      ctx.stroke();
+    }
+    for (let t = 0, k = 0; t < len; t += 6, k++) {
+      for (const [y0, y1] of [[-r * 0.5, r * 0.5], [r * 0.5, r * 0.95], [-r * 0.95, -r * 0.5]] as const) {
+        const tt = t + ((k + (y0 > 0 ? 1 : 0)) % 2) * 3;
+        ctx.beginPath();
+        ctx.moveTo(tt, y0);
+        ctx.lineTo(tt, y1);
+        ctx.stroke();
+      }
+    }
+    ctx.fillStyle = "#4E5560";
+    ctx.beginPath();
+    ctx.roundRect(-r * 0.5, -r * 0.22, len + r, r * 0.44, r * 0.22);
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
+/** A gate: its two wall pieces, round turrets at the archway (castle) and a stone lintel across it. */
+function paintGate(ctx: CanvasRenderingContext2D, g: NonNullable<MgHole["gates"]>[number]): void {
+  for (const s of g.segs) paintWallPiece(ctx, px(s.ax), px(s.ay), px(s.bx), px(s.by), px(s.r), g.kind);
+  if (g.kind !== "castle") return;
+  const r = MG_GATE_R;
+  const half = px(g.half);
+  const cx = px(g.cx);
+  const cy = px(g.cy);
+  const along = g.across ? { x: 1, y: 0 } : { x: 0, y: 1 };
+  for (const side of [-1, 1]) {
+    const tx = cx + along.x * half * side;
+    const ty = cy + along.y * half * side;
+    const tg = ctx.createRadialGradient(tx - 2, ty - 2, 1, tx, ty, r);
+    tg.addColorStop(0, "#E2DACD");
+    tg.addColorStop(1, "#7A7165");
+    ctx.fillStyle = tg;
+    ctx.beginPath();
+    ctx.arc(tx, ty, r, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = "#4C4038";
+    ctx.beginPath();
+    ctx.arc(tx, ty, r * 0.45, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  // The arch overhead: a thin stone span with a pennant (above the ball's path, so light and see-through).
+  ctx.strokeStyle = "rgba(210,200,186,0.55)";
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.moveTo(cx - along.x * half, cy - along.y * half);
+  ctx.lineTo(cx + along.x * half, cy + along.y * half);
+  ctx.stroke();
+  ctx.fillStyle = "#C8283A";
+  ctx.beginPath();
+  ctx.moveTo(cx, cy);
+  ctx.lineTo(cx + 7, cy - 4);
+  ctx.lineTo(cx, cy - 7);
+  ctx.closePath();
+  ctx.fill();
+}
+
+/**
+ * The windmill at a sim tick (drawn every frame). Its sails turn upright over the doorway, so from above they are drawn
+ * as a cross whose hub stands MG_MILL_H beyond the wall (the house's far side) — the lower sail crosses the wall's line
+ * exactly where the sim puts its foot. Everything beyond the line is overhead (the ball rolls under it), so it is drawn
+ * see-through, and nothing of the sails is drawn on the near side but the foot itself, solid, on the sim's own capsule.
+ */
+export function drawWindmill(ctx: CanvasRenderingContext2D, m: NonNullable<MgHole["windmills"]>[number], tick: number): void {
+  const hx0 = px(m.x);
+  const hy0 = px(m.y);
+  // Work in the wall's frame: x along the line, the house (and the hub above it) on the −y side.
+  const base = (mgMillAngle(m, tick) / ANG_FULL) * Math.PI * 2;
+  ctx.save();
+  ctx.translate(hx0, hy0);
+  if (!m.across) ctx.rotate(-Math.PI / 2);
+  // Clip to the far side of the line (plus the foot's thickness): the sails above the doorway.
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(-MG_SAIL_LEN - 10, -MG_MILL_H - MG_SAIL_LEN - 10, (MG_SAIL_LEN + 10) * 2, MG_MILL_H + MG_SAIL_LEN + 10 + MG_SAIL_R);
+  ctx.clip();
+  ctx.translate(0, -MG_MILL_H);
+  for (let k = 0; k < 4; k++) {
+    // φ = 0 points straight down (towards the line); the sail's foot sits at H·tan φ along the line.
+    const phi = base + (k * Math.PI) / 2;
+    ctx.save();
+    ctx.rotate(-phi * (m.across ? 1 : -1));
+    ctx.globalAlpha = 0.55;
+    ctx.fillStyle = "rgba(0,0,0,0.35)";
+    ctx.fillRect(-MG_SAIL_W / 2 + 2, 2, MG_SAIL_W, MG_SAIL_LEN);
+    ctx.fillStyle = "#6B4426";
+    ctx.fillRect(-1.5, 0, 3, MG_SAIL_LEN);
+    ctx.fillStyle = "#EFE6D2";
+    ctx.fillRect(-MG_SAIL_W / 2, MG_HUB_R + 2, MG_SAIL_W, MG_SAIL_LEN - MG_HUB_R - 2);
+    ctx.strokeStyle = "#6B4426";
+    ctx.lineWidth = 0.8;
+    for (let t = MG_HUB_R + 6; t < MG_SAIL_LEN; t += 5) {
+      ctx.beginPath();
+      ctx.moveTo(-MG_SAIL_W / 2, t);
+      ctx.lineTo(MG_SAIL_W / 2, t);
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+  ctx.globalAlpha = 0.85;
+  const hg = ctx.createRadialGradient(-2, -2, 0.5, 0, 0, MG_HUB_R);
+  hg.addColorStop(0, "#F2C75C");
+  hg.addColorStop(1, "#7A5A1E");
+  ctx.fillStyle = hg;
+  ctx.beginPath();
+  ctx.arc(0, 0, MG_HUB_R, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.globalAlpha = 1;
+  ctx.restore();
+  ctx.restore();
+  // The feet in the doorway: solid, exactly the sim's capsules.
+  for (const f of mgSails(m, tick)) {
+    const s = f.seg;
+    ctx.save();
+    ctx.lineCap = "round";
+    ctx.strokeStyle = "#4A2E18";
+    ctx.lineWidth = MG_SAIL_R * 2;
+    ctx.beginPath();
+    ctx.moveTo(px(s.ax), px(s.ay));
+    ctx.lineTo(px(s.bx), px(s.by));
+    ctx.stroke();
+    ctx.strokeStyle = "#EFE6D2";
+    ctx.lineWidth = MG_SAIL_R;
+    ctx.beginPath();
+    ctx.moveTo(px(s.ax), px(s.ay));
+    ctx.lineTo(px(s.bx), px(s.by));
+    ctx.stroke();
+    ctx.restore();
+  }
+}
+
+/** golfRev 2's static pieces under the rails: ramps' rails aside, the bunkers, hills and tunnel mouths. */
+function paintFloorPieces(ctx: CanvasRenderingContext2D, h: MgHole): void {
+  (h.sands ?? []).forEach((c, i) => paintSand(ctx, px(c.x), px(c.y), px(c.r), i + h.index * 13));
+  (h.hills ?? []).forEach((c) => paintHill(ctx, px(c.x), px(c.y), px(c.r)));
+  (h.tunnels ?? []).forEach((t, i) => {
+    const colour = TUNNEL_COLOURS[i % TUNNEL_COLOURS.length]!;
+    paintTunnelIn(ctx, px(t.x), px(t.y), colour);
+    paintTunnelOut(ctx, px(t.ox), px(t.oy), t.dx, t.dy, colour);
+  });
+}
+
 /** The whole static picture of a hole (terrace, lamps, turf, slopes, rails, hazards, cup), world px. */
 export function paintMinigolfHole(ctx: CanvasRenderingContext2D, h: MgHole, salt: number): void {
   paintTerrace(ctx, MINIGOLF_W, MINIGOLF_H, salt + h.index * 101);
@@ -493,11 +950,15 @@ export function paintMinigolfHole(ctx: CanvasRenderingContext2D, h: MgHole, salt
   ctx.restore();
   paintTurf(ctx, h);
   paintSlopes(ctx, h);
+  paintFloorPieces(ctx, h);
   paintTee(ctx, h);
   for (const p of h.ponds) paintPond(ctx, px(p.x), px(p.y), px(p.r));
   paintCup(ctx, h);
   paintRails(ctx, h);
+  paintRampRails(ctx, h);
   h.logs.forEach((l) => paintLog(ctx, px(l.ax), px(l.ay), px(l.bx), px(l.by), px(l.r)));
+  (h.curves ?? []).forEach((c) => paintCurve(ctx, c));
+  (h.gates ?? []).forEach((g) => paintGate(ctx, g));
   h.rocks.forEach((c, i) => paintBoulder(ctx, px(c.x), px(c.y), px(c.r), i + h.index * 7));
   h.planters.forEach((c, i) => paintPlanter(ctx, px(c.x), px(c.y), px(c.r), i + h.index));
   paintLamps(ctx, MINIGOLF_W, MINIGOLF_H);
@@ -510,7 +971,7 @@ const holeCache: { key: string; canvas: HTMLCanvasElement | OffscreenCanvas | nu
 function cachedHole(ctx: CanvasRenderingContext2D, h: MgHole, seed: number): CanvasImageSource | null {
   const m = ctx.getTransform();
   const scale = Math.max(0.5, Math.min(4, Math.hypot(m.a, m.b)));
-  const key = `${seed}:${h.index}:${scale.toFixed(3)}`;
+  const key = `${h.rev ?? 1}:${seed}:${h.index}:${scale.toFixed(3)}`;
   if (holeCache.key === key && holeCache.canvas) return holeCache.canvas;
   const w = Math.ceil(MINIGOLF_W * scale);
   const hh = Math.ceil(MINIGOLF_H * scale);
@@ -634,6 +1095,8 @@ export function drawMinigolf(ctx: CanvasRenderingContext2D, s: MinigolfState, ai
     }
     drawBall(ctx, bx, by);
   }
+  // golfRev 2: the windmills' sails turn on the sim tick, over the ball.
+  for (const m of h.windmills ?? []) drawWindmill(ctx, m, s.tick);
   // Water: a brief ripple where the ball went in is drawn by the effects layer; here the ball is already back.
   if (aim && s.phase === MG_AIM) drawAim(ctx, bx, by, aim);
   // HUD chips at the top corners (inside the garden beds).

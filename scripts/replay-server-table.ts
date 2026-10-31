@@ -18,7 +18,7 @@ import { replayMahjongRun } from "../src/lib/duel/mahjong";
 import { replayHomerunRun } from "../src/lib/duel/homerun";
 import { replayFreekickRun } from "../src/lib/duel/freekick";
 import { replayRacingRun } from "../src/lib/duel/racing";
-import { replayFreecellRun, replayPokerSquaresRun, replayTripeaksRun } from "../src/lib/duel/cards";
+import { replayFiveHandsRun, replayFreecellRun, replayPokerSquaresRun, replayTripeaksRun } from "../src/lib/duel/cards";
 import { replayRallyRun } from "../src/lib/duel/rally";
 import { replaySliceRun } from "../src/lib/duel/slice";
 import { replayBubbleRun } from "../src/lib/duel/bubble";
@@ -66,6 +66,7 @@ const TABLE: Record<string, (p: any, a: string) => ServerReplay> = {
   freecell: (p, a) => replayFreecellRun(p.seed, a, p.freecellRev),
   tripeaks: (p, a) => replayTripeaksRun(p.seed, a, p.tripeaksRev),
   pokersquares: (p, a) => replayPokerSquaresRun(p.seed, a, p.pokerSquaresRev),
+  fivehands: (p, a) => replayFiveHandsRun(p.seed, a, p.fiveHandsRev),
   rally: (p, a) => replayRallyRun(p.seed, a, p.rallyRev),
   slice: (p, a) => replaySliceRun(p.seed, a, p.sliceRev),
   bubble: (p, a) => replayBubbleRun(p.seed, a, p.bubbleRev),
@@ -88,7 +89,7 @@ const TABLE: Record<string, (p: any, a: string) => ServerReplay> = {
   wordfall: (p, a) => replayWordfallRun(p.seed, a, p.wordfallRev),
   stroop: (p, a) => replayColourClashRun(p.seed, a, clashVariantOf(p)),
   // The Sports group (30 Oct 2026).
-  minigolf: (p, a) => replayMinigolfRun(p.seed, a, p.pars),
+  minigolf: (p, a) => replayMinigolfRun(p.seed, a, p.pars, p.golfRev),
   pool: (p, a) => replayPoolRun(p.seed, a, p.poolRev),
   curling: (p, a) => replayCurlingRun(p.seed, a, p.curlRev),
 };

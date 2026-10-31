@@ -83,7 +83,7 @@ import { decodeBastionRun, replayBastionRun } from "./bastion";
 import { decodeRooftopRun, replayRooftopRun } from "./rooftop";
 import { decodeFlipRun, replayFlipRun } from "./flip";
 import {
-  decodeFreecellRun, decodePokerSquaresRun, decodeTripeaksRun, replayFreecellRun, replayPokerSquaresRun, replayTripeaksRun,
+  decodeFiveHandsRun, decodeFreecellRun, decodePokerSquaresRun, decodeTripeaksRun, replayFiveHandsRun, replayFreecellRun, replayPokerSquaresRun, replayTripeaksRun,
 } from "./cards";
 import { decodeJunctionRun, replayJunctionRun } from "./junction";
 import { decodeInkBridgeRun, replayInkBridgeRun } from "./inkBridge";
@@ -1405,7 +1405,7 @@ function gradeUnderRev(
       });
       const pts = (parts: { key: string; points: number }[] | null, key: string) => parts?.find((p) => p.key === key)?.points ?? 0;
       if (puzzle.type === "minigolf") {
-        const run = replayMinigolfRun(puzzle.seed, answer, puzzle.pars);
+        const run = replayMinigolfRun(puzzle.seed, answer, puzzle.pars, puzzle.golfRev);
         revealRun = run;
         arcadeDiag = buildArcadeDiag(puzzle.type, run, answer, performance.now() - replayStart);
         const parts = minigolfStdParts(run.state);
@@ -1561,6 +1561,7 @@ function gradeUnderRev(
         sorted: run.sorted,
         moves: run.moves,
         par: run.par,
+        ...((puzzle.freecellRev ?? 1) >= 2 ? { undos: run.undos, resets: run.resets } : {}),
         finished: run.finished,
         finishSeconds: run.finishSeconds,
         endedSeconds: run.endedSeconds,
@@ -1622,6 +1623,32 @@ function gradeUnderRev(
         desyncTick: run.desyncTick,
         inputs: decodePokerSquaresRun(answer).events.length,
         claimedScore: decodePokerSquaresRun(answer).claimedScore,
+        ...(run.reason ? { reason: run.reason } : {}),
+      };
+      break;
+    }
+    // Five Hands (31 Oct 2026): the deck is shuffled from the stored seed and the run replayed; only that scores.
+    case "fivehands": {
+      const replayStart = performance.now();
+      const run = replayFiveHandsRun(puzzle.seed, answer, puzzle.fiveHandsRev);
+      revealRun = run;
+      arcadeDiag = buildArcadeDiag(puzzle.type, run, answer, performance.now() - replayStart);
+      isCorrect = run.finished;
+      correctCount = run.made;
+      score = run.score;
+      extraDetail = {
+        fiveHandsRev: puzzle.fiveHandsRev ?? 1,
+        total: run.total,
+        made: run.made,
+        placed: run.placed,
+        finished: run.finished,
+        endedSeconds: run.endedSeconds,
+        flagged: run.flagged,
+        clientLag: run.clientLag,
+        clientTick: run.clientTick,
+        desyncTick: run.desyncTick,
+        inputs: decodeFiveHandsRun(answer).events.length,
+        claimedScore: decodeFiveHandsRun(answer).claimedScore,
         ...(run.reason ? { reason: run.reason } : {}),
       };
       break;

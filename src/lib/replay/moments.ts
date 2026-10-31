@@ -118,6 +118,8 @@ export const MOMENT_TABLE: readonly MomentRow[] = [
   fx("tripeaks", 2, "final", "cleared", 95, "All 28 peak cards cleared", "finish"),
   fx("pokersquares", 0, "pop", "hand", 20, "A row or column makes a hand"),
   fx("pokersquares", 1, "final", "target", 70, "The deal's target reached"),
+  fx("fivehands", 0, "pop", "hand", 20, "A row makes a hand"),
+  fx("fivehands", 1, "final", "target", 70, "The full hand points reached"),
   // Rally
   fx("rally", 0, "streak", "long-rally", 35, "Long rally (every 10 returns)"),
   fx("rally", 1, "pop", "gold", 25, "Gold ball returned"),

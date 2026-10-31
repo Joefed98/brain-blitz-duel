@@ -255,6 +255,7 @@ export const ARCADE_FX_TEXT_COLOURS: Record<string, { fill: string; outline: str
   freecell: { fill: "#F2C75C", outline: "#0A1736" },
   tripeaks: { fill: "#F2C75C", outline: "#0A1736" },
   pokersquares: { fill: "#F2C75C", outline: "#0A1736" },
+  fivehands: { fill: "#F2C75C", outline: "#0A1736" },
   // Sports (30 Oct 2026): flag-pin white on the night terrace, pocket chrome on the cloth, the gold of your handles.
   minigolf: { fill: "#F4F1E4", outline: "#0E1A10" },
   pool: { fill: "#FFE7A8", outline: "#0B1A12" },

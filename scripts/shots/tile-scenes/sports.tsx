@@ -51,7 +51,7 @@ export const SPORTS_SCENES: SceneSet = {
   }),
   // Curling: the far house down the sheet, a gold-handled stone on the button and a red one being knocked away.
   curling: canvasScene((c) => {
-    const base = curlingGameFor().init(1);
+    const base = curlingGameFor(1).init(1);
     const stones: [number, number, number][] = [[0, 4, TEAM_MINE], [58, -40, TEAM_THEIRS], [-70, 60, TEAM_MINE]];
     const s = {
       ...base,

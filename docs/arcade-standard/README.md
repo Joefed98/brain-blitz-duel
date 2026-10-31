@@ -85,12 +85,13 @@ replay exactly as before; standard-live-check grades every stored arcade run thr
 | Home Run Derby | `homerun` | `homerunRev` 1 | Sports | [homerun.md](homerun.md) |
 | Free Kick | `freekick` | `freekickRev` 1 | Sports | [freekick.md](freekick.md) |
 | Racing | `racing` | `racingRev` 1 | Sports | [racing.md](racing.md) |
-| FreeCell | `freecell` | `freecellRev` 1 | Cards & Board | [freecell.md](freecell.md) |
-| TriPeaks | `tripeaks` | `tripeaksRev` 1 | Cards & Board | [tripeaks.md](tripeaks.md) |
-| Poker Squares | `pokersquares` | `pokerSquaresRev` 1 | Cards & Board | [pokersquares.md](pokersquares.md) |
-| Minigolf | `minigolf` | `golfRev` 1 | Sports | [minigolf.md](minigolf.md) |
-| Speed Pool | `pool` | `poolRev` 1 | Sports | [pool.md](pool.md) |
-| Curling | `curling` | `curlRev` 1 | Sports | [curling.md](curling.md) |
+| Free Cell | `freecell` | `freecellRev` 2 | Cards & Board | [freecell.md](freecell.md) |
+| Summit | `tripeaks` | `tripeaksRev` 1 | Cards & Board | [tripeaks.md](tripeaks.md) |
+| Full House | `pokersquares` | `pokerSquaresRev` 2 | Cards & Board | [pokersquares.md](pokersquares.md) |
+| Five Hands | `fivehands` | `fiveHandsRev` 1 | Cards & Board | [fivehands.md](fivehands.md) |
+| Crazy Golf (was Minigolf) | `minigolf` | `golfRev` 2 (1 for stored rounds) | Sports | [minigolf.md](minigolf.md) |
+| Cue Ball (was Speed Pool) | `pool` | `poolRev` 2 (1 for stored rounds) | Sports | [pool.md](pool.md) |
+| Curl Champ (was Curling) | `curling` | `curlRev` 2 (1 for stored rounds) | Sports | [curling.md](curling.md) |
 
 The batches land one at a time on top of this; each adds its games' entries, pages and its summary section below.
 
@@ -344,6 +345,12 @@ Three new Arcade games, born on the standard at revision 1 (LIVE_BANDS marks the
 | FreeCell | `freecellRev` 1 | 140, cards home (full) and in sorted runs (half), full at all 52 home | par moves 30, speed 30 (finished; full by 66 s) | 200 |
 | TriPeaks | `tripeaksRev` 1 | 120, share of the 28 peak cards cleared (60 s run) | peak tops 30, longest run 20, clear 10, speed 20 (full by 27 s) | 200 |
 | Poker Squares | `pokerSquaresRev` 1 | 160, hand points, full at 68 (the near-perfect median) | made hands 40 (4 a line) | 200 |
+
+31 Oct 2026: renamed Free Cell, Summit and Full House (ids unchanged). Free Cell `freecellRev` 2 adds Undo and Reset
+(each a move for par; same parts, speed still full by 66 s). Full House `pokerSquaresRev` 2 is full at 73 hand points,
+the elite median (rev 1's 68 was the near-perfect median). New: **Five Hands** (`fivehands`, `fiveHandsRev` 1): five
+rows built a card a turn under even filling, a discard each turn; hand points 160 (full at 23, the elite median) + made
+hands 40 (8 a row) = 200; every dealt deck carries a witness arrangement that reaches 200.
 
 Speed's "full by" times are the near-perfect bots' median finish (`bun scripts/cards-bands.ts`). cards-check proves
 every dealt deal reaches 200 through the server's replay.

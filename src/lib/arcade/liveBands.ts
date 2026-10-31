@@ -18,7 +18,7 @@ import { MATCHUP_REV_STD, MATCHUP_REV_STRICT, MATCHUP_V11_BAND_CURVE } from "./m
 import { BUB_REV_STD, BUB_REV_STRICT, BUB_V11_BAND_CURVE, BUB_V11_STD_SPEC } from "./bubble";
 import { CROSS_REV_STD, CROSS_REV_STRICT, CROSS_V10_BAND_CURVE } from "./cross";
 import { MINES_REV_STD, MINES_STD_SPEC, MINES_V1_BAND_CURVE } from "./minesweeper";
-import { MAHJONG_REV_STD, MAHJONG_STD_SPEC, MAHJONG_V1_BAND_CURVE } from "./mahjong";
+import { MAHJONG_REV_DEALT, MAHJONG_STD_SPEC, MAHJONG_V1_BAND_CURVE } from "./mahjong";
 import { RALLY_REV_STD, RALLY_REV_STRICT, RALLY_STD_SPEC, RALLY_V12_BAND_CURVE } from "./rally";
 import { SNAKE_REV_STD, SNAKE_REV_STRICT, SNAKE_V11_BAND_CURVE } from "./snake";
 import { BINTOSS_REV_STRICT, BINTOSS_REV_STD, BINTOSS_STD_SPEC, BINTOSS_V9_BAND_CURVE } from "./binToss";
@@ -38,12 +38,13 @@ import { SWING_REV_REWORK, SWING_REV_STRICT, SWING_V15_BAND_CURVE } from "./swin
 import { BULLSEYE_REV_STD, BULLSEYE_REV_STRICT, BULLSEYE_STD_SPEC, BULLSEYE_V9_BAND_CURVE } from "./bullseye";
 import { PIN_REV_STD, PIN_STD_SPEC, PIN_V6_BAND_CURVE } from "./pinball4";
 import { PIN_REV_STRICT } from "./pinball";
-import { HOMERUN_REV_STD, HOMERUN_STD_SPEC, HOMERUN_V1_BAND_CURVE } from "./homerun";
-import { FREEKICK_REV_STD, FREEKICK_STD_SPEC, FREEKICK_V1_BAND_CURVE } from "./freekick";
-import { RACING_REV_STD, RACING_STD_SPEC, RACING_V1_BAND_CURVE } from "./racing";
+import { HOMERUN_REV_DEALT, HOMERUN_STD_SPEC_DEALT, HOMERUN_V2_BAND_CURVE } from "./homerun";
+import { FREEKICK_REV_DEALT, FREEKICK_V2_STD_SPEC, FREEKICK_V2_BAND_CURVE } from "./freekick";
+import { RACING_REV_DEALT, RACING_V2_BAND_CURVE, RACING_V2_STD_SPEC } from "./racing";
 import { FC_REV, FC_STD_SPEC, FC_V1_BAND_CURVE } from "./cards/freecell";
 import { TP_REV, TP_STD_SPEC, TP_V1_BAND_CURVE } from "./cards/tripeaks";
-import { PS_REV, PS_STD_SPEC, PS_V1_BAND_CURVE } from "./cards/pokerSquares";
+import { PS_REV, PS_STD_SPEC, PS_V2_BAND_CURVE } from "./cards/pokerSquares";
+import { FH_REV, FH_STD_SPEC, FH_V1_BAND_CURVE } from "./cards/fiveHands";
 import { MINIGOLF_REV, MINIGOLF_STD_SPEC } from "./minigolf";
 import { POOL_REV, POOL_STD_SPEC } from "./pool";
 import { CURLING_REV, CURLING_STD_SPEC } from "./curling";
@@ -124,15 +125,18 @@ export const LIVE_BANDS = {
   // Cards & Board (30 Oct 2026), on the arcade scoring standard from their first revision: the core's straight line
   // (Minesweeper in per mille of the safe squares beyond the opening, Mahjong in pairs) and fixed features to 200.
   minesweeper: { field: "minesRev", rev: MINES_REV_STD, curve: MINES_V1_BAND_CURVE, std: MINES_STD_SPEC, born: true },
-  mahjong: { field: "mahjongRev", rev: MAHJONG_REV_STD, curve: MAHJONG_V1_BAND_CURVE, std: MAHJONG_STD_SPEC, born: true },
+  mahjong: { field: "mahjongRev", rev: MAHJONG_REV_DEALT, curve: MAHJONG_V1_BAND_CURVE, std: MAHJONG_STD_SPEC, born: true },
   // The Sports group (30 Oct 2026), born on the arcade scoring standard (rev 1; no earlier band revision).
-  homerun: { field: "homerunRev", rev: HOMERUN_REV_STD, curve: HOMERUN_V1_BAND_CURVE, std: HOMERUN_STD_SPEC, born: true },
-  freekick: { field: "freekickRev", rev: FREEKICK_REV_STD, curve: FREEKICK_V1_BAND_CURVE, std: FREEKICK_STD_SPEC, born: true },
-  racing: { field: "racingRev", rev: RACING_REV_STD, curve: RACING_V1_BAND_CURVE, std: RACING_STD_SPEC, born: true },
+  homerun: { field: "homerunRev", rev: HOMERUN_REV_DEALT, curve: HOMERUN_V2_BAND_CURVE, std: HOMERUN_STD_SPEC_DEALT, born: true },
+  freekick: { field: "freekickRev", rev: FREEKICK_REV_DEALT, curve: FREEKICK_V2_BAND_CURVE, std: FREEKICK_V2_STD_SPEC, born: true },
+  racing: { field: "racingRev", rev: RACING_REV_DEALT, curve: RACING_V2_BAND_CURVE, std: RACING_V2_STD_SPEC, born: true },
   // Cards & Board (30 Oct 2026): born on the arcade scoring standard at revision 1.
   freecell: { field: "freecellRev", rev: FC_REV, curve: FC_V1_BAND_CURVE, std: FC_STD_SPEC, born: true },
   tripeaks: { field: "tripeaksRev", rev: TP_REV, curve: TP_V1_BAND_CURVE, std: TP_STD_SPEC, born: true },
-  pokersquares: { field: "pokerSquaresRev", rev: PS_REV, curve: PS_V1_BAND_CURVE, std: PS_STD_SPEC, born: true },
+  // pokerSquaresRev 2 (Full House, 31 Oct 2026): the core full at the elite median.
+  pokersquares: { field: "pokerSquaresRev", rev: PS_REV, curve: PS_V2_BAND_CURVE, std: PS_STD_SPEC, born: true },
+  // Five Hands (31 Oct 2026): born on the arcade scoring standard at revision 1.
+  fivehands: { field: "fiveHandsRev", rev: FH_REV, curve: FH_V1_BAND_CURVE, std: FH_STD_SPEC, born: true },
   // The Sports group (30 Oct 2026): on the arcade scoring standard from their first stamp (the core's straight line, the spec's parts).
   minigolf: { field: "golfRev", rev: MINIGOLF_REV, curve: stdCoreCurve(MINIGOLF_STD_SPEC), std: MINIGOLF_STD_SPEC, born: true },
   pool: { field: "poolRev", rev: POOL_REV, curve: stdCoreCurve(POOL_STD_SPEC), std: POOL_STD_SPEC, born: true },
