@@ -16,7 +16,7 @@ import { racingDealSeed } from "./racingDeal.server";
 import { MINIGOLF_REV } from "@/lib/arcade/minigolf";
 import { POOL_REV } from "@/lib/arcade/pool";
 import { CURLING_REV } from "@/lib/arcade/curling";
-import { CURLING_BANK } from "./curlingBank.server";
+import { CURLING_BANK_V2 } from "./curlingBankV2.server";
 import { MINIGOLF_BANK } from "./minigolfBank.server";
 import { POOL_BANK } from "./poolBank.server";
 import type { CurlingPuzzleData, FreekickPuzzleData, HomerunPuzzleData, MinigolfPuzzleData, PoolPuzzleData, RacingPuzzleData } from "./types";
@@ -43,5 +43,6 @@ export function generatePool(): PoolPuzzleData {
 }
 
 export function generateCurling(): CurlingPuzzleData {
-  return { type: "curling", seed: CURLING_BANK[arcadeSeed() % CURLING_BANK.length]!, curlRev: CURLING_REV };
+  // curlRev 2 (31 Oct 2026): its own bank, proved with the start along the hog line (curlingBankV2.server.ts).
+  return { type: "curling", seed: CURLING_BANK_V2[arcadeSeed() % CURLING_BANK_V2.length]!, curlRev: CURLING_REV };
 }

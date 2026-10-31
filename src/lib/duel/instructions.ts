@@ -1069,9 +1069,11 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
     curling: {
       goal: "Draw your eight stones onto the button.",
       how: [
-        { action: "Drag the gold broom", detail: "in the house to aim, then tap In or Out for the turn." },
-        { action: "Swipe up the lane", detail: "to throw: the faster the swipe, the heavier the stone." },
-        { action: "Rub ahead of the stone", detail: "to sweep: it runs further and curls less." },
+        { action: "Slide the stone", detail: "along the start line, then drag the gold target to aim." },
+        { action: "Tap In or Out,", detail: "then swipe up to release: the faster, the heavier." },
+        { action: "Brush its left or right side", detail: "as it travels to bend it that way." },
+        { action: "The dashed line", detail: "runs from the stone to the target: where you release it towards, not the curl.", helpOnly: true },
+        { action: "Brushing", detail: "also carries the stone a little further. Brush anywhere on the screen: left of the stone bends it left, right of it bends it right.", helpOnly: true },
         { action: "The stone curls", detail: "towards the side its turn takes it, more as it slows. No line shows the curl.", helpOnly: true },
         { action: "Red-handled stones", detail: "are the opponent's: knock them out of the house. Every one can be hit with your stone staying in the 4-foot.", helpOnly: true },
         { action: "The inset, top right,", detail: "shows exactly where every stone sits.", helpOnly: true },

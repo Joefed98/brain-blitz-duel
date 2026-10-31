@@ -94,6 +94,7 @@ import { poolBankSeedFor } from "../../src/lib/duel/poolBank.server";
 import { curlingCheckpoint, curlingGameFor, CURLING_REV } from "../../src/lib/arcade/curling";
 import { encodeCurlingRun, replayCurlingRun } from "../../src/lib/duel/curling";
 import { curlingBankSeedFor } from "../../src/lib/duel/curlingBank.server";
+import { curlingBankV2SeedFor } from "../../src/lib/duel/curlingBankV2.server";
 
 export interface GameSpec {
   type: PuzzleType;
@@ -304,12 +305,14 @@ export const GAMES: GameSpec[] = [
     encode: (run) => encodePoolRun(run),
     replay: (seed, raw, rev) => replayPoolRun(seed, raw, rev),
   },
-  // Curling deals a bank sheet (opponent stones the oracle took out with every stone on the button), curlRev 1.
+  // Curling deals a bank sheet (opponent stones the oracle took out with every stone on the button), curlRev 2 since 31 Oct 2026.
   {
     type: "curling",
     live: CURLING_REV,
-    seedFor: curlingBankSeedFor,
-    gameFor: () => curlingGameFor(),
+    seedFor: curlingBankV2SeedFor,
+    // curlRev 1 measures on its own bank's sheets.
+    seedForRev: (n, rev) => (rev === 1 ? curlingBankSeedFor(n) : undefined),
+    gameFor: (rev) => curlingGameFor(rev ?? 1),
     checkpoint: curlingCheckpoint,
     encode: (run) => encodeCurlingRun(run),
     replay: (seed, raw, rev) => replayCurlingRun(seed, raw, rev),

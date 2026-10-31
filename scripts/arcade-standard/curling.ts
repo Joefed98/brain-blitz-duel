@@ -1,22 +1,22 @@
 /**
- * arcade-standard-check's entry for `curling` (see ./entry.ts): Curling curlRev 1 (the Sports group, 30 Oct 2026;
- * docs/arcade-standard/curling.md). Stones up to 120 (up to 15 a stone by closeness to the button where it comes to
+ * arcade-standard-check's entry for `curling` (see ./entry.ts): Curling curlRev 2 (the Sports group, 30 Oct 2026;
+ * curlRev 2 since 31 Oct 2026, the same parts as curlRev 1; docs/arcade-standard/curling.md). Stones up to 120 (up to 15 a stone by closeness to the button where it comes to
  * rest when thrown), Takeouts 30 (shared across the opponent's stones), Red ring 30 (3.75 a stone in the 4-foot),
- * Holding shot 20. Perfect runs are the bank's witnesses through the server's replay.
+ * Holding shot 20. Perfect runs are the curlRev 2 bank's witnesses through the server's replay on curlRev 2.
  */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { readFileSync } from "node:fs";
-import { witnessRaw, type Witness } from "../curling-bank";
+import { witnessRaw, type WitnessV2 } from "../curling-bank";
 import { curlingGameFor, curlingStdParts, CURLING_REV, CURLING_STD_SPEC, CURLING_STONES, CURL_STONE_PTS, type CurlingState } from "../../src/lib/arcade/curling";
 import { replayCurlingRun } from "../../src/lib/duel/curling";
-import { CURLING_BANK } from "../../src/lib/duel/curlingBank.server";
+import { CURLING_BANK_V2 } from "../../src/lib/duel/curlingBankV2.server";
 import type { StdEntry } from "./entry";
 
-const game = curlingGameFor();
-const SEED = CURLING_BANK[0]!;
+const game = curlingGameFor(CURLING_REV);
+const SEED = CURLING_BANK_V2[0]!;
 // The fixture holds each sheet's throw plan; witnessRaw plays it into the log the phone would send.
 const witness: Record<string, string> = Object.fromEntries(
-  (JSON.parse(readFileSync(new URL("../fixtures/curling-witness.json", import.meta.url), "utf8")) as Witness[]).map((w) => [String(w.seed), witnessRaw(w)]),
+  (JSON.parse(readFileSync(new URL("../fixtures/curling-witness-v2.json", import.meta.url), "utf8")) as WitnessV2[]).map((w) => [String(w.seed), witnessRaw(w, CURLING_REV)]),
 );
 const record = (s: CurlingState) => Object.fromEntries((curlingStdParts(s) ?? []).map((p) => [p.key, p.points]));
 
@@ -34,7 +34,7 @@ export const entry: StdEntry = {
   spec: CURLING_STD_SPEC,
   liveSpec: true,
   perfect: () =>
-    CURLING_BANK.map((seed) => {
+    CURLING_BANK_V2.map((seed) => {
       const run = replayCurlingRun(seed, witness[String(seed)] ?? "", CURLING_REV);
       return { label: `bank sheet ${seed}'s witness (server replay)`, score: run.flagged ? -1 : run.score, parts: record(run.state) };
     }),
