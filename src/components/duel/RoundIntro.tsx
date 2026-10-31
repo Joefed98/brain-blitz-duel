@@ -16,6 +16,7 @@ import { CATEGORY_NAMES, FrameName } from "./GameFrame";
 import { MuteToggle } from "./MuteToggle";
 import { RoomChatSlot } from "./RoomFooter";
 import { Dots } from "./Dots";
+import { arcadeGroupOf } from "@/lib/duel/arcadeGroups";
 import { PuzzleInstructions } from "./PuzzleInstructions";
 import { hasIntroDemo, IntroDemo, introDemoAspect, useArcadeIntroDemo } from "./IntroDemo";
 import { PuzzleIntroDemo, usePuzzleDemo } from "./PuzzleDemo";
@@ -205,7 +206,13 @@ export function RoundIntro({
   }, [compact, counting, type]);
 
   return (
-    <div data-compact={compact} className="round-intro flex min-h-0 flex-1 flex-col gap-2 overflow-hidden animate-round-in">
+    // The intro's accent (31 Oct 2026): a puzzle's category colour, an arcade game's group colour (arcadeGroups.ts),
+    // as its tile border and the room settings chip; gold stays for Ready.
+    <div
+      data-compact={compact}
+      data-intro-accent={introAccent(type)}
+      className="round-intro flex min-h-0 flex-1 flex-col gap-2 overflow-hidden animate-round-in"
+    >
       {/* The game frame's 60 px header (Polish batch R): back (practice), the name over the category dot and
           "{Category} · Practice / Round n of N", the best (practice), the room's "⋯" menu and sound. */}
       <div data-intro-header className="intro-header" style={NO_SELECT}>
@@ -372,4 +379,10 @@ function AutoStartRing({ seconds, total }: { seconds: number; total: number }) {
       <span aria-hidden="true">{seconds}</span>
     </span>
   );
+}
+
+/** The colour an intro takes: the game's arcade group (Retro, Sports, Cards & Board, Action) or its category. */
+export function introAccent(type: PuzzleType): string {
+  const category = puzzleDef(type).category;
+  return (category === "arcade" ? arcadeGroupOf(type) : null) ?? category;
 }

@@ -951,6 +951,28 @@ Lovable still hosts and publishes the app (https://brain-blitz-duel.lovable.app)
   challenges show an offline state (`OnlineOnly`); a slim banner and Practice's iPhone install card are shown from
   `<html data-offline>` / `data-offline-install` (`OFFLINE_BOOT`). offline-check (headless Chromium on a production
   build, 414×896 and 375×667, shard `play20`, ~5 min) proves it; ~16 MB stored with every pack full.
+- **Room settings** (31 Oct 2026; room setup and presentation only, no game's rules, scoring or stamps changed):
+  under the lobby's room code a summary line for everyone ("9 rounds · Pattern, Logic, Retro, Sports · about 16 min",
+  a preset's name when the picks are one) and, for the host, **Room settings**, a sheet (`RoomSettingsSheet`): presets
+  Mixed (the default: Word, Speed, Attention, Pattern, Logic and the four arcade groups), Puzzles only and Arcade only
+  over ten colour chips (the six puzzle categories, then Retro, Sports, Cards & Board, Action from `arcadeGroups.ts`;
+  at least one stays on; editing a chip deselects the preset), then rounds as 3 / 6 / 9 / 12 over a 3–12 slider, linked
+  both ways (default 6), capped at the picks' room-eligible games ("Only 6 games in your picks…") with the room's
+  estimated length live (`estimateRoomMinutes`). Rules in `src/lib/duel/roomSettings.ts`; the server's only writer is
+  `changeRoomSettings` (`roomSettings.server.ts`, through `setRoomSettingsFn`: host only, lobby only, validated, written
+  with the room still waiting). Stored in the existing `duels.selected_categories` jsonb (no migration): the picks, then
+  a `rounds:N` token, which marks a settings room. Rooms without it keep `pickRoundOrder` exactly (6 rounds, 7 with all
+  seven categories) until their host saves; the daily and challenges never read settings. Settings rooms deal through
+  `dealRoomRounds` (`roomDeal.ts`) from the room seed: shares within 1, a seeded mixed order with no pick twice running,
+  no game repeated within a pick before its games are used, the host's last three rooms avoided as before. A new room
+  starts from the host's last settings (`rememberedSettings`; an older room's Arcade read as all four groups, the
+  deleted memory option as nothing); Play again keeps them. `ROOM_SETTINGS_PLUS_ONLY` (`betaConfig.ts`, false) would
+  keep them for Duelz Plus hosts. Intros take the game's colour (`data-intro-accent`: the category's for a puzzle,
+  the group's for an arcade game) on the gradient, title (a fifth lighter, `--intro-title`), dot, labels, tray, ring
+  and dots; Ready stays gold. room-settings-check (~10 s) proves presets, the cap, the sheet in happy-dom, server
+  refusals, 29k seeded deals and older rooms' deals (`scripts/fixtures/room-settings-legacy.json`, recorded on main);
+  theme-check draws the sheet and lobby and checks the intro colours at 414×896 app and 375×667; shots
+  `bun scripts/shots/room-settings-shots.ts` (`screenshots/room-settings-oct-2026/`).
 - **Rooms of 16 and the colour wheel** (31 Oct 2026, `docs/room-16-oct-2026.md`; presentation and room data only, no
   stamps): `MAX_PLAYERS` 16 (`roomCapacity`, `roomSeats.ts` `seatFor`: the 17th join is refused "That room is full (16
   players)."); migration `20261031150000_room_16_players.sql` (slots 1–16, colours 0–31, share counts 1–20) is **written

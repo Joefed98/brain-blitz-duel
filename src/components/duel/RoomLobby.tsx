@@ -15,10 +15,8 @@ import {
 } from "@/lib/duel/playerLook";
 
 import { MAX_PLAYERS, MIN_PLAYERS, type DuelPlayerRow } from "@/lib/duel/types";
-import type { PuzzleCategory } from "@/lib/duel/types";
-import { CATEGORY_ORDER, PUZZLE_CATEGORIES, STANDARD_CATEGORIES } from "@/lib/duel/categories";
-import { typesInCategory } from "@/lib/duel/registry";
 import { roomRoundCount } from "@/lib/duel/selection";
+import { readRoomSettings, roomSettingsUnlocked, settingsSummary, type RoomSettings } from "@/lib/duel/roomSettings";
 
 import { ChargeMeter } from "@/components/fx/ChargeMeter";
 import { useCelebrationsOn } from "@/components/fx/useCelebration";
@@ -28,10 +26,13 @@ import { PlayerBadge } from "./PlayerBadge";
 import { PLAYER_ICON_ART } from "./playerIcons";
 import { ConfirmDialog } from "./ConfirmDialog";
 import { RoomFooter, RoomMenu } from "./RoomFooter";
+import { RoomSettingsSheet } from "./RoomSettingsSheet";
 
 interface RoomLobbyProps {
-  categories: PuzzleCategory[];
-  onCategoriesChange: (categories: PuzzleCategory[]) => void;
+  /** The room's stored settings (duels.selected_categories: roomSettings.ts, or an older room's categories). */
+  storedSettings: unknown;
+  /** Host only: stores new settings on the server (rejects with the server's message). */
+  onSettingsChange: (settings: RoomSettings) => Promise<void>;
 
   players: DuelPlayerRow[];
   hostUserId: string | null;
@@ -191,30 +192,21 @@ export function LookPicker({
   );
 }
 
-/** Host presets, each with the one-line description shown under them. */
-const PRESETS: { label: string; values: readonly PuzzleCategory[]; description: string }[] = [
-  { label: "Standard", values: STANDARD_CATEGORIES, description: "Standard: a mix of puzzles and arcade, one game per category." },
-  { label: "Arcade only", values: ["arcade"], description: "Arcade only: six different arcade games." },
-  { label: "Puzzles only", values: PUZZLE_CATEGORIES, description: "Puzzles only: six puzzles across five categories, no arcade." },
-];
-
-/** How the dealt rounds relate to the chosen categories, for the lobby line. */
-function roundsLine(categories: readonly PuzzleCategory[]): string {
-  const rounds = roomRoundCount(categories);
-  const shape =
-    categories.length === rounds
-      ? "one game per category"
-      : categories.length === 1
-        ? "all different games from one category"
-        : "shared evenly between the categories";
-  return `${rounds} ${rounds === 1 ? "round" : "rounds"}, ${shape} · about ${rounds * 2} min`;
+/**
+ * The room's settings as the lobby shows them. A room saved with settings plays its own count; an older room
+ * (no settings saved yet) still deals by its categories, roomRoundCount(categories) rounds, until the host saves.
+ */
+function lobbySettings(stored: unknown): RoomSettings {
+  const read = readRoomSettings(stored);
+  const categories = read.categories;
+  return read.legacy ? { picks: read.settings.picks, rounds: roomRoundCount(categories) } : read.settings;
 }
 
 /** The waiting room for two to sixteen players. */
 export function RoomLobby({
   players,
-  categories,
-  onCategoriesChange,
+  storedSettings,
+  onSettingsChange,
   hostUserId,
   meUserId,
   isHost,
@@ -232,7 +224,21 @@ export function RoomLobby({
   const celebrate = useCelebrationsOn();
   const playersNeeded = MIN_PLAYERS - players.length;
   const hostName = players.find((player) => player.user_id === hostUserId)?.display_name;
-  const hasEmptyCategory = CATEGORY_ORDER.some((category) => !typesInCategory(category).length);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  /** Settings just saved, shown until the room's own row carries them (or a few seconds pass). */
+  const [savedSettings, setSavedSettings] = useState<{ settings: RoomSettings; stored: unknown } | null>(null);
+  const storedKey = JSON.stringify(storedSettings ?? null);
+  useEffect(() => {
+    if (!savedSettings) return;
+    if (JSON.stringify(savedSettings.stored ?? null) !== storedKey) {
+      setSavedSettings(null);
+      return;
+    }
+    const timer = window.setTimeout(() => setSavedSettings(null), 4000);
+    return () => window.clearTimeout(timer);
+  }, [savedSettings, storedKey]);
+  const settings = savedSettings?.settings ?? lobbySettings(storedSettings);
+  const canEditSettings = isHost && roomSettingsUnlocked();
   const [removing, setRemoving] = useState<number | null>(null);
   const [picking, setPicking] = useState(false);
   const pickerRef = useRef<HTMLDivElement>(null);
@@ -271,13 +277,27 @@ export function RoomLobby({
     return () => window.clearTimeout(timer);
   }, [pending, storedLook?.colour, storedLook?.icon]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const presetOn = (values: readonly PuzzleCategory[]) =>
-    categories.length === values.length && categories.every((category) => values.includes(category));
-  const preset = PRESETS.find(({ values }) => presetOn(values));
   const removingPlayer = removing === null ? null : players.find((p) => p.player_slot === removing) ?? null;
 
   return (
     <div className="flex w-full flex-1 flex-col gap-5 text-left">
+      {/* Under the room code: the room's settings in one line for everyone, the host's Room settings button. */}
+      <section aria-label="Room settings" className="-mt-2 flex flex-col items-start gap-2.5">
+        <p data-room-summary className="rs-summary">
+          {settingsSummary(settings)}
+        </p>
+        {canEditSettings ? (
+          <button
+            type="button"
+            data-room-settings
+            onClick={() => setSettingsOpen(true)}
+            className="rs-btn press tap-target"
+          >
+            Room settings
+          </button>
+        ) : null}
+      </section>
+
       <section aria-label="Players" className="flex flex-col gap-2">
         {/* "Players" with "n of 16", then the neutral meter (the charge meter with celebrations on). */}
         <div className="rs-head">
@@ -391,77 +411,6 @@ export function RoomLobby({
         ) : null}
       </section>
 
-      <section aria-label="Game mix" className="flex flex-col gap-2.5">
-        <h2 className="ap-section-title">Game mix</h2>
-        {isHost && (
-          <div className="rs-seg" role="group" aria-label="Game mix">
-            {PRESETS.map(({ label, values }) => (
-              <button
-                key={label}
-                type="button"
-                onClick={() => onCategoriesChange([...values])}
-                aria-pressed={presetOn(values)}
-                className="press"
-              >
-                {label}
-              </button>
-            ))}
-          </div>
-        )}
-        {isHost ? (
-          <div className="flex flex-wrap gap-2">
-            {CATEGORY_ORDER.map((category) => (
-              <button
-                key={category}
-                type="button"
-                aria-pressed={categories.includes(category)}
-                title={
-                  typesInCategory(category).length
-                    ? undefined
-                    : "No active games in this category yet"
-                }
-                disabled={
-                  (!typesInCategory(category).length && !categories.includes(category)) ||
-                  (categories.length === 1 && categories.includes(category))
-                }
-                onClick={() =>
-                  onCategoriesChange(
-                    categories.includes(category)
-                      ? categories.filter((item) => item !== category)
-                      : CATEGORY_ORDER.filter(
-                          (item) => categories.includes(item) || item === category,
-                        ),
-                  )
-                }
-                data-cat={category}
-                className="rs-cat press"
-              >
-                <span aria-hidden="true" className="rs-cat-dot" />
-                {CATEGORY_LABEL[category]}
-              </button>
-            ))}
-          </div>
-        ) : (
-          <div className="flex flex-wrap gap-2" aria-label="Categories">
-            {categories.map((category) => (
-              <span key={category} data-cat={category} aria-pressed="true" className="rs-cat">
-                <span aria-hidden="true" className="rs-cat-dot" />
-                {CATEGORY_LABEL[category]}
-              </span>
-            ))}
-          </div>
-        )}
-        <p className="text-[13px] leading-snug text-[var(--ap-text-2)]">
-          {isHost ? (
-            <>
-              {preset?.description ?? "Custom: at least six rounds, shared between the categories you pick."}{" "}
-              {hasEmptyCategory ? "Faded categories have no games yet. " : ""}Keep at least one category.{" "}
-            </>
-          ) : null}
-          <span data-lobby-rounds>{roundsLine(categories)}</span>
-        </p>
-      </section>
-
       {tournamentHistory.length > 0 && (
         <section aria-label="Previous games" className="flex flex-col gap-1">
           <h2 className="ap-section-title text-[15px]">Previous games</h2>
@@ -476,6 +425,17 @@ export function RoomLobby({
             ))}
         </section>
       )}
+
+      {settingsOpen && canEditSettings ? (
+        <RoomSettingsSheet
+          initial={settings}
+          onClose={() => setSettingsOpen(false)}
+          onSave={async (next) => {
+            await onSettingsChange(next);
+            setSavedSettings({ settings: next, stored: storedSettings });
+          }}
+        />
+      ) : null}
 
       {removingPlayer && (
         <ConfirmDialog
@@ -526,13 +486,3 @@ export function RoomLobby({
     </div>
   );
 }
-
-const CATEGORY_LABEL: Record<PuzzleCategory, string> = {
-  word: "Word",
-  number: "Number",
-  speed: "Speed",
-  attention: "Attention",
-  pattern: "Pattern",
-  logic: "Logic",
-  arcade: "Arcade",
-};
