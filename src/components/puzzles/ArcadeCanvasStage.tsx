@@ -20,6 +20,7 @@ import { arcadeWorldPoint } from "@/components/puzzles/tapMapping";
 import { arcadeFeedback } from "@/lib/fx/arcade";
 import { arcadeCanvasRatio } from "@/lib/fx/lowEnd";
 import { useGameKeys } from "@/lib/desktop";
+import { arenaFrame, cancelArenaFrame } from "@/lib/battery";
 
 export interface PointerPayload {
   /** Event kind for the pointer/tick path (default 7, a drag); discrete games use inputKind. */
@@ -171,7 +172,7 @@ export function ArcadeCanvasStage<S, C>(props: Props<S, C>) {
 
     const loop = (time: number) => {
       frameTiming.begin(time);
-      frame = requestAnimationFrame(loop);
+      frame = arenaFrame(loop);
       const delta = time - last;
       last = time;
       if (!game.isOver(state.current) && !propsRef.current.locked) {
@@ -245,9 +246,9 @@ export function ArcadeCanvasStage<S, C>(props: Props<S, C>) {
       if (game.isOver(state.current)) finish();
       frameTiming.end();
     };
-    frame = requestAnimationFrame(loop);
+    frame = arenaFrame(loop);
     return () => {
-      cancelAnimationFrame(frame);
+      cancelArenaFrame(loop, frame);
       sounds?.stop();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps

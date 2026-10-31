@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 
 import { useReducedMotion } from "@/lib/motion";
 import { fx } from "@/lib/fx";
@@ -18,10 +18,18 @@ interface TimerBarProps {
 export function TimerBar({ msRemaining, totalMs, active }: TimerBarProps) {
   const reduced = useReducedMotion();
   const lastTick = useRef(-1);
+  // Battery (31 Oct 2026, display only): outside an arcade play screen (whose arena draws every frame
+  // anyway) the ring steps once a second with the seconds shown, with no easing between the screen
+  // clock's ticks, so a puzzle waiting for its next move draws about one frame a second, not 60.
+  const root = useRef<HTMLDivElement | null>(null);
+  const [smooth, setSmooth] = useState(false);
+  useLayoutEffect(() => {
+    setSmooth(!!root.current?.closest("[data-arcade-play]"));
+  }, []);
   const limit = Math.max(1, totalMs);
   const remaining = Math.max(0, msRemaining);
-  const progress = Math.max(0, Math.min(1, remaining / limit));
   const seconds = Math.ceil(remaining / 1000);
+  const progress = Math.max(0, Math.min(1, (smooth ? remaining : seconds * 1000) / limit));
   const finalTen = active && remaining > 0 && remaining <= 10_000;
   const critical = finalTen;
   const warned10 = useRef(false);
@@ -62,6 +70,7 @@ export function TimerBar({ msRemaining, totalMs, active }: TimerBarProps) {
   // category-colour arc with a round cap, the seconds inside (polish-layout/game-frame.css).
   return (
     <div
+      ref={root}
       className={`game-timer ${finalTen && !reduced ? "fx-timer-pulse" : ""} ${critical ? "fx-timer-critical" : ""}`}
       aria-label={`${seconds} seconds remaining`}
       role="timer"
@@ -77,7 +86,7 @@ export function TimerBar({ msRemaining, totalMs, active }: TimerBarProps) {
           strokeDashoffset={100 - progress * 100}
           transform="rotate(-90 24 24)"
           className={
-            reduced
+            reduced || !smooth
               ? "timer-ring-fill"
               : "timer-ring-fill transition-[stroke-dashoffset] duration-100"
           }

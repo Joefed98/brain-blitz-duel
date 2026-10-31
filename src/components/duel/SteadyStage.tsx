@@ -1,5 +1,7 @@
-import { memo, useRef, type ComponentType } from "react";
+import { memo, useEffect, useRef, type ComponentType } from "react";
 
+import { capPuzzleFrames, setArenaLocked, useBatterySaver } from "@/lib/battery";
+import { puzzleDef } from "@/lib/duel/registry";
 import type { PuzzleStageProps } from "@/puzzles/types";
 
 /**
@@ -50,7 +52,23 @@ export function SteadyStage({ Stage, ...props }: PuzzleStageProps & { Stage: Com
   return <Frozen Stage={Stage} props={steady} />;
 }
 
-/** The live stage: steady for arcade play screens (`steady`), rendered plainly otherwise. */
+/**
+ * The live stage: steady for arcade play screens (`steady`), rendered plainly otherwise.
+ * Battery (31 Oct 2026, lib/battery.ts): it tells the arena frame gate whether the stage is locked (its
+ * answer stored, so an arcade loop may park), and with the battery saver on caps a puzzle's animation
+ * frames at 30 a second (never an arcade screen or a Speed puzzle, whose stimulus timing is measured).
+ */
 export function SteadyOrPlain({ Stage, steady, ...props }: PuzzleStageProps & { Stage: ComponentType<PuzzleStageProps>; steady: boolean }) {
+  const { locked } = props;
+  useEffect(() => {
+    setArenaLocked(locked);
+    return () => setArenaLocked(false);
+  }, [locked]);
+  const saver = useBatterySaver();
+  const capped = saver && !steady && puzzleDef(props.puzzle.type).category !== "speed";
+  useEffect(() => {
+    capPuzzleFrames(capped);
+    return () => capPuzzleFrames(false);
+  }, [capped]);
   return steady ? <SteadyStage Stage={Stage} {...props} /> : <Stage {...props} />;
 }

@@ -93,6 +93,7 @@ export type PuzzleType =
   | "freecell"
   | "tripeaks"
   | "pokersquares"
+  | "fivehands"
   | "minigolf"
   | "pool"
   | "curling";
@@ -415,6 +416,7 @@ export type PuzzleData =
   | FreecellPuzzleData
   | TripeaksPuzzleData
   | PokerSquaresPuzzleData
+  | FiveHandsPuzzleData
   | MinigolfPuzzleData
   | PoolPuzzleData
   | CurlingPuzzleData;
@@ -1964,8 +1966,11 @@ export interface MahjongPuzzleData {
 export const HOMERUN_TIME_MS = 63_000;
 /** Free Kick's 75-second, ten-kick run, plus three of slack. */
 export const FREEKICK_TIME_MS = 78_000;
-/** Racing's 90-second, two-lap race, plus three of slack. */
-export const RACING_TIME_MS = 93_000;
+/**
+ * Apex's 90-second, two-lap race, plus three of slack; since 31 Oct 2026 (racingRev 2) also its 5.5-second start
+ * lights before the race clock starts (99 s; racingRev 1 runs still end at their own 90 s, as Tempo's and Gemstone's).
+ */
+export const RACING_TIME_MS = 99_000;
 
 export interface HomerunPuzzleData {
   type: "homerun";
@@ -1985,9 +1990,9 @@ export interface FreekickPuzzleData {
 
 export interface RacingPuzzleData {
   type: "racing";
-  /** A proved seed (racingDeal.server.ts): the track, identical for everyone. */
+  /** A proved seed (racingDealV2.server.ts; racingDeal.server.ts on rev 1): the track, identical for everyone. */
   seed: number;
-  /** Rules revision (1 = the first race, on the arcade scoring standard). */
+  /** Rules revision (1 = the first race, on the arcade scoring standard; 2 = the F1 lights start and the softer joystick). */
   racingRev?: number;
 }
 
@@ -1995,16 +2000,18 @@ export interface RacingPuzzleData {
 
 /** FreeCell: a 120-second run; the round clock adds three of slack. */
 export const FREECELL_TIME_MS = 123_000;
-/** TriPeaks: a 60-second run. */
+/** Summit (tripeaks): a 60-second run. */
 export const TRIPEAKS_TIME_MS = 63_000;
-/** Poker Squares: a 60-second run. */
+/** Full House (pokersquares): a 60-second run. */
 export const POKERSQUARES_TIME_MS = 63_000;
+/** Five Hands: a 60-second run. */
+export const FIVEHANDS_TIME_MS = 63_000;
 
 export interface FreecellPuzzleData {
   type: "freecell";
   /** The bank deal's index (src/lib/arcade/cards/freecellDeals.data.ts): the same deal and par for everyone. */
   seed: number;
-  /** Rules revision (1 = the first rules, on the arcade scoring standard). */
+  /** Rules revision (1 = the first rules, on the arcade scoring standard; 2 = Undo and Reset, 31 Oct 2026). */
   freecellRev?: number;
 }
 
@@ -2020,8 +2027,16 @@ export interface PokerSquaresPuzzleData {
   type: "pokersquares";
   /** Builds the target grid and its dealing order in the sim: the same 25 cards in the same order for everyone. */
   seed: number;
-  /** Rules revision (1 = the first rules, on the arcade scoring standard). */
+  /** Rules revision (1 = the first rules, on the arcade scoring standard; 2 = the core full at the elite median, 31 Oct 2026). */
   pokerSquaresRev?: number;
+}
+
+export interface FiveHandsPuzzleData {
+  type: "fivehands";
+  /** Shuffles the deck and proves its witness in the sim: the same 45 cards in the same order for everyone. */
+  seed: number;
+  /** Rules revision (1 = the first rules, on the arcade scoring standard). */
+  fiveHandsRev?: number;
 }
 
 export interface RallyPuzzleData {

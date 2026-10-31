@@ -25,3 +25,8 @@ export function arcadeMsRemaining(runMs: number): number {
   if (ended) return 0;
   return Math.max(0, runMs - tick * TICK_MS);
 }
+
+/** The live loop's last report says its run is over (lib/battery.ts parks its frames). */
+export function arcadeClockEnded(): boolean {
+  return ended;
+}

@@ -40,6 +40,7 @@ import { ballTrackSounds } from "@/lib/fx/gameSounds";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 import { arcadeCanvasRatio } from "@/lib/fx/lowEnd";
+import { arenaFrame, cancelArenaFrame } from "@/lib/battery";
 
 /** Practice fallback course (the first bank course). */
 const PRACTICE_COURSE: BtCourse = {"trays":[-1,-1,2,0,1,-1,3],"relay":{"tick":1414,"trays":[-1,2,-1,0,1,3,-1]},"shuffle":{"tick":2596,"trays":[-1,0,-1,2,3,1,-1]},"balls":[3,3,1,2,2,1,0,0,2,0,2,0,3,2,1,2,2,1,3,0,0,3,1,2,3,1,1,3,0,1],"fixed":[8,9,11,12,18,23,26,29,37,39,44,46,47,50]};
@@ -154,7 +155,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     // a booster's zap, a crossover crash's crackle).
     let r7Seen = { golds: 0, combos: 0, crashes: 0, boosted: 0 };
     const loop = (time: number) => {
-      frame = requestAnimationFrame(loop);
+      frame = arenaFrame(loop);
       const delta = time - last;
       last = time;
       if (!game.isOver(state.current) && !lockedRef.current) {
@@ -229,8 +230,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         submitRef.current(encode());
       }
     };
-    frame = requestAnimationFrame(loop);
-    return () => { cancelAnimationFrame(frame); sounds.stop(); };
+    frame = arenaFrame(loop);
+    return () => { cancelArenaFrame(loop, frame); sounds.stop(); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [game, seed]);
 

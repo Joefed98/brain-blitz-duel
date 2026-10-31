@@ -26,7 +26,7 @@ import { BINTOSS_AIM, BINTOSS_FLY, BINTOSS_NARROW_FROM, BINTOSS_THROWS, BINTOSS_
 import type { TiltState } from "@/lib/arcade/tilt";
 import { OUT_FAIR, OUT_FOUL, OUT_HOMER, OUT_TAKEN, OUT_WHIFF, type HomerunState } from "@/lib/arcade/homerun";
 import { FK_FLIGHT, FK_NET_Z, FK_OUT_GOAL, FK_OUT_SAVED, FK_OUT_WALL, type FreekickState } from "@/lib/arcade/freekick";
-import { RACING_LAP, type RacingState } from "@/lib/arcade/racing";
+import { racingGoTick, racingLightsOn, RACING_LAP, type RacingState } from "@/lib/arcade/racing";
 import { btEventCountdown, type BtCourse, type BtState } from "@/lib/arcade/ballTrack";
 import { JUNC_BUILD_EVERY, JUNC_BUILDS, type JuncState } from "@/lib/arcade/junction";
 import { skylineFlagAt, skylineGustAt, skylineShownMult, SKYLINE_REV_STD, SKYLINE_V9_STREAK_MAX, type SkylineState } from "@/lib/arcade/skyline";
@@ -1044,7 +1044,10 @@ export function freekickSounds(): GameSounds<FreekickState> {
   };
 }
 
-/** Racing: the first throttle, the tyre wall, the grass, clean sectors, the lap and the finish. */
+/**
+ * Apex (racing): the start (racingRev 2: a beep as each red light comes on, the horn on lights out; racingRev 1: the
+ * horn on the first throttle), the tyre wall, the grass, clean sectors, the lap and the finish.
+ */
 export function racingSounds(): GameSounds<RacingState> {
   let prev: RacingState | null = null;
   let went = false;
@@ -1052,7 +1055,10 @@ export function racingSounds(): GameSounds<RacingState> {
     frame(state) {
       beginFrame("racing", state);
       if (prev && state.tick > prev.tick) {
-        if (!went && state.pedal > 0) {
+        const lit = racingLightsOn(state.rev, state.tick);
+        if (lit > racingLightsOn(prev.rev, prev.tick)) sfx("racing.light", "countdown_step", 0.55);
+        const go = racingGoTick(state.rev);
+        if (!went && (go > 0 ? state.tick >= go && prev.tick < go : state.pedal > 0)) {
           went = true;
           sfx("racing.go", "arc_horn", 0.5);
         }

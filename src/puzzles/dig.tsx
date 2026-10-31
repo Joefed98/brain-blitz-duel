@@ -37,6 +37,7 @@ import { buzz } from "@/lib/motion";
 import { playCorrect } from "@/lib/sound";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
+import { arenaFrame, cancelArenaFrame } from "@/lib/battery";
 
 const GRID_STYLE: CSSProperties = { touchAction: "none", overscrollBehavior: "none", userSelect: "none", WebkitUserSelect: "none" };
 
@@ -213,7 +214,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     let last = performance.now();
     let acc = 0;
     const loop = (time: number) => {
-      frame = requestAnimationFrame(loop);
+      frame = arenaFrame(loop);
       acc += time - last;
       last = time;
       if (submitted.current || lockedRef.current) return;
@@ -245,8 +246,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         submitRef.current(digEncode(actions.current));
       }
     };
-    frame = requestAnimationFrame(loop);
-    return () => cancelAnimationFrame(frame);
+    frame = arenaFrame(loop);
+    return () => cancelArenaFrame(loop, frame);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data]);
 

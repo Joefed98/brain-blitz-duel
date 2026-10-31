@@ -26,6 +26,7 @@ import type { MinesweeperPuzzleData } from "@/lib/duel/types";
 import { expansionSounds } from "@/lib/fx/expansionSounds";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
+import { canvasRatio } from "@/lib/battery";
 
 /** A press held this long flags the square instead of revealing it (ms). */
 const LONG_PRESS_MS = 380;
@@ -48,7 +49,7 @@ function IntroExample() {
     ref.current = canvas;
     const ctx = canvas?.getContext("2d");
     if (!canvas || !ctx) return;
-    const ratio = typeof window === "undefined" ? 1 : Math.min(3, window.devicePixelRatio || 1);
+    const ratio = canvasRatio();
     canvas.width = 180 * ratio;
     canvas.height = 126 * ratio;
     ctx.setTransform(ratio, 0, 0, ratio, 0, 0);

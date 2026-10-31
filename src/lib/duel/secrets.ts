@@ -77,6 +77,7 @@ const SECRET_KEYS: Record<PuzzleType, string[]> = {
   freecell: [],
   tripeaks: [],
   pokersquares: [],
+  fivehands: [],
   // Sports: the seed (and Minigolf's pars) lay out the course; every run is replayed on the server.
   minigolf: [],
   pool: [],

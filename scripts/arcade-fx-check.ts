@@ -112,6 +112,7 @@ const { matchupRev2Game } = await import("../src/lib/arcade/matchup");
 const { freecellArt } = await import("../src/lib/arcade/cards/freecell.renderer");
 const { tripeaksArt } = await import("../src/lib/arcade/cards/tripeaks.renderer");
 const { pokerSquaresArt } = await import("../src/lib/arcade/cards/pokerSquares.renderer");
+const { fiveHandsArt } = await import("../src/lib/arcade/cards/fiveHands.renderer");
 
 type AnyGame = {
   init: (seed: number) => any;
@@ -177,6 +178,7 @@ const GAMES: Record<string, AnyGame> = {
   freecell: freecellArt as AnyGame,
   tripeaks: tripeaksArt as AnyGame,
   pokersquares: pokerSquaresArt as AnyGame,
+  fivehands: fiveHandsArt as AnyGame,
   // The Sports group (30 Oct 2026): each sim with its own art drawn through its success layer, on a bank deal.
   minigolf: { ...minigolfGameFor(MINIGOLF_BANK[0]!.pars), init: () => minigolfGameFor(MINIGOLF_BANK[0]!.pars).init(MINIGOLF_BANK[0]!.seed), draw: withArcadeFx(MINIGOLF_FX, (c, st) => drawMinigolf(c, st, null)) } as AnyGame,
   pool: { ...poolGameFor(1), init: () => poolGameFor(1).init(POOL_BANK[0]!), draw: withArcadeFx(POOL_FX, (c, st) => drawPool(c, st, null)) } as AnyGame,
@@ -546,6 +548,12 @@ const BUMPS: Record<string, ((s: any) => any)[]> = {
     (s) => ({ ...s, grid: [5, 18, ...s.grid.slice(2)], lastSquare: 1 }),
     // Five rows of four of a kind (75 hand points): the core's full figure reached.
     (s) => ({ ...s, grid: Array.from({ length: 25 }, (_, i) => (i % 5 < 4 ? (i % 5) * 13 + Math.floor(i / 5) : 5 + Math.floor(i / 5))) }),
+  ],
+  fivehands: [
+    // Row 0 makes a pair (the 2♠ beside the 2♥).
+    (s) => ({ ...s, rows: [[1, 14], ...s.rows.slice(1)], lastRow: 0 }),
+    // Five rows of four of a kind (75 hand points): the core's full figure reached.
+    (s) => ({ ...s, rows: Array.from({ length: 5 }, (_, r) => [r, 13 + r, 26 + r, 39 + r, 5 + r]) }),
   ],
 };
 for (const [name, game] of Object.entries(GAMES)) {

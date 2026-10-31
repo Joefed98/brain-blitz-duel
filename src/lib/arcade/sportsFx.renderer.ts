@@ -23,9 +23,10 @@ export const HOMERUN_FX: ArcadeFxSpec<HomerunState> = {
   shake: false,
   textInset: 40,
   events: [
-    // The renderer writes the call ("HOME RUN", the distance); the layer adds the burst over the stands.
-    { kind: "perfect", count: (s) => s.homers, at: () => ({ x: HOMERUN_WORLD_W / 2, y: 230 }), label: () => null, lights: ["#F2C75C", "#FFF1C2", "#FFFFFF"] },
-    { kind: "streak", count: (s) => homerunSignCount(s), at: () => ({ x: HOMERUN_WORLD_W / 2, y: 250 }), label: () => null, neon: true },
+    // The renderer writes the call ("HOME RUN", the distance); the layer adds the burst over the stands (31 Oct 2026:
+    // the stands sit higher with the camera behind the batter).
+    { kind: "perfect", count: (s) => s.homers, at: () => ({ x: HOMERUN_WORLD_W / 2, y: 120 }), label: () => null, lights: ["#F2C75C", "#FFF1C2", "#FFFFFF"] },
+    { kind: "streak", count: (s) => homerunSignCount(s), at: () => ({ x: HOMERUN_WORLD_W / 2, y: 140 }), label: () => null, neon: true },
   ],
   misses: [{ count: homerunMisses }],
 };

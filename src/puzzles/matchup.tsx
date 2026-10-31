@@ -56,6 +56,7 @@ import { liveCue } from "@/lib/fx/momentCues";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 import { arcadeCanvasRatio } from "@/lib/fx/lowEnd";
+import { arenaFrame, cancelArenaFrame } from "@/lib/battery";
 
 /** Fixed intro still: a 4×4 board with one swap making a line of three. */
 function IntroExample() {
@@ -187,7 +188,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     };
 
     const loop = (time: number) => {
-      frame = requestAnimationFrame(loop);
+      frame = arenaFrame(loop);
       const delta = time - last;
       last = time;
 
@@ -325,8 +326,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       }
     };
 
-    frame = requestAnimationFrame(loop);
-    return () => cancelAnimationFrame(frame);
+    frame = arenaFrame(loop);
+    return () => cancelArenaFrame(loop, frame);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data, seed]);
 

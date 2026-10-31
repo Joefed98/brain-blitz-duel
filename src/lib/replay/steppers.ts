@@ -35,6 +35,7 @@ import { racingGameFor } from "@/lib/arcade/racing";
 import { freecellGameFor } from "@/lib/arcade/cards/freecell";
 import { tripeaksGameFor } from "@/lib/arcade/cards/tripeaks";
 import { pokerSquaresGameFor } from "@/lib/arcade/cards/pokerSquares";
+import { fiveHandsGameFor } from "@/lib/arcade/cards/fiveHands";
 import { minigolfGameFor } from "@/lib/arcade/minigolf";
 import { poolGameFor } from "@/lib/arcade/pool";
 import { curlingGameFor } from "@/lib/arcade/curling";
@@ -201,6 +202,7 @@ const SOURCES: Record<string, (p: PuzzleData) => GameSource> = {
   freecell: (p) => ({ game: freecellGameFor(rev(p, "freecellRev")) as AnyGame }),
   tripeaks: (p) => ({ game: tripeaksGameFor(rev(p, "tripeaksRev")) as AnyGame }),
   pokersquares: (p) => ({ game: pokerSquaresGameFor(rev(p, "pokerSquaresRev")) as AnyGame }),
+  fivehands: (p) => ({ game: fiveHandsGameFor(rev(p, "fiveHandsRev")) as AnyGame }),
   curling: (p) => ({ game: curlingGameFor(rev(p, "curlRev") ?? 1) as AnyGame }),
   pool: (p) => ({ game: poolGameFor(rev(p, "poolRev")) as AnyGame }),
   minigolf: (p) => ({ game: minigolfGameFor(p.type === "minigolf" ? p.pars : undefined, p.type === "minigolf" ? p.golfRev : undefined) as AnyGame }),

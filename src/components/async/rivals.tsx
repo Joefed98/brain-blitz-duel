@@ -19,6 +19,7 @@ import {
   type DuelPlayerRow,
   type PuzzleData,
 } from "@/lib/duel/types";
+import { pageHidden } from "@/lib/battery";
 
 /**
  * Earlier players in an async run (22 Oct 2026, friend challenges): what AsyncRun needs to play a
@@ -120,7 +121,10 @@ export function useRivalPings(
         () => undefined,
       );
     ask();
-    const id = window.setInterval(ask, PING_POLL_MS);
+    // Battery (31 Oct 2026): no polling while the app is hidden; the next poll after return catches up.
+    const id = window.setInterval(() => {
+      if (!pageHidden()) ask();
+    }, PING_POLL_MS);
     return () => {
       live = false;
       window.clearInterval(id);
