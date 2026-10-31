@@ -311,7 +311,9 @@ export function ArcadeReveal({ puzzle, myAnswer, myScore, myReveal, players, nea
         style={{ height: headBottom + 32, background: "linear-gradient(to bottom, var(--background) calc(100% - 24px), transparent)" }}
       />
       {celebration ? <ArcadeCelebration kind={celebration} world={arcadeWorldOf(puzzle.type)} /> : null}
-      <div className="relative flex min-h-0 flex-1 flex-col items-center justify-between gap-3 px-3 py-4">
+      {/* Scrolls rather than overlap (31 Oct 2026): at 375×667 a game with four part lines left the chart
+          less height than it needs, and the chart (min-h-0) drew over the parts card under it. */}
+      <div data-reveal-column className="relative flex min-h-0 flex-1 flex-col items-center justify-between gap-3 overflow-y-auto px-3 py-4">
         <div ref={head} className="flex w-full flex-col items-center gap-1">
           {myScore === null ? (
             <div data-reveal-score="pending" className="py-3">
@@ -335,7 +337,8 @@ export function ArcadeReveal({ puzzle, myAnswer, myScore, myReveal, players, nea
         </div>
 
         {/* The chart in a clean panel over the darkened world, never over the busy board itself. */}
-        <div data-chart-panel className="flex min-h-0 w-full flex-1 flex-col rounded-[18px] bg-[#17171B] px-2.5 py-2.5">
+        {/* Never shorter than the chart it holds (no min-h-0): the column scrolls instead of overlapping. */}
+        <div data-chart-panel className="flex w-full flex-1 flex-col rounded-[18px] bg-[#17171B] px-2.5 py-2.5">
           <ArcadeScoreChart
             players={players.map((p) => ({ slot: p.slot, name: p.name, isMe: p.isMe, look: p.look, score: p.isMe ? myScore : p.score }))}
             type={puzzle.type}

@@ -162,3 +162,26 @@ export function rowLanes(markers: readonly MarkerOut[]): [number, number, number
   for (const m of markers) lanes[m.row] = Math.max(lanes[m.row], m.lane + 1);
   return lanes;
 }
+
+/* ---------------------------------------------------------------- who is drawn */
+
+/** In rooms bigger than CHART_ALL_UP_TO (31 Oct 2026, rooms of 16) the chart draws this many players by score, plus this player. */
+export const CHART_TOP = 8;
+/** Rooms up to the old cap of ten draw every player, as before. */
+export const CHART_ALL_UP_TO = 10;
+
+/**
+ * Who the chart draws: in a room of up to CHART_ALL_UP_TO, everyone scored; in a bigger room the
+ * CHART_TOP highest stored scores (ties to the lower slot), plus this player when they are not among them. Everyone still scoring is
+ * counted separately (`pending`), never drawn. Display only.
+ */
+export function chartShown<T extends { slot: number; isMe: boolean; score: number | null }>(
+  players: readonly T[],
+): { shown: T[]; pending: T[]; hidden: number } {
+  const scored = players.filter((p) => p.score !== null).sort((a, b) => b.score! - a.score! || a.slot - b.slot);
+  const top = players.length <= CHART_ALL_UP_TO ? scored : scored.slice(0, CHART_TOP);
+  const me = scored.find((p) => p.isMe);
+  const shown = me && !top.includes(me) ? [...top, me] : top;
+  const pending = players.filter((p) => p.score === null);
+  return { shown, pending, hidden: scored.length - shown.length };
+}

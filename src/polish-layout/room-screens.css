@@ -586,6 +586,56 @@
   .rs-move[data-move="down"] { color: #FF7A6E; }
   .rs-move[data-move="same"] { color: var(--ap-faint); }
   /* A list that can still scroll under the footer: a fade at its bottom while there is more below. */
+  /* The lobby's players in two columns (31 Oct 2026, rooms of up to 16). */
+  .rs-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6px;
+  }
+  .rs-cell {
+    position: relative;
+    display: flex;
+    min-width: 0;
+    min-height: 52px;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 4px 4px 10px;
+    border-radius: 14px;
+    background: var(--ap-panel);
+    text-align: left;
+  }
+  .rs-cell[data-you] {
+    box-shadow: inset 3px 0 0 var(--you, var(--ap-text-2));
+  }
+  /* Big rooms (9+ players): compact rows, and my own row pinned in view while the list scrolls
+     (sticky to the list's top and bottom, so it never leaves it). The pinned row is opaque. */
+  .rs-scroll[data-compact] .rs-row {
+    min-height: 40px;
+    padding-top: 3px;
+    padding-bottom: 3px;
+  }
+  .rs-scroll[data-compact] > li > button.rs-row-btn {
+    min-height: 42px;
+    padding-top: 2px;
+    padding-bottom: 2px;
+  }
+  /* The page scrolls these screens, so the list must not be a scroll container of its own (overflow:
+     clip keeps the rounded corners without one), and my row sticks to the page's top and to just above
+     the room footer (68 px, its 16 px fade and the home bar). */
+  .rs-scroll[data-pin] {
+    overflow: clip;
+  }
+  .rs-scroll > [data-pinned] {
+    position: sticky;
+    top: 0;
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 68px + 16px);
+    z-index: 2;
+    background: #1d1d23;
+  }
+  .rs-scroll[data-pin][data-more] {
+    -webkit-mask-image: none;
+    mask-image: none;
+  }
   .rs-scroll {
     min-height: 0;
     overflow-y: auto;

@@ -39,8 +39,10 @@ import { join } from "node:path";
 
 import {
   PLAYER_COLOURS,
+  PLAYER_COLOUR_MIN_DE,
   PLAYER_ICON_IDS,
   BADGE_GLYPH,
+  CVD_SAFE_COLOURS,
   isPlayerColour,
   lookColumnsPresent,
   resolvePlayerLooks,
@@ -134,8 +136,24 @@ const seen = (hex: string, m: number[][]) => {
   return lab(m.map((row) => row[0]! * l[0]! + row[1]! * l[1]! + row[2]! * l[2]!));
 };
 
+let visionWheel = "";
 const hexes = PLAYER_COLOURS.map((c) => c.hex);
-check(PLAYER_COLOURS.length === 10, `palette has ${PLAYER_COLOURS.length} colours, want 10`);
+// 31 Oct 2026 (rooms of 16): the colour wheel's 32 swatches; the October ten are its first ten, unchanged,
+// and keep their colour-blind separation below (the room's first ten auto colours).
+check(PLAYER_COLOURS.length === 32, `palette has ${PLAYER_COLOURS.length} colours, want 32`);
+check(CVD_SAFE_COLOURS === 10, `${CVD_SAFE_COLOURS} colour-blind-separated colours, want the October ten`);
+const OCTOBER_TEN = ["#DFD855", "#E3945F", "#ED3920", "#D45389", "#8A65F0", "#8D97F4", "#77C1DD", "#76F4F4", "#A7E9A4", "#8A8EA3"];
+check(OCTOBER_TEN.every((hex, i) => hexes[i] === hex), "the wheel's first ten are not the October palette (stored indices 0–9 would change colour)");
+{
+  let min = Infinity, pair = "";
+  for (let i = 0; i < hexes.length; i++)
+    for (let j = i + 1; j < hexes.length; j++) {
+      const d = deltaE2000(seen(hexes[i]!, VISION.normal!), seen(hexes[j]!, VISION.normal!));
+      if (d < min) [min, pair] = [d, `${PLAYER_COLOURS[i]!.name}/${PLAYER_COLOURS[j]!.name}`];
+    }
+  visionWheel = `wheel (32, normal vision) ${min.toFixed(1)} (${pair})`;
+  check(min >= PLAYER_COLOUR_MIN_DE && PLAYER_COLOUR_MIN_DE >= 14, `wheel: ${pair} only ${min.toFixed(1)} ΔE2000 apart, want ${PLAYER_COLOUR_MIN_DE} (at least 14)`);
+}
 check(new Set(hexes).size === hexes.length, "palette colours are not distinct");
 check(new Set(PLAYER_COLOURS.map((c) => c.name)).size === hexes.length, "palette names are not distinct");
 for (const { name, hex } of PLAYER_COLOURS) {
@@ -145,8 +163,8 @@ for (const { name, hex } of PLAYER_COLOURS) {
 const visionMins: string[] = [];
 for (const [vision, matrix] of Object.entries(VISION)) {
   let min = Infinity, pair = "";
-  for (let i = 0; i < hexes.length; i++)
-    for (let j = i + 1; j < hexes.length; j++) {
+  for (let i = 0; i < CVD_SAFE_COLOURS; i++)
+    for (let j = i + 1; j < CVD_SAFE_COLOURS; j++) {
       const d = deltaE2000(seen(hexes[i]!, matrix), seen(hexes[j]!, matrix));
       if (d < min) [min, pair] = [d, `${PLAYER_COLOURS[i]!.name}/${PLAYER_COLOURS[j]!.name}`];
     }
@@ -422,6 +440,14 @@ if (migrationFile) {
   check(/ADD COLUMN IF NOT EXISTS colour smallint/.test(sql) && /ADD COLUMN IF NOT EXISTS icon text/.test(sql), `${migrationFile}: columns missing`);
   check(/CREATE UNIQUE INDEX IF NOT EXISTS duel_players_duel_colour_key\s+ON public\.duel_players \(duel_id, colour\)/.test(sql), `${migrationFile}: no unique (duel_id, colour) index`);
   check(/BETWEEN 0 AND 9/.test(sql), `${migrationFile}: no colour range check`);
+}
+const wheelMigration = migrations.find((f) => /room_16_players/.test(f));
+check(!!wheelMigration && (!migrationFile || wheelMigration > migrationFile), "no 16-player migration after the colour/icon one");
+if (wheelMigration) {
+  const sql = readFileSync(`supabase/migrations/${wheelMigration}`, "utf8").replace(/--.*$/gm, "");
+  check(new RegExp(`colour BETWEEN 0 AND ${PLAYER_COLOURS.length - 1}\\b`).test(sql), `${wheelMigration}: colour range is not 0–${PLAYER_COLOURS.length - 1}`);
+  check(/player_slot BETWEEN 1 AND 16\b/.test(sql), `${wheelMigration}: slot range is not 1–16`);
+  check(!/\b(GRANT|POLICY|DISABLE ROW LEVEL SECURITY)\b/i.test(sql), `${wheelMigration}: changes grants or policies`);
   check(!/\b(GRANT|POLICY|DISABLE ROW LEVEL SECURITY)\b/i.test(sql), `${migrationFile}: changes grants or policies`);
 }
 for (const file of ["src/lib/duel/api.ts", "src/lib/duel/playerLook.ts", "src/components/duel/RoomLobby.tsx"]) {
@@ -498,7 +524,11 @@ if (bin) {
     refused(`INSERT INTO public.duel_players (duel_id, player_slot, user_id, display_name, status, colour) VALUES ('${ROOM}', 5, '${user(6)}', 'Dup', 'active', 7)`, /duel_players_duel_colour_key/, "a second player with the same colour");
     refused(`UPDATE public.duel_players SET colour = 4 WHERE duel_id = '${ROOM}' AND player_slot = 2`, /duel_players_duel_colour_key/, "changing to a colour someone holds");
     refused(`UPDATE public.duel_players SET colour = 2 WHERE duel_id = '${ROOM}' AND player_slot = 2`, /duel_players_duel_colour_key/, "taking a colour a left player still holds");
-    refused(`UPDATE public.duel_players SET colour = 10 WHERE duel_id = '${ROOM}' AND player_slot = 2`, /duel_players_colour_range/, "colour 10");
+    // 31 Oct 2026: 20261031150000_room_16_players.sql widens the range to the wheel's 0–31 (the first
+    // index past the wheel is refused) and the slots to 1–16.
+    refused(`UPDATE public.duel_players SET colour = ${PLAYER_COLOURS.length} WHERE duel_id = '${ROOM}' AND player_slot = 2`, /duel_players_colour_range/, `colour ${PLAYER_COLOURS.length}`);
+    refused(`UPDATE public.duel_players SET colour = -1 WHERE duel_id = '${ROOM}' AND player_slot = 2`, /duel_players_colour_range/, "colour -1");
+    refused(`INSERT INTO public.duel_players (duel_id, player_slot, user_id, display_name, status) VALUES ('${ROOM}', 17, '${user(8)}', 'Seventeenth', 'active')`, /duel_players_slot_range/, "slot 17");
     refused(`UPDATE public.duel_players SET icon = 'Not An Icon' WHERE duel_id = '${ROOM}' AND player_slot = 2`, /duel_players_icon_id/, "an icon that is not an id");
     check(psql(`UPDATE public.duel_players SET colour = 3, icon = 'wave' WHERE duel_id = '${ROOM}' AND player_slot = 4`).ok, "SQL: a free colour and an icon were refused");
     check(psql(`INSERT INTO public.duel_players (duel_id, player_slot, user_id, display_name, status) VALUES ('${ROOM}', 5, '${user(7)}', 'NoLook', 'active')`).ok, "SQL: two rows without a colour clash");
@@ -734,7 +764,7 @@ for (const id of ["perfect", "fastest", "comeback", "close"])
 /* ------------------------------------------------------------------ summary */
 
 console.log(`palette: ${PLAYER_COLOURS.map((c) => `${c.name} ${c.hex}`).join(", ")}`);
-console.log(`closest pairs (ΔE2000): ${visionMins.join("; ")}`);
+console.log(`closest pairs (ΔE2000): ${visionMins.join("; ")}; ${visionWheel}`);
 console.log(sqlNote);
 console.log(`${rooms} rooms seated with the columns, 40 without, 180 through Play again; ${awardsShown} awards in 300 random rooms (${Object.entries(awardCounts).map(([k, v]) => `${k} ${v}`).join(", ")})`);
 if (failures.length) {

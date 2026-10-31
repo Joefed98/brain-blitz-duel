@@ -9,7 +9,7 @@ override anything general here.
 
 ## What this is
 
-Duelz: a multiplayer skill-game app. Up to 10 players (`MAX_PLAYERS`) join a room with a
+Duelz: a multiplayer skill-game app. Up to 16 players (`MAX_PLAYERS`, 10 until 31 Oct 2026) join a room with a
 short code and play the same timed rounds; 84 active games across Word, Number, Speed, Attention,
 Pattern, Logic and Arcade (Word 9, Number 8, Speed 6, Attention 6, Pattern 10, Logic 12 (Trail moved from Number on 27 Oct 2026),
 Arcade 33 with Pinball and, since 30 Oct 2026, the Cards & Board group's Minefield (shown as Minesweeper until 31 Oct 2026), Mahjong Solitaire, Free Cell, Summit and Full House (shown as FreeCell, TriPeaks and Poker Squares until 31 Oct 2026), since 31 Oct 2026 Five Hands, and the Sports group's Home Run, Top Bins, Apex (shown as Home Run Derby, Free Kick and Racing until 31 Oct 2026), Crazy Golf, Cue Ball and Curl Champ (shown as Minigolf, Speed Pool and Curling until 31 Oct 2026) dealt in rooms; 11 retired to practice: Swerve, Steady, Dual, Ricochet,
@@ -973,6 +973,18 @@ Lovable still hosts and publishes the app (https://brain-blitz-duel.lovable.app)
   refusals, 29k seeded deals and older rooms' deals (`scripts/fixtures/room-settings-legacy.json`, recorded on main);
   theme-check draws the sheet and lobby and checks the intro colours at 414×896 app and 375×667; shots
   `bun scripts/shots/room-settings-shots.ts` (`screenshots/room-settings-oct-2026/`).
+- **Rooms of 16 and the colour wheel** (31 Oct 2026, `docs/room-16-oct-2026.md`; presentation and room data only, no
+  stamps): `MAX_PLAYERS` 16 (`roomCapacity`, `roomSeats.ts` `seatFor`: the 17th join is refused "That room is full (16
+  players)."); migration `20261031150000_room_16_players.sql` (slots 1–16, colours 0–31, share counts 1–20) is **written
+  but not applied**: until it is, the 11th join is refused as full (10) through `RoomSeatsError` and wheel colours past 9
+  seat as no colour. Lobby players in two columns; round results and standings compact from 11 players with my row pinned
+  (sticky, the list `overflow: clip`); the arcade chart the top 8 plus me from 11 players (`chartShown`); the podium the top three, "Your
+  place" and my row (`See all`); the reveal's chart panel never shrinks below its chart (the 375×667 four-part-line
+  overlap). Colours: `PLAYER_COLOURS` is a 32-swatch wheel (indices stored, never reorder; 0–9 the October ten), every
+  pair ≥ 14 ΔE2000 (`PLAYER_COLOUR_MIN_DE`), drawn by `ColourWheel` in `RoomLobby.tsx` (Profile's default, the lobby's
+  own chip for this room); a taken default gives the nearest free swatch (`nearestFreeColour`). Apex draws only the 3
+  nearest ghosts (`nearestRacingGhosts`). room-16-check (~1.5 min, `play14`); `bun scripts/room-load-test.ts` (a tool:
+  bots on an in-memory test copy, report in the doc); shots `bun scripts/shots/room16-shots.ts`.
 - `src/components/duel/` — room/round screens (PhoneShell, RoundIntro, TimerBar,
   AnswerReveal, ArcadeReveal, WinnerReveal…); `src/components/puzzles/` — shared puzzle
   widgets; `src/lib/fx/` — sound and visual feedback (presentation only).

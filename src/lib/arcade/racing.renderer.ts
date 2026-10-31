@@ -124,6 +124,19 @@ export function setRacingGhosts(list: readonly RacingGhostView[] | null | undefi
   ghosts = list ?? [];
 }
 
+/** At most this many ghost cars are drawn (31 Oct 2026, rooms of 16): the nearest to your own car. */
+export const RACING_GHOSTS_SHOWN = 3;
+
+/**
+ * The ghosts to draw for a car at race distance `s`: the RACING_GHOSTS_SHOWN nearest along the track
+ * (ahead or behind; ties by lateral distance from `x`, then name). Display only: never reaches the sim.
+ */
+export function nearestRacingGhosts<T extends RacingGhostView>(list: readonly T[], s: number, x = 0): T[] {
+  return [...list]
+    .sort((a, b) => Math.abs(a.s - s) - Math.abs(b.s - s) || Math.abs(a.x - x) - Math.abs(b.x - x) || a.name.localeCompare(b.name))
+    .slice(0, RACING_GHOSTS_SHOWN);
+}
+
 /* ================================ Offscreen helpers ================================ */
 
 type Surface = HTMLCanvasElement | OffscreenCanvas;
@@ -808,7 +821,7 @@ function drawWorld(ctx: Ctx2D, state: RacingState, L: Layers, B: Bounds = WORLD_
 
   // Roadside, back to front: per segment its sprites, then its tyre walls (the trees stand behind them).
   const ghostAt = new Map<number, RacingGhostView[]>();
-  for (const g of ghosts) {
+  for (const g of nearestRacingGhosts(ghosts, state.s, state.x)) {
     const z = ((g.s - state.s) / RACING_SEG) * SL + ZC;
     if (z < ZC * 0.55 || z > (DRAW_SEGS - 2) * SL) continue;
     const i = Math.floor((z + frac * SL) / SL);
