@@ -1,3 +1,4 @@
+import { devWarp } from "@/lib/arcade/devWarp";
 import { gameDisplayName } from "@/lib/duel/gameNames";
 import {
   homerunCheckpoint,
@@ -5,7 +6,7 @@ import {
   HOMERUN_BG,
   HOMERUN_CHECKPOINT_INTERVAL,
   HOMERUN_INPUT_SWING,
-  HOMERUN_SWING_START_PX,
+  homerunSwingStartPx,
   HOMERUN_WORLD_H,
   HOMERUN_WORLD_W,
 } from "@/lib/arcade/homerun";
@@ -18,7 +19,7 @@ import { useMemo, useRef } from "react";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
-/** Fixed intro still: the night park from the plate, a pitch on its way, the bat cocked at the right. */
+/** Fixed intro still: the night park from behind the plate, the batter in his stance, a pitch on its way. */
 function IntroExample() {
   return (
     <div className="flex w-full flex-col items-center gap-2">
@@ -46,15 +47,22 @@ function IntroExample() {
         <rect x="8" y="34" width="1.6" height="30" fill="#FFE15A" />
         <rect x="190" y="34" width="1.6" height="30" fill="#FFE15A" />
         <rect y="64" width="200" height="86" fill="#245C33" />
-        <ellipse cx="96" cy="72" rx="40" ry="4" fill="#7A5638" />
-        <path d="M94 70 l-2 -12 l4 -2 l4 2 l-2 12 Z" fill="#1B2232" />
-        <circle cx="96" cy="54" r="2.4" fill="#1B2232" />
-        <rect x="110" y="88" width="36" height="40" fill="none" stroke="#fff" strokeOpacity="0.35" strokeDasharray="3 3" />
-        <circle cx="122" cy="98" r="3.4" fill="#F4F3EE" />
-        <path d="M200 146 L156 92 L160 88 L200 136 Z" fill="#2A170C" />
+        <ellipse cx="104" cy="74" rx="34" ry="4" fill="#7A5638" />
+        <path d="M103 72 l-2 -11 l3 -2 l3 2 l-2 11 Z" fill="#8C2C36" />
+        <circle cx="104" cy="57" r="2.2" fill="#C69C7A" />
+        <path d="M0 110 Q100 92 200 110 L200 150 L0 150 Z" fill="#7A5638" />
+        <rect x="112" y="96" width="30" height="32" fill="none" stroke="#fff" strokeOpacity="0.35" strokeDasharray="3 3" />
+        <circle cx="126" cy="106" r="2.6" fill="#F4F3EE" />
+        <path d="M120 140 L134 140 L137 146 L127 150 L117 146 Z" fill="#F5F6F2" />
+        <path d="M48 148 L56 120 L52 104 L66 104 L70 120 L74 148 L66 148 L62 124 L58 148 Z" fill="#E7E9EF" />
+        <path d="M50 104 L48 82 Q60 76 72 82 L70 104 Z" fill="#17244A" />
+        <circle cx="61" cy="74" r="7" fill="#2C4282" />
+        <ellipse cx="68" cy="74" rx="4" ry="1.2" fill="#0C1430" />
+        <circle cx="70" cy="84" r="2.6" fill="#F2C75C" />
+        <path d="M70 84 L84 44 L87 45 L73 85 Z" fill="#C08A52" />
       </svg>
       <p className="text-center text-xs text-muted-foreground">
-        Swipe through the ball as it arrives: your swipe's height meets the pitch, its angle sends it left, centre or right.
+        Read the pitch, then swipe through the ball as it arrives: your swipe's height meets the pitch, its angle sends it left, centre or right.
       </p>
     </div>
   );
@@ -62,9 +70,12 @@ function IntroExample() {
 
 function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const data: HomerunPuzzleData | null = puzzle.type === "homerun" ? puzzle : null;
-  const game = useMemo(() => ({ ...homerunGameFor(data?.homerunRev), draw: drawHomerunArt }), [data?.homerunRev]);
+  // devWarp: development review shots only (scripts/shots/homerun-tuning-shots.ts); production returns the game as is.
+  const game = useMemo(() => ({ ...devWarp("homerun", homerunGameFor(data?.homerunRev)), draw: drawHomerunArt }), [data?.homerunRev]);
   // The swipe: where the finger went down, and whether this swipe has already started the swing.
   const start = useRef<{ x: number; y: number; sent: boolean } | null>(null);
+  // homerunRev 2 reads the swipe over a longer chord (18 px, rev 1 12 px) so its angle, the aim, is steadier.
+  const startPx = homerunSwingStartPx(data?.homerunRev);
   return (
     <ArcadeCanvasStage
       diagKey="homerun"
@@ -97,7 +108,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         if (!s || s.sent) return null;
         const dx = x - s.x;
         const dy = y - s.y;
-        if (dx * dx + dy * dy < HOMERUN_SWING_START_PX * HOMERUN_SWING_START_PX) return null;
+        if (dx * dx + dy * dy < startPx * startPx) return null;
         // The swing starts now: height from where the swipe began, angle from its direction (0 = level toward the
         // pitcher's side, + = upward = pulled to left field); a swipe the wrong way is a foul.
         s.sent = true;
@@ -137,7 +148,7 @@ export const homerunPuzzle: PuzzleDefinition = {
   category: "arcade",
   timeLimitMs: HOMERUN_TIME_MS,
   revealMs: 6_000,
-  generate: () => ({ type: "homerun", seed: 1, homerunRev: 1 }) satisfies HomerunPuzzleData,
+  generate: () => ({ type: "homerun", seed: 1, homerunRev: 2 }) satisfies HomerunPuzzleData,
   check: () => false,
   revealHeading: "Your run",
   IntroExample,

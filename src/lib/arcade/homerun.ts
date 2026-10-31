@@ -1,5 +1,5 @@
 /**
- * Home Run Derby (`homerun`, homerunRev 1; docs/arcade-standard/homerun.md): ten seeded pitches in 60 s, one about
+ * Home Run (`homerun`, homerunRev 1 and 2; docs/arcade-standard/homerun.md): ten seeded pitches in 60 s, one about
  * every 6 s, seen from the hitter's eyes. A swipe swings: the swing starts on the tick the finger starts moving (the
  * phone records it once the finger has moved SWING_START_PX), the swipe's height sets the contact point and its angle
  * the direction (pull, centre, opposite field). The bat meets the plate HOMERUN_SWING_TICKS later.
@@ -26,6 +26,14 @@ import { stdBandParts, stdEach, stdLine, stdPart, stdScore, type StdPart, type S
 /* ------------------------------------------------------------------ world */
 
 export const HOMERUN_REV_STD = 1;
+/**
+ * homerunRev 2 (31 Oct 2026, the Sports tuning batch; docs/arcade-standard/homerun.md "homerunRev 2"): finer aiming
+ * (the spray is 9/16 of the swipe angle, fair to ±80° of swipe, so a sign needs a more exact swipe but has more room
+ * either side) and the swing starts after HOMERUN_SWING_START_PX_V2 of finger travel (its angle read over a longer
+ * chord). The plan, contact, timing, height and the parts are rev 1's. Rooms deal rev 2.
+ */
+export const HOMERUN_REV_2 = 2;
+export const HOMERUN_REV_DEALT = HOMERUN_REV_2;
 export const HOMERUN_WORLD_W = 390;
 export const HOMERUN_WORLD_H = 720;
 export const HOMERUN_BG = "#05070E";
@@ -50,19 +58,34 @@ export const HOMERUN_ZONE_X0 = 212;
 export const HOMERUN_ZONE_X1 = 304;
 export const HOMERUN_ZONE_Y0 = 446;
 export const HOMERUN_ZONE_Y1 = 566;
-/** Where the pitcher releases the ball on screen (the mound, far away). */
-export const HOMERUN_RELEASE_X = 182;
-export const HOMERUN_RELEASE_Y = 274;
-/** The phone starts the swing once the finger has moved this far (world px). */
+/**
+ * Where the pitcher releases the ball on screen (the mound, far away; display only, used by homerunBallAt). Moved on
+ * 31 Oct 2026 with the camera behind the batter's shoulder (homerun.renderer.ts); no rule reads it.
+ */
+export const HOMERUN_RELEASE_X = 216;
+export const HOMERUN_RELEASE_Y = 214;
+/** The phone starts the swing once the finger has moved this far (world px; rev 1). */
 export const HOMERUN_SWING_START_PX = 12;
+/** homerunRev 2: a longer chord before the swing starts, so its angle (the aim) reads more exactly. */
+export const HOMERUN_SWING_START_PX_V2 = 18;
+/** The finger travel that starts the swing on a revision. */
+export function homerunSwingStartPx(rev?: number | null): number {
+  return (rev ?? 1) >= HOMERUN_REV_2 ? HOMERUN_SWING_START_PX_V2 : HOMERUN_SWING_START_PX;
+}
 
 /* ------------------------------------------------------------------ input */
 
 export const HOMERUN_INPUT_SWING = 1;
 /** a = contact height (world y), b = swing angle in tenths of a degree (0 = level, + = upward, the pull side). */
 export const HOMERUN_INPUT_RANGES: readonly InputRange[] = [inputRange(HOMERUN_INPUT_SWING, [0, HOMERUN_WORLD_H], [-900, 900])];
-/** Swing angles beyond this (tenths of a degree) go foul. */
+/** Swing angles beyond this (tenths of a degree) go foul (rev 1). */
 export const HOMERUN_FAIR_ANGLE = 600;
+/** homerunRev 2: fair to ±80° of swipe. */
+export const HOMERUN_FAIR_ANGLE_V2 = 800;
+/** The fair swipe angle on a revision. */
+export function homerunFairAngle(rev?: number | null): number {
+  return (rev ?? 1) >= HOMERUN_REV_2 ? HOMERUN_FAIR_ANGLE_V2 : HOMERUN_FAIR_ANGLE;
+}
 
 /* ---------------------------------------------------------------- pitches */
 
@@ -197,13 +220,16 @@ export function homerunFence(spray: number): number {
   return HOMERUN_FENCE_LINE + Math.floor(((HOMERUN_FENCE_CENTRE - HOMERUN_FENCE_LINE) * (HOMERUN_FOUL_LINE - a)) / HOMERUN_FOUL_LINE);
 }
 
-/** The swing's spray angle from the swipe angle: three quarters of it (60° of swipe → 45°, the foul line). */
-export function homerunSpray(angle: number): number {
-  return Math.trunc((angle * 3) / 4);
+/**
+ * The swing's spray angle from the swipe angle: rev 1 three quarters of it (60° of swipe → 45°, the foul line); rev 2
+ * nine sixteenths (80° of swipe → 45°), so the same aiming error moves the ball a quarter less.
+ */
+export function homerunSpray(angle: number, rev?: number | null): number {
+  return (rev ?? 1) >= HOMERUN_REV_2 ? Math.trunc((angle * 9) / 16) : Math.trunc((angle * 3) / 4);
 }
 
-/** A swing starting on `swingTick` at height `a` with angle `b` against `pitch`: the outcome. */
-export function homerunContact(plan: HomerunPlan, pitch: HomerunPitch, swingTick: number, a: number, b: number): HomerunHit {
+/** A swing starting on `swingTick` at height `a` with angle `b` against `pitch` on revision `rev`: the outcome. */
+export function homerunContact(plan: HomerunPlan, pitch: HomerunPitch, swingTick: number, a: number, b: number, rev: number = HOMERUN_REV_STD): HomerunHit {
   const contact = swingTick + HOMERUN_SWING_TICKS;
   const at = Math.max(contact, pitch.arrive);
   const dt = Math.abs(contact - pitch.arrive);
@@ -214,8 +240,8 @@ export function homerunContact(plan: HomerunPlan, pitch: HomerunPitch, swingTick
   const launch = clampInt(260 + (pitch.plateY - a) * 14, 40, 620);
   const swing = { st: swingTick, a, b };
   if (q < HOMERUN_MIN_Q) return { out: OUT_WHIFF, q, feet: 0, spray: 0, launch, sign: -1, at, ...swing };
-  const spray = homerunSpray(b);
-  if (Math.abs(b) > HOMERUN_FAIR_ANGLE) return { out: OUT_FOUL, q, feet: 0, spray, launch, sign: -1, at, ...swing };
+  const spray = homerunSpray(b, rev);
+  if (Math.abs(b) > homerunFairAngle(rev)) return { out: OUT_FOUL, q, feet: 0, spray, launch, sign: -1, at, ...swing };
   const feet = HOMERUN_FEET_BASE + Math.floor((HOMERUN_FEET_SPAN * q) / 1000);
   const homer = feet > homerunFence(spray);
   let sign = -1;
@@ -254,9 +280,9 @@ export interface HomerunState {
   doneAt: number;
 }
 
-export function homerunInit(seed: number): HomerunState {
+export function homerunInit(seed: number, rev: number = HOMERUN_REV_STD): HomerunState {
   homerunPlan(seed);
-  return { tick: 0, seed: seed | 0, rev: HOMERUN_REV_STD, acted: 0, pitch: 0, swingTick: -1, swingA: 0, swingB: 0, hits: [], feet: 0, homers: 0, signs: 0, doneAt: 0 };
+  return { tick: 0, seed: seed | 0, rev, acted: 0, pitch: 0, swingTick: -1, swingA: 0, swingB: 0, hits: [], feet: 0, homers: 0, signs: 0, doneAt: 0 };
 }
 
 /** The pitch the batter faces now (null after the tenth). */
@@ -294,7 +320,7 @@ export function homerunStep(prev: HomerunState, input: ArcadeInputEvent | null):
   }
   if (pitch) {
     if (state.swingTick >= 0) {
-      const hit = homerunContact(plan, pitch, state.swingTick, state.swingA, state.swingB);
+      const hit = homerunContact(plan, pitch, state.swingTick, state.swingA, state.swingB, state.rev);
       if (state.tick >= hit.at) state = decide(state, hit);
     } else if (state.tick >= pitch.arrive + HOMERUN_TAKE_TICKS) {
       state = decide(state, { out: OUT_TAKEN, q: 0, feet: 0, spray: 0, launch: 0, sign: -1, at: state.tick, st: -1, a: 0, b: 0 });
@@ -317,6 +343,7 @@ export const HOMERUN_HOMER_EACH = 5;
 export const HOMERUN_HOMERS_MAX = 50;
 export const HOMERUN_SIGNS_MAX = 20;
 
+/** homerunRev 1's spec (born on the standard); rev 2 keeps every part (HOMERUN_STD_SPEC_V2). */
 export const HOMERUN_STD_SPEC: StdSpec = {
   field: "homerunRev",
   rev: HOMERUN_REV_STD,
@@ -327,7 +354,13 @@ export const HOMERUN_STD_SPEC: StdSpec = {
   ],
 };
 
+/** homerunRev 2: the same three parts and maximums. */
+export const HOMERUN_STD_SPEC_V2: StdSpec = { ...HOMERUN_STD_SPEC, rev: HOMERUN_REV_2 };
+export const HOMERUN_STD_SPEC_DEALT = HOMERUN_STD_SPEC_V2;
+
 export const HOMERUN_V1_BAND_CURVE = bandCurve([0, HOMERUN_FULL_AT], [0, HOMERUN_CORE_MAX]);
+/** homerunRev 2's core: rev 1's straight line. */
+export const HOMERUN_V2_BAND_CURVE = HOMERUN_V1_BAND_CURVE;
 
 export function homerunSignCount(state: Pick<HomerunState, "signs">): number {
   let n = 0;
@@ -335,15 +368,16 @@ export function homerunSignCount(state: Pick<HomerunState, "signs">): number {
   return n;
 }
 
-/** homerunRev 1's scored parts (null on any other revision). */
+/** homerunRev 1's and 2's scored parts (null on any other revision). */
 export function homerunStdParts(state: HomerunState): StdPart[] | null {
-  if (state.rev !== HOMERUN_REV_STD) return null;
+  if (state.rev !== HOMERUN_REV_STD && state.rev !== HOMERUN_REV_2) return null;
+  const spec = state.rev === HOMERUN_REV_2 ? HOMERUN_STD_SPEC_V2 : HOMERUN_STD_SPEC;
   const signs = homerunSignCount(state);
   const avg = state.pitch > 0 ? Math.round(state.feet / Math.max(1, state.hits.length)) : 0;
   return [
-    stdPart(HOMERUN_STD_SPEC, "core", stdLine(HOMERUN_CORE_MAX, state.feet, HOMERUN_FULL_AT), `${state.feet} ft over ${state.hits.length} pitch${state.hits.length === 1 ? "" : "es"} (avg ${avg})`),
-    stdPart(HOMERUN_STD_SPEC, "homers", stdEach(state.homers, HOMERUN_HOMER_EACH, HOMERUN_HOMERS_MAX), `${state.homers} home run${state.homers === 1 ? "" : "s"}`),
-    stdPart(HOMERUN_STD_SPEC, "signs", stdLine(HOMERUN_SIGNS_MAX, signs, HOMERUN_SIGNS), `${signs} of ${HOMERUN_SIGNS} signs`),
+    stdPart(spec, "core", stdLine(HOMERUN_CORE_MAX, state.feet, HOMERUN_FULL_AT), `${state.feet} ft over ${state.hits.length} pitch${state.hits.length === 1 ? "" : "es"} (avg ${avg})`),
+    stdPart(spec, "homers", stdEach(state.homers, HOMERUN_HOMER_EACH, HOMERUN_HOMERS_MAX), `${state.homers} home run${state.homers === 1 ? "" : "s"}`),
+    stdPart(spec, "signs", stdLine(HOMERUN_SIGNS_MAX, signs, HOMERUN_SIGNS), `${signs} of ${HOMERUN_SIGNS} signs`),
   ];
 }
 
@@ -357,7 +391,7 @@ export function homerunBandParts(state: HomerunState): BandParts {
   const parts = homerunStdParts(state) ?? [];
   const get = (k: string) => parts.find((p) => p.key === k)?.points ?? 0;
   return stdBandParts(
-    HOMERUN_STD_SPEC,
+    state.rev === HOMERUN_REV_2 ? HOMERUN_STD_SPEC_V2 : HOMERUN_STD_SPEC,
     { core: get("core"), features: { homers: get("homers"), signs: get("signs") }, penalty: 0 },
     state.feet,
     `${state.homers} HR · ${state.feet} ft`,
@@ -412,7 +446,7 @@ function drawPlain(ctx: CanvasRenderingContext2D, state: HomerunState, size: Can
 export const homerunGame: ArcadeGame<HomerunState, ArcadeInputEvent | null> = {
   key: "homerun",
   runTicks: HOMERUN_RUN_TICKS,
-  init: homerunInit,
+  init: (seed: number) => homerunInit(seed),
   step: homerunStep,
   isOver: homerunIsOver,
   score: homerunScore,
@@ -420,8 +454,11 @@ export const homerunGame: ArcadeGame<HomerunState, ArcadeInputEvent | null> = {
   inputRanges: HOMERUN_INPUT_RANGES,
 };
 
-export function homerunGameFor(_rev?: number | null): ArcadeGame<HomerunState, ArcadeInputEvent | null> {
-  return homerunGame;
+/** homerunRev 2's game: rev 1's with the finer aim (the state carries rev 2). */
+export const homerunGameV2: ArcadeGame<HomerunState, ArcadeInputEvent | null> = { ...homerunGame, init: (seed: number) => homerunInit(seed, HOMERUN_REV_2) };
+
+export function homerunGameFor(rev?: number | null): ArcadeGame<HomerunState, ArcadeInputEvent | null> {
+  return (rev ?? 1) >= HOMERUN_REV_2 ? homerunGameV2 : homerunGame;
 }
 
 /** Display: where pitch `p` is on screen at sim time `t` (fractional ticks allowed), with its size; null off-flight. */
