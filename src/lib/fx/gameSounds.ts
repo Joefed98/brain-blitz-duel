@@ -26,7 +26,7 @@ import { BINTOSS_AIM, BINTOSS_FLY, BINTOSS_NARROW_FROM, BINTOSS_THROWS, BINTOSS_
 import type { TiltState } from "@/lib/arcade/tilt";
 import { homerunFence, homerunPlan, OUT_FAIR, OUT_FOUL, OUT_HOMER, OUT_TAKEN, OUT_WHIFF, type HomerunState } from "@/lib/arcade/homerun";
 import { FK_AIM, FK_FLIGHT, FK_NET_Z, FK_OUT_GOAL, FK_OUT_SAVED, FK_OUT_WALL, FK_OUT_WIDE, type FreekickState } from "@/lib/arcade/freekick";
-import { RACING_CAR_HALF, RACING_LAP, RACING_ROAD_X, RACING_VMAX, racingBalanceSpeed, racingSegAt, racingTrack, type RacingState } from "@/lib/arcade/racing";
+import { RACING_CAR_HALF, RACING_LAP, RACING_ROAD_X, RACING_VMAX, racingBalanceSpeed, racingGoTick, racingLightsOn, racingSegAt, racingTrack, type RacingState } from "@/lib/arcade/racing";
 import { btEventCountdown, type BtCourse, type BtState } from "@/lib/arcade/ballTrack";
 import { JUNC_BUILD_EVERY, JUNC_BUILDS, type JuncState } from "@/lib/arcade/junction";
 import { skylineFlagAt, skylineGustAt, skylineShownMult, SKYLINE_REV_STD, SKYLINE_V9_STREAK_MAX, type SkylineState } from "@/lib/arcade/skyline";
@@ -1185,7 +1185,7 @@ const ENGINE_RATE_LO = 0.7;
 const ENGINE_RATE_HI = 1.5;
 /** Tyres squeal past this share of the corner's balance speed (per mille), at most once in 1.5 s. */
 const SQUEAL_AT = 900;
-/** Lights out the moment the run starts; the three lights before it are the intro's countdown (theme `onCountdown`). */
+/** Apex (racing): the start lights and lights out (racingRev 2) or the first throttle (racingRev 1), the engine, kerbs, grass, squeals, the wall, sectors, laps and the finish. */
 export function racingSounds(): GameSounds<RacingState> {
   let prev: RacingState | null = null;
   let started = false;
@@ -1202,7 +1202,12 @@ export function racingSounds(): GameSounds<RacingState> {
       loopCue("racing.kerb", driving && onKerb && state.v > 0, 0.25);
       loopCue("racing.grassLoop", driving && state.off === 1 && state.v > 0, 0.25);
       if (prev && state.tick > prev.tick) {
-        if (!started && running) {
+        // racingRev 2 (T2): a light as each of the five red lights comes on, the horn's slot at lights out;
+        // racingRev 1: the horn on the first throttle, as it always was.
+        const lit = racingLightsOn(state.rev, state.tick);
+        if (lit > racingLightsOn(prev.rev, prev.tick)) sfx("racing.light", "countdown_step", 0.55);
+        const go = racingGoTick(state.rev);
+        if (!started && (go > 0 ? state.tick >= go && prev.tick < go : state.pedal > 0)) {
           started = true;
           sfx("racing.go", "arc_horn", 0.5);
         }

@@ -9,12 +9,12 @@
  *     is about 3 mrad of yaw on the phone's mapping),
  *   - power error: the stroke's speed off by the level's power error (power sets how high the ball arrives),
  *   - curl error: the stroke's bow off by a share of the pointing error,
- *   - wind misread: the allowance for the wind off by a relative error,
+ *   - wind misread (freekickRev 1 only; rev 2 has no wind): the allowance for the wind off by a relative error,
  *   - slips: a botched stroke (a big error on one of the three).
  * The kick is taken after a think time (shorter for better players), never after the kick's deadline. The perfect
  * level plays the oracle's run. The bot never looks at the score.
  */
-import { FK_AIM, FREEKICK_AIM_MAX, FREEKICK_CURL_MAX, FREEKICK_POWER_MAX, fkSeedPlan, type FreekickState } from "../../../src/lib/arcade/freekick";
+import { FK_AIM, FREEKICK_AIM_MAX, FREEKICK_CURL_MAX, FREEKICK_POWER_MAX, FREEKICK_REV_STD, fkSeedPlan, type FreekickState } from "../../../src/lib/arcade/freekick";
 import { fkPlanKick, oracleShots, playShots, type FkPlans, type FkShot } from "../../freekick-oracle";
 import type { SkillLevel } from "../human";
 import type { SkillBot } from "../bot";
@@ -26,23 +26,25 @@ const WIND_READ: Record<SkillLevel, number> = { weak: 0.6, average: 0.4, good: 0
 /** Yaw (mrad) the wind's push needs per wind point (about 0.1 m at 22 m). */
 const WIND_MRAD = 5;
 
-const planCache = new Map<number, FkPlans[]>();
-/** Both plans for every kick of a seed (cached: the levels share them). */
-export function freekickPlans(seed: number): FkPlans[] {
-  let plans = planCache.get(seed);
+const planCache = new Map<string, FkPlans[]>();
+/** Both plans for every kick of a seed on a revision (cached: the levels share them). */
+export function freekickPlans(seed: number, rev: number = FREEKICK_REV_STD): FkPlans[] {
+  const key = `${rev}:${seed}`;
+  let plans = planCache.get(key);
   if (!plans) {
-    plans = fkSeedPlan(seed).kicks.map((k) => fkPlanKick(k, false));
+    plans = fkSeedPlan(seed, rev).kicks.map((k) => fkPlanKick(k, false));
     if (planCache.size > 200) planCache.clear();
-    planCache.set(seed, plans);
+    planCache.set(key, plans);
   }
   return plans;
 }
 
 export const bot: SkillBot = (ctx) => {
   const h = ctx.human;
-  if (h.level === "perfect") return { events: playShots(ctx.seed, oracleShots(ctx.seed)).events };
-  const plans = freekickPlans(ctx.seed);
-  const kicks = fkSeedPlan(ctx.seed).kicks;
+  const rev = ctx.rev ?? FREEKICK_REV_STD;
+  if (h.level === "perfect") return { events: playShots(ctx.seed, oracleShots(ctx.seed, rev), [], rev).events };
+  const plans = freekickPlans(ctx.seed, rev);
+  const kicks = fkSeedPlan(ctx.seed, rev).kicks;
   const shots: (FkShot | null)[] = [];
   const delays: number[] = [];
   kicks.forEach((k, i) => {
@@ -65,15 +67,16 @@ export const bot: SkillBot = (ctx) => {
     });
     delays.push(Math.min(200, h.thinkTicks(1800)));
   });
-  const run = playShots(ctx.seed, shots, delays);
+  const run = playShots(ctx.seed, shots, delays, rev);
   return { events: run.events };
 };
 
 /** Random strokes through the ball (a check on the floor). */
 export const randomBot: SkillBot = (ctx) => {
   const h = ctx.human;
-  const shots = fkSeedPlan(ctx.seed).kicks.map(() => ({ a: h.int(-200, 200), b: h.int(-100, 100), c: h.int(0, 1000) }));
-  return { events: playShots(ctx.seed, shots).events };
+  const rev = ctx.rev ?? FREEKICK_REV_STD;
+  const shots = fkSeedPlan(ctx.seed, rev).kicks.map(() => ({ a: h.int(-200, 200), b: h.int(-100, 100), c: h.int(0, 1000) }));
+  return { events: playShots(ctx.seed, shots, [], rev).events };
 };
 
 export type { FreekickState };

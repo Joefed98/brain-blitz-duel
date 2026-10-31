@@ -8,8 +8,7 @@ budget (plus 150 ms) and every loop file is a `loop: true` slot.
 
 Moments that already played a shared sound are in [arcade.md](arcade.md) (the game's own file now plays in place of the
 shared one); the observers are in `src/lib/fx/gameSounds.ts`. The moments below had no sound before: each plays its own
-file (through `effectCue` / `loopCue` in the observer, `liveCue` in FreeCell's stage, or the theme's `onCountdown` for
-Racing's start lights) and stays silent without it. Loops are faded in over 500 ms and out when they stop or the run ends.
+file (through `effectCue` / `loopCue` in the observer, `liveCue` in FreeCell's stage) and stays silent without it. Loops are faded in over 500 ms and out when they stop or the run ends.
 Each game's music bed is `music_<gameId>` ([music.md](music.md)), started with the run and looped until the buzzer.
 
 How the files were made: leading silence cut to under 3 ms (quiet pre-roll more than 24 dB under the peak removed, a 3 ms
@@ -53,7 +52,6 @@ than 2 dB over the library's median loudest 100 ms (-13.8 dBFS), music to -18 LU
 | `freekick.whistle` | Free Kick | The referee's whistle before each kick | `freekick_whistle.mp3` | 10 | 683 ms |
 | `freekick.roar` | Free Kick | A goal | `sports_crowd_roar.mp3` | 0–10 | 3477 ms |
 | `freekick.groan` | Free Kick | A save, or a kick off the woodwork and wide | `sports_crowd_groan.mp3` | 0–8 | 1995 ms |
-| `racing.light` | Racing | Each of the intro's 3-2-1 (the start lights; theme `onCountdown`, in place of `countdown_step`) | `racing_light.mp3` | 3 | 155 ms |
 | `racing.idle` | Racing | On the grid until the car first moves (0.3) | `racing_idle_loop.mp3` | loop | loop |
 | `racing.drive` | Racing | While driving (0.3), pitched by speed: 0.7× at rest to 1.5× flat out | `racing_drive_loop.mp3` | loop | loop |
 | `racing.squeal` | Racing | Cornering at 90 % or more of the corner's balance speed (at most one per 1.5 s) | `racing_squeal.mp3` | 5–20 | 1197 ms |

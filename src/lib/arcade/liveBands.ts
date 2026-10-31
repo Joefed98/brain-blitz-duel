@@ -38,9 +38,9 @@ import { SWING_REV_REWORK, SWING_REV_STRICT, SWING_V15_BAND_CURVE } from "./swin
 import { BULLSEYE_REV_STD, BULLSEYE_REV_STRICT, BULLSEYE_STD_SPEC, BULLSEYE_V9_BAND_CURVE } from "./bullseye";
 import { PIN_REV_STD, PIN_STD_SPEC, PIN_V6_BAND_CURVE } from "./pinball4";
 import { PIN_REV_STRICT } from "./pinball";
-import { HOMERUN_REV_STD, HOMERUN_STD_SPEC, HOMERUN_V1_BAND_CURVE } from "./homerun";
-import { FREEKICK_REV_STD, FREEKICK_STD_SPEC, FREEKICK_V1_BAND_CURVE } from "./freekick";
-import { RACING_REV_STD, RACING_STD_SPEC, RACING_V1_BAND_CURVE } from "./racing";
+import { HOMERUN_REV_DEALT, HOMERUN_STD_SPEC_DEALT, HOMERUN_V2_BAND_CURVE } from "./homerun";
+import { FREEKICK_REV_DEALT, FREEKICK_V2_STD_SPEC, FREEKICK_V2_BAND_CURVE } from "./freekick";
+import { RACING_REV_DEALT, RACING_V2_BAND_CURVE, RACING_V2_STD_SPEC } from "./racing";
 import { FC_REV, FC_STD_SPEC, FC_V1_BAND_CURVE } from "./cards/freecell";
 import { TP_REV, TP_STD_SPEC, TP_V1_BAND_CURVE } from "./cards/tripeaks";
 import { PS_REV, PS_STD_SPEC, PS_V2_BAND_CURVE } from "./cards/pokerSquares";
@@ -127,9 +127,9 @@ export const LIVE_BANDS = {
   minesweeper: { field: "minesRev", rev: MINES_REV_STD, curve: MINES_V1_BAND_CURVE, std: MINES_STD_SPEC, born: true },
   mahjong: { field: "mahjongRev", rev: MAHJONG_REV_DEALT, curve: MAHJONG_V1_BAND_CURVE, std: MAHJONG_STD_SPEC, born: true },
   // The Sports group (30 Oct 2026), born on the arcade scoring standard (rev 1; no earlier band revision).
-  homerun: { field: "homerunRev", rev: HOMERUN_REV_STD, curve: HOMERUN_V1_BAND_CURVE, std: HOMERUN_STD_SPEC, born: true },
-  freekick: { field: "freekickRev", rev: FREEKICK_REV_STD, curve: FREEKICK_V1_BAND_CURVE, std: FREEKICK_STD_SPEC, born: true },
-  racing: { field: "racingRev", rev: RACING_REV_STD, curve: RACING_V1_BAND_CURVE, std: RACING_STD_SPEC, born: true },
+  homerun: { field: "homerunRev", rev: HOMERUN_REV_DEALT, curve: HOMERUN_V2_BAND_CURVE, std: HOMERUN_STD_SPEC_DEALT, born: true },
+  freekick: { field: "freekickRev", rev: FREEKICK_REV_DEALT, curve: FREEKICK_V2_BAND_CURVE, std: FREEKICK_V2_STD_SPEC, born: true },
+  racing: { field: "racingRev", rev: RACING_REV_DEALT, curve: RACING_V2_BAND_CURVE, std: RACING_V2_STD_SPEC, born: true },
   // Cards & Board (30 Oct 2026): born on the arcade scoring standard at revision 1.
   freecell: { field: "freecellRev", rev: FC_REV, curve: FC_V1_BAND_CURVE, std: FC_STD_SPEC, born: true },
   tripeaks: { field: "tripeaksRev", rev: TP_REV, curve: TP_V1_BAND_CURVE, std: TP_STD_SPEC, born: true },

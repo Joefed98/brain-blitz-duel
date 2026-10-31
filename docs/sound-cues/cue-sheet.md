@@ -382,6 +382,7 @@ Grouped by game or screen. These are the cues still missing a sound.
 | Shikaku | logic | yes | music_logic_1 (shared) | `music_logic_shikaku` |
 | Tents and Trees | logic | yes | music_logic_1 (shared) | `music_logic_tents` |
 | Trail | logic | yes | music_logic_3 (shared) | `music_logic_trail` |
+| Apex | arcade | yes | music_racing | `music_racing` |
 | Ball Tracker | arcade | yes | music_balltrack | `music_balltrack` |
 | Bastion | arcade | practice only | **none** | `music_bastion` |
 | Breaker | arcade | yes | music_breaker | `music_breaker` |
@@ -392,12 +393,11 @@ Grouped by game or screen. These are the cues still missing a sound.
 | Five Hands | arcade | yes | music_fivehands | `music_fivehands` |
 | Flightpath | arcade | yes | music_bullseye | `music_bullseye` |
 | Free Cell | arcade | yes | music_freecell | `music_freecell` |
-| Free Kick | arcade | yes | music_freekick | `music_freekick` |
 | Full House | arcade | yes | music_pokersquares | `music_pokersquares` |
 | Gemstone | arcade | yes | music_matchup | `music_matchup` |
 | Grappler | arcade | yes | music_swing | `music_swing` |
 | High Rise | arcade | yes | music_skyline | `music_skyline` |
-| Home Run Derby | arcade | yes | music_homerun | `music_homerun` |
+| Home Run | arcade | yes | music_homerun | `music_homerun` |
 | Hot Floor | arcade | practice only | **none** | `music_hotfloor` |
 | Hover | arcade | yes | music_hover | `music_hover` |
 | Jaywalk | arcade | yes | music_cross | `music_cross` |
@@ -408,7 +408,6 @@ Grouped by game or screen. These are the cues still missing a sound.
 | Minigolf | arcade | yes | music_minigolf | `music_minigolf` |
 | Orbit | arcade | yes | music_orbit | `music_orbit` |
 | Pinball | arcade | yes | music_pinball | `music_pinball` |
-| Racing | arcade | yes | music_racing | `music_racing` |
 | Rainbow Bridge | arcade | yes | music_inkbridge | `music_inkbridge` |
 | Rally | arcade | yes | music_rally | `music_rally` |
 | Ricochet | arcade | practice only | **none** | `music_ricochet` |
@@ -423,6 +422,7 @@ Grouped by game or screen. These are the cues still missing a sound.
 | Swish | arcade | yes | music_bintoss | `music_bintoss` |
 | Tempo | arcade | yes | music_beat | `music_beat` |
 | Tilt | arcade | yes | music_tilt | `music_tilt` |
+| Top Bins | arcade | yes | music_freekick | `music_freekick` |
 | Wavefront | arcade | yes | music_wavefront | `music_wavefront` |
 
 ## Recorded cues
@@ -1161,6 +1161,25 @@ Grouped by game or screen.
 | `trail.solve` | the trail is complete [number.md] |  | 0–1 | recorded sound | `trail.solve` | 1150 | success sting | `trail.solve` |
 | `music.trail` | Trail round bed: music_logic_3 (logic bed shared with other games) |  | loop | recorded sound | `music_logic_3` (shared) | 60000 | music | `music_logic_trail` |
 
+### Apex
+
+| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
+|---|---|---|---|---|---|---|---|---|
+| `racing.light` | Apex: A red start light comes on (racingRev 2; five a race) [arcade.md] |  | 5 | recorded sound | `racing.light` | 155 | game event | `racing.light` |
+| `racing.go` | Apex: The race starts (racingRev 2: lights out; racingRev 1: the first throttle) [arcade.md] |  | 1 | recorded sound | `racing.go` | 300 | game event | `racing.go` |
+| `racing.lap` | Racing: A lap is completed [arcade.md] |  | 1–2 | recorded sound | `racing.lap` | 480 | game event | `racing.lap` |
+| `racing.sector` | Racing: A clean sector [arcade.md] |  | 0–8 | recorded sound | `arc_retro_coin` (shared) | 200 | game event | `racing.sector` |
+| `racing.wall` | Racing: The car hits the tyre wall [arcade.md] |  | 0–10 | recorded sound | `racing.wall` | 200 | game event | `racing.wall` |
+| `racing.grass` | Racing: The car runs onto the grass or gravel [arcade.md] |  | 0–20 | recorded sound | `arc_bounce` (shared) | 150 | game event | `racing.grass` |
+| `racing.finish` | Racing: The finish line after lap 2 [arcade.md] |  | 0–1 | recorded sound | `racing.finish` | 480 | success sting | `racing.finish` |
+| `racing.idle` | Racing: On the grid until the car first moves (0.3) [batch6-sports-cards.md] |  | loop | recorded sound | `racing.idle` | loop | ambience | `racing.idle` |
+| `racing.drive` | Racing: While driving (0.3), pitched by speed: 0.7× at rest to 1.5× flat out [batch6-sports-cards.md] |  | loop | recorded sound | `racing.drive` | loop | ambience | `racing.drive` |
+| `racing.squeal` | Racing: Cornering at 90 % or more of the corner's balance speed (at most one per 1.5 s) [batch6-sports-cards.md] |  | 5–20 | recorded sound | `racing.squeal` | 1197 | game event | `racing.squeal` |
+| `racing.kerb` | Racing: While a wheel is on the kerb (0.25) [batch6-sports-cards.md] |  | loop | recorded sound | `racing.kerb` | loop | ambience | `racing.kerb` |
+| `racing.grassLoop` | Racing: While off on the grass or gravel (0.25; with its file racing.grass is not played) [batch6-sports-cards.md] |  | loop | recorded sound | `racing.grassLoop` | loop | ambience | `racing.grassLoop` |
+| `racing.roar` | Racing: The finish line after lap 2 [batch6-sports-cards.md] |  | 0–1 | recorded sound | `racing.roar` | 3477 | game event | `racing.roar` |
+| `music.racing` | Racing: music_racing |  | loop | recorded sound | `music_racing` | 56000 | music | `music_racing` |
+
 ### Ball Tracker
 
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
@@ -1297,23 +1316,6 @@ Grouped by game or screen.
 | `freecell.shuffle` | FreeCell: The run starts [batch6-sports-cards.md] |  | 1 | recorded sound | `freecell.shuffle` | 1093 | game event | `freecell.shuffle` |
 | `music.freecell` | FreeCell: music_freecell |  | loop | recorded sound | `music_freecell` | 47400 | music | `music_freecell` |
 
-### Free Kick
-
-| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
-|---|---|---|---|---|---|---|---|---|
-| `freekick.kick` | Free Kick: The ball is struck [arcade.md] |  | 10 | recorded sound | `freekick.kick` | 150 | game event | `freekick.kick` |
-| `freekick.post` | Free Kick: The ball hits a post or the bar [arcade.md] |  | 0–5 | recorded sound | `freekick.post` | 200 | game event | `freekick.post` |
-| `freekick.save` | Free Kick: The keeper saves [arcade.md] |  | 0–10 | recorded sound | `freekick.save` | 200 | game event | `freekick.save` |
-| `freekick.goal` | Free Kick: A goal (its file is the net; with it, freekick.net is not played) [arcade.md] |  | 0–10 | recorded sound | `freekick.goal` | 480 | game event | `freekick.goal` |
-| `freekick.target` | Free Kick: A target hit [arcade.md] |  | 0–4 | recorded sound | `freekick.target` | 480 | game event | `freekick.target` |
-| `freekick.net` | Free Kick: The ball hits the net [arcade.md] |  | 0–10 | recorded sound | `arc_bounce` (shared) | 200 | game event | `freekick.net` |
-| `freekick.wall` | Free Kick: The wall blocks the kick [arcade.md] |  | 0–10 | recorded sound | `freekick.wall` | 300 | game event | `freekick.wall` |
-| `freekick.crowd` | Free Kick: While the run is live (0.26) [batch6-sports-cards.md] |  | loop | recorded sound | `freekick.crowd` | loop | ambience | `freekick.crowd` |
-| `freekick.whistle` | Free Kick: The referee's whistle before each kick [batch6-sports-cards.md] |  | 10 | recorded sound | `freekick.whistle` | 683 | game event | `freekick.whistle` |
-| `freekick.roar` | Free Kick: A goal [batch6-sports-cards.md] |  | 0–10 | recorded sound | `freekick.roar` | 3477 | game event | `freekick.roar` |
-| `freekick.groan` | Free Kick: A save, or a kick off the woodwork and wide [batch6-sports-cards.md] |  | 0–8 | recorded sound | `freekick.groan` | 1995 | game event | `freekick.groan` |
-| `music.freekick` | Free Kick: music_freekick |  | loop | recorded sound | `music_freekick` | 53700 | music | `music_freekick` |
-
 ### Full House
 
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
@@ -1390,7 +1392,7 @@ Grouped by game or screen.
 | `skyline.miss` | High Rise: A block misses the tower [arcade.md] |  | 0–1 | recorded sound | `arc_crash` (shared) | 200 | fail sting | `skyline.miss` |
 | `music.skyline` | High Rise: music_skyline |  | loop | recorded sound | `music_skyline` | loop | music | `music_skyline` |
 
-### Home Run Derby
+### Home Run
 
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
 |---|---|---|---|---|---|---|---|---|
@@ -1538,25 +1540,6 @@ Grouped by game or screen.
 | `pinball.spinner` | Pinball: The spinner turns [arcade.md] |  | 5–30 | recorded sound | `pinball.spinner` | 50 | game event | `pinball.spinner` |
 | `pinball.flipper` | Pinball: A flipper is raised (each side once per press) [arcade.md] |  | 50–150 | recorded sound | `pinball.flipper` | 50 | UI tap | `pinball.flipper` |
 | `music.pinball` | Pinball (arcade): music_rally (borrowed from Rally) |  | loop | recorded sound | `music_pinball` | 60000 | music | `music_pinball` |
-
-### Racing
-
-| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
-|---|---|---|---|---|---|---|---|---|
-| `racing.go` | Racing: The run starts (lights out) [arcade.md] |  | 1 | recorded sound | `racing.go` | 300 | game event | `racing.go` |
-| `racing.lap` | Racing: A lap is completed [arcade.md] |  | 1–2 | recorded sound | `racing.lap` | 480 | game event | `racing.lap` |
-| `racing.sector` | Racing: A clean sector [arcade.md] |  | 0–8 | recorded sound | `arc_retro_coin` (shared) | 200 | game event | `racing.sector` |
-| `racing.wall` | Racing: The car hits the tyre wall [arcade.md] |  | 0–10 | recorded sound | `racing.wall` | 200 | game event | `racing.wall` |
-| `racing.grass` | Racing: The car runs onto the grass or gravel [arcade.md] |  | 0–20 | recorded sound | `arc_bounce` (shared) | 150 | game event | `racing.grass` |
-| `racing.finish` | Racing: The finish line after lap 2 [arcade.md] |  | 0–1 | recorded sound | `racing.finish` | 480 | success sting | `racing.finish` |
-| `racing.light` | Racing: Each of the intro's 3-2-1 (the start lights; theme onCountdown, in place of countdown_step) [batch6-sports-cards.md] |  | 3 | recorded sound | `racing.light` | 155 | game event | `racing.light` |
-| `racing.idle` | Racing: On the grid until the car first moves (0.3) [batch6-sports-cards.md] |  | loop | recorded sound | `racing.idle` | loop | ambience | `racing.idle` |
-| `racing.drive` | Racing: While driving (0.3), pitched by speed: 0.7× at rest to 1.5× flat out [batch6-sports-cards.md] |  | loop | recorded sound | `racing.drive` | loop | ambience | `racing.drive` |
-| `racing.squeal` | Racing: Cornering at 90 % or more of the corner's balance speed (at most one per 1.5 s) [batch6-sports-cards.md] |  | 5–20 | recorded sound | `racing.squeal` | 1197 | game event | `racing.squeal` |
-| `racing.kerb` | Racing: While a wheel is on the kerb (0.25) [batch6-sports-cards.md] |  | loop | recorded sound | `racing.kerb` | loop | ambience | `racing.kerb` |
-| `racing.grassLoop` | Racing: While off on the grass or gravel (0.25; with its file racing.grass is not played) [batch6-sports-cards.md] |  | loop | recorded sound | `racing.grassLoop` | loop | ambience | `racing.grassLoop` |
-| `racing.roar` | Racing: The finish line after lap 2 [batch6-sports-cards.md] |  | 0–1 | recorded sound | `racing.roar` | 3477 | game event | `racing.roar` |
-| `music.racing` | Racing: music_racing |  | loop | recorded sound | `music_racing` | 56000 | music | `music_racing` |
 
 ### Rainbow Bridge
 
@@ -1726,6 +1709,23 @@ Grouped by game or screen.
 | `tilt.knock` | Tilt: The marble knocks a wall (at most one per 80 ms) [arcade.md] |  | 20–80 | recorded sound | `arc_wood_knock` (shared) | 90 | game event | `tilt.knock` |
 | `music.tilt` | Tilt: music_tilt |  | loop | recorded sound | `music_tilt` | loop | music | `music_tilt` |
 
+### Top Bins
+
+| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
+|---|---|---|---|---|---|---|---|---|
+| `freekick.kick` | Free Kick: The ball is struck [arcade.md] |  | 10 | recorded sound | `freekick.kick` | 150 | game event | `freekick.kick` |
+| `freekick.post` | Free Kick: The ball hits a post or the bar [arcade.md] |  | 0–5 | recorded sound | `freekick.post` | 200 | game event | `freekick.post` |
+| `freekick.save` | Free Kick: The keeper saves [arcade.md] |  | 0–10 | recorded sound | `freekick.save` | 200 | game event | `freekick.save` |
+| `freekick.goal` | Free Kick: A goal (its file is the net; with it, freekick.net is not played) [arcade.md] |  | 0–10 | recorded sound | `freekick.goal` | 480 | game event | `freekick.goal` |
+| `freekick.target` | Free Kick: A target hit [arcade.md] |  | 0–4 | recorded sound | `freekick.target` | 480 | game event | `freekick.target` |
+| `freekick.net` | Free Kick: The ball hits the net [arcade.md] |  | 0–10 | recorded sound | `arc_bounce` (shared) | 200 | game event | `freekick.net` |
+| `freekick.wall` | Free Kick: The wall blocks the kick [arcade.md] |  | 0–10 | recorded sound | `freekick.wall` | 300 | game event | `freekick.wall` |
+| `freekick.crowd` | Free Kick: While the run is live (0.26) [batch6-sports-cards.md] |  | loop | recorded sound | `freekick.crowd` | loop | ambience | `freekick.crowd` |
+| `freekick.whistle` | Free Kick: The referee's whistle before each kick [batch6-sports-cards.md] |  | 10 | recorded sound | `freekick.whistle` | 683 | game event | `freekick.whistle` |
+| `freekick.roar` | Free Kick: A goal [batch6-sports-cards.md] |  | 0–10 | recorded sound | `freekick.roar` | 3477 | game event | `freekick.roar` |
+| `freekick.groan` | Free Kick: A save, or a kick off the woodwork and wide [batch6-sports-cards.md] |  | 0–8 | recorded sound | `freekick.groan` | 1995 | game event | `freekick.groan` |
+| `music.freekick` | Free Kick: music_freekick |  | loop | recorded sound | `music_freekick` | 53700 | music | `music_freekick` |
+
 ### Wavefront
 
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
@@ -1785,11 +1785,11 @@ loops are not measured there). Files in `public/sounds/` are listed once per slo
 | `arc_space_ambience` | effects | `orbit.ambience` | loop |
 | `arc_thruster` | effects | `orbit.launch` | 160 |
 | `arc_lose_life` | effects | `bubble.reefLost`, `burst.lifeLost`, `cross.lifeLost`, `wavefront.lifeLost` | 220 |
-| `arc_bounce` | effects | `freekick.net`, `racing.grass`, `rally.bumperBounce`, `snip.springBounce`, `snip.hook`, `bintoss.missBounce`, `bintoss.wobble` | 80 |
+| `arc_bounce` | effects | `racing.grass`, `rally.bumperBounce`, `snip.springBounce`, `snip.hook`, `bintoss.missBounce`, `bintoss.wobble`, `freekick.net` | 80 |
 | `arc_retro_note` | effects | `hover.gate`, `snake.rockWarn`, `snake.showerAlarm`, `rally.goldHit` | 90 |
 | `arc_retro_pickup` | effects | `breaker.powerUp`, `burst.powerUp`, `wavefront.pierce` | 100 |
 | `arc_retro_blip` | effects | `breaker.relaunch`, `breaker.paddle`, `burst.shot`, `snake.eat`, `rally.hit`, `wavefront.dive` | 50 |
-| `arc_retro_coin` | effects | `breaker.start`, `breaker.fireballLit`, `burst.start`, `burst.freezeCaught`, `skyline.streakDrop`, `hover.start`, `hover.star`, `snake.start`, `racing.sector`, `rally.start`, `beat.start` | 120 |
+| `arc_retro_coin` | effects | `racing.sector`, `breaker.start`, `breaker.fireballLit`, `burst.start`, `burst.freezeCaught`, `skyline.streakDrop`, `hover.start`, `hover.star`, `snake.start`, `rally.start`, `beat.start` | 120 |
 | `arc_retro_explode` | effects | `whack.bomb`, `breaker.ballLost`, `burst.gameOver`, `hover.crash`, `snake.dead`, `rally.dead` | 260 |
 | `arc_retro_hit` | effects | `breaker.brickHit`, `burst.hit`, `snake.rockLand`, `wavefront.armourHit`, `wavefront.bossHit` | 120 |
 | `arc_fair_thud` | effects | `bullseye.thud` | 160 |
@@ -2220,6 +2220,7 @@ loops are not measured there). Files in `public/sounds/` are listed once per slo
 | `freekick.save` | effects | `freekick.save` | 130 |
 | `freekick.goal` | effects | `freekick.goal` | 698 |
 | `freekick.target` | effects | `freekick.target` | 600 |
+| `racing.light` | effects | `racing.light` | 155 |
 | `racing.go` | effects | `racing.go` | 469 |
 | `racing.lap` | effects | `racing.lap` | 800 |
 | `racing.wall` | effects | `racing.wall` | 604 |
@@ -2500,7 +2501,6 @@ loops are not measured there). Files in `public/sounds/` are listed once per slo
 | `freekick.whistle` | effects | `freekick.whistle` | 683 |
 | `freekick.roar` | effects | `freekick.roar` | 3477 |
 | `freekick.groan` | effects | `freekick.groan` | 1995 |
-| `racing.light` | effects | `racing.light` | 155 |
 | `racing.idle` | effects | `racing.idle` | 2341 |
 | `racing.drive` | effects | `racing.drive` | 2419 |
 | `racing.squeal` | effects | `racing.squeal` | 1197 |

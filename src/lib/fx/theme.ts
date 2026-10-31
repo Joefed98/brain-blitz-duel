@@ -183,10 +183,7 @@ export const DEFAULT_SOUNDS: Partial<Record<FxHook, SoundId>> = {
   onReaction: "reaction",
 };
 /** Presentation overrides only. Category is supplied by the authoritative registry. */
-export const GAME_THEME_OVERRIDES: Partial<Record<PuzzleType, Partial<GameTheme>>> = {
-  // Racing (Apex, sound batch 6): the intro's 3-2-1 are the start lights; the slot falls back to countdown_step.
-  racing: { sounds: { onCountdown: "racing.light" } },
-};
+export const GAME_THEME_OVERRIDES: Partial<Record<PuzzleType, Partial<GameTheme>>> = {};
 export function gameTheme(
   type: PuzzleType | undefined,
   category: PuzzleCategory = "arcade",
