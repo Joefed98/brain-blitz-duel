@@ -9,6 +9,7 @@ import {
   curlingStdParts,
   curlShotTeam,
   curlTakeouts,
+  CURLING_REV_V1,
   CURLING_RUN_TICKS,
   CURL_STONE_PTS,
   TEAM_MINE,
@@ -32,9 +33,12 @@ export interface CurlingResult extends SportsResult<CurlingState> {
   perfect: boolean;
 }
 
-/** The single place a Curling score is worked out (curlRev 1; the stamp is for later revisions). */
-export function replayCurlingRun(seed: number, raw: string, _rev?: number | null): CurlingResult {
-  const run = replaySportsRun("curling", curlingGameFor(), curlingCheckpoint, seed, raw);
+/**
+ * The single place a Curling score is worked out, on the stored curlRev (1: every stone from the centre line, sweeping
+ * runs further and curls less; 2: the start along the hog line and side brushing). A round with no stamp is curlRev 1.
+ */
+export function replayCurlingRun(seed: number, raw: string, rev?: number | null): CurlingResult {
+  const run = replaySportsRun("curling", curlingGameFor(rev ?? CURLING_REV_V1), curlingCheckpoint, seed, raw);
   const s = run.state;
   const parts = curlingStdParts(s) ?? [];
   return {

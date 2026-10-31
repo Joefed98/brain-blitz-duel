@@ -27,7 +27,11 @@ export interface PointerPayload {
   a: number;
   b: number;
   c: number;
+<<<<<<< HEAD
   /** The event's fourth field (default 0): Cue Ball poolRev 2's spin code rides here. */
+=======
+  /** The event's fourth payload (discrete games only; 0 when absent, as before). */
+>>>>>>> worktree-agent-a10539e14d92b1142
   d?: number;
 }
 

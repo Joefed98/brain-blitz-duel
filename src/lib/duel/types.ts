@@ -2655,6 +2655,9 @@ export interface CurlingPuzzleData {
   type: "curling";
   /** Places the opponent's stones (a sheet from the proven bank, curlingBank.server.ts): identical for everyone in the room. */
   seed: number;
-  /** curlRev 1: the arcade scoring standard (docs/arcade-standard/curling.md). */
+  /**
+   * curlRev 1: the arcade scoring standard (docs/arcade-standard/curling.md). curlRev 2 (31 Oct 2026, dealt from
+   * curlingBankV2.server.ts): the start along the hog line and side brushing, the same parts.
+   */
   curlRev?: number;
 }
