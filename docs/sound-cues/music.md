@@ -68,14 +68,14 @@ carry; a file in their slot plays under the voice line (voice lines duck music).
 | `music.minigolf` | Minigolf | `music_minigolf` | `music_minigolf` | 52.2 s loop |
 | `music.pool` | Speed Pool | `music_pool` | `music_pool` | 49.1 s loop |
 | `music.curling` | Curling | `music_curling` | `music_curling` | 39.3 s loop |
-| `music.homerun` | Home Run Derby | `music_homerun` | `music_homerun` | 52.0 s loop |
-| `music.freekick` | Free Kick | `music_freekick` | `music_freekick` | 53.7 s loop |
-| `music.racing` | Racing | `music_racing` | `music_racing` | 56.0 s loop |
+| `music.homerun` | Home Run | `music_homerun` | `music_homerun` | 52.0 s loop |
+| `music.freekick` | Top Bins | `music_freekick` | `music_freekick` | 53.7 s loop |
+| `music.racing` | Apex | `music_racing` | `music_racing` | 56.0 s loop |
 | `music.minesweeper` | Minefield | `music_minesweeper` | `music_minesweeper` | 55.9 s loop |
-| `music.freecell` | FreeCell | `music_freecell` | `music_freecell` | 47.4 s loop |
+| `music.freecell` | Free Cell | `music_freecell` | `music_freecell` | 47.4 s loop |
 | `music.mahjong` | Mahjong Solitaire | `music_mahjong` | `music_mahjong` | 48.0 s loop |
-| `music.tripeaks` | TriPeaks | `music_tripeaks` | `music_tripeaks` | 55.7 s loop |
-| `music.pokersquares` | Poker Squares | `music_pokersquares` | `music_pokersquares` | 55.2 s loop |
+| `music.tripeaks` | Summit | `music_tripeaks` | `music_tripeaks` | 55.7 s loop |
+| `music.pokersquares` | Full House | `music_pokersquares` | `music_pokersquares` | 55.2 s loop |
 | `music.fivehands` | Five Hands | `music_fivehands` (Full House's bed, `music_pokersquares.mp3`) | `music_fivehands` | 55.2 s loop |
 
 Every puzzle (Word, Number, Speed, Attention, Pattern, Logic, and the engine games Letterfall,

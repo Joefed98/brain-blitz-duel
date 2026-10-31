@@ -1167,18 +1167,18 @@ Grouped by game or screen.
 |---|---|---|---|---|---|---|---|---|
 | `racing.light` | Apex: A red start light comes on (racingRev 2; five a race) [arcade.md] |  | 5 | recorded sound | `racing.light` | 155 | game event | `racing.light` |
 | `racing.go` | Apex: The race starts (racingRev 2: lights out; racingRev 1: the first throttle) [arcade.md] |  | 1 | recorded sound | `racing.go` | 300 | game event | `racing.go` |
-| `racing.lap` | Racing: A lap is completed [arcade.md] |  | 1–2 | recorded sound | `racing.lap` | 480 | game event | `racing.lap` |
-| `racing.sector` | Racing: A clean sector [arcade.md] |  | 0–8 | recorded sound | `arc_retro_coin` (shared) | 200 | game event | `racing.sector` |
-| `racing.wall` | Racing: The car hits the tyre wall [arcade.md] |  | 0–10 | recorded sound | `racing.wall` | 200 | game event | `racing.wall` |
-| `racing.grass` | Racing: The car runs onto the grass or gravel [arcade.md] |  | 0–20 | recorded sound | `arc_bounce` (shared) | 150 | game event | `racing.grass` |
-| `racing.finish` | Racing: The finish line after lap 2 [arcade.md] |  | 0–1 | recorded sound | `racing.finish` | 480 | success sting | `racing.finish` |
-| `racing.idle` | Racing: On the grid until the car first moves (0.3) [batch6-sports-cards.md] |  | loop | recorded sound | `racing.idle` | loop | ambience | `racing.idle` |
-| `racing.drive` | Racing: While driving (0.3), pitched by speed: 0.7× at rest to 1.5× flat out [batch6-sports-cards.md] |  | loop | recorded sound | `racing.drive` | loop | ambience | `racing.drive` |
-| `racing.squeal` | Racing: Cornering at 90 % or more of the corner's balance speed (at most one per 1.5 s) [batch6-sports-cards.md] |  | 5–20 | recorded sound | `racing.squeal` | 1197 | game event | `racing.squeal` |
-| `racing.kerb` | Racing: While a wheel is on the kerb (0.25) [batch6-sports-cards.md] |  | loop | recorded sound | `racing.kerb` | loop | ambience | `racing.kerb` |
-| `racing.grassLoop` | Racing: While off on the grass or gravel (0.25; with its file racing.grass is not played) [batch6-sports-cards.md] |  | loop | recorded sound | `racing.grassLoop` | loop | ambience | `racing.grassLoop` |
-| `racing.roar` | Racing: The finish line after lap 2 [batch6-sports-cards.md] |  | 0–1 | recorded sound | `racing.roar` | 3477 | game event | `racing.roar` |
-| `music.racing` | Racing: music_racing |  | loop | recorded sound | `music_racing` | 56000 | music | `music_racing` |
+| `racing.lap` | Apex: A lap is completed [arcade.md] |  | 1–2 | recorded sound | `racing.lap` | 480 | game event | `racing.lap` |
+| `racing.sector` | Apex: A clean sector [arcade.md] |  | 0–8 | recorded sound | `arc_retro_coin` (shared) | 200 | game event | `racing.sector` |
+| `racing.wall` | Apex: The car hits the tyre wall [arcade.md] |  | 0–10 | recorded sound | `racing.wall` | 200 | game event | `racing.wall` |
+| `racing.grass` | Apex: The car runs onto the grass or gravel [arcade.md] |  | 0–20 | recorded sound | `arc_bounce` (shared) | 150 | game event | `racing.grass` |
+| `racing.finish` | Apex: The finish line after lap 2 [arcade.md] |  | 0–1 | recorded sound | `racing.finish` | 480 | success sting | `racing.finish` |
+| `racing.idle` | Apex: On the grid until the car first moves (0.3) [batch6-sports-cards.md] |  | loop | recorded sound | `racing.idle` | loop | ambience | `racing.idle` |
+| `racing.drive` | Apex: While driving (0.3), pitched by speed: 0.7× at rest to 1.5× flat out [batch6-sports-cards.md] |  | loop | recorded sound | `racing.drive` | loop | ambience | `racing.drive` |
+| `racing.squeal` | Apex: Cornering at 90 % or more of the corner's balance speed (at most one per 1.5 s) [batch6-sports-cards.md] |  | 5–20 | recorded sound | `racing.squeal` | 1197 | game event | `racing.squeal` |
+| `racing.kerb` | Apex: While a wheel is on the kerb (0.25) [batch6-sports-cards.md] |  | loop | recorded sound | `racing.kerb` | loop | ambience | `racing.kerb` |
+| `racing.grassLoop` | Apex: While off on the grass or gravel (0.25; with its file racing.grass is not played) [batch6-sports-cards.md] |  | loop | recorded sound | `racing.grassLoop` | loop | ambience | `racing.grassLoop` |
+| `racing.roar` | Apex: The finish line after lap 2 [batch6-sports-cards.md] |  | 0–1 | recorded sound | `racing.roar` | 3477 | game event | `racing.roar` |
+| `music.racing` | Apex: music_racing |  | loop | recorded sound | `music_racing` | 56000 | music | `music_racing` |
 
 ### Ball Tracker
 
@@ -1307,26 +1307,26 @@ Grouped by game or screen.
 
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
 |---|---|---|---|---|---|---|---|---|
-| `freecell.place` | FreeCell: A move made (a tap or a drag) [arcade.md] |  | 40–120 | recorded sound | `freecell.place` | 300 | UI tap | `freecell.place` |
-| `freecell.home` | FreeCell: A card goes home (one auto move, or the player's) [arcade.md] |  | 10–52 | recorded sound | `freecell.home` | 406 | game event | `freecell.home` |
-| `freecell.cascade` | FreeCell: Two or more cards go home on their own at once [arcade.md] |  | 2–10 | recorded sound | `freecell.cascade` | 948 | game event | `freecell.cascade` |
-| `freecell.invalid` | FreeCell: A tap that moves nothing [arcade.md] |  | 0–10 | recorded sound | `freecell.invalid` | 434 | game event | `freecell.invalid` |
-| `freecell.win` | FreeCell: Every card home [arcade.md] |  | 0–1 | recorded sound | `freecell.win` | 1362 | game event | `freecell.win` |
-| `freecell.pick` | FreeCell: A card lifted as a drag starts (the stage; at most one per 60 ms) [batch6-sports-cards.md] |  | 10–60 | recorded sound | `freecell.pick` | 334 | game event | `freecell.pick` |
-| `freecell.shuffle` | FreeCell: The run starts [batch6-sports-cards.md] |  | 1 | recorded sound | `freecell.shuffle` | 1093 | game event | `freecell.shuffle` |
-| `music.freecell` | FreeCell: music_freecell |  | loop | recorded sound | `music_freecell` | 47400 | music | `music_freecell` |
+| `freecell.place` | Free Cell: A move made (a tap or a drag) [arcade.md] |  | 40–120 | recorded sound | `freecell.place` | 300 | UI tap | `freecell.place` |
+| `freecell.home` | Free Cell: A card goes home (one auto move, or the player's) [arcade.md] |  | 10–52 | recorded sound | `freecell.home` | 406 | game event | `freecell.home` |
+| `freecell.cascade` | Free Cell: Two or more cards go home on their own at once [arcade.md] |  | 2–10 | recorded sound | `freecell.cascade` | 948 | game event | `freecell.cascade` |
+| `freecell.invalid` | Free Cell: A tap that moves nothing [arcade.md] |  | 0–10 | recorded sound | `freecell.invalid` | 434 | game event | `freecell.invalid` |
+| `freecell.win` | Free Cell: Every card home [arcade.md] |  | 0–1 | recorded sound | `freecell.win` | 1362 | game event | `freecell.win` |
+| `freecell.pick` | Free Cell: A card lifted as a drag starts (the stage; at most one per 60 ms) [batch6-sports-cards.md] |  | 10–60 | recorded sound | `freecell.pick` | 334 | game event | `freecell.pick` |
+| `freecell.shuffle` | Free Cell: The run starts [batch6-sports-cards.md] |  | 1 | recorded sound | `freecell.shuffle` | 1093 | game event | `freecell.shuffle` |
+| `music.freecell` | Free Cell: music_freecell |  | loop | recorded sound | `music_freecell` | 47400 | music | `music_freecell` |
 
 ### Full House
 
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
 |---|---|---|---|---|---|---|---|---|
-| `pokersquares.place` | Poker Squares: A card placed that makes no new hand [arcade.md] |  | 10–25 | recorded sound | `pokersquares.place` | 300 | UI tap | `pokersquares.place` |
-| `pokersquares.hand` | Poker Squares: A card placed makes a pair, two pair or three of a kind on a line [arcade.md] |  | 5–15 | recorded sound | `pokersquares.hand` | 484 | game event | `pokersquares.hand` |
-| `pokersquares.bigHand` | Poker Squares: A card placed makes a straight or better on a line [arcade.md] |  | 0–5 | recorded sound | `pokersquares.bigHand` | 1122 | game event | `pokersquares.bigHand` |
-| `pokersquares.invalid` | Poker Squares: A tap on a filled square [arcade.md] |  | 0–5 | recorded sound | `pokersquares.invalid` | 434 | game event | `pokersquares.invalid` |
-| `pokersquares.shuffle` | Poker Squares: The run starts [batch6-sports-cards.md] |  | 1 | recorded sound | `pokersquares.shuffle` | 1093 | game event | `pokersquares.shuffle` |
-| `pokersquares.final` | Poker Squares: The grid scored (the last card placed, or the buzzer) [batch6-sports-cards.md] |  | 1 | recorded sound | `pokersquares.final` | 983 | game event | `pokersquares.final` |
-| `music.pokersquares` | Poker Squares: music_pokersquares |  | loop | recorded sound | `music_pokersquares` | 55200 | music | `music_pokersquares` |
+| `pokersquares.place` | Full House: A card placed that makes no new hand [arcade.md] |  | 10–25 | recorded sound | `pokersquares.place` | 300 | UI tap | `pokersquares.place` |
+| `pokersquares.hand` | Full House: A card placed makes a pair, two pair or three of a kind on a line [arcade.md] |  | 5–15 | recorded sound | `pokersquares.hand` | 484 | game event | `pokersquares.hand` |
+| `pokersquares.bigHand` | Full House: A card placed makes a straight or better on a line [arcade.md] |  | 0–5 | recorded sound | `pokersquares.bigHand` | 1122 | game event | `pokersquares.bigHand` |
+| `pokersquares.invalid` | Full House: A tap on a filled square [arcade.md] |  | 0–5 | recorded sound | `pokersquares.invalid` | 434 | game event | `pokersquares.invalid` |
+| `pokersquares.shuffle` | Full House: The run starts [batch6-sports-cards.md] |  | 1 | recorded sound | `pokersquares.shuffle` | 1093 | game event | `pokersquares.shuffle` |
+| `pokersquares.final` | Full House: The grid scored (the last card placed, or the buzzer) [batch6-sports-cards.md] |  | 1 | recorded sound | `pokersquares.final` | 983 | game event | `pokersquares.final` |
+| `music.pokersquares` | Full House: music_pokersquares |  | loop | recorded sound | `music_pokersquares` | 55200 | music | `music_pokersquares` |
 
 ### Gemstone
 
@@ -1396,18 +1396,18 @@ Grouped by game or screen.
 
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
 |---|---|---|---|---|---|---|---|---|
-| `homerun.swing` | Home Run Derby: A swing starts [arcade.md] |  | 10 | recorded sound | `arc_hover_tap` (shared) | 120 | game event | `homerun.swing` |
-| `homerun.crack` | Home Run Derby: Bat meets ball (a fair ball or a home run) [arcade.md] |  | 5–10 | recorded sound | `homerun.crack` | 200 | game event | `homerun.crack` |
-| `homerun.homer` | Home Run Derby: A home run [arcade.md] |  | 0–10 | recorded sound | `homerun.homer` | 480 | game event | `homerun.homer` |
-| `homerun.sign` | Home Run Derby: A sign beyond the fence is struck [arcade.md] |  | 0–4 | recorded sound | `homerun.sign` | 480 | game event | `homerun.sign` |
-| `homerun.foul` | Home Run Derby: A foul ball, or weak contact (a fair ball under 400 per mille, once the slot has its file) [arcade.md] |  | 0–5 | recorded sound | `homerun.foul` | 150 | game event | `homerun.foul` |
-| `homerun.strike` | Home Run Derby: The ball in the catcher's mitt: a swing and a miss, or a pitch taken [arcade.md] |  | 0–10 | recorded sound | `homerun.strike` | 150 | game event | `homerun.strike` |
-| `homerun.crowd` | Home Run Derby: While the run is live (0.26) [batch6-sports-cards.md] |  | loop | recorded sound | `homerun.crowd` | loop | ambience | `homerun.crowd` |
-| `homerun.pitch` | Home Run Derby: The pitcher releases the ball [batch6-sports-cards.md] |  | 10 | recorded sound | `homerun.pitch` | 259 | game event | `homerun.pitch` |
-| `homerun.whiff` | Home Run Derby: A swing and a miss (with homerun.strike, the mitt) [batch6-sports-cards.md] |  | 0–10 | recorded sound | `homerun.whiff` | 400 | game event | `homerun.whiff` |
-| `homerun.roar` | Home Run Derby: A home run [batch6-sports-cards.md] |  | 0–10 | recorded sound | `homerun.roar` | 3477 | game event | `homerun.roar` |
-| `homerun.groan` | Home Run Derby: A fair ball within 30 ft of the fence [batch6-sports-cards.md] |  | 0–5 | recorded sound | `homerun.groan` | 1995 | game event | `homerun.groan` |
-| `music.homerun` | Home Run Derby: music_homerun |  | loop | recorded sound | `music_homerun` | 52000 | music | `music_homerun` |
+| `homerun.swing` | Home Run: A swing starts [arcade.md] |  | 10 | recorded sound | `arc_hover_tap` (shared) | 120 | game event | `homerun.swing` |
+| `homerun.crack` | Home Run: Bat meets ball (a fair ball or a home run) [arcade.md] |  | 5–10 | recorded sound | `homerun.crack` | 200 | game event | `homerun.crack` |
+| `homerun.homer` | Home Run: A home run [arcade.md] |  | 0–10 | recorded sound | `homerun.homer` | 480 | game event | `homerun.homer` |
+| `homerun.sign` | Home Run: A sign beyond the fence is struck [arcade.md] |  | 0–4 | recorded sound | `homerun.sign` | 480 | game event | `homerun.sign` |
+| `homerun.foul` | Home Run: A foul ball, or weak contact (a fair ball under 400 per mille, once the slot has its file) [arcade.md] |  | 0–5 | recorded sound | `homerun.foul` | 150 | game event | `homerun.foul` |
+| `homerun.strike` | Home Run: The ball in the catcher's mitt: a swing and a miss, or a pitch taken [arcade.md] |  | 0–10 | recorded sound | `homerun.strike` | 150 | game event | `homerun.strike` |
+| `homerun.crowd` | Home Run: While the run is live (0.26) [batch6-sports-cards.md] |  | loop | recorded sound | `homerun.crowd` | loop | ambience | `homerun.crowd` |
+| `homerun.pitch` | Home Run: The pitcher releases the ball [batch6-sports-cards.md] |  | 10 | recorded sound | `homerun.pitch` | 259 | game event | `homerun.pitch` |
+| `homerun.whiff` | Home Run: A swing and a miss (with homerun.strike, the mitt) [batch6-sports-cards.md] |  | 0–10 | recorded sound | `homerun.whiff` | 400 | game event | `homerun.whiff` |
+| `homerun.roar` | Home Run: A home run [batch6-sports-cards.md] |  | 0–10 | recorded sound | `homerun.roar` | 3477 | game event | `homerun.roar` |
+| `homerun.groan` | Home Run: A fair ball within 30 ft of the fence [batch6-sports-cards.md] |  | 0–5 | recorded sound | `homerun.groan` | 1995 | game event | `homerun.groan` |
+| `music.homerun` | Home Run: music_homerun |  | loop | recorded sound | `music_homerun` | 52000 | music | `music_homerun` |
 
 ### Hover
 
@@ -1653,13 +1653,13 @@ Grouped by game or screen.
 
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
 |---|---|---|---|---|---|---|---|---|
-| `tripeaks.run` | TriPeaks: A card played to the discard; with its own file a semitone higher for each card of the run (an octave at most) [arcade.md] |  | 20–40 | recorded sound | `tripeaks.run` | 329 | game event | `tripeaks.run` |
-| `tripeaks.deal` | TriPeaks: The stock's next card turned [arcade.md] |  | 5–24 | recorded sound | `tripeaks.deal` | 220 | game event | `tripeaks.deal` |
-| `tripeaks.peak` | TriPeaks: A peak cleared [arcade.md] |  | 0–3 | recorded sound | `tripeaks.peak` | 998 | game event | `tripeaks.peak` |
-| `tripeaks.invalid` | TriPeaks: A tap on a card that can't be played [arcade.md] |  | 0–10 | recorded sound | `tripeaks.invalid` | 434 | game event | `tripeaks.invalid` |
-| `tripeaks.clear` | TriPeaks: Every peak card cleared [arcade.md] |  | 0–1 | recorded sound | `tripeaks.clear` | 1666 | game event | `tripeaks.clear` |
-| `tripeaks.shuffle` | TriPeaks: The run starts [batch6-sports-cards.md] |  | 1 | recorded sound | `tripeaks.shuffle` | 1093 | game event | `tripeaks.shuffle` |
-| `music.tripeaks` | TriPeaks: music_tripeaks |  | loop | recorded sound | `music_tripeaks` | 55700 | music | `music_tripeaks` |
+| `tripeaks.run` | Summit: A card played to the discard; with its own file a semitone higher for each card of the run (an octave at most) [arcade.md] |  | 20–40 | recorded sound | `tripeaks.run` | 329 | game event | `tripeaks.run` |
+| `tripeaks.deal` | Summit: The stock's next card turned [arcade.md] |  | 5–24 | recorded sound | `tripeaks.deal` | 220 | game event | `tripeaks.deal` |
+| `tripeaks.peak` | Summit: A peak cleared [arcade.md] |  | 0–3 | recorded sound | `tripeaks.peak` | 998 | game event | `tripeaks.peak` |
+| `tripeaks.invalid` | Summit: A tap on a card that can't be played [arcade.md] |  | 0–10 | recorded sound | `tripeaks.invalid` | 434 | game event | `tripeaks.invalid` |
+| `tripeaks.clear` | Summit: Every peak card cleared [arcade.md] |  | 0–1 | recorded sound | `tripeaks.clear` | 1666 | game event | `tripeaks.clear` |
+| `tripeaks.shuffle` | Summit: The run starts [batch6-sports-cards.md] |  | 1 | recorded sound | `tripeaks.shuffle` | 1093 | game event | `tripeaks.shuffle` |
+| `music.tripeaks` | Summit: music_tripeaks |  | loop | recorded sound | `music_tripeaks` | 55700 | music | `music_tripeaks` |
 
 ### Swish
 
@@ -1713,18 +1713,18 @@ Grouped by game or screen.
 
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
 |---|---|---|---|---|---|---|---|---|
-| `freekick.kick` | Free Kick: The ball is struck [arcade.md] |  | 10 | recorded sound | `freekick.kick` | 150 | game event | `freekick.kick` |
-| `freekick.post` | Free Kick: The ball hits a post or the bar [arcade.md] |  | 0–5 | recorded sound | `freekick.post` | 200 | game event | `freekick.post` |
-| `freekick.save` | Free Kick: The keeper saves [arcade.md] |  | 0–10 | recorded sound | `freekick.save` | 200 | game event | `freekick.save` |
-| `freekick.goal` | Free Kick: A goal (its file is the net; with it, freekick.net is not played) [arcade.md] |  | 0–10 | recorded sound | `freekick.goal` | 480 | game event | `freekick.goal` |
-| `freekick.target` | Free Kick: A target hit [arcade.md] |  | 0–4 | recorded sound | `freekick.target` | 480 | game event | `freekick.target` |
-| `freekick.net` | Free Kick: The ball hits the net [arcade.md] |  | 0–10 | recorded sound | `arc_bounce` (shared) | 200 | game event | `freekick.net` |
-| `freekick.wall` | Free Kick: The wall blocks the kick [arcade.md] |  | 0–10 | recorded sound | `freekick.wall` | 300 | game event | `freekick.wall` |
-| `freekick.crowd` | Free Kick: While the run is live (0.26) [batch6-sports-cards.md] |  | loop | recorded sound | `freekick.crowd` | loop | ambience | `freekick.crowd` |
-| `freekick.whistle` | Free Kick: The referee's whistle before each kick [batch6-sports-cards.md] |  | 10 | recorded sound | `freekick.whistle` | 683 | game event | `freekick.whistle` |
-| `freekick.roar` | Free Kick: A goal [batch6-sports-cards.md] |  | 0–10 | recorded sound | `freekick.roar` | 3477 | game event | `freekick.roar` |
-| `freekick.groan` | Free Kick: A save, or a kick off the woodwork and wide [batch6-sports-cards.md] |  | 0–8 | recorded sound | `freekick.groan` | 1995 | game event | `freekick.groan` |
-| `music.freekick` | Free Kick: music_freekick |  | loop | recorded sound | `music_freekick` | 53700 | music | `music_freekick` |
+| `freekick.kick` | Top Bins: The ball is struck [arcade.md] |  | 10 | recorded sound | `freekick.kick` | 150 | game event | `freekick.kick` |
+| `freekick.post` | Top Bins: The ball hits a post or the bar [arcade.md] |  | 0–5 | recorded sound | `freekick.post` | 200 | game event | `freekick.post` |
+| `freekick.save` | Top Bins: The keeper saves [arcade.md] |  | 0–10 | recorded sound | `freekick.save` | 200 | game event | `freekick.save` |
+| `freekick.goal` | Top Bins: A goal (its file is the net; with it, freekick.net is not played) [arcade.md] |  | 0–10 | recorded sound | `freekick.goal` | 480 | game event | `freekick.goal` |
+| `freekick.target` | Top Bins: A target hit [arcade.md] |  | 0–4 | recorded sound | `freekick.target` | 480 | game event | `freekick.target` |
+| `freekick.net` | Top Bins: The ball hits the net [arcade.md] |  | 0–10 | recorded sound | `arc_bounce` (shared) | 200 | game event | `freekick.net` |
+| `freekick.wall` | Top Bins: The wall blocks the kick [arcade.md] |  | 0–10 | recorded sound | `freekick.wall` | 300 | game event | `freekick.wall` |
+| `freekick.crowd` | Top Bins: While the run is live (0.26) [batch6-sports-cards.md] |  | loop | recorded sound | `freekick.crowd` | loop | ambience | `freekick.crowd` |
+| `freekick.whistle` | Top Bins: The referee's whistle before each kick [batch6-sports-cards.md] |  | 10 | recorded sound | `freekick.whistle` | 683 | game event | `freekick.whistle` |
+| `freekick.roar` | Top Bins: A goal [batch6-sports-cards.md] |  | 0–10 | recorded sound | `freekick.roar` | 3477 | game event | `freekick.roar` |
+| `freekick.groan` | Top Bins: A save, or a kick off the woodwork and wide [batch6-sports-cards.md] |  | 0–8 | recorded sound | `freekick.groan` | 1995 | game event | `freekick.groan` |
+| `music.freekick` | Top Bins: music_freekick |  | loop | recorded sound | `music_freekick` | 53700 | music | `music_freekick` |
 
 ### Wavefront
 

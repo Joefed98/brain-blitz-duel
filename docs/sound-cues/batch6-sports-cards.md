@@ -1,7 +1,7 @@
 # Sound cues: sound batch 6, Sports and Cards & Board (31 Oct 2026)
 
-Joe's ElevenLabs recordings for the eleven new arcade games (Minigolf, Speed Pool, Curling, Home Run Derby, Free Kick,
-Racing, Minefield, FreeCell, Mahjong Solitaire, TriPeaks, Poker Squares), trimmed, looped and levelled into
+Joe's ElevenLabs recordings for the eleven new arcade games (Minigolf, Speed Pool, Curling, Home Run, Top Bins,
+Apex, Minefield, Free Cell, Mahjong Solitaire, Summit, Full House, and Five Hands on Full House's sounds), trimmed, looped and levelled into
 `public/sounds/<slot>.mp3` ([batch6-mapping.csv](batch6-mapping.csv): each file, its game, event, length budget, loop
 flag and the cues that play it). sound-batch6-check proves every slot has its file, every file is within its length
 budget (plus 150 ms) and every loop file is a `loop: true` slot.
@@ -43,28 +43,28 @@ than 2 dB over the library's median loudest 100 ms (-13.8 dBFS), music to -18 LU
 | `curling.board` | Curling | A moving stone goes out over a side or back board | `curling_board.mp3` | 0–5 | 400 ms |
 | `curling.applause` | Curling | A thrown stone settles in the 4-foot or knocks a stone out | `curling_applause.mp3` | 0–8 | 1995 ms |
 | `curling.shot` | Curling | A thrown stone settles and takes shot (nearest the button) | `curling_shot.mp3` | 0–8 | 998 ms |
-| `homerun.crowd` | Home Run Derby | While the run is live (0.26) | `sports_crowd_loop.mp3` | loop | loop |
-| `homerun.pitch` | Home Run Derby | The pitcher releases the ball | `homerun_pitch.mp3` | 10 | 259 ms |
-| `homerun.whiff` | Home Run Derby | A swing and a miss (with `homerun.strike`, the mitt) | `homerun_whiff.mp3` | 0–10 | 400 ms |
-| `homerun.roar` | Home Run Derby | A home run | `sports_crowd_roar.mp3` | 0–10 | 3477 ms |
-| `homerun.groan` | Home Run Derby | A fair ball within 30 ft of the fence | `sports_crowd_groan.mp3` | 0–5 | 1995 ms |
-| `freekick.crowd` | Free Kick | While the run is live (0.26) | `sports_crowd_loop.mp3` | loop | loop |
-| `freekick.whistle` | Free Kick | The referee's whistle before each kick | `freekick_whistle.mp3` | 10 | 683 ms |
-| `freekick.roar` | Free Kick | A goal | `sports_crowd_roar.mp3` | 0–10 | 3477 ms |
-| `freekick.groan` | Free Kick | A save, or a kick off the woodwork and wide | `sports_crowd_groan.mp3` | 0–8 | 1995 ms |
-| `racing.idle` | Racing | On the grid until the car first moves (0.3) | `racing_idle_loop.mp3` | loop | loop |
-| `racing.drive` | Racing | While driving (0.3), pitched by speed: 0.7× at rest to 1.5× flat out | `racing_drive_loop.mp3` | loop | loop |
-| `racing.squeal` | Racing | Cornering at 90 % or more of the corner's balance speed (at most one per 1.5 s) | `racing_squeal.mp3` | 5–20 | 1197 ms |
-| `racing.kerb` | Racing | While a wheel is on the kerb (0.25) | `racing_kerb_loop.mp3` | loop | loop |
-| `racing.grassLoop` | Racing | While off on the grass or gravel (0.25; with its file `racing.grass` is not played) | `racing_grass_loop.mp3` | loop | loop |
-| `racing.roar` | Racing | The finish line after lap 2 | `sports_crowd_roar.mp3` | 0–1 | 3477 ms |
+| `homerun.crowd` | Home Run | While the run is live (0.26) | `sports_crowd_loop.mp3` | loop | loop |
+| `homerun.pitch` | Home Run | The pitcher releases the ball | `homerun_pitch.mp3` | 10 | 259 ms |
+| `homerun.whiff` | Home Run | A swing and a miss (with `homerun.strike`, the mitt) | `homerun_whiff.mp3` | 0–10 | 400 ms |
+| `homerun.roar` | Home Run | A home run | `sports_crowd_roar.mp3` | 0–10 | 3477 ms |
+| `homerun.groan` | Home Run | A fair ball within 30 ft of the fence | `sports_crowd_groan.mp3` | 0–5 | 1995 ms |
+| `freekick.crowd` | Top Bins | While the run is live (0.26) | `sports_crowd_loop.mp3` | loop | loop |
+| `freekick.whistle` | Top Bins | The referee's whistle before each kick | `freekick_whistle.mp3` | 10 | 683 ms |
+| `freekick.roar` | Top Bins | A goal | `sports_crowd_roar.mp3` | 0–10 | 3477 ms |
+| `freekick.groan` | Top Bins | A save, or a kick off the woodwork and wide | `sports_crowd_groan.mp3` | 0–8 | 1995 ms |
+| `racing.idle` | Apex | On the grid until the car first moves (0.3) | `racing_idle_loop.mp3` | loop | loop |
+| `racing.drive` | Apex | While driving (0.3), pitched by speed: 0.7× at rest to 1.5× flat out | `racing_drive_loop.mp3` | loop | loop |
+| `racing.squeal` | Apex | Cornering at 90 % or more of the corner's balance speed (at most one per 1.5 s) | `racing_squeal.mp3` | 5–20 | 1197 ms |
+| `racing.kerb` | Apex | While a wheel is on the kerb (0.25) | `racing_kerb_loop.mp3` | loop | loop |
+| `racing.grassLoop` | Apex | While off on the grass or gravel (0.25; with its file `racing.grass` is not played) | `racing_grass_loop.mp3` | loop | loop |
+| `racing.roar` | Apex | The finish line after lap 2 | `sports_crowd_roar.mp3` | 0–1 | 3477 ms |
 | `minesweeper.unflag` | Minefield | A flag is lifted | `mines_unflag.mp3` | 0–10 | 350 ms |
 | `mahjong.select` | Mahjong Solitaire | A free tile selected | `mahjong_select.mp3` | 20–40 | 200 ms |
 | `mahjong.invalid` | Mahjong Solitaire | A second free tile that doesn't match (the selection moves to it) | `mahjong_invalid.mp3` | 0–10 | 300 ms |
-| `freecell.pick` | FreeCell | A card lifted as a drag starts (the stage; at most one per 60 ms) | `cards_pick.mp3` | 10–60 | 334 ms |
-| `freecell.shuffle` | FreeCell | The run starts | `cards_shuffle.mp3` | 1 | 1093 ms |
-| `tripeaks.shuffle` | TriPeaks | The run starts | `cards_shuffle.mp3` | 1 | 1093 ms |
-| `pokersquares.shuffle` | Poker Squares | The run starts | `cards_shuffle.mp3` | 1 | 1093 ms |
-| `pokersquares.final` | Poker Squares | The grid scored (the last card placed, or the buzzer) | `poker_final.mp3` | 1 | 983 ms |
+| `freecell.pick` | Free Cell | A card lifted as a drag starts (the stage; at most one per 60 ms) | `cards_pick.mp3` | 10–60 | 334 ms |
+| `freecell.shuffle` | Free Cell | The run starts | `cards_shuffle.mp3` | 1 | 1093 ms |
+| `tripeaks.shuffle` | Summit | The run starts | `cards_shuffle.mp3` | 1 | 1093 ms |
+| `pokersquares.shuffle` | Full House | The run starts | `cards_shuffle.mp3` | 1 | 1093 ms |
+| `pokersquares.final` | Full House | The grid scored (the last card placed, or the buzzer) | `poker_final.mp3` | 1 | 983 ms |
 | `fivehands.shuffle` | Five Hands | The run starts | `cards_shuffle.mp3` | 1 | 1093 ms |
 | `fivehands.final` | Five Hands | The rows scored: every card placed (without its file: `complete`, as before), or the buzzer | `poker_final.mp3` | 1 | 983 ms |
