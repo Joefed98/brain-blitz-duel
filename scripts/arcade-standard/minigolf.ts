@@ -96,6 +96,18 @@ export const entry: StdEntry = {
       ok(part(s, "par") === 5 * each, `minigolf: five holes in ${strokes} on par 3 → par ${5 * each} (got ${part(s, "par")})`);
       ok(part(s, "under") === (strokes < 3 ? 5 * MG_UNDER_PTS : 0), `minigolf: under par only below par (${strokes} strokes)`);
     }
+    // golfRev 2 (31 Oct 2026): the stroke limit is par + 3, so par points fall over three strokes past par on any par.
+    for (const p of [3, 4, 5]) {
+      for (let strokes = p; strokes <= p + 3; strokes++) {
+        const each = Math.floor((MG_PAR_PTS * (p + 3 - strokes)) / 3);
+        ok(part(final(5, strokes, { pars: [p, p, p, p, p] }), "par") === 5 * each, `minigolf: golfRev 2, five holes in ${strokes} on par ${p} → par ${5 * each}`);
+      }
+    }
+    // golfRev 1 keeps the flat six: on par 5, five strokes take the full 8 and the sixth none.
+    {
+      const g1p = minigolfGameFor([5, 5, 5, 5, 5], MINIGOLF_REV_CLASSIC);
+      ok(part(final(5, 5, { pars: [5, 5, 5, 5, 5] }, g1p, MINIGOLF_BANK[0]!.seed), "par") === 5 * MG_PAR_PTS && part(final(5, 6, { pars: [5, 5, 5, 5, 5] }, g1p, MINIGOLF_BANK[0]!.seed), "par") === 0, "minigolf: golfRev 1's par points still reach 0 at six strokes");
+    }
     // Speed only with all five holed, full by the revision's full-by time, 0 at the buzzer.
     ok(minigolfFullByS(MINIGOLF_REV) === MINIGOLF_FULL_BY_S && minigolfFullByS(MINIGOLF_REV_CLASSIC) === MINIGOLF_FULL_BY_S_V1, "minigolf: each revision's full-by time");
     ok(part(final(5, 3, { finishTick: 60 * MINIGOLF_FULL_BY_S }), "speed") === 20, `minigolf: all five holed by ${MINIGOLF_FULL_BY_S} s → speed 20`);

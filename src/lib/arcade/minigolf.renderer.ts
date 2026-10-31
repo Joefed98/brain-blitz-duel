@@ -31,7 +31,7 @@ import {
   MG_ROLL,
   MINIGOLF_H,
   MINIGOLF_HOLES,
-  MINIGOLF_STROKE_LIMIT,
+  mgStrokeLimit,
   MINIGOLF_W,
   type MgHole,
   type MinigolfState,
@@ -1103,7 +1103,8 @@ export function drawMinigolf(ctx: CanvasRenderingContext2D, s: MinigolfState, ai
   const par = s.pars[Math.min(s.hole, MINIGOLF_HOLES - 1)]!;
   chip(ctx, 8, 6, `Hole ${Math.min(s.hole + 1, MINIGOLF_HOLES)}/${MINIGOLF_HOLES} · Par ${par}`, "left");
   const strokes = holedNow ? s.taken[s.hole]! : s.strokes;
-  chip(ctx, MINIGOLF_W - 8, 6, `Stroke ${Math.min(strokes + (s.phase === MG_AIM ? 1 : 0), MINIGOLF_STROKE_LIMIT)}/${MINIGOLF_STROKE_LIMIT}`, "right", strokes >= MINIGOLF_STROKE_LIMIT - 1);
+  const limit = mgStrokeLimit(s.rev, par);
+  chip(ctx, MINIGOLF_W - 8, 6, `Stroke ${Math.min(strokes + (s.phase === MG_AIM ? 1 : 0), limit)}/${limit}`, "right", strokes >= limit - 1);
 }
 
 /** The dotted aim line (its length the power) and the power pill beside the ball. */
