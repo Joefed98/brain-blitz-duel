@@ -172,9 +172,8 @@ export function useDuel(roomCode: string): DuelState {
   // the room read afresh (battery: nothing is fetched while hidden).
   useEffect(() => {
     const onVisible = () => {
-      if (document.visibilityState !== "visible") return;
-      void calibrateServerClock();
-      if (duelIdRef.current) void load();
+      if (document.visibilityState === "visible") void calibrateServerClock();
+      if (document.visibilityState === "visible" && duelIdRef.current) void load();
     };
     document.addEventListener("visibilitychange", onVisible);
     return () => document.removeEventListener("visibilitychange", onVisible);
