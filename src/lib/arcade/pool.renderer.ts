@@ -577,6 +577,10 @@ function drawCueStick(ctx: CanvasRenderingContext2D, cx: number, cy: number, ux:
 
 /** A potted ball's drop: this many ticks rolling into the mouth, shrinking and darkening into the hole. */
 const DROP_TICKS = 18;
+/** The roll into the mouth runs this much faster than the drop: the ball reaches the mouth at 1 / DROP_ROLL of it. */
+const DROP_ROLL = 1.8;
+/** The drop's tick (from the sim's `downAt`) the ball reaches the pocket's mouth: the pocket sound starts here. */
+export const POOL_DROP_MOUTH_TICKS = Math.ceil(DROP_TICKS / DROP_ROLL);
 
 /** The pocket a ball dropped into: the nearest one to where it went down. */
 function pocketOf(b: PoolBall): { x: number; y: number; r: number } {
@@ -600,7 +604,7 @@ function drawDropping(ctx: CanvasRenderingContext2D, s: PoolState): void {
     if (age < 0 || age >= DROP_TICKS) continue;
     const t = age / DROP_TICKS;
     const p = pocketOf(b);
-    const roll = Math.min(1, t * 1.8);
+    const roll = Math.min(1, t * DROP_ROLL);
     const ease = 1 - (1 - roll) * (1 - roll);
     const x = px(b.x) + (p.x - px(b.x)) * ease;
     const y = px(b.y) + (p.y - px(b.y)) * ease;

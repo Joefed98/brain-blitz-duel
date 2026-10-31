@@ -27,7 +27,7 @@ import { TICKS_PER_SECOND } from "@/lib/arcade/engine";
 import { encodeMahjongRun, replayMahjongRun } from "@/lib/duel/mahjong";
 import { gameDisplayName } from "@/lib/duel/gameNames";
 import type { MahjongPuzzleData } from "@/lib/duel/types";
-import { expansionSounds } from "@/lib/fx/expansionSounds";
+import { mahjongSounds as mahjongObserver } from "@/lib/fx/cardSounds";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 import { canvasRatio } from "@/lib/battery";
@@ -65,22 +65,16 @@ function IntroExample() {
   );
 }
 
+/** The game's sound observer (gameSounds.ts), which also hands each drawn frame's state to the tap mapping. */
 function mahjongSounds(onState: (s: MahjongState) => void) {
   return () => {
-    const watch = expansionSounds<MahjongState>([
-      { count: (s) => s.pairs, sound: "ding", volume: 0.7 },
-      { count: (s) => s.shuffles, sound: "zap" },
-      { count: (s) => s.blocked, sound: "tick", volume: 0.4 },
-      { count: (s) => s.undos ?? 0, sound: "tick", volume: 0.6 },
-      { count: (s) => s.resets ?? 0, sound: "zap", volume: 0.6 },
-      { count: (s) => (s.clearedTick > 0 ? 1 : 0), sound: "chime" },
-    ]);
+    const inner = mahjongObserver();
     return {
       frame: (state: MahjongState, running: boolean) => {
         onState(state);
-        watch(state, running || state.clearedTick === state.tick);
+        inner.frame(state, running);
       },
-      stop: () => {},
+      stop: () => inner.stop(),
     };
   };
 }

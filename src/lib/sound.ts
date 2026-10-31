@@ -764,6 +764,20 @@ export function stopCueLoop(cue: string, fadeMs = CUE_LOOP_FADE_MS): void {
   if ((SOUND_MANIFEST as Record<string, unknown>)[cue]) stopLoop(cue as SoundId, fadeMs);
 }
 
+/**
+ * Glides a playing cue loop's playback rate (Racing's engine follows the car's speed); a loop that is not
+ * playing is left alone. Presentation only, on the loop ensureCueLoop started.
+ */
+export function setCueLoopRate(cue: string, rate: number): void {
+  const loop = loops.get(cue as SoundId);
+  if (!loop || !ctx) return;
+  try {
+    loop.source.playbackRate.setTargetAtTime(Math.max(0.25, Math.min(4, rate)), ctx.currentTime, 0.06);
+  } catch {
+    /* stopped */
+  }
+}
+
 /** The looping counterpart of playSlotOr: the slot's own loop once its file is loaded. */
 export function ensureSlotLoop(cue: SoundId, fallback: SoundId, volume = 0.3): void {
   if (slotReady(cue)) {
