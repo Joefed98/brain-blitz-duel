@@ -18,6 +18,27 @@ import type { DuelPlayerRow } from "./types";
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 const UNIQUE_VIOLATION = "23505";
+const CHECK_VIOLATION = "23514";
+
+/**
+ * The database refused the seat: before 20261031150000_room_16_players.sql is applied, slots past 10
+ * break duel_players_slot_range. The join reports the room as full at that many seats.
+ */
+export class RoomSeatsError extends Error {
+  constructor(readonly seats: number) {
+    super(`That room is full (${seats} players).`);
+  }
+}
+/** Seats the database takes before the 16-player migration. */
+export const SEATS_BEFORE_16 = 10;
+
+function slotRefused(error: { code?: string; message?: string } | null | undefined): boolean {
+  return !!error && error.code === CHECK_VIOLATION && /slot/.test(error.message ?? "");
+}
+/** The colour wheel's indices past 9 break the old duel_players_colour_range until the migration. */
+function colourRangeRefused(error: { code?: string; message?: string } | null | undefined): boolean {
+  return !!error && error.code === CHECK_VIOLATION && /colour/.test(error.message ?? "");
+}
 
 /** What a phone sends with a create or join: the colour and icon it last chose. */
 export interface LookPreference {
@@ -107,16 +128,20 @@ export async function insertPlayerWithLook(
         if (icon) await dropSharedIcon(client, row.duel_id, row.player_slot, icon);
         return;
       }
+      if (slotRefused(error)) throw new RoomSeatsError(SEATS_BEFORE_16);
       if (colourClash(error)) continue;
+      if (colourRangeRefused(error)) break; // seat without a stored colour (resolved from the slot)
       if (error.code !== UNIQUE_VIOLATION) throw new Error(error.message);
       return;
     }
     // Still clashing: seat the player without a stored colour (shown as their slot colour).
     const { error } = await client.from("duel_players").insert({ ...row, icon });
+    if (slotRefused(error)) throw new RoomSeatsError(SEATS_BEFORE_16);
     if (error && error.code !== UNIQUE_VIOLATION) throw new Error(error.message);
     return;
   }
   const { error } = await client.from("duel_players").insert(row);
+  if (slotRefused(error)) throw new RoomSeatsError(SEATS_BEFORE_16);
   if (error && error.code !== UNIQUE_VIOLATION) throw new Error(error.message);
 }
 
@@ -150,6 +175,7 @@ export async function changePlayerLook(
   }
   const { error } = await client.from("duel_players").update(update).eq("id", me.id);
   if (colourClash(error)) return { ok: false, message: "Someone else has that colour." };
+  if (colourRangeRefused(error)) return { ok: false, message: "That colour can't be stored yet." };
   if (error) throw new Error(error.message);
   return { ok: true };
 }

@@ -38,7 +38,27 @@ const NAMES = [
   "Kai",
   "Morgan",
   "Charlie",
+  // Rooms of 16 (31 Oct 2026).
+  "Bartholomew Longname",
+  "Zoë",
+  "Mo",
+  "Francesca",
+  "Li",
+  "Oluwaseun",
 ];
+
+/** A standard game's four part lines and tiles (31 Oct 2026: the 375×667 chart overlap). */
+const FOUR_PART_REVEAL = {
+  axis: { value: 112, max: 150, label: "Core" },
+  lines: ["Core 112 / 150", "Ice 8 / 10", "Big lines 6 / 10", "Treasures 18 / 30"],
+  tiles: [
+    { label: "Levels", value: "3" },
+    { label: "Gold hits", value: "4" },
+    { label: "Targets", value: "6" },
+    { label: "Time bonus", value: "+12" },
+  ],
+  outcome: "time",
+};
 
 type Status = "waiting" | "in_progress" | "finished";
 interface RoomOpts {
@@ -46,6 +66,12 @@ interface RoomOpts {
   players?: number;
   arcade?: boolean;
   rounds?: number;
+  /** The reveal phase with every player's stored result for the round, mine carrying FOUR_PART_REVEAL. */
+  revealParts?: boolean;
+  /** My place by score (slot 1 is "me"; everyone above moves up one). Unset: slot order. */
+  meAt?: number;
+  /** Rows from a database with the colour/icon columns: each player's stored colour (the lobby picker shows). */
+  colours?: (slot: number) => number;
 }
 
 function roomNow(status: Status, phase: string, opts: RoomOpts) {
@@ -65,7 +91,9 @@ function roomNow(status: Status, phase: string, opts: RoomOpts) {
     last_seen_at: iso(now),
     status: "active",
     joined_at: iso(now - 60_000),
+    ...(opts.colours ? { colour: opts.colours(slot), icon: null } : {}),
   });
+  const rankOf = (slot: number) => (!opts.meAt ? slot : slot === 1 ? opts.meAt : slot <= opts.meAt ? slot - 1 : slot);
   const result = (slot: number, round: number) => ({
     id: `r${slot}-${round}`,
     duel_id: "duel-theme",
@@ -78,10 +106,10 @@ function roomNow(status: Status, phase: string, opts: RoomOpts) {
     correct_count: null,
     errors: null,
     extra: null,
-    score: 190 - slot * 13 - round,
+    score: 190 - rankOf(slot) * 13 - round,
     submitted_at: iso(now - 5_000),
   });
-  const scored = status === "finished" || ["result", "standings", "winner_reveal"].includes(phase);
+  const scored = status === "finished" || ["result", "standings", "winner_reveal"].includes(phase) || !!opts.revealParts;
   const players = Array.from({ length: count }, (_, i) => player(i + 1));
   if (opts.join) players[0] = { ...players[0]!, status: "left" };
   const order = Array.from({ length: rounds }, (_, i) =>
@@ -111,7 +139,10 @@ function roomNow(status: Status, phase: string, opts: RoomOpts) {
     players,
     results: scored
       ? players.flatMap((p) =>
-          Array.from({ length: rounds }, (_, r) => result(p.player_slot, r + 1)),
+          Array.from({ length: rounds }, (_, r) => {
+            const row = result(p.player_slot, r + 1);
+            return opts.revealParts && p.player_slot === 1 ? { ...row, extra: { reveal: FOUR_PART_REVEAL } } : row;
+          }),
         )
       : [],
   };
@@ -189,6 +220,44 @@ export const CHALLENGE_SCREENS: ThemeScreen[] = [
 export const IPHONE_SAFARI_UA =
   "Mozilla/5.0 (iPhone; CPU iPhone OS 18_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.6 Mobile/15E148 Safari/604.1";
 
+/**
+ * Rooms of 16 (31 Oct 2026; room-16-check also draws these): the lobby's two columns, compact
+ * leaderboards and standings with my row pinned, the arcade reveal's top 8 and me with four part
+ * lines, and the podium's top three with my place.
+ */
+export function ROOM_16_SCREENS(): ThemeScreen[] {
+  return [
+    { name: "lobby, 16 players", mode: "room", room: room("waiting", "starting", { players: 16 }) },
+    {
+      name: "lobby, 16 players, colour wheel",
+      mode: "room",
+      // Stored colours spread over the wheel (every third swatch), so 15 are taken by others.
+      room: room("waiting", "starting", { players: 16, colours: (slot) => ((slot - 1) * 2) % 32 }),
+      go: async (page) => {
+        await page.locator("[data-look-toggle]").click();
+        await page.locator("[data-colour-wheel]").waitFor({ timeout: 10_000 });
+        await page.waitForTimeout(300);
+      },
+    },
+    { name: "round leaderboard, 16 players", mode: "room", room: room("in_progress", "result", { players: 16, rounds: 2, meAt: 12 }), waitMs: 2500 },
+    {
+      name: "round leaderboard after an arcade round, 16 players",
+      mode: "room",
+      room: room("in_progress", "result", { players: 16, arcade: true, rounds: 2, meAt: 12 }),
+      waitMs: 2500,
+    },
+    { name: "standings, 16 players", mode: "room", room: room("in_progress", "standings", { players: 16, rounds: 2, meAt: 12 }), waitMs: 2500 },
+    {
+      name: "answer reveal (arcade), 16 players, four part lines",
+      mode: "room",
+      room: room("in_progress", "reveal", { arcade: true, players: 16, revealParts: true, meAt: 12 }),
+      waitMs: 1500,
+      plain: true,
+    },
+    { name: "podium, 16 players", mode: "room", room: room("finished", "result", { players: 16, rounds: 6, meAt: 12 }), waitMs: 3000 },
+  ];
+}
+
 export const THEME_SCREENS: ThemeScreen[] = [
   { name: "play", mode: "home", daily: () => dailyFixture().after, challenge: () => challengeFixture("create") },
   { name: "practice list", mode: "practice" },
@@ -221,6 +290,15 @@ export const THEME_SCREENS: ThemeScreen[] = [
   { name: "beta terms", mode: "terms", query: "terms=0" },
   { name: "play, Add to Home Screen hint", mode: "home", userAgent: IPHONE_SAFARI_UA },
   { name: "profile, feedback link", mode: "profile", beta: { TALLY_URL: "https://tally.so/r/test12" } },
+  {
+    name: "profile, colour wheel",
+    mode: "profile",
+    go: async (page) => {
+      await page.locator("[data-profile-head-change], section[aria-label='Your look'] button[aria-expanded]").first().click();
+      await page.locator("[data-colour-wheel]").waitFor({ timeout: 10_000 });
+      await page.waitForTimeout(300);
+    },
+  },
   {
     name: "settings sheet",
     mode: "profile",
@@ -304,6 +382,7 @@ export const THEME_SCREENS: ThemeScreen[] = [
     room: room("finished", "result", { players: 10, rounds: 6 }),
     waitMs: 3000,
   },
+  ...ROOM_16_SCREENS(),
 ];
 
 export interface ThemeViewport {

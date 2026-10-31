@@ -36,9 +36,11 @@ import {
   hasLookColumns,
   insertPlayerWithLook,
   persistAutoColours,
+  RoomSeatsError,
   type LookPreference,
 } from "./playerLook.server";
 import { acceptsAnswers } from "./answerWindow";
+import { seatFor } from "./roomSeats";
 import { DUEL_START_MS, ROUND_TITLE_MS, WINNER_REVEAL_MS } from "./startPresentation";
 import {
   INACTIVE_AFTER_MISSED,
@@ -47,6 +49,8 @@ import {
   MAX_PLAYERS,
   MIN_PLAYERS,
   NEXT_ROUND_AUTO_MS,
+  roomCapacity,
+  roomFullMessage,
   STANDINGS_MS,
   TOTAL_ROUNDS,
   MAX_ROUNDS,
@@ -167,12 +171,6 @@ async function insertPlayer(
     },
     look,
   );
-}
-
-function firstFreeSlot(players: DuelPlayerRow[], maxPlayers: number): number | null {
-  const taken = new Set(present(players).map((p) => p.player_slot));
-  for (let slot = 1; slot <= maxPlayers; slot++) if (!taken.has(slot)) return slot;
-  return null;
 }
 
 /**
@@ -375,7 +373,7 @@ export const roomPreviewFn = createServerFn({ method: "POST" })
       roomCode: code,
       state: linkRoomState(room),
       playerCount: players.length,
-      maxPlayers: room.max_players ?? MAX_PLAYERS,
+      maxPlayers: roomCapacity(room),
     };
   });
 
@@ -430,11 +428,16 @@ export const joinRoomFn = createServerFn({ method: "POST" })
     if (room.status !== "waiting") {
       return { ok: false as const, message: "Game already started." };
     }
-    const slot = firstFreeSlot(players, room.max_players ?? MAX_PLAYERS);
-    if (slot === null) {
-      return { ok: false as const, message: `That room is full (${room.max_players} players).` };
+    const seat = seatFor(players, room);
+    if (!seat.ok) return { ok: false as const, message: seat.message };
+    const slot = seat.slot;
+    try {
+      await insertPlayer(client, room.id, slot, context.userId, data.displayName, data.look ?? {});
+    } catch (error) {
+      // Before the 16-player migration the database still refuses slots past 10 (seatsBefore16).
+      if (error instanceof RoomSeatsError) return { ok: false as const, message: roomFullMessage(error.seats) };
+      throw error;
     }
-    await insertPlayer(client, room.id, slot, context.userId, data.displayName, data.look ?? {});
     await recordJoin(client, {
       duel_id: room.id,
       user_id: context.userId,

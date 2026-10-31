@@ -162,3 +162,24 @@ export function rowLanes(markers: readonly MarkerOut[]): [number, number, number
   for (const m of markers) lanes[m.row] = Math.max(lanes[m.row], m.lane + 1);
   return lanes;
 }
+
+/* ---------------------------------------------------------------- who is drawn */
+
+/** The chart draws at most this many players by score, plus this player wherever they are (31 Oct 2026, rooms of 16). */
+export const CHART_TOP = 8;
+
+/**
+ * Who the chart draws: the CHART_TOP highest stored scores (ties to the lower slot), plus this
+ * player when they are not among them (scored or still scoring). Everyone still scoring is
+ * counted separately (`pending`), never drawn. Display only.
+ */
+export function chartShown<T extends { slot: number; isMe: boolean; score: number | null }>(
+  players: readonly T[],
+): { shown: T[]; pending: T[]; hidden: number } {
+  const scored = players.filter((p) => p.score !== null).sort((a, b) => b.score! - a.score! || a.slot - b.slot);
+  const top = scored.slice(0, CHART_TOP);
+  const me = scored.find((p) => p.isMe);
+  const shown = me && !top.includes(me) ? [...top, me] : top;
+  const pending = players.filter((p) => p.score === null);
+  return { shown, pending, hidden: scored.length - shown.length };
+}

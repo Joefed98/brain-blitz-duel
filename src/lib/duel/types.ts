@@ -563,9 +563,20 @@ export const TARGET_FAR_POINTS = 25;
 export const TOTAL_ROUNDS = 6;
 /** New rooms play at most seven rounds. */
 export const MAX_ROUNDS = 7;
-/** A room holds two to ten players; two plays as the classic duel. */
+/**
+ * A room holds two to sixteen players (31 Oct 2026, was ten); two plays as the classic duel. The
+ * 17th join is refused as full. Bigger events (40+) are for the tournament system, not rooms.
+ */
 export const MIN_PLAYERS = 2;
-export const MAX_PLAYERS = 10;
+export const MAX_PLAYERS = 16;
+/** A room's seats: every lobby seats MAX_PLAYERS, rooms made before 16 (stored max_players 10) included. */
+export function roomCapacity(room: { max_players?: number | null } | null | undefined): number {
+  return Math.max(MAX_PLAYERS, Number(room?.max_players) || 0);
+}
+/** What a join past the room's seats is told. */
+export function roomFullMessage(seats: number): string {
+  return `That room is full (${seats} players).`;
+}
 export const COUNTDOWN_MS = 3_000;
 /** Round intro: up to 30s waiting on READY taps, then a 3-2-1 countdown. */
 export const INTRO_WAIT_MS = 30_000;

@@ -21,7 +21,7 @@ import { ContinueFooter, type ContinueState } from "./ContinueFooter";
 import { Medal } from "./Medal";
 import { PlayerBadge } from "./PlayerBadge";
 import { useScrollMore } from "./RoomFooter";
-import { youStyle } from "./Standings";
+import { isCompactRoom, youStyle } from "./Standings";
 
 interface RoundResultsTableProps {
   roundTitle: string;
@@ -81,6 +81,8 @@ export function RoundResultsTable({
   // Places: the round score, then the time used; level on both shares the place (tieDisplay.ts).
   const marks = tieMarks(roundPlaces(ordered, times));
   const listRef = useScrollMore<HTMLOListElement>();
+  // Big rooms (31 Oct 2026, up to 16): compact rows; my own row is pinned in view while the list scrolls.
+  const compact = isCompactRoom(ordered.length);
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-3 pt-1 text-left animate-phase-in">
@@ -95,7 +97,7 @@ export function RoundResultsTable({
       {highlight}
 
       {/* Rows take their content's height from the top; the list scrolls (and fades) if a big room needs it. */}
-      <ol ref={listRef} className="rs-list rs-scroll min-h-0 shrink">
+      <ol ref={listRef} className="rs-list rs-scroll min-h-0 shrink" data-compact={compact ? "" : undefined} data-pin="">
         {ordered.map((row) => {
           const isMe = row.slot === mySlot;
           const won = row.roundScore > 0 && row.roundScore === topScore;
@@ -107,20 +109,20 @@ export function RoundResultsTable({
           const look = looks?.get(row.slot);
           const note = finalRound ? null : mark?.note;
           return (
-            <li key={row.slot} className="rs-row p-0">
+            <li key={row.slot} className="rs-row p-0" data-pinned={isMe ? "" : undefined}>
               <button
                 type="button"
                 aria-expanded={open}
                 onClick={() => setExpanded((value) => (value === row.slot ? null : row.slot))}
                 data-you={isMe ? "" : undefined}
                 style={isMe ? youStyle(look) : undefined}
-                className={`grid min-h-[52px] w-full ${finalRound ? "grid-cols-[minmax(0,1fr)_auto]" : "grid-cols-[1.5rem_minmax(0,1fr)_auto]"} items-center gap-x-2 py-1.5 pl-3.5 pr-2 text-left ${row.status === "inactive" ? "opacity-40" : ""}`}
+                className={`grid ${compact ? "min-h-[44px] py-1" : "min-h-[52px] py-1.5"} w-full ${finalRound ? "grid-cols-[minmax(0,1fr)_auto]" : "grid-cols-[1.5rem_minmax(0,1fr)_auto]"} items-center gap-x-2 pl-3.5 pr-2 text-left ${row.status === "inactive" ? "opacity-40" : ""}`}
               >
                 {/* Last round: no positions, so the overall winner stays hidden until the reveal. */}
                 {!finalRound && mark && <Medal place={Number(mark.label.replace("=", ""))} shared={mark.shared} />}
                 <span className="min-w-0 self-center">
                   <span className="flex min-w-0 items-center gap-2">
-                    <PlayerBadge look={look} name={row.name} size={28} />
+                    <PlayerBadge look={look} name={row.name} size={compact ? 24 : 28} />
                     <span className="flex min-w-0 flex-1 flex-col">
                       <span className="flex min-w-0 items-center gap-1.5">
                         <span className="rs-name th-name leading-tight">{row.name}</span>

@@ -315,7 +315,7 @@ function themeProbe(families: { head: string; body: string; mono: string; app: s
     skins: skins.length,
     // The tab pages' panels (Prompt R) and Practice's game tiles (shelves and grid, follow-up to #129) are its cards.
     // Polish batch R: the room screens' panels and lists (.rs-list), the error layout and the terms' page text.
-    cards: document.querySelectorAll("[data-skin] .th-card, [data-skin] .th-sheet, [data-skin] .ap-panel, [data-skin] .ap-tile, [data-skin] .rs-list, [data-skin] [data-error-screen], [data-skin] [data-terms]").length,
+    cards: document.querySelectorAll("[data-skin] .th-card, [data-skin] .th-sheet, [data-skin] .ap-panel, [data-skin] .ap-tile, [data-skin] .rs-list, [data-skin] .rs-grid, [data-skin] [data-error-screen], [data-skin] [data-terms]").length,
     // The round leaderboard's closed rows: each shows its verdict line under the name.
     rowLines: [...document.querySelectorAll("[data-skin] [aria-expanded='false'] [data-row-line]")].map((line) => ({
       shown: visible(line) && !!line.querySelector("[data-verdict]") && visible(line.querySelector("[data-verdict]")!),

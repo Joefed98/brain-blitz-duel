@@ -35,6 +35,12 @@ export function Arrow({ standing }: { standing: Standing }) {
   );
 }
 
+/** Rooms of more than eight show compact rows (31 Oct 2026, rooms of up to 16). */
+export const COMPACT_ROOM_FROM = 9;
+export function isCompactRoom(players: number): boolean {
+  return players >= COMPACT_ROOM_FROM;
+}
+
 /** A player's colour as a CSS value for the "you" bar (room-screens.css). */
 export function youStyle(look: PlayerLook | undefined): CSSProperties | undefined {
   const hex = look ? PLAYER_COLOURS[look.colour]?.hex : undefined;
@@ -119,6 +125,7 @@ export function Standings({ round, totalRounds = TOTAL_ROUNDS, rows, looks, mySl
 
   const marks = tieMarks(rows.map((row) => ({ slot: row.slot, points: row.total, position: row.position })));
   const listRef = useScrollMore<HTMLUListElement>();
+  const compact = isCompactRoom(rows.length);
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-3 pt-1 text-left animate-phase-in">
@@ -130,7 +137,7 @@ export function Standings({ round, totalRounds = TOTAL_ROUNDS, rows, looks, mySl
       </header>
 
       {/* Rows take their content's height from the top; the list scrolls (and fades) if a big room needs it. */}
-      <ul ref={listRef} className="rs-list rs-scroll relative min-h-0 shrink">
+      <ul ref={listRef} className="rs-list rs-scroll relative min-h-0 shrink" data-compact={compact ? "" : undefined} data-pin="">
         {displayRows.map((row) => {
           const isMe = row.slot === mySlot;
           const mark = marks.get(row.slot);
@@ -140,6 +147,7 @@ export function Standings({ round, totalRounds = TOTAL_ROUNDS, rows, looks, mySl
               key={row.slot}
               ref={rowRef(row.slot)}
               data-you={isMe ? "" : undefined}
+              data-pinned={isMe ? "" : undefined}
               style={isMe ? youStyle(look) : undefined}
               className={`rs-row ${row.status === "inactive" ? "opacity-40" : ""}`}
             >
@@ -147,7 +155,7 @@ export function Standings({ round, totalRounds = TOTAL_ROUNDS, rows, looks, mySl
                 <Medal place={row.position} shared={mark?.shared} />
                 <Arrow standing={row} />
                 <span className="flex min-w-0 items-center gap-2">
-                  <PlayerBadge look={look} name={row.name} size={28} />
+                  <PlayerBadge look={look} name={row.name} size={compact ? 24 : 28} />
                   <span className="flex min-w-0 flex-col">
                     <span className="flex min-w-0 items-baseline gap-1">
                       <span className="rs-name th-name">{row.name}</span>

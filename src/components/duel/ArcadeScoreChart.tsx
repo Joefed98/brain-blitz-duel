@@ -1,6 +1,6 @@
 import { useLayoutEffect, useRef, useState } from "react";
 
-import { CHART_BADGE, CHART_LANE, CHART_MARGIN, CHART_NAME_MAX, chartLabels, chartPoint, layoutMarkers, rowLanes } from "@/lib/duel/arcadeChart";
+import { CHART_BADGE, CHART_LANE, CHART_MARGIN, CHART_NAME_MAX, CHART_TOP, chartLabels, chartShown, chartPoint, layoutMarkers, rowLanes } from "@/lib/duel/arcadeChart";
 import { PLAYER_COLOURS, type PlayerLook } from "@/lib/duel/playerLook";
 import { roundMaxFor } from "@/lib/duel/roundMax";
 import type { PuzzleType } from "@/lib/duel/types";
@@ -62,8 +62,10 @@ export function ArcadeScoreChart({ players, type }: { players: ChartPlayer[]; ty
   }, []);
 
   const width = size.w;
-  const scored = players.filter((p): p is ChartPlayer & { score: number } => p.score !== null);
-  const pending = players.filter((p) => p.score === null);
+  // Top 8 plus you (31 Oct 2026, rooms of 16); the rest are counted under the chart.
+  const view = chartShown(players);
+  const scored = view.shown as (ChartPlayer & { score: number })[];
+  const pending = view.pending;
   const trackW = Math.max(1, width - 2 * CHART_MARGIN);
   const markers = layoutMarkers(
     scored.map((p) => ({ key: p.slot, score: p.score, name: p.isMe ? "You" : p.name })),
@@ -185,9 +187,14 @@ export function ArcadeScoreChart({ players, type }: { players: ChartPlayer[]; ty
           </div>
         ) : null}
       </div>
+      {view.hidden > 0 ? (
+        <p data-chart-hidden={view.hidden} className="mt-0.5 shrink-0 truncate text-center font-mono text-[13px] font-semibold" style={{ color: TEXT }}>
+          Top {CHART_TOP}{scored.length > CHART_TOP ? " and you" : ""} · {view.hidden} more on the results
+        </p>
+      ) : null}
       {pending.length ? (
         <p data-chart-pending="" data-names className="mt-0.5 shrink-0 truncate text-center font-mono text-[13px] font-semibold" style={{ color: TEXT }}>
-          Still scoring: {pending.map((p) => (p.isMe ? "You" : p.name)).join(", ")}
+          Still scoring: {pending.length > 3 ? `${pending.length} players` : pending.map((p) => (p.isMe ? "You" : p.name)).join(", ")}
         </p>
       ) : null}
     </div>
