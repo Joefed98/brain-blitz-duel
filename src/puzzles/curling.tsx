@@ -34,6 +34,7 @@ import {
 } from "@/lib/arcade/curling.renderer";
 import { TICKS_PER_SECOND, type ArcadeGame, type ArcadeInputEvent } from "@/lib/arcade/engine";
 import { SPORTS_CHECKPOINT_INTERVAL } from "@/lib/arcade/sportsKit";
+import { curlingSounds } from "@/lib/fx/gameSounds";
 import { encodeCurlingRun, replayCurlingRun } from "@/lib/duel/curling";
 import { gameDisplayName } from "@/lib/duel/gameNames";
 import type { CurlingPuzzleData } from "@/lib/duel/types";
@@ -219,6 +220,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         worldW={CURLING_W}
         worldH={worldH}
         game={game}
+        sounds={curlingSounds}
         checkpoint={curlingCheckpoint}
         interval={SPORTS_CHECKPOINT_INTERVAL}
         encodeRun={encodeCurlingRun}

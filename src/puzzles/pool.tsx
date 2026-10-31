@@ -30,7 +30,7 @@ import {
 } from "@/lib/arcade/pool";
 import { drawPool, drawPoolPowerPanel, poolBallColour, poolScene, POOL_BG, type PoolAim } from "@/lib/arcade/pool.renderer";
 import { SPORTS_CHECKPOINT_INTERVAL } from "@/lib/arcade/sportsKit";
-import { expansionSounds } from "@/lib/fx/expansionSounds";
+import { poolSounds } from "@/lib/fx/gameSounds";
 import { encodePoolRun, replayPoolRun } from "@/lib/duel/pool";
 import type { PoolPuzzleData } from "@/lib/duel/types";
 
@@ -239,19 +239,6 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data?.poolRev]);
 
-  const sounds = useMemo(
-    () => () => {
-      const watch = expansionSounds<PoolState>([
-        { count: (s) => s.pots, sound: "ding", volume: 0.9 },
-        { count: (s) => s.hits, sound: "tick", volume: 0.5 },
-        { count: (s) => s.fouls, sound: "zap", volume: 0.7 },
-        { count: (s) => (s.black === 1 ? 1 : 0), sound: "chime" },
-      ]);
-      return { frame: (s: PoolState, running: boolean) => watch(s, running), stop: () => {} };
-    },
-    [],
-  );
-
   const paintPanel = () => {
     const node = panel.current;
     if (!node) return;
@@ -371,7 +358,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         worldW={POOL_W}
         worldH={POOL_H}
         game={game}
-        sounds={sounds}
+        sounds={poolSounds}
         checkpoint={poolCheckpoint}
         interval={SPORTS_CHECKPOINT_INTERVAL}
         encodeRun={encodePoolRun}

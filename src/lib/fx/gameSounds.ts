@@ -5,7 +5,7 @@
  * Each moment plays its own slot (`<gameId>.<event>`, docs/sound-cues/arcade.md)
  * once that slot has a file, else the shared sound it always played, unchanged.
  */
-import { cueHasFile, ensureCueLoop, ensureSlotLoop, playSlotOr, stopCueLoop, stopSlotLoop } from "@/lib/sound";
+import { cueHasFile, ensureCueLoop, ensureSlotLoop, playCueSlot, playSlotOr, setCueLoopRate, stopCueLoop, stopSlotLoop } from "@/lib/sound";
 import { liveCue, momentFrame } from "@/lib/fx/momentCues";
 import type { SoundId } from "@/lib/fx/manifest";
 import { ORBIT_EIGHT, type OrbitState } from "@/lib/arcade/orbit";
@@ -24,9 +24,9 @@ import { BURST_RADIUS, burstCeiling, burstFloorY, type BurstState } from "@/lib/
 import { BEAT_COMBO_TIERS, BEAT_FALL_TICKS, BEAT_JUDGE_PENDING, type BeatState } from "@/lib/arcade/beat";
 import { BINTOSS_AIM, BINTOSS_FLY, BINTOSS_NARROW_FROM, BINTOSS_THROWS, BINTOSS_WAIT, type BinTossState } from "@/lib/arcade/binToss";
 import type { TiltState } from "@/lib/arcade/tilt";
-import { OUT_FAIR, OUT_FOUL, OUT_HOMER, OUT_TAKEN, OUT_WHIFF, type HomerunState } from "@/lib/arcade/homerun";
-import { FK_FLIGHT, FK_NET_Z, FK_OUT_GOAL, FK_OUT_SAVED, FK_OUT_WALL, type FreekickState } from "@/lib/arcade/freekick";
-import { racingGoTick, racingLightsOn, RACING_LAP, type RacingState } from "@/lib/arcade/racing";
+import { homerunFence, homerunPlan, OUT_FAIR, OUT_FOUL, OUT_HOMER, OUT_TAKEN, OUT_WHIFF, type HomerunState } from "@/lib/arcade/homerun";
+import { FK_AIM, FK_FLIGHT, FK_NET_Z, FK_OUT_GOAL, FK_OUT_SAVED, FK_OUT_WALL, FK_OUT_WIDE, type FreekickState } from "@/lib/arcade/freekick";
+import { RACING_CAR_HALF, RACING_LAP, RACING_ROAD_X, RACING_VMAX, racingBalanceSpeed, racingGoTick, racingLightsOn, racingSegAt, racingTrack, type RacingState } from "@/lib/arcade/racing";
 import { btEventCountdown, type BtCourse, type BtState } from "@/lib/arcade/ballTrack";
 import { JUNC_BUILD_EVERY, JUNC_BUILDS, type JuncState } from "@/lib/arcade/junction";
 import { skylineFlagAt, skylineGustAt, skylineShownMult, SKYLINE_REV_STD, SKYLINE_V9_STREAK_MAX, type SkylineState } from "@/lib/arcade/skyline";
@@ -37,7 +37,16 @@ import type { BubState } from "@/lib/arcade/bubble";
 import { SLICE_SPECIAL_NONE, type SliceState } from "@/lib/arcade/slice";
 import { SNIP_EATEN, type SnipState } from "@/lib/arcade/snip";
 import { arenaLight } from "@/lib/arcade/arenaFills.renderer";
-import { MG_AIM, MG_ROLL, type MinigolfState } from "@/lib/arcade/minigolf";
+import { POOL_DROP_MOUTH_TICKS } from "@/lib/arcade/pool.renderer";
+import { MG_AIM, MG_BALL_R, MG_ROLL, MG_STOP_V, type MinigolfState } from "@/lib/arcade/minigolf";
+import { POOL_AIM, POOL_CUE, POOL_MAX_V, POOL_MIN_V, POOL_ROLL, type PoolState } from "@/lib/arcade/pool";
+import { curlShotTeam, curlTakeouts, TEAM_MINE, type CurlingState } from "@/lib/arcade/curling";
+import type { MinesState } from "@/lib/arcade/minesweeper";
+import type { MahjongState } from "@/lib/arcade/mahjong";
+import { fcHomeCount, type FcState } from "@/lib/arcade/cards/freecell";
+import type { TpState } from "@/lib/arcade/cards/tripeaks";
+import { PS_LINES, psHand, psLineHand, psTotals, type PsState } from "@/lib/arcade/cards/pokerSquares";
+import { fhTotals, type FhState } from "@/lib/arcade/cards/fiveHands";
 
 /** Sounds a success-effect cue with a file stands in for on this frame (momentCues.ts). */
 let quiet: ReadonlySet<string> = new Set();
@@ -966,16 +975,41 @@ export function colourClashSounds(): GameSounds<ClashState> {
 }
 
 /* ================================ Sports (30 Oct 2026) ================================ */
+/*
+ * Sound batch 6 (31 Oct 2026, docs/sound-cues/batch6-sports-cards.md): the Sports and Cards & Board games' own
+ * recordings. A moment that played a shared sound keeps it as the fallback (sfx), so with its own file the generic
+ * one is muted; a moment that was silent (effectCue / loopCue) stays silent until its file loads.
+ */
 
-/** Minigolf: the putt's knock, rail and log bounces, the cup's rattle, a splash, and a bell for a hole under par. */
+/**
+ * A moment that played one of the celebrations' recordings (a slot itself, so it can't be an sfx fallback): its own
+ * file once loaded, else that recording exactly as before (playCueSlot, as expansionSounds played it).
+ */
+function ownCue(cue: string, shared: string, volume = 1): void {
+  if (cueHasFile(cue)) effectCue(cue);
+  else if (!quiet.has(cue)) playCueSlot(shared, volume);
+}
+
+/** A crowd bed under the music while the run is live (Home Run Derby, Free Kick). */
+const CROWD_VOLUME = 0.26;
+/** Rolling and sliding loops (Minigolf's ball, Curling's stone and brooms). */
+const SURFACE_VOLUME = 0.32;
+
+/** Minigolf: the putt, rails and logs, boulders and planters (a bush rustles in a planter), the roll, a splash, the cup and a birdie. */
 export function minigolfSounds(): GameSounds<MinigolfState> {
   let prev: MinigolfState | null = null;
   return {
-    frame(state) {
+    frame(state, running) {
       beginFrame("minigolf", state);
+      loopCue("minigolf.roll", running && state.phase === MG_ROLL && Math.abs(state.vx) + Math.abs(state.vy) > MG_STOP_V * 4, SURFACE_VOLUME);
       if (prev && state.tick > prev.tick) {
         if (prev.phase === MG_AIM && state.phase === MG_ROLL) sfx("minigolf.putt", "arc_wood_knock", 0.8);
-        if (state.bounces > prev.bounces) sfx("minigolf.bounce", "arc_bounce", 0.6);
+        if (state.bounces > prev.bounces) {
+          const struck = minigolfStruck(state);
+          if (struck === "rail") sfx("minigolf.bounce", "arc_bounce", 0.6);
+          else sfx("minigolf.stone", "arc_bounce", 0.6);
+          if (struck === "planter") effectCue("minigolf.bush", 120);
+        }
         if (state.waters > prev.waters) sfx("minigolf.water", "arc_sea_pop", 0.9);
         if (state.holedTick > prev.holedTick) {
           const h = state.hole;
@@ -986,93 +1020,408 @@ export function minigolfSounds(): GameSounds<MinigolfState> {
       }
       prev = state;
     },
-    stop: () => {},
+    stop: () => loopCue("minigolf.roll", false),
+  };
+}
+
+/** What the ball struck on a bounce tick: the nearest boulder or planter it touches, else a rail or log (display only). */
+function minigolfStruck(s: MinigolfState): "rail" | "rock" | "planter" {
+  const h = s.course[s.hole];
+  if (!h) return "rail";
+  const reach = (MG_BALL_R + 3) * 256;
+  const touching = (c: { x: number; y: number; r: number }) => Math.hypot(s.x - c.x, s.y - c.y) <= c.r + reach;
+  if (h.planters.some(touching)) return "planter";
+  if (h.rocks.some(touching)) return "rock";
+  return "rail";
+}
+
+/** Speed Pool: the cue (soft or hard), ball on ball, cushions, pockets, fouls, the chalk at the start and the black. */
+export function poolSounds(): GameSounds<PoolState> {
+  let prev: PoolState | null = null;
+  return {
+    frame(state) {
+      beginFrame("pool", state);
+      if (prev && state.tick > prev.tick) {
+        if (prev.tick === 0) effectCue("pool.chalk");
+        if (prev.phase === POOL_AIM && state.phase === POOL_ROLL) {
+          const cue = state.balls[POOL_CUE];
+          const speed = cue ? Math.hypot(cue.vx, cue.vy) : 0;
+          effectCue(speed >= POOL_HARD_V ? "pool.cueHard" : "pool.cueSoft");
+        }
+        if (state.hits > prev.hits) sfx("pool.click", "tick", 0.5, 1, true);
+        if (state.cushionTick !== prev.cushionTick) effectCue("pool.cushion", 60);
+        // poolRev 2 rolls a potted ball into the mouth before it drops away (the art, from its drop tick): the pocket
+        // sounds as it reaches the mouth. poolRev 1 sounds on the drop itself.
+        if (state.rev >= 2) {
+          for (const b of state.balls) {
+            if (b.downAt === undefined) continue;
+            const at = b.downAt + POOL_DROP_MOUTH_TICKS;
+            if (prev.tick < at && state.tick >= at) ownCue("pool.pocket", "shared.celebrate.countDing", 0.9);
+          }
+        } else if (state.pots > prev.pots || state.scratches > prev.scratches) ownCue("pool.pocket", "shared.celebrate.countDing", 0.9);
+        if (state.fouls > prev.fouls) ownCue("pool.foul", "shared.celebrate.zap", 0.7);
+        if (state.black === 1 && prev.black !== 1) ownCue("pool.blackWin", "shared.celebrate.chime");
+      }
+      prev = state;
+    },
+    stop() {
+      prev = null;
+    },
+  };
+}
+/** A shot at least this fast (units a tick) is a power shot: the upper 45 % of the cue's range. */
+const POOL_HARD_V = POOL_MIN_V + Math.floor(((POOL_MAX_V - POOL_MIN_V) * 55) / 100);
+
+/** The sweep loop holds this long after a broom stroke (ticks): strokes come every few frames while brushing. */
+const SWEEP_HOLD_TICKS = 20;
+
+/** Curling: the release, the stone's slide and the brooms, stone on stone, the boards, applause for a good stone and the shot stone. */
+export function curlingSounds(): GameSounds<CurlingState> {
+  let prev: CurlingState | null = null;
+  let lastStroke = -1;
+  return {
+    frame(state, running) {
+      beginFrame("curling", state);
+      const travelling = running && state.active >= 0;
+      loopCue("curling.slide", travelling, SURFACE_VOLUME);
+      // The brooms sound while strokes keep coming (curlRev 1's sweeps and curlRev 2's brushing either side alike):
+      // on with a stroke, off a third of a second after the last one.
+      if (state.sweeps > (prev?.sweeps ?? state.sweeps)) lastStroke = state.tick;
+      else if (prev && state.tick < prev.tick) lastStroke = -1;
+      loopCue("curling.sweep", travelling && lastStroke >= 0 && state.tick - lastStroke < SWEEP_HOLD_TICKS, SURFACE_VOLUME);
+      if (prev && state.tick > prev.tick) {
+        if (state.thrown > prev.thrown) effectCue("curling.release");
+        if (state.hits > prev.hits) effectCue("curling.hit", 80);
+        for (let i = 0; i < prev.live.length; i++) {
+          // Out over a side or back board while moving (a hog-line stone at the settle is not a board).
+          if (prev.live[i] === 1 && state.live[i] === 0 && state.restTick === prev.restTick) {
+            effectCue("curling.board", 120);
+            break;
+          }
+        }
+        if (state.restTick !== prev.restTick && state.pts.length > prev.pts.length) {
+          const takeout = curlTakeouts(state) > curlTakeouts(prev);
+          if (curlShotTeam(state) === TEAM_MINE && curlShotTeam(prev) !== TEAM_MINE) effectCue("curling.shot");
+          else if (state.four[state.four.length - 1] === 1 || takeout) effectCue("curling.applause");
+        }
+      }
+      prev = state;
+    },
+    stop() {
+      loopCue("curling.slide", false);
+      loopCue("curling.sweep", false);
+      prev = null;
+      lastStroke = -1;
+    },
   };
 }
 
 /* ============================ The Sports group (30 Oct 2026) ============================ */
 
-/** Home Run Derby: the swing, the crack of the bat, home runs, signs, fouls and strikes. */
+/** Home Run Derby: the crowd, each pitch, the swing, the crack of the bat, home runs (the organ and a roar), signs, fouls, whiffs and the mitt. */
 export function homerunSounds(): GameSounds<HomerunState> {
   let prev: HomerunState | null = null;
   return {
-    frame(state) {
+    frame(state, running) {
       beginFrame("homerun", state);
+      loopCue("homerun.crowd", running, CROWD_VOLUME);
       if (prev && state.tick > prev.tick) {
+        const pitch = homerunPlan(state.seed).pitches[state.pitch];
+        if (pitch && prev.tick < pitch.release && state.tick >= pitch.release) effectCue("homerun.pitch");
         if (state.swingTick >= 0 && prev.swingTick < 0) sfx("homerun.swing", "arc_hover_tap", 0.5, 1.4);
         if (state.hits.length > prev.hits.length) {
           const hit = state.hits[state.hits.length - 1]!;
-          if (hit.out === OUT_HOMER || hit.out === OUT_FAIR) sfx("homerun.crack", "arc_wood_knock", 1, hit.q >= 900 ? 1.15 : 1);
-          if (hit.out === OUT_HOMER) sfx("homerun.homer", "arc_fair_sting", 0.9);
+          const weak = hit.out === OUT_FAIR && hit.q < HOMERUN_WEAK_Q && cueHasFile("homerun.foul");
+          if ((hit.out === OUT_HOMER || hit.out === OUT_FAIR) && !weak) sfx("homerun.crack", "arc_wood_knock", 1, hit.q >= 900 ? 1.15 : 1);
+          if (hit.out === OUT_HOMER) {
+            sfx("homerun.homer", "arc_fair_sting", 0.9);
+            effectCue("homerun.roar");
+          }
           if (hit.sign >= 0) sfx("homerun.sign", "arc_fair_bell", 0.9);
-          if (hit.out === OUT_FOUL) sfx("homerun.foul", "arc_bounce", 0.7);
+          if (hit.out === OUT_FOUL || weak) sfx("homerun.foul", "arc_bounce", 0.7);
+          // Just short of the fence: the crowd groans.
+          if (hit.out === OUT_FAIR && hit.feet >= homerunFence(hit.spray) - HOMERUN_NEAR_FT) effectCue("homerun.groan");
+          if (hit.out === OUT_WHIFF) effectCue("homerun.whiff");
           if (hit.out === OUT_WHIFF || hit.out === OUT_TAKEN) sfx("homerun.strike", "arc_fair_thud", 0.6);
         }
       }
       prev = state;
     },
     stop() {
+      loopCue("homerun.crowd", false);
       prev = null;
     },
   };
 }
+/** A fair ball under this contact quality (per mille) is weak contact: the foul's dull knock, not the crack. */
+const HOMERUN_WEAK_Q = 400;
+/** A fair ball this close to the fence (feet) is a near miss. */
+const HOMERUN_NEAR_FT = 30;
 
-/** Free Kick: the strike, woodwork, saves (the wall's block quieter), goals, targets and the net. */
+/** Free Kick: the crowd, the whistle, the strike, woodwork, the wall, saves, goals (the net and a roar), near misses and targets. */
 export function freekickSounds(): GameSounds<FreekickState> {
   let prev: FreekickState | null = null;
   return {
-    frame(state) {
+    frame(state, running) {
       beginFrame("freekick", state);
+      loopCue("freekick.crowd", running, CROWD_VOLUME);
       if (prev && state.tick > prev.tick) {
         const f = state.fl;
         const was = prev.fl;
+        if (prev.phase !== FK_AIM && state.phase === FK_AIM) effectCue("freekick.whistle");
         if (prev.phase !== FK_FLIGHT && state.phase === FK_FLIGHT) sfx("freekick.kick", "arc_fair_thud", 0.9, 1.1);
         if (f && was && state.kickTick === prev.kickTick) {
-          if ((f.post && !was.post) || (f.bar && !was.bar)) sfx("freekick.post", "arc_clank", 0.9);
-          if (f.out === FK_OUT_SAVED && was.out !== FK_OUT_SAVED) sfx("freekick.save", "arc_wood_knock", 0.9);
-          if (f.out === FK_OUT_WALL && was.out !== FK_OUT_WALL) sfx("freekick.save", "arc_wood_knock", 0.65, 0.85);
-          if (f.out === FK_OUT_GOAL && was.out !== FK_OUT_GOAL) sfx("freekick.goal", "arc_fair_sting", 0.95);
-          if (f.out === FK_OUT_GOAL && f.z >= FK_NET_Z && was.z < FK_NET_Z) sfx("freekick.net", "arc_bounce", 0.6, 0.8);
+          const woodwork = (f.post && !was.post) || (f.bar && !was.bar);
+          if (woodwork) sfx("freekick.post", "arc_clank", 0.9);
+          if (f.out === FK_OUT_SAVED && was.out !== FK_OUT_SAVED) {
+            sfx("freekick.save", "arc_wood_knock", 0.9);
+            effectCue("freekick.groan");
+          }
+          if (f.out === FK_OUT_WALL && was.out !== FK_OUT_WALL) sfx("freekick.wall", "arc_wood_knock", 0.65, 0.85);
+          if (f.out === FK_OUT_GOAL && was.out !== FK_OUT_GOAL) {
+            sfx("freekick.goal", "arc_fair_sting", 0.95);
+            effectCue("freekick.roar");
+          }
+          if (f.out === FK_OUT_WIDE && was.out !== FK_OUT_WIDE && (f.post || f.bar)) effectCue("freekick.groan");
+          // The goal's own recording is the net: the generic net bounce stays for the shared sound only.
+          if (f.out === FK_OUT_GOAL && f.z >= FK_NET_Z && was.z < FK_NET_Z && !cueHasFile("freekick.goal")) sfx("freekick.net", "arc_bounce", 0.6, 0.8);
         }
         if (state.targets > prev.targets) sfx("freekick.target", "arc_fair_bell", 0.9);
       }
       prev = state;
     },
     stop() {
+      loopCue("freekick.crowd", false);
       prev = null;
     },
   };
 }
 
-/**
- * Apex (racing): the start (racingRev 2: a beep as each red light comes on, the horn on lights out; racingRev 1: the
- * horn on the first throttle), the tyre wall, the grass, clean sectors, the lap and the finish.
- */
+/** Racing's engine: idle on the grid, then the drive loop pitched by speed (0.7× at rest to 1.5× flat out). */
+const ENGINE_VOLUME = 0.3;
+const ENGINE_RATE_LO = 0.7;
+const ENGINE_RATE_HI = 1.5;
+/** Tyres squeal past this share of the corner's balance speed (per mille), at most once in 1.5 s. */
+const SQUEAL_AT = 900;
+/** Apex (racing): the start lights and lights out (racingRev 2) or the first throttle (racingRev 1), the engine, kerbs, grass, squeals, the wall, sectors, laps and the finish. */
 export function racingSounds(): GameSounds<RacingState> {
   let prev: RacingState | null = null;
-  let went = false;
+  let started = false;
+  let squealing = false;
   return {
-    frame(state) {
+    frame(state, running) {
       beginFrame("racing", state);
+      const gridded = running && state.s === 0 && state.v === 0;
+      const driving = running && !gridded && state.finishTick === 0;
+      loopCue("racing.idle", gridded, ENGINE_VOLUME);
+      loopCue("racing.drive", driving, ENGINE_VOLUME);
+      if (driving) setCueLoopRate("racing.drive", ENGINE_RATE_LO + ((ENGINE_RATE_HI - ENGINE_RATE_LO) * state.v) / RACING_VMAX);
+      const onKerb = !state.off && !state.wall && Math.abs(state.x) + RACING_CAR_HALF > RACING_ROAD_X;
+      loopCue("racing.kerb", driving && onKerb && state.v > 0, 0.25);
+      loopCue("racing.grassLoop", driving && state.off === 1 && state.v > 0, 0.25);
       if (prev && state.tick > prev.tick) {
+        // racingRev 2 (T2): a light as each of the five red lights comes on, the horn's slot at lights out;
+        // racingRev 1: the horn on the first throttle, as it always was.
         const lit = racingLightsOn(state.rev, state.tick);
         if (lit > racingLightsOn(prev.rev, prev.tick)) sfx("racing.light", "countdown_step", 0.55);
         const go = racingGoTick(state.rev);
-        if (!went && (go > 0 ? state.tick >= go && prev.tick < go : state.pedal > 0)) {
-          went = true;
+        if (!started && (go > 0 ? state.tick >= go && prev.tick < go : state.pedal > 0)) {
+          started = true;
           sfx("racing.go", "arc_horn", 0.5);
         }
         if (state.wallHits > prev.wallHits) sfx("racing.wall", "arc_crash", 0.8);
-        else if (state.off && !prev.off) sfx("racing.grass", "arc_bounce", 0.6, 0.8);
+        else if (state.off && !prev.off && !cueHasFile("racing.grassLoop")) sfx("racing.grass", "arc_bounce", 0.6, 0.8);
+        const c = racingTrack(state.seed).curve[racingSegAt(state.s)] ?? 0;
+        const limit = racingBalanceSpeed(c);
+        const hard = c !== 0 && !state.off && state.v * 1000 >= limit * SQUEAL_AT;
+        if (hard && !squealing) effectCue("racing.squeal", 1500);
+        squealing = hard;
         if (state.clean > prev.clean) sfx("racing.sector", "arc_retro_coin", 0.6);
-        if (state.finishTick > 0 && prev.finishTick === 0) sfx("racing.finish", "arc_fair_sting", 0.9);
-        else if (Math.floor(state.s / RACING_LAP) > Math.floor(prev.s / RACING_LAP)) sfx("racing.lap", "arc_fair_bell", 0.8);
+        if (state.finishTick > 0 && prev.finishTick === 0) {
+          sfx("racing.finish", "arc_fair_sting", 0.9);
+          effectCue("racing.roar");
+        } else if (Math.floor(state.s / RACING_LAP) > Math.floor(prev.s / RACING_LAP)) sfx("racing.lap", "arc_fair_bell", 0.8);
+      } else if (prev && state.tick < prev.tick) started = false;
+      prev = state;
+    },
+    stop() {
+      for (const loop of ["racing.idle", "racing.drive", "racing.kerb", "racing.grassLoop"]) loopCue(loop, false);
+      prev = null;
+      started = false;
+      squealing = false;
+    },
+  };
+}
+
+/* ============================ Cards & Board (30 Oct 2026) ============================ */
+
+/** Minefield (minesweeper): a square opened (an area opening is the cascade), flags placed and lifted, a mine and the clear. */
+export function minesweeperSounds(): GameSounds<MinesState> {
+  let prev: MinesState | null = null;
+  return {
+    frame(state) {
+      beginFrame("minesweeper", state);
+      if (prev && state.tick > prev.tick) {
+        if (state.reveals + state.chords > prev.reveals + prev.chords) {
+          if (state.revealed - prev.revealed >= MINES_CASCADE_AT) sfx("minesweeper.cascade", "tick", 0.6);
+          else sfx("minesweeper.reveal", "tick", 0.6);
+        }
+        if (state.hits > prev.hits) ownCue("minesweeper.hit", "shared.celebrate.zap");
+        if (state.flags > prev.flags) sfx("minesweeper.flag", "tick", 0.35);
+        else if (state.flags < prev.flags) effectCue("minesweeper.unflag");
+        if (state.clearedTick > 0 && prev.clearedTick === 0) ownCue("minesweeper.clear", "shared.celebrate.chime");
       }
       prev = state;
     },
     stop() {
       prev = null;
-      went = false;
+    },
+  };
+}
+/** A tap that opens this many squares or more is an area opening up. */
+const MINES_CASCADE_AT = 6;
+
+/** Mahjong: a tile selected, a pair taken, no match or a tile that can't move, Undo and Reset, the Shuffle and the clear. */
+export function mahjongSounds(): GameSounds<MahjongState> {
+  let prev: MahjongState | null = null;
+  return {
+    frame(state) {
+      beginFrame("mahjong", state);
+      if (prev && state.tick > prev.tick) {
+        if (state.pairs > prev.pairs) ownCue("mahjong.match", "shared.celebrate.countDing", 0.7);
+        else if (state.misses > prev.misses) effectCue("mahjong.invalid");
+        else if (state.sel >= 0 && state.sel !== prev.sel) effectCue("mahjong.select");
+        if (state.blocked > prev.blocked) sfx("mahjong.blocked", "tick", 0.4);
+        if (state.shuffles > prev.shuffles) ownCue("mahjong.shuffle", "shared.celebrate.zap");
+        // mahjongRev 2's Undo and Reset: no recordings of their own, the sounds they had (expansionSounds' tick and zap).
+        if ((state.undos ?? 0) > (prev.undos ?? 0)) playCueSlot("tick", 0.6);
+        if ((state.resets ?? 0) > (prev.resets ?? 0)) playCueSlot("shared.celebrate.zap", 0.6);
+        if (state.clearedTick > 0 && prev.clearedTick === 0) ownCue("mahjong.clear", "shared.celebrate.chime");
+      }
+      prev = state;
+    },
+    stop() {
+      prev = null;
+    },
+  };
+}
+
+
+/** Free Cell: a move placed, a card home, the auto moves home, a refused tap and the solve. */
+export function freecellSounds(): GameSounds<FcState> {
+  let prev: FcState | null = null;
+  return {
+    frame(state) {
+      beginFrame("freecell", state);
+      if (prev && state.tick > prev.tick) {
+        if (prev.tick === 0) effectCue("freecell.shuffle");
+        if (state.moves > prev.moves) sfx("freecell.place", "place", 0.8);
+        const home = fcHomeCount(state) - fcHomeCount(prev);
+        if (state.autos - prev.autos >= 2) sfx("freecell.cascade", "correct", 0.55, 1 + Math.min(0.5, fcHomeCount(state) / 104));
+        else if (home > 0) sfx("freecell.home", "correct", 0.55, 1 + Math.min(0.5, fcHomeCount(state) / 104));
+        if (state.rejects > prev.rejects) sfx("freecell.invalid", "wrong", 0.5);
+        if (state.ended === 1 && prev.ended === 0) sfx("freecell.win", "complete");
+      }
+      prev = state;
+    },
+    stop() {
+      prev = null;
+    },
+  };
+}
+
+/** Free Cell's card lift as a drag starts (the stage calls it; the sim never sees it). */
+export function freecellPick(): void {
+  liveCue("freecell.pick", 60);
+}
+
+/** Summit (TriPeaks): each run card a semitone higher than the last (up to an octave), the stock's next card, peaks, a refused tap and the clear. */
+export function tripeaksSounds(): GameSounds<TpState> {
+  let prev: TpState | null = null;
+  return {
+    frame(state) {
+      beginFrame("tripeaks", state);
+      if (prev && state.tick > prev.tick) {
+        if (prev.tick === 0) effectCue("tripeaks.shuffle");
+        if (state.plays > prev.plays) {
+          if (cueHasFile("tripeaks.run")) sfx("tripeaks.run", "place", 0.8, 2 ** (Math.min(12, Math.max(0, state.run - 1)) / 12), false, true);
+          else sfx("tripeaks.run", state.run >= 3 ? "combo" : "place", 0.8, 1 + Math.min(0.6, state.run * 0.05));
+        }
+        if (state.turns > prev.turns) sfx("tripeaks.deal", "move", 0.8);
+        if (state.peaks > prev.peaks) sfx("tripeaks.peak", "correct", 0.7);
+        if (state.rejects > prev.rejects) sfx("tripeaks.invalid", "wrong", 0.5);
+        if (state.ended === 1 && prev.ended === 0) sfx("tripeaks.clear", "complete");
+      }
+      prev = state;
+    },
+    stop() {
+      prev = null;
+    },
+  };
+}
+
+/** Full House (Poker Squares): a card placed, a hand made (a straight or better the big one), a refused tap and the grid scored. */
+export function pokerSquaresSounds(): GameSounds<PsState> {
+  let prev: PsState | null = null;
+  return {
+    frame(state) {
+      beginFrame("pokersquares", state);
+      if (prev && state.tick > prev.tick) {
+        if (prev.tick === 0) effectCue("pokersquares.shuffle");
+        if (state.next > prev.next) {
+          let best = 0;
+          for (let l = 0; l < PS_LINES; l++) {
+            const after = psLineHand(state.grid, l).points;
+            if (after > psLineHand(prev.grid, l).points) best = Math.max(best, after);
+          }
+          if (best >= PS_BIG_HAND) sfx("pokersquares.bigHand", "correct", 0.8);
+          else if (best > 0) sfx("pokersquares.hand", "correct", 0.8);
+          else if (psTotals(state.grid).total > psTotals(prev.grid).total) sfx("pokersquares.place", "combo", 0.8);
+          else sfx("pokersquares.place", "place", 0.8);
+        }
+        if (state.rejects > prev.rejects) sfx("pokersquares.invalid", "wrong", 0.5);
+        if (state.ended !== 0 && prev.ended === 0) effectCue("pokersquares.final");
+      }
+      prev = state;
+    },
+    stop() {
+      prev = null;
+    },
+  };
+}
+/** A straight or better (points): the big hand. */
+const PS_BIG_HAND = 10;
+
+/**
+ * Five Hands: Full House's sounds (the shared cards, the hands, the scored grid; its bed is music_pokersquares too): a
+ * card placed, a hand made on its row (a straight or better the big one), a refused tap and the rows scored.
+ */
+export function fiveHandsSounds(): GameSounds<FhState> {
+  let prev: FhState | null = null;
+  return {
+    frame(state) {
+      beginFrame("fivehands", state);
+      if (prev && state.tick > prev.tick) {
+        if (prev.tick === 0) effectCue("fivehands.shuffle");
+        if (state.turn > prev.turn) {
+          let best = 0;
+          state.rows.forEach((row, r) => {
+            const after = psHand(row).points;
+            if (after > psHand(prev!.rows[r] ?? []).points) best = Math.max(best, after);
+          });
+          if (best >= PS_BIG_HAND) sfx("fivehands.bigHand", "correct", 0.8);
+          else if (best > 0) sfx("fivehands.hand", "correct", 0.8);
+          else if (fhTotals(state.rows).total > fhTotals(prev.rows).total) sfx("fivehands.place", "combo", 0.8);
+          else sfx("fivehands.place", "place", 0.8);
+        }
+        if (state.rejects > prev.rejects) sfx("fivehands.invalid", "wrong", 0.5);
+        if (state.ended === 1 && prev.ended === 0) ownCue("fivehands.final", "complete");
+        else if (state.ended === 2 && prev.ended === 0) effectCue("fivehands.final");
+      }
+      prev = state;
+    },
+    stop() {
+      prev = null;
     },
   };
 }
