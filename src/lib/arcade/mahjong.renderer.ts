@@ -450,10 +450,11 @@ function drawMahjongWorld(ctx: CanvasRenderingContext2D, s: MahjongState): void 
   }
 }
 
-/** One object for the one revision (a stage resets its run when its game object changes). */
-const MAHJONG_ART_GAME: ArcadeGame<MahjongState, ArcadeInputEvent | null> = { ...mahjongGameFor(), draw: drawMahjong };
-export function mahjongArtGameFor(_rev?: number | null): ArcadeGame<MahjongState, ArcadeInputEvent | null> {
-  return MAHJONG_ART_GAME;
+/** One object per revision (a stage resets its run when its game object changes). */
+const MAHJONG_ART_GAME: ArcadeGame<MahjongState, ArcadeInputEvent | null> = { ...mahjongGameFor(1), draw: drawMahjong };
+const MAHJONG_ART_GAME_V2: ArcadeGame<MahjongState, ArcadeInputEvent | null> = { ...mahjongGameFor(2), draw: drawMahjong };
+export function mahjongArtGameFor(rev?: number | null): ArcadeGame<MahjongState, ArcadeInputEvent | null> {
+  return (rev ?? 1) >= 2 ? MAHJONG_ART_GAME_V2 : MAHJONG_ART_GAME;
 }
 
 export { MAHJONG_TILES, MAHJONG_TILE_W, MAHJONG_TILE_H };

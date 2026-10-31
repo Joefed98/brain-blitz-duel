@@ -71,7 +71,7 @@ carry; a file in their slot plays under the voice line (voice lines duck music).
 | `music.homerun` | Home Run Derby | `music_homerun` | `music_homerun` | 52.0 s loop |
 | `music.freekick` | Free Kick | `music_freekick` | `music_freekick` | 53.7 s loop |
 | `music.racing` | Racing | `music_racing` | `music_racing` | 56.0 s loop |
-| `music.minesweeper` | Minesweeper | `music_minesweeper` | `music_minesweeper` | 55.9 s loop |
+| `music.minesweeper` | Minefield | `music_minesweeper` | `music_minesweeper` | 55.9 s loop |
 | `music.freecell` | FreeCell | `music_freecell` | `music_freecell` | 47.4 s loop |
 | `music.mahjong` | Mahjong Solitaire | `music_mahjong` | `music_mahjong` | 48.0 s loop |
 | `music.tripeaks` | TriPeaks | `music_tripeaks` | `music_tripeaks` | 55.7 s loop |

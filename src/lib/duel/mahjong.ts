@@ -2,14 +2,14 @@
  * Mahjong Solitaire round plumbing (Cards & Board, 30 Oct 2026). The phone sends the seed it played, its taps and
  * Shuffles with the sim tick each applied on, the tick it reached, checkpoints and the score it believes it earned;
  * the server deals the board from the STORED seed, replays the log, validates every payload against the declared
- * ranges and keeps its own score.
+ * ranges and keeps its own score. mahjongRev 2 adds Undo and Reset presses to the log (button `a` 1 and 2).
  */
 import {
   mahjongCheckpoint,
   mahjongCleared,
   mahjongGameFor,
   MAHJONG_CHECKPOINT_INTERVAL,
-  MAHJONG_INPUT_RANGES,
+  mahjongInputRanges,
   MAHJONG_RUN_TICKS,
   type MahjongCheckpoint,
   type MahjongState,
@@ -74,7 +74,7 @@ export function replayMahjongRun(seed: number, raw: string, rev?: number | null)
   const run = decodeMahjongRun(raw);
   const runTicks = game.runTicks;
   const endTick = run.endTick && run.endTick > 0 ? Math.min(run.endTick, runTicks) : 0;
-  const check = checkInputEvents(run.events, runTicks, MAHJONG_INPUT_RANGES);
+  const check = checkInputEvents(run.events, runTicks, mahjongInputRanges(rev));
   const events = new Map<number, ArcadeInputEvent>();
   for (const event of check.events) events.set(event.t, event);
   let state = game.init(seed);

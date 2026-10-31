@@ -402,7 +402,7 @@ Grouped by game or screen. These are the cues still missing a sound.
 | Junction | arcade | practice only | music_junction | `music_junction` |
 | Mahjong Solitaire | arcade | yes | music_mahjong | `music_mahjong` |
 | Meteor | arcade | yes | music_eatgrow | `music_eatgrow` |
-| Minesweeper | arcade | yes | music_minesweeper | `music_minesweeper` |
+| Minefield | arcade | yes | music_minesweeper | `music_minesweeper` |
 | Minigolf | arcade | yes | music_minigolf | `music_minigolf` |
 | Orbit | arcade | yes | music_orbit | `music_orbit` |
 | Pinball | arcade | yes | music_pinball | `music_pinball` |
@@ -1452,17 +1452,17 @@ Grouped by game or screen.
 | `snake.showerAlarm` | Meteor: A meteor shower's three shadows appear (snakeRev 3+) [arcade.md] |  | 1–3 | recorded sound | `arc_retro_note` (shared) | 180 | game event | `snake.showerAlarm` |
 | `music.snake` | Meteor: music_eatgrow |  | loop | recorded sound | `music_eatgrow` | loop | music | `music_eatgrow` |
 
-### Minesweeper
+### Minefield
 
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
 |---|---|---|---|---|---|---|---|---|
-| `minesweeper.reveal` | Minesweeper: A tap opens a square (or a few) [arcade.md] |  | 20–80 | recorded sound | `minesweeper.reveal` | 80 | game event | `minesweeper.reveal` |
-| `minesweeper.cascade` | Minesweeper: A tap opens six or more squares (an area opens) [arcade.md] |  | 2–10 | recorded sound | `minesweeper.cascade` | 604 | game event | `minesweeper.cascade` |
-| `minesweeper.flag` | Minesweeper: A flag is placed [arcade.md] |  | 5–25 | recorded sound | `minesweeper.flag` | 300 | game event | `minesweeper.flag` |
-| `minesweeper.hit` | Minesweeper: A mine is hit (without its file: shared.celebrate.zap, as before) [batch6-sports-cards.md] |  | 0–5 | recorded sound | `minesweeper.hit` | 474 | game event | `minesweeper.hit` |
-| `minesweeper.clear` | Minesweeper: Every safe square open (without its file: shared.celebrate.chime, as before) [batch6-sports-cards.md] |  | 0–1 | recorded sound | `minesweeper.clear` | 998 | game event | `minesweeper.clear` |
-| `minesweeper.unflag` | Minesweeper: A flag is lifted [batch6-sports-cards.md] |  | 0–10 | recorded sound | `minesweeper.unflag` | 350 | game event | `minesweeper.unflag` |
-| `music.minesweeper` | Minesweeper: music_minesweeper |  | loop | recorded sound | `music_minesweeper` | 55900 | music | `music_minesweeper` |
+| `minesweeper.reveal` | Minefield: A tap opens a square (or a few) [arcade.md] |  | 20–80 | recorded sound | `minesweeper.reveal` | 80 | game event | `minesweeper.reveal` |
+| `minesweeper.cascade` | Minefield: A tap opens six or more squares (an area opens) [arcade.md] |  | 2–10 | recorded sound | `minesweeper.cascade` | 604 | game event | `minesweeper.cascade` |
+| `minesweeper.flag` | Minefield: A flag is placed [arcade.md] |  | 5–25 | recorded sound | `minesweeper.flag` | 300 | game event | `minesweeper.flag` |
+| `minesweeper.hit` | Minefield: A mine is hit (without its file: shared.celebrate.zap, as before) [batch6-sports-cards.md] |  | 0–5 | recorded sound | `minesweeper.hit` | 474 | game event | `minesweeper.hit` |
+| `minesweeper.clear` | Minefield: Every safe square open (without its file: shared.celebrate.chime, as before) [batch6-sports-cards.md] |  | 0–1 | recorded sound | `minesweeper.clear` | 998 | game event | `minesweeper.clear` |
+| `minesweeper.unflag` | Minefield: A flag is lifted [batch6-sports-cards.md] |  | 0–10 | recorded sound | `minesweeper.unflag` | 350 | game event | `minesweeper.unflag` |
+| `music.minesweeper` | Minefield: music_minesweeper |  | loop | recorded sound | `music_minesweeper` | 55900 | music | `music_minesweeper` |
 
 ### Minigolf
 

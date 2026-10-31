@@ -6,11 +6,16 @@ import { mahjongFill } from "@/lib/arcade/arenaFills.renderer";
 import {
   mahjongCheckpoint,
   mahjongSlotAt,
+  MAHJONG_BUTTON_RESET,
+  MAHJONG_BUTTON_SHUFFLE,
+  MAHJONG_BUTTON_UNDO,
   MAHJONG_CHECKPOINT_INTERVAL,
+  MAHJONG_INPUT_BUTTON,
   MAHJONG_INPUT_SHUFFLE,
   MAHJONG_INPUT_TAP,
   MAHJONG_PAIRS,
-  MAHJONG_REV_STD,
+  MAHJONG_REV_DEALT,
+  MAHJONG_REV_UNDO,
   MAHJONG_RUN_TICKS,
   MAHJONG_SHUFFLE_COST,
   MAHJONG_WORLD_H,
@@ -76,6 +81,8 @@ function mahjongSounds(onState: (s: MahjongState) => void) {
 function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const data: MahjongPuzzleData | null = puzzle.type === "mahjong" ? puzzle : null;
   const game = mahjongArtGameFor(data?.mahjongRev);
+  /** mahjongRev 2: Undo and Reset beside Shuffle. */
+  const undo = (data?.mahjongRev ?? 1) >= MAHJONG_REV_UNDO;
   /** The board the player is looking at (the last drawn frame), so a tap picks the tile they saw on top. */
   const shown = useRef<MahjongState | null>(null);
   const sounds = useRef(mahjongSounds((s) => (shown.current = s)));
@@ -110,22 +117,53 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         discrete
         pointer={pointer}
         keys={(kind, key, send) => {
-          // S shuffles.
+          // S shuffles; on rev 2, Z (or U) undoes and R resets.
           if (key === "s" || key === "S") {
-            if (kind === "down") send({ k: MAHJONG_INPUT_SHUFFLE, a: 0, b: 0, c: 0 });
+            if (kind === "down") send({ k: MAHJONG_INPUT_SHUFFLE, a: MAHJONG_BUTTON_SHUFFLE, b: 0, c: 0 });
+            return true;
+          }
+          if (undo && (key === "z" || key === "Z" || key === "u" || key === "U")) {
+            if (kind === "down") send({ k: MAHJONG_INPUT_BUTTON, a: MAHJONG_BUTTON_UNDO, b: 0, c: 0 });
+            return true;
+          }
+          if (undo && (key === "r" || key === "R")) {
+            if (kind === "down") send({ k: MAHJONG_INPUT_BUTTON, a: MAHJONG_BUTTON_RESET, b: 0, c: 0 });
             return true;
           }
           return false;
         }}
         footer={(send) => (
-          // The Shuffle button in the bottom corner, within thumb reach; its row ends 16 px above the bottom like every arcade control row.
-          <div data-game-controls="shuffle" className="flex h-[52px] shrink-0 items-center justify-end">
+          // The Shuffle button in the bottom corner, within thumb reach (rev 2: Undo and Reset, smaller, beside it); its row
+          // ends 16 px above the bottom like every arcade control row.
+          <div data-game-controls="shuffle" className="flex h-[52px] shrink-0 items-center justify-end gap-2">
+            {undo ? (
+              <>
+                <ArcadeControlButton
+                  type="button"
+                  aria-label="Undo"
+                  disabled={locked}
+                  className="h-[44px] rounded-xl border-2 border-foreground/30 bg-background/40 px-3.5 text-[14px] font-bold text-foreground hover:bg-background/40 active:bg-foreground/15"
+                  onPressStart={() => send({ k: MAHJONG_INPUT_BUTTON, a: MAHJONG_BUTTON_UNDO, b: 0, c: 0 })}
+                >
+                  ↶ Undo
+                </ArcadeControlButton>
+                <ArcadeControlButton
+                  type="button"
+                  aria-label="Reset"
+                  disabled={locked}
+                  className="h-[44px] rounded-xl border-2 border-foreground/30 bg-background/40 px-3.5 text-[14px] font-bold text-foreground hover:bg-background/40 active:bg-foreground/15"
+                  onPressStart={() => send({ k: MAHJONG_INPUT_BUTTON, a: MAHJONG_BUTTON_RESET, b: 0, c: 0 })}
+                >
+                  ⤺ Reset
+                </ArcadeControlButton>
+              </>
+            ) : null}
             <ArcadeControlButton
               type="button"
               aria-label={`Shuffle (−${MAHJONG_SHUFFLE_COST})`}
               disabled={locked}
               className="h-[52px] rounded-xl border-2 border-primary/70 bg-background/40 px-5 text-[15px] font-extrabold text-primary hover:bg-background/40 shadow-[0_0_12px_rgba(245,184,46,0.22)] active:bg-primary/25"
-              onPressStart={() => send({ k: MAHJONG_INPUT_SHUFFLE, a: 0, b: 0, c: 0 })}
+              onPressStart={() => send({ k: MAHJONG_INPUT_SHUFFLE, a: MAHJONG_BUTTON_SHUFFLE, b: 0, c: 0 })}
             >
               {`⟳ Shuffle −${MAHJONG_SHUFFLE_COST}`}
             </ArcadeControlButton>
@@ -162,7 +200,7 @@ export const mahjongPuzzle: PuzzleDefinition = {
   category: "arcade",
   timeLimitMs: (MAHJONG_RUN_TICKS / TICKS_PER_SECOND) * 1000 + 3000,
   revealMs: 6_000,
-  generate: () => ({ type: "mahjong", seed: 1, mahjongRev: MAHJONG_REV_STD }) satisfies MahjongPuzzleData,
+  generate: () => ({ type: "mahjong", seed: 1, mahjongRev: MAHJONG_REV_DEALT }) satisfies MahjongPuzzleData,
   check: () => false,
   revealHeading: "Your run",
   IntroExample,

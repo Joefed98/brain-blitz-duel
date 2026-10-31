@@ -140,9 +140,9 @@ when the run starts. Rooms deal Pinball since 14 Oct 2026; Junction is practice 
 | `minigolf.stone` | Minigolf | The ball bounces off a boulder or a planter | `arc_bounce` (0.6) | 0–20 | 300 ms |
 | `freekick.wall` | Free Kick | The wall blocks the kick | `arc_wood_knock` (0.65, rate 0.85) | 0–10 | 300 ms |
 | `pool.click` | Speed Pool | Ball meets ball | `tick` (0.5, overlapping) | 10–60 | 200 ms |
-| `minesweeper.reveal` | Minesweeper | A tap opens a square (or a few) | `tick` (0.6) | 20–80 | 80 ms |
-| `minesweeper.cascade` | Minesweeper | A tap opens six or more squares (an area opens) | `tick` (0.6) | 2–10 | 604 ms |
-| `minesweeper.flag` | Minesweeper | A flag is placed | `tick` (0.35) | 5–25 | 300 ms |
+| `minesweeper.reveal` | Minefield | A tap opens a square (or a few) | `tick` (0.6) | 20–80 | 80 ms |
+| `minesweeper.cascade` | Minefield | A tap opens six or more squares (an area opens) | `tick` (0.6) | 2–10 | 604 ms |
+| `minesweeper.flag` | Minefield | A flag is placed | `tick` (0.35) | 5–25 | 300 ms |
 | `mahjong.blocked` | Mahjong Solitaire | A tap on a covered or hemmed-in tile | `tick` (0.4) | 0–10 | 300 ms |
 | `freecell.place` | FreeCell | A move made (a tap or a drag) | `place` (0.8) | 40–120 | 300 ms |
 | `freecell.home` | FreeCell | A card goes home (one auto move, or the player's) | `correct` (0.55, rising with the cards home) | 10–52 | 150 ms |

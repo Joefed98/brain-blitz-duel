@@ -1231,7 +1231,7 @@ export function racingSounds(): GameSounds<RacingState> {
 
 /* ============================ Cards & Board (30 Oct 2026) ============================ */
 
-/** Minefield: a square opened (an area opening is the cascade), flags placed and lifted, a mine and the clear. */
+/** Minefield (minesweeper): a square opened (an area opening is the cascade), flags placed and lifted, a mine and the clear. */
 export function minesweeperSounds(): GameSounds<MinesState> {
   let prev: MinesState | null = null;
   return {
@@ -1257,7 +1257,7 @@ export function minesweeperSounds(): GameSounds<MinesState> {
 /** A tap that opens this many squares or more is an area opening up. */
 const MINES_CASCADE_AT = 6;
 
-/** Mahjong: a tile selected, a pair taken, no match or a tile that can't move, the Shuffle and the clear. */
+/** Mahjong: a tile selected, a pair taken, no match or a tile that can't move, Undo and Reset, the Shuffle and the clear. */
 export function mahjongSounds(): GameSounds<MahjongState> {
   let prev: MahjongState | null = null;
   return {
@@ -1269,6 +1269,9 @@ export function mahjongSounds(): GameSounds<MahjongState> {
         else if (state.sel >= 0 && state.sel !== prev.sel) effectCue("mahjong.select");
         if (state.blocked > prev.blocked) sfx("mahjong.blocked", "tick", 0.4);
         if (state.shuffles > prev.shuffles) ownCue("mahjong.shuffle", "shared.celebrate.zap");
+        // mahjongRev 2's Undo and Reset: no recordings of their own, the sounds they had (expansionSounds' tick and zap).
+        if ((state.undos ?? 0) > (prev.undos ?? 0)) playCueSlot("tick", 0.6);
+        if ((state.resets ?? 0) > (prev.resets ?? 0)) playCueSlot("shared.celebrate.zap", 0.6);
         if (state.clearedTick > 0 && prev.clearedTick === 0) ownCue("mahjong.clear", "shared.celebrate.chime");
       }
       prev = state;
