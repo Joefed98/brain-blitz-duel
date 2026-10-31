@@ -7,15 +7,19 @@ import {
   RACING_BG,
   RACING_CHECKPOINT_INTERVAL,
   RACING_INPUT_STICK,
+  RACING_REV_2,
+  RACING_REV_DEALT,
   RACING_STICK_MAX,
   RACING_WORLD_H,
   RACING_WORLD_W,
   type RacingState,
 } from "@/lib/arcade/racing";
 import {
-  drawRacingArt,
+  drawRacingPlay,
   paintRacingTile,
+  racingAmbient,
   racingScene,
+  racingSteerThrow,
   RACING_STICK_R,
   RACING_STICK_TOP,
   setRacingGhosts,
@@ -32,7 +36,7 @@ import { canvasRatio } from "@/lib/battery";
 
 const STILL = 200;
 
-/** Fixed intro still: the chase view at sunset, the car on the start straight. */
+/** Fixed intro still: the chase view at sunset, the car on the start straight (Apex). */
 function IntroExample() {
   const ref = useRef<HTMLCanvasElement | null>(null);
   useEffect(() => {
@@ -49,22 +53,35 @@ function IntroExample() {
     <div className="flex w-full flex-col items-center gap-2">
       <canvas ref={ref} width={STILL} height={STILL} aria-hidden="true" style={{ width: STILL, height: STILL, background: RACING_BG, borderRadius: 10 }} />
       <p className="text-center text-xs text-muted-foreground">
-        Thumb stick: up to accelerate, down to brake, left and right to steer. Two laps; keep off the grass.
+        Five red lights, then go. Thumb stick: up to accelerate, down to brake, left and right to steer. Two laps; keep off the grass.
       </p>
     </div>
   );
 }
 
 /** A stick offset (world px) to a joystick payload: −100…100 each way, in steps of 5, with a small dead zone. */
-function stickValue(d: number): number {
-  const v = Math.max(-RACING_STICK_MAX, Math.min(RACING_STICK_MAX, (d / RACING_STICK_R) * RACING_STICK_MAX));
+function stickValue(d: number, reach = RACING_STICK_R): number {
+  const v = Math.max(-RACING_STICK_MAX, Math.min(RACING_STICK_MAX, (d / reach) * RACING_STICK_MAX));
   if (Math.abs(v) < 8) return 0;
+  return Math.round(v / 5) * 5;
+}
+
+/**
+ * racingRev 2's steer: the thumb's offset over the longer throw (RACING_V2_STEER_R for full lock), in steps of 5 with
+ * no dead zone here: the sim's own dead zone, expo and smoothing take it from there (racingV2SteerTarget).
+ */
+function steerValueV2(d: number, reach: number): number {
+  const v = Math.max(-RACING_STICK_MAX, Math.min(RACING_STICK_MAX, (d / reach) * RACING_STICK_MAX));
   return Math.round(v / 5) * 5;
 }
 
 function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const data: RacingPuzzleData | null = puzzle.type === "racing" ? puzzle : null;
-  const game = useMemo(() => ({ ...racingGameFor(data?.racingRev), draw: drawRacingArt }), [data?.racingRev]);
+  // The play screen draws the world and the view beyond it on the screen's fill (racingAmbient).
+  const game = useMemo(() => ({ ...racingGameFor(data?.racingRev), draw: drawRacingPlay }), [data?.racingRev]);
+  const v2 = (data?.racingRev ?? 1) >= RACING_REV_2;
+  const reach = racingSteerThrow(data?.racingRev);
+  const steer = (d: number) => (v2 ? steerValueV2(d, reach) : stickValue(d));
   const origin = useRef<{ x: number; y: number } | null>(null);
   const keys = useRef(new Set<string>());
   const ghosts = useRaceGhosts();
@@ -105,6 +122,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       background={RACING_BG}
       fitWorld
       scene={racingScene}
+      ambient={racingAmbient}
       seed={data?.seed ?? 1}
       enabled={data !== null}
       locked={locked}
@@ -121,12 +139,12 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
           if (y < RACING_STICK_TOP) return null;
           // The stick's base appears under the thumb (kept inside the world).
           const o = {
-            x: Math.max(RACING_STICK_R, Math.min(RACING_WORLD_W - RACING_STICK_R, x)),
+            x: Math.max(reach, Math.min(RACING_WORLD_W - reach, x)),
             y: Math.max(RACING_STICK_TOP, Math.min(RACING_WORLD_H - RACING_STICK_R / 2, y)),
           };
           origin.current = o;
           setRacingStick(o);
-          return { k: RACING_INPUT_STICK, a: stickValue(x - o.x), b: stickValue(o.y - y), c: 0 };
+          return { k: RACING_INPUT_STICK, a: steer(x - o.x), b: stickValue(o.y - y), c: 0 };
         }
         const o = origin.current;
         if (kind === "up" || !o) {
@@ -134,7 +152,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
           setRacingStick(null);
           return { k: RACING_INPUT_STICK, a: 0, b: 0, c: 0 };
         }
-        return { k: RACING_INPUT_STICK, a: stickValue(x - o.x), b: stickValue(o.y - y), c: 0 };
+        return { k: RACING_INPUT_STICK, a: steer(x - o.x), b: stickValue(o.y - y), c: 0 };
       }}
       keys={(kind, key, send) => {
         const name =
@@ -165,7 +183,7 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   // What the run did, part by part (the points are the stored score's, shown by the arcade reveal above).
   const lines = result.parts.map((part) => `${part.label}: ${part.detail}`);
   const headline = result.finished
-    ? `Finished in ${(result.finishTick / 60).toFixed(1)} s`
+    ? `Finished in ${(result.raceTicks / 60).toFixed(1)} s`
     : `${(result.distancePermille / 10).toFixed(1)}% of the race`;
   return (
     <div className="flex min-h-0 w-full flex-1 flex-col items-center justify-start gap-2 overflow-y-auto">
@@ -182,14 +200,14 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   );
 }
 
-/** The seed is dealt on the server from the proved deal (racingDeal.server.ts); every run is replayed there for scoring. */
+/** The seed is dealt on the server from the proved deal (racingDealV2.server.ts); every run is replayed there for scoring. */
 export const racingPuzzle: PuzzleDefinition = {
   key: "racing",
   name: gameDisplayName("racing"),
   category: "arcade",
   timeLimitMs: RACING_TIME_MS,
   revealMs: 6_000,
-  generate: () => ({ type: "racing", seed: 1, racingRev: 1 }) satisfies RacingPuzzleData,
+  generate: () => ({ type: "racing", seed: 1, racingRev: RACING_REV_DEALT }) satisfies RacingPuzzleData,
   check: () => false,
   revealHeading: "Your run",
   IntroExample,

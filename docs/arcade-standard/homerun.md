@@ -1,4 +1,8 @@
-# Home Run Derby on the arcade scoring standard (homerunRev 1, 30 Oct 2026)
+# Home Run on the arcade scoring standard (homerunRev 1, 30 Oct 2026; homerunRev 2, 31 Oct 2026)
+
+Shown as **Home Run** since 31 Oct 2026 (was Home Run Derby; the id `homerun` is unchanged). Rooms deal
+**homerunRev 2** since then (section "homerunRev 2" at the end); everything above it describes rev 1, which every rev-2
+rule keeps unless that section says otherwise.
 
 A new arcade game (`homerun`, the Sports group): ten seeded pitches in 60 s, one about every 6 s, swung at from the
 hitter's eye level in a night ballpark. Rooms deal **`homerunRev 1`** (`HOMERUN_REV_STD`); it is born on the standard
@@ -98,3 +102,83 @@ the pitch type and speed). A faint dashed strike-zone box. No instruction text o
 - **Swing start**: 12 px of finger travel; the angle is read from those first 12 px (a quick, decisive swipe aims best).
 - **Signs**: worded "450 CLUB", "DEEP", "LIGHTS OUT", "JOULZ", "MOONSHOT" (no real brands).
 - **Music**: no track of its own yet (borrows High Rise's).
+
+## homerunRev 2 (31 Oct 2026, the Sports tuning batch)
+
+Rooms deal **`homerunRev 2`** (`HOMERUN_REV_DEALT`) from its own proved deal, `src/lib/duel/homerunDealV2.server.ts`
+(`bun scripts/homerun-deal.ts --rev=2`; 300 seeds, each the oracle's run scoring exactly 200 on rev 2 through the server
+replay, 0 dropped). Rev-1 rounds replay and score exactly as before: `homerunGameFor(1)` is the old game and
+homerun-check replays 54 rev-1 runs recorded on main b154694 (`scripts/fixtures/homerun-rev1-legacy.json`, written by
+`scripts/homerun-rev2-legacy.ts`: every skill-band level, random swipes, edge swings) to the same score, final checksum
+and end tick. The rev-1 deal file is unchanged byte for byte.
+
+### What changes (gameplay, gated on the stamp)
+
+- **Finer aim.** The spray is 9/16 of the swipe angle (rev 1 three quarters) and fair to ±80° of swipe (rev 1 ±60°):
+  the same aiming error moves the ball a quarter less, and pull / centre / opposite field each take a wider band of
+  swipe. A sign (±6° wide) now needs the swipe within about ±10.7° of its angle (rev 1 ±8°).
+- **A longer chord.** The phone starts the swing after 18 px of finger travel (rev 1 12 px), so the swipe's angle is
+  read over a longer stroke (`homerunSwingStartPx`).
+- Unchanged: the plan (pitches, timing, plate points, signs), contact quality, carry, the fence, the parts and their
+  maximums, the run's length.
+
+### What changes (display only, every revision)
+
+- **The camera** is behind the plate, just over the batter's right shoulder; the whole batter is drawn (helmet, body,
+  hands and the bat) as a jointed 3-D figure through the same camera as the field. The strike zone and every pitch's
+  plate point are the sim's own world px, unchanged.
+- **The swing** is a full animation: load, the bat laid flat behind, the barrel whipped through the zone, follow-through
+  and finish, then back to the stance. It starts on the sim's swing tick and the bat's sweet spot reaches the plate on
+  the contact tick at the swipe's height (tilted out in front for a pull, deeper for the opposite field), so an early
+  or late swing visibly passes before or after the ball, and a miss swings through empty air.
+- **Reading the pitch:** nothing names the pitch before it is thrown (the old "DROP 85" chip is gone). The radar board
+  in the upper deck lights with the pitch type and its speed once the pitch is decided, for about 3 s.
+- **After every swing:** EARLY / PERFECT / LATE (with the milliseconds off) and a small timing meter under the call, and
+  over the zone the bat's line at the swipe's height against a ring where the ball crossed (gold within the 4 px sweet
+  band).
+- **The park:** a denser, varied crowd (caps, standing fans) on two tiers with the LED ribbon, floodlight banks along the
+  roof, the outfield in mowed bands, the infield's dirt arc, grass diamond, mound and base-path cut-outs, the plate's
+  dirt with chalk boxes; after a home run the crowd jumps with arms up under a storm of camera flashes.
+- **No dead strip, no side bars:** the static park is painted out to any extent and the play screen's scenery
+  (`homerunScene`) is that same park carried on beyond the world, so the box fills edge to edge at 414×896 and 375×667
+  with no seam.
+
+### The parts (unchanged, 200 in all)
+
+Distance 130 (straight line, full at 450 ft a pitch) + Home runs 50 (5 each) + Sign hits 20 (5 a sign) = 200
+(`HOMERUN_STD_SPEC_V2`, rev 1's parts with `rev: 2`). No speed part, so there is no full-by time; the only fixed
+target is the core's 450 ft a pitch.
+
+### Medians, weak → flawless (`bun scripts/homerun-bands.ts`, rev 2's deal for room seeds 0–59, server replay)
+
+The bots read the pitch from the hand and flight alone on rev 2 (timing spread a fifth wider on every kind, a fifth
+less of the late break read) and aim through the 9/16 mapping with the same pointing error in degrees of swipe.
+
+| Level | Score | Distance (130) | Home runs (50) | Signs (20) | Avg ft a pitch | HR | Signs |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| Random | 1 | 0 | 0 | 0 | 0 | 0 | 0 |
+| Weak | 42 | 34 | 5 | 0 | 121 | 1 | 0 |
+| Average | 65 | 55 | 5 | 0 | 191 | 1 | 0 |
+| Good | 105 | 84 | 15 | 5 | 290 | 3 | 1 |
+| Great | 154 | 109 | 30 | 15 | 377 | 6 | 3 |
+| Near-perfect | 186 | 122 | 45 | 20 | 422 | 9 | 4 |
+| Elite | 195 | 126 | 50 | 20 | 437 | 10 | 4 |
+| Flawless | 200 | 130 | 50 | 20 | 450 | 10 | 4 |
+
+Fresh seeds (n = 10000–10099, rev 2): 38 / 67 / 105 / 148 / 187 / 195 / 200. Rev 1 on the same tool (for comparison):
+46 / 71 / 114 / 163 / 190 / 197 / 200. Hiding the pitch costs the middle levels 5–10 points; the finer aim gives a
+little back at the top.
+
+### Review shots
+
+`bun scripts/shots/homerun-tuning-shots.ts --url=<dev origin>` (a near-perfect bot's run warped in at its ninth swing,
+`src/lib/arcade/devWarp.ts`, development only; the grade request carries that run): `screenshots/sports-tuning-oct-2026/
+homerun-<414x896|375x667>-<midrun|reveal>.png`, plus `homerun-swing-frames.png` (the swing frame by frame, drawn
+offline by `scripts/shots/homerun-swing-frames.ts`).
+
+### Decisions for Joe
+
+- The aim ratio (9/16) and the 18 px chord: a steadier aim at the cost of a swing that starts a few milliseconds later
+  in the stroke.
+- The timing word calls only an exact tick PERFECT; one tick (17 ms) either side already reads EARLY / LATE.
+- The radar board reads out after the pitch is decided, not as it crosses (it would otherwise tell a late swinger).

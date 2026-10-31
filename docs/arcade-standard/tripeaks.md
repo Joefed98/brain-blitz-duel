@@ -1,4 +1,16 @@
-# TriPeaks on the arcade scoring standard (tripeaksRev 1, 30 Oct 2026)
+# Summit (`tripeaks`) on the arcade scoring standard (tripeaksRev 1, 30 Oct 2026)
+
+Shown as **Summit** since 31 Oct 2026 (was TriPeaks; the id stays `tripeaks`). No gameplay change: the 60 s run from the
+30 Oct review is in (`TP_RUN_TICKS` = 3,600, `TRIPEAKS_TIME_MS` 63 s). Re-measured 31 Oct 2026 on room seeds 0–99:
+
+| Level | Weak | Average | Good | Great | Near-perfect | Elite | Flawless |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| score, median (p10–p90) | 99 (82–114) | 131 (112–153) | 177 (125–186) | 184 (137–192) | 192 (187–196) | 192 (188–198) | 200 |
+| cleared | 0/100 | 7/100 | 56/100 | 54/100 | 97/100 | 97/100 | 100/100 |
+| finish, median | — | 56.6 s | 48.3 s | 34.9 s | 27.0 s | 21.2 s | 13.3 s |
+
+Speed stays full by **27 s** (the near-perfect median, 27.0 s).
+
 
 A new Arcade game in the Cards & Board group, born on the standard: `tripeaks`, 60 s run (63 s round clock; 90 s until
 the 30 Oct 2026 review, before rooms dealt it: near-perfect play cleared in about 27 s of 90).

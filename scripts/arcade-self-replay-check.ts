@@ -16,15 +16,18 @@
  *   bun scripts/arcade-self-replay-check.ts [runsPerGame] [keys,…] [--part=k/n]
  */
 
-import { homerunCheckpoint, homerunGameFor, HOMERUN_CHECKPOINT_INTERVAL, HOMERUN_REV_STD } from "../src/lib/arcade/homerun";
+import { homerunCheckpoint, homerunGameFor, HOMERUN_CHECKPOINT_INTERVAL, HOMERUN_REV_2, HOMERUN_REV_STD } from "../src/lib/arcade/homerun";
 import { encodeHomerunRun, replayHomerunRun } from "../src/lib/duel/homerun";
 import { HOMERUN_DEAL } from "../src/lib/duel/homerunDeal.server";
-import { freekickCheckpoint, freekickGameFor, FREEKICK_CHECKPOINT_INTERVAL, FREEKICK_REV_STD } from "../src/lib/arcade/freekick";
+import { HOMERUN_DEAL_V2 } from "../src/lib/duel/homerunDealV2.server";
+import { freekickCheckpoint, freekickGameFor, FREEKICK_CHECKPOINT_INTERVAL, FREEKICK_REV_2, FREEKICK_REV_STD } from "../src/lib/arcade/freekick";
 import { encodeFreekickRun, replayFreekickRun } from "../src/lib/duel/freekick";
 import { FREEKICK_DEAL } from "../src/lib/duel/freekickDeal.server";
-import { racingCheckpoint, racingGameFor, RACING_CHECKPOINT_INTERVAL, RACING_REV_STD } from "../src/lib/arcade/racing";
+import { FREEKICK_DEAL_V2 } from "../src/lib/duel/freekickDealV2.server";
+import { racingCheckpoint, racingGameFor, RACING_CHECKPOINT_INTERVAL, RACING_REV_2, RACING_REV_STD } from "../src/lib/arcade/racing";
 import { encodeRacingRun, replayRacingRun } from "../src/lib/duel/racing";
 import { RACING_DEAL } from "../src/lib/duel/racingDeal.server";
+import { RACING_DEAL_V2 } from "../src/lib/duel/racingDealV2.server";
 import {
   inputAt,
   recordInput,
@@ -149,12 +152,13 @@ import { BEAT_REV_STD } from "@/lib/arcade/beat";
 import { encodePinballRun, replayPinballRun } from "@/lib/duel/pinball";
 import { minesCheckpoint, minesweeperGameFor, MINES_REV_STD } from "@/lib/arcade/minesweeper";
 import { encodeMinesweeperRun, replayMinesweeperRun } from "@/lib/duel/minesweeper";
-import { mahjongCheckpoint, mahjongGameFor, MAHJONG_REV_STD } from "@/lib/arcade/mahjong";
+import { mahjongCheckpoint, mahjongGameFor, MAHJONG_REV_STD, MAHJONG_REV_UNDO } from "@/lib/arcade/mahjong";
 import { encodeMahjongRun, replayMahjongRun } from "@/lib/duel/mahjong";
-import { fcCheckpoint, freecellGame } from "@/lib/arcade/cards/freecell";
+import { fcCheckpoint, freecellGame, freecellGameFor } from "@/lib/arcade/cards/freecell";
 import { tpCheckpoint, tripeaksGame } from "@/lib/arcade/cards/tripeaks";
-import { psCheckpoint, pokerSquaresGame } from "@/lib/arcade/cards/pokerSquares";
-import { encodeFreecellRun, encodePokerSquaresRun, encodeTripeaksRun, replayFreecellRun, replayPokerSquaresRun, replayTripeaksRun } from "@/lib/duel/cards";
+import { psCheckpoint, pokerSquaresGame, pokerSquaresGameFor } from "@/lib/arcade/cards/pokerSquares";
+import { fhCheckpoint, fiveHandsGame } from "@/lib/arcade/cards/fiveHands";
+import { encodeFiveHandsRun, encodeFreecellRun, encodePokerSquaresRun, encodeTripeaksRun, replayFiveHandsRun, replayFreecellRun, replayPokerSquaresRun, replayTripeaksRun } from "@/lib/duel/cards";
 import { minigolfCheckpoint, minigolfGameFor } from "@/lib/arcade/minigolf";
 import { encodeMinigolfRun, replayMinigolfRun } from "@/lib/duel/minigolf";
 import { MINIGOLF_BANK } from "@/lib/duel/minigolfBank.server";
@@ -832,6 +836,19 @@ const GAMES: Game[] = [
   { key: "pool", game: poolGameFor(POOL_REV), seedFor: (n: number) => POOL_BANK[n % POOL_BANK.length]!, checkpoint: poolCheckpoint, mode: "events", rate: 40, encode: encodePoolRun, replay: (seed: number, raw: string) => replayPoolRun(seed, raw, POOL_REV) },
   // Curling curlRev 1 (bank sheets), appended after them.
   { key: "curling", game: curlingGameFor(), seedFor: (n: number) => CURLING_BANK[n % CURLING_BANK.length]!, checkpoint: curlingCheckpoint, mode: "events", rate: 40, encode: encodeCurlingRun, replay: (seed: number, raw: string) => replayCurlingRun(seed, raw, CURLING_REV) },
+  // Mahjong mahjongRev 2 (31 Oct 2026: Undo and Reset), appended so every earlier entry keeps its index: random taps,
+  // Shuffles, Undos and Resets.
+  { key: "mahjong/undo", game: mahjongGameFor(MAHJONG_REV_UNDO), checkpoint: mahjongCheckpoint, mode: "events", rate: 80, encode: encodeMahjongRun, replay: (seed: number, raw: string) => replayMahjongRun(seed, raw, MAHJONG_REV_UNDO) },
+  // Free Cell freecellRev 2 (Undo and Reset), Full House pokerSquaresRev 2 (full at the elite median) and Five Hands
+  // fiveHandsRev 1 (31 Oct 2026), appended so every earlier entry keeps its index.
+  { key: "freecell", game: freecellGameFor(2), checkpoint: fcCheckpoint, mode: "events", rate: 120, encode: encodeFreecellRun, replay: (seed: number, raw: string) => replayFreecellRun(seed, raw, 2), seedFor: (n: number) => n % 300 },
+  { key: "pokersquares", game: pokerSquaresGameFor(2), checkpoint: psCheckpoint, mode: "events", rate: 60, encode: encodePokerSquaresRun, replay: (seed: number, raw: string) => replayPokerSquaresRun(seed, raw, 2) },
+  { key: "fivehands", game: fiveHandsGame, checkpoint: fhCheckpoint, mode: "events", rate: 60, encode: encodeFiveHandsRun, replay: (seed: number, raw: string) => replayFiveHandsRun(seed, raw, 1) },
+  // The Sports tuning (31 Oct 2026; Home Run homerunRev 2, Top Bins freekickRev 2, Apex racingRev 2), appended so every
+  // earlier entry keeps its index: each on its rev-2 proved deal's seeds.
+  { key: "homerun/v2", interval: HOMERUN_CHECKPOINT_INTERVAL, game: homerunGameFor(HOMERUN_REV_2), checkpoint: homerunCheckpoint, mode: "events", rate: 20, encode: encodeHomerunRun, replay: (seed: number, raw: string) => replayHomerunRun(seed, raw, HOMERUN_REV_2), seedFor: (n: number) => HOMERUN_DEAL_V2[n % HOMERUN_DEAL_V2.length]! },
+  { key: "freekick/v2", interval: FREEKICK_CHECKPOINT_INTERVAL, game: freekickGameFor(FREEKICK_REV_2), checkpoint: freekickCheckpoint, mode: "events", rate: 20, encode: encodeFreekickRun, replay: (seed: number, raw: string) => replayFreekickRun(seed, raw, FREEKICK_REV_2), seedFor: (n: number) => FREEKICK_DEAL_V2[n % FREEKICK_DEAL_V2.length]! },
+  { key: "racing/v2", interval: RACING_CHECKPOINT_INTERVAL, game: racingGameFor(RACING_REV_2), checkpoint: racingCheckpoint, mode: "events", rate: 120, encode: encodeRacingRun, replay: (seed: number, raw: string) => replayRacingRun(seed, raw, RACING_REV_2), seedFor: (n: number) => RACING_DEAL_V2[n % RACING_DEAL_V2.length]! },
 ];
 
 /** A random candidate event, often outside the declared range (a finger off the edge). */

@@ -102,6 +102,8 @@ const RAISED: PuzzleType[] = [
   "minesweeper", "mahjong",
   // Cards & Board (30 Oct 2026, docs/arcade-standard/freecell.md, tripeaks.md, pokersquares.md): born on the standard.
   "freecell", "tripeaks", "pokersquares",
+  // Five Hands (31 Oct 2026, docs/arcade-standard/fivehands.md): born on the standard.
+  "fivehands",
 ];
 /** The games still at 150: section 2 raises each of them in turn. */
 const TYPES = ALL_TYPES.filter((t) => ROUND_MAX[t] === DEFAULT_ROUND_MAX);

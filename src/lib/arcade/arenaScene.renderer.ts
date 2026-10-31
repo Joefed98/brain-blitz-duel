@@ -89,6 +89,7 @@ export const ARENA_SCENE_GAMES = [
   "freecell",
   "tripeaks",
   "pokersquares",
+  "fivehands",
 ] as const;
 
 /**

@@ -131,7 +131,8 @@ when the run starts. Rooms deal Pinball since 14 Oct 2026; Junction is practice 
 | `freekick.goal` | Free Kick | A goal | `arc_fair_sting` | 0–10 | 480 ms |
 | `freekick.target` | Free Kick | A target hit | `arc_fair_bell` | 0–4 | 480 ms |
 | `freekick.net` | Free Kick | The ball hits the net | `arc_bounce` | 0–10 | 200 ms |
-| `racing.go` | Racing | The race starts | `arc_horn` | 1 | 300 ms |
+| `racing.light` | Apex | A red start light comes on (racingRev 2; five a race) | `countdown_step` | 5 | 251 ms |
+| `racing.go` | Apex | The race starts (racingRev 2: lights out; racingRev 1: the first throttle) | `arc_horn` | 1 | 300 ms |
 | `racing.lap` | Racing | A lap is completed | `arc_fair_bell` | 1–2 | 480 ms |
 | `racing.sector` | Racing | A clean sector | `arc_retro_coin` | 0–8 | 200 ms |
 | `racing.wall` | Racing | The car hits the tyre wall | `arc_crash` | 0–10 | 200 ms |

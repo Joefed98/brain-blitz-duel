@@ -63,6 +63,7 @@ const REV_KEY: Record<string, string> = {
   freecell: "freecellRev",
   tripeaks: "tripeaksRev",
   pokersquares: "pokerSquaresRev",
+  fivehands: "fiveHandsRev",
   // The Sports group (30 Oct 2026).
   minigolf: "golfRev",
   pool: "poolRev",

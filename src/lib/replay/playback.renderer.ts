@@ -24,6 +24,7 @@ import { racingArtGame } from "@/lib/arcade/racing.renderer";
 import { freecellArt } from "@/lib/arcade/cards/freecell.renderer";
 import { tripeaksArt } from "@/lib/arcade/cards/tripeaks.renderer";
 import { pokerSquaresArt } from "@/lib/arcade/cards/pokerSquares.renderer";
+import { fiveHandsArt } from "@/lib/arcade/cards/fiveHands.renderer";
 import { drawMinigolf } from "@/lib/arcade/minigolf.renderer";
 import { drawPool } from "@/lib/arcade/pool.renderer";
 import { drawCurling } from "@/lib/arcade/curling.renderer";
@@ -88,6 +89,7 @@ const SIMPLE: Record<string, (p: PuzzleData) => Draw> = {
   freecell: () => freecellArt.draw as Draw,
   tripeaks: () => tripeaksArt.draw as Draw,
   pokersquares: () => pokerSquaresArt.draw as Draw,
+  fivehands: () => fiveHandsArt.draw as Draw,
   curling: () => ((ctx, s) => drawCurling(ctx, s, null)) as Draw,
   pool: () => ((ctx, s) => drawPool(ctx, s, null)) as Draw,
   minigolf: () => ((ctx, s) => drawMinigolf(ctx, s, null)) as Draw,
