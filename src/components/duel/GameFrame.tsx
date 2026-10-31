@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useLayoutEffect, useState, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useLayoutEffect, useRef, useState, type ElementType, type ReactNode } from "react";
 
 import { AnimatedScore } from "./AnimatedScore";
 import { boardBox } from "@/lib/boardBox";
@@ -171,6 +171,67 @@ export function useBoardTray(region: { current: HTMLElement | null }, tray: { cu
       window.removeEventListener("resize", later);
     };
   }, [enabled]);
+}
+
+/** The header name's largest size, and the smallest a one-line name shrinks to before it takes two lines. */
+export const FRAME_NAME_MAX_PX = 19;
+export const FRAME_NAME_MIN_PX = 13;
+
+/**
+ * The header's game name (31 Oct 2026): one line at 19px, shrunk to fit its half of the header (measured before the
+ * first paint and again when the half changes size or the fonts arrive), never under FRAME_NAME_MIN_PX; a name that
+ * still overflows there takes two 15px lines (data-long), and only past that an ellipsis. The CSS estimate from the
+ * name's length (--name-len) is what a server-rendered first frame shows.
+ */
+export function FrameName({ as: Tag = "span", text, className = "", ...rest }: { as?: ElementType; text: string; className?: string } & Record<string, unknown>) {
+  const ref = useRef<HTMLElement | null>(null);
+  const length = Math.max(6, text.length);
+  useIsoLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const fit = () => {
+      el.removeAttribute("data-long");
+      el.style.fontSize = `${FRAME_NAME_MAX_PX}px`;
+      const room = el.clientWidth;
+      const need = el.scrollWidth;
+      if (room <= 0) return;
+      if (need <= room) return;
+      // Text width scales with the font size: the size that fits, rounded down to a quarter pixel.
+      const size = Math.floor(((FRAME_NAME_MAX_PX * room) / need) * 4) / 4;
+      if (size >= FRAME_NAME_MIN_PX) {
+        el.style.fontSize = `${size}px`;
+        // Rounding in the browser's text layout: step down until it fits.
+        for (let s = size; el.scrollWidth > el.clientWidth && s > FRAME_NAME_MIN_PX; s -= 0.25) el.style.fontSize = `${s - 0.25}px`;
+        if (el.scrollWidth <= el.clientWidth) return;
+      }
+      el.style.fontSize = "";
+      el.setAttribute("data-long", "");
+    };
+    fit();
+    const host = el.parentElement;
+    let frame = 0;
+    let width = host?.clientWidth ?? 0;
+    const resize = new ResizeObserver(() => {
+      const w = host?.clientWidth ?? 0;
+      if (w === width) return;
+      width = w;
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(fit);
+    });
+    if (host) resize.observe(host);
+    let live = true;
+    document.fonts?.ready.then(() => live && fit()).catch(() => {});
+    return () => {
+      live = false;
+      cancelAnimationFrame(frame);
+      resize.disconnect();
+    };
+  }, [text]);
+  return (
+    <Tag ref={ref} data-long={length > 15 ? "" : undefined} className={`game-frame-name ${className}`.trim()} style={{ ["--name-len" as string]: length }} {...rest}>
+      {text}
+    </Tag>
+  );
 }
 
 export interface GoalProgress {

@@ -1,10 +1,10 @@
 /**
- * Room identity for Mahjong Solitaire mahjongRev 1 (Cards & Board, 30 Oct 2026): every face is dealt from the seed when
+ * Room identity for Mahjong Solitaire mahjongRev 2 (rev 1's deal with Undo and Reset; Cards & Board, 30 Oct 2026): every face is dealt from the seed when
  * the run starts and nothing appears afterwards; taking a pair only removes tiles. A Shuffle re-deals the faces left
  * (deterministic for the seed and the log), so the logs compared here use none: `scheduleOf` lists the deal at tick 0
  * and, for every pair a log takes, the faces it took (each face the deal placed there).
  */
-import { mahjongGameFor, MAHJONG_REV_STD, MAHJONG_TILES, type MahjongState } from "../../src/lib/arcade/mahjong";
+import { mahjongGameFor, MAHJONG_REV_DEALT, MAHJONG_REV_STD, MAHJONG_TILES, type MahjongState } from "../../src/lib/arcade/mahjong";
 import type { ArcadeInputEvent } from "../../src/lib/arcade/engine";
 import { bot } from "../arcade-skill-bands/bots/mahjong";
 import { Human } from "../arcade-skill-bands/human";
@@ -40,7 +40,7 @@ const botLog = (seed: number, level: "weak" | "elite") => (bot({ game: mahjongGa
 
 export const roomIdentity = {
   type: "mahjong",
-  rev: MAHJONG_REV_STD,
+  rev: MAHJONG_REV_DEALT,
   logs: (seed: number) => [
     { name: "idle", log: [] },
     { name: "random", log: randomLog(seed) },

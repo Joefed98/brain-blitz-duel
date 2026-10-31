@@ -437,6 +437,21 @@ async function captureOne(
       entry["gapsPlay"] = await run.page.evaluate(measurePlay);
       if (driver?.board) entry["board"] = await run.page.evaluate(measureBoard, driver.board);
       if (PHASES.has("play")) await run.page.screenshot({ path: file("play") });
+      // The header's game name as drawn (FrameName): its size, lines, whether it is cut and its box (the header sheet's crop).
+      entry["frameName"] = await run.page.evaluate(() => {
+        const el = document.querySelector<HTMLElement>("[data-frame-name]");
+        const header = document.querySelector<HTMLElement>("[data-game-frame-header]");
+        if (!el || !header) return null;
+        const cs = getComputedStyle(el);
+        const r = header.getBoundingClientRect();
+        return {
+          text: el.textContent ?? "",
+          size: parseFloat(cs.fontSize),
+          lines: Math.round(el.getBoundingClientRect().height / parseFloat(cs.lineHeight)),
+          cut: el.scrollWidth > el.clientWidth + 0.5 || el.scrollHeight > el.clientHeight + 1,
+          header: { x: r.left, y: r.top, w: r.width, h: r.height },
+        };
+      });
 
       if (driver?.solve && (PHASES.has("solve") || PHASES.has("reveal"))) {
         if (driver.seedNearSolved || driver.solveFromStart) {
