@@ -4,10 +4,10 @@ sports_crowd_roar,sports_crowd_roar.mp3,homerun|freekick|racing,big moment cheer
 sports_crowd_groan,sports_crowd_groan.mp3,homerun|freekick,near miss,2,no,homerun.groan;freekick.groan
 cards_deal,cards_deal.mp3,freecell|tripeaks|pokersquares,card dealt,0.3,no,tripeaks.deal
 cards_pick,cards_pick.mp3,freecell|tripeaks|pokersquares,card lifted,0.2,no,freecell.pick
-cards_place,cards_place.mp3,freecell|tripeaks|pokersquares,card placed,0.3,no,freecell.place;pokersquares.place
+cards_place,cards_place.mp3,freecell|tripeaks|pokersquares|fivehands,card placed,0.3,no,freecell.place;pokersquares.place;fivehands.place
 cards_home,cards_home.mp3,freecell|tripeaks,card to foundation,0.6,no,freecell.home
-cards_invalid,cards_invalid.mp3,freecell|tripeaks|pokersquares,move not allowed,0.3,no,freecell.invalid;tripeaks.invalid;pokersquares.invalid
-cards_shuffle,cards_shuffle.mp3,freecell|tripeaks|pokersquares,round start shuffle,1.5,no,freecell.shuffle;tripeaks.shuffle;pokersquares.shuffle
+cards_invalid,cards_invalid.mp3,freecell|tripeaks|pokersquares|fivehands,move not allowed,0.3,no,freecell.invalid;tripeaks.invalid;pokersquares.invalid;fivehands.invalid
+cards_shuffle,cards_shuffle.mp3,freecell|tripeaks|pokersquares|fivehands,round start shuffle,1.5,no,freecell.shuffle;tripeaks.shuffle;pokersquares.shuffle;fivehands.shuffle
 music_minigolf,music_minigolf.mp3,minigolf,music bed,90,yes,music_minigolf
 minigolf_putt,minigolf_putt.mp3,minigolf,putt,0.4,no,minigolf.putt
 minigolf_roll_loop,minigolf_roll_loop.mp3,minigolf,ball rolling,2,yes,minigolf.roll
@@ -81,7 +81,7 @@ music_tripeaks,music_tripeaks.mp3,tripeaks,music bed,60,yes,music_tripeaks
 tripeaks_run,tripeaks_run.mp3,tripeaks,run card,0.3,no,tripeaks.run
 tripeaks_peak,tripeaks_peak.mp3,tripeaks,peak cleared,1,no,tripeaks.peak
 tripeaks_clear,tripeaks_clear.mp3,tripeaks,all cleared,2,no,tripeaks.clear
-music_pokersquares,music_pokersquares.mp3,pokersquares,music bed,60,yes,music_pokersquares
-poker_hand,poker_hand.mp3,pokersquares,small hand made,0.4,no,pokersquares.hand
-poker_big_hand,poker_big_hand.mp3,pokersquares,straight or better,1.2,no,pokersquares.bigHand
-poker_final,poker_final.mp3,pokersquares,grid scored,1,no,pokersquares.final
+music_pokersquares,music_pokersquares.mp3,pokersquares|fivehands,music bed,60,yes,music_pokersquares;music_fivehands
+poker_hand,poker_hand.mp3,pokersquares|fivehands,small hand made,0.4,no,pokersquares.hand;fivehands.hand
+poker_big_hand,poker_big_hand.mp3,pokersquares|fivehands,straight or better,1.2,no,pokersquares.bigHand;fivehands.bigHand
+poker_final,poker_final.mp3,pokersquares|fivehands,grid scored,1,no,pokersquares.final;fivehands.final

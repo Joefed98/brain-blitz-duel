@@ -84,7 +84,8 @@ import { FC_DEALS } from "../../src/lib/arcade/cards/freecellDeals.data";
 import { tpCheckpoint, tripeaksGameFor, TP_REV } from "../../src/lib/arcade/cards/tripeaks";
 import { TP_DEALS } from "../../src/lib/arcade/cards/tripeaksDeals.data";
 import { psCheckpoint, pokerSquaresGameFor, PS_REV } from "../../src/lib/arcade/cards/pokerSquares";
-import { encodeFreecellRun, encodePokerSquaresRun, encodeTripeaksRun, replayFreecellRun, replayPokerSquaresRun, replayTripeaksRun } from "../../src/lib/duel/cards";
+import { fhCheckpoint, fiveHandsGameFor, FH_REV } from "../../src/lib/arcade/cards/fiveHands";
+import { encodeFiveHandsRun, encodeFreecellRun, encodePokerSquaresRun, encodeTripeaksRun, replayFiveHandsRun, replayFreecellRun, replayPokerSquaresRun, replayTripeaksRun } from "../../src/lib/duel/cards";
 import { minigolfCheckpoint, minigolfGameFor, MINIGOLF_REV } from "../../src/lib/arcade/minigolf";
 import { encodeMinigolfRun, replayMinigolfRun } from "../../src/lib/duel/minigolf";
 import { MINIGOLF_BANK, minigolfBankEntryFor } from "../../src/lib/duel/minigolfBank.server";
@@ -284,6 +285,8 @@ export const GAMES: GameSpec[] = [
   { ...simple("freecell", FC_REV, FC_REV, freecellGameFor, fcCheckpoint, encodeFreecellRun, replayFreecellRun), seedFor: (n) => roomSeed(n) % FC_DEALS.length },
   { ...simple("tripeaks", TP_REV, TP_REV, tripeaksGameFor, tpCheckpoint, encodeTripeaksRun, replayTripeaksRun), seedFor: (n) => roomSeed(n) % TP_DEALS.length },
   simple("pokersquares", PS_REV, PS_REV, pokerSquaresGameFor, psCheckpoint, encodePokerSquaresRun, replayPokerSquaresRun),
+  // Five Hands (31 Oct 2026): born on the arcade standard; any seed (the sim deals the deck and proves its witness).
+  simple("fivehands", FH_REV, FH_REV, fiveHandsGameFor, fhCheckpoint, encodeFiveHandsRun, replayFiveHandsRun),
   // The Sports group (30 Oct 2026): Minigolf deals a bank course (seed and pars), golfRev 1 from its first round.
   {
     type: "minigolf",

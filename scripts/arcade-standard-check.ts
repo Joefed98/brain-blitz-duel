@@ -67,9 +67,12 @@ const STANDARD_ROSTER: readonly { type: string; field: string; rev: number; batc
   { type: "freekick", field: "freekickRev", rev: 1, batch: "Sports" },
   { type: "racing", field: "racingRev", rev: 1, batch: "Sports" },
   // Cards & Board (30 Oct 2026): born on the standard at revision 1.
-  { type: "freecell", field: "freecellRev", rev: 1, batch: "Cards" },
+  // Free Cell's rev 2 (Undo and Reset) and Full House's rev 2 (full at the elite median), 31 Oct 2026: still on the standard.
+  { type: "freecell", field: "freecellRev", rev: 2, batch: "Cards" },
   { type: "tripeaks", field: "tripeaksRev", rev: 1, batch: "Cards" },
-  { type: "pokersquares", field: "pokerSquaresRev", rev: 1, batch: "Cards" },
+  { type: "pokersquares", field: "pokerSquaresRev", rev: 2, batch: "Cards" },
+  // Five Hands (31 Oct 2026): born on the standard.
+  { type: "fivehands", field: "fiveHandsRev", rev: 1, batch: "Cards" },
   // The Sports group (30 Oct 2026): on the standard from their first stamp.
   { type: "minigolf", field: "golfRev", rev: 1, batch: "Sports" },
   { type: "pool", field: "poolRev", rev: 1, batch: "Sports" },

@@ -968,6 +968,10 @@ const ENTRIES = {
   "pokersquares.hand": { channel: "effects", frequency: 0, ms: 484, url: "/sounds/poker_hand.mp3" },
   "pokersquares.bigHand": { channel: "effects", frequency: 0, ms: 1122, url: "/sounds/poker_big_hand.mp3" },
   "pokersquares.invalid": { channel: "effects", frequency: 0, ms: 434, url: "/sounds/cards_invalid.mp3" },
+  "fivehands.place": { channel: "effects", frequency: 0, ms: 300, url: "/sounds/cards_place.mp3" },
+  "fivehands.hand": { channel: "effects", frequency: 0, ms: 484, url: "/sounds/poker_hand.mp3" },
+  "fivehands.bigHand": { channel: "effects", frequency: 0, ms: 1122, url: "/sounds/poker_big_hand.mp3" },
+  "fivehands.invalid": { channel: "effects", frequency: 0, ms: 434, url: "/sounds/cards_invalid.mp3" },
   "pool.pocket": { channel: "effects", frequency: 0, ms: 908, url: "/sounds/pool_pocket.mp3" },
   "pool.foul": { channel: "effects", frequency: 0, ms: 484, url: "/sounds/pool_foul.mp3" },
   "pool.blackWin": { channel: "effects", frequency: 0, ms: 1327, url: "/sounds/pool_black_win.mp3" },
@@ -1013,6 +1017,8 @@ const ENTRIES = {
   "tripeaks.shuffle": { channel: "effects", frequency: 0, ms: 1093, url: "/sounds/cards_shuffle.mp3" },
   "pokersquares.shuffle": { channel: "effects", frequency: 0, ms: 1093, url: "/sounds/cards_shuffle.mp3" },
   "pokersquares.final": { channel: "effects", frequency: 0, ms: 983, url: "/sounds/poker_final.mp3" },
+  "fivehands.shuffle": { channel: "effects", frequency: 0, ms: 1093, url: "/sounds/cards_shuffle.mp3" },
+  "fivehands.final": { channel: "effects", frequency: 0, ms: 983, url: "/sounds/poker_final.mp3" },
   "music_minigolf": { channel: "music", frequency: 0, ms: 0, url: "/sounds/music_minigolf.mp3" },
   "music_pool": { channel: "music", frequency: 0, ms: 0, url: "/sounds/music_pool.mp3" },
   "music_curling": { channel: "music", frequency: 0, ms: 0, url: "/sounds/music_curling.mp3" },
@@ -1024,6 +1030,8 @@ const ENTRIES = {
   "music_mahjong": { channel: "music", frequency: 0, ms: 0, url: "/sounds/music_mahjong.mp3" },
   "music_tripeaks": { channel: "music", frequency: 0, ms: 0, url: "/sounds/music_tripeaks.mp3" },
   "music_pokersquares": { channel: "music", frequency: 0, ms: 0, url: "/sounds/music_pokersquares.mp3" },
+  // Five Hands shares Full House's bed (sound batch 6).
+  "music_fivehands": { channel: "music", frequency: 0, ms: 0, url: "/sounds/music_pokersquares.mp3" },
 } satisfies Record<string, SoundEntry>;
 export type SoundId = keyof typeof ENTRIES;
 export const SOUND_MANIFEST: Record<SoundId, SoundEntry> = ENTRIES;

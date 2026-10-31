@@ -76,6 +76,7 @@ carry; a file in their slot plays under the voice line (voice lines duck music).
 | `music.mahjong` | Mahjong Solitaire | `music_mahjong` | `music_mahjong` | 48.0 s loop |
 | `music.tripeaks` | TriPeaks | `music_tripeaks` | `music_tripeaks` | 55.7 s loop |
 | `music.pokersquares` | Poker Squares | `music_pokersquares` | `music_pokersquares` | 55.2 s loop |
+| `music.fivehands` | Five Hands | `music_fivehands` (Full House's bed, `music_pokersquares.mp3`) | `music_fivehands` | 55.2 s loop |
 
 Every puzzle (Word, Number, Speed, Attention, Pattern, Logic, and the engine games Letterfall,
 Tenfall, Bonk, Pull! and Mixed Signals) plays one of its category's three shared beds

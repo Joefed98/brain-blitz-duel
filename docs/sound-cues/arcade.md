@@ -158,6 +158,10 @@ when the run starts. Rooms deal Pinball since 14 Oct 2026; Junction is practice 
 | `pokersquares.hand` | Poker Squares | A card placed makes a pair, two pair or three of a kind on a line | `correct` (0.8) | 5–15 | 484 ms |
 | `pokersquares.bigHand` | Poker Squares | A card placed makes a straight or better on a line | `correct` (0.8) | 0–5 | 1122 ms |
 | `pokersquares.invalid` | Poker Squares | A tap on a filled square | `wrong` (0.5) | 0–5 | 434 ms |
+| `fivehands.place` | Five Hands | A card placed that makes no new hand on its row | `place` (0.8; `combo` when the total rises) | 10–20 | 300 ms |
+| `fivehands.hand` | Five Hands | A card placed makes a pair, two pair or three of a kind on its row | `correct` (0.8) | 3–10 | 484 ms |
+| `fivehands.bigHand` | Five Hands | A card placed makes a straight or better on its row | `correct` (0.8) | 0–3 | 1122 ms |
+| `fivehands.invalid` | Five Hands | A tap on a full row | `wrong` (0.5) | 0–5 | 434 ms |
 | `inkbridge.draw` | Rainbow Bridge | The first segment of each drawn stroke | `arc_rainbow` (0.6) | 10–30 | 910 ms |
 | `inkbridge.pot` | Rainbow Bridge | The pot of gold is reached | `arc_rainbow_pot` | 3–10 | 1000 ms |
 | `inkbridge.bump` | Rainbow Bridge | A level fails on a block | `arc_rainbow_bump` | 0–5 | 200 ms |

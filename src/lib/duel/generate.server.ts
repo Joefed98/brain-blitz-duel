@@ -75,6 +75,7 @@ import {
   generateFreecell,
   generateTripeaks,
   generatePokerSquares,
+  generateFiveHands,
   generateRally,
   generateSteady,
   generateSlice,
@@ -213,6 +214,7 @@ function generateUnstamped(type: PuzzleType, context: GenerateContext): PuzzleDa
   if (type === "freecell") return generateFreecell();
   if (type === "tripeaks") return generateTripeaks();
   if (type === "pokersquares") return generatePokerSquares();
+  if (type === "fivehands") return generateFiveHands();
   if (type === "minigolf") return generateMinigolf();
   if (type === "pool") return generatePool();
   if (type === "curling") return generateCurling();

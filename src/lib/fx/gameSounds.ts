@@ -44,7 +44,8 @@ import type { MinesState } from "@/lib/arcade/minesweeper";
 import type { MahjongState } from "@/lib/arcade/mahjong";
 import { fcHomeCount, type FcState } from "@/lib/arcade/cards/freecell";
 import type { TpState } from "@/lib/arcade/cards/tripeaks";
-import { PS_LINES, psLineHand, psTotals, type PsState } from "@/lib/arcade/cards/pokerSquares";
+import { PS_LINES, psHand, psLineHand, psTotals, type PsState } from "@/lib/arcade/cards/pokerSquares";
+import { fhTotals, type FhState } from "@/lib/arcade/cards/fiveHands";
 
 /** Sounds a success-effect cue with a file stands in for on this frame (momentCues.ts). */
 let quiet: ReadonlySet<string> = new Set();
@@ -1367,3 +1368,37 @@ export function pokerSquaresSounds(): GameSounds<PsState> {
 }
 /** A straight or better (points): the big hand. */
 const PS_BIG_HAND = 10;
+
+/**
+ * Five Hands: Full House's sounds (the shared cards, the hands, the scored grid; its bed is music_pokersquares too): a
+ * card placed, a hand made on its row (a straight or better the big one), a refused tap and the rows scored.
+ */
+export function fiveHandsSounds(): GameSounds<FhState> {
+  let prev: FhState | null = null;
+  return {
+    frame(state) {
+      beginFrame("fivehands", state);
+      if (prev && state.tick > prev.tick) {
+        if (prev.tick === 0) effectCue("fivehands.shuffle");
+        if (state.turn > prev.turn) {
+          let best = 0;
+          state.rows.forEach((row, r) => {
+            const after = psHand(row).points;
+            if (after > psHand(prev!.rows[r] ?? []).points) best = Math.max(best, after);
+          });
+          if (best >= PS_BIG_HAND) sfx("fivehands.bigHand", "correct", 0.8);
+          else if (best > 0) sfx("fivehands.hand", "correct", 0.8);
+          else if (fhTotals(state.rows).total > fhTotals(prev.rows).total) sfx("fivehands.place", "combo", 0.8);
+          else sfx("fivehands.place", "place", 0.8);
+        }
+        if (state.rejects > prev.rejects) sfx("fivehands.invalid", "wrong", 0.5);
+        if (state.ended === 1 && prev.ended === 0) ownCue("fivehands.final", "complete");
+        else if (state.ended === 2 && prev.ended === 0) effectCue("fivehands.final");
+      }
+      prev = state;
+    },
+    stop() {
+      prev = null;
+    },
+  };
+}

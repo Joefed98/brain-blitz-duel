@@ -68,3 +68,5 @@ than 2 dB over the library's median loudest 100 ms (-13.8 dBFS), music to -18 LU
 | `tripeaks.shuffle` | TriPeaks | The run starts | `cards_shuffle.mp3` | 1 | 1093 ms |
 | `pokersquares.shuffle` | Poker Squares | The run starts | `cards_shuffle.mp3` | 1 | 1093 ms |
 | `pokersquares.final` | Poker Squares | The grid scored (the last card placed, or the buzzer) | `poker_final.mp3` | 1 | 983 ms |
+| `fivehands.shuffle` | Five Hands | The run starts | `cards_shuffle.mp3` | 1 | 1093 ms |
+| `fivehands.final` | Five Hands | The rows scored: every card placed (without its file: `complete`, as before), or the buzzer | `poker_final.mp3` | 1 | 983 ms |
