@@ -1,4 +1,31 @@
-# Poker Squares on the arcade scoring standard (pokerSquaresRev 1, 30 Oct 2026)
+# Full House (`pokersquares`) on the arcade scoring standard (pokerSquaresRev 2, 31 Oct 2026; rev 1 30 Oct 2026)
+
+Shown as **Full House** since 31 Oct 2026 (was Poker Squares; the id stays `pokersquares`).
+
+## pokerSquaresRev 2 (31 Oct 2026): the core full at the elite median
+
+Joe: lower the scoring so top marks need elite placement. Same deals, same play; the core is full at
+`PS_CORE_FULL_V2` = **73** hand points, the elite bots' median (rev 1: 68, the near-perfect median). Rev-1 runs score as
+before (`pokerSquaresGameFor(1)`; cards-check replays 24 rev-1 runs recorded on main, `scripts/fixtures/cards-rev1-legacy.json`).
+The target grid's acceptance is the revision's full figure; every grid measured reaches 99 or more (min over 300 seeds),
+so rev 2 deals exactly rev 1's grids (cards-check compares 40 seeds) and every one reaches 200 (200 seeds proved).
+
+The elite bot now plans ahead (31 Oct 2026, `scripts/arcade-skill-bands/bots/pokersquares.ts`): each empty square is
+valued by ten rollouts of the unseen cards placed by the sight rule. Before that, elite and near-perfect used the same
+sight rule and tied within noise (65), which would have *raised* scores. Other levels are unchanged.
+
+Re-measured on rev 2 (`bun scripts/cards-bands.ts pokersquares --seeds=100`, room seeds 0–99):
+
+| Level | Weak | Average | Good | Great | Near-perfect | Elite | Flawless |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| score, median (p10–p90) | 80 (43–117) | 148 (106–184) | 161 (123–196) | 171 (139–196) | 178 (141–200) | 193 (161–200) | 200 |
+| hand points, median | 26 | 52 | 57 | 63 | 65 | **73** | 154 |
+| all 25 placed | 0/100 | 76/100 | 100/100 | 100/100 | 100/100 | 100/100 | 100/100 |
+| rev 1 score, median | 84 | 157 | 170 | 181 | 188 | 196 | 200 |
+
+No speed part, so no full-by time. The HUD reads FULL AT 73 on rev 2 (68 on a rev-1 replay).
+
+# Rev 1 (30 Oct 2026)
 
 A new Arcade game in the Cards & Board group, born on the standard: `pokersquares`, 60 s run (63 s round clock).
 

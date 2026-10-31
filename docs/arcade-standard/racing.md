@@ -1,4 +1,8 @@
-# Racing on the arcade scoring standard (racingRev 1, 30 Oct 2026)
+# Apex (`racing`) on the arcade scoring standard (racingRev 1, 30 Oct 2026; racingRev 2, 31 Oct 2026)
+
+**Apex** (shown as "Racing" until 31 Oct 2026; the id stays `racing`). Rooms deal **`racingRev 2`** since 31 Oct 2026
+(see [racingRev 2](#racingrev-2-31-oct-2026-the-lights-start-and-the-softer-joystick) at the end); everything below
+up to it describes racingRev 1, which still replays and scores exactly as before.
 
 A new arcade game (`racing`): a 90-second, two-lap race on a seeded circuit, seen from a chase camera at sunset,
 driven with a one-thumb joystick. Rooms deal **`racingRev 1`** (`RACING_REV_STD`); it is born on the standard
@@ -118,7 +122,7 @@ darker racing line, skid marks in the braking zones, 150/100/50 braking boards, 
 bend, tyre walls with red and white belts, catch fencing along the grandstand, the chequered start line, the car's
 LED bar and rain light (blinking on the grass), brake bloom and heat haze. HUD: LAP n/2 and the race time at the top,
 speed bottom left, the 8 sector bars bottom right (gold clean, red touched), the joystick bottom centre (its base
-appears under the thumb anywhere below world y 470).
+appears under the thumb anywhere below world y 477 since 31 Oct 2026, 250 above the world's bottom; 470 before).
 
 ## Sound cues
 
@@ -132,7 +136,8 @@ engine loop yet.
 - "Contact" is a wheel past the kerb (grass or gravel) or the tyre wall; the kerbs count as track.
 - Every circuit carries two hairpins (the brief's "a hairpin or two"), so all circuits take about as long and one par
   fits them.
-- The race starts from a standstill with no lights countdown (the round intro is the countdown).
+- The race starts from a standstill with no lights countdown (the round intro is the countdown). racingRev 2 adds
+  the F1 lights (below).
 - The elevation is display only; hills do not change speed.
 - Desktop keys: arrows / WASD give full-lock steer and full throttle / brake through the same payloads.
 - The intro still is the tile view (`paintRacingTile`) on a fixed 200 px canvas.
@@ -142,3 +147,111 @@ engine loop yet.
 The car (a hand-drawn graphite GT rear view), the grandstand and crowd, the trees, the braking boards and the tyre
 walls are vector drawings; a painted car sprite (with real sunset reflections and LED detail), photographic hills and
 grandstand textures, and proper tree sprites would lift it most. The lens flare and heat haze are simple shapes.
+
+## racingRev 2 (31 Oct 2026): the lights start and the softer joystick
+
+Joe's notes after his iPhone 11 tests. The parts and their maximums are unchanged (distance 140, clean sectors 30,
+finish 10, speed 20 = 200); the circuit, the physics and the scoring lines are racingRev 1's. Rooms and practice deal
+`RACING_REV_DEALT` = 2 from its own proved deal (`src/lib/duel/racingDealV2.server.ts`); racingRev 1 rounds (and the
+first deal, `racingDeal.server.ts`, byte-identical) replay exactly as before (racing-check's legacy section replays 36
+runs recorded on main b154694: `scripts/fixtures/racing-v1-legacy.json.gz`, `scripts/racing-legacy-record.ts`).
+
+### The start (sim, racingRev 2 only)
+
+- The car sits on its grid box at the start line. Light k (1…5) comes on at tick 30 + 60 × (k − 1)
+  (`RACING_V2_LIGHT0`, `RACING_V2_LIGHT_GAP`): one a second, with a large 5-4-3-2-1 over the scene; all five go out at
+  tick 330 (`RACING_V2_GO`) and "GO" shows for a second. The sim tick runs throughout (the HUD timer and the round
+  clock move), but until lights out the car cannot move whatever is held: the held stick is stored and inputs count
+  as played (a run that only touched the stick during the lights scores 1), the wheels turn, and the throttle held
+  through the lights leaves on the first tick after (`racingStep` returns before the physics while `tick <= GO`).
+- The race clock (the HUD's time chip, the reveal's time and the speed part) runs from lights out
+  (`racingRaceTicks`, `RESULT.raceTicks`); the race still lasts at most 90 s, so the whole run is 5.5 s longer
+  (`RACING_V2_RUN_TICKS` = 5,730). The round's clock is 99 s (`RACING_TIME_MS`: the lights, the race and the usual
+  3 s of slack; racingRev 1 runs still end at their own 90 s, as Tempo's and Gemstone's older rounds do).
+- Sounds: `racing.light` as each light comes on (fallback `countdown_step`), `racing.go` on lights out
+  (racingRev 1: the first throttle, as before).
+
+### The joystick (less sensitive)
+
+- **Sim (stamped):** the stick's steer goes through a dead zone of ±10 (`RACING_V2_DEAD`), then an expo curve
+  (`racingV2SteerTarget`: u = the stick past the dead zone on 0…100, target = (u² + 100u) ÷ 200: half the gain at
+  mid-stick, the same full lock at the end), and the front wheels (`state.wheel`, in the rev-2 checksum) move towards
+  that target at most 8 a tick (`RACING_V2_WHEEL_RATE`: centre to full lock in about 0.2 s, lock to lock 0.4 s). The
+  car steers by the wheels, not the raw stick. Full lock's authority is unchanged, so every bend balances at the same
+  speed as on racingRev 1. Throttle and brake are unchanged.
+- **Phone (input mapping):** full lock needs 64 world px of thumb travel across (`RACING_V2_STEER_R`; racingRev 1: 46),
+  sent in steps of 5 with no dead zone of its own (the sim's applies); the throttle and brake keep 46 px and their
+  small dead zone. The joystick's base is drawn wider than tall to match, with the dead zone shaded faintly.
+- Keys: arrows / WASD send full lock, which the wheels reach at the smoothing rate.
+
+### The look (display only, every revision)
+
+- **The car turns:** as it yaws into a turn the rear face narrows and moves into the turn while the flank on the
+  outside comes into view (`drawFlank`: the graphite side with the side window, the sunset along the shoulder, the
+  rear tyre's wall and the front wheel at the far end turned with the steer), up to 30 % of the car's width at full
+  lock and speed. The whole stays exactly the collision width (rule 3): the flank takes the width the rear face gives
+  up. On racingRev 2 it follows the smoothed wheel; racingRev 1 shows the stick.
+- **No dead strip, no side strips:** the world is 390 × 727 (was 720; the arena box's aspect at 414 × 896 with the
+  iPhone's insets). Beyond the world's box the play screen shows the world's own view carried on: `racingAmbient` (the
+  slot's moving layer, under the world canvas) draws `drawWorld` over the whole screen (sky mirrored past the edges, the
+  hills, the road with its lines, kerbs and racing line, the grass, trees, tyre walls, grandstands and the start
+  furniture; no car or HUD), and every world frame repaints it (`drawRacingPlay` → `repaintBeyond`), so it never lags
+  the world at 60 Hz and the road runs to the screen's bottom and sides with no seam. It is the world's view, not a
+  decorative fill, so it moves when the world does (also under reduced motion). `racingScene` is only the first paint
+  (sky, fields, tarmac). The HUD panels keep their own light backing; nothing fades to black. The stick's touch area
+  and resting place moved down with the world's bottom.
+- racingRev 2 draws the grid box round the car and a five-light gantry over the road ahead (it recedes as the car
+  leaves).
+
+### The deal
+
+`bun scripts/racing-deal.ts --rev=2` (the same candidate sequence and oracle, on racingRev 2: the oracle holds the
+throttle through the lights and sends the stick whose expo target is the steer it wants, `racingV2StickFor`): **300
+kept, 4 of the first 304 dropped** (the same four as racingRev 1: their oracle finish falls just past par).
+`racingDealSeedV2(roomSeed) = RACING_DEAL_V2[roomSeed mod 300]`; `--rev=2 --check` proves the list. racing-check
+replays 24 (all 300 with `CHECKS_FULL=1`) to exactly 200 through `replayRacingRun(…, 2)`; arcade-standard-check's
+racing entry does the same.
+
+### Measured targets (`bun scripts/racing-bands.ts`, racingRev 2)
+
+**Par `RACING_V2_PAR_TICKS` = 4,854** race ticks from lights out (80.9 s): the near-perfect median below. The bots
+steer through the same mapping (the stick for the wheel steer they want, aim error over the longer throw) and put the
+throttle down a reaction time after lights out; the flawless level is the oracle.
+
+Room seeds 0–59 (dealt seeds; score median, p10–p90; part medians; race time from lights out):
+
+| Level | Score | Distance | Clean sectors | Finish | Speed | Finished | Race time (finishers) | Zeros |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Weak | 128 (122–134) | 116.5 | 11 | 0 | 0 | 0/60 | – | 0 |
+| Average | 152 (146–157) | 131 | 20 | 0 | 0 | 2/60 | 88.1 s | 0 |
+| Good | 179.5 (164–185) | 140 | 26 | 10 | 5 | 49/60 | 87.2 s | 0 |
+| Great | 191.5 (185–196) | 140 | 30 | 10 | 13 | 60/60 | 83.9 s | 0 |
+| Near-perfect | 198 (192–200) | 140 | 30 | 10 | 20 | 60/60 | 80.9 s | 0 |
+| Elite | 200 (196–200) | 140 | 30 | 10 | 20 | 60/60 | 80.0 s | 0 |
+| Flawless | 200 (200–200) | 140 | 30 | 10 | 20 | 60/60 | 77.5 s | 0 |
+| Random | 19 (13–23) | 19 | 0 | 0 | 0 | 0/60 | – | 0 |
+
+Room seeds 10000–10099 (dealt seeds):
+
+| Level | Score | Finished | Race time |
+| --- | --- | --- | --- |
+| Weak | 129 (123–135) | 0/100 | – |
+| Average | 150.5 (144–158) | 2/100 | 89.4 s |
+| Good | 178.5 (164–185) | 87/100 | 87.6 s |
+| Great | 190 (183–196) | 100/100 | 84.1 s |
+| Near-perfect | 197 (192–200) | 100/100 | 81.5 s |
+| Elite | 200 (196–200) | 100/100 | 80.5 s |
+| Flawless | 200 (200–200) | 100/100 | 77.8 s |
+
+The softer stick costs the lower levels a little (weak 131 → 128, average 155 → 152, good 182 → 179.5 on seeds 0–59:
+the smoothing makes late corrections later, so a few more sectors are touched); great and above are unchanged, and the
+par moves by 3.5 ticks.
+
+### Decisions for Joe
+
+- **Light timing:** the first light half a second after the run starts, one a second, out one second after the fifth
+  (fixed, no random hold as in real F1: every player sees the same start). Jumping the start is impossible rather than
+  penalised (the car simply cannot move).
+- **Steering feel:** dead zone ±10 of 100, expo halving mid-stick gain, wheels at 8 a tick, 64 px for full lock. Each
+  is one constant (sim stamped; the 64 px is the phone's).
+- **The round clock** grows from 93 s to 99 s for every Apex round (rooms' timers); racingRev 1's runs keep 90 s.

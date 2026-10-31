@@ -2,13 +2,15 @@
  * FreeCell's art and layout (display only; the sim is freecell.ts). The world is 414 × 772: HUD chips across the top,
  * the four free cells (larger cards) over a faint "FREECELL", the eight columns spreading down the middle and the four
  * home piles along the bottom with faint suit symbols. The phone's hit tests (fcHit, fcDropPile) read the same layout.
+ * freecellRev 2 adds two small buttons in the HUD row's gaps (Undo left of HOME, Reset right of it; fcButtonHit) and
+ * the refused move's toast under the free cells ("Need a free cell to move 2 cards", fcNoteText, 1.6 s).
  */
 import type { ArcadeGame, ArcadeInputEvent, CanvasSize } from "../engine";
 import { arcadeFx, type ArcadeFxSpec } from "../arcadeFx.renderer";
 import { NO_CARD } from "./cards";
-import { CARD_FONT, drawCard, drawChip, drawFelt, drawSlot } from "./cards.renderer";
+import { CARD_FONT, drawCard, drawChip, drawFelt, drawSlot, roundRect } from "./cards.renderer";
 import {
-  FC_CELLS, FC_COLS, FC_PILE_CELL, FC_PILE_HOME, fcHomeCount, freecellGame, type FcState,
+  FC_CELLS, FC_COLS, FC_INPUT_RESET, FC_INPUT_UNDO, FC_PILE_CELL, FC_PILE_HOME, fcHomeCount, fcNoteText, freecellGameFor, type FcState,
 } from "./freecell";
 import { cardOf } from "./cards";
 
@@ -80,14 +82,113 @@ export function fcDropPile(x: number, y: number): number {
   return -1;
 }
 
+/* ---- freecellRev 2's buttons: small, in the HUD row's gaps either side of the HOME chip ---- */
+export const FC_BTN_W = 38;
+export const FC_BTN_H = 26;
+export const FC_BTN_Y = 9;
+/** Each button's centre x: Undo then Reset. */
+export const FC_BTN_X = [FC_WORLD_W / 2 - 78, FC_WORLD_W / 2 + 84] as const;
+/** The buttons' input kinds, in the same order. */
+const FC_BTN_KIND = [FC_INPUT_UNDO, FC_INPUT_RESET] as const;
+/** How long a refused move's toast shows, ticks. */
+const NOTE_TICKS = 96;
+
+/** The button under a point (its input kind), with a few world units of slop round each; 0 for none. */
+export function fcButtonHit(x: number, y: number): number {
+  for (let i = 0; i < 2; i++) {
+    const cx = FC_BTN_X[i]!;
+    if (Math.abs(x - cx) <= FC_BTN_W / 2 + 6 && y >= 0 && y <= FC_BTN_Y + FC_BTN_H + 8) return FC_BTN_KIND[i]!;
+  }
+  return 0;
+}
+
 /** The phone's drag and press (display only): the pressed card glows, a dragged run follows the finger. */
 export interface FcView {
   pressed: { pile: number; index: number } | null;
   drag: { pile: number; index: number; x: number; y: number; ox: number; oy: number } | null;
+  /** The button held down (its input kind), 0 for none. */
+  button?: number;
 }
 
 export function fcNewView(): FcView {
-  return { pressed: null, drag: null };
+  return { pressed: null, drag: null, button: 0 };
+}
+
+/** An undo (a curved arrow back) or reset (a full circle arrow) icon centred at (x, y). */
+function buttonIcon(ctx: CanvasRenderingContext2D, kind: number, x: number, y: number, colour: string): void {
+  ctx.save();
+  ctx.strokeStyle = colour;
+  ctx.fillStyle = colour;
+  ctx.lineWidth = 2;
+  ctx.lineCap = "round";
+  ctx.beginPath();
+  if (kind === FC_INPUT_UNDO) {
+    // A hook from the right curving over to the left, the arrowhead pointing left.
+    ctx.arc(x + 1, y + 2, 6, Math.PI * 1.05, Math.PI * 2.35, false);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(x - 9, y + 1);
+    ctx.lineTo(x - 4, y - 3.5);
+    ctx.lineTo(x - 3, y + 3.5);
+    ctx.closePath();
+    ctx.fill();
+  } else {
+    ctx.arc(x, y, 6.5, Math.PI * 0.3, Math.PI * 1.85, false);
+    ctx.stroke();
+    const a = Math.PI * 1.85;
+    const ex = x + 6.5 * Math.cos(a);
+    const ey = y + 6.5 * Math.sin(a);
+    ctx.beginPath();
+    ctx.moveTo(ex + 4, ey + 1);
+    ctx.lineTo(ex - 2.5, ey - 3);
+    ctx.lineTo(ex - 1, ey + 4);
+    ctx.closePath();
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
+function drawButtons(ctx: CanvasRenderingContext2D, state: FcState, view?: FcView): void {
+  for (let i = 0; i < 2; i++) {
+    const kind = FC_BTN_KIND[i]!;
+    const cx = FC_BTN_X[i]!;
+    const left = cx - FC_BTN_W / 2;
+    const live = kind === FC_INPUT_UNDO ? (state.hist?.length ?? 0) > 0 : state.moves > 0;
+    const held = view?.button === kind;
+    roundRect(ctx, left, FC_BTN_Y, FC_BTN_W, FC_BTN_H, FC_BTN_H / 2);
+    ctx.fillStyle = held ? "rgba(233,196,106,0.95)" : "rgba(5,12,30,0.62)";
+    ctx.fill();
+    ctx.strokeStyle = held ? "#FFE7A3" : `rgba(233,196,106,${live ? 0.45 : 0.18})`;
+    ctx.lineWidth = 1;
+    ctx.stroke();
+    buttonIcon(ctx, kind, cx, FC_BTN_Y + FC_BTN_H / 2, held ? "#231503" : live ? "#F6EBD0" : "rgba(246,235,208,0.35)");
+  }
+}
+
+/** The refused move's toast: a dark pill under the free cells, fading out over its last third. */
+function drawNote(ctx: CanvasRenderingContext2D, state: FcState): void {
+  const text = fcNoteText(state);
+  const age = state.tick - (state.noteTick ?? 0);
+  if (!text || age < 0 || age >= NOTE_TICKS) return;
+  const alpha = age < NOTE_TICKS * 0.66 ? 1 : 1 - (age - NOTE_TICKS * 0.66) / (NOTE_TICKS * 0.34);
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  ctx.font = `800 14px ${CARD_FONT}`;
+  const w = Math.ceil(ctx.measureText(text).width + 30);
+  const h = 30;
+  const x = FC_WORLD_W / 2 - w / 2;
+  const y = FC_CELL_Y + FC_BIG_H + 24;
+  roundRect(ctx, x, y, w, h, h / 2);
+  ctx.fillStyle = "rgba(6,10,24,0.92)";
+  ctx.fill();
+  ctx.strokeStyle = "rgba(255,140,120,0.75)";
+  ctx.lineWidth = 1.2;
+  ctx.stroke();
+  ctx.fillStyle = "#FBEFE6";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText(text, FC_WORLD_W / 2, y + h / 2 + 0.5);
+  ctx.restore();
 }
 
 /** Where a pile's card sits now (for the drag's offset and the move glow). */
@@ -129,14 +230,15 @@ function drawFreecellWorld(ctx: CanvasRenderingContext2D, state: FcState, size: 
   drawChip(ctx, 10, 9, "MOVES", `${state.moves}`);
   drawChip(ctx, W / 2, 9, "HOME", `${home}/52`, { align: "center", gold: home === 52 });
   drawChip(ctx, W - 10, 9, "PAR", `${state.par}`, { align: "right", gold: state.ended === 1 && state.moves <= state.par });
+  if (state.hist) drawButtons(ctx, state, view);
 
-  // The free cells over a faint FREECELL.
+  // The free cells over a faint FREE CELL.
   ctx.save();
   ctx.fillStyle = "rgba(233,196,106,0.07)";
   ctx.font = `900 52px ${CARD_FONT}`;
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
-  ctx.fillText("FREECELL", W / 2, FC_CELL_Y + FC_BIG_H / 2 + 2);
+  ctx.fillText("FREE CELL", W / 2, FC_CELL_Y + FC_BIG_H / 2 + 2);
   ctx.restore();
   const dragging = view?.drag ?? null;
   const pressed = view?.pressed ?? null;
@@ -189,12 +291,13 @@ function drawFreecellWorld(ctx: CanvasRenderingContext2D, state: FcState, size: 
     ctx.fillStyle = "rgba(4,10,26,0.25)";
     ctx.fillRect(0, 0, W, H);
   }
+  if (state.ended === 0) drawNote(ctx, state);
   ctx.restore();
 }
 
-/** The art game for a stage: the sim with this draw (the view, when given, is the phone's press and drag). */
-export function freecellArtGame(view?: FcView): ArcadeGame<FcState, ArcadeInputEvent | null> {
-  return { ...freecellGame, draw: (ctx, state, size) => drawFreecell(ctx, state, size, view) };
+/** The art game for a stage: the revision's sim with this draw (the view, when given, is the phone's press and drag). */
+export function freecellArtGame(view?: FcView, rev?: number | null): ArcadeGame<FcState, ArcadeInputEvent | null> {
+  return { ...freecellGameFor(rev), draw: (ctx, state, size) => drawFreecell(ctx, state, size, view) };
 }
 
 export const freecellArt = freecellArtGame();

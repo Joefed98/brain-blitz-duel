@@ -5,21 +5,25 @@
  * about 60 phone px), corners at a share of the limit that rises with skill, judges each corner's braking point
  * with an error (a late brake runs wide onto the kerb or the grass), and now and then slips (a corner taken far too
  * fast). The flawless level is the oracle itself.
+ *
+ * racingRev 2 (31 Oct 2026): the controller's steer is the front wheels' steer; the thumb goes where the dead zone and
+ * expo give it (racingStickFor), off by the aim error and held at the level's resolution, and the wheels follow at the
+ * smoothing rate. The throttle goes down a reaction time after lights out (the oracle holds it through the lights).
  */
 import { inputAt, recordInput, type ArcadeInputEvent } from "../../../src/lib/arcade/engine";
 import {
   racingBalanceSpeed,
+  racingGoTick,
   racingTrack,
   RACING_BRAKE,
   RACING_INPUT_RANGES,
   RACING_INPUT_STICK,
   RACING_LAP_SEGS,
   RACING_LAPS,
-  RACING_RUN_TICKS,
   RACING_SEG,
   type RacingState,
 } from "../../../src/lib/arcade/racing";
-import { oracleRun, racingDriverInput, type DriveTuning } from "../../racing-oracle";
+import { oracleRun, racingDriverInput, racingStickFor, type DriveTuning } from "../../racing-oracle";
 import type { SkillBot } from "../bot";
 import type { SkillLevel } from "../human";
 
@@ -73,10 +77,13 @@ function humanProfile(seed: number, st: Style, human: Parameters<SkillBot>[0]["h
 }
 
 export const bot: SkillBot = ({ game, seed, human }) => {
-  if (human.level === "perfect") return { events: oracleRun(seed) };
+  const rev = (game.init(seed) as RacingState).rev;
+  if (human.level === "perfect") return { events: oracleRun(seed, rev) };
   const st = STYLE[human.level];
   const profile = humanProfile(seed, st, human);
   const tune: DriveTuning = { share: st.share, brakeShare: st.brakeShare, look: 1, line: 0, gain: st.gain };
+  // racingRev 2: nothing moves before lights out; the thumb goes down a reaction after it.
+  const go = racingGoTick(rev) > 0 ? racingGoTick(rev) + human.reactTicks() : 0;
   let state = game.init(seed) as RacingState;
   const events: ArcadeInputEvent[] = [];
   const history: { s: number; x: number; v: number }[] = [];
@@ -84,16 +91,18 @@ export const bot: SkillBot = ({ game, seed, human }) => {
   let nextMove = 1 + human.reactTicks();
   let held = { a: 0, b: 0 };
   let sent = "";
-  while (!game.isOver(state) && state.tick < RACING_RUN_TICKS) {
+  if (go) nextMove = go;
+  while (!game.isOver(state) && state.tick < game.runTicks) {
     const t = state.tick + 1;
     history.push({ s: state.s, x: state.x, v: state.v });
     if (t >= nextMove) {
       const seen = history[Math.max(0, history.length - 1 - lag)]!;
       const ctl = racingDriverInput(state, profile, tune, seen);
-      const aim = human.aim(100 / 60);
+      // The same thumb error over racingRev 2's longer steering throw (64 world px for full lock, not 46) moves the stick less.
+      const aim = human.aim(rev >= 2 ? (100 / 60) * (46 / 64) : 100 / 60);
       const q = st.quant;
       held = {
-        a: Math.max(-100, Math.min(100, Math.round((ctl.steer + aim) / q) * q)),
+        a: Math.max(-100, Math.min(100, Math.round((racingStickFor(rev, ctl.steer) + aim) / q) * q)),
         b: Math.max(-100, Math.min(100, Math.round(ctl.pedal / q) * q)),
       };
       nextMove = t + Math.max(1, st.every + human.int(-1, 1));
@@ -113,7 +122,7 @@ export const bot: SkillBot = ({ game, seed, human }) => {
 export const randomBot: SkillBot = ({ game, seed, human }) => {
   let state = game.init(seed) as RacingState;
   const events: ArcadeInputEvent[] = [];
-  while (!game.isOver(state) && state.tick < RACING_RUN_TICKS) {
+  while (!game.isOver(state) && state.tick < game.runTicks) {
     const t = state.tick + 1;
     if (human.chance(1 / 30)) recordInput(events, { t, k: RACING_INPUT_STICK, a: human.int(-100, 100), b: human.int(-100, 100), c: 0, d: 0 }, RACING_INPUT_RANGES);
     state = game.step(state, inputAt(events, t)) as RacingState;

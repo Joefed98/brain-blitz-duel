@@ -491,6 +491,23 @@ export const ARCADE_SCENES: SceneSet = {
     drawCard(c, cardOf(1, 5), 6, 56, 28, 40);
     drawCard(c, cardOf(2, 9), 38, 56, 28, 40);
   }),
+
+  // Five Hands: a row making a pair (its badge lit gold) and the discards overlapping along the bottom, each index showing.
+  fivehands: canvasScene((c) => {
+    cardsTable(c);
+    drawCard(c, cardOf(1, 12), 6, 10, 26, 38);
+    drawCard(c, cardOf(0, 12), 35, 10, 26, 38, { glow: 1 });
+    c.save();
+    const g = c.createLinearGradient(0, 10, 0, 48);
+    g.addColorStop(0, "#F7DD8E");
+    g.addColorStop(1, "#C9973A");
+    c.fillStyle = g;
+    c.beginPath();
+    c.roundRect(68, 10, 30, 38, 6);
+    c.fill();
+    c.restore();
+    [cardOf(2, 4), cardOf(3, 9), cardOf(1, 1), cardOf(0, 6)].forEach((card, k) => drawCard(c, card, 6 + k * 20, 58, 30, 40, { glow: k === 3 ? 0.5 : 0 }));
+  }),
 };
 
 export type _Unused = HoverState | PinState | FlipState | Maze | Ctx;

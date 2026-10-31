@@ -15,6 +15,7 @@ import {
   strikeStrength,
   type BoltShape,
 } from "@/lib/fx/prepareLightning";
+import { canvasRatio } from "@/lib/battery";
 
 const REDUCED_MOTION = "(prefers-reduced-motion: reduce)";
 
@@ -81,7 +82,7 @@ export function PrepareLightning({ startedAt }: { startedAt: number }) {
       const box = el.getBoundingClientRect();
       w = box.width;
       h = box.height;
-      ratio = Math.min(window.devicePixelRatio || 1, 2);
+      ratio = canvasRatio();
       el.width = Math.max(1, Math.round(w * ratio));
       el.height = Math.max(1, Math.round(h * ratio));
       bolts = seeds.map((seed, i) => {

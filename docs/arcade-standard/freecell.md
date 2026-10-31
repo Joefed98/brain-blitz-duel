@@ -1,4 +1,35 @@
-# FreeCell on the arcade scoring standard (freecellRev 1, 30 Oct 2026)
+# Free Cell (`freecell`) on the arcade scoring standard (freecellRev 2, 31 Oct 2026; rev 1 30 Oct 2026)
+
+Shown as **Free Cell** since 31 Oct 2026 (was FreeCell; the id stays `freecell`).
+
+## freecellRev 2 (31 Oct 2026): Undo, Reset and the refused move's note
+
+- **Undo** (input kind 3, the ↶ button in the HUD row left of HOME): back to the position before the last move (or the
+  last Reset). Unlimited. Each undo counts as a move for par (the move undone still counts too); the clock runs on.
+- **Reset** (kind 4, the ⟲ button right of HOME): back to the deal. It counts as one move, the clock runs on, and it can
+  be undone (the position reset from goes on the undo stack). A reset on the deal itself does nothing.
+- An Undo with nothing to undo, or a Reset on the deal, is not a move and not a refusal.
+- A move refused for want of free cells or empty columns shows a short toast under the free cells for 1.6 s:
+  "Need a free cell to move 2 cards" (or "Need 2 free cells to move 3 cards"; `fcCapacityShort`, `fcNoteText`). A tap
+  asks of every column the run could build on (or an empty one); a drag of the column named. Display only (state fields
+  `note`, `noteNeed`, `noteCells`, `noteTick`, outside the checksum).
+- Undo and Reset are in the move log, so the server's replay matches (`freecellGameV2`, its own input ranges; the
+  checkpoint adds the undo stack's depth). Rev-1 runs replay on `freecellGameV1` exactly as before: 24 rev-1 runs recorded
+  on main replay to the same score and final state (cards-check, `scripts/fixtures/cards-rev1-legacy.json`), and a rev-1
+  log's Undo is not an input.
+- Scoring is rev 1's parts unchanged (core 140, par 30, speed 30). Every bank deal's par line reaches 200 on rev 2.
+
+Re-measured on rev 2 (`bun scripts/cards-bands.ts freecell --seeds=100`; the bots never undo): speed stays full by
+**66 s** (near-perfect median finish 66.2 s).
+
+| Level | Weak | Average | Good | Great | Near-perfect | Elite | Flawless |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| score, median (p10–p90) | 21 (8–41) | 37 (17–63) | 63 (13–170) | 170 (75–191) | 188 (173–197) | 194 (189–198) | 200 |
+| finished | 0/100 | 0/100 | 18/100 | 83/100 | 95/100 | 97/100 | 100/100 |
+| finish, median | — | — | 112.7 s | 94.2 s | 66.2 s | 51.4 s | 26.4 s |
+
+# Rev 1 (30 Oct 2026)
+
 
 A new Arcade game in the Cards & Board group, born on the standard: `freecell`, 120 s run (123 s round clock).
 

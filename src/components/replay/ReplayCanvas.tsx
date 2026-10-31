@@ -6,6 +6,7 @@ import type { HighlightClip } from "@/lib/replay/pick";
 import { SLOW_SPEED } from "@/lib/replay/pick";
 import type { PlaybackDrawer } from "@/lib/replay/playback.renderer";
 import type { ReplayTimeline } from "@/lib/replay/timeline";
+import { canvasRatio } from "@/lib/battery";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 export type PlaybackPlan = { kind: "clips"; clips: HighlightClip[] } | { kind: "full" };
@@ -61,7 +62,7 @@ export function ReplayCanvas({
     const canvas = canvasRef.current;
     const ctx = canvas?.getContext("2d");
     if (!canvas || !ctx) return;
-    const dpr = Math.min(2, window.devicePixelRatio || 1);
+    const dpr = canvasRatio();
     const fit = () => {
       canvas.width = Math.max(1, Math.round(canvas.clientWidth * dpr));
       canvas.height = Math.max(1, Math.round(canvas.clientHeight * dpr));
@@ -203,7 +204,7 @@ export function ReplayStill({
     const canvas = canvasRef.current;
     const ctx = canvas?.getContext("2d");
     if (!canvas || !ctx) return;
-    const dpr = Math.min(2, window.devicePixelRatio || 1);
+    const dpr = canvasRatio();
     canvas.width = Math.max(1, Math.round(canvas.clientWidth * dpr));
     canvas.height = Math.max(1, Math.round(canvas.clientHeight * dpr));
     const scale = canvas.clientWidth / drawer.worldW;

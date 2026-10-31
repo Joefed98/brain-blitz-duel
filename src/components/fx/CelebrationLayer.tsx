@@ -9,6 +9,7 @@ import {
   type CelebrationRequest,
 } from "@/lib/fx/celebrations";
 import { CelebrationScene } from "@/lib/fx/celebrationCanvas";
+import { canvasRatio } from "@/lib/battery";
 
 /**
  * The celebrations' one shared full-screen layer (Prompt P, 23 Oct 2026; src/lib/fx/celebrations.ts),
@@ -51,7 +52,7 @@ export function CelebrationLayer() {
     let clearR = Infinity;
     let clearB = Infinity;
     const size = () => {
-      ratio = Math.min(2, window.devicePixelRatio || 1);
+      ratio = canvasRatio();
       scene.spriteRatio = ratio;
       width = window.innerWidth;
       height = window.innerHeight;

@@ -50,6 +50,7 @@ import { ARCADE_CRASH_FREEZE_MS, type BullseyePuzzleData } from "@/lib/duel/type
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 import { arcadeCanvasRatio } from "@/lib/fx/lowEnd";
+import { arenaFrame, cancelArenaFrame } from "@/lib/battery";
 
 /** Fixed intro still: the target, the wind flag, a balloon and a dart ready to throw. */
 function IntroExample() {
@@ -209,7 +210,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     };
 
     const loop = (time: number) => {
-      frame = requestAnimationFrame(loop);
+      frame = arenaFrame(loop);
       const delta = time - last;
       last = time;
 
@@ -284,8 +285,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       }
     };
 
-    frame = requestAnimationFrame(loop);
-    return () => { cancelAnimationFrame(frame); sounds.stop(); };
+    frame = arenaFrame(loop);
+    return () => { cancelArenaFrame(loop, frame); sounds.stop(); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data, seed]);
 

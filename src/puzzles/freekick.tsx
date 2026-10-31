@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useMemo, useRef } from "react";
 
 import { gameDisplayName } from "@/lib/duel/gameNames";
 import {
@@ -13,6 +13,7 @@ import {
   FREEKICK_HORIZON,
   FREEKICK_INPUT_KICK,
   FREEKICK_POWER_MAX,
+  FREEKICK_REV_DEALT,
   FREEKICK_WORLD_H,
   FREEKICK_WORLD_W,
   fkCamSpace,
@@ -22,7 +23,7 @@ import {
   freekickCheckpoint,
   type FreekickState,
 } from "@/lib/arcade/freekick";
-import { freekickArtGame, freekickScene, freekickStroke } from "@/lib/arcade/freekick.renderer";
+import { freekickArtGameFor, freekickScene, freekickSceneKey, freekickStroke } from "@/lib/arcade/freekick.renderer";
 import { encodeFreekickRun, replayFreekickRun } from "@/lib/duel/freekick";
 import { FREEKICK_TIME_MS, type FreekickPuzzleData } from "@/lib/duel/types";
 import { ArcadeCanvasStage, type PointerPayload } from "@/components/puzzles/ArcadeCanvasStage";
@@ -64,11 +65,6 @@ function IntroExample() {
             <circle cx={112.5 + i * 10} cy={63} r={3.2} fill="#D6A684" />
           </g>
         ))}
-        <g fill="#FFFFFF" opacity={0.85}>
-          {[100, 106, 112, 118, 124, 130, 136, 142, 148, 154].map((x) => (
-            <rect key={x} x={x} y={92} width={3} height={1.4} />
-          ))}
-        </g>
         <path d="M96 122 Q78 84 120 44" fill="none" stroke="#FFECBE" strokeOpacity={0.55} strokeWidth={2} strokeDasharray="3 3" />
         <path d="M92 128 Q86 112 104 100" fill="none" stroke="#FFFFFF" strokeOpacity={0.8} strokeWidth={3} strokeLinecap="round" />
         <circle cx={96} cy={118} r={5.5} fill="#F4F6F8" />
@@ -163,6 +159,7 @@ export function freekickStrokeKick(state: FreekickState, pts: readonly StrokePoi
 function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const data: FreekickPuzzleData | null = puzzle.type === "freekick" ? puzzle : null;
   const latest = useRef<FreekickState | null>(null);
+  const game = useMemo(() => freekickArtGameFor(data?.freekickRev), [data?.freekickRev]);
   const stroke = useRef<StrokePoint[]>([]);
   const now = () => (typeof performance === "undefined" ? 0 : performance.now());
   return (
@@ -172,12 +169,13 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       background={FREEKICK_BG}
       fitWorld
       scene={freekickScene}
+      sceneKey={freekickSceneKey}
       seed={data?.seed ?? 1}
       enabled={data !== null}
       locked={locked}
       worldW={FREEKICK_WORLD_W}
       worldH={FREEKICK_WORLD_H}
-      game={freekickArtGame}
+      game={game}
       sounds={freekickSounds}
       checkpoint={freekickCheckpoint}
       interval={FREEKICK_CHECKPOINT_INTERVAL}
@@ -240,7 +238,7 @@ export const freekickPuzzle: PuzzleDefinition = {
   category: "arcade",
   timeLimitMs: FREEKICK_TIME_MS,
   revealMs: 6_000,
-  generate: () => ({ type: "freekick", seed: 1, freekickRev: 1 }) satisfies FreekickPuzzleData,
+  generate: () => ({ type: "freekick", seed: 1, freekickRev: FREEKICK_REV_DEALT }) satisfies FreekickPuzzleData,
   check: () => false,
   revealHeading: "Your run",
   IntroExample,
