@@ -13,6 +13,9 @@
  *   - slips: a mis-hit (the pull let go far too short or long),
  *   - golfRev 2's windmills: the putt is read for the moment it will be played (the sails' angle on the sim's clock);
  *     where a sail is in the way the player waits for the gap, and lets go with the level's timing error.
+ * Competence fix (ctx.fixes, 31 Oct 2026): when the best lay-up leaves the ball where it is (golfRev 2's ramp below
+ * hole 5's castle gate: every way out is further at first), the player looks one putt ahead and plays the lay-up whose
+ * best next putt ends nearest, instead of nudging the ball against the slope stroke after stroke.
  * The bot never looks at the score.
  */
 import { readFileSync } from "node:fs";
@@ -27,6 +30,9 @@ const KNOWS_ROUTE: Record<SkillLevel, number> = { weak: 0, average: 0, good: 0.2
 /** Think time before a putt (average player, ms), and the extra on a new tee. */
 const THINK_MS = 1500;
 const TEE_MS = 1400;
+/** A lay-up ending this close (px) to the ball leaves it where it is; the look-ahead considers this many lay-ups. */
+const STUCK_PX = 12;
+const AHEAD_N = 16;
 
 const witnesses: Record<number, Record<string, string>> = {};
 /** A tee putt from the witness: the putt and the sim tick it was played on (the sails' moment). */
@@ -49,7 +55,7 @@ function routesOf(seed: number, init: MinigolfState, step: (s: MinigolfState, e:
   return routes;
 }
 
-export const bot: SkillBot = ({ game, seed, human }) => {
+export const bot: SkillBot = ({ game, seed, human, fixes }) => {
   const init = game.init(seed) as MinigolfState;
   const routes = routesOf(seed, init, (s, e) => game.step(s, e));
   const v2 = init.rev >= 2;
@@ -75,6 +81,17 @@ export const bot: SkillBot = ({ game, seed, human }) => {
     const ace = opts.find((l) => l.dist < 0);
     if (ace && human.level === "perfect") return { putt: ace.putt, at };
     const lay = opts.filter((l) => l.dist >= 0).slice(0, 6);
+    const stuck = (l: { x: number; y: number }) => Math.hypot(l.x - s.x, l.y - s.y) < STUCK_PX * 256;
+    if (fixes && v2 && lay[0] && stuck(lay[0])) {
+      // Look one putt ahead from each lay-up that moves the ball; play the one whose best next putt ends nearest.
+      let best: { putt: Putt; score: number } | null = null;
+      for (const l of opts.filter((o) => o.dist >= 0 && !stuck(o)).slice(0, AHEAD_N)) {
+        const next = leaves(h, l.x, l.y, 10, 80, l.next ?? at);
+        const score = next.length ? next[0]!.dist : l.dist;
+        if (!best || score < best.score) best = { putt: l.putt, score };
+      }
+      if (best) return { putt: best.putt, at };
+    }
     if (!lay.length) {
       const { a, b } = dirOf(angleTo(s.x, s.y, h.cup.x, h.cup.y));
       return { putt: { a, b, c: 300 }, at };

@@ -33,6 +33,7 @@ import {
   minigolfCourseV2,
   minigolfGameFor,
   MG_AIM,
+  MG_DONE,
   MG_APRON,
   MG_BALL_R,
   MG_END_NONE,
@@ -48,6 +49,7 @@ import {
   MINIGOLF_HOLES,
   MINIGOLF_RUN_TICKS,
   MINIGOLF_STROKE_LIMIT,
+  mgStrokeLimit,
   type MgHole,
   type MinigolfState,
 } from "../src/lib/arcade/minigolf";
@@ -175,6 +177,29 @@ const settle = (s: MinigolfState) => {
   const rolling = putt(game.init(e0.seed), 0, -4000, 600);
   const again = putt(rolling, 4000, 0, 1000);
   ok(again.strokes === 1 && again.vx === game.step(rolling, null).vx, "a putt while the ball rolls is ignored");
+}
+{
+  // golfRev 2 (31 Oct 2026): the stroke limit is par + 3 on every hole (golfRev 1's flat six above is unchanged).
+  ok(mgStrokeLimit(1, 3) === 6 && mgStrokeLimit(1, 5) === 6 && mgStrokeLimit(2, 3) === 6 && mgStrokeLimit(2, 4) === 7 && mgStrokeLimit(2, 5) === 8, "the stroke limit: 6 on golfRev 1, par + 3 on golfRev 2");
+  for (const p of [3, 4, 5]) {
+    const e = MINIGOLF_BANK_V2.find((x) => x.pars.includes(p));
+    if (!e) continue;
+    const g2 = minigolfGameFor(e.pars, 2);
+    const hole = e.pars.indexOf(p);
+    const s0 = g2.init(e.seed);
+    const tee = s0.course[hole]!.tee;
+    let t: MinigolfState = { ...s0, hole, x: tee.x, y: tee.y, fromX: tee.x, fromY: tee.y, strokes: 0 };
+    const soft = (x: MinigolfState) => {
+      let y = g2.step(x, { t: x.tick + 1, k: MG_INPUT_PUTT, a: 0, b: 4000, c: 30, d: 0 });
+      while (y.phase === MG_ROLL && !y.over) y = g2.step(y, null);
+      return y;
+    };
+    for (let i = 0; i < p + 2; i++) t = soft(t);
+    ok(t.phase === MG_AIM && t.holed[hole] === 0, `golfRev 2 par ${p}: still to play after ${p + 2} strokes (phase ${t.phase}, strokes ${t.strokes})`);
+    t = soft(t);
+    // The last hole's limit ends the round (MG_DONE); any other pauses for the next tee.
+    ok(t.phase === (hole === MINIGOLF_HOLES - 1 ? MG_DONE : MG_PAUSE) && t.holed[hole] === 0 && t.taken[hole] === p + 3 && t.close[hole]! >= 0 && t.close[hole]! <= 20, `golfRev 2 par ${p}: stroke ${p + 3} ends the hole with closeness credit (${t.close[hole]})`);
+  }
 }
 {
   // The buzzer credits the hole in play by closeness.
