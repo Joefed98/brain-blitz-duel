@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 
+import { APP_URL } from "@/config/appUrl";
 import { roomShareData, type RoomShareData } from "@/lib/share/roomShare";
 import { resultCardFile } from "@/lib/share/resultCard";
 import {
@@ -104,7 +105,7 @@ export function RoomShareButton({
         players,
         results,
         me,
-        origin: typeof window === "undefined" ? "" : window.location.origin,
+        origin: APP_URL,
       }),
     [duel, players, results, me],
   );

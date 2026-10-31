@@ -7,7 +7,7 @@
  */
 import { readFileSync } from "node:fs";
 
-import { LINK_PREVIEW, SITE_URL } from "../src/lib/brand";
+import { APP_URL, LINK_PREVIEW } from "../src/lib/brand";
 
 let failures = 0;
 const ok = (cond: unknown, msg: string) => {
@@ -22,8 +22,8 @@ ok(
   LINK_PREVIEW.description === "Live brain games with friends. Same games, same moment, highest score wins.",
   "the description line",
 );
-ok(/^https:\/\/[^/]+$/.test(SITE_URL), `SITE_URL is an https origin (${SITE_URL})`);
-for (const url of [LINK_PREVIEW.url, LINK_PREVIEW.image]) ok(url.startsWith(`${SITE_URL}/`), `${url} is absolute on the site`);
+ok(/^https:\/\/[^/]+$/.test(APP_URL), `APP_URL is an https origin (${APP_URL})`);
+for (const url of [LINK_PREVIEW.url, LINK_PREVIEW.image]) ok(url.startsWith(`${APP_URL}/`), `${url} is absolute on the site`);
 
 const root = readFileSync("src/routes/__root.tsx", "utf8");
 for (const [attr, key, value] of [
@@ -57,4 +57,4 @@ if (failures) {
   console.log(`FAIL: ${failures} problem(s)`);
   process.exit(1);
 }
-console.log(`PASS: link preview tags (Open Graph, Twitter large card) with absolute URLs on ${SITE_URL}; og-image.png ${w}×${h}.`);
+console.log(`PASS: link preview tags (Open Graph, Twitter large card) with absolute URLs on ${APP_URL}; og-image.png ${w}×${h}.`);

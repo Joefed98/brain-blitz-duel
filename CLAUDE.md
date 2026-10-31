@@ -20,7 +20,10 @@ the counts)). Every category the lobby offers keeps at
 least 6 active games (`category-pool-check`). On 14 Oct 2026, 19 retired games and the Memory
 category were deleted; old rooms' rounds of them show only the name and stored score
 (`src/lib/duel/removedGames.ts`, proved by `removed-games-check`). Built in Lovable, synced to this repo.
-Lovable still hosts and publishes the app (https://brain-blitz-duel.lovable.app).
+Lovable still hosts and publishes the app at https://joulz.uk (the primary domain since 31 Oct 2026; playjoulz.com and the old
+https://brain-blitz-duel.lovable.app redirect to it). Every link the app hands out and every absolute URL in the page head
+is built on `APP_URL` (`src/config/appUrl.ts`), never the page's own origin; `docs/domain-move-oct-2026.md` lists the settings
+outside the repo.
 
 ## Stack
 
@@ -486,7 +489,7 @@ Lovable still hosts and publishes the app (https://brain-blitz-duel.lovable.app)
   logo's static glow (prepare-lightning-check). Orbit, Breaker, Gemstone, Meteor and Tempo's icons paint their sprite's
   art at the icon's real size (`paintRocket`, `paintBrick`, `paintMatchupGem`, `paintStamp`, `paintNote`, the same
   painters behind the games' cached sprites, so in-game art is unchanged). Link previews: Open Graph and Twitter
-  large-card tags in the root route's head from `LINK_PREVIEW` (`src/lib/brand.ts`, absolute on `SITE_URL`; there is no
+  large-card tags in the root route's head from `LINK_PREVIEW` (`src/lib/brand.ts`, absolute on `APP_URL`, plus a canonical link per path, `canonicalUrl`; there is no
   index.html, TanStack Start renders the head), image `public/og-image.png` from `bun scripts/og-image.ts`
   (link-preview-check). app-shell-check waits out a cold dev server's reload before setup and repeats only the setup once
   on "Execution context was destroyed". `docs/design-system.md` (the look rules) and `docs/stale-code-report.md` (a

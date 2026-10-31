@@ -19,13 +19,13 @@ assert.equal(
 );
 
 // Copy and Share carry the full link plus the code.
-const invite = roomInvite("ABCD", "https://brain-blitz-duel.lovable.app");
-assert.equal(invite.link, "https://brain-blitz-duel.lovable.app/duel/ABCD");
-assert.match(invite.text, /https:\/\/brain-blitz-duel\.lovable\.app\/duel\/ABCD/);
+const invite = roomInvite("ABCD", "https://joulz.uk");
+assert.equal(invite.link, "https://joulz.uk/duel/ABCD");
+assert.match(invite.text, /https:\/\/joulz\.uk\/duel\/ABCD/);
 assert.match(invite.text, /\(code ABCD\)/);
 
 // A link pasted into the home screen's code boxes gives its code.
-assert.equal(codeFromInput("https://brain-blitz-duel.lovable.app/duel/WXYZ"), "WXYZ");
+assert.equal(codeFromInput("https://joulz.uk/duel/WXYZ"), "WXYZ");
 assert.equal(codeFromInput("Join my Duelz room: https://x.app/duel/qrst (code QRST)"), "QRST");
 assert.equal(codeFromInput("ab cd"), "ABCD");
 assert.equal(codeFromInput("abcde"), "ABCD");

@@ -41,7 +41,7 @@ const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 /* ------------------------------------------------------------ happy-dom first (modules read window) */
 
-const win = new Window({ url: "https://brain-blitz-duel.lovable.app/" });
+const win = new Window({ url: "https://joulz.uk/" });
 let reduced = false;
 Object.defineProperty(win, "matchMedia", {
   configurable: true,
