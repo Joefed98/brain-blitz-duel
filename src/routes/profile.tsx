@@ -125,7 +125,7 @@ function ProfileScreen() {
         }}
       />
       <p className="text-[13px] text-muted-foreground">
-        Used when you create or join a room, if no one there has it yet.
+        Your default for every room. If someone there already has it, you get the nearest free colour, and you can change it in the lobby.
       </p>
     </div>
   ) : null;

@@ -36,7 +36,7 @@ import { Medal } from "./Medal";
 import { PlayerBadge } from "./PlayerBadge";
 import { PodiumAwards } from "./PodiumAwards";
 import { RoomFooter } from "./RoomFooter";
-import { youStyle } from "./Standings";
+import { isCompactRoom, youStyle } from "./Standings";
 
 /** The steps: flat panels, the top one tallest, each with its medal (Polish batch R: a compact podium). */
 const STEP_HEIGHT = ["h-[46px]", "h-[34px]", "h-[26px]"];
@@ -143,6 +143,7 @@ export function Podium({
   actions,
 }: PodiumProps) {
   const [open, setOpen] = useState<number | null>(null);
+  const [showAll, setShowAll] = useState(false);
   const mine = rows.find((r) => r.slot === mySlot);
   const won = mine?.position === 1;
   const sharedFirst = won && rows.filter((r) => r.position === 1).length > 1;
@@ -191,6 +192,9 @@ export function Podium({
   }, [won, sharedFirst]);
 
   const marks = tieMarks(rows.map((row) => ({ slot: row.slot, points: row.total, position: row.position })));
+  // Rooms of 11+ (31 Oct 2026, up to 16): the top three and my own row, the rest one tap away.
+  const big = isCompactRoom(rows.length);
+  const podiumRows = big && !showAll ? listRows.filter((row) => row.position <= 3 || row.slot === mySlot) : listRows;
   const sharedAt = (place: number) => rows.filter((r) => r.position === place).length > 1;
 
   return (
@@ -211,12 +215,20 @@ export function Podium({
         <Plinth standing={rows.find((r) => r.position === 3)} place={3} looks={looks} celebrate={celebrate} skip={skipped} shared={sharedAt(3)} />
       </div>
 
-      <ul className="rs-list">
-        {listRows.map((row) => {
+      <ul className="rs-list" data-podium-list={big ? (showAll ? "all" : "top") : undefined}>
+        {podiumRows.map((row) => {
           const isMe = row.slot === mySlot;
+          // Big rooms: under the top three, a line with your place, then your row.
+          const placeLine =
+            big && !showAll && isMe && row.position > 3 ? (
+              <li key="place-line" data-podium-place-line className="rs-row min-h-9 py-1 text-[13px] font-semibold text-[var(--ap-text-2)]">
+                Your place: {ordinal(row.position)} of {rows.length}
+              </li>
+            ) : null;
           const mark = marks.get(row.slot);
           const look = looks.get(row.slot);
-          return (
+          return [
+            placeLine,
             <li key={row.slot} ref={celebrate ? rowRef(row.slot) : undefined} className="rs-row flex-col items-stretch gap-0 p-0">
               <button
                 type="button"
@@ -261,9 +273,23 @@ export function Podium({
                   })}
                 </div>
               )}
-            </li>
-          );
+            </li>,
+          ];
         })}
+        {big ? (
+          <li className="rs-row p-0">
+            <button
+              type="button"
+              data-podium-all
+              aria-expanded={showAll}
+              onClick={() => setShowAll((value) => !value)}
+              className="press flex min-h-11 w-full items-center justify-center gap-1 text-[13px] font-semibold text-[var(--ap-text-2)]"
+            >
+              {showAll ? "Show the top three" : `See all ${rows.length} players`}
+              <ChevronDown aria-hidden="true" className={`h-4 w-4 transition-transform ${showAll ? "rotate-180" : ""}`} />
+            </button>
+          </li>
+        ) : null}
       </ul>
 
       <PodiumAwards awards={awards} looks={looks} names={new Map(rows.map((r) => [r.slot, r.name]))} mySlot={mySlot} />

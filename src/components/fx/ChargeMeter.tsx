@@ -10,7 +10,7 @@ const FILL_MS = 520;
 
 /**
  * The lobby's charge meter (Prompt P, 23 Oct 2026; celebrations only): a slim gold bar directly under
- * the lobby's "{n} of 10 players" line (it has no label of its own), filled players / MAX_PLAYERS, read
+ * the lobby's "{n} of 16 players" line (it has no label of its own), filled players / MAX_PLAYERS, read
  * out as that line already says. Its height is fixed
  * (20 px), so it is there from the first frame and nothing below it moves. A join eases the fill
  * up with a soft crackle; the room filling up sparks once along the bar. Display only.
