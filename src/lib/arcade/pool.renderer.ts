@@ -1,5 +1,5 @@
 /**
- * Speed Pool's art (display only; never imported by the sim or the server): a full-width table under three overhead
+ * Cue Ball's art (`pool`; display only; never imported by the sim or the server): a full-width table under three overhead
  * lamps, walnut rails with grain and mother-of-pearl sights, chrome-capped corner pockets with angled jaws and
  * half-round middle pockets with a chrome plate, the baulk line (no D), a blue chalk cube on the rail; spots 1–7 and
  * stripes 9–15 in their standard colours with numbers, the black and the cue ball, each shaded with a lamp's highlight.
@@ -7,12 +7,15 @@
  * The table (everything that never moves) is painted once per canvas scale to an offscreen layer and blitted; ball
  * faces are cached per id and scale. The aim preview (the line to the ghost ball, the object ball's line and the cue
  * ball's path) is a cheap geometric guess for the player, never the sim.
+ *
+ * poolRev 2 (31 Oct 2026): the cue lies behind the cue ball while aiming (drawn back by the pull), the power meter is a
+ * framed bar of segmented bands green → yellow → orange → red with tick marks and the cue inside it, and a potted ball
+ * rolls into the pocket's mouth and drops away (shrinking and darkening into the hole, from the sim's drop tick).
  */
 import type { ArenaSceneView } from "./arenaScene.renderer";
 import { artHash } from "./art.renderer";
 import {
   poolSecondsLeft,
-  poolSpinOf,
   POOL_BALL_R,
   POOL_BAULK_Y,
   POOL_BLACK,
@@ -54,10 +57,11 @@ export const poolBallColour = (id: number): string => (id === POOL_CUE ? "#F4F1E
 export interface PoolAim {
   dx: number;
   dy: number;
-  /** 0…1, the pull on the panel. */
+  /** 0…1, the pull on the meter. */
   power: number;
-  /** The spin code (0…24). */
-  spin: number;
+  /** The spin dot: x side (right +), y top (+) or back (−), each −100…100. */
+  spinX: number;
+  spinY: number;
 }
 
 const px = (u: number) => u / 256;
@@ -363,6 +367,12 @@ function drawBall(ctx: CanvasRenderingContext2D, id: number, x: number, y: numbe
   ctx.beginPath();
   ctx.ellipse(x + 1.6, y + 2.2, r * 1.02, r * 0.92, 0, 0, Math.PI * 2);
   ctx.fill();
+  drawBallSprite(ctx, id, x, y, r);
+}
+
+/** A ball's face at (x, y) and radius `drawR`, from the sprite cached at radius `r` (no shadow). */
+function drawBallSprite(ctx: CanvasRenderingContext2D, id: number, x: number, y: number, drawR: number, r = drawR): void {
+  const k = drawR / r;
   const scale = scaleOf(ctx);
   const key = `${id}:${r}:${scale.toFixed(2)}`;
   let sprite = ballCache.get(key);
@@ -370,7 +380,7 @@ function drawBall(ctx: CanvasRenderingContext2D, id: number, x: number, y: numbe
     const size = (r * 2 + 2) * scale;
     const c = offscreen(size, size);
     if (!c) {
-      paintBall(ctx, id, x, y, r);
+      paintBall(ctx, id, x, y, drawR);
       return;
     }
     const cc = c.getContext("2d")!;
@@ -380,7 +390,8 @@ function drawBall(ctx: CanvasRenderingContext2D, id: number, x: number, y: numbe
     ballCache.set(key, c);
     sprite = c;
   }
-  ctx.drawImage(sprite, x - r - 1, y - r - 1, r * 2 + 2, r * 2 + 2);
+  const h = (r + 1) * k;
+  ctx.drawImage(sprite, x - h, y - h, h * 2, h * 2);
 }
 
 /* ================================ Aim ================================ */
@@ -455,7 +466,7 @@ function drawAim(ctx: CanvasRenderingContext2D, s: PoolState, aim: PoolAim): voi
     const dot = ux * nx + uy * ny;
     let tx = ux - dot * nx;
     let ty = uy - dot * ny;
-    const tb = poolSpinOf(aim.spin).topBack;
+    const tb = aim.spinY / 50;
     tx += (tb * 0.2) * ux;
     ty += (tb * 0.2) * uy;
     const tl = Math.hypot(tx, ty);
@@ -483,6 +494,133 @@ function drawAim(ctx: CanvasRenderingContext2D, s: PoolState, aim: PoolAim): voi
     ctx.setLineDash([]);
   }
   ctx.restore();
+}
+
+/* ================================ The cue ================================ */
+
+/** The cue's length (world px) and how far back a full pull draws it from the ball. */
+const CUE_LEN = 300;
+const CUE_PULL = 46;
+
+/**
+ * The cue stick behind the cue ball, along the aim (ux, uy) and drawn back by the pull: the blue chalked tip, a white
+ * ferrule, the maple shaft, a gold joint ring and the dark wrapped butt, over its own soft shadow on the cloth.
+ */
+function drawCueStick(ctx: CanvasRenderingContext2D, cx: number, cy: number, ux: number, uy: number, pull: number): void {
+  const gap = R + 3 + CUE_PULL * Math.max(0, Math.min(1, pull));
+  const tipX = cx - ux * gap;
+  const tipY = cy - uy * gap;
+  const angle = Math.atan2(-uy, -ux);
+  ctx.save();
+  // The shadow, offset away from the lamps.
+  ctx.save();
+  ctx.translate(tipX + 3, tipY + 4);
+  ctx.rotate(angle);
+  ctx.fillStyle = "rgba(0,0,0,0.32)";
+  ctx.beginPath();
+  ctx.moveTo(0, -1.8);
+  ctx.lineTo(CUE_LEN, -4.6);
+  ctx.lineTo(CUE_LEN, 4.6);
+  ctx.lineTo(0, 1.8);
+  ctx.closePath();
+  ctx.fill();
+  ctx.restore();
+  ctx.translate(tipX, tipY);
+  ctx.rotate(angle);
+  // Butt (dark wood with a wrap), joint ring, maple shaft, ferrule and tip; x runs from the tip back.
+  const half = (x: number) => 1.8 + (2.8 * x) / CUE_LEN;
+  const body = (x0: number, x1: number, fill: string | CanvasGradient) => {
+    ctx.fillStyle = fill;
+    ctx.beginPath();
+    ctx.moveTo(x0, -half(x0));
+    ctx.lineTo(x1, -half(x1));
+    ctx.lineTo(x1, half(x1));
+    ctx.lineTo(x0, half(x0));
+    ctx.closePath();
+    ctx.fill();
+  };
+  const maple = ctx.createLinearGradient(0, -3, 0, 3);
+  maple.addColorStop(0, "#F7EBD2");
+  maple.addColorStop(0.5, "#E6D1A8");
+  maple.addColorStop(1, "#BFA67A");
+  body(4, CUE_LEN * 0.55, maple);
+  body(CUE_LEN * 0.55, CUE_LEN * 0.55 + 3, "#E3B341");
+  const butt = ctx.createLinearGradient(0, -5, 0, 5);
+  butt.addColorStop(0, "#5A2E16");
+  butt.addColorStop(0.5, "#2B140A");
+  butt.addColorStop(1, "#130905");
+  body(CUE_LEN * 0.55 + 3, CUE_LEN * 0.78, butt);
+  body(CUE_LEN * 0.78, CUE_LEN, "#16161A");
+  // Wrap lines on the grip.
+  ctx.strokeStyle = "rgba(255,255,255,0.08)";
+  ctx.lineWidth = 0.6;
+  for (let x = CUE_LEN * 0.8; x < CUE_LEN - 4; x += 4) {
+    ctx.beginPath();
+    ctx.moveTo(x, -half(x));
+    ctx.lineTo(x + 1.5, half(x));
+    ctx.stroke();
+  }
+  // Ferrule and the chalked tip.
+  body(1.2, 4, "#F8F8F6");
+  body(0, 1.2, "#2E6FD8");
+  // A highlight down the shaft.
+  ctx.strokeStyle = "rgba(255,255,255,0.45)";
+  ctx.lineWidth = 0.7;
+  ctx.beginPath();
+  ctx.moveTo(6, -0.8);
+  ctx.lineTo(CUE_LEN * 0.54, -1.9);
+  ctx.stroke();
+  ctx.restore();
+}
+
+/* ============================ Potted balls ============================ */
+
+/** A potted ball's drop: this many ticks rolling into the mouth, shrinking and darkening into the hole. */
+const DROP_TICKS = 18;
+
+/** The pocket a ball dropped into: the nearest one to where it went down. */
+function pocketOf(b: PoolBall): { x: number; y: number; r: number } {
+  let best = POOL_POCKETS[0]!;
+  let bestD = Infinity;
+  for (const p of POOL_POCKETS) {
+    const d = (p.x - b.x) * (p.x - b.x) + (p.y - b.y) * (p.y - b.y);
+    if (d < bestD) {
+      bestD = d;
+      best = p;
+    }
+  }
+  return { x: px(best.x), y: px(best.y), r: px(best.r) };
+}
+
+/** Balls dropping (poolRev 2's drop tick): each rolls on into its pocket and sinks, drawn under the pocket's shade. */
+function drawDropping(ctx: CanvasRenderingContext2D, s: PoolState): void {
+  for (const b of s.balls) {
+    if (!b.down || b.downAt === undefined) continue;
+    const age = s.tick - b.downAt;
+    if (age < 0 || age >= DROP_TICKS) continue;
+    const t = age / DROP_TICKS;
+    const p = pocketOf(b);
+    const roll = Math.min(1, t * 1.8);
+    const ease = 1 - (1 - roll) * (1 - roll);
+    const x = px(b.x) + (p.x - px(b.x)) * ease;
+    const y = px(b.y) + (p.y - px(b.y)) * ease;
+    const r = R * (1 - 0.55 * t);
+    ctx.save();
+    // Keep the sinking ball inside the hole once it reaches the mouth (it falls below the cloth, not over the rail).
+    if (roll >= 1) {
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.r + 1, 0, Math.PI * 2);
+      ctx.clip();
+    }
+    ctx.globalAlpha = 1 - 0.35 * t;
+    drawBallSprite(ctx, b.id, x, y, r, R);
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = `rgba(0,0,0,${(0.85 * t).toFixed(3)})`;
+    ctx.beginPath();
+    ctx.arc(x, y, r + 0.3, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
 }
 
 /* ================================= HUD ================================= */
@@ -551,10 +689,16 @@ export function drawPool(ctx: CanvasRenderingContext2D, s: PoolState, aim: PoolA
       ctx.fillRect(px(p.x) - 30, px(p.y) - 30, 60, 60);
     }
   }
+  drawDropping(ctx, s);
   for (const b of s.balls) if (!b.down && b.id !== POOL_CUE) drawBall(ctx, b.id, px(b.x), px(b.y));
   const cue = s.balls.find((b) => b.id === POOL_CUE && !b.down);
-  if (aim && s.phase === 0 && !s.over) drawAim(ctx, s, aim);
+  const aiming = aim && s.phase === 0 && !s.over;
+  if (aiming) drawAim(ctx, s, aim);
   if (cue) drawBall(ctx, POOL_CUE, px(cue.x), px(cue.y));
+  if (aiming && cue) {
+    const l = Math.hypot(aim.dx, aim.dy);
+    if (l > 1e-6) drawCueStick(ctx, px(cue.x), px(cue.y), aim.dx / l, aim.dy / l, aim.power);
+  }
   drawHud(ctx, s);
   void POOL_BLACK;
 }
@@ -584,78 +728,133 @@ export function poolScene(ctx: CanvasRenderingContext2D, view: ArenaSceneView): 
   }
 }
 
-/** The zones' colours, left (full power) to right (soft). */
-const ZONES = ["#D8322E", "#E8692A", "#EFA52C", "#E9D23A", "#8FC93E", "#3FB25A"];
+/* ============================== The power meter ============================== */
+
+/** The meter's bands, soft to full: green, yellow, orange, red. */
+const BANDS: readonly [number, number, number][] = [
+  [63, 178, 90],
+  [143, 201, 62],
+  [233, 210, 58],
+  [239, 165, 44],
+  [232, 105, 42],
+  [216, 50, 46],
+];
+/** The meter's segments. */
+const SEGMENTS = 20;
+
+/** The band colour at f (0 soft … 1 full), blended between the stops. */
+function bandColour(f: number, alpha: number): string {
+  const x = Math.max(0, Math.min(1, f)) * (BANDS.length - 1);
+  const i = Math.min(BANDS.length - 2, Math.floor(x));
+  const t = x - i;
+  const a = BANDS[i]!;
+  const b = BANDS[i + 1]!;
+  const c = (k: number) => Math.round(a[k]! + (b[k]! - a[k]!) * t);
+  return `rgba(${c(0)},${c(1)},${c(2)},${alpha})`;
+}
 
 /**
- * The power panel (CSS px, its own canvas): coloured zones from red (left, full power) to green (right, soft) with
- * tick marks, and the cue lying along it. `pull` (0…1) slides the cue left; every zone its tip has passed lights up.
+ * The power meter (CSS px, its own canvas), after the classic pool games' meter: a framed bar of segmented bands from
+ * green (soft, on the right) through yellow and orange to red (full, on the left), tick marks above and below, and the
+ * cue lying inside it. `pull` (0…1) draws the cue back to the left; every segment its tip has passed lights up.
  */
-export function drawPoolPowerPanel(ctx: CanvasRenderingContext2D, w: number, h: number, pull: number, spin: number): void {
+export function drawPoolPowerPanel(ctx: CanvasRenderingContext2D, w: number, h: number, pull: number, _spin?: unknown): void {
   ctx.clearRect(0, 0, w, h);
-  const pad = 8;
-  const top = h * 0.22;
-  const bh = h * 0.56;
-  ctx.fillStyle = "rgba(14,14,18,0.9)";
-  roundRect(ctx, 0.5, 0.5, w - 1, h - 1, 12);
+  const p = Math.max(0, Math.min(1, pull));
+  // The frame: a dark body inside a brushed-metal rim.
+  const rim = ctx.createLinearGradient(0, 0, 0, h);
+  rim.addColorStop(0, "#9AA0A7");
+  rim.addColorStop(0.5, "#3C4046");
+  rim.addColorStop(1, "#7D838A");
+  ctx.fillStyle = rim;
+  roundRect(ctx, 0, 0, w, h, 14);
   ctx.fill();
-  ctx.strokeStyle = "rgba(255,255,255,0.12)";
-  ctx.stroke();
-  const zw = (w - pad * 2) / ZONES.length;
-  const tip = pad + (w - pad * 2) * (1 - Math.max(0, Math.min(1, pull)));
-  ZONES.forEach((c, i) => {
-    const x = pad + i * zw;
-    const lit = x + zw > tip + 0.5;
-    ctx.globalAlpha = lit ? 0.95 : 0.22;
-    ctx.fillStyle = c;
-    ctx.fillRect(x + 1, top, zw - 2, bh);
-    ctx.globalAlpha = 1;
-  });
-  // Tick marks every tenth.
-  ctx.strokeStyle = "rgba(255,255,255,0.35)";
+  const bodyFill = ctx.createLinearGradient(0, 2, 0, h - 2);
+  bodyFill.addColorStop(0, "#1C1C23");
+  bodyFill.addColorStop(1, "#0B0B0F");
+  ctx.fillStyle = bodyFill;
+  roundRect(ctx, 2, 2, w - 4, h - 4, 12);
+  ctx.fill();
+  // The track.
+  const left = 12;
+  const right = w - 12;
+  const trackW = Math.max(10, right - left);
+  const top = Math.round(h * 0.27);
+  const bh = Math.max(12, Math.round(h * 0.46));
+  ctx.fillStyle = "#050507";
+  roundRect(ctx, left - 2, top - 2, trackW + 4, bh + 4, 6);
+  ctx.fill();
+  // Segments: index 0 at the right (soft) to SEGMENTS − 1 at the left (full).
+  const seg = trackW / SEGMENTS;
+  const lit = Math.ceil(p * SEGMENTS - 1e-6);
+  for (let k = 0; k < SEGMENTS; k++) {
+    const x = right - (k + 1) * seg;
+    const on = k < lit;
+    ctx.fillStyle = bandColour(k / (SEGMENTS - 1), on ? 1 : 0.2);
+    ctx.fillRect(x + 1, top, seg - 2, bh);
+    if (on) {
+      ctx.fillStyle = "rgba(255,255,255,0.22)";
+      ctx.fillRect(x + 1, top, seg - 2, bh * 0.4);
+    }
+  }
+  // Glass over the track.
+  const glass = ctx.createLinearGradient(0, top, 0, top + bh);
+  glass.addColorStop(0, "rgba(255,255,255,0.10)");
+  glass.addColorStop(0.5, "rgba(255,255,255,0)");
+  glass.addColorStop(1, "rgba(0,0,0,0.25)");
+  ctx.fillStyle = glass;
+  ctx.fillRect(left, top, trackW, bh);
+  // Tick marks above and below: one a segment, longer every fifth.
+  ctx.strokeStyle = "rgba(243,241,236,0.45)";
   ctx.lineWidth = 1;
-  for (let i = 0; i <= 10; i++) {
-    const x = pad + ((w - pad * 2) * i) / 10;
+  for (let k = 0; k <= SEGMENTS; k++) {
+    const x = Math.round(right - k * seg) + 0.5;
+    const len = k % 5 === 0 ? 6 : 3;
     ctx.beginPath();
-    ctx.moveTo(x, top - 4);
-    ctx.lineTo(x, top + (i % 5 === 0 ? 4 : 1));
+    ctx.moveTo(x, top - 4 - len);
+    ctx.lineTo(x, top - 4);
+    ctx.moveTo(x, top + bh + 4);
+    ctx.lineTo(x, top + bh + 4 + len);
     ctx.stroke();
   }
-  // The cue: ferrule and tip on the right end, a maple shaft into a dark butt off the left.
+  // The cue inside the track: tip at the right end drawn back by the pull, the shaft running off the left.
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(left, top, trackW, bh);
+  ctx.clip();
   const cy = top + bh / 2;
-  const len = w * 0.95;
-  const butt = tip - len;
-  const shaft = ctx.createLinearGradient(butt, 0, tip, 0);
-  shaft.addColorStop(0, "#1A0F08");
-  shaft.addColorStop(0.42, "#3B2212");
-  shaft.addColorStop(0.43, "#E9D7B4");
-  shaft.addColorStop(1, "#F3E7CF");
-  ctx.fillStyle = "rgba(0,0,0,0.45)";
-  ctx.beginPath();
-  ctx.moveTo(butt, cy - 4);
-  ctx.lineTo(tip, cy - 1.5);
-  ctx.lineTo(tip, cy + 3.5);
-  ctx.lineTo(butt, cy + 7);
-  ctx.closePath();
-  ctx.fill();
-  ctx.fillStyle = shaft;
-  ctx.beginPath();
-  ctx.moveTo(butt, cy - 5.5);
-  ctx.lineTo(tip - 6, cy - 2.2);
-  ctx.lineTo(tip - 6, cy + 2.2);
-  ctx.lineTo(butt, cy + 5.5);
-  ctx.closePath();
-  ctx.fill();
-  ctx.fillStyle = "#F8F8F6";
-  ctx.fillRect(tip - 6, cy - 2.2, 4, 4.4);
-  ctx.fillStyle = "#2E6FD8";
-  ctx.fillRect(tip - 2, cy - 2, 2, 4);
-  // A thin highlight down the shaft.
-  ctx.strokeStyle = "rgba(255,255,255,0.35)";
+  const tip = right - 2 - p * (trackW - 8);
+  const len = Math.max(w, 260);
+  const half = (x: number) => 2.2 + ((tip - x) / len) * 3.4;
+  const body = (x0: number, x1: number, fill: string | CanvasGradient) => {
+    ctx.fillStyle = fill;
+    ctx.beginPath();
+    ctx.moveTo(x0, cy - half(x0));
+    ctx.lineTo(x1, cy - half(x1));
+    ctx.lineTo(x1, cy + half(x1));
+    ctx.lineTo(x0, cy + half(x0));
+    ctx.closePath();
+    ctx.fill();
+  };
+  ctx.fillStyle = "rgba(0,0,0,0.5)";
+  ctx.fillRect(tip - len, cy + 2, len, 4);
+  const maple = ctx.createLinearGradient(0, cy - 4, 0, cy + 4);
+  maple.addColorStop(0, "#F7EBD2");
+  maple.addColorStop(0.5, "#E6D1A8");
+  maple.addColorStop(1, "#B39B70");
+  body(tip - 4, tip - len * 0.5, maple);
+  body(tip - len * 0.5, tip - len * 0.5 - 3, "#E3B341");
+  const butt = ctx.createLinearGradient(0, cy - 5, 0, cy + 5);
+  butt.addColorStop(0, "#5A2E16");
+  butt.addColorStop(1, "#1A0C06");
+  body(tip - len * 0.5 - 3, tip - len, butt);
+  body(tip - 1.4, tip - 4, "#F8F8F6");
+  body(tip, tip - 1.4, "#2E6FD8");
+  ctx.strokeStyle = "rgba(255,255,255,0.45)";
   ctx.lineWidth = 0.8;
   ctx.beginPath();
-  ctx.moveTo(butt + len * 0.45, cy - 2.2);
-  ctx.lineTo(tip - 6, cy - 1.1);
+  ctx.moveTo(tip - 6, cy - 1);
+  ctx.lineTo(tip - len * 0.48, cy - 2.6);
   ctx.stroke();
-  void spin;
+  ctx.restore();
 }

@@ -3,17 +3,20 @@
  *
  * Each putt is planned the way a player reads a hole: with a clear line to the cup, the putt that drops on the
  * straight line (the sim's own roll stands in for the read of pace and break); without one, the lay-up that leaves
- * the ball nearest the cup by walking distance (round the rails, logs, rocks, planters and ponds). Stronger players
- * know the course: from the tee they play the best route's first putt (the bank's witness, the route the par is
- * proved on), the way a regular plays the bank or the ace line. Then, in the gesture's own terms:
+ * the ball nearest the cup by walking distance (round the rails, logs, rocks, planters and ponds, and on golfRev 2
+ * through the tunnels and round the bunkers). Stronger players know the course: from the tee they play the best
+ * route's first putt (the bank's witness, the route the par is proved on), the way a regular plays the bank or the ace
+ * line. Then, in the gesture's own terms:
  *   - aim error: the finger's pointing error over the length of the pull (aimSdPx over ~pull px, in radians),
  *   - power error: a relative error on the pull's length,
  *   - think time before each putt (longer on a new hole's tee),
- *   - slips: a mis-hit (the pull let go far too short or long).
+ *   - slips: a mis-hit (the pull let go far too short or long),
+ *   - golfRev 2's windmills: the putt is read for the moment it will be played (the sails' angle on the sim's clock);
+ *     where a sail is in the way the player waits for the gap, and lets go with the level's timing error.
  * The bot never looks at the score.
  */
 import { readFileSync } from "node:fs";
-import { MG_AIM, MG_POWER_MAX, MINIGOLF_HOLES, type MinigolfState } from "../../../src/lib/arcade/minigolf";
+import { MG_AIM, MG_MILL_PERIOD, MG_POWER_MAX, MINIGOLF_HOLES, type MinigolfState } from "../../../src/lib/arcade/minigolf";
 import { decodeSportsRun } from "../../../src/lib/arcade/sportsKit";
 import type { SkillLevel } from "../human";
 import { driveEvents, type SkillBot } from "../bot";
@@ -25,19 +28,22 @@ const KNOWS_ROUTE: Record<SkillLevel, number> = { weak: 0, average: 0, good: 0.2
 const THINK_MS = 1500;
 const TEE_MS = 1400;
 
-let witness: Record<string, string> | null = null;
+const witnesses: Record<number, Record<string, string>> = {};
+/** A tee putt from the witness: the putt and the sim tick it was played on (the sails' moment). */
+type TeePutt = Putt & { t: number };
 /** The bank witness's putts for each hole of a seed (the proved best routes), or null off the bank. */
-function routesOf(seed: number, init: MinigolfState, step: (s: MinigolfState, e: unknown) => MinigolfState): Putt[][] | null {
-  witness ??= JSON.parse(readFileSync(new URL("../../fixtures/minigolf-witness.json", import.meta.url), "utf8")) as Record<string, string>;
-  const raw = witness[String(seed)];
+function routesOf(seed: number, init: MinigolfState, step: (s: MinigolfState, e: unknown) => MinigolfState): TeePutt[][] | null {
+  const rev = init.rev >= 2 ? 2 : 1;
+  witnesses[rev] ??= JSON.parse(readFileSync(new URL(rev >= 2 ? "../../fixtures/minigolf-witness-v2.json" : "../../fixtures/minigolf-witness.json", import.meta.url), "utf8")) as Record<string, string>;
+  const raw = witnesses[rev]![String(seed)];
   if (!raw) return null;
   const events = decodeSportsRun(raw, 7200).events;
   const byTick = new Map(events.map((e) => [e.t, e]));
-  const routes: Putt[][] = Array.from({ length: MINIGOLF_HOLES }, () => []);
+  const routes: TeePutt[][] = Array.from({ length: MINIGOLF_HOLES }, () => []);
   let s = init;
   while (!s.over) {
     const e = byTick.get(s.tick + 1) ?? null;
-    if (e && s.phase === MG_AIM) routes[s.hole]!.push({ a: e.a, b: e.b, c: e.c });
+    if (e && s.phase === MG_AIM) routes[s.hole]!.push({ a: e.a, b: e.b, c: e.c, t: e.t });
     s = step(s, e);
   }
   return routes;
@@ -46,28 +52,36 @@ function routesOf(seed: number, init: MinigolfState, step: (s: MinigolfState, e:
 export const bot: SkillBot = ({ game, seed, human }) => {
   const init = game.init(seed) as MinigolfState;
   const routes = routesOf(seed, init, (s, e) => game.step(s, e));
+  const v2 = init.rev >= 2;
   let readyAt = -1;
   let plannedFor = "";
   let lastHole = -1;
   let shotOnHole = 0;
   let planned: Putt | null = null;
 
-  const plan = (s: MinigolfState): Putt => {
+  /** The putt from where the ball rests, read for a putt played from tick `at` (golfRev 2: plus its wait). */
+  const plan = (s: MinigolfState, at: number): { putt: Putt; at: number } => {
     const h = s.course[s.hole]!;
-    if (shotOnHole === 0 && routes?.[s.hole]?.[0] && human.chance(KNOWS_ROUTE[human.level])) return routes[s.hole]![0]!;
-    const hole = holingPutts(h, s.x, s.y);
-    if (hole[0]) return hole[0];
-    const opts = leaves(h, s.x, s.y, 5, 40);
+    const first = routes?.[s.hole]?.[0];
+    if (shotOnHole === 0 && first && human.chance(KNOWS_ROUTE[human.level])) {
+      // The witness's tee putt, played when the sails stand as they did for it (they repeat every MG_MILL_PERIOD).
+      if (!v2 || !(h.windmills?.length)) return { putt: first, at };
+      const lag = (((first.t - at) % MG_MILL_PERIOD) + MG_MILL_PERIOD) % MG_MILL_PERIOD;
+      return { putt: { a: first.a, b: first.b, c: first.c }, at: at + lag };
+    }
+    const hole = holingPutts(h, s.x, s.y, { tick: at });
+    if (hole[0]) return { putt: hole[0], at };
+    const opts = leaves(h, s.x, s.y, 5, 40, at);
     const ace = opts.find((l) => l.dist < 0);
-    if (ace && human.level === "perfect") return ace.putt;
+    if (ace && human.level === "perfect") return { putt: ace.putt, at };
     const lay = opts.filter((l) => l.dist >= 0).slice(0, 6);
     if (!lay.length) {
       const { a, b } = dirOf(angleTo(s.x, s.y, h.cup.x, h.cup.y));
-      return { a, b, c: 300 };
+      return { putt: { a, b, c: 300 }, at };
     }
     // The player weighs the few best lay-ups by eye.
     const i = human.pick(lay.map((l) => -l.dist));
-    return lay[Math.max(0, i)]!.putt;
+    return { putt: lay[Math.max(0, i)]!.putt, at };
   };
 
   /** The putt as the finger plays it: aim and pull-length error, and the odd mis-hit. */
@@ -90,9 +104,13 @@ export const bot: SkillBot = ({ game, seed, human }) => {
           lastHole = s.hole;
           shotOnHole = 0;
         }
-        planned = plan(s);
         const think = human.thinkTicks(THINK_MS + (shotOnHole === 0 ? TEE_MS : 0));
         readyAt = t + human.reactTicks() + think;
+        const p = plan(s, readyAt);
+        planned = p.putt;
+        // A timed putt (a wait for the sails): let go when the gap comes, give or take the level's timing.
+        const waits = p.at - readyAt + (p.putt.w ?? 0);
+        if (waits > 0) readyAt = Math.max(t, readyAt + waits + (human.level === "perfect" ? 0 : human.timingTicks(1.5)));
       }
       if (t < readyAt || !planned) return null;
       const p = human.level === "perfect" ? planned : execute(planned);
