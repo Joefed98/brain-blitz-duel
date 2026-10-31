@@ -855,6 +855,18 @@ Lovable still hosts and publishes the app (https://brain-blitz-duel.lovable.app)
   without a miss or a foul), Curling's sheets (every opponent stone out, eight stones on the button). Effects
   `sportsFx.renderer.ts`; checks minigolf-check, pool-check, curling-check and arcade-standard-check's entries. Their tiles take the Sports
   group's border (`arcadeGroups.ts`, `--group-sports`); LIVE_BANDS marks them `born`. Intro demos are stills until recorded.
+- **Sound batch 6** (31 Oct 2026, presentation only, no stamps; `docs/sound-cues/batch6-sports-cards.md`,
+  `batch6-mapping.csv`): Joe's 86 ElevenLabs recordings for the Sports and Cards & Board games, trimmed (under 3 ms of
+  lead, each effect within its budget plus 150 ms), looped (seamless joins, checked as `detectLoopPoints` loops them),
+  levelled (effects -1 dBFS peaks, capped at the library's median loudness + 2 dB; beds -18 LUFS) and encoded (44.1 kHz,
+  mono 96k; beds, crowd and engines stereo 128k) into `public/sounds/<slot>.mp3`, about 10 MB. The observers live in
+  `gameSounds.ts` (cardSounds.ts re-exports): a moment that played a shared sound plays its own file in its place
+  (arcade.md), new moments and loops stay silent without one (`effectCue` / `loopCue`; the eight that played a
+  celebrations recording through `ownCue`); each game's bed is `music_<gameId>`. Racing's engine loop follows speed
+  (`setCueLoopRate` in `src/lib/sound.ts`), its start lights are the intro's countdown (theme `onCountdown`
+  `racing.light`, falling back to `countdown_step`); TriPeaks' run card rises a semitone a card. sound-batch6-check (~1 s)
+  proves every slot's file, length budget, loop flag and format from the MP3 frames. The upload branch was
+  `Joefed98-patch-1`; the originals are not in the repo.
 - `src/components/duel/` — room/round screens (PhoneShell, RoundIntro, TimerBar,
   AnswerReveal, ArcadeReveal, WinnerReveal…); `src/components/puzzles/` — shared puzzle
   widgets; `src/lib/fx/` — sound and visual feedback (presentation only).

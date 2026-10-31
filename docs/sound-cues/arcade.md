@@ -123,20 +123,41 @@ when the run starts. Rooms deal Pinball since 14 Oct 2026; Junction is practice 
 | `homerun.crack` | Home Run Derby | Bat meets ball (a fair ball or a home run) | `arc_wood_knock` (rate 1.15 on a square hit) | 5–10 | 200 ms |
 | `homerun.homer` | Home Run Derby | A home run | `arc_fair_sting` (0.9) | 0–10 | 480 ms |
 | `homerun.sign` | Home Run Derby | A sign beyond the fence is struck | `arc_fair_bell` (0.9) | 0–4 | 480 ms |
-| `homerun.foul` | Home Run Derby | A foul ball | `arc_bounce` (0.7) | 0–5 | 150 ms |
-| `homerun.strike` | Home Run Derby | A swing and a miss, or a pitch taken | `arc_fair_thud` (0.6) | 0–10 | 150 ms |
+| `homerun.foul` | Home Run Derby | A foul ball, or weak contact (a fair ball under 400 per mille, once the slot has its file) | `arc_bounce` (0.7) | 0–5 | 150 ms |
+| `homerun.strike` | Home Run Derby | The ball in the catcher's mitt: a swing and a miss, or a pitch taken | `arc_fair_thud` (0.6) | 0–10 | 150 ms |
 | `freekick.kick` | Free Kick | The ball is struck | `arc_fair_thud` | 10 | 150 ms |
 | `freekick.post` | Free Kick | The ball hits a post or the bar | `arc_clank` | 0–5 | 200 ms |
-| `freekick.save` | Free Kick | The keeper saves (the wall's block, quieter) | `arc_wood_knock` | 0–10 | 200 ms |
-| `freekick.goal` | Free Kick | A goal | `arc_fair_sting` | 0–10 | 480 ms |
+| `freekick.save` | Free Kick | The keeper saves | `arc_wood_knock` | 0–10 | 200 ms |
+| `freekick.goal` | Free Kick | A goal (its file is the net; with it, `freekick.net` is not played) | `arc_fair_sting` | 0–10 | 480 ms |
 | `freekick.target` | Free Kick | A target hit | `arc_fair_bell` | 0–4 | 480 ms |
 | `freekick.net` | Free Kick | The ball hits the net | `arc_bounce` | 0–10 | 200 ms |
-| `racing.go` | Racing | The race starts | `arc_horn` | 1 | 300 ms |
+| `racing.go` | Racing | The run starts (lights out) | `arc_horn` | 1 | 300 ms |
 | `racing.lap` | Racing | A lap is completed | `arc_fair_bell` | 1–2 | 480 ms |
 | `racing.sector` | Racing | A clean sector | `arc_retro_coin` | 0–8 | 200 ms |
 | `racing.wall` | Racing | The car hits the tyre wall | `arc_crash` | 0–10 | 200 ms |
 | `racing.grass` | Racing | The car runs onto the grass or gravel | `arc_bounce` | 0–20 | 150 ms |
 | `racing.finish` | Racing | The finish line after lap 2 | `arc_fair_sting` | 0–1 | 480 ms |
+| `minigolf.stone` | Minigolf | The ball bounces off a boulder or a planter | `arc_bounce` (0.6) | 0–20 | 300 ms |
+| `freekick.wall` | Free Kick | The wall blocks the kick | `arc_wood_knock` (0.65, rate 0.85) | 0–10 | 300 ms |
+| `pool.click` | Speed Pool | Ball meets ball | `tick` (0.5, overlapping) | 10–60 | 200 ms |
+| `minesweeper.reveal` | Minesweeper | A tap opens a square (or a few) | `tick` (0.6) | 20–80 | 80 ms |
+| `minesweeper.cascade` | Minesweeper | A tap opens six or more squares (an area opens) | `tick` (0.6) | 2–10 | 604 ms |
+| `minesweeper.flag` | Minesweeper | A flag is placed | `tick` (0.35) | 5–25 | 300 ms |
+| `mahjong.blocked` | Mahjong Solitaire | A tap on a covered or hemmed-in tile | `tick` (0.4) | 0–10 | 300 ms |
+| `freecell.place` | FreeCell | A move made (a tap or a drag) | `place` (0.8) | 40–120 | 300 ms |
+| `freecell.home` | FreeCell | A card goes home (one auto move, or the player's) | `correct` (0.55, rising with the cards home) | 10–52 | 150 ms |
+| `freecell.cascade` | FreeCell | Two or more cards go home on their own at once | `correct` (0.55, rising) | 2–10 | 948 ms |
+| `freecell.invalid` | FreeCell | A tap that moves nothing | `wrong` (0.5) | 0–10 | 434 ms |
+| `freecell.win` | FreeCell | Every card home | `complete` | 0–1 | 1362 ms |
+| `tripeaks.run` | TriPeaks | A card played to the discard; with its own file a semitone higher for each card of the run (an octave at most) | `place` (0.8; `combo` from the third card of a run, rising) | 20–40 | 329 ms |
+| `tripeaks.deal` | TriPeaks | The stock's next card turned | `move` (0.8) | 5–24 | 220 ms |
+| `tripeaks.peak` | TriPeaks | A peak cleared | `correct` (0.7) | 0–3 | 998 ms |
+| `tripeaks.invalid` | TriPeaks | A tap on a card that can't be played | `wrong` (0.5) | 0–10 | 434 ms |
+| `tripeaks.clear` | TriPeaks | Every peak card cleared | `complete` | 0–1 | 1666 ms |
+| `pokersquares.place` | Poker Squares | A card placed that makes no new hand | `place` (0.8; `combo` when the total rises) | 10–25 | 300 ms |
+| `pokersquares.hand` | Poker Squares | A card placed makes a pair, two pair or three of a kind on a line | `correct` (0.8) | 5–15 | 484 ms |
+| `pokersquares.bigHand` | Poker Squares | A card placed makes a straight or better on a line | `correct` (0.8) | 0–5 | 1122 ms |
+| `pokersquares.invalid` | Poker Squares | A tap on a filled square | `wrong` (0.5) | 0–5 | 434 ms |
 | `inkbridge.draw` | Rainbow Bridge | The first segment of each drawn stroke | `arc_rainbow` (0.6) | 10–30 | 910 ms |
 | `inkbridge.pot` | Rainbow Bridge | The pot of gold is reached | `arc_rainbow_pot` | 3–10 | 1000 ms |
 | `inkbridge.bump` | Rainbow Bridge | A level fails on a block | `arc_rainbow_bump` | 0–5 | 200 ms |

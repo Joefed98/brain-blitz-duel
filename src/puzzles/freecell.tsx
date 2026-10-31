@@ -10,7 +10,7 @@ import { encodeFreecellRun, replayFreecellRun } from "@/lib/duel/cards";
 import { FREECELL_TIME_MS, type FreecellPuzzleData } from "@/lib/duel/types";
 import { ArcadeCanvasStage, type PointerPayload } from "@/components/puzzles/ArcadeCanvasStage";
 import { CardStill } from "@/components/puzzles/CardStill";
-import { freecellSounds } from "@/lib/fx/cardSounds";
+import { freecellPick, freecellSounds } from "@/lib/fx/cardSounds";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
@@ -46,6 +46,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     if (kind === "move") {
       if (!s.moved && Math.hypot(x - s.x, y - s.y) > TAP_SLOP) {
         s.moved = true;
+        freecellPick();
         const box = fcCardBox(state, s.pile, s.index);
         view.drag = { pile: s.pile, index: s.index, x, y, ox: s.x - box.x, oy: s.y - box.y };
       }

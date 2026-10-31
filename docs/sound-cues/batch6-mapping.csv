@@ -1,0 +1,87 @@
+slot,file,game,event,length_s,loop,cues
+sports_crowd_loop,sports_crowd_loop.mp3,homerun|freekick,stadium ambience,10,yes,homerun.crowd;freekick.crowd
+sports_crowd_roar,sports_crowd_roar.mp3,homerun|freekick|racing,big moment cheer,3.5,no,homerun.roar;freekick.roar;racing.roar
+sports_crowd_groan,sports_crowd_groan.mp3,homerun|freekick,near miss,2,no,homerun.groan;freekick.groan
+cards_deal,cards_deal.mp3,freecell|tripeaks|pokersquares,card dealt,0.3,no,tripeaks.deal
+cards_pick,cards_pick.mp3,freecell|tripeaks|pokersquares,card lifted,0.2,no,freecell.pick
+cards_place,cards_place.mp3,freecell|tripeaks|pokersquares,card placed,0.3,no,freecell.place;pokersquares.place
+cards_home,cards_home.mp3,freecell|tripeaks,card to foundation,0.6,no,freecell.home
+cards_invalid,cards_invalid.mp3,freecell|tripeaks|pokersquares,move not allowed,0.3,no,freecell.invalid;tripeaks.invalid;pokersquares.invalid
+cards_shuffle,cards_shuffle.mp3,freecell|tripeaks|pokersquares,round start shuffle,1.5,no,freecell.shuffle;tripeaks.shuffle;pokersquares.shuffle
+music_minigolf,music_minigolf.mp3,minigolf,music bed,90,yes,music_minigolf
+minigolf_putt,minigolf_putt.mp3,minigolf,putt,0.4,no,minigolf.putt
+minigolf_roll_loop,minigolf_roll_loop.mp3,minigolf,ball rolling,2,yes,minigolf.roll
+minigolf_rail,minigolf_rail.mp3,minigolf,hits rail or log,0.3,no,minigolf.bounce
+minigolf_stone,minigolf_stone.mp3,minigolf,hits boulder or planter,0.3,no,minigolf.stone
+minigolf_bush,minigolf_bush.mp3,minigolf,brushes bush,0.5,no,minigolf.bush
+minigolf_splash,minigolf_splash.mp3,minigolf,water hazard,0.8,no,minigolf.water
+minigolf_cup,minigolf_cup.mp3,minigolf,holed,0.8,no,minigolf.holed
+minigolf_birdie,minigolf_birdie.mp3,minigolf,under par,1,no,minigolf.birdie
+music_pool,music_pool.mp3,pool,music bed,90,yes,music_pool
+pool_cue_soft,pool_cue_soft.mp3,pool,soft shot,0.4,no,pool.cueSoft
+pool_cue_hard,pool_cue_hard.mp3,pool,power shot,0.4,no,pool.cueHard
+pool_ball_click,pool_ball_click.mp3,pool,ball hits ball,0.2,no,pool.click
+pool_cushion,pool_cushion.mp3,pool,ball hits cushion,0.3,no,pool.cushion
+pool_pocket,pool_pocket.mp3,pool,ball drops into pocket,1.2,no,pool.pocket
+pool_foul,pool_foul.mp3,pool,foul,0.5,no,pool.foul
+pool_chalk,pool_chalk.mp3,pool,round start,0.8,no,pool.chalk
+pool_black_win,pool_black_win.mp3,pool,black potted,1.5,no,pool.blackWin
+music_curling,music_curling.mp3,curling,music bed,90,yes,music_curling
+curling_release,curling_release.mp3,curling,stone released,0.5,no,curling.release
+curling_slide_loop,curling_slide_loop.mp3,curling,stone travelling,3,yes,curling.slide
+curling_sweep_loop,curling_sweep_loop.mp3,curling,sweeping,2,yes,curling.sweep
+curling_hit,curling_hit.mp3,curling,stone hits stone,0.4,no,curling.hit
+curling_board,curling_board.mp3,curling,stone hits back board,0.4,no,curling.board
+curling_applause,curling_applause.mp3,curling,good stone,2,no,curling.applause
+curling_shot,curling_shot.mp3,curling,holding shot,1,no,curling.shot
+music_homerun,music_homerun.mp3,homerun,music bed,60,yes,music_homerun
+homerun_pitch,homerun_pitch.mp3,homerun,pitch released,0.6,no,homerun.pitch
+homerun_mitt,homerun_mitt.mp3,homerun,missed pitch,0.4,no,homerun.strike
+homerun_crack,homerun_crack.mp3,homerun,solid contact,0.4,no,homerun.crack
+homerun_foul,homerun_foul.mp3,homerun,weak or foul contact,0.3,no,homerun.foul
+homerun_whiff,homerun_whiff.mp3,homerun,swing and miss,0.4,no,homerun.whiff
+homerun_sign,homerun_sign.mp3,homerun,sign hit,1,no,homerun.sign
+homerun_organ,homerun_organ.mp3,homerun,home run,2,no,homerun.homer
+music_freekick,music_freekick.mp3,freekick,music bed,75,yes,music_freekick
+freekick_kick,freekick_kick.mp3,freekick,kick,0.3,no,freekick.kick
+freekick_net,freekick_net.mp3,freekick,goal,0.8,no,freekick.goal
+freekick_post,freekick_post.mp3,freekick,hits post or bar,0.6,no,freekick.post
+freekick_wall,freekick_wall.mp3,freekick,blocked by wall,0.3,no,freekick.wall
+freekick_save,freekick_save.mp3,freekick,keeper save,0.4,no,freekick.save
+freekick_whistle,freekick_whistle.mp3,freekick,before each kick,0.7,no,freekick.whistle
+freekick_target,freekick_target.mp3,freekick,target hit,0.6,no,freekick.target
+music_racing,music_racing.mp3,racing,music bed,90,yes,music_racing
+racing_light,racing_light.mp3,racing,each start light,0.25,no,racing.light
+racing_go,racing_go.mp3,racing,lights out,0.6,no,racing.go
+racing_idle_loop,racing_idle_loop.mp3,racing,on the grid,3,yes,racing.idle
+racing_drive_loop,racing_drive_loop.mp3,racing,driving,3,yes,racing.drive
+racing_squeal,racing_squeal.mp3,racing,hard cornering,1.2,no,racing.squeal
+racing_kerb_loop,racing_kerb_loop.mp3,racing,on kerbs,1,yes,racing.kerb
+racing_grass_loop,racing_grass_loop.mp3,racing,on grass,1,yes,racing.grassLoop
+racing_bump,racing_bump.mp3,racing,wall contact,0.6,no,racing.wall
+racing_lap,racing_lap.mp3,racing,lap complete,0.8,no,racing.lap
+racing_flag,racing_flag.mp3,racing,finish,1.5,no,racing.finish
+music_minesweeper,music_minesweeper.mp3,minesweeper,music bed,90,yes,music_minesweeper
+mines_reveal,mines_reveal.mp3,minesweeper,square revealed,0.15,no,minesweeper.reveal
+mines_cascade,mines_cascade.mp3,minesweeper,area opens,0.6,no,minesweeper.cascade
+mines_flag,mines_flag.mp3,minesweeper,flag placed,0.3,no,minesweeper.flag
+mines_unflag,mines_unflag.mp3,minesweeper,flag removed,0.2,no,minesweeper.unflag
+mines_hit,mines_hit.mp3,minesweeper,mine hit,0.8,no,minesweeper.hit
+mines_clear,mines_clear.mp3,minesweeper,board cleared,1.5,no,minesweeper.clear
+music_freecell,music_freecell.mp3,freecell,music bed,90,yes,music_freecell
+freecell_cascade,freecell_cascade.mp3,freecell,auto moves home,1,no,freecell.cascade
+freecell_win,freecell_win.mp3,freecell,solved,2,no,freecell.win
+music_mahjong,music_mahjong.mp3,mahjong,music bed,90,yes,music_mahjong
+mahjong_select,mahjong_select.mp3,mahjong,tile selected,0.2,no,mahjong.select
+mahjong_match,mahjong_match.mp3,mahjong,pair removed,0.4,no,mahjong.match
+mahjong_invalid,mahjong_invalid.mp3,mahjong,no match,0.3,no,mahjong.blocked;mahjong.invalid
+mahjong_shuffle,mahjong_shuffle.mp3,mahjong,shuffle,1.5,no,mahjong.shuffle
+mahjong_clear,mahjong_clear.mp3,mahjong,board cleared,2,no,mahjong.clear
+music_tripeaks,music_tripeaks.mp3,tripeaks,music bed,60,yes,music_tripeaks
+tripeaks_run,tripeaks_run.mp3,tripeaks,run card,0.3,no,tripeaks.run
+tripeaks_peak,tripeaks_peak.mp3,tripeaks,peak cleared,1,no,tripeaks.peak
+tripeaks_clear,tripeaks_clear.mp3,tripeaks,all cleared,2,no,tripeaks.clear
+music_pokersquares,music_pokersquares.mp3,pokersquares,music bed,60,yes,music_pokersquares
+poker_hand,poker_hand.mp3,pokersquares,small hand made,0.4,no,pokersquares.hand
+poker_big_hand,poker_big_hand.mp3,pokersquares,straight or better,1.2,no,pokersquares.bigHand
+poker_final,poker_final.mp3,pokersquares,grid scored,1,no,pokersquares.final
