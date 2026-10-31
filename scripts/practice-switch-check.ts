@@ -63,8 +63,9 @@ check(NEW_IDS.every((t) => ARCADE_GROUPS.some((g) => g.games.includes(t))), "the
 // The brief named games by their display names: the map's registered ids resolve to exactly those names.
 const BRIEF: Record<string, string[]> = {
   retro: ["Hover", "Breaker", "Rally", "Wavefront", "Fission", "Tempo", "Meteor", "Orbit", "Jaywalk", "Pinball"],
-  // Home Run Derby, Free Kick and Racing registered on 30 Oct 2026 (#203).
-  sports: ["Flightpath", "Swish", "Minigolf", "Speed Pool", "Curling", "Home Run Derby", "Free Kick", "Racing"],
+  // Home Run Derby, Free Kick and Racing registered on 30 Oct 2026 (#203); Minigolf, Speed Pool and Curling shown as
+  // Crazy Golf, Cue Ball and Curl Champ since 31 Oct 2026.
+  sports: ["Flightpath", "Swish", "Crazy Golf", "Cue Ball", "Curl Champ", "Home Run Derby", "Free Kick", "Racing"],
   // Minesweeper and Mahjong Solitaire registered on 30 Oct 2026 (#205); the group's other ids join as they register.
   cards: ["Minesweeper", "FreeCell", "Mahjong Solitaire", "TriPeaks", "Poker Squares"],
   action: ["Slice", "Tilt", "Gemstone", "High Rise", "Coral Pop", "Roofbound", "Rainbow Bridge", "Ball Tracker", "Grappler"],
