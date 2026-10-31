@@ -94,6 +94,12 @@ chips and game icon tiles:
 | Arcade | #FF4D4D |
 | All (chip) | #E9BB45 |
 
+Since 31 Oct 2026 an arcade game's intro takes its **group's** colour (Retro #36E2F5, Sports #4CC24A, Cards & Board
+#FF5C93, Action #FF4D4D; `data-intro-accent` on RoundIntro) and a puzzle's its category's: the screen gradient, the
+title (the colour a fifth towards white, `--intro-title`, so it holds 4.5:1 on the tinted top), the dot, the Goal /
+How / Score labels, the tray, the auto-start ring and the waiting dots. Ready stays gold. The room settings sheet's
+chips use the same colours (`[data-cat="retro"]` … in theme.css).
+
 - `data-cat` sets `--cat`, plus `--cat-hi` (62 % toward white, for text) and `--cat-lo` (62 % toward
   black, for gradients), mixed in oklab.
 - **Game icon tiles** (`.game-icon[data-cat]`, `GameIcon`; 27 Oct 2026, backgrounds 30 Oct 2026): a border in the

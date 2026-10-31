@@ -58,3 +58,10 @@ export const HERO_DANCE_SCORE = 190;
 
 /** 200: the hero runs round the screen with fireworks, about 3 s (instead of the run). */
 export const HERO_GRAND_SCORE = 200;
+
+/**
+ * Room settings for Duelz Plus only (31 Oct 2026; src/lib/duel/roomSettings.ts). false: every host can
+ * choose a room's categories and round count in the lobby. true: only Plus hosts (none yet) can; others
+ * see the settings read-only and the server refuses changes.
+ */
+export const ROOM_SETTINGS_PLUS_ONLY = false;

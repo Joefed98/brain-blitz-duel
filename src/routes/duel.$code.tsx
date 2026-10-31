@@ -79,7 +79,7 @@ import {
   readyUp,
   removePlayer,
   setPlayerLook,
-  setRoomModes,
+  setRoomSettings,
   startRoom,
   submitAnswer,
 } from "@/lib/duel/api";
@@ -109,7 +109,6 @@ import {
 } from "@/lib/duel/scoring";
 import { roomTieRounds } from "@/lib/duel/tieBreak";
 import { useDuel } from "@/lib/duel/useDuel";
-import { normaliseCategories } from "@/lib/duel/categories";
 import { roundClockMs } from "@/lib/duel/buzzer";
 import { showRoundChatDot } from "@/lib/duel/chatNotice";
 import { setPlayerMuted, useRoomChat } from "@/lib/duel/useRoomChat";
@@ -901,9 +900,9 @@ function DuelScreen() {
             isHost={isHost}
             starting={starting}
             onStart={() => void handleStart()}
-            categories={normaliseCategories(duel.selected_categories)}
+            storedSettings={duel.selected_categories}
             tournamentHistory={duel.tournament_history ?? []}
-            onCategoriesChange={(categories) => void setRoomModes(duel.id, categories)}
+            onSettingsChange={(settings) => setRoomSettings(duel.id, settings)}
             onDisband={() => setConfirmDisband(true)}
             onLeave={() => setConfirmLeave(true)}
             onRemove={(slot) => void removePlayer(duel.id, slot)}

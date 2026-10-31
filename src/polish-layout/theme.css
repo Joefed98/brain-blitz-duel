@@ -102,6 +102,11 @@
 [data-cat="arcade"] { --cat: var(--category-arcade); }
 /* Arcade groups (src/lib/duel/arcadeGroups.ts): Sports tiles take the turf green. */
 [data-cat="arcade"][data-group="sports"] { --cat: #2FBF71; }
+/* Room settings' arcade-group chips (roomSettings.ts): each group's own colour, as its tiles' borders. */
+[data-cat="retro"] { --cat: var(--group-retro); }
+[data-cat="sports"] { --cat: var(--group-sports); }
+[data-cat="cards"] { --cat: var(--group-cards); }
+[data-cat="action"] { --cat: var(--group-action); }
 [data-cat] {
   --cat-hi: color-mix(in oklab, var(--cat) 62%, #fff);
   --cat-lo: color-mix(in oklab, var(--cat) 62%, #000);

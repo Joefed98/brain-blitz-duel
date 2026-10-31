@@ -46,6 +46,12 @@ interface RoomOpts {
   players?: number;
   arcade?: boolean;
   rounds?: number;
+  /** An arcade round of this game instead of Gemstone (with `arcade`). */
+  arcadeType?: string;
+  /** The host's user id (default u1, this device: "u2" draws the lobby as a guest sees it). */
+  host?: string;
+  /** The room's stored settings (duels.selected_categories; default [], an older room's Standard mix). */
+  settings?: string[];
 }
 
 function roomNow(status: Status, phase: string, opts: RoomOpts) {
@@ -84,23 +90,26 @@ function roomNow(status: Status, phase: string, opts: RoomOpts) {
   const scored = status === "finished" || ["result", "standings", "winner_reveal"].includes(phase);
   const players = Array.from({ length: count }, (_, i) => player(i + 1));
   if (opts.join) players[0] = { ...players[0]!, status: "left" };
+  const arcadeType = opts.arcadeType ?? "matchup";
+  const arcadePuzzle =
+    arcadeType === "matchup" ? ARCADE : (splitPuzzle(withSeededRandom(41, () => generatePuzzle(arcadeType as never))).pub as PuzzleData);
   const order = Array.from({ length: rounds }, (_, i) =>
-    opts.arcade || i % 2 ? "matchup" : "sudoku",
+    opts.arcade || i % 2 ? arcadeType : "sudoku",
   );
   return {
     duel: {
       id: "duel-theme",
       room_code: "SAFE",
       status,
-      selected_categories: [],
+      selected_categories: opts.settings ?? [],
       tournament_history: [],
       disbanded_at: null,
-      host_user_id: "u1",
+      host_user_id: opts.host ?? "u1",
       max_players: 10,
       round_count: rounds,
       round_order: order,
       no_maths: false,
-      puzzles_public: order.map((t) => (t === "matchup" ? ARCADE : PUZZLE)),
+      puzzles_public: order.map((t) => (t === arcadeType ? arcadePuzzle : PUZZLE)),
       current_round: status === "waiting" ? 0 : rounds,
       phase,
       phase_started_at: iso(now + 500),
@@ -240,6 +249,37 @@ export const THEME_SCREENS: ThemeScreen[] = [
       await page.locator("[data-room-menu]").first().click();
       await page.getByRole("menuitem", { name: "Disband room" }).click();
       await page.getByRole("alertdialog").waitFor({ timeout: 10_000 });
+    },
+  },
+  // Room settings (31 Oct 2026): a guest's summary line under the code, the host's sheet with each preset
+  // and with the round count capped by the picks.
+  {
+    name: "lobby, guest's settings summary",
+    mode: "room",
+    room: room("waiting", "starting", { host: "u2", players: 3, settings: ["pattern", "logic", "retro", "sports", "rounds:9"] }),
+  },
+  ...(["mixed", "puzzles", "arcade"] as const).map((preset) => ({
+    name: `room settings sheet, ${preset === "mixed" ? "Mixed" : preset === "puzzles" ? "Puzzles only" : "Arcade only"}`,
+    mode: "room" as const,
+    room: room("waiting", "starting", { players: 3 }),
+    go: async (page: Page) => {
+      await page.locator("[data-room-settings]").click();
+      await page.locator("[data-room-settings-sheet]").waitFor({ timeout: 10_000 });
+      await page.locator(`[data-room-preset='${preset}']`).click();
+      await page.waitForTimeout(250);
+    },
+  })),
+  {
+    name: "room settings sheet, capped rounds",
+    mode: "room",
+    room: room("waiting", "starting", { players: 3 }),
+    go: async (page) => {
+      await page.locator("[data-room-settings]").click();
+      await page.locator("[data-room-settings-sheet]").waitFor({ timeout: 10_000 });
+      await page.locator("[data-room-preset='arcade']").click();
+      for (const pick of ["retro", "sports", "action"]) await page.locator(`[data-room-pick='${pick}']`).click();
+      await page.locator("[data-room-rounds='6']").click();
+      await page.waitForTimeout(250);
     },
   },
   {
