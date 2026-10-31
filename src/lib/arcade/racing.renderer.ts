@@ -609,6 +609,12 @@ interface Bounds {
   y1: number;
   /** The view beyond the world: no car, flare or heat haze (the world canvas covers them). */
   beyond: boolean;
+  /**
+   * The top of the area that needs paint (world units; 0 = all of it). Beyond the world with no side strips only the
+   * strip under it does, so the sky, the hills and every segment whose near edge lies above it are skipped (their
+   * pixels would all be clipped away; this keeps the layer's cost to the strip it paints).
+   */
+  y0?: number;
 }
 const WORLD_BOUNDS: Bounds = { x0: 0, x1: RACING_WORLD_W, y1: RACING_WORLD_H, beyond: false };
 
@@ -627,8 +633,12 @@ function drawWorld(ctx: Ctx2D, state: RacingState, L: Layers, B: Bounds = WORLD_
   const carFrac = (state.s % RACING_SEG) / RACING_SEG;
   const heading = lk.heading[carSeg]! + track.curve[carSeg]! * K_ANG * carFrac;
 
+  const y0 = B.y0 ?? 0;
+  const high = y0 <= HORIZON + 20;
   // Sky, sun, hills (beyond the world, the sky's layer mirrored on either side, so its clouds run on).
-  if (L.sky) {
+  if (!high) {
+    // Only the strip under the world needs paint: none of the sky or hills reaches it.
+  } else if (L.sky) {
     ctx.drawImage(L.sky, 0, 0, W, HORIZON + 20);
     if (B.beyond)
       for (const at of [0, 2 * W]) {
@@ -644,7 +654,7 @@ function drawWorld(ctx: Ctx2D, state: RacingState, L: Layers, B: Bounds = WORLD_
   const sunX = W / 2 + Math.tan(Math.max(-1.3, Math.min(1.3, rel))) * F;
   const sunY = HORIZON - 34;
   const sunOn = Math.abs(rel) < 1.1;
-  if (sunOn) paintSun(ctx, sunX, sunY);
+  if (sunOn && high) paintSun(ctx, sunX, sunY);
   const hillShift = (layer: Surface | null, h: number, k: number, y: number) => {
     if (!layer) return;
     let off = (-heading * PX_PER_RAD * k) % HILL_W;
@@ -652,8 +662,10 @@ function drawWorld(ctx: Ctx2D, state: RacingState, L: Layers, B: Bounds = WORLD_
     while (off > B.x0) off -= HILL_W;
     for (let x = off; x < B.x1; x += HILL_W) ctx.drawImage(layer, x, y - h, HILL_W, h);
   };
-  hillShift(L.far, FAR_H, 0.5, HORIZON + 2);
-  hillShift(L.near, NEAR_H, 0.8, HORIZON + 4);
+  if (high) {
+    hillShift(L.far, FAR_H, 0.5, HORIZON + 2);
+    hillShift(L.near, NEAR_H, 0.8, HORIZON + 4);
+  }
   // The far fields in the haze, under the road's farthest segment.
   const haze = ctx.createLinearGradient(0, HORIZON + 4, 0, HORIZON + 40);
   haze.addColorStop(0, "#8C7A58");
@@ -721,6 +733,11 @@ function drawWorld(ctx: Ctx2D, state: RacingState, L: Layers, B: Bounds = WORLD_
     // The near edge clipped to the crest (or the screen's bottom), along the segment's own lines: exact in screen space.
     const cf = q1.y > maxY ? (maxY - p2.y) / (q1.y - p2.y) : 1;
     const p1 = cf < 1 ? { x: p2.x + (q1.x - p2.x) * cf, y: maxY, w: p2.w + (q1.w - p2.w) * cf, scale: q1.scale } : q1;
+    if (Math.min(p1.y, maxY) < y0) {
+      // Wholly above the area that needs paint: its surfaces, sprites and walls all stand above its near edge.
+      maxY = p2.y;
+      continue;
+    }
     visible[i] = 1;
     const k = base + i;
     const seg = segOf(k);
@@ -1357,7 +1374,8 @@ function paintBeyond(ctx: CanvasRenderingContext2D, view: ArenaSceneView, state:
   if (view.bottom > RACING_WORLD_H - 1) ctx.rect(view.left, RACING_WORLD_H - 1, view.right - view.left, view.bottom - RACING_WORLD_H + 1);
   if (view.top < 1) ctx.rect(view.left, view.top, view.right - view.left, 1 - view.top);
   ctx.clip();
-  drawWorld(ctx, state, L, { x0: view.left, x1: view.right, y1: view.bottom, beyond: true });
+  const sides = view.left < 1 || view.right > RACING_WORLD_W - 1 || view.top < 1;
+  drawWorld(ctx, state, L, { x0: view.left, x1: view.right, y1: view.bottom, beyond: true, y0: sides ? 0 : RACING_WORLD_H - 1 });
   ctx.restore();
 }
 
