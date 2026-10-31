@@ -861,7 +861,8 @@ Lovable still hosts and publishes the app (https://brain-blitz-duel.lovable.app)
   every hole (`TEMPLATES_V2`, `mgRollTickV2`): an upright windmill whose sail feet sweep the doorway (64-tick cycle,
   phase seeded, on the round clock), tunnels (hole 4 two to different exits), sand, a dome hill, banked curves and a
   castle gate; ramps drawn as raised slopes on both revisions; witnesses carry waits (`Putt.w`) so the proof times
-  the sails; bank `minigolfBankV2.server.ts` (60 of 60), full by 51 s. **Cue Ball** `poolRev` 2 (`POOL_REV_V1` 1):
+  the sails; a stroke limit of par + 3 a hole (`mgStrokeLimit`; golfRev 1 keeps six); bank `minigolfBankV2.server.ts` (60 of
+  60, re-proved under par + 3), full by 53 s. **Cue Ball** `poolRev` 2 (`POOL_REV_V1` 1):
   the shot's `c` is power alone and `d` the spin dot anywhere in the safe circle (`poolSpinClamp`); the cue drawn behind
   the ball, turned by a drag anywhere (finer further out), a segmented green → red meter, a large spin ball, balls
   rolling into the pocket and dropping (`downAt`, display only); bank `poolBankV2.server.ts` (60 of 60), full by 58 s.

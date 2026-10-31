@@ -97,10 +97,10 @@ export const MG_UNDER_PTS = 4;
 export const MG_SPEED_PTS = 20;
 /**
  * Speed: full when all five are holed by this many seconds (the near-perfect skill-band median finish, measured with
- * scripts/arcade-skill-bands.ts minigolf --levels=near), 0 at the buzzer. golfRev 2: 51 s (51.0 s, 13 of 30 near-perfect
- * runs holing all five on the golfRev 2 bank, 31 Oct 2026).
+ * scripts/arcade-skill-bands.ts minigolf --levels=near), 0 at the buzzer. golfRev 2: 53 s (52.9 s, 28 of 30 near-perfect
+ * runs holing all five on the golfRev 2 bank with the par + 3 stroke limit, 31 Oct 2026; 51 s under the flat six).
  */
-export const MINIGOLF_FULL_BY_S = 51;
+export const MINIGOLF_FULL_BY_S = 53;
 /** golfRev 1's speed full-by (its near-perfect median, 30 Oct 2026). */
 export const MINIGOLF_FULL_BY_S_V1 = 50;
 /** Speed's full-by time for a revision (seconds). */

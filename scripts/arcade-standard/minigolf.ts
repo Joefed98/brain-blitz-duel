@@ -22,6 +22,7 @@ import {
   MINIGOLF_REV_CLASSIC,
   MINIGOLF_STD_SPEC,
   MINIGOLF_STROKE_LIMIT,
+  mgStrokeLimit,
   type MinigolfState,
 } from "../../src/lib/arcade/minigolf";
 import { replayMinigolfRun } from "../../src/lib/duel/minigolf";
@@ -86,7 +87,12 @@ export const entry: StdEntry = {
     while (!g.isOver(s)) s = g.step(s, null);
     return g.score(s);
   })() }],
-  core: { fullAt: MINIGOLF_HOLES, at: (v: number) => final(v, MINIGOLF_STROKE_LIMIT), parts: (s: any) => minigolfStdParts(s) },
+  // A core-only state: each hole holed at its own stroke limit (no par points), no finish time.
+  core: {
+    fullAt: MINIGOLF_HOLES,
+    at: (v: number) => final(v, 0, { taken: entry0.pars.map((p) => mgStrokeLimit(MINIGOLF_REV, p)) }),
+    parts: (s: any) => minigolfStdParts(s),
+  },
   older: () => minigolfStdParts({ ...game.init(entry0.seed), rev: 0 }) === null,
   extra(ok) {
     // Par: 8 at par or better, falling evenly to 0 at the stroke limit; under par 4 a hole.
