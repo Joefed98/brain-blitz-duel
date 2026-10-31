@@ -47,6 +47,7 @@ import { NO_SCROLL_STYLE, useNoTouchScroll } from "@/components/puzzles/noScroll
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 import { arcadeCanvasRatio } from "@/lib/fx/lowEnd";
+import { arenaFrame, cancelArenaFrame } from "@/lib/battery";
 
 /** The rule box. Live (14 Oct 2026): a bigger box, outlined in the rule's colour; the intro still keeps the small pill. */
 function Banner({ red, flash, small = false }: { red: boolean; flash: boolean; small?: boolean }) {
@@ -167,7 +168,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
 
     const loop = (time: number) => {
       frameTiming.begin(time);
-      frame = requestAnimationFrame(loop);
+      frame = arenaFrame(loop);
       const delta = time - last;
       last = time;
       if (!whackGame.isOver(state.current) && !lockedRef.current) {
@@ -293,8 +294,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       }
       frameTiming.end();
     };
-    frame = requestAnimationFrame(loop);
-    return () => cancelAnimationFrame(frame);
+    frame = arenaFrame(loop);
+    return () => cancelArenaFrame(loop, frame);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [seed, data]);
 

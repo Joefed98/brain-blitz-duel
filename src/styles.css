@@ -1898,3 +1898,12 @@ html[data-reduced-effects] .podium-award-in { animation: none; }
    isn't the stored score; the panel's counter line carries the moves and the stored score instead.
    (A final board is handed the real answer, so it keeps its lines, as on the answer reveal.) */
 .replay-board-lapse p { display: none; }
+
+/* Battery saver (31 Oct 2026, lib/battery.ts; Profile → settings, off by default): the endless decorative
+   motion stops (the slow category drift, potion bubbles, the button sheen and soft pulses). */
+[data-battery-saver] .screen-drift,
+[data-battery-saver] .potion-bubble,
+[data-battery-saver] .animate-sheen,
+[data-battery-saver] .animate-slow-pulse {
+  animation: none;
+}

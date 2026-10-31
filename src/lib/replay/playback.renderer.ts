@@ -52,6 +52,7 @@ import { drawTenDrop } from "@/lib/arcade/tenDrop.renderer";
 import { wordfallArtGame } from "@/lib/arcade/wordfall.renderer";
 import { clashVariantOf } from "@/lib/arcade/colourClash";
 import { colourClashArtGameFor } from "@/lib/arcade/colourClash.renderer";
+import { canvasRatio } from "@/lib/battery";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 type Size = { width: number; height: number };
@@ -112,7 +113,7 @@ const SIMPLE: Record<string, (p: PuzzleData) => Draw> = {
         ctx,
         state,
         size,
-        typeof window === "undefined" ? 1 : Math.min(2, window.devicePixelRatio || 1),
+        canvasRatio(),
         performance.now(),
       )) as Draw,
   wordfall: () => wordfallArtGame.draw as Draw,

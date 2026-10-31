@@ -20,6 +20,7 @@ import { GameKeysOff } from "@/lib/desktop";
 import { clearStageState } from "@/lib/duel/stageState";
 import { hushForDemo, noteRealInput } from "@/lib/sound";
 import type { PuzzleData, PuzzleType } from "@/lib/duel/types";
+import { canvasRatio } from "@/lib/battery";
 
 const POINTER_ID = 7331;
 const TRAIL_MS = 220;
@@ -206,7 +207,7 @@ function PuzzleDemoPlayer({ puzzle, log, onReady }: { puzzle: PuzzleData; log: P
       const box = boxRef.current;
       const stage = stageRef.current;
       if (!canvas || !box || !stage) return;
-      const dpr = Math.min(2, window.devicePixelRatio || 1);
+      const dpr = canvasRatio();
       const w = box.clientWidth;
       const h = box.clientHeight;
       if (canvas.width !== Math.round(w * dpr)) canvas.width = Math.round(w * dpr);

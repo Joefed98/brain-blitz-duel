@@ -2,6 +2,7 @@ import { useEffect, useRef } from "react";
 
 import { ARCADE_WORLD_THEMES, type ArcadeWorld } from "@/lib/arcade/arcadeFx.renderer";
 import { prefersReducedMotion } from "@/lib/motion";
+import { canvasRatio } from "@/lib/battery";
 
 export type CelebrationKind = "full" | "best" | "both";
 
@@ -27,7 +28,7 @@ export function ConfettiBurst({ world }: { world: ArcadeWorld | null }) {
     if (!node || prefersReducedMotion()) return;
     const box = node.getBoundingClientRect();
     if (box.width < 1 || box.height < 1) return;
-    const ratio = Math.min(window.devicePixelRatio || 1, 2);
+    const ratio = canvasRatio();
     node.width = Math.round(box.width * ratio);
     node.height = Math.round(box.height * ratio);
     const ctx = node.getContext("2d");

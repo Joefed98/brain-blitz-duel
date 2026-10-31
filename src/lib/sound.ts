@@ -18,6 +18,7 @@
 import { SOUND_MANIFEST, type SoundId } from "./fx/manifest";
 import { SOUND_CUE_EVENT, type SoundCueDetail } from "./fx/soundCues";
 import { devDisplayAllowed } from "./devDisplay";
+import { onPageVisibility, pageHidden } from "./battery";
 import {
   changeChannelMuted,
   changeChannelVolume,
@@ -226,9 +227,95 @@ function contextState(): AnyContextState | "none" {
   return (ctx?.state as AnyContextState | undefined) ?? "none";
 }
 
+/* Battery (31 Oct 2026, sound timing only; nothing is dropped or added). The context is suspended
+   - about IDLE_SUSPEND_MS after the last source (an effect, tone, loop or music) stops, and woken by the
+     next source's start(): it is scheduled at once and sounds as the context resumes (a few ms);
+   - while the app is hidden (visibilitychange, pagehide): the music pauses where it is and carries on
+     from there on return. */
+export const IDLE_SUSPEND_MS = 5000;
+let liveSources = 0;
+let idleTimer: ReturnType<typeof setTimeout> | null = null;
+/** Suspended by us after silence: the next sound resumes it. */
+let idleSuspended = false;
+/** Suspended by us while the app was hidden: resumed on return. */
+let hiddenSuspended = false;
+
+function armIdle(): void {
+  if (idleTimer) clearTimeout(idleTimer);
+  idleTimer = null;
+  if (liveSources > 0 || !ctx) return;
+  idleTimer = setTimeout(() => {
+    idleTimer = null;
+    if (liveSources > 0 || !ctx || pageHidden() || contextState() !== "running") return;
+    idleSuspended = true;
+    void ctx.suspend().catch(() => undefined);
+  }, IDLE_SUSPEND_MS);
+}
+
+/** A source is about to start: a context we put to sleep after silence wakes for it. */
+function wakeAudio(): void {
+  if (idleTimer) clearTimeout(idleTimer);
+  idleTimer = null;
+  if (!idleSuspended || !ctx || pageHidden()) return;
+  idleSuspended = false;
+  void ctx.resume().catch((error) => warnOnce("wake failed", error));
+}
+
+/** Counts every started source (until it ends), so silence is known without touching each player. */
+function watchSources(context: AudioContext): void {
+  const counted = <T extends AudioScheduledSourceNode>(make: () => T) => (): T => {
+    const node = make();
+    const start = node.start.bind(node) as (...args: number[]) => void;
+    let live = false;
+    node.start = ((...args: number[]) => {
+      wakeAudio();
+      start(...args);
+      if (live) return;
+      live = true;
+      liveSources++;
+      node.addEventListener(
+        "ended",
+        () => {
+          liveSources = Math.max(0, liveSources - 1);
+          armIdle();
+        },
+        { once: true },
+      );
+    }) as T["start"];
+    return node;
+  };
+  context.createBufferSource = counted(context.createBufferSource.bind(context));
+  context.createOscillator = counted(context.createOscillator.bind(context));
+}
+
+/** The app went to the background (pause everything) or came back (carry on). */
+function onAppHidden(hidden: boolean): void {
+  if (!ctx) return;
+  if (hidden) {
+    if (idleTimer) clearTimeout(idleTimer);
+    idleTimer = null;
+    if (contextState() === "running") {
+      hiddenSuspended = true;
+      void ctx.suspend().catch(() => undefined);
+    }
+  } else {
+    resumeContext();
+    armIdle();
+  }
+}
+
+/** Diagnostics for battery-check: the context's state and whether we put it to sleep. */
+export function audioPowerState(): { state: AnyContextState | "none"; idle: boolean; hidden: boolean; live: number } {
+  return { state: contextState(), idle: idleSuspended, hidden: hiddenSuspended, live: liveSources };
+}
+
 /** Resume a suspended/interrupted context and restart the music that was on. */
 function resumeContext(): void {
   if (!ctx) return;
+  // Never while hidden; after silence it stays asleep until the next sound wakes it.
+  if (pageHidden()) return;
+  hiddenSuspended = false;
+  if (idleSuspended) return;
   const state = contextState();
   if (state !== "suspended" && state !== "interrupted") return;
   try {
@@ -260,6 +347,7 @@ function bindLifecycle(): void {
     const state = contextState();
     if (state === "suspended" || state === "interrupted") resumeContext();
   });
+  onPageVisibility(onAppHidden);
 }
 
 /** Call from a real user gesture. Safe to call as often as you like. */
@@ -283,6 +371,7 @@ export function unlockAudio(): void {
       effectsGain.connect(masterGain);
       voiceGain.connect(masterGain);
       masterGain.connect(ctx.destination);
+      watchSources(ctx);
       applySettings();
       bindLifecycle();
     }
@@ -321,12 +410,17 @@ export function installSoundUnlock(): () => void {
 
 /** Sound is unlocked and running now (iPhones block it until the first tap); asks nothing to resume. */
 export function soundUnlocked(): boolean {
-  return unlocked && !!ctx && contextState() === "running";
+  return unlocked && !!ctx && (contextState() === "running" || (idleSuspended && !pageHidden()));
 }
 
 function ready(): boolean {
   if (!unlocked || !ctx) return false;
   const state = contextState();
+  // Asleep after silence: wake it and play now (the sound starts as the context resumes).
+  if (idleSuspended && !pageHidden()) {
+    wakeAudio();
+    return true;
+  }
   if (state === "suspended" || state === "interrupted") {
     resumeContext();
     return false;

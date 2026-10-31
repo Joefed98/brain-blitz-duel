@@ -25,13 +25,14 @@ import type { MahjongPuzzleData } from "@/lib/duel/types";
 import { expansionSounds } from "@/lib/fx/expansionSounds";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
+import { canvasRatio } from "@/lib/battery";
 
 /** Fixed intro still: two stacked tiles and a free matching pair, one of them selected. */
 function IntroExample() {
   const draw = (canvas: HTMLCanvasElement | null) => {
     const ctx = canvas?.getContext("2d");
     if (!canvas || !ctx) return;
-    const ratio = typeof window === "undefined" ? 1 : Math.min(3, window.devicePixelRatio || 1);
+    const ratio = canvasRatio();
     canvas.width = 180 * ratio;
     canvas.height = 120 * ratio;
     ctx.setTransform(ratio, 0, 0, ratio, 0, 0);

@@ -32,6 +32,7 @@ import { NO_SCROLL_STYLE, useNoTouchScroll } from "@/components/puzzles/noScroll
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 import { arcadeCanvasRatio } from "@/lib/fx/lowEnd";
+import { arenaFrame, cancelArenaFrame } from "@/lib/battery";
 
 /** Fixed intro still: the ball on its line inside a winding track. */
 function IntroExample() {
@@ -133,7 +134,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
 
     const loop = (time: number) => {
       frameTiming.begin(time);
-      frame = requestAnimationFrame(loop);
+      frame = arenaFrame(loop);
       const delta = time - last;
       last = time;
 
@@ -199,8 +200,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       frameTiming.end();
     };
 
-    frame = requestAnimationFrame(loop);
-    return () => cancelAnimationFrame(frame);
+    frame = arenaFrame(loop);
+    return () => cancelArenaFrame(loop, frame);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data, seed]);
 

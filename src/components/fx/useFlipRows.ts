@@ -16,11 +16,16 @@ export function useFlipRows<T extends { slot: number }>(
   const nodes = useRef(new Map<number, HTMLElement>());
   const offsets = useRef(new Map<number, number>());
   const [displayRows, setDisplayRows] = useState(() => from);
+  // Battery (31 Oct 2026): the screens hand a new `rows` array on every clock tick (10 a second) with the
+  // same contents; only a change of contents moves the rows (and costs a frame).
+  const latest = useRef(rows);
+  latest.current = rows;
+  const contents = JSON.stringify(rows);
 
   useEffect(() => {
-    const frame = requestAnimationFrame(() => setDisplayRows(rows));
+    const frame = requestAnimationFrame(() => setDisplayRows(latest.current));
     return () => cancelAnimationFrame(frame);
-  }, [rows]);
+  }, [contents]);
 
   useLayoutEffect(() => {
     nodes.current.forEach((node, slot) => {

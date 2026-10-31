@@ -12,6 +12,7 @@ import type { PuzzleData } from "@/lib/duel/types";
 import type { PlayerLook } from "@/lib/duel/playerLook";
 
 import { ArcadeScoreChart } from "./ArcadeScoreChart";
+import { canvasRatio } from "@/lib/battery";
 
 /** One player in the room for the reveal chart. `reveal` and `score` are null until their result lands. */
 export interface RevealPlayer {
@@ -216,7 +217,7 @@ function Backdrop({ puzzle, answer, outcome }: { puzzle: PuzzleData; answer: str
   useEffect(() => {
     const node = canvas.current;
     if (!renderer || !node) return;
-    const ratio = Math.min(window.devicePixelRatio || 1, 2);
+    const ratio = canvasRatio();
     node.width = Math.round(renderer.worldW * ratio);
     node.height = Math.round(worldH * ratio);
     const ctx = node.getContext("2d");

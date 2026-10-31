@@ -4,6 +4,7 @@ import { createPortal } from "react-dom";
 import type { ArenaAmbient, ArenaScenePainter, ArenaSceneView } from "@/lib/arcade/arenaScene.renderer";
 import { reducedMotion } from "@/lib/arcade/art.renderer";
 import { arcadeReducedEffects, watchArcadeFrames } from "@/lib/fx/lowEnd";
+import { arenaFrame, cancelArenaFrame, canvasRatio } from "@/lib/battery";
 
 /** useLayoutEffect in the browser (before the first paint), a no-op on the server. */
 const useIsoLayoutEffect = typeof window === "undefined" ? useEffect : useLayoutEffect;
@@ -82,7 +83,7 @@ export function ArcadeArenaSlot({ width, height, centre = false, playCentre = fa
     let raf = 0;
     let last = -Infinity;
     let still = false;
-    const ratioNow = () => Math.min(window.devicePixelRatio || 1, 2);
+    const ratioNow = canvasRatio;
     const paint = () => {
       const draw = painter.current;
       const world = box.querySelector<HTMLElement>(":scope > [data-game-arena]");
@@ -171,7 +172,9 @@ export function ArcadeArenaSlot({ width, height, centre = false, playCentre = fa
           ctx.restore();
         }
       }
-      raf = requestAnimationFrame(frame);
+      // Battery (31 Oct 2026): a held layer (reduced motion or effects) is painted once and stops until a
+      // resize repaints it; a moving one parks with the arena (lib/battery.ts arenaFrame).
+      raf = hold && still ? 0 : arenaFrame(frame);
     };
     const observer = new ResizeObserver(paint);
     observer.observe(host);
@@ -181,7 +184,7 @@ export function ArcadeArenaSlot({ width, height, centre = false, playCentre = fa
     paint();
     return () => {
       observer.disconnect();
-      if (raf) cancelAnimationFrame(raf);
+      cancelArenaFrame(frame, raf);
     };
   }, [width, height, sceneKey, host, ambient !== undefined]);
 
