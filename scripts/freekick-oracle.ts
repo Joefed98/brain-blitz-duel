@@ -4,7 +4,7 @@
  * one) and plays the run through freekickGame, kicking on the first tick each kick can be taken. Script-only
  * (floats are fine here: the result is an input log the sim replays).
  *
- *   bun scripts/freekick-oracle.ts [seed…]   prints each seed's score and parts
+ *   bun scripts/freekick-oracle.ts [--rev=2] [seed…]   prints each seed's score and parts (the dealt revision by default)
  */
 import { inputAt, recordInput, type ArcadeInputEvent } from "../src/lib/arcade/engine";
 import {
@@ -31,8 +31,10 @@ import {
   fkLaunch,
   fkLocal,
   fkSeedPlan,
-  freekickGame,
+  freekickGameFor,
   freekickStdParts,
+  FREEKICK_REV_DEALT,
+  FREEKICK_REV_STD,
   type FkFlight,
   type FkKick,
   type FreekickState,
@@ -143,6 +145,8 @@ function aimPoints(k: FkKick): [number, number][] {
   const half = FK_GOAL_HALF_W / M;
   for (const x of [half - 0.35, half - 0.55, half - 0.8, half - 1.1]) for (const y of [2.15, 1.95, 0.25, 1.7, 0.5]) pts.push([k.side * x, y]);
   for (const x of [half - 0.35, half - 0.6]) for (const y of [2.15, 0.25, 1.9]) pts.push([-k.side * x, y]);
+  // freekickRev 2 kicks (they carry `yards`): the tightest corners too, both sides, for the long and wide spots.
+  if (k.yards !== undefined) for (const x of [half - 0.2, half - 0.27]) for (const y of [2.25, 2.3, 0.18, 2.05, 0.35]) for (const sx of [k.side, -k.side]) pts.push([sx * x, y]);
   return pts;
 }
 
@@ -215,22 +219,22 @@ export function fkSolveKick(k: FkKick): FkCandidate | null {
   return p.full ?? p.best;
 }
 
-const solvedCache = new Map<number, FkShot[]>();
+const solvedCache = new Map<string, FkShot[]>();
 
-/** The oracle's shot for each kick of a seed (cached). */
-export function oracleShots(seed: number): FkShot[] {
-  const key = seed;
+/** The oracle's shot for each kick of a seed on a revision (cached; rev 1 when unnamed, as the rev-1 deal built it). */
+export function oracleShots(seed: number, rev: number = FREEKICK_REV_STD): FkShot[] {
+  const key = `${rev}:${seed}`;
   const hit = solvedCache.get(key);
   if (hit) return hit;
-  const shots = fkSeedPlan(seed).kicks.map((k) => fkSolveKick(k)?.shot ?? { a: 0, b: 0, c: 500 });
+  const shots = fkSeedPlan(seed, rev).kicks.map((k) => fkSolveKick(k)?.shot ?? { a: 0, b: 0, c: 500 });
   if (solvedCache.size > 400) solvedCache.clear();
   solvedCache.set(key, shots);
   return shots;
 }
 
-/** Plays a list of shots through the real game, each on the first tick its kick can be taken. */
-export function playShots(seed: number, shots: (FkShot | null)[], delays: number[] = []): { events: ArcadeInputEvent[]; state: FreekickState } {
-  const game = freekickGame;
+/** Plays a list of shots through the real game (of `rev`), each on the first tick its kick can be taken (plus its delay). */
+export function playShots(seed: number, shots: (FkShot | null)[], delays: number[] = [], rev: number = FREEKICK_REV_STD): { events: ArcadeInputEvent[]; state: FreekickState } {
+  const game = freekickGameFor(rev);
   let state = game.init(seed);
   const events: ArcadeInputEvent[] = [];
   let aimFrom = -1;
@@ -246,19 +250,21 @@ export function playShots(seed: number, shots: (FkShot | null)[], delays: number
   return { events, state };
 }
 
-/** The oracle's input log for a seed. */
-export function oracleRun(seed: number): ArcadeInputEvent[] {
-  return playShots(seed, oracleShots(seed)).events;
+/** The oracle's input log for a seed (rev 1 when unnamed). */
+export function oracleRun(seed: number, rev: number = FREEKICK_REV_STD): ArcadeInputEvent[] {
+  return playShots(seed, oracleShots(seed, rev), [], rev).events;
 }
 
 if (import.meta.main) {
-  const seeds = process.argv.slice(2).map(Number).filter(Number.isFinite);
+  const revArg = process.argv.find((a) => a.startsWith("--rev="));
+  const rev = revArg ? Number(revArg.split("=")[1]) : FREEKICK_REV_DEALT;
+  const seeds = process.argv.slice(2).filter((a) => !a.startsWith("--")).map(Number).filter(Number.isFinite);
   for (const seed of seeds.length ? seeds : [1, 2, 3, 4, 5]) {
     const t0 = performance.now();
-    const { state } = playShots(seed, oracleShots(seed));
+    const { state } = playShots(seed, oracleShots(seed, rev), [], rev);
     const parts = freekickStdParts(state)!;
-    console.log(seed, freekickGame.score(state), parts.map((p) => `${p.key}=${p.points}`).join(" "), `${Math.round(performance.now() - t0)} ms`);
-    fkSeedPlan(seed).kicks.forEach((k, i) => {
+    console.log(seed, freekickGameFor(rev).score(state), parts.map((p) => `${p.key}=${p.points}`).join(" "), `${Math.round(performance.now() - t0)} ms`);
+    fkSeedPlan(seed, rev).kicks.forEach((k, i) => {
       const c = fkSolveKick(k);
       if (!c?.full) console.log(`  kick ${i} target ${k.target} side ${k.side} d=${(Math.hypot(k.bx, k.bz) / FK_M).toFixed(1)} bx=${(k.bx / FK_M).toFixed(1)} wall ${k.wallN}: best goal=${c?.goal} place=${c?.place} curled=${c?.curled} target=${c?.target}`);
     });

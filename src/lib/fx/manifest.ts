@@ -652,6 +652,7 @@ const ENTRIES = {
   "freekick.goal": { channel: "effects", frequency: 0, ms: 480, url: null },
   "freekick.target": { channel: "effects", frequency: 0, ms: 480, url: null },
   "freekick.net": { channel: "effects", frequency: 0, ms: 200, url: null },
+  "racing.light": { channel: "effects", frequency: 0, ms: 251, url: null },
   "racing.go": { channel: "effects", frequency: 0, ms: 300, url: null },
   "racing.lap": { channel: "effects", frequency: 0, ms: 480, url: null },
   "racing.sector": { channel: "effects", frequency: 0, ms: 200, url: null },

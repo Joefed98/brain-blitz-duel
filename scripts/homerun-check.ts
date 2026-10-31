@@ -1,5 +1,5 @@
 /**
- * Home Run Derby (homerunRev 1, 30 Oct 2026; docs/arcade-standard/homerun.md):
+ * Home Run (homerunRev 1, 30 Oct 2026; homerunRev 2, 31 Oct 2026; docs/arcade-standard/homerun.md):
  *
  *  1. the plan comes from the seed alone: ten pitches (three fastballs, two each of curve, drop and changeup, one
  *     more), one about every 6 s, all inside the strike zone and the run; four signs, each beyond the fence;
@@ -10,20 +10,30 @@
  *  4. the parts: distance 130 on a straight line (13 a pitch, full at 450 ft), home runs 5 each to 50, signs 5 each
  *     to 20; no input scores 0, a swipe that did nothing 1; a sign hit is always a home run;
  *  5. contact rules: timing and height quality, foul beyond the fair angle, a pitch nobody swings at is taken;
- *  6. the help states every part and "Together 200 points.".
+ *  6. the help states every part and "Together 200 points.";
+ *  7. homerunRev 1 replays as before: 54 runs recorded on main b154694 (scripts/fixtures/homerun-rev1-legacy.json, the
+ *     skill-band bots at every level, random swipes and edge swings) give the same score, final checksum and end tick;
+ *  8. homerunRev 2 (rooms deal it): the finer aim (spray = 9/16 of the swipe, fair to ±80°), everything else rev 1's;
+ *     the rev-2 deal (300 seeds, proved at 200 on rev 2 like section 3) is what `homerun-deal.ts --rev=2` builds;
+ *     rooms deal rev 2 from it; the help names no pitch before it is thrown.
  *
  *   bun scripts/homerun-check.ts
  */
 import { execFileSync } from "node:child_process";
+import { readFileSync } from "node:fs";
 import { recordInput, type ArcadeInputEvent } from "../src/lib/arcade/engine";
 import {
   homerunCheckpoint,
   homerunContact,
   homerunFence,
   homerunGame,
+  homerunGameFor,
   homerunPlan,
+  homerunSpray,
   homerunStdParts,
   HOMERUN_FAIR_ANGLE,
+  HOMERUN_FAIR_ANGLE_V2,
+  HOMERUN_REV_2,
   HOMERUN_INPUT_RANGES,
   HOMERUN_INPUT_SWING,
   HOMERUN_PITCHES,
@@ -38,6 +48,8 @@ import {
 } from "../src/lib/arcade/homerun";
 import { encodeHomerunRun, replayHomerunRun } from "../src/lib/duel/homerun";
 import { HOMERUN_DEAL } from "../src/lib/duel/homerunDeal.server";
+import { HOMERUN_DEAL_V2 } from "../src/lib/duel/homerunDealV2.server";
+import { generateHomerun } from "../src/lib/duel/sports.server";
 import { PUZZLE_INSTRUCTIONS } from "../src/lib/duel/instructions";
 import { oracleRun, playLog } from "./homerun-oracle";
 
@@ -49,19 +61,20 @@ function ok(cond: boolean, label: string): void {
 }
 const FULL = process.env["CHECKS_FULL"] === "1";
 
-function serve(seed: number, events: ArcadeInputEvent[], claim?: number) {
-  const s = playLog(seed, events);
+function serve(seed: number, events: ArcadeInputEvent[], claim?: number, rev = 1) {
+  const game = homerunGameFor(rev);
+  const s = playLog(seed, events, rev);
   const at = new Map(events.map((e) => [e.t, e]));
-  let r = homerunGame.init(seed);
+  let r = game.init(seed);
   const cps = [];
-  while (!homerunGame.isOver(r)) {
-    r = homerunGame.step(r, at.get(r.tick + 1) ?? null);
+  while (!game.isOver(r)) {
+    r = game.step(r, at.get(r.tick + 1) ?? null);
     if (r.tick % 60 === 0) cps.push(homerunCheckpoint(r));
   }
-  const raw = encodeHomerunRun({ seed, claimedScore: claim ?? homerunGame.score(s), events, endTick: s.tick, checkpoints: cps });
+  const raw = encodeHomerunRun({ seed, claimedScore: claim ?? game.score(s), events, endTick: s.tick, checkpoints: cps });
   const quiet = console.error;
   console.error = () => {};
-  const out = replayHomerunRun(seed, raw, 1);
+  const out = replayHomerunRun(seed, raw, rev);
   console.error = quiet;
   return { sim: s, out };
 }
@@ -159,9 +172,76 @@ try {
   for (const part of ["Distance up to 130", "Home runs up to 50", "Sign hits up to 20"]) ok(help.includes(part), `the help states "${part}"`);
 }
 
+/* 7. homerunRev 1 replays exactly as before. */
+{
+  const fx = JSON.parse(readFileSync("scripts/fixtures/homerun-rev1-legacy.json", "utf8")) as { runs: { seed: number; label: string; events: ArcadeInputEvent[]; score: number; checksum: number; tick: number }[] };
+  let same = 0;
+  for (const run of fx.runs) {
+    const s = playLog(run.seed, run.events, 1);
+    const { out } = serve(run.seed, run.events, undefined, 1);
+    const good = s.rev === 1 && homerunGame.score(s) === run.score && homerunCheckpoint(s).checksum === run.checksum && s.tick === run.tick && out.score === run.score && !out.flagged;
+    if (good) same++;
+    else failures.push(`rev-1 legacy run ${run.label} on ${run.seed}: ${out.score} (was ${run.score})`);
+  }
+  ok(fx.runs.length === 54 && same === fx.runs.length, `homerunRev 1: ${same} of ${fx.runs.length} recorded runs replay to the same score, checksum and end tick`);
+}
+
+/* 8. homerunRev 2. */
+{
+  ok(homerunGameFor(2).init(5).rev === HOMERUN_REV_2 && homerunGameFor(1).init(5).rev === 1 && homerunGameFor(undefined).init(5).rev === 1, "homerunGameFor: rev 2 on 2, rev 1 otherwise");
+  ok(generateHomerun().homerunRev === 2 && HOMERUN_DEAL_V2.includes(generateHomerun().seed), "rooms deal homerunRev 2 from rev 2's proved deal");
+  // The finer aim: 9/16 of the swipe; fair to ±80° (rev 1: three quarters, ±60°).
+  let fine = true;
+  for (let b = -900; b <= 900; b++) if (homerunSpray(b, 2) !== Math.trunc((b * 9) / 16) || homerunSpray(b, 1) !== Math.trunc((b * 3) / 4)) fine = false;
+  ok(fine, "spray: 9/16 of the swipe on rev 2, three quarters on rev 1");
+  const plan = homerunPlan(99);
+  const p = plan.pitches[0]!;
+  const at = p.arrive - HOMERUN_SWING_TICKS;
+  ok(homerunContact(plan, p, at, p.plateY, 700, 2).out === OUT_HOMER && homerunContact(plan, p, at, p.plateY, 700, 1).out === OUT_FOUL, "a 70° swipe is fair on rev 2, foul on rev 1");
+  ok(homerunContact(plan, p, at, p.plateY, HOMERUN_FAIR_ANGLE_V2 + 1, 2).out === OUT_FOUL && homerunContact(plan, p, at, p.plateY, -HOMERUN_FAIR_ANGLE_V2 - 1, 2).out === OUT_FOUL, "past ±80° is foul on rev 2");
+  ok(homerunContact(plan, p, at, p.plateY, 400, 2).spray === 225 && homerunContact(plan, p, at, p.plateY, 400, 1).spray === 300, "a 40° swipe sprays 22.5° on rev 2 (30° on rev 1)");
+  // Timing, height and distance are rev 1's.
+  let sameContact = true;
+  for (let i = 0; i < 2000; i++) {
+    const pl = homerunPlan(i * 17 + 3);
+    const q = pl.pitches[i % 10]!;
+    const st = q.arrive - HOMERUN_SWING_TICKS + ((i * 7) % 17) - 8;
+    const a = q.plateY + ((i * 13) % 41) - 20;
+    const h1 = homerunContact(pl, q, st, a, 0, 1);
+    const h2 = homerunContact(pl, q, st, a, 0, 2);
+    if (h1.q !== h2.q || h1.feet !== h2.feet || h1.out !== h2.out || h1.at !== h2.at) sameContact = false;
+  }
+  ok(sameContact, "rev 2's timing, height, carry and outcome on a level swing are rev 1's");
+  // The rev-2 deal.
+  ok(HOMERUN_DEAL_V2.length === 300 && new Set(HOMERUN_DEAL_V2).size === 300, "the rev-2 deal holds 300 distinct seeds");
+  const provedV2 = FULL ? HOMERUN_DEAL_V2 : HOMERUN_DEAL_V2.filter((_, i) => i % 13 === 0);
+  let v2at200 = 0;
+  for (const seed of provedV2) {
+    const { out } = serve(seed, oracleRun(seed, 2), undefined, 2);
+    if (!out.flagged && out.score === 200 && out.state.rev === 2) v2at200++;
+    else failures.push(`rev-2 deal seed ${seed}: the oracle scores ${out.score}${out.flagged ? " (flagged)" : ""}`);
+  }
+  ok(v2at200 === provedV2.length, `the oracle takes ${v2at200} of ${provedV2.length} rev-2 deal seeds to exactly 200 on rev 2 through the server replay`);
+  try {
+    execFileSync("bun", ["scripts/homerun-deal.ts", "--rev=2", "--check"], { stdio: "pipe" });
+    ok(true, "the rev-2 deal file is what homerun-deal.ts --rev=2 builds");
+  } catch {
+    ok(false, "the rev-2 deal file is what homerun-deal.ts --rev=2 builds");
+  }
+  // Rev 2's replay path agrees with its sim, flags tampering and keeps the rev in the state.
+  const seed = HOMERUN_DEAL_V2[5]!;
+  const ev = oracleRun(seed, 2);
+  const r2 = serve(seed, ev, undefined, 2);
+  ok(!r2.out.flagged && r2.out.score === homerunGameFor(2).score(r2.sim) && r2.out.desyncTick === null, "rev 2: the server replay agrees with the sim");
+  ok(serve(seed, ev, 150, 2).out.flagged, "rev 2: a claimed score the replay does not give is flagged");
+  ok(serve(seed, ev, undefined, 1).out.score < 200, "the rev-2 oracle's aim is not rev 1's (the same log on rev 1 misses signs)");
+  const help = `${PUZZLE_INSTRUCTIONS.homerun?.goal ?? ""} ${(PUZZLE_INSTRUCTIONS.homerun?.how ?? []).map((h) => `${h.action} ${h.detail}`).join(" ")}`;
+  ok(!/chip at the top names/i.test(help) && /radar/i.test(help), "the help says the pitch is shown on the radar board after it is thrown, never named before");
+}
+
 if (failures.length) {
   for (const f of failures.slice(0, 40)) console.log(`  - ${f}`);
   console.log(`FAIL homerun-check: ${failures.length} of ${checks} checks failed`);
   process.exit(1);
 }
-console.log(`PASS homerun-check: ${checks} checks — plans, replay, the 300-seed deal (${proved.length} proved at 200), parts, contact and help`);
+console.log(`PASS homerun-check: ${checks} checks — plans, replay, rev 1's 300-seed deal (${proved.length} proved at 200) and recorded runs, rev 2's finer aim and deal, parts, contact and help`);

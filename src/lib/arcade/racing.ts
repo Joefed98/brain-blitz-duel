@@ -35,11 +35,42 @@ import { bandCurve, type BandParts } from "./scoreBands";
 /* ================================ Constants ================================ */
 
 export const RACING_REV_STD = 1;
+/** racingRev 2 (31 Oct 2026, Apex): the F1 lights start, the softer joystick (dead zone, expo, smoothing). */
+export const RACING_REV_2 = 2;
+/** The revision rooms and practice deal. */
+export const RACING_REV_DEALT = RACING_REV_2;
+/** The race itself: 90 s (on racingRev 2 from lights out). */
 export const RACING_RUN_SECONDS = 90;
 export const RACING_RUN_TICKS = RACING_RUN_SECONDS * TICKS_PER_SECOND;
 
+/**
+ * racingRev 2's start lights: the car waits on its grid spot; light k (1…5) comes on at RACING_V2_LIGHT0 + (k − 1) ×
+ * RACING_V2_LIGHT_GAP, all five go out at RACING_V2_GO and the race clock starts. Until then the car cannot move.
+ */
+export const RACING_V2_LIGHTS = 5;
+export const RACING_V2_LIGHT0 = 30;
+export const RACING_V2_LIGHT_GAP = TICKS_PER_SECOND;
+export const RACING_V2_GO = RACING_V2_LIGHT0 + RACING_V2_LIGHTS * RACING_V2_LIGHT_GAP;
+/** racingRev 2's whole run: the lights, then the 90-second race. */
+export const RACING_V2_RUN_TICKS = RACING_V2_GO + RACING_RUN_TICKS;
+
+/** The tick the race clock starts on (0 on racingRev 1; lights out on 2). */
+export function racingGoTick(rev: number): number {
+  return rev >= RACING_REV_2 ? RACING_V2_GO : 0;
+}
+/** How many start lights are lit at a tick (racingRev 2; 0 before the first and from lights out). */
+export function racingLightsOn(rev: number, tick: number): number {
+  if (rev < RACING_REV_2 || tick >= RACING_V2_GO || tick < RACING_V2_LIGHT0) return 0;
+  return Math.min(RACING_V2_LIGHTS, Math.floor((tick - RACING_V2_LIGHT0) / RACING_V2_LIGHT_GAP) + 1);
+}
+/** The race clock (ticks since the start; 0 during racingRev 2's lights). */
+export function racingRaceTicks(state: Pick<RacingState, "rev" | "tick">): number {
+  return Math.max(0, state.tick - racingGoTick(state.rev));
+}
+
 export const RACING_WORLD_W = 390;
-export const RACING_WORLD_H = 720;
+/** 390 × 727 since 31 Oct 2026 (display only, every revision): the arena box's aspect at 414 × 896, so no strip below. */
+export const RACING_WORLD_H = 727;
 export const RACING_BG = "#1A1418";
 
 /** The joystick: a = steer, b = throttle (+) / brake (−). */
@@ -89,6 +120,24 @@ export const RACING_STEER_K = 3000;
 export const RACING_C_BAL = 4;
 /** Past that speed the tyres let go: the car also slides outwards by RACING_SLIDE_K × the excess a tick. */
 export const RACING_SLIDE_K = 6;
+
+/**
+ * racingRev 2's steering (the joystick less sensitive): the stick's steer `a` goes through a dead zone of
+ * RACING_V2_DEAD, then an expo curve (half the gain at mid-stick, the same full lock), and the front wheels turn
+ * towards that at most RACING_V2_WHEEL_RATE a tick (smoothing: centre to full lock in about 0.2 s). Throttle and
+ * brake are unchanged.
+ */
+export const RACING_V2_DEAD = 10;
+export const RACING_V2_WHEEL_RATE = 8;
+
+/** racingRev 2: the steer the wheels head for from a stick value (dead zone, then expo; integer, odd-symmetric). */
+export function racingV2SteerTarget(a: number): number {
+  const m = Math.abs(a);
+  if (m <= RACING_V2_DEAD) return 0;
+  const u = Math.trunc(((Math.min(RACING_STICK_MAX, m) - RACING_V2_DEAD) * 100) / (RACING_STICK_MAX - RACING_V2_DEAD));
+  const t = Math.trunc((u * u + 100 * u) / 200);
+  return a < 0 ? -t : t;
+}
 
 /* ================================ The track ================================ */
 
@@ -258,6 +307,8 @@ export interface RacingState {
   /** The held joystick. */
   steer: number;
   pedal: number;
+  /** racingRev 2: the front wheels' steer (smoothed towards the stick's target; 0 on racingRev 1). */
+  wheel: number;
   /** 1 on a tick with a wheel on the grass / against the tyre wall. */
   off: number;
   wall: number;
@@ -288,6 +339,7 @@ export function racingInit(seed: number): RacingState {
     x: 0,
     steer: 0,
     pedal: 0,
+    wheel: 0,
     off: 0,
     wall: 0,
     sector: 0,
@@ -321,6 +373,14 @@ export function racingStep(prev: RacingState, input: ArcadeInputEvent | null): R
     s0.pedal = clampInt(Math.trunc(input.b), -RACING_STICK_MAX, RACING_STICK_MAX);
     s0.acted += 1;
   }
+  const v2 = s0.rev >= RACING_REV_2;
+  if (v2) {
+    // The wheels follow the stick's target at the smoothing rate, also on the grid (the car shows it).
+    const want = racingV2SteerTarget(s0.steer);
+    s0.wheel += clampInt(want - s0.wheel, -RACING_V2_WHEEL_RATE, RACING_V2_WHEEL_RATE);
+    // The car waits on its grid spot until the lights go out.
+    if (s0.tick <= RACING_V2_GO) return s0;
+  }
   const track = racingTrack(s0.seed);
   const c = track.curve[racingSegAt(s0.s)]!;
 
@@ -338,7 +398,7 @@ export function racingStep(prev: RacingState, input: ArcadeInputEvent | null): R
   v = clampInt(v, 0, RACING_VMAX);
 
   // Sideways: the steer, and the curve pushing outwards (a right-hander pushes left).
-  let x = s0.x + racingSteerMove(s0.steer, v) - racingPush(c, v);
+  let x = s0.x + racingSteerMove(v2 ? s0.wheel : s0.steer, v) - racingPush(c, v);
   let wall = 0;
   if (x > RACING_WALL_LIMIT || x < -RACING_WALL_LIMIT) {
     x = x > 0 ? RACING_WALL_LIMIT : -RACING_WALL_LIMIT;
@@ -374,7 +434,7 @@ export function racingStep(prev: RacingState, input: ArcadeInputEvent | null): R
 }
 
 export function racingIsOver(s: RacingState): boolean {
-  return s.finishTick > 0 || s.tick >= RACING_RUN_TICKS;
+  return s.finishTick > 0 || s.tick >= racingGoTick(s.rev) + RACING_RUN_TICKS;
 }
 
 /** The lap the car is on (1 or 2). */
@@ -403,6 +463,16 @@ export const RACING_SPEED_MAX = 20;
  * (scripts/racing-bands.ts, room seeds 0–59), and 0 at the buzzer.
  */
 export const RACING_PAR_TICKS = 4850;
+/**
+ * racingRev 2's speed part is full at this race time (ticks from lights out): the near-perfect level's median on the
+ * rev-2 deal (scripts/racing-bands.ts, room seeds 0–59).
+ */
+export const RACING_V2_PAR_TICKS = 4854;
+
+/** The speed part's full-by race time for a revision. */
+export function racingParTicks(rev: number): number {
+  return rev >= RACING_REV_2 ? RACING_V2_PAR_TICKS : RACING_PAR_TICKS;
+}
 
 export const RACING_STD_SPEC: StdSpec = {
   field: "racingRev",
@@ -415,18 +485,35 @@ export const RACING_STD_SPEC: StdSpec = {
   ],
 };
 
-/** The run's parts (null off racingRev 1). */
+/** racingRev 2's spec: the same four parts; speed on the race clock from lights out. */
+export const RACING_V2_STD_SPEC: StdSpec = {
+  field: "racingRev",
+  rev: RACING_REV_2,
+  parts: RACING_STD_SPEC.parts.map((p) =>
+    p.key === "speed" ? { ...p, how: `on a finish: full by ${(RACING_V2_PAR_TICKS / TICKS_PER_SECOND).toFixed(0)} s from lights out, 0 at the buzzer` } : p,
+  ),
+};
+
+/** A revision's spec (null for an unknown one). */
+export function racingStdSpecFor(rev: number): StdSpec | null {
+  return rev === RACING_REV_STD ? RACING_STD_SPEC : rev === RACING_REV_2 ? RACING_V2_STD_SPEC : null;
+}
+
+/** The run's parts (null off racingRev 1 and 2). */
 export function racingStdParts(state: RacingState): StdPart[] | null {
-  if (state.rev !== RACING_REV_STD) return null;
+  const spec = racingStdSpecFor(state.rev);
+  if (!spec) return null;
   const dist = clampInt(state.s, 0, RACING_TOTAL);
   const pct = Math.floor((dist * 100) / RACING_TOTAL);
   const finished = state.finishTick > 0;
-  const secs = (state.finishTick / TICKS_PER_SECOND).toFixed(1);
+  const go = racingGoTick(state.rev);
+  const raceTicks = finished ? state.finishTick - go : 0;
+  const secs = (raceTicks / TICKS_PER_SECOND).toFixed(1);
   return [
-    stdPart(RACING_STD_SPEC, "core", stdLine(RACING_CORE_MAX, dist, RACING_TOTAL), finished ? "2 of 2 laps" : `${pct}% of 2 laps`),
-    stdPart(RACING_STD_SPEC, "sectors", stdLine(RACING_SECTORS_MAX, state.clean, RACING_SECTORS), `${state.clean} of ${RACING_SECTORS} clean`),
-    stdPart(RACING_STD_SPEC, "finish", finished ? RACING_FINISH_MAX : 0, finished ? "both laps" : "not finished"),
-    stdPart(RACING_STD_SPEC, "speed", finished ? stdSpeed(RACING_SPEED_MAX, state.finishTick, RACING_PAR_TICKS, RACING_RUN_TICKS) : 0, finished ? `${secs} s` : "no finish"),
+    stdPart(spec, "core", stdLine(RACING_CORE_MAX, dist, RACING_TOTAL), finished ? "2 of 2 laps" : `${pct}% of 2 laps`),
+    stdPart(spec, "sectors", stdLine(RACING_SECTORS_MAX, state.clean, RACING_SECTORS), `${state.clean} of ${RACING_SECTORS} clean`),
+    stdPart(spec, "finish", finished ? RACING_FINISH_MAX : 0, finished ? "both laps" : "not finished"),
+    stdPart(spec, "speed", finished ? stdSpeed(RACING_SPEED_MAX, raceTicks, racingParTicks(state.rev), RACING_RUN_TICKS) : 0, finished ? `${secs} s` : "no finish"),
   ];
 }
 
@@ -437,6 +524,8 @@ export function racingScore(state: RacingState): number {
 
 /** The core's straight line for the help (liveBands): 140 at two laps, in per mille of the race. */
 export const RACING_V1_BAND_CURVE = bandCurve([0, 1000], [0, RACING_CORE_MAX]);
+/** racingRev 2's core: the same straight line. */
+export const RACING_V2_BAND_CURVE = RACING_V1_BAND_CURVE;
 
 /** For the skill-band tool and the reveal: units = per mille of the race, points = the core, bonus = the features. */
 export function racingBandParts(state: RacingState): BandParts {
@@ -445,7 +534,7 @@ export function racingBandParts(state: RacingState): BandParts {
   const features: Record<string, number> = {};
   for (const p of parts.slice(1)) features[p.key] = p.points;
   return stdBandParts(
-    RACING_STD_SPEC,
+    racingStdSpecFor(state.rev) ?? RACING_STD_SPEC,
     { core, features, penalty: 0 },
     Math.floor((clampInt(state.s, 0, RACING_TOTAL) * 1000) / RACING_TOTAL),
     parts.map((p) => `${p.label} ${p.points}`).join(" · "),
@@ -484,6 +573,8 @@ export function racingChecksum(s: RacingState): number {
   mix(s.contacts);
   mix(s.finishTick);
   mix(s.acted);
+  // racingRev 2's smoothed wheel (racingRev 1 checksums exactly as before).
+  if (s.rev >= RACING_REV_2) mix(s.wheel);
   return h >>> 0;
 }
 
@@ -526,7 +617,17 @@ export const racingGame: ArcadeGame<RacingState, ArcadeInputEvent | null> = {
   inputRanges: RACING_INPUT_RANGES,
 };
 
-/** The game for a stored stamp (only racingRev 1 exists). */
-export function racingGameFor(_rev?: number | null): ArcadeGame<RacingState, ArcadeInputEvent | null> {
-  return racingGame;
+/** racingRev 2: the lights, then the race (the run is the lights longer). */
+export function racingInitV2(seed: number): RacingState {
+  return { ...racingInit(seed), rev: RACING_REV_2 };
+}
+export const racingGameV2: ArcadeGame<RacingState, ArcadeInputEvent | null> = {
+  ...racingGame,
+  runTicks: RACING_V2_RUN_TICKS,
+  init: racingInitV2,
+};
+
+/** The game for a stored stamp (unstamped and 1: racingRev 1; 2: the lights start and the softer joystick). */
+export function racingGameFor(rev?: number | null): ArcadeGame<RacingState, ArcadeInputEvent | null> {
+  return (rev ?? 1) >= RACING_REV_2 ? racingGameV2 : racingGame;
 }

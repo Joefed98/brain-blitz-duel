@@ -1,4 +1,8 @@
-# Free Kick on the arcade scoring standard (freekickRev 1, 30 Oct 2026)
+# Top Bins (`freekick`) on the arcade scoring standard (freekickRev 1, 30 Oct 2026; freekickRev 2, 31 Oct 2026)
+
+Shown as **Top Bins** since 31 Oct 2026 (was Free Kick; the id `freekick` is unchanged). Rooms deal **freekickRev 2**
+(below, "freekickRev 2"); everything from here to that section describes freekickRev 1, which every rev-1 round
+still replays and scores exactly as before.
 
 A new arcade game (`freekick`, Sports), born on the arcade scoring standard (`src/lib/arcade/arcadeStandard.ts`).
 Rooms deal **`freekickRev 1`** (`FREEKICK_REV_STD`, `freekickGame`) on a proved seed from `FREEKICK_DEAL`
@@ -126,3 +130,110 @@ Candidates for real artwork:
 - the **ball** (a textured ball with a proper spin read) and the **net ripple** when a goal goes in (today the net is
   static; the ball simply stops at the back);
 - a **kicker** (no player is shown taking the kick; the stroke itself is the strike).
+
+## freekickRev 2 (Top Bins, 31 Oct 2026)
+
+Joe's tuning notes. Rooms deal **`freekickRev 2`** (`FREEKICK_REV_DEALT`, `freekickGameV2`) on a proved seed from
+`FREEKICK_DEAL_V2` (`src/lib/duel/freekickDealV2.server.ts`, `freekickDealSeedV2(roomSeed)`, built by
+`bun scripts/freekick-deal.ts --rev=2`). Rev 1 (`freekickGame`, `FREEKICK_DEAL`) is untouched: stamped-1 and unstamped
+rounds replay to the same score, state and checkpoints (freekick-check section 6: 48 runs recorded before the change,
+`scripts/fixtures/freekick-rev1-legacy.json` from `scripts/freekick-legacy-record.ts`).
+
+### What changed (gameplay, rev 2 only)
+
+- **No wind.** Every rev-2 kick has wind 0 (the flight's wind term is then nothing); the wind chip is gone and the
+  top centre chip names the spot's distance ("26 YDS").
+- **Each kick's spot is seeded** (`makeKickV2`): 18–32 yards from the goal's centre (`FK_V2_DIST_MIN…MAX`) at up to
+  35° either side of the centre line (`FK_V2_ANGLE_MAX` 611 mrad), placed with the sim's integer sine and cosine.
+- **The wall matches the spot**: 4–5 players for a central kick (within 12°) inside 25 yards, 3 from a wide angle
+  (25° or more) or beyond 30 yards, otherwise 3–4; it covers the near post as on rev 1 (0.15–0.5 m outside it).
+- **The keeper matches the spot**: he starts on the bisector of the angle the posts make at the ball (where it meets
+  the goal line, by the angle-bisector theorem), stepped 0.3–1.0 m toward the far post, held to ±3 m.
+- The flight, the wall's jump, the keeper's reaction and dive (`fkFlightStep`), the targets and the scoring are rev 1's.
+  The keeper is deterministic for the same flight (freekick-check section 8: two copies of one launch step
+  identically, he stands still until his reaction tick, a kick taken on any tick flies and is saved the same).
+
+### The parts (unchanged, 200 in all)
+
+| Part | Max | How it pays |
+| --- | --- | --- |
+| Goals (core) | 130 | 10 a goal + up to 3 for placement (full at 150 cm from the keeper), a straight line on 1,300 units |
+| Targets | 40 | 10 for each of the 4 targets |
+| Round the wall | 20 | 2 for each goal curled round the wall's end |
+| Five in a row | 10 | 10 for five goals in a row |
+
+`FREEKICK_V2_STD_SPEC` is rev 1's spec on stamp 2. Removing the wind leaves every part meaningful (the wind was a
+difficulty, not a scored feature). No speed part, so there is no "full by" time; the one measured target is the
+placement's 150 cm, kept (the near-perfect level's goals pass the keeper at p25 179 cm, median 219 cm).
+
+### The deal
+
+The oracle (`oracleShots(seed, 2)`) searches the same goal-plane points as rev 1 plus, for rev-2 kicks only, the
+tightest corners on both sides (0.2–0.27 m in from the post, 0.18–0.35 m off the ground or 2.05–2.3 m up), which
+long and wide spots need for full placement (rev-1 kicks carry no `yards`, so rev 1's search, and its deal file, are
+byte for byte as before: `bun scripts/freekick-deal.ts --check`). **51 of 351 seeds were dropped**: a kick the search
+could not take to everything (mostly a corner target from close in at 20–35°, curled round the wall into the near
+top corner, and a few bar targets from long and wide). The kept 300 still reach both ends of the range.
+freekick-check re-proves 24 (all 300 with `CHECKS_FULL=1`, plus the file's rebuild); arcade-standard-check's entry
+replays the same on stamp 2.
+
+### Weak → flawless medians (freekickRev 2, `bun scripts/freekick-bands.ts --seeds=60 [--from=10000]`)
+
+Dealt seeds n = 0–59 (tuning):
+
+| Level | Score median (p10–p90) | Goals | Core | Targets | Round the wall | Five in a row | Goal distance cm (p25 / median) | Zeros |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Weak | 13 (1–35) | 1 | 13 | 0 | 0 | 0 | 154 / 213 | 0 |
+| Average | 27 (12–63) | 2 | 26 | 0 | 0 | 0 | 157 / 200 | 0 |
+| Good | 53 (28–91) | 3 | 39 | 10 | 4 | 0 | 168 / 210 | 0 |
+| Great | 79 (50–111) | 5 | 64 | 10 | 6 | 0 | 167 / 218 | 0 |
+| Near-perfect | 128 (95–166) | 7 | 90 | 20 | 12 | 0 | 179 / 219 | 0 |
+| Elite | 157 (120–197) | 8 | 103 | 30 | 16 | 10 | 178 / 221 | 0 |
+| Flawless | 200 (200–200) | 10 | 130 | 40 | 20 | 10 | 172 / 219 | 0 |
+| Random strokes | 1 (1–13) | 0 | 0 | 0 | 0 | 0 | 139 / 165 | 0 |
+
+Fresh seeds n = 10000–10059:
+
+| Level | Score median (p10–p90) | Goals | Core | Targets | Round the wall | Five in a row | Goal distance cm (p25 / median) | Zeros |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Weak | 13 (1–38) | 1 | 13 | 0 | 0 | 0 | 164 / 217 | 0 |
+| Average | 26 (1–51) | 2 | 25 | 0 | 0 | 0 | 155 / 206 | 0 |
+| Good | 53 (28–76) | 3 | 39 | 10 | 4 | 0 | 166 / 206 | 0 |
+| Great | 80 (36–118) | 5 | 64 | 10 | 6 | 0 | 167 / 220 | 0 |
+| Near-perfect | 130 (94–167) | 7 | 90 | 20 | 12 | 0 | 174 / 221 | 0 |
+| Elite | 148 (100–190) | 8 | 103 | 30 | 14 | 10 | 174 / 217 | 0 |
+| Flawless | 200 (200–200) | 10 | 130 | 40 | 20 | 10 | 163 / 226 | 0 |
+| Random strokes | 1 (1–1) | 0 | 0 | 0 | 0 | 0 | 165 / 166 | 0 |
+
+Rev 2 is harder than rev 1 at every level below flawless (near-perfect 148 → 128 on rev 1's table): the spots reach
+32 yards and 35°, where power (the arrival height) and placement are harder, and the keeper has longer to move. The
+bots are rev 1's, without the wind misread on rev 2.
+
+### The look (display only; most of it on every revision)
+
+- The referee's foam line under the wall is gone (the foam arc by the ball stays).
+- The keeper stands with his hands down while the kick is set, raises them as it is struck (within 12 ticks; the
+  ball always takes longer to reach him), then dives from his sim speed, leaning further and stretching his leading
+  arm.
+- On a goal the crowd jumps (340 seeded fans springing up, arms waving), scarves held overhead and red-and-white flags
+  wave, and camera flashes pop round the stands, for the 70-tick settle (`paintFans`; the goal and the pitch stay in
+  front).
+- **Filling the screen**: the play screen's scenery (`freekickScene`, repainted per kick through `freekickSceneKey`)
+  paints the kick's own static layer (the stadium panorama at its yaw, the boards, the pitch, the net) on out to the
+  arena box, so the stands and the grass run across the world's edges with no seam: no side bars at 375×667, no
+  strip at the bottom at 414×896 (the grass settles a little darker below the world, from nothing at its edge). The
+  pitch layer's bottom vignette was dropped so the world's bottom edge meets the scenery cleanly.
+- Screenshots: `screenshots/sports-tuning-oct-2026/freekick-*.png` (414×896 and 375×667, mid-run and reveal, from the
+  practice screen; `freekick-goal-crowd-render.png` is an offline render of a goal with the crowd up, the world
+  plus its scenery at 470 world px wide).
+
+### Assumptions and decisions for Joe (rev 2)
+
+- **Distance is measured from the goal's centre**, the angle from the centre line through the goal.
+- **Wall sizes by spot** (central inside 25 yards 4–5, wide or beyond 30 yards 3, else 3–4) are my reading of "set up to
+  match each spot".
+- **The keeper's dive is rev 1's sim** (a reaction 10 ticks after the ball passes the wall, then a lateral dive at up to
+  5.1 m/s); "hands down, then raises" is display only, so the keeper's saves are unchanged for the same flight.
+- **Dropped seeds bias the deal slightly** away from close, wide corner targets (see the deal).
+- The scenery is repainted on each kick (its camera moves), not every frame.
+- **The intro demo needs recording** on freekickRev 2.
