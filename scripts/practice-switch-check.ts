@@ -67,7 +67,8 @@ const BRIEF: Record<string, string[]> = {
   // Crazy Golf, Cue Ball and Curl Champ since 31 Oct 2026.
   sports: ["Flightpath", "Swish", "Crazy Golf", "Cue Ball", "Curl Champ", "Home Run Derby", "Free Kick", "Racing"],
   // Minesweeper and Mahjong Solitaire registered on 30 Oct 2026 (#205); the group's other ids join as they register.
-  cards: ["Minesweeper", "FreeCell", "Mahjong Solitaire", "TriPeaks", "Poker Squares"],
+  // Minesweeper shown as Minefield since 31 Oct 2026 (id unchanged).
+  cards: ["Minefield", "FreeCell", "Mahjong Solitaire", "TriPeaks", "Poker Squares"],
   action: ["Slice", "Tilt", "Gemstone", "High Rise", "Coral Pop", "Roofbound", "Rainbow Bridge", "Ball Tracker", "Grappler"],
 };
 for (const g of ARCADE_GROUPS) {

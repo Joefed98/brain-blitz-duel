@@ -12,7 +12,7 @@ import { prepareBeatTrack, prepareRoundMusic, startMusic, stopMusic, stopMusicIf
 import { preloadGameArt } from "@/lib/arcade/gameArt.renderer";
 import { preloadGameData, useGameDataReady } from "@/lib/duel/gamePreload";
 
-import { CATEGORY_NAMES } from "./GameFrame";
+import { CATEGORY_NAMES, FrameName } from "./GameFrame";
 import { MuteToggle } from "./MuteToggle";
 import { RoomChatSlot } from "./RoomFooter";
 import { Dots } from "./Dots";
@@ -215,13 +215,7 @@ export function RoundIntro({
           </button>
         ) : null}
         <div className="game-frame-left">
-          <h1
-            className="round-intro-title game-frame-name"
-            data-long={puzzleName(type).length > 15 ? "" : undefined}
-            style={{ ["--name-len" as string]: Math.max(6, puzzleName(type).length) }}
-          >
-            {puzzleName(type)}
-          </h1>
+          <FrameName as="h1" className="round-intro-title" text={puzzleName(type)} />
           <span className="game-frame-context">
             <span aria-hidden="true" className="game-frame-dot" />
             <span className="game-frame-context-text">

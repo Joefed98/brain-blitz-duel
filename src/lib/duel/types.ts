@@ -1954,7 +1954,7 @@ export interface MahjongPuzzleData {
   type: "mahjong";
   /** Deals the faces (built backwards, so the board clears) in the sim, identical for everyone. */
   seed: number;
-  /** Rules revision (1 = the first stack, on the arcade scoring standard). */
+  /** Rules revision (1 = the first stack, on the arcade scoring standard; 2 = the same with Undo and Reset). */
   mahjongRev?: number;
 }
 

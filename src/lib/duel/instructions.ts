@@ -986,6 +986,8 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Tap two matching tiles", detail: "to take them away." },
         { action: "Only free tiles:", detail: "nothing on top, and open on the left or right." },
         { action: "Stuck? Shuffle", detail: `re-deals the tiles that are left (−${MAHJONG_SHUFFLE_COST}).` },
+        { action: "Undo", detail: "takes back the last pair or Shuffle, free and as often as you like; the clock keeps running." },
+        { action: "Reset", detail: "puts back the original stack; the clock keeps running and Shuffles already used still count.", helpOnly: true },
         { action: "Every stack can be cleared:", detail: "it is built backwards from an empty board, and a Shuffle keeps it clearable.", helpOnly: true },
         { action: "Faces:", detail: "dots, bamboo and characters 1–9, the four winds and three dragons; a face matches only itself.", helpOnly: true },
         { action: "One stack for everyone,", detail: "72 tiles in four layers, 2 minutes.", helpOnly: true },

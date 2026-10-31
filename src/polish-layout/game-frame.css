@@ -38,8 +38,9 @@
   gap: 3px;
   container-type: inline-size;
 }
-/* The name: Archivo 800 at 110 % stretch, 19px, stepping down (never under 14px) so a long name
-   fits its half of the header from the first paint (no measuring); an ellipsis only past that. */
+/* The name: Archivo 800 at 110 % stretch, 19px. FrameName (GameFrame.tsx) measures it before the first paint
+   and shrinks it to fit its half of the header (never under 13px); this length estimate is only the
+   server-rendered frame's. Past 13px it takes two 15px lines ([data-long]); an ellipsis only past that. */
 .game-frame-name {
   display: block;
   overflow: hidden;
@@ -52,7 +53,7 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-/* A name over 15 characters ("Don't Break the Chain") takes two 15px lines instead of an ellipsis. */
+/* A name that doesn't fit on one line at 13px ("Don't Break the Chain") takes two 15px lines instead of an ellipsis. */
 .game-frame-name[data-long] {
   display: -webkit-box;
   font-size: 15px;
