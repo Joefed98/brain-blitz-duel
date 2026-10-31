@@ -2660,9 +2660,9 @@ export interface MinigolfPuzzleData {
 
 export interface PoolPuzzleData {
   type: "pool";
-  /** Deals the layout (a table from the proven bank, poolBank.server.ts): identical for everyone in the room. */
+  /** Deals the layout (a table from the proven bank: poolBankV2.server.ts on poolRev 2, poolBank.server.ts on 1): identical for everyone in the room. */
   seed: number;
-  /** poolRev 1: the arcade scoring standard (docs/arcade-standard/pool.md). */
+  /** poolRev 1: the arcade scoring standard; poolRev 2 (31 Oct 2026): the cue round the ball, the meter, the spin dot anywhere on the face (docs/arcade-standard/pool.md). */
   poolRev?: number;
 }
 
@@ -2670,6 +2670,9 @@ export interface CurlingPuzzleData {
   type: "curling";
   /** Places the opponent's stones (a sheet from the proven bank, curlingBank.server.ts): identical for everyone in the room. */
   seed: number;
-  /** curlRev 1: the arcade scoring standard (docs/arcade-standard/curling.md). */
+  /**
+   * curlRev 1: the arcade scoring standard (docs/arcade-standard/curling.md). curlRev 2 (31 Oct 2026, dealt from
+   * curlingBankV2.server.ts): the start along the hog line and side brushing, the same parts.
+   */
   curlRev?: number;
 }

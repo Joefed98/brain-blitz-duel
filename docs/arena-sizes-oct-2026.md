@@ -56,9 +56,9 @@ revisions keep their own world in reveals and replays.
 | Summit | 414x772 | 375x591 → 317x591 | 390x624 → 335x624 | 390x768 → 390x727 | 414x772 → 414x772 | 430x856 → 430x802 | 1280x724 → 388x724 | 0.942x | 60px | 0px | 41px | 0px | - |
 | Full House | 414x772 | 375x591 → 317x591 | 390x624 → 335x624 | 390x768 → 390x727 | 414x772 → 414x772 | 430x856 → 430x802 | 1280x724 → 388x724 | 0.942x | 60px | 0px | 41px | 0px | - |
 | Five Hands | 414x772 | 375x591 → 317x591 | 390x624 → 335x624 | 390x768 → 390x727 | 414x772 → 414x772 | 430x856 → 430x802 | 1280x724 → 388x724 | 0.942x | 60px | 0px | 41px | 0px | - |
-| Minigolf | 390x690 | 375x591 → 334x591 | 390x624 → 353x624 | 390x768 → 390x690 | 414x772 → 414x732 | 430x856 → 430x761 | 1280x724 → 409x724 | 1.000x | 60px | 0px | 78px | 0px | - |
-| Speed Pool | 390x740 | 375x591 → 311x591 | 390x624 → 329x624 | 390x768 → 390x740 | 414x772 → 407x772 | 430x856 → 430x816 | 1280x724 → 382x724 | 1.000x | 60px | 0px | 28px | 0px | - |
-| Curling | 390x720 | 375x591 → 320x591 | 390x624 → 338x624 | 390x768 → 390x720 | 414x772 → 414x764 | 430x856 → 430x794 | 1280x724 → 392x724 | 1.000x | 60px | 0px | 48px | 0px | - |
+| Crazy Golf | 390x690 | 375x591 → 334x591 | 390x624 → 353x624 | 390x768 → 390x690 | 414x772 → 414x732 | 430x856 → 430x761 | 1280x724 → 409x724 | 1.000x | 60px | 0px | 78px | 0px | - |
+| Cue Ball | 390x740 | 375x591 → 311x591 | 390x624 → 329x624 | 390x768 → 390x740 | 414x772 → 407x772 | 430x856 → 430x816 | 1280x724 → 382x724 | 1.000x | 60px | 0px | 28px | 0px | - |
+| Curl Champ | 390x540 | 375x591 → 375x519 | 390x624 → 390x540 | 390x768 → 390x540 | 414x772 → 414x573 | 430x856 → 430x595 | 1280x724 → 523x724 | 1.000x | 60px | 0px | 228px | 0px | - |
 | Letterfall | 390x700 | 375x591 → 329x591 | 390x624 → 348x624 | 390x768 → 390x700 | 414x772 → 414x743 | 430x856 → 430x772 | 1280x724 → 403x724 | 1.000x | 60px | 0px | 68px | 0px | - |
 | Tenfall | 360x520 | 375x535 → 370x535 | 390x568 → 390x563 | 390x712 → 390x563 | 414x716 → 414x598 | 430x800 → 430x621 | 1280x668 → 462x668 | 1.083x | 116px | 0px | 149px | 0px | - |
 | Bonk | square | 375x491 → 375x375 | 390x524 → 390x390 | 390x668 → 390x390 | 414x672 → 414x414 | 430x756 → 430x430 | 1280x624 → 624x624 | 390.000x | 159.6px | 139px | 139px | 0px | - |
@@ -105,9 +105,9 @@ stars, walkers, lava, reactions) that holds still under reduced motion or reduce
 | Home Run | 375x591 → 320x591 | 390x624 → 338x624 | 390x768 → 390x720 | 414x772 → 414x764 | 430x856 → 430x794 | 1280x724 → 392x724 | the park's bands carried out to the sides (sky, stands, wall, grass, dirt), each a shade darker, the plate's dirt settling darker below |
 | Top Bins | 375x591 → 320x591 | 390x624 → 338x624 | 390x768 → 390x720 | 414x772 → 414x764 | 430x856 → 430x794 | 1280x724 → 392x724 | the stands' dark carried out above the horizon, the grass below, settling darker under the world |
 | Apex | 375x591 → 317x591 | 390x624 → 335x624 | 390x768 → 390x727 | 414x772 → 414x772 | 430x856 → 430x802 | 1280x724 → 388x724 | the sky above, grass at the sides, dark tarmac below |
-| Minigolf | 375x591 → 334x591 | 390x624 → 353x624 | 390x768 → 390x690 | 414x772 → 414x732 | 430x856 → 430x761 | 1280x724 → 409x724 | more of the night terrace, darker towards the edges |
-| Speed Pool | 375x591 → 311x591 | 390x624 → 329x624 | 390x768 → 390x740 | 414x772 → 407x772 | 430x856 → 430x816 | 1280x724 → 382x724 | the room round the table: a dark floor under the lamps' spill |
-| Curling | 375x591 → 320x591 | 390x624 → 338x624 | 390x768 → 390x720 | 414x772 → 414x764 | 430x856 → 430x794 | 1280x724 → 392x724 | the arena's dark above, the sheet's floor below and to the sides |
+| Crazy Golf | 375x591 → 334x591 | 390x624 → 353x624 | 390x768 → 390x690 | 414x772 → 414x732 | 430x856 → 430x761 | 1280x724 → 409x724 | more of the night terrace, darker towards the edges |
+| Cue Ball | 375x591 → 311x591 | 390x624 → 329x624 | 390x768 → 390x740 | 414x772 → 407x772 | 430x856 → 430x816 | 1280x724 → 382x724 | the room round the table: a dark floor under the lamps' spill |
+| Curl Champ | 375x591 → 375x519 | 390x624 → 390x540 | 390x768 → 390x540 | 414x772 → 414x573 | 430x856 → 430x595 | 1280x724 → 523x724 | the arena's dark above, the sheet's floor below and to the sides |
 | Mixed Signals | 375x531 → 319x531 | 390x564 → 338x564 | 390x708 → 390x650 | 414x712 → 414x690 | 430x796 → 430x717 | 1280x664 → 398x664 | the night board runs on under the arrows: its faint dot grid, lifting from the board's black to a soft indigo glow |
 | Minefield | 375x591 → 348x591 | 390x624 → 368x624 | 390x768 → 390x662 | 414x772 → 414x703 | 430x856 → 430x730 | 1280x724 → 427x724 | the faint hexagon background runs on beside and below the framed board, easing darker to the screen's bottom |
 | Mahjong Solitaire | 375x591 → 375x585 | 390x624 → 390x608 | 390x768 → 390x608 | 414x772 → 414x645 | 430x856 → 430x670 | 1280x724 → 464x724 | the dark wooden table runs on beside and below the jade mat, its grain unbroken, settling darker |
@@ -160,9 +160,9 @@ than half hidden; Hover's world is cut the same way, its disc at the top).
 | Summit | 414x724 → 388x724, 64px | 414x772 → 414x772, 16px | world 32px |
 | Full House | 414x724 → 388x724, 64px | 414x772 → 414x772, 16px | world 32px |
 | Five Hands | 414x724 → 388x724, 64px | 414x772 → 414x772, 16px | world 32px |
-| Minigolf | 414x724 → 409x724, 64px | 414x772 → 414x732, 16px | world none |
-| Speed Pool | 414x724 → 382x724, 64px | 414x772 → 407x772, 16px | world 32px |
-| Curling | 414x724 → 392x724, 64px | 414x772 → 414x764, 16px | world 24px |
+| Crazy Golf | 414x724 → 409x724, 64px | 414x772 → 414x732, 16px | world none |
+| Cue Ball | 414x724 → 382x724, 64px | 414x772 → 407x772, 16px | world 32px |
+| Curl Champ | 414x724 → 414x573, 64px | 414x772 → 414x573, 16px | world none |
 | Letterfall | 414x724 → 403x724, 64px | 414x772 → 414x743, 16px | world 3px |
 | Tenfall | 414x668 → 414x598, 64px | 414x716 → 414x598, 16px | world none |
 | Bonk | 414x624 → 414x414, 64px | 414x672 → 414x414, 16px | world none |
@@ -208,6 +208,6 @@ bottom; the spare space was the game's arena fill or the page colour. Same arith
 | Summit | 367x543 → 291x543 | 382x576 → 309x576 | 382x720 → 382x712 | 422x808 → 422x787 | 1272x676 → 363x676 |
 | Full House | 367x543 → 291x543 | 382x576 → 309x576 | 382x720 → 382x712 | 422x808 → 422x787 | 1272x676 → 363x676 |
 | Five Hands | 367x543 → 291x543 | 382x576 → 309x576 | 382x720 → 382x712 | 422x808 → 422x787 | 1272x676 → 363x676 |
-| Minigolf | 367x543 → 307x543 | 382x576 → 326x576 | 382x720 → 382x676 | 422x808 → 422x747 | 1272x676 → 382x676 |
-| Speed Pool | 367x543 → 286x543 | 382x576 → 304x576 | 382x720 → 379x720 | 422x808 → 422x801 | 1272x676 → 356x676 |
-| Curling | 367x543 → 294x543 | 382x576 → 312x576 | 382x720 → 382x705 | 422x808 → 422x779 | 1272x676 → 366x676 |
+| Crazy Golf | 367x543 → 307x543 | 382x576 → 326x576 | 382x720 → 382x676 | 422x808 → 422x747 | 1272x676 → 382x676 |
+| Cue Ball | 367x543 → 286x543 | 382x576 → 304x576 | 382x720 → 379x720 | 422x808 → 422x801 | 1272x676 → 356x676 |
+| Curl Champ | 367x543 → 367x508 | 382x576 → 382x529 | 382x720 → 382x529 | 422x808 → 422x584 | 1272x676 → 488x676 |

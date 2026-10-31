@@ -89,7 +89,7 @@ const TABLE: Record<string, (p: any, a: string) => ServerReplay> = {
   wordfall: (p, a) => replayWordfallRun(p.seed, a, p.wordfallRev),
   stroop: (p, a) => replayColourClashRun(p.seed, a, clashVariantOf(p)),
   // The Sports group (30 Oct 2026).
-  minigolf: (p, a) => replayMinigolfRun(p.seed, a, p.pars),
+  minigolf: (p, a) => replayMinigolfRun(p.seed, a, p.pars, p.golfRev),
   pool: (p, a) => replayPoolRun(p.seed, a, p.poolRev),
   curling: (p, a) => replayCurlingRun(p.seed, a, p.curlRev),
 };

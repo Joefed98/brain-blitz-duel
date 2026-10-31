@@ -28,6 +28,8 @@ export interface PointerPayload {
   a: number;
   b: number;
   c: number;
+  /** The event's fourth field (default 0; discrete games only): Cue Ball poolRev 2's spin dot, Curl Champ curlRev 2's start. */
+  d?: number;
 }
 
 interface Props<S, C> {
@@ -184,7 +186,7 @@ export function ArcadeCanvasStage<S, C>(props: Props<S, C>) {
             if (next) {
               recordInput(
                 events.current,
-                { t: tickOf() + 1, k: next.k ?? propsRef.current.inputKind ?? ARCADE_INPUT_DRAG, a: next.a, b: next.b, c: next.c, d: 0 },
+                { t: tickOf() + 1, k: next.k ?? propsRef.current.inputKind ?? ARCADE_INPUT_DRAG, a: next.a, b: next.b, c: next.c, d: next.d ?? 0 },
                 game.inputRanges,
               );
             }

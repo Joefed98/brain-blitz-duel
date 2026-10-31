@@ -20,9 +20,9 @@ export interface MinigolfResult extends SportsResult<MinigolfState> {
   perfect: boolean;
 }
 
-/** The single place a Minigolf score is worked out (the stored pars ride in the puzzle). */
-export function replayMinigolfRun(seed: number, raw: string, pars?: readonly number[] | null): MinigolfResult {
-  const game = minigolfGameFor(pars ?? undefined);
+/** The single place a Minigolf score is worked out (the stored pars and golfRev ride in the puzzle; unstamped is golfRev 1). */
+export function replayMinigolfRun(seed: number, raw: string, pars?: readonly number[] | null, rev?: number | null): MinigolfResult {
+  const game = minigolfGameFor(pars ?? undefined, rev ?? 1);
   const run = replaySportsRun("minigolf", game, minigolfCheckpoint, seed, raw);
   const s = run.state;
   let parsN = 0;

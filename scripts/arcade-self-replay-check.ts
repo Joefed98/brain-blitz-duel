@@ -162,12 +162,15 @@ import { encodeFiveHandsRun, encodeFreecellRun, encodePokerSquaresRun, encodeTri
 import { minigolfCheckpoint, minigolfGameFor } from "@/lib/arcade/minigolf";
 import { encodeMinigolfRun, replayMinigolfRun } from "@/lib/duel/minigolf";
 import { MINIGOLF_BANK } from "@/lib/duel/minigolfBank.server";
-import { poolCheckpoint, poolGameFor, POOL_REV } from "@/lib/arcade/pool";
+import { poolCheckpoint, poolGameFor, POOL_REV, POOL_REV_V1 } from "@/lib/arcade/pool";
 import { encodePoolRun, replayPoolRun } from "@/lib/duel/pool";
 import { POOL_BANK } from "@/lib/duel/poolBank.server";
+import { POOL_BANK_V2 } from "@/lib/duel/poolBankV2.server";
 import { curlingCheckpoint, curlingGameFor, CURLING_REV } from "@/lib/arcade/curling";
 import { encodeCurlingRun, replayCurlingRun } from "@/lib/duel/curling";
 import { CURLING_BANK } from "@/lib/duel/curlingBank.server";
+import { CURLING_BANK_V2 } from "@/lib/duel/curlingBankV2.server";
+import { MINIGOLF_BANK_V2 } from "@/lib/duel/minigolfBankV2.server";
 import { TILT_REV_BAND, TILT_REV_EXPAND, TILT_REV_LIFT, TILT_REV_STD, TILT_REV_TUNEC } from "@/lib/arcade/tilt";
 import { ORBIT_REV_BAND, ORBIT_REV_SWEPT, ORBIT_REV_TALL, ORBIT_REV_TUNED, ORBIT_REV_XP, ORBIT_REV_STD } from "@/lib/arcade/orbit";
 import { decodeOrbitExtras, initBandFrom, initSweptFrom, initTallFrom, initTunedFrom, initXpFrom, initStdFrom } from "@/lib/arcade/orbitRev3";
@@ -833,9 +836,9 @@ const GAMES: Game[] = [
     encode: encodeMinigolfRun,
     replay: (seed: number, raw: string) => replayMinigolfRun(seed, raw, MINIGOLF_BANK.find((e) => e.seed === seed)!.pars),
   },
-  { key: "pool", game: poolGameFor(POOL_REV), seedFor: (n: number) => POOL_BANK[n % POOL_BANK.length]!, checkpoint: poolCheckpoint, mode: "events", rate: 40, encode: encodePoolRun, replay: (seed: number, raw: string) => replayPoolRun(seed, raw, POOL_REV) },
+  { key: "pool", game: poolGameFor(POOL_REV_V1), seedFor: (n: number) => POOL_BANK[n % POOL_BANK.length]!, checkpoint: poolCheckpoint, mode: "events", rate: 40, encode: encodePoolRun, replay: (seed: number, raw: string) => replayPoolRun(seed, raw, POOL_REV_V1) },
   // Curling curlRev 1 (bank sheets), appended after them.
-  { key: "curling", game: curlingGameFor(), seedFor: (n: number) => CURLING_BANK[n % CURLING_BANK.length]!, checkpoint: curlingCheckpoint, mode: "events", rate: 40, encode: encodeCurlingRun, replay: (seed: number, raw: string) => replayCurlingRun(seed, raw, CURLING_REV) },
+  { key: "curling", game: curlingGameFor(1), seedFor: (n: number) => CURLING_BANK[n % CURLING_BANK.length]!, checkpoint: curlingCheckpoint, mode: "events", rate: 40, encode: encodeCurlingRun, replay: (seed: number, raw: string) => replayCurlingRun(seed, raw, 1) },
   // Mahjong mahjongRev 2 (31 Oct 2026: Undo and Reset), appended so every earlier entry keeps its index: random taps,
   // Shuffles, Undos and Resets.
   { key: "mahjong/undo", game: mahjongGameFor(MAHJONG_REV_UNDO), checkpoint: mahjongCheckpoint, mode: "events", rate: 80, encode: encodeMahjongRun, replay: (seed: number, raw: string) => replayMahjongRun(seed, raw, MAHJONG_REV_UNDO) },
@@ -849,6 +852,22 @@ const GAMES: Game[] = [
   { key: "homerun/v2", interval: HOMERUN_CHECKPOINT_INTERVAL, game: homerunGameFor(HOMERUN_REV_2), checkpoint: homerunCheckpoint, mode: "events", rate: 20, encode: encodeHomerunRun, replay: (seed: number, raw: string) => replayHomerunRun(seed, raw, HOMERUN_REV_2), seedFor: (n: number) => HOMERUN_DEAL_V2[n % HOMERUN_DEAL_V2.length]! },
   { key: "freekick/v2", interval: FREEKICK_CHECKPOINT_INTERVAL, game: freekickGameFor(FREEKICK_REV_2), checkpoint: freekickCheckpoint, mode: "events", rate: 20, encode: encodeFreekickRun, replay: (seed: number, raw: string) => replayFreekickRun(seed, raw, FREEKICK_REV_2), seedFor: (n: number) => FREEKICK_DEAL_V2[n % FREEKICK_DEAL_V2.length]! },
   { key: "racing/v2", interval: RACING_CHECKPOINT_INTERVAL, game: racingGameFor(RACING_REV_2), checkpoint: racingCheckpoint, mode: "events", rate: 120, encode: encodeRacingRun, replay: (seed: number, raw: string) => replayRacingRun(seed, raw, RACING_REV_2), seedFor: (n: number) => RACING_DEAL_V2[n % RACING_DEAL_V2.length]! },
+  // Cue Ball poolRev 2 (the V2 bank, power and spin dot as separate fields), appended 31 Oct 2026.
+  { key: "pool", game: poolGameFor(POOL_REV), seedFor: (n: number) => POOL_BANK_V2[n % POOL_BANK_V2.length]!, checkpoint: poolCheckpoint, mode: "events", rate: 40, encode: encodePoolRun, replay: (seed: number, raw: string) => replayPoolRun(seed, raw, POOL_REV) },
+  // Curl Champ curlRev 2 (the V2 bank, the start along the hog line, side brushing), appended 31 Oct 2026.
+  { key: "curling", game: curlingGameFor(CURLING_REV), seedFor: (n: number) => CURLING_BANK_V2[n % CURLING_BANK_V2.length]!, checkpoint: curlingCheckpoint, mode: "events", rate: 40, encode: encodeCurlingRun, replay: (seed: number, raw: string) => replayCurlingRun(seed, raw, CURLING_REV) },
+  // Crazy Golf golfRev 2 (windmills, tunnels, sand, hills, banked curves, castle gates; 31 Oct 2026): its own bank courses and stored pars.
+  {
+    key: "minigolf",
+    game: minigolfGameFor(MINIGOLF_BANK_V2[0]!.pars, 2),
+    gameFor: (seed: number) => minigolfGameFor(MINIGOLF_BANK_V2.find((e) => e.seed === seed)!.pars, 2),
+    seedFor: (n: number) => MINIGOLF_BANK_V2[n % MINIGOLF_BANK_V2.length]!.seed,
+    checkpoint: minigolfCheckpoint,
+    mode: "events",
+    rate: 40,
+    encode: encodeMinigolfRun,
+    replay: (seed: number, raw: string) => replayMinigolfRun(seed, raw, MINIGOLF_BANK_V2.find((e) => e.seed === seed)!.pars, 2),
+  },
 ];
 
 /** A random candidate event, often outside the declared range (a finger off the edge). */

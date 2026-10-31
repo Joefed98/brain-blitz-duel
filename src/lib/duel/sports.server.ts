@@ -16,9 +16,9 @@ import { racingDealSeedV2 } from "./racingDealV2.server";
 import { MINIGOLF_REV } from "@/lib/arcade/minigolf";
 import { POOL_REV } from "@/lib/arcade/pool";
 import { CURLING_REV } from "@/lib/arcade/curling";
-import { CURLING_BANK } from "./curlingBank.server";
-import { MINIGOLF_BANK } from "./minigolfBank.server";
-import { POOL_BANK } from "./poolBank.server";
+import { CURLING_BANK_V2 } from "./curlingBankV2.server";
+import { MINIGOLF_BANK_V2 } from "./minigolfBankV2.server";
+import { POOL_BANK_V2 } from "./poolBankV2.server";
 import type { CurlingPuzzleData, FreekickPuzzleData, HomerunPuzzleData, MinigolfPuzzleData, PoolPuzzleData, RacingPuzzleData } from "./types";
 
 export function generateHomerun(): HomerunPuzzleData {
@@ -37,14 +37,17 @@ export function generateRacing(): RacingPuzzleData {
 }
 
 export function generateMinigolf(): MinigolfPuzzleData {
-  const entry = MINIGOLF_BANK[arcadeSeed() % MINIGOLF_BANK.length]!;
+  // golfRev 2 (crazy golf, 31 Oct 2026) deals from its own proven bank; golfRev 1's bank (minigolfBank.server.ts) still replays.
+  const entry = MINIGOLF_BANK_V2[arcadeSeed() % MINIGOLF_BANK_V2.length]!;
   return { type: "minigolf", seed: entry.seed, golfRev: MINIGOLF_REV, pars: [...entry.pars] };
 }
 
 export function generatePool(): PoolPuzzleData {
-  return { type: "pool", seed: POOL_BANK[arcadeSeed() % POOL_BANK.length]!, poolRev: POOL_REV };
+  // poolRev 2 (31 Oct 2026) deals from its own proved bank; poolRev 1 rounds replay on theirs (poolBank.server.ts).
+  return { type: "pool", seed: POOL_BANK_V2[arcadeSeed() % POOL_BANK_V2.length]!, poolRev: POOL_REV };
 }
 
 export function generateCurling(): CurlingPuzzleData {
-  return { type: "curling", seed: CURLING_BANK[arcadeSeed() % CURLING_BANK.length]!, curlRev: CURLING_REV };
+  // curlRev 2 (31 Oct 2026): its own bank, proved with the start along the hog line (curlingBankV2.server.ts).
+  return { type: "curling", seed: CURLING_BANK_V2[arcadeSeed() % CURLING_BANK_V2.length]!, curlRev: CURLING_REV };
 }

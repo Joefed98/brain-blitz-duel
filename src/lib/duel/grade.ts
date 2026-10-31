@@ -1405,7 +1405,7 @@ function gradeUnderRev(
       });
       const pts = (parts: { key: string; points: number }[] | null, key: string) => parts?.find((p) => p.key === key)?.points ?? 0;
       if (puzzle.type === "minigolf") {
-        const run = replayMinigolfRun(puzzle.seed, answer, puzzle.pars);
+        const run = replayMinigolfRun(puzzle.seed, answer, puzzle.pars, puzzle.golfRev);
         revealRun = run;
         arcadeDiag = buildArcadeDiag(puzzle.type, run, answer, performance.now() - replayStart);
         const parts = minigolfStdParts(run.state);
