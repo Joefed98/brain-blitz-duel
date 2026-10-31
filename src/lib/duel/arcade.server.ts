@@ -7,7 +7,7 @@ import { SNAKE_REV_TARGET, SNAKE_REV_STD } from "@/lib/arcade/snake";
 import { BUB_REV_STD } from "@/lib/arcade/bubble";
 import { MATCHUP_REV_STD } from "@/lib/arcade/matchup";
 import { minesBoard, minesSolve, MINES_REV_STD } from "@/lib/arcade/minesweeper";
-import { mahjongBuildClears, MAHJONG_REV_STD } from "@/lib/arcade/mahjong";
+import { mahjongBuildClears, MAHJONG_REV_DEALT } from "@/lib/arcade/mahjong";
 import { SNIP_REV_TARGET, SNIP_REV_EXPAND } from "@/lib/arcade/snip";
 import { SKYLINE_REV_TARGET, SKYLINE_REV_STRICT, SKYLINE_REV_STD } from "@/lib/arcade/skyline";
 import { TILT_REV_STD } from "@/lib/arcade/tilt";
@@ -189,7 +189,7 @@ export function generateMinesweeper(): MinesweeperPuzzleData {
 export function generateMahjong(): MahjongPuzzleData {
   for (;;) {
     const seed = arcadeSeed();
-    if (mahjongBuildClears(seed)) return { type: "mahjong", seed, mahjongRev: MAHJONG_REV_STD };
+    if (mahjongBuildClears(seed)) return { type: "mahjong", seed, mahjongRev: MAHJONG_REV_DEALT };
   }
 }
 

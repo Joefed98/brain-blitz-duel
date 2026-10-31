@@ -149,7 +149,7 @@ import { BEAT_REV_STD } from "@/lib/arcade/beat";
 import { encodePinballRun, replayPinballRun } from "@/lib/duel/pinball";
 import { minesCheckpoint, minesweeperGameFor, MINES_REV_STD } from "@/lib/arcade/minesweeper";
 import { encodeMinesweeperRun, replayMinesweeperRun } from "@/lib/duel/minesweeper";
-import { mahjongCheckpoint, mahjongGameFor, MAHJONG_REV_STD } from "@/lib/arcade/mahjong";
+import { mahjongCheckpoint, mahjongGameFor, MAHJONG_REV_STD, MAHJONG_REV_UNDO } from "@/lib/arcade/mahjong";
 import { encodeMahjongRun, replayMahjongRun } from "@/lib/duel/mahjong";
 import { fcCheckpoint, freecellGame, freecellGameFor } from "@/lib/arcade/cards/freecell";
 import { tpCheckpoint, tripeaksGame } from "@/lib/arcade/cards/tripeaks";
@@ -833,6 +833,9 @@ const GAMES: Game[] = [
   { key: "pool", game: poolGameFor(POOL_REV), seedFor: (n: number) => POOL_BANK[n % POOL_BANK.length]!, checkpoint: poolCheckpoint, mode: "events", rate: 40, encode: encodePoolRun, replay: (seed: number, raw: string) => replayPoolRun(seed, raw, POOL_REV) },
   // Curling curlRev 1 (bank sheets), appended after them.
   { key: "curling", game: curlingGameFor(), seedFor: (n: number) => CURLING_BANK[n % CURLING_BANK.length]!, checkpoint: curlingCheckpoint, mode: "events", rate: 40, encode: encodeCurlingRun, replay: (seed: number, raw: string) => replayCurlingRun(seed, raw, CURLING_REV) },
+  // Mahjong mahjongRev 2 (31 Oct 2026: Undo and Reset), appended so every earlier entry keeps its index: random taps,
+  // Shuffles, Undos and Resets.
+  { key: "mahjong/undo", game: mahjongGameFor(MAHJONG_REV_UNDO), checkpoint: mahjongCheckpoint, mode: "events", rate: 80, encode: encodeMahjongRun, replay: (seed: number, raw: string) => replayMahjongRun(seed, raw, MAHJONG_REV_UNDO) },
   // Free Cell freecellRev 2 (Undo and Reset), Full House pokerSquaresRev 2 (full at the elite median) and Five Hands
   // fiveHandsRev 1 (31 Oct 2026), appended so every earlier entry keeps its index.
   { key: "freecell", game: freecellGameFor(2), checkpoint: fcCheckpoint, mode: "events", rate: 120, encode: encodeFreecellRun, replay: (seed: number, raw: string) => replayFreecellRun(seed, raw, 2), seedFor: (n: number) => n % 300 },

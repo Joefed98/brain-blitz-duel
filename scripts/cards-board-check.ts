@@ -56,6 +56,14 @@ import {
   MAHJONG_QUADS,
   MAHJONG_DOUBLES,
   MAHJONG_REV_STD,
+  MAHJONG_REV_DEALT,
+  mahjongParts,
+  MAHJONG_SHUFFLE_COST,
+  MAHJONG_REV_UNDO,
+  MAHJONG_INPUT_BUTTON,
+  MAHJONG_BUTTON_RESET,
+  MAHJONG_BUTTON_UNDO,
+  mahjongGameFor,
   MAHJONG_RUN_TICKS,
   MAHJONG_TILES,
   type MahjongState,
@@ -209,7 +217,65 @@ const extra = Array.from({ length: FULL ? 3000 : 1500 }, (_, n) => roomSeed(2000
   ok(perfect === tuning.length + fresh.length, `mahjong: the oracle scores 200 on all ${tuning.length + fresh.length} tuning and fresh seeds (${perfect})`);
   for (let i = 0; i < 40; i++) {
     const p = generatePuzzle("mahjong") as any;
-    ok(p.mahjongRev === MAHJONG_REV_STD && mahjongBuildClears(p.seed), `mahjong: a room deal (seed ${p.seed}) is proved`);
+    ok(p.mahjongRev === MAHJONG_REV_DEALT && MAHJONG_REV_DEALT === MAHJONG_REV_UNDO && mahjongBuildClears(p.seed), `mahjong: a room deal (seed ${p.seed}) is mahjongRev 2 and proved`);
+  }
+
+  // mahjongRev 2 (31 Oct 2026): Undo and Reset. The same deal; the oracle reaches 200 on every tuning and fresh seed through
+  // the rev-2 replay, also with Undo and Reset used along the way (taking pairs, undoing them, resetting, then the
+  // build order), all well inside the speed's 65 s.
+  const btn = (t: number, a: number): ArcadeInputEvent => ({ t, k: MAHJONG_INPUT_BUTTON, a, b: 0, c: 0, d: 0 });
+  let perfect2 = 0;
+  let perfectDetour = 0;
+  for (const seed of [...tuning, ...fresh]) {
+    ok(mahjongGameFor(MAHJONG_REV_UNDO).init(seed).face.join() === mahjongGame.init(seed).face.join(), `mahjong ${seed}: rev 2 deals rev 1's stack`);
+    const r = replayMahjongRun(seed, encodeOracle(seed, mahjongOracle(seed), "mahjong", MAHJONG_REV_UNDO), MAHJONG_REV_UNDO);
+    if (r.score === 200 && r.cleared && r.shuffles === 0 && !r.flagged) perfect2++;
+    else ok(false, `mahjong ${seed}: the oracle scores 200 through the rev-2 replay (got ${r.score})`);
+    // Four pairs, two Undos, a pair again, a Reset, then the whole build order.
+    const o = mahjongOracle(seed);
+    const detour = [...o.slice(0, 8), btn(9, MAHJONG_BUTTON_UNDO), btn(10, MAHJONG_BUTTON_UNDO), ...o.slice(4, 6).map((e, i) => ({ ...e, t: 11 + i })), btn(13, MAHJONG_BUTTON_RESET), ...mahjongOracle(seed, 14)];
+    const d = replayMahjongRun(seed, encodeOracle(seed, detour, "mahjong", MAHJONG_REV_UNDO), MAHJONG_REV_UNDO);
+    if (d.score === 200 && d.cleared && d.shuffles === 0 && !d.flagged) perfectDetour++;
+    else ok(false, `mahjong ${seed}: the oracle with Undo and Reset scores 200 through the rev-2 replay (got ${d.score})`);
+  }
+  ok(perfect2 === tuning.length + fresh.length, `mahjong rev 2: the oracle scores 200 on all ${tuning.length + fresh.length} tuning and fresh seeds (${perfect2})`);
+  ok(perfectDetour === tuning.length + fresh.length, `mahjong rev 2: the oracle with Undo and Reset scores 200 on all ${tuning.length + fresh.length} tuning and fresh seeds (${perfectDetour})`);
+  {
+    const g2 = mahjongGameFor(MAHJONG_REV_UNDO);
+    const sd = roomSeed(5);
+    const step2 = (s: MahjongState, e: ArcadeInputEvent) => g2.step({ ...s, tick: e.t - 1 }, e);
+    const o = mahjongOracle(sd);
+    let s = g2.init(sd);
+    const deal = s.face.join();
+    for (const e of o.slice(0, 6)) s = step2(s, e);
+    const three = s.face.join();
+    ok(s.pairs === 3, "mahjong rev 2: three pairs taken");
+    s = step2(s, btn(s.tick + 1, MAHJONG_BUTTON_UNDO));
+    ok(s.pairs === 2 && s.face.join() === step2(step2(step2(step2(g2.init(sd), o[0]!), o[1]!), o[2]!), o[3]!).face.join() && s.sel === -1, "mahjong rev 2: Undo puts back the last pair");
+    s = step2(s, btn(s.tick + 1, MAHJONG_BUTTON_UNDO));
+    s = step2(s, btn(s.tick + 1, MAHJONG_BUTTON_UNDO));
+    ok(s.pairs === 0 && s.face.join() === deal, "mahjong rev 2: Undo as often as there are moves, back to the deal");
+    const idle = step2(s, btn(s.tick + 1, MAHJONG_BUTTON_UNDO));
+    ok(idle.face === s.face && idle.pairs === 0 && (idle.undos ?? 0) === (s.undos ?? 0), "mahjong rev 2: Undo with nothing to undo does nothing");
+    ok(g2.score({ ...s, tick: g2.runTicks }) === 1, "mahjong rev 2: Undo is free (all undone, a played run scores 1)");
+    // A Shuffle, undone: the board comes back, the Shuffle still counts.
+    for (const e of o.slice(0, 6)) s = step2(s, { ...e, t: s.tick + 1 });
+    ok(s.face.join() === three, "mahjong rev 2: the same pairs again give the same board");
+    const before = s.face.join();
+    s = step2(s, { t: s.tick + 1, k: MAHJONG_INPUT_SHUFFLE, a: 0, b: 0, c: 0, d: 0 });
+    ok(s.shuffles === 1 && s.face.join() !== before, "mahjong rev 2: a Shuffle re-deals");
+    s = step2(s, btn(s.tick + 1, MAHJONG_BUTTON_UNDO));
+    ok(s.shuffles === 1 && s.face.join() === before && s.pairs === 3, "mahjong rev 2: an undone Shuffle puts the board back and still counts");
+    // Reset: the original deal; Shuffles used still count; the clock runs on.
+    s = step2(s, { t: s.tick + 1, k: MAHJONG_INPUT_SHUFFLE, a: 0, b: 0, c: 0, d: 0 });
+    const tick = s.tick;
+    s = step2(s, btn(s.tick + 1, MAHJONG_BUTTON_RESET));
+    ok(s.face.join() === deal && s.pairs === 0 && s.shuffles === 2 && s.tick === tick + 1 && (s.history ?? []).length === 0, "mahjong rev 2: Reset restores the deal, keeps both Shuffles, the clock runs on, nothing left to undo");
+    ok(mahjongParts(s).penalty === 2 * MAHJONG_SHUFFLE_COST && mahjongParts(s).clean === 0, "mahjong rev 2: Shuffles before a Reset still cost and still void No shuffles");
+    // Rev 1: every button press is a Shuffle (its `a` clamped to 0), so stored rev-1 runs replay as before.
+    const r1 = replayMahjongRun(sd, encodeOracle(sd, [btn(20, MAHJONG_BUTTON_UNDO)], "mahjong", MAHJONG_REV_STD), MAHJONG_REV_STD);
+    ok(r1.shuffles === 1 && r1.flagged && r1.reason === "input payload out of range", "mahjong rev 1: a button press with a = 1 is clamped to a Shuffle and flagged, as before");
+    ok(mahjongGame.init(sd).history === undefined && mahjongGame.init(sd).start === undefined, "mahjong rev 1: states carry no undo fields");
   }
 
   // The rules.

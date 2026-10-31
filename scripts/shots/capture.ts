@@ -44,7 +44,6 @@ import type { Browser, Page } from "playwright";
 
 import { GAME_DISPLAY_NAMES, gameDisplayName } from "../../src/lib/duel/gameNames";
 import type { PuzzleType } from "../../src/lib/duel/types";
-import { PRACTICE_SIDE_KEY, practiceSideOf } from "../../src/lib/duel/practiceSide";
 import type { Driver, DriverCtx, FullPuzzle } from "./driver";
 import { DRIVERS } from "./drivers";
 import { exampleFor } from "./examples";
@@ -343,15 +342,13 @@ async function newRun(
     }
     return route.continue();
   });
-  // The Practice tab opens on the side the device last chose (30 Oct 2026): pick the game's side first.
-  await page.addInitScript(([key, side]) => {
-    try {
-      window.localStorage.setItem(key, side);
-    } catch {
-      /* storage blocked: the list opens on Puzzles */
-    }
-  }, [PRACTICE_SIDE_KEY, practiceSideOf(game as PuzzleType)] as const);
   await page.goto(`${origin}/practice`, { waitUntil: "domcontentloaded" });
+  // The Practice tab's Puzzles | Arcade switch (30 Oct 2026): an arcade game's button is on the Arcade side.
+  const { puzzleDef } = await import("../../src/lib/duel/registry");
+  const side = page.locator(`[data-practice-side='${puzzleDef(game).category === "arcade" ? "arcade" : "puzzles"}']`);
+  await side.waitFor({ timeout: 90_000 });
+  await page.waitForTimeout(1200); // hydration
+  await side.click();
   const button = page.getByRole("button", { name: gameDisplayName(game), exact: true }).first();
   await button.waitFor({ timeout: 90_000 });
   await page.waitForTimeout(1500); // hydration
@@ -446,6 +443,27 @@ async function captureOne(
       entry["gapsPlay"] = await run.page.evaluate(measurePlay);
       if (driver?.board) entry["board"] = await run.page.evaluate(measureBoard, driver.board);
       if (PHASES.has("play")) await run.page.screenshot({ path: file("play") });
+      // The header's game name as drawn (FrameName): its size, lines, whether it is cut and its box (the header sheet's crop).
+      entry["frameName"] = await run.page.evaluate(() => {
+        const el = document.querySelector<HTMLElement>("[data-frame-name]");
+        const header = document.querySelector<HTMLElement>("[data-game-frame-header]");
+        if (!el || !header) return null;
+        const cs = getComputedStyle(el);
+        const r = header.getBoundingClientRect();
+        return {
+          text: el.textContent ?? "",
+          size: parseFloat(cs.fontSize),
+          lines: Math.round(el.getBoundingClientRect().height / parseFloat(cs.lineHeight)),
+          // Fractional: an ellipsis shows for a sub-pixel overflow that scrollWidth (rounded) hides.
+          cut: (() => {
+            const range = document.createRange();
+            range.selectNodeContents(el);
+            const text = range.getBoundingClientRect();
+            return el.hasAttribute("data-long") ? el.scrollHeight > el.clientHeight + 1 : text.width > el.getBoundingClientRect().width + 0.01;
+          })(),
+          header: { x: r.left, y: r.top, w: r.width, h: r.height },
+        };
+      });
 
       if (driver?.solve && (PHASES.has("solve") || PHASES.has("reveal"))) {
         if (driver.seedNearSolved || driver.solveFromStart) {

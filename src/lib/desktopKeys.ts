@@ -22,7 +22,7 @@ export const DESKTOP_KEYS: Partial<Record<PuzzleType, readonly (readonly [string
   orbit: [["Space", "release"], ["C", "checkpoint"]],
   pinball: [["← / Z", "left flipper"], ["→ / M", "right flipper"]],
   minesweeper: [["Click", "reveal (or flag)"], ["F", "Reveal / Flag switch"]],
-  mahjong: [["Click", "pick a tile"], ["S", "shuffle"]],
+  mahjong: [["Click", "pick a tile"], ["S", "shuffle"], ["Z", "undo"], ["R", "reset"]],
   // Cards & Board: the mouse plays them (a click is a tap, a drag a drag).
   freecell: [["Click", "move a card"], ["Drag", "to a pile"], ["↶ / ⟲", "undo / reset"]],
   tripeaks: [["Click", "play a card"], ["Space / S", "turn the stock"]],

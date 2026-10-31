@@ -18,7 +18,7 @@ import { MATCHUP_REV_STD, MATCHUP_REV_STRICT, MATCHUP_V11_BAND_CURVE } from "./m
 import { BUB_REV_STD, BUB_REV_STRICT, BUB_V11_BAND_CURVE, BUB_V11_STD_SPEC } from "./bubble";
 import { CROSS_REV_STD, CROSS_REV_STRICT, CROSS_V10_BAND_CURVE } from "./cross";
 import { MINES_REV_STD, MINES_STD_SPEC, MINES_V1_BAND_CURVE } from "./minesweeper";
-import { MAHJONG_REV_STD, MAHJONG_STD_SPEC, MAHJONG_V1_BAND_CURVE } from "./mahjong";
+import { MAHJONG_REV_DEALT, MAHJONG_STD_SPEC, MAHJONG_V1_BAND_CURVE } from "./mahjong";
 import { RALLY_REV_STD, RALLY_REV_STRICT, RALLY_STD_SPEC, RALLY_V12_BAND_CURVE } from "./rally";
 import { SNAKE_REV_STD, SNAKE_REV_STRICT, SNAKE_V11_BAND_CURVE } from "./snake";
 import { BINTOSS_REV_STRICT, BINTOSS_REV_STD, BINTOSS_STD_SPEC, BINTOSS_V9_BAND_CURVE } from "./binToss";
@@ -125,7 +125,7 @@ export const LIVE_BANDS = {
   // Cards & Board (30 Oct 2026), on the arcade scoring standard from their first revision: the core's straight line
   // (Minesweeper in per mille of the safe squares beyond the opening, Mahjong in pairs) and fixed features to 200.
   minesweeper: { field: "minesRev", rev: MINES_REV_STD, curve: MINES_V1_BAND_CURVE, std: MINES_STD_SPEC, born: true },
-  mahjong: { field: "mahjongRev", rev: MAHJONG_REV_STD, curve: MAHJONG_V1_BAND_CURVE, std: MAHJONG_STD_SPEC, born: true },
+  mahjong: { field: "mahjongRev", rev: MAHJONG_REV_DEALT, curve: MAHJONG_V1_BAND_CURVE, std: MAHJONG_STD_SPEC, born: true },
   // The Sports group (30 Oct 2026), born on the arcade scoring standard (rev 1; no earlier band revision).
   homerun: { field: "homerunRev", rev: HOMERUN_REV_STD, curve: HOMERUN_V1_BAND_CURVE, std: HOMERUN_STD_SPEC, born: true },
   freekick: { field: "freekickRev", rev: FREEKICK_REV_STD, curve: FREEKICK_V1_BAND_CURVE, std: FREEKICK_STD_SPEC, born: true },
