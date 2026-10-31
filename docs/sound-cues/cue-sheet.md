@@ -19,15 +19,15 @@ effects ([arcade-effects.md](arcade-effects.md)) so a sound can be written for e
 
 | Category | Silent | Placeholder | Recorded | Total |
 |---|---|---|---|---|
-| game event | 35 | 0 | 400 | 435 |
+| game event | 35 | 0 | 405 | 440 |
 | room moment | 1 | 0 | 34 | 35 |
-| music | 12 | 0 | 93 | 105 |
-| UI tap | 10 | 0 | 25 | 35 |
+| music | 12 | 0 | 94 | 106 |
+| UI tap | 10 | 0 | 26 | 36 |
 | fail sting | 4 | 0 | 36 | 40 |
 | success sting | 3 | 0 | 69 | 72 |
 | ambience | 0 | 1 | 17 | 18 |
 | replay | 0 | 0 | 177 | 177 |
-| **all** | 65 | 1 | 851 | 917 |
+| **all** | 65 | 1 | 858 | 924 |
 
 ## Silent and placeholder cues
 
@@ -389,9 +389,11 @@ Grouped by game or screen. These are the cues still missing a sound.
 | Curling | arcade | yes | music_curling | `music_curling` |
 | Dual | arcade | practice only | **none** | `music_dual` |
 | Fission | arcade | yes | music_burst | `music_burst` |
+| Five Hands | arcade | yes | music_fivehands | `music_fivehands` |
 | Flightpath | arcade | yes | music_bullseye | `music_bullseye` |
+| Free Cell | arcade | yes | music_freecell | `music_freecell` |
 | Free Kick | arcade | yes | music_freekick | `music_freekick` |
-| FreeCell | arcade | yes | music_freecell | `music_freecell` |
+| Full House | arcade | yes | music_pokersquares | `music_pokersquares` |
 | Gemstone | arcade | yes | music_matchup | `music_matchup` |
 | Grappler | arcade | yes | music_swing | `music_swing` |
 | High Rise | arcade | yes | music_skyline | `music_skyline` |
@@ -406,7 +408,6 @@ Grouped by game or screen. These are the cues still missing a sound.
 | Minigolf | arcade | yes | music_minigolf | `music_minigolf` |
 | Orbit | arcade | yes | music_orbit | `music_orbit` |
 | Pinball | arcade | yes | music_pinball | `music_pinball` |
-| Poker Squares | arcade | yes | music_pokersquares | `music_pokersquares` |
 | Racing | arcade | yes | music_racing | `music_racing` |
 | Rainbow Bridge | arcade | yes | music_inkbridge | `music_inkbridge` |
 | Rally | arcade | yes | music_rally | `music_rally` |
@@ -417,11 +418,11 @@ Grouped by game or screen. These are the cues still missing a sound.
 | Slice | arcade | yes | music_slice | `music_slice` |
 | Speed Pool | arcade | yes | music_pool | `music_pool` |
 | Steady | arcade | practice only | **none** | `music_steady` |
+| Summit | arcade | yes | music_tripeaks | `music_tripeaks` |
 | Swerve | arcade | practice only | **none** | `music_swerve` |
 | Swish | arcade | yes | music_bintoss | `music_bintoss` |
 | Tempo | arcade | yes | music_beat | `music_beat` |
 | Tilt | arcade | yes | music_tilt | `music_tilt` |
-| TriPeaks | arcade | yes | music_tripeaks | `music_tripeaks` |
 | Wavefront | arcade | yes | music_wavefront | `music_wavefront` |
 
 ## Recorded cues
@@ -1257,6 +1258,18 @@ Grouped by game or screen.
 | `burst.shot` | Fission: A shot is fired (at most one per 70 ms, two at once) [arcade.md] |  | 50–200 | recorded sound | `arc_retro_blip` (shared) | 50 | game event | `burst.shot` |
 | `music.burst` | Fission: music_burst |  | loop | recorded sound | `music_burst` | loop | music | `music_burst` |
 
+### Five Hands
+
+| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
+|---|---|---|---|---|---|---|---|---|
+| `fivehands.place` | Five Hands: A card placed that makes no new hand on its row [arcade.md] |  | 10–20 | recorded sound | `fivehands.place` | 300 | UI tap | `fivehands.place` |
+| `fivehands.hand` | Five Hands: A card placed makes a pair, two pair or three of a kind on its row [arcade.md] |  | 3–10 | recorded sound | `fivehands.hand` | 484 | game event | `fivehands.hand` |
+| `fivehands.bigHand` | Five Hands: A card placed makes a straight or better on its row [arcade.md] |  | 0–3 | recorded sound | `fivehands.bigHand` | 1122 | game event | `fivehands.bigHand` |
+| `fivehands.invalid` | Five Hands: A tap on a full row [arcade.md] |  | 0–5 | recorded sound | `fivehands.invalid` | 434 | game event | `fivehands.invalid` |
+| `fivehands.shuffle` | Five Hands: The run starts [batch6-sports-cards.md] |  | 1 | recorded sound | `fivehands.shuffle` | 1093 | game event | `fivehands.shuffle` |
+| `fivehands.final` | Five Hands: The rows scored: every card placed (without its file: complete, as before), or the buzzer [batch6-sports-cards.md] |  | 1 | recorded sound | `fivehands.final` | 983 | game event | `fivehands.final` |
+| `music.fivehands` | Five Hands: music_fivehands (Full House's bed, music_pokersquares.mp3) |  | loop | recorded sound | `music_fivehands` | 55200 | music | `music_fivehands` |
+
 ### Flightpath
 
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
@@ -1270,6 +1283,19 @@ Grouped by game or screen.
 | `bullseye.bull` | Flightpath: An arrow lands in the 10 [arcade.md] |  | 0–10 | recorded sound | `arc_fair_bell` (shared) | 400 | success sting | `bullseye.bull` |
 | `bullseye.perfect` | Flightpath: Every arrow in the 10 (once per run) [arcade.md] |  | 0–1 | recorded sound | `arc_fair_sting` (shared) | 300 | success sting | `bullseye.perfect` |
 | `music.bullseye` | Flightpath: music_bullseye |  | loop | recorded sound | `music_bullseye` | loop | music | `music_bullseye` |
+
+### Free Cell
+
+| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
+|---|---|---|---|---|---|---|---|---|
+| `freecell.place` | FreeCell: A move made (a tap or a drag) [arcade.md] |  | 40–120 | recorded sound | `freecell.place` | 300 | UI tap | `freecell.place` |
+| `freecell.home` | FreeCell: A card goes home (one auto move, or the player's) [arcade.md] |  | 10–52 | recorded sound | `freecell.home` | 406 | game event | `freecell.home` |
+| `freecell.cascade` | FreeCell: Two or more cards go home on their own at once [arcade.md] |  | 2–10 | recorded sound | `freecell.cascade` | 948 | game event | `freecell.cascade` |
+| `freecell.invalid` | FreeCell: A tap that moves nothing [arcade.md] |  | 0–10 | recorded sound | `freecell.invalid` | 434 | game event | `freecell.invalid` |
+| `freecell.win` | FreeCell: Every card home [arcade.md] |  | 0–1 | recorded sound | `freecell.win` | 1362 | game event | `freecell.win` |
+| `freecell.pick` | FreeCell: A card lifted as a drag starts (the stage; at most one per 60 ms) [batch6-sports-cards.md] |  | 10–60 | recorded sound | `freecell.pick` | 334 | game event | `freecell.pick` |
+| `freecell.shuffle` | FreeCell: The run starts [batch6-sports-cards.md] |  | 1 | recorded sound | `freecell.shuffle` | 1093 | game event | `freecell.shuffle` |
+| `music.freecell` | FreeCell: music_freecell |  | loop | recorded sound | `music_freecell` | 47400 | music | `music_freecell` |
 
 ### Free Kick
 
@@ -1288,18 +1314,17 @@ Grouped by game or screen.
 | `freekick.groan` | Free Kick: A save, or a kick off the woodwork and wide [batch6-sports-cards.md] |  | 0–8 | recorded sound | `freekick.groan` | 1995 | game event | `freekick.groan` |
 | `music.freekick` | Free Kick: music_freekick |  | loop | recorded sound | `music_freekick` | 53700 | music | `music_freekick` |
 
-### FreeCell
+### Full House
 
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
 |---|---|---|---|---|---|---|---|---|
-| `freecell.place` | FreeCell: A move made (a tap or a drag) [arcade.md] |  | 40–120 | recorded sound | `freecell.place` | 300 | UI tap | `freecell.place` |
-| `freecell.home` | FreeCell: A card goes home (one auto move, or the player's) [arcade.md] |  | 10–52 | recorded sound | `freecell.home` | 150 | game event | `freecell.home` |
-| `freecell.cascade` | FreeCell: Two or more cards go home on their own at once [arcade.md] |  | 2–10 | recorded sound | `freecell.cascade` | 948 | game event | `freecell.cascade` |
-| `freecell.invalid` | FreeCell: A tap that moves nothing [arcade.md] |  | 0–10 | recorded sound | `freecell.invalid` | 434 | game event | `freecell.invalid` |
-| `freecell.win` | FreeCell: Every card home [arcade.md] |  | 0–1 | recorded sound | `freecell.win` | 1362 | game event | `freecell.win` |
-| `freecell.pick` | FreeCell: A card lifted as a drag starts (the stage; at most one per 60 ms) [batch6-sports-cards.md] |  | 10–60 | recorded sound | `freecell.pick` | 334 | game event | `freecell.pick` |
-| `freecell.shuffle` | FreeCell: The run starts [batch6-sports-cards.md] |  | 1 | recorded sound | `freecell.shuffle` | 1093 | game event | `freecell.shuffle` |
-| `music.freecell` | FreeCell: music_freecell |  | loop | recorded sound | `music_freecell` | 47400 | music | `music_freecell` |
+| `pokersquares.place` | Poker Squares: A card placed that makes no new hand [arcade.md] |  | 10–25 | recorded sound | `pokersquares.place` | 300 | UI tap | `pokersquares.place` |
+| `pokersquares.hand` | Poker Squares: A card placed makes a pair, two pair or three of a kind on a line [arcade.md] |  | 5–15 | recorded sound | `pokersquares.hand` | 484 | game event | `pokersquares.hand` |
+| `pokersquares.bigHand` | Poker Squares: A card placed makes a straight or better on a line [arcade.md] |  | 0–5 | recorded sound | `pokersquares.bigHand` | 1122 | game event | `pokersquares.bigHand` |
+| `pokersquares.invalid` | Poker Squares: A tap on a filled square [arcade.md] |  | 0–5 | recorded sound | `pokersquares.invalid` | 434 | game event | `pokersquares.invalid` |
+| `pokersquares.shuffle` | Poker Squares: The run starts [batch6-sports-cards.md] |  | 1 | recorded sound | `pokersquares.shuffle` | 1093 | game event | `pokersquares.shuffle` |
+| `pokersquares.final` | Poker Squares: The grid scored (the last card placed, or the buzzer) [batch6-sports-cards.md] |  | 1 | recorded sound | `pokersquares.final` | 983 | game event | `pokersquares.final` |
+| `music.pokersquares` | Poker Squares: music_pokersquares |  | loop | recorded sound | `music_pokersquares` | 55200 | music | `music_pokersquares` |
 
 ### Gemstone
 
@@ -1514,18 +1539,6 @@ Grouped by game or screen.
 | `pinball.flipper` | Pinball: A flipper is raised (each side once per press) [arcade.md] |  | 50–150 | recorded sound | `pinball.flipper` | 50 | UI tap | `pinball.flipper` |
 | `music.pinball` | Pinball (arcade): music_rally (borrowed from Rally) |  | loop | recorded sound | `music_pinball` | 60000 | music | `music_pinball` |
 
-### Poker Squares
-
-| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
-|---|---|---|---|---|---|---|---|---|
-| `pokersquares.place` | Poker Squares: A card placed that makes no new hand [arcade.md] |  | 10–25 | recorded sound | `pokersquares.place` | 300 | UI tap | `pokersquares.place` |
-| `pokersquares.hand` | Poker Squares: A card placed makes a pair, two pair or three of a kind on a line [arcade.md] |  | 5–15 | recorded sound | `pokersquares.hand` | 484 | game event | `pokersquares.hand` |
-| `pokersquares.bigHand` | Poker Squares: A card placed makes a straight or better on a line [arcade.md] |  | 0–5 | recorded sound | `pokersquares.bigHand` | 1122 | game event | `pokersquares.bigHand` |
-| `pokersquares.invalid` | Poker Squares: A tap on a filled square [arcade.md] |  | 0–5 | recorded sound | `pokersquares.invalid` | 434 | game event | `pokersquares.invalid` |
-| `pokersquares.shuffle` | Poker Squares: The run starts [batch6-sports-cards.md] |  | 1 | recorded sound | `pokersquares.shuffle` | 1093 | game event | `pokersquares.shuffle` |
-| `pokersquares.final` | Poker Squares: The grid scored (the last card placed, or the buzzer) [batch6-sports-cards.md] |  | 1 | recorded sound | `pokersquares.final` | 983 | game event | `pokersquares.final` |
-| `music.pokersquares` | Poker Squares: music_pokersquares |  | loop | recorded sound | `music_pokersquares` | 55200 | music | `music_pokersquares` |
-
 ### Racing
 
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
@@ -1653,6 +1666,18 @@ Grouped by game or screen.
 | `pool.cushion` | Speed Pool: A ball hits a cushion (at most one per 60 ms) [batch6-sports-cards.md] |  | 10–60 | recorded sound | `pool.cushion` | 300 | game event | `pool.cushion` |
 | `music.pool` | Speed Pool: music_pool |  | loop | recorded sound | `music_pool` | 49100 | music | `music_pool` |
 
+### Summit
+
+| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
+|---|---|---|---|---|---|---|---|---|
+| `tripeaks.run` | TriPeaks: A card played to the discard; with its own file a semitone higher for each card of the run (an octave at most) [arcade.md] |  | 20–40 | recorded sound | `tripeaks.run` | 329 | game event | `tripeaks.run` |
+| `tripeaks.deal` | TriPeaks: The stock's next card turned [arcade.md] |  | 5–24 | recorded sound | `tripeaks.deal` | 220 | game event | `tripeaks.deal` |
+| `tripeaks.peak` | TriPeaks: A peak cleared [arcade.md] |  | 0–3 | recorded sound | `tripeaks.peak` | 998 | game event | `tripeaks.peak` |
+| `tripeaks.invalid` | TriPeaks: A tap on a card that can't be played [arcade.md] |  | 0–10 | recorded sound | `tripeaks.invalid` | 434 | game event | `tripeaks.invalid` |
+| `tripeaks.clear` | TriPeaks: Every peak card cleared [arcade.md] |  | 0–1 | recorded sound | `tripeaks.clear` | 1666 | game event | `tripeaks.clear` |
+| `tripeaks.shuffle` | TriPeaks: The run starts [batch6-sports-cards.md] |  | 1 | recorded sound | `tripeaks.shuffle` | 1093 | game event | `tripeaks.shuffle` |
+| `music.tripeaks` | TriPeaks: music_tripeaks |  | loop | recorded sound | `music_tripeaks` | 55700 | music | `music_tripeaks` |
+
 ### Swish
 
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
@@ -1700,18 +1725,6 @@ Grouped by game or screen.
 | `tilt.gate` | Tilt: A gate opens [arcade.md] |  | 1–6 | recorded sound | `arc_latch` (shared) | 100 | game event | `tilt.gate` |
 | `tilt.knock` | Tilt: The marble knocks a wall (at most one per 80 ms) [arcade.md] |  | 20–80 | recorded sound | `arc_wood_knock` (shared) | 90 | game event | `tilt.knock` |
 | `music.tilt` | Tilt: music_tilt |  | loop | recorded sound | `music_tilt` | loop | music | `music_tilt` |
-
-### TriPeaks
-
-| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
-|---|---|---|---|---|---|---|---|---|
-| `tripeaks.run` | TriPeaks: A card played to the discard; with its own file a semitone higher for each card of the run (an octave at most) [arcade.md] |  | 20–40 | recorded sound | `tripeaks.run` | 329 | game event | `tripeaks.run` |
-| `tripeaks.deal` | TriPeaks: The stock's next card turned [arcade.md] |  | 5–24 | recorded sound | `tripeaks.deal` | 220 | game event | `tripeaks.deal` |
-| `tripeaks.peak` | TriPeaks: A peak cleared [arcade.md] |  | 0–3 | recorded sound | `tripeaks.peak` | 998 | game event | `tripeaks.peak` |
-| `tripeaks.invalid` | TriPeaks: A tap on a card that can't be played [arcade.md] |  | 0–10 | recorded sound | `tripeaks.invalid` | 434 | game event | `tripeaks.invalid` |
-| `tripeaks.clear` | TriPeaks: Every peak card cleared [arcade.md] |  | 0–1 | recorded sound | `tripeaks.clear` | 1666 | game event | `tripeaks.clear` |
-| `tripeaks.shuffle` | TriPeaks: The run starts [batch6-sports-cards.md] |  | 1 | recorded sound | `tripeaks.shuffle` | 1093 | game event | `tripeaks.shuffle` |
-| `music.tripeaks` | TriPeaks: music_tripeaks |  | loop | recorded sound | `music_tripeaks` | 55700 | music | `music_tripeaks` |
 
 ### Wavefront
 
@@ -2199,7 +2212,7 @@ loops are not measured there). Files in `public/sounds/` are listed once per slo
 | `skyline.perfect` | effects | `skyline.perfect` | 483 |
 | `homerun.crack` | effects | `homerun.crack` | 106 |
 | `homerun.homer` | effects | `homerun.homer` | 1512 |
-| `homerun.sign` | effects | `homerun.sign` | 499 |
+| `homerun.sign` | effects | `homerun.sign` | 994 |
 | `homerun.foul` | effects | `homerun.foul` | 300 |
 | `homerun.strike` | effects | `homerun.strike` | 400 |
 | `freekick.kick` | effects | `freekick.kick` | 300 |
@@ -2440,7 +2453,7 @@ loops are not measured there). Files in `public/sounds/` are listed once per slo
 | `minesweeper.flag` | effects | `minesweeper.flag` | 300 |
 | `mahjong.blocked` | effects | `mahjong.blocked` | 300 |
 | `freecell.place` | effects | `freecell.place` | 300 |
-| `freecell.home` | effects | `freecell.home` | 150 |
+| `freecell.home` | effects | `freecell.home` | 406 |
 | `freecell.cascade` | effects | `freecell.cascade` | 948 |
 | `freecell.invalid` | effects | `freecell.invalid` | 434 |
 | `freecell.win` | effects | `freecell.win` | 1362 |
@@ -2453,6 +2466,10 @@ loops are not measured there). Files in `public/sounds/` are listed once per slo
 | `pokersquares.hand` | effects | `pokersquares.hand` | 484 |
 | `pokersquares.bigHand` | effects | `pokersquares.bigHand` | 1122 |
 | `pokersquares.invalid` | effects | `pokersquares.invalid` | 434 |
+| `fivehands.place` | effects | `fivehands.place` | 300 |
+| `fivehands.hand` | effects | `fivehands.hand` | 484 |
+| `fivehands.bigHand` | effects | `fivehands.bigHand` | 1122 |
+| `fivehands.invalid` | effects | `fivehands.invalid` | 434 |
 | `pool.pocket` | effects | `pool.pocket` | 908 |
 | `pool.foul` | effects | `pool.foul` | 484 |
 | `pool.blackWin` | effects | `pool.blackWin` | 1327 |
@@ -2498,6 +2515,8 @@ loops are not measured there). Files in `public/sounds/` are listed once per slo
 | `tripeaks.shuffle` | effects | `tripeaks.shuffle` | 1093 |
 | `pokersquares.shuffle` | effects | `pokersquares.shuffle` | 1093 |
 | `pokersquares.final` | effects | `pokersquares.final` | 983 |
+| `fivehands.shuffle` | effects | `fivehands.shuffle` | 1093 |
+| `fivehands.final` | effects | `fivehands.final` | 983 |
 | `music_minigolf` | music | `music.minigolf` | loop |
 | `music_pool` | music | `music.pool` | loop |
 | `music_curling` | music | `music.curling` | loop |
@@ -2509,3 +2528,4 @@ loops are not measured there). Files in `public/sounds/` are listed once per slo
 | `music_mahjong` | music | `music.mahjong` | loop |
 | `music_tripeaks` | music | `music.tripeaks` | loop |
 | `music_pokersquares` | music | `music.pokersquares` | loop |
+| `music_fivehands` | music | `music.fivehands` | loop |
