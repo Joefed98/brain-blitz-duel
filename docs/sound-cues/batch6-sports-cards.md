@@ -14,7 +14,8 @@ Each game's music bed is `music_<gameId>` ([music.md](music.md)), started with t
 
 How the files were made: leading silence cut to under 3 ms (quiet pre-roll more than 24 dB under the peak removed, a 3 ms
 fade-in), each effect cut after its body (within 20 dB of its peak) with a 40 ms fade-out, at least its budget unless the
-sound is shorter, at most 150 ms over it; loops cut where the waveform and level after the cut match the loop's start,
+sound is shorter, at most 150 ms over it (cards_home's chime and homerun_sign's bell ring keep their quiet
+tails to the full budget, with a 120 ms fade); loops cut where the waveform and level after the cut match the loop's start,
 on an upward zero crossing, with a 120 ms crossfade (250 ms for the crowd) into the loop's head, music beds on the bar
 whose next 4 s best match the bed's opening (a 40 ms crossfade); effects levelled to peaks of -1 dBFS but no louder
 than 2 dB over the library's median loudest 100 ms (-13.8 dBFS), music to -18 LUFS integrated; MP3 44.1 kHz, mono

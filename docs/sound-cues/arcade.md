@@ -145,7 +145,7 @@ when the run starts. Rooms deal Pinball since 14 Oct 2026; Junction is practice 
 | `minesweeper.flag` | Minefield | A flag is placed | `tick` (0.35) | 5–25 | 300 ms |
 | `mahjong.blocked` | Mahjong Solitaire | A tap on a covered or hemmed-in tile | `tick` (0.4) | 0–10 | 300 ms |
 | `freecell.place` | FreeCell | A move made (a tap or a drag) | `place` (0.8) | 40–120 | 300 ms |
-| `freecell.home` | FreeCell | A card goes home (one auto move, or the player's) | `correct` (0.55, rising with the cards home) | 10–52 | 150 ms |
+| `freecell.home` | FreeCell | A card goes home (one auto move, or the player's) | `correct` (0.55, rising with the cards home) | 10–52 | 406 ms |
 | `freecell.cascade` | FreeCell | Two or more cards go home on their own at once | `correct` (0.55, rising) | 2–10 | 948 ms |
 | `freecell.invalid` | FreeCell | A tap that moves nothing | `wrong` (0.5) | 0–10 | 434 ms |
 | `freecell.win` | FreeCell | Every card home | `complete` | 0–1 | 1362 ms |

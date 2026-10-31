@@ -77,7 +77,12 @@ def onset(x, pk_db):
     return max(0, above[0] - int(0.003 * SR)) if len(above) else 0
 
 
-def effect(x, want_s, stereo):
+# Effects whose quiet tail is part of the sound (Joe's review, 31 Oct 2026): cards_home's two-note chime after the
+# snap, homerun_sign's bell ring. They keep their tail to the full budget with a 120 ms fade.
+KEEP_TAIL = {"cards_home", "homerun_sign"}
+
+
+def effect(x, want_s, stereo, keep_tail=False):
     y = x if stereo else to_mono(x)
     pk = db(np.abs(y).max())
     start = onset(y, pk)
@@ -91,6 +96,8 @@ def effect(x, want_s, stereo):
     want = int(want_s * SR)
     # The body and its fade, at least the budget (unless the sound itself is shorter), at most OVER_S past it.
     end = min(max(body + fade, min(want, natural)), want + int(OVER_S * SR), natural, len(y))
+    if keep_tail:
+        end, fade = min(want, len(y)), int(0.12 * SR)
     y = y[:end].copy()
     n = min(fade, len(y) // 2)
     ramp = np.cos(np.linspace(0, np.pi / 2, n)) ** 2
@@ -208,7 +215,8 @@ def make_loop(x, stereo, music):
 
 def main():
     src, out_dir, report = sys.argv[1:4]
-    rows = list(csv.DictReader(open(os.path.join(src, "new-sounds-mapping.csv"))))
+    only = set(sys.argv[4].split(",")) if len(sys.argv) > 4 else None  # re-cut just these slots
+    rows = [r for r in csv.DictReader(open(os.path.join(src, "new-sounds-mapping.csv"))) if not only or r["slot"] in only]
     result = []
     for r in rows:
         slot, loop = r["slot"], r["loop"].strip().lower() == "yes"
@@ -229,7 +237,7 @@ def main():
                 g = min(EFFECT_PEAK - db(np.abs(y).max()), LIB_RMS100 + 2 - rms100(y))
                 y = y * 10 ** (g / 20)
         else:
-            y, cut = effect(x, float(r["length_s"]), stereo)
+            y, cut = effect(x, float(r["length_s"]), stereo, slot in KEEP_TAIL)
             info["lead_cut_ms"] = round(cut * 1000)
         dst = os.path.join(out_dir, f"{slot}.mp3")
         encode(dst, y, stereo)
