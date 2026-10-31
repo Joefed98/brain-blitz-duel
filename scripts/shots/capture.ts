@@ -343,6 +343,12 @@ async function newRun(
     return route.continue();
   });
   await page.goto(`${origin}/practice`, { waitUntil: "domcontentloaded" });
+  // The Practice tab's Puzzles | Arcade switch (30 Oct 2026): an arcade game's button is on the Arcade side.
+  const { puzzleDef } = await import("../../src/lib/duel/registry");
+  const side = page.locator(`[data-practice-side='${puzzleDef(game).category === "arcade" ? "arcade" : "puzzles"}']`);
+  await side.waitFor({ timeout: 90_000 });
+  await page.waitForTimeout(1200); // hydration
+  await side.click();
   const button = page.getByRole("button", { name: gameDisplayName(game), exact: true }).first();
   await button.waitFor({ timeout: 90_000 });
   await page.waitForTimeout(1500); // hydration
@@ -448,7 +454,13 @@ async function captureOne(
           text: el.textContent ?? "",
           size: parseFloat(cs.fontSize),
           lines: Math.round(el.getBoundingClientRect().height / parseFloat(cs.lineHeight)),
-          cut: el.scrollWidth > el.clientWidth + 0.5 || el.scrollHeight > el.clientHeight + 1,
+          // Fractional: an ellipsis shows for a sub-pixel overflow that scrollWidth (rounded) hides.
+          cut: (() => {
+            const range = document.createRange();
+            range.selectNodeContents(el);
+            const text = range.getBoundingClientRect();
+            return el.hasAttribute("data-long") ? el.scrollHeight > el.clientHeight + 1 : text.width > el.getBoundingClientRect().width + 0.01;
+          })(),
           header: { x: r.left, y: r.top, w: r.width, h: r.height },
         };
       });

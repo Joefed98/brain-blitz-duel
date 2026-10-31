@@ -189,20 +189,29 @@ export function FrameName({ as: Tag = "span", text, className = "", ...rest }: {
   useIsoLayoutEffect(() => {
     const el = ref.current;
     if (!el) return;
+    // Fractional widths: scrollWidth is rounded, so a name a fraction of a pixel too wide would read as fitting and
+    // still draw an ellipsis. The text's own width (a Range) against the box's, with a pixel to spare.
+    const textWidth = () => {
+      const range = document.createRange();
+      range.selectNodeContents(el);
+      return range.getBoundingClientRect().width;
+    };
+    const fits = () => textWidth() <= el.getBoundingClientRect().width - 1;
     const fit = () => {
       el.removeAttribute("data-long");
       el.style.fontSize = `${FRAME_NAME_MAX_PX}px`;
-      const room = el.clientWidth;
-      const need = el.scrollWidth;
-      if (room <= 0) return;
-      if (need <= room) return;
+      const room = el.getBoundingClientRect().width - 1;
+      if (room <= 0 || fits()) return;
       // Text width scales with the font size: the size that fits, rounded down to a quarter pixel.
-      const size = Math.floor(((FRAME_NAME_MAX_PX * room) / need) * 4) / 4;
+      let size = Math.floor(((FRAME_NAME_MAX_PX * room) / textWidth()) * 4) / 4;
       if (size >= FRAME_NAME_MIN_PX) {
         el.style.fontSize = `${size}px`;
         // Rounding in the browser's text layout: step down until it fits.
-        for (let s = size; el.scrollWidth > el.clientWidth && s > FRAME_NAME_MIN_PX; s -= 0.25) el.style.fontSize = `${s - 0.25}px`;
-        if (el.scrollWidth <= el.clientWidth) return;
+        while (!fits() && size > FRAME_NAME_MIN_PX) {
+          size -= 0.25;
+          el.style.fontSize = `${size}px`;
+        }
+        if (fits()) return;
       }
       el.style.fontSize = "";
       el.setAttribute("data-long", "");
@@ -219,10 +228,14 @@ export function FrameName({ as: Tag = "span", text, className = "", ...rest }: {
       frame = requestAnimationFrame(fit);
     });
     if (host) resize.observe(host);
+    // The header's font arriving after the first fit (a cold start) changes every width: fit again.
     let live = true;
     document.fonts?.ready.then(() => live && fit()).catch(() => {});
+    const loaded = () => live && fit();
+    document.fonts?.addEventListener?.("loadingdone", loaded);
     return () => {
       live = false;
+      document.fonts?.removeEventListener?.("loadingdone", loaded);
       cancelAnimationFrame(frame);
       resize.disconnect();
     };
