@@ -66,7 +66,8 @@ const BRIEF: Record<string, string[]> = {
   // Home Run Derby, Free Kick and Racing registered on 30 Oct 2026 (#203).
   sports: ["Flightpath", "Swish", "Minigolf", "Speed Pool", "Curling", "Home Run Derby", "Free Kick", "Racing"],
   // Minesweeper and Mahjong Solitaire registered on 30 Oct 2026 (#205); the group's other ids join as they register.
-  cards: ["Minesweeper", "FreeCell", "Mahjong Solitaire", "TriPeaks", "Poker Squares"],
+  // 31 Oct 2026 (Joe's brief): FreeCell, TriPeaks and Poker Squares renamed Free Cell, Summit and Full House; Five Hands added.
+  cards: ["Minesweeper", "Free Cell", "Mahjong Solitaire", "Summit", "Full House", "Five Hands"],
   action: ["Slice", "Tilt", "Gemstone", "High Rise", "Coral Pop", "Roofbound", "Rainbow Bridge", "Ball Tracker", "Grappler"],
 };
 for (const g of ARCADE_GROUPS) {

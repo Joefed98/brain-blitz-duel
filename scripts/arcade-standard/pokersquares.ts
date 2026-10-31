@@ -1,24 +1,26 @@
 /**
- * arcade-standard-check's entry for `pokersquares` (Poker Squares pokerSquaresRev 1, Cards & Board;
- * docs/arcade-standard/pokersquares.md): born on the standard. Perfect runs place every card on its target-grid
- * square through the server's replay; the core is hand points on a straight line, full at PS_CORE_FULL (the
- * near-perfect median), checked on the partial grids of a target grid.
+ * arcade-standard-check's entry for `pokersquares` (Full House pokerSquaresRev 2, Cards & Board;
+ * docs/arcade-standard/pokersquares.md): born on the standard at rev 1 (full at the near-perfect median, 68); rev 2
+ * (31 Oct 2026) is full at PS_CORE_FULL_V2, the elite median. Perfect runs place every card on its target-grid
+ * square through the server's rev-2 replay; the core is hand points on a straight line, checked on the partial grids
+ * of a target grid.
  */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { ARCADE_STANDARD } from "../../src/lib/arcade/standard";
 import { NO_CARD } from "../../src/lib/arcade/cards/cards";
-import { PS_CORE_FULL, PS_CORE_MAX, pokerSquaresGame, pokerSquaresStdParts, psTargetGrid, psTotals, type PsState } from "../../src/lib/arcade/cards/pokerSquares";
+import { PS_CORE_FULL_V2 as PS_CORE_FULL, PS_CORE_MAX, pokerSquaresGameFor, pokerSquaresStdParts, psTargetGrid, psTotals, type PsState } from "../../src/lib/arcade/cards/pokerSquares";
 import { replayPokerSquaresRun } from "../../src/lib/duel/cards";
 import { pokerSquaresFlawless } from "../cards/flawless";
 import type { StdEntry } from "./entry";
 
 const spec = ARCADE_STANDARD.pokersquares!.spec!;
+const pokerSquaresGame = pokerSquaresGameFor(2);
 const rec = (s: PsState) => Object.fromEntries((pokerSquaresStdParts(s) ?? []).map((p) => [p.key, p.points]));
 const maxes = (s: PsState) => Object.fromEntries((pokerSquaresStdParts(s) ?? []).map((p) => [p.key, p.max]));
 
 /** The target grid of seed 9 filled square by square: every hand-point total on the way and the grid at each. */
 const SEED = 9;
-const GRID = psTargetGrid(SEED).grid;
+const GRID = psTargetGrid(SEED, 2).grid;
 const PARTIALS = Array.from({ length: 26 }, (_, n) => GRID.map((c, i) => (i < n ? c : NO_CARD)));
 /** A state holding `v` hand points: the partial grid with that total (only totals the grids reach are asked for). */
 function withTotal(v: number): PsState {
@@ -29,14 +31,14 @@ function withTotal(v: number): PsState {
 export const entry: StdEntry = {
   type: "pokersquares",
   field: "pokerSquaresRev",
-  rev: 1,
+  rev: 2,
   parts: spec.parts,
   spec,
   liveSpec: true,
   perfect: () =>
     [1, 2, 3, 77, 123456789].map((seed) => {
-      const { raw } = pokerSquaresFlawless(seed);
-      const r = replayPokerSquaresRun(seed, raw);
+      const { raw } = pokerSquaresFlawless(seed, 20, 2);
+      const r = replayPokerSquaresRun(seed, raw, 2);
       return { label: `seed ${seed}'s target grid through the server replay`, score: r.score, parts: rec(r.state), partMaxes: maxes(r.state) };
     }),
   played: () => [{ label: "a tap that placed nothing", score: pokerSquaresGame.score({ ...pokerSquaresGame.init(4), acted: 1 }), want: 1 }],

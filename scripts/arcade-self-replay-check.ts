@@ -151,10 +151,11 @@ import { minesCheckpoint, minesweeperGameFor, MINES_REV_STD } from "@/lib/arcade
 import { encodeMinesweeperRun, replayMinesweeperRun } from "@/lib/duel/minesweeper";
 import { mahjongCheckpoint, mahjongGameFor, MAHJONG_REV_STD } from "@/lib/arcade/mahjong";
 import { encodeMahjongRun, replayMahjongRun } from "@/lib/duel/mahjong";
-import { fcCheckpoint, freecellGame } from "@/lib/arcade/cards/freecell";
+import { fcCheckpoint, freecellGame, freecellGameFor } from "@/lib/arcade/cards/freecell";
 import { tpCheckpoint, tripeaksGame } from "@/lib/arcade/cards/tripeaks";
-import { psCheckpoint, pokerSquaresGame } from "@/lib/arcade/cards/pokerSquares";
-import { encodeFreecellRun, encodePokerSquaresRun, encodeTripeaksRun, replayFreecellRun, replayPokerSquaresRun, replayTripeaksRun } from "@/lib/duel/cards";
+import { psCheckpoint, pokerSquaresGame, pokerSquaresGameFor } from "@/lib/arcade/cards/pokerSquares";
+import { fhCheckpoint, fiveHandsGame } from "@/lib/arcade/cards/fiveHands";
+import { encodeFiveHandsRun, encodeFreecellRun, encodePokerSquaresRun, encodeTripeaksRun, replayFiveHandsRun, replayFreecellRun, replayPokerSquaresRun, replayTripeaksRun } from "@/lib/duel/cards";
 import { minigolfCheckpoint, minigolfGameFor } from "@/lib/arcade/minigolf";
 import { encodeMinigolfRun, replayMinigolfRun } from "@/lib/duel/minigolf";
 import { MINIGOLF_BANK } from "@/lib/duel/minigolfBank.server";
@@ -832,6 +833,11 @@ const GAMES: Game[] = [
   { key: "pool", game: poolGameFor(POOL_REV), seedFor: (n: number) => POOL_BANK[n % POOL_BANK.length]!, checkpoint: poolCheckpoint, mode: "events", rate: 40, encode: encodePoolRun, replay: (seed: number, raw: string) => replayPoolRun(seed, raw, POOL_REV) },
   // Curling curlRev 1 (bank sheets), appended after them.
   { key: "curling", game: curlingGameFor(), seedFor: (n: number) => CURLING_BANK[n % CURLING_BANK.length]!, checkpoint: curlingCheckpoint, mode: "events", rate: 40, encode: encodeCurlingRun, replay: (seed: number, raw: string) => replayCurlingRun(seed, raw, CURLING_REV) },
+  // Free Cell freecellRev 2 (Undo and Reset), Full House pokerSquaresRev 2 (full at the elite median) and Five Hands
+  // fiveHandsRev 1 (31 Oct 2026), appended so every earlier entry keeps its index.
+  { key: "freecell", game: freecellGameFor(2), checkpoint: fcCheckpoint, mode: "events", rate: 120, encode: encodeFreecellRun, replay: (seed: number, raw: string) => replayFreecellRun(seed, raw, 2), seedFor: (n: number) => n % 300 },
+  { key: "pokersquares", game: pokerSquaresGameFor(2), checkpoint: psCheckpoint, mode: "events", rate: 60, encode: encodePokerSquaresRun, replay: (seed: number, raw: string) => replayPokerSquaresRun(seed, raw, 2) },
+  { key: "fivehands", game: fiveHandsGame, checkpoint: fhCheckpoint, mode: "events", rate: 60, encode: encodeFiveHandsRun, replay: (seed: number, raw: string) => replayFiveHandsRun(seed, raw, 1) },
 ];
 
 /** A random candidate event, often outside the declared range (a finger off the edge). */

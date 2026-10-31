@@ -3,7 +3,7 @@ import { useMemo, useRef } from "react";
 import { gameDisplayName } from "@/lib/duel/gameNames";
 import { FC_CHECKPOINT_INTERVAL, FC_INPUT_MOVE, FC_INPUT_TAP, FC_REV, fcCheckpoint, type FcState } from "@/lib/arcade/cards/freecell";
 import {
-  drawFreecell, fcCardBox, fcDropPile, fcHit, fcNewView, FC_BG, FC_WORLD_H, FC_WORLD_W, freecellArtGame,
+  drawFreecell, fcButtonHit, fcCardBox, fcDropPile, fcHit, fcNewView, FC_BG, FC_WORLD_H, FC_WORLD_W, freecellArtGame,
 } from "@/lib/arcade/cards/freecell.renderer";
 import { cardsFill } from "@/lib/arcade/cards/cardsFill.renderer";
 import { encodeFreecellRun, replayFreecellRun } from "@/lib/duel/cards";
@@ -16,7 +16,7 @@ import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./ty
 
 /** Fixed intro still: a deal on the felt (drawn by the game's own renderer). */
 function IntroExample() {
-  return <CardStill width={FC_WORLD_W} height={FC_WORLD_H} draw={(ctx, size) => drawFreecell(ctx, freecellArtGame().init(0), size)} caption="Tap a card to send it to its best spot; drag for a particular one. Safe cards go home by themselves." />;
+  return <CardStill width={FC_WORLD_W} height={FC_WORLD_H} draw={(ctx, size) => drawFreecell(ctx, freecellArtGame(undefined, FC_REV).init(0), size)} caption="Tap a card to send it to its best spot; drag for a particular one. Undo and Reset sit at the top." />;
 }
 
 /** Drags shorter than this many world pixels are taps. */
@@ -27,14 +27,30 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const view = useMemo(() => fcNewView(), []);
   const latest = useRef<FcState | null>(null);
   const start = useRef<{ x: number; y: number; pile: number; index: number; moved: boolean } | null>(null);
+  const rev = data?.freecellRev ?? 1;
   const game = useMemo(() => {
-    const art = freecellArtGame(view);
+    const art = freecellArtGame(view, rev);
     return { ...art, draw: (ctx: CanvasRenderingContext2D, state: FcState, size: { width: number; height: number }) => { latest.current = state; art.draw(ctx, state, size); } };
-  }, [view]);
+  }, [view, rev]);
 
   const pointer = (kind: "down" | "move" | "up", x: number, y: number): PointerPayload | null => {
     const state = latest.current;
     if (!state) return null;
+    // freecellRev 2's Undo and Reset: a press and release on the same button.
+    if (state.hist && (view.button || kind === "down")) {
+      const button = fcButtonHit(x, y);
+      if (kind === "down" && button) {
+        view.button = button;
+        start.current = null;
+        return null;
+      }
+      if (view.button) {
+        if (kind === "move") return null;
+        const held = view.button;
+        view.button = 0;
+        return button === held ? { k: held, a: 0, b: 0, c: 0 } : null;
+      }
+    }
     if (kind === "down") {
       const hit = fcHit(state, x, y);
       start.current = hit ? { x, y, pile: hit.pile, index: hit.index, moved: false } : null;
@@ -67,7 +83,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   return (
     <ArcadeCanvasStage
       diagKey="freecell"
-      label={`${gameDisplayName("freecell")}: tap a card to move it, or drag it to a pile`}
+      label={`${gameDisplayName("freecell")}: tap a card to move it, or drag it to a pile${rev >= 2 ? "; Undo and Reset at the top" : ""}`}
       background={FC_BG}
       fitWorld
       scene={cardsFill}
@@ -100,7 +116,7 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   return (
     <div className="flex min-h-0 w-full flex-1 flex-col items-center justify-start gap-3 overflow-y-auto">
       <p className="whitespace-normal break-words text-center font-mono text-base font-bold text-foreground">{freecellLine(result)}</p>
-      <p className="shrink-0 text-center font-mono text-base text-muted-foreground">{result.sorted} cards in sorted runs · {result.moves} moves</p>
+      <p className="shrink-0 text-center font-mono text-base text-muted-foreground">{result.sorted} cards in sorted runs · {result.moves} moves{result.undos + result.resets > 0 ? ` (${[result.undos ? `${result.undos} undo${result.undos === 1 ? "" : "s"}` : "", result.resets ? `${result.resets} reset${result.resets === 1 ? "" : "s"}` : ""].filter(Boolean).join(", ")})` : ""}</p>
       <p className="shrink-0 text-center font-mono text-base text-muted-foreground">Same deal for everyone</p>
     </div>
   );

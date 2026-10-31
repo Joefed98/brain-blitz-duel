@@ -1,7 +1,7 @@
 import { useMemo, useRef } from "react";
 
 import { gameDisplayName } from "@/lib/duel/gameNames";
-import { PS_CHECKPOINT_INTERVAL, PS_CORE_FULL, PS_INPUT_PLACE, PS_REV, psCheckpoint, type PsState } from "@/lib/arcade/cards/pokerSquares";
+import { PS_CHECKPOINT_INTERVAL, PS_INPUT_PLACE, PS_REV, psCheckpoint, psCoreFullFor, type PsState } from "@/lib/arcade/cards/pokerSquares";
 import { drawPokerSquares, pokerSquaresArtGame, psHit, psNewView, psOnNext, PS_BG, PS_WORLD_H, PS_WORLD_W } from "@/lib/arcade/cards/pokerSquares.renderer";
 import { cardsFill } from "@/lib/arcade/cards/cardsFill.renderer";
 import { encodePokerSquaresRun, replayPokerSquaresRun } from "@/lib/duel/cards";
@@ -13,7 +13,7 @@ import { pokerSquaresSounds } from "@/lib/fx/cardSounds";
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
 function IntroExample() {
-  return <CardStill width={PS_WORLD_W} height={PS_WORLD_H} draw={(ctx, size) => drawPokerSquares(ctx, pokerSquaresArtGame().init(0), size)} caption="Tap an empty square to place the next card. Every row and column scores as a poker hand." />;
+  return <CardStill width={PS_WORLD_W} height={PS_WORLD_H} draw={(ctx, size) => drawPokerSquares(ctx, pokerSquaresArtGame(undefined, PS_REV).init(0), size)} caption="Tap an empty square to place the next card. Every row and column scores as a poker hand." />;
 }
 
 function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
@@ -21,10 +21,11 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const view = useMemo(() => psNewView(), []);
   const latest = useRef<PsState | null>(null);
   const start = useRef<{ fromNext: boolean; square: number } | null>(null);
+  const rev = data?.pokerSquaresRev ?? 1;
   const game = useMemo(() => {
-    const art = pokerSquaresArtGame(view);
+    const art = pokerSquaresArtGame(view, rev);
     return { ...art, draw: (ctx: CanvasRenderingContext2D, state: PsState, size: { width: number; height: number }) => { latest.current = state; art.draw(ctx, state, size); } };
-  }, [view]);
+  }, [view, rev]);
 
   // A tap on an empty square places the card; dragging the next card onto a square does too.
   const pointer = (kind: "down" | "move" | "up", x: number, y: number): PointerPayload | null => {
@@ -77,8 +78,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   );
 }
 
-export function pokerSquaresLine(r: { total: number; made: number }): string {
-  return `${r.total} hand points (full at ${PS_CORE_FULL}) · ${r.made} of 10 lines made`;
+export function pokerSquaresLine(r: { total: number; made: number; state?: { rev?: number } }): string {
+  return `${r.total} hand points (full at ${psCoreFullFor(r.state?.rev)}) · ${r.made} of 10 lines made`;
 }
 
 function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {

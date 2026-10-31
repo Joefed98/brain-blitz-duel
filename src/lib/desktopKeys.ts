@@ -24,9 +24,10 @@ export const DESKTOP_KEYS: Partial<Record<PuzzleType, readonly (readonly [string
   minesweeper: [["Click", "reveal (or flag)"], ["F", "Reveal / Flag switch"]],
   mahjong: [["Click", "pick a tile"], ["S", "shuffle"]],
   // Cards & Board: the mouse plays them (a click is a tap, a drag a drag).
-  freecell: [["Click", "move a card"], ["Drag", "to a pile"]],
+  freecell: [["Click", "move a card"], ["Drag", "to a pile"], ["↶ / ⟲", "undo / reset"]],
   tripeaks: [["Click", "play a card"], ["Space / S", "turn the stock"]],
   pokersquares: [["Click", "place the card"]],
+  fivehands: [["Click", "place your card in a row"]],
   rally: [["← →", "paddle"]],
   racing: [["← → / A D", "steer"], ["↑ / W", "accelerate"], ["↓ / S", "brake"]],
   skyline: [["Space", "drop"]],

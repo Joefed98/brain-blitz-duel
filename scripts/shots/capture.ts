@@ -44,6 +44,7 @@ import type { Browser, Page } from "playwright";
 
 import { GAME_DISPLAY_NAMES, gameDisplayName } from "../../src/lib/duel/gameNames";
 import type { PuzzleType } from "../../src/lib/duel/types";
+import { PRACTICE_SIDE_KEY, practiceSideOf } from "../../src/lib/duel/practiceSide";
 import type { Driver, DriverCtx, FullPuzzle } from "./driver";
 import { DRIVERS } from "./drivers";
 import { exampleFor } from "./examples";
@@ -342,6 +343,14 @@ async function newRun(
     }
     return route.continue();
   });
+  // The Practice tab opens on the side the device last chose (30 Oct 2026): pick the game's side first.
+  await page.addInitScript(([key, side]) => {
+    try {
+      window.localStorage.setItem(key, side);
+    } catch {
+      /* storage blocked: the list opens on Puzzles */
+    }
+  }, [PRACTICE_SIDE_KEY, practiceSideOf(game as PuzzleType)] as const);
   await page.goto(`${origin}/practice`, { waitUntil: "domcontentloaded" });
   const button = page.getByRole("button", { name: gameDisplayName(game), exact: true }).first();
   await button.waitFor({ timeout: 90_000 });
