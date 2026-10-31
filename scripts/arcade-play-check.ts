@@ -187,7 +187,7 @@ const EXTRACT = String.raw`
     case "pool": s.balls.forEach((b) => { if (!b.down) P.push(["ball" + b.id, fp(b.x), fp(b.y)]); }); reset = s.pots + ":" + s.scratches + ":" + s.balls.filter((b) => b.down).length; break;
     // Curling: every stone in play as drawn (the broadcast view's projection); a throw, a stone leaving play and a new stone are resets.
     case "curling": s.x.forEach((x, i) => { if (s.live[i]) { const p = m.curlingRenderer.curlProject(x / 4096, s.y[i] / 4096); P.push(["stone" + i, p.sx, p.sy]); } }); reset = s.thrown + ":" + s.live.join("") + ":" + s.phase; break;
-    case "minigolf": P.push(["ball", fp(s.x), fp(s.y)]); reset = s.hole + ":" + s.waters + ":" + s.holedTick + ":" + s.phase; break;
+    case "minigolf": P.push(["ball", fp(s.x), fp(s.y)]); reset = s.hole + ":" + s.waters + ":" + s.holedTick + ":" + s.phase + ":" + (s.tunnels ?? 0); break;
     case "bubble": if (s.flightColour) P.push(["shot", fp(s.x), fp(s.y)]); reset = s.shots + ":" + s.descents + ":" + s.flightColour; break;
     case "swing":
       P.push(["player", fp(s.x), fp(s.y)]);

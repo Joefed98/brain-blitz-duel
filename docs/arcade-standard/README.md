@@ -88,7 +88,7 @@ replay exactly as before; standard-live-check grades every stored arcade run thr
 | FreeCell | `freecell` | `freecellRev` 1 | Cards & Board | [freecell.md](freecell.md) |
 | TriPeaks | `tripeaks` | `tripeaksRev` 1 | Cards & Board | [tripeaks.md](tripeaks.md) |
 | Poker Squares | `pokersquares` | `pokerSquaresRev` 1 | Cards & Board | [pokersquares.md](pokersquares.md) |
-| Minigolf | `minigolf` | `golfRev` 1 | Sports | [minigolf.md](minigolf.md) |
+| Minigolf (Crazy Golf) | `minigolf` | `golfRev` 2 (1 replays) | Sports | [minigolf.md](minigolf.md) |
 | Speed Pool | `pool` | `poolRev` 1 | Sports | [pool.md](pool.md) |
 | Curling | `curling` | `curlRev` 1 | Sports | [curling.md](curling.md) |
 
