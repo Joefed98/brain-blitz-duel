@@ -1,5 +1,7 @@
 /**
- * Racing (racingRev 1, docs/arcade-standard/racing.md): the sim, the deal and the standard's parts.
+ * Apex (`racing`; racingRev 1 and, dealt since 31 Oct 2026, racingRev 2; docs/arcade-standard/racing.md): the sim,
+ * the deals and the standard's parts. Sections 1–7 prove racingRev 1 as it was; 8 proves racingRev 1 replays exactly as
+ * recorded on main before racingRev 2; 9–12 prove racingRev 2.
  *
  *  1. deterministic: the same log replays to the same state twice, and the server path agrees with the phone's run;
  *  2. the deal: every RACING_DEAL entry a valid seed (300, distinct), racingDealSeed picks from it, and the oracle's
@@ -11,14 +13,43 @@
  *  5. the rules: grass slows the car hard, the tyre wall stops it sideways and costs speed, a touch dirties only its
  *     own sector, a curve pushes the car outwards;
  *  6. a tampered claimed score is flagged; out-of-range payloads are clamped (and flagged), never rejected;
- *  7. every circuit is exactly RACING_LAP_SEGS long with two hairpins and a chicane.
+ *  7. every circuit is exactly RACING_LAP_SEGS long with two hairpins and a chicane;
+ *  8. legacy: 36 racingRev 1 runs recorded on main b154694 (scripts/racing-legacy-record.ts: the oracle, four bot
+ *     levels and a random player on six deal seeds) replay to the same score, final tick and checksum;
+ *  9. racingRev 2's start: five lights one a second from tick 30, out at RACING_V2_GO; the car cannot move before
+ *     lights out whatever is held, inputs then still count as played, the throttle held through the lights leaves on
+ *     the first tick after; the race clock and the speed part run from lights out; the run is the lights longer and
+ *     the round's clock fits it;
+ * 10. racingRev 2's joystick: the dead zone, the expo (half the gain at mid-stick, the same full lock), odd symmetry,
+ *     the wheels following the stick at most RACING_V2_WHEEL_RATE a tick, and the steering moving the car by the wheel;
+ * 11. racingRev 2's deal: 300 distinct seeds, racingDealSeedV2 and the server's generateRacing deal from it on
+ *     racingRev 2, and the oracle takes 24 (all with CHECKS_FULL=1) to exactly 200 through the server replay, home by
+ *     RACING_V2_PAR_TICKS from lights out;
+ * 12. racingRev 2's replay: deterministic, the server agrees with the phone, a tampered claim is flagged, and the
+ *     rev-2 checksum covers the wheel.
  *
  *   bun scripts/racing-check.ts      (CHECKS_FULL=1 for the whole deal)
  */
 import { stdSpecMax } from "../src/lib/arcade/arcadeStandard";
 import { checkInputEvents, type ArcadeInputEvent } from "../src/lib/arcade/engine";
+import { readFileSync } from "node:fs";
+import { gunzipSync } from "node:zlib";
 import {
   buildRacingTrack,
+  racingGameFor,
+  racingGoTick,
+  racingLightsOn,
+  racingRaceTicks,
+  racingV2SteerTarget,
+  RACING_REV_2,
+  RACING_REV_DEALT,
+  RACING_STICK_MAX,
+  RACING_V2_DEAD,
+  RACING_V2_GO,
+  RACING_V2_LIGHT0,
+  RACING_V2_PAR_TICKS,
+  RACING_V2_RUN_TICKS,
+  RACING_V2_WHEEL_RATE,
   racingChecksum,
   racingGame,
   racingInit,
@@ -43,6 +74,9 @@ import {
 } from "../src/lib/arcade/racing";
 import { encodeRacingRun, replayRacingRun } from "../src/lib/duel/racing";
 import { RACING_DEAL, racingDealSeed } from "../src/lib/duel/racingDeal.server";
+import { RACING_DEAL_V2, racingDealSeedV2 } from "../src/lib/duel/racingDealV2.server";
+import { generateRacing } from "../src/lib/duel/sports.server";
+import { RACING_TIME_MS } from "../src/lib/duel/types";
 import { oracleRun } from "./racing-oracle";
 import { racingSubmission } from "./racing-deal";
 
@@ -167,9 +201,139 @@ for (let i = 0; i < 200; i++) {
 }
 ok(JSON.stringify(Array.from(buildRacingTrack(seed0).curve)) === JSON.stringify(Array.from(racingTrack(seed0).curve)), "a circuit builds the same every time");
 
+/* 8. Legacy: racingRev 1 replays exactly as recorded on main before racingRev 2. */
+{
+  const fx = JSON.parse(gunzipSync(readFileSync(new URL("./fixtures/racing-v1-legacy.json.gz", import.meta.url))).toString()) as {
+    runs: { seed: number; who: string; raw: string; score: number; checksum: number; tick: number }[];
+  };
+  let same = 0;
+  for (const run of fx.runs) {
+    const r = replayRacingRun(run.seed, run.raw, 1);
+    const u = replayRacingRun(run.seed, run.raw, undefined);
+    const good = r.score === run.score && racingChecksum(r.state) === run.checksum && r.state.tick === run.tick && u.score === run.score && racingChecksum(u.state) === run.checksum;
+    if (good) same++;
+    else ok(false, `legacy ${run.who} on ${run.seed}: ${r.score}/${run.score}, tick ${r.state.tick}/${run.tick}`);
+  }
+  ok(fx.runs.length === 36 && same === 36, `36 racingRev 1 runs recorded on main replay to the same score, tick and checksum (${same})`);
+  ok(racingGameFor(1).runTicks === RACING_RUN_TICKS && racingGameFor(undefined).init(seed0).rev === 1 && racingGoTick(1) === 0, "unstamped and racingRev 1 rounds play racingRev 1 (no lights, 90 s)");
+}
+
+/* 9. racingRev 2's start. */
+const G2 = racingGameFor(RACING_REV_2);
+const play2 = (seed: number, events: readonly ArcadeInputEvent[]): RacingState[] => {
+  const map = new Map(events.map((e) => [e.t, e]));
+  const states: RacingState[] = [];
+  let st = G2.init(seed);
+  states.push(st);
+  while (!G2.isOver(st)) {
+    st = G2.step(st, map.get(st.tick + 1) ?? null);
+    states.push(st);
+  }
+  return states;
+};
+{
+  ok(RACING_REV_DEALT === 2 && G2.init(seed0).rev === 2 && G2.runTicks === RACING_V2_GO + RACING_RUN_TICKS && RACING_V2_RUN_TICKS === G2.runTicks, "racingRev 2 is dealt; its run is the lights then the 90-second race");
+  ok(RACING_V2_GO === 330 && RACING_V2_LIGHT0 === 30, `lights from tick 30, out at tick 330 (${RACING_V2_GO})`);
+  const lights = [0, 29, 30, 89, 90, 150, 210, 269, 270, 329, 330, 400].map((t) => racingLightsOn(2, t));
+  ok(JSON.stringify(lights) === "[0,0,1,1,2,3,4,4,5,5,0,0]", `the lights come on one a second, five, then all out (${lights})`);
+  ok([0, 30, 270, 329].every((t) => racingLightsOn(1, t) === 0), "racingRev 1 has no lights");
+  ok(RACING_TIME_MS >= Math.ceil((RACING_V2_RUN_TICKS / 60) * 1000) + 3000, `the round's clock (${RACING_TIME_MS} ms) fits the lights, the race and the usual slack`);
+  // Full throttle and full lock held from the first tick: nothing moves until lights out.
+  const states = play2(seed0, [{ t: 1, k: RACING_INPUT_STICK, a: 100, b: 100, c: 0, d: 0 }]);
+  const before = states.filter((st) => st.tick <= RACING_V2_GO);
+  ok(before.length === RACING_V2_GO + 1 && before.every((st) => st.s === 0 && st.v === 0 && st.x === 0 && st.offTicks === 0), "the car stays on its grid spot until lights out (full throttle and full lock held)");
+  const leave = states.find((st) => st.tick === RACING_V2_GO + 1)!;
+  ok(leave.v > 0 && leave.s > 0, `the throttle held through the lights leaves on the first tick after lights out (v ${leave.v})`);
+  ok(states.every((st) => st.tick <= RACING_V2_GO || racingRaceTicks(st) === st.tick - RACING_V2_GO) && racingRaceTicks(before[100]!) === 0, "the race clock starts at lights out");
+  const early = play2(seed0, [{ t: 40, k: RACING_INPUT_STICK, a: 0, b: -100, c: 0, d: 0 }]);
+  ok(G2.score(early.at(-1)!) === 1, `an input during the lights alone scores 1 (${G2.score(early.at(-1)!)})`);
+  ok(G2.score(play2(seed0, []).at(-1)!) === 0, "no input scores 0 on racingRev 2");
+  const end = states.at(-1)!;
+  ok(end.tick <= RACING_V2_GO + RACING_RUN_TICKS && G2.isOver(end), "the run ends 90 s after lights out at the latest");
+  const b2 = { ...G2.init(seed0), acted: 1 };
+  const sp = (finishTick: number) => racingStdParts({ ...b2, s: RACING_TOTAL, clean: 8, finishTick })!.find((p) => p.key === "speed")!.points;
+  ok(sp(RACING_V2_GO + RACING_V2_PAR_TICKS) === 20 && sp(RACING_V2_GO + RACING_V2_PAR_TICKS + 1) < 20 && sp(RACING_V2_GO + RACING_RUN_TICKS) === 0, "speed: full at par from lights out, 0 at the buzzer");
+  ok(sp(RACING_V2_GO + Math.round((RACING_V2_PAR_TICKS + RACING_RUN_TICKS) / 2)) === 10, "speed halfway between par and the buzzer (race clock) pays 10");
+  ok(racingStdParts({ ...b2, s: RACING_TOTAL, clean: 8, finishTick: RACING_V2_GO + RACING_V2_PAR_TICKS })!.reduce((a, p) => a + p.points, 0) === 200, "a clean finish at par on racingRev 2: 200");
+}
+
+/* 10. racingRev 2's joystick. */
+{
+  let dead = true;
+  for (let a = -RACING_V2_DEAD; a <= RACING_V2_DEAD; a++) if (racingV2SteerTarget(a) !== 0) dead = false;
+  ok(dead && racingV2SteerTarget(RACING_V2_DEAD + 2) > 0, `a dead zone of ±${RACING_V2_DEAD} round the centre, steering from just past it`);
+  ok(racingV2SteerTarget(100) === 100 && racingV2SteerTarget(-100) === -100 && racingV2SteerTarget(250) === 100, "full lock is unchanged at the stick's end");
+  const mid = racingV2SteerTarget(55);
+  ok(mid >= 35 && mid <= 40, `half the gain at mid-stick (55 → ${mid}, linear would be 55)`);
+  let mono = true;
+  let odd = true;
+  for (let a = -RACING_STICK_MAX; a <= RACING_STICK_MAX; a++) {
+    if (a > -RACING_STICK_MAX && racingV2SteerTarget(a) < racingV2SteerTarget(a - 1)) mono = false;
+    if (racingV2SteerTarget(-a) !== -racingV2SteerTarget(a)) odd = false;
+  }
+  ok(mono && odd, "the curve rises steadily and is the same both ways");
+  // The wheels follow the stick at the smoothing rate.
+  const map = [{ t: 1, k: RACING_INPUT_STICK, a: 100, b: 0, c: 0, d: 0 }, { t: 40, k: RACING_INPUT_STICK, a: -100, b: 0, c: 0, d: 0 }];
+  const st = play2(seed0, map);
+  const wheels = st.slice(0, 80).map((x) => x.wheel);
+  ok(wheels[1] === RACING_V2_WHEEL_RATE && wheels[13] === 100 && wheels[12]! < 100, `centre to full lock at ${RACING_V2_WHEEL_RATE} a tick (${wheels.slice(0, 14)})`);
+  let rate = true;
+  for (let i = 1; i < st.length; i++) if (Math.abs(st[i]!.wheel - st[i - 1]!.wheel) > RACING_V2_WHEEL_RATE) rate = false;
+  ok(rate && wheels[40]! === 100 - RACING_V2_WHEEL_RATE, "the wheels never move more than the rate a tick, lock to lock as well");
+  // The steering moves the car by the wheel (not the raw stick).
+  const moving = { ...G2.init(seed0), tick: RACING_V2_GO + 10, s: 4096 * 5, v: 2000, acted: 1, steer: 100, wheel: 0 };
+  const one = racingStep(moving, null);
+  ok(one.wheel === RACING_V2_WHEEL_RATE && Math.abs(one.x) < Math.abs(racingStep({ ...moving, rev: 1 }, null).x), "on the move the car steers by the smoothed wheel (less than racingRev 1's instant lock)");
+  const r1 = racingStep({ ...moving, rev: 1 }, null);
+  ok(r1.wheel === 0, "racingRev 1 never moves the wheel field");
+}
+
+/* 11. racingRev 2's deal. */
+{
+  ok(RACING_DEAL_V2.length === 300 && new Set(RACING_DEAL_V2).size === 300, `the rev-2 deal holds 300 distinct seeds (${RACING_DEAL_V2.length})`);
+  ok(RACING_DEAL_V2.every((s) => Number.isInteger(s) && s > 0 && s < 2 ** 31), "every rev-2 deal entry is a valid seed");
+  ok([0, 1, 299, 300, 12345, 2 ** 31 - 2].every((r) => RACING_DEAL_V2.includes(racingDealSeedV2(r))), "racingDealSeedV2 picks from the rev-2 deal");
+  let dealt = true;
+  for (let i = 0; i < 40; i++) {
+    const p = generateRacing();
+    if (p.racingRev !== 2 || !RACING_DEAL_V2.includes(p.seed)) dealt = false;
+  }
+  ok(dealt, "rooms and practice deal racingRev 2 from the rev-2 deal");
+  const list2 = full ? RACING_DEAL_V2 : RACING_DEAL_V2.filter((_, i) => i % Math.floor(RACING_DEAL_V2.length / 24) === 0).slice(0, 24);
+  let proved2 = 0;
+  for (const seed of list2) {
+    const r = replayRacingRun(seed, racingSubmission(seed, oracleRun(seed, 2), 2), 2);
+    const good = r.score === 200 && !r.flagged && r.clean === 8 && r.finished && r.raceTicks <= RACING_V2_PAR_TICKS && r.state.rev === 2;
+    ok(good, `rev-2 deal seed ${seed}: the oracle reaches 200 through the server (${r.score}, clean ${r.clean}, race ${r.raceTicks})`);
+    if (good) proved2++;
+  }
+  ok(proved2 === list2.length, `the oracle takes ${proved2} of ${list2.length} rev-2 deal seeds to exactly 200`);
+}
+
+/* 12. racingRev 2's replay. */
+{
+  const seed = RACING_DEAL_V2[0]!;
+  const log = oracleRun(seed, 2);
+  const x1 = play2(seed, log).at(-1)!;
+  const x2 = play2(seed, log).at(-1)!;
+  ok(JSON.stringify(x1) === JSON.stringify(x2), "racingRev 2: the same log replays to the same state twice");
+  const raw2 = racingSubmission(seed, log, 2);
+  const r = replayRacingRun(seed, raw2, 2);
+  ok(r.score === G2.score(x1) && !r.flagged && r.desyncTick === null && r.raceTicks === x1.finishTick - RACING_V2_GO, `racingRev 2: the server replay agrees with the phone's run (${r.score})`);
+  console.error = () => {};
+  const bits = raw2.split("|");
+  bits[1] = String(Number(bits[1]) - 3);
+  const t2 = replayRacingRun(seed, bits.join("|"), 2);
+  const asV1 = replayRacingRun(seed, raw2, 1);
+  console.error = quiet;
+  ok(t2.flagged && t2.score === 200, "racingRev 2: a tampered claimed score is flagged; the server keeps its own");
+  ok(asV1.flagged, "a racingRev 2 run replayed as racingRev 1 does not pass (the stamp decides the rules)");
+  ok(racingChecksum({ ...x1, wheel: x1.wheel + 1 }) !== racingChecksum(x1) && racingChecksum({ ...a, wheel: 5 }) === racingChecksum(a), "racingRev 2's checksum covers the wheel; racingRev 1's is unchanged");
+}
+
 if (failures.length) {
   for (const f of failures) console.log(`FAIL ${f}`);
   console.log(`FAIL racing-check: ${failures.length} of ${checks} checks failed`);
   process.exit(1);
 }
-console.log(`PASS racing-check: ${checks} checks (oracle 200 on ${proved} deal seeds${full ? ", the whole deal" : ", quick depth"})`);
+console.log(`PASS racing-check: ${checks} checks (oracle 200 on ${proved} rev-1 and the sampled rev-2 deal seeds${full ? ", the whole deals" : ", quick depth"}; 36 legacy rev-1 runs identical)`);

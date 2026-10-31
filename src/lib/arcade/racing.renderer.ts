@@ -9,22 +9,33 @@
  *
  * Bounds (rule 3): the camera follows the car sideways exactly, the curve offsets are zero at the car's own depth, and
  * the car is drawn exactly 2 × RACING_CAR_HALF wide at that depth, so its outer edge crosses the kerb's outer edge on
- * the tick the sim puts a wheel on the grass, and meets the tyre wall's face where the sim stops it.
+ * the tick the sim puts a wheel on the grass, and meets the tyre wall's face where the sim stops it. Since 31 Oct 2026
+ * (Apex) the car shows its steering: as it yaws into a turn its flank comes into view on the outside (with the front
+ * wheel at the far end, turned with the steer) and the rear face narrows by the same share, so the whole keeps exactly
+ * the collision width.
+ *
+ * racingRev 2 adds the start: the car on its grid box at the line, a gantry of five red lights over the road coming on
+ * one a second with a large 5-4-3-2-1, then all out and GO (display of racingLightsOn, the sim's own schedule).
  */
+import { arcadeReducedEffects } from "@/lib/fx/lowEnd";
 import { arcadeFx, ARCADE_FX_DISPLAY_FONT } from "./arcadeFx.renderer";
 import { RACING_FX } from "./sportsFx.renderer";
-import type { ArenaSceneView } from "./arenaScene.renderer";
+import type { ArenaAmbient, ArenaSceneView } from "./arenaScene.renderer";
 import type { ArcadeGame, ArcadeInputEvent, CanvasSize } from "./engine";
 import {
   racingGame,
+  racingGoTick,
   racingKmh,
   racingLap,
+  racingLightsOn,
+  racingRaceTicks,
   racingSegAt,
   racingTrack,
   RACING_CAR_HALF,
   RACING_KERB_X,
   RACING_LAP_SEGS,
   RACING_LAPS,
+  RACING_REV_2,
   RACING_ROAD_X,
   RACING_RUN_TICKS,
   RACING_SEC_CHICANE,
@@ -32,6 +43,10 @@ import {
   RACING_SECTORS,
   RACING_SEG,
   RACING_STICK_MAX,
+  RACING_V2_GO,
+  RACING_V2_LIGHT0,
+  RACING_V2_LIGHT_GAP,
+  RACING_V2_LIGHTS,
   RACING_WALL_X,
   RACING_WORLD_H,
   RACING_WORLD_W,
@@ -74,10 +89,19 @@ const WALL_H = 110;
 
 /** The joystick's resting centre and its throw (world px); the Stage maps the thumb with the same numbers. */
 export const RACING_STICK_X = RACING_WORLD_W / 2;
-export const RACING_STICK_Y = 652;
+export const RACING_STICK_Y = RACING_WORLD_H - 68;
 export const RACING_STICK_R = 46;
+/**
+ * racingRev 2 (Apex): more thumb travel for full lock (64 world px across, the throttle and brake keep 46 up and down);
+ * the sim adds the dead zone, the expo and the smoothing (racingV2SteerTarget).
+ */
+export const RACING_V2_STEER_R = 64;
+/** The steering throw for a revision (world px for full lock). */
+export function racingSteerThrow(rev: number | null | undefined): number {
+  return (rev ?? 1) >= RACING_REV_2 ? RACING_V2_STEER_R : RACING_STICK_R;
+}
 /** The thumb's touch area starts here (world y). */
-export const RACING_STICK_TOP = 470;
+export const RACING_STICK_TOP = RACING_WORLD_H - 250;
 
 let stickOrigin: { x: number; y: number } | null = null;
 /** Display only: where the thumb went down (null when lifted), so the base is drawn under it. */
@@ -578,8 +602,18 @@ function timeText(ticks: number): string {
   return `${m}:${s < 10 ? "0" : ""}${s.toFixed(1)}`;
 }
 
+/** The area drawWorld paints (world units): the world itself, or the play screen round it (racingAmbient). */
+interface Bounds {
+  x0: number;
+  x1: number;
+  y1: number;
+  /** The view beyond the world: no car, flare or heat haze (the world canvas covers them). */
+  beyond: boolean;
+}
+const WORLD_BOUNDS: Bounds = { x0: 0, x1: RACING_WORLD_W, y1: RACING_WORLD_H, beyond: false };
+
 /** The scene (sky, hills, road, roadside, ghosts, car) for a state, without the HUD. */
-function drawWorld(ctx: Ctx2D, state: RacingState, L: Layers): void {
+function drawWorld(ctx: Ctx2D, state: RacingState, L: Layers, B: Bounds = WORLD_BOUNDS): void {
   const W = RACING_WORLD_W;
   const track = racingTrack(state.seed);
   const lk = lookFor(track);
@@ -593,9 +627,18 @@ function drawWorld(ctx: Ctx2D, state: RacingState, L: Layers): void {
   const carFrac = (state.s % RACING_SEG) / RACING_SEG;
   const heading = lk.heading[carSeg]! + track.curve[carSeg]! * K_ANG * carFrac;
 
-  // Sky, sun, hills.
-  if (L.sky) ctx.drawImage(L.sky, 0, 0, W, HORIZON + 20);
-  else paintRacingSky(ctx, W, RACING_WORLD_H);
+  // Sky, sun, hills (beyond the world, the sky's layer mirrored on either side, so its clouds run on).
+  if (L.sky) {
+    ctx.drawImage(L.sky, 0, 0, W, HORIZON + 20);
+    if (B.beyond)
+      for (const at of [0, 2 * W]) {
+        ctx.save();
+        ctx.translate(at, 0);
+        ctx.scale(-1, 1);
+        ctx.drawImage(L.sky, 0, 0, W, HORIZON + 20);
+        ctx.restore();
+      }
+  } else paintRacingSky(ctx, W, RACING_WORLD_H);
   let rel = SUN_BEARING - heading;
   rel = Math.atan2(Math.sin(rel), Math.cos(rel));
   const sunX = W / 2 + Math.tan(Math.max(-1.3, Math.min(1.3, rel))) * F;
@@ -606,7 +649,8 @@ function drawWorld(ctx: Ctx2D, state: RacingState, L: Layers): void {
     if (!layer) return;
     let off = (-heading * PX_PER_RAD * k) % HILL_W;
     if (off > 0) off -= HILL_W;
-    for (let x = off; x < W; x += HILL_W) ctx.drawImage(layer, x, y - h, HILL_W, h);
+    while (off > B.x0) off -= HILL_W;
+    for (let x = off; x < B.x1; x += HILL_W) ctx.drawImage(layer, x, y - h, HILL_W, h);
   };
   hillShift(L.far, FAR_H, 0.5, HORIZON + 2);
   hillShift(L.near, NEAR_H, 0.8, HORIZON + 4);
@@ -615,7 +659,7 @@ function drawWorld(ctx: Ctx2D, state: RacingState, L: Layers): void {
   haze.addColorStop(0, "#8C7A58");
   haze.addColorStop(1, COL.grassA);
   ctx.fillStyle = haze;
-  ctx.fillRect(0, HORIZON + 3, W, RACING_WORLD_H - HORIZON - 3);
+  ctx.fillRect(B.x0, HORIZON + 3, B.x1 - B.x0, B.y1 - HORIZON - 3);
 
   // Segment edges: curve offsets and hills, zero offset at the car's depth.
   const edges = DRAW_SEGS + 1;
@@ -664,8 +708,8 @@ function drawWorld(ctx: Ctx2D, state: RacingState, L: Layers): void {
     roadA: new Path2D(), roadB: new Path2D(), line: new Path2D(), kerbR: new Path2D(), kerbW: new Path2D(), edge: new Path2D(),
     skid: new Path2D(), start: new Path2D(), startW: new Path2D(),
   };
-  const clipY = new Float64Array(edges).fill(RACING_WORLD_H);
-  let maxY = RACING_WORLD_H;
+  const clipY = new Float64Array(edges).fill(B.y1);
+  let maxY = B.y1;
   const visible = new Uint8Array(edges);
   const kw = KERB_W / RW;
   const ww = WALL_W / RW;
@@ -682,7 +726,7 @@ function drawWorld(ctx: Ctx2D, state: RacingState, L: Layers): void {
     const seg = segOf(k);
     const y1 = Math.min(p1.y, maxY);
     const alt = Math.floor(k / 3) % 2 === 0;
-    (alt ? P.grassA : P.grassB).rect(0, p2.y, W, y1 - p2.y + 1);
+    (alt ? P.grassA : P.grassB).rect(B.x0, p2.y, B.x1 - B.x0, y1 - p2.y + 1);
     const gv = lk.gravel[seg]!;
     const gp = alt ? P.gravelA : P.gravelB;
     // Gravel traps over the grass (each surface path holds non-overlapping quads only: nonzero fills, no holes).
@@ -761,12 +805,15 @@ function drawWorld(ctx: Ctx2D, state: RacingState, L: Layers): void {
         const img = L.trees[sp.v % Math.max(1, L.trees.length)];
         const h = (1100 + 500 * ((sp.v + seg) % 3)) * sc;
         const w = h * (TREE_W / TREE_H);
-        if (sx + w / 2 < 0 || sx - w / 2 > W) continue;
+        if (sx + w / 2 < B.x0 || sx - w / 2 > B.x1) continue;
+        // Beyond the world: a tree wholly inside the world's box is under its canvas.
+        if (B.beyond && sx - w / 2 >= 0 && sx + w / 2 <= W && p2.y <= RACING_WORLD_H) continue;
         drawClipped(ctx, img ?? null, sx - w / 2, p2.y - h, w, h, clip);
       } else if (sp.kind === SPR_STAND) {
         const w = 2600 * sc;
         const h = 1300 * sc;
-        if (sx > W || sx + w < 0) continue;
+        if (sx > B.x1 || sx + w < B.x0) continue;
+        if (B.beyond && sx - w * 0.1 >= 0 && sx + w * 0.9 <= W && p2.y <= RACING_WORLD_H) continue;
         drawClipped(ctx, L.stand, sx - w * 0.1, p2.y - h, w, h, clip);
       } else if (sp.kind === SPR_BOARD) {
         const w = 220 * sc;
@@ -865,6 +912,11 @@ function drawWorld(ctx: Ctx2D, state: RacingState, L: Layers): void {
     }
   }
 
+  // racingRev 2's start: the grid box under the car and the lights gantry over the road ahead (road furniture, so it
+  // recedes as the car leaves; the start straight is level and straight, so a straight projection is exact).
+  if (state.rev >= RACING_REV_2 && state.s < RACING_SEG * 40) drawStart(ctx, state, camX);
+  if (B.beyond) return;
+
   // The player's car: a little bounce at speed, tilted as it steers, brake lights on the brake.
   const speedShare = state.v / 3072;
   const bounce = state.off ? Math.sin(state.tick * 1.7) * 1.6 : Math.sin(state.tick * 0.9) * 0.4 * speedShare;
@@ -890,9 +942,18 @@ function drawWorld(ctx: Ctx2D, state: RacingState, L: Layers): void {
     }
     ctx.restore();
   }
+  // The steer the front wheels hold (racingRev 2's smoothed wheel; the stick itself on racingRev 1) and the yaw it gives
+  // the body: more with speed, a little even at a crawl so the wheels read on the grid.
+  const steerShare = (state.rev >= RACING_REV_2 ? state.wheel : state.steer) / RACING_STICK_MAX;
+  const yaw = Math.max(-1, Math.min(1, steerShare * (0.35 + 0.65 * Math.min(1, speedShare * 1.6))));
   ctx.save();
   ctx.translate(W / 2, RACING_CAR_Y + bounce);
-  ctx.rotate((state.steer / RACING_STICK_MAX) * 0.025 * speedShare);
+  // Yaw: the flank on the outside of the turn takes a share of the width and the rear face narrows by it, moving into
+  // the turn, so the whole stays exactly the collision width at the contact line.
+  const flank = Math.abs(yaw) * carW * 0.3;
+  drawFlank(ctx, carW, yaw, flank, steerShare);
+  ctx.translate(Math.sign(yaw) * flank / 2, 0);
+  ctx.scale((carW - flank) / carW, 1);
   if (sprite) {
     // The sprite's body spans CAR_SPRITE_W exactly, its contact line 2 px above its bottom.
     const s = carW / CAR_SPRITE_W;
@@ -934,6 +995,199 @@ function drawWorld(ctx: Ctx2D, state: RacingState, L: Layers): void {
   }
 }
 
+/** racingRev 2: the gantry's place (race distance) and its beam's height and posts' place (world units). */
+const GANTRY_S = 6 * RACING_SEG;
+const GANTRY_H = 1500;
+const GANTRY_POST = 1.18;
+
+/** A point on the level start straight to the screen: race distance `sd`, lateral `lx` (RW units), height `hy`. */
+function startPoint(state: RacingState, camX: number, sd: number, lx: number, hy = 0): { x: number; y: number; k: number } | null {
+  const z = ((sd - state.s) / RACING_SEG) * SL + ZC;
+  if (z < 80) return null;
+  const k = F / z;
+  return { x: RACING_WORLD_W / 2 + (lx - camX) * k, y: HORIZON + (CH - hy) * k, k };
+}
+
+/** racingRev 2's start (display): the car's grid box and the five-light gantry over the road (lit by racingLightsOn). */
+function drawStart(ctx: Ctx2D, state: RacingState, camX: number): void {
+  // The grid box: a white bracket round the car's spot, behind the line.
+  const box = (sd0: number, sd1: number, l0: number, l1: number) => {
+    const a = startPoint(state, camX, sd0, l0);
+    const b = startPoint(state, camX, sd0, l1);
+    const c = startPoint(state, camX, sd1, l1);
+    const d = startPoint(state, camX, sd1, l0);
+    if (!a || !b || !c || !d) return;
+    ctx.beginPath();
+    ctx.moveTo(a.x, a.y);
+    ctx.lineTo(b.x, b.y);
+    ctx.lineTo(c.x, c.y);
+    ctx.lineTo(d.x, d.y);
+    ctx.closePath();
+    ctx.fill();
+  };
+  ctx.fillStyle = "rgba(240,236,228,0.85)";
+  const half = lat(RACING_CAR_HALF) + 90;
+  const back = -RACING_SEG * 0.9;
+  box(back, -RACING_SEG * 0.02, -half - 24, -half);
+  box(back, -RACING_SEG * 0.02, half, half + 24);
+  box(-RACING_SEG * 0.08, -RACING_SEG * 0.02, -half - 24, -half + 160);
+  box(-RACING_SEG * 0.08, -RACING_SEG * 0.02, half - 160, half + 24);
+  // The gantry: two posts beside the track and a beam over it with five light pods.
+  const L = startPoint(state, camX, GANTRY_S, -GANTRY_POST * RW);
+  const R = startPoint(state, camX, GANTRY_S, GANTRY_POST * RW);
+  if (!L || !R) return;
+  const k = L.k;
+  const beamY = L.y - GANTRY_H * k;
+  const beamH = 150 * k;
+  ctx.fillStyle = "#222228";
+  ctx.fillRect(L.x - 22 * k, beamY, 44 * k, L.y - beamY);
+  ctx.fillRect(R.x - 22 * k, beamY, 44 * k, R.y - beamY);
+  ctx.fillStyle = "#17171C";
+  ctx.fillRect(L.x - 30 * k, beamY - beamH * 0.2, R.x - L.x + 60 * k, beamH * 0.55);
+  const lit = racingLightsOn(state.rev, state.tick);
+  const podW = 230 * k;
+  const podH = 520 * k;
+  for (let i = 0; i < RACING_V2_LIGHTS; i++) {
+    const cx = L.x + ((R.x - L.x) * (i + 1)) / (RACING_V2_LIGHTS + 1);
+    const top = beamY + beamH * 0.1;
+    ctx.fillStyle = "#0C0C10";
+    ctx.beginPath();
+    ctx.roundRect(cx - podW / 2, top, podW, podH, podW * 0.18);
+    ctx.fill();
+    for (let r = 0; r < 2; r++) {
+      const ly = top + podH * (0.3 + r * 0.42);
+      const on = i < lit;
+      if (on) {
+        const glow = ctx.createRadialGradient(cx, ly, 0, cx, ly, podW * 1.3);
+        glow.addColorStop(0, "rgba(255,40,30,0.55)");
+        glow.addColorStop(1, "rgba(255,40,30,0)");
+        ctx.fillStyle = glow;
+        ctx.fillRect(cx - podW * 1.3, ly - podW * 1.3, podW * 2.6, podW * 2.6);
+      }
+      ctx.fillStyle = on ? "#FF2A1E" : "#2A1416";
+      ctx.beginPath();
+      ctx.arc(cx, ly, podW * 0.34, 0, Math.PI * 2);
+      ctx.fill();
+      if (on) {
+        ctx.fillStyle = "rgba(255,210,190,0.85)";
+        ctx.beginPath();
+        ctx.arc(cx - podW * 0.08, ly - podW * 0.08, podW * 0.1, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+  }
+}
+
+/**
+ * racingRev 2's countdown over the scene (display): a large 5-4-3-2-1 as each light comes on (a short pop), then GO
+ * as they go out, fading over the first second of the race.
+ */
+function drawCountdown(ctx: Ctx2D, state: RacingState): void {
+  if (state.rev < RACING_REV_2) return;
+  const lit = racingLightsOn(state.rev, state.tick);
+  const W = RACING_WORLD_W;
+  const y = 196;
+  ctx.save();
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  if (lit > 0) {
+    const since = state.tick - (RACING_V2_LIGHT0 + (lit - 1) * RACING_V2_LIGHT_GAP);
+    const pop = 1 + 0.35 * Math.max(0, 1 - since / 12);
+    ctx.translate(W / 2, y);
+    ctx.scale(pop, pop);
+    ctx.font = `800 108px ${ARCADE_FX_DISPLAY_FONT}`;
+    ctx.lineWidth = 8;
+    ctx.strokeStyle = "rgba(20,8,10,0.75)";
+    ctx.strokeText(String(RACING_V2_LIGHTS + 1 - lit), 0, 0);
+    ctx.shadowColor = "rgba(255,40,30,0.9)";
+    ctx.shadowBlur = 24;
+    ctx.fillStyle = "#FFF4EC";
+    ctx.fillText(String(RACING_V2_LIGHTS + 1 - lit), 0, 0);
+  } else if (state.tick >= RACING_V2_GO && state.tick < RACING_V2_GO + 60) {
+    const t = (state.tick - RACING_V2_GO) / 60;
+    ctx.globalAlpha = Math.max(0, 1 - t * t);
+    ctx.translate(W / 2, y);
+    const sc = 1 + 0.25 * t;
+    ctx.scale(sc, sc);
+    ctx.font = `800 96px ${ARCADE_FX_DISPLAY_FONT}`;
+    ctx.lineWidth = 8;
+    ctx.strokeStyle = "rgba(10,10,14,0.7)";
+    ctx.strokeText("GO", 0, 0);
+    ctx.shadowColor = "rgba(242,199,92,0.9)";
+    ctx.shadowBlur = 26;
+    ctx.fillStyle = "#F7D77A";
+    ctx.fillText("GO", 0, 0);
+  }
+  ctx.restore();
+}
+
+/**
+ * The car's flank on the outside of a turn (display), in the car's frame (origin at the contact line's centre): when
+ * the car yaws right its left side comes into view (and the other way round), taking `f` of the car's width while the
+ * rear face narrows by the same share, so the whole stays exactly the collision width (rule 3). The side runs from the
+ * rear corner (full height) to the front (lower and further away), with the rear tyre's wall, the side window, the
+ * sunset along the shoulder and the front wheel at the far end, turned with the steer.
+ */
+function drawFlank(ctx: Ctx2D, w: number, yaw: number, f: number, steer: number): void {
+  if (f < 0.8) return;
+  const h = w * 0.6;
+  const dir = yaw > 0 ? 1 : -1;
+  const outer = -dir * (w / 2);
+  const inner = outer + dir * f;
+  const at = (u: number) => inner + (outer - inner) * u;
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(Math.min(inner, outer), -h * 1.2, f, h * 1.2);
+  ctx.clip();
+  // The body's side.
+  const g = ctx.createLinearGradient(0, -h * 0.66, 0, -h * 0.08);
+  g.addColorStop(0, "#75636D");
+  g.addColorStop(0.25, "#4A4650");
+  g.addColorStop(1, "#18181D");
+  ctx.fillStyle = g;
+  ctx.beginPath();
+  ctx.moveTo(inner, -h * 0.1);
+  ctx.lineTo(inner, -h * 0.6);
+  ctx.quadraticCurveTo(at(0.5), -h * 0.66, outer, -h * 0.5);
+  ctx.lineTo(outer, -h * 0.18);
+  ctx.closePath();
+  ctx.fill();
+  // The side window.
+  ctx.fillStyle = "rgba(22,20,28,0.92)";
+  ctx.beginPath();
+  ctx.moveTo(at(0.12), -h * 0.6);
+  ctx.quadraticCurveTo(at(0.45), -h * 0.68, at(0.78), -h * 0.55);
+  ctx.lineTo(at(0.78), -h * 0.47);
+  ctx.lineTo(at(0.12), -h * 0.51);
+  ctx.closePath();
+  ctx.fill();
+  // The sunset along the shoulder.
+  ctx.strokeStyle = "rgba(242,160,96,0.7)";
+  ctx.lineWidth = Math.max(0.8, h * 0.025);
+  ctx.beginPath();
+  ctx.moveTo(inner, -h * 0.45);
+  ctx.lineTo(outer, -h * 0.38);
+  ctx.stroke();
+  // The rear tyre's wall (near) and the front wheel (far), turned with the steer.
+  ctx.fillStyle = "#0D0D10";
+  ctx.beginPath();
+  ctx.roundRect(Math.min(inner, at(0.34)), -h * 0.3, f * 0.34, h * 0.3, h * 0.04);
+  ctx.fill();
+  const fx = at(0.8);
+  const fy = -h * 0.24;
+  ctx.translate(fx, fy);
+  ctx.rotate(steer * 0.5);
+  ctx.fillStyle = "#0B0B0E";
+  ctx.beginPath();
+  ctx.ellipse(0, 0, Math.max(1.5, f * 0.2), h * 0.15, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = "rgba(150,140,140,0.45)";
+  ctx.beginPath();
+  ctx.ellipse(0, 0, Math.max(0.8, f * 0.1), h * 0.08, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+}
+
 function drawClipped(ctx: Ctx2D, img: Surface | null, x: number, y: number, w: number, h: number, clip: number): void {
   if (!img || w < 0.5 || y >= clip) return;
   if (y + h <= clip) {
@@ -950,7 +1204,9 @@ function drawHud(ctx: Ctx2D, state: RacingState): void {
   const lapW = chip(ctx, 12, 10, `LAP ${racingLap(state)}/${RACING_LAPS}`, "left", racingLap(state) === RACING_LAPS && state.tick > 0);
   void lapW;
   const done = state.finishTick > 0;
-  chip(ctx, W - 12, 10, done ? timeText(state.finishTick) : timeText(Math.min(state.tick, RACING_RUN_TICKS)), "right", done);
+  // The race clock (from lights out on racingRev 2).
+  const go = racingGoTick(state.rev);
+  chip(ctx, W - 12, 10, done ? timeText(state.finishTick - go) : timeText(Math.min(racingRaceTicks(state), RACING_RUN_TICKS)), "right", done);
 
   // Speed, bottom left.
   const y = RACING_STICK_Y;
@@ -990,26 +1246,33 @@ function drawHud(ctx: Ctx2D, state: RacingState): void {
 
   // The joystick: the base where the thumb went down (or its resting place), the knob from the held input.
   const o = stickOrigin ?? { x: RACING_STICK_X, y: RACING_STICK_Y };
+  // racingRev 2's base is wider than it is tall: more thumb travel for full lock, the pedals' throw unchanged.
+  const throwX = racingSteerThrow(state.rev);
   ctx.save();
   ctx.globalAlpha = stickOrigin ? 1 : 0.7;
-  const base = ctx.createRadialGradient(o.x, o.y, 4, o.x, o.y, RACING_STICK_R + 8);
+  const base = ctx.createRadialGradient(o.x, o.y, 4, o.x, o.y, throwX + 8);
   base.addColorStop(0, "rgba(20,20,26,0.35)");
   base.addColorStop(1, "rgba(20,20,26,0.6)");
   ctx.fillStyle = base;
   ctx.beginPath();
-  ctx.arc(o.x, o.y, RACING_STICK_R + 8, 0, Math.PI * 2);
+  ctx.ellipse(o.x, o.y, throwX + 8, RACING_STICK_R + 8, 0, 0, Math.PI * 2);
   ctx.fill();
   ctx.strokeStyle = "rgba(243,241,236,0.25)";
   ctx.lineWidth = 1.5;
   ctx.stroke();
   ctx.strokeStyle = "rgba(243,241,236,0.18)";
   ctx.beginPath();
-  ctx.moveTo(o.x - RACING_STICK_R, o.y);
-  ctx.lineTo(o.x + RACING_STICK_R, o.y);
+  ctx.moveTo(o.x - throwX, o.y);
+  ctx.lineTo(o.x + throwX, o.y);
   ctx.moveTo(o.x, o.y - RACING_STICK_R);
   ctx.lineTo(o.x, o.y + RACING_STICK_R);
   ctx.stroke();
-  const kx = o.x + (state.steer / RACING_STICK_MAX) * RACING_STICK_R;
+  if (state.rev >= RACING_REV_2) {
+    // The dead zone round the centre, faintly.
+    ctx.fillStyle = "rgba(243,241,236,0.08)";
+    ctx.fillRect(o.x - throwX * 0.1, o.y - RACING_STICK_R, throwX * 0.2, RACING_STICK_R * 2);
+  }
+  const kx = o.x + (state.steer / RACING_STICK_MAX) * throwX;
   const ky = o.y - (state.pedal / RACING_STICK_MAX) * RACING_STICK_R;
   const knob = ctx.createRadialGradient(kx - 5, ky - 6, 2, kx, ky, 20);
   knob.addColorStop(0, "#F7E3A6");
@@ -1027,6 +1290,12 @@ export function drawRacingArt(ctx: CanvasRenderingContext2D, state: RacingState,
   arcadeFx(ctx, RACING_FX, state, () => drawRacingWorld(ctx, state, size), size);
 }
 
+/** The play screen's frame: the world, and the view beyond it on the screen's fill (racingAmbient). */
+export function drawRacingPlay(ctx: CanvasRenderingContext2D, state: RacingState, size: CanvasSize): void {
+  drawRacingArt(ctx, state, size);
+  repaintBeyond(state);
+}
+
 function drawRacingWorld(ctx: CanvasRenderingContext2D, state: RacingState, size: CanvasSize): void {
   const W = RACING_WORLD_W;
   const H = RACING_WORLD_H;
@@ -1038,32 +1307,102 @@ function drawRacingWorld(ctx: CanvasRenderingContext2D, state: RacingState, size
   ctx.rect(0, 0, W, H);
   ctx.clip();
   drawWorld(ctx, state, L);
+  drawCountdown(ctx, state);
   drawHud(ctx, state);
   ctx.restore();
 }
 
 export const racingArtGame: ArcadeGame<RacingState, ArcadeInputEvent | null> = { ...racingGame, draw: drawRacingArt };
 
-/** The play screen's scenery beyond the world: the sky above, grass at the sides, dark tarmac below. */
+/**
+ * The play screen's scenery beyond the world (31 Oct 2026, Apex: no dead strip, no bare side strips). The static
+ * scene is only the first paint and the reduced-motion fallback: the sky, the hills and the fields at the sides and the
+ * tarmac below. Over it, racingAmbient paints the world's own view carried on past its edges (the road, its edge lines
+ * and kerbs, the grass, trees, tyre walls and grandstands) every frame the world draws.
+ */
 export function racingScene(ctx: CanvasRenderingContext2D, view: ArenaSceneView): void {
-  if (view.top < 0) {
-    ctx.fillStyle = "#2C2F5E";
-    ctx.fillRect(view.left, view.top, view.right - view.left, -view.top + 2);
+  const H = view.worldH;
+  const x0 = view.left;
+  const w = view.right - view.left;
+  const sky = ctx.createLinearGradient(0, 0, 0, HORIZON + 20);
+  sky.addColorStop(0, "#2C2F5E");
+  sky.addColorStop(0.28, "#6B4778");
+  sky.addColorStop(0.58, "#D9714F");
+  sky.addColorStop(0.84, "#F7A55C");
+  sky.addColorStop(1, "#FFD38A");
+  ctx.fillStyle = "#2C2F5E";
+  ctx.fillRect(x0, view.top, w, Math.max(0, -view.top) + 2);
+  ctx.fillStyle = sky;
+  ctx.fillRect(x0, 0, w, HORIZON + 20);
+  ctx.fillStyle = COL.grassA;
+  ctx.fillRect(x0, HORIZON + 3, w, H - HORIZON - 3);
+  if (view.bottom > H) {
+    ctx.fillStyle = COL.roadA;
+    ctx.fillRect(x0, H - 1, w, view.bottom - H + 1);
   }
-  if (view.left < 0 || view.right > view.worldW) {
-    const g = ctx.createLinearGradient(0, 0, 0, view.worldH);
-    g.addColorStop(0, "#2C2F5E");
-    g.addColorStop(HORIZON / view.worldH, "#FFD38A");
-    g.addColorStop(HORIZON / view.worldH + 0.02, "#4E5C28");
-    g.addColorStop(1, "#3E4A20");
-    ctx.fillStyle = g;
-    if (view.left < 0) ctx.fillRect(view.left, 0, -view.left + 2, view.worldH);
-    if (view.right > view.worldW) ctx.fillRect(view.worldW - 2, 0, view.right - view.worldW + 2, view.worldH);
+}
+
+/** The ambient layer the play screen hands racingAmbient, kept so the world's own frames repaint it (display only). */
+let beyond: { ctx: CanvasRenderingContext2D; m: DOMMatrix; view: ArenaSceneView; clipTop: number } | null = null;
+let beyondState: RacingState | null = null;
+let lastBeyond: RacingState | null = null;
+
+function paintBeyond(ctx: CanvasRenderingContext2D, view: ArenaSceneView, state: RacingState): void {
+  const L = layersFor(Math.max(1, view.scale * 2));
+  // Only round the world (its own canvas covers the rest): the area outside its box, a 1-unit overlap at the seam.
+  ctx.save();
+  ctx.beginPath();
+  if (view.left < 1) ctx.rect(view.left, view.top, 1 - view.left, view.bottom - view.top);
+  if (view.right > RACING_WORLD_W - 1) ctx.rect(RACING_WORLD_W - 1, view.top, view.right - RACING_WORLD_W + 1, view.bottom - view.top);
+  if (view.bottom > RACING_WORLD_H - 1) ctx.rect(view.left, RACING_WORLD_H - 1, view.right - view.left, view.bottom - RACING_WORLD_H + 1);
+  if (view.top < 1) ctx.rect(view.left, view.top, view.right - view.left, 1 - view.top);
+  ctx.clip();
+  drawWorld(ctx, state, L, { x0: view.left, x1: view.right, y1: view.bottom, beyond: true });
+  ctx.restore();
+}
+
+/**
+ * Apex's moving fill (display only; ArcadeArenaSlot's ambient, under the world canvas): the world's own view carried
+ * on out to the screen's edges and bottom, so the road, its lines, the grass and the trackside run on past the world's
+ * box with no seam. The slot calls it at most every 50 ms (once, under reduced motion or reduced effects); the world's
+ * frames (drawRacingPlay) repaint the same layer every frame they draw, so it never lags the world. It is the world's
+ * own view, not a decorative fill, so it moves exactly when the world does (under reduced motion too).
+ */
+export const racingAmbient: ArenaAmbient = {
+  region: "all",
+  draw(ctx, view) {
+    beyond = { ctx, m: ctx.getTransform(), view, clipTop: Math.max(view.top, view.boxTop ?? 0) };
+    lastBeyond = null;
+    if (beyondState) paintBeyond(ctx, view, beyondState);
+    else racingScene(ctx, view);
+  },
+};
+
+/** The world's frame repaints the layer beyond it with the same state (play screen only, while the layer is shown). */
+function repaintBeyond(state: RacingState): void {
+  beyondState = state;
+  const b = beyond;
+  if (!b) return;
+  const canvas = b.ctx.canvas as HTMLCanvasElement;
+  if (!canvas.isConnected) {
+    beyond = null;
+    beyondState = null;
+    return;
   }
-  if (view.bottom > view.worldH) {
-    ctx.fillStyle = "#2E2D33";
-    ctx.fillRect(view.left, view.worldH - 2, view.right - view.left, view.bottom - view.worldH + 2);
-  }
+  const ctx = b.ctx;
+  // Skip a frame that shows nothing new (the world is redrawn every display frame; the sim moves at 60 Hz).
+  if (state === lastBeyond) return;
+  // A slow device in reduced effects (lib/fx/lowEnd.ts) repaints it on every other sim tick.
+  if (arcadeReducedEffects() && state.tick % 2 === 1 && lastBeyond && state.tick - lastBeyond.tick < 2) return;
+  lastBeyond = state;
+  // No clear: the view paints every pixel round the world (sky, hills, fields, road) from the box's top down.
+  ctx.save();
+  ctx.setTransform(b.m);
+  ctx.beginPath();
+  ctx.rect(b.view.left, b.clipTop, b.view.right - b.view.left, b.view.bottom - b.clipTop);
+  ctx.clip();
+  paintBeyond(ctx, b.view, state);
+  ctx.restore();
 }
 
 /** The chase view on a seeded circuit at the race start (backdrop for the tile and intro still). */

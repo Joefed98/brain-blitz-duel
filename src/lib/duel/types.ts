@@ -1964,8 +1964,11 @@ export interface MahjongPuzzleData {
 export const HOMERUN_TIME_MS = 63_000;
 /** Free Kick's 75-second, ten-kick run, plus three of slack. */
 export const FREEKICK_TIME_MS = 78_000;
-/** Racing's 90-second, two-lap race, plus three of slack. */
-export const RACING_TIME_MS = 93_000;
+/**
+ * Apex's 90-second, two-lap race, plus three of slack; since 31 Oct 2026 (racingRev 2) also its 5.5-second start
+ * lights before the race clock starts (99 s; racingRev 1 runs still end at their own 90 s, as Tempo's and Gemstone's).
+ */
+export const RACING_TIME_MS = 99_000;
 
 export interface HomerunPuzzleData {
   type: "homerun";
@@ -1985,9 +1988,9 @@ export interface FreekickPuzzleData {
 
 export interface RacingPuzzleData {
   type: "racing";
-  /** A proved seed (racingDeal.server.ts): the track, identical for everyone. */
+  /** A proved seed (racingDealV2.server.ts; racingDeal.server.ts on rev 1): the track, identical for everyone. */
   seed: number;
-  /** Rules revision (1 = the first race, on the arcade scoring standard). */
+  /** Rules revision (1 = the first race, on the arcade scoring standard; 2 = the F1 lights start and the softer joystick). */
   racingRev?: number;
 }
 
