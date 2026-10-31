@@ -40,6 +40,7 @@ import { PUZZLE_REGISTRY, gameCounts } from "@/lib/duel/registry";
 import type { PuzzleType } from "@/lib/duel/types";
 import { APP_DESCRIPTION, APP_TITLE } from "@/lib/brand";
 import { useScreenMusic } from "@/lib/useScreenMusic";
+import { OnlineOnly } from "@/components/offline/OnlineOnly";
 
 const GAME_COUNTS = gameCounts();
 /** Every game rooms deal (the Warm up's "All 72 games"). */
@@ -63,8 +64,17 @@ export const Route = createFileRoute("/")({
       { name: "twitter:description", content: APP_DESCRIPTION },
     ],
   }),
-  component: Home,
+  component: OfflineHome,
 });
+
+/** Offline practice (31 Oct 2026): with no connection, the offline state and a way to Practice. */
+function OfflineHome() {
+  return (
+    <OnlineOnly tabs="play" live body="Rooms and the daily need a connection. Practice games are saved on this phone, so they still work.">
+      <Home />
+    </OnlineOnly>
+  );
+}
 
 const CODE_LENGTH = ROOM_CODE_LENGTH;
 

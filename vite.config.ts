@@ -8,6 +8,8 @@ import { execSync } from "node:child_process";
 
 import { defineConfig } from "@lovable.dev/vite-tanstack-config";
 
+import { offlineWorkerPlugin } from "./src/lib/offline/swPlugin";
+
 /**
  * One id per build, baked into the phone bundle and the server bundle alike
  * (src/lib/appVersion.ts). The commit when git is there, plus the build time, so
@@ -38,4 +40,6 @@ export default defineConfig({
   vite: {
     define: { __DUELZ_BUILD_ID__: JSON.stringify(buildId()) },
   },
+  // Offline practice (31 Oct 2026): /sw.js, filled in with this build's id and files (src/lib/offline/swPlugin.ts).
+  plugins: [offlineWorkerPlugin(buildId())],
 });

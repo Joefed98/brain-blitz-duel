@@ -13,6 +13,7 @@ import { GameColumnLayout } from "@/components/puzzles/gameColumn";
 import { usePuzzleRejections } from "@/components/puzzles/usePuzzleRejections";
 import { AppTabBar, type AppTab } from "@/components/app/AppTabBar";
 import type { ThemeSkin } from "@/lib/theme";
+import { OfflineBanner } from "@/components/offline/OfflineBanner";
 
 interface PhoneShellProps {
   children: ReactNode;
@@ -434,6 +435,8 @@ export function PhoneShell({ children, bare = false, constrained = false, gameSc
             <div className="flex shrink-0 items-center">{topAction}<MuteToggle /></div>
           </div>
         )}
+        {/* Offline practice: the slim banner, drawn only while <html data-offline> is set (never on a game screen). */}
+        {gameScreen ? null : <OfflineBanner />}
         {framePlay ? <GameFrameShell.Provider value={{ type: gameType, arcade: arcadeScreen, topAction }}>{children}</GameFrameShell.Provider> : children}
       </div>
       {tabs && !gameScreen ? <AppTabBar current={tabs} /> : null}

@@ -72,6 +72,15 @@ function validType(type: string): PuzzleType {
   return type as PuzzleType;
 }
 
+/** One fresh practice deal of a type (the board picked by a new seed), split into its public and private halves. */
+async function dealPractice(type: PuzzleType, unblockRow: unknown): Promise<{ pub: PuzzleData; priv: Loose; seed: number }> {
+  const { generatePuzzle } = await import("./generate.server");
+  const { newRoomSeed } = await import("./selection");
+  const seed = newRoomSeed();
+  const { pub, priv } = splitPuzzle(generatePuzzle(type, { unblockRow: unblockRow as never, bankSeed: seed }));
+  return { pub: pub as PuzzleData, priv: priv as Loose, seed };
+}
+
 /** Generates one puzzle of the requested type with the same code rooms use. */
 export const practiceGenerateFn = createServerFn({ method: "POST" })
   .inputValidator((input: { type: string; example?: boolean }) => input)
@@ -97,8 +106,7 @@ export const practiceGenerateFn = createServerFn({ method: "POST" })
     }
     if (!example) {
       // Slow types come from their precomputed bank; a fresh seed picks the board.
-      const { newRoomSeed } = await import("./selection");
-      const { pub, priv } = splitPuzzle(generatePuzzle(type, { unblockRow, bankSeed: newRoomSeed() }));
+      const { pub, priv } = await dealPractice(type, unblockRow);
       return { puzzle: pub, sealed: await seal(priv) };
     }
     const { withSeededRandom } = await import("./random");
@@ -130,36 +138,140 @@ export const practiceGradeFn = createServerFn({ method: "POST" })
     if (staleNote) console.warn(staleNote);
     const { __example: example, ...priv } = await unsealRaw(data.sealed);
     if (priv["type"] !== data.puzzle.type) throw new Error("Bad practice puzzle.");
-    const puzzle = mergePuzzle(data.puzzle, priv);
-    const { gradeAnswer } = await import("./generate.server");
-    const graded = gradeAnswer(puzzle, data.answer, data.msRemaining, data.extra);
-    // Beta recording (practice_plays): the outcome only, best-effort, never blocks the answer.
-    // Skipped where there is no database (local dev servers in checks).
-    if (process.env["SUPABASE_SERVICE_ROLE_KEY"]) {
-      const { practicePlayRow, recordPracticePlay } = await import("./betaRecord.server");
-      const { puzzleTimeLimitMs } = await import("./registry");
-      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-      await recordPracticePlay(supabaseAdmin, (userId) =>
-        practicePlayRow({
-          userId,
-          puzzle: puzzle as unknown as Record<string, unknown> & { type: string },
-          example: example !== undefined,
-          claimedMsRemaining: data.msRemaining,
-          timeLimitMs: puzzleTimeLimitMs(puzzle),
-          graded,
-        }),
-      );
+    return gradePracticeRun(data, mergePuzzle(data.puzzle, priv), example !== undefined);
+  });
+
+interface PracticeRunInput {
+  answer: string;
+  msRemaining: number;
+  extra?: SubmitExtra;
+}
+
+/** Grades a practice run on its full puzzle (practice's own grading, the same for a live deal and a pack deal). */
+async function gradePracticeRun(data: PracticeRunInput, puzzle: PuzzleData, example: boolean) {
+  const { gradeAnswer } = await import("./generate.server");
+  const graded = gradeAnswer(puzzle, data.answer, data.msRemaining, data.extra);
+  // Beta recording (practice_plays): the outcome only, best-effort, never blocks the answer.
+  // Skipped where there is no database (local dev servers in checks).
+  if (process.env["SUPABASE_SERVICE_ROLE_KEY"]) {
+    const { practicePlayRow, recordPracticePlay } = await import("./betaRecord.server");
+    const { puzzleTimeLimitMs } = await import("./registry");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    await recordPracticePlay(supabaseAdmin, (userId) =>
+      practicePlayRow({
+        userId,
+        puzzle: puzzle as unknown as Record<string, unknown> & { type: string },
+        example,
+        claimedMsRemaining: data.msRemaining,
+        timeLimitMs: puzzleTimeLimitMs(puzzle),
+        graded,
+      }),
+    );
+  }
+  return {
+    puzzle,
+    isCorrect: graded.isCorrect,
+    score: graded.score,
+    msRemaining: graded.storedMs,
+    reactionAvgMs: graded.reactionAvgMs,
+    answer: graded.answer,
+    // Serialised as JSON text so the RPC boundary sees a plain string.
+    extraJson: graded.extra ? JSON.stringify(graded.extra) : null,
+  };
+}
+
+/* -------------------------------------------------------------------------- */
+/*  Offline practice (31 Oct 2026): packs of deals for playing with no signal, */
+/*  and the grading of runs queued on the phone.                               */
+/*                                                                             */
+/*  A pack deal is a practice deal like any other: the public half the phone   */
+/*  plays and the private half sealed with the server-only key (unreadable on  */
+/*  the phone, exactly what every online practice round already carries). Its  */
+/*  sealed half also holds a digest of the public half, so a queued run whose  */
+/*  deal was changed on the phone is rejected, never graded.                   */
+/* -------------------------------------------------------------------------- */
+
+/** Keys sorted, undefined dropped: the same text on the server that dealt and the server that grades. */
+function canonical(value: unknown): string {
+  if (Array.isArray(value)) return `[${value.map((v) => (v === undefined ? "null" : canonical(v))).join(",")}]`;
+  if (value && typeof value === "object") {
+    const entries = Object.entries(value as Loose)
+      .filter(([, v]) => v !== undefined && typeof v !== "function")
+      .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0));
+    return `{${entries.map(([k, v]) => `${JSON.stringify(k)}:${canonical(v)}`).join(",")}}`;
+  }
+  return JSON.stringify(value ?? null);
+}
+
+async function pubDigest(pub: unknown): Promise<string> {
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(canonical(pub)));
+  return toBase64(new Uint8Array(digest));
+}
+
+/** Up to PACK_MAX_DEALS fresh deals for each of up to PACK_MAX_TYPES games (games that fail to deal are left out). */
+export const practicePackFn = createServerFn({ method: "POST" })
+  .inputValidator((input: { types: string[]; count?: number }) => input)
+  .handler(async ({ data }) => {
+    const { PACK_MAX_DEALS, PACK_MAX_TYPES, offlineStatusOf } = await import("@/lib/offline/offlineStatus");
+    const count = Math.max(1, Math.min(PACK_MAX_DEALS, Math.floor(Number(data.count) || PACK_MAX_DEALS)));
+    const types = [...new Set((Array.isArray(data.types) ? data.types : []).map(String))].slice(0, PACK_MAX_TYPES);
+    const packs: { type: PuzzleType; deals: { id: number; puzzle: PuzzleData; sealed: string }[] }[] = [];
+    for (const raw of types) {
+      if (!(PUZZLE_TYPES as string[]).includes(raw)) continue;
+      const type = raw as PuzzleType;
+      // Games that ask the server during play are online only: no pack.
+      if (offlineStatusOf(type) === "online") continue;
+      const deals: { id: number; puzzle: PuzzleData; sealed: string }[] = [];
+      try {
+        for (let i = 0; i < count; i++) {
+          let unblockRow = null;
+          if (type === "unblock") {
+            const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+            const { drawUnblockRow } = await import("./unblock.server");
+            unblockRow = await drawUnblockRow(supabaseAdmin);
+          }
+          const { pub, priv, seed } = await dealPractice(type, unblockRow);
+          deals.push({ id: seed, puzzle: pub, sealed: await seal({ ...priv, __pack: seed, __pub: await pubDigest(pub) }) });
+        }
+      } catch (error) {
+        console.warn(`[offline] no pack for ${type}: ${String(error)}`);
+        if (deals.length === 0) continue;
+      }
+      packs.push({ type, deals });
     }
-    return {
-      puzzle,
-      isCorrect: graded.isCorrect,
-      score: graded.score,
-      msRemaining: graded.storedMs,
-      reactionAvgMs: graded.reactionAvgMs,
-      answer: graded.answer,
-      // Serialised as JSON text so the RPC boundary sees a plain string.
-      extraJson: graded.extra ? JSON.stringify(graded.extra) : null,
-    };
+    return { packs };
+  });
+
+/**
+ * Grades one run played away from the server (a pack deal, or a live deal whose answer couldn't be sent),
+ * exactly as practiceGradeFn would. A run that can't be trusted comes back as rejected, never as an error,
+ * so the phone knows to stop sending it; any other failure is thrown and the phone tries again later.
+ */
+export const practiceGradeQueuedFn = createServerFn({ method: "POST" })
+  .inputValidator(
+    (input: {
+      puzzle: PuzzleData;
+      sealed: string;
+      answer: string;
+      msRemaining: number;
+      extra?: SubmitExtra;
+      clientVersion?: string;
+    }) => input,
+  )
+  .handler(async ({ data }) => {
+    const staleNote = staleSubmissionNote("practice_grade", data.clientVersion, data.puzzle?.type);
+    if (staleNote) console.warn(staleNote);
+    let raw: Loose;
+    try {
+      raw = await unsealRaw(String(data.sealed ?? ""));
+    } catch {
+      return { status: "rejected" as const, reason: "seal" };
+    }
+    const { __example: example, __pack: pack, __pub: digest, ...priv } = raw;
+    if (!data.puzzle || priv["type"] !== data.puzzle.type) return { status: "rejected" as const, reason: "type" };
+    if (pack !== undefined && digest !== (await pubDigest(data.puzzle))) return { status: "rejected" as const, reason: "deal" };
+    const graded = await gradePracticeRun(data, mergePuzzle(data.puzzle, priv), example !== undefined);
+    return { status: "graded" as const, ...graded };
   });
 
 /** Word puzzles: checks one word using server-only vocabulary. */

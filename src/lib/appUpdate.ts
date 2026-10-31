@@ -252,15 +252,14 @@ export function practiceUpdateGate(stage: string): UpdateGate {
 
 let shared: Updater | null = null;
 
+/**
+ * Before a reload onto a new build. Offline practice (31 Oct 2026): the service worker is no longer
+ * unregistered and its caches are not dropped (they hold the app for opening with no signal); the new
+ * build's worker is fetched and takes over instead (offline/serviceWorker.ts).
+ */
 async function clearBrowserCaches(): Promise<void> {
-  if (typeof navigator !== "undefined" && "serviceWorker" in navigator) {
-    const regs = await navigator.serviceWorker.getRegistrations();
-    await Promise.all(regs.map((r) => r.unregister()));
-  }
-  if (typeof caches !== "undefined") {
-    const keys = await caches.keys();
-    await Promise.all(keys.map((k) => caches.delete(k)));
-  }
+  const { handOverToNewWorker } = await import("./offline/serviceWorker");
+  await handOverToNewWorker();
 }
 
 function sessionStore(): Storage | null {

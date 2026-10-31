@@ -18,6 +18,7 @@ import {
   type PublicGame,
 } from "@/lib/publicSchedule";
 import { APP_NAME } from "@/lib/brand";
+import { OnlineOnly } from "@/components/offline/OnlineOnly";
 
 export const Route = createFileRoute("/tournaments")({
   ssr: false,
@@ -31,8 +32,17 @@ export const Route = createFileRoute("/tournaments")({
       { name: "robots", content: "noindex" },
     ],
   }),
-  component: TournamentsScreen,
+  component: OfflineTournaments,
 });
+
+/** Offline practice (31 Oct 2026): with no connection, the offline state and a way to Practice. */
+function OfflineTournaments() {
+  return (
+    <OnlineOnly tabs="tournaments" live body="Tournaments need a connection. Practice games are saved on this phone, so they still work.">
+      <TournamentsScreen />
+    </OnlineOnly>
+  );
+}
 
 /**
  * The scheduled game a result belongs to: the same room, finished between its lobby opening and four hours
