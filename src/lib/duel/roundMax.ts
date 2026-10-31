@@ -98,6 +98,7 @@ export const ROUND_MAX: Readonly<Record<PuzzleType, number>> = {
   freecell: 200,
   tripeaks: 200,
   pokersquares: 200,
+  fivehands: 200,
   // Sports (30 Oct 2026): on the arcade scoring standard from their first stamp.
   minigolf: 200,
   pool: 200,

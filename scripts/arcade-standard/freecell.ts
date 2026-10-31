@@ -1,16 +1,18 @@
 /**
- * arcade-standard-check's entry for `freecell` (FreeCell freecellRev 1, Cards & Board; docs/arcade-standard/freecell.md):
- * born on the standard. Perfect runs are the bank's par lines through the server's replay; the core's straight line is
- * checked on cards home (two units each, 52 home is the full 104).
+ * arcade-standard-check's entry for `freecell` (Free Cell freecellRev 2, Cards & Board; docs/arcade-standard/freecell.md):
+ * born on the standard at rev 1; rev 2 (31 Oct 2026) adds Undo and Reset with the same parts. Perfect runs are the
+ * bank's par lines through the server's rev-2 replay; the core's straight line is checked on cards home (two units
+ * each, 52 home is the full 104).
  */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { ARCADE_STANDARD } from "../../src/lib/arcade/standard";
-import { FC_PAR_MAX, FC_RUN_TICKS, FC_SPEED_FULL_S, FC_SPEED_MAX, freecellGame, freecellStdParts, fcInitFrom, type FcState } from "../../src/lib/arcade/cards/freecell";
+import { FC_PAR_MAX, FC_RUN_TICKS, FC_SPEED_FULL_S, FC_SPEED_MAX, freecellGameFor, freecellStdParts, fcInitFrom, type FcState } from "../../src/lib/arcade/cards/freecell";
 import { replayFreecellRun } from "../../src/lib/duel/cards";
 import { freecellFlawless } from "../cards/flawless";
 import type { StdEntry } from "./entry";
 
 const spec = ARCADE_STANDARD.freecell!.spec!;
+const freecellGame = freecellGameFor(2);
 const rec = (s: FcState) => Object.fromEntries((freecellStdParts(s) ?? []).map((p) => [p.key, p.points]));
 const maxes = (s: FcState) => Object.fromEntries((freecellStdParts(s) ?? []).map((p) => [p.key, p.max]));
 
@@ -24,14 +26,14 @@ function withHome(home: number, over: Partial<FcState> = {}): FcState {
 export const entry: StdEntry = {
   type: "freecell",
   field: "freecellRev",
-  rev: 1,
+  rev: 2,
   parts: spec.parts,
   spec,
   liveSpec: true,
   perfect: () =>
     [0, 1, 2, 150, 299].map((seed) => {
-      const { raw } = freecellFlawless(seed);
-      const r = replayFreecellRun(seed, raw);
+      const { raw } = freecellFlawless(seed, 20, 2);
+      const r = replayFreecellRun(seed, raw, 2);
       return { label: `bank deal ${seed}'s par line through the server replay`, score: r.score, parts: rec(r.state), partMaxes: maxes(r.state) };
     }),
   played: () => [{ label: "a tap that moved nothing", score: freecellGame.score({ ...freecellGame.init(3), acted: 1, cols: [[], [], [], [], [], [], [], []], home: [0, 0, 0, 0], cells: [-1, -1, -1, -1] }), want: 1 }],

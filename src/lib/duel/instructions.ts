@@ -1109,6 +1109,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Tap a card", detail: "to move it (and the run on it) to its best spot." },
         { action: "Drag a card", detail: "to put it on a particular pile." },
         { action: "Build down", detail: "in alternating colours; home piles build up by suit from the Ace." },
+        { action: "Undo and Reset", detail: "are the small buttons at the top: Undo takes back the last move (as often as you like), Reset deals the cards back out. Each counts as a move; the clock runs on." },
         { action: "Four free cells", detail: "each hold one card. Empty cells and columns let you move longer runs at once.", helpOnly: true },
         { action: "Safe cards go home by themselves:", detail: "aces and twos, and a card whose lower cards of the other colour are home. They are not counted as moves.", helpOnly: true },
         { action: "Par", detail: "is the fewest moves our solver found for this deal.", helpOnly: true },
@@ -1140,6 +1141,20 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Same cards, same order,", detail: "for everyone.", helpOnly: true },
       ],
       score: liveStdHelp("pokersquares", "Two parts, which total 200:"),
+    },
+    fivehands: {
+      goal: "Build five poker hands, one row each.",
+      how: [
+        { action: "Tap a row", detail: "to place your card in its next slot. Placed cards stay." },
+        { action: "Rows fill evenly:", detail: "every row takes a card before any row takes the next. Rows already filled for the round are greyed out." },
+        { action: "Each turn", detail: "also turns up a card taken by an opponent: it goes face up on the discard row at the bottom." },
+        { action: "Hands:", detail: "pair 3, two pair 6, three of a kind 8, straight 10, flush 11, full house 13, four of a kind 15, straight flush 16.", helpOnly: true },
+        { action: "20 turns", detail: "after five cards dealt one to each row: 45 of the 52 cards are seen by the end.", helpOnly: true },
+        { action: "Rows at the buzzer", detail: "score as they stand.", helpOnly: true },
+        { action: "Every deck", detail: "can be placed to make a hand in all five rows and fill the points.", helpOnly: true },
+        { action: "Same deck, same order,", detail: "for everyone.", helpOnly: true },
+      ],
+      score: liveStdHelp("fivehands", "Two parts, which total 200:"),
     },
     rally: {
       goal: "Keep the rally going.",

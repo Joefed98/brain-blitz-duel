@@ -44,7 +44,8 @@ import { FC_DEALS } from "@/lib/arcade/cards/freecellDeals.data";
 import { TP_REV } from "@/lib/arcade/cards/tripeaks";
 import { TP_DEALS } from "@/lib/arcade/cards/tripeaksDeals.data";
 import { PS_REV } from "@/lib/arcade/cards/pokerSquares";
-import type { FreecellPuzzleData, PokerSquaresPuzzleData, TripeaksPuzzleData } from "./types";
+import { FH_REV } from "@/lib/arcade/cards/fiveHands";
+import type { FiveHandsPuzzleData, FreecellPuzzleData, PokerSquaresPuzzleData, TripeaksPuzzleData } from "./types";
 import { bullseyeWinds, BULLSEYE_REV_TARGET, BULLSEYE_REV_STRICT, BULLSEYE_REV_STD } from "@/lib/arcade/bullseye";
 import type {
   BinTossPuzzleData,
@@ -104,6 +105,11 @@ export function generateTripeaks(): TripeaksPuzzleData {
 /** Poker Squares: any seed; the sim builds the target grid and dealing order from it. */
 export function generatePokerSquares(): PokerSquaresPuzzleData {
   return { type: "pokersquares", seed: arcadeSeed(), pokerSquaresRev: PS_REV };
+}
+
+/** Five Hands: any seed; the sim shuffles the deck and proves its witness (perfect play reaches 200). */
+export function generateFiveHands(): FiveHandsPuzzleData {
+  return { type: "fivehands", seed: arcadeSeed(), fiveHandsRev: FH_REV };
 }
 
 export function generateSwerve(): SwervePuzzleData {

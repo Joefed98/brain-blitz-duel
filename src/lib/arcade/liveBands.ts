@@ -43,7 +43,8 @@ import { FREEKICK_REV_STD, FREEKICK_STD_SPEC, FREEKICK_V1_BAND_CURVE } from "./f
 import { RACING_REV_STD, RACING_STD_SPEC, RACING_V1_BAND_CURVE } from "./racing";
 import { FC_REV, FC_STD_SPEC, FC_V1_BAND_CURVE } from "./cards/freecell";
 import { TP_REV, TP_STD_SPEC, TP_V1_BAND_CURVE } from "./cards/tripeaks";
-import { PS_REV, PS_STD_SPEC, PS_V1_BAND_CURVE } from "./cards/pokerSquares";
+import { PS_REV, PS_STD_SPEC, PS_V2_BAND_CURVE } from "./cards/pokerSquares";
+import { FH_REV, FH_STD_SPEC, FH_V1_BAND_CURVE } from "./cards/fiveHands";
 import { MINIGOLF_REV, MINIGOLF_STD_SPEC } from "./minigolf";
 import { POOL_REV, POOL_STD_SPEC } from "./pool";
 import { CURLING_REV, CURLING_STD_SPEC } from "./curling";
@@ -132,7 +133,10 @@ export const LIVE_BANDS = {
   // Cards & Board (30 Oct 2026): born on the arcade scoring standard at revision 1.
   freecell: { field: "freecellRev", rev: FC_REV, curve: FC_V1_BAND_CURVE, std: FC_STD_SPEC, born: true },
   tripeaks: { field: "tripeaksRev", rev: TP_REV, curve: TP_V1_BAND_CURVE, std: TP_STD_SPEC, born: true },
-  pokersquares: { field: "pokerSquaresRev", rev: PS_REV, curve: PS_V1_BAND_CURVE, std: PS_STD_SPEC, born: true },
+  // pokerSquaresRev 2 (Full House, 31 Oct 2026): the core full at the elite median.
+  pokersquares: { field: "pokerSquaresRev", rev: PS_REV, curve: PS_V2_BAND_CURVE, std: PS_STD_SPEC, born: true },
+  // Five Hands (31 Oct 2026): born on the arcade scoring standard at revision 1.
+  fivehands: { field: "fiveHandsRev", rev: FH_REV, curve: FH_V1_BAND_CURVE, std: FH_STD_SPEC, born: true },
   // The Sports group (30 Oct 2026): on the arcade scoring standard from their first stamp (the core's straight line, the spec's parts).
   minigolf: { field: "golfRev", rev: MINIGOLF_REV, curve: stdCoreCurve(MINIGOLF_STD_SPEC), std: MINIGOLF_STD_SPEC, born: true },
   pool: { field: "poolRev", rev: POOL_REV, curve: stdCoreCurve(POOL_STD_SPEC), std: POOL_STD_SPEC, born: true },
