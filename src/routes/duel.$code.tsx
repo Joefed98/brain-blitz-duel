@@ -144,6 +144,7 @@ import { noteSignatureSubmit } from "@/lib/fx/signature";
 import { useSignatureHold, useSignatureVerdict } from "@/lib/fx/useSignature";
 import { APP_NAME, APP_TAGLINE } from "@/lib/brand";
 import { roomUpdateGate, useUpdateGate } from "@/lib/appUpdate";
+import { OnlineOnly } from "@/components/offline/OnlineOnly";
 
 const ROOM_TITLE = `Join a ${APP_NAME} room`;
 const ROOM_DESCRIPTION = `You're invited to a live ${APP_NAME} room. ${APP_TAGLINE}`;
@@ -170,8 +171,17 @@ export const Route = createFileRoute("/duel/$code")({
       },
     ],
   }),
-  component: DuelScreen,
+  component: OfflineDuel,
 });
+
+/** Offline practice (31 Oct 2026): with no connection, the offline state and a way to Practice. */
+function OfflineDuel() {
+  return (
+    <OnlineOnly body="Rooms need a connection. Practice games are saved on this phone, so they still work.">
+      <DuelScreen />
+    </OnlineOnly>
+  );
+}
 
 function Centered({ children }: { children: React.ReactNode }) {
   return (

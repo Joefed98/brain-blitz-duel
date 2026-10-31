@@ -26,6 +26,9 @@ import { ErrorState } from "../components/app/ErrorState";
 import { AppWordmark } from "../components/brand/AppWordmark";
 import { CelebrationLayer } from "../components/fx/CelebrationLayer";
 import { celebrationsOn } from "../lib/fx/celebrations";
+import { GOOGLE_FONTS_CSS } from "../lib/offline/assets";
+import { installOfflinePractice } from "../lib/offline/install";
+import { OFFLINE_BOOT } from "../lib/offline/online";
 
 /** The 404 page: the shared error layout (ErrorState, Polish batch R) on the room screens' shell. */
 function NotFoundComponent() {
@@ -136,7 +139,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
       {
         rel: "stylesheet",
-        href: "https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;600;700&family=Press+Start+2P&display=swap",
+        href: GOOGLE_FONTS_CSS,
       },
       // The app's icons (Prompt R): the inverted logo mark on the gold shine (scripts/brand-icons.ts).
       ...APP_ICONS.filter((icon) => icon.use === "favicon").map((icon) => ({
@@ -162,6 +165,8 @@ function RootShell({ children }: { children: ReactNode }) {
         <HeadContent />
         {/* Before the first paint: which late Play tab cards to reserve (lib/playCards.ts). */}
         <script dangerouslySetInnerHTML={{ __html: PLAY_CARDS_BOOT }} />
+        {/* Before the first paint: the offline banner and Practice's install card (lib/offline/online.ts). */}
+        <script dangerouslySetInnerHTML={{ __html: OFFLINE_BOOT }} />
       </head>
       <body>
         {children}
@@ -202,6 +207,9 @@ function RootComponent() {
     () => installAppUpdater((path) => router.history.replace(path, router.history.location.state)),
     [router],
   );
+
+  // Offline practice (lib/offline): the service worker, the queued runs' grading and the practice packs.
+  useEffect(() => installOfflinePractice(), []);
 
   // Celebrations' shared overlay (lib/fx/celebrations.ts), only while FX_CELEBRATIONS is on.
   const [celebrate, setCelebrate] = useState(false);

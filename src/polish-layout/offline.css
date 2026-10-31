@@ -1,0 +1,70 @@
+/*
+ * Offline practice (31 Oct 2026). Everything here is shown or hidden by marks the boot script puts on <html>
+ * before the first paint (lib/offline/online.ts), so nothing pops in or moves the page:
+ *  - html[data-offline]: the slim banner on page screens;
+ *  - html[data-offline-install]: the Practice tab's Add to Home Screen card (iPhone Safari only).
+ */
+[data-offline-banner] {
+  display: none;
+}
+html[data-offline] [data-offline-banner] {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 32px;
+  margin: 0 0 12px;
+  padding: 6px 12px;
+  border-radius: 12px;
+  background: var(--ap-panel, #15141b);
+  color: var(--ap-text-2, #bdbdcc);
+  font-size: 13.5px;
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+[data-offline-install-card] {
+  display: none;
+}
+html[data-offline-install] [data-offline-install-card] {
+  display: flex;
+}
+
+/* Practice rows: the online-only mark and the pending clock sit beside the BEST figure. */
+.of-mark {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 4px;
+  color: var(--ap-faint, #8a8794);
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.of-mark > svg {
+  width: 15px;
+  height: 15px;
+}
+.of-clock {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  flex: none;
+  color: var(--ap-faint, #8a8794);
+  vertical-align: -2px;
+}
+
+/* The result of a run played away from the server. */
+.of-result-score {
+  font-family: "Duelz Mono", ui-monospace, monospace;
+  font-size: 56px;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--ap-text, #f5f5f7);
+  font-variant-numeric: tabular-nums;
+}
+.of-result-score[data-pending] {
+  font-family: inherit;
+  font-size: 26px;
+  font-weight: 800;
+  color: var(--ap-text-2, #bdbdcc);
+}

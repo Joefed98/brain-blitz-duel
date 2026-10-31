@@ -89,6 +89,9 @@ export const SHARDS: Record<string, string[]> = {
   // with its dev server) and replay-board-check (46 puzzle replays on the room's results screen, ~2 min).
   play18: ["demo-intro-check.ts@1/3", "demo-intro-check.ts@2/3"],
   play19: ["demo-intro-check.ts@3/3", "replay-board-check.ts"],
+  // Offline practice (31 Oct 2026): offline-check builds the app for production, installs the service worker, fills
+  // every practice pack, plays three games offline, uploads the queue and swaps in a new build's worker (~5 min).
+  play20: ["offline-check.ts"],
   // Non-browser checks. puzzle-bank-check's every-entry verification and
   // arcade-self-replay-check's entries are split into parts on separate jobs.
   // ~282 s of checks on run 38608375501's times.
