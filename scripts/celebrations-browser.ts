@@ -22,6 +22,7 @@
  *
  *   bun scripts/celebrations-browser.ts [--shots=<dir>] [--record-off]
  */
+import { MAX_PLAYERS } from "../src/lib/duel/types";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import type { Browser, BrowserContext, Page } from "playwright";
 
@@ -426,8 +427,8 @@ try {
       if (!meter || !line) return null;
       return { line: line.textContent, own: meter.textContent, gap: meter.getBoundingClientRect().top - line.getBoundingClientRect().bottom, h: meter.getBoundingClientRect().height };
     });
-    // Polish batch R: the line is the lobby's "Players · 3 of 10" heading row.
-    check(placed?.line === "Players3 of 10" && placed.own === "" && placed.gap >= 0 && placed.gap <= 8 && placed.h === 20, `lobby: the meter is not directly under "Players · 3 of 10" with no label of its own (${JSON.stringify(placed)})`);
+    // Polish batch R: the line is the lobby's "Players · 3 of 16" heading row (MAX_PLAYERS: 10 until 31 Oct 2026).
+    check(placed?.line === `Players3 of ${MAX_PLAYERS}` && placed.own === "" && placed.gap >= 0 && placed.gap <= 8 && placed.h === 20, `lobby: the meter is not directly under "Players · 3 of ${MAX_PLAYERS}" with no label of its own (${JSON.stringify(placed)})`);
     await judgeLayout(o.page, "lobby");
     await shot(o.page, "lobby-meter-3-of-10");
     await o.page.evaluate(() => {
@@ -439,7 +440,7 @@ try {
     });
     await o.page.waitForTimeout(300);
     check((await o.log()).some((e) => e.kind === "sound:crackle"), "lobby: a join does not crackle");
-    check((await o.page.getAttribute("[data-charge-meter]", "data-charge-meter")) === "4" && (await o.page.evaluate(() => document.querySelector("[data-charge-meter]")?.previousElementSibling?.textContent)) === "Players4 of 10", "lobby: the meter or its line after a join");
+    check((await o.page.getAttribute("[data-charge-meter]", "data-charge-meter")) === "4" && (await o.page.evaluate(() => document.querySelector("[data-charge-meter]")?.previousElementSibling?.textContent)) === `Players4 of ${MAX_PLAYERS}`, "lobby: the meter or its line after a join");
     await o.close();
   }
   {

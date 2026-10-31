@@ -188,13 +188,14 @@ export function ArcadeScoreChart({ players, type }: { players: ChartPlayer[]; ty
         ) : null}
       </div>
       {view.hidden > 0 ? (
+        // In words, no digits: the chart never shows a number but its scale (room-extras-check).
         <p data-chart-hidden={view.hidden} className="mt-0.5 shrink-0 truncate text-center font-mono text-[13px] font-semibold" style={{ color: TEXT }}>
-          Top {CHART_TOP}{scored.length > CHART_TOP ? " and you" : ""} · {view.hidden} more on the results
+          The top eight{scored.length > CHART_TOP ? " and you" : ""} · everyone on the results
         </p>
       ) : null}
       {pending.length ? (
         <p data-chart-pending="" data-names className="mt-0.5 shrink-0 truncate text-center font-mono text-[13px] font-semibold" style={{ color: TEXT }}>
-          Still scoring: {pending.length > 3 ? `${pending.length} players` : pending.map((p) => (p.isMe ? "You" : p.name)).join(", ")}
+          Still scoring: {pending.length > 3 ? `${pending.slice(0, 2).map((p) => (p.isMe ? "You" : p.name)).join(", ")} and others` : pending.map((p) => (p.isMe ? "You" : p.name)).join(", ")}
         </p>
       ) : null}
     </div>

@@ -97,7 +97,7 @@ export function RoundResultsTable({
       {highlight}
 
       {/* Rows take their content's height from the top; the list scrolls (and fades) if a big room needs it. */}
-      <ol ref={listRef} className="rs-list rs-scroll min-h-0 shrink" data-compact={compact ? "" : undefined} data-pin="">
+      <ol ref={listRef} className="rs-list rs-scroll min-h-0 shrink" data-compact={compact ? "" : undefined} data-pin={compact ? "" : undefined}>
         {ordered.map((row) => {
           const isMe = row.slot === mySlot;
           const won = row.roundScore > 0 && row.roundScore === topScore;
@@ -109,7 +109,7 @@ export function RoundResultsTable({
           const look = looks?.get(row.slot);
           const note = finalRound ? null : mark?.note;
           return (
-            <li key={row.slot} className="rs-row p-0" data-pinned={isMe ? "" : undefined}>
+            <li key={row.slot} className="rs-row p-0" data-pinned={isMe && compact ? "" : undefined}>
               <button
                 type="button"
                 aria-expanded={open}

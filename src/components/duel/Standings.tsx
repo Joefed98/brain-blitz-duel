@@ -35,8 +35,11 @@ export function Arrow({ standing }: { standing: Standing }) {
   );
 }
 
-/** Rooms of more than eight show compact rows (31 Oct 2026, rooms of up to 16). */
-export const COMPACT_ROOM_FROM = 9;
+/**
+ * Rooms bigger than the old cap of ten (31 Oct 2026, rooms of up to 16) show compact rows, my own row
+ * pinned, and the podium's top three with my place; rooms of ten or fewer are drawn as before.
+ */
+export const COMPACT_ROOM_FROM = 11;
 export function isCompactRoom(players: number): boolean {
   return players >= COMPACT_ROOM_FROM;
 }
@@ -137,7 +140,7 @@ export function Standings({ round, totalRounds = TOTAL_ROUNDS, rows, looks, mySl
       </header>
 
       {/* Rows take their content's height from the top; the list scrolls (and fades) if a big room needs it. */}
-      <ul ref={listRef} className="rs-list rs-scroll relative min-h-0 shrink" data-compact={compact ? "" : undefined} data-pin="">
+      <ul ref={listRef} className="rs-list rs-scroll relative min-h-0 shrink" data-compact={compact ? "" : undefined} data-pin={compact ? "" : undefined}>
         {displayRows.map((row) => {
           const isMe = row.slot === mySlot;
           const mark = marks.get(row.slot);
@@ -147,7 +150,7 @@ export function Standings({ round, totalRounds = TOTAL_ROUNDS, rows, looks, mySl
               key={row.slot}
               ref={rowRef(row.slot)}
               data-you={isMe ? "" : undefined}
-              data-pinned={isMe ? "" : undefined}
+              data-pinned={isMe && compact ? "" : undefined}
               style={isMe ? youStyle(look) : undefined}
               className={`rs-row ${row.status === "inactive" ? "opacity-40" : ""}`}
             >

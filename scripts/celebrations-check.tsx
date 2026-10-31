@@ -28,6 +28,7 @@
  *   bun scripts/celebrations-check.tsx [--no-browser] [--shots=<dir>]
  */
 import { readFileSync } from "node:fs";
+import { MAX_PLAYERS } from "../src/lib/duel/types";
 import { Window } from "happy-dom";
 import { createCanvas } from "@napi-rs/canvas";
 
@@ -107,7 +108,8 @@ for (const [days, want] of [[1, null], [2, null], [3, 3], [4, null], [6, null], 
   check(C.streakMilestone(streak) === want, `a ${days}-day streak gives ${C.streakMilestone(streak)}, expected ${want}`);
 }
 check(C.streakBannerText(7) === "7-day streak!", `streak banner text: ${C.streakBannerText(7)}`);
-check(C.meterFill(3) === 0.3 && C.meterFill(10) === 1 && C.meterFill(0) === 0 && C.meterFill(12) === 1, "meter fill is not players / 10");
+// 31 Oct 2026: the room holds MAX_PLAYERS (16, was 10); the fill is still players / the room's seats.
+check(C.meterFill(3) === 3 / MAX_PLAYERS && C.meterFill(MAX_PLAYERS) === 1 && C.meterFill(0) === 0 && C.meterFill(MAX_PLAYERS + 2) === 1, `meter fill is not players / ${MAX_PLAYERS}`);
 
 type Row = Parameters<typeof C.podiumWinnerIsMe>[0][number];
 const standing = (slot: number, total: number, roundScore: number, position: number, previousPosition: number | null): Row =>
@@ -381,14 +383,14 @@ for (const mineFirst of [true, false]) {
   reset();
   const view = await mount(React.createElement(ChargeMeter, { players: 3 }));
   const fill = view.host.querySelector(".charge-meter-fill") as HTMLElement;
-  check(fill.style.transform === "scaleX(0.3)", `meter at 3: ${fill.style.transform}`);
+  check(fill.style.transform === `scaleX(${3 / MAX_PLAYERS})`, `meter at 3: ${fill.style.transform}`);
   check(!view.host.querySelector(".charge-meter-label") && (view.host.textContent ?? "") === "", "the meter has a label of its own (the line above it says the count)");
   check(!sounds.length, "the meter makes a sound when it first draws");
   await view.rerender(React.createElement(ChargeMeter, { players: 4 }));
   check(sounds.join() === "crackle" && !requests.some((r) => r.kind === "burst"), `a join: ${sounds.join()}`);
   await view.rerender(React.createElement(ChargeMeter, { players: 3 }));
   check(sounds.join() === "crackle", "a leave crackles");
-  await view.rerender(React.createElement(ChargeMeter, { players: 10 }));
+  await view.rerender(React.createElement(ChargeMeter, { players: MAX_PLAYERS }));
   await wait(700);
   check(requests.filter((r) => r.kind === "burst").length === 1 && sounds.includes("chime"), "filling the room does not spark once");
   await view.unmount();

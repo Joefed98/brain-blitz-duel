@@ -17,7 +17,8 @@
  *     the glyph, each in exactly one of the three rings, the October ten first.
  *  5. Apex's ghosts: at most 3 are drawn, the nearest along the track (nearestRacingGhosts), and the
  *     renderer's draw loop reads only those.
- *  6. The arcade chart draws the top 8 by score plus this player (chartShown).
+ *  6. The arcade chart draws the top 8 by score plus this player in rooms of 11–16 (chartShown); rooms
+ *     of up to 10 still draw everyone.
  *  7. In Chromium (the real routes through the safe-area harness, scripts/theme-screens.ts
  *     ROOM_16_SCREENS) at 414×896 as an iPhone 11 home-screen app and 375×667: the lobby's 16 players
  *     in two columns, the lobby's and Profile's colour wheels (32 swatches of 44 px that never overlap,
@@ -52,7 +53,7 @@ import {
 } from "../src/lib/duel/playerLook.server";
 import { firstFreeSlot, seatFor } from "../src/lib/duel/roomSeats";
 import { MAX_PLAYERS, roomCapacity, type DuelPlayerRow } from "../src/lib/duel/types";
-import { CHART_TOP, chartShown } from "../src/lib/duel/arcadeChart";
+import { CHART_ALL_UP_TO, CHART_TOP, chartShown } from "../src/lib/duel/arcadeChart";
 import { RACING_GHOSTS_SHOWN, nearestRacingGhosts } from "../src/lib/arcade/racing.renderer";
 
 const failures: string[] = [];
@@ -356,7 +357,7 @@ for (let n = 0; n < 200; n++) {
   const view = chartShown(players);
   const scored = players.filter((p) => p.score !== null).sort((a, b) => b.score! - a.score! || a.slot - b.slot);
   const me = players.find((p) => p.isMe)!;
-  const top = scored.slice(0, CHART_TOP);
+  const top = count <= CHART_ALL_UP_TO ? scored : scored.slice(0, CHART_TOP);
   check(top.every((p) => view.shown.includes(p)), `chart (${count}): a top-${CHART_TOP} player is missing`);
   check(me.score === null ? !view.shown.includes(me) : view.shown.includes(me), `chart (${count}): this player isn't drawn`);
   check(view.shown.length === top.length + (me.score !== null && !top.includes(me) ? 1 : 0), `chart (${count}): ${view.shown.length} drawn`);
@@ -500,6 +501,8 @@ if (BROWSER) {
                 markers: markers.length,
                 you: !!document.querySelector("[data-chart-you]"),
                 hidden: document.querySelector("[data-chart-hidden]")?.getAttribute("data-chart-hidden") ?? null,
+                // Every text in the chart but its scale labels: never a digit (no score is shown).
+                digits: [...document.querySelectorAll("[data-arcade-chart] :is(p, span):not([data-chart-label])")].map((e) => e.textContent ?? "").filter((t) => /\d/.test(t)),
                 lines: [...document.querySelectorAll("[data-answer-reveal] p")].filter((p) => /\d+ \/ \d+/.test(p.textContent ?? "")).length,
                 markersInPanel: markers.every((m) => {
                   const b = m.getBoundingClientRect();
@@ -510,6 +513,7 @@ if (BROWSER) {
             check(r.lines === 4, `${where}: ${r.lines} part lines drawn, want the fixture's 4`);
             check(r.markers === CHART_TOP + 1 && r.you, `${where}: ${r.markers} chart markers (you ${r.you}), want the top ${CHART_TOP} and you`);
             check(r.hidden === "7", `${where}: hidden count ${r.hidden}, want 7`);
+            check(!r.digits.length, `${where}: the chart shows a number (${r.digits.slice(0, 3).join(" | ")})`);
             check(r.panelBottom !== null && r.tilesTop !== null && r.panelBottom <= r.tilesTop + 0.5, `${where}: the chart panel (bottom ${r.panelBottom}) overlaps the parts card (top ${r.tilesTop})`);
             check(r.bodyBottom !== null && r.panelBottom !== null && r.bodyBottom <= r.panelBottom + 0.5, `${where}: the chart (bottom ${r.bodyBottom}) runs out of its panel (bottom ${r.panelBottom})`);
             check(r.markersInPanel, `${where}: a chart marker outside its panel`);

@@ -954,8 +954,8 @@ Lovable still hosts and publishes the app (https://brain-blitz-duel.lovable.app)
   stamps): `MAX_PLAYERS` 16 (`roomCapacity`, `roomSeats.ts` `seatFor`: the 17th join is refused "That room is full (16
   players)."); migration `20261031150000_room_16_players.sql` (slots 1–16, colours 0–31, share counts 1–20) is **written
   but not applied**: until it is, the 11th join is refused as full (10) through `RoomSeatsError` and wheel colours past 9
-  seat as no colour. Lobby players in two columns; round results and standings compact from 9 players with my row pinned
-  (sticky, the list `overflow: clip`); the arcade chart the top 8 plus me (`chartShown`); the podium the top three, "Your
+  seat as no colour. Lobby players in two columns; round results and standings compact from 11 players with my row pinned
+  (sticky, the list `overflow: clip`); the arcade chart the top 8 plus me from 11 players (`chartShown`); the podium the top three, "Your
   place" and my row (`See all`); the reveal's chart panel never shrinks below its chart (the 375×667 four-part-line
   overlap). Colours: `PLAYER_COLOURS` is a 32-swatch wheel (indices stored, never reorder; 0–9 the October ten), every
   pair ≥ 14 ΔE2000 (`PLAYER_COLOUR_MIN_DE`), drawn by `ColourWheel` in `RoomLobby.tsx` (Profile's default, the lobby's

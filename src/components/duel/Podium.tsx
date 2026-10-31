@@ -192,7 +192,7 @@ export function Podium({
   }, [won, sharedFirst]);
 
   const marks = tieMarks(rows.map((row) => ({ slot: row.slot, points: row.total, position: row.position })));
-  // Rooms of 9+ (31 Oct 2026, up to 16): the top three and my own row, the rest one tap away.
+  // Rooms of 11+ (31 Oct 2026, up to 16): the top three and my own row, the rest one tap away.
   const big = isCompactRoom(rows.length);
   const podiumRows = big && !showAll ? listRows.filter((row) => row.position <= 3 || row.slot === mySlot) : listRows;
   const sharedAt = (place: number) => rows.filter((r) => r.position === place).length > 1;
