@@ -158,9 +158,10 @@ import { encodeFreecellRun, encodePokerSquaresRun, encodeTripeaksRun, replayFree
 import { minigolfCheckpoint, minigolfGameFor } from "@/lib/arcade/minigolf";
 import { encodeMinigolfRun, replayMinigolfRun } from "@/lib/duel/minigolf";
 import { MINIGOLF_BANK } from "@/lib/duel/minigolfBank.server";
-import { poolCheckpoint, poolGameFor, POOL_REV } from "@/lib/arcade/pool";
+import { poolCheckpoint, poolGameFor, POOL_REV, POOL_REV_V1 } from "@/lib/arcade/pool";
 import { encodePoolRun, replayPoolRun } from "@/lib/duel/pool";
 import { POOL_BANK } from "@/lib/duel/poolBank.server";
+import { POOL_BANK_V2 } from "@/lib/duel/poolBankV2.server";
 import { curlingCheckpoint, curlingGameFor, CURLING_REV } from "@/lib/arcade/curling";
 import { encodeCurlingRun, replayCurlingRun } from "@/lib/duel/curling";
 import { CURLING_BANK } from "@/lib/duel/curlingBank.server";
@@ -829,9 +830,11 @@ const GAMES: Game[] = [
     encode: encodeMinigolfRun,
     replay: (seed: number, raw: string) => replayMinigolfRun(seed, raw, MINIGOLF_BANK.find((e) => e.seed === seed)!.pars),
   },
-  { key: "pool", game: poolGameFor(POOL_REV), seedFor: (n: number) => POOL_BANK[n % POOL_BANK.length]!, checkpoint: poolCheckpoint, mode: "events", rate: 40, encode: encodePoolRun, replay: (seed: number, raw: string) => replayPoolRun(seed, raw, POOL_REV) },
+  { key: "pool", game: poolGameFor(POOL_REV_V1), seedFor: (n: number) => POOL_BANK[n % POOL_BANK.length]!, checkpoint: poolCheckpoint, mode: "events", rate: 40, encode: encodePoolRun, replay: (seed: number, raw: string) => replayPoolRun(seed, raw, POOL_REV_V1) },
   // Curling curlRev 1 (bank sheets), appended after them.
   { key: "curling", game: curlingGameFor(), seedFor: (n: number) => CURLING_BANK[n % CURLING_BANK.length]!, checkpoint: curlingCheckpoint, mode: "events", rate: 40, encode: encodeCurlingRun, replay: (seed: number, raw: string) => replayCurlingRun(seed, raw, CURLING_REV) },
+  // Cue Ball poolRev 2 (the V2 bank, power and spin dot as separate fields), appended 31 Oct 2026.
+  { key: "pool", game: poolGameFor(POOL_REV), seedFor: (n: number) => POOL_BANK_V2[n % POOL_BANK_V2.length]!, checkpoint: poolCheckpoint, mode: "events", rate: 40, encode: encodePoolRun, replay: (seed: number, raw: string) => replayPoolRun(seed, raw, POOL_REV) },
 ];
 
 /** A random candidate event, often outside the declared range (a finger off the edge). */
