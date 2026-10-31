@@ -247,6 +247,7 @@ function armIdle(): void {
   idleTimer = setTimeout(() => {
     idleTimer = null;
     if (liveSources > 0 || !ctx || pageHidden() || contextState() !== "running") return;
+    if (typeof ctx.suspend !== "function") return;
     idleSuspended = true;
     void ctx.suspend().catch(() => undefined);
   }, IDLE_SUSPEND_MS);
@@ -270,7 +271,7 @@ function watchSources(context: AudioContext): void {
     node.start = ((...args: number[]) => {
       wakeAudio();
       start(...args);
-      if (live) return;
+      if (live || typeof node.addEventListener !== "function") return;
       live = true;
       liveSources++;
       node.addEventListener(
@@ -294,7 +295,7 @@ function onAppHidden(hidden: boolean): void {
   if (hidden) {
     if (idleTimer) clearTimeout(idleTimer);
     idleTimer = null;
-    if (contextState() === "running") {
+    if (contextState() === "running" && typeof ctx.suspend === "function") {
       hiddenSuspended = true;
       void ctx.suspend().catch(() => undefined);
     }

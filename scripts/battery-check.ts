@@ -53,7 +53,7 @@ const SAMPLE_MS = 5000;
 const IDLE_RAF_FPS = 1;
 /** Drawn frames a second on an idle screen: a once-a-second countdown or timer ring is allowed. */
 const IDLE_DRAWN_FPS = 1.5;
-/** A screen waiting on other players: its dots step 2.5 times a second (Dots.tsx) over an arena parked at 1 frame a second. */
+/** A screen waiting on other players: its dots step 2.5 times a second (styles.css dot-bounce) over an arena parked at 1 frame a second. */
 const WAITING_DRAWN_FPS = 4;
 
 /* ---------------------------------------------------------------- the room states */
@@ -301,9 +301,11 @@ try {
         await page.locator("[data-game-arena] canvas").first().waitFor({ timeout: 30_000 });
         await page.waitForTimeout(3500);
         const f = await measureIdle(page, SAMPLE_MS);
-        const ok = f.rafFps <= IDLE_RAF_FPS + 0.5 && f.drawnFps <= WAITING_DRAWN_FPS && !f.running.length;
+        // The waiting dots' step animation (styles.css dot-bounce) is the one allowed: it draws only at its steps.
+        const endless = f.running.filter((r) => !r.startsWith("dot-bounce "));
+        const ok = f.rafFps <= IDLE_RAF_FPS + 0.5 && f.drawnFps <= WAITING_DRAWN_FPS && !endless.length;
         if (REPORT && f.running.length) console.log(`  running: ${f.running.join("; ")}`);
-        if (!ok) failures.push(`parked: a locked room arena still drew ${f.rafFps.toFixed(1)} rAF frames and ${f.drawnFps.toFixed(1)} frames a second (at most ${IDLE_RAF_FPS + 0.5} and ${WAITING_DRAWN_FPS}); running: ${f.running.join("; ") || "none"}`);
+        if (!ok) failures.push(`parked: a locked room arena still drew ${f.rafFps.toFixed(1)} rAF frames and ${f.drawnFps.toFixed(1)} frames a second (at most ${IDLE_RAF_FPS + 0.5} and ${WAITING_DRAWN_FPS}); other running animations: ${endless.join("; ") || "none"}`);
         console.log(`${ok ? "PASS" : "FAIL"} parked: locked room arena (Waiting for other players): ${fmt(f)}`);
         lines.push(`locked room arena: ${fmt(f)}`);
       } finally {
