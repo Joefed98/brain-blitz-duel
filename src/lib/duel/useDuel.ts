@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import { batched, usePageHidden } from "@/lib/battery";
 import { useArcadeScreenTickMs } from "@/lib/fx/useArcadeScreenTick";
 import { supabase } from "@/integrations/supabase/client";
 
 import { checkHostPresence, fetchDuelByCode, fetchPlayers, fetchResults, heartbeat } from "./api";
 import { calibrateServerClock, initServerClock, serverNow } from "./clock";
+import { roomTickMs } from "./roomTick";
 import { ensureSession } from "./session";
 import { type DuelPlayerRow, type DuelRow, type RoundResultRow } from "./types";
 
@@ -46,7 +48,8 @@ export function useDuel(roomCode: string): DuelState {
   const [results, setResults] = useState<RoundResultRow[]>([]);
   const [userId, setUserId] = useState<string | null>(null);
   const duelIdRef = useRef<string | null>(null);
-  const now = useNow(100);
+  // Battery (31 Oct 2026): 10 a second during a round's phases, 4 between rounds (roomTick.ts).
+  const now = useNow(roomTickMs(duel));
 
   const load = useCallback(async () => {
     const found = await fetchDuelByCode(roomCode);
@@ -91,9 +94,20 @@ export function useDuel(roomCode: string): DuelState {
     };
   }, [load]);
 
-  // Realtime: both phones react to duel, player and result changes instantly.
+  // Realtime: both phones react to duel, player and result changes instantly. Battery (31 Oct 2026):
+  // player and result refetches are batched to at most one a second (every player's 4 s heartbeat is a
+  // duel_players change, so a full room sent several a second); the first change still fetches at once.
+  const [live, setLive] = useState(false);
   useEffect(() => {
     if (!userId) return;
+    const players = batched(() => {
+      const id = duelIdRef.current;
+      if (id) void fetchPlayers(id).then(setPlayers);
+    });
+    const results = batched(() => {
+      const id = duelIdRef.current;
+      if (id) void fetchResults(id).then(setResults);
+    });
     const channel = supabase
       .channel(`duel-${roomCode}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "duels" }, (payload) => {
@@ -106,7 +120,7 @@ export function useDuel(roomCode: string): DuelState {
         (payload) => {
           const row = (payload.new ?? payload.old) as DuelPlayerRow | undefined;
           if (!row || row.duel_id !== duelIdRef.current) return;
-          void fetchPlayers(row.duel_id).then(setPlayers);
+          players.call();
         },
       )
       .on(
@@ -115,15 +129,23 @@ export function useDuel(roomCode: string): DuelState {
         (payload) => {
           const row = (payload.new ?? payload.old) as RoundResultRow | undefined;
           if (!row || row.duel_id !== duelIdRef.current) return;
-          void fetchResults(row.duel_id).then(setResults);
+          results.call();
         },
       )
-      .subscribe();
+      .subscribe((status: string) => {
+        const up = status === "SUBSCRIBED";
+        setLive(up);
+        // (Re)connected: catch up on anything sent while the channel was down.
+        if (up) void load();
+      });
 
     return () => {
+      players.cancel();
+      results.cancel();
+      setLive(false);
       void supabase.removeChannel(channel);
     };
-  }, [roomCode, userId]);
+  }, [roomCode, userId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Other players' answers become readable when a round closes (results screen),
   // with no round_results event to announce them: fetch on every phase change.
@@ -146,14 +168,16 @@ export function useDuel(roomCode: string): DuelState {
     void calibrateServerClock();
   }, [duel?.id, duel?.status, duel?.current_round]);
 
-  // And whenever the app comes back to the foreground (a phone asleep, the app switched away).
+  // And whenever the app comes back to the foreground (a phone asleep, the app switched away), with
+  // the room read afresh (battery: nothing is fetched while hidden).
   useEffect(() => {
     const onVisible = () => {
       if (document.visibilityState === "visible") void calibrateServerClock();
+      if (document.visibilityState === "visible" && duelIdRef.current) void load();
     };
     document.addEventListener("visibilitychange", onVisible);
     return () => document.removeEventListener("visibilitychange", onVisible);
-  }, []);
+  }, [load]);
 
   const me = userId ? (players.find((p) => p.user_id === userId) ?? null) : null;
   const roomPlayers = players.filter((p) => p.status !== "left");
@@ -161,27 +185,32 @@ export function useDuel(roomCode: string): DuelState {
   const isMulti = roomPlayers.length > 2;
   const isHost = !!me && !!duel && duel.host_user_id === me.user_id;
 
+  // Battery (31 Oct 2026): nothing below runs while the app is hidden (an iPhone freezes a hidden app
+  // anyway); each starts again, at once, on return.
+  const hidden = usePageHidden();
+
   // Heartbeat so the opponent can tell we are still here.
   useEffect(() => {
-    if (!me) return;
+    if (!me || hidden) return;
     const duelId = me.duel_id;
     void heartbeat(duelId);
     const id = window.setInterval(() => void heartbeat(duelId), 4000);
     return () => window.clearInterval(id);
-  }, [me?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [me?.id, hidden]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Safety net against a missed realtime event.
+  // Safety net against a missed realtime event, only while the live channel is down (it reloads the
+  // room each time it (re)connects, and the phase-change and foreground reads above catch the rest).
   useEffect(() => {
-    if (!userId) return;
+    if (!userId || live || hidden) return;
     const id = window.setInterval(() => void load(), 8000);
     return () => window.clearInterval(id);
-  }, [load, userId]);
+  }, [load, userId, live, hidden]);
 
   useEffect(() => {
-    if (!duel || duel.status !== "waiting" || !me || isHost) return;
+    if (!duel || duel.status !== "waiting" || !me || isHost || hidden) return;
     const id = window.setInterval(() => void checkHostPresence(duel.id), 8000);
     return () => window.clearInterval(id);
-  }, [duel?.id, duel?.status, me?.id, isHost]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [duel?.id, duel?.status, me?.id, isHost, hidden]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return {
     loading,

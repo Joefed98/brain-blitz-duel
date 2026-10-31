@@ -10,6 +10,7 @@ import { preloadGameData } from "@/lib/duel/gamePreload";
 import { getIntroDemoFn } from "@/lib/duel/introDemo.functions";
 import type { PuzzleData, PuzzleType } from "@/lib/duel/types";
 import { gameDisplayName } from "@/lib/duel/gameNames";
+import { canvasRatio } from "@/lib/battery";
 
 const RING_TICKS = 18; // 300 ms at 60 ticks a second
 // Display-only switch for the white touch rings in demo playback.
@@ -70,7 +71,7 @@ export function IntroDemo({ type, demo, onReady }: { type: PuzzleType; demo: Arc
     if (!renderer || !canvas) return;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
-    const dpr = Math.min(2, window.devicePixelRatio || 1);
+    const dpr = canvasRatio();
     const scale = canvas.clientWidth / renderer.worldW;
     canvas.width = Math.round(canvas.clientWidth * dpr);
     canvas.height = Math.round(canvas.clientHeight * dpr);

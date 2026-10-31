@@ -17,6 +17,7 @@ import { ensureSession } from "../lib/duel/session";
 import { noteShareArrival } from "../lib/share/shareRef";
 import { PLAY_CARDS_BOOT } from "../lib/playCards";
 import { installSoundCueBridge, installSoundUnlock } from "../lib/sound";
+import { batterySaverOn } from "../lib/battery";
 import { APP_DESCRIPTION, APP_ICONS, APP_NAME, APP_TITLE, LINK_PREVIEW } from "../lib/brand";
 import { installAppUpdater } from "../lib/appUpdate";
 import { reportCrash, startCrashReporting } from "../lib/crashReporting";
@@ -193,6 +194,8 @@ function RootComponent() {
 
   // The first tap anywhere unlocks audio (iOS only counts touchend/click).
   useEffect(() => installSoundUnlock(), []);
+  // Battery saver (lib/battery.ts): marks <html data-battery-saver> from the device's setting.
+  useEffect(() => void batterySaverOn(), []);
   // Named cues (docs/sound-cues) play their manifest file once one is set.
   useEffect(() => installSoundCueBridge(), []);
 

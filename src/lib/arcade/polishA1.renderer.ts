@@ -29,20 +29,43 @@ export function a1Hash(i: number, seed: number): number {
   return (t ^ (t >>> 14)) >>> 0;
 }
 
+/*
+ * Battery (31 Oct 2026, display only): a gradient with the same geometry and stops on the same context is
+ * the same paint, so it is built once and reused frame to frame instead of rebuilt every frame. Each
+ * context keeps at most GRADIENT_CACHE entries (moving pieces make new keys; the oldest go first).
+ */
+const GRADIENT_CACHE = 96;
+const gradients = new WeakMap<object, Map<string, CanvasGradient>>();
+function cachedGradient(c: CanvasRenderingContext2D, key: string, make: () => CanvasGradient | null, stops: Stops): CanvasGradient | null {
+  let cache = gradients.get(c);
+  if (!cache) gradients.set(c, (cache = new Map()));
+  const id = `${key}|${stops.map(([at, colour]) => `${at}:${colour}`).join(",")}`;
+  const kept = cache.get(id);
+  if (kept) return kept;
+  const g = make();
+  if (!g || typeof g.addColorStop !== "function") return null;
+  for (const [at, colour] of stops) g.addColorStop(at, colour);
+  if (cache.size >= GRADIENT_CACHE) cache.delete(cache.keys().next().value!);
+  cache.set(id, g);
+  return g;
+}
+
 /** A radial gradient, or the last stop's colour where the context has none (Node check stubs). */
 export function radial(c: CanvasRenderingContext2D, x: number, y: number, r: number, stops: Stops, sy = 1): CanvasGradient | string {
-  const g = typeof c.createRadialGradient === "function" ? c.createRadialGradient(x, y / sy, 0, x, y / sy, r) : null;
-  if (!g || typeof g.addColorStop !== "function") return stops[stops.length - 1]?.[1] ?? "transparent";
-  for (const [at, colour] of stops) g.addColorStop(at, colour);
-  return g;
+  const g =
+    typeof c.createRadialGradient === "function"
+      ? cachedGradient(c, `r${x},${y / sy},${r}`, () => c.createRadialGradient(x, y / sy, 0, x, y / sy, r), stops)
+      : null;
+  return g ?? stops[stops.length - 1]?.[1] ?? "transparent";
 }
 
 /** A linear gradient from (x0, y0) to (x1, y1), with the same fallback. */
 export function linear(c: CanvasRenderingContext2D, x0: number, y0: number, x1: number, y1: number, stops: Stops): CanvasGradient | string {
-  const g = typeof c.createLinearGradient === "function" ? c.createLinearGradient(x0, y0, x1, y1) : null;
-  if (!g || typeof g.addColorStop !== "function") return stops[stops.length - 1]?.[1] ?? "transparent";
-  for (const [at, colour] of stops) g.addColorStop(at, colour);
-  return g;
+  const g =
+    typeof c.createLinearGradient === "function"
+      ? cachedGradient(c, `l${x0},${y0},${x1},${y1}`, () => c.createLinearGradient(x0, y0, x1, y1), stops)
+      : null;
+  return g ?? stops[stops.length - 1]?.[1] ?? "transparent";
 }
 
 /** A soft elliptical glow blob (a radial gradient squashed by `sy`). */
