@@ -321,7 +321,19 @@ try {
         check(text.includes(phrase), `the terms say "${phrase}"`);
       check(text.includes("Joulz") && !text.includes("Duelz"), "the terms use the app's name");
       await page.getByRole("button", { name: "I agree" }).click();
-      await page.waitForTimeout(500);
+      // The agreement goes out fire-and-forget after a dynamic import (lib/beta/terms.ts), which a cold dev server on
+      // a busy 2-core runner can take well past half a second to serve: wait for both calls (at most 10 s), not a
+      // fixed 500 ms (31 Oct 2026, failed that way on CI twice). The assertions below are unchanged.
+      await page
+        .waitForFunction(
+          () => {
+            const c = (window as unknown as { __harness: H }).__harness.calls ?? [];
+            return c.includes("createRoom") && c.includes("recordTermsAgreedFn");
+          },
+          undefined,
+          { timeout: 10_000 },
+        )
+        .catch(() => undefined);
       const after = await calls(page);
       check(after.includes("createRoom"), "I AGREE goes on to create the room");
       check(after.includes("recordTermsAgreedFn"), "the agreement is sent with the beta events");

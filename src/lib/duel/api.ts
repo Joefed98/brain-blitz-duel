@@ -19,6 +19,7 @@ import {
   revealAnswerFn,
   setPlayerLookFn,
   setRoomModesFn,
+  setRoomSettingsFn,
   disbandRoomFn,
   checkHostPresenceFn,
   startRoomFn,
@@ -31,6 +32,7 @@ import { ensureSession } from "./session";
 import { rememberLook, rememberedLook, type PlayerLook } from "./playerLook";
 import type { DuelPlayerRow, DuelRow, RoundResultRow, RoundRevealData } from "./types";
 import type { PuzzleCategory } from "./types";
+import type { RoomSettings } from "./roomSettings";
 
 export class DuelError extends Error {}
 
@@ -105,6 +107,12 @@ export async function setRoomModes(
   categories: PuzzleCategory[],
 ): Promise<void> {
   const result = await setRoomModesFn({ data: { roomId, categories } });
+  if (!result.ok) throw new DuelError(result.message);
+}
+
+/** Host only, in the lobby: the room's categories and round count (roomSettings.ts). */
+export async function setRoomSettings(roomId: string, settings: RoomSettings): Promise<void> {
+  const result = await setRoomSettingsFn({ data: { roomId, picks: [...settings.picks], rounds: settings.rounds } });
   if (!result.ok) throw new DuelError(result.message);
 }
 
