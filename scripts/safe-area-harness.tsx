@@ -15,6 +15,7 @@ import { createRoot } from "react-dom/client";
 
 import "../src/styles.css";
 import { serverNow } from "@/lib/duel/clock";
+import { roomTickMs } from "@/lib/duel/roomTick";
 import type { DuelPlayerRow, DuelRow, PuzzleData, RoundResultRow } from "@/lib/duel/types";
 import { puzzleDef } from "@/lib/duel/registry";
 import { bootPlayCards, publicCardStarts } from "@/lib/playCards";
@@ -138,8 +139,9 @@ function useNow(intervalMs = 100): number {
 
 function useDuel() {
   useSyncExternalStore(subscribe, () => version);
-  const now = useNow(100);
   const room = H.room!;
+  // The room's clock tick, as useDuel's (src/lib/duel/roomTick.ts).
+  const now = useNow(roomTickMs(room.duel));
   const me = room.players[0]!;
   return {
     loading: false,

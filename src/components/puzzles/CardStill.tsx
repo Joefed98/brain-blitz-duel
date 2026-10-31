@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { canvasRatio } from "@/lib/battery";
 
 /**
  * A Cards & Board intro still: the game's own renderer draws one frame of a deal into a small canvas (display only),
@@ -12,7 +13,7 @@ export function CardStill({ width, height, draw, caption }: { width: number; hei
     const node = ref.current;
     const ctx = node?.getContext("2d");
     if (!node || !ctx) return;
-    const ratio = typeof window !== "undefined" ? Math.min(3, window.devicePixelRatio || 1) : 1;
+    const ratio = canvasRatio();
     node.width = Math.round(shownW * ratio);
     node.height = Math.round(shownH * ratio);
     ctx.setTransform(ratio, 0, 0, ratio, 0, 0);

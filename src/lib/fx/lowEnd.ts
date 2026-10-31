@@ -34,6 +34,8 @@
  * data-reduced-effects>.
  */
 
+import { arenaFrame, batterySaverOn, cancelArenaFrame, canvasRatio } from "@/lib/battery";
+
 export type ReducedLevel = 0 | 1 | 2;
 
 /** A frame whose own work exceeds this is slow (it cannot keep 50 fps). */
@@ -94,9 +96,12 @@ export function arcadeReducedLevel(): ReducedLevel {
   return level;
 }
 
-/** True once frames have run long: skip or simplify purely decorative passes. */
+/**
+ * True once frames have run long, or with the battery saver on (lib/battery.ts: fewer particles, glows
+ * and bloom, at the full pixel ratio): skip or simplify purely decorative passes.
+ */
 export function arcadeReducedEffects(): boolean {
-  return arcadeReducedLevel() > 0;
+  return arcadeReducedLevel() > 0 || batterySaverOn();
 }
 
 /**
@@ -104,9 +109,9 @@ export function arcadeReducedEffects(): boolean {
  * at most 1 in reduced effects, and 0.75 at level 2.
  */
 export function arcadeCanvasRatio(): number {
-  const dpr = (typeof window !== "undefined" && window.devicePixelRatio) || 1;
+  const ratio = canvasRatio();
   const l = arcadeReducedLevel();
-  return l === 0 ? Math.min(dpr, 2) : l === 1 ? Math.min(dpr, 1) : Math.min(dpr, 1) * 0.75;
+  return l === 0 ? ratio : l === 1 ? Math.min(ratio, 1) : Math.min(ratio, 1) * 0.75;
 }
 
 /** Called when the level changes or an arena mounts or unmounts. */
@@ -184,15 +189,17 @@ export function watchArcadeFrames(): () => void {
     }
   };
   if (channel) channel.port1.onmessage = (event: MessageEvent<number>) => settle(event.data);
+  // Battery (31 Oct 2026): the watcher's frames follow the arena's (lib/battery.ts arenaFrame): none while
+  // hidden, one a second once the run is over or the stage locked, so it never keeps a parked screen awake.
   const frame = (t: number) => {
-    raf = requestAnimationFrame(frame);
+    raf = arenaFrame(frame);
     if (channel) channel.port2.postMessage(t);
   };
   document.addEventListener("visibilitychange", onVisibility);
   window.addEventListener("pageshow", restart);
-  raf = requestAnimationFrame(frame);
+  raf = arenaFrame(frame);
   return () => {
-    cancelAnimationFrame(raf);
+    cancelArenaFrame(frame, raf);
     document.removeEventListener("visibilitychange", onVisibility);
     window.removeEventListener("pageshow", restart);
     if (channel) channel.port1.onmessage = null;

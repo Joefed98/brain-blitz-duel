@@ -32,6 +32,7 @@ import { ArcadeCanvasStage, type PointerPayload } from "@/components/puzzles/Arc
 import { racingSounds } from "@/lib/fx/racingSounds";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
+import { canvasRatio } from "@/lib/battery";
 
 const STILL = 200;
 
@@ -42,7 +43,7 @@ function IntroExample() {
     const node = ref.current;
     const ctx = node?.getContext("2d");
     if (!node || !ctx) return;
-    const ratio = typeof window === "undefined" ? 1 : Math.min(3, window.devicePixelRatio || 1);
+    const ratio = canvasRatio();
     node.width = STILL * ratio;
     node.height = STILL * ratio;
     ctx.setTransform(ratio, 0, 0, ratio, 0, 0);

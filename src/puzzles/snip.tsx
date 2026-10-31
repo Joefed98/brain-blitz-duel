@@ -34,6 +34,7 @@ import { NO_SCROLL_STYLE } from "@/components/puzzles/noScroll";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 import { arcadeCanvasRatio } from "@/lib/fx/lowEnd";
+import { arenaFrame, cancelArenaFrame } from "@/lib/battery";
 
 const GAME_ROOT_STYLE = { ...NO_SCROLL_STYLE, touchAction: "none", userSelect: "none", WebkitUserSelect: "none" } as const;
 
@@ -112,7 +113,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     let shownKey = "";
 
     const loop = (time: number) => {
-      frame = requestAnimationFrame(loop);
+      frame = arenaFrame(loop);
       frameTiming.begin(time);
       const delta = time - last;
       last = time;
@@ -195,9 +196,9 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       }
       frameTiming.end();
     };
-    frame = requestAnimationFrame(loop);
+    frame = arenaFrame(loop);
     return () => {
-      cancelAnimationFrame(frame);
+      cancelArenaFrame(loop, frame);
       sounds.stop();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps

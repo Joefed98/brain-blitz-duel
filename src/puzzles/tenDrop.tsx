@@ -43,6 +43,7 @@ import "@/polish-layout/batch-w-tendrop.css";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 import { arcadeCanvasRatio } from "@/lib/fx/lowEnd";
+import { arenaFrame, cancelArenaFrame } from "@/lib/battery";
 
 const GAME_ROOT_STYLE = { ...NO_SCROLL_STYLE, touchAction: "none", userSelect: "none", WebkitUserSelect: "none" } as const;
 
@@ -210,7 +211,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
 
     const loop = (time: number) => {
       frameTiming.begin(time);
-      frame = requestAnimationFrame(loop);
+      frame = arenaFrame(loop);
       const delta = time - last;
       last = time;
       if (!tenDropGame.isOver(state.current) && !lockedRef.current) {
@@ -309,8 +310,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       }
       frameTiming.end();
     };
-    frame = requestAnimationFrame(loop);
-    return () => cancelAnimationFrame(frame);
+    frame = arenaFrame(loop);
+    return () => cancelArenaFrame(loop, frame);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [seed, data]);
 

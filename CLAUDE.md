@@ -892,6 +892,20 @@ Lovable still hosts and publishes the app (https://brain-blitz-duel.lovable.app)
   rev-1 runs still end at 90 s), a softer stick (±10 dead zone, expo, front wheels at most 8 a tick; 64 px thumb throw on
   the phone), the car's side and steered front wheel shown as it yaws (display, all revisions). All three fill the play
   screen at 414×896 and 375×667 (worlds and scenes carried to the box). Shots `screenshots/sports-tuning-oct-2026/`.
+- **Battery** (31 Oct 2026; presentation, sound and network timing only, no stamps; `src/lib/battery.ts`): canvases render at
+  a pixel ratio of at most 2 (`canvasRatio`, also behind `arcadeCanvasRatio`); every arcade loop takes its next frame through
+  `arenaFrame(loop)` / `cancelArenaFrame(loop, frame)` (none while hidden, resuming on return; once the run is over,
+  `arcadeClockEnded`, or the stage locked, SteadyOrPlain's `setArenaLocked`, for 2 s it draws once a second); a new arcade
+  loop must use them. The timer ring steps once a second outside arcade play screens, standings/podium rows move only when
+  their contents change, the room clock ticks every 250 ms between rounds (`roomTick.ts`), waiting dots step at 2.5 Hz.
+  Sound (`sound.ts`): the AudioContext is suspended ~5 s after the last source ends and woken by the next `start()`, and
+  suspended while hidden. Rooms (`useDuel`): realtime refetches batched to one a second (`batched`), heartbeat and polls
+  off while hidden, the 8 s safety-net poll only while the channel is down. Battery saver (Profile → settings,
+  `duelz-battery-saver:v1`, `<html data-battery-saver>`, off by default): `arcadeReducedEffects()` on (fewer particles and
+  glows at full pixel ratio), half the celebration sparks, endless decorative CSS motion off, puzzles' animation frames at
+  30 fps (`capPuzzleFrames`; never arcade or Speed). battery-check (headless Chromium, ~2 min; `--report`,
+  `--arcade=<ids> [--dpr=3]` for CPU per frame) proves idle screens at ~0 fps, loops stopping when hidden or parked, the
+  ratio cap and the audio suspend.
 - **Sound batch 6** (31 Oct 2026, presentation only, no stamps; `docs/sound-cues/batch6-sports-cards.md`,
   `batch6-mapping.csv`): Joe's 86 ElevenLabs recordings for the Sports and Cards & Board games, trimmed (under 3 ms of
   lead, each effect within its budget plus 150 ms), looped (seamless joins, checked as `detectLoopPoints` loops them),

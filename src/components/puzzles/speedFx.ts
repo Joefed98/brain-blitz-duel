@@ -6,6 +6,7 @@
 import { prefersReducedMotion } from "@/lib/motion";
 import { demoHushed } from "@/lib/sound";
 import { soundCue as dispatchSoundCue } from "@/lib/fx/soundCues";
+import { canvasRatio } from "@/lib/battery";
 
 /** Named cue for a future sound pass (shared "duelz-sound" event), silent while an intro demo is hushed. No audio is played. */
 export function soundCue(cue: string): void {
@@ -51,7 +52,7 @@ export function playOverlayFx({ rect, ms, draw }: OverlayFx): () => void {
   const width = Math.max(1, Math.round(rect.width));
   const height = Math.max(1, Math.round(rect.bottom - top));
   const canvas = document.createElement("canvas");
-  const dpr = Math.min(2, window.devicePixelRatio || 1);
+  const dpr = canvasRatio();
   canvas.width = Math.round(width * dpr);
   canvas.height = Math.round(height * dpr);
   canvas.setAttribute("aria-hidden", "true");
