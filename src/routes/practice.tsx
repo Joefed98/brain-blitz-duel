@@ -349,12 +349,21 @@ function PracticeScreen() {
       setOfflineRunId(null);
       packSeed.current = null;
       // A live deal when there is a connection; else (or when it doesn't come) a deal from the game's saved pack.
-      let made: { puzzle: unknown; sealed: string } | null = null;
+      // A slow live deal with no saved deal to fall back on is still waited for: only a failed request (or no
+      // connection) ends in the "not saved" notice.
+      type Made = { puzzle: unknown; sealed: string };
+      let made: Made | null = null;
+      let live: Promise<Made | null> | null = null;
+      let slow = false;
       if (isOnline() || exampleMode) {
+        live = practiceGenerateFn({ data: { type: next, example: exampleMode } }).then(
+          (m) => m as Made,
+          () => null,
+        );
         try {
-          made = await withTimeout(practiceGenerateFn({ data: { type: next, example: exampleMode } }), LIVE_DEAL_TIMEOUT_MS);
+          made = await withTimeout(live, LIVE_DEAL_TIMEOUT_MS);
         } catch {
-          made = null;
+          slow = true;
         }
       }
       if (!made && !exampleMode) {
@@ -364,6 +373,7 @@ function PracticeScreen() {
           packSeed.current = deal.id;
         }
       }
+      if (!made && slow && live) made = await live;
       if (!made) {
         const name = PUZZLE_REGISTRY[next].name;
         setNotice(ONLINE_ONLY_TYPES.has(next) ? `${name} is online only.` : `No ${name} games are saved for offline play yet.`);
