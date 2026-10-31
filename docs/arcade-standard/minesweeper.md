@@ -1,5 +1,7 @@
 # Minesweeper on the arcade scoring standard (minesRev 1, 30 Oct 2026)
 
+Shown as **Minefield** since 31 Oct 2026 (`gameNames.ts`; the id `minesweeper` and every stamp unchanged).
+
 Arcade, **Cards & Board** group (`src/lib/duel/arcadeGroups.ts`; its tiles take the group's `--group-cards` border). Dealt in rooms from the start. A 90 s run on a
 93 s clock.
 

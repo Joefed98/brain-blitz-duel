@@ -7,7 +7,7 @@ import { SNAKE_REV_TARGET, SNAKE_REV_STD } from "@/lib/arcade/snake";
 import { BUB_REV_STD } from "@/lib/arcade/bubble";
 import { MATCHUP_REV_STD } from "@/lib/arcade/matchup";
 import { minesBoard, minesSolve, MINES_REV_STD } from "@/lib/arcade/minesweeper";
-import { mahjongBuildClears, MAHJONG_REV_STD } from "@/lib/arcade/mahjong";
+import { mahjongBuildClears, MAHJONG_REV_DEALT } from "@/lib/arcade/mahjong";
 import { SNIP_REV_TARGET, SNIP_REV_EXPAND } from "@/lib/arcade/snip";
 import { SKYLINE_REV_TARGET, SKYLINE_REV_STRICT, SKYLINE_REV_STD } from "@/lib/arcade/skyline";
 import { TILT_REV_STD } from "@/lib/arcade/tilt";
@@ -44,7 +44,8 @@ import { FC_DEALS } from "@/lib/arcade/cards/freecellDeals.data";
 import { TP_REV } from "@/lib/arcade/cards/tripeaks";
 import { TP_DEALS } from "@/lib/arcade/cards/tripeaksDeals.data";
 import { PS_REV } from "@/lib/arcade/cards/pokerSquares";
-import type { FreecellPuzzleData, PokerSquaresPuzzleData, TripeaksPuzzleData } from "./types";
+import { FH_REV } from "@/lib/arcade/cards/fiveHands";
+import type { FiveHandsPuzzleData, FreecellPuzzleData, PokerSquaresPuzzleData, TripeaksPuzzleData } from "./types";
 import { bullseyeWinds, BULLSEYE_REV_TARGET, BULLSEYE_REV_STRICT, BULLSEYE_REV_STD } from "@/lib/arcade/bullseye";
 import type {
   BinTossPuzzleData,
@@ -104,6 +105,11 @@ export function generateTripeaks(): TripeaksPuzzleData {
 /** Poker Squares: any seed; the sim builds the target grid and dealing order from it. */
 export function generatePokerSquares(): PokerSquaresPuzzleData {
   return { type: "pokersquares", seed: arcadeSeed(), pokerSquaresRev: PS_REV };
+}
+
+/** Five Hands: any seed; the sim shuffles the deck and proves its witness (perfect play reaches 200). */
+export function generateFiveHands(): FiveHandsPuzzleData {
+  return { type: "fivehands", seed: arcadeSeed(), fiveHandsRev: FH_REV };
 }
 
 export function generateSwerve(): SwervePuzzleData {
@@ -183,7 +189,7 @@ export function generateMinesweeper(): MinesweeperPuzzleData {
 export function generateMahjong(): MahjongPuzzleData {
   for (;;) {
     const seed = arcadeSeed();
-    if (mahjongBuildClears(seed)) return { type: "mahjong", seed, mahjongRev: MAHJONG_REV_STD };
+    if (mahjongBuildClears(seed)) return { type: "mahjong", seed, mahjongRev: MAHJONG_REV_DEALT };
   }
 }
 

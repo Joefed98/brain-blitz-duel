@@ -26,6 +26,7 @@ export const TILE_SCENES: Partial<Record<PuzzleType, string>> = {
   dig: "3e4992d3a9",
   dual: "64cb1a74d3",
   equation: "12307ac0f9",
+  fivehands: "dbd7c0039e",
   flip: "030d26bd7c",
   flood: "635a8130c9",
   flow: "701a3d1d47",

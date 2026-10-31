@@ -130,6 +130,7 @@ import {
   FREECELL_TIME_MS,
   TRIPEAKS_TIME_MS,
   POKERSQUARES_TIME_MS,
+  FIVEHANDS_TIME_MS,
 } from "./types";
 
 import { TG_TIME_MS, tileGridResultLine } from "./tileGrid";
@@ -160,6 +161,7 @@ const DIRECT_LIMITS: Partial<Record<PuzzleType, number>> = {
   freecell: FREECELL_TIME_MS,
   tripeaks: TRIPEAKS_TIME_MS,
   pokersquares: POKERSQUARES_TIME_MS,
+  fivehands: FIVEHANDS_TIME_MS,
   minigolf: MINIGOLF_TIME_MS,
   pool: POOL_TIME_MS,
   curling: CURLING_TIME_MS,
@@ -1130,6 +1132,14 @@ const pokerSquaresSummary: SummaryBuilder = (result) => {
   };
 };
 
+const fiveHandsSummary: SummaryBuilder = (result) => {
+  const n = (key: string) => Number(result.extra?.[key] ?? 0);
+  return {
+    summary: `${n("total")} hand points · ${n("made")} of 5 hands`,
+    detail: [`${n("placed")} of 20 cards placed`],
+  };
+};
+
 /** Sports (30 Oct 2026): what each part of the arcade standard paid, as the grader stored it. */
 const partsLine = (result: RoundResultRow, keys: [string, string][]): string =>
   keys.map(([key, label]) => `${label} ${Number(result.extra?.[key] ?? 0)}`).join(" · ");
@@ -1755,6 +1765,7 @@ export const ROUND_SUMMARIES: Record<PuzzleType, SummaryBuilder> = {
   freecell: freecellSummary,
   tripeaks: tripeaksSummary,
   pokersquares: pokerSquaresSummary,
+  fivehands: fiveHandsSummary,
   minigolf: minigolfSummary,
   pool: poolSummary,
   curling: curlingSummary,
@@ -1855,6 +1866,7 @@ export const CORRECT_ANSWERS: Record<PuzzleType, AnswerBuilder> = {
   freecell: () => null,
   tripeaks: () => null,
   pokersquares: () => null,
+  fivehands: () => null,
   minigolf: () => null,
   pool: () => null,
   curling: () => null,

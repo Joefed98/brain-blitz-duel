@@ -15,6 +15,7 @@ import { mahjongCheckpoint } from "./mahjong";
 import { fcCheckpoint } from "./cards/freecell";
 import { tpCheckpoint } from "./cards/tripeaks";
 import { psCheckpoint } from "./cards/pokerSquares";
+import { fhCheckpoint } from "./cards/fiveHands";
 import { bubCheckpoint } from "./bubble";
 import { bullseyeCheckpoint } from "./bullseye";
 import { crossCheckpoint } from "./cross";
@@ -73,6 +74,7 @@ const SNAPSHOTS: Record<string, (state: any) => object> = {
   freecell: fcCheckpoint,
   tripeaks: tpCheckpoint,
   pokersquares: psCheckpoint,
+  fivehands: fhCheckpoint,
   bubble: bubCheckpoint,
   bullseye: bullseyeCheckpoint,
   cross: crossCheckpoint,

@@ -9,6 +9,7 @@ import type { GameSounds } from "@/lib/fx/gameSounds";
 import { fcHomeCount, type FcState } from "@/lib/arcade/cards/freecell";
 import type { TpState } from "@/lib/arcade/cards/tripeaks";
 import { psTotals, type PsState } from "@/lib/arcade/cards/pokerSquares";
+import { fhTotals, type FhState } from "@/lib/arcade/cards/fiveHands";
 
 const play = (id: SoundId, volume = 1, rate = 1) => playSlotOr(id, id, volume, rate, true);
 
@@ -56,6 +57,25 @@ export function pokerSquaresSounds(): GameSounds<PsState> {
           play(after.made > before.made ? "correct" : after.total > before.total ? "combo" : "place", 0.8);
         }
         if (state.rejects > prev.rejects) play("wrong", 0.5);
+      }
+      prev = state;
+    },
+    stop: () => {},
+  };
+}
+
+export function fiveHandsSounds(): GameSounds<FhState> {
+  let prev: FhState | null = null;
+  return {
+    frame(state) {
+      if (prev && state.tick > prev.tick) {
+        if (state.turn > prev.turn) {
+          const before = fhTotals(prev.rows);
+          const after = fhTotals(state.rows);
+          play(after.made > before.made ? "correct" : after.total > before.total ? "combo" : "place", 0.8);
+        }
+        if (state.rejects > prev.rejects) play("wrong", 0.5);
+        if (state.ended === 1 && prev.ended === 0) play("complete");
       }
       prev = state;
     },

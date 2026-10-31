@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useLayoutEffect, useRef, type ReactNode, type Ref } from "react";
 
 import { MuteToggle } from "./MuteToggle";
-import { BOARD_FILL, CATEGORY_NAMES, GoalLine, useBoardTray } from "./GameFrame";
+import { BOARD_FILL, CATEGORY_NAMES, FrameName, GoalLine, useBoardTray } from "./GameFrame";
 import { AppHeader } from "@/components/app/AppHeader";
 import { AppWordmark } from "@/components/brand/AppWordmark";
 import { FxLayer } from "./FxLayer";
@@ -137,7 +137,11 @@ export function GameLayout({ label, title, help, progress, score, ping, timer, b
       style={NO_SELECT_STYLE}
     >
       <div data-header-left className="game-frame-left">
-        <span data-frame-name data-long={nameLength > 15 ? "" : undefined} className="game-frame-name" style={{ ["--name-len" as string]: nameLength }}>{title}</span>
+        {typeof title === "string" ? (
+          <FrameName data-frame-name text={title} />
+        ) : (
+          <span data-frame-name className="game-frame-name" style={{ ["--name-len" as string]: nameLength }}>{title}</span>
+        )}
         <span data-frame-context data-fit={contextLength > 20 ? "short" : undefined} className="game-frame-context">
           <span aria-hidden="true" className="game-frame-dot" />
           <span className="game-frame-context-text">

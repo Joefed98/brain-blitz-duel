@@ -18,6 +18,7 @@ import { FREEKICK_FX, HOMERUN_FX, RACING_FX } from "./sportsFx.renderer";
 import { FREECELL_FX } from "./cards/freecell.renderer";
 import { TRIPEAKS_FX } from "./cards/tripeaks.renderer";
 import { POKERSQUARES_FX } from "./cards/pokerSquares.renderer";
+import { FIVEHANDS_FX } from "./cards/fiveHands.renderer";
 import { px } from "./engine";
 
 import { HOVER_DISC_X, HOVER_EXPAND_H, HOVER_TALL_H, HOVER_WORLD_H, HOVER_WORLD_W, hoverWorldH, type HoverState } from "./hover";
@@ -283,6 +284,7 @@ export const ARCADE_GAME_WORLDS = {
   freecell: "cards",
   tripeaks: "cards",
   pokersquares: "cards",
+  fivehands: "cards",
   // The Sports group (30 Oct 2026): realistic venues.
   minigolf: "realworld",
   pool: "realworld",
@@ -1784,6 +1786,7 @@ export const ARCADE_FX_SPECS = {
   freecell: FREECELL_FX,
   tripeaks: TRIPEAKS_FX,
   pokersquares: POKERSQUARES_FX,
+  fivehands: FIVEHANDS_FX,
   minigolf: MINIGOLF_FX,
   pool: POOL_FX,
   curling: CURLING_FX,
