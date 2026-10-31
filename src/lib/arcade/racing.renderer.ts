@@ -257,7 +257,11 @@ interface Layers {
   trees: Surface[];
   stand: Surface | null;
 }
-let layers: Layers | null = null;
+/**
+ * Cached sprite layers by scale. The world and the view beyond it (racingAmbient) draw at different scales on the same
+ * frame, so a single cached scale would rebuild every layer twice a frame; a few scales are kept.
+ */
+const layerCache = new Map<number, Layers>();
 const HILL_W = Math.round(Math.PI * 2 * PX_PER_RAD);
 const FAR_H = 70;
 const NEAR_H = 58;
@@ -270,7 +274,8 @@ const STAND_H = 120;
 
 function layersFor(scale: number): Layers {
   const s = Math.max(1, Math.min(3, Math.round(scale * 2) / 2));
-  if (layers && layers.scale === s) return layers;
+  const hit = layerCache.get(s);
+  if (hit) return hit;
   const surf = (w: number, h: number, paint: (c: Ctx2D) => void): Surface | null => {
     const out = makeSurface(w * s, h * s);
     const c = out ? ctxOf(out) : null;
@@ -279,7 +284,7 @@ function layersFor(scale: number): Layers {
     paint(c);
     return out;
   };
-  layers = {
+  const layers: Layers = {
     scale: s,
     sky: surf(RACING_WORLD_W, HORIZON + 20, (c) => paintRacingSky(c, RACING_WORLD_W, RACING_WORLD_H)),
     far: surf(HILL_W, FAR_H, (c) => paintHillStrip(c, HILL_W, FAR_H, 3, "#8A5A7A", "#5E4466", "rgba(255,190,150,0.55)", 52, false)),
@@ -289,6 +294,8 @@ function layersFor(scale: number): Layers {
     trees: [0, 1, 2].map((v) => surf(TREE_W, TREE_H, (c) => paintTree(c, TREE_W / 2, TREE_H, TREE_H, v))).filter((x): x is Surface => x !== null),
     stand: surf(STAND_W, STAND_H, (c) => paintStand(c, STAND_W, STAND_H)),
   };
+  if (layerCache.size >= 4) layerCache.delete(layerCache.keys().next().value!);
+  layerCache.set(s, layers);
   return layers;
 }
 
