@@ -2645,9 +2645,9 @@ export interface MinigolfPuzzleData {
 
 export interface PoolPuzzleData {
   type: "pool";
-  /** Deals the layout (a table from the proven bank, poolBank.server.ts): identical for everyone in the room. */
+  /** Deals the layout (a table from the proven bank: poolBankV2.server.ts on poolRev 2, poolBank.server.ts on 1): identical for everyone in the room. */
   seed: number;
-  /** poolRev 1: the arcade scoring standard (docs/arcade-standard/pool.md). */
+  /** poolRev 1: the arcade scoring standard; poolRev 2 (31 Oct 2026): the cue round the ball, the meter, the spin dot anywhere on the face (docs/arcade-standard/pool.md). */
   poolRev?: number;
 }
 

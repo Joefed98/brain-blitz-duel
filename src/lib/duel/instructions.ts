@@ -1054,12 +1054,13 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
     pool: {
       goal: "Pot all seven spots, then the black, without a miss.",
       how: [
-        { action: "Drag on the table", detail: "to aim: the line runs to a ghost ball." },
-        { action: "Pull the cue back", detail: "on the panel and let go to shoot." },
+        { action: "Drag anywhere on the table", detail: "to turn the cue round the cue ball; drag further from the ball for finer aim." },
+        { action: "Pull the cue back", detail: "in the power meter at the bottom and let go to shoot." },
         { action: "Spot balls first:", detail: "hitting or potting a stripe is a foul (−10)." },
-        { action: "The short line", detail: "shows where the object ball goes, the faint one the cue ball's path.", helpOnly: true },
-        { action: "Power:", detail: "the further you pull the cue, the harder the shot; red is full power, green soft.", helpOnly: true },
-        { action: "Spin:", detail: "the ball button sets top spin (follow), back spin (draw) or side.", helpOnly: true },
+        { action: "Tap the table", detail: "to point the cue straight at that spot.", helpOnly: true },
+        { action: "The dotted line", detail: "runs to a ghost ball; the short line shows where the object ball goes, the faint one the cue ball's path.", helpOnly: true },
+        { action: "Power:", detail: "the further you pull the cue, the harder the shot; green is soft, red full power.", helpOnly: true },
+        { action: "Spin:", detail: "tap the cue ball, bottom right, and place the red dot anywhere on it: high for top spin (follow), low for back spin (draw), left or right for side, which bends the bounce off a cushion.", helpOnly: true },
         { action: "Cue ball potted:", detail: "it comes back to its spot and costs you time.", helpOnly: true },
         { action: "The black too early", detail: "ends your run with no black or speed points.", helpOnly: true },
         { action: "Every layout is proved clearable", detail: "without a miss. The same table for everyone.", helpOnly: true },

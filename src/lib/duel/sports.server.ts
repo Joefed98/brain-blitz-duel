@@ -18,7 +18,7 @@ import { POOL_REV } from "@/lib/arcade/pool";
 import { CURLING_REV } from "@/lib/arcade/curling";
 import { CURLING_BANK } from "./curlingBank.server";
 import { MINIGOLF_BANK } from "./minigolfBank.server";
-import { POOL_BANK } from "./poolBank.server";
+import { POOL_BANK_V2 } from "./poolBankV2.server";
 import type { CurlingPuzzleData, FreekickPuzzleData, HomerunPuzzleData, MinigolfPuzzleData, PoolPuzzleData, RacingPuzzleData } from "./types";
 
 export function generateHomerun(): HomerunPuzzleData {
@@ -39,7 +39,8 @@ export function generateMinigolf(): MinigolfPuzzleData {
 }
 
 export function generatePool(): PoolPuzzleData {
-  return { type: "pool", seed: POOL_BANK[arcadeSeed() % POOL_BANK.length]!, poolRev: POOL_REV };
+  // poolRev 2 (31 Oct 2026) deals from its own proved bank; poolRev 1 rounds replay on theirs (poolBank.server.ts).
+  return { type: "pool", seed: POOL_BANK_V2[arcadeSeed() % POOL_BANK_V2.length]!, poolRev: POOL_REV };
 }
 
 export function generateCurling(): CurlingPuzzleData {

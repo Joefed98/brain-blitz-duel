@@ -90,7 +90,7 @@ import { encodeMinigolfRun, replayMinigolfRun } from "../../src/lib/duel/minigol
 import { MINIGOLF_BANK, minigolfBankEntryFor } from "../../src/lib/duel/minigolfBank.server";
 import { poolCheckpoint, poolGameFor, POOL_REV } from "../../src/lib/arcade/pool";
 import { encodePoolRun, replayPoolRun } from "../../src/lib/duel/pool";
-import { poolBankSeedFor } from "../../src/lib/duel/poolBank.server";
+import { poolBankV2SeedFor } from "../../src/lib/duel/poolBankV2.server";
 import { curlingCheckpoint, curlingGameFor, CURLING_REV } from "../../src/lib/arcade/curling";
 import { encodeCurlingRun, replayCurlingRun } from "../../src/lib/duel/curling";
 import { curlingBankSeedFor } from "../../src/lib/duel/curlingBank.server";
@@ -294,11 +294,11 @@ export const GAMES: GameSpec[] = [
     encode: (run) => encodeMinigolfRun(run),
     replay: (seed, raw) => replayMinigolfRun(seed, raw, minigolfParsOf(seed)),
   },
-  // Speed Pool deals a bank layout (proved clearable without a miss), poolRev 1.
+  // Cue Ball deals a bank layout (proved clearable without a miss), poolRev 2 from its own bank (31 Oct 2026).
   {
     type: "pool",
     live: POOL_REV,
-    seedFor: poolBankSeedFor,
+    seedFor: poolBankV2SeedFor,
     gameFor: (rev) => poolGameFor(rev),
     checkpoint: poolCheckpoint,
     encode: (run) => encodePoolRun(run),

@@ -72,7 +72,7 @@ const STANDARD_ROSTER: readonly { type: string; field: string; rev: number; batc
   { type: "pokersquares", field: "pokerSquaresRev", rev: 1, batch: "Cards" },
   // The Sports group (30 Oct 2026): on the standard from their first stamp.
   { type: "minigolf", field: "golfRev", rev: 1, batch: "Sports" },
-  { type: "pool", field: "poolRev", rev: 1, batch: "Sports" },
+  { type: "pool", field: "poolRev", rev: 2, batch: "Sports" },
   { type: "curling", field: "curlRev", rev: 1, batch: "Sports" },
 ];
 
