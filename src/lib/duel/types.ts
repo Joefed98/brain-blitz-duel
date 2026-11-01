@@ -2285,7 +2285,11 @@ export interface BurstPuzzleData {
 
 /** Orbit and Swing: fixed 60-second runs; the round clock adds three of slack. */
 export const ORBIT_TIME_MS = 93_000;
-export const SWING_TIME_MS = 63_000;
+/**
+ * Grappler: since 1 Nov 2026 (swingRev 16, the dark ledge runs) a 90-second run plus three of slack; older swingRev
+ * rounds still end at their own 60 s (the sim ends them; their clock shows the extra 30 s unused, as Gemstone's and Tempo's).
+ */
+export const SWING_TIME_MS = 93_000;
 
 /** Snip: a fixed 60-second run on the arcade engine. */
 export const SNIP_TIME_MS = 63_000;
@@ -2314,7 +2318,7 @@ export interface OrbitPuzzleData {
 
 export interface SwingPuzzleData {
   type: "swing";
-  /** 4 = dragon chase; 5 = score bands; 6 = touch stars (Tuning A); 7 = about 10% lower (Tuning C); 8 = stars spread evenly (Tuning F); 9 = the taller 390 × 730 cavern; 13 = the 200 expansion; 14 = the assault course (sections of ledges, hooks and squeezes); 15 = the swinging course (mostly hook-to-hook swinging, short ledge runs). */
+  /** 4 = dragon chase; 5 = score bands; 6 = touch stars (Tuning A); 7 = about 10% lower (Tuning C); 8 = stars spread evenly (Tuning F); 9 = the taller 390 × 730 cavern; 13 = the 200 expansion; 14 = the assault course (sections of ledges, hooks and squeezes); 15 = the swinging course (mostly hook-to-hook swinging, short ledge runs); 16 = its dark ledge runs over 90 s (a longer course). */
   swingRev?: number;
   /** Draws the cavern — identical for everyone. */
   seed: number;

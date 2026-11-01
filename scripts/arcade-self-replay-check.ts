@@ -179,7 +179,7 @@ import { ORBIT_FUEL_BANK } from "@/lib/duel/orbitFuelBank.server";
 import { BEAT_REV_BAND, BEAT_REV_TALL, BEAT_REV_TUNEC, BEAT_REV_TUNEF } from "@/lib/arcade/beat";
 import { SLICE_REV_BAND, SLICE_REV_LONG, SLICE_REV_TALL, SLICE_REV_TUNEC } from "@/lib/arcade/slice";
 import { BURST_REV_BAND, BURST_REV_TALL } from "@/lib/arcade/burst";
-import { SWING_REV_BAND, SWING_REV_TUNED, SWING_REV_TUNEC, SWING_REV_SPREAD, SWING_REV_TALL, SWING_REV_EXPAND, SWING_REV_ASSAULT, SWING_REV_REWORK } from "@/lib/arcade/swing";
+import { SWING_REV_BAND, SWING_REV_TUNED, SWING_REV_TUNEC, SWING_REV_SPREAD, SWING_REV_TALL, SWING_REV_EXPAND, SWING_REV_ASSAULT, SWING_REV_REWORK, SWING_REV_DARK } from "@/lib/arcade/swing";
 import { SWING_V13_BANK } from "@/lib/duel/swingBankV13.server";
 import { BULLSEYE_REV_BAND, BULLSEYE_REV_TUNED, bullseyeInitFor } from "@/lib/arcade/bullseye";
 
@@ -893,6 +893,8 @@ const GAMES: Game[] = [
       return replayOrbitRun(seed, raw, ORBIT_REV_FUEL, e.planets, e.holes, e.extras);
     },
   },
+  // Grappler swingRev 16 (1 Nov 2026: the dark ledge runs, 90 s, a longer course), appended so every earlier entry keeps its index.
+  { key: "swing/dark", game: swingGameFor(SWING_REV_DARK), checkpoint: swingCheckpoint, mode: "events", rate: 30, encode: encodeSwingRun, replay: (seed: number, raw: string) => replaySwingRun(seed, raw, SWING_REV_DARK) },
 ];
 
 /** A random candidate event, often outside the declared range (a finger off the edge). */

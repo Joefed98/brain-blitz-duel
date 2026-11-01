@@ -60,7 +60,7 @@ const STANDARD_ROSTER: readonly { type: string; field: string; rev: number; batc
   { type: "inkbridge", field: "inkRev", rev: 12, batch: "C" },
   { type: "orbit", field: "orbitRev", rev: 14, batch: "C" },
   { type: "balltrack", field: "btRev", rev: 8, batch: "C" },
-  { type: "swing", field: "swingRev", rev: 15, batch: "D" },
+  { type: "swing", field: "swingRev", rev: 16, batch: "D" }, // swingRev 16 (1 Nov 2026): the dark ledge runs over 90 s, rev 15's parts
   // Cards & Board (30 Oct 2026): born on the standard (their first revision).
   { type: "minesweeper", field: "minesRev", rev: 1, batch: "Cards & Board" },
   { type: "mahjong", field: "mahjongRev", rev: 2, batch: "Cards & Board" },

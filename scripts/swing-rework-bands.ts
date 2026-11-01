@@ -1,9 +1,9 @@
 /**
- * Grappler's swinging course (swingRev 15) skill bands: every skill-band level (and random play) on room courses
- * roomSeed(from … to − 1), each run through the server's own replay, with the score's three parts. A measuring tool,
- * not a check (swing-rework-check holds the stored runs).
+ * Grappler's swinging course (swingRev 15, or `--rev=16` for the dark ledge runs) skill bands: every skill-band level
+ * (and random play) on room courses roomSeed(from … to − 1), each run through the server's own replay, with the
+ * score's three parts. A measuring tool, not a check (swing-rework-check and swing-dark-check hold the stored runs).
  *
- *   bun scripts/swing-rework-bands.ts [--from=0] [--to=30] [--levels=weak,average,…] [--json=<out.jsonl>]
+ *   bun scripts/swing-rework-bands.ts [--rev=15|16] [--from=0] [--to=30] [--levels=weak,average,…] [--json=<out.jsonl>]
  *   bun scripts/swing-rework-bands.ts --report=<a.jsonl,b.jsonl,…>   (medians and ranges from saved runs)
  */
 import { appendFileSync, readFileSync } from "node:fs";
@@ -14,19 +14,19 @@ import { Human, ALL_LEVELS, LEVEL_LABEL } from "./arcade-skill-bands/human";
 import { bot, randomBot } from "./arcade-skill-bands/bots/swing";
 
 const arg = (name: string) => process.argv.find((a) => a.startsWith(`--${name}=`))?.slice(name.length + 3);
-type Row = { level: string; course: number; seed: number; score: number; core: number; par: number; pickups: number; stretches: number; restarts: number; endedSeconds: number };
+type Row = { level: string; course: number; seed: number; score: number; core: number; par: number; pickups: number; stretches: number; restarts: number; endedSeconds: number; permille?: number };
 
 const report = arg("report");
 if (report) {
   const rows: Row[] = report.split(",").flatMap((f) => readFileSync(f, "utf8").trim().split("\n").filter(Boolean).map((l) => JSON.parse(l) as Row));
   const med = (xs: number[]) => [...xs].sort((a, b) => a - b)[Math.trunc(xs.length / 2)]!;
-  console.log(`| Level | Median | Range | Core | Par | Pickups | Courses |`);
-  console.log(`|---|---|---|---|---|---|---|`);
+  console.log(`| Level | Median | Range | Core | Par | Pickups | Course ‰ | Courses |`);
+  console.log(`|---|---|---|---|---|---|---|---|`);
   for (const level of [...ALL_LEVELS, "random"]) {
     const r = rows.filter((x) => x.level === level);
     if (!r.length) continue;
     const s = r.map((x) => x.score);
-    console.log(`| ${level === "random" ? "Random" : LEVEL_LABEL[level as keyof typeof LEVEL_LABEL]} | ${med(s)} | ${Math.min(...s)}–${Math.max(...s)} | ${med(r.map((x) => x.core))} | ${med(r.map((x) => x.par))} | ${med(r.map((x) => x.pickups))} | ${r.length} |`);
+    console.log(`| ${level === "random" ? "Random" : LEVEL_LABEL[level as keyof typeof LEVEL_LABEL]} | ${med(s)} | ${Math.min(...s)}–${Math.max(...s)} | ${med(r.map((x) => x.core))} | ${med(r.map((x) => x.par))} | ${med(r.map((x) => x.pickups))} | ${med(r.map((x) => x.permille ?? -1))} | ${r.length} |`);
   }
   const courses = [...new Set(rows.map((x) => x.course))];
   const at = (level: string, c: number) => rows.find((x) => x.level === level && x.course === c)?.score ?? NaN;
@@ -39,22 +39,23 @@ const from = Number(arg("from") ?? 0);
 const to = Number(arg("to") ?? 30);
 const levels = (arg("levels") ?? [...ALL_LEVELS, "random"].join(",")).split(",");
 const out = arg("json");
-const game = swingGameFor(SWING_REV_REWORK);
+const rev = Number(arg("rev") ?? SWING_REV_REWORK);
+const game = swingGameFor(rev);
 for (let n = from; n < to; n++) {
   const seed = roomSeed(n);
   for (const level of levels) {
     const human = new Human("swing", seed, (level === "random" ? "weak" : level) as never);
-    const ctx = { game, seed, rev: SWING_REV_REWORK, human };
+    const ctx = { game, seed, rev, human };
     const res = level === "random" ? randomBot(ctx) : bot(ctx);
     const events = res.events ?? [];
     const byTick = new Map(events.map((e) => [e.t, e]));
     let s = game.init(seed);
     while (!game.isOver(s) && s.tick < game.runTicks) s = game.step(s, byTick.get(s.tick + 1) ?? null);
     const raw = encodeSwingRun({ seed, claimedScore: game.score(s), events, inputs: [], taps: [], endTick: s.tick, checkpoints: [] } as never);
-    const result = replaySwingRun(seed, raw, SWING_REV_REWORK);
+    const result = replaySwingRun(seed, raw, rev);
     const p = swingReworkParts(result.state);
     const c = swingAssaultCounts(result.state);
-    const row: Row = { level, course: n, seed, score: result.score, core: p.core, par: p.par, pickups: p.pickups, stretches: c.sections, restarts: c.restarts, endedSeconds: result.state.endedTick / 60 };
+    const row: Row = { level, course: n, seed, score: result.score, core: p.core, par: p.par, pickups: p.pickups, stretches: c.sections, restarts: c.restarts, endedSeconds: result.state.endedTick / 60, permille: p.permille };
     if (out) appendFileSync(out, `${JSON.stringify(row)}\n`);
     console.log(`${level.padEnd(8)} course ${n} (${seed}): ${row.score} = ${p.core} + ${p.par} + ${p.pickups} · ${c.sections}/${c.sectionTotal} stretches · ${c.restarts} restarts`);
   }

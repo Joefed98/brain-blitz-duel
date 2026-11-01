@@ -173,7 +173,7 @@ section("New rounds carry the Tuning C stamps; Junction is practice only");
     // Grappler's 200 expansion (26 Oct 2026) moved Grappler on to swingRev 13 (after swingRev 9's taller cavern); swing-x200-check covers it.
     // The assault course (27 Oct 2026) moved it on to swingRev 14 (swing-assault-check), the swinging course (29 Oct 2026)
     // to swingRev 15 (swing-rework-check).
-    ["swing", playRevOf("swing", generateSwing().swingRev), SWING_REV_TUNEC + 8],
+    ["swing", playRevOf("swing", generateSwing().swingRev), SWING_REV_TUNEC + 9],
     // Tuning E (Oct 2026) moved Hover on to its taller world (hoverRev 5); arcade-tuning-e-check covers it.
     // The 200 expansion (26 Oct 2026) then moved Hover on to hoverRev 9; hover-x200-check covers it.
     ["hover", playRevOf("hover", generateHover().hoverRev), HOVER_REV_TALL + 4],
