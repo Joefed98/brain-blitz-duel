@@ -60,20 +60,23 @@ window with a mouse gets the desktop layout (its narrowest size). PhoneShell mar
 
 - **wide** (puzzles, card and board games): puzzles get a column up to 760 × 1100 px and their boards re-flow
   into it; canvas card games keep their world and scale up in a column up to 960 px.
-- **rotate** (top-down arcade games): the identical world drawn turned 90° clockwise into landscape in a rotor
-  (`ArcadeArenaSlot`, `data-arena-rotor`), so the world's up points right. Pointer positions map back through
-  the inverse turn (`tapMapping.ts` `arenaPointer`, `unrotatePoint`), swipes through `arenaDelta`, canvases
-  size from the arena's own box (`arenaSize`), and a game whose keys are screen directions has them turned
-  (`desktopPresentation.ts` `rotatedKey`: Jaywalk, Meteor and Tilt arrows and WASD, Curl Champ's arrows; the
-  intro's key line and the hint name them as they work on screen). The game's scenery is painted through the
-  same turn; a turned world has no moving fill. Orbit's SET CHECKPOINT turns with the world (it stays in its
-  reserved corner; C sets a checkpoint from the keyboard).
-- **tall** (side-on and behind-camera games): the world scales to the full height of a column up to 760 px; the
+- **rotate** (Cue Ball only; Joe, 31 Oct 2026): the identical table drawn turned 90° clockwise into landscape in a
+  rotor (`ArcadeArenaSlot`, `data-arena-rotor`). Pointer positions map back through the inverse turn
+  (`tapMapping.ts` `arenaPointer`, `unrotatePoint`) and the canvas sizes from the arena's own box (`arenaSize`).
+  **Only the table and balls turn**: the HUD chips are drawn upright on their own strip above the table
+  (ArcadeCanvasStage `hud`, `data-arena-hud`, `drawPoolHud`), ball numbers and effect pop-ups are drawn turned
+  back so they read upright (`drawPool(…, turned)`, `setArcadeTextTurn`), and the power meter and spin button
+  sit under the table, upright. **No text is ever drawn rotated** (desktop-fairness-check spies on every
+  `fillText` on the turned table; desktop-layout-check fails on any DOM text inside a rotor). The rotor is
+  capped at 1,000 px across so its canvas holds 60 fps. (`arenaDelta` and `rotatedKey` stay as tested
+  helpers; no game uses them today.)
+- **tall** (every other arcade game: side-on, behind-camera and the top-down Crazy Golf, Orbit, Meteor, Tilt,
+  Jaywalk and Curl Champ, upright): the world scales to the full height of a column up to 640 px; the
   game's own scenery runs out to both sides under a static fade at the rail and panel edges (`data-dk-fade`);
   the HUD stays in the play column.
 - All: canvases sized by their box within the pixel-ratio cap of 2.
 
-Active games (84): wide 54, rotate 7, tall 23.
+Active games (84): wide 54, rotate 1, tall 29.
 
 | Game | Id | Category | Desktop mode | Keys | Why |
 | --- | --- | --- | --- | --- | --- |
@@ -132,9 +135,9 @@ Active games (84): wide 54, rotate 7, tall 23.
 | Ball Tracker | `balltrack` | Arcade · Action | **tall** |  | cups and marbles read top to bottom: kept upright |
 | Breaker | `breaker` | Arcade · Retro | **tall** |  | portrait play with controls at the bottom (paddle, flippers, launcher): kept upright |
 | Coral Pop | `bubble` | Arcade · Action | **tall** |  | shooter aiming up from the bottom: kept upright |
-| Crazy Golf | `minigolf` | Arcade · Sports | **rotate** |  | top-down course: turned to landscape (arrows turn the aim, the same way on screen) |
-| Cue Ball | `pool` | Arcade · Sports | **rotate** |  | top-down table: turned to landscape (aim and spin are not screen directions) |
-| Curl Champ | `curling` | Arcade · Sports | **rotate** | arrows turn | top-down sheet: turned so stones travel left to right; the broom arrows turn with it |
+| Crazy Golf | `minigolf` | Arcade · Sports | **tall** |  | top-down course, kept upright at full height |
+| Cue Ball | `pool` | Arcade · Sports | **rotate** |  | top-down table: turned to landscape, only the table and balls (HUD, power meter and spin upright) |
+| Curl Champ | `curling` | Arcade · Sports | **tall** |  | top-down sheet, kept upright at full height |
 | Fission | `burst` | Arcade · Retro | **tall** |  | portrait play with controls at the bottom (paddle, flippers, launcher): kept upright |
 | Five Hands | `fivehands` | Arcade · Cards & Board | **wide** |  | card / board layout, no physics world: scaled up in a wide column |
 | Flightpath | `bullseye` | Arcade · Sports | **tall** |  | behind-camera view: full height, scenery out to both sides |
@@ -145,11 +148,11 @@ Active games (84): wide 54, rotate 7, tall 23.
 | High Rise | `skyline` | Arcade · Action | **tall** |  | side-on world: full height, scenery out to both sides |
 | Home Run | `homerun` | Arcade · Sports | **tall** |  | behind-camera view: full height, scenery out to both sides |
 | Hover | `hover` | Arcade · Retro | **tall** |  | side-on world: full height, scenery out to both sides |
-| Jaywalk | `cross` | Arcade · Retro | **rotate** | arrows and WASD turn | top-down road: turned so the walker crosses left to right; swipes and arrows / WASD turn with it |
+| Jaywalk | `cross` | Arcade · Retro | **tall** |  | top-down road, kept upright at full height |
 | Mahjong Solitaire | `mahjong` | Arcade · Cards & Board | **wide** |  | card / board layout, no physics world: scaled up in a wide column |
-| Meteor | `snake` | Arcade · Retro | **rotate** | arrows and WASD turn | top-down grid: turned to landscape; swipes and arrows / WASD turn with it |
+| Meteor | `snake` | Arcade · Retro | **tall** |  | top-down grid, kept upright at full height |
 | Minefield | `minesweeper` | Arcade · Cards & Board | **wide** |  | card / board layout, no physics world: scaled up in a wide column |
-| Orbit | `orbit` | Arcade · Retro | **rotate** |  | top-down space flight: turned so the rocket flies left to right |
+| Orbit | `orbit` | Arcade · Retro | **tall** |  | top-down space flight, kept upright at full height |
 | Pinball | `pinball` | Arcade · Retro | **tall** |  | portrait play with controls at the bottom (paddle, flippers, launcher): kept upright |
 | Rainbow Bridge | `inkbridge` | Arcade · Action | **tall** |  | side-on world: full height, scenery out to both sides |
 | Rally | `rally` | Arcade · Retro | **tall** |  | portrait play with controls at the bottom (paddle, flippers, launcher): kept upright |
@@ -158,7 +161,7 @@ Active games (84): wide 54, rotate 7, tall 23.
 | Summit | `tripeaks` | Arcade · Cards & Board | **wide** |  | card / board layout, no physics world: scaled up in a wide column |
 | Swish | `bintoss` | Arcade · Sports | **tall** |  | side-on world: full height, scenery out to both sides |
 | Tempo | `beat` | Arcade · Retro | **tall** |  | notes fall down lanes to the bottom: kept upright |
-| Tilt | `tilt` | Arcade · Action | **rotate** | arrows and WASD turn | top-down maze: turned to landscape; the drag and arrows / A D turn with it |
+| Tilt | `tilt` | Arcade · Action | **tall** |  | top-down maze, kept upright at full height |
 | Top Bins | `freekick` | Arcade · Sports | **tall** |  | behind-camera view: full height, scenery out to both sides |
 | Wavefront | `wavefront` | Arcade · Retro | **tall** |  | portrait play with controls at the bottom (paddle, flippers, launcher): kept upright |
 
@@ -200,9 +203,9 @@ Retired to practice (11):
   lobby, results, standings, a live round and a reveal, at 1440×900, 1920×1080 and 1024×768; every active
   game's desktop mode at 1440×900 (one of each mode at every size) without overflow, in the centre, crisp;
   phones (414×896 home-screen app, 375×667) unchanged; a 1440×900 touch screen on the tablet layout.
-- **desktop-fairness-check** (`play21`): the mapping round trip, keys and swipes on a turned world, no sim,
+- **desktop-fairness-check** (`play21`): the mapping round trip, keys and swipes on a turned world, upright text on Cue Ball's turned table, no sim,
   replay or grader reading the presentation, real gestures on Cue Ball (rotate), Apex (tall) and Free Cell
-  (wide) reaching the stage as the same world points and payloads at both desktop sizes, and the same payloads
+  (wide; Cue Ball's shot pulled on its upright power control) reaching the stage as the same world points and payloads at both desktop sizes, and the same payloads
   ending in the same sim state, score and checksum.
 - **arcade-play-check --desktop** (`arcade-play-desktop-check`, halves on `play23`/`play24`): every arcade game
   at 1440×900 and 1920×1080 in its desktop mode, live, error-free, crisp, at 60 fps.

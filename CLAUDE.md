@@ -998,11 +998,10 @@ outside the repo.
   `PageAside`) and a room's 380 px panel (`RoomPanel` through `RoomPanelSlot`: code, round progress by category, standings
   for 16 with playing / finished, chat between rounds). Practice on desktop: switch, search and chips in one row, games a
   3–5 card grid. **Every game declares a desktop mode** (`src/lib/duel/desktopModes.ts`, the registry's `desktop`; a new
-  game needs a line): `wide` (puzzles, card and board games), `rotate` (top-down: Cue Ball, Crazy Golf, Orbit, Meteor,
-  Tilt, Jaywalk, Curl Champ: the world turned 90° clockwise in `ArcadeArenaSlot`'s rotor; pointers through
-  `tapMapping.ts` `arenaPointer` / `arenaSize` / `arenaDelta`, direction keys through `desktopPresentation.ts`
-  `rotatedKey`; **a new top-down stage that reads `getBoundingClientRect` must use these**), `tall` (full height, scenery
-  faded at the edges). `DesktopControlsHint` shows the keys for 8 s. Every result records its input type
+  game needs a line): `wide` (puzzles, card and board games), `rotate` (Cue Ball only, Joe's call: the table and balls turned 90° clockwise in `ArcadeArenaSlot`'s rotor;
+  pointers through `tapMapping.ts` `arenaPointer` / `arenaSize`; its HUD chips upright on the stage's `hud` strip, ball
+  numbers and pop-ups counter-turned: **no text is ever drawn rotated**), `tall` (every other arcade game, upright: full height,
+  scenery faded at the edges). `DesktopControlsHint` shows the keys for 8 s. Every result records its input type
   (`src/lib/inputType.ts` → `input_type` on round_results, async_results, practice_plays, best effort; migration
   `20261031170000_result_input_type.sql` **written but not applied**). Checks: desktop-layout-check (thirds,
   `play21`/`play22`), desktop-fairness-check (`play21`), `arcade-play-check --desktop` as arcade-play-desktop-check

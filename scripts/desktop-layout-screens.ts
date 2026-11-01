@@ -24,4 +24,10 @@ export const DESKTOP_LAYOUT_SCREENS: ThemeScreen[] = [
   roomRound("pool", true),
   { ...roomRound("sudoku", false), name: "room mid-round, sudoku" },
   roomRound("freecell", true),
+  // Joe (31 Oct 2026): only Cue Ball rotates; these top-down games are tall.
+  roomRound("minigolf", true),
+  roomRound("curling", true),
+  roomRound("cross", true),
+  roomRound("orbit", true),
+  roomRound("tilt", true),
 ];
