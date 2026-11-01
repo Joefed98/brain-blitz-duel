@@ -15,7 +15,7 @@ import { WAV_REV_STD } from "@/lib/arcade/wavefront";
 import { BURST_REV_STD } from "@/lib/arcade/burst";
 import { BULLSEYE_REV_STD } from "@/lib/arcade/bullseye";
 import { BEAT_REV_STD } from "@/lib/arcade/beat";
-import { SNAKE_REV_STD } from "@/lib/arcade/snake";
+import { SNAKE_REV_12 } from "@/lib/arcade/snake";
 import { SLICE_REV_BIG, SLICE_REV_STANDARD, SLICE_REV_TALL } from "@/lib/arcade/slice";
 import { BINTOSS_REV_STD } from "@/lib/arcade/binToss";
 import { BUB_REV_STD } from "@/lib/arcade/bubble";
@@ -161,7 +161,8 @@ export const getIntroDemoFn = createServerFn({ method: "GET" })
     // Joe's phone notes (27 Oct 2026): snakeRev 10 adds 2 × 2 rocks, a third wormhole pair and a second lane, so the
     // Meteor demo stays stopped until one is recorded on snakeRev 10. The arcade scoring standard (29 Oct 2026): snakeRev 11
     // scores in new parts (its combo and warp windows are longer), so the demo stays stopped until one is recorded on snakeRev 11.
-    if (data.type === "snake" && demo?.puzzle.type === "snake" && demo.puzzle.snakeRev !== SNAKE_REV_STD) return null;
+    // snakeRev 12 (1 Nov 2026): the HUD's star count counts gold stars twice, so only a demo recorded on snakeRev 12 plays.
+    if (data.type === "snake" && demo?.puzzle.type === "snake" && demo.puzzle.snakeRev !== SNAKE_REV_12) return null;
     // x200 (26 Oct 2026, docs/expansions/x200-cross.md): Jaywalk crossRev 9 plays a taller 13-lane road with the island,
     // coins, buses and motorbikes; an older demo would show the 9-lane road, so it stays stopped until one is recorded there.
     // The arcade scoring standard (29 Oct 2026, docs/arcade-standard/cross.md): crossRev 10 thins the first crossings'

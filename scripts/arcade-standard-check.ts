@@ -43,7 +43,8 @@ const STANDARD_ROSTER: readonly { type: string; field: string; rev: number; batc
   { type: "tilt", field: "tiltRev", rev: 10, batch: "A" },
   { type: "burst", field: "burstRev", rev: 10, batch: "A" },
   { type: "matchup", field: "matchupRev", rev: 11, batch: "A" },
-  { type: "snake", field: "snakeRev", rev: 11, batch: "A" },
+  // snakeRev 12 (1 Nov 2026): snakeRev 11's parts, the core counting a gold star as 2 and full at 20 (snake-rev12-check).
+  { type: "snake", field: "snakeRev", rev: 12, batch: "A" },
   { type: "hover", field: "hoverRev", rev: 10, batch: "A" },
   { type: "skyline", field: "skylineRev", rev: 9, batch: "B" },
   { type: "bintoss", field: "binRev", rev: 9, batch: "B" },

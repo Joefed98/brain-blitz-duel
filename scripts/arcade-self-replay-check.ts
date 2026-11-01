@@ -132,7 +132,7 @@ import { MATCHUP_REV_BAND, MATCHUP_REV_PAR, MATCHUP_REV_STD, MATCHUP_REV_WAIT } 
 import { BUB_REV_BAND, BUB_REV_TALL, BUB_REV_TORPEDO } from "@/lib/arcade/bubble";
 import { CROSS_REV_BAND, CROSS_REV_EXPAND, CROSS_REV_SMALL, CROSS_REV_STD } from "@/lib/arcade/cross";
 import { RALLY_REV_BAND, RALLY_REV_TALL, RALLY_REV_TUNED, RALLY_REV_TUNEF } from "@/lib/arcade/rally";
-import { SNAKE_REV_BAND, SNAKE_REV_ROCKS, SNAKE_REV_TALL, SNAKE_REV_10, SNAKE_REV_STD } from "@/lib/arcade/snake";
+import { SNAKE_REV_BAND, SNAKE_REV_ROCKS, SNAKE_REV_TALL, SNAKE_REV_10, SNAKE_REV_STD, SNAKE_REV_12 } from "@/lib/arcade/snake";
 import { BINTOSS_REV_BAND } from "@/lib/arcade/binToss";
 import { SNIP_REV_BAND, SNIP_REV_BANK6, SNIP_REV_EXPAND, SNIP_REV_PROVEN, SNIP_REV_TALL } from "@/lib/arcade/snip";
 import { SKYLINE_REV_BAND, SKYLINE_REV_TALL } from "@/lib/arcade/skyline";
@@ -868,6 +868,9 @@ const GAMES: Game[] = [
     encode: encodeMinigolfRun,
     replay: (seed: number, raw: string) => replayMinigolfRun(seed, raw, MINIGOLF_BANK_V2.find((e) => e.seed === seed)!.pars, 2),
   },
+  // Meteor snakeRev 12 (1 Nov 2026, docs/arcade-standard/snake.md), appended so every earlier entry keeps its index:
+  // snakeRev 11's play, the core counting a gold star as 2 stars and full at 20.
+  { key: "snake/v12", game: snakeGameFor(SNAKE_REV_12), checkpoint: snakeCheckpoint, mode: "events", rate: 40, encode: encodeSnakeRun, replay: (seed: number, raw: string) => replaySnakeRun(seed, raw, SNAKE_REV_12) },
 ];
 
 /** A random candidate event, often outside the declared range (a finger off the edge). */

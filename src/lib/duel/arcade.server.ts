@@ -3,7 +3,7 @@ import { SLICE_REV_TARGET, SLICE_REV_STRICT, SLICE_REV_STANDARD } from "@/lib/ar
 import { FLIP_REV_TARGET, FLIP_REV_STRICT, FLIP_REV_STD } from "@/lib/arcade/flip";
 import { CROSS_REV_STD } from "@/lib/arcade/cross";
 import { INK_REV_STD } from "@/lib/arcade/inkBridge";
-import { SNAKE_REV_TARGET, SNAKE_REV_STD } from "@/lib/arcade/snake";
+import { SNAKE_REV_TARGET, SNAKE_REV_12 } from "@/lib/arcade/snake";
 import { BUB_REV_STD } from "@/lib/arcade/bubble";
 import { MATCHUP_REV_STD } from "@/lib/arcade/matchup";
 import { minesBoard, minesSolve, MINES_REV_STD } from "@/lib/arcade/minesweeper";
@@ -142,7 +142,8 @@ export function generateMatchup(): MatchupPuzzleData {
 export function generateSnake(): SnakePuzzleData {
   // snakeRev 10 (Joe's phone notes, 27 Oct 2026): longer gold stars, a third wormhole pair, a second vertical lane, 2 × 2 rocks.
   // snakeRev 11 (the arcade scoring standard, 29 Oct 2026): snakeRev 10's play, scored in straight-line parts to 200.
-  return { type: "snake", seed: arcadeSeed(), snakeRev: SNAKE_REV_STD };
+  // snakeRev 12 (1 Nov 2026): snakeRev 11 with gold stars counting 2 towards the core, full at 20.
+  return { type: "snake", seed: arcadeSeed(), snakeRev: SNAKE_REV_12 };
 }
 
 export function generateCross(): CrossPuzzleData {

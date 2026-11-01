@@ -6,7 +6,7 @@ import {
   snakeGame, snakeCol, snakeRow, SNAKE_BOARD_W,
   SNAKE_BOARD_X, SNAKE_BOARD_Y, SNAKE_CELL, SNAKE_COLS,
   SNAKE_WORLD_W, SNAKE_ROCK_WARN_TICKS, snakeRowsOf, snakeWorldHFor, type SnakeState,
-  snakeBoardXOf, snakeColsOf, snakeWorldWOf, snakeV9Bonus, SNAKE_GOLD_LIFE, snakeRockBig, SNAKE_STD_COMBO_TICKS,
+  snakeBoardXOf, snakeColsOf, snakeWorldWOf, snakeV9Bonus, snakeCoreStars, SNAKE_GOLD_LIFE, snakeRockBig, SNAKE_STD_COMBO_TICKS,
 } from "./snake";
 import type { ArcadeGame, ArcadeInputEvent, CanvasSize } from "./engine";
 import { reducedMotion } from "./art.renderer";
@@ -321,14 +321,15 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: SnakeState, key: Canvas
     if (motion) sparks(ctx, state, now, deathAge);
     if (state.exp) v9Pops(key, state, head);
   }
+  // snakeRev 12: the HUD counts the core's stars (a gold star 2); every earlier round shows the stars eaten, as before.
   const rewardPoint=memo.eatCell>=0?point(memo.eatCell):point(state.body[0]??0);
-  successFrame(ctx,{id:'snake',tick:state.tick,count:state.eaten,colour:ACCENT,width:W,height:SNAKE_WORLD_H,point:{...rewardPoint,shape:'spark'},hud:{x:14,y:22,text:`STARS ${state.eaten}`}});
+  successFrame(ctx,{id:'snake',tick:state.tick,count:state.eaten,colour:ACCENT,width:W,height:SNAKE_WORLD_H,point:{...rewardPoint,shape:'spark'},hud:{x:14,y:22,text:`STARS ${snakeCoreStars(state)}`}});
   ctx.restore();
   // Same 1UP readout, without a per-frame text blur.
   const on = Math.floor(retroClock() / 500) % 2 === 0;
   retroText(ctx, "1UP", 14, 10, 8, on ? RETRO_RED : "rgba(255,59,92,0.35)");
   drawPops(ctx, key, W);
-  successHud(ctx,'snake',state.tick,14,22,()=>{retroText(ctx, `STARS ${state.eaten}`, 14, 22, 10, RETRO_WHITE);});
+  successHud(ctx,'snake',state.tick,14,22,()=>{retroText(ctx, `STARS ${snakeCoreStars(state)}`, 14, 22, 10, RETRO_WHITE);});
   if (state.rev) {
     const rocks = state.rocks?.length ?? 0;
     const falling = (state.rockWarn ?? -1) >= 0;
