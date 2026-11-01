@@ -1030,7 +1030,7 @@ outside the repo.
   - **Checks** (`.github/workflows/checks.yml`) on every PR open / push / reopen / leaving draft: every check that
     starts no browser (scoring, replay, standard, type-level, unit-style), shards `a`–`g`. A new push cancels the run in
     progress; PRs only (no push trigger), so a commit is checked once.
-  - **Full suite** (`.github/workflows/full-suite.yml`): every check that starts Chromium, shards `play1`–`play21`
+  - **Full suite** (`.github/workflows/full-suite.yml`): every check that starts Chromium, shards `play1`–`play25`
     (`play21` is the browser catch-all), plus the one job to merge on, **full-suite-passed** (success only if every
     browser shard ran and passed; skipped never counts). It runs when a PR gets the label `ready-to-merge` (and again
     on each new push while the label is on), when a PR leaves draft, by hand (Actions → Full suite → Run workflow;
