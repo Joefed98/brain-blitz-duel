@@ -958,7 +958,7 @@ outside the repo.
 - **Room settings** (31 Oct 2026; room setup and presentation only, no game's rules, scoring or stamps changed):
   under the lobby's room code a summary line for everyone ("9 rounds · Pattern, Logic, Retro, Sports · about 16 min",
   a preset's name when the picks are one) and, for the host, **Room settings**, a sheet (`RoomSettingsSheet`): presets
-  Mixed (the default: Word, Speed, Attention, Pattern, Logic and the four arcade groups), Puzzles only and Arcade only
+  Mixed (the default: Word, Speed, Attention, Pattern, Logic and the arcade groups), Puzzles only and Arcade only
   over ten colour chips (the six puzzle categories, then Retro, Sports, Cards & Board, Action from `arcadeGroups.ts`;
   at least one stays on; editing a chip deselects the preset), then rounds as 3 / 6 / 9 / 12 over a 3–12 slider, linked
   both ways (default 6), capped at the picks' room-eligible games ("Only 6 games in your picks…") with the room's
@@ -1048,6 +1048,13 @@ outside the repo.
   flush 35, full house 50, quads 60, straight flush 75), one part, hand points to 200 full at 46 (`FH_CORE_FULL_V2`),
   the deck rev 1's shuffle with its witness climbed on the new table (`fhDeal(seed, 2)`). cards-check, pool-check,
   arcade-standard-check and the self-replay entries `pool/v3`, `freecell/v3`, `fivehands/v2` prove it.
+- **Strategy group** (1 Nov 2026; presentation and room setup only, no stamps): the arcade's Action group split in
+  two: Action keeps Slice, Roofbound and Grappler; Strategy (`strategy`, `--group-strategy` #8E80FF, a blue-leaning
+  violet) takes Tilt, Gemstone, High Rise, Coral Pop, Rainbow Bridge and Ball Tracker (`arcadeGroups.ts`). Practice's
+  Arcade chips are the 4-column grid (All games, Retro, Sports, Action; Cards & Board and Strategy over two), the
+  room settings sheet has eleven chips and Mixed / Arcade only take all five groups (each its own share). Settings
+  are stored as the picks, `rounds:N`, then `groups:2`; a settings room saved before the split (no `groups:2`) reads
+  its Action as Action and Strategy (`storedPicks`), so it keeps its games. room-settings-check, practice-switch-check.
 - `src/components/duel/` — room/round screens (PhoneShell, RoundIntro, TimerBar,
   AnswerReveal, ArcadeReveal, WinnerReveal…); `src/components/puzzles/` — shared puzzle
   widgets; `src/lib/fx/` — sound and visual feedback (presentation only).

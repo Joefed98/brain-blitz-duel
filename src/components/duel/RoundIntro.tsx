@@ -403,7 +403,7 @@ function AutoStartRing({ seconds, total }: { seconds: number; total: number }) {
   );
 }
 
-/** The colour an intro takes: the game's arcade group (Retro, Sports, Cards & Board, Action) or its category. */
+/** The colour an intro takes: the game's arcade group (Retro, Sports, Cards & Board, Action, Strategy) or its category. */
 export function introAccent(type: PuzzleType): string {
   const category = puzzleDef(type).category;
   return (category === "arcade" ? arcadeGroupOf(type) : null) ?? category;

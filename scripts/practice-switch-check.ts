@@ -13,8 +13,8 @@
  *  - the switch's counts on screen match the registry;
  *  - Puzzles lists only non-arcade games, its chips are All games and the six puzzle categories (no Arcade);
  *  - Arcade lists exactly each group's registered games, in the map's order, under its group's heading,
- *    with chips three across (All games, Retro, Sports; Cards & Board over two columns, Action) and no
- *    sideways scrolling; a group with no registered games shows "coming soon" and no rows;
+ *    with chips four across (All games, Retro, Sports, Action; Cards & Board and Strategy over two columns
+ *    each; Strategy split from Action on 1 Nov 2026) and no sideways scrolling; a group with no registered games shows "coming soon" and no rows;
  *  - search is scoped to the side ("Search puzzles" / "Search arcade games"), and so is Recently played.
  *
  *   bun scripts/practice-switch-check.ts
@@ -71,8 +71,11 @@ const BRIEF: Record<string, string[]> = {
   // 31 Oct 2026 (ids unchanged); Five Hands added. Full House retired to practice on 1 Nov 2026 (Joe's decision): the
   // group's active games are the rest (it keeps its group border, under All games' Retired).
   cards: ["Minefield", "Free Cell", "Mahjong Solitaire", "Summit", "Five Hands"],
-  action: ["Slice", "Tilt", "Gemstone", "High Rise", "Coral Pop", "Roofbound", "Rainbow Bridge", "Ball Tracker", "Grappler"],
+  // Strategy split from Action on 1 Nov 2026 (Coral Pop, Gemstone, Ball Tracker, Tilt, Rainbow Bridge, High Rise moved).
+  action: ["Slice", "Roofbound", "Grappler"],
+  strategy: ["Tilt", "Gemstone", "High Rise", "Coral Pop", "Rainbow Bridge", "Ball Tracker"],
 };
+check(ARCADE_GROUPS.map((g) => g.id).join() === "retro,sports,cards,action,strategy", "five groups: Retro, Sports, Cards & Board, Action, Strategy");
 for (const g of ARCADE_GROUPS) {
   const names = arcadeGroupTypes(g.id).map((t) => gameDisplayName(t));
   check(JSON.stringify(names) === JSON.stringify(BRIEF[g.id]), `${g.label} lists ${names.join(", ") || "no registered games"}`);
@@ -182,7 +185,7 @@ try {
       check(badBorder.length === 0, `${at}: every arcade tile's border is its group's colour${badBorder.length ? `: ${badBorder.map((b) => b.join(" ")).join("; ")}` : ""}`);
       const retroGlow = await page.locator("[data-group='retro']").first().evaluate((el) => getComputedStyle(el).boxShadow);
       check(/54, 226, 245/.test(retroGlow), `${at}: Retro tiles carry the cyan glow`);
-      // Chips: three across, Cards & Board over two columns, no sideways scrolling.
+      // Chips: four across, Cards & Board and Strategy over two columns each, no sideways scrolling.
       const chipBoxes = await page.locator("[data-practice-filter]").evaluateAll((els) =>
         els.map((el) => {
           const r = el.getBoundingClientRect();
@@ -190,14 +193,16 @@ try {
         }),
       );
       check(
-        JSON.stringify(chipBoxes.map((c) => c.text)) === JSON.stringify(["All games", "Retro", "Sports", "Cards & Board", "Action"]),
-        `${at}: Arcade's chips are All games, Retro, Sports, Cards & Board, Action (${chipBoxes.map((c) => c.text).join(", ")})`,
+        JSON.stringify(chipBoxes.map((c) => c.text)) === JSON.stringify(["All games", "Retro", "Sports", "Action", "Cards & Board", "Strategy"]),
+        `${at}: Arcade's chips are All games, Retro, Sports, Action, Cards & Board, Strategy (${chipBoxes.map((c) => c.text).join(", ")})`,
       );
-      const [all, retro, sports, cards, action] = chipBoxes;
-      const row1 = !!all && !!retro && !!sports && Math.abs(all.y - retro.y) < 1 && Math.abs(retro.y - sports.y) < 1 && all.x < retro.x && retro.x < sports.x;
-      const row2 = !!cards && !!action && Math.abs(cards.y - action.y) < 1 && cards.y > all!.y + 10 && Math.abs(cards.x - all!.x) < 1;
-      const span = !!cards && !!all && cards.w > all.w * 1.9 && Math.abs(action!.x - sports!.x) < 1;
-      check(row1 && row2 && span, `${at}: chips in a 3-column grid, Cards & Board spanning two columns`);
+      const [all, retro, sports, action, cards, strategy] = chipBoxes;
+      const row1 =
+        !!all && !!retro && !!sports && !!action &&
+        [retro, sports, action].every((c) => Math.abs(c.y - all.y) < 1) && all.x < retro.x && retro.x < sports.x && sports.x < action.x;
+      const row2 = !!cards && !!strategy && Math.abs(cards.y - strategy.y) < 1 && cards.y > all!.y + 10 && Math.abs(cards.x - all!.x) < 1 && Math.abs(strategy.x - sports!.x) < 1;
+      const span = !!cards && !!all && cards.w > all.w * 1.9 && strategy!.w > all.w * 1.9 && Math.abs(strategy!.right - action!.right) < 1;
+      check(row1 && row2 && span, `${at}: chips in a 4-column grid, Cards & Board and Strategy spanning two columns each`);
       const overflow = await page.evaluate(() => {
         const grid = document.querySelector("[data-practice-filter]")!.parentElement!;
         return { grid: grid.scrollWidth - grid.clientWidth, page: document.documentElement.scrollWidth - document.documentElement.clientWidth };

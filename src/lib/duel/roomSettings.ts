@@ -1,6 +1,6 @@
 /**
  * Room settings (31 Oct 2026; room setup only, no game's rules, scoring or stamps changed): the host picks
- * which categories a room deals from (the six puzzle categories and the four arcade groups, arcadeGroups.ts)
+ * which categories a room deals from (the six puzzle categories and the five arcade groups, arcadeGroups.ts)
  * and how many rounds it plays (3–12), in the lobby only. The server validates and stores them
  * (roomSettings.server.ts) and deals from them (selection.ts `dealRoomRounds`).
  *
@@ -9,8 +9,12 @@
  * room made before this) is a *legacy* room and keeps dealing exactly as before (selection.ts
  * `pickRoundOrder`: 6 rounds, 7 with all seven categories) until its host saves new settings.
  *
- * Legacy picks read as settings for the sheet: each old category stays itself and "arcade" becomes the four
- * arcade groups (all of Arcade). The old "memory" option (`add_memory`) was deleted with the Memory
+ * Legacy picks read as settings for the sheet: each old category stays itself and "arcade" becomes the five
+ * arcade groups (all of Arcade).
+ *
+ * The Strategy split (1 Nov 2026): six games left Action for the new Strategy group. Settings saved since carry a
+ * `groups:2` token after `rounds:N`; a settings room without it was saved when Action held all nine, so its
+ * Action pick reads as Action and Strategy, and it keeps dealing the games it had. The old "memory" option (`add_memory`) was deleted with the Memory
  * category on 14 Oct 2026 (its games removed, not moved), so it maps to nothing; "Add maths" was Number and
  * "Add arcade" was Arcade (the 23 Sep migration turned those toggles into category lists).
  */
@@ -33,7 +37,7 @@ export const PUZZLE_PICKS: readonly PuzzlePick[] = [
   "pattern",
   "logic",
 ];
-export const ARCADE_PICKS: readonly ArcadeGroup[] = ["retro", "sports", "cards", "action"];
+export const ARCADE_PICKS: readonly ArcadeGroup[] = ["retro", "sports", "cards", "action", "strategy"];
 /** The sheet's chip order (and the stored order). */
 export const ROOM_PICKS: readonly RoomPick[] = [...PUZZLE_PICKS, ...ARCADE_PICKS];
 
@@ -75,6 +79,7 @@ const PICK_LABEL: Record<RoomPick, string> = {
   sports: "Sports",
   cards: "Cards & Board",
   action: "Action",
+  strategy: "Strategy",
 };
 export const pickLabel = (pick: RoomPick) => PICK_LABEL[pick];
 export const isArcadePick = (pick: RoomPick): pick is ArcadeGroup =>
@@ -115,10 +120,22 @@ export function orderPicks(values: readonly unknown[]): RoomPick[] {
 }
 
 const ROUNDS_TOKEN = /^rounds:(\d{1,2})$/;
+/** Marks settings saved after the Strategy split (1 Nov 2026); see the header. */
+export const GROUPS_TOKEN = "groups:2";
 
-/** The stored form: picks then `rounds:N`. */
+/** The stored form: picks, `rounds:N`, then `groups:2`. */
 export function encodeRoomSettings(settings: RoomSettings): string[] {
-  return [...orderPicks(settings.picks), `rounds:${settings.rounds}`];
+  return [...orderPicks(settings.picks), `rounds:${settings.rounds}`, GROUPS_TOKEN];
+}
+
+/**
+ * A settings room's stored picks. One saved before the Strategy split (no `groups:2`) chose Action when it held
+ * Strategy's games too, so its Action reads as both groups: the same games as when it was saved.
+ */
+export function storedPicks(values: readonly unknown[]): RoomPick[] {
+  const picks = orderPicks(values);
+  if (values.includes(GROUPS_TOKEN) || !picks.includes("action")) return picks;
+  return orderPicks([...picks, "strategy"]);
 }
 
 /** True for a room saved with settings (it carries the `rounds:N` token). */
@@ -126,7 +143,7 @@ export function isSettingsRoom(stored: unknown): boolean {
   return Array.isArray(stored) && stored.some((v) => typeof v === "string" && ROUNDS_TOKEN.test(v));
 }
 
-/** The old category list as picks: Arcade is all four groups; deleted names ("memory") drop out. */
+/** The old category list as picks: Arcade is all five groups; deleted names ("memory") drop out. */
 export function picksFromCategories(categories: readonly PuzzleCategory[]): RoomPick[] {
   const out = categories.flatMap((c): RoomPick[] => (c === "arcade" ? [...ARCADE_PICKS] : [c]));
   return orderPicks(out);
@@ -153,7 +170,7 @@ export function readRoomSettings(stored: unknown): StoredSettings {
   if (isSettingsRoom(values)) {
     const token = values.find((v): v is string => typeof v === "string" && ROUNDS_TOKEN.test(v))!;
     const rounds = Number(ROUNDS_TOKEN.exec(token)![1]);
-    const picks = orderPicks(values).filter((p) => pickTypes(p).length > 0);
+    const picks = storedPicks(values).filter((p) => pickTypes(p).length > 0);
     const settings = { picks: picks.length ? picks : [...DEFAULT_SETTINGS.picks], rounds };
     return {
       settings: { ...settings, rounds: clampRounds(settings.rounds, settings.picks) },
