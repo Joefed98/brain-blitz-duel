@@ -95,7 +95,7 @@ chips and game icon tiles:
 | All (chip) | #E9BB45 |
 
 Since 31 Oct 2026 an arcade game's intro takes its **group's** colour (Retro #36E2F5, Sports #4CC24A, Cards & Board
-#FF5C93, Action #FF4D4D; `data-intro-accent` on RoundIntro) and a puzzle's its category's: the screen gradient, the
+#FF5C93, Action #FF4D4D, Strategy #7B6CFF; `data-intro-accent` on RoundIntro) and a puzzle's its category's: the screen gradient, the
 title (the colour a fifth towards white, `--intro-title`, so it holds 4.5:1 on the tinted top), the dot, the Goal /
 How / Score labels, the tray, the auto-start ring and the waiting dots. Ready stays gold. The room settings sheet's
 chips use the same colours (`[data-cat="retro"]` … in theme.css).
@@ -444,15 +444,18 @@ Presentation only; review shots `bun scripts/shots/tab-refresh-shots.ts --tag=af
   the side's games.
 - **Puzzles**: as before minus the Arcade chip: All games and the six puzzle categories in the 4-column
   chip grid; one section per category.
-- **Arcade**: chips three across with no sideways scrolling (`.ap-chip-grid[data-cols="3"]`): All games,
-  Retro, Sports; Cards & Board over two columns (`data-span="2"`), Action. One section per group with
+- **Arcade**: the Puzzles side's 4-column chip grid with no sideways scrolling (since 1 Nov 2026): All games,
+  Retro, Sports, Action; Cards & Board and Strategy over two columns each (`data-span="2"`). One section per group with
   games ("Retro", "10 games", BEST), in the same row style as the puzzle sections. A chosen group with no
   registered games yet says "{Group} games are coming soon".
 - **Groups** (`src/lib/duel/arcadeGroups.ts`, one data file by registry id; ids the registry lacks are
   skipped, so a new game only needs registering): Retro `--group-retro` #36E2F5 (neon cyan, a soft glow on
   its dots and tile borders), Sports `--group-sports` #4CC24A, Cards & Board `--group-cards` #FF5C93,
-  Action `--group-action` (the arcade colour #FF4D4D). Browsing and tile borders only: rooms, the room
-  category picker, arcade rounds, the daily arcade and scoring keep Arcade as one category.
+  Action `--group-action` (the arcade colour #FF4D4D: Slice, Roofbound, Grappler), Strategy
+  `--group-strategy` #7B6CFF (a blue-leaning violet, 5.1:1 on #0B0B0F, clear of Pattern's #B26BFF and Word's
+  #4D8CFF beside it in the room settings sheet; split from Action on 1 Nov 2026: Tilt, Gemstone, High Rise, Coral
+  Pop, Rainbow Bridge, Ball Tracker). Since 31 Oct 2026 the groups are also the room settings sheet's arcade
+  chips (one share each in a room's deal); arcade rounds, the daily arcade and scoring keep Arcade as one category.
   practice-switch-check proves it.
 - **Tournaments**: Next up (the card above), Coming up rows with a calendar icon button, Your results
   titled by the schedule's event name with a place disc (`.ap-place`: gold, silver, bronze, outlined

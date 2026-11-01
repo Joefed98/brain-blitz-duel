@@ -2,8 +2,8 @@
  * room-settings-check (31 Oct 2026): the host's room settings (src/lib/duel/roomSettings.ts, roomDeal.ts,
  * roomSettings.server.ts, RoomSettingsSheet.tsx).
  *
- *  1. Presets: Mixed is Word, Speed, Attention, Pattern, Logic and the four arcade groups (the default, with
- *     6 rounds); Puzzles only the six puzzle categories; Arcade only the four groups. In the real sheet
+ *  1. Presets: Mixed is Word, Speed, Attention, Pattern, Logic and the five arcade groups (the default, with
+ *     6 rounds); Puzzles only the six puzzle categories; Arcade only the five groups. In the real sheet
  *     (happy-dom), each preset sets exactly its chips, editing a chip afterwards deselects it, and the last chip
  *     on stays on.
  *  2. The round cap follows the picks: min(12, the picks' room-eligible games: active, not retired); in the
@@ -21,7 +21,8 @@
  *     the same seed and history, and the seed (not a rule) choosing the order and the extras.
  *  5. Old rooms: a room without saved settings is read as legacy and startRoomFn deals it with pickRoundOrder,
  *     unchanged (a digest of its deals recorded before this change, scripts/fixtures/room-settings-legacy.json);
- *     the old memory option maps to nothing, Arcade to its four groups.
+ *     the old memory option maps to nothing, Arcade to its five groups; a settings room saved
+ *     before the Strategy split (1 Nov 2026, no groups:2 token) reads its Action as Action and Strategy.
  *
  *   bun scripts/room-settings-check.tsx [--record]
  */
@@ -35,6 +36,7 @@ import { dealRoomRounds } from "../src/lib/duel/roomDeal";
 import {
   ARCADE_PICKS,
   DEFAULT_SETTINGS,
+  GROUPS_TOKEN,
   MAX_ROUNDS,
   MIN_ROUNDS,
   PUZZLE_PICKS,
@@ -44,6 +46,7 @@ import {
   eligibleCount,
   encodeRoomSettings,
   estimateRoomMinutes,
+  isArcadePick,
   isSettingsRoom,
   pickTypes,
   picksFromCategories,
@@ -72,11 +75,11 @@ const same = (a: readonly string[], b: readonly string[]) => a.length === b.leng
 
 /* ------------------------------------------------------------------ 1. presets */
 const preset = (id: string) => ROOM_PRESETS.find((p) => p.id === id)!.picks;
-check(same(preset("mixed"), ["word", "speed", "attention", "pattern", "logic", "retro", "sports", "cards", "action"]), "Mixed is Word, Speed, Attention, Pattern, Logic and the four arcade groups");
+check(same(preset("mixed"), ["word", "speed", "attention", "pattern", "logic", "retro", "sports", "cards", "action", "strategy"]), "Mixed is Word, Speed, Attention, Pattern, Logic and the five arcade groups");
 check(same(preset("puzzles"), ["word", "number", "speed", "attention", "pattern", "logic"]), "Puzzles only is the six puzzle categories");
-check(same(preset("arcade"), ["retro", "sports", "cards", "action"]), "Arcade only is the four arcade groups");
+check(same(preset("arcade"), ["retro", "sports", "cards", "action", "strategy"]), "Arcade only is the five arcade groups");
 check(same(DEFAULT_SETTINGS.picks, preset("mixed")) && DEFAULT_SETTINGS.rounds === 6, "the default is Mixed with 6 rounds");
-check(ROOM_PICKS.length === 10 && same(ROOM_PICKS, [...PUZZLE_PICKS, ...ARCADE_PICKS]), "ten chips: six puzzle categories and four arcade groups");
+check(ROOM_PICKS.length === 11 && same(ROOM_PICKS, [...PUZZLE_PICKS, ...ARCADE_PICKS]), "eleven chips: six puzzle categories and five arcade groups");
 for (const p of ROOM_PRESETS) check(presetOf(p.picks) === p.id, `presetOf recognises ${p.label}`);
 check(presetOf(["word", "logic"]) === null, "a custom set matches no preset");
 check(ROOM_SETTINGS_PLUS_ONLY === false, "room settings are free for every host (ROOM_SETTINGS_PLUS_ONLY off)");
@@ -280,7 +283,26 @@ const LEGACY: unknown[] = [
 for (const stored of LEGACY) check(readRoomSettings(stored).legacy && !isSettingsRoom(stored), `${JSON.stringify(stored)} is an older room (deals as before)`);
 check(isSettingsRoom(v2) && !readRoomSettings(v2).legacy, "a saved room is read as settings");
 check(same(picksFromCategories(["word", "memory" as PuzzleCategory, "number"]), ["word", "number"]), "the old memory option maps to nothing; Number stays Number");
-check(same(picksFromCategories(["arcade"]), [...ARCADE_PICKS]), "the old Arcade category maps to all four arcade groups");
+check(same(picksFromCategories(["arcade"]), [...ARCADE_PICKS]), "the old Arcade category maps to all five arcade groups");
+// The Strategy split (1 Nov 2026): a settings room saved before it (no groups:2 token) chose Action when Action held
+// Strategy's six games too, so it reads as both groups and keeps exactly the games it had.
+const PRE_SPLIT_ACTION = ["slice", "tilt", "matchup", "skyline", "bubble", "flip", "inkbridge", "balltrack", "swing"].filter(
+  (t) => !puzzleDef(t as PuzzleType).retired,
+);
+for (const stored of [["action", "rounds:6"], ["word", "action", "rounds:9"], ["retro", "sports", "cards", "action", "rounds:12"]]) {
+  const read = readRoomSettings(stored);
+  const games = new Set(read.settings.picks.filter(isArcadePick).flatMap(pickTypes));
+  check(
+    !read.legacy && read.settings.picks.includes("action") && read.settings.picks.includes("strategy") && PRE_SPLIT_ACTION.every((t) => games.has(t as PuzzleType)),
+    `${JSON.stringify(stored)} (saved before the split) keeps Action's nine games (${read.settings.picks.join(",")})`,
+  );
+  const deal = dealRoomRounds(read.settings, { seed: 4242 });
+  check(deal.types.length === read.settings.rounds, `${JSON.stringify(stored)} still deals ${read.settings.rounds} rounds`);
+}
+check(same(readRoomSettings(["retro", "rounds:6"]).settings.picks, ["retro"]), "a pre-split room without Action reads as it was");
+const postSplit = encodeRoomSettings({ picks: ["action"], rounds: 3 });
+check(postSplit.includes(GROUPS_TOKEN) && same(readRoomSettings(postSplit).settings.picks, ["action"]), "Action alone saved after the split stays Action alone");
+check(same(pickTypes("action"), ["slice", "flip", "swing"]) && same(pickTypes("strategy"), ["tilt", "matchup", "skyline", "bubble", "inkbridge", "balltrack"]), "Action keeps Slice, Roofbound, Grappler; Strategy is the six moved games");
 check(same(readRoomSettings(["word", "memory", "arcade"]).categories, ["word", "arcade"]), "an older room keeps its categories for its deal");
 const start = /export const startRoomFn[\s\S]*?\n {2}\}\);/.exec(fns)?.[0] ?? "";
 check(/stored\.legacy \? undefined : dealRoomRounds\(stored\.settings/.test(start) && /normaliseCategories\(room\.selected_categories\)/.test(start), "startRoomFn deals older rooms with pickRoundOrder on their categories, saved rooms from their settings");
@@ -327,7 +349,7 @@ const pressedPreset = () => $$("[data-room-preset][aria-pressed='true']").map((b
 const pressedRounds = () => $$("[data-room-rounds][aria-pressed='true']").map((b) => Number(b.getAttribute("data-room-rounds")));
 const sliderValue = () => Number($("[data-rounds-slider] [role='slider']")?.getAttribute("aria-valuenow"));
 const click = async (el: HTMLElement | null) => act(async () => void el?.click());
-check($$("[data-room-pick]").length === 10, "the sheet draws ten chips");
+check($$("[data-room-pick]").length === 11, "the sheet draws eleven chips");
 check(pressedPreset().length === 0 && same(on(), ["word", "retro"]), "the sheet opens on the room's own picks, no preset");
 check(pressedRounds().join() === "9" && sliderValue() === 9, "the sheet opens on the room's count, its button and the slider");
 for (const p of ROOM_PRESETS) {
@@ -339,7 +361,7 @@ await click($("[data-room-preset='mixed']"));
 await click($("[data-room-pick='number']"));
 check(pressedPreset().length === 0 && on().includes("number"), "sheet: editing a chip after a preset deselects the preset");
 await click($("[data-room-preset='arcade']"));
-for (const p of ["sports", "cards", "action"]) await click($(`[data-room-pick='${p}']`));
+for (const p of ["sports", "cards", "action", "strategy"]) await click($(`[data-room-pick='${p}']`));
 check(same(on(), ["retro"]), "sheet: chips turn off");
 await click($("[data-room-pick='retro']"));
 check(same(on(), ["retro"]), "sheet: the last chip on stays on");
@@ -359,7 +381,7 @@ check(($("[data-room-rounds-value]")?.textContent ?? "") !== minutes9 && /^3 rou
 // The cap: Cards & Board alone.
 await click($("[data-room-rounds='12']"));
 await click($("[data-room-preset='arcade']"));
-for (const p of ["retro", "sports", "action"]) await click($(`[data-room-pick='${p}']`));
+for (const p of ["retro", "sports", "action", "strategy"]) await click($(`[data-room-pick='${p}']`));
 const cardsCap = roundCap(["cards"]);
 check(sliderValue() === cardsCap, `sheet: the count drops to the picks' cap (${sliderValue()}, cap ${cardsCap})`);
 const quick = $$("[data-room-rounds]") as HTMLButtonElement[];

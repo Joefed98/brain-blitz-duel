@@ -205,13 +205,17 @@ type ArcadeFilter = ArcadeGroup | "all";
 /** The switch's counts (practiceSide.ts, from the registry: the active games on each side). */
 const SIDE_COUNTS = practiceSideCounts();
 
-/** The Arcade side's chips: three across, Cards & Board over two columns (no sideways scrolling). */
+/**
+ * The Arcade side's chips in the Puzzles side's 4-column grid: All games, Retro, Sports, Action, then
+ * Cards & Board and Strategy over two columns each (no sideways scrolling at 375 px).
+ */
 const ARCADE_CHIPS: { id: ArcadeFilter; label: string; span?: 2 }[] = [
   { id: "all", label: "All games" },
   { id: "retro", label: arcadeGroupInfo("retro").label },
   { id: "sports", label: arcadeGroupInfo("sports").label },
-  { id: "cards", label: arcadeGroupInfo("cards").label, span: 2 },
   { id: "action", label: arcadeGroupInfo("action").label },
+  { id: "cards", label: arcadeGroupInfo("cards").label, span: 2 },
+  { id: "strategy", label: arcadeGroupInfo("strategy").label, span: 2 },
 ];
 
 /**
@@ -779,7 +783,7 @@ function PracticeScreen() {
                   })}
                 </div>
               ) : (
-                <div role="group" aria-label="Arcade group" data-cols="3" className="ap-chip-grid">
+                <div role="group" aria-label="Arcade group" className="ap-chip-grid">
                   {ARCADE_CHIPS.map((chip) => (
                     <button
                       key={chip.id}
