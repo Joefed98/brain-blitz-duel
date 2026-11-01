@@ -13,8 +13,8 @@
  *    at most 760px wide and 1100px tall (560 × 1000 before 31 Oct 2026), centred across the space beside
  *    the rail and vertically, with its board and every control inside it and on screen, or the page scrolls;
  *  - an arcade live round (Breaker, Coral Pop, Tilt, Gemstone, Fission, Orbit; Breaker, Tilt and Gemstone at DPR 1 and 2) is not a column
- *    centred beside the rail, at most its desktop mode's width (desktopModes.ts: `tall` 760px, `wide` 960px,
- *    `rotate` the whole space; 640 × 1120 before 31 Oct 2026) and the screen's height; its header not the game frame's 60px with its 48px timer ring
+ *    centred beside the rail, at most its desktop mode's width (desktopModes.ts: `tall` 640px, `wide` 960px,
+ *    `rotate` 1120px; 640 × 1120 before 31 Oct 2026) and the screen's height; its header not the game frame's 60px with its 48px timer ring
  *    and 15px seconds (Polish 2, 24 Oct 2026; 56px, 28px and 24px before), the timer not centred; its world not the game's phone shape (within 2px), not the
  *    largest uniform fit of its box (within 2px: an even whole-pixel width), not on whole CSS pixels, or its canvas backing
  *    store not the box × the pixel ratio (crisp at DPR 1 and 2); its fill (where the game has one)
@@ -72,7 +72,7 @@ const PAGE_MAX = 760;
 const PUZZLE_MAX_W = 760;
 const PUZZLE_MAX_H = 1100;
 /** An arcade column's width by desktop mode (desktop-layout.css); no height cap but the screen's. */
-const ARCADE_MAX_W = { tall: 760, wide: 960, rotate: Infinity } as const;
+const ARCADE_MAX_W = { tall: 640, wide: 960, rotate: 1120 } as const;
 const PUZZLES: PuzzleType[] = ["sudoku", "codeword", "wordsmith", "maze"];
 const ARCADE: PuzzleType[] = ["breaker", "bubble", "tilt", "matchup", "burst", "orbit"];
 /** Also drawn at DPR 2 (a high-DPI laptop screen). */
