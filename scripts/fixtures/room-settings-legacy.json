@@ -1,4 +1,4 @@
 {
-  "note": "pickRoundOrder deals for older rooms (6 stored category lists x 200 seeds), recorded on main 567ff36 before room settings",
-  "digest": "ad4d914faa96e54606572615163f46a88432d1c4f8ae6106c62dc531ee3e8271"
+  "note": "pickRoundOrder deals for older rooms (6 stored category lists x 200 seeds), recorded on main 567ff36 before room settings; re-recorded 1 Nov 2026 when Full House retired (#230), its only change (the old digest ad4d914faa96 reproduces with Full House active)",
+  "digest": "fea41723f50ecc13222e469cf6414984f531a775ddeaee2f171fb405aee7737b"
 }

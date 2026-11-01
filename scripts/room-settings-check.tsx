@@ -15,9 +15,9 @@
  *     repeated picks, rounds under 3, over 12, over the cap, not whole) are refused and leave the row as it was.
  *     setRoomSettingsFn goes through it; remembered settings for the next room; Play again keeps them.
  *  4. Deals (dealRoomRounds) over every preset, every single pick, pairs and random sets, every round count
- *     3…cap, 120 seeds each: the count dealt, only picked games, the shares within 1 of each other, never a pick
- *     twice running (where the shares allow), no game repeated within a pick before all its games are used
- *     (and so none at all), the previous room's games skipped while a pick has alternatives, the same deal for
+ *     3…cap, 120 seeds each: the count dealt, only picked games, the shares within 1 of each other (a share
+ *     lower only when its pick has dealt all its games), never a pick twice running (where the shares allow),
+ *     no game repeated within a pick before all its games are used (and so none at all), the previous room's games skipped while a pick has alternatives, the same deal for
  *     the same seed and history, and the seed (not a rule) choosing the order and the extras.
  *  5. Old rooms: a room without saved settings is read as legacy and startRoomFn deals it with pickRoundOrder,
  *     unchanged (a digest of its deals recorded before this change, scripts/fixtures/room-settings-legacy.json);
@@ -222,8 +222,16 @@ for (const picks of SETS) {
       check(deal.types.every((t, i) => pickOf(t) === deal.picks[i] && picks.includes(pickOf(t))), `${tag}: a game outside its pick or the picks`);
       check(deal.types.every((t) => !puzzleDef(t).retired), `${tag}: a retired game was dealt`);
       const counts = picks.map((p) => deal.picks.filter((x) => x === p).length);
-      check(Math.max(...counts) - Math.min(...counts) <= 1, `${tag}: shares ${counts.join("/")} differ by more than 1`);
-      if (picks.length > 1)
+      // Within 1 of each other where the pools allow: a share more than 1 below another's only when that pick has
+      // dealt every one of its games (no game repeats in a room, so it can give no more).
+      const pools = picks.map((p) => pickTypes(p).length);
+      check(counts.every((c, i) => c <= pools[i]!), `${tag}: shares ${counts.join("/")} exceed pools ${pools.join("/")}`);
+      check(
+        counts.every((c, i) => counts.every((d) => c >= d - 1 || c === pools[i])),
+        `${tag}: shares ${counts.join("/")} differ by more than 1 (pools ${pools.join("/")})`,
+      );
+      // Never twice running where the shares allow it: the largest share fits between the others.
+      if (picks.length > 1 && Math.max(...counts) <= rounds - Math.max(...counts) + 1)
         check(deal.picks.every((p, i) => i === 0 || p !== deal.picks[i - 1]), `${tag}: a pick twice running (${deal.picks.join(",")})`);
       for (const p of picks) {
         const mine = deal.types.filter((t) => pickOf(t) === p);
@@ -244,14 +252,17 @@ for (const picks of SETS) {
       const again = dealRoomRounds({ picks, rounds }, { seed, recent });
       check(again.types.join() === deal.types.join(), `${tag}: the same seed dealt differently`);
       orders.add(deal.picks.join());
-      if (rounds % picks.length) {
+      // The extras are the seed's choice only while every pick has games for an extra round.
+      if (rounds % picks.length && pools.every((n) => n >= Math.ceil(rounds / picks.length))) {
         const key = `${picks.join("+")}×${rounds}`;
         const extras = picks.filter((_, i) => counts[i] === Math.max(...counts)).join();
         (extrasSeen.get(key) ?? extrasSeen.set(key, new Set()).get(key)!).add(extras);
       }
     }
     // Two picks can only alternate (both ways round when their shares are equal); more picks have many orders.
-    const want = picks.length > 2 && rounds >= 4 ? 5 : picks.length === 2 && rounds % 2 === 0 ? 2 : 1;
+    const poolsOf = picks.map((p) => pickTypes(p).length);
+    const equalShares = rounds % 2 === 0 && poolsOf.every((n) => n >= rounds / 2);
+    const want = picks.length > 2 && rounds >= 4 ? 5 : picks.length === 2 && equalShares ? 2 : 1;
     check(orders.size >= want, `${picks.join("+")} ×${rounds}: only ${orders.size} orders from ${SEEDS} seeds`);
   }
 }
@@ -351,7 +362,11 @@ await click($("[data-room-preset='arcade']"));
 for (const p of ["retro", "sports", "action"]) await click($(`[data-room-pick='${p}']`));
 const cardsCap = roundCap(["cards"]);
 check(sliderValue() === cardsCap, `sheet: the count drops to the picks' cap (${sliderValue()}, cap ${cardsCap})`);
-check(($("[data-room-rounds='9']") as HTMLButtonElement).disabled && ($("[data-room-rounds='12']") as HTMLButtonElement).disabled && !($("[data-room-rounds='6']") as HTMLButtonElement).disabled, "sheet: quick buttons above the cap are disabled");
+const quick = $$("[data-room-rounds]") as HTMLButtonElement[];
+check(
+  quick.length > 0 && quick.every((b) => b.disabled === Number(b.dataset.roomRounds) > cardsCap) && quick.some((b) => b.disabled) && quick.some((b) => !b.disabled),
+  `sheet: quick buttons above the cap are disabled (cap ${cardsCap}: ${quick.map((b) => `${b.dataset.roomRounds}${b.disabled ? " off" : " on"}`).join(", ")})`,
+);
 check($("[data-room-cap-note]")?.textContent?.startsWith(`Only ${pickTypes("cards").length} games in your picks`) === true, `sheet: the cap note (${$("[data-room-cap-note]")?.textContent})`);
 await act(async () => void thumb().dispatchEvent(new (win as unknown as { KeyboardEvent: typeof KeyboardEvent }).KeyboardEvent("keydown", { key: "End", bubbles: true }) as unknown as Event));
 check(sliderValue() === cardsCap, `sheet: the slider stops at the cap (${sliderValue()})`);
