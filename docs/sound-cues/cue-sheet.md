@@ -529,9 +529,9 @@ Grouped by game or screen.
 
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
 |---|---|---|---|---|---|---|---|---|
-| `music.home` | Home / join (/), and since 1 Nov 2026 the app-wide home bed: Play, Practice's list, Tournaments, Profile, the settings sheet and the room lobby: music_home (music_menu.mp3) |  | loop | recorded sound | `music_home` | 60000 | music | `music_home` |
+| `music.home` | Home / join (/), and since 1 Nov 2026 the app-wide home bed: Play, Practice's list, Tournaments, Profile and the settings sheet: music_home (music_menu.mp3) |  | loop | recorded sound | `music_home` | 60000 | music | `music_home` |
 | `music.practice` | Practice game list (/practice): music_home (the home bed carries on; the slot is not started since 1 Nov 2026) |  | loop | recorded sound | `music_practice` | 60000 | music | `music_practice` |
-| `music.lobby` | Room lobby: music_home (the home bed carries on from the Play tab; lobby_loop is not started since 1 Nov 2026) |  | loop | recorded sound | `lobby_loop` | loop | music | `lobby_loop` |
+| `music.lobby` | Room lobby: lobby_loop (crossfades the home bed out over 400 ms; leaving the lobby for a tab page crossfades it out and the home bed resumes where it was) |  | loop | recorded sound | `lobby_loop` | loop | music | `lobby_loop` |
 | `music.intro` | Round intro (rooms and practice): intro_loop |  | loop | recorded sound | `intro_loop` | loop | music | `intro_loop` |
 | `music.standings` | Round result and standings: standings_loop |  | loop | recorded sound | `standings_loop` | loop | music | `standings_loop` |
 | `music.podium` | Podium / final result: podium_loop |  | loop | recorded sound | `podium_loop` | loop | music | `podium_loop` |

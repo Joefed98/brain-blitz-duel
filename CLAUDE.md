@@ -1028,7 +1028,8 @@ outside the repo.
   sound each hit; the PERFECT visual stays); Pinball's J-O-U-L-Z (pinRev 4+) shows its usual banner in gold and flashes the
   world's border gold three times, 0.15 s on / 0.15 s off, with the sting `pinball.joulz` (the library's streak flourish;
   pinball-joulz-check); one app-wide home bed (`holdHomeBed` / `useHomeBed`) carries on unbroken across Play, Practice,
-  Tournaments, Profile, settings and the lobby, gives way to a game's music and resumes where it was (home-music-check,
+  Tournaments, Profile and settings, gives way to the lobby's own `lobby_loop` (follow-up, same day: the lobby crossfades
+  it out over 400 ms and leaving the lobby crossfades back) and to a game's music, and resumes where it was (home-music-check,
   docs/sound-cues/music.md); the arcade answer reveal's breakdown is one line until tapped ("142 · core 110 + features
   32" on the standard, `revealSummary`; reveal-fold-check, room-16-check); Full House retired to practice.
 - `src/components/duel/` — room/round screens (PhoneShell, RoundIntro, TimerBar,

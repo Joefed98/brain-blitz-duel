@@ -4,13 +4,18 @@
  *
  * On a fake Web Audio context (no browser), with the real sound.ts and manifest, it proves:
  *  1. a screen holding the bed starts it once (music_home's file, looping);
- *  2. moving from one holder to the next (Play → Practice → Profile → Tournaments → the lobby, each page's release
+ *  2. moving from one holder to the next (Play → Practice → Profile → Tournaments → Play, each page's release
  *     before the next page's hold, as React unmounts and mounts) never stops or restarts it;
  *  3. Practice's own slot, while it shares the home bed's file, holds the same bed (no second start);
  *  4. leaving a room (releaseRoomMusic) keeps the home bed playing and its file loaded;
  *  5. a game's music taking over stops it, and holding it again resumes from where it was left (not from the top);
  *  6. with no holder for longer than the grace it stops (fading), and nothing restarts it;
- *  7. the screens hold it: Play, Practice's list, Tournaments, Profile and the room lobby (source).
+ *  7. the screens hold it: Play, Practice's list, Tournaments and Profile (source);
+ *  8. the lobby plays its own lobby_loop again (follow-up, 1 Nov 2026): entering it from Play crossfades the home bed out
+ *     over 400 ms (FADE_MS) while the room loads and the lobby's file decodes; leaving it for a tab page crossfades
+ *     lobby_loop out over 400 ms and the home bed resumes at the place it was left; a lobby → game → home trip hands
+ *     lobby_loop to the round intro's bed exactly as before and ends on the home bed (source: the room route asks for
+ *     lobby_loop and holds the home bed only while it loads).
  */
 import { readFileSync } from "node:fs";
 
@@ -25,6 +30,8 @@ const check = (ok: boolean, what: string) => {
 interface Started { url: string; offset: number; loop: boolean }
 const started: Started[] = [];
 const stopped: string[] = [];
+/** Each source's stop time (context seconds), by file: a fade-out stops it at its fade's end. */
+const stopAt: { url: string; when: number }[] = [];
 const param = () => ({ value: 1, setValueAtTime() {}, linearRampToValueAtTime() {}, exponentialRampToValueAtTime() {}, cancelScheduledValues() {} });
 const node = () => ({ connect(next: unknown) { return next ?? node(); }, disconnect() {} });
 interface FakeBuffer { duration: number; length: number; numberOfChannels: number; sampleRate: number; url: string; getChannelData: () => Float32Array }
@@ -61,8 +68,11 @@ class FakeContext {
       start(_when?: number, offset?: number) {
         if (source.buffer?.url) started.push({ url: source.buffer.url, offset: offset ?? 0, loop: source.loop });
       },
-      stop() {
-        if (source.buffer?.url) stopped.push(source.buffer.url);
+      stop(when?: number) {
+        if (source.buffer?.url) {
+          stopped.push(source.buffer.url);
+          stopAt.push({ url: source.buffer.url, when: when ?? 0 });
+        }
       },
     };
     return source;
@@ -122,7 +132,6 @@ const holders: [string, () => () => void][] = [
   ["Practice", () => sound.holdHomeBed(sound.screenMusic("music_practice"))],
   ["Profile", () => sound.holdHomeBed()],
   ["Tournaments", () => sound.holdHomeBed()],
-  ["the lobby", () => sound.holdHomeBed()],
   ["Play", () => sound.holdHomeBed(sound.screenMusic("music_home"))],
 ];
 for (const [page, hold] of holders) {
@@ -174,11 +183,78 @@ check(/useHomeBed\(true, screenMusic\("music_home"\)\)/.test(src("src/routes/ind
 check(/useHomeBed\(stage === "list", screenMusic\("music_practice"\)\)/.test(src("src/routes/practice.tsx")), "Practice's list holds the home bed");
 check(/useHomeBed\(\);/.test(src("src/routes/profile.tsx")), "Profile holds the home bed");
 check(/useHomeBed\(\);/.test(src("src/routes/tournaments.tsx")), "Tournaments holds the home bed");
-check(/useHomeBed\(inLobby \|\| !duel\);/.test(src("src/routes/duel.$code.tsx")) && !/\? "lobby_loop"/.test(src("src/routes/duel.$code.tsx")), "the room lobby holds the home bed (not lobby_loop)");
+const room = src("src/routes/duel.$code.tsx");
+check(/duel\?\.status === "waiting"\s*\? "lobby_loop"/.test(room), "the room lobby asks for lobby_loop");
+check(/useHomeBed\(!duel\);/.test(room) && (room.match(/useHomeBed\(/g) ?? []).length === 1, "the room page holds the home bed only while it loads");
 check(!/useScreenMusic\("music_(home|practice)"/.test(src("src/routes/index.tsx") + src("src/routes/practice.tsx")), "no page starts and stops its own copy of the menu music");
+
+// 8. The lobby's own bed.
+const LOBBY = SOUND_MANIFEST.lobby_loop.url!;
+const INTRO = SOUND_MANIFEST.intro_loop.url!;
+const FADE_S = 0.4;
+const startsOf = (url: string) => started.filter((s) => s.url === url);
+/** Play → a room's lobby, as the app does it: Play lets go, the room page holds the home bed while it loads, then the lobby asks for its bed. */
+async function playToLobby(): Promise<() => void> {
+  release();
+  const loading = sound.holdHomeBed();
+  await wait(5);
+  loading();
+  sound.startMusic("lobby_loop");
+  for (let i = 0; i < 100 && sound.homeBedState().playing; i++) await wait(10);
+  return () => {};
+}
+release = sound.holdHomeBed(sound.screenMusic("music_home"));
+await wait(20);
+check(sound.homeBedState().playing, "lobby: the home bed plays on Play first");
+take();
+stopped.length = 0;
+stopAt.length = 0;
+fake!.currentTime = 100;
+const before = sound.homeBedState();
+await playToLobby();
+check(startsOf(LOBBY).length === 1 && startsOf(LOBBY)[0]!.loop, `the lobby plays lobby_loop, looping (${startsOf(LOBBY).length} starts)`);
+check(!sound.homeBedState().playing && sound.isMusicPlaying("lobby_loop"), "lobby_loop takes over from the home bed");
+const homeOut = stopAt.find((s) => s.url === HOME);
+check(!!homeOut && Math.abs(homeOut.when - (100 + FADE_S + 0.02)) < 0.001, `the home bed crossfades out over 400 ms (stops at ${homeOut?.when})`);
+const leftAt = sound.homeBedState().offset;
+check(before.playing && leftAt !== null && leftAt > 0, `the home bed's place is kept on entering the lobby (${leftAt})`);
+await wait(sound.HOME_BED_GRACE_MS + 100);
+check(sound.isMusicPlaying("lobby_loop"), "the lobby's bed stays after the room page's loading hold lets go");
+
+// Lobby → Play: lobby_loop crossfades out, the home bed resumes where it was.
+take();
+stopAt.length = 0;
+fake!.currentTime = 130;
+sound.releaseRoomMusic();
+release = sound.holdHomeBed(sound.screenMusic("music_home"));
+await wait(20);
+const lobbyOut = stopAt.find((s) => s.url === LOBBY);
+check(!!lobbyOut && Math.abs(lobbyOut.when - (130 + FADE_S + 0.02)) < 0.001, `leaving the lobby crossfades lobby_loop out over 400 ms (stops at ${lobbyOut?.when})`);
+const resumed = homeStarts();
+check(sound.homeBedState().playing && resumed.length === 1 && leftAt !== null && Math.abs(resumed[0]!.offset - leftAt) < 0.01, `back on Play the home bed resumes at ${leftAt} s, not the top (${resumed.map((r) => r.offset).join(",")})`);
+
+// Lobby → game → home: lobby_loop hands over to the round intro's bed as before, and the trip ends on the home bed.
+fake!.currentTime = 200;
+await playToLobby();
+take();
+// The room leaves the lobby (Prepare to Duel: its slot has no file, so the room stops the bed), then RoundIntro's bed.
+sound.stopMusic(0);
+sound.stopMusic(0);
+sound.startMusic("intro_loop", { fadeMs: 0 });
+for (let i = 0; i < 100 && !sound.isMusicPlaying("intro_loop"); i++) await wait(10);
+check(sound.isMusicPlaying("intro_loop") && startsOf(INTRO).length === 1 && !sound.isMusicPlaying("lobby_loop"), "lobby → game: the round intro's bed takes over from lobby_loop");
+sound.stopMusic(0);
+fake!.currentTime = 260;
+sound.releaseRoomMusic();
+take();
+release = sound.holdHomeBed(sound.screenMusic("music_home"));
+await wait(30);
+check(sound.homeBedState().playing && homeStarts().length === 1, "lobby → game → home ends on the home bed");
+release();
+await wait(sound.HOME_BED_GRACE_MS + 100);
 
 if (failures) {
   console.log(`FAIL home-music-check: ${failures} failure(s)`);
   process.exit(1);
 }
-console.log("PASS home-music-check: one home bed across Play, Practice, Profile, Tournaments and the lobby; no restart between pages; kept on leaving a room; a game takes over and it resumes where it was; stops after the grace with no holder");
+console.log("PASS home-music-check: one home bed across Play, Practice, Profile and Tournaments; no restart between pages; the lobby plays lobby_loop (400 ms crossfades both ways) and the home bed resumes where it was; lobby → game → home ends on it; kept on leaving a room; a game takes over and it resumes where it was; stops after the grace with no holder");

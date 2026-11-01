@@ -586,11 +586,11 @@ function DuelScreen() {
 
   // Beds are requested only outside rounds; manifest music is silent until supplied.
   // The prepare, title, reveal and winner screens stay silent until their slot has a file.
-  // The lobby holds the app-wide home bed (useHomeBed below), so it carries on from the Play tab unbroken.
-  const inLobby = duel?.status === "waiting";
+  // The lobby plays its own bed again (lobby_loop, 1 Nov 2026 follow-up): it crossfades the home bed out over 400 ms
+  // (FADE_MS), and the home bed resumes where it was when the player goes back to a tab page.
   const musicScreen =
-    inLobby
-      ? null
+    duel?.status === "waiting"
+      ? "lobby_loop"
       : duel?.status === "finished"
         ? "podium_loop"
         : phase === "result" || phase === "standings"
@@ -606,11 +606,12 @@ function DuelScreen() {
                   : null;
   useEffect(() => {
     if (musicScreen) startMusic(musicScreen);
-    // The intro screen owns its own bed (intro_loop); the lobby's is the home bed.
-    // While the room loads nothing is stopped: a lobby carries the home bed on from the Play tab.
-    else if (phase !== "intro" && !inLobby && duel) stopMusic(0);
-  }, [musicScreen, inLobby, !!duel]); // eslint-disable-line react-hooks/exhaustive-deps
-  useHomeBed(inLobby || !duel);
+    // The intro screen owns its own bed (intro_loop). While the room loads nothing is stopped, so the home bed
+    // carries on until the lobby's bed crossfades it out.
+    else if (phase !== "intro" && duel) stopMusic(0);
+  }, [musicScreen, !!duel]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Only while the room loads: the home bed plays on from the Play tab (no gap) until the lobby's bed takes over.
+  useHomeBed(!duel);
   // Intro bed loads once the room starts and is held with the other beds.
   const roomStarted = !!duel && duel.status !== "waiting";
   useEffect(() => {

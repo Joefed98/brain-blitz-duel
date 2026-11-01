@@ -16,7 +16,8 @@ export function useScreenMusic(name: Track, active = true): void {
 
 /**
  * Holds the app-wide home bed while `active` (sound.ts `holdHomeBed`): the Play, Practice, Tournaments and
- * Profile tabs and the room lobby. Moving between holders never stops or restarts it.
+ * Profile tabs (and a room page while it loads, until the lobby's own bed takes over). Moving between holders never
+ * stops or restarts it.
  */
 export function useHomeBed(active = true, screen: Track | null = null): void {
   useEffect(() => {

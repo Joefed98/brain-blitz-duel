@@ -1209,7 +1209,9 @@ export function startMusic(name: Track, options: MusicOptions = {}): void {
     // Loaded the first time a screen needs it; starts once decoded if still wanted.
     // A file that failed to load is not retried here (the screen stays silent).
     void loadMusicBuffer(name).then(() => {
-      if (musicBuffers.has(name) && desiredTrack?.name === name && !currentTrack)
+      // Still wanted (nothing started or stopped since): it starts, crossfading out whatever bed is on (the home bed
+      // while the lobby's bed was loading).
+      if (musicBuffers.has(name) && desiredTrack?.name === name && currentTrack?.name !== name)
         startMusic(name, desiredTrack.options);
     });
     return;
@@ -1249,10 +1251,10 @@ export function stopMusic(fadeMs: number = FADE_MS): void {
 
 /**
  * The app-wide home bed (1 Nov 2026, Joe: it restarted on every page change). One player for the Play,
- * Practice, Tournaments and Profile tabs, the settings sheet and the room lobby: each screen holds it
- * (`holdHomeBed`, through `useHomeBed`), and moving from one holder to the next never stops or restarts it.
- * It stops only when nothing has held it for HOME_BED_GRACE_MS or when another bed takes over (a round
- * intro, a game's music, the room's own screens), and it carries on from where it was when it comes back.
+ * Practice, Tournaments and Profile tabs and the settings sheet: each screen holds it (`holdHomeBed`, through
+ * `useHomeBed`), and moving from one holder to the next never stops or restarts it. It stops only when nothing has
+ * held it for HOME_BED_GRACE_MS or when another bed takes over (the lobby's `lobby_loop`, a round intro, a game's
+ * music, the room's own screens), and it carries on from where it was when it comes back.
  * Mute, the music slider, pausing while hidden and the idle sleep apply exactly as to any other bed.
  */
 export const HOME_BED: Track = "music_home";
@@ -1433,8 +1435,9 @@ function loopingSource(id: SoundId, buffer: AudioBuffer): AudioBufferSourceNode 
 
 /** Leaving the room: stop and release the lobby/standings/podium beds. */
 export function releaseRoomMusic(): void {
-  // The lobby holds the app-wide home bed: leaving it for a tab page keeps it playing (its holders decide).
-  if (currentTrack?.name !== HOME_BED && desiredTrack?.name !== HOME_BED) stopMusic(0);
+  // The home bed is app-wide: a page that held it (Practice) leaving keeps it playing (its holders decide). The lobby's
+  // bed crossfades out over FADE_MS as the tab page's home bed comes back in; any other bed stops at once, as before.
+  if (currentTrack?.name !== HOME_BED && desiredTrack?.name !== HOME_BED) stopMusic(currentTrack?.name === "lobby_loop" ? FADE_MS : 0);
   for (const id of bedBuffers) releaseMusicBuffer(id);
   bedBuffers.clear();
 }
