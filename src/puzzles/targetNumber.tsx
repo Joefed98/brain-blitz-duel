@@ -6,7 +6,6 @@ import { playWrong } from "@/lib/sound";
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { PolishStyle, soundCue, useSolveFx } from "@/components/puzzles/numberPolish";
 
-import { buzz } from "@/lib/motion";
 import { useGameKeys } from "@/lib/desktop";
 import {
   applyOperation,
@@ -239,7 +238,6 @@ function TargetStage({
     // found after the shake's re-render has drawn the row again.
     if (tapped) requestAnimationFrame(() => wrongMoveFlash(rootRef.current?.querySelector(`[data-tile-id="${tapped.id}"]`), false));
     playWrong();
-    buzz(20);
     setSelectedId(null);
     setOperator(null);
   };
@@ -301,7 +299,6 @@ function TargetStage({
     setOperator(null);
     setCombine((c) => ({ id: first.id, consumed: tile.id, n: (c?.n ?? 0) + 1 }));
     soundCue("target.combine");
-    buzz(10);
 
     // Hitting the target locks the answer at once.
     if (result === target) {

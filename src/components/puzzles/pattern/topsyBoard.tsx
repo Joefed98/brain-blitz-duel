@@ -6,7 +6,7 @@
  */
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 
-import { ArrowPad, gridCellCentre, hapticTick, useGridMetrics, usePrefersReducedMotion } from "@/components/puzzles/GridDrag";
+import { ArrowPad, gridCellCentre, useGridMetrics, usePrefersReducedMotion } from "@/components/puzzles/GridDrag";
 import { LiveSummary, SummaryItem, useFrameProgress } from "@/components/puzzles/batchP/LiveSummary";
 import { Button } from "@/components/ui/button";
 import { useGameKeys } from "@/lib/desktop";
@@ -27,7 +27,6 @@ import {
 } from "@/lib/duel/topsy";
 import type { GravityDir, GravityPuzzleData } from "@/lib/duel/types";
 import { soundCue, useSolveMoment } from "@/lib/fx/patternFx";
-import { buzz } from "@/lib/motion";
 import { playCorrect, playLock, playSound, playTick } from "@/lib/sound";
 import type { PuzzleRevealProps, PuzzleStageProps } from "@/puzzles/types";
 
@@ -271,8 +270,6 @@ export function TopsyStage({ puzzle, locked, onSubmit, onDraftAnswer, phaseStart
   }, []);
   const press = (dir: GravityDir) => {
     if (blocked) return;
-    hapticTick();
-    buzz(10);
     playSound("pz_gravity_pull");
     soundCue("gravity.tilt");
     setLean(dir);

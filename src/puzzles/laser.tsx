@@ -5,7 +5,6 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import {
   gridCellAt,
   gridCellCentre,
-  hapticTick,
   useGridMetrics,
 } from "@/components/puzzles/GridDrag";
 import {
@@ -34,7 +33,6 @@ import {
   type MirrorPlacement,
   type MirrorKind,
 } from "@/lib/duel/types";
-import { buzz } from "@/lib/motion";
 import { playCorrect, playSound, playWrong } from "@/lib/sound";
 
 import {
@@ -325,7 +323,6 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "laser", ph
   const inFrame = useInFrame();
 
   const refuse = useCallback(() => {
-    buzz(20);
     playWrong();
     setShake((count) => count + 1);
     window.setTimeout(() => setShake((count) => Math.max(0, count - 1)), 320);
@@ -354,7 +351,6 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "laser", ph
     if (drag.kind === "move" && drag.from !== null) {
       // Dropped off the board — back to the tray.
       if (target === null) {
-        hapticTick();
         record(laserAction.remove(drag.from));
         setPlaced(current.filter((mirror) => mirror.cell !== drag.from));
         setHistory((order) => order.filter((cell) => cell !== drag.from));
@@ -362,7 +358,6 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "laser", ph
       }
       // Dropped where it started — a tap, so flip it.
       if (target === drag.from) {
-        hapticTick();
         record(laserAction.turn(drag.from));
         setPlaced(
           current.map((mirror) =>
@@ -378,7 +373,6 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "laser", ph
         return;
       }
       const kind = current.find((mirror) => mirror.cell === drag.from)?.kind ?? "/";
-      hapticTick();
       record(laserAction.move(drag.from, target));
       setPlaced([...current.filter((mirror) => mirror.cell !== drag.from), { cell: target, kind }]);
       setHistory((order) => order.map((cell) => (cell === drag.from ? target : cell)));
@@ -396,7 +390,6 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "laser", ph
       refuse();
       return;
     }
-    hapticTick();
     record(laserAction.place(target, kind));
     setPlaced([...current, { cell: target, kind }]);
     setHistory((order) => [...order.filter((cell) => cell !== target), target]);
@@ -486,7 +479,6 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "laser", ph
             onSubmit(logged ? encodeActionLog(firedLog) : encodeLaserAnswer(placed, attempt));
             return;
           }
-          buzz(20);
           playWrong();
           timers.current.push(window.setTimeout(() => setShot(null), LASER_FADE_MS));
         },
@@ -536,7 +528,6 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "laser", ph
       refuse();
       return;
     }
-    hapticTick();
     record(laserAction.place(cell, selected));
     setPlaced([...placed, { cell, kind: selected }]);
     setHistory((order) => [...order.filter((placedCell) => placedCell !== cell), cell]);
@@ -546,7 +537,6 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "laser", ph
     if (!history.length) return;
     const last = history.at(-1);
     if (last === undefined) return;
-    hapticTick();
     record(laserAction.remove(last));
     setHistory((current) => current.slice(0, -1));
     setPlaced((current) => current.filter((mirror) => mirror.cell !== last));

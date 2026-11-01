@@ -34,7 +34,6 @@ import {
 } from "@/lib/arcade/slice";
 import { decodeSliceRun, encodeSliceRun, replaySliceRun } from "@/lib/duel/slice";
 import type { SlicePuzzleData } from "@/lib/duel/types";
-import { buzz } from "@/lib/motion";
 import { arcadeFeedback } from "@/lib/fx/arcade";
 import { NO_SCROLL_STYLE, useNoTouchScroll } from "@/components/puzzles/noScroll";
 
@@ -164,7 +163,6 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
 
       if (state.current.bombsHit > bombs) {
         bombs = state.current.bombsHit;
-        buzz(40);
       }
 
       reportArcadeTick(state.current.tick, sliceGame.isOver(state.current));

@@ -7,6 +7,7 @@
  */
 import { cueHasFile, ensureCueLoop, ensureSlotLoop, playCueSlot, playSlotOr, setCueLoopRate, stopCueLoop, stopSlotLoop } from "@/lib/sound";
 import { liveCue, momentFrame } from "@/lib/fx/momentCues";
+import { haptic, type HapticPattern } from "@/lib/haptics";
 import type { SoundId } from "@/lib/fx/manifest";
 import { ORBIT_EIGHT, type OrbitState } from "@/lib/arcade/orbit";
 import { CLASH_LANE_EXPAND_TICK, type ClashState } from "@/lib/arcade/colourClash";
@@ -61,6 +62,14 @@ function sfx(cue: SoundId, fallback: SoundId, volume = 1, rate = 1, overlap = fa
   playSlotOr(cue, fallback, volume, rate, overlap, keepRate);
 }
 
+/**
+ * Haptics (lib/haptics.ts), big moments only: a goal, a home run, a pot (`success`), a foul (`error`),
+ * a life lost or a crash (`impact`). Only while the live board is up: never in a demo, replay or reveal.
+ */
+function feel(pattern: HapticPattern): void {
+  haptic(pattern, { inGame: true });
+}
+
 /** A renderer effect's named cue (liveCue), unless a success cue with a file replaces it this frame. */
 function effectCue(cue: string, gapMs = 0, rate?: number): void {
   if (!quiet.has(cue)) liveCue(cue, gapMs, rate);
@@ -100,7 +109,7 @@ export function orbitSounds(): GameSounds<OrbitState> {
       if (prev && state.tick > prev.tick) {
         if (state.releaseTick !== prev.releaseTick && state.flying > 0) sfx("orbit.launch", "arc_thruster");
         if (prev.checkpoint < 0 && state.checkpoint >= 0) sfx("orbit.checkpoint", "arc_pickup");
-        if (state.respawnTick !== prev.respawnTick || (state.ended === 2 && prev.ended !== 2)) sfx("orbit.crash", "arc_crash");
+        if (state.respawnTick !== prev.respawnTick || (state.ended === 2 && prev.ended !== 2)) { sfx("orbit.crash", "arc_crash"); feel("impact"); }
         // A planet caught: the bloom and ring; every tenth also sends a shooting star across the sky.
         if (state.captured > prev.captured) {
           if (Math.trunc(state.captured / 10) > Math.trunc(prev.captured / 10)) effectCue("orbit.shootingStar");
@@ -144,9 +153,9 @@ export function swingSounds(): GameSounds<SwingState> {
       beginFrame("swing", state);
       loopCue("swing.lava", running && state.ended === 0);
       if (prev && state.tick > prev.tick) {
-        if (state.ended === 2 && prev.ended !== 2) sfx("swing.crash", "arc_crash");
+        if (state.ended === 2 && prev.ended !== 2) { sfx("swing.crash", "arc_crash"); feel("impact"); }
         // swingRev 14: a miss (or the dragon) puts the hero back on the start ledge: the same crash.
-        else if ((state.restarts ?? 0) > (prev.restarts ?? 0)) sfx("swing.crash", "arc_crash");
+        else if ((state.restarts ?? 0) > (prev.restarts ?? 0)) { sfx("swing.crash", "arc_crash"); feel("impact"); }
         else if (prev.rope < 0 && state.rope >= 0) sfx("swing.grapple", "arc_grapple");
         // swingRev 4: a star taken, the dragon appearing, a stalactite starting to shake, a jet erupting.
         if ((state.stars ?? 0) > (prev.stars ?? 0)) sfx("swing.starTaken", "arc_pickup", 0.9);
@@ -203,7 +212,7 @@ export function wavefrontSounds(): GameSounds<WavState> {
         // Ships and the armoured ship destroyed this frame (bursts carry the kill tick).
         if (state.bursts.some((b) => b.t > prev!.tick && (b.c === 3 || b.c === 4))) sfx("wavefront.bigExplode", "arc_big_explode", 0.8);
         else if (state.bursts.some((b) => b.t > prev!.tick && b.c !== 3)) sfx("wavefront.shapePop", "arc_shape_pop", 0.7);
-        if (state.lives < prev.lives) sfx("wavefront.lifeLost", "arc_lose_life");
+        if (state.lives < prev.lives) { sfx("wavefront.lifeLost", "arc_lose_life"); feel("impact"); }
         // wavRev 2: a boss hit, the next formation (or the boss) arriving, a ship peeling off to dive.
         if ((state.bossHits ?? 0) > (prev.bossHits ?? 0) && !state.bossKilled) sfx("wavefront.bossHit", "arc_retro_hit", 0.7, 1, true);
         if ((state.enter ?? 0) > 0 && (prev.enter ?? 0) === 0) sfx("wavefront.formation", "stage_complete", 0.8);
@@ -241,7 +250,7 @@ export function crossSounds(): GameSounds<CrossState> {
       beginFrame("cross", state);
       loopCue("cross.traffic", running && !state.dead);
       if (prev && state.tick > prev.tick) {
-        if (state.lives < prev.lives) sfx("cross.lifeLost", "arc_lose_life");
+        if (state.lives < prev.lives) { sfx("cross.lifeLost", "arc_lose_life"); feel("impact"); }
         else if (state.crossings > prev.crossings) sfx("cross.crossed", "stage_complete");
         else if (state.col !== prev.col || (state.hop > 0 && (prev.hop === 0 || state.hop > prev.hop))) sfx("cross.hop", "arc_honk", 0.6);
         // A new layout's crossing begins (its kerb pause ends).
@@ -274,7 +283,7 @@ export function flipSounds(): GameSounds<FlipState> {
       beginFrame("flip", state);
       void running;
       if (prev && state.tick > prev.tick) {
-        if (state.ended === 2 && prev.ended !== 2) sfx("flip.crash", "arc_crash");
+        if (state.ended === 2 && prev.ended !== 2) { sfx("flip.crash", "arc_crash"); feel("impact"); }
         else if (state.flipT > prev.flipT) sfx("flip.flip", "arc_gravity_flip", 0.7);
         if (state.ended === 0) {
           // The tunnel speeds up a step (every 3 s); only every third step is sounded (9, 18, 27, 36, 45 s).
@@ -318,7 +327,7 @@ export function hoverSounds(): GameSounds<HoverState> {
       beginFrame("hover", state);
       start(running);
       if (prev && state.tick > prev.tick) {
-        if (state.crashed && !prev.crashed) sfx("hover.crash", "arc_retro_explode");
+        if (state.crashed && !prev.crashed) { sfx("hover.crash", "arc_retro_explode"); feel("impact"); }
         else {
           if (state.gates > prev.gates) sfx("hover.gate", "arc_retro_note");
           // hoverRev 2: a gold star collected.
@@ -358,7 +367,7 @@ export function snakeSounds(): GameSounds<SnakeState> {
       beginFrame("snake", state);
       start(running);
       if (prev && state.tick > prev.tick) {
-        if (state.dead && !prev.dead) sfx("snake.dead", "arc_retro_explode");
+        if (state.dead && !prev.dead) { sfx("snake.dead", "arc_retro_explode"); feel("impact"); }
         else if (state.eaten > prev.eaten) sfx("snake.eat", "arc_retro_blip");
         // snakeRev 2: a rock's shadow appears, then it lands clear of the head.
         else if ((state.rocks?.length ?? 0) > (prev.rocks?.length ?? 0)) sfx("snake.rockLand", "arc_retro_hit", 0.7);
@@ -422,7 +431,7 @@ export function breakerSounds(): GameSounds<BrkState> {
       beginFrame("breaker", state);
       start(running);
       if (prev && state.tick > prev.tick) {
-        if (state.losses > prev.losses) sfx("breaker.ballLost", "arc_retro_explode");
+        if (state.losses > prev.losses) { sfx("breaker.ballLost", "arc_retro_explode"); feel("impact"); }
         if (state.powerUps > prev.powerUps) sfx("breaker.powerUp", "arc_retro_pickup");
         // brkRev 2: Fireball lit.
         if ((state.fireballs ?? 0) > (prev.fireballs ?? 0)) sfx("breaker.fireballLit", "arc_retro_coin", 0.8);
@@ -485,6 +494,7 @@ export function pinballSounds(): GameSounds<PinState> {
         }
         const over = state.lost >= PIN_BALLS && prev.lost < PIN_BALLS && state.tick < pinRunTicksOf(state);
         if (over) effectCue("pinball.gameOver");
+        if (state.lost > prev.lost) feel("impact");
         if (state.lost > prev.lost && !(over && cueHasFile("pinball.gameOver"))) sfx("pinball.ballLost", "arc_retro_explode");
         if (state.live && !prev.live) sfx("pinball.launch", "arc_bounce", 0.8);
         if (state.bumps > prev.bumps) sfx("pinball.bumperHit", "arc_retro_hit", 0.8, 1, true);
@@ -517,7 +527,7 @@ export function rallySounds(): GameSounds<RallyState> {
       beginFrame("rally", state);
       start(running);
       if (prev && state.tick > prev.tick) {
-        if (state.dead && !prev.dead) sfx("rally.dead", "arc_retro_explode");
+        if (state.dead && !prev.dead) { sfx("rally.dead", "arc_retro_explode"); feel("impact"); }
         if (state.goldHits > prev.goldHits) sfx("rally.goldHit", "arc_retro_note");
         if (state.hits > prev.hits) sfx("rally.hit", "arc_retro_blip");
         // The light row under the court (arenaFills.renderer.ts, display only): one lamp a return, two a
@@ -557,8 +567,8 @@ export function burstSounds(): GameSounds<BurstState> {
       beginFrame("burst", state);
       start(running);
       if (prev && state.tick > prev.tick) {
-        if (state.ended === 2 && prev.ended !== 2) sfx("burst.gameOver", "arc_retro_explode");
-        else if (state.lives < prev.lives) sfx("burst.lifeLost", "arc_lose_life");
+        if (state.ended === 2 && prev.ended !== 2) { sfx("burst.gameOver", "arc_retro_explode"); feel("impact"); }
+        else if (state.lives < prev.lives) { sfx("burst.lifeLost", "arc_lose_life"); feel("impact"); }
         if (state.hits > prev.hits) sfx("burst.hit", "arc_retro_hit", 0.8, 1, true);
         if ((state.shield && !prev.shield) || (state.burst && !prev.burst)) sfx("burst.powerUp", "arc_retro_pickup");
         // burstRev 2: a FREEZE icon caught.
@@ -685,7 +695,7 @@ export function tiltSounds(): GameSounds<TiltState> {
       beginFrame("tilt", state);
       toyRoll("tilt.roll", running && Math.abs(state.vx) + Math.abs(state.vy) > TILT_ROLL_SPEED);
       if (prev && state.tick > prev.tick) {
-        if (state.caught && !prev.caught) sfx("tilt.caught", "arc_crash");
+        if (state.caught && !prev.caught) { sfx("tilt.caught", "arc_crash"); feel("impact"); }
         else if (state.ended === 2 && prev.ended !== 2) effectCue("tilt.pitFall");
         if (prev.chaser && !state.chaser && !state.caught && state.level === prev.level) effectCue("tilt.chaserFall");
         if (state.mazes > prev.mazes) sfx("tilt.mazeDone", "arc_marble_clink");
@@ -756,7 +766,7 @@ export function junctionSounds(): GameSounds<JuncState> {
         // junctionRev 2: a new road opens; a bus clears the junction.
         if (state.rev && Math.trunc(state.tick / JUNC_BUILD_EVERY) > Math.trunc(prev.tick / JUNC_BUILD_EVERY) && state.tick <= JUNC_BUILDS * JUNC_BUILD_EVERY) sfx("junction.newRoad", "arc_clank", 0.7);
         if ((state.busCleared ?? 0) > (prev.busCleared ?? 0)) sfx("junction.busCleared", "arc_honk", 0.4);
-        if (state.ended === 2 && prev.ended === 0) sfx("junction.crash", "arc_crash");
+        if (state.ended === 2 && prev.ended === 0) { sfx("junction.crash", "arc_crash"); feel("impact"); }
         else if (state.ended === 1 && prev.ended === 0) sfx("junction.complete", "stage_complete");
       }
       prev = state;
@@ -786,7 +796,7 @@ export function skylineSounds(): GameSounds<SkylineState> {
             if ((state.golds ?? 0) > (prev.golds ?? 0)) sfx("shared.celebrate.chime", "correct", 0.9);
           }
         }
-        if (state.missed && !prev.missed) sfx("skyline.miss", "arc_crash");
+        if (state.missed && !prev.missed) { sfx("skyline.miss", "arc_crash"); feel("impact"); }
         else if (skylineGustAt(state, state.tick) !== 0 && skylineGustAt(prev, prev.tick) === 0) effectCue("skyline.gust");
         // The flag streams a second before a gust blows.
         else if (skylineFlagAt(state, state.tick) !== 0 && skylineFlagAt(prev, prev.tick) === 0) effectCue("skyline.gustWarn");
@@ -1053,13 +1063,20 @@ export function poolSounds(): GameSounds<PoolState> {
         // poolRev 2 rolls a potted ball into the mouth before it drops away (the art, from its drop tick): the pocket
         // sounds as it reaches the mouth. poolRev 1 sounds on the drop itself.
         if (state.rev >= 2) {
-          for (const b of state.balls) {
-            if (b.downAt === undefined) continue;
+          state.balls.forEach((b, i) => {
+            if (b.downAt === undefined) return;
             const at = b.downAt + POOL_DROP_MOUTH_TICKS;
-            if (prev.tick < at && state.tick >= at) ownCue("pool.pocket", "shared.celebrate.countDing", 0.9);
-          }
-        } else if (state.pots > prev.pots || state.scratches > prev.scratches) ownCue("pool.pocket", "shared.celebrate.countDing", 0.9);
-        if (state.fouls > prev.fouls) ownCue("pool.foul", "shared.celebrate.zap", 0.7);
+            if (prev!.tick < at && state.tick >= at) {
+              ownCue("pool.pocket", "shared.celebrate.countDing", 0.9);
+              // A pot (the cue ball's scratch is a foul, felt below).
+              if (i !== POOL_CUE) feel("success");
+            }
+          });
+        } else if (state.pots > prev.pots || state.scratches > prev.scratches) {
+          ownCue("pool.pocket", "shared.celebrate.countDing", 0.9);
+          if (state.pots > prev.pots) feel("success");
+        }
+        if (state.fouls > prev.fouls) { ownCue("pool.foul", "shared.celebrate.zap", 0.7); feel("error"); }
         if (state.black === 1 && prev.black !== 1) ownCue("pool.blackWin", "shared.celebrate.chime");
       }
       prev = state;
@@ -1135,6 +1152,7 @@ export function homerunSounds(): GameSounds<HomerunState> {
           if ((hit.out === OUT_HOMER || hit.out === OUT_FAIR) && !weak) sfx("homerun.crack", "arc_wood_knock", 1, hit.q >= 900 ? 1.15 : 1);
           if (hit.out === OUT_HOMER) {
             sfx("homerun.homer", "arc_fair_sting", 0.9);
+            feel("success");
             effectCue("homerun.roar");
           }
           if (hit.sign >= 0) sfx("homerun.sign", "arc_fair_bell", 0.9);
@@ -1180,6 +1198,7 @@ export function freekickSounds(): GameSounds<FreekickState> {
           if (f.out === FK_OUT_WALL && was.out !== FK_OUT_WALL) sfx("freekick.wall", "arc_wood_knock", 0.65, 0.85);
           if (f.out === FK_OUT_GOAL && was.out !== FK_OUT_GOAL) {
             sfx("freekick.goal", "arc_fair_sting", 0.95);
+            feel("success");
             effectCue("freekick.roar");
           }
           if (f.out === FK_OUT_WIDE && was.out !== FK_OUT_WIDE && (f.post || f.bar)) effectCue("freekick.groan");
@@ -1229,7 +1248,7 @@ export function racingSounds(): GameSounds<RacingState> {
           started = true;
           sfx("racing.go", "arc_horn", 0.5);
         }
-        if (state.wallHits > prev.wallHits) sfx("racing.wall", "arc_crash", 0.8);
+        if (state.wallHits > prev.wallHits) { sfx("racing.wall", "arc_crash", 0.8); feel("impact"); }
         else if (state.off && !prev.off && !cueHasFile("racing.grassLoop")) sfx("racing.grass", "arc_bounce", 0.6, 0.8);
         const c = racingTrack(state.seed).curve[racingSegAt(state.s)] ?? 0;
         const limit = racingBalanceSpeed(c);

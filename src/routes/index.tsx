@@ -35,7 +35,6 @@ import { rememberedLook, type PlayerLook } from "@/lib/duel/playerLook";
 import { scheduledGames, upcomingGames, type PublicGame } from "@/lib/publicSchedule";
 import { unlockAudio } from "@/lib/sound";
 import { celebrationSound, celebrationsOn } from "@/lib/fx/celebrations";
-import { buzz } from "@/lib/motion";
 import { PUZZLE_REGISTRY, gameCounts } from "@/lib/duel/registry";
 import type { PuzzleType } from "@/lib/duel/types";
 import { APP_DESCRIPTION, APP_TITLE } from "@/lib/brand";
@@ -227,7 +226,6 @@ function Home() {
   const fail = (message: string) => {
     setError(message);
     setShake((n) => n + 1);
-    buzz([10, 50, 10]);
   };
 
   const start = async (mode: "create" | "join") => {

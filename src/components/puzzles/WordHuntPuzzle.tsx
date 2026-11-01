@@ -6,7 +6,6 @@ import { extendWordHuntPath, wordHuntInnerCell } from "./wordInput";
 
 import {
   gridGeometry,
-  hapticTick,
 } from "@/components/puzzles/GridDrag";
 import {
   wordHuntCols,
@@ -275,7 +274,6 @@ export function WordHuntPuzzle({
         const v = wordHuntValue(verdict.word, cells, golden);
         setAcceptedWord(`${verdict.word}${v.extra > 0 ? ` ${multLabel(v.base, v.value)}` : ""}${v.gold ? " ★" : ""} · ${v.value}`);
       } else setAcceptedWord(verdict.word);
-      hapticTick();
       cells.forEach((cell) => rightMoveFlash(gridRef.current?.querySelector(`[data-cell="${cell}"]`)));
     } else {
       setFlash("bad");
@@ -347,7 +345,6 @@ export function WordHuntPuzzle({
     livePath.current = next;
     setPath(next);
     setPointer(centre(cell));
-    hapticTick();
   }, [N, centre]);
 
   useEffect(() => {
@@ -359,7 +356,6 @@ export function WordHuntPuzzle({
         dragging.current = true;
         livePath.current = [origin.cell];
         setPath([origin.cell]);
-        hapticTick();
       }
       const current = livePath.current;
       const last = current[current.length - 1];
@@ -377,7 +373,6 @@ export function WordHuntPuzzle({
       if (next.length === current.length) return;
       livePath.current = next;
       setPath(next);
-      hapticTick();
     };
     const up = (event: PointerEvent) => {
       if (!tracing.current || activePointer.current !== event.pointerId) return;

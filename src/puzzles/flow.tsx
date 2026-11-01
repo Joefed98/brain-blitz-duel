@@ -14,7 +14,6 @@ import {
   type FlowPair,
   type FlowPuzzleData,
 } from "@/lib/duel/types";
-import { buzz } from "@/lib/motion";
 import { playCorrect } from "@/lib/sound";
 
 import { FlowTubes, shadeHex, useFlowJoins } from "@/components/puzzles/pattern/flowArt";
@@ -276,7 +275,6 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "flow" }: P
         return next;
       });
       if (completed) playCorrect();
-      buzz(4);
     },
     [dotPair, locked, pairs, paths, setPaths, walls],
   );

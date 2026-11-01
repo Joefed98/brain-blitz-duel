@@ -42,7 +42,6 @@ import { useCelebrationScope } from "@/components/fx/useCelebration";
 import { ordinal } from "@/lib/duel/ordinal";
 import { rememberedLook, type PlayerLook } from "@/lib/duel/playerLook";
 import { getStoredName, setStoredName } from "@/lib/duel/session";
-import { buzz } from "@/lib/motion";
 import { unlockAudio } from "@/lib/sound";
 import { APP_NAME } from "@/lib/brand";
 import { OnlineOnly } from "@/components/offline/OnlineOnly";
@@ -220,7 +219,6 @@ function DailyScreen() {
       if (!started.ok) {
         setError(started.message);
         if (started.nameRefused) setEditingName(true);
-        buzz([10, 50, 10]);
         return;
       }
       setStoredName(trimmed);

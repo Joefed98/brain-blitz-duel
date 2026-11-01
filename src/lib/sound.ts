@@ -798,6 +798,10 @@ let replayQuiet = 0;
 export function quietForReplay(on: boolean): void {
   replayQuiet = Math.max(0, replayQuiet + (on ? 1 : -1));
 }
+/** Whether a puzzle replay (time-lapse) is on screen: haptics stay off under it (lib/haptics.ts). */
+export function replayOnScreen(): boolean {
+  return replayQuiet > 0;
+}
 /** Whether a named cue is silenced because a puzzle replay is on screen. */
 export function replayQuieted(cue: string): boolean {
   return replayQuiet > 0 && !/^(shared|room|ui)\./.test(cue);

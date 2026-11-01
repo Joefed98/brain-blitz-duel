@@ -4,7 +4,7 @@
  *  - Between rounds (lobby, round results, standings, final screens): the chat button carries a
  *    gold unread count, and a message from another player that arrives live shows a short toast
  *    (their colour and icon, name and the first words) with the soft chat blip and a light haptic
- *    where the device has one.
+ *    (lib/haptics.ts `tick`, behind the Settings switch) where the device has one.
  *  - During a round (intro countdown, live round, reveal): never a toast, sound or haptic; the
  *    play header shows only a small gold dot while anything is unread.
  *
@@ -18,8 +18,6 @@ export const CHAT_TOAST_MS = 3500;
 export const CHAT_TOAST_WORDS = 8;
 /** …and at most this many characters. */
 export const CHAT_TOAST_CHARS = 48;
-/** The haptic for a toast (navigator.vibrate; iOS Safari has none, so no haptic there). */
-export const CHAT_TOAST_BUZZ_MS = 12;
 
 /** The first words of a message for its toast, with "…" when anything was left off. */
 export function chatToastText(text: string): string {
