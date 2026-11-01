@@ -44,7 +44,7 @@ import { FC_DEALS } from "@/lib/arcade/cards/freecellDeals.data";
 import { TP_REV } from "@/lib/arcade/cards/tripeaks";
 import { TP_DEALS } from "@/lib/arcade/cards/tripeaksDeals.data";
 import { PS_REV } from "@/lib/arcade/cards/pokerSquares";
-import { FH_REV } from "@/lib/arcade/cards/fiveHands";
+import { FH_REV, fhDeal } from "@/lib/arcade/cards/fiveHands";
 import type { FiveHandsPuzzleData, FreecellPuzzleData, PokerSquaresPuzzleData, TripeaksPuzzleData } from "./types";
 import { bullseyeWinds, BULLSEYE_REV_TARGET, BULLSEYE_REV_STRICT, BULLSEYE_REV_STD } from "@/lib/arcade/bullseye";
 import type {
@@ -107,9 +107,13 @@ export function generatePokerSquares(): PokerSquaresPuzzleData {
   return { type: "pokersquares", seed: arcadeSeed(), pokerSquaresRev: PS_REV };
 }
 
-/** Five Hands: any seed; the sim shuffles the deck and proves its witness (perfect play reaches 200). */
+/**
+ * Five Hands: any seed; the sim shuffles the deck. fiveHandsRev 2 stores the deck's exact best total with the deal
+ * (`fiveHandsBest`, fhDeckBest through fhDeal), the score's full figure, so every replay uses the same number.
+ */
 export function generateFiveHands(): FiveHandsPuzzleData {
-  return { type: "fivehands", seed: arcadeSeed(), fiveHandsRev: FH_REV };
+  const seed = arcadeSeed();
+  return { type: "fivehands", seed, fiveHandsRev: FH_REV, fiveHandsBest: fhDeal(seed, FH_REV).target };
 }
 
 export function generateSwerve(): SwervePuzzleData {

@@ -194,7 +194,7 @@ export const ARCADE_REVEAL_RENDERERS: Record<string, ArcadeRevealRenderer> = {
   freecell: simple(GOLD, FC_WORLD_W, FC_WORLD_H, freecellArt, (p, a) => replayFreecellRun(seedOf(p), a, p.type === "freecell" ? p.freecellRev : undefined)),
   tripeaks: simple(GOLD, TP_WORLD_W, TP_WORLD_H, tripeaksArt, (p, a) => replayTripeaksRun(seedOf(p), a)),
   pokersquares: simple(GOLD, PS_WORLD_W, PS_WORLD_H, pokerSquaresArt, (p, a) => replayPokerSquaresRun(seedOf(p), a, p.type === "pokersquares" ? p.pokerSquaresRev : undefined)),
-  fivehands: simple(GOLD, FH_WORLD_W, FH_WORLD_H, fiveHandsArt, (p, a) => replayFiveHandsRun(seedOf(p), a, p.type === "fivehands" ? p.fiveHandsRev : undefined)),
+  fivehands: simple(GOLD, FH_WORLD_W, FH_WORLD_H, fiveHandsArt, (p, a) => replayFiveHandsRun(seedOf(p), a, p.type === "fivehands" ? p.fiveHandsRev : undefined, p.type === "fivehands" ? p.fiveHandsBest : undefined)),
   hover: simple("#2ED3B7", 390, 560, hoverGame, (p, a) => replayHoverRun(seedOf(p), a, p.type === "hover" ? p.hoverRev : undefined), undefined, hoverRevealGame, (p) => hoverWorldHFor(p.type === "hover" ? p.hoverRev : undefined)),
   skyline: simple(GOLD, 390, 560, skylineGame, (p, a) => replaySkylineRun(seedOf(p), a, p.type === "skyline" ? p.skylineRev : undefined), undefined, skylineRevealGame, (p) => skylineWorldHFor(p.type === "skyline" ? p.skylineRev : undefined)),
   // binRev 7: the wider fairground (430 × 728) drawn at 390 wide, so 660 tall.

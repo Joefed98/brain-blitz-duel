@@ -40,7 +40,7 @@ import {
   FC_CORE_UNITS, FC_CORE_UNITS_V3, FC_INPUT_MOVE, FC_INPUT_RESET, FC_INPUT_UNDO, FC_REV, FC_STD_SPEC, fcCheckpoint, fcCoreUnits, fcNoteText, fcPack, freecellGameFor, freecellStdParts,
 } from "../src/lib/arcade/cards/freecell";
 import {
-  FH_CORE_FULL, FH_CORE_FULL_V2, FH_INPUT_PLACE, FH_REV, FH_ROWS, FH_SEEN, FH_STD_SPEC, FH_TURNS, fhCheckpoint, fhDeal, fhDiscard, fhDiscardsShown, fhOpenRows, fhRowHand, fhTotals, fhYours,
+  FH_BEST_MIN, FH_CORE_FULL, FH_INPUT_PLACE, fhDeckBest, FH_REV, FH_ROWS, FH_SEEN, FH_STD_SPEC, FH_TURNS, fhCheckpoint, fhDeal, fhDiscard, fhDiscardsShown, fhOpenRows, fhRowHand, fhTotals, fhYours,
   fiveHandsGame, fiveHandsGameFor, fiveHandsStdParts, type FhState,
 } from "../src/lib/arcade/cards/fiveHands";
 import { psCheckpoint } from "../src/lib/arcade/cards/pokerSquares";
@@ -424,30 +424,82 @@ ok(new Set(FC_DEALS.map((d) => d[0])).size === FC_DEALS.length && new Set(TP_DEA
   ];
   for (const [row, want] of table) ok(fhRowHand(row, 2).points === want, `fivehands rev 2: ${row.join(",")} scores ${want} (got ${fhRowHand(row, 2).points}); rev 1 ${fhRowHand(row, 1).points}`);
   ok(FH_STD_SPEC.parts.length === 1 && FH_STD_SPEC.parts[0]!.max === 200 && FH_STD_SPEC.rev === 2, "fivehands rev 2: one part, hand points to 200 (no made-hands or speed part)");
+  // Each deck is scored against its own exact best (fhDeckBest), stored with the deal (`fiveHandsBest`).
   let fh2 = true;
-  const targets: number[] = [];
   for (const seed of fhSeeds) {
     const dd = fhDeal(seed, 2);
     const { raw } = fiveHandsFlawless(seed, 20, 2);
     const r = replayFiveHandsRun(seed, raw, 2);
-    targets.push(dd.target);
-    if (r.score !== 200 || r.total !== dd.target || dd.target < FH_CORE_FULL_V2 || !r.finished || r.flagged || fhTotals(dd.witness, 2).total !== dd.target) {
+    const stored = replayFiveHandsRun(seed, raw, 2, dd.target);
+    if (r.score !== 200 || stored.score !== 200 || r.total !== dd.target || r.best !== dd.target || stored.best !== dd.target || dd.target < FH_BEST_MIN || !r.finished || r.flagged || fhTotals(dd.witness, 2).total !== dd.target || fhDeckBest(dd.deck).best !== dd.target) {
       fh2 = false;
-      failures.push(`fivehands rev 2: seed ${seed}'s witness replays to ${r.score} (${r.total} hand points, target ${dd.target})`);
+      failures.push(`fivehands rev 2: seed ${seed}'s best arrangement replays to ${r.score} (${r.total} hand points, best ${dd.target})`);
     }
   }
-  ok(fh2, `fivehands rev 2: ${fhSeeds.length} seeds' witnesses reach ${FH_CORE_FULL_V2} rev-2 hand points and replay to 200 through the server replay`);
-  ok(JSON.stringify(fhDeal(23, 2)) === JSON.stringify(fhDeal(23, 2)) && JSON.stringify(fiveHandsGameFor(2).init(23)) === JSON.stringify(fiveHandsGameFor(2).init(23)), "fivehands rev 2: a seed deals the same deck and witness every time");
-  // The deck is rev 1's shuffle: a seed whose first deck holds a rev-2 witness deals rev 1's deck.
+  ok(fh2, `fivehands rev 2: ${fhSeeds.length} seeds' best arrangements reach the deck's best and replay to 200 through the server replay, with and without the stored best`);
+  {
+    // The best is the maximum: no hill climb of 32 restarts finds more on 40 decks, and no bot run, at any level, beats it.
+    let climbs = 0;
+    for (let seed = 0; seed < 40; seed++) {
+      const deck = fhDeal(seed, 2).deck;
+      const best = fhDeckBest(deck).best;
+      let rng = (seed * 7919 + 13) | 0;
+      const rnd = (n: number) => { rng = (Math.imul(rng, 1103515245) + 12345) | 0; return ((rng >>> 8) % n); };
+      let top = 0;
+      for (let r = 0; r < 32; r++) {
+        const perm = Array.from({ length: 4 }, () => [0, 1, 2, 3, 4]);
+        for (const p of perm) for (let i = 4; i > 0; i--) { const j = rnd(i + 1); [p[i], p[j]] = [p[j]!, p[i]!]; }
+        const row = (k: number) => [deck[k]!, ...perm.map((p, g) => deck[5 + 2 * (g * 5 + p[k]!)]!)];
+        const val = Array.from({ length: 5 }, (_, k) => fhRowHand(row(k), 2).points);
+        for (let st = 0; st < 1500; st++) {
+          const g = rnd(4); const a = rnd(5); let b = rnd(4); if (b >= a) b++;
+          const p = perm[g]!; const t = p[a]!; p[a] = p[b]!; p[b] = t;
+          const va = fhRowHand(row(a), 2).points; const vb = fhRowHand(row(b), 2).points;
+          if (va + vb < val[a]! + val[b]!) { p[b] = p[a]!; p[a] = t; } else { val[a] = va; val[b] = vb; }
+        }
+        top = Math.max(top, val.reduce((x, y) => x + y, 0));
+      }
+      if (top <= best) climbs++;
+      else failures.push(`fivehands rev 2: a climb found ${top} on seed ${seed}, above the best ${best}`);
+    }
+    ok(climbs === 40, `fivehands rev 2: no 32-restart hill climb beats fhDeckBest on 40 decks (${climbs} of 40)`);
+    const { bot } = (await import("./arcade-skill-bands/bots/fivehands")) as { bot: (ctx: unknown) => { events?: ArcadeInputEvent[] } };
+    const { Human } = await import("./arcade-skill-bands/human");
+    let beaten = 0;
+    let runs = 0;
+    const g2b = fiveHandsGameFor(2);
+    for (let seed = 100; seed < 130; seed++) {
+      for (const level of ["average", "great", "near", "elite"] as const) {
+        const out = bot({ game: g2b, seed, rev: 2, human: new Human("fivehands", seed, level), fixes: true });
+        const byT = new Map((out.events ?? []).map((e) => [e.t, e]));
+        let st = g2b.init(seed);
+        while (!g2b.isOver(st)) st = g2b.step(st, byT.get(st.tick + 1) ?? null);
+        runs++;
+        if (fhTotals(st.rows, 2).total > st.best!) beaten++;
+      }
+    }
+    ok(beaten === 0, `fivehands rev 2: no bot run beats its deck's best (${beaten} of ${runs})`);
+  }
+  ok(JSON.stringify(fhDeal(23, 2)) === JSON.stringify(fhDeal(23, 2)) && JSON.stringify(fiveHandsGameFor(2).init(23)) === JSON.stringify(fiveHandsGameFor(2).init(23)), "fivehands rev 2: a seed deals the same deck and best every time");
+  // The deck is rev 1's first shuffle (rev 1 reshuffles when its own witness falls short, so a few seeds differ).
   let sameDeck = 0;
   for (let seed = 0; seed < 60; seed++) if (JSON.stringify(fhDeal(seed, 2).deck) === JSON.stringify(fhDeal(seed, 1).deck)) sameDeck++;
-  ok(sameDeck >= 55, `fivehands rev 2: the decks are rev 1's shuffles (${sameDeck} of 60 seeds deal rev 1's deck; the rest reshuffled for the rev-2 full figure)`);
+  ok(sameDeck >= 55, `fivehands rev 2: the decks are rev 1's shuffles (${sameDeck} of 60 seeds deal rev 1's deck)`);
+  {
+    const p = generatePuzzle("fivehands") as { seed: number; fiveHandsBest: number };
+    ok(p.fiveHandsBest === fhDeal(p.seed, 2).target && p.fiveHandsBest >= FH_BEST_MIN, `fivehands rev 2: rooms store the deck's best with the deal (${p.fiveHandsBest})`);
+  }
   const g2 = fiveHandsGameFor(2);
   let mid: FhState = g2.init(31);
   for (let t = 0; t < 12; t++) mid = g2.step(mid, { t: mid.tick + 1, k: FH_INPUT_PLACE, a: fhOpenRows(mid.rows)[0]!, b: 0, c: 0, d: 0 });
   const mt = fhTotals(mid.rows, 2).total;
+  const mb = mid.best!;
   const mp = fiveHandsStdParts(mid)!;
-  ok(mp.length === 1 && mp[0]!.points === Math.floor((200 * Math.min(mt, FH_CORE_FULL_V2)) / FH_CORE_FULL_V2) && g2.score(mid) === Math.max(1, mp[0]!.points), `fivehands rev 2: ${mt} hand points pay floor(200 × min(total, ${FH_CORE_FULL_V2}) ÷ ${FH_CORE_FULL_V2}) = ${mp[0]!.points}`);
+  ok(mp.length === 1 && mb === fhDeal(31, 2).target && mp[0]!.points === Math.floor((200 * Math.min(mt, mb)) / mb) && g2.score(mid) === Math.max(1, mp[0]!.points), `fivehands rev 2: ${mt} hand points on a deck whose best is ${mb} pay floor(200 × ${mt} ÷ ${mb}) = ${mp[0]!.points}`);
+  // A total past the stored best (a lower stored figure stands in) scores 200; anyone who plays at least 1.
+  const over = fiveHandsGameFor(2, Math.max(1, mt - 5)).init(31);
+  ok(fiveHandsStdParts({ ...over, rows: mid.rows, acted: 1 })![0]!.points === 200, "fivehands rev 2: beating the stored best scores 200 (capped)");
+  ok(g2.score({ ...g2.init(31), acted: 1 }) >= 1, "fivehands rev 2: a played run scores at least 1");
   const rev1Parts = fiveHandsStdParts({ ...mid, rev: 1 })!;
   ok(rev1Parts.length === 2 && rev1Parts[0]!.max === 160, "fivehands: a rev-1 state keeps its two parts (hand points 160, made hands 40)");
 }

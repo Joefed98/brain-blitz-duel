@@ -2,13 +2,14 @@
  * arcade-standard-check's entry for `fivehands` (Five Hands fiveHandsRev 2, Cards & Board;
  * docs/arcade-standard/fivehands.md): born on the standard at rev 1 (hand points 160 + made hands 40); rev 2 (1 Nov
  * 2026) is one part, hand points on the steep table (pair 5 … straight flush 75) to 200 on a straight line, full at
- * FH_CORE_FULL_V2. Perfect runs tap every card onto its rev-2 witness row through the server's replay; the core is
- * checked on the partial rows of a witness; rev 1's two parts are kept for stored rounds.
+ * the deck's own best (fhDeckBest, stored as `fiveHandsBest`). Perfect runs tap every card onto its best arrangement's
+ * row through the server's replay; the core is checked on the partial rows of that arrangement; rev 1's two parts are
+ * kept for stored rounds.
  */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { ARCADE_STANDARD } from "../../src/lib/arcade/standard";
 import {
-  FH_CORE_FULL, FH_CORE_FULL_V2, FH_CORE_MAX, FH_CORE_MAX_V2, FH_HAND_EACH, fhDeal, fhTotals, fiveHandsGameFor, fiveHandsStdParts, type FhState,
+  FH_CORE_FULL, FH_CORE_MAX, FH_CORE_MAX_V2, FH_HAND_EACH, fhDeal, fhTotals, fiveHandsGameFor, fiveHandsStdParts, type FhState,
 } from "../../src/lib/arcade/cards/fiveHands";
 import { replayFiveHandsRun } from "../../src/lib/duel/cards";
 import { fiveHandsFlawless } from "../cards/flawless";
@@ -22,6 +23,7 @@ const maxes = (s: FhState) => Object.fromEntries((fiveHandsStdParts(s) ?? []).ma
 /** Seed 9's rev-2 witness filled a card at a time (rows' dealt cards first, then slot by slot): every partial set of rows. */
 const SEED = 9;
 const WITNESS = fhDeal(SEED, 2).witness;
+const BEST = fhDeal(SEED, 2).target;
 const PARTIALS: number[][][] = [];
 for (let k = 1; k <= 5; k++) for (let r = 0; r <= 5; r++) PARTIALS.push(WITNESS.map((row, i) => row.slice(0, i < r ? k + 1 : k).slice(0, 5)));
 const WITNESS_V1 = fhDeal(SEED, 1).witness;
@@ -41,16 +43,16 @@ export const entry: StdEntry = {
     }),
   played: () => [{ label: "a tap that placed nothing", score: game.score({ ...game.init(4), acted: 1 }), want: 1 }],
   idle: () => [{ label: "an untouched init(12)", score: game.score(game.init(12)) }],
-  help: { terms: ["hand points", "pair", "straight flush 75"] },
+  help: { terms: ["hand points", "best possible total", "straight flush 75"] },
   extra(ok) {
     let straight = true;
     for (const rows of PARTIALS) {
       const { total } = fhTotals(rows, 2);
       const parts = fiveHandsStdParts({ ...game.init(SEED), rows, acted: 1 })!;
-      if (parts.length !== 1 || parts[0]!.points !== Math.floor((FH_CORE_MAX_V2 * Math.min(total, FH_CORE_FULL_V2)) / FH_CORE_FULL_V2)) straight = false;
+      if (parts.length !== 1 || parts[0]!.points !== Math.floor((FH_CORE_MAX_V2 * Math.min(total, BEST)) / BEST)) straight = false;
     }
-    ok(straight, `fivehands: the one part is floor(200 × min(total, ${FH_CORE_FULL_V2}) ÷ ${FH_CORE_FULL_V2}) on every partial rev-2 witness`);
-    ok(fhTotals(WITNESS, 2).total >= FH_CORE_FULL_V2, "fivehands: the rev-2 witness fills the core");
+    ok(straight, `fivehands: the one part is floor(200 × min(total, ${BEST}) ÷ ${BEST}) on every partial best arrangement (seed ${SEED}'s best ${BEST})`);
+    ok(fhTotals(WITNESS, 2).total === BEST, "fivehands: the best arrangement reaches the deck's best");
     // Rev 1 (stored rounds): its two parts exactly as before.
     const v1 = fiveHandsGameFor(1);
     const p1 = fiveHandsStdParts({ ...v1.init(SEED), rows: WITNESS_V1, acted: 1 })!;

@@ -202,7 +202,7 @@ const SOURCES: Record<string, (p: PuzzleData) => GameSource> = {
   freecell: (p) => ({ game: freecellGameFor(rev(p, "freecellRev")) as AnyGame }),
   tripeaks: (p) => ({ game: tripeaksGameFor(rev(p, "tripeaksRev")) as AnyGame }),
   pokersquares: (p) => ({ game: pokerSquaresGameFor(rev(p, "pokerSquaresRev")) as AnyGame }),
-  fivehands: (p) => ({ game: fiveHandsGameFor(rev(p, "fiveHandsRev")) as AnyGame }),
+  fivehands: (p) => ({ game: fiveHandsGameFor(rev(p, "fiveHandsRev"), p.type === "fivehands" ? p.fiveHandsBest : undefined) as AnyGame }),
   curling: (p) => ({ game: curlingGameFor(rev(p, "curlRev") ?? 1) as AnyGame }),
   pool: (p) => ({ game: poolGameFor(rev(p, "poolRev")) as AnyGame }),
   minigolf: (p) => ({ game: minigolfGameFor(p.type === "minigolf" ? p.pars : undefined, p.type === "minigolf" ? p.golfRev : undefined) as AnyGame }),

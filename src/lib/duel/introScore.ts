@@ -1,5 +1,4 @@
 import { PS_CORE_FULL_V2 } from "@/lib/arcade/cards/pokerSquares";
-import { FH_CORE_FULL_V2 } from "@/lib/arcade/cards/fiveHands";
 import { FC_CORE_UNITS_V3 } from "@/lib/arcade/cards/freecell";
 import { BULLSEYE_INNER_BULL_POINTS, BULLSEYE_RING_VALUES } from "@/lib/arcade/bullseye";
 import { BINTOSS_THROWS, BINTOSS_V9_BUCKET, BINTOSS_V9_FAR, BINTOSS_V9_FINISH, BINTOSS_V9_HOOP } from "@/lib/arcade/binToss";
@@ -125,7 +124,7 @@ function introScoreTemplates(): Record<PuzzleType, string> {
     freecell: `Cards 140 (home full, sorted runs half; full at ${FC_CORE_UNITS_V3} units, about 20 home); finished: few moves 30, speed 30. Together {max}.`,
     tripeaks: "Cards 120, peak tops 30, longest run 20; all cleared: 10 and speed 20. Together {max}.",
     pokersquares: `Hand points 160 (full at ${PS_CORE_FULL_V2}); made hands 40 (4 a line). Together {max}.`,
-    fivehands: `Hand points to {max} on a straight line, full at ${FH_CORE_FULL_V2}: pair 5, two pair 10, trips 20, straight 25, flush 35, full house 50, quads 60, straight flush 75.`,
+    fivehands: "Your hand points against this deck's best possible total, up to {max}: pair 5, two pair 10, trips 20, straight 25, flush 35, full house 50, quads 60, straight flush 75.",
     bubble: "Bubbles cleared, a fast clear, falling chests, bank shots and combos. Up to {max}.",
     slice: "Food 120, combos 40, gold fruit 20, tickets 10, dodges 10. Chilli: lose 10. Up to {max}.",
     beat: "Notes hit in time, fevers, golden notes, double taps and a Perfect streak. Up to {max}.",

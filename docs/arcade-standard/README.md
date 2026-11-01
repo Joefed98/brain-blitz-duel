@@ -364,7 +364,7 @@ recorded on main by `scripts/tuning-nov1-legacy-record.ts`).
 | --- | --- | --- | --- |
 | Cue Ball | `poolRev` 3 | Spots 140, Black 10, Pots in a row 30, Speed 20 (full by 73 s); fouls −10 | all 7 spots |
 | Free Cell | `freecellRev` 3 | Cards 140, Par moves 30, Speed 30 | 54 units (rev 2: 104), the near-perfect median at 60 s |
-| Five Hands | `fiveHandsRev` 2 | Hand points 200 (one part; pair 5 … straight flush 75) | 46 hand points |
+| Five Hands | `fiveHandsRev` 2 | Hand points 200 (one part; pair 5 … straight flush 75) | the deck's own exact best (stored as `fiveHandsBest`) |
 
 Cue Ball poolRev 3: 25 % harder top speed, 1.75× follow, draw and side, a shot touching no ball a foul, its own proved
 bank (`poolBankV3.server.ts`). See each game's page.
