@@ -1014,10 +1014,11 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
     freekick: {
       goal: "Score ten free kicks past the wall and the keeper.",
       how: [
-        { action: "Draw a stroke through the ball:", detail: "its direction aims, its speed is power." },
-        { action: "Bend the stroke", detail: "to curl the shot round the wall." },
-        { action: "Gold targets:", detail: "top corners or the bar." },
-        { action: "No aim line:", detail: "a short trail shows each shot's flight afterwards.", helpOnly: true },
+        { action: "Tap the goal", detail: "to aim: the marker is where a clean strike goes." },
+        { action: "Drag sideways", detail: "to curl it round the wall; dots show the bend." },
+        { action: "Hold the bar, release in the gold:", detail: "too late flies high, too early comes in low and slow." },
+        { action: "Gold targets:", detail: "top corners or the bar.", helpOnly: true },
+        { action: "Redo the aim and the curl", detail: "as often as you like until you press the bar. The bar's needle sweeps up and back, the same speed every time.", helpOnly: true },
         { action: "Each kick", detail: "has its own spot, 18 to 32 yards out and up to 35° either side (the chip at the top gives the distance), with a wall of 3 to 5 and the keeper set for it. No wind.", helpOnly: true },
         { action: "Placement:", detail: "a goal further from the keeper is worth a little more.", helpOnly: true },
         { action: "A bar target", detail: "counts only if the ball goes in off the bar.", helpOnly: true },
