@@ -3,7 +3,7 @@ import { solutionProgress } from "@/lib/duel/progressFigures";
 import { Lock, LockOpen } from "lucide-react";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 
-import { gridCellAt, hapticTick } from "@/components/puzzles/GridDrag";
+import { gridCellAt } from "@/components/puzzles/GridDrag";
 import { Button } from "@/components/ui/button";
 import { NO_SCROLL_STYLE, useNoTouchScroll } from "@/components/puzzles/noScroll";
 import { useGameKeys } from "@/lib/desktop";
@@ -323,7 +323,6 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, c
       if (parsed.axis === "r" && lockedRows.has(parsed.index)) return puzzleReject(board.current);
       lastShift.current = parsed;
     }
-    hapticTick();
     setTokens([...tokens, token]);
   };
 
@@ -345,7 +344,6 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, c
         const col = start % WS_SIZE;
         if (Math.floor(start / WS_SIZE) !== swapRow) return setPicked(null);
         if (picked === null) {
-          hapticTick();
           return setPicked(col);
         }
         if (picked === col) return setPicked(null);

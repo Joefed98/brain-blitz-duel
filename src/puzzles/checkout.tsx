@@ -1,7 +1,6 @@
 import { gameDisplayName } from "@/lib/duel/gameNames";
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 
-import { hapticTick } from "@/components/puzzles/GridDrag";
 import { PolishStyle, soundCue, useSolveFx } from "@/components/puzzles/numberPolish";
 import { StageCorrect } from "@/components/puzzles/StageCorrect";
 import {
@@ -40,7 +39,6 @@ import {
   type CheckoutPuzzleData,
   type CheckoutStageData,
 } from "@/lib/duel/types";
-import { buzz } from "@/lib/motion";
 import { playCorrect, playWrong } from "@/lib/sound";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
@@ -663,7 +661,6 @@ function Stage({
     if (busy || done || selected === null || full) return;
     const dart = { wedge: selected, ring };
     if (!checkoutDartAllowed(current, dart)) return;
-    hapticTick();
     setLanded(`${stage}:${darts.length + 1}`);
     soundCue("checkout.thud");
     soundCue("checkout.tick");
@@ -675,7 +672,6 @@ function Stage({
   };
   const reject = () => {
     setShake(true);
-    buzz(20);
     playWrong();
     setTimeout(() => setShake(false), 320);
   };
@@ -690,7 +686,6 @@ function Stage({
     setSolved(next);
     setSelected(null);
     playCorrect();
-    buzz(20);
     if (next.every(Boolean)) {
       submitted.current = true;
       onSubmit(joinCheckoutRound(next));
@@ -782,7 +777,6 @@ function Stage({
             busy || done
               ? undefined
               : (w) => {
-                  hapticTick();
                   if (selected !== w) soundCue("checkout.aim");
                   setSelected(selected === w ? null : w);
                 }

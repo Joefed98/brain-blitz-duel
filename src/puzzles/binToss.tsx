@@ -43,7 +43,6 @@ import {
 } from "@/lib/arcade/binToss";
 import { decodeBinTossRun, encodeBinTossRun, replayBinTossRun } from "@/lib/duel/binToss";
 import { ARCADE_CRASH_FREEZE_MS, type BinTossPuzzleData } from "@/lib/duel/types";
-import { buzz } from "@/lib/motion";
 import { playWrong } from "@/lib/sound";
 import { binTossArenaScene, binTossArenaSceneV7, binTossArtGame, binTossArtGhost, binTossArtLanding, binTossArtAim as binTossDrawAim } from "@/lib/arcade/binTossArt.renderer";
 import { fairTransform } from "@/lib/arcade/fairground.renderer";
@@ -321,7 +320,6 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         if (endedAt.current === null) {
           endedAt.current = time;
           if (state.current.baskets < BINTOSS_THROWS) {
-            buzz(20);
             playWrong();
           }
         } else if (time - endedAt.current >= ARCADE_CRASH_FREEZE_MS) {

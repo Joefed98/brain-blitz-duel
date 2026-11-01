@@ -10,7 +10,6 @@ import {
 } from "@/lib/duel/resultPresentation";
 import type { PlayerLooks } from "@/lib/duel/playerLook";
 import type { Standing } from "@/lib/duel/scoring";
-import { buzz } from "@/lib/motion";
 import { roundPlaces, tieMarks } from "@/lib/duel/tieDisplay";
 import { ChevronDown } from "lucide-react";
 import { soundCue } from "@/lib/fx/soundCues";
@@ -71,7 +70,6 @@ export function RoundResultsTable({
       // A shared top score in a 3+ room is a tie: the players sharing it hear "tie" instead.
       const tied = ordered.filter((row) => row.roundScore === topScore).length > 1;
       playVoice(tied ? "voice.tie" : "roundTaken", cueDurationMs("round_won"));
-      buzz(12);
       return;
     }
     // Everyone else hears the screen's own sting (the top scorer hears round_won instead, never both).

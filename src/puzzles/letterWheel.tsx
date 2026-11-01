@@ -5,7 +5,7 @@ import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { LW_FREE_MISSES, LW_JAR_DROPS, lwDecode, lwDecodeLog, lwEncodeLog, lwGrade, lwJarDrops, lwJarKept, lwSlotCells, lwUsesJar, lwUsesLog, LW_MAX_TRACES } from "@/lib/duel/letterWheel";
 import { useStageState } from "@/lib/duel/stageState";
 import { LETTERWHEEL_TIME_MS, type LetterWheelPuzzleData, type LetterWheelSlot } from "@/lib/duel/types";
-import { buzz, prefersReducedMotion } from "@/lib/motion";
+import { prefersReducedMotion } from "@/lib/motion";
 import { playTick } from "@/lib/sound";
 import { Button } from "@/components/ui/button";
 import { Shuffle, X } from "lucide-react";
@@ -399,7 +399,6 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, checkWord, stateKey }:
       if (v.valid && v.reason?.startsWith("slot:")) {
         const i = Number(v.reason.slice(5));
         setAccepted(previous => ({ word: v.word, points: data.slots.length === 8 ? 15 : 13, serial: (previous?.serial ?? 0) + 1 }));
-        buzz(12);
         setFilled((f) => {
           const next = [...f];
           next[i] = v.word;
@@ -413,7 +412,6 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, checkWord, stateKey }:
         const word = v.word.toUpperCase();
         setBonus((b) => (b.includes(word) ? b : [...b, word]));
         playTick();
-        buzz(8);
         setFlash(`Bonus · ${word}`);
         setTimeout(() => setFlash(null), 900);
         jarPulse(jarRef.current);

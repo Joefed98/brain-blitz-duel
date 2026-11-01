@@ -9,7 +9,8 @@ import { useBeforePaint } from "@/components/puzzles/useBeforePaint";
  * The shared grid drag-and-snap behaviour used by Unblock and Block Party.
  * Pointer events, so a finger and a mouse behave the same; the dragged piece
  * lifts above the pointer with a soft shadow, a legal drop snaps with the
- * standard pop and a quick haptic tick, an illegal drop shakes and returns.
+ * standard pop (no haptic: haptics are for main moments only, src/lib/haptics.ts),
+ * an illegal drop shakes and returns.
  */
 
 export function usePrefersReducedMotion(): boolean {
@@ -22,14 +23,6 @@ export function usePrefersReducedMotion(): boolean {
     return () => query.removeEventListener("change", listener);
   }, []);
   return reduced;
-}
-
-export function hapticTick(): void {
-  try {
-    navigator.vibrate?.(15);
-  } catch {
-    // Vibration is a nicety; never let it break a drag.
-  }
 }
 
 /**
@@ -454,7 +447,6 @@ export function useDragSnap<T>(options: {
       setDrag(null);
       if (!info) return;
       if (onDrop(info)) {
-        hapticTick();
         setSnapped((value) => value + 1);
       } else {
         setRejected(info.item);
@@ -533,7 +525,6 @@ export function useSwipe(
         const dy = moveEvent.clientY - origin.y;
         if (Math.abs(dx) < threshold && Math.abs(dy) < threshold) return;
         fired.current = true;
-        hapticTick();
         if (Math.abs(dx) > Math.abs(dy)) handler.current(dx > 0 ? "R" : "L");
         else handler.current(dy > 0 ? "D" : "U");
       };

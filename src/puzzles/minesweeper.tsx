@@ -94,7 +94,6 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         held.flagged = true;
         // A long press flags (or unflags) whatever the switch says.
         sendRef.current?.({ k: MINES_INPUT_TAP, a: cell, b: MINES_MODE_FLAG, c: 0 });
-        if (typeof navigator !== "undefined") navigator.vibrate?.(12);
       }, LONG_PRESS_MS);
       press.current = held;
       return null;

@@ -1,13 +1,12 @@
 import { gameDisplayName } from "@/lib/duel/gameNames";
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 
-import { hapticTick, useSwipe } from "@/components/puzzles/GridDrag";
+import { useSwipe } from "@/components/puzzles/GridDrag";
 import { ArcadeControlButton } from "@/components/puzzles/ArcadeControlButton";
 import { clueHolds, dialsCorrect, decodeSafeTries, encodeSafeDraft, encodeSafeTries } from "@/lib/duel/safe";
 import { puzzleScoreRevOf } from "@/lib/duel/puzzleScoreRev";
 import { useStageState } from "@/lib/duel/stageState";
 import { SAFE_DIALS, SAFE_TIME_MS, SAFE_TRIES, type SafePuzzleData } from "@/lib/duel/types";
-import { buzz } from "@/lib/motion";
 import { directionOf, useGameKeys } from "@/lib/desktop";
 import { playSound, playWrong } from "@/lib/sound";
 
@@ -46,7 +45,6 @@ export function Dial({
 
   const hold = (delta: number) => {
     if (disabled || !onStep) return;
-    hapticTick();
     onStep(delta);
     stop();
     repeat.current = setInterval(() => onStep(delta), 160);
@@ -145,11 +143,9 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "safe" }: P
     if (opened) {
       submitted.current = true;
       playSound("pz_safe_open");
-      hapticTick();
       onSubmit(encodeSafeTries(next));
       return;
     }
-    buzz(30);
     playWrong();
     setShake(true);
     setTimeout(() => setShake(false), 320);

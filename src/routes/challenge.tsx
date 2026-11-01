@@ -44,7 +44,6 @@ import { standings } from "@/lib/duel/scoring";
 import { getStoredName, setStoredName } from "@/lib/duel/session";
 import { serverNow } from "@/lib/duel/clock";
 import type { PuzzleCategory } from "@/lib/duel/types";
-import { buzz } from "@/lib/motion";
 import { noteLinkArrival } from "@/lib/share/shareRef";
 import { unlockAudio } from "@/lib/sound";
 import { OnlineOnly } from "@/components/offline/OnlineOnly";
@@ -215,7 +214,6 @@ function ChallengeScreen() {
     if (!trimmed) {
       setEditingName(true);
       setError("Enter a display name.");
-      buzz([10, 50, 10]);
       return null;
     }
     return trimmed;
@@ -232,7 +230,6 @@ function ChallengeScreen() {
       if (!made.ok) {
         setError(made.message);
         if (made.nameRefused) setEditingName(true);
-        buzz([10, 50, 10]);
         return;
       }
       setStoredName(trimmed);
@@ -262,7 +259,6 @@ function ChallengeScreen() {
       if (!started.ok) {
         setError(started.message);
         if (started.nameRefused) setEditingName(true);
-        buzz([10, 50, 10]);
         return;
       }
       setStoredName(trimmed);

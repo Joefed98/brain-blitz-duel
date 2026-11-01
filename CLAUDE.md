@@ -1004,20 +1004,50 @@ outside the repo.
   scenery faded at the edges). `DesktopControlsHint` shows the keys for 8 s. Every result records its input type
   (`src/lib/inputType.ts` → `input_type` on round_results, async_results, practice_plays, best effort; migration
   `20261031170000_result_input_type.sql` **written but not applied**). Checks: desktop-layout-check (thirds,
-  `play21`/`play22`), desktop-fairness-check (`play21`), `arcade-play-check --desktop` as arcade-play-desktop-check
-  (halves, `play23`/`play24`); desktop-geometry-check proves the new columns. Shots `bun scripts/shots/desktop-layout-shots.ts`.
+  `play22`/`play23`), desktop-fairness-check (`play22`), `arcade-play-check --desktop` as arcade-play-desktop-check
+  (halves, `play24`/`play25`); desktop-geometry-check proves the new columns. Shots `bun scripts/shots/desktop-layout-shots.ts`.
+- **Haptics** (31 Oct 2026; presentation and device storage only, no stamps; `src/lib/haptics.ts`): main moments
+  only, through one helper with named patterns (`tick`, `go`, `success`, `error`, `impact`, `celebrate`) and an adapter
+  (`setHapticsAdapter`; the web Vibration API today, so Android only: iPhone Safari has none and gets nothing; a
+  Capacitor plugin can plug in later without touching a call site). Moments: the countdown's 3, 2, 1 (`tick`) and GO
+  (`go`) in RoundIntro; a puzzle's correct / wrong answer from the shared signals (`usePuzzleHaptics`, mounted by
+  PhoneShell on puzzle screens) and its completion when the verdict lands (`useSignatureVerdict`); arcade goals, home
+  runs and pots (`success`), Cue Ball's foul (`error`), lives lost and crashes (`impact`) in the sound observers
+  (`feel` in `gameSounds.ts`), the arcade buzzer (`impact`, arcadeFeedback); the podium / two-player final for the
+  winner (`celebrate`); the between-rounds chat toast keeps its tick (chat-notice-check asserts it). In-game moments
+  pass `{ inGame: true }`: only with a live `[data-game-stage]` on screen, never in an intro demo, replay or answer
+  reveal (`holdHaptics`). Never on button taps, drags or routine hits: **don't call `navigator.vibrate` or add a
+  `haptic()` call outside the listed sites** (haptics-check's `CALL_SITES` pins them). Settings → Haptics, on by
+  default (`duelz-haptics:v1`), "Not supported on this device" where there is none. haptics-check (~16 s, happy-dom).
 - `src/components/duel/` — room/round screens (PhoneShell, RoundIntro, TimerBar,
   AnswerReveal, ArcadeReveal, WinnerReveal…); `src/components/puzzles/` — shared puzzle
   widgets; `src/lib/fx/` — sound and visual feedback (presentation only).
 
 ## Checks
 
-- **GitHub Actions runs the full suite** (`.github/workflows/checks.yml`) on every pull
-  request open/push/reopen, split into twenty-two parallel jobs (`.github/ci/shards.ts`: `a`–`g`,
-  `play1`–`play5` for arcade-play-check, `play6`–`play13` for bottom-clearance-check, one eighth each
-  since its 15 Oct seam pass, `play14` for room-extras-check and `play15` for arcade-room-practice-check and fission-repeat-check), each about 6 minutes or less (balanced 15 Oct 2026 from run 38608375501's per-check times). Each job's summary lists every check by name
-  with pass / fail / timeout. PRs that change only `docs/**`, `screenshots/**`, `*.md` or
-  `.lovable/**` skip it. Free plan, 2,000 minutes a month, so:
+- **GitHub Actions: fast checks on every push, browser checks when ready** (CI cost cut, 1 Nov 2026;
+  `docs/ci-cost-nov-2026.md`). Two workflows, split by `.github/ci/shards.ts` and `.github/ci/plan.ts`:
+  - **Checks** (`.github/workflows/checks.yml`) on every PR open / push / reopen / leaving draft: every check that
+    starts no browser (scoring, replay, standard, type-level, unit-style), shards `a`–`g`. A new push cancels the run in
+    progress; PRs only (no push trigger), so a commit is checked once.
+  - **Full suite** (`.github/workflows/full-suite.yml`): every check that starts Chromium, shards `play1`–`play21`
+    (`play21` is the browser catch-all), plus the one job to merge on, **full-suite-passed** (success only if every
+    browser shard ran and passed; skipped never counts). It runs when a PR gets the label `ready-to-merge` (and again
+    on each new push while the label is on), when a PR leaves draft, by hand (Actions → Full suite → Run workflow;
+    "record arcade baseline" lives here) and weekly on main (Sunday 22:41 UTC) when main changed in the past week. Add the label only when a PR is
+    otherwise finished: every push while it is on re-runs the Full suite.
+  - Which side a check is on is worked out from its source (`.github/ci/browser.ts`: it, or a script it imports or
+    spawns, launches Chromium through Playwright), never by hand; a browser check listed in a fast shard runs in
+    `play21` instead. ci-shards-check proves every routine check runs exactly once, no browser starts on a push, and
+    the workflows' matrices match the shards.
+  - PRs that change only `docs/**`, `screenshots/**`, `*.md` or `.lovable/**` skip both, except `docs/beta-sql.md`
+    and `docs/sound-cues/**` (checks read them). Each job's summary lists every check by name with pass / fail /
+    timeout. Free plan, 2,000 minutes a month.
+  - **Merge rule (the captain follows it; branch protection isn't available on this plan):** a PR merges only when
+    Checks is green **and** full-suite-passed is green on its latest commit. When a PR is otherwise ready (fast checks
+    green, review done), the captain adds the `ready-to-merge` label, waits for full-suite-passed, then merges (merge
+    commit). A skipped full-suite-passed is not a pass. A docs-only PR (both workflows skipped) merges without them.
+    If main moves on, merge main in: the label stays on, so the push re-runs both.
   - **Quick and full depth.** PR runs (and local runs) use quick depth for the two slow
     checks: snip-check searches every template but the full cut-time grid only for the
     one-pin and hardest templates (~90 s on CI instead of ~8 min), and puzzle-bank-check

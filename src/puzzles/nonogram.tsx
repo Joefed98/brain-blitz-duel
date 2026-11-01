@@ -1,7 +1,6 @@
 import { gameDisplayName } from "@/lib/duel/gameNames";
 import { Fragment, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 
-import { hapticTick } from "@/components/puzzles/GridDrag";
 import {
   decodeNonoCells,
   encodeNonoCells,
@@ -229,7 +228,6 @@ function Stage({
 
   const tap = (index: number) => {
     if (locked || submitted.current) return;
-    hapticTick();
     const next = ((marks[index] ?? 0) + 1) % 3;
     soundCue(next === 1 ? "nonogram.fill" : next === 2 ? "nonogram.mark" : "nonogram.clear");
     setTapped((current) => ({ index, key: (current?.key ?? 0) + 1 }));

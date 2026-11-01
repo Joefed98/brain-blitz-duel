@@ -40,7 +40,6 @@ import { INTRO_COUNTDOWN_MS, INTRO_MS, type PuzzleData, type PuzzleType } from "
 import { roundMusicFor } from "@/lib/fx/theme";
 import { noteSignatureSubmit } from "@/lib/fx/signature";
 import { useSignatureVerdict } from "@/lib/fx/useSignature";
-import { buzz } from "@/lib/motion";
 import { holdMusicBed, playLock, releaseRoomMusic, stopWarning10, unlockAudio } from "@/lib/sound";
 import type { SubmitMeta } from "@/puzzles/types";
 import type { ChallengeRoundBoard } from "@/lib/duel/challenge";
@@ -336,7 +335,6 @@ export function AsyncRun({
       noteSignatureSubmit(current.puzzle.type);
       unlockAudio();
       playLock();
-      buzz(15);
       drafts.push(key, answer, true);
       sender.send(
         sending,
@@ -478,7 +476,6 @@ export function AsyncRun({
             if (step.kind !== "intro" || step.introAt !== WAITING_INTRO) return;
             unlockAudio();
             playLock();
-            buzz(15);
             setStep({ ...step, introAt: Date.now() - (INTRO_MS - INTRO_COUNTDOWN_MS) });
           }}
         />

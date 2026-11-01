@@ -24,6 +24,7 @@ import { useClock } from "@/components/app/useClock";
 import { markOnboardingSeen, onboardingSeen } from "@/lib/onboarding";
 import { isShareRef } from "@/lib/share/shareRef";
 import { createRoom, fetchDuelByCode, fetchPlayers, joinRoomByCode } from "@/lib/duel/api";
+import { MAX_PLAYERS } from "@/lib/duel/types";
 import { currentUserId, getStoredName, setStoredName } from "@/lib/duel/session";
 import { ROOM_CODE_LENGTH, codeFromInput } from "@/lib/duel/roomLink";
 import { readLastRoom } from "@/lib/duel/deviceHistory";
@@ -36,7 +37,6 @@ import { rememberedLook, type PlayerLook } from "@/lib/duel/playerLook";
 import { scheduledGames, upcomingGames, type PublicGame } from "@/lib/publicSchedule";
 import { unlockAudio } from "@/lib/sound";
 import { celebrationSound, celebrationsOn } from "@/lib/fx/celebrations";
-import { buzz } from "@/lib/motion";
 import { PUZZLE_REGISTRY, gameCounts } from "@/lib/duel/registry";
 import type { PuzzleType } from "@/lib/duel/types";
 import { APP_DESCRIPTION, APP_TITLE } from "@/lib/brand";
@@ -228,7 +228,6 @@ function Home() {
   const fail = (message: string) => {
     setError(message);
     setShake((n) => n + 1);
-    buzz([10, 50, 10]);
   };
 
   const start = async (mode: "create" | "join") => {
@@ -312,7 +311,7 @@ function Home() {
           <h1 className="ap-title" aria-label="Play live with friends">
             <span>Play live</span> <span>with friends</span>
           </h1>
-          <p className="ap-sub">Up to 10 players. Same games, same moment.</p>
+          <p className="ap-sub">Up to {MAX_PLAYERS} players. Same games, same moment.</p>
         </div>
 
         {/* Quick play: create a room, or join one with its code. */}

@@ -5,15 +5,18 @@
  *
  *   bun .github/ci/run-shard.ts <shard>
  *
- * Shard lists live in shards.ts. Any check file that no shard lists (a newly
- * added check) runs in the catch-all shard, so nothing is ever silently skipped.
+ * Shard lists live in shards.ts; which files a shard runs is plan.ts. Any check file
+ * that no shard lists (a newly added check) runs in a catch-all: g if it starts no
+ * browser, play21 if it does (1 Nov 2026: fast shards run on every push in checks.yml,
+ * play* shards at ready-to-merge in full-suite.yml), so nothing is ever silently skipped.
  * An entry `<file>@<k>/<n>` runs that check's part k of n (run-checks passes
  * --part). CHECKS_FULL=1 in the environment (the manual "full" run) reaches every
  * check through run-checks.
  */
 import { spawn } from "node:child_process";
-import { appendFileSync, existsSync, mkdirSync, readFileSync, readdirSync } from "node:fs";
-import { CATCH_ALL, CI_SKIP, OPTIONAL, SHARDS } from "./shards";
+import { appendFileSync, existsSync, mkdirSync, readFileSync } from "node:fs";
+import { shardPlan } from "./plan";
+import { BROWSER_CATCH_ALL, CATCH_ALL, CI_SKIP, SHARDS } from "./shards";
 
 type Result = { file: string; status: "pass" | "fail" | "timeout"; ms: number };
 
@@ -23,19 +26,8 @@ if (!shard || !(shard in SHARDS)) {
   process.exit(2);
 }
 
-const allChecks = readdirSync("scripts")
-  .filter((f) => /-check\.tsx?$/.test(f))
-  .sort();
-const base = (entry: string) => entry.split("@")[0]!;
-const listed = new Set(Object.values(SHARDS).flat().map(base));
-const stale = [...listed, ...Object.keys(CI_SKIP)].filter((f) => !allChecks.includes(f));
-const notYet = SHARDS[shard].filter((f) => !allChecks.includes(base(f)));
-const unassigned = allChecks.filter(
-  (f) => !listed.has(f) && !OPTIONAL.includes(f) && !(f in CI_SKIP),
-);
-const files = [...SHARDS[shard], ...(shard === CATCH_ALL ? unassigned : [])].filter(
-  (f) => allChecks.includes(base(f)) && !(base(f) in CI_SKIP),
-);
+// Fast shards run only checks that start no browser; browser checks run in the play* shards (full-suite.yml).
+const { files, notYet, unassigned, movedToBrowser, stale } = shardPlan(shard);
 
 mkdirSync("ci-results", { recursive: true });
 const jsonPath = `ci-results/${shard}.json`;
@@ -72,8 +64,13 @@ for (const r of results)
 for (const f of notYet) lines.push(`| ${f} | ⏭️ skipped (not in this branch yet) | — |`);
 const passed = results.filter((r) => r.status === "pass").length;
 lines.push("", `**${passed} of ${files.length} passed.**`);
-if (shard === CATCH_ALL && unassigned.length)
-  lines.push("", `Not listed in .github/ci/shards.ts, ran here: ${unassigned.join(", ")}.`);
+if ((shard === CATCH_ALL || shard === BROWSER_CATCH_ALL) && unassigned.length)
+  lines.push("", `Not listed in this shard in .github/ci/shards.ts, ran here: ${unassigned.join(", ")}.`);
+if (movedToBrowser.length)
+  lines.push(
+    "",
+    `Browser checks listed here, run in ${BROWSER_CATCH_ALL} (full suite, at ready-to-merge) instead: ${movedToBrowser.join(", ")}.`,
+  );
 if (shard === CATCH_ALL && Object.keys(CI_SKIP).length) {
   lines.push("", "Skipped in CI:");
   for (const [f, why] of Object.entries(CI_SKIP)) lines.push(`- ${f}: ${why}`);

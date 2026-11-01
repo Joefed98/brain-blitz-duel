@@ -14,7 +14,7 @@
  */
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent, type ReactElement } from "react";
 
-import { hapticTick, useGridMetrics, usePrefersReducedMotion } from "@/components/puzzles/GridDrag";
+import { useGridMetrics, usePrefersReducedMotion } from "@/components/puzzles/GridDrag";
 import { LiveSummary, SummaryItem, useFrameProgress } from "@/components/puzzles/batchP/LiveSummary";
 import { useNoTouchScroll } from "@/components/puzzles/noScroll";
 import { useGameKeys } from "@/lib/desktop";
@@ -191,7 +191,6 @@ export function GradientBoard({
         wrongMoveFlash(boardRef.current?.querySelector(`[data-cell="${s.cell}"]`));
         return;
       }
-      hapticTick();
       setDrag({ kind, index, offset: kind === "R" ? dx : dy, settling: false });
       return;
     }
@@ -399,7 +398,6 @@ function GradientSwapStage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDr
       wrongMoveFlash(tileAt(cell) ?? null);
       return;
     }
-    hapticTick();
     if (selected === null) setSelected(cell);
     else if (selected === cell) setSelected(null);
     else swap(selected, cell);
@@ -511,7 +509,6 @@ function GradientSlideStage({ puzzle, phaseStartedAt, now, locked, onSubmit, onD
 
   const mark = (token: typeof JUMBLED_UNDO | typeof JUMBLED_RESET) => {
     if (blocked || replay.moves === 0) return;
-    hapticTick();
     setTokens([...tokens, token]);
   };
 

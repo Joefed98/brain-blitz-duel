@@ -10,6 +10,7 @@ import { puzzleDef } from "@/lib/duel/registry";
 import { usePuzzleSurfaces } from "@/components/puzzles/usePuzzleSurfaces";
 import { GameLayoutDevOverlay } from "./GameLayoutDevOverlay";
 import { GameColumnLayout } from "@/components/puzzles/gameColumn";
+import { usePuzzleHaptics } from "@/components/puzzles/usePuzzleHaptics";
 import { usePuzzleRejections } from "@/components/puzzles/usePuzzleRejections";
 import { AppTabBar, type AppTab } from "@/components/app/AppTabBar";
 import type { ThemeSkin } from "@/lib/theme";
@@ -433,6 +434,7 @@ export function PhoneShell({ children, bare = false, constrained = false, gameSc
   useGeometryHold(surfaceRef, Boolean(play && constrained && gameScreen && !arcadeScreen));
   usePuzzleSurfaces(surfaceRef, gameType, puzzleSurface);
   usePuzzleRejections(surfaceRef, Boolean(gameScreen && definition && !definition.arcadeRun && definition.category !== "arcade"), gameType);
+  usePuzzleHaptics(surfaceRef, Boolean(gameScreen && definition && !definition.arcadeRun && definition.category !== "arcade"));
   return (
     <div
       ref={surfaceRef}

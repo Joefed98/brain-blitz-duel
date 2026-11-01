@@ -6,7 +6,7 @@ import { GameIcon, hasGameIcon } from "@/components/app/GameIcon";
 import type { Outcome } from "@/lib/duel/scoring";
 import { PLAYER_COLOURS, type PlayerLook, type PlayerLooks } from "@/lib/duel/playerLook";
 import type { PodiumAward } from "@/lib/duel/podiumAwards";
-import { buzz } from "@/lib/motion";
+import { haptic } from "@/lib/haptics";
 import { playVoice } from "@/lib/sound";
 import { fx } from "@/lib/fx";
 import { COUNT_UP_MS } from "@/lib/fx/celebrations";
@@ -92,13 +92,8 @@ export function FinalResult({
     // No music on the final screen — just the one cue.
     fx.onPodium();
     playVoice(outcome === "win" ? "voice.youWin" : outcome === "draw" ? "voice.tie" : "gg");
-    if (outcome === "win") {
-
-      buzz([25, 50, 25]);
-    } else {
-
-      if (outcome === "loss") buzz(30);
-    }
+    // Haptics (lib/haptics.ts): the winner's phone celebrates (the two-player final is this room's podium).
+    if (outcome === "win") haptic("celebrate");
   }, [outcome]);
 
   const side = (name: string, look: PlayerLook | undefined, colour: string, total: number, from: number | undefined, you: boolean) => (

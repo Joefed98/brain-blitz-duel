@@ -198,16 +198,16 @@ Retired to practice (11):
 
 ## Checks
 
-- **desktop-layout-check** (thirds, `play21`/`play22`): shell and rails, banner slot (and never in rooms),
+- **desktop-layout-check** (thirds, `play22`/`play23`): shell and rails, banner slot (and never in rooms),
   pages and their right column, Practice's tools row and 3–5 card grid, the room panel with 16 players in the
   lobby, results, standings, a live round and a reveal, at 1440×900, 1920×1080 and 1024×768; every active
   game's desktop mode at 1440×900 (one of each mode at every size) without overflow, in the centre, crisp;
   phones (414×896 home-screen app, 375×667) unchanged; a 1440×900 touch screen on the tablet layout.
-- **desktop-fairness-check** (`play21`): the mapping round trip, keys and swipes on a turned world, upright text on Cue Ball's turned table, no sim,
+- **desktop-fairness-check** (`play22`): the mapping round trip, keys and swipes on a turned world, upright text on Cue Ball's turned table, no sim,
   replay or grader reading the presentation, real gestures on Cue Ball (rotate), Apex (tall) and Free Cell
   (wide; Cue Ball's shot pulled on its upright power control) reaching the stage as the same world points and payloads at both desktop sizes, and the same payloads
   ending in the same sim state, score and checksum.
-- **arcade-play-check --desktop** (`arcade-play-desktop-check`, halves on `play23`/`play24`): every arcade game
+- **arcade-play-check --desktop** (`arcade-play-desktop-check`, halves on `play24`/`play25`): every arcade game
   at 1440×900 and 1920×1080 in its desktop mode, live, error-free, crisp, at 60 fps.
 - desktop-geometry-check now proves the new columns (its 17 Oct assertions kept where the brief did not change
   them).

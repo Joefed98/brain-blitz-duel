@@ -2,7 +2,6 @@ import { gameDisplayName } from "@/lib/duel/gameNames";
 import { solvedMovesText } from "@/lib/duel/scoring";
 import { useEffect, useMemo, useRef, useState } from "react";
 
-import { hapticTick } from "@/components/puzzles/GridDrag";
 import { RingsDeck as Rings } from "@/components/puzzles/pattern/ringsDeck";
 import { Button } from "@/components/ui/button";
 import {
@@ -110,7 +109,6 @@ function Stage({
 
   const turn = (ring: number, clockwise: boolean) => {
     if (locked || submitted.current || replay.solved) return;
-    hapticTick();
     const next = [...taps, encodeRingTap(ring, clockwise)];
     setTaps(next);
     const after = replayRings(data.segments, data.pattern, next);

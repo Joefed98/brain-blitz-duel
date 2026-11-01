@@ -28,7 +28,6 @@ import {
   type PipeTile,
   type PipesPuzzleData,
 } from "@/lib/duel/types";
-import { buzz } from "@/lib/motion";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
@@ -251,7 +250,6 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "pipes" }: 
     (cell: number) => {
       if (lockedRef.current || submitted.current) return;
       lastTurned.current = cell;
-      buzz(8);
       setSides((current) =>
         current.map((value, index) => (index === cell ? rotateMask(value, 1) : value)),
       );

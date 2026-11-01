@@ -38,7 +38,6 @@ import {
 } from "@/lib/arcade/rally";
 import { decodeRallyRun, encodeRallyRun, replayRallyRun } from "@/lib/duel/rally";
 import { ARCADE_CRASH_FREEZE_MS, type RallyPuzzleData } from "@/lib/duel/types";
-import { buzz } from "@/lib/motion";
 import { NO_SCROLL_STYLE, useNoTouchScroll } from "@/components/puzzles/noScroll";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
@@ -204,7 +203,6 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         if (state.current.dead) {
           if (deadAt.current === null) {
             deadAt.current = time;
-            buzz(40);
           } else if (time - deadAt.current >= ARCADE_CRASH_FREEZE_MS) {
             finish();
           }

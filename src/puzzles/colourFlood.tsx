@@ -2,7 +2,6 @@ import { gameDisplayName } from "@/lib/duel/gameNames";
 import { solvedMovesText } from "@/lib/duel/scoring";
 import { useEffect, useMemo, useRef, type CSSProperties } from "react";
 
-import { hapticTick } from "@/components/puzzles/GridDrag";
 import { decodeFloodMoves, encodeFloodMoves, regionCells, replayFlood } from "@/lib/duel/flood";
 import { floodMoveLimit, limitText } from "@/lib/duel/moveLimits";
 import { useStageState } from "@/lib/duel/stageState";
@@ -167,7 +166,6 @@ function Stage({
       wrongMoveFlash(document.querySelector(`[data-game-stage] [aria-label="${FLOOD_NAMES[colour]}"]`));
       return;
     }
-    hapticTick();
     soundCue("flood.spread");
     const next = [...moves, colour];
     setMoves(next);

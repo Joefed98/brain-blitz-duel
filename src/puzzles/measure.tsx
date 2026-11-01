@@ -1,7 +1,6 @@
 import { gameDisplayName } from "@/lib/duel/gameNames";
 import { useContext, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 
-import { hapticTick } from "@/components/puzzles/GridDrag";
 import { PolishStyle, soundCue, useSolveFx } from "@/components/puzzles/numberPolish";
 import { StageCorrect, useStageCorrectHold } from "@/components/puzzles/StageCorrect";
 import { StageProgress } from "@/components/puzzles/StageProgress";
@@ -18,7 +17,7 @@ import { useGameKeys } from "@/lib/desktop";
 import { useStageState } from "@/lib/duel/stageState";
 import { limitText, measureMoveLimits } from "@/lib/duel/moveLimits";
 import { MEASURE_TIME_MS, type MeasureBoardData, type MeasurePuzzleData } from "@/lib/duel/types";
-import { buzz, useReducedMotion } from "@/lib/motion";
+import { useReducedMotion } from "@/lib/motion";
 import { playCorrect, playWrong } from "@/lib/sound";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
@@ -517,7 +516,6 @@ function Stage({
 
   const reject = (jug: number) => {
     setShake(jug);
-    buzz(20);
     playWrong();
     soundCue("measure.reject");
     setTimeout(() => setShake(null), 320);
@@ -525,7 +523,6 @@ function Stage({
   const act = (action: MeasureAction): boolean => {
     if (busy) return false;
     if (!measureApply(board, replay.amounts, action)) return false;
-    hapticTick();
     const boards = [...allActions];
     boards[stage] = [...actions, action];
     setAllActions(boards);
@@ -535,7 +532,6 @@ function Stage({
     if (busy) return;
     if (selected === null) {
       setSelected(jug);
-      hapticTick();
       soundCue("measure.select");
       return;
     }

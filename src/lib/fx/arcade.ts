@@ -1,4 +1,5 @@
 import { completeFx, fx, visualFx } from "./index";
+import { haptic } from "@/lib/haptics";
 import { momentFrame } from "./momentCues";
 import { signatureArcadeRunOver } from "./signature";
 
@@ -48,6 +49,8 @@ export function arcadeFeedback(
       else fx.onComplete();
       // The shared signature beat: arcade finish reached, or an open run of 120+.
       signatureArcadeRunOver(state);
+      // Haptics (lib/haptics.ts): the round's buzzer (only on a live board; a life lost just before plays once).
+      haptic("impact", { inGame: true });
     }
     previousCombo = combo;
     previousCascades = cascades;

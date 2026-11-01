@@ -9,7 +9,14 @@
  * Rebalance if one job's time drifts well past the others (each job's summary lists
  * every check's time).
  *
- * A check file not listed here still runs, in CATCH_ALL.
+ * A check file not listed here still runs: in CATCH_ALL (g) if it starts no browser, in BROWSER_CATCH_ALL (play21)
+ * if it does.
+ *
+ * Two workflows since 1 Nov 2026 (CI cost cut): the play* shards are browser checks and run only in
+ * .github/workflows/full-suite.yml (a PR labelled `ready-to-merge`, a PR leaving draft, a manual run and weekly on
+ * main); the other shards run on every push (.github/workflows/checks.yml). Which side a check is on is worked out
+ * from its source (.github/ci/browser.ts): a browser check listed in a fast shard is run in BROWSER_CATCH_ALL
+ * instead, so nothing that starts Chromium runs on a push and nothing is ever skipped (ci-shards-check proves it).
  */
 export const SHARDS: Record<string, string[]> = {
   // Headless Chromium: arcade-play-check's 22 active games (Pinball included, and Letterfall,
@@ -94,15 +101,19 @@ export const SHARDS: Record<string, string[]> = {
   // Offline practice (31 Oct 2026): offline-check builds the app for production, installs the service worker, fills
   // every practice pack, plays three games offline, uploads the queue and swaps in a new build's worker (~5 min).
   play20: ["offline-check.ts"],
+  // Browser checks that used to ride in the fast shards (1 Nov 2026): help-scroll-check (Chromium on a static page,
+  // ~110 s, from g), battery-check (~190 s) and practice-switch-check (~60 s), both unlisted in the catch-all
+  // before. BROWSER_CATCH_ALL: any browser check no shard lists runs here too.
+  play21: ["help-scroll-check.tsx", "battery-check.ts", "practice-switch-check.ts"],
   // The computer layout (31 Oct 2026, docs/desktop-layout.md): desktop-layout-check in thirds (part 1 also the tab
   // pages, rooms of 16, phones and a touch screen at three desktop sizes; each part a third of the active games'
   // desktop modes at 1440x900, ~3-4 min each with its dev server), desktop-fairness-check (~2 min), and
   // arcade-play-check's desktop pass in halves (arcade-play-desktop-check: every arcade game at 1440x900 and
   // 1920x1080, ~6 min each).
-  play21: ["desktop-layout-check.ts@1/3", "desktop-fairness-check.ts"],
-  play22: ["desktop-layout-check.ts@2/3", "desktop-layout-check.ts@3/3"],
-  play23: ["arcade-play-desktop-check.ts@1/2"],
-  play24: ["arcade-play-desktop-check.ts@2/2"],
+  play22: ["desktop-layout-check.ts@1/3", "desktop-fairness-check.ts"],
+  play23: ["desktop-layout-check.ts@2/3", "desktop-layout-check.ts@3/3"],
+  play24: ["arcade-play-desktop-check.ts@1/2"],
+  play25: ["arcade-play-desktop-check.ts@2/2"],
   // Non-browser checks. puzzle-bank-check's every-entry verification and
   // arcade-self-replay-check's entries are split into parts on separate jobs.
   // ~282 s of checks on run 38608375501's times.
@@ -267,8 +278,6 @@ export const SHARDS: Record<string, string[]> = {
     "balltrack-check.ts",
     "bintoss-small-bucket-check.ts",
     "gravity-maze-check.ts",
-    // Headless Chromium on a static page (no dev server), so it needs no play job.
-    "help-scroll-check.tsx",
     "ink-live-check.ts",
     "ink-rainbow-check.ts",
     "orbit-rev3-replay-check.ts",
@@ -282,6 +291,12 @@ export const SHARDS: Record<string, string[]> = {
 };
 
 export const CATCH_ALL = "g";
+
+/** Unlisted browser checks (and any listed in a fast shard) run here, in the full-suite workflow. */
+export const BROWSER_CATCH_ALL = "play21";
+
+/** Browser shards (full-suite.yml) and fast shards (checks.yml); the workflows' matrices must name exactly these. */
+export const isBrowserShard = (shard: string) => shard.startsWith("play");
 
 /** --include-optional checks: not part of the routine suite, never run in CI. */
 export const OPTIONAL = [

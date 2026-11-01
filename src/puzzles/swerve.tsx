@@ -31,7 +31,7 @@ import {
   type SwerveTap,
 } from "@/lib/duel/swerve";
 import { ARCADE_CRASH_FREEZE_MS, type SwervePuzzleData } from "@/lib/duel/types";
-import { buzz } from "@/lib/motion";
+import { haptic } from "@/lib/haptics";
 import { playWrong } from "@/lib/sound";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
@@ -197,7 +197,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         if (state.current.crashed) {
           if (crashedAt.current === null) {
             crashedAt.current = time;
-            buzz(40);
+            // Haptics (lib/haptics.ts): a crash (this retired game has no sound observer to carry it).
+            haptic("impact", { inGame: true });
             playWrong();
           } else if (time - crashedAt.current >= ARCADE_CRASH_FREEZE_MS) {
             finish();

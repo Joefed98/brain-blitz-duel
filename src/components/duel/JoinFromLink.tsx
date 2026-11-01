@@ -3,7 +3,6 @@ import { useEffect, useRef, useState } from "react";
 
 import { fetchRoomPreview, joinRoomByCode, type RoomPreview } from "@/lib/duel/api";
 import { getStoredName, setStoredName } from "@/lib/duel/session";
-import { buzz } from "@/lib/motion";
 import {
   isShareRef,
   noteShareLobbyArrival,
@@ -66,7 +65,6 @@ export function JoinFromLink({
     const trimmed = name.trim();
     if (!trimmed) {
       setError("Enter a display name.");
-      buzz([10, 50, 10]);
       return;
     }
     unlockAudio();
@@ -79,7 +77,6 @@ export function JoinFromLink({
     } catch (err) {
       setBusy(false);
       setError(err instanceof Error ? err.message : "Something went wrong. Try again.");
-      buzz([10, 50, 10]);
     }
   };
 

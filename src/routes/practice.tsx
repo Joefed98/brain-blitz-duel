@@ -44,7 +44,6 @@ import { clearStageState } from "@/lib/duel/stageState";
 import { DemoRecorder, type PuzzleDemoLog } from "@/lib/duel/puzzleDemo";
 import { hasIntroDemo } from "@/components/duel/IntroDemo";
 import { INTRO_COUNTDOWN_MS, INTRO_MS, type PuzzleData, type PuzzleType } from "@/lib/duel/types";
-import { buzz } from "@/lib/motion";
 import {
   playLock,
   releaseRoomMusic,
@@ -463,7 +462,6 @@ function PracticeScreen() {
         return;
       }
       playLock();
-      buzz(15);
       const remaining =
         clockDeadline === null ? timeLimitMs : Math.max(0, clockDeadline - Date.now());
       const wasExample = exampleRun.current;
