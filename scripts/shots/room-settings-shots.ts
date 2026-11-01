@@ -25,6 +25,7 @@ const SHOTS: [string, ThemeScreen][] = [
   ["sheet-capped", byName("room settings sheet, capped rounds")],
   ["intro-puzzle-box-six", { name: "intro, puzzle", mode: "room", room: room("in_progress", "intro"), waitMs: 1500 }],
   ["intro-arcade-breaker-retro", { name: "intro, arcade", mode: "room", room: room("in_progress", "intro", { arcade: true, arcadeType: "breaker" }), waitMs: 1500 }],
+  ["intro-arcade-gemstone-strategy", { name: "intro, arcade (Strategy)", mode: "room", room: room("in_progress", "intro", { arcade: true }), waitMs: 1500 }],
 ];
 
 const server = await startSafeAreaServer({ cacheDir: "node_modules/.vite-room-settings-shots", buildId: "room-settings-shots" });

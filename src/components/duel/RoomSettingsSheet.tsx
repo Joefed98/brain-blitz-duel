@@ -24,7 +24,7 @@ import {
 
 /**
  * The host's room settings (31 Oct 2026; rules in src/lib/duel/roomSettings.ts): three presets over a grid of
- * ten colour chips (the six puzzle categories, then the four arcade groups; at least one stays on), the round
+ * eleven colour chips (the six puzzle categories, then the five arcade groups; at least one stays on), the round
  * count as quick buttons 3 / 6 / 9 / 12 over a 3–12 slider (linked both ways, capped at the picks' games with a
  * note), and the room's estimated length, live. Save stores them on the server (setRoomSettingsFn); the ✕ or a
  * tap outside closes without saving.
