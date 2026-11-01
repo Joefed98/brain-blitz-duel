@@ -5,24 +5,29 @@
  * draws the real screens through scripts/safe-area-harness.tsx (home, practice and room routes,
  * network stubbed) at 1366×768, 1440×900, 1920×1080 and a short 1280×720 window, and fails if:
  *  - pages (home, practice list, room lobby, round result, standings, podium; 10 players) are not
- *    one centred column at most 480px wide, scroll sideways, or show text under 10px (the phone's
- *    smallest label; page text keeps its phone size);
- *  - a puzzle's live round (Box Six, Cryptogrid, Nucleus, Echo Maze) is not a centred column at most
- *    560px wide and 1000px tall, centred vertically, with its board and every control inside it and
- *    on screen, or the page scrolls;
- *  - an arcade live round (Breaker, Coral Pop, Tilt, Gemstone, Fission, Orbit; Breaker, Tilt and Gemstone at DPR 1 and 2) is not a centred column
- *    at most 640px wide and 1120px tall; its header not the game frame's 60px with its 48px timer ring
+ *    beside the left rail (the computer layout, 31 Oct 2026: the tab pages' page and right column after
+ *    the 240px rail, room pages a column at most 760px wide centred beside the 76px rail and the room's
+ *    380px panel; until then one centred 480px column), scroll sideways, or show text under 10px (the
+ *    phone's smallest label; page text keeps its phone size);
+ *  - a puzzle's live round (Box Six, Cryptogrid, Nucleus, Echo Maze; desktop mode `wide`) is not a column
+ *    at most 760px wide and 1100px tall (560 × 1000 before 31 Oct 2026), centred across the space beside
+ *    the rail and vertically, with its board and every control inside it and on screen, or the page scrolls;
+ *  - an arcade live round (Breaker, Coral Pop, Tilt, Gemstone, Fission, Orbit; Breaker, Tilt and Gemstone at DPR 1 and 2) is not a column
+ *    centred beside the rail, at most its desktop mode's width (desktopModes.ts: `tall` 640px, `wide` 960px,
+ *    `rotate` 1000px; 640 × 1120 before 31 Oct 2026) and the screen's height; its header not the game frame's 60px with its 48px timer ring
  *    and 15px seconds (Polish 2, 24 Oct 2026; 56px, 28px and 24px before), the timer not centred; its world not the game's phone shape (within 2px), not the
  *    largest uniform fit of its box (within 2px: an even whole-pixel width), not on whole CSS pixels, or its canvas backing
  *    store not the box × the pixel ratio (crisp at DPR 1 and 2); its fill (where the game has one)
  *    not covering the whole screen; a control off screen; the page scrolling;
- *  - while one arcade round is resized through every size (and down to a 1024×768 window, where
- *    the phone layout returns, and back) any of the above fails at any step;
+ *  - while one arcade round is resized through every size (and down to a 1000×768 window, where
+ *    the phone's game layout returns, and back; 1024×768 until 31 Oct 2026, now the desktop layout's
+ *    narrowest) any of the above fails at any step;
  *  - the intro does not show the game's keys (DESKTOP_KEYS) with READY on screen;
  *  - keys do not drive a game through its own handlers (Nucleus: a typed letter taps its tile and
  *    Backspace takes it off; Gemstone: an arrow shows the board cursor);
  *  - the same 1440×900 window with a touch screen (a coarse pointer, as a tablet) does not keep the
- *    phone layout: the desktop rules must never reach a touch device.
+ *    phone's game layout: the desktop rules must never reach a touch device (its pages take the tablet
+ *    layout since 31 Oct 2026; its game screens are the phone's).
  *
  *   bun scripts/desktop-geometry-check.tsx [--verbose] [--shots=<dir>]
  */
@@ -38,6 +43,8 @@ import { gameDisplayName } from "../src/lib/duel/gameNames";
 import { DESKTOP_KEYS } from "../src/lib/desktopKeys";
 import type { PuzzleData, PuzzleType } from "../src/lib/duel/types";
 import { showPracticeSide } from "./practice-side-lib";
+import { DESKTOP_MODES } from "../src/lib/duel/desktopModes";
+import { DESKTOP_LAYOUT_QUERY } from "../src/lib/layoutMode";
 
 const args = process.argv.slice(2);
 const VERBOSE = args.includes("--verbose");
@@ -56,11 +63,16 @@ const SIZES = [
   [1920, 1080],
   [1280, 720],
 ] as const;
-const PAGE_MAX = 480;
-const PUZZLE_MAX_W = 560;
-const PUZZLE_MAX_H = 1000;
-const ARCADE_MAX_W = 640;
-const ARCADE_MAX_H = 1120;
+/** The computer layout (31 Oct 2026, desktop-layout.css): the rails and the room panel. */
+const RAIL = 240;
+const RAIL_COMPACT = 76;
+const ROOM_PANEL = 380;
+/** A room page's column beside the compact rail (and the panel). */
+const PAGE_MAX = 760;
+const PUZZLE_MAX_W = 760;
+const PUZZLE_MAX_H = 1100;
+/** An arcade column's width by desktop mode (desktop-layout.css); no height cap but the screen's. */
+const ARCADE_MAX_W = { tall: 640, wide: 960, rotate: 1000 } as const;
 const PUZZLES: PuzzleType[] = ["sudoku", "codeword", "wordsmith", "maze"];
 const ARCADE: PuzzleType[] = ["breaker", "bubble", "tilt", "matchup", "burst", "orbit"];
 /** Also drawn at DPR 2 (a high-DPI laptop screen). */
@@ -136,7 +148,7 @@ function roomNow(status: "waiting" | "in_progress" | "finished", phase: string) 
 type Box = { x: number; y: number; w: number; h: number; r: number; b: number };
 
 /** In-page: the shell column, page scroll and smallest text inside the column. */
-function pageProbe() {
+function pageProbe(query: string) {
   const box = (el: Element | null) => {
     if (!el) return null;
     const r = el.getBoundingClientRect();
@@ -154,7 +166,13 @@ function pageProbe() {
   return {
     kind: column?.getAttribute("data-shell-column") ?? null,
     column: box(column),
-    desktop: matchMedia("(min-width: 1180px) and (min-height: 560px) and (hover: hover) and (pointer: fine)").matches,
+    desktop: matchMedia(query).matches,
+    tab: document.querySelector("[data-tab-screen]") !== null,
+    panel: document.querySelector("[data-room-panel-body]") !== null,
+    rail: (() => {
+      const r = document.querySelector("[data-app-rail]")?.getBoundingClientRect();
+      return r ? r.width : 0;
+    })(),
     scrollX: document.documentElement.scrollWidth - window.innerWidth,
     innerW: window.innerWidth,
     innerH: window.innerHeight,
@@ -216,21 +234,29 @@ const fmt = (b: Box | null) => (b ? `${b.w.toFixed(1)}×${b.h.toFixed(1)} at ${b
 function judgePage(m: ReturnType<typeof pageProbe>, problems: string[]) {
   if (!m.desktop) problems.push("the desktop query does not match");
   if (m.kind !== "page" || !m.column) return void problems.push(`no page column (${m.kind})`);
-  if (m.column.w > PAGE_MAX + 0.5) problems.push(`page column ${m.column.w.toFixed(1)}px wide (max ${PAGE_MAX})`);
-  if (!near(m.column.x, m.innerW - m.column.r)) problems.push(`page column not centred (${m.column.x.toFixed(1)} | ${(m.innerW - m.column.r).toFixed(1)})`);
+  const left = m.tab ? RAIL : RAIL_COMPACT;
+  const right = m.panel ? m.innerW - ROOM_PANEL : m.innerW;
+  if (!near(m.rail, left)) problems.push(`rail ${m.rail}px wide, want ${left}`);
+  if (m.column.x < left - 0.5 || m.column.r > right + 0.5) problems.push(`page column ${m.column.x.toFixed(1)}..${m.column.r.toFixed(1)} not between the rail (${left}) and ${m.panel ? "the room panel" : "the edge"} (${right})`);
+  if (!m.tab) {
+    if (m.column.w > PAGE_MAX + 0.5) problems.push(`page column ${m.column.w.toFixed(1)}px wide (max ${PAGE_MAX})`);
+    if (!near(m.column.x - left, right - m.column.r)) problems.push(`page column not centred beside the rail (${(m.column.x - left).toFixed(1)} | ${(right - m.column.r).toFixed(1)})`);
+  }
   if (m.scrollX > 0) problems.push(`page scrolls sideways by ${m.scrollX}px`);
   if (m.smallest && m.smallest.size < 10) problems.push(`text "${m.smallest.text}" is ${m.smallest.size}px (under 10px, the phone's smallest)`);
 }
 
-function judgePlay(m: ReturnType<typeof playProbe>, arcade: boolean, problems: string[]) {
+function judgePlay(m: ReturnType<typeof playProbe>, arcade: boolean, problems: string[], type?: PuzzleType) {
   if (!m.column || !m.stage) return void problems.push("no live round");
-  const maxW = arcade ? ARCADE_MAX_W : PUZZLE_MAX_W;
-  const maxH = arcade ? ARCADE_MAX_H : PUZZLE_MAX_H;
+  const mode = type ? DESKTOP_MODES[type].mode : "wide";
+  const space = m.innerW - RAIL_COMPACT;
+  const maxW = arcade ? ARCADE_MAX_W[mode] : PUZZLE_MAX_W;
+  const maxH = arcade ? m.innerH : PUZZLE_MAX_H;
   if (m.arcade !== arcade) problems.push(`arcade play screen ${m.arcade}, expected ${arcade}`);
   if (m.column.w > maxW + 0.5) problems.push(`column ${m.column.w.toFixed(1)}px wide (max ${maxW})`);
-  if (m.column.w < Math.min(maxW, m.innerW) - 0.5) problems.push(`column ${m.column.w.toFixed(1)}px wide (should be ${Math.min(maxW, m.innerW)})`);
+  if (m.column.w < Math.min(maxW, space) - 0.5) problems.push(`column ${m.column.w.toFixed(1)}px wide (should be ${Math.min(maxW, space)})`);
   if (m.column.h > maxH + 0.5) problems.push(`column ${m.column.h.toFixed(1)}px tall (max ${maxH})`);
-  if (!near(m.column.x, m.innerW - m.column.r)) problems.push(`column not centred across (${m.column.x.toFixed(1)} | ${(m.innerW - m.column.r).toFixed(1)})`);
+  if (!near(m.column.x - RAIL_COMPACT, m.innerW - m.column.r)) problems.push(`column not centred beside the rail (${(m.column.x - RAIL_COMPACT).toFixed(1)} | ${(m.innerW - m.column.r).toFixed(1)})`);
   if (!near(m.column.y, m.innerH - m.column.b)) problems.push(`column not centred down (${m.column.y.toFixed(1)} | ${(m.innerH - m.column.b).toFixed(1)})`);
   if (m.column.y < -0.5 || m.column.b > m.innerH + 0.5) problems.push(`column off screen (${fmt(m.column)})`);
   if (m.scrollX > 0 || m.scrollY > 0) problems.push(`page scrolls (${m.scrollX}, ${m.scrollY})`);
@@ -245,6 +271,8 @@ function judgePlay(m: ReturnType<typeof playProbe>, arcade: boolean, problems: s
   if (!near(m.seconds, 15, 0.5)) problems.push(`timer seconds ${m.seconds}px (want 15)`);
   if (m.timer && m.header && !near(m.timer.x + m.timer.w / 2, m.header.x + m.header.w / 2, 24)) problems.push("timer not centred in the header");
   if (!m.slot || !m.arena || !m.worldW) return void problems.push("no arena slot / world");
+  // A rotate game's world is turned in its rotor (desktop-layout-check and desktop-fairness-check judge it).
+  if (mode === "rotate") return;
   const scale = Math.min(m.slot.w / m.worldW, m.slot.h / m.worldH);
   const fitW = m.worldW * scale;
   const fitH = m.worldH * scale;
@@ -342,7 +370,7 @@ try {
         await page.setViewportSize({ width: size[0], height: size[1] });
         await page.waitForTimeout(200);
         const problems: string[] = [];
-        judgePage(await page.evaluate(pageProbe), problems);
+        judgePage(await page.evaluate(pageProbe, DESKTOP_LAYOUT_QUERY), problems);
         await report(`${p.name} ${size[0]}x${size[1]}`, problems, page);
       }
     } finally {
@@ -365,7 +393,7 @@ try {
           await page.setViewportSize({ width: size[0], height: size[1] });
           await page.waitForTimeout(250);
           const problems: string[] = [];
-          judgePlay(await page.evaluate(playProbe), arcade, problems);
+          judgePlay(await page.evaluate(playProbe), arcade, problems, type);
           await report(`${type} live ${size[0]}x${size[1]} DPR ${dpr}`, problems, page);
         }
       } finally {
@@ -383,13 +411,13 @@ try {
       await startRound(page, "burst", []);
       const steps: [number, number][] = [];
       for (let w = 1920, h = 1080; w >= 1280; w -= 80, h = Math.max(720, h - 45)) steps.push([w, h]);
-      steps.push([1024, 768], [1366, 768], [1440, 900]);
+      steps.push([1024, 768], [1000, 768], [1366, 768], [1440, 900]);
       for (const [w, h] of steps) {
         await page.setViewportSize({ width: w, height: h });
         await page.waitForTimeout(120);
         const problems: string[] = [];
         const m = await page.evaluate(playProbe);
-        if (w >= 1180) judgePlay(m, true, problems);
+        if (w >= 1024) judgePlay(m, true, problems, "burst");
         else if (!m.column || m.column.w < w - 1) problems.push(`a ${w}px window should keep the phone layout (column ${m.column?.w ?? "missing"}px)`);
         await report(`resize burst ${w}x${h}`, problems);
       }
@@ -469,5 +497,5 @@ if (failures.length) {
   process.exit(1);
 }
 console.log(
-  `PASS: ${judged} desktop geometries at ${SIZES.map(([w, h]) => `${w}x${h}`).join(", ")} and while resizing: pages a centred ≤${PAGE_MAX}px column, text ≥ 10px; puzzle rounds (${PUZZLES.join(", ")}) a centred ≤${PUZZLE_MAX_W}×${PUZZLE_MAX_H} column; arcade rounds (${ARCADE.join(", ")}; ${HIGH_DPI.join(", ")} at DPR 1 and 2 too) a centred ≤${ARCADE_MAX_W}×${ARCADE_MAX_H} column, the 60px frame header, 48px timer, the world its phone shape at the largest whole-pixel fit with a crisp canvas, the fill over the whole screen; intros show the keys; keys drive Nucleus and Gemstone; a touch screen keeps the phone layout and takes no keys.`,
+  `PASS: ${judged} desktop geometries at ${SIZES.map(([w, h]) => `${w}x${h}`).join(", ")} and while resizing: pages beside the rail (room pages a centred ≤${PAGE_MAX}px column), text ≥ 10px; puzzle rounds (${PUZZLES.join(", ")}) a centred ≤${PUZZLE_MAX_W}×${PUZZLE_MAX_H} column; arcade rounds (${ARCADE.join(", ")}; ${HIGH_DPI.join(", ")} at DPR 1 and 2 too) a centred column as wide as their desktop mode allows, the 60px frame header, 48px timer, the world its phone shape at the largest whole-pixel fit with a crisp canvas, the fill over the whole screen; intros show the keys; keys drive Nucleus and Gemstone; a touch screen keeps the phone layout and takes no keys.`,
 );

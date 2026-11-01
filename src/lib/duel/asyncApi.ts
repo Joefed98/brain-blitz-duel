@@ -2,6 +2,7 @@
  * The phone's side of the async-room and daily calls (21 Oct 2026): each makes sure the device has
  * its anonymous session first, as the room API does (api.ts). Nothing here grades or stores.
  */
+import { inputTypeField } from "@/lib/inputType";
 import { APP_BUILD_ID } from "@/lib/appVersion";
 
 import {
@@ -83,6 +84,7 @@ export async function submitAsyncAnswer(payload: AsyncSendPayload): Promise<unkn
       msRemaining: payload.msRemaining,
       ...(payload.extra ? { extra: payload.extra } : {}),
       clientVersion: APP_BUILD_ID,
+      ...inputTypeField(),
     },
   });
 }

@@ -41,7 +41,7 @@ html:has([data-tab-screen]) {
 }
 
 /* Desktop (polish-layout/desktop.css): the tab bar's row matches the 480px page column. */
-@media (min-width: 1180px) and (min-height: 560px) and (hover: hover) and (pointer: fine) {
+@media (min-width: 1024px) and (min-height: 500px) and (hover: hover) and (pointer: fine) {
   .app-tabbar-row {
     max-width: 480px;
   }

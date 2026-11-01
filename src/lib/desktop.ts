@@ -1,13 +1,15 @@
 import { createContext, useContext, useEffect, useRef, useState } from "react";
 
+import { rotatedKey, useDesktopPresentation } from "@/lib/desktopPresentation";
+
 /**
  * PC and laptop browsers (17 Oct 2026, presentation and input only; docs/desktop-support.md).
  *
- * Desktop layout: a mouse or trackpad (hover and a fine primary pointer) in a window at least
- * 1180×560. Phones and tablets (coarse pointers) never match, whatever their size, so their
- * screens are exactly as before; polish-layout/desktop.css holds the same query.
+ * The intro's key line: the computer layout (1024 px wide and up, lib/layoutMode.ts; since 31 Oct
+ * 2026, 1180×560 before) with a mouse or trackpad (hover and a fine primary pointer). Phones never
+ * match, whatever their size.
  */
-export const DESKTOP_QUERY = "(min-width: 1180px) and (min-height: 560px) and (hover: hover) and (pointer: fine)";
+export const DESKTOP_QUERY = "(min-width: 1024px) and (min-height: 500px) and (hover: hover) and (pointer: fine)";
 
 /**
  * Keyboard controls: any window with a mouse or trackpad (no size rule, so a narrow desktop
@@ -66,8 +68,10 @@ export const GameKeysOff = createContext(false);
  */
 export function useGameKeys(handler: GameKeyHandler, enabled = true): void {
   const off = useContext(GameKeysOff);
-  const ref = useRef(handler);
-  ref.current = handler;
+  // A rotated world (the desktop `rotate` mode): direction keys turn with it (desktopPresentation.ts).
+  const turn = useDesktopPresentation().keys;
+  const ref = useRef<GameKeyHandler>(handler);
+  ref.current = turn ? (kind, key, event) => handler(kind, rotatedKey(key, turn), event) : handler;
   const on = enabled && !off;
   useEffect(() => {
     if (!on || !matches(KEYS_QUERY)) return;

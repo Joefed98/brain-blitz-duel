@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 
 import { FeedbackLink } from "@/components/beta/FeedbackLink";
 import { PhoneShell } from "@/components/duel/PhoneShell";
+import { PageAside } from "@/components/app/PageAside";
 import { PlayerBadge } from "@/components/duel/PlayerBadge";
 import { LookPicker } from "@/components/duel/RoomLobby";
 import { Onboarding } from "@/components/duel/Onboarding";
@@ -137,7 +138,7 @@ function ProfileScreen() {
   };
 
   return (
-    <PhoneShell tabs="profile">
+    <PhoneShell tabs="profile" aside={<PageAside panels={["public", "daily", "week"]} />}>
       <div className="ap-stack">
         <div className="flex items-center justify-between gap-2">
           <h1 className="ap-title">Profile</h1>

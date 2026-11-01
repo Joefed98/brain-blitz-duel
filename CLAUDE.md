@@ -988,6 +988,26 @@ outside the repo.
   own chip for this room); a taken default gives the nearest free swatch (`nearestFreeColour`). Apex draws only the 3
   nearest ghosts (`nearestRacingGhosts`). room-16-check (~1.5 min, `play14`); `bun scripts/room-load-test.ts` (a tool:
   bots on an in-memory test copy, report in the doc); shots `bun scripts/shots/room16-shots.ts`.
+- **The computer layout, chess.com style** (31 Oct 2026, `docs/desktop-layout.md`; presentation, input mapping and
+  result recording only, no stamps, no game's world, rules, sim, scoring or grading changed): breakpoints in
+  `src/lib/layoutMode.ts` (desktop: 1024 px wide and up with a mouse or trackpad; tablet: 700 px and up otherwise, pages
+  in two columns, game screens exactly the phone's; phone: unchanged, every new slot renders null there, so its markup is
+  byte-identical). PhoneShell marks `data-layout` and draws the 240 px rail (`AppRail`, replacing the tab bar and header;
+  76 px on rooms and games), the 112 px banner slot on Play, Practice and Tournaments (`BannerSlot`, house promotions from
+  `src/config/banners.ts`, never in rooms, rounds, reveals or standings), a tab page's 320 px right column (`aside`,
+  `PageAside`) and a room's 380 px panel (`RoomPanel` through `RoomPanelSlot`: code, round progress by category, standings
+  for 16 with playing / finished, chat between rounds). Practice on desktop: switch, search and chips in one row, games a
+  3–5 card grid. **Every game declares a desktop mode** (`src/lib/duel/desktopModes.ts`, the registry's `desktop`; a new
+  game needs a line): `wide` (puzzles, card and board games), `rotate` (Cue Ball only, Joe's call: the table and balls turned 90° clockwise in `ArcadeArenaSlot`'s rotor;
+  pointers through `tapMapping.ts` `arenaPointer` / `arenaSize`; its HUD chips upright on the stage's `hud` strip, ball
+  numbers and pop-ups counter-turned: **no text is ever drawn rotated**), `tall` (every other arcade game, upright: full height,
+  scenery faded at the edges; Apex's world capped at 340×634 on desktop with its static backdrop, `maxWorldWidth`,
+  for 60 fps, and its renderer skips near-grass bands the haze already paints, pixel-identical: racing-render-check). `DesktopControlsHint` shows the keys for 8 s. Every result records its input type
+  (`src/lib/inputType.ts` → `input_type` on round_results, async_results, practice_plays, best effort; migration
+  `20261031170000_result_input_type.sql` **written but not applied**; it also redefines `restart_duel_room` so Play
+  again's archive keeps `input_type`). Checks: desktop-layout-check (thirds,
+  `play22`/`play23`), desktop-fairness-check (`play22`), `arcade-play-check --desktop` as arcade-play-desktop-check
+  (halves, `play24`/`play25`); desktop-geometry-check proves the new columns. Shots `bun scripts/shots/desktop-layout-shots.ts`.
 - **Haptics** (31 Oct 2026; presentation and device storage only, no stamps; `src/lib/haptics.ts`): main moments
   only, through one helper with named patterns (`tick`, `go`, `success`, `error`, `impact`, `celebrate`) and an adapter
   (`setHapticsAdapter`; the web Vibration API today, so Android only: iPhone Safari has none and gets nothing; a
@@ -1012,7 +1032,7 @@ outside the repo.
   - **Checks** (`.github/workflows/checks.yml`) on every PR open / push / reopen / leaving draft: every check that
     starts no browser (scoring, replay, standard, type-level, unit-style), shards `a`–`g`. A new push cancels the run in
     progress; PRs only (no push trigger), so a commit is checked once.
-  - **Full suite** (`.github/workflows/full-suite.yml`): every check that starts Chromium, shards `play1`–`play21`
+  - **Full suite** (`.github/workflows/full-suite.yml`): every check that starts Chromium, shards `play1`–`play25`
     (`play21` is the browser catch-all), plus the one job to merge on, **full-suite-passed** (success only if every
     browser shard ran and passed; skipped never counts). It runs when a PR gets the label `ready-to-merge` (and again
     on each new push while the label is on), when a PR leaves draft, by hand (Actions → Full suite → Run workflow;
