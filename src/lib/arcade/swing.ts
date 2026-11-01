@@ -493,6 +493,8 @@ export interface SwingState extends Body, BandFields {
   chaseFrom?: number;
   /** swingRev 15: the hook a miss on a swinging stretch puts the hero back on (the last one of the stretch held; -1: its start ledge). */
   hangHook?: number;
+  /** swingRev 16 only (the dark ledge runs): the marker. Its run is SWING_V16_RUN_TICKS long, and hooks in the dark (swingDarkFrom) cannot be grabbed. */
+  dark?: number;
   tick: number;
   rng: number;
   camX: number;
@@ -895,6 +897,8 @@ export function swingCheckpoint(state: SwingState): SwingCheckpoint {
   if (state.assault) values.push(state.assault, state.sec ?? 0, state.secStart ?? 0, state.secReach ?? 0, state.ledgeOn ?? -1, state.ledgeHold ?? 0, state.respawn ?? 0, state.restarts ?? 0, state.gemsTaken ?? 0, state.gatesLit ?? 0, state.stars ?? 0, state.chaseX ?? 0, state.chaseY ?? 0, state.caught ?? 0, ...(state.secTicks ?? []));
   // swingRev 15 (the swinging course): its marker and the rope length, after every rev-14 value.
   if (state.rework) values.push(state.rework, state.len, state.bankGems ?? 0, state.bankGates ?? 0, (state.bankStars ?? []).length, state.hangHook ?? -1);
+  // swingRev 16 (the dark ledge runs): its marker, after every rev-15 value.
+  if (state.dark) values.push(state.dark);
   for (const value of values) {
     checksum ^= value | 0;
     checksum = Math.imul(checksum, 0x01000193) >>> 0;
@@ -1057,6 +1061,7 @@ const dragonGameV2 = { ...swingGame, init: initDragonsV2 };
 const dragonGameV3 = { ...swingGame, init: initDragonsV3 };
 const chaseGameV4 = { ...swingGame, init: initV4 };
 export function swingGameFor(rev?: number): typeof swingGame {
+  if (rev === SWING_REV_DARK) return swingDarkGame;
   if (rev === SWING_REV_REWORK) return swingReworkGame;
   if (rev === SWING_REV_ASSAULT) return swingAssaultGame;
   if (rev === SWING_REV_EXPAND) return swingExpandGame;
@@ -1388,7 +1393,7 @@ export function swingWorldH(state: { worldH?: number }): number {
 }
 /** The world height (px) a stored round's swingRev plays in. */
 export function swingWorldHFor(rev?: number | null): number {
-  if (rev === SWING_REV_EXPAND || rev === SWING_REV_ASSAULT || rev === SWING_REV_REWORK) return SWING_V13_H;
+  if (rev === SWING_REV_EXPAND || rev === SWING_REV_ASSAULT || rev === SWING_REV_REWORK || rev === SWING_REV_DARK) return SWING_V13_H;
   return rev === SWING_REV_TALL || rev === SWING_REV_TARGET || rev === SWING_REV_STRICT ? SWING_TALL_H : SWING_WORLD_H;
 }
 
@@ -1768,14 +1773,14 @@ export function swingWorldW(state: { worldW?: number }): number {
 }
 /** The world width (px) a stored round's swingRev plays in. */
 export function swingWorldWFor(rev?: number | null): number {
-  return rev === SWING_REV_EXPAND || rev === SWING_REV_ASSAULT || rev === SWING_REV_REWORK ? SWING_V13_W : SWING_WORLD_W;
+  return rev === SWING_REV_EXPAND || rev === SWING_REV_ASSAULT || rev === SWING_REV_REWORK || rev === SWING_REV_DARK ? SWING_V13_W : SWING_WORLD_W;
 }
 /**
  * The height (px) a stored round's reveal and demo draw at in the shared 390-wide reveal box: the
  * world's own height, or for swingRev 13's 450-wide view the height that keeps its shape (731).
  */
 export function swingRevealHFor(rev?: number | null): number {
-  return rev === SWING_REV_EXPAND || rev === SWING_REV_ASSAULT || rev === SWING_REV_REWORK ? Math.round((SWING_V13_H * SWING_WORLD_W) / SWING_V13_W) : swingWorldHFor(rev);
+  return rev === SWING_REV_EXPAND || rev === SWING_REV_ASSAULT || rev === SWING_REV_REWORK || rev === SWING_REV_DARK ? Math.round((SWING_V13_H * SWING_WORLD_W) / SWING_V13_W) : swingWorldHFor(rev);
 }
 
 /** Grabbing from a ledge, the hero kicks off it: SWING_LEDGE_KICK of forward speed along the swing. */
@@ -3063,11 +3068,15 @@ function hangBody(a: Anchor, index: number): Body {
   return b;
 }
 
-/** The nearest anchor of [lo, hi) within reach of (x, y), or -1 (swingRev 15's grab rule). */
-function rangeTarget(anchors: readonly Anchor[], lo: number, hi: number, x: number, y: number): number {
+/**
+ * The nearest anchor of [lo, hi) within reach of (x, y), or -1 (swingRev 15's grab rule). swingRev 16: an anchor at
+ * or past `lim` (swingDarkFrom: in the dark) is never taken; every earlier revision passes no limit.
+ */
+function rangeTarget(anchors: readonly Anchor[], lo: number, hi: number, x: number, y: number, lim = SWING_NO_DARK): number {
   let best = -1;
   let bestD = REACH * REACH;
   for (let i = lo; i < hi && i < anchors.length; i++) {
+    if (anchors[i]!.x >= lim) continue;
     const dx = anchors[i]!.x - x;
     const dy = anchors[i]!.y - y;
     const d = dx * dx + dy * dy;
@@ -3134,6 +3143,8 @@ function stepRework(state: SwingState, input: ArcadeInputEvent | null): SwingSta
   const k = s.sec ?? 0;
   const sec = s.sections![k]!;
   const [lo, hi] = swingReworkRange(s, k);
+  // swingRev 16: hooks in the dark (as the tick starts) cannot be grabbed.
+  const lim = s.dark ? swingDarkFrom(state) : SWING_NO_DARK;
   const px = s.x;
   const py = s.y;
   let standing = (s.ledgeOn ?? -1) >= 0;
@@ -3154,7 +3165,7 @@ function stepRework(state: SwingState, input: ArcadeInputEvent | null): SwingSta
     }
     if (standing ? press : input !== null && input.k === SWING_INPUT_HOLD) {
       if (press) {
-        const target = rangeTarget(s.anchors, lo, hi, s.x, s.y);
+        const target = rangeTarget(s.anchors, lo, hi, s.x, s.y, lim);
         if (target >= 0) {
           if (s.rope >= 0) detach(s, s.anchors[s.rope]!);
           attach(s, target, s.anchors[target]!);
@@ -3266,7 +3277,8 @@ function stepRework(state: SwingState, input: ArcadeInputEvent | null): SwingSta
   const w = (s.worldW ?? SWING_WORLD_W) * FP;
   if (s.x - s.camX > w - 60 * FP) s.camX = s.x - (w - 60 * FP);
   if (s.x - s.camX < 40 * FP) s.camX = s.x - 40 * FP;
-  if (now >= total || tick >= SWING_RUN_TICKS) {
+  // swingRev 16 runs 90 s; swingRev 15 the minute.
+  if (now >= total || tick >= (s.dark ? SWING_V16_RUN_TICKS : SWING_RUN_TICKS)) {
     s.ended = 1;
     s.endedTick = tick;
   }
@@ -3581,42 +3593,65 @@ function v15Land(c: V14Course, S: readonly Body[], ledges: readonly SwingLedge[]
   return null;
 }
 
-const v15Cache = new Map<number, SwingState>();
-const v15Plans = new Map<number, SwingReworkPlan>();
+/**
+ * A swinging course's shape (swingRev 15's, and swingRev 16's longer one): the blocks, the ledge runs' sizes and
+ * where they go (block `runFirst + i × runEvery`, plus 0 or 1), the runs that carry a squeeze, the stream's salt and
+ * the builds' caches. Every rev-15 value is the one it was built with before.
+ */
+interface V15Shape {
+  blocks: number;
+  runs: readonly number[];
+  squeezeRuns: readonly number[];
+  squeezes: number;
+  runFirst: number;
+  runEvery: number;
+  salt: number;
+  failures: number;
+  cache: Map<number, SwingState>;
+  plans: Map<number, SwingReworkPlan>;
+}
+/** The most failed blocks one rev-15 build may roll back before it starts the course again. */
+const V15_BLOCK_FAILURES = 40;
+const V15_SHAPE: V15Shape = { blocks: SWING_V15_BLOCKS, runs: SWING_V15_RUNS, squeezeRuns: SWING_V15_SQUEEZE_RUNS, squeezes: SWING_V15_SQUEEZES, runFirst: 3, runEvery: 7, salt: 0x6a09e667, failures: V15_BLOCK_FAILURES, cache: new Map(), plans: new Map() };
 /** The witness of a seed's swingRev 15 course (building it if need be). */
 export function swingReworkPlan(seed: number): SwingReworkPlan {
-  if (!v15Plans.has(seed | 0)) {
-    v15Cache.delete(seed | 0);
-    initV15(seed);
+  return shapePlan(seed, V15_SHAPE);
+}
+function shapePlan(seed: number, shape: V15Shape): SwingReworkPlan {
+  if (!shape.plans.has(seed | 0)) {
+    shape.cache.delete(seed | 0);
+    initShape(seed, shape);
   }
-  return v15Plans.get(seed | 0)!;
+  return shape.plans.get(seed | 0)!;
 }
 /** The most whole-course builds a seed may take (each carries on the seed's stream, so the course is still the seed's alone). */
 const V15_BUILDS = 12;
-/** The most failed blocks one build may roll back before it starts the course again. */
-const V15_BLOCK_FAILURES = 40;
 function initV15(seed: number): SwingState {
-  const cached = v15Cache.get(seed | 0);
+  return initShape(seed, V15_SHAPE);
+}
+function initShape(seed: number, shape: V15Shape): SwingState {
+  const cached = shape.cache.get(seed | 0);
   if (cached) return { ...cached };
-  let rng = (seed ^ 0x6a09e667) | 0;
+  let rng = (seed ^ shape.salt) | 0;
   const draw = (bound: number) => { const r = rngBelow(rng, bound); rng = r.state; return r.value; };
   // A stretch that proves no shape from where the course has got to starts the course again, further along the same stream.
   for (let attempt = 0; attempt < V15_BUILDS; attempt++) {
-    const built = buildV15(draw);
+    const built = buildV15(draw, shape);
     if (!built) continue;
     built.state.rng = rng;
-    if (v15Cache.size > 16) {
-      v15Cache.clear();
-      v15Plans.clear();
+    if (shape.cache.size > 16) {
+      shape.cache.clear();
+      shape.plans.clear();
     }
-    v15Cache.set(seed | 0, built.state);
-    v15Plans.set(seed | 0, built.plan);
+    shape.cache.set(seed | 0, built.state);
+    shape.plans.set(seed | 0, built.plan);
     return { ...built.state };
   }
   throw new Error(`Grappler course ${seed}: no proved course`);
 }
 
-function buildV15(draw: (n: number) => number): { state: SwingState; plan: SwingReworkPlan } | null {
+function buildV15(draw: (n: number) => number, shape: V15Shape): { state: SwingState; plan: SwingReworkPlan } | null {
+  const { blocks } = shape;
   const cols = Math.trunc((START_X + 52000 * FP) / COL) + 2;
   const ceil: number[] = [];
   const floor: number[] = [];
@@ -3626,7 +3661,7 @@ function buildV15(draw: (n: number) => number): { state: SwingState; plan: Swing
   }
   const c: V14Course = { ceil, floor, spikes: [], anchors: [] };
   // The plan: SWING_V15_BLOCKS blocks, swinging stretches but for the ledge runs (in seeded bands; squeezes in the first and last).
-  const runAt = SWING_V15_RUNS.map((_, i) => 3 + i * 7 + draw(2));
+  const runAt = shape.runs.map((_, i) => shape.runFirst + i * shape.runEvery + draw(2));
   const sections: SwingSection[] = [];
   const ledges: SwingLedge[] = [];
   const squeezes: SwingSqueeze[] = [];
@@ -3642,8 +3677,8 @@ function buildV15(draw: (n: number) => number): { state: SwingState; plan: Swing
     const run = runAt.indexOf(block);
     if (run >= 0) {
       // A ledge run: rev 14's sections from the ledge the stretch before landed on.
-      let squeeze = SWING_V15_SQUEEZE_RUNS.includes(run);
-      for (let j = 0; j < SWING_V15_RUNS[run]!; j++) {
+      let squeeze = shape.squeezeRuns.includes(run);
+      for (let j = 0; j < shape.runs[run]!; j++) {
         const fromIndex = ledges.length - 1;
         const from = ledges[fromIndex]!;
         // The squeeze from the run's second section (one that falls back to one hook moves it on to the next).
@@ -3670,7 +3705,7 @@ function buildV15(draw: (n: number) => number): { state: SwingState; plan: Swing
     }
     // A swinging stretch: 3–5 hooks, ending on the next stretch's first hook, or on a ledge before a ledge run or at the end.
     const hooks = 3 + draw(3);
-    const endsOnLedge = runAt.includes(block + 1) || block + 1 === SWING_V15_BLOCKS;
+    const endsOnLedge = runAt.includes(block + 1) || block + 1 === blocks;
     const fromIndex = arrive ? -1 : ledges.length - 1;
     const fromLedges = fromIndex >= 0 ? [ledges[fromIndex]!] : [];
     const base = c.anchors.length;
@@ -3732,7 +3767,7 @@ function buildV15(draw: (n: number) => number): { state: SwingState; plan: Swing
     const k = sections.length;
     const own = built.to ? c.anchors.length - built.hook0 : c.anchors.length - 1 - built.hook0;
     const x0 = fromIndex >= 0 ? ledgeX(fromIndex) : c.anchors[built.hook0]!.x;
-    if (built.to) ledges.push({ ...built.to, section: k + 1, kind: block + 1 === SWING_V15_BLOCKS ? 2 : 1 });
+    if (built.to) ledges.push({ ...built.to, section: k + 1, kind: block + 1 === blocks ? 2 : 1 });
     sections.push({
       kind: SWING_KIND_SWING,
       hook0: built.hook0,
@@ -3765,13 +3800,13 @@ function buildV15(draw: (n: number) => number): { state: SwingState; plan: Swing
   const snaps: Snap[] = [take()];
   const fails: number[] = [];
   let failures = 0;
-  for (let block = 0; block < SWING_V15_BLOCKS; ) {
+  for (let block = 0; block < blocks; ) {
     if (buildBlock(block)) {
       block += 1;
       snaps[block] = take();
       continue;
     }
-    if (++failures > V15_BLOCK_FAILURES) return null;
+    if (++failures > shape.failures) return null;
     fails[block] = (fails[block] ?? 0) + 1;
     if (block > 0 && fails[block]! >= 2) {
       fails[block] = 0;
@@ -3779,7 +3814,7 @@ function buildV15(draw: (n: number) => number): { state: SwingState; plan: Swing
     }
     restore(snaps[block]!);
   }
-  if (squeezes.length !== SWING_V15_SQUEEZES) return null;
+  if (squeezes.length !== shape.squeezes) return null;
   const made = reworkCourse(c, sections, ledges, squeezes, hops, draw);
   return made && { state: made.state, plan: { sections: plan, features: made.features } };
 }
@@ -3987,7 +4022,7 @@ function reworkCourse(c: V14Course, sections: SwingSection[], ledges: SwingLedge
  * own init at the start instant. Display timing only: the course is the seed's whatever builds it, and when.
  */
 export function prepareSwingCourse(seed: number, rev?: number): void {
-  if (rev === SWING_REV_REWORK || rev === SWING_REV_ASSAULT) swingGameFor(rev).init(seed);
+  if (rev === SWING_REV_DARK || rev === SWING_REV_REWORK || rev === SWING_REV_ASSAULT) swingGameFor(rev).init(seed);
 }
 
 /** The rope's body (swingRev 15's look-ahead kit below). */
@@ -4002,9 +4037,10 @@ export const swingBotKit = {
   attach: (b: Body, i: number, s: SwingState): void => attach(b, i, s.anchors[i]!),
   detach: (b: Body, s: SwingState): void => detach(b, s.anchors[b.rope]!),
   reel: (b: Body): void => startReel(b, SWING_REEL_UP),
+  // swingRev 16: a hook in the dark is not seen, so never a target (perception: the dark as the state shows it now).
   target: (s: SwingState, k: number, x: number, y: number): number => {
     const [lo, hi] = swingReworkRange(s, k);
-    return rangeTarget(s.anchors, lo, hi, x, y);
+    return rangeTarget(s.anchors, lo, hi, x, y, s.dark ? swingDarkFrom(s) : SWING_NO_DARK);
   },
   radius: RADIUS,
   reach: REACH,
@@ -4012,3 +4048,81 @@ export const swingBotKit = {
 
 /** swingRev 15: the swinging course. Band 3 like rev 11, 13 and 14; the score is swingScoreV15. */
 export const swingReworkGame: typeof swingGame = { ...swingTunecGame, init: (seed) => ({ ...bandInit(initV15(seed)), band: 3 }) };
+
+/* ================= The dark ledge runs (swingRev 16, 1 Nov 2026) ================= */
+
+/**
+ * swingRev 16 (docs/arcade-standard/swing.md, "swingRev 16"): Joe's notes on the swinging course. Every rule below is
+ * gated on the state's `dark` marker (rev-16 states also carry rev 15's `rework` and rev 14's `assault`); every
+ * earlier revision plays and scores exactly as before.
+ *
+ *  - The run is 90 s (SWING_V16_RUN_TICKS; every earlier revision the minute), and the course is longer to match:
+ *    SWING_V16_BLOCKS blocks with six ledge runs (SWING_V16_RUNS, three squeezes), built and proved exactly as rev
+ *    15's (the same builder on its own stream). The dragon still appears at the first stretch past three quarters of
+ *    the course's length, so it chases over the last quarter only.
+ *  - The ledge runs go dark: on the swinging stretch that ends on a run's first ledge, everything beyond that ledge
+ *    is dark (the sign that a ledge run is coming); on a ledge section, everything beyond its landing ledge; once the
+ *    run's last ledge is reached, everything beyond the next swinging stretch's first hook, until it is grabbed. Each
+ *    landing lights the next small part. A hook in the dark cannot be grabbed (swingDarkFrom, read by the step, the
+ *    renderer and the bots' look-ahead alike), so the only target is the platform ahead.
+ *  - Scoring is rev 15's: course 140 (the share of the course, a straight line), pars 30, gates, gems and stars 30.
+ */
+export const SWING_REV_DARK = 16;
+export const SWING_V16_RUN_TICKS = 90 * TICKS_PER_SECOND;
+export const SWING_V16_BLOCKS = 42;
+/** The ledge runs' sizes (sections), in course order; SWING_V16_SQUEEZE_RUNS carry a squeeze. */
+export const SWING_V16_RUNS = [3, 2, 2, 3, 2, 3] as const;
+export const SWING_V16_SQUEEZE_RUNS: readonly number[] = [0, 3, 5];
+export const SWING_V16_SQUEEZES = 3;
+/** Parts unchanged from rev 15 (140 + 30 + 30). */
+export const SWING_V16_CORE = SWING_V15_CORE;
+export const SWING_V16_BAND_CURVE = bandCurve([0, 1000], [0, SWING_V16_CORE]);
+/** No dark (every revision before 16, and the lit stretches of 16): past every anchor. */
+export const SWING_NO_DARK = 0x7fffffff;
+/** Past a lit first hook (a swinging stretch's after a ledge run), the dark starts this far on (its ring and a margin; the next hook is 140 px or more on). */
+export const SWING_V16_HOOK_LIGHT = 24 * FP;
+const V16_SHAPE: V15Shape = { blocks: SWING_V16_BLOCKS, runs: SWING_V16_RUNS, squeezeRuns: SWING_V16_SQUEEZE_RUNS, squeezes: SWING_V16_SQUEEZES, runFirst: 4, runEvery: 6, salt: 0x3c6ef372, failures: 60, cache: new Map(), plans: new Map() };
+
+/**
+ * Where the dark starts (x, 1/256 px; SWING_NO_DARK: nowhere), from the stretch in play (swingRev 16 only):
+ *  - a ledge section: the right edge of its landing ledge (and past each of its own hooks);
+ *  - a swinging stretch after a ledge run whose first hook is not yet grabbed: just past that hook;
+ *  - a swinging stretch that ends on a ledge run's first ledge: that ledge's right edge (and past its own hooks);
+ *  - any other stretch: no dark.
+ * An anchor at or past it is in the dark: not drawn and never grabbed.
+ */
+export function swingDarkFrom(s: Pick<SwingState, "dark" | "sections" | "sec" | "ledges" | "anchors" | "hangHook">): number {
+  if (!s.dark || !s.sections) return SWING_NO_DARK;
+  const total = s.sections.length;
+  const k = s.sec ?? 0;
+  if (k >= total) return SWING_NO_DARK;
+  const sec = s.sections[k]!;
+  const next = s.sections[k + 1];
+  const edge = () => {
+    const to = s.ledges![sec.to!]!;
+    let x = to.x + to.half;
+    for (let i = sec.hook0; i < sec.hook0 + sec.hooks; i++) x = Math.max(x, s.anchors[i]!.x + SWING_V16_HOOK_LIGHT);
+    return x;
+  };
+  if (sec.kind !== SWING_KIND_SWING) return edge();
+  if ((sec.from ?? -1) >= 0 && (s.hangHook ?? -1) < sec.hook0) return s.anchors[sec.hook0]!.x + SWING_V16_HOOK_LIGHT;
+  if ((sec.to ?? -1) >= 0 && next && next.kind !== SWING_KIND_SWING) return edge();
+  return SWING_NO_DARK;
+}
+
+/** Whether anchor i is lit (drawn, and grabbable as far as the dark goes; swingRev 16). */
+export function swingHookLit(s: Pick<SwingState, "dark" | "sections" | "sec" | "ledges" | "anchors" | "hangHook">, i: number): boolean {
+  return s.anchors[i]!.x < swingDarkFrom(s);
+}
+
+/** The witness of a seed's swingRev 16 course (building it if need be). */
+export function swingDarkPlan(seed: number): SwingReworkPlan {
+  return shapePlan(seed, V16_SHAPE);
+}
+
+function initV16(seed: number): SwingState {
+  return { ...initShape(seed, V16_SHAPE), dark: 1 };
+}
+
+/** swingRev 16: the dark ledge runs, 90 s. Band 3 like rev 15; the score is swingScoreV15. */
+export const swingDarkGame: typeof swingGame = { ...swingTunecGame, runTicks: SWING_V16_RUN_TICKS, init: (seed) => ({ ...bandInit(initV16(seed)), band: 3 }) };

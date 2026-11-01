@@ -1487,7 +1487,7 @@ const snipSummary: SummaryBuilder = (result) => {
 };
 
 const swingSummary: SummaryBuilder = (result) => {
-  // swingRev 15 (the swinging course): the share of the course, restarts, pars and pickups.
+  // swingRev 15 (the swinging course) and 16 (its dark ledge runs): the share of the course, restarts, pars and pickups.
   if (Number(result.extra?.["swingRev"] ?? 0) >= 15) {
     const x = (k: string) => Number(result.extra?.[k] ?? 0);
     return {

@@ -659,7 +659,7 @@ const BUILDERS: Record<string, Builder> = {
     };
   },
   swing: (r, s) => {
-    // swingRev 15 (the swinging course): the share of the course on the axis; the three parts add up to the stored score.
+    // swingRev 15 (the swinging course) and 16 (its dark ledge runs, 90 s): the share of the course on the axis; the three parts add up to the stored score.
     if (n(r, "swingRev") >= 15) {
       const done = n(r, "sections") >= n(r, "sectionTotal") && n(r, "sectionTotal") > 0;
       return {

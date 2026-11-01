@@ -1,5 +1,5 @@
 /**
- * Grappler's room proof (the arcade rule; swingRev 15 since 29 Oct 2026, the swinging course,
+ * Grappler's room proof (the arcade rule; swingRev 16 since 1 Nov 2026, the swinging course's dark ledge runs over 90 s, and swingRev 15 since 29 Oct 2026, the swinging course,
  * docs/arcade-standard/swing.md; swingRev 14's (the assault course) and 13's modules before it). A room deal is the
  * server's own generator (generateSwing: any seed, the course built from it) under a fixed seed; every seeded item a
  * state shows is listed by `schedule`: the stretches (kind, hooks, squeeze, par, ledges, span), the hooks, the ledges,
@@ -9,10 +9,10 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { generateSwing } from "../../src/lib/duel/arcade.server";
 import { withSeededRandom } from "../../src/lib/duel/random";
-import { swingGameFor, SWING_REV_REWORK, SWING_V15_BLOCKS, SWING_V15_GATES, SWING_V15_GEMS, SWING_V15_RUNS, SWING_V15_SQUEEZES, SWING_V15_STARS, type SwingState } from "../../src/lib/arcade/swing";
+import { swingGameFor, SWING_REV_DARK, SWING_V16_BLOCKS, SWING_V15_GATES, SWING_V15_GEMS, SWING_V16_RUNS, SWING_V16_SQUEEZES, SWING_V15_STARS, type SwingState } from "../../src/lib/arcade/swing";
 
-/** Stretches a swingRev 15 course holds: a swinging stretch a block, the ledge runs' sections. */
-const STRETCHES = SWING_V15_BLOCKS - SWING_V15_RUNS.length + SWING_V15_RUNS.reduce((a, b) => a + b, 0);
+/** Stretches a swingRev 16 course holds: a swinging stretch a block, the ledge runs' sections. */
+const STRETCHES = SWING_V16_BLOCKS - SWING_V16_RUNS.length + SWING_V16_RUNS.reduce((a, b) => a + b, 0);
 import { bot, randomBot } from "../arcade-skill-bands/bots/swing";
 import { Human } from "../arcade-skill-bands/human";
 import type { RoomDeal, RoomStyle, X200Room } from "./room";
@@ -46,17 +46,17 @@ function whole<T>(arr: readonly T[] | undefined, name: string, read: (x: T) => n
 
 export const x200Room: X200Room = {
   type: "swing",
-  rev: SWING_REV_REWORK,
+  rev: SWING_REV_DARK,
   deals: 6,
   deal(n: number): RoomDeal {
     const puzzle = withSeededRandom(0x5917 + n * 7919, () => generateSwing());
-    if (puzzle.swingRev !== SWING_REV_REWORK) throw new Error(`room deal ${n}: swingRev ${puzzle.swingRev}, not ${SWING_REV_REWORK}`);
+    if (puzzle.swingRev !== SWING_REV_DARK) throw new Error(`room deal ${n}: swingRev ${puzzle.swingRev}, not ${SWING_REV_DARK}`);
     return { seed: puzzle.seed, game: swingGameFor(puzzle.swingRev) };
   },
   play(deal: RoomDeal, style: RoomStyle) {
     if (style === "idle") return { events: [] };
     const human = new Human("swing", deal.seed, style === "random" ? "weak" : style);
-    const ctx = { game: deal.game, seed: deal.seed, rev: SWING_REV_REWORK, human };
+    const ctx = { game: deal.game, seed: deal.seed, rev: SWING_REV_DARK, human };
     return style === "random" ? randomBot(ctx) : bot(ctx);
   },
   schedule(state: SwingState) {
@@ -80,7 +80,7 @@ export const x200Room: X200Room = {
       sections: (state.sections ?? []).length,
       sectionTotal: STRETCHES,
       squeezes: (state.squeezes ?? []).length,
-      squeezeTotal: SWING_V15_SQUEEZES,
+      squeezeTotal: SWING_V16_SQUEEZES,
       stars: (state.starSpots ?? []).length,
       starTotal: SWING_V15_STARS,
       gems: (state.gems ?? []).length,

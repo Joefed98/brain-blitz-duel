@@ -99,3 +99,96 @@ the room module (`scripts/x200/swing.ts`) deals rev 15.
 - Screenshots: `screenshots/grappler-rework-oct-2026/` (`bun scripts/shots/swing-rework-shots.ts`): a swinging
   stretch, a ledge stretch and a squeeze at 414×896 and 375×667 (renderer frames in the play-screen box; the header
   is a stand-in).
+
+# swingRev 16: the dark ledge runs, 90 s (1 Nov 2026)
+
+Joe's notes on the swinging course, on a new stamp, **swingRev 16** (`SWING_REV_DARK`, one above swingRev 15). Rooms,
+practice, the daily and challenges deal it; swingRev 14 and 15 (and every earlier revision) play and score exactly as
+before (swing-dark-check replays 24 runs recorded on unmodified main ae1efbe, `scripts/fixtures/swing-dark-legacy.json`,
+12 each of swingRev 14 and 15). Every rule is gated on the state's `dark` marker.
+
+## What changed
+
+- **90 s** (`SWING_V16_RUN_TICKS`, 5,400 ticks; the round clock `SWING_TIME_MS` 93 s). Older swingRev rounds still end
+  at their own 60 s (the sim ends them; their clock shows 30 s unused, as Gemstone's and Tempo's did).
+- **A longer course to fit the 90 s**: 42 blocks (`SWING_V16_BLOCKS`, was 27) with six ledge runs (`SWING_V16_RUNS`
+  3, 2, 2, 3, 2, 3; was four) and three squeezes (was two), built and proved by rev 15's builder on its own stream
+  (`V16_SHAPE`: the same hooks, ledges, proofs, features and pars, about 83 % of the length swinging, 51 stretches).
+  Same gates, gems and stars (5 each). Decision: the course was lengthened rather than kept, so that, as on rev 15,
+  only the best players reach the end and distance still separates the top levels (the same 27 blocks over 90 s would
+  have every great player finishing; the length was fitted with the skill bands, below).
+- **The dragon** still appears at the first stretch past three quarters of the course's length (`chaseFrom`, 750 ‰), so
+  on the longer course it still chases only over the last quarter (rev 14's pace).
+- **The ledge runs go dark** (`swingDarkFrom`, `swingHookLit`):
+  - on the swinging stretch that ends on a ledge run's first ledge, everything past that ledge is dark: the sign a
+    ledge run has started;
+  - on a ledge section, everything past its landing ledge;
+  - on the run's last ledge, everything past the next swinging stretch's first hook, until that hook is grabbed;
+  - landing lights the next small part (up to the next ledge, or the first hook of the swinging part after the run),
+    the newly lit cave brightening over a third of a second (display only).
+  A hook in the dark **cannot be grabbed** (the step's grab rule skips anchors at or past `swingDarkFrom`), and the
+  renderer draws no hook there and a near-black veil over everything past it, from the same function, so a hook is
+  drawn exactly when it can be grabbed. The bots' look-ahead (`swingBotKit.target`) reads the same dark: they never aim
+  at a hook they cannot see.
+
+## Scoring (unchanged parts)
+
+| Part | Points | How |
+|---|---|---|
+| Course (core) | 140 | 140 × the share of the course's length behind the hero (straight line, `SWING_V16_BAND_CURVE`, per mille). |
+| Pars | 30 | As rev 15. |
+| Gates, gems, stars | 30 | 2 each for the 5 of each kind. |
+| **Total** | **200** | No input 0; any input at least 1. |
+
+The core's maximum is fixed (the whole course), so it is full at the course's end, not at a measured median; the
+course length is what is fitted to 90 s. Measured near-perfect median: see the table below (course ‰ column).
+
+## Skill bands (room seeds 0–11, `bun scripts/swing-rework-bands.ts --rev=16`)
+
+Before (swingRev 15, 60 s, 27 blocks) and after (swingRev 16, 90 s, 42 blocks, the dark), the same bots
+(`scripts/arcade-skill-bands/bots/swingRework.ts`; the dark is seen through `swingBotKit.target`), room seeds 0–11,
+every run through the server's replay:
+
+| Level | rev 15 median (range) | rev 16 median (range) | rev 16 core | rev 16 course ‰ |
+|---|---|---|---|---|
+| Weak | 54 (28–59) | 50 (23–61) | 45 | 322 |
+| Average | 76 (63–88) | 66 (61–77) | 62 | 448 |
+| Good | 91 (80–103) | 90 (82–100) | 79 | 571 |
+| Great | 127 (116–141) | 132 (114–141) | 105 | 750 |
+| Near-perfect | 170 (152–175) | 169 (153–182) | 122 | 878 |
+| Elite | 179 (169–192) | 183 (159–194) | 134 | 958 |
+| Flawless | 186 (162–192) | 184 (167–195) | 137 | 985 |
+| Random | 7 (3–14) | 8 (1–13) | 7 | 56 |
+
+On every course flawless > great > good (12 of 12, both revisions). The six stored courses
+(`scripts/fixtures/swing-dark-runs.json`, room seeds 0–5, the ones swing-dark-check holds): weak 55 · average 66 ·
+good 88 · great 132 · near 169 · elite 182 · flawless 188 · random 6, every gap at the top 6 or more.
+
+**Fit to 90 s:** near-perfect reaches a median 878 ‰ of the course (rev 15: about 886 ‰, core 124), flawless 985 ‰
+(rev 15: 986 ‰), so the 42-block course sits where rev 15's 27 blocks sat in the minute. Tried and dropped: 40 blocks
+(elite median 994 ‰, elite 187 = flawless 187) and 45 blocks (flawless 913 ‰, median 171 against elite 169).
+
+**For Joe:** over all twelve courses the elite and flawless medians are close (183 and 184): the flawless bot banks
+fewer gates, gems and stars than the elite one (20 against 22) and its pick barely moves with its pickup appetite
+(tried 0.3–1.0: the same runs), so at the top the gap comes from distance and pars alone. The six stored courses keep a
+clear gap (182 → 188). A wider gap would need a look at the flawless bot, or a game change; neither was in scope.
+
+## Checks
+
+swing-dark-check (old rounds; dealing; the course's structure; each course's own planned route played through the real
+sim, the dark included, clearing every stretch 30+ ticks under par with every pickup on its line; the dark's rules and a
+press-by-press probe along the witnesses that a hook is grabbable exactly when it is drawn lit; the 90 s clock; the
+parts and 200; the stored skill-band runs `scripts/fixtures/swing-dark-runs.json` and their medians; the texts; build
+time). swing-rework-check now deals swingRev 15 through `pinSwingPreDark`. The room module (`scripts/x200/swing.ts`),
+the arcade-standard entry, the self-replay list (`swing/dark`, appended) and the replay fixture (one rev-16 run,
+appended) follow rev 16.
+
+## Follow-ups
+
+- The intro demo needs recording on swingRev 16 (until then the intro shows its still).
+- Screenshots: `screenshots/arcade-tuning-nov-2026/grappler-dark-*.png` (`bun scripts/shots/swing-dark-shots.ts`): a
+  ledge run coming up, a ledge section before and after its landing, the run's last ledge, at 414×896, and the computer
+  layout (1366×768, `tall`). On a ledge section the camera frames the section with its landing ledge near the right
+  edge, so the dark shows there as a strip at the edge; it reads most clearly on the stretch before a run and on the
+  run's last ledge.
+- Build time: about 1.5× rev 15's (about 130–230 ms a course here unthrottled, so roughly 0.4–0.8 s at a 4× CPU throttle), still built while the intro is up (`prepareSwingCourse`); async rounds (the daily, challenges) build at the round's start, as on rev 15.

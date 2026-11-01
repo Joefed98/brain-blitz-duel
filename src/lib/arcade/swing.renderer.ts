@@ -45,6 +45,11 @@ import {
   SWING_REV_EXPAND,
   SWING_REV_ASSAULT,
   SWING_REV_REWORK,
+  SWING_REV_DARK,
+  SWING_NO_DARK,
+  SWING_V16_HOOK_LIGHT,
+  swingDarkFrom,
+  swingHookLit,
   swingAssaultClock,
   swingAssaultCounts,
   swingAssaultLedges,
@@ -629,6 +634,10 @@ function drawSwingArtWorld(ctx: CanvasRenderingContext2D, state: SwingState, siz
     drawCoin(ctx, x, wy / FP, SWING_STAR_R / FP, still ? 0 : state.tick + i * 17, lite);
   });
 
+  // swingRev 16: the dark beyond the next ledge of a ledge run (or the first hook after one), over everything drawn so
+  // far; the hooks in it are not drawn at all (swingHookLit, the sim's own grab rule), so a hook shows exactly when it can be grabbed.
+  if (state.dark) drawDark(ctx, state, sx, SWING_WORLD_W, SWING_WORLD_H, still);
+
   // Anchors: iron rings bolted in the rock.
   const starAt = new Set(state.starAnchors ?? []);
   const taken = new Set(state.starsTaken ?? []);
@@ -636,7 +645,7 @@ function drawSwingArtWorld(ctx: CanvasRenderingContext2D, state: SwingState, siz
   const hooksShown = state.assault && !state.rework ? (() => { const sec = state.sections![Math.min(state.sec ?? 0, state.sections!.length - 1)]!; return sec.hook0 + sec.hooks; })() : Infinity;
   state.anchors.forEach((a, i) => {
     const x = sx(a.x);
-    if (x < -20 || x > SWING_WORLD_W + 20 || i >= hooksShown) return;
+    if (x < -20 || x > SWING_WORLD_W + 20 || i >= hooksShown || (state.dark && !swingHookLit(state, i))) return;
     // swingRev 4: a gold star around each star anchor until it is taken.
     if (starAt.has(i) && !taken.has(i)) drawCoin(ctx, x, a.y / FP, 11, still ? 0 : state.tick, lite);
     const flash = i === state.rope && state.tick - state.grabTick < 12;
@@ -999,7 +1008,9 @@ const tallArtGameV9Strict = { ...swingGameFor(SWING_REV_STRICT), draw: drawSwing
 const expandArtGameV13 = { ...swingGameFor(SWING_REV_EXPAND), draw: drawSwingArt };
 const assaultArtGameV14 = { ...swingGameFor(SWING_REV_ASSAULT), draw: drawSwingArt };
 const reworkArtGameV15 = { ...swingGameFor(SWING_REV_REWORK), draw: drawSwingArt };
+const darkArtGameV16 = { ...swingGameFor(SWING_REV_DARK), draw: drawSwingArt };
 export function swingArtGameFor(rev?: number): typeof swingArtGame {
+  if (rev === SWING_REV_DARK) return darkArtGameV16;
   if (rev === SWING_REV_REWORK) return reworkArtGameV15;
   if (rev === SWING_REV_ASSAULT) return assaultArtGameV14;
   if (rev === SWING_REV_EXPAND) return expandArtGameV13;
@@ -1401,4 +1412,70 @@ function bitsOf(n: number): number {
   let c = 0;
   for (let b = n; b; b &= b - 1) c += 1;
   return c;
+}
+
+/* ============================ swingRev 16 ============================ */
+
+/** The dark's alpha (the cave beyond it shows only faintly) and the soft edge it fades in over (px). */
+const DARK_ALPHA = 0.9;
+const DARK_EDGE = 22;
+/** A landing lights the next part: the newly lit cave brightens over this many ticks (still with reduced motion). */
+const LIGHT_TICKS = 20;
+
+/**
+ * swingRev 16's dark (presentation only, on the sim's swingDarkFrom): a near-black veil from where the dark starts to
+ * the world's right edge, faded in over its first few pixels, with a faint gold line at its edge so the lit part reads
+ * as a lantern-lit stretch. When a landing (or the first hook after a ledge run) lights the next part, the newly lit
+ * cave (from where the dark started before to where it starts now) brightens over LIGHT_TICKS. The hooks in the dark
+ * are skipped by the anchor pass (swingHookLit), so none shows behind the veil.
+ */
+function drawDark(ctx: CanvasRenderingContext2D, state: SwingState, sx: (x: number) => number, width: number, height: number, still: boolean): void {
+  const from = swingDarkFrom(state);
+  const fill = (x0: number, alpha: number, soft: boolean) => {
+    if (x0 >= width || alpha <= 0) return;
+    if (soft) {
+      const g = ctx.createLinearGradient(x0, 0, x0 + DARK_EDGE, 0);
+      g.addColorStop(0, "rgba(4,3,6,0)");
+      g.addColorStop(1, `rgba(4,3,6,${alpha})`);
+      ctx.fillStyle = g;
+      ctx.fillRect(Math.max(0, x0), 0, Math.min(width, x0 + DARK_EDGE) - Math.max(0, x0), height);
+      if (x0 + DARK_EDGE < width) {
+        ctx.fillStyle = `rgba(4,3,6,${alpha})`;
+        ctx.fillRect(Math.max(0, x0 + DARK_EDGE), 0, width - Math.max(0, x0 + DARK_EDGE), height);
+      }
+    } else {
+      ctx.fillStyle = `rgba(4,3,6,${alpha})`;
+      ctx.fillRect(Math.max(0, x0), 0, width - Math.max(0, x0), height);
+    }
+  };
+  // The part just lit: where the dark started before this stretch (its start ledge's edge, or past the first hook).
+  const k = state.sec ?? 0;
+  const sec = state.sections?.[k];
+  const age = still ? LIGHT_TICKS : state.tick - Math.max(state.secStart ?? 0, from === SWING_NO_DARK ? state.grabTick : 0);
+  if (sec && age >= 0 && age < LIGHT_TICKS) {
+    let before = SWING_NO_DARK;
+    if (from === SWING_NO_DARK && (sec.from ?? -1) >= 0 && (state.hangHook ?? -1) === sec.hook0) before = state.anchors[sec.hook0]!.x + SWING_V16_HOOK_LIGHT;
+    else if ((sec.from ?? -1) >= 0 && from !== SWING_NO_DARK) {
+      const l = state.ledges![sec.from!]!;
+      before = l.x + l.half;
+    }
+    if (before < from) {
+      const fade = DARK_ALPHA * (1 - age / LIGHT_TICKS);
+      const x0 = sx(before);
+      const x1 = from === SWING_NO_DARK ? width : sx(from);
+      if (x1 > 0 && x0 < width) {
+        ctx.fillStyle = `rgba(4,3,6,${fade})`;
+        ctx.fillRect(Math.max(0, x0), 0, Math.min(width, x1) - Math.max(0, x0), height);
+      }
+    }
+  }
+  if (from === SWING_NO_DARK) return;
+  const x = sx(from);
+  if (x >= width) return;
+  fill(x, DARK_ALPHA, true);
+  // The lit stretch's edge: a faint warm line where the dark begins.
+  if (x > 0) {
+    ctx.fillStyle = "rgba(255,200,120,0.18)";
+    ctx.fillRect(x, 0, 1.5, height);
+  }
 }
