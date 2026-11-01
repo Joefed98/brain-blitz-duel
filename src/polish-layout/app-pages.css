@@ -583,10 +583,8 @@ a.ap-row:active {
   padding: 0 4px;
   font-size: 13.5px;
 }
-/* The Arcade side's chips: three across (All, Retro, Sports; Cards & Board over two, Action), never scrolling. */
-.ap-chip-grid[data-cols="3"] {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-}
+/* The Arcade side's chips (Strategy split from Action, 1 Nov 2026): the same 4-column grid as Puzzles', All
+   games, Retro, Sports, Action over Cards & Board and Strategy at two columns each, never scrolling. */
 .ap-chip-grid > .ap-chip[data-span="2"] {
   grid-column: span 2;
 }
@@ -783,6 +781,7 @@ a.ap-row:active {
 [data-dot="sports"] { --ap-cat-dot: var(--group-sports); }
 [data-dot="cards"] { --ap-cat-dot: var(--group-cards); }
 [data-dot="action"] { --ap-cat-dot: #F08A6E; }
+[data-dot="strategy"] { --ap-cat-dot: var(--group-strategy); }
 
 /* The Play tab's glossy 44 px icon tiles (TabIcons.tsx). */
 .ap-tile44 {

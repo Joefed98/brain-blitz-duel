@@ -333,7 +333,7 @@ export const createRoomFn = createServerFn({ method: "POST" })
     if (!(await withinRateLimit(client, context.userId, CREATE_ROOM_LIMIT)))
       throw new Error("You've made a lot of rooms. Try again later.");
     // Remember the host's room settings from their last room (roomSettings.server.ts: a room from before
-    // settings is read as settings, Arcade as its four groups; a first room gets Mixed, 6 rounds).
+    // settings is read as settings, Arcade as its five groups; a first room gets Mixed, 6 rounds).
     const { data: previous } = await client
       .from("duels")
       .select("selected_categories")
