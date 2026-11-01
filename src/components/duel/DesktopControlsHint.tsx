@@ -6,15 +6,30 @@ import type { PuzzleType } from "@/lib/duel/types";
 
 /**
  * The desktop controls hint (31 Oct 2026, presentation only; docs/desktop-layout.md): on a live round at
- * the desktop layout with a mouse or trackpad (useDesktop), a small panel at the bottom left of the
- * play screen names the game's keys (turned for a rotated game, desktopKeys.ts screenKeys) and how the
+ * the desktop layout with a mouse or trackpad (useDesktop), a small panel in the free space left of the
+ * play column (never over the game or its HUD; not shown where that space is under 150 px) names the game's keys (turned for a rotated game, desktopKeys.ts screenKeys) and how the
  * mouse plays; it fades after 8 s and never takes a click. Never on a phone or tablet.
  */
 const SHOW_MS = 8000;
+/** The narrowest free space beside the play column the hint is shown in (px); narrower, no hint. */
+const MIN_ROOM = 150;
 
 export function DesktopControlsHint({ type }: { type: PuzzleType }) {
   const desktop = useDesktop();
   const [shown, setShown] = useState(true);
+  // Only in the free space left of the play column, never over the game or its HUD: its width, or nothing.
+  const [room, setRoom] = useState(0);
+  useEffect(() => {
+    if (!desktop) return;
+    const measure = () => {
+      const column = document.querySelector("[data-shell-column='game']")?.getBoundingClientRect();
+      const rail = document.querySelector("[data-app-rail]")?.getBoundingClientRect();
+      setRoom(column ? Math.floor(column.left - (rail?.right ?? 0) - 32) : 0);
+    };
+    measure();
+    window.addEventListener("resize", measure);
+    return () => window.removeEventListener("resize", measure);
+  }, [desktop, type]);
   useEffect(() => {
     if (!desktop) return;
     setShown(true);

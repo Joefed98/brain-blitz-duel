@@ -650,8 +650,9 @@
   }
 }
 
-/* The controls hint on a live round (DesktopControlsHint; desktop with a mouse only): top left under the
-   header, clear of every game's controls at the bottom; it fades after 8 s and never takes a click. */
+/* The controls hint on a live round (DesktopControlsHint; desktop with a mouse only): in the free space left
+   of the play column, under the header (never over the game, its HUD or controls); it fades after 8 s and
+   never takes a click. */
 .dk-controls-hint {
   position: fixed;
   left: calc(var(--dk-rail-compact) + 16px);

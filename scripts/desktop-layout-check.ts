@@ -174,6 +174,7 @@ function probe() {
       return tops.filter((t) => t === tops[0]).length;
     })(),
     hint: !!document.querySelector("[data-controls-hint]"),
+    hintBox: box(document.querySelector("[data-controls-hint]")),
     arena: arena ? { ...box(arena)!, turned, rotors: document.querySelectorAll("[data-arena-rotor]").length } : null,
     // Text inside a rotor would read sideways: none may be there (Cue Ball's HUD is on its upright strip).
     rotorText: [...document.querySelectorAll("[data-arena-rotor] *")].filter((el) => [...el.childNodes].some((n) => n.nodeType === Node.TEXT_NODE && (n.textContent ?? "").trim())).map((el) => (el.textContent ?? "").trim().slice(0, 20)),
@@ -278,6 +279,7 @@ function judgeGame(m: Probe, type: PuzzleType, problems: string[]) {
       if (Math.abs(c.w - c.cssW * ratio) > 2) problems.push(`canvas ${c.w}px wide for ${c.cssW}px CSS at pixel ratio ${ratio}`);
     }
   } else if (want === "rotate") problems.push("no world on a rotate game");
+  if (m.hintBox && m.column && m.hintBox.r > m.column.x + 0.5) problems.push(`the controls hint (${m.hintBox.x.toFixed(0)}..${m.hintBox.r.toFixed(0)}) runs over the play column (from ${m.column.x.toFixed(0)})`);
   if (m.rotorText.length) problems.push(`text inside the turned world (drawn rotated): ${m.rotorText.slice(0, 3).join(", ")}`);
   if (want === "rotate" && (!m.hudStrip || m.hudStrip.inRotor || m.hudStrip.h < 20)) problems.push("a rotate game without its upright HUD strip outside the turned world");
   if (want !== "rotate" && m.hudStrip) problems.push("an upright HUD strip on a game that is not turned");
