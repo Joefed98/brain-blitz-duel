@@ -5,7 +5,7 @@ import { CROSS_REV_STD } from "@/lib/arcade/cross";
 import { INK_REV_STD } from "@/lib/arcade/inkBridge";
 import { SNAKE_REV_TARGET, SNAKE_REV_12 } from "@/lib/arcade/snake";
 import { BUB_REV_STD } from "@/lib/arcade/bubble";
-import { MATCHUP_REV_STD } from "@/lib/arcade/matchup";
+import { MATCHUP_REV_SIX } from "@/lib/arcade/matchup";
 import { minesBoard, minesSolve, MINES_REV_STD } from "@/lib/arcade/minesweeper";
 import { mahjongBuildClears, MAHJONG_REV_DEALT } from "@/lib/arcade/mahjong";
 import { SNIP_REV_TARGET, SNIP_REV_EXPAND } from "@/lib/arcade/snip";
@@ -135,8 +135,9 @@ export function generateMatchup(): MatchupPuzzleData {
   // matchupRev 10 (27 Oct 2026, phone-test notes): matchupRev 9's taller board with goals, ice and treasure, over 90 s,
   // with swaps into and out of ice that make a line, and the ice laid once. matchupRev 11 (the arcade scoring standard,
   // docs/arcade-standard/matchup.md): four treasures that may swap with a gem that then makes a line, four goal
-  // levels, and the score as fixed parts to 200.
-  return { type: "matchup", seed: arcadeSeed(), matchupRev: MATCHUP_REV_STD };
+  // levels, and the score as fixed parts to 200. matchupRev 12 (Nov 2026): six goals shown at once and six treasures,
+  // the parts re-weighted (core 108, treasure 36, goals 36, ice 10, big lines 10).
+  return { type: "matchup", seed: arcadeSeed(), matchupRev: MATCHUP_REV_SIX };
 }
 
 export function generateSnake(): SnakePuzzleData {

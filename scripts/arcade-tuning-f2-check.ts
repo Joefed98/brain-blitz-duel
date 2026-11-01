@@ -160,7 +160,8 @@ section("New rounds carry the Tuning F stamps; runs on them replay unchanged");
   // Gemstone's phone-test notes (27 Oct 2026) moved it on to matchupRev 10; gemstone-rev10-check covers it.
   // sliceRev 10 (27 Oct 2026, Joe's phone notes) is sliceRev 9 with bigger onions and golden fruit; expansion-e5-check covers it.
   // The arcade scoring standard (29 Oct 2026) moved Coral Pop on to bubbleRev 11; bubble-standard-check covers it.
-  const movedOn: Record<string, number> = { slice: SLICE_REV_BIG, bubble: BUB_REV_TORPEDO + 7, swing: SWING_REV_SPREAD + 7, matchup: 11, snip: SNIP_REV_EXPAND, cross: CROSS_REV_STD };
+  // Six goals and six treasures (Nov 2026) moved Gemstone on from matchupRev 11 to 12; gemstone-rev12-check covers it.
+  const movedOn: Record<string, number> = { slice: SLICE_REV_BIG, bubble: BUB_REV_TORPEDO + 7, swing: SWING_REV_SPREAD + 7, matchup: 12, snip: SNIP_REV_EXPAND, cross: CROSS_REV_STD };
   for (const [type, field, got, rev] of stamps) {
     if (!want(type)) continue;
     ok(got === (movedOn[type] ?? rev), `${type}: new rounds stamped ${movedOn[type] ?? rev} (got ${got})`);

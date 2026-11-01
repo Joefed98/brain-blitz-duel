@@ -34,8 +34,8 @@ import {
   matchupWorldHFor,
   MATCHUP_REV_GOALS,
   MATCHUP_REV_ICE,
-  MATCHUP_REV_STD,
-  MATCHUP_V11_BAND_CURVE,
+  MATCHUP_REV_SIX,
+  MATCHUP_V12_BAND_CURVE,
   MATCHUP_RUN_TICKS,
   MATCHUP_SIZE,
   MATCHUP_TREASURE,
@@ -60,9 +60,10 @@ const iceCount = (s: MatchupState) => (s.ice ?? []).reduce((n, v) => n + (v ? 1 
 
 /* 1. Stamps */
 section("Rooms deal matchupRev 10's successor; older revisions keep 60 s");
-// The arcade scoring standard (matchupRev 11, gemstone-standard-check) moved rooms on from matchupRev 10, which replays here as before.
-for (let k = 0; k < 5; k++) ok((generatePuzzle("matchup") as any).matchupRev === MATCHUP_REV_STD, "rooms deal matchupRev 11 (matchupRev 10's successor)");
-ok(LIVE_BANDS.matchup.rev === MATCHUP_REV_STD && LIVE_BANDS.matchup.curve === MATCHUP_V11_BAND_CURVE, "the help reads matchupRev 11's curve (matchupRev 10's successor)");
+// The arcade scoring standard (matchupRev 11, gemstone-standard-check) moved rooms on from matchupRev 10, which replays here as before;
+// matchupRev 12 (six goals and six treasures, gemstone-rev12-check) then moved them on again.
+for (let k = 0; k < 5; k++) ok((generatePuzzle("matchup") as any).matchupRev === MATCHUP_REV_SIX, "rooms deal matchupRev 12 (a successor of matchupRev 10)");
+ok(LIVE_BANDS.matchup.rev === MATCHUP_REV_SIX && LIVE_BANDS.matchup.curve === MATCHUP_V12_BAND_CURVE, "the help reads matchupRev 12's curve (a successor of matchupRev 10)");
 ok(MATCHUP_V10_BAND_CURVE.points[MATCHUP_V10_BAND_CURVE.points.length - 1] === 150, "matchupRev 10's own curve is unchanged (150 at its top)");
 for (const rev of [undefined, 2, 3, 4, 5, 6, 7, 8, 9]) {
   ok(matchupGameFor(rev).runTicks === MATCHUP_RUN_TICKS && MATCHUP_RUN_TICKS === 3600, `matchupRev ${rev ?? "none"}: 60 s`);
@@ -72,7 +73,7 @@ for (const rev of [undefined, 2, 3, 4, 5, 6, 7, 8, 9]) {
 ok(matchupWorldHFor(MATCHUP_REV_ICE) === MATCHUP_V9_WORLD_H && matchupRowsFor(MATCHUP_REV_ICE) === MATCHUP_V9_ROWS, "the 7 × 10 board in the 390 × 720 world");
 {
   const demo = readFileSync("src/lib/duel/introDemo.functions.ts", "utf8");
-  ok(/matchupRev !== MATCHUP_REV_STD\) return null/.test(demo), "Gemstone's demo stays stopped until recorded on matchupRev 11 (matchupRev 10's successor)");
+  ok(/matchupRev !== MATCHUP_REV_SIX\) return null/.test(demo), "Gemstone's demo stays stopped until recorded on matchupRev 12 (a successor of matchupRev 10)");
 }
 
 /* 2. 90 s */

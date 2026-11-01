@@ -19,7 +19,7 @@ import { SNAKE_REV_12 } from "@/lib/arcade/snake";
 import { SLICE_REV_BIG, SLICE_REV_STANDARD, SLICE_REV_TALL } from "@/lib/arcade/slice";
 import { BINTOSS_REV_STD } from "@/lib/arcade/binToss";
 import { BUB_REV_STD } from "@/lib/arcade/bubble";
-import { MATCHUP_REV_STD } from "@/lib/arcade/matchup";
+import { MATCHUP_REV_SIX } from "@/lib/arcade/matchup";
 import { TEN_DROP_DEPTH_REV } from "@/lib/arcade/tenDrop";
 import { SKYLINE_REV_STD } from "@/lib/arcade/skyline";
 import { pinIsExpanded } from "@/lib/arcade/pinball";
@@ -199,8 +199,9 @@ export const getIntroDemoFn = createServerFn({ method: "GET" })
     if (data.type === "balltrack" && demo?.puzzle.type === "balltrack" && !btIsV7Play(demo.puzzle.btRev)) return null;
     // Gemstone's matchupRev 10 (27 Oct 2026: 90 s, swaps into and out of ice, ice laid once) plays differently again, so
     // only a demo recorded on matchupRev 10 plays; until one is, the intro shows its still. matchupRev 11 (the arcade scoring
-    // standard: four treasures that swap, four goal levels) moves it on again: only a demo recorded on matchupRev 11 plays.
-    if (data.type === "matchup" && demo?.puzzle.type === "matchup" && demo.puzzle.matchupRev !== MATCHUP_REV_STD) return null;
+    // standard: four treasures that swap, four goal levels) moves it on again, and matchupRev 12 (six goals shown at once,
+    // six treasures) again: only a demo recorded on matchupRev 12 plays.
+    if (data.type === "matchup" && demo?.puzzle.type === "matchup" && demo.puzzle.matchupRev !== MATCHUP_REV_SIX) return null;
     // The 200-point expansion (26 Oct 2026, docs/expansions/x200-snip.md): Scrumper's snipRev 11 tall courses with several
     // fruits and a vertical camera. An older demo shows the old one-apple levels, so the intro shows its still until a demo
     // is recorded on snipRev 11.
