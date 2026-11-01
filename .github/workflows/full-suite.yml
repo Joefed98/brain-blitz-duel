@@ -1,0 +1,243 @@
+# Full suite: every check that starts a browser (headless Chromium through Playwright), in the play* shards of
+# .github/ci/shards.ts (CI cost cut, 1 Nov 2026). The fast checks run on every push in checks.yml; these run only
+#  - when a PR gets the `ready-to-merge` label, and again on each new push while it still has the label;
+#  - when a PR leaves draft (ready for review);
+#  - by hand (Actions → Full suite → Run workflow);
+#  - weekly on main (Sunday 22:41 UTC), when main has changed in the past week.
+# "full-suite-passed" succeeds only if every browser shard ran and passed (skipped never counts). The merge rule
+# (CLAUDE.md "Checks"): a PR merges only with Checks green and full-suite-passed green on its latest commit.
+name: Full suite
+
+on:
+  pull_request:
+    types: [labeled, synchronize, reopened, ready_for_review]
+    paths:
+      - "**"
+      - "!docs/**"
+      - "!screenshots/**"
+      - "!**/*.md"
+      - "!.lovable/**"
+      - "docs/beta-sql.md"
+      - "docs/sound-cues/**"
+  schedule:
+    # Sunday 22:41 UTC weekly, on the default branch (main).
+    - cron: "41 22 * * 0"
+  workflow_dispatch:
+    inputs:
+      full:
+        description: Full depth for the slow checks (CHECKS_FULL=1)
+        type: boolean
+        default: false
+      record_arcade_baseline:
+        description: >-
+          Only record arcade-play-check's frame-time baseline on this runner (uploaded
+          as an artifact; commit it as .github/ci/arcade-play-baseline.json)
+        type: boolean
+        default: false
+
+# No workflow-level concurrency: an unrelated label event must never cancel a real run. The shard and summary jobs
+# carry their own groups (per PR and shard), so a new push while labelled stops the older run's jobs.
+
+permissions:
+  contents: read
+
+env:
+  BUN_VERSION: "1.4.2"
+
+jobs:
+  # Weekly only: run when main had commits in the past week (plus an hour; an unchanged main was already checked).
+  weekly:
+    if: github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    outputs:
+      changed: ${{ steps.c.outputs.changed }}
+    steps:
+      - id: c
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          since=$(date -u -d '169 hours ago' +%Y-%m-%dT%H:%M:%SZ)
+          n=$(gh api "repos/${{ github.repository }}/commits?sha=${{ github.event.repository.default_branch }}&since=$since&per_page=1" --jq 'length')
+          echo "commits to main since $since: $n"
+          if [ "$n" -gt 0 ]; then echo "changed=true" >> "$GITHUB_OUTPUT"; else echo "changed=false" >> "$GITHUB_OUTPUT"; fi
+
+  shards:
+    name: full (${{ matrix.shard }})
+    needs: [weekly]
+    # Ready to merge: the label just added, leaving draft, a new push while labelled; or by hand; or weekly with a
+    # changed main. Every other pull_request event (another label, a push without the label) runs nothing.
+    if: >-
+      ${{ !cancelled() && !inputs.record_arcade_baseline && (
+        github.event_name == 'workflow_dispatch' ||
+        (github.event_name == 'schedule' && needs.weekly.outputs.changed == 'true') ||
+        (github.event_name == 'pull_request' && (
+          (github.event.action == 'labeled' && github.event.label.name == 'ready-to-merge') ||
+          github.event.action == 'ready_for_review' ||
+          ((github.event.action == 'synchronize' || github.event.action == 'reopened') &&
+            contains(github.event.pull_request.labels.*.name, 'ready-to-merge'))
+        ))
+      ) }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    concurrency:
+      group: full-${{ github.event.pull_request.number || github.ref }}-${{ matrix.shard }}
+      cancel-in-progress: true
+    strategy:
+      fail-fast: false
+      matrix:
+        # Keys must be the browser (play*) shards of .github/ci/shards.ts (ci-shards-check compares them).
+        shard: [play1, play2, play3, play4, play5, play6, play7, play8, play9, play10, play11, play12, play13, play14, play15, play16, play17, play18, play19, play20, play21]
+    env:
+      CHECKS_FULL: ${{ inputs.full && '1' || '' }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+
+      - uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: bun-${{ runner.os }}-${{ env.BUN_VERSION }}-${{ hashFiles('bun.lock') }}
+          restore-keys: bun-${{ runner.os }}-${{ env.BUN_VERSION }}-
+
+      # bun.lock pins some packages to Lovable's private npm cache (403 outside Lovable): the public registry for
+      # the install only (same versions and integrity hashes), then the lockfile restored exactly.
+      - name: Install dependencies
+        run: |
+          cp bun.lock "$RUNNER_TEMP/bun.lock.orig"
+          sed -i -E 's#https://europe-west[0-9]+-npm\.pkg\.dev/lovable-core-prod/[^/]+/#https://registry.npmjs.org/#g' bun.lock
+          bun install --frozen-lockfile
+          cp "$RUNNER_TEMP/bun.lock.orig" bun.lock
+          git diff --exit-code -- bun.lock
+
+      # Playwright's own Chromium for the locked playwright version, cached by that version; the checks find it
+      # through PLAYWRIGHT_CHROMIUM.
+      - name: Playwright version
+        id: pw
+        run: echo "version=$(bun -e 'console.log(require("playwright-core/package.json").version)')" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-chromium-${{ runner.os }}-${{ steps.pw.outputs.version }}
+
+      # Vite's pre-bundled dependencies: roughly halves each dev server's first page load.
+      - uses: actions/cache@v4
+        with:
+          path: node_modules/.vite
+          key: vite-deps-${{ runner.os }}-${{ hashFiles('bun.lock', 'vite.config.ts', 'package.json') }}
+          restore-keys: vite-deps-${{ runner.os }}-
+
+      - name: Install Chromium
+        run: |
+          bunx playwright install --with-deps chromium
+          echo "PLAYWRIGHT_CHROMIUM=$(bun -e 'import("playwright").then(m => console.log(m.chromium.executablePath()))')" >> "$GITHUB_ENV"
+
+      # arcade-play-check compares frame times with a baseline recorded on a CI runner
+      # (.github/ci/arcade-play-baseline.json); without one, only its absolute under-30-fps ceiling applies.
+      # Limits are never loosened. This edits the CI checkout only.
+      - name: Arcade play baseline for this runner
+        run: |
+          if [ -f .github/ci/arcade-play-baseline.json ]; then
+            cp .github/ci/arcade-play-baseline.json scripts/fixtures/arcade-play-baseline.json
+            note="per-game frame times compared with .github/ci/arcade-play-baseline.json (recorded on a CI runner), plus the under-30-fps ceiling"
+          else
+            echo '{}' > scripts/fixtures/arcade-play-baseline.json
+            note="no CI-recorded baseline yet: per-game comparison off, absolute under-30-fps ceiling only"
+          fi
+          echo "arcade-play-check: $note"
+          printf '> arcade-play-check frame time: %s.\n\n' "$note" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Run checks (${{ matrix.shard }})
+        run: bun .github/ci/run-shard.ts ${{ matrix.shard }} 2>&1 | tee ci-results-${{ matrix.shard }}.log
+        shell: bash # -eo pipefail: a failing runner fails the step through tee
+
+      - name: Upload logs
+        if: failure()
+        uses: actions/upload-artifact@v5
+        with:
+          name: full-logs-${{ matrix.shard }}
+          path: |
+            ci-results/
+            ci-results-${{ matrix.shard }}.log
+          retention-days: 7
+
+  # The one result to merge on: success only if every browser shard ran and passed. A skipped, cancelled or failed
+  # shard (or a skipped shards job) fails it. It runs whenever the shards were due, and is skipped otherwise.
+  full-suite-passed:
+    needs: [weekly, shards]
+    if: >-
+      ${{ always() && !inputs.record_arcade_baseline && (
+        github.event_name == 'workflow_dispatch' ||
+        (github.event_name == 'schedule' && needs.weekly.outputs.changed == 'true') ||
+        (github.event_name == 'pull_request' && (
+          (github.event.action == 'labeled' && github.event.label.name == 'ready-to-merge') ||
+          github.event.action == 'ready_for_review' ||
+          ((github.event.action == 'synchronize' || github.event.action == 'reopened') &&
+            contains(github.event.pull_request.labels.*.name, 'ready-to-merge'))
+        ))
+      ) }}
+    runs-on: ubuntu-latest
+    concurrency:
+      group: full-${{ github.event.pull_request.number || github.ref }}-summary
+      cancel-in-progress: true
+    steps:
+      - name: Every browser shard ran and passed
+        run: |
+          echo "browser shards: ${{ needs.shards.result }}"
+          test "${{ needs.shards.result }}" = "success"
+
+  record-baseline:
+    if: github.event_name == 'workflow_dispatch' && inputs.record_arcade_baseline
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v5
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+      - uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: bun-${{ runner.os }}-${{ env.BUN_VERSION }}-${{ hashFiles('bun.lock') }}
+          restore-keys: bun-${{ runner.os }}-${{ env.BUN_VERSION }}-
+      - name: Install dependencies
+        run: |
+          cp bun.lock "$RUNNER_TEMP/bun.lock.orig"
+          sed -i -E 's#https://europe-west[0-9]+-npm\.pkg\.dev/lovable-core-prod/[^/]+/#https://registry.npmjs.org/#g' bun.lock
+          bun install --frozen-lockfile
+          cp "$RUNNER_TEMP/bun.lock.orig" bun.lock
+          git diff --exit-code -- bun.lock
+      - name: Playwright version
+        id: pw
+        run: echo "version=$(bun -e 'console.log(require("playwright-core/package.json").version)')" >> "$GITHUB_OUTPUT"
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-chromium-${{ runner.os }}-${{ steps.pw.outputs.version }}
+      - uses: actions/cache@v4
+        with:
+          path: node_modules/.vite
+          key: vite-deps-${{ runner.os }}-${{ hashFiles('bun.lock', 'vite.config.ts', 'package.json') }}
+          restore-keys: vite-deps-${{ runner.os }}-
+      - name: Install Chromium
+        run: |
+          bunx playwright install --with-deps chromium
+          echo "PLAYWRIGHT_CHROMIUM=$(bun -e 'import("playwright").then(m => console.log(m.chromium.executablePath()))')" >> "$GITHUB_ENV"
+      # Every active game, one at a time, as each play group plays them.
+      - name: Record arcade play baseline
+        run: |
+          echo '{}' > scripts/fixtures/arcade-play-baseline.json
+          status=0
+          bun scripts/arcade-play-check.ts --record || status=$?
+          cp scripts/fixtures/arcade-play-baseline.json arcade-play-baseline.json
+          exit $status
+      - name: Upload recorded baseline
+        if: always() && hashFiles('arcade-play-baseline.json') != ''
+        uses: actions/upload-artifact@v5
+        with:
+          name: arcade-play-baseline-ci
+          path: arcade-play-baseline.json
+          retention-days: 30
