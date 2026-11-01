@@ -90,7 +90,7 @@ function homerunObserver(onMode: (mode: number) => void) {
 }
 
 const MODE_BUTTON =
-  "h-[48px] flex-1 rounded-xl border-2 px-3 text-[15px] font-extrabold tracking-wide hover:bg-background/40";
+  "pointer-events-auto h-[48px] flex-1 rounded-xl border-2 px-3 text-[15px] font-extrabold tracking-wide hover:bg-background/40";
 
 function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const data: HomerunPuzzleData | null = puzzle.type === "homerun" ? puzzle : null;
@@ -160,12 +160,18 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         if (kind === "down") send(pick(m));
         return true;
       }}
-      footer={
+      overlay={
         choose
           ? (send) => (
-              // The swing choice for the next pitch, under the field; the lit one is the sim's. Its row ends 16 px above the
-              // bottom like every arcade control row.
-              <div data-game-controls="swing" className="flex h-[52px] shrink-0 items-center gap-2 px-1">
+              // The swing choice for the next pitch, over the bottom of the field (below the plate); the lit one is the sim's.
+              // Drawn in the arena so the world reaches the bottom, and lifted by the home bar: the row ends at least 12 px
+              // above env(safe-area-inset-bottom) (the arena ends 16 px above the screen's bottom, so the lift is the inset
+              // less 4 px). Only the buttons take a touch; a swipe beside them reaches the canvas.
+              <div
+                data-game-controls="swing"
+                className="pointer-events-none absolute inset-x-1 flex h-[52px] items-center gap-2"
+                style={{ bottom: "max(0px, calc(env(safe-area-inset-bottom, 0px) - 4px))" }}
+              >
                 {[
                   { m: HOMERUN_MODE_CONTACT, label: "Contact", hint: "easier timing" },
                   { m: HOMERUN_MODE_POWER, label: "Power", hint: "goes further" },

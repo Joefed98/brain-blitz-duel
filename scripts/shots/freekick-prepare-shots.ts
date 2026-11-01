@@ -30,7 +30,8 @@ async function mapper(page: Page) {
 
 async function shoot(w: number, h: number) {
   const browser = await chromium.launch({ executablePath: process.env.PLAYWRIGHT_CHROMIUM ?? "/opt/pw-browsers/chromium" });
-  const context = await browser.newContext({ viewport: { width: w, height: h }, deviceScaleFactor: 2, hasTouch: false });
+  // The computer layout at DPR 1: a 2880 × 1800 capture is slow enough to run a kick's 9 s clock out between steps.
+  const context = await browser.newContext({ viewport: { width: w, height: h }, deviceScaleFactor: w >= 1024 ? 1 : 2, hasTouch: false });
   const page = await context.newPage();
   await page.goto(`${ORIGIN}/practice?game=freekick`, { waitUntil: "domcontentloaded", timeout: 180_000 });
   const ready = page.getByRole("button", { name: /^Ready/ }).first();

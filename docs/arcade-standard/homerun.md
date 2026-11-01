@@ -198,8 +198,10 @@ score, final checksum and end tick. The rev-1 and rev-2 deal files are unchanged
 ### What changes (gameplay, gated on the stamp)
 
 - **The swing choice** (`HOMERUN_INPUT_MODE`, k = 2, `a` = 0 Contact / 1 Power; rev 3's own input ranges,
-  `HOMERUN_INPUT_RANGES_V3`, so rev 1 and 2 never declare it). Two buttons under the field (`data-game-controls="swing"`),
-  C / 1 and P / 2 on a computer. A choice is recorded on the sim tick it is made and stands until changed (Contact to
+  `HOMERUN_INPUT_RANGES_V3`, so rev 1 and 2 never declare it). Two 48 px buttons over the bottom of the field, below the plate
+  (`data-game-controls="swing"`, the stage's arena overlay; 1 Nov 2026 follow-up: lifted by the home bar, so the row ends
+  at least 12 px above `env(safe-area-inset-bottom)`, and the world reaches the bottom of the play screen), C / 1 and P / 2
+  on a computer. A choice is recorded on the sim tick it is made and stands until changed (Contact to
   start); each pitch is played with the choice standing at its release (`pmode`, locked on the release tick), so a press
   after the release waits for the next pitch. The HUD chip shows NEXT CONTACT / NEXT POWER until the release, then
   CONTACT / POWER; the lit button is the sim's own choice. A choice counts as playing (at least 1).
