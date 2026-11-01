@@ -26,7 +26,7 @@
  *   bun scripts/cards-check.ts
  */
 import { spawnSync } from "node:child_process";
-import { cardOf, NO_CARD } from "../src/lib/arcade/cards/cards";
+import { cardOf, NO_CARD, rankOf as rankOfCard, suitOf as suitOfCard } from "../src/lib/arcade/cards/cards";
 import {
   FC_DEALS,
 } from "../src/lib/arcade/cards/freecellDeals.data";
@@ -37,10 +37,11 @@ import { TP_DEALS } from "../src/lib/arcade/cards/tripeaksDeals.data";
 import { TP_STOCK_PILE, tpApply, tpFree, tpNext, tpPlayable, tripeaksGame } from "../src/lib/arcade/cards/tripeaks";
 import { PS_CORE_FULL, PS_CORE_FULL_V2, PS_HANDS, PS_INPUT_PLACE, psHand, psTargetGrid, psTotals, pokerSquaresGame, pokerSquaresGameFor, pokerSquaresStdParts } from "../src/lib/arcade/cards/pokerSquares";
 import {
-  FC_INPUT_MOVE, FC_INPUT_RESET, FC_INPUT_UNDO, fcCheckpoint, fcNoteText, fcPack, freecellGameFor,
+  FC_CORE_UNITS, FC_CORE_UNITS_V3, FC_INPUT_MOVE, FC_INPUT_RESET, FC_INPUT_UNDO, FC_REV, FC_STD_SPEC, fcCheckpoint, fcCoreUnits, fcNoteText, fcPack, freecellGameFor, freecellStdParts,
 } from "../src/lib/arcade/cards/freecell";
 import {
-  FH_CORE_FULL, FH_INPUT_PLACE, FH_ROWS, FH_SEEN, FH_TURNS, fhDeal, fhDiscard, fhDiscardsShown, fhOpenRows, fhTotals, fhYours, fiveHandsGame, type FhState,
+  FH_CORE_FULL, FH_CORE_FULL_V2, FH_INPUT_PLACE, FH_REV, FH_ROWS, FH_SEEN, FH_STD_SPEC, FH_TURNS, fhCheckpoint, fhDeal, fhDiscard, fhDiscardsShown, fhOpenRows, fhRowHand, fhTotals, fhYours,
+  fiveHandsGame, fiveHandsGameFor, fiveHandsStdParts, type FhState,
 } from "../src/lib/arcade/cards/fiveHands";
 import { psCheckpoint } from "../src/lib/arcade/cards/pokerSquares";
 import { readFileSync } from "node:fs";
@@ -100,10 +101,10 @@ for (let k = 0; k < 20; k++) {
   const tp = generatePuzzle("tripeaks") as { seed: number; tripeaksRev: number };
   const ps = generatePuzzle("pokersquares") as { seed: number; pokerSquaresRev: number };
   const fh = generatePuzzle("fivehands") as { seed: number; fiveHandsRev: number };
-  ok(fc.freecellRev === 2 && fc.seed >= 0 && fc.seed < FC_DEALS.length, "freecell: rooms deal a bank index on freecellRev 2");
+  ok(fc.freecellRev === FC_REV && fc.seed >= 0 && fc.seed < FC_DEALS.length, `freecell: rooms deal a bank index on freecellRev ${FC_REV}`);
   ok(tp.tripeaksRev === 1 && tp.seed >= 0 && tp.seed < TP_DEALS.length, "tripeaks: rooms deal a bank index on tripeaksRev 1");
   ok(ps.pokerSquaresRev === 2 && ps.seed > 0, "pokersquares: rooms deal a seed on pokerSquaresRev 2");
-  ok(fh.fiveHandsRev === 1 && fh.seed > 0, "fivehands: rooms deal a seed on fiveHandsRev 1");
+  ok(fh.fiveHandsRev === FH_REV && fh.seed > 0, `fivehands: rooms deal a seed on fiveHandsRev ${FH_REV}`);
 }
 ok(new Set(FC_DEALS.map((d) => d[0])).size === FC_DEALS.length && new Set(TP_DEALS).size === TP_DEALS.length, "both banks: no deal twice");
 
@@ -321,8 +322,138 @@ ok(new Set(FC_DEALS.map((d) => d[0])).size === FC_DEALS.length && new Set(TP_DEA
   ok(buzz.ended === 2 && buzz.turn === 1 && fiveHandsGame.score(buzz) === Math.max(1, Math.floor((160 * Math.min(bt.total, FH_CORE_FULL)) / FH_CORE_FULL) + 8 * bt.made), "fivehands: at the buzzer the rows score as they stand (a played run at least 1)");
 }
 
+/* 7. The 1 Nov 2026 tuning: older stamps exactly as on main; Five Hands fiveHandsRev 2. */
+{
+  type LegacyRun = { type: string; rev: number; seed: number; label: string; raw: string; score: number; checksum: number; tick: number };
+  const tuning = JSON.parse(readFileSync(new URL("./fixtures/tuning-nov1-legacy.json", import.meta.url), "utf8")) as { runs: LegacyRun[] };
+  const mine = tuning.runs.filter((r) => r.type === "freecell" || r.type === "fivehands");
+  let same = 0;
+  for (const run of mine) {
+    const r = run.type === "freecell" ? replayFreecellRun(run.seed, run.raw, run.rev) : replayFiveHandsRun(run.seed, run.raw, run.rev);
+    const cp = run.type === "freecell" ? fcCheckpoint(r.state as never) : fhCheckpoint(r.state as never);
+    if (r.score === run.score && cp.checksum === run.checksum && r.state.tick === run.tick) same++;
+    else failures.push(`${run.type} rev ${run.rev}: seed ${run.seed} ${run.label} replays to ${r.score} (main ${run.score})`);
+  }
+  ok(same === mine.length && mine.length === 41, `nov 1: all ${mine.length} Free Cell rev-2 and Five Hands rev-1 runs recorded on main replay to the same score and final state`);
+
+  // Free Cell rev 3: rev 2's play, the core full at FC_CORE_UNITS_V3; every bank deal's par line at 200; the auto moves
+  // kept for the art on rev 3 only, outside the checksum.
+  ok(FC_REV === 3 && FC_CORE_UNITS === 104 && FC_CORE_UNITS_V3 === 54 && FC_STD_SPEC.rev === 3 && FC_STD_SPEC.parts[0]!.of === FC_CORE_UNITS_V3, "freecell: rooms deal freecellRev 3, the core full at 54 units (revs 1–2: 104)");
+  let all3 = true;
+  for (let i = 0; i < FC_DEALS.length; i++) {
+    const { raw } = freecellFlawless(i, 20, 3);
+    const r = replayFreecellRun(i, raw, 3);
+    if (r.score !== 200 || !r.finished || r.moves !== FC_DEALS[i]![1] || r.flagged) {
+      all3 = false;
+      failures.push(`freecell rev 3: bank deal ${i} replays to ${r.score} in ${r.moves} moves`);
+    }
+    // The same line on rev 2 and rev 3 ends in the same position (the same play).
+    if (i < 40) {
+      const r2 = replayFreecellRun(i, freecellFlawless(i, 20, 2).raw, 2);
+      if (fcCheckpoint(r2.state).checksum !== fcCheckpoint(r.state).checksum || r2.state.tick !== r.state.tick) failures.push(`freecell rev 3: bank deal ${i} plays differently from rev 2`);
+    }
+  }
+  ok(all3, `freecell rev 3: all ${FC_DEALS.length} bank deals replay their par line to 200 (and play as rev 2)`);
+  const g3 = freecellGameFor(3);
+  {
+    // Part-way through deal 5's par line: the core on rev 3 against rev 2.
+    const line = freecellFlawless(5, 20, 3);
+    const half = (rev: number) => {
+      const g = freecellGameFor(rev);
+      let st = g.init(5);
+      const raw = JSON.parse(JSON.stringify(decodeFreecellRun(line.raw).events)) as ArcadeInputEvent[];
+      const until = raw[Math.floor(raw.length / 3)]!.t;
+      const at = new Map(raw.map((e) => [e.t, e]));
+      while (st.tick < until) st = g.step(st, at.get(st.tick + 1) ?? null);
+      return st;
+    };
+    const h3 = half(3);
+    const h2 = half(2);
+    const u = fcCoreUnits(h3);
+    ok(fcCheckpoint(h3).checksum === fcCheckpoint(h2).checksum && u === fcCoreUnits(h2), "freecell rev 3: the same moves reach the same position as rev 2");
+    ok(freecellStdParts(h3)![0]!.points === Math.floor((140 * Math.min(u, 54)) / 54) && freecellStdParts(h2)![0]!.points === Math.floor((140 * Math.min(u, 104)) / 104), `freecell rev 3: ${u} units pay ${freecellStdParts(h3)![0]!.points} (rev 2: ${freecellStdParts(h2)![0]!.points})`);
+  }
+  {
+    // The auto moves fly home: deal 0's first auto moves are recorded (card, pile, index) with their tick on rev 3 only.
+    const s3 = g3.init(0);
+    const s2 = freecellGameFor(2).init(0);
+    ok(s2.fly === undefined && (s3.fly === undefined || s3.fly.length % 3 === 0), "freecell: rev 2 keeps no auto-move record; rev 3's is card, pile, index triples");
+    let st = g3.init(0);
+    let seen = 0;
+    let homeOk = true;
+    const ev = decodeFreecellRun(freecellFlawless(0, 20, 3).raw).events;
+    const at = new Map(ev.map((e) => [e.t, e]));
+    let prevAutos = st.autos;
+    while (!g3.isOver(st)) {
+      const before = st;
+      st = g3.step(st, at.get(st.tick + 1) ?? null);
+      if (st.autos > prevAutos && st.fly && st.flyTick === st.tick) {
+        seen++;
+        const flown = st.fly.length / 3;
+        if (flown !== st.autos - prevAutos) homeOk = false;
+        for (let k = 0; k < flown; k++) {
+          // Each flown card is home now, was not before the move, and left a column or free cell.
+          const card = st.fly[k * 3]!;
+          const pile = st.fly[k * 3 + 1]!;
+          const suit = suitOfCard(card);
+          if (rankOfCard(card) > st.home[suit]! || rankOfCard(card) <= before.home[suit]! || pile < 0 || pile >= 12) homeOk = false;
+        }
+      }
+      prevAutos = st.autos;
+    }
+    ok(seen > 0 && homeOk, `freecell rev 3: every auto move home is recorded for the art (${seen} moves with auto moves on deal 0's line)`);
+    const plain = { ...st, fly: undefined, flyTick: undefined };
+    ok(fcCheckpoint(plain).checksum === fcCheckpoint(st).checksum, "freecell rev 3: the auto-move record is outside the checksum");
+  }
+
+  // Five Hands rev 2: the steep table, hand points alone to 200, every witness at 200.
+  ok(FH_REV === 2 && (generatePuzzle("fivehands") as { fiveHandsRev: number }).fiveHandsRev === 2, "fivehands: rooms deal fiveHandsRev 2");
+  const fhSeeds = [...Array.from({ length: 60 }, (_, i) => i), ...Array.from({ length: 200 }, (_, i) => 10000 + i), ...Array.from({ length: 200 }, (_, n) => (Math.imul(n + 1, 0x9e3779b1) >>> 1) + 1)];
+  const table: [number[], number][] = [
+    [[cardOf(0, 1), cardOf(1, 5), cardOf(2, 9), cardOf(3, 11), cardOf(0, 13)], 0],
+    [[cardOf(0, 4), cardOf(1, 4), cardOf(2, 9), cardOf(3, 11), cardOf(0, 13)], 5],
+    [[cardOf(0, 4), cardOf(1, 4), cardOf(2, 9), cardOf(3, 9), cardOf(0, 13)], 10],
+    [[cardOf(0, 4), cardOf(1, 4), cardOf(2, 4), cardOf(3, 9), cardOf(0, 13)], 20],
+    [[cardOf(0, 4), cardOf(1, 5), cardOf(2, 6), cardOf(3, 7), cardOf(0, 8)], 25],
+    [[cardOf(2, 2), cardOf(2, 5), cardOf(2, 9), cardOf(2, 11), cardOf(2, 13)], 35],
+    [[cardOf(0, 4), cardOf(1, 4), cardOf(2, 4), cardOf(3, 9), cardOf(0, 9)], 50],
+    [[cardOf(0, 4), cardOf(1, 4), cardOf(2, 4), cardOf(3, 4), cardOf(0, 9)], 60],
+    [[cardOf(1, 9), cardOf(1, 10), cardOf(1, 11), cardOf(1, 12), cardOf(1, 13)], 75],
+    [[cardOf(0, 4), cardOf(1, 4)], 5],
+    [[cardOf(0, 4), cardOf(1, 5), cardOf(2, 6), cardOf(3, 7)], 0],
+  ];
+  for (const [row, want] of table) ok(fhRowHand(row, 2).points === want, `fivehands rev 2: ${row.join(",")} scores ${want} (got ${fhRowHand(row, 2).points}); rev 1 ${fhRowHand(row, 1).points}`);
+  ok(FH_STD_SPEC.parts.length === 1 && FH_STD_SPEC.parts[0]!.max === 200 && FH_STD_SPEC.rev === 2, "fivehands rev 2: one part, hand points to 200 (no made-hands or speed part)");
+  let fh2 = true;
+  const targets: number[] = [];
+  for (const seed of fhSeeds) {
+    const dd = fhDeal(seed, 2);
+    const { raw } = fiveHandsFlawless(seed, 20, 2);
+    const r = replayFiveHandsRun(seed, raw, 2);
+    targets.push(dd.target);
+    if (r.score !== 200 || r.total !== dd.target || dd.target < FH_CORE_FULL_V2 || !r.finished || r.flagged || fhTotals(dd.witness, 2).total !== dd.target) {
+      fh2 = false;
+      failures.push(`fivehands rev 2: seed ${seed}'s witness replays to ${r.score} (${r.total} hand points, target ${dd.target})`);
+    }
+  }
+  ok(fh2, `fivehands rev 2: ${fhSeeds.length} seeds' witnesses reach ${FH_CORE_FULL_V2} rev-2 hand points and replay to 200 through the server replay`);
+  ok(JSON.stringify(fhDeal(23, 2)) === JSON.stringify(fhDeal(23, 2)) && JSON.stringify(fiveHandsGameFor(2).init(23)) === JSON.stringify(fiveHandsGameFor(2).init(23)), "fivehands rev 2: a seed deals the same deck and witness every time");
+  // The deck is rev 1's shuffle: a seed whose first deck holds a rev-2 witness deals rev 1's deck.
+  let sameDeck = 0;
+  for (let seed = 0; seed < 60; seed++) if (JSON.stringify(fhDeal(seed, 2).deck) === JSON.stringify(fhDeal(seed, 1).deck)) sameDeck++;
+  ok(sameDeck >= 55, `fivehands rev 2: the decks are rev 1's shuffles (${sameDeck} of 60 seeds deal rev 1's deck; the rest reshuffled for the rev-2 full figure)`);
+  const g2 = fiveHandsGameFor(2);
+  let mid: FhState = g2.init(31);
+  for (let t = 0; t < 12; t++) mid = g2.step(mid, { t: mid.tick + 1, k: FH_INPUT_PLACE, a: fhOpenRows(mid.rows)[0]!, b: 0, c: 0, d: 0 });
+  const mt = fhTotals(mid.rows, 2).total;
+  const mp = fiveHandsStdParts(mid)!;
+  ok(mp.length === 1 && mp[0]!.points === Math.floor((200 * Math.min(mt, FH_CORE_FULL_V2)) / FH_CORE_FULL_V2) && g2.score(mid) === Math.max(1, mp[0]!.points), `fivehands rev 2: ${mt} hand points pay floor(200 × min(total, ${FH_CORE_FULL_V2}) ÷ ${FH_CORE_FULL_V2}) = ${mp[0]!.points}`);
+  const rev1Parts = fiveHandsStdParts({ ...mid, rev: 1 })!;
+  ok(rev1Parts.length === 2 && rev1Parts[0]!.max === 160, "fivehands: a rev-1 state keeps its two parts (hand points 160, made hands 40)");
+}
+
 /* 4. No input 0, played 1+. */
-for (const [name, game] of [["freecell", freecellGame], ["tripeaks", tripeaksGame], ["pokersquares", pokerSquaresGame], ["freecell rev 2", freecellGameFor(2)], ["pokersquares rev 2", pokerSquaresGameFor(2)], ["fivehands", fiveHandsGame]] as const) {
+for (const [name, game] of [["freecell", freecellGame], ["tripeaks", tripeaksGame], ["pokersquares", pokerSquaresGame], ["freecell rev 2", freecellGameFor(2)], ["pokersquares rev 2", pokerSquaresGameFor(2)], ["fivehands", fiveHandsGame], ["fivehands rev 2", fiveHandsGameFor(2)], ["freecell rev 3", freecellGameFor(3)]] as const) {
   let s = (game as typeof freecellGame).init(11) as never as { tick: number };
   const g = game as unknown as { step: (s: unknown, i: null) => { tick: number }; isOver: (s: unknown) => boolean; score: (s: unknown) => number };
   while (!g.isOver(s)) s = g.step(s, null);

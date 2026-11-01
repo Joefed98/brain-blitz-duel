@@ -85,12 +85,12 @@ replay exactly as before; standard-live-check grades every stored arcade run thr
 | Home Run Derby | `homerun` | `homerunRev` 1 | Sports | [homerun.md](homerun.md) |
 | Free Kick | `freekick` | `freekickRev` 1 | Sports | [freekick.md](freekick.md) |
 | Racing | `racing` | `racingRev` 1 | Sports | [racing.md](racing.md) |
-| Free Cell | `freecell` | `freecellRev` 2 | Cards & Board | [freecell.md](freecell.md) |
+| Free Cell | `freecell` | `freecellRev` 3 (2 and 1 for stored rounds) | Cards & Board | [freecell.md](freecell.md) |
 | Summit | `tripeaks` | `tripeaksRev` 1 | Cards & Board | [tripeaks.md](tripeaks.md) |
 | Full House | `pokersquares` | `pokerSquaresRev` 2 | Cards & Board | [pokersquares.md](pokersquares.md) |
-| Five Hands | `fivehands` | `fiveHandsRev` 1 | Cards & Board | [fivehands.md](fivehands.md) |
+| Five Hands | `fivehands` | `fiveHandsRev` 2 (1 for stored rounds) | Cards & Board | [fivehands.md](fivehands.md) |
 | Crazy Golf (was Minigolf) | `minigolf` | `golfRev` 2 (1 for stored rounds) | Sports | [minigolf.md](minigolf.md) |
-| Cue Ball (was Speed Pool) | `pool` | `poolRev` 2 (1 for stored rounds) | Sports | [pool.md](pool.md) |
+| Cue Ball (was Speed Pool) | `pool` | `poolRev` 3 (2 and 1 for stored rounds) | Sports | [pool.md](pool.md) |
 | Curl Champ (was Curling) | `curling` | `curlRev` 2 (1 for stored rounds) | Sports | [curling.md](curling.md) |
 
 The batches land one at a time on top of this; each adds its games' entries, pages and its summary section below.
@@ -354,4 +354,18 @@ hands 40 (8 a row) = 200; every dealt deck carries a witness arrangement that re
 
 Speed's "full by" times are the near-perfect bots' median finish (`bun scripts/cards-bands.ts`). cards-check proves
 every dealt deal reaches 200 through the server's replay.
+
+## The 1 Nov 2026 tuning: Cue Ball, Free Cell, Five Hands
+
+Each on a new stamp one above its live one; older stamps replay and score as before (`scripts/fixtures/tuning-nov1-legacy.json`,
+recorded on main by `scripts/tuning-nov1-legacy-record.ts`).
+
+| Game | Stamp | Parts (max) | Core full at |
+| --- | --- | --- | --- |
+| Cue Ball | `poolRev` 3 | Spots 140, Black 10, Pots in a row 30, Speed 20 (full by 73 s); fouls −10 | all 7 spots |
+| Free Cell | `freecellRev` 3 | Cards 140, Par moves 30, Speed 30 | 54 units (rev 2: 104), the near-perfect median at 60 s |
+| Five Hands | `fiveHandsRev` 2 | Hand points 200 (one part; pair 5 … straight flush 75) | 46 hand points |
+
+Cue Ball poolRev 3: 25 % harder top speed, 1.75× follow, draw and side, a shot touching no ball a foul, its own proved
+bank (`poolBankV3.server.ts`). See each game's page.
 
