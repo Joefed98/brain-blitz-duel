@@ -1,4 +1,4 @@
 {
-  "note": "pickRoundOrder deals for older rooms (6 stored category lists x 200 seeds), recorded on main before room settings",
+  "note": "pickRoundOrder deals for older rooms (6 stored category lists x 200 seeds), recorded on main 567ff36 before room settings; re-recorded 1 Nov 2026 when Full House retired (#230), its only change (the old digest ad4d914faa96 reproduces with Full House active); re-recorded 1 Nov 2026 when Blockfall and Alley Roll joined the arcade pool (fea41723f50e reproduces without them), its only change",
   "digest": "6fa9d14ba180f4decf37f5e35c9aae66b71144604451e897073e97cdcfc89730"
 }
