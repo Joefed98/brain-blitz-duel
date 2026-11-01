@@ -13,7 +13,7 @@
  * if it does.
  *
  * Two workflows since 1 Nov 2026 (CI cost cut): the play* shards are browser checks and run only in
- * .github/workflows/full-suite.yml (a PR labelled `ready-to-merge`, a PR leaving draft, a manual run and nightly on
+ * .github/workflows/full-suite.yml (a PR labelled `ready-to-merge`, a PR leaving draft, a manual run and weekly on
  * main); the other shards run on every push (.github/workflows/checks.yml). Which side a check is on is worked out
  * from its source (.github/ci/browser.ts): a browser check listed in a fast shard is run in BROWSER_CATCH_ALL
  * instead, so nothing that starts Chromium runs on a push and nothing is ever skipped (ci-shards-check proves it).

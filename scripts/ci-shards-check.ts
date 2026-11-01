@@ -7,7 +7,7 @@
  *    play* shard (full-suite.yml) runs only browser checks.
  *  - checks.yml's matrix names exactly the fast shards and full-suite.yml's exactly the browser shards; checks.yml
  *    installs no browser; full-suite.yml's "full-suite-passed" needs the shards and passes only on their success
- *    (skipped never counts), and the workflow runs on the ready-to-merge label, on leaving draft, by hand and nightly.
+ *    (skipped never counts), and the workflow runs on the ready-to-merge label, on leaving draft, by hand and weekly.
  *
  *   bun scripts/ci-shards-check.ts
  */
@@ -73,7 +73,7 @@ check(!/playwright install/.test(fastYml), "checks.yml installs no browser");
 check(/cancel-in-progress:\s*true/.test(fastYml) && /cancel-in-progress:\s*true/.test(fullYml), "both workflows cancel superseded runs");
 check(/full-suite-passed/.test(fullYml) && /needs:\s*\[[^\]]*\bshards\b[^\]]*\]/.test(fullYml.split("full-suite-passed:")[1] ?? ""), "full-suite-passed needs the shards");
 check(/needs\.shards\.result\s*}}"?\s*=\s*"?success/.test(fullYml) || /needs\.shards\.result == 'success'/.test(fullYml), "full-suite-passed passes only on the shards' success");
-check(/ready-to-merge/.test(fullYml) && /ready_for_review/.test(fullYml) && /workflow_dispatch/.test(fullYml) && /schedule:/.test(fullYml), "full-suite.yml runs on the label, leaving draft, by hand and nightly");
+check(/ready-to-merge/.test(fullYml) && /ready_for_review/.test(fullYml) && /workflow_dispatch/.test(fullYml) && /schedule:/.test(fullYml), "full-suite.yml runs on the label, leaving draft, by hand and weekly");
 check(/labeled/.test(fullYml) && /synchronize/.test(fullYml), "full-suite.yml re-runs on new pushes while labelled");
 
 if (failures.length) {

@@ -1016,7 +1016,8 @@ outside the repo.
     (`play21` is the browser catch-all), plus the one job to merge on, **full-suite-passed** (success only if every
     browser shard ran and passed; skipped never counts). It runs when a PR gets the label `ready-to-merge` (and again
     on each new push while the label is on), when a PR leaves draft, by hand (Actions → Full suite → Run workflow;
-    "record arcade baseline" lives here) and nightly on main at 02:41 UTC when main changed in the last day.
+    "record arcade baseline" lives here) and weekly on main (Sunday 22:41 UTC) when main changed in the past week. Add the label only when a PR is
+    otherwise finished: every push while it is on re-runs the Full suite.
   - Which side a check is on is worked out from its source (`.github/ci/browser.ts`: it, or a script it imports or
     spawns, launches Chromium through Playwright), never by hand; a browser check listed in a fast shard runs in
     `play21` instead. ci-shards-check proves every routine check runs exactly once, no browser starts on a push, and

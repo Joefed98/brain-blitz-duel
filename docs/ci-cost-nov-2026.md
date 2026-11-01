@@ -8,7 +8,7 @@ is ready to merge. **No check or assertion changed; this changes when checks run
 | When | Workflow | What | Jobs |
 | --- | --- | --- | --- |
 | Every push to a PR (open, push, reopen, leaving draft) | **Checks** (`checks.yml`) | Every check that starts no browser: scoring, replay, standard, type-level and unit-style checks | `a`–`g` (7) |
-| PR labelled `ready-to-merge` (and every new push while the label is on), PR leaving draft, a manual run, nightly on main | **Full suite** (`full-suite.yml`) | Every check that starts Chromium, then **full-suite-passed** | `play1`–`play21` (21) + 1 |
+| PR labelled `ready-to-merge` (and every new push while the label is on), PR leaving draft, a manual run, weekly on main | **Full suite** (`full-suite.yml`) | Every check that starts Chromium, then **full-suite-passed** | `play1`–`play21` (21) + 1 |
 
 - **Which side a check is on** is worked out from its source in `.github/ci/browser.ts`. A browser check is one that, or a script it imports or spawns, launches Chromium through Playwright. Today that's 32 of the 297 routine checks:
   - arcade-play, arcade-device-bottom, arcade-fill, arcade-lowend, arcade-room-practice
@@ -34,7 +34,7 @@ is ready to merge. **No check or assertion changed; this changes when checks run
   - Full suite: the groups are per PR and shard, on the jobs rather than the workflow. That way an unrelated label event can never cancel a real run.
 - **Docs-only changes skip CI.** Changes that only touch `docs/**`, `screenshots/**`, `*.md` or `.lovable/**` skip both workflows. The exceptions are the docs a check reads: `docs/beta-sql.md` (challenge-check, daily-check) and `docs/sound-cues/**` (the sound-manifest, sound-batch6, room-moments, logic-polish and word-polish checks).
 - **One run per commit.** Both workflows trigger on `pull_request` only, never also on `push`.
-- **Nightly runs only when main changed.** The nightly full suite (02:41 UTC, main) first asks the API whether main had commits in the last 25 hours, and runs nothing if not.
+- **Weekly runs only when main changed.** The weekly full suite (Sunday 22:41 UTC, main) first asks the API whether main had commits in the past week, and runs nothing if not.
 
 ## Cheaper runs
 
@@ -67,14 +67,14 @@ These are estimates from October's runs. Billed minutes are each job's run time,
 
 - **Saving:** about 35–48 % a PR. Most of it comes from not re-running the 220 browser job-minutes on pushes made while a PR is still in progress.
 - **The real "before" was a little lower** than 750, because a superseded run was cancelled part-way.
-- **Nightly:** at most about 230 job-minutes a night, and only on days main changed (at October's pace, most days: up to about 6,900 a month). If that's too much, run it weekly instead; it's one cron line in `full-suite.yml`.
+- **Weekly:** at most about 230 job-minutes a week (about 1,000 a month), and only in weeks main changed.
 
 ## The captain's merge steps
 
 Branch protection and rulesets aren't available for a private repo on the Free plan, so this is a rule in CLAUDE.md ("Checks") that the captain follows.
 
 1. **Wait for Checks.** Push the PR's work and main merged in. Wait for Checks to be green on the latest commit and the review to be done.
-2. **Add the label.** Add the `ready-to-merge` label to the PR. The Full suite starts. Leaving draft starts it too.
+2. **Add the label only when the PR is otherwise finished** (every push while it is on re-runs the Full suite). Add the `ready-to-merge` label to the PR. The Full suite starts. Leaving draft starts it too.
 3. **Wait for full-suite-passed.** It must be green on the same latest commit; a skipped one is not a pass. If a shard fails, fix and push: the label stays on, so both workflows re-run.
 4. **Merge.** Merge with a merge commit, with `expectedHeadSha` set to that commit.
 5. **If main moves before the merge,** merge main into the PR and push. Both workflows re-run, and you merge on the new commit's results.

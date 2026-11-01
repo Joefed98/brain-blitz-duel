@@ -2,7 +2,7 @@
  * Which checks start a browser (1 Nov 2026, CI cost cut). A check is a browser check when its file, or a script
  * under scripts/ that it imports or spawns, launches Chromium through Playwright. Browser checks run only in the
  * full-suite workflow (.github/workflows/full-suite.yml: a PR labelled `ready-to-merge`, a PR leaving draft, a
- * manual run and the nightly run on main); every other check runs on every push (.github/workflows/checks.yml).
+ * manual run and the weekly run on main); every other check runs on every push (.github/workflows/checks.yml).
  * The split is worked out from the source, never kept by hand, so a new check lands on the right side by itself;
  * ci-shards-check proves every check runs on exactly one side.
  */
