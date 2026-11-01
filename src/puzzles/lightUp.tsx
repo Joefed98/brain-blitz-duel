@@ -17,7 +17,6 @@ import {
 } from "@/lib/duel/lightUp";
 import { LIGHTUP_TIME_MS, type LightUpPuzzleData } from "@/lib/duel/types";
 import { playCorrect } from "@/lib/sound";
-import { buzz } from "@/lib/motion";
 
 import { soundCue, useSolveFx } from "./logicFx";
 import { LiveSummary, SummaryItem, useFrameProgress } from "@/components/puzzles/batchP/LiveSummary";
@@ -223,7 +222,6 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
             if (pressed.current || submitted.current) return;
             if (walls.has(cell)) return puzzleReject();
             pressed.current = true;
-            buzz(8);
             const next = ((marks[cell] ?? 0) + 1) % 3;
             soundCue(next === 1 ? "lightup.lamp" : next === 2 ? "lightup.dot" : "lightup.clear");
             setSpread((current) => (next === 1 ? { cell, key: (current?.key ?? 0) + 1 } : null));

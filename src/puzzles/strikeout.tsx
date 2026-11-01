@@ -30,7 +30,7 @@ import {
 import { STRIKEOUT_TIME_MS, type StrikeoutPuzzleData } from "@/lib/duel/types";
 import { completeFx, fx } from "@/lib/fx";
 import { puzzleReject } from "@/lib/fx/puzzleReject";
-import { buzz, prefersReducedMotion } from "@/lib/motion";
+import { prefersReducedMotion } from "@/lib/motion";
 import { FoundWordMoment, type AcceptedWordMoment } from "@/components/puzzles/FoundWordMoment";
 import { KeypadAction, LetterKeypad, type KeyTone } from "@/components/puzzles/LetterKeypad";
 import { NO_SCROLL_STYLE, useNoTouchScroll } from "@/components/puzzles/noScroll";
@@ -163,16 +163,13 @@ function StageRev1({ puzzle, locked, onSubmit, onDraftAnswer, checkMoves, stateK
     } else if (before && next.strikes > before.strikes) {
       puzzleReject(strikeRef.current);
       fx.onWrong();
-      buzz([12, 60, 12]);
       flash(next.last === "wrong" ? "Wrong word: strike" : "Not in any word: strike");
     } else if (next.last === "right") {
       const solvedRow = next.rows.findIndex((r, i) => !r.includes("_") && (before?.rows[i] ?? "_").includes("_"));
       setAccepted((a) => ({ word: next.rows[solvedRow] ?? "", points: 20, serial: (a?.serial ?? 0) + 1 }));
       fx.onCorrect();
-      buzz(16);
     } else if (next.last === "hit") {
       fx.onPlace();
-      buzz(8);
     }
     setView(next);
   });
@@ -497,7 +494,6 @@ function Stage2({ puzzle, locked, onSubmit, onDraftAnswer, checkMoves, stateKey 
     } else if (before && next.strikes > before.strikes) {
       puzzleReject(strikeRef.current);
       fx.onWrong();
-      buzz([12, 60, 12]);
       flash(next.last === "wrong" ? "Wrong word: strike" : "Not in the word: strike");
     } else if ((next.word ?? 0) > (before?.word ?? 0)) {
       const solvedWord = next.rows[before?.word ?? 0] ?? "";
@@ -517,10 +513,8 @@ function Stage2({ puzzle, locked, onSubmit, onDraftAnswer, checkMoves, stateKey 
       }
       setAccepted((a) => ({ word: solvedWord, points: 30, serial: (a?.serial ?? 0) + 1 }));
       fx.onCorrect();
-      buzz(16);
     } else if (next.last === "hit") {
       fx.onPlace();
-      buzz(8);
     }
   });
 

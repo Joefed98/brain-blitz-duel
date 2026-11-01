@@ -34,7 +34,6 @@ import {
 import { expansionSounds } from "@/lib/fx/expansionSounds";
 import { decodeSnakeRun, encodeSnakeRun, replaySnakeRun } from "@/lib/duel/snake";
 import { ARCADE_CRASH_FREEZE_MS, type SnakePuzzleData } from "@/lib/duel/types";
-import { buzz } from "@/lib/motion";
 import { snakeArtGame } from "@/lib/arcade/snake.renderer";
 import { snakeSounds } from "@/lib/fx/gameSounds";
 import { NO_SCROLL_STYLE, useNoTouchScroll } from "@/components/puzzles/noScroll";
@@ -230,7 +229,6 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         if (state.current.dead) {
           if (deadAt.current === null) {
             deadAt.current = time;
-            buzz(40);
           } else if (time - deadAt.current >= ARCADE_CRASH_FREEZE_MS) {
             finish();
           }

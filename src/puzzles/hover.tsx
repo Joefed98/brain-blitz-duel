@@ -32,7 +32,6 @@ import {
 } from "@/lib/arcade/hover";
 import { decodeHoverRun, encodeHoverRun, replayHoverRun } from "@/lib/duel/hover";
 import { HOVER_CRASH_FREEZE_MS, type HoverPuzzleData } from "@/lib/duel/types";
-import { buzz } from "@/lib/motion";
 import { hoverArtGame, hoverNightFill } from "@/lib/arcade/hover.renderer";
 import { hoverSounds } from "@/lib/fx/gameSounds";
 import { playSound } from "@/lib/sound";
@@ -224,7 +223,6 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         if (state.current.crashed) {
           if (crashedAt.current === null) {
             crashedAt.current = time;
-            buzz(40);
           } else if (time - crashedAt.current >= HOVER_CRASH_FREEZE_MS) {
             finish();
           }

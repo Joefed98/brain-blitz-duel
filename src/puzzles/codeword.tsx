@@ -14,7 +14,6 @@ import { useStageState } from "@/lib/duel/stageState";
 import { CODEWORD_TIME_MS, type CodewordPuzzleData } from "@/lib/duel/types";
 import { completeFx, fx } from "@/lib/fx";
 import { puzzleReject } from "@/lib/fx/puzzleReject";
-import { buzz } from "@/lib/motion";
 import { KeypadAction, LetterKeypad } from "@/components/puzzles/LetterKeypad";
 import { NO_SCROLL_STYLE, useNoTouchScroll } from "@/components/puzzles/noScroll";
 import { useMoveSync } from "@/components/puzzles/useMoveSync";
@@ -178,7 +177,6 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, checkMoves, stateKey }
     if (view.complete) {
       puzzleReject(gridRef.current, false);
       fx.onWrong();
-      buzz([12, 60, 12]);
       flash("Not cracked yet: a letter is wrong");
     }
   });
@@ -194,7 +192,6 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, checkMoves, stateKey }
     if (submitted.current || locked || !solved) return;
     submitted.current = true;
     completeFx("codeword.finish");
-    buzz(20);
     onSubmit(encoded);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [solved, locked]);

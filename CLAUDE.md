@@ -988,6 +988,19 @@ outside the repo.
   own chip for this room); a taken default gives the nearest free swatch (`nearestFreeColour`). Apex draws only the 3
   nearest ghosts (`nearestRacingGhosts`). room-16-check (~1.5 min, `play14`); `bun scripts/room-load-test.ts` (a tool:
   bots on an in-memory test copy, report in the doc); shots `bun scripts/shots/room16-shots.ts`.
+- **Haptics** (31 Oct 2026; presentation and device storage only, no stamps; `src/lib/haptics.ts`): main moments
+  only, through one helper with named patterns (`tick`, `go`, `success`, `error`, `impact`, `celebrate`) and an adapter
+  (`setHapticsAdapter`; the web Vibration API today, so Android only: iPhone Safari has none and gets nothing; a
+  Capacitor plugin can plug in later without touching a call site). Moments: the countdown's 3, 2, 1 (`tick`) and GO
+  (`go`) in RoundIntro; a puzzle's correct / wrong answer from the shared signals (`usePuzzleHaptics`, mounted by
+  PhoneShell on puzzle screens) and its completion when the verdict lands (`useSignatureVerdict`); arcade goals, home
+  runs and pots (`success`), Cue Ball's foul (`error`), lives lost and crashes (`impact`) in the sound observers
+  (`feel` in `gameSounds.ts`), the arcade buzzer (`impact`, arcadeFeedback); the podium / two-player final for the
+  winner (`celebrate`); the between-rounds chat toast keeps its tick (chat-notice-check asserts it). In-game moments
+  pass `{ inGame: true }`: only with a live `[data-game-stage]` on screen, never in an intro demo, replay or answer
+  reveal (`holdHaptics`). Never on button taps, drags or routine hits: **don't call `navigator.vibrate` or add a
+  `haptic()` call outside the listed sites** (haptics-check's `CALL_SITES` pins them). Settings → Haptics, on by
+  default (`duelz-haptics:v1`), "Not supported on this device" where there is none. haptics-check (~16 s, happy-dom).
 - `src/components/duel/` — room/round screens (PhoneShell, RoundIntro, TimerBar,
   AnswerReveal, ArcadeReveal, WinnerReveal…); `src/components/puzzles/` — shared puzzle
   widgets; `src/lib/fx/` — sound and visual feedback (presentation only).

@@ -7,7 +7,6 @@ import { useGameColumnLayout } from "@/components/puzzles/gameColumn";
 import { useEffect, useId, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
-import { hapticTick } from "@/components/puzzles/GridDrag";
 import { NO_SCROLL_STYLE, useNoTouchScroll } from "@/components/puzzles/noScroll";
 import { Button } from "@/components/ui/button";
 import { StageCorrect, useStageCorrectHold } from "@/components/puzzles/StageCorrect";
@@ -307,7 +306,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, s
     // Button taps update the same placement array encoded for server torque validation.
     const next = [...placement]; next[tray] = peg;
     soundCue("balance.drop");
-    setSelected(null); hapticTick(); setCurrent(next, true);
+    setSelected(null); setCurrent(next, true);
   };
   const tapWeight = (tray: number) => {
     if (frozen) return;
@@ -317,7 +316,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, s
     if (isDouble) {
       const next = [...placement]; next[tray] = null;
       soundCue("balance.lift");
-      setSelected(null); hapticTick(); setCurrent(next);
+      setSelected(null); setCurrent(next);
     } else {
       if (selected !== tray) soundCue("balance.select");
       setSelected((current) => current === tray ? null : tray);

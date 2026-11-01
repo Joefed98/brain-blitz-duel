@@ -2,7 +2,6 @@ import { gameDisplayName } from "@/lib/duel/gameNames";
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 
 import { GLYPH_COLOURS } from "@/components/duel/ShapeGlyph";
-import { hapticTick } from "@/components/puzzles/GridDrag";
 import { Button } from "@/components/ui/button";
 import { useGameKeys } from "@/lib/desktop";
 import { useStageState } from "@/lib/duel/stageState";
@@ -22,7 +21,6 @@ import {
 } from "@/lib/duel/tubes";
 import { limitText, tubesPourLimit, tubesSendsUndo } from "@/lib/duel/moveLimits";
 import { TUBES_COLOURS, TUBES_COUNT, TUBES_TIME_MS, type TubesPuzzleData } from "@/lib/duel/types";
-import { buzz } from "@/lib/motion";
 import { playCorrect, playWrong } from "@/lib/sound";
 
 import { soundCue, useSolveFx } from "./logicFx";
@@ -201,7 +199,6 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "tubes" }: 
     if (locked || submitted.current || replay.solved || replay.outOfPours) return;
     if (lifted === null) {
       if (!(replay.tubes[tube] ?? []).length) return;
-      hapticTick();
       soundCue("tubes.lift");
       setLifted(tube);
       return;
@@ -213,12 +210,10 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "tubes" }: 
     if (!canPour(replay.tubes, lifted, tube)) {
       // An invalid destination shakes and keeps the lift.
       setShake(tube);
-      buzz(20);
       playWrong();
       setTimeout(() => setShake(null), 320);
       return;
     }
-    hapticTick();
     const after = play([...moves, { from: lifted, to: tube }]).tubes[tube] ?? [];
     soundCue("tubes.pour");
     if (tubeSorted(after)) soundCue("tubes.cork");

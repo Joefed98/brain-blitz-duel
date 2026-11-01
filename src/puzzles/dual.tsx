@@ -27,7 +27,7 @@ import {
 } from "@/lib/arcade/dual";
 import { decodeDualRun, encodeDualRun, replayDualRun } from "@/lib/duel/dual";
 import { ARCADE_CRASH_FREEZE_MS, type DualPuzzleData } from "@/lib/duel/types";
-import { buzz } from "@/lib/motion";
+import { haptic } from "@/lib/haptics";
 import { playWrong } from "@/lib/sound";
 import { NO_SCROLL_STYLE, useNoTouchScroll } from "@/components/puzzles/noScroll";
 
@@ -181,7 +181,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         if (state.current.dead) {
           if (deadAt.current === null) {
             deadAt.current = time;
-            buzz(40);
+            // Haptics (lib/haptics.ts): a crash (this retired game has no sound observer to carry it).
+            haptic("impact", { inGame: true });
             playWrong();
           } else if (time - deadAt.current >= ARCADE_CRASH_FREEZE_MS) {
             finish();

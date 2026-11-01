@@ -10,7 +10,6 @@ import { noteMyChallenge } from "@/lib/duel/challengeRecord";
 import type { StoredPuzzleType } from "@/lib/duel/types";
 import { resultCardFile } from "@/lib/share/resultCard";
 import type { RoomShareData, RoomShareTop } from "@/lib/share/roomShare";
-import { buzz } from "@/lib/motion";
 import { APP_URL } from "@/config/appUrl";
 import { sendShareEvent, type ShareRecorder } from "@/lib/share/shareRef";
 
@@ -176,7 +175,6 @@ export function RoomChallengeButton({
           void challengeFromRoom(duelId).then(
             (made) => {
               if (!made.ok) {
-                buzz([10, 50, 10]);
                 return setState({ kind: "error", message: made.message });
               }
               noteMyChallenge(made.code);

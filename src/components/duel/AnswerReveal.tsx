@@ -12,7 +12,7 @@ import { puzzleDef, puzzleName, puzzleRevealMs, puzzleTimeLimitMs } from "@/lib/
 import { boardBox } from "@/lib/boardBox";
 import { isRemovedType } from "@/lib/duel/removedGames";
 import { TOTAL_ROUNDS, type PuzzleData, type PuzzleType } from "@/lib/duel/types";
-import { buzz } from "@/lib/motion";
+import { holdHaptics } from "@/lib/haptics";
 import { playSound, stopMusicExcept } from "@/lib/sound";
 import { bombRevealExploded } from "@/puzzles/bombDefusal";
 import { useSolveFlourish } from "@/components/puzzles/useSolveFlourish";
@@ -557,6 +557,8 @@ function LiveAnswerReveal({
   const def = puzzleDef(puzzle.type);
   const Reveal = def.Reveal;
   const puzzleOwnsRevealLayout = puzzle.type === "chain";
+  // Haptics (lib/haptics.ts) never play over a reveal: its boards, replays and verdict cues hold them.
+  useIsoLayoutEffect(() => holdHaptics(), []);
   const cued = useRef(0);
   const scoreCue = useRef<number | undefined>(undefined);
   const solvedBoard = useRef<HTMLDivElement>(null);
@@ -574,13 +576,10 @@ function LiveAnswerReveal({
     // One verdict (none for partial credit), then the score cue 0.35 s later.
     if (puzzle.type === "bomb" && bombRevealExploded(puzzle, myAnswer)) {
       playSound("pz_bomb_explode");
-      buzz([12, 60, 12]);
     } else if (myCorrect) {
       fx.onCorrect(undefined, def.theme);
-      buzz(20);
     } else if (myScore <= 0) {
       fx.onWrong(undefined, def.theme);
-      buzz([12, 60, 12]);
     }
     const score = myScore;
     scoreCue.current = window.setTimeout(() => fx.onRevealScore(score, def.theme), REVEAL_SCORE_DELAY_MS);

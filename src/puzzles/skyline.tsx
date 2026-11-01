@@ -29,7 +29,6 @@ import {
 } from "@/lib/arcade/skyline";
 import { decodeSkylineRun, encodeSkylineRun, replaySkylineRun } from "@/lib/duel/skyline";
 import { ARCADE_CRASH_FREEZE_MS, type SkylinePuzzleData } from "@/lib/duel/types";
-import { buzz } from "@/lib/motion";
 import { drawSkylineArt, SKYLINE_ART_BG, skylineRiverFill } from "@/lib/arcade/skyline.renderer";
 import { skylineSounds } from "@/lib/fx/gameSounds";
 
@@ -195,7 +194,6 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         if (state.current.missed) {
           if (missedAt.current === null) {
             missedAt.current = time;
-            buzz(40);
           } else if (time - missedAt.current >= ARCADE_CRASH_FREEZE_MS) {
             finish();
           }

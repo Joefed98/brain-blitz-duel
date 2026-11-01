@@ -18,7 +18,6 @@ import {
   type SlideDir,
   type SlidePuzzleData,
 } from "@/lib/duel/types";
-import { buzz } from "@/lib/motion";
 import { playCorrect, playWrong } from "@/lib/sound";
 import { puzzleReject } from "@/lib/fx/puzzleReject";
 import { LiveSummary, SummaryItem, useInFrame } from "@/components/puzzles/batchP/LiveSummary";
@@ -142,7 +141,6 @@ function Stage({
     fallsSeen.current = replay.falls;
     setFlash(true);
     puzzleReject(undefined, false);
-    buzz(25);
     playWrong();
     const timer = setTimeout(() => setFlash(false), 320);
     return () => clearTimeout(timer);

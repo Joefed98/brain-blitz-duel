@@ -9,6 +9,7 @@ import {
   type SignatureVerdict,
 } from "./signature";
 import { roundMaxFor } from "@/lib/duel/roundMax";
+import { haptic } from "@/lib/haptics";
 import type { PuzzleType } from "@/lib/duel/types";
 
 /**
@@ -24,7 +25,12 @@ export function useSignatureVerdict(key: string | null, verdict: SignatureVerdic
     fired.current = key;
     const tier = signatureTierForVerdict(verdict);
     const solvedAt = recentSignatureSubmit(verdict.type);
-    if (tier && solvedAt !== null) scheduleSignature(tier, solvedAt);
+    if (tier && solvedAt !== null) {
+      scheduleSignature(tier, solvedAt);
+      // Haptics (lib/haptics.ts): a puzzle's completion, as its verdict lands while the board is still
+      // up (arcade runs feel their own moments and the buzzer instead).
+      if (!verdict.arcade) haptic("success", { inGame: true });
+    }
   }, [key, verdict]);
 }
 

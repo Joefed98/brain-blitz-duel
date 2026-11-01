@@ -19,7 +19,6 @@ import {
 } from "@/lib/duel/swapword";
 import { SWAPWORD_TIME_MS, type SwapwordPuzzleData } from "@/lib/duel/types";
 import { completeFx, fx } from "@/lib/fx";
-import { buzz } from "@/lib/motion";
 import { NO_SCROLL_STYLE, useNoTouchScroll } from "@/components/puzzles/noScroll";
 import { useMoveSync } from "@/components/puzzles/useMoveSync";
 import { goldPulse, playFinish, useWordFinish, wordCue, type FinishStep } from "@/components/puzzles/wordFinish";
@@ -167,7 +166,6 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, checkMoves, stateKey }
       const newlyPlaced = view.marks.filter((m, t) => m === 2 && prev?.[t] !== 2).length;
       if (newlyPlaced > 0 && !view.solved) {
         fx.onPlace();
-        buzz(10);
         // Batch W: the toolkit's right-move glow on each tile that just turned gold (display only; prev
         // is null only for the starting board's first marks, which are not a move).
         if (prev) {
@@ -244,7 +242,6 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, checkMoves, stateKey }
     setMarks((m) => (m ? m.map((v, t) => (t === a || t === b ? null : v)) : m));
     setSelected(null);
     fx.onMove();
-    buzz(6);
     sync(encodeSwapword(next));
   };
 

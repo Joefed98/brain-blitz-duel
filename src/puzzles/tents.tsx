@@ -12,7 +12,6 @@ import {
 } from "@/lib/duel/tents";
 import { TENTS_TIME_MS, type TentsPuzzleData } from "@/lib/duel/types";
 import { playCorrect } from "@/lib/sound";
-import { buzz } from "@/lib/motion";
 
 import { soundCue, useSolveFx } from "./logicFx";
 import { LiveSummary, SummaryItem, useFrameProgress } from "@/components/puzzles/batchP/LiveSummary";
@@ -214,7 +213,6 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
 
   const tap = (cell: number) => {
     if (locked || submitted.current) return;
-    buzz(8);
     const nextMark = (((marks[cell] ?? 0) + 1) % 3) as Mark;
     soundCue(nextMark === 1 ? "tents.pitch" : nextMark === 2 ? "tents.grass" : "tents.clear");
     setPitched(nextMark === 1 ? cell : null);

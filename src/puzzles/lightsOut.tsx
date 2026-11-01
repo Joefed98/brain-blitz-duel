@@ -13,7 +13,6 @@ import {
   type LightsOutPuzzleData,
 } from "@/lib/duel/types";
 import { useGameKeys } from "@/lib/desktop";
-import { buzz } from "@/lib/motion";
 
 import { soundCue, useSolveFx } from "./logicFx";
 import { LiveSummary, SummaryItem, useFrameProgress } from "@/components/puzzles/batchP/LiveSummary";
@@ -204,7 +203,6 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
 
   const press = (cell: number) => {
     if (locked || submitted.current) return;
-    buzz(10);
     soundCue("lightsout.toggle");
     setFlash(cell);
     window.setTimeout(() => setFlash(null), 180);

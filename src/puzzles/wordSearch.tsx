@@ -8,7 +8,6 @@ import { WORDSEARCH_TIME_MS, type WordSearchPlacement, type WordSearchPuzzleData
 import { wsChipSlots, wsDecode, wsEncode, wsGrade, wsHasBonus, wsSnapLine, wsSplitBonus, WS_SIZE, WS_WORDS } from "@/lib/duel/wordSearch";
 import { fx } from "@/lib/fx";
 import { rightMoveFlash } from "@/lib/fx/gameToolkit";
-import { buzz } from "@/lib/motion";
 import { goldPulse, playFinish, useWordFinish, wordCue, type FinishStep } from "@/components/puzzles/wordFinish";
 
 import { useGoalProgress } from "@/components/duel/GameFrame";
@@ -160,12 +159,10 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, checkWord, stateKey }:
       const already = [...found.map((f) => f.word), ...(bonus ? [bonus.word] : [])];
       void checkWord("", already, path).then((verdict) => {
         if (verdict.valid && (verdict as { bonus?: boolean }).bonus) {
-          buzz(18);
           fx.onCorrect();
           setBonus((b) => b ?? { word: verdict.word, cells: path });
           rightMoveFlash(bonusChip.current);
         } else if (verdict.valid) {
-          buzz(12);
           setFound((f) => (f.some((x) => x.word === verdict.word) ? f : [...f, { word: verdict.word, cells: path }]));
         } else if (verdict.reason !== "Already found") {
           setBad(path);
