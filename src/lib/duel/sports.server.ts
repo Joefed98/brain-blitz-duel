@@ -11,7 +11,7 @@ import { FREEKICK_REV_DEALT } from "@/lib/arcade/freekick";
 import { RACING_REV_DEALT } from "@/lib/arcade/racing";
 import { arcadeSeed } from "./arcade.server";
 import { homerunDealSeedV2 } from "./homerunDealV2.server";
-import { freekickDealSeedV2 } from "./freekickDealV2.server";
+import { freekickDealSeedV3 } from "./freekickDealV3.server";
 import { racingDealSeedV2 } from "./racingDealV2.server";
 import { MINIGOLF_REV } from "@/lib/arcade/minigolf";
 import { POOL_REV } from "@/lib/arcade/pool";
@@ -27,8 +27,8 @@ export function generateHomerun(): HomerunPuzzleData {
 }
 
 export function generateFreekick(): FreekickPuzzleData {
-  // Top Bins deals freekickRev 2 (31 Oct 2026) from its own proved deal; rev-1 rounds replay on rev 1.
-  return { type: "freekick", seed: freekickDealSeedV2(arcadeSeed()), freekickRev: FREEKICK_REV_DEALT };
+  // Top Bins deals freekickRev 3 (1 Nov 2026, the prepared shot) from its own proved deal; rev-1 and rev-2 rounds replay on their own.
+  return { type: "freekick", seed: freekickDealSeedV3(arcadeSeed()), freekickRev: FREEKICK_REV_DEALT };
 }
 
 export function generateRacing(): RacingPuzzleData {

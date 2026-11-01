@@ -64,7 +64,7 @@ const STANDARD_ROSTER: readonly { type: string; field: string; rev: number; batc
   { type: "mahjong", field: "mahjongRev", rev: 2, batch: "Cards & Board" },
   // The Sports group (30 Oct 2026): new games born on the standard (rev 1).
   { type: "homerun", field: "homerunRev", rev: 2, batch: "Sports" },
-  { type: "freekick", field: "freekickRev", rev: 2, batch: "Sports" },
+  { type: "freekick", field: "freekickRev", rev: 3, batch: "Sports" },
   // Apex (racing) deals racingRev 2 since 31 Oct 2026 (the lights start, the softer joystick; the same four parts).
   { type: "racing", field: "racingRev", rev: 2, batch: "Sports" },
   // Cards & Board (30 Oct 2026): born on the standard at revision 1.

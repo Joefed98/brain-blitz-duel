@@ -36,8 +36,18 @@ export const FREEKICK_REV_STD = 1;
  * The flight, the keeper's reactions and the scoring are rev 1's.
  */
 export const FREEKICK_REV_2 = 2;
+/**
+ * freekickRev 3 (Top Bins, 1 Nov 2026; docs/arcade-standard/freekick.md "freekickRev 3"): the shot is prepared in
+ * three steps instead of one drawn stroke: tap the goal to aim (FREEKICK_INPUT_AIM: the target point on the goal
+ * plane), drag to set the curl (FREEKICK_INPUT_CURL), then a power meter (FREEKICK_INPUT_POWER starts it,
+ * FREEKICK_INPUT_STRIKE strikes): released inside the sweet zone the ball flies to the target with that curl; past the
+ * zone it rises over (too much) or comes in low and slow (too little), by how far off. Spots, walls, keeper and flight
+ * are rev 2's; a 90 s run (ten 540-tick slots) so there is time to set each shot; the core is full at
+ * FREEKICK_V3_CORE_FULL.
+ */
+export const FREEKICK_REV_3 = 3;
 /** The revision rooms deal. */
-export const FREEKICK_REV_DEALT = FREEKICK_REV_2;
+export const FREEKICK_REV_DEALT = FREEKICK_REV_3;
 export const FREEKICK_RUN_SECONDS = 75;
 export const FREEKICK_RUN_TICKS = FREEKICK_RUN_SECONDS * 60;
 export const FREEKICK_KICKS = 10;
@@ -58,6 +68,42 @@ export const FREEKICK_POWER_MAX = 1000;
 export const FREEKICK_INPUT_RANGES: readonly InputRange[] = [
   inputRange(FREEKICK_INPUT_KICK, [-FREEKICK_AIM_MAX, FREEKICK_AIM_MAX], [-FREEKICK_CURL_MAX, FREEKICK_CURL_MAX], [0, FREEKICK_POWER_MAX]),
 ];
+
+/**
+ * freekickRev 3's inputs (older revisions have no range for them, so they are never recorded or replayed there):
+ * AIM a = the target's x on the goal plane in cm (+ right), b = its height in cm; CURL b = the curl (−100…100, + bends
+ * to the right); POWER starts the meter; STRIKE takes the kick with the meter where it is on that tick.
+ */
+export const FREEKICK_INPUT_AIM = 2;
+export const FREEKICK_INPUT_CURL = 3;
+export const FREEKICK_INPUT_POWER = 4;
+export const FREEKICK_INPUT_STRIKE = 5;
+/** The target (the ball's centre on the goal plane) stays on the frame: out to the posts' and the bar's centres, up from the grass. */
+export const FK_V3_AIM_X_MAX = 372;
+export const FK_V3_AIM_Y_MIN = 11;
+export const FK_V3_AIM_Y_MAX = 250;
+export const FREEKICK_INPUT_RANGES_V3: readonly InputRange[] = [
+  inputRange(FREEKICK_INPUT_AIM, [-FK_V3_AIM_X_MAX, FK_V3_AIM_X_MAX], [FK_V3_AIM_Y_MIN, FK_V3_AIM_Y_MAX]),
+  inputRange(FREEKICK_INPUT_CURL, [0, 0], [-FREEKICK_CURL_MAX, FREEKICK_CURL_MAX]),
+  inputRange(FREEKICK_INPUT_POWER),
+  inputRange(FREEKICK_INPUT_STRIKE),
+];
+/**
+ * The power meter (freekickRev 3): from the POWER tick it sweeps 0 → 1000 → 0 every FK_V3_METER_PERIOD ticks (a
+ * triangle, a function of the ticks since it started alone, so the replay recomputes it from the STRIKE's tick). The
+ * sweet zone is FK_V3_ZONE_LO…FK_V3_ZONE_HI. Past it by e units: too much adds e × FK_V3_OVER_VY to the launch's rise
+ * (the ball arrives higher, over the bar), too little scales the whole launch down by e × FK_V3_UNDER_PERMILLE ‰
+ * (lower and slower, so the keeper has longer).
+ */
+export const FK_V3_METER_PERIOD = 96;
+export const FK_V3_ZONE_LO = 720;
+export const FK_V3_ZONE_HI = 800;
+export const FK_V3_OVER_VY = 20;
+export const FK_V3_UNDER_PERMILLE = 4;
+/** freekickRev 3's run: 90 s, ten 540-tick slots (kick k by 540k + 360). */
+export const FREEKICK_V3_RUN_SECONDS = 90;
+export const FREEKICK_V3_RUN_TICKS = FREEKICK_V3_RUN_SECONDS * 60;
+export const FREEKICK_V3_SLOT = 540;
 
 /** Phases of a kick. */
 export const FK_SETUP = 0;
@@ -171,6 +217,18 @@ export const FREEKICK_STD_SPEC: StdSpec = {
 /** freekickRev 2's spec: rev 1's parts exactly, on its own stamp. */
 export const FREEKICK_V2_STD_SPEC: StdSpec = { ...FREEKICK_STD_SPEC, rev: FREEKICK_REV_2 };
 export const FREEKICK_V2_BAND_CURVE = bandCurve([0, FREEKICK_CORE_FULL], [0, FREEKICK_CORE_MAX]);
+
+/**
+ * freekickRev 3's core: the same units (100 a goal + up to 30 for placement), full at FREEKICK_V3_CORE_FULL (re-fitted
+ * to the prepared shot, docs/arcade-standard/freekick.md "freekickRev 3"); the other parts are rev 1's.
+ */
+export const FREEKICK_V3_CORE_FULL = 1100;
+export const FREEKICK_V3_STD_SPEC: StdSpec = {
+  ...FREEKICK_STD_SPEC,
+  rev: FREEKICK_REV_3,
+  parts: FREEKICK_STD_SPEC.parts.map((p) => (p.key === "core" ? { ...p, how: `10 a goal plus up to 3 for placing it away from the keeper (full at ${FREEKICK_PLACE_FULL_CM / 100} m); the part is full at ${FREEKICK_V3_CORE_FULL / 10}` } : p)),
+};
+export const FREEKICK_V3_BAND_CURVE = bandCurve([0, FREEKICK_V3_CORE_FULL], [0, FREEKICK_CORE_MAX]);
 
 /* ================================ The deal ================================ */
 
@@ -475,7 +533,7 @@ function bounce(f: FkFlight, axis: "x" | "y", ca: number, cb: number): boolean {
 }
 
 /** One tick of a flight (mutates `f`; the sim steps a copy). */
-export function fkFlightStep(k: FkKick, f: FkFlight, frame = true): void {
+export function fkFlightStep(k: FkKick, f: FkFlight, frame = true, ground = true): void {
   f.t += 1;
   const px = f.x;
   const py = f.y;
@@ -504,8 +562,8 @@ export function fkFlightStep(k: FkKick, f: FkFlight, frame = true): void {
       }
     }
   }
-  // Ground.
-  if (f.y < FK_BALL_R) {
+  // Ground (a ghost flight, freekickRev 3's solver, flies through it: its height at the goal plane is then monotonic in power).
+  if (ground && f.y < FK_BALL_R) {
     f.y = FK_BALL_R;
     f.vy = f.vy < -m(0.03) ? -Math.trunc(f.vy / 2) : 0;
     f.vx -= Math.trunc(f.vx / 12);
@@ -618,6 +676,107 @@ export function fkJudge(k: FkKick, f: FkFlight): { goal: boolean; place: number;
   return { goal, place, distCm, target, curled };
 }
 
+/* ================================ freekickRev 3: the prepared shot ================================ */
+
+/** The keeper of a ghost flight stands this far away (no save is ever in reach; products stay far under 2^53). */
+const GHOST_KX = 1000 * FK_M;
+
+/**
+ * Where a shot with no wall and no keeper (and no woodwork) crosses the goal plane (world units), or null when it never
+ * reaches it. The solver's measure (integer, the same everywhere).
+ */
+export function fkGhostCross(k: FkKick, a: number, b: number, c: number): { x: number; y: number } | null {
+  const f = fkLaunch(k, a, b, c);
+  f.wallSide = 2;
+  f.kx = GHOST_KX;
+  while (f.out === FK_OUT_NONE) fkFlightStep(k, f, false, false);
+  if (f.out !== FK_OUT_GOAL && f.out !== FK_OUT_WIDE) return null;
+  return { x: f.crossX, y: f.crossY };
+}
+
+const solveCache = new Map<string, { a: number; c: number }>();
+
+/**
+ * freekickRev 3's aim: the launch (aim a, power c) that, with curl b, crosses the goal plane at (xCm, yCm), found by
+ * alternating integer bisections on the ghost flight (power for the height, aim for the side; three rounds). Pure and
+ * deterministic (cached); the phone, the server and the art all call it.
+ */
+export function fkV3Solve(k: FkKick, xCm: number, yCm: number, b: number): { a: number; c: number } {
+  const key = `${k.bx},${k.bz},${k.wind},${xCm},${yCm},${b}`;
+  const hit = solveCache.get(key);
+  if (hit) return hit;
+  const tx = Math.trunc((xCm * FK_M) / 100);
+  const ty = Math.trunc((yCm * FK_M) / 100);
+  let a = 0;
+  let c = 500;
+  const aimFor = () => {
+    let lo = -FREEKICK_AIM_MAX;
+    let hi = FREEKICK_AIM_MAX;
+    while (hi - lo > 1) {
+      const mid = (lo + hi) >> 1;
+      const x = fkGhostCross(k, mid, b, c);
+      // A yaw so wide the ball never reaches the goal plane counts as wide on its own side.
+      if (x ? x.x < tx : mid < 0) lo = mid;
+      else hi = mid;
+    }
+    const xl = fkGhostCross(k, lo, b, c);
+    const xh = fkGhostCross(k, hi, b, c);
+    a = !xh || (xl && Math.abs(xl.x - tx) <= Math.abs(xh.x - tx)) ? lo : hi;
+  };
+  const powerFor = () => {
+    let lo = 0;
+    let hi = FREEKICK_POWER_MAX;
+    while (hi - lo > 1) {
+      const mid = (lo + hi) >> 1;
+      const y = fkGhostCross(k, a, b, mid);
+      if (!y || y.y < ty) lo = mid;
+      else hi = mid;
+    }
+    const yl = fkGhostCross(k, a, b, lo);
+    const yh = fkGhostCross(k, a, b, hi);
+    c = !yh || (yl && Math.abs(yl.y - ty) <= Math.abs(yh.y - ty)) ? lo : hi;
+  };
+  aimFor();
+  const near = Math.trunc((2 * FK_M) / 100);
+  for (let round = 0; round < 8; round++) {
+    powerFor();
+    aimFor();
+    const at = fkGhostCross(k, a, b, c);
+    if (at && Math.abs(at.x - tx) <= near && Math.abs(at.y - ty) <= near) break;
+  }
+  const out = { a, c };
+  if (solveCache.size > 4000) solveCache.clear();
+  solveCache.set(key, out);
+  return out;
+}
+
+/** The meter's value (0…1000) `ticks` after it started: a triangle sweep, FK_V3_METER_PERIOD ticks a cycle. */
+export function fkV3Meter(ticks: number): number {
+  const half = FK_V3_METER_PERIOD / 2;
+  const p = ((ticks % FK_V3_METER_PERIOD) + FK_V3_METER_PERIOD) % FK_V3_METER_PERIOD;
+  return p <= half ? Math.trunc((p * 1000) / half) : Math.trunc(((FK_V3_METER_PERIOD - p) * 1000) / half);
+}
+
+/** How far a meter value is past the sweet zone: + too much, − too little, 0 a clean strike. */
+export function fkV3MeterError(meter: number): number {
+  return meter > FK_V3_ZONE_HI ? meter - FK_V3_ZONE_HI : meter < FK_V3_ZONE_LO ? meter - FK_V3_ZONE_LO : 0;
+}
+
+/** freekickRev 3's launch: the solved shot for the target and curl, then the meter's error applied. */
+export function fkV3Launch(k: FkKick, xCm: number, yCm: number, b: number, meter: number): FkFlight {
+  const s = fkV3Solve(k, xCm, yCm, b);
+  const f = fkLaunch(k, s.a, b, s.c);
+  const e = fkV3MeterError(meter);
+  if (e > 0) f.vy += e * FK_V3_OVER_VY;
+  else if (e < 0) {
+    const keep = Math.max(250, 1000 + e * FK_V3_UNDER_PERMILLE);
+    f.vx = Math.trunc((f.vx * keep) / 1000);
+    f.vy = Math.trunc((f.vy * keep) / 1000);
+    f.vz = Math.trunc((f.vz * keep) / 1000);
+  }
+  return f;
+}
+
 /* ================================ The sim ================================ */
 
 export interface FreekickState {
@@ -645,11 +804,35 @@ export interface FreekickState {
   curled: number;
   streak: number;
   best: number;
+  /**
+   * freekickRev 3 only (absent on earlier revisions, so their states are unchanged): the shot being prepared for the
+   * current kick: the target (cm on the goal plane; aimed 0 until the first AIM), the curl, the tick the power meter
+   * started (−1 not started), and the meter's value at the strike (−1 before it).
+   */
+  aimX?: number;
+  aimY?: number;
+  aimed?: number;
+  curl?: number;
+  meterAt?: number;
+  strikeM?: number;
 }
 
 export function fkDeadline(k: number): number {
   return FREEKICK_SLOT * k + FREEKICK_DEADLINE_IN_SLOT;
 }
+
+/** A kick's deadline on a revision (freekickRev 3: 540-tick slots in a 90 s run). */
+export function fkDeadlineFor(rev: number, k: number): number {
+  return rev >= FREEKICK_REV_3 ? FREEKICK_V3_SLOT * k + FREEKICK_V3_SLOT - FREEKICK_FLIGHT_MAX - FREEKICK_SETTLE_TICKS : fkDeadline(k);
+}
+
+/** The run's length on a revision (ticks). */
+export function fkRunTicksFor(rev: number): number {
+  return rev >= FREEKICK_REV_3 ? FREEKICK_V3_RUN_TICKS : FREEKICK_RUN_TICKS;
+}
+
+/** freekickRev 3's fresh shot for a new kick (no target, no curl, meter off). */
+const V3_FRESH = { aimX: 0, aimY: 0, aimed: 0, curl: 0, meterAt: -1, strikeM: -1 } as const;
 
 function initFor(rev: number) {
   return (seed: number) => init(seed, rev);
@@ -665,7 +848,7 @@ function init(seed: number, rev: number = FREEKICK_REV_STD): FreekickState {
     k: 0,
     phase: FK_SETUP,
     phaseTick: 0,
-    deadline: fkDeadline(0),
+    deadline: fkDeadlineFor(rev, 0),
     fl: null,
     kickTick: 0,
     outs: new Array<number>(FREEKICK_KICKS).fill(-1),
@@ -677,6 +860,7 @@ function init(seed: number, rev: number = FREEKICK_REV_STD): FreekickState {
     curled: 0,
     streak: 0,
     best: 0,
+    ...(rev >= FREEKICK_REV_3 ? V3_FRESH : {}),
   };
 }
 
@@ -710,13 +894,35 @@ function resolve(s: FreekickState, kick: FkKick, out: number, f: FkFlight | null
 }
 
 function step(state: FreekickState, input: ArcadeInputEvent | null): FreekickState {
-  if (state.phase === FK_OVER || state.tick >= FREEKICK_RUN_TICKS) return state;
+  if (state.phase === FK_OVER || state.tick >= fkRunTicksFor(state.freekickRev)) return state;
   const s: FreekickState = { ...state, tick: state.tick + 1 };
   const kick = fkKickOf(s);
   if (s.phase === FK_SETUP) {
     if (s.tick - s.phaseTick >= FREEKICK_SETUP_TICKS) {
       s.phase = FK_AIM;
       s.phaseTick = s.tick;
+    }
+  } else if (s.phase === FK_AIM && s.freekickRev >= FREEKICK_REV_3) {
+    // freekickRev 3: aim and curl (redone freely until the meter starts), the meter, the strike.
+    const metering = (s.meterAt ?? -1) >= 0;
+    if (input && input.k === FREEKICK_INPUT_AIM && !metering) {
+      s.aimX = clampInt(Math.trunc(input.a), -FK_V3_AIM_X_MAX, FK_V3_AIM_X_MAX);
+      s.aimY = clampInt(Math.trunc(input.b), FK_V3_AIM_Y_MIN, FK_V3_AIM_Y_MAX);
+      s.aimed = 1;
+    } else if (input && input.k === FREEKICK_INPUT_CURL && !metering) {
+      s.curl = clampInt(Math.trunc(input.b), -FREEKICK_CURL_MAX, FREEKICK_CURL_MAX);
+    } else if (input && input.k === FREEKICK_INPUT_POWER && !metering && s.aimed === 1) {
+      s.meterAt = s.tick;
+    } else if (input && input.k === FREEKICK_INPUT_STRIKE && metering) {
+      const meter = fkV3Meter(s.tick - (s.meterAt ?? 0));
+      s.strikeM = meter;
+      s.fl = fkV3Launch(kick, s.aimX ?? 0, s.aimY ?? 0, s.curl ?? 0, meter);
+      s.kickTick = s.tick;
+      s.acted += 1;
+      s.phase = FK_FLIGHT;
+      s.phaseTick = s.tick;
+    } else if (s.tick >= s.deadline) {
+      resolve(s, kick, FK_OUT_UNTAKEN, null);
     }
   } else if (s.phase === FK_AIM) {
     if (input && input.k === FREEKICK_INPUT_KICK) {
@@ -742,7 +948,8 @@ function step(state: FreekickState, input: ArcadeInputEvent | null): FreekickSta
       else {
         s.phase = FK_SETUP;
         s.phaseTick = s.tick;
-        s.deadline = fkDeadline(s.k);
+        s.deadline = fkDeadlineFor(s.freekickRev, s.k);
+        if (s.freekickRev >= FREEKICK_REV_3) Object.assign(s, V3_FRESH);
       }
     }
   }
@@ -750,16 +957,21 @@ function step(state: FreekickState, input: ArcadeInputEvent | null): FreekickSta
 }
 
 function isOver(state: FreekickState): boolean {
-  return state.phase === FK_OVER || state.tick >= FREEKICK_RUN_TICKS;
+  return state.phase === FK_OVER || state.tick >= fkRunTicksFor(state.freekickRev);
 }
 
-/** freekickRev 1's and 2's scored parts (the same parts, each on its own spec; null on any other revision). */
+/**
+ * freekickRev 1's, 2's and 3's scored parts (the same parts, each on its own spec; rev 3's core full at
+ * FREEKICK_V3_CORE_FULL; null on any other revision).
+ */
 export function freekickStdParts(state: FreekickState): StdPart[] | null {
-  const spec = state.freekickRev === FREEKICK_REV_STD ? FREEKICK_STD_SPEC : state.freekickRev === FREEKICK_REV_2 ? FREEKICK_V2_STD_SPEC : null;
+  const r = state.freekickRev;
+  const spec = r === FREEKICK_REV_STD ? FREEKICK_STD_SPEC : r === FREEKICK_REV_2 ? FREEKICK_V2_STD_SPEC : r === FREEKICK_REV_3 ? FREEKICK_V3_STD_SPEC : null;
   if (!spec) return null;
   const placed = state.units - state.goals * FREEKICK_GOAL_UNITS;
+  const full = r === FREEKICK_REV_3 ? FREEKICK_V3_CORE_FULL : FREEKICK_CORE_FULL;
   return [
-    stdPart(spec, "core", stdLine(FREEKICK_CORE_MAX, state.units, FREEKICK_CORE_FULL), `${state.goals} of ${FREEKICK_KICKS} scored · placement ${placed} of ${state.goals * FREEKICK_PLACE_UNITS}`),
+    stdPart(spec, "core", stdLine(FREEKICK_CORE_MAX, state.units, full), `${state.goals} of ${FREEKICK_KICKS} scored · placement ${placed} of ${state.goals * FREEKICK_PLACE_UNITS}`),
     stdPart(spec, "targets", stdEach(state.targets, 10, FREEKICK_TARGETS_MAX), `${state.targets} of ${FREEKICK_TARGETS} targets`),
     stdPart(spec, "curl", stdEach(state.curled, 2, FREEKICK_CURL_MAX_PTS), `${state.curled} round the wall`),
     stdPart(spec, "streak", state.best >= FREEKICK_STREAK_RUN ? FREEKICK_STREAK_MAX : 0, `best ${state.best} in a row`),
@@ -808,9 +1020,18 @@ export const freekickGame: ArcadeGame<FreekickState, ArcadeInputEvent | null> = 
 /** freekickRev 2's game: the same step (the kick plan follows the state's stamp), started on rev 2. */
 export const freekickGameV2: ArcadeGame<FreekickState, ArcadeInputEvent | null> = { ...freekickGame, init: initFor(FREEKICK_REV_2) };
 
-/** The game for a stored stamp: rev 2 on freekickRev 2 and above, else rev 1 (unstamped rounds included). */
+/** freekickRev 3's game: the same step on rev 3 (the prepared shot), its own inputs and a 90 s run. */
+export const freekickGameV3: ArcadeGame<FreekickState, ArcadeInputEvent | null> = {
+  ...freekickGame,
+  runTicks: FREEKICK_V3_RUN_TICKS,
+  init: initFor(FREEKICK_REV_3),
+  inputRanges: FREEKICK_INPUT_RANGES_V3,
+};
+
+/** The game for a stored stamp: rev 3 on freekickRev 3 and above, rev 2 on 2, else rev 1 (unstamped rounds included). */
 export function freekickGameFor(rev?: number | null): ArcadeGame<FreekickState, ArcadeInputEvent | null> {
-  return (rev ?? FREEKICK_REV_STD) >= FREEKICK_REV_2 ? freekickGameV2 : freekickGame;
+  const r = rev ?? FREEKICK_REV_STD;
+  return r >= FREEKICK_REV_3 ? freekickGameV3 : r >= FREEKICK_REV_2 ? freekickGameV2 : freekickGame;
 }
 
 /* ================================ Checkpoints ================================ */
@@ -834,6 +1055,8 @@ export function freekickCheckpoint(state: FreekickState): FreekickCheckpoint {
   const snap = { tick: state.tick, k: state.k, phase: state.phase, x: f?.x ?? 0, y: f?.y ?? 0, z: f?.z ?? 0, goals: state.goals, units: state.units };
   let checksum = 0x811c9dc5;
   const extra = [state.acted, state.targets, state.curled, state.best, state.streak, state.kickTick, f?.kx ?? 0, f?.vx ?? 0, f?.vy ?? 0, f?.vz ?? 0, f?.out ?? 0, ...state.outs];
+  // freekickRev 3: the prepared shot too (earlier revisions' checksums are unchanged).
+  if (state.freekickRev >= FREEKICK_REV_3) extra.push(state.aimX ?? 0, state.aimY ?? 0, state.aimed ?? 0, state.curl ?? 0, state.meterAt ?? 0, state.strikeM ?? 0);
   for (const value of [...Object.values(snap), ...extra]) {
     checksum ^= value | 0;
     checksum = Math.imul(checksum, 0x01000193) >>> 0;
