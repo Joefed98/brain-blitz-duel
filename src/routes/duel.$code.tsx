@@ -139,6 +139,7 @@ import { startRaceGhosts } from "@/lib/duel/raceGhosts";
 import { podiumAwards } from "@/lib/duel/podiumAwards";
 import { awardRoundsFor } from "@/lib/duel/awardRounds";
 import { roomInvite } from "@/lib/duel/roomLink";
+import { APP_URL } from "@/config/appUrl";
 import { noteSignatureSubmit } from "@/lib/fx/signature";
 import { useSignatureHold, useSignatureVerdict } from "@/lib/fx/useSignature";
 import { APP_NAME, APP_TAGLINE } from "@/lib/brand";
@@ -208,7 +209,7 @@ function HomeButton({ label = "Back to home" }: { label?: string }) {
 /** Lobby controls: Copy and Share both hand over the room link plus the code. */
 function LobbyActions({ roomCode }: { roomCode: string }) {
   const [copied, setCopied] = useState(false);
-  const { link, text } = roomInvite(roomCode, typeof window === "undefined" ? "" : window.location.origin);
+  const { link, text } = roomInvite(roomCode, APP_URL);
 
   const copy = async () => {
     try {

@@ -10,9 +10,9 @@ import { noteMyChallenge } from "@/lib/duel/challengeRecord";
 import type { StoredPuzzleType } from "@/lib/duel/types";
 import { resultCardFile } from "@/lib/share/resultCard";
 import type { RoomShareData, RoomShareTop } from "@/lib/share/roomShare";
+import { APP_URL } from "@/config/appUrl";
 import { sendShareEvent, type ShareRecorder } from "@/lib/share/shareRef";
 
-const origin = () => (typeof window === "undefined" ? "" : window.location.origin);
 
 /** Whether friend challenges are available (the migration applied); null until the server answers. */
 export function useChallengeStatus(): boolean | null {
@@ -96,7 +96,7 @@ export function ChallengeShareButton({
   className?: string;
   record?: ShareRecorder;
 }) {
-  const link = challengeLink(origin(), code);
+  const link = challengeLink(APP_URL, code);
   const card = useMemo(
     () =>
       kind === "result"

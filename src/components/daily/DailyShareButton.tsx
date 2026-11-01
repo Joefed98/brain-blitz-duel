@@ -1,4 +1,5 @@
 import { ShareResultButton } from "@/components/share/ShareResultButton";
+import { APP_URL } from "@/config/appUrl";
 import { APP_NAME } from "@/lib/brand";
 import type { DailyKind } from "@/lib/duel/daily";
 import { dailyShareLine, dailyShareLink } from "@/lib/share/dailyShare";
@@ -19,7 +20,6 @@ export function DailyShareButton({
   className?: string;
   record?: ShareRecorder;
 }) {
-  const origin = typeof window === "undefined" ? "" : window.location.origin;
   return (
     <ShareResultButton
       className={className}
@@ -27,7 +27,7 @@ export function DailyShareButton({
       input={{
         title: `${APP_NAME} daily`,
         lines: [dailyShareLine(kind, total)],
-        link: dailyShareLink(origin, kind),
+        link: dailyShareLink(APP_URL, kind),
       }}
       onTap={(method) => record({ event: "share_tap", source: "daily", dailyKind: kind, method })}
     />
