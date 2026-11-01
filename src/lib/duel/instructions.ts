@@ -155,6 +155,8 @@ import {
   SNAKE_STD_LANE_RIDE,
   SNAKE_STD_WARP_TICKS,
   SNAKE_STD_WARP_POINTS,
+  SNAKE_V12_CORE_STARS,
+  SNAKE_V12_GOLD_CORE,
 } from "@/lib/arcade/snake";
 import { BEAT_V9_CAPS, BEAT_V9_SKILL_PAY } from "@/lib/arcade/beat";
 import {
@@ -899,7 +901,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Quick stars build a combo;", detail: "wormholes and violet lanes are quick, risky shortcuts.", helpOnly: true },
         { action: "At 20 stars,", detail: "a meteor shower drops 3 rocks!", helpOnly: true },
         { action: "Wormholes:", detail: `three pairs of swirling mouths. Go into one and you come straight out of its twin, still heading the same way, so look before you leap. A star eaten within ${SNAKE_STD_WARP_TICKS / 60} s of a trip is a warp star (+${SNAKE_STD_WARP_POINTS}).`, helpOnly: true },
-        { action: "Gold comet stars:", detail: `about every 7 s a gold star appears for 5 s and fades. The ${SNAKE_STD_GOLDS} gold stars share ${SNAKE_STD_CAPS.gold} points: each is worth about ${(SNAKE_STD_CAPS.gold / SNAKE_STD_GOLDS).toFixed(1)} the moment it appears, falling evenly to 0 as it fades. It doesn't make you longer.`, helpOnly: true },
+        { action: "Gold comet stars:", detail: `about every 7 s a gold star appears for 5 s and fades. The ${SNAKE_STD_GOLDS} gold stars share ${SNAKE_STD_CAPS.gold} points: each is worth about ${(SNAKE_STD_CAPS.gold / SNAKE_STD_GOLDS).toFixed(1)} the moment it appears, falling evenly to 0 as it fades. Each also counts as ${SNAKE_V12_GOLD_CORE} stars towards your stars. It doesn't make you longer.`, helpOnly: true },
         { action: "Violet speed lanes:", detail: `one row and two columns. Travelling along one you move faster; every ride of ${SNAKE_STD_LANE_RIDE} squares in a row along a lane scores ${SNAKE_STD_LANE_POINTS}.`, helpOnly: true },
         { action: "Combo:", detail: `eat stars within ${SNAKE_STD_COMBO_TICKS / 60} s of each other; from the third in a row each star adds 1 bonus point.`, helpOnly: true },
         { action: "Rocks hit only your head.", detail: "A rock on your tail does nothing, and your tail passes through rocks. A big rock fills a 2 × 2 block: keep your head off all four squares.", helpOnly: true },
@@ -909,11 +911,12 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Taller and wider field:", detail: `${SNAKE_V9_COLS} squares across and ${SNAKE_V9_ROWS} down, so stars can be further away.`, helpOnly: true },
         { action: "Everyone gets", detail: "the same stars, and every rock lands on the same square at the same moment.", helpOnly: true },
       ],
-      // snakeRev 11 (the arcade scoring standard): stars on a straight line to 120, then four fixed feature parts, 200 in all.
-      score: liveBandHelp("snake", "Each star eaten counts the same.", {
+      // snakeRev 12 (1 Nov 2026): stars on a straight line to 120, full at 20, a big gold star counting 2; then four fixed
+      // feature parts, 200 in all.
+      score: liveBandHelp("snake", `Each star eaten counts 1, each big gold star ${SNAKE_V12_GOLD_CORE}.`, {
         more: "More stars",
-        good: (u) => `eats ${u} stars`,
-        finish: `Gold stars add up to ${SNAKE_STD_CAPS.gold}, combos up to ${SNAKE_STD_CAPS.combo}, lane rides up to ${SNAKE_STD_CAPS.lane} and warp stars up to ${SNAKE_STD_CAPS.warp}: ${SNAKE_STD_CORE_MAX} + ${SNAKE_STD_CAPS.gold + SNAKE_STD_CAPS.combo + SNAKE_STD_CAPS.lane + SNAKE_STD_CAPS.warp} = ${SNAKE_STD_CORE_MAX + SNAKE_STD_CAPS.gold + SNAKE_STD_CAPS.combo + SNAKE_STD_CAPS.lane + SNAKE_STD_CAPS.warp}. A crash ends the run.`,
+        good: (u) => `counts ${u} stars`,
+        finish: `Stars are full at ${SNAKE_V12_CORE_STARS}. Gold stars also add up to ${SNAKE_STD_CAPS.gold}, combos up to ${SNAKE_STD_CAPS.combo}, lane rides up to ${SNAKE_STD_CAPS.lane} and warp stars up to ${SNAKE_STD_CAPS.warp}: ${SNAKE_STD_CORE_MAX} + ${SNAKE_STD_CAPS.gold + SNAKE_STD_CAPS.combo + SNAKE_STD_CAPS.lane + SNAKE_STD_CAPS.warp} = ${SNAKE_STD_CORE_MAX + SNAKE_STD_CAPS.gold + SNAKE_STD_CAPS.combo + SNAKE_STD_CAPS.lane + SNAKE_STD_CAPS.warp}. A crash ends the run.`,
       }),
     },
     cross: {

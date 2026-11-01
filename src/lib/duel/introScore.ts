@@ -106,7 +106,7 @@ function introScoreTemplates(): Record<PuzzleType, string> {
     bullseye: `Rings ${BULLSEYE_RING_VALUES.join(" / ")}, inner bull ${BULLSEYE_INNER_BULL_POINTS}; streaks, dead-centre add more. Up to {max}.`,
     // matchupRev 11 (the arcade scoring standard): gems cleared, then treasure, goals, ice and big lines.
     matchup: "Every gem cleared scores; treasure, goals, ice and lines of 4 or 5 add more. Up to {max}.",
-    snake: "Stars score up to 120; gold stars, combos, lanes and warps add 80 more. Up to {max}.",
+    snake: "Stars to 120 at 20 (gold stars count 2); gold, combos, lanes, warps add 80. Up to {max}.",
     cross: "150 for rows and crossings, coins 30, a clean streak 10, close calls 10. Up to {max}.",
     breaker: "Every brick scores; gold bricks add 30. Clear all 105 quickly for up to {max}.",
     rally: "Gold-ball hits, pink targets and gold targets. Up to {max}.",

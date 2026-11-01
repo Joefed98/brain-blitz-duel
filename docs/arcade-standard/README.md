@@ -64,7 +64,7 @@ replay exactly as before; standard-live-check grades every stored arcade run thr
 | Tilt | `tilt` | `tiltRev` 10 | A | [tilt.md](tilt.md) |
 | Fission | `burst` | `burstRev` 10 | A | [burst.md](burst.md) |
 | Gemstone | `matchup` | `matchupRev` 11 | A | [matchup.md](matchup.md) |
-| Meteor | `snake` | `snakeRev` 11 | A | [snake.md](snake.md) |
+| Meteor | `snake` | `snakeRev` 12 | A | [snake.md](snake.md) |
 | Hover | `hover` | `hoverRev` 10 | A | [hover.md](hover.md) |
 | High Rise | `skyline` | `skylineRev` 9 | B | [skyline.md](skyline.md) |
 | Swish | `bintoss` | `binRev` 9 | B | [bintoss.md](bintoss.md) |
@@ -114,7 +114,7 @@ identical seeded run. Per-game detail, rules and assumptions are in this folder 
 | Tilt | `tiltRev` 10 | 140, 35 a maze (30 finish + 5 progress), 4 mazes | all four 10, speed 20 (full by 75 s), gold stars 30 | 200 |
 | Fission | `burstRev` 10 | 140, share of all 87 atoms (splits count) | wave clears 35 (7 × 5), golden atoms 25; a lost life −5 | 200 |
 | Gemstone | `matchupRev` 11 | 110, gems cleared, full at 375 | treasure 40 (10 × 4), goals 30, ice 10, big lines 10 | 200 |
-| Meteor | `snakeRev` 11 | 120, stars eaten, full at 27 | gold stars 40, combos 20, lane rides 10, warp stars 10 | 200 |
+| Meteor | `snakeRev` 12 | 120, stars eaten (a gold star counts 2), full at 20 (snakeRev 11: 27 stars) | gold stars 40, combos 20, lane rides 10, warp stars 10 | 200 |
 | Hover | `hoverRev` 10 | 120, barriers passed (42) | star chains 30, gold stars 20, tight gates 20, centre line 10 | 200 |
 
 Core targets measured with the skill-band tool: Gemstone 375 gems (near-flawless median 376); Meteor 27 stars (great's
