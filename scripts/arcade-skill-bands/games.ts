@@ -72,7 +72,7 @@ import { mahjongCheckpoint, mahjongGameFor, MAHJONG_REV_STD } from "../../src/li
 import { encodeMahjongRun, replayMahjongRun } from "../../src/lib/duel/mahjong";
 import { homerunCheckpoint, homerunGameFor, HOMERUN_REV_DEALT } from "../../src/lib/arcade/homerun";
 import { encodeHomerunRun, replayHomerunRun } from "../../src/lib/duel/homerun";
-import { homerunDealSeedV2 } from "../../src/lib/duel/homerunDealV2.server";
+import { homerunDealSeedV3 } from "../../src/lib/duel/homerunDealV3.server";
 import { freekickCheckpoint, freekickGameFor, FREEKICK_REV_DEALT } from "../../src/lib/arcade/freekick";
 import { encodeFreekickRun, replayFreekickRun } from "../../src/lib/duel/freekick";
 import { freekickDealSeedV2 } from "../../src/lib/duel/freekickDealV2.server";
@@ -281,8 +281,8 @@ export const GAMES: GameSpec[] = [
   simple("mahjong", MAHJONG_REV_STD, MAHJONG_REV_STD, mahjongGameFor, mahjongCheckpoint, encodeMahjongRun, replayMahjongRun),
   // The Sports group (30 Oct 2026): born on the arcade scoring standard (rev 1 is live and next); rooms deal a seed from
   // each game's proved deal (the oracle took it to 200 through the server replay), picked by the room seed.
-  // homerunRev 2 (31 Oct 2026): the finer aim, on rev 2's own proved deal.
-  { ...simple("homerun", HOMERUN_REV_DEALT, HOMERUN_REV_DEALT, homerunGameFor, homerunCheckpoint, encodeHomerunRun, replayHomerunRun), seedFor: (n) => homerunDealSeedV2(roomSeed(n)) },
+  // homerunRev 3 (1 Nov 2026): the swing choice and the pitcher's tell, on rev 3's own proved deal.
+  { ...simple("homerun", HOMERUN_REV_DEALT, HOMERUN_REV_DEALT, homerunGameFor, homerunCheckpoint, encodeHomerunRun, replayHomerunRun), seedFor: (n) => homerunDealSeedV3(roomSeed(n)) },
   { ...simple("freekick", FREEKICK_REV_DEALT, FREEKICK_REV_DEALT, freekickGameFor, freekickCheckpoint, encodeFreekickRun, replayFreekickRun), seedFor: (n) => freekickDealSeedV2(roomSeed(n)) },
   // Apex (racing) deals racingRev 2 from its own proved deal since 31 Oct 2026.
   { ...simple("racing", RACING_REV_DEALT, RACING_REV_DEALT, racingGameFor, racingCheckpoint, encodeRacingRun, replayRacingRun), seedFor: (n) => racingDealSeedV2(roomSeed(n)) },

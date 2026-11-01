@@ -18,6 +18,7 @@ export const DESKTOP_KEYS: Partial<Record<PuzzleType, readonly (readonly [string
   cross: [["← → ↑ ↓", "step"]],
   flip: [["Space", "flip"]],
   hover: [["Space", "flap"]],
+  homerun: [["Mouse drag", "swing"], ["C / P", "Contact / Power"]],
   inkbridge: [["Mouse", "draw"], ["Enter", "release"], ["Z", "undo"], ["R", "reset"], ["D", "drop again"]],
   matchup: [["← → ↑ ↓", "move"], ["Space", "pick"], ["Arrow", "swap picked gem"]],
   orbit: [["Space", "release"], ["C", "checkpoint"]],

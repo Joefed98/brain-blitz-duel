@@ -5,17 +5,24 @@ import {
   homerunGameFor,
   HOMERUN_BG,
   HOMERUN_CHECKPOINT_INTERVAL,
+  HOMERUN_INPUT_MODE,
   HOMERUN_INPUT_SWING,
+  HOMERUN_MODE_CONTACT,
+  HOMERUN_MODE_POWER,
+  HOMERUN_REV_3,
+  HOMERUN_REV_DEALT,
   homerunSwingStartPx,
+  type HomerunState,
   HOMERUN_WORLD_H,
   HOMERUN_WORLD_W,
 } from "@/lib/arcade/homerun";
 import { drawHomerunArt, homerunScene } from "@/lib/arcade/homerun.renderer";
 import { encodeHomerunRun, replayHomerunRun } from "@/lib/duel/homerun";
 import { HOMERUN_TIME_MS, type HomerunPuzzleData } from "@/lib/duel/types";
-import { ArcadeCanvasStage } from "@/components/puzzles/ArcadeCanvasStage";
+import { ArcadeCanvasStage, type PointerPayload } from "@/components/puzzles/ArcadeCanvasStage";
+import { ArcadeControlButton } from "@/components/puzzles/ArcadeControlButton";
 import { homerunSounds } from "@/lib/fx/homerunSounds";
-import { useMemo, useRef } from "react";
+import { useMemo, useRef, useState } from "react";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
@@ -62,14 +69,43 @@ function IntroExample() {
         <path d="M70 84 L84 44 L87 45 L73 85 Z" fill="#C08A52" />
       </svg>
       <p className="text-center text-xs text-muted-foreground">
-        Read the pitch, then swipe through the ball as it arrives: your swipe's height meets the pitch, its angle sends it left, centre or right.
+        Pick Contact or Power, read the pitcher's tell, then swipe through the ball as it arrives: your swipe's height meets the pitch, its angle sends it left, centre or right.
       </p>
     </div>
   );
 }
 
+/** The sound observer, also handing each drawn frame's swing choice to the Contact / Power buttons (homerunRev 3). */
+function homerunObserver(onMode: (mode: number) => void) {
+  return () => {
+    const inner = homerunSounds();
+    return {
+      frame: (state: HomerunState, running: boolean) => {
+        onMode(state.mode);
+        inner.frame(state, running);
+      },
+      stop: () => inner.stop(),
+    };
+  };
+}
+
+const MODE_BUTTON =
+  "h-[48px] flex-1 rounded-xl border-2 px-3 text-[15px] font-extrabold tracking-wide hover:bg-background/40";
+
 function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const data: HomerunPuzzleData | null = puzzle.type === "homerun" ? puzzle : null;
+  // homerunRev 3: the Contact / Power choice under the field (the sim's own choice lights its button).
+  const choose = (data?.homerunRev ?? 1) >= HOMERUN_REV_3;
+  const [mode, setMode] = useState(HOMERUN_MODE_CONTACT);
+  const shown = useRef(HOMERUN_MODE_CONTACT);
+  const sounds = useRef(
+    homerunObserver((m) => {
+      if (m === shown.current) return;
+      shown.current = m;
+      setMode(m);
+    }),
+  );
+  const pick = (m: number): PointerPayload => ({ k: HOMERUN_INPUT_MODE, a: m, b: 0, c: 0 });
   // devWarp: development review shots only (scripts/shots/homerun-tuning-shots.ts); production returns the game as is.
   const game = useMemo(() => ({ ...devWarp("homerun", homerunGameFor(data?.homerunRev)), draw: drawHomerunArt }), [data?.homerunRev]);
   // The swipe: where the finger went down, and whether this swipe has already started the swing.
@@ -89,7 +125,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       worldW={HOMERUN_WORLD_W}
       worldH={HOMERUN_WORLD_H}
       game={game}
-      sounds={homerunSounds}
+      sounds={choose ? sounds.current : homerunSounds}
       checkpoint={homerunCheckpoint}
       interval={HOMERUN_CHECKPOINT_INTERVAL}
       encodeRun={encodeHomerunRun}
@@ -115,6 +151,49 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         const angle = Math.round((Math.atan2(-dy, -dx) * 1800) / Math.PI);
         return { k: HOMERUN_INPUT_SWING, a: Math.round(s.y), b: Math.max(-900, Math.min(900, angle)), c: 0 };
       }}
+      keys={(kind, key, send) => {
+        // homerunRev 3: C (or 1) Contact, P (or 2) Power; the swing itself is the mouse drag.
+        if (!choose) return false;
+        const k = key.toLowerCase();
+        const m = k === "c" || k === "1" ? HOMERUN_MODE_CONTACT : k === "p" || k === "2" ? HOMERUN_MODE_POWER : -1;
+        if (m < 0) return false;
+        if (kind === "down") send(pick(m));
+        return true;
+      }}
+      footer={
+        choose
+          ? (send) => (
+              // The swing choice for the next pitch, under the field; the lit one is the sim's. Its row ends 16 px above the
+              // bottom like every arcade control row.
+              <div data-game-controls="swing" className="flex h-[52px] shrink-0 items-center gap-2 px-1">
+                {[
+                  { m: HOMERUN_MODE_CONTACT, label: "Contact", hint: "easier timing" },
+                  { m: HOMERUN_MODE_POWER, label: "Power", hint: "goes further" },
+                ].map(({ m, label, hint }) => (
+                  <ArcadeControlButton
+                    key={m}
+                    type="button"
+                    aria-label={`${label} swing`}
+                    aria-pressed={mode === m}
+                    disabled={locked}
+                    data-swing-mode={m === HOMERUN_MODE_POWER ? "power" : "contact"}
+                    className={`${MODE_BUTTON} ${
+                      mode === m
+                        ? "border-primary bg-primary/20 text-primary shadow-[0_0_12px_rgba(245,184,46,0.3)] hover:bg-primary/20 active:bg-primary/30"
+                        : "border-foreground/25 bg-background/40 text-foreground/80 active:bg-foreground/15"
+                    }`}
+                    onPressStart={() => send(pick(m))}
+                  >
+                    <span className="flex flex-col items-center leading-tight">
+                      <span>{label}</span>
+                      <span className="text-[10px] font-semibold opacity-75">{hint}</span>
+                    </span>
+                  </ArcadeControlButton>
+                ))}
+              </div>
+            )
+          : undefined
+      }
       onSubmit={(answer) => onSubmit(answer)}
       onDraftAnswer={onDraftAnswer}
     />
@@ -148,7 +227,7 @@ export const homerunPuzzle: PuzzleDefinition = {
   category: "arcade",
   timeLimitMs: HOMERUN_TIME_MS,
   revealMs: 6_000,
-  generate: () => ({ type: "homerun", seed: 1, homerunRev: 2 }) satisfies HomerunPuzzleData,
+  generate: () => ({ type: "homerun", seed: 1, homerunRev: HOMERUN_REV_DEALT }) satisfies HomerunPuzzleData,
   check: () => false,
   revealHeading: "Your run",
   IntroExample,
