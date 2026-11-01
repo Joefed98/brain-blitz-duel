@@ -52,6 +52,15 @@ shared screens.
 | `lightup.dot` | A square is marked with a dot | — |
 | `lightup.clear` | A square is cleared | — |
 | `lightup.solve` | Every square is lit with no clash and every number met | ~1.17 s: warm wave from the top-left, lamps swell |
+| `fences.draw` | A line is drawn on an edge (tap or drag) | The line draws in |
+| `fences.cross` | An edge is marked ✕ | — |
+| `fences.solve` | The lines are one closed loop meeting every number | ≤1.2 s: the loop lights up around the board |
+| `fillomino.place` | A number is entered or painted on a square | — |
+| `fillomino.region` | A region reaches its size (N squares of N) | The region tints |
+| `fillomino.solve` | Every region is complete and no equal regions touch | ≤1.2 s: regions flash in turn |
+| `bridges.build` | A bridge is built or doubled | The bridge draws in |
+| `bridges.remove` | A pair's bridges are removed | — |
+| `bridges.solve` | Every island has its bridges, none cross, all joined | ≤1.2 s: bridges light island to island |
 
 With `prefers-reduced-motion: reduce`, move animations snap and each completion effect is replaced by one still,
 soft glow over the play area (opacity only, 1.0 s). The cues fire either way.
