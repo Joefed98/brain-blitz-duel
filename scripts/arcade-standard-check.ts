@@ -58,7 +58,7 @@ const STANDARD_ROSTER: readonly { type: string; field: string; rev: number; batc
   { type: "wavefront", field: "wavRev", rev: 12, batch: "C" },
   { type: "flip", field: "flipRev", rev: 10, batch: "C" },
   { type: "inkbridge", field: "inkRev", rev: 12, batch: "C" },
-  { type: "orbit", field: "orbitRev", rev: 13, batch: "C" },
+  { type: "orbit", field: "orbitRev", rev: 14, batch: "C" },
   { type: "balltrack", field: "btRev", rev: 8, batch: "C" },
   { type: "swing", field: "swingRev", rev: 15, batch: "D" },
   // Cards & Board (30 Oct 2026): born on the standard (their first revision).

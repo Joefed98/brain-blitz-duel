@@ -29,8 +29,8 @@ import { SKYLINE_REV_STD, SKYLINE_REV_STRICT, SKYLINE_STD_SPEC, SKYLINE_V9_BAND_
 import { JUNC_REV_BAND, JUNC_BAND_CURVE } from "./junction";
 import { BRK_REV_STD, BRK_REV_STRICT, BRK_V11_BAND_CURVE } from "./breaker";
 import { TILT_REV_STD, TILT_REV_STRICT, TILT_V10_BAND_CURVE } from "./tilt";
-import { ORBIT_REV_STRICT, ORBIT_REV_STD } from "./orbit";
-import { ORBIT_V13_BAND_CURVE } from "./orbitRev3";
+import { ORBIT_REV_STRICT, ORBIT_REV_FUEL } from "./orbit";
+import { ORBIT_V14_BAND_CURVE } from "./orbitRev3";
 import { BEAT_REV_STD, BEAT_REV_STRICT, BEAT_STD_SPEC, BEAT_V11_BAND_CURVE } from "./beat";
 import { SLICE_REV_STRICT, SLICE_REV_STANDARD, SLICE_V11_BAND_CURVE } from "./slice";
 import { BURST_REV_STD, BURST_REV_STRICT, BURST_V10_BAND_CURVE } from "./burst";
@@ -109,7 +109,8 @@ export const LIVE_BANDS = {
   // tiltRev 10 (the arcade scoring standard): the core's straight line (35 a maze, to 140); finish, speed and gold stars add up to 60 (the help says so).
   tilt: { field: "tiltRev", rev: TILT_REV_STD, curve: TILT_V10_BAND_CURVE, strictRev: TILT_REV_STRICT },
   // orbitRev 13 (the arcade scoring standard): planets on a straight line to 130; speed and features pay up to 70 more.
-  orbit: { field: "orbitRev", rev: ORBIT_REV_STD, curve: ORBIT_V13_BAND_CURVE, strictRev: ORBIT_REV_STRICT },
+  // orbitRev 14 (the fuel meter): the same parts and straight line on the fuel bank's zigzag courses.
+  orbit: { field: "orbitRev", rev: ORBIT_REV_FUEL, curve: ORBIT_V14_BAND_CURVE, strictRev: ORBIT_REV_STRICT },
   // beatRev 11 (the arcade scoring standard): beatRev 10's play; accuracy on a straight line to 130, four fixed features.
   beat: { field: "beatRev", rev: BEAT_REV_STD, curve: BEAT_V11_BAND_CURVE, strictRev: BEAT_REV_STRICT, std: BEAT_STD_SPEC },
   // sliceRev 11 (the arcade scoring standard): the core's straight line to 120; combo, golden fruit, tickets and dodges pay up to 80 more.

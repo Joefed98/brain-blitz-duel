@@ -76,7 +76,7 @@ import { encodeSwingRun, replaySwingRun } from "../src/lib/duel/swing";
 import { SWING_V4_BANK } from "../src/lib/duel/swingBankV4.server";
 import { proveSwingSeedV4 } from "../src/lib/duel/swingProof.server";
 import { tiltCupReachable, tiltDealableX, tiltGameFor, tiltSeedCupsReachable, TILT_REV_BAND, TILT_REV_STD } from "../src/lib/arcade/tilt";
-import { generateOrbit, generateSkyline, generateSwing, generateTilt, generateWavefront } from "../src/lib/duel/arcade.server";
+import { generateOrbit, generateSkyline, generateSwing, generateTilt, generateWavefront, pinOrbitPreFuel } from "../src/lib/duel/arcade.server";
 import { skylineGameFor, SKYLINE_REV_EXPAND, SKYLINE_REV_STD, SKYLINE_REV_TALL } from "../src/lib/arcade/skyline";
 import { APP_FLAG_LOGO_URL } from "../src/lib/brand";
 import { PUZZLE_INSTRUCTIONS as INSTRUCTIONS } from "../src/lib/duel/instructions";
@@ -227,7 +227,10 @@ if (want("wavefront")) {
 if (want("orbit")) {
   section("Orbit orbitRev 6: black-hole fly-in, earlier end to a miss");
   {
+    // The fuel meter (orbitRev 14, 1 Nov 2026) moved rooms to its own bank (orbit-fuel-check); pinned, the deal before it.
+    const wasFuel = pinOrbitPreFuel(true);
     const p = generateOrbit();
+    pinOrbitPreFuel(wasFuel);
     // Tuning F (Oct 2026) moved rooms on to orbitRev 7 (rev-6 play with swept black holes), and taller worlds batch 3
     // (16 Oct 2026) to orbitRev 8 (rev 7 in a taller view); arcade-tuning-f-check and arcade-tuning-g3-check cover them.
     // The expansion to 200 (docs/expansions/x200-orbit.md) then moved rooms on to orbitRev 12; orbit-expand-check covers it.

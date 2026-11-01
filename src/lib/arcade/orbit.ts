@@ -65,9 +65,16 @@ export const ORBIT_REV_XP = 12;
  * feature shares, 200 in all.
  */
 export const ORBIT_REV_STD = 13;
-/** The expansion's course, features and view: orbitRev 12 and its score-only successor orbitRev 13 (display, layout, bank). */
+/**
+ * orbitRev 14 (the fuel meter, 1 Nov 2026, docs/arcade-standard/orbit.md): a fuel tank that drains only in free
+ * flight and refills on every catch (empty ends the flight, in place of dying off-screen), any planet the rocket
+ * reaches catches it, and the courses zigzag harder (their own proved bank, orbitFuelBank.server.ts). Scored on
+ * orbitRev 13's parts (orbitRev3.ts ORBIT_STD), 200 in all.
+ */
+export const ORBIT_REV_FUEL = 14;
+/** The expansion's features and view: orbitRev 12, its score-only successor 13 and the fuel revision 14 (display, layout). */
 export function orbitXpRev(rev: number | null | undefined): boolean {
-  return rev === ORBIT_REV_XP || rev === ORBIT_REV_STD;
+  return rev === ORBIT_REV_XP || rev === ORBIT_REV_STD || rev === ORBIT_REV_FUEL;
 }
 const FLIGHT_MAX = 150;
 export const ORBIT_FLIGHT_MAX = FLIGHT_MAX;

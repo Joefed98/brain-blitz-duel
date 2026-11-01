@@ -820,7 +820,7 @@ import {
   orbitViewW,
   type OrbitCamOffset,
 } from "./orbitCamera";
-import { orbitHoleLive, orbitRev3Game, orbitWorldHFor, orbitXpCounts, ORBIT_DUST_R, ORBIT_HOLE_R, ORBIT_MOON_ASSIST, ORBIT_MOON_R, ORBIT_REV3_BG, ORBIT_REV3_RED, type OrbitRev3State } from "./orbitRev3";
+import { orbitHoleLive, orbitRev3Game, orbitWorldHFor, orbitXpCounts, ORBIT_FUEL_MAX, ORBIT_DUST_R, ORBIT_HOLE_R, ORBIT_MOON_ASSIST, ORBIT_MOON_R, ORBIT_REV3_BG, ORBIT_REV3_RED, type OrbitRev3State } from "./orbitRev3";
 import { devDisplayAllowed } from "@/lib/devDisplay";
 import { orbitRewardObserve, drawOrbitShootingStar } from './orbitRewards.renderer';
 
@@ -1192,6 +1192,8 @@ function drawOrbitRev3ArtWorld(ctx: CanvasRenderingContext2D, state: OrbitRev3St
   if (xpMemory) {
     drawXpPops(ctx, xpMemory, cam, still);
   }
+  // orbitRev 14: the fuel meter, bottom right, and the sputter when the tank runs dry.
+  if (state.fuel !== undefined) drawFuelMeter(ctx, state, sx, sy, ORBIT_CAM_VIEW_W, ORBIT_CAM_VIEW_H, still);
   if (state.tick - state.respawnTick < 45) {
     ctx.globalAlpha = 1 - (state.tick - state.respawnTick) / 45;
     ctx.fillStyle = ORBIT_GOLD;
@@ -1466,5 +1468,96 @@ function drawXpPops(ctx: CanvasRenderingContext2D, m: XpMemory, cam: OrbitCamOff
     ctx.fillStyle = pop.colour;
     ctx.fillText(pop.text, pop.x - cam.x, y);
   }
+  ctx.restore();
+}
+
+/* ===================== The fuel meter (orbitRev 14, display only) ===================== */
+/*
+ * Bottom right of the drawn view, clear of SET CHECKPOINT's corner (top right) and the HUD (top left): a "FUEL" label
+ * over a 16 × 112 px gauge in ten segments, filled from the bottom by the sim's own `fuel` (full in orbit, draining one
+ * unit a tick of free flight), green above half, amber above a quarter, red below. While it drains the gauge's frame
+ * brightens, so a miss's loss is plain; when the tank runs dry (`dry`) the gauge flashes red, puffs of smoke leave the
+ * rocket and "OUT OF FUEL" shows for a second. Reduced motion: no flashing or drifting puffs (the words still show).
+ */
+export const ORBIT_FUEL_METER = { w: 16, h: 112, right: 14, bottom: 18, label: 14 } as const;
+const FUEL_SEGMENTS = 10;
+/** The meter's box in the drawn view (backing and label included), for the layout checks. */
+export function orbitFuelMeterBox(viewW: number, viewH: number): { x: number; y: number; w: number; h: number } {
+  const m = ORBIT_FUEL_METER;
+  return { x: viewW - m.right - m.w - 6, y: viewH - m.bottom - m.h - m.label - 4, w: m.w + 12, h: m.h + m.label + 10 };
+}
+function fuelColour(share: number): string {
+  return share > 0.5 ? "#4ADE80" : share > 0.25 ? "#FBBF24" : "#F87171";
+}
+function fuelRoundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number): void {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
+}
+function drawFuelMeter(ctx: CanvasRenderingContext2D, state: OrbitRev3State, sx: number, sy: number, W: number, H: number, still: boolean): void {
+  const m = ORBIT_FUEL_METER;
+  const fuel = Math.max(0, Math.min(ORBIT_FUEL_MAX, state.fuel ?? 0));
+  const share = fuel / ORBIT_FUEL_MAX;
+  const sinceDry = state.tick - (state.dry ?? -1000);
+  const dryNow = sinceDry >= 0 && sinceDry < 60;
+  const draining = state.flying > 0;
+  const x = W - m.right - m.w;
+  const y = H - m.bottom - m.h;
+  const box = orbitFuelMeterBox(W, H);
+  ctx.save();
+  // Backing, so the gauge reads over planets and stars.
+  ctx.fillStyle = "rgba(6,6,15,0.62)";
+  fuelRoundRect(ctx, box.x, box.y, box.w, box.h, 6);
+  ctx.fill();
+  ctx.font = "700 10px 'JetBrains Mono', ui-monospace, monospace";
+  ctx.textAlign = "center";
+  ctx.fillStyle = dryNow ? ORBIT_REV3_RED : "rgba(255,255,255,0.78)";
+  ctx.fillText("FUEL", x + m.w / 2, y - 5);
+  const flash = dryNow && !still && Math.floor(sinceDry / 8) % 2 === 0;
+  ctx.strokeStyle = flash ? ORBIT_REV3_RED : draining ? "rgba(255,255,255,0.85)" : "rgba(255,255,255,0.45)";
+  ctx.lineWidth = 1.5;
+  fuelRoundRect(ctx, x - 0.75, y - 0.75, m.w + 1.5, m.h + 1.5, 4);
+  ctx.stroke();
+  const seg = m.h / FUEL_SEGMENTS;
+  const lit = share * FUEL_SEGMENTS;
+  for (let k = 0; k < FUEL_SEGMENTS; k++) {
+    const top = y + m.h - (k + 1) * seg;
+    const part = Math.max(0, Math.min(1, lit - k));
+    ctx.fillStyle = "rgba(255,255,255,0.08)";
+    ctx.fillRect(x + 2, top + 1, m.w - 4, seg - 2);
+    if (part <= 0) continue;
+    ctx.fillStyle = fuelColour(share);
+    const h = (seg - 2) * part;
+    ctx.fillRect(x + 2, top + 1 + (seg - 2 - h), m.w - 4, h);
+  }
+  if (flash) {
+    ctx.fillStyle = "rgba(248,113,113,0.35)";
+    ctx.fillRect(x, y, m.w, m.h);
+  }
+  ctx.restore();
+  if (!dryNow) return;
+  // The sputter: grey puffs drifting off the rocket where it stopped, and the words.
+  ctx.save();
+  if (!still) {
+    for (let k = 0; k < 5; k++) {
+      const age = sinceDry - k * 6;
+      if (age < 0) continue;
+      const ang = k * 2.4;
+      ctx.globalAlpha = 0.45 * Math.max(0, 1 - age / 50);
+      ctx.fillStyle = "#9CA3AF";
+      ctx.beginPath();
+      ctx.arc(sx + Math.cos(ang) * age * 0.35, sy + Math.sin(ang) * age * 0.35 - age * 0.15, 2.5 + age * 0.08, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+  ctx.globalAlpha = still ? 1 : Math.max(0, 1 - Math.max(0, sinceDry - 30) / 30);
+  ctx.fillStyle = ORBIT_REV3_RED;
+  ctx.font = "700 22px 'JetBrains Mono', ui-monospace, monospace";
+  ctx.textAlign = "center";
+  ctx.fillText("OUT OF FUEL", W / 2, H / 2 - 34);
   ctx.restore();
 }

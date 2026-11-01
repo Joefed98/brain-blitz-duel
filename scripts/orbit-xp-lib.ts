@@ -207,10 +207,13 @@ export interface XpWitness {
 export let xpFailure = "";
 
 /** Places and proves the features on one course; null when the course cannot carry all of them. */
-export function buildXp(planets: Planet[], holes: OrbitHole[], seed: number): XpWitness | null {
+/** The start the witness plays from: orbitRev 12's (the feature bank), or orbitRev 14's (initFuelFrom, scripts/orbit-fuel-lib.ts). */
+type XpInit = (planets: Planet[], worldW: number, holes: OrbitHole[], extras: OrbitExtras) => OrbitRev3State;
+
+export function buildXp(planets: Planet[], holes: OrbitHole[], seed: number, init: XpInit = initXpFrom): XpWitness | null {
   const failures: string[] = [];
   for (const earliest of [false, true]) {
-    const w = buildXpWith(planets, holes, seed, earliest);
+    const w = buildXpWith(planets, holes, seed, earliest, init);
     if (w) return w;
     failures.push(xpFailure);
   }
@@ -218,10 +221,10 @@ export function buildXp(planets: Planet[], holes: OrbitHole[], seed: number): Xp
   return null;
 }
 
-function buildXpWith(planets: Planet[], holes: OrbitHole[], seed: number, earliest: boolean): XpWitness | null {
+function buildXpWith(planets: Planet[], holes: OrbitHole[], seed: number, earliest: boolean, init: XpInit): XpWitness | null {
   xpFailure = "";
   let extras: OrbitExtras = { dust: [], moons: [], fields: [] };
-  let s = initXpFrom(planets, ORBIT_REV3_WORLD_W, holes, extras);
+  let s = init(planets, ORBIT_REV3_WORLD_W, holes, extras);
   const taps: number[] = [];
   const next = { dust: 0, moon: 0, field: 0 };
   let safety = 0;
@@ -278,7 +281,7 @@ function buildXpWith(planets: Planet[], holes: OrbitHole[], seed: number, earlie
     return null;
   }
   // From the start, with every feature in place.
-  let r = initXpFrom(planets, ORBIT_REV3_WORLD_W, holes, extras);
+  let r = init(planets, ORBIT_REV3_WORLD_W, holes, extras);
   const set = new Set(taps);
   while (r.ended === 0 && r.tick < ORBIT_REV3_RUN_TICKS) r = step(r, set.has(r.tick + 1) ? tapAt(r.tick + 1) : null);
   const c = orbitXpCounts(r);

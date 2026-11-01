@@ -2,7 +2,9 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { renderToStaticMarkup } from "react-dom/server";
 import { ArrowModeOverride, ArrowPad } from "../src/components/puzzles/GridDrag";
-import { BUTTON, ORBIT_XP_AHEAD, ORBIT_XP_DRAW_H, ORBIT_XP_ZONE, zoneFits, zoneProof } from "./orbit-zone-lib";
+import { BUTTON, ORBIT_XP_AHEAD, ORBIT_XP_DRAW_H, ORBIT_XP_ZONE, zoneFits, zoneProof, zoneProofFuel } from "./orbit-zone-lib";
+import { ORBIT_FUEL_BANK } from "../src/lib/duel/orbitFuelBank.server";
+import { orbitFuelMeterBox } from "../src/lib/arcade/orbit.renderer";
 import { orbitXpRev } from "../src/lib/arcade/orbit";
 
 const removed = {
@@ -78,8 +80,9 @@ for (const { file, row, button, count, width, tall } of arcadeRows) {
 // camera modes, the rocket's drawn reach stays out of the zone (so nothing the rocket can meet is ever under the button).
 {
   const orbit = readFileSync("src/puzzles/orbit.tsx", "utf8");
-  assert.match(orbit, /const xp = orbitXpRev\(data\?\.orbitRev\);/, "orbit: orbitRev 12 and 13 pick the corner");
-  assert.ok(orbitXpRev(12) && orbitXpRev(13) && !orbitXpRev(10) && !orbitXpRev(undefined), "orbit: orbitXpRev is orbitRev 12 and 13 only");
+  assert.match(orbit, /const xp = orbitXpRev\(data\?\.orbitRev\);/, "orbit: orbitRev 12, 13 and 14 pick the corner");
+  // orbitRev 14 (the fuel meter, 1 Nov 2026) keeps the expansion's view and corner.
+  assert.ok(orbitXpRev(12) && orbitXpRev(13) && orbitXpRev(14) && !orbitXpRev(10) && !orbitXpRev(11) && !orbitXpRev(15) && !orbitXpRev(undefined), "orbit: orbitXpRev is orbitRev 12, 13 and 14 only");
   assert.match(orbit, /overlay=\{xp \? \(send\) => \(\s*<div data-game-controls="checkpoint" data-orbit-zone="" className="pointer-events-none absolute right-1 top-1 flex h-11 items-start justify-end">/, "orbit: the button 4px in from the world's top and right");
   assert.match(orbit, /className="pointer-events-auto h-11 px-3 text-\[11px\] font-bold before:content-\['SET_CHECKPOINT'\]"/, "orbit: the corner button is 44px tall, 11px text, 12px sides");
   assert.match(orbit, /footer=\{xp \? undefined : \(send\) => \(/, "orbit: no row below the world on orbitRev 12");
@@ -108,6 +111,18 @@ for (const { file, row, button, count, width, tall } of arcadeRows) {
   const proof = zoneProof(2);
   assert.equal(proof.courses, 371, "orbit: every bank course rooms deal");
   assert.deepEqual(proof.hits, [], "orbit: the rocket never reaches the zone");
+  // orbitRev 14 (the fuel meter): every fuel-bank course, with the flight camera that leads the rocket; and the fuel meter,
+  // bottom right, lies inside the drawn world, clear of SET CHECKPOINT's corner (it is the only other thing drawn there:
+  // orbitRev 12–14 have no controls but the corner button).
+  const fuelProof = zoneProofFuel(2);
+  assert.equal(fuelProof.courses, ORBIT_FUEL_BANK.length, "orbit: every fuel-bank course rooms deal");
+  assert.ok(ORBIT_FUEL_BANK.length > 0, "orbit: the fuel bank has courses");
+  assert.deepEqual(fuelProof.hits, [], "orbit: on orbitRev 14 the rocket never reaches the zone");
+  const meter = orbitFuelMeterBox(450, ORBIT_XP_DRAW_H);
+  assert.ok(meter.x >= 0 && meter.y >= 0 && meter.x + meter.w <= 450 && meter.y + meter.h <= ORBIT_XP_DRAW_H, "orbit: the fuel meter lies inside the drawn world");
+  assert.ok(meter.y > ORBIT_XP_ZONE.h + 100 && meter.x + meter.w <= 450, "orbit: the fuel meter is far below SET CHECKPOINT's corner");
+  assert.match(orbit, /footer=\{xp \? undefined : \(send\) => \(/, "orbit: no control row below the world on orbitRev 12–14 for the meter to cover");
+  console.log(`PASS orbit orbitRev 14: the fuel meter at ${meter.x},${meter.y} (${meter.w}x${meter.h} view px), clear of the corner; the rocket never in the corner over ${fuelProof.frames} frames (${fuelProof.courses} fuel-bank courses, ${fuelProof.runs} runs).`);
   console.log(`PASS orbit orbitRev 12: SET CHECKPOINT in the reserved top-right zone (${ORBIT_XP_ZONE.w}x${ORBIT_XP_ZONE.h} view px) at ${viewports.length} viewports; the scene drawn behind it; the rocket never in it over ${proof.frames} frames (${proof.courses} courses, ${proof.runs} runs, lowest rocket top ${proof.lowestRocketTop.toFixed(0)}px vs the zone's ${ORBIT_XP_ZONE.h}px).`);
 }
 const stage = readFileSync("src/components/puzzles/ArcadeCanvasStage.tsx", "utf8");

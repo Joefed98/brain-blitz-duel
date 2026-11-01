@@ -11,6 +11,7 @@ import { ORBIT_REV3_BANK, type OrbitRev3BankEntry } from "./orbitRev3Bank.server
 import { ORBIT_HOLE_BANK } from "./orbitHoleBank.server";
 import type { OrbitExtrasRow, OrbitHoleRow, OrbitRev3CompactPlanet } from "@/lib/arcade/orbitRev3";
 import { ORBIT_XP_BANK } from "./orbitXpBank.server";
+import { ORBIT_FUEL_BANK } from "./orbitFuelBank.server";
 
 export { encodeRev3Planets, decodeRev3Planets, type OrbitRev3CompactPlanet } from "@/lib/arcade/orbitRev3";
 import { decodeRev3Planets } from "@/lib/arcade/orbitRev3";
@@ -46,6 +47,17 @@ export function orbitXpCourseForSeed(seed: number): { planets: OrbitRev3CompactP
   return { planets: course.planets, holes, extras: entry.extras };
 }
 const ORBIT_REV3_BY_SEED = new Map(ORBIT_REV3_BANK.map((entry) => [entry.seed, entry]));
+
+/**
+ * orbitRev 14 (the fuel meter): the course for a room seed from the fuel bank (index = seed mod length): its
+ * harder-zigzag planets, black holes and features, proved on rev 14's rules (scripts/orbit-fuel-bank.ts), or null
+ * if the bank is empty.
+ */
+export function orbitFuelCourseForSeed(seed: number): { planets: OrbitRev3CompactPlanet[]; holes: OrbitHoleRow[]; extras: OrbitExtrasRow } | null {
+  if (ORBIT_FUEL_BANK.length === 0) return null;
+  const entry = ORBIT_FUEL_BANK[((seed % ORBIT_FUEL_BANK.length) + ORBIT_FUEL_BANK.length) % ORBIT_FUEL_BANK.length]!;
+  return { planets: entry.planets, holes: entry.holes, extras: entry.extras };
+}
 
 /** Proved planets for a room seed, straight from the bank (null if the bank is empty). */
 export function orbitRev3PlanetsForSeed(seed: number): Planet[] | null {

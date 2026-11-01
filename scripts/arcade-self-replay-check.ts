@@ -172,9 +172,10 @@ import { CURLING_BANK } from "@/lib/duel/curlingBank.server";
 import { CURLING_BANK_V2 } from "@/lib/duel/curlingBankV2.server";
 import { MINIGOLF_BANK_V2 } from "@/lib/duel/minigolfBankV2.server";
 import { TILT_REV_BAND, TILT_REV_EXPAND, TILT_REV_LIFT, TILT_REV_STD, TILT_REV_TUNEC } from "@/lib/arcade/tilt";
-import { ORBIT_REV_BAND, ORBIT_REV_SWEPT, ORBIT_REV_TALL, ORBIT_REV_TUNED, ORBIT_REV_XP, ORBIT_REV_STD } from "@/lib/arcade/orbit";
-import { decodeOrbitExtras, initBandFrom, initSweptFrom, initTallFrom, initTunedFrom, initXpFrom, initStdFrom } from "@/lib/arcade/orbitRev3";
+import { ORBIT_REV_BAND, ORBIT_REV_SWEPT, ORBIT_REV_TALL, ORBIT_REV_TUNED, ORBIT_REV_XP, ORBIT_REV_STD, ORBIT_REV_FUEL } from "@/lib/arcade/orbit";
+import { decodeOrbitExtras, initBandFrom, initSweptFrom, initTallFrom, initTunedFrom, initXpFrom, initStdFrom, initFuelFrom } from "@/lib/arcade/orbitRev3";
 import { ORBIT_XP_BANK } from "@/lib/duel/orbitXpBank.server";
+import { ORBIT_FUEL_BANK } from "@/lib/duel/orbitFuelBank.server";
 import { BEAT_REV_BAND, BEAT_REV_TALL, BEAT_REV_TUNEC, BEAT_REV_TUNEF } from "@/lib/arcade/beat";
 import { SLICE_REV_BAND, SLICE_REV_LONG, SLICE_REV_TALL, SLICE_REV_TUNEC } from "@/lib/arcade/slice";
 import { BURST_REV_BAND, BURST_REV_TALL } from "@/lib/arcade/burst";
@@ -873,6 +874,25 @@ const GAMES: Game[] = [
   { key: "snake/v12", game: snakeGameFor(SNAKE_REV_12), checkpoint: snakeCheckpoint, mode: "events", rate: 40, encode: encodeSnakeRun, replay: (seed: number, raw: string) => replaySnakeRun(seed, raw, SNAKE_REV_12) },
   // Gemstone matchupRev 12 (six goals shown at once, six treasures; Nov 2026), appended at the end.
   { key: "matchup/six", game: matchupGameFor(MATCHUP_REV_SIX), checkpoint: matchupCheckpoint, mode: "events", rate: 40, encode: encodeMatchupRun, replay: (seed: number, raw: string) => replayMatchupRun(seed, raw, MATCHUP_REV_SIX) },
+  // The fuel meter (1 Nov 2026, docs/arcade-standard/orbit.md), appended so every earlier entry keeps its index: Orbit
+  // orbitRev 14 on its fuel-bank courses (fuel, any planet catches).
+  {
+    key: "orbit/fuel",
+    game: orbitRev3Game,
+    gameFor: (seed: number) => {
+      const e = ORBIT_FUEL_BANK.find((x) => x.seed === seed)!;
+      return { ...orbitRev3Game, init: () => initFuelFrom(decodeRev3Planets(e.planets), ORBIT_REV3_WORLD_W, decodeOrbitHoles(e.holes), decodeOrbitExtras(e.extras)) };
+    },
+    seedFor: (n: number) => ORBIT_FUEL_BANK[n % ORBIT_FUEL_BANK.length]!.seed,
+    checkpoint: orbitCheckpoint,
+    mode: "events",
+    rate: 25,
+    encode: encodeOrbitRun,
+    replay: (seed: number, raw: string) => {
+      const e = ORBIT_FUEL_BANK.find((x) => x.seed === seed)!;
+      return replayOrbitRun(seed, raw, ORBIT_REV_FUEL, e.planets, e.holes, e.extras);
+    },
+  },
 ];
 
 /** A random candidate event, often outside the declared range (a finger off the edge). */

@@ -8,12 +8,13 @@
  *  - every 60 ticks the run lived, each asteroid belt's opening (a pure function of the tick) and a digest of the
  *    course the sim is carrying (planets, holes, motes, moons, fields), which must never change mid-run.
  * Two logs on the same seed must give the same schedule over the ticks both runs lived. orbitRev 13 (the arcade
- * scoring standard, 29 Oct 2026; what rooms deal) plays orbitRev 12 exactly and is checked the same way.
+ * scoring standard, 29 Oct 2026) plays orbitRev 12 exactly and is checked the same way. orbitRev 14 (the fuel meter,
+ * 1 Nov 2026; what rooms deal) deals from the fuel bank (orbitFuelCourseForSeed) on its own rules and is checked the same way.
  */
 import { decodeOrbitExtras, decodeOrbitHoles, decodeRev3Planets, initXpFrom, orbitRev3Game, orbitRev3StartFor, ORBIT_REV3_WORLD_W, type OrbitRev3State } from "../../src/lib/arcade/orbitRev3";
-import { orbitBeltStart, ORBIT_INPUT_TAP, ORBIT_REV_STD, ORBIT_REV_XP, orbitXpRev } from "../../src/lib/arcade/orbit";
+import { orbitBeltStart, ORBIT_INPUT_TAP, ORBIT_REV_FUEL, ORBIT_REV_STD, ORBIT_REV_XP, orbitXpRev } from "../../src/lib/arcade/orbit";
 import type { ArcadeInputEvent } from "../../src/lib/arcade/engine";
-import { orbitXpCourseForSeed } from "../../src/lib/duel/orbitRev3Course.server";
+import { orbitFuelCourseForSeed, orbitXpCourseForSeed } from "../../src/lib/duel/orbitRev3Course.server";
 import { Human } from "../arcade-skill-bands/human";
 import { bot } from "../arcade-skill-bands/bots/orbit";
 
@@ -21,8 +22,8 @@ const FP = 256;
 const px = (v: number) => Math.round(v / FP);
 
 function startFor(seed: number, rev = ORBIT_REV_XP): () => OrbitRev3State {
-  const course = orbitXpCourseForSeed(seed);
-  if (!course) throw new Error("orbit room identity: the feature bank is empty");
+  const course = rev === ORBIT_REV_FUEL ? orbitFuelCourseForSeed(seed) : orbitXpCourseForSeed(seed);
+  if (!course) throw new Error(`orbit room identity: the ${rev === ORBIT_REV_FUEL ? "fuel" : "feature"} bank is empty`);
   const planets = decodeRev3Planets(course.planets);
   const holes = decodeOrbitHoles(course.holes);
   const extras = decodeOrbitExtras(course.extras);
@@ -74,18 +75,18 @@ export function randomTaps(seed: number): ArcadeInputEvent[] {
   return out;
 }
 
-function botLog(seed: number, level: "weak" | "elite"): ArcadeInputEvent[] {
-  const start = startFor(seed);
+function botLog(seed: number, level: "weak" | "elite", rev = ORBIT_REV_XP): ArcadeInputEvent[] {
+  const start = startFor(seed, rev);
   const game = { ...orbitRev3Game, init: start };
-  return bot({ game, seed, rev: ORBIT_REV_XP, human: new Human("orbit", seed, level), fixes: true }).events ?? [];
+  return bot({ game, seed, rev, human: new Human("orbit", seed, level), fixes: true }).events ?? [];
 }
 
 export const roomIdentity = {
   type: "orbit",
-  // What rooms deal: orbitRev 13 (orbitRev 12's play on the arcade standard); orbit-expand-check checks orbitRev 12.
-  rev: ORBIT_REV_STD,
+  // What rooms deal: orbitRev 14 (the fuel meter, on the fuel bank); orbit-expand-check checks orbitRev 12.
+  rev: ORBIT_REV_FUEL,
   scheduleOf,
-  logs: (seed: number): ArcadeInputEvent[][] => [[], randomTaps(seed), botLog(seed, "weak"), botLog(seed, "elite")],
+  logs: (seed: number): ArcadeInputEvent[][] => [[], randomTaps(seed), botLog(seed, "weak", ORBIT_REV_FUEL), botLog(seed, "elite", ORBIT_REV_FUEL)],
 };
 
 

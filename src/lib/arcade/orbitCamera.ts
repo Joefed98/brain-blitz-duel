@@ -42,6 +42,13 @@ export function orbitPanTicks(dist: number, reducedMotion = false): number {
 export const ORBIT_GLIDE_DECAY = 0.7;
 /** Largest per-tick flight catch-up toward the safe box (world units). */
 export const ORBIT_FLIGHT_CATCH = 8;
+/** orbitRev 14: the flight camera leads the rocket by this many ticks of its flight (or its fuel left, if less). */
+export const ORBIT_FUEL_LEAD_TICKS = 45;
+/** orbitRev 14: the led point is framed this share of the view down from its top. */
+export const ORBIT_FUEL_LEAD_Y = 0.42;
+/** orbitRev 14: the share of the gap to the led framing closed each tick, and the most units a tick. */
+export const ORBIT_FUEL_EASE = 0.1;
+export const ORBIT_FUEL_CATCH = 10;
 /** Margin keeping the rocket fully on screen during a pan. */
 export const ORBIT_ROCKET_ON_SCREEN = 14;
 const ROCKET_ON_SCREEN = ORBIT_ROCKET_ON_SCREEN;
@@ -279,7 +286,24 @@ function advance(s: Rev3Like, still: boolean): OrbitCamOffset {
     // pan starts exactly where the camera was — no correction step first. The
     // pan target frames the whole orbit inside the safe box, so it ends there.
     let safe: OrbitCamOffset;
-    if (s.flying) {
+    if (s.flying && s.fuel !== undefined) {
+      // orbitRev 14 (the fuel meter): any planet the rocket reaches catches it, so the camera follows the flight,
+      // leading it: the point the rocket will be at ORBIT_FUEL_LEAD_TICKS on (or where its fuel ends, if sooner) is
+      // eased toward the view's centre line, ORBIT_FUEL_LEAD_Y down it, so the planet it is heading for comes into view
+      // well before it arrives. Eased (a share of the gap a tick, at most ORBIT_FUEL_CATCH units), never a jump, and the
+      // rocket always stays on screen.
+      const r = rocketOf(s);
+      const lead = Math.min(ORBIT_FUEL_LEAD_TICKS, Math.max(0, s.fuel));
+      const want = { x: r.x + (s.vx / FP) * lead - viewW / 2, y: r.y + (s.vy / FP) * lead - viewH * ORBIT_FUEL_LEAD_Y };
+      let dx = (want.x - at.x) * ORBIT_FUEL_EASE,
+        dy = (want.y - at.y) * ORBIT_FUEL_EASE;
+      const len = Math.hypot(dx, dy);
+      if (len > ORBIT_FUEL_CATCH) {
+        dx *= ORBIT_FUEL_CATCH / len;
+        dy *= ORBIT_FUEL_CATCH / len;
+      }
+      safe = pushInside(r, { x: at.x + dx, y: at.y + dy }, ROCKET_ON_SCREEN, viewH, viewW);
+    } else if (s.flying) {
       // Flight: hold, moving only toward the minimum safe-box push, at most
       // ORBIT_FLIGHT_CATCH units a tick (so a tap mid-pan cannot snap), while
       // the rocket always stays fully on screen.

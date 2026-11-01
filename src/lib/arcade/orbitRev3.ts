@@ -53,6 +53,7 @@ import {
   ORBIT_REV_STRICT,
   ORBIT_REV_XP,
   ORBIT_REV_STD,
+  ORBIT_REV_FUEL,
   orbitXpRev,
   inside,
   lapPhases,
@@ -588,6 +589,13 @@ export interface OrbitRev3State extends BandFields {
   reach?: number;
   /** orbitRev 13 only: orbitRev 12's play scored on the arcade standard (ORBIT_STD); not in the checkpoint checksum. */
   std?: number;
+  /**
+   * orbitRev 14 only (the fuel meter): fuel left, 0–ORBIT_FUEL_MAX (one a tick of free flight, full again on every
+   * catch or respawn; empty ends the flight), and the tick it last ran dry (display only: the sputter). Absent on
+   * every earlier round, where `fuel === undefined` keeps every rule below as it was.
+   */
+  fuel?: number;
+  dry?: number;
   tick: number;
   rng: number;
   cur: number;
@@ -697,6 +705,7 @@ function stepRev3(state: OrbitRev3State, worldW: number, input: ArcadeInputEvent
       s.vy = 0;
       s.flying = 0;
       if (s.xp) s.lapLeft = lapPhases(p).length;
+      if (s.fuel !== undefined) s.fuel = ORBIT_FUEL_MAX;
       respawned = true;
       return;
     }
@@ -784,7 +793,9 @@ function stepRev3(state: OrbitRev3State, worldW: number, input: ArcadeInputEvent
         s.vy = Math.trunc((s.vy * ORBIT_SLING_NUM) / ORBIT_SLING_DEN);
       }
     }
-    const j = hole ? -1 : captureAt(s.planets, s.cur, s.x, s.y);
+    // orbitRev 14: any planet the rocket reaches catches it (ahead or behind), not only the next two.
+    const j = hole ? -1 : s.fuel !== undefined ? orbitCaptureAny(s.planets, s.cur, s.x, s.y) : captureAt(s.planets, s.cur, s.x, s.y);
+    if (s.fuel !== undefined && (hole || j >= 0)) s.fuel = ORBIT_FUEL_MAX;
     if (s.xp && (hole || j >= 0)) {
       if (s.arm) s.perfect = (s.perfect ?? 0) + 1;
       s.arm = 0;
@@ -831,6 +842,13 @@ function stepRev3(state: OrbitRev3State, worldW: number, input: ArcadeInputEvent
         s.endedTick = tick;
         s.finished = 1;
       }
+    } else if (s.fuel !== undefined) {
+      // orbitRev 14: free flight burns a unit a tick; an empty tank ends the flight (no off-screen or flight-length end).
+      s.fuel = Math.max(0, s.fuel - 1);
+      if (s.fuel === 0) {
+        s.dry = tick;
+        die();
+      } else s.flying += 1;
     } else if (outsideWorld(worldW, here, s.x, s.y) || s.flying >= FLIGHT_MAX || (s.tuned && orbitPastReach(s))) die();
     else s.flying += 1;
     if (respawned) s.camY = s.planets[s.cur]!.y - VIEW_ANCHOR;
@@ -868,6 +886,8 @@ export function orbitRev3Extra(s: OrbitRev3State) {
     survivedSeconds: s.tick / 60,
     finished: s.finished === 1,
     secondsLeft: s.finished ? Math.max(0, ORBIT_REV3_RUN_TICKS - s.tick) / 60 : 0,
+    // orbitRev 14 only: the run ended when the tank ran dry (absent on every earlier round).
+    ...(s.fuel !== undefined ? { outOfFuel: s.ended === 2 && s.dry === s.endedTick } : {}),
   };
 }
 
@@ -1265,6 +1285,7 @@ export function orbitWorldWFor(rev?: number | null): number {
 
 /** The start for a stored bank-course orbitRev (4–8), or null for an earlier one. */
 export function orbitRev3StartFor(rev: number | null | undefined, extras?: OrbitExtras | null): ((planets: Planet[], worldW: number, holes: OrbitHole[]) => OrbitRev3State) | null {
+  if (rev === ORBIT_REV_FUEL) return (planets, worldW, holes) => initFuelFrom(planets, worldW, holes, extras ?? ORBIT_NO_EXTRAS);
   if (rev === ORBIT_REV_STD) return (planets, worldW, holes) => initStdFrom(planets, worldW, holes, extras ?? ORBIT_NO_EXTRAS);
   if (rev === ORBIT_REV_XP) return (planets, worldW, holes) => initXpFrom(planets, worldW, holes, extras ?? ORBIT_NO_EXTRAS);
   if (rev === ORBIT_REV_STRICT) return initStrictFrom;
@@ -1611,7 +1632,8 @@ export const ORBIT_STD_SPEED_FULL_LEFT = ORBIT_REV3_RUN_TICKS / 2;
 export const ORBIT_STD_PERFECT_OF = 21;
 export const ORBIT_STD: StdSpec = {
   field: "orbitRev",
-  rev: ORBIT_REV_STD,
+  // The stamp rooms deal on these parts: orbitRev 14 (the fuel meter) since 1 Nov 2026; orbitRev 13 scores on them too.
+  rev: ORBIT_REV_FUEL,
   parts: [
     { key: "core", label: "Planets", max: 130, of: ORBIT_STD_CORE_OF, item: "planet" },
     { key: "speed", label: "Speed", max: 20, of: 1 },
@@ -1623,6 +1645,11 @@ export const ORBIT_STD: StdSpec = {
 };
 /** orbitRev 13's core line on planets reached (whole planets; the partial flight adds its sixteenths between them). */
 export const ORBIT_V13_BAND_CURVE = bandCurve([0, ORBIT_TOTAL], [0, stdCore(ORBIT_STD).max]);
+/**
+ * orbitRev 14's core line: the same straight line (the core has a fixed maximum, every planet, so it is full at the sun
+ * rather than at a measured median; a planet jumped past counts as reached, so skipping one never costs core).
+ */
+export const ORBIT_V14_BAND_CURVE = bandCurve([0, ORBIT_TOTAL], [0, stdCore(ORBIT_STD).max]);
 
 const stdPart = (key: string) => stdSpecPart(ORBIT_STD, key);
 
@@ -1658,4 +1685,44 @@ function orbitStdParts(state: OrbitRev3State): BandParts {
 /** orbitRev 13 start: orbitRev 12's start (the same course, features and view), scored on the standard. */
 export function initStdFrom(planets: Planet[], worldW: number, holes: OrbitHole[], extras: OrbitExtras): OrbitRev3State {
   return { ...initXpFrom(planets, worldW, holes, extras), std: 1 };
+}
+
+/* ================= The fuel meter (orbitRev 14, 1 Nov 2026) ================= */
+/*
+ * orbitRev 14 (Joe's notes, docs/arcade-standard/orbit.md "orbitRev 14"): orbitRev 13's rules, features, view and
+ * parts, on a new proved bank of harder-zigzag courses (orbitFuelBank.server.ts, scripts/orbit-fuel-bank.ts), with:
+ *  - fuel: ORBIT_FUEL_MAX units, one burned each tick of free flight, full again the moment the rocket catches a planet
+ *    (or a black hole, or respawns at the checkpoint). An empty tank ends the flight like a crash (the checkpoint's one
+ *    respawn, else the run's end); there is no other end to a flight (no world edge, flight cap or past-reach end).
+ *    Every hop on a dealt course is proved to land within ORBIT_FUEL_HOP_MAX ticks, so an aimed jump always arrives
+ *    with at least a quarter of the tank left;
+ *  - any planet the rocket reaches catches it (orbitCaptureAny), wherever it is on the course; a planet jumped past
+ *    counts as passed (`best` is the furthest planet reached, as before), so skipping one never costs core.
+ * Scored on ORBIT_STD (the same six parts, 200 in all). Integer only.
+ */
+/** Fuel in a full tank: ticks of free flight (2.67 s). */
+export const ORBIT_FUEL_MAX = 160;
+/** Every proved hop on an orbitRev 14 course lands within this many ticks of flight (a quarter of the tank to spare). */
+export const ORBIT_FUEL_HOP_MAX = 120;
+
+/** orbitRev 14: the planet (other than the one just left) whose capture area holds (x, y): ahead first, then behind; -1. */
+export function orbitCaptureAny(planets: readonly Planet[], cur: number, x: number, y: number): number {
+  for (let j = cur + 1; j < planets.length; j++) {
+    const p = planets[j]!;
+    const e = 2 * orbitExtent(p);
+    if (x < p.x - e || x > p.x + e || y < p.y - e || y > p.y + e) continue;
+    if (inside(p, x, y)) return j;
+  }
+  for (let j = cur - 1; j >= 0; j--) {
+    const p = planets[j]!;
+    const e = 2 * orbitExtent(p);
+    if (x < p.x - e || x > p.x + e || y < p.y - e || y > p.y + e) continue;
+    if (inside(p, x, y)) return j;
+  }
+  return -1;
+}
+
+/** orbitRev 14 start: orbitRev 13's start (features, view, the standard's parts) with a full tank. */
+export function initFuelFrom(planets: Planet[], worldW: number, holes: OrbitHole[], extras: OrbitExtras): OrbitRev3State {
+  return { ...initStdFrom(planets, worldW, holes, extras), fuel: ORBIT_FUEL_MAX, dry: -100 };
 }

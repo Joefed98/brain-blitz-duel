@@ -77,7 +77,7 @@ import {
   SWING_V9_BAND_CURVE,
   type SwingState,
 } from "../src/lib/arcade/swing";
-import { orbitCheckpoint, ORBIT_INPUT_TAP, ORBIT_REV_SWEPT, ORBIT_REV_TALL, ORBIT_REV_STD, ORBIT_TOTAL } from "../src/lib/arcade/orbit";
+import { orbitCheckpoint, ORBIT_INPUT_TAP, ORBIT_REV_SWEPT, ORBIT_REV_TALL, ORBIT_REV_STD, ORBIT_REV_FUEL, ORBIT_TOTAL } from "../src/lib/arcade/orbit";
 import {
   decodeOrbitHoles,
   decodeRev3Planets,
@@ -124,7 +124,7 @@ import {
 } from "../src/lib/arcade/ballTrack";
 import { replaySwingRun } from "../src/lib/duel/swing";
 import { replayOrbitRun } from "../src/lib/duel/orbit";
-import { generateOrbit, generateSwing, pinSwingPreAssault } from "../src/lib/duel/arcade.server";
+import { generateOrbit, generateSwing, pinSwingPreAssault, pinOrbitPreFuel } from "../src/lib/duel/arcade.server";
 import { generateBallTrack } from "../src/lib/duel/ballTrack.server";
 import { encodeSwingRun } from "../src/lib/duel/swing";
 import { proveSwingSeedV4 } from "../src/lib/duel/swingProof.server";
@@ -206,7 +206,10 @@ section("New rounds: stamps, start states, checksums, worlds by revision");
     pinSwingPreAssault(was);
     ok(swing.swingRev === SWING_REV_EXPAND && SWING_V9_BANK.some((e) => e.seed === swing.seed), "rooms deal swingRev 13 (the expansion, after swingRev 9) on a course re-proved for the taller cavern");
     ok(generateSwing().swingRev === SWING_REV_REWORK, "rooms deal swingRev 15 (the swinging course) unpinned");
+    // The fuel meter (orbitRev 14, 1 Nov 2026) moved rooms to its own bank (orbit-fuel-check); pinned, the deal before it.
+    const wasFuel = pinOrbitPreFuel(true);
     const orbit = generateOrbit();
+    pinOrbitPreFuel(wasFuel);
     // The expansion to 200 (docs/expansions/x200-orbit.md) moved Orbit on to orbitRev 12 (its 450 × 782 view); orbit-expand-check covers it.
     // The arcade scoring standard (29 Oct 2026) then moved it to orbitRev 13, orbitRev 12's play and view on the standard.
     ok(orbit.orbitRev === ORBIT_REV_STD && orbit.planets?.length === ORBIT_TOTAL + 1, "rooms deal orbitRev 13 (orbitRev 12's play) with the course's planets");
@@ -536,7 +539,8 @@ section("Intro demos stay stopped until re-recorded on the taller revision");
   ok(/data\.type === "swing" && demo\?\.puzzle\.type === "swing" && demo\.puzzle\.swingRev !== SWING_REV_REWORK\) return null/.test(src), "Grappler's demo plays only on swingRev 15");
   // The expansion to 200: Orbit's demo waited for one recorded on orbitRev 12 (orbit-expand-check); the arcade scoring
   // standard (orbitRev 13, as flipRev 9) waits for one recorded on orbitRev 13.
-  ok(/data\.type === "orbit" && demo\?\.puzzle\.type === "orbit" && demo\.puzzle\.orbitRev !== ORBIT_REV_STD\) return null/.test(src), "Orbit's demo plays only on orbitRev 13");
+  // The fuel meter (orbitRev 14) waits for one recorded on orbitRev 14 (orbit-fuel-check).
+  ok(/data\.type === "orbit" && demo\?\.puzzle\.type === "orbit" && demo\.puzzle\.orbitRev !== ORBIT_REV_FUEL\) return null/.test(src), "Orbit's demo plays only on orbitRev 14");
   // Expansion E6: Ball Tracker's demo now plays only on btRev 7 (e6-check).
   // btRev 8 (the arcade scoring standard) keeps btRev 7's play: a demo recorded on 7 or 8 plays.
   ok(/data\.type === "balltrack" && demo\?\.puzzle\.type === "balltrack" && !btIsV7Play\(demo\.puzzle\.btRev\)\) return null/.test(src), "Ball Tracker's demo plays only on btRev 7 or 8");

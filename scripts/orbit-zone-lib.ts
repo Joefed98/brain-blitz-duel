@@ -5,14 +5,17 @@
  * the starfield out of it) and which the rocket never enters. `zoneProof` replays every course rooms can deal (the
  * 371 bank courses, room seed mod 371) with its witness taps and with seeded random taps, both camera modes (normal
  * and reduced motion), and reports any frame whose rocket (its drawn reach, ROCKET_REACH) meets the zone.
+ * `zoneProofFuel` does the same for orbitRev 14 (the fuel meter): every fuel-bank course on its own rules, with the
+ * flight camera that leads the rocket.
  */
 import { ORBIT_INPUT_CHECKPOINT, ORBIT_INPUT_TAP } from "../src/lib/arcade/orbit";
-import { decodeOrbitExtras, decodeOrbitHoles, decodeRev3Planets, initXpFrom, orbitRev3Game, ORBIT_REV3_WORLD_W, type OrbitRev3State } from "../src/lib/arcade/orbitRev3";
+import { decodeOrbitExtras, decodeOrbitHoles, decodeRev3Planets, initFuelFrom, initXpFrom, orbitRev3Game, ORBIT_REV3_WORLD_W, type OrbitRev3State } from "../src/lib/arcade/orbitRev3";
 import { orbitCamera, orbitCameraResetCache, orbitViewH, orbitViewW } from "../src/lib/arcade/orbitCamera";
 import { ORBIT_XP_AHEAD, ORBIT_XP_DRAW_H, ORBIT_XP_ZONE } from "../src/lib/arcade/orbit.renderer";
 import { ORBIT_HOLE_BANK } from "../src/lib/duel/orbitHoleBank.server";
 import { ORBIT_REV3_BANK } from "../src/lib/duel/orbitRev3Bank.server";
 import { ORBIT_XP_BANK } from "../src/lib/duel/orbitXpBank.server";
+import { ORBIT_FUEL_BANK } from "../src/lib/duel/orbitFuelBank.server";
 
 const FP = 256;
 /** The rocket's drawn reach from its centre (px): its body, fins and flame (orbit.renderer.ts), with a margin. */
@@ -31,12 +34,27 @@ export function zoneFits(scale: number): { w: number; h: number; fits: boolean }
 export interface ZoneProof { courses: number; runs: number; frames: number; hits: string[]; lowestRocketTop: number }
 
 export function zoneProof(randomRuns = 1): ZoneProof {
-  const out: ZoneProof = { courses: 0, runs: 0, frames: 0, hits: [], lowestRocketTop: Infinity };
   const holesOf = new Map(ORBIT_HOLE_BANK.map((e) => [e.seed, e.holes]));
   const planetsOf = new Map(ORBIT_REV3_BANK.map((e) => [e.seed, e.planets]));
-  for (const entry of ORBIT_XP_BANK) {
+  return proveCourses(
+    ORBIT_XP_BANK.map((entry) => ({ seed: entry.seed, taps: entry.taps, start: () => initXpFrom(decodeRev3Planets(planetsOf.get(entry.seed)!), ORBIT_REV3_WORLD_W, decodeOrbitHoles(holesOf.get(entry.seed)!), decodeOrbitExtras(entry.extras)) })),
+    randomRuns,
+  );
+}
+
+/** orbitRev 14 (the fuel meter): every fuel-bank course rooms deal, on its own rules and flight camera. */
+export function zoneProofFuel(randomRuns = 1): ZoneProof {
+  return proveCourses(
+    ORBIT_FUEL_BANK.map((entry) => ({ seed: entry.seed, taps: entry.taps, start: () => initFuelFrom(decodeRev3Planets(entry.planets), ORBIT_REV3_WORLD_W, decodeOrbitHoles(entry.holes), decodeOrbitExtras(entry.extras)) })),
+    randomRuns,
+  );
+}
+
+function proveCourses(courses: { seed: number; taps: readonly number[]; start: () => OrbitRev3State }[], randomRuns: number): ZoneProof {
+  const out: ZoneProof = { courses: 0, runs: 0, frames: 0, hits: [], lowestRocketTop: Infinity };
+  for (const entry of courses) {
     out.courses++;
-    const start = () => initXpFrom(decodeRev3Planets(planetsOf.get(entry.seed)!), ORBIT_REV3_WORLD_W, decodeOrbitHoles(holesOf.get(entry.seed)!), decodeOrbitExtras(entry.extras));
+    const start = entry.start;
     const logs: ((s: OrbitRev3State) => { t: number; k: number; a: number; b: number; c: number; d: number } | null)[] = [];
     const witness = new Set(entry.taps);
     logs.push((s) => (witness.has(s.tick + 1) ? { t: s.tick + 1, k: ORBIT_INPUT_TAP, a: 0, b: 0, c: 0, d: 0 } : null));
