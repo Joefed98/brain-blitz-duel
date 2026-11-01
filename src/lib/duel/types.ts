@@ -1975,8 +1975,8 @@ export interface MahjongPuzzleData {
 
 /** Home Run Derby's 60-second, ten-pitch run; the round clock adds three of slack (63 s). */
 export const HOMERUN_TIME_MS = 63_000;
-/** Free Kick's 75-second, ten-kick run, plus three of slack. */
-export const FREEKICK_TIME_MS = 78_000;
+/** Top Bins' 90-second, ten-kick run (freekickRev 3; rev 1 and 2 runs end at 75 s), plus three of slack. */
+export const FREEKICK_TIME_MS = 93_000;
 /**
  * Apex's 90-second, two-lap race, plus three of slack; since 31 Oct 2026 (racingRev 2) also its 5.5-second start
  * lights before the race clock starts (99 s; racingRev 1 runs still end at their own 90 s, as Tempo's and Gemstone's).

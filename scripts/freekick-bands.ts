@@ -4,14 +4,15 @@
  * the median (p10–p90) score and each part's median, and the placement distances of the goals (to set
  * FREEKICK_PLACE_FULL_CM from the near-perfect level).
  *
- *   bun scripts/freekick-bands.ts [--seeds=60] [--from=0] [--rev=2] [--raw]
- *   (--rev: 1 or 2, the dealt revision by default; --from=10000 for fresh seeds; --raw: plain room seeds, no deal)
+ *   bun scripts/freekick-bands.ts [--seeds=60] [--from=0] [--rev=3] [--raw]
+ *   (--rev: 1, 2 or 3, the dealt revision by default; --from=10000 for fresh seeds; --raw: plain room seeds, no deal)
  */
 import { inputAt } from "../src/lib/arcade/engine";
 import { FK_OUT_GOAL, fkJudge, fkKickOf, freekickCheckpoint, freekickGameFor, FREEKICK_PLACE_FULL_CM, FREEKICK_REV_DEALT, type FreekickCheckpoint } from "../src/lib/arcade/freekick";
 import { encodeFreekickRun, replayFreekickRun } from "../src/lib/duel/freekick";
 import { freekickDealSeed } from "../src/lib/duel/freekickDeal.server";
 import { freekickDealSeedV2 } from "../src/lib/duel/freekickDealV2.server";
+import { freekickDealSeedV3 } from "../src/lib/duel/freekickDealV3.server";
 import { ALL_LEVELS, Human, LEVEL_LABEL } from "./arcade-skill-bands/human";
 import { bot, randomBot } from "./arcade-skill-bands/bots/freekick";
 import { hashSeed } from "./freekick-deal";
@@ -56,7 +57,7 @@ if (import.meta.main) {
     const dists: number[] = [];
     let zeros = 0;
     for (let n = FROM; n < FROM + N; n++) {
-      const seed = RAW ? hashSeed(n) : REV >= 2 ? freekickDealSeedV2(hashSeed(n)) : freekickDealSeed(hashSeed(n));
+      const seed = RAW ? hashSeed(n) : REV >= 3 ? freekickDealSeedV3(hashSeed(n)) : REV >= 2 ? freekickDealSeedV2(hashSeed(n)) : freekickDealSeed(hashSeed(n));
       const human = new Human("freekick", seed, level === "random" ? "average" : level);
       const out = (level === "random" ? randomBot : bot)({ game: freekickGameFor(REV), seed, rev: REV, human });
       const { result, dists: d } = serverReplay(seed, out.events ?? []);

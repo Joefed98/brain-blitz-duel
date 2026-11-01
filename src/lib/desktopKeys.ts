@@ -30,6 +30,8 @@ export const DESKTOP_KEYS: Partial<Record<PuzzleType, readonly (readonly [string
   tripeaks: [["Click", "play a card"], ["Space / S", "turn the stock"]],
   pokersquares: [["Click", "place the card"]],
   fivehands: [["Click", "place your card in a row"]],
+  // Sports
+  freekick: [["Click / ← → ↑ ↓", "aim"], ["Drag / A D", "curl"], ["Space (hold)", "power, release to strike"]],
   rally: [["← →", "paddle"]],
   racing: [["← → / A D", "steer"], ["↑ / W", "accelerate"], ["↓ / S", "brake"]],
   curling: [["Arrows", "target"], ["A D", "slide the stone"], ["I / O", "turn"], ["− / + then Enter", "weight, throw"], ["← → (moving)", "brush"]],

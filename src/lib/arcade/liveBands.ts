@@ -39,7 +39,7 @@ import { BULLSEYE_REV_STD, BULLSEYE_REV_STRICT, BULLSEYE_STD_SPEC, BULLSEYE_V9_B
 import { PIN_REV_STD, PIN_STD_SPEC, PIN_V6_BAND_CURVE } from "./pinball4";
 import { PIN_REV_STRICT } from "./pinball";
 import { HOMERUN_REV_DEALT, HOMERUN_STD_SPEC_DEALT, HOMERUN_V3_BAND_CURVE } from "./homerun";
-import { FREEKICK_REV_DEALT, FREEKICK_V2_STD_SPEC, FREEKICK_V2_BAND_CURVE } from "./freekick";
+import { FREEKICK_REV_DEALT, FREEKICK_V3_STD_SPEC, FREEKICK_V3_BAND_CURVE } from "./freekick";
 import { RACING_REV_DEALT, RACING_V2_BAND_CURVE, RACING_V2_STD_SPEC } from "./racing";
 import { FC_REV, FC_STD_SPEC, FC_V1_BAND_CURVE } from "./cards/freecell";
 import { TP_REV, TP_STD_SPEC, TP_V1_BAND_CURVE } from "./cards/tripeaks";
@@ -129,7 +129,7 @@ export const LIVE_BANDS = {
   // The Sports group (30 Oct 2026), born on the arcade scoring standard (rev 1; no earlier band revision).
   // Home Run deals homerunRev 3 since 1 Nov 2026 (the swing choice and the pitcher's tell; core full at 460 ft a pitch).
   homerun: { field: "homerunRev", rev: HOMERUN_REV_DEALT, curve: HOMERUN_V3_BAND_CURVE, std: HOMERUN_STD_SPEC_DEALT, born: true },
-  freekick: { field: "freekickRev", rev: FREEKICK_REV_DEALT, curve: FREEKICK_V2_BAND_CURVE, std: FREEKICK_V2_STD_SPEC, born: true },
+  freekick: { field: "freekickRev", rev: FREEKICK_REV_DEALT, curve: FREEKICK_V3_BAND_CURVE, std: FREEKICK_V3_STD_SPEC, born: true },
   racing: { field: "racingRev", rev: RACING_REV_DEALT, curve: RACING_V2_BAND_CURVE, std: RACING_V2_STD_SPEC, born: true },
   // Cards & Board (30 Oct 2026): born on the arcade scoring standard at revision 1.
   freecell: { field: "freecellRev", rev: FC_REV, curve: FC_V1_BAND_CURVE, std: FC_STD_SPEC, born: true },

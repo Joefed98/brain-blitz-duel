@@ -105,6 +105,7 @@ reason given. "Practice" marks games retired to practice.
 | Swish (`bintoss`) | Drag to aim, release to throw (release on the bottom strip cancels) | Arrows / WASD aim (Shift: fine); Space or Enter throws; Esc hides the aim |
 | Tempo (`beat`) | Click a lane (hold for hold notes; flick sideways on swipe notes) | None: a decision for Joe (below) |
 | Tilt (`tilt`) | Drag sideways to tilt | ← → / A D tilt (a virtual drag, 4 px a tick) |
+| Top Bins (`freekick`, freekickRev 3) | Click the goal to aim, drag sideways to curl, hold the power bar and let go to strike | ← → ↑ ↓ move the aim (20 cm, Shift 5 cm; the first press aims at the goal's centre); A D curl left / right (10 a press); hold Space for the power meter, let go to strike. Earlier revisions (a drawn stroke): mouse only |
 | Wavefront (`wavefront`) | Drag in the bottom quarter to move | ← → / A D move (6 px a tick) |
 | Curl Champ (`curling`) | Drag the target; drag the stone sideways to slide it; In / Out buttons; drag up to throw (its speed is the weight); rub left or right of a moving stone to brush | ← → ↑ ↓ move the target (Shift: further); A D slide the stone; I / O the turn; curlRev 3: − / + set the weight on the meter (from the draw zone's mark; Shift: 50), Enter throws it (curlRev 1 and 2: Enter throws a draw weight); while a stone travels ← → brush its left / right, S carries it |
 | Bastion (`bastion`, practice) | Drag to aim, or the Arrows buttons | ← → / A D rotate |

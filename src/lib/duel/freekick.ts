@@ -10,6 +10,7 @@ import {
   FREEKICK_CHECKPOINT_KEYS,
   FREEKICK_KICKS,
   FREEKICK_REV_2,
+  FREEKICK_REV_3,
   FREEKICK_REV_STD,
   type FreekickCheckpoint,
   type FreekickState,
@@ -27,6 +28,7 @@ const runFor = (rev: number) =>
   });
 const run = runFor(FREEKICK_REV_STD);
 const runV2 = runFor(FREEKICK_REV_2);
+const runV3 = runFor(FREEKICK_REV_3);
 
 export interface FreekickResult extends FlatReplay<FreekickState, FreekickCheckpoint> {
   /** Goals scored, kicks taken, targets hit, goals curled round the wall, the best run of goals. */
@@ -46,9 +48,10 @@ export interface FreekickResult extends FlatReplay<FreekickState, FreekickCheckp
 export const encodeFreekickRun = run.encode;
 export const decodeFreekickRun = run.decode;
 
-/** The single place a Top Bins score is worked out (freekickRev 2 and above play rev 2; anything else rev 1). */
+/** The single place a Top Bins score is worked out (freekickRev 3 and above play rev 3, 2 rev 2; anything else rev 1). */
 export function replayFreekickRun(seed: number, raw: string, rev?: number | null): FreekickResult {
-  const result = ((rev ?? FREEKICK_REV_STD) >= FREEKICK_REV_2 ? runV2 : run).replay(seed, raw);
+  const r = rev ?? FREEKICK_REV_STD;
+  const result = (r >= FREEKICK_REV_3 ? runV3 : r >= FREEKICK_REV_2 ? runV2 : run).replay(seed, raw);
   const s = result.state;
   const taken = s.outs.filter((o) => o >= 0 && o !== FK_OUT_UNTAKEN).length;
   return {
