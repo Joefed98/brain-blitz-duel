@@ -1033,7 +1033,7 @@ outside the repo.
   docs/sound-cues/music.md); the arcade answer reveal's breakdown is one line until tapped ("142 · core 110 + features
   32" on the standard, `revealSummary`; reveal-fold-check, room-16-check); Full House retired to practice.
 - **Strategy group** (1 Nov 2026; presentation and room setup only, no stamps): the arcade's Action group split in
-  two: Action keeps Slice, Roofbound and Grappler; Strategy (`strategy`, `--group-strategy` #7B6CFF, a blue-leaning
+  two: Action keeps Slice, Roofbound and Grappler; Strategy (`strategy`, `--group-strategy` #8E80FF, a blue-leaning
   violet) takes Tilt, Gemstone, High Rise, Coral Pop, Rainbow Bridge and Ball Tracker (`arcadeGroups.ts`). Practice's
   Arcade chips are the 4-column grid (All games, Retro, Sports, Action; Cards & Board and Strategy over two), the
   room settings sheet has eleven chips and Mixed / Arcade only take all five groups (each its own share). Settings

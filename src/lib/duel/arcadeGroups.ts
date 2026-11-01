@@ -63,8 +63,8 @@ export const ARCADE_GROUPS: readonly ArcadeGroupInfo[] = [
     id: "strategy",
     label: "Strategy",
     // A blue-leaning violet: clear of Retro's cyan, Sports' green, Cards & Board's pink and Action's red,
-    // and of Pattern's purple and Word's blue beside it in the room settings sheet; 5.1:1 on #0B0B0F.
-    colour: "#7B6CFF",
+    // and of Pattern's purple and Word's blue beside it in the room settings sheet; 6.3:1 on #0B0B0F.
+    colour: "#8E80FF",
     glow: false,
     // Tilt, Gemstone, High Rise, Coral Pop, Rainbow Bridge, Ball Tracker (their order in Action).
     games: ["tilt", "matchup", "skyline", "bubble", "inkbridge", "balltrack"],

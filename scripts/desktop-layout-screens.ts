@@ -17,6 +17,7 @@ export const roomRound = (type: string, arcade: boolean): ThemeScreen => ({
 
 export const DESKTOP_LAYOUT_SCREENS: ThemeScreen[] = [
   { ...named("practice list"), name: "practice" },
+  { ...named("practice list, arcade side"), name: "practice arcade" },
   { ...named("play"), name: "play" },
   { name: "room lobby, 16 players", mode: "room", room: room("waiting", "starting", { players: 16 }) },
   { name: "room standings, 16 players", mode: "room", room: room("in_progress", "standings", { players: 16, rounds: 2, meAt: 12 }), waitMs: 2500 },

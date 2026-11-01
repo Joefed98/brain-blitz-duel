@@ -500,7 +500,7 @@
   --group-sports: #4CC24A;
   --group-cards: #FF5C93;
   --group-action: var(--category-arcade);
-  --group-strategy: #7B6CFF;
+  --group-strategy: #8E80FF;
   --category-accent: var(--category-logic);
   --puzzle-surface: oklch(0.205 0.012 285);
   --puzzle-edge: oklch(0.36 0.014 285);
