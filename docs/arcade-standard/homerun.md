@@ -1,8 +1,8 @@
-# Home Run on the arcade scoring standard (homerunRev 1, 30 Oct 2026; homerunRev 2, 31 Oct 2026)
+# Home Run on the arcade scoring standard (homerunRev 1, 30 Oct 2026; homerunRev 2, 31 Oct 2026; homerunRev 3, 1 Nov 2026)
 
 Shown as **Home Run** since 31 Oct 2026 (was Home Run Derby; the id `homerun` is unchanged). Rooms deal
-**homerunRev 2** since then (section "homerunRev 2" at the end); everything above it describes rev 1, which every rev-2
-rule keeps unless that section says otherwise.
+**homerunRev 3** since 1 Nov 2026 (section "homerunRev 3" at the end; rev 2 was dealt on 31 Oct 2026, section
+"homerunRev 2"); everything above them describes rev 1, which every later rule keeps unless its section says otherwise.
 
 A new arcade game (`homerun`, the Sports group): ten seeded pitches in 60 s, one about every 6 s, swung at from the
 hitter's eye level in a night ballpark. Rooms deal **`homerunRev 1`** (`HOMERUN_REV_STD`); it is born on the standard
@@ -182,3 +182,104 @@ offline by `scripts/shots/homerun-swing-frames.ts`).
   in the stroke.
 - The timing word calls only an exact tick PERFECT; one tick (17 ms) either side already reads EARLY / LATE.
 - The radar board reads out after the pitch is decided, not as it crosses (it would otherwise tell a late swinger).
+
+## homerunRev 3 (1 Nov 2026, "prepare the shot")
+
+Joe scored 20–50 on rev 2: every pitch was one hard swing on a 7-tick window, read from the flight alone. Rev 3 makes
+each pitch about preparing the swing before taking it. Rooms deal **`homerunRev 3`** (`HOMERUN_REV_3`,
+`HOMERUN_REV_DEALT`) from its own proved deal, `src/lib/duel/homerunDealV3.server.ts` (`bun scripts/homerun-deal.ts
+--rev=3`; 300 seeds, each the oracle's run scoring exactly 200 on rev 3 through the server replay, 0 dropped; the same
+seed list as rev 2's, since the plan is unchanged and every seed proves). Rev-1 and rev-2 rounds replay and score exactly
+as before: homerun-check replays the 54 rev-1 runs and 54 rev-2 runs recorded on main ae1efbe
+(`scripts/fixtures/homerun-rev2-legacy.json`, written by `scripts/homerun-rev3-legacy.ts`: every skill-band level,
+random swipes, edge swings, three of them carrying kind-2 events that rev 2 ignores and its server drops) to the same
+score, final checksum and end tick. The rev-1 and rev-2 deal files are unchanged byte for byte.
+
+### What changes (gameplay, gated on the stamp)
+
+- **The swing choice** (`HOMERUN_INPUT_MODE`, k = 2, `a` = 0 Contact / 1 Power; rev 3's own input ranges,
+  `HOMERUN_INPUT_RANGES_V3`, so rev 1 and 2 never declare it). Two buttons under the field (`data-game-controls="swing"`),
+  C / 1 and P / 2 on a computer. A choice is recorded on the sim tick it is made and stands until changed (Contact to
+  start); each pitch is played with the choice standing at its release (`pmode`, locked on the release tick), so a press
+  after the release waits for the next pitch. The HUD chip shows NEXT CONTACT / NEXT POWER until the release, then
+  CONTACT / POWER; the lit button is the sim's own choice. A choice counts as playing (at least 1).
+- **The pitcher's tell** (display only; the plan is rev 1's): for the last 24 ticks (0.4 s) of the wind-up
+  (`HOMERUN_TELL_TICKS`) the pitcher holds his arm in the pitch's slot (fastball high over the top, curve and drop
+  between, changeup low), his hand and glove flash the pitch's colour, and a grip bubble beside him shows the ball in his
+  fingers, ringed in that colour: **fastball red**, two fingers across the top; **curve blue**, fingers hooked along a
+  seam; **drop purple**, two fingers split wide; **changeup green**, a circle grip (`paintTellBubble`, 52 world px across,
+  clear of the pitch's path). The radar board still reads type and speed after the pitch.
+- **Each pitch kind's timing** (`homerunPerfectOffset`, `HOMERUN_V3_PERFECT`): the perfect contact tick against the
+  ball's arrival is fastball −1 (meet it out front), curve +1, drop +1, changeup +2 (wait on it). Early / Perfect / Late
+  is called against that tick. Timing quality falls on a straight line from 1000 at the perfect tick to 0 at the window's
+  edge (`HOMERUN_V3_WINDOW`, tenths of a tick: Contact 10.0 / 12.5 / 12.0 / 13.5 ticks, Power 5.2 / 6.4 / 6.0 / 6.8 for
+  fastball / curve / drop / changeup; the fastball tightest on either swing).
+- **Contact vs Power** (`HOMERUN_V3_SWEET`, `HOMERUN_V3_HEIGHT_LOSS`, `HOMERUN_V3_FEET_BASE` / `_SPAN`):
+
+  | Swing | Timing window | Height sweet band | Loss a px past it | Carry at quality q | Reaches |
+  | --- | --- | --- | --- | --- | --- |
+  | Contact | wide (10–13.5 ticks) | ±8 px | 20 | 124 + 290 q (≤ 414 ft) | home runs down the lines on a square hit, never a sign |
+  | Power | narrow (5.2–6.8 ticks) | ±4 px | 35 | 100 + 380 q (≤ 480 ft) | home runs anywhere, every sign |
+
+  Quality = timing × height ÷ 1000; under 100 is a miss. Aim, the fence, foul lines and signs are rev 2's.
+- Unchanged: the plan (pitches, flights, plate points, breaks, signs), the aim (9/16 of the swipe, fair to ±80°), the
+  18 px chord, the run's length, the parts.
+
+### The parts (200 in all, `HOMERUN_STD_SPEC_V3`)
+
+| Part | Max | How it pays |
+| --- | --- | --- |
+| Distance (core) | 130 | `stdLine(130, Σ min(carry, 460), 4,600)`: 13 a pitch, full at **460 ft** (rev 1–2: 450) |
+| Home runs | 50 | 5 each, up to 10 |
+| Sign hits | 20 | 5 for each of the 4 signs struck (Power only) |
+
+A perfect run (the oracle: Power on every pitch, each met on its kind's perfect tick at the ball's height, four aimed at
+the signs) carries 480 ft every pitch: 130 + 50 + 20 = 200. 460 ft needs a Power swing met within about a tick and the
+sweet band, so the core's top is earned at elite precision.
+
+### Medians, rev 2 as dealt → rev 3 (`bun scripts/homerun-bands.ts [--rev=2]`, room seeds 0–59, server replay)
+
+| Level | Rev 2 | Rev 3 | Distance (130) | Home runs (50) | Signs (20) | Avg ft a pitch | HR | Signs |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Random | 1 | 1 | 0 | 0 | 0 | 0 | 0 | 0 |
+| Weak | 42 | 73 | 69 | 5 | 0 | 245 | 1 | 0 |
+| Average | 65 | 92 | 88 | 5 | 0 | 314 | 1 | 0 |
+| Good | 105 | 128 | 99 | 28 | 0 | 353 | 6 | 0 |
+| Great | 154 | 159 | 110 | 35 | 10 | 389 | 7 | 2 |
+| Near-perfect | 186 | 187 | 121 | 45 | 20 | 431 | 9 | 4 |
+| Elite | 195 | 193 | 123 | 50 | 20 | 439 | 10 | 4 |
+| Flawless | 200 | 200 | 130 | 50 | 20 | 460 | 10 | 4 |
+
+Fresh seeds (n = 10000–10099), rev 2 → rev 3: weak 38 → 70, average 67 → 91, good 105 → 128, great 148 → 154,
+near 187 → 187, elite 195 → 193, flawless 200 → 200; random 1 on both.
+
+The rev-3 bot (`botV3` in `bots/homerun.ts`; rev 1 and 2 measure as before): before each pitch it chooses the swing
+(Power with chance weak 0, average 0.1, good 0.3, great 0.85, near-perfect and elite 1), pressing the button 30–90 ticks
+before the release when the choice changes. It reads the tell with chance weak 0.55, average 0.7, good 0.85, great
+0.93, near 0.97, elite 0.99: read, it times the kind's perfect tick with the level's timing sd × 1.0 (fastball) to 1.2
+(changeup) and judges a little more of the break; misread, it times the arrival from the flight alone (rev 2's spread).
+Height and angle errors are rev 2's. With Power it goes for the signs (great and better always, good half the time);
+a good or better hitter on Contact pulls the ball 25–35° down a line, where the fence is shortest; weak and average
+hitters aim straight away.
+
+What moved: Contact's wide window and sweet band lift the lower half (weak and average by about 25–30, good by 23 into
+the 120–140 band), Power is still where home runs, signs and the full core come from, so the top stays the top: great
+about 160, elite 193, and only flawless play reaches 200. The near-perfect / elite / flawless gaps are about rev 2's
+(the features saturate at near-perfect: 9–10 home runs and all four signs).
+
+### Review shots
+
+`screenshots/sports-prepare-nov-2026/`: `homerun-tells.png` (the four tells 6 ticks before the release, with 3×
+close-ups, drawn offline by `bun scripts/shots/homerun-tell-frames.ts`), and the play screen at 414×896,
+`homerun-414x896-<choose|tell|swing|call|reveal>.png` (`bun scripts/shots/homerun-prepare-shots.ts --url=<dev origin>
+[--burst]`: an elite bot's run warped in on the practice example's seed; the reveal grades only the part played after the
+warp, so its score is low).
+
+### Decisions for Joe
+
+- **The tell's colours and grips** (red fastball, blue curve, purple drop, green changeup) are learned from the help;
+  colour alone is never the only cue (the grip shape differs on each), but it is the quickest read.
+- **The perfect ticks** (fastball 17 ms early, changeup 33 ms late) are small: the windows matter more than the offsets.
+- **Contact's carry** (≤ 414 ft) keeps the signs Power-only; Contact can still homer down the lines on a square hit.
+- **Weak and average rise most** (73 and 92): Contact is the easy way in. If that is too generous, narrow Contact's
+  window before touching Power.

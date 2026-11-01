@@ -1,15 +1,16 @@
 /**
  * Home Run's skill bands (not a check): every level, weak → flawless, plays the room seeds n = 0…59 (each the
  * proved deal's seed for the n-th room seed, scripts/arcade-skill-bands/games.ts roomSeed) through the server's own
- * encode + replay path; prints each level's median score and parts. `--from=10000` plays fresh seeds; `--rev=1`
- * measures homerunRev 1 on its own deal (default: rev 2, what rooms deal).
+ * encode + replay path; prints each level's median score and parts. `--from=10000` plays fresh seeds; `--rev=1` / `--rev=2`
+ * measure homerunRev 1 / 2 on their own deals (default: rev 3, what rooms deal).
  *
- *   bun scripts/homerun-bands.ts [--seeds=60] [--from=0] [--rev=2]
+ *   bun scripts/homerun-bands.ts [--seeds=60] [--from=0] [--rev=3]
  */
 import { homerunCheckpoint, homerunGameFor, homerunStdParts, HOMERUN_REV_DEALT } from "../src/lib/arcade/homerun";
 import { encodeHomerunRun, replayHomerunRun } from "../src/lib/duel/homerun";
 import { homerunDealSeed } from "../src/lib/duel/homerunDeal.server";
 import { homerunDealSeedV2 } from "../src/lib/duel/homerunDealV2.server";
+import { homerunDealSeedV3 } from "../src/lib/duel/homerunDealV3.server";
 import { ALL_LEVELS, Human, LEVEL_LABEL } from "./arcade-skill-bands/human";
 import { bot, randomBot } from "./arcade-skill-bands/bots/homerun";
 
@@ -33,7 +34,7 @@ const median = (xs: number[]) => {
 };
 
 export function playLevel(level: (typeof ALL_LEVELS)[number] | "random", n: number) {
-  const seed = REV >= 2 ? homerunDealSeedV2(roomSeed(n)) : homerunDealSeed(roomSeed(n));
+  const seed = REV >= 3 ? homerunDealSeedV3(roomSeed(n)) : REV >= 2 ? homerunDealSeedV2(roomSeed(n)) : homerunDealSeed(roomSeed(n));
   const human = new Human("homerun", seed, level === "random" ? "weak" : level);
   const out = (level === "random" ? randomBot : bot)({ game: homerunGame, seed, rev: REV, human, fixes: true });
   const events = out.events ?? [];

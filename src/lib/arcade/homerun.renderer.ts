@@ -7,6 +7,11 @@
  * the crowd's flashes and cheers, the call with Early / Perfect / Late and the contact-height marker, the radar
  * board's reading and the HUD chips are drawn.
  *
+ * homerunRev 3 (1 Nov 2026): the pitcher's tell for the last HOMERUN_TELL_TICKS of the wind-up (the arm slot on the
+ * figure, a flash of the pitch's colour at the glove and a grip bubble beside him: `paintTell`), the swing chip
+ * (CONTACT / POWER, the choice standing, locked at the release) and Early / Perfect / Late against the pitch kind's own
+ * perfect tick (homerunPerfectOffset). Earlier revisions draw as before.
+ *
  * The near field (plate, batter, mound) is a pinhole projection (`proj`, feet); the outfield wall and the stands use a
  * panoramic angle mapping (spray angle → screen x) so both foul poles stay in view. The strike zone and the pitch's
  * plate point are the sim's own world px (homerunBallAt, the plan); the batter is a jointed 3-D figure projected
@@ -25,7 +30,14 @@ import {
   homerunCurrent,
   homerunFence,
   homerunGame,
+  homerunPerfectOffset,
   homerunPlan,
+  HOMERUN_MODE_POWER,
+  HOMERUN_REV_3,
+  HOMERUN_TELL_TICKS,
+  PITCH_CHANGEUP,
+  PITCH_CURVE,
+  PITCH_DROP,
   HOMERUN_PITCHES,
   HOMERUN_PITCH_NAMES,
   HOMERUN_SIGNS,
@@ -513,11 +525,14 @@ export function paintHomerunPark(ctx: CanvasRenderingContext2D, plan: HomerunPla
  * The pitcher on the mound: a clean shaded figure with a warm rim light. `phase` runs 0 (set) → 1 (release) → 2
  * (follow-through); drawn at its feet (x, y) and height h px.
  */
-export function paintPitcher(ctx: CanvasRenderingContext2D, x: number, y: number, h: number, phase: number): void {
+export function paintPitcher(ctx: CanvasRenderingContext2D, x: number, y: number, h: number, phase: number, tell?: { kind: number; k: number }): void {
   const u = h / 60;
   const lift = phase < 1 ? Math.sin(Math.min(1, phase / 0.6) * Math.PI) : 0;
   const lean = phase < 0.6 ? -0.1 * (phase / 0.6) : phase < 1 ? -0.1 + 0.45 * ((phase - 0.6) / 0.4) : 0.35 - 0.2 * Math.min(1, phase - 1);
-  const arm = phase < 0.6 ? -2.4 * (phase / 0.6) : phase < 1 ? -2.4 + 4.4 * ((phase - 0.6) / 0.4) : 2 + 0.6 * Math.min(1, phase - 1);
+  let arm = phase < 0.6 ? -2.4 * (phase / 0.6) : phase < 1 ? -2.4 + 4.4 * ((phase - 0.6) / 0.4) : 2 + 0.6 * Math.min(1, phase - 1);
+  // homerunRev 3's tell: the arm held in its slot (fastball high over the top, changeup low, curve and drop between)
+  // while the tell shows, then the delivery from there.
+  if (tell && phase < 1) arm = arm * (1 - tell.k) + TELL_ARM[tell.kind]! * tell.k;
   ctx.save();
   ctx.translate(x, y);
   ctx.scale(u, u);
@@ -564,6 +579,38 @@ export function paintPitcher(ctx: CanvasRenderingContext2D, x: number, y: number
   ctx.beginPath();
   ctx.arc(-11.5, -8, 3.4, 0, Math.PI * 2);
   ctx.fill();
+  if (tell && tell.k > 0) {
+    // The throwing hand: a flash of the pitch's colour (the glove side lights too), and the curve's hooked wrist.
+    const hx = 6 + Math.cos(arm) * 17;
+    const hy = -18 + Math.sin(arm) * 17 - 2;
+    const c = TELL_COLOUR[tell.kind]!;
+    ctx.save();
+    ctx.globalAlpha = tell.k;
+    ctx.globalCompositeOperation = "lighter";
+    for (const [cx, cy, r] of [[hx, hy, 7], [-11.5, -8, 5.5]] as const) {
+      const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, r);
+      g.addColorStop(0, c);
+      g.addColorStop(1, "rgba(0,0,0,0)");
+      ctx.fillStyle = g;
+      ctx.fillRect(cx - r, cy - r, r * 2, r * 2);
+    }
+    ctx.restore();
+    ctx.save();
+    ctx.globalAlpha = tell.k;
+    ctx.fillStyle = c;
+    ctx.beginPath();
+    ctx.arc(hx, hy, 2.4, 0, Math.PI * 2);
+    ctx.fill();
+    if (tell.kind === PITCH_CURVE) {
+      ctx.strokeStyle = c;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(hx, hy);
+      ctx.quadraticCurveTo(hx + 4, hy - 1, hx + 3, hy + 4);
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
   ctx.fillStyle = "#C69C7A";
   ctx.beginPath();
   ctx.arc(0, -28, 4.6, 0, Math.PI * 2);
@@ -581,6 +628,104 @@ export function paintPitcher(ctx: CanvasRenderingContext2D, x: number, y: number
   ctx.lineTo(7, 0);
   ctx.stroke();
   ctx.restore();
+  ctx.restore();
+}
+
+/* ------------------------------------------------------------- the tell */
+
+/** homerunRev 3: each pitch kind's tell colour (fastball red, curve blue, drop purple, changeup green). */
+export const TELL_COLOUR: Record<number, string> = { 0: "#FF5A4E", [PITCH_CURVE]: "#4EA8FF", [PITCH_DROP]: "#B784FF", [PITCH_CHANGEUP]: "#5BE38A" };
+/** The arm's slot while the tell shows (radians, as paintPitcher's arm): high for the fastball, low for the changeup. */
+const TELL_ARM: Record<number, number> = { 0: -1.85, [PITCH_CURVE]: -2.35, [PITCH_DROP]: -2.25, [PITCH_CHANGEUP]: -2.85 };
+/** Where the grip bubble sits (beside the pitcher, clear of the pitch's path to the plate). */
+export const TELL_BUBBLE = { x: 158, y: 212, r: 26 } as const;
+
+/** How strongly the tell shows at tick `t` for pitch `p` (0 when hidden; fades in over 4 ticks, out 8 after the release). */
+export function homerunTellAlpha(p: HomerunPitch, t: number): number {
+  const from = p.release - HOMERUN_TELL_TICKS;
+  if (t < from || t > p.release + 8) return 0;
+  if (t < from + 4) return (t - from) / 4;
+  if (t > p.release) return 1 - (t - p.release) / 8;
+  return 1;
+}
+
+/**
+ * The grip bubble: the ball in the pitcher's fingers, close up, ringed in the pitch's colour. Fastball: two fingers
+ * across the top of the seams. Curve: the fingers hooked along a seam, the wrist cocked. Drop: two fingers split wide
+ * either side. Changeup: a circle of thumb and forefinger on the side.
+ */
+export function paintTellBubble(ctx: CanvasRenderingContext2D, kind: number, alpha: number, bx: number = TELL_BUBBLE.x, by: number = TELL_BUBBLE.y, r: number = TELL_BUBBLE.r): void {
+  if (alpha <= 0) return;
+  const c = TELL_COLOUR[kind] ?? "#FFFFFF";
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  // Glow and the dark disc.
+  const glow = ctx.createRadialGradient(bx, by, r * 0.8, bx, by, r * 1.6);
+  glow.addColorStop(0, c);
+  glow.addColorStop(1, "rgba(0,0,0,0)");
+  ctx.globalAlpha = alpha * 0.45;
+  ctx.fillStyle = glow;
+  ctx.fillRect(bx - r * 1.6, by - r * 1.6, r * 3.2, r * 3.2);
+  ctx.globalAlpha = alpha;
+  ctx.fillStyle = "rgba(6,9,18,0.9)";
+  ctx.beginPath();
+  ctx.arc(bx, by, r, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = c;
+  ctx.lineWidth = 2.5;
+  ctx.stroke();
+  // The ball.
+  const br = r * 0.56;
+  const g = ctx.createRadialGradient(bx - br * 0.3, by - br * 0.35, br * 0.1, bx, by, br);
+  g.addColorStop(0, "#FFFFFF");
+  g.addColorStop(1, "#C9C6BA");
+  ctx.fillStyle = g;
+  ctx.beginPath();
+  ctx.arc(bx, by, br, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = "#C2373A";
+  ctx.lineWidth = 1.2;
+  ctx.beginPath();
+  ctx.arc(bx - br * 0.95, by, br * 0.7, -0.95, 0.95);
+  ctx.moveTo(bx + br * 0.95 + Math.cos(Math.PI - 0.95) * br * 0.7, by + Math.sin(Math.PI - 0.95) * br * 0.7);
+  ctx.arc(bx + br * 0.95, by, br * 0.7, Math.PI - 0.95, Math.PI + 0.95);
+  ctx.stroke();
+  // The fingers (skin, outlined in the pitch's colour so the shape reads at a glance).
+  const finger = (x0: number, y0: number, x1: number, y1: number, cx?: number, cy?: number) => {
+    ctx.beginPath();
+    ctx.moveTo(x0, y0);
+    if (cx !== undefined && cy !== undefined) ctx.quadraticCurveTo(cx, cy, x1, y1);
+    else ctx.lineTo(x1, y1);
+    ctx.lineCap = "round";
+    ctx.strokeStyle = c;
+    ctx.lineWidth = 6.4;
+    ctx.stroke();
+    ctx.strokeStyle = "#E2B596";
+    ctx.lineWidth = 3.8;
+    ctx.stroke();
+  };
+  const u = br;
+  if (kind === PITCH_CURVE) {
+    finger(bx - u * 0.9, by - u * 0.9, bx + u * 0.55, by + u * 0.2, bx + u * 0.4, by - u * 1.0);
+    finger(bx - u * 0.9, by - u * 0.45, bx + u * 0.3, by + u * 0.55, bx + u * 0.25, by - u * 0.45);
+  } else if (kind === PITCH_DROP) {
+    finger(bx - u * 0.4, by - u * 1.15, bx - u * 0.75, by + u * 0.5);
+    finger(bx + u * 0.4, by - u * 1.15, bx + u * 0.75, by + u * 0.5);
+  } else if (kind === PITCH_CHANGEUP) {
+    ctx.strokeStyle = c;
+    ctx.lineWidth = 6.4;
+    ctx.beginPath();
+    ctx.arc(bx - u * 0.35, by + u * 0.1, u * 0.42, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.strokeStyle = "#E2B596";
+    ctx.lineWidth = 3.8;
+    ctx.stroke();
+    finger(bx + u * 0.25, by - u * 1.1, bx + u * 0.35, by + u * 0.2);
+    finger(bx + u * 0.7, by - u * 0.95, bx + u * 0.75, by + u * 0.25);
+  } else {
+    finger(bx - u * 0.28, by - u * 1.15, bx - u * 0.28, by + u * 0.15);
+    finger(bx + u * 0.28, by - u * 1.15, bx + u * 0.28, by + u * 0.15);
+  }
   ctx.restore();
 }
 
@@ -1011,17 +1156,20 @@ function outcomeText(hit: HomerunHit): { big: string; small: string; gold: boole
   return { big: "STRIKE", small: "LOOKING", gold: false };
 }
 
-/** Early / Perfect / Late: how many ticks the bat reached the plate before or after the ball (null when not swung). */
-export function homerunTimingCall(hit: HomerunHit, pitch: HomerunPitch): { label: string; ms: number; perfect: boolean } | null {
+/**
+ * Early / Perfect / Late: how many ticks the bat reached the plate before or after the perfect tick (null when not
+ * swung). The perfect tick is the ball's arrival, on homerunRev 3 moved by the pitch kind (homerunPerfectOffset).
+ */
+export function homerunTimingCall(hit: HomerunHit, pitch: HomerunPitch, rev?: number | null): { label: string; ms: number; perfect: boolean } | null {
   if (hit.st < 0) return null;
-  const dt = hit.st + HOMERUN_SWING_TICKS - pitch.arrive;
+  const dt = hit.st + HOMERUN_SWING_TICKS - pitch.arrive - homerunPerfectOffset(pitch.kind, rev);
   const ms = Math.round((Math.abs(dt) * 1000) / 60);
   if (dt === 0) return { label: "PERFECT", ms: 0, perfect: true };
   return { label: dt < 0 ? "EARLY" : "LATE", ms, perfect: false };
 }
 
 /** The call, the timing word and, over the zone, where the bat met against where the ball crossed. */
-function paintCall(ctx: CanvasRenderingContext2D, hit: HomerunHit, pitch: HomerunPitch, k: number): void {
+function paintCall(ctx: CanvasRenderingContext2D, hit: HomerunHit, pitch: HomerunPitch, k: number, rev: number): void {
   const t = outcomeText(hit);
   const alpha = k < 100 ? 1 : (120 - k) / 20;
   const cx = 250;
@@ -1041,7 +1189,7 @@ function paintCall(ctx: CanvasRenderingContext2D, hit: HomerunHit, pitch: Homeru
     ctx.fillStyle = "#E6E4DE";
     ctx.fillText(t.small, cx, 345);
   }
-  const timing = homerunTimingCall(hit, pitch);
+  const timing = homerunTimingCall(hit, pitch, rev);
   if (timing) {
     const text = timing.perfect ? "PERFECT" : `${timing.label} · ${timing.ms} MS`;
     ctx.font = `800 12px ${MONO}`;
@@ -1062,7 +1210,7 @@ function paintCall(ctx: CanvasRenderingContext2D, hit: HomerunHit, pitch: Homeru
     ctx.fillRect(mx - 60, my - 2, 120, 4);
     ctx.fillStyle = "#F2C75C";
     ctx.fillRect(mx - 1.5, my - 5, 3, 10);
-    const dt = hit.st + HOMERUN_SWING_TICKS - pitch.arrive;
+    const dt = hit.st + HOMERUN_SWING_TICKS - pitch.arrive - homerunPerfectOffset(pitch.kind, rev);
     const nx = mx + Math.max(-1, Math.min(1, dt / 8)) * 58;
     ctx.fillStyle = timing.perfect ? "#FFF1C2" : "#FF8A6B";
     ctx.beginPath();
@@ -1079,7 +1227,7 @@ function paintCall(ctx: CanvasRenderingContext2D, hit: HomerunHit, pitch: Homeru
     if (k < 110) {
       const zx0 = HOMERUN_ZONE_X0 - 8;
       const zx1 = HOMERUN_ZONE_X1 + 8;
-      const close = Math.abs(hit.a - pitch.plateY) <= 4;
+      const close = Math.abs(hit.a - pitch.plateY) <= (rev >= HOMERUN_REV_3 ? (hit.m === HOMERUN_MODE_POWER ? 4 : 8) : 4);
       ctx.strokeStyle = close ? "rgba(242,199,92,0.95)" : "rgba(255,138,107,0.95)";
       ctx.lineWidth = 2.5;
       ctx.setLineDash([]);
@@ -1184,8 +1332,11 @@ function drawHomerunWorld(ctx: CanvasRenderingContext2D, state: HomerunState): v
   // The radar board reads out the last pitch once it is decided.
   if (last && lastPitch) paintRadarReading(ctx, lastPitch, sinceLast);
 
-  // The pitcher.
-  paintPitcher(ctx, PITCHER_FEET.x, PITCHER_FEET.y, PITCHER_H, pitcherPhase(state));
+  // The pitcher (homerunRev 3: his tell late in the wind-up, and the grip bubble beside him).
+  const cur = homerunCurrent(state);
+  const tellK = state.rev >= HOMERUN_REV_3 && cur ? homerunTellAlpha(cur, state.tick) : 0;
+  paintPitcher(ctx, PITCHER_FEET.x, PITCHER_FEET.y, PITCHER_H, pitcherPhase(state), tellK > 0 && cur ? { kind: cur.kind, k: tellK } : undefined);
+  if (tellK > 0 && cur) paintTellBubble(ctx, cur.kind, tellK);
 
   // The faint dashed strike zone.
   ctx.save();
@@ -1256,7 +1407,7 @@ function drawHomerunWorld(ctx: CanvasRenderingContext2D, state: HomerunState): v
       const u = k / 20;
       paintBall(ctx, lastPitch.plateX + lastPitch.breakX * 0.3 * u, lastPitch.plateY + 140 * u + 60 * u * u, pitchR(1) * (1 + 0.8 * u), state.tick * 0.9);
     }
-    if (k >= 0 && k < 120) paintCall(ctx, last, lastPitch, k);
+    if (k >= 0 && k < 120) paintCall(ctx, last, lastPitch, k, state.rev);
   }
 
   // HUD chips along the top (nothing names the pitch before it is thrown).
@@ -1267,6 +1418,12 @@ function drawHomerunWorld(ctx: CanvasRenderingContext2D, state: HomerunState): v
   let signs = 0;
   for (let i = 0; i < HOMERUN_SIGNS; i++) if (state.signs & (1 << i)) signs++;
   chip(ctx, x, 10, `SIGNS ${signs}/${HOMERUN_SIGNS}`, signs > 0);
+  // homerunRev 3: the swing this pitch is played with (the choice standing until the release, then locked).
+  if (state.rev >= HOMERUN_REV_3 && cur) {
+    const locked = state.tick >= cur.release;
+    const m = locked ? state.pmode : state.mode;
+    chip(ctx, W - 10, 10, `${locked ? "" : "NEXT "}${m === HOMERUN_MODE_POWER ? "POWER" : "CONTACT"}`, m === HOMERUN_MODE_POWER, "right");
+  }
 }
 
 export const homerunArtGame = { ...homerunGame, draw: drawHomerunArt };
