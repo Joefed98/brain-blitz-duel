@@ -81,6 +81,11 @@ export const ROUND_MAX: Readonly<Record<PuzzleType, number>> = {
   gravity: 200,
   lightup: 200,
   shikaku: 200,
+  // New grid puzzles (1 Nov 2026), born on the scoring standard.
+  fences: 200,
+  fillomino: 200,
+  bridges: 200,
+  kakuro: 200,
   tents: 200,
   // Arcade
   balltrack: 200, // expansion E6, btRev 7 (btRev 8: the arcade scoring standard)
