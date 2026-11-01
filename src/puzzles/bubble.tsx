@@ -39,7 +39,6 @@ import { drawBubbleArt, drawBubbleAimTrail } from "@/lib/arcade/bubble.renderer"
 import { bubbleSounds } from "@/lib/fx/gameSounds";
 import { decodeBubbleRun, encodeBubbleRun, replayBubbleRun } from "@/lib/duel/bubble";
 import { ARCADE_CRASH_FREEZE_MS, type BubblePuzzleData } from "@/lib/duel/types";
-import { buzz } from "@/lib/motion";
 import { playSound, playWrong } from "@/lib/sound";
 import { NO_SCROLL_STYLE, useNoTouchScroll } from "@/components/puzzles/noScroll";
 
@@ -252,7 +251,6 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         if (state.current.dead) {
           if (deadAt.current === null) {
             deadAt.current = time;
-            buzz(40);
             playWrong();
           } else if (time - deadAt.current >= ARCADE_CRASH_FREEZE_MS) {
             finish();

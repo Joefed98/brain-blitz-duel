@@ -37,7 +37,6 @@ import {
 } from "@/lib/arcade/cross";
 import { decodeCrossRun, encodeCrossRun, replayCrossRun } from "@/lib/duel/cross";
 import { ARCADE_CRASH_FREEZE_MS, type CrossPuzzleData } from "@/lib/duel/types";
-import { buzz } from "@/lib/motion";
 import { playWrong } from "@/lib/sound";
 import { NO_SCROLL_STYLE, useNoTouchScroll } from "@/components/puzzles/noScroll";
 
@@ -200,7 +199,6 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         if (state.current.dead) {
           if (deadAt.current === null) {
             deadAt.current = time;
-            buzz(40);
             playWrong();
           } else if (time - deadAt.current >= ARCADE_CRASH_FREEZE_MS) {
             finish();

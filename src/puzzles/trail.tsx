@@ -9,7 +9,6 @@ import { trCanStep, trComplete, trCorrectTiles, trDecode, trDragPath, trEncode, 
 import { useGameKeys } from "@/lib/desktop";
 import { useStageState } from "@/lib/duel/stageState";
 import { TRAIL_TIME_MS, type TrailPuzzleData } from "@/lib/duel/types";
-import { buzz } from "@/lib/motion";
 import { playCorrect } from "@/lib/sound";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
@@ -265,7 +264,6 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
     lastRefused.current = c;
     setShakeCell(null);
     requestAnimationFrame(() => setShakeCell(c));
-    buzz([10, 30, 10]);
   };
 
   /** The cell under the finger, only near its centre so diagonals are easy to hit. */
@@ -300,7 +298,6 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
       }
       setPath(next);
       lastRefused.current = null;
-      buzz(4);
       return;
     }
     if (trCanStep(data.givens, dragPath, c) && (!slots.includes(c) || slots[dragPath.length] === c)) {
@@ -308,7 +305,6 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
       if (path.length === data.givens.length) next[dragPath.length] = c;
       setPath(next);
       lastRefused.current = null;
-      buzz(6);
     } else refuse(c);
   };
 
@@ -340,7 +336,6 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
     if (!next) return;
     setPath(next);
     lastRefused.current = null;
-    buzz(next.length < trDragPath(data.givens, path).length ? 4 : 6);
   };
   const cancel = () => { drawing.current = false; press.current = null; };
 
@@ -348,13 +343,11 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
     if (busy) return;
     setPath(trUndoPlayer(data.givens, path));
     lastRefused.current = null;
-    buzz(4);
   };
   const reset = () => {
     if (busy) return;
     setPath([startCell]);
     lastRefused.current = null;
-    buzz(6);
   };
 
   return (

@@ -33,7 +33,6 @@ import {
   type DigState,
 } from "@/lib/duel/dig";
 import { DIG_TIME_MS, type DigPuzzleData } from "@/lib/duel/types";
-import { buzz } from "@/lib/motion";
 import { playCorrect } from "@/lib/sound";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
@@ -270,7 +269,6 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
               added = true;
             }
             if (added) {
-              buzz(5);
               setPendingTick((n) => n + 1);
             }
           }

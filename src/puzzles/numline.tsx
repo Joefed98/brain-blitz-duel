@@ -11,7 +11,6 @@ import {
   type ReactNode,
 } from "react";
 
-import { hapticTick } from "@/components/puzzles/GridDrag";
 import { NO_SCROLL_STYLE, useNoTouchScroll } from "@/components/puzzles/noScroll";
 import { PolishStyle, soundCue, useSolveFx } from "@/components/puzzles/numberPolish";
 import { StageProgress } from "@/components/puzzles/StageProgress";
@@ -30,7 +29,7 @@ import {
 } from "@/lib/duel/numline";
 import { useStageState } from "@/lib/duel/stageState";
 import { NUMLINE_TIME_MS, type NumlinePuzzleData, type NumlineStageData } from "@/lib/duel/types";
-import { buzz, useReducedMotion } from "@/lib/motion";
+import { useReducedMotion } from "@/lib/motion";
 import { playTick } from "@/lib/sound";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
@@ -492,8 +491,6 @@ function Stage({
     const next = [...placements, marker];
     setPlacements(next);
     setMarker(null);
-    hapticTick();
-    buzz(10);
     playTick();
     fx.onPlace();
     soundCue("numline.place");

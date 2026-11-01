@@ -10,7 +10,6 @@ import {
   SUDOKU_TIME_MS,
   type SudokuPuzzleData,
 } from "@/lib/duel/types";
-import { buzz } from "@/lib/motion";
 import { directionOf, useGameKeys } from "@/lib/desktop";
 
 import { soundCue, useSolveFx } from "./logicFx";
@@ -205,7 +204,6 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const tapDigit = (digit: number) => {
     if (locked || submitted.current || selected === null) return;
     if (givens[selected]) return;
-    buzz(8);
     if (pencilMode) {
       setPencil((current) =>
         current.map((marks, cell) =>

@@ -10,7 +10,7 @@ import { tieMarks } from "@/lib/duel/tieDisplay";
 import { GameIcon, hasGameIcon } from "@/components/app/GameIcon";
 import { ChevronDown } from "lucide-react";
 import { playerBreakdown } from "@/lib/duel/scoring";
-import { buzz } from "@/lib/motion";
+import { haptic } from "@/lib/haptics";
 import { playVoice } from "@/lib/sound";
 import { fx } from "@/lib/fx";
 import {
@@ -188,7 +188,8 @@ export function Podium({
     fx.onPodium();
     // The winner hears "you win" (a shared first place "tie"); everyone else "GG".
     playVoice(sharedFirst ? "voice.tie" : won ? "voice.youWin" : "gg");
-    if (won) buzz([25, 50, 25]);
+    // Haptics (lib/haptics.ts): the winner's phone celebrates.
+    if (won) haptic("celebrate");
   }, [won, sharedFirst]);
 
   const marks = tieMarks(rows.map((row) => ({ slot: row.slot, points: row.total, position: row.position })));

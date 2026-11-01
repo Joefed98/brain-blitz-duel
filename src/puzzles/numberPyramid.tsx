@@ -17,7 +17,6 @@ import {
 import { useGameKeys } from "@/lib/desktop";
 import { useStageState } from "@/lib/duel/stageState";
 import { NUMPYRAMID_TIME_MS, type NumberPyramidPuzzleData } from "@/lib/duel/types";
-import { buzz } from "@/lib/motion";
 import { playCorrect } from "@/lib/sound";
 import { Button } from "@/components/ui/button";
 import { StageProgress } from "@/components/puzzles/StageProgress";
@@ -301,7 +300,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
       next[cell] = tray;
       soundCue("numpyramid.place");
     }
-    updatePlacements(next); buzz(8);
+    updatePlacements(next);
   };
   const targetAt = (x: number, y: number): number | "tray" | null => {
     const el = document.elementFromPoint(x, y) as HTMLElement | null;

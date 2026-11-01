@@ -4,7 +4,6 @@ import { gameDisplayName } from "@/lib/duel/gameNames";
 import { useEffect, useRef } from "react";
 
 import { GLYPH_COLOURS } from "@/components/duel/ShapeGlyph";
-import { hapticTick } from "@/components/puzzles/GridDrag";
 import { firePairWave } from "@/components/puzzles/pairMatchFx";
 import { registerFxPreview } from "@/components/puzzles/speedFx";
 import { decodePairFlips, encodePairFlips, replayPairs, sameCard } from "@/lib/duel/pairmatch";
@@ -18,7 +17,6 @@ import {
   type PairCard,
   type PairPuzzleData,
 } from "@/lib/duel/types";
-import { buzz } from "@/lib/motion";
 import { playCorrect, playCueSlot, playTone, playWrong } from "@/lib/sound";
 import { PAIR_GOLD_WINDOW_MS, isGoldCard, joinPairGoldTime, pairDepthReplay, pairGoldTimed, pairUsesDepth, splitPairGoldTime } from "@/lib/duel/depth/matchmaker";
 import { serverNow } from "@/lib/duel/clock";
@@ -193,7 +191,6 @@ function Stage({
     if (locked || submitted.current) return;
     if (matched.has(index) || open.includes(index)) return;
     if (open.length >= 2) return;
-    hapticTick();
     const nextFlips = [...flips, index];
     const nextOpen = [...open, index];
     setFlips(nextFlips);
@@ -224,7 +221,6 @@ function Stage({
       }
       return;
     }
-    buzz(20);
     playWrong();
     // The shared wrong-move shake and red outline (and its reject cue, as before), on the card just turned.
     wrongMoveFlash(card ?? null);

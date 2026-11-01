@@ -1,7 +1,6 @@
 import { gameDisplayName } from "@/lib/duel/gameNames";
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 
-import { hapticTick } from "@/components/puzzles/GridDrag";
 import { Button } from "@/components/ui/button";
 import {
   actionLabel,
@@ -304,7 +303,6 @@ function Stage({
 
   const act = (action: BombAction) => {
     if (locked || submitted.current) return;
-    hapticTick();
     soundCue(isCut(action) ? "bomb.cut" : "bomb.press");
     const next = [...actions, action];
     setActions(next);

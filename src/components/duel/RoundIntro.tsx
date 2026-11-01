@@ -25,6 +25,7 @@ import { useDesktop } from "@/lib/desktop";
 import { DESKTOP_KEYS } from "@/lib/desktopKeys";
 import { goStrike } from "@/lib/fx/celebrations";
 import { useCelebrationsOn } from "@/components/fx/useCelebration";
+import { haptic } from "@/lib/haptics";
 
 /** The intro ending this close to GO (ms) still gets its GO strike as the round takes over. */
 const GO_STRIKE_GRACE_MS = 600;
@@ -117,7 +118,28 @@ export function RoundIntro({
     if (countdownCued.current === key) return;
     countdownCued.current = key;
     fx.onCountdown(secondsLeft, theme);
+    // Haptics (lib/haptics.ts): a light tick on 3, 2 and 1.
+    haptic("tick");
   }, [counting, secondsLeft, startedAt, type]);
+
+  // Haptics: a firmer one on GO, at the countdown's end (the intro may hand over a moment early, so
+  // an unmount just before GO still gives it, as the GO strike below does).
+  useEffect(() => {
+    if (!counting) return;
+    const delay = Math.max(0, INTRO_MS - Math.max(0, now - startedAt));
+    const at = Date.now() + delay;
+    let fired = false;
+    const fire = () => {
+      if (fired) return;
+      fired = true;
+      haptic("go");
+    };
+    const timer = window.setTimeout(fire, delay);
+    return () => {
+      window.clearTimeout(timer);
+      if (!fired && at - Date.now() < GO_STRIKE_GRACE_MS) fire();
+    };
+  }, [counting, startedAt]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Celebrations (src/lib/fx/celebrations.ts): GO (the countdown's end) gets one lightning strike
   // and the zap. The round's own start is untouched: the intro hands over on time and the strike

@@ -51,7 +51,7 @@ import { Podium } from "@/components/duel/Podium";
 import { RoomShareButton } from "@/components/share/ShareResultButton";
 import { TimerBar } from "@/components/duel/TimerBar";
 import { arcadeMsRemaining } from "@/lib/arcade/clock";
-import { buzz, prefersReducedMotion } from "@/lib/motion";
+import { prefersReducedMotion } from "@/lib/motion";
 import {
   playLock,
   playPlayerJoined,
@@ -215,7 +215,6 @@ function LobbyActions({ roomCode }: { roomCode: string }) {
     try {
       await navigator.clipboard.writeText(text);
       setCopied(true);
-      buzz(10);
       window.setTimeout(() => setCopied(false), 1600);
     } catch {
       /* clipboard blocked — the code is on screen anyway */
@@ -704,7 +703,6 @@ function DuelScreen() {
     noteSignatureSubmit(current.type);
     unlockAudio();
     playLock();
-    buzz(15);
     // Kept as the round's draft too, so a reload before it lands still has it.
     drafts.push(latest.current.stateKey, answer, true);
     // Not stored on the way: sent again, the same answer and time claim, after a short wait (roomSend.ts).
@@ -785,7 +783,6 @@ function DuelScreen() {
     onContinue: () => {
       if (!duel || !isContinuePhase(phase)) return;
       unlockAudio();
-      buzz(10);
       void continueOn(duel.id, round, phase).then(() => state.refresh());
     },
   };
@@ -1042,7 +1039,6 @@ function DuelScreen() {
           onReady={() => {
             unlockAudio();
             playLock();
-            buzz(15);
             void readyUp(duel.id, round);
           }}
         />

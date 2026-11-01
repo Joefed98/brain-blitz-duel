@@ -3,7 +3,7 @@ import { solvedMovesText } from "@/lib/duel/scoring";
 import { useEffect, useMemo, useRef } from "react";
 
 import { GLYPH_COLOURS } from "@/components/duel/ShapeGlyph";
-import { ArrowPad, hapticTick, useGridMetrics } from "@/components/puzzles/GridDrag";
+import { ArrowPad, useGridMetrics } from "@/components/puzzles/GridDrag";
 import { GravityBoard, type GravityBoardProps } from "@/components/puzzles/pattern/gravityBoard";
 import { TopsyIntroExample, TopsyReveal, TopsyStage } from "@/components/puzzles/pattern/topsyBoard";
 import { isTopsy } from "@/lib/duel/topsy";
@@ -17,7 +17,6 @@ import { useGameKeys } from "@/lib/desktop";
 import { useStageState } from "@/lib/duel/stageState";
 import { gravityTiltLimit, limitText } from "@/lib/duel/moveLimits";
 import { GRAV_TIME_MS, type GravityDir, type GravityPuzzleData } from "@/lib/duel/types";
-import { buzz } from "@/lib/motion";
 import { playCorrect, playLock, playSound } from "@/lib/sound";
 import { LiveSummary, SummaryItem, useFrameProgress } from "@/components/puzzles/batchP/LiveSummary";
 import { soundCue, useSolveMoment } from "@/lib/fx/patternFx";
@@ -113,8 +112,6 @@ function ClassicStage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "gra
 
   const press = (dir: GravityDir) => {
     if (locked || submitted.current || replay.solved || replay.outOfTilts) return;
-    hapticTick();
-    buzz(10);
     // A new tilt cuts the previous pull, so long pulls never overlap.
     playSound("pz_gravity_pull");
     soundCue("gravity.tilt");

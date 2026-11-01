@@ -3,7 +3,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import { GLYPH_COLOURS } from "@/components/duel/ShapeGlyph";
 import { fireChainFinish } from "@/components/puzzles/chainFx";
-import { hapticTick, pointerElementIndex } from "@/components/puzzles/GridDrag";
+import { pointerElementIndex } from "@/components/puzzles/GridDrag";
 import { registerFxPreview } from "@/components/puzzles/speedFx";
 import {
   chainBoardIndex,
@@ -35,7 +35,7 @@ import {
   type ChainRuleItem,
   type ChainShape,
 } from "@/lib/duel/types";
-import { buzz } from "@/lib/motion";
+import { haptic } from "@/lib/haptics";
 import { rightMoveFlash } from "@/lib/fx/gameToolkit";
 import { playCueSlot, playTick, playTone } from "@/lib/sound";
 import { soundCue } from "@/lib/fx/soundCues";
@@ -298,7 +298,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, phaseStartedAt, stateK
       onDraftAnswer?.(answer);
       if (reason === "complete") onSubmit(answer);
       else {
-        buzz([40, 30, 60]);
+        // Haptics (lib/haptics.ts): a wrong tap broke the chain (a stall is no wrong answer).
+        if (reason === "wrong") haptic("error", { inGame: true });
         // A recorded file on chain.breakTone replaces the placeholder tone.
         if (!playCueSlot("chain.breakTone")) playTone(220, 380, "sawtooth", 0.3, 70);
         setTimeout(() => onSubmit(answer), BREAK_HOLD_MS);
@@ -365,7 +366,6 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, phaseStartedAt, stateK
       finish(verdict, nextTaps);
       return;
     }
-    hapticTick();
     // Polish batch S: the shared right-move glow on the charm just linked (display only).
     rightMoveFlash(charm);
     // Pitch climbs a semitone per link (a recorded chain.linkTone climbs the same way).
