@@ -118,6 +118,8 @@ export const SHARDS: Record<string, string[]> = {
   // arcade-self-replay-check's entries are split into parts on separate jobs.
   // ~282 s of checks on run 38608375501's times.
   a: [
+    // arcade-room-schedule-check in thirds (1 Nov 2026: Grappler swingRev 16's 90 s runs took the whole check to ~4.8 min).
+    "arcade-room-schedule-check.ts@1/3",
     "arcade-batch5-check.ts",
     "arcade-input-check.ts",
     "arcade-slice-bubble-beat-check.ts",
@@ -182,6 +184,8 @@ export const SHARDS: Record<string, string[]> = {
   ],
   // ~282 s of checks on run 38608375501's times.
   c: [
+    // arcade-room-schedule-check in thirds (1 Nov 2026: Grappler swingRev 16's 90 s runs took the whole check to ~4.8 min).
+    "arcade-room-schedule-check.ts@2/3",
     "arcade-correction-check.ts",
     "arcade-fixes-check.ts",
     "careless-play-check.ts",
@@ -225,6 +229,8 @@ export const SHARDS: Record<string, string[]> = {
   ],
   // ~282 s of checks on run 38608375501's times.
   e: [
+    // arcade-room-schedule-check in thirds (1 Nov 2026: Grappler swingRev 16's 90 s runs took the whole check to ~4.8 min).
+    "arcade-room-schedule-check.ts@3/3",
     "category-pool-check.ts",
     "dig-check.ts",
     "hotfloor-flip-check.ts",

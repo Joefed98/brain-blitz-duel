@@ -81,7 +81,7 @@ import {
 } from "../src/lib/arcade/orbitRev3";
 import { ORBIT_HOLE_BANK } from "../src/lib/duel/orbitHoleBank.server";
 import { ORBIT_REV3_BANK } from "../src/lib/duel/orbitRev3Bank.server";
-import { generateBeat, generateBreaker, generateOrbit, generateRally, generateSnake } from "../src/lib/duel/arcade.server";
+import { generateBeat, generateBreaker, generateOrbit, pinOrbitPreFuel, generateRally, generateSnake } from "../src/lib/duel/arcade.server";
 import { PUZZLE_INSTRUCTIONS } from "../src/lib/duel/instructions";
 import { playRevOf } from "./scoring-targets-revs";
 
@@ -165,7 +165,8 @@ section("New rounds carry the Tuning F stamps and score on the bands");
     ["beat", "beatRev", playRevOf("beat", generateBeat().beatRev), BEAT_REV_TUNEF + 4, 9],
     ["snake", "snakeRev", playRevOf("snake", generateSnake().snakeRev), SNAKE_REV_ROCKS + 3, 9],
     // Taller worlds batch 3 (16 Oct 2026) moved Orbit on to its taller view (orbitRev 8); arcade-tuning-g3-check covers it.
-    ["orbit", "orbitRev", playRevOf("orbit", generateOrbit().orbitRev), ORBIT_REV_SWEPT + 1, 8],
+    // The fuel meter (orbitRev 14, 1 Nov 2026) moved Orbit on to its fuel bank (orbit-fuel-check covers it); pinned here, the deal before it.
+    ["orbit", "orbitRev", playRevOf("orbit", (() => { const was = pinOrbitPreFuel(true); try { return generateOrbit().orbitRev; } finally { pinOrbitPreFuel(was); } })()), ORBIT_REV_SWEPT + 1, 8],
   ];
   // Expansion E3 (docs/expansions/e3.md) then moved Breaker on to brkRev 9; expansion-e3-check covers it. The expansion
   // to 200 (docs/expansions/x200-orbit.md) moved Orbit on to orbitRev 12; orbit-expand-check covers it.
