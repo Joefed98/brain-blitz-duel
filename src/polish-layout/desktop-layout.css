@@ -349,16 +349,12 @@
   }
   [data-layout="desktop"] :is([data-practice-group], [data-practice-retired]) > .ap-panel {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(176px, 1fr));
+    /* 176 px cards, never fewer than 3 or more than 5 across (1024 px windows to 1920 px screens). */
+    grid-template-columns: repeat(auto-fill, minmax(clamp(calc((100% - 56px) / 5), 176px, calc((100% - 28px) / 3)), 1fr));
     gap: 14px;
     padding: 0;
     border: 0;
     background: transparent;
-  }
-  @media (min-width: 1700px) {
-    [data-layout="desktop"] :is([data-practice-group], [data-practice-retired]) > .ap-panel {
-      grid-template-columns: repeat(5, minmax(0, 1fr));
-    }
   }
   [data-layout="desktop"] :is([data-practice-group], [data-practice-retired]) .ap-row {
     position: relative;

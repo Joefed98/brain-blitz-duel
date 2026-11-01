@@ -146,6 +146,7 @@ function probe() {
     header: !!document.querySelector("[data-app-header]"),
     banner: box(document.querySelector("[data-banner-slot]")),
     banners: document.querySelectorAll("[data-banner-slot]").length,
+    bannerId: document.querySelector("[data-banner-slot]")?.getAttribute("data-banner-slot") ?? null,
     aside: box(document.querySelector("[data-page-aside]")),
     column: box(document.querySelector("[data-shell-column]")),
     tools: (() => {
@@ -210,8 +211,12 @@ function judgeTabPage(m: Probe, name: string, banner: boolean, withBanners: bool
     if (m.aside.x < RAIL + 0.5) problems.push("right column under the rail");
   }
   if (m.column && m.column.x < RAIL - 0.5) problems.push(`page starts at ${m.column.x}px, under the rail`);
-  const wantBanner = banner && withBanners;
+  // With no house promotion configured, a page may still promote the next scheduled public game (the fixture
+  // schedules one), and nothing else.
+  const scheduled = (m.bannerId ?? "").startsWith("public-");
+  const wantBanner = banner && (withBanners || scheduled);
   if (m.banners !== (wantBanner ? 1 : 0)) problems.push(`${m.banners} banner slot(s), want ${wantBanner ? 1 : 0}`);
+  if (banner && !withBanners && m.banners && !scheduled) problems.push(`a banner "${m.bannerId}" with no promotion configured and no public game scheduled`);
   if (wantBanner && m.banner) {
     if (!near(m.banner.h, BANNER)) problems.push(`banner ${m.banner.h}px tall, want ${BANNER}`);
     if (m.aside && m.banner.r < m.aside.r - 0.75) problems.push("banner does not run across the page and its column");
