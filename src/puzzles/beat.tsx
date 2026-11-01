@@ -158,7 +158,9 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     let last = performance.now();
     let accumulator = 0;
     let draftAt = 0;
-    const feedback = arcadeFeedback({ game: "beat" });
+    // No generic combo sound on each hit (1 Nov 2026, Joe: the "perfect" sound): the lane's note is the hit's sound; the
+    // combo pop, the PERFECT word and burst still show (docs/sound-cues/arcade-effects.md).
+    const feedback = arcadeFeedback({ game: "beat", combo: false });
     const sounds = beatSounds();
     // beatRev 9's features (older rounds keep every counter at 0, so they stay silent).
     const featureSounds = expansionSounds<BeatState>([

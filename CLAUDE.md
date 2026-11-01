@@ -10,13 +10,14 @@ override anything general here.
 ## What this is
 
 Duelz: a multiplayer skill-game app. Up to 16 players (`MAX_PLAYERS`, 10 until 31 Oct 2026) join a room with a
-short code and play the same timed rounds; 84 active games across Word, Number, Speed, Attention,
+short code and play the same timed rounds; 83 active games across Word, Number, Speed, Attention,
 Pattern, Logic and Arcade (Word 9, Number 8, Speed 6, Attention 6, Pattern 10, Logic 12 (Trail moved from Number on 27 Oct 2026),
-Arcade 33 with Pinball and, since 30 Oct 2026, the Cards & Board group's Minefield (shown as Minesweeper until 31 Oct 2026), Mahjong Solitaire, Free Cell, Summit and Full House (shown as FreeCell, TriPeaks and Poker Squares until 31 Oct 2026), since 31 Oct 2026 Five Hands, and the Sports group's Home Run, Top Bins, Apex (shown as Home Run Derby, Free Kick and Racing until 31 Oct 2026), Crazy Golf, Cue Ball and Curl Champ (shown as Minigolf, Speed Pool and Curling until 31 Oct 2026) dealt in rooms; 11 retired to practice: Swerve, Steady, Dual, Ricochet,
+Arcade 32 with Pinball and, since 30 Oct 2026, the Cards & Board group's Minefield (shown as Minesweeper until 31 Oct 2026), Mahjong Solitaire, Free Cell and Summit (shown as FreeCell and TriPeaks until 31 Oct 2026), since 31 Oct 2026 Five Hands, and the Sports group's Home Run, Top Bins, Apex (shown as Home Run Derby, Free Kick and Racing until 31 Oct 2026), Crazy Golf, Cue Ball and Curl Champ (shown as Minigolf, Speed Pool and Curling until 31 Oct 2026) dealt in rooms; 12 retired to practice: Swerve, Steady, Dual, Ricochet,
 Bastion, Rooftop Run, Junction, Dig, Hot Floor, since 20 Oct 2026 Letterfall and, since 27 Oct 2026
 (Joe's decision), Scrumper (`snip`: out of room draws and the Practice list's main shelves, in its
 Retired section; stored rounds replay and grade as before; icon and name kept; category-pool-check pins
-the counts)). Every category the lobby offers keeps at
+the counts) and, since 1 Nov 2026 (Joe's decision), Full House (`pokersquares`, retired the same way: out of room draws,
+the Cards & Board room pool and presets; practice bests and stored replays stay)). Every category the lobby offers keeps at
 least 6 active games (`category-pool-check`). On 14 Oct 2026, 19 retired games and the Memory
 category were deleted; old rooms' rounds of them show only the name and stored score
 (`src/lib/duel/removedGames.ts`, proved by `removed-games-check`). Built in Lovable, synced to this repo.
@@ -1021,6 +1022,16 @@ outside the repo.
   reveal (`holdHaptics`). Never on button taps, drags or routine hits: **don't call `navigator.vibrate` or add a
   `haptic()` call outside the listed sites** (haptics-check's `CALL_SITES` pins them). Settings → Haptics, on by
   default (`duelz-haptics:v1`), "Not supported on this device" where there is none. haptics-check (~16 s, happy-dom).
+- **Joe's quick fixes** (1 Nov 2026; display, sound and room draw only, no stamps): Orbit's SET CHECKPOINT (orbitRev 12–13)
+  sits over the scene, which is drawn behind and around it (no clip out of `ORBIT_XP_ZONE`; the rocket still never enters it,
+  play-control-clearance-check); Tempo's hits play only their lane's note (`arcadeFeedback` `combo: false`, no generic combo
+  sound each hit; the PERFECT visual stays); Pinball's J-O-U-L-Z (pinRev 4+) shows its usual banner in gold and flashes the
+  world's border gold three times, 0.15 s on / 0.15 s off, with the sting `pinball.joulz` (the library's streak flourish;
+  pinball-joulz-check); one app-wide home bed (`holdHomeBed` / `useHomeBed`) carries on unbroken across Play, Practice,
+  Tournaments, Profile and settings, gives way to the lobby's own `lobby_loop` (follow-up, same day: the lobby crossfades
+  it out over 400 ms and leaving the lobby crossfades back) and to a game's music, and resumes where it was (home-music-check,
+  docs/sound-cues/music.md); the arcade answer reveal's breakdown is one line until tapped ("142 · core 110 + features
+  32" on the standard, `revealSummary`; reveal-fold-check, room-16-check); Full House retired to practice.
 - `src/components/duel/` — room/round screens (PhoneShell, RoundIntro, TimerBar,
   AnswerReveal, ArcadeReveal, WinnerReveal…); `src/components/puzzles/` — shared puzzle
   widgets; `src/lib/fx/` — sound and visual feedback (presentation only).

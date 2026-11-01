@@ -87,7 +87,7 @@ window with a mouse gets the desktop layout (its narrowest size). PhoneShell mar
   the HUD stays in the play column.
 - All: canvases sized by their box within the pixel-ratio cap of 2.
 
-Active games (84): wide 54, rotate 1, tall 29.
+Active games (83): wide 53, rotate 1, tall 29.
 
 | Game | Id | Category | Desktop mode | Keys | Why |
 | --- | --- | --- | --- | --- | --- |
@@ -153,7 +153,6 @@ Active games (84): wide 54, rotate 1, tall 29.
 | Five Hands | `fivehands` | Arcade · Cards & Board | **wide** |  | card / board layout, no physics world: scaled up in a wide column |
 | Flightpath | `bullseye` | Arcade · Sports | **tall** |  | behind-camera view: full height, scenery out to both sides |
 | Free Cell | `freecell` | Arcade · Cards & Board | **wide** |  | card / board layout, no physics world: scaled up in a wide column |
-| Full House | `pokersquares` | Arcade · Cards & Board | **wide** |  | card / board layout, no physics world: scaled up in a wide column |
 | Gemstone | `matchup` | Arcade · Action | **wide** |  | match-three board, no physics world: scaled up in a wide column |
 | Grappler | `swing` | Arcade · Action | **tall** |  | side-on world: full height, scenery out to both sides |
 | High Rise | `skyline` | Arcade · Action | **tall** |  | side-on world: full height, scenery out to both sides |
@@ -176,7 +175,7 @@ Active games (84): wide 54, rotate 1, tall 29.
 | Top Bins | `freekick` | Arcade · Sports | **tall** |  | behind-camera view: full height, scenery out to both sides |
 | Wavefront | `wavefront` | Arcade · Retro | **tall** |  | portrait play with controls at the bottom (paddle, flippers, launcher): kept upright |
 
-Retired to practice (11):
+Retired to practice (12):
 
 | Game | Id | Category | Desktop mode | Keys | Why |
 | --- | --- | --- | --- | --- | --- |
@@ -184,6 +183,7 @@ Retired to practice (11):
 | Dig | `dig` | Logic | **wide** |  | puzzle board: re-flows into the wider column |
 | Bastion | `bastion` | Arcade | **tall** |  | practice only, defended from the bottom: kept upright |
 | Dual | `dual` | Arcade | **tall** |  | practice only: kept upright |
+| Full House | `pokersquares` | Arcade · Cards & Board | **wide** |  | card / board layout, no physics world: scaled up in a wide column |
 | Hot Floor | `hotfloor` | Arcade | **tall** |  | practice only: kept upright |
 | Junction | `junction` | Arcade | **tall** |  | practice only: kept upright |
 | Ricochet | `ricochet` | Arcade | **tall** |  | practice only, a launcher at the bottom: kept upright |

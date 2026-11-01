@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 
 import { FeedbackLink } from "@/components/beta/FeedbackLink";
 import { PhoneShell } from "@/components/duel/PhoneShell";
+import { useHomeBed } from "@/lib/useScreenMusic";
 import { PageAside } from "@/components/app/PageAside";
 import { PlayerBadge } from "@/components/duel/PlayerBadge";
 import { LookPicker } from "@/components/duel/RoomLobby";
@@ -51,6 +52,8 @@ const ACTIVE_GAMES = (() => {
 })();
 
 function ProfileScreen() {
+  // The app-wide home bed carries on here from the other tabs (docs/sound-cues/music.md).
+  useHomeBed();
   const router = useRouter();
   const [name, setName] = useState("");
   const [look, setLook] = useState<PlayerLook>({ colour: 0, icon: null });

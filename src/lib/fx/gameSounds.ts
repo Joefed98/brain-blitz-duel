@@ -500,7 +500,10 @@ export function pinballSounds(): GameSounds<PinState> {
         if (state.bumps > prev.bumps) sfx("pinball.bumperHit", "arc_retro_hit", 0.8, 1, true);
         if (state.slings > prev.slings) sfx("pinball.sling", "arc_retro_blip", 0.6, 1.3, true);
         if (state.drops > prev.drops) sfx("pinball.dropTarget", "arc_retro_coin", 0.8, 1, true);
-        if (state.banks > prev.banks || state.laneSets > prev.laneSets) sfx("pinball.bankComplete", "arc_retro_pickup");
+        // pinRev 4+: J-O-U-L-Z completed plays its own sting (1 Nov 2026, docs/sound-cues/arcade-effects.md) in place of the bank sound.
+        const joulz = !!p4.rev4 && state.laneSets > prev.laneSets && cueHasFile("pinball.joulz");
+        if (joulz) effectCue("pinball.joulz");
+        if ((state.banks > prev.banks && !joulz) || (state.laneSets > prev.laneSets && !joulz)) sfx("pinball.bankComplete", "arc_retro_pickup");
         else if (state.laneLights > prev.laneLights) sfx("pinball.laneLight", "arc_retro_note", 0.8);
         // The light row under the table (arenaFills.renderer.ts, display only): one lamp a bumper or sling,
         // two a drop target or lit lane, a chase along all five for a bank or the multiplier lanes.

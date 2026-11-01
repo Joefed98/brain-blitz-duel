@@ -65,6 +65,7 @@ import {
   stopMusic,
   unlockAudio,
 } from "@/lib/sound";
+import { useHomeBed } from "@/lib/useScreenMusic";
 import { roundMusicFor } from "@/lib/fx/theme";
 import { roundMusicRemaining, useRoundMusic } from "@/lib/duel/useRoundMusic";
 import {
@@ -585,6 +586,8 @@ function DuelScreen() {
 
   // Beds are requested only outside rounds; manifest music is silent until supplied.
   // The prepare, title, reveal and winner screens stay silent until their slot has a file.
+  // The lobby plays its own bed again (lobby_loop, 1 Nov 2026 follow-up): it crossfades the home bed out over 400 ms
+  // (FADE_MS), and the home bed resumes where it was when the player goes back to a tab page.
   const musicScreen =
     duel?.status === "waiting"
       ? "lobby_loop"
@@ -603,9 +606,12 @@ function DuelScreen() {
                   : null;
   useEffect(() => {
     if (musicScreen) startMusic(musicScreen);
-    // The intro screen owns its own bed (intro_loop).
-    else if (phase !== "intro") stopMusic(0);
-  }, [musicScreen]); // eslint-disable-line react-hooks/exhaustive-deps
+    // The intro screen owns its own bed (intro_loop). While the room loads nothing is stopped, so the home bed
+    // carries on until the lobby's bed crossfades it out.
+    else if (phase !== "intro" && duel) stopMusic(0);
+  }, [musicScreen, !!duel]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Only while the room loads: the home bed plays on from the Play tab (no gap) until the lobby's bed takes over.
+  useHomeBed(!duel);
   // Intro bed loads once the room starts and is held with the other beds.
   const roomStarted = !!duel && duel.status !== "waiting";
   useEffect(() => {

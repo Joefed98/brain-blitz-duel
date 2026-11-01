@@ -48,12 +48,13 @@ import {
   playLock,
   releaseRoomMusic,
   holdMusicBed,
+  screenMusic,
   stopWarning10,
   unlockAudio,
 } from "@/lib/sound";
 import { roundMusicFor } from "@/lib/fx/theme";
 import { roundMusicRemaining, useRoundMusic } from "@/lib/duel/useRoundMusic";
-import { useScreenMusic } from "@/lib/useScreenMusic";
+import { useHomeBed, useScreenMusic } from "@/lib/useScreenMusic";
 import type { SubmitMeta } from "@/puzzles/types";
 import type { MovesView } from "@/lib/duel/moves";
 import { readPracticeBest, recordPracticeBest } from "@/lib/duel/practiceBest";
@@ -223,7 +224,8 @@ function matchesFilter(type: PuzzleType, side: PracticeSide, filter: PracticeFil
   const group = arcadeGroupOf(type);
   if (filter !== "all") {
     if (side === "puzzles" && definition.category !== filter) return false;
-    if (side === "arcade" && group !== filter) return false;
+    // A group's chip lists its active games; a retired one (Full House, 1 Nov 2026) is under All games' Retired, as Scrumper.
+    if (side === "arcade" && (group !== filter || RETIRED_PUZZLE_TYPES.includes(type))) return false;
   }
   const q = query.trim().toLowerCase();
   if (q === "") return true;
@@ -331,7 +333,8 @@ function PracticeScreen() {
     };
   }, []);
   // Silent until the slots get files (docs/sound-cues/music.md).
-  useScreenMusic("music_practice", stage === "list");
+  // The list holds the app-wide home bed (it carries on from the Play tab); a round's intro takes over from it.
+  useHomeBed(stage === "list", screenMusic("music_practice"));
   useScreenMusic("music_reveal", stage === "reveal");
 
   const load = useCallback(

@@ -95,7 +95,7 @@ let loggedFailure = false;
 const buffers = new Map<string, AudioBuffer>();
 const failedFiles = new Set<string>();
 const playingEffects = new Map<SoundId, AudioBufferSourceNode>();
-let currentTrack: { name: Track; source: AudioBufferSourceNode; gain: GainNode } | null = null;
+let currentTrack: { name: Track; source: AudioBufferSourceNode; gain: GainNode; at?: number; offset?: number } | null = null;
 /** What music should be playing, so we can restart it after an interruption. */
 let desiredTrack: { name: Track; options: MusicOptions } | null = null;
 
@@ -1129,8 +1129,7 @@ export function syncBeatTrack(beatSeconds: number | null, remainingMs: number): 
   beatLevel = level;
   // A screen bed still up from the intro gives way, as it does for a round track.
   if (currentTrack) {
-    fadeOut(currentTrack, 150);
-    currentTrack = null;
+    dropCurrentTrack(150);
   }
   desiredTrack = null;
   try {
@@ -1210,17 +1209,17 @@ export function startMusic(name: Track, options: MusicOptions = {}): void {
     // Loaded the first time a screen needs it; starts once decoded if still wanted.
     // A file that failed to load is not retried here (the screen stays silent).
     void loadMusicBuffer(name).then(() => {
-      if (musicBuffers.has(name) && desiredTrack?.name === name && !currentTrack)
+      // Still wanted (nothing started or stopped since): it starts, crossfading out whatever bed is on (the home bed
+      // while the lobby's bed was loading).
+      if (musicBuffers.has(name) && desiredTrack?.name === name && currentTrack?.name !== name)
         startMusic(name, desiredTrack.options);
     });
     return;
   }
-  bedBuffers.add(name);
+  // The home bed is app-wide: never released with a room's beds.
+  if (name !== HOME_BED) bedBuffers.add(name);
   const fade = options.fadeMs ?? FADE_MS;
-  if (currentTrack) {
-    fadeOut(currentTrack, fade);
-    currentTrack = null;
-  }
+  if (currentTrack) dropCurrentTrack(fade);
   try {
     const source = loopingSource(name, buffer);
     const gain = ctx.createGain();
@@ -1232,8 +1231,10 @@ export function startMusic(name: Track, options: MusicOptions = {}): void {
       source.playbackRate.linearRampToValueAtTime(options.rampToRate, t + options.rampMs / 1000);
     }
     source.connect(gain).connect(musicGain);
-    source.start(0, source.loopStart);
-    currentTrack = { name, source, gain };
+    // The home bed carries on from where it was left (a game took over, the app came back); every other bed starts at its top.
+    const offset = name === HOME_BED ? homeBedResumeAt(source, buffer) : source.loopStart;
+    source.start(0, offset);
+    currentTrack = { name, source, gain, at: t, offset };
     desiredTrack = null;
   } catch (error) {
     warnOnce("music playback failed", error);
@@ -1243,8 +1244,81 @@ export function startMusic(name: Track, options: MusicOptions = {}): void {
 export function stopMusic(fadeMs: number = FADE_MS): void {
   desiredTrack = null;
   if (!currentTrack) return;
-  fadeOut(currentTrack, fadeMs);
+  dropCurrentTrack(fadeMs);
+}
+
+/* -------------------------------------------------------------- home bed */
+
+/**
+ * The app-wide home bed (1 Nov 2026, Joe: it restarted on every page change). One player for the Play,
+ * Practice, Tournaments and Profile tabs and the settings sheet: each screen holds it (`holdHomeBed`, through
+ * `useHomeBed`), and moving from one holder to the next never stops or restarts it. It stops only when nothing has
+ * held it for HOME_BED_GRACE_MS or when another bed takes over (the lobby's `lobby_loop`, a round intro, a game's
+ * music, the room's own screens), and it carries on from where it was when it comes back.
+ * Mute, the music slider, pausing while hidden and the idle sleep apply exactly as to any other bed.
+ */
+export const HOME_BED: Track = "music_home";
+/** A page change unmounts one holder and mounts the next within a frame or two; this covers it with room to spare. */
+export const HOME_BED_GRACE_MS = 400;
+let homeBedHolders = 0;
+let homeBedRelease: ReturnType<typeof setTimeout> | null = null;
+/** Seconds into the home bed's file where it was left (null: from its loop start). */
+let homeBedOffset: number | null = null;
+
+/** Fades the current bed out and forgets it; the home bed's place in its loop is remembered. */
+function dropCurrentTrack(fadeMs: number): void {
+  const track = currentTrack;
+  if (!track) return;
+  if (track.name === HOME_BED && ctx && track.at !== undefined && track.offset !== undefined) {
+    const start = track.source.loopStart;
+    const end = track.source.loopEnd > start ? track.source.loopEnd : (track.source.buffer?.duration ?? 0);
+    const played = track.offset + (ctx.currentTime - track.at);
+    const period = end - start;
+    homeBedOffset = period > 0 && played >= end ? start + ((played - start) % period) : played;
+  }
+  fadeOut(track, fadeMs);
   currentTrack = null;
+}
+
+function homeBedResumeAt(source: AudioBufferSourceNode, buffer: AudioBuffer): number {
+  const at = homeBedOffset;
+  if (at === null || !(at >= 0) || at >= buffer.duration) return source.loopStart;
+  return at;
+}
+
+/**
+ * A screen wants the home bed: starts it unless it is already playing. Returns the release. `screen` is the screen's own
+ * slot (`screenMusic(...)`): while it has no file, or the home bed's file, the screen holds the home bed; given a file of
+ * its own, the screen plays that instead (and stops it on release), as before the home bed.
+ */
+export function holdHomeBed(screen: Track | null = null): () => void {
+  const homeUrl = SOUND_MANIFEST[HOME_BED]?.url ?? null;
+  const ownUrl = screen ? (SOUND_MANIFEST[screen]?.url ?? null) : null;
+  if (screen && ownUrl && ownUrl !== homeUrl) {
+    startMusic(screen);
+    return () => stopMusicIf(screen, 300);
+  }
+  homeBedHolders++;
+  if (homeBedRelease) clearTimeout(homeBedRelease);
+  homeBedRelease = null;
+  if (screenMusic("music_home")) startMusic(HOME_BED);
+  let released = false;
+  return () => {
+    if (released) return;
+    released = true;
+    homeBedHolders = Math.max(0, homeBedHolders - 1);
+    if (homeBedHolders > 0) return;
+    if (homeBedRelease) clearTimeout(homeBedRelease);
+    homeBedRelease = setTimeout(() => {
+      homeBedRelease = null;
+      if (homeBedHolders === 0) stopMusicIf(HOME_BED, 300);
+    }, HOME_BED_GRACE_MS);
+  };
+}
+
+/** Diagnostics for home-music-check. */
+export function homeBedState(): { holders: number; playing: boolean; offset: number | null } {
+  return { holders: homeBedHolders, playing: currentTrack?.name === HOME_BED, offset: homeBedOffset };
 }
 
 /** Stops whatever bed is on unless it is (or is about to be) `name`. */
@@ -1361,7 +1435,9 @@ function loopingSource(id: SoundId, buffer: AudioBuffer): AudioBufferSourceNode 
 
 /** Leaving the room: stop and release the lobby/standings/podium beds. */
 export function releaseRoomMusic(): void {
-  stopMusic(0);
+  // The home bed is app-wide: a page that held it (Practice) leaving keeps it playing (its holders decide). The lobby's
+  // bed crossfades out over FADE_MS as the tab page's home bed comes back in; any other bed stops at once, as before.
+  if (currentTrack?.name !== HOME_BED && desiredTrack?.name !== HOME_BED) stopMusic(currentTrack?.name === "lobby_loop" ? FADE_MS : 0);
   for (const id of bedBuffers) releaseMusicBuffer(id);
   bedBuffers.clear();
 }
@@ -1559,8 +1635,7 @@ function startRoundTrack(id: SoundId): void {
   roundLevel = level;
   // Only the intro bed is faded; the round track has its own node and gain.
   if (currentTrack) {
-    fadeOut(currentTrack, 150);
-    currentTrack = null;
+    dropCurrentTrack(150);
   }
   desiredTrack = null;
   try {

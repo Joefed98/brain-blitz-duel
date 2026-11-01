@@ -55,7 +55,7 @@ when the run starts. Rooms deal Pinball since 14 Oct 2026; Junction is practice 
 | `snake.showerAlarm` | Meteor | A meteor shower's three shadows appear (snakeRev 3+) | `arc_retro_note` (0.7, slowed ×0.5) | 1–3 | 180 ms |
 | `beat.start` | Tempo | The run starts | `arc_retro_coin` | 1 | 120 ms |
 | `beat.miss` | Tempo | A note is missed (left out when it breaks a combo of 10+ and `beat.comboLost` has a file) | `arc_retro_hit` · own file `beat.miss.mp3` (sound batch 4, volume 0.6) | 5–20 | 150 ms |
-| `beat.note` | Tempo | A note is hit or a hold starts (pitched by lane; an own file keeps the lane pitch) | `arc_retro_note` (0.8, lane pitch) · own file `beat.note8bit.mp3` (an 8-bit pulse note on C5, each lane a step up the major pentatonic C D E G A; 28 Oct 2026, was `beat.noteHit.mp3`; volume 0.8) | 80–150 | 140 ms |
+| `beat.note` | Tempo | A note is hit or a hold starts (pitched by lane; an own file keeps the lane pitch) | `arc_retro_note` (0.8, lane pitch) · own file `beat.note8bit.mp3` (an 8-bit pulse note on C5, each lane a step up the major pentatonic C D E G A; 28 Oct 2026, was `beat.noteHit.mp3`; volume 0.8); the hit's only sound since 1 Nov 2026 (no generic `combo` on top) | 80–150 | 140 ms |
 | `breaker.start` | Breaker | The run starts | `arc_retro_coin` | 1 | 120 ms |
 | `breaker.ballLost` | Breaker | A ball is lost | `arc_retro_explode` | 0–3 | 260 ms |
 | `breaker.powerUp` | Breaker | A power-up is caught | `arc_retro_pickup` | 2–6 | 100 ms |

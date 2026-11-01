@@ -32,7 +32,7 @@ import type { Browser, BrowserContext, Page } from "playwright";
 import { gradeAnswer } from "../src/lib/duel/generate.server";
 import { gameDisplayName } from "../src/lib/duel/gameNames";
 import { mergePuzzle } from "../src/lib/duel/secrets";
-import { PUZZLE_TYPES } from "../src/lib/duel/registry";
+import { PUZZLE_TYPES, isRetired } from "../src/lib/duel/registry";
 import { currentPracticeStamp, stampSignature } from "../src/lib/duel/practiceStamps";
 import type { PuzzleData, PuzzleType } from "../src/lib/duel/types";
 import { ONLINE_ONLY_TYPES, PACK_MAX_DEALS } from "../src/lib/offline/offlineStatus";
@@ -315,6 +315,8 @@ async function shot(page: Page, name: string): Promise<void> {
 /** Opens a game from the Practice list and presses Ready (the list must be showing). */
 async function startGame(page: Page, game: PuzzleType): Promise<void> {
   await showPracticeSide(page, game);
+  // A retired game (Full House since 1 Nov 2026) keeps its pack and is opened from the list's Retired section.
+  if (isRetired(game)) await page.locator("[data-practice-retired]").first().evaluate((d) => ((d as HTMLDetailsElement).open = true));
   const button = page.getByRole("button", { name: gameDisplayName(game), exact: true }).first();
   await button.waitFor({ timeout: 30_000 });
   await button.click();

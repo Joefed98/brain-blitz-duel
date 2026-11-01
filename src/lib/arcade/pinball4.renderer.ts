@@ -95,6 +95,7 @@ import {
   type Pin4State,
 } from "./pinball4";
 import { retroBloom, retroClock, retroScreen, retroText, retroTrail } from "./retro.renderer";
+import { reducedMotion } from "./art.renderer";
 import { arcadeReducedEffects } from "../fx/lowEnd";
 
 type Ctx = CanvasRenderingContext2D;
@@ -782,7 +783,9 @@ export const PINBALL4_FX: ArcadeFxSpec<Pin4State> = {
     { kind: "perfect", count: (s) => s.drops, at: () => ({ x: 190, y: P4_TARGET_Y }), label: () => "TARGET!", textOnly: true, bulbs: RIPPLE },
     { kind: "clear", count: (s) => s.banks, at: () => ({ x: 190, y: P4_TARGET_Y }), label: () => "BANK DOWN!", textOnly: true, neon: true, bulbs: STRONG },
     { kind: "pop", count: (s) => s.laneLights, at: () => ({ x: 186, y: P4_LANE_SENSOR_Y + 40 }), label: () => null, textOnly: true, bulbs: RIPPLE },
-    { kind: "streak", count: (s) => s.laneSets, at: () => ({ x: 186, y: P4_LANE_SENSOR_Y + 70 }), label: (s) => (s.rev6 ? "J-O-U-L-Z!" : `J-O-U-L-Z! x${s.mult}`), textOnly: true, neon: true, bulbs: STRONG },
+    // J-O-U-L-Z completed (1 Nov 2026): the same banner as before, in gold (PIN_JOULZ_GOLD); its border flashes gold
+    // three times (drawJoulz, below) in place of the shared layer's neon border.
+    { kind: "streak", count: (s) => s.laneSets, at: () => ({ x: 186, y: P4_LANE_SENSOR_Y + 70 }), label: (s) => (s.rev6 ? "J-O-U-L-Z!" : `J-O-U-L-Z! x${s.mult}`), colour: () => PIN_JOULZ_GOLD, textOnly: true, bulbs: STRONG },
     { kind: "combo", count: (s) => s.spins, minDelta: 8, at: () => ({ x: ORBIT_MID + 30, y: P4_SPINNER_Y }), label: () => "SPINNER!", textOnly: true, bulbs: RIPPLE },
     { kind: "combo", count: (s) => s.ramps, at: (s) => ({ x: s.rampSide === 2 ? 270 : 110, y: P4_RAMP_Y + 60 }), label: (s) => (s.rev6 ? (s.combo > 1 ? "COMBO!" : "RAMP!") : s.combo > 1 ? `COMBO x${s.combo}!` : `RAMP! x${s.mult}`), textOnly: true, bulbs: RIPPLE },
     { kind: "perfect", count: (s) => s.locksMade, at: () => ({ x: P4_MID_X, y: 236 }), label: (s) => (s.locks === 0 ? "MULTIBALL!" : `BALL ${s.locks} LOCKED`), textOnly: true, neon: true, bulbs: STRONG },
@@ -792,9 +795,57 @@ export const PINBALL4_FX: ArcadeFxSpec<Pin4State> = {
   misses: [{ count: (s) => s.lost, at: () => ({ x: P4_WORLD_W / 2, y: P4_WORLD_H - 24 }) }],
 };
 
+/**
+ * J-O-U-L-Z completed (1 Nov 2026, Joe: a big moment; display only, pinRev 4–6): the shared layer's "J-O-U-L-Z!" banner as
+ * before, in gold (PINBALL4_FX), and the world's border flashing gold three times, 0.15 s on and 0.15 s off
+ * (`pinball.joulz` plays its sting, gameSounds.ts). On the presentation clock, like the shared success layer; a rewind (a
+ * new run) starts over without firing. Reduced motion: no flashing, one steady gold border for 0.45 s.
+ */
+export const PIN_JOULZ_GOLD = "#FFD84A";
+export const PIN_JOULZ_FLASH_MS = 150;
+export const PIN_JOULZ_FLASHES = 3;
+const joulzMemory = new WeakMap<object, { sets: number; tick: number; at: number }>();
+const joulzNow = () => (typeof performance !== "undefined" && typeof performance.now === "function" ? performance.now() : Date.now());
+
+/** Whether the border is lit `age` ms into the moment: on for 150 ms, off for 150 ms, three times. */
+export function pinJoulzBorderOn(age: number): boolean {
+  if (age < 0 || age >= PIN_JOULZ_FLASH_MS * 2 * PIN_JOULZ_FLASHES) return false;
+  return Math.floor(age / PIN_JOULZ_FLASH_MS) % 2 === 0;
+}
+
+function drawJoulz(c: Ctx, s: Pin4State, key: object): void {
+  const sets = s.laneSets ?? 0;
+  let m = joulzMemory.get(key);
+  if (!m || s.tick < m.tick || sets < m.sets) {
+    m = { sets, tick: s.tick, at: -Infinity };
+    joulzMemory.set(key, m);
+  }
+  if (sets > m.sets && s.tick > m.tick) m.at = joulzNow();
+  m.sets = sets;
+  m.tick = s.tick;
+  const age = joulzNow() - m.at;
+  if (!(age >= 0 && age < PIN_JOULZ_FLASH_MS * 2 * PIN_JOULZ_FLASHES)) return;
+  const still = reducedMotion();
+  c.save();
+  // The border: three gold flashes (one steady glow under reduced motion), inside the world's edge.
+  if (still ? age < PIN_JOULZ_FLASH_MS * 3 : pinJoulzBorderOn(age)) {
+    c.strokeStyle = PIN_JOULZ_GOLD;
+    c.globalAlpha = 0.35;
+    c.lineWidth = 12;
+    c.strokeRect(6, 6, P4_WORLD_W - 12, P4_WORLD_H - 12);
+    c.globalAlpha = 1;
+    c.lineWidth = 4;
+    c.strokeRect(2, 2, P4_WORLD_W - 4, P4_WORLD_H - 4);
+  }
+  c.restore();
+}
+
 function draw(ctx: Ctx, state: PinState, size: CanvasSize): void {
   const s = state as Pin4State;
-  retroScreen(ctx, size, P4_WORLD_W, P4_WORLD_H, "fit", (c) => arcadeFx(c, PINBALL4_FX, s, () => drawWorld(c, s, ctx)));
+  retroScreen(ctx, size, P4_WORLD_W, P4_WORLD_H, "fit", (c) => {
+    arcadeFx(c, PINBALL4_FX, s, () => drawWorld(c, s, ctx));
+    drawJoulz(c, s, ctx);
+  });
 }
 
 export const pinball4ArtGame: ArcadeGame<Pin4State, ArcadeInputEvent | null> = { ...pinball4Game, draw: (ctx, state, size) => draw(ctx, state, size) };
