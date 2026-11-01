@@ -356,7 +356,8 @@ export const THEME_SCREENS: ThemeScreen[] = [
       await page.locator("[data-room-settings-sheet]").waitFor({ timeout: 10_000 });
       await page.locator("[data-room-preset='arcade']").click();
       for (const pick of ["retro", "sports", "action"]) await page.locator(`[data-room-pick='${pick}']`).click();
-      await page.locator("[data-room-rounds='6']").click();
+      // The count drops to the picks' cap by itself (Cards & Board's five games since Full House retired, 1 Nov
+      // 2026, so the 6 button is disabled too).
       await page.waitForTimeout(250);
     },
   },
