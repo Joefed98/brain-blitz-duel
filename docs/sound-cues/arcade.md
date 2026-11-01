@@ -163,6 +163,22 @@ when the run starts. Rooms deal Pinball since 14 Oct 2026; Junction is practice 
 | `fivehands.hand` | Five Hands | A card placed makes a pair, two pair or three of a kind on its row | `correct` (0.8) | 3–10 | 484 ms |
 | `fivehands.bigHand` | Five Hands | A card placed makes a straight or better on its row | `correct` (0.8) | 0–3 | 1122 ms |
 | `fivehands.invalid` | Five Hands | A tap on a full row | `wrong` (0.5) | 0–5 | 434 ms |
+| `pyramid.pair` | Pyramid | Two cards adding to 13 removed (pyramid or waste) | `correct` (0.8) | 8–14 | 406 ms |
+| `pyramid.king` | Pyramid | A King removed alone | `place` (0.8) | 0–4 | 329 ms |
+| `pyramid.deal` | Pyramid | A stock card turned onto the waste | `move` (0.8) | 10–60 | 220 ms |
+| `pyramid.invalid` | Pyramid | A tap refused (a covered card, a pair not adding to 13, an empty stock) | `wrong` (0.5) | 0–10 | 434 ms |
+| `pyramid.clear` | Pyramid | All 28 pyramid cards removed | `complete` | 0–1 | 1666 ms |
+| `golfsol.play` | Golf Solitaire | A column's card played to the foundation (a semitone higher each card in the run) | `place` (0.8) | 20–35 | 329 ms |
+| `golfsol.deal` | Golf Solitaire | A stock card drawn onto the foundation | `move` (0.8) | 5–15 | 220 ms |
+| `golfsol.run` | Golf Solitaire | A run reaches five cards without drawing | `correct` (0.7) | 0–5 | 998 ms |
+| `golfsol.invalid` | Golf Solitaire | A tap refused (a card not one away, an empty stock) | `wrong` (0.5) | 0–10 | 434 ms |
+| `golfsol.clear` | Golf Solitaire | All 35 cards cleared | `complete` | 0–1 | 1362 ms |
+| `muggins.place` | Muggins | A tile laid that scores nothing | `place` (0.8) | 4–12 | 359 ms |
+| `muggins.score` | Muggins | A tile laid making the ends 5 or 10 | `correct` (0.8) | 1–6 | 484 ms |
+| `muggins.big` | Muggins | A tile laid making the ends 15 or 20 | `correct` (0.8) | 0–3 | 1122 ms |
+| `muggins.draw` | Muggins | A tile drawn from the pile | `move` (0.7) | 0–12 | 200 ms |
+| `muggins.invalid` | Muggins | A play or draw refused | `wrong` (0.5) | 0–10 | 300 ms |
+| `muggins.clear` | Muggins | The hand emptied | `complete` | 0–1 | 1806 ms |
 | `inkbridge.draw` | Rainbow Bridge | The first segment of each drawn stroke | `arc_rainbow` (0.6) | 10–30 | 910 ms |
 | `inkbridge.pot` | Rainbow Bridge | The pot of gold is reached | `arc_rainbow_pot` | 3–10 | 1000 ms |
 | `inkbridge.bump` | Rainbow Bridge | A level fails on a block | `arc_rainbow_bump` | 0–5 | 200 ms |

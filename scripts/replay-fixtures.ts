@@ -64,6 +64,9 @@ const REV_KEY: Record<string, string> = {
   tripeaks: "tripeaksRev",
   pokersquares: "pokerSquaresRev",
   fivehands: "fiveHandsRev",
+  pyramid: "pyramidRev",
+  golfsol: "golfSolRev",
+  muggins: "mugginsRev",
   // The Sports group (30 Oct 2026).
   minigolf: "golfRev",
   pool: "poolRev",

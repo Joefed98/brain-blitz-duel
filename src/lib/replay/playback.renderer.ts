@@ -25,6 +25,9 @@ import { freecellArt } from "@/lib/arcade/cards/freecell.renderer";
 import { tripeaksArt } from "@/lib/arcade/cards/tripeaks.renderer";
 import { pokerSquaresArt } from "@/lib/arcade/cards/pokerSquares.renderer";
 import { fiveHandsArt } from "@/lib/arcade/cards/fiveHands.renderer";
+import { pyramidArt } from "@/lib/arcade/cards/pyramid.renderer";
+import { golfSolArt } from "@/lib/arcade/cards/golfSol.renderer";
+import { mugginsArt } from "@/lib/arcade/cards/muggins.renderer";
 import { drawMinigolf } from "@/lib/arcade/minigolf.renderer";
 import { drawPool } from "@/lib/arcade/pool.renderer";
 import { drawCurling } from "@/lib/arcade/curling.renderer";
@@ -90,6 +93,9 @@ const SIMPLE: Record<string, (p: PuzzleData) => Draw> = {
   tripeaks: () => tripeaksArt.draw as Draw,
   pokersquares: () => pokerSquaresArt.draw as Draw,
   fivehands: () => fiveHandsArt.draw as Draw,
+  pyramid: () => pyramidArt.draw as Draw,
+  golfsol: () => golfSolArt.draw as Draw,
+  muggins: () => mugginsArt.draw as Draw,
   curling: () => ((ctx, s) => drawCurling(ctx, s, null)) as Draw,
   pool: () => ((ctx, s) => drawPool(ctx, s, null)) as Draw,
   minigolf: () => ((ctx, s) => drawMinigolf(ctx, s, null)) as Draw,

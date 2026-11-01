@@ -10,9 +10,9 @@ override anything general here.
 ## What this is
 
 Duelz: a multiplayer skill-game app. Up to 16 players (`MAX_PLAYERS`, 10 until 31 Oct 2026) join a room with a
-short code and play the same timed rounds; 83 active games across Word, Number, Speed, Attention,
+short code and play the same timed rounds; 86 active games across Word, Number, Speed, Attention,
 Pattern, Logic and Arcade (Word 9, Number 8, Speed 6, Attention 6, Pattern 10, Logic 12 (Trail moved from Number on 27 Oct 2026),
-Arcade 32 with Pinball and, since 30 Oct 2026, the Cards & Board group's Minefield (shown as Minesweeper until 31 Oct 2026), Mahjong Solitaire, Free Cell and Summit (shown as FreeCell and TriPeaks until 31 Oct 2026), since 31 Oct 2026 Five Hands, and the Sports group's Home Run, Top Bins, Apex (shown as Home Run Derby, Free Kick and Racing until 31 Oct 2026), Crazy Golf, Cue Ball and Curl Champ (shown as Minigolf, Speed Pool and Curling until 31 Oct 2026) dealt in rooms; 12 retired to practice: Swerve, Steady, Dual, Ricochet,
+Arcade 35 with Pinball and, since 30 Oct 2026, the Cards & Board group's Minefield (shown as Minesweeper until 31 Oct 2026), Mahjong Solitaire, Free Cell and Summit (shown as FreeCell and TriPeaks until 31 Oct 2026), since 31 Oct 2026 Five Hands, since 1 Nov 2026 Pyramid, Golf Solitaire and Muggins, and the Sports group's Home Run, Top Bins, Apex (shown as Home Run Derby, Free Kick and Racing until 31 Oct 2026), Crazy Golf, Cue Ball and Curl Champ (shown as Minigolf, Speed Pool and Curling until 31 Oct 2026) dealt in rooms; 12 retired to practice: Swerve, Steady, Dual, Ricochet,
 Bastion, Rooftop Run, Junction, Dig, Hot Floor, since 20 Oct 2026 Letterfall and, since 27 Oct 2026
 (Joe's decision), Scrumper (`snip`: out of room draws and the Practice list's main shelves, in its
 Retired section; stored rounds replay and grade as before; icon and name kept; category-pool-check pins
@@ -1039,6 +1039,23 @@ outside the repo.
   room settings sheet has eleven chips and Mixed / Arcade only take all five groups (each its own share). Settings
   are stored as the picks, `rounds:N`, then `groups:2`; a settings room saved before the split (no `groups:2`) reads
   its Action as Action and Strategy (`storedPicks`), so it keeps its games. room-settings-check, practice-switch-check.
+- **Pyramid, Golf Solitaire and Muggins** (1 Nov 2026; `docs/arcade-standard/pyramid.md`, `golfsol.md`, `muggins.md`):
+  three Cards & Board games born on the arcade standard at stamp 1 (`pyramidRev`, `golfSolRev`, `mugginsRev`), each
+  with Undo (kind 3, unlimited, restores the score parts) and Reset (kind 4, undoable), the clock running on; the group
+  is back to eight room games. **Pyramid** (`pyramid`, 90 s; `src/lib/arcade/cards/pyramid.ts`): pairs to 13, Kings
+  alone, the waste pairs, three passes; core 140 on the 28 cards, cleared 20, speed 20 (full by 45 s), pyramid pairs 20
+  (2 each, up to 10); `pyBuildDeal` builds each deal from the seed with a witness of ten pyramid pairs (random shuffles
+  allow one in ~200), proved through the sim and re-proved by `scripts/cards/pyramidSolver.ts`. **Golf Solitaire**
+  (`golfsol`, 75 s; `golfSol.ts`): one up or down, no wrapping; core 140 on 35, all cleared 20, speed 20 (full by
+  28 s), runs of five 20; a bank of 300 solver-proved deals (`golfSolDeals.data.ts`, `bun scripts/golfsol-bank.ts
+  [--check]`, lines in `scripts/fixtures/golfsol-solutions.json`). **Muggins** (`muggins`, 90 s; `muggins.ts`, art
+  `muggins.renderer.ts` on green baize): solo dominoes, ends adding to 5/10/15/20 score; core 150 full at 65 points
+  (the near-perfect median), hand cleared 20, speed 20 (full by 32 s), big plays 10; `mgBuildDeal` keeps a shuffle only
+  with a witness reaching 200. Pyramid's and Muggins' deals are cached per seed and built while RoundIntro is up.
+  Shared thumb-row buttons `cards/cardButtons.renderer.ts`. cards-solitaire-check (~6 s) proves 460 seeds each (all 300
+  Golf deals) at 200 through the server replay, the rules, undo and reset; bands `bun scripts/cards-bands.ts pyramid
+  golfsol muggins`. Sounds reuse the card and tile recordings (`docs/sound-cues/cards-solitaire.md` lists the slots
+  wanting their own, a domino clack first). Names for the solicitor: `docs/solicitor-ip-list.md`. Intro stills only.
 - `src/components/duel/` — room/round screens (PhoneShell, RoundIntro, TimerBar,
   AnswerReveal, ArcadeReveal, WinnerReveal…); `src/components/puzzles/` — shared puzzle
   widgets; `src/lib/fx/` — sound and visual feedback (presentation only).

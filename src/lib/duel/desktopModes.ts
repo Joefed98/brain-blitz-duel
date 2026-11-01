@@ -140,6 +140,9 @@ export const DESKTOP_MODES: Record<PuzzleType, DesktopModeInfo> = {
   tripeaks: CARDS,
   pokersquares: CARDS,
   fivehands: CARDS,
+  pyramid: CARDS,
+  golfsol: CARDS,
+  muggins: CARDS,
   matchup: { mode: "wide", why: "match-three board, no physics world: scaled up in a wide column" },
   // Arcade: Cue Ball alone is turned into landscape (Joe, 31 Oct 2026); its HUD stays upright beside the table.
   pool: { mode: "rotate", why: "top-down table: turned to landscape, only the table and balls (HUD, power meter and spin upright)" },

@@ -87,11 +87,14 @@ import { drawMinesweeper } from "./minesweeper.renderer";
 import { drawMahjong } from "./mahjong.renderer";
 import { MINES_WORLD_H, MINES_WORLD_W } from "./minesweeper";
 import { MAHJONG_WORLD_H, MAHJONG_WORLD_W } from "./mahjong";
-import { replayFiveHandsRun, replayFreecellRun, replayPokerSquaresRun, replayTripeaksRun } from "@/lib/duel/cards";
+import { replayFiveHandsRun, replayFreecellRun, replayGolfSolRun, replayMugginsRun, replayPokerSquaresRun, replayPyramidRun, replayTripeaksRun } from "@/lib/duel/cards";
 import { freecellArt, FC_WORLD_H, FC_WORLD_W } from "./cards/freecell.renderer";
 import { tripeaksArt, TP_WORLD_H, TP_WORLD_W } from "./cards/tripeaks.renderer";
 import { pokerSquaresArt, PS_WORLD_H, PS_WORLD_W } from "./cards/pokerSquares.renderer";
 import { fiveHandsArt, FH_WORLD_H, FH_WORLD_W } from "./cards/fiveHands.renderer";
+import { pyramidArt, PY_WORLD_H, PY_WORLD_W } from "./cards/pyramid.renderer";
+import { golfSolArt, GS_WORLD_H, GS_WORLD_W } from "./cards/golfSol.renderer";
+import { mugginsArt, MG_WORLD_H, MG_WORLD_W } from "./cards/muggins.renderer";
 import { replayMinigolfRun } from "@/lib/duel/minigolf";
 import { replayPoolRun } from "@/lib/duel/pool";
 import { replayCurlingRun } from "@/lib/duel/curling";
@@ -195,6 +198,9 @@ export const ARCADE_REVEAL_RENDERERS: Record<string, ArcadeRevealRenderer> = {
   tripeaks: simple(GOLD, TP_WORLD_W, TP_WORLD_H, tripeaksArt, (p, a) => replayTripeaksRun(seedOf(p), a)),
   pokersquares: simple(GOLD, PS_WORLD_W, PS_WORLD_H, pokerSquaresArt, (p, a) => replayPokerSquaresRun(seedOf(p), a, p.type === "pokersquares" ? p.pokerSquaresRev : undefined)),
   fivehands: simple(GOLD, FH_WORLD_W, FH_WORLD_H, fiveHandsArt, (p, a) => replayFiveHandsRun(seedOf(p), a, p.type === "fivehands" ? p.fiveHandsRev : undefined)),
+  pyramid: simple(GOLD, PY_WORLD_W, PY_WORLD_H, pyramidArt, (p, a) => replayPyramidRun(seedOf(p), a, p.type === "pyramid" ? p.pyramidRev : undefined)),
+  golfsol: simple(GOLD, GS_WORLD_W, GS_WORLD_H, golfSolArt, (p, a) => replayGolfSolRun(seedOf(p), a, p.type === "golfsol" ? p.golfSolRev : undefined)),
+  muggins: simple(GOLD, MG_WORLD_W, MG_WORLD_H, mugginsArt, (p, a) => replayMugginsRun(seedOf(p), a, p.type === "muggins" ? p.mugginsRev : undefined)),
   hover: simple("#2ED3B7", 390, 560, hoverGame, (p, a) => replayHoverRun(seedOf(p), a, p.type === "hover" ? p.hoverRev : undefined), undefined, hoverRevealGame, (p) => hoverWorldHFor(p.type === "hover" ? p.hoverRev : undefined)),
   skyline: simple(GOLD, 390, 560, skylineGame, (p, a) => replaySkylineRun(seedOf(p), a, p.type === "skyline" ? p.skylineRev : undefined), undefined, skylineRevealGame, (p) => skylineWorldHFor(p.type === "skyline" ? p.skylineRev : undefined)),
   // binRev 7: the wider fairground (430 × 728) drawn at 390 wide, so 660 tall.

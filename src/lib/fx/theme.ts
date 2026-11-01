@@ -108,6 +108,9 @@ const WORLD_MUSIC: Partial<Record<PuzzleType, SoundId>> = {
   tripeaks: "music_matchup",
   pokersquares: "music_matchup",
   fivehands: "music_matchup",
+  pyramid: "music_matchup",
+  golfsol: "music_matchup",
+  muggins: "music_matchup",
   // The Sports group (30 Oct 2026) has no tracks of its own yet: it borrows existing real-world beds.
   homerun: "music_skyline",
   freekick: "music_cross",

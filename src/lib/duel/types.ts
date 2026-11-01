@@ -94,6 +94,9 @@ export type PuzzleType =
   | "tripeaks"
   | "pokersquares"
   | "fivehands"
+  | "pyramid"
+  | "golfsol"
+  | "muggins"
   | "minigolf"
   | "pool"
   | "curling";
@@ -417,6 +420,9 @@ export type PuzzleData =
   | TripeaksPuzzleData
   | PokerSquaresPuzzleData
   | FiveHandsPuzzleData
+  | PyramidPuzzleData
+  | GolfSolPuzzleData
+  | MugginsPuzzleData
   | MinigolfPuzzleData
   | PoolPuzzleData
   | CurlingPuzzleData;
@@ -2017,6 +2023,12 @@ export const TRIPEAKS_TIME_MS = 63_000;
 export const POKERSQUARES_TIME_MS = 63_000;
 /** Five Hands: a 60-second run. */
 export const FIVEHANDS_TIME_MS = 63_000;
+/** Pyramid: a 90-second run. */
+export const PYRAMID_TIME_MS = 93_000;
+/** Golf Solitaire: a 75-second run. */
+export const GOLFSOL_TIME_MS = 78_000;
+/** Muggins: a 90-second run. */
+export const MUGGINS_TIME_MS = 93_000;
 
 export interface FreecellPuzzleData {
   type: "freecell";
@@ -2048,6 +2060,30 @@ export interface FiveHandsPuzzleData {
   seed: number;
   /** Rules revision (1 = the first rules, on the arcade scoring standard). */
   fiveHandsRev?: number;
+}
+
+export interface PyramidPuzzleData {
+  type: "pyramid";
+  /** Builds the deal and proves its witness line in the sim: the same 52 cards for everyone. */
+  seed: number;
+  /** Rules revision (1 = the first rules, on the arcade scoring standard, 1 Nov 2026). */
+  pyramidRev?: number;
+}
+
+export interface GolfSolPuzzleData {
+  type: "golfsol";
+  /** The bank deal's index (src/lib/arcade/cards/golfSolDeals.data.ts), every one proved clearable with five runs of five. */
+  seed: number;
+  /** Rules revision (1 = the first rules, on the arcade scoring standard, 1 Nov 2026). */
+  golfSolRev?: number;
+}
+
+export interface MugginsPuzzleData {
+  type: "muggins";
+  /** Shuffles the tiles and proves a witness line in the sim: the same start, hand and pile for everyone. */
+  seed: number;
+  /** Rules revision (1 = the first rules, on the arcade scoring standard, 1 Nov 2026). */
+  mugginsRev?: number;
 }
 
 export interface RallyPuzzleData {

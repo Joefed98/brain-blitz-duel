@@ -89,6 +89,9 @@ replay exactly as before; standard-live-check grades every stored arcade run thr
 | Summit | `tripeaks` | `tripeaksRev` 1 | Cards & Board | [tripeaks.md](tripeaks.md) |
 | Full House | `pokersquares` | `pokerSquaresRev` 2 | Cards & Board | [pokersquares.md](pokersquares.md) |
 | Five Hands | `fivehands` | `fiveHandsRev` 1 | Cards & Board | [fivehands.md](fivehands.md) |
+| Pyramid | `pyramid` | `pyramidRev` 1 | Cards & Board | [pyramid.md](pyramid.md) |
+| Golf Solitaire | `golfsol` | `golfSolRev` 1 | Cards & Board | [golfsol.md](golfsol.md) |
+| Muggins | `muggins` | `mugginsRev` 1 | Cards & Board | [muggins.md](muggins.md) |
 | Crazy Golf (was Minigolf) | `minigolf` | `golfRev` 2 (1 for stored rounds) | Sports | [minigolf.md](minigolf.md) |
 | Cue Ball (was Speed Pool) | `pool` | `poolRev` 2 (1 for stored rounds) | Sports | [pool.md](pool.md) |
 | Curl Champ (was Curling) | `curling` | `curlRev` 2 (1 for stored rounds) | Sports | [curling.md](curling.md) |
@@ -354,4 +357,11 @@ hands 40 (8 a row) = 200; every dealt deck carries a witness arrangement that re
 
 Speed's "full by" times are the near-perfect bots' median finish (`bun scripts/cards-bands.ts`). cards-check proves
 every dealt deal reaches 200 through the server's replay.
+
+1 Nov 2026: three more, born on the standard at revision 1, with Undo and Reset like Free Cell and Mahjong:
+**Pyramid** (`pyramidRev` 1, 90 s: pyramid cards 140, cleared 20, speed 20 full by 45 s, pyramid pairs 20),
+**Golf Solitaire** (`golfsol`, `golfSolRev` 1, 75 s: cards 140, all cleared 20, speed 20 full by 28 s, runs of five 20)
+and **Muggins** (`mugginsRev` 1, 90 s solo dominoes: points 150 full at 65, hand cleared 20, speed 20 full by 32 s, big
+plays 10). Pyramid and Muggins build each deal with its witness in the sim; Golf deals a solver-proved bank.
+cards-solitaire-check proves every dealt deal reaches 200 through the server's replay.
 

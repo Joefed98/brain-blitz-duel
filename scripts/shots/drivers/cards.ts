@@ -2,7 +2,7 @@ import type { Page } from "playwright";
 import type { Driver, DriverCtx } from "../driver";
 
 /**
- * Cards & Board (Free Cell, Summit, Full House, Five Hands): a few real taps on the board for the mid-play frame. The board
+ * Cards & Board (Free Cell, Summit, Full House, Five Hands, Pyramid, Golf Solitaire, Muggins): a few real taps on the board for the mid-play frame. The board
  * ([data-play-area]) is the 414 × 772 world at a uniform scale, so world points map straight onto its box.
  */
 const W = 414;
@@ -47,4 +47,22 @@ const fivehands: Driver = {
   partial: (ctx) => taps(ctx, [0, 1, 2, 3, 4, 2, 0, 4, 1].map((r) => [160, 44 + r * 86 + 40] as const), 450),
 };
 
-export const CARD_DRIVERS: Record<string, Driver> = { freecell, tripeaks, pokersquares, fivehands };
+/** Pyramid: across the bottom row (cards 54 × 78, 57 apart, centred, at y 346), then the stock (84 × 120 at 64, 520). */
+const pyramid: Driver = {
+  board: "[data-play-area]",
+  partial: (ctx) => taps(ctx, [...Array.from({ length: 7 }, (_, j) => [207 - 199.5 + j * 57 + 27, 400] as const), [106, 580], ...Array.from({ length: 7 }, (_, j) => [207 - 199.5 + j * 57 + 27, 400] as const)], 380),
+};
+
+/** Golf Solitaire: each column's bottom card (55 × 80, 57 apart from x 8.5, the fifth at y 230), the stock, again. */
+const golfsol: Driver = {
+  board: "[data-play-area]",
+  partial: (ctx) => taps(ctx, [...Array.from({ length: 7 }, (_, c) => [8.5 + c * 57 + 27, 290] as const), [102, 550], ...Array.from({ length: 7 }, (_, c) => [8.5 + c * 57 + 27, 290] as const)], 380),
+};
+
+/** Muggins: pick each hand tile in turn and press Play (on its better end); Draw when nothing fits. */
+const muggins: Driver = {
+  board: "[data-play-area]",
+  partial: (ctx) => taps(ctx, [0, 1, 2, 3, 4, 5, 6].flatMap((k) => [[207 - 3.5 * 54 + k * 54 + 22, 535] as const, [326, 725] as const, [110, 725] as const]), 380),
+};
+
+export const CARD_DRIVERS: Record<string, Driver> = { freecell, tripeaks, pokersquares, fivehands, pyramid, golfsol, muggins };

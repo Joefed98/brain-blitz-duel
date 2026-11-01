@@ -1,5 +1,5 @@
 /**
- * Cards & Board round plumbing (Free Cell, Summit, Full House, Five Hands): the phone sends its move log; the server replays
+ * Cards & Board round plumbing (Free Cell, Summit, Full House, Five Hands, Pyramid, Golf Solitaire, Muggins): the phone sends its move log; the server replays
  * it on the STORED seed and keeps its own score (makeArcadeRun).
  */
 import { makeArcadeRun, type FlatReplay } from "./arcadeRun";
@@ -15,6 +15,15 @@ import {
 import {
   fhCheckpoint, fhTotals, fiveHandsGameFor, FH_CHECKPOINT_INTERVAL, FH_CHECKPOINT_KEYS, type FhCheckpoint, type FhState,
 } from "@/lib/arcade/cards/fiveHands";
+import {
+  pyCheckpoint, pyramidGameFor, PY_CHECKPOINT_INTERVAL, PY_CHECKPOINT_KEYS, type PyCheckpoint, type PyState,
+} from "@/lib/arcade/cards/pyramid";
+import {
+  gsCheckpoint, golfSolGameFor, GS_CHECKPOINT_INTERVAL, GS_CHECKPOINT_KEYS, type GsCheckpoint, type GsState,
+} from "@/lib/arcade/cards/golfSol";
+import {
+  mgCheckpoint, mugginsGameFor, MG_CHECKPOINT_INTERVAL, MG_CHECKPOINT_KEYS, type MgCheckpoint, type MgState,
+} from "@/lib/arcade/cards/muggins";
 
 const fcRun = makeArcadeRun<FcState, FcCheckpoint>({ tag: "freecell", game: freecellGameFor(1), checkpoint: fcCheckpoint, keys: FC_CHECKPOINT_KEYS, interval: FC_CHECKPOINT_INTERVAL });
 /** freecellRev 2 (undo and reset): its own game and input ranges; the run's wire format is the same. */
@@ -26,6 +35,16 @@ const psRun2 = makeArcadeRun<PsState, PsCheckpoint>({ tag: "pokersquares", game:
 
 const fhRun = makeArcadeRun<FhState, FhCheckpoint>({ tag: "fivehands", game: fiveHandsGameFor(1), checkpoint: fhCheckpoint, keys: FH_CHECKPOINT_KEYS, interval: FH_CHECKPOINT_INTERVAL });
 
+const pyRun = makeArcadeRun<PyState, PyCheckpoint>({ tag: "pyramid", game: pyramidGameFor(1), checkpoint: pyCheckpoint, keys: PY_CHECKPOINT_KEYS, interval: PY_CHECKPOINT_INTERVAL });
+const gsRun = makeArcadeRun<GsState, GsCheckpoint>({ tag: "golfsol", game: golfSolGameFor(1), checkpoint: gsCheckpoint, keys: GS_CHECKPOINT_KEYS, interval: GS_CHECKPOINT_INTERVAL });
+const mgRun = makeArcadeRun<MgState, MgCheckpoint>({ tag: "muggins", game: mugginsGameFor(1), checkpoint: mgCheckpoint, keys: MG_CHECKPOINT_KEYS, interval: MG_CHECKPOINT_INTERVAL });
+
+export const encodePyramidRun = pyRun.encode;
+export const decodePyramidRun = pyRun.decode;
+export const encodeGolfSolRun = gsRun.encode;
+export const decodeGolfSolRun = gsRun.decode;
+export const encodeMugginsRun = mgRun.encode;
+export const decodeMugginsRun = mgRun.decode;
 export const encodeFreecellRun = fcRun.encode;
 export const decodeFreecellRun = fcRun.decode;
 export const encodeTripeaksRun = tpRun.encode;
@@ -101,4 +120,57 @@ export function replayFiveHandsRun(seed: number, raw: string, _rev?: number | nu
   const s = r.state;
   const t = fhTotals(s.rows);
   return { ...r, total: t.total, made: t.made, placed: s.turn, finished: s.ended === 1 };
+}
+
+export interface PyramidResult extends FlatReplay<PyState, PyCheckpoint> {
+  removed: number;
+  ppPairs: number;
+  kings: number;
+  finished: boolean;
+  finishSeconds: number;
+  undos: number;
+  resets: number;
+}
+
+/** The single place a Pyramid score is worked out. */
+export function replayPyramidRun(seed: number, raw: string, _rev?: number | null): PyramidResult {
+  const r = pyRun.replay(seed, raw);
+  const s = r.state;
+  return { ...r, removed: s.removed, ppPairs: s.ppPairs, kings: s.kings, finished: s.ended === 1, finishSeconds: s.finishTick / 60, undos: s.undos, resets: s.resets };
+}
+
+export interface GolfSolResult extends FlatReplay<GsState, GsCheckpoint> {
+  cleared: number;
+  runs: number;
+  bestRun: number;
+  finished: boolean;
+  finishSeconds: number;
+  stockLeft: number;
+  undos: number;
+  resets: number;
+}
+
+/** The single place a Golf Solitaire score is worked out. */
+export function replayGolfSolRun(seed: number, raw: string, _rev?: number | null): GolfSolResult {
+  const r = gsRun.replay(seed, raw);
+  const s = r.state;
+  return { ...r, cleared: s.cleared, runs: s.runs, bestRun: s.bestRun, finished: s.ended === 1, finishSeconds: s.finishTick / 60, stockLeft: s.stock.length - s.stockPos, undos: s.undos, resets: s.resets };
+}
+
+export interface MugginsResult extends FlatReplay<MgState, MgCheckpoint> {
+  points: number;
+  bigs: number;
+  plays: number;
+  handLeft: number;
+  finished: boolean;
+  finishSeconds: number;
+  undos: number;
+  resets: number;
+}
+
+/** The single place a Muggins score is worked out. */
+export function replayMugginsRun(seed: number, raw: string, _rev?: number | null): MugginsResult {
+  const r = mgRun.replay(seed, raw);
+  const s = r.state;
+  return { ...r, points: s.points, bigs: s.bigs, plays: s.plays, handLeft: s.hand.length, finished: s.ended === 1, finishSeconds: s.finishTick / 60, undos: s.undos, resets: s.resets };
 }

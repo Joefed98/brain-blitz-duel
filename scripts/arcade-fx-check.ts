@@ -113,6 +113,9 @@ const { freecellArt } = await import("../src/lib/arcade/cards/freecell.renderer"
 const { tripeaksArt } = await import("../src/lib/arcade/cards/tripeaks.renderer");
 const { pokerSquaresArt } = await import("../src/lib/arcade/cards/pokerSquares.renderer");
 const { fiveHandsArt } = await import("../src/lib/arcade/cards/fiveHands.renderer");
+const { pyramidArt } = await import("../src/lib/arcade/cards/pyramid.renderer");
+const { golfSolArt } = await import("../src/lib/arcade/cards/golfSol.renderer");
+const { mugginsArt } = await import("../src/lib/arcade/cards/muggins.renderer");
 
 type AnyGame = {
   init: (seed: number) => any;
@@ -179,6 +182,9 @@ const GAMES: Record<string, AnyGame> = {
   tripeaks: tripeaksArt as AnyGame,
   pokersquares: pokerSquaresArt as AnyGame,
   fivehands: fiveHandsArt as AnyGame,
+  pyramid: pyramidArt as AnyGame,
+  golfsol: golfSolArt as AnyGame,
+  muggins: mugginsArt as AnyGame,
   // The Sports group (30 Oct 2026): each sim with its own art drawn through its success layer, on a bank deal.
   minigolf: { ...minigolfGameFor(MINIGOLF_BANK[0]!.pars), init: () => minigolfGameFor(MINIGOLF_BANK[0]!.pars).init(MINIGOLF_BANK[0]!.seed), draw: withArcadeFx(MINIGOLF_FX, (c, st) => drawMinigolf(c, st, null)) } as AnyGame,
   pool: { ...poolGameFor(1), init: () => poolGameFor(1).init(POOL_BANK[0]!), draw: withArcadeFx(POOL_FX, (c, st) => drawPool(c, st, null)) } as AnyGame,
@@ -554,6 +560,20 @@ const BUMPS: Record<string, ((s: any) => any)[]> = {
     (s) => ({ ...s, rows: [[1, 14], ...s.rows.slice(1)], lastRow: 0 }),
     // Five rows of four of a kind (75 hand points): the core's full figure reached.
     (s) => ({ ...s, rows: Array.from({ length: 5 }, (_, r) => [r, 13 + r, 26 + r, 39 + r, 5 + r]) }),
+  ],
+  pyramid: [
+    (s) => ({ ...s, ppPairs: s.ppPairs + 1, lastA: 21, lastB: 22 }),
+    (s) => ({ ...s, kings: s.kings + 1, lastA: 23, lastB: -1 }),
+    (s) => ({ ...s, ended: 1 }),
+  ],
+  golfsol: [
+    (s) => ({ ...s, runs: s.runs + 1, run: 5 }),
+    (s) => ({ ...s, ended: 1 }),
+  ],
+  muggins: [
+    (s) => ({ ...s, points: s.points + 10, lastScore: 10 }),
+    (s) => ({ ...s, bigs: s.bigs + 1, points: s.points + 15, lastScore: 15 }),
+    (s) => ({ ...s, ended: 1 }),
   ],
 };
 for (const [name, game] of Object.entries(GAMES)) {

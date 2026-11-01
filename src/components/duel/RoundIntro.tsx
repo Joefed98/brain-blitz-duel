@@ -1,5 +1,7 @@
 import { puzzleDef, puzzleName, typeTimeLimitMs, usesArcadeClock } from "@/lib/duel/registry";
 import { prepareSwingCourse } from "@/lib/arcade/swing";
+import { mgDeal } from "@/lib/arcade/cards/muggins";
+import { pyDeal } from "@/lib/arcade/cards/pyramid";
 import { INTRO_COUNTDOWN_MS, INTRO_MS, TOTAL_ROUNDS, type PuzzleType } from "@/lib/duel/types";
 import type { Outcome } from "@/lib/duel/scoring";
 import type { PuzzleData } from "@/lib/duel/types";
@@ -175,6 +177,14 @@ export function RoundIntro({
     if (puzzle?.type !== "swing") return;
     const { seed, swingRev } = puzzle;
     const timer = window.setTimeout(() => prepareSwingCourse(seed, swingRev), 120);
+    return () => window.clearTimeout(timer);
+  }, [puzzle]);
+
+  // Muggins and Pyramid build and prove their deal from the seed (cached): built while the intro is up, the same way.
+  useEffect(() => {
+    if (puzzle?.type !== "muggins" && puzzle?.type !== "pyramid") return;
+    const { type: kind, seed } = puzzle;
+    const timer = window.setTimeout(() => (kind === "muggins" ? mgDeal(seed) : pyDeal(seed)), 120);
     return () => window.clearTimeout(timer);
   }, [puzzle]);
 

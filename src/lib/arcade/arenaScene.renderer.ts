@@ -90,6 +90,10 @@ export const ARENA_SCENE_GAMES = [
   "tripeaks",
   "pokersquares",
   "fivehands",
+  "pyramid",
+  "golfsol",
+  // Muggins: the baize runs on past the world (cards/mugginsFill.renderer.ts).
+  "muggins",
 ] as const;
 
 /**

@@ -21,7 +21,7 @@ const SCENE_FILES: Record<(typeof ARENA_SCENE_GAMES)[number], string> = {
   wavefront: "wavefront", orbit: "orbit", skyline: "skyline", slice: "slice", bubble: "bubble",
   swing: "swing", snip: "snip", balltrack: "ballTrack", pinball: "pinball", stroop: "stroop",
   minesweeper: "minesweeper", mahjong: "mahjong", homerun: "homerun", freekick: "freekick", racing: "racing",
-  freecell: "freecell", tripeaks: "tripeaks", pokersquares: "pokerSquares", fivehands: "fiveHands",
+  freecell: "freecell", tripeaks: "tripeaks", pokersquares: "pokerSquares", fivehands: "fiveHands", pyramid: "pyramid", golfsol: "golfSol", muggins: "muggins",
   minigolf: "minigolf", pool: "pool", curling: "curling",
 };
 const ARENA_SCENE_NOTES: Record<(typeof ARENA_SCENE_GAMES)[number], string> = {
@@ -60,6 +60,9 @@ const ARENA_SCENE_NOTES: Record<(typeof ARENA_SCENE_GAMES)[number], string> = {
   tripeaks: "the felt's darker edge runs on beside and below the world, settling darker towards the screen's bottom",
   pokersquares: "the felt's darker edge runs on beside and below the world, settling darker towards the screen's bottom",
   fivehands: "the felt's darker edge runs on beside and below the world, settling darker towards the screen's bottom",
+  pyramid: "the felt's darker edge runs on beside and below the world, settling darker towards the screen's bottom",
+  golfsol: "the felt's darker edge runs on beside and below the world, settling darker towards the screen's bottom",
+  muggins: "the baize's darker green runs on beside and below the world, settling darker towards the screen's bottom",
   minigolf: "more of the night terrace, darker towards the edges",
   pool: "the room round the table: a dark floor under the lamps' spill",
   curling: "the arena's dark above, the sheet's floor below and to the sides",

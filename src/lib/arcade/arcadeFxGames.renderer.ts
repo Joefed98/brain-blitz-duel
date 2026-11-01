@@ -19,6 +19,9 @@ import { FREECELL_FX } from "./cards/freecell.renderer";
 import { TRIPEAKS_FX } from "./cards/tripeaks.renderer";
 import { POKERSQUARES_FX } from "./cards/pokerSquares.renderer";
 import { FIVEHANDS_FX } from "./cards/fiveHands.renderer";
+import { PYRAMID_FX } from "./cards/pyramid.renderer";
+import { GOLFSOL_FX } from "./cards/golfSol.renderer";
+import { MUGGINS_FX } from "./cards/muggins.renderer";
 import { px } from "./engine";
 
 import { HOVER_DISC_X, HOVER_EXPAND_H, HOVER_TALL_H, HOVER_WORLD_H, HOVER_WORLD_W, hoverWorldH, type HoverState } from "./hover";
@@ -285,6 +288,9 @@ export const ARCADE_GAME_WORLDS = {
   tripeaks: "cards",
   pokersquares: "cards",
   fivehands: "cards",
+  pyramid: "cards",
+  golfsol: "cards",
+  muggins: "cards",
   // The Sports group (30 Oct 2026): realistic venues.
   minigolf: "realworld",
   pool: "realworld",
@@ -1787,6 +1793,9 @@ export const ARCADE_FX_SPECS = {
   tripeaks: TRIPEAKS_FX,
   pokersquares: POKERSQUARES_FX,
   fivehands: FIVEHANDS_FX,
+  pyramid: PYRAMID_FX,
+  golfsol: GOLFSOL_FX,
+  muggins: MUGGINS_FX,
   minigolf: MINIGOLF_FX,
   pool: POOL_FX,
   curling: CURLING_FX,

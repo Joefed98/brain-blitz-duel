@@ -1165,6 +1165,46 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
       ],
       score: liveStdHelp("fivehands", "Two parts, which total 200:"),
     },
+    pyramid: {
+      goal: "Clear the pyramid in pairs that add to 13.",
+      how: [
+        { action: "Tap two uncovered cards", detail: "that add to 13 to remove them: Q+A, J+2, 10+3, 9+4, 8+5, 7+6." },
+        { action: "A King", detail: "is 13 on its own: one tap removes it." },
+        { action: "Tap the stock", detail: "to turn a card onto the waste; the waste's top card pairs too." },
+        { action: "Three passes:", detail: "an empty stock turns the waste back over twice.", helpOnly: true },
+        { action: "Undo and Reset", detail: "at the bottom take back the last action or go back to the deal; the clock runs on." },
+        { action: "Pairs of two pyramid cards", detail: "score extra, 2 each, up to ten.", helpOnly: true },
+        { action: "Every deal", detail: "can be cleared with ten pyramid pairs.", helpOnly: true },
+        { action: "Same deal", detail: "for everyone.", helpOnly: true },
+      ],
+      score: liveStdHelp("pyramid", "Four parts, which total 200:"),
+    },
+    golfsol: {
+      goal: "Clear all seven columns onto the foundation.",
+      how: [
+        { action: "Tap a column", detail: "to play its bottom card when it is one higher or lower than the foundation. Suits don't matter." },
+        { action: "No wrapping:", detail: "nothing goes between a King and an Ace." },
+        { action: "Tap the stock", detail: "when stuck: its card becomes the new foundation." },
+        { action: "Runs:", detail: "five or more cards in a row without drawing score extra, 4 each, up to five.", helpOnly: true },
+        { action: "Undo and Reset", detail: "at the bottom take back the last action or go back to the deal; the clock runs on." },
+        { action: "Every deal", detail: "can be cleared with five runs of five.", helpOnly: true },
+        { action: "Same deal", detail: "for everyone.", helpOnly: true },
+      ],
+      score: liveStdHelp("golfsol", "Four parts, which total 200:"),
+    },
+    muggins: {
+      goal: "Play out your dominoes and score with the ends.",
+      how: [
+        { action: "Pick a tile,", detail: "then tap an end of the line where it matches (or Play for its better end)." },
+        { action: "Score:", detail: "whenever the two open ends add to 5, 10, 15 or 20, that total scores. A double at an end counts both halves." },
+        { action: "Draw", detail: "one tile from the pile when nothing in your hand fits." },
+        { action: "The round ends", detail: "when your hand is empty, at the buzzer, or when the pile is empty and nothing fits.", helpOnly: true },
+        { action: "Big plays:", detail: "a single play scoring 15 or 20 scores extra, up to two.", helpOnly: true },
+        { action: "Undo and Reset", detail: "take back the last play or draw, or go back to the deal; the clock runs on.", helpOnly: true },
+        { action: "Same start, hand and pile", detail: "for everyone.", helpOnly: true },
+      ],
+      score: liveStdHelp("muggins", "Four parts, which total 200:"),
+    },
     rally: {
       goal: "Keep the rally going.",
       how: [

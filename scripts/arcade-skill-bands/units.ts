@@ -31,6 +31,9 @@ import { freecellBandParts } from "../../src/lib/arcade/cards/freecell";
 import { tripeaksBandParts } from "../../src/lib/arcade/cards/tripeaks";
 import { pokerSquaresBandParts } from "../../src/lib/arcade/cards/pokerSquares";
 import { fiveHandsBandParts } from "../../src/lib/arcade/cards/fiveHands";
+import { pyramidBandParts } from "../../src/lib/arcade/cards/pyramid";
+import { golfSolBandParts } from "../../src/lib/arcade/cards/golfSol";
+import { mugginsBandParts } from "../../src/lib/arcade/cards/muggins";
 import { stdBandParts } from "../../src/lib/arcade/arcadeStandard";
 import { minigolfStdParts, MINIGOLF_STD_SPEC } from "../../src/lib/arcade/minigolf";
 import { STD_SPORTS } from "./sportsUnits";
@@ -73,6 +76,9 @@ export const BAND_PARTS: Record<string, (s: any) => BandParts> = {
   tripeaks: tripeaksBandParts,
   pokersquares: pokerSquaresBandParts,
   fivehands: fiveHandsBandParts,
+  pyramid: pyramidBandParts,
+  golfsol: golfSolBandParts,
+  muggins: mugginsBandParts,
   // The Sports group (30 Oct 2026): units are the core's measure (holes holed, spots potted, stones on the button).
   minigolf: (s: any) => {
     const parts = minigolfStdParts(s) ?? [];

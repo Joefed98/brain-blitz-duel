@@ -19,3 +19,10 @@ export function tripeaksSolution(i: number): number[] {
   tp ??= (JSON.parse(readFileSync(new URL("tripeaks-solutions.json", root), "utf8")) as string[]).map((s) => s.split(",").filter(Boolean).map(Number));
   return tp[i]!;
 }
+
+let gs: number[][] | null = null;
+/** Golf Solitaire's clearing line (five runs of five) for bank index `i`: taps, a column (0–6) or the stock (7). */
+export function golfSolSolution(i: number): number[] {
+  gs ??= (JSON.parse(readFileSync(new URL("golfsol-solutions.json", root), "utf8")) as string[]).map((s) => s.split(",").filter(Boolean).map(Number));
+  return gs[i]!;
+}

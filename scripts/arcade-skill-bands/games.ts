@@ -85,7 +85,12 @@ import { tpCheckpoint, tripeaksGameFor, TP_REV } from "../../src/lib/arcade/card
 import { TP_DEALS } from "../../src/lib/arcade/cards/tripeaksDeals.data";
 import { psCheckpoint, pokerSquaresGameFor, PS_REV } from "../../src/lib/arcade/cards/pokerSquares";
 import { fhCheckpoint, fiveHandsGameFor, FH_REV } from "../../src/lib/arcade/cards/fiveHands";
+import { pyCheckpoint, pyramidGameFor, PY_REV } from "../../src/lib/arcade/cards/pyramid";
+import { gsCheckpoint, golfSolGameFor, GS_REV } from "../../src/lib/arcade/cards/golfSol";
+import { GS_DEALS } from "../../src/lib/arcade/cards/golfSolDeals.data";
+import { mgCheckpoint, mugginsGameFor, MG_REV } from "../../src/lib/arcade/cards/muggins";
 import { encodeFiveHandsRun, encodeFreecellRun, encodePokerSquaresRun, encodeTripeaksRun, replayFiveHandsRun, replayFreecellRun, replayPokerSquaresRun, replayTripeaksRun } from "../../src/lib/duel/cards";
+import { encodeGolfSolRun, encodeMugginsRun, encodePyramidRun, replayGolfSolRun, replayMugginsRun, replayPyramidRun } from "../../src/lib/duel/cards";
 import { minigolfCheckpoint, minigolfGameFor, MINIGOLF_REV, MINIGOLF_REV_CLASSIC } from "../../src/lib/arcade/minigolf";
 import { encodeMinigolfRun, replayMinigolfRun } from "../../src/lib/duel/minigolf";
 import { MINIGOLF_BANK, minigolfBankEntryFor } from "../../src/lib/duel/minigolfBank.server";
@@ -293,6 +298,10 @@ export const GAMES: GameSpec[] = [
   simple("pokersquares", PS_REV, PS_REV, pokerSquaresGameFor, psCheckpoint, encodePokerSquaresRun, replayPokerSquaresRun),
   // Five Hands (31 Oct 2026): born on the arcade standard; any seed (the sim deals the deck and proves its witness).
   simple("fivehands", FH_REV, FH_REV, fiveHandsGameFor, fhCheckpoint, encodeFiveHandsRun, replayFiveHandsRun),
+  // Pyramid and Muggins (1 Nov 2026): any seed (the sim builds and proves the deal); Golf Solitaire a bank index.
+  simple("pyramid", PY_REV, PY_REV, pyramidGameFor, pyCheckpoint, encodePyramidRun, replayPyramidRun),
+  { ...simple("golfsol", GS_REV, GS_REV, golfSolGameFor, gsCheckpoint, encodeGolfSolRun, replayGolfSolRun), seedFor: (n) => roomSeed(n) % GS_DEALS.length },
+  simple("muggins", MG_REV, MG_REV, mugginsGameFor, mgCheckpoint, encodeMugginsRun, replayMugginsRun),
   // The Sports group (30 Oct 2026): Minigolf deals a bank course (seed and pars); golfRev 2 (crazy golf, 31 Oct 2026)
   // from its own bank, golfRev 1 (`seedForRev`) from the first.
   {

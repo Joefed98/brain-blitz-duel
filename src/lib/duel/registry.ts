@@ -50,6 +50,9 @@ import { freecellPuzzle } from "@/puzzles/freecell";
 import { tripeaksPuzzle } from "@/puzzles/tripeaks";
 import { pokerSquaresPuzzle } from "@/puzzles/pokerSquares";
 import { fiveHandsPuzzle } from "@/puzzles/fiveHands";
+import { pyramidPuzzle } from "@/puzzles/pyramid";
+import { golfSolPuzzle } from "@/puzzles/golfSol";
+import { mugginsPuzzle } from "@/puzzles/muggins";
 import { minigolfPuzzle } from "@/puzzles/minigolf";
 import { poolPuzzle } from "@/puzzles/pool";
 import { curlingPuzzle } from "@/puzzles/curling";
@@ -218,6 +221,9 @@ const BASE_REGISTRY: Record<PuzzleType, Omit<PuzzleDefinition, "instructions">> 
   tripeaks: tripeaksPuzzle,
   pokersquares: pokerSquaresPuzzle,
   fivehands: fiveHandsPuzzle,
+  pyramid: pyramidPuzzle,
+  golfsol: golfSolPuzzle,
+  muggins: mugginsPuzzle,
   minigolf: minigolfPuzzle,
   pool: poolPuzzle,
   curling: curlingPuzzle,

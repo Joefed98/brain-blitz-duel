@@ -99,6 +99,10 @@ export const ROUND_MAX: Readonly<Record<PuzzleType, number>> = {
   tripeaks: 200,
   pokersquares: 200,
   fivehands: 200,
+  // Pyramid, Golf Solitaire, Muggins (1 Nov 2026): born on the arcade scoring standard.
+  pyramid: 200,
+  golfsol: 200,
+  muggins: 200,
   // Sports (30 Oct 2026): on the arcade scoring standard from their first stamp.
   minigolf: 200,
   pool: 200,

@@ -48,6 +48,9 @@ import { fcHomeCount, type FcState } from "@/lib/arcade/cards/freecell";
 import type { TpState } from "@/lib/arcade/cards/tripeaks";
 import { PS_LINES, psHand, psLineHand, psTotals, type PsState } from "@/lib/arcade/cards/pokerSquares";
 import { fhTotals, type FhState } from "@/lib/arcade/cards/fiveHands";
+import type { PyState } from "@/lib/arcade/cards/pyramid";
+import type { GsState } from "@/lib/arcade/cards/golfSol";
+import { MG_BIG_AT, type MgState } from "@/lib/arcade/cards/muggins";
 
 /** Sounds a success-effect cue with a file stands in for on this frame (momentCues.ts). */
 let quiet: ReadonlySet<string> = new Set();
@@ -1439,6 +1442,86 @@ export function fiveHandsSounds(): GameSounds<FhState> {
         if (state.rejects > prev.rejects) sfx("fivehands.invalid", "wrong", 0.5);
         if (state.ended === 1 && prev.ended === 0) ownCue("fivehands.final", "complete");
         else if (state.ended === 2 && prev.ended === 0) effectCue("fivehands.final");
+      }
+      prev = state;
+    },
+    stop() {
+      prev = null;
+    },
+  };
+}
+
+/* Pyramid, Golf Solitaire and Muggins (1 Nov 2026): the existing card and tile recordings (manifest slots of their own,
+   files shared); Undo and Reset as Mahjong's (tick, zap). */
+
+/** Pyramid: a card chosen, a pair of 13, a King alone, a stock card turned, the waste turned back, a refused tap, the clear. */
+export function pyramidSounds(): GameSounds<PyState> {
+  let prev: PyState | null = null;
+  return {
+    frame(state) {
+      beginFrame("pyramid", state);
+      if (prev && state.tick > prev.tick) {
+        if (prev.tick === 0) effectCue("pyramid.shuffle");
+        if (state.pairs > prev.pairs) sfx("pyramid.pair", "correct", 0.8);
+        else if (state.kings > prev.kings) sfx("pyramid.king", "place", 0.8);
+        else if (state.sel >= 0 && state.sel !== prev.sel) effectCue("pyramid.select");
+        if (state.draws > prev.draws) sfx("pyramid.deal", "move", 0.8);
+        if (state.pass > prev.pass) effectCue("pyramid.turn");
+        if (state.rejects > prev.rejects) sfx("pyramid.invalid", "wrong", 0.5);
+        if (state.undos > prev.undos) playCueSlot("tick", 0.6);
+        if (state.resets > prev.resets) playCueSlot("shared.celebrate.zap", 0.6);
+        if (state.ended === 1 && prev.ended === 0) sfx("pyramid.clear", "complete");
+      }
+      prev = state;
+    },
+    stop() {
+      prev = null;
+    },
+  };
+}
+
+/** Golf Solitaire: a card played (rising a semitone a card in the run), a draw, a run of five, a refused tap, the clear. */
+export function golfSolSounds(): GameSounds<GsState> {
+  let prev: GsState | null = null;
+  return {
+    frame(state) {
+      beginFrame("golfsol", state);
+      if (prev && state.tick > prev.tick) {
+        if (prev.tick === 0) effectCue("golfsol.shuffle");
+        if (state.plays > prev.plays) sfx("golfsol.play", "place", 0.8, 2 ** (Math.min(12, Math.max(0, state.run - 1)) / 12), false, true);
+        if (state.draws > prev.draws) sfx("golfsol.deal", "move", 0.8);
+        if (state.runs > prev.runs) sfx("golfsol.run", "correct", 0.7);
+        if (state.rejects > prev.rejects) sfx("golfsol.invalid", "wrong", 0.5);
+        if (state.undos > prev.undos) playCueSlot("tick", 0.6);
+        if (state.resets > prev.resets) playCueSlot("shared.celebrate.zap", 0.6);
+        if (state.ended === 1 && prev.ended === 0) sfx("golfsol.clear", "complete");
+      }
+      prev = state;
+    },
+    stop() {
+      prev = null;
+    },
+  };
+}
+
+/** Muggins: a tile laid, a scoring play (15 or 20 the big one), a draw, a refused play, the hand cleared. */
+export function mugginsSounds(): GameSounds<MgState> {
+  let prev: MgState | null = null;
+  return {
+    frame(state) {
+      beginFrame("muggins", state);
+      if (prev && state.tick > prev.tick) {
+        if (prev.tick === 0) effectCue("muggins.shuffle");
+        if (state.plays > prev.plays) {
+          if (state.lastScore >= MG_BIG_AT) sfx("muggins.big", "correct", 0.8);
+          else if (state.lastScore > 0) sfx("muggins.score", "correct", 0.8);
+          else sfx("muggins.place", "place", 0.8);
+        }
+        if (state.draws > prev.draws) sfx("muggins.draw", "move", 0.7);
+        if (state.rejects > prev.rejects) sfx("muggins.invalid", "wrong", 0.5);
+        if (state.undos > prev.undos) playCueSlot("tick", 0.6);
+        if (state.resets > prev.resets) playCueSlot("shared.celebrate.zap", 0.6);
+        if (state.ended === 1 && prev.ended === 0) sfx("muggins.clear", "complete");
       }
       prev = state;
     },
