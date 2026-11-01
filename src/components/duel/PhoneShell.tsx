@@ -469,8 +469,8 @@ export function PhoneShell({ children, bare = false, constrained = false, gameSc
           constrained ? "no-overscroll h-full overflow-hidden" : "min-h-[100dvh]"
         }`}
       >
-        {/* The four tab screens: their own header (Prompt R); every other screen keeps the top bar. */}
-        {tabs && !gameScreen ? (desktop ? null : <AppHeader />) : !bare && !framePlay && (
+        {/* The four tab screens: their own header (Prompt R; none on the computer layout, where the rail has the logo and sound); every other screen keeps the top bar. */}
+        {tabs && !gameScreen ? <AppHeader /> : !bare && !framePlay && (
           <div data-game-topbar={gameScreen ? "" : undefined} className="mb-2 grid h-9 shrink-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-2" style={gameScreen ? NO_SELECT_STYLE : undefined}>
             <div className="min-w-0">{gameHeader ?? <AppWordmark />}</div>
             <div className="flex shrink-0 items-center">{topAction}<MuteToggle /></div>
