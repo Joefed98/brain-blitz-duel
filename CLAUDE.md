@@ -1046,7 +1046,7 @@ outside the repo.
   flick or the HOLD, TURN, DROP pads under the well; lines 140 (full at 33, the elite median) + multi-line clears 40
   (4 / 8 / 12) + a low stack 20; rooms deal a seed from its proved deal (`blockfallDeal.server.ts`, built by
   `bun scripts/blockfall-deal.ts`, the oracle `scripts/blockfall-oracle.ts` on the shared planner
-  `scripts/blockfall/planner.ts`). Our own look and name (`docs/ip-review-list.md`). **Alley Roll** (`alleyroll`,
+  `scripts/blockfall/planner.ts`). Our own look and name (`docs/ip-names.md`). **Alley Roll** (`alleyroll`,
   Sports, nine balls or 60 s; sim `src/lib/arcade/alleyroll.ts`): a sloping lane, a ramp and a board of 10–50 rings
   with two 100 pockets; slide to line up, swipe up (speed = power, angle = direction); integer physics with no wind and
   no seed (every room the same lane); ring points 150 (full at 540, the elite median) + pockets 30 + hot streak 20.
