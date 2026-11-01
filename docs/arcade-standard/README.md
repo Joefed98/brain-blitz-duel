@@ -92,6 +92,7 @@ replay exactly as before; standard-live-check grades every stored arcade run thr
 | Crazy Golf (was Minigolf) | `minigolf` | `golfRev` 2 (1 for stored rounds) | Sports | [minigolf.md](minigolf.md) |
 | Cue Ball (was Speed Pool) | `pool` | `poolRev` 2 (1 for stored rounds) | Sports | [pool.md](pool.md) |
 | Curl Champ (was Curling) | `curling` | `curlRev` 2 (1 for stored rounds) | Sports | [curling.md](curling.md) |
+| Ricochet (the ninja wall-climb) | `ricochet` | `ricoRev` 2 (unstamped: the old shaft, never on the standard) | Action | [ricochet.md](ricochet.md) |
 
 The batches land one at a time on top of this; each adds its games' entries, pages and its summary section below.
 
@@ -355,3 +356,11 @@ hands 40 (8 a row) = 200; every dealt deck carries a witness arrangement that re
 Speed's "full by" times are the near-perfect bots' median finish (`bun scripts/cards-bands.ts`). cards-check proves
 every dealt deal reaches 200 through the server's replay.
 
+## Ricochet, the ninja wall-climb (1 Nov 2026)
+
+Ricochet (`ricochet`) is back from retirement under its own id on **`ricoRev` 2**, born on the standard: height climbed
+130 on a straight line (full at 296 m, the near-perfect median), coins 30 (shared across 60), gold lanterns 20 (2 each
+of 10), scrolls 20 (5 each of 4) = 200. Unstamped Ricochet rounds keep the old ball-and-spikes shaft and its 150-point
+score exactly. Every tower is dealt in the sim with a witness route proved through the real step (all 74 items, no
+hit, at least 296 m), so a perfect run reaches 200 on every tower. [ricochet.md](ricochet.md) has the rules, the
+bands and the decisions.

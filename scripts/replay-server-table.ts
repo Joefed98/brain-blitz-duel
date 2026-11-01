@@ -7,6 +7,7 @@
 import type { PuzzleData } from "../src/lib/duel/types";
 import { clashVariantOf } from "../src/lib/arcade/colourClash";
 import { replayHoverRun } from "../src/lib/duel/hover";
+import { isNinjaRev, replayNinjaRun, replayRicoRun } from "../src/lib/duel/ricochet";
 import { replaySkylineRun } from "../src/lib/duel/skyline";
 import { replayBinTossRun } from "../src/lib/duel/binToss";
 import { replayBullseyeRun } from "../src/lib/duel/bullseye";
@@ -67,6 +68,8 @@ const TABLE: Record<string, (p: any, a: string) => ServerReplay> = {
   tripeaks: (p, a) => replayTripeaksRun(p.seed, a, p.tripeaksRev),
   pokersquares: (p, a) => replayPokerSquaresRun(p.seed, a, p.pokerSquaresRev),
   fivehands: (p, a) => replayFiveHandsRun(p.seed, a, p.fiveHandsRev),
+  // Ricochet: the ninja wall-climb on ricoRev 2, else the original shaft.
+  ricochet: (p, a) => (isNinjaRev(p.ricoRev) ? replayNinjaRun(p.seed, a) : replayRicoRun(p.seed, a)),
   rally: (p, a) => replayRallyRun(p.seed, a, p.rallyRev),
   slice: (p, a) => replaySliceRun(p.seed, a, p.sliceRev),
   bubble: (p, a) => replayBubbleRun(p.seed, a, p.bubbleRev),

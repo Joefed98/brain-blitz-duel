@@ -71,7 +71,8 @@ import { encodeDualRun, replayDualRun } from "@/lib/duel/dual";
 import { encodeHoverRun, replayHoverRun } from "@/lib/duel/hover";
 import { encodeMatchupRun, replayMatchupRun } from "@/lib/duel/matchup";
 import { encodeRallyRun, replayRallyRun } from "@/lib/duel/rally";
-import { encodeRicoRun, replayRicoRun } from "@/lib/duel/ricochet";
+import { encodeNinjaRun, encodeRicoRun, replayNinjaRun, replayRicoRun } from "@/lib/duel/ricochet";
+import { ninjaCheckpoint, ninjaGame, NINJA_CHECKPOINT_INTERVAL } from "@/lib/arcade/ricochetNinja";
 import { encodeSkylineRun, replaySkylineRun } from "@/lib/duel/skyline";
 import { encodeSliceRun, replaySliceRun } from "@/lib/duel/slice";
 import { encodeSnakeRun, replaySnakeRun } from "@/lib/duel/snake";
@@ -868,6 +869,8 @@ const GAMES: Game[] = [
     encode: encodeMinigolfRun,
     replay: (seed: number, raw: string) => replayMinigolfRun(seed, raw, MINIGOLF_BANK_V2.find((e) => e.seed === seed)!.pars, 2),
   },
+  // Ricochet ricoRev 2 (the ninja wall-climb, 1 Nov 2026), appended so every earlier entry keeps its index.
+  { key: "ricochet/ninja", interval: NINJA_CHECKPOINT_INTERVAL, game: ninjaGame, checkpoint: ninjaCheckpoint, mode: "events", rate: 30, encode: encodeNinjaRun, replay: (seed: number, raw: string) => replayNinjaRun(seed, raw) },
 ];
 
 /** A random candidate event, often outside the declared range (a finger off the edge). */

@@ -90,7 +90,7 @@ Paid, non-gambling revenue through an ordinary merchant account comes first; it 
 - [ ] **20. Coin packs and cosmetics.** Coins for tournament entry; arcade world themes, avatars and celebrations that change only the look, never the gameplay.
 - [ ] **21. Paid private tournaments (B2B).** Branded rooms for pubs, companies and events, invoiced directly.
 - [ ] **22. Ads.** Lobby banner, an interstitial after the podium at most every two or three rooms, and opt-in rewarded videos for coins. Never during rounds, reveals or standings. Age-appropriate ad settings and UK GDPR cookie consent.
-- [ ] **23. Solicitor's IP review.** A freedom-to-operate check across every game, name and art set before the store launch.
+- [ ] **23. Solicitor's IP review.** A freedom-to-operate check across every game, name and art set before the store launch. The working list of names and concepts: `docs/ip-review-list.md`.
 
 ## Phase 6: Go to market
 

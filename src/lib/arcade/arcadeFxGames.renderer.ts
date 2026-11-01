@@ -19,6 +19,7 @@ import { FREECELL_FX } from "./cards/freecell.renderer";
 import { TRIPEAKS_FX } from "./cards/tripeaks.renderer";
 import { POKERSQUARES_FX } from "./cards/pokerSquares.renderer";
 import { FIVEHANDS_FX } from "./cards/fiveHands.renderer";
+import { NINJA_FX } from "./ricochetNinja.renderer";
 import { px } from "./engine";
 
 import { HOVER_DISC_X, HOVER_EXPAND_H, HOVER_TALL_H, HOVER_WORLD_H, HOVER_WORLD_W, hoverWorldH, type HoverState } from "./hover";
@@ -289,6 +290,8 @@ export const ARCADE_GAME_WORLDS = {
   minigolf: "realworld",
   pool: "realworld",
   curling: "realworld",
+  // Ricochet (ricoRev 2, 1 Nov 2026): the ninja wall-climb on a night temple.
+  ricochet: "realworld",
 } as const satisfies Record<string, ArcadeWorld>;
 
 export type ArcadeFxGame = keyof typeof ARCADE_GAME_WORLDS;
@@ -1787,6 +1790,7 @@ export const ARCADE_FX_SPECS = {
   tripeaks: TRIPEAKS_FX,
   pokersquares: POKERSQUARES_FX,
   fivehands: FIVEHANDS_FX,
+  ricochet: NINJA_FX,
   minigolf: MINIGOLF_FX,
   pool: POOL_FX,
   curling: CURLING_FX,

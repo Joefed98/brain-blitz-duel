@@ -23,7 +23,7 @@ import { DUAL_GROUND, DUAL_RUNNER, DUAL_RUNNER_R, DUAL_SPIKE, DUAL_SPIKE_H, DUAL
 import { HOT_BG, HOT_GOLD, HOT_RED } from "@/lib/arcade/hotFloor";
 import { JUNC_CX, JUNC_CY } from "@/lib/arcade/junction";
 import { CAR_COLOURS, HALF as JUNC_HALF, LANE as JUNC_LANE, drawCar, drawLight, drawScene } from "@/lib/arcade/junction.renderer";
-import { RICO_BALL, RICO_BALL_R, RICO_SPIKE, RICO_SPIKE_DEPTH, RICO_SPIKE_H, RICO_WALL, RICO_WALL_THICK } from "@/lib/arcade/ricochet";
+import { drawCoin as drawNinjaCoin, drawKatana, drawLantern, drawNinja, drawShuriken } from "@/lib/arcade/ricochetNinja.renderer";
 import { ROOF_GOLD, ROOF_LANES, ROOF_LOW, ROOF_WALL, drawRoofObstacle, drawRoofRunner, project as roofProject } from "@/lib/arcade/rooftop";
 import { STD_DOT, STD_DOT_R, STD_GOLD } from "@/lib/arcade/steady";
 import { SWERVE_LANE_X, swerveGame, type SwerveState } from "@/lib/arcade/swerve";
@@ -338,35 +338,42 @@ export const ARCADE2_SCENES: SceneSet = {
       drawRubberBall(c, 80, 398, 14, 0.6);
     });
   }),
-  /* ---------------- Retired arcade games (practice only) ---------------- */
-
-  // Ricochet: the gold ball leaping across the shaft between its two walls, red spikes jutting from them.
+  // Ricochet (ricoRev 2): the ninja mid-leap between two temple walls, a katana in the left wall, a shuriken
+  // spinning across the gap, a coin on the arc and a gold lantern on the right wall (the game's own painters).
   ricochet: canvasScene((c) => {
-    const left = RICO_WALL_THICK + 2;
-    const right = 104 - RICO_WALL_THICK - 2;
-    c.fillStyle = RICO_WALL;
-    c.fillRect(left - RICO_WALL_THICK, 0, RICO_WALL_THICK, 104);
-    c.fillRect(right, 0, RICO_WALL_THICK, 104);
-    const spike = (wall: number, top: number) => {
-      const inner = wall === 0 ? left : right;
-      const tip = wall === 0 ? inner + RICO_SPIKE_DEPTH : inner - RICO_SPIKE_DEPTH;
-      c.fillStyle = RICO_SPIKE;
-      c.beginPath();
-      c.moveTo(inner, top);
-      c.lineTo(tip, top + RICO_SPIKE_H / 2);
-      c.lineTo(inner, top + RICO_SPIKE_H);
-      c.closePath();
-      c.fill();
+    const stone = (x0: number, w: number) => {
+      c.fillStyle = "#14151D";
+      c.fillRect(x0, 0, w, 104);
+      for (let r = 0; r < 8; r++)
+        for (let bx = x0 - (r % 2 ? 9 : 0); bx < x0 + w; bx += 18) {
+          c.fillStyle = (r * 3 + bx) % 5 === 0 ? "#363746" : "#2B2C38";
+          const a = Math.max(x0, bx + 1);
+          const b = Math.min(x0 + w, bx + 17);
+          if (b > a) c.fillRect(a, r * 13 + 1, b - a, 11);
+        }
     };
-    spike(0, 14);
-    spike(1, 44);
-    spike(0, 74);
-    spike(1, 88);
-    c.fillStyle = RICO_BALL;
-    c.beginPath();
-    c.arc(56, 56, RICO_BALL_R + 1, 0, Math.PI * 2);
-    c.fill();
+    stone(0, 22);
+    stone(82, 22);
+    c.save();
+    c.translate(22 - 70 * 0.62, 0);
+    c.scale(0.62, 0.62);
+    drawKatana(c as CanvasRenderingContext2D, 0, 150, 0, 3);
+    c.restore();
+    drawShuriken(c as CanvasRenderingContext2D, 44, 30, 4);
+    drawNinjaCoin(c as CanvasRenderingContext2D, 64, 50, 0);
+    c.save();
+    c.translate(82 - 9, 74);
+    c.scale(0.8, 0.8);
+    drawLantern(c as CanvasRenderingContext2D, 0, 0, 0);
+    c.restore();
+    c.save();
+    c.translate(50, 56);
+    c.scale(1.36, 1.36);
+    drawNinja(c as CanvasRenderingContext2D, 0, 0, 1, 1, 6);
+    c.restore();
   }),
+
+  /* ---------------- Retired arcade games (practice only) ---------------- */
 
   // Swerve: the gold chevron in its lane, steering for the gap and the coin between the teal blocks (the game's own draw, three lanes in view).
   swerve: canvasScene((c) => {

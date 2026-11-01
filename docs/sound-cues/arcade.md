@@ -43,6 +43,12 @@ when the run starts. Rooms deal Pinball since 14 Oct 2026; Junction is practice 
 | `cross.hop` | Jaywalk | The walker hops a lane or moves sideways (at most one per 90 ms) | `arc_honk` (0.6); own footstep file `cross.hop.mp3` | 50–150 | 380 ms |
 | `flip.crash` | Roofbound | The run ends in a crash | `arc_crash` | 0–1 | 200 ms |
 | `flip.flip` | Roofbound | Gravity flips | `arc_gravity_flip` (0.7) | 20–60 | 330 ms |
+| `ricochet.leap` | Ricochet | The ninja leaps off a wall (ricoRev 2) | `arc_gravity_flip` (0.5) | 80–140 | 330 ms |
+| `ricochet.doubleJump` | Ricochet | The double jump in the air (ricoRev 2) | `arc_gravity_flip` (0.6, ×1.25) | 10–60 | 330 ms |
+| `ricochet.hit` | Ricochet | A katana or shuriken knocks the ninja down (ricoRev 2) | `arc_crash` | 0–20 | 200 ms |
+| `ricochet.coin` | Ricochet | A coin taken (ricoRev 2) | `arc_pickup` (0.8) | 5–60 | 100 ms |
+| `ricochet.lantern` | Ricochet | A gold lantern taken (ricoRev 2) | `combo` (0.85) | 0–10 | 120 ms |
+| `ricochet.scroll` | Ricochet | A scroll taken (ricoRev 2) | `correct` (0.9) | 0–4 | 120 ms |
 | `hover.start` | Hover | The run starts | `arc_retro_coin` | 1 | 120 ms |
 | `hover.crash` | Hover | The craft crashes | `arc_retro_explode` | 0–1 | 260 ms |
 | `hover.gate` | Hover | A barrier is passed | `arc_retro_note` | 20–60 | 90 ms |

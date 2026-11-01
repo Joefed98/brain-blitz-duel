@@ -1915,8 +1915,10 @@ export interface DualPuzzleData {
 
 export interface RicoPuzzleData {
   type: "ricochet";
-  /** Lays out the whole shaft of spikes — identical for everyone. */
+  /** Lays out the whole shaft of spikes (or, on ricoRev 2, the whole tower) — identical for everyone. */
   seed: number;
+  /** Rules revision (2 = the ninja wall-climb on the arcade standard, 1 Nov 2026; ricochetNinja.ts); absent = the original ball-and-spikes shaft. */
+  ricoRev?: number;
 }
 
 /* =================== Breaker / Rally / Steady ============================ */

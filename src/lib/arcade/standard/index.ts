@@ -21,6 +21,7 @@ import * as freecell from "./freecell";
 import * as tripeaks from "./tripeaks";
 import * as pokersquares from "./pokersquares";
 import * as fivehands from "./fivehands";
+import * as ricochet from "./ricochet";
 import * as minigolf from "./minigolf";
 import * as pool from "./pool";
 import * as curling from "./curling";
@@ -47,6 +48,7 @@ export const ARCADE_STANDARD: Readonly<Record<string, ArcadeStdEntry>> = {
   tripeaks,
   pokersquares,
   fivehands,
+  ricochet,
   minigolf,
   pool,
   curling,

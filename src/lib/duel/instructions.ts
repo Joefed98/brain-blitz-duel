@@ -1259,13 +1259,16 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
     },
 
     ricochet: {
-      goal: "Climb the shaft by leaping wall to wall.",
+      goal: "Climb the temple as high as you can in a minute.",
       how: [
-        { action: "Tap to jump across", detail: "to the opposite wall." },
-        { action: "Don't land on the spikes", detail: "or the run ends." },
-        { action: "Don't slide", detail: "all the way back to the bottom." },
+        { action: "Tap", detail: "to leap to the other wall." },
+        { action: "Tap again in the air", detail: "for one double jump: extra lift and a short hang, to clear a blade or reach a lantern." },
+        { action: "Clinging slides you down;", detail: "moss slides fast, ice gives no grip: leap off at once." },
+        { action: "Katanas and shurikens", detail: "knock you down a few metres and stun you for a second. No game over.", helpOnly: true },
+        { action: "Coins", detail: "sit along good arcs; gold lanterns on the walls (some slide); scrolls at the top of double-jump lines.", helpOnly: true },
+        { action: "Everyone in a room", detail: "climbs the same tower.", helpOnly: true },
       ],
-      score: "2 points per metre climbed, up to {max}.",
+      score: liveStdHelp("ricochet", "Four parts, which total 200:"),
     },
     wordfall: {
       goal: "Make words to clear the falling letters.",

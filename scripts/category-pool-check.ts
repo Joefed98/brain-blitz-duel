@@ -57,6 +57,8 @@ expect("snip", "arcade", true);
 // Full House retired to practice (Joe's decision, 1 Nov 2026): out of room draws and the Cards & Board presets;
 // practice bests and stored replays stay.
 expect("pokersquares", "arcade", true);
+// Ricochet back from retirement as the ninja wall-climb (ricoRev 2, 1 Nov 2026), in the Action group.
+expect("ricochet", "arcade", false);
 
 // The active pool per category (27 Oct 2026, after Scrumper's retirement, with Trail in Logic): 72 games.
 // Arcade's count reads the arcade worlds' active list (ACTIVE_ARCADE_GAMES), not a number: the arcade groups' sessions
@@ -70,9 +72,10 @@ for (const [category, want] of Object.entries(POOL)) {
 if (ACTIVE_ARCADE_GAMES.length < 21) fail(`${ACTIVE_ARCADE_GAMES.length} active arcade worlds, at least the 21 dealt before the new groups`);
 const WANT_ACTIVE = Object.values(POOL).reduce((a, n) => a + n, 0);
 if (ACTIVE_PUZZLE_TYPES.length !== WANT_ACTIVE) fail(`${ACTIVE_PUZZLE_TYPES.length} active games, want ${WANT_ACTIVE}`);
-// After Full House's retirement (1 Nov 2026): 83 active games, 32 of them arcade.
-if (ACTIVE_ARCADE_GAMES.length !== 32) fail(`${ACTIVE_ARCADE_GAMES.length} active arcade games, want 32 (Full House practice only since 1 Nov 2026)`);
-if (ACTIVE_PUZZLE_TYPES.length !== 83) fail(`${ACTIVE_PUZZLE_TYPES.length} active games, want 83`);
+// After Full House's retirement (1 Nov 2026): 83 active games, 32 of them arcade; then Ricochet back as the ninja
+// wall-climb (ricoRev 2, 1 Nov 2026): 84 active games, 33 of them arcade.
+if (ACTIVE_ARCADE_GAMES.length !== 33) fail(`${ACTIVE_ARCADE_GAMES.length} active arcade games, want 33 (Full House practice only, Ricochet active again since 1 Nov 2026)`);
+if (ACTIVE_PUZZLE_TYPES.length !== 84) fail(`${ACTIVE_PUZZLE_TYPES.length} active games, want 84`);
 
 // The deleted games and Memory are gone: no registry entry, no category, no draw.
 for (const type of REMOVED_PUZZLE_TYPES)

@@ -20,6 +20,7 @@ import { bandLines } from "./scoreBands";
 import { stdLines } from "./arcadeStandard";
 import { psCoreFullFor } from "./cards/pokerSquares";
 import { FH_CORE_FULL } from "./cards/fiveHands";
+import { NINJA_COINS, NINJA_CORE_FULL_M, NINJA_LANTERNS, NINJA_SCROLLS } from "./ricochetNinja";
 import { arcadeStdParts } from "./standard";
 
 export interface ArcadeRevealTile {
@@ -165,6 +166,18 @@ const BUILDERS: Record<string, Builder> = {
       outcome: n(r, "placed") === 25 ? "finish" : "time",
     };
   },
+  ricochet: (r, s) => ({
+    axis: { value: n(r, "metres"), max: NINJA_CORE_FULL_M, label: "Metres climbed" },
+    lines: [`${n(r, "metres")} m climbed (full at ${NINJA_CORE_FULL_M}) · ${n(r, "coins")} coins · ${n(r, "lanterns")} lanterns · ${n(r, "scrolls")} scrolls → ${s}`],
+    tiles: [
+      { label: "Height", value: `${n(r, "metres")} m` },
+      { label: "Coins", value: `${n(r, "coins")} / ${NINJA_COINS}` },
+      { label: "Lanterns", value: `${n(r, "lanterns")} / ${NINJA_LANTERNS}` },
+      { label: "Scrolls", value: `${n(r, "scrolls")} / ${NINJA_SCROLLS}` },
+      { label: "Hits", value: String(n(r, "hits")) },
+    ],
+    outcome: "time",
+  }),
   fivehands: (r, s) => ({
     axis: { value: n(r, "total"), max: FH_CORE_FULL, label: "Hand points" },
     lines: [`${n(r, "total")} hand points (full at ${FH_CORE_FULL}) → ${s}`],

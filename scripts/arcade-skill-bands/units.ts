@@ -4,6 +4,7 @@ import type { BandParts } from "../../src/lib/arcade/scoreBands";
 import { btBandParts } from "../../src/lib/arcade/ballTrack";
 import { wavefrontBandParts } from "../../src/lib/arcade/wavefront";
 import { flipBandParts } from "../../src/lib/arcade/flip";
+import { ninjaBandParts } from "../../src/lib/arcade/ricochetNinja";
 import { inkBridgeBandParts } from "../../src/lib/arcade/inkBridge";
 import { matchupBandParts } from "../../src/lib/arcade/matchup";
 import { bubbleBandParts } from "../../src/lib/arcade/bubble";
@@ -73,6 +74,7 @@ export const BAND_PARTS: Record<string, (s: any) => BandParts> = {
   tripeaks: tripeaksBandParts,
   pokersquares: pokerSquaresBandParts,
   fivehands: fiveHandsBandParts,
+  ricochet: ninjaBandParts,
   // The Sports group (30 Oct 2026): units are the core's measure (holes holed, spots potted, stones on the button).
   minigolf: (s: any) => {
     const parts = minigolfStdParts(s) ?? [];

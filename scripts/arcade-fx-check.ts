@@ -16,6 +16,8 @@
  *
  *   bun scripts/arcade-fx-check.ts
  */
+import { ninjaArtGame } from "../src/lib/arcade/ricochetNinja.renderer";
+import { NINJA_CORE_FULL_M, NINJA_START } from "../src/lib/arcade/ricochetNinja";
 import { minesweeperArtGameFor } from "../src/lib/arcade/minesweeper.renderer";
 import { mahjongArtGameFor } from "../src/lib/arcade/mahjong.renderer";
 import { MINES_REV_STD, MINES_SAFE } from "../src/lib/arcade/minesweeper";
@@ -179,6 +181,8 @@ const GAMES: Record<string, AnyGame> = {
   tripeaks: tripeaksArt as AnyGame,
   pokersquares: pokerSquaresArt as AnyGame,
   fivehands: fiveHandsArt as AnyGame,
+  // Ricochet (ricoRev 2, the ninja wall-climb, 1 Nov 2026).
+  ricochet: ninjaArtGame as AnyGame,
   // The Sports group (30 Oct 2026): each sim with its own art drawn through its success layer, on a bank deal.
   minigolf: { ...minigolfGameFor(MINIGOLF_BANK[0]!.pars), init: () => minigolfGameFor(MINIGOLF_BANK[0]!.pars).init(MINIGOLF_BANK[0]!.seed), draw: withArcadeFx(MINIGOLF_FX, (c, st) => drawMinigolf(c, st, null)) } as AnyGame,
   pool: { ...poolGameFor(1), init: () => poolGameFor(1).init(POOL_BANK[0]!), draw: withArcadeFx(POOL_FX, (c, st) => drawPool(c, st, null)) } as AnyGame,
@@ -554,6 +558,15 @@ const BUMPS: Record<string, ((s: any) => any)[]> = {
     (s) => ({ ...s, rows: [[1, 14], ...s.rows.slice(1)], lastRow: 0 }),
     // Five rows of four of a kind (75 hand points): the core's full figure reached.
     (s) => ({ ...s, rows: Array.from({ length: 5 }, (_, r) => [r, 13 + r, 26 + r, 39 + r, 5 + r]) }),
+  ],
+  ricochet: [
+    (s) => ({ ...s, coins: s.coins + 1, pickTick: s.tick + 1 }),
+    (s) => ({ ...s, lanterns: s.lanterns + 1, pickTick: s.tick + 1 }),
+    (s) => ({ ...s, scrolls: s.scrolls + 1, pickTick: s.tick + 1 }),
+    // 50 m climbed.
+    (s) => ({ ...s, best: NINJA_START + 50 * 40 * 256 }),
+    // The core's full height.
+    (s) => ({ ...s, best: NINJA_START + NINJA_CORE_FULL_M * 40 * 256 }),
   ],
 };
 for (const [name, game] of Object.entries(GAMES)) {

@@ -260,6 +260,8 @@ export const ARCADE_FX_TEXT_COLOURS: Record<string, { fill: string; outline: str
   minigolf: { fill: "#F4F1E4", outline: "#0E1A10" },
   pool: { fill: "#FFE7A8", outline: "#0B1A12" },
   curling: { fill: "#FFD45C", outline: "#0A1220" },
+  // Ricochet (the ninja wall-climb): lantern gold on the night sky.
+  ricochet: { fill: "#FFD86B", outline: "#070A18" },
 };
 
 /**

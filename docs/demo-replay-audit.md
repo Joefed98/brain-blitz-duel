@@ -185,6 +185,8 @@ first; within them, "stopped" ones are certain, the rest depend on the query abo
 6. Mixed Signals (stopped: tall `clashRev`)
 7. Ball Tracker, Breaker, Coral Pop, Fission, Grappler, Orbit, Rally, Slice, Tempo, Wavefront
    (stopped: their tall revisions)
+8. Ricochet (1 Nov 2026: the ninja wall-climb, `ricoRev` 2; no demo recorded yet, the intro shows its still, a frame
+   of seed 0's witness climb drawn by the game's own renderer). Record one on `ricoRev` 2 later.
 
 ## Arcade reveal line
 

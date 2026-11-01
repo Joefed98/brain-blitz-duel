@@ -48,6 +48,7 @@ import { fcHomeCount, type FcState } from "@/lib/arcade/cards/freecell";
 import type { TpState } from "@/lib/arcade/cards/tripeaks";
 import { PS_LINES, psHand, psLineHand, psTotals, type PsState } from "@/lib/arcade/cards/pokerSquares";
 import { fhTotals, type FhState } from "@/lib/arcade/cards/fiveHands";
+import { MODE_CLING, MODE_FLIGHT, ninjaSurface, SURF_STONE, type NinjaState } from "@/lib/arcade/ricochetNinja";
 
 /** Sounds a success-effect cue with a file stands in for on this frame (momentCues.ts). */
 let quiet: ReadonlySet<string> = new Set();
@@ -1445,5 +1446,35 @@ export function fiveHandsSounds(): GameSounds<FhState> {
     stop() {
       prev = null;
     },
+  };
+}
+
+/**
+ * Ricochet (ricoRev 2, the ninja wall-climb): a leap, the double jump, a landing (on moss or ice, a slip), a coin,
+ * a lantern, a scroll and a hit (with the impact haptic). New moments without a file of their own stay silent.
+ */
+export function ninjaSounds(): GameSounds<NinjaState> {
+  let prev: NinjaState | null = null;
+  return {
+    frame(state, running) {
+      beginFrame("ricochet", state);
+      void running;
+      if (prev && state.tick > prev.tick) {
+        if (state.hits > prev.hits) { sfx("ricochet.hit", "arc_crash"); feel("impact"); }
+        else {
+          if (state.leaps > prev.leaps) sfx("ricochet.leap", "arc_gravity_flip", 0.5);
+          if (state.djs > prev.djs) sfx("ricochet.doubleJump", "arc_gravity_flip", 0.6, 1.25);
+          if (prev.mode === MODE_FLIGHT && state.mode === MODE_CLING) {
+            if (ninjaSurface(state.tower.patches, state.wall, state.y >> 8) !== SURF_STONE) effectCue("ricochet.slip");
+            else effectCue("ricochet.land");
+          }
+        }
+        if (state.scrolls > prev.scrolls) sfx("ricochet.scroll", "correct", 0.9);
+        else if (state.lanterns > prev.lanterns) sfx("ricochet.lantern", "combo", 0.85);
+        else if (state.coins > prev.coins) sfx("ricochet.coin", "arc_pickup", 0.8);
+      }
+      prev = state;
+    },
+    stop: () => {},
   };
 }

@@ -126,7 +126,8 @@ export const ROUND_MAX: Readonly<Record<PuzzleType, number>> = {
   dig: 150,
   dual: 150,
   hotfloor: 150,
-  ricochet: 150,
+  // ricoRev 2 (1 Nov 2026): the ninja wall-climb on the arcade scoring standard.
+  ricochet: 200,
   rooftop: 150,
   steady: 150,
   swerve: 150,

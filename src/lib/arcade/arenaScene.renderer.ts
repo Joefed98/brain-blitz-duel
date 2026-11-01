@@ -90,6 +90,8 @@ export const ARENA_SCENE_GAMES = [
   "tripeaks",
   "pokersquares",
   "fivehands",
+  // Ricochet (ricoRev 2, 1 Nov 2026): the temple wall's stone runs on below and beside the world.
+  "ricochet",
 ] as const;
 
 /**
