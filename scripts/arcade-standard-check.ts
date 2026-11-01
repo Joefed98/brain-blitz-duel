@@ -77,8 +77,9 @@ const STANDARD_ROSTER: readonly { type: string; field: string; rev: number; batc
   // The Sports group (30 Oct 2026): on the standard from their first stamp.
   { type: "minigolf", field: "golfRev", rev: 2, batch: "Sports" }, // golfRev 2 (crazy golf, 31 Oct 2026); golfRev 1 was on the standard too
   { type: "pool", field: "poolRev", rev: 2, batch: "Sports" },
-  // Curling deals curlRev 2 since 31 Oct 2026 (the start along the hog line, side brushing; the same parts).
-  { type: "curling", field: "curlRev", rev: 2, batch: "Sports" },
+  // Curling deals curlRev 2 since 31 Oct 2026 (the start along the hog line, side brushing; the same parts) and
+  // curlRev 3 since 1 Nov 2026 (the weight meter's draw zone, the aim line, a gentler weight line, the core re-fitted).
+  { type: "curling", field: "curlRev", rev: 3, batch: "Sports" },
 ];
 
 const only = process.argv.slice(2).filter((a) => !a.startsWith("--"));

@@ -12,6 +12,9 @@
  * first and, where that leaves fewer than `branch` button throws, starts either side of it (STARTS_V2). Brushing is
  * never needed for a plan (with no brush stroke curlRev 2 slides exactly as curlRev 1 does).
  *
+ * curlRev 3 (1 Nov 2026): the same search on curlRev 3's gentler weight line (`rev` on simThrow and searchThrows; the
+ * weight band and steps are scaled so the speeds searched match curlRev 2's, WEIGHTS_FOR).
+ *
  * Used by scripts/curling-bank.ts, the skill-band bot and the checks.
  */
 import type { ArcadeInputEvent } from "../src/lib/arcade/engine";
@@ -60,9 +63,15 @@ export function sheetOf(s: CurlingState): Sheet {
   return { x: s.x.slice(), y: s.y.slice(), team: s.team.slice(), live: s.live.slice() };
 }
 
+/** The weight band a search sweeps by default, its coarse step and the refine half-window, per revision. */
+export function weightsFor(rev: number): { band: [number, number]; step: number; refine: number } {
+  // curlRev 3: 1…1000 spans 5.5 cm a tick (curlRev 1 and 2: 9), so the same speeds take 9 ÷ 5.5 as many weights.
+  return rev >= 3 ? { band: [250, 890], step: 13, refine: 13 } : { band: [270, 650], step: 8, refine: 8 };
+}
+
 /** Slides one throw from the near hog line to rest (no sweeping), exactly as the sim does. */
-export function simThrow(sheet: Sheet, t: Throw, sweepAt?: (tick: number, s: Sheet & { vx: number[]; vy: number[] }) => number): Sheet & { active: number; ticks: number; hits: number } {
-  const v = curlRelease(t.bx, t.by, t.weight, t.sx ?? 0);
+export function simThrow(sheet: Sheet, t: Throw, sweepAt?: (tick: number, s: Sheet & { vx: number[]; vy: number[] }) => number, rev = 1): Sheet & { active: number; ticks: number; hits: number } {
+  const v = curlRelease(t.bx, t.by, t.weight, t.sx ?? 0, rev);
   const s = {
     x: [...sheet.x, (t.sx ?? 0) * CU],
     y: [...sheet.y, HOG_NEAR * CU],
@@ -101,8 +110,8 @@ export interface Candidate {
   after: Sheet;
 }
 
-function judge(sheet: Sheet, t: Throw): Candidate {
-  const r = simThrow(sheet, t);
+function judge(sheet: Sheet, t: Throw, rev = 1): Candidate {
+  const r = simThrow(sheet, t, undefined, rev);
   const i = r.active;
   const d = r.live[i] ? curlDist(r.x[i]!, r.y[i]!) / CU : Infinity;
   return { t, d, theirs: theirsIn(r), after: { x: r.x, y: r.y, team: r.team, live: r.live } };
@@ -114,25 +123,27 @@ const cost = (c: Candidate) => (Number.isFinite(c.d) ? c.d : 400) + 60 * c.their
  * Throws from a sheet, best first: a coarse sweep (broom x every 3 cm, both turns, weight every 8), then the best
  * `refine` refined to 1 cm and 1 weight unit. `weights` bounds the sweep (the draw-to-takeout band by default).
  */
-export function searchThrows(sheet: Sheet, opts: { refine?: number; weights?: [number, number]; xs?: [number, number]; xStep?: number; wStep?: number; sx?: number } = {}): Candidate[] {
-  const [w0, w1] = opts.weights ?? [270, 650];
+export function searchThrows(sheet: Sheet, opts: { refine?: number; weights?: [number, number]; xs?: [number, number]; xStep?: number; wStep?: number; sx?: number; rev?: number } = {}): Candidate[] {
+  const rev = opts.rev ?? 1;
+  const wf = weightsFor(rev);
+  const [w0, w1] = opts.weights ?? wf.band;
   const [x0, x1] = opts.xs ?? [-132, 132];
   // A throw from the centre line keeps curlRev 1's shape ({bx, by, weight, turn}); another start carries sx.
   const sxs = opts.sx ? { sx: opts.sx } : {};
   const coarse: Candidate[] = [];
   for (let turn = 0; turn < 2; turn++)
     for (let bx = x0; bx <= x1; bx += opts.xStep ?? 3)
-      for (let w = w0; w <= w1; w += opts.wStep ?? 8) coarse.push(judge(sheet, { bx, by: 0, weight: w, turn, ...sxs }));
+      for (let w = w0; w <= w1; w += opts.wStep ?? wf.step) coarse.push(judge(sheet, { bx, by: 0, weight: w, turn, ...sxs }, rev));
   coarse.sort((a, b) => cost(a) - cost(b));
   const out: Candidate[] = [];
   const seen = new Set<string>();
   for (const c of coarse.slice(0, opts.refine ?? 30)) {
     for (let bx = c.t.bx - 5; bx <= c.t.bx + 5; bx++)
-      for (let w = c.t.weight - 8; w <= c.t.weight + 8; w++) {
+      for (let w = c.t.weight - wf.refine; w <= c.t.weight + wf.refine; w++) {
         const key = `${c.t.turn}:${bx}:${w}`;
         if (seen.has(key)) continue;
         seen.add(key);
-        out.push(judge(sheet, { bx, by: 0, weight: w, turn: c.t.turn, ...sxs }));
+        out.push(judge(sheet, { bx, by: 0, weight: w, turn: c.t.turn, ...sxs }, rev));
       }
   }
   out.push(...coarse);
@@ -156,11 +167,11 @@ export function perfectPlan(seed: number, branch = 3, budget = 40, rev = 1): Thr
     const left = CURLING_STONES - k;
     // A later throw can still clear what is left only if there are throws for it.
     const usableOf = (list: Candidate[]) => list.filter(onButton).filter((c) => c.theirs <= left - 1 || c.theirs === 0);
-    const usable = usableOf(searchThrows(sheet));
+    const usable = usableOf(searchThrows(sheet, { rev }));
     usable.sort((a, b) => a.theirs - b.theirs || a.d - b.d);
     if (rev >= 2 && new Set(usable.map((c) => `${c.theirs}:${Math.round(c.d)}:${c.t.turn}`)).size < branch) {
       // curlRev 2: too few from the centre line; slide the stone along the hog line and look again.
-      const more = STARTS_V2.flatMap((sx) => usableOf(searchThrows(sheet, { sx, refine: 15, xStep: 4, wStep: 10 })));
+      const more = STARTS_V2.flatMap((sx) => usableOf(searchThrows(sheet, { sx, refine: 15, xStep: 4, wStep: rev >= 3 ? 16 : 10, rev })));
       more.sort((a, b) => a.theirs - b.theirs || a.d - b.d);
       usable.push(...more);
     }

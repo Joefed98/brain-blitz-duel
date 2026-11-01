@@ -11,9 +11,13 @@
  * (scripts/fixtures/curling-witness-v2.json): the oracle may also slide the stone along the near hog line (each
  * witness throw is [start x, broom x, broom y, weight, turn]), and every plan scores 200 through replayCurlingRun(…, 2).
  *
- *   bun scripts/curling-bank.ts [--rev=2] [--jobs=4] [--want=…] [--candidates=…] [--cache=<file>]   build (children
+ * curlRev 3 (1 Nov 2026) has its own bank (src/lib/duel/curlingBankV3.server.ts) and proofs
+ * (scripts/fixtures/curling-witness-v3.json), the same five-figure throws on curlRev 3's weight line, every plan scoring
+ * 200 through replayCurlingRun(…, 3).
+ *
+ *   bun scripts/curling-bank.ts [--rev=2|3] [--jobs=4] [--want=…] [--candidates=…] [--cache=<file>]   build (children
  *                                                         search in parallel; --cache makes it resumable)
- *   bun scripts/curling-bank.ts --check                   both revisions: every stored witness scores 200 and each
+ *   bun scripts/curling-bank.ts --check                   every revision: every stored witness scores 200 and each
  *                                                         bank file is exactly the text its witnesses build
  */
 import { appendFileSync, existsSync, readFileSync, writeFileSync } from "node:fs";
@@ -27,15 +31,17 @@ const opt = (name: string) => args.find((a) => a.startsWith(`--${name}=`))?.slic
 const REV = Number(opt("rev") ?? 1);
 const WANT = Number(opt("want") ?? (REV >= 2 ? 80 : 60));
 const JOBS = Number(opt("jobs") ?? 2);
-const CANDIDATE_COUNT = Number(opt("candidates") ?? (REV >= 2 ? 120 : 110));
+const CANDIDATE_COUNT = Number(opt("candidates") ?? (REV >= 3 ? 85 : REV >= 2 ? 120 : 110));
 /** `--cache=<file>`: each searched seed is appended there as it is proved or dropped, and a rerun skips the seeds in it (resumable; the result is the same). */
 const CACHE = opt("cache");
 const FILES = {
   1: { bank: new URL("../src/lib/duel/curlingBank.server.ts", import.meta.url), witness: new URL("./fixtures/curling-witness.json", import.meta.url) },
   2: { bank: new URL("../src/lib/duel/curlingBankV2.server.ts", import.meta.url), witness: new URL("./fixtures/curling-witness-v2.json", import.meta.url) },
+  3: { bank: new URL("../src/lib/duel/curlingBankV3.server.ts", import.meta.url), witness: new URL("./fixtures/curling-witness-v3.json", import.meta.url) },
 } as const;
-const BANK = FILES[REV >= 2 ? 2 : 1].bank;
-const WITNESS = FILES[REV >= 2 ? 2 : 1].witness;
+const fileRev = (rev: number): 1 | 2 | 3 => (rev >= 3 ? 3 : rev >= 2 ? 2 : 1);
+const BANK = FILES[fileRev(REV)].bank;
+const WITNESS = FILES[fileRev(REV)].witness;
 
 /** A spread of 31-bit seeds (fixed, so the bank rebuilds the same). */
 function candidate(n: number): number {
@@ -94,6 +100,25 @@ function proveOne(seed: number): Witness | WitnessV2 | null {
 
 /** A bank file's text from its kept witnesses (and the candidates searched). */
 function bankText(rev: number, kept: readonly { seed: number }[], candidates: number): string {
+  if (rev >= 3)
+    return `/**
+ * Curling curlRev 3's bank: ${kept.length} seeds whose opponent stones the oracle (scripts/curling-oracle.ts, on curlRev 3's
+ * gentler weight line, sliding the stone along the near hog line where the centre line was not enough) played out of
+ * the house with every one of eight stones coming to rest on the button, scoring 200 through the server's replay on
+ * curlRev 3 (of ${candidates} candidates). Built by \`bun scripts/curling-bank.ts --rev=3\`; \`--check\` and curling-check
+ * replay the proofs (scripts/fixtures/curling-witness-v3.json). Server-only.
+ */
+export const CURLING_BANK_V3: readonly number[] = [${kept.map((w) => w.seed).join(",")}];
+
+/**
+ * The skill-band tool's seed index n → a curlRev 3 bank seed: the tuning seeds (0–29) are the bank's first 30; the
+ * fresh seeds (10000 on) start at its 31st, so the two sets never share a seed.
+ */
+export function curlingBankV3SeedFor(n: number): number {
+  const len = CURLING_BANK_V3.length;
+  return n < 10000 ? CURLING_BANK_V3[n % len]! : CURLING_BANK_V3[30 + ((n - 10000) % (len - 30))]!;
+}
+`;
   if (rev >= 2)
     return `/**
  * Curling curlRev 2's bank: ${kept.length} seeds whose opponent stones the oracle (scripts/curling-oracle.ts, sliding the
@@ -148,8 +173,8 @@ if (!import.meta.main) {
   }
 } else if (args.includes("--check")) {
   let failed = false;
-  for (const rev of opt("rev") ? [REV] : [1, 2]) {
-    const files = FILES[rev >= 2 ? 2 : 1];
+  for (const rev of opt("rev") ? [REV] : [1, 2, 3]) {
+    const files = FILES[fileRev(rev)];
     const all = JSON.parse(readFileSync(files.witness, "utf8")) as (Witness | WitnessV2)[];
     const bad = all.filter((w) => witnessScore(w, rev) !== 200);
     const text = readFileSync(files.bank, "utf8");
