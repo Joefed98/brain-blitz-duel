@@ -15,7 +15,7 @@ import {
   type RacingState,
 } from "@/lib/arcade/racing";
 import {
-  drawRacingPlay,
+  drawRacingPlay, setRacingLargeScreen,
   paintRacingTile,
   racingAmbient,
   racingScene,
@@ -33,6 +33,7 @@ import { racingSounds } from "@/lib/fx/racingSounds";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 import { canvasRatio } from "@/lib/battery";
+import { useDesktopPresentation } from "@/lib/desktopPresentation";
 
 const STILL = 200;
 
@@ -79,6 +80,12 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const data: RacingPuzzleData | null = puzzle.type === "racing" ? puzzle : null;
   // The play screen draws the world and the view beyond it on the screen's fill (racingAmbient).
   const game = useMemo(() => ({ ...racingGameFor(data?.racingRev), draw: drawRacingPlay }), [data?.racingRev]);
+  // The computer layout (1 Nov 2026, display only): the renderer's large-screen path while this screen is on it.
+  const largeScreen = useDesktopPresentation().mode !== null;
+  useEffect(() => {
+    setRacingLargeScreen(largeScreen);
+    return () => setRacingLargeScreen(false);
+  }, [largeScreen]);
   const v2 = (data?.racingRev ?? 1) >= RACING_REV_2;
   const reach = racingSteerThrow(data?.racingRev);
   const steer = (d: number) => (v2 ? steerValueV2(d, reach) : stickValue(d));

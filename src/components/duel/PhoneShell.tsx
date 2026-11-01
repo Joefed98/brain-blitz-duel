@@ -454,7 +454,8 @@ export function PhoneShell({ children, bare = false, constrained = false, gameSc
       data-layout={wider ? layout : undefined}
       data-desktop-mode={presentation.mode ?? undefined}
       data-room-panel={panel ? "" : undefined}
-      style={gameScreen ? NO_SELECT_STYLE : undefined}
+      data-desktop-cap={desktop && gameScreen && modeInfo?.maxWorldWidth ? "" : undefined}
+      style={gameScreen ? (desktop && modeInfo?.maxWorldWidth ? { ...NO_SELECT_STYLE, ["--dk-world-max" as string]: `${modeInfo.maxWorldWidth}px` } : NO_SELECT_STYLE) : undefined}
     >
       {desktop ? <AppRail current={tabPage ? tabs : undefined} compact={!tabPage} /> : null}
       <div aria-hidden="true" className="screen-background"><div className="screen-drift" /></div>

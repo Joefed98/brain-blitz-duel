@@ -89,15 +89,9 @@ export function ArcadeArenaSlot({ width, height, centre = false, playCentre = fa
     let raf = 0;
     let last = -Infinity;
     let still = false;
-    // The scenery beyond the world is decorative (and, on the computer layout, faded at its edges): a layer
-    // larger than AMBIENT_AREA CSS px² is painted at a lower pixel ratio so its backing store stays a phone's
-    // size (31 Oct 2026; a 1920×1080 scene repainted with the camera cost Apex its 60 fps). Every phone is
-    // under AMBIENT_AREA, so its scene and fill are exactly as before; the world's own canvas is never touched.
-    const ratioNow = () => {
-      const r = host.getBoundingClientRect();
-      const area = r.width * r.height;
-      return area > AMBIENT_AREA ? canvasRatio() * Math.sqrt(AMBIENT_AREA / area) : canvasRatio();
-    };
+    // Every scenery layer at the screen's own pixel ratio (1 Nov 2026: drawing a large one at a lower ratio for the
+    // compositor to scale up cost a desktop frame more than its pixels saved).
+    const ratioNow = canvasRatio;
     const paint = () => {
       const draw = painter.current;
       const world = box.querySelector<HTMLElement>(":scope > [data-game-arena], :scope > [data-arena-rotor] > [data-game-arena]");

@@ -463,6 +463,19 @@
     --dk-edge-r: var(--dk-panel);
   }
 
+  /* A game whose desktop world is capped (desktopModes.ts maxWorldWidth, Apex): its arena slot no wider, centred. */
+  [data-layout="desktop"][data-desktop-cap] [data-arena-slot] {
+    max-width: var(--dk-world-max);
+    margin-inline: auto;
+  }
+  /* Centred down its column too, its backdrop above and below. */
+  [data-layout="desktop"][data-desktop-cap] [data-arena-slot] > [data-game-arena] {
+    margin-block: auto;
+  }
+  [data-layout="desktop"][data-desktop-cap] [data-arena-slot]::after {
+    flex: 0 0 0;
+  }
+
   /* The rotor (rotate mode): the world's own box, W·s × H·s on whole pixels, turned 90° clockwise about
      its top-left corner and moved so its turned footprint (H·s × W·s) is centred in the slot. */
   [data-arena-slot][data-arena-rotate] {

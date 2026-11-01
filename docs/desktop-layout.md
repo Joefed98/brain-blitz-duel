@@ -70,6 +70,17 @@ window with a mouse gets the desktop layout (its narrowest size). PhoneShell mar
   `fillText` on the turned table; desktop-layout-check fails on any DOM text inside a rotor). The rotor is
   capped at 1,000 px across so its canvas holds 60 fps. (`arenaDelta` and `rotatedKey` stay as tested
   helpers; no game uses them today.)
+- **Apex on desktop** (1 Nov 2026): its world is capped at **340 × 634** (`APEX_DESKTOP_WORLD_W`,
+  `maxWorldWidth` in `desktopModes.ts`; the arena slot no wider, the world centred down its column) with its own
+  static backdrop (sky, grass, tarmac; `racingScene`) beside it instead of the moving view carried on past the world
+  (`setRacingLargeScreen`). Joe's order was optimise first, then cap. The optimisation that held: the near grass's
+  full-width bands are no longer filled where the haze under the road is already exactly that colour, pixel for pixel
+  the same on every screen (racing-render-check). Tried and dropped (no measurable gain in headless Chromium's CPU
+  raster): batching the tyre walls, a narrower or slower moving side band, drawing the road once into both canvases,
+  and a phone-sized canvas scaled up (the compositor's upscale cost as much as it saved). Measured with
+  `arcade-play-check --desktop racing` (mean frame, limit 18.3 ms): full height 538 × 1003 ~21 ms; 430 × 802 18.0–19.4;
+  380 × 709 17.7–18.3; **340 × 634 17.3 ms on three runs**. Apex's own phone pass on the same machine averages ~21 ms
+  (the phone check's floor is 30 fps).
 - **tall** (every other arcade game: side-on, behind-camera and the top-down Crazy Golf, Orbit, Meteor, Tilt,
   Jaywalk and Curl Champ, upright): the world scales to the full height of a column up to 640 px; the
   game's own scenery runs out to both sides under a static fade at the rail and panel edges (`data-dk-fade`);
@@ -131,7 +142,7 @@ Active games (84): wide 54, rotate 1, tall 29.
 | Shikaku | `shikaku` | Logic | **wide** |  | puzzle board: re-flows into the wider column |
 | Tents and Trees | `tents` | Logic | **wide** |  | puzzle board: re-flows into the wider column |
 | Trail | `trail` | Logic | **wide** |  | puzzle board: re-flows into the wider column |
-| Apex | `racing` | Arcade · Sports | **tall** |  | behind-camera view: full height, scenery out to both sides |
+| Apex | `racing` | Arcade · Sports | **tall** |  | behind-camera view; on desktop its world capped at 340×634, centred, with its static backdrop beside it, for 60 fps |
 | Ball Tracker | `balltrack` | Arcade · Action | **tall** |  | cups and marbles read top to bottom: kept upright |
 | Breaker | `breaker` | Arcade · Retro | **tall** |  | portrait play with controls at the bottom (paddle, flippers, launcher): kept upright |
 | Coral Pop | `bubble` | Arcade · Action | **tall** |  | shooter aiming up from the bottom: kept upright |
@@ -209,6 +220,10 @@ Retired to practice (11):
   ending in the same sim state, score and checksum.
 - **arcade-play-check --desktop** (`arcade-play-desktop-check`, halves on `play24`/`play25`): every arcade game
   at 1440×900 and 1920×1080 in its desktop mode, live, error-free, crisp, at 60 fps.
+- **racing-render-check** (fast shard): Apex's grass saving draws exactly the same pixels, world and beyond, on 1,080
+  frames across whole races (six seeds, racingRev 1 and 2, three world sizes).
+- **beta-recording-check**: Play again's archive keeps `input_type` (the same migration redefines `restart_duel_room`,
+  its archive insert the previous one plus that column; checked as text and on a local PostgreSQL).
 - desktop-geometry-check now proves the new columns (its 17 Oct assertions kept where the brief did not change
   them).
 - Review shots: `bun scripts/shots/desktop-layout-shots.ts` (`screenshots/desktop-layout-oct-2026/`).

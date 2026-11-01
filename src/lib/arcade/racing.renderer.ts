@@ -67,6 +67,15 @@ const F = 300;
 const CH = 1714;
 const ZC = 1714;
 const HORIZON = 270;
+/** Where the haze under the road reaches the near grass colour (COL.grassA), which it keeps below. */
+const HAZE_END = HORIZON + 40;
+/** Rows past HAZE_END where the gradient may still round a channel off grassA: grassA bands there are painted. */
+const HAZE_MARGIN = 8;
+/** Checks only (racing-render-check): false paints every grassA band as before, to prove the skip changes no pixel. */
+let grassSkip = true;
+export function setRacingGrassSkip(on: boolean): void {
+  grassSkip = on;
+}
 /** The car's contact line on screen (HORIZON + CH × F ÷ ZC). */
 export const RACING_CAR_Y = HORIZON + (CH * F) / ZC;
 const DRAW_SEGS = 150;
@@ -687,7 +696,7 @@ function drawWorld(ctx: Ctx2D, state: RacingState, L: Layers, B: Bounds = WORLD_
     hillShift(L.near, NEAR_H, 0.8, HORIZON + 4);
   }
   // The far fields in the haze, under the road's farthest segment.
-  const haze = ctx.createLinearGradient(0, HORIZON + 4, 0, HORIZON + 40);
+  const haze = ctx.createLinearGradient(0, HORIZON + 4, 0, HAZE_END);
   haze.addColorStop(0, "#8C7A58");
   haze.addColorStop(1, COL.grassA);
   ctx.fillStyle = haze;
@@ -763,7 +772,16 @@ function drawWorld(ctx: Ctx2D, state: RacingState, L: Layers, B: Bounds = WORLD_
     const seg = segOf(k);
     const y1 = Math.min(p1.y, maxY);
     const alt = Math.floor(k / 3) % 2 === 0;
-    (alt ? P.grassA : P.grassB).rect(B.x0, p2.y, B.x1 - B.x0, y1 - p2.y + 1);
+    // The near grass's band, but not where the haze fill under the road is already exactly grassA (from HAZE_END +
+    // HAZE_MARGIN down): grassA over grassA changes no pixel. Skipped a whole three-segment group at a time, so every
+    // edge of the grassA area stays under a grassB band painted after it, exactly as when the group was part of one
+    // filled union (1 Nov 2026; racing-render-check proves every pixel the same on frames across whole races).
+    if (!alt) P.grassB.rect(B.x0, p2.y, B.x1 - B.x0, y1 - p2.y + 1);
+    else {
+      const far = i + (Math.floor(k / 3) * 3 + 2 - k);
+      const groupTop = far + 1 < edges ? proj[far + 1]!.y : -Infinity;
+      if (!(grassSkip && groupTop >= HAZE_END + HAZE_MARGIN && ez[far + 1]! > NEAR)) P.grassA.rect(B.x0, p2.y, B.x1 - B.x0, y1 - p2.y + 1);
+    }
     const gv = lk.gravel[seg]!;
     const gp = alt ? P.gravelA : P.gravelB;
     // Gravel traps over the grass (each surface path holds non-overlapping quads only: nonzero fills, no holes).
@@ -1379,6 +1397,17 @@ export function racingScene(ctx: CanvasRenderingContext2D, view: ArenaSceneView)
   }
 }
 
+/**
+ * Apex on the computer layout (1 Nov 2026, display only): set by the racing stage while its play screen is on the
+ * desktop layout, where its world is capped (desktopModes.ts maxWorldWidth) and the scenery beside it is the static
+ * backdrop (racingScene), never the moving view carried on past the world: repainting that across a large screen
+ * cost Apex its 60 fps. Never set on a phone or tablet, which draw exactly as before.
+ */
+let largeScreen = false;
+export function setRacingLargeScreen(on: boolean): void {
+  largeScreen = on;
+}
+
 /** The ambient layer the play screen hands racingAmbient, kept so the world's own frames repaint it (display only). */
 let beyond: { ctx: CanvasRenderingContext2D; m: DOMMatrix; view: ArenaSceneView; clipTop: number } | null = null;
 let beyondState: RacingState | null = null;
@@ -1411,7 +1440,7 @@ export const racingAmbient: ArenaAmbient = {
   draw(ctx, view) {
     beyond = { ctx, m: ctx.getTransform(), view, clipTop: Math.max(view.top, view.boxTop ?? 0) };
     lastBeyond = null;
-    if (beyondState) paintBeyond(ctx, view, beyondState);
+    if (beyondState && !largeScreen) paintBeyond(ctx, view, beyondState);
     else racingScene(ctx, view);
   },
 };
@@ -1420,7 +1449,7 @@ export const racingAmbient: ArenaAmbient = {
 function repaintBeyond(state: RacingState): void {
   beyondState = state;
   const b = beyond;
-  if (!b) return;
+  if (!b || largeScreen) return;
   const canvas = b.ctx.canvas as HTMLCanvasElement;
   if (!canvas.isConnected) {
     beyond = null;

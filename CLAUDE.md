@@ -1001,9 +1001,11 @@ outside the repo.
   game needs a line): `wide` (puzzles, card and board games), `rotate` (Cue Ball only, Joe's call: the table and balls turned 90° clockwise in `ArcadeArenaSlot`'s rotor;
   pointers through `tapMapping.ts` `arenaPointer` / `arenaSize`; its HUD chips upright on the stage's `hud` strip, ball
   numbers and pop-ups counter-turned: **no text is ever drawn rotated**), `tall` (every other arcade game, upright: full height,
-  scenery faded at the edges). `DesktopControlsHint` shows the keys for 8 s. Every result records its input type
+  scenery faded at the edges; Apex's world capped at 340×634 on desktop with its static backdrop, `maxWorldWidth`,
+  for 60 fps, and its renderer skips near-grass bands the haze already paints, pixel-identical: racing-render-check). `DesktopControlsHint` shows the keys for 8 s. Every result records its input type
   (`src/lib/inputType.ts` → `input_type` on round_results, async_results, practice_plays, best effort; migration
-  `20261031170000_result_input_type.sql` **written but not applied**). Checks: desktop-layout-check (thirds,
+  `20261031170000_result_input_type.sql` **written but not applied**; it also redefines `restart_duel_room` so Play
+  again's archive keeps `input_type`). Checks: desktop-layout-check (thirds,
   `play22`/`play23`), desktop-fairness-check (`play22`), `arcade-play-check --desktop` as arcade-play-desktop-check
   (halves, `play24`/`play25`); desktop-geometry-check proves the new columns. Shots `bun scripts/shots/desktop-layout-shots.ts`.
 - **Haptics** (31 Oct 2026; presentation and device storage only, no stamps; `src/lib/haptics.ts`): main moments

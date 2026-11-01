@@ -31,6 +31,11 @@ export type RotatedKeys = "arrows" | "all";
 
 export interface DesktopModeInfo {
   mode: DesktopMode;
+  /**
+   * A cap on the world's width on the desktop layout, CSS px (presentation only; Apex, 1 Nov 2026): the arena slot
+   * is no wider, so the world (and the scenery round it) is drawn at most this size. Never applies to a phone.
+   */
+  maxWorldWidth?: number;
   keys?: RotatedKeys;
   /** One line for the report: why this mode. */
   why: string;
@@ -56,6 +61,14 @@ const PORTRAIT: DesktopModeInfo = {
   mode: "tall",
   why: "portrait play with controls at the bottom (paddle, flippers, launcher): kept upright",
 };
+
+/**
+ * Apex's world on the desktop layout at most 340 px wide (340×634), centred in its column with its static backdrop
+ * round it (1 Nov 2026, Joe's fallback after optimising): the largest size at which it held 60 fps in headless
+ * Chromium's CPU raster (arcade-play-check --desktop: 538×1003 drew at ~21 ms a frame, 430×802 at 18–19.4 ms,
+ * 380×709 at 17.7–18.3 ms, 340×634 at 17.3 ms over three runs).
+ */
+export const APEX_DESKTOP_WORLD_W = 340;
 
 export const DESKTOP_MODES: Record<PuzzleType, DesktopModeInfo> = {
   // Word
@@ -138,7 +151,7 @@ export const DESKTOP_MODES: Record<PuzzleType, DesktopModeInfo> = {
   cross: { mode: "tall", why: "top-down road, kept upright at full height" },
   curling: { mode: "tall", why: "top-down sheet, kept upright at full height" },
   // Arcade: side-on and behind-camera worlds, kept upright at full height
-  racing: BEHIND,
+  racing: { ...BEHIND, maxWorldWidth: APEX_DESKTOP_WORLD_W, why: "behind-camera view; on desktop its world capped at 340×634, centred, with its static backdrop beside it, for 60 fps" },
   homerun: BEHIND,
   freekick: BEHIND,
   bullseye: BEHIND,
