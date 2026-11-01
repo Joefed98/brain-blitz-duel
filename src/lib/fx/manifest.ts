@@ -690,6 +690,8 @@ const ENTRIES = {
   "pinball.sling": { channel: "effects", frequency: 0, ms: 486, url: "/sounds/pinball.sling.mp3" },
   "pinball.dropTarget": { channel: "effects", frequency: 0, ms: 454, url: "/sounds/pinball.dropTarget.mp3", volume: 0.79 },
   "pinball.bankComplete": { channel: "effects", frequency: 0, ms: 606, url: "/sounds/pinball.bankComplete.mp3" },
+  // J-O-U-L-Z completed (pinRev 4+, 1 Nov 2026): the streak flourish from the celebrations library.
+  "pinball.joulz": { channel: "effects", frequency: 0, ms: 1200, url: "/sounds/sfx_streak_flourish.mp3", gapMs: 1000 },
   "pinball.laneLight": { channel: "effects", frequency: 0, ms: 486, url: "/sounds/pinball.laneLight.mp3", volume: 0.78 },
   "pinball.spinner": { channel: "effects", frequency: 0, ms: 486, url: "/sounds/pinball.spinner.mp3", volume: 0.77 },
   "pinball.flipper": { channel: "effects", frequency: 0, ms: 482, url: "/sounds/pinball.flipper.mp3", volume: 0.58 },

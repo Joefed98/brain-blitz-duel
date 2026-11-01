@@ -489,6 +489,32 @@ if (BROWSER) {
             await pinned(page, where);
             await common(page, where, 16);
           } else if (screen.name.startsWith("answer reveal")) {
+            // 1 Nov 2026 (Joe: the breakdown squashed the chart): the breakdown is one line until tapped; the chart
+            // keeps its full height and the reveal does not scroll. Then, opened, everything below holds as before.
+            const folded = await page.evaluate(() => {
+              const column = document.querySelector<HTMLElement>("[data-reveal-column]");
+              const summary = document.querySelector<HTMLElement>("[data-reveal-summary]");
+              const panel = document.querySelector("[data-chart-panel]")?.getBoundingClientRect();
+              const tiles = document.querySelector<HTMLElement>("[data-reveal-tiles]");
+              return {
+                summary: summary?.getAttribute("data-reveal-summary") ?? null,
+                summaryText: summary?.textContent ?? "",
+                summaryH: summary?.getBoundingClientRect().height ?? 0,
+                tilesShown: !!tiles && tiles.getBoundingClientRect().height > 0,
+                scrolls: column ? column.scrollHeight > column.clientHeight + 1 : true,
+                heights: column ? `${column.scrollHeight}/${column.clientHeight}: ${[...column.children].map((c) => Math.round(c.getBoundingClientRect().height)).join(", ")}` : "",
+                panelH: panel?.height ?? 0,
+              };
+            });
+            check(folded.summary === "closed", `${where}: the breakdown isn't one folded line (${folded.summary})`);
+            check(folded.summaryText.startsWith("Core 112 / 150"), `${where}: the folded line reads ${JSON.stringify(folded.summaryText)} (want the fixture's first line)`);
+            check(folded.summaryH >= 44, `${where}: the breakdown's tap target is ${folded.summaryH}px tall`);
+            check(!folded.tilesShown, `${where}: the parts card shows before the breakdown is opened`);
+            check(!folded.scrolls, `${where}: the folded reveal scrolls (${folded.heights})`);
+            await page.locator("[data-reveal-summary]").click();
+            await page.waitForTimeout(300);
+            const opened = await page.evaluate(() => document.querySelector("[data-reveal-summary]")?.getAttribute("data-reveal-summary") ?? null);
+            check(opened === "open", `${where}: a tap doesn't open the breakdown (${opened})`);
             const r = await page.evaluate(() => {
               const panel = document.querySelector("[data-chart-panel]")?.getBoundingClientRect();
               const body = document.querySelector("[data-chart-body]")?.getBoundingClientRect();

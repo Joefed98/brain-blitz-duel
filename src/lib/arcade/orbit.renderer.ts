@@ -976,8 +976,8 @@ function drawBlackHole(ctx: CanvasRenderingContext2D, x: number, y: number, arme
  * frames its course in a 450 × 782 view (the sim's `worldH`, the camera's frame); the play screen draws ORBIT_XP_DRAW_H:
  * ORBIT_XP_AHEAD more rows above that frame (the course further ahead, as orbitRev 8's taller view did), so the frame's
  * bottom is the world's bottom and the world reaches the screen's 16 px strip on the iPhone 11 home-screen app. In the
- * top-right corner of those rows sits ORBIT_XP_ZONE, where nothing in play is ever drawn (everything but the starfield is
- * clipped out of it) and SET CHECKPOINT is laid; the camera keeps the rocket inside its frame, below the rows, so
+ * top-right corner of those rows sits ORBIT_XP_ZONE, where SET CHECKPOINT is laid over the scene (drawn there as
+ * everywhere since 1 Nov 2026); the camera keeps the rocket inside its frame, below the rows, so
  * nothing the rocket can meet is ever under the button. The camera, its framing and every input are unchanged.
  * Earlier revisions keep their view (and SET CHECKPOINT's row under it).
  */
@@ -996,16 +996,11 @@ export function orbitDrawHFor(rev?: number | null): number {
 function orbitDrawH(state: OrbitRev3State): number {
   return state.viewW ? ORBIT_XP_DRAW_H : orbitViewH(state);
 }
-/** Clips everything drawn until the matching restore out of ORBIT_XP_ZONE (orbitRev 12 only; a no-op save otherwise). */
-function clipOutZone(ctx: CanvasRenderingContext2D, state: OrbitRev3State, W: number, H: number): void {
-  ctx.save();
-  if (!state.viewW) return;
-  ctx.beginPath();
-  ctx.rect(0, 0, W, H);
-  ctx.rect(W - ORBIT_XP_ZONE.w, 0, ORBIT_XP_ZONE.w, ORBIT_XP_ZONE.h);
-  ctx.clip("evenodd");
-}
-
+/**
+ * SET CHECKPOINT's corner (1 Nov 2026, Joe: the black box under the button): the scene is drawn there like anywhere else
+ * (planets, paths, belts, pops), and the button sits over it as an overlay with its own backing. Until then everything but
+ * the starfield was clipped out of ORBIT_XP_ZONE. The rocket still never enters the zone (play-control-clearance-check).
+ */
 function drawOrbitRev3ArtWorld(ctx: CanvasRenderingContext2D, state: OrbitRev3State, size: CanvasSize): void {
   // orbitRev 8: the taller view (620 otherwise); orbitRev 12 drawn taller still, ORBIT_XP_AHEAD rows above its frame.
   const ORBIT_CAM_VIEW_H = orbitDrawH(state);
@@ -1032,8 +1027,8 @@ function drawOrbitRev3ArtWorld(ctx: CanvasRenderingContext2D, state: OrbitRev3St
 
   const capturePlanet=state.planets[state.cur];
   rev3Starfield(ctx, cam, t, still, ORBIT_CAM_VIEW_H, ORBIT_CAM_VIEW_W);
-  // orbitRev 12: from here to the HUD nothing is drawn in ORBIT_XP_ZONE (SET CHECKPOINT's reserved corner).
-  clipOutZone(ctx, state, ORBIT_CAM_VIEW_W, ORBIT_CAM_VIEW_H);
+  // The play layers, drawn under SET CHECKPOINT's overlay too (no clip since 1 Nov 2026), to the matching restore.
+  ctx.save();
   if (!still && !arcadeReducedEffects()) drawAmbientShootingStar(ctx, state.tick, ORBIT_CAM_VIEW_W, ORBIT_CAM_VIEW_H);
    drawOrbitShootingStar(ctx, state, cam, still);
 
@@ -1173,7 +1168,7 @@ function drawOrbitRev3ArtWorld(ctx: CanvasRenderingContext2D, state: OrbitRev3St
   ctx.fill();
   ctx.restore();
 
-  // The end of ORBIT_XP_ZONE's clip (clipOutZone): the HUD and the success layer's HUD burst are top left.
+  // The end of the play layers: the HUD and the success layer's HUD burst are top left.
   ctx.restore();
   if(capturePlanet)successFrame(ctx,{id:'orbit3',tick:state.tick,count:state.captured,enabled:state.captured%5===0,misses:1-state.respawns,colour:ORBIT_GOLD,width:ORBIT_CAM_VIEW_W,height:ORBIT_CAM_VIEW_H,point:{x:110,y:26,shape:'spark'},hud:{x:14,y:12,text:`Planets ${state.best} / ${ORBIT_TOTAL}`}});
   ctx.fillStyle = "#FFFFFF";
@@ -1195,9 +1190,7 @@ function drawOrbitRev3ArtWorld(ctx: CanvasRenderingContext2D, state: OrbitRev3St
     ctx.fillText(state.respawns > 0 ? `Checkpoint ${state.checkpoint} · 1 respawn` : `Checkpoint used`, 14, state.xp ? 78 : 44);
   }
   if (xpMemory) {
-    clipOutZone(ctx, state, ORBIT_CAM_VIEW_W, ORBIT_CAM_VIEW_H);
     drawXpPops(ctx, xpMemory, cam, still);
-    ctx.restore();
   }
   if (state.tick - state.respawnTick < 45) {
     ctx.globalAlpha = 1 - (state.tick - state.respawnTick) / 45;

@@ -48,12 +48,13 @@ import {
   playLock,
   releaseRoomMusic,
   holdMusicBed,
+  screenMusic,
   stopWarning10,
   unlockAudio,
 } from "@/lib/sound";
 import { roundMusicFor } from "@/lib/fx/theme";
 import { roundMusicRemaining, useRoundMusic } from "@/lib/duel/useRoundMusic";
-import { useScreenMusic } from "@/lib/useScreenMusic";
+import { useHomeBed, useScreenMusic } from "@/lib/useScreenMusic";
 import type { SubmitMeta } from "@/puzzles/types";
 import type { MovesView } from "@/lib/duel/moves";
 import { readPracticeBest, recordPracticeBest } from "@/lib/duel/practiceBest";
@@ -319,7 +320,8 @@ function PracticeScreen() {
     };
   }, []);
   // Silent until the slots get files (docs/sound-cues/music.md).
-  useScreenMusic("music_practice", stage === "list");
+  // The list holds the app-wide home bed (it carries on from the Play tab); a round's intro takes over from it.
+  useHomeBed(stage === "list", screenMusic("music_practice"));
   useScreenMusic("music_reveal", stage === "reveal");
 
   const load = useCallback(

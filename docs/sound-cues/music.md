@@ -14,9 +14,9 @@ ramp). A game's own slot, once it has a file, takes over from the shared bed it 
 
 | Cue | Screen | Plays today | Slot | Length |
 |---|---|---|---|---|
-| `music.home` | Home / join (`/`) | none | `music_home` | 60 s loop |
-| `music.practice` | Practice game list (`/practice`) | none | `music_practice` | 60 s loop |
-| `music.lobby` | Room lobby | `lobby_loop` | `lobby_loop` | loop |
+| `music.home` | Home / join (`/`), and since 1 Nov 2026 the app-wide home bed: Play, Practice's list, Tournaments, Profile, the settings sheet and the room lobby | `music_home` (`music_menu.mp3`) | `music_home` | 60 s loop |
+| `music.practice` | Practice game list (`/practice`) | `music_home` (the home bed carries on; the slot is not started since 1 Nov 2026) | `music_practice` | 60 s loop |
+| `music.lobby` | Room lobby | `music_home` (the home bed carries on from the Play tab; `lobby_loop` is not started since 1 Nov 2026) | `lobby_loop` | loop |
 | `music.prepare` | Prepare to Duel | none (stopped for the voice line) | `music_prepare` | 6 s (screen) |
 | `music.roundTitle` | Round title | none (stopped for the voice line) | `music_round_title` | 3 s (screen) |
 | `music.intro` | Round intro (rooms and practice) | `intro_loop` | `intro_loop` | loop |
@@ -26,6 +26,15 @@ ramp). A game's own slot, once it has a file, takes over from the shared bed it 
 | `music.winner` | Winner reveal | none (drum roll and voice) | `music_winner` | 6.3 s (screen) |
 | `music.podium` | Podium / final result | `podium_loop` | `podium_loop` | loop |
 | `music.tension` | Tension bed (not placed) | registered, no file, never started (`startMusic` refuses it) | `tension_loop` | loop |
+
+**The home bed** (1 Nov 2026, Joe: it restarted on every page change): one app-wide player, `holdHomeBed` /
+`useHomeBed` in `src/lib/sound.ts` and `src/lib/useScreenMusic.ts`. Play, Practice's list, Tournaments, Profile and the
+room lobby each hold it; moving from one to the next never stops or restarts it (a screen that lets go starts a 400 ms
+grace, `HOME_BED_GRACE_MS`, which the next holder cancels). It changes only when another bed takes over: a round's intro
+(`intro_loop`) or a game's music, or the room's own screens after the lobby. When a holder comes back it resumes the home
+bed from where it was left (the loop position is kept), not from the top. It is never released with a room's beds.
+Mute, the music slider, pausing while the app is hidden and the audio's sleep after silence apply as to any other bed;
+Battery saver leaves music as it was (it never touched music).
 
 The sound settings sheet opens over the current screen and keeps its music. The prepare,
 round-title and winner-reveal screens are silent on purpose today so their voice lines

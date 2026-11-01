@@ -3,6 +3,7 @@ import { CalendarDays, ExternalLink } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
 import { PhoneShell } from "@/components/duel/PhoneShell";
+import { useHomeBed } from "@/lib/useScreenMusic";
 import { goToTab } from "@/components/app/AppTabBar";
 import { PublicGameNext, PublicGameRow } from "@/components/app/PublicGameCard";
 import { PlaceDisc } from "@/components/app/TabIcons";
@@ -37,6 +38,8 @@ export const Route = createFileRoute("/tournaments")({
 
 /** Offline practice (31 Oct 2026): with no connection, the offline state and a way to Practice. */
 function OfflineTournaments() {
+  // The app-wide home bed carries on here from the other tabs (docs/sound-cues/music.md).
+  useHomeBed();
   return (
     <OnlineOnly tabs="tournaments" live body="Tournaments need a connection. Practice games are saved on this phone, so they still work.">
       <TournamentsScreen />

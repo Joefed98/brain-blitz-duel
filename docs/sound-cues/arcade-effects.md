@@ -73,8 +73,9 @@ Already sounded: power-up caught (`breaker.powerUp`), Fireball lit (`breaker.fir
 | `pinball.bankReset` | A dropped target bank pops back up | All four drop targets reappear | `arc_latch` (shared recording) | 1–5 | 250 ms |
 | `pinball.lastBall` | The last ball is launched | BALL 3/3 in the HUD | `pinball.lastBall.mp3` | 0–1 | 800 ms |
 | `pinball.gameOver` | Every ball drained before time (its file stands in for `pinball.ballLost` on that drain) | GAME OVER, the table lights go out | `pinball.gameOver.mp3` | 0–1 | 1500 ms |
+| `pinball.joulz` | J-O-U-L-Z completed (pinRev 4+; its file stands in for `pinball.bankComplete` on that frame; 1 Nov 2026) | JOULZ in gold, large and centred, and the border flashing gold three times (0.15 s on, 0.15 s off) | `sfx_streak_flourish.mp3` (the celebrations library's streak flourish) | 0–4 | 1200 ms |
 
-Already sounded: bumper glow and ripple (`pinball.bumperHit`), drop target (`pinball.dropTarget`), bank down and the multiplier lanes (`pinball.bankComplete`), lane lit (`pinball.laneLight`), spinner turn (`pinball.spinner`), flippers and lane rotation (`pinball.flipper`), sling (`pinball.sling`), drain and lights out (`pinball.ballLost`).
+Already sounded: bumper glow and ripple (`pinball.bumperHit`), drop target (`pinball.dropTarget`), bank down and the multiplier lanes (`pinball.bankComplete`; J-O-U-L-Z has `pinball.joulz` on pinRev 4+), lane lit (`pinball.laneLight`), spinner turn (`pinball.spinner`), flippers and lane rotation (`pinball.flipper`), sling (`pinball.sling`), drain and lights out (`pinball.ballLost`).
 
 ## Rally
 
@@ -102,6 +103,10 @@ Already sounded: paddle light-up (`rally.hit`), gold ball returned (`rally.goldH
 | `beat.swipeArrive` | The first swipe notes come into the lanes (beatRev 2+, about 30 s) | Swipe arrows appear at the top of the lanes | `alert.newHazard.mp3` | 0–1 | 600 ms |
 
 Already sounded: lane flash, judgement word and perfect ring (`beat.note` / `beat.miss`). The combo glow's 10 and 50 tiers start with `beat.comboTen`.
+
+Since 1 Nov 2026 (Joe: remove the "perfect" hit sound) a hit plays only its lane's note (`beat.note`): Tempo's stage passes
+`combo: false` to `arcadeFeedback`, so the generic `combo` sound that played on every rise of the combo (every hit after the
+first, a Perfect or a Good) is left out. The combo pop, the PERFECT word and burst, and every cue above are unchanged.
 
 ## Meteor
 

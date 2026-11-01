@@ -149,6 +149,8 @@ const RETIRED_TYPES = new Set<PuzzleType>([
   "wordfall",
   // Joe's decision (27 Oct 2026): Scrumper is practice only; stored rounds replay and grade as before.
   "snip",
+  // Joe's decision (1 Nov 2026): Full House is practice only; stored rounds replay and grade as before.
+  "pokersquares",
   // New (13 Oct 2026): practice only until PINBALL_IN_ROOMS (src/lib/arcade/pinball.ts) is switched on.
   ...(PINBALL_IN_ROOMS ? [] : (["pinball"] as const)),
 ]);

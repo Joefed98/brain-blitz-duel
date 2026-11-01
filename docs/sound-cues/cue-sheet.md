@@ -19,7 +19,7 @@ effects ([arcade-effects.md](arcade-effects.md)) so a sound can be written for e
 
 | Category | Silent | Placeholder | Recorded | Total |
 |---|---|---|---|---|
-| game event | 35 | 0 | 405 | 440 |
+| game event | 35 | 0 | 406 | 441 |
 | room moment | 1 | 0 | 34 | 35 |
 | music | 12 | 0 | 94 | 106 |
 | UI tap | 10 | 0 | 26 | 36 |
@@ -27,7 +27,7 @@ effects ([arcade-effects.md](arcade-effects.md)) so a sound can be written for e
 | success sting | 3 | 0 | 69 | 72 |
 | ambience | 0 | 1 | 17 | 18 |
 | replay | 0 | 0 | 177 | 177 |
-| **all** | 65 | 1 | 858 | 924 |
+| **all** | 65 | 1 | 859 | 925 |
 
 ## Silent and placeholder cues
 
@@ -323,7 +323,7 @@ Grouped by game or screen. These are the cues still missing a sound.
 | Answer reveal (rooms and practice) | screen | | **none** | `music_reveal` |
 | Winner reveal | screen | | **none** | `music_winner` |
 | Tension bed (not placed) | screen | | **none** | `tension_loop` |
-| Home / join (/) | screen | | music_home | `music_home` |
+| Home / join (/), and since 1 Nov 2026 the app-wide home bed | screen | | music_home | `music_home` |
 | Practice game list (/practice) | screen | | music_practice | `music_practice` |
 | Room lobby | screen | | lobby_loop | `lobby_loop` |
 | Round intro (rooms and practice) | screen | | intro_loop | `intro_loop` |
@@ -395,7 +395,7 @@ Grouped by game or screen. These are the cues still missing a sound.
 | Five Hands | arcade | yes | music_fivehands | `music_fivehands` |
 | Flightpath | arcade | yes | music_bullseye | `music_bullseye` |
 | Free Cell | arcade | yes | music_freecell | `music_freecell` |
-| Full House | arcade | yes | music_pokersquares | `music_pokersquares` |
+| Full House | arcade | practice only | music_pokersquares | `music_pokersquares` |
 | Gemstone | arcade | yes | music_matchup | `music_matchup` |
 | Grappler | arcade | yes | music_swing | `music_swing` |
 | High Rise | arcade | yes | music_skyline | `music_skyline` |
@@ -529,9 +529,9 @@ Grouped by game or screen.
 
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
 |---|---|---|---|---|---|---|---|---|
-| `music.home` | Home / join (/): none |  | loop | recorded sound | `music_home` | 60000 | music | `music_home` |
-| `music.practice` | Practice game list (/practice): none |  | loop | recorded sound | `music_practice` | 60000 | music | `music_practice` |
-| `music.lobby` | Room lobby: lobby_loop |  | loop | recorded sound | `lobby_loop` | loop | music | `lobby_loop` |
+| `music.home` | Home / join (/), and since 1 Nov 2026 the app-wide home bed: Play, Practice's list, Tournaments, Profile, the settings sheet and the room lobby: music_home (music_menu.mp3) |  | loop | recorded sound | `music_home` | 60000 | music | `music_home` |
+| `music.practice` | Practice game list (/practice): music_home (the home bed carries on; the slot is not started since 1 Nov 2026) |  | loop | recorded sound | `music_practice` | 60000 | music | `music_practice` |
+| `music.lobby` | Room lobby: music_home (the home bed carries on from the Play tab; lobby_loop is not started since 1 Nov 2026) |  | loop | recorded sound | `lobby_loop` | loop | music | `lobby_loop` |
 | `music.intro` | Round intro (rooms and practice): intro_loop |  | loop | recorded sound | `intro_loop` | loop | music | `intro_loop` |
 | `music.standings` | Round result and standings: standings_loop |  | loop | recorded sound | `standings_loop` | loop | music | `standings_loop` |
 | `music.podium` | Podium / final result: podium_loop |  | loop | recorded sound | `podium_loop` | loop | music | `podium_loop` |
@@ -1543,6 +1543,7 @@ Grouped by game or screen.
 | `pinball.bankReset` | A dropped target bank pops back up [arcade-effects.md] | All four drop targets reappear | 1–5 | recorded sound | `arc_latch` (shared) | 250 | game event | `pinball.bankReset` |
 | `pinball.lastBall` | The last ball is launched [arcade-effects.md] | BALL 3/3 in the HUD | 0–1 | recorded sound | `pinball.lastBall` | 800 | game event | `pinball.lastBall` |
 | `pinball.gameOver` | Every ball drained before time (its file stands in for pinball.ballLost on that drain) [arcade-effects.md] | GAME OVER, the table lights go out | 0–1 | recorded sound | `pinball.gameOver` | 1500 | fail sting | `pinball.gameOver` |
+| `pinball.joulz` | J-O-U-L-Z completed (pinRev 4+; its file stands in for pinball.bankComplete on that frame; 1 Nov 2026) [arcade-effects.md] | JOULZ in gold, large and centred, and the border flashing gold three times (0.15 s on, 0.15 s off) | 0–4 | recorded sound | `pinball.joulz` | 1200 | game event | `pinball.joulz` |
 | `pinball.start` | Pinball: The run starts [arcade.md] |  | 1 | recorded sound | `pinball.start` | 120 | game event | `pinball.start` |
 | `pinball.ballLost` | Pinball: A ball drains (left out on the last drain before time once pinball.gameOver has a file) [arcade.md] |  | 1–3 | recorded sound | `pinball.ballLost` | 260 | fail sting | `pinball.ballLost` |
 | `pinball.launch` | Pinball: A ball is launched into play [arcade.md] |  | 1–4 | recorded sound | `pinball.launch` | 80 | game event | `pinball.launch` |
@@ -2233,6 +2234,7 @@ loops are not measured there). Files in `public/sounds/` are listed once per slo
 | `pinball.sling` | effects | `pinball.sling` | 486 |
 | `pinball.dropTarget` | effects | `pinball.dropTarget` | 454 |
 | `pinball.bankComplete` | effects | `pinball.bankComplete` | 606 |
+| `pinball.joulz` | effects | `pinball.joulz` | 1200 |
 | `pinball.laneLight` | effects | `pinball.laneLight` | 486 |
 | `pinball.spinner` | effects | `pinball.spinner` | 486 |
 | `pinball.flipper` | effects | `pinball.flipper` | 482 |

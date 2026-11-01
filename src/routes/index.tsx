@@ -34,12 +34,12 @@ import { dailyStreak, readDailyRecord } from "@/lib/duel/dailyRecord";
 import { ukDayKey } from "@/lib/duel/daily";
 import { rememberedLook, type PlayerLook } from "@/lib/duel/playerLook";
 import { scheduledGames, upcomingGames, type PublicGame } from "@/lib/publicSchedule";
-import { unlockAudio } from "@/lib/sound";
+import { screenMusic, unlockAudio } from "@/lib/sound";
 import { celebrationSound, celebrationsOn } from "@/lib/fx/celebrations";
 import { PUZZLE_REGISTRY, gameCounts } from "@/lib/duel/registry";
 import type { PuzzleType } from "@/lib/duel/types";
 import { APP_DESCRIPTION, APP_TITLE } from "@/lib/brand";
-import { useScreenMusic } from "@/lib/useScreenMusic";
+import { useHomeBed } from "@/lib/useScreenMusic";
 import { OnlineOnly } from "@/components/offline/OnlineOnly";
 
 const GAME_COUNTS = gameCounts();
@@ -200,8 +200,8 @@ function Home() {
     // Seen now: the next visit to the tab (this page load's reservation stays on <html>) never reserves it.
     return () => releaseSlot("intro");
   }, []);
-  // Silent until the slot gets a file (docs/sound-cues/music.md).
-  useScreenMusic("music_home");
+  // The app-wide home bed (docs/sound-cues/music.md): held here, carried on unbroken to the other tabs and the lobby.
+  useHomeBed(true, screenMusic("music_home"));
 
   const lastRoom = useLastOpenRoom();
   // Today's dailies (hidden until the daily tables exist: DailyCard).
