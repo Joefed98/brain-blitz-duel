@@ -18,7 +18,7 @@ import { drawArtSprite } from "@/lib/arcade/sprites.renderer";
 import { drawCoin } from "@/lib/arcade/swing.renderer";
 import { TOY_INK, TOY_OAK } from "@/lib/arcade/toybox.renderer";
 
-import { BAS_DIRS, drawBasShape, drawBasTurret } from "@/lib/arcade/bastion";
+import { paintBastionTile } from "@/lib/arcade/bastionTank.renderer";
 import { DUAL_GROUND, DUAL_RUNNER, DUAL_RUNNER_R, DUAL_SPIKE, DUAL_SPIKE_H, DUAL_SPIKE_LEAN, DUAL_SPIKE_W } from "@/lib/arcade/dual";
 import { HOT_BG, HOT_GOLD, HOT_RED } from "@/lib/arcade/hotFloor";
 import { JUNC_CX, JUNC_CY } from "@/lib/arcade/junction";
@@ -393,24 +393,10 @@ export const ARCADE2_SCENES: SceneSet = {
     c.restore();
   }),
 
-  // Bastion: the gold turret's barrel swung to the right, two bolts flying up at a teal circle; a pink triangle and a blue square falling.
+  // Bastion (bastionRev 2): tanks rolling down the three lanes at dusk, the crosshair on a heavy's glowing weak spot as a
+  // shell lands, drawn by the game's own art (paintBastionTile).
   bastion: canvasScene((c) => {
-    const s = 104 / 90;
-    at(c, 0, 0, s, () => {
-      const dir = BAS_DIRS[40]!;
-      const ux = dir[0] / 256;
-      const uy = dir[1] / 256;
-      drawBasShape(c, 0, 45 + ux * 70, 82 + uy * 70, false);
-      drawBasShape(c, 2, 19, 20, false);
-      drawBasShape(c, 1, 14, 52, false);
-      c.fillStyle = "#F5B82E";
-      for (const t of [40, 54]) {
-        c.beginPath();
-        c.arc(45 + ux * t, 82 + uy * t, 3, 0, Math.PI * 2);
-        c.fill();
-      }
-      drawBasTurret(c, 45, 80, dir, 5, 88, 90);
-    });
+    noText(c, () => paintBastionTile(c, 104));
   }),
 
   // Dual: two runners side by side, one leaping its red spike, the other with a spike coming at it.

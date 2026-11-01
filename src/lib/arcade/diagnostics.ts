@@ -35,6 +35,7 @@ import { wordfallCheckpoint } from "./wordfall";
 import { clayCheckpoint } from "./clayShoot";
 import { wavCheckpoint } from "./wavefront";
 import { basCheckpoint } from "./bastion";
+import { bastionTankCheckpoint, BASTION_REV_TANK } from "./bastionTank";
 import { roofCheckpoint } from "./rooftop";
 import { flipCheckpoint } from "./flip";
 import { juncCheckpoint } from "./junction";
@@ -93,7 +94,8 @@ const SNAPSHOTS: Record<string, (state: any) => object> = {
   wordfall: wordfallCheckpoint,
   clayshoot: clayCheckpoint,
   wavefront: wavCheckpoint,
-  bastion: basCheckpoint,
+  // bastionRev 2's state carries `rev`; the original Bastion's has none.
+  bastion: (state: { rev?: number }) => (state.rev === BASTION_REV_TANK ? bastionTankCheckpoint(state as never) : basCheckpoint(state as never)),
   rooftop: roofCheckpoint,
   flip: flipCheckpoint,
   junction: juncCheckpoint,

@@ -38,6 +38,7 @@ import { SWING_REV_REWORK, SWING_REV_STRICT, SWING_V15_BAND_CURVE } from "./swin
 import { BULLSEYE_REV_STD, BULLSEYE_REV_STRICT, BULLSEYE_STD_SPEC, BULLSEYE_V9_BAND_CURVE } from "./bullseye";
 import { PIN_REV_STD, PIN_STD_SPEC, PIN_V6_BAND_CURVE } from "./pinball4";
 import { PIN_REV_STRICT } from "./pinball";
+import { BASTION_REV_DEALT, BASTION_STD_SPEC, BASTION_V2_BAND_CURVE } from "./bastionTank";
 import { HOMERUN_REV_DEALT, HOMERUN_STD_SPEC_DEALT, HOMERUN_V2_BAND_CURVE } from "./homerun";
 import { FREEKICK_REV_DEALT, FREEKICK_V2_STD_SPEC, FREEKICK_V2_BAND_CURVE } from "./freekick";
 import { RACING_REV_DEALT, RACING_V2_BAND_CURVE, RACING_V2_STD_SPEC } from "./racing";
@@ -141,6 +142,9 @@ export const LIVE_BANDS = {
   minigolf: { field: "golfRev", rev: MINIGOLF_REV, curve: stdCoreCurve(MINIGOLF_STD_SPEC), std: MINIGOLF_STD_SPEC, born: true },
   pool: { field: "poolRev", rev: POOL_REV, curve: stdCoreCurve(POOL_STD_SPEC), std: POOL_STD_SPEC, born: true },
   curling: { field: "curlRev", rev: CURLING_REV, curve: stdCoreCurve(CURLING_STD_SPEC), std: CURLING_STD_SPEC, born: true },
+  // Bastion bastionRev 2 (1 Nov 2026): the tank-defence shooter, born on the arcade scoring standard (the original
+  // Bastion, unstamped, never had a score band).
+  bastion: { field: "bastionRev", rev: BASTION_REV_DEALT, curve: BASTION_V2_BAND_CURVE, std: BASTION_STD_SPEC, born: true },
 } as const satisfies Record<string, LiveBand>;
 
 export type LiveBandGame = keyof typeof LIVE_BANDS;

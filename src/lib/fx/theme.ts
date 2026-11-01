@@ -110,6 +110,8 @@ const WORLD_MUSIC: Partial<Record<PuzzleType, SoundId>> = {
   fivehands: "music_matchup",
   // The Sports group (30 Oct 2026) has no tracks of its own yet: it borrows existing real-world beds.
   homerun: "music_skyline",
+  // Bastion (bastionRev 2, Action): no track of its own yet; it borrows Wavefront's driving bed.
+  bastion: "music_wavefront",
   freekick: "music_cross",
   racing: "music_junction",
   minigolf: "music_cross",

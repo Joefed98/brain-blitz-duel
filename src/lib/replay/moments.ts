@@ -167,6 +167,10 @@ export const MOMENT_TABLE: readonly MomentRow[] = [
   fx("orbit", 1, "final", "all-planets", 95, "All 40 planets", "finish", "orbit3"),
   fx("orbit", 2, "clear", "black-hole", 60, "Through a black hole", "success", "orbit3"),
   // The Sports group (30 Oct 2026)
+  // Bastion bastionRev 2 (1 Nov 2026)
+  fx("bastion", 0, "pop", "tank-destroyed", 10, "Tank destroyed"),
+  fx("bastion", 1, "streak", "weak-spots", 35, "Weak-spot hits (every 5)"),
+  fx("bastion", 2, "combo", "fast-reload", 20, "Fast reload"),
   fx("homerun", 0, "perfect", "home-run", 40, "Home run"),
   fx("homerun", 1, "streak", "sign-hit", 60, "A sign beyond the fence struck"),
   fx("freekick", 0, "perfect", "goal-scored", 35, "Goal"),

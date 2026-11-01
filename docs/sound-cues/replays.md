@@ -86,6 +86,9 @@ game the round was.
 | `skyline.floors` | Floors streak (every 10): the clip reaches the moment's key tick | instant (the moment lands; about 0.5 s of half-speed play follows) |
 | `skyline.streak` | Perfect streak: the clip reaches the moment's key tick | instant (the moment lands; about 0.5 s of half-speed play follows) |
 | `skyline.wind-perfect` | Perfect drop in the wind: the clip reaches the moment's key tick | instant (the moment lands; about 0.5 s of half-speed play follows) |
+| `bastion.tank-destroyed` | Tank destroyed: the clip reaches the moment's key tick | instant (the moment lands; about 0.5 s of half-speed play follows) |
+| `bastion.weak-spots` | Weak-spot hits (every 5): the clip reaches the moment's key tick | instant (the moment lands; about 0.5 s of half-speed play follows) |
+| `bastion.fast-reload` | Fast reload: the clip reaches the moment's key tick | instant (the moment lands; about 0.5 s of half-speed play follows) |
 | `homerun.home-run` | Home run: the clip reaches the moment's key tick | instant (the moment lands; about 0.5 s of half-speed play follows) |
 | `homerun.sign-hit` | A sign beyond the fence struck: the clip reaches the moment's key tick | instant (the moment lands; about 0.5 s of half-speed play follows) |
 | `freekick.goal-scored` | Goal: the clip reaches the moment's key tick | instant (the moment lands; about 0.5 s of half-speed play follows) |

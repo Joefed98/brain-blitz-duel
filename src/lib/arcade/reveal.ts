@@ -128,6 +128,12 @@ function sportsBuilder(axisLabel: string, finished: (r: Run) => boolean): Builde
 
 const BUILDERS: Record<string, Builder> = {
   homerun: sportsBuilder("Distance points", (r) => n(r, "pitches") >= 10),
+  // Bastion bastionRev 2 (1 Nov 2026): the armour core on the axis, a tile for each feature; the base falling is a crash.
+  // (The original Bastion's unstamped rounds have no builder: buildArcadeReveal gives null for them, as before.)
+  bastion: (r, s) => {
+    const data = sportsBuilder("Armour points", (q) => !b(q, "fell"))(r, s);
+    return { ...data, outcome: b(r, "fell") ? "crash" : "time" };
+  },
   freekick: sportsBuilder("Goal points", (r) => b(r, "finished")),
   racing: sportsBuilder("Distance points", (r) => b(r, "finished")),
   // Cards & Board (30 Oct 2026; the lines come from each game's standard parts).
@@ -964,6 +970,7 @@ function rawTotalMapped(r: Run): boolean {
 export function buildArcadeReveal(type: string, run: unknown, score: number): ArcadeRevealData | null {
   const builder = BUILDERS[type];
   if (!builder || !run || typeof run !== "object") return null;
+  if (type === "bastion" && (run as Run)["std"] !== true) return null;
   const data = builder(run as Run, score);
   // The arcade scoring standard (arcadeStandard.ts): one line per part (core, then each feature) and the total.
   const std = arcadeStdParts(type, (run as Run)["state"]);

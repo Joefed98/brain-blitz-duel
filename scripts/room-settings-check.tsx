@@ -302,7 +302,7 @@ for (const stored of [["action", "rounds:6"], ["word", "action", "rounds:9"], ["
 check(same(readRoomSettings(["retro", "rounds:6"]).settings.picks, ["retro"]), "a pre-split room without Action reads as it was");
 const postSplit = encodeRoomSettings({ picks: ["action"], rounds: 3 });
 check(postSplit.includes(GROUPS_TOKEN) && same(readRoomSettings(postSplit).settings.picks, ["action"]), "Action alone saved after the split stays Action alone");
-check(same(pickTypes("action"), ["slice", "flip", "swing"]) && same(pickTypes("strategy"), ["tilt", "matchup", "skyline", "bubble", "inkbridge", "balltrack"]), "Action keeps Slice, Roofbound, Grappler; Strategy is the six moved games");
+check(same(pickTypes("action"), ["slice", "flip", "swing", "bastion"]) && same(pickTypes("strategy"), ["tilt", "matchup", "skyline", "bubble", "inkbridge", "balltrack"]), "Action keeps Slice, Roofbound, Grappler (and Bastion, back in rooms on 1 Nov 2026); Strategy is the six moved games");
 check(same(readRoomSettings(["word", "memory", "arcade"]).categories, ["word", "arcade"]), "an older room keeps its categories for its deal");
 const start = /export const startRoomFn[\s\S]*?\n {2}\}\);/.exec(fns)?.[0] ?? "";
 check(/stored\.legacy \? undefined : dealRoomRounds\(stored\.settings/.test(start) && /normaliseCategories\(room\.selected_categories\)/.test(start), "startRoomFn deals older rooms with pickRoundOrder on their categories, saved rooms from their settings");

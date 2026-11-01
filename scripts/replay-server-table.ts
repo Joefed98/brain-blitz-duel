@@ -4,6 +4,7 @@
  * scripts/replay-check.ts to prove the phone's replay stepper against it.
  */
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { isBastionTank, replayBastionRun, replayBastionTankRun } from "../src/lib/duel/bastion";
 import type { PuzzleData } from "../src/lib/duel/types";
 import { clashVariantOf } from "../src/lib/arcade/colourClash";
 import { replayHoverRun } from "../src/lib/duel/hover";
@@ -67,6 +68,8 @@ const TABLE: Record<string, (p: any, a: string) => ServerReplay> = {
   tripeaks: (p, a) => replayTripeaksRun(p.seed, a, p.tripeaksRev),
   pokersquares: (p, a) => replayPokerSquaresRun(p.seed, a, p.pokerSquaresRev),
   fivehands: (p, a) => replayFiveHandsRun(p.seed, a, p.fiveHandsRev),
+  // Bastion: bastionRev 2's tank game; the original turret for unstamped rounds.
+  bastion: (p, a) => (isBastionTank(p.bastionRev) ? replayBastionTankRun(p.seed, a) : replayBastionRun(p.seed, a)),
   rally: (p, a) => replayRallyRun(p.seed, a, p.rallyRev),
   slice: (p, a) => replaySliceRun(p.seed, a, p.sliceRev),
   bubble: (p, a) => replayBubbleRun(p.seed, a, p.bubbleRev),

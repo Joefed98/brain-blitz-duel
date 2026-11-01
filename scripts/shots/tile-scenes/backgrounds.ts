@@ -561,10 +561,11 @@ const ARCADE_BACKGROUNDS: Partial<Record<PuzzleType, TileBackground>> = {
     c.lineWidth = 3;
     c.strokeRect(6, 6, T - 12, T - 12);
   }),
+  // Bastion (bastionRev 2): the dusk sky over the battlefield and the low sun on the horizon.
   bastion: bg((c) => {
-    fill(c, "#08080D");
-    cloud(c, T / 2, T, 50, "#F5B82E", 0.12);
-  }),
+    vgrad(c, [[0, "#140F2A"], [0.4, "#3B1F4A"], [0.55, "#B4485A"], [0.6, "#3C2E2A"], [1, "#1E1A16"]]);
+    cloud(c, T * 0.66, T * 0.55, 30, "#F49A4C", 0.35);
+  }, { fade: 0.2 }),
   rooftop: bg((c) => {
     vgrad(c, [[0, "#05050A"], [1, "#1B1530"]]);
     c.strokeStyle = "rgba(245,184,46,0.25)";

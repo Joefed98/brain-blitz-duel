@@ -256,6 +256,8 @@ export const ARCADE_FX_TEXT_COLOURS: Record<string, { fill: string; outline: str
   tripeaks: { fill: "#F2C75C", outline: "#0A1736" },
   pokersquares: { fill: "#F2C75C", outline: "#0A1736" },
   fivehands: { fill: "#F2C75C", outline: "#0A1736" },
+  // Bastion (1 Nov 2026): warm dusk white over a dark battlefield.
+  bastion: { fill: "#FFE7B8", outline: "#140A12" },
   // Sports (30 Oct 2026): flag-pin white on the night terrace, pocket chrome on the cloth, the gold of your handles.
   minigolf: { fill: "#F4F1E4", outline: "#0E1A10" },
   pool: { fill: "#FFE7A8", outline: "#0B1A12" },

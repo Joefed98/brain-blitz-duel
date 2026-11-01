@@ -19,6 +19,7 @@ import { FREECELL_FX } from "./cards/freecell.renderer";
 import { TRIPEAKS_FX } from "./cards/tripeaks.renderer";
 import { POKERSQUARES_FX } from "./cards/pokerSquares.renderer";
 import { FIVEHANDS_FX } from "./cards/fiveHands.renderer";
+import { BASTION_FX } from "./bastionTank.renderer";
 import { px } from "./engine";
 
 import { HOVER_DISC_X, HOVER_EXPAND_H, HOVER_TALL_H, HOVER_WORLD_H, HOVER_WORLD_W, hoverWorldH, type HoverState } from "./hover";
@@ -287,6 +288,8 @@ export const ARCADE_GAME_WORLDS = {
   fivehands: "cards",
   // The Sports group (30 Oct 2026): realistic venues.
   minigolf: "realworld",
+  // Action (1 Nov 2026): Bastion bastionRev 2, a dusk battlefield.
+  bastion: "realworld",
   pool: "realworld",
   curling: "realworld",
 } as const satisfies Record<string, ArcadeWorld>;
@@ -1787,6 +1790,7 @@ export const ARCADE_FX_SPECS = {
   tripeaks: TRIPEAKS_FX,
   pokersquares: POKERSQUARES_FX,
   fivehands: FIVEHANDS_FX,
+  bastion: BASTION_FX,
   minigolf: MINIGOLF_FX,
   pool: POOL_FX,
   curling: CURLING_FX,

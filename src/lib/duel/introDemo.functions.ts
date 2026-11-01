@@ -1,3 +1,4 @@
+import { BASTION_REV_DEALT } from "@/lib/arcade/bastionTank";
 import { DEPTH_DEMO_STOPS, DEPTH_REV, depthRevOf } from "./logicDepth";
 import { SWING_REV_REWORK } from "@/lib/arcade/swing";
 import { INK_REV_SPREAD, INK_REV_STD } from "@/lib/arcade/inkBridge";
@@ -123,6 +124,9 @@ export const getIntroDemoFn = createServerFn({ method: "GET" })
     // The arcade scoring standard (29 Oct 2026): brkRev 11 keeps brkRev 10's play but its HUD shows GOLD n/3 and every
     // brick, so the demo stays stopped until one is recorded on brkRev 11.
     if (data.type === "breaker" && demo?.puzzle.type === "breaker" && demo.puzzle.brkRev !== BRK_REV_STD) return null;
+    // Bastion bastionRev 2 (1 Nov 2026) is a new game (the tank-defence shooter): a demo of the original turret stays
+    // stopped (the intro shows its still) until one is recorded on bastionRev 2.
+    if (data.type === "bastion" && demo?.puzzle.type === "bastion" && demo.puzzle.bastionRev !== BASTION_REV_DEALT) return null;
     // Tilt's expansion (tiltRev 8, 26 Oct 2026): three bigger mazes under a camera, keys, ice and quick stars. An older
     // demo would show the small disc, so the intro shows its still until a demo is recorded on tiltRev 8.
     // tiltRev 9 (27 Oct 2026) keeps tiltRev 8's play on lifted curves, under a fixed camera: only a demo recorded on 9 plays.

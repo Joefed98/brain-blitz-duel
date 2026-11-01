@@ -74,6 +74,8 @@ const STANDARD_ROSTER: readonly { type: string; field: string; rev: number; batc
   { type: "pokersquares", field: "pokerSquaresRev", rev: 2, batch: "Cards" },
   // Five Hands (31 Oct 2026): born on the standard.
   { type: "fivehands", field: "fiveHandsRev", rev: 1, batch: "Cards" },
+  // Bastion (1 Nov 2026): the tank-defence shooter, born on the standard at bastionRev 2 (the original was unstamped).
+  { type: "bastion", field: "bastionRev", rev: 2, batch: "Action" },
   // The Sports group (30 Oct 2026): on the standard from their first stamp.
   { type: "minigolf", field: "golfRev", rev: 2, batch: "Sports" }, // golfRev 2 (crazy golf, 31 Oct 2026); golfRev 1 was on the standard too
   { type: "pool", field: "poolRev", rev: 2, batch: "Sports" },

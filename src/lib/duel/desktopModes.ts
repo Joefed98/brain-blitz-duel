@@ -175,7 +175,7 @@ export const DESKTOP_MODES: Record<PuzzleType, DesktopModeInfo> = {
   steady: { mode: "tall", why: "practice only: kept upright" },
   dual: { mode: "tall", why: "practice only: kept upright" },
   ricochet: { mode: "tall", why: "practice only, a launcher at the bottom: kept upright" },
-  bastion: { mode: "tall", why: "practice only, defended from the bottom: kept upright" },
+  bastion: { mode: "tall", why: "first person from behind the wall: upright at full height, the dusk carried out to the sides" },
   rooftop: SIDE,
   junction: { mode: "tall", why: "practice only: kept upright" },
   snip: { mode: "tall", why: "practice only, hanging fruit falls down: kept upright" },

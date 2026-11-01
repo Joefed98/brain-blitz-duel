@@ -214,6 +214,9 @@ skyline.perfect-drop,Replays,Perfect drop: the clip reaches the moment's key tic
 skyline.floors,Replays,Floors streak (every 10): the clip reaches the moment's key tick [replays.md],,0–2 per highlight,recorded sound,skyline.floors,250,replay,skyline.floors,public/sounds/skyline.floors.mp3 (from replay.moment.mp3)
 skyline.streak,Replays,Perfect streak: the clip reaches the moment's key tick [replays.md],,0–2 per highlight,recorded sound,skyline.streak,250,replay,skyline.streak,public/sounds/skyline.streak.mp3 (from replay.moment.mp3)
 skyline.wind-perfect,Replays,Perfect drop in the wind: the clip reaches the moment's key tick [replays.md],,0–2 per highlight,recorded sound,skyline.wind-perfect,250,replay,skyline.wind-perfect,public/sounds/skyline.wind-perfect.mp3 (from replay.moment.mp3)
+bastion.tank-destroyed,Replays,Tank destroyed: the clip reaches the moment's key tick [replays.md],,0–2 per highlight,recorded sound,bastion.tank-destroyed,250,replay,bastion.tank-destroyed,
+bastion.weak-spots,Replays,Weak-spot hits (every 5): the clip reaches the moment's key tick [replays.md],,0–2 per highlight,recorded sound,bastion.weak-spots,250,replay,bastion.weak-spots,
+bastion.fast-reload,Replays,Fast reload: the clip reaches the moment's key tick [replays.md],,0–2 per highlight,recorded sound,bastion.fast-reload,250,replay,bastion.fast-reload,
 homerun.home-run,Replays,Home run: the clip reaches the moment's key tick [replays.md],,0–2 per highlight,recorded sound,homerun.home-run,250,replay,homerun.home-run,
 homerun.sign-hit,Replays,A sign beyond the fence struck: the clip reaches the moment's key tick [replays.md],,0–2 per highlight,recorded sound,homerun.sign-hit,250,replay,homerun.sign-hit,
 freekick.goal-scored,Replays,Goal: the clip reaches the moment's key tick [replays.md],,0–2 per highlight,recorded sound,freekick.goal-scored,250,replay,freekick.goal-scored,
@@ -534,6 +537,18 @@ balltrack.marbleHome,Ball Tracker,Ball Tracker: A ball reaches its home [arcade.
 balltrack.wrong,Ball Tracker,Ball Tracker: A ball reaches the wrong home [arcade.md],,0–10,recorded sound,arc_wood_knock (shared),90,fail sting,balltrack.wrong,
 balltrack.switch,Ball Tracker,Ball Tracker: A switch is flipped [arcade.md],,20–60,recorded sound,arc_latch (shared),100,UI tap,balltrack.switch,
 music.balltrack,Ball Tracker,Ball Tracker: music_balltrack,,loop,recorded sound,music_balltrack,loop,music,music_balltrack,
+bastion.cannon,Bastion,Bastion: The cannon fires a shell [arcade.md],,20–60,recorded sound,arc_blaster (shared),420,game event,bastion.cannon,
+bastion.dry,Bastion,Bastion: Fire with no shell ready (reloading or cooling): a dry click [arcade.md],,0–10,recorded sound,tick (shared),120,game event,bastion.dry,
+bastion.reload,Bastion,"Bastion: A reload starts (the magazine empty, or a swipe down) [arcade.md]",,7–15,recorded sound,arc_latch (shared),500,game event,bastion.reload,
+bastion.fastReload,Bastion,Bastion: A tap in the green: a fast reload [arcade.md],,0–15,recorded sound,arc_retro_coin (shared),350,game event,bastion.fastReload,
+bastion.jam,Bastion,Bastion: A tap outside the green: the gun jams [arcade.md],,0–10,recorded sound,arc_clank (shared),450,game event,bastion.jam,
+bastion.loaded,Bastion,Bastion: The reload finishes (five shells) [arcade.md],,7–15,recorded sound,arc_latch (shared),200,game event,bastion.loaded,
+bastion.hit,Bastion,Bastion: A shell hits a tank's hull or turret [arcade.md],,10–40,recorded sound,arc_retro_hit (shared),250,game event,bastion.hit,
+bastion.weak,Bastion,Bastion: A shell hits a tank's weak spot [arcade.md],,0–36,recorded sound,arc_pickup (shared),300,game event,bastion.weak,
+bastion.kill,Bastion,Bastion: A tank is destroyed [arcade.md],,0–29,recorded sound,arc_big_explode (shared),900,game event,bastion.kill,
+bastion.miss,Bastion,Bastion: A shell lands on open ground [arcade.md],,0–40,recorded sound,arc_fair_thud (shared),300,fail sting,bastion.miss,
+bastion.baseHit,Bastion,Bastion: A tank reaches the wall and hits the base (with the base-hit haptic) [arcade.md],,0–3,recorded sound,arc_crash (shared),800,game event,bastion.baseHit,
+bastion.wave,Bastion,Bastion: A wave rolls in [arcade.md],,5,recorded sound,arc_horn (shared),900,game event,bastion.wave,
 breaker.brickBreak,Breaker,A brick is destroyed (at most one per 40 ms) [arcade-effects.md],The brick bursts into coloured pixels,40–120,recorded sound,breaker.brickBreak,120,game event,breaker.brickBreak,
 breaker.bricksStreak,Breaker,Every 10th brick destroyed [arcade-effects.md],STREAK banner with cool lights over the wall,5–12,recorded sound,breaker.bricksStreak,450,game event,breaker.bricksStreak,
 breaker.movingTarget,Breaker,A brick out of a sliding row (brkRev 2+; at most one per 120 ms) [arcade-effects.md],A +1 pop on the sliding row,0–10,recorded sound,breaker.movingTarget,250,game event,breaker.movingTarget,

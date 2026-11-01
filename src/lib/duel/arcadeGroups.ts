@@ -56,8 +56,8 @@ export const ARCADE_GROUPS: readonly ArcadeGroupInfo[] = [
     label: "Action",
     colour: "#FF4D4D",
     glow: false,
-    // Slice, Roofbound, Grappler.
-    games: ["slice", "flip", "swing"],
+    // Slice, Roofbound, Grappler, Bastion (bastionRev 2, 1 Nov 2026).
+    games: ["slice", "flip", "swing", "bastion"],
   },
   {
     id: "strategy",

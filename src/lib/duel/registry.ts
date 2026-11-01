@@ -147,7 +147,7 @@ const RETIRED_TYPES = new Set<PuzzleType>([
   "steady",
   "hotfloor",
   "dig",
-  "bastion",
+  // Bastion came back to rooms on 1 Nov 2026 as the tank-defence shooter (bastionRev 2); its unstamped rounds replay as before.
   // Tuning C (Oct 2026): practice only.
   "junction",
   // Scoring report batch 2 (20 Oct 2026): practice only, on its current stamps (wordfallRev 3).

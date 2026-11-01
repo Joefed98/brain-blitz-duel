@@ -70,9 +70,10 @@ for (const [category, want] of Object.entries(POOL)) {
 if (ACTIVE_ARCADE_GAMES.length < 21) fail(`${ACTIVE_ARCADE_GAMES.length} active arcade worlds, at least the 21 dealt before the new groups`);
 const WANT_ACTIVE = Object.values(POOL).reduce((a, n) => a + n, 0);
 if (ACTIVE_PUZZLE_TYPES.length !== WANT_ACTIVE) fail(`${ACTIVE_PUZZLE_TYPES.length} active games, want ${WANT_ACTIVE}`);
-// After Full House's retirement (1 Nov 2026): 83 active games, 32 of them arcade.
-if (ACTIVE_ARCADE_GAMES.length !== 32) fail(`${ACTIVE_ARCADE_GAMES.length} active arcade games, want 32 (Full House practice only since 1 Nov 2026)`);
-if (ACTIVE_PUZZLE_TYPES.length !== 83) fail(`${ACTIVE_PUZZLE_TYPES.length} active games, want 83`);
+// After Full House's retirement (1 Nov 2026): 83 active games, 32 of them arcade; Bastion back in rooms the same day
+// (bastionRev 2, the tank-defence shooter): 84 active, 33 arcade.
+if (ACTIVE_ARCADE_GAMES.length !== 33) fail(`${ACTIVE_ARCADE_GAMES.length} active arcade games, want 33 (Full House practice only, Bastion back, since 1 Nov 2026)`);
+if (ACTIVE_PUZZLE_TYPES.length !== 84) fail(`${ACTIVE_PUZZLE_TYPES.length} active games, want 84`);
 
 // The deleted games and Memory are gone: no registry entry, no category, no draw.
 for (const type of REMOVED_PUZZLE_TYPES)

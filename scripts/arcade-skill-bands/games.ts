@@ -85,6 +85,8 @@ import { tpCheckpoint, tripeaksGameFor, TP_REV } from "../../src/lib/arcade/card
 import { TP_DEALS } from "../../src/lib/arcade/cards/tripeaksDeals.data";
 import { psCheckpoint, pokerSquaresGameFor, PS_REV } from "../../src/lib/arcade/cards/pokerSquares";
 import { fhCheckpoint, fiveHandsGameFor, FH_REV } from "../../src/lib/arcade/cards/fiveHands";
+import { bastionTankCheckpoint, bastionTankGame, BASTION_REV_TANK } from "../../src/lib/arcade/bastionTank";
+import { encodeBastionTankRun, replayBastionTankRun } from "../../src/lib/duel/bastion";
 import { encodeFiveHandsRun, encodeFreecellRun, encodePokerSquaresRun, encodeTripeaksRun, replayFiveHandsRun, replayFreecellRun, replayPokerSquaresRun, replayTripeaksRun } from "../../src/lib/duel/cards";
 import { minigolfCheckpoint, minigolfGameFor, MINIGOLF_REV, MINIGOLF_REV_CLASSIC } from "../../src/lib/arcade/minigolf";
 import { encodeMinigolfRun, replayMinigolfRun } from "../../src/lib/duel/minigolf";
@@ -293,6 +295,8 @@ export const GAMES: GameSpec[] = [
   simple("pokersquares", PS_REV, PS_REV, pokerSquaresGameFor, psCheckpoint, encodePokerSquaresRun, replayPokerSquaresRun),
   // Five Hands (31 Oct 2026): born on the arcade standard; any seed (the sim deals the deck and proves its witness).
   simple("fivehands", FH_REV, FH_REV, fiveHandsGameFor, fhCheckpoint, encodeFiveHandsRun, replayFiveHandsRun),
+  // Bastion bastionRev 2 (1 Nov 2026): the tank-defence shooter, born on the arcade scoring standard; any seed.
+  simple("bastion", BASTION_REV_TANK, BASTION_REV_TANK, () => bastionTankGame, bastionTankCheckpoint, encodeBastionTankRun, (seed, raw) => replayBastionTankRun(seed, raw)),
   // The Sports group (30 Oct 2026): Minigolf deals a bank course (seed and pars); golfRev 2 (crazy golf, 31 Oct 2026)
   // from its own bank, golfRev 1 (`seedForRev`) from the first.
   {

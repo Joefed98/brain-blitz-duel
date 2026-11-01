@@ -143,7 +143,7 @@ function introScoreTemplates(): Record<PuzzleType, string> {
     steady: "Start on {max}. Touching the edge: lose 5.",
     ricochet: arcadeOpen("each metre you climb"),
     rooftop: "The longer you last, the more you score. The full minute is {max}.",
-    bastion: arcadeOpen("each shape you destroy, with a bonus for keeping the base alive"),
+    bastion: "Armour 140, weak spots 30, fast reloads 20, base intact 10: up to {max}.",
     hotfloor: arcadeOpen("each stage you survive"),
   };
 }

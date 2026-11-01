@@ -16,6 +16,8 @@
  *   bun scripts/arcade-self-replay-check.ts [runsPerGame] [keys,…] [--part=k/n]
  */
 
+import { bastionTankCheckpoint, bastionTankGame, BT2_CHECKPOINT_INTERVAL } from "../src/lib/arcade/bastionTank";
+import { encodeBastionTankRun, replayBastionTankRun } from "../src/lib/duel/bastion";
 import { homerunCheckpoint, homerunGameFor, HOMERUN_CHECKPOINT_INTERVAL, HOMERUN_REV_2, HOMERUN_REV_STD } from "../src/lib/arcade/homerun";
 import { encodeHomerunRun, replayHomerunRun } from "../src/lib/duel/homerun";
 import { HOMERUN_DEAL } from "../src/lib/duel/homerunDeal.server";
@@ -868,6 +870,8 @@ const GAMES: Game[] = [
     encode: encodeMinigolfRun,
     replay: (seed: number, raw: string) => replayMinigolfRun(seed, raw, MINIGOLF_BANK_V2.find((e) => e.seed === seed)!.pars, 2),
   },
+  // Bastion bastionRev 2 (the tank-defence shooter, 1 Nov 2026), appended so every earlier entry keeps its stream.
+  { key: "bastion/v2", interval: BT2_CHECKPOINT_INTERVAL, game: bastionTankGame, checkpoint: bastionTankCheckpoint, mode: "events", rate: 30, encode: encodeBastionTankRun, replay: (seed: number, raw: string) => replayBastionTankRun(seed, raw) },
 ];
 
 /** A random candidate event, often outside the declared range (a finger off the edge). */

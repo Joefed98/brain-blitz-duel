@@ -514,8 +514,8 @@ const CALL_SITES: Record<string, Record<string, number>> = {
   "components/duel/FinalResult.tsx": { celebrate: 1 },
   "components/duel/RoomChat.tsx": { tick: 1 },
 };
-/** gameSounds' feel() calls: the arcade moments (success: goal, home run, pot x2; error: foul; impact: lives and crashes). */
-const FEEL = { success: 4, error: 1, impact: 17 };
+/** gameSounds' feel() calls: the arcade moments (success: goal, home run, pot x2; error: foul; impact: lives and crashes, and Bastion's base hit since 1 Nov 2026). */
+const FEEL = { success: 4, error: 1, impact: 18 };
 const found: Record<string, Record<string, number>> = {};
 for (const file of files) {
   const rel = file.slice(SRC.length + 1);

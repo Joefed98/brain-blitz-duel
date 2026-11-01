@@ -90,6 +90,8 @@ export const ARENA_SCENE_GAMES = [
   "tripeaks",
   "pokersquares",
   "fivehands",
+  // Action (1 Nov 2026): Bastion's dusk, field and wall run on past the world (bastionTank.renderer.ts).
+  "bastion",
 ] as const;
 
 /**

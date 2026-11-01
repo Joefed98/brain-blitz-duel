@@ -1,4 +1,4 @@
 {
-  "note": "pickRoundOrder deals for older rooms (6 stored category lists x 200 seeds), recorded on main 567ff36 before room settings; re-recorded 1 Nov 2026 when Full House retired (#230), its only change (the old digest ad4d914faa96 reproduces with Full House active)",
-  "digest": "fea41723f50ecc13222e469cf6414984f531a775ddeaee2f171fb405aee7737b"
+  "note": "pickRoundOrder deals for older rooms (6 stored category lists x 200 seeds), recorded on main 567ff36 before room settings; re-recorded 1 Nov 2026 when Full House retired (#230), its only change (the old digest ad4d914faa96 reproduces with Full House active); re-recorded 1 Nov 2026 when Bastion came back to rooms (bastionRev 2), its only change (fea41723f50e reproduces with Bastion retired)",
+  "digest": "572f50abc3a26b805ba6095b06c5e54a4b2f3678824d80bab4ff953d0082f585"
 }

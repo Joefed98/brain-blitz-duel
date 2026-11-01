@@ -22,7 +22,7 @@ const SCENE_FILES: Record<(typeof ARENA_SCENE_GAMES)[number], string> = {
   swing: "swing", snip: "snip", balltrack: "ballTrack", pinball: "pinball", stroop: "stroop",
   minesweeper: "minesweeper", mahjong: "mahjong", homerun: "homerun", freekick: "freekick", racing: "racing",
   freecell: "freecell", tripeaks: "tripeaks", pokersquares: "pokerSquares", fivehands: "fiveHands",
-  minigolf: "minigolf", pool: "pool", curling: "curling",
+  minigolf: "minigolf", pool: "pool", curling: "curling", bastion: "bastion",
 };
 const ARENA_SCENE_NOTES: Record<(typeof ARENA_SCENE_GAMES)[number], string> = {
   matchup: "the sparkly purple velvet over the whole screen, behind the header too (world centred)",
@@ -63,6 +63,7 @@ const ARENA_SCENE_NOTES: Record<(typeof ARENA_SCENE_GAMES)[number], string> = {
   minigolf: "more of the night terrace, darker towards the edges",
   pool: "the room round the table: a dark floor under the lamps' spill",
   curling: "the arena's dark above, the sheet's floor below and to the sides",
+  bastion: "the dusk sky, the field and the stone wall carried out to the sides, the wall settling darker below",
 };
 
 // Markup and analytic geometry only: no browser and no simulated layout engine.
