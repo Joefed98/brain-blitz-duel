@@ -108,3 +108,9 @@
   40% { background-color: color-mix(in oklab, var(--primary) 40%, #2B2D36); }
 }
 [data-logic-solved] .kakuro-sum { color: var(--primary); }
+/* "Pencil" fits its one-sixth key on a 375 px phone: no letter spacing or side padding from the shared key styles. */
+[data-logic-stage="kakuro"] .kakuro-pad > .kakuro-pencil {
+  padding-inline: 2px !important;
+  letter-spacing: 0 !important;
+  font-size: 11px !important;
+}

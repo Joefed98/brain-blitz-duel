@@ -288,7 +288,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
           onClick={() => setPencilMode((current) => !current)}
           disabled={locked}
           aria-pressed={pencilMode}
-          className={`kakuro-tool press tap-target rounded-lg border font-mono text-xs uppercase tracking-widest ${
+          className={`kakuro-tool kakuro-pencil press tap-target overflow-hidden whitespace-nowrap rounded-lg border font-mono text-[11px] uppercase tracking-normal ${
             pencilMode ? "border-primary bg-primary/15 text-primary" : "border-border bg-card text-muted-foreground"
           }`}
         >
