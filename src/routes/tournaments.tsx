@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 
 import { PhoneShell } from "@/components/duel/PhoneShell";
 import { useHomeBed } from "@/lib/useScreenMusic";
+import { PageAside } from "@/components/app/PageAside";
 import { goToTab } from "@/components/app/AppTabBar";
 import { PublicGameNext, PublicGameRow } from "@/components/app/PublicGameCard";
 import { PlaceDisc } from "@/components/app/TabIcons";
@@ -74,7 +75,7 @@ function TournamentsScreen() {
   const discord = betaValue("DISCORD_URL");
 
   return (
-    <PhoneShell tabs="tournaments">
+    <PhoneShell tabs="tournaments" aside={<PageAside panels={["daily", "week"]} />}>
       <div className="ap-stack">
         <div>
           <div className="flex items-center gap-2.5">

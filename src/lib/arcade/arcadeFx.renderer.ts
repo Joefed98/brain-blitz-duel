@@ -1469,9 +1469,20 @@ function paint<S>(
     const halfH = size / 2 + ctx.lineWidth + inset;
     const x = Math.min(Math.max(pop.x, clip.x + half), clip.x + clip.w - half);
     const y = Math.min(Math.max(pop.y - rise, clip.y + halfH), clip.y + clip.h - halfH);
-    ctx.strokeText(pop.text, x, y);
-    ctx.fillStyle = pop.colour;
-    ctx.fillText(pop.text, x, y);
+    if (textTurn) {
+      // A world drawn turned (Cue Ball's desktop table): the text turned back so it reads upright on screen.
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.rotate(textTurn);
+      ctx.strokeText(pop.text, 0, 0);
+      ctx.fillStyle = pop.colour;
+      ctx.fillText(pop.text, 0, 0);
+      ctx.restore();
+    } else {
+      ctx.strokeText(pop.text, x, y);
+      ctx.fillStyle = pop.colour;
+      ctx.fillText(pop.text, x, y);
+    }
   }
   ctx.restore();
 }
@@ -1569,6 +1580,16 @@ export function arcadeFx<S extends { tick: number }>(
  * Wraps a game's top-level draw (ctx, state, size, ...rest) with the shared
  * success layer. Same signature, same drawing; effects on top.
  */
+/**
+ * Text turn (31 Oct 2026, display only): radians every pop and banner is turned by about its own centre.
+ * 0 everywhere but a world drawn turned on the computer layout (Cue Ball's rotor, a quarter turn
+ * clockwise), whose stage sets -π/2 around its draw so no text on it is ever drawn rotated on screen.
+ */
+let textTurn = 0;
+export function setArcadeTextTurn(radians: number): void {
+  textTurn = radians;
+}
+
 export function withArcadeFx<S extends { tick: number }, R extends unknown[]>(
   spec: ArcadeFxSpec<S>,
   draw: (

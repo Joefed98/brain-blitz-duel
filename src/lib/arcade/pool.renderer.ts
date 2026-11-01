@@ -344,7 +344,14 @@ function paintBall(ctx: CanvasRenderingContext2D, id: number, x: number, y: numb
     ctx.font = `800 ${Math.max(4, r * 0.66)}px ${FONT}`;
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    ctx.fillText(String(id), x, y + r * 0.04);
+    if (numberTurn) {
+      // Cue Ball's turned desktop table: the number turned back to read upright on screen.
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.rotate(numberTurn);
+      ctx.fillText(String(id), r * 0.04, 0);
+      ctx.restore();
+    } else ctx.fillText(String(id), x, y + r * 0.04);
   }
   // Shading from the lamp above: a soft dark rim and a sharp highlight.
   const shade = ctx.createRadialGradient(x - r * 0.35, y - r * 0.4, r * 0.1, x, y, r * 1.05);
@@ -675,8 +682,24 @@ function drawHud(ctx: CanvasRenderingContext2D, s: PoolState): void {
 
 /* ================================ Public ================================ */
 
-/** The table, the balls, the aim preview (while aiming) and the HUD chips, in world px. */
-export function drawPool(ctx: CanvasRenderingContext2D, s: PoolState, aim: PoolAim | null): void {
+/**
+ * The desktop rotate mode (31 Oct 2026, display only): the table is drawn into a rotor turned a quarter turn
+ * clockwise, so ball numbers are turned back by this (and the HUD chips drawn upright on their own strip,
+ * drawPoolHud). 0 on every other screen.
+ */
+let numberTurn = 0;
+
+/** The HUD chips alone, in world px, for the upright strip beside a turned table (ArcadeCanvasStage `hud`). */
+export function drawPoolHud(ctx: CanvasRenderingContext2D, s: PoolState): void {
+  drawHud(ctx, s);
+}
+
+/**
+ * The table, the balls, the aim preview (while aiming) and the HUD chips, in world px. `turned` (the desktop
+ * rotate mode): ball numbers drawn turned back to read upright, and no HUD chips (drawn upright on their strip).
+ */
+export function drawPool(ctx: CanvasRenderingContext2D, s: PoolState, aim: PoolAim | null, turned = false): void {
+  numberTurn = turned ? -Math.PI / 2 : 0;
   ctx.fillStyle = POOL_BG;
   ctx.fillRect(0, 0, POOL_W, POOL_H);
   drawTable(ctx);
@@ -703,7 +726,8 @@ export function drawPool(ctx: CanvasRenderingContext2D, s: PoolState, aim: PoolA
     const l = Math.hypot(aim.dx, aim.dy);
     if (l > 1e-6) drawCueStick(ctx, px(cue.x), px(cue.y), aim.dx / l, aim.dy / l, aim.power);
   }
-  drawHud(ctx, s);
+  if (!turned) drawHud(ctx, s);
+  numberTurn = 0;
   void POOL_BLACK;
 }
 

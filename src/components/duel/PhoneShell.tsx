@@ -15,6 +15,12 @@ import { usePuzzleRejections } from "@/components/puzzles/usePuzzleRejections";
 import { AppTabBar, type AppTab } from "@/components/app/AppTabBar";
 import type { ThemeSkin } from "@/lib/theme";
 import { OfflineBanner } from "@/components/offline/OfflineBanner";
+import { AppRail } from "@/components/app/AppRail";
+import { DesktopControlsHint } from "./DesktopControlsHint";
+import { BannerSlot } from "@/components/app/PageAside";
+import { useLayoutMode } from "@/lib/layoutMode";
+import { DESKTOP_MODES } from "@/lib/duel/desktopModes";
+import { DesktopPresentation, type DesktopPresentationValue } from "@/lib/desktopPresentation";
 
 interface PhoneShellProps {
   children: ReactNode;
@@ -46,7 +52,18 @@ interface PhoneShellProps {
    * room's lobby, results, standings and podium pass "room". Never set on a round's intro or game.
    */
   skin?: ThemeSkin;
+  /**
+   * The computer layout (31 Oct 2026): a tab page's right column (PageAside), drawn beside the page
+   * from 700 px wide (lib/layoutMode.ts); never on a phone.
+   */
+  aside?: ReactNode;
 }
+
+/**
+ * A room's right panel (RoomPanel) on the computer layout: the room route provides it around every
+ * screen it draws, and PhoneShell draws it on the right from 1024 px wide; never on a phone or tablet.
+ */
+export const RoomPanelSlot = createContext<ReactNode>(null);
 
 /** Arcade games and the engine games on the arcade stage (Letterfall, Tenfall, Bonk, Pull!, Mixed Signals). */
 export function isArcadeScreenType(type: PuzzleType | undefined): boolean {
@@ -384,8 +401,23 @@ function useGeometryHold(ref: { current: HTMLElement | null }, active: boolean) 
 }
 
 /** Mobile-first column, centred on larger screens, with a little depth behind. */
-export function PhoneShell({ children, bare = false, constrained = false, gameScreen = false, gameType, gameHeader, topAction, play = false, tabs, skin }: PhoneShellProps) {
+export function PhoneShell({ children, bare = false, constrained = false, gameScreen = false, gameType, gameHeader, topAction, play = false, tabs, skin, aside }: PhoneShellProps) {
   useRootSelectionLock(gameScreen);
+  // The computer layout (31 Oct 2026, presentation only): every slot below is null on a phone, so a
+  // phone's markup is exactly as before; children keep their place in the tree on every layout, so
+  // crossing a breakpoint never remounts a page or a running game.
+  const layout = useLayoutMode();
+  const desktop = layout === "desktop";
+  const wider = layout !== "phone";
+  const roomPanel = useContext(RoomPanelSlot);
+  const tabPage = Boolean(tabs && !gameScreen);
+  const panel = desktop && !tabPage && roomPanel ? roomPanel : null;
+  const modeInfo = gameType ? DESKTOP_MODES[gameType] : undefined;
+  const presentation: DesktopPresentationValue = {
+    mode: desktop && gameScreen && modeInfo ? modeInfo.mode : null,
+    rotate: Boolean(desktop && gameScreen && play && modeInfo?.mode === "rotate"),
+    keys: desktop && gameScreen && play && modeInfo?.mode === "rotate" ? (modeInfo.keys ?? null) : null,
+  };
   const definition = gameType ? puzzleDef(gameType) : undefined;
   const theme = definition?.theme;
   const puzzleSurface = Boolean(gameScreen && definition && !definition.retired && !definition.arcadeRun && definition.category !== "arcade");
@@ -419,9 +451,16 @@ export function PhoneShell({ children, bare = false, constrained = false, gameSc
       data-particle-shape={theme?.particleShape ?? "disc"}
       data-tab-screen={tabs && !gameScreen ? tabs : undefined}
       data-skin={gameScreen ? undefined : (skin ?? tabs)}
-      style={gameScreen ? NO_SELECT_STYLE : undefined}
+      data-layout={wider ? layout : undefined}
+      data-desktop-mode={presentation.mode ?? undefined}
+      data-room-panel={panel ? "" : undefined}
+      data-desktop-cap={desktop && gameScreen && modeInfo?.maxWorldWidth ? "" : undefined}
+      style={gameScreen ? (desktop && modeInfo?.maxWorldWidth ? { ...NO_SELECT_STYLE, ["--dk-world-max" as string]: `${modeInfo.maxWorldWidth}px` } : NO_SELECT_STYLE) : undefined}
     >
+      {desktop ? <AppRail current={tabPage ? tabs : undefined} compact={!tabPage} /> : null}
       <div aria-hidden="true" className="screen-background"><div className="screen-drift" /></div>
+      {/* Desktop arcade play (31 Oct 2026): the game's scenery fades out at the edges of the centre (one static layer over it). */}
+      {desktop && arcadePlay ? <div aria-hidden="true" data-dk-fade="" /> : null}
       <div
         data-game-column={constrained ? "" : undefined}
         data-shell-column={gameScreen ? "game" : "page"}
@@ -430,7 +469,7 @@ export function PhoneShell({ children, bare = false, constrained = false, gameSc
           constrained ? "no-overscroll h-full overflow-hidden" : "min-h-[100dvh]"
         }`}
       >
-        {/* The four tab screens: their own header (Prompt R); every other screen keeps the top bar. */}
+        {/* The four tab screens: their own header (Prompt R; none on the computer layout, where the rail has the logo and sound); every other screen keeps the top bar. */}
         {tabs && !gameScreen ? <AppHeader /> : !bare && !framePlay && (
           <div data-game-topbar={gameScreen ? "" : undefined} className="mb-2 grid h-9 shrink-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-2" style={gameScreen ? NO_SELECT_STYLE : undefined}>
             <div className="min-w-0">{gameHeader ?? <AppWordmark />}</div>
@@ -439,9 +478,15 @@ export function PhoneShell({ children, bare = false, constrained = false, gameSc
         )}
         {/* Offline practice: the slim banner, drawn only while <html data-offline> is set (never on a game screen). */}
         {gameScreen ? null : <OfflineBanner />}
-        {framePlay ? <GameFrameShell.Provider value={{ type: gameType, arcade: arcadeScreen, topAction }}>{children}</GameFrameShell.Provider> : children}
+        {desktop && tabPage && tabs !== "profile" ? <BannerSlot page={tabs as "play" | "practice" | "tournaments"} /> : null}
+        <DesktopPresentation.Provider value={presentation}>
+          {framePlay ? <GameFrameShell.Provider value={{ type: gameType, arcade: arcadeScreen, topAction }}>{children}</GameFrameShell.Provider> : children}
+        </DesktopPresentation.Provider>
+        {wider && tabPage && aside ? aside : null}
       </div>
-      {tabs && !gameScreen ? <AppTabBar current={tabs} /> : null}
+      {panel}
+      {desktop && framePlay && gameType ? <DesktopControlsHint type={gameType} /> : null}
+      {tabs && !gameScreen && !desktop ? <AppTabBar current={tabs} /> : null}
       <FxLayer theme={theme} />
     </div>
   );

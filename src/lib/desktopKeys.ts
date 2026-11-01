@@ -1,3 +1,4 @@
+import { DESKTOP_MODES } from "@/lib/duel/desktopModes";
 import type { PuzzleType } from "@/lib/duel/types";
 
 /**
@@ -85,3 +86,21 @@ export const DESKTOP_KEYS: Partial<Record<PuzzleType, readonly (readonly [string
   tiles: [["Mouse", "swap two tiles"], ["Esc", "let go"]],
   unblock: [["Z", "undo"], ["R", "reset"]],
 };
+
+/**
+ * The keys as they work on this game's desktop screen (31 Oct 2026): a rotated game (desktop mode
+ * `rotate` with direction keys) names its arrows as they move on the turned screen (the world's left is
+ * up there, its right down, its up right); every other game as listed. `desktop` false: as listed.
+ */
+export function screenKeys(type: PuzzleType, desktop: boolean): readonly (readonly [string, string])[] | undefined {
+  const listed = DESKTOP_KEYS[type];
+  const info = DESKTOP_MODES[type];
+  if (!listed || !desktop || info?.mode !== "rotate" || !info.keys) return listed;
+  const screenArrow: Record<string, string> = { "←": "↑", "→": "↓", "↑": "→", "↓": "←" };
+  return listed.map(([key, action]) => [key.replace(/[←→↑↓]/g, (a) => screenArrow[a] ?? a), action] as const);
+}
+
+/** How the mouse plays each kind of game, for the desktop controls hint (DesktopControlsHint). */
+export function mouseLine(type: PuzzleType): string {
+  return DESKTOP_KEYS[type]?.some(([k]) => /click|drag/i.test(k)) ? "" : "Mouse: click to tap, drag to swipe or aim";
+}

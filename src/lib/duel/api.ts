@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { inputTypeField } from "@/lib/inputType";
 import { APP_BUILD_ID } from "@/lib/appVersion";
 import { trackSubmission } from "@/lib/appUpdate";
 
@@ -163,6 +164,7 @@ export async function submitAnswer(params: {
         msRemaining: params.msRemaining,
         extra: params.extra ?? {},
         clientVersion: APP_BUILD_ID,
+        ...inputTypeField(),
       },
     }),
   );

@@ -15,6 +15,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 /** The longest a recording write may hold up the server function it rides on. */
+import { normaliseInputType } from "@/lib/inputType";
+
 export const RECORD_TIMEOUT_MS = 1_500;
 
 const UNIQUE_VIOLATION = "23505";
@@ -221,10 +223,19 @@ export async function recordPracticePlay(
   client: any,
   makeRow: (userId: string | null) => PracticePlayRow,
   userId?: () => Promise<string | null>,
+  inputType?: unknown,
 ): Promise<void> {
   await bestEffort("practice_plays", async () => {
     const row = makeRow(await (userId ?? (() => callerUserId(client)))());
-    return client.from("practice_plays").insert(row);
+    // How it was played (lib/inputType.ts): a database without the column (migration
+    // 20261031170000_result_input_type.sql, written but not applied) refuses it, so the row goes again without.
+    const typed = normaliseInputType(inputType);
+    if (!typed) return client.from("practice_plays").insert(row);
+    const first = await client.from("practice_plays").insert({ ...row, input_type: typed });
+    if (first?.error && /input_type/.test(String(first.error.message ?? "") + String(first.error.details ?? ""))) {
+      return client.from("practice_plays").insert(row);
+    }
+    return first;
   });
 }
 

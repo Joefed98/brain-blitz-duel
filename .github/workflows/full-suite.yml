@@ -86,7 +86,7 @@ jobs:
       fail-fast: false
       matrix:
         # Keys must be the browser (play*) shards of .github/ci/shards.ts (ci-shards-check compares them).
-        shard: [play1, play2, play3, play4, play5, play6, play7, play8, play9, play10, play11, play12, play13, play14, play15, play16, play17, play18, play19, play20, play21]
+        shard: [play1, play2, play3, play4, play5, play6, play7, play8, play9, play10, play11, play12, play13, play14, play15, play16, play17, play18, play19, play20, play21, play22, play23, play24, play25]
     env:
       CHECKS_FULL: ${{ inputs.full && '1' || '' }}
     steps:

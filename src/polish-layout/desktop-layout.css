@@ -1,0 +1,705 @@
+/*
+ * The computer layout, chess.com style (31 Oct 2026, presentation only; docs/desktop-layout.md).
+ *
+ * Breakpoints (src/lib/layoutMode.ts; the same queries here): 1024 px wide and up with a mouse or
+ * trackpad is the desktop layout, 700 px and up otherwise a simpler two-column tablet layout (pages
+ * only; game screens as on a phone), under 700 px the phone layout, unchanged. Both wider layouts need a
+ * window at least 500 px tall (a phone turned to landscape keeps the phone layout). PhoneShell marks the screen `data-layout` (only off the phone), so every rule here is
+ * scoped to it and no phone ever matches one.
+ *
+ * Desktop:
+ * - the 240 px left rail on the four tab pages (AppRail, replacing the bottom tab bar), a 76 px icon rail
+ *   on rooms and games;
+ * - the tab pages: the 112 px banner slot over Play, Practice and Tournaments (only when it has a house
+ *   promotion), the page and a 320 px right column (PageAside);
+ * - rooms: the room's screen in the centre and its 380 px right panel (RoomPanel);
+ * - games by desktop mode (desktopModes.ts, `data-desktop-mode`): `wide` a wider, taller column the
+ *   board re-flows into; `tall` the full height with the game's scenery out to both sides, faded at
+ *   the edges; `rotate` the whole centre, the world turned 90° clockwise in its rotor.
+ * desktop-layout-check proves it at 1440×900, 1920×1080 and 1024×768, and the phones unchanged.
+ */
+
+:root {
+  --dk-rail: 240px;
+  --dk-rail-compact: 76px;
+  --dk-aside: 320px;
+  --dk-panel: 380px;
+}
+
+/* ------------------------------------------------------------------ the rail */
+
+.dk-rail {
+  position: fixed;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  z-index: 40;
+  display: flex;
+  width: var(--dk-rail);
+  flex-direction: column;
+  gap: 18px;
+  padding: 20px 14px 16px;
+  border-right: 1px solid var(--ap-divider, #26262c);
+  background: var(--screen-edge, #070709);
+  color: var(--ap-text-2, #a09da6);
+  font-family: var(--ap-font, system-ui, sans-serif);
+}
+.dk-rail[data-app-rail="compact"] {
+  width: var(--dk-rail-compact);
+  align-items: center;
+  padding-inline: 8px;
+}
+.dk-rail-logo {
+  display: flex;
+  height: 44px;
+  align-items: center;
+  padding-inline: 10px;
+  border-radius: 12px;
+}
+.dk-rail[data-app-rail="compact"] .dk-rail-logo {
+  justify-content: center;
+  padding: 0;
+  width: 56px;
+}
+.dk-rail-tabs {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.dk-rail-tab {
+  display: flex;
+  height: 48px;
+  align-items: center;
+  gap: 14px;
+  padding-inline: 12px;
+  border-radius: 12px;
+  color: var(--ap-text-2, #a09da6);
+  font-size: 16px;
+  font-weight: 700;
+  text-decoration: none;
+}
+.dk-rail[data-app-rail="compact"] .dk-rail-tab {
+  width: 56px;
+  justify-content: center;
+  padding: 0;
+}
+.dk-rail-tab:hover {
+  background: var(--ap-panel, #17171b);
+  color: var(--ap-text, #f3f1ec);
+}
+.dk-rail-tab[aria-current="page"] {
+  background: var(--ap-panel, #17171b);
+  color: var(--ap-gold, #f7bf2f);
+}
+.dk-rail-foot {
+  display: flex;
+  margin-top: auto;
+  flex-direction: column;
+  gap: 10px;
+}
+.dk-rail[data-app-rail="compact"] .dk-rail-foot {
+  align-items: center;
+}
+.dk-rail-search {
+  position: relative;
+}
+.dk-rail-search .ap-input {
+  height: 44px;
+  padding-left: 38px;
+  font-size: 15px;
+}
+.dk-rail-search-icon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  width: 18px;
+  height: 18px;
+  transform: translateY(-50%);
+  pointer-events: none;
+  color: var(--ap-faint, #8e8b94);
+}
+.dk-rail-account {
+  display: flex;
+  min-width: 0;
+  height: 48px;
+  align-items: center;
+  gap: 10px;
+  padding-inline: 10px;
+  border-radius: 12px;
+  color: var(--ap-text, #f3f1ec);
+  font-size: 15px;
+  font-weight: 700;
+  text-decoration: none;
+}
+.dk-rail[data-app-rail="compact"] .dk-rail-account {
+  width: 56px;
+  justify-content: center;
+  padding: 0;
+}
+.dk-rail-account:hover {
+  background: var(--ap-panel, #17171b);
+}
+.dk-rail-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.dk-rail-tools {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding-inline: 4px;
+}
+.dk-rail-icon {
+  display: inline-flex;
+  width: 44px;
+  height: 44px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  color: var(--ap-text-2, #a09da6);
+}
+.dk-rail-icon:hover {
+  background: var(--ap-panel, #17171b);
+  color: var(--ap-text, #f3f1ec);
+}
+
+/* ------------------------------------------------------------------ banner and right column */
+
+.dk-banner {
+  display: flex;
+  height: 112px;
+  align-items: center;
+  gap: 20px;
+  padding: 0 28px;
+  border: 1px solid var(--ap-outline, #2e2e35);
+  border-radius: 16px;
+  background:
+    radial-gradient(120% 140% at 0% 0%, rgb(247 191 47 / 0.16), transparent 60%),
+    var(--ap-panel, #17171b);
+}
+.dk-banner-icon {
+  width: 32px;
+  height: 32px;
+  flex: none;
+  color: var(--ap-gold, #f7bf2f);
+}
+.dk-banner-text {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  gap: 6px;
+}
+.dk-banner-title {
+  overflow: hidden;
+  font-size: 22px;
+  font-weight: 800;
+  line-height: 1.15;
+  color: var(--ap-text, #f3f1ec);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.dk-banner-line {
+  overflow: hidden;
+  font-size: 15px;
+  color: var(--ap-text-2, #a09da6);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.dk-banner-action {
+  display: inline-flex;
+  height: 44px;
+  flex: none;
+  align-items: center;
+  gap: 6px;
+  padding-inline: 18px;
+  font-size: 15px;
+}
+.dk-aside {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 24px;
+}
+.dk-week {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+}
+.dk-week-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 14px 16px;
+}
+.dk-week-cell:nth-child(n + 3) {
+  border-top: 1px solid var(--ap-divider, #26262c);
+}
+.dk-week-cell:nth-child(2n) {
+  border-left: 1px solid var(--ap-divider, #26262c);
+}
+.dk-week-value {
+  font-family: "Duelz Mono", ui-monospace, monospace;
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--ap-text, #f3f1ec);
+}
+.dk-week-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ap-text-2, #a09da6);
+}
+
+/* ------------------------------------------------------------------ tablet: 700–1023 px */
+
+@media (min-width: 700px) and (min-height: 500px) {
+  /* Tab pages: the page and its side column, the header and bottom tab bar as on a phone. */
+  [data-layout="tablet"][data-tab-screen] > [data-shell-column="page"] {
+    display: grid;
+    max-width: 980px;
+    grid-template-columns: minmax(0, 1fr) 280px;
+    align-content: start;
+    align-items: start;
+    column-gap: 24px;
+    padding-inline: 24px;
+  }
+  [data-layout="tablet"][data-tab-screen] > [data-shell-column="page"] > * {
+    grid-column: 1;
+  }
+  [data-layout="tablet"][data-tab-screen] > [data-shell-column="page"] > [data-app-header] {
+    grid-column: 1 / -1;
+  }
+  [data-layout="tablet"][data-tab-screen] > [data-shell-column="page"] > [data-page-aside] {
+    grid-column: 2;
+    grid-row: 2 / span 40;
+  }
+  [data-layout="tablet"] .app-tabbar-row {
+    max-width: 640px;
+  }
+  /* Rooms and other pages: a wider centred column. */
+  [data-layout="tablet"]:not([data-tab-screen]) > [data-shell-column="page"] {
+    max-width: 600px;
+  }
+  /* Game screens are exactly the phone's on a tablet (no rule here). */
+}
+
+/* ------------------------------------------------------------------ desktop: 1024 px and up */
+
+@media (min-width: 1024px) and (min-height: 500px) and (hover: hover) and (pointer: fine) {
+  /* Tab pages: the rail, then the banner over the page and its 320 px right column. */
+  [data-layout="desktop"][data-tab-screen] {
+    padding-left: var(--dk-rail);
+  }
+  [data-layout="desktop"][data-tab-screen] > [data-shell-column="page"] {
+    display: grid;
+    max-width: 1240px;
+    grid-template-columns: minmax(0, 1fr) var(--dk-aside);
+    align-content: start;
+    align-items: start;
+    column-gap: 32px;
+    padding: 28px 32px 40px;
+  }
+  [data-layout="desktop"][data-tab-screen] > [data-shell-column="page"] > * {
+    grid-column: 1;
+  }
+  [data-layout="desktop"][data-tab-screen] > [data-shell-column="page"] > [data-banner-slot] {
+    grid-column: 1 / -1;
+    grid-row: 1;
+    margin-bottom: 28px;
+  }
+  [data-layout="desktop"][data-tab-screen] > [data-shell-column="page"] > [data-page-aside] {
+    grid-column: 2;
+    grid-row: 1 / span 40;
+  }
+  [data-layout="desktop"][data-tab-screen] > [data-shell-column="page"]:has(> [data-banner-slot]) > [data-page-aside] {
+    grid-row: 2 / span 40;
+  }
+  html:has([data-layout="desktop"][data-tab-screen]) {
+    scroll-padding-bottom: 16px;
+  }
+
+  /* Practice: the switch, search and chips in one row; the games a grid of large cards, 3–5 across. */
+  [data-layout="desktop"] [data-practice-tools] {
+    display: grid;
+    grid-template-columns: minmax(220px, 280px) minmax(0, 1fr);
+    grid-template-areas: "switch search" "chips chips";
+    align-items: center;
+    gap: 12px 16px;
+  }
+  [data-layout="desktop"] [data-practice-tools] > [data-practice-switch] {
+    grid-area: switch;
+  }
+  [data-layout="desktop"] [data-practice-tools] > [data-practice-search] {
+    grid-area: search;
+    display: contents;
+  }
+  [data-layout="desktop"] [data-practice-tools] > [data-practice-search] > .relative {
+    grid-area: search;
+  }
+  [data-layout="desktop"] [data-practice-tools] > [data-practice-search] > [role="group"] {
+    grid-area: chips;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  [data-layout="desktop"] [data-practice-tools] .ap-chip {
+    width: auto;
+    padding-inline: 16px;
+  }
+  [data-layout="desktop"] :is([data-practice-group], [data-practice-retired]) > .ap-panel {
+    display: grid;
+    /* 176 px cards, never fewer than 3 or more than 5 across (1024 px windows to 1920 px screens). */
+    grid-template-columns: repeat(auto-fill, minmax(clamp(calc((100% - 56px) / 5), 176px, calc((100% - 28px) / 3)), 1fr));
+    gap: 14px;
+    padding: 0;
+    border: 0;
+    background: transparent;
+  }
+  [data-layout="desktop"] :is([data-practice-group], [data-practice-retired]) .ap-row {
+    position: relative;
+    display: flex;
+    min-height: 0;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+    padding: 12px;
+    border: 1px solid var(--ap-divider, #26262c);
+    border-radius: 16px;
+    background: var(--ap-panel, #17171b);
+    text-align: left;
+  }
+  [data-layout="desktop"] :is([data-practice-group], [data-practice-retired]) .ap-row::before,
+  [data-layout="desktop"] :is([data-practice-group], [data-practice-retired]) .ap-row::after {
+    display: none;
+  }
+  [data-layout="desktop"] :is([data-practice-group], [data-practice-retired]) .ap-row:hover {
+    border-color: var(--ap-outline, #2e2e35);
+    filter: none;
+    background: #1d1d22;
+  }
+  [data-layout="desktop"] :is([data-practice-group], [data-practice-retired]) .ap-row > .game-icon {
+    width: 100% !important;
+    height: auto !important;
+    aspect-ratio: 1;
+    border-radius: 14%;
+  }
+  [data-layout="desktop"] :is([data-practice-group], [data-practice-retired]) .ap-row-title {
+    font-size: 16px;
+    flex: none;
+  }
+  [data-layout="desktop"] :is([data-practice-group], [data-practice-retired]) .ap-col-label {
+    display: none;
+  }
+  [data-layout="desktop"] [data-practice-group] .ap-col-head .ap-col-label {
+    display: none;
+  }
+
+  /* Rooms and games: the 76 px icon rail; a room adds its 380 px panel on the right. */
+  [data-layout="desktop"]:not([data-tab-screen]) {
+    padding-left: var(--dk-rail-compact);
+  }
+  [data-layout="desktop"][data-room-panel] {
+    padding-right: var(--dk-panel);
+  }
+  [data-layout="desktop"]:not([data-tab-screen]) > [data-shell-column="page"] {
+    max-width: 760px;
+    padding-inline: 24px;
+  }
+  .dk-room-panel {
+    position: fixed;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    z-index: 40;
+    display: flex;
+    width: var(--dk-panel);
+    flex-direction: column;
+    gap: 18px;
+    overflow: hidden;
+    padding: 20px 20px 24px;
+    border-left: 1px solid var(--ap-divider, #26262c);
+    background: var(--screen-edge, #070709);
+    color: var(--ap-text, #f3f1ec);
+    font-family: var(--ap-font, system-ui, sans-serif);
+  }
+
+  /* Games: the column by desktop mode. The arcade fill runs out to both sides, faded at the edges. */
+  [data-layout="desktop"].game-screen > [data-shell-column="game"] {
+    width: 100%;
+    margin-inline: auto;
+  }
+  [data-layout="desktop"][data-desktop-mode="wide"]:not([data-arcade-play]) > [data-shell-column="game"] {
+    max-width: 760px;
+    max-height: 1100px;
+  }
+  [data-layout="desktop"][data-arcade-play][data-desktop-mode="wide"] > [data-shell-column="game"] {
+    max-width: 960px;
+    max-height: none;
+  }
+  /* Tall and rotated worlds are capped so a canvas stays a size every desktop draws at 60 fps
+     (arcade-play-check --desktop: rotated worlds capped at 1,000 px across; a turned world across the whole 1,844 px centre at 1920 wide, or Apex 760
+     wide, drew at 30-40 fps); the scenery still runs out to the edges. */
+  [data-layout="desktop"][data-arcade-play][data-desktop-mode="tall"] > [data-shell-column="game"] {
+    max-width: 640px;
+    max-height: none;
+  }
+  [data-layout="desktop"][data-arcade-play][data-desktop-mode="rotate"] > [data-shell-column="game"] {
+    max-width: 1000px;
+    max-height: none;
+  }
+  /* The scenery's soft edges: one static gradient layer over the scene (and under the column), from the
+     screen edge's black at the rail and panel to clear 140 px in; a mask on the scene itself cost every frame. */
+  [data-layout="desktop"][data-arcade-play] > [data-dk-fade] {
+    --dk-edge-l: var(--dk-rail-compact);
+    --dk-edge-r: 0px;
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+    background: linear-gradient(to right, var(--screen-edge) var(--dk-edge-l), transparent calc(var(--dk-edge-l) + 140px), transparent calc(100% - var(--dk-edge-r) - 140px), var(--screen-edge) calc(100% - var(--dk-edge-r)));
+  }
+  [data-layout="desktop"][data-arcade-play][data-room-panel] > [data-dk-fade] {
+    --dk-edge-r: var(--dk-panel);
+  }
+
+  /* A game whose desktop world is capped (desktopModes.ts maxWorldWidth, Apex): its arena slot no wider, centred. */
+  [data-layout="desktop"][data-desktop-cap] [data-arena-slot] {
+    max-width: var(--dk-world-max);
+    margin-inline: auto;
+  }
+  /* Centred down its column too, its backdrop above and below. */
+  [data-layout="desktop"][data-desktop-cap] [data-arena-slot] > [data-game-arena] {
+    margin-block: auto;
+  }
+  [data-layout="desktop"][data-desktop-cap] [data-arena-slot]::after {
+    flex: 0 0 0;
+  }
+
+  /* The rotor (rotate mode): the world's own box, W·s × H·s on whole pixels, turned 90° clockwise about
+     its top-left corner and moved so its turned footprint (H·s × W·s) is centred in the slot. */
+  [data-arena-slot][data-arena-rotate] {
+    position: relative;
+  }
+  [data-arena-rotor] {
+    --rw: round(down, min(100cqw * var(--arena-w) / var(--arena-h), 100cqh), 2px);
+    --rh: round(down, min(100cqw, 100cqh * var(--arena-h) / var(--arena-w)), 2px);
+    position: absolute;
+    left: 0;
+    top: 0;
+    display: flex;
+    width: var(--rw);
+    height: var(--rh);
+    flex-direction: column;
+    transform-origin: 0 0;
+    transform: translate(calc(round(down, (100cqw - var(--rh)) / 2, 1px) + var(--rh)), round(down, (100cqh - var(--rw)) / 2, 1px)) rotate(90deg);
+  }
+  [data-arena-rotor] > [data-game-arena] {
+    width: 100%;
+    height: 100%;
+    flex: none;
+  }
+}
+
+/* ------------------------------------------------------------------ the room panel (desktop only) */
+
+@media (min-width: 1024px) and (min-height: 500px) and (hover: hover) and (pointer: fine) {
+  /* The lobby uses the extra width: four players across, the settings line on one row. */
+  [data-layout="desktop"] .rs-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+  .dk-rp-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .dk-rp-label,
+  .dk-rp-meta {
+    min-width: 0;
+    overflow: hidden;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--ap-text-2, #a09da6);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .dk-rp-code {
+    font-family: "Duelz Mono", ui-monospace, monospace;
+    font-size: 30px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    color: var(--ap-text, #f3f1ec);
+  }
+  .dk-rp-section {
+    display: flex;
+    min-height: 0;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .dk-rp-grow {
+    flex: 1 1 0;
+  }
+  .dk-rp-row {
+    display: flex;
+    min-width: 0;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .dk-rp-title {
+    flex: none;
+    font-size: 17px;
+    font-weight: 800;
+    color: var(--ap-text, #f3f1ec);
+  }
+  .dk-rp-progress {
+    display: flex;
+    gap: 4px;
+  }
+  .dk-rp-seg {
+    height: 8px;
+    flex: 1;
+    border-radius: 4px;
+    background: var(--cat, #3a3a42);
+    opacity: 0.28;
+  }
+  .dk-rp-seg[data-round-state="done"] {
+    opacity: 1;
+  }
+  .dk-rp-seg[data-round-state="now"] {
+    opacity: 1;
+    box-shadow: 0 0 0 2px #070709, 0 0 0 3px var(--cat, #f3f1ec);
+  }
+  .dk-rp-list {
+    display: flex;
+    min-height: 0;
+    flex-direction: column;
+    gap: 2px;
+    overflow-y: auto;
+  }
+  .dk-rp-player {
+    display: flex;
+    min-width: 0;
+    height: 34px;
+    flex: none;
+    align-items: center;
+    gap: 10px;
+    padding-inline: 8px;
+    border-radius: 10px;
+  }
+  .dk-rp-player[data-me] {
+    background: var(--ap-panel, #17171b);
+  }
+  .dk-rp-place {
+    width: 20px;
+    flex: none;
+    font-family: "Duelz Mono", ui-monospace, monospace;
+    font-size: 13px;
+    color: var(--ap-text-2, #a09da6);
+    text-align: right;
+  }
+  .dk-rp-name-wrap {
+    display: flex;
+    min-width: 0;
+    flex: 1;
+    align-items: baseline;
+    gap: 8px;
+  }
+  .dk-rp-name {
+    min-width: 0;
+    overflow: hidden;
+    font-size: 15px;
+    font-weight: 700;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .dk-rp-status {
+    flex: none;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--ap-text-2, #a09da6);
+  }
+  .dk-rp-player[data-state="finished"] .dk-rp-status {
+    color: #5be3a0;
+  }
+  .dk-rp-score {
+    flex: none;
+    font-family: "Duelz Mono", ui-monospace, monospace;
+    font-size: 15px;
+    font-weight: 700;
+  }
+  .dk-rp-chat {
+    flex: none;
+    max-height: 38%;
+  }
+  .dk-rp-quiet {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    color: var(--ap-faint, #8e8b94);
+  }
+  .dk-rp-messages {
+    display: flex;
+    min-height: 60px;
+    flex-direction: column;
+    gap: 6px;
+    overflow-y: auto;
+    font-size: 14px;
+  }
+  .dk-rp-msg-name {
+    font-weight: 700;
+    color: var(--ap-text-2, #a09da6);
+  }
+  .dk-rp-send {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .dk-rp-send .ap-input {
+    height: 44px;
+    font-size: 15px;
+  }
+}
+
+/* The controls hint on a live round (DesktopControlsHint; desktop with a mouse only): in the free space left
+   of the play column, under the header (never over the game, its HUD or controls); it fades after 8 s and
+   never takes a click. */
+.dk-controls-hint {
+  position: fixed;
+  left: calc(var(--dk-rail-compact) + 16px);
+  top: 76px;
+  z-index: 45;
+  display: flex;
+  max-width: 300px;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px 14px;
+  border: 1px solid #2e2e35;
+  border-radius: 12px;
+  background: rgb(7 7 9 / 0.92);
+  color: #d6d3dc;
+  font-size: 13px;
+  line-height: 1.3;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 600ms ease;
+}
+.dk-controls-hint[data-shown] {
+  opacity: 1;
+}
+.dk-controls-hint kbd {
+  display: inline-block;
+  min-width: 20px;
+  margin-right: 4px;
+  padding: 0 5px;
+  border: 1px solid #3a3a42;
+  border-bottom-width: 2px;
+  border-radius: 4px;
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 12px;
+  line-height: 18px;
+  text-align: center;
+  color: #f3f1ec;
+}

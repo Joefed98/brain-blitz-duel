@@ -16,11 +16,28 @@ import {
 import { NO_SCROLL_STYLE, useNoTouchScroll } from "@/components/puzzles/noScroll";
 import { ArcadeArenaSlot } from "@/components/puzzles/ArcadeArenaSlot";
 import type { ArenaAmbient, ArenaSceneView } from "@/lib/arcade/arenaScene.renderer";
-import { arcadeWorldPoint } from "@/components/puzzles/tapMapping";
+import { arcadeWorldPoint, arenaPointer, arenaSize } from "@/components/puzzles/tapMapping";
 import { arcadeFeedback } from "@/lib/fx/arcade";
 import { arcadeCanvasRatio } from "@/lib/fx/lowEnd";
 import { useGameKeys } from "@/lib/desktop";
 import { arenaFrame, cancelArenaFrame } from "@/lib/battery";
+import { useDesktopPresentation } from "@/lib/desktopPresentation";
+
+/**
+ * Checks only (desktop-fairness-check): when a page sets `window.__duelzWorldPoints` to an array, every
+ * pointer position the stage maps is pushed onto it, so a check can compare the world points a phone
+ * and the desktop presentation give for the same gesture. Never set by the app.
+ */
+function probeInput(point: { x: number; y: number } | null): void {
+  const list = typeof window !== "undefined" ? (window as unknown as { __duelzWorldPoints?: unknown[] }).__duelzWorldPoints : undefined;
+  if (Array.isArray(list)) list.push(point);
+}
+
+/** Checks only, as probeInput: every payload a pointer gesture queues, onto `window.__duelzPayloads`. */
+function probePayload(payload: PointerPayload): void {
+  const list = typeof window !== "undefined" ? (window as unknown as { __duelzPayloads?: unknown[] }).__duelzPayloads : undefined;
+  if (Array.isArray(list)) list.push({ ...payload });
+}
 
 export interface PointerPayload {
   /** Event kind for the pointer/tick path (default 7, a drag); discrete games use inputKind. */
@@ -83,6 +100,12 @@ interface Props<S, C> {
   completeCue?: (state: S) => string | null;
   /** Render-side sound observer, created per run and stopped on teardown. */
   sounds?: () => { frame: (state: S, running: boolean) => void; stop: () => void };
+  /**
+   * The desktop rotate mode only (31 Oct 2026; Cue Ball): HUD chips drawn upright on their own strip above the
+   * turned world, `height` CSS px tall, in world px `worldW` wide centred (the game leaves them off its turned
+   * canvas). Never drawn anywhere else: on a phone the game draws its HUD on its canvas exactly as before.
+   */
+  hud?: { height: number; worldW: number; draw: (ctx: CanvasRenderingContext2D, state: S) => void };
   /** Controls drawn over the canvas (absolute), never shrinking the play area; a function gets the same `send` as `footer`. */
   overlay?: ReactNode | ((send: (payload: PointerPayload) => void) => ReactNode);
   /** Controls below the canvas which can enqueue the same recorded inputs as pointer gestures. */
@@ -107,6 +130,8 @@ export function ArcadeCanvasStage<S, C>(props: Props<S, C>) {
   const { game, seed, enabled } = props;
   const wrap = useRef<HTMLDivElement | null>(null);
   const canvas = useRef<HTMLCanvasElement | null>(null);
+  const hudCanvas = useRef<HTMLCanvasElement | null>(null);
+  const rotated = useDesktopPresentation().rotate;
   const frameTiming = useArcadeFrameTiming(canvas);
   const state = useRef<S>(game.init(seed));
   const events = useRef<ArcadeInputEvent[]>([]);
@@ -237,6 +262,26 @@ export function ArcadeCanvasStage<S, C>(props: Props<S, C>) {
           ctx.restore();
         }
       }
+      // The upright HUD strip beside a turned world (the desktop rotate mode only).
+      const hud = propsRef.current.hud;
+      const strip = hudCanvas.current;
+      if (hud && strip && strip.clientWidth > 0) {
+        const ratio = arcadeCanvasRatio();
+        const w = strip.clientWidth;
+        const h = strip.clientHeight;
+        if (strip.width !== Math.round(w * ratio) || strip.height !== Math.round(h * ratio)) {
+          strip.width = Math.round(w * ratio);
+          strip.height = Math.round(h * ratio);
+        }
+        const hctx = strip.getContext("2d");
+        if (hctx) {
+          hctx.setTransform(1, 0, 0, 1, 0, 0);
+          hctx.clearRect(0, 0, strip.width, strip.height);
+          const k = Math.min(1.25, w / hud.worldW);
+          hctx.setTransform(ratio * k, 0, 0, ratio * k, ratio * (w - hud.worldW * k) / 2, ratio * (h - 32 * k) / 2);
+          hud.draw(hctx, state.current);
+        }
+      }
       frameTiming.rendered();
 
       if (!submitted.current && time - draftAt >= 500) {
@@ -256,7 +301,8 @@ export function ArcadeCanvasStage<S, C>(props: Props<S, C>) {
 
   const sizeCanvas = (): CanvasSize | null => {
     const node = canvas.current;
-    const box = wrap.current?.getBoundingClientRect();
+    // The arena's own size (a rotated arena's screen box is turned; tapMapping.ts arenaSize).
+    const box = arenaSize(wrap.current);
     if (!node || !box || box.width < 1 || box.height < 1) return null;
     const ratio = arcadeCanvasRatio();
     const width = Math.round(box.width);
@@ -276,10 +322,15 @@ export function ArcadeCanvasStage<S, C>(props: Props<S, C>) {
   /** Screen point to world point, or null outside the drawn play area. */
   const worldPoint = (clientX: number, clientY: number, clamp: boolean) => {
     const { worldW, worldH } = propsRef.current;
-    return arcadeWorldPoint(wrap.current?.getBoundingClientRect(), clientX, clientY, worldW, worldH, clamp);
+    // Through the arena's own box: a rotated arena (desktop rotate mode) maps back through the turn.
+    const at = arenaPointer(wrap.current, clientX, clientY);
+    const point = arcadeWorldPoint(at.box, at.x, at.y, worldW, worldH, clamp);
+    probeInput(point);
+    return point;
   };
 
   const push = (payload: PointerPayload) => {
+    probePayload(payload);
     if (props.discrete) {
       if (queue.current.length < 4) queue.current.push(payload);
     } else wanted.current = payload;
@@ -346,6 +397,9 @@ export function ArcadeCanvasStage<S, C>(props: Props<S, C>) {
 
   return (
     <>
+    {rotated && props.hud ? (
+      <canvas ref={hudCanvas} data-arena-hud="" aria-hidden="true" className="block w-full shrink-0" style={{ height: props.hud.height }} />
+    ) : null}
     {props.fitWorld ? (
       <ArcadeArenaSlot
         width={props.worldW}

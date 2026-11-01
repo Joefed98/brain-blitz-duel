@@ -64,6 +64,9 @@ import { noteSignatureSubmit, signatureHoldUntil } from "@/lib/fx/signature";
 import { useSignatureVerdict } from "@/lib/fx/useSignature";
 import { GameIcon } from "@/components/app/GameIcon";
 import { notePracticePlayed, recentPracticeTypes } from "@/lib/duel/practiceRecent";
+import { useLayoutMode } from "@/lib/layoutMode";
+import { inputTypeField } from "@/lib/inputType";
+import { PageAside } from "@/components/app/PageAside";
 import type { PuzzleCategory } from "@/lib/duel/types";
 import { ARCADE_GROUPS, arcadeGroupInfo, arcadeGroupOf, arcadeGroupTypes, type ArcadeGroup } from "@/lib/duel/arcadeGroups";
 import {
@@ -106,8 +109,11 @@ function withTimeout<T>(work: Promise<T>, ms: number): Promise<T> {
 export const Route = createFileRoute("/practice")({
   ssr: false,
   // ?game=<type>: open that game's round at once (the Play tab's Warm up tiles).
-  validateSearch: (search: Record<string, unknown>): { game?: string } =>
-    typeof search["game"] === "string" ? { game: search["game"] } : {},
+  validateSearch: (search: Record<string, unknown>): { game?: string; q?: string } => ({
+    ...(typeof search["game"] === "string" ? { game: search["game"] } : {}),
+    // The desktop rail's search (AppRail) opens the list with its words typed.
+    ...(typeof search["q"] === "string" && search["q"] ? { q: search["q"] } : {}),
+  }),
   head: () => ({
     meta: [
       { title: `${APP_NAME} practice — try any game` },
@@ -218,7 +224,8 @@ function matchesFilter(type: PuzzleType, side: PracticeSide, filter: PracticeFil
   const group = arcadeGroupOf(type);
   if (filter !== "all") {
     if (side === "puzzles" && definition.category !== filter) return false;
-    if (side === "arcade" && group !== filter) return false;
+    // A group's chip lists its active games; a retired one (Full House, 1 Nov 2026) is under All games' Retired, as Scrumper.
+    if (side === "arcade" && (group !== filter || RETIRED_PUZZLE_TYPES.includes(type))) return false;
   }
   const q = query.trim().toLowerCase();
   if (q === "") return true;
@@ -243,7 +250,13 @@ function PracticeScreen() {
   const [side, setSideState] = useState<PracticeSide>(readPracticeSide);
   const [puzzleFilter, setPuzzleFilter] = useState<PracticeFilter>("all");
   const [arcadeFilter, setArcadeFilter] = useState<ArcadeFilter>("all");
-  const [query, setQuery] = useState("");
+  const layoutMode = useLayoutMode();
+  const desktop = layoutMode === "desktop";
+  const railQuery = (Route.useSearch() as { q?: string }).q;
+  const [query, setQuery] = useState(() => railQuery ?? "");
+  useEffect(() => {
+    if (railQuery !== undefined) setQuery(railQuery);
+  }, [railQuery]);
   // The switch: remembered on this device; the search starts empty on the other side.
   const setSide = useCallback((next: PracticeSide) => {
     rememberPracticeSide(next);
@@ -487,6 +500,7 @@ function PracticeScreen() {
             answer,
             msRemaining: remaining,
             clientVersion: APP_BUILD_ID,
+            ...inputTypeField(),
             extra: {
               reactionAvgMs: meta?.reactionAvgMs,
               correctCount: meta?.correctCount,
@@ -668,15 +682,11 @@ function PracticeScreen() {
     // A chosen group with no games yet (Cards & Board until its games are registered).
     const emptyGroup =
       side === "arcade" && arcadeFilter !== "all" && query.trim() === "" && matches.length === 0 ? arcadeGroupInfo(arcadeFilter) : null;
-    return (
-      <PhoneShell tabs="practice">
-        <PendingTypes.Provider value={pendingTypes}>
-          <div className="ap-stack">
-            <div className="flex flex-col gap-3">
-              <h1 className="ap-title">Practice</h1>
-              <DevKeyStatus status={demoStatus} />
-              {/* Puzzles | Arcade: one tab, two sides; the counts are the registry's active games. */}
-              <div role="group" aria-label="Game type" data-practice-switch={side} className="ap-switch">
+    // Puzzles | Arcade: one tab, two sides; the counts are the registry's active games. On the desktop
+    // layout it joins the search and chips in one row (data-practice-tools, polish-layout/desktop-layout.css).
+    const switchRow = (
+      <div role="group" aria-label="Game type" data-practice-switch={side} className="ap-switch">
+
                 {(["puzzles", "arcade"] as const).map((option) => (
                   <button
                     key={option}
@@ -692,6 +702,15 @@ function PracticeScreen() {
                   </button>
                 ))}
               </div>
+    );
+    return (
+      <PhoneShell tabs="practice" aside={<PageAside panels={["public", "daily", "week"]} />}>
+        <PendingTypes.Provider value={pendingTypes}>
+          <div className="ap-stack">
+            <div className="flex flex-col gap-3">
+              <h1 className="ap-title">Practice</h1>
+              <DevKeyStatus status={demoStatus} />
+              {desktop ? null : switchRow}
             </div>
 
             {/* Offline practice: Add to Home Screen (iPhone Safari only, shown from <html data-offline-install>). */}
@@ -720,7 +739,9 @@ function PracticeScreen() {
               </label>
             ) : null}
 
-            <div className="flex flex-col gap-3">
+            <div data-practice-tools={desktop ? "" : undefined} className="flex flex-col gap-3">
+              {desktop ? switchRow : null}
+              <div data-practice-search={desktop ? "" : undefined} className="contents">
               <div className="relative">
                 <Search
                   aria-hidden="true"
@@ -775,6 +796,7 @@ function PracticeScreen() {
                   ))}
                 </div>
               )}
+              </div>
             </div>
 
             {recentRows.length > 0 ? (
@@ -830,7 +852,7 @@ function PracticeScreen() {
             )}
 
             {retiredRows.length > 0 && (
-              <details className="flex flex-col gap-2.5" open={query.trim() !== "" || undefined}>
+              <details data-practice-retired className="flex flex-col gap-2.5" open={query.trim() !== "" || undefined}>
                 <summary className="ap-section-title th-hit press cursor-pointer">
                   Retired ({retiredRows.length})
                 </summary>

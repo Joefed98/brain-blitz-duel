@@ -12,7 +12,8 @@ import { DropoutBanner, LeaveGameButton } from "@/components/duel/DropoutBanner"
 import { JoinFromLink } from "@/components/duel/JoinFromLink";
 import { CategoryPill } from "@/components/app/CategoryPill";
 import { FinalResult } from "@/components/duel/FinalResult";
-import { GameLayout, PhoneShell, isArcadeScreenType } from "@/components/duel/PhoneShell";
+import { GameLayout, PhoneShell, RoomPanelSlot, isArcadeScreenType } from "@/components/duel/PhoneShell";
+import { RoomPanel } from "@/components/duel/RoomPanel";
 import { SteadyOrPlain } from "@/components/duel/SteadyStage";
 import { useDemoKey } from "@/components/duel/SaveDemoButton";
 import { PuzzleHelp, PuzzleHelpButton } from "@/components/duel/PuzzleInstructions";
@@ -879,12 +880,39 @@ function DuelScreen() {
   const leaveAction =
     duel.status === "in_progress" && !isHost ? <LeaveGameButton onLeave={handleLeave} /> : undefined;
 
+  // The computer layout's room panel (31 Oct 2026, presentation only): drawn by PhoneShell on the right
+  // from 1024 px wide (RoomPanelSlot), never on a phone or tablet; every screen below supplies it.
+  const inRound = duel.status === "in_progress" && ["intro", "starting", "round_title", "puzzle", "reveal"].includes(phase);
+  const panelRows =
+    duel.status === "waiting"
+      ? roomPlayers.map((p, i) => ({ slot: p.player_slot, name: p.display_name, total: 0, position: i + 1 }))
+      : table.map((r) => ({ slot: r.slot, name: r.name, total: r.total, position: r.position }));
+  const roomPanel = (
+    <RoomPanel
+      roomCode={duel.room_code}
+      round={round}
+      totalRounds={duel.round_count ?? TOTAL_ROUNDS}
+      roundOrder={duel.round_order ?? []}
+      status={duel.status as "waiting" | "in_progress" | "finished"}
+      inRound={inRound}
+      rows={panelRows}
+      players={roomPlayers}
+      mySlot={mySlot}
+      myAnswered={!!myResult}
+      looks={looks}
+      chat={chat}
+      chatAvailable={chatAvailable}
+      myUserId={me.user_id}
+    />
+  );
+  const withPanel = (node: React.ReactNode) => <RoomPanelSlot.Provider value={roomPanel}>{node}</RoomPanelSlot.Provider>;
+
   if (duel.status === "waiting") {
     // Disband room (host) and Leave room (guests) are in the header's "⋯" menu (Polish batch R).
     const lobbyMenu: RoomMenuItem[] = isHost
       ? [{ label: "Disband room", danger: true, onSelect: () => setConfirmDisband(true) }]
       : [{ label: "Leave room", danger: true, onSelect: () => setConfirmLeave(true) }];
-    return (
+    return withPanel(
       <PhoneShell skin="room" topAction={<RoomMenu items={lobbyMenu} />}>
         <RoomChatSlot.Provider value={chatButton}>
         <div className="flex flex-1 flex-col gap-5 pt-1 text-left">
@@ -952,7 +980,7 @@ function DuelScreen() {
     // Leave (Home) is in the header's "⋯" menu (Polish batch R).
     const finalMenu = <RoomMenu items={[{ label: "Leave", onSelect: () => void handleLeave() }]} />;
     if (isMulti) {
-      return (
+      return withPanel(
         <div ref={podiumShell}>
           <PhoneShell skin="room" topAction={finalMenu}>
             <RoomChatSlot.Provider value={chatButton}>
@@ -977,7 +1005,7 @@ function DuelScreen() {
         </div>
       );
     }
-    return (
+    return withPanel(
       <div ref={podiumShell}>
         <PhoneShell skin="room" topAction={finalMenu}>
           <RoomChatSlot.Provider value={chatButton}>
@@ -1020,7 +1048,7 @@ function DuelScreen() {
   }
 
   if ((phase === "intro" || phase === "starting" || phase === "round_title") && puzzle) {
-    return (
+    return withPanel(
       // The intro draws the game frame's header itself (RoundIntro, Polish batch R), with a guest's "⋯" menu.
       <PhoneShell gameType={puzzle.type} bare>
         {dropout}
@@ -1054,7 +1082,7 @@ function DuelScreen() {
   }
 
   if (phase === "reveal" && puzzle) {
-    return (
+    return withPanel(
       <PhoneShell constrained gameScreen gameType={puzzle?.type}>
         <AnswerReveal
           round={round}
@@ -1104,7 +1132,7 @@ function DuelScreen() {
       Math.ceil((NEXT_ROUND_AUTO_MS - (now - (phaseStart ?? now))) / 1000),
     );
     if (isMulti) {
-      return (
+      return withPanel(
         <PhoneShell skin="room" gameType={puzzle?.type} topAction={leaveAction}>
           {dropout}
           {puzzle ? <CategoryPill category={puzzleDef(puzzle.type).category} className="self-start" /> : null}
@@ -1136,7 +1164,7 @@ function DuelScreen() {
         </PhoneShell>
       );
     }
-    return (
+    return withPanel(
       <PhoneShell skin="room" gameType={puzzle?.type} topAction={leaveAction}>
         {dropout}
         {puzzle ? <CategoryPill category={puzzleDef(puzzle.type).category} className="self-start" /> : null}
@@ -1190,7 +1218,7 @@ function DuelScreen() {
       game: puzzle?.type,
       next: round < (duel.round_count ?? TOTAL_ROUNDS) && nextType ? nextType : null,
     };
-    return (
+    return withPanel(
       <PhoneShell skin="room" gameType={puzzle?.type} topAction={leaveAction}>
         {dropout}
         {puzzle ? <CategoryPill category={puzzleDef(puzzle.type).category} className="self-start" /> : null}
@@ -1247,7 +1275,7 @@ function DuelScreen() {
       extra={chatDot}
     />
   );
-  return (
+  return withPanel(
     <PhoneShell constrained gameScreen play gameType={puzzle?.type}>
       <GameLayout
         label={`Round ${round} of ${duel.round_count ?? TOTAL_ROUNDS}`}

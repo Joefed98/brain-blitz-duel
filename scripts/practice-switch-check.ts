@@ -68,8 +68,9 @@ const BRIEF: Record<string, string[]> = {
   sports: ["Flightpath", "Swish", "Crazy Golf", "Cue Ball", "Curl Champ", "Home Run", "Top Bins", "Apex"],
   // Minesweeper and Mahjong Solitaire registered on 30 Oct 2026 (#205); the group's other ids join as they register.
   // Minesweeper shown as Minefield, and FreeCell, TriPeaks and Poker Squares as Free Cell, Summit and Full House, since
-  // 31 Oct 2026 (ids unchanged); Five Hands added.
-  cards: ["Minefield", "Free Cell", "Mahjong Solitaire", "Summit", "Full House", "Five Hands"],
+  // 31 Oct 2026 (ids unchanged); Five Hands added. Full House retired to practice on 1 Nov 2026 (Joe's decision): the
+  // group's active games are the rest (it keeps its group border, under All games' Retired).
+  cards: ["Minefield", "Free Cell", "Mahjong Solitaire", "Summit", "Five Hands"],
   action: ["Slice", "Tilt", "Gemstone", "High Rise", "Coral Pop", "Roofbound", "Rainbow Bridge", "Ball Tracker", "Grappler"],
 };
 for (const g of ARCADE_GROUPS) {

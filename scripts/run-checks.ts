@@ -25,6 +25,11 @@ const TIMEOUT_OVERRIDES: Record<string, number> = {
   "snip-check.ts": 1_800_000,
   // 22 games × ~25 s each in headless Chromium, plus starting a dev server.
   "arcade-play-check.ts": 1_500_000,
+  // The computer layout (31 Oct 2026): every arcade game at two desktop sizes (a half ~6 min); the layout's
+  // pages, rooms, phones and a third of every game's desktop mode (~4 min a part); the fairness gestures.
+  "arcade-play-desktop-check.ts": 1_500_000,
+  "desktop-layout-check.ts": 900_000,
+  "desktop-fairness-check.ts": 600_000,
   // Five stored rounds in the replay player in headless Chromium, plus starting a dev server.
   "replay-play-check.ts": 900_000,
   // 74 active games × ~10 s each in headless Chromium (4 viewports each), plus starting a dev server.

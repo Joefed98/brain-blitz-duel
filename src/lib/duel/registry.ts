@@ -110,10 +110,15 @@ import { PUZZLE_INSTRUCTIONS } from "./instructions";
 import { gameTheme, type GameTheme } from "@/lib/fx/theme";
 import { feedbackStage } from "@/components/duel/FeedbackStage";
 import { removedGameName, type RemovedPuzzleType } from "./removedGames";
+import { DESKTOP_MODES, type DesktopModeInfo } from "./desktopModes";
 
 /** The single registry of puzzle types. Add a new type by adding one entry. */
 type RegisteredPuzzleDefinition = PuzzleDefinition &
-  Required<Pick<PuzzleDefinition, "roundSummary" | "correctAnswer" | "instructions" | "retired">> & { theme: GameTheme };
+  Required<Pick<PuzzleDefinition, "roundSummary" | "correctAnswer" | "instructions" | "retired">> & {
+    theme: GameTheme;
+    /** How the game is presented on a wide screen (desktopModes.ts; presentation only). */
+    desktop: DesktopModeInfo;
+  };
 
 const LONG_REVEAL_TYPES = new Set<PuzzleType>([
   "target",
@@ -264,6 +269,7 @@ export const PUZZLE_REGISTRY = Object.fromEntries<RegisteredPuzzleDefinition>(
     {
       ...definition,
       theme: gameTheme(type as PuzzleType, definition.category),
+      desktop: DESKTOP_MODES[type as PuzzleType],
       Stage: feedbackStage(definition.Stage, gameTheme(type as PuzzleType, definition.category), Boolean(definition.arcadeRun || definition.category === "arcade"), {
         type: type as PuzzleType,
         arcade: definition.category === "arcade",
@@ -298,6 +304,7 @@ function removedDefinition(type: string): RegisteredPuzzleDefinition {
     definition = {
       ...base,
       theme: gameTheme(undefined, base.category),
+      desktop: { mode: "wide", why: "deleted game: name and stored score only" },
       instructions: base.instructions!,
       retired: true,
       revealMs: REVEAL_MS,

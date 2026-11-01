@@ -130,6 +130,8 @@ export const practiceGradeFn = createServerFn({ method: "POST" })
       extra?: SubmitExtra;
       /** The phone's build id (appVersion.ts); missing from copies older than it. */
       clientVersion?: string;
+      /** How the round was played (lib/inputType.ts); stored with the practice play, never graded. */
+      inputType?: string;
     }) => input,
   )
   .handler(async ({ data }) => {
@@ -145,6 +147,7 @@ interface PracticeRunInput {
   answer: string;
   msRemaining: number;
   extra?: SubmitExtra;
+  inputType?: string;
 }
 
 /** Grades a practice run on its full puzzle (practice's own grading, the same for a live deal and a pack deal). */
@@ -166,6 +169,8 @@ async function gradePracticeRun(data: PracticeRunInput, puzzle: PuzzleData, exam
         timeLimitMs: puzzleTimeLimitMs(puzzle),
         graded,
       }),
+      undefined,
+      data.inputType,
     );
   }
   return {
