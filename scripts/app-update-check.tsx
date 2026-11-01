@@ -302,7 +302,7 @@ function harness(opts: { client?: string; server?: string; href?: string; storag
 // Supabase session), the room in the URL and every bit of room state on the
 // server, so the reloaded page must find the same player at the same point.
 {
-  const win = new Window({ url: "https://brain-blitz-duel.lovable.app/duel/ABCD" });
+  const win = new Window({ url: "https://joulz.uk/duel/ABCD" });
   const globals = ["window", "document", "navigator", "HTMLElement", "Element", "Node", "Event", "localStorage", "sessionStorage", "location"] as const;
   for (const key of globals) {
     Object.defineProperty(globalThis, key, {
