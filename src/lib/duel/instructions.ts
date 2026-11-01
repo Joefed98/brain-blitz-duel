@@ -236,6 +236,7 @@ import {
   ORBIT_XP_TRAILS,
   ORBIT_STD,
   ORBIT_STD_PERFECT_OF,
+  ORBIT_FUEL_MAX,
 } from "@/lib/arcade/orbitRev3";
 import {
   CROSS_V9_SKILL_PAY,
@@ -1438,12 +1439,13 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
     orbit: {
       goal: "Fly planet to planet to the sun.",
       how: [
-        { action: "Tap to let go;", detail: "the next orbit catches you." },
+        { action: "Tap to let go;", detail: "any orbit catches you." },
         { action: "Grab stardust;", detail: "sling through moon halos." },
         { action: "Thread rock gaps;", detail: "let go on the first lap." },
         { action: "Checkpoint:", detail: "a crash returns you there.", helpOnly: true },
         { action: "Black hole:", detail: "fly in, skip 5-6 planets.", helpOnly: true },
-        { action: "You orbit automatically.", detail: "Tap to let go – you fly straight until the next orbit catches you. Miss both of the next two orbits and the run ends (or you go back to your checkpoint) as soon as nothing ahead can catch you.", helpOnly: true },
+        { action: "You orbit automatically.", detail: "Tap to let go – you fly straight until an orbit catches you: any planet's orbit you reach, even one you skip ahead to (the planets you pass count as reached).", helpOnly: true },
+        { action: "Fuel (bottom right):", detail: `it drains only while you fly between orbits and fills up again the moment an orbit catches you. A jump at any planet in reach lands with fuel to spare; fly off into empty space and it runs out after about ${Math.round(ORBIT_FUEL_MAX / 6) / 10} s, and the run ends (or you go back to your checkpoint).`, helpOnly: true },
         { action: "Set Checkpoint once while orbiting.", detail: "Your next crash returns you there. Without it, or after using it, a crash ends the run. Orbits are belt-safe. On later planets, time arrival and departure through the opening in the outside asteroid ring – it turns once every 12 seconds.", helpOnly: true },
         { action: "Orbits change shape.", detail: "Ovals speed up near the planet. On a figure-eight, let go only on the outer loops – never at the crossing.", helpOnly: true },
         { action: "Black holes:", detail: "about every ten planets a small black hole sits beside one planet. Let go at just the right moment to fly into it and you come out beside a planet 5 or 6 further on and fly into its orbit over about a second; the planets you skip count as reached. A checkpoint you set before the jump still works.", helpOnly: true },
@@ -1453,8 +1455,8 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Asteroid fields:", detail: `${ORBIT_XP_FIELDS} lines of rocks across some hops. Thread the gap in the middle of the line for a bonus; hitting a rock is a crash.`, helpOnly: true },
         { action: "Perfect orbits:", detail: "let go while the gold arc still shows – during your first lap round the planet – and land in the next orbit.", helpOnly: true },
       ],
-      // orbitRev 13 (the arcade scoring standard): planets on a straight line to 130, then speed and the features, 200 in all.
-      score: liveBandHelp("orbit", "Each planet reached counts 1, and a crash still counts the part of the way to the next planet you flew.", { more: "More planets", good: (u) => `reaches ${u} planets`, finish: `Planets pay on a straight line, all ${stdCore(ORBIT_STD).max} at the sun. ${stdFeaturesHelp(ORBIT_STD, { speed: "only for reaching the sun: all 20 with half the time left, falling evenly to 0 at the buzzer", perfect: `an equal share for each perfect orbit, all ${stdFeatures(ORBIT_STD).find((f) => f.key === "perfect")!.max} at ${ORBIT_STD_PERFECT_OF}` })}` }),
+      // orbitRev 13 (the arcade scoring standard) and 14 (the fuel meter): planets on a straight line to 130, then speed and the features, 200 in all.
+      score: liveBandHelp("orbit", "Each planet reached counts 1 (a planet you jump past counts too), and a crash still counts the part of the way to the next planet you flew.", { more: "More planets", good: (u) => `reaches ${u} planets`, finish: `Planets pay on a straight line, all ${stdCore(ORBIT_STD).max} at the sun. ${stdFeaturesHelp(ORBIT_STD, { speed: "only for reaching the sun: all 20 with half the time left, falling evenly to 0 at the buzzer", perfect: `an equal share for each perfect orbit, all ${stdFeatures(ORBIT_STD).find((f) => f.key === "perfect")!.max} at ${ORBIT_STD_PERFECT_OF}` })}` }),
     },
 
     snip: {

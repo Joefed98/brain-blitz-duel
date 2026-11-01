@@ -21,10 +21,10 @@ import { PIN_REV_TARGET, PIN_REV_STRICT, PIN_REV_EXPAND, PIN_REV_LONG, PIN_REV_S
 import { WHACK_REV_DEPTH, WHACK_REV_NOTES } from "@/lib/arcade/whack";
 import { dealtNotesRev } from "./phoneNotes";
 import { WAV_REV_TARGET, WAV_REV_STRICT, WAV_REV_STD } from "@/lib/arcade/wavefront";
-import { ORBIT_REV_TARGET, ORBIT_REV_STRICT, ORBIT_REV_STD } from "@/lib/arcade/orbit";
+import { ORBIT_REV_TARGET, ORBIT_REV_STRICT, ORBIT_REV_STD, ORBIT_REV_FUEL } from "@/lib/arcade/orbit";
 import { RALLY_REV_TARGET, RALLY_REV_STRICT, RALLY_REV_STD } from "@/lib/arcade/rally";
 import { BEAT_REV_TARGET, BEAT_REV_STD } from "@/lib/arcade/beat";
-import { orbitXpCourseForSeed, orbitHolesForBankSeed, orbitRev3BankEntryForSeed, orbitRev3PlanetsForSeed, encodeRev3Planets } from "./orbitRev3Course.server";
+import { orbitFuelCourseForSeed, orbitXpCourseForSeed, orbitHolesForBankSeed, orbitRev3BankEntryForSeed, orbitRev3PlanetsForSeed, encodeRev3Planets } from "./orbitRev3Course.server";
 import { proveSwingSeed } from "./swingProof.server";
 import { SWING_V9_BANK } from "./swingBankV9.server";
 import { SWING_V13_BANK } from "./swingBankV13.server";
@@ -279,8 +279,23 @@ export function generateBurst(): BurstPuzzleData {
   return { type: "burst", seed: arcadeSeed(), burstRev: BURST_REV_STD };
 }
 
+let orbitPreFuel = false;
+/**
+ * Checks written for orbitRev 13 (the arcade scoring standard) and earlier: deal the feature-bank course on orbitRev 13
+ * as rooms did before the fuel meter (returns the previous setting), so they keep proving what they were written for.
+ */
+export function pinOrbitPreFuel(on: boolean): boolean {
+  const prev = orbitPreFuel;
+  orbitPreFuel = on;
+  return prev;
+}
+
 export function generateOrbit(): OrbitPuzzleData {
   const seed = arcadeSeed();
+  // Rev 14 (the fuel meter, 1 Nov 2026, docs/arcade-standard/orbit.md): a course from the fuel bank (harder zigzag,
+  // proved on rev 14's rules: scripts/orbit-fuel-bank.ts), picked by the seed, with its holes and features.
+  const fuel = orbitPreFuel ? null : orbitFuelCourseForSeed(seed);
+  if (fuel) return { type: "orbit", seed, orbitRev: ORBIT_REV_FUEL, planets: fuel.planets, holes: fuel.holes, extras: fuel.extras };
   // Rev 12 (the expansion to 200, 26 Oct 2026): one of the bank courses with proved holes and features
   // (scripts/orbit-xp-bank.ts), picked by the seed, in the bigger view. Every room deals it while the bank has courses.
   const xp = orbitXpCourseForSeed(seed);

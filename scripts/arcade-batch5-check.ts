@@ -80,7 +80,7 @@ import {
 } from "../src/lib/arcade/binToss";
 import { encodeBinTossRun, replayBinTossRun } from "../src/lib/duel/binToss";
 import { BINTOSS_REV_EXPAND } from "../src/lib/arcade/binToss";
-import { generateBeat, generateBinToss, generateBullseye, generateInkBridge, generateOrbit, generateRally } from "../src/lib/duel/arcade.server";
+import { generateBeat, generateBinToss, generateBullseye, generateInkBridge, generateOrbit, generateRally, pinOrbitPreFuel } from "../src/lib/duel/arcade.server";
 import { orbitCheckpoint, ORBIT_INPUT_CHECKPOINT, ORBIT_INPUT_TAP, ORBIT_REV4, ORBIT_REV_SWEPT, ORBIT_REV_TUNED, ORBIT_REV_STD, ORBIT_TOTAL } from "../src/lib/arcade/orbit";
 import { decodeOrbitHoles, decodeRev3Planets, initRev4From, orbitRev3Game, ORBIT_REV3_WORLD_W, type OrbitRev3State } from "../src/lib/arcade/orbitRev3";
 import { ORBIT_HOLE_BANK } from "../src/lib/duel/orbitHoleBank.server";
@@ -354,6 +354,9 @@ if (want("orbit")) {
   ok(ORBIT_HOLE_BANK.length >= ORBIT_REV3_BANK.length * 0.6, `most proved courses carry holes (${ORBIT_HOLE_BANK.length} / ${ORBIT_REV3_BANK.length})`);
   {
     let stamped = 0;
+    // The fuel meter (orbitRev 14, 1 Nov 2026) moved rooms to its own bank (orbit-fuel-check covers it); pinned, the
+    // deal before it is still the feature bank's on orbitRev 13.
+    const wasFuel = pinOrbitPreFuel(true);
     for (let k = 0; k < 40; k++) {
       const p = generateOrbit();
       // Score bands (Oct 2026), Tuning A, Tuning F, then taller worlds batch 3: every bank course is stamped orbitRev 8
@@ -367,6 +370,7 @@ if (want("orbit")) {
         ok(p.holes?.length === 3, "courses with holes ship all three");
       }
     }
+    pinOrbitPreFuel(wasFuel);
     ok(stamped > 0, `new rounds carry holes when the course has them (${stamped} / 40)`);
   }
   const bankBySeed = new Map(ORBIT_REV3_BANK.map((e) => [e.seed, e]));

@@ -654,6 +654,8 @@ const BUILDERS: Record<string, Builder> = {
               { label: "Perfect orbits", value: String(n(xp, "perfect")) },
             ]
           : []),
+        // orbitRev 14 (the fuel meter): a run that ended with an empty tank says so.
+        ...(b(r, "outOfFuel") ? [{ label: "Ended", value: "Out of fuel" }] : []),
       ],
       outcome: done ? "finish" : ended(r, false),
     };
