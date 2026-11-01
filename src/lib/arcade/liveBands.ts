@@ -45,6 +45,8 @@ import { FC_REV, FC_STD_SPEC, FC_V1_BAND_CURVE } from "./cards/freecell";
 import { TP_REV, TP_STD_SPEC, TP_V1_BAND_CURVE } from "./cards/tripeaks";
 import { PS_REV, PS_STD_SPEC, PS_V2_BAND_CURVE } from "./cards/pokerSquares";
 import { FH_REV, FH_STD_SPEC, FH_V1_BAND_CURVE } from "./cards/fiveHands";
+import { BLOCKFALL_REV, BF_STD_SPEC, BF_V1_BAND_CURVE } from "./blockfall";
+import { ALLEYROLL_REV, AR_STD_SPEC, AR_V1_BAND_CURVE } from "./alleyroll";
 import { MINIGOLF_REV, MINIGOLF_STD_SPEC } from "./minigolf";
 import { POOL_REV, POOL_STD_SPEC } from "./pool";
 import { CURLING_REV, CURLING_STD_SPEC } from "./curling";
@@ -141,6 +143,9 @@ export const LIVE_BANDS = {
   minigolf: { field: "golfRev", rev: MINIGOLF_REV, curve: stdCoreCurve(MINIGOLF_STD_SPEC), std: MINIGOLF_STD_SPEC, born: true },
   pool: { field: "poolRev", rev: POOL_REV, curve: stdCoreCurve(POOL_STD_SPEC), std: POOL_STD_SPEC, born: true },
   curling: { field: "curlRev", rev: CURLING_REV, curve: stdCoreCurve(CURLING_STD_SPEC), std: CURLING_STD_SPEC, born: true },
+  // Blockfall (Retro) and Alley Roll (Sports), 1 Nov 2026: born on the arcade scoring standard at revision 1.
+  blockfall: { field: "blockfallRev", rev: BLOCKFALL_REV, curve: BF_V1_BAND_CURVE, std: BF_STD_SPEC, born: true },
+  alleyroll: { field: "alleyRollRev", rev: ALLEYROLL_REV, curve: AR_V1_BAND_CURVE, std: AR_STD_SPEC, born: true },
 } as const satisfies Record<string, LiveBand>;
 
 export type LiveBandGame = keyof typeof LIVE_BANDS;

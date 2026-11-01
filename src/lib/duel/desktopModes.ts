@@ -150,9 +150,11 @@ export const DESKTOP_MODES: Record<PuzzleType, DesktopModeInfo> = {
   tilt: { mode: "tall", why: "top-down maze, kept upright at full height" },
   cross: { mode: "tall", why: "top-down road, kept upright at full height" },
   curling: { mode: "tall", why: "top-down sheet, kept upright at full height" },
+  blockfall: { mode: "tall", why: "a tall well of falling pieces: kept upright at full height, the cabinet glow carried to the sides" },
   // Arcade: side-on and behind-camera worlds, kept upright at full height
   racing: { ...BEHIND, maxWorldWidth: APEX_DESKTOP_WORLD_W, why: "behind-camera view; on desktop its world capped at 340×634, centred, with its static backdrop beside it, for 60 fps" },
   homerun: BEHIND,
+  alleyroll: { ...BEHIND, why: "the lane seen from the player's end: kept upright at full height, the alley carried to the sides" },
   freekick: BEHIND,
   bullseye: BEHIND,
   bintoss: SIDE,

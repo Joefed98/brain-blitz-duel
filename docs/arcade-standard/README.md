@@ -92,6 +92,8 @@ replay exactly as before; standard-live-check grades every stored arcade run thr
 | Crazy Golf (was Minigolf) | `minigolf` | `golfRev` 2 (1 for stored rounds) | Sports | [minigolf.md](minigolf.md) |
 | Cue Ball (was Speed Pool) | `pool` | `poolRev` 2 (1 for stored rounds) | Sports | [pool.md](pool.md) |
 | Curl Champ (was Curling) | `curling` | `curlRev` 2 (1 for stored rounds) | Sports | [curling.md](curling.md) |
+| Blockfall | `blockfall` | `blockfallRev` 1 | Retro | [blockfall.md](blockfall.md) |
+| Alley Roll | `alleyroll` | `alleyRollRev` 1 | Sports | [alleyroll.md](alleyroll.md) |
 
 The batches land one at a time on top of this; each adds its games' entries, pages and its summary section below.
 
@@ -355,3 +357,15 @@ hands 40 (8 a row) = 200; every dealt deck carries a witness arrangement that re
 Speed's "full by" times are the near-perfect bots' median finish (`bun scripts/cards-bands.ts`). cards-check proves
 every dealt deal reaches 200 through the server's replay.
 
+## Blockfall and Alley Roll (1 Nov 2026)
+
+Two new Arcade games, born on the standard at revision 1 (LIVE_BANDS marks them `born`).
+
+| Game | Stamp | Core | Features | Sum |
+| --- | --- | --- | --- | --- |
+| Blockfall (Retro) | `blockfallRev` 1 | 140, lines, full at 33 (the elite median) | multi-line clears 40 (4 / 8 / 12 for two / three / four at once), low stack 20 | 200 |
+| Alley Roll (Sports) | `alleyRollRev` 1 | 150, ring points, full at 540 (the elite median) | 100 pockets 30 (10 each), hot streak 20 (4 a ball) | 200 |
+
+Medians weak → flawless: Blockfall 21 / 40 / 91 / 137 / 174 / 200 / 200, Alley Roll 41 / 52 / 66 / 119 / 177 / 200 /
+200 (room seeds 0–59). Each page says why the core is full at the elite median (the near-perfect one left the top three
+levels level at 200).

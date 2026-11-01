@@ -104,6 +104,8 @@ const RAISED: PuzzleType[] = [
   "freecell", "tripeaks", "pokersquares",
   // Five Hands (31 Oct 2026, docs/arcade-standard/fivehands.md): born on the standard.
   "fivehands",
+  // Blockfall and Alley Roll (1 Nov 2026, docs/arcade-standard/blockfall.md, alleyroll.md): born on the standard.
+  "blockfall", "alleyroll",
 ];
 /** The games still at 150: section 2 raises each of them in turn. */
 const TYPES = ALL_TYPES.filter((t) => ROUND_MAX[t] === DEFAULT_ROUND_MAX);

@@ -23,6 +23,9 @@ export const GAME_DISPLAY_NAMES: Record<PuzzleType, string> = {
   minigolf: "Crazy Golf",
   pool: "Cue Ball",
   curling: "Curl Champ",
+  // Working names (1 Nov 2026); Joe may rename.
+  blockfall: "Blockfall",
+  alleyroll: "Alley Roll",
   bubble: "Coral Pop",
   checkout: "Checkout",
   bullseye: "Flightpath",

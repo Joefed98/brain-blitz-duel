@@ -62,7 +62,7 @@ expect("pokersquares", "arcade", true);
 // Arcade's count reads the arcade worlds' active list (ACTIVE_ARCADE_GAMES), not a number: the arcade groups' sessions
 // add games in parallel (Cards & Board and Sports, 30 Oct 2026); each new game is pinned to Arcade, active, above.
 const POOL: Record<string, number> = { word: 9, number: 8, speed: 6, attention: 6, pattern: 10, logic: 12, arcade: ACTIVE_ARCADE_GAMES.length };
-for (const type of ["minesweeper", "mahjong", "homerun", "freekick", "racing", "freecell", "tripeaks", "fivehands", "minigolf", "pool", "curling"] as const) expect(type, "arcade", false);
+for (const type of ["minesweeper", "mahjong", "homerun", "freekick", "racing", "freecell", "tripeaks", "fivehands", "minigolf", "pool", "curling", "blockfall", "alleyroll"] as const) expect(type, "arcade", false);
 for (const [category, want] of Object.entries(POOL)) {
   const got = typesInCategory(category as never).length;
   if (got !== want) fail(`${category}: ${got} active games, want ${want}`);
@@ -70,9 +70,10 @@ for (const [category, want] of Object.entries(POOL)) {
 if (ACTIVE_ARCADE_GAMES.length < 21) fail(`${ACTIVE_ARCADE_GAMES.length} active arcade worlds, at least the 21 dealt before the new groups`);
 const WANT_ACTIVE = Object.values(POOL).reduce((a, n) => a + n, 0);
 if (ACTIVE_PUZZLE_TYPES.length !== WANT_ACTIVE) fail(`${ACTIVE_PUZZLE_TYPES.length} active games, want ${WANT_ACTIVE}`);
-// After Full House's retirement (1 Nov 2026): 83 active games, 32 of them arcade.
-if (ACTIVE_ARCADE_GAMES.length !== 32) fail(`${ACTIVE_ARCADE_GAMES.length} active arcade games, want 32 (Full House practice only since 1 Nov 2026)`);
-if (ACTIVE_PUZZLE_TYPES.length !== 83) fail(`${ACTIVE_PUZZLE_TYPES.length} active games, want 83`);
+// After Full House's retirement (1 Nov 2026): 83 active games, 32 of them arcade; with Blockfall and Alley Roll
+// (1 Nov 2026) 85, 34 of them arcade.
+if (ACTIVE_ARCADE_GAMES.length !== 34) fail(`${ACTIVE_ARCADE_GAMES.length} active arcade games, want 34 (Full House practice only since 1 Nov 2026; Blockfall and Alley Roll added)`);
+if (ACTIVE_PUZZLE_TYPES.length !== 85) fail(`${ACTIVE_PUZZLE_TYPES.length} active games, want 85`);
 
 // The deleted games and Memory are gone: no registry entry, no category, no draw.
 for (const type of REMOVED_PUZZLE_TYPES)
