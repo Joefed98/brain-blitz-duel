@@ -1102,9 +1102,9 @@ Grouped by game or screen.
 
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
 |---|---|---|---|---|---|---|---|---|
-| `bridges.build` | A bridge is built or doubled [logic.md] |  | 5–40 (per move) | recorded sound | `bridges.build` | 200 | game event | `bridges.build` |
-| `bridges.remove` | A pair's bridges are removed [logic.md] |  | 5–40 (per move) | recorded sound | `bridges.remove` | 200 | game event | `bridges.remove` |
-| `bridges.solve` | Every island has its bridges, none cross, all joined [logic.md] |  | 0–1 | recorded sound | `bridges.solve` | 1200 | success sting | `bridges.solve` |
+| `bridges.build` |  [grid.md] |  | 5–40 (per move) | recorded sound | `bridges.build` | 200 | game event | `bridges.build` |
+| `bridges.remove` |  [grid.md] |  | 5–40 (per move) | recorded sound | `bridges.remove` | 200 | game event | `bridges.remove` |
+| `bridges.solve` |  [grid.md] |  | 0–1 | recorded sound | `bridges.solve` | 1000 | success sting | `bridges.solve` |
 | `music.bridges` | Bridges round bed: music_logic_3 (logic bed shared with other games) |  | loop | recorded sound | `music_logic_3` (shared) | 60000 | music | `music_logic_bridges` |
 
 ### Colour Flood
@@ -1124,18 +1124,18 @@ Grouped by game or screen.
 
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
 |---|---|---|---|---|---|---|---|---|
-| `fences.draw` | A line is drawn on an edge (tap or drag) [logic.md] |  | 5–40 (per move) | recorded sound | `fences.draw` | 200 | game event | `fences.draw` |
-| `fences.cross` | An edge is marked ✕ [logic.md] |  | 5–40 (per move) | recorded sound | `fences.cross` | 200 | game event | `fences.cross` |
-| `fences.solve` | The lines are one closed loop meeting every number [logic.md] |  | 0–1 | recorded sound | `fences.solve` | 1200 | success sting | `fences.solve` |
+| `fences.draw` |  [grid.md] |  | 5–40 (per move) | recorded sound | `fences.draw` | 200 | game event | `fences.draw` |
+| `fences.cross` |  [grid.md] |  | 5–40 (per move) | recorded sound | `fences.cross` | 200 | game event | `fences.cross` |
+| `fences.solve` |  [grid.md] |  | 0–1 | recorded sound | `fences.solve` | 1000 | success sting | `fences.solve` |
 | `music.fences` | Fences round bed: music_logic_2 (logic bed shared with other games) |  | loop | recorded sound | `music_logic_2` (shared) | 60000 | music | `music_logic_fences` |
 
 ### Fillomino
 
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
 |---|---|---|---|---|---|---|---|---|
-| `fillomino.place` | A number is entered or painted on a square [logic.md] |  | 5–40 (per move) | recorded sound | `fillomino.place` | 80 | UI tap | `fillomino.place` |
-| `fillomino.region` | A region reaches its size (N squares of N) [logic.md] |  | 5–40 (per move) | recorded sound | `fillomino.region` | 200 | game event | `fillomino.region` |
-| `fillomino.solve` | Every region is complete and no equal regions touch [logic.md] |  | 0–1 | recorded sound | `fillomino.solve` | 1200 | success sting | `fillomino.solve` |
+| `fillomino.place` |  [grid.md] |  | 5–40 (per move) | recorded sound | `fillomino.place` | 80 | UI tap | `fillomino.place` |
+| `fillomino.region` |  [grid.md] |  | 5–40 (per move) | recorded sound | `fillomino.region` | 200 | game event | `fillomino.region` |
+| `fillomino.solve` |  [grid.md] |  | 0–1 | recorded sound | `fillomino.solve` | 1000 | success sting | `fillomino.solve` |
 | `music.fillomino` | Fillomino round bed: music_logic_1 (logic bed shared with other games) |  | loop | recorded sound | `music_logic_1` (shared) | 60000 | music | `music_logic_fillomino` |
 
 ### Hanoi
