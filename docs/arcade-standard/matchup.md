@@ -107,3 +107,90 @@ logs on three seeds.
 - With the core full at the near median, elite and flawless separate on the features, mostly treasure. They come
   2 and 3 treasures above near's 1.
 - Practice stamps (`practiceStamps.data.ts`) are not regenerated here. The merger does it.
+
+# matchupRev 12: six goals and six treasures (Nov 2026)
+
+Joe's notes: show six gem goals at the bottom and six treasure pieces, keep the treasure swap rule, and make high scores
+harder to reach (a near-flawless player should land around 170–180, not near 200). Rooms and practice now deal
+**`matchupRev 12`**. `matchupRev 11` and every older stamp replay and score exactly as before: gemstone-rev12-check
+replays 35 bot runs on `matchupRev 10` and `11` recorded on main before the change
+(`scripts/fixtures/gemstone-rev12-legacy.json`, from `scripts/gemstone-rev12-legacy.ts`) to the same score and final
+state, and gemstone-standard-check still replays every older stamp and matchupRev 11's own runs and flawless 200.
+
+## Parts (total 200)
+
+| Part | Max | Rule |
+|---|---|---|
+| Core: gems cleared | 108 | One straight line: `floor(108 × gems ÷ 360)`, capped at 108 (`MATCHUP_V12_BAND_CURVE`). Every cleared cell counts (lines, cascades, blasts, specials); a treasure collected is not a gem. |
+| Treasure | 36 | 6 for each treasure gem brought down to the bottom row. A run has 6 (`MATCHUP_V12_TREASURES`). |
+| Goals | 36 | 6 for each of the six colour goals met. |
+| Ice | 10 | 1 for each of the 10 frozen cells broken (as `matchupRev 11`). |
+| Big lines | 10 | 2 for each line of 4 or 5 made by a swap's own match, up to 5 lines (as `matchupRev 11`). |
+
+Nothing costs points; any input scores at least 1, none 0. Code: `matchupSixParts` (through `matchupStdParts`),
+`matchupStdScore`, `matchupStdBandParts`, `matchupGoalsOf`, `matchupCoreGemsOf` in `src/lib/arcade/matchup.ts`.
+
+## Gameplay changes (`matchupRev 12` only; states add `six: 1` and `goalNeed`, folded into the checksum last)
+
+- **Six goals at once, one for each colour**, shown in the panel under the board from the start: clear `goalNeed[colour]`
+  gems of that colour. The six targets are the ladder 20, 28, 36, 44, 52, 60 (`MATCHUP_V12_GOAL_LADDER`) in a seeded
+  order (`matchupV12GoalNeed(seed)`, a stream of its own from the room seed), so every run has the same six goal sizes
+  and everyone in a room has the same goals. Every gem of the colour counts (a line, a cascade or a blast). A goal met
+  stays met; `levels` counts the goals met (the "GOAL!" banner and chime fire on each), and no level follows.
+- **Six treasure gems**, the plan's first six seeded columns, still one at a time in row 4, collected on the bottom row.
+  The treasure swap rule is unchanged.
+- The board, queues, plan, rng and the 10 frozen cells equal `matchupRev 11`'s for the same seed (the goals draw
+  nothing from the state's rng; the check proves it on 300 seeds). 90 s, the 7 × 10 board, ice swaps, specials unchanged.
+- The panel (`drawSixGoalsPanel`, the same 360 × 84 tray under the board, inside the 390 × 720 world): a top line
+  "GOALS n/6" (ALL GOALS MET when done), ice left, treasure n/6 and big lines; under it the six goals side by side, each a
+  gem, the count still to clear (a tick once met) and a bar in its colour. The world is unchanged, so it fits wherever
+  `matchupRev 11` fitted: `screenshots/arcade-tuning-nov-2026/gemstone-goals-414x896.png`, `-375x667.png` and
+  `-1366x768.png` (the computer layout), each after 26 real swaps in practice (`scripts/shots/drivers/matchup.ts`).
+
+## Core target and why
+
+The core is full at **360 gems cleared**: the near-flawless level's median gems on `matchupRev 12` (358 on room seeds
+0–119, 353 on fresh seeds 10000–10119, fixed bots; 361 on 0–59). Raising it would only lower the near-flawless total
+further below Joe's 170–180, so the core stays at the near median as the standard asks. The goal ladder was chosen so
+the levels separate on goals (median goals met on room seeds 0–119: weak 1, average 3, good 4, great 4, near 5, elite 6, flawless 6); a
+harder ladder lowered the near total and narrowed the near → elite step.
+
+## Medians before → after
+
+Skill-band tool, `bun scripts/arcade-skill-bands.ts matchup --rev=now --levels=all --seeds=120 --jobs=4` (and
+`--from=10000`), fixed bots, every run scored by the server's replay.
+
+| Seeds | Weak | Average | Good | Great | Near-perfect | Elite | Flawless |
+|---|---|---|---|---|---|---|---|
+| Tuning (0–119), `matchupRev 11` | 75 | 96 | 113 | 141 | 159 | 170 | 178 |
+| Tuning (0–119), `matchupRev 12` | 72 | 96 | 118 | 137 | 159 | 164 | 176 |
+| Fresh (10000–10119), `matchupRev 11` | 77 | 93 | 116 | 140 | 160 | 168 | 180 |
+| Fresh (10000–10119), `matchupRev 12` | 76 | 95 | 118 | 142 | 159 | 167 | 176 |
+
+Flawless p90 falls from 196–200 to 188 on both seed sets: a 200 now needs all six treasures (the flawless bot brings
+down 2 a run, median; 3 of 120 flawless runs got all six). On 30 seeds the tuning set's near and elite medians tie
+(169 / 167, within noise); on 120 seeds every level rises.
+
+## Other updates
+
+- `LIVE_BANDS.matchup` names `matchupRev 12` and its core line; the "?" help lists the parts (108 + 36 + 36 + 10 + 10 make
+  200) and the six goals; the intro score line gives the core (108) and the features (92). The intro demo stays stopped until one is
+  recorded on `matchupRev 12`. The reveal's axis runs to 360 and its tiles show goals and treasure out of 6.
+- Room identity (`scripts/room-identity/matchup.ts`) targets `matchupRev 12` and lists the six goals at t = 1.
+- `scripts/arcade-standard/matchup.ts` targets `matchupRev 12`; its perfect run is a recorded flawless bot run (room
+  seed 582076058, all six treasures) in `scripts/fixtures/gemstone-rev12-runs.json` (`scripts/gemstone-rev12-record.ts`),
+  replayed by the server to 200 with every part at its maximum.
+- Checks that pinned `matchupRev 11` as dealt now expect its successor 12 (gemstone-standard-check, gemstone-rev10-check,
+  e6-check, arcade-tuning-c-check, arcade-tuning-f2-check); gemstone-standard-check still proves matchupRev 11's own
+  flawless run at 200. `scripts/fixtures/replay-runs.json` gained one `matchupRev 12` run; `arcade-self-replay-check`
+  gained `matchup/six` at the end of its list.
+- The bot is unchanged: it already values every goal colour's gems and the treasure on standard states.
+
+## Assumptions
+
+- "6 gem goals shown at the bottom" is read as all six colours' goals shown at once (each "clear N of this colour"),
+  not six levels one after another; "Goals 36 (6 per goal)" pays 6 for each.
+- Joe's "near-flawless median around 170–180" is met by the flawless level (176) and approached by near-perfect (159).
+  With six treasures each worth 6 and a median of 1 brought down at near-perfect (2 at elite and flawless), near-perfect cannot reach 170 without
+  a core target below its own median, which the standard does not allow.
+- Practice stamps (`practiceStamps.data.ts`) are not regenerated here. The merger does it.

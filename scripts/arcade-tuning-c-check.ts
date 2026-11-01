@@ -167,7 +167,8 @@ section("New rounds carry the Tuning C stamps; Junction is practice only");
     // Expansion E6 (25 Oct 2026) then moved Gemstone on to its taller board with goals (matchupRev 9); e6-check covers it.
     // Joe's phone-test notes (27 Oct 2026) moved it on again (matchupRev 10: 90 s, ice swaps); gemstone-rev10-check covers it.
     // The arcade scoring standard (Oct 2026) moved it on to matchupRev 11; gemstone-standard-check covers it.
-    ["matchup", playRevOf("matchup", generateMatchup().matchupRev), MATCHUP_REV_PAR + 5],
+    // Six goals and six treasures (Nov 2026) moved it on to matchupRev 12; gemstone-rev12-check covers it.
+    ["matchup", playRevOf("matchup", generateMatchup().matchupRev), MATCHUP_REV_PAR + 6],
     // Taller worlds batch 3 (16 Oct 2026) then moved Grappler on to its taller cavern (swingRev 9); arcade-tuning-g3-check covers it.
     // Grappler's 200 expansion (26 Oct 2026) moved Grappler on to swingRev 13 (after swingRev 9's taller cavern); swing-x200-check covers it.
     // The assault course (27 Oct 2026) moved it on to swingRev 14 (swing-assault-check), the swinging course (29 Oct 2026)

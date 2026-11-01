@@ -3,7 +3,8 @@
  *  1. Older stamps unchanged: every run in scripts/fixtures/gemstone-standard-legacy.json (bot runs on matchupRev 2–10
  *     and unstamped, recorded on main before the change by scripts/gemstone-standard-legacy.ts) replays through the
  *     server to the same score and the same final state; older states carry no matchupRev 11 field.
- *  2. Rooms deal matchupRev 11; the help, intro, demo gate and reveal follow it; 90 s on the 7 × 10 board.
+ *  2. Rooms deal matchupRev 11's successor, matchupRev 12 (six goals and six treasures, gemstone-rev12-check); the help,
+ *     intro, demo gate and reveal follow the dealt stamp; matchupRev 11 plays 90 s on the 7 × 10 board.
  *  3. The deal: matchupRev 10's board, queues and plan for the same seed, exactly 10 frozen cells in rows 4–9, the
  *     same for every player (same seed → same init; the k-th goal and treasure the same whatever is played).
  *  4. Rules: four treasures (the plan's first four columns); a treasure swaps with a plain gem exactly when that gem
@@ -47,6 +48,7 @@ import {
   matchupStdScore,
   matchupWorldHFor,
   MATCHUP_REV_ICE,
+  MATCHUP_REV_SIX,
   MATCHUP_REV_STD,
   MATCHUP_SIZE,
   MATCHUP_TREASURE,
@@ -66,6 +68,16 @@ import {
   MATCHUP_V11_TREASURES,
   MATCHUP_V9_ROWS,
   MATCHUP_V9_WORLD_H,
+  MATCHUP_V12_BAND_CURVE,
+  MATCHUP_V12_BIG_MAX,
+  MATCHUP_V12_BIG_PTS,
+  MATCHUP_V12_CORE_MAX,
+  MATCHUP_V12_GOAL_PTS,
+  MATCHUP_V12_GOALS,
+  MATCHUP_V12_GOALS_MAX,
+  MATCHUP_V12_ICE_MAX,
+  MATCHUP_V12_TREASURE_MAX,
+  MATCHUP_V12_TREASURE_PTS,
   type MatchupState,
 } from "../src/lib/arcade/matchup";
 
@@ -115,21 +127,23 @@ section("Older stamps replay and score exactly as before");
 }
 
 /* 2. Stamps and text */
-section("Rooms deal matchupRev 11; help, intro, demo and reveal follow it");
-for (let k = 0; k < 5; k++) ok((generatePuzzle("matchup") as any).matchupRev === MATCHUP_REV_STD && MATCHUP_REV_STD === 11, "rooms deal matchupRev 11");
-ok(LIVE_BANDS.matchup.rev === MATCHUP_REV_STD && LIVE_BANDS.matchup.curve === MATCHUP_V11_BAND_CURVE, "the help reads matchupRev 11's core line");
+// matchupRev 12 (six goals and six treasures, gemstone-rev12-check) moved rooms on from matchupRev 11, which replays and
+// scores here as before; the dealt stamp's help, intro and demo gate are checked at their matchupRev 12 values.
+section("Rooms deal matchupRev 11's successor (12); help, intro, demo and reveal follow it");
+for (let k = 0; k < 5; k++) ok((generatePuzzle("matchup") as any).matchupRev === MATCHUP_REV_SIX && MATCHUP_REV_STD === 11 && MATCHUP_REV_SIX === MATCHUP_REV_STD + 1, "rooms deal matchupRev 12 (matchupRev 11's successor)");
+ok(LIVE_BANDS.matchup.rev === MATCHUP_REV_SIX && LIVE_BANDS.matchup.curve === MATCHUP_V12_BAND_CURVE, "the help reads matchupRev 12's core line (matchupRev 11's successor)");
 ok(MATCHUP_V11_BAND_CURVE.units.length === 2 && MATCHUP_V11_BAND_CURVE.units[1] === MATCHUP_V11_CORE_GEMS && MATCHUP_V11_BAND_CURVE.points[1] === MATCHUP_V11_CORE_MAX, "the core is one straight line (two knots), 0 → 110");
 ok(game.runTicks === 5400 && matchupWorldHFor(MATCHUP_REV_STD) === MATCHUP_V9_WORLD_H && matchupRowsFor(MATCHUP_REV_STD) === MATCHUP_V9_ROWS, "90 s on the 7 × 10 board in the 390 × 720 world");
 ok(roundMaxFor("matchup") === 200, "the round maximum stays 200");
 {
   const demo = readFileSync("src/lib/duel/introDemo.functions.ts", "utf8");
-  ok(/matchupRev !== MATCHUP_REV_STD\) return null/.test(demo), "the intro demo stays stopped until recorded on matchupRev 11");
+  ok(/matchupRev !== MATCHUP_REV_SIX\) return null/.test(demo), "the intro demo stays stopped until recorded on matchupRev 12 (matchupRev 11's successor)");
   const help = PUZZLE_INSTRUCTIONS.matchup.score;
-  for (const text of ["More gems cleared", "up to 110", `${MATCHUP_V11_TREASURE_PTS} for each brought down (up to ${MATCHUP_V11_TREASURE_MAX})`, `${MATCHUP_V11_GOAL_PTS} for each of the ${MATCHUP_V11_GOALS} colour goals met (up to ${MATCHUP_V11_GOALS_MAX})`, `(up to ${MATCHUP_V11_ICE_MAX})`, `${MATCHUP_V11_BIG_PTS} for each line of 4 or 5 you match (up to ${MATCHUP_V11_BIG_MAX})`, "make 200", "Up to 200."])
+  for (const text of ["More gems cleared", `up to ${MATCHUP_V12_CORE_MAX}`, `${MATCHUP_V12_TREASURE_PTS} for each brought down (up to ${MATCHUP_V12_TREASURE_MAX})`, `${MATCHUP_V12_GOAL_PTS} for each of the ${MATCHUP_V12_GOALS} colour goals met (up to ${MATCHUP_V12_GOALS_MAX})`, `(up to ${MATCHUP_V12_ICE_MAX})`, `${MATCHUP_V12_BIG_PTS} for each line of 4 or 5 you match (up to ${MATCHUP_V12_BIG_MAX})`, "make 200", "Up to 200."])
     ok(help.includes(text), `the help says "${text}": ${help}`);
   ok(!/cascade multiplier|match points/i.test(help), "the help no longer pays match points or the cascade multiplier");
   const how = PUZZLE_INSTRUCTIONS.matchup.how.map((l) => `${l.action} ${l.detail}`).join(" ");
-  ok(/swaps with a gem that then makes a line of three/.test(how) && /Four levels/.test(how) && !/Cascades multiply/.test(how), "the help's rules: treasure swaps, four levels, no cascade multiplier");
+  ok(/swaps with a gem that then makes a line of three/.test(how) && /Six goals/.test(how) && !/Cascades multiply/.test(how), "the help's rules: treasure swaps, the dealt stamp's six goals (matchupRev 12), no cascade multiplier");
   ok(/treasure, goals, ice and lines of 4 or 5/.test(INTRO_SCORE.matchup) && !/cascades/.test(INTRO_SCORE.matchup), `the intro's score line: ${INTRO_SCORE.matchup}`);
 }
 
@@ -314,10 +328,18 @@ section("Recorded matchupRev 11 runs replay unchanged; the flawless run is 200")
     const result = replayMatchupRun(r.seed, unzip(r.raw), MATCHUP_REV_STD);
     ok(!result.flagged && result.score === r.score && fnv(JSON.stringify(result.state)) === r.stateHash, `rev 11 ${r.level} seed ${r.seed}: ${r.score} (got ${result.score})`);
   }
+  // The arcade-standard entry moved on to matchupRev 12 (gemstone-rev12-check proves its perfect run); matchupRev 11's
+  // recorded flawless run still replays to 200 with every matchupRev 11 part at its maximum.
+  const rec11 = rec as unknown as { perfect: { seed: number; raw: string } };
+  const run11 = replayMatchupRun(rec11.perfect.seed, unzip(rec11.perfect.raw), MATCHUP_REV_STD);
+  const parts11 = matchupStdParts(run11.state as MatchupState) as unknown as Record<string, number>;
+  ok(!run11.flagged && run11.score === 200, `the recorded matchupRev 11 flawless run replays to 200 (${run11.score})`);
+  const max11: Record<string, number> = { core: MATCHUP_V11_CORE_MAX, treasure: MATCHUP_V11_TREASURE_MAX, goals: MATCHUP_V11_GOALS_MAX, ice: MATCHUP_V11_ICE_MAX, big: MATCHUP_V11_BIG_MAX };
+  for (const [key, max] of Object.entries(max11)) ok(parts11[key] === max, `the matchupRev 11 flawless run's ${key} is at its max ${max} (${parts11[key]})`);
   const perfect = STANDARD.perfect();
-  ok(perfect.score === 200, `the recorded flawless run replays to 200 (${perfect.score})`);
-  for (const part of STANDARD.parts) ok(perfect.parts[part.key] === part.max, `the flawless run's ${part.key} is at its max ${part.max} (${perfect.parts[part.key]})`);
-  ok(STANDARD.id === "matchup" && STANDARD.stampKey === "matchupRev" && STANDARD.stamp === MATCHUP_REV_STD, "the standard module names matchupRev 11");
+  ok(perfect.score === 200, `the arcade-standard entry's flawless run replays to 200 (${perfect.score})`);
+  for (const part of STANDARD.parts) ok(perfect.parts[part.key] === part.max, `the entry's flawless run's ${part.key} is at its max ${part.max} (${perfect.parts[part.key]})`);
+  ok(STANDARD.id === "matchup" && STANDARD.stampKey === "matchupRev" && STANDARD.stamp === MATCHUP_REV_SIX, "the standard module names matchupRev 12 (matchupRev 11's successor)");
 }
 
 if (failures.length) {

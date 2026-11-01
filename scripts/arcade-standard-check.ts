@@ -42,7 +42,8 @@ const STANDARD_ROSTER: readonly { type: string; field: string; rev: number; batc
   { type: "breaker", field: "brkRev", rev: 11, batch: "A" },
   { type: "tilt", field: "tiltRev", rev: 10, batch: "A" },
   { type: "burst", field: "burstRev", rev: 10, batch: "A" },
-  { type: "matchup", field: "matchupRev", rev: 11, batch: "A" },
+  // Gemstone deals matchupRev 12 since Nov 2026 (six goals shown at once, six treasures; the same five parts re-weighted).
+  { type: "matchup", field: "matchupRev", rev: 12, batch: "A" },
   { type: "snake", field: "snakeRev", rev: 11, batch: "A" },
   { type: "hover", field: "hoverRev", rev: 10, batch: "A" },
   { type: "skyline", field: "skylineRev", rev: 9, batch: "B" },
