@@ -45,13 +45,14 @@ export function DesktopControlsHint({ type }: { type: PuzzleType }) {
   }, [desktop, type]);
   const keys = screenKeys(type, desktop);
   const mouse = mouseLine(type);
-  if (!desktop || (!keys && !mouse)) return null;
+  if (!desktop || (!keys && !mouse) || room < MIN_ROOM) return null;
   return (
     <div
       data-controls-hint
       data-shown={shown || undefined}
       aria-label="Controls"
       className="dk-controls-hint"
+      style={{ maxWidth: Math.min(300, room) }}
     >
       {keys?.map(([key, action]) => (
         <span key={key}>
