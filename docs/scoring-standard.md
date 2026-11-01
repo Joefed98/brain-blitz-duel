@@ -612,7 +612,7 @@ clean bonus).
 | --- | --- | --- | --- | --- | --- |
 | Fences (`fences`) | `fencesRev` 1 | 90 s | up to 120 by (loop edges drawn − lines off the loop) ÷ the loop's edges, + up to 10 early | 40, full by 45 s | clean loop 10, −2.5 per line ever drawn off the loop |
 | Fillomino (`fillomino`) | `fillominoRev` 1 | 90 s | up to 120 by (blanks numbered right − numbered wrong) ÷ blanks, + up to 10 early | 40, full by 45 s | clean fill 10, −2.5 per wrong number ever entered |
-| Bridges (`bridges`) | `bridgesRev` 1 | 90 s | up to 120 by (the solution's bridges built − extra bridges) ÷ the solution's bridges, + up to 10 early | 40, full by 45 s | clean build 10, −2.5 per wrong bridge ever built |
+| Bridges (`bridges`) | `bridgesRev` 1 | 90 s | up to 120 by (bridges on pairs built exactly as the solution − bridges on pairs built any other way) ÷ the solution's bridges, + up to 10 early | 40, full by 45 s | clean build 10, −2.5 per wrong bridge ever built |
 | Kakuro (`kakuro`) | `kakuroRev` 1 | 120 s | up to 120 by (white squares right − filled wrong) ÷ white squares, + up to 10 early | 40, full by 60 s | clean grid 10, −2.5 per wrong digit ever entered |
 
 Decisions:
@@ -625,6 +625,10 @@ Decisions:
 - A finish is the game's own rules (one loop meeting every number; regions of their size with no equal regions
   touching; every island's bridges, no crossings, all joined; every run's sum with no repeat). Each board's solution is
   unique (its solver proves it before the board is dealt), so a board that keeps the rules is the solution.
+- Bridges judges pair by pair: a pair counts only when built exactly as the solution has it, so blanket building
+  (every pair single or double) never pays; the generator also re-deals a board where blanket or random building would
+  net anything. A double counts as wrong while only one of its bridges is built; the clean bonus counts only bridges
+  beyond the solution's.
 - Crosses (Fences), pencil marks (Kakuro) and the painting gesture (Fillomino) are the player's notes or input only:
   they never reach the grade.
 - Kakuro's "full by" is 60 s of its 120 s clock, the share Box Six uses of its 90 s.

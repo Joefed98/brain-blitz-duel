@@ -52,7 +52,7 @@ export function gridProgressText(puzzle: PuzzleData, answer: string): { text: st
   const wrongWord: Record<GridPuzzleType, [string, string]> = {
     fences: ["line off the loop", "lines off the loop"],
     fillomino: ["wrong number", "wrong numbers"],
-    bridges: ["extra bridge", "extra bridges"],
+    bridges: ["bridge off the solution", "bridges off the solution"],
     kakuro: ["wrong digit", "wrong digits"],
   };
   const [w1, wN] = wrongWord[puzzle.type];

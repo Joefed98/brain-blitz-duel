@@ -125,20 +125,29 @@ export function bridgesSolved(puzzle: Pick<BridgesPuzzleData, "size" | "islands"
   return bridgesSolvedCounts(puzzle.islands, pairs, decodeBridges(answer, pairs.length));
 }
 
-/** Progress toward the solution: bridges on the solution (right), bridges beyond it (wrong), the solution's bridges. */
+/**
+ * Progress toward the solution, pair by pair so guessing never pays: a pair built exactly as the solution has it counts
+ * its bridges as right; a pair built any other way (too many, or one bridge of a double, or a bridge the solution never
+ * has) counts the bridges on it as wrong; an empty pair counts nothing. Building every pair single or every pair double
+ * so places about as many wrong bridges as right ones (the generator deals only boards where it nets nothing, see
+ * bridgesGuessShare in bridges.server.ts). Total: the solution's bridges.
+ */
 export function bridgesProgress(puzzle: BridgesPuzzleData, answer: string): { right: number; wrong: number; total: number } {
   const pairs = bridgePairs(puzzle.islands, puzzle.size);
-  const counts = decodeBridges(answer, pairs.length);
-  const sol = puzzle.solution ?? [];
+  return bridgesProgressCounts(puzzle.solution ?? [], decodeBridges(answer, pairs.length));
+}
+
+/** bridgesProgress on decoded counts (per candidate pair) against the solution's. */
+export function bridgesProgressCounts(solution: readonly number[], counts: readonly number[]): { right: number; wrong: number; total: number } {
   let right = 0;
   let wrong = 0;
   let total = 0;
-  pairs.forEach((_, i) => {
-    const want = sol[i] ?? 0;
+  solution.forEach((want, i) => {
     const have = counts[i] ?? 0;
     total += want;
-    right += Math.min(want, have);
-    wrong += Math.max(0, have - want);
+    if (!have) return;
+    if (have === want) right += want;
+    else wrong += have;
   });
   return { right, wrong, total };
 }

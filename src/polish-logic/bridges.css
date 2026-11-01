@@ -1,1 +1,69 @@
-/* bridges (1 Nov 2026): the board look, display only. Imported from styles.css. */
+/* bridges (1 Nov 2026): the board look, display only. Imported from styles.css.
+   Dark glass like the other Logic boards: a smoky frame, faint grid dots, glass islands that turn gold when they hold
+   their number (red when over), gold bridges. Nothing here changes what a drag reaches (the hit test is in bridges.tsx). */
+
+.bridges-frame {
+  padding: 4px;
+  overflow: hidden;
+}
+.bridges-frame > .bridges-board {
+  border-radius: 6px;
+  background:
+    radial-gradient(120% 90% at 30% 20%, rgba(80, 140, 200, 0.10), transparent 60%),
+    linear-gradient(160deg, #12161D, #0B0D12);
+}
+.bridges-dots circle {
+  fill: rgba(255, 255, 255, 0.10);
+}
+.bridges-line {
+  stroke: #F2C75C;
+  stroke-width: 9;
+  stroke-linecap: round;
+  filter: drop-shadow(0 0 3px rgba(242, 199, 92, 0.35));
+}
+.bridges-board-small .bridges-line {
+  stroke-width: 11;
+}
+.bridges-preview {
+  stroke: rgba(242, 199, 92, 0.35);
+  stroke-width: 7;
+  stroke-dasharray: 14 12;
+  stroke-linecap: round;
+}
+.bridges-island circle {
+  fill: #1E222B;
+  stroke: rgba(255, 255, 255, 0.28);
+  stroke-width: 4;
+}
+.bridges-island text {
+  fill: #FFFFFF;
+  font-family: var(--font-display, inherit);
+  font-weight: 800;
+  font-size: 44px;
+  pointer-events: none;
+}
+.bridges-island-done circle {
+  fill: color-mix(in oklab, #F2C75C 32%, #1E222B);
+  stroke: #F2C75C;
+}
+.bridges-island-over circle {
+  fill: color-mix(in oklab, var(--destructive, #E5484D) 30%, #1E222B);
+  stroke: var(--destructive, #E5484D);
+}
+[data-puzzle-play][data-puzzle-play] .bridges-frame {
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.07), 0 14px 30px rgba(0, 0, 0, 0.55);
+}
+
+/* Reveal: two square boards side by side, as large as the reveal's box allows. */
+.bridges-reveal-board {
+  width: min(100%, calc(100cqh - 24px));
+  aspect-ratio: 1;
+}
+
+/* Completion: the islands flash gold in turn (at most 1.2 s, from useSolveFx). */
+[data-logic-solved] .bridges-island circle {
+  animation: bridges-island-light 600ms ease-out calc(var(--logic-i, 0) * 40ms) 1 both;
+}
+@keyframes bridges-island-light {
+  40% { fill: #F2C75C; }
+}
