@@ -21,14 +21,21 @@ export function DesktopControlsHint({ type }: { type: PuzzleType }) {
   const [room, setRoom] = useState(0);
   useEffect(() => {
     if (!desktop) return;
+    const column = document.querySelector("[data-shell-column='game']");
     const measure = () => {
-      const column = document.querySelector("[data-shell-column='game']")?.getBoundingClientRect();
+      const c = column?.getBoundingClientRect();
       const rail = document.querySelector("[data-app-rail]")?.getBoundingClientRect();
-      setRoom(column ? Math.floor(column.left - (rail?.right ?? 0) - 32) : 0);
+      // The hint starts 16 px right of the rail and keeps 16 px clear of the column.
+      setRoom(c ? Math.floor(c.left - (rail?.right ?? 0) - 32) : 0);
     };
     measure();
+    const observer = typeof ResizeObserver === "undefined" || !column ? null : new ResizeObserver(measure);
+    if (observer && column) observer.observe(column);
     window.addEventListener("resize", measure);
-    return () => window.removeEventListener("resize", measure);
+    return () => {
+      observer?.disconnect();
+      window.removeEventListener("resize", measure);
+    };
   }, [desktop, type]);
   useEffect(() => {
     if (!desktop) return;
