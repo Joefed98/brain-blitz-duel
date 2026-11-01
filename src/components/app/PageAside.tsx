@@ -29,15 +29,22 @@ export function BannerSlot({ page }: { page: BannerPage }) {
     if (/^https?:\/\//.test(banner.to)) window.open(banner.to, "_blank", "noopener");
     else {
       const [path, query] = banner.to.split("?");
-      void navigate({ to: path as never, search: Object.fromEntries(new URLSearchParams(query ?? "")) as never });
+      void navigate({
+        to: path as never,
+        search: Object.fromEntries(new URLSearchParams(query ?? "")) as never,
+      });
     }
   };
   return (
     <aside aria-label="Promotion" data-banner-slot={banner.id} className="dk-banner">
       <Megaphone aria-hidden="true" className="dk-banner-icon" />
       <span className="dk-banner-text">
-        <span data-ellipsis className="dk-banner-title">{banner.title}</span>
-        <span data-ellipsis className="dk-banner-line">{banner.line}</span>
+        <span data-ellipsis className="dk-banner-title">
+          {banner.title}
+        </span>
+        <span data-ellipsis className="dk-banner-line">
+          {banner.line}
+        </span>
       </span>
       <button type="button" onClick={go} className="ap-btn-outline press dk-banner-action">
         {banner.action} <ChevronRight aria-hidden="true" className="h-4 w-4" />
@@ -58,13 +65,23 @@ function NextPublicPanel() {
       <h2 className="ap-section-title">Next public room</h2>
       {next ? (
         <div className="ap-panel">
-          <PublicGameNext game={next} now={now} onJoin={(code) => void navigate({ to: "/duel/$code", params: { code } })} />
+          <PublicGameNext
+            game={next}
+            now={now}
+            onJoin={(code) => void navigate({ to: "/duel/$code", params: { code } })}
+          />
         </div>
       ) : (
-        <button type="button" onClick={() => void navigate({ to: "/tournaments" })} className="ap-panel ap-row press">
+        <button
+          type="button"
+          onClick={() => void navigate({ to: "/tournaments" })}
+          className="ap-panel ap-row press"
+        >
           <span className="ap-row-text">
             <span className="ap-row-title">None scheduled yet</span>
-            <span data-ellipsis className="ap-row-sub">Public games show here and in Tournaments</span>
+            <span data-ellipsis className="ap-row-sub">
+              Public games show here and in Tournaments
+            </span>
           </span>
           <ChevronRight aria-hidden="true" className="ap-chevron" />
         </button>
@@ -81,13 +98,22 @@ function DailyPanel() {
   if (!status?.available) return null;
   return (
     <div data-aside-panel="daily">
-      <DailyCard status={status} streak={streak} onOpen={(kind) => void navigate({ to: "/daily", search: { kind } as never })} />
+      <DailyCard
+        status={status}
+        streak={streak}
+        onOpen={(kind) => void navigate({ to: "/daily", search: { kind } as never })}
+      />
     </div>
   );
 }
 
 function WeekPanel() {
-  const [week, setWeek] = useState<{ rooms: number; wins: number; practice: number; streak: number } | null>(null);
+  const [week, setWeek] = useState<{
+    rooms: number;
+    wins: number;
+    practice: number;
+    streak: number;
+  } | null>(null);
   useEffect(() => {
     const since = Date.now() - 7 * 86_400_000;
     const rooms = readRoomHistory().filter((r) => r.at >= since);
@@ -126,7 +152,15 @@ function WeekPanel() {
 export function PageAside({ panels }: { panels: readonly AsidePanel[] }) {
   return (
     <aside aria-label="More" data-page-aside className="dk-aside">
-      {panels.map((p) => (p === "public" ? <NextPublicPanel key={p} /> : p === "daily" ? <DailyPanel key={p} /> : <WeekPanel key={p} />))}
+      {panels.map((p) =>
+        p === "public" ? (
+          <NextPublicPanel key={p} />
+        ) : p === "daily" ? (
+          <DailyPanel key={p} />
+        ) : (
+          <WeekPanel key={p} />
+        ),
+      )}
     </aside>
   );
 }

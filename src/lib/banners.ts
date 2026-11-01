@@ -19,7 +19,10 @@ export function bannerFor(page: BannerPage, now: number): HouseBanner | null {
       to: "/tournaments",
     };
   }
-  const injected = typeof window !== "undefined" ? (window as unknown as { __DUELZ_BANNERS__?: HouseBanner[] }).__DUELZ_BANNERS__ : undefined;
+  const injected =
+    typeof window !== "undefined"
+      ? (window as unknown as { __DUELZ_BANNERS__?: HouseBanner[] }).__DUELZ_BANNERS__
+      : undefined;
   const list = Array.isArray(injected) ? injected : HOUSE_BANNERS;
   const today = ukDayKey(now);
   return (

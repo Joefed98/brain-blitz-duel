@@ -25,7 +25,12 @@ export function DesktopControlsHint({ type }: { type: PuzzleType }) {
   const mouse = mouseLine(type);
   if (!desktop || (!keys && !mouse)) return null;
   return (
-    <div data-controls-hint data-shown={shown || undefined} aria-label="Controls" className="dk-controls-hint">
+    <div
+      data-controls-hint
+      data-shown={shown || undefined}
+      aria-label="Controls"
+      className="dk-controls-hint"
+    >
       {keys?.map(([key, action]) => (
         <span key={key}>
           <kbd>{key}</kbd> {action}

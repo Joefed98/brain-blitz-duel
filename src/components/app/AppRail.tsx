@@ -28,7 +28,13 @@ const TABS: { tab: AppTab; label: string; Icon: LucideIcon }[] = [
   { tab: "profile", label: "Profile", Icon: UserRound },
 ];
 
-export function AppRail({ current, compact = false }: { current?: AppTab | undefined; compact?: boolean }) {
+export function AppRail({
+  current,
+  compact = false,
+}: {
+  current?: AppTab | undefined;
+  compact?: boolean;
+}) {
   const router = useRouter();
   const [settings, setSettings] = useState(false);
   const [name, setName] = useState("");
@@ -92,7 +98,15 @@ export function AppRail({ current, compact = false }: { current?: AppTab | undef
         {compact ? null : (
           <form role="search" onSubmit={search} className="dk-rail-search">
             <Search aria-hidden="true" className="dk-rail-search-icon" />
-            <input name="q" type="search" placeholder="Search games" aria-label="Search games" autoComplete="off" spellCheck={false} className="ap-input" />
+            <input
+              name="q"
+              type="search"
+              placeholder="Search games"
+              aria-label="Search games"
+              autoComplete="off"
+              spellCheck={false}
+              className="ap-input"
+            />
           </form>
         )}
         <a
@@ -104,10 +118,21 @@ export function AppRail({ current, compact = false }: { current?: AppTab | undef
           className="dk-rail-account press"
         >
           <PlayerBadge look={look} name={name || "You"} size={compact ? 32 : 30} />
-          {compact ? null : <span data-ellipsis className="dk-rail-name">{name || "Your profile"}</span>}
+          {compact ? null : (
+            <span data-ellipsis className="dk-rail-name">
+              {name || "Your profile"}
+            </span>
+          )}
         </a>
         <div className="dk-rail-tools">
-          <button type="button" data-rail-settings aria-label="Settings" title="Settings" onClick={() => setSettings(true)} className="dk-rail-icon press">
+          <button
+            type="button"
+            data-rail-settings
+            aria-label="Settings"
+            title="Settings"
+            onClick={() => setSettings(true)}
+            className="dk-rail-icon press"
+          >
             <Settings aria-hidden="true" className="h-5 w-5" />
           </button>
           {compact ? null : <MuteToggle />}

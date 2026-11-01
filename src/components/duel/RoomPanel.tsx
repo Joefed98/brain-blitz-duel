@@ -62,30 +62,52 @@ export function RoomPanel({
   if (myAnswered) finished.add(mySlot);
   const done = status === "finished" ? totalRounds : Math.max(0, round - (inRound ? 1 : 0));
   // The lobby: the order is dealt only at the start, so no bar yet (the lobby's own line says the settings).
-  const label = status === "waiting" ? "Waiting to start" : status === "finished" ? "Game over" : `Round ${round} of ${totalRounds}`;
+  const label =
+    status === "waiting"
+      ? "Waiting to start"
+      : status === "finished"
+        ? "Game over"
+        : `Round ${round} of ${totalRounds}`;
   const playerOf = new Map(players.map((p) => [p.player_slot, p]));
   return (
     <aside aria-label="Room" data-room-panel-body data-skin="room" className="dk-room-panel">
       <div className="dk-rp-head">
         <span className="dk-rp-label">Room</span>
-        <span data-room-panel-code className="dk-rp-code">{roomCode}</span>
+        <span data-room-panel-code className="dk-rp-code">
+          {roomCode}
+        </span>
       </div>
 
       <section aria-label="Rounds" className="dk-rp-section">
         <div className="dk-rp-row">
           <h2 className="dk-rp-title">{label}</h2>
           {round > 0 && status !== "finished" && isLiveType(roundOrder[round - 1]) ? (
-            <span data-ellipsis className="dk-rp-meta">{puzzleName(roundOrder[round - 1]!)}</span>
+            <span data-ellipsis className="dk-rp-meta">
+              {puzzleName(roundOrder[round - 1]!)}
+            </span>
           ) : null}
         </div>
-        {status === "waiting" ? null : <div data-room-progress className="dk-rp-progress" role="img" aria-label={`${done} of ${totalRounds} rounds played`}>
-          {Array.from({ length: totalRounds }, (_, i) => {
-            const type = roundOrder[i];
-            const cat = type && isLiveType(type) ? (puzzleDef(type).category === "arcade" ? (arcadeGroupOf(type) ?? "arcade") : puzzleDef(type).category) : undefined;
-            const state = i < done ? "done" : i === round - 1 && status === "in_progress" ? "now" : "next";
-            return <span key={i} data-cat={cat} data-round-state={state} className="dk-rp-seg" />;
-          })}
-        </div>}
+        {status === "waiting" ? null : (
+          <div
+            data-room-progress
+            className="dk-rp-progress"
+            role="img"
+            aria-label={`${done} of ${totalRounds} rounds played`}
+          >
+            {Array.from({ length: totalRounds }, (_, i) => {
+              const type = roundOrder[i];
+              const cat =
+                type && isLiveType(type)
+                  ? puzzleDef(type).category === "arcade"
+                    ? (arcadeGroupOf(type) ?? "arcade")
+                    : puzzleDef(type).category
+                  : undefined;
+              const state =
+                i < done ? "done" : i === round - 1 && status === "in_progress" ? "now" : "next";
+              return <span key={i} data-cat={cat} data-round-state={state} className="dk-rp-seg" />;
+            })}
+          </div>
+        )}
       </section>
 
       <section aria-label="Standings" data-room-standings className="dk-rp-section dk-rp-grow">
@@ -97,14 +119,41 @@ export function RoomPanel({
           {rows.map((row) => {
             const p = playerOf.get(row.slot);
             const state =
-              p?.status === "left" ? "left" : status === "waiting" ? (p?.user_id === myUserId ? "you" : "ready") : inRound ? (finished.has(row.slot) ? "finished" : "playing") : "";
-            const word = state === "finished" ? "finished ✓" : state === "playing" ? "playing" : state === "left" ? "left" : state === "you" ? "you" : "";
+              p?.status === "left"
+                ? "left"
+                : status === "waiting"
+                  ? p?.user_id === myUserId
+                    ? "you"
+                    : "ready"
+                  : inRound
+                    ? finished.has(row.slot)
+                      ? "finished"
+                      : "playing"
+                    : "";
+            const word =
+              state === "finished"
+                ? "finished ✓"
+                : state === "playing"
+                  ? "playing"
+                  : state === "left"
+                    ? "left"
+                    : state === "you"
+                      ? "you"
+                      : "";
             return (
-              <li key={row.slot} data-room-player={row.slot} data-me={row.slot === mySlot || undefined} data-state={state || undefined} className="dk-rp-player">
+              <li
+                key={row.slot}
+                data-room-player={row.slot}
+                data-me={row.slot === mySlot || undefined}
+                data-state={state || undefined}
+                className="dk-rp-player"
+              >
                 <span className="dk-rp-place">{status === "waiting" ? "" : row.position}</span>
                 <PlayerBadge look={looks.get(row.slot)} name={row.name} size={26} />
                 <span className="dk-rp-name-wrap">
-                  <span data-ellipsis className="dk-rp-name">{row.name || "Player"}</span>
+                  <span data-ellipsis className="dk-rp-name">
+                    {row.name || "Player"}
+                  </span>
                   {word ? <span className="dk-rp-status">{word}</span> : null}
                 </span>
                 {status === "waiting" ? null : <span className="dk-rp-score">{row.total}</span>}
@@ -114,9 +163,15 @@ export function RoomPanel({
         </ol>
       </section>
 
-      <section aria-label="Chat" data-room-panel-chat={chatAvailable ? "open" : "closed"} className="dk-rp-section dk-rp-chat">
+      <section
+        aria-label="Chat"
+        data-room-panel-chat={chatAvailable ? "open" : "closed"}
+        className="dk-rp-section dk-rp-chat"
+      >
         <h2 className="dk-rp-title">Chat</h2>
-        {chatAvailable ? <PanelChat chat={chat} myUserId={myUserId} /> : (
+        {chatAvailable ? (
+          <PanelChat chat={chat} myUserId={myUserId} />
+        ) : (
           <p className="dk-rp-quiet">
             <MessageSquare aria-hidden="true" className="h-4 w-4" /> Chat opens between rounds
           </p>
@@ -144,14 +199,30 @@ function PanelChat({ chat, myUserId }: { chat: RoomChatState; myUserId: string }
       <ul ref={list} data-scrollable className="dk-rp-messages">
         {chat.messages.length === 0 ? <li className="dk-rp-quiet">No messages yet</li> : null}
         {chat.messages.slice(-40).map((m) => (
-          <li key={m.id} data-mine={m.sender_user_id === myUserId || undefined} className="dk-rp-msg">
+          <li
+            key={m.id}
+            data-mine={m.sender_user_id === myUserId || undefined}
+            className="dk-rp-msg"
+          >
             <span className="dk-rp-msg-name">{m.sender_name}</span> {m.text}
           </li>
         ))}
       </ul>
       <form onSubmit={submit} className="dk-rp-send">
-        <input value={text} onChange={(e) => setText(e.target.value)} placeholder="Chat…" aria-label="Chat message" maxLength={200} className="ap-input" />
-        <button type="submit" aria-label="Send" disabled={!text.trim() || chat.sending} className="dk-rail-icon press">
+        <input
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          placeholder="Chat…"
+          aria-label="Chat message"
+          maxLength={200}
+          className="ap-input"
+        />
+        <button
+          type="submit"
+          aria-label="Send"
+          disabled={!text.trim() || chat.sending}
+          className="dk-rail-icon press"
+        >
           <Send aria-hidden="true" className="h-5 w-5" />
         </button>
       </form>

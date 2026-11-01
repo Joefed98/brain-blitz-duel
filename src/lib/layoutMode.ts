@@ -17,7 +17,8 @@ import { useSyncExternalStore } from "react";
  * (polish-layout/desktop.css, desktop-layout.css), every computer-layout rule also scoped to the
  * `data-layout` PhoneShell sets from this hook.
  */
-export const DESKTOP_LAYOUT_QUERY = "(min-width: 1024px) and (min-height: 500px) and (hover: hover) and (pointer: fine)";
+export const DESKTOP_LAYOUT_QUERY =
+  "(min-width: 1024px) and (min-height: 500px) and (hover: hover) and (pointer: fine)";
 /** 700 px wide and up when not the desktop layout (a touch screen of any width from 700 px). */
 export const TABLET_LAYOUT_QUERY = "(min-width: 700px) and (min-height: 500px)";
 

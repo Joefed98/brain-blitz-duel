@@ -34,11 +34,26 @@ export interface DesktopModeInfo {
   why: string;
 }
 
-const WIDE_PUZZLE: DesktopModeInfo = { mode: "wide", why: "puzzle board: re-flows into the wider column" };
-const CARDS: DesktopModeInfo = { mode: "wide", why: "card / board layout, no physics world: scaled up in a wide column" };
-const SIDE: DesktopModeInfo = { mode: "tall", why: "side-on world: full height, scenery out to both sides" };
-const BEHIND: DesktopModeInfo = { mode: "tall", why: "behind-camera view: full height, scenery out to both sides" };
-const PORTRAIT: DesktopModeInfo = { mode: "tall", why: "portrait play with controls at the bottom (paddle, flippers, launcher): kept upright" };
+const WIDE_PUZZLE: DesktopModeInfo = {
+  mode: "wide",
+  why: "puzzle board: re-flows into the wider column",
+};
+const CARDS: DesktopModeInfo = {
+  mode: "wide",
+  why: "card / board layout, no physics world: scaled up in a wide column",
+};
+const SIDE: DesktopModeInfo = {
+  mode: "tall",
+  why: "side-on world: full height, scenery out to both sides",
+};
+const BEHIND: DesktopModeInfo = {
+  mode: "tall",
+  why: "behind-camera view: full height, scenery out to both sides",
+};
+const PORTRAIT: DesktopModeInfo = {
+  mode: "tall",
+  why: "portrait play with controls at the bottom (paddle, flippers, launcher): kept upright",
+};
 
 export const DESKTOP_MODES: Record<PuzzleType, DesktopModeInfo> = {
   // Word
@@ -60,7 +75,10 @@ export const DESKTOP_MODES: Record<PuzzleType, DesktopModeInfo> = {
   measure: WIDE_PUZZLE,
   checkout: WIDE_PUZZLE,
   numline: WIDE_PUZZLE,
-  tendrop: { mode: "tall", why: "falling-number engine game: things fall down the screen, kept upright" },
+  tendrop: {
+    mode: "tall",
+    why: "falling-number engine game: things fall down the screen, kept upright",
+  },
   // Speed
   reaction: WIDE_PUZZLE,
   numhunt: WIDE_PUZZLE,
@@ -109,13 +127,35 @@ export const DESKTOP_MODES: Record<PuzzleType, DesktopModeInfo> = {
   fivehands: CARDS,
   matchup: { mode: "wide", why: "match-three board, no physics world: scaled up in a wide column" },
   // Arcade: top-down worlds, turned into landscape
-  pool: { mode: "rotate", why: "top-down table: turned to landscape (aim and spin are not screen directions)" },
-  minigolf: { mode: "rotate", why: "top-down course: turned to landscape (arrows turn the aim, the same way on screen)" },
+  pool: {
+    mode: "rotate",
+    why: "top-down table: turned to landscape (aim and spin are not screen directions)",
+  },
+  minigolf: {
+    mode: "rotate",
+    why: "top-down course: turned to landscape (arrows turn the aim, the same way on screen)",
+  },
   orbit: { mode: "rotate", why: "top-down space flight: turned so the rocket flies left to right" },
-  snake: { mode: "rotate", keys: "all", why: "top-down grid: turned to landscape; swipes and arrows / WASD turn with it" },
-  tilt: { mode: "rotate", keys: "all", why: "top-down maze: turned to landscape; the drag and arrows / A D turn with it" },
-  cross: { mode: "rotate", keys: "all", why: "top-down road: turned so the walker crosses left to right; swipes and arrows / WASD turn with it" },
-  curling: { mode: "rotate", keys: "arrows", why: "top-down sheet: turned so stones travel left to right; the broom arrows turn with it" },
+  snake: {
+    mode: "rotate",
+    keys: "all",
+    why: "top-down grid: turned to landscape; swipes and arrows / WASD turn with it",
+  },
+  tilt: {
+    mode: "rotate",
+    keys: "all",
+    why: "top-down maze: turned to landscape; the drag and arrows / A D turn with it",
+  },
+  cross: {
+    mode: "rotate",
+    keys: "all",
+    why: "top-down road: turned so the walker crosses left to right; swipes and arrows / WASD turn with it",
+  },
+  curling: {
+    mode: "rotate",
+    keys: "arrows",
+    why: "top-down sheet: turned so stones travel left to right; the broom arrows turn with it",
+  },
   // Arcade: side-on and behind-camera worlds, kept upright at full height
   racing: BEHIND,
   homerun: BEHIND,

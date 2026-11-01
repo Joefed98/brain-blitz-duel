@@ -15,7 +15,11 @@ export interface DesktopPresentationValue {
   keys: RotatedKeys | null;
 }
 
-export const DesktopPresentation = createContext<DesktopPresentationValue>({ mode: null, rotate: false, keys: null });
+export const DesktopPresentation = createContext<DesktopPresentationValue>({
+  mode: null,
+  rotate: false,
+  keys: null,
+});
 
 export function useDesktopPresentation(): DesktopPresentationValue {
   return useContext(DesktopPresentation);
@@ -29,7 +33,12 @@ export function useDesktopPresentation(): DesktopPresentationValue {
  */
 export function rotatedKey(key: string, keys: RotatedKeys | null): string {
   if (!keys) return key;
-  const arrows: Record<string, string> = { ArrowRight: "ArrowUp", ArrowDown: "ArrowRight", ArrowLeft: "ArrowDown", ArrowUp: "ArrowLeft" };
+  const arrows: Record<string, string> = {
+    ArrowRight: "ArrowUp",
+    ArrowDown: "ArrowRight",
+    ArrowLeft: "ArrowDown",
+    ArrowUp: "ArrowLeft",
+  };
   if (arrows[key]) return arrows[key]!;
   if (keys === "all") {
     const letters: Record<string, string> = { d: "w", s: "d", a: "s", w: "a" };

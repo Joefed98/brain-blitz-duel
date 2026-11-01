@@ -15,7 +15,12 @@ let used = new Set<InputTypePart>();
 let installed = false;
 
 function typing(target: EventTarget | null): boolean {
-  return target instanceof Element && Boolean(target.closest("input, textarea, select, [contenteditable=''], [contenteditable='true']"));
+  return (
+    target instanceof Element &&
+    Boolean(
+      target.closest("input, textarea, select, [contenteditable=''], [contenteditable='true']"),
+    )
+  );
 }
 
 function install(): void {
@@ -31,7 +36,14 @@ function install(): void {
   window.addEventListener(
     "keydown",
     (event) => {
-      if (!event.isTrusted || event.ctrlKey || event.metaKey || event.altKey || typing(event.target)) return;
+      if (
+        !event.isTrusted ||
+        event.ctrlKey ||
+        event.metaKey ||
+        event.altKey ||
+        typing(event.target)
+      )
+        return;
       if (["Shift", "Control", "Alt", "Meta", "Tab", "Escape"].includes(event.key)) return;
       used.add("keyboard");
     },
