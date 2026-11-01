@@ -117,7 +117,7 @@ function introScoreTemplates(): Record<PuzzleType, string> {
     pool: "Spots 140, the black 10, pots in a row 30, speed 20; fouls −10. Up to {max}.",
     curling: "Stones near the button 120, takeouts 30, the 4-foot 30, holding shot 20: {max}.",
     pinball: "Table points, plus J-O-U-L-Z sets, multiball, jackpots and ramp combos. Up to {max}.",
-    homerun: "Distance on every pitch, home runs and the signs beyond the fence (Power swings only). Up to {max}.",
+    homerun: "Distance on every pitch, home runs and signs beyond the fence (Power only). Up to {max}.",
     freekick: "Goals away from the keeper, targets, curls round the wall and five in a row. Up to {max}.",
     racing: "Distance, clean sectors, the finish and your time from lights out. Up to {max}.",
     // Cards & Board (the arcade scoring standard from their first revision).
