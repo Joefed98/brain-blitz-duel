@@ -1,4 +1,6 @@
 import { withArcadeFx } from "@/lib/arcade/arcadeFx.renderer";
+import { useDesktopPresentation } from "@/lib/desktopPresentation";
+import { setArcadeTextTurn } from "@/lib/arcade/arcadeFx.renderer";
 import { POOL_FX } from "@/lib/arcade/sportsFx.renderer";
 import { gameDisplayName } from "@/lib/duel/gameNames";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -28,7 +30,7 @@ import {
   POOL_W,
   type PoolState,
 } from "@/lib/arcade/pool";
-import { drawPool, drawPoolPowerPanel, poolBallColour, poolScene, POOL_BG, type PoolAim } from "@/lib/arcade/pool.renderer";
+import { drawPool, drawPoolHud, drawPoolPowerPanel, poolBallColour, poolScene, POOL_BG, type PoolAim } from "@/lib/arcade/pool.renderer";
 import { SPORTS_CHECKPOINT_INTERVAL } from "@/lib/arcade/sportsKit";
 import { poolSounds } from "@/lib/fx/gameSounds";
 import { encodePoolRun, replayPoolRun } from "@/lib/duel/pool";
@@ -223,6 +225,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     return a;
   };
 
+  const turnedRef = useRef(false);
+  turnedRef.current = useDesktopPresentation().rotate;
   // The sim, with a draw that paints the table, the cue and the aim the player is lining up (presentation only).
   const game = useMemo<ArcadeGame<PoolState, ArcadeInputEvent | null>>(() => {
     const base = poolGameFor(data?.poolRev);
@@ -233,7 +237,12 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         const a = s.phase === POOL_AIM && !s.over ? currentAngle(s) : null;
         const sp = spinRef.current;
         const view: PoolAim | null = a !== null ? { dx: Math.cos(a), dy: Math.sin(a), power: pull.current, spinX: sp.x, spinY: sp.y } : null;
-        withArcadeFx(POOL_FX, (c, st: PoolState) => drawPool(c, st, view))(ctx, s, { width: POOL_W, height: POOL_H });
+        // The desktop rotate mode turns the table (desktopModes.ts): its numbers and pop-ups are drawn turned back
+        // so they read upright, and its HUD chips go on the upright strip (`hud` below), never on the turned table.
+        const turned = turnedRef.current;
+        setArcadeTextTurn(turned ? -Math.PI / 2 : 0);
+        withArcadeFx(POOL_FX, (c, st: PoolState) => drawPool(c, st, view, turned))(ctx, s, { width: POOL_W, height: POOL_H });
+        setArcadeTextTurn(0);
       },
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -352,6 +361,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         background={POOL_BG}
         fitWorld
         scene={poolScene}
+        hud={{ height: 32, worldW: POOL_W, draw: drawPoolHud }}
         seed={data?.seed ?? 1}
         enabled={data !== null}
         locked={locked}

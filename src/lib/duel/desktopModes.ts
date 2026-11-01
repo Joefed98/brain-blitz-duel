@@ -8,10 +8,12 @@ import type { PuzzleType } from "./types";
  * - `wide`: puzzles and card / board games (no physics world). The board or layout gets a wider, taller
  *   column and re-flows into it (puzzles' boards size from their column; canvas card games keep their
  *   world and scale up in it).
- * - `rotate`: top-down arcade games. The identical world is drawn turned 90° clockwise into landscape
- *   (world "up" points right); pointer and mouse positions, swipe directions and (where a game's keys are
- *   directions) arrow keys go back through the inverse turn, so the sim gets identical inputs.
- * - `tall`: side-on and behind-camera arcade games. The world scales to the full height of the play
+ * - `rotate`: Cue Ball only (Joe, 31 Oct 2026). The identical table is drawn turned 90° clockwise into
+ *   landscape; pointer and mouse positions go back through the inverse turn, so the sim gets identical
+ *   inputs. Only the table and balls turn: its HUD chips are drawn upright on their own strip
+ *   (ArcadeCanvasStage `hud`), ball numbers and effect pop-ups counter-turned, the power meter and spin
+ *   button sit outside the turned table. No text is ever drawn rotated.
+ * - `tall`: every other arcade game (side-on, behind-camera and the other top-down ones). The world scales to the full height of the play
  *   column and the game's own scenery runs out beyond it to both sides, fading at the edges.
  *
  * Only the desktop breakpoint (1024 px wide and up, src/lib/layoutMode.ts) applies these; tablets and
@@ -126,36 +128,15 @@ export const DESKTOP_MODES: Record<PuzzleType, DesktopModeInfo> = {
   pokersquares: CARDS,
   fivehands: CARDS,
   matchup: { mode: "wide", why: "match-three board, no physics world: scaled up in a wide column" },
-  // Arcade: top-down worlds, turned into landscape
-  pool: {
-    mode: "rotate",
-    why: "top-down table: turned to landscape (aim and spin are not screen directions)",
-  },
-  minigolf: {
-    mode: "rotate",
-    why: "top-down course: turned to landscape (arrows turn the aim, the same way on screen)",
-  },
-  orbit: { mode: "rotate", why: "top-down space flight: turned so the rocket flies left to right" },
-  snake: {
-    mode: "rotate",
-    keys: "all",
-    why: "top-down grid: turned to landscape; swipes and arrows / WASD turn with it",
-  },
-  tilt: {
-    mode: "rotate",
-    keys: "all",
-    why: "top-down maze: turned to landscape; the drag and arrows / A D turn with it",
-  },
-  cross: {
-    mode: "rotate",
-    keys: "all",
-    why: "top-down road: turned so the walker crosses left to right; swipes and arrows / WASD turn with it",
-  },
-  curling: {
-    mode: "rotate",
-    keys: "arrows",
-    why: "top-down sheet: turned so stones travel left to right; the broom arrows turn with it",
-  },
+  // Arcade: Cue Ball alone is turned into landscape (Joe, 31 Oct 2026); its HUD stays upright beside the table.
+  pool: { mode: "rotate", why: "top-down table: turned to landscape, only the table and balls (HUD, power meter and spin upright)" },
+  // Top-down worlds that stay upright (Joe, 31 Oct 2026: only Cue Ball rotates).
+  minigolf: { mode: "tall", why: "top-down course, kept upright at full height" },
+  orbit: { mode: "tall", why: "top-down space flight, kept upright at full height" },
+  snake: { mode: "tall", why: "top-down grid, kept upright at full height" },
+  tilt: { mode: "tall", why: "top-down maze, kept upright at full height" },
+  cross: { mode: "tall", why: "top-down road, kept upright at full height" },
+  curling: { mode: "tall", why: "top-down sheet, kept upright at full height" },
   // Arcade: side-on and behind-camera worlds, kept upright at full height
   racing: BEHIND,
   homerun: BEHIND,

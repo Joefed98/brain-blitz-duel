@@ -4,6 +4,8 @@
  * presentation and input mapping, so the sim receives exactly the inputs a phone would give it and a run
  * replays identically. This check proves it for one game in each desktop mode, rotate and tall included:
  *
+ *  1b. Upright text: on Cue Ball's turned table every text is turned back to read upright and no HUD chip is
+ *     drawn there (they are on the upright strip); upright, nothing is turned (a canvas spy on fillText).
  *  1. The mapping (pure): a point drawn by a turned arena (tapMapping.ts rotatePoint) maps back through
  *     unrotatePoint to exactly where it was, for many boxes and points; swipes (arenaDelta) and the keys a
  *     rotated game turns (desktopPresentation.ts rotatedKey) move the world the way the key or swipe moves
@@ -78,6 +80,45 @@ for (const key of ["w", "a", "s", "d"]) if (rotatedKey(key, "arrows") !== key) f
 for (const key of Object.keys(SCREEN_DIR)) if (rotatedKey(key, null) !== key) fail(`keys: "${key}" turned with no rotation`);
 // Only top-down games turn, and only rotate games say which keys turn.
 for (const [type, info] of Object.entries(DESKTOP_MODES)) if (info.keys && info.mode !== "rotate") fail(`modes: ${type} turns keys but is ${info.mode}`);
+
+/* ------------------------------------------------------------------ 1b. upright text on the turned table */
+
+{
+  // Cue Ball is the one rotate game (Joe, 31 Oct 2026). On its turned table (the rotor turns a quarter turn
+  // clockwise) every text it draws must be turned back a quarter turn, so it reads upright on screen, and no
+  // HUD chip may be drawn there at all (they are on the upright strip, ArcadeCanvasStage `hud`).
+  const { createCanvas } = await import("@napi-rs/canvas");
+  const { drawPool, drawPoolHud } = await import("../src/lib/arcade/pool.renderer");
+  const { poolGameFor, POOL_W, POOL_H } = await import("../src/lib/arcade/pool");
+  let s = poolGameFor(2).init(4242) as Parameters<typeof drawPool>[1];
+  const texts: { text: string; angle: number }[] = [];
+  const canvas = createCanvas(POOL_W, POOL_H);
+  const ctx = canvas.getContext("2d") as unknown as CanvasRenderingContext2D;
+  const fill = ctx.fillText.bind(ctx);
+  ctx.fillText = ((text: string, x: number, y: number) => {
+    const m = ctx.getTransform();
+    texts.push({ text, angle: Math.atan2(m.b, m.a) });
+    fill(text, x, y);
+  }) as typeof ctx.fillText;
+  drawPool(ctx, s, null, true);
+  const balls = texts.length;
+  if (balls < 7) fail(`upright text: only ${balls} ball numbers drawn on the turned table`);
+  for (const t of texts) {
+    if (Math.abs(t.angle + Math.PI / 2) > 1e-6) fail(`upright text: "${t.text}" drawn at ${((t.angle * 180) / Math.PI).toFixed(0)}° on the turned table (want -90°, upright once the rotor turns it +90°)`);
+    if (/[A-Z]{2}/.test(t.text)) fail(`upright text: the HUD chip "${t.text}" is drawn on the turned table`);
+  }
+  // Upright (a phone): the same numbers unturned and the HUD on the table as before.
+  texts.length = 0;
+  drawPool(ctx, s, null, false);
+  for (const t of texts) if (Math.abs(t.angle) > 1e-6) fail(`upright text: "${t.text}" turned on an upright table`);
+  // The strip: the HUD alone, upright.
+  texts.length = 0;
+  drawPoolHud(ctx, s);
+  for (const t of texts) if (Math.abs(t.angle) > 1e-6) fail(`upright text: the HUD strip draws "${t.text}" turned`);
+  void s;
+  s = s as never;
+  proofs++;
+}
 
 /* ------------------------------------------------------------------ 2. separation */
 
@@ -181,6 +222,19 @@ async function play(page: Page): Promise<Captured> {
     await page.mouse.up();
     await page.waitForTimeout(120);
   }
+  // Cue Ball: the aim the strokes set is shot with the power control (upright, under the table): pulled half its
+  // own pull length, so the same shot leaves every presentation; its payload carries the aimed angle into the sim.
+  const power = page.locator('[data-game-controls="power"] canvas').first();
+  if (await power.count()) {
+    const b = (await power.boundingBox())!;
+    const x0 = b.x + b.width * 0.92;
+    const y0 = b.y + b.height / 2;
+    await page.mouse.move(x0, y0);
+    await page.mouse.down();
+    for (let k = 1; k <= 5; k++) await page.mouse.move(x0 - (b.width * 0.85 * 0.5 * k) / 5, y0);
+    await page.mouse.up();
+    await page.waitForTimeout(200);
+  }
   const got = await page.evaluate(() => {
     const w = window as unknown as { __duelzWorldPoints: ({ x: number; y: number } | null)[]; __duelzPayloads: unknown[] };
     return { points: w.__duelzWorldPoints, payloads: w.__duelzPayloads };
@@ -197,7 +251,7 @@ const server = await startSafeAreaServer({ cacheDir: "node_modules/.vite-desktop
 fixThemeClock();
 const { chromium } = await import("playwright");
 const browser = await chromium.launch({ executablePath: CHROMIUM });
-const recorded: Record<string, { at: string; payloads: unknown[] }[]> = {};
+const recorded: Record<string, { at: string; payloads: unknown[]; points: string; scale: number }[]> = {};
 try {
   for (const game of GAMES) {
     recorded[game.type] = [];
@@ -217,9 +271,26 @@ try {
         const wanted = want.map((p) => `${p.x},${p.y}`).join(" ");
         // A phone draws the world at under 1 CSS px a unit in places; there a pressed point may land a unit off
         // (the screen cannot address it), so the phone's own points are the reference for its payloads below.
-        if (got.scale >= 1 && points !== wanted) fail(`${at}: the stage received world points ${points.slice(0, 160)}…, want ${wanted.slice(0, 160)}…`);
-        if (got.points.length !== want.length) fail(`${at}: ${got.points.length} pointer positions mapped, want ${want.length}`);
-        recorded[game.type]!.push({ at, payloads: got.payloads });
+        // A press the game ignores (Apex's stick takes presses near it only) maps nothing after it, so the points
+        // must be the script's in order with none invented, and the same on every presentation.
+        let i = 0;
+        for (const p of got.points) {
+          while (i < want.length && (!p || want[i]!.x !== p.x || want[i]!.y !== p.y)) i++;
+          if (i >= want.length) break;
+          i++;
+        }
+        if (got.scale >= 1 && (i > want.length || got.points.some((p) => !p) || !got.points.every((p, k) => {
+          let j = 0;
+          for (const q of got.points.slice(0, k + 1)) {
+            while (j < want.length && (want[j]!.x !== q!.x || want[j]!.y !== q!.y)) j++;
+            if (j >= want.length) return false;
+            j++;
+          }
+          return true;
+        })))
+          fail(`${at}: the stage received world points ${points.slice(0, 160)}… that are not the scripted ${wanted.slice(0, 160)}… in order`);
+        if (got.points.length < 4) fail(`${at}: only ${got.points.length} pointer positions mapped`);
+        recorded[game.type]!.push({ at, payloads: got.payloads, points, scale: got.scale });
         if (VERBOSE) console.log(`${at}: ${got.points.length} points, ${got.payloads.length} payloads, scale ${got.scale.toFixed(2)}${got.rotated ? ", turned" : ""}`);
         proofs++;
       } catch (e) {
@@ -232,7 +303,13 @@ try {
     // scale of 1 or more the same (the 414×896 app draws these worlds at about 1 px a unit).
     const runs = recorded[game.type]!;
     const ref = JSON.stringify(runs[0]?.payloads ?? []);
-    for (const run of runs.slice(1, DESKTOPS.length)) if (JSON.stringify(run.payloads) !== ref) fail(`${run.at}: payloads differ from ${runs[0]!.at}`);
+    // Every desktop size, and every phone that draws the world at 1 CSS px a unit or more (below that a screen
+    // pixel spans more than a unit, so a press can land a unit off: that is the phone's own resolution).
+    for (const run of runs.slice(1).filter((r, k) => k < DESKTOPS.length - 1 || r.scale >= 1)) {
+      if (JSON.stringify(run.payloads) !== ref) fail(`${run.at}: payloads differ from ${runs[0]!.at}`);
+      if (run.points !== runs[0]!.points) fail(`${run.at}: world points differ from ${runs[0]!.at}`);
+    }
+    if (!runs[0]?.payloads.length) fail(`${game.type}: the gestures queued no input payload to compare`);
   }
 } finally {
   await browser.close();
@@ -293,5 +370,5 @@ if (failures.length) {
   process.exit(1);
 }
 console.log(
-  `PASS: desktop fairness: ${proofs} proofs. A turned arena maps every point back exactly; keys and swipes on a turned world move it the way they move on screen; ${scanned} sim, replay and grader files never see the presentation; Cue Ball (rotate), Apex (tall) and Free Cell (wide) receive the same world points and payloads at 1440x900 and 1920x1080 as scripted, and on the phones; the same payloads give the same sim state, score and checksum.`,
+  `PASS: desktop fairness: ${proofs} proofs. A turned arena maps every point back exactly; keys and swipes on a turned world move it the way they move on screen; ${scanned} sim, replay and grader files never see the presentation; Cue Ball (rotate), Apex (tall) and Free Cell (wide) receive the scripted world points and the same payloads at 1440x900 and 1920x1080 and on every phone drawing them at 1 px a unit or more; the same payloads give the same sim state, score and checksum.`,
 );

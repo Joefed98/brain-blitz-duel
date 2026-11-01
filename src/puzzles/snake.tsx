@@ -1,7 +1,6 @@
 import { useGameKeys, directionOf } from "@/lib/desktop";
 import { snakeAmbient, snakeFill } from "@/lib/arcade/arenaFills.renderer";
 import { ArcadeArenaSlot } from "@/components/puzzles/ArcadeArenaSlot";
-import { arenaDelta, arenaSize } from "@/components/puzzles/tapMapping";
 import { gameDisplayName } from "@/lib/duel/gameNames";
 import { useArcadeFrameTiming } from "@/components/puzzles/useArcadeFrameTiming";
 import { arcadeFeedback } from "@/lib/fx/arcade";
@@ -262,8 +261,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
    */
   const sizeCanvas = (): CanvasSize | null => {
     const node = canvas.current;
-    // The arena's own size (turned on the desktop rotate mode; tapMapping.ts arenaSize).
-    const box = arenaSize(wrap.current);
+    const box = wrap.current?.getBoundingClientRect();
     if (!node || !box || box.width < 1 || box.height < 1) return null;
     const ratio = arcadeCanvasRatio();
     const width = Math.floor(box.width + 0.01);
@@ -309,8 +307,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
           onPointerMove={(event) => {
             const from = anchor.current;
             if (!from || locked || submitted.current || snakeGame.isOver(state.current)) return;
-            // A swipe as the world sees it (turned back on the desktop rotate mode; tapMapping.ts arenaDelta).
-            const { dx, dy } = arenaDelta(wrap.current, event.clientX - from.x, event.clientY - from.y);
+            const dx = event.clientX - from.x;
+            const dy = event.clientY - from.y;
             if (Math.abs(dx) < SNAKE_SWIPE_PX && Math.abs(dy) < SNAKE_SWIPE_PX) return;
             const dir = Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 1 : 3) : dy > 0 ? 2 : 0;
             pending.current.push(dir);

@@ -12,6 +12,8 @@ const useIsoLayoutEffect = typeof window === "undefined" ? useEffect : useLayout
 
 /** A moving fill repaints at most this often (ms): slow, gentle motion needs no more. */
 const AMBIENT_MS = 50;
+/** CSS px² a moving fill covers at AMBIENT_MS; a larger one steps proportionally less often (31 Oct 2026). */
+const AMBIENT_AREA = 500_000;
 
 /**
  * The space an arcade arena may grow into: from the arena's fixed top edge (just under
@@ -87,7 +89,15 @@ export function ArcadeArenaSlot({ width, height, centre = false, playCentre = fa
     let raf = 0;
     let last = -Infinity;
     let still = false;
-    const ratioNow = canvasRatio;
+    // The scenery beyond the world is decorative (and, on the computer layout, faded at its edges): a layer
+    // larger than AMBIENT_AREA CSS px² is painted at a lower pixel ratio so its backing store stays a phone's
+    // size (31 Oct 2026; a 1920×1080 scene repainted with the camera cost Apex its 60 fps). Every phone is
+    // under AMBIENT_AREA, so its scene and fill are exactly as before; the world's own canvas is never touched.
+    const ratioNow = () => {
+      const r = host.getBoundingClientRect();
+      const area = r.width * r.height;
+      return area > AMBIENT_AREA ? canvasRatio() * Math.sqrt(AMBIENT_AREA / area) : canvasRatio();
+    };
     const paint = () => {
       const draw = painter.current;
       const world = box.querySelector<HTMLElement>(":scope > [data-game-arena], :scope > [data-arena-rotor] > [data-game-arena]");
@@ -171,7 +181,12 @@ export function ArcadeArenaSlot({ width, height, centre = false, playCentre = fa
       const layer = moving.current;
       if (!amb || !layer || !view) return;
       const hold = reducedMotion() || arcadeReducedEffects();
-      if (!(hold && still) && now - last >= AMBIENT_MS) {
+      // A large layer (the computer layout's full-screen fill: 1920×1080 is 5× a phone's) steps less often, by
+      // its area past AMBIENT_AREA, so its repaint never costs the world's frame rate; every phone (at most
+      // 430×932) is under AMBIENT_AREA and keeps AMBIENT_MS exactly.
+      const area = (view.right - view.left) * (view.bottom - view.top) * view.scale * view.scale;
+      const every = AMBIENT_MS * Math.max(1, area / AMBIENT_AREA);
+      if (!(hold && still) && now - last >= every) {
         last = now;
         still = hold;
         const ratio = ratioNow();

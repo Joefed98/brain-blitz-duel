@@ -1,7 +1,6 @@
 import { useGameKeys, directionOf } from "@/lib/desktop";
 import { crossAmbient } from "@/lib/arcade/arenaFills.renderer";
 import { ArcadeArenaSlot } from "@/components/puzzles/ArcadeArenaSlot";
-import { arenaDelta, arenaSize } from "@/components/puzzles/tapMapping";
 import { gameDisplayName } from "@/lib/duel/gameNames";
 import { arcadeFeedback } from "@/lib/fx/arcade";
 import { crossSounds } from "@/lib/fx/gameSounds";
@@ -222,8 +221,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
 
   const sizeCanvas = (): CanvasSize | null => {
     const node = canvas.current;
-    // The arena's own size (turned on the desktop rotate mode; tapMapping.ts arenaSize).
-    const box = arenaSize(wrap.current);
+    const box = wrap.current?.getBoundingClientRect();
     if (!node || !box || box.width < 1 || box.height < 1) return null;
     const ratio = arcadeCanvasRatio();
     const width = Math.round(box.width);
@@ -270,8 +268,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
             // Nothing swiped on the kerb is kept, so it cannot spill into the
             // crossing that follows.
             if (crossPaused(state.current)) return;
-            // A swipe as the world sees it (turned back on the desktop rotate mode; tapMapping.ts arenaDelta).
-            const { dx, dy } = arenaDelta(wrap.current, event.clientX - start.x, event.clientY - start.y);
+            const dx = event.clientX - start.x;
+            const dy = event.clientY - start.y;
             if (Math.abs(dx) < CROSS_SWIPE_PX && Math.abs(dy) < CROSS_SWIPE_PX) return;
             if (Math.abs(dy) >= Math.abs(dx)) pending.current.push(dy < 0 ? 0 : 1);
             else pending.current.push(dx < 0 ? 2 : 3);

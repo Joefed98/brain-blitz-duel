@@ -442,14 +442,14 @@
     max-height: none;
   }
   /* Tall and rotated worlds are capped so a canvas stays a size every desktop draws at 60 fps
-     (arcade-play-check --desktop: a turned world across the whole 1,844 px centre at 1920 wide, or Apex 760
+     (arcade-play-check --desktop: rotated worlds capped at 1,000 px across; a turned world across the whole 1,844 px centre at 1920 wide, or Apex 760
      wide, drew at 30-40 fps); the scenery still runs out to the edges. */
   [data-layout="desktop"][data-arcade-play][data-desktop-mode="tall"] > [data-shell-column="game"] {
     max-width: 640px;
     max-height: none;
   }
   [data-layout="desktop"][data-arcade-play][data-desktop-mode="rotate"] > [data-shell-column="game"] {
-    max-width: 1120px;
+    max-width: 1000px;
     max-height: none;
   }
   /* The scenery's soft edges: one static gradient layer over the scene (and under the column), from the

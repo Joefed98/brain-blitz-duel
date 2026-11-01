@@ -21,6 +21,7 @@ import { arcadeFeedback } from "@/lib/fx/arcade";
 import { arcadeCanvasRatio } from "@/lib/fx/lowEnd";
 import { useGameKeys } from "@/lib/desktop";
 import { arenaFrame, cancelArenaFrame } from "@/lib/battery";
+import { useDesktopPresentation } from "@/lib/desktopPresentation";
 
 /**
  * Checks only (desktop-fairness-check): when a page sets `window.__duelzWorldPoints` to an array, every
@@ -99,6 +100,12 @@ interface Props<S, C> {
   completeCue?: (state: S) => string | null;
   /** Render-side sound observer, created per run and stopped on teardown. */
   sounds?: () => { frame: (state: S, running: boolean) => void; stop: () => void };
+  /**
+   * The desktop rotate mode only (31 Oct 2026; Cue Ball): HUD chips drawn upright on their own strip above the
+   * turned world, `height` CSS px tall, in world px `worldW` wide centred (the game leaves them off its turned
+   * canvas). Never drawn anywhere else: on a phone the game draws its HUD on its canvas exactly as before.
+   */
+  hud?: { height: number; worldW: number; draw: (ctx: CanvasRenderingContext2D, state: S) => void };
   /** Controls drawn over the canvas (absolute), never shrinking the play area; a function gets the same `send` as `footer`. */
   overlay?: ReactNode | ((send: (payload: PointerPayload) => void) => ReactNode);
   /** Controls below the canvas which can enqueue the same recorded inputs as pointer gestures. */
@@ -123,6 +130,8 @@ export function ArcadeCanvasStage<S, C>(props: Props<S, C>) {
   const { game, seed, enabled } = props;
   const wrap = useRef<HTMLDivElement | null>(null);
   const canvas = useRef<HTMLCanvasElement | null>(null);
+  const hudCanvas = useRef<HTMLCanvasElement | null>(null);
+  const rotated = useDesktopPresentation().rotate;
   const frameTiming = useArcadeFrameTiming(canvas);
   const state = useRef<S>(game.init(seed));
   const events = useRef<ArcadeInputEvent[]>([]);
@@ -253,6 +262,26 @@ export function ArcadeCanvasStage<S, C>(props: Props<S, C>) {
           ctx.restore();
         }
       }
+      // The upright HUD strip beside a turned world (the desktop rotate mode only).
+      const hud = propsRef.current.hud;
+      const strip = hudCanvas.current;
+      if (hud && strip && strip.clientWidth > 0) {
+        const ratio = arcadeCanvasRatio();
+        const w = strip.clientWidth;
+        const h = strip.clientHeight;
+        if (strip.width !== Math.round(w * ratio) || strip.height !== Math.round(h * ratio)) {
+          strip.width = Math.round(w * ratio);
+          strip.height = Math.round(h * ratio);
+        }
+        const hctx = strip.getContext("2d");
+        if (hctx) {
+          hctx.setTransform(1, 0, 0, 1, 0, 0);
+          hctx.clearRect(0, 0, strip.width, strip.height);
+          const k = Math.min(1.25, w / hud.worldW);
+          hctx.setTransform(ratio * k, 0, 0, ratio * k, ratio * (w - hud.worldW * k) / 2, ratio * (h - 32 * k) / 2);
+          hud.draw(hctx, state.current);
+        }
+      }
       frameTiming.rendered();
 
       if (!submitted.current && time - draftAt >= 500) {
@@ -368,6 +397,9 @@ export function ArcadeCanvasStage<S, C>(props: Props<S, C>) {
 
   return (
     <>
+    {rotated && props.hud ? (
+      <canvas ref={hudCanvas} data-arena-hud="" aria-hidden="true" className="block w-full shrink-0" style={{ height: props.hud.height }} />
+    ) : null}
     {props.fitWorld ? (
       <ArcadeArenaSlot
         width={props.worldW}

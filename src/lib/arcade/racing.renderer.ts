@@ -1431,7 +1431,12 @@ function repaintBeyond(state: RacingState): void {
   // Skip a frame that shows nothing new (the world is redrawn every display frame; the sim moves at 60 Hz).
   if (state === lastBeyond) return;
   // A slow device in reduced effects (lib/fx/lowEnd.ts) repaints it on every other sim tick.
+  // A screen larger than any phone (the computer layout, 31 Oct 2026: 1920×1080 is 5× a phone's area, and the faded
+  // view beyond the world cost Apex its 60 fps there) steps it less often; every phone (at most 430×932) is unchanged.
+  const big = (b.view.right - b.view.left) * (b.view.bottom - b.view.top) * b.view.scale * b.view.scale > 500_000;
   if (arcadeReducedEffects() && state.tick % 2 === 1 && lastBeyond && state.tick - lastBeyond.tick < 2) return;
+  // A large screen's faded side view: every third sim tick (20 Hz), the world itself every frame.
+  if (big && lastBeyond && state.tick - lastBeyond.tick < 3 && state.tick >= lastBeyond.tick) return;
   lastBeyond = state;
   // No clear: the view paints every pixel round the world (sky, hills, fields, road) from the box's top down.
   ctx.save();
