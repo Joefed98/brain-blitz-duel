@@ -54,7 +54,7 @@ export async function changeRoomSettings(
 
 /**
  * A new room's stored settings, from the host's last room: settings as saved there, a legacy room's
- * categories read as settings (Arcade as its four groups, its 6 or 7 rounds), the defaults for a first room.
+ * categories read as settings (Arcade as its five groups, its 6 or 7 rounds), the defaults for a first room.
  */
 export function rememberedSettings(previous: unknown): string[] {
   return encodeRoomSettings(readRoomSettings(previous ?? null).settings);

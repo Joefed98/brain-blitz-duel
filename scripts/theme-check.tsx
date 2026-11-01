@@ -471,7 +471,8 @@ async function introColours() {
     { name: "arcade intro (Breaker, Retro)", opts: { arcade: true, arcadeType: "breaker" }, accent: "retro", token: "--group-retro" },
     { name: "arcade intro (Swish, Sports)", opts: { arcade: true, arcadeType: "bintoss" }, accent: "sports", token: "--group-sports" },
     { name: "arcade intro (Minefield, Cards & Board)", opts: { arcade: true, arcadeType: "minesweeper" }, accent: "cards", token: "--group-cards" },
-    { name: "arcade intro (Gemstone, Action)", opts: { arcade: true }, accent: "action", token: "--group-action" },
+    { name: "arcade intro (Slice, Action)", opts: { arcade: true, arcadeType: "slice" }, accent: "action", token: "--group-action" },
+    { name: "arcade intro (Gemstone, Strategy)", opts: { arcade: true }, accent: "strategy", token: "--group-strategy" },
   ];
   for (const viewport of VIEWPORTS.slice(0, 2))
     for (const intro of INTROS) {

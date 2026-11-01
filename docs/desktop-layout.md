@@ -143,9 +143,9 @@ Active games (83): wide 53, rotate 1, tall 29.
 | Tents and Trees | `tents` | Logic | **wide** |  | puzzle board: re-flows into the wider column |
 | Trail | `trail` | Logic | **wide** |  | puzzle board: re-flows into the wider column |
 | Apex | `racing` | Arcade · Sports | **tall** |  | behind-camera view; on desktop its world capped at 340×634, centred, with its static backdrop beside it, for 60 fps |
-| Ball Tracker | `balltrack` | Arcade · Action | **tall** |  | cups and marbles read top to bottom: kept upright |
+| Ball Tracker | `balltrack` | Arcade · Strategy | **tall** |  | cups and marbles read top to bottom: kept upright |
 | Breaker | `breaker` | Arcade · Retro | **tall** |  | portrait play with controls at the bottom (paddle, flippers, launcher): kept upright |
-| Coral Pop | `bubble` | Arcade · Action | **tall** |  | shooter aiming up from the bottom: kept upright |
+| Coral Pop | `bubble` | Arcade · Strategy | **tall** |  | shooter aiming up from the bottom: kept upright |
 | Crazy Golf | `minigolf` | Arcade · Sports | **tall** |  | top-down course, kept upright at full height |
 | Cue Ball | `pool` | Arcade · Sports | **rotate** |  | top-down table: turned to landscape, only the table and balls (HUD, power meter and spin upright) |
 | Curl Champ | `curling` | Arcade · Sports | **tall** |  | top-down sheet, kept upright at full height |
@@ -153,9 +153,9 @@ Active games (83): wide 53, rotate 1, tall 29.
 | Five Hands | `fivehands` | Arcade · Cards & Board | **wide** |  | card / board layout, no physics world: scaled up in a wide column |
 | Flightpath | `bullseye` | Arcade · Sports | **tall** |  | behind-camera view: full height, scenery out to both sides |
 | Free Cell | `freecell` | Arcade · Cards & Board | **wide** |  | card / board layout, no physics world: scaled up in a wide column |
-| Gemstone | `matchup` | Arcade · Action | **wide** |  | match-three board, no physics world: scaled up in a wide column |
+| Gemstone | `matchup` | Arcade · Strategy | **wide** |  | match-three board, no physics world: scaled up in a wide column |
 | Grappler | `swing` | Arcade · Action | **tall** |  | side-on world: full height, scenery out to both sides |
-| High Rise | `skyline` | Arcade · Action | **tall** |  | side-on world: full height, scenery out to both sides |
+| High Rise | `skyline` | Arcade · Strategy | **tall** |  | side-on world: full height, scenery out to both sides |
 | Home Run | `homerun` | Arcade · Sports | **tall** |  | behind-camera view: full height, scenery out to both sides |
 | Hover | `hover` | Arcade · Retro | **tall** |  | side-on world: full height, scenery out to both sides |
 | Jaywalk | `cross` | Arcade · Retro | **tall** |  | top-down road, kept upright at full height |
@@ -164,14 +164,14 @@ Active games (83): wide 53, rotate 1, tall 29.
 | Minefield | `minesweeper` | Arcade · Cards & Board | **wide** |  | card / board layout, no physics world: scaled up in a wide column |
 | Orbit | `orbit` | Arcade · Retro | **tall** |  | top-down space flight, kept upright at full height |
 | Pinball | `pinball` | Arcade · Retro | **tall** |  | portrait play with controls at the bottom (paddle, flippers, launcher): kept upright |
-| Rainbow Bridge | `inkbridge` | Arcade · Action | **tall** |  | side-on world: full height, scenery out to both sides |
+| Rainbow Bridge | `inkbridge` | Arcade · Strategy | **tall** |  | side-on world: full height, scenery out to both sides |
 | Rally | `rally` | Arcade · Retro | **tall** |  | portrait play with controls at the bottom (paddle, flippers, launcher): kept upright |
 | Roofbound | `flip` | Arcade · Action | **tall** |  | side-on world: full height, scenery out to both sides |
 | Slice | `slice` | Arcade · Action | **tall** |  | side-on world: full height, scenery out to both sides |
 | Summit | `tripeaks` | Arcade · Cards & Board | **wide** |  | card / board layout, no physics world: scaled up in a wide column |
 | Swish | `bintoss` | Arcade · Sports | **tall** |  | side-on world: full height, scenery out to both sides |
 | Tempo | `beat` | Arcade · Retro | **tall** |  | notes fall down lanes to the bottom: kept upright |
-| Tilt | `tilt` | Arcade · Action | **tall** |  | top-down maze, kept upright at full height |
+| Tilt | `tilt` | Arcade · Strategy | **tall** |  | top-down maze, kept upright at full height |
 | Top Bins | `freekick` | Arcade · Sports | **tall** |  | behind-camera view: full height, scenery out to both sides |
 | Wavefront | `wavefront` | Arcade · Retro | **tall** |  | portrait play with controls at the bottom (paddle, flippers, launcher): kept upright |
 
