@@ -27,11 +27,11 @@ export const SENTRY_DSN = "";
 export const TALLY_URL = "";
 
 /**
- * The beta's contact address, shown on the terms page (/terms), e.g. "beta@joulz.app".
+ * The beta's contact address, shown on the terms page (/terms) as a mailto link.
  *
  * Empty: the terms page leaves the contact line out.
  */
-export const CONTACT_EMAIL = "";
+export const CONTACT_EMAIL = "support@joulz.uk";
 
 /**
  * The beta's Discord invite link, e.g. "https://discord.gg/abcd1234" (tab pages refresh, 26 Oct 2026).

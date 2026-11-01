@@ -18,7 +18,7 @@ import { noteShareArrival } from "../lib/share/shareRef";
 import { PLAY_CARDS_BOOT } from "../lib/playCards";
 import { installSoundCueBridge, installSoundUnlock } from "../lib/sound";
 import { batterySaverOn } from "../lib/battery";
-import { APP_DESCRIPTION, APP_ICONS, APP_NAME, APP_TITLE, LINK_PREVIEW } from "../lib/brand";
+import { APP_DESCRIPTION, APP_ICONS, APP_NAME, APP_TITLE, canonicalUrl, LINK_PREVIEW } from "../lib/brand";
 import { installAppUpdater } from "../lib/appUpdate";
 import { reportCrash, startCrashReporting } from "../lib/crashReporting";
 import { THEME_FONTS } from "../lib/theme";
@@ -92,7 +92,7 @@ function ErrorComponent({ error, reset }: ErrorComponentProps) {
 }
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
-  head: () => ({
+  head: ({ matches }) => ({
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1, viewport-fit=cover" },
@@ -151,6 +151,9 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       })),
       { rel: "apple-touch-icon", href: APP_ICONS.find((icon) => icon.use === "apple-touch-icon")!.href, sizes: "180x180" },
       { rel: "manifest", href: "/manifest.webmanifest" },
+      // The canonical address: this page's path on APP_URL (src/config/appUrl.ts), never a query
+      // string, so the redirecting domains and preview hosts all point search engines at joulz.uk.
+      { rel: "canonical", href: canonicalUrl(matches[matches.length - 1]?.pathname ?? "/") },
     ],
   }),
   shellComponent: RootShell,

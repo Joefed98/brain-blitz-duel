@@ -289,7 +289,7 @@ check(digest === want, `older rooms deal exactly as before (digest ${digest.slic
 
 /* ------------------------------------------------------------------ 1–2. the real sheet in happy-dom */
 const { Window } = await import("happy-dom");
-const win = new Window({ url: "https://brain-blitz-duel.lovable.app/duel/ABCD" });
+const win = new Window({ url: "https://joulz.uk/duel/ABCD" });
 for (const key of ["window", "document", "navigator", "HTMLElement", "Element", "Node", "Event", "KeyboardEvent", "PointerEvent", "HTMLFormElement", "HTMLInputElement", "HTMLButtonElement", "getComputedStyle", "matchMedia", "requestAnimationFrame", "cancelAnimationFrame", "localStorage"] as const) {
   const value = (win as unknown as Record<string, unknown>)[key];
   const bind = typeof value === "function" && !/^[A-Z]/.test(key);

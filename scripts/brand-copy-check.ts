@@ -14,7 +14,7 @@ for (const [label, text] of [["APP_TITLE", APP_TITLE], ["APP_DESCRIPTION", APP_D
   for (const term of STALE) if (term.test(text)) failures.push(`${label} still says ${term}`);
 }
 for (const file of ["src/routes/__root.tsx", "src/routes/index.tsx", "src/routes/duel.$code.tsx", "src/routes/practice.tsx"]) {
-  const head = /head: \(\) => \(\{[\s\S]*?\n  \}\),/.exec(readFileSync(file, "utf8"))?.[0] ?? "";
+  const head = /head: \((?:\{ \w+ \})?\) => \(\{[\s\S]*?\n  \}\),/.exec(readFileSync(file, "utf8"))?.[0] ?? "";
   if (!head) failures.push(`${file}: no head() block found`);
   if (/"[^"]*Duelz[^"]*"/.test(head)) failures.push(`${file}: page meta spells the name instead of using APP_NAME`);
   for (const term of STALE) if (term.test(head)) failures.push(`${file}: page meta still says ${term}`);

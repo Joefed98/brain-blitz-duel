@@ -5,6 +5,7 @@
  */
 import { PUBLIC_GAMES, type PublicGameConfig } from "@/config/publicGames";
 import { APP_NAME } from "@/lib/brand";
+import { APP_URL } from "@/config/appUrl";
 
 export interface PublicGame extends PublicGameConfig {
   /** The game's start (UTC ms). */
@@ -180,7 +181,7 @@ export function calendarFile(game: PublicGame, origin: string): string {
 /** Downloads the game's calendar file (a data link, which iOS home-screen apps open too). */
 export function downloadCalendar(game: PublicGame): void {
   const link = document.createElement("a");
-  link.href = `data:text/calendar;charset=utf-8,${encodeURIComponent(calendarFile(game, window.location.origin))}`;
+  link.href = `data:text/calendar;charset=utf-8,${encodeURIComponent(calendarFile(game, APP_URL))}`;
   link.download = `${APP_NAME.toLowerCase()}-public-game-${game.date}.ics`;
   document.body.appendChild(link);
   link.click();

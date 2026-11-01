@@ -67,7 +67,7 @@ check(showRoundChatDot(2, false) && !showRoundChatDot(0, false) && !showRoundCha
 
 /* ------------------------------------------------------------ the real RoomChat in happy-dom */
 
-const win = new Window({ url: "https://brain-blitz-duel.lovable.app/duel/ABCD" });
+const win = new Window({ url: "https://joulz.uk/duel/ABCD" });
 for (const key of ["window", "document", "navigator", "HTMLElement", "Element", "Node", "Event", "localStorage", "sessionStorage", "location", "getComputedStyle", "matchMedia", "requestAnimationFrame", "cancelAnimationFrame"] as const) {
   const value = (win as unknown as Record<string, unknown>)[key];
   Object.defineProperty(globalThis, key, { configurable: true, writable: true, value: typeof value === "function" && key !== "HTMLElement" && key !== "Element" && key !== "Node" && key !== "Event" ? (value as (...a: unknown[]) => unknown).bind(win) : value });

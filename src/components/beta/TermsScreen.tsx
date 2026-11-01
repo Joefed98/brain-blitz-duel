@@ -77,7 +77,7 @@ export function TermsContent() {
             Contact:{" "}
             <a
               href={`mailto:${contact}`}
-              className="font-semibold text-foreground underline underline-offset-2"
+              className="inline-flex min-h-11 items-center font-semibold text-foreground underline underline-offset-2"
             >
               {contact}
             </a>
