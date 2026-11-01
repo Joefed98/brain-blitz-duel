@@ -23,6 +23,7 @@ import { useClock } from "@/components/app/useClock";
 import { markOnboardingSeen, onboardingSeen } from "@/lib/onboarding";
 import { isShareRef } from "@/lib/share/shareRef";
 import { createRoom, fetchDuelByCode, fetchPlayers, joinRoomByCode } from "@/lib/duel/api";
+import { MAX_PLAYERS } from "@/lib/duel/types";
 import { currentUserId, getStoredName, setStoredName } from "@/lib/duel/session";
 import { ROOM_CODE_LENGTH, codeFromInput } from "@/lib/duel/roomLink";
 import { readLastRoom } from "@/lib/duel/deviceHistory";
@@ -309,7 +310,7 @@ function Home() {
           <h1 className="ap-title" aria-label="Play live with friends">
             <span>Play live</span> <span>with friends</span>
           </h1>
-          <p className="ap-sub">Up to 10 players. Same games, same moment.</p>
+          <p className="ap-sub">Up to {MAX_PLAYERS} players. Same games, same moment.</p>
         </div>
 
         {/* Quick play: create a room, or join one with its code. */}
