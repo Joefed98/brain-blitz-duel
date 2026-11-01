@@ -22,7 +22,7 @@ import { hasIntroDemo, IntroDemo, introDemoAspect, useArcadeIntroDemo } from "./
 import { PuzzleIntroDemo, usePuzzleDemo } from "./PuzzleDemo";
 import { IntroStage } from "./IntroStage";
 import { useDesktop } from "@/lib/desktop";
-import { DESKTOP_KEYS } from "@/lib/desktopKeys";
+import { screenKeys } from "@/lib/desktopKeys";
 import { goStrike } from "@/lib/fx/celebrations";
 import { useCelebrationsOn } from "@/components/fx/useCelebration";
 
@@ -339,7 +339,7 @@ export function RoundIntro({
  */
 function DesktopKeys({ type }: { type: PuzzleType }) {
   const desktop = useDesktop();
-  const keys = DESKTOP_KEYS[type];
+  const keys = screenKeys(type, desktop);
   if (!desktop || !keys) return null;
   return (
     <p data-desktop-keys="" className="desktop-keys shrink-0" aria-label="Keyboard controls">

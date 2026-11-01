@@ -16,11 +16,27 @@ import {
 import { NO_SCROLL_STYLE, useNoTouchScroll } from "@/components/puzzles/noScroll";
 import { ArcadeArenaSlot } from "@/components/puzzles/ArcadeArenaSlot";
 import type { ArenaAmbient, ArenaSceneView } from "@/lib/arcade/arenaScene.renderer";
-import { arcadeWorldPoint } from "@/components/puzzles/tapMapping";
+import { arcadeWorldPoint, arenaPointer, arenaSize } from "@/components/puzzles/tapMapping";
 import { arcadeFeedback } from "@/lib/fx/arcade";
 import { arcadeCanvasRatio } from "@/lib/fx/lowEnd";
 import { useGameKeys } from "@/lib/desktop";
 import { arenaFrame, cancelArenaFrame } from "@/lib/battery";
+
+/**
+ * Checks only (desktop-fairness-check): when a page sets `window.__duelzWorldPoints` to an array, every
+ * pointer position the stage maps is pushed onto it, so a check can compare the world points a phone
+ * and the desktop presentation give for the same gesture. Never set by the app.
+ */
+function probeInput(point: { x: number; y: number } | null): void {
+  const list = typeof window !== "undefined" ? (window as unknown as { __duelzWorldPoints?: unknown[] }).__duelzWorldPoints : undefined;
+  if (Array.isArray(list)) list.push(point);
+}
+
+/** Checks only, as probeInput: every payload a pointer gesture queues, onto `window.__duelzPayloads`. */
+function probePayload(payload: PointerPayload): void {
+  const list = typeof window !== "undefined" ? (window as unknown as { __duelzPayloads?: unknown[] }).__duelzPayloads : undefined;
+  if (Array.isArray(list)) list.push({ ...payload });
+}
 
 export interface PointerPayload {
   /** Event kind for the pointer/tick path (default 7, a drag); discrete games use inputKind. */
@@ -256,7 +272,8 @@ export function ArcadeCanvasStage<S, C>(props: Props<S, C>) {
 
   const sizeCanvas = (): CanvasSize | null => {
     const node = canvas.current;
-    const box = wrap.current?.getBoundingClientRect();
+    // The arena's own size (a rotated arena's screen box is turned; tapMapping.ts arenaSize).
+    const box = arenaSize(wrap.current);
     if (!node || !box || box.width < 1 || box.height < 1) return null;
     const ratio = arcadeCanvasRatio();
     const width = Math.round(box.width);
@@ -276,10 +293,15 @@ export function ArcadeCanvasStage<S, C>(props: Props<S, C>) {
   /** Screen point to world point, or null outside the drawn play area. */
   const worldPoint = (clientX: number, clientY: number, clamp: boolean) => {
     const { worldW, worldH } = propsRef.current;
-    return arcadeWorldPoint(wrap.current?.getBoundingClientRect(), clientX, clientY, worldW, worldH, clamp);
+    // Through the arena's own box: a rotated arena (desktop rotate mode) maps back through the turn.
+    const at = arenaPointer(wrap.current, clientX, clientY);
+    const point = arcadeWorldPoint(at.box, at.x, at.y, worldW, worldH, clamp);
+    probeInput(point);
+    return point;
   };
 
   const push = (payload: PointerPayload) => {
+    probePayload(payload);
     if (props.discrete) {
       if (queue.current.length < 4) queue.current.push(payload);
     } else wanted.current = payload;

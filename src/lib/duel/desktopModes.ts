@@ -1,0 +1,153 @@
+import type { PuzzleType } from "./types";
+
+/**
+ * How each game is presented on a wide screen (31 Oct 2026, the computer layout; docs/desktop-layout.md).
+ * Presentation only: every game's world, rules and simulation are the same on every device, and the sim
+ * receives exactly the inputs a phone would give it, so a run replays identically (desktop-fairness-check).
+ *
+ * - `wide`: puzzles and card / board games (no physics world). The board or layout gets a wider, taller
+ *   column and re-flows into it (puzzles' boards size from their column; canvas card games keep their
+ *   world and scale up in it).
+ * - `rotate`: top-down arcade games. The identical world is drawn turned 90° clockwise into landscape
+ *   (world "up" points right); pointer and mouse positions, swipe directions and (where a game's keys are
+ *   directions) arrow keys go back through the inverse turn, so the sim gets identical inputs.
+ * - `tall`: side-on and behind-camera arcade games. The world scales to the full height of the play
+ *   column and the game's own scenery runs out beyond it to both sides, fading at the edges.
+ *
+ * Only the desktop breakpoint (1024 px wide and up, src/lib/layoutMode.ts) applies these; tablets and
+ * phones keep the portrait column. Every registered game must be listed (the Record type enforces it;
+ * desktop-layout-check reports the table).
+ */
+export type DesktopMode = "wide" | "rotate" | "tall";
+
+/**
+ * Which of a rotated game's keys are directions on the screen (and so turn with the world):
+ * "arrows" the four arrow keys, "all" the arrows and WASD; omitted when its keys are not directions
+ * (an aim turned left or right turns the same way on screen, so it needs no change).
+ */
+export type RotatedKeys = "arrows" | "all";
+
+export interface DesktopModeInfo {
+  mode: DesktopMode;
+  keys?: RotatedKeys;
+  /** One line for the report: why this mode. */
+  why: string;
+}
+
+const WIDE_PUZZLE: DesktopModeInfo = { mode: "wide", why: "puzzle board: re-flows into the wider column" };
+const CARDS: DesktopModeInfo = { mode: "wide", why: "card / board layout, no physics world: scaled up in a wide column" };
+const SIDE: DesktopModeInfo = { mode: "tall", why: "side-on world: full height, scenery out to both sides" };
+const BEHIND: DesktopModeInfo = { mode: "tall", why: "behind-camera view: full height, scenery out to both sides" };
+const PORTRAIT: DesktopModeInfo = { mode: "tall", why: "portrait play with controls at the bottom (paddle, flippers, launcher): kept upright" };
+
+export const DESKTOP_MODES: Record<PuzzleType, DesktopModeInfo> = {
+  // Word
+  wordsmith: WIDE_PUZZLE,
+  tilegrid: WIDE_PUZZLE,
+  wordslide: WIDE_PUZZLE,
+  wordhunt: WIDE_PUZZLE,
+  wordsearch: WIDE_PUZZLE,
+  letterwheel: WIDE_PUZZLE,
+  strikeout: WIDE_PUZZLE,
+  codeword: WIDE_PUZZLE,
+  swapword: WIDE_PUZZLE,
+  wordfall: { mode: "tall", why: "falling-letter engine game (practice only): kept upright" },
+  // Number
+  balance: WIDE_PUZZLE,
+  target: WIDE_PUZZLE,
+  equation: WIDE_PUZZLE,
+  numpyramid: WIDE_PUZZLE,
+  measure: WIDE_PUZZLE,
+  checkout: WIDE_PUZZLE,
+  numline: WIDE_PUZZLE,
+  tendrop: { mode: "tall", why: "falling-number engine game: things fall down the screen, kept upright" },
+  // Speed
+  reaction: WIDE_PUZZLE,
+  numhunt: WIDE_PUZZLE,
+  stopwatch: WIDE_PUZZLE,
+  chain: WIDE_PUZZLE,
+  whack: { mode: "tall", why: "Bonk's meadow is a side-on scene: full height" },
+  clayshoot: { mode: "tall", why: "side-on sky: full height, scenery out to both sides" },
+  // Attention
+  stroop: { mode: "tall", why: "lanes falling down the screen: kept upright" },
+  symscan: WIDE_PUZZLE,
+  spotdiff: WIDE_PUZZLE,
+  countup: WIDE_PUZZLE,
+  maze: WIDE_PUZZLE,
+  pairmatch: WIDE_PUZZLE,
+  // Pattern
+  unblock: WIDE_PUZZLE,
+  blockparty: WIDE_PUZZLE,
+  pipes: WIDE_PUZZLE,
+  flow: WIDE_PUZZLE,
+  iceslide: WIDE_PUZZLE,
+  push: WIDE_PUZZLE,
+  laser: WIDE_PUZZLE,
+  gravity: WIDE_PUZZLE,
+  tiles: WIDE_PUZZLE,
+  rings: WIDE_PUZZLE,
+  // Logic
+  lightsout: WIDE_PUZZLE,
+  sudoku: WIDE_PUZZLE,
+  tower: WIDE_PUZZLE,
+  tubes: WIDE_PUZZLE,
+  safe: WIDE_PUZZLE,
+  bomb: WIDE_PUZZLE,
+  nonogram: WIDE_PUZZLE,
+  flood: WIDE_PUZZLE,
+  tents: WIDE_PUZZLE,
+  shikaku: WIDE_PUZZLE,
+  lightup: WIDE_PUZZLE,
+  trail: WIDE_PUZZLE,
+  dig: WIDE_PUZZLE,
+  // Arcade: Cards & Board, and Gemstone's board
+  minesweeper: CARDS,
+  mahjong: CARDS,
+  freecell: CARDS,
+  tripeaks: CARDS,
+  pokersquares: CARDS,
+  fivehands: CARDS,
+  matchup: { mode: "wide", why: "match-three board, no physics world: scaled up in a wide column" },
+  // Arcade: top-down worlds, turned into landscape
+  pool: { mode: "rotate", why: "top-down table: turned to landscape (aim and spin are not screen directions)" },
+  minigolf: { mode: "rotate", why: "top-down course: turned to landscape (arrows turn the aim, the same way on screen)" },
+  orbit: { mode: "rotate", why: "top-down space flight: turned so the rocket flies left to right" },
+  snake: { mode: "rotate", keys: "all", why: "top-down grid: turned to landscape; swipes and arrows / WASD turn with it" },
+  tilt: { mode: "rotate", keys: "all", why: "top-down maze: turned to landscape; the drag and arrows / A D turn with it" },
+  cross: { mode: "rotate", keys: "all", why: "top-down road: turned so the walker crosses left to right; swipes and arrows / WASD turn with it" },
+  curling: { mode: "rotate", keys: "arrows", why: "top-down sheet: turned so stones travel left to right; the broom arrows turn with it" },
+  // Arcade: side-on and behind-camera worlds, kept upright at full height
+  racing: BEHIND,
+  homerun: BEHIND,
+  freekick: BEHIND,
+  bullseye: BEHIND,
+  bintoss: SIDE,
+  hover: SIDE,
+  skyline: SIDE,
+  flip: SIDE,
+  inkbridge: SIDE,
+  swing: SIDE,
+  slice: SIDE,
+  bubble: { mode: "tall", why: "shooter aiming up from the bottom: kept upright" },
+  beat: { mode: "tall", why: "notes fall down lanes to the bottom: kept upright" },
+  breaker: PORTRAIT,
+  rally: PORTRAIT,
+  pinball: PORTRAIT,
+  wavefront: PORTRAIT,
+  burst: PORTRAIT,
+  balltrack: { mode: "tall", why: "cups and marbles read top to bottom: kept upright" },
+  // Retired to practice
+  swerve: { mode: "tall", why: "practice only, a lane runner: kept upright" },
+  steady: { mode: "tall", why: "practice only: kept upright" },
+  dual: { mode: "tall", why: "practice only: kept upright" },
+  ricochet: { mode: "tall", why: "practice only, a launcher at the bottom: kept upright" },
+  bastion: { mode: "tall", why: "practice only, defended from the bottom: kept upright" },
+  rooftop: SIDE,
+  junction: { mode: "tall", why: "practice only: kept upright" },
+  snip: { mode: "tall", why: "practice only, hanging fruit falls down: kept upright" },
+  hotfloor: { mode: "tall", why: "practice only: kept upright" },
+};
+
+export function desktopModeOf(type: PuzzleType | undefined): DesktopModeInfo | null {
+  return type ? (DESKTOP_MODES[type] ?? null) : null;
+}

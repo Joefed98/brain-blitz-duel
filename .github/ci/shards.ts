@@ -94,6 +94,15 @@ export const SHARDS: Record<string, string[]> = {
   // Offline practice (31 Oct 2026): offline-check builds the app for production, installs the service worker, fills
   // every practice pack, plays three games offline, uploads the queue and swaps in a new build's worker (~5 min).
   play20: ["offline-check.ts"],
+  // The computer layout (31 Oct 2026, docs/desktop-layout.md): desktop-layout-check in thirds (part 1 also the tab
+  // pages, rooms of 16, phones and a touch screen at three desktop sizes; each part a third of the active games'
+  // desktop modes at 1440x900, ~3-4 min each with its dev server), desktop-fairness-check (~2 min), and
+  // arcade-play-check's desktop pass in halves (arcade-play-desktop-check: every arcade game at 1440x900 and
+  // 1920x1080, ~6 min each).
+  play21: ["desktop-layout-check.ts@1/3", "desktop-fairness-check.ts"],
+  play22: ["desktop-layout-check.ts@2/3", "desktop-layout-check.ts@3/3"],
+  play23: ["arcade-play-desktop-check.ts@1/2"],
+  play24: ["arcade-play-desktop-check.ts@2/2"],
   // Non-browser checks. puzzle-bank-check's every-entry verification and
   // arcade-self-replay-check's entries are split into parts on separate jobs.
   // ~282 s of checks on run 38608375501's times.

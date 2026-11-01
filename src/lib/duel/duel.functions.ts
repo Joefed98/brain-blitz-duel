@@ -837,6 +837,8 @@ export const submitAnswerFn = createServerFn({ method: "POST" })
       extra?: SubmitExtra;
       /** The phone's build id (appVersion.ts); missing from copies older than it. */
       clientVersion?: string;
+      /** How the round was played (lib/inputType.ts); stored beside the result, never graded. */
+      inputType?: string;
     }) => input,
   )
   .handler(async ({ data, context }) => {
@@ -901,6 +903,11 @@ export const submitAnswerFn = createServerFn({ method: "POST" })
       score,
     });
     if (error && error.code !== UNIQUE_VIOLATION) throw new Error(error.message);
+    // How it was played (touch, mouse, keyboard), beside the stored result; best effort, never graded.
+    if (!error) {
+      const { recordInputType } = await import("./inputType.server");
+      await recordInputType(client, "round_results", { duel_id: room.id, player_slot: player.player_slot, round_number: data.roundNumber }, data.inputType);
+    }
     // The live "finished" ping: only the round number, after the result is stored, and only for a
     // finish before the buzzer (finishedPing.server.ts, buzzer.ts): never a time-out or a late answer.
     if (finishedBeforeBuzzer(puzzle, room.phase, msLeft)) await markSubmitted(client, player.id, data.roundNumber);

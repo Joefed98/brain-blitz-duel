@@ -68,6 +68,8 @@ export const asyncSubmitFn = createServerFn({ method: "POST" })
       msRemaining: number;
       extra?: SubmitExtra;
       clientVersion?: string;
+      /** How the round was played (lib/inputType.ts); stored beside the result, never graded. */
+      inputType?: string;
     }) => input,
   )
   .handler(async ({ data, context }) => {
@@ -82,7 +84,7 @@ export const asyncSubmitFn = createServerFn({ method: "POST" })
     );
     if (staleNote) console.warn(staleNote);
     const { submitAsyncAnswer } = await import("./asyncRoom.server");
-    return submitAsyncAnswer(
+    const outcome = await submitAsyncAnswer(
       client,
       found.room,
       found.attempt,
@@ -94,6 +96,11 @@ export const asyncSubmitFn = createServerFn({ method: "POST" })
       },
       nowMs,
     );
+    if (outcome.ok && !("alreadySubmitted" in outcome && outcome.alreadySubmitted)) {
+      const { recordInputType } = await import("./inputType.server");
+      await recordInputType(client, "async_results", { attempt_id: found.attempt.id, round_number: Number(data.roundNumber) }, data.inputType);
+    }
+    return outcome;
   });
 
 /** One of the caller's finished rounds in full (the reveal and the results screen); never anyone else's. */

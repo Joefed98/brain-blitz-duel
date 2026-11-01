@@ -985,6 +985,25 @@ Lovable still hosts and publishes the app (https://brain-blitz-duel.lovable.app)
   own chip for this room); a taken default gives the nearest free swatch (`nearestFreeColour`). Apex draws only the 3
   nearest ghosts (`nearestRacingGhosts`). room-16-check (~1.5 min, `play14`); `bun scripts/room-load-test.ts` (a tool:
   bots on an in-memory test copy, report in the doc); shots `bun scripts/shots/room16-shots.ts`.
+- **The computer layout, chess.com style** (31 Oct 2026, `docs/desktop-layout.md`; presentation, input mapping and
+  result recording only, no stamps, no game's world, rules, sim, scoring or grading changed): breakpoints in
+  `src/lib/layoutMode.ts` (desktop: 1024 px wide and up with a mouse or trackpad; tablet: 700 px and up otherwise, pages
+  in two columns, game screens exactly the phone's; phone: unchanged, every new slot renders null there, so its markup is
+  byte-identical). PhoneShell marks `data-layout` and draws the 240 px rail (`AppRail`, replacing the tab bar and header;
+  76 px on rooms and games), the 112 px banner slot on Play, Practice and Tournaments (`BannerSlot`, house promotions from
+  `src/config/banners.ts`, never in rooms, rounds, reveals or standings), a tab page's 320 px right column (`aside`,
+  `PageAside`) and a room's 380 px panel (`RoomPanel` through `RoomPanelSlot`: code, round progress by category, standings
+  for 16 with playing / finished, chat between rounds). Practice on desktop: switch, search and chips in one row, games a
+  3–5 card grid. **Every game declares a desktop mode** (`src/lib/duel/desktopModes.ts`, the registry's `desktop`; a new
+  game needs a line): `wide` (puzzles, card and board games), `rotate` (top-down: Cue Ball, Crazy Golf, Orbit, Meteor,
+  Tilt, Jaywalk, Curl Champ: the world turned 90° clockwise in `ArcadeArenaSlot`'s rotor; pointers through
+  `tapMapping.ts` `arenaPointer` / `arenaSize` / `arenaDelta`, direction keys through `desktopPresentation.ts`
+  `rotatedKey`; **a new top-down stage that reads `getBoundingClientRect` must use these**), `tall` (full height, scenery
+  faded at the edges). `DesktopControlsHint` shows the keys for 8 s. Every result records its input type
+  (`src/lib/inputType.ts` → `input_type` on round_results, async_results, practice_plays, best effort; migration
+  `20261031170000_result_input_type.sql` **written but not applied**). Checks: desktop-layout-check (thirds,
+  `play21`/`play22`), desktop-fairness-check (`play21`), `arcade-play-check --desktop` as arcade-play-desktop-check
+  (halves, `play23`/`play24`); desktop-geometry-check proves the new columns. Shots `bun scripts/shots/desktop-layout-shots.ts`.
 - `src/components/duel/` — room/round screens (PhoneShell, RoundIntro, TimerBar,
   AnswerReveal, ArcadeReveal, WinnerReveal…); `src/components/puzzles/` — shared puzzle
   widgets; `src/lib/fx/` — sound and visual feedback (presentation only).

@@ -1,5 +1,10 @@
 # Desktop support: PC and laptop browsers (17 Oct 2026)
 
+> **31 Oct 2026:** the layout described here is superseded by the computer layout (`docs/desktop-layout.md`): the
+> desktop layout now starts at 1024 px wide (a mouse or trackpad still required), with a left rail, page columns,
+> a room panel and each game's desktop mode. The control map below still holds; rotated games turn their
+> direction keys with the world.
+
 Duelz now works in PC and laptop browsers with a mouse, trackpad and keyboard. **Phones and tablets
 are unchanged.** All of this is presentation and input only: no version stamps, no sim, scoring or
 timing changes, and no stored data touched.

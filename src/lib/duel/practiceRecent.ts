@@ -21,6 +21,7 @@ export function recentPracticeTypes(): string[] {
 }
 
 export function notePracticePlayed(type: string): void {
+  notePracticeDay();
   memory = [type, ...recentPracticeTypes().filter((t) => t !== type)].slice(0, KEEP);
   try {
     window.localStorage.setItem(KEY, JSON.stringify(memory));
@@ -40,4 +41,44 @@ export function warmUpTypes(recent: readonly string[]): PuzzleType[] {
     if (isLiveType(type) && !out.includes(type)) out.push(type);
   }
   return out;
+}
+
+/**
+ * Practice games opened per UK day on this device (the computer layout's "Your week" panel, 31 Oct
+ * 2026; device storage only, never read by grading or rooms). Kept for the last 14 days.
+ */
+const DAYS_KEY = "duelz-practice-days:v1";
+
+function dayKeyUk(ms: number): string {
+  return new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/London", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date(ms));
+}
+
+export function readPracticeDays(): Record<string, number> {
+  try {
+    const raw = JSON.parse(window.localStorage.getItem(DAYS_KEY) ?? "{}") as unknown;
+    if (!raw || typeof raw !== "object") return {};
+    return Object.fromEntries(Object.entries(raw as Record<string, unknown>).filter((e): e is [string, number] => Number.isFinite(e[1])));
+  } catch {
+    return {};
+  }
+}
+
+export function notePracticeDay(now: number = Date.now()): void {
+  const days = readPracticeDays();
+  const today = dayKeyUk(now);
+  days[today] = (days[today] ?? 0) + 1;
+  const keep = new Set(Array.from({ length: 14 }, (_, i) => dayKeyUk(now - i * 86_400_000)));
+  try {
+    window.localStorage.setItem(DAYS_KEY, JSON.stringify(Object.fromEntries(Object.entries(days).filter(([d]) => keep.has(d)))));
+  } catch {
+    /* session-only when storage is blocked */
+  }
+}
+
+/** Practice games opened in the last seven UK days, today included. */
+export function practiceThisWeek(now: number = Date.now()): number {
+  const days = readPracticeDays();
+  let n = 0;
+  for (let i = 0; i < 7; i++) n += days[dayKeyUk(now - i * 86_400_000)] ?? 0;
+  return n;
 }

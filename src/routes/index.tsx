@@ -6,6 +6,7 @@ import { HomeScreenHint } from "@/components/beta/HomeScreenHint";
 import { TermsScreen } from "@/components/beta/TermsScreen";
 import { Dots } from "@/components/duel/Dots";
 import { PhoneShell } from "@/components/duel/PhoneShell";
+import { PageAside } from "@/components/app/PageAside";
 import { Onboarding } from "@/components/duel/Onboarding";
 import { goToTab } from "@/components/app/AppTabBar";
 import { GameIcon } from "@/components/app/GameIcon";
@@ -276,7 +277,7 @@ function Home() {
     );
 
   return (
-    <PhoneShell tabs="play">
+    <PhoneShell tabs="play" aside={<PageAside panels={["public", "week"]} />}>
       <div className="ap-stack">
         <PlaySlot id="intro" state={introCard}>
           <IntroCard
