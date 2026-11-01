@@ -32,6 +32,7 @@ export const DESKTOP_KEYS: Partial<Record<PuzzleType, readonly (readonly [string
   fivehands: [["Click", "place your card in a row"]],
   rally: [["← →", "paddle"]],
   racing: [["← → / A D", "steer"], ["↑ / W", "accelerate"], ["↓ / S", "brake"]],
+  curling: [["Arrows", "target"], ["A D", "slide the stone"], ["I / O", "turn"], ["− / + then Enter", "weight, throw"], ["← → (moving)", "brush"]],
   skyline: [["Space", "drop"]],
   snake: [["← → ↑ ↓", "turn"]],
   swing: [["Space (hold)", "grapple"], ["↑ ↓", "reel"]],
