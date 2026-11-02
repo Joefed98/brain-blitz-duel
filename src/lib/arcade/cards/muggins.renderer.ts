@@ -308,7 +308,8 @@ export function drawMuggins(ctx: CanvasRenderingContext2D, state: MgState, size:
   arcadeFx(ctx, MUGGINS_FX, state, () => drawMugginsWorld(ctx, state, size, view), size);
 }
 
-function endBadge(ctx: CanvasRenderingContext2D, x: number, label: string, value: number, dbl: boolean, lit: boolean, pressed: boolean): void {
+/** One end's badge: its label, its value; with a chosen tile that fits, lit gold with what laying it there scores. */
+function endBadge(ctx: CanvasRenderingContext2D, x: number, label: string, value: number, dbl: boolean, lit: boolean, pressed: boolean, gain: number | null): void {
   roundRect(ctx, x, MG_ENDS_Y, MG_END_W, MG_END_H, 16);
   ctx.fillStyle = pressed ? "rgba(255,226,140,0.95)" : "rgba(4,22,12,0.62)";
   ctx.fill();
@@ -317,9 +318,9 @@ function endBadge(ctx: CanvasRenderingContext2D, x: number, label: string, value
   ctx.stroke();
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
-  ctx.fillStyle = pressed ? "rgba(40,26,4,0.75)" : "rgba(233,220,190,0.75)";
-  ctx.font = `700 12px ${CARD_FONT}`;
-  ctx.fillText(label, x + MG_END_W / 2, MG_ENDS_Y + 15);
+  ctx.fillStyle = pressed ? "rgba(40,26,4,0.75)" : gain !== null ? (gain > 0 ? "#FFD0E0" : "#F2C75C") : "rgba(233,220,190,0.75)";
+  ctx.font = `${gain !== null ? 800 : 700} 12px ${CARD_FONT}`;
+  ctx.fillText(gain !== null ? (gain > 0 ? `LAY HERE · +${gain}` : "LAY HERE · +0") : label, x + MG_END_W / 2, MG_ENDS_Y + 15);
   ctx.fillStyle = pressed ? "#231503" : "#F6EBD0";
   ctx.font = `900 28px ${CARD_FONT}`;
   ctx.fillText(dbl ? `${value}+${value}` : String(value), x + MG_END_W / 2, MG_ENDS_Y + 42);
@@ -359,8 +360,10 @@ function drawMugginsWorld(ctx: CanvasRenderingContext2D, state: MgState, size: C
   // The ends and the running sum.
   const e = mgEnds(state);
   const lone = state.line.length === 1;
-  endBadge(ctx, MG_END_LEFT_X, "◀ LEFT", e.l, !lone && e.ld, fitL, view?.end === 0);
-  endBadge(ctx, MG_END_RIGHT_X, "RIGHT ▶", e.r, !lone && e.rd, fitR, view?.end === 1);
+  const gainAt = (end: number) => (sel >= 0 && live ? (mgApply(state, sel, end)?.lastScore ?? null) : null);
+  // A lone double's two ends are the same end: one choice, shown on both.
+  endBadge(ctx, MG_END_LEFT_X, "◀ LEFT", e.l, !lone && e.ld, fitL, view?.end === 0, fitL ? gainAt(0) : null);
+  endBadge(ctx, MG_END_RIGHT_X, "RIGHT ▶", e.r, !lone && e.rd, fitR, view?.end === 1, fitR ? gainAt(1) : null);
   const sum = mgEndSum(state);
   const scores = !lone && mgScoreOf(sum) > 0;
   const cx = W / 2;

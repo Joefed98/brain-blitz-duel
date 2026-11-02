@@ -2,19 +2,20 @@
  * Pyramid (Cards & Board, 1 Nov 2026; docs/arcade-standard/pyramid.md): a 90-second run on the arcade engine.
  *
  * A 28-card pyramid (seven rows, the bottom row of seven uncovered), a 24-card stock and a waste pile. Remove uncovered
- * cards in pairs that add to 13 (Q+A, J+2 … 7+6); a King goes alone. The waste's top card pairs too. Three passes
- * through the stock (the waste turns back over twice). Undo (back to the position before the last action, unlimited)
- * and Reset (back to the deal, itself undoable); the clock runs on.
+ * cards in pairs that add to 13 (Q+A, J+2 … 7+6); a King goes alone. The waste's top card pairs too. One pass through
+ * the stock (the waste is never turned back over). Undo (back to the position before the last action, unlimited) and
+ * Reset (back to the deal, itself undoable); the clock runs on.
  *
  * The deal (pyDeal): built in the sim from the seed together with a witness line that clears the pyramid with at least
- * ten pairs of two pyramid cards (random positions removed in a legal order, ranks and suits drawn to fit, the waste
- * partners placed in the stock where the line draws them), then proved by playing the witness through the sim; a deal
- * that fails is rebuilt from the next seed state. So every dealt seed lets perfect play reach 200 (and
- * scripts/cards/pyramidSolver.ts re-proves them independently in cards-check). Same deal for everyone.
+ * ten pairs of two pyramid cards (2–4 Kings and every other card in pyramid pairs, placed by removing random free
+ * positions in a legal order with ranks and suits drawn to fit), proved by playing the witness through the sim, and kept
+ * only when no quick player with no plan clears it (pyGreedyClears); otherwise rebuilt from the next PRNG state. So
+ * every dealt seed lets perfect play reach 200 and needs the right order (scripts/cards/pyramidSolver.ts re-proves
+ * samples in cards-solitaire-check). Same deal for everyone.
  *
  * Scoring (pyramidRev 1, the arcade standard; 200 in all): the core 140 on a straight line over the 28 pyramid cards
- * removed; cleared 20; speed 20 (cleared only: full by 45 s, 0 at the buzzer); pyramid pairs 20 (2 for each pair of two
- * pyramid cards, up to 10).
+ * removed; cleared 20; speed 20 (cleared only: full by 20 s, the flawless pace, 0 at the buzzer); pyramid pairs 20 (2
+ * for each pair of two pyramid cards, up to 10).
  */
 import { inputRange, rngBelow, type ArcadeGame, type ArcadeInputEvent } from "../engine";
 import { stdEach, stdLine, stdPart, stdScore, stdSpeed, stdSum, type StdPart, type StdSpec } from "../arcadeStandard";
@@ -24,7 +25,8 @@ import { cardOf, hashInts, rankOf } from "./cards";
 export const PY_REV = 1;
 export const PY_CARDS = 28;
 export const PY_STOCK = 24;
-export const PY_PASSES = 3;
+/** One pass through the stock: the waste is never turned back over (Joe, 1 Nov 2026, before pyramidRev 1 shipped). */
+export const PY_PASSES = 1;
 /** Input: a tap, `a` a pyramid card (0–27), PY_STOCK_PILE or PY_WASTE_PILE. */
 export const PY_INPUT_TAP = 1;
 export const PY_INPUT_UNDO = 3;
@@ -37,17 +39,24 @@ export const PY_RUN_TICKS = 90 * 60;
 export const PY_CORE_MAX = 140;
 export const PY_CLEAR_MAX = 20;
 export const PY_SPEED_MAX = 20;
-export const PY_SPEED_FULL_S = 45;
+export const PY_SPEED_FULL_S = 20;
 export const PY_PAIR_EACH = 2;
 export const PY_PAIR_MAX = 20;
 export const PY_PAIR_FULL = 10;
-export const PY_V1_BAND_CURVE = bandCurve([0, PY_CARDS], [0, PY_CORE_MAX]);
+/** The core is full with the pyramid cleared. */
+export const PY_CORE_FULL = PY_CARDS;
+export const PY_V1_BAND_CURVE = bandCurve([0, PY_CORE_FULL], [0, PY_CORE_MAX]);
+
+/** Cards cleared towards the core: the pyramid cards removed. */
+export function pyCoreUnits(state: Pick<PyState, "removed">): number {
+  return state.removed;
+}
 
 export const PY_STD_SPEC: StdSpec = {
   field: "pyramidRev",
   rev: PY_REV,
   parts: [
-    { key: "core", label: "Pyramid cards", max: PY_CORE_MAX, of: PY_CARDS, item: "card", how: "a straight line over the 28 pyramid cards removed" },
+    { key: "core", label: "Pyramid cards", max: PY_CORE_MAX, of: PY_CORE_FULL, item: "card", how: "a straight line over the 28 pyramid cards removed" },
     { key: "clear", label: "Cleared", max: PY_CLEAR_MAX, of: 1, how: "all 28 removed" },
     { key: "speed", label: "Speed", max: PY_SPEED_MAX, of: 1, how: `cleared: full by ${PY_SPEED_FULL_S} s, 0 at the buzzer` },
     { key: "pairs", label: "Pyramid pairs", max: PY_PAIR_MAX, of: PY_PAIR_FULL, item: "pair", how: "2 for each pair of two pyramid cards, up to 10" },
@@ -167,9 +176,11 @@ function buildAttempt(rng0: number): { deal: PyDeal | null; rng: number } {
     rng = r.state;
     return r.value;
   };
-  // At most two Kings in the pyramid and exactly ten pyramid pairs: the other cards need partners from the stock.
-  const kings = rand(3);
-  const pairs = PY_PAIR_FULL;
+  // Two to four Kings in the pyramid and every other card in pyramid pairs (one left for the waste when the count is
+  // odd): the pyramid is a puzzle in full view whose pairs only all come out in the right order, so the face-down stock
+  // is a bonus, never the lottery that decides a clear.
+  const kings = 2 + rand(3);
+  const pairs = (PY_CARDS - kings) >> 1;
   const left = { k: kings, p: pairs, w: PY_CARDS - kings - 2 * pairs };
   // Cards still unused: suits free per rank.
   const suitsLeft: number[][] = Array.from({ length: 14 }, (_, r) => (r === 0 ? [] : [0, 1, 2, 3]));
@@ -232,17 +243,34 @@ function buildAttempt(rng0: number): { deal: PyDeal | null; rng: number } {
       events.push({ kind, a, b: -1, partner: take(13 - r) });
     }
   }
-  // The stock: the waste partners and every other card left, shuffled; the witness draws (turning the waste back over
-  // when it must) until each partner is on the waste.
-  const stock: number[] = [];
-  for (let rank = 1; rank <= 13; rank++) for (const suit of suitsLeft[rank]!) stock.push(cardOf(suit, rank));
-  for (const ev of events) if (ev.kind === "w") stock.push(ev.partner);
-  for (let i = stock.length - 1; i > 0; i--) {
+  // The stock (one pass): each waste partner in the line's order after 0–3 other cards, the rest after. A partner shows
+  // on the waste once and is buried by the next draw, so its pyramid card must be uncovered in time.
+  const fillers: number[] = [];
+  for (let rank = 1; rank <= 13; rank++) for (const suit of suitsLeft[rank]!) fillers.push(cardOf(suit, rank));
+  for (let i = fillers.length - 1; i > 0; i--) {
     const j = rand(i + 1);
-    const t = stock[i]!;
-    stock[i] = stock[j]!;
-    stock[j] = t;
+    const t = fillers[i]!;
+    fillers[i] = fillers[j]!;
+    fillers[j] = t;
   }
+  // The stock: each waste partner (at most one) after a seeded gap, the stock's Kings among the first cards.
+  const kingsLeft = fillers.filter((c) => rankOf(c) === 13);
+  const plain = fillers.filter((c) => rankOf(c) !== 13);
+  const partners = events.filter((ev) => ev.kind === "w").length;
+  const kingGap = kingsLeft.map(() => rand(Math.max(1, partners)));
+  const stock: number[] = [];
+  let w = 0;
+  for (const ev of events) {
+    if (ev.kind !== "w") continue;
+    const gap = Math.min(plain.length, rand(4));
+    for (let g = 0; g < gap; g++) stock.push(plain.pop()!);
+    kingsLeft.forEach((k, i) => {
+      if (kingGap[i] === w) stock.push(k);
+    });
+    stock.push(ev.partner);
+    w++;
+  }
+  while (plain.length) stock.push(plain.pop()!);
   const witness: number[] = [];
   let sim = pyStateOf({ tab, stock, witness: [] }, 0);
   const tap = (a: number): boolean => {
@@ -261,6 +289,7 @@ function buildAttempt(rng0: number): { deal: PyDeal | null; rng: number } {
       let guard = 0;
       while (pyWasteTop(sim) !== ev.partner) {
         if (++guard > 200 || !tap(PY_STOCK_PILE)) return { deal: null, rng };
+        if (pyWasteTop(sim) >= 0 && rankOf(pyWasteTop(sim)) === 13 && !tap(PY_WASTE_PILE)) return { deal: null, rng };
       }
       if (!tap(ev.a) || !tap(PY_WASTE_PILE)) return { deal: null, rng };
     }
@@ -279,15 +308,98 @@ function proveDeal(deal: PyDeal): PyState {
   return s;
 }
 
+/** The state after one removal (a King, or a pair's two taps), or null. */
+function afterMove(s: PyState, move: readonly number[]): PyState | null {
+  let t: PyState = { ...s, sel: -1 };
+  for (const a of move) {
+    const r = pyApply(t, a);
+    if (!r) return null;
+    t = r.state;
+  }
+  return t;
+}
+
+/** The most cards a line of `depth` removals in view takes, plus 0.3 for each free card it leaves. */
+function lookAhead(s: PyState, depth: number): number {
+  let free = 0;
+  for (let i = 0; i < PY_CARDS; i++) if (pyFree(s, i)) free++;
+  let best = 0.3 * free;
+  if (depth === 0) return best;
+  for (const m of pyMoves(s)) {
+    const t = afterMove(s, m);
+    if (t) best = Math.max(best, m.length + lookAhead(t, depth - 1));
+  }
+  return best;
+}
+
+/**
+ * A quick player with no plan (the deal filter, never the score): Kings at once, then the removal that `mode` likes
+ * (0 the first pair seen, 1 the one uncovering most, 2 pairs with the waste first, 3 the best two-removal line in
+ * view), drawing only when nothing pairs.
+ * Whether it clears the pyramid.
+ */
+export function pyGreedyClears(deal: PyDeal, mode: number): boolean {
+  let s = pyStateOf(deal, 0);
+  for (let guard = 0; guard < 200; guard++) {
+    if (s.removed === PY_CARDS) return true;
+    const moves = pyMoves(s);
+    let move: number[] | null = null;
+    const king = moves.find((m) => m.length === 1);
+    if (king) move = king;
+    else if (moves.length) {
+      if (mode === 0) move = moves[0]!;
+      else if (mode === 2) move = moves.find((m) => m.includes(PY_WASTE_PILE)) ?? moves[0]!;
+      else if (mode === 3) {
+        let best = -1;
+        for (const m of moves) {
+          const t = afterMove(s, m);
+          const v = t ? m.length + lookAhead(t, 1) : -1;
+          if (v > best) {
+            best = v;
+            move = m;
+          }
+        }
+      } else {
+        let best = -1;
+        for (const m of moves) {
+          const gone = s.gone.slice();
+          for (const a of m) if (a < PY_CARDS) gone[a] = 1;
+          let opened = 0;
+          for (let j = 0; j < PY_CARDS; j++) if (!s.gone[j] && !pyFree(s, j) && pyFree({ gone }, j)) opened++;
+          if (opened > best) {
+            best = opened;
+            move = m;
+          }
+        }
+      }
+    }
+    if (move) {
+      for (const a of move) {
+        const r = pyApply(s, a);
+        if (!r) return false;
+        s = r.state;
+      }
+      continue;
+    }
+    const d = pyApply(s, PY_STOCK_PILE);
+    if (!d) return false;
+    s = d.state;
+  }
+  return s.removed === PY_CARDS;
+}
+
 /** Builds and proves the deal for `seed` (every attempt on one PRNG stream, so the same deal everywhere). */
 export function pyBuildDeal(seed: number): PyDeal {
   let rng = (Math.trunc(seed) ^ 0x5a17c3) | 0;
-  for (let attempt = 0; attempt < 200; attempt++) {
+  for (let attempt = 0; attempt < 4000; attempt++) {
     const out = buildAttempt(rng);
     rng = out.rng;
     if (!out.deal) continue;
     const end = proveDeal(out.deal);
-    if (end.removed === PY_CARDS && end.ppPairs >= PY_PAIR_FULL) return out.deal;
+    if (end.removed !== PY_CARDS || end.ppPairs < PY_PAIR_FULL) continue;
+    // Deals that need a plan: none of the quick players (first pair, most uncovered, best two-removal line) clears them.
+    if (pyGreedyClears(out.deal, 0) || pyGreedyClears(out.deal, 1) || pyGreedyClears(out.deal, 3)) continue;
+    return out.deal;
   }
   throw new Error(`pyramid: no deal for seed ${seed}`);
 }
@@ -423,7 +535,7 @@ export function pyramidStdParts(state: PyState): StdPart[] | null {
   if (!state || !state.std) return null;
   const done = state.ended === 1;
   return [
-    stdPart(PY_STD_SPEC, "core", stdLine(PY_CORE_MAX, state.removed, PY_CARDS), `${state.removed} / ${PY_CARDS} removed`),
+    stdPart(PY_STD_SPEC, "core", stdLine(PY_CORE_MAX, pyCoreUnits(state), PY_CORE_FULL), `${state.removed} / ${PY_CARDS} removed`),
     stdPart(PY_STD_SPEC, "clear", done ? PY_CLEAR_MAX : 0, done ? "all removed" : "not cleared"),
     stdPart(PY_STD_SPEC, "speed", done ? stdSpeed(PY_SPEED_MAX, state.finishTick, PY_SPEED_FULL_S * 60, PY_RUN_TICKS) : 0, done ? `cleared in ${(state.finishTick / 60).toFixed(1)} s` : "not cleared"),
     stdPart(PY_STD_SPEC, "pairs", stdEach(state.ppPairs, PY_PAIR_EACH, PY_PAIR_MAX), `${state.ppPairs} pyramid pair${state.ppPairs === 1 ? "" : "s"}`),
@@ -437,7 +549,7 @@ export function pyramidScore(state: PyState): number {
 export function pyramidBandParts(state: PyState): BandParts {
   const parts = pyramidStdParts(state) ?? [];
   const core = parts[0]?.points ?? 0;
-  return { units: state.removed, points: core, bonus: stdSum(parts) - core, penalty: 0, finished: state.ended === 1, text: `${state.removed} / 28 removed` };
+  return { units: pyCoreUnits(state), points: core, bonus: stdSum(parts) - core, penalty: 0, finished: state.ended === 1, text: `${state.removed} / 28 removed` };
 }
 
 /* ============================== Checkpoints ============================== */

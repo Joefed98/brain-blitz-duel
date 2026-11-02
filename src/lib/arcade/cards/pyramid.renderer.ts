@@ -11,7 +11,7 @@ import { rankOf } from "./cards";
 import { CARD_FONT, drawCard, drawChip, drawFelt, drawSlot, roundRect } from "./cards.renderer";
 import { drawCardButton, inButton, type CardButtonBox } from "./cardButtons.renderer";
 import {
-  PY_CARDS, PY_INPUT_RESET, PY_INPUT_UNDO, PY_PAIR_FULL, PY_PASSES, PY_STOCK_PILE, PY_WASTE_PILE, pyCardAt, pyFree, pyramidGame, pyRowOf, pyWasteTop, type PyState,
+  PY_CARDS, PY_INPUT_RESET, PY_INPUT_UNDO, PY_PAIR_FULL, PY_STOCK_PILE, PY_WASTE_PILE, pyCardAt, pyFree, pyramidGame, pyRowOf, pyWasteTop, type PyState,
 } from "./pyramid";
 
 export const PY_WORLD_W = 414;
@@ -126,7 +126,7 @@ function drawPyramidWorld(ctx: CanvasRenderingContext2D, state: PyState, size: C
   ctx.font = `700 13px ${CARD_FONT}`;
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
-  ctx.fillText(`PASS ${state.pass} OF ${PY_PASSES}  ·  PAIRS ADD TO 13  ·  K ALONE`, W / 2, PY_INFO_Y + 8);
+  ctx.fillText(`ONE PASS  ·  PAIRS ADD TO 13  ·  K ALONE`, W / 2, PY_INFO_Y + 8);
 
   // The panel: stock and waste, then Undo and Reset.
   roundRect(ctx, 14, PY_PANEL_Y, W - 28, H - PY_PANEL_Y - 14, 22);
@@ -142,7 +142,7 @@ function drawPyramidWorld(ctx: CanvasRenderingContext2D, state: PyState, size: C
   ctx.fillText(`WASTE ${state.pos}`, PY_WASTE_X + PY_PILE_W / 2, PY_PANEL_Y + 18);
   if (left > 0) {
     for (let k = Math.min(3, left) - 1; k >= 0; k--) drawCard(ctx, 0, PY_STOCK_X + k * 3, PY_PILE_Y - k * 3, PY_PILE_W, PY_PILE_H, { down: true, glow: k === 0 && view?.pressed === PY_STOCK_PILE ? 1 : 0 });
-  } else drawSlot(ctx, PY_STOCK_X, PY_PILE_Y, PY_PILE_W, PY_PILE_H, -1, state.pass < PY_PASSES && state.pile.length > 0 ? "TURN" : "EMPTY");
+  } else drawSlot(ctx, PY_STOCK_X, PY_PILE_Y, PY_PILE_W, PY_PILE_H, -1, "EMPTY");
   const top = pyWasteTop(state);
   if (top >= 0) {
     if (state.pos > 1) drawCard(ctx, state.pile[state.pos - 2]!, PY_WASTE_X - 4, PY_PILE_Y + 3, PY_PILE_W, PY_PILE_H, { dim: 0.4 });

@@ -4,13 +4,13 @@
  * Seven columns of five cards, all face up (35), a 16-card stock whose first card starts the one foundation pile. Play
  * the exposed card of any column onto the foundation when it is one higher or lower (suits don't matter; no wrapping
  * between King and Ace); draw from the stock when stuck. Undo (back to the position before the last action, unlimited)
- * and Reset (back to the deal, itself undoable); the clock runs on. The deal comes from a bank of deals a solver proved
- * clear with five runs of five (src/lib/arcade/cards/golfSolDeals.data.ts, scripts/golfsol-bank.ts); the puzzle's seed is
- * the deal's index.
+ * and Reset (back to the deal, itself undoable); the clock runs on. The deal comes from a bank of deals that a strong
+ * human line (look-ahead over the visible columns, the stock unknown) clears and the solver proves clear with five runs of
+ * four (src/lib/arcade/cards/golfSolDeals.data.ts, scripts/golfsol-bank.ts); the puzzle's seed is the deal's index.
  *
  * Scoring (golfSolRev 1, the arcade standard; 200 in all): the core 140 on a straight line over the 35 tableau cards
  * cleared; all cleared 20; speed 20 (cleared only: full by GS_SPEED_FULL_S, 0 at the buzzer); runs 20 (4 for each run
- * of five or more tableau cards in a row without drawing, up to 5).
+ * of four or more tableau cards in a row without drawing, up to 5).
  */
 import { inputRange, type ArcadeGame, type ArcadeInputEvent } from "../engine";
 import { stdEach, stdLine, stdPart, stdScore, stdSpeed, stdSum, type StdPart, type StdSpec } from "../arcadeStandard";
@@ -30,14 +30,14 @@ export const GS_INPUT_RESET = 4;
 export const GS_STOCK_PILE = 7;
 export const GS_RUN_TICKS = 75 * 60;
 /** A run counts once it reaches this many tableau cards. */
-export const GS_RUN_LEN = 5;
+export const GS_RUN_LEN = 4;
 
 /* ---- Scoring (golfSolRev 1) ---- */
 export const GS_CORE_MAX = 140;
 export const GS_CLEAR_MAX = 20;
 export const GS_SPEED_MAX = 20;
-/** Speed is full by this many seconds (the near-perfect skill-band median clear, measured: docs/arcade-standard/golfsol.md). */
-export const GS_SPEED_FULL_S = 28;
+/** Speed is full by this many seconds (the flawless pace, measured: docs/arcade-standard/golfsol.md). */
+export const GS_SPEED_FULL_S = 15;
 export const GS_RUN_EACH = 4;
 export const GS_RUN_MAX = 20;
 export const GS_RUN_FULL = 5;
@@ -50,7 +50,7 @@ export const GS_STD_SPEC: StdSpec = {
     { key: "core", label: "Cards cleared", max: GS_CORE_MAX, of: GS_CARDS, item: "card", how: "a straight line over the 35 tableau cards" },
     { key: "clear", label: "All cleared", max: GS_CLEAR_MAX, of: 1, how: "all 35 cleared" },
     { key: "speed", label: "Speed", max: GS_SPEED_MAX, of: 1, how: `cleared: full by ${GS_SPEED_FULL_S} s, 0 at the buzzer` },
-    { key: "runs", label: "Runs", max: GS_RUN_MAX, of: GS_RUN_FULL, item: "run", how: "4 for each run of five or more cards without drawing, up to 5" },
+    { key: "runs", label: "Runs", max: GS_RUN_MAX, of: GS_RUN_FULL, item: "run", how: "4 for each run of four or more cards without drawing, up to 5" },
   ],
 };
 
@@ -66,7 +66,7 @@ export interface GsState {
   stockPos: number;
   /** The foundation's top card. */
   top: number;
-  /** Tableau cards played since the last draw, runs of five or more made, and the longest. */
+  /** Tableau cards played since the last draw, runs of four or more made, and the longest. */
   run: number;
   runs: number;
   bestRun: number;
@@ -192,7 +192,7 @@ export function golfSolStdParts(state: GsState): StdPart[] | null {
     stdPart(GS_STD_SPEC, "core", stdLine(GS_CORE_MAX, state.cleared, GS_CARDS), `${state.cleared} / ${GS_CARDS} cleared`),
     stdPart(GS_STD_SPEC, "clear", done ? GS_CLEAR_MAX : 0, done ? "all cleared" : "not cleared"),
     stdPart(GS_STD_SPEC, "speed", done ? stdSpeed(GS_SPEED_MAX, state.finishTick, GS_SPEED_FULL_S * 60, GS_RUN_TICKS) : 0, done ? `cleared in ${(state.finishTick / 60).toFixed(1)} s` : "not cleared"),
-    stdPart(GS_STD_SPEC, "runs", stdEach(state.runs, GS_RUN_EACH, GS_RUN_MAX), `${state.runs} run${state.runs === 1 ? "" : "s"} of 5+`),
+    stdPart(GS_STD_SPEC, "runs", stdEach(state.runs, GS_RUN_EACH, GS_RUN_MAX), `${state.runs} run${state.runs === 1 ? "" : "s"} of 4+`),
   ];
 }
 

@@ -3,16 +3,19 @@
  * and Muggins, three Cards & Board games born on the arcade scoring standard.
  *
  *  1. Every dealt seed reaches 200: every Golf Solitaire bank deal (all 300) replays its solver's line through the
- *     server's replay to a full clear with five runs of five and exactly 200; Pyramid and Muggins deal any seed, and
+ *     server's replay to a full clear with five runs of four and exactly 200, and the strong human line (look-ahead over
+ *     the visible columns, the stock unknown) clears every one; Pyramid and Muggins deal any seed, and
  *     every tuning (0–59), fresh (10000–10199) and 200 room-style seeds' witnesses replay to exactly 200. Pyramid's
  *     solver (scripts/cards/pyramidSolver.ts) independently re-proves 24 of those deals clearable with ten pyramid pairs.
  *  2. Determinism: the same seed deals the same cards or tiles (and the same witness) every time; the deals are whole
  *     (52 different cards; 28 different tiles); rooms deal a bank index (Golf) or any seed (Pyramid, Muggins).
- *  3. Rules: Pyramid's pairs to 13, Kings alone, covered cards refused, the waste pairing, three passes; Golf's one up
- *     or down with no wrapping, a draw ending the run, a run counted at five; Muggins' matching ends, the ends' sum
- *     (a double counting both halves), 5/10/15/20 scoring, Draw refused while a tile fits, the end of the round.
+ *  3. Rules: Pyramid's pairs to 13, Kings alone, covered cards refused, the waste pairing, one pass through the stock,
+ *     and no deal cleared by a quick player with no plan; Golf's one up or down with no wrapping, a draw ending the
+ *     run, a run counted at four; Muggins' matching ends, the ends' sum (a double counting both halves), 5/10/15/20
+ *     scoring, Draw refused while a tile fits, the end of the round.
  *  4. Undo and Reset on all three: Undo takes back exactly one action (score parts too), Reset goes back to the deal
- *     and is itself undoable, both refused as no-ops when there is nothing to take back; the clock runs on.
+ *     and is itself undoable, both refused as no-ops when there is nothing to take back; the clock runs on. Muggins: a
+ *     draw is final (Undo stops at the latest draw, Reset goes back only to just after it).
  *  5. No input scores 0; a played run at least 1.
  *  6. `CHECKS_FULL=1`: the Golf Solitaire bank rebuilds byte for byte (scripts/golfsol-bank.ts --check).
  *
@@ -22,17 +25,18 @@ import { spawnSync } from "node:child_process";
 import { cardOf } from "../src/lib/arcade/cards/cards";
 import type { ArcadeInputEvent } from "../src/lib/arcade/engine";
 import {
-  PY_CARDS, PY_INPUT_RESET, PY_INPUT_TAP, PY_INPUT_UNDO, PY_PAIR_FULL, PY_STOCK_PILE, PY_WASTE_PILE, pyDeal, pyFree, pyramidGame, pyramidScore, type PyState,
+  PY_CARDS, PY_INPUT_RESET, PY_INPUT_TAP, PY_INPUT_UNDO, PY_PAIR_FULL, PY_STOCK_PILE, PY_WASTE_PILE, pyDeal, pyFree, pyGreedyClears, pyramidGame, pyramidScore, type PyState,
 } from "../src/lib/arcade/cards/pyramid";
 import { GS_CARDS, GS_INPUT_RESET, GS_INPUT_TAP, GS_INPUT_UNDO, GS_STOCK_PILE, golfSolGame, gsNext, type GsState } from "../src/lib/arcade/cards/golfSol";
 import { GS_DEALS } from "../src/lib/arcade/cards/golfSolDeals.data";
 import {
-  MG_BIG_FULL, MG_CORE_FULL, MG_INPUT_DRAW, MG_INPUT_PLAY, MG_INPUT_RESET, MG_INPUT_UNDO, MG_TILE_PIPS, MG_TILES, mgDeal, mgEndSum, mgPlays, mgScoreOf, mugginsGame, type MgState,
+  MG_BIG_FULL, MG_CORE_FULL, MG_INPUT_DRAW, MG_INPUT_PLAY, MG_INPUT_RESET, MG_INPUT_UNDO, MG_TILE_PIPS, MG_TILES, mgDeal, mgEndSum, mgPack, mgPlays, mgScoreOf, mugginsGame, type MgState,
 } from "../src/lib/arcade/cards/muggins";
 import { generatePuzzle } from "../src/lib/duel/generate.server";
 import { replayGolfSolRun, replayMugginsRun, replayPyramidRun } from "../src/lib/duel/cards";
 import { golfSolFlawless, mugginsFlawless, pyramidFlawless } from "./cards/flawless";
 import { pySolve } from "./cards/pyramidSolver";
+import { gsHumanLine } from "./cards/golfSolHuman";
 
 console.error = () => {};
 let checks = 0;
@@ -64,6 +68,9 @@ for (let i = 0, x = 0x2545f491; i < 200; i++) {
     }
   }
   ok(all, `golfsol: all ${GS_DEALS.length} bank deals' lines replay to 200 through the server replay`);
+  let human = 0;
+  for (let i = 0; i < GS_DEALS.length; i++) if (gsHumanLine(golfSolGame.init(i)).cleared) human++;
+  ok(human === GS_DEALS.length, `golfsol: the strong human line clears every bank deal (${human} of ${GS_DEALS.length})`);
 }
 {
   let all = true;
@@ -144,17 +151,16 @@ for (let i = 0, x = 0x2545f491; i < 200; i++) {
   ok(w.pos === 1 && w.draws === 1, "pyramid: a stock tap turns a card onto the waste");
   w = step(step(w, PY_INPUT_TAP, 26), PY_INPUT_TAP, PY_WASTE_PILE);
   ok(w.gone[26] === 1 && w.pile.length === 2 && w.pos === 0 && w.ppPairs === t.ppPairs && w.pairs === t.pairs + 1, "pyramid: 5 + the waste's 8 is removed (a pair, not a pyramid pair)");
-  // Three passes: the stock runs out and turns back over twice.
+  // One pass: the stock runs out and is never turned back over.
   let q = s;
   for (let i = 0; i < 3; i++) q = step(q, PY_INPUT_TAP, PY_STOCK_PILE);
-  q = step(q, PY_INPUT_TAP, PY_STOCK_PILE);
-  ok(q.pass === 2 && q.pos === 0, "pyramid: tapping the empty stock turns the waste back over (pass 2)");
-  for (let i = 0; i < 3; i++) q = step(q, PY_INPUT_TAP, PY_STOCK_PILE);
-  q = step(q, PY_INPUT_TAP, PY_STOCK_PILE);
-  ok(q.pass === 3, "pyramid: and once more (pass 3)");
-  for (let i = 0; i < 3; i++) q = step(q, PY_INPUT_TAP, PY_STOCK_PILE);
+  ok(q.pos === 3 && q.pass === 1, "pyramid: the stock turns its three cards onto the waste");
   const r4 = step(q, PY_INPUT_TAP, PY_STOCK_PILE);
-  ok(r4.rejects === q.rejects + 1 && r4.pass === 3, "pyramid: after the third pass the stock can't be turned again");
+  ok(r4.rejects === q.rejects + 1 && r4.pass === 1 && r4.pos === 3, "pyramid: one pass: the empty stock can't be turned back over");
+  // Every deal needs a plan: the quick players with no plan never clear it, and the witness clears it with ten pairs.
+  let quick = 0;
+  for (const seed of SEEDS.slice(0, 60)) if (pyGreedyClears(pyDeal(seed), 0) || pyGreedyClears(pyDeal(seed), 1) || pyGreedyClears(pyDeal(seed), 3)) quick++;
+  ok(quick === 0, `pyramid: no dealt deal is cleared by a quick player with no plan (first pair, most uncovered, best two-removal line) (${quick} of 60)`);
 
   // Golf: one up or down, no wrapping.
   const K = cardOf(0, 13);
@@ -179,8 +185,8 @@ for (let i = 0, x = 0x2545f491; i < 200; i++) {
   ok(d1.stockPos === 2 && d1.top === g.stock[1] && d1.run === 0, "golfsol: a draw turns the next stock card onto the foundation and ends the run");
   // A run counted at five: replay bank deal 0's line and watch the counter.
   probe = golfSolFlawless(0).state;
-  ok(probe.runs >= 5 && probe.cleared === GS_CARDS, "golfsol: the bank line makes five runs of five");
-  g = { ...g, run: 4, runs: 0 };
+  ok(probe.runs >= 5 && probe.cleared === GS_CARDS, "golfsol: the bank line makes five runs of four");
+  g = { ...g, run: 3, runs: 0 };
   let fifth = g;
   for (let c = 0; c < 7; c++) {
     const r = gstep(g, GS_INPUT_TAP, c);
@@ -189,7 +195,15 @@ for (let i = 0, x = 0x2545f491; i < 200; i++) {
       break;
     }
   }
-  if (fifth !== g) ok(fifth.run === 5 && fifth.runs === 1, "golfsol: the fifth card in a row without drawing counts a run");
+  ok(fifth !== g && fifth.run === 4 && fifth.runs === 1, "golfsol: the fourth card in a row without drawing counts a run");
+  const fifthOn = fifth !== g ? (() => {
+    for (let c = 0; c < 7; c++) {
+      const r = gstep(fifth, GS_INPUT_TAP, c);
+      if (r.cleared === fifth.cleared + 1) return r;
+    }
+    return null;
+  })() : null;
+  if (fifthOn) ok(fifthOn.run === 5 && fifthOn.runs === 1, "golfsol: a longer run still counts once");
 
   // Muggins: the ends' sum and scoring.
   const tileOf = (a: number, b: number) => MG_TILE_PIPS.findIndex((p) => p[0] === Math.min(a, b) && p[1] === Math.max(a, b));
@@ -269,20 +283,30 @@ for (let i = 0, x = 0x2545f491; i < 200; i++) {
   const gr = golfSolGame.step(g, ev(g.tick + 1, GS_INPUT_RESET));
   ok(strip(gr) === strip(g0) && strip(golfSolGame.step(gr, ev(gr.tick + 1, GS_INPUT_UNDO))) === strip(g), "golfsol: Reset goes back to the deal and can be undone");
 
-  const m0 = mugginsGame.init(6);
-  const wit = mgDeal(6).witness;
-  let m = m0;
-  const go = (st: MgState, [tile, end]: [number, number]) => mugginsGame.step(st, tile < 0 ? ev(st.tick + 1, MG_INPUT_DRAW) : ev(st.tick + 1, MG_INPUT_PLAY, tile, end));
-  for (let k = 0; k < 3; k++) m = go(m, wit[k]!);
-  const mPrev = (() => {
-    let b = m0;
-    for (let k = 0; k < 2; k++) b = go(b, wit[k]!);
-    return b;
-  })();
-  const mu = mugginsGame.step(m, ev(m.tick + 1, MG_INPUT_UNDO));
-  ok(strip(mu) === strip(mPrev) && mu.points === mPrev.points && mu.undos === 1, "muggins: Undo takes back exactly the last play or draw, its points too");
-  const mr = mugginsGame.step(m, ev(m.tick + 1, MG_INPUT_RESET));
-  ok(strip(mr) === strip(m0) && mr.points === 0 && strip(mugginsGame.step(mr, ev(mr.tick + 1, MG_INPUT_UNDO))) === strip(m), "muggins: Reset goes back to the deal and can be undone");
+  const tileOf = (a: number, b: number) => MG_TILE_PIPS.findIndex((p) => p[0] === Math.min(a, b) && p[1] === Math.max(a, b));
+  const base: MgState = { ...mugginsGame.init(6), line: [5 * 7 + 3], hand: [tileOf(3, 5), tileOf(5, 5), tileOf(0, 1), tileOf(2, 6)], pile: [tileOf(3, 4), tileOf(6, 6)], pilePos: 0 };
+  const m0: MgState = { ...base, start: mgPack(base) };
+  const play = (st: MgState, a: number, b: number) => mugginsGame.step(st, ev(st.tick + 1, MG_INPUT_PLAY, a, b));
+  const m1 = play(m0, tileOf(5, 5), 0);
+  const m2 = play(m1, tileOf(3, 5), 1);
+  const mu = mugginsGame.step(m2, ev(m2.tick + 1, MG_INPUT_UNDO));
+  ok(strip(mu) === strip(m1) && mu.points === m1.points && mu.undos === 1, "muggins: Undo takes back exactly the last play, its points too");
+  const mr = mugginsGame.step(m2, ev(m2.tick + 1, MG_INPUT_RESET));
+  ok(strip(mr) === strip(m0) && mr.points === 0 && strip(mugginsGame.step(mr, ev(mr.tick + 1, MG_INPUT_UNDO))) === strip(m2), "muggins: before any draw, Reset goes back to the deal and can be undone");
+  // A draw is final: stuck (ends 10 and 5 after 5-5 then 3-5 … here a hand that can't play), draw, then Undo and Reset.
+  const stuck: MgState = { ...m0, hand: [tileOf(0, 1)], hist: [mgPack(m0)] };
+  const drew = mugginsGame.step(stuck, ev(stuck.tick + 1, MG_INPUT_DRAW));
+  ok(drew.pilePos === 1 && drew.hand.length === 2 && drew.hist.length === 0, "muggins: a draw clears the Undo history");
+  const noUndo = mugginsGame.step(drew, ev(drew.tick + 1, MG_INPUT_UNDO));
+  ok(noUndo.pilePos === 1 && noUndo.hand.length === 2 && noUndo.undos === 0, "muggins: Undo can't take back a draw");
+  const played = play(drew, tileOf(3, 4), 1);
+  ok(played.plays === drew.plays + 1 && played.hand.length === 1, "muggins: the drawn tile is played after the draw");
+  const undoAfter = mugginsGame.step(played, ev(played.tick + 1, MG_INPUT_UNDO));
+  ok(strip(undoAfter) === strip(drew), "muggins: a play after the draw can be undone, back to just after the draw");
+  const undoTwice = mugginsGame.step(undoAfter, ev(undoAfter.tick + 1, MG_INPUT_UNDO));
+  ok(strip(undoTwice) === strip(drew) && undoTwice.undos === undoAfter.undos, "muggins: Undo never goes back past the latest draw");
+  const resetAfter = mugginsGame.step(played, ev(played.tick + 1, MG_INPUT_RESET));
+  ok(strip(resetAfter) === strip(drew) && resetAfter.pilePos === 1, "muggins: after a draw, Reset goes back to just after it (the drawn tile stays drawn)");
 }
 
 /* 5. No input 0, played 1+. */

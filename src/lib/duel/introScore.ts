@@ -127,7 +127,7 @@ function introScoreTemplates(): Record<PuzzleType, string> {
     pokersquares: `Hand points 160 (full at ${PS_CORE_FULL_V2}); made hands 40 (4 a line). Together {max}.`,
     fivehands: `Hand points 160 (full at ${FH_CORE_FULL}); made hands 40 (8 a row). Together {max}.`,
     pyramid: "Cards 140; cleared 20 and speed 20; pyramid pairs 20 (2 each). Together {max}.",
-    golfsol: "Cards 140; all cleared 20 and speed 20; runs of five 20 (4 each). Together {max}.",
+    golfsol: "Cards 140; all cleared 20 and speed 20; runs of four 20 (4 each). Together {max}.",
     muggins: `Points 150 (full at ${MG_CORE_FULL}); hand cleared 20 and speed 20; big plays 10. Together {max}.`,
     bubble: "Bubbles cleared, a fast clear, falling chests, bank shots and combos. Up to {max}.",
     slice: "Food 120, combos 40, gold fruit 20, tickets 10, dodges 10. Chilli: lose 10. Up to {max}.",

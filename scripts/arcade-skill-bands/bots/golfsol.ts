@@ -1,7 +1,7 @@
 /**
  * Golf Solitaire (1 Nov 2026): a player scanning the seven bottom cards for one a step from the foundation. Flawless
- * plays the bank's proved line (a clear with five runs of five) at the fastest human pace. Near-perfect and elite
- * players search the deal from where they stand (elite for five runs first, then any clear; near-perfect for any clear)
+ * plays the bank's proved line (a clear with five runs of four) at the fastest human pace. Near-perfect and elite
+ * players search the deal from where they stand (elite for five runs of four first, then any clear; near-perfect for any clear)
  * and play that line; otherwise each playable card is valued by the chain it starts (plays before the stock is needed),
  * looked ahead a few plays by level, blurred by judgement. Slips: a hasty pick, or drawing with a play still showing.
  */

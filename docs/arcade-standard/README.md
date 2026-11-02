@@ -359,9 +359,10 @@ Speed's "full by" times are the near-perfect bots' median finish (`bun scripts/c
 every dealt deal reaches 200 through the server's replay.
 
 1 Nov 2026: three more, born on the standard at revision 1, with Undo and Reset like Free Cell and Mahjong:
-**Pyramid** (`pyramidRev` 1, 90 s: pyramid cards 140, cleared 20, speed 20 full by 45 s, pyramid pairs 20),
-**Golf Solitaire** (`golfsol`, `golfSolRev` 1, 75 s: cards 140, all cleared 20, speed 20 full by 28 s, runs of five 20)
-and **Muggins** (`mugginsRev` 1, 90 s solo dominoes: points 150 full at 65, hand cleared 20, speed 20 full by 32 s, big
-plays 10). Pyramid and Muggins build each deal with its witness in the sim; Golf deals a solver-proved bank.
-cards-solitaire-check proves every dealt deal reaches 200 through the server's replay.
+**Pyramid** (`pyramidRev` 1, 90 s, one pass: pyramid cards 140, cleared 20, speed 20 full by 20 s, pyramid pairs 20;
+deals built so no quick player with no plan clears them), **Golf Solitaire** (`golfsol`, `golfSolRev` 1, 75 s: cards
+140, all cleared 20, speed 20 full by 15 s, runs of four 20; a bank a strong human line clears) and **Muggins**
+(`mugginsRev` 1, 90 s solo dominoes: points 150 full at 55, hand cleared 20, speed 20 full by 19 s, big plays 10; a draw
+is final, so the pile can't be peeked). cards-solitaire-check proves every dealt deal reaches 200 through the server's
+replay.
 

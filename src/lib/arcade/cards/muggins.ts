@@ -7,14 +7,16 @@
  * spinner). Whenever the two open ends add up to 5, 10, 15 or 20, that total scores; a double at an end counts both
  * halves. With no legal play, Draw takes one tile from the pile (Draw is refused while a play is open). The round ends
  * when the hand is empty, at the buzzer, or when the pile is empty and nothing can be played. Undo (back to the position
- * before the last play or draw, unlimited) and Reset (back to the deal, itself undoable); the clock runs on.
+ * before the last play, unlimited) and Reset (back to the deal, itself undoable); the clock runs on. A draw is final: it
+ * can't be undone, Undo never goes back past the latest draw and Reset goes back only to just after it, so the pile
+ * stays hidden.
  *
  * The deal (mgDeal): the tiles are shuffled from the seed and kept only when a witness line exists (a bounded search in
  * the sim) that empties the hand with at least MG_CORE_FULL points and two big plays; otherwise the next shuffle on the
  * same PRNG stream is tried. So every dealt seed lets perfect play reach 200.
  *
  * Scoring (mugginsRev 1, the arcade standard; 200 in all): the core 150 on a straight line over Muggins points, full at
- * MG_CORE_FULL (the near-perfect skill-band median, measured); hand cleared 20; speed 20 (cleared only: full by
+ * MG_CORE_FULL (55, just above the best levels' median, measured); hand cleared 20; speed 20 (cleared only: full by
  * MG_SPEED_FULL_S, 0 at the buzzer); big plays 10 (5 for a single play scoring 15 or 20, up to 2).
  */
 import { inputRange, rngBelow, type ArcadeGame, type ArcadeInputEvent } from "../engine";
@@ -35,12 +37,12 @@ export const MG_RUN_TICKS = 90 * 60;
 
 /* ---- Scoring (mugginsRev 1) ---- */
 export const MG_CORE_MAX = 150;
-/** Muggins points for the full core: the near-perfect skill-band median (docs/arcade-standard/muggins.md). */
-export const MG_CORE_FULL = 65;
+/** Muggins points for the full core: 55, a little above the best levels' median (50) with the pile hidden (docs/arcade-standard/muggins.md). */
+export const MG_CORE_FULL = 55;
 export const MG_CLEAR_MAX = 20;
 export const MG_SPEED_MAX = 20;
 /** Speed is full by this many seconds (the near-perfect skill-band median clear, measured). */
-export const MG_SPEED_FULL_S = 32;
+export const MG_SPEED_FULL_S = 19;
 export const MG_BIG_EACH = 5;
 export const MG_BIG_MAX = 10;
 export const MG_BIG_FULL = 2;
@@ -95,6 +97,7 @@ export interface MgState {
   /** 0 running, 1 hand cleared, 2 the buzzer, 3 no move left. */
   ended: number;
   finishTick: number;
+  /** Positions before each play since the latest draw (Undo), and where Reset goes: the deal, or just after the latest draw. */
   hist: number[][];
   start: number[];
   undos: number;
@@ -302,7 +305,9 @@ function step(state: MgState, input: ArcadeInputEvent | null): MgState {
   if (input && (input.k === MG_INPUT_PLAY || input.k === MG_INPUT_DRAW)) {
     next.acted = 1;
     const r = input.k === MG_INPUT_DRAW ? mgApply(next, -1, 0) : mgApply(next, input.a, input.b);
-    if (r) next = { ...r, hist: [...state.hist, mgPack(state)] };
+    // A draw is for good: it can't be undone, Undo stops at it and Reset goes back to just after it (so nobody can draw,
+    // look and take it back: the pile stays hidden).
+    if (r) next = input.k === MG_INPUT_DRAW ? { ...r, hist: [], start: mgPack(r) } : { ...r, hist: [...state.hist, mgPack(state)] };
     else next.rejects++;
   } else if (input && input.k === MG_INPUT_UNDO) {
     next.acted = 1;

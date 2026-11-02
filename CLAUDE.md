@@ -1043,19 +1043,25 @@ outside the repo.
   three Cards & Board games born on the arcade standard at stamp 1 (`pyramidRev`, `golfSolRev`, `mugginsRev`), each
   with Undo (kind 3, unlimited, restores the score parts) and Reset (kind 4, undoable), the clock running on; the group
   is back to eight room games. **Pyramid** (`pyramid`, 90 s; `src/lib/arcade/cards/pyramid.ts`): pairs to 13, Kings
-  alone, the waste pairs, three passes; core 140 on the 28 cards, cleared 20, speed 20 (full by 45 s), pyramid pairs 20
-  (2 each, up to 10); `pyBuildDeal` builds each deal from the seed with a witness of ten pyramid pairs (random shuffles
-  allow one in ~200), proved through the sim and re-proved by `scripts/cards/pyramidSolver.ts`. **Golf Solitaire**
-  (`golfsol`, 75 s; `golfSol.ts`): one up or down, no wrapping; core 140 on 35, all cleared 20, speed 20 (full by
-  28 s), runs of five 20; a bank of 300 solver-proved deals (`golfSolDeals.data.ts`, `bun scripts/golfsol-bank.ts
-  [--check]`, lines in `scripts/fixtures/golfsol-solutions.json`). **Muggins** (`muggins`, 90 s; `muggins.ts`, art
-  `muggins.renderer.ts` on green baize): solo dominoes, ends adding to 5/10/15/20 score; core 150 full at 65 points
-  (the near-perfect median), hand cleared 20, speed 20 (full by 32 s), big plays 10; `mgBuildDeal` keeps a shuffle only
-  with a witness reaching 200. Pyramid's and Muggins' deals are cached per seed and built while RoundIntro is up.
-  Shared thumb-row buttons `cards/cardButtons.renderer.ts`. cards-solitaire-check (~6 s) proves 460 seeds each (all 300
-  Golf deals) at 200 through the server replay, the rules, undo and reset; bands `bun scripts/cards-bands.ts pyramid
-  golfsol muggins`. Sounds reuse the card and tile recordings (`docs/sound-cues/cards-solitaire.md` lists the slots
-  wanting their own, a domino clack first). Names for the solicitor: `docs/solicitor-ip-list.md`. Intro stills only.
+  alone, the waste pairs, **one pass** through the stock; core 140 on the 28 cards, cleared 20, speed 20 (full by 20 s),
+  pyramid pairs 20 (2 each, up to 10); `pyBuildDeal` builds each deal from the seed (2–4 Kings, every other pyramid card
+  in pyramid pairs, so the face-down stock never decides a clear) with a witness proved through the sim, keeping only
+  deals no quick player with no plan clears (`pyGreedyClears` modes 0, 1, 3); `scripts/cards/pyramidSolver.ts`
+  re-proves samples. **Golf Solitaire** (`golfsol`, 75 s; `golfSol.ts`): one up or down, no wrapping; core 140 on 35,
+  all cleared 20, speed 20 (full by 15 s), runs of **four** 20; a bank of 300 deals a strong human line clears
+  (`scripts/cards/golfSolHuman.ts`, never seeing the stock) and the solver proves with five runs of four
+  (`golfSolDeals.data.ts`, `bun scripts/golfsol-bank.ts [--check]`, ~6 s, lines in
+  `scripts/fixtures/golfsol-solutions.json`). **Muggins** (`muggins`, 90 s; `muggins.ts`, art `muggins.renderer.ts` on
+  green baize): solo dominoes, ends adding to 5/10/15/20 score; core 150 full at 55 points, hand cleared 20, speed 20
+  (full by 19 s), big plays 10; **a draw is final** (Undo stops at the latest draw, Reset goes back only to just after it:
+  no peeking at the pile); the player picks the end (each end the chosen tile fits shows what it would score; Play takes
+  the higher); `mgBuildDeal` keeps a shuffle only with a witness reaching 200. Pyramid's and Muggins' deals are cached
+  per seed and built while RoundIntro is up. Shared thumb-row buttons `cards/cardButtons.renderer.ts`.
+  cards-solitaire-check (~6 s) proves 460 seeds each (all 300 Golf deals) at 200 through the server replay, the rules,
+  undo, reset and the final draw; bands `bun scripts/cards-bands.ts pyramid golfsol muggins --from=10000` (each page has
+  before → after). Sounds reuse the card and tile recordings (`docs/sound-cues/cards-solitaire.md` lists the slots
+  wanting their own, a domino clack first). Names for the solicitor: `docs/ip-names.md` (the single IP list). Intro
+  stills only.
 - `src/components/duel/` — room/round screens (PhoneShell, RoundIntro, TimerBar,
   AnswerReveal, ArcadeReveal, WinnerReveal…); `src/components/puzzles/` — shared puzzle
   widgets; `src/lib/fx/` — sound and visual feedback (presentation only).
