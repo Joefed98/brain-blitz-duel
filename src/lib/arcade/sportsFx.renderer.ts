@@ -4,7 +4,7 @@
  * pulse. Each count is a counter its sim already keeps; nothing here writes to a sim.
  */
 import type { ArcadeFxSpec } from "./arcadeFx.renderer";
-import { homerunSignCount, HOMERUN_WORLD_H, HOMERUN_WORLD_W, OUT_FOUL, OUT_TAKEN, OUT_WHIFF, type HomerunState } from "./homerun";
+import { homerunSignCount, homerunViewHFor, HOMERUN_REV_DEALT, HOMERUN_WORLD_H, HOMERUN_WORLD_W, OUT_FOUL, OUT_TAKEN, OUT_WHIFF, type HomerunState } from "./homerun";
 import { freekickFxCounts, FREEKICK_WORLD_H, FREEKICK_WORLD_W, type FreekickState } from "./freekick";
 import { racingFxCounts, RACING_WORLD_H, RACING_WORLD_W, type RacingState } from "./racing";
 import { px } from "./engine";
@@ -15,11 +15,15 @@ import { curlProject, CURL_VIEW_V1, CURL_VIEW_V2 } from "./curling.renderer";
 
 const homerunMisses = (s: HomerunState) => s.hits.filter((h) => h.out === OUT_WHIFF || h.out === OUT_TAKEN || h.out === OUT_FOUL).length;
 
+/**
+ * Home Run's success layer over the dealt stage view (homerunRev 3: the world plus the field rows below it,
+ * homerunViewHFor; 2 Nov 2026, display only). Older revisions' 720-row view takes HOMERUN_FX_V2.
+ */
 export const HOMERUN_FX: ArcadeFxSpec<HomerunState> = {
   game: "homerun",
   world: "realworld",
   width: HOMERUN_WORLD_W,
-  height: HOMERUN_WORLD_H,
+  height: homerunViewHFor(HOMERUN_REV_DEALT),
   shake: false,
   textInset: 40,
   events: [
@@ -30,6 +34,8 @@ export const HOMERUN_FX: ArcadeFxSpec<HomerunState> = {
   ],
   misses: [{ count: homerunMisses }],
 };
+/** Home Run's success layer over homerunRev 1 and 2's view (the 720-row world). */
+export const HOMERUN_FX_V2: ArcadeFxSpec<HomerunState> = { ...HOMERUN_FX, height: HOMERUN_WORLD_H };
 
 export const FREEKICK_FX: ArcadeFxSpec<FreekickState> = {
   game: "freekick",

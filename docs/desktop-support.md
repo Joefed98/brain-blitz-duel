@@ -92,6 +92,7 @@ reason given. "Practice" marks games retired to practice.
 | Grappler (`swing`) | Hold to grapple, release to let go; drag up or down while holding to reel | Hold Space to grapple, let go to release; ↑ ↓ / W S reel while held |
 | High Rise (`skyline`) | Click to drop | Space, ↓ or S drops |
 | Hover (`hover`) | Click to flap | Space, ↑ or W flaps |
+| Home Run (`homerun`) | Drag through the ball to swing (its start height meets the pitch, its angle aims); click Contact or Power at the bottom of the field before the pitch (homerunRev 3) | C or 1 = Contact, P or 2 = Power (homerunRev 3); the swing stays a mouse drag (its height and angle are the aim) |
 | Jaywalk (`cross`) | Drag-flick up, down, left or right | ← → ↑ ↓ / WASD step |
 | Meteor (`snake`) | Drag-flick to turn | ← → ↑ ↓ / WASD turn |
 | Orbit (`orbit`) | Click to release; SET CHECKPOINT button | Space releases; C sets a checkpoint (when the button shows) |
@@ -104,7 +105,9 @@ reason given. "Practice" marks games retired to practice.
 | Swish (`bintoss`) | Drag to aim, release to throw (release on the bottom strip cancels) | Arrows / WASD aim (Shift: fine); Space or Enter throws; Esc hides the aim |
 | Tempo (`beat`) | Click a lane (hold for hold notes; flick sideways on swipe notes) | None: a decision for Joe (below) |
 | Tilt (`tilt`) | Drag sideways to tilt | ← → / A D tilt (a virtual drag, 4 px a tick) |
+| Top Bins (`freekick`, freekickRev 3) | Click the goal to aim, drag sideways to curl, hold the power bar and let go to strike | ← → ↑ ↓ move the aim (20 cm, Shift 5 cm; the first press aims at the goal's centre); A D curl left / right (10 a press); hold Space for the power meter, let go to strike. Earlier revisions (a drawn stroke): mouse only |
 | Wavefront (`wavefront`) | Drag in the bottom quarter to move | ← → / A D move (6 px a tick) |
+| Curl Champ (`curling`) | Drag the target; drag the stone sideways to slide it; In / Out buttons; drag up to throw (its speed is the weight); rub left or right of a moving stone to brush | ← → ↑ ↓ move the target (Shift: further); A D slide the stone; I / O the turn; curlRev 3: − / + set the weight on the meter (from the draw zone's mark; Shift: 50), Enter throws it (curlRev 1 and 2: Enter throws a draw weight); while a stone travels ← → brush its left / right, S carries it |
 | Bastion (`bastion`, practice) | Drag to aim, or the Arrows buttons | ← → / A D rotate |
 | Dual (`dual`, practice) | Click the left or right half | ← / A / F left, → / D / J right |
 | Hot Floor (`hotfloor`, practice) | Click tiles and the drawn buttons | Mouse for tiles. Enter or G = Go, Z or Backspace = Undo, C or Esc = Clear |

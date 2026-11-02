@@ -14,6 +14,11 @@ import {
   FREEKICK_INPUT_KICK,
   FREEKICK_POWER_MAX,
   FREEKICK_REV_DEALT,
+  FREEKICK_REV_3,
+  FREEKICK_INPUT_AIM,
+  FREEKICK_INPUT_CURL,
+  FREEKICK_INPUT_POWER,
+  FREEKICK_INPUT_STRIKE,
   FREEKICK_WORLD_H,
   FREEKICK_WORLD_W,
   fkCamSpace,
@@ -23,7 +28,16 @@ import {
   freekickCheckpoint,
   type FreekickState,
 } from "@/lib/arcade/freekick";
-import { freekickArtGameFor, freekickScene, freekickSceneKey, freekickStroke } from "@/lib/arcade/freekick.renderer";
+import {
+  FK_V3_PRESS_Y,
+  freekickAimAt,
+  freekickArtGameFor,
+  freekickCurlFromDrag,
+  freekickScene,
+  freekickSceneKey,
+  freekickStroke,
+  freekickV3Ui,
+} from "@/lib/arcade/freekick.renderer";
 import { encodeFreekickRun, replayFreekickRun } from "@/lib/duel/freekick";
 import { FREEKICK_TIME_MS, type FreekickPuzzleData } from "@/lib/duel/types";
 import { ArcadeCanvasStage, type PointerPayload } from "@/components/puzzles/ArcadeCanvasStage";
@@ -69,7 +83,7 @@ function IntroExample() {
         <path d="M92 128 Q86 112 104 100" fill="none" stroke="#FFFFFF" strokeOpacity={0.8} strokeWidth={3} strokeLinecap="round" />
         <circle cx={96} cy={118} r={5.5} fill="#F4F6F8" />
       </svg>
-      <p className="text-center text-xs text-muted-foreground">Draw through the ball: its line aims, its bend curls it, its speed is power.</p>
+      <p className="text-center text-xs text-muted-foreground">Tap the goal to aim, drag to curl, then hold the bar and release in the gold.</p>
     </div>
   );
 }
@@ -156,11 +170,82 @@ export function freekickStrokeKick(state: FreekickState, pts: readonly StrokePoi
   };
 }
 
+/** A pointer that moved less than this (world px) is a tap (freekickRev 3: aim), further a drag (curl). */
+const TAP_SLOP = 12;
+
+/**
+ * freekickRev 3's pointer: a tap on the goal aims (AIM, the goal-plane point in cm), a sideways drag sets the curl
+ * (CURL, previewed live), a press on the power bar starts the meter (POWER) and its release strikes (STRIKE). Aim and
+ * curl can be redone until the meter starts.
+ */
+function v3Pointer(
+  gesture: { current: { x: number; y: number; power: boolean; drag: boolean } | null },
+  state: FreekickState | null,
+  kind: "down" | "move" | "up",
+  x: number,
+  y: number,
+): PointerPayload | null {
+  const aiming = state !== null && state.phase === FK_AIM;
+  const metering = (state?.meterAt ?? -1) >= 0;
+  if (kind === "down") {
+    const power = aiming && y >= FK_V3_PRESS_Y && state.aimed === 1 && !metering;
+    gesture.current = { x, y, power, drag: false };
+    freekickV3Ui.curl = null;
+    return power ? { k: FREEKICK_INPUT_POWER, a: 0, b: 0, c: 0 } : null;
+  }
+  const g = gesture.current;
+  if (!g) return null;
+  if (!g.power && Math.hypot(x - g.x, y - g.y) > TAP_SLOP) g.drag = true;
+  if (kind === "move") {
+    if (g.drag && aiming && !metering) freekickV3Ui.curl = freekickCurlFromDrag(x - g.x);
+    return null;
+  }
+  gesture.current = null;
+  freekickV3Ui.curl = null;
+  if (g.power) return { k: FREEKICK_INPUT_STRIKE, a: 0, b: 0, c: 0 };
+  if (!aiming || metering) return null;
+  if (g.drag) return { k: FREEKICK_INPUT_CURL, a: 0, b: freekickCurlFromDrag(x - g.x), c: 0 };
+  const at = freekickAimAt(state, x, y);
+  return at ? { k: FREEKICK_INPUT_AIM, a: at.x, b: at.y, c: 0 } : null;
+}
+
+/**
+ * freekickRev 3's keys (computer layout): ← → ↑ ↓ move the aim (20 cm, Shift 5 cm; the first press aims at the goal's
+ * centre), A / D bend the curl left / right (10 a press), Space held starts the meter and its release strikes.
+ */
+function v3Key(kind: "down" | "up", key: string, send: (p: PointerPayload) => void, state: FreekickState, event: KeyboardEvent): boolean {
+  const k = key.length === 1 ? key.toLowerCase() : key;
+  const handled = ["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "a", "d", " "].includes(k);
+  if (!handled) return false;
+  if (state.phase !== FK_AIM) return true;
+  const metering = (state.meterAt ?? -1) >= 0;
+  if (k === " ") {
+    if (kind === "down" && !event.repeat && !metering && state.aimed === 1) send({ k: FREEKICK_INPUT_POWER, a: 0, b: 0, c: 0 });
+    else if (kind === "up" && metering) send({ k: FREEKICK_INPUT_STRIKE, a: 0, b: 0, c: 0 });
+    return true;
+  }
+  if (kind !== "down" || metering) return true;
+  if (k === "a" || k === "d") {
+    send({ k: FREEKICK_INPUT_CURL, a: 0, b: Math.max(-100, Math.min(100, (state.curl ?? 0) + (k === "a" ? -10 : 10))), c: 0 });
+    return true;
+  }
+  const step = event.shiftKey ? 5 : 20;
+  const x0 = state.aimed === 1 ? (state.aimX ?? 0) : 0;
+  const y0 = state.aimed === 1 ? (state.aimY ?? 120) : 120;
+  const first = state.aimed !== 1;
+  const nx = first ? x0 : x0 + (k === "ArrowLeft" ? -step : k === "ArrowRight" ? step : 0);
+  const ny = first ? y0 : y0 + (k === "ArrowUp" ? step : k === "ArrowDown" ? -step : 0);
+  send({ k: FREEKICK_INPUT_AIM, a: Math.max(-372, Math.min(372, nx)), b: Math.max(11, Math.min(250, ny)), c: 0 });
+  return true;
+}
+
 function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const data: FreekickPuzzleData | null = puzzle.type === "freekick" ? puzzle : null;
   const latest = useRef<FreekickState | null>(null);
   const game = useMemo(() => freekickArtGameFor(data?.freekickRev), [data?.freekickRev]);
   const stroke = useRef<StrokePoint[]>([]);
+  const gesture = useRef<{ x: number; y: number; power: boolean; drag: boolean } | null>(null);
+  const v3 = (data?.freekickRev ?? 1) >= FREEKICK_REV_3;
   const now = () => (typeof performance === "undefined" ? 0 : performance.now());
   return (
     <ArcadeCanvasStage
@@ -186,8 +271,10 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         latest.current = state;
         return null;
       }}
+      {...(v3 ? { keys: (kind: "down" | "up", key: string, send: (p: PointerPayload) => void, state: FreekickState, event: KeyboardEvent) => v3Key(kind, key, send, state, event) } : {})}
       pointer={(kind, x, y) => {
         const state = latest.current;
+        if (v3) return v3Pointer(gesture, state, kind, x, y);
         if (kind === "down") {
           stroke.current = [{ x, y, t: now() }];
           freekickStroke.pts = [{ x, y }];

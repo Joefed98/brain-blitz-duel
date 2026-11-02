@@ -17,6 +17,8 @@ import { wavCheckpoint, wavefrontGameFor, WAV_REV, WAV_REV_BAND, WAV_REV_SHAPES,
 import { encodeWavefrontRun, replayWavefrontRun } from "../../src/lib/duel/wavefront";
 import { flipCheckpoint, flipGameFor, FLIP_REV, FLIP_REV_BAND, FLIP_REV_TUNEC } from "../../src/lib/arcade/flip";
 import { encodeFlipRun, replayFlipRun } from "../../src/lib/duel/flip";
+import { ninjaCheckpoint, ninjaGame, NINJA_REV } from "../../src/lib/arcade/ricochetNinja";
+import { encodeNinjaRun, replayNinjaRun } from "../../src/lib/duel/ricochet";
 import { inkBridgeGameFor, inkCheckpoint, INK_REV4, INK_REV_BAND, INK_REV_TUNEC } from "../../src/lib/arcade/inkBridge";
 import { encodeInkBridgeRun, replayInkBridgeRun } from "../../src/lib/duel/inkBridge";
 import { matchupCheckpoint, matchupGameFor, MATCHUP_REV, MATCHUP_REV_BAND, MATCHUP_REV_PAR, MATCHUP_REV_WAIT } from "../../src/lib/arcade/matchup";
@@ -73,7 +75,7 @@ import { mahjongCheckpoint, mahjongGameFor, MAHJONG_REV_STD } from "../../src/li
 import { encodeMahjongRun, replayMahjongRun } from "../../src/lib/duel/mahjong";
 import { homerunCheckpoint, homerunGameFor, HOMERUN_REV_DEALT } from "../../src/lib/arcade/homerun";
 import { encodeHomerunRun, replayHomerunRun } from "../../src/lib/duel/homerun";
-import { homerunDealSeedV2 } from "../../src/lib/duel/homerunDealV2.server";
+import { homerunDealSeedV3 } from "../../src/lib/duel/homerunDealV3.server";
 import { freekickCheckpoint, freekickGameFor, FREEKICK_REV_DEALT } from "../../src/lib/arcade/freekick";
 import { encodeFreekickRun, replayFreekickRun } from "../../src/lib/duel/freekick";
 import { freekickDealSeedV2 } from "../../src/lib/duel/freekickDealV2.server";
@@ -104,6 +106,7 @@ import { curlingCheckpoint, curlingGameFor, CURLING_REV } from "../../src/lib/ar
 import { encodeCurlingRun, replayCurlingRun } from "../../src/lib/duel/curling";
 import { curlingBankSeedFor } from "../../src/lib/duel/curlingBank.server";
 import { curlingBankV2SeedFor } from "../../src/lib/duel/curlingBankV2.server";
+import { curlingBankV3SeedFor } from "../../src/lib/duel/curlingBankV3.server";
 
 export interface GameSpec {
   type: PuzzleType;
@@ -299,8 +302,8 @@ export const GAMES: GameSpec[] = [
   simple("mahjong", MAHJONG_REV_STD, MAHJONG_REV_STD, mahjongGameFor, mahjongCheckpoint, encodeMahjongRun, replayMahjongRun),
   // The Sports group (30 Oct 2026): born on the arcade scoring standard (rev 1 is live and next); rooms deal a seed from
   // each game's proved deal (the oracle took it to 200 through the server replay), picked by the room seed.
-  // homerunRev 2 (31 Oct 2026): the finer aim, on rev 2's own proved deal.
-  { ...simple("homerun", HOMERUN_REV_DEALT, HOMERUN_REV_DEALT, homerunGameFor, homerunCheckpoint, encodeHomerunRun, replayHomerunRun), seedFor: (n) => homerunDealSeedV2(roomSeed(n)) },
+  // homerunRev 3 (1 Nov 2026): the swing choice and the pitcher's tell, on rev 3's own proved deal.
+  { ...simple("homerun", HOMERUN_REV_DEALT, HOMERUN_REV_DEALT, homerunGameFor, homerunCheckpoint, encodeHomerunRun, replayHomerunRun), seedFor: (n) => homerunDealSeedV3(roomSeed(n)) },
   { ...simple("freekick", FREEKICK_REV_DEALT, FREEKICK_REV_DEALT, freekickGameFor, freekickCheckpoint, encodeFreekickRun, replayFreekickRun), seedFor: (n) => freekickDealSeedV2(roomSeed(n)) },
   // Apex (racing) deals racingRev 2 from its own proved deal since 31 Oct 2026.
   { ...simple("racing", RACING_REV_DEALT, RACING_REV_DEALT, racingGameFor, racingCheckpoint, encodeRacingRun, replayRacingRun), seedFor: (n) => racingDealSeedV2(roomSeed(n)) },
@@ -315,6 +318,8 @@ export const GAMES: GameSpec[] = [
   { ...simple("blockfall", BLOCKFALL_REV, BLOCKFALL_REV, blockfallGameFor, bfCheckpoint, encodeBlockfallRun, replayBlockfallRun), seedFor: (n) => blockfallDealSeed(roomSeed(n)) },
   // Alley Roll (Sports, 1 Nov 2026): born on the arcade standard; one lane for every seed (rooms deal any seed).
   simple("alleyroll", ALLEYROLL_REV, ALLEYROLL_REV, alleyRollGameFor, arCheckpoint, encodeAlleyRollRun, replayAlleyRollRun),
+  // Ricochet (1 Nov 2026): the ninja wall-climb, born on the arcade standard at ricoRev 2; any seed (the sim deals the tower and proves its witness).
+  simple("ricochet", NINJA_REV, NINJA_REV, () => ninjaGame, ninjaCheckpoint, encodeNinjaRun, (seed, raw) => replayNinjaRun(seed, raw)),
   // The Sports group (30 Oct 2026): Minigolf deals a bank course (seed and pars); golfRev 2 (crazy golf, 31 Oct 2026)
   // from its own bank, golfRev 1 (`seedForRev`) from the first.
   {
@@ -339,13 +344,14 @@ export const GAMES: GameSpec[] = [
     encode: (run) => encodePoolRun(run),
     replay: (seed, raw, rev) => replayPoolRun(seed, raw, rev),
   },
-  // Curling deals a bank sheet (opponent stones the oracle took out with every stone on the button), curlRev 2 since 31 Oct 2026.
+  // Curling deals a bank sheet (opponent stones the oracle took out with every stone on the button), curlRev 2 since 31
+  // Oct 2026, curlRev 3 since 1 Nov 2026.
   {
     type: "curling",
     live: CURLING_REV,
-    seedFor: curlingBankV2SeedFor,
-    // curlRev 1 measures on its own bank's sheets.
-    seedForRev: (n, rev) => (rev === 1 ? curlingBankSeedFor(n) : undefined),
+    seedFor: curlingBankV3SeedFor,
+    // curlRev 1 and 2 measure on their own banks' sheets.
+    seedForRev: (n, rev) => (rev === 1 ? curlingBankSeedFor(n) : rev === 2 ? curlingBankV2SeedFor(n) : undefined),
     gameFor: (rev) => curlingGameFor(rev ?? 1),
     checkpoint: curlingCheckpoint,
     encode: (run) => encodeCurlingRun(run),

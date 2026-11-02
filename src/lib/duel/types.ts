@@ -1927,8 +1927,10 @@ export interface DualPuzzleData {
 
 export interface RicoPuzzleData {
   type: "ricochet";
-  /** Lays out the whole shaft of spikes — identical for everyone. */
+  /** Lays out the whole shaft of spikes (or, on ricoRev 2, the whole tower) — identical for everyone. */
   seed: number;
+  /** Rules revision (2 = the ninja wall-climb on the arcade standard, 1 Nov 2026; ricochetNinja.ts); absent = the original ball-and-spikes shaft. */
+  ricoRev?: number;
 }
 
 /* =================== Breaker / Rally / Steady ============================ */
@@ -1987,8 +1989,8 @@ export interface MahjongPuzzleData {
 
 /** Home Run Derby's 60-second, ten-pitch run; the round clock adds three of slack (63 s). */
 export const HOMERUN_TIME_MS = 63_000;
-/** Free Kick's 75-second, ten-kick run, plus three of slack. */
-export const FREEKICK_TIME_MS = 78_000;
+/** Top Bins' 90-second, ten-kick run (freekickRev 3; rev 1 and 2 runs end at 75 s), plus three of slack. */
+export const FREEKICK_TIME_MS = 93_000;
 /**
  * Apex's 90-second, two-lap race, plus three of slack; since 31 Oct 2026 (racingRev 2) also its 5.5-second start
  * lights before the race clock starts (99 s; racingRev 1 runs still end at their own 90 s, as Tempo's and Gemstone's).
@@ -2719,7 +2721,9 @@ export interface CurlingPuzzleData {
   seed: number;
   /**
    * curlRev 1: the arcade scoring standard (docs/arcade-standard/curling.md). curlRev 2 (31 Oct 2026, dealt from
-   * curlingBankV2.server.ts): the start along the hog line and side brushing, the same parts.
+   * curlingBankV2.server.ts): the start along the hog line and side brushing, the same parts. curlRev 3 (1 Nov 2026,
+   * dealt from curlingBankV3.server.ts): the weight meter's draw zone, the aim line, a gentler weight line and the
+   * re-fitted closeness core, the same parts.
    */
   curlRev?: number;
 }

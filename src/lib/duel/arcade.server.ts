@@ -1,3 +1,4 @@
+import { NINJA_REV } from "@/lib/arcade/ricochetNinja";
 import { TEN_DROP_DEPTH_REV } from "@/lib/arcade/tenDrop";
 import { SLICE_REV_TARGET, SLICE_REV_STRICT, SLICE_REV_STANDARD } from "@/lib/arcade/slice";
 import { FLIP_REV_TARGET, FLIP_REV_STRICT, FLIP_REV_STD } from "@/lib/arcade/flip";
@@ -162,8 +163,9 @@ export function generateDual(): DualPuzzleData {
   return { type: "dual", seed: arcadeSeed() };
 }
 
+/** Ricochet deals the ninja wall-climb (ricoRev 2, 1 Nov 2026); unstamped rounds keep the old shaft. */
 export function generateRicochet(): RicoPuzzleData {
-  return { type: "ricochet", seed: arcadeSeed() };
+  return { type: "ricochet", seed: arcadeSeed(), ricoRev: NINJA_REV };
 }
 
 export function generateBreaker(): BreakerPuzzleData {

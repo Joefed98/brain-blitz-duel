@@ -11,6 +11,12 @@
  * near house's ice cropped, so the world fills the width of a 375 × 667 phone), the stone at its start on the near hog
  * line with arrows to slide it, a straight aiming line from the stone to the broom (where it is released towards, not
  * the curl), the brushers on the side being brushed and a larger stone chip. Every view is chosen by the state's rev.
+ *
+ * curlRev 3 (1 Nov 2026, "prepare the shot") draws curlRev 2's view with two aids the stage works out (CurlAim `zone`
+ * and `path`, from the sim's pure helpers curlDrawZone and curlAimPath): a faint aim line along the first third of
+ * the stone's path for the chosen start, target and turn, in place of the straight dashed line, and the weight meter
+ * on the right (weightMeter): the draw zone marked (the weights that bring an unswept stone to rest in the house), its
+ * tee mark, the swipe filling it live and a tick where the last throw was released.
  */
 import type { CanvasSize } from "./engine";
 import type { ArenaSceneView } from "./arenaScene.renderer";
@@ -21,6 +27,7 @@ import {
   BUTTON_R,
   CU,
   CURL_AIM,
+  CURL_DONE,
   CURL_TRAVEL,
   CURLING_H,
   CURLING_H_V2,
@@ -502,6 +509,20 @@ export interface CurlAim {
   turn: number;
   /** A swipe in progress: its weight so far (1…1000), else null. */
   swipe: number | null;
+  /** curlRev 3: the draw zone for this start, target and turn (weights), or null when no weight reaches the house. */
+  zone?: { lo: number; hi: number; tee: number } | null;
+  /** curlRev 3: the first third of the stone's path at the zone's tee weight (sheet cm). */
+  path?: readonly { x: number; y: number }[] | null;
+  /** curlRev 3: the weight the last throw was released at (the meter's tick), and the keyboard's set weight. */
+  lastRelease?: number | null;
+  keyWeight?: number | null;
+}
+
+/** curlRev 3's weight meter (world px, curlRev 2's 390 × 540 view): a bar on the right, weight 0 at the bottom. */
+export const CURL_METER = { x: 360, y: 214, w: 14, h: 252 };
+/** The meter's y (world px) for a weight. */
+export function curlMeterY(w: number): number {
+  return CURL_METER.y + CURL_METER.h - (CURL_METER.h * Math.max(0, Math.min(1000, w))) / 1000;
 }
 
 /** The weight's words for the swipe pill. */
@@ -573,6 +594,95 @@ function aimLine(ctx: CanvasRenderingContext2D, fromX: number, toX: number, toY:
   ctx.restore();
 }
 
+/** curlRev 3: the faint aim line, the first third of the path (sheet cm), fading as it runs on. */
+function aimPath(ctx: CanvasRenderingContext2D, path: readonly { x: number; y: number }[], v: CurlView): void {
+  if (path.length < 2) return;
+  const pts = path.map((p) => curlProject(p.x, p.y, v));
+  const a = pts[0]!;
+  const b = pts[pts.length - 1]!;
+  const g = ctx.createLinearGradient(a.sx, a.sy, b.sx, b.sy);
+  g.addColorStop(0, "#FFF3C4C0");
+  g.addColorStop(1, "#FFF3C410");
+  ctx.save();
+  ctx.strokeStyle = g;
+  ctx.lineWidth = 2.5;
+  ctx.lineCap = "round";
+  ctx.beginPath();
+  ctx.moveTo(a.sx, a.sy - 4);
+  for (let k = 1; k < pts.length; k += 2) ctx.lineTo(pts[k]!.sx, pts[k]!.sy);
+  ctx.lineTo(b.sx, b.sy);
+  ctx.stroke();
+  ctx.restore();
+}
+
+/**
+ * curlRev 3's weight meter: the bar (light at the bottom, heavy at the top), the draw zone (gold, "HOUSE") with its tee
+ * mark, the live swipe's fill and the last release's tick.
+ */
+function weightMeter(ctx: CanvasRenderingContext2D, aim: CurlAim, aiming: boolean): void {
+  const m = CURL_METER;
+  ctx.save();
+  ctx.fillStyle = "#05080FD9";
+  ctx.strokeStyle = "#FFFFFF33";
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.roundRect(m.x - 3, m.y - 3, m.w + 6, m.h + 6, 6);
+  ctx.fill();
+  ctx.stroke();
+  ctx.font = "800 10px Archivo, system-ui, sans-serif";
+  ctx.textBaseline = "alphabetic";
+  {
+    const lw = ctx.measureText("WEIGHT").width + 12;
+    const right = m.x + m.w + 3;
+    ctx.fillStyle = "#05080FD9";
+    ctx.beginPath();
+    ctx.roundRect(right - lw, m.y - 24, lw, 16, 8);
+    ctx.fill();
+    ctx.textAlign = "center";
+    ctx.fillStyle = "#F3F1EC";
+    ctx.fillText("WEIGHT", right - lw / 2, m.y - 12.5);
+  }
+  const zone = aim.zone;
+  if (zone) {
+    const top = curlMeterY(zone.hi);
+    const bottom = curlMeterY(zone.lo);
+    ctx.fillStyle = "#E8B53A59";
+    ctx.fillRect(m.x, top, m.w, bottom - top);
+    ctx.strokeStyle = GOLD;
+    ctx.lineWidth = 1.5;
+    ctx.strokeRect(m.x + 0.75, top + 0.75, m.w - 1.5, bottom - top - 1.5);
+    const tee = curlMeterY(zone.tee);
+    ctx.fillStyle = GOLD_HI;
+    ctx.fillRect(m.x - 4, tee - 1, m.w + 8, 2);
+    const lw = ctx.measureText("HOUSE").width + 10;
+    ctx.fillStyle = "#05080FD9";
+    ctx.beginPath();
+    ctx.roundRect(m.x - 7 - lw, tee - 8, lw, 16, 8);
+    ctx.fill();
+    ctx.textAlign = "center";
+    ctx.fillStyle = GOLD_HI;
+    ctx.fillText("HOUSE", m.x - 7 - lw / 2, tee + 3.5);
+  }
+  const fill = aiming ? (aim.swipe ?? aim.keyWeight ?? null) : null;
+  if (fill != null) {
+    const y = curlMeterY(fill);
+    const inZone = zone && fill >= zone.lo && fill <= zone.hi;
+    ctx.fillStyle = inZone ? "#FFE29ACC" : "#F3F1EC99";
+    ctx.fillRect(m.x + 3, y, m.w - 6, m.y + m.h - y);
+  }
+  if (aim.lastRelease != null) {
+    const y = curlMeterY(aim.lastRelease);
+    ctx.fillStyle = "#F3F1EC";
+    ctx.beginPath();
+    ctx.moveTo(m.x + m.w + 2, y);
+    ctx.lineTo(m.x + m.w + 9, y - 5);
+    ctx.lineTo(m.x + m.w + 9, y + 5);
+    ctx.closePath();
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
 /** curlRev 2: the slide arrows either side of the waiting stone (drag it along the hog line). */
 function slideArrows(ctx: CanvasRenderingContext2D, x: number, v: CurlView): void {
   const p = curlProject(x, HOG_NEAR, v);
@@ -599,7 +709,9 @@ export function drawCurling(ctx: CanvasRenderingContext2D, s: CurlingState, aim:
   if (layer) ctx.drawImage(layer, 0, 0, v.w, v.h);
   else paintStatic(ctx, v);
   const startX = v.rev >= 2 ? (aim?.startX ?? 0) : 0;
-  if (s.phase === CURL_AIM && aim && v.rev >= 2) aimLine(ctx, startX, aim.broomX, aim.broomY, v);
+  if (s.phase === CURL_AIM && aim && s.rev >= 3) {
+    if (aim.path) aimPath(ctx, aim.path, v);
+  } else if (s.phase === CURL_AIM && aim && v.rev >= 2) aimLine(ctx, startX, aim.broomX, aim.broomY, v);
   // Stones, far ones first.
   const order = s.x.map((_, k) => k).filter((k) => s.live[k]).sort((a, b) => s.y[a]! - s.y[b]!);
   for (const k of order) stone(ctx, s.x[k]! / CU, s.y[k]! / CU, s.team[k] === TEAM_MINE, k * 7919 + s.seed, s.vx[k] !== 0 || s.vy[k] !== 0, v);
@@ -636,8 +748,10 @@ export function drawCurling(ctx: CanvasRenderingContext2D, s: CurlingState, aim:
     ctx.fillRect(82, 54, (52 * Math.min(s.sweep, SWEEP_MAX)) / SWEEP_MAX, 6);
   }
   inset(ctx, s, aim);
-  // The swipe's weight pill, low on the lane.
-  if (aim?.swipe != null && s.phase === CURL_AIM) {
+  // curlRev 3: the weight meter (while aiming and as the stone travels, with the last release's tick).
+  if (aim && s.rev >= 3 && s.phase !== CURL_DONE) weightMeter(ctx, aim, s.phase === CURL_AIM);
+  // The swipe's weight pill, low on the lane (curlRev 1 and 2).
+  if (aim?.swipe != null && s.phase === CURL_AIM && s.rev < 3) {
     const text = `${curlWeightWord(aim.swipe)} · ${Math.round(aim.swipe / 10)}%`;
     ctx.font = "700 12px Archivo, system-ui, sans-serif";
     const w = ctx.measureText(text).width + 24;

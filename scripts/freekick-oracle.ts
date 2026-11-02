@@ -35,6 +35,19 @@ import {
   freekickStdParts,
   FREEKICK_REV_DEALT,
   FREEKICK_REV_STD,
+  FREEKICK_REV_3,
+  FREEKICK_INPUT_AIM,
+  FREEKICK_INPUT_CURL,
+  FREEKICK_INPUT_POWER,
+  FREEKICK_INPUT_STRIKE,
+  FK_V3_AIM_X_MAX,
+  FK_V3_AIM_Y_MAX,
+  FK_V3_AIM_Y_MIN,
+  FK_V3_METER_PERIOD,
+  FK_V3_ZONE_HI,
+  FK_V3_ZONE_LO,
+  fkV3Launch,
+  fkV3Meter,
   type FkFlight,
   type FkKick,
   type FreekickState,
@@ -252,7 +265,156 @@ export function playShots(seed: number, shots: (FkShot | null)[], delays: number
 
 /** The oracle's input log for a seed (rev 1 when unnamed). */
 export function oracleRun(seed: number, rev: number = FREEKICK_REV_STD): ArcadeInputEvent[] {
+  if (rev >= FREEKICK_REV_3) return playShotsV3(seed, oracleShotsV3(seed)).events;
   return playShots(seed, oracleShots(seed, rev), [], rev).events;
+}
+
+/* ================================ freekickRev 3: the prepared shot ================================ */
+
+/** A prepared shot: the target on the goal plane (cm) and the curl. */
+export interface FkShot3 {
+  x: number;
+  y: number;
+  b: number;
+}
+
+/** Ticks from POWER to STRIKE that land the meter in the middle of the sweet zone, and the meter there. */
+export const FK_V3_CLEAN_TICKS = Math.round(((FK_V3_ZONE_LO + FK_V3_ZONE_HI) / 2 / 1000) * (FK_V3_METER_PERIOD / 2));
+export const FK_V3_CLEAN_METER = fkV3Meter(FK_V3_CLEAN_TICKS);
+
+/** A prepared shot's flight, struck at `meter` (clean by default), to its outcome. */
+export function fkFly3(k: FkKick, shot: FkShot3, meter = FK_V3_CLEAN_METER): FkFlight {
+  const f = fkV3Launch(k, shot.x, shot.y, shot.b, meter);
+  while (f.out === FK_OUT_NONE) fkFlightStep(k, f);
+  return f;
+}
+
+const clampShot3 = (s: FkShot3): FkShot3 => ({
+  x: Math.round(Math.max(-FK_V3_AIM_X_MAX, Math.min(FK_V3_AIM_X_MAX, s.x))),
+  y: Math.round(Math.max(FK_V3_AIM_Y_MIN, Math.min(FK_V3_AIM_Y_MAX, s.y))),
+  b: Math.round(Math.max(-FREEKICK_CURL_MAX, Math.min(FREEKICK_CURL_MAX, s.b))),
+});
+
+function judgeShot3(k: FkKick, shot: FkShot3) {
+  const j = fkJudge(k, fkFly3(k, shot));
+  const full = j.goal && j.place >= FREEKICK_PLACE_UNITS && j.curled && (k.target === FK_TARGET_NONE || j.target);
+  return { ...j, full };
+}
+
+export interface FkCandidate3 {
+  shot: FkShot3;
+  full: boolean;
+  goal: boolean;
+  place: number;
+  target: boolean;
+  curled: boolean;
+  distCm: number;
+  margin: number;
+}
+export interface FkPlans3 {
+  full: FkCandidate3 | null;
+  best: FkCandidate3 | null;
+  goal: FkCandidate3 | null;
+}
+
+/** ±target (cm) and ±curl neighbours: the prepared shot's robustness measure (0…8). */
+const NEIGHBOURS3 = [[12, 0, 0], [-12, 0, 0], [0, 12, 0], [0, -12, 0], [0, 0, 8], [0, 0, -8], [25, 0, 0], [-25, 0, 0]] as const;
+function marginOf3(k: FkKick, shot: FkShot3, ok: (j: ReturnType<typeof judgeShot3>) => boolean): number {
+  let n = 0;
+  for (const [dx, dy, db] of NEIGHBOURS3) if (ok(judgeShot3(k, clampShot3({ x: shot.x + dx, y: shot.y + dy, b: shot.b + db })))) n++;
+  return n;
+}
+
+/**
+ * Searches a kick's prepared shots (rev 2's goal-plane points and curls, through the sim's own solver, struck clean).
+ * `quick`: stop at the first full shot (the oracle and the deal); otherwise rank the full and safe-goal shots by their
+ * margins (the bots' plans).
+ */
+export function fkPlanKickV3(k: FkKick, quick = true): FkPlans3 {
+  let best: FkCandidate3 | null = null;
+  const fulls: FkCandidate3[] = [];
+  const goals: FkCandidate3[] = [];
+  for (const [tx, ty] of aimPoints(k)) {
+    for (const mag of CURLS) {
+      for (const sign of [1, -1]) {
+        const shot = clampShot3({ x: tx * 100, y: ty * 100, b: sign * mag });
+        const j = judgeShot3(k, shot);
+        const cand: FkCandidate3 = { shot, ...j, margin: 0 };
+        if (!best || rankOf(cand) > rankOf(best)) best = cand;
+        if (j.full) {
+          fulls.push(cand);
+          if (quick) return { full: cand, best: cand, goal: null };
+        } else if (j.goal) goals.push(cand);
+      }
+    }
+    if (!quick && fulls.length >= 10) break;
+  }
+  let full: FkCandidate3 | null = null;
+  for (const c of fulls.slice(0, 10)) {
+    c.margin = marginOf3(k, c.shot, (j) => j.full);
+    if (!full || c.margin > full.margin) full = c;
+  }
+  let goal: FkCandidate3 | null = null;
+  const pool = [...goals.sort((p, q) => q.place - p.place).slice(0, 12), ...fulls.slice(0, 4)];
+  for (const c of pool) {
+    const m = marginOf3(k, c.shot, (j) => j.goal);
+    if (!goal || m > goal.margin) goal = { ...c, margin: m };
+  }
+  return { full, best, goal };
+}
+
+const solved3 = new Map<number, FkShot3[]>();
+/** The oracle's prepared shot for each kick of a seed (freekickRev 3; cached). */
+export function oracleShotsV3(seed: number): FkShot3[] {
+  const hit = solved3.get(seed);
+  if (hit) return hit;
+  const shots = fkSeedPlan(seed, FREEKICK_REV_3).kicks.map((k) => {
+    const p = fkPlanKickV3(k, true);
+    return (p.full ?? p.best)?.shot ?? { x: 0, y: 120, b: 0 };
+  });
+  if (solved3.size > 400) solved3.clear();
+  solved3.set(seed, shots);
+  return shots;
+}
+
+/** How a prepared shot is played: the wait before the tap, the gaps between the steps, the meter's ticks at the strike. */
+export interface FkTiming3 {
+  think?: number;
+  curlGap?: number;
+  powerGap?: number;
+  strike?: number;
+}
+
+/**
+ * Plays prepared shots through the real freekickRev 3 game: for each kick (once it can be taken, plus `think`) AIM,
+ * then CURL `curlGap` ticks later, POWER `powerGap` later, STRIKE `strike` meter ticks after that (clean by default).
+ */
+export function playShotsV3(seed: number, shots: (FkShot3 | null)[], timing: FkTiming3[] = []): { events: ArcadeInputEvent[]; state: FreekickState } {
+  const game = freekickGameFor(FREEKICK_REV_3);
+  const ranges = game.inputRanges ?? [];
+  let state = game.init(seed);
+  const events: ArcadeInputEvent[] = [];
+  let aimFrom = -1;
+  while (!game.isOver(state)) {
+    const t = state.tick + 1;
+    if (state.phase === FK_AIM) {
+      if (aimFrom < 0) aimFrom = state.tick;
+      const shot = shots[state.k];
+      const tm = timing[state.k] ?? {};
+      const t0 = aimFrom + (tm.think ?? 0) + 1;
+      const t1 = t0 + Math.max(1, tm.curlGap ?? 1);
+      const t2 = t1 + Math.max(1, tm.powerGap ?? 1);
+      const t3 = t2 + Math.max(1, tm.strike ?? FK_V3_CLEAN_TICKS);
+      if (shot) {
+        if (t === t0) recordInput(events, { t, k: FREEKICK_INPUT_AIM, a: shot.x, b: shot.y, c: 0, d: 0 }, ranges);
+        else if (t === t1) recordInput(events, { t, k: FREEKICK_INPUT_CURL, a: 0, b: shot.b, c: 0, d: 0 }, ranges);
+        else if (t === t2) recordInput(events, { t, k: FREEKICK_INPUT_POWER, a: 0, b: 0, c: 0, d: 0 }, ranges);
+        else if (t === t3) recordInput(events, { t, k: FREEKICK_INPUT_STRIKE, a: 0, b: 0, c: 0, d: 0 }, ranges);
+      }
+    } else aimFrom = -1;
+    state = game.step(state, inputAt(events, t));
+  }
+  return { events, state };
 }
 
 if (import.meta.main) {
@@ -261,11 +423,11 @@ if (import.meta.main) {
   const seeds = process.argv.slice(2).filter((a) => !a.startsWith("--")).map(Number).filter(Number.isFinite);
   for (const seed of seeds.length ? seeds : [1, 2, 3, 4, 5]) {
     const t0 = performance.now();
-    const { state } = playShots(seed, oracleShots(seed, rev), [], rev);
+    const { state } = rev >= FREEKICK_REV_3 ? playShotsV3(seed, oracleShotsV3(seed)) : playShots(seed, oracleShots(seed, rev), [], rev);
     const parts = freekickStdParts(state)!;
     console.log(seed, freekickGameFor(rev).score(state), parts.map((p) => `${p.key}=${p.points}`).join(" "), `${Math.round(performance.now() - t0)} ms`);
     fkSeedPlan(seed, rev).kicks.forEach((k, i) => {
-      const c = fkSolveKick(k);
+      const c = rev >= FREEKICK_REV_3 ? (() => { const p = fkPlanKickV3(k, true); return p.full ?? p.best; })() : fkSolveKick(k);
       if (!c?.full) console.log(`  kick ${i} target ${k.target} side ${k.side} d=${(Math.hypot(k.bx, k.bz) / FK_M).toFixed(1)} bx=${(k.bx / FK_M).toFixed(1)} wall ${k.wallN}: best goal=${c?.goal} place=${c?.place} curled=${c?.curled} target=${c?.target}`);
     });
   }

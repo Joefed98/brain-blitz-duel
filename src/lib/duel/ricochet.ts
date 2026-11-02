@@ -17,6 +17,17 @@ import {
   type RicoState,
 } from "@/lib/arcade/ricochet";
 import { checkInputLog, MAX_INPUT_TAPS, TICKS_PER_SECOND } from "@/lib/arcade/engine";
+import { makeArcadeRun, type FlatReplay } from "./arcadeRun";
+import {
+  ninjaCheckpoint,
+  ninjaGame,
+  ninjaMetres,
+  NINJA_CHECKPOINT_INTERVAL,
+  NINJA_CHECKPOINT_KEYS,
+  NINJA_REV,
+  type NinjaCheckpoint,
+  type NinjaState,
+} from "@/lib/arcade/ricochetNinja";
 
 export interface RicoRun {
   seed: number;
@@ -158,3 +169,38 @@ export function replayRicoRun(seed: number, raw: string): RicoResult {
 }
 
 export { RICO_RUN_TICKS };
+
+/* ===================== ricoRev 2: the ninja wall-climb ===================== */
+
+const ninjaRun = makeArcadeRun<NinjaState, NinjaCheckpoint>({
+  tag: "ricochet",
+  game: ninjaGame,
+  checkpoint: ninjaCheckpoint,
+  keys: NINJA_CHECKPOINT_KEYS,
+  interval: NINJA_CHECKPOINT_INTERVAL,
+});
+
+export const encodeNinjaRun = ninjaRun.encode;
+export const decodeNinjaRun = ninjaRun.decode;
+
+export interface NinjaResult extends FlatReplay<NinjaState, NinjaCheckpoint> {
+  metres: number;
+  coins: number;
+  lanterns: number;
+  scrolls: number;
+  hits: number;
+  leaps: number;
+  djs: number;
+}
+
+/** The single place a ricoRev 2 score is worked out (the stored seed; the phone's claim is only compared). */
+export function replayNinjaRun(seed: number, raw: string): NinjaResult {
+  const r = ninjaRun.replay(seed, raw);
+  const s = r.state;
+  return { ...r, metres: ninjaMetres(s), coins: s.coins, lanterns: s.lanterns, scrolls: s.scrolls, hits: s.hits, leaps: s.leaps, djs: s.djs };
+}
+
+/** True for a Ricochet puzzle dealt on the ninja climb. */
+export function isNinjaRev(rev: number | null | undefined): boolean {
+  return (rev ?? 1) >= NINJA_REV;
+}

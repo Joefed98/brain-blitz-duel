@@ -11,7 +11,10 @@
  *  - every frame: the keeper (hands down until the kick, raising them as it is struck, then diving from the sim's
  *    own position and speed), the wall (jumping on the sim's schedule), the ball and its shadow, the short flight
  *    trail after the kick, the target (a gold hoop in a top corner, or the crossbar lit), the fans on a goal (jumping,
- *    scarves and flags waving, camera flashes), the live stroke, the HUD chips and the result.
+ *    scarves and flags waving, camera flashes), the live stroke, the HUD chips and the result;
+ *  - freekickRev 3 (the prepared shot): the aim marker on the goal, the curl preview (the first stretch of the
+ *    shot's own solved flight, past the wall's line), the power bar with its gold sweet zone and needle, the step
+ *    prompt, and the strike's verdict (CLEAN STRIKE / TOO MUCH / TOO LITTLE).
  *
  * Collision geometry the player can see is drawn to the sim's sizes: the ball 0.11 m, the posts and bar 0.12 m, the
  * wall players' bodies 0.55 m apart and 1.85 m tall (+ the jump), the hoop 0.55 m.
@@ -49,7 +52,17 @@ import {
   FREEKICK_HORIZON,
   FREEKICK_KICKS,
   FREEKICK_REV_2,
+  FREEKICK_REV_3,
   FREEKICK_REV_DEALT,
+  FK_OUT_NONE,
+  FK_V3_ZONE_HI,
+  FK_V3_ZONE_LO,
+  fkLaunch,
+  fkFlightStep,
+  fkLocal,
+  fkV3Meter,
+  fkV3MeterError,
+  fkV3Solve,
   FREEKICK_WORLD_H,
   FREEKICK_WORLD_W,
   fkCamSpace,
@@ -898,6 +911,162 @@ function paintFans(ctx: Ctx, cam: FkCamera, age: number, tick: number): void {
 /** The finger's stroke in world px while it is drawn (and a short fade after release). The phone sets it. */
 export const freekickStroke: { pts: { x: number; y: number }[]; releasedAt: number | null } = { pts: [], releasedAt: null };
 
+/* ================================ freekickRev 3: the prepared shot (display only) ================================ */
+
+/** The phone's live curl while a drag is in progress (null otherwise): the preview follows the finger. */
+export const freekickV3Ui: { curl: number | null } = { curl: null };
+
+/** The power bar (world px): pressing anywhere at or below FK_V3_PRESS_Y is the power press. */
+export const FK_V3_BAR = { x: 50, y: 650, w: 290, h: 26 } as const;
+export const FK_V3_PRESS_Y = 626;
+
+/** The goal-plane point (cm) under a world-px point, or null off the goal (more than `marginCm` outside the frame). */
+export function freekickAimAt(state: FreekickState, sx: number, sy: number, marginCm = 45): { x: number; y: number } | null {
+  const k = fkKickOf(state);
+  const cam = fkCamera(k);
+  // The ray through the pixel, in camera space (u across, h up, w forward = 1), turned into the world.
+  const u = (sx - W / 2) / F;
+  const hh = (HZ - sy) / F;
+  const dx = u * cam.fz + cam.fx;
+  const dz = -u * cam.fx + cam.fz;
+  if (dz <= 1e-6) return null;
+  const t = (FK_GOAL_Z / M - cam.cz) / dz;
+  const x = (cam.cx + t * dx) * 100;
+  const y = (2.2 + t * hh) * 100;
+  const xMax = 372;
+  if (Math.abs(x) > xMax + marginCm || y > 250 + marginCm || y < -marginCm) return null;
+  return { x: Math.round(Math.max(-xMax, Math.min(xMax, x))), y: Math.round(Math.max(11, Math.min(250, y))) };
+}
+
+/** The curl a sideways drag of `dx` world px sets (0.9 units a px, + to the right). */
+export function freekickCurlFromDrag(dx: number): number {
+  return Math.max(-100, Math.min(100, Math.round(dx * 0.9)));
+}
+
+const previewCache = new Map<string, P3[]>();
+/** The first stretch of a prepared shot's flight (no wall or keeper): from the ball to 2.5 m past the wall's line. */
+function previewPath(k: FkKick, x: number, y: number, b: number): P3[] {
+  const key = `${k.bx},${k.bz},${x},${y},${b}`;
+  const hit = previewCache.get(key);
+  if (hit) return hit;
+  const shot = fkV3Solve(k, x, y, b);
+  const f = fkLaunch(k, shot.a, b, shot.c);
+  f.wallSide = 2;
+  f.kx = 1000 * FK_M;
+  const pts: P3[] = [{ x: f.x / M, y: f.y / M, z: f.z / M }];
+  const stop = FK_WALL_DIST + 2.5 * M;
+  while (f.out === FK_OUT_NONE && fkLocal(k, f.x, f.z).w < stop) {
+    fkFlightStep(k, f, false, false);
+    pts.push({ x: f.x / M, y: f.y / M, z: f.z / M });
+  }
+  if (previewCache.size > 200) previewCache.clear();
+  previewCache.set(key, pts);
+  return pts;
+}
+
+/** The step the player is on (rev 3): what the prompt says. */
+function v3Prompt(state: FreekickState): string {
+  if ((state.meterAt ?? -1) >= 0) return "RELEASE IN THE GOLD";
+  if (state.aimed !== 1) return "1  TAP THE GOAL TO AIM";
+  return "2  DRAG TO CURL   3  HOLD THE BAR";
+}
+
+function paintV3Aim(ctx: Ctx, cam: FkCamera, k: FkKick, state: FreekickState, pulse: number): void {
+  if (state.aimed !== 1) return;
+  const ax = (state.aimX ?? 0) / 100;
+  const ay = (state.aimY ?? 0) / 100;
+  const curl = freekickV3Ui.curl ?? state.curl ?? 0;
+  // The curl preview: dots along the first stretch of the shot, fading out.
+  const pts = previewPath(k, state.aimX ?? 0, state.aimY ?? 0, curl);
+  ctx.save();
+  for (let i = 2; i < pts.length; i += 2) {
+    const p = pts[i]!;
+    const q = fkProject(cam, p.x, p.y, p.z);
+    if (!q) continue;
+    const fade = 1 - i / pts.length;
+    ctx.fillStyle = `rgba(255,236,190,${0.25 + 0.6 * fade})`;
+    ctx.beginPath();
+    ctx.arc(q.x, q.y, Math.max(1.4, 0.05 * q.s), 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.restore();
+  // The target marker on the goal plane: a ring and a cross, the ball's own size.
+  const c = fkProject(cam, ax, ay, FK_GOAL_Z / M);
+  if (!c) return;
+  const r = Math.max(4, (FK_BALL_R / M) * c.s * 1.6);
+  ctx.save();
+  ctx.strokeStyle = "#FFFFFF";
+  ctx.shadowColor = "rgba(255,255,255,0.8)";
+  ctx.shadowBlur = 4 + 3 * pulse;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.arc(c.x, c.y, r, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(c.x - r * 1.7, c.y);
+  ctx.lineTo(c.x - r * 0.5, c.y);
+  ctx.moveTo(c.x + r * 0.5, c.y);
+  ctx.lineTo(c.x + r * 1.7, c.y);
+  ctx.moveTo(c.x, c.y - r * 1.7);
+  ctx.lineTo(c.x, c.y - r * 0.5);
+  ctx.moveTo(c.x, c.y + r * 0.5);
+  ctx.lineTo(c.x, c.y + r * 1.7);
+  ctx.stroke();
+  ctx.restore();
+}
+
+/** The power bar: the gold sweet zone, the needle (moving while held, frozen at the strike), the prompt or verdict. */
+function paintV3Bar(ctx: Ctx, state: FreekickState): void {
+  const { x, y, w, h } = FK_V3_BAR;
+  const aiming = state.phase === FK_AIM;
+  const struck = (state.strikeM ?? -1) >= 0;
+  if (!aiming && !struck) return;
+  const metering = (state.meterAt ?? -1) >= 0;
+  const value = struck ? (state.strikeM ?? 0) : metering ? fkV3Meter(state.tick - (state.meterAt ?? 0)) : 0;
+  ctx.save();
+  // The prompt (or the verdict) above the bar.
+  ctx.font = `700 12px ${MONO}`;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  let label = aiming ? v3Prompt(state) : "";
+  let gold = false;
+  if (struck && !aiming) {
+    const e = fkV3MeterError(state.strikeM ?? 0);
+    label = e === 0 ? "CLEAN STRIKE" : e > 0 ? "TOO MUCH" : "TOO LITTLE";
+    gold = e === 0;
+  }
+  ctx.lineWidth = 4;
+  ctx.lineJoin = "round";
+  ctx.strokeStyle = "rgba(4,6,12,0.8)";
+  ctx.strokeText(label, W / 2, y - 13);
+  ctx.fillStyle = gold ? GOLD : "#F3F1EC";
+  ctx.fillText(label, W / 2, y - 13);
+  // The bar: dark well, a fill to the needle, the gold zone.
+  ctx.globalAlpha = aiming && state.aimed !== 1 ? 0.45 : 1;
+  ctx.fillStyle = "rgba(6,9,18,0.72)";
+  ctx.beginPath();
+  ctx.roundRect(x, y, w, h, h / 2);
+  ctx.fill();
+  ctx.strokeStyle = "rgba(255,255,255,0.22)";
+  ctx.lineWidth = 1;
+  ctx.stroke();
+  const at = (v: number) => x + 4 + ((w - 8) * v) / 1000;
+  ctx.fillStyle = "rgba(255,255,255,0.2)";
+  ctx.fillRect(x + 4, y + 5, at(value) - x - 4, h - 10);
+  ctx.fillStyle = "rgba(242,199,92,0.85)";
+  ctx.fillRect(at(FK_V3_ZONE_LO), y + 3, at(FK_V3_ZONE_HI) - at(FK_V3_ZONE_LO), h - 6);
+  if (metering || struck) {
+    ctx.fillStyle = "#FFFFFF";
+    ctx.fillRect(at(value) - 1.5, y - 3, 3, h + 6);
+  }
+  if (aiming && !metering) {
+    ctx.font = `700 11px ${MONO}`;
+    ctx.fillStyle = "#F3F1EC";
+    ctx.fillText("HOLD", x + 34, y + h / 2 + 0.5);
+  }
+  ctx.restore();
+}
+
 /* ================================ Per-frame ================================ */
 
 const trails = new WeakMap<object, { kickTick: number; tick: number; pts: { x: number; y: number; z: number }[] }>();
@@ -1097,9 +1266,14 @@ function drawFreekickWorld(ctx: CanvasRenderingContext2D, state: FreekickState, 
     }
   }
 
+  // freekickRev 3: the aim marker and curl preview while the kick is set, the power bar and the verdict.
+  const v3 = state.freekickRev >= FREEKICK_REV_3;
+  if (v3 && state.phase === FK_AIM) paintV3Aim(ctx, cam, k, state, pulse);
+  if (v3) paintV3Bar(ctx, state);
+
   // The live stroke.
   const st = freekickStroke;
-  if (st.pts.length > 1) {
+  if (!v3 && st.pts.length > 1) {
     const age = st.releasedAt === null ? 0 : (typeof performance === "undefined" ? 0 : performance.now()) - st.releasedAt;
     const alpha = st.releasedAt === null ? 0.7 : Math.max(0, 0.7 - age / 300);
     if (alpha > 0) {

@@ -15,6 +15,14 @@
  * better) look ahead and give one stroke, as hard as the miss is wide, on the side the stone must bend towards when it
  * looks more than 10 cm wide of the plan
  * (and not already long: a bend carries it too), or alternate sides to carry it when it looks short.
+ * curlRev 3 (1 Nov 2026, "prepare the shot"): the error model is re-based on the gesture (curlRev 1 and 2 keep theirs,
+ * so their measurements stand). The weight is a swipe: the error is relative to the swipe's speed, not the weight
+ * (SWIPE_SD_SCALE × the level's power sd: weak 25 %, average 17.5 %, good 11 %, great 7.5 %, near-perfect 3.75 %,
+ * elite 2.75 %), aimed at the meter's mark (the ideal weight; for a draw the draw zone's tee mark is the same); the
+ * phone's own swipe → weight line (curlWeightFromSwipeV3) turns it into a weight. Reading the line (where to put the
+ * broom for the curl) costs the level's judgement × LINE_CM cm on top of the drag's pixel error; the aim line makes the
+ * wrong turn rarer (half the slips). Brushing as on curlRev 2 from great up; good players carry a stone that looks
+ * short (both sides in turn, CARRIES_V3) but never bend one.
  * Flawless plays the bank's proven plan (scripts/fixtures/curling-witness.json, curlRev 2's curling-witness-v2.json)
  * where the seed has one, else the oracle's: every stone on the button.
  */
@@ -23,10 +31,15 @@ import type { ArcadeInputEvent } from "../../../src/lib/arcade/engine";
 import { curlingGameFor, CURL_AIM, CURL_INPUT_SWEEP, CURL_INPUT_THROW, CURL_START_MAX, CURL_TRAVEL, CU, type CurlingState } from "../../../src/lib/arcade/curling";
 import { perfectPlan, planEvents, searchThrows, sheetOf, throwEvent, type Throw } from "../../curling-oracle";
 import { driveEvents, idle, type SkillBot } from "../bot";
+import { curlWeightFromSwipeV3, swipeForWeightV3 } from "../../../src/lib/arcade/curling";
 
-const WITNESS = { 1: new URL("../../fixtures/curling-witness.json", import.meta.url), 2: new URL("../../fixtures/curling-witness-v2.json", import.meta.url) } as const;
+const WITNESS = {
+  1: new URL("../../fixtures/curling-witness.json", import.meta.url),
+  2: new URL("../../fixtures/curling-witness-v2.json", import.meta.url),
+  3: new URL("../../fixtures/curling-witness-v3.json", import.meta.url),
+} as const;
 const witnesses: Record<number, Map<number, Throw[]>> = {};
-function witnessFor(seed: number, rev: 1 | 2): Throw[] | null {
+function witnessFor(seed: number, rev: 1 | 2 | 3): Throw[] | null {
   if (!witnesses[rev]) {
     const map = new Map<number, Throw[]>();
     if (existsSync(WITNESS[rev])) {
@@ -48,9 +61,21 @@ const CM_PER_PX = 3.3;
 const START_CM_PER_PX = 1.2;
 /** Sweep from these levels up. */
 const SWEEPS = new Set(["great", "near", "elite"]);
+/** curlRev 3: good players carry a stone that looks short too (both sides in turn), but never bend it. */
+const CARRIES_V3 = new Set(["good"]);
+/** curlRev 3: the swipe's relative speed error is this × the level's power sd. */
+export const SWIPE_SD_SCALE = 2.5;
+/** curlRev 3: reading the line, cm of broom error per unit of the level's judgement. */
+export const LINE_CM = 25;
+
+/** curlRev 3's weight through the swipe: the ideal weight's swipe speed, off by the human's relative error, back to a weight. */
+function swipedWeight(ideal: number, human: { power: (scale?: number) => number }): number {
+  const v = swipeForWeightV3(ideal);
+  return curlWeightFromSwipeV3(v * human.power(SWIPE_SD_SCALE));
+}
 
 export const bot: SkillBot = ({ seed, human, rev }) => {
-  const r: 1 | 2 = rev === 2 ? 2 : 1;
+  const r: 1 | 2 | 3 = rev === 3 ? 3 : rev === 2 ? 2 : 1;
   const game = curlingGameFor(r);
   if (human.level === "perfect") {
     const plan = witnessFor(seed, r) ?? perfectPlan(seed, 3, 30, r);
@@ -72,10 +97,10 @@ export const bot: SkillBot = ({ seed, human, rev }) => {
         if (s.phase === CURL_AIM) {
           // The stones have settled: react, look at the house, think, then throw.
           throwAt = t + human.reactTicks() + human.thinkTicks(2400);
-          const ideal = searchThrows(sheetOf(s), { refine: 6, xStep: 6, wStep: 12 })[0]!;
-          const turn = human.slip() ? 1 - ideal.t.turn : ideal.t.turn;
-          const bx = Math.round(ideal.t.bx + human.aim(CM_PER_PX));
-          const weight = Math.max(1, Math.min(1000, Math.round(ideal.t.weight * human.power(1.5))));
+          const ideal = searchThrows(sheetOf(s), { refine: 6, xStep: 6, wStep: r >= 3 ? 20 : 12, rev: r })[0]!;
+          const turn = human.slip(r >= 3 ? 0.5 : 1) ? 1 - ideal.t.turn : ideal.t.turn;
+          const bx = Math.round(ideal.t.bx + human.aim(CM_PER_PX) + (r >= 3 ? human.p.judgement * LINE_CM * human.normal() : 0));
+          const weight = r >= 3 ? swipedWeight(ideal.t.weight, human) : Math.max(1, Math.min(1000, Math.round(ideal.t.weight * human.power(1.5))));
           const a = ideal.after;
           const i = a.x.length - 1;
           const sx = r >= 2 ? Math.max(-CURL_START_MAX, Math.min(CURL_START_MAX, Math.round((ideal.t.sx ?? 0) + human.aim(START_CM_PER_PX)))) : 0;
@@ -88,7 +113,8 @@ export const bot: SkillBot = ({ seed, human, rev }) => {
         const ev = throwEvent(planned.t);
         return ev;
       }
-      if (s.phase === CURL_TRAVEL && planned && SWEEPS.has(human.level) && s.active >= 0 && s.live[s.active]) {
+      const carryOnly = r >= 3 && CARRIES_V3.has(human.level);
+      if (s.phase === CURL_TRAVEL && planned && (SWEEPS.has(human.level) || carryOnly) && s.active >= 0 && s.live[s.active]) {
         if (t >= nextLook && s.travelTicks > 60) {
           nextLook = t + 20 + human.reactTicks();
           // Where would it stop with no more sweeping? Short of the plan by more than a stone's width: sweep. On curlRev 2
@@ -100,7 +126,7 @@ export const bot: SkillBot = ({ seed, human, rev }) => {
           const wide = planned.targetX - stopX;
           // A bend also carries it: only bend a stone that is not already running long.
           // One short stroke, as hard as the miss is wide (a bend runs on for most of a second after it).
-          if (r >= 2 && Math.abs(wide) > 10 * CU && stopY >= planned.targetY - 8 * CU) {
+          if (r >= 2 && !carryOnly && Math.abs(wide) > 10 * CU && stopY >= planned.targetY - 8 * CU) {
             side = wide < 0 ? -1 : 1;
             nudge = Math.max(5, Math.min(60, Math.round(Math.abs(wide) / CU / 2)));
             sweepUntil = -1;
@@ -130,7 +156,7 @@ export const bot: SkillBot = ({ seed, human, rev }) => {
 
 /** Random play: a random broom, turn, weight (and curlRev 2's start) after a random wait, never sweeping. */
 export const randomBot: SkillBot = ({ seed, human, rev }) => {
-  const r: 1 | 2 = rev === 2 ? 2 : 1;
+  const r: 1 | 2 | 3 = rev === 3 ? 3 : rev === 2 ? 2 : 1;
   const game = curlingGameFor(r);
   let at = -1;
   const out = driveEvents<CurlingState>(
