@@ -47,6 +47,7 @@ import {
   SWING_REV_REWORK,
   SWING_REV_DARK,
   SWING_NO_DARK,
+  SWING_KIND_SWING,
   SWING_V16_HOOK_LIGHT,
   swingDarkFrom,
   swingHookLit,
@@ -728,6 +729,7 @@ function drawSwingArtWorld(ctx: CanvasRenderingContext2D, state: SwingState, siz
   ctx.globalAlpha = 1;
 
   // swingRev 4 edge warnings: the dragon behind (off the left edge) and a shadow ahead (off the right); swingRev 14's dragon too.
+  const drawWarnings = () => {
   if ((state.rev === SWING_REV || state.assault) && state.ended === 0) {
     const chase = state.chaseX ?? 0;
     if (chase !== 0) {
@@ -770,8 +772,17 @@ function drawSwingArtWorld(ctx: CanvasRenderingContext2D, state: SwingState, siz
       ctx.fillText("!", SWING_WORLD_W - 18, y + 4);
     }
   }
+  };
+  // swingRev 16 draws its warnings over the ledge-run dim, after the cave's clip; every earlier revision inside it.
+  if (!state.dark) drawWarnings();
 
   ctx.restore();
+  // swingRev 16: the whole scene (rock, cave, hero) dimmed under a soft vignette while a ledge run is in play, so a
+  // platform section reads even when the dark sits at the screen's edge; the edge warnings and the HUD stay bright.
+  if (state.dark) {
+    drawLedgeDim(ctx, state, SWING_WORLD_W, SWING_WORLD_H, still);
+    drawWarnings();
+  }
   ctx.fillStyle = "#FFFFFF";
   ctx.font = "600 16px 'JetBrains Mono', ui-monospace, monospace";
   ctx.textAlign = "left";
@@ -1478,4 +1489,50 @@ function drawDark(ctx: CanvasRenderingContext2D, state: SwingState, sx: (x: numb
     ctx.fillStyle = "rgba(255,200,120,0.18)";
     ctx.fillRect(x, 0, 1.5, height);
   }
+}
+
+/** The ledge-run dim: a soft vignette over the whole scene, DIM_CENTRE in the middle to DIM_EDGE at the corners (about 30 % over the view). */
+const DIM_CENTRE = 0.25;
+const DIM_EDGE = 0.55;
+/** The vignette, built once per context and world size (never per frame). */
+const dimCache = new WeakMap<CanvasRenderingContext2D, { w: number; h: number; fill: CanvasGradient }>();
+
+/**
+ * How far the ledge-run dim is on (0–1; presentation only, from the sim's swingDarkFrom): on from the stretch that ends
+ * on a run's first ledge until the dark lifts at the first hook after the run. It fades in over LIGHT_TICKS from that
+ * stretch's start and out over LIGHT_TICKS from that hook's grab, like the light-up; with reduced motion it is on or off.
+ */
+export function swingLedgeDim(state: SwingState, still = false): number {
+  if (!state.dark || !state.sections) return 0;
+  const k = state.sec ?? 0;
+  const sec = state.sections[k];
+  if (!sec) return 0;
+  const on = swingDarkFrom(state) !== SWING_NO_DARK;
+  if (still) return on ? 1 : 0;
+  if (on) {
+    // Only the stretch leading into a run turns it on (a run's sections and the stretch after it carry it over).
+    if (sec.kind !== SWING_KIND_SWING || (sec.from ?? -1) >= 0) return 1;
+    return Math.min(1, Math.max(0, (state.tick - (state.secStart ?? 0)) / LIGHT_TICKS));
+  }
+  // The dark just lifted: the first hook after the run grabbed.
+  if (sec.kind !== SWING_KIND_SWING || (sec.from ?? -1) < 0 || (state.hangHook ?? -1) !== sec.hook0) return 0;
+  return Math.max(0, 1 - (state.tick - state.grabTick) / LIGHT_TICKS);
+}
+
+function drawLedgeDim(ctx: CanvasRenderingContext2D, state: SwingState, width: number, height: number, still: boolean): void {
+  const level = swingLedgeDim(state, still);
+  if (level <= 0) return;
+  let c = dimCache.get(ctx);
+  if (!c || c.w !== width || c.h !== height) {
+    const r = Math.hypot(width, height) / 2;
+    const g = ctx.createRadialGradient(width / 2, height / 2, r * 0.25, width / 2, height / 2, r);
+    g.addColorStop(0, `rgba(4,3,6,${DIM_CENTRE})`);
+    g.addColorStop(1, `rgba(4,3,6,${DIM_EDGE})`);
+    c = { w: width, h: height, fill: g };
+    dimCache.set(ctx, c);
+  }
+  ctx.globalAlpha = level;
+  ctx.fillStyle = c.fill;
+  ctx.fillRect(0, 0, width, height);
+  ctx.globalAlpha = 1;
 }
