@@ -78,12 +78,23 @@ exactly as before (orbit-fuel-check replays 96 orbitRev 10, 12 and 13 runs recor
   (orbit-fuel-check: every witness flight of 20+ ticks shows its target 8+ ticks before the catch).
 - **The meter** (`orbit.renderer.ts` `drawFuelMeter`, display only): bottom right of the drawn world, a "FUEL" label over
   a 16 × 112 px gauge in ten segments (green over half, amber over a quarter, red below), its frame brightening while it
-  drains; when it runs dry it flashes red, puffs of smoke leave the rocket and "OUT OF FUEL" shows. SET CHECKPOINT keeps
-  its top-right corner; the meter is far below it and there is no other control (play-control-clearance-check).
+  drains; when it runs dry it flashes red and "OUT OF FUEL" shows. SET CHECKPOINT keeps its top-right corner; the meter
+  is far below it and there is no other control (play-control-clearance-check).
+- **The sputter** (2 Nov 2026, display only; `orbit.renderer.ts` `observeSputter` / `drawSputter`, `ORBIT_SPUTTER_MS`):
+  when the tank runs dry the rocket coughs a flicker of flame and a trail of smoke puffs, tumbles and drops away, fading
+  out, while the meter flashes red (on and off every 100 ms), over 0.6 s, instead of the frame freezing on the dry tick.
+  The sim is untouched: it still ends the run (or respawns at the checkpoint) on the dry tick. A run that ended dry has
+  no more ticks, so its sputter runs on the presentation clock from the first frame that shows the end, and the stage
+  holds the submit for the same 0.6 s (`ArcadeCanvasStage` `endHoldMs`, `orbitEndHoldMs`; the finished run is sent as
+  the draft at once, and a stage that goes away first sends it at once), well inside the 2 s the battery rule keeps an
+  ended arena at full frame rate. A checkpoint respawn's sputter runs on the sim's ticks at the point the tank ran dry
+  (the rocket is already back at the checkpoint), with the words fading over the next half second. Reduced motion: no
+  smoke, drop or flashing; the dead rocket where it stopped, a red gauge and the words. orbit-fuel-check section 7.
 
 **The courses** (`src/lib/duel/orbitFuelBank.server.ts`, `scripts/orbit-fuel-bank.ts`, `scripts/orbit-fuel-lib.ts`): a new
-proved bank. Each bank seed's planets are laid out with a harder zigzag than orbitRev 3's generator: every step 120–300 px
-sideways (rev 3: 0–260) and the direction turning after one or two planets (rev 3: two or three), each placement first
+proved bank. Each bank seed's planets are laid out on a zigzag: every step 60–220 px sideways (rev 3's generator: 0–260,
+so a rev-14 hop never goes straight up; the first rev-14 bank: 120–300) and the direction turning after one or two
+planets (rev 3: two or three), each placement first
 tried against a rule that no release from a planet three or more back, on a full tank, flies into it (`noFarCatch`, then
 without it), and each hop proved on rev 14's rules (a 4-tick window two laps running landing within 120 ticks). Then the
 black holes (`orbit-hole-lib.ts`, as the hole bank) and the features and witness (`orbit-xp-lib.ts` `buildXp`, played on
@@ -100,17 +111,28 @@ read every release by forking the real sim, so fuel and catching any planet are 
 | | Weak | Average | Good | Great | Near-perfect | Elite | Flawless |
 |---|---|---|---|---|---|---|---|
 | orbitRev 13, tuning seeds | 13 (3–47) | 51 (14–104) | 105 (48–152) | 157 (114–180) | 183 (166–191) | 191 (180–195) | 194 (186–200) |
-| orbitRev 14, tuning seeds | 15 (3–43) | 32 (9–66) | 74 (6–118) | 118 (44–162) | 181 (168–190) | 186 (178–190) | 191 (183–196) |
-| orbitRev 14, fresh seeds (`--from=10000`) | 15 (3–53) | 49 (12–85) | 64 (16–117) | 128 (5–169) | 180 (159–192) | 187 (177–191) | 192 (187–197) |
+| orbitRev 14, first bank (120–300 px), tuning seeds | 15 (3–43) | 32 (9–66) | 74 (6–118) | 118 (44–162) | 181 (168–190) | 186 (178–190) | 191 (183–196) |
+| orbitRev 14, first bank, fresh seeds (`--from=10000`) | 15 (3–53) | 49 (12–85) | 64 (16–117) | 128 (5–169) | 180 (159–192) | 187 (177–191) | 192 (187–197) |
+| **orbitRev 14, softened bank (60–220 px), tuning seeds** | 19 (6–67) | 60 (17–103) | 86 (12–145) | 154 (65–174) | 185 (175–191) | 189 (172–196) | 195 (187–199) |
+| **orbitRev 14, softened bank, fresh seeds** | 32 (9–68) | 64 (18–96) | 89 (50–145) | 145 (111–165) | 183 (162–191) | 190 (182–197) | 195 (187–200) |
 
-Medians rise at every level. Planets reached (the core's measure), medians on the tuning seeds: 4, 7, 16, 27, 40, 40, 40
-(orbitRev 13: 3, 12.5, 23.5, 37.5, 40, 40, 40); near-perfect's median is every planet, the core's fixed full point. The
-middle levels lose ground: the zigzag's longer diagonal hops leave narrower release windows, so mid-skill players crash
-or run dry earlier. The top three sit 5 apart (181, 186, 191), as close as on orbitRev 13. Decision for Joe: keep the
-harder middle, or soften the zigzag (`ZIG` in scripts/orbit-fuel-lib.ts) and rebuild the bank.
+**Softening the zigzag** (2 Nov 2026, Joe: bring the middle levels back, about 50 / 100 / 140 for Average / Good / Great,
+the top as it was). The first rev-14 bank (every step 120–300 px sideways) left the middle well under orbitRev 13's: its
+longer diagonal hops leave narrower release windows, so mid-skill players crashed or ran dry early (on 96 seeds: 39 / 71 /
+118). Trial banks of 32 courses each (the first 32 bank seeds, the same proof), measured on 96–288 seeds at those three
+levels: 80–260 px 52 / 75 / 137; 100–260 px turning after two or three planets 37 / 75 / 140; 60–220 px 56 / 85 / 141;
+60–220 turning after one to three 61 / 69 / 152; 50–210 68 / 100 / 158; 40–200 58 / 98 / 167. How far a hop goes
+sideways sets the middle; how often the zigzag turns barely moves it. 60–220 px, turning after one or two planets, was
+nearest the targets and was built in full (96 of 96 bank seeds proved): on 96 seeds Average / Good / Great are 57 / 90 /
+151 (tuning) and 56 / 87 / 149 (fresh); the 30-seed table above is noisier. The top three are where they were (185, 189,
+195). Good still sits about 10 under its target and Great about 10 over (the bots' spread at those levels is wide);
+narrower steps lift Good but push Great further past 140.
 
-Zigzag measures (orbit-fuel-check, 8 courses each): 187 px sideways a planet (orbitRev 13's courses 127), the direction
-turning on 63 % of steps (48 %), and 1.04 % of all full-tank releases caught three or more planets on (1.69 %).
+Zigzag measures (orbit-fuel-check, 8 courses each): 124 px sideways a planet (orbitRev 13's courses 127), no step under
+40 px sideways on any of the 96 courses (orbitRev 13's: 12.5 % of steps), the direction turning on 69 % of steps (48 %),
+and 0.52 % of all full-tank releases caught three or more planets on (orbitRev 13's 1.69 %; the first rev-14 bank 1.04 %).
+Over the whole bank: 125 px, 65 % turning, 0.44 % caught far ahead (the first bank 1.21 %). Every witness flight lands
+with at least 42 of 160 units left (the proof's floor is 40), every hop proved within 120 ticks.
 Review frames: `bun scripts/shots/orbit-fuel-shots.ts` (`screenshots/arcade-tuning-nov-2026/orbit-fuel-*.png`: mid-flight,
-low and empty at 414 × 896 and the computer layout at 1366 × 768). The intro demo stays stopped until one is recorded on
-orbitRev 14.
+low and empty (after the sputter) at 414 × 896 and the computer layout at 1366 × 768, and `orbit-fuel-sputter-414x896.png`,
+0.3 s into the sputter). The intro demo stays stopped until one is recorded on orbitRev 14.

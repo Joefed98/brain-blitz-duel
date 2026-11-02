@@ -301,7 +301,7 @@ export function pinOrbitPreFuel(on: boolean): boolean {
 
 export function generateOrbit(): OrbitPuzzleData {
   const seed = arcadeSeed();
-  // Rev 14 (the fuel meter, 1 Nov 2026, docs/arcade-standard/orbit.md): a course from the fuel bank (harder zigzag,
+  // Rev 14 (the fuel meter, 1 Nov 2026, docs/arcade-standard/orbit.md): a course from the fuel bank (zigzag,
   // proved on rev 14's rules: scripts/orbit-fuel-bank.ts), picked by the seed, with its holes and features.
   const fuel = orbitPreFuel ? null : orbitFuelCourseForSeed(seed);
   if (fuel) return { type: "orbit", seed, orbitRev: ORBIT_REV_FUEL, planets: fuel.planets, holes: fuel.holes, extras: fuel.extras };

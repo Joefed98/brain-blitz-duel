@@ -20,8 +20,8 @@ import {
 import { encodeOrbitRun, replayOrbitRun } from "@/lib/duel/orbit";
 import { ORBIT_TIME_MS, type OrbitPuzzleData } from "@/lib/duel/types";
 import { ArcadeCanvasStage } from "@/components/puzzles/ArcadeCanvasStage";
-import { orbitArtGame, orbitDrawHFor, orbitRev3ArtGame } from "@/lib/arcade/orbit.renderer";
-import { initBandFrom, initRev3From, initRev4From, initSweptFrom, initTallFrom, initTargetFrom, initStrictFrom, initTunedFrom, decodeOrbitHoles, decodeRev3Planets, orbitStartForPuzzle, orbitWorldWFor, ORBIT_REV3_WORLD_W } from "@/lib/arcade/orbitRev3";
+import { orbitArtGame, orbitDrawHFor, orbitEndHoldMs, orbitRev3ArtGame } from "@/lib/arcade/orbit.renderer";
+import { initBandFrom, initRev3From, initRev4From, initSweptFrom, initTallFrom, initTargetFrom, initStrictFrom, initTunedFrom, decodeOrbitHoles, decodeRev3Planets, orbitStartForPuzzle, orbitWorldWFor, ORBIT_REV3_WORLD_W, type OrbitRev3State } from "@/lib/arcade/orbitRev3";
 import { ORBIT_REV3, ORBIT_REV4, ORBIT_REV_BAND, ORBIT_REV_SWEPT, ORBIT_REV_TALL, ORBIT_REV_TARGET, ORBIT_REV_STRICT, ORBIT_REV_TUNED, orbitXpRev } from "@/lib/arcade/orbit";
 import { orbitSounds } from "@/lib/fx/gameSounds";
 
@@ -160,6 +160,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       }}
       onSubmit={(answer) => onSubmit(answer)}
       onDraftAnswer={onDraftAnswer}
+      // orbitRev 14: a run that ran dry plays its 0.6 s sputter before it is sent (display only).
+      endHoldMs={(state) => orbitEndHoldMs(state as unknown as OrbitRev3State)}
     />
     </>
   );

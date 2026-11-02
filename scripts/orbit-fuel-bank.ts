@@ -1,6 +1,6 @@
 /**
  * Builds the server-only Orbit fuel bank (src/lib/duel/orbitFuelBank.server.ts) for orbitRev 14 (the fuel meter,
- * 1 Nov 2026, docs/arcade-standard/orbit.md): for each bank seed (FUEL_BANK_SEED(k), fixed), a harder-zigzag course
+ * 1 Nov 2026, docs/arcade-standard/orbit.md): for each bank seed (FUEL_BANK_SEED(k), fixed), a zigzag course
  * built and proved by scripts/orbit-fuel-lib.ts (buildFuelCourse: the planets, black holes and features, the witness
  * taps that take every one of them and reach the sun with half the run left, 200 on orbitRev 14, and every witness
  * flight landing with a quarter of the tank or more). Seeds whose salts all fail are left out.

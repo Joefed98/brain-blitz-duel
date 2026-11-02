@@ -2,7 +2,7 @@
  * Orbit on the arcade scoring standard (orbitRev 13, 29 Oct 2026; orbitRev 14, the fuel meter, 1 Nov 2026;
  * docs/arcade-standard/orbit.md).
  *
- * Rooms deal orbitRev 14: the fuel bank's harder-zigzag courses (src/lib/duel/orbitFuelBank.server.ts,
+ * Rooms deal orbitRev 14: the fuel bank's zigzag courses (src/lib/duel/orbitFuelBank.server.ts,
  * scripts/orbit-fuel-bank.ts), scored on orbitRev 13's parts.
  * perfect(): the fuel bank's witness tap logs (scripts/orbit-fuel-lib.ts, the oracle) replayed through the server on
  * orbitRev 14: every bank course's witness takes every mote, slingshot and field (and 2 or 3 black holes) and at least 21 perfect orbits and
