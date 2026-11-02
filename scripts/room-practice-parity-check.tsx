@@ -66,6 +66,22 @@ for (const [key, definition] of active) {
       assert.ok(` ${buttons[0]!.getAttribute("class") ?? ""} `.includes(" h-11 "), `${key}: the corner button is 44px tall`);
       assert.deepEqual(inSlot, [row, buttons[0]], `${key}: nothing else in the slot but the corner row and its button`);
       assert.equal(host.querySelectorAll("[data-game-controls]").length, 1, `${key}: no row below the world on orbitRev 12`);
+    } else if (key === "homerun" && ((puzzle as { homerunRev?: number }).homerunRev ?? 1) >= 3) {
+      // Home Run homerunRev 3 (Joe's approval, 2 Nov 2026): the Contact / Power choice sits over the field's bottom so the
+      // world reaches the screen's bottom; the row is hidden while the pitch is live and clears the batter and plate (the
+      // review shots at 414x896 and 375x667). Exactly that one row in the arena, absolutely placed across its bottom and
+      // lifted by the home bar, holding the two swing buttons (48px, over the 44px minimum). Every other control, and every
+      // older revision's, still sits below the slot.
+      const row = slot.querySelector('[data-game-arena] > [data-game-controls="swing"]');
+      assert.ok(row, `${key}: the swing row sits in the arena`);
+      const cls = ` ${row!.getAttribute("class") ?? ""} `;
+      for (const c of ["absolute", "inset-x-1", "h-[52px]", "pointer-events-none"]) assert.ok(cls.includes(` ${c} `), `${key}: swing row class ${c}`);
+      assert.equal((row!.getAttribute("style") ?? "").replace(/\s/g, ""), "bottom:max(0px,calc(env(safe-area-inset-bottom,0px)-4px))", `${key}: the swing row sits on the field's bottom, lifted by the home bar`);
+      const buttons = [...row!.querySelectorAll("button")];
+      assert.deepEqual(buttons.map((b) => b.getAttribute("data-swing-mode")), ["contact", "power"], `${key}: exactly the Contact and Power buttons`);
+      for (const b of buttons) assert.ok(` ${b.getAttribute("class") ?? ""} `.includes(" h-[48px] "), `${key}: each swing button is 48px tall`);
+      assert.deepEqual(inSlot, [row, ...buttons], `${key}: nothing else in the slot but the swing row and its two buttons`);
+      assert.equal(host.querySelectorAll("[data-game-controls]").length, 1, `${key}: no row below the world on homerunRev 3`);
     } else assert.equal(inSlot.length, 0, `${key}: controls sit below the slot`);
     arenas++;
   }
