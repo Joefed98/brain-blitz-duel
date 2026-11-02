@@ -21,6 +21,10 @@
  *     - no blue tap highlight (as #114): -webkit-tap-highlight-color is transparent on every control;
  *     - the round leaderboard (10 players): every closed row shows its time · verdict · summary line
  *       under the name, on one line with an ellipsis.
+ *  3. Intro colours (31 Oct 2026; not skinned screens): room round intros of a puzzle and of Retro, Sports,
+ *     Cards & Board and Action arcade games at 414×896 (home-screen app) and 375×667 take the game's category or group colour on
+ *     the screen's accent, title, dot and Goal / How / Score labels, Ready stays gold, and that text is at
+ *     least 4.5:1 against what's behind it.
  *
  *   bun scripts/theme-check.tsx [screen name filter…] [--verbose] [--shots=<dir>]
  */
@@ -29,7 +33,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { createCanvas, loadImage } from "@napi-rs/canvas";
 
 import { startSafeAreaServer } from "./safe-area-server";
-import { CHROMIUM_PATHS, THEME_SCREENS, VIEWPORTS, fixThemeClock, openThemeScreen } from "./theme-screens";
+import { CHROMIUM_PATHS, THEME_SCREENS, VIEWPORTS, fixThemeClock, openThemeScreen, room } from "./theme-screens";
 import { APP_PAGE_FAMILY, THEME_FAMILIES, THEME_FONTS } from "../src/lib/theme";
 
 const args = process.argv.slice(2);
@@ -315,7 +319,7 @@ function themeProbe(families: { head: string; body: string; mono: string; app: s
     skins: skins.length,
     // The tab pages' panels (Prompt R) and Practice's game tiles (shelves and grid, follow-up to #129) are its cards.
     // Polish batch R: the room screens' panels and lists (.rs-list), the error layout and the terms' page text.
-    cards: document.querySelectorAll("[data-skin] .th-card, [data-skin] .th-sheet, [data-skin] .ap-panel, [data-skin] .ap-tile, [data-skin] .rs-list, [data-skin] [data-error-screen], [data-skin] [data-terms]").length,
+    cards: document.querySelectorAll("[data-skin] .th-card, [data-skin] .th-sheet, [data-skin] .ap-panel, [data-skin] .ap-tile, [data-skin] .rs-list, [data-skin] .rs-grid, [data-skin] [data-error-screen], [data-skin] [data-terms]").length,
     // The round leaderboard's closed rows: each shows its verdict line under the name.
     rowLines: [...document.querySelectorAll("[data-skin] [aria-expanded='false'] [data-row-line]")].map((line) => ({
       shown: visible(line) && !!line.querySelector("[data-verdict]") && visible(line.querySelector("[data-verdict]")!),
@@ -449,9 +453,133 @@ try {
     );
     if (VERBOSE) for (const p of problems.slice(1)) console.log(`    ${p}`);
   }
+  if (!ONLY.length || ONLY.some((o) => "intro colours".includes(o))) await introColours();
 } finally {
   await browser.close();
   await server.close();
+}
+
+/**
+ * 3. Intro colours (31 Oct 2026): a room round's intro takes its game's colour, the category's for a puzzle,
+ * the arcade group's for an arcade game (RoundIntro data-intro-accent): the screen's accent, the title, the dot
+ * and the Goal / How / Score labels are that colour, Ready stays gold, and the coloured text is at least 4.5:1
+ * against what's drawn behind it, at 414×896 (home-screen app) and 375×667.
+ */
+async function introColours() {
+  const INTROS: { name: string; opts: Parameters<typeof room>[2]; accent: string; token: string }[] = [
+    { name: "puzzle intro (Box Six, Logic)", opts: {}, accent: "logic", token: "--category-logic" },
+    { name: "arcade intro (Breaker, Retro)", opts: { arcade: true, arcadeType: "breaker" }, accent: "retro", token: "--group-retro" },
+    { name: "arcade intro (Swish, Sports)", opts: { arcade: true, arcadeType: "bintoss" }, accent: "sports", token: "--group-sports" },
+    { name: "arcade intro (Minefield, Cards & Board)", opts: { arcade: true, arcadeType: "minesweeper" }, accent: "cards", token: "--group-cards" },
+    { name: "arcade intro (Slice, Action)", opts: { arcade: true, arcadeType: "slice" }, accent: "action", token: "--group-action" },
+    { name: "arcade intro (Gemstone, Strategy)", opts: { arcade: true }, accent: "strategy", token: "--group-strategy" },
+  ];
+  for (const viewport of VIEWPORTS.slice(0, 2))
+    for (const intro of INTROS) {
+      const where = `${intro.name} (${viewport.name})`;
+      const problems: string[] = [];
+      try {
+        const screen = { name: where, mode: "room" as const, room: room("in_progress", "intro", intro.opts), waitMs: 1200 };
+        const { context, page } = await openThemeScreen(browser, server.origin, screen, viewport);
+        try {
+          await page.locator(".round-intro").waitFor({ timeout: 20_000 });
+          const probe = await page.evaluate((token) => {
+            const intro = document.querySelector(".round-intro") as HTMLElement | null;
+            // Any CSS colour (color(srgb …), oklab, color-mix) as rgb(r, g, b), through a canvas.
+            const paint = document.createElement("canvas").getContext("2d", { willReadFrequently: true })!;
+            const rgb = (c: string) => {
+              paint.clearRect(0, 0, 1, 1);
+              paint.fillStyle = c;
+              paint.fillRect(0, 0, 1, 1);
+              const [r, g, b] = paint.getImageData(0, 0, 1, 1).data;
+              return `rgb(${r}, ${g}, ${b})`;
+            };
+            const colour = (el: Element | null, prop: "color" | "backgroundColor") => (el ? rgb(getComputedStyle(el)[prop]) : "");
+            const resolve = (within: Element, value: string) => {
+              const span = document.createElement("span");
+              span.style.color = value;
+              within.appendChild(span);
+              const c = getComputedStyle(span).color;
+              span.remove();
+              return rgb(c);
+            };
+            if (!intro) return null;
+            const shell = intro.closest("[data-category]");
+            const labels = [...intro.querySelectorAll(".round-instructions > div > p:first-child")].map((p) => colour(p, "color"));
+            const title = intro.querySelector(".round-intro-title");
+            const ready = [...intro.querySelectorAll(".intro-footer button")].find((b) => /Ready/.test(b.textContent ?? ""));
+            const box = (el: Element | null | undefined) => {
+              const r = el?.getBoundingClientRect();
+              return r ? { x: r.left + r.width / 2, y: r.top + r.height / 2, w: r.width, h: r.height, l: r.left, t: r.top } : null;
+            };
+            return {
+              mark: intro.getAttribute("data-intro-accent"),
+              want: resolve(document.body, `var(${token})`),
+              accent: resolve(intro, "var(--category-accent)"),
+              titleWant: resolve(intro, "var(--intro-title)"),
+              shellAccent: shell ? resolve(shell, "var(--category-accent)") : "",
+              title: colour(title, "color"),
+              titleBox: box(title),
+              dot: colour(intro.querySelector(".game-frame-dot"), "backgroundColor"),
+              labels,
+              labelBoxes: [...intro.querySelectorAll(".round-instructions > div > p:first-child")].map(box),
+              // Gold: the gold button's own fill, never the intro's accent.
+              readyGold: ready
+                ? /ap-btn-gold/.test(ready.className) &&
+                  rgb(getComputedStyle(ready).backgroundColor) !== resolve(intro, "var(--category-accent)") &&
+                  (getComputedStyle(ready).backgroundImage !== "none" || getComputedStyle(ready).backgroundColor !== "rgba(0, 0, 0, 0)")
+                : false,
+              readyClass: ready?.className ?? "",
+            };
+          }, intro.token);
+          if (!probe) problems.push("no intro drawn");
+          else {
+            if (probe.mark !== intro.accent) problems.push(`data-intro-accent is ${probe.mark}, not ${intro.accent}`);
+            if (probe.accent !== probe.want) problems.push(`the intro's accent is ${probe.accent}, not ${intro.token} ${probe.want}`);
+            if (probe.shellAccent !== probe.want) problems.push(`the screen's accent (its gradient) is ${probe.shellAccent}, not ${probe.want}`);
+            // The title: the accent lifted a fifth towards white (room-screens.css --intro-title), still its colour.
+            const [ar, ag, ab] = parseColor(probe.want);
+            const [tr, tg, tb] = parseColor(probe.titleWant);
+            const towardsWhite = [[ar, tr], [ag, tg], [ab, tb]].every(([a, t]) => t! >= a! - 1 && t! - a! <= (255 - a!) * 0.35 + 2);
+            if (probe.title !== probe.titleWant || !towardsWhite) problems.push(`the title is ${probe.title}, not the accent's tint (${probe.titleWant} from ${probe.want})`);
+            if (probe.dot !== probe.want) problems.push(`the category dot is ${probe.dot}, not the accent`);
+            if (probe.labels.length < 3 || probe.labels.some((c) => c !== probe.want)) problems.push(`Goal / How / Score labels are ${probe.labels.join(", ")}, not the accent`);
+            if (!/ap-btn-gold/.test(probe.readyClass) || !probe.readyGold) problems.push(`Ready is not the gold button (${probe.readyClass})`);
+            // Contrast of the coloured text against the screen behind it (text hidden).
+            await page.addStyleTag({ content: `.round-intro * { color: transparent !important; -webkit-text-fill-color: transparent !important; text-shadow: none !important; } .round-intro canvas, .round-intro svg, .round-intro img { visibility: hidden !important; } * { transition: none !important; animation-play-state: paused !important; }` });
+            await page.waitForTimeout(120);
+            const img = await loadImage(await page.screenshot());
+            const canvas = createCanvas(img.width, img.height);
+            const ctx = canvas.getContext("2d");
+            ctx.drawImage(img, 0, 0);
+            const k = img.width / viewport.w;
+            for (const [label, b] of [["title", probe.titleBox], ...probe.labelBoxes.map((b, i) => [`label ${i + 1}`, b] as const)] as const) {
+              const fg = parseColor(label === "title" ? probe.titleWant : probe.want);
+              if (!b || b.w < 1) continue;
+              const ratios: number[] = [];
+              for (let y = b.t + b.h * 0.25; y < b.t + b.h * 0.75; y += Math.max(1, b.h / 4))
+                for (let x = b.l + 2; x < b.l + b.w - 2; x += Math.max(2, b.w / 12)) {
+                  const px = ctx.getImageData(Math.floor(x * k), Math.floor(y * k), 1, 1).data;
+                  ratios.push(ratio([fg[0], fg[1], fg[2]], [px[0]!, px[1]!, px[2]!]));
+                }
+              ratios.sort((p, q) => p - q);
+              const low = ratios[Math.floor(ratios.length * 0.05)];
+              if (low !== undefined) {
+                measured++;
+                if (low < 4.5) problems.push(`contrast ${low.toFixed(2)}:1 under 4.5 for the ${label} in ${label === "title" ? probe.titleWant : probe.want}`);
+              }
+            }
+            if (SHOTS) writeFileSync(`${SHOTS}/theme-${where.replace(/\W+/g, "-")}-bg.png`, await page.screenshot());
+          }
+        } finally {
+          await context.close();
+        }
+      } catch (error) {
+        problems.push(String((error as Error).message ?? error).split("\n")[0]!);
+      }
+      for (const p of problems) fail(`${where}: ${p}`);
+      console.log(`${problems.length ? "FAIL" : "PASS"} ${where}${problems.length ? `: ${problems[0]}` : ": the game's colour on the title, dot and labels, Ready gold, contrast ≥ 4.5:1"}`);
+    }
 }
 // Polish batch R: every skinned screen now uses Archivo (the tab pages' family); the skin's Saira, Manrope and
 // Duelz Mono stay only for the share welcome card, which these screens don't draw.

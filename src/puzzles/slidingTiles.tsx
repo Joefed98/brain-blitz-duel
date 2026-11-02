@@ -4,7 +4,6 @@ import { gameDisplayName } from "@/lib/duel/gameNames";
 import { solvedMovesText } from "@/lib/duel/scoring";
 import { useEffect, useMemo, useRef } from "react";
 
-import { hapticTick } from "@/components/puzzles/GridDrag";
 import { TilesFrame } from "@/components/puzzles/pattern/tilesBoard";
 import { GradientIntroExample, GradientReveal, GradientStage } from "@/components/puzzles/pattern/gradientBoard";
 import { isJumbledGradient } from "@/lib/duel/jumbled";
@@ -159,7 +158,6 @@ function ClassicStage({
     if (after.moves === replay.moves) {
       return puzzleReject(inFrame ? document.querySelector(`[data-game-stage] [data-tile-value="${tile}"]`) : undefined);
     }
-    hapticTick();
     setMoves(next);
     if (after.solved) {
       submitted.current = true;
@@ -171,7 +169,6 @@ function ClassicStage({
 
   const log = (marker: number) => {
     if (locked || submitted.current || replay.solved || replay.moves === 0) return;
-    hapticTick();
     setMoves([...moves, marker]);
   };
 

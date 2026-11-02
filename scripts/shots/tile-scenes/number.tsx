@@ -9,6 +9,7 @@ import { Pyramid } from "@/puzzles/numberPyramid";
 import { Line as TapeLine, Pin } from "@/puzzles/numline";
 import { EXACT_CSS, EXACT_RINGS } from "@/puzzles/targetNumber";
 import { Grid as TrailGrid } from "@/puzzles/trail";
+import { KakuroBoard } from "@/puzzles/kakuro";
 
 import { Scaled, canvasScene, domScene, type SceneSet } from "./scene";
 
@@ -130,4 +131,16 @@ export const NUMBER_SCENES: SceneSet = {
     tile("7", "digit", 4, 32);
     tile("3", "gold", 54, 58);
   }),
+  // Kakuro: a 4 × 4 corner of the board, its clue cells split by the diagonal over two filled runs.
+  kakuro: domScene(() => (
+    <Scaled x={6} y={6} scale={1} attrs={{ "data-puzzle-play": "", "data-category": "number" }}>
+      <div className="logic-glass-frame kakuro-frame" style={{ width: 92, height: 92 }}>
+        <KakuroBoard
+          board={{ size: 4, white: [5, 6, 7, 9, 10, 11, 13, 14], clues: [{ cell: 1, down: 4, right: 0 }, { cell: 2, down: 17, right: 0 }, { cell: 3, down: 5, right: 0 }, { cell: 4, down: 0, right: 12 }, { cell: 8, down: 0, right: 14 }, { cell: 12, down: 0, right: 3 }] }}
+          values={[0, 0, 0, 0, 0, 1, 8, 3, 0, 3, 9, 2, 0, 0, 0, 0]}
+          small
+        />
+      </div>
+    </Scaled>
+  )),
 };

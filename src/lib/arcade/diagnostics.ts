@@ -15,6 +15,7 @@ import { mahjongCheckpoint } from "./mahjong";
 import { fcCheckpoint } from "./cards/freecell";
 import { tpCheckpoint } from "./cards/tripeaks";
 import { psCheckpoint } from "./cards/pokerSquares";
+import { fhCheckpoint } from "./cards/fiveHands";
 import { bubCheckpoint } from "./bubble";
 import { bullseyeCheckpoint } from "./bullseye";
 import { crossCheckpoint } from "./cross";
@@ -23,6 +24,7 @@ import { hoverCheckpoint } from "./hover";
 import { matchupCheckpoint } from "./matchup";
 import { rallyCheckpoint } from "./rally";
 import { ricoCheckpoint } from "./ricochet";
+import { ninjaCheckpoint, NINJA_REV } from "./ricochetNinja";
 import { skylineCheckpoint } from "./skyline";
 import { sliceCheckpoint } from "./slice";
 import { snakeCheckpoint } from "./snake";
@@ -34,6 +36,7 @@ import { wordfallCheckpoint } from "./wordfall";
 import { clayCheckpoint } from "./clayShoot";
 import { wavCheckpoint } from "./wavefront";
 import { basCheckpoint } from "./bastion";
+import { bastionTankCheckpoint, BASTION_REV_TANK } from "./bastionTank";
 import { roofCheckpoint } from "./rooftop";
 import { flipCheckpoint } from "./flip";
 import { juncCheckpoint } from "./junction";
@@ -51,6 +54,8 @@ import { racingCheckpoint } from "./racing";
 import { minigolfCheckpoint } from "./minigolf";
 import { poolCheckpoint } from "./pool";
 import { curlingCheckpoint } from "./curling";
+import { bfCheckpoint } from "./blockfall";
+import { arCheckpoint } from "./alleyroll";
 import type { InputDiag } from "./engine";
 import { devDisplayAllowed } from "../devDisplay";
 
@@ -73,6 +78,9 @@ const SNAPSHOTS: Record<string, (state: any) => object> = {
   freecell: fcCheckpoint,
   tripeaks: tpCheckpoint,
   pokersquares: psCheckpoint,
+  fivehands: fhCheckpoint,
+  blockfall: bfCheckpoint,
+  alleyroll: arCheckpoint,
   bubble: bubCheckpoint,
   bullseye: bullseyeCheckpoint,
   cross: crossCheckpoint,
@@ -80,7 +88,8 @@ const SNAPSHOTS: Record<string, (state: any) => object> = {
   hover: hoverCheckpoint,
   matchup: matchupCheckpoint,
   rally: rallyCheckpoint,
-  ricochet: ricoCheckpoint,
+  // Ricochet: the ninja wall-climb (ricoRev 2) or the original shaft.
+  ricochet: (s: any) => (s && s.rev === NINJA_REV ? ninjaCheckpoint(s) : ricoCheckpoint(s)),
   skyline: skylineCheckpoint,
   slice: sliceCheckpoint,
   snake: snakeCheckpoint,
@@ -91,7 +100,8 @@ const SNAPSHOTS: Record<string, (state: any) => object> = {
   wordfall: wordfallCheckpoint,
   clayshoot: clayCheckpoint,
   wavefront: wavCheckpoint,
-  bastion: basCheckpoint,
+  // bastionRev 2's state carries `rev`; the original Bastion's has none.
+  bastion: (state: { rev?: number }) => (state.rev === BASTION_REV_TANK ? bastionTankCheckpoint(state as never) : basCheckpoint(state as never)),
   rooftop: roofCheckpoint,
   flip: flipCheckpoint,
   junction: juncCheckpoint,

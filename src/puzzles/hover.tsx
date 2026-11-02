@@ -32,13 +32,13 @@ import {
 } from "@/lib/arcade/hover";
 import { decodeHoverRun, encodeHoverRun, replayHoverRun } from "@/lib/duel/hover";
 import { HOVER_CRASH_FREEZE_MS, type HoverPuzzleData } from "@/lib/duel/types";
-import { buzz } from "@/lib/motion";
 import { hoverArtGame, hoverNightFill } from "@/lib/arcade/hover.renderer";
 import { hoverSounds } from "@/lib/fx/gameSounds";
 import { playSound } from "@/lib/sound";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 import { arcadeCanvasRatio } from "@/lib/fx/lowEnd";
+import { arenaFrame, cancelArenaFrame } from "@/lib/battery";
 
 /** Fixed intro still: the disc and two pillars with a gap. */
 function IntroExample() {
@@ -161,7 +161,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
 
     const loop = (time: number) => {
       frameTiming.begin(time);
-      frame = requestAnimationFrame(loop);
+      frame = arenaFrame(loop);
       const delta = time - last;
       last = time;
 
@@ -223,7 +223,6 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         if (state.current.crashed) {
           if (crashedAt.current === null) {
             crashedAt.current = time;
-            buzz(40);
           } else if (time - crashedAt.current >= HOVER_CRASH_FREEZE_MS) {
             finish();
           }
@@ -235,9 +234,9 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       frameTiming.end();
     };
 
-    frame = requestAnimationFrame(loop);
+    frame = arenaFrame(loop);
     return () => {
-      cancelAnimationFrame(frame);
+      cancelArenaFrame(loop, frame);
       sounds.stop();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps

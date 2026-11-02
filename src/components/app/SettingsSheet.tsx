@@ -3,8 +3,11 @@ import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 
 import { FeedbackLink } from "@/components/beta/FeedbackLink";
+import { OfflineSettingsRow } from "@/components/offline/OfflineSettingsRow";
 import { Slider } from "@/components/ui/slider";
 import { APP_BUILD_ID, buildLabel } from "@/lib/appVersion";
+import { setBatterySaver, useBatterySaver } from "@/lib/battery";
+import { setHapticsOn, useHapticsOn, useHapticsSupported } from "@/lib/haptics";
 import {
   effectsVolume,
   isMuted,
@@ -31,7 +34,7 @@ function readArrows(): "arrows" | "joystick" {
 /**
  * Profile's settings (the gear): the existing device settings in one sheet, nothing new. Sound: a
  * switch each for effects and music and one volume row (both channels; the same settings as every
- * screen's header MuteToggle); direction controls are the arrows/joystick choice the grid games offer in play
+ * screen's header MuteToggle); the battery saver (lib/battery.ts); haptics (lib/haptics.ts); direction controls are the arrows/joystick choice the grid games offer in play
  * (GridDrag's own key); "How it works" reopens the first-time intro.
  */
 export function SettingsSheet({
@@ -62,6 +65,9 @@ export function SettingsSheet({
     }
   };
   const sound = useSoundSettings();
+  const saver = useBatterySaver();
+  const haptics = useHapticsOn();
+  const hapticsSupported = useHapticsSupported();
   const server = useServerBuild();
   return createPortal(
     <div
@@ -129,7 +135,21 @@ export function SettingsSheet({
           </div>
           <span className="ap-row-sub pl-1">For games played with arrows</span>
         </div>
+        {/* Offline practice (31 Oct 2026): storage used and the pack downloads switch. */}
         <div className="ap-panel">
+          <OfflineSettingsRow />
+        </div>
+        <div className="ap-panel">
+          {/* Battery saver (lib/battery.ts, off by default): fewer particles and glows, puzzles at 30 fps. */}
+          <SwitchRow label="Battery saver" on={saver} onChange={setBatterySaver} />
+          {/* Haptics (lib/haptics.ts, on by default): main moments only. Shown where the device has none, with a note. */}
+          <SwitchRow
+            label="Haptics"
+            on={haptics}
+            onChange={setHapticsOn}
+            note={hapticsSupported ? undefined : "Not supported on this device"}
+            data="haptics"
+          />
           <button type="button" onClick={onHowItWorks} className="ap-row press">
             <span className="ap-row-title flex-1">How it works</span>
             <ChevronRight aria-hidden="true" className="ap-chevron" />
@@ -186,11 +206,31 @@ function useServerBuild(): string | null {
   return server;
 }
 
-/** One switch row (role="switch"): the label left, the switch right; the whole row toggles. */
-function SwitchRow({ label, on, onChange }: { label: string; on: boolean; onChange: (on: boolean) => void }) {
+/** One switch row (role="switch"): the label left (a short note under it), the switch right; the whole row toggles. */
+function SwitchRow({
+  label,
+  on,
+  onChange,
+  note,
+  data,
+}: {
+  label: string;
+  on: boolean;
+  onChange: (on: boolean) => void;
+  note?: string | undefined;
+  /** A data-setting marker for checks. */
+  data?: string;
+}) {
   return (
-    <button type="button" role="switch" aria-checked={on} aria-label={label} onClick={() => onChange(!on)} className="ap-row press">
-      <span className="ap-row-title flex-1">{label}</span>
+    <button type="button" role="switch" aria-checked={on} aria-label={label} data-setting={data} onClick={() => onChange(!on)} className="ap-row press">
+      {note ? (
+        <span className="ap-row-text items-start text-left">
+          <span className="ap-row-title">{label}</span>
+          <span data-setting-note className="ap-row-sub">{note}</span>
+        </span>
+      ) : (
+        <span className="ap-row-title flex-1">{label}</span>
+      )}
       <span aria-hidden="true" className="rs-switch" data-on={on ? "" : undefined}>
         <span />
       </span>

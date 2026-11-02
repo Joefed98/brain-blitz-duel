@@ -6,6 +6,17 @@
  * The arena (roof lights, the lit gallery, the boards' LED strips, the neighbouring sheets, the pebbled ice and the
  * lights' reflections on it) is painted once per canvas size into a cached layer; each frame draws only the stones,
  * the broom, the HUD chips and the inset over it. No curl line is ever drawn: reading the ice is the game.
+ *
+ * curlRev 2 (31 Oct 2026) draws a shorter world (390 × 540, CURL_VIEW_V2: the same camera with the arena's top and the
+ * near house's ice cropped, so the world fills the width of a 375 × 667 phone), the stone at its start on the near hog
+ * line with arrows to slide it, a straight aiming line from the stone to the broom (where it is released towards, not
+ * the curl), the brushers on the side being brushed and a larger stone chip. Every view is chosen by the state's rev.
+ *
+ * curlRev 3 (1 Nov 2026, "prepare the shot") draws curlRev 2's view with two aids the stage works out (CurlAim `zone`
+ * and `path`, from the sim's pure helpers curlDrawZone and curlAimPath): a faint aim line along the first third of
+ * the stone's path for the chosen start, target and turn, in place of the straight dashed line, and the weight meter
+ * on the right (weightMeter): the draw zone marked (the weights that bring an unswept stone to rest in the house), its
+ * tee mark, the swipe filling it live and a tick where the last throw was released.
  */
 import type { CanvasSize } from "./engine";
 import type { ArenaSceneView } from "./arenaScene.renderer";
@@ -16,8 +27,10 @@ import {
   BUTTON_R,
   CU,
   CURL_AIM,
+  CURL_DONE,
   CURL_TRAVEL,
   CURLING_H,
+  CURLING_H_V2,
   CURLING_STONES,
   CURLING_W,
   EIGHT_FOOT_R,
@@ -44,24 +57,44 @@ const CX = CURLING_W / 2;
 /** Neighbouring sheets sit this far apart (cm, centre to centre). */
 const SHEET_PITCH = 505;
 
+/**
+ * A view of the sheet (display only): the world's size and the horizon's height. curlRev 2's is the same camera as
+ * curlRev 1's 90 px higher on a world 180 px shorter (the arena's top and the ice nearest the camera cropped).
+ */
+export interface CurlView {
+  rev: number;
+  w: number;
+  h: number;
+  horizon: number;
+  /** The neighbouring sheets' dimming. */
+  dim: number;
+}
+export const CURL_VIEW_V1: CurlView = { rev: 1, w: CURLING_W, h: CURLING_H, horizon: HORIZON, dim: 0.42 };
+export const CURL_VIEW_V2: CurlView = { rev: 2, w: CURLING_W, h: CURLING_H_V2, horizon: HORIZON - 90, dim: 0.3 };
+/** The view a state's (or a stored round's) curlRev draws. */
+export function curlViewFor(rev: number | null | undefined): CurlView {
+  return (rev ?? 1) >= 2 ? CURL_VIEW_V2 : CURL_VIEW_V1;
+}
+
 /** A sheet point (cm) on screen (world px); k is the px per cm across at that depth. */
-export function curlProject(x: number, y: number): { sx: number; sy: number; k: number } {
+export function curlProject(x: number, y: number, v: CurlView = CURL_VIEW_V1): { sx: number; sy: number; k: number } {
   const z = Math.max(60, CAM_Y - y);
-  return { sx: CX + (x * FOCAL) / z, sy: HORIZON + HF / z, k: FOCAL / z };
+  return { sx: CX + (x * FOCAL) / z, sy: v.horizon + HF / z, k: FOCAL / z };
 }
 
 /** A screen point (world px) back on the sheet (cm); null above the far boards. */
-export function curlUnproject(sx: number, sy: number): { x: number; y: number } | null {
-  if (sy <= HORIZON + 1) return null;
-  const z = HF / (sy - HORIZON);
+export function curlUnproject(sx: number, sy: number, v: CurlView = CURL_VIEW_V1): { x: number; y: number } | null {
+  if (sy <= v.horizon + 1) return null;
+  const z = HF / (sy - v.horizon);
   return { x: ((sx - CX) * z) / FOCAL, y: CAM_Y - z };
 }
 
-/** The far house on screen (world px): its centre and its across-radius, for the stage's broom drag. */
-export const CURL_FAR_HOUSE = (() => {
-  const c = curlProject(0, 0);
-  return { sx: c.sx, sy: c.sy, rx: HOUSE_R * c.k, top: curlProject(0, -HOUSE_R).sy - 18, bottom: curlProject(0, HOUSE_R).sy + 26 };
-})();
+/** The far house on screen (world px) in a view: its centre and its across-radius, for the stage's broom drag. */
+export function curlFarHouse(v: CurlView): { sx: number; sy: number; rx: number; top: number; bottom: number } {
+  const c = curlProject(0, 0, v);
+  return { sx: c.sx, sy: c.sy, rx: HOUSE_R * c.k, top: curlProject(0, -HOUSE_R, v).sy - 18, bottom: curlProject(0, HOUSE_R, v).sy + 26 };
+}
+export const CURL_FAR_HOUSE = curlFarHouse(CURL_VIEW_V1);
 
 /** The inset (top right): its box (world px) and its scale (px a cm), centred on the far tee. */
 export const CURL_INSET = { x: 262, y: 10, w: 120, h: 120, scale: 120 / 2 / 205 };
@@ -91,14 +124,15 @@ const LED = "#3FD6FF";
 
 /* ============================ The static layer ============================ */
 
-let cache: { canvas: HTMLCanvasElement; w: number; h: number } | null = null;
+let cache: { canvas: HTMLCanvasElement; w: number; h: number; rev: number } | null = null;
 
 /** One sheet's ice, rings and lines, centred `offset` cm across. */
-function sheet(ctx: CanvasRenderingContext2D, offset: number, dim: number): void {
+function sheet(ctx: CanvasRenderingContext2D, offset: number, dim: number, v: CurlView): void {
+  const P = (x: number, y: number) => curlProject(x, y, v);
   const near = BACK_NEAR + 300;
   const far = BACK_FAR - 120;
-  const q = [curlProject(offset - SHEET_HALF_W, far), curlProject(offset + SHEET_HALF_W, far), curlProject(offset + SHEET_HALF_W, near), curlProject(offset - SHEET_HALF_W, near)];
-  const g = ctx.createLinearGradient(0, q[0]!.sy, 0, CURLING_H);
+  const q = [P(offset - SHEET_HALF_W, far), P(offset + SHEET_HALF_W, far), P(offset + SHEET_HALF_W, near), P(offset - SHEET_HALF_W, near)];
+  const g = ctx.createLinearGradient(0, q[0]!.sy, 0, v.h);
   g.addColorStop(0, ICE_FAR);
   g.addColorStop(0.35, "#DCE7EF");
   g.addColorStop(1, ICE);
@@ -121,7 +155,7 @@ function sheet(ctx: CanvasRenderingContext2D, offset: number, dim: number): void
         ctx.beginPath();
         for (let i = 0; i <= 64; i++) {
           const a = (i / 64) * Math.PI * 2;
-          const p = curlProject(offset + Math.cos(a) * r, cy + Math.sin(a) * r);
+          const p = P(offset + Math.cos(a) * r, cy + Math.sin(a) * r);
           if (i === 0) ctx.moveTo(p.sx, p.sy);
           else ctx.lineTo(p.sx, p.sy);
         }
@@ -132,8 +166,8 @@ function sheet(ctx: CanvasRenderingContext2D, offset: number, dim: number): void
     }
   }
   const across = (y: number, colour: string, w: number) => {
-    const a = curlProject(offset - SHEET_HALF_W, y);
-    const b = curlProject(offset + SHEET_HALF_W, y);
+    const a = P(offset - SHEET_HALF_W, y);
+    const b = P(offset + SHEET_HALF_W, y);
     ctx.strokeStyle = colour;
     ctx.lineWidth = Math.max(0.5, w * a.k);
     ctx.beginPath();
@@ -147,8 +181,8 @@ function sheet(ctx: CanvasRenderingContext2D, offset: number, dim: number): void
   across(HOG_FAR, RING_RED, 10);
   across(HOG_NEAR, RING_RED, 10);
   // The centre line.
-  const c0 = curlProject(offset, BACK_FAR - 120);
-  const c1 = curlProject(offset, near);
+  const c0 = P(offset, BACK_FAR - 120);
+  const c1 = P(offset, near);
   ctx.strokeStyle = "#2B2B3399";
   ctx.lineWidth = 0.7;
   ctx.beginPath();
@@ -161,14 +195,14 @@ function sheet(ctx: CanvasRenderingContext2D, offset: number, dim: number): void
     const v = artHash(i, 23 + offset) / 4294967296;
     const y = far + (near - far) * Math.sqrt(v);
     const x = offset + (u * 2 - 1) * SHEET_HALF_W;
-    const p = curlProject(x, y);
+    const p = P(x, y);
     ctx.fillStyle = i % 3 ? "#FFFFFF55" : "#9FB3C455";
     ctx.fillRect(p.sx, p.sy, Math.max(0.5, p.k * 1.4), Math.max(0.5, p.k * 1.1));
   }
   // The roof lights' reflections: long soft streaks down the ice.
   for (const lx of [-120, 120]) {
     for (const ly of [300, 1300, 2300]) {
-      const p = curlProject(offset + lx, ly);
+      const p = P(offset + lx, ly);
       const r = ctx.createRadialGradient(p.sx, p.sy, 0, p.sx, p.sy, 70 * p.k + 6);
       r.addColorStop(0, "#FFFFFFAA");
       r.addColorStop(1, "#FFFFFF00");
@@ -183,13 +217,13 @@ function sheet(ctx: CanvasRenderingContext2D, offset: number, dim: number): void
   }
   if (dim > 0) {
     ctx.fillStyle = `rgba(10,16,28,${dim})`;
-    ctx.fillRect(0, 0, CURLING_W, CURLING_H);
+    ctx.fillRect(0, 0, v.w, v.h);
   }
   ctx.restore();
   // The side boards and their LED strips.
   for (const side of [-1, 1]) {
-    const a = curlProject(offset + side * (SHEET_HALF_W + 4), far);
-    const b = curlProject(offset + side * (SHEET_HALF_W + 4), near);
+    const a = P(offset + side * (SHEET_HALF_W + 4), far);
+    const b = P(offset + side * (SHEET_HALF_W + 4), near);
     ctx.strokeStyle = "#1A2230";
     ctx.lineWidth = 2.5;
     ctx.beginPath();
@@ -275,8 +309,8 @@ function arena(ctx: CanvasRenderingContext2D, top: number, bottom: number): void
   ctx.restore();
 }
 
-function paintStatic(ctx: CanvasRenderingContext2D): void {
-  const farEdge = curlProject(0, BACK_FAR - 120).sy;
+function paintStatic(ctx: CanvasRenderingContext2D, v: CurlView): void {
+  const farEdge = curlProject(0, BACK_FAR - 120, v).sy;
   arena(ctx, -200, farEdge);
   // The floor between sheets.
   ctx.fillStyle = "#0E1520";
@@ -287,32 +321,32 @@ function paintStatic(ctx: CanvasRenderingContext2D): void {
   ctx.lineTo(-400, CURLING_H + 200);
   ctx.closePath();
   ctx.fill();
-  for (const off of [-2 * SHEET_PITCH, 2 * SHEET_PITCH, -SHEET_PITCH, SHEET_PITCH]) sheet(ctx, off, 0.42);
-  sheet(ctx, 0, 0);
+  for (const off of [-2 * SHEET_PITCH, 2 * SHEET_PITCH, -SHEET_PITCH, SHEET_PITCH]) sheet(ctx, off, v.dim, v);
+  sheet(ctx, 0, 0, v);
 }
 
-function staticLayer(ctx: CanvasRenderingContext2D): HTMLCanvasElement | null {
+function staticLayer(ctx: CanvasRenderingContext2D, v: CurlView): HTMLCanvasElement | null {
   if (typeof document === "undefined") return null;
   const t = ctx.getTransform();
-  const w = Math.max(1, Math.round(CURLING_W * t.a));
-  const h = Math.max(1, Math.round(CURLING_H * t.d));
-  if (cache && cache.w === w && cache.h === h) return cache.canvas;
+  const w = Math.max(1, Math.round(v.w * t.a));
+  const h = Math.max(1, Math.round(v.h * t.d));
+  if (cache && cache.w === w && cache.h === h && cache.rev === v.rev) return cache.canvas;
   const canvas = document.createElement("canvas");
   canvas.width = w;
   canvas.height = h;
   const c = canvas.getContext("2d");
   if (!c) return null;
-  c.scale(w / CURLING_W, h / CURLING_H);
-  paintStatic(c);
-  cache = { canvas, w, h };
+  c.scale(w / v.w, h / v.h);
+  paintStatic(c, v);
+  cache = { canvas, w, h, rev: v.rev };
   return canvas;
 }
 
 /* ================================ Stones ================================ */
 
 /** A granite stone at a sheet point: a short cylinder with a speckled top and its handle (gold or red). */
-function stone(ctx: CanvasRenderingContext2D, x: number, y: number, mine: boolean, seed: number, moving: boolean): void {
-  const p = curlProject(x, y);
+function stone(ctx: CanvasRenderingContext2D, x: number, y: number, mine: boolean, seed: number, moving: boolean, v: CurlView): void {
+  const p = curlProject(x, y, v);
   const rx = STONE_R * p.k;
   const ry = Math.max(rx * 0.22, (STONE_R * HF) / Math.max(60, CAM_Y - y) ** 2);
   const lift = Math.max(1.2, 11 * p.k);
@@ -370,6 +404,23 @@ function stone(ctx: CanvasRenderingContext2D, x: number, y: number, mine: boolea
 }
 
 /* ================================ The HUD ================================ */
+
+/** The stone count's chip (all revisions, display only): larger type, near-black with a gold edge, white figures. */
+function stoneChip(ctx: CanvasRenderingContext2D, x: number, y: number, text: string): number {
+  ctx.font = "800 16px Archivo, system-ui, sans-serif";
+  const w = Math.ceil(ctx.measureText(text).width) + 24;
+  ctx.fillStyle = "#05080FF2";
+  ctx.strokeStyle = "#E8B53ACC";
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.roundRect(x, y, w, 30, 15);
+  ctx.fill();
+  ctx.stroke();
+  ctx.fillStyle = "#FFFFFF";
+  ctx.textBaseline = "middle";
+  ctx.fillText(text, x + 12, y + 15.5);
+  return w;
+}
 
 function chip(ctx: CanvasRenderingContext2D, x: number, y: number, text: string, w: number): void {
   ctx.fillStyle = "#0A0F18CC";
@@ -448,14 +499,30 @@ function inset(ctx: CanvasRenderingContext2D, s: CurlingState, aim: CurlAim | nu
   ctx.restore();
 }
 
-/** What the stage shows over the sim (presentation only): the broom, the turn, the swipe's weight. */
+/** What the stage shows over the sim (presentation only): the broom, the turn, the swipe's weight, the start. */
 export interface CurlAim {
   broomX: number;
   broomY: number;
+  /** curlRev 2: the stone's start x on the near hog line (cm); absent or 0 the centre line. */
+  startX?: number;
   /** 0 In, 1 Out. */
   turn: number;
   /** A swipe in progress: its weight so far (1…1000), else null. */
   swipe: number | null;
+  /** curlRev 3: the draw zone for this start, target and turn (weights), or null when no weight reaches the house. */
+  zone?: { lo: number; hi: number; tee: number } | null;
+  /** curlRev 3: the first third of the stone's path at the zone's tee weight (sheet cm). */
+  path?: readonly { x: number; y: number }[] | null;
+  /** curlRev 3: the weight the last throw was released at (the meter's tick), and the keyboard's set weight. */
+  lastRelease?: number | null;
+  keyWeight?: number | null;
+}
+
+/** curlRev 3's weight meter (world px, curlRev 2's 390 × 540 view): a bar on the right, weight 0 at the bottom. */
+export const CURL_METER = { x: 360, y: 214, w: 14, h: 252 };
+/** The meter's y (world px) for a weight. */
+export function curlMeterY(w: number): number {
+  return CURL_METER.y + CURL_METER.h - (CURL_METER.h * Math.max(0, Math.min(1000, w))) / 1000;
 }
 
 /** The weight's words for the swipe pill. */
@@ -466,8 +533,8 @@ export function curlWeightWord(w: number): string {
   return "Takeout";
 }
 
-function broom(ctx: CanvasRenderingContext2D, x: number, y: number): void {
-  const p = curlProject(x, y);
+function broom(ctx: CanvasRenderingContext2D, x: number, y: number, v: CurlView): void {
+  const p = curlProject(x, y, v);
   ctx.save();
   ctx.shadowColor = GOLD;
   ctx.shadowBlur = 8;
@@ -484,8 +551,8 @@ function broom(ctx: CanvasRenderingContext2D, x: number, y: number): void {
   ctx.stroke();
 }
 
-function turnMark(ctx: CanvasRenderingContext2D, turn: number): void {
-  const p = curlProject(0, HOG_NEAR + 40);
+function turnMark(ctx: CanvasRenderingContext2D, turn: number, v: CurlView, x = 0): void {
+  const p = curlProject(x, HOG_NEAR + 40, v);
   const r = 22;
   const dir = turn === 0 ? 1 : -1;
   ctx.strokeStyle = GOLD;
@@ -509,48 +576,186 @@ function turnMark(ctx: CanvasRenderingContext2D, turn: number): void {
 
 /* ================================= Frame ================================= */
 
-/** One frame in world px (390 × 720): the cached arena and sheets, the stones, the broom, the HUD chips and the inset. */
+/** curlRev 2: the straight line the stone is released along, from its start to the broom (dashed gold, fading out). */
+function aimLine(ctx: CanvasRenderingContext2D, fromX: number, toX: number, toY: number, v: CurlView): void {
+  const a = curlProject(fromX, HOG_NEAR, v);
+  const b = curlProject(toX, toY, v);
+  const g = ctx.createLinearGradient(a.sx, a.sy, b.sx, b.sy);
+  g.addColorStop(0, "#FFE29AE6");
+  g.addColorStop(1, "#FFE29A40");
+  ctx.save();
+  ctx.strokeStyle = g;
+  ctx.lineWidth = 1.6;
+  ctx.setLineDash([6, 5]);
+  ctx.beginPath();
+  ctx.moveTo(a.sx, a.sy - 4);
+  ctx.lineTo(b.sx, b.sy);
+  ctx.stroke();
+  ctx.restore();
+}
+
+/** curlRev 3: the faint aim line, the first third of the path (sheet cm), fading as it runs on. */
+function aimPath(ctx: CanvasRenderingContext2D, path: readonly { x: number; y: number }[], v: CurlView): void {
+  if (path.length < 2) return;
+  const pts = path.map((p) => curlProject(p.x, p.y, v));
+  const a = pts[0]!;
+  const b = pts[pts.length - 1]!;
+  const g = ctx.createLinearGradient(a.sx, a.sy, b.sx, b.sy);
+  g.addColorStop(0, "#FFF3C4C0");
+  g.addColorStop(1, "#FFF3C410");
+  ctx.save();
+  ctx.strokeStyle = g;
+  ctx.lineWidth = 2.5;
+  ctx.lineCap = "round";
+  ctx.beginPath();
+  ctx.moveTo(a.sx, a.sy - 4);
+  for (let k = 1; k < pts.length; k += 2) ctx.lineTo(pts[k]!.sx, pts[k]!.sy);
+  ctx.lineTo(b.sx, b.sy);
+  ctx.stroke();
+  ctx.restore();
+}
+
+/**
+ * curlRev 3's weight meter: the bar (light at the bottom, heavy at the top), the draw zone (gold, "HOUSE") with its tee
+ * mark, the live swipe's fill and the last release's tick.
+ */
+function weightMeter(ctx: CanvasRenderingContext2D, aim: CurlAim, aiming: boolean): void {
+  const m = CURL_METER;
+  ctx.save();
+  ctx.fillStyle = "#05080FD9";
+  ctx.strokeStyle = "#FFFFFF33";
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.roundRect(m.x - 3, m.y - 3, m.w + 6, m.h + 6, 6);
+  ctx.fill();
+  ctx.stroke();
+  ctx.font = "800 10px Archivo, system-ui, sans-serif";
+  ctx.textBaseline = "alphabetic";
+  {
+    const lw = ctx.measureText("WEIGHT").width + 12;
+    const right = m.x + m.w + 3;
+    ctx.fillStyle = "#05080FD9";
+    ctx.beginPath();
+    ctx.roundRect(right - lw, m.y - 24, lw, 16, 8);
+    ctx.fill();
+    ctx.textAlign = "center";
+    ctx.fillStyle = "#F3F1EC";
+    ctx.fillText("WEIGHT", right - lw / 2, m.y - 12.5);
+  }
+  const zone = aim.zone;
+  if (zone) {
+    const top = curlMeterY(zone.hi);
+    const bottom = curlMeterY(zone.lo);
+    ctx.fillStyle = "#E8B53A59";
+    ctx.fillRect(m.x, top, m.w, bottom - top);
+    ctx.strokeStyle = GOLD;
+    ctx.lineWidth = 1.5;
+    ctx.strokeRect(m.x + 0.75, top + 0.75, m.w - 1.5, bottom - top - 1.5);
+    const tee = curlMeterY(zone.tee);
+    ctx.fillStyle = GOLD_HI;
+    ctx.fillRect(m.x - 4, tee - 1, m.w + 8, 2);
+    const lw = ctx.measureText("HOUSE").width + 10;
+    ctx.fillStyle = "#05080FD9";
+    ctx.beginPath();
+    ctx.roundRect(m.x - 7 - lw, tee - 8, lw, 16, 8);
+    ctx.fill();
+    ctx.textAlign = "center";
+    ctx.fillStyle = GOLD_HI;
+    ctx.fillText("HOUSE", m.x - 7 - lw / 2, tee + 3.5);
+  }
+  const fill = aiming ? (aim.swipe ?? aim.keyWeight ?? null) : null;
+  if (fill != null) {
+    const y = curlMeterY(fill);
+    const inZone = zone && fill >= zone.lo && fill <= zone.hi;
+    ctx.fillStyle = inZone ? "#FFE29ACC" : "#F3F1EC99";
+    ctx.fillRect(m.x + 3, y, m.w - 6, m.y + m.h - y);
+  }
+  if (aim.lastRelease != null) {
+    const y = curlMeterY(aim.lastRelease);
+    ctx.fillStyle = "#F3F1EC";
+    ctx.beginPath();
+    ctx.moveTo(m.x + m.w + 2, y);
+    ctx.lineTo(m.x + m.w + 9, y - 5);
+    ctx.lineTo(m.x + m.w + 9, y + 5);
+    ctx.closePath();
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
+/** curlRev 2: the slide arrows either side of the waiting stone (drag it along the hog line). */
+function slideArrows(ctx: CanvasRenderingContext2D, x: number, v: CurlView): void {
+  const p = curlProject(x, HOG_NEAR, v);
+  const off = STONE_R * p.k + 9;
+  ctx.fillStyle = "#FFE29AD9";
+  for (const side of [-1, 1]) {
+    const tx = p.sx + side * off;
+    ctx.beginPath();
+    ctx.moveTo(tx + side * 7, p.sy - 5);
+    ctx.lineTo(tx, p.sy - 10);
+    ctx.lineTo(tx, p.sy);
+    ctx.closePath();
+    ctx.fill();
+  }
+}
+
+/**
+ * One frame in world px (curlRev 1: 390 × 720; curlRev 2: 390 × 540): the cached arena and sheets, the stones, the
+ * broom, the HUD chips and the inset.
+ */
 export function drawCurling(ctx: CanvasRenderingContext2D, s: CurlingState, aim: CurlAim | null): void {
-  const layer = staticLayer(ctx);
-  if (layer) ctx.drawImage(layer, 0, 0, CURLING_W, CURLING_H);
-  else paintStatic(ctx);
+  const v = curlViewFor(s.rev);
+  const layer = staticLayer(ctx, v);
+  if (layer) ctx.drawImage(layer, 0, 0, v.w, v.h);
+  else paintStatic(ctx, v);
+  const startX = v.rev >= 2 ? (aim?.startX ?? 0) : 0;
+  if (s.phase === CURL_AIM && aim && s.rev >= 3) {
+    if (aim.path) aimPath(ctx, aim.path, v);
+  } else if (s.phase === CURL_AIM && aim && v.rev >= 2) aimLine(ctx, startX, aim.broomX, aim.broomY, v);
   // Stones, far ones first.
   const order = s.x.map((_, k) => k).filter((k) => s.live[k]).sort((a, b) => s.y[a]! - s.y[b]!);
-  for (const k of order) stone(ctx, s.x[k]! / CU, s.y[k]! / CU, s.team[k] === TEAM_MINE, k * 7919 + s.seed, s.vx[k] !== 0 || s.vy[k] !== 0);
+  for (const k of order) stone(ctx, s.x[k]! / CU, s.y[k]! / CU, s.team[k] === TEAM_MINE, k * 7919 + s.seed, s.vx[k] !== 0 || s.vy[k] !== 0, v);
   // The stone waiting on the near hog line, and the turn and broom while aiming.
   if (s.phase === CURL_AIM && aim) {
-    broom(ctx, aim.broomX, aim.broomY);
-    stone(ctx, 0, HOG_NEAR, true, s.thrown * 31 + s.seed, false);
-    turnMark(ctx, aim.turn);
+    broom(ctx, aim.broomX, aim.broomY, v);
+    stone(ctx, startX, HOG_NEAR, true, s.thrown * 31 + s.seed, false, v);
+    turnMark(ctx, aim.turn, v, startX);
+    if (v.rev >= 2) slideArrows(ctx, startX, v);
   }
-  // Sweepers' brooms working the ice in front of the moving stone.
-  if (s.phase === CURL_TRAVEL && s.active >= 0 && s.sweep > 0 && s.live[s.active]) {
+  // Sweepers' brooms working the ice in front of the moving stone (curlRev 2: on the side being brushed).
+  const brushing = v.rev >= 2 ? (s.bend ?? 0) !== 0 || s.sweep > 0 : s.sweep > 0;
+  if (s.phase === CURL_TRAVEL && s.active >= 0 && brushing && s.live[s.active]) {
+    const side = v.rev >= 2 ? Math.sign(s.bend ?? 0) : 0;
     const ahead = s.y[s.active]! / CU - 60;
-    const p = curlProject(s.x[s.active]! / CU, ahead);
+    const p = curlProject(s.x[s.active]! / CU + side * 26, ahead, v);
     const wob = Math.sin(s.tick * 0.9) * 4 * p.k * 10;
     ctx.fillStyle = "#F3F1ECCC";
-    for (const side of [-1, 1]) {
+    for (const pair of side === 0 ? [-1, 1] : [side * 0.4, side * 1.4]) {
       ctx.beginPath();
-      ctx.ellipse(p.sx + side * 9 * p.k * 10 * 0.25 + wob * side, p.sy, Math.max(2, 9 * p.k), Math.max(0.8, 2.4 * p.k), 0, 0, Math.PI * 2);
+      ctx.ellipse(p.sx + pair * 9 * p.k * 10 * 0.25 + wob * Math.sign(pair), p.sy, Math.max(2, 9 * p.k), Math.max(0.8, 2.4 * p.k), 0, 0, Math.PI * 2);
       ctx.fill();
     }
   }
-  // HUD chips (top left): the stone and the sweep meter.
-  chip(ctx, 10, 10, `STONE ${Math.min(CURLING_STONES, s.thrown + (s.phase === CURL_AIM ? 1 : 0))}/${CURLING_STONES}`, 86);
+  // HUD chips (top left): the stone and the brush (sweep) meter.
+  stoneChip(ctx, 10, 10, `STONE ${Math.min(CURLING_STONES, s.thrown + (s.phase === CURL_AIM ? 1 : 0))}/${CURLING_STONES}`);
   if (s.phase === CURL_TRAVEL) {
-    chip(ctx, 10, 38, "SWEEP", 112);
+    const bend = s.bend ?? 0;
+    const label = v.rev >= 2 ? (bend < 0 ? "BRUSH ◀" : bend > 0 ? "BRUSH ▶" : "BRUSH") : "SWEEP";
+    chip(ctx, 10, 46, label, 136);
     ctx.fillStyle = "#FFFFFF22";
-    ctx.fillRect(64, 46, 46, 6);
+    ctx.fillRect(82, 54, 52, 6);
     ctx.fillStyle = GOLD;
-    ctx.fillRect(64, 46, (46 * Math.min(s.sweep, SWEEP_MAX)) / SWEEP_MAX, 6);
+    ctx.fillRect(82, 54, (52 * Math.min(s.sweep, SWEEP_MAX)) / SWEEP_MAX, 6);
   }
   inset(ctx, s, aim);
-  // The swipe's weight pill, low on the lane.
-  if (aim?.swipe != null && s.phase === CURL_AIM) {
+  // curlRev 3: the weight meter (while aiming and as the stone travels, with the last release's tick).
+  if (aim && s.rev >= 3 && s.phase !== CURL_DONE) weightMeter(ctx, aim, s.phase === CURL_AIM);
+  // The swipe's weight pill, low on the lane (curlRev 1 and 2).
+  if (aim?.swipe != null && s.phase === CURL_AIM && s.rev < 3) {
     const text = `${curlWeightWord(aim.swipe)} · ${Math.round(aim.swipe / 10)}%`;
     ctx.font = "700 12px Archivo, system-ui, sans-serif";
     const w = ctx.measureText(text).width + 24;
-    chip(ctx, CX - w / 2, CURLING_H - 120, text, w);
+    chip(ctx, CX - w / 2, v.h - (v.rev >= 2 ? 150 : 120), text, w);
   }
 }
 
@@ -559,17 +764,18 @@ export function drawCurling(ctx: CanvasRenderingContext2D, s: CurlingState, aim:
  * neighbouring sheets, which already run past the world's edges) carried on out to the box, so the ice and the
  * arena continue across every edge with no seam, then settling darker below the world.
  */
-export function curlingScene(ctx: CanvasRenderingContext2D, view: ArenaSceneView): void {
+export function curlingScene(ctx: CanvasRenderingContext2D, view: ArenaSceneView, rev: number | null = 1): void {
+  const v = curlViewFor(rev);
   ctx.fillStyle = "#0E1520";
   ctx.fillRect(view.left, view.top, view.right - view.left, view.bottom - view.top);
-  paintStatic(ctx);
-  const below = view.bottom - CURLING_H;
+  paintStatic(ctx, v);
+  const below = view.bottom - v.h;
   if (below > 0.01) {
-    const g = ctx.createLinearGradient(0, CURLING_H, 0, view.bottom);
+    const g = ctx.createLinearGradient(0, v.h, 0, view.bottom);
     g.addColorStop(0, "rgba(10,16,28,0)");
     g.addColorStop(1, "rgba(10,16,28,0.55)");
     ctx.fillStyle = g;
-    ctx.fillRect(view.left, CURLING_H, view.right - view.left, below);
+    ctx.fillRect(view.left, v.h, view.right - view.left, below);
   }
 }
 

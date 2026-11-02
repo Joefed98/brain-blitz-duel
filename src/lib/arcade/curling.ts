@@ -22,6 +22,20 @@
  * Takeouts up to 30 (the opponent's stones out of the house at the end, shared evenly), Red ring up to 30 (3.75 a stone
  * finishing in the 4-foot when thrown), Holding shot 20 (your stone nearest the button at the end). Together 200; any
  * throw scores at least 1, no input 0.
+ *
+ * curlRev 2 (31 Oct 2026, Joe's notes; the same parts): the throw carries its start x on the near hog line (input d),
+ * and a brush stroke its side (input b: −1 left of the stone, +1 right). Brushing pushes the stone across the sheet
+ * towards the brushed side and eases its slowing a little (BEND_*, BRUSH_CARRY_PCT, CARRY_MAX); it no longer halves the
+ * curl. With no stroke a curlRev 2 stone slides exactly as a curlRev 1 one. Rooms deal curlRev 2 sheets from their own
+ * proven bank (src/lib/duel/curlingBankV2.server.ts).
+ *
+ * curlRev 3 (1 Nov 2026, Joe's "prepare the shot"; docs/arcade-standard/curling.md): curlRev 2's sheet, brushing and
+ * controls, with the weight on a gentler line (1…1000 → CURL_VMIN_V3…CURL_VMAX_V3, so the meter's draw zone is wider)
+ * and the stone's closeness core re-fitted (curlStonePointsFor). The phone shows a weight meter with the draw zone
+ * (curlDrawZone: the weights that stop an unswept stone from this start, broom and turn inside the house on an empty
+ * sheet) and a faint aim line (curlAimPath: the first third of the stone's path at the zone's tee weight, stepped
+ * through curlMotionTick on a copy of the sheet); both are pure helpers here that only read, never the sim's state.
+ * Rooms deal curlRev 3 sheets from their own proven bank (src/lib/duel/curlingBankV3.server.ts).
  */
 import { clampInt, inputRange, isqrt, type ArcadeGame, type ArcadeInputEvent, type CanvasSize } from "./engine";
 import { stdFinal, stdLine, stdPart, type StdPart, type StdSpec } from "./arcadeStandard";
@@ -29,7 +43,16 @@ import { collideEqual, idiv, ilen, sumInts, type SportsCheckpoint } from "./spor
 
 /* ================================ Constants ================================ */
 
-export const CURLING_REV = 1;
+/**
+ * The dealt stamp. curlRev 2 (31 Oct 2026, Joe's notes): the stone slides along the near hog line to its start, and a
+ * brush stroke has a side (left or right of the stone) that bends the stone that way and carries it a little further.
+ * curlRev 1 (every stone from the centre line; a sweep runs further and curls less) replays and scores as before.
+ */
+export const CURLING_REV = 3;
+/** The first revision (30 Oct 2026). */
+export const CURLING_REV_V1 = 1;
+/** curlRev 2 (31 Oct 2026): the start along the near hog line and side brushing. */
+export const CURLING_REV_V2 = 2;
 export const CURLING_RUN_S = 120;
 export const CURLING_RUN_TICKS = CURLING_RUN_S * 60;
 export const CURLING_STONES = 8;
@@ -37,6 +60,12 @@ export const CURLING_STONES = 8;
 /** The world the canvas draws (the broadcast view), world px. */
 export const CURLING_W = 390;
 export const CURLING_H = 720;
+/** curlRev 2's world (display only): the same width, shorter, so the world fills the width on a 375 × 667 phone. */
+export const CURLING_H_V2 = 540;
+/** The world's height for a revision (display only). */
+export function curlingWorldHFor(rev: number | null | undefined): number {
+  return (rev ?? CURLING_REV_V1) >= 2 ? CURLING_H_V2 : CURLING_H;
+}
 
 /** Sheet units: 1 cm = CU. */
 export const CU = 4096;
@@ -59,6 +88,12 @@ export const BACK_NEAR = 3658;
 /** Release speeds (cm a tick) at weight 1 and 1000; a draw to the button is about 15.75 (6 s). */
 export const CURL_VMIN = 13;
 export const CURL_VMAX = 22;
+/**
+ * curlRev 3's release speeds (cm a tick) at weight 0 and 1000: a gentler line over the band a game uses (a draw to the
+ * tee is weight about 316, the house's depth about 200 weights wide, rev 2's heaviest witness takeout 18.9 cm a tick).
+ */
+export const CURL_VMIN_V3 = 14;
+export const CURL_VMAX_V3 = 19.5;
 /** The slowing a tick (units a tick²) and the speed below which a stone stops. */
 export const CURL_DECEL = 179;
 export const CURL_STOP_V = 60;
@@ -79,14 +114,41 @@ export const CURL_TRAVEL_CAP = 900;
 /** Substeps a tick (a stone moves at most about 6 cm a substep). */
 const SUB = 4;
 
-/** Input kind 1: a throw. a = broom x (cm), b = broom y (cm from the far tee), c = weight × 2 + turn (0 In, 1 Out). */
+/**
+ * curlRev 2's brushing (a stroke on one side of the moving stone): each stroke adds 3 × its strength to the carry
+ * meter (the sweep meter, capped at CARRY_MAX, draining SWEEP_DECAY a tick; at SWEEP_FULL and above the stone slows
+ * BRUSH_CARRY_PCT % less; the curl is untouched) and ± 3 × its strength to the bend meter (capped at ± BEND_MAX,
+ * draining BEND_DECAY a tick towards 0), which pushes the stone sideways (across the sheet, towards the brushed side)
+ * by up to BEND_A units a tick² at BEND_FULL. The low caps make both fade within about a second of the last stroke.
+ */
+export const BRUSH_CARRY_PCT = 8;
+export const CARRY_MAX = 300;
+export const BEND_MAX = 260;
+export const BEND_FULL = 200;
+export const BEND_DECAY = 5;
+export const BEND_A = 20;
+/** curlRev 2: how far (cm) either side of the centre line the stone may start on the near hog line. */
+export const CURL_START_MAX = 100;
+
+/**
+ * Input kind 1: a throw. a = broom x (cm), b = broom y (cm from the far tee), c = weight × 2 + turn (0 In, 1 Out);
+ * curlRev 2 adds d = the start x on the near hog line (cm, ± CURL_START_MAX; curlRev 1 starts on the centre line).
+ */
 export const CURL_INPUT_THROW = 1;
-/** Input kind 2: a sweep stroke, a = its strength 1…100. */
+/**
+ * Input kind 2: a sweep stroke, a = its strength 1…100; curlRev 2 adds b = the side brushed (−1 left of the stone,
+ * +1 right of it, as the player sees it: −1 bends it left, towards −x; 0 carries only).
+ */
 export const CURL_INPUT_SWEEP = 2;
 export const CURL_WEIGHT_MAX = 1000;
 export const CURLING_INPUT_RANGES = [
   inputRange(CURL_INPUT_THROW, [-200, 200], [-183, 183], [2, CURL_WEIGHT_MAX * 2 + 1]),
   inputRange(CURL_INPUT_SWEEP, [1, 100]),
+] as const;
+/** curlRev 2's ranges: the throw's start x and the stroke's side. */
+export const CURLING_INPUT_RANGES_V2 = [
+  inputRange(CURL_INPUT_THROW, [-200, 200], [-183, 183], [2, CURL_WEIGHT_MAX * 2 + 1], [-CURL_START_MAX, CURL_START_MAX]),
+  inputRange(CURL_INPUT_SWEEP, [1, 100], [-1, 1]),
 ] as const;
 
 export const CURL_AIM = 0;
@@ -103,11 +165,24 @@ export const CURL_TAKEOUT_PTS = 30;
 export const CURL_RED_PTS = 30;
 export const CURL_HOLD_PTS = 20;
 
+/** curlRev 1 and 2's spec (the same parts as curlRev 3's). */
+export const CURLING_STD_SPEC_V2: StdSpec = {
+  field: "curlRev",
+  rev: CURLING_REV_V2,
+  parts: [
+    { key: "core", label: "Stones", max: 120, of: CURLING_STONES, item: "stone", how: `up to ${CURL_STONE_PTS} a stone by how close to the button it comes to rest` },
+    { key: "takeouts", label: "Takeouts", max: CURL_TAKEOUT_PTS, of: 1, item: "takeout", how: "the opponent's stones knocked out of the house, shared evenly" },
+    { key: "redring", label: "Red ring", max: CURL_RED_PTS, of: CURLING_STONES, item: "stone", how: "3.75 a stone finishing in the 4-foot" },
+    { key: "hold", label: "Holding shot", max: CURL_HOLD_PTS, of: 1, item: "shot", how: "your stone nearest the button at the end" },
+  ],
+};
+
+/** curlRev 3's spec: the same parts and maximums, the core's line running out to 3.2 m from the button. */
 export const CURLING_STD_SPEC: StdSpec = {
   field: "curlRev",
   rev: CURLING_REV,
   parts: [
-    { key: "core", label: "Stones", max: 120, of: CURLING_STONES, item: "stone", how: `up to ${CURL_STONE_PTS} a stone by how close to the button it comes to rest` },
+    { key: "core", label: "Stones", max: 120, of: CURLING_STONES, item: "stone", how: `up to ${CURL_STONE_PTS} a stone by how close to the button it comes to rest (none from 3.2 m away)` },
     { key: "takeouts", label: "Takeouts", max: CURL_TAKEOUT_PTS, of: 1, item: "takeout", how: "the opponent's stones knocked out of the house, shared evenly" },
     { key: "redring", label: "Red ring", max: CURL_RED_PTS, of: CURLING_STONES, item: "stone", how: "3.75 a stone finishing in the 4-foot" },
     { key: "hold", label: "Holding shot", max: CURL_HOLD_PTS, of: 1, item: "shot", how: "your stone nearest the button at the end" },
@@ -139,6 +214,8 @@ export interface CurlingState {
   active: number;
   travelTicks: number;
   sweep: number;
+  /** curlRev 2: the bend meter (signed, − bends left); 0 on curlRev 1. */
+  bend: number;
   /** Per throw: closeness points (0–15) and whether it came to rest in the 4-foot, when thrown. */
   pts: number[];
   four: number[];
@@ -179,11 +256,11 @@ export function curlingOpponents(seed: number): { x: number; y: number }[] {
   return out;
 }
 
-function initState(seed: number): CurlingState {
+function initState(seed: number, rev: number): CurlingState {
   const opp = curlingOpponents(seed);
   return {
     tick: 0,
-    rev: CURLING_REV,
+    rev,
     seed,
     phase: CURL_AIM,
     x: opp.map((o) => o.x * CU),
@@ -198,6 +275,7 @@ function initState(seed: number): CurlingState {
     active: -1,
     travelTicks: 0,
     sweep: 0,
+    bend: 0,
     pts: [],
     four: [],
     acted: 0,
@@ -209,11 +287,14 @@ function initState(seed: number): CurlingState {
   };
 }
 
-/** A throw's release velocity (units a tick) towards the broom (cm) at a weight 1…1000. */
-export function curlRelease(broomX: number, broomY: number, weight: number): { vx: number; vy: number } {
+/**
+ * A throw's release velocity (units a tick) towards the broom (cm) at a weight 1…1000, from `startX` cm across on the
+ * near hog line (curlRev 2; 0, the centre line, on curlRev 1).
+ */
+export function curlRelease(broomX: number, broomY: number, weight: number, startX = 0, rev = CURLING_REV_V1): { vx: number; vy: number } {
   const w = clampInt(Math.trunc(weight), 1, CURL_WEIGHT_MAX);
-  const speed = CURL_VMIN * CU + idiv((CURL_VMAX - CURL_VMIN) * CU * w, CURL_WEIGHT_MAX);
-  const dx = broomX * CU;
+  const speed = rev >= 3 ? cm(CURL_VMIN_V3) + idiv(cm(CURL_VMAX_V3 - CURL_VMIN_V3) * w, CURL_WEIGHT_MAX) : CURL_VMIN * CU + idiv((CURL_VMAX - CURL_VMIN) * CU * w, CURL_WEIGHT_MAX);
+  const dx = (broomX - startX) * CU;
   const dy = (broomY - HOG_NEAR) * CU;
   const l = ilen(dx, dy);
   return { vx: idiv(dx * speed, l), vy: idiv(dy * speed, l) };
@@ -238,6 +319,21 @@ export function curlStonePoints(x: number, y: number): number {
   return stdLine(CURL_STONE_PTS, Math.max(0, cm(IN_HOUSE) - d), cm(IN_HOUSE - ON_BUTTON));
 }
 
+/**
+ * curlRev 3's core line (re-fitted, 1 Nov 2026): full CURL_STONE_PTS while the stone touches the button (as before),
+ * falling evenly to 0 at CORE_EDGE_V3 cm from the button (3.2 m: about 1.2 m past the house, where curlRev 1 and 2 hit
+ * 0 at its edge), so a near miss scores a little. Fitted on the skill bands (docs/arcade-standard/curling.md).
+ */
+export const CORE_FULL_V3 = ON_BUTTON;
+export const CORE_EDGE_V3 = 320;
+
+/** Closeness points on a revision's line (curlRev 1 and 2: curlStonePoints; curlRev 3: the re-fitted line). */
+export function curlStonePointsFor(rev: number, x: number, y: number): number {
+  if (rev < 3) return curlStonePoints(x, y);
+  const d = curlDist(x, y);
+  return stdLine(CURL_STONE_PTS, Math.max(0, cm(CORE_EDGE_V3) - d), cm(CORE_EDGE_V3 - CORE_FULL_V3));
+}
+
 /** True when a stone at (x, y) is in the house (touching it counts). */
 export function curlInHouse(x: number, y: number): boolean {
   return curlDist(x, y) <= cm(IN_HOUSE);
@@ -248,7 +344,17 @@ export function curlInHouse(x: number, y: number): boolean {
  * stone's curl, slowing, stop and out-of-play checks. The sim and every script that searches throws
  * (scripts/curling-oracle.ts) move stones through this one function. Returns hits this tick and whether anything moves.
  */
-export function curlMotionTick(s: Pick<CurlingState, "x" | "y" | "vx" | "vy" | "live" | "curl">, sweep: number): { hits: number; moving: boolean } {
+/**
+ * curlRev 2's brushing for one stone (index i): the carry meter (0…CARRY_MAX) and the bend meter (± BEND_MAX). Without
+ * it (curlRev 1, or nobody brushing) the motion is curlRev 1's exactly.
+ */
+export interface CurlBrush {
+  i: number;
+  carry: number;
+  bend: number;
+}
+
+export function curlMotionTick(s: Pick<CurlingState, "x" | "y" | "vx" | "vy" | "live" | "curl">, sweep: number, brush?: CurlBrush | null): { hits: number; moving: boolean } {
   const n = s.x.length;
   const reach = cm(STONE_R * 2);
   let hits = 0;
@@ -297,8 +403,15 @@ export function curlMotionTick(s: Pick<CurlingState, "x" | "y" | "vx" | "vy" | "
       vx += idiv(-vy * pull * s.curl[i]!, sp);
       vy += idiv(ox * pull * s.curl[i]!, sp);
     }
+    let slow = decel;
+    if (brush && brush.i === i) {
+      // curlRev 2: the brushed side pulls the stone across the sheet; the carry eases the slowing a little.
+      const bend = clampInt(brush.bend, -BEND_FULL, BEND_FULL);
+      vx += idiv(bend * BEND_A, BEND_FULL);
+      slow = CURL_DECEL - idiv(CURL_DECEL * BRUSH_CARRY_PCT * Math.min(Math.max(0, brush.carry), SWEEP_FULL), SWEEP_FULL * 100);
+    }
     const sp2 = ilen(vx, vy);
-    const ns = sp2 - decel;
+    const ns = sp2 - slow;
     if (ns <= CURL_STOP_V) {
       vx = 0;
       vy = 0;
@@ -325,10 +438,11 @@ function settle(s: CurlingState): void {
   const inPlay = s.live[i] === 1;
   // A stone at rest has stopped turning: if it is struck later it slides straight.
   s.curl[i] = 0;
-  s.pts.push(inPlay ? curlStonePoints(s.x[i]!, s.y[i]!) : 0);
+  s.pts.push(inPlay ? curlStonePointsFor(s.rev, s.x[i]!, s.y[i]!) : 0);
   s.four.push(inPlay && curlDist(s.x[i]!, s.y[i]!) <= cm(IN_FOUR_FOOT) ? 1 : 0);
   s.active = -1;
   s.sweep = 0;
+  s.bend = 0;
   s.restTick = s.tick;
   if (s.thrown >= CURLING_STONES) {
     s.over = 1;
@@ -348,8 +462,9 @@ function stepState(prev: CurlingState, input: ArcadeInputEvent | null): CurlingS
     if (input && input.k === CURL_INPUT_THROW) {
       const weight = input.c >> 1;
       const turn = input.c & 1;
-      const v = curlRelease(input.a, input.b, weight);
-      s.x.push(0);
+      const startX = s.rev >= 2 ? clampInt(Math.trunc(input.d), -CURL_START_MAX, CURL_START_MAX) : 0;
+      const v = curlRelease(input.a, input.b, weight, startX, s.rev);
+      s.x.push(startX * CU);
       s.y.push(HOG_NEAR * CU);
       s.vx.push(v.vx);
       s.vy.push(v.vy);
@@ -360,17 +475,22 @@ function stepState(prev: CurlingState, input: ArcadeInputEvent | null): CurlingS
       s.thrown += 1;
       s.travelTicks = 0;
       s.sweep = 0;
+      s.bend = 0;
       s.phase = CURL_TRAVEL;
       s.acted = 1;
     }
   } else if (s.phase === CURL_TRAVEL) {
     if (input && input.k === CURL_INPUT_SWEEP && s.live[s.active]) {
-      s.sweep = Math.min(SWEEP_MAX, s.sweep + clampInt(input.a, 1, 100) * 3);
+      const add = clampInt(input.a, 1, 100) * 3;
+      s.sweep = Math.min(s.rev >= 2 ? CARRY_MAX : SWEEP_MAX, s.sweep + add);
+      if (s.rev >= 2) s.bend = clampInt(s.bend + Math.sign(Math.trunc(input.b)) * add, -BEND_MAX, BEND_MAX);
       s.sweeps += 1;
     }
     s.travelTicks += 1;
-    const r = curlMotionTick(s, s.sweep);
+    const r = s.rev >= 2 ? curlMotionTick(s, 0, { i: s.active, carry: s.sweep, bend: s.bend }) : curlMotionTick(s, s.sweep);
     s.sweep = Math.max(0, s.sweep - SWEEP_DECAY);
+    if (s.bend > 0) s.bend = Math.max(0, s.bend - BEND_DECAY);
+    else if (s.bend < 0) s.bend = Math.min(0, s.bend + BEND_DECAY);
     if (r.hits > 0) {
       s.hits += r.hits;
       s.hitTick = s.tick;
@@ -416,14 +536,15 @@ export function curlShotTeam(s: CurlingState): number {
   return best;
 }
 
+/** The standard's parts on curlRev 1, 2 and 3 (the same parts and maximums); null for any other revision. */
 export function curlingStdParts(s: CurlingState): StdPart[] | null {
-  if (s.rev !== CURLING_REV) return null;
+  if (s.rev !== CURLING_REV_V1 && s.rev !== CURLING_REV_V2 && s.rev !== CURLING_REV) return null;
   const core = s.pts.reduce((a, p) => a + p, 0);
   const onButton = s.pts.filter((p) => p === CURL_STONE_PTS).length;
   const out = curlTakeouts(s);
   const red = s.four.reduce((a, p) => a + p, 0);
   const holding = s.acted === 1 && curlShotTeam(s) === TEAM_MINE;
-  const spec = CURLING_STD_SPEC;
+  const spec = s.rev >= 3 ? CURLING_STD_SPEC : CURLING_STD_SPEC_V2;
   return [
     stdPart(spec, "core", core, `${s.pts.length} thrown, ${onButton} on the button`),
     stdPart(spec, "takeouts", stdLine(CURL_TAKEOUT_PTS, out, Math.max(1, s.theirs)), `${out} of ${s.theirs} out of the house`),
@@ -442,22 +563,124 @@ export function curlingCheckpoint(s: CurlingState): SportsCheckpoint & { thrown:
   return {
     tick: s.tick,
     thrown: s.thrown,
-    checksum: sumInts([s.tick, s.phase, s.thrown, s.active, s.sweep, ...s.x, ...s.y, ...s.vx, ...s.vy, ...s.live, ...s.pts, ...s.four]),
+    // curlRev 2 adds the bend meter (curlRev 1's checksum is unchanged).
+    checksum: sumInts(s.rev >= 2 ? [s.tick, s.phase, s.thrown, s.active, s.sweep, ...s.x, ...s.y, ...s.vx, ...s.vy, ...s.live, ...s.pts, ...s.four, s.bend] : [s.tick, s.phase, s.thrown, s.active, s.sweep, ...s.x, ...s.y, ...s.vx, ...s.vy, ...s.live, ...s.pts, ...s.four]),
   };
 }
 
 const noDraw = (_ctx: CanvasRenderingContext2D, _s: CurlingState, _size: CanvasSize) => {};
 
-/** The game rooms deal (curlRev 1). */
-export function curlingGameFor(): ArcadeGame<CurlingState, ArcadeInputEvent | null> {
+/** The game for a stored curlRev (1, 2 or 3; anything else plays curlRev 1; the default is the dealt stamp). */
+export function curlingGameFor(rev: number | null | undefined = CURLING_REV): ArcadeGame<CurlingState, ArcadeInputEvent | null> {
+  const r = rev === CURLING_REV || rev === CURLING_REV_V2 ? rev : CURLING_REV_V1;
   return {
     key: "curling",
     runTicks: CURLING_RUN_TICKS,
-    init: initState,
+    init: (seed: number) => initState(seed, r),
     step: stepState,
     isOver: (s) => s.over === 1,
     score: curlingScore,
     draw: noDraw,
-    inputRanges: CURLING_INPUT_RANGES,
+    inputRanges: r >= 2 ? CURLING_INPUT_RANGES_V2 : CURLING_INPUT_RANGES,
   };
+}
+
+/* ======================= curlRev 3's preparation aids ======================= */
+/*
+ * Pure helpers the stage draws from (and the skill-band bot reads); they copy what they need and never write to a
+ * state. Both slide the stone through curlMotionTick with no brushing, exactly as the sim moves an unswept stone.
+ */
+
+/**
+ * Where an unswept stone thrown on an empty sheet comes to rest: its y (units; past the back line, where it left play).
+ * A stone lost to a side board never reaches the house: Number.MAX_SAFE_INTEGER.
+ */
+export function curlRestY(startX: number, broomX: number, broomY: number, weight: number, turn: number, rev = CURLING_REV): number {
+  const v = curlRelease(broomX, broomY, weight, startX, rev);
+  const s = { x: [startX * CU], y: [HOG_NEAR * CU], vx: [v.vx], vy: [v.vy], live: [1], curl: [turn === 0 ? 1 : -1] };
+  for (let t = 0; t < CURL_TRAVEL_CAP; t++) {
+    if (!curlMotionTick(s, 0).moving || !s.live[0]) break;
+  }
+  if (!s.live[0] && s.y[0]! >= cm(BACK_FAR - STONE_R)) return Number.MAX_SAFE_INTEGER;
+  return s.y[0]!;
+}
+
+/**
+ * The weight meter's draw zone for a throw (curlRev 3, display only): the weights (1…1000) that bring an unswept stone
+ * from this start, broom and turn to rest inside the house's depth (between its front and back edges, touching
+ * counting) on an empty sheet, and the weight that stops it nearest the tee line. Null when no weight does.
+ */
+export function curlDrawZone(startX: number, broomX: number, broomY: number, turn: number, rev = CURLING_REV): { lo: number; hi: number; tee: number } | null {
+  const y = (w: number) => curlRestY(startX, broomX, broomY, w, turn, rev);
+  // The least weight whose stone comes to rest at or beyond `edge` (y falls as the weight grows).
+  const least = (edge: number): number => {
+    let lo = 1;
+    let hi = CURL_WEIGHT_MAX;
+    if (y(hi) > edge) return CURL_WEIGHT_MAX + 1;
+    while (lo < hi) {
+      const mid = (lo + hi) >> 1;
+      if (y(mid) <= edge) hi = mid;
+      else lo = mid + 1;
+    }
+    return lo;
+  };
+  const lo = least(cm(IN_HOUSE));
+  const past = least(-cm(IN_HOUSE) - 1);
+  if (lo > CURL_WEIGHT_MAX) return null;
+  const hi = Math.min(CURL_WEIGHT_MAX, past - 1);
+  if (hi < lo || Math.abs(y(lo)) > cm(IN_HOUSE) || Math.abs(y(hi)) > cm(IN_HOUSE)) return null;
+  const t0 = Math.min(hi, Math.max(lo, least(0)));
+  // The nearer of the two weights either side of the tee line.
+  const tee = t0 > lo && Math.abs(y(t0 - 1)) < Math.abs(y(t0)) ? t0 - 1 : t0;
+  return { lo, hi, tee };
+}
+
+/**
+ * The aim line (curlRev 3, display only): the first third (by distance) of the path a throw at `weight` would slide,
+ * stepped through curlMotionTick on a copy of the sheet's stones with no brushing; points in cm, from the near hog line.
+ */
+export function curlAimPath(s: Pick<CurlingState, "x" | "y" | "live" | "rev">, startX: number, broomX: number, broomY: number, weight: number, turn: number, part = 3): { x: number; y: number }[] {
+  const v = curlRelease(broomX, broomY, weight, startX, s.rev);
+  const n = s.x.length;
+  const sheet = {
+    x: [...s.x, startX * CU],
+    y: [...s.y, HOG_NEAR * CU],
+    vx: [...s.x.map(() => 0), v.vx],
+    vy: [...s.x.map(() => 0), v.vy],
+    live: [...s.live, 1],
+    curl: [...s.x.map(() => 0), turn === 0 ? 1 : -1],
+  };
+  // In sheet units (integers) until the very end; the points come back in cm for drawing.
+  const path: { x: number; y: number }[] = [{ x: startX * CU, y: HOG_NEAR * CU }];
+  for (let t = 0; t < CURL_TRAVEL_CAP; t++) {
+    const r = curlMotionTick(sheet, 0);
+    if (!sheet.live[n]) break;
+    path.push({ x: sheet.x[n]!, y: sheet.y[n]! });
+    if (!r.moving || (sheet.vx[n] === 0 && sheet.vy[n] === 0)) break;
+  }
+  let total = 0;
+  for (let k = 1; k < path.length; k++) total += ilen(path[k]!.x - path[k - 1]!.x, path[k]!.y - path[k - 1]!.y);
+  const out = [path[0]!];
+  let run = 0;
+  for (let k = 1; k < path.length && run * part < total; k++) {
+    run += ilen(path[k]!.x - path[k - 1]!.x, path[k]!.y - path[k - 1]!.y);
+    out.push(path[k]!);
+  }
+  return out.map((p) => ({ x: p.x / CU, y: p.y / CU }));
+}
+
+/**
+ * The phone's swipe → weight line (input only, never the sim's): a swipe up the lane at `pxPerMs` world px a ms gives
+ * weight 1…1000 on a straight line from CURL_SWIPE_V0 (weight 0) to CURL_SWIPE_V0 + CURL_SWIPE_SPAN (1000). Every
+ * revision uses it; on curlRev 3 the weight → speed line is gentler, so the same swipe error moves the stone less
+ * (a draw to the tee is about 0.96 px a ms, the house's depth about ± 0.22 of it).
+ */
+export const CURL_SWIPE_V0 = 0.25;
+export const CURL_SWIPE_SPAN = 2.25;
+export function curlWeightFromSwipeV3(pxPerMs: number): number {
+  return Math.max(1, Math.min(CURL_WEIGHT_MAX, Math.round(((pxPerMs - CURL_SWIPE_V0) / CURL_SWIPE_SPAN) * CURL_WEIGHT_MAX)));
+}
+/** The swipe speed (world px a ms) that gives a weight (the inverse of curlWeightFromSwipeV3). */
+export function swipeForWeightV3(weight: number): number {
+  return CURL_SWIPE_V0 + (weight / CURL_WEIGHT_MAX) * CURL_SWIPE_SPAN;
 }

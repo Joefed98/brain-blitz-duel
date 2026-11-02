@@ -1,6 +1,19 @@
 /**
- * Speed Pool (`pool`, Sports group, 30 Oct 2026; docs/arcade-standard/pool.md): clear seven spots and then the black
- * in 120 s on a full-width table, top down. Drag on the table to aim, pull the cue on the power panel and let go.
+ * Cue Ball (`pool`, was Speed Pool; Sports group, 30 Oct 2026; docs/arcade-standard/pool.md): clear seven spots and
+ * then the black in 120 s on a full-width table, top down. Drag on the table to turn the cue round the cue ball, pull
+ * the cue back in the power meter and let go.
+ *
+ * poolRev 2 (31 Oct 2026, what rooms deal; its own bank, poolBankV2.server.ts): the shot's c is the power alone
+ * (1…1000) and d the spin dot placed anywhere on the cue ball's face (poolSpin2Code: x side and y top/back, −100…100
+ * each inside the safe circle); follow, draw and side scale continuously with the dot (POOL_V2_FOLLOW_MAX and
+ * POOL_V2_SIDE_MAX at the edge, the same as poolRev 1's strongest), and each potted ball keeps its drop tick
+ * (`downAt`, outside the checksum) so the art rolls it into the hole. Speed's full-by time is the revision's own
+ * (poolFullByS). poolRev 1 (c = power × 25 + a 5 × 5 spin code) plays, scores and replays exactly as before.
+ *
+ * poolRev 3 (1 Nov 2026, Joe's tuning; its own bank, poolBankV3.server.ts): poolRev 2's input and rules with a harder
+ * top speed (POOL_MAX_V_V3, +25 %), 1.75× the follow, draw and side (POOL_V3_FOLLOW_MAX, POOL_V3_SIDE_MAX) and one more
+ * foul: a shot whose cue ball touches no ball at all (the first-ball and stripe fouls are as before, 10 each). Speed's
+ * full-by time is its own (poolFullByS(3)). poolRev 1 and 2 play, score and replay exactly as before.
  *
  * Deterministic (engine.ts): the seed deals the layout at init (no break: 7 spots, 4 stripes left as obstacles, the
  * black and the cue ball on a seeded spot at the baulk line) and nothing random happens after. Balls roll in 1/256 px
@@ -13,18 +26,25 @@
  * comes back on the first free seeded spot. The black potted early (or with the cue ball) ends the run with no black
  * or speed points. Spin: top or back (follow or draw after the first contact) and side (a cushion bounce bends).
  *
- * Scoring (poolRev 1, the arcade standard; arcadeStandard.ts): Spots up to 140 (20 a spot), Black 10 (after every
+ * Scoring (poolRev 1 and 2, the arcade standard; arcadeStandard.ts): Spots up to 140 (20 a spot), Black 10 (after every
  * spot; ends the run), Pots in a row up to 30 (5 for each pot straight after another pot), Speed up to 20 (the black
  * potted: full by POOL_FULL_BY_S, 0 at the buzzer), less 10 a foul. Together 200; any shot scores at least 1, no
  * input 0.
  */
-import { clampInt, fp, inputRange, type ArcadeGame, type ArcadeInputEvent, type CanvasSize } from "./engine";
+import { clampInt, fp, inputRange, isqrt, type ArcadeGame, type ArcadeInputEvent, type CanvasSize } from "./engine";
 import { STD_MAX, stdEach, stdFinal, stdLine, stdPart, stdSpeed, type StdPart, type StdSpec } from "./arcadeStandard";
 import { bounceSeg, collideEqual, idiv, ilen, rollFriction, sumInts, type Seg, type SportsCheckpoint } from "./sportsKit";
 
 /* ================================ Constants ================================ */
 
-export const POOL_REV = 1;
+/** The revision rooms deal: poolRev 3 (1 Nov 2026; more power and spin, a miss is a foul). */
+export const POOL_REV = 3;
+/** poolRev 2 (31 Oct 2026; the cue round the ball, the meter, spin anywhere on the face): kept for stored rounds. */
+export const POOL_REV_V2 = 2;
+/** The first revision (30 Oct 2026): its encoding, physics and bank are kept exactly for stored rounds. */
+export const POOL_REV_V1 = 1;
+/** A stored revision as the sim reads it: 3 or 2 as stored, else 1 (unstamped rounds were dealt as 1). */
+export const poolRevOf = (rev?: number | null): number => (rev === 3 ? 3 : rev === 2 ? 2 : 1);
 export const POOL_RUN_S = 120;
 export const POOL_RUN_TICKS = POOL_RUN_S * 60;
 
@@ -46,6 +66,10 @@ export const POOL_BALL_R = 8;
 /** A shot's speed from the softest to the hardest pull (units a tick). */
 export const POOL_MIN_V = fp(1);
 export const POOL_MAX_V = fp(16);
+/** poolRev 3: the hardest pull, 25 % faster (the softest is unchanged). */
+export const POOL_MAX_V_V3 = fp(20);
+/** The hardest pull's speed on a revision. */
+export const poolMaxVFor = (rev: number): number => (rev >= 3 ? POOL_MAX_V_V3 : POOL_MAX_V);
 /** Rolling friction: drag in 4096ths a tick and a constant slowing (units a tick). */
 export const POOL_DRAG = 44;
 export const POOL_DECEL = 4;
@@ -59,10 +83,60 @@ export const POOL_SHOT_CAP = 900;
 export const POOL_SCRATCH_TICKS = 300;
 const SUB = 8;
 
-/** Input kind 1: a shot. a, b = the aim direction (any length); c = power × 25 + spin (spin 0…24). */
+/** Input kind 1: a shot. a, b = the aim direction (any length); poolRev 1: c = power × 25 + spin (spin 0…24). */
 export const POOL_INPUT_SHOT = 1;
 export const POOL_POWER_MAX = 1000;
 export const POOL_INPUT_RANGES = [inputRange(POOL_INPUT_SHOT, [-4096, 4096], [-4096, 4096], [25, POOL_POWER_MAX * 25 + 24])] as const;
+
+/**
+ * poolRev 2's spin: the dot anywhere on the cue ball's face, x (side, right +) and y (top +, back −) each −100…100,
+ * held inside the safe circle of radius POOL_SPIN_SAFE (100 = the edge the tip may strike). Sent as one code in the
+ * event's `d`: (x + 100) × 201 + (y + 100); c is the power (1…1000) alone.
+ */
+export const POOL_SPIN_SAFE = 100;
+export const POOL_SPIN_SPAN = 2 * POOL_SPIN_SAFE + 1;
+export const POOL_SPIN2_MAX = POOL_SPIN_SPAN * POOL_SPIN_SPAN - 1;
+export const POOL_SPIN2_CENTRE = POOL_SPIN_SAFE * POOL_SPIN_SPAN + POOL_SPIN_SAFE;
+export const POOL_INPUT_RANGES_V2 = [inputRange(POOL_INPUT_SHOT, [-4096, 4096], [-4096, 4096], [1, POOL_POWER_MAX], [0, POOL_SPIN2_MAX])] as const;
+/** poolRev 2: follow or draw at the safe edge (256ths of the cue ball's pre-impact speed) and side's cushion bend there. */
+export const POOL_V2_FOLLOW_MAX = 52;
+export const POOL_V2_SIDE_MAX = 44;
+/** poolRev 3: 1.75× poolRev 2's follow / draw and side at the safe edge. */
+export const POOL_V3_FOLLOW_MAX = 91;
+export const POOL_V3_SIDE_MAX = 77;
+
+/** A spin point held inside the safe circle (integer maths: scaled back onto the edge when outside). */
+export function poolSpinClamp(x: number, y: number): { x: number; y: number } {
+  let sx = clampInt(Math.trunc(x), -POOL_SPIN_SAFE, POOL_SPIN_SAFE);
+  let sy = clampInt(Math.trunc(y), -POOL_SPIN_SAFE, POOL_SPIN_SAFE);
+  const lim = POOL_SPIN_SAFE * POOL_SPIN_SAFE;
+  const d2 = sx * sx + sy * sy;
+  if (d2 > lim) {
+    const l = isqrt(d2);
+    sx = Math.trunc((sx * POOL_SPIN_SAFE) / l);
+    sy = Math.trunc((sy * POOL_SPIN_SAFE) / l);
+    // isqrt rounds down, so the scaled point can sit a unit out: step the larger part in until it is inside.
+    while (sx * sx + sy * sy > lim) {
+      if (Math.abs(sx) >= Math.abs(sy)) sx -= Math.sign(sx);
+      else sy -= Math.sign(sy);
+    }
+  }
+  return { x: sx, y: sy };
+}
+/** poolRev 2's spin code (the event's d) for a dot at (x side, y top/back), held in the safe circle. */
+export function poolSpin2Code(x: number, y: number): number {
+  const p = poolSpinClamp(x, y);
+  return (p.x + POOL_SPIN_SAFE) * POOL_SPIN_SPAN + (p.y + POOL_SPIN_SAFE);
+}
+/** The dot a poolRev 2 code stands for (any code in range; a point outside the circle is held on its edge). */
+export function poolSpin2Of(code: number): { x: number; y: number } {
+  const c = clampInt(Math.trunc(code), 0, POOL_SPIN2_MAX);
+  return poolSpinClamp(Math.floor(c / POOL_SPIN_SPAN) - POOL_SPIN_SAFE, (c % POOL_SPIN_SPAN) - POOL_SPIN_SAFE);
+}
+/** A poolRev 2 shot's payload: c the power, d the spin code. */
+export function poolShot2(power: number, spinX: number, spinY: number): { c: number; d: number } {
+  return { c: clampInt(Math.trunc(power), 1, POOL_POWER_MAX), d: poolSpin2Code(spinX, spinY) };
+}
 
 /** The spin code for top/back and side (each −2…2): (topback + 2) × 5 + (side + 2). */
 export function poolSpinCode(topBack: number, side: number): number {
@@ -101,17 +175,29 @@ export const POOL_FOUL_PTS = 10;
  * scripts/arcade-skill-bands.ts pool --levels=near: 66.6 s over 30 bank layouts), 0 at the buzzer.
  */
 export const POOL_FULL_BY_S = 67;
+/** poolRev 2's full-by time: the near-perfect skill-band median finish on the poolRev 2 bank (57.6 s over 30 layouts, docs/arcade-standard/pool.md). */
+export const POOL_FULL_BY_S_V2 = 58;
+/** poolRev 3's full-by time: the near-perfect skill-band median finish on the poolRev 3 bank (72.9 s over 30 layouts, docs/arcade-standard/pool.md). */
+export const POOL_FULL_BY_S_V3 = 73;
+export const poolFullByS = (rev: number): number => (rev >= 3 ? POOL_FULL_BY_S_V3 : rev === 2 ? POOL_FULL_BY_S_V2 : POOL_FULL_BY_S);
 
-export const POOL_STD_SPEC: StdSpec = {
-  field: "poolRev",
-  rev: POOL_REV,
-  parts: [
-    { key: "core", label: "Spots", max: 140, of: POOL_SPOTS, item: "spot", how: `${POOL_SPOT_PTS} a spot potted` },
-    { key: "black", label: "Black", max: POOL_BLACK_PTS, of: 1, item: "black", how: "the black after every spot" },
-    { key: "streak", label: "Pots in a row", max: POOL_STREAK_MAX, of: 6, item: "pot", how: `${POOL_FOLLOW_PTS} for each pot straight after another` },
-    { key: "speed", label: "Speed", max: POOL_SPEED_PTS, of: 1, item: "finish", how: `the black potted: full by ${POOL_FULL_BY_S} s, none at the buzzer` },
-  ],
-};
+/** A revision's spec: the same parts on both; Speed's full-by time is the revision's own. */
+export function poolStdSpecFor(rev?: number | null): StdSpec {
+  const r = poolRevOf(rev);
+  return {
+    field: "poolRev",
+    rev: r,
+    parts: [
+      { key: "core", label: "Spots", max: 140, of: POOL_SPOTS, item: "spot", how: `${POOL_SPOT_PTS} a spot potted` },
+      { key: "black", label: "Black", max: POOL_BLACK_PTS, of: 1, item: "black", how: "the black after every spot" },
+      { key: "streak", label: "Pots in a row", max: POOL_STREAK_MAX, of: 6, item: "pot", how: `${POOL_FOLLOW_PTS} for each pot straight after another` },
+      { key: "speed", label: "Speed", max: POOL_SPEED_PTS, of: 1, item: "finish", how: `the black potted: full by ${poolFullByS(r)} s, none at the buzzer` },
+    ],
+  };
+}
+
+/** The dealt revision's spec (poolRev 3). */
+export const POOL_STD_SPEC: StdSpec = poolStdSpecFor(POOL_REV);
 
 /* ================================ The table ================================ */
 
@@ -194,6 +280,8 @@ export interface PoolBall {
   vx: number;
   vy: number;
   down: number;
+  /** poolRev 2 only (outside the checksum; the art reads it): the tick the ball dropped, to roll it into the hole. */
+  downAt?: number;
 }
 
 export interface PoolLayout {
@@ -288,11 +376,11 @@ function cloneBalls(balls: readonly PoolBall[]): PoolBall[] {
   return balls.map((b) => ({ ...b }));
 }
 
-function initState(seed: number): PoolState {
+function initState(seed: number, rev: number): PoolState {
   const layout = poolLayout(seed);
   return {
     tick: 0,
-    rev: POOL_REV,
+    rev,
     seed,
     cueSpots: layout.cueSpots,
     balls: layout.balls,
@@ -328,10 +416,10 @@ function initState(seed: number): PoolState {
   };
 }
 
-/** A shot's velocity for an aim direction and a power (units a tick). */
-export function poolShotVelocity(dx: number, dy: number, power: number): { vx: number; vy: number } {
+/** A shot's velocity for an aim direction and a power (units a tick); poolRev 3's hardest pull is POOL_MAX_V_V3. */
+export function poolShotVelocity(dx: number, dy: number, power: number, rev = 1): { vx: number; vy: number } {
   const p = clampInt(Math.trunc(power), 1, POOL_POWER_MAX);
-  const speed = POOL_MIN_V + idiv((POOL_MAX_V - POOL_MIN_V) * p, POOL_POWER_MAX);
+  const speed = POOL_MIN_V + idiv((poolMaxVFor(rev) - POOL_MIN_V) * p, POOL_POWER_MAX);
   const l = ilen(dx, dy);
   if (l <= 0) return { vx: 0, vy: -speed };
   return { vx: idiv(dx * speed, l), vy: idiv(dy * speed, l) };
@@ -352,9 +440,14 @@ export interface PoolTickEvents {
 /** The shot in play's spin, carried through the roll (mutated by poolRollTick). */
 export interface PoolSpin {
   firstHit: number;
+  /** poolRev 1: −2…2 each; poolRev 2 (`fine`): the dot's y and x, −100…100 each. */
   topBack: number;
   side: number;
   sideLeft: number;
+  /** 1 on poolRev 2 and 3: topBack and side are continuous (−100…100). */
+  fine?: number;
+  /** poolRev 3: the stronger follow / draw and side (POOL_V3_*). */
+  strong?: number;
 }
 
 /**
@@ -391,7 +484,12 @@ export function poolRollTick(balls: PoolBall[], spin: PoolSpin, shotTicks: numbe
           spin.firstHit = other.id;
           out.firstHit = other.id;
           // Follow or draw: the cue ball takes on a share of its pre-impact speed along the shot's line.
-          if (spin.topBack !== 0) {
+          if (spin.topBack !== 0 && spin.fine) {
+            // poolRev 2: in proportion to the dot's height, POOL_V2_FOLLOW_MAX at the safe edge.
+            const follow = spin.strong ? POOL_V3_FOLLOW_MAX : POOL_V2_FOLLOW_MAX;
+            cue.vx += idiv(pre.vx * spin.topBack * follow, 256 * POOL_SPIN_SAFE);
+            cue.vy += idiv(pre.vy * spin.topBack * follow, 256 * POOL_SPIN_SAFE);
+          } else if (spin.topBack !== 0) {
             cue.vx += idiv(pre.vx * spin.topBack * 26, 256);
             cue.vy += idiv(pre.vy * spin.topBack * 26, 256);
           }
@@ -412,7 +510,7 @@ export function poolRollTick(balls: PoolBall[], spin: PoolSpin, shotTicks: numbe
           // Side: the cue ball's first two cushions after the shot bend by the side it carries.
           if (b.id === POOL_CUE && spin.side !== 0 && spin.sideLeft > 0) {
             spin.sideLeft -= 1;
-            const k = spin.side * 22;
+            const k = spin.fine ? idiv(spin.side * (spin.strong ? POOL_V3_SIDE_MAX : POOL_V2_SIDE_MAX), POOL_SPIN_SAFE) : spin.side * 22;
             const vx = b.vx;
             b.vx += idiv(-b.vy * k, 256);
             b.vy += idiv(vx * k, 256);
@@ -473,7 +571,9 @@ function cueReturn(s: PoolState): { x: number; y: number } {
 /** Settles a shot once every ball is still: fouls, the streak, a scratch's return, the black. */
 function resolveShot(s: PoolState): void {
   const spotsBefore = POOL_SPOTS - (s.spotsDown - s.shotSpots);
-  const foul = (s.firstHit >= 0 && (poolIsStripe(s.firstHit) || (s.firstHit === POOL_BLACK && spotsBefore > 0))) || s.shotStripes > 0;
+  // poolRev 3: a shot that touches no ball at all is a foul too.
+  const missed = s.rev >= 3 && s.firstHit < 0;
+  const foul = (s.firstHit >= 0 && (poolIsStripe(s.firstHit) || (s.firstHit === POOL_BLACK && spotsBefore > 0))) || s.shotStripes > 0 || missed;
   if (foul) {
     s.fouls += 1;
     s.foulTick = s.tick;
@@ -505,6 +605,7 @@ function resolveShot(s: PoolState): void {
     cue.vx = 0;
     cue.vy = 0;
     cue.down = 0;
+    delete cue.downAt;
   }
   s.phase = POOL_AIM;
   if (s.black) {
@@ -519,11 +620,13 @@ function stepState(prev: PoolState, input: ArcadeInputEvent | null): PoolState {
   s.tick += 1;
   if (s.phase === POOL_AIM) {
     if (input && input.k === POOL_INPUT_SHOT && (input.a !== 0 || input.b !== 0)) {
-      const power = Math.floor(input.c / 25);
-      const spin = poolSpinOf(input.c % 25);
+      const fine = s.rev >= 2;
+      const power = fine ? input.c : Math.floor(input.c / 25);
+      const dot = fine ? poolSpin2Of(input.d) : null;
+      const spin = dot ? { topBack: dot.y, side: dot.x } : poolSpinOf(input.c % 25);
       s.balls = cloneBalls(s.balls);
       const cue = s.balls.find((b) => b.id === POOL_CUE)!;
-      const v = poolShotVelocity(input.a, input.b, power);
+      const v = poolShotVelocity(input.a, input.b, power, s.rev);
       cue.vx = v.vx;
       cue.vy = v.vy;
       s.phase = POOL_ROLL;
@@ -543,6 +646,8 @@ function stepState(prev: PoolState, input: ArcadeInputEvent | null): PoolState {
     s.balls = cloneBalls(s.balls);
     s.shotTicks += 1;
     const spin: PoolSpin = { firstHit: s.firstHit, topBack: s.topBack, side: s.side, sideLeft: s.sideLeft };
+    if (s.rev >= 2) spin.fine = 1;
+    if (s.rev >= 3) spin.strong = 1;
     const ev = poolRollTick(s.balls, spin, s.shotTicks);
     s.firstHit = spin.firstHit;
     s.sideLeft = spin.sideLeft;
@@ -552,6 +657,7 @@ function stepState(prev: PoolState, input: ArcadeInputEvent | null): PoolState {
     }
     if (ev.cushionHits > 0) s.cushionTick = s.tick;
     for (const id of ev.dropped) {
+      if (s.rev >= 2) s.balls.find((b) => b.id === id)!.downAt = s.tick;
       if (id === POOL_CUE) s.shotCue = 1;
       else if (id === POOL_BLACK) s.shotBlack = 1;
       else if (poolIsSpot(id)) {
@@ -576,10 +682,10 @@ function stepState(prev: PoolState, input: ArcadeInputEvent | null): PoolState {
 
 /** Each part of a state, the core first (fouls are the penalty, outside the parts). */
 export function poolStdParts(s: PoolState): StdPart[] | null {
-  if (s.rev !== POOL_REV) return null;
-  const spec = POOL_STD_SPEC;
+  if (s.rev !== 1 && s.rev !== 2 && s.rev !== 3) return null;
+  const spec = poolStdSpecFor(s.rev);
   const legal = s.black === 1;
-  const speed = legal ? stdSpeed(POOL_SPEED_PTS, s.finishAt, POOL_FULL_BY_S * 60, POOL_RUN_TICKS) : 0;
+  const speed = legal ? stdSpeed(POOL_SPEED_PTS, s.finishAt, poolFullByS(s.rev) * 60, POOL_RUN_TICKS) : 0;
   return [
     stdPart(spec, "core", stdLine(140, s.spotsDown, POOL_SPOTS), `${s.spotsDown} of ${POOL_SPOTS} spots`),
     stdPart(spec, "black", legal ? POOL_BLACK_PTS : 0, legal ? "potted last" : s.black === 2 ? "potted too soon" : "still up"),
@@ -612,17 +718,18 @@ export function poolSecondsLeft(s: PoolState): number {
 
 const noDraw = (_ctx: CanvasRenderingContext2D, _s: PoolState, _size: CanvasSize) => {};
 
-/** The game rooms deal (poolRev 1). */
-export function poolGameFor(_rev?: number | null): ArcadeGame<PoolState, ArcadeInputEvent | null> {
+/** The game for a stored revision: poolRev 3 as rooms deal it today, 2 as stored; 1 or unstamped plays poolRev 1 exactly. */
+export function poolGameFor(rev?: number | null): ArcadeGame<PoolState, ArcadeInputEvent | null> {
+  const r = poolRevOf(rev);
   return {
     key: "pool",
     runTicks: POOL_RUN_TICKS,
-    init: initState,
+    init: (seed: number) => initState(seed, r),
     step: stepState,
     isOver: (s) => s.over === 1,
     score: poolScore,
     draw: noDraw,
-    inputRanges: POOL_INPUT_RANGES,
+    inputRanges: r >= 2 ? POOL_INPUT_RANGES_V2 : POOL_INPUT_RANGES,
   };
 }
 

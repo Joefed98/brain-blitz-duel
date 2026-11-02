@@ -49,9 +49,12 @@ import { racingPuzzle } from "@/puzzles/racing";
 import { freecellPuzzle } from "@/puzzles/freecell";
 import { tripeaksPuzzle } from "@/puzzles/tripeaks";
 import { pokerSquaresPuzzle } from "@/puzzles/pokerSquares";
+import { fiveHandsPuzzle } from "@/puzzles/fiveHands";
 import { minigolfPuzzle } from "@/puzzles/minigolf";
 import { poolPuzzle } from "@/puzzles/pool";
 import { curlingPuzzle } from "@/puzzles/curling";
+import { blockfallPuzzle } from "@/puzzles/blockfall";
+import { alleyRollPuzzle } from "@/puzzles/alleyroll";
 import { removedGameDefinition } from "@/puzzles/removedGame";
 import { PINBALL_IN_ROOMS } from "@/lib/arcade/pinball";
 import { rallyPuzzle } from "@/puzzles/rally";
@@ -94,6 +97,10 @@ import { digPuzzle } from "@/puzzles/dig";
 import { measurePuzzle } from "@/puzzles/measure";
 import { checkoutPuzzle } from "@/puzzles/checkout";
 import { numlinePuzzle } from "@/puzzles/numline";
+import { fencesPuzzle } from "@/puzzles/fences";
+import { fillominoPuzzle } from "@/puzzles/fillomino";
+import { bridgesPuzzle } from "@/puzzles/bridges";
+import { kakuroPuzzle } from "@/puzzles/kakuro";
 
 import type { PuzzleDefinition } from "@/puzzles/types";
 
@@ -109,10 +116,15 @@ import { PUZZLE_INSTRUCTIONS } from "./instructions";
 import { gameTheme, type GameTheme } from "@/lib/fx/theme";
 import { feedbackStage } from "@/components/duel/FeedbackStage";
 import { removedGameName, type RemovedPuzzleType } from "./removedGames";
+import { DESKTOP_MODES, type DesktopModeInfo } from "./desktopModes";
 
 /** The single registry of puzzle types. Add a new type by adding one entry. */
 type RegisteredPuzzleDefinition = PuzzleDefinition &
-  Required<Pick<PuzzleDefinition, "roundSummary" | "correctAnswer" | "instructions" | "retired">> & { theme: GameTheme };
+  Required<Pick<PuzzleDefinition, "roundSummary" | "correctAnswer" | "instructions" | "retired">> & {
+    theme: GameTheme;
+    /** How the game is presented on a wide screen (desktopModes.ts; presentation only). */
+    desktop: DesktopModeInfo;
+  };
 
 const LONG_REVEAL_TYPES = new Set<PuzzleType>([
   "target",
@@ -137,17 +149,18 @@ const RETIRED_TYPES = new Set<PuzzleType>([
   "rooftop",
   "swerve",
   "dual",
-  "ricochet",
   "steady",
   "hotfloor",
   "dig",
-  "bastion",
+  // Bastion came back to rooms on 1 Nov 2026 as the tank-defence shooter (bastionRev 2); its unstamped rounds replay as before.
   // Tuning C (Oct 2026): practice only.
   "junction",
   // Scoring report batch 2 (20 Oct 2026): practice only, on its current stamps (wordfallRev 3).
   "wordfall",
   // Joe's decision (27 Oct 2026): Scrumper is practice only; stored rounds replay and grade as before.
   "snip",
+  // Joe's decision (1 Nov 2026): Full House is practice only; stored rounds replay and grade as before.
+  "pokersquares",
   // New (13 Oct 2026): practice only until PINBALL_IN_ROOMS (src/lib/arcade/pinball.ts) is switched on.
   ...(PINBALL_IN_ROOMS ? [] : (["pinball"] as const)),
 ]);
@@ -209,9 +222,13 @@ const BASE_REGISTRY: Record<PuzzleType, Omit<PuzzleDefinition, "instructions">> 
   freecell: freecellPuzzle,
   tripeaks: tripeaksPuzzle,
   pokersquares: pokerSquaresPuzzle,
+  fivehands: fiveHandsPuzzle,
   minigolf: minigolfPuzzle,
   pool: poolPuzzle,
   curling: curlingPuzzle,
+  // Blockfall (Retro) and Alley Roll (Sports), 1 Nov 2026: born on the arcade standard (docs/arcade-standard/blockfall.md, alleyroll.md).
+  blockfall: blockfallPuzzle,
+  alleyroll: alleyRollPuzzle,
   rally: rallyPuzzle,
   steady: steadyPuzzle,
   slice: slicePuzzle,
@@ -252,6 +269,11 @@ const BASE_REGISTRY: Record<PuzzleType, Omit<PuzzleDefinition, "instructions">> 
   measure: measurePuzzle,
   checkout: checkoutPuzzle,
   numline: numlinePuzzle,
+  // New grid puzzles (1 Nov 2026), born on the scoring standard.
+  fences: fencesPuzzle,
+  fillomino: fillominoPuzzle,
+  bridges: bridgesPuzzle,
+  kakuro: kakuroPuzzle,
 };
 
 export const PUZZLE_REGISTRY = Object.fromEntries<RegisteredPuzzleDefinition>(
@@ -260,6 +282,7 @@ export const PUZZLE_REGISTRY = Object.fromEntries<RegisteredPuzzleDefinition>(
     {
       ...definition,
       theme: gameTheme(type as PuzzleType, definition.category),
+      desktop: DESKTOP_MODES[type as PuzzleType],
       Stage: feedbackStage(definition.Stage, gameTheme(type as PuzzleType, definition.category), Boolean(definition.arcadeRun || definition.category === "arcade"), {
         type: type as PuzzleType,
         arcade: definition.category === "arcade",
@@ -294,6 +317,7 @@ function removedDefinition(type: string): RegisteredPuzzleDefinition {
     definition = {
       ...base,
       theme: gameTheme(undefined, base.category),
+      desktop: { mode: "wide", why: "deleted game: name and stored score only" },
       instructions: base.instructions!,
       retired: true,
       revealMs: REVEAL_MS,

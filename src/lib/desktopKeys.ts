@@ -1,3 +1,4 @@
+import { DESKTOP_MODES } from "@/lib/duel/desktopModes";
 import type { PuzzleType } from "@/lib/duel/types";
 
 /**
@@ -17,29 +18,36 @@ export const DESKTOP_KEYS: Partial<Record<PuzzleType, readonly (readonly [string
   cross: [["← → ↑ ↓", "step"]],
   flip: [["Space", "flip"]],
   hover: [["Space", "flap"]],
+  homerun: [["Mouse drag", "swing"], ["C / P", "Contact / Power"]],
   inkbridge: [["Mouse", "draw"], ["Enter", "release"], ["Z", "undo"], ["R", "reset"], ["D", "drop again"]],
   matchup: [["← → ↑ ↓", "move"], ["Space", "pick"], ["Arrow", "swap picked gem"]],
   orbit: [["Space", "release"], ["C", "checkpoint"]],
   pinball: [["← / Z", "left flipper"], ["→ / M", "right flipper"]],
   minesweeper: [["Click", "reveal (or flag)"], ["F", "Reveal / Flag switch"]],
-  mahjong: [["Click", "pick a tile"], ["S", "shuffle"]],
+  mahjong: [["Click", "pick a tile"], ["S", "shuffle"], ["Z", "undo"], ["R", "reset"]],
   // Cards & Board: the mouse plays them (a click is a tap, a drag a drag).
-  freecell: [["Click", "move a card"], ["Drag", "to a pile"]],
+  freecell: [["Click", "move a card"], ["Drag", "to a pile"], ["↶ / ⟲", "undo / reset"]],
   tripeaks: [["Click", "play a card"], ["Space / S", "turn the stock"]],
   pokersquares: [["Click", "place the card"]],
+  fivehands: [["Click", "place your card in a row"]],
+  blockfall: [["← →", "move"], ["↑", "turn"], ["Space", "drop"], ["C", "hold"]],
+  alleyroll: [["← →", "line up"], ["↑ ↓", "aim"], ["Hold Space", "power, let go to roll"]],
+  // Sports
+  freekick: [["Click / ← → ↑ ↓", "aim"], ["Drag / A D", "curl"], ["Space (hold)", "power, release to strike"]],
   rally: [["← →", "paddle"]],
+  ricochet: [["Click / Space", "leap · again in the air to double jump"]],
   racing: [["← → / A D", "steer"], ["↑ / W", "accelerate"], ["↓ / S", "brake"]],
+  curling: [["Arrows", "target"], ["A D", "slide the stone"], ["I / O", "turn"], ["− / + then Enter", "weight, throw"], ["← → (moving)", "brush"]],
   skyline: [["Space", "drop"]],
   snake: [["← → ↑ ↓", "turn"]],
   swing: [["Space (hold)", "grapple"], ["↑ ↓", "reel"]],
   tilt: [["← →", "tilt"]],
   wavefront: [["← →", "move"]],
   // Arcade, practice only
-  bastion: [["← →", "rotate"]],
+  bastion: [["Mouse", "aim"], ["Click", "fire"], ["R", "reload"], ["Space", "fast reload"]],
   dual: [["← / F", "left jump"], ["→ / J", "right jump"]],
   hotfloor: [["Mouse", "tiles"], ["Enter", "go"], ["Z", "undo"], ["C", "clear"]],
   junction: [["← → ↑ ↓ / 1–8", "lights"]],
-  ricochet: [["Space", "leap"]],
   rooftop: [["← → ↑ ↓", "swipe"]],
   steady: [["← → (hold)", "steer"]],
   swerve: [["← →", "change lane"]],
@@ -73,6 +81,11 @@ export const DESKTOP_KEYS: Partial<Record<PuzzleType, readonly (readonly [string
   lightsout: [["Z", "undo"], ["R", "reset"]],
   safe: [["← →", "drum"], ["↑ ↓", "turn"], ["Enter", "try"]],
   sudoku: [["← → ↑ ↓", "cell"], ["1–6", "digit"], ["Backspace", "clear"], ["P", "pencil"]],
+  // New grid puzzles (1 Nov 2026).
+  fences: [["Click an edge", "line, ✕, clear"], ["Drag", "draw along edges"]],
+  fillomino: [["← → ↑ ↓", "cell"], ["1–9", "number"], ["Backspace", "clear"]],
+  bridges: [["Drag", "island to island"]],
+  kakuro: [["← → ↑ ↓", "cell"], ["1–9", "digit"], ["Backspace", "clear"], ["P", "pencil"]],
   tower: [["1–3", "peg"], ["Z", "undo"], ["R", "reset"]],
   tubes: [["1–9, 0", "flask"], ["Z", "undo"], ["R", "reset"]],
   // Pattern
@@ -84,3 +97,21 @@ export const DESKTOP_KEYS: Partial<Record<PuzzleType, readonly (readonly [string
   tiles: [["Mouse", "swap two tiles"], ["Esc", "let go"]],
   unblock: [["Z", "undo"], ["R", "reset"]],
 };
+
+/**
+ * The keys as they work on this game's desktop screen (31 Oct 2026): a rotated game (desktop mode
+ * `rotate` with direction keys) names its arrows as they move on the turned screen (the world's left is
+ * up there, its right down, its up right); every other game as listed. `desktop` false: as listed.
+ */
+export function screenKeys(type: PuzzleType, desktop: boolean): readonly (readonly [string, string])[] | undefined {
+  const listed = DESKTOP_KEYS[type];
+  const info = DESKTOP_MODES[type];
+  if (!listed || !desktop || info?.mode !== "rotate" || !info.keys) return listed;
+  const screenArrow: Record<string, string> = { "←": "↑", "→": "↓", "↑": "→", "↓": "←" };
+  return listed.map(([key, action]) => [key.replace(/[←→↑↓]/g, (a) => screenArrow[a] ?? a), action] as const);
+}
+
+/** How the mouse plays each kind of game, for the desktop controls hint (DesktopControlsHint). */
+export function mouseLine(type: PuzzleType): string {
+  return DESKTOP_KEYS[type]?.some(([k]) => /click|drag/i.test(k)) ? "" : "Mouse: click to tap, drag to swipe or aim";
+}

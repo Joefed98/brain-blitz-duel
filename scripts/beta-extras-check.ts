@@ -2,8 +2,8 @@
  * The beta extras (22 Oct 2026): the beta terms, the Add to Home Screen hint, Send feedback and crash
  * reporting, each with its value from src/config/betaConfig.ts.
  *
- *  1. betaConfig: SENTRY_DSN, TALLY_URL and CONTACT_EMAIL are empty strings in the repo (a follow-up
- *     only fills them), and every feature reads them through betaValue.
+ *  1. betaConfig: SENTRY_DSN and TALLY_URL are empty strings in the repo (a follow-up
+ *     only fills them), CONTACT_EMAIL is support@joulz.uk, and every feature reads them through betaValue.
  *  2. Crash reporting, in bun: the DSN parsed to Sentry's envelope endpoint; an event carries only the
  *     device type, screen, viewport, display, route pattern (no room code, no query), game id, round,
  *     release (the commit) and environment, never a user, name, chat or answer; nothing starts while
@@ -74,7 +74,7 @@ function check(ok: boolean, label: string) {
 
 check(betaConfig.SENTRY_DSN === "", "SENTRY_DSN is an empty string until Joe supplies it");
 check(betaConfig.TALLY_URL === "", "TALLY_URL is an empty string until Joe supplies it");
-check(betaConfig.CONTACT_EMAIL === "", "CONTACT_EMAIL is an empty string until Joe supplies it");
+check(betaConfig.CONTACT_EMAIL === "support@joulz.uk", "CONTACT_EMAIL is support@joulz.uk (set 31 Oct 2026)");
 for (const [file, key] of [
   ["src/lib/crashReporting.ts", "SENTRY_DSN"],
   ["src/lib/beta/feedback.ts", "TALLY_URL"],
@@ -107,9 +107,9 @@ check(
     deviceType("Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/141") === "desktop",
   "device types",
 );
-const frames = parseStack("Error: x\n    at paint (https://joulz.app/assets/game-abc.js?v=1:10:20)\n    at https://joulz.app/assets/main.js:1:2");
-check(frames.length === 2 && frames[1]!.function === "paint" && frames[1]!.filename === "https://joulz.app/assets/game-abc.js" && frames[0]!.lineno === 1, "V8 stacks parse, oldest call first, no query");
-check(parseStack("paint@https://joulz.app/a.js:3:4\n@https://joulz.app/b.js:5:6").length === 2, "Safari stacks parse");
+const frames = parseStack("Error: x\n    at paint (https://joulz.uk/assets/game-abc.js?v=1:10:20)\n    at https://joulz.uk/assets/main.js:1:2");
+check(frames.length === 2 && frames[1]!.function === "paint" && frames[1]!.filename === "https://joulz.uk/assets/game-abc.js" && frames[0]!.lineno === 1, "V8 stacks parse, oldest call first, no query");
+check(parseStack("paint@https://joulz.uk/a.js:3:4\n@https://joulz.uk/b.js:5:6").length === 2, "Safari stacks parse");
 {
   const event = buildEvent({
     error: new TypeError("cannot read x"),
@@ -304,7 +304,8 @@ try {
   {
     // The lobby the room link below opens (the home screen doesn't draw it).
     const lobby = screenNamed("lobby, 2 players").room!();
-    const { context, page } = await open("home", { query: "terms=0", harness: { room: lobby } });
+    // CONTACT_EMAIL stood in as empty: the contact line must be left out (the set case is below).
+    const { context, page } = await open("home", { query: "terms=0", beta: { CONTACT_EMAIL: "" }, harness: { room: lobby } });
     try {
       await page.getByRole("button", { name: "Create a room" }).waitFor({ timeout: 60_000 });
       await page.locator("#name").fill("Jo");
@@ -320,7 +321,19 @@ try {
         check(text.includes(phrase), `the terms say "${phrase}"`);
       check(text.includes("Joulz") && !text.includes("Duelz"), "the terms use the app's name");
       await page.getByRole("button", { name: "I agree" }).click();
-      await page.waitForTimeout(500);
+      // The agreement goes out fire-and-forget after a dynamic import (lib/beta/terms.ts), which a cold dev server on
+      // a busy 2-core runner can take well past half a second to serve: wait for both calls (at most 10 s), not a
+      // fixed 500 ms (31 Oct 2026, failed that way on CI twice). The assertions below are unchanged.
+      await page
+        .waitForFunction(
+          () => {
+            const c = (window as unknown as { __harness: H }).__harness.calls ?? [];
+            return c.includes("createRoom") && c.includes("recordTermsAgreedFn");
+          },
+          undefined,
+          { timeout: 10_000 },
+        )
+        .catch(() => undefined);
       const after = await calls(page);
       check(after.includes("createRoom"), "I AGREE goes on to create the room");
       check(after.includes("recordTermsAgreedFn"), "the agreement is sent with the beta events");

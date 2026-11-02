@@ -19,14 +19,22 @@ import { pinballArtGameForAny } from "@/lib/arcade/pinball4.renderer";
 import { drawMinesweeper } from "@/lib/arcade/minesweeper.renderer";
 import { drawMahjong } from "@/lib/arcade/mahjong.renderer";
 import { homerunArtGame } from "@/lib/arcade/homerun.renderer";
+import { bastionGame } from "@/lib/arcade/bastion";
+import { bastionTankArtGame } from "@/lib/arcade/bastionTank.renderer";
 import { freekickArtGame } from "@/lib/arcade/freekick.renderer";
 import { racingArtGame } from "@/lib/arcade/racing.renderer";
 import { freecellArt } from "@/lib/arcade/cards/freecell.renderer";
 import { tripeaksArt } from "@/lib/arcade/cards/tripeaks.renderer";
 import { pokerSquaresArt } from "@/lib/arcade/cards/pokerSquares.renderer";
+import { fiveHandsArt } from "@/lib/arcade/cards/fiveHands.renderer";
+import { ninjaArtGame } from "@/lib/arcade/ricochetNinja.renderer";
+import { ricoGame } from "@/lib/arcade/ricochet";
+import { isNinjaRev } from "@/lib/duel/ricochet";
 import { drawMinigolf } from "@/lib/arcade/minigolf.renderer";
 import { drawPool } from "@/lib/arcade/pool.renderer";
 import { drawCurling } from "@/lib/arcade/curling.renderer";
+import { blockfallArt } from "@/lib/arcade/blockfall.renderer";
+import { alleyRollArt } from "@/lib/arcade/alleyroll.renderer";
 import { rallyArtGame } from "@/lib/arcade/rally.renderer";
 import { sliceArtGame } from "@/lib/arcade/slice.renderer";
 import { bubbleArtGame } from "@/lib/arcade/bubble.renderer";
@@ -52,6 +60,7 @@ import { drawTenDrop } from "@/lib/arcade/tenDrop.renderer";
 import { wordfallArtGame } from "@/lib/arcade/wordfall.renderer";
 import { clashVariantOf } from "@/lib/arcade/colourClash";
 import { colourClashArtGameFor } from "@/lib/arcade/colourClash.renderer";
+import { canvasRatio } from "@/lib/battery";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 type Size = { width: number; height: number };
@@ -82,12 +91,17 @@ const SIMPLE: Record<string, (p: PuzzleData) => Draw> = {
   minesweeper: () => drawMinesweeper as Draw,
   mahjong: () => drawMahjong as Draw,
   homerun: () => homerunArtGame.draw as Draw,
+  bastion: (p) => (((p as { bastionRev?: number }).bastionRev ?? 1) >= 2 ? bastionTankArtGame.draw : bastionGame.draw) as Draw,
   freekick: () => freekickArtGame.draw as Draw,
   racing: () => racingArtGame.draw as Draw,
   freecell: () => freecellArt.draw as Draw,
   tripeaks: () => tripeaksArt.draw as Draw,
   pokersquares: () => pokerSquaresArt.draw as Draw,
+  fivehands: () => fiveHandsArt.draw as Draw,
+  ricochet: (p) => (isNinjaRev(rev(p, "ricoRev")) ? ninjaArtGame.draw : ricoGame.draw) as Draw,
   curling: () => ((ctx, s) => drawCurling(ctx, s, null)) as Draw,
+  blockfall: () => blockfallArt.draw as Draw,
+  alleyroll: () => alleyRollArt.draw as Draw,
   pool: () => ((ctx, s) => drawPool(ctx, s, null)) as Draw,
   minigolf: () => ((ctx, s) => drawMinigolf(ctx, s, null)) as Draw,
   rally: () => rallyArtGame.draw as Draw,
@@ -112,7 +126,7 @@ const SIMPLE: Record<string, (p: PuzzleData) => Draw> = {
         ctx,
         state,
         size,
-        typeof window === "undefined" ? 1 : Math.min(2, window.devicePixelRatio || 1),
+        canvasRatio(),
         performance.now(),
       )) as Draw,
   wordfall: () => wordfallArtGame.draw as Draw,

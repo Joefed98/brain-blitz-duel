@@ -38,11 +38,11 @@ import {
 } from "@/lib/arcade/rally";
 import { decodeRallyRun, encodeRallyRun, replayRallyRun } from "@/lib/duel/rally";
 import { ARCADE_CRASH_FREEZE_MS, type RallyPuzzleData } from "@/lib/duel/types";
-import { buzz } from "@/lib/motion";
 import { NO_SCROLL_STYLE, useNoTouchScroll } from "@/components/puzzles/noScroll";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 import { arcadeCanvasRatio } from "@/lib/fx/lowEnd";
+import { arenaFrame, cancelArenaFrame } from "@/lib/battery";
 
 /** Fixed intro still (rallyRev 10): the pink pads, a gold bonus target with its countdown ring, a return aimed at it. */
 function IntroExample() {
@@ -146,7 +146,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
 
     const loop = (time: number) => {
       frameTiming.begin(time);
-      frame = requestAnimationFrame(loop);
+      frame = arenaFrame(loop);
       const delta = time - last;
       last = time;
 
@@ -203,7 +203,6 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         if (state.current.dead) {
           if (deadAt.current === null) {
             deadAt.current = time;
-            buzz(40);
           } else if (time - deadAt.current >= ARCADE_CRASH_FREEZE_MS) {
             finish();
           }
@@ -214,9 +213,9 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       frameTiming.end();
     };
 
-    frame = requestAnimationFrame(loop);
+    frame = arenaFrame(loop);
     return () => {
-      cancelAnimationFrame(frame);
+      cancelArenaFrame(loop, frame);
       sounds.stop();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps

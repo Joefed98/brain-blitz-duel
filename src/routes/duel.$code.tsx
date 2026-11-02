@@ -12,7 +12,8 @@ import { DropoutBanner, LeaveGameButton } from "@/components/duel/DropoutBanner"
 import { JoinFromLink } from "@/components/duel/JoinFromLink";
 import { CategoryPill } from "@/components/app/CategoryPill";
 import { FinalResult } from "@/components/duel/FinalResult";
-import { GameLayout, PhoneShell, isArcadeScreenType } from "@/components/duel/PhoneShell";
+import { GameLayout, PhoneShell, RoomPanelSlot, isArcadeScreenType } from "@/components/duel/PhoneShell";
+import { RoomPanel } from "@/components/duel/RoomPanel";
 import { SteadyOrPlain } from "@/components/duel/SteadyStage";
 import { useDemoKey } from "@/components/duel/SaveDemoButton";
 import { PuzzleHelp, PuzzleHelpButton } from "@/components/duel/PuzzleInstructions";
@@ -51,7 +52,7 @@ import { Podium } from "@/components/duel/Podium";
 import { RoomShareButton } from "@/components/share/ShareResultButton";
 import { TimerBar } from "@/components/duel/TimerBar";
 import { arcadeMsRemaining } from "@/lib/arcade/clock";
-import { buzz, prefersReducedMotion } from "@/lib/motion";
+import { prefersReducedMotion } from "@/lib/motion";
 import {
   playLock,
   playPlayerJoined,
@@ -64,6 +65,7 @@ import {
   stopMusic,
   unlockAudio,
 } from "@/lib/sound";
+import { useHomeBed } from "@/lib/useScreenMusic";
 import { roundMusicFor } from "@/lib/fx/theme";
 import { roundMusicRemaining, useRoundMusic } from "@/lib/duel/useRoundMusic";
 import {
@@ -79,7 +81,7 @@ import {
   readyUp,
   removePlayer,
   setPlayerLook,
-  setRoomModes,
+  setRoomSettings,
   startRoom,
   submitAnswer,
 } from "@/lib/duel/api";
@@ -109,7 +111,6 @@ import {
 } from "@/lib/duel/scoring";
 import { roomTieRounds } from "@/lib/duel/tieBreak";
 import { useDuel } from "@/lib/duel/useDuel";
-import { normaliseCategories } from "@/lib/duel/categories";
 import { roundClockMs } from "@/lib/duel/buzzer";
 import { showRoundChatDot } from "@/lib/duel/chatNotice";
 import { setPlayerMuted, useRoomChat } from "@/lib/duel/useRoomChat";
@@ -140,10 +141,12 @@ import { startRaceGhosts } from "@/lib/duel/raceGhosts";
 import { podiumAwards } from "@/lib/duel/podiumAwards";
 import { awardRoundsFor } from "@/lib/duel/awardRounds";
 import { roomInvite } from "@/lib/duel/roomLink";
+import { APP_URL } from "@/config/appUrl";
 import { noteSignatureSubmit } from "@/lib/fx/signature";
 import { useSignatureHold, useSignatureVerdict } from "@/lib/fx/useSignature";
 import { APP_NAME, APP_TAGLINE } from "@/lib/brand";
 import { roomUpdateGate, useUpdateGate } from "@/lib/appUpdate";
+import { OnlineOnly } from "@/components/offline/OnlineOnly";
 
 const ROOM_TITLE = `Join a ${APP_NAME} room`;
 const ROOM_DESCRIPTION = `You're invited to a live ${APP_NAME} room. ${APP_TAGLINE}`;
@@ -170,8 +173,17 @@ export const Route = createFileRoute("/duel/$code")({
       },
     ],
   }),
-  component: DuelScreen,
+  component: OfflineDuel,
 });
+
+/** Offline practice (31 Oct 2026): with no connection, the offline state and a way to Practice. */
+function OfflineDuel() {
+  return (
+    <OnlineOnly body="Rooms need a connection. Practice games are saved on this phone, so they still work.">
+      <DuelScreen />
+    </OnlineOnly>
+  );
+}
 
 function Centered({ children }: { children: React.ReactNode }) {
   return (
@@ -199,13 +211,12 @@ function HomeButton({ label = "Back to home" }: { label?: string }) {
 /** Lobby controls: Copy and Share both hand over the room link plus the code. */
 function LobbyActions({ roomCode }: { roomCode: string }) {
   const [copied, setCopied] = useState(false);
-  const { link, text } = roomInvite(roomCode, typeof window === "undefined" ? "" : window.location.origin);
+  const { link, text } = roomInvite(roomCode, APP_URL);
 
   const copy = async () => {
     try {
       await navigator.clipboard.writeText(text);
       setCopied(true);
-      buzz(10);
       window.setTimeout(() => setCopied(false), 1600);
     } catch {
       /* clipboard blocked — the code is on screen anyway */
@@ -575,6 +586,8 @@ function DuelScreen() {
 
   // Beds are requested only outside rounds; manifest music is silent until supplied.
   // The prepare, title, reveal and winner screens stay silent until their slot has a file.
+  // The lobby plays its own bed again (lobby_loop, 1 Nov 2026 follow-up): it crossfades the home bed out over 400 ms
+  // (FADE_MS), and the home bed resumes where it was when the player goes back to a tab page.
   const musicScreen =
     duel?.status === "waiting"
       ? "lobby_loop"
@@ -593,9 +606,12 @@ function DuelScreen() {
                   : null;
   useEffect(() => {
     if (musicScreen) startMusic(musicScreen);
-    // The intro screen owns its own bed (intro_loop).
-    else if (phase !== "intro") stopMusic(0);
-  }, [musicScreen]); // eslint-disable-line react-hooks/exhaustive-deps
+    // The intro screen owns its own bed (intro_loop). While the room loads nothing is stopped, so the home bed
+    // carries on until the lobby's bed crossfades it out.
+    else if (phase !== "intro" && duel) stopMusic(0);
+  }, [musicScreen, !!duel]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Only while the room loads: the home bed plays on from the Play tab (no gap) until the lobby's bed takes over.
+  useHomeBed(!duel);
   // Intro bed loads once the room starts and is held with the other beds.
   const roomStarted = !!duel && duel.status !== "waiting";
   useEffect(() => {
@@ -694,7 +710,6 @@ function DuelScreen() {
     noteSignatureSubmit(current.type);
     unlockAudio();
     playLock();
-    buzz(15);
     // Kept as the round's draft too, so a reload before it lands still has it.
     drafts.push(latest.current.stateKey, answer, true);
     // Not stored on the way: sent again, the same answer and time claim, after a short wait (roomSend.ts).
@@ -775,7 +790,6 @@ function DuelScreen() {
     onContinue: () => {
       if (!duel || !isContinuePhase(phase)) return;
       unlockAudio();
-      buzz(10);
       void continueOn(duel.id, round, phase).then(() => state.refresh());
     },
   };
@@ -867,12 +881,39 @@ function DuelScreen() {
   const leaveAction =
     duel.status === "in_progress" && !isHost ? <LeaveGameButton onLeave={handleLeave} /> : undefined;
 
+  // The computer layout's room panel (31 Oct 2026, presentation only): drawn by PhoneShell on the right
+  // from 1024 px wide (RoomPanelSlot), never on a phone or tablet; every screen below supplies it.
+  const inRound = duel.status === "in_progress" && ["intro", "starting", "round_title", "puzzle", "reveal"].includes(phase);
+  const panelRows =
+    duel.status === "waiting"
+      ? roomPlayers.map((p, i) => ({ slot: p.player_slot, name: p.display_name, total: 0, position: i + 1 }))
+      : table.map((r) => ({ slot: r.slot, name: r.name, total: r.total, position: r.position }));
+  const roomPanel = (
+    <RoomPanel
+      roomCode={duel.room_code}
+      round={round}
+      totalRounds={duel.round_count ?? TOTAL_ROUNDS}
+      roundOrder={duel.round_order ?? []}
+      status={duel.status as "waiting" | "in_progress" | "finished"}
+      inRound={inRound}
+      rows={panelRows}
+      players={roomPlayers}
+      mySlot={mySlot}
+      myAnswered={!!myResult}
+      looks={looks}
+      chat={chat}
+      chatAvailable={chatAvailable}
+      myUserId={me.user_id}
+    />
+  );
+  const withPanel = (node: React.ReactNode) => <RoomPanelSlot.Provider value={roomPanel}>{node}</RoomPanelSlot.Provider>;
+
   if (duel.status === "waiting") {
     // Disband room (host) and Leave room (guests) are in the header's "⋯" menu (Polish batch R).
     const lobbyMenu: RoomMenuItem[] = isHost
       ? [{ label: "Disband room", danger: true, onSelect: () => setConfirmDisband(true) }]
       : [{ label: "Leave room", danger: true, onSelect: () => setConfirmLeave(true) }];
-    return (
+    return withPanel(
       <PhoneShell skin="room" topAction={<RoomMenu items={lobbyMenu} />}>
         <RoomChatSlot.Provider value={chatButton}>
         <div className="flex flex-1 flex-col gap-5 pt-1 text-left">
@@ -891,9 +932,9 @@ function DuelScreen() {
             isHost={isHost}
             starting={starting}
             onStart={() => void handleStart()}
-            categories={normaliseCategories(duel.selected_categories)}
+            storedSettings={duel.selected_categories}
             tournamentHistory={duel.tournament_history ?? []}
-            onCategoriesChange={(categories) => void setRoomModes(duel.id, categories)}
+            onSettingsChange={(settings) => setRoomSettings(duel.id, settings)}
             onDisband={() => setConfirmDisband(true)}
             onLeave={() => setConfirmLeave(true)}
             onRemove={(slot) => void removePlayer(duel.id, slot)}
@@ -940,7 +981,7 @@ function DuelScreen() {
     // Leave (Home) is in the header's "⋯" menu (Polish batch R).
     const finalMenu = <RoomMenu items={[{ label: "Leave", onSelect: () => void handleLeave() }]} />;
     if (isMulti) {
-      return (
+      return withPanel(
         <div ref={podiumShell}>
           <PhoneShell skin="room" topAction={finalMenu}>
             <RoomChatSlot.Provider value={chatButton}>
@@ -965,7 +1006,7 @@ function DuelScreen() {
         </div>
       );
     }
-    return (
+    return withPanel(
       <div ref={podiumShell}>
         <PhoneShell skin="room" topAction={finalMenu}>
           <RoomChatSlot.Provider value={chatButton}>
@@ -1008,7 +1049,7 @@ function DuelScreen() {
   }
 
   if ((phase === "intro" || phase === "starting" || phase === "round_title") && puzzle) {
-    return (
+    return withPanel(
       // The intro draws the game frame's header itself (RoundIntro, Polish batch R), with a guest's "⋯" menu.
       <PhoneShell gameType={puzzle.type} bare>
         {dropout}
@@ -1032,7 +1073,6 @@ function DuelScreen() {
           onReady={() => {
             unlockAudio();
             playLock();
-            buzz(15);
             void readyUp(duel.id, round);
           }}
         />
@@ -1043,7 +1083,7 @@ function DuelScreen() {
   }
 
   if (phase === "reveal" && puzzle) {
-    return (
+    return withPanel(
       <PhoneShell constrained gameScreen gameType={puzzle?.type}>
         <AnswerReveal
           round={round}
@@ -1093,7 +1133,7 @@ function DuelScreen() {
       Math.ceil((NEXT_ROUND_AUTO_MS - (now - (phaseStart ?? now))) / 1000),
     );
     if (isMulti) {
-      return (
+      return withPanel(
         <PhoneShell skin="room" gameType={puzzle?.type} topAction={leaveAction}>
           {dropout}
           {puzzle ? <CategoryPill category={puzzleDef(puzzle.type).category} className="self-start" /> : null}
@@ -1125,7 +1165,7 @@ function DuelScreen() {
         </PhoneShell>
       );
     }
-    return (
+    return withPanel(
       <PhoneShell skin="room" gameType={puzzle?.type} topAction={leaveAction}>
         {dropout}
         {puzzle ? <CategoryPill category={puzzleDef(puzzle.type).category} className="self-start" /> : null}
@@ -1179,7 +1219,7 @@ function DuelScreen() {
       game: puzzle?.type,
       next: round < (duel.round_count ?? TOTAL_ROUNDS) && nextType ? nextType : null,
     };
-    return (
+    return withPanel(
       <PhoneShell skin="room" gameType={puzzle?.type} topAction={leaveAction}>
         {dropout}
         {puzzle ? <CategoryPill category={puzzleDef(puzzle.type).category} className="self-start" /> : null}
@@ -1236,7 +1276,7 @@ function DuelScreen() {
       extra={chatDot}
     />
   );
-  return (
+  return withPanel(
     <PhoneShell constrained gameScreen play gameType={puzzle?.type}>
       <GameLayout
         label={`Round ${round} of ${duel.round_count ?? TOTAL_ROUNDS}`}

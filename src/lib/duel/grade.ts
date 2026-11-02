@@ -79,12 +79,14 @@ import { ensureWordfallDict } from "./wordfallDict.server";
 import { clayDepthDetail, decodeClayRun, replayClayRun } from "./clayShoot";
 import { clayChargesEmptyShots, clayEmptyShotCost, clayEmptyShots } from "@/lib/arcade/clayShoot";
 import { decodeWavefrontRun, replayWavefrontRun } from "./wavefront";
-import { decodeBastionRun, replayBastionRun } from "./bastion";
+import { decodeBastionRun, decodeBastionTankRun, isBastionTank, replayBastionRun, replayBastionTankRun } from "./bastion";
 import { decodeRooftopRun, replayRooftopRun } from "./rooftop";
 import { decodeFlipRun, replayFlipRun } from "./flip";
 import {
-  decodeFreecellRun, decodePokerSquaresRun, decodeTripeaksRun, replayFreecellRun, replayPokerSquaresRun, replayTripeaksRun,
+  decodeFiveHandsRun, decodeFreecellRun, decodePokerSquaresRun, decodeTripeaksRun, replayFiveHandsRun, replayFreecellRun, replayPokerSquaresRun, replayTripeaksRun,
 } from "./cards";
+import { decodeBlockfallRun, replayBlockfallRun } from "./blockfall";
+import { decodeAlleyRollRun, replayAlleyRollRun } from "./alleyroll";
 import { decodeJunctionRun, replayJunctionRun } from "./junction";
 import { decodeInkBridgeRun, replayInkBridgeRun } from "./inkBridge";
 import { decodeBurstRun, replayBurstRun } from "./burst";
@@ -100,6 +102,7 @@ import { decodeHotFloorRun, replayHotFloorRun } from "./hotFloor";
 import { replayColourClashRun } from "./colourClash";
 import { clashRev4Finished, clashVariantOf, CLASH_REV, CLASH_REV_TALL, CLASH_REV_BANDS, CLASH_REV_GREAT } from "@/lib/arcade/colourClash";
 import { decodeTents, scoreTents, tentsHeightOf, tentsLayoutValid } from "./tents";
+import { gradeGridPuzzle } from "./gridPuzzles";
 import { acceptedRects, decodeShikaku, scoreShikaku, shikakuCovered, shikakuHeightOf } from "./shikaku";
 import { decodeBulbs, lightUpStatus, scoreLightUp } from "./lightUp";
 import { decodeBallTrackRun, replayBallTrackRun } from "./ballTrack";
@@ -113,7 +116,8 @@ import { scoreWordSearch, wsDecode, wsGrade, wsSplitBonus } from "./wordSearch";
 import { LW_FREE_MISSES, lwDecode, lwDecodeLog, lwGrade, lwTallyLog, lwUsesLog, scoreLetterWheel, scoreLetterWheelLog } from "./letterWheel";
 import { decodeCrossRun, replayCrossRun } from "./cross";
 import { decodeDualRun, replayDualRun } from "./dual";
-import { decodeRicoRun, replayRicoRun } from "./ricochet";
+import { decodeNinjaRun, decodeRicoRun, isNinjaRev, replayNinjaRun, replayRicoRun } from "./ricochet";
+import { NINJA_CORE_FULL_M } from "@/lib/arcade/ricochetNinja";
 import { decodeBinTossRun, replayBinTossRun } from "./binToss";
 import { decodeBullseyeRun, replayBullseyeRun } from "./bullseye";
 import { bullseyeDeadPoints, bullseyeStreakPoints } from "@/lib/arcade/bullseye";
@@ -1325,6 +1329,35 @@ function gradeUnderRev(
       break;
     }
     case "ricochet": {
+      if (isNinjaRev(puzzle.ricoRev)) {
+        // ricoRev 2, the ninja wall-climb: the tower dealt from the stored seed, the move log replayed; only that scores.
+        const replayStart = performance.now();
+        const run = replayNinjaRun(puzzle.seed, answer);
+        revealRun = run;
+        arcadeDiag = buildArcadeDiag(puzzle.type, run, answer, performance.now() - replayStart);
+        isCorrect = run.metres >= NINJA_CORE_FULL_M;
+        correctCount = run.metres;
+        score = run.score;
+        extraDetail = {
+          ricoRev: puzzle.ricoRev,
+          metres: run.metres,
+          coins: run.coins,
+          lanterns: run.lanterns,
+          scrolls: run.scrolls,
+          hits: run.hits,
+          leaps: run.leaps,
+          djs: run.djs,
+          endedSeconds: run.endedSeconds,
+          flagged: run.flagged,
+          clientLag: run.clientLag,
+          clientTick: run.clientTick,
+          desyncTick: run.desyncTick,
+          inputs: decodeNinjaRun(answer).events.length,
+          claimedScore: decodeNinjaRun(answer).claimedScore,
+          ...(run.reason ? { reason: run.reason } : {}),
+        };
+        break;
+      }
       const replayStart = performance.now();
       const run = replayRicoRun(puzzle.seed, answer);
       revealRun = run;
@@ -1405,7 +1438,7 @@ function gradeUnderRev(
       });
       const pts = (parts: { key: string; points: number }[] | null, key: string) => parts?.find((p) => p.key === key)?.points ?? 0;
       if (puzzle.type === "minigolf") {
-        const run = replayMinigolfRun(puzzle.seed, answer, puzzle.pars);
+        const run = replayMinigolfRun(puzzle.seed, answer, puzzle.pars, puzzle.golfRev);
         revealRun = run;
         arcadeDiag = buildArcadeDiag(puzzle.type, run, answer, performance.now() - replayStart);
         const parts = minigolfStdParts(run.state);
@@ -1561,6 +1594,7 @@ function gradeUnderRev(
         sorted: run.sorted,
         moves: run.moves,
         par: run.par,
+        ...((puzzle.freecellRev ?? 1) >= 2 ? { undos: run.undos, resets: run.resets } : {}),
         finished: run.finished,
         finishSeconds: run.finishSeconds,
         endedSeconds: run.endedSeconds,
@@ -1622,6 +1656,90 @@ function gradeUnderRev(
         desyncTick: run.desyncTick,
         inputs: decodePokerSquaresRun(answer).events.length,
         claimedScore: decodePokerSquaresRun(answer).claimedScore,
+        ...(run.reason ? { reason: run.reason } : {}),
+      };
+      break;
+    }
+    // Blockfall (1 Nov 2026): the piece order comes from the stored seed and the run is replayed; only that scores.
+    case "blockfall": {
+      const replayStart = performance.now();
+      const run = replayBlockfallRun(puzzle.seed, answer, puzzle.blockfallRev);
+      revealRun = run;
+      arcadeDiag = buildArcadeDiag(puzzle.type, run, answer, performance.now() - replayStart);
+      isCorrect = !run.toppedOut && run.state.ended === 1;
+      correctCount = run.lines;
+      score = run.score;
+      extraDetail = {
+        blockfallRev: puzzle.blockfallRev ?? 1,
+        lines: run.lines,
+        doubles: run.doubles,
+        triples: run.triples,
+        quads: run.quads,
+        height: run.height,
+        toppedOut: run.toppedOut,
+        pieces: run.pieces,
+        ...Object.fromEntries(run.parts.map((p) => [`part_${p.key}`, p.points])),
+        endedSeconds: run.endedSeconds,
+        flagged: run.flagged,
+        clientLag: run.clientLag,
+        clientTick: run.clientTick,
+        desyncTick: run.desyncTick,
+        inputs: decodeBlockfallRun(answer).events.length,
+        claimedScore: decodeBlockfallRun(answer).claimedScore,
+        ...(run.reason ? { reason: run.reason } : {}),
+      };
+      break;
+    }
+    // Alley Roll (1 Nov 2026): the rolls are replayed on the one lane; only that scores.
+    case "alleyroll": {
+      const replayStart = performance.now();
+      const run = replayAlleyRollRun(puzzle.seed, answer, puzzle.alleyRollRev);
+      revealRun = run;
+      arcadeDiag = buildArcadeDiag(puzzle.type, run, answer, performance.now() - replayStart);
+      isCorrect = run.finished;
+      correctCount = run.balls;
+      score = run.score;
+      extraDetail = {
+        alleyRollRev: puzzle.alleyRollRev ?? 1,
+        rings: run.rings,
+        pockets: run.pockets,
+        streak: run.streak,
+        balls: run.balls,
+        finished: run.finished,
+        ...Object.fromEntries(run.parts.map((p) => [`part_${p.key}`, p.points])),
+        endedSeconds: run.endedSeconds,
+        flagged: run.flagged,
+        clientLag: run.clientLag,
+        clientTick: run.clientTick,
+        desyncTick: run.desyncTick,
+        inputs: decodeAlleyRollRun(answer).events.length,
+        claimedScore: decodeAlleyRollRun(answer).claimedScore,
+        ...(run.reason ? { reason: run.reason } : {}),
+      };
+      break;
+    }
+    // Five Hands (31 Oct 2026): the deck is shuffled from the stored seed and the run replayed; only that scores.
+    case "fivehands": {
+      const replayStart = performance.now();
+      const run = replayFiveHandsRun(puzzle.seed, answer, puzzle.fiveHandsRev);
+      revealRun = run;
+      arcadeDiag = buildArcadeDiag(puzzle.type, run, answer, performance.now() - replayStart);
+      isCorrect = run.finished;
+      correctCount = run.made;
+      score = run.score;
+      extraDetail = {
+        fiveHandsRev: puzzle.fiveHandsRev ?? 1,
+        total: run.total,
+        made: run.made,
+        placed: run.placed,
+        finished: run.finished,
+        endedSeconds: run.endedSeconds,
+        flagged: run.flagged,
+        clientLag: run.clientLag,
+        clientTick: run.clientTick,
+        desyncTick: run.desyncTick,
+        inputs: decodeFiveHandsRun(answer).events.length,
+        claimedScore: decodeFiveHandsRun(answer).claimedScore,
         ...(run.reason ? { reason: run.reason } : {}),
       };
       break;
@@ -2020,6 +2138,43 @@ function gradeUnderRev(
       break;
     }
     case "bastion": {
+      if (isBastionTank(puzzle.bastionRev)) {
+        // bastionRev 2 (1 Nov 2026): the tank-defence shooter on the arcade scoring standard; the server's replay alone
+        // scores, and the stored extra carries each part's points (numbers only) for the reveal.
+        const replayStart = performance.now();
+        const run = replayBastionTankRun(puzzle.seed, answer);
+        const decoded = decodeBastionTankRun(answer);
+        revealRun = run as unknown as typeof revealRun;
+        arcadeDiag = buildArcadeDiag(puzzle.type, run as unknown as Parameters<typeof buildArcadeDiag>[1], answer, performance.now() - replayStart);
+        if (arcadeDiag.replayMs > 500) console.warn(`[arcade] slow replay ${puzzle.type}: ${arcadeDiag.replayMs}ms`);
+        isCorrect = run.score > 0;
+        correctCount = run.kills;
+        score = run.score;
+        extraDetail = {
+          bastionRev: puzzle.bastionRev,
+          std: true,
+          ...Object.fromEntries(run.parts.map((part) => [`part_${part.key}`, part.points])),
+          destroyedHp: run.destroyedHp,
+          kills: run.kills,
+          weak: run.weak,
+          fast: run.fast,
+          jams: run.jams,
+          shots: run.shots,
+          hits: run.hits,
+          base: run.base,
+          wave: run.wave,
+          fell: run.fell,
+          endedSeconds: run.endedSeconds,
+          flagged: run.flagged,
+          clientLag: run.clientLag,
+          clientTick: run.clientTick,
+          desyncTick: run.desyncTick,
+          inputs: decoded.events.length,
+          claimedScore: decoded.claimedScore,
+          ...(run.reason ? { reason: run.reason } : {}),
+        };
+        break;
+      }
       const replayStart = performance.now();
       const run = replayBastionRun(puzzle.seed, answer);
       revealRun = run;
@@ -2438,6 +2593,21 @@ function gradeUnderRev(
         numlineRev: puzzle.numlineRev,
         errors: results.map((r) => (r.error === null ? null : Math.round(r.error * 10_000) / 10_000)),
       };
+      break;
+    }
+    case "fences":
+    case "fillomino":
+    case "bridges":
+    case "kakuro": {
+      // New grid puzzles (1 Nov 2026), born on the scoring standard: the verdict is the rules (the solution is unique,
+      // so a board that keeps them is the solution) and the progress counts items against the stored solution. The
+      // standard's grader (standard/grid.server.ts) turns these facts into the score; this one is its fallback only.
+      const grid = gradeGridPuzzle(puzzle, answer);
+      isCorrect = grid.solved;
+      correctCount = grid.right;
+      errors = grid.wrong;
+      score = grid.solved ? 150 : Math.round((120 * Math.max(0, grid.right - grid.wrong)) / Math.max(1, grid.total));
+      extraDetail = { solved: grid.solved, right: grid.right, wrong: grid.wrong, total: grid.total };
       break;
     }
     case "numpyramid": {

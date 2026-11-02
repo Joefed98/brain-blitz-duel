@@ -42,9 +42,9 @@ import { useCelebrationScope } from "@/components/fx/useCelebration";
 import { ordinal } from "@/lib/duel/ordinal";
 import { rememberedLook, type PlayerLook } from "@/lib/duel/playerLook";
 import { getStoredName, setStoredName } from "@/lib/duel/session";
-import { buzz } from "@/lib/motion";
 import { unlockAudio } from "@/lib/sound";
 import { APP_NAME } from "@/lib/brand";
+import { OnlineOnly } from "@/components/offline/OnlineOnly";
 
 export const Route = createFileRoute("/daily")({
   ssr: false,
@@ -60,8 +60,17 @@ export const Route = createFileRoute("/daily")({
       { name: "robots", content: "noindex" },
     ],
   }),
-  component: GatedDailyScreen,
+  component: OfflineDaily,
 });
+
+/** Offline practice (31 Oct 2026): with no connection, the offline state and a way to Practice. */
+function OfflineDaily() {
+  return (
+    <OnlineOnly body="The daily challenge needs a connection. Practice games are saved on this phone, so they still work.">
+      <GatedDailyScreen />
+    </OnlineOnly>
+  );
+}
 
 /** The beta terms come first: shown once on this device before its first room, daily or challenge. */
 function GatedDailyScreen() {
@@ -210,7 +219,6 @@ function DailyScreen() {
       if (!started.ok) {
         setError(started.message);
         if (started.nameRefused) setEditingName(true);
-        buzz([10, 50, 10]);
         return;
       }
       setStoredName(trimmed);

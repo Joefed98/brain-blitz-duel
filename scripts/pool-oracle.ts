@@ -1,5 +1,5 @@
 /**
- * Speed Pool's shot search (script only; floats are fine here, the result is an input log the sim replays):
+ * Cue Ball's shot search (script only; floats are fine here, the result is an input log the sim replays):
  *
  *  - `simShot`: one shot rolled through the sim's own poolRollTick until every ball is still;
  *  - `candidates`: the ghost-ball aims at each target to each pocket with a clear line for the cue ball and the object
@@ -14,9 +14,12 @@
 import {
   poolIsSpot,
   poolRollTick,
+  poolShot2,
   poolShotC,
   poolShotVelocity,
+  poolSpin2Of,
   poolSpinCode,
+  poolSpinOf,
   POOL_BALL_R,
   POOL_BLACK,
   POOL_CUE,
@@ -26,10 +29,28 @@ import {
   type PoolSpin,
 } from "../src/lib/arcade/pool";
 
+/** A shot as the event carries it: poolRev 1 packs power and spin in c (d 0); poolRev 2 has c the power, d the spin. */
 export interface Shot {
   a: number;
   b: number;
   c: number;
+  d: number;
+}
+
+/** A spin in the oracle's own terms: top/back and side, each −2…2 on poolRev 1 and −100…100 on poolRev 2. */
+export interface Spin {
+  tb: number;
+  side: number;
+}
+
+/** The rev's power and spin for a shot. */
+export function shotParts(shot: Shot, rev = 1): { power: number; spin: Spin } {
+  if (rev >= 2) {
+    const d = poolSpin2Of(shot.d);
+    return { power: shot.c, spin: { tb: d.y, side: d.x } };
+  }
+  const s = poolSpinOf(shot.c % 25);
+  return { power: Math.floor(shot.c / 25), spin: { tb: s.topBack, side: s.side } };
 }
 
 export interface ShotEnd {
@@ -39,16 +60,17 @@ export interface ShotEnd {
   ticks: number;
 }
 
-/** Rolls one shot from a still table to rest, exactly as the sim does. */
-export function simShot(start: readonly PoolBall[], shot: Shot): ShotEnd {
+/** Rolls one shot from a still table to rest, exactly as the sim does (on the given revision). */
+export function simShot(start: readonly PoolBall[], shot: Shot, rev = 1): ShotEnd {
   const balls = start.map((b) => ({ ...b }));
   const cue = balls.find((b) => b.id === POOL_CUE)!;
-  const power = Math.floor(shot.c / 25);
-  const code = shot.c % 25;
-  const v = poolShotVelocity(shot.a, shot.b, power);
+  const parts = shotParts(shot, rev);
+  const v = poolShotVelocity(shot.a, shot.b, parts.power, rev);
   cue.vx = v.vx;
   cue.vy = v.vy;
-  const spin: PoolSpin = { firstHit: -1, topBack: Math.floor(code / 5) - 2, side: (code % 5) - 2, sideLeft: (code % 5) - 2 !== 0 ? 2 : 0 };
+  const spin: PoolSpin = { firstHit: -1, topBack: parts.spin.tb, side: parts.spin.side, sideLeft: parts.spin.side !== 0 ? 2 : 0 };
+  if (rev >= 2) spin.fine = 1;
+  if (rev >= 3) spin.strong = 1;
   const dropped: number[] = [];
   for (let t = 1; t <= POOL_SHOT_CAP + 1; t++) {
     const ev = poolRollTick(balls, spin, t);
@@ -137,9 +159,15 @@ export function candidates(balls: readonly PoolBall[], maxCut = 78): Candidate[]
   return out;
 }
 
-export function shotFor(angle: number, power: number, spin: number): Shot {
-  return { a: Math.round(Math.cos(angle) * 4000), b: Math.round(Math.sin(angle) * 4000), c: poolShotC(power, spin) };
+/** A shot on the revision: the aim angle, a power (1…1000) and a spin. */
+export function shotFor(angle: number, power: number, spin: Spin, rev = 1): Shot {
+  const a = Math.round(Math.cos(angle) * 4000);
+  const b = Math.round(Math.sin(angle) * 4000);
+  if (rev >= 2) return { a, b, ...poolShot2(power, spin.side, spin.tb) };
+  return { a, b, c: poolShotC(power, poolSpinCode(spin.tb, spin.side)), d: 0 };
 }
+
+export const NO_SPIN: Spin = { tb: 0, side: 0 };
 
 /** The power that rolls a cue ball about `px` px and then some (a rough feel, for ordering the sweep). */
 export function powerFor(cueDist: number, objDist: number, cut: number): number {
@@ -155,7 +183,9 @@ export interface Good {
   leave: number;
 }
 
-const SPINS = [poolSpinCode(0, 0), poolSpinCode(1, 0), poolSpinCode(-1, 0), poolSpinCode(2, 0), poolSpinCode(-2, 0)];
+/** The spins the sweep tries: centre, then follow and draw, half and full (poolRev 2's dot at the same strengths). */
+const SPINS_V1: Spin[] = [NO_SPIN, { tb: 1, side: 0 }, { tb: -1, side: 0 }, { tb: 2, side: 0 }, { tb: -2, side: 0 }];
+const SPINS_V2: Spin[] = [NO_SPIN, { tb: 50, side: 0 }, { tb: -50, side: 0 }, { tb: 100, side: 0 }, { tb: -100, side: 0 }, { tb: 70, side: 70 }, { tb: -70, side: -70 }];
 const NUDGES = [0, 0.15, -0.15, 0.35, -0.35, 0.6, -0.6];
 
 /** The leave's quality: the easiest next candidate's ease (999 with none; 0 when the rack is done). */
@@ -168,18 +198,21 @@ export function leaveQuality(balls: readonly PoolBall[]): number {
 }
 
 /** Clean pots from a still table, with each one's leave (best first); `limit` caps the candidates tried. */
-export function goodShots(balls: readonly PoolBall[], opts: { limit?: number; want?: number } = {}): Good[] {
+export function goodShots(balls: readonly PoolBall[], opts: { limit?: number; want?: number; rev?: number } = {}): Good[] {
   const out: Good[] = [];
+  const rev = opts.rev ?? 1;
+  const SPINS = rev >= 2 ? SPINS_V2 : SPINS_V1;
   const cands = candidates(balls).slice(0, opts.limit ?? 8);
   for (const cand of cands) {
-    const base = powerFor(cand.cueDist, cand.objDist, cand.cut);
+    // poolRev 3's harder top speed: the same roll needs about 16/20 of the pull.
+    const base = rev >= 3 ? Math.max(60, Math.round((powerFor(cand.cueDist, cand.objDist, cand.cut) * 16) / 20)) : powerFor(cand.cueDist, cand.objDist, cand.cut);
     const powers = [base, Math.round(base * 0.8), Math.round(base * 1.25), Math.round(base * 0.6), Math.round(base * 1.6)].map((p) => Math.max(60, Math.min(1000, p)));
     let found = 0;
     for (const nudge of NUDGES) {
       for (const power of powers) {
         for (const spin of SPINS) {
-          const shot = shotFor(cand.angle + (nudge * Math.PI) / 180, power, spin);
-          const end = simShot(balls, shot);
+          const shot = shotFor(cand.angle + (nudge * Math.PI) / 180, power, spin, rev);
+          const end = simShot(balls, shot, rev);
           if (!legalPot(balls, end)) {
             if (spin === SPINS[0] && !end.dropped.includes(cand.target)) break; // this power misses: spins won't help much
             continue;
@@ -199,13 +232,13 @@ export function goodShots(balls: readonly PoolBall[], opts: { limit?: number; wa
 }
 
 /** A clearance's shots (from the dealt table): seven spots and the black, every shot a clean pot. Null if none found. */
-export function clearRack(balls: readonly PoolBall[], budget = { sims: 0, max: 60_000 }, depth = 0): Shot[] | null {
+export function clearRack(balls: readonly PoolBall[], budget = { sims: 0, max: 60_000 }, depth = 0, rev = 1): Shot[] | null {
   if (!balls.some((b) => !b.down && b.id === POOL_BLACK)) return [];
   if (budget.sims > budget.max) return null;
-  const goods = goodShots(balls, { limit: 6 });
+  const goods = goodShots(balls, { limit: 6, rev });
   budget.sims += 1;
   for (const g of goods.slice(0, depth < 2 ? 4 : 3)) {
-    const rest = clearRack(g.end.balls, budget, depth + 1);
+    const rest = clearRack(g.end.balls, budget, depth + 1, rev);
     if (rest) return [g.shot, ...rest];
     if (budget.sims > budget.max) return null;
   }

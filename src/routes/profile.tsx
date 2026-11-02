@@ -4,6 +4,8 @@ import { useEffect, useMemo, useState } from "react";
 
 import { FeedbackLink } from "@/components/beta/FeedbackLink";
 import { PhoneShell } from "@/components/duel/PhoneShell";
+import { useHomeBed } from "@/lib/useScreenMusic";
+import { PageAside } from "@/components/app/PageAside";
 import { PlayerBadge } from "@/components/duel/PlayerBadge";
 import { LookPicker } from "@/components/duel/RoomLobby";
 import { Onboarding } from "@/components/duel/Onboarding";
@@ -50,6 +52,8 @@ const ACTIVE_GAMES = (() => {
 })();
 
 function ProfileScreen() {
+  // The app-wide home bed carries on here from the other tabs (docs/sound-cues/music.md).
+  useHomeBed();
   const router = useRouter();
   const [name, setName] = useState("");
   const [look, setLook] = useState<PlayerLook>({ colour: 0, icon: null });
@@ -125,7 +129,7 @@ function ProfileScreen() {
         }}
       />
       <p className="text-[13px] text-muted-foreground">
-        Used when you create or join a room, if no one there has it yet.
+        Your default for every room. If someone there already has it, you get the nearest free colour, and you can change it in the lobby.
       </p>
     </div>
   ) : null;
@@ -137,7 +141,7 @@ function ProfileScreen() {
   };
 
   return (
-    <PhoneShell tabs="profile">
+    <PhoneShell tabs="profile" aside={<PageAside panels={["public", "daily", "week"]} />}>
       <div className="ap-stack">
         <div className="flex items-center justify-between gap-2">
           <h1 className="ap-title">Profile</h1>

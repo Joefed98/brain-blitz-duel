@@ -11,6 +11,7 @@ import { LOGIC_STANDARD_GAMES } from "./logic.server";
 import { NUMBER_STANDARD_GAMES } from "./number.server";
 import { PATTERN_STANDARD_GAMES } from "./pattern.server";
 import { WORD_STANDARD_GAMES } from "./word.server";
+import { GRID_STANDARD_GAMES } from "./grid.server";
 
 export const STANDARD_GAMES: Partial<Record<PuzzleType, StandardGame>> = {
   ...WORD_STANDARD_GAMES,
@@ -18,4 +19,5 @@ export const STANDARD_GAMES: Partial<Record<PuzzleType, StandardGame>> = {
   ...ATTENTION_STANDARD_GAMES,
   ...PATTERN_STANDARD_GAMES,
   ...LOGIC_STANDARD_GAMES,
+  ...GRID_STANDARD_GAMES,
 };

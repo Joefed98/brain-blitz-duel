@@ -23,23 +23,13 @@ import { TICKS_PER_SECOND } from "@/lib/arcade/engine";
 import { encodeMinesweeperRun, replayMinesweeperRun } from "@/lib/duel/minesweeper";
 import { gameDisplayName } from "@/lib/duel/gameNames";
 import type { MinesweeperPuzzleData } from "@/lib/duel/types";
-import { expansionSounds } from "@/lib/fx/expansionSounds";
+import { minesweeperSounds } from "@/lib/fx/cardSounds";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
+import { canvasRatio } from "@/lib/battery";
 
 /** A press held this long flags the square instead of revealing it (ms). */
 const LONG_PRESS_MS = 380;
-
-/** Reveals tick, mines hit zap, flags tick quietly, the clear chimes. */
-function minesSounds() {
-  const watch = expansionSounds<MinesState>([
-    { count: (s) => s.reveals + s.chords, sound: "tick", volume: 0.6 },
-    { count: (s) => s.hits, sound: "zap" },
-    { count: (s) => s.flags, sound: "tick", volume: 0.35 },
-    { count: (s) => (s.clearedTick > 0 ? 1 : 0), sound: "chime" },
-  ]);
-  return { frame: (state: MinesState, running: boolean) => watch(state, running || state.clearedTick === state.tick), stop: () => {} };
-}
 
 /** Fixed intro still: a corner of the board with an opening, numbers, a flag and covered squares. */
 function IntroExample() {
@@ -48,7 +38,7 @@ function IntroExample() {
     ref.current = canvas;
     const ctx = canvas?.getContext("2d");
     if (!canvas || !ctx) return;
-    const ratio = typeof window === "undefined" ? 1 : Math.min(3, window.devicePixelRatio || 1);
+    const ratio = canvasRatio();
     canvas.width = 180 * ratio;
     canvas.height = 126 * ratio;
     ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
@@ -104,7 +94,6 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         held.flagged = true;
         // A long press flags (or unflags) whatever the switch says.
         sendRef.current?.({ k: MINES_INPUT_TAP, a: cell, b: MINES_MODE_FLAG, c: 0 });
-        if (typeof navigator !== "undefined") navigator.vibrate?.(12);
       }, LONG_PRESS_MS);
       press.current = held;
       return null;
@@ -150,7 +139,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         worldW={MINES_WORLD_W}
         worldH={MINES_WORLD_H}
         game={game}
-        sounds={minesSounds}
+        sounds={minesweeperSounds}
         checkpoint={minesCheckpoint}
         interval={MINES_CHECKPOINT_INTERVAL}
         encodeRun={encodeMinesweeperRun}

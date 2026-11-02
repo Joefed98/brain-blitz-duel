@@ -1,8 +1,11 @@
 /**
- * Arcade groups (30 Oct 2026; Practice browsing and tile borders only): the arcade games split into
- * Retro, Sports, Cards & Board and Action on the Practice tab's Arcade side, and each arcade tile's
- * border takes its group's colour. Rooms, the room category picker, arcade rounds, the daily arcade and
- * scoring never read this: Arcade stays one category everywhere else.
+ * Arcade groups (30 Oct 2026; Practice browsing, tile borders and, since 31 Oct 2026, the room settings sheet's
+ * arcade chips, roomSettings.ts): the arcade games split into
+ * Retro, Sports, Cards & Board, Action and Strategy on the Practice tab's Arcade side, and each arcade tile's
+ * border takes its group's colour. Strategy (1 Nov 2026) was split out of Action: Coral Pop, Gemstone, Ball
+ * Tracker, Tilt, Rainbow Bridge and High Rise moved, the rest of Action stayed. A room saved with the Action pick
+ * before the split still deals both groups' games (roomSettings.ts `GROUPS_TOKEN`). Arcade rounds, the daily
+ * arcade and scoring never read this: Arcade stays one category there.
  *
  * Games are listed by registry id. Ids not registered yet (the new Sports and Cards & Board games) are
  * listed so their sessions only need to register the game; every reader skips an id the registry lacks.
@@ -10,7 +13,7 @@
 import { PUZZLE_REGISTRY, isRetired } from "./registry";
 import type { PuzzleType } from "./types";
 
-export type ArcadeGroup = "retro" | "sports" | "cards" | "action";
+export type ArcadeGroup = "retro" | "sports" | "cards" | "action" | "strategy";
 
 export interface ArcadeGroupInfo {
   id: ArcadeGroup;
@@ -30,7 +33,8 @@ export const ARCADE_GROUPS: readonly ArcadeGroupInfo[] = [
     colour: "#36E2F5",
     glow: true,
     // Hover, Breaker, Rally, Wavefront, Fission, Tempo, Meteor, Orbit, Jaywalk, Pinball.
-    games: ["hover", "breaker", "rally", "wavefront", "burst", "beat", "snake", "orbit", "cross", "pinball"],
+    // Blockfall (1 Nov 2026).
+    games: ["hover", "breaker", "rally", "wavefront", "burst", "beat", "snake", "orbit", "cross", "pinball", "blockfall"],
   },
   {
     id: "sports",
@@ -38,7 +42,8 @@ export const ARCADE_GROUPS: readonly ArcadeGroupInfo[] = [
     colour: "#4CC24A",
     glow: false,
     // Flightpath, Swish, then the new games (not registered yet).
-    games: ["bullseye", "bintoss", "minigolf", "pool", "curling", "homerun", "freekick", "racing"],
+    // Alley Roll (1 Nov 2026).
+    games: ["bullseye", "bintoss", "minigolf", "pool", "curling", "homerun", "freekick", "racing", "alleyroll"],
   },
   {
     id: "cards",
@@ -46,15 +51,26 @@ export const ARCADE_GROUPS: readonly ArcadeGroupInfo[] = [
     colour: "#FF5C93",
     glow: false,
     // All new (not registered yet).
-    games: ["minesweeper", "freecell", "mahjong", "tripeaks", "pokersquares"],
+    games: ["minesweeper", "freecell", "mahjong", "tripeaks", "pokersquares", "fivehands"],
   },
   {
     id: "action",
     label: "Action",
     colour: "#FF4D4D",
     glow: false,
-    // Slice, Tilt, Gemstone, High Rise, Coral Pop, Roofbound, Rainbow Bridge, Ball Tracker, Grappler.
-    games: ["slice", "tilt", "matchup", "skyline", "bubble", "flip", "inkbridge", "balltrack", "swing"],
+    // Slice, Roofbound, Grappler, Ricochet (the ninja wall-climb, back from retirement on ricoRev 2, 1 Nov 2026), Bastion
+    // (bastionRev 2, 1 Nov 2026).
+    games: ["slice", "flip", "swing", "ricochet", "bastion"],
+  },
+  {
+    id: "strategy",
+    label: "Strategy",
+    // A blue-leaning violet: clear of Retro's cyan, Sports' green, Cards & Board's pink and Action's red,
+    // and of Pattern's purple and Word's blue beside it in the room settings sheet; 6.3:1 on #0B0B0F.
+    colour: "#8E80FF",
+    glow: false,
+    // Tilt, Gemstone, High Rise, Coral Pop, Rainbow Bridge, Ball Tracker (their order in Action).
+    games: ["tilt", "matchup", "skyline", "bubble", "inkbridge", "balltrack"],
   },
 ];
 

@@ -39,12 +39,12 @@ import { drawBubbleArt, drawBubbleAimTrail } from "@/lib/arcade/bubble.renderer"
 import { bubbleSounds } from "@/lib/fx/gameSounds";
 import { decodeBubbleRun, encodeBubbleRun, replayBubbleRun } from "@/lib/duel/bubble";
 import { ARCADE_CRASH_FREEZE_MS, type BubblePuzzleData } from "@/lib/duel/types";
-import { buzz } from "@/lib/motion";
 import { playSound, playWrong } from "@/lib/sound";
 import { NO_SCROLL_STYLE, useNoTouchScroll } from "@/components/puzzles/noScroll";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 import { arcadeCanvasRatio } from "@/lib/fx/lowEnd";
+import { arenaFrame, cancelArenaFrame } from "@/lib/battery";
 
 /** Fixed intro still: a shot bouncing off the wall into a matching group. */
 function IntroExample() {
@@ -192,7 +192,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
 
     const loop = (time: number) => {
       frameTiming.begin(time);
-      frame = requestAnimationFrame(loop);
+      frame = arenaFrame(loop);
       const delta = time - last;
       last = time;
 
@@ -251,7 +251,6 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         if (state.current.dead) {
           if (deadAt.current === null) {
             deadAt.current = time;
-            buzz(40);
             playWrong();
           } else if (time - deadAt.current >= ARCADE_CRASH_FREEZE_MS) {
             finish();
@@ -263,9 +262,9 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       frameTiming.end();
     };
 
-    frame = requestAnimationFrame(loop);
+    frame = arenaFrame(loop);
     return () => {
-      cancelAnimationFrame(frame);
+      cancelArenaFrame(loop, frame);
       sounds.stop();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps

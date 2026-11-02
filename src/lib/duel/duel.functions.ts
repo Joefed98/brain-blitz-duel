@@ -5,6 +5,8 @@ import { staleSubmissionNote } from "@/lib/appVersion";
 
 import { type SubmitExtra } from "./grade";
 import { normaliseCategories, STANDARD_CATEGORIES } from "./categories";
+import { dealRoomRounds } from "./roomDeal";
+import { encodeRoomSettings, readRoomSettings } from "./roomSettings";
 import { puzzleRevealMs, typesInCategory } from "./registry";
 import { puzzleCloseReason } from "./roomClose";
 import { generateRoomCode } from "./puzzles";
@@ -36,9 +38,11 @@ import {
   hasLookColumns,
   insertPlayerWithLook,
   persistAutoColours,
+  RoomSeatsError,
   type LookPreference,
 } from "./playerLook.server";
 import { acceptsAnswers } from "./answerWindow";
+import { seatFor } from "./roomSeats";
 import { DUEL_START_MS, ROUND_TITLE_MS, WINNER_REVEAL_MS } from "./startPresentation";
 import {
   INACTIVE_AFTER_MISSED,
@@ -47,6 +51,8 @@ import {
   MAX_PLAYERS,
   MIN_PLAYERS,
   NEXT_ROUND_AUTO_MS,
+  roomCapacity,
+  roomFullMessage,
   STANDINGS_MS,
   TOTAL_ROUNDS,
   MAX_ROUNDS,
@@ -169,12 +175,6 @@ async function insertPlayer(
   );
 }
 
-function firstFreeSlot(players: DuelPlayerRow[], maxPlayers: number): number | null {
-  const taken = new Set(present(players).map((p) => p.player_slot));
-  for (let slot = 1; slot <= maxPlayers; slot++) if (!taken.has(slot)) return slot;
-  return null;
-}
-
 /**
  * Everyone active has tapped READY: pull the intro's start stamp back so only
  * the 3-2-1 countdown is left. Guarded on the stamp itself, so a burst of taps
@@ -195,7 +195,8 @@ async function createRoomRow(
   client: any,
   userId: string,
   displayName: string,
-  categories: readonly PuzzleCategory[] = STANDARD_CATEGORIES,
+  /** The room's stored settings (roomSettings.ts: picks then `rounds:N`), or a legacy category list. */
+  categories: readonly string[] = STANDARD_CATEGORIES,
   look: LookPreference = {},
 ): Promise<DuelRow> {
   for (let attempt = 0; attempt < 8; attempt++) {
@@ -331,7 +332,8 @@ export const createRoomFn = createServerFn({ method: "POST" })
     const { CREATE_ROOM_LIMIT, withinRateLimit } = await import("./rateLimit.server");
     if (!(await withinRateLimit(client, context.userId, CREATE_ROOM_LIMIT)))
       throw new Error("You've made a lot of rooms. Try again later.");
-    // Remember the host's category choices from their last room.
+    // Remember the host's room settings from their last room (roomSettings.server.ts: a room from before
+    // settings is read as settings, Arcade as its five groups; a first room gets Mixed, 6 rounds).
     const { data: previous } = await client
       .from("duels")
       .select("selected_categories")
@@ -339,11 +341,12 @@ export const createRoomFn = createServerFn({ method: "POST" })
       .order("created_at", { ascending: false })
       .limit(1)
       .maybeSingle();
+    const { rememberedSettings } = await import("./roomSettings.server");
     const room = await createRoomRow(
       client,
       context.userId,
       data.displayName,
-      normaliseCategories(previous?.selected_categories),
+      rememberedSettings(previous?.selected_categories),
       data.look ?? {},
     );
     return { roomId: room.id, roomCode: room.room_code };
@@ -375,7 +378,7 @@ export const roomPreviewFn = createServerFn({ method: "POST" })
       roomCode: code,
       state: linkRoomState(room),
       playerCount: players.length,
-      maxPlayers: room.max_players ?? MAX_PLAYERS,
+      maxPlayers: roomCapacity(room),
     };
   });
 
@@ -430,18 +433,24 @@ export const joinRoomFn = createServerFn({ method: "POST" })
     if (room.status !== "waiting") {
       return { ok: false as const, message: "Game already started." };
     }
-    const slot = firstFreeSlot(players, room.max_players ?? MAX_PLAYERS);
-    if (slot === null) {
-      return { ok: false as const, message: `That room is full (${room.max_players} players).` };
+    const seat = seatFor(players, room);
+    if (!seat.ok) return { ok: false as const, message: seat.message };
+    const slot = seat.slot;
+    try {
+      await insertPlayer(client, room.id, slot, context.userId, data.displayName, data.look ?? {});
+      await recordJoin(client, {
+        duel_id: room.id,
+        user_id: context.userId,
+        player_slot: slot,
+        game_index: gameIndexOf(room),
+        via,
+      });
+    } catch (error) {
+      // Before the 16-player migration the database still refuses slots past 10 (seatsBefore16). Only insertPlayer
+      // throws RoomSeatsError; anything else, recordJoin's included, is rethrown as before.
+      if (error instanceof RoomSeatsError) return { ok: false as const, message: roomFullMessage(error.seats) };
+      throw error;
     }
-    await insertPlayer(client, room.id, slot, context.userId, data.displayName, data.look ?? {});
-    await recordJoin(client, {
-      duel_id: room.id,
-      user_id: context.userId,
-      player_slot: slot,
-      game_index: gameIndexOf(room),
-      via,
-    });
     return { ok: true as const, roomId: room.id, roomCode: room.room_code };
   });
 
@@ -467,24 +476,28 @@ export const startRoomFn = createServerFn({ method: "POST" })
     const unblockRow = await drawUnblockRow(client);
     const recent = await recentRoundOrders(client, room, room.host_user_id);
     const recentBanked = await recentBankKeys(client, room.host_user_id);
-    const categories = normaliseCategories(room.selected_categories);
+    // A room saved with settings (roomSettings.ts) deals from them (roomDeal.ts); an older room keeps its
+    // category rule exactly (roomRoundCount rounds shared between the selected categories).
+    const stored = readRoomSettings(room.selected_categories);
+    const categories = stored.legacy ? normaliseCategories(room.selected_categories) : stored.categories;
     if (!categories.some((category) => typesInCategory(category).length > 0))
       return {
         ok: false as const,
         message: "Choose at least one category with active games.",
       };
-    // Rounds shared between the selected categories (roomRoundCount), ordered by this room's seed.
     const { newRoomSeed } = await import("./selection");
     const roomSeed = newRoomSeed();
+    const dealt = stored.legacy ? undefined : dealRoomRounds(stored.settings, { seed: roomSeed, recent }).types;
     const { roundOrder, puzzles } = buildRoomPuzzles({
       seed: roomSeed,
       recent,
       categories,
       unblockRow,
       recentBankKeys: recentBanked,
+      roundOrder: dealt,
     });
     console.log(
-      `[room-selection] room=${room.room_code} seed=${roomSeed} categories=${categories.join(",")} recentRooms=${recent.length} order=${roundOrder.join(",")}`,
+      `[room-selection] room=${room.room_code} seed=${roomSeed} ${stored.legacy ? `categories=${categories.join(",")}` : `settings=${encodeRoomSettings(stored.settings).join(",")}`} recentRooms=${recent.length} order=${roundOrder.join(",")}`,
     );
 
     const split = puzzles.map(splitPuzzle);
@@ -562,6 +575,21 @@ export const setRoomModesFn = createServerFn({ method: "POST" })
     console.log(`[room-selection] room=${room.room_code} categories=${categories.join(",")}`);
 
     return { ok: true as const };
+  });
+
+/**
+ * Host only, in the lobby: the room settings sheet's categories and round count (roomSettings.ts),
+ * validated and stored by changeRoomSettings; a guest's or a started room's change is refused.
+ */
+export const setRoomSettingsFn = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { roomId: string; picks: string[]; rounds: number }) => input)
+  .handler(async ({ data, context }) => {
+    const client = await db();
+    await requireParticipant(client, data.roomId, context.userId);
+    const { changeRoomSettings } = await import("./roomSettings.server");
+    const result = await changeRoomSettings(client, data.roomId, context.userId, { picks: data.picks, rounds: data.rounds });
+    return result.ok ? { ok: true as const } : result;
   });
 
 /**
@@ -809,6 +837,8 @@ export const submitAnswerFn = createServerFn({ method: "POST" })
       extra?: SubmitExtra;
       /** The phone's build id (appVersion.ts); missing from copies older than it. */
       clientVersion?: string;
+      /** How the round was played (lib/inputType.ts); stored beside the result, never graded. */
+      inputType?: string;
     }) => input,
   )
   .handler(async ({ data, context }) => {
@@ -873,6 +903,11 @@ export const submitAnswerFn = createServerFn({ method: "POST" })
       score,
     });
     if (error && error.code !== UNIQUE_VIOLATION) throw new Error(error.message);
+    // How it was played (touch, mouse, keyboard), beside the stored result; best effort, never graded.
+    if (!error) {
+      const { recordInputType } = await import("./inputType.server");
+      await recordInputType(client, "round_results", { duel_id: room.id, player_slot: player.player_slot, round_number: data.roundNumber }, data.inputType);
+    }
     // The live "finished" ping: only the round number, after the result is stored, and only for a
     // finish before the buzzer (finishedPing.server.ts, buzzer.ts): never a time-out or a late answer.
     if (finishedBeforeBuzzer(puzzle, room.phase, msLeft)) await markSubmitted(client, player.id, data.roundNumber);

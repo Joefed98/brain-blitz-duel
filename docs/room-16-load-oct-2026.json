@@ -1,0 +1,211 @@
+[
+  {
+    "players": 16,
+    "scenario": "arcade",
+    "rounds": 6,
+    "virtualSeconds": 873,
+    "failures": [],
+    "answersStored": 96,
+    "answersExpected": 96,
+    "scoreMismatches": 0,
+    "messages": {
+      "total": 59872,
+      "perPhonePerSecond": 4.29,
+      "roomPerSecond": 68.6,
+      "peakRoomPerSecond": 448,
+      "byTable": {
+        "duels": 624,
+        "duel_players": 57728,
+        "round_results": 1536
+      }
+    },
+    "requests": {
+      "total": 22220,
+      "perSecond": 25.4,
+      "byCall": {
+        "createRoomFn": 1,
+        "joinRoomFn": 16,
+        "startRoomFn": 1,
+        "heartbeatFn": 3499,
+        "advancePhaseFn": 2239,
+        "readyUpFn": 96,
+        "submitAnswerFn": 96,
+        "revealAnswerFn": 96,
+        "continueFn": 176,
+        "phone fetch players": 13968,
+        "phone fetch results": 1936,
+        "phone fetch reveal": 96
+      }
+    },
+    "grading": {
+      "submits": 96,
+      "p50": 5.9,
+      "p95": 57.1,
+      "max": 133.6,
+      "roundCloseMs": []
+    },
+    "advance": {
+      "calls": 2239,
+      "p95": 0.36
+    }
+  },
+  {
+    "players": 32,
+    "scenario": "arcade",
+    "rounds": 6,
+    "virtualSeconds": 901,
+    "failures": [],
+    "answersStored": 174,
+    "answersExpected": 174,
+    "scoreMismatches": 0,
+    "messages": {
+      "total": 243840,
+      "perPhonePerSecond": 8.46,
+      "roomPerSecond": 270.6,
+      "peakRoomPerSecond": 1376,
+      "byTable": {
+        "duels": 1248,
+        "duel_players": 237056,
+        "round_results": 5568
+      }
+    },
+    "requests": {
+      "total": 48080,
+      "perSecond": 53.4,
+      "byCall": {
+        "createRoomFn": 1,
+        "joinRoomFn": 31,
+        "startRoomFn": 1,
+        "advancePhaseFn": 4343,
+        "heartbeatFn": 7210,
+        "readyUpFn": 192,
+        "submitAnswerFn": 174,
+        "revealAnswerFn": 192,
+        "continueFn": 352,
+        "phone fetch players": 28864,
+        "phone fetch results": 6528,
+        "phone fetch reveal": 192
+      }
+    },
+    "grading": {
+      "submits": 174,
+      "p50": 4.6,
+      "p95": 45,
+      "max": 90,
+      "roundCloseMs": [
+        0.7,
+        0.7
+      ]
+    },
+    "advance": {
+      "calls": 4343,
+      "p95": 0.65
+    }
+  },
+  {
+    "players": 16,
+    "scenario": "dealt",
+    "rounds": 6,
+    "virtualSeconds": 864,
+    "failures": [],
+    "answersStored": 90,
+    "answersExpected": 90,
+    "scoreMismatches": 0,
+    "messages": {
+      "total": 59008,
+      "perPhonePerSecond": 4.27,
+      "roomPerSecond": 68.3,
+      "peakRoomPerSecond": 288,
+      "byTable": {
+        "duels": 624,
+        "duel_players": 56960,
+        "round_results": 1440
+      }
+    },
+    "requests": {
+      "total": 21913,
+      "perSecond": 25.4,
+      "byCall": {
+        "createRoomFn": 1,
+        "joinRoomFn": 16,
+        "startRoomFn": 1,
+        "advancePhaseFn": 2125,
+        "heartbeatFn": 3456,
+        "readyUpFn": 96,
+        "submitAnswerFn": 90,
+        "revealAnswerFn": 96,
+        "continueFn": 176,
+        "phone fetch players": 13824,
+        "phone fetch results": 1936,
+        "phone fetch reveal": 96
+      }
+    },
+    "grading": {
+      "submits": 90,
+      "p50": 1,
+      "p95": 6.5,
+      "max": 16.2,
+      "roundCloseMs": [
+        0.2,
+        0.2
+      ]
+    },
+    "advance": {
+      "calls": 2125,
+      "p95": 0.24
+    }
+  },
+  {
+    "players": 32,
+    "scenario": "dealt",
+    "rounds": 6,
+    "virtualSeconds": 837,
+    "failures": [],
+    "answersStored": 186,
+    "answersExpected": 186,
+    "scoreMismatches": 0,
+    "messages": {
+      "total": 228448,
+      "perPhonePerSecond": 8.53,
+      "roomPerSecond": 272.9,
+      "peakRoomPerSecond": 1280,
+      "byTable": {
+        "duels": 1248,
+        "duel_players": 221280,
+        "round_results": 5952
+      }
+    },
+    "requests": {
+      "total": 44220,
+      "perSecond": 52.8,
+      "byCall": {
+        "createRoomFn": 1,
+        "joinRoomFn": 31,
+        "startRoomFn": 1,
+        "advancePhaseFn": 3225,
+        "heartbeatFn": 6696,
+        "readyUpFn": 192,
+        "submitAnswerFn": 186,
+        "revealAnswerFn": 192,
+        "continueFn": 352,
+        "phone fetch players": 26816,
+        "phone fetch results": 6336,
+        "phone fetch reveal": 192
+      }
+    },
+    "grading": {
+      "submits": 186,
+      "p50": 0.8,
+      "p95": 2.7,
+      "max": 7.2,
+      "roundCloseMs": [
+        0.5,
+        0.5
+      ]
+    },
+    "advance": {
+      "calls": 3225,
+      "p95": 0.63
+    }
+  }
+]

@@ -643,14 +643,22 @@ const restartDefs = migrations.filter((f) =>
   /FUNCTION public\.restart_duel_room/.test(readFileSync(`supabase/migrations/${f}`, "utf8")),
 );
 check(
-  restartDefs.at(-1) === "20261016170000_beta_archive_round_records.sql" &&
-    restartDefs.at(-2) === "20261016130300_beta_play_again_archive.sql",
-  `migrations: the round-records fix-up is restart_duel_room's latest definition, after the archive (${restartDefs.slice(-2)})`,
+  restartDefs.at(-2) === "20261016170000_beta_archive_round_records.sql" &&
+    restartDefs.at(-3) === "20261016130300_beta_play_again_archive.sql",
+  `migrations: the round-records fix-up is restart_duel_room's definition after the archive (${restartDefs.slice(-3)})`,
 );
-const archiveSql = readFileSync(`supabase/migrations/${restartDefs.at(-1)}`, "utf8");
-const body = archiveSql.slice(
-  archiveSql.indexOf("CREATE OR REPLACE FUNCTION public.restart_duel_room"),
+// The input-type follow-up (1 Nov 2026, the computer layout): restart_duel_room's latest definition, after the
+// round-records fix-up; the checks below hold for each step (archive → round records → input type).
+check(
+  restartDefs.at(-1) === "20261031170000_result_input_type.sql",
+  `migrations: the input-type follow-up is restart_duel_room's latest definition, after the round-records fix-up (${restartDefs.slice(-3)})`,
 );
+const fnOf = (file: string) => {
+  const sql = readFileSync(`supabase/migrations/${file}`, "utf8");
+  return sql.slice(sql.indexOf("CREATE OR REPLACE FUNCTION public.restart_duel_room"));
+};
+for (const step of [-2, -1] as const) {
+const body = fnOf(restartDefs.at(step)!);
 const at = (needle: string) => body.indexOf(needle);
 check(
   at("INSERT INTO public.round_results_archive") > 0 &&
@@ -662,7 +670,7 @@ check(
     at("INSERT INTO public.duel_players_archive") < at("DELETE FROM public.duel_players"),
   "SQL: departed players are archived before they are deleted",
 );
-const previous = readFileSync(`supabase/migrations/${restartDefs.at(-2)}`, "utf8");
+const previous = readFileSync(`supabase/migrations/${restartDefs.at(step - 1)}`, "utf8");
 const norm = (sql: string) =>
   sql
     .replace(/--[^\n]*/g, "")
@@ -693,8 +701,21 @@ for (const statement of [
   ] as const)
     check(
       between(body, from, to) === between(prevBody, from, to) && between(body, from, to) !== "",
-      `SQL: restart_duel_room unchanged from the previous definition from "${from}"${to ? ` to "${to}"` : " to the end"}`,
+      `SQL: restart_duel_room (${restartDefs.at(step)}) unchanged from the previous definition from "${from}"${to ? ` to "${to}"` : " to the end"}`,
     );
+}
+}
+{
+  // The input-type follow-up's archive insert is the round-records fix-up's with one more column, input_type.
+  const norm = (sql: string) => sql.replace(/--[^\n]*/g, "").replace(/\s+/g, " ").replace(/\s*([(),=<>|'])\s*/g, "$1").trim();
+  const insertOf = (body: string) => norm(body.slice(body.indexOf("INSERT INTO public.round_results_archive"), body.indexOf("INSERT INTO public.duel_players_archive")));
+  const before = insertOf(fnOf(restartDefs.at(-2)!));
+  const after = insertOf(fnOf(restartDefs.at(-1)!));
+  check(
+    before !== "" &&
+      after === before.replace("extra,score,submitted_at)", "extra,score,submitted_at,input_type)").replace("r.score,r.submitted_at FROM", "r.score,r.submitted_at,r.input_type FROM"),
+    "SQL: Play again's archive insert is the previous one plus input_type, copied from each result",
+  );
 }
 for (const sql of ours.map((f) => readFileSync(`supabase/migrations/${f}`, "utf8"))) {
   for (const table of [...sql.matchAll(/CREATE TABLE IF NOT EXISTS public\.(\w+)/g)].map(
@@ -842,8 +863,9 @@ if (!bin) {
       INSERT INTO public.duel_secrets (duel_id, puzzles_private, round_records)
         VALUES ('${ROOM}', '[]'::jsonb, ${roundRecords ? `'${JSON.stringify(roundRecords)}'::jsonb` : "NULL"})
         ON CONFLICT (duel_id) DO NOTHING;
-      INSERT INTO public.round_results (duel_id, player_slot, round_number, score, is_correct, ms_remaining, extra)
-      SELECT '${ROOM}', slot, round, 100 * slot + round, true, 1000 * round, '{"flagged": false}'::jsonb
+      INSERT INTO public.round_results (duel_id, player_slot, round_number, score, is_correct, ms_remaining, extra, input_type)
+      SELECT '${ROOM}', slot, round, 100 * slot + round, true, 1000 * round, '{"flagged": false}'::jsonb,
+        (ARRAY['touch', 'mouse+keyboard', NULL])[slot]
       FROM generate_series(1, 3) slot, generate_series(1, ${order.length}) round;`);
     const setup = psql(`
       INSERT INTO public.duels (id, room_code, status, host_user_id, round_order) VALUES ('${ROOM}', 'BETA', 'waiting', '${HOST}', '[]'::jsonb);
@@ -877,6 +899,14 @@ if (!bin) {
       before === "6" &&
         archived === `6|2|0|0|breaker,wordsmith|120000|2|${(100 + 200 + 300) * 2 + 3 * 3}|t`,
       `SQL: game 1's 6 answers archived as game 0 with game ids, the puzzle's own limit, device ids, scores and extras (${archived})`,
+    );
+    // The input-type follow-up: each archived answer keeps how it was played (none recorded stays null).
+    const inputTypes = psql(
+      `SELECT string_agg(player_slot || ':' || coalesce(input_type, 'null'), ',' ORDER BY player_slot, round_number) FROM public.round_results_archive WHERE duel_id = '${ROOM}' AND game_index = 0`,
+    ).out;
+    check(
+      inputTypes === "1:touch,1:touch,2:mouse+keyboard,2:mouse+keyboard,3:null,3:null",
+      `SQL: Play again's archive keeps each answer's input_type (${inputTypes})`,
     );
     const limits = psql(
       `SELECT string_agg(DISTINCT round_number || ':' || time_limit_ms || ':' || revision::text, ',') FROM public.round_results_archive WHERE duel_id = '${ROOM}'`,

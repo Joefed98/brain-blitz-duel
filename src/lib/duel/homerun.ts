@@ -1,4 +1,4 @@
-/** Home Run Derby round plumbing: the server replays with the STORED seed and keeps its own score. */
+/** Home Run round plumbing (homerunRev 1, 2 and 3): the server replays with the STORED seed and revision and keeps its own score. */
 
 import {
   homerunCheckpoint,
@@ -7,6 +7,8 @@ import {
   homerunStdParts,
   HOMERUN_CHECKPOINT_INTERVAL,
   HOMERUN_CHECKPOINT_KEYS,
+  HOMERUN_REV_2,
+  HOMERUN_REV_3,
   OUT_HOMER,
   type HomerunCheckpoint,
   type HomerunState,
@@ -14,13 +16,17 @@ import {
 import type { StdPart } from "@/lib/arcade/arcadeStandard";
 import { makeArcadeRun, type FlatReplay } from "./arcadeRun";
 
-const run = makeArcadeRun<HomerunState, HomerunCheckpoint>({
-  tag: "homerun",
-  game: homerunGameFor(1),
-  checkpoint: homerunCheckpoint,
-  keys: HOMERUN_CHECKPOINT_KEYS,
-  interval: HOMERUN_CHECKPOINT_INTERVAL,
-});
+const runFor = (rev: number) =>
+  makeArcadeRun<HomerunState, HomerunCheckpoint>({
+    tag: "homerun",
+    game: homerunGameFor(rev),
+    checkpoint: homerunCheckpoint,
+    keys: HOMERUN_CHECKPOINT_KEYS,
+    interval: HOMERUN_CHECKPOINT_INTERVAL,
+  });
+const run = runFor(1);
+const runV2 = runFor(HOMERUN_REV_2);
+const runV3 = runFor(HOMERUN_REV_3);
 
 export interface HomerunResult extends FlatReplay<HomerunState, HomerunCheckpoint> {
   /** Carry (each pitch capped at 450 ft), home runs, signs struck, pitches decided and the longest hit (feet). */
@@ -36,9 +42,10 @@ export interface HomerunResult extends FlatReplay<HomerunState, HomerunCheckpoin
 export const encodeHomerunRun = run.encode;
 export const decodeHomerunRun = run.decode;
 
-/** The single place a Home Run Derby score is worked out. */
-export function replayHomerunRun(seed: number, raw: string, _rev?: number | null): HomerunResult {
-  const result = run.replay(seed, raw);
+/** The single place a Home Run score is worked out (rev 3 on a rev-3 puzzle, rev 2 on a rev-2 one, else rev 1, unchanged). */
+export function replayHomerunRun(seed: number, raw: string, rev?: number | null): HomerunResult {
+  const r = rev ?? 1;
+  const result = (r >= HOMERUN_REV_3 ? runV3 : r >= HOMERUN_REV_2 ? runV2 : run).replay(seed, raw);
   const s = result.state;
   return {
     ...result,

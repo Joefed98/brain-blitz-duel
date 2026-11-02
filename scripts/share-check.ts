@@ -35,7 +35,7 @@ import { join } from "node:path";
 
 import { createCanvas } from "@napi-rs/canvas";
 
-import { APP_NAME } from "../src/lib/brand";
+import { APP_NAME, APP_URL } from "../src/lib/brand";
 import { CARD_H, CARD_W, drawResultCard } from "../src/lib/share/resultCard";
 import { roomShareData, roomShareLine, roomShareLink } from "../src/lib/share/roomShare";
 import { shareResult, shareText } from "../src/lib/share/shareResult";
@@ -137,7 +137,9 @@ function room(
 
 /* ------------------------------------------------------------ 1. text and link */
 
-const ORIGIN = "https://brain-blitz-duel.lovable.app";
+// Every link the app hands out is built on APP_URL (src/config/appUrl.ts), never the page's own origin.
+const ORIGIN = APP_URL;
+check(APP_URL === "https://joulz.uk", `APP_URL is https://joulz.uk (${APP_URL})`);
 const ROOM_LINK = `${ORIGIN}/duel/ABCD?ref=share`;
 // The link is always the room's: where it leads is decided when it's opened (below, and in Chromium).
 const finished = roomShareData({ ...room(), origin: ORIGIN });
@@ -391,6 +393,13 @@ for (const nav of ["none", "refused"] as const) {
   check(/event: "share_tap",\s*source: "room"/.test(room), "a room's Share tap doesn't record source room");
   check(/event: "share_tap",\s*source: "challenge",\s*challengeCode: code/.test(challenge), "a challenge's Share tap doesn't record source challenge and its code");
   check(/event: "share_tap", source: "daily", dailyKind: kind/.test(daily), "a daily's Share tap doesn't record source daily and which daily");
+  check(/origin: APP_URL,/.test(room), "a room's share link isn't built on APP_URL");
+  check(/challengeLink\(APP_URL, code\)/.test(challenge), "a challenge's share link isn't built on APP_URL");
+  check(/dailyShareLink\(APP_URL, kind\)/.test(daily), "a daily's share link isn't built on APP_URL");
+  check(/roomInvite\(roomCode, APP_URL\)/.test(readFileSync("src/routes/duel.$code.tsx", "utf8")), "the lobby's invite link isn't built on APP_URL");
+  check(/calendarFile\(game, APP_URL\)/.test(readFileSync("src/lib/publicSchedule.ts", "utf8")), "the calendar file's link isn't built on APP_URL");
+  for (const [file, text] of [["room", room], ["challenge", challenge], ["daily", daily]] as const)
+    check(!/location\.origin/.test(text), `the ${file} share reads the page's origin`);
   check(/noteLinkArrival\(\{ source: "daily"/.test(readFileSync("src/routes/daily.tsx", "utf8")) && /noteLinkArrival\(\{ source: "challenge"/.test(readFileSync("src/routes/challenge.tsx", "utf8")), "the daily and challenge pages don't record their links' arrivals");
 }
 {
@@ -907,7 +916,7 @@ else {
           // The harness's device is slot 1, the host and top scorer.
           const text = `I came 1st in a 6-round ${APP_NAME} room – `;
           // Always the room's own link; where it leads is decided when it's opened.
-          const link = `${server.origin}/duel/SAFE?ref=share`;
+          const link = `${APP_URL}/duel/SAFE?ref=share`;
           if (mode === "copy") {
             check(
               out.copied.length === 1 &&

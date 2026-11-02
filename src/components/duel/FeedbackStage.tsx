@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, type ComponentType } from "react";
+import { resetInputTypes } from "@/lib/inputType";
 import type { CheckWord, PuzzleStageProps } from "@/puzzles/types";
 import { fx } from "@/lib/fx";
 import type { GameTheme } from "@/lib/fx/theme";
@@ -75,6 +76,8 @@ export function feedbackStage(Stage: ComponentType<PuzzleStageProps>, theme: Gam
       [timed],
     );
     useEffect(() => { fx.onRoundStart(undefined, theme); }, []);
+    // How the round is played (lib/inputType.ts): noted afresh from each stage's mount; recording only.
+    useEffect(() => resetInputTypes(), []);
     // The signature beat's common finish point (arcadeFeedback) reads the game on screen.
     useEffect(() => (signature ? setSignatureGame(signature) : undefined), []);
     const draft = useCallback((answer: string) => {

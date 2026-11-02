@@ -9,7 +9,14 @@
  * Rebalance if one job's time drifts well past the others (each job's summary lists
  * every check's time).
  *
- * A check file not listed here still runs, in CATCH_ALL.
+ * A check file not listed here still runs: in CATCH_ALL (g) if it starts no browser, in BROWSER_CATCH_ALL (play21)
+ * if it does.
+ *
+ * Two workflows since 1 Nov 2026 (CI cost cut): the play* shards are browser checks and run only in
+ * .github/workflows/full-suite.yml (a PR labelled `ready-to-merge`, a PR leaving draft, a manual run and weekly on
+ * main); the other shards run on every push (.github/workflows/checks.yml). Which side a check is on is worked out
+ * from its source (.github/ci/browser.ts): a browser check listed in a fast shard is run in BROWSER_CATCH_ALL
+ * instead, so nothing that starts Chromium runs on a push and nothing is ever skipped (ci-shards-check proves it).
  */
 export const SHARDS: Record<string, string[]> = {
   // Headless Chromium: arcade-play-check's 22 active games (Pinball included, and Letterfall,
@@ -17,12 +24,13 @@ export const SHARDS: Record<string, string[]> = {
   // frame times compare fairly with the CI baseline; the groups are unchanged). The workflow
   // installs the browser and swaps in the CI frame-time baseline for these.
   // arcade-device-bottom-check (15 Oct 2026: every arcade play screen on iPhone 11 / 14 home-screen
-  // app and Safari geometry) is in six parts (17 Oct 2026: in halves, a half with the Meteor passes ran
-  // past run-checks' 300 s on CI): its games' layout passes in thirds (@1/6, @2/6 here, @3/6 on play10;
-  // ~3-3.5 min each locally), and its three Meteor bottom-edge passes (full, reduced motion, reduced
-  // effects; ~1.5-2 min each with a dev server) one each on play7-play9 (@4/6-@6/6).
-  play1: ["arcade-play-check.ts@1/5", "arcade-device-bottom-check.ts@1/6"],
-  play2: ["arcade-play-check.ts@2/5", "arcade-device-bottom-check.ts@2/6"],
+  // app and Safari geometry) is in seven parts (17 Oct 2026: in halves, a half with the Meteor passes ran
+  // past run-checks' 300 s on CI; 31 Oct 2026: with the Cards & Board and Sports games a third of the layout
+  // passes, 13 games, reached the check's 270 s watchdog on CI): its games' layout passes in quarters (@1/7,
+  // @2/7 here, @3/7 on play10, @4/7 on play19; ~10 games each), and its three Meteor bottom-edge passes (full,
+  // reduced motion, reduced effects; ~1.5-2 min each with a dev server) one each on play7-play9 (@5/7-@7/7).
+  play1: ["arcade-play-check.ts@1/5", "arcade-device-bottom-check.ts@1/7"],
+  play2: ["arcade-play-check.ts@2/5", "arcade-device-bottom-check.ts@2/7"],
   // beat-hold-browser-check (real practice and room screens in Chromium, ~50 s) and
   // onboarding-check (16 Oct 2026: the first-time intro on home, ~60 s with its dev server) ride here.
   play3: [
@@ -46,12 +54,12 @@ export const SHARDS: Record<string, string[]> = {
   // ~1 min with its dev server) rides beside screen-bottom-check, through the same harness.
   play6: ["bottom-clearance-check.ts@1/8", "screen-bottom-check.tsx", "touch-highlight-check.tsx"],
   // arcade-room-practice-check's other two thirds (25 Oct 2026, see play15) ride on the two lightest of these jobs.
-  play7: ["bottom-clearance-check.ts@2/8", "arcade-device-bottom-check.ts@4/6", "arcade-room-practice-check.ts@2/3"],
-  play8: ["bottom-clearance-check.ts@3/8", "arcade-device-bottom-check.ts@5/6", "arcade-room-practice-check.ts@3/3"],
+  play7: ["bottom-clearance-check.ts@2/8", "arcade-device-bottom-check.ts@5/7", "arcade-room-practice-check.ts@2/3"],
+  play8: ["bottom-clearance-check.ts@3/8", "arcade-device-bottom-check.ts@6/7", "arcade-room-practice-check.ts@3/3"],
   // standard-live-check (29 Oct 2026: a production build of the app, then real practice rounds of nine standard puzzles
   // in Chromium, ~4 min) needs Chromium, so it rides on one of the lightest play jobs.
-  play9: ["bottom-clearance-check.ts@4/8", "arcade-device-bottom-check.ts@6/6", "standard-live-check.ts"],
-  play10: ["bottom-clearance-check.ts@5/8", "arcade-device-bottom-check.ts@3/6"],
+  play9: ["bottom-clearance-check.ts@4/8", "arcade-device-bottom-check.ts@7/7", "standard-live-check.ts"],
+  play10: ["bottom-clearance-check.ts@5/8", "arcade-device-bottom-check.ts@3/7"],
   // arcade-fill-check (17 Oct 2026, the screen fill-ins: every active arcade game at 390x844 and as an iPhone 11
   // home-screen app, ~15-20 s a game with one page load each) in thirds alongside the lighter bottom-clearance parts.
   // beta-extras-check (22 Oct 2026: the beta terms, the Add to Home Screen hint, Send feedback and crash reporting
@@ -68,8 +76,9 @@ export const SHARDS: Record<string, string[]> = {
   // room-extras-check (17 Oct 2026: the room's "finished" pings and the reveal's snake chart, ~3 min with its dev
   // server) on its own job: beside a bottom-clearance part and an arcade-fill third it would pass 10 minutes.
   // desktop-geometry-check (17 Oct 2026: PC and laptop browsers at four sizes and while resizing, ~2-3 min with its
-  // dev server) rides here.
-  play14: ["room-extras-check.ts", "desktop-geometry-check.tsx"],
+  // dev server) rides here, and room-16-check (31 Oct 2026: rooms of 16 and the colour wheel, ~1.5 min with its
+  // dev server).
+  play14: ["room-extras-check.ts", "desktop-geometry-check.tsx", "room-16-check.ts"],
   // arcade-room-practice-check (18 Oct 2026: every arcade play screen in a room and in practice as an iPhone 11
   // home-screen app, at three layout viewports, ~2 min with its dev server) and fission-repeat-check (Fission
   // four times in a row in practice, ~2 min) on their own job: play14 is already near its limit.
@@ -88,7 +97,23 @@ export const SHARDS: Record<string, string[]> = {
   // with and without a demo, as an iPhone 11 home-screen app; ~8 s a game, so in thirds of ~25 games, ~3 min each
   // with its dev server) and replay-board-check (46 puzzle replays on the room's results screen, ~2 min).
   play18: ["demo-intro-check.ts@1/3", "demo-intro-check.ts@2/3"],
-  play19: ["demo-intro-check.ts@3/3", "replay-board-check.ts"],
+  play19: ["demo-intro-check.ts@3/3", "replay-board-check.ts", "arcade-device-bottom-check.ts@4/7"],
+  // Offline practice (31 Oct 2026): offline-check builds the app for production, installs the service worker, fills
+  // every practice pack, plays three games offline, uploads the queue and swaps in a new build's worker (~5 min).
+  play20: ["offline-check.ts"],
+  // Browser checks that used to ride in the fast shards (1 Nov 2026): help-scroll-check (Chromium on a static page,
+  // ~110 s, from g), battery-check (~190 s) and practice-switch-check (~60 s), both unlisted in the catch-all
+  // before. BROWSER_CATCH_ALL: any browser check no shard lists runs here too.
+  play21: ["help-scroll-check.tsx", "battery-check.ts", "practice-switch-check.ts"],
+  // The computer layout (31 Oct 2026, docs/desktop-layout.md): desktop-layout-check in thirds (part 1 also the tab
+  // pages, rooms of 16, phones and a touch screen at three desktop sizes; each part a third of the active games'
+  // desktop modes at 1440x900, ~3-4 min each with its dev server), desktop-fairness-check (~2 min), and
+  // arcade-play-check's desktop pass in halves (arcade-play-desktop-check: every arcade game at 1440x900 and
+  // 1920x1080, ~6 min each).
+  play22: ["desktop-layout-check.ts@1/3", "desktop-fairness-check.ts"],
+  play23: ["desktop-layout-check.ts@2/3", "desktop-layout-check.ts@3/3"],
+  play24: ["arcade-play-desktop-check.ts@1/2"],
+  play25: ["arcade-play-desktop-check.ts@2/2"],
   // Non-browser checks. puzzle-bank-check's every-entry verification and
   // arcade-self-replay-check's entries are split into parts on separate jobs.
   // ~282 s of checks on run 38608375501's times.
@@ -253,8 +278,6 @@ export const SHARDS: Record<string, string[]> = {
     "balltrack-check.ts",
     "bintoss-small-bucket-check.ts",
     "gravity-maze-check.ts",
-    // Headless Chromium on a static page (no dev server), so it needs no play job.
-    "help-scroll-check.tsx",
     "ink-live-check.ts",
     "ink-rainbow-check.ts",
     "orbit-rev3-replay-check.ts",
@@ -268,6 +291,12 @@ export const SHARDS: Record<string, string[]> = {
 };
 
 export const CATCH_ALL = "g";
+
+/** Unlisted browser checks (and any listed in a fast shard) run here, in the full-suite workflow. */
+export const BROWSER_CATCH_ALL = "play21";
+
+/** Browser shards (full-suite.yml) and fast shards (checks.yml); the workflows' matrices must name exactly these. */
+export const isBrowserShard = (shard: string) => shard.startsWith("play");
 
 /** --include-optional checks: not part of the routine suite, never run in CI. */
 export const OPTIONAL = [

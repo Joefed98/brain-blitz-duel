@@ -1,4 +1,4 @@
-# Mahjong Solitaire on the arcade scoring standard (mahjongRev 1, 30 Oct 2026)
+# Mahjong Solitaire on the arcade scoring standard (mahjongRev 1, 30 Oct 2026; mahjongRev 2, 31 Oct 2026)
 
 Arcade, **Cards & Board** group (`src/lib/duel/arcadeGroups.ts`; its tiles take the group's
 `--group-cards` border). Dealt in rooms from the start. A 120 s run on a 123 s clock.
@@ -22,6 +22,22 @@ Arcade, **Cards & Board** group (`src/lib/duel/arcadeGroups.ts`; its tiles take 
   result is the same for the same seed and log. If the places left can't be cleared in any order (a lone stack), the
   tiles are first packed onto the lowest places of the layout, where they can (cards-board-check met 7 such dead ends
   in 39). The MOVES chip shows the free pairs on the board; at 0 it turns gold.
+
+## mahjongRev 2: Undo and Reset (31 Oct 2026)
+
+Joe's notes. Rooms deal `mahjongRev 2` (`MAHJONG_REV_DEALT`); the deal, the parts and the scoring are rev 1's, and rev 1
+runs replay exactly as before (on rev 1 every kind-10 press is a Shuffle, its `a` clamped to 0).
+
+- Two small buttons beside Shuffle, both in the move log as kind 10 presses: `a` 1 **Undo**, `a` 2 **Reset** (Shuffle is
+  `a` 0; `MAHJONG_V2_INPUT_RANGES`). Desktop: Z undo, R reset.
+- **Undo** is free and unlimited: it puts back the board as it was before the last pair taken or the last Shuffle (the
+  state's `history`, rev 2 only). An undone Shuffle still counts (cost and No shuffles). Nothing to undo: nothing happens.
+- **Reset** puts back the original deal (`start`); the undo history is emptied, the Shuffles already used still count,
+  and the clock keeps running.
+- The pairs part reads the pairs on the board, so pairs undone or reset are no longer paid.
+- cards-board-check proves the rev-2 oracle at 200 on every tuning and fresh seed through the server's replay, also with
+  four pairs, two Undos, a pair again and a Reset before the build order; the rules above; and that rev 1 states carry
+  no undo fields. arcade-self-replay-check's appended `mahjong/undo` entry plays random taps, Shuffles, Undos and Resets.
 
 ## Parts (200 in all)
 

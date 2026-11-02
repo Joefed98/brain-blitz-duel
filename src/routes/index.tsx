@@ -6,6 +6,7 @@ import { HomeScreenHint } from "@/components/beta/HomeScreenHint";
 import { TermsScreen } from "@/components/beta/TermsScreen";
 import { Dots } from "@/components/duel/Dots";
 import { PhoneShell } from "@/components/duel/PhoneShell";
+import { PageAside } from "@/components/app/PageAside";
 import { Onboarding } from "@/components/duel/Onboarding";
 import { goToTab } from "@/components/app/AppTabBar";
 import { GameIcon } from "@/components/app/GameIcon";
@@ -23,6 +24,7 @@ import { useClock } from "@/components/app/useClock";
 import { markOnboardingSeen, onboardingSeen } from "@/lib/onboarding";
 import { isShareRef } from "@/lib/share/shareRef";
 import { createRoom, fetchDuelByCode, fetchPlayers, joinRoomByCode } from "@/lib/duel/api";
+import { MAX_PLAYERS } from "@/lib/duel/types";
 import { currentUserId, getStoredName, setStoredName } from "@/lib/duel/session";
 import { ROOM_CODE_LENGTH, codeFromInput } from "@/lib/duel/roomLink";
 import { readLastRoom } from "@/lib/duel/deviceHistory";
@@ -33,13 +35,13 @@ import { dailyStreak, readDailyRecord } from "@/lib/duel/dailyRecord";
 import { ukDayKey } from "@/lib/duel/daily";
 import { rememberedLook, type PlayerLook } from "@/lib/duel/playerLook";
 import { scheduledGames, upcomingGames, type PublicGame } from "@/lib/publicSchedule";
-import { unlockAudio } from "@/lib/sound";
+import { screenMusic, unlockAudio } from "@/lib/sound";
 import { celebrationSound, celebrationsOn } from "@/lib/fx/celebrations";
-import { buzz } from "@/lib/motion";
 import { PUZZLE_REGISTRY, gameCounts } from "@/lib/duel/registry";
 import type { PuzzleType } from "@/lib/duel/types";
 import { APP_DESCRIPTION, APP_TITLE } from "@/lib/brand";
-import { useScreenMusic } from "@/lib/useScreenMusic";
+import { useHomeBed } from "@/lib/useScreenMusic";
+import { OnlineOnly } from "@/components/offline/OnlineOnly";
 
 const GAME_COUNTS = gameCounts();
 /** Every game rooms deal (the Warm up's "All 72 games"). */
@@ -63,8 +65,17 @@ export const Route = createFileRoute("/")({
       { name: "twitter:description", content: APP_DESCRIPTION },
     ],
   }),
-  component: Home,
+  component: OfflineHome,
 });
+
+/** Offline practice (31 Oct 2026): with no connection, the offline state and a way to Practice. */
+function OfflineHome() {
+  return (
+    <OnlineOnly tabs="play" live body="Rooms and the daily need a connection. Practice games are saved on this phone, so they still work.">
+      <Home />
+    </OnlineOnly>
+  );
+}
 
 const CODE_LENGTH = ROOM_CODE_LENGTH;
 
@@ -190,8 +201,8 @@ function Home() {
     // Seen now: the next visit to the tab (this page load's reservation stays on <html>) never reserves it.
     return () => releaseSlot("intro");
   }, []);
-  // Silent until the slot gets a file (docs/sound-cues/music.md).
-  useScreenMusic("music_home");
+  // The app-wide home bed (docs/sound-cues/music.md): held here, carried on unbroken to the other tabs and the lobby.
+  useHomeBed(true, screenMusic("music_home"));
 
   const lastRoom = useLastOpenRoom();
   // Today's dailies (hidden until the daily tables exist: DailyCard).
@@ -217,7 +228,6 @@ function Home() {
   const fail = (message: string) => {
     setError(message);
     setShake((n) => n + 1);
-    buzz([10, 50, 10]);
   };
 
   const start = async (mode: "create" | "join") => {
@@ -266,7 +276,7 @@ function Home() {
     );
 
   return (
-    <PhoneShell tabs="play">
+    <PhoneShell tabs="play" aside={<PageAside panels={["public", "week"]} />}>
       <div className="ap-stack">
         <PlaySlot id="intro" state={introCard}>
           <IntroCard
@@ -301,7 +311,7 @@ function Home() {
           <h1 className="ap-title" aria-label="Play live with friends">
             <span>Play live</span> <span>with friends</span>
           </h1>
-          <p className="ap-sub">Up to 10 players. Same games, same moment.</p>
+          <p className="ap-sub">Up to {MAX_PLAYERS} players. Same games, same moment.</p>
         </div>
 
         {/* Quick play: create a room, or join one with its code. */}

@@ -4,12 +4,16 @@ import { createPortal } from "react-dom";
 import type { ArenaAmbient, ArenaScenePainter, ArenaSceneView } from "@/lib/arcade/arenaScene.renderer";
 import { reducedMotion } from "@/lib/arcade/art.renderer";
 import { arcadeReducedEffects, watchArcadeFrames } from "@/lib/fx/lowEnd";
+import { arenaFrame, cancelArenaFrame, canvasRatio } from "@/lib/battery";
+import { useDesktopPresentation } from "@/lib/desktopPresentation";
 
 /** useLayoutEffect in the browser (before the first paint), a no-op on the server. */
 const useIsoLayoutEffect = typeof window === "undefined" ? useEffect : useLayoutEffect;
 
 /** A moving fill repaints at most this often (ms): slow, gentle motion needs no more. */
 const AMBIENT_MS = 50;
+/** CSS px² a moving fill covers at AMBIENT_MS; a larger one steps proportionally less often (31 Oct 2026). */
+const AMBIENT_AREA = 500_000;
 
 /**
  * The space an arcade arena may grow into: from the arena's fixed top edge (just under
@@ -49,6 +53,9 @@ export function ArcadeArenaSlot({ width, height, centre = false, playCentre = fa
   children: ReactNode;
 }) {
   const slot = useRef<HTMLDivElement | null>(null);
+  // The desktop rotate mode (31 Oct 2026, presentation only): the world drawn turned 90° clockwise in a
+  // rotor (desktopPresentation.ts); false on every phone and tablet and every other mode.
+  const rotate = useDesktopPresentation().rotate;
   const canvas = useRef<HTMLCanvasElement | null>(null);
   const moving = useRef<HTMLCanvasElement | null>(null);
   const painter = useRef(scene);
@@ -82,11 +89,14 @@ export function ArcadeArenaSlot({ width, height, centre = false, playCentre = fa
     let raf = 0;
     let last = -Infinity;
     let still = false;
-    const ratioNow = () => Math.min(window.devicePixelRatio || 1, 2);
+    // Every scenery layer at the screen's own pixel ratio (1 Nov 2026: drawing a large one at a lower ratio for the
+    // compositor to scale up cost a desktop frame more than its pixels saved).
+    const ratioNow = canvasRatio;
     const paint = () => {
       const draw = painter.current;
-      const world = box.querySelector<HTMLElement>(":scope > [data-game-arena]");
+      const world = box.querySelector<HTMLElement>(":scope > [data-game-arena], :scope > [data-arena-rotor] > [data-game-arena]");
       if (!draw || !world) return;
+      const turned = Boolean(world.parentElement?.hasAttribute("data-arena-rotor"));
       const s = host.getBoundingClientRect();
       const w = world.getBoundingClientRect();
       const b = box.getBoundingClientRect();
@@ -94,7 +104,7 @@ export function ArcadeArenaSlot({ width, height, centre = false, playCentre = fa
       const ratio = ratioNow();
       const pw = Math.round(s.width * ratio);
       const ph = Math.round(s.height * ratio);
-      const at = `${pw}x${ph}:${Math.round((w.left - s.left) * ratio)},${Math.round((w.top - s.top) * ratio)},${Math.round(w.width * ratio)}`;
+      const at = `${pw}x${ph}:${Math.round((w.left - s.left) * ratio)},${Math.round((w.top - s.top) * ratio)},${Math.round(w.width * ratio)}${turned ? "r" : ""}`;
       if (at === painted) return;
       painted = at;
       if (node.width !== pw || node.height !== ph) {
@@ -103,11 +113,37 @@ export function ArcadeArenaSlot({ width, height, centre = false, playCentre = fa
       }
       const ctx = node.getContext("2d");
       if (!ctx) return;
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.clearRect(0, 0, pw, ph);
+      if (turned) {
+        // The rotor: the world turned 90° clockwise, so world (x, y) shows at (fx + (H − y)·s, fy + x·s).
+        // The scene is painted through the same turn; the view is the screen in world units. No moving
+        // fill (ambient) on a turned world: its bands are laid out for an upright screen.
+        const scale = w.height / width;
+        const fx = w.left - s.left;
+        const fy = w.top - s.top;
+        ctx.setTransform(0, ratio * scale, -ratio * scale, 0, ratio * (fx + height * scale), ratio * fy);
+        view = {
+          worldW: width,
+          worldH: height,
+          left: -fy / scale,
+          right: (s.height - fy) / scale,
+          top: height - (s.width - fx) / scale,
+          bottom: height + fx / scale,
+          scale,
+        };
+        ctx.save();
+        ctx.beginPath();
+        ctx.rect(Math.max(view.left, (b.top - w.top) / scale), view.top, view.right - Math.max(view.left, (b.top - w.top) / scale), view.bottom - view.top);
+        ctx.clip();
+        draw(ctx, view);
+        ctx.restore();
+        view = null;
+        return;
+      }
       const scale = w.width / width;
       const ox = w.left - s.left;
       const oy = w.top - s.top;
-      ctx.setTransform(1, 0, 0, 1, 0, 0);
-      ctx.clearRect(0, 0, pw, ph);
       ctx.setTransform(ratio * scale, 0, 0, ratio * scale, ratio * ox, ratio * oy);
       view = {
         worldW: width,
@@ -139,7 +175,12 @@ export function ArcadeArenaSlot({ width, height, centre = false, playCentre = fa
       const layer = moving.current;
       if (!amb || !layer || !view) return;
       const hold = reducedMotion() || arcadeReducedEffects();
-      if (!(hold && still) && now - last >= AMBIENT_MS) {
+      // A large layer (the computer layout's full-screen fill: 1920×1080 is 5× a phone's) steps less often, by
+      // its area past AMBIENT_AREA, so its repaint never costs the world's frame rate; every phone (at most
+      // 430×932) is under AMBIENT_AREA and keeps AMBIENT_MS exactly.
+      const area = (view.right - view.left) * (view.bottom - view.top) * view.scale * view.scale;
+      const every = AMBIENT_MS * Math.max(1, area / AMBIENT_AREA);
+      if (!(hold && still) && now - last >= every) {
         last = now;
         still = hold;
         const ratio = ratioNow();
@@ -171,19 +212,21 @@ export function ArcadeArenaSlot({ width, height, centre = false, playCentre = fa
           ctx.restore();
         }
       }
-      raf = requestAnimationFrame(frame);
+      // Battery (31 Oct 2026): a held layer (reduced motion or effects) is painted once and stops until a
+      // resize repaints it; a moving one parks with the arena (lib/battery.ts arenaFrame).
+      raf = hold && still ? 0 : arenaFrame(frame);
     };
     const observer = new ResizeObserver(paint);
     observer.observe(host);
     observer.observe(box);
-    const world = box.querySelector(":scope > [data-game-arena]");
+    const world = box.querySelector(":scope > [data-game-arena], :scope > [data-arena-rotor] > [data-game-arena]");
     if (world) observer.observe(world);
     paint();
     return () => {
       observer.disconnect();
-      if (raf) cancelAnimationFrame(raf);
+      cancelArenaFrame(frame, raf);
     };
-  }, [width, height, sceneKey, host, ambient !== undefined]);
+  }, [width, height, sceneKey, host, ambient !== undefined, rotate]);
 
   return (
     <div
@@ -192,14 +235,15 @@ export function ArcadeArenaSlot({ width, height, centre = false, playCentre = fa
       data-arena-centred={centre ? "" : undefined}
       data-arena-play-centred={playCentre ? "" : undefined}
       data-scene={scene ? "" : undefined}
+      data-arena-rotate={rotate ? "" : undefined}
       style={{ "--arena-w": width, "--arena-h": height } as CSSProperties}
     >
-      {children}
+      {rotate ? <div data-arena-rotor="">{children}</div> : children}
       {host && scene
         ? createPortal(
             <>
               <canvas ref={canvas} data-arena-scene="" aria-hidden="true" />
-              {ambient ? <canvas ref={moving} data-arena-ambient="" aria-hidden="true" /> : null}
+              {ambient && !rotate ? <canvas ref={moving} data-arena-ambient="" aria-hidden="true" /> : null}
             </>,
             host,
           )

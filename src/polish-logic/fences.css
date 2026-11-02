@@ -1,0 +1,68 @@
+/*
+ * Fences (1 Nov 2026): the board look, display only. Imported from styles.css. The dark glass of the Logic boards
+ * (logic-glass-frame): smoky cell wells, faint guide edges, gold lines with a soft glow, small ✕ notes, white numbers
+ * that dim when met and turn red when over. Nothing here changes a hit area: the SVG maps every pointer to its nearest
+ * edge in script.
+ */
+.fences-frame {
+  padding: 2px;
+}
+.fences-board .fences-cell {
+  fill: rgba(255, 255, 255, 0.035);
+  stroke: rgba(0, 0, 0, 0.35);
+  stroke-width: 2;
+}
+.fences-board .fences-guide {
+  stroke: rgba(255, 255, 255, 0.13);
+  stroke-width: 3;
+  stroke-dasharray: 2 10;
+  stroke-linecap: round;
+}
+.fences-board .fences-cross line {
+  stroke: rgba(255, 120, 120, 0.7);
+  stroke-width: 5;
+  stroke-linecap: round;
+}
+.fences-board .fences-line {
+  stroke: var(--primary);
+  stroke-linecap: round;
+  filter: drop-shadow(0 0 5px color-mix(in oklab, var(--primary) 55%, transparent));
+  animation: fences-line-set 160ms ease-out;
+}
+@keyframes fences-line-set {
+  from { opacity: 0.35; }
+  to { opacity: 1; }
+}
+.fences-board .fences-dot {
+  fill: #d9d6df;
+}
+.fences-board .fences-clue {
+  fill: #ffffff;
+  font-family: var(--font-display, inherit);
+  font-weight: 700;
+  paint-order: stroke;
+  stroke: rgba(0, 0, 0, 0.7);
+  stroke-width: 4;
+  transition: fill 160ms ease-out, opacity 160ms ease-out;
+}
+.fences-board .fences-clue[data-tone="met"] {
+  opacity: 0.45;
+}
+.fences-board .fences-clue[data-tone="over"] {
+  fill: var(--destructive);
+}
+/* The live round: the glass frame sinks a little deeper, as the other Logic boards do. */
+[data-puzzle-play][data-puzzle-play] .fences-frame {
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.07), 0 14px 30px rgba(0, 0, 0, 0.55);
+}
+/* Completion: the loop lights up in turn around the board (≤1.2 s, from the solve moment). */
+[data-logic-solved] .fences-board .fences-line {
+  animation: fences-loop-light 640ms ease-out calc(var(--fences-i, 0) * 14ms) 1 both;
+}
+@keyframes fences-loop-light {
+  0%, 100% { stroke: var(--primary); }
+  40% { stroke: #fff6d8; filter: drop-shadow(0 0 10px var(--primary)); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .fences-board .fences-line { animation: none; }
+}

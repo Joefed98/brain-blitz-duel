@@ -20,6 +20,49 @@ export interface TapBox {
   height: number;
 }
 
+/**
+ * The computer layout's rotate mode (31 Oct 2026, input mapping only; desktopModes.ts): an arena inside
+ * `[data-arena-rotor]` is drawn turned exactly 90° clockwise, so its on-screen box is its own box turned.
+ * These return the arena's own (untransformed) box and the point in it, so every caller maps exactly as
+ * on a phone. Outside a rotor (every phone, tablet and the other modes) they return the element's box
+ * and the client point unchanged, so nothing changes there.
+ *
+ * Turned 90° clockwise, the arena's top-left corner sits at the screen box's top-right: its x axis runs
+ * down the screen and its y axis from right to left.
+ */
+export function isRotatedArena(el: Element | null | undefined): boolean {
+  return Boolean(el?.closest("[data-arena-rotor]"));
+}
+
+/** `rect` is the arena's on-screen (turned) box; pure, so checks run the stage's exact arithmetic. */
+export function unrotatePoint(rect: TapBox, clientX: number, clientY: number): { box: TapBox; x: number; y: number } {
+  return { box: { left: 0, top: 0, width: rect.height, height: rect.width }, x: clientY - rect.top, y: rect.left + rect.width - clientX };
+}
+
+/** The inverse of unrotatePoint: where a point of the arena's own box shows on screen. */
+export function rotatePoint(rect: TapBox, x: number, y: number): { clientX: number; clientY: number } {
+  return { clientX: rect.left + rect.width - y, clientY: rect.top + x };
+}
+
+export function arenaPointer(el: Element | null | undefined, clientX: number, clientY: number): { box: TapBox | null; x: number; y: number } {
+  if (!el) return { box: null, x: clientX, y: clientY };
+  const rect = el.getBoundingClientRect();
+  if (!isRotatedArena(el)) return { box: rect, x: clientX, y: clientY };
+  return unrotatePoint(rect, clientX, clientY);
+}
+
+/** The arena's own size in CSS px (a turned arena's screen box has its width and height swapped). */
+export function arenaSize(el: Element | null | undefined): { width: number; height: number } | null {
+  if (!el) return null;
+  const rect = el.getBoundingClientRect();
+  return isRotatedArena(el) ? { width: rect.height, height: rect.width } : { width: rect.width, height: rect.height };
+}
+
+/** A drag or swipe's screen movement as the arena sees it (turned back on a rotated arena). */
+export function arenaDelta(el: Element | null | undefined, dx: number, dy: number): { dx: number; dy: number } {
+  return isRotatedArena(el) ? { dx: dy, dy: -dx } : { dx, dy };
+}
+
 /** ArcadeCanvasStage: screen point to world point, or null outside the drawn play area. */
 export function arcadeWorldPoint(
   box: TapBox | null | undefined,

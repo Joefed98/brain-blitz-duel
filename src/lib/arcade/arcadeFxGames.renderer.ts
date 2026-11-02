@@ -18,6 +18,11 @@ import { FREEKICK_FX, HOMERUN_FX, RACING_FX } from "./sportsFx.renderer";
 import { FREECELL_FX } from "./cards/freecell.renderer";
 import { TRIPEAKS_FX } from "./cards/tripeaks.renderer";
 import { POKERSQUARES_FX } from "./cards/pokerSquares.renderer";
+import { FIVEHANDS_FX } from "./cards/fiveHands.renderer";
+import { BLOCKFALL_FX } from "./blockfall.renderer";
+import { ALLEYROLL_FX } from "./alleyroll.renderer";
+import { NINJA_FX } from "./ricochetNinja.renderer";
+import { BASTION_FX } from "./bastionTank.renderer";
 import { px } from "./engine";
 
 import { HOVER_DISC_X, HOVER_EXPAND_H, HOVER_TALL_H, HOVER_WORLD_H, HOVER_WORLD_W, hoverWorldH, type HoverState } from "./hover";
@@ -283,20 +288,28 @@ export const ARCADE_GAME_WORLDS = {
   freecell: "cards",
   tripeaks: "cards",
   pokersquares: "cards",
+  fivehands: "cards",
   // The Sports group (30 Oct 2026): realistic venues.
   minigolf: "realworld",
+  // Action (1 Nov 2026): Bastion bastionRev 2, a dusk battlefield.
+  bastion: "realworld",
   pool: "realworld",
   curling: "realworld",
+  // Blockfall (Retro) and Alley Roll (Sports: a warm arcade alley), 1 Nov 2026.
+  blockfall: "retro",
+  alleyroll: "fairground",
+  // Ricochet (ricoRev 2, 1 Nov 2026): the ninja wall-climb on a night temple.
+  ricochet: "realworld",
 } as const satisfies Record<string, ArcadeWorld>;
 
 export type ArcadeFxGame = keyof typeof ARCADE_GAME_WORLDS;
 
 /**
  * Arcade games with a world that rooms do not deal (practice only; registry RETIRED_TYPES):
- * Junction (retired in Tuning C), Scrumper (retired 27 Oct 2026) and Pinball until PINBALL_IN_ROOMS
+ * Junction (retired in Tuning C), Scrumper (retired 27 Oct 2026), Full House (retired 1 Nov 2026) and Pinball until PINBALL_IN_ROOMS
  * (pinball.ts) is switched on.
  */
-export const RETIRED_ARCADE_GAMES: readonly ArcadeFxGame[] = PINBALL_IN_ROOMS ? ["junction", "snip"] : ["junction", "snip", "pinball"];
+export const RETIRED_ARCADE_GAMES: readonly ArcadeFxGame[] = PINBALL_IN_ROOMS ? ["junction", "snip", "pokersquares"] : ["junction", "snip", "pokersquares", "pinball"];
 /** The active arcade games (rooms deal these; Pinball joined on 14 Oct 2026 with PINBALL_IN_ROOMS on, Scrumper left on 27 Oct 2026, the three Cards & Board games joined on 30 Oct 2026). */
 export const ACTIVE_ARCADE_GAMES = (Object.keys(ARCADE_GAME_WORLDS) as ArcadeFxGame[]).filter((g) => !RETIRED_ARCADE_GAMES.includes(g));
 
@@ -1784,9 +1797,14 @@ export const ARCADE_FX_SPECS = {
   freecell: FREECELL_FX,
   tripeaks: TRIPEAKS_FX,
   pokersquares: POKERSQUARES_FX,
+  fivehands: FIVEHANDS_FX,
+  ricochet: NINJA_FX,
+  bastion: BASTION_FX,
   minigolf: MINIGOLF_FX,
   pool: POOL_FX,
   curling: CURLING_FX,
+  blockfall: BLOCKFALL_FX,
+  alleyroll: ALLEYROLL_FX,
 } satisfies Record<ArcadeFxGame, ArcadeFxSpec<never>>;
 
 /* ============================ Engine word games ============================ */

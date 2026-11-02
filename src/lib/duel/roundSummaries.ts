@@ -96,6 +96,10 @@ import {
   CLAYSHOOT_TIME_MS,
   TENTS_TIME_MS,
   SHIKAKU_TIME_MS,
+  FENCES_TIME_MS,
+  FILLOMINO_TIME_MS,
+  BRIDGES_TIME_MS,
+  KAKURO_TIME_MS,
   LIGHTUP_TIME_MS,
   BALLTRACK_TIME_MS,
   NUMPYRAMID_TIME_MS,
@@ -130,6 +134,9 @@ import {
   FREECELL_TIME_MS,
   TRIPEAKS_TIME_MS,
   POKERSQUARES_TIME_MS,
+  FIVEHANDS_TIME_MS,
+  BLOCKFALL_TIME_MS,
+  ALLEYROLL_TIME_MS,
 } from "./types";
 
 import { TG_TIME_MS, tileGridResultLine } from "./tileGrid";
@@ -160,9 +167,16 @@ const DIRECT_LIMITS: Partial<Record<PuzzleType, number>> = {
   freecell: FREECELL_TIME_MS,
   tripeaks: TRIPEAKS_TIME_MS,
   pokersquares: POKERSQUARES_TIME_MS,
+  fivehands: FIVEHANDS_TIME_MS,
+  blockfall: BLOCKFALL_TIME_MS,
+  alleyroll: ALLEYROLL_TIME_MS,
   minigolf: MINIGOLF_TIME_MS,
   pool: POOL_TIME_MS,
   curling: CURLING_TIME_MS,
+  fences: FENCES_TIME_MS,
+  fillomino: FILLOMINO_TIME_MS,
+  bridges: BRIDGES_TIME_MS,
+  kakuro: KAKURO_TIME_MS,
   nonogram: NONO_TIME_MS,
   pairmatch: PAIR_TIME_MS,
   flood: FLOOD_TIME_MS,
@@ -1068,6 +1082,18 @@ const dualSummary: SummaryBuilder = (result) => {
 };
 
 const ricoSummary: SummaryBuilder = (result) => {
+  // ricoRev 2, the ninja wall-climb: the height and the items, no survival (no game over).
+  if (result.extra?.["metres"] !== undefined) {
+    const m = Number(result.extra["metres"] ?? 0);
+    const hits = Number(result.extra["hits"] ?? 0);
+    return {
+      summary: `${m.toLocaleString("en-GB")} m climbed · ${result.score} points`,
+      detail: [
+        `${Number(result.extra["coins"] ?? 0)} coins · ${Number(result.extra["lanterns"] ?? 0)} lanterns · ${Number(result.extra["scrolls"] ?? 0)} scrolls`,
+        `${hits === 1 ? "1 hit" : `${hits} hits`} · ${Number(result.extra["djs"] ?? 0)} double jumps`,
+      ],
+    };
+  }
   const metres = Math.trunc(Number(result.extra?.["heightPx"] ?? 0) / 40);
   const survived = result.extra?.["survived"] === true;
   const spiked = result.extra?.["spiked"] === true;
@@ -1127,6 +1153,31 @@ const pokerSquaresSummary: SummaryBuilder = (result) => {
   return {
     summary: `${n("total")} hand points · ${n("made")} of 10 lines`,
     detail: [`${n("placed")} of 25 cards placed`],
+  };
+};
+
+const fiveHandsSummary: SummaryBuilder = (result) => {
+  const n = (key: string) => Number(result.extra?.[key] ?? 0);
+  return {
+    summary: `${n("total")} hand points · ${n("made")} of 5 hands`,
+    detail: [`${n("placed")} of 20 cards placed`],
+  };
+};
+
+const blockfallSummary: SummaryBuilder = (result) => {
+  const n = (key: string) => Number(result.extra?.[key] ?? 0);
+  const multi = n("doubles") + n("triples") + n("quads");
+  return {
+    summary: `${n("lines")} lines · ${multi} multi-line clear${multi === 1 ? "" : "s"}`,
+    detail: [result.extra?.["toppedOut"] ? "Topped out" : `Stack ${n("height")} high at the buzzer`],
+  };
+};
+
+const alleyRollSummary: SummaryBuilder = (result) => {
+  const n = (key: string) => Number(result.extra?.[key] ?? 0);
+  return {
+    summary: `${n("rings")} ring points · ${n("pockets")} pocket${n("pockets") === 1 ? "" : "s"}`,
+    detail: [`${n("balls")} of 9 balls · ${n("streak")} in a row`],
   };
 };
 
@@ -1383,7 +1434,20 @@ const wavefrontSummary: SummaryBuilder = (result) => {
   };
 };
 
-const bastionSummary: SummaryBuilder = (result) => {
+const bastionSummary: SummaryBuilder = (result, puzzle) => {
+  // bastionRev 2: the tank game on the arcade scoring standard, its stored parts and counts.
+  if (puzzle.type === "bastion" && (puzzle.bastionRev ?? 1) >= 2) {
+    const kills = Number(result.extra?.["kills"] ?? 0);
+    const base = Number(result.extra?.["base"] ?? 0);
+    const fell = result.extra?.["fell"] === true;
+    const ended = Number(result.extra?.["endedSeconds"] ?? 0);
+    const spec = ARCADE_STANDARD["bastion"]?.spec;
+    const parts = (spec?.parts ?? []).map((p) => `${p.label} ${Number(result.extra?.[`part_${p.key}`] ?? 0)}/${p.max}`);
+    return {
+      summary: fell ? `${kills} tanks · base fell at ${ended.toFixed(1)}s` : `${kills} tanks · base ${base} / 3`,
+      detail: parts,
+    };
+  }
   const destroyed = Number(result.extra?.["destroyed"] ?? 0);
   const health = Number(result.extra?.["health"] ?? 0);
   const survived = result.extra?.["survived"] !== false;
@@ -1555,6 +1619,14 @@ const shikakuSummary: SummaryBuilder = (result, puzzle) => {
   const progress = progressOf(result, puzzle);
   if (progress) return progress;
   return { summary: `${Number(result.extra?.["covered"] ?? 0)} / ${puzzle.type === "shikaku" ? puzzle.size * puzzle.size : 81} covered`, detail: [] };
+};
+
+/** The four grid puzzles born on the standard (1 Nov 2026): solved with the time, else the share placed. */
+const gridSummary: SummaryBuilder = (result, puzzle) => {
+  if (result.is_correct) return { summary: `Solved · ${seconds(elapsedMs(result, puzzle))}`, detail: [] };
+  const progress = progressOf(result, puzzle);
+  if (progress) return progress;
+  return { summary: `${Number(result.extra?.["right"] ?? 0)} / ${Number(result.extra?.["total"] ?? 0)} right`, detail: [] };
 };
 
 const lightUpSummary: SummaryBuilder = (result, puzzle) => {
@@ -1755,6 +1827,9 @@ export const ROUND_SUMMARIES: Record<PuzzleType, SummaryBuilder> = {
   freecell: freecellSummary,
   tripeaks: tripeaksSummary,
   pokersquares: pokerSquaresSummary,
+  fivehands: fiveHandsSummary,
+  blockfall: blockfallSummary,
+  alleyroll: alleyRollSummary,
   minigolf: minigolfSummary,
   pool: poolSummary,
   curling: curlingSummary,
@@ -1781,6 +1856,10 @@ export const ROUND_SUMMARIES: Record<PuzzleType, SummaryBuilder> = {
   hotfloor: hotFloorSummary,
   tents: tentsSummary,
   shikaku: shikakuSummary,
+  fences: gridSummary,
+  fillomino: gridSummary,
+  bridges: gridSummary,
+  kakuro: gridSummary,
   lightup: lightUpSummary,
   balltrack: ballTrackSummary,
   numpyramid: numberPyramidSummary,
@@ -1855,6 +1934,9 @@ export const CORRECT_ANSWERS: Record<PuzzleType, AnswerBuilder> = {
   freecell: () => null,
   tripeaks: () => null,
   pokersquares: () => null,
+  fivehands: () => null,
+  blockfall: () => null,
+  alleyroll: () => null,
   minigolf: () => null,
   pool: () => null,
   curling: () => null,
@@ -1881,6 +1963,10 @@ export const CORRECT_ANSWERS: Record<PuzzleType, AnswerBuilder> = {
   hotfloor: () => null,
   tents: () => null,
   shikaku: () => null,
+  fences: () => null,
+  fillomino: () => null,
+  bridges: () => null,
+  kakuro: () => null,
   lightup: () => null,
   balltrack: () => null,
   numpyramid: () => null,

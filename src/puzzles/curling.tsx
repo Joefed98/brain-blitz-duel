@@ -1,5 +1,5 @@
 import { withArcadeFx } from "@/lib/arcade/arcadeFx.renderer";
-import { CURLING_FX } from "@/lib/arcade/sportsFx.renderer";
+import { curlingFxFor } from "@/lib/arcade/sportsFx.renderer";
 import { useMemo, useRef, useState } from "react";
 
 import { ArcadeCanvasStage, type PointerPayload } from "@/components/puzzles/ArcadeCanvasStage";
@@ -9,45 +9,59 @@ import {
   curlingStdParts,
   CURL_AIM,
   CURL_INPUT_SWEEP,
+  CURL_START_MAX,
   CURL_INPUT_THROW,
   CURL_TRAVEL,
   CURL_WEIGHT_MAX,
   CU,
-  CURLING_H,
   CURLING_REV,
   CURLING_RUN_TICKS,
   CURLING_W,
+  curlingWorldHFor,
+  curlAimPath,
+  curlDrawZone,
+  curlWeightFromSwipeV3,
+  HOG_NEAR,
   type CurlingState,
 } from "@/lib/arcade/curling";
 import {
   curlingScene,
+  curlFarHouse,
   curlInsetToSheet,
   curlProject,
+  curlViewFor,
   drawCurling,
   CURLING_BG,
-  CURL_FAR_HOUSE,
   CURL_PX_PER_CM_FAR,
   type CurlAim,
 } from "@/lib/arcade/curling.renderer";
+import { devWarp } from "@/lib/arcade/devWarp";
 import { TICKS_PER_SECOND, type ArcadeGame, type ArcadeInputEvent } from "@/lib/arcade/engine";
 import { SPORTS_CHECKPOINT_INTERVAL } from "@/lib/arcade/sportsKit";
+import { curlingSounds } from "@/lib/fx/gameSounds";
 import { encodeCurlingRun, replayCurlingRun } from "@/lib/duel/curling";
 import { gameDisplayName } from "@/lib/duel/gameNames";
 import type { CurlingPuzzleData } from "@/lib/duel/types";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
-/** Weight from a swipe's speed up the lane (world px a ms): about 0.95 is a draw to the button. */
-export function curlWeightFromSwipe(pxPerMs: number): number {
-  return Math.max(1, Math.min(CURL_WEIGHT_MAX, Math.round(((pxPerMs - 0.25) / 2.25) * CURL_WEIGHT_MAX)));
-}
+/**
+ * Weight from a swipe's speed up the lane (world px a ms; every revision, the sim's curlWeightFromSwipeV3): about 0.95
+ * is a draw to the button on curlRev 1 and 2, about 0.96 to the tee on curlRev 3's gentler line.
+ */
+export const curlWeightFromSwipe = curlWeightFromSwipeV3;
+/** The keyboard's weight step on curlRev 3's meter (Shift: five times). */
+const KEY_WEIGHT_STEP = 10;
 
 /** A rub's strength 1…100 from the finger's speed (world px a ms). */
 function rubStrength(pxPerMs: number): number {
   return Math.max(1, Math.min(100, Math.round(pxPerMs * 45)));
 }
 
-/** Fixed intro still: the sheet running away to the far house, a gold stone on the button, a red one, the broom and a swipe. */
+/**
+ * Fixed intro still: the sheet running away to the far house, a gold stone on the button, a red one, the broom, the
+ * faint aim line, a swipe and (curlRev 3) the weight meter with its gold draw zone.
+ */
 function IntroExample() {
   return (
     <div className="flex w-full flex-col items-center gap-2">
@@ -69,36 +83,87 @@ function IntroExample() {
         <rect x="106.5" y="45" width="3" height="1.2" fill="#C42A2E" />
         <ellipse cx="88" cy="44" rx="4" ry="1.4" fill="#E8B53A" />
         <line x1="88" y1="43" x2="90" y2="34.5" stroke="#FFE29A" strokeWidth="1" />
+        <path d="M112 98 Q106 84 102 76" stroke="#FFF3C4" strokeWidth="1.4" fill="none" opacity="0.6" strokeLinecap="round" />
+        <ellipse cx="112" cy="102" rx="7" ry="2.6" fill="#6C717C" />
+        <rect x="109" y="98" width="6" height="2" fill="#E8B53A" />
+        <path d="M101 101 L96 101 L101 98 Z M123 101 L128 101 L123 98 Z" fill="#FFE29A" />
+        <rect x="178" y="48" width="9" height="64" rx="2" fill="#05080F" opacity="0.85" />
+        <rect x="179.5" y="76" width="6" height="15" fill="#E8B53A" opacity="0.45" stroke="#E8B53A" strokeWidth="0.8" />
+        <rect x="176" y="83" width="13" height="1.4" fill="#FFE29A" />
+        <rect x="180.5" y="86" width="4" height="25" fill="#FFE29A" opacity="0.8" />
         <g stroke="#E8B53A" strokeWidth="2" fill="none" opacity="0.85">
-          <line x1="97.5" y1="112" x2="97.5" y2="84" />
-          <line x1="97.5" y1="84" x2="92" y2="90" />
-          <line x1="97.5" y1="84" x2="103" y2="90" />
+          <line x1="112" y1="117" x2="112" y2="108" />
+          <line x1="112" y1="108" x2="108.5" y2="111.5" />
+          <line x1="112" y1="108" x2="115.5" y2="111.5" />
         </g>
       </svg>
-      <p className="text-center text-xs text-muted-foreground">Drag the broom, pick In or Out, swipe up for the weight.</p>
+      <p className="text-center text-xs text-muted-foreground">Slide the stone, drag the target, pick In or Out, then swipe up into the meter's gold zone. Brush left or right of it to bend it.</p>
     </div>
   );
 }
 
 function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const data: CurlingPuzzleData | null = puzzle.type === "curling" ? puzzle : null;
-  const aim = useRef<CurlAim>({ broomX: 0, broomY: 0, turn: 0, swipe: null });
+  // The stored stamp picks the rules, the world's height and the controls (curlRev 2: slide the start, side brushing).
+  const rev = data?.curlRev ?? 1;
+  const v2 = rev >= 2;
+  /** curlRev 3: the weight meter with the draw zone and the faint aim line. */
+  const v3 = rev >= 3;
+  /** The last aid worked out (curlRev 3): a key for the sheet and aim it was worked out for. */
+  const aidKey = useRef("");
+  const view = curlViewFor(rev);
+  const worldH = curlingWorldHFor(rev);
+  const farHouse = useMemo(() => curlFarHouse(view), [view]);
+  /** Screen px a cm across on the near hog line (the start slide's step). */
+  const hogK = useMemo(() => curlProject(0, HOG_NEAR, view).k, [view]);
+  const aim = useRef<CurlAim>({ broomX: 0, broomY: 0, turn: 0, swipe: null, startX: 0 });
   const [turn, setTurn] = useState(0);
   /** The sim state the last frame drew (presentation only: where the moving stone is, for sweeping). */
   const seen = useRef<CurlingState | null>(null);
-  const gesture = useRef<{ mode: "broom" | "inset" | "swipe" | "sweep"; x: number; y: number; bx: number; by: number; samples: { y: number; t: number }[]; lastAt: number; lastX: number; lastY: number } | null>(null);
+  const gesture = useRef<{ mode: "broom" | "inset" | "pending" | "slide" | "swipe" | "sweep"; x: number; y: number; bx: number; by: number; samples: { y: number; t: number }[]; lastAt: number; lastX: number; lastY: number } | null>(null);
 
-  // The sim as rooms deal it; its draw shows the arena, the stones and what the stage holds (broom, turn, swipe).
+  // The sim as rooms deal it; its draw shows the arena, the stones and what the stage holds (broom, turn, swipe, start).
   const game = useMemo<ArcadeGame<CurlingState, ArcadeInputEvent | null>>(() => {
-    const base = curlingGameFor();
+    // devWarp: development only (review shots, scripts/shots/curling-prepare-shots.ts); production plays the game as is.
+    const base = devWarp("curling", curlingGameFor(rev));
+    const fx = curlingFxFor(rev);
     return {
       ...base,
       draw: (ctx, state) => {
         seen.current = state;
-        withArcadeFx(CURLING_FX, (c, st: CurlingState) => drawCurling(c, st, aim.current))(ctx, state, { width: CURLING_W, height: CURLING_H });
+        if (rev >= 3 && state.phase === CURL_AIM) {
+          // The meter's draw zone and the aim line, worked out again only when the sheet or the aim changes.
+          const a = aim.current;
+          const sx = Math.round(a.startX ?? 0);
+          const bx = Math.round(a.broomX);
+          const by = Math.round(a.broomY);
+          const key = `${state.thrown}:${state.restTick}:${sx}:${bx}:${by}:${a.turn}`;
+          if (key !== aidKey.current) {
+            aidKey.current = key;
+            a.zone = curlDrawZone(sx, bx, by, a.turn, rev);
+            a.path = curlAimPath(state, sx, bx, by, a.zone?.tee ?? 316, a.turn);
+          }
+        }
+        withArcadeFx(fx, (c, st: CurlingState) => drawCurling(c, st, aim.current))(ctx, state, { width: CURLING_W, height: worldH });
       },
     };
-  }, []);
+  }, [rev, worldH]);
+
+  const setStart = (x: number) => {
+    aim.current.startX = Math.max(-CURL_START_MAX, Math.min(CURL_START_MAX, x));
+  };
+  const throwPayload = (weight: number): PointerPayload => {
+    aim.current.lastRelease = weight;
+    aim.current.keyWeight = null;
+    return throwPayloadOf(weight);
+  };
+  const throwPayloadOf = (weight: number): PointerPayload => ({
+    k: CURL_INPUT_THROW,
+    a: Math.round(aim.current.broomX),
+    b: Math.round(aim.current.broomY),
+    c: weight * 2 + aim.current.turn,
+    ...(v2 ? { d: Math.round(aim.current.startX ?? 0) } : {}),
+  });
 
   const setBroom = (x: number, y: number) => {
     aim.current.broomX = Math.max(-200, Math.min(200, x));
@@ -119,37 +184,47 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       if (inInset) {
         setBroom(inInset.x, inInset.y);
         gesture.current = { mode: "inset", x, y, bx: 0, by: 0, samples: [], lastAt: now, lastX: x, lastY: y };
-      } else if (y <= CURL_FAR_HOUSE.bottom) {
+      } else if (y <= farHouse.bottom) {
         // A drag near the far house moves the broom (across at the house's own scale; along it coarser).
         gesture.current = { mode: "broom", x, y, bx: aim.current.broomX, by: aim.current.broomY, samples: [], lastAt: now, lastX: x, lastY: y };
       } else {
-        gesture.current = { mode: "swipe", x, y, bx: 0, by: 0, samples: [{ y, t: now }], lastAt: now, lastX: x, lastY: y };
+        // curlRev 2: sideways first slides the stone along the hog line; upwards first is the throw's swipe.
+        gesture.current = { mode: v2 ? "pending" : "swipe", x, y, bx: aim.current.startX ?? 0, by: 0, samples: [{ y, t: now }], lastAt: now, lastX: x, lastY: y };
       }
       return null;
     }
     const g = gesture.current;
     if (!g) return null;
-    if (g.mode === "inset") {
+    if (g.mode === "pending") {
+      g.samples.push({ y, t: now });
+      const dx = x - g.x;
+      const dy = y - g.y;
+      if (Math.hypot(dx, dy) >= 10) g.mode = Math.abs(dx) > Math.abs(dy) ? "slide" : "swipe";
+    }
+    if (g.mode === "slide") {
+      setStart(g.bx + (x - g.x) / hogK);
+    } else if (g.mode === "inset") {
       const p = curlInsetToSheet(x, y);
       if (p) setBroom(p.x, p.y);
     } else if (g.mode === "broom") {
       setBroom(g.bx + (x - g.x) / CURL_PX_PER_CM_FAR, g.by + (y - g.y) * 6);
     } else if (g.mode === "swipe") {
-      g.samples.push({ y, t: now });
+      if (g.samples[g.samples.length - 1]?.t !== now) g.samples.push({ y, t: now });
       while (g.samples.length > 2 && now - g.samples[0]!.t > 140) g.samples.shift();
       const first = g.samples[0]!;
       const v = (first.y - y) / Math.max(8, now - first.t);
       aim.current.swipe = g.y - y > 12 ? curlWeightFromSwipe(v) : null;
     } else if (g.mode === "sweep") {
-      // Rubbing ahead of the moving stone: a stroke every 70 ms while the finger moves, its strength the finger's speed.
-      const stoneY = s.active >= 0 ? curlProject(s.x[s.active]! / CU, s.y[s.active]! / CU).sy : 0;
+      // curlRev 1: rubbing ahead of the moving stone. curlRev 2: rubbing anywhere, on its left or its right (the side
+      // bends it that way). A stroke every 70 ms while the finger moves, its strength the finger's speed.
+      const stone = s.active >= 0 ? curlProject(s.x[s.active]! / CU, s.y[s.active]! / CU, view) : null;
       const dt = now - g.lastAt;
-      if (s.phase === CURL_TRAVEL && y < stoneY && dt >= 70) {
+      if (s.phase === CURL_TRAVEL && stone && (v2 || y < stone.sy) && dt >= 70) {
         const speed = Math.hypot(x - g.lastX, y - g.lastY) / dt;
         g.lastAt = now;
         g.lastX = x;
         g.lastY = y;
-        if (speed > 0.05) return { k: CURL_INPUT_SWEEP, a: rubStrength(speed), b: 0, c: 0 };
+        if (speed > 0.05) return { k: CURL_INPUT_SWEEP, a: rubStrength(speed), b: v2 ? (x < stone.sx ? -1 : 1) : 0, c: 0 };
       }
     }
     if (kind === "up") {
@@ -157,9 +232,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       if (g.mode === "swipe") {
         const w = aim.current.swipe;
         aim.current.swipe = null;
-        if (w !== null && g.y - y >= 40 && s.phase === CURL_AIM) {
-          return { k: CURL_INPUT_THROW, a: Math.round(aim.current.broomX), b: Math.round(aim.current.broomY), c: w * 2 + aim.current.turn };
-        }
+        if (w !== null && g.y - y >= 40 && s.phase === CURL_AIM) return throwPayload(w);
       }
     }
     return null;
@@ -177,25 +250,33 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         label={gameDisplayName("curling")}
         background={CURLING_BG}
         fitWorld
-        scene={curlingScene}
+        scene={(ctx, sceneView) => curlingScene(ctx, sceneView, rev)}
         seed={data?.seed ?? 1}
         enabled={data !== null}
         locked={locked}
         worldW={CURLING_W}
-        worldH={CURLING_H}
+        worldH={worldH}
         game={game}
+        sounds={curlingSounds}
         checkpoint={curlingCheckpoint}
         interval={SPORTS_CHECKPOINT_INTERVAL}
         encodeRun={encodeCurlingRun}
         discrete
         pointer={pointer}
         keys={(kind, key, send, state, event) => {
-          // Desktop: ←/→ move the broom, I / O pick the turn, Enter throws a draw weight, S sweeps.
-          if (kind !== "down") return ["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "Enter", "i", "o", "s"].includes(key);
-          if (key === "ArrowLeft" || key === "ArrowRight") setBroom(aim.current.broomX + (key === "ArrowLeft" ? -1 : 1) * (event.shiftKey ? 10 : 2), aim.current.broomY);
+          // Desktop: ←/→ move the broom (while a stone travels, brush its left / right side on curlRev 2), A / D slide
+          // the start (curlRev 2), I / O pick the turn, Enter throws a draw weight, S sweeps.
+          // curlRev 3: − / + set the weight on the meter (from the draw zone's mark), Enter throws it.
+          if (kind !== "down") return ["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "Enter", "i", "o", "s", ...(v2 ? ["a", "d"] : []), ...(v3 ? ["-", "=", "+"] : [])].includes(key);
+          if (v2 && (key === "ArrowLeft" || key === "ArrowRight") && state.phase === CURL_TRAVEL) send({ k: CURL_INPUT_SWEEP, a: 60, b: key === "ArrowLeft" ? -1 : 1, c: 0 });
+          else if (key === "ArrowLeft" || key === "ArrowRight") setBroom(aim.current.broomX + (key === "ArrowLeft" ? -1 : 1) * (event.shiftKey ? 10 : 2), aim.current.broomY);
           else if (key === "ArrowUp" || key === "ArrowDown") setBroom(aim.current.broomX, aim.current.broomY + (key === "ArrowUp" ? -5 : 5));
+          else if (v2 && (key === "a" || key === "d")) setStart((aim.current.startX ?? 0) + (key === "a" ? -1 : 1) * (event.shiftKey ? 20 : 5));
           else if (key === "i" || key === "o") pickTurn(key === "i" ? 0 : 1);
-          else if (key === "Enter" && state.phase === CURL_AIM) send({ k: CURL_INPUT_THROW, a: Math.round(aim.current.broomX), b: Math.round(aim.current.broomY), c: 306 * 2 + aim.current.turn });
+          else if (v3 && (key === "-" || key === "=" || key === "+") && state.phase === CURL_AIM) {
+            const from = aim.current.keyWeight ?? aim.current.zone?.tee ?? 316;
+            aim.current.keyWeight = Math.max(1, Math.min(CURL_WEIGHT_MAX, from + (key === "-" ? -1 : 1) * KEY_WEIGHT_STEP * (event.shiftKey ? 5 : 1)));
+          } else if (key === "Enter" && state.phase === CURL_AIM) send(throwPayload(v3 ? (aim.current.keyWeight ?? aim.current.zone?.tee ?? 316) : 306));
           else if (key === "s" && state.phase === CURL_TRAVEL) send({ k: CURL_INPUT_SWEEP, a: 60, b: 0, c: 0 });
           else return false;
           return true;

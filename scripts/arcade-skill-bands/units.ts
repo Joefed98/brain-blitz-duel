@@ -4,6 +4,7 @@ import type { BandParts } from "../../src/lib/arcade/scoreBands";
 import { btBandParts } from "../../src/lib/arcade/ballTrack";
 import { wavefrontBandParts } from "../../src/lib/arcade/wavefront";
 import { flipBandParts } from "../../src/lib/arcade/flip";
+import { ninjaBandParts } from "../../src/lib/arcade/ricochetNinja";
 import { inkBridgeBandParts } from "../../src/lib/arcade/inkBridge";
 import { matchupBandParts } from "../../src/lib/arcade/matchup";
 import { bubbleBandParts } from "../../src/lib/arcade/bubble";
@@ -30,10 +31,14 @@ import { mahjongBandParts } from "../../src/lib/arcade/mahjong";
 import { freecellBandParts } from "../../src/lib/arcade/cards/freecell";
 import { tripeaksBandParts } from "../../src/lib/arcade/cards/tripeaks";
 import { pokerSquaresBandParts } from "../../src/lib/arcade/cards/pokerSquares";
+import { fiveHandsBandParts } from "../../src/lib/arcade/cards/fiveHands";
+import { blockfallBandParts } from "../../src/lib/arcade/blockfall";
+import { alleyRollBandParts } from "../../src/lib/arcade/alleyroll";
 import { stdBandParts } from "../../src/lib/arcade/arcadeStandard";
 import { minigolfStdParts, MINIGOLF_STD_SPEC } from "../../src/lib/arcade/minigolf";
 import { STD_SPORTS } from "./sportsUnits";
 
+import { bastionBandParts } from "../../src/lib/arcade/bastionTank";
 import { homerunBandParts } from "../../src/lib/arcade/homerun";
 import { freekickBandParts } from "../../src/lib/arcade/freekick";
 import { racingBandParts } from "../../src/lib/arcade/racing";
@@ -71,6 +76,11 @@ export const BAND_PARTS: Record<string, (s: any) => BandParts> = {
   freecell: freecellBandParts,
   tripeaks: tripeaksBandParts,
   pokersquares: pokerSquaresBandParts,
+  fivehands: fiveHandsBandParts,
+  blockfall: blockfallBandParts,
+  alleyroll: alleyRollBandParts,
+  ricochet: ninjaBandParts,
+  bastion: bastionBandParts,
   // The Sports group (30 Oct 2026): units are the core's measure (holes holed, spots potted, stones on the button).
   minigolf: (s: any) => {
     const parts = minigolfStdParts(s) ?? [];

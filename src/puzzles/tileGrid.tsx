@@ -1,7 +1,6 @@
 import { gameDisplayName } from "@/lib/duel/gameNames";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import { hapticTick } from "@/components/puzzles/GridDrag";
 import { Button } from "@/components/ui/button";
 import { useStageState } from "@/lib/duel/stageState";
 import {
@@ -213,7 +212,6 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, c
     const next = [...placed];
     if (from >= 0) next[from] = null;
     next[hit] = tile;
-    hapticTick();
     setPlaced(next);
     setSelected(null);
   };
@@ -221,13 +219,12 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, c
     const from = placed.indexOf(tile);
     if (from < 0) return;
     const next = [...placed]; next[from] = null;
-    setPlaced(next); setSelected(null); hapticTick();
+    setPlaced(next); setSelected(null);
   };
   const clearAll = () => {
     if (frozen) return;
     setPlaced(Array.from({ length: TG_CELLS }, () => null));
     setSelected(null);
-    hapticTick();
   };
   const tapPlaced = (tile: number) => {
     const previous = lastTap.current;

@@ -1,0 +1,116 @@
+/* kakuro (1 Nov 2026): the board look, display only. Imported from styles.css. Every drawn cell is the element the
+   stage counts as the tap; nothing here changes a hit box. Completion effects key off [data-logic-solved] (useSolveFx,
+   at most 1.2 s). */
+
+.kakuro-frame {
+  border-radius: 8px;
+  padding: 3px;
+  background: linear-gradient(180deg, #2A2C33, #15161B);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06), 0 6px 16px rgba(0, 0, 0, 0.45);
+}
+.kakuro-board {
+  overflow: hidden;
+  border-radius: 6px;
+}
+
+/* Black cells: smoked dark glass; clue cells split by a diagonal, the down sum bottom-left, the across sum top-right. */
+.kakuro-black {
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+  border-radius: 3px;
+  background: linear-gradient(145deg, #1C1D23, #0D0E12);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+  overflow: hidden;
+}
+.kakuro-diag {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top right, transparent calc(50% - 0.75px), rgba(255, 255, 255, 0.22) 50%, transparent calc(50% + 0.75px));
+}
+.kakuro-sum {
+  position: absolute;
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-weight: 700;
+  line-height: 1;
+  color: #E8E6EE;
+  font-size: max(10px, calc(100cqw / var(--kakuro-n, 6) * 0.3));
+  font-variant-numeric: tabular-nums;
+  transition: color 160ms ease-out;
+}
+.kakuro-small .kakuro-sum {
+  font-size: max(7px, calc(100cqw / var(--kakuro-n, 6) * 0.3));
+}
+.kakuro-sum-right { top: 8%; right: 9%; }
+.kakuro-sum-down { bottom: 8%; left: 9%; }
+.kakuro-sum-lit { color: var(--primary); }
+.kakuro-sum-done { color: #8FE3A4; }
+.kakuro-sum-bad { color: var(--destructive); }
+
+/* White cells: lighter glass wells; the selected square and its runs glow. */
+.kakuro-cell {
+  border-radius: 3px;
+  background-color: #2B2D36;
+  background-image: linear-gradient(145deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0) 45%, rgba(0, 0, 0, 0.18));
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+  font-family: var(--font-display, inherit);
+  transition: background-color 140ms ease-out, box-shadow 140ms ease-out;
+}
+.kakuro-cell.kakuro-lit { background-color: #343747; }
+.kakuro-cell.kakuro-selected {
+  background-color: color-mix(in oklab, var(--primary) 22%, #2B2D36);
+  box-shadow: inset 0 0 0 2px var(--primary);
+}
+.kakuro-cell.kakuro-done { box-shadow: inset 0 0 0 1px rgba(143, 227, 164, 0.45), inset 0 0 10px rgba(143, 227, 164, 0.14); }
+.kakuro-cell.kakuro-bad { background-color: color-mix(in oklab, var(--destructive) 16%, #2B2D36); }
+.kakuro-cell.kakuro-selected.kakuro-done,
+.kakuro-cell.kakuro-selected.kakuro-bad { box-shadow: inset 0 0 0 2px var(--primary); }
+
+.kakuro-digit {
+  font-weight: 800;
+  line-height: 1;
+  color: var(--primary);
+  font-size: max(15px, calc(100cqw / var(--kakuro-n, 6) * 0.5));
+}
+.kakuro-small .kakuro-digit { font-size: max(9px, calc(100cqw / var(--kakuro-n, 6) * 0.5)); }
+.kakuro-tone-wrong .kakuro-digit { color: var(--destructive); text-decoration: line-through; text-decoration-thickness: 2px; }
+.kakuro-tone-missing .kakuro-digit { color: var(--muted-foreground); opacity: 0.75; }
+.kakuro-tone-entry .kakuro-digit { color: var(--primary); }
+.kakuro-pop { animation: kakuro-pop 170ms cubic-bezier(0.3, 1.5, 0.5, 1); }
+@keyframes kakuro-pop {
+  from { transform: scale(0.6); opacity: 0.4; }
+  to { transform: none; opacity: 1; }
+}
+.kakuro-marks {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  width: 100%;
+  padding: 0 6%;
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: max(7px, calc(100cqw / var(--kakuro-n, 6) * 0.2));
+  line-height: 1.1;
+  color: var(--muted-foreground);
+  text-align: center;
+}
+
+/* The pad: two rows of six under the board. */
+.game-column [data-logic-stage="kakuro"] .kakuro-pad > button {
+  min-height: 44px;
+}
+.kakuro-key { font-size: 18px; }
+
+/* Completion: the runs light up one after another (≤ 1.2 s, opacity and colour only). */
+[data-logic-solved] .kakuro-cell {
+  animation: kakuro-solve 700ms ease-out calc(var(--kakuro-i, 0) * 20ms + 100ms) 1 both;
+}
+@keyframes kakuro-solve {
+  0%, 100% { background-color: #2B2D36; }
+  40% { background-color: color-mix(in oklab, var(--primary) 40%, #2B2D36); }
+}
+[data-logic-solved] .kakuro-sum { color: var(--primary); }
+/* "Pencil" fits its one-sixth key on a 375 px phone: no letter spacing or side padding from the shared key styles. */
+[data-logic-stage="kakuro"] .kakuro-pad > .kakuro-pencil {
+  padding-inline: 2px !important;
+  letter-spacing: 0 !important;
+  font-size: 11px !important;
+}

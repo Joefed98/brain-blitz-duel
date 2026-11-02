@@ -10,6 +10,7 @@ import {
   ukTime,
   type PublicGame,
 } from "@/lib/publicSchedule";
+import { pageHidden } from "@/lib/battery";
 
 /** "Sat 24 Oct · 7:00 pm UK" (UK time). */
 export function publicGameWhen(game: PublicGame): string {
@@ -59,7 +60,10 @@ function useLobbyWaiting(roomCode: string | null, open: boolean): number | null 
       }
     };
     void read();
-    const timer = window.setInterval(() => void read(), 20_000);
+    // Battery (31 Oct 2026): no reads while the app is hidden.
+    const timer = window.setInterval(() => {
+      if (!pageHidden()) void read();
+    }, 20_000);
     return () => {
       live = false;
       window.clearInterval(timer);

@@ -93,9 +93,16 @@ export type PuzzleType =
   | "freecell"
   | "tripeaks"
   | "pokersquares"
+  | "fivehands"
   | "minigolf"
   | "pool"
-  | "curling";
+  | "curling"
+  | "blockfall"
+  | "alleyroll"
+  | "fences"
+  | "fillomino"
+  | "bridges"
+  | "kakuro";
 
 /** A type id as stored rooms hold it: a live type, or a game deleted since (removedGames.ts). */
 export type StoredPuzzleType = PuzzleType | RemovedPuzzleType;
@@ -388,6 +395,10 @@ export type PuzzleData =
   | MeasurePuzzleData
   | CheckoutPuzzleData
   | NumlinePuzzleData
+  | FencesPuzzleData
+  | FillominoPuzzleData
+  | BridgesPuzzleData
+  | KakuroPuzzleData
   | DigPuzzleData
   | WordSearchPuzzleData
   | LetterWheelPuzzleData
@@ -415,9 +426,12 @@ export type PuzzleData =
   | FreecellPuzzleData
   | TripeaksPuzzleData
   | PokerSquaresPuzzleData
+  | FiveHandsPuzzleData
   | MinigolfPuzzleData
   | PoolPuzzleData
-  | CurlingPuzzleData;
+  | CurlingPuzzleData
+  | BlockfallPuzzleData
+  | AlleyRollPuzzleData;
 
 /** Every timed screen of a round, driven by a shared timestamp. */
 export type DuelPhase = "starting" | "round_title" | "intro" | "puzzle" | "reveal" | "result" | "standings" | "winner_reveal";
@@ -561,9 +575,20 @@ export const TARGET_FAR_POINTS = 25;
 export const TOTAL_ROUNDS = 6;
 /** New rooms play at most seven rounds. */
 export const MAX_ROUNDS = 7;
-/** A room holds two to ten players; two plays as the classic duel. */
+/**
+ * A room holds two to sixteen players (31 Oct 2026, was ten); two plays as the classic duel. The
+ * 17th join is refused as full. Bigger events (40+) are for the tournament system, not rooms.
+ */
 export const MIN_PLAYERS = 2;
-export const MAX_PLAYERS = 10;
+export const MAX_PLAYERS = 16;
+/** A room's seats: every lobby seats MAX_PLAYERS, rooms made before 16 (stored max_players 10) included. */
+export function roomCapacity(room: { max_players?: number | null } | null | undefined): number {
+  return Math.max(MAX_PLAYERS, Number(room?.max_players) || 0);
+}
+/** What a join past the room's seats is told. */
+export function roomFullMessage(seats: number): string {
+  return `That room is full (${seats} players).`;
+}
 export const COUNTDOWN_MS = 3_000;
 /** Round intro: up to 30s waiting on READY taps, then a 3-2-1 countdown. */
 export const INTRO_WAIT_MS = 30_000;
@@ -1902,8 +1927,10 @@ export interface DualPuzzleData {
 
 export interface RicoPuzzleData {
   type: "ricochet";
-  /** Lays out the whole shaft of spikes — identical for everyone. */
+  /** Lays out the whole shaft of spikes (or, on ricoRev 2, the whole tower) — identical for everyone. */
   seed: number;
+  /** Rules revision (2 = the ninja wall-climb on the arcade standard, 1 Nov 2026; ricochetNinja.ts); absent = the original ball-and-spikes shaft. */
+  ricoRev?: number;
 }
 
 /* =================== Breaker / Rally / Steady ============================ */
@@ -1954,7 +1981,7 @@ export interface MahjongPuzzleData {
   type: "mahjong";
   /** Deals the faces (built backwards, so the board clears) in the sim, identical for everyone. */
   seed: number;
-  /** Rules revision (1 = the first stack, on the arcade scoring standard). */
+  /** Rules revision (1 = the first stack, on the arcade scoring standard; 2 = the same with Undo and Reset). */
   mahjongRev?: number;
 }
 
@@ -1962,10 +1989,13 @@ export interface MahjongPuzzleData {
 
 /** Home Run Derby's 60-second, ten-pitch run; the round clock adds three of slack (63 s). */
 export const HOMERUN_TIME_MS = 63_000;
-/** Free Kick's 75-second, ten-kick run, plus three of slack. */
-export const FREEKICK_TIME_MS = 78_000;
-/** Racing's 90-second, two-lap race, plus three of slack. */
-export const RACING_TIME_MS = 93_000;
+/** Top Bins' 90-second, ten-kick run (freekickRev 3; rev 1 and 2 runs end at 75 s), plus three of slack. */
+export const FREEKICK_TIME_MS = 93_000;
+/**
+ * Apex's 90-second, two-lap race, plus three of slack; since 31 Oct 2026 (racingRev 2) also its 5.5-second start
+ * lights before the race clock starts (99 s; racingRev 1 runs still end at their own 90 s, as Tempo's and Gemstone's).
+ */
+export const RACING_TIME_MS = 99_000;
 
 export interface HomerunPuzzleData {
   type: "homerun";
@@ -1985,9 +2015,9 @@ export interface FreekickPuzzleData {
 
 export interface RacingPuzzleData {
   type: "racing";
-  /** A proved seed (racingDeal.server.ts): the track, identical for everyone. */
+  /** A proved seed (racingDealV2.server.ts; racingDeal.server.ts on rev 1): the track, identical for everyone. */
   seed: number;
-  /** Rules revision (1 = the first race, on the arcade scoring standard). */
+  /** Rules revision (1 = the first race, on the arcade scoring standard; 2 = the F1 lights start and the softer joystick). */
   racingRev?: number;
 }
 
@@ -1995,16 +2025,38 @@ export interface RacingPuzzleData {
 
 /** FreeCell: a 120-second run; the round clock adds three of slack. */
 export const FREECELL_TIME_MS = 123_000;
-/** TriPeaks: a 60-second run. */
+/** Summit (tripeaks): a 60-second run. */
 export const TRIPEAKS_TIME_MS = 63_000;
-/** Poker Squares: a 60-second run. */
+/** Full House (pokersquares): a 60-second run. */
 export const POKERSQUARES_TIME_MS = 63_000;
+/** Five Hands: a 60-second run. */
+export const FIVEHANDS_TIME_MS = 63_000;
+/** Blockfall: a 60-second run (it ends early on a top-out), plus three of slack. */
+export const BLOCKFALL_TIME_MS = 63_000;
+/** Alley Roll: nine balls or 60 seconds, plus three of slack. */
+export const ALLEYROLL_TIME_MS = 63_000;
+
+export interface BlockfallPuzzleData {
+  type: "blockfall";
+  /** A proved seed (blockfallDeal.server.ts): the piece order (shuffled bags of seven) comes from it, identical for everyone. */
+  seed: number;
+  /** Rules revision (1 = the first rules, on the arcade scoring standard). */
+  blockfallRev?: number;
+}
+
+export interface AlleyRollPuzzleData {
+  type: "alleyroll";
+  /** The run's seed (the lane is the same for every seed; stored like every arcade seed). */
+  seed: number;
+  /** Rules revision (1 = the first rules, on the arcade scoring standard). */
+  alleyRollRev?: number;
+}
 
 export interface FreecellPuzzleData {
   type: "freecell";
   /** The bank deal's index (src/lib/arcade/cards/freecellDeals.data.ts): the same deal and par for everyone. */
   seed: number;
-  /** Rules revision (1 = the first rules, on the arcade scoring standard). */
+  /** Rules revision (1 = the first rules, on the arcade scoring standard; 2 = Undo and Reset, 31 Oct 2026). */
   freecellRev?: number;
 }
 
@@ -2020,8 +2072,16 @@ export interface PokerSquaresPuzzleData {
   type: "pokersquares";
   /** Builds the target grid and its dealing order in the sim: the same 25 cards in the same order for everyone. */
   seed: number;
-  /** Rules revision (1 = the first rules, on the arcade scoring standard). */
+  /** Rules revision (1 = the first rules, on the arcade scoring standard; 2 = the core full at the elite median, 31 Oct 2026). */
   pokerSquaresRev?: number;
+}
+
+export interface FiveHandsPuzzleData {
+  type: "fivehands";
+  /** Shuffles the deck and proves its witness in the sim: the same 45 cards in the same order for everyone. */
+  seed: number;
+  /** Rules revision (1 = the first rules, on the arcade scoring standard). */
+  fiveHandsRev?: number;
 }
 
 export interface RallyPuzzleData {
@@ -2204,6 +2264,11 @@ export interface BastionPuzzleData {
   type: "bastion";
   /** Draws the whole spawn schedule — identical for everyone. */
   seed: number;
+  /**
+   * Rules revision: absent = the original shapes turret (60 s, practice only since Oct 2026); 2 = the first-person
+   * tank-defence shooter on the arcade scoring standard (1 Nov 2026, src/lib/arcade/bastionTank.ts), dealt in rooms.
+   */
+  bastionRev?: number;
 }
 
 /** Rooftop Run: a fixed 60-second run; the round clock adds three of slack. */
@@ -2645,9 +2710,9 @@ export interface MinigolfPuzzleData {
 
 export interface PoolPuzzleData {
   type: "pool";
-  /** Deals the layout (a table from the proven bank, poolBank.server.ts): identical for everyone in the room. */
+  /** Deals the layout (a table from the proven bank: poolBankV2.server.ts on poolRev 2, poolBank.server.ts on 1): identical for everyone in the room. */
   seed: number;
-  /** poolRev 1: the arcade scoring standard (docs/arcade-standard/pool.md). */
+  /** poolRev 1: the arcade scoring standard; poolRev 2 (31 Oct 2026): the cue round the ball, the meter, the spin dot anywhere on the face (docs/arcade-standard/pool.md). */
   poolRev?: number;
 }
 
@@ -2655,6 +2720,99 @@ export interface CurlingPuzzleData {
   type: "curling";
   /** Places the opponent's stones (a sheet from the proven bank, curlingBank.server.ts): identical for everyone in the room. */
   seed: number;
-  /** curlRev 1: the arcade scoring standard (docs/arcade-standard/curling.md). */
+  /**
+   * curlRev 1: the arcade scoring standard (docs/arcade-standard/curling.md). curlRev 2 (31 Oct 2026, dealt from
+   * curlingBankV2.server.ts): the start along the hog line and side brushing, the same parts. curlRev 3 (1 Nov 2026,
+   * dealt from curlingBankV3.server.ts): the weight meter's draw zone, the aim line, a gentler weight line and the
+   * re-fitted closeness core, the same parts.
+   */
   curlRev?: number;
+}
+
+/* ============================ New grid puzzles (1 Nov 2026) ============================ */
+/*
+ * Fences, Fillomino and Bridges (Logic) and Kakuro (Number): born on the puzzle scoring standard (each game's own
+ * stamp at 1, standard/stamps.ts). Every board comes from a seeded generator whose solver proves exactly one
+ * solution (the `*.server.ts` modules); the solution stays server-side until the reveal (secrets.ts).
+ */
+
+/** Fences: a 6 × 6 grid, 90 s. */
+export const FENCES_TIME_MS = 90_000;
+export const FENCES_SIZE = 6;
+
+export interface FencesPuzzleData {
+  type: "fences";
+  /** 1: the first rules, on the scoring standard. */
+  fencesRev?: number;
+  size: number;
+  /** One per cell, row by row: how many of its four sides the loop uses, or -1 for no number. */
+  clues: number[];
+  /** The solver's difficulty grade (search nodes beyond pure deduction), public. */
+  grade?: number;
+  /** The loop's edges (fences.ts edge ids), sorted — private until the reveal. */
+  solution?: number[];
+}
+
+/** Fillomino: a 7 × 7 grid, 90 s. */
+export const FILLOMINO_TIME_MS = 90_000;
+export const FILLOMINO_SIZE = 7;
+
+export interface FillominoPuzzleData {
+  type: "fillomino";
+  /** 1: the first rules, on the scoring standard. */
+  fillominoRev?: number;
+  size: number;
+  /** One per cell, row by row: the given number, or 0 for a blank. */
+  givens: number[];
+  grade?: number;
+  /** Every cell's number — private until the reveal. */
+  solution?: number[];
+}
+
+/** Bridges: a 7 × 7 grid with 10–14 islands, 90 s. */
+export const BRIDGES_TIME_MS = 90_000;
+export const BRIDGES_SIZE = 7;
+
+export interface BridgesIsland {
+  cell: number;
+  n: number;
+}
+
+export interface BridgesPuzzleData {
+  type: "bridges";
+  /** 1: the first rules, on the scoring standard. */
+  bridgesRev?: number;
+  size: number;
+  /** In cell order. */
+  islands: BridgesIsland[];
+  grade?: number;
+  /** Bridges on each candidate pair (bridges.ts `bridgePairs` order), 0–2 — private until the reveal. */
+  solution?: number[];
+}
+
+/** Kakuro: a 6 × 6 board (the top row and left column are clue cells), about 20 white cells, 120 s. */
+export const KAKURO_TIME_MS = 120_000;
+export const KAKURO_SIZE = 6;
+
+export interface KakuroClue {
+  /** A black cell, row by row. */
+  cell: number;
+  /** The run below it adds to this (0: no run). */
+  down: number;
+  /** The run to its right adds to this (0: no run). */
+  right: number;
+}
+
+export interface KakuroPuzzleData {
+  type: "kakuro";
+  /** 1: the first rules, on the scoring standard. */
+  kakuroRev?: number;
+  size: number;
+  /** The white cells, ascending. */
+  white: number[];
+  /** Every black cell that starts a run. */
+  clues: KakuroClue[];
+  grade?: number;
+  /** One per cell, row by row: the digit, 0 on black cells — private until the reveal. */
+  solution?: number[];
 }

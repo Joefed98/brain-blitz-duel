@@ -2,6 +2,10 @@
 @source "../src";
 @import "tw-animate-css";
 @import "./polish-logic/logic.css";
+@import "./polish-logic/fences.css";
+@import "./polish-logic/fillomino.css";
+@import "./polish-logic/bridges.css";
+@import "./polish-logic/kakuro.css";
 @import "./polish-b/a.css";
 @import "./polish-b/b.css";
 @import "./polish-b/c.css";
@@ -12,12 +16,14 @@
 @import "./polish-layout/bottom.css";
 @import "./polish-layout/app-shell.css";
 @import "./polish-layout/desktop.css";
+@import "./polish-layout/desktop-layout.css";
 @import "./polish-layout/theme.css";
 @import "./polish-layout/app-pages.css";
 @import "./polish-layout/room-screens.css";
 @import "./polish-layout/celebrations.css";
 @import "./polish-layout/readability.css";
 @import "./polish-layout/game-frame.css";
+@import "./polish-layout/offline.css";
 
 /*
  * Duelz design system — dark competitive esports feel.
@@ -498,6 +504,7 @@
   --group-sports: #4CC24A;
   --group-cards: #FF5C93;
   --group-action: var(--category-arcade);
+  --group-strategy: #8E80FF;
   --category-accent: var(--category-logic);
   --puzzle-surface: oklch(0.205 0.012 285);
   --puzzle-edge: oklch(0.36 0.014 285);
@@ -1110,21 +1117,30 @@ html,
 
 /* --- Waiting / loading dots -------------------------------------------- */
 
+/* Battery (31 Oct 2026, display only): one dot at a time lights with a soft glow, in steps (a step
+   animation on box-shadow stays off the compositor, so the browser draws only at each step: 2.5 frames a
+   second while a screen waits, not an endless 60; nothing moves, so no layout shifts). The dots' own
+   0/160/320 ms delays give way to a third of the cycle each. */
 @keyframes dot-bounce {
-  0%,
-  80%,
+  0% {
+    opacity: 1;
+    box-shadow: 0 0 4px 1px currentColor;
+  }
+  33.333%,
   100% {
     opacity: 0.25;
-    transform: translateY(0);
-  }
-  40% {
-    opacity: 1;
-    transform: translateY(-3px);
+    box-shadow: none;
   }
 }
 
 @utility animate-dot-bounce {
-  animation: dot-bounce 1.1s ease-in-out infinite;
+  animation: dot-bounce 1.2s steps(1, end) infinite;
+  &:nth-child(2) {
+    animation-delay: 0.4s !important;
+  }
+  &:nth-child(3) {
+    animation-delay: 0.8s !important;
+  }
 }
 
 @keyframes slow-pulse {
@@ -1898,3 +1914,12 @@ html[data-reduced-effects] .podium-award-in { animation: none; }
    isn't the stored score; the panel's counter line carries the moves and the stored score instead.
    (A final board is handed the real answer, so it keeps its lines, as on the answer reveal.) */
 .replay-board-lapse p { display: none; }
+
+/* Battery saver (31 Oct 2026, lib/battery.ts; Profile → settings, off by default): the endless decorative
+   motion stops (the slow category drift, potion bubbles, the button sheen and soft pulses). */
+[data-battery-saver] .screen-drift,
+[data-battery-saver] .potion-bubble,
+[data-battery-saver] .animate-sheen,
+[data-battery-saver] .animate-slow-pulse {
+  animation: none;
+}

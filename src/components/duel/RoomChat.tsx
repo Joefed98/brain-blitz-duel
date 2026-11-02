@@ -3,7 +3,7 @@ import { createPortal } from "react-dom";
 import { Maximize2, MessageCircle, Minimize2, Send, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { fx } from "@/lib/fx";
-import { buzz } from "@/lib/motion";
+import { haptic } from "@/lib/haptics";
 import { playBlip } from "@/lib/sound";
 
 import {
@@ -11,7 +11,7 @@ import {
   ROOM_EMOJI,
   type RoomMessageRow,
 } from "@/lib/duel/chatConstants";
-import { CHAT_TOAST_BUZZ_MS, CHAT_TOAST_MS, chatToastText, shouldToast } from "@/lib/duel/chatNotice";
+import { CHAT_TOAST_MS, chatToastText, shouldToast } from "@/lib/duel/chatNotice";
 import { chatToastBottom } from "@/lib/duel/chatToastPlace";
 import type { RoomChatState } from "@/lib/duel/useRoomChat";
 import { PLAYER_COLOURS, type PlayerLook, type PlayerLooks } from "@/lib/duel/playerLook";
@@ -175,7 +175,7 @@ export function RoomChat({
     if (!shouldToast(message, { myUserId, chatAvailable: available, sheetOpen: open })) return;
     setToast(message);
     playBlip();
-    buzz(CHAT_TOAST_BUZZ_MS);
+    haptic("tick");
     window.clearTimeout(toastTimer.current);
     toastTimer.current = window.setTimeout(() => setToast(null), CHAT_TOAST_MS);
   }, [chat.incoming, available, open, myUserId]);

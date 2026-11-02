@@ -43,6 +43,12 @@ when the run starts. Rooms deal Pinball since 14 Oct 2026; Junction is practice 
 | `cross.hop` | Jaywalk | The walker hops a lane or moves sideways (at most one per 90 ms) | `arc_honk` (0.6); own footstep file `cross.hop.mp3` | 50–150 | 380 ms |
 | `flip.crash` | Roofbound | The run ends in a crash | `arc_crash` | 0–1 | 200 ms |
 | `flip.flip` | Roofbound | Gravity flips | `arc_gravity_flip` (0.7) | 20–60 | 330 ms |
+| `ricochet.leap` | Ricochet | The ninja leaps off a wall (ricoRev 2) | `arc_gravity_flip` (0.5) | 80–140 | 330 ms |
+| `ricochet.doubleJump` | Ricochet | The double jump in the air (ricoRev 2) | `arc_gravity_flip` (0.6, ×1.25) | 10–60 | 330 ms |
+| `ricochet.hit` | Ricochet | A katana or shuriken knocks the ninja down (ricoRev 2) | `arc_crash` | 0–20 | 200 ms |
+| `ricochet.coin` | Ricochet | A coin taken (ricoRev 2) | `arc_pickup` (0.8) | 5–60 | 100 ms |
+| `ricochet.lantern` | Ricochet | A gold lantern taken (ricoRev 2) | `combo` (0.85) | 0–10 | 120 ms |
+| `ricochet.scroll` | Ricochet | A scroll taken (ricoRev 2) | `correct` (0.9) | 0–4 | 120 ms |
 | `hover.start` | Hover | The run starts | `arc_retro_coin` | 1 | 120 ms |
 | `hover.crash` | Hover | The craft crashes | `arc_retro_explode` | 0–1 | 260 ms |
 | `hover.gate` | Hover | A barrier is passed | `arc_retro_note` | 20–60 | 90 ms |
@@ -55,7 +61,7 @@ when the run starts. Rooms deal Pinball since 14 Oct 2026; Junction is practice 
 | `snake.showerAlarm` | Meteor | A meteor shower's three shadows appear (snakeRev 3+) | `arc_retro_note` (0.7, slowed ×0.5) | 1–3 | 180 ms |
 | `beat.start` | Tempo | The run starts | `arc_retro_coin` | 1 | 120 ms |
 | `beat.miss` | Tempo | A note is missed (left out when it breaks a combo of 10+ and `beat.comboLost` has a file) | `arc_retro_hit` · own file `beat.miss.mp3` (sound batch 4, volume 0.6) | 5–20 | 150 ms |
-| `beat.note` | Tempo | A note is hit or a hold starts (pitched by lane; an own file keeps the lane pitch) | `arc_retro_note` (0.8, lane pitch) · own file `beat.note8bit.mp3` (an 8-bit pulse note on C5, each lane a step up the major pentatonic C D E G A; 28 Oct 2026, was `beat.noteHit.mp3`; volume 0.8) | 80–150 | 140 ms |
+| `beat.note` | Tempo | A note is hit or a hold starts (pitched by lane; an own file keeps the lane pitch) | `arc_retro_note` (0.8, lane pitch) · own file `beat.note8bit.mp3` (an 8-bit pulse note on C5, each lane a step up the major pentatonic C D E G A; 28 Oct 2026, was `beat.noteHit.mp3`; volume 0.8); the hit's only sound since 1 Nov 2026 (no generic `combo` on top) | 80–150 | 140 ms |
 | `breaker.start` | Breaker | The run starts | `arc_retro_coin` | 1 | 120 ms |
 | `breaker.ballLost` | Breaker | A ball is lost | `arc_retro_explode` | 0–3 | 260 ms |
 | `breaker.powerUp` | Breaker | A power-up is caught | `arc_retro_pickup` | 2–6 | 100 ms |
@@ -85,11 +91,11 @@ when the run starts. Rooms deal Pinball since 14 Oct 2026; Junction is practice 
 | `burst.powerUp` | Fission | A shield or burst power-up is caught | `arc_retro_pickup` | 1–5 | 100 ms |
 | `burst.freezeCaught` | Fission | A FREEZE icon is caught (burstRev 2+) | `arc_retro_coin` (0.8) | 0–3 | 120 ms |
 | `burst.shot` | Fission | A shot is fired (at most one per 70 ms, two at once) | `arc_retro_blip` (0.6, overlapping) | 50–200 | 50 ms |
-| `minigolf.putt` | Minigolf | A putt is struck | `arc_wood_knock` (0.8) | 5–30 | 80 ms |
-| `minigolf.bounce` | Minigolf | The ball bounces off a rail, log, boulder or planter | `arc_bounce` (0.6) | 0–40 | 60 ms |
-| `minigolf.water` | Minigolf | The ball goes in a pond | `arc_sea_pop` (0.9) | 0–6 | 200 ms |
-| `minigolf.holed` | Minigolf | The ball drops in the cup | `arc_marble_clink` | 0–5 | 200 ms |
-| `minigolf.birdie` | Minigolf | A hole holed under par | `arc_fair_bell` (0.8) | 0–5 | 300 ms |
+| `minigolf.putt` | Crazy Golf | A putt is struck | `arc_wood_knock` (0.8) | 5–30 | 80 ms |
+| `minigolf.bounce` | Crazy Golf | The ball bounces off a rail, log or (golfRev 2) a windmill sail or castle wall (a boulder or planter plays `minigolf.stone`) | `arc_bounce` (0.6) | 0–40 | 60 ms |
+| `minigolf.water` | Crazy Golf | The ball goes in a pond | `arc_sea_pop` (0.9) | 0–6 | 200 ms |
+| `minigolf.holed` | Crazy Golf | The ball drops in the cup | `arc_marble_clink` | 0–5 | 200 ms |
+| `minigolf.birdie` | Crazy Golf | A hole holed under par | `arc_fair_bell` (0.8) | 0–5 | 300 ms |
 | `bintoss.basket` | Swish | A throw goes in | `arc_fair_bucket` | 3–10 | 200 ms |
 | `bintoss.allBaskets` | Swish | The last throw goes in with every throw in | `arc_fair_bell` | 0–1 | 400 ms |
 | `bintoss.missBounce` | Swish | A throw misses | `arc_bounce` (0.7) | 0–7 | 80 ms |
@@ -119,24 +125,76 @@ when the run starts. Rooms deal Pinball since 14 Oct 2026; Junction is practice 
 | `skyline.perfect` | High Rise | A perfect drop | `correct` · own file `skyline.floors.mp3` (volume 0.8; Joe's phone notes, 27 Oct 2026: the crane bell that was the every-10-floors sound; `skyline.perfectFit.mp3` retired) | 5–20 | 483 ms |
 | `skyline.streakDrop` | High Rise | A streak bonus drop (skylineRev 2+) | `arc_retro_coin` (0.7) | 2–10 | 120 ms |
 | `skyline.miss` | High Rise | A block misses the tower | `arc_crash` | 0–1 | 200 ms |
-| `homerun.swing` | Home Run Derby | A swing starts | `arc_hover_tap` (0.5, rate 1.4) | 10 | 120 ms |
-| `homerun.crack` | Home Run Derby | Bat meets ball (a fair ball or a home run) | `arc_wood_knock` (rate 1.15 on a square hit) | 5–10 | 200 ms |
-| `homerun.homer` | Home Run Derby | A home run | `arc_fair_sting` (0.9) | 0–10 | 480 ms |
-| `homerun.sign` | Home Run Derby | A sign beyond the fence is struck | `arc_fair_bell` (0.9) | 0–4 | 480 ms |
-| `homerun.foul` | Home Run Derby | A foul ball | `arc_bounce` (0.7) | 0–5 | 150 ms |
-| `homerun.strike` | Home Run Derby | A swing and a miss, or a pitch taken | `arc_fair_thud` (0.6) | 0–10 | 150 ms |
-| `freekick.kick` | Free Kick | The ball is struck | `arc_fair_thud` | 10 | 150 ms |
-| `freekick.post` | Free Kick | The ball hits a post or the bar | `arc_clank` | 0–5 | 200 ms |
-| `freekick.save` | Free Kick | The keeper saves (the wall's block, quieter) | `arc_wood_knock` | 0–10 | 200 ms |
-| `freekick.goal` | Free Kick | A goal | `arc_fair_sting` | 0–10 | 480 ms |
-| `freekick.target` | Free Kick | A target hit | `arc_fair_bell` | 0–4 | 480 ms |
-| `freekick.net` | Free Kick | The ball hits the net | `arc_bounce` | 0–10 | 200 ms |
-| `racing.go` | Racing | The race starts | `arc_horn` | 1 | 300 ms |
-| `racing.lap` | Racing | A lap is completed | `arc_fair_bell` | 1–2 | 480 ms |
-| `racing.sector` | Racing | A clean sector | `arc_retro_coin` | 0–8 | 200 ms |
-| `racing.wall` | Racing | The car hits the tyre wall | `arc_crash` | 0–10 | 200 ms |
-| `racing.grass` | Racing | The car runs onto the grass or gravel | `arc_bounce` | 0–20 | 150 ms |
-| `racing.finish` | Racing | The finish line after lap 2 | `arc_fair_sting` | 0–1 | 480 ms |
+| `homerun.swing` | Home Run | A swing starts | `arc_hover_tap` (0.5, rate 1.4) | 10 | 120 ms |
+| `homerun.crack` | Home Run | Bat meets ball (a fair ball or a home run) | `arc_wood_knock` (rate 1.15 on a square hit) | 5–10 | 200 ms |
+| `homerun.homer` | Home Run | A home run | `arc_fair_sting` (0.9) | 0–10 | 480 ms |
+| `homerun.sign` | Home Run | A sign beyond the fence is struck | `arc_fair_bell` (0.9) | 0–4 | 480 ms |
+| `homerun.foul` | Home Run | A foul ball, or weak contact (a fair ball under 400 per mille, once the slot has its file) | `arc_bounce` (0.7) | 0–5 | 150 ms |
+| `homerun.strike` | Home Run | The ball in the catcher's mitt: a swing and a miss, or a pitch taken | `arc_fair_thud` (0.6) | 0–10 | 150 ms |
+| `freekick.kick` | Top Bins | The ball is struck | `arc_fair_thud` | 10 | 150 ms |
+| `freekick.post` | Top Bins | The ball hits a post or the bar | `arc_clank` | 0–5 | 200 ms |
+| `freekick.save` | Top Bins | The keeper saves | `arc_wood_knock` | 0–10 | 200 ms |
+| `freekick.goal` | Top Bins | A goal (its file is the net; with it, `freekick.net` is not played) | `arc_fair_sting` | 0–10 | 480 ms |
+| `freekick.target` | Top Bins | A target hit | `arc_fair_bell` | 0–4 | 480 ms |
+| `freekick.net` | Top Bins | The ball hits the net | `arc_bounce` | 0–10 | 200 ms |
+| `bastion.cannon` | Bastion | The cannon fires a shell | `arc_blaster` (0.85, rate 0.8) | 20–60 | 420 ms |
+| `bastion.dry` | Bastion | Fire with no shell ready (reloading or cooling): a dry click | `tick` (0.5) | 0–10 | 120 ms |
+| `bastion.reload` | Bastion | A reload starts (the magazine empty, or a swipe down) | `arc_latch` (0.7) | 7–15 | 500 ms |
+| `bastion.fastReload` | Bastion | A tap in the green: a fast reload | `arc_retro_coin` (0.8) | 0–15 | 350 ms |
+| `bastion.jam` | Bastion | A tap outside the green: the gun jams | `arc_clank` (0.9) | 0–10 | 450 ms |
+| `bastion.loaded` | Bastion | The reload finishes (five shells) | `arc_latch` (0.5, rate 1.3) | 7–15 | 200 ms |
+| `bastion.hit` | Bastion | A shell hits a tank's hull or turret | `arc_retro_hit` (0.8) | 10–40 | 250 ms |
+| `bastion.weak` | Bastion | A shell hits a tank's weak spot | `arc_pickup` (0.8) | 0–36 | 300 ms |
+| `bastion.kill` | Bastion | A tank is destroyed | `arc_big_explode` (0.9) | 0–29 | 900 ms |
+| `bastion.miss` | Bastion | A shell lands on open ground | `arc_fair_thud` (0.5) | 0–40 | 300 ms |
+| `bastion.baseHit` | Bastion | A tank reaches the wall and hits the base (with the base-hit haptic) | `arc_crash` | 0–3 | 800 ms |
+| `bastion.wave` | Bastion | A wave rolls in | `arc_horn` (0.6) | 5 | 900 ms |
+| `racing.light` | Apex | A red start light comes on (racingRev 2; five a race) | `countdown_step` (0.55) | 5 | 155 ms |
+| `racing.go` | Apex | The race starts (racingRev 2: lights out; racingRev 1: the first throttle) | `arc_horn` | 1 | 300 ms |
+| `racing.lap` | Apex | A lap is completed | `arc_fair_bell` | 1–2 | 480 ms |
+| `racing.sector` | Apex | A clean sector | `arc_retro_coin` | 0–8 | 200 ms |
+| `racing.wall` | Apex | The car hits the tyre wall | `arc_crash` | 0–10 | 200 ms |
+| `racing.grass` | Apex | The car runs onto the grass or gravel | `arc_bounce` | 0–20 | 150 ms |
+| `racing.finish` | Apex | The finish line after lap 2 | `arc_fair_sting` | 0–1 | 480 ms |
+| `minigolf.stone` | Crazy Golf | The ball bounces off a boulder or a planter | `arc_bounce` (0.6) | 0–20 | 300 ms |
+| `freekick.wall` | Top Bins | The wall blocks the kick | `arc_wood_knock` (0.65, rate 0.85) | 0–10 | 300 ms |
+| `pool.click` | Cue Ball | Ball meets ball | `tick` (0.5, overlapping) | 10–60 | 200 ms |
+| `minesweeper.reveal` | Minefield | A tap opens a square (or a few) | `tick` (0.6) | 20–80 | 80 ms |
+| `minesweeper.cascade` | Minefield | A tap opens six or more squares (an area opens) | `tick` (0.6) | 2–10 | 604 ms |
+| `minesweeper.flag` | Minefield | A flag is placed | `tick` (0.35) | 5–25 | 300 ms |
+| `mahjong.blocked` | Mahjong Solitaire | A tap on a covered or hemmed-in tile | `tick` (0.4) | 0–10 | 300 ms |
+| `freecell.place` | Free Cell | A move made (a tap or a drag) | `place` (0.8) | 40–120 | 300 ms |
+| `freecell.home` | Free Cell | A card goes home (one auto move, or the player's) | `correct` (0.55, rising with the cards home) | 10–52 | 406 ms |
+| `freecell.cascade` | Free Cell | Two or more cards go home on their own at once | `correct` (0.55, rising) | 2–10 | 948 ms |
+| `freecell.invalid` | Free Cell | A tap that moves nothing | `wrong` (0.5) | 0–10 | 434 ms |
+| `freecell.win` | Free Cell | Every card home | `complete` | 0–1 | 1362 ms |
+| `tripeaks.run` | Summit | A card played to the discard; with its own file a semitone higher for each card of the run (an octave at most) | `place` (0.8; `combo` from the third card of a run, rising) | 20–40 | 329 ms |
+| `tripeaks.deal` | Summit | The stock's next card turned | `move` (0.8) | 5–24 | 220 ms |
+| `tripeaks.peak` | Summit | A peak cleared | `correct` (0.7) | 0–3 | 998 ms |
+| `tripeaks.invalid` | Summit | A tap on a card that can't be played | `wrong` (0.5) | 0–10 | 434 ms |
+| `tripeaks.clear` | Summit | Every peak card cleared | `complete` | 0–1 | 1666 ms |
+| `pokersquares.place` | Full House | A card placed that makes no new hand | `place` (0.8; `combo` when the total rises) | 10–25 | 300 ms |
+| `pokersquares.hand` | Full House | A card placed makes a pair, two pair or three of a kind on a line | `correct` (0.8) | 5–15 | 484 ms |
+| `pokersquares.bigHand` | Full House | A card placed makes a straight or better on a line | `correct` (0.8) | 0–5 | 1122 ms |
+| `pokersquares.invalid` | Full House | A tap on a filled square | `wrong` (0.5) | 0–5 | 434 ms |
+| `fivehands.place` | Five Hands | A card placed that makes no new hand on its row | `place` (0.8; `combo` when the total rises) | 10–20 | 300 ms |
+| `fivehands.hand` | Five Hands | A card placed makes a pair, two pair or three of a kind on its row | `correct` (0.8) | 3–10 | 484 ms |
+| `fivehands.bigHand` | Five Hands | A card placed makes a straight or better on its row | `correct` (0.8) | 0–3 | 1122 ms |
+| `fivehands.invalid` | Five Hands | A tap on a full row | `wrong` (0.5) | 0–5 | 434 ms |
+| `blockfall.turn` | Blockfall | The falling piece turns | `arc_retro_blip` (0.45) | 20–80 | 50 ms |
+| `blockfall.hold` | Blockfall | A piece goes to the hold box | `arc_retro_note` (0.5) | 0–15 | 90 ms |
+| `blockfall.lock` | Blockfall | A piece lands and locks without clearing a row | `arc_retro_hit` (0.45) | 20–80 | 120 ms |
+| `blockfall.clear` | Blockfall | One or two rows clear | `arc_retro_coin` (0.8) | 5–25 | 120 ms |
+| `blockfall.bigClear` | Blockfall | Three or four rows clear at once (with a `success` haptic) | `arc_retro_pickup` (0.9) | 0–6 | 100 ms |
+| `blockfall.speedUp` | Blockfall | The speed rises (every 15 s) | `arc_retro_note` (0.6, rate 1.25) | 3 | 90 ms |
+| `blockfall.topOut` | Blockfall | The stack reaches the top and the run ends early | `arc_retro_explode` (0.8) | 0–1 | 260 ms |
+| `alleyroll.roll` | Alley Roll | A ball is rolled | `arc_wood_knock` (0.8) | 9 | 90 ms |
+| `alleyroll.rail` | Alley Roll | A rolling ball bounces off a rail | `arc_bounce` (0.5) | 0–9 | 80 ms |
+| `alleyroll.ramp` | Alley Roll | The ball leaves the ramp | `arc_wood_knock` (0.6, rate 1.3) | 9 | 90 ms |
+| `alleyroll.ring` | Alley Roll | The ball drops into a 10–40 ring | `arc_fair_bucket` (0.8) | 0–9 | 200 ms |
+| `alleyroll.fifty` | Alley Roll | The ball drops into the 50 | `arc_fair_bell` (0.8) | 0–9 | 400 ms |
+| `alleyroll.pocket` | Alley Roll | The ball drops into a 100 pocket (with a `success` haptic) | `arc_fair_sting` (0.9) | 0–9 | 300 ms |
+| `alleyroll.gutter` | Alley Roll | The ball misses every ring | `arc_fair_thud` (0.7) | 0–9 | 160 ms |
 | `inkbridge.draw` | Rainbow Bridge | The first segment of each drawn stroke | `arc_rainbow` (0.6) | 10–30 | 910 ms |
 | `inkbridge.pot` | Rainbow Bridge | The pot of gold is reached | `arc_rainbow_pot` | 3–10 | 1000 ms |
 | `inkbridge.bump` | Rainbow Bridge | A level fails on a block | `arc_rainbow_bump` | 0–5 | 200 ms |

@@ -18,6 +18,7 @@
 import { SOUND_MANIFEST, type SoundId } from "./fx/manifest";
 import { SOUND_CUE_EVENT, type SoundCueDetail } from "./fx/soundCues";
 import { devDisplayAllowed } from "./devDisplay";
+import { onPageVisibility, pageHidden } from "./battery";
 import {
   changeChannelMuted,
   changeChannelVolume,
@@ -94,7 +95,7 @@ let loggedFailure = false;
 const buffers = new Map<string, AudioBuffer>();
 const failedFiles = new Set<string>();
 const playingEffects = new Map<SoundId, AudioBufferSourceNode>();
-let currentTrack: { name: Track; source: AudioBufferSourceNode; gain: GainNode } | null = null;
+let currentTrack: { name: Track; source: AudioBufferSourceNode; gain: GainNode; at?: number; offset?: number } | null = null;
 /** What music should be playing, so we can restart it after an interruption. */
 let desiredTrack: { name: Track; options: MusicOptions } | null = null;
 
@@ -226,9 +227,96 @@ function contextState(): AnyContextState | "none" {
   return (ctx?.state as AnyContextState | undefined) ?? "none";
 }
 
+/* Battery (31 Oct 2026, sound timing only; nothing is dropped or added). The context is suspended
+   - about IDLE_SUSPEND_MS after the last source (an effect, tone, loop or music) stops, and woken by the
+     next source's start(): it is scheduled at once and sounds as the context resumes (a few ms);
+   - while the app is hidden (visibilitychange, pagehide): the music pauses where it is and carries on
+     from there on return. */
+export const IDLE_SUSPEND_MS = 5000;
+let liveSources = 0;
+let idleTimer: ReturnType<typeof setTimeout> | null = null;
+/** Suspended by us after silence: the next sound resumes it. */
+let idleSuspended = false;
+/** Suspended by us while the app was hidden: resumed on return. */
+let hiddenSuspended = false;
+
+function armIdle(): void {
+  if (idleTimer) clearTimeout(idleTimer);
+  idleTimer = null;
+  if (liveSources > 0 || !ctx) return;
+  idleTimer = setTimeout(() => {
+    idleTimer = null;
+    if (liveSources > 0 || !ctx || pageHidden() || contextState() !== "running") return;
+    if (typeof ctx.suspend !== "function") return;
+    idleSuspended = true;
+    void ctx.suspend().catch(() => undefined);
+  }, IDLE_SUSPEND_MS);
+}
+
+/** A source is about to start: a context we put to sleep after silence wakes for it. */
+function wakeAudio(): void {
+  if (idleTimer) clearTimeout(idleTimer);
+  idleTimer = null;
+  if (!idleSuspended || !ctx || pageHidden()) return;
+  idleSuspended = false;
+  void ctx.resume().catch((error) => warnOnce("wake failed", error));
+}
+
+/** Counts every started source (until it ends), so silence is known without touching each player. */
+function watchSources(context: AudioContext): void {
+  const counted = <T extends AudioScheduledSourceNode>(make: () => T) => (): T => {
+    const node = make();
+    const start = node.start.bind(node) as (...args: number[]) => void;
+    let live = false;
+    node.start = ((...args: number[]) => {
+      wakeAudio();
+      start(...args);
+      if (live || typeof node.addEventListener !== "function") return;
+      live = true;
+      liveSources++;
+      node.addEventListener(
+        "ended",
+        () => {
+          liveSources = Math.max(0, liveSources - 1);
+          armIdle();
+        },
+        { once: true },
+      );
+    }) as T["start"];
+    return node;
+  };
+  context.createBufferSource = counted(context.createBufferSource.bind(context));
+  context.createOscillator = counted(context.createOscillator.bind(context));
+}
+
+/** The app went to the background (pause everything) or came back (carry on). */
+function onAppHidden(hidden: boolean): void {
+  if (!ctx) return;
+  if (hidden) {
+    if (idleTimer) clearTimeout(idleTimer);
+    idleTimer = null;
+    if (contextState() === "running" && typeof ctx.suspend === "function") {
+      hiddenSuspended = true;
+      void ctx.suspend().catch(() => undefined);
+    }
+  } else {
+    resumeContext();
+    armIdle();
+  }
+}
+
+/** Diagnostics for battery-check: the context's state and whether we put it to sleep. */
+export function audioPowerState(): { state: AnyContextState | "none"; idle: boolean; hidden: boolean; live: number } {
+  return { state: contextState(), idle: idleSuspended, hidden: hiddenSuspended, live: liveSources };
+}
+
 /** Resume a suspended/interrupted context and restart the music that was on. */
 function resumeContext(): void {
   if (!ctx) return;
+  // Never while hidden; after silence it stays asleep until the next sound wakes it.
+  if (pageHidden()) return;
+  hiddenSuspended = false;
+  if (idleSuspended) return;
   const state = contextState();
   if (state !== "suspended" && state !== "interrupted") return;
   try {
@@ -260,6 +348,7 @@ function bindLifecycle(): void {
     const state = contextState();
     if (state === "suspended" || state === "interrupted") resumeContext();
   });
+  onPageVisibility(onAppHidden);
 }
 
 /** Call from a real user gesture. Safe to call as often as you like. */
@@ -283,6 +372,7 @@ export function unlockAudio(): void {
       effectsGain.connect(masterGain);
       voiceGain.connect(masterGain);
       masterGain.connect(ctx.destination);
+      watchSources(ctx);
       applySettings();
       bindLifecycle();
     }
@@ -321,12 +411,17 @@ export function installSoundUnlock(): () => void {
 
 /** Sound is unlocked and running now (iPhones block it until the first tap); asks nothing to resume. */
 export function soundUnlocked(): boolean {
-  return unlocked && !!ctx && contextState() === "running";
+  return unlocked && !!ctx && (contextState() === "running" || (idleSuspended && !pageHidden()));
 }
 
 function ready(): boolean {
   if (!unlocked || !ctx) return false;
   const state = contextState();
+  // Asleep after silence: wake it and play now (the sound starts as the context resumes).
+  if (idleSuspended && !pageHidden()) {
+    wakeAudio();
+    return true;
+  }
   if (state === "suspended" || state === "interrupted") {
     resumeContext();
     return false;
@@ -669,6 +764,20 @@ export function stopCueLoop(cue: string, fadeMs = CUE_LOOP_FADE_MS): void {
   if ((SOUND_MANIFEST as Record<string, unknown>)[cue]) stopLoop(cue as SoundId, fadeMs);
 }
 
+/**
+ * Glides a playing cue loop's playback rate (Racing's engine follows the car's speed); a loop that is not
+ * playing is left alone. Presentation only, on the loop ensureCueLoop started.
+ */
+export function setCueLoopRate(cue: string, rate: number): void {
+  const loop = loops.get(cue as SoundId);
+  if (!loop || !ctx) return;
+  try {
+    loop.source.playbackRate.setTargetAtTime(Math.max(0.25, Math.min(4, rate)), ctx.currentTime, 0.06);
+  } catch {
+    /* stopped */
+  }
+}
+
 /** The looping counterpart of playSlotOr: the slot's own loop once its file is loaded. */
 export function ensureSlotLoop(cue: SoundId, fallback: SoundId, volume = 0.3): void {
   if (slotReady(cue)) {
@@ -688,6 +797,10 @@ export function stopSlotLoop(cue: SoundId, fallback: SoundId, fadeMs = 300): voi
 let replayQuiet = 0;
 export function quietForReplay(on: boolean): void {
   replayQuiet = Math.max(0, replayQuiet + (on ? 1 : -1));
+}
+/** Whether a puzzle replay (time-lapse) is on screen: haptics stay off under it (lib/haptics.ts). */
+export function replayOnScreen(): boolean {
+  return replayQuiet > 0;
 }
 /** Whether a named cue is silenced because a puzzle replay is on screen. */
 export function replayQuieted(cue: string): boolean {
@@ -1016,8 +1129,7 @@ export function syncBeatTrack(beatSeconds: number | null, remainingMs: number): 
   beatLevel = level;
   // A screen bed still up from the intro gives way, as it does for a round track.
   if (currentTrack) {
-    fadeOut(currentTrack, 150);
-    currentTrack = null;
+    dropCurrentTrack(150);
   }
   desiredTrack = null;
   try {
@@ -1097,17 +1209,17 @@ export function startMusic(name: Track, options: MusicOptions = {}): void {
     // Loaded the first time a screen needs it; starts once decoded if still wanted.
     // A file that failed to load is not retried here (the screen stays silent).
     void loadMusicBuffer(name).then(() => {
-      if (musicBuffers.has(name) && desiredTrack?.name === name && !currentTrack)
+      // Still wanted (nothing started or stopped since): it starts, crossfading out whatever bed is on (the home bed
+      // while the lobby's bed was loading).
+      if (musicBuffers.has(name) && desiredTrack?.name === name && currentTrack?.name !== name)
         startMusic(name, desiredTrack.options);
     });
     return;
   }
-  bedBuffers.add(name);
+  // The home bed is app-wide: never released with a room's beds.
+  if (name !== HOME_BED) bedBuffers.add(name);
   const fade = options.fadeMs ?? FADE_MS;
-  if (currentTrack) {
-    fadeOut(currentTrack, fade);
-    currentTrack = null;
-  }
+  if (currentTrack) dropCurrentTrack(fade);
   try {
     const source = loopingSource(name, buffer);
     const gain = ctx.createGain();
@@ -1119,8 +1231,10 @@ export function startMusic(name: Track, options: MusicOptions = {}): void {
       source.playbackRate.linearRampToValueAtTime(options.rampToRate, t + options.rampMs / 1000);
     }
     source.connect(gain).connect(musicGain);
-    source.start(0, source.loopStart);
-    currentTrack = { name, source, gain };
+    // The home bed carries on from where it was left (a game took over, the app came back); every other bed starts at its top.
+    const offset = name === HOME_BED ? homeBedResumeAt(source, buffer) : source.loopStart;
+    source.start(0, offset);
+    currentTrack = { name, source, gain, at: t, offset };
     desiredTrack = null;
   } catch (error) {
     warnOnce("music playback failed", error);
@@ -1130,8 +1244,81 @@ export function startMusic(name: Track, options: MusicOptions = {}): void {
 export function stopMusic(fadeMs: number = FADE_MS): void {
   desiredTrack = null;
   if (!currentTrack) return;
-  fadeOut(currentTrack, fadeMs);
+  dropCurrentTrack(fadeMs);
+}
+
+/* -------------------------------------------------------------- home bed */
+
+/**
+ * The app-wide home bed (1 Nov 2026, Joe: it restarted on every page change). One player for the Play,
+ * Practice, Tournaments and Profile tabs and the settings sheet: each screen holds it (`holdHomeBed`, through
+ * `useHomeBed`), and moving from one holder to the next never stops or restarts it. It stops only when nothing has
+ * held it for HOME_BED_GRACE_MS or when another bed takes over (the lobby's `lobby_loop`, a round intro, a game's
+ * music, the room's own screens), and it carries on from where it was when it comes back.
+ * Mute, the music slider, pausing while hidden and the idle sleep apply exactly as to any other bed.
+ */
+export const HOME_BED: Track = "music_home";
+/** A page change unmounts one holder and mounts the next within a frame or two; this covers it with room to spare. */
+export const HOME_BED_GRACE_MS = 400;
+let homeBedHolders = 0;
+let homeBedRelease: ReturnType<typeof setTimeout> | null = null;
+/** Seconds into the home bed's file where it was left (null: from its loop start). */
+let homeBedOffset: number | null = null;
+
+/** Fades the current bed out and forgets it; the home bed's place in its loop is remembered. */
+function dropCurrentTrack(fadeMs: number): void {
+  const track = currentTrack;
+  if (!track) return;
+  if (track.name === HOME_BED && ctx && track.at !== undefined && track.offset !== undefined) {
+    const start = track.source.loopStart;
+    const end = track.source.loopEnd > start ? track.source.loopEnd : (track.source.buffer?.duration ?? 0);
+    const played = track.offset + (ctx.currentTime - track.at);
+    const period = end - start;
+    homeBedOffset = period > 0 && played >= end ? start + ((played - start) % period) : played;
+  }
+  fadeOut(track, fadeMs);
   currentTrack = null;
+}
+
+function homeBedResumeAt(source: AudioBufferSourceNode, buffer: AudioBuffer): number {
+  const at = homeBedOffset;
+  if (at === null || !(at >= 0) || at >= buffer.duration) return source.loopStart;
+  return at;
+}
+
+/**
+ * A screen wants the home bed: starts it unless it is already playing. Returns the release. `screen` is the screen's own
+ * slot (`screenMusic(...)`): while it has no file, or the home bed's file, the screen holds the home bed; given a file of
+ * its own, the screen plays that instead (and stops it on release), as before the home bed.
+ */
+export function holdHomeBed(screen: Track | null = null): () => void {
+  const homeUrl = SOUND_MANIFEST[HOME_BED]?.url ?? null;
+  const ownUrl = screen ? (SOUND_MANIFEST[screen]?.url ?? null) : null;
+  if (screen && ownUrl && ownUrl !== homeUrl) {
+    startMusic(screen);
+    return () => stopMusicIf(screen, 300);
+  }
+  homeBedHolders++;
+  if (homeBedRelease) clearTimeout(homeBedRelease);
+  homeBedRelease = null;
+  if (screenMusic("music_home")) startMusic(HOME_BED);
+  let released = false;
+  return () => {
+    if (released) return;
+    released = true;
+    homeBedHolders = Math.max(0, homeBedHolders - 1);
+    if (homeBedHolders > 0) return;
+    if (homeBedRelease) clearTimeout(homeBedRelease);
+    homeBedRelease = setTimeout(() => {
+      homeBedRelease = null;
+      if (homeBedHolders === 0) stopMusicIf(HOME_BED, 300);
+    }, HOME_BED_GRACE_MS);
+  };
+}
+
+/** Diagnostics for home-music-check. */
+export function homeBedState(): { holders: number; playing: boolean; offset: number | null } {
+  return { holders: homeBedHolders, playing: currentTrack?.name === HOME_BED, offset: homeBedOffset };
 }
 
 /** Stops whatever bed is on unless it is (or is about to be) `name`. */
@@ -1248,7 +1435,9 @@ function loopingSource(id: SoundId, buffer: AudioBuffer): AudioBufferSourceNode 
 
 /** Leaving the room: stop and release the lobby/standings/podium beds. */
 export function releaseRoomMusic(): void {
-  stopMusic(0);
+  // The home bed is app-wide: a page that held it (Practice) leaving keeps it playing (its holders decide). The lobby's
+  // bed crossfades out over FADE_MS as the tab page's home bed comes back in; any other bed stops at once, as before.
+  if (currentTrack?.name !== HOME_BED && desiredTrack?.name !== HOME_BED) stopMusic(currentTrack?.name === "lobby_loop" ? FADE_MS : 0);
   for (const id of bedBuffers) releaseMusicBuffer(id);
   bedBuffers.clear();
 }
@@ -1446,8 +1635,7 @@ function startRoundTrack(id: SoundId): void {
   roundLevel = level;
   // Only the intro bed is faded; the round track has its own node and gain.
   if (currentTrack) {
-    fadeOut(currentTrack, 150);
-    currentTrack = null;
+    dropCurrentTrack(150);
   }
   desiredTrack = null;
   try {

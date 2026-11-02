@@ -4,6 +4,7 @@ import { LOGIC_DRIVERS } from "./logic";
 import { WORD_DRIVERS } from "./word";
 import { ATTENTION_DRIVERS } from "./attention";
 import { CARD_DRIVERS } from "./cards";
+import { GRID_DRIVERS } from "./grid";
 
 // Pattern (#44)
 import { driver as unblock } from "./unblock";
@@ -30,12 +31,15 @@ import { driver as tendrop } from "./tendrop";
 import { driver as maze } from "./maze";
 // Cards & Board (30 Oct 2026)
 import { mahjongDriver, minesweeperDriver } from "./cardsBoard";
+import { ricochetDriver } from "./ricochet";
+import { bastionDriver } from "./bastion";
 
 export const DRIVERS: Record<string, Driver> = {
   ...LOGIC_DRIVERS,
   ...WORD_DRIVERS,
   ...ATTENTION_DRIVERS,
   ...CARD_DRIVERS,
+  ...GRID_DRIVERS,
   unblock,
   blockparty,
   iceslide,
@@ -57,5 +61,7 @@ export const DRIVERS: Record<string, Driver> = {
   tendrop,
   maze,
   minesweeper: minesweeperDriver,
+  bastion: bastionDriver,
   mahjong: mahjongDriver,
+  ricochet: ricochetDriver,
 };

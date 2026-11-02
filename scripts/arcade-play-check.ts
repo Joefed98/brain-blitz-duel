@@ -73,6 +73,7 @@
  * Needs the pre-installed Chromium (/opt/pw-browsers/chromium, or PLAYWRIGHT_CHROMIUM);
  * a missing browser is an environment problem, reported as such.
  */
+import { DESKTOP_MODES } from "../src/lib/duel/desktopModes";
 import { spawn, type ChildProcess } from "node:child_process";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 
@@ -91,6 +92,18 @@ import { showPracticeSide } from "./practice-side-lib";
 
 const args = process.argv.slice(2);
 const RECORD = args.includes("--record");
+/**
+ * --desktop (31 Oct 2026, the computer layout): instead of the phone play, every game's live round at
+ * 1440×900 and 1920×1080 with a mouse (the desktop layout and its desktop mode, desktopModes.ts), 6 s of
+ * scripted clicks and drags each: no errors, the sim ticking, the play screen in its desktop mode (a rotor
+ * exactly for `rotate` games), no page scroll, every arena canvas crisp within the pixel-ratio cap of 2,
+ * and 60 fps (mean frame gap at most DESKTOP_FRAME_MS). arcade-play-desktop-check.ts runs it in CI.
+ */
+const DESKTOP = args.includes("--desktop");
+const DESKTOP_SIZES: [number, number][] = [[1440, 900], [1920, 1080]];
+/** 60 fps: requestAnimationFrame's mean gap, vsync-quantised at 16.7 ms, with 10 % for the odd late frame. */
+const DESKTOP_FRAME_MS = (1000 / 60) * 1.1;
+const DESKTOP_PLAY_MS = 6000;
 /** --cpu-throttle=N: slow every page N× (a CI runner stand-in); frame times are then reported, not judged. */
 const CPU_THROTTLE = Number(args.find((a) => a.startsWith("--cpu-throttle="))?.slice(15) ?? 0) || 0;
 const URL_ARG = args.find((a) => a.startsWith("--url="))?.slice(6);
@@ -186,8 +199,8 @@ const EXTRACT = String.raw`
     // Speed Pool: every ball on the table; a pot (a ball gone) or a scratch (the cue ball respotted) is a reset.
     case "pool": s.balls.forEach((b) => { if (!b.down) P.push(["ball" + b.id, fp(b.x), fp(b.y)]); }); reset = s.pots + ":" + s.scratches + ":" + s.balls.filter((b) => b.down).length; break;
     // Curling: every stone in play as drawn (the broadcast view's projection); a throw, a stone leaving play and a new stone are resets.
-    case "curling": s.x.forEach((x, i) => { if (s.live[i]) { const p = m.curlingRenderer.curlProject(x / 4096, s.y[i] / 4096); P.push(["stone" + i, p.sx, p.sy]); } }); reset = s.thrown + ":" + s.live.join("") + ":" + s.phase; break;
-    case "minigolf": P.push(["ball", fp(s.x), fp(s.y)]); reset = s.hole + ":" + s.waters + ":" + s.holedTick + ":" + s.phase; break;
+    case "curling": s.x.forEach((x, i) => { if (s.live[i]) { const p = m.curlingRenderer.curlProject(x / 4096, s.y[i] / 4096, m.curlingRenderer.curlViewFor(s.rev)); P.push(["stone" + i, p.sx, p.sy]); } }); reset = s.thrown + ":" + s.live.join("") + ":" + s.phase; break;
+    case "minigolf": P.push(["ball", fp(s.x), fp(s.y)]); reset = s.hole + ":" + s.waters + ":" + s.holedTick + ":" + s.phase + ":" + (s.tunnels ?? 0); break;
     case "bubble": if (s.flightColour) P.push(["shot", fp(s.x), fp(s.y)]); reset = s.shots + ":" + s.descents + ":" + s.flightColour; break;
     case "swing":
       P.push(["player", fp(s.x), fp(s.y)]);
@@ -320,7 +333,7 @@ async function main() {
       await warmUp(browser, `${origin}/practice`, (page) =>
         practiceGameButton(page, games[0]!, 180_000).then(() => undefined));
     for (const [index, game] of games.entries()) {
-      const r = await playOne(browser, origin, game, baseline[game]);
+      const r = DESKTOP ? await desktopPlay(browser, origin, game) : await playOne(browser, origin, game, baseline[game]);
       results.push(r);
       // Progress as each game finishes (the full summary follows at the end).
       console.log(`[${index + 1}/${games.length}] ${r.ok ? "ok  " : "FAIL"} ${game}${r.problems.length ? `: ${r.problems[0]}` : ""}`);
@@ -331,6 +344,15 @@ async function main() {
   }
   for (const r of results) {
     console.log(`${r.ok ? "ok  " : "FAIL"} ${r.game.padEnd(10)} runs ${String((r as Result & { runs?: number }).runs ?? 0).padStart(2)} · ticks ${String(r.ticks).padStart(4)} · timer ${r.timer[0]}→${r.timer[1]} s · frame ${r.meanFrameMs.toFixed(1)} ms (baseline ${baseline[r.game]?.toFixed(1) ?? "—"}) · max step ${r.maxStep.toFixed(1)} px/tick${r.maxStepAt ? ` (${r.maxStepAt})` : ""}${r.problems.length ? `\n       ${r.problems.join("\n       ")}` : ""}`);
+  }
+  if (DESKTOP) {
+    const failedDesktop = results.filter((r) => !r.ok);
+    if (failedDesktop.length) {
+      console.log(`FAIL: ${failedDesktop.length} of ${results.length} arcade games on the desktop layout: ${failedDesktop.map((r) => r.game).join(", ")}`);
+      process.exit(1);
+    }
+    console.log(`Arcade play, desktop: ${results.length} of ${results.length} games at ${DESKTOP_SIZES.map(([w, h]) => `${w}x${h}`).join(" and ")} in their desktop mode, live, error-free, crisp, at 60 fps (mean frame ≤ ${DESKTOP_FRAME_MS.toFixed(1)} ms)`);
+    return;
   }
   if (RECORD && results.some((r) => !r.ok)) {
     console.log(`FAIL: not recording the frame-time baseline: ${results.filter((r) => !r.ok).map((r) => r.game).join(", ")} failed (a baseline needs every game live)`);
@@ -669,6 +691,112 @@ async function layoutProof(browser: import("playwright").Browser, origin: string
   } finally {
     await page.close();
   }
+}
+
+/** The --desktop pass for one game (see DESKTOP). */
+async function desktopPlay(browser: import("playwright").Browser, origin: string, game: string): Promise<Result> {
+  const problems: string[] = [];
+  const result: Result = { game, ok: false, problems, ticks: 0, timer: [Number.NaN, Number.NaN], meanFrameMs: 0, maxStep: 0, maxStepAt: "" };
+  const rand = seeded(game.length * 7919 + 29);
+  const gaps: number[] = [];
+  const wantMode = DESKTOP_MODES[game as keyof typeof DESKTOP_MODES]?.mode;
+  for (const [w, h] of DESKTOP_SIZES) {
+    const at = `${w}x${h}`;
+    const page = await browser.newPage({ viewport: { width: w, height: h } });
+    page.on("pageerror", (e) => problems.push(`${at}: page error: ${String(e.message ?? e).slice(0, 200)}`));
+    page.on("console", (m) => {
+      if (m.type() !== "error") return;
+      const text = m.text();
+      if (!NOISE.some((re) => re.test(text))) problems.push(`${at}: console error: ${text.slice(0, 200)}`);
+    });
+    await page.addInitScript(INIT);
+    await page.addInitScript(DEVICE_INIT);
+    try {
+      await gotoRetried(page, `${origin}/practice`, game, { waitUntil: "domcontentloaded" });
+      const button = await practiceGameButton(page, game, 60_000);
+      await page.waitForTimeout(1500); // hydration
+      await button.click();
+      const ready = page.getByRole("button", { name: /^Ready/ });
+      await ready.waitFor({ timeout: 60_000 });
+      await page.evaluate((g) => {
+        const win = window as unknown as Record<string, unknown>;
+        win.__extract = () => ({ P: [], reset: "" });
+        win.__mods = {};
+        win.__arcadeLog = { game: g, frames: [], errors: [] };
+      }, game);
+      await ready.click();
+      await page.locator("[data-arcade-play] [data-game-stage]").first().waitFor({ timeout: 30_000 });
+      await page.waitForTimeout(600);
+      await page.evaluate(() => { (window as unknown as { __frameGaps: number[] }).__frameGaps = []; });
+      const shape = await page.evaluate(() => {
+        const screen = document.querySelector("[data-arcade-play]");
+        const arena = document.querySelector("[data-arcade-play] [data-game-arena]") as HTMLElement | null;
+        const turned = Boolean(arena?.closest("[data-arena-rotor]"));
+        const r = arena?.getBoundingClientRect();
+        const own = r ? (turned ? { w: r.height, h: r.width } : { w: r.width, h: r.height }) : null;
+        const canvases = arena ? [...arena.querySelectorAll("canvas")].map((c) => ({ w: c.width, h: c.height, cssW: c.offsetWidth, cssH: c.offsetHeight })) : [];
+        return {
+          mode: screen?.getAttribute("data-desktop-mode") ?? null,
+          layout: screen?.getAttribute("data-layout") ?? null,
+          rotor: Boolean(document.querySelector("[data-arena-rotor]")),
+          own,
+          canvases,
+          dpr: window.devicePixelRatio,
+          scrollX: document.documentElement.scrollWidth - window.innerWidth,
+          scrollY: (document.scrollingElement?.scrollHeight ?? 0) - window.innerHeight,
+        };
+      });
+      if (shape.layout !== "desktop") problems.push(`${at}: the play screen is not on the desktop layout (data-layout ${shape.layout})`);
+      if (shape.mode !== wantMode) problems.push(`${at}: desktop mode ${shape.mode}, the registry says ${wantMode}`);
+      if (shape.rotor !== (wantMode === "rotate")) problems.push(`${at}: ${shape.rotor ? "a rotor on a game that is not rotate" : "no rotor on a rotate game"}`);
+      if (shape.scrollX > 0 || shape.scrollY > 0) problems.push(`${at}: the page scrolls (${shape.scrollX}, ${shape.scrollY})`);
+      const ratio = Math.min(2, shape.dpr);
+      for (const c of shape.canvases) {
+        if (c.cssW < 2 || c.cssH < 2) continue;
+        if (Math.abs(c.w - Math.round(c.cssW * ratio)) > 2 && Math.abs(c.w - c.cssW * ratio) > 2) problems.push(`${at}: canvas ${c.w}px wide for ${c.cssW}px CSS at pixel ratio ${ratio} (not crisp, or past the cap of 2)`);
+      }
+      const startAt = Date.now();
+      const box = await page.locator("[data-arcade-play] [data-game-arena]").first().boundingBox();
+      while (Date.now() - startAt < DESKTOP_PLAY_MS) {
+        const over = await page.evaluate(() => {
+          const log = (window as unknown as { __arcadeLog: { frames: Frame[] } | null }).__arcadeLog;
+          return Boolean(log?.frames[log.frames.length - 1]?.over);
+        });
+        if (over) break;
+        if (box) {
+          const x = box.x + box.width * (0.15 + rand() * 0.7);
+          const y = box.y + box.height * (0.2 + rand() * 0.65);
+          if (rand() < 0.5) await page.mouse.click(x, y);
+          else {
+            const angle = Math.floor(rand() * 4) * (Math.PI / 2) + (rand() - 0.5) * 0.6;
+            await page.mouse.move(x, y);
+            await page.mouse.down();
+            for (let k = 1; k <= 5; k++) await page.mouse.move(x + Math.cos(angle) * 18 * k, y + Math.sin(angle) * 18 * k);
+            await page.mouse.up();
+          }
+        }
+        await page.waitForTimeout(150 + Math.floor(rand() * 200));
+      }
+      const log = (await page.evaluate(() => (window as unknown as { __arcadeLog: unknown }).__arcadeLog)) as { frames: Frame[]; errors: string[] };
+      gaps.push(...((await page.evaluate(() => (window as unknown as { __frameGaps: number[] }).__frameGaps)) ?? []));
+      const live = log.frames.filter((f) => !f.over);
+      if (log.frames.length < 2) problems.push(`${at}: no frames observed: the game's draw loop never ran`);
+      else if (live.length >= 2) {
+        const ticks = live[live.length - 1]!.tick - live[0]!.tick;
+        const liveS = (live[live.length - 1]!.t - live[0]!.t) / 1000;
+        result.ticks += ticks;
+        if (liveS >= 1 && ticks < 0.5 * 60 * liveS) problems.push(`${at}: sim tick advanced only ${ticks} ticks in ${liveS.toFixed(1)} s of live play`);
+      }
+    } catch (e) {
+      problems.push(`${at}: harness: ${String((e as Error).message ?? e).split("\n")[0]}`);
+    } finally {
+      await page.close();
+    }
+  }
+  result.meanFrameMs = mean(gaps);
+  if (!CPU_THROTTLE && gaps.length > 30 && result.meanFrameMs > DESKTOP_FRAME_MS) problems.push(`mean frame ${result.meanFrameMs.toFixed(1)} ms on the desktop layout (under 60 fps; limit ${DESKTOP_FRAME_MS.toFixed(1)} ms)`);
+  result.ok = problems.length === 0;
+  return result;
 }
 
 /** How long a live run may go without its sim tick changing before it counts as frozen. */

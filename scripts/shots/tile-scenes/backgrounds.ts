@@ -11,6 +11,7 @@
  * enough to read at 34 px as texture, never as pieces. The same picture every build: no clock and no
  * Math.random (a seeded `rand` only).
  */
+import { drawPagoda } from "../../../src/lib/arcade/ricochetNinja.renderer";
 import type { PuzzleType } from "@/lib/duel/types";
 
 import { TILE } from "./scene";
@@ -267,16 +268,29 @@ const ARCADE_BACKGROUNDS: Partial<Record<PuzzleType, TileBackground>> = {
     vgrad(c, [[0, "#2A1A10"], [0.08, "#160D07"], [0.1, "#1F6B4E"], [0.9, "#14503A"], [0.92, "#160D07"], [1, "#2A1A10"]]);
     cloud(c, T / 2, T / 2, 56, "#1E7A58", 0.3);
   }, { fade: 0.3, spot: 0.35 }),
-  // FreeCell, TriPeaks and Poker Squares (Cards & Board): their scenes lay the game's own blue felt over the whole tile;
+  // Free Cell, Summit and Full House (Cards & Board): their scenes lay the game's own blue felt over the whole tile;
   // these paint its base under them (deep navy, lamp-lit at the centre).
   freecell: bg((c) => { vgrad(c, [[0, "#0E2A57"], [1, "#081A38"]]); cloud(c, T / 2, T / 2, 56, "#1A3F7A", 0.3); }, { fade: 0.3, spot: 0.35 }),
   tripeaks: bg((c) => { vgrad(c, [[0, "#0E2A57"], [1, "#081A38"]]); cloud(c, T / 2, T / 2, 56, "#1A3F7A", 0.3); }, { fade: 0.3, spot: 0.35 }),
   pokersquares: bg((c) => { vgrad(c, [[0, "#0E2A57"], [1, "#081A38"]]); cloud(c, T / 2, T / 2, 56, "#1A3F7A", 0.3); }, { fade: 0.3, spot: 0.35 }),
+  // Five Hands (Cards & Board, 31 Oct 2026): the same blue felt.
+  fivehands: bg((c) => { vgrad(c, [[0, "#0E2A57"], [1, "#081A38"]]); cloud(c, T / 2, T / 2, 56, "#1A3F7A", 0.3); }, { fade: 0.3, spot: 0.35 }),
   // Minigolf, Speed Pool and Curling (Sports): their scenes fill the tile with the game's own course, table or sheet;
   // these paint each game's base under them (night turf, the cloth, the ice settling to its far blue).
   minigolf: bg((c) => vgrad(c, [[0, "#0C2216"], [1, "#071510"]]), { fade: 0.2 }),
   pool: bg((c) => { vgrad(c, [[0, "#1F6B45"], [1, "#0F3F28"]]); cloud(c, T / 2, T / 2, 56, "#2A7F55", 0.3); }, { fade: 0.25, spot: 0.35 }),
   curling: bg((c) => vgrad(c, [[0, "#B9C9D6"], [1, "#E9F1F6"]]), { fade: 0.2 }),
+  // Blockfall (Retro, 1 Nov 2026): the cabinet's navy fading to black, a cyan haze where the well glows.
+  blockfall: bg((c) => {
+    vgrad(c, [[0, "#071425"], [1, "#050B16"]]);
+    cloud(c, T / 2, T * 0.7, 50, "#36E2F5", 0.12);
+    retroLines(c);
+  }, { fade: 0.15, spot: 0.25 }),
+  // Alley Roll (Sports, 1 Nov 2026): the alley's warm dark room, a glow behind the board.
+  alleyroll: bg((c) => {
+    vgrad(c, [[0, "#22130A"], [1, "#2C180B"]]);
+    cloud(c, T / 2, T / 2, 56, "#FFAA50", 0.18);
+  }, { fade: 0.25, spot: 0.35 }),
   // Hover: its deep space lifting to a synthwave violet at the horizon, a faint magenta grid floor below.
   hover: bg((c) => {
     vgrad(c, [[0, "#02030A"], [0.35, "#080B20"], [0.62, "#2A0E4A"], [0.7, "#5A1A6E"], [0.7, "#0A0614"], [1, "#05030A"]]);
@@ -553,16 +567,23 @@ const ARCADE_BACKGROUNDS: Partial<Record<PuzzleType, TileBackground>> = {
     c.fillStyle = "rgba(255,255,255,0.12)";
     c.fillRect(51.5, 0, 1, T);
   }),
+  // Ricochet (ricoRev 2): the night over the temple, the moon and the distant pagoda between the walls.
   ricochet: bg((c) => {
-    fill(c, "#0B0B0F");
-    c.strokeStyle = "#2A2A33";
-    c.lineWidth = 3;
-    c.strokeRect(6, 6, T - 12, T - 12);
+    vgrad(c, [[0, "#070A18"], [0.55, "#121A36"], [1, "#1E2240"]]);
+    stars(c, 47, 14, ["#E8ECFF"], 0.6, 0.7, [22, 0, 60, 60]);
+    cloud(c, 66, 22, 22, "#FFF0CD", 0.3);
+    c.fillStyle = "#FBF1D6";
+    c.beginPath();
+    c.arc(66, 22, 9, 0, Math.PI * 2);
+    c.fill();
+    c.fillStyle = "#151A33";
+    c.fillRect(0, 86, T, T - 86);
+    drawPagoda(c as CanvasRenderingContext2D, 52, 92, 0.42);
   }),
+  // Bastion (bastionRev 2): the slate dusk sky over the earth field (the mockups' palette).
   bastion: bg((c) => {
-    fill(c, "#08080D");
-    cloud(c, T / 2, T, 50, "#F5B82E", 0.12);
-  }),
+    vgrad(c, [[0, "#2A3240"], [0.42, "#46515F"], [0.45, "#6F5E46"], [1, "#5A4B37"]]);
+  }, { fade: 0.2 }),
   rooftop: bg((c) => {
     vgrad(c, [[0, "#05050A"], [1, "#1B1530"]]);
     c.strokeStyle = "rgba(245,184,46,0.25)";
@@ -717,6 +738,8 @@ const PUZZLE_BACKGROUNDS: Partial<Record<PuzzleType, TileBackground>> = {
     cloud(c, T / 2, 10, 50, "#D6AA54", 0.25);
     vgrad(c, [[0, "#7A5030"], [1, "#2A180B"]], 86, T);
   }),
+  // Kakuro (1 Nov 2026): its board's dark clue cells and glass squares.
+  kakuro: pz("number", (c) => board(c, "#1C1F26", "#101116", "rgba(61,220,132,0.3)", { cells: 6, line: "rgba(255,255,255,0.05)" })),
   checkout: pz("number", (c) => {
     vgrad(c, [[0, "#0D1838"], [0.8, "#3B2C63"], [1, "#F08A3C"]]);
     stars(c, 41, 14, ["#FFD27A"], 0.7, 0.6, [0, 0, T, 50]);
@@ -882,6 +905,13 @@ const PUZZLE_BACKGROUNDS: Partial<Record<PuzzleType, TileBackground>> = {
     }
   }, { fade: 0.35 }),
   shikaku: pz("logic", (c) => board(c, "#2A2C33", "#15161B", "rgba(10,10,14,0.85)", { cells: 5, line: "rgba(10,10,14,0.8)" })),
+  // The new grid puzzles (1 Nov 2026): their dark glass boards.
+  fences: pz("logic", (c) => board(c, "#1E2027", "#111217", "rgba(46,211,183,0.3)", { cells: 6, line: "rgba(255,255,255,0.05)" })),
+  fillomino: pz("logic", (c) => board(c, "#20222A", "#121318", "rgba(10,10,14,0.85)", { cells: 7, line: "rgba(10,10,14,0.7)" })),
+  bridges: pz("logic", (c) => {
+    board(c, "#10222A", "#0A1216", "rgba(46,211,183,0.3)");
+    cloud(c, T / 2, T / 2, 46, "#2ED3B7", 0.1);
+  }),
   tubes: pz("logic", (c) => cloud(c, T / 2, 60, 50, "#2ED3B7", 0.15)),
   tents: pz("logic", (c) => {
     board(c, "#17221A", "#0D140F", "rgba(61,138,74,0.35)", { cells: 5, line: "rgba(0,0,0,0.3)" });

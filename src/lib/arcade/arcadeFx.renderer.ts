@@ -255,10 +255,18 @@ export const ARCADE_FX_TEXT_COLOURS: Record<string, { fill: string; outline: str
   freecell: { fill: "#F2C75C", outline: "#0A1736" },
   tripeaks: { fill: "#F2C75C", outline: "#0A1736" },
   pokersquares: { fill: "#F2C75C", outline: "#0A1736" },
+  fivehands: { fill: "#F2C75C", outline: "#0A1736" },
+  // Bastion (1 Nov 2026): warm dusk white over a dark battlefield.
+  bastion: { fill: "#FFE7B8", outline: "#140A12" },
   // Sports (30 Oct 2026): flag-pin white on the night terrace, pocket chrome on the cloth, the gold of your handles.
   minigolf: { fill: "#F4F1E4", outline: "#0E1A10" },
   pool: { fill: "#FFE7A8", outline: "#0B1A12" },
   curling: { fill: "#FFD45C", outline: "#0A1220" },
+  // Blockfall: Retro cyan on the cabinet's navy. Alley Roll: the scoreboard's warm gold on dark wood.
+  blockfall: { fill: "#7CF7FF", outline: "#04101C" },
+  alleyroll: { fill: "#FFD27A", outline: "#1A0F08" },
+  // Ricochet (the ninja wall-climb): lantern gold on the night sky.
+  ricochet: { fill: "#FFD86B", outline: "#070A18" },
 };
 
 /**
@@ -1468,9 +1476,20 @@ function paint<S>(
     const halfH = size / 2 + ctx.lineWidth + inset;
     const x = Math.min(Math.max(pop.x, clip.x + half), clip.x + clip.w - half);
     const y = Math.min(Math.max(pop.y - rise, clip.y + halfH), clip.y + clip.h - halfH);
-    ctx.strokeText(pop.text, x, y);
-    ctx.fillStyle = pop.colour;
-    ctx.fillText(pop.text, x, y);
+    if (textTurn) {
+      // A world drawn turned (Cue Ball's desktop table): the text turned back so it reads upright on screen.
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.rotate(textTurn);
+      ctx.strokeText(pop.text, 0, 0);
+      ctx.fillStyle = pop.colour;
+      ctx.fillText(pop.text, 0, 0);
+      ctx.restore();
+    } else {
+      ctx.strokeText(pop.text, x, y);
+      ctx.fillStyle = pop.colour;
+      ctx.fillText(pop.text, x, y);
+    }
   }
   ctx.restore();
 }
@@ -1568,6 +1587,16 @@ export function arcadeFx<S extends { tick: number }>(
  * Wraps a game's top-level draw (ctx, state, size, ...rest) with the shared
  * success layer. Same signature, same drawing; effects on top.
  */
+/**
+ * Text turn (31 Oct 2026, display only): radians every pop and banner is turned by about its own centre.
+ * 0 everywhere but a world drawn turned on the computer layout (Cue Ball's rotor, a quarter turn
+ * clockwise), whose stage sets -π/2 around its draw so no text on it is ever drawn rotated on screen.
+ */
+let textTurn = 0;
+export function setArcadeTextTurn(radians: number): void {
+  textTurn = radians;
+}
+
 export function withArcadeFx<S extends { tick: number }, R extends unknown[]>(
   spec: ArcadeFxSpec<S>,
   draw: (

@@ -3,6 +3,8 @@ import { CalendarDays, ExternalLink } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
 import { PhoneShell } from "@/components/duel/PhoneShell";
+import { useHomeBed } from "@/lib/useScreenMusic";
+import { PageAside } from "@/components/app/PageAside";
 import { goToTab } from "@/components/app/AppTabBar";
 import { PublicGameNext, PublicGameRow } from "@/components/app/PublicGameCard";
 import { PlaceDisc } from "@/components/app/TabIcons";
@@ -18,6 +20,7 @@ import {
   type PublicGame,
 } from "@/lib/publicSchedule";
 import { APP_NAME } from "@/lib/brand";
+import { OnlineOnly } from "@/components/offline/OnlineOnly";
 
 export const Route = createFileRoute("/tournaments")({
   ssr: false,
@@ -31,8 +34,19 @@ export const Route = createFileRoute("/tournaments")({
       { name: "robots", content: "noindex" },
     ],
   }),
-  component: TournamentsScreen,
+  component: OfflineTournaments,
 });
+
+/** Offline practice (31 Oct 2026): with no connection, the offline state and a way to Practice. */
+function OfflineTournaments() {
+  // The app-wide home bed carries on here from the other tabs (docs/sound-cues/music.md).
+  useHomeBed();
+  return (
+    <OnlineOnly tabs="tournaments" live body="Tournaments need a connection. Practice games are saved on this phone, so they still work.">
+      <TournamentsScreen />
+    </OnlineOnly>
+  );
+}
 
 /**
  * The scheduled game a result belongs to: the same room, finished between its lobby opening and four hours
@@ -61,7 +75,7 @@ function TournamentsScreen() {
   const discord = betaValue("DISCORD_URL");
 
   return (
-    <PhoneShell tabs="tournaments">
+    <PhoneShell tabs="tournaments" aside={<PageAside panels={["daily", "week"]} />}>
       <div className="ap-stack">
         <div>
           <div className="flex items-center gap-2.5">

@@ -17,6 +17,7 @@ import {
   STRIKE_IN_MS,
   STRIKE_MS,
 } from "./celebrations";
+import { batterySaverOn } from "@/lib/battery";
 
 /** The gold gradient the sparks run through as they burn out. */
 export const SPARK_GOLD = ["#FFE08A", "#F7BF2F", "#C98A0E"] as const;
@@ -93,6 +94,8 @@ export class CelebrationScene {
 
   /** Sparks from a point (or a row `w` wide), up and out, with slight gravity. */
   burst(scope: number, x: number, y: number, w: number, count: number, now: number): void {
+    // Battery saver (lib/battery.ts): half the sparks.
+    if (batterySaverOn()) count = Math.ceil(count / 2);
     for (let i = 0; i < count; i++) {
       // Reuse a dead slot first, else the oldest (round robin): never more than the cap.
       let slot = -1;

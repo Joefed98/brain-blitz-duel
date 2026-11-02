@@ -1,7 +1,6 @@
 import { gameDisplayName } from "@/lib/duel/gameNames";
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 
-import { hapticTick } from "@/components/puzzles/GridDrag";
 import {
   decodeTowerMoves,
   encodeTowerMoves,
@@ -15,7 +14,6 @@ import { useGameKeys } from "@/lib/desktop";
 import { useStageState } from "@/lib/duel/stageState";
 import { towerPegCount } from "@/lib/duel/tower";
 import { TOWER_DISCS, TOWER_PEGS, TOWER_TIME_MS, type TowerPuzzleData } from "@/lib/duel/types";
-import { buzz } from "@/lib/motion";
 import { playCorrect, playWrong } from "@/lib/sound";
 
 import { soundCue, useSolveFx } from "./logicFx";
@@ -183,7 +181,6 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "tower" }: 
 
   const reject = (peg: number) => {
     setShake(peg);
-    buzz(20);
     playWrong();
     setTimeout(() => setShake(null), 320);
   };
@@ -192,7 +189,6 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "tower" }: 
     if (locked || submitted.current || replay.solved) return;
     if (lifted === null) {
       if (!(replay.pegs[peg] ?? []).length) return;
-      hapticTick();
       soundCue("tower.lift");
       setLifted(peg);
       return;
@@ -206,7 +202,6 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "tower" }: 
       setLifted(null);
       return;
     }
-    hapticTick();
     soundCue("tower.drop");
     setDropped({ peg, key: moves.length + 1 });
     setMoves((current) => [...current, { from: lifted, to: peg }]);

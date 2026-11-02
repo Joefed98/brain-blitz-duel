@@ -406,6 +406,11 @@ function headerGeometry() {
     return { x: +r.left.toFixed(1), y: +r.top.toFixed(1), w: +r.width.toFixed(1), h: +r.height.toFixed(1) };
   };
   const header = document.querySelector("[data-arcade-header]") ?? document.querySelector("[data-round-heading]");
+  // The computer layout (31 Oct 2026, 1024 px and up with a mouse): the play space is between the 76 px rail and the
+  // room's 380 px panel, so the timer is centred there; on every other layout, on the screen.
+  const rail = document.querySelector("[data-app-rail]")?.getBoundingClientRect();
+  const panel = document.querySelector("[data-room-panel-body]")?.getBoundingClientRect();
+  const playCentre = document.querySelector("[data-layout='desktop']") ? ((rail?.right ?? 0) + (panel?.left ?? window.innerWidth)) / 2 : null;
   const label = document.querySelector<HTMLElement>("[data-round-label]");
   const shown = label?.firstElementChild as HTMLElement | null | undefined;
   const lines = shown
@@ -439,6 +444,7 @@ function headerGeometry() {
     goal: box(document.querySelector("[data-goal-line]")),
   };
   return {
+    playCentre,
     width: window.innerWidth,
     frame,
     header: box(header),
@@ -500,7 +506,8 @@ async function roomPlayHeader(): Promise<{ rows: string[]; geometry: Record<stri
         const top = size.top;
         const F = g.frame;
         if (!g.header || !near(g.header.h, 60) || !near(g.header.y, top)) fails.push(`header ${JSON.stringify(g.header)}: want 60px at y ${top}`);
-        if (!g.timer || !near(g.timer.x + g.timer.w / 2, g.width / 2)) fails.push(`timer centre ${g.timer ? g.timer.x + g.timer.w / 2 : "?"}: want ${g.width / 2}`);
+        const centre = g.playCentre ?? g.width / 2;
+        if (!g.timer || !near(g.timer.x + g.timer.w / 2, centre)) fails.push(`timer centre ${g.timer ? g.timer.x + g.timer.w / 2 : "?"}: want ${centre}${g.playCentre !== null ? " (the play space between the rail and the room panel)" : ""}`);
         if (g.label) fails.push("a RoundLabel drawn in the frame header");
         const name = c.as ?? gameName(c.type);
         if (!F.name || F.name.text !== name) fails.push(`name reads "${F.name?.text}": want "${name}"`);

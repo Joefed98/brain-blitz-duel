@@ -1,18 +1,24 @@
-# Full check suite (scripts/run-checks.ts) split into parallel shards.
-# Shard lists: .github/ci/shards.ts. Free plan: keep runs rare and short.
-# Pull requests run the slow checks at quick depth (snip-check's sampled search,
-# puzzle-bank-check's 2-entry rebuild sample); Actions → Checks → Run workflow
-# with "full" ticked runs them at full depth (CHECKS_FULL=1).
+# Fast checks on every push to a PR: every check that starts no browser (the scoring, replay, standard,
+# type-level and unit-style checks), split into shards a-g (.github/ci/shards.ts). The checks that start Chromium
+# run in full-suite.yml only, once a PR is labelled `ready-to-merge` (CI cost cut, 1 Nov 2026; which side a check
+# is on is worked out from its source, .github/ci/browser.ts, and proved by ci-shards-check).
+# Pull requests run the slow checks at quick depth (snip-check's sampled search, puzzle-bank-check's 2-entry
+# rebuild sample); Actions → Checks → Run workflow with "full" ticked runs them at full depth (CHECKS_FULL=1).
 name: Checks
 
 on:
   pull_request:
-    types: [opened, synchronize, reopened]
-    paths-ignore:
-      - "docs/**"
-      - "screenshots/**"
-      - "**/*.md"
-      - ".lovable/**"
+    types: [opened, synchronize, reopened, ready_for_review]
+    # Docs, screenshots and notes skip CI, except the docs a check reads (docs/beta-sql.md: challenge-check and
+    # daily-check; docs/sound-cues/: the sound and polish checks).
+    paths:
+      - "**"
+      - "!docs/**"
+      - "!screenshots/**"
+      - "!**/*.md"
+      - "!.lovable/**"
+      - "docs/beta-sql.md"
+      - "docs/sound-cues/**"
   workflow_dispatch:
     inputs:
       full:
@@ -21,13 +27,9 @@ on:
           8-entry rebuild sample (about 6 extra minutes on the d shard)
         type: boolean
         default: true
-      record_arcade_baseline:
-        description: >-
-          Only record arcade-play-check's frame-time baseline on this runner (uploaded
-          as an artifact; commit it as .github/ci/arcade-play-baseline.json)
-        type: boolean
-        default: false
 
+# One run per PR: a new push cancels the run in progress. Pull requests only (never also on push), so a commit
+# is never checked twice.
 concurrency:
   group: checks-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
@@ -47,11 +49,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # Keys must match .github/ci/shards.ts. Recording the baseline is one job
-        # (all 22 games, one at a time, as each play group plays them). play6-play13 run
-        # bottom-clearance-check (one eighth each) with their listed companions, play14 runs room-extras-check and play15 the room/practice arcade layout and Fission repeat-play checks; play16-play17 the page skin's theme-check and no-wrap-check; play18-play19 the intro demo box (demo-intro-check, thirds) and puzzle replays (replay-board-check);
-        # they install the browser like the other play jobs.
-        shard: ${{ fromJSON(inputs.record_arcade_baseline && '["play"]' || '["play1","play2","play3","play4","play5","play6","play7","play8","play9","play10","play11","play12","play13","play14","play15","play16","play17","play18","play19","a","b","c","d","e","f","g"]') }}
+        # Keys must be the fast shards of .github/ci/shards.ts (ci-shards-check compares them).
+        shard: [a, b, c, d, e, f, g]
     env:
       CHECKS_FULL: ${{ inputs.full && '1' || '' }}
     steps:
@@ -78,75 +77,9 @@ jobs:
           cp "$RUNNER_TEMP/bun.lock.orig" bun.lock
           git diff --exit-code -- bun.lock
 
-      # Browser for arcade-play-check: Playwright's own Chromium for the locked
-      # playwright version, cached by that version. The check finds it through
-      # PLAYWRIGHT_CHROMIUM.
-      - name: Playwright version
-        id: pw
-        if: startsWith(matrix.shard, 'play')
-        run: echo "version=$(bun -e 'console.log(require("playwright-core/package.json").version)')" >> "$GITHUB_OUTPUT"
-
-      - uses: actions/cache@v4
-        if: startsWith(matrix.shard, 'play')
-        with:
-          path: ~/.cache/ms-playwright
-          key: playwright-chromium-${{ runner.os }}-${{ steps.pw.outputs.version }}
-
-      # Vite's pre-bundled dependencies: roughly halves the dev server's first page
-      # load in each play job. Vite re-bundles by itself if the lockfile or config
-      # changed. Frame times are sampled only during play, after loading.
-      - uses: actions/cache@v4
-        if: startsWith(matrix.shard, 'play')
-        with:
-          path: node_modules/.vite
-          key: vite-deps-${{ runner.os }}-${{ hashFiles('bun.lock', 'vite.config.ts', 'package.json') }}
-          restore-keys: vite-deps-${{ runner.os }}-
-
-      - name: Install Chromium
-        if: startsWith(matrix.shard, 'play')
-        run: |
-          bunx playwright install --with-deps chromium
-          echo "PLAYWRIGHT_CHROMIUM=$(bun -e 'import("playwright").then(m => console.log(m.chromium.executablePath()))')" >> "$GITHUB_ENV"
-
-      # The committed fixture holds frame times recorded on a developer machine,
-      # which say nothing about this runner. In CI, compare against a baseline
-      # recorded on a CI runner (.github/ci/arcade-play-baseline.json, made with
-      # the record_arcade_baseline dispatch); until one exists, an empty baseline
-      # leaves only the check's absolute under-30-fps ceiling. Limits are never
-      # loosened. This edits the CI checkout only.
-      - name: Arcade play baseline for this runner
-        if: startsWith(matrix.shard, 'play')
-        run: |
-          if [ "${{ inputs.record_arcade_baseline }}" = true ] || [ ! -f .github/ci/arcade-play-baseline.json ]; then
-            echo '{}' > scripts/fixtures/arcade-play-baseline.json
-            note="no CI-recorded baseline yet: per-game comparison off, absolute under-30-fps ceiling only"
-          else
-            cp .github/ci/arcade-play-baseline.json scripts/fixtures/arcade-play-baseline.json
-            note="per-game frame times compared with .github/ci/arcade-play-baseline.json (recorded on a CI runner), plus the under-30-fps ceiling"
-          fi
-          echo "arcade-play-check: $note"
-          printf '> arcade-play-check frame time: %s.\n\n' "$note" >> "$GITHUB_STEP_SUMMARY"
-
       - name: Run checks (${{ matrix.shard }})
-        if: ${{ !inputs.record_arcade_baseline }}
         run: bun .github/ci/run-shard.ts ${{ matrix.shard }} 2>&1 | tee ci-results-${{ matrix.shard }}.log
         shell: bash # -eo pipefail: a failing runner fails the step through tee
-
-      - name: Record arcade play baseline
-        if: inputs.record_arcade_baseline
-        run: |
-          status=0
-          bun scripts/arcade-play-check.ts --record || status=$?
-          cp scripts/fixtures/arcade-play-baseline.json arcade-play-baseline.json
-          exit $status
-
-      - name: Upload recorded baseline
-        if: always() && inputs.record_arcade_baseline && hashFiles('arcade-play-baseline.json') != ''
-        uses: actions/upload-artifact@v5
-        with:
-          name: arcade-play-baseline-ci
-          path: arcade-play-baseline.json
-          retention-days: 30
 
       - name: Upload logs
         if: failure()

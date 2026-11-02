@@ -92,6 +92,8 @@ export const MOMENT_CUES: readonly MomentCue[] = [
   row("bubble", "big-pop", "bubble.bigPop", ["bubble.pop"]),
   row("bubble", "big-drop", "bubble.bigDrop", ["bubble.pop"]),
   row("bubble", "reef-cleared", "bubble.reefCleared", ["bubble.pop", "bubble.bigPop", "bubble.bigDrop", "complete"]),
+  row("ricochet", "height", "ricochet.heightStreak"),
+  row("ricochet", "full-height", "ricochet.fullHeight", ["complete"]),
   row("flip", "seconds", "flip.surviveStreak"),
   row("flip", "survived", "flip.survivedFinish", ["complete"]),
   row("flip", "star", "flip.starTaken"),

@@ -25,17 +25,27 @@ const TIMEOUT_OVERRIDES: Record<string, number> = {
   "snip-check.ts": 1_800_000,
   // 22 games × ~25 s each in headless Chromium, plus starting a dev server.
   "arcade-play-check.ts": 1_500_000,
+  // The computer layout (31 Oct 2026): every arcade game at two desktop sizes (a half ~6 min); the layout's
+  // pages, rooms, phones and a third of every game's desktop mode (~4 min a part); the fairness gestures.
+  "arcade-play-desktop-check.ts": 1_500_000,
+  "desktop-layout-check.ts": 900_000,
+  "desktop-fairness-check.ts": 600_000,
   // Five stored rounds in the replay player in headless Chromium, plus starting a dev server.
   "replay-play-check.ts": 900_000,
   // 74 active games × ~10 s each in headless Chromium (4 viewports each), plus starting a dev server.
   "bottom-clearance-check.ts": 1_200_000,
   // 14 screens at two sizes, then 36 room play-header cases (16 Oct 2026), ~3–4 min on a 2-core runner.
   "safe-area-screens-check.tsx": 600_000,
+  // The page skin's 36 screens (Room settings' sheet and lobby summary joined 31 Oct 2026) plus the intro colours at
+  // two sizes, one Chromium page each with a contrast screenshot: ~234 s on a 2-core runner before them, past 300 s after.
+  "theme-check.tsx": 600_000,
   // Low-end performance (16 Oct 2026): five heavy arcade games at 4× CPU slowdown plus one unthrottled, ~4 min.
   "arcade-lowend-check.ts": 900_000,
   "puzzle-bank-rebuild-check.ts": 3_600_000,
   // A production build of the app, then nine real practice rounds in headless Chromium (29 Oct 2026).
   "standard-live-check.ts": 600_000,
+  // Offline practice (31 Oct 2026): a production build, then offline play, the queue and a worker update, ~5 min.
+  "offline-check.ts": 900_000,
 };
 const OPTIONAL_CHECKS = new Set(["orbit-outside-belt-deep-check.ts", "puzzle-bank-rebuild-check.ts", "puzzle-bands-depth-check.ts"]);
 

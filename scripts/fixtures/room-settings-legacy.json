@@ -1,0 +1,4 @@
+{
+  "note": "pickRoundOrder deals for older rooms (6 stored category lists x 200 seeds), recorded on main before room settings; re-recorded 1 Nov 2026 when Fences, Fillomino, Bridges (Logic) and Kakuro (Number) joined the pools, and again when Blockfall and Alley Roll, then Ricochet, then Bastion joined the arcade pool: only the game drawn within a pool changes. No stored room or round changes (rounds are stored when dealt).",
+  "digest": "361c7639054e1f6f0d2c8af6d53be183259ff683c07f5ba1784e739301c382fb"
+}

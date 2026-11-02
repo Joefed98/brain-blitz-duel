@@ -12,18 +12,20 @@ import { prepareBeatTrack, prepareRoundMusic, startMusic, stopMusic, stopMusicIf
 import { preloadGameArt } from "@/lib/arcade/gameArt.renderer";
 import { preloadGameData, useGameDataReady } from "@/lib/duel/gamePreload";
 
-import { CATEGORY_NAMES } from "./GameFrame";
+import { CATEGORY_NAMES, FrameName } from "./GameFrame";
 import { MuteToggle } from "./MuteToggle";
 import { RoomChatSlot } from "./RoomFooter";
 import { Dots } from "./Dots";
+import { arcadeGroupOf } from "@/lib/duel/arcadeGroups";
 import { PuzzleInstructions } from "./PuzzleInstructions";
 import { hasIntroDemo, IntroDemo, introDemoAspect, useArcadeIntroDemo } from "./IntroDemo";
 import { PuzzleIntroDemo, usePuzzleDemo } from "./PuzzleDemo";
 import { IntroStage } from "./IntroStage";
 import { useDesktop } from "@/lib/desktop";
-import { DESKTOP_KEYS } from "@/lib/desktopKeys";
+import { screenKeys } from "@/lib/desktopKeys";
 import { goStrike } from "@/lib/fx/celebrations";
 import { useCelebrationsOn } from "@/components/fx/useCelebration";
+import { haptic } from "@/lib/haptics";
 
 /** The intro ending this close to GO (ms) still gets its GO strike as the round takes over. */
 const GO_STRIKE_GRACE_MS = 600;
@@ -116,7 +118,28 @@ export function RoundIntro({
     if (countdownCued.current === key) return;
     countdownCued.current = key;
     fx.onCountdown(secondsLeft, theme);
+    // Haptics (lib/haptics.ts): a light tick on 3, 2 and 1.
+    haptic("tick");
   }, [counting, secondsLeft, startedAt, type]);
+
+  // Haptics: a firmer one on GO, at the countdown's end (the intro may hand over a moment early, so
+  // an unmount just before GO still gives it, as the GO strike below does).
+  useEffect(() => {
+    if (!counting) return;
+    const delay = Math.max(0, INTRO_MS - Math.max(0, now - startedAt));
+    const at = Date.now() + delay;
+    let fired = false;
+    const fire = () => {
+      if (fired) return;
+      fired = true;
+      haptic("go");
+    };
+    const timer = window.setTimeout(fire, delay);
+    return () => {
+      window.clearTimeout(timer);
+      if (!fired && at - Date.now() < GO_STRIKE_GRACE_MS) fire();
+    };
+  }, [counting, startedAt]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Celebrations (src/lib/fx/celebrations.ts): GO (the countdown's end) gets one lightning strike
   // and the zap. The round's own start is untouched: the intro hands over on time and the strike
@@ -205,7 +228,13 @@ export function RoundIntro({
   }, [compact, counting, type]);
 
   return (
-    <div data-compact={compact} className="round-intro flex min-h-0 flex-1 flex-col gap-2 overflow-hidden animate-round-in">
+    // The intro's accent (31 Oct 2026): a puzzle's category colour, an arcade game's group colour (arcadeGroups.ts),
+    // as its tile border and the room settings chip; gold stays for Ready.
+    <div
+      data-compact={compact}
+      data-intro-accent={introAccent(type)}
+      className="round-intro flex min-h-0 flex-1 flex-col gap-2 overflow-hidden animate-round-in"
+    >
       {/* The game frame's 60 px header (Polish batch R): back (practice), the name over the category dot and
           "{Category} · Practice / Round n of N", the best (practice), the room's "⋯" menu and sound. */}
       <div data-intro-header className="intro-header" style={NO_SELECT}>
@@ -215,13 +244,7 @@ export function RoundIntro({
           </button>
         ) : null}
         <div className="game-frame-left">
-          <h1
-            className="round-intro-title game-frame-name"
-            data-long={puzzleName(type).length > 15 ? "" : undefined}
-            style={{ ["--name-len" as string]: Math.max(6, puzzleName(type).length) }}
-          >
-            {puzzleName(type)}
-          </h1>
+          <FrameName as="h1" className="round-intro-title" text={puzzleName(type)} />
           <span className="game-frame-context">
             <span aria-hidden="true" className="game-frame-dot" />
             <span className="game-frame-context-text">
@@ -338,7 +361,7 @@ export function RoundIntro({
  */
 function DesktopKeys({ type }: { type: PuzzleType }) {
   const desktop = useDesktop();
-  const keys = DESKTOP_KEYS[type];
+  const keys = screenKeys(type, desktop);
   if (!desktop || !keys) return null;
   return (
     <p data-desktop-keys="" className="desktop-keys shrink-0" aria-label="Keyboard controls">
@@ -378,4 +401,10 @@ function AutoStartRing({ seconds, total }: { seconds: number; total: number }) {
       <span aria-hidden="true">{seconds}</span>
     </span>
   );
+}
+
+/** The colour an intro takes: the game's arcade group (Retro, Sports, Cards & Board, Action, Strategy) or its category. */
+export function introAccent(type: PuzzleType): string {
+  const category = puzzleDef(type).category;
+  return (category === "arcade" ? arcadeGroupOf(type) : null) ?? category;
 }

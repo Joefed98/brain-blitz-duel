@@ -43,7 +43,6 @@ import {
 } from "@/lib/arcade/binToss";
 import { decodeBinTossRun, encodeBinTossRun, replayBinTossRun } from "@/lib/duel/binToss";
 import { ARCADE_CRASH_FREEZE_MS, type BinTossPuzzleData } from "@/lib/duel/types";
-import { buzz } from "@/lib/motion";
 import { playWrong } from "@/lib/sound";
 import { binTossArenaScene, binTossArenaSceneV7, binTossArtGame, binTossArtGhost, binTossArtLanding, binTossArtAim as binTossDrawAim } from "@/lib/arcade/binTossArt.renderer";
 import { fairTransform } from "@/lib/arcade/fairground.renderer";
@@ -53,6 +52,7 @@ import { binTossSounds } from "@/lib/fx/gameSounds";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 import { arcadeCanvasRatio } from "@/lib/fx/lowEnd";
+import { arenaFrame, cancelArenaFrame } from "@/lib/battery";
 
 /** Fixed intro still: the ball, the bucket, the bonus hoop, the wind arrow and a flick gesture. */
 function IntroExample() {
@@ -215,7 +215,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
 
     const loop = (time: number) => {
       frameTiming.begin(time);
-      frame = requestAnimationFrame(loop);
+      frame = arenaFrame(loop);
       const delta = time - last;
       last = time;
 
@@ -320,7 +320,6 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         if (endedAt.current === null) {
           endedAt.current = time;
           if (state.current.baskets < BINTOSS_THROWS) {
-            buzz(20);
             playWrong();
           }
         } else if (time - endedAt.current >= ARCADE_CRASH_FREEZE_MS) {
@@ -330,8 +329,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       frameTiming.end();
     };
 
-    frame = requestAnimationFrame(loop);
-    return () => { cancelAnimationFrame(frame); sounds.stop(); };
+    frame = arenaFrame(loop);
+    return () => { cancelArenaFrame(loop, frame); sounds.stop(); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data, seed]);
 

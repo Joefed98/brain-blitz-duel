@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useLayoutEffect, useState, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useLayoutEffect, useRef, useState, type ElementType, type ReactNode } from "react";
 
 import { AnimatedScore } from "./AnimatedScore";
 import { boardBox } from "@/lib/boardBox";
@@ -38,6 +38,10 @@ const SHORT_GOALS: Partial<Record<PuzzleType, string>> = {
   nonogram: "Fill cells to match the numbers",
   rings: "Make every spoke one colour",
   shikaku: "Cut rectangles, one number each",
+  fences: "Draw one loop round the numbers",
+  fillomino: "Fill regions: each N is N squares",
+  bridges: "Bridge every island to its number",
+  kakuro: "Fill runs to add to their clues",
   lightup: "Light every white square",
   wordsearch: "Find the six hidden words",
   strikeout: "Reveal five long words",
@@ -171,6 +175,80 @@ export function useBoardTray(region: { current: HTMLElement | null }, tray: { cu
       window.removeEventListener("resize", later);
     };
   }, [enabled]);
+}
+
+/** The header name's largest size, and the smallest a one-line name shrinks to before it takes two lines. */
+export const FRAME_NAME_MAX_PX = 19;
+export const FRAME_NAME_MIN_PX = 13;
+
+/**
+ * The header's game name (31 Oct 2026): one line at 19px, shrunk to fit its half of the header (measured before the
+ * first paint and again when the half changes size or the fonts arrive), never under FRAME_NAME_MIN_PX; a name that
+ * still overflows there takes two 15px lines (data-long), and only past that an ellipsis. The CSS estimate from the
+ * name's length (--name-len) is what a server-rendered first frame shows.
+ */
+export function FrameName({ as: Tag = "span", text, className = "", ...rest }: { as?: ElementType; text: string; className?: string } & Record<string, unknown>) {
+  const ref = useRef<HTMLElement | null>(null);
+  const length = Math.max(6, text.length);
+  useIsoLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    // Fractional widths: scrollWidth is rounded, so a name a fraction of a pixel too wide would read as fitting and
+    // still draw an ellipsis. The text's own width (a Range) against the box's, with a pixel to spare.
+    const textWidth = () => {
+      const range = document.createRange();
+      range.selectNodeContents(el);
+      return range.getBoundingClientRect().width;
+    };
+    const fits = () => textWidth() <= el.getBoundingClientRect().width - 1;
+    const fit = () => {
+      el.removeAttribute("data-long");
+      el.style.fontSize = `${FRAME_NAME_MAX_PX}px`;
+      const room = el.getBoundingClientRect().width - 1;
+      if (room <= 0 || fits()) return;
+      // Text width scales with the font size: the size that fits, rounded down to a quarter pixel.
+      let size = Math.floor(((FRAME_NAME_MAX_PX * room) / textWidth()) * 4) / 4;
+      if (size >= FRAME_NAME_MIN_PX) {
+        el.style.fontSize = `${size}px`;
+        // Rounding in the browser's text layout: step down until it fits.
+        while (!fits() && size > FRAME_NAME_MIN_PX) {
+          size -= 0.25;
+          el.style.fontSize = `${size}px`;
+        }
+        if (fits()) return;
+      }
+      el.style.fontSize = "";
+      el.setAttribute("data-long", "");
+    };
+    fit();
+    const host = el.parentElement;
+    let frame = 0;
+    let width = host?.clientWidth ?? 0;
+    const resize = new ResizeObserver(() => {
+      const w = host?.clientWidth ?? 0;
+      if (w === width) return;
+      width = w;
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(fit);
+    });
+    if (host) resize.observe(host);
+    // The header's font arriving after the first fit (a cold start) changes every width: fit again.
+    let live = true;
+    document.fonts?.ready.then(() => live && fit()).catch(() => {});
+    const loaded = () => live && fit();
+    document.fonts?.addEventListener?.("loadingdone", loaded);
+    return () => {
+      live = false;
+      document.fonts?.removeEventListener?.("loadingdone", loaded);
+      cancelAnimationFrame(frame);
+      resize.disconnect();
+    };
+  }, [text]);
+  return (
+    <Tag ref={ref} data-long={length > 15 ? "" : undefined} className={`game-frame-name ${className}`.trim()} style={{ ["--name-len" as string]: length }} {...rest}>
+      {text}
+    </Tag>
+  );
 }
 
 export interface GoalProgress {

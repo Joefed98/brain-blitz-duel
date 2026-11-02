@@ -96,7 +96,7 @@ Start by building the complete duel flow end to end with all three puzzle types 
 
 This project was built with [Lovable](https://lovable.dev).
 
-**Live app**: https://brain-blitz-duel.lovable.app
+**Live app**: https://joulz.uk (playjoulz.com and brain-blitz-duel.lovable.app redirect to it)
 
 ## Build with Lovable
 
@@ -116,3 +116,4 @@ cd <repository-name>
 npm i
 npm run dev
 ```
+

@@ -1,24 +1,34 @@
+import { devWarp } from "@/lib/arcade/devWarp";
 import { gameDisplayName } from "@/lib/duel/gameNames";
 import {
   homerunCheckpoint,
   homerunGameFor,
   HOMERUN_BG,
   HOMERUN_CHECKPOINT_INTERVAL,
+  HOMERUN_INPUT_MODE,
   HOMERUN_INPUT_SWING,
-  HOMERUN_SWING_START_PX,
+  HOMERUN_MODE_CONTACT,
+  HOMERUN_MODE_POWER,
+  HOMERUN_REV_3,
+  HOMERUN_REV_DEALT,
+  homerunSwingStartPx,
+  homerunCurrent,
+  homerunViewHFor,
+  type HomerunState,
   HOMERUN_WORLD_H,
   HOMERUN_WORLD_W,
 } from "@/lib/arcade/homerun";
 import { drawHomerunArt, homerunScene } from "@/lib/arcade/homerun.renderer";
 import { encodeHomerunRun, replayHomerunRun } from "@/lib/duel/homerun";
 import { HOMERUN_TIME_MS, type HomerunPuzzleData } from "@/lib/duel/types";
-import { ArcadeCanvasStage } from "@/components/puzzles/ArcadeCanvasStage";
+import { ArcadeCanvasStage, type PointerPayload } from "@/components/puzzles/ArcadeCanvasStage";
+import { ArcadeControlButton } from "@/components/puzzles/ArcadeControlButton";
 import { homerunSounds } from "@/lib/fx/homerunSounds";
-import { useMemo, useRef } from "react";
+import { useMemo, useRef, useState } from "react";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
-/** Fixed intro still: the night park from the plate, a pitch on its way, the bat cocked at the right. */
+/** Fixed intro still: the night park from behind the plate, the batter in his stance, a pitch on its way. */
 function IntroExample() {
   return (
     <div className="flex w-full flex-col items-center gap-2">
@@ -46,25 +56,78 @@ function IntroExample() {
         <rect x="8" y="34" width="1.6" height="30" fill="#FFE15A" />
         <rect x="190" y="34" width="1.6" height="30" fill="#FFE15A" />
         <rect y="64" width="200" height="86" fill="#245C33" />
-        <ellipse cx="96" cy="72" rx="40" ry="4" fill="#7A5638" />
-        <path d="M94 70 l-2 -12 l4 -2 l4 2 l-2 12 Z" fill="#1B2232" />
-        <circle cx="96" cy="54" r="2.4" fill="#1B2232" />
-        <rect x="110" y="88" width="36" height="40" fill="none" stroke="#fff" strokeOpacity="0.35" strokeDasharray="3 3" />
-        <circle cx="122" cy="98" r="3.4" fill="#F4F3EE" />
-        <path d="M200 146 L156 92 L160 88 L200 136 Z" fill="#2A170C" />
+        <ellipse cx="104" cy="74" rx="34" ry="4" fill="#7A5638" />
+        <path d="M103 72 l-2 -11 l3 -2 l3 2 l-2 11 Z" fill="#8C2C36" />
+        <circle cx="104" cy="57" r="2.2" fill="#C69C7A" />
+        <path d="M0 110 Q100 92 200 110 L200 150 L0 150 Z" fill="#7A5638" />
+        <rect x="112" y="96" width="30" height="32" fill="none" stroke="#fff" strokeOpacity="0.35" strokeDasharray="3 3" />
+        <circle cx="126" cy="106" r="2.6" fill="#F4F3EE" />
+        <path d="M120 140 L134 140 L137 146 L127 150 L117 146 Z" fill="#F5F6F2" />
+        <path d="M48 148 L56 120 L52 104 L66 104 L70 120 L74 148 L66 148 L62 124 L58 148 Z" fill="#E7E9EF" />
+        <path d="M50 104 L48 82 Q60 76 72 82 L70 104 Z" fill="#17244A" />
+        <circle cx="61" cy="74" r="7" fill="#2C4282" />
+        <ellipse cx="68" cy="74" rx="4" ry="1.2" fill="#0C1430" />
+        <circle cx="70" cy="84" r="2.6" fill="#F2C75C" />
+        <path d="M70 84 L84 44 L87 45 L73 85 Z" fill="#C08A52" />
       </svg>
       <p className="text-center text-xs text-muted-foreground">
-        Swipe through the ball as it arrives: your swipe's height meets the pitch, its angle sends it left, centre or right.
+        Pick Contact or Power, read the pitcher's tell, then swipe through the ball as it arrives: your swipe's height meets the pitch, its angle sends it left, centre or right.
       </p>
     </div>
   );
 }
 
+/** The sound observer, also handing each drawn frame's swing choice to the Contact / Power buttons (homerunRev 3). */
+function homerunObserver(onMode: (mode: number) => void, onLive?: (live: boolean) => void) {
+  return () => {
+    const inner = homerunSounds();
+    return {
+      frame: (state: HomerunState, running: boolean) => {
+        onMode(state.mode);
+        // The pitch is live from its release until it is decided (the sim moves on to the next pitch then).
+        const cur = homerunCurrent(state);
+        onLive?.(cur !== null && state.tick >= cur.release);
+        inner.frame(state, running);
+      },
+      stop: () => inner.stop(),
+    };
+  };
+}
+
+const MODE_BUTTON =
+  "h-[48px] flex-1 rounded-xl border-2 px-3 text-[15px] font-extrabold tracking-wide hover:bg-background/40";
+
 function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const data: HomerunPuzzleData | null = puzzle.type === "homerun" ? puzzle : null;
-  const game = useMemo(() => ({ ...homerunGameFor(data?.homerunRev), draw: drawHomerunArt }), [data?.homerunRev]);
+  // homerunRev 3: the Contact / Power choice under the field (the sim's own choice lights its button).
+  const choose = (data?.homerunRev ?? 1) >= HOMERUN_REV_3;
+  const [mode, setMode] = useState(HOMERUN_MODE_CONTACT);
+  const shown = useRef(HOMERUN_MODE_CONTACT);
+  // The row hides (a quick fade) from the pitch's release until the hit or miss is decided: the choice is locked on
+  // the release tick, so nothing is lost, and the plate and the batter are clear while the ball comes in.
+  const [live, setLive] = useState(false);
+  const liveShown = useRef(false);
+  const sounds = useRef(
+    homerunObserver(
+      (m) => {
+        if (m === shown.current) return;
+        shown.current = m;
+        setMode(m);
+      },
+      (l) => {
+        if (l === liveShown.current) return;
+        liveShown.current = l;
+        setLive(l);
+      },
+    ),
+  );
+  const pick = (m: number): PointerPayload => ({ k: HOMERUN_INPUT_MODE, a: m, b: 0, c: 0 });
+  // devWarp: development review shots only (scripts/shots/homerun-tuning-shots.ts); production returns the game as is.
+  const game = useMemo(() => ({ ...devWarp("homerun", homerunGameFor(data?.homerunRev)), draw: drawHomerunArt }), [data?.homerunRev]);
   // The swipe: where the finger went down, and whether this swipe has already started the swing.
   const start = useRef<{ x: number; y: number; sent: boolean } | null>(null);
+  // homerunRev 2 reads the swipe over a longer chord (18 px, rev 1 12 px) so its angle, the aim, is steadier.
+  const startPx = homerunSwingStartPx(data?.homerunRev);
   return (
     <ArcadeCanvasStage
       diagKey="homerun"
@@ -76,9 +139,9 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       enabled={data !== null}
       locked={locked}
       worldW={HOMERUN_WORLD_W}
-      worldH={HOMERUN_WORLD_H}
+      worldH={homerunViewHFor(data?.homerunRev)}
       game={game}
-      sounds={homerunSounds}
+      sounds={choose ? sounds.current : homerunSounds}
       checkpoint={homerunCheckpoint}
       interval={HOMERUN_CHECKPOINT_INTERVAL}
       encodeRun={encodeHomerunRun}
@@ -86,9 +149,11 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       inputKind={HOMERUN_INPUT_SWING}
       pointer={(kind, x, y) => {
         if (kind === "down") {
-          start.current = { x, y, sent: false };
+          // homerunRev 3's view runs below the world (display only): a touch there starts no swing.
+          start.current = y <= HOMERUN_WORLD_H ? { x, y, sent: false } : null;
           return null;
         }
+        y = Math.min(HOMERUN_WORLD_H, y);
         const s = start.current;
         if (kind === "up") {
           start.current = null;
@@ -97,13 +162,63 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         if (!s || s.sent) return null;
         const dx = x - s.x;
         const dy = y - s.y;
-        if (dx * dx + dy * dy < HOMERUN_SWING_START_PX * HOMERUN_SWING_START_PX) return null;
+        if (dx * dx + dy * dy < startPx * startPx) return null;
         // The swing starts now: height from where the swipe began, angle from its direction (0 = level toward the
         // pitcher's side, + = upward = pulled to left field); a swipe the wrong way is a foul.
         s.sent = true;
         const angle = Math.round((Math.atan2(-dy, -dx) * 1800) / Math.PI);
         return { k: HOMERUN_INPUT_SWING, a: Math.round(s.y), b: Math.max(-900, Math.min(900, angle)), c: 0 };
       }}
+      keys={(kind, key, send) => {
+        // homerunRev 3: C (or 1) Contact, P (or 2) Power; the swing itself is the mouse drag.
+        if (!choose) return false;
+        const k = key.toLowerCase();
+        const m = k === "c" || k === "1" ? HOMERUN_MODE_CONTACT : k === "p" || k === "2" ? HOMERUN_MODE_POWER : -1;
+        if (m < 0) return false;
+        if (kind === "down") send(pick(m));
+        return true;
+      }}
+      overlay={
+        choose
+          ? (send) => (
+              // The swing choice for the next pitch, over the bottom of the field (below the plate); the lit one is the sim's.
+              // Drawn in the arena so the world reaches the bottom, and lifted by the home bar: the row ends at least 12 px
+              // above env(safe-area-inset-bottom) (the arena ends 16 px above the screen's bottom, so the lift is the inset
+              // less 4 px). Only the buttons take a touch; a swipe beside them reaches the canvas.
+              <div
+                data-game-controls="swing"
+                aria-hidden={live || undefined}
+                className={`pointer-events-none absolute inset-x-1 flex h-[52px] items-center gap-2 transition-opacity duration-150 ${live ? "opacity-0" : "opacity-100"}`}
+                style={{ bottom: "max(0px, calc(env(safe-area-inset-bottom, 0px) - 4px))" }}
+              >
+                {[
+                  { m: HOMERUN_MODE_CONTACT, label: "Contact", hint: "easier timing" },
+                  { m: HOMERUN_MODE_POWER, label: "Power", hint: "goes further" },
+                ].map(({ m, label, hint }) => (
+                  <ArcadeControlButton
+                    key={m}
+                    type="button"
+                    aria-label={`${label} swing`}
+                    aria-pressed={mode === m}
+                    disabled={locked || live}
+                    data-swing-mode={m === HOMERUN_MODE_POWER ? "power" : "contact"}
+                    className={`${MODE_BUTTON} ${live ? "pointer-events-none" : "pointer-events-auto"} ${
+                      mode === m
+                        ? "border-primary bg-primary/20 text-primary shadow-[0_0_12px_rgba(245,184,46,0.3)] hover:bg-primary/20 active:bg-primary/30"
+                        : "border-foreground/25 bg-background/40 text-foreground/80 active:bg-foreground/15"
+                    }`}
+                    onPressStart={() => send(pick(m))}
+                  >
+                    <span className="flex flex-col items-center leading-tight">
+                      <span>{label}</span>
+                      <span className="text-[10px] font-semibold opacity-75">{hint}</span>
+                    </span>
+                  </ArcadeControlButton>
+                ))}
+              </div>
+            )
+          : undefined
+      }
       onSubmit={(answer) => onSubmit(answer)}
       onDraftAnswer={onDraftAnswer}
     />
@@ -137,7 +252,7 @@ export const homerunPuzzle: PuzzleDefinition = {
   category: "arcade",
   timeLimitMs: HOMERUN_TIME_MS,
   revealMs: 6_000,
-  generate: () => ({ type: "homerun", seed: 1, homerunRev: 1 }) satisfies HomerunPuzzleData,
+  generate: () => ({ type: "homerun", seed: 1, homerunRev: HOMERUN_REV_DEALT }) satisfies HomerunPuzzleData,
   check: () => false,
   revealHeading: "Your run",
   IntroExample,

@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { inputTypeField } from "@/lib/inputType";
 import { APP_BUILD_ID } from "@/lib/appVersion";
 import { trackSubmission } from "@/lib/appUpdate";
 
@@ -19,6 +20,7 @@ import {
   revealAnswerFn,
   setPlayerLookFn,
   setRoomModesFn,
+  setRoomSettingsFn,
   disbandRoomFn,
   checkHostPresenceFn,
   startRoomFn,
@@ -31,6 +33,7 @@ import { ensureSession } from "./session";
 import { rememberLook, rememberedLook, type PlayerLook } from "./playerLook";
 import type { DuelPlayerRow, DuelRow, RoundResultRow, RoundRevealData } from "./types";
 import type { PuzzleCategory } from "./types";
+import type { RoomSettings } from "./roomSettings";
 
 export class DuelError extends Error {}
 
@@ -108,6 +111,12 @@ export async function setRoomModes(
   if (!result.ok) throw new DuelError(result.message);
 }
 
+/** Host only, in the lobby: the room's categories and round count (roomSettings.ts). */
+export async function setRoomSettings(roomId: string, settings: RoomSettings): Promise<void> {
+  const result = await setRoomSettingsFn({ data: { roomId, picks: [...settings.picks], rounds: settings.rounds } });
+  if (!result.ok) throw new DuelError(result.message);
+}
+
 /** In the lobby: change my colour and/or icon; the device remembers the choice for the next room. */
 export async function setPlayerLook(roomId: string, look: Partial<PlayerLook>): Promise<void> {
   const result = await setPlayerLookFn({ data: { roomId, ...look } });
@@ -155,6 +164,7 @@ export async function submitAnswer(params: {
         msRemaining: params.msRemaining,
         extra: params.extra ?? {},
         clientVersion: APP_BUILD_ID,
+        ...inputTypeField(),
       },
     }),
   );

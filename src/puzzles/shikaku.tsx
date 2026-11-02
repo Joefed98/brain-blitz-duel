@@ -23,7 +23,6 @@ import {
 
 import { SHIKAKU_TIME_MS, type ShikakuPuzzleData } from "@/lib/duel/types";
 import { playCorrect } from "@/lib/sound";
-import { buzz } from "@/lib/motion";
 
 import { soundCue, useSolveFx } from "./logicFx";
 import { LiveSummary, SummaryItem, useFrameProgress } from "@/components/puzzles/batchP/LiveSummary";
@@ -169,18 +168,15 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
       if (a === null || b === null || submitted.current) return;
       const existing = rects.findIndex((r) => rectHas(r, a, size));
       if (a === b && existing >= 0) {
-        buzz(8);
         soundCue("shikaku.remove");
         setRects((current) => current.filter((_, i) => i !== existing));
         return;
       }
       const rect = rectFrom(a, b, size);
       if (rects.some((r) => rectsOverlap(r, rect)) || !rectValid(rect, clues, size)) {
-        buzz(30);
         setShake((n) => n + 1);
         return;
       }
-      buzz(8);
       soundCue("shikaku.place");
       setRects((current) => [...current, rect]);
     },

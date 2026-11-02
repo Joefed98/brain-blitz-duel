@@ -9,18 +9,22 @@ override anything general here.
 
 ## What this is
 
-Duelz: a multiplayer skill-game app. Up to 10 players (`MAX_PLAYERS`) join a room with a
-short code and play the same timed rounds; 83 active games across Word, Number, Speed, Attention,
-Pattern, Logic and Arcade (Word 9, Number 8, Speed 6, Attention 6, Pattern 10, Logic 12 (Trail moved from Number on 27 Oct 2026),
-Arcade 32 with Pinball and, since 30 Oct 2026, the Cards & Board group's Minesweeper, Mahjong Solitaire, FreeCell, TriPeaks and Poker Squares and the Sports group's Home Run Derby, Free Kick, Racing, Minigolf, Speed Pool and Curling dealt in rooms; 11 retired to practice: Swerve, Steady, Dual, Ricochet,
-Bastion, Rooftop Run, Junction, Dig, Hot Floor, since 20 Oct 2026 Letterfall and, since 27 Oct 2026
+Duelz: a multiplayer skill-game app. Up to 16 players (`MAX_PLAYERS`, 10 until 31 Oct 2026) join a room with a
+short code and play the same timed rounds; 91 active games across Word, Number, Speed, Attention,
+Pattern, Logic and Arcade (Word 9, Number 9 (Kakuro since 1 Nov 2026), Speed 6, Attention 6, Pattern 10, Logic 15 (Trail moved from Number on 27 Oct 2026; Fences, Fillomino and Bridges since 1 Nov 2026),
+Arcade 36 with Pinball, since 1 Nov 2026 Blockfall (Retro), Alley Roll (Sports), Ricochet back as the ninja wall-climb (`ricoRev` 2, Action) and Bastion back as the tank-defence shooter (`bastionRev 2`, Action), and, since 30 Oct 2026, the Cards & Board group's Minefield (shown as Minesweeper until 31 Oct 2026), Mahjong Solitaire, Free Cell and Summit (shown as FreeCell and TriPeaks until 31 Oct 2026), since 31 Oct 2026 Five Hands, and the Sports group's Home Run, Top Bins, Apex (shown as Home Run Derby, Free Kick and Racing until 31 Oct 2026), Crazy Golf, Cue Ball and Curl Champ (shown as Minigolf, Speed Pool and Curling until 31 Oct 2026) dealt in rooms; 10 retired to practice: Swerve, Steady, Dual,
+Rooftop Run, Junction, Dig, Hot Floor, since 20 Oct 2026 Letterfall and, since 27 Oct 2026
 (Joe's decision), Scrumper (`snip`: out of room draws and the Practice list's main shelves, in its
 Retired section; stored rounds replay and grade as before; icon and name kept; category-pool-check pins
-the counts)). Every category the lobby offers keeps at
+the counts) and, since 1 Nov 2026 (Joe's decision), Full House (`pokersquares`, retired the same way: out of room draws,
+the Cards & Board room pool and presets; practice bests and stored replays stay)). Every category the lobby offers keeps at
 least 6 active games (`category-pool-check`). On 14 Oct 2026, 19 retired games and the Memory
 category were deleted; old rooms' rounds of them show only the name and stored score
 (`src/lib/duel/removedGames.ts`, proved by `removed-games-check`). Built in Lovable, synced to this repo.
-Lovable still hosts and publishes the app (https://brain-blitz-duel.lovable.app).
+Lovable still hosts and publishes the app at https://joulz.uk (the primary domain since 31 Oct 2026; playjoulz.com and the old
+https://brain-blitz-duel.lovable.app redirect to it). Every link the app hands out and every absolute URL in the page head
+is built on `APP_URL` (`src/config/appUrl.ts`), never the page's own origin; `docs/domain-move-oct-2026.md` lists the settings
+outside the repo.
 
 ## Stack
 
@@ -69,7 +73,7 @@ Lovable still hosts and publishes the app (https://brain-blitz-duel.lovable.app)
   100 % of the short viewport they cut tall worlds and the lowest controls 48 px above the screen's bottom (fix-up, 15 Oct
   2026). Every clipping box ends at the screen's bottom; nothing clips above the 16 px strip. Tilt's world is
   centred in its box; Orbit's SET CHECKPOINT is 44 px tall and narrower, in the world's reserved top-right corner on orbitRev 12 since 27 Oct 2026. arcade-device-bottom-check (headless Chromium,
-  in six parts since 17 Oct 2026, when a half with the Meteor passes ran past run-checks' 300 s on CI: its games' layout passes in thirds, `@1/6` and `@2/6` on `play1`/`play2` and `@3/6` on `play10`, and its three Meteor edge passes one each on `play7`–`play9` as `@4/6`–`@6/6`) reproduces the iPhone 11 and 14 home-screen app and Safari geometry (`scripts/device-emulation.ts`:
+  in seven parts since 31 Oct 2026 (six from 17 Oct 2026, when a half with the Meteor passes ran past run-checks' 300 s on CI; with the Cards & Board and Sports games a third of the layout passes reached the check's 270 s watchdog): its games' layout passes in quarters, `@1/7` and `@2/7` on `play1`/`play2`, `@3/7` on `play10` and `@4/7` on `play19`, and its three Meteor edge passes one each on `play7`–`play9` as `@5/7`–`@7/7`) reproduces the iPhone 11 and 14 home-screen app and Safari geometry (`scripts/device-emulation.ts`:
   the short layout viewport, the full screen, the insets, `navigator.standalone`, which the app keys on, and `display-mode:
   standalone` answered in-page since Chromium cannot emulate it) and fails if any clipping ancestor, html and body included,
   cuts the box, the world, a scene canvas or a control, and (16 Oct 2026, bottom-flash fix-up) fails unless the iPhone 11 home-screen
@@ -486,7 +490,7 @@ Lovable still hosts and publishes the app (https://brain-blitz-duel.lovable.app)
   logo's static glow (prepare-lightning-check). Orbit, Breaker, Gemstone, Meteor and Tempo's icons paint their sprite's
   art at the icon's real size (`paintRocket`, `paintBrick`, `paintMatchupGem`, `paintStamp`, `paintNote`, the same
   painters behind the games' cached sprites, so in-game art is unchanged). Link previews: Open Graph and Twitter
-  large-card tags in the root route's head from `LINK_PREVIEW` (`src/lib/brand.ts`, absolute on `SITE_URL`; there is no
+  large-card tags in the root route's head from `LINK_PREVIEW` (`src/lib/brand.ts`, absolute on `APP_URL`, plus a canonical link per path, `canonicalUrl`; there is no
   index.html, TanStack Start renders the head), image `public/og-image.png` from `bun scripts/og-image.ts`
   (link-preview-check). app-shell-check waits out a cold dev server's reload before setup and repeats only the setup once
   on "Execution context was destroyed". `docs/design-system.md` (the look rules) and `docs/stale-code-report.md` (a
@@ -796,7 +800,7 @@ Lovable still hosts and publishes the app (https://brain-blitz-duel.lovable.app)
   style rules in `docs/design-system.md` "Tile backgrounds"; tile-scenes-check fails on a scene with no background).
   practice-switch-check (~1 min, headless Chromium); shots `bun scripts/shots/practice-switch-shots.ts` and
   `bun scripts/shots/tile-icons-sheet.ts` (`screenshots/practice-arcade-oct-2026/`).
-- **Cards & Board: Minesweeper and Mahjong Solitaire** (30 Oct 2026; `docs/arcade-standard/minesweeper.md`, `mahjong.md`):
+- **Cards & Board: Minesweeper (shown as Minefield since 31 Oct 2026) and Mahjong Solitaire** (30 Oct 2026; `docs/arcade-standard/minesweeper.md`, `mahjong.md`):
   two arcade games born on the arcade scoring standard (`minesRev` 1, `mahjongRev` 1), dealt in rooms from the start
   (the Cards & Board group in `arcadeGroups.ts`; their tiles take the group's `--group-cards` border). Each deals its whole board in the sim from the room seed and the deal is its own
   proof: Minesweeper (`src/lib/arcade/minesweeper.ts`, 10 × 16, 25 mines, 90 s) places the mines try after try until the
@@ -855,18 +859,299 @@ Lovable still hosts and publishes the app (https://brain-blitz-duel.lovable.app)
   without a miss or a foul), Curling's sheets (every opponent stone out, eight stones on the button). Effects
   `sportsFx.renderer.ts`; checks minigolf-check, pool-check, curling-check and arcade-standard-check's entries. Their tiles take the Sports
   group's border (`arcadeGroups.ts`, `--group-sports`); LIVE_BANDS marks them `born`. Intro demos are stills until recorded.
+- **Sports tuning: Crazy Golf, Cue Ball, Curl Champ** (31 Oct 2026; display names only for `minigolf`, `pool`,
+  `curling`; each on a new stamp, the parts and their 200 unchanged, rev 1 dealing, replaying and scoring as before on
+  its own bank). **Crazy Golf** `golfRev` 2 (`MINIGOLF_REV_CLASSIC` 1): 20 % more power (`MG_MAX_V_V2`), obstacles on
+  every hole (`TEMPLATES_V2`, `mgRollTickV2`): an upright windmill whose sail feet sweep the doorway (64-tick cycle,
+  phase seeded, on the round clock), tunnels (hole 4 two to different exits), sand, a dome hill, banked curves and a
+  castle gate; ramps drawn as raised slopes on both revisions; witnesses carry waits (`Putt.w`) so the proof times
+  the sails; a stroke limit of par + 3 a hole (`mgStrokeLimit`; golfRev 1 keeps six); bank `minigolfBankV2.server.ts` (60 of
+  60, re-proved under par + 3), full by 53 s. **Cue Ball** `poolRev` 2 (`POOL_REV_V1` 1):
+  the shot's `c` is power alone and `d` the spin dot anywhere in the safe circle (`poolSpinClamp`); the cue drawn behind
+  the ball, turned by a drag anywhere (finer further out), a segmented green → red meter, a large spin ball, balls
+  rolling into the pocket and dropping (`downAt`, display only); bank `poolBankV2.server.ts` (60 of 60), full by 58 s.
+  **Curl Champ** `curlRev` 2: the throw's `d` is the start along the hog line (±100 cm), strokes carry a side
+  (`b`: left bends left, right bends right, either carries); a 390 × 540 world (`CURL_VIEW_V2`) so 375-wide phones
+  have no side bars; a larger Stone chip (every revision); bank `curlingBankV2.server.ts` (80 kept of 86 proved, 34 of
+  120 dropped); no speed part. `ArcadeCanvasStage`'s `PointerPayload` takes an optional `d` (0 for every other game).
+  Each game's check replays rev-1 runs recorded before the change; the self-replay list pins the old entries to rev 1
+  and appends the rev-2 ones.
+- **Small tuning batch** (31 Oct 2026): Minesweeper is shown as **Minefield** (`gameNames.ts`; id and stamps unchanged).
+  Mahjong `mahjongRev 2` (`MAHJONG_REV_DEALT`; `docs/arcade-standard/mahjong.md`): rev 1's deal and score plus Undo
+  (free, unlimited: the board before the last pair or Shuffle; a Shuffle undone still counts) and Reset (the original
+  deal; Shuffles used still count), small buttons beside Shuffle and kind-10 presses `a` 1 / 2 in the move log; the clock
+  runs on; rev 1 runs replay as before (cards-board-check, self-replay entry `mahjong/undo`). The game header's name
+  (`FrameName` in `GameFrame.tsx`, play header and intro) is measured before the first paint and shrunk to fit its half
+  of the header, 19px down to 13px, then two 15px lines, an ellipsis only past that; the capture tool's report records
+  it (`frameName`), and `bun scripts/shots/header-sheet.ts --in=<capture dir>` draws the header contact sheet.
+- **Cards tuning and Five Hands** (31 Oct 2026; `docs/arcade-standard/freecell.md`, `tripeaks.md`, `pokersquares.md`,
+  `fivehands.md`): display names Free Cell, Summit and Full House (ids `freecell`, `tripeaks`, `pokersquares` unchanged;
+  `gameNames.ts`). Free Cell `freecellRev 2`: Undo and Reset (input kinds 3 and 4, small buttons in the HUD row either
+  side of HOME; undo unlimited, each undo or reset a move for par, the clock running; reset undoable) and a toast for a
+  move refused for want of free cells ("Need a free cell to move 2 cards", `fcNoteText`); rev 1 replays on
+  `freecellGameV1`. Full House `pokerSquaresRev 2`: the core full at 73 hand points, the elite median (rev 1: 68, near-
+  perfect); the elite bot now plans ahead with rollouts. Summit is unchanged (60 s). **Five Hands** (`fivehands`,
+  `fiveHandsRev 1`, 60 s; sim `src/lib/arcade/cards/fiveHands.ts`): five dealt cards, then 20 turns of your card (tap a
+  row; rows fill evenly, filled rows greyed out) and a discard face up on the overlapping discard rows; the rows score
+  as poker hands (`psHand`); hand points 160 (full at 23, the elite median) + made hands 40 (8 a row). Every deck is
+  dealt with a witness arrangement reaching 200 (`fhBuildDeal`). cards-check proves rev 1 unchanged on 48 runs recorded on
+  main (`scripts/fixtures/cards-rev1-legacy.json`, `scripts/cards-legacy-record.ts`), the rev-2 rules, and 460 Five
+  Hands seeds at 200 through the server replay. Intro stills only.
+- **Sports tuning: Home Run, Top Bins, Apex** (31 Oct 2026; `docs/arcade-standard/homerun.md`, `freekick.md`,
+  `racing.md`, each with a rev-2 section): the display names are Home Run, Top Bins and Apex (ids unchanged). Each deals
+  rev 2 from its own proved deal (`<game>DealV2.server.ts`, `bun scripts/<game>-deal.ts --rev=2`: 300 seeds the oracle
+  took to exactly 200 through the server replay); the rev-1 deal files are unchanged and rev-1 runs replay as before
+  (`scripts/fixtures/homerun-rev1-legacy.json`, `freekick-rev1-legacy.json`, `racing-v1-legacy.json.gz`, proved by each
+  game's check). `<GAME>_REV_STD` stays 1; `<GAME>_REV_2` is the new stamp. Parts unchanged (200 each). **Home Run**
+  `homerunRev 2`: finer aim (spray 9/16 of the swipe, fair to ±80°; the phone starts the swing after 18 px), the pitch
+  type hidden until a radar board shows type and speed after the pitch, EARLY / PERFECT / LATE and a bat-vs-ball height
+  marker after each swing; the camera behind the batter's shoulder with the whole batter and a full swing (display, all
+  revisions). **Top Bins** `freekickRev 2`: no wind (the chip shows the distance), seeded spots 18–32 yd and up to 35°
+  either side, the wall (3–5) and keeper set to each spot; the keeper's hands-down → raise → dive, no foam line, the
+  crowd's goal reaction (display). **Apex** `racingRev 2`: F1 start lights (one a second from tick 30, out at tick 330,
+  no movement before; the race clock, reveal time and speed part from lights out; run 5,730 ticks, `RACING_TIME_MS` 99 s,
+  rev-1 runs still end at 90 s), a softer stick (±10 dead zone, expo, front wheels at most 8 a tick; 64 px thumb throw on
+  the phone), the car's side and steered front wheel shown as it yaws (display, all revisions). All three fill the play
+  screen at 414×896 and 375×667 (worlds and scenes carried to the box). Shots `screenshots/sports-tuning-oct-2026/`.
+- **Battery** (31 Oct 2026; presentation, sound and network timing only, no stamps; `src/lib/battery.ts`): canvases render at
+  a pixel ratio of at most 2 (`canvasRatio`, also behind `arcadeCanvasRatio`); every arcade loop takes its next frame through
+  `arenaFrame(loop)` / `cancelArenaFrame(loop, frame)` (none while hidden, resuming on return; once the run is over,
+  `arcadeClockEnded`, or the stage locked, SteadyOrPlain's `setArenaLocked`, for 2 s it draws once a second); a new arcade
+  loop must use them. The timer ring steps once a second outside arcade play screens, standings/podium rows move only when
+  their contents change, the room clock ticks every 250 ms between rounds (`roomTick.ts`), waiting dots step at 2.5 Hz.
+  Sound (`sound.ts`): the AudioContext is suspended ~5 s after the last source ends and woken by the next `start()`, and
+  suspended while hidden. Rooms (`useDuel`): realtime refetches batched to one a second (`batched`), heartbeat and polls
+  off while hidden, the 8 s safety-net poll only while the channel is down. Battery saver (Profile → settings,
+  `duelz-battery-saver:v1`, `<html data-battery-saver>`, off by default): `arcadeReducedEffects()` on (fewer particles and
+  glows at full pixel ratio), half the celebration sparks, endless decorative CSS motion off, puzzles' animation frames at
+  30 fps (`capPuzzleFrames`; never arcade or Speed). battery-check (headless Chromium, ~2 min; `--report`,
+  `--arcade=<ids> [--dpr=3]` for CPU per frame) proves idle screens at ~0 fps, loops stopping when hidden or parked, the
+  ratio cap and the audio suspend.
+- **Sound batch 6** (31 Oct 2026, presentation only, no stamps; `docs/sound-cues/batch6-sports-cards.md`,
+  `batch6-mapping.csv`): Joe's 86 ElevenLabs recordings for the Sports and Cards & Board games, trimmed (under 3 ms of
+  lead, each effect within its budget plus 150 ms), looped (seamless joins, checked as `detectLoopPoints` loops them),
+  levelled (effects -1 dBFS peaks, capped at the library's median loudness + 2 dB; beds -18 LUFS) and encoded (44.1 kHz,
+  mono 96k; beds, crowd and engines stereo 128k) into `public/sounds/<slot>.mp3`, about 10 MB. The observers live in
+  `gameSounds.ts` (cardSounds.ts re-exports): a moment that played a shared sound plays its own file in its place
+  (arcade.md), new moments and loops stay silent without one (`effectCue` / `loopCue`; the eight that played a
+  celebrations recording through `ownCue`); each game's bed is `music_<gameId>`. Racing's engine loop follows speed
+  (`setCueLoopRate` in `src/lib/sound.ts`), its five start lights and lights out (racingRev 2) play `racing_light` and
+  `racing_go` on T2's `racing.light` / `racing.go`; TriPeaks' run card rises a semitone a card. sound-batch6-check (~1 s)
+  proves every slot's file, length budget, loop flag and format from the MP3 frames. The upload branch was
+  `Joefed98-patch-1`; the originals are not in the repo.
+- **Offline practice** (31 Oct 2026, `docs/offline-practice.md`; presentation, device storage and practice grading
+  plumbing only, no game's rules, scoring or stamps changed): a hand-written service worker
+  (`src/lib/offline/sw.template.js`, written per build to `/sw.js` by `swPlugin.ts` from vite.config.ts with the build id,
+  every client file, the public files and the kept pages; production only) keeps the app, fonts, tiles, sounds and music;
+  a new build's worker waits and takes over only while the updater's gate is "now" (`serviceWorker.ts`; the updater's
+  reload hands over to it instead of unregistering it). Practice packs (`packs.ts`, `practicePackFn`: up to 10 deals a
+  game, the public half plus the server's sealed token, tied to the game's stamps, replaced when they change) are topped
+  up in the background (not with Settings' Offline practice switch off, on a metered connection or while a round is on
+  screen). A run from a pack, or with no connection, is queued in IndexedDB (`queue.ts`) and sent oldest first, after a
+  sign-in refresh, to `practiceGradeQueuedFn` (practice's own grading; a deal changed on the phone is rejected:
+  "Couldn't be confirmed"); confirmed runs update practice bests only. Arcade runs show the phone's own score as
+  provisional, puzzles "Score pending", both with a clock (`src/components/offline/`). The nine games whose stage asks
+  the server during play are online only (`ONLINE_ONLY_TYPES`, no pack). Play, Tournaments, rooms, the daily and
+  challenges show an offline state (`OnlineOnly`); a slim banner and Practice's iPhone install card are shown from
+  `<html data-offline>` / `data-offline-install` (`OFFLINE_BOOT`). offline-check (headless Chromium on a production
+  build, 414×896 and 375×667, shard `play20`, ~5 min) proves it; ~16 MB stored with every pack full.
+- **Room settings** (31 Oct 2026; room setup and presentation only, no game's rules, scoring or stamps changed):
+  under the lobby's room code a summary line for everyone ("9 rounds · Pattern, Logic, Retro, Sports · about 16 min",
+  a preset's name when the picks are one) and, for the host, **Room settings**, a sheet (`RoomSettingsSheet`): presets
+  Mixed (the default: Word, Speed, Attention, Pattern, Logic and the arcade groups), Puzzles only and Arcade only
+  over ten colour chips (the six puzzle categories, then Retro, Sports, Cards & Board, Action from `arcadeGroups.ts`;
+  at least one stays on; editing a chip deselects the preset), then rounds as 3 / 6 / 9 / 12 over a 3–12 slider, linked
+  both ways (default 6), capped at the picks' room-eligible games ("Only 6 games in your picks…") with the room's
+  estimated length live (`estimateRoomMinutes`). Rules in `src/lib/duel/roomSettings.ts`; the server's only writer is
+  `changeRoomSettings` (`roomSettings.server.ts`, through `setRoomSettingsFn`: host only, lobby only, validated, written
+  with the room still waiting). Stored in the existing `duels.selected_categories` jsonb (no migration): the picks, then
+  a `rounds:N` token, which marks a settings room. Rooms without it keep `pickRoundOrder` exactly (6 rounds, 7 with all
+  seven categories) until their host saves; the daily and challenges never read settings. Settings rooms deal through
+  `dealRoomRounds` (`roomDeal.ts`) from the room seed: shares within 1, a seeded mixed order with no pick twice running,
+  no game repeated within a pick before its games are used, the host's last three rooms avoided as before. A new room
+  starts from the host's last settings (`rememberedSettings`; an older room's Arcade read as all four groups, the
+  deleted memory option as nothing); Play again keeps them. `ROOM_SETTINGS_PLUS_ONLY` (`betaConfig.ts`, false) would
+  keep them for Duelz Plus hosts. Intros take the game's colour (`data-intro-accent`: the category's for a puzzle,
+  the group's for an arcade game) on the gradient, title (a fifth lighter, `--intro-title`), dot, labels, tray, ring
+  and dots; Ready stays gold. room-settings-check (~10 s) proves presets, the cap, the sheet in happy-dom, server
+  refusals, 29k seeded deals and older rooms' deals (`scripts/fixtures/room-settings-legacy.json`, recorded on main);
+  theme-check draws the sheet and lobby and checks the intro colours at 414×896 app and 375×667; shots
+  `bun scripts/shots/room-settings-shots.ts` (`screenshots/room-settings-oct-2026/`).
+- **Rooms of 16 and the colour wheel** (31 Oct 2026, `docs/room-16-oct-2026.md`; presentation and room data only, no
+  stamps): `MAX_PLAYERS` 16 (`roomCapacity`, `roomSeats.ts` `seatFor`: the 17th join is refused "That room is full (16
+  players)."); migration `20261031150000_room_16_players.sql` (slots 1–16, colours 0–31, share counts 1–20) is **written
+  but not applied**: until it is, the 11th join is refused as full (10) through `RoomSeatsError` and wheel colours past 9
+  seat as no colour. Lobby players in two columns; round results and standings compact from 11 players with my row pinned
+  (sticky, the list `overflow: clip`); the arcade chart the top 8 plus me from 11 players (`chartShown`); the podium the top three, "Your
+  place" and my row (`See all`); the reveal's chart panel never shrinks below its chart (the 375×667 four-part-line
+  overlap). Colours: `PLAYER_COLOURS` is a 32-swatch wheel (indices stored, never reorder; 0–9 the October ten), every
+  pair ≥ 14 ΔE2000 (`PLAYER_COLOUR_MIN_DE`), drawn by `ColourWheel` in `RoomLobby.tsx` (Profile's default, the lobby's
+  own chip for this room); a taken default gives the nearest free swatch (`nearestFreeColour`). Apex draws only the 3
+  nearest ghosts (`nearestRacingGhosts`). room-16-check (~1.5 min, `play14`); `bun scripts/room-load-test.ts` (a tool:
+  bots on an in-memory test copy, report in the doc); shots `bun scripts/shots/room16-shots.ts`.
+- **The computer layout, chess.com style** (31 Oct 2026, `docs/desktop-layout.md`; presentation, input mapping and
+  result recording only, no stamps, no game's world, rules, sim, scoring or grading changed): breakpoints in
+  `src/lib/layoutMode.ts` (desktop: 1024 px wide and up with a mouse or trackpad; tablet: 700 px and up otherwise, pages
+  in two columns, game screens exactly the phone's; phone: unchanged, every new slot renders null there, so its markup is
+  byte-identical). PhoneShell marks `data-layout` and draws the 240 px rail (`AppRail`, replacing the tab bar and header;
+  76 px on rooms and games), the 112 px banner slot on Play, Practice and Tournaments (`BannerSlot`, house promotions from
+  `src/config/banners.ts`, never in rooms, rounds, reveals or standings), a tab page's 320 px right column (`aside`,
+  `PageAside`) and a room's 380 px panel (`RoomPanel` through `RoomPanelSlot`: code, round progress by category, standings
+  for 16 with playing / finished, chat between rounds). Practice on desktop: switch, search and chips in one row, games a
+  3–5 card grid. **Every game declares a desktop mode** (`src/lib/duel/desktopModes.ts`, the registry's `desktop`; a new
+  game needs a line): `wide` (puzzles, card and board games), `rotate` (Cue Ball only, Joe's call: the table and balls turned 90° clockwise in `ArcadeArenaSlot`'s rotor;
+  pointers through `tapMapping.ts` `arenaPointer` / `arenaSize`; its HUD chips upright on the stage's `hud` strip, ball
+  numbers and pop-ups counter-turned: **no text is ever drawn rotated**), `tall` (every other arcade game, upright: full height,
+  scenery faded at the edges; Apex's world capped at 340×634 on desktop with its static backdrop, `maxWorldWidth`,
+  for 60 fps, and its renderer skips near-grass bands the haze already paints, pixel-identical: racing-render-check). `DesktopControlsHint` shows the keys for 8 s. Every result records its input type
+  (`src/lib/inputType.ts` → `input_type` on round_results, async_results, practice_plays, best effort; migration
+  `20261031170000_result_input_type.sql` **written but not applied**; it also redefines `restart_duel_room` so Play
+  again's archive keeps `input_type`). Checks: desktop-layout-check (thirds,
+  `play22`/`play23`), desktop-fairness-check (`play22`), `arcade-play-check --desktop` as arcade-play-desktop-check
+  (halves, `play24`/`play25`); desktop-geometry-check proves the new columns. Shots `bun scripts/shots/desktop-layout-shots.ts`.
+- **Haptics** (31 Oct 2026; presentation and device storage only, no stamps; `src/lib/haptics.ts`): main moments
+  only, through one helper with named patterns (`tick`, `go`, `success`, `error`, `impact`, `celebrate`) and an adapter
+  (`setHapticsAdapter`; the web Vibration API today, so Android only: iPhone Safari has none and gets nothing; a
+  Capacitor plugin can plug in later without touching a call site). Moments: the countdown's 3, 2, 1 (`tick`) and GO
+  (`go`) in RoundIntro; a puzzle's correct / wrong answer from the shared signals (`usePuzzleHaptics`, mounted by
+  PhoneShell on puzzle screens) and its completion when the verdict lands (`useSignatureVerdict`); arcade goals, home
+  runs and pots (`success`), Cue Ball's foul (`error`), lives lost and crashes (`impact`) in the sound observers
+  (`feel` in `gameSounds.ts`), the arcade buzzer (`impact`, arcadeFeedback); the podium / two-player final for the
+  winner (`celebrate`); the between-rounds chat toast keeps its tick (chat-notice-check asserts it). In-game moments
+  pass `{ inGame: true }`: only with a live `[data-game-stage]` on screen, never in an intro demo, replay or answer
+  reveal (`holdHaptics`). Never on button taps, drags or routine hits: **don't call `navigator.vibrate` or add a
+  `haptic()` call outside the listed sites** (haptics-check's `CALL_SITES` pins them). Settings → Haptics, on by
+  default (`duelz-haptics:v1`), "Not supported on this device" where there is none. haptics-check (~16 s, happy-dom).
+- **Joe's quick fixes** (1 Nov 2026; display, sound and room draw only, no stamps): Orbit's SET CHECKPOINT (orbitRev 12–13)
+  sits over the scene, which is drawn behind and around it (no clip out of `ORBIT_XP_ZONE`; the rocket still never enters it,
+  play-control-clearance-check); Tempo's hits play only their lane's note (`arcadeFeedback` `combo: false`, no generic combo
+  sound each hit; the PERFECT visual stays); Pinball's J-O-U-L-Z (pinRev 4+) shows its usual banner in gold and flashes the
+  world's border gold three times, 0.15 s on / 0.15 s off, with the sting `pinball.joulz` (the library's streak flourish;
+  pinball-joulz-check); one app-wide home bed (`holdHomeBed` / `useHomeBed`) carries on unbroken across Play, Practice,
+  Tournaments, Profile and settings, gives way to the lobby's own `lobby_loop` (follow-up, same day: the lobby crossfades
+  it out over 400 ms and leaving the lobby crossfades back) and to a game's music, and resumes where it was (home-music-check,
+  docs/sound-cues/music.md); the arcade answer reveal's breakdown is one line until tapped ("142 · core 110 + features
+  32" on the standard, `revealSummary`; reveal-fold-check, room-16-check); Full House retired to practice.
+- **Tuning: Cue Ball, Free Cell, Five Hands** (1 Nov 2026; each on a new stamp, older stamps replaying and scoring as
+  before on `scripts/fixtures/tuning-nov1-legacy.json`, recorded on main by `scripts/tuning-nov1-legacy-record.ts`).
+  **Cue Ball** `poolRev 3` (`docs/arcade-standard/pool.md`): poolRev 2's input and parts with a 25 % harder top speed
+  (`POOL_MAX_V_V3`, `poolShotVelocity(…, rev)`), 1.75× the follow, draw and side (`POOL_V3_FOLLOW_MAX` 91,
+  `POOL_V3_SIDE_MAX` 77, `PoolSpin.strong`) and one more foul, a shot whose cue ball touches no ball (−10, as the
+  others); its own proved bank (`poolBankV3.server.ts`, `bun scripts/pool-bank.ts --rev=3`, witnesses
+  `scripts/fixtures/pool-witness-v3.json`); the aim turns from a drag's first pixel (the 6 px wait is gone), is sent at
+  the input's full ±4096 reach on every revision, and the aim preview's follow/draw bend scales with the stamp; frame
+  strip `bun scripts/shots/pool-aim-strip.ts` (`screenshots/cue-ball-aim-nov-2026/`). **Free Cell** `freecellRev 3`
+  (`freecell.md`): rev 2's play and 120 s, the core full at 54 units (`FC_CORE_UNITS_V3`, the near-perfect median at
+  60 s; `bun scripts/cards-bands.ts freecell --at=60`) instead of all 52 home; the safe auto-move home (every revision)
+  flies home on rev 3 (`fly` / `flyTick`, display only, outside the checksum; `fcFlights`). **Five Hands**
+  `fiveHandsRev 2` (`fivehands.md`): the steep hand table (`FH_HANDS_V2`: pair 5, two pair 10, trips 20, straight 25,
+  flush 35, full house 50, quads 60, straight flush 75), one part, hand points to 200 full at 49 (`FH_CORE_FULL_V2`, near-perfect median 163; per-deck scoring tried and dropped),
+  the deck rev 1's shuffle with its witness climbed on the new table (`fhDeal(seed, 2)`). cards-check, pool-check,
+  arcade-standard-check and the self-replay entries `pool/v3`, `freecell/v3`, `fivehands/v2` prove it.
+- **The prepared shot: Curl Champ, Home Run, Top Bins** (1 Nov 2026; each on a new stamp, the parts and their 200
+  unchanged, older stamps replaying and scoring as before from fixtures recorded on main; `docs/arcade-standard/curling.md`,
+  `homerun.md`, `freekick.md`, each with a rev-3 section; Joe scored 20–50). **Curl Champ** `curlRev 3`: a weight meter
+  with a gold HOUSE zone (the weights that stop an unswept stone in the house for this start, target and turn on an empty
+  sheet) and a mark, filled live by the swipe; a faint aim line (the first third of the path at the mark's weight, stepped
+  on a copy of the sheet, display only); a gentler weight line (14–19.5 cm a tick); the core's stone line reaches 0 at
+  320 cm (`CORE_EDGE_V3`); bank `curlingBankV3.server.ts` (66 proved); desktop − / + and Enter. **Home Run**
+  `homerunRev 3`: Contact or Power before each pitch (input kind 2, `HOMERUN_INPUT_MODE`, locked on the release tick;
+  buttons over the field's bottom, in the arena overlay and lifted
+  12 px clear of the home bar, hidden from the release until the pitch is decided, under a view 60 rows taller than the world
+  so the batter and plate sit clear above them (`homerunViewHFor`, display only), C/1 and P/2 on desktop): Contact a wider window and shorter hits, Power a narrower window,
+  longer hits and the signs; the pitcher's tell in the last 0.4 s (arm slot, coloured hand, a grip bubble; display only);
+  each pitch type its own perfect tick (fastball earlier and tightest); core full at 460 ft a pitch; deal
+  `homerunDealV3.server.ts`. **Top Bins** `freekickRev 3`: tap to aim (kind 2), drag to curl with a preview (kind 3),
+  hold the power bar (kind 4) and release in the gold (kind 5; a triangle sweep on ticks since the hold, 96 a cycle);
+  off the zone the ball rises over the bar or comes in low and slow by how far off; a 90 s run (93 s clock; older runs
+  still 75 s); core full at 1,100; deal `freekickDealV3.server.ts`; desktop arrows aim, A/D curl, Space the meter.
+  Self-replay: `homerun/v3`, `freekick/v3`, `curling/v3` appended (the curlRev 2 entry pinned to 2). Intro demos: stills.
+  Shots `screenshots/sports-prepare-nov-2026/`.
+- **Bastion, the tank-defence shooter** (1 Nov 2026, `bastionRev 2`; `docs/arcade-standard/bastion.md`): back in rooms
+  under its old id in the Action group, a new game on a new stamp (unstamped rounds are the original shapes turret,
+  `src/lib/arcade/bastion.ts`, untouched, and replay exactly as before: bastion-check replays 40 runs recorded on main
+  9486004, `scripts/fixtures/bastion-legacy.json`). Sim `src/lib/arcade/bastionTank.ts` (60 s, five seeded waves of 30
+  tanks, 63 hit points, the last two bigger and faster; every tank changes speed once; Scout 1 / Medium 2 / Heavy 4,
+  weak spots double while exposed, 60 of every 90 ticks; shells land 18–30 ticks after the shot; 5 shells, 2 s reload,
+  a swipe reloads early, a tap in the needle's 60 ms green zone halves it, outside jams 0.5 s; three base hits end the
+  run), art `bastionTank.renderer.ts` (Joe's mockups: Wave and Base pills, the bottom panel with SHELLS, RELOAD and the
+  hint; drawn on the sim's own rectangles), stage `TankStage` in
+  `src/puzzles/bastion.tsx` (the crosshair 60 px above the thumb, lift fires; on a computer the mouse aims through
+  ArcadeCanvasStage's new `hover`, click fires, R reloads, Space taps). Score: Armour 140 (straight line of 63 HP), Weak
+  spots 30, Fast reloads 20, Base intact 10. Oracle `scripts/bastion-oracle.ts` (200 on every seed tried), bots
+  `scripts/arcade-skill-bands/bots/bastion.ts`; bastion-check (~10 s). No intro demo yet (the still shows; an original
+  demo stays stopped). IP notes in `docs/ip-names.md`.
+- **Strategy group** (1 Nov 2026; presentation and room setup only, no stamps): the arcade's Action group split in
+  two: Action keeps Slice, Roofbound and Grappler; Strategy (`strategy`, `--group-strategy` #8E80FF, a blue-leaning
+  violet) takes Tilt, Gemstone, High Rise, Coral Pop, Rainbow Bridge and Ball Tracker (`arcadeGroups.ts`). Practice's
+  Arcade chips are the 4-column grid (All games, Retro, Sports, Action; Cards & Board and Strategy over two), the
+  room settings sheet has eleven chips and Mixed / Arcade only take all five groups (each its own share). Settings
+  are stored as the picks, `rounds:N`, then `groups:2`; a settings room saved before the split (no `groups:2`) reads
+  its Action as Action and Strategy (`storedPicks`), so it keeps its games. room-settings-check, practice-switch-check.
+- **Blockfall and Alley Roll** (1 Nov 2026; `docs/arcade-standard/blockfall.md`, `alleyroll.md`; working names): two new
+  arcade games born on the arcade scoring standard at stamp 1, dealt in rooms. **Blockfall** (`blockfall`, Retro, 60 s;
+  sim `src/lib/arcade/blockfall.ts`): a 10 × 20 well, pieces of four squares in the seven shapes from seeded bags of
+  seven, next three, hold once a piece, a ghost, gravity faster every 15 s, a top-out ends the run early; drag / tap /
+  flick or the HOLD, TURN, DROP pads under the well; lines 140 (full at 33, the elite median) + multi-line clears 40
+  (4 / 8 / 12) + a low stack 20; rooms deal a seed from its proved deal (`blockfallDeal.server.ts`, built by
+  `bun scripts/blockfall-deal.ts`, the oracle `scripts/blockfall-oracle.ts` on the shared planner
+  `scripts/blockfall/planner.ts`). Our own look and name (`docs/ip-names.md`). **Alley Roll** (`alleyroll`,
+  Sports, nine balls or 60 s; sim `src/lib/arcade/alleyroll.ts`): a sloping lane, a ramp and a board of 10–50 rings
+  with two 100 pockets; slide to line up, swipe up (speed = power, angle = direction); integer physics with no wind and
+  no seed (every room the same lane); ring points 150 (full at 540, the elite median) + pockets 30 + hot streak 20.
+  Bands `bun scripts/new-arcade-bands.ts [blockfall alleyroll]`; checks blockfall-check, alleyroll-check and
+  arcade-standard-check's entries. Library sounds only (`docs/sound-cues/blockfall-alleyroll.md` lists the slots that
+  deserve recordings). Intro demos are on the later list (stills).
+- **New grid puzzles: Fences, Fillomino, Bridges (Logic) and Kakuro (Number)** (1 Nov 2026; `docs/scoring-standard.md`
+  "New grid puzzles born on the standard"): dealt in rooms from the start, born on the puzzle scoring standard at their own
+  stamps (`fencesRev` / `fillominoRev` / `bridgesRev` / `kakuroRev` 1; `STANDARD_STAMPS` with `live` 0). Rules and answer
+  encodings in `src/lib/duel/<game>.ts` (shared), the seeded generator and the solver that proves exactly one solution and
+  grades difficulty in `<game>.server.ts` (built from the room seed salted by type, `gameSeed`), the stage, reveal and fixed
+  intro example in `src/puzzles/<game>.tsx`, the look in `src/polish-logic/<game>.css`. One grader for all four,
+  `standard/grid.server.ts` (numbers `gridRules.ts`, texts `gridText.ts`): unfinished credit counts the solution's items
+  placed *less* the wrong ones, so guessing never pays; the verdict and progress for summaries and reveals come from
+  `gridPuzzles.ts`. Kits `scripts/puzzle-fairness/kits-<game>.ts`, checks `scripts/<game>-check.ts`, script helpers
+  `scripts/grid-puzzles-lib.ts`; standard-live-check plays all four and grades a room round of each on the production
+  build. Names for the solicitor's review in `docs/ip-names.md`; intro demos not yet recorded (stills).
+- **Ricochet, the ninja wall-climb** (1 Nov 2026, `ricoRev` 2; `docs/arcade-standard/ricochet.md`): back from retirement in
+  the Action group under its own id. The ninja is the Joulz hero (`drawHero`) in ninja gear on a 26 × 52 px body box
+  that matches the drawing. Sim `src/lib/arcade/ricochetNinja.ts` (two temple walls, tap to leap, a second tap
+  in the air the leap's one double jump, cling slides, moss and ice, katanas and shurikens knock 3 m down with a 1 s
+  stun, no game over; coins, gold lanterns, scrolls), art `ricochetNinja.renderer.ts`, fill
+  `ricochetNinjaScene.renderer.ts`, plumbing `encodeNinjaRun` / `replayNinjaRun` in `src/lib/duel/ricochet.ts`; the stage
+  and reveal dispatch on the stamp, so unstamped rounds keep the old shaft, its sim and its 150 exactly. The tower is
+  dealt in the sim with a witness route proved through the real step (every item, no hit, 241 m+), so a perfect run is
+  200 on every tower. Height 130 (full at 241 m, the near-perfect median) + coins 30 + lanterns 20 + scrolls 20.
+  Bands `bun scripts/ninja-bands.ts`, bot `scripts/arcade-skill-bands/bots/ricochet.ts`. No intro demo yet.
 - `src/components/duel/` — room/round screens (PhoneShell, RoundIntro, TimerBar,
   AnswerReveal, ArcadeReveal, WinnerReveal…); `src/components/puzzles/` — shared puzzle
   widgets; `src/lib/fx/` — sound and visual feedback (presentation only).
 
 ## Checks
 
-- **GitHub Actions runs the full suite** (`.github/workflows/checks.yml`) on every pull
-  request open/push/reopen, split into twenty-two parallel jobs (`.github/ci/shards.ts`: `a`–`g`,
-  `play1`–`play5` for arcade-play-check, `play6`–`play13` for bottom-clearance-check, one eighth each
-  since its 15 Oct seam pass, `play14` for room-extras-check and `play15` for arcade-room-practice-check and fission-repeat-check), each about 6 minutes or less (balanced 15 Oct 2026 from run 38608375501's per-check times). Each job's summary lists every check by name
-  with pass / fail / timeout. PRs that change only `docs/**`, `screenshots/**`, `*.md` or
-  `.lovable/**` skip it. Free plan, 2,000 minutes a month, so:
+- **GitHub Actions: fast checks on every push, browser checks when ready** (CI cost cut, 1 Nov 2026;
+  `docs/ci-cost-nov-2026.md`). Two workflows, split by `.github/ci/shards.ts` and `.github/ci/plan.ts`:
+  - **Checks** (`.github/workflows/checks.yml`) on every PR open / push / reopen / leaving draft: every check that
+    starts no browser (scoring, replay, standard, type-level, unit-style), shards `a`–`g`. A new push cancels the run in
+    progress; PRs only (no push trigger), so a commit is checked once.
+  - **Full suite** (`.github/workflows/full-suite.yml`): every check that starts Chromium, shards `play1`–`play25`
+    (`play21` is the browser catch-all), plus the one job to merge on, **full-suite-passed** (success only if every
+    browser shard ran and passed; skipped never counts). It runs when a PR gets the label `ready-to-merge` (and again
+    on each new push while the label is on), when a PR leaves draft, by hand (Actions → Full suite → Run workflow;
+    "record arcade baseline" lives here) and weekly on main (Sunday 22:41 UTC) when main changed in the past week. Add the label only when a PR is
+    otherwise finished: every push while it is on re-runs the Full suite.
+  - Which side a check is on is worked out from its source (`.github/ci/browser.ts`: it, or a script it imports or
+    spawns, launches Chromium through Playwright), never by hand; a browser check listed in a fast shard runs in
+    `play21` instead. ci-shards-check proves every routine check runs exactly once, no browser starts on a push, and
+    the workflows' matrices match the shards.
+  - PRs that change only `docs/**`, `screenshots/**`, `*.md` or `.lovable/**` skip both, except `docs/beta-sql.md`
+    and `docs/sound-cues/**` (checks read them). Each job's summary lists every check by name with pass / fail /
+    timeout. Free plan, 2,000 minutes a month.
+  - **Merge rule (the captain follows it; branch protection isn't available on this plan):** a PR merges only when
+    Checks is green **and** full-suite-passed is green on its latest commit. When a PR is otherwise ready (fast checks
+    green, review done), the captain adds the `ready-to-merge` label, waits for full-suite-passed, then merges (merge
+    commit). A skipped full-suite-passed is not a pass. A docs-only PR (both workflows skipped) merges without them.
+    If main moves on, merge main in: the label stays on, so the push re-runs both.
   - **Quick and full depth.** PR runs (and local runs) use quick depth for the two slow
     checks: snip-check searches every template but the full cut-time grid only for the
     one-pin and hardest templates (~90 s on CI instead of ~8 min), and puzzle-bank-check
@@ -1052,7 +1337,7 @@ Lovable still hosts and publishes the app (https://brain-blitz-duel.lovable.app)
    timing or scoring is gated on a stamp in the stored puzzle (e.g. `speedPar`,
    `clashRev`, `inkRev`, `snipRev`, `binRev`, `orbitRev`, `crossRev`, `flipRev`, `btRev`,
    `sliceRev`, `tapRev`, `chainTimeRev`, `chainCycleRev`, `bombVersion`, `rulesVersion`, `puzzleScoreRev`, `tenRev`, `pinRev`, `scanRev`, `spotRev`, and the move-limit stamps
-   `floodRev`, `tubesRev`, `gravityRev`, `balanceRev`, `equationRev`, `measureRev` 2, `countRev` 2; and Tuning F's `crossRev` 5, `sliceRev` 5, `bubbleRev` 4, `swingRev` 8, `matchupRev` 6, `snipRev` 7; and the Pattern / Logic batch's `tilesRev`, `sudokuRev`, `floodRev` 2, `bombVersion` 3; and taller worlds batch 1's `brkRev` 6, `rallyRev` 6, `wavRev` 6, `burstRev` 4; and batch 2's `beatRev` 6, `sliceRev` 6, `bubbleRev` 5, `clashRev` 5, `clayRev` 6; and batch 3's `swingRev` 9, `orbitRev` 8, `btRev` 4; and the scoring targets' (18 Oct 2026) `btRev` 5, `wavRev` 7, `flipRev` 5, `inkRev` 7, `matchupRev` 7, `bubbleRev` 6, `crossRev` 6, `rallyRev` 7, `snakeRev` 7, `binRev` 5, `snipRev` 8, `hoverRev` 6, `skylineRev` 5, `brkRev` 7, `tiltRev` 5, `orbitRev` 9, `beatRev` 7, `sliceRev` 7, `burstRev` 5, `swingRev` 10, `bullRev` 5, `pinRev` 2, `wordsmithRev` 1, `wordHuntRev` 1, `whackRev` 1; and the score bands' (19 Oct 2026) `puzzleScoreRev` 2, `btRev` 6, `wavRev` 8, `flipRev` 6, `inkRev` 8, `matchupRev` 8, `bubbleRev` 7, `crossRev` 7, `rallyRev` 8, `snakeRev` 8, `binRev` 6, `snipRev` 9, `hoverRev` 7, `skylineRev` 6, `brkRev` 8, `tiltRev` 6, `orbitRev` 10, `beatRev` 8, `sliceRev` 8, `burstRev` 6, `swingRev` 11, `bullRev` 6, `pinRev` 3, `tenRev` 2, `clashRev` 6, `whackRev` 2, `clayRev` 7, `wordfallRev` 3; and batch 1 of the scoring report's (20 Oct 2026) `puzzleScoreRev` 3, `floodRev` 3, `strikeoutRev` 4, `codewordRev` 3, `swapwordRev` 3, `wordSearchRev` 2; and the Number depth's (25 Oct 2026, `docs/depth/d2-number.md`) `depthRev` 1, `checkoutRev` 2, `tenRev` 4, with Exact, Brimful and Checkout on `depthRev` 2's gentler feature curve; and the puzzle top-up's (26 Oct 2026) `tapRev` 6, `chainDepthRev` 2, `clashRev` 9, `scanRev` 3, `countRev` 4, `wordsmithRev` 4, `tileGridRev` 2, `wordSlideRev` 2, `wordHuntRev` 4, `strikeoutRev` 6, `swapwordRev` 5, `wheelRev` 3, Logic `depthRev` 2, `blockRev` / `pipesRev` / `laserRev` / `ringsRev` / `pushRev` 2; and the x200 expansions' (26 Oct 2026) `wavRev` 10, `tiltRev` 8, `crossRev` 9, `inkRev` 10, `orbitRev` 12; and expansion E9's (26 Oct 2026) `rallyRev` 10, `burstRev` 8, `bullRev` 8; and the arcade re-measure's (26 Oct 2026) `bubbleRev` 9; and Joe's phone notes' (27 Oct 2026) `swapwordRev` 6, `balanceRev` 3, `measureRev` 3, `gravityRev` 4, `whackRev` 4, `mazeRev` 2, `pairRev` 2, `tilesRev` 4; and the arcade phone notes' (27 Oct 2026) `brkRev` 10, `rallyRev` 11, `beatRev` 10, `snakeRev` 10, `skylineRev` 8, `bubbleRev` 10, `sliceRev` 10, `binRev` 8; and Grappler's assault course (27 Oct 2026) `swingRev` 14; and the scoring standard's (27 Oct 2026, `STANDARD_STAMPS`) Word stamps `tileGridRev` 3, `wordSlideRev` 3, `wordSearchRev` 4, `wheelRev` 4, `strikeoutRev` 7, `codewordRev` 5, `swapwordRev` 7, and Speed and Attention's `tapRev` 6 (Ascend only), `chainDepthRev` 3, `clashRev` 10, `scanRev` 4, `spotRev` 3, `countRev` 5, `mazeRev` 3, `pairRev` 3, and Pattern and Logic's `unblockRev` 2, `blockRev` 3, `slideRev` 2, `gravityRev` 5, `tilesRev` 5, `ringsRev` 3, `laserRev` 3, `flowRev` 2, `pipesRev` 3, `pushRev` 3, `depthRev` 2 for Blackout, Hanoi, Polypotions, Bomb Defusal, Mosaic, Tents and Trees and Lamplighter, `depthRev` 3 for Box Six, Safe Cracker, Colour Flood (move limit par + 10) and Shikaku, and Number's `depthRev` 3 for Exact, Brimful and Checkout, `depthRev` 2 for Operator, Counterweight, Integer Pyramid, Trail and Ballpark, `tenRev` 5; and the six-game phone notes' (27 Oct 2026) `burstRev` 9, `wavRev` 11, `inkRev` 11, `matchupRev` 10, `pinRev` 5; and the six-game arcade phone notes' (27 Oct 2026) `flipRev` 9, `tiltRev` 9; and the standard's follow-up (28 Oct 2026, `StandardStamp.dealt`) Gradient `tilesRev` 6 (full speed within 30 s) and Colour Flood `depthRev` 4 (move limit par + 6); and Joe's puzzle notes' (28 Oct 2026) `wordSlideRev` 4, `countRev` 6; and the arcade scoring standard's batch A (29 Oct 2026) `sliceRev` 11, `brkRev` 11, `tiltRev` 10, `burstRev` 10, `matchupRev` 11, `snakeRev` 11, `hoverRev` 10; and batch B's `skylineRev` 9, `binRev` 9, `bullRev` 9, `pinRev` 6, `rallyRev` 12, `bubbleRev` 11, `beatRev` 11; and batch C's `crossRev` 10, `wavRev` 12, `flipRev` 10, `inkRev` 12, `orbitRev` 13, `btRev` 8; and Grappler's swinging course (29 Oct 2026) `swingRev` 15; and Cards & Board's (30 Oct 2026) `minesRev` 1, `mahjongRev` 1, `freecellRev` 1, `tripeaksRev` 1, `pokerSquaresRev` 1; and the Sports group's (30 Oct 2026) `homerunRev` 1, `freekickRev` 1, `racingRev` 1, `golfRev` 1, `poolRev` 1, `curlRev` 1). Unstamped/older rounds must replay and score exactly as before.   Arcade scoring follows the Oct 2026 score bands (`docs/arcade-score-bands-oct-2026.md`): change a curve only with a
+   `floodRev`, `tubesRev`, `gravityRev`, `balanceRev`, `equationRev`, `measureRev` 2, `countRev` 2; and Tuning F's `crossRev` 5, `sliceRev` 5, `bubbleRev` 4, `swingRev` 8, `matchupRev` 6, `snipRev` 7; and the Pattern / Logic batch's `tilesRev`, `sudokuRev`, `floodRev` 2, `bombVersion` 3; and taller worlds batch 1's `brkRev` 6, `rallyRev` 6, `wavRev` 6, `burstRev` 4; and batch 2's `beatRev` 6, `sliceRev` 6, `bubbleRev` 5, `clashRev` 5, `clayRev` 6; and batch 3's `swingRev` 9, `orbitRev` 8, `btRev` 4; and the scoring targets' (18 Oct 2026) `btRev` 5, `wavRev` 7, `flipRev` 5, `inkRev` 7, `matchupRev` 7, `bubbleRev` 6, `crossRev` 6, `rallyRev` 7, `snakeRev` 7, `binRev` 5, `snipRev` 8, `hoverRev` 6, `skylineRev` 5, `brkRev` 7, `tiltRev` 5, `orbitRev` 9, `beatRev` 7, `sliceRev` 7, `burstRev` 5, `swingRev` 10, `bullRev` 5, `pinRev` 2, `wordsmithRev` 1, `wordHuntRev` 1, `whackRev` 1; and the score bands' (19 Oct 2026) `puzzleScoreRev` 2, `btRev` 6, `wavRev` 8, `flipRev` 6, `inkRev` 8, `matchupRev` 8, `bubbleRev` 7, `crossRev` 7, `rallyRev` 8, `snakeRev` 8, `binRev` 6, `snipRev` 9, `hoverRev` 7, `skylineRev` 6, `brkRev` 8, `tiltRev` 6, `orbitRev` 10, `beatRev` 8, `sliceRev` 8, `burstRev` 6, `swingRev` 11, `bullRev` 6, `pinRev` 3, `tenRev` 2, `clashRev` 6, `whackRev` 2, `clayRev` 7, `wordfallRev` 3; and batch 1 of the scoring report's (20 Oct 2026) `puzzleScoreRev` 3, `floodRev` 3, `strikeoutRev` 4, `codewordRev` 3, `swapwordRev` 3, `wordSearchRev` 2; and the Number depth's (25 Oct 2026, `docs/depth/d2-number.md`) `depthRev` 1, `checkoutRev` 2, `tenRev` 4, with Exact, Brimful and Checkout on `depthRev` 2's gentler feature curve; and the puzzle top-up's (26 Oct 2026) `tapRev` 6, `chainDepthRev` 2, `clashRev` 9, `scanRev` 3, `countRev` 4, `wordsmithRev` 4, `tileGridRev` 2, `wordSlideRev` 2, `wordHuntRev` 4, `strikeoutRev` 6, `swapwordRev` 5, `wheelRev` 3, Logic `depthRev` 2, `blockRev` / `pipesRev` / `laserRev` / `ringsRev` / `pushRev` 2; and the x200 expansions' (26 Oct 2026) `wavRev` 10, `tiltRev` 8, `crossRev` 9, `inkRev` 10, `orbitRev` 12; and expansion E9's (26 Oct 2026) `rallyRev` 10, `burstRev` 8, `bullRev` 8; and the arcade re-measure's (26 Oct 2026) `bubbleRev` 9; and Joe's phone notes' (27 Oct 2026) `swapwordRev` 6, `balanceRev` 3, `measureRev` 3, `gravityRev` 4, `whackRev` 4, `mazeRev` 2, `pairRev` 2, `tilesRev` 4; and the arcade phone notes' (27 Oct 2026) `brkRev` 10, `rallyRev` 11, `beatRev` 10, `snakeRev` 10, `skylineRev` 8, `bubbleRev` 10, `sliceRev` 10, `binRev` 8; and Grappler's assault course (27 Oct 2026) `swingRev` 14; and the scoring standard's (27 Oct 2026, `STANDARD_STAMPS`) Word stamps `tileGridRev` 3, `wordSlideRev` 3, `wordSearchRev` 4, `wheelRev` 4, `strikeoutRev` 7, `codewordRev` 5, `swapwordRev` 7, and Speed and Attention's `tapRev` 6 (Ascend only), `chainDepthRev` 3, `clashRev` 10, `scanRev` 4, `spotRev` 3, `countRev` 5, `mazeRev` 3, `pairRev` 3, and Pattern and Logic's `unblockRev` 2, `blockRev` 3, `slideRev` 2, `gravityRev` 5, `tilesRev` 5, `ringsRev` 3, `laserRev` 3, `flowRev` 2, `pipesRev` 3, `pushRev` 3, `depthRev` 2 for Blackout, Hanoi, Polypotions, Bomb Defusal, Mosaic, Tents and Trees and Lamplighter, `depthRev` 3 for Box Six, Safe Cracker, Colour Flood (move limit par + 10) and Shikaku, and Number's `depthRev` 3 for Exact, Brimful and Checkout, `depthRev` 2 for Operator, Counterweight, Integer Pyramid, Trail and Ballpark, `tenRev` 5; and the six-game phone notes' (27 Oct 2026) `burstRev` 9, `wavRev` 11, `inkRev` 11, `matchupRev` 10, `pinRev` 5; and the six-game arcade phone notes' (27 Oct 2026) `flipRev` 9, `tiltRev` 9; and the standard's follow-up (28 Oct 2026, `StandardStamp.dealt`) Gradient `tilesRev` 6 (full speed within 30 s) and Colour Flood `depthRev` 4 (move limit par + 6); and Joe's puzzle notes' (28 Oct 2026) `wordSlideRev` 4, `countRev` 6; and the arcade scoring standard's batch A (29 Oct 2026) `sliceRev` 11, `brkRev` 11, `tiltRev` 10, `burstRev` 10, `matchupRev` 11, `snakeRev` 11, `hoverRev` 10; and batch B's `skylineRev` 9, `binRev` 9, `bullRev` 9, `pinRev` 6, `rallyRev` 12, `bubbleRev` 11, `beatRev` 11; and batch C's `crossRev` 10, `wavRev` 12, `flipRev` 10, `inkRev` 12, `orbitRev` 13, `btRev` 8; and Grappler's swinging course (29 Oct 2026) `swingRev` 15; and Cards & Board's (30 Oct 2026) `minesRev` 1, `mahjongRev` 1, `freecellRev` 1, `tripeaksRev` 1, `pokerSquaresRev` 1; and the Sports group's (30 Oct 2026) `homerunRev` 1, `freekickRev` 1, `racingRev` 1, `golfRev` 1, `poolRev` 1, `curlRev` 1; and the small tuning batch's (31 Oct 2026) `mahjongRev` 2; and the cards tuning's (31 Oct 2026) `freecellRev` 2, `pokerSquaresRev` 2, `fiveHandsRev` 1; and the Sports tuning's (31 Oct 2026) `homerunRev` 2, `freekickRev` 2, `racingRev` 2, `golfRev` 2, `poolRev` 2, `curlRev` 2; and the new grid puzzles' (1 Nov 2026) `fencesRev` 1, `fillominoRev` 1, `bridgesRev` 1, `kakuroRev` 1; and Blockfall's and Alley Roll's (1 Nov 2026) `blockfallRev` 1, `alleyRollRev` 1; and the 1 Nov 2026 tuning's `poolRev` 3, `freecellRev` 3, `fiveHandsRev` 2; and Ricochet's (1 Nov 2026) `ricoRev` 2; and the prepared shot's (1 Nov 2026) `homerunRev` 3, `freekickRev` 3, `curlRev` 3; and Bastion's (1 Nov 2026) `bastionRev` 2). Unstamped/older rounds must replay and score exactly as before.   Arcade scoring follows the Oct 2026 score bands (`docs/arcade-score-bands-oct-2026.md`): change a curve only with a
    new band revision, re-measure with `scripts/arcade-skill-bands.ts`, and keep `arcade-score-bands-check` green.
    Prove it with the game's legacy-replay/identity check.
 3. **Arcade bounds rule.** Drawn art must sit within 2 px of the sim's collision bounds,

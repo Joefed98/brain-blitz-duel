@@ -2,7 +2,7 @@ import type { Page } from "playwright";
 import type { Driver, DriverCtx } from "../driver";
 
 /**
- * Cards & Board (FreeCell, TriPeaks, Poker Squares): a few real taps on the board for the mid-play frame. The board
+ * Cards & Board (Free Cell, Summit, Full House, Five Hands): a few real taps on the board for the mid-play frame. The board
  * ([data-play-area]) is the 414 × 772 world at a uniform scale, so world points map straight onto its box.
  */
 const W = 414;
@@ -41,4 +41,10 @@ const pokersquares: Driver = {
   partial: (ctx) => taps(ctx, Array.from({ length: 12 }, (_, sq) => [8 + (sq % 5) * 68 + 31, 44 + Math.floor(sq / 5) * 92 + 43] as const), 400),
 };
 
-export const CARD_DRIVERS: Record<string, Driver> = { freecell, tripeaks, pokersquares };
+/** Five Hands: nine cards, each tapped onto the first open row (rows 86 apart from y 44; a tap mid-row). */
+const fivehands: Driver = {
+  board: "[data-play-area]",
+  partial: (ctx) => taps(ctx, [0, 1, 2, 3, 4, 2, 0, 4, 1].map((r) => [160, 44 + r * 86 + 40] as const), 450),
+};
+
+export const CARD_DRIVERS: Record<string, Driver> = { freecell, tripeaks, pokersquares, fivehands };

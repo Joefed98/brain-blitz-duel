@@ -30,14 +30,22 @@ import { pinballGameForAny } from "@/lib/arcade/pinball4";
 import { minesweeperGameFor } from "@/lib/arcade/minesweeper";
 import { mahjongGameFor } from "@/lib/arcade/mahjong";
 import { homerunGameFor } from "@/lib/arcade/homerun";
+import { bastionGame } from "@/lib/arcade/bastion";
+import { bastionTankGame } from "@/lib/arcade/bastionTank";
 import { freekickGameFor } from "@/lib/arcade/freekick";
 import { racingGameFor } from "@/lib/arcade/racing";
 import { freecellGameFor } from "@/lib/arcade/cards/freecell";
 import { tripeaksGameFor } from "@/lib/arcade/cards/tripeaks";
 import { pokerSquaresGameFor } from "@/lib/arcade/cards/pokerSquares";
+import { fiveHandsGameFor } from "@/lib/arcade/cards/fiveHands";
+import { ninjaGame } from "@/lib/arcade/ricochetNinja";
+import { ricoGame } from "@/lib/arcade/ricochet";
+import { isNinjaRev } from "@/lib/duel/ricochet";
 import { minigolfGameFor } from "@/lib/arcade/minigolf";
 import { poolGameFor } from "@/lib/arcade/pool";
 import { curlingGameFor } from "@/lib/arcade/curling";
+import { blockfallGameFor } from "@/lib/arcade/blockfall";
+import { alleyRollGameFor } from "@/lib/arcade/alleyroll";
 import { rallyGameFor } from "@/lib/arcade/rally";
 import { sliceGameFor } from "@/lib/arcade/slice";
 import { bubbleGameFor } from "@/lib/arcade/bubble";
@@ -196,14 +204,21 @@ const SOURCES: Record<string, (p: PuzzleData) => GameSource> = {
   minesweeper: (p) => ({ game: minesweeperGameFor(rev(p, "minesRev")) as AnyGame }),
   mahjong: (p) => ({ game: mahjongGameFor(rev(p, "mahjongRev")) as AnyGame }),
   homerun: (p) => ({ game: homerunGameFor(rev(p, "homerunRev")) as AnyGame }),
+  // Bastion: bastionRev 2's tank game; the original turret for unstamped rounds.
+  bastion: (p) => ({ game: ((rev(p, "bastionRev") ?? 1) >= 2 ? bastionTankGame : bastionGame) as AnyGame }),
   freekick: (p) => ({ game: freekickGameFor(rev(p, "freekickRev")) as AnyGame }),
   racing: (p) => ({ game: racingGameFor(rev(p, "racingRev")) as AnyGame }),
   freecell: (p) => ({ game: freecellGameFor(rev(p, "freecellRev")) as AnyGame }),
   tripeaks: (p) => ({ game: tripeaksGameFor(rev(p, "tripeaksRev")) as AnyGame }),
   pokersquares: (p) => ({ game: pokerSquaresGameFor(rev(p, "pokerSquaresRev")) as AnyGame }),
-  curling: () => ({ game: curlingGameFor() as AnyGame }),
+  fivehands: (p) => ({ game: fiveHandsGameFor(rev(p, "fiveHandsRev")) as AnyGame }),
+  // Ricochet: the ninja wall-climb (ricoRev 2, events) or the original shaft (a tap list).
+  ricochet: (p) => (isNinjaRev(rev(p, "ricoRev")) ? { game: ninjaGame as AnyGame } : { game: ricoGame as AnyGame, taps: true }),
+  curling: (p) => ({ game: curlingGameFor(rev(p, "curlRev") ?? 1) as AnyGame }),
+  blockfall: (p) => ({ game: blockfallGameFor(rev(p, "blockfallRev")) as AnyGame }),
+  alleyroll: (p) => ({ game: alleyRollGameFor(rev(p, "alleyRollRev")) as AnyGame }),
   pool: (p) => ({ game: poolGameFor(rev(p, "poolRev")) as AnyGame }),
-  minigolf: (p) => ({ game: minigolfGameFor(p.type === "minigolf" ? p.pars : undefined) as AnyGame }),
+  minigolf: (p) => ({ game: minigolfGameFor(p.type === "minigolf" ? p.pars : undefined, p.type === "minigolf" ? p.golfRev : undefined) as AnyGame }),
   rally: (p) => ({ game: rallyGameFor(rev(p, "rallyRev")) as AnyGame }),
   slice: (p) => ({ game: sliceGameFor(rev(p, "sliceRev")) as AnyGame }),
   bubble: (p) => ({ game: bubbleGameFor(rev(p, "bubbleRev")) as AnyGame }),

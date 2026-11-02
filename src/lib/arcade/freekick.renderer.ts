@@ -5,11 +5,16 @@
  *  - cached once (any kick): the stadium panorama in angle space (night sky, the roof with its floodlight banks and
  *    haze, a packed two-tier crowd, the tier fascia), blitted at the kick's yaw;
  *  - cached once per kick and size: the pitch (criss-cross mowing stripes, the box markings), the LED boards behind
- *    the goal, the goal (posts, crossbar, a proper net), the referee's foam line in front of the wall and the arc by
- *    the ball, the wall's floodlight shadows;
- *  - every frame: the keeper (diving from the sim's own position and speed), the wall (jumping on the sim's
- *    schedule), the ball and its shadow, the short flight trail after the kick, the target (a gold hoop in a top
- *    corner, or the crossbar lit), the live stroke, the HUD chips and the result.
+ *    the goal, the goal (posts, crossbar, a proper net), the referee's foam arc by the ball (no line under the wall
+ *    since 31 Oct 2026), the wall's floodlight shadows; the play screen's scenery (freekickScene) paints the same
+ *    layer on out to the arena box, so the stadium and the pitch fill the screen with no seam;
+ *  - every frame: the keeper (hands down until the kick, raising them as it is struck, then diving from the sim's
+ *    own position and speed), the wall (jumping on the sim's schedule), the ball and its shadow, the short flight
+ *    trail after the kick, the target (a gold hoop in a top corner, or the crossbar lit), the fans on a goal (jumping,
+ *    scarves and flags waving, camera flashes), the live stroke, the HUD chips and the result;
+ *  - freekickRev 3 (the prepared shot): the aim marker on the goal, the curl preview (the first stretch of the
+ *    shot's own solved flight, past the wall's line), the power bar with its gold sweet zone and needle, the step
+ *    prompt, and the strike's verdict (CLEAN STRIKE / TOO MUCH / TOO LITTLE).
  *
  * Collision geometry the player can see is drawn to the sim's sizes: the ball 0.11 m, the posts and bar 0.12 m, the
  * wall players' bodies 0.55 m apart and 1.85 m tall (+ the jump), the hoop 0.55 m.
@@ -46,6 +51,18 @@ import {
   FREEKICK_FOCAL,
   FREEKICK_HORIZON,
   FREEKICK_KICKS,
+  FREEKICK_REV_2,
+  FREEKICK_REV_3,
+  FREEKICK_REV_DEALT,
+  FK_OUT_NONE,
+  FK_V3_ZONE_HI,
+  FK_V3_ZONE_LO,
+  fkLaunch,
+  fkFlightStep,
+  fkLocal,
+  fkV3Meter,
+  fkV3MeterError,
+  fkV3Solve,
   FREEKICK_WORLD_H,
   FREEKICK_WORLD_W,
   fkCamSpace,
@@ -55,12 +72,12 @@ import {
   fkSeedPlan,
   fkWallJump,
   fkWorld,
-  freekickGame,
+  freekickGameFor,
   type FkCamera,
   type FkKick,
   type FreekickState,
 } from "./freekick";
-import { sceneBelow, sceneSides, type ArenaSceneView } from "./arenaScene.renderer";
+import { sceneBelow, type ArenaSceneView } from "./arenaScene.renderer";
 import { arcadeFx, ARCADE_FX_DISPLAY_FONT } from "./arcadeFx.renderer";
 import { FREEKICK_FX } from "./sportsFx.renderer";
 
@@ -443,20 +460,9 @@ function paintFrame(ctx: Ctx, cam: FkCamera, barGlow: number): void {
   }
 }
 
-/** Foam: the referee's line in front of the wall and the arc by the ball. */
+/** Foam: the referee's arc by the ball (the line under the wall was removed on 31 Oct 2026, display only). */
 function paintFoam(ctx: Ctx, cam: FkCamera, k: FkKick): void {
   ctx.fillStyle = "rgba(250,252,255,0.85)";
-  const lineW = FK_WALL_DIST - Math.round(0.3 * M);
-  const from = k.wallL - Math.round(0.9 * M);
-  const to = k.wallR + Math.round(0.9 * M);
-  for (let u = from; u < to; u += Math.round(0.16 * M)) {
-    const p = fkWorld(k, u, lineW);
-    const q = fkProject(cam, p.x / M, 0, p.z / M);
-    if (!q) continue;
-    ctx.beginPath();
-    ctx.ellipse(q.x, q.y, 0.075 * q.s, 0.03 * q.s, 0, 0, Math.PI * 2);
-    ctx.fill();
-  }
   for (let i = 0; i <= 18; i++) {
     const a = Math.PI * 0.15 + (Math.PI * 0.7 * i) / 18;
     const u = Math.round(Math.cos(a) * 0.5 * M);
@@ -522,6 +528,26 @@ function yawOf(cam: FkCamera): number {
   return Math.atan2(cam.fx, cam.fz);
 }
 
+/**
+ * The kick's static layer over world x0…x1 (world px; the world is 0…W, the play screen's scenery paints wider):
+ * the stadium panorama at the kick's yaw, the boards, the pitch, the net, the wall's shadows, the foam by the ball.
+ */
+function paintPitchLayer(ctx: Ctx, scale: number, k: FkKick, cam: FkCamera, x0: number, x1: number): void {
+  const p = panoFor(scale);
+  if (p) {
+    // Panorama x of world x 0: (yaw − half view) in angle space; held inside the panorama.
+    const left = (yawOf(cam) + PANO_SPAN) * F - W / 2;
+    const a = Math.max(0, left + x0);
+    const b = Math.min(PANO_W, left + x1);
+    if (b > a) ctx.drawImage(p, a * scale, 0, (b - a) * scale, PANO_H * scale, a - left, 0, b - a, PANO_H);
+  }
+  paintBoards(ctx, cam);
+  paintGround(ctx, cam);
+  paintNet(ctx, cam);
+  paintWallShadows(ctx, cam, k);
+  paintFoam(ctx, cam, k);
+}
+
 function paintPitch(scale: number, k: FkKick, cam: FkCamera): Canvas | null {
   const c = makeCanvas(W * scale, H * scale);
   if (!c) return null;
@@ -530,28 +556,12 @@ function paintPitch(scale: number, k: FkKick, cam: FkCamera): Canvas | null {
   ctx.scale(scale, scale);
   ctx.fillStyle = FREEKICK_ART_BG;
   ctx.fillRect(0, 0, W, H);
-  const p = panoFor(scale);
-  if (p) {
-    // Panorama x of the view's left edge: (yaw − half view) in angle space.
-    const left = (yawOf(cam) + PANO_SPAN) * F - W / 2;
-    ctx.drawImage(p, left * scale, 0, W * scale, PANO_H * scale, 0, 0, W, PANO_H);
-  }
-  paintBoards(ctx, cam);
-  paintGround(ctx, cam);
-  paintNet(ctx, cam);
-  paintWallShadows(ctx, cam, k);
-  paintFoam(ctx, cam, k);
-  // Floor vignette toward the bottom so the stroke area stays calm.
-  const v = ctx.createLinearGradient(0, H - 160, 0, H);
-  v.addColorStop(0, "rgba(0,0,0,0)");
-  v.addColorStop(1, "rgba(0,0,0,0.28)");
-  ctx.fillStyle = v;
-  ctx.fillRect(0, H - 160, W, 160);
+  paintPitchLayer(ctx, scale, k, cam, 0, W);
   return c;
 }
 
-function pitchFor(scale: number, seed: number, index: number, k: FkKick, cam: FkCamera): Canvas | null {
-  const key = `${seed}:${index}:${scale}`;
+function pitchFor(scale: number, seed: number, rev: number, index: number, k: FkKick, cam: FkCamera): Canvas | null {
+  const key = `${seed}:${rev}:${index}:${scale}`;
   const hit = pitchCache.get(key);
   if (hit) return hit.canvas;
   const canvas = paintPitch(scale, k, cam);
@@ -627,14 +637,19 @@ function paintWallPlayer(ctx: Ctx, x: number, footY: number, s: number, number: 
   ctx.stroke();
 }
 
-/** The keeper (neon kit) at his sim position; leans and lifts into the dive from his sim speed. */
-function paintKeeper(ctx: Ctx, cam: FkCamera, kx: number, kv: number, saving: boolean): void {
+/**
+ * The keeper (neon kit) at his sim position. `raise` 0…1: hands down at his sides while the kick is set, lifting out
+ * to his reach as the ball is struck (always up by the time he can save: the ball takes longer to reach him). Then he
+ * leans, lifts and stretches into the dive from his sim speed.
+ */
+function paintKeeper(ctx: Ctx, cam: FkCamera, kx: number, kv: number, saving: boolean, raise = 1): void {
   const base = fkProject(cam, kx, 0, FK_KEEPER_Z / M);
   if (!base) return;
   const s = base.s;
   const lean = Math.max(-1, Math.min(1, kv / FK_KEEPER_VMAX));
-  const ang = lean * 1.05;
-  const lift = Math.abs(lean) * 0.55 * s;
+  const dive = Math.abs(lean);
+  const ang = lean * (1.05 + 0.35 * dive);
+  const lift = dive * (0.55 + 0.35 * dive) * s;
   // Shadow.
   ctx.fillStyle = "rgba(0,0,0,0.35)";
   ctx.beginPath();
@@ -657,22 +672,33 @@ function paintKeeper(ctx: Ctx, cam: FkCamera, kx: number, kv: number, saving: bo
   ctx.beginPath();
   ctx.roundRect(-0.24 * s, -0.62 * s, 0.48 * s, 0.7 * s, 0.08 * s);
   ctx.fill();
-  // Arms: out wide (the reach the sim checks: about 0.95 m from his centre).
+  // Arms: from hanging at his sides (set) out wide (the reach the sim checks: about 0.95 m from his centre); in a
+  // dive the leading arm stretches higher.
   const reach = 0.95 * s;
+  const r = Math.max(0, Math.min(1, raise));
+  const e = r * r * (3 - 2 * r);
   ctx.strokeStyle = "#B4DB2C";
   ctx.lineWidth = 0.11 * s;
   ctx.lineCap = "round";
   ctx.beginPath();
-  const armUp = saving ? -0.9 : -0.35 - Math.abs(lean) * 0.5;
-  ctx.moveTo(-0.2 * s, -0.5 * s);
-  ctx.lineTo(-reach * 0.92, armUp * s);
-  ctx.moveTo(0.2 * s, -0.5 * s);
-  ctx.lineTo(reach * 0.92, armUp * s);
+  const armUp = saving ? -0.9 : -0.35 - dive * 0.5;
+  const hands = [-1, 1].map((sx) => {
+    const lead = Math.sign(lean) === sx ? dive * 0.25 : 0;
+    const upX = sx * reach * 0.92;
+    const upY = (armUp - lead) * s;
+    const downX = sx * 0.3 * s;
+    const downY = 0.02 * s;
+    return { x: downX + (upX - downX) * e, y: downY + (upY - downY) * e };
+  });
+  for (const [i, sx] of [-1, 1].entries()) {
+    ctx.moveTo(sx * 0.2 * s, -0.5 * s);
+    ctx.lineTo(hands[i]!.x, hands[i]!.y);
+  }
   ctx.stroke();
   ctx.fillStyle = "#F7F7F7";
-  for (const sx of [-1, 1]) {
+  for (const h of hands) {
     ctx.beginPath();
-    ctx.arc(sx * reach * 0.95, armUp * s, 0.08 * s, 0, Math.PI * 2);
+    ctx.arc(h.x * 1.03, h.y, 0.08 * s, 0, Math.PI * 2);
     ctx.fill();
   }
   // Head.
@@ -727,10 +753,319 @@ export function paintBall(ctx: Ctx, x: number, y: number, r: number, spin: numbe
   ctx.restore();
 }
 
+/* ================================ The fans on a goal (display only) ================================ */
+
+const FAN_SHIRTS = ["#C8102E", "#C8102E", "#F4F4F4", "#C8102E", "#1D3F8F", "#E6B422", "#F4F4F4"];
+interface Fan {
+  x: number;
+  y: number;
+  s: number;
+  ph: number;
+  shirt: string;
+}
+let fanCache: Fan[] | null = null;
+
+/** The jumping fans' places in the stands (world px; the same on every phone), scarves and flags among them. */
+function fanSpots(): Fan[] {
+  if (fanCache) return fanCache;
+  const rand = lcg(0xfa75);
+  const out: Fan[] = [];
+  for (let i = 0; i < 340; i++) {
+    const upper = rand() < 0.42;
+    const y = upper ? 100 + rand() * 88 : 216 + rand() * 120;
+    const s = 1.15 * (upper ? 3.3 + ((y - 94) / 100) * 1.2 : 4.0 + ((y - 211) / 161) * 2.4);
+    out.push({ x: -12 + rand() * (W + 24), y, s, ph: rand() * Math.PI * 2, shirt: FAN_SHIRTS[Math.floor(rand() * FAN_SHIRTS.length)]! });
+  }
+  fanCache = out.sort((a, b) => a.y - b.y);
+  return fanCache;
+}
+
+/** A small hash for the flashes (display only; the same frame draws the same flashes). */
+function hash01(n: number): number {
+  let x = Math.imul(n ^ 0x9e3779b9, 0x85ebca6b);
+  x ^= x >>> 13;
+  x = Math.imul(x, 0xc2b2ae35);
+  x ^= x >>> 16;
+  return (x >>> 0) / 4294967296;
+}
+
+/**
+ * The crowd on a goal (`age` ticks into the settle): fans spring up and jump, scarves held overhead and flags wave,
+ * camera flashes pop round the bowl. Drawn over the stands only: below the boards' top and the goal (its frame and
+ * net) are clipped out, so the pitch, the net and the players stay in front.
+ */
+function paintFans(ctx: Ctx, cam: FkCamera, age: number, tick: number): void {
+  const env = Math.min(1, age / 6) * Math.min(1, Math.max(0, (70 - age) / 14));
+  if (env <= 0) return;
+  let low = HZ + 40;
+  for (const x of [-40, -20, 0, 20, 40]) {
+    const q = fkProject(cam, x, 0.9, BOARD_Z);
+    if (q && q.x > -40 && q.x < W + 40) low = Math.min(low, q.y);
+  }
+  // The goal's screen box (frame and net), clipped out.
+  const hw = FK_GOAL_HALF_W / M + 0.2;
+  let gx0 = Infinity;
+  let gx1 = -Infinity;
+  let gy0 = Infinity;
+  for (const [x, y, z] of [[-hw, 2.6, 0], [hw, 2.6, 0], [-hw, 2.0, FK_NET_Z / M], [hw, 2.0, FK_NET_Z / M], [-hw, 0, 0], [hw, 0, 0]] as const) {
+    const q = fkProject(cam, x, y, z);
+    if (!q) continue;
+    gx0 = Math.min(gx0, q.x);
+    gx1 = Math.max(gx1, q.x);
+    gy0 = Math.min(gy0, q.y);
+  }
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(-40, 90, W + 80, low - 92);
+  if (gx1 > gx0) ctx.rect(gx0, gy0 - 2, gx1 - gx0, low);
+  ctx.clip("evenodd");
+  ctx.globalAlpha = env;
+  const fans = fanSpots();
+  fans.forEach((f, i) => {
+    if (f.y > low - 2) return;
+    const s = f.s;
+    const hop = Math.abs(Math.sin(age * 0.33 + f.ph)) * s * 1.5;
+    const x = f.x;
+    const y = f.y - hop;
+    ctx.fillStyle = f.shirt;
+    ctx.fillRect(x, y + s * 0.62, s * 0.92, s * 0.8);
+    ctx.fillStyle = i % 4 === 0 ? "#6B4A36" : "#D9A88A";
+    ctx.fillRect(x + s * 0.2, y + s * 0.12, s * 0.52, s * 0.52);
+    // Arms up, waving.
+    const wave = Math.sin(age * 0.5 + f.ph) * s * 0.35;
+    ctx.strokeStyle = f.shirt;
+    ctx.lineWidth = Math.max(0.6, s * 0.22);
+    ctx.beginPath();
+    ctx.moveTo(x + s * 0.05, y + s * 0.7);
+    ctx.lineTo(x - s * 0.3 + wave, y - s * 0.55);
+    ctx.moveTo(x + s * 0.87, y + s * 0.7);
+    ctx.lineTo(x + s * 1.2 + wave, y - s * 0.55);
+    ctx.stroke();
+    // Every thirteenth fan holds a scarf overhead; every twenty-ninth waves a flag.
+    if (i % 13 === 3) {
+      const len = s * 7;
+      const n = 8;
+      ctx.lineWidth = Math.max(0.8, s * 0.55);
+      for (let j = 0; j < n; j++) {
+        const ax = x + s * 0.45 - len / 2 + (len * j) / n;
+        const bx = ax + len / n;
+        const ay = y - s * 0.7 + Math.sin(age * 0.42 + f.ph + j * 0.8) * s * 0.55;
+        const by = y - s * 0.7 + Math.sin(age * 0.42 + f.ph + (j + 1) * 0.8) * s * 0.55;
+        ctx.strokeStyle = j % 2 === 0 ? "#C8102E" : "#F4F4F4";
+        ctx.beginPath();
+        ctx.moveTo(ax, ay);
+        ctx.lineTo(bx, by);
+        ctx.stroke();
+      }
+    } else if (i % 29 === 7) {
+      const px = x + s * 1.2 + wave;
+      const top = y - s * 6;
+      ctx.strokeStyle = "#D8D2C4";
+      ctx.lineWidth = Math.max(0.6, s * 0.18);
+      ctx.beginPath();
+      ctx.moveTo(px, y - s * 0.4);
+      ctx.lineTo(px, top);
+      ctx.stroke();
+      const fw = s * 5;
+      const fh = s * 3.2;
+      const n = 6;
+      for (let band = 0; band < 2; band++) {
+        ctx.fillStyle = band === 0 ? "#C8102E" : "#F4F4F4";
+        ctx.beginPath();
+        for (let j = 0; j <= n; j++) {
+          const u = j / n;
+          const off = Math.sin(age * 0.45 + f.ph - u * 3) * s * 0.9 * u;
+          const yy = top + off + (band * fh) / 2;
+          if (j === 0) ctx.moveTo(px + u * fw, yy);
+          else ctx.lineTo(px + u * fw, yy);
+        }
+        for (let j = n; j >= 0; j--) {
+          const u = j / n;
+          const off = Math.sin(age * 0.45 + f.ph - u * 3) * s * 0.9 * u;
+          ctx.lineTo(px + u * fw, top + off + ((band + 1) * fh) / 2);
+        }
+        ctx.closePath();
+        ctx.fill();
+      }
+    }
+  });
+  // Camera flashes: a few each frame, each a frame or two long.
+  for (let i = 0; i < 9; i++) {
+    const h = hash01(Math.floor(tick / 2) * 31 + i);
+    if (h > 0.7) continue;
+    const fx = -10 + hash01(tick * 7 + i * 131) * (W + 20);
+    const fy = 96 + hash01(tick * 13 + i * 71) * Math.max(10, low - 104);
+    const r = 2.5 + hash01(tick * 3 + i) * 3.5;
+    const g = ctx.createRadialGradient(fx, fy, 0, fx, fy, r * 2.4);
+    g.addColorStop(0, "rgba(255,255,255,0.95)");
+    g.addColorStop(0.35, "rgba(235,242,255,0.45)");
+    g.addColorStop(1, "rgba(235,242,255,0)");
+    ctx.fillStyle = g;
+    ctx.fillRect(fx - r * 2.4, fy - r * 2.4, r * 4.8, r * 4.8);
+  }
+  ctx.restore();
+}
+
 /* ================================ The live stroke (the phone writes, display only) ================================ */
 
 /** The finger's stroke in world px while it is drawn (and a short fade after release). The phone sets it. */
 export const freekickStroke: { pts: { x: number; y: number }[]; releasedAt: number | null } = { pts: [], releasedAt: null };
+
+/* ================================ freekickRev 3: the prepared shot (display only) ================================ */
+
+/** The phone's live curl while a drag is in progress (null otherwise): the preview follows the finger. */
+export const freekickV3Ui: { curl: number | null } = { curl: null };
+
+/** The power bar (world px): pressing anywhere at or below FK_V3_PRESS_Y is the power press. */
+export const FK_V3_BAR = { x: 50, y: 650, w: 290, h: 26 } as const;
+export const FK_V3_PRESS_Y = 626;
+
+/** The goal-plane point (cm) under a world-px point, or null off the goal (more than `marginCm` outside the frame). */
+export function freekickAimAt(state: FreekickState, sx: number, sy: number, marginCm = 45): { x: number; y: number } | null {
+  const k = fkKickOf(state);
+  const cam = fkCamera(k);
+  // The ray through the pixel, in camera space (u across, h up, w forward = 1), turned into the world.
+  const u = (sx - W / 2) / F;
+  const hh = (HZ - sy) / F;
+  const dx = u * cam.fz + cam.fx;
+  const dz = -u * cam.fx + cam.fz;
+  if (dz <= 1e-6) return null;
+  const t = (FK_GOAL_Z / M - cam.cz) / dz;
+  const x = (cam.cx + t * dx) * 100;
+  const y = (2.2 + t * hh) * 100;
+  const xMax = 372;
+  if (Math.abs(x) > xMax + marginCm || y > 250 + marginCm || y < -marginCm) return null;
+  return { x: Math.round(Math.max(-xMax, Math.min(xMax, x))), y: Math.round(Math.max(11, Math.min(250, y))) };
+}
+
+/** The curl a sideways drag of `dx` world px sets (0.9 units a px, + to the right). */
+export function freekickCurlFromDrag(dx: number): number {
+  return Math.max(-100, Math.min(100, Math.round(dx * 0.9)));
+}
+
+const previewCache = new Map<string, P3[]>();
+/** The first stretch of a prepared shot's flight (no wall or keeper): from the ball to 2.5 m past the wall's line. */
+function previewPath(k: FkKick, x: number, y: number, b: number): P3[] {
+  const key = `${k.bx},${k.bz},${x},${y},${b}`;
+  const hit = previewCache.get(key);
+  if (hit) return hit;
+  const shot = fkV3Solve(k, x, y, b);
+  const f = fkLaunch(k, shot.a, b, shot.c);
+  f.wallSide = 2;
+  f.kx = 1000 * FK_M;
+  const pts: P3[] = [{ x: f.x / M, y: f.y / M, z: f.z / M }];
+  const stop = FK_WALL_DIST + 2.5 * M;
+  while (f.out === FK_OUT_NONE && fkLocal(k, f.x, f.z).w < stop) {
+    fkFlightStep(k, f, false, false);
+    pts.push({ x: f.x / M, y: f.y / M, z: f.z / M });
+  }
+  if (previewCache.size > 200) previewCache.clear();
+  previewCache.set(key, pts);
+  return pts;
+}
+
+/** The step the player is on (rev 3): what the prompt says. */
+function v3Prompt(state: FreekickState): string {
+  if ((state.meterAt ?? -1) >= 0) return "RELEASE IN THE GOLD";
+  if (state.aimed !== 1) return "1  TAP THE GOAL TO AIM";
+  return "2  DRAG TO CURL   3  HOLD THE BAR";
+}
+
+function paintV3Aim(ctx: Ctx, cam: FkCamera, k: FkKick, state: FreekickState, pulse: number): void {
+  if (state.aimed !== 1) return;
+  const ax = (state.aimX ?? 0) / 100;
+  const ay = (state.aimY ?? 0) / 100;
+  const curl = freekickV3Ui.curl ?? state.curl ?? 0;
+  // The curl preview: dots along the first stretch of the shot, fading out.
+  const pts = previewPath(k, state.aimX ?? 0, state.aimY ?? 0, curl);
+  ctx.save();
+  for (let i = 2; i < pts.length; i += 2) {
+    const p = pts[i]!;
+    const q = fkProject(cam, p.x, p.y, p.z);
+    if (!q) continue;
+    const fade = 1 - i / pts.length;
+    ctx.fillStyle = `rgba(255,236,190,${0.25 + 0.6 * fade})`;
+    ctx.beginPath();
+    ctx.arc(q.x, q.y, Math.max(1.4, 0.05 * q.s), 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.restore();
+  // The target marker on the goal plane: a ring and a cross, the ball's own size.
+  const c = fkProject(cam, ax, ay, FK_GOAL_Z / M);
+  if (!c) return;
+  const r = Math.max(4, (FK_BALL_R / M) * c.s * 1.6);
+  ctx.save();
+  ctx.strokeStyle = "#FFFFFF";
+  ctx.shadowColor = "rgba(255,255,255,0.8)";
+  ctx.shadowBlur = 4 + 3 * pulse;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.arc(c.x, c.y, r, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(c.x - r * 1.7, c.y);
+  ctx.lineTo(c.x - r * 0.5, c.y);
+  ctx.moveTo(c.x + r * 0.5, c.y);
+  ctx.lineTo(c.x + r * 1.7, c.y);
+  ctx.moveTo(c.x, c.y - r * 1.7);
+  ctx.lineTo(c.x, c.y - r * 0.5);
+  ctx.moveTo(c.x, c.y + r * 0.5);
+  ctx.lineTo(c.x, c.y + r * 1.7);
+  ctx.stroke();
+  ctx.restore();
+}
+
+/** The power bar: the gold sweet zone, the needle (moving while held, frozen at the strike), the prompt or verdict. */
+function paintV3Bar(ctx: Ctx, state: FreekickState): void {
+  const { x, y, w, h } = FK_V3_BAR;
+  const aiming = state.phase === FK_AIM;
+  const struck = (state.strikeM ?? -1) >= 0;
+  if (!aiming && !struck) return;
+  const metering = (state.meterAt ?? -1) >= 0;
+  const value = struck ? (state.strikeM ?? 0) : metering ? fkV3Meter(state.tick - (state.meterAt ?? 0)) : 0;
+  ctx.save();
+  // The prompt (or the verdict) above the bar.
+  ctx.font = `700 12px ${MONO}`;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  let label = aiming ? v3Prompt(state) : "";
+  let gold = false;
+  if (struck && !aiming) {
+    const e = fkV3MeterError(state.strikeM ?? 0);
+    label = e === 0 ? "CLEAN STRIKE" : e > 0 ? "TOO MUCH" : "TOO LITTLE";
+    gold = e === 0;
+  }
+  ctx.lineWidth = 4;
+  ctx.lineJoin = "round";
+  ctx.strokeStyle = "rgba(4,6,12,0.8)";
+  ctx.strokeText(label, W / 2, y - 13);
+  ctx.fillStyle = gold ? GOLD : "#F3F1EC";
+  ctx.fillText(label, W / 2, y - 13);
+  // The bar: dark well, a fill to the needle, the gold zone.
+  ctx.globalAlpha = aiming && state.aimed !== 1 ? 0.45 : 1;
+  ctx.fillStyle = "rgba(6,9,18,0.72)";
+  ctx.beginPath();
+  ctx.roundRect(x, y, w, h, h / 2);
+  ctx.fill();
+  ctx.strokeStyle = "rgba(255,255,255,0.22)";
+  ctx.lineWidth = 1;
+  ctx.stroke();
+  const at = (v: number) => x + 4 + ((w - 8) * v) / 1000;
+  ctx.fillStyle = "rgba(255,255,255,0.2)";
+  ctx.fillRect(x + 4, y + 5, at(value) - x - 4, h - 10);
+  ctx.fillStyle = "rgba(242,199,92,0.85)";
+  ctx.fillRect(at(FK_V3_ZONE_LO), y + 3, at(FK_V3_ZONE_HI) - at(FK_V3_ZONE_LO), h - 6);
+  if (metering || struck) {
+    ctx.fillStyle = "#FFFFFF";
+    ctx.fillRect(at(value) - 1.5, y - 3, 3, h + 6);
+  }
+  if (aiming && !metering) {
+    ctx.font = `700 11px ${MONO}`;
+    ctx.fillStyle = "#F3F1EC";
+    ctx.fillText("HOLD", x + 34, y + h / 2 + 0.5);
+  }
+  ctx.restore();
+}
 
 /* ================================ Per-frame ================================ */
 
@@ -756,6 +1091,7 @@ function chip(ctx: Ctx, x: number, y: number, text: string, accent = false, alig
   return w;
 }
 
+/** freekickRev 1's wind chip (rev 2 has no wind: its centre chip names the spot's distance). */
 function windChip(ctx: Ctx, wind: number): void {
   const w = 74;
   const x0 = W / 2 - w / 2;
@@ -823,12 +1159,12 @@ export function drawFreekickArt(ctx: CanvasRenderingContext2D, state: FreekickSt
 
 function drawFreekickWorld(ctx: CanvasRenderingContext2D, state: FreekickState, size: CanvasSize): void {
   void size;
-  const plan = fkSeedPlan(state.seed);
+  const plan = fkSeedPlan(state.seed, state.freekickRev);
   const index = Math.min(state.k, FREEKICK_KICKS - 1);
   const k = plan.kicks[index]!;
   const cam = fkCamera(k);
   const scale = Math.max(1, Math.min(4, Math.abs(ctx.getTransform().a) || 1));
-  const pitch = pitchFor(Math.round(scale * 4) / 4, state.seed, index, k, cam);
+  const pitch = pitchFor(Math.round(scale * 4) / 4, state.seed, state.freekickRev, index, k, cam);
   if (pitch) ctx.drawImage(pitch as CanvasImageSource, 0, 0, W, H);
   else {
     ctx.fillStyle = FREEKICK_ART_BG;
@@ -837,6 +1173,9 @@ function drawFreekickWorld(ctx: CanvasRenderingContext2D, state: FreekickState, 
   const f = state.fl;
   const t = f?.t ?? 0;
   const pulse = 0.5 + 0.5 * Math.sin(state.tick / 9);
+
+  // The fans on a goal: up on their feet, scarves and flags waving, camera flashes (behind everything on the pitch).
+  if (state.phase === FK_SETTLE && state.outs[index] === FK_OUT_GOAL) paintFans(ctx, cam, state.tick - state.phaseTick, state.tick);
 
   // The target: a gold hoop in the top corner, or the crossbar lit.
   const hitFlags = state.flags[index] ?? 0;
@@ -867,7 +1206,10 @@ function drawFreekickWorld(ctx: CanvasRenderingContext2D, state: FreekickState, 
   type Item = { w: number; draw: () => void; ball?: boolean };
   const items: Item[] = [];
   const kx = (f?.kx ?? k.keeperX) / M;
-  items.push({ w: fkCamSpace(cam, kx, 0, FK_KEEPER_Z / M).w, draw: () => paintKeeper(ctx, cam, kx, f?.kv ?? 0, f?.out === FK_OUT_SAVED) });
+  // Hands down until the kick; up within 12 ticks of it (the ball reaches his line no sooner than the wall's line plus
+  // the keeper's reaction delay, so they are always up by then).
+  const raise = !f ? 0 : Math.min(1, f.t / 12);
+  items.push({ w: fkCamSpace(cam, kx, 0, FK_KEEPER_Z / M).w, draw: () => paintKeeper(ctx, cam, kx, f?.kv ?? 0, f?.out === FK_OUT_SAVED, raise) });
   const lift = f ? fkWallJump(t) : 0;
   const players = wallPlayers(k);
   const wallW = players.length ? fkCamSpace(cam, players[0]!.x, 0, players[0]!.z).w : 0;
@@ -924,9 +1266,14 @@ function drawFreekickWorld(ctx: CanvasRenderingContext2D, state: FreekickState, 
     }
   }
 
+  // freekickRev 3: the aim marker and curl preview while the kick is set, the power bar and the verdict.
+  const v3 = state.freekickRev >= FREEKICK_REV_3;
+  if (v3 && state.phase === FK_AIM) paintV3Aim(ctx, cam, k, state, pulse);
+  if (v3) paintV3Bar(ctx, state);
+
   // The live stroke.
   const st = freekickStroke;
-  if (st.pts.length > 1) {
+  if (!v3 && st.pts.length > 1) {
     const age = st.releasedAt === null ? 0 : (typeof performance === "undefined" ? 0 : performance.now()) - st.releasedAt;
     const alpha = st.releasedAt === null ? 0.7 : Math.max(0, 0.7 - age / 300);
     if (alpha > 0) {
@@ -945,8 +1292,9 @@ function drawFreekickWorld(ctx: CanvasRenderingContext2D, state: FreekickState, 
   // HUD: kick, wind, score; the kicks' results under the kick chip.
   const shown = Math.min(state.k + 1, FREEKICK_KICKS);
   chip(ctx, 10, 10, `KICK ${shown}/${FREEKICK_KICKS}`, false, "left", 92);
-  windChip(ctx, k.wind);
-  chip(ctx, W - 10, 10, String(freekickGame.score(state)), true, "right", 52);
+  if (state.freekickRev >= FREEKICK_REV_2) chip(ctx, W / 2, 10, `${k.yards ?? 0} YDS`, false, "center", 74);
+  else windChip(ctx, k.wind);
+  chip(ctx, W - 10, 10, String(freekickGameFor(state.freekickRev).score(state)), true, "right", 52);
   for (let i = 0; i < FREEKICK_KICKS; i++) {
     const o = state.outs[i]!;
     ctx.fillStyle = o === FK_OUT_GOAL ? GOLD : o >= 0 ? "rgba(255,110,96,0.85)" : i === state.k ? "rgba(255,255,255,0.75)" : "rgba(255,255,255,0.22)";
@@ -1027,35 +1375,43 @@ function drawBall(ctx: CanvasRenderingContext2D, cam: FkCamera, state: FreekickS
   if (q) paintBall(ctx, q.x, q.y, Math.max(1.2, (FK_BALL_R / M) * q.s), f ? (f.t * (0.25 + Math.abs(f.b) / 220)) * Math.sign(f.b || 1) : 0.4);
 }
 
-export const freekickArtGame = { ...freekickGame, draw: drawFreekickArt };
+/** The play and reveal art for a stamp (the sim's game with the art's draw). */
+export function freekickArtGameFor(rev?: number | null) {
+  return { ...freekickGameFor(rev), draw: drawFreekickArt };
+}
+/** The art game on freekickRev 1 (its draw follows each state's own stamp, so it draws any revision). */
+export const freekickArtGame = freekickArtGameFor(1);
 
 /**
- * The play screen's scenery beyond the world (painted once per size, world units): the stands' dark carried out to
- * the sides above the horizon, the grass below, and the grass settling darker under the world.
+ * The play screen's scenery beyond the world (display only; painted per kick, sceneKey freekickSceneKey, never per
+ * frame): the kick's own static layer (the stadium panorama at its yaw, the boards, the pitch and its markings, the
+ * net) carried on out to the arena box, so the stands and the grass run across every edge of the world with no seam
+ * (the width at 375×667, the bottom at 414×896); the grass settles a little darker below the world, from nothing at
+ * its edge.
  */
-export function freekickScene(ctx: CanvasRenderingContext2D, view: ArenaSceneView): void {
-  for (const side of sceneSides(view)) {
-    const g = ctx.createLinearGradient(0, 0, 0, H);
-    g.addColorStop(0, "#04060C");
-    g.addColorStop(0.12, "#0B0F18");
-    g.addColorStop(0.45, "#161A24");
-    g.addColorStop(0.5, "#16401F");
-    g.addColorStop(1, "#1F5A2B");
-    ctx.fillStyle = g;
-    ctx.fillRect(side.x, Math.min(side.y, view.top), side.w, Math.max(side.h, H - view.top));
-  }
-  if (view.top < 0) {
-    ctx.fillStyle = "#03050A";
-    ctx.fillRect(view.left, view.top, view.right - view.left, -view.top + 2);
-  }
+export function freekickScene(ctx: CanvasRenderingContext2D, view: ArenaSceneView, state?: FreekickState): void {
+  const rev = state?.freekickRev ?? FREEKICK_REV_DEALT;
+  const seed = state?.seed ?? 1;
+  const index = Math.min(state?.k ?? 0, FREEKICK_KICKS - 1);
+  const k = fkSeedPlan(seed, rev).kicks[index]!;
+  const cam = fkCamera(k);
+  ctx.fillStyle = "#03050A";
+  ctx.fillRect(view.left, view.top, view.right - view.left, view.bottom - view.top);
+  const scale = Math.max(1, Math.min(4, Math.abs(ctx.getTransform().a) || 1));
+  paintPitchLayer(ctx, Math.round(scale * 4) / 4, k, cam, view.left, view.right);
   const below = sceneBelow(view);
   if (below) {
     const g = ctx.createLinearGradient(0, below.y, 0, below.y + below.h);
-    g.addColorStop(0, "#1B4A25");
-    g.addColorStop(1, "#0C2312");
+    g.addColorStop(0, "rgba(4,14,7,0)");
+    g.addColorStop(1, "rgba(4,14,7,0.35)");
     ctx.fillStyle = g;
     ctx.fillRect(below.x, below.y, below.w, below.h);
   }
+}
+
+/** The scenery's key: it repaints for each kick (its camera and wall). */
+export function freekickSceneKey(state: FreekickState): string {
+  return `${state.seed}:${state.freekickRev}:${Math.min(state.k, FREEKICK_KICKS - 1)}`;
 }
 
 /* ================================ Tile and intro painters ================================ */
@@ -1122,9 +1478,6 @@ export function paintFreekickTile(ctx: CanvasRenderingContext2D, size: number): 
   ctx.fillRect(41.5, 42, 2, 5);
   // The wall.
   for (let i = 0; i < 3; i++) paintWallPlayer(ctx, 54 + i * 8, 76, 18, 4 + i * 2, 0);
-  // Foam line.
-  ctx.fillStyle = "rgba(250,252,255,0.85)";
-  for (let x = 48; x < 86; x += 3) ctx.fillRect(x, 74, 2, 1);
   // Ball with its curl trail.
   ctx.strokeStyle = "rgba(255,236,190,0.5)";
   ctx.lineWidth = 2;
@@ -1137,8 +1490,8 @@ export function paintFreekickTile(ctx: CanvasRenderingContext2D, size: number): 
 }
 
 /** Backdrop painter for other surfaces (the intro still, the share card): the pitch view of a seed's first kick. */
-export function paintFreekickBackdrop(ctx: CanvasRenderingContext2D, w: number, h: number, seed = 1): void {
-  const k = fkSeedPlan(seed).kicks[0]!;
+export function paintFreekickBackdrop(ctx: CanvasRenderingContext2D, w: number, h: number, seed = 1, rev: number = FREEKICK_REV_DEALT): void {
+  const k = fkSeedPlan(seed, rev).kicks[0]!;
   const cam = fkCamera(k);
   const c = paintPitch(1, k, cam);
   ctx.save();

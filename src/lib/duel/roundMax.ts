@@ -81,6 +81,11 @@ export const ROUND_MAX: Readonly<Record<PuzzleType, number>> = {
   gravity: 200,
   lightup: 200,
   shikaku: 200,
+  // New grid puzzles (1 Nov 2026), born on the scoring standard.
+  fences: 200,
+  fillomino: 200,
+  bridges: 200,
+  kakuro: 200,
   tents: 200,
   // Arcade
   balltrack: 200, // expansion E6, btRev 7 (btRev 8: the arcade scoring standard)
@@ -98,10 +103,14 @@ export const ROUND_MAX: Readonly<Record<PuzzleType, number>> = {
   freecell: 200,
   tripeaks: 200,
   pokersquares: 200,
+  fivehands: 200,
   // Sports (30 Oct 2026): on the arcade scoring standard from their first stamp.
   minigolf: 200,
   pool: 200,
   curling: 200,
+  // Blockfall and Alley Roll (1 Nov 2026): born on the standard.
+  blockfall: 200,
+  alleyroll: 200,
   bubble: 200, // expansion E6, bubbleRev 8 (bubbleRev 9: burst credit; bubbleRev 10: the mine's bigger blast)
   bullseye: 200, // expansion E9, bullRev 8
   burst: 200, // expansion E9, burstRev 8
@@ -120,12 +129,15 @@ export const ROUND_MAX: Readonly<Record<PuzzleType, number>> = {
   swing: 200, // expansion x200, swingRev 13; the assault course, swingRev 14; the swinging course, swingRev 15
   tilt: 200, // x200, tiltRev 8 (tiltRev 9: lifted curves; tiltRev 10: the arcade scoring standard)
   wavefront: 200,
+  // bastionRev 2 (1 Nov 2026): the tank-defence shooter, born on the arcade scoring standard (the original Bastion's
+  // unstamped rounds scored to 150; they replay unchanged).
+  bastion: 200,
   // Retired to practice
-  bastion: 150,
   dig: 150,
   dual: 150,
   hotfloor: 150,
-  ricochet: 150,
+  // ricoRev 2 (1 Nov 2026): the ninja wall-climb on the arcade scoring standard.
+  ricochet: 200,
   rooftop: 150,
   steady: 150,
   swerve: 150,

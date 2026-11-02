@@ -1,3 +1,5 @@
+import { NINJA_REV } from "@/lib/arcade/ricochetNinja";
+import { BASTION_REV_DEALT } from "@/lib/arcade/bastionTank";
 import { TEN_DROP_DEPTH_REV } from "@/lib/arcade/tenDrop";
 import { SLICE_REV_TARGET, SLICE_REV_STRICT, SLICE_REV_STANDARD } from "@/lib/arcade/slice";
 import { FLIP_REV_TARGET, FLIP_REV_STRICT, FLIP_REV_STD } from "@/lib/arcade/flip";
@@ -7,7 +9,7 @@ import { SNAKE_REV_TARGET, SNAKE_REV_STD } from "@/lib/arcade/snake";
 import { BUB_REV_STD } from "@/lib/arcade/bubble";
 import { MATCHUP_REV_STD } from "@/lib/arcade/matchup";
 import { minesBoard, minesSolve, MINES_REV_STD } from "@/lib/arcade/minesweeper";
-import { mahjongBuildClears, MAHJONG_REV_STD } from "@/lib/arcade/mahjong";
+import { mahjongBuildClears, MAHJONG_REV_DEALT } from "@/lib/arcade/mahjong";
 import { SNIP_REV_TARGET, SNIP_REV_EXPAND } from "@/lib/arcade/snip";
 import { SKYLINE_REV_TARGET, SKYLINE_REV_STRICT, SKYLINE_REV_STD } from "@/lib/arcade/skyline";
 import { TILT_REV_STD } from "@/lib/arcade/tilt";
@@ -44,7 +46,10 @@ import { FC_DEALS } from "@/lib/arcade/cards/freecellDeals.data";
 import { TP_REV } from "@/lib/arcade/cards/tripeaks";
 import { TP_DEALS } from "@/lib/arcade/cards/tripeaksDeals.data";
 import { PS_REV } from "@/lib/arcade/cards/pokerSquares";
-import type { FreecellPuzzleData, PokerSquaresPuzzleData, TripeaksPuzzleData } from "./types";
+import { FH_REV } from "@/lib/arcade/cards/fiveHands";
+import { BLOCKFALL_REV } from "@/lib/arcade/blockfall";
+import { blockfallDealSeed } from "./blockfallDeal.server";
+import type { BlockfallPuzzleData, FiveHandsPuzzleData, FreecellPuzzleData, PokerSquaresPuzzleData, TripeaksPuzzleData } from "./types";
 import { bullseyeWinds, BULLSEYE_REV_TARGET, BULLSEYE_REV_STRICT, BULLSEYE_REV_STD } from "@/lib/arcade/bullseye";
 import type {
   BinTossPuzzleData,
@@ -106,6 +111,16 @@ export function generatePokerSquares(): PokerSquaresPuzzleData {
   return { type: "pokersquares", seed: arcadeSeed(), pokerSquaresRev: PS_REV };
 }
 
+/** Five Hands: any seed; the sim shuffles the deck and proves its witness (perfect play reaches 200). */
+export function generateFiveHands(): FiveHandsPuzzleData {
+  return { type: "fivehands", seed: arcadeSeed(), fiveHandsRev: FH_REV };
+}
+
+/** Blockfall (Retro, 1 Nov 2026): a seed from the proved deal (the oracle took it to 200 through the server replay). */
+export function generateBlockfall(): BlockfallPuzzleData {
+  return { type: "blockfall", seed: blockfallDealSeed(arcadeSeed()), blockfallRev: BLOCKFALL_REV };
+}
+
 export function generateSwerve(): SwervePuzzleData {
   return { type: "swerve", seed: arcadeSeed() };
 }
@@ -147,8 +162,9 @@ export function generateDual(): DualPuzzleData {
   return { type: "dual", seed: arcadeSeed() };
 }
 
+/** Ricochet deals the ninja wall-climb (ricoRev 2, 1 Nov 2026); unstamped rounds keep the old shaft. */
 export function generateRicochet(): RicoPuzzleData {
-  return { type: "ricochet", seed: arcadeSeed() };
+  return { type: "ricochet", seed: arcadeSeed(), ricoRev: NINJA_REV };
 }
 
 export function generateBreaker(): BreakerPuzzleData {
@@ -183,7 +199,7 @@ export function generateMinesweeper(): MinesweeperPuzzleData {
 export function generateMahjong(): MahjongPuzzleData {
   for (;;) {
     const seed = arcadeSeed();
-    if (mahjongBuildClears(seed)) return { type: "mahjong", seed, mahjongRev: MAHJONG_REV_STD };
+    if (mahjongBuildClears(seed)) return { type: "mahjong", seed, mahjongRev: MAHJONG_REV_DEALT };
   }
 }
 
@@ -239,7 +255,8 @@ export function generateWavefront(): WavefrontPuzzleData {
 }
 
 export function generateBastion(): BastionPuzzleData {
-  return { type: "bastion", seed: arcadeSeed() };
+  // bastionRev 2 (1 Nov 2026): the tank-defence shooter; any seed deals its five waves (the oracle proves 200 on each).
+  return { type: "bastion", seed: arcadeSeed(), bastionRev: BASTION_REV_DEALT };
 }
 
 export function generateRooftop(): RooftopPuzzleData {

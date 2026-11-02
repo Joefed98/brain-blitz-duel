@@ -27,11 +27,11 @@ export const SENTRY_DSN = "";
 export const TALLY_URL = "";
 
 /**
- * The beta's contact address, shown on the terms page (/terms), e.g. "beta@joulz.app".
+ * The beta's contact address, shown on the terms page (/terms) as a mailto link.
  *
  * Empty: the terms page leaves the contact line out.
  */
-export const CONTACT_EMAIL = "";
+export const CONTACT_EMAIL = "support@joulz.uk";
 
 /**
  * The beta's Discord invite link, e.g. "https://discord.gg/abcd1234" (tab pages refresh, 26 Oct 2026).
@@ -58,3 +58,10 @@ export const HERO_DANCE_SCORE = 190;
 
 /** 200: the hero runs round the screen with fireworks, about 3 s (instead of the run). */
 export const HERO_GRAND_SCORE = 200;
+
+/**
+ * Room settings for Duelz Plus only (31 Oct 2026; src/lib/duel/roomSettings.ts). false: every host can
+ * choose a room's categories and round count in the lobby. true: only Plus hosts (none yet) can; others
+ * see the settings read-only and the server refuses changes.
+ */
+export const ROOM_SETTINGS_PLUS_ONLY = false;

@@ -17,7 +17,8 @@ import { ensureSession } from "../lib/duel/session";
 import { noteShareArrival } from "../lib/share/shareRef";
 import { PLAY_CARDS_BOOT } from "../lib/playCards";
 import { installSoundCueBridge, installSoundUnlock } from "../lib/sound";
-import { APP_DESCRIPTION, APP_ICONS, APP_NAME, APP_TITLE, LINK_PREVIEW } from "../lib/brand";
+import { batterySaverOn } from "../lib/battery";
+import { APP_DESCRIPTION, APP_ICONS, APP_NAME, APP_TITLE, canonicalUrl, LINK_PREVIEW } from "../lib/brand";
 import { installAppUpdater } from "../lib/appUpdate";
 import { reportCrash, startCrashReporting } from "../lib/crashReporting";
 import { THEME_FONTS } from "../lib/theme";
@@ -26,6 +27,9 @@ import { ErrorState } from "../components/app/ErrorState";
 import { AppWordmark } from "../components/brand/AppWordmark";
 import { CelebrationLayer } from "../components/fx/CelebrationLayer";
 import { celebrationsOn } from "../lib/fx/celebrations";
+import { GOOGLE_FONTS_CSS } from "../lib/offline/assets";
+import { installOfflinePractice } from "../lib/offline/install";
+import { OFFLINE_BOOT } from "../lib/offline/online";
 
 /** The 404 page: the shared error layout (ErrorState, Polish batch R) on the room screens' shell. */
 function NotFoundComponent() {
@@ -88,7 +92,7 @@ function ErrorComponent({ error, reset }: ErrorComponentProps) {
 }
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
-  head: () => ({
+  head: ({ matches }) => ({
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1, viewport-fit=cover" },
@@ -136,7 +140,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
       {
         rel: "stylesheet",
-        href: "https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;600;700&family=Press+Start+2P&display=swap",
+        href: GOOGLE_FONTS_CSS,
       },
       // The app's icons (Prompt R): the inverted logo mark on the gold shine (scripts/brand-icons.ts).
       ...APP_ICONS.filter((icon) => icon.use === "favicon").map((icon) => ({
@@ -147,6 +151,9 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       })),
       { rel: "apple-touch-icon", href: APP_ICONS.find((icon) => icon.use === "apple-touch-icon")!.href, sizes: "180x180" },
       { rel: "manifest", href: "/manifest.webmanifest" },
+      // The canonical address: this page's path on APP_URL (src/config/appUrl.ts), never a query
+      // string, so the redirecting domains and preview hosts all point search engines at joulz.uk.
+      { rel: "canonical", href: canonicalUrl(matches[matches.length - 1]?.pathname ?? "/") },
     ],
   }),
   shellComponent: RootShell,
@@ -162,6 +169,8 @@ function RootShell({ children }: { children: ReactNode }) {
         <HeadContent />
         {/* Before the first paint: which late Play tab cards to reserve (lib/playCards.ts). */}
         <script dangerouslySetInnerHTML={{ __html: PLAY_CARDS_BOOT }} />
+        {/* Before the first paint: the offline banner and Practice's install card (lib/offline/online.ts). */}
+        <script dangerouslySetInnerHTML={{ __html: OFFLINE_BOOT }} />
       </head>
       <body>
         {children}
@@ -193,6 +202,8 @@ function RootComponent() {
 
   // The first tap anywhere unlocks audio (iOS only counts touchend/click).
   useEffect(() => installSoundUnlock(), []);
+  // Battery saver (lib/battery.ts): marks <html data-battery-saver> from the device's setting.
+  useEffect(() => void batterySaverOn(), []);
   // Named cues (docs/sound-cues) play their manifest file once one is set.
   useEffect(() => installSoundCueBridge(), []);
 
@@ -202,6 +213,9 @@ function RootComponent() {
     () => installAppUpdater((path) => router.history.replace(path, router.history.location.state)),
     [router],
   );
+
+  // Offline practice (lib/offline): the service worker, the queued runs' grading and the practice packs.
+  useEffect(() => installOfflinePractice(), []);
 
   // Celebrations' shared overlay (lib/fx/celebrations.ts), only while FX_CELEBRATIONS is on.
   const [celebrate, setCelebrate] = useState(false);

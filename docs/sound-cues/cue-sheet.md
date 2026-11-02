@@ -19,15 +19,15 @@ effects ([arcade-effects.md](arcade-effects.md)) so a sound can be written for e
 
 | Category | Silent | Placeholder | Recorded | Total |
 |---|---|---|---|---|
-| game event | 35 | 0 | 346 | 381 |
+| game event | 37 | 0 | 446 | 483 |
 | room moment | 1 | 0 | 34 | 35 |
-| music | 12 | 0 | 82 | 94 |
-| UI tap | 10 | 0 | 22 | 32 |
-| fail sting | 4 | 0 | 36 | 40 |
-| success sting | 3 | 0 | 69 | 72 |
-| ambience | 0 | 1 | 8 | 9 |
-| replay | 0 | 0 | 177 | 177 |
-| **all** | 65 | 1 | 774 | 840 |
+| music | 12 | 0 | 100 | 112 |
+| UI tap | 10 | 0 | 28 | 38 |
+| fail sting | 4 | 0 | 37 | 41 |
+| success sting | 3 | 0 | 73 | 76 |
+| ambience | 0 | 1 | 17 | 18 |
+| replay | 0 | 0 | 186 | 186 |
+| **all** | 67 | 1 | 921 | 989 |
 
 ## Silent and placeholder cues
 
@@ -282,6 +282,8 @@ Grouped by game or screen. These are the cues still missing a sound.
 
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
 |---|---|---|---|---|---|---|---|---|
+| `ricochet.land` | The ninja lands on stone (ricoRev 2; at most one per 80 ms) [arcade-effects.md] | The ninja clings to the wall | 80–140 | silent | none | 120 | game event | `ricochet.land` |
+| `ricochet.slip` | The ninja lands on moss or ice (ricoRev 2) [arcade-effects.md] | The ninja clings and slides fast | 5–30 | silent | none | 300 | game event | `ricochet.slip` |
 | `music.ricochet` | Ricochet (retired, practice): none |  | loop | silent | none | 60000 | music | `music_ricochet` |
 
 ### Rooftop Run
@@ -323,7 +325,7 @@ Grouped by game or screen. These are the cues still missing a sound.
 | Answer reveal (rooms and practice) | screen | | **none** | `music_reveal` |
 | Winner reveal | screen | | **none** | `music_winner` |
 | Tension bed (not placed) | screen | | **none** | `tension_loop` |
-| Home / join (/) | screen | | music_home | `music_home` |
+| Home / join (/), and since 1 Nov 2026 the app-wide home bed | screen | | music_home | `music_home` |
 | Practice game list (/practice) | screen | | music_practice | `music_practice` |
 | Room lobby | screen | | lobby_loop | `lobby_loop` |
 | Round intro (rooms and practice) | screen | | intro_loop | `intro_loop` |
@@ -345,6 +347,7 @@ Grouped by game or screen. These are the cues still missing a sound.
 | Counterweight | number | yes | music_number_2 (shared) | `music_number_balance` |
 | Exact | number | yes | music_number_1 (shared) | `music_number_target` |
 | Integer Pyramid | number | yes | music_number_2 (shared) | `music_number_numpyramid` |
+| Kakuro | number | yes | music_number_2 (shared) | `music_number_kakuro` |
 | Operator | number | yes | music_number_1 (shared) | `music_number_equation` |
 | Tenfall | number | yes | music_number_3 (shared) | `music_number_tendrop` |
 | Ascend | speed | yes | music_speed_2 (shared) | `music_speed_numhunt` |
@@ -372,8 +375,11 @@ Grouped by game or screen. These are the cues still missing a sound.
 | Blackout | logic | yes | music_logic_2 (shared) | `music_logic_lightsout` |
 | Bomb Defusal | logic | yes | music_logic_3 (shared) | `music_logic_bomb` |
 | Box Six | logic | yes | music_logic_1 (shared) | `music_logic_sudoku` |
+| Bridges | logic | yes | music_logic_3 (shared) | `music_logic_bridges` |
 | Colour Flood | logic | yes | music_logic_2 (shared) | `music_logic_flood` |
 | Dig | logic | practice only | music_logic_1 (shared) | `music_logic_dig` |
+| Fences | logic | yes | music_logic_2 (shared) | `music_logic_fences` |
+| Fillomino | logic | yes | music_logic_1 (shared) | `music_logic_fillomino` |
 | Hanoi | logic | yes | music_logic_3 (shared) | `music_logic_tower` |
 | Lamplighter | logic | yes | music_logic_1 (shared) | `music_logic_lightup` |
 | Mosaic | logic | yes | music_logic_1 (shared) | `music_logic_nonogram` |
@@ -382,46 +388,49 @@ Grouped by game or screen. These are the cues still missing a sound.
 | Shikaku | logic | yes | music_logic_1 (shared) | `music_logic_shikaku` |
 | Tents and Trees | logic | yes | music_logic_1 (shared) | `music_logic_tents` |
 | Trail | logic | yes | music_logic_3 (shared) | `music_logic_trail` |
+| Alley Roll | arcade | yes | music_alleyroll | `music_alleyroll` |
+| Apex | arcade | yes | music_racing | `music_racing` |
 | Ball Tracker | arcade | yes | music_balltrack | `music_balltrack` |
-| Bastion | arcade | practice only | **none** | `music_bastion` |
+| Bastion | arcade | yes | **none** | `music_bastion` |
+| Blockfall | arcade | yes | music_blockfall | `music_blockfall` |
 | Breaker | arcade | yes | music_breaker | `music_breaker` |
 | Coral Pop | arcade | yes | music_bubble | `music_bubble` |
-| Curling | arcade | yes | **none** | `music_curling` |
+| Crazy Golf | arcade | yes | music_minigolf | `music_minigolf` |
+| Cue Ball | arcade | yes | music_pool | `music_pool` |
+| Curl Champ | arcade | yes | music_curling | `music_curling` |
 | Dual | arcade | practice only | **none** | `music_dual` |
 | Fission | arcade | yes | music_burst | `music_burst` |
+| Five Hands | arcade | yes | music_fivehands | `music_fivehands` |
 | Flightpath | arcade | yes | music_bullseye | `music_bullseye` |
-| Free Kick | arcade | yes | **none** | `music_freekick` |
-| FreeCell | arcade | yes | **none** | `music_freecell` |
+| Free Cell | arcade | yes | music_freecell | `music_freecell` |
+| Full House | arcade | practice only | music_pokersquares | `music_pokersquares` |
 | Gemstone | arcade | yes | music_matchup | `music_matchup` |
 | Grappler | arcade | yes | music_swing | `music_swing` |
 | High Rise | arcade | yes | music_skyline | `music_skyline` |
-| Home Run Derby | arcade | yes | **none** | `music_homerun` |
+| Home Run | arcade | yes | music_homerun | `music_homerun` |
 | Hot Floor | arcade | practice only | **none** | `music_hotfloor` |
 | Hover | arcade | yes | music_hover | `music_hover` |
 | Jaywalk | arcade | yes | music_cross | `music_cross` |
 | Junction | arcade | practice only | music_junction | `music_junction` |
-| Mahjong Solitaire | arcade | yes | **none** | `music_mahjong` |
+| Mahjong Solitaire | arcade | yes | music_mahjong | `music_mahjong` |
 | Meteor | arcade | yes | music_eatgrow | `music_eatgrow` |
-| Minesweeper | arcade | yes | **none** | `music_minesweeper` |
-| Minigolf | arcade | yes | **none** | `music_minigolf` |
+| Minefield | arcade | yes | music_minesweeper | `music_minesweeper` |
 | Orbit | arcade | yes | music_orbit | `music_orbit` |
 | Pinball | arcade | yes | music_pinball | `music_pinball` |
-| Poker Squares | arcade | yes | **none** | `music_pokersquares` |
-| Racing | arcade | yes | **none** | `music_racing` |
 | Rainbow Bridge | arcade | yes | music_inkbridge | `music_inkbridge` |
 | Rally | arcade | yes | music_rally | `music_rally` |
-| Ricochet | arcade | practice only | **none** | `music_ricochet` |
+| Ricochet | arcade | yes | **none** | `music_ricochet` |
 | Roofbound | arcade | yes | music_flip | `music_flip` |
 | Rooftop Run | arcade | practice only | **none** | `music_rooftop` |
 | Scrumper | arcade | practice only | music_snip | `music_snip` |
 | Slice | arcade | yes | music_slice | `music_slice` |
-| Speed Pool | arcade | yes | **none** | `music_pool` |
 | Steady | arcade | practice only | **none** | `music_steady` |
+| Summit | arcade | yes | music_tripeaks | `music_tripeaks` |
 | Swerve | arcade | practice only | **none** | `music_swerve` |
 | Swish | arcade | yes | music_bintoss | `music_bintoss` |
 | Tempo | arcade | yes | music_beat | `music_beat` |
 | Tilt | arcade | yes | music_tilt | `music_tilt` |
-| TriPeaks | arcade | yes | **none** | `music_tripeaks` |
+| Top Bins | arcade | yes | music_freekick | `music_freekick` |
 | Wavefront | arcade | yes | music_wavefront | `music_wavefront` |
 
 ## Recorded cues
@@ -528,9 +537,9 @@ Grouped by game or screen.
 
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
 |---|---|---|---|---|---|---|---|---|
-| `music.home` | Home / join (/): none |  | loop | recorded sound | `music_home` | 60000 | music | `music_home` |
-| `music.practice` | Practice game list (/practice): none |  | loop | recorded sound | `music_practice` | 60000 | music | `music_practice` |
-| `music.lobby` | Room lobby: lobby_loop |  | loop | recorded sound | `lobby_loop` | loop | music | `lobby_loop` |
+| `music.home` | Home / join (/), and since 1 Nov 2026 the app-wide home bed: Play, Practice's list, Tournaments, Profile and the settings sheet: music_home (music_menu.mp3) |  | loop | recorded sound | `music_home` | 60000 | music | `music_home` |
+| `music.practice` | Practice game list (/practice): music_home (the home bed carries on; the slot is not started since 1 Nov 2026) |  | loop | recorded sound | `music_practice` | 60000 | music | `music_practice` |
+| `music.lobby` | Room lobby: lobby_loop (crossfades the home bed out over 400 ms; leaving the lobby for a tab page crossfades it out and the home bed resumes where it was) |  | loop | recorded sound | `lobby_loop` | loop | music | `lobby_loop` |
 | `music.intro` | Round intro (rooms and practice): intro_loop |  | loop | recorded sound | `intro_loop` | loop | music | `intro_loop` |
 | `music.standings` | Round result and standings: standings_loop |  | loop | recorded sound | `standings_loop` | loop | music | `standings_loop` |
 | `music.podium` | Podium / final result: podium_loop |  | loop | recorded sound | `podium_loop` | loop | music | `podium_loop` |
@@ -601,8 +610,17 @@ Grouped by game or screen.
 | `skyline.floors` | Floors streak (every 10): the clip reaches the moment's key tick [replays.md] |  | 0–2 per highlight | recorded sound | `skyline.floors` | 250 | replay | `skyline.floors` |
 | `skyline.streak` | Perfect streak: the clip reaches the moment's key tick [replays.md] |  | 0–2 per highlight | recorded sound | `skyline.streak` | 250 | replay | `skyline.streak` |
 | `skyline.wind-perfect` | Perfect drop in the wind: the clip reaches the moment's key tick [replays.md] |  | 0–2 per highlight | recorded sound | `skyline.wind-perfect` | 250 | replay | `skyline.wind-perfect` |
+| `bastion.tank-destroyed` | Tank destroyed: the clip reaches the moment's key tick [replays.md] |  | 0–2 per highlight | recorded sound | `bastion.tank-destroyed` | 250 | replay | `bastion.tank-destroyed` |
+| `bastion.weak-spots` | Weak-spot hits (every 5): the clip reaches the moment's key tick [replays.md] |  | 0–2 per highlight | recorded sound | `bastion.weak-spots` | 250 | replay | `bastion.weak-spots` |
+| `bastion.fast-reload` | Fast reload: the clip reaches the moment's key tick [replays.md] |  | 0–2 per highlight | recorded sound | `bastion.fast-reload` | 250 | replay | `bastion.fast-reload` |
 | `homerun.home-run` | Home run: the clip reaches the moment's key tick [replays.md] |  | 0–2 per highlight | recorded sound | `homerun.home-run` | 250 | replay | `homerun.home-run` |
 | `homerun.sign-hit` | A sign beyond the fence struck: the clip reaches the moment's key tick [replays.md] |  | 0–2 per highlight | recorded sound | `homerun.sign-hit` | 250 | replay | `homerun.sign-hit` |
+| `blockfall.line-clear` | Rows cleared: the clip reaches the moment's key tick [replays.md] |  | 0–2 per highlight | recorded sound | `blockfall.line-clear` | 250 | replay | `blockfall.line-clear` |
+| `blockfall.three-or-four` | Three or four rows at once: the clip reaches the moment's key tick [replays.md] |  | 0–2 per highlight | recorded sound | `blockfall.three-or-four` | 250 | replay | `blockfall.three-or-four` |
+| `blockfall.full-lines` | The core's lines reached: the clip reaches the moment's key tick [replays.md] |  | 0–2 per highlight | recorded sound | `blockfall.full-lines` | 250 | replay | `blockfall.full-lines` |
+| `alleyroll.ring-points` | A ball in a ring: the clip reaches the moment's key tick [replays.md] |  | 0–2 per highlight | recorded sound | `alleyroll.ring-points` | 250 | replay | `alleyroll.ring-points` |
+| `alleyroll.pocket-hit` | A 100 pocket: the clip reaches the moment's key tick [replays.md] |  | 0–2 per highlight | recorded sound | `alleyroll.pocket-hit` | 250 | replay | `alleyroll.pocket-hit` |
+| `alleyroll.full-points` | The core's ring points reached: the clip reaches the moment's key tick [replays.md] |  | 0–2 per highlight | recorded sound | `alleyroll.full-points` | 250 | replay | `alleyroll.full-points` |
 | `freekick.goal-scored` | Goal: the clip reaches the moment's key tick [replays.md] |  | 0–2 per highlight | recorded sound | `freekick.goal-scored` | 250 | replay | `freekick.goal-scored` |
 | `freekick.target-hit` | A target hit: the clip reaches the moment's key tick [replays.md] |  | 0–2 per highlight | recorded sound | `freekick.target-hit` | 250 | replay | `freekick.target-hit` |
 | `racing.clean-sector` | Clean sector: the clip reaches the moment's key tick [replays.md] |  | 0–2 per highlight | recorded sound | `racing.clean-sector` | 250 | replay | `racing.clean-sector` |
@@ -841,6 +859,15 @@ Grouped by game or screen.
 |---|---|---|---|---|---|---|---|---|
 | `numpyramid.solve` | the final board is solved [number.md] |  | 0–1 | recorded sound | `numpyramid.solve` | 1100 | success sting | `numpyramid.solve` |
 | `music.numpyramid` | Integer Pyramid round bed: music_number_2 (number bed shared with other games) |  | loop | recorded sound | `music_number_2` (shared) | 60000 | music | `music_number_numpyramid` |
+
+### Kakuro
+
+| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
+|---|---|---|---|---|---|---|---|---|
+| `kakuro.place` | a digit is entered in a square (not pencil marks, not clearing) [number.md] |  | 5–40 (per move) | recorded sound | `kakuro.place` | 80 | UI tap | `kakuro.place` |
+| `kakuro.run` | a run is full and adds to its clue with no repeat [number.md] |  | 5–40 (per move) | recorded sound | `kakuro.run` | 200 | game event | `kakuro.run` |
+| `kakuro.solve` | every run is right [number.md] |  | 0–1 | recorded sound | `kakuro.solve` | 1200 | success sting | `kakuro.solve` |
+| `music.kakuro` | Kakuro round bed: music_number_2 (number bed shared with other games) |  | loop | recorded sound | `music_number_2` (shared) | 60000 | music | `music_number_kakuro` |
 
 ### Operator
 
@@ -1084,6 +1111,15 @@ Grouped by game or screen.
 | `sudoku.solve` | The grid is complete and valid [logic.md] |  | 0–1 | recorded sound | `sudoku.solve` | 1200 | success sting | `sudoku.solve` |
 | `music.sudoku` | Box Six round bed: music_logic_1 (logic bed shared with other games) |  | loop | recorded sound | `music_logic_1` (shared) | 60000 | music | `music_logic_sudoku` |
 
+### Bridges
+
+| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
+|---|---|---|---|---|---|---|---|---|
+| `bridges.build` |  [grid.md] |  | 5–40 (per move) | recorded sound | `bridges.build` | 200 | game event | `bridges.build` |
+| `bridges.remove` |  [grid.md] |  | 5–40 (per move) | recorded sound | `bridges.remove` | 200 | game event | `bridges.remove` |
+| `bridges.solve` |  [grid.md] |  | 0–1 | recorded sound | `bridges.solve` | 1000 | success sting | `bridges.solve` |
+| `music.bridges` | Bridges round bed: music_logic_3 (logic bed shared with other games) |  | loop | recorded sound | `music_logic_3` (shared) | 60000 | music | `music_logic_bridges` |
+
 ### Colour Flood
 
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
@@ -1096,6 +1132,24 @@ Grouped by game or screen.
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
 |---|---|---|---|---|---|---|---|---|
 | `music.dig` | Dig round bed (retired, practice): music_logic_1 (logic bed shared with other games) |  | loop | recorded sound | `music_logic_1` (shared) | 60000 | music | `music_logic_dig` |
+
+### Fences
+
+| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
+|---|---|---|---|---|---|---|---|---|
+| `fences.draw` |  [grid.md] |  | 5–40 (per move) | recorded sound | `fences.draw` | 200 | game event | `fences.draw` |
+| `fences.cross` |  [grid.md] |  | 5–40 (per move) | recorded sound | `fences.cross` | 200 | game event | `fences.cross` |
+| `fences.solve` |  [grid.md] |  | 0–1 | recorded sound | `fences.solve` | 1000 | success sting | `fences.solve` |
+| `music.fences` | Fences round bed: music_logic_2 (logic bed shared with other games) |  | loop | recorded sound | `music_logic_2` (shared) | 60000 | music | `music_logic_fences` |
+
+### Fillomino
+
+| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
+|---|---|---|---|---|---|---|---|---|
+| `fillomino.place` |  [grid.md] |  | 5–40 (per move) | recorded sound | `fillomino.place` | 80 | UI tap | `fillomino.place` |
+| `fillomino.region` |  [grid.md] |  | 5–40 (per move) | recorded sound | `fillomino.region` | 200 | game event | `fillomino.region` |
+| `fillomino.solve` |  [grid.md] |  | 0–1 | recorded sound | `fillomino.solve` | 1000 | success sting | `fillomino.solve` |
+| `music.fillomino` | Fillomino round bed: music_logic_1 (logic bed shared with other games) |  | loop | recorded sound | `music_logic_1` (shared) | 60000 | music | `music_logic_fillomino` |
 
 ### Hanoi
 
@@ -1160,6 +1214,39 @@ Grouped by game or screen.
 | `trail.solve` | the trail is complete [number.md] |  | 0–1 | recorded sound | `trail.solve` | 1150 | success sting | `trail.solve` |
 | `music.trail` | Trail round bed: music_logic_3 (logic bed shared with other games) |  | loop | recorded sound | `music_logic_3` (shared) | 60000 | music | `music_logic_trail` |
 
+### Alley Roll
+
+| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
+|---|---|---|---|---|---|---|---|---|
+| `alleyroll.roll` | Alley Roll: A ball is rolled [arcade.md] |  | 9 | recorded sound | `arc_wood_knock` (shared) | 90 | game event | `alleyroll.roll` |
+| `alleyroll.rail` | Alley Roll: A rolling ball bounces off a rail [arcade.md] |  | 0–9 | recorded sound | `arc_bounce` (shared) | 80 | game event | `alleyroll.rail` |
+| `alleyroll.ramp` | Alley Roll: The ball leaves the ramp [arcade.md] |  | 9 | recorded sound | `arc_wood_knock` (shared) | 90 | game event | `alleyroll.ramp` |
+| `alleyroll.ring` | Alley Roll: The ball drops into a 10–40 ring [arcade.md] |  | 0–9 | recorded sound | `arc_fair_bucket` (shared) | 200 | game event | `alleyroll.ring` |
+| `alleyroll.fifty` | Alley Roll: The ball drops into the 50 [arcade.md] |  | 0–9 | recorded sound | `arc_fair_bell` (shared) | 400 | game event | `alleyroll.fifty` |
+| `alleyroll.pocket` | Alley Roll: The ball drops into a 100 pocket (with a success haptic) [arcade.md] |  | 0–9 | recorded sound | `arc_fair_sting` (shared) | 300 | game event | `alleyroll.pocket` |
+| `alleyroll.gutter` | Alley Roll: The ball misses every ring [arcade.md] |  | 0–9 | recorded sound | `arc_fair_thud` (shared) | 160 | game event | `alleyroll.gutter` |
+| `alleyroll.rolling` | Alley Roll [blockfall-alleyroll.md] |  | 5–40 (per move) | recorded sound | `alleyroll.rolling` | loop | game event | `alleyroll.rolling` |
+| `music.alleyroll` | Alley Roll: music_alleyroll (Swish's fairground bed, music_bintoss.mp3) |  | loop | recorded sound | `music_alleyroll` | loop | music | `music_alleyroll` |
+
+### Apex
+
+| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
+|---|---|---|---|---|---|---|---|---|
+| `racing.light` | Apex: A red start light comes on (racingRev 2; five a race) [arcade.md] |  | 5 | recorded sound | `racing.light` | 155 | game event | `racing.light` |
+| `racing.go` | Apex: The race starts (racingRev 2: lights out; racingRev 1: the first throttle) [arcade.md] |  | 1 | recorded sound | `racing.go` | 300 | game event | `racing.go` |
+| `racing.lap` | Apex: A lap is completed [arcade.md] |  | 1–2 | recorded sound | `racing.lap` | 480 | game event | `racing.lap` |
+| `racing.sector` | Apex: A clean sector [arcade.md] |  | 0–8 | recorded sound | `arc_retro_coin` (shared) | 200 | game event | `racing.sector` |
+| `racing.wall` | Apex: The car hits the tyre wall [arcade.md] |  | 0–10 | recorded sound | `racing.wall` | 200 | game event | `racing.wall` |
+| `racing.grass` | Apex: The car runs onto the grass or gravel [arcade.md] |  | 0–20 | recorded sound | `arc_bounce` (shared) | 150 | game event | `racing.grass` |
+| `racing.finish` | Apex: The finish line after lap 2 [arcade.md] |  | 0–1 | recorded sound | `racing.finish` | 480 | success sting | `racing.finish` |
+| `racing.idle` | Apex: On the grid until the car first moves (0.3) [batch6-sports-cards.md] |  | loop | recorded sound | `racing.idle` | loop | ambience | `racing.idle` |
+| `racing.drive` | Apex: While driving (0.3), pitched by speed: 0.7× at rest to 1.5× flat out [batch6-sports-cards.md] |  | loop | recorded sound | `racing.drive` | loop | ambience | `racing.drive` |
+| `racing.squeal` | Apex: Cornering at 90 % or more of the corner's balance speed (at most one per 1.5 s) [batch6-sports-cards.md] |  | 5–20 | recorded sound | `racing.squeal` | 1197 | game event | `racing.squeal` |
+| `racing.kerb` | Apex: While a wheel is on the kerb (0.25) [batch6-sports-cards.md] |  | loop | recorded sound | `racing.kerb` | loop | ambience | `racing.kerb` |
+| `racing.grassLoop` | Apex: While off on the grass or gravel (0.25; with its file racing.grass is not played) [batch6-sports-cards.md] |  | loop | recorded sound | `racing.grassLoop` | loop | ambience | `racing.grassLoop` |
+| `racing.roar` | Apex: The finish line after lap 2 [batch6-sports-cards.md] |  | 0–1 | recorded sound | `racing.roar` | 3477 | game event | `racing.roar` |
+| `music.racing` | Apex: music_racing |  | loop | recorded sound | `music_racing` | 56000 | music | `music_racing` |
+
 ### Ball Tracker
 
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
@@ -1177,6 +1264,36 @@ Grouped by game or screen.
 | `balltrack.wrong` | Ball Tracker: A ball reaches the wrong home [arcade.md] |  | 0–10 | recorded sound | `arc_wood_knock` (shared) | 90 | fail sting | `balltrack.wrong` |
 | `balltrack.switch` | Ball Tracker: A switch is flipped [arcade.md] |  | 20–60 | recorded sound | `arc_latch` (shared) | 100 | UI tap | `balltrack.switch` |
 | `music.balltrack` | Ball Tracker: music_balltrack |  | loop | recorded sound | `music_balltrack` | loop | music | `music_balltrack` |
+
+### Bastion
+
+| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
+|---|---|---|---|---|---|---|---|---|
+| `bastion.cannon` | Bastion: The cannon fires a shell [arcade.md] |  | 20–60 | recorded sound | `arc_blaster` (shared) | 420 | game event | `bastion.cannon` |
+| `bastion.dry` | Bastion: Fire with no shell ready (reloading or cooling): a dry click [arcade.md] |  | 0–10 | recorded sound | `tick` (shared) | 120 | game event | `bastion.dry` |
+| `bastion.reload` | Bastion: A reload starts (the magazine empty, or a swipe down) [arcade.md] |  | 7–15 | recorded sound | `arc_latch` (shared) | 500 | game event | `bastion.reload` |
+| `bastion.fastReload` | Bastion: A tap in the green: a fast reload [arcade.md] |  | 0–15 | recorded sound | `arc_retro_coin` (shared) | 350 | game event | `bastion.fastReload` |
+| `bastion.jam` | Bastion: A tap outside the green: the gun jams [arcade.md] |  | 0–10 | recorded sound | `arc_clank` (shared) | 450 | game event | `bastion.jam` |
+| `bastion.loaded` | Bastion: The reload finishes (five shells) [arcade.md] |  | 7–15 | recorded sound | `arc_latch` (shared) | 200 | game event | `bastion.loaded` |
+| `bastion.hit` | Bastion: A shell hits a tank's hull or turret [arcade.md] |  | 10–40 | recorded sound | `arc_retro_hit` (shared) | 250 | game event | `bastion.hit` |
+| `bastion.weak` | Bastion: A shell hits a tank's weak spot [arcade.md] |  | 0–36 | recorded sound | `arc_pickup` (shared) | 300 | game event | `bastion.weak` |
+| `bastion.kill` | Bastion: A tank is destroyed [arcade.md] |  | 0–29 | recorded sound | `arc_big_explode` (shared) | 900 | game event | `bastion.kill` |
+| `bastion.miss` | Bastion: A shell lands on open ground [arcade.md] |  | 0–40 | recorded sound | `arc_fair_thud` (shared) | 300 | fail sting | `bastion.miss` |
+| `bastion.baseHit` | Bastion: A tank reaches the wall and hits the base (with the base-hit haptic) [arcade.md] |  | 0–3 | recorded sound | `arc_crash` (shared) | 800 | game event | `bastion.baseHit` |
+| `bastion.wave` | Bastion: A wave rolls in [arcade.md] |  | 5 | recorded sound | `arc_horn` (shared) | 900 | game event | `bastion.wave` |
+
+### Blockfall
+
+| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
+|---|---|---|---|---|---|---|---|---|
+| `blockfall.turn` | Blockfall: The falling piece turns [arcade.md] |  | 20–80 | recorded sound | `arc_retro_blip` (shared) | 50 | game event | `blockfall.turn` |
+| `blockfall.hold` | Blockfall: A piece goes to the hold box [arcade.md] |  | 0–15 | recorded sound | `arc_retro_note` (shared) | 90 | game event | `blockfall.hold` |
+| `blockfall.lock` | Blockfall: A piece lands and locks without clearing a row [arcade.md] |  | 20–80 | recorded sound | `arc_retro_hit` (shared) | 120 | game event | `blockfall.lock` |
+| `blockfall.clear` | Blockfall: One or two rows clear [arcade.md] |  | 5–25 | recorded sound | `arc_retro_coin` (shared) | 120 | game event | `blockfall.clear` |
+| `blockfall.bigClear` | Blockfall: Three or four rows clear at once (with a success haptic) [arcade.md] |  | 0–6 | recorded sound | `arc_retro_pickup` (shared) | 100 | game event | `blockfall.bigClear` |
+| `blockfall.speedUp` | Blockfall: The speed rises (every 15 s) [arcade.md] |  | 3 | recorded sound | `arc_retro_note` (shared) | 90 | game event | `blockfall.speedUp` |
+| `blockfall.topOut` | Blockfall: The stack reaches the top and the run ends early [arcade.md] |  | 0–1 | recorded sound | `arc_retro_explode` (shared) | 260 | game event | `blockfall.topOut` |
+| `music.blockfall` | Blockfall: music_blockfall (Fission's Retro bed, music_burst.mp3) |  | loop | recorded sound | `music_blockfall` | loop | music | `music_blockfall` |
 
 ### Breaker
 
@@ -1221,6 +1338,47 @@ Grouped by game or screen.
 | `bubble.jokerLand` | Coral Pop: A joker bubble lands (bubbleRev 2+) [arcade.md] |  | 0–5 | recorded sound | `bubble.jokerLand` | 680 | game event | `bubble.jokerLand` |
 | `music.bubble` | Coral Pop: music_bubble |  | loop | recorded sound | `music_bubble` | loop | music | `music_bubble` |
 
+### Crazy Golf
+
+| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
+|---|---|---|---|---|---|---|---|---|
+| `minigolf.putt` | Crazy Golf: A putt is struck [arcade.md] |  | 5–30 | recorded sound | `minigolf.putt` | 80 | game event | `minigolf.putt` |
+| `minigolf.bounce` | Crazy Golf: The ball bounces off a rail, log or (golfRev 2) a windmill sail or castle wall (a boulder or planter plays minigolf.stone) [arcade.md] |  | 0–40 | recorded sound | `minigolf.bounce` | 60 | game event | `minigolf.bounce` |
+| `minigolf.water` | Crazy Golf: The ball goes in a pond [arcade.md] |  | 0–6 | recorded sound | `minigolf.water` | 200 | game event | `minigolf.water` |
+| `minigolf.holed` | Crazy Golf: The ball drops in the cup [arcade.md] |  | 0–5 | recorded sound | `minigolf.holed` | 200 | game event | `minigolf.holed` |
+| `minigolf.birdie` | Crazy Golf: A hole holed under par [arcade.md] |  | 0–5 | recorded sound | `minigolf.birdie` | 300 | game event | `minigolf.birdie` |
+| `minigolf.stone` | Crazy Golf: The ball bounces off a boulder or a planter [arcade.md] |  | 0–20 | recorded sound | `minigolf.stone` | 300 | game event | `minigolf.stone` |
+| `minigolf.roll` | Crazy Golf: While the ball rolls (0.32) [batch6-sports-cards.md] |  | loop | recorded sound | `minigolf.roll` | loop | ambience | `minigolf.roll` |
+| `minigolf.bush` | Crazy Golf: The ball strikes a planter's bush (with minigolf.stone; at most one per 120 ms) [batch6-sports-cards.md] |  | 0–10 | recorded sound | `minigolf.bush` | 439 | game event | `minigolf.bush` |
+| `music.minigolf` | Crazy Golf: music_minigolf |  | loop | recorded sound | `music_minigolf` | 52200 | music | `music_minigolf` |
+
+### Cue Ball
+
+| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
+|---|---|---|---|---|---|---|---|---|
+| `pool.click` | Cue Ball: Ball meets ball [arcade.md] |  | 10–60 | recorded sound | `pool.click` | 200 | game event | `pool.click` |
+| `pool.pocket` | Cue Ball: A ball drops into a pocket (the cue ball too): poolRev 1 on the drop, poolRev 2 as the rolling ball reaches the mouth, 10 ticks into its 18-tick drop (POOL_DROP_MOUTH_TICKS, pool.renderer.ts) (without its file: shared.celebrate.countDing, 0.9, as before) [batch6-sports-cards.md] |  | 5–12 | recorded sound | `pool.pocket` | 908 | game event | `pool.pocket` |
+| `pool.foul` | Cue Ball: A foul (without its file: shared.celebrate.zap, 0.7, as before) [batch6-sports-cards.md] |  | 0–5 | recorded sound | `pool.foul` | 484 | game event | `pool.foul` |
+| `pool.blackWin` | Cue Ball: The black potted after every spot (without its file: shared.celebrate.chime, as before) [batch6-sports-cards.md] |  | 0–1 | recorded sound | `pool.blackWin` | 1327 | game event | `pool.blackWin` |
+| `pool.chalk` | Cue Ball: The run starts [batch6-sports-cards.md] |  | 1 | recorded sound | `pool.chalk` | 733 | game event | `pool.chalk` |
+| `pool.cueSoft` | Cue Ball: A shot under 55 % of the cue's speed range [batch6-sports-cards.md] |  | 5–20 | recorded sound | `pool.cueSoft` | 400 | game event | `pool.cueSoft` |
+| `pool.cueHard` | Cue Ball: A power shot (55 % of the range or more) [batch6-sports-cards.md] |  | 2–15 | recorded sound | `pool.cueHard` | 400 | game event | `pool.cueHard` |
+| `pool.cushion` | Cue Ball: A ball hits a cushion (at most one per 60 ms) [batch6-sports-cards.md] |  | 10–60 | recorded sound | `pool.cushion` | 300 | game event | `pool.cushion` |
+| `music.pool` | Cue Ball: music_pool |  | loop | recorded sound | `music_pool` | 49100 | music | `music_pool` |
+
+### Curl Champ
+
+| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
+|---|---|---|---|---|---|---|---|---|
+| `curling.release` | Curl Champ: A stone released (curlRev 2: the swipe-up throw) [batch6-sports-cards.md] |  | 8 | recorded sound | `curling.release` | 484 | game event | `curling.release` |
+| `curling.slide` | Curl Champ: While a thrown stone travels (0.32) [batch6-sports-cards.md] |  | loop | recorded sound | `curling.slide` | loop | ambience | `curling.slide` |
+| `curling.sweep` | Curl Champ: While broom strokes keep coming on a travelling stone, held 1/3 s after the last (curlRev 1's sweeps and curlRev 2's brushing on either side; 0.32) [batch6-sports-cards.md] |  | loop | recorded sound | `curling.sweep` | loop | ambience | `curling.sweep` |
+| `curling.hit` | Curl Champ: Stone on stone (at most one per 80 ms) [batch6-sports-cards.md] |  | 0–15 | recorded sound | `curling.hit` | 400 | game event | `curling.hit` |
+| `curling.board` | Curl Champ: A moving stone goes out over a side or back board [batch6-sports-cards.md] |  | 0–5 | recorded sound | `curling.board` | 400 | game event | `curling.board` |
+| `curling.applause` | Curl Champ: A thrown stone settles in the 4-foot or knocks a stone out [batch6-sports-cards.md] |  | 0–8 | recorded sound | `curling.applause` | 1995 | game event | `curling.applause` |
+| `curling.shot` | Curl Champ: A thrown stone settles and takes shot (nearest the button) [batch6-sports-cards.md] |  | 0–8 | recorded sound | `curling.shot` | 998 | game event | `curling.shot` |
+| `music.curling` | Curl Champ: music_curling |  | loop | recorded sound | `music_curling` | 39300 | music | `music_curling` |
+
 ### Fission
 
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
@@ -1244,6 +1402,18 @@ Grouped by game or screen.
 | `burst.shot` | Fission: A shot is fired (at most one per 70 ms, two at once) [arcade.md] |  | 50–200 | recorded sound | `arc_retro_blip` (shared) | 50 | game event | `burst.shot` |
 | `music.burst` | Fission: music_burst |  | loop | recorded sound | `music_burst` | loop | music | `music_burst` |
 
+### Five Hands
+
+| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
+|---|---|---|---|---|---|---|---|---|
+| `fivehands.place` | Five Hands: A card placed that makes no new hand on its row [arcade.md] |  | 10–20 | recorded sound | `fivehands.place` | 300 | UI tap | `fivehands.place` |
+| `fivehands.hand` | Five Hands: A card placed makes a pair, two pair or three of a kind on its row [arcade.md] |  | 3–10 | recorded sound | `fivehands.hand` | 484 | game event | `fivehands.hand` |
+| `fivehands.bigHand` | Five Hands: A card placed makes a straight or better on its row [arcade.md] |  | 0–3 | recorded sound | `fivehands.bigHand` | 1122 | game event | `fivehands.bigHand` |
+| `fivehands.invalid` | Five Hands: A tap on a full row [arcade.md] |  | 0–5 | recorded sound | `fivehands.invalid` | 434 | game event | `fivehands.invalid` |
+| `fivehands.shuffle` | Five Hands: The run starts [batch6-sports-cards.md] |  | 1 | recorded sound | `fivehands.shuffle` | 1093 | game event | `fivehands.shuffle` |
+| `fivehands.final` | Five Hands: The rows scored: every card placed (without its file: complete, as before), or the buzzer [batch6-sports-cards.md] |  | 1 | recorded sound | `fivehands.final` | 983 | game event | `fivehands.final` |
+| `music.fivehands` | Five Hands: music_fivehands (Full House's bed, music_pokersquares.mp3) |  | loop | recorded sound | `music_fivehands` | 55200 | music | `music_fivehands` |
+
 ### Flightpath
 
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
@@ -1258,16 +1428,30 @@ Grouped by game or screen.
 | `bullseye.perfect` | Flightpath: Every arrow in the 10 (once per run) [arcade.md] |  | 0–1 | recorded sound | `arc_fair_sting` (shared) | 300 | success sting | `bullseye.perfect` |
 | `music.bullseye` | Flightpath: music_bullseye |  | loop | recorded sound | `music_bullseye` | loop | music | `music_bullseye` |
 
-### Free Kick
+### Free Cell
 
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
 |---|---|---|---|---|---|---|---|---|
-| `freekick.kick` | Free Kick: The ball is struck [arcade.md] |  | 10 | recorded sound | `arc_fair_thud` (shared) | 150 | game event | `freekick.kick` |
-| `freekick.post` | Free Kick: The ball hits a post or the bar [arcade.md] |  | 0–5 | recorded sound | `arc_clank` (shared) | 200 | game event | `freekick.post` |
-| `freekick.save` | Free Kick: The keeper saves (the wall's block, quieter) [arcade.md] |  | 0–10 | recorded sound | `arc_wood_knock` (shared) | 200 | game event | `freekick.save` |
-| `freekick.goal` | Free Kick: A goal [arcade.md] |  | 0–10 | recorded sound | `arc_fair_sting` (shared) | 480 | game event | `freekick.goal` |
-| `freekick.target` | Free Kick: A target hit [arcade.md] |  | 0–4 | recorded sound | `arc_fair_bell` (shared) | 480 | game event | `freekick.target` |
-| `freekick.net` | Free Kick: The ball hits the net [arcade.md] |  | 0–10 | recorded sound | `arc_bounce` (shared) | 200 | game event | `freekick.net` |
+| `freecell.place` | Free Cell: A move made (a tap or a drag) [arcade.md] |  | 40–120 | recorded sound | `freecell.place` | 300 | UI tap | `freecell.place` |
+| `freecell.home` | Free Cell: A card goes home (one auto move, or the player's) [arcade.md] |  | 10–52 | recorded sound | `freecell.home` | 406 | game event | `freecell.home` |
+| `freecell.cascade` | Free Cell: Two or more cards go home on their own at once [arcade.md] |  | 2–10 | recorded sound | `freecell.cascade` | 948 | game event | `freecell.cascade` |
+| `freecell.invalid` | Free Cell: A tap that moves nothing [arcade.md] |  | 0–10 | recorded sound | `freecell.invalid` | 434 | game event | `freecell.invalid` |
+| `freecell.win` | Free Cell: Every card home [arcade.md] |  | 0–1 | recorded sound | `freecell.win` | 1362 | game event | `freecell.win` |
+| `freecell.pick` | Free Cell: A card lifted as a drag starts (the stage; at most one per 60 ms) [batch6-sports-cards.md] |  | 10–60 | recorded sound | `freecell.pick` | 334 | game event | `freecell.pick` |
+| `freecell.shuffle` | Free Cell: The run starts [batch6-sports-cards.md] |  | 1 | recorded sound | `freecell.shuffle` | 1093 | game event | `freecell.shuffle` |
+| `music.freecell` | Free Cell: music_freecell |  | loop | recorded sound | `music_freecell` | 47400 | music | `music_freecell` |
+
+### Full House
+
+| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
+|---|---|---|---|---|---|---|---|---|
+| `pokersquares.place` | Full House: A card placed that makes no new hand [arcade.md] |  | 10–25 | recorded sound | `pokersquares.place` | 300 | UI tap | `pokersquares.place` |
+| `pokersquares.hand` | Full House: A card placed makes a pair, two pair or three of a kind on a line [arcade.md] |  | 5–15 | recorded sound | `pokersquares.hand` | 484 | game event | `pokersquares.hand` |
+| `pokersquares.bigHand` | Full House: A card placed makes a straight or better on a line [arcade.md] |  | 0–5 | recorded sound | `pokersquares.bigHand` | 1122 | game event | `pokersquares.bigHand` |
+| `pokersquares.invalid` | Full House: A tap on a filled square [arcade.md] |  | 0–5 | recorded sound | `pokersquares.invalid` | 434 | game event | `pokersquares.invalid` |
+| `pokersquares.shuffle` | Full House: The run starts [batch6-sports-cards.md] |  | 1 | recorded sound | `pokersquares.shuffle` | 1093 | game event | `pokersquares.shuffle` |
+| `pokersquares.final` | Full House: The grid scored (the last card placed, or the buzzer) [batch6-sports-cards.md] |  | 1 | recorded sound | `pokersquares.final` | 983 | game event | `pokersquares.final` |
+| `music.pokersquares` | Full House: music_pokersquares |  | loop | recorded sound | `music_pokersquares` | 55200 | music | `music_pokersquares` |
 
 ### Gemstone
 
@@ -1333,16 +1517,22 @@ Grouped by game or screen.
 | `skyline.miss` | High Rise: A block misses the tower [arcade.md] |  | 0–1 | recorded sound | `arc_crash` (shared) | 200 | fail sting | `skyline.miss` |
 | `music.skyline` | High Rise: music_skyline |  | loop | recorded sound | `music_skyline` | loop | music | `music_skyline` |
 
-### Home Run Derby
+### Home Run
 
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
 |---|---|---|---|---|---|---|---|---|
-| `homerun.swing` | Home Run Derby: A swing starts [arcade.md] |  | 10 | recorded sound | `arc_hover_tap` (shared) | 120 | game event | `homerun.swing` |
-| `homerun.crack` | Home Run Derby: Bat meets ball (a fair ball or a home run) [arcade.md] |  | 5–10 | recorded sound | `arc_wood_knock` (shared) | 200 | game event | `homerun.crack` |
-| `homerun.homer` | Home Run Derby: A home run [arcade.md] |  | 0–10 | recorded sound | `arc_fair_sting` (shared) | 480 | game event | `homerun.homer` |
-| `homerun.sign` | Home Run Derby: A sign beyond the fence is struck [arcade.md] |  | 0–4 | recorded sound | `arc_fair_bell` (shared) | 480 | game event | `homerun.sign` |
-| `homerun.foul` | Home Run Derby: A foul ball [arcade.md] |  | 0–5 | recorded sound | `arc_bounce` (shared) | 150 | game event | `homerun.foul` |
-| `homerun.strike` | Home Run Derby: A swing and a miss, or a pitch taken [arcade.md] |  | 0–10 | recorded sound | `arc_fair_thud` (shared) | 150 | game event | `homerun.strike` |
+| `homerun.swing` | Home Run: A swing starts [arcade.md] |  | 10 | recorded sound | `arc_hover_tap` (shared) | 120 | game event | `homerun.swing` |
+| `homerun.crack` | Home Run: Bat meets ball (a fair ball or a home run) [arcade.md] |  | 5–10 | recorded sound | `homerun.crack` | 200 | game event | `homerun.crack` |
+| `homerun.homer` | Home Run: A home run [arcade.md] |  | 0–10 | recorded sound | `homerun.homer` | 480 | game event | `homerun.homer` |
+| `homerun.sign` | Home Run: A sign beyond the fence is struck [arcade.md] |  | 0–4 | recorded sound | `homerun.sign` | 480 | game event | `homerun.sign` |
+| `homerun.foul` | Home Run: A foul ball, or weak contact (a fair ball under 400 per mille, once the slot has its file) [arcade.md] |  | 0–5 | recorded sound | `homerun.foul` | 150 | game event | `homerun.foul` |
+| `homerun.strike` | Home Run: The ball in the catcher's mitt: a swing and a miss, or a pitch taken [arcade.md] |  | 0–10 | recorded sound | `homerun.strike` | 150 | game event | `homerun.strike` |
+| `homerun.crowd` | Home Run: While the run is live (0.26) [batch6-sports-cards.md] |  | loop | recorded sound | `homerun.crowd` | loop | ambience | `homerun.crowd` |
+| `homerun.pitch` | Home Run: The pitcher releases the ball [batch6-sports-cards.md] |  | 10 | recorded sound | `homerun.pitch` | 259 | game event | `homerun.pitch` |
+| `homerun.whiff` | Home Run: A swing and a miss (with homerun.strike, the mitt) [batch6-sports-cards.md] |  | 0–10 | recorded sound | `homerun.whiff` | 400 | game event | `homerun.whiff` |
+| `homerun.roar` | Home Run: A home run [batch6-sports-cards.md] |  | 0–10 | recorded sound | `homerun.roar` | 3477 | game event | `homerun.roar` |
+| `homerun.groan` | Home Run: A fair ball within 30 ft of the fence [batch6-sports-cards.md] |  | 0–5 | recorded sound | `homerun.groan` | 1995 | game event | `homerun.groan` |
+| `music.homerun` | Home Run: music_homerun |  | loop | recorded sound | `music_homerun` | 52000 | music | `music_homerun` |
 
 ### Hover
 
@@ -1385,6 +1575,18 @@ Grouped by game or screen.
 | `junction.complete` | Junction: The run is completed [arcade.md] |  | 0–1 | recorded sound | `stage_complete` (shared) | 160 | success sting | `junction.complete` |
 | `music.junction` | Junction (retired, practice): music_junction |  | loop | recorded sound | `music_junction` | loop | music | `music_junction` |
 
+### Mahjong Solitaire
+
+| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
+|---|---|---|---|---|---|---|---|---|
+| `mahjong.blocked` | Mahjong Solitaire: A tap on a covered or hemmed-in tile [arcade.md] |  | 0–10 | recorded sound | `mahjong.blocked` | 300 | game event | `mahjong.blocked` |
+| `mahjong.match` | Mahjong Solitaire: A pair is taken away (without its file: shared.celebrate.countDing, 0.7, as before) [batch6-sports-cards.md] |  | 10–36 | recorded sound | `mahjong.match` | 359 | game event | `mahjong.match` |
+| `mahjong.shuffle` | Mahjong Solitaire: Shuffle (without its file: shared.celebrate.zap, as before) [batch6-sports-cards.md] |  | 0–3 | recorded sound | `mahjong.shuffle` | 1043 | game event | `mahjong.shuffle` |
+| `mahjong.clear` | Mahjong Solitaire: The board cleared (without its file: shared.celebrate.chime, as before) [batch6-sports-cards.md] |  | 0–1 | recorded sound | `mahjong.clear` | 1806 | game event | `mahjong.clear` |
+| `mahjong.select` | Mahjong Solitaire: A free tile selected [batch6-sports-cards.md] |  | 20–40 | recorded sound | `mahjong.select` | 200 | UI tap | `mahjong.select` |
+| `mahjong.invalid` | Mahjong Solitaire: A second free tile that doesn't match (the selection moves to it) [batch6-sports-cards.md] |  | 0–10 | recorded sound | `mahjong.invalid` | 300 | game event | `mahjong.invalid` |
+| `music.mahjong` | Mahjong Solitaire: music_mahjong |  | loop | recorded sound | `music_mahjong` | 48000 | music | `music_mahjong` |
+
 ### Meteor
 
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
@@ -1402,15 +1604,17 @@ Grouped by game or screen.
 | `snake.showerAlarm` | Meteor: A meteor shower's three shadows appear (snakeRev 3+) [arcade.md] |  | 1–3 | recorded sound | `arc_retro_note` (shared) | 180 | game event | `snake.showerAlarm` |
 | `music.snake` | Meteor: music_eatgrow |  | loop | recorded sound | `music_eatgrow` | loop | music | `music_eatgrow` |
 
-### Minigolf
+### Minefield
 
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
 |---|---|---|---|---|---|---|---|---|
-| `minigolf.putt` | Minigolf: A putt is struck [arcade.md] |  | 5–30 | recorded sound | `arc_wood_knock` (shared) | 80 | game event | `minigolf.putt` |
-| `minigolf.bounce` | Minigolf: The ball bounces off a rail, log, boulder or planter [arcade.md] |  | 0–40 | recorded sound | `arc_bounce` (shared) | 60 | game event | `minigolf.bounce` |
-| `minigolf.water` | Minigolf: The ball goes in a pond [arcade.md] |  | 0–6 | recorded sound | `arc_sea_pop` (shared) | 200 | game event | `minigolf.water` |
-| `minigolf.holed` | Minigolf: The ball drops in the cup [arcade.md] |  | 0–5 | recorded sound | `arc_marble_clink` (shared) | 200 | game event | `minigolf.holed` |
-| `minigolf.birdie` | Minigolf: A hole holed under par [arcade.md] |  | 0–5 | recorded sound | `arc_fair_bell` (shared) | 300 | game event | `minigolf.birdie` |
+| `minesweeper.reveal` | Minefield: A tap opens a square (or a few) [arcade.md] |  | 20–80 | recorded sound | `minesweeper.reveal` | 80 | game event | `minesweeper.reveal` |
+| `minesweeper.cascade` | Minefield: A tap opens six or more squares (an area opens) [arcade.md] |  | 2–10 | recorded sound | `minesweeper.cascade` | 604 | game event | `minesweeper.cascade` |
+| `minesweeper.flag` | Minefield: A flag is placed [arcade.md] |  | 5–25 | recorded sound | `minesweeper.flag` | 300 | game event | `minesweeper.flag` |
+| `minesweeper.hit` | Minefield: A mine is hit (without its file: shared.celebrate.zap, as before) [batch6-sports-cards.md] |  | 0–5 | recorded sound | `minesweeper.hit` | 474 | game event | `minesweeper.hit` |
+| `minesweeper.clear` | Minefield: Every safe square open (without its file: shared.celebrate.chime, as before) [batch6-sports-cards.md] |  | 0–1 | recorded sound | `minesweeper.clear` | 998 | game event | `minesweeper.clear` |
+| `minesweeper.unflag` | Minefield: A flag is lifted [batch6-sports-cards.md] |  | 0–10 | recorded sound | `minesweeper.unflag` | 350 | game event | `minesweeper.unflag` |
+| `music.minesweeper` | Minefield: music_minesweeper |  | loop | recorded sound | `music_minesweeper` | 55900 | music | `music_minesweeper` |
 
 ### Orbit
 
@@ -1436,6 +1640,7 @@ Grouped by game or screen.
 | `pinball.bankReset` | A dropped target bank pops back up [arcade-effects.md] | All four drop targets reappear | 1–5 | recorded sound | `arc_latch` (shared) | 250 | game event | `pinball.bankReset` |
 | `pinball.lastBall` | The last ball is launched [arcade-effects.md] | BALL 3/3 in the HUD | 0–1 | recorded sound | `pinball.lastBall` | 800 | game event | `pinball.lastBall` |
 | `pinball.gameOver` | Every ball drained before time (its file stands in for pinball.ballLost on that drain) [arcade-effects.md] | GAME OVER, the table lights go out | 0–1 | recorded sound | `pinball.gameOver` | 1500 | fail sting | `pinball.gameOver` |
+| `pinball.joulz` | J-O-U-L-Z completed (pinRev 4+; its file stands in for pinball.bankComplete on that frame; 1 Nov 2026) [arcade-effects.md] | JOULZ in gold, large and centred, and the border flashing gold three times (0.15 s on, 0.15 s off) | 0–4 | recorded sound | `pinball.joulz` | 1200 | game event | `pinball.joulz` |
 | `pinball.start` | Pinball: The run starts [arcade.md] |  | 1 | recorded sound | `pinball.start` | 120 | game event | `pinball.start` |
 | `pinball.ballLost` | Pinball: A ball drains (left out on the last drain before time once pinball.gameOver has a file) [arcade.md] |  | 1–3 | recorded sound | `pinball.ballLost` | 260 | fail sting | `pinball.ballLost` |
 | `pinball.launch` | Pinball: A ball is launched into play [arcade.md] |  | 1–4 | recorded sound | `pinball.launch` | 80 | game event | `pinball.launch` |
@@ -1447,17 +1652,6 @@ Grouped by game or screen.
 | `pinball.spinner` | Pinball: The spinner turns [arcade.md] |  | 5–30 | recorded sound | `pinball.spinner` | 50 | game event | `pinball.spinner` |
 | `pinball.flipper` | Pinball: A flipper is raised (each side once per press) [arcade.md] |  | 50–150 | recorded sound | `pinball.flipper` | 50 | UI tap | `pinball.flipper` |
 | `music.pinball` | Pinball (arcade): music_rally (borrowed from Rally) |  | loop | recorded sound | `music_pinball` | 60000 | music | `music_pinball` |
-
-### Racing
-
-| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
-|---|---|---|---|---|---|---|---|---|
-| `racing.go` | Racing: The race starts [arcade.md] |  | 1 | recorded sound | `arc_horn` (shared) | 300 | game event | `racing.go` |
-| `racing.lap` | Racing: A lap is completed [arcade.md] |  | 1–2 | recorded sound | `arc_fair_bell` (shared) | 480 | game event | `racing.lap` |
-| `racing.sector` | Racing: A clean sector [arcade.md] |  | 0–8 | recorded sound | `arc_retro_coin` (shared) | 200 | game event | `racing.sector` |
-| `racing.wall` | Racing: The car hits the tyre wall [arcade.md] |  | 0–10 | recorded sound | `arc_crash` (shared) | 200 | game event | `racing.wall` |
-| `racing.grass` | Racing: The car runs onto the grass or gravel [arcade.md] |  | 0–20 | recorded sound | `arc_bounce` (shared) | 150 | game event | `racing.grass` |
-| `racing.finish` | Racing: The finish line after lap 2 [arcade.md] |  | 0–1 | recorded sound | `arc_fair_sting` (shared) | 480 | success sting | `racing.finish` |
 
 ### Rainbow Bridge
 
@@ -1497,6 +1691,19 @@ Grouped by game or screen.
 | `rally.goldHit` | Rally: The gold ball is returned [arcade.md] |  | 3–10 | recorded sound | `arc_retro_note` (shared) | 90 | game event | `rally.goldHit` |
 | `rally.hit` | Rally: The ball is returned [arcade.md] |  | 30–80 | recorded sound | `arc_retro_blip` (shared) | 50 | game event | `rally.hit` |
 | `music.rally` | Rally: music_rally |  | loop | recorded sound | `music_rally` | loop | music | `music_rally` |
+
+### Ricochet
+
+| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
+|---|---|---|---|---|---|---|---|---|
+| `ricochet.heightStreak` | Every 50 m climbed (ricoRev 2) [arcade-effects.md] | "50 m" streak banner | 1–7 | recorded sound | `ricochet.heightStreak` | 480 | game event | `ricochet.heightStreak` |
+| `ricochet.fullHeight` | The core's full height (241 m) reached (ricoRev 2) [arcade-effects.md] | FULL HEIGHT! banner | 0–1 | recorded sound | `ricochet.fullHeight` | 840 | game event | `ricochet.fullHeight` |
+| `ricochet.leap` | Ricochet: The ninja leaps off a wall (ricoRev 2) [arcade.md] |  | 80–140 | recorded sound | `arc_gravity_flip` (shared) | 330 | game event | `ricochet.leap` |
+| `ricochet.doubleJump` | Ricochet: The double jump in the air (ricoRev 2) [arcade.md] |  | 10–60 | recorded sound | `arc_gravity_flip` (shared) | 330 | game event | `ricochet.doubleJump` |
+| `ricochet.hit` | Ricochet: A katana or shuriken knocks the ninja down (ricoRev 2) [arcade.md] |  | 0–20 | recorded sound | `arc_crash` (shared) | 200 | game event | `ricochet.hit` |
+| `ricochet.coin` | Ricochet: A coin taken (ricoRev 2) [arcade.md] |  | 5–60 | recorded sound | `arc_pickup` (shared) | 100 | game event | `ricochet.coin` |
+| `ricochet.lantern` | Ricochet: A gold lantern taken (ricoRev 2) [arcade.md] |  | 0–10 | recorded sound | `combo` (shared) | 120 | game event | `ricochet.lantern` |
+| `ricochet.scroll` | Ricochet: A scroll taken (ricoRev 2) [arcade.md] |  | 0–4 | recorded sound | `correct` (shared) | 120 | game event | `ricochet.scroll` |
 
 ### Roofbound
 
@@ -1553,6 +1760,18 @@ Grouped by game or screen.
 | `slice.comboUp` | Slice: A combo grows past 1 [arcade.md] |  | 5–20 | recorded sound | `arc_slice_combo` (shared) | 721 | game event | `slice.comboUp` |
 | `music.slice` | Slice: music_slice |  | loop | recorded sound | `music_slice` | loop | music | `music_slice` |
 
+### Summit
+
+| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
+|---|---|---|---|---|---|---|---|---|
+| `tripeaks.run` | Summit: A card played to the discard; with its own file a semitone higher for each card of the run (an octave at most) [arcade.md] |  | 20–40 | recorded sound | `tripeaks.run` | 329 | game event | `tripeaks.run` |
+| `tripeaks.deal` | Summit: The stock's next card turned [arcade.md] |  | 5–24 | recorded sound | `tripeaks.deal` | 220 | game event | `tripeaks.deal` |
+| `tripeaks.peak` | Summit: A peak cleared [arcade.md] |  | 0–3 | recorded sound | `tripeaks.peak` | 998 | game event | `tripeaks.peak` |
+| `tripeaks.invalid` | Summit: A tap on a card that can't be played [arcade.md] |  | 0–10 | recorded sound | `tripeaks.invalid` | 434 | game event | `tripeaks.invalid` |
+| `tripeaks.clear` | Summit: Every peak card cleared [arcade.md] |  | 0–1 | recorded sound | `tripeaks.clear` | 1666 | game event | `tripeaks.clear` |
+| `tripeaks.shuffle` | Summit: The run starts [batch6-sports-cards.md] |  | 1 | recorded sound | `tripeaks.shuffle` | 1093 | game event | `tripeaks.shuffle` |
+| `music.tripeaks` | Summit: music_tripeaks |  | loop | recorded sound | `music_tripeaks` | 55700 | music | `music_tripeaks` |
+
 ### Swish
 
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
@@ -1601,6 +1820,23 @@ Grouped by game or screen.
 | `tilt.knock` | Tilt: The marble knocks a wall (at most one per 80 ms) [arcade.md] |  | 20–80 | recorded sound | `arc_wood_knock` (shared) | 90 | game event | `tilt.knock` |
 | `music.tilt` | Tilt: music_tilt |  | loop | recorded sound | `music_tilt` | loop | music | `music_tilt` |
 
+### Top Bins
+
+| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
+|---|---|---|---|---|---|---|---|---|
+| `freekick.kick` | Top Bins: The ball is struck [arcade.md] |  | 10 | recorded sound | `freekick.kick` | 150 | game event | `freekick.kick` |
+| `freekick.post` | Top Bins: The ball hits a post or the bar [arcade.md] |  | 0–5 | recorded sound | `freekick.post` | 200 | game event | `freekick.post` |
+| `freekick.save` | Top Bins: The keeper saves [arcade.md] |  | 0–10 | recorded sound | `freekick.save` | 200 | game event | `freekick.save` |
+| `freekick.goal` | Top Bins: A goal (its file is the net; with it, freekick.net is not played) [arcade.md] |  | 0–10 | recorded sound | `freekick.goal` | 480 | game event | `freekick.goal` |
+| `freekick.target` | Top Bins: A target hit [arcade.md] |  | 0–4 | recorded sound | `freekick.target` | 480 | game event | `freekick.target` |
+| `freekick.net` | Top Bins: The ball hits the net [arcade.md] |  | 0–10 | recorded sound | `arc_bounce` (shared) | 200 | game event | `freekick.net` |
+| `freekick.wall` | Top Bins: The wall blocks the kick [arcade.md] |  | 0–10 | recorded sound | `freekick.wall` | 300 | game event | `freekick.wall` |
+| `freekick.crowd` | Top Bins: While the run is live (0.26) [batch6-sports-cards.md] |  | loop | recorded sound | `freekick.crowd` | loop | ambience | `freekick.crowd` |
+| `freekick.whistle` | Top Bins: The referee's whistle before each kick [batch6-sports-cards.md] |  | 10 | recorded sound | `freekick.whistle` | 683 | game event | `freekick.whistle` |
+| `freekick.roar` | Top Bins: A goal [batch6-sports-cards.md] |  | 0–10 | recorded sound | `freekick.roar` | 3477 | game event | `freekick.roar` |
+| `freekick.groan` | Top Bins: A save, or a kick off the woodwork and wide [batch6-sports-cards.md] |  | 0–8 | recorded sound | `freekick.groan` | 1995 | game event | `freekick.groan` |
+| `music.freekick` | Top Bins: music_freekick |  | loop | recorded sound | `music_freekick` | 53700 | music | `music_freekick` |
+
 ### Wavefront
 
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
@@ -1636,18 +1872,18 @@ loops are not measured there). Files in `public/sounds/` are listed once per slo
 |---|---|---|---|
 | `player_joined` | effects | `player_joined` | 110 |
 | `round_start` | effects | `round_start` | 180 |
-| `tick` | effects | `tick`, `numline.sweepTick`, `symscan.revealGrid` | 55 |
+| `tick` | effects | `tick`, `numline.sweepTick`, `symscan.revealGrid`, `bastion.dry` | 55 |
 | `countdown_step` | effects | `countdown_step`, `balltrack.countdown` | 251 |
 | `place` | effects | `place`, `tendrop.apply` | 50 |
 | `move` | effects | `move`, `shared.timelapse.move` | 40 |
-| `correct` | effects | `correct` | 120 |
+| `correct` | effects | `correct`, `ricochet.scroll` | 120 |
 | `wrong` | effects | `wrong` | 140 |
 | `lock` | effects | `lock` | 90 |
 | `round_won` | effects | `round_won` | 680 |
 | `podium_fanfare` | effects | `podium_fanfare` | 350 |
 | `stage_complete` | effects | `stage_complete`, `cross.crossed`, `junction.complete` | 160 |
 | `complete` | effects | `complete` | 200 |
-| `combo` | effects | `combo` | 90 |
+| `combo` | effects | `combo`, `ricochet.lantern` | 90 |
 | `warning_10` | effects | `warning_10` | 10000 |
 | `warning_tick` | effects | `warning_tick` | 120 |
 | `warning_tick_final` | effects | `warning_tick_final` | 250 |
@@ -1655,37 +1891,37 @@ loops are not measured there). Files in `public/sounds/` are listed once per slo
 | `time_up` | effects | `time_up` | 250 |
 | `reveal_score` | effects | `reveal_score` | 140 |
 | `reaction` | effects | `reaction` | 100 |
-| `arc_crash` | effects | `swing.crash`, `skyline.miss`, `junction.crash`, `orbit.crash`, `racing.wall`, `flip.crash`, `slice.bomb`, `tilt.pitFall`, `tilt.caught` | 200 |
-| `arc_pickup` | effects | `swing.starTaken`, `orbit.checkpoint`, `flip.starTaken`, `flip.trailStar` | 100 |
+| `arc_crash` | effects | `bastion.baseHit`, `swing.crash`, `skyline.miss`, `junction.crash`, `orbit.crash`, `ricochet.hit`, `flip.crash`, `slice.bomb`, `tilt.pitFall`, `tilt.caught` | 200 |
+| `arc_pickup` | effects | `bastion.weak`, `swing.starTaken`, `orbit.checkpoint`, `ricochet.coin`, `flip.starTaken`, `flip.trailStar` | 100 |
 | `arc_space_ambience` | effects | `orbit.ambience` | loop |
 | `arc_thruster` | effects | `orbit.launch` | 160 |
 | `arc_lose_life` | effects | `bubble.reefLost`, `burst.lifeLost`, `cross.lifeLost`, `wavefront.lifeLost` | 220 |
-| `arc_bounce` | effects | `freekick.net`, `homerun.foul`, `minigolf.bounce`, `racing.grass`, `rally.bumperBounce`, `snip.springBounce`, `snip.hook`, `bintoss.missBounce`, `bintoss.wobble` | 80 |
-| `arc_retro_note` | effects | `hover.gate`, `snake.rockWarn`, `snake.showerAlarm`, `rally.goldHit` | 90 |
-| `arc_retro_pickup` | effects | `breaker.powerUp`, `burst.powerUp`, `wavefront.pierce` | 100 |
-| `arc_retro_blip` | effects | `breaker.relaunch`, `breaker.paddle`, `burst.shot`, `snake.eat`, `rally.hit`, `wavefront.dive` | 50 |
-| `arc_retro_coin` | effects | `breaker.start`, `breaker.fireballLit`, `burst.start`, `burst.freezeCaught`, `skyline.streakDrop`, `hover.start`, `hover.star`, `snake.start`, `racing.sector`, `rally.start`, `beat.start` | 120 |
-| `arc_retro_explode` | effects | `whack.bomb`, `breaker.ballLost`, `burst.gameOver`, `hover.crash`, `snake.dead`, `rally.dead` | 260 |
-| `arc_retro_hit` | effects | `breaker.brickHit`, `burst.hit`, `snake.rockLand`, `wavefront.armourHit`, `wavefront.bossHit` | 120 |
-| `arc_fair_thud` | effects | `bullseye.thud`, `freekick.kick`, `homerun.strike` | 160 |
-| `arc_fair_bell` | effects | `bullseye.bull`, `freekick.target`, `homerun.sign`, `minigolf.birdie`, `racing.lap`, `bintoss.allBaskets` | 400 |
-| `arc_fair_bucket` | effects | `bintoss.basket` | 200 |
-| `arc_fair_sting` | effects | `bullseye.perfect`, `freekick.goal`, `homerun.homer`, `racing.finish`, `bintoss.perfect` | 300 |
+| `arc_bounce` | effects | `alleyroll.rail`, `racing.grass`, `rally.bumperBounce`, `snip.springBounce`, `snip.hook`, `bintoss.missBounce`, `bintoss.wobble`, `freekick.net` | 80 |
+| `arc_retro_note` | effects | `blockfall.hold`, `blockfall.speedUp`, `hover.gate`, `snake.rockWarn`, `snake.showerAlarm`, `rally.goldHit` | 90 |
+| `arc_retro_pickup` | effects | `blockfall.bigClear`, `breaker.powerUp`, `burst.powerUp`, `wavefront.pierce` | 100 |
+| `arc_retro_blip` | effects | `blockfall.turn`, `breaker.relaunch`, `breaker.paddle`, `burst.shot`, `snake.eat`, `rally.hit`, `wavefront.dive` | 50 |
+| `arc_retro_coin` | effects | `racing.sector`, `bastion.fastReload`, `blockfall.clear`, `breaker.start`, `breaker.fireballLit`, `burst.start`, `burst.freezeCaught`, `skyline.streakDrop`, `hover.start`, `hover.star`, `snake.start`, `rally.start`, `beat.start` | 120 |
+| `arc_retro_explode` | effects | `whack.bomb`, `blockfall.topOut`, `breaker.ballLost`, `burst.gameOver`, `hover.crash`, `snake.dead`, `rally.dead` | 260 |
+| `arc_retro_hit` | effects | `bastion.hit`, `blockfall.lock`, `breaker.brickHit`, `burst.hit`, `snake.rockLand`, `wavefront.armourHit`, `wavefront.bossHit` | 120 |
+| `arc_fair_thud` | effects | `alleyroll.gutter`, `bastion.miss`, `bullseye.thud` | 160 |
+| `arc_fair_bell` | effects | `alleyroll.fifty`, `bullseye.bull`, `bintoss.allBaskets` | 400 |
+| `arc_fair_bucket` | effects | `alleyroll.ring`, `bintoss.basket` | 200 |
+| `arc_fair_sting` | effects | `alleyroll.pocket`, `bullseye.perfect`, `bintoss.perfect` | 300 |
 | `arc_marble_roll` | effects | `balltrack.roll`, `inkbridge.coinRoll`, `tilt.roll` | 400 |
 | `arc_siren` | effects | `swing.dragon`, `junction.siren` | 600 |
-| `arc_wood_knock` | effects | `balltrack.wrong`, `freekick.save`, `swing.rockLand`, `homerun.crack`, `minigolf.putt`, `bintoss.spinnerKnock`, `tilt.knock` | 90 |
-| `arc_clank` | effects | `freekick.post`, `swing.rockShake`, `skyline.drop`, `junction.newRoad` | 150 |
-| `arc_horn` | effects | `junction.horn`, `racing.go` | 400 |
-| `arc_latch` | effects | `balltrack.switch`, `pinball.bankReset`, `tilt.gate` | 100 |
-| `arc_marble_clink` | effects | `balltrack.marbleHome`, `minigolf.holed`, `inkbridge.coinLand`, `tilt.mazeDone`, `tilt.cup` | 120 |
-| `arc_sea_pop` | effects | `bubble.pop`, `bullseye.balloonPop`, `minigolf.water` | 80 |
+| `arc_wood_knock` | effects | `alleyroll.roll`, `alleyroll.ramp`, `balltrack.wrong`, `swing.rockLand`, `bintoss.spinnerKnock`, `tilt.knock` | 90 |
+| `arc_clank` | effects | `bastion.jam`, `swing.rockShake`, `skyline.drop`, `junction.newRoad` | 150 |
+| `arc_horn` | effects | `bastion.wave`, `junction.horn` | 400 |
+| `arc_latch` | effects | `balltrack.switch`, `bastion.reload`, `bastion.loaded`, `pinball.bankReset`, `tilt.gate` | 100 |
+| `arc_marble_clink` | effects | `balltrack.marbleHome`, `inkbridge.coinLand`, `tilt.mazeDone`, `tilt.cup` | 120 |
+| `arc_sea_pop` | effects | `bubble.pop`, `bullseye.balloonPop` | 80 |
 | `arc_sea_waves` | effects | `bubble.waves` | 600 |
 | `arc_sea_bubble` | effects | `bubble.load` | 120 |
 | `arc_leaf_collect` | effects | `arc_leaf_collect` | 840 |
 | `arc_rainbow` | effects | `inkbridge.draw` | 910 |
 | `arc_rope_cut` | effects | `snip.cut` | 230 |
 | `arc_grapple` | effects | `swing.grapple` | 450 |
-| `arc_gravity_flip` | effects | `flip.flip` | 330 |
+| `arc_gravity_flip` | effects | `ricochet.leap`, `ricochet.doubleJump`, `flip.flip` | 330 |
 | `arc_hover_tap` | effects | `homerun.swing`, `arc_hover_tap` | 110 |
 | `arc_gem_match` | effects | `arc_gem_match` | 400 |
 | `arc_ketchup` | effects | `arc_ketchup` | 230 |
@@ -1694,8 +1930,8 @@ loops are not measured there). Files in `public/sounds/` are listed once per slo
 | `arc_multiball` | effects | `breaker.multiball` | 64 |
 | `arc_mustard` | effects | `arc_mustard` | 410 |
 | `arc_slice_combo` | effects | `slice.comboUp` | 721 |
-| `arc_big_explode` | effects | `wavefront.bigExplode` | 810 |
-| `arc_blaster` | effects | `arc_blaster` | 140 |
+| `arc_big_explode` | effects | `bastion.kill`, `wavefront.bigExplode` | 810 |
+| `arc_blaster` | effects | `arc_blaster`, `bastion.cannon` | 140 |
 | `arc_gem_zap` | effects | `arc_gem_zap` | 450 |
 | `arc_gem_bomb` | effects | `arc_gem_bomb` | 722 |
 | `arc_gem_star` | effects | `arc_gem_star` | 800 |
@@ -1739,7 +1975,7 @@ loops are not measured there). Files in `public/sounds/` are listed once per slo
 | `music_word_2` | music | `music.codeword`, `music.wordhunt`, `music.wordfall`, `music.wordsearch` | loop |
 | `music_word_3` | music | `music.tilegrid`, `music.wordslide`, `music.swapword` | loop |
 | `music_number_1` | music | `music.measure`, `music.target`, `music.equation` | loop |
-| `music_number_2` | music | `music.checkout`, `music.balance`, `music.numpyramid` | loop |
+| `music_number_2` | music | `music.checkout`, `music.balance`, `music.numpyramid`, `music.kakuro` | loop |
 | `music_number_3` | music | `music.numline`, `music.tendrop` | loop |
 | `music_speed_1` | music | `music.stopwatch`, `music.reaction` | loop |
 | `music_speed_2` | music | `music.numhunt`, `music.chain` | loop |
@@ -1750,9 +1986,9 @@ loops are not measured there). Files in `public/sounds/` are listed once per slo
 | `music_pattern_1` | music | `music.tiles`, `music.blockparty`, `music.rings` | loop |
 | `music_pattern_2` | music | `music.unblock`, `music.iceslide` | loop |
 | `music_pattern_3` | music | `music.laser`, `music.gravity` | loop |
-| `music_logic_1` | music | `music.sudoku`, `music.dig`, `music.lightup`, `music.nonogram`, `music.shikaku`, `music.tents` | loop |
-| `music_logic_2` | music | `music.flow`, `music.pipes`, `music.lightsout`, `music.flood`, `music.safe` | loop |
-| `music_logic_3` | music | `music.push`, `music.bomb`, `music.tower`, `music.tubes`, `music.trail` | loop |
+| `music_logic_1` | music | `music.sudoku`, `music.dig`, `music.fillomino`, `music.lightup`, `music.nonogram`, `music.shikaku`, `music.tents` | loop |
+| `music_logic_2` | music | `music.flow`, `music.pipes`, `music.lightsout`, `music.flood`, `music.fences`, `music.safe` | loop |
+| `music_logic_3` | music | `music.push`, `music.bomb`, `music.bridges`, `music.tower`, `music.tubes`, `music.trail` | loop |
 | `standings_loop` | music | `music.standings` | loop |
 | `podium_loop` | music | `music.podium` | loop |
 | `music_burst` | music | `music.burst` | loop |
@@ -1870,7 +2106,16 @@ loops are not measured there). Files in `public/sounds/` are listed once per slo
 | `orbit.planets` | effects | `orbit.planets` | 486 |
 | `orbit.all-planets` | effects | `orbit.all-planets` | 486 |
 | `orbit.black-hole` | effects | `orbit.black-hole` | 486 |
+| `bastion.tank-destroyed` | effects | `bastion.tank-destroyed` | 486 |
+| `bastion.weak-spots` | effects | `bastion.weak-spots` | 486 |
+| `bastion.fast-reload` | effects | `bastion.fast-reload` | 486 |
 | `homerun.home-run` | effects | `homerun.home-run` | 486 |
+| `blockfall.line-clear` | effects | `blockfall.line-clear` | 486 |
+| `blockfall.three-or-four` | effects | `blockfall.three-or-four` | 486 |
+| `blockfall.full-lines` | effects | `blockfall.full-lines` | 486 |
+| `alleyroll.ring-points` | effects | `alleyroll.ring-points` | 486 |
+| `alleyroll.pocket-hit` | effects | `alleyroll.pocket-hit` | 486 |
+| `alleyroll.full-points` | effects | `alleyroll.full-points` | 486 |
 | `homerun.sign-hit` | effects | `homerun.sign-hit` | 486 |
 | `freekick.goal-scored` | effects | `freekick.goal-scored` | 486 |
 | `freekick.target-hit` | effects | `freekick.target-hit` | 486 |
@@ -2078,6 +2323,18 @@ loops are not measured there). Files in `public/sounds/` are listed once per slo
 | `tubes.solve` | effects | `tubes.solve` | 1080 |
 | `safe.click` | effects | `safe.click` | 528 |
 | `shikaku.solve` | effects | `shikaku.solve` | 1000 |
+| `fences.draw` | effects | `fences.draw` | 486 |
+| `fences.cross` | effects | `fences.cross` | 528 |
+| `fences.solve` | effects | `fences.solve` | 1000 |
+| `fillomino.place` | effects | `fillomino.place` | 528 |
+| `fillomino.region` | effects | `fillomino.region` | 528 |
+| `fillomino.solve` | effects | `fillomino.solve` | 1000 |
+| `bridges.build` | effects | `bridges.build` | 528 |
+| `bridges.remove` | effects | `bridges.remove` | 528 |
+| `bridges.solve` | effects | `bridges.solve` | 1080 |
+| `kakuro.place` | effects | `kakuro.place` | 528 |
+| `kakuro.run` | effects | `kakuro.run` | 1000 |
+| `kakuro.solve` | effects | `kakuro.solve` | 1000 |
 | `tents.clear` | effects | `tents.clear` | 528 |
 | `tents.solve` | effects | `tents.solve` | 1000 |
 | `music_beat` | music | `music.beat` | 60087 |
@@ -2085,6 +2342,21 @@ loops are not measured there). Files in `public/sounds/` are listed once per slo
 | `bubble.line` | effects | `bubble.line` | 600 |
 | `bubble.jokerLand` | effects | `bubble.jokerLand` | 680 |
 | `skyline.perfect` | effects | `skyline.perfect` | 483 |
+| `homerun.crack` | effects | `homerun.crack` | 106 |
+| `homerun.homer` | effects | `homerun.homer` | 1512 |
+| `homerun.sign` | effects | `homerun.sign` | 994 |
+| `homerun.foul` | effects | `homerun.foul` | 300 |
+| `homerun.strike` | effects | `homerun.strike` | 400 |
+| `freekick.kick` | effects | `freekick.kick` | 300 |
+| `freekick.post` | effects | `freekick.post` | 604 |
+| `freekick.save` | effects | `freekick.save` | 130 |
+| `freekick.goal` | effects | `freekick.goal` | 698 |
+| `freekick.target` | effects | `freekick.target` | 600 |
+| `racing.light` | effects | `racing.light` | 155 |
+| `racing.go` | effects | `racing.go` | 469 |
+| `racing.lap` | effects | `racing.lap` | 800 |
+| `racing.wall` | effects | `racing.wall` | 604 |
+| `racing.finish` | effects | `racing.finish` | 1357 |
 | `cross.hop` | effects | `cross.hop` | 528 |
 | `pinball.start` | effects | `pinball.start` | 486 |
 | `pinball.ballLost` | effects | `pinball.ballLost` | 587 |
@@ -2093,15 +2365,23 @@ loops are not measured there). Files in `public/sounds/` are listed once per slo
 | `pinball.sling` | effects | `pinball.sling` | 486 |
 | `pinball.dropTarget` | effects | `pinball.dropTarget` | 454 |
 | `pinball.bankComplete` | effects | `pinball.bankComplete` | 606 |
+| `pinball.joulz` | effects | `pinball.joulz` | 1200 |
 | `pinball.laneLight` | effects | `pinball.laneLight` | 486 |
 | `pinball.spinner` | effects | `pinball.spinner` | 486 |
 | `pinball.flipper` | effects | `pinball.flipper` | 482 |
 | `music_pinball` | music | `music.pinball` | loop |
+| `ricochet.heightStreak` | effects | `ricochet.heightStreak` | 480 |
+| `ricochet.fullHeight` | effects | `ricochet.fullHeight` | 840 |
 | `snip.star` | effects | `snip.star` | 386 |
 | `slice.frenzyStart` | effects | `slice.frenzyStart` | 350 |
 | `slice.slow` | effects | `slice.slow` | 479 |
 | `beat.miss` | effects | `beat.miss` | 150 |
 | `beat.note` | effects | `beat.note` | 140 |
+| `minigolf.putt` | effects | `minigolf.putt` | 400 |
+| `minigolf.bounce` | effects | `minigolf.bounce` | 300 |
+| `minigolf.water` | effects | `minigolf.water` | 803 |
+| `minigolf.holed` | effects | `minigolf.holed` | 733 |
+| `minigolf.birdie` | effects | `minigolf.birdie` | 994 |
 | `tilt.starTaken` | effects | `tilt.starTaken` | 450 |
 | `wavefront.fire` | effects | `wavefront.fire` | 90 |
 | `wavefront.formation` | effects | `wavefront.formation` | 830 |
@@ -2301,3 +2581,89 @@ loops are not measured there). Files in `public/sounds/` are listed once per slo
 | `shared.reject` | effects | `shared.reject` | 528 |
 | `clayshoot.escape` | effects | `clayshoot.escape` | 528 |
 | `chain.reverse` | effects | `chain.reverse` | 528 |
+| `minigolf.stone` | effects | `minigolf.stone` | 300 |
+| `freekick.wall` | effects | `freekick.wall` | 300 |
+| `pool.click` | effects | `pool.click` | 200 |
+| `minesweeper.reveal` | effects | `minesweeper.reveal` | 80 |
+| `minesweeper.cascade` | effects | `minesweeper.cascade` | 604 |
+| `minesweeper.flag` | effects | `minesweeper.flag` | 300 |
+| `mahjong.blocked` | effects | `mahjong.blocked` | 300 |
+| `freecell.place` | effects | `freecell.place` | 300 |
+| `freecell.home` | effects | `freecell.home` | 406 |
+| `freecell.cascade` | effects | `freecell.cascade` | 948 |
+| `freecell.invalid` | effects | `freecell.invalid` | 434 |
+| `freecell.win` | effects | `freecell.win` | 1362 |
+| `tripeaks.run` | effects | `tripeaks.run` | 329 |
+| `tripeaks.deal` | effects | `tripeaks.deal` | 220 |
+| `tripeaks.peak` | effects | `tripeaks.peak` | 998 |
+| `tripeaks.invalid` | effects | `tripeaks.invalid` | 434 |
+| `tripeaks.clear` | effects | `tripeaks.clear` | 1666 |
+| `pokersquares.place` | effects | `pokersquares.place` | 300 |
+| `pokersquares.hand` | effects | `pokersquares.hand` | 484 |
+| `pokersquares.bigHand` | effects | `pokersquares.bigHand` | 1122 |
+| `pokersquares.invalid` | effects | `pokersquares.invalid` | 434 |
+| `fivehands.place` | effects | `fivehands.place` | 300 |
+| `fivehands.hand` | effects | `fivehands.hand` | 484 |
+| `fivehands.bigHand` | effects | `fivehands.bigHand` | 1122 |
+| `fivehands.invalid` | effects | `fivehands.invalid` | 434 |
+| `pool.pocket` | effects | `pool.pocket` | 908 |
+| `pool.foul` | effects | `pool.foul` | 484 |
+| `pool.blackWin` | effects | `pool.blackWin` | 1327 |
+| `minesweeper.hit` | effects | `minesweeper.hit` | 474 |
+| `minesweeper.clear` | effects | `minesweeper.clear` | 998 |
+| `mahjong.match` | effects | `mahjong.match` | 359 |
+| `mahjong.shuffle` | effects | `mahjong.shuffle` | 1043 |
+| `mahjong.clear` | effects | `mahjong.clear` | 1806 |
+| `minigolf.roll` | effects | `minigolf.roll` | 1375 |
+| `minigolf.bush` | effects | `minigolf.bush` | 439 |
+| `pool.chalk` | effects | `pool.chalk` | 733 |
+| `pool.cueSoft` | effects | `pool.cueSoft` | 400 |
+| `pool.cueHard` | effects | `pool.cueHard` | 400 |
+| `pool.cushion` | effects | `pool.cushion` | 300 |
+| `curling.release` | effects | `curling.release` | 484 |
+| `curling.slide` | effects | `curling.slide` | 2177 |
+| `curling.sweep` | effects | `curling.sweep` | 1508 |
+| `curling.hit` | effects | `curling.hit` | 400 |
+| `curling.board` | effects | `curling.board` | 400 |
+| `curling.applause` | effects | `curling.applause` | 1995 |
+| `curling.shot` | effects | `curling.shot` | 998 |
+| `homerun.crowd` | effects | `homerun.crowd` | 9271 |
+| `homerun.pitch` | effects | `homerun.pitch` | 259 |
+| `homerun.whiff` | effects | `homerun.whiff` | 400 |
+| `homerun.roar` | effects | `homerun.roar` | 3477 |
+| `homerun.groan` | effects | `homerun.groan` | 1995 |
+| `freekick.crowd` | effects | `freekick.crowd` | 9271 |
+| `freekick.whistle` | effects | `freekick.whistle` | 683 |
+| `freekick.roar` | effects | `freekick.roar` | 3477 |
+| `freekick.groan` | effects | `freekick.groan` | 1995 |
+| `racing.idle` | effects | `racing.idle` | 2341 |
+| `racing.drive` | effects | `racing.drive` | 2419 |
+| `racing.squeal` | effects | `racing.squeal` | 1197 |
+| `racing.kerb` | effects | `racing.kerb` | 672 |
+| `racing.grassLoop` | effects | `racing.grassLoop` | 726 |
+| `racing.roar` | effects | `racing.roar` | 3477 |
+| `minesweeper.unflag` | effects | `minesweeper.unflag` | 350 |
+| `mahjong.select` | effects | `mahjong.select` | 200 |
+| `mahjong.invalid` | effects | `mahjong.invalid` | 300 |
+| `freecell.pick` | effects | `freecell.pick` | 334 |
+| `freecell.shuffle` | effects | `freecell.shuffle` | 1093 |
+| `tripeaks.shuffle` | effects | `tripeaks.shuffle` | 1093 |
+| `pokersquares.shuffle` | effects | `pokersquares.shuffle` | 1093 |
+| `pokersquares.final` | effects | `pokersquares.final` | 983 |
+| `fivehands.shuffle` | effects | `fivehands.shuffle` | 1093 |
+| `fivehands.final` | effects | `fivehands.final` | 983 |
+| `music_minigolf` | music | `music.minigolf` | loop |
+| `music_pool` | music | `music.pool` | loop |
+| `music_curling` | music | `music.curling` | loop |
+| `music_homerun` | music | `music.homerun` | loop |
+| `music_freekick` | music | `music.freekick` | loop |
+| `music_racing` | music | `music.racing` | loop |
+| `music_minesweeper` | music | `music.minesweeper` | loop |
+| `music_freecell` | music | `music.freecell` | loop |
+| `music_mahjong` | music | `music.mahjong` | loop |
+| `music_tripeaks` | music | `music.tripeaks` | loop |
+| `music_pokersquares` | music | `music.pokersquares` | loop |
+| `music_fivehands` | music | `music.fivehands` | loop |
+| `alleyroll.rolling` | effects | `alleyroll.rolling` | 1375 |
+| `music_blockfall` | music | `music.blockfall` | loop |
+| `music_alleyroll` | music | `music.alleyroll` | loop |

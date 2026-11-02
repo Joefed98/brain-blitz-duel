@@ -57,6 +57,7 @@ import { NO_SCROLL_STYLE, useNoTouchScroll } from "@/components/puzzles/noScroll
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 import { arcadeCanvasRatio } from "@/lib/fx/lowEnd";
+import { arenaFrame, cancelArenaFrame } from "@/lib/battery";
 
 /** Fixed intro still: a note arriving at the hit line. */
 /** Rev 2: the sideways finger travel (screen px) that counts as a swipe. */
@@ -157,7 +158,9 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     let last = performance.now();
     let accumulator = 0;
     let draftAt = 0;
-    const feedback = arcadeFeedback({ game: "beat" });
+    // No generic combo sound on each hit (1 Nov 2026, Joe: the "perfect" sound): the lane's note is the hit's sound; the
+    // combo pop, the PERFECT word and burst still show (docs/sound-cues/arcade-effects.md).
+    const feedback = arcadeFeedback({ game: "beat", combo: false });
     const sounds = beatSounds();
     // beatRev 9's features (older rounds keep every counter at 0, so they stay silent).
     const featureSounds = expansionSounds<BeatState>([
@@ -175,7 +178,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
 
     const loop = (time: number) => {
       frameTiming.begin(time);
-      frame = requestAnimationFrame(loop);
+      frame = arenaFrame(loop);
       const delta = time - last;
       last = time;
 
@@ -241,9 +244,9 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       frameTiming.end();
     };
 
-    frame = requestAnimationFrame(loop);
+    frame = arenaFrame(loop);
     return () => {
-      cancelAnimationFrame(frame);
+      cancelArenaFrame(loop, frame);
       sounds.stop();
       stopBeatTrack(true);
     };

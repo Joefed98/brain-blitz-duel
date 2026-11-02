@@ -160,7 +160,7 @@ Gap to consider (not a migration blocker): no index on `duels.host_user_id`. `cr
 ### 2.7 Auth
 
 - **Anonymous sign-in must be enabled** (`supabase.auth.signInAnonymously()` in `session.ts`). Every device gets an `auth.users` row. No email, OAuth or magic-link flow exists yet.
-- Recommended on the new project: enable CAPTCHA/Turnstile or rate limits for anonymous sign-ins (Supabase recommends this for anonymous auth). Site URL `https://brain-blitz-duel.lovable.app` (plus any custom domain). No redirect URLs are needed until real sign-in exists.
+- Recommended on the new project: enable CAPTCHA/Turnstile or rate limits for anonymous sign-ins (Supabase recommends this for anonymous auth). Site URL `https://joulz.uk` (the primary domain since 31 Oct 2026; `playjoulz.com` and `brain-blitz-duel.lovable.app` redirect to it, so add all three to the redirect allow list). No redirect URLs are needed until real sign-in exists.
 - JWT: the server validates with `getClaims`, which works with both the legacy JWT secret and the new asymmetric signing keys. The app code already handles the new `sb_publishable_` / `sb_secret_` key formats.
 - Existing anonymous identities **will not carry over** unless `auth.users` is migrated, and that also needs the same JWT secret (§6, R5). Consequence: devices get new user ids, and hosts lose the "recent rooms" anti-repeat history. Stored rows keep their old `user_id`s untouched.
 

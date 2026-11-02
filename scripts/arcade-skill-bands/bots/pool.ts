@@ -11,9 +11,13 @@
  *   - power error on the pull,
  *   - slips: a botched pick or a mis-hit.
  * Flawless ("perfect") plays the search's best shot with no error. The bot never looks at the score.
+ *
+ * poolRev 2 (31 Oct 2026): the search sweeps the continuous spin dot (follow and draw at half and full strength, and
+ * two diagonals); the human places the dot with a small error (DOT_SD units of the safe radius's 100) and fires it as
+ * poolRev 2's input (power in c, the dot in d).
  */
 import { POOL_AIM, POOL_CUE, type PoolState } from "../../../src/lib/arcade/pool";
-import { candidates, goodShots, powerFor, shotFor, type Shot } from "../../pool-oracle";
+import { candidates, goodShots, NO_SPIN, powerFor, shotFor, shotParts, type Shot, type Spin } from "../../pool-oracle";
 import { driveEvents, Plan, type SkillBot } from "../bot";
 
 /** Base think time before a shot (an average player), ms; the panel pull adds PULL_MS. */
@@ -21,13 +25,18 @@ const THINK_MS = 2600;
 const PULL_MS = 650;
 /** How far out the finger lines the aim up (phone px): the pointing error becomes an angle over this. */
 const AIM_REACH_PX = 300;
+/** poolRev 2: how far off the chosen spot a finger puts the spin dot (units of the safe radius's 100). */
+const DOT_SD = 7;
 
 export const bot: SkillBot = ({ game, seed, human }) => {
   const plan = new Plan();
   let planned = -1;
+  const rev = game.init(seed).rev;
+  const dot = (spin: Spin): Spin =>
+    rev >= 2 && (spin.tb !== 0 || spin.side !== 0) ? { tb: Math.round(spin.tb + human.normal() * DOT_SD), side: Math.round(spin.side + human.normal() * DOT_SD) } : spin;
   const decide = (s: PoolState): Shot | null => {
     const perfect = human.level === "perfect";
-    const goods = goodShots(s.balls, { limit: perfect ? 6 : 5 });
+    const goods = goodShots(s.balls, { limit: perfect ? 6 : 5, rev });
     if (goods.length) {
       let choice = goods[0]!;
       if (!perfect) {
@@ -38,17 +47,18 @@ export const bot: SkillBot = ({ game, seed, human }) => {
       }
       if (perfect) return choice.shot;
       const angle = Math.atan2(choice.shot.b, choice.shot.a) + human.aim(1) / AIM_REACH_PX;
-      const power = Math.round((Math.floor(choice.shot.c / 25) * human.power()) as number);
-      const spin = choice.shot.c % 25;
-      if (human.slip()) return shotFor(angle + human.normal() * 0.05, Math.max(60, Math.round(power * (0.7 + 0.6 * human.u()))), spin);
-      return shotFor(angle, Math.max(40, Math.min(1000, power)), spin);
+      const parts = shotParts(choice.shot, rev);
+      const power = Math.round((parts.power * human.power()) as number);
+      const spin = dot(parts.spin);
+      if (human.slip()) return shotFor(angle + human.normal() * 0.05, Math.max(60, Math.round(power * (0.7 + 0.6 * human.u()))), spin, rev);
+      return shotFor(angle, Math.max(40, Math.min(1000, power)), spin, rev);
     }
     // Nothing pots cleanly: the easiest-looking pot anyway (or a soft roll at the nearest target ball).
     const c = candidates(s.balls, 85)[0];
-    if (c) return shotFor(c.angle + human.aim(1) / AIM_REACH_PX, Math.round(powerFor(c.cueDist, c.objDist, c.cut) * human.power()), 12);
+    if (c) return shotFor(c.angle + human.aim(1) / AIM_REACH_PX, Math.round(powerFor(c.cueDist, c.objDist, c.cut) * (rev >= 3 ? 0.8 : 1) * human.power()), NO_SPIN, rev);
     const cue = s.balls.find((b) => b.id === POOL_CUE)!;
     const t = s.balls.find((b) => !b.down && b.id !== POOL_CUE)!;
-    return shotFor(Math.atan2(t.y - cue.y, t.x - cue.x), 300, 12);
+    return shotFor(Math.atan2(t.y - cue.y, t.x - cue.x), 300, NO_SPIN, rev);
   };
   return driveEvents(
     game,
@@ -58,7 +68,7 @@ export const bot: SkillBot = ({ game, seed, human }) => {
         planned = s.shots;
         const shot = decide(s);
         const wait = human.thinkTicks(THINK_MS) + human.thinkTicks(PULL_MS, 0.2);
-        if (shot) plan.at(t + wait, { k: 1, a: shot.a, b: shot.b, c: shot.c, d: 0 });
+        if (shot) plan.at(t + wait, { k: 1, a: shot.a, b: shot.b, c: shot.c, d: shot.d });
       }
       return plan.take(t);
     },
@@ -67,13 +77,17 @@ export const bot: SkillBot = ({ game, seed, human }) => {
 };
 
 /** Inputs at random: a shot in a random direction at a random power whenever the table is still. */
-export const randomBot: SkillBot = ({ game, seed, human }) =>
-  driveEvents(
+export const randomBot: SkillBot = ({ game, seed, human }) => {
+  const rev = game.init(seed).rev;
+  return driveEvents(
     game,
     (s: PoolState) => {
       if (s.phase !== POOL_AIM || !human.chance(1 / 90)) return null;
       const angle = human.u() * Math.PI * 2;
-      return { k: 1, ...shotFor(angle, human.int(60, 1000), human.int(0, 24)), d: 0 };
+      const code = rev >= 2 ? 0 : human.int(0, 24);
+      const spin: Spin = rev >= 2 ? { tb: human.int(-100, 100), side: human.int(-100, 100) } : { tb: Math.floor(code / 5) - 2, side: (code % 5) - 2 };
+      return { k: 1, ...shotFor(angle, human.int(60, 1000), spin, rev) };
     },
     game.init(seed),
   );
+};

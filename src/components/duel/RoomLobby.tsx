@@ -1,9 +1,11 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { PLAYER_ICONS_ENABLED } from "@/lib/brand";
 import {
+  BADGE_GLYPH,
   PLAYER_COLOURS,
   PLAYER_ICON_IDS,
+  colourWheel,
   playerInitial,
   takenColours,
   takenIcons,
@@ -13,10 +15,8 @@ import {
 } from "@/lib/duel/playerLook";
 
 import { MAX_PLAYERS, MIN_PLAYERS, type DuelPlayerRow } from "@/lib/duel/types";
-import type { PuzzleCategory } from "@/lib/duel/types";
-import { CATEGORY_ORDER, PUZZLE_CATEGORIES, STANDARD_CATEGORIES } from "@/lib/duel/categories";
-import { typesInCategory } from "@/lib/duel/registry";
 import { roomRoundCount } from "@/lib/duel/selection";
+import { readRoomSettings, roomSettingsUnlocked, settingsSummary, type RoomSettings } from "@/lib/duel/roomSettings";
 
 import { ChargeMeter } from "@/components/fx/ChargeMeter";
 import { useCelebrationsOn } from "@/components/fx/useCelebration";
@@ -26,10 +26,13 @@ import { PlayerBadge } from "./PlayerBadge";
 import { PLAYER_ICON_ART } from "./playerIcons";
 import { ConfirmDialog } from "./ConfirmDialog";
 import { RoomFooter, RoomMenu } from "./RoomFooter";
+import { RoomSettingsSheet } from "./RoomSettingsSheet";
 
 interface RoomLobbyProps {
-  categories: PuzzleCategory[];
-  onCategoriesChange: (categories: PuzzleCategory[]) => void;
+  /** The room's stored settings (duels.selected_categories: roomSettings.ts, or an older room's categories). */
+  storedSettings: unknown;
+  /** Host only: stores new settings on the server (rejects with the server's message). */
+  onSettingsChange: (settings: RoomSettings) => Promise<void>;
 
   players: DuelPlayerRow[];
   hostUserId: string | null;
@@ -55,7 +58,83 @@ interface RoomLobbyProps {
   onLookChange: (look: Partial<PlayerLook>) => Promise<void>;
 }
 
-/** My colour and icon choices, under my own row (tap my row to open it). */
+/** Ring radii as a share of the wheel's radius less half a swatch, outside in. */
+const WHEEL_RADII = [1, 0.62, 0.25] as const;
+
+/**
+ * The colour wheel (31 Oct 2026): the 32 swatches (playerLook.ts colourWheel) in three rings like a
+ * colour picker, the most colourful outside. Each swatch is a 44 px tap target with a 34 px disc;
+ * a colour another player in the room holds is dimmed with their initial and can't be tapped; the
+ * chosen one has a ring and a tick. Square, up to 340 px; on a 375 px phone it reaches 14 px into the
+ * card's padding each side (room-16-check proves no two tap targets overlap at 375×667).
+ */
+export function ColourWheel({
+  selected,
+  taken,
+  takenBy,
+  onPick,
+}: {
+  selected: number;
+  taken: ReadonlyMap<number, number>;
+  takenBy: (slot: number) => string;
+  onPick: (colour: number) => void;
+}) {
+  return (
+    <div
+      data-colour-wheel
+      role="radiogroup"
+      aria-label="Your colour"
+      // 14 px into the card's padding each side, so 18 outer swatches keep 44 px apart at 375 px phones.
+      className="relative -mx-[14px] aspect-square w-[calc(100%+28px)] max-w-[340px] self-center"
+    >
+      {colourWheel().map(({ index, ring, angle }) => {
+        const colour = PLAYER_COLOURS[index]!;
+        const holder = taken.get(index);
+        const isSelected = selected === index;
+        const k = WHEEL_RADII[ring];
+        const rad = (angle * Math.PI) / 180;
+        return (
+          <button
+            key={index}
+            type="button"
+            role="radio"
+            aria-checked={isSelected}
+            disabled={holder !== undefined}
+            data-swatch={index}
+            data-swatch-taken={holder !== undefined ? "" : undefined}
+            aria-label={holder !== undefined ? `${colour.name}, taken by ${takenBy(holder)}` : colour.name}
+            onClick={() => onPick(index)}
+            className="press absolute flex h-11 w-11 items-center justify-center rounded-full disabled:cursor-not-allowed"
+            style={{
+              left: `calc(50% + (50% - 22px) * ${(k * Math.sin(rad)).toFixed(4)} - 22px)`,
+              top: `calc(50% - (50% - 22px) * ${(k * Math.cos(rad)).toFixed(4)} - 22px)`,
+            }}
+          >
+            <span
+              className={`flex h-[34px] w-[34px] items-center justify-center rounded-full ${
+                isSelected ? "ring-2 ring-foreground ring-offset-2 ring-offset-card" : ""
+              } ${holder !== undefined ? "opacity-30" : ""}`}
+              style={{ background: colour.hex, color: BADGE_GLYPH }}
+              aria-hidden="true"
+            >
+              {/* A taken colour carries its holder's initial (and stays dimmed, not tappable). */}
+              {holder !== undefined && (
+                <span className="font-display text-sm font-bold leading-none">{playerInitial(takenBy(holder))}</span>
+              )}
+              {isSelected && (
+                <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke={BADGE_GLYPH} strokeWidth={3} strokeLinecap="round" strokeLinejoin="round">
+                  <path d="m5 12.5 4.5 4.5L19 7.5" />
+                </svg>
+              )}
+            </span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+/** My colour and icon choices: Profile (my default) and the lobby (this room; tap my own chip to open it). */
 export function LookPicker({
   look,
   name,
@@ -75,42 +154,7 @@ export function LookPicker({
   return (
     <div data-look-picker className="th-card flex flex-col gap-2 rounded-xl border border-border bg-card px-3 py-3 text-left">
       <p className="font-display text-xs font-semibold text-foreground">Your colour</p>
-      <div className="grid grid-cols-5 gap-1" role="radiogroup" aria-label="Your colour">
-        {PLAYER_COLOURS.map((colour, index) => {
-          const holder = taken.get(index);
-          const selected = look.colour === index;
-          return (
-            <button
-              key={colour.hex}
-              type="button"
-              role="radio"
-              aria-checked={selected}
-              disabled={holder !== undefined}
-              aria-label={holder !== undefined ? `${colour.name}, taken by ${takenBy(holder)}` : colour.name}
-              onClick={() => onChange({ colour: index })}
-              className="press flex h-11 items-center justify-center rounded-lg disabled:cursor-not-allowed"
-            >
-              <span
-                className={`flex h-8 w-8 items-center justify-center rounded-full ${
-                  selected ? "ring-2 ring-foreground ring-offset-2 ring-offset-card" : ""
-                } ${holder !== undefined ? "opacity-40" : ""}`}
-                style={{ background: colour.hex, color: "#0B0B0F" }}
-                aria-hidden="true"
-              >
-                {/* A taken colour carries its holder's initial (and stays dimmed, not tappable). */}
-                {holder !== undefined && (
-                  <span className="font-display text-sm font-bold leading-none">{playerInitial(takenBy(holder))}</span>
-                )}
-                {selected && (
-                  <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="#0B0B0F" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round">
-                    <path d="m5 12.5 4.5 4.5L19 7.5" />
-                  </svg>
-                )}
-              </span>
-            </button>
-          );
-        })}
-      </div>
+      <ColourWheel selected={look.colour} taken={taken} takenBy={takenBy} onPick={(colour) => onChange({ colour })} />
       {PLAYER_ICONS_ENABLED && (
         <>
           <p className="mt-1 font-display text-xs font-semibold text-foreground">Your icon</p>
@@ -148,30 +192,21 @@ export function LookPicker({
   );
 }
 
-/** Host presets, each with the one-line description shown under them. */
-const PRESETS: { label: string; values: readonly PuzzleCategory[]; description: string }[] = [
-  { label: "Standard", values: STANDARD_CATEGORIES, description: "Standard: a mix of puzzles and arcade, one game per category." },
-  { label: "Arcade only", values: ["arcade"], description: "Arcade only: six different arcade games." },
-  { label: "Puzzles only", values: PUZZLE_CATEGORIES, description: "Puzzles only: six puzzles across five categories, no arcade." },
-];
-
-/** How the dealt rounds relate to the chosen categories, for the lobby line. */
-function roundsLine(categories: readonly PuzzleCategory[]): string {
-  const rounds = roomRoundCount(categories);
-  const shape =
-    categories.length === rounds
-      ? "one game per category"
-      : categories.length === 1
-        ? "all different games from one category"
-        : "shared evenly between the categories";
-  return `${rounds} ${rounds === 1 ? "round" : "rounds"}, ${shape} · about ${rounds * 2} min`;
+/**
+ * The room's settings as the lobby shows them. A room saved with settings plays its own count; an older room
+ * (no settings saved yet) still deals by its categories, roomRoundCount(categories) rounds, until the host saves.
+ */
+function lobbySettings(stored: unknown): RoomSettings {
+  const read = readRoomSettings(stored);
+  const categories = read.categories;
+  return read.legacy ? { picks: read.settings.picks, rounds: roomRoundCount(categories) } : read.settings;
 }
 
-/** The waiting room for two to ten players. */
+/** The waiting room for two to sixteen players. */
 export function RoomLobby({
   players,
-  categories,
-  onCategoriesChange,
+  storedSettings,
+  onSettingsChange,
   hostUserId,
   meUserId,
   isHost,
@@ -189,9 +224,28 @@ export function RoomLobby({
   const celebrate = useCelebrationsOn();
   const playersNeeded = MIN_PLAYERS - players.length;
   const hostName = players.find((player) => player.user_id === hostUserId)?.display_name;
-  const hasEmptyCategory = CATEGORY_ORDER.some((category) => !typesInCategory(category).length);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  /** Settings just saved, shown until the room's own row carries them (or a few seconds pass). */
+  const [savedSettings, setSavedSettings] = useState<{ settings: RoomSettings; stored: unknown } | null>(null);
+  const storedKey = JSON.stringify(storedSettings ?? null);
+  useEffect(() => {
+    if (!savedSettings) return;
+    if (JSON.stringify(savedSettings.stored ?? null) !== storedKey) {
+      setSavedSettings(null);
+      return;
+    }
+    const timer = window.setTimeout(() => setSavedSettings(null), 4000);
+    return () => window.clearTimeout(timer);
+  }, [savedSettings, storedKey]);
+  const settings = savedSettings?.settings ?? lobbySettings(storedSettings);
+  const canEditSettings = isHost && roomSettingsUnlocked();
   const [removing, setRemoving] = useState<number | null>(null);
   const [picking, setPicking] = useState(false);
+  const pickerRef = useRef<HTMLDivElement>(null);
+  // The wheel opens under the two-column grid: bring it into view (16 players fill the screen above it).
+  useEffect(() => {
+    if (picking) pickerRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+  }, [picking]);
   /** My choice while it is on its way to the server (shown at once). */
   const [pending, setPending] = useState<Partial<PlayerLook> | null>(null);
   const [lookError, setLookError] = useState<string | null>(null);
@@ -223,15 +277,29 @@ export function RoomLobby({
     return () => window.clearTimeout(timer);
   }, [pending, storedLook?.colour, storedLook?.icon]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const presetOn = (values: readonly PuzzleCategory[]) =>
-    categories.length === values.length && categories.every((category) => values.includes(category));
-  const preset = PRESETS.find(({ values }) => presetOn(values));
   const removingPlayer = removing === null ? null : players.find((p) => p.player_slot === removing) ?? null;
 
   return (
     <div className="flex w-full flex-1 flex-col gap-5 text-left">
+      {/* Under the room code: the room's settings in one line for everyone, the host's Room settings button. */}
+      <section aria-label="Room settings" className="-mt-2 flex flex-col items-start gap-2.5">
+        <p data-room-summary className="rs-summary">
+          {settingsSummary(settings)}
+        </p>
+        {canEditSettings ? (
+          <button
+            type="button"
+            data-room-settings
+            onClick={() => setSettingsOpen(true)}
+            className="rs-btn press tap-target"
+          >
+            Room settings
+          </button>
+        ) : null}
+      </section>
+
       <section aria-label="Players" className="flex flex-col gap-2">
-        {/* "Players" with "n of 10", then the neutral meter (the charge meter with celebrations on). */}
+        {/* "Players" with "n of 16", then the neutral meter (the charge meter with celebrations on). */}
         <div className="rs-head">
           <h2 className="ap-section-title">Players</h2>
           <span className="rs-meta">
@@ -245,25 +313,31 @@ export function RoomLobby({
             <span style={{ width: `${(players.length / MAX_PLAYERS) * 100}%` }} />
           </div>
         )}
-        <ul className="rs-list">
+        {/* Two columns (31 Oct 2026, rooms of 16): one chip per player, badge (initial or icon) beside the name. My
+            own chip opens the colour wheel for this room, under the grid. */}
+        <ul className="rs-grid" data-lobby-grid>
           {players.map((player) => {
             const isMe = player.user_id === meUserId;
             const look = lookFor(player.player_slot);
             const you = look ? PLAYER_COLOURS[look.colour]?.hex : undefined;
-            const sub = isMe && canChooseLook
-              ? <span className="rs-sub" data-look-hint>Tap to change your colour{PLAYER_ICONS_ENABLED ? " and icon" : ""}</span>
+            const isHostRow = player.user_id === hostUserId;
+            const sub = isMe
+              ? "You"
               : player.muted_by_host
-                ? <span className="rs-sub">Chat muted</span>
-                : null;
+                ? "Chat muted"
+                : isHostRow
+                  ? "Host"
+                  : null;
             const nameLine = (
               <>
-                <PlayerBadge look={look} name={player.display_name} size={30} />
+                <PlayerBadge look={look} name={player.display_name} size={28} />
                 <span className="flex min-w-0 flex-1 flex-col">
-                  <span className="flex min-w-0 items-baseline gap-1">
-                    <span className="rs-name th-name">{player.display_name}</span>
-                    {isMe ? <span className="rs-you shrink-0 text-[14px]">(you)</span> : null}
-                  </span>
-                  {sub}
+                  <span className="rs-name th-name text-[14px] leading-tight">{player.display_name}</span>
+                  {sub ? (
+                    <span className="rs-sub truncate text-[12px] leading-tight" data-host-label={isHostRow && !isMe ? "" : undefined}>
+                      {isMe && isHostRow ? "You · Host" : sub}
+                    </span>
+                  ) : null}
                 </span>
               </>
             );
@@ -271,28 +345,26 @@ export function RoomLobby({
               <li
                 key={player.id}
                 data-you={isMe ? "" : undefined}
+                data-lobby-player={player.player_slot}
                 style={isMe && you ? ({ ["--you" as string]: you }) : undefined}
-                className="rs-row animate-pop-in flex-wrap"
+                className="rs-cell animate-pop-in"
               >
                 {isMe && canChooseLook ? (
                   <button
                     type="button"
                     data-look-toggle
                     aria-expanded={picking}
-                    aria-label={`${player.display_name}: change your colour${PLAYER_ICONS_ENABLED ? " and icon" : ""}`}
+                    aria-label={`${player.display_name} (you): change your colour${PLAYER_ICONS_ENABLED ? " and icon" : ""} for this room`}
                     onClick={() => setPicking((open) => !open)}
-                    className="press -my-1.5 flex min-h-11 min-w-0 flex-1 items-center gap-2.5 text-left"
+                    className="press flex min-h-11 min-w-0 flex-1 items-center gap-2 text-left"
                   >
                     {nameLine}
-                    <span aria-hidden="true" className="rs-pill">
-                      {picking ? "Done ▴" : "Change ▾"}
+                    <span aria-hidden="true" className="shrink-0 text-[12px] text-[var(--ap-text-2)]">
+                      {picking ? "▴" : "▾"}
                     </span>
                   </button>
                 ) : (
-                  <span className="flex min-w-0 flex-1 items-center gap-2.5">{nameLine}</span>
-                )}
-                {player.user_id === hostUserId && (
-                  <span className="rs-pill" data-host-label>Host</span>
+                  <span className="flex min-h-11 min-w-0 flex-1 items-center gap-2">{nameLine}</span>
                 )}
                 {isHost && !isMe && (
                   <RoomMenu
@@ -308,101 +380,35 @@ export function RoomLobby({
                     ]}
                   />
                 )}
-                {isMe && picking && canChooseLook && myLook && (
-                  <div className="w-full pb-1.5 pt-1">
-                    <LookPicker
-                      look={myLook}
-                      name={player.display_name}
-                      taken={takenColours(allPlayers, player.player_slot)}
-                      takenIconSlots={takenIcons(allPlayers, player.player_slot)}
-                      takenBy={nameOf}
-                      onChange={changeLook}
-                    />
-                  </div>
-                )}
-                {isMe && lookError && (
-                  <p role="alert" className="w-full pb-1 text-xs text-warn">
-                    {lookError}
-                  </p>
-                )}
               </li>
             );
           })}
         </ul>
+        {me && canChooseLook && !picking ? (
+          <p className="rs-sub text-[13px]" data-look-hint>
+            Tap your name to change your colour{PLAYER_ICONS_ENABLED ? " and icon" : ""} for this room.
+          </p>
+        ) : null}
+        {me && picking && canChooseLook && myLook ? (
+          <div ref={pickerRef} data-lobby-picker className="scroll-mb-28">
+          <LookPicker
+            look={myLook}
+            name={me.display_name}
+            taken={takenColours(allPlayers, me.player_slot)}
+            takenIconSlots={takenIcons(allPlayers, me.player_slot)}
+            takenBy={nameOf}
+            onChange={changeLook}
+          />
+          </div>
+        ) : null}
+        {me && lookError ? (
+          <p role="alert" className="text-xs text-warn">
+            {lookError}
+          </p>
+        ) : null}
         {isHost && !canStart ? (
           <p className="text-[13px] leading-snug text-[var(--ap-text-2)]">Send the link to friends. Start when everyone's in.</p>
         ) : null}
-      </section>
-
-      <section aria-label="Game mix" className="flex flex-col gap-2.5">
-        <h2 className="ap-section-title">Game mix</h2>
-        {isHost && (
-          <div className="rs-seg" role="group" aria-label="Game mix">
-            {PRESETS.map(({ label, values }) => (
-              <button
-                key={label}
-                type="button"
-                onClick={() => onCategoriesChange([...values])}
-                aria-pressed={presetOn(values)}
-                className="press"
-              >
-                {label}
-              </button>
-            ))}
-          </div>
-        )}
-        {isHost ? (
-          <div className="flex flex-wrap gap-2">
-            {CATEGORY_ORDER.map((category) => (
-              <button
-                key={category}
-                type="button"
-                aria-pressed={categories.includes(category)}
-                title={
-                  typesInCategory(category).length
-                    ? undefined
-                    : "No active games in this category yet"
-                }
-                disabled={
-                  (!typesInCategory(category).length && !categories.includes(category)) ||
-                  (categories.length === 1 && categories.includes(category))
-                }
-                onClick={() =>
-                  onCategoriesChange(
-                    categories.includes(category)
-                      ? categories.filter((item) => item !== category)
-                      : CATEGORY_ORDER.filter(
-                          (item) => categories.includes(item) || item === category,
-                        ),
-                  )
-                }
-                data-cat={category}
-                className="rs-cat press"
-              >
-                <span aria-hidden="true" className="rs-cat-dot" />
-                {CATEGORY_LABEL[category]}
-              </button>
-            ))}
-          </div>
-        ) : (
-          <div className="flex flex-wrap gap-2" aria-label="Categories">
-            {categories.map((category) => (
-              <span key={category} data-cat={category} aria-pressed="true" className="rs-cat">
-                <span aria-hidden="true" className="rs-cat-dot" />
-                {CATEGORY_LABEL[category]}
-              </span>
-            ))}
-          </div>
-        )}
-        <p className="text-[13px] leading-snug text-[var(--ap-text-2)]">
-          {isHost ? (
-            <>
-              {preset?.description ?? "Custom: at least six rounds, shared between the categories you pick."}{" "}
-              {hasEmptyCategory ? "Faded categories have no games yet. " : ""}Keep at least one category.{" "}
-            </>
-          ) : null}
-          <span data-lobby-rounds>{roundsLine(categories)}</span>
-        </p>
       </section>
 
       {tournamentHistory.length > 0 && (
@@ -419,6 +425,17 @@ export function RoomLobby({
             ))}
         </section>
       )}
+
+      {settingsOpen && canEditSettings ? (
+        <RoomSettingsSheet
+          initial={settings}
+          onClose={() => setSettingsOpen(false)}
+          onSave={async (next) => {
+            await onSettingsChange(next);
+            setSavedSettings({ settings: next, stored: storedSettings });
+          }}
+        />
+      ) : null}
 
       {removingPlayer && (
         <ConfirmDialog
@@ -469,13 +486,3 @@ export function RoomLobby({
     </div>
   );
 }
-
-const CATEGORY_LABEL: Record<PuzzleCategory, string> = {
-  word: "Word",
-  number: "Number",
-  speed: "Speed",
-  attention: "Attention",
-  pattern: "Pattern",
-  logic: "Logic",
-  arcade: "Arcade",
-};

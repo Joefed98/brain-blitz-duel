@@ -12,6 +12,7 @@ import type { PuzzleData } from "@/lib/duel/types";
 import type { PlayerLook } from "@/lib/duel/playerLook";
 
 import { ArcadeScoreChart } from "./ArcadeScoreChart";
+import { canvasRatio } from "@/lib/battery";
 
 /** One player in the room for the reveal chart. `reveal` and `score` are null until their result lands. */
 export interface RevealPlayer {
@@ -136,6 +137,30 @@ export function revealShown(reveal: ArcadeRevealData, score: number | null): { l
   return { lines, tiles: reveal.tiles.filter((tile) => !tileInLines(tile, reveal.lines)) };
 }
 
+/** One part's points from a stored arcade-standard part line ("Distance: 412 ft → 110 of 130", stdLines). */
+const STD_PART = /^[^:→]+: .* → (-?\d+) of \d+$/;
+/** The standard's closing line (stdLines): the total, or the 1 for playing. */
+const STD_TOTAL = /^(Total → \d+( of \d+)?|At least 1 for playing → \d+)$/;
+
+/**
+ * The reveal's one-line breakdown (1 Nov 2026, Joe: the full list squashed the chart): on the arcade scoring standard,
+ * "142 · core 110 + features 32" from its stored part lines (the first part is the core, the others the features, each
+ * figure as stored); any other game's first stored line. `rest` is what the tap opens: every stored line the summary
+ * doesn't already show. Display only: it reads the stored strings and never regrades.
+ */
+export function revealSummary(lines: readonly string[], score: number | null): { summary: string; rest: string[] } | null {
+  if (lines.length === 0) return null;
+  const body = lines.filter((l) => !STD_TOTAL.test(l));
+  const parts = body.map((l) => STD_PART.exec(l)).map((m) => (m ? Number(m[1]) : null));
+  const standard = score !== null && parts.length >= 2 && parts.every((p) => p !== null);
+  if (standard) {
+    const [core, ...features] = parts as number[];
+    const more = features.reduce((a, b) => a + b, 0);
+    return { summary: `${score} · core ${core} ${more < 0 ? "−" : "+"} features ${Math.abs(more)}`, rest: [...lines] };
+  }
+  return { summary: lines[0]!, rest: lines.slice(1) };
+}
+
 /** Where a line too long for one row breaks: its " · " (else ", ", else a space) nearest the middle. */
 function halves(text: string): [string, string] | null {
   for (const [sep, keep] of [[" · ", 0], [", ", 1], [" ", 0]] as const) {
@@ -216,7 +241,7 @@ function Backdrop({ puzzle, answer, outcome }: { puzzle: PuzzleData; answer: str
   useEffect(() => {
     const node = canvas.current;
     if (!renderer || !node) return;
-    const ratio = Math.min(window.devicePixelRatio || 1, 2);
+    const ratio = canvasRatio();
     node.width = Math.round(renderer.worldW * ratio);
     node.height = Math.round(worldH * ratio);
     const ctx = node.getContext("2d");
@@ -287,6 +312,10 @@ export function ArcadeReveal({ puzzle, myAnswer, myScore, myReveal, players, nea
   const scoreRef = useRef<HTMLParagraphElement>(null);
   usePerfectBurst(scoreRef, myScore, puzzle.type);
   const shown = myReveal ? revealShown(myReveal, myScore) : null;
+  // The breakdown folds to one line (tap to open), so the chart keeps its full height.
+  const summary = shown ? revealSummary(shown.lines, myScore) : null;
+  const folds = !!summary && summary.rest.length + (shown?.tiles.length ?? 0) + costRows.length > 0;
+  const [open, setOpen] = useState(false);
   // The score block's bottom edge, so the scrim behind it covers exactly that much of the frozen world.
   const head = useRef<HTMLDivElement>(null);
   const [headBottom, setHeadBottom] = useState(0);
@@ -310,7 +339,11 @@ export function ArcadeReveal({ puzzle, myAnswer, myScore, myReveal, players, nea
         style={{ height: headBottom + 32, background: "linear-gradient(to bottom, var(--background) calc(100% - 24px), transparent)" }}
       />
       {celebration ? <ArcadeCelebration kind={celebration} world={arcadeWorldOf(puzzle.type)} /> : null}
-      <div className="relative flex min-h-0 flex-1 flex-col items-center justify-between gap-3 px-3 py-4">
+      {/* Scrolls rather than overlap (31 Oct 2026): at 375×667 a game with four part lines left the chart
+          less height than it needs, and the chart (min-h-0) drew over the parts card under it. */}
+      {/* 1 Nov 2026: the breakdown folds to one line and the column's padding is 8 px, so the 16-player chart fits
+          375×667 with no scroll; opened, the column scrolls. */}
+      <div data-reveal-column className="relative flex min-h-0 flex-1 flex-col items-center justify-between gap-3 overflow-y-auto px-3 py-2">
         <div ref={head} className="flex w-full flex-col items-center gap-1">
           {myScore === null ? (
             <div data-reveal-score="pending" className="py-3">
@@ -327,14 +360,34 @@ export function ArcadeReveal({ puzzle, myAnswer, myScore, myReveal, players, nea
             </p>
           )}
           <p className="font-mono text-xs uppercase tracking-[0.3em] text-muted-foreground">points</p>
-          {shown
-            ? shown.lines.map((line) => <FitLine key={line} text={line} className="text-foreground animate-fade-in" />)
-            : null}
+          {summary ? (
+            folds ? (
+              <button
+                type="button"
+                data-reveal-summary={open ? "open" : "closed"}
+                aria-expanded={open}
+                onClick={() => setOpen((v) => !v)}
+                className="press flex min-h-11 w-full items-center justify-center gap-1.5 rounded-lg text-foreground animate-fade-in"
+              >
+                <FitLine text={summary.summary} className="min-w-0 flex-1 text-foreground" />
+                <span aria-hidden="true" className="shrink-0 font-mono text-xs text-muted-foreground">{open ? "▴" : "▾"}</span>
+              </button>
+            ) : (
+              <FitLine text={summary.summary} className="text-foreground animate-fade-in" />
+            )
+          ) : null}
+          {/* The full breakdown, one tap away (always in the markup; drawn only when opened). */}
+          {summary && summary.rest.length ? (
+            <div data-reveal-breakdown="" hidden={!open} className="w-full">
+              {summary.rest.map((line) => <FitLine key={line} text={line} className="text-foreground animate-fade-in" />)}
+            </div>
+          ) : null}
           {myScore !== null && nearMissLine ? <FitLine text={nearMissLine} className="text-foreground" /> : null}
         </div>
 
         {/* The chart in a clean panel over the darkened world, never over the busy board itself. */}
-        <div data-chart-panel className="flex min-h-0 w-full flex-1 flex-col rounded-[18px] bg-[#17171B] px-2.5 py-2.5">
+        {/* Never shorter than the chart it holds (no min-h-0): the column scrolls instead of overlapping. */}
+        <div data-chart-panel className="flex w-full flex-1 flex-col rounded-[18px] bg-[#17171B] px-2.5 py-2.5">
           <ArcadeScoreChart
             players={players.map((p) => ({ slot: p.slot, name: p.name, isMe: p.isMe, look: p.look, score: p.isMe ? myScore : p.score }))}
             type={puzzle.type}
@@ -342,10 +395,11 @@ export function ArcadeReveal({ puzzle, myAnswer, myScore, myReveal, players, nea
         </div>
 
         {shown && shown.tiles.length + costRows.length > 0 ? (
-          // One full-width row per stored tile (label left, value right), so a label as
+          // One full-width row (in the breakdown: shown once the one-line summary is opened) per stored tile (label left, value right), so a label as
           // long as "Crossings completed" stays on one line at 12 px on a 375 px phone.
           <div
             data-reveal-tiles=""
+            hidden={!open}
             className="flex w-full shrink-0 flex-col divide-y rounded-lg border bg-background/70 px-3 animate-fade-in"
             style={{ borderColor: accent }}
           >
