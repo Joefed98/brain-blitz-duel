@@ -54,7 +54,8 @@ function planFor(seed: number) {
 
 async function shoot(w: number, h: number) {
   const browser = await chromium.launch({ executablePath: process.env.PLAYWRIGHT_CHROMIUM ?? "/opt/pw-browsers/chromium" });
-  const context = await browser.newContext({ viewport: { width: w, height: h }, deviceScaleFactor: 2 });
+  // The computer layout at DPR 1: a 2880 × 1800 page is slow enough that the swing frame's pitch is over before the swipe.
+  const context = await browser.newContext({ viewport: { width: w, height: h }, deviceScaleFactor: w >= 1024 ? 1 : 2 });
   const page = await context.newPage();
   // The practice deal is switched to the game's fixed example (as scripts/shots/capture.ts does: a cloud container has
   // no database for a real deal), so the seed is the example's.

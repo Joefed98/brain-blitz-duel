@@ -49,7 +49,7 @@ revisions keep their own world in reveals and replays.
 | Pinball | 390x820 | 375x591 → 281x591 | 390x624 → 297x624 | 390x768 → 365x768 | 414x772 → 367x772 | 430x856 → 407x856 | 1280x724 → 344x724 | 0.937x | 60px | 0px | 0px | 25px | - |
 | Minefield | 390x662 | 375x591 → 348x591 | 390x624 → 368x624 | 390x768 → 390x662 | 414x772 → 414x703 | 430x856 → 430x730 | 1280x724 → 427x724 | 1.000x | 60px | 0px | 106px | 0px | - |
 | Mahjong Solitaire | 390x608 | 375x591 → 375x585 | 390x624 → 390x608 | 390x768 → 390x608 | 414x772 → 414x645 | 430x856 → 430x670 | 1280x724 → 464x724 | 1.000x | 60px | 0px | 160px | 0px | - |
-| Home Run | 390x720 | 375x591 → 320x591 | 390x624 → 338x624 | 390x768 → 390x720 | 414x772 → 414x764 | 430x856 → 430x794 | 1280x724 → 392x724 | 1.000x | 60px | 0px | 48px | 0px | - |
+| Home Run | 390x780 | 375x591 → 296x591 | 390x624 → 312x624 | 390x768 → 384x768 | 414x772 → 386x772 | 430x856 → 428x856 | 1280x724 → 362x724 | 0.985x | 60px | 0px | 0px | 6px | - |
 | Top Bins | 390x720 | 375x591 → 320x591 | 390x624 → 338x624 | 390x768 → 390x720 | 414x772 → 414x764 | 430x856 → 430x794 | 1280x724 → 392x724 | 1.000x | 60px | 0px | 48px | 0px | - |
 | Apex | 390x727 | 375x591 → 317x591 | 390x624 → 335x624 | 390x768 → 390x727 | 414x772 → 414x772 | 430x856 → 430x802 | 1280x724 → 388x724 | 1.000x | 60px | 0px | 41px | 0px | - |
 | Free Cell | 414x772 | 375x591 → 317x591 | 390x624 → 335x624 | 390x768 → 390x727 | 414x772 → 414x772 | 430x856 → 430x802 | 1280x724 → 388x724 | 0.942x | 60px | 0px | 41px | 0px | - |
@@ -104,7 +104,7 @@ stars, walkers, lava, reactions) that holds still under reduced motion or reduce
 | Ball Tracker | 375x555 → 278x555 | 390x588 → 294x588 | 390x732 → 366x732 | 414x736 → 368x736 | 430x820 → 410x820 | 1280x688 → 344x688 | the wooden board runs on across the sides and to the bottom |
 | Gemstone | 375x591 → 320x591 | 390x624 → 338x624 | 390x768 → 390x720 | 414x772 → 414x764 | 430x856 → 430x794 | 1280x724 → 392x724 | the sparkly purple velvet over the whole screen, behind the header too (world centred) |
 | Pinball | 375x591 → 281x591 | 390x624 → 297x624 | 390x768 → 365x768 | 414x772 → 367x772 | 430x856 → 407x856 | 1280x724 → 344x724 | the dark table, five retro lamps lit by the table's good moments (world centred) |
-| Home Run | 375x591 → 320x591 | 390x624 → 338x624 | 390x768 → 390x720 | 414x772 → 414x764 | 430x856 → 430x794 | 1280x724 → 392x724 | the park's bands carried out to the sides (sky, stands, wall, grass, dirt), each a shade darker, the plate's dirt settling darker below |
+| Home Run | 375x591 → 296x591 | 390x624 → 312x624 | 390x768 → 384x768 | 414x772 → 386x772 | 430x856 → 428x856 | 1280x724 → 362x724 | the park's bands carried out to the sides (sky, stands, wall, grass, dirt), each a shade darker, the plate's dirt settling darker below |
 | Top Bins | 375x591 → 320x591 | 390x624 → 338x624 | 390x768 → 390x720 | 414x772 → 414x764 | 430x856 → 430x794 | 1280x724 → 392x724 | the stands' dark carried out above the horizon, the grass below, settling darker under the world |
 | Apex | 375x591 → 317x591 | 390x624 → 335x624 | 390x768 → 390x727 | 414x772 → 414x772 | 430x856 → 430x802 | 1280x724 → 388x724 | the sky above, grass at the sides, dark tarmac below |
 | Crazy Golf | 375x591 → 334x591 | 390x624 → 353x624 | 390x768 → 390x690 | 414x772 → 414x732 | 430x856 → 430x761 | 1280x724 → 409x724 | more of the night terrace, darker towards the edges |
@@ -157,7 +157,7 @@ than half hidden; Hover's world is cut the same way, its disc at the top).
 | Pinball | 414x724 → 344x724, 64px | 414x772 → 367x772, 16px | world 32px |
 | Minefield | 414x724 → 414x703, 64px | 414x772 → 414x703, 16px | world none |
 | Mahjong Solitaire | 414x724 → 414x645, 64px | 414x772 → 414x645, 16px | world none |
-| Home Run | 414x724 → 392x724, 64px | 414x772 → 414x764, 16px | world 24px |
+| Home Run | 414x724 → 362x724, 64px | 414x772 → 386x772, 16px | world 32px |
 | Top Bins | 414x724 → 392x724, 64px | 414x772 → 414x764, 16px | world 24px |
 | Apex | 414x724 → 388x724, 64px | 414x772 → 414x772, 16px | world 32px |
 | Free Cell | 414x724 → 388x724, 64px | 414x772 → 414x772, 16px | world 32px |
@@ -207,7 +207,7 @@ bottom; the spare space was the game's arena fill or the page colour. Same arith
 | Pinball | 367x543 → 258x543 | 382x576 → 274x576 | 382x720 → 342x720 | 422x808 → 384x808 | 1272x676 → 322x676 |
 | Minefield | 367x543 → 320x543 | 382x576 → 339x576 | 382x720 → 382x648 | 422x808 → 422x716 | 1272x676 → 398x676 |
 | Mahjong Solitaire | 367x543 → 348x543 | 382x576 → 369x576 | 382x720 → 382x596 | 422x808 → 422x658 | 1272x676 → 434x676 |
-| Home Run | 367x543 → 294x543 | 382x576 → 312x576 | 382x720 → 382x705 | 422x808 → 422x779 | 1272x676 → 366x676 |
+| Home Run | 367x543 → 272x543 | 382x576 → 288x576 | 382x720 → 360x720 | 422x808 → 404x808 | 1272x676 → 338x676 |
 | Top Bins | 367x543 → 294x543 | 382x576 → 312x576 | 382x720 → 382x705 | 422x808 → 422x779 | 1272x676 → 366x676 |
 | Apex | 367x543 → 291x543 | 382x576 → 309x576 | 382x720 → 382x712 | 422x808 → 422x787 | 1272x676 → 363x676 |
 | Free Cell | 367x543 → 291x543 | 382x576 → 309x576 | 382x720 → 382x712 | 422x808 → 422x787 | 1272x676 → 363x676 |
