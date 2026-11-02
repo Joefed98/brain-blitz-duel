@@ -32,6 +32,7 @@ import { driver as maze } from "./maze";
 // Cards & Board (30 Oct 2026)
 import { mahjongDriver, minesweeperDriver } from "./cardsBoard";
 import { ricochetDriver } from "./ricochet";
+import { bastionDriver } from "./bastion";
 
 export const DRIVERS: Record<string, Driver> = {
   ...LOGIC_DRIVERS,
@@ -60,6 +61,7 @@ export const DRIVERS: Record<string, Driver> = {
   tendrop,
   maze,
   minesweeper: minesweeperDriver,
+  bastion: bastionDriver,
   mahjong: mahjongDriver,
   ricochet: ricochetDriver,
 };

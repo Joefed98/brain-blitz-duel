@@ -4,6 +4,10 @@
  * with the game's own renderer, and (where known) where the run ended. This is
  * visual only — the score, lines, tiles and axis come from round_results.
  */
+import { bastionGame, BAS_WORLD_H, BAS_WORLD_W } from "./bastion";
+import { BT2_WORLD_H, BT2_WORLD_W } from "./bastionTank";
+import { bastionTankArtGame } from "./bastionTank.renderer";
+import { isBastionTank, replayBastionRun, replayBastionTankRun } from "@/lib/duel/bastion";
 import type { PuzzleData } from "@/lib/duel/types";
 
 import { hoverArtGame as hoverGame, hoverRevealGame } from "./hover.renderer";
@@ -193,7 +197,25 @@ function drawTenDropArt(ctx: CanvasRenderingContext2D, state: TenDropState, size
 
 const seedOf = (puzzle: PuzzleData): number => ("seed" in puzzle ? Number(puzzle.seed) : 1);
 
+/**
+ * Bastion: bastionRev 2's final field (the tank game's own art, 390 × 720); an original (unstamped) round draws the old
+ * turret's final frame (390 × 620) through its own sim, as it would have.
+ */
+const bastionTankRound = (p: PuzzleData) => p.type === "bastion" && isBastionTank(p.bastionRev);
+const BASTION_REVEAL: ArcadeRevealRenderer = {
+  accent: "#FF4D4D",
+  worldW: BT2_WORLD_W,
+  worldH: BT2_WORLD_H,
+  heightFor: (p) => (bastionTankRound(p) ? BT2_WORLD_H : BAS_WORLD_H),
+  drawFinal: (ctx, puzzle, answer) => {
+    if (bastionTankRound(puzzle)) bastionTankArtGame.draw(ctx, replayBastionTankRun(seedOf(puzzle), answer).state, { width: BT2_WORLD_W, height: BT2_WORLD_H });
+    else bastionGame.draw(ctx, replayBastionRun(seedOf(puzzle), answer).state, { width: BAS_WORLD_W, height: BAS_WORLD_H });
+    return null;
+  },
+};
+
 export const ARCADE_REVEAL_RENDERERS: Record<string, ArcadeRevealRenderer> = {
+  bastion: BASTION_REVEAL,
   // The Sports group (30 Oct 2026): each game's final frame at world size.
   homerun: simple(GOLD, HOMERUN_WORLD_W, HOMERUN_WORLD_H, homerunArtGame, (p, a) => replayHomerunRun(seedOf(p), a, p.type === "homerun" ? p.homerunRev : undefined)),
   freekick: simple(GOLD, FREEKICK_WORLD_W, FREEKICK_WORLD_H, freekickArtGame, (p, a) => replayFreekickRun(seedOf(p), a, p.type === "freekick" ? p.freekickRev : undefined)),

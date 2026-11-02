@@ -129,8 +129,10 @@ export const ROUND_MAX: Readonly<Record<PuzzleType, number>> = {
   swing: 200, // expansion x200, swingRev 13; the assault course, swingRev 14; the swinging course, swingRev 15
   tilt: 200, // x200, tiltRev 8 (tiltRev 9: lifted curves; tiltRev 10: the arcade scoring standard)
   wavefront: 200,
+  // bastionRev 2 (1 Nov 2026): the tank-defence shooter, born on the arcade scoring standard (the original Bastion's
+  // unstamped rounds scored to 150; they replay unchanged).
+  bastion: 200,
   // Retired to practice
-  bastion: 150,
   dig: 150,
   dual: 150,
   hotfloor: 150,

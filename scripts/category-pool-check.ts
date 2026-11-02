@@ -77,9 +77,9 @@ const WANT_ACTIVE = Object.values(POOL).reduce((a, n) => a + n, 0);
 if (ACTIVE_PUZZLE_TYPES.length !== WANT_ACTIVE) fail(`${ACTIVE_PUZZLE_TYPES.length} active games, want ${WANT_ACTIVE}`);
 // After Full House's retirement and the four new grid puzzles (1 Nov 2026): 87 active games, 32 of them arcade;
 // with Blockfall and Alley Roll (1 Nov 2026) 89, 34 of them arcade; with Ricochet back as the ninja wall-climb
-// (ricoRev 2, 1 Nov 2026) 90, 35 of them arcade.
-if (ACTIVE_ARCADE_GAMES.length !== 35) fail(`${ACTIVE_ARCADE_GAMES.length} active arcade games, want 35 (Full House practice only since 1 Nov 2026; Blockfall and Alley Roll added; Ricochet active again)`);
-if (ACTIVE_PUZZLE_TYPES.length !== 90) fail(`${ACTIVE_PUZZLE_TYPES.length} active games, want 90`);
+// (ricoRev 2, 1 Nov 2026) 90, 35 of them arcade; with Bastion back in rooms (bastionRev 2, 1 Nov 2026) 91, 36 arcade.
+if (ACTIVE_ARCADE_GAMES.length !== 36) fail(`${ACTIVE_ARCADE_GAMES.length} active arcade games, want 36 (Full House practice only since 1 Nov 2026; Blockfall and Alley Roll added; Ricochet and Bastion active again)`);
+if (ACTIVE_PUZZLE_TYPES.length !== 91) fail(`${ACTIVE_PUZZLE_TYPES.length} active games, want 91`);
 
 // The deleted games and Memory are gone: no registry entry, no category, no draw.
 for (const type of REMOVED_PUZZLE_TYPES)

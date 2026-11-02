@@ -44,7 +44,7 @@ export const DESKTOP_KEYS: Partial<Record<PuzzleType, readonly (readonly [string
   tilt: [["← →", "tilt"]],
   wavefront: [["← →", "move"]],
   // Arcade, practice only
-  bastion: [["← →", "rotate"]],
+  bastion: [["Mouse", "aim"], ["Click", "fire"], ["R", "reload"], ["Space", "fast reload"]],
   dual: [["← / F", "left jump"], ["→ / J", "right jump"]],
   hotfloor: [["Mouse", "tiles"], ["Enter", "go"], ["Z", "undo"], ["C", "clear"]],
   junction: [["← → ↑ ↓ / 1–8", "lights"]],

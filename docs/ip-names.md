@@ -28,3 +28,13 @@ Both are working names; Joe may rename either (`src/lib/duel/gameNames.ts`; ids 
 | Shown as | Id | Genre (generic description) | Name chosen to avoid | To check |
 | --- | --- | --- | --- | --- |
 | Ricochet | `ricochet` | two-wall leaping climb (Action group; back as an active game on `ricoRev` 2) | — | "Ricochet" (a common word) in classes 9 / 28 / 41; the two-wall leaping mechanic (common to wall-jump games: check none is a close copy of a specific game); the ninja character (the Joulz hero in ninja gear, drawn in code: check it reads as generic, not a known character). All art is drawn in code; no third-party assets. |
+
+## Added 1 Nov 2026: Bastion (back in rooms)
+
+| Shown as | Id | Genre (generic description) | Name chosen to avoid | To check |
+| --- | --- | --- | --- | --- |
+| Bastion | `bastion` | first-person tank-defence shooter: aim a turret's crosshair from behind a wall, lead tanks down three lanes, hit exposed weak spots, a timed fast-reload needle | — (the name is kept from our own October 2026 game) | "Bastion" is also the title of a 2011 video game by Supergiant Games: check the mark in classes 9 / 28 / 41 before the store launch; the fast-reload needle is a common genre idea (check no implementation is patented) |
+
+The art (the battlefield, tanks and HUD drawn in code, `src/lib/arcade/bastionTank.renderer.ts`), the wave schedule,
+rules and scoring (`docs/arcade-standard/bastion.md`) are original; no third-party art, fonts beyond the self-hosted OFL
+set, or sounds beyond the existing library.

@@ -38,6 +38,7 @@ import { stdBandParts } from "../../src/lib/arcade/arcadeStandard";
 import { minigolfStdParts, MINIGOLF_STD_SPEC } from "../../src/lib/arcade/minigolf";
 import { STD_SPORTS } from "./sportsUnits";
 
+import { bastionBandParts } from "../../src/lib/arcade/bastionTank";
 import { homerunBandParts } from "../../src/lib/arcade/homerun";
 import { freekickBandParts } from "../../src/lib/arcade/freekick";
 import { racingBandParts } from "../../src/lib/arcade/racing";
@@ -79,6 +80,7 @@ export const BAND_PARTS: Record<string, (s: any) => BandParts> = {
   blockfall: blockfallBandParts,
   alleyroll: alleyRollBandParts,
   ricochet: ninjaBandParts,
+  bastion: bastionBandParts,
   // The Sports group (30 Oct 2026): units are the core's measure (holes holed, spots potted, stones on the button).
   minigolf: (s: any) => {
     const parts = minigolfStdParts(s) ?? [];
