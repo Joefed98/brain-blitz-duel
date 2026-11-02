@@ -22,7 +22,19 @@ stage and reveal `src/puzzles/ricochet.tsx` (dispatching on the stamp), sounds `
   **ice** gives no grip (5.5 px a tick: leap off at once). The floor stops the slide.
 - **Katanas** stuck in the walls (a gold guard and a steel blade 48 px long that glints) and **shurikens** spinning
   across the gap on seeded paths (a back-and-forth crossing, level or slanting) knock the ninja down 120 px (3 m)
-  over a third of a second (the ninja's body is a 15 px circle), then a 1 s stun and a ¾ s grace (blinking, no hit). No game over.
+  over a third of a second, then a 1 s stun and a ¾ s grace (blinking, no hit). No game over.
+- **The ninja is the Joulz hero** (`drawHero`, `src/lib/arcade/hero.renderer.ts`, the figure of the score celebrations:
+  gold cape, gold-outlined black limbs, chest bolt, gold gloves and boots, black head with the gold ring, mask band and
+  eye slits) in ninja gear: a dark wrap round the head that leaves the hero's face showing, a red headband with trailing
+  tails, a red sash and a small katana on the back. Poses: clinging (hands and feet on the wall), leaping (stretched along
+  the arc), double jump (a tuck turning a full circle through the hang) and stunned (arms dropped, swaying, stars). The
+  tile icon and the intro still draw the same figure.
+- **The body is a box**, 26 × 52 px (`NINJA_HW` 13, `NINJA_HH` 26; about twice the first drawing), and every pose is
+  drawn inside it (the arcade bounds rule): a katana's blade or a coin, lantern or scroll touching the box is a touch.
+  Shurikens are 11 px to their points (steel grey, a dark outline, a red centre ring, a bright bevel so the turning
+  reads, a faint dotted line along each one's seeded path); a hit is the box within 1 px of a point.
+- **Moss and ice** patches are 14 px into the stone. Moss: green with tufts and drips. Ice: pale blue, frosted
+  (speckles and crystal streaks), a glint running down it and icicles off its lower edge.
 - **Coins** (60) sit three to an arc along twenty good leaps; **gold lanterns** (10) hang on the walls where the
   route clings, about half sliding slowly up and down; **scrolls** (4, rare) sit at the top of double-jump lines,
   never off the route.
@@ -39,7 +51,7 @@ Hazards are laid clear of the route (a katana or shuriken that would touch it, w
 katanas where a plain leap would land on the route's double-jump leaps (so the double jump is the way past),
 shurikens across where a leap-at-once would be on the route's longer waits (so waiting is the way past), and more of
 both up the tower, closer together higher up. Finally the route is played through the real `step`: the deal is kept
-only if it takes every item, takes no hit and climbs at least NINJA_CORE_FULL_M, 296 m (else the next attempt's seed). So
+only if it takes every item, takes no hit and climbs at least NINJA_CORE_FULL_M, 241 m (else the next attempt's seed). So
 **a perfect run reaches 200 on every dealt tower**; arcade-standard-check plays 24 towers' witnesses through the
 server replay (200 with `CHECKS_FULL=1`), all at 200 with every part at its maximum. A deal takes about 20–60 ms
 (the stage and the server cache the last eight).
@@ -48,37 +60,40 @@ server replay (200 with `CHECKS_FULL=1`), all at 200 with every part at its maxi
 
 | Part | Maximum | How |
 | --- | --- | --- |
-| Height | 130 | metres climbed (best height above the start, 40 px a metre) on a straight line, full at **296 m** |
+| Height | 130 | metres climbed (best height above the start, 40 px a metre) on a straight line, full at **241 m** |
 | Coins | 30 | shared across 60 coins (floor(30 × coins ÷ 60)) |
 | Lanterns | 20 | 2 for each of 10 gold lanterns |
 | Scrolls | 20 | 5 for each of 4 scrolls |
 | **Total** | **200** | any input scores at least 1; no input 0 |
 
-A hit costs only the height and time it takes (no points). The core's full figure, 296 m, is the near-perfect
-level's median (296 m on the measuring run; 295 on the final 40-seed run below, after the deal's own bar moved to 296); every dealt tower's witness reaches it.
+A hit costs only the height and time it takes (no points). The core's full figure, 241 m, is the near-perfect
+level's median (below); every dealt tower's witness reaches it (the witnesses climb 278–324 m on 40 test towers).
 
 ## Skill bands
 
 `bun scripts/ninja-bands.ts --seeds=40` (room seeds n = 0…39 through the server's encode and replay; bot
 `scripts/arcade-skill-bands/bots/ricochet.ts`: at each landing it weighs 104 plans of wait and double-jump timing on
 the real sim, looking one leap further for its ten best, with the level's reaction, timing error, judgement and
-slips; elite and flawless weigh the items higher, since height past 296 m pays nothing):
+slips; elite and flawless weigh the items higher, since height past 241 m pays nothing):
 
 | Level | Score | Height (130) | Coins (30) | Lanterns (20) | Scrolls (20) | Metres | Hits |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| Random tapper | 42 | 32 | 4 | 4 | 0 | 75 | 20 |
-| Weak | 64 | 50 | 7 | 4 | 5 | 115 | 17 |
-| Average | 94 | 75 | 10 | 6 | 5 | 171 | 15 |
-| Good | 132 | 103 | 13 | 8 | 10 | 235 | 11 |
-| Great | 153 | 115 | 15 | 8 | 15 | 264 | 9 |
-| Near-perfect | 170 | 129 | 17 | 10 | 15 | 295 | 7 |
-| Elite | 177 | 128 | 20 | 12 | 20 | 292 | 6 |
-| Flawless | 182 | 130 | 21 | 12 | 20 | 319 | 6 |
+| Random tapper | 44 | 33 | 5 | 4 | 5 | 62 | 22 |
+| Weak | 67 | 51 | 8 | 4 | 5 | 96 | 20 |
+| Average | 105 | 78 | 11 | 8 | 8 | 145 | 17 |
+| Good | 143 | 108 | 16 | 10 | 10 | 201 | 14 |
+| Great | 161 | 120 | 17 | 10 | 15 | 222 | 13 |
+| Near-perfect | 176 | 130 | 20 | 12 | 15 | 241 | 11 |
+| Elite | 184 | 130 | 22 | 14 | 18 | 254 | 10 |
+| Flawless | 188 | 130 | 25 | 14 | 20 | 269 | 10 |
+
+Before the hero body (a 15 px circle, the first PR push), the same run gave 42 / 64 / 94 / 132 / 153 / 170 / 177 / 182
+with the core full at 296 m: the larger body is easier to hit and catches items more readily, so the climb is
+lower (near-perfect 296 → 241 m) and the full mark moved with it.
 
 The witness (the deal's own route) scores 200 on every tower. The bots' flawless level stays below it because its
-plan looks only two leaps ahead and finds the sliding lanterns hard to time; the gaps at the top are 7 (near →
-elite) and 5 (elite → flawless). Elite trades a little height for items (its median metres sit just under
-near-perfect's), as a top player who knows the core is full would.
+plan looks only two leaps ahead and finds the sliding lanterns hard to time; the gaps at the top are 8 (near →
+elite) and 4 (elite → flawless).
 
 ## Decisions and assumptions
 

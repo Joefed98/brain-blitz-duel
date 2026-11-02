@@ -338,7 +338,7 @@ export const ARCADE2_SCENES: SceneSet = {
       drawRubberBall(c, 80, 398, 14, 0.6);
     });
   }),
-  // Ricochet (ricoRev 2): the ninja mid-leap between two temple walls, a katana in the left wall, a shuriken
+  // Ricochet (ricoRev 2): the Joulz hero in ninja gear mid-leap between two temple walls, a katana in the left wall, a shuriken
   // spinning across the gap, a coin on the arc and a gold lantern on the right wall (the game's own painters).
   ricochet: canvasScene((c) => {
     const stone = (x0: number, w: number) => {
@@ -367,8 +367,8 @@ export const ARCADE2_SCENES: SceneSet = {
     drawLantern(c as CanvasRenderingContext2D, 0, 0, 0);
     c.restore();
     c.save();
-    c.translate(50, 56);
-    c.scale(1.36, 1.36);
+    c.translate(50, 54);
+    c.scale(1.12, 1.12);
     drawNinja(c as CanvasRenderingContext2D, 0, 0, 1, 1, 6);
     c.restore();
   }),

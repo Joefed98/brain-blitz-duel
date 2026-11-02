@@ -1602,7 +1602,7 @@ Grouped by game or screen.
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
 |---|---|---|---|---|---|---|---|---|
 | `ricochet.heightStreak` | Every 50 m climbed (ricoRev 2) [arcade-effects.md] | "50 m" streak banner | 1–7 | recorded sound | `ricochet.heightStreak` | 480 | game event | `ricochet.heightStreak` |
-| `ricochet.fullHeight` | The core's full height (296 m) reached (ricoRev 2) [arcade-effects.md] | FULL HEIGHT! banner | 0–1 | recorded sound | `ricochet.fullHeight` | 840 | game event | `ricochet.fullHeight` |
+| `ricochet.fullHeight` | The core's full height (241 m) reached (ricoRev 2) [arcade-effects.md] | FULL HEIGHT! banner | 0–1 | recorded sound | `ricochet.fullHeight` | 840 | game event | `ricochet.fullHeight` |
 | `ricochet.leap` | Ricochet: The ninja leaps off a wall (ricoRev 2) [arcade.md] |  | 80–140 | recorded sound | `arc_gravity_flip` (shared) | 330 | game event | `ricochet.leap` |
 | `ricochet.doubleJump` | Ricochet: The double jump in the air (ricoRev 2) [arcade.md] |  | 10–60 | recorded sound | `arc_gravity_flip` (shared) | 330 | game event | `ricochet.doubleJump` |
 | `ricochet.hit` | Ricochet: A katana or shuriken knocks the ninja down (ricoRev 2) [arcade.md] |  | 0–20 | recorded sound | `arc_crash` (shared) | 200 | game event | `ricochet.hit` |

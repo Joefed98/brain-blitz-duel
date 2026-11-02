@@ -1040,13 +1040,14 @@ outside the repo.
   are stored as the picks, `rounds:N`, then `groups:2`; a settings room saved before the split (no `groups:2`) reads
   its Action as Action and Strategy (`storedPicks`), so it keeps its games. room-settings-check, practice-switch-check.
 - **Ricochet, the ninja wall-climb** (1 Nov 2026, `ricoRev` 2; `docs/arcade-standard/ricochet.md`): back from retirement in
-  the Action group under its own id. Sim `src/lib/arcade/ricochetNinja.ts` (two temple walls, tap to leap, a second tap
+  the Action group under its own id. The ninja is the Joulz hero (`drawHero`) in ninja gear on a 26 × 52 px body box
+  that matches the drawing. Sim `src/lib/arcade/ricochetNinja.ts` (two temple walls, tap to leap, a second tap
   in the air the leap's one double jump, cling slides, moss and ice, katanas and shurikens knock 3 m down with a 1 s
   stun, no game over; coins, gold lanterns, scrolls), art `ricochetNinja.renderer.ts`, fill
   `ricochetNinjaScene.renderer.ts`, plumbing `encodeNinjaRun` / `replayNinjaRun` in `src/lib/duel/ricochet.ts`; the stage
   and reveal dispatch on the stamp, so unstamped rounds keep the old shaft, its sim and its 150 exactly. The tower is
-  dealt in the sim with a witness route proved through the real step (every item, no hit, 296 m+), so a perfect run is
-  200 on every tower. Height 130 (full at 296 m, the near-perfect median) + coins 30 + lanterns 20 + scrolls 20.
+  dealt in the sim with a witness route proved through the real step (every item, no hit, 241 m+), so a perfect run is
+  200 on every tower. Height 130 (full at 241 m, the near-perfect median) + coins 30 + lanterns 20 + scrolls 20.
   Bands `bun scripts/ninja-bands.ts`, bot `scripts/arcade-skill-bands/bots/ricochet.ts`. No intro demo yet.
 - `src/components/duel/` — room/round screens (PhoneShell, RoundIntro, TimerBar,
   AnswerReveal, ArcadeReveal, WinnerReveal…); `src/components/puzzles/` — shared puzzle

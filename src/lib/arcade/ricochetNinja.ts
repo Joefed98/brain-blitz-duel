@@ -34,11 +34,15 @@ export const NINJA_RUN_SECONDS = 60;
 export const NINJA_RUN_TICKS = NINJA_RUN_SECONDS * 60;
 export const NINJA_INPUT_TAP = 1;
 
-/** The walls' inner faces (px) and the ninja's body radius; the cling x on each wall. */
+/**
+ * The walls' inner faces (px), the ninja's body (a box NINJA_HW × NINJA_HH either side of its centre: the Joulz hero in
+ * ninja gear is drawn inside it, so what you see is what is hit) and the cling x on each wall.
+ */
 export const NINJA_WALL_L = 70;
 export const NINJA_WALL_R = 320;
-export const NINJA_R = 15;
-export const NINJA_CLING_X = [NINJA_WALL_L + NINJA_R, NINJA_WALL_R - NINJA_R] as const;
+export const NINJA_HW = 13;
+export const NINJA_HH = 26;
+export const NINJA_CLING_X = [NINJA_WALL_L + NINJA_HW, NINJA_WALL_R - NINJA_HW] as const;
 
 /** A leap: NINJA_LEAP_TICKS of sideways travel; upward speed and gravity in 1/256 px a tick (about +108 px a leap). */
 export const NINJA_LEAP_TICKS = 26;
@@ -54,8 +58,8 @@ export const SURF_STONE = 0;
 export const SURF_MOSS = 1;
 export const SURF_ICE = 2;
 
-/** The ninja stands on the floor here (its centre's height); height climbed is measured from it. */
-export const NINJA_START = 40 * 256;
+/** The ninja stands on the floor here (its centre's height, feet on the floor); height climbed is measured from it. */
+export const NINJA_START = (NINJA_HH + 4) * 256;
 /** A hit: knocked down this far (px) over the first NINJA_FALL_TICKS of a NINJA_STUN-tick stun; then a grace. */
 export const NINJA_KNOCK = 120;
 export const NINJA_STUN = 60;
@@ -66,10 +70,10 @@ export const NINJA_PX_PER_M = 40;
 /** Katanas: the blade runs this far from the wall face, this thick (px); the guard sits at the wall. */
 export const KATANA_LEN = 48;
 export const KATANA_HALF = 4;
-/** Shurikens: radius (px); they cross between these x (px). The hit uses a 2 px allowance. */
-export const SHURIKEN_R = 9;
-export const SHURIKEN_X0 = NINJA_WALL_L + 10;
-export const SHURIKEN_X1 = NINJA_WALL_R - 10;
+/** Shurikens: radius (px, the drawn star's points); they cross between these x (px). A hit is the body box within 1 px of a point. */
+export const SHURIKEN_R = 11;
+export const SHURIKEN_X0 = NINJA_WALL_L + 12;
+export const SHURIKEN_X1 = NINJA_WALL_R - 12;
 
 export const COIN_R = 8;
 export const LANTERN_R = 11;
@@ -88,7 +92,7 @@ export const NINJA_SCROLLS_MAX = 20;
  * The core is full at this many metres climbed: the near-flawless skill-band median (`bun scripts/ninja-bands.ts`,
  * docs/arcade-standard/ricochet.md). Every dealt tower's witness reaches it (ninjaDeal).
  */
-export const NINJA_CORE_FULL_M = 296;
+export const NINJA_CORE_FULL_M = 241;
 /** The core's straight line (LIVE_BANDS and arcade-help-bands-check read it). */
 export const NINJA_V2_BAND_CURVE = bandCurve([0, NINJA_CORE_FULL_M], [0, NINJA_CORE_MAX]);
 
@@ -295,40 +299,38 @@ function move(s: NinjaState, tapped: boolean): void {
   s.y = Math.max(NINJA_START, s.y - NINJA_SLIDE[kind]!);
 }
 
-function d2(ax: number, ay: number, bx: number, by: number): number {
-  const dx = ax - bx;
-  const dy = ay - by;
+/** Squared distance (px) from a point to the ninja's body box centred at (x, ypx); 0 inside it. */
+export function ninjaBoxD2(x: number, ypx: number, px: number, py: number): number {
+  const dx = Math.max(0, Math.abs(px - x) - NINJA_HW);
+  const dy = Math.max(0, Math.abs(py - ypx) - NINJA_HH);
   return dx * dx + dy * dy;
 }
 
-/** True when a ninja at (x, ypx) touches this katana. */
+/** True when the ninja's body box at (x, ypx), grown by `slack`, overlaps this katana's blade. */
 export function katanaTouches(k: NinjaKatana, x: number, ypx: number, slack = 0): boolean {
   const x0 = k.wall === 0 ? NINJA_WALL_L : NINJA_WALL_R - KATANA_LEN;
   const x1 = k.wall === 0 ? NINJA_WALL_L + KATANA_LEN : NINJA_WALL_R;
-  const cx = clampInt(x, x0, x1);
-  const cy = clampInt(ypx, k.y - KATANA_HALF, k.y + KATANA_HALF);
-  const r = NINJA_R + slack;
-  return d2(x, ypx, cx, cy) < r * r;
+  return x + NINJA_HW + slack > x0 && x - NINJA_HW - slack < x1 && ypx + NINJA_HH + slack > k.y - KATANA_HALF && ypx - NINJA_HH - slack < k.y + KATANA_HALF;
 }
 
-const SHURIKEN_HIT = NINJA_R + SHURIKEN_R - 2;
+const SHURIKEN_HIT = SHURIKEN_R - 1;
 export function shurikenTouches(sh: NinjaShuriken, tick: number, x: number, ypx: number, slack = 0): boolean {
-  if (Math.abs(ypx - sh.y0 - (sh.dy >> 1)) > Math.abs(sh.dy) + 60) return false;
+  if (Math.abs(ypx - sh.y0 - (sh.dy >> 1)) > Math.abs(sh.dy) + 80) return false;
   const p = shurikenAt(sh, tick);
   const r = SHURIKEN_HIT + slack;
-  return d2(x, ypx, p.x, p.y) < r * r;
+  return ninjaBoxD2(x, ypx, p.x, p.y) < r * r;
 }
 
 /** The first hazard hit at this tick, or false. Katanas and shurikens are listed by height; only the near ones are tested. */
 function hazardHit(s: NinjaState): boolean {
   const ypx = s.y >> 8;
   for (const k of s.tower.katanas) {
-    if (k.y < ypx - 40) continue;
-    if (k.y > ypx + 40) break;
+    if (k.y < ypx - 70) continue;
+    if (k.y > ypx + 70) break;
     if (katanaTouches(k, s.x, ypx)) return true;
   }
   for (const sh of s.tower.shurikens) {
-    if (Math.min(sh.y0, sh.y0 + sh.dy) > ypx + 40) break;
+    if (Math.min(sh.y0, sh.y0 + sh.dy) > ypx + 70) break;
     if (shurikenTouches(sh, s.tick, s.x, ypx)) return true;
   }
   return false;
@@ -339,9 +341,9 @@ function collect(s: NinjaState): void {
   const t = s.tower;
   for (let i = 0; i < t.coins.length; i++) {
     const c = t.coins[i]!;
-    if (c.y > ypx + 40) break;
-    if (s.gotCoins[i] || c.y < ypx - 40) continue;
-    if (d2(s.x, ypx, c.x, c.y) < (NINJA_R + COIN_R) ** 2) {
+    if (c.y > ypx + 70) break;
+    if (s.gotCoins[i] || c.y < ypx - 70) continue;
+    if (ninjaBoxD2(s.x, ypx, c.x, c.y) < COIN_R ** 2) {
       s.gotCoins = s.gotCoins.slice();
       s.gotCoins[i] = 1;
       s.coins += 1;
@@ -351,8 +353,8 @@ function collect(s: NinjaState): void {
   for (let i = 0; i < t.lanterns.length; i++) {
     if (s.gotLanterns[i]) continue;
     const p = lanternAt(t.lanterns[i]!, s.tick);
-    if (Math.abs(p.y - ypx) > 40) continue;
-    if (d2(s.x, ypx, p.x, p.y) < (NINJA_R + LANTERN_R) ** 2) {
+    if (Math.abs(p.y - ypx) > 70) continue;
+    if (ninjaBoxD2(s.x, ypx, p.x, p.y) < LANTERN_R ** 2) {
       s.gotLanterns = s.gotLanterns.slice();
       s.gotLanterns[i] = 1;
       s.lanterns += 1;
@@ -362,8 +364,8 @@ function collect(s: NinjaState): void {
   for (let i = 0; i < t.scrolls.length; i++) {
     if (s.gotScrolls[i]) continue;
     const c = t.scrolls[i]!;
-    if (Math.abs(c.y - ypx) > 40) continue;
-    if (d2(s.x, ypx, c.x, c.y) < (NINJA_R + SCROLL_R) ** 2) {
+    if (Math.abs(c.y - ypx) > 70) continue;
+    if (ninjaBoxD2(s.x, ypx, c.x, c.y) < SCROLL_R ** 2) {
       s.gotScrolls = s.gotScrolls.slice();
       s.gotScrolls[i] = 1;
       s.scrolls += 1;
@@ -500,7 +502,7 @@ function planRoute(r: Rng, tower: NinjaTower): Plan {
 function katanaClear(k: NinjaKatana, plan: Plan): boolean {
   for (let t = 0; t <= NINJA_RUN_TICKS; t++) {
     const y = plan.ys[t]!;
-    if (Math.abs(y - k.y) > 40) continue;
+    if (Math.abs(y - k.y) > 70) continue;
     if (katanaTouches(k, plan.xs[t]!, y, 6)) return false;
   }
   return true;

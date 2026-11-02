@@ -7,6 +7,7 @@
  * the HUD are drawn each frame.
  */
 import { deviceLayer } from "./cache.renderer";
+import { drawHero, heroPose, type HeroPose } from "./hero.renderer";
 import { artHash } from "./art.renderer";
 import { arcadeFx, ARCADE_FX_DISPLAY_FONT, type ArcadeFxSpec } from "./arcadeFx.renderer";
 import type { CanvasSize } from "./engine";
@@ -20,7 +21,8 @@ import {
   NINJA_CORE_FULL_M,
   NINJA_HANG,
   NINJA_PX_PER_M,
-  NINJA_R,
+  NINJA_HH,
+  NINJA_HW,
   NINJA_START,
   NINJA_WALL_L,
   NINJA_WALL_R,
@@ -31,6 +33,8 @@ import {
   SCROLL_R,
   COIN_R,
   SHURIKEN_R,
+  SHURIKEN_X0,
+  SHURIKEN_X1,
   shurikenAt,
   SURF_ICE,
   SURF_MOSS,
@@ -172,7 +176,7 @@ function drawWall(ctx: CanvasRenderingContext2D, wall: number, cam: number): voi
 }
 
 function drawFloor(ctx: CanvasRenderingContext2D, cam: number): void {
-  const sy = ninjaScreenY(cam, (NINJA_START >> 8) - NINJA_R);
+  const sy = ninjaScreenY(cam, (NINJA_START >> 8) - NINJA_HH);
   if (sy > NINJA_WORLD_H) return;
   ctx.fillStyle = "#3A2E22";
   ctx.fillRect(0, sy, NINJA_WORLD_W, NINJA_WORLD_H - sy + 2);
@@ -182,27 +186,64 @@ function drawFloor(ctx: CanvasRenderingContext2D, cam: number): void {
 
 /* ================================ Objects ================================ */
 
-function drawPatch(ctx: CanvasRenderingContext2D, wall: number, kind: number, top: number, bottom: number, tick: number): void {
+/**
+ * A moss or ice patch on a wall, 14 px into the stone with a lip at the face. Moss: green with lighter tufts and drips.
+ * Ice: pale blue and frosted (white speckles, crystal streaks, a glint running down it) with icicles off its lower
+ * edge, so it reads as plainly as the moss.
+ */
+export function drawPatch(ctx: CanvasRenderingContext2D, wall: number, kind: number, top: number, bottom: number, tick: number): void {
   const face = wall === 0 ? NINJA_WALL_L : NINJA_WALL_R;
-  const depth = 10;
+  const depth = 14;
   const x = wall === 0 ? face - depth : face;
   const h = bottom - top;
+  const inward = wall === 0 ? 1 : -1;
   if (kind === SURF_MOSS) {
     ctx.fillStyle = MOSS;
     ctx.fillRect(x, top, depth, h);
     ctx.fillStyle = "#6FB04E";
-    for (let y = top + 4; y < bottom - 2; y += 9) ctx.fillRect(wall === 0 ? face - 3 : face, y, 3, 4);
+    for (let y = top + 4; y < bottom - 2; y += 9) ctx.fillRect(wall === 0 ? face - 4 : face + 1, y, 3, 4);
+    ctx.fillStyle = "#86C861";
+    ctx.fillRect(wall === 0 ? face - 2 : face, top, 2, h);
     // Drips into the gap.
     ctx.fillStyle = "#3C6E2C";
     for (let i = 0; i < 3; i++) ctx.fillRect(wall === 0 ? face : face - 2, top + ((i + 1) * h) / 4, 2, 5);
   } else {
-    ctx.fillStyle = ICE;
+    const g = ctx.createLinearGradient(x, 0, x + depth, 0);
+    g.addColorStop(0, wall === 0 ? "#9FD3EC" : "#E4F6FF");
+    g.addColorStop(1, wall === 0 ? "#E4F6FF" : "#9FD3EC");
+    ctx.fillStyle = g;
     ctx.fillRect(x, top, depth, h);
-    ctx.fillStyle = "rgba(255,255,255,0.75)";
+    // Frost: white speckles and slanted crystal streaks, from the patch's own place.
+    ctx.fillStyle = "rgba(255,255,255,0.9)";
+    for (let i = 0; i * 7 < h; i++) {
+      const hh = artHash(i, Math.round(top) * 3 + wall);
+      ctx.fillRect(x + 1 + (hh % (depth - 3)), top + i * 7 + ((hh >>> 8) % 5), 2, 1.5);
+    }
+    ctx.strokeStyle = "rgba(255,255,255,0.55)";
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    for (let y = top + 6; y < bottom - 6; y += 16) {
+      ctx.moveTo(x + 2, y);
+      ctx.lineTo(x + depth - 2, y - 6);
+    }
+    ctx.stroke();
+    // The lip at the face and a glint running down it.
+    ctx.fillStyle = "#F4FBFF";
+    ctx.fillRect(wall === 0 ? face - 2 : face, top, 2, h);
     const shine = (tick * 2 + top) % Math.max(1, Math.round(h + 40));
-    ctx.fillRect(wall === 0 ? face - 4 : face + 1, top + shine - 20, 3, 14);
-    ctx.fillStyle = "rgba(120,190,230,0.6)";
-    ctx.fillRect(wall === 0 ? face - 1 : face, top, 1, h);
+    ctx.fillStyle = "rgba(255,255,255,0.95)";
+    ctx.fillRect(wall === 0 ? face - 5 : face + 2, top + shine - 20, 3, 14);
+    // Icicles off the lower edge, along the face.
+    ctx.fillStyle = "#D6F0FC";
+    for (const [dx, len] of [[1, 9], [5, 6], [9, 8]] as const) {
+      const ix = face - inward * dx;
+      ctx.beginPath();
+      ctx.moveTo(ix - 2, bottom);
+      ctx.lineTo(ix + 2, bottom);
+      ctx.lineTo(ix, bottom + len);
+      ctx.closePath();
+      ctx.fill();
+    }
   }
 }
 
@@ -234,23 +275,57 @@ export function drawKatana(ctx: CanvasRenderingContext2D, wall: number, sy: numb
   ctx.fillRect(wall === 0 ? face : face - 2, sy - 2, 2, 4);
 }
 
+/** A shuriken: steel grey with a dark outline and a red centre ring, its four points turning (the sim's radius at the points). */
 export function drawShuriken(ctx: CanvasRenderingContext2D, x: number, y: number, tick: number): void {
   ctx.save();
   ctx.translate(x, y);
-  ctx.rotate((tick % 30) * ((Math.PI * 2) / 30));
-  ctx.fillStyle = "#C9CFDA";
+  ctx.rotate((tick % 20) * ((Math.PI * 2) / 20));
+  const r = SHURIKEN_R - 0.5;
   ctx.beginPath();
   for (let i = 0; i < 4; i++) {
     const a = (i * Math.PI) / 2;
-    ctx.lineTo(Math.cos(a) * SHURIKEN_R, Math.sin(a) * SHURIKEN_R);
-    ctx.lineTo(Math.cos(a + Math.PI / 4) * 3, Math.sin(a + Math.PI / 4) * 3);
+    ctx.lineTo(Math.cos(a) * r, Math.sin(a) * r);
+    ctx.lineTo(Math.cos(a + Math.PI / 4) * 3.6, Math.sin(a + Math.PI / 4) * 3.6);
   }
   ctx.closePath();
+  ctx.fillStyle = "#8E97A6";
   ctx.fill();
-  ctx.fillStyle = "#2A2E38";
+  ctx.lineJoin = "round";
+  ctx.lineWidth = 1.6;
+  ctx.strokeStyle = "#14161E";
+  ctx.stroke();
+  // A bright bevel on one side of each point, so the turning reads.
+  ctx.fillStyle = "#D7DDE8";
+  for (let i = 0; i < 4; i++) {
+    const a = (i * Math.PI) / 2;
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.lineTo(Math.cos(a) * (r - 1.5), Math.sin(a) * (r - 1.5));
+    ctx.lineTo(Math.cos(a + Math.PI / 4) * 3, Math.sin(a + Math.PI / 4) * 3);
+    ctx.closePath();
+    ctx.fill();
+  }
+  ctx.fillStyle = NINJA_RED;
   ctx.beginPath();
-  ctx.arc(0, 0, 2, 0, Math.PI * 2);
+  ctx.arc(0, 0, 3, 0, Math.PI * 2);
   ctx.fill();
+  ctx.fillStyle = "#14161E";
+  ctx.beginPath();
+  ctx.arc(0, 0, 1.3, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+}
+
+/** A shuriken's seeded path across the gap: a faint dotted line from wall to wall. */
+function drawShurikenPath(ctx: CanvasRenderingContext2D, x0: number, y0: number, x1: number, y1: number): void {
+  ctx.save();
+  ctx.strokeStyle = "rgba(255,120,120,0.28)";
+  ctx.lineWidth = 1.5;
+  ctx.setLineDash([2, 6]);
+  ctx.beginPath();
+  ctx.moveTo(x0, y0);
+  ctx.lineTo(x1, y1);
+  ctx.stroke();
   ctx.restore();
 }
 
@@ -307,75 +382,166 @@ export function drawScroll(ctx: CanvasRenderingContext2D, x: number, y: number, 
 }
 
 /**
- * The ninja at (x, y): a black silhouette inside its 12 px body circle, a red headband (tails fluttering behind) and
- * a red sash. `pose`: 0 clinging (crouched to the wall, `face` +1 facing right), 1 leaping (stretched along the arc),
- * 2 double jump (tucked in a spin), 3 stunned.
+ * The ninja: the Joulz hero (hero.renderer.ts, the figure the score celebrations draw: its gold cape, gold-outlined black
+ * limbs, chest bolt, gold gloves and boots, black head with the gold ring, mask band and eye slits) in ninja gear: a
+ * dark wrap round the head that leaves the hero's face showing, a red headband with trailing tails, a red sash and a
+ * small katana on the back. Every pose sits inside the sim's body box (NINJA_HW × NINJA_HH either side of (x, y)),
+ * so what you see is what is hit. `pose`: 0 clinging (hands and feet on the wall behind, `face` +1 facing right),
+ * 1 leaping (stretched along the arc), 2 double jump (a tuck turning through `spin`), 3 stunned (arms dropped,
+ * swaying). `scale` draws it larger or smaller (the tile icon); the game draws at 1.
  */
-export function drawNinja(ctx: CanvasRenderingContext2D, x: number, y: number, pose: number, face: number, tick: number, spin = 0): void {
+const ninjaPoseMemo = heroPose();
+const NINJA_WRAP = "#2A2D45";
+const NINJA_WRAP_EDGE = "#6B72A8";
+
+function setPose(p: HeroPose, pose: number, face: number, tick: number): void {
+  const f = face;
+  const at = (k: keyof HeroPose, v: number) => {
+    (p as unknown as Record<string, number>)[k] = v;
+  };
+  p.stick = 3.4;
+  p.headR = 7;
+  p.scale = 1;
+  p.detailScale = NaN;
+  p.core = null;
+  p.gentle = false;
+  p.face = 0.7 * f;
+  if (pose === 0) {
+    // Clinging: crouched to the wall behind, hands up on the stone, feet braced.
+    const wall = -f * 11;
+    at("headX", f * 1); at("headY", -18);
+    at("neckX", 0); at("neckY", -11);
+    at("shoulderX", 0); at("shoulderY", -8);
+    at("hipX", -f * 2); at("hipY", 7);
+    at("handAX", wall); at("handAY", -20);
+    at("handBX", wall); at("handBY", -1);
+    at("footAX", wall); at("footAY", 23);
+    at("footBX", f * 5); at("footBY", 23);
+    p.moveX = 0; p.moveY = 1; p.speed = 0.15;
+  } else if (pose === 1) {
+    // Leaping: stretched up along the arc, the leading arm reaching, the legs trailing.
+    at("headX", f * 5); at("headY", -18);
+    at("neckX", f * 3); at("neckY", -11);
+    at("shoulderX", f * 3); at("shoulderY", -8);
+    at("hipX", -f * 2); at("hipY", 7);
+    at("handAX", f * 11); at("handAY", -22);
+    at("handBX", -f * 9); at("handBY", -3);
+    at("footAX", -f * 8); at("footAY", 23);
+    at("footBX", f * 2); at("footBY", 21);
+    p.moveX = f; p.moveY = -1; p.speed = 0.3;
+  } else if (pose === 2) {
+    // The double jump: tucked into a ball (turned by the caller).
+    at("headX", f * 2); at("headY", -10);
+    at("neckX", 0); at("neckY", -4);
+    at("shoulderX", 0); at("shoulderY", -2);
+    at("hipX", 0); at("hipY", 7);
+    at("handAX", f * 8); at("handAY", 4);
+    at("handBX", -f * 7); at("handBY", 5);
+    at("footAX", f * 6); at("footAY", 12);
+    at("footBX", -f * 4); at("footBY", 13);
+    p.moveX = 0; p.moveY = 0; p.speed = 0;
+  } else {
+    // Stunned: upright, arms dropped wide, swaying.
+    const sway = Math.sin(tick / 5) * 2;
+    at("headX", sway); at("headY", -18);
+    at("neckX", sway * 0.6); at("neckY", -11);
+    at("shoulderX", sway * 0.6); at("shoulderY", -8);
+    at("hipX", 0); at("hipY", 7);
+    at("handAX", -11); at("handAY", 3);
+    at("handBX", 11); at("handBY", 3);
+    at("footAX", -6); at("footAY", 24);
+    at("footBX", 6); at("footBY", 24);
+    p.moveX = 0; p.moveY = 0; p.speed = 0;
+  }
+}
+
+export function drawNinja(ctx: CanvasRenderingContext2D, x: number, y: number, pose: number, face: number, tick: number, spin = 0, scale = 1): void {
+  const p = ninjaPoseMemo;
+  setPose(p, pose, face, tick);
   ctx.save();
   ctx.translate(x, y);
-  // Drawn on a 12 px body, scaled to the sim's body radius (the arcade bounds rule).
-  ctx.scale(NINJA_R / 12, NINJA_R / 12);
+  if (scale !== 1) ctx.scale(scale, scale);
+  const f = face;
+  // A soft moonlit glow behind the figure (inside its body box), so it reads on the night sky.
+  ctx.fillStyle = "rgba(170,190,255,0.16)";
+  ctx.beginPath();
+  ctx.ellipse(0, 0, NINJA_HW + 1, NINJA_HH + 1, 0, 0, Math.PI * 2);
+  ctx.fill();
   if (pose === 2) ctx.rotate(spin * face);
-  if (pose === 1) ctx.rotate(-0.35 * face);
-  const ink = "#06070B";
-  // A moonlit rim round the silhouette, so it reads on the night sky and the far pagoda.
-  ctx.shadowColor = "rgba(196,210,255,0.95)";
-  ctx.shadowBlur = 5 * (NINJA_R / 12);
-  ctx.fillStyle = ink;
-  // Body.
-  ctx.beginPath();
-  if (pose === 2) ctx.ellipse(0, 1, 7, 8, 0, 0, Math.PI * 2);
-  else ctx.ellipse(0, 2, 5.5, 8, 0, 0, Math.PI * 2);
-  ctx.fill();
-  // Head.
-  ctx.beginPath();
-  ctx.arc(0, -6.5, 4.6, 0, Math.PI * 2);
-  ctx.fill();
-  // Limbs.
-  ctx.strokeStyle = ink;
-  ctx.lineCap = "round";
-  ctx.lineWidth = 3;
-  ctx.beginPath();
-  if (pose === 0) {
-    // Hands and feet to the wall behind (-face).
-    ctx.moveTo(0, -1); ctx.lineTo(-face * 7, -7);
-    ctx.moveTo(0, 1); ctx.lineTo(-face * 8, 2);
-    ctx.moveTo(0, 7); ctx.lineTo(-face * 7, 10);
-    ctx.moveTo(0, 7); ctx.lineTo(face * 3, 10);
-  } else if (pose === 1) {
-    ctx.moveTo(0, -1); ctx.lineTo(face * 8, -7);
-    ctx.moveTo(0, 0); ctx.lineTo(-face * 6, 5);
-    ctx.moveTo(0, 8); ctx.lineTo(-face * 6, 10);
-    ctx.moveTo(0, 8); ctx.lineTo(face * 3, 10);
-  } else if (pose === 2) {
-    ctx.moveTo(0, 0); ctx.lineTo(face * 6, -4);
-    ctx.moveTo(0, 6); ctx.lineTo(-face * 5, 8);
-  } else {
-    ctx.moveTo(0, -1); ctx.lineTo(-7, 3);
-    ctx.moveTo(0, -1); ctx.lineTo(7, 3);
-    ctx.moveTo(0, 8); ctx.lineTo(-4, 10);
-    ctx.moveTo(0, 8); ctx.lineTo(4, 10);
-  }
-  ctx.stroke();
-  ctx.shadowBlur = 0;
-  ctx.shadowColor = "transparent";
-  // The headband and its tails.
+  // The katana on the back, behind the hero: a dark scabbard and a gold-wrapped hilt over the far shoulder.
+  ctx.save();
+  ctx.translate(p.neckX - f * 5, p.neckY + 2);
+  ctx.rotate(f * 0.5);
+  ctx.fillStyle = "#3B2A4A";
+  ctx.fillRect(-1.8, -1, 3.6, 13);
+  ctx.strokeStyle = "#0A0B12";
+  ctx.lineWidth = 0.8;
+  ctx.strokeRect(-1.8, -1, 3.6, 13);
+  ctx.fillStyle = NINJA_GOLD;
+  ctx.fillRect(-3, -2.4, 6, 1.8);
+  // The hilt over the shoulder: red wrap with a steel pommel.
   ctx.fillStyle = NINJA_RED;
-  ctx.fillRect(-4.6, -8, 9.2, 2.4);
-  const flap = Math.sin(tick / 3) * 1.5;
+  ctx.fillRect(-1.4, -10.5, 2.8, 8);
+  ctx.fillStyle = "#0A0B12";
+  for (let k = 0; k < 3; k++) ctx.fillRect(-1.4, -9.5 + k * 2.6, 2.8, 0.7);
+  ctx.fillStyle = STEEL;
+  ctx.fillRect(-1.8, -12, 3.6, 1.6);
+  ctx.restore();
+  // The ninja wrap round the head: a dark hood larger than the head, peaked behind, with the face left open.
+  ctx.fillStyle = NINJA_WRAP;
   ctx.beginPath();
-  ctx.moveTo(-face * 4, -7.5);
-  ctx.lineTo(-face * 11, -9 + flap);
-  ctx.lineTo(-face * 10.5, -6 + flap);
+  ctx.arc(p.headX, p.headY, p.headR + 2.6, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.moveTo(p.headX - f * (p.headR + 1), p.headY - 3);
+  ctx.lineTo(p.headX - f * (p.headR + 5), p.headY + 5);
+  ctx.lineTo(p.headX - f * 1, p.headY + p.headR + 1.5);
   ctx.closePath();
   ctx.fill();
-  // The eye slit.
-  ctx.fillStyle = "#F4F1EA";
-  ctx.fillRect(face > 0 ? 0.6 : -3.6, -6.4, 3, 1.1);
-  // The sash.
+  ctx.strokeStyle = NINJA_WRAP_EDGE;
+  ctx.lineWidth = 1.1;
+  ctx.beginPath();
+  ctx.arc(p.headX, p.headY, p.headR + 2.6, 0, Math.PI * 2);
+  ctx.stroke();
+  // The hero itself (cape, limbs, bolt, gloves and boots, head with its face).
+  drawHero(ctx, p);
+  // The red sash at the waist, its knot's ends trailing.
+  const tx = p.hipX - p.neckX;
+  const ty = p.hipY - p.neckY;
+  const sx = p.neckX + tx * 0.82;
+  const sy = p.neckY + ty * 0.82;
+  ctx.save();
+  ctx.translate(sx, sy);
+  ctx.rotate(Math.atan2(ty, tx) - Math.PI / 2);
   ctx.fillStyle = NINJA_RED;
-  ctx.fillRect(-5.4, 3, 10.8, 2.2);
+  ctx.fillRect(-5.2, -1.6, 10.4, 3.4);
+  ctx.beginPath();
+  ctx.moveTo(-f * 4, 1.5);
+  ctx.lineTo(-f * 8, 6 + Math.sin(tick / 4));
+  ctx.lineTo(-f * 5.5, 7);
+  ctx.closePath();
+  ctx.fill();
+  ctx.restore();
+  // The red headband across the brow (over the wrap, above the gold mask band), its two tails streaming behind.
+  ctx.save();
+  ctx.translate(p.headX, p.headY);
+  ctx.fillStyle = NINJA_RED;
+  ctx.fillRect(-p.headR - 1.6, -p.headR * 0.78, (p.headR + 1.6) * 2, 2.6);
+  const flap = Math.sin(tick / 3) * 1.6;
+  const back = -f * (p.headR + 1);
+  ctx.beginPath();
+  ctx.moveTo(back, -p.headR * 0.7);
+  ctx.lineTo(back - f * 6, -p.headR * 0.7 - 2 + flap);
+  ctx.lineTo(back - f * 5.5, -p.headR * 0.7 + 1 + flap);
+  ctx.closePath();
+  ctx.fill();
+  ctx.beginPath();
+  ctx.moveTo(back, -p.headR * 0.55);
+  ctx.lineTo(back - f * 5, -p.headR * 0.4 + 2 - flap);
+  ctx.lineTo(back - f * 4, -p.headR * 0.3 + 3 - flap);
+  ctx.closePath();
+  ctx.fill();
+  ctx.restore();
   ctx.restore();
 }
 
@@ -434,6 +600,12 @@ export function drawNinjaWorld(ctx: CanvasRenderingContext2D, s: NinjaState): vo
     if (p.lo > hi) break;
     drawPatch(ctx, p.wall, p.kind, ninjaScreenY(cam, p.hi), ninjaScreenY(cam, p.lo), t);
   }
+  // Each shuriken's seeded path, faint and dotted, under everything else in the gap.
+  for (const sh of tower.shurikens) {
+    if (Math.max(sh.y0, sh.y0 + sh.dy) < lo) continue;
+    if (Math.min(sh.y0, sh.y0 + sh.dy) > hi) break;
+    drawShurikenPath(ctx, SHURIKEN_X0, ninjaScreenY(cam, sh.y0), SHURIKEN_X1, ninjaScreenY(cam, sh.y0 + sh.dy));
+  }
   for (const k of tower.katanas) {
     if (k.y < lo) continue;
     if (k.y > hi) break;
@@ -472,7 +644,7 @@ export function drawNinjaWorld(ctx: CanvasRenderingContext2D, s: NinjaState): vo
     ctx.fillStyle = NINJA_GOLD;
     for (let i = 0; i < 3; i++) {
       const a = t / 6 + (i * Math.PI * 2) / 3;
-      ctx.fillRect(at.x + Math.cos(a) * 10 - 1.5, at.y - 14 + Math.sin(a) * 3 - 1.5, 3, 3);
+      ctx.fillRect(at.x + Math.cos(a) * 11 - 1.5, at.y - NINJA_HH - 2 + Math.sin(a) * 3 - 1.5, 3, 3);
     }
   }
   // A red wash on a hit.

@@ -359,8 +359,8 @@ every dealt deal reaches 200 through the server's replay.
 ## Ricochet, the ninja wall-climb (1 Nov 2026)
 
 Ricochet (`ricochet`) is back from retirement under its own id on **`ricoRev` 2**, born on the standard: height climbed
-130 on a straight line (full at 296 m, the near-perfect median), coins 30 (shared across 60), gold lanterns 20 (2 each
+130 on a straight line (full at 241 m, the near-perfect median), coins 30 (shared across 60), gold lanterns 20 (2 each
 of 10), scrolls 20 (5 each of 4) = 200. Unstamped Ricochet rounds keep the old ball-and-spikes shaft and its 150-point
 score exactly. Every tower is dealt in the sim with a witness route proved through the real step (all 74 items, no
-hit, at least 296 m), so a perfect run reaches 200 on every tower. [ricochet.md](ricochet.md) has the rules, the
+hit, at least 241 m), so a perfect run reaches 200 on every tower. [ricochet.md](ricochet.md) has the rules, the
 bands and the decisions.
