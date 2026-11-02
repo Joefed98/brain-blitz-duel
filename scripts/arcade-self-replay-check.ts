@@ -157,7 +157,7 @@ import { encodeMahjongRun, replayMahjongRun } from "@/lib/duel/mahjong";
 import { fcCheckpoint, freecellGame, freecellGameFor } from "@/lib/arcade/cards/freecell";
 import { tpCheckpoint, tripeaksGame } from "@/lib/arcade/cards/tripeaks";
 import { psCheckpoint, pokerSquaresGame, pokerSquaresGameFor } from "@/lib/arcade/cards/pokerSquares";
-import { fhCheckpoint, fiveHandsGame } from "@/lib/arcade/cards/fiveHands";
+import { fhCheckpoint, fiveHandsGame, fiveHandsGameFor } from "@/lib/arcade/cards/fiveHands";
 import { bfCheckpoint, blockfallGame } from "@/lib/arcade/blockfall";
 import { arCheckpoint, alleyRollGame } from "@/lib/arcade/alleyroll";
 import { encodeBlockfallRun, replayBlockfallRun } from "@/lib/duel/blockfall";
@@ -167,10 +167,11 @@ import { encodeFiveHandsRun, encodeFreecellRun, encodePokerSquaresRun, encodeTri
 import { minigolfCheckpoint, minigolfGameFor } from "@/lib/arcade/minigolf";
 import { encodeMinigolfRun, replayMinigolfRun } from "@/lib/duel/minigolf";
 import { MINIGOLF_BANK } from "@/lib/duel/minigolfBank.server";
-import { poolCheckpoint, poolGameFor, POOL_REV, POOL_REV_V1 } from "@/lib/arcade/pool";
+import { poolCheckpoint, poolGameFor, POOL_REV_V1 } from "@/lib/arcade/pool";
 import { encodePoolRun, replayPoolRun } from "@/lib/duel/pool";
 import { POOL_BANK } from "@/lib/duel/poolBank.server";
 import { POOL_BANK_V2 } from "@/lib/duel/poolBankV2.server";
+import { POOL_BANK_V3 } from "@/lib/duel/poolBankV3.server";
 import { curlingCheckpoint, curlingGameFor, CURLING_REV } from "@/lib/arcade/curling";
 import { encodeCurlingRun, replayCurlingRun } from "@/lib/duel/curling";
 import { CURLING_BANK } from "@/lib/duel/curlingBank.server";
@@ -858,7 +859,7 @@ const GAMES: Game[] = [
   { key: "freekick/v2", interval: FREEKICK_CHECKPOINT_INTERVAL, game: freekickGameFor(FREEKICK_REV_2), checkpoint: freekickCheckpoint, mode: "events", rate: 20, encode: encodeFreekickRun, replay: (seed: number, raw: string) => replayFreekickRun(seed, raw, FREEKICK_REV_2), seedFor: (n: number) => FREEKICK_DEAL_V2[n % FREEKICK_DEAL_V2.length]! },
   { key: "racing/v2", interval: RACING_CHECKPOINT_INTERVAL, game: racingGameFor(RACING_REV_2), checkpoint: racingCheckpoint, mode: "events", rate: 120, encode: encodeRacingRun, replay: (seed: number, raw: string) => replayRacingRun(seed, raw, RACING_REV_2), seedFor: (n: number) => RACING_DEAL_V2[n % RACING_DEAL_V2.length]! },
   // Cue Ball poolRev 2 (the V2 bank, power and spin dot as separate fields), appended 31 Oct 2026.
-  { key: "pool", game: poolGameFor(POOL_REV), seedFor: (n: number) => POOL_BANK_V2[n % POOL_BANK_V2.length]!, checkpoint: poolCheckpoint, mode: "events", rate: 40, encode: encodePoolRun, replay: (seed: number, raw: string) => replayPoolRun(seed, raw, POOL_REV) },
+  { key: "pool", game: poolGameFor(2), seedFor: (n: number) => POOL_BANK_V2[n % POOL_BANK_V2.length]!, checkpoint: poolCheckpoint, mode: "events", rate: 40, encode: encodePoolRun, replay: (seed: number, raw: string) => replayPoolRun(seed, raw, 2) },
   // Curl Champ curlRev 2 (the V2 bank, the start along the hog line, side brushing), appended 31 Oct 2026.
   { key: "curling", game: curlingGameFor(CURLING_REV), seedFor: (n: number) => CURLING_BANK_V2[n % CURLING_BANK_V2.length]!, checkpoint: curlingCheckpoint, mode: "events", rate: 40, encode: encodeCurlingRun, replay: (seed: number, raw: string) => replayCurlingRun(seed, raw, CURLING_REV) },
   // Crazy Golf golfRev 2 (windmills, tunnels, sand, hills, banked curves, castle gates; 31 Oct 2026): its own bank courses and stored pars.
@@ -877,6 +878,12 @@ const GAMES: Game[] = [
   // so every earlier entry keeps its index.
   { key: "blockfall", game: blockfallGame, checkpoint: bfCheckpoint, mode: "events", rate: 120, encode: encodeBlockfallRun, replay: (seed: number, raw: string) => replayBlockfallRun(seed, raw, 1), seedFor: (n: number) => BLOCKFALL_DEAL[n % BLOCKFALL_DEAL.length]! },
   { key: "alleyroll", game: alleyRollGame, checkpoint: arCheckpoint, mode: "events", rate: 40, encode: encodeAlleyRollRun, replay: (seed: number, raw: string) => replayAlleyRollRun(seed, raw, 1) },
+  // The 1 Nov 2026 tuning, appended so every earlier entry keeps its index: Cue Ball poolRev 3 (its own bank; more power
+  // and spin, a miss a foul), Free Cell freecellRev 3 (the core full sooner, auto moves animated) and Five Hands
+  // fiveHandsRev 2 (the steep hand table, its own witness deals).
+  { key: "pool/v3", game: poolGameFor(3), seedFor: (n: number) => POOL_BANK_V3[n % POOL_BANK_V3.length]!, checkpoint: poolCheckpoint, mode: "events", rate: 40, encode: encodePoolRun, replay: (seed: number, raw: string) => replayPoolRun(seed, raw, 3) },
+  { key: "freecell/v3", game: freecellGameFor(3), checkpoint: fcCheckpoint, mode: "events", rate: 120, encode: encodeFreecellRun, replay: (seed: number, raw: string) => replayFreecellRun(seed, raw, 3), seedFor: (n: number) => n % 300 },
+  { key: "fivehands/v2", game: fiveHandsGameFor(2), checkpoint: fhCheckpoint, mode: "events", rate: 60, encode: encodeFiveHandsRun, replay: (seed: number, raw: string) => replayFiveHandsRun(seed, raw, 2) },
 ];
 
 /** A random candidate event, often outside the declared range (a finger off the edge). */
@@ -914,6 +921,8 @@ const ENTRY_COST: Record<number, number> = {
   129: 8.0,
   // Grappler's swinging course (29 Oct 2026, swing/rework: 3.9 s at 40 runs locally).
   144: 3.9,
+  // The 1 Nov 2026 tuning's Cue Ball poolRev 3 (pool/v3: 29.2 s at 40 runs locally).
+  184: 29.2,
 };
 
 /** Entry indexes of group k of n (1-based): costliest first onto the lightest group, ties by index. */

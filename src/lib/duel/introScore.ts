@@ -1,5 +1,6 @@
 import { PS_CORE_FULL_V2 } from "@/lib/arcade/cards/pokerSquares";
-import { FH_CORE_FULL } from "@/lib/arcade/cards/fiveHands";
+import { FH_CORE_FULL_V2 } from "@/lib/arcade/cards/fiveHands";
+import { FC_CORE_UNITS_V3 } from "@/lib/arcade/cards/freecell";
 import { BF_CORE_FULL } from "@/lib/arcade/blockfall";
 import { AR_CORE_FULL } from "@/lib/arcade/alleyroll";
 import { BULLSEYE_INNER_BULL_POINTS, BULLSEYE_RING_VALUES } from "@/lib/arcade/bullseye";
@@ -121,17 +122,17 @@ function introScoreTemplates(): Record<PuzzleType, string> {
     minesweeper: "Safe squares 150, no mines hit 20, a fast clear 30; a mine costs 5. Up to {max}.",
     mahjong: "Pairs 150, no shuffles 20, a fast clear 30; a Shuffle costs 5. Up to {max}.",
     minigolf: "Holes 120, few putts 40, birdies 20, speed 20: up to {max}.",
-    pool: "Spots 140, the black 10, pots in a row 30, speed 20; fouls −10. Up to {max}.",
+    pool: "Spots 140, the black 10, pots in a row 30, speed 20; each foul costs 10. Up to {max}.",
     curling: "Stones near the button 120, takeouts 30, the 4-foot 30, holding shot 20: {max}.",
     pinball: "Table points, plus J-O-U-L-Z sets, multiball, jackpots and ramp combos. Up to {max}.",
     homerun: "Distance on every pitch, home runs and the signs beyond the fence. Up to {max}.",
     freekick: "Goals away from the keeper, targets, curls round the wall and five in a row. Up to {max}.",
     racing: "Distance, clean sectors, the finish and your time from lights out. Up to {max}.",
     // Cards & Board (the arcade scoring standard from their first revision).
-    freecell: "Cards 140 (home full, sorted runs half); finished: few moves 30, speed 30. Together {max}.",
+    freecell: `Cards 140 (full at ${FC_CORE_UNITS_V3} units); finished: few moves 30, speed 30. Together {max}.`,
     tripeaks: "Cards 120, peak tops 30, longest run 20; all cleared: 10 and speed 20. Together {max}.",
     pokersquares: `Hand points 160 (full at ${PS_CORE_FULL_V2}); made hands 40 (4 a line). Together {max}.`,
-    fivehands: `Hand points 160 (full at ${FH_CORE_FULL}); made hands 40 (8 a row). Together {max}.`,
+    fivehands: `Hand points to {max}, full at ${FH_CORE_FULL_V2}. Pair 5, two pair 10 … straight flush 75.`,
     blockfall: `Lines 140 (full at ${BF_CORE_FULL}); multi-line clears 40; a low stack at the buzzer 20. Together {max}.`,
     alleyroll: `Ring points 150 (full at ${AR_CORE_FULL}); 100 pockets 30; hot streak 20. Together {max}.`,
     bubble: "Bubbles cleared, a fast clear, falling chests, bank shots and combos. Up to {max}.",

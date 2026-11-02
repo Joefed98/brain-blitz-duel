@@ -45,7 +45,7 @@ export interface Spin {
 
 /** The rev's power and spin for a shot. */
 export function shotParts(shot: Shot, rev = 1): { power: number; spin: Spin } {
-  if (rev === 2) {
+  if (rev >= 2) {
     const d = poolSpin2Of(shot.d);
     return { power: shot.c, spin: { tb: d.y, side: d.x } };
   }
@@ -65,11 +65,12 @@ export function simShot(start: readonly PoolBall[], shot: Shot, rev = 1): ShotEn
   const balls = start.map((b) => ({ ...b }));
   const cue = balls.find((b) => b.id === POOL_CUE)!;
   const parts = shotParts(shot, rev);
-  const v = poolShotVelocity(shot.a, shot.b, parts.power);
+  const v = poolShotVelocity(shot.a, shot.b, parts.power, rev);
   cue.vx = v.vx;
   cue.vy = v.vy;
   const spin: PoolSpin = { firstHit: -1, topBack: parts.spin.tb, side: parts.spin.side, sideLeft: parts.spin.side !== 0 ? 2 : 0 };
-  if (rev === 2) spin.fine = 1;
+  if (rev >= 2) spin.fine = 1;
+  if (rev >= 3) spin.strong = 1;
   const dropped: number[] = [];
   for (let t = 1; t <= POOL_SHOT_CAP + 1; t++) {
     const ev = poolRollTick(balls, spin, t);
@@ -162,7 +163,7 @@ export function candidates(balls: readonly PoolBall[], maxCut = 78): Candidate[]
 export function shotFor(angle: number, power: number, spin: Spin, rev = 1): Shot {
   const a = Math.round(Math.cos(angle) * 4000);
   const b = Math.round(Math.sin(angle) * 4000);
-  if (rev === 2) return { a, b, ...poolShot2(power, spin.side, spin.tb) };
+  if (rev >= 2) return { a, b, ...poolShot2(power, spin.side, spin.tb) };
   return { a, b, c: poolShotC(power, poolSpinCode(spin.tb, spin.side)), d: 0 };
 }
 
@@ -200,10 +201,11 @@ export function leaveQuality(balls: readonly PoolBall[]): number {
 export function goodShots(balls: readonly PoolBall[], opts: { limit?: number; want?: number; rev?: number } = {}): Good[] {
   const out: Good[] = [];
   const rev = opts.rev ?? 1;
-  const SPINS = rev === 2 ? SPINS_V2 : SPINS_V1;
+  const SPINS = rev >= 2 ? SPINS_V2 : SPINS_V1;
   const cands = candidates(balls).slice(0, opts.limit ?? 8);
   for (const cand of cands) {
-    const base = powerFor(cand.cueDist, cand.objDist, cand.cut);
+    // poolRev 3's harder top speed: the same roll needs about 16/20 of the pull.
+    const base = rev >= 3 ? Math.max(60, Math.round((powerFor(cand.cueDist, cand.objDist, cand.cut) * 16) / 20)) : powerFor(cand.cueDist, cand.objDist, cand.cut);
     const powers = [base, Math.round(base * 0.8), Math.round(base * 1.25), Math.round(base * 0.6), Math.round(base * 1.6)].map((p) => Math.max(60, Math.min(1000, p)));
     let found = 0;
     for (const nudge of NUDGES) {
