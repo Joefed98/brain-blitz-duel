@@ -69,7 +69,10 @@ const SHOTS = args.find((a) => a.startsWith("--shots="))?.slice(8);
 /** Engine games: scored in their sims (tenRev 5, clashRev 10), never by the standard's grader modules. */
 const SIM_SCORED = new Set<PuzzleType>(["tendrop", "stroop"]);
 /** At least one per category: Logic, Pattern, Number, Word, Speed and Attention; real-UI solves where a driver has one. */
-const DEFAULT_GAMES: PuzzleType[] = ["flood", "lightsout", "unblock", "tiles", "equation", "wordslide", "codeword", "symscan", "chain"];
+// The four grid puzzles born on the standard (1 Nov 2026: Fences, Fillomino, Bridges, Kakuro) are always played, and
+// dealt and graded as room rounds on the built bundle below (NEW_GRID_GAMES), so the production build keeps their graders.
+const NEW_GRID_GAMES: PuzzleType[] = ["fences", "fillomino", "bridges", "kakuro"];
+const DEFAULT_GAMES: PuzzleType[] = ["flood", "lightsout", "unblock", "tiles", "equation", "wordslide", "codeword", "symscan", "chain", ...NEW_GRID_GAMES];
 const named = args.filter((a) => !a.startsWith("--")) as PuzzleType[];
 const games: PuzzleType[] = named.length
   ? named
@@ -392,8 +395,12 @@ async function roomRounds(): Promise<number> {
     report.push(`${type.padEnd(12)} engine score ${String(graded.score).padStart(3)}  ${graded.isCorrect ? "finished" : "unfinished"} on ${stamp} (the sim's standard score; source ${source})`);
     if (!graded.isCorrect || graded.score < 150 || graded.score !== source) failures.push(`${type}: the production bundle graded a finished ${stamp} run ${graded.score} (finished: ${graded.isCorrect}; source ${source}), not a finish of 150 or more`);
   }
-  for (const seed of ROOM_SEEDS) {
-    const { puzzles } = gen.buildRoomPuzzles({ seed, categories: ROOM_CATEGORIES });
+  // The new grid puzzles: a room round of each, dealt by the built bundle from a room seed (roundOrder, as a settings
+  // room deals it) and graded by the built room grader, whatever the seeded rooms below happen to draw.
+  const dealt: { seed: number; puzzles: PuzzleData[] }[] = NEW_GRID_GAMES.map((type, i) => ({ seed: ROOM_SEEDS[i % ROOM_SEEDS.length]!, puzzles: gen.buildRoomPuzzles({ seed: ROOM_SEEDS[i % ROOM_SEEDS.length], roundOrder: [type] }).puzzles }));
+  for (const seed of ROOM_SEEDS) dealt.push({ seed, puzzles: gen.buildRoomPuzzles({ seed, categories: ROOM_CATEGORIES }).puzzles });
+  const gridRooms = new Set<PuzzleType>();
+  for (const { seed, puzzles } of dealt) {
     for (const p of puzzles) {
       if (!STANDARD_STAMPS[p.type] || SIM_SCORED.has(p.type)) continue;
       const answer = fullAnswer(p.type, p);
@@ -405,10 +412,12 @@ async function roomRounds(): Promise<number> {
       const parts = graded.extra?.["parts"] as { kind?: string; base?: number } | undefined;
       const ok = graded.isCorrect && parts?.kind === "finish" && parts.base === 150 && graded.extra?.["standard"] === 1 && graded.score >= 150;
       report.push(`${p.type.padEnd(12)} room   score ${String(graded.score).padStart(3)}  stored ${parts ? `${parts.kind} base ${parts.base}${graded.extra?.["standard"] === 1 ? " standard" : ""}` : "(no parts)"}  (room seed ${seed})`);
+      if (ok && NEW_GRID_GAMES.includes(p.type)) gridRooms.add(p.type);
       if (!ok) failures.push(`${p.type} (room seed ${seed}): the production room grade stored ${parts ? `${parts.kind} on base ${parts.base}` : "no parts"}, score ${graded.score}: not the standard's 150 + speed + bonus`);
       rounds++;
     }
   }
+  for (const type of NEW_GRID_GAMES) if (!gridRooms.has(type)) failures.push(`${type}: no room round of it was dealt and graded on the standard by the production bundle`);
   return rounds;
 }
 

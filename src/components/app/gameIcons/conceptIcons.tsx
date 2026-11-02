@@ -267,6 +267,27 @@ const WORD: Partial<Record<PuzzleType, Art>> = {
 };
 
 const NUMBER: Partial<Record<PuzzleType, Art>> = {
+  // Kakuro (1 Nov 2026): clue cells split by a diagonal over runs of digits.
+  kakuro: () => (
+    <>
+      <rect x={10} y={10} width={14} height={14} fill={DIM} opacity={0.5} />
+      <rect x={10} y={24} width={14} height={14} fill={DIM} opacity={0.5} />
+      <rect x={24} y={10} width={14} height={14} fill={DIM} opacity={0.5} />
+      <Ink color={INK} w={1.6}>
+        <polyline points={pts([[10, 24], [24, 38]])} />
+        <polyline points={pts([[24, 10], [38, 24]])} />
+      </Ink>
+      <Ink w={2.4}>
+        <rect x={10} y={10} width={44} height={44} rx={3} fill="none" />
+        <polyline points={pts([[24, 24], [54, 24]])} />
+        <polyline points={pts([[24, 24], [24, 54]])} />
+        <polyline points={pts([[38, 24], [38, 54]])} />
+        <polyline points={pts([[24, 38], [54, 38]])} />
+      </Ink>
+      <CGlyph ch="7" cx={31} cy={31} h={8} color={A} />
+      <CGlyph ch="9" cx={45} cy={45} h={8} color={A} />
+    </>
+  ),
   balance: () => (
     <>
       <Ink>
@@ -734,6 +755,54 @@ const PATTERN: Partial<Record<PuzzleType, Art>> = {
 };
 
 const LOGIC: Partial<Record<PuzzleType, Art>> = {
+  // Fences (1 Nov 2026): a loop round numbered cells on a dot grid.
+  fences: () => (
+    <>
+      {[10, 24, 38, 52].flatMap((x) => [10, 24, 38, 52].map((y) => <circle key={`${x}-${y}`} cx={x} cy={y} r={1.8} fill={DIM} />))}
+      <Ink color={A} w={3}>
+        <polyline points={pts([[10, 10], [38, 10], [38, 24], [52, 24], [52, 52], [24, 52], [24, 38], [10, 38], [10, 10]])} />
+      </Ink>
+      <CGlyph ch="3" cx={17} cy={17} h={7} w={2} />
+      <CGlyph ch="2" cx={45} cy={31} h={7} w={2} />
+      <CGlyph ch="1" cx={31} cy={31} h={7} w={2} color={DIM} />
+    </>
+  ),
+  // Fillomino (1 Nov 2026): regions of N squares holding N.
+  fillomino: () => (
+    <>
+      <Ink color={DIM} w={1.4}>
+        {[1, 2].map((i) => <polyline key={`v${i}`} points={pts([[10 + i * 14.67, 10], [10 + i * 14.67, 54]])} />)}
+        {[1, 2].map((i) => <polyline key={`h${i}`} points={pts([[10, 10 + i * 14.67], [54, 10 + i * 14.67]])} />)}
+      </Ink>
+      <rect x={10} y={10} width={29.3} height={14.7} rx={2} fill={A} opacity={0.32} />
+      <rect x={39.3} y={10} width={14.7} height={44} rx={2} fill={A} opacity={0.2} />
+      <Ink w={2.6}>
+        <rect x={10} y={10} width={44} height={44} rx={3} fill="none" />
+        <polyline points={pts([[10, 24.7], [39.3, 24.7], [39.3, 10]])} />
+        <polyline points={pts([[39.3, 24.7], [39.3, 54]])} />
+      </Ink>
+      <CGlyph ch="2" cx={17.3} cy={17.3} h={7} w={2} />
+      <CGlyph ch="3" cx={46.7} cy={39.3} h={7} w={2} />
+      <CGlyph ch="4" cx={24.7} cy={39.3} h={7} w={2} />
+    </>
+  ),
+  // Bridges (1 Nov 2026): numbered islands joined by single and double bridges.
+  bridges: () => (
+    <>
+      <Ink color={A} w={2.4}>
+        <polyline points={pts([[18, 16], [46, 16]])} />
+        <polyline points={pts([[15, 18], [15, 46]])} />
+        <polyline points={pts([[21, 18], [21, 46]])} />
+        <polyline points={pts([[46, 18], [46, 46]])} />
+      </Ink>
+      {([[18, 16, "3"], [46, 16, "2"], [18, 48, "2"], [46, 48, "1"]] as const).map(([x, y, n]) => (
+        <g key={`${x}-${y}`}>
+          <circle cx={x} cy={y} r={8} fill={BG} stroke={INK} strokeWidth={2.4} />
+          <CGlyph ch={n} cx={x} cy={y} h={7} w={2} />
+        </g>
+      ))}
+    </>
+  ),
   shikaku: () => (
     <>
       <Ink color={DIM} w={1.6}>

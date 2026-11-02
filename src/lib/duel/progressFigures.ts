@@ -16,6 +16,7 @@
  * Every function is shared (phone and server): the decoders and replays it uses are the graders'.
  */
 import { usesStandard } from "./standard/stamps";
+import { gridProgressText } from "./gridPuzzles";
 import { swapwordBlindSwaps } from "./standard/word";
 import { blockGeometry, decodePlacements, verifyPlacements } from "./blockParty";
 import { decodeFlowPaths, verifyFlow } from "./flow";
@@ -117,6 +118,12 @@ export interface ProgressFigure {
 export function solutionProgress(puzzle: PuzzleData, answer: string, extra?: Record<string, unknown> | null): ProgressFigure | null {
   if (puzzleScoreRevOf(puzzle) < PUZZLE_SCORE_REV) return null;
   switch (puzzle.type) {
+    // The four grid puzzles born on the standard (1 Nov 2026): items on the solution, and those off it.
+    case "fences":
+    case "fillomino":
+    case "bridges":
+    case "kakuro":
+      return gridProgressText(puzzle, answer);
     case "flow": {
       if (!puzzle.solution?.length) return null;
       const paths = decodeFlowPaths(answer, puzzle.pairs.length || FLOW_PAIRS);

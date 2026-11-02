@@ -1,4 +1,4 @@
 {
-  "note": "pickRoundOrder deals for older rooms (6 stored category lists x 200 seeds), recorded on main 567ff36 before room settings; re-recorded 1 Nov 2026 when Full House retired (#230), its only change (the old digest ad4d914faa96 reproduces with Full House active)",
-  "digest": "fea41723f50ecc13222e469cf6414984f531a775ddeaee2f171fb405aee7737b"
+  "note": "pickRoundOrder deals for older rooms (6 stored category lists x 200 seeds), recorded on main before room settings; re-recorded 1 Nov 2026 when Fences, Fillomino, Bridges (Logic) and Kakuro (Number) joined the pools, and again when Blockfall and Alley Roll joined the arcade pool: only the game drawn within a pool changes. No stored room or round changes (rounds are stored when dealt).",
+  "digest": "cf7b554c16eeebb335d017834fdae6b56bb35f2d5a99ce7ec2a9a901fa5f28a9"
 }

@@ -1,11 +1,14 @@
 import { PS_CORE_FULL_V2 } from "@/lib/arcade/cards/pokerSquares";
 import { FC_CORE_UNITS_V3 } from "@/lib/arcade/cards/freecell";
+import { BF_CORE_FULL } from "@/lib/arcade/blockfall";
+import { AR_CORE_FULL } from "@/lib/arcade/alleyroll";
 import { BULLSEYE_INNER_BULL_POINTS, BULLSEYE_RING_VALUES } from "@/lib/arcade/bullseye";
 import { BINTOSS_THROWS, BINTOSS_V9_BUCKET, BINTOSS_V9_FAR, BINTOSS_V9_FINISH, BINTOSS_V9_HOOP } from "@/lib/arcade/binToss";
 import { INK_LEVELS, INK_V12_CORE_MAX } from "@/lib/arcade/inkBridge";
 import { TILT_S_MAZES } from "@/lib/arcade/tilt";
 import { bandsIntro } from "./puzzleBandsText";
 import { logicStandardIntro } from "./standard/logicText";
+import { gridStandardIntro } from "./standard/gridText";
 import { wordSearchBonusIntro } from "./wordSearchText";
 import { letterWheelJarIntro } from "./letterWheelText";
 import { CODEWORD_STRETCH, TILEGRID_STRETCH_TOPUP, stretchIntro, strikeoutDepthIntro } from "./depth/stretchShapes";
@@ -56,6 +59,7 @@ function introScoreTemplates(): Record<PuzzleType, string> {
     checkout: standardNumberIntro("checkout"),
     // "speed points" for the brief's "speed bonus": the intro wording check rejects "speed bonus".
     numline: standardNumberIntro("numline"),
+    kakuro: gridStandardIntro("kakuro"),
     tendrop: "Points per target. Clear all ten fast, hitting targets with gold tiles, for up to {max}.",
 
     // Attention
@@ -94,6 +98,9 @@ function introScoreTemplates(): Record<PuzzleType, string> {
     rings: PATTERN_STD_INTRO.rings,
     blockparty: PATTERN_STD_INTRO.blockparty,
     shikaku: logicStandardIntro("shikaku"),
+    fences: gridStandardIntro("fences"),
+    fillomino: gridStandardIntro("fillomino"),
+    bridges: gridStandardIntro("bridges"),
     lightup: logicStandardIntro("lightup"),
     tents: logicStandardIntro("tents"),
     dig: "Fill the drain with clean water for 100, more if you're quick and use few digs.",
@@ -125,6 +132,8 @@ function introScoreTemplates(): Record<PuzzleType, string> {
     tripeaks: "Cards 120, peak tops 30, longest run 20; all cleared: 10 and speed 20. Together {max}.",
     pokersquares: `Hand points 160 (full at ${PS_CORE_FULL_V2}); made hands 40 (4 a line). Together {max}.`,
     fivehands: "Your hand points against this deck's best possible total, up to {max}: pair 5, two pair 10, trips 20, straight 25, flush 35, full house 50, quads 60, straight flush 75.",
+    blockfall: `Lines 140 (full at ${BF_CORE_FULL}); multi-line clears 40; a low stack at the buzzer 20. Together {max}.`,
+    alleyroll: `Ring points 150 (full at ${AR_CORE_FULL}); 100 pockets 30; hot streak 20. Together {max}.`,
     bubble: "Bubbles cleared, a fast clear, falling chests, bank shots and combos. Up to {max}.",
     slice: "Food 120, combos 40, gold fruit 20, tickets 10, dodges 10. Chilli: lose 10. Up to {max}.",
     beat: "Notes hit in time, fevers, golden notes, double taps and a Perfect streak. Up to {max}.",

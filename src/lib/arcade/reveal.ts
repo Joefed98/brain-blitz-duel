@@ -131,6 +131,9 @@ const BUILDERS: Record<string, Builder> = {
   homerun: sportsBuilder("Distance points", (r) => n(r, "pitches") >= 10),
   freekick: sportsBuilder("Goal points", (r) => b(r, "finished")),
   racing: sportsBuilder("Distance points", (r) => b(r, "finished")),
+  // Blockfall and Alley Roll (1 Nov 2026): the same shape (the lines come from the standard parts).
+  blockfall: sportsBuilder("Lines points", (r) => !b(r, "toppedOut")),
+  alleyroll: sportsBuilder("Ring points", (r) => b(r, "finished")),
   // Cards & Board (30 Oct 2026; the lines come from each game's standard parts).
   freecell: (r, s) => ({
     axis: { value: n(r, "home"), max: 52, label: "Cards home" },

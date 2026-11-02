@@ -279,6 +279,17 @@ const ARCADE_BACKGROUNDS: Partial<Record<PuzzleType, TileBackground>> = {
   minigolf: bg((c) => vgrad(c, [[0, "#0C2216"], [1, "#071510"]]), { fade: 0.2 }),
   pool: bg((c) => { vgrad(c, [[0, "#1F6B45"], [1, "#0F3F28"]]); cloud(c, T / 2, T / 2, 56, "#2A7F55", 0.3); }, { fade: 0.25, spot: 0.35 }),
   curling: bg((c) => vgrad(c, [[0, "#B9C9D6"], [1, "#E9F1F6"]]), { fade: 0.2 }),
+  // Blockfall (Retro, 1 Nov 2026): the cabinet's navy fading to black, a cyan haze where the well glows.
+  blockfall: bg((c) => {
+    vgrad(c, [[0, "#071425"], [1, "#050B16"]]);
+    cloud(c, T / 2, T * 0.7, 50, "#36E2F5", 0.12);
+    retroLines(c);
+  }, { fade: 0.15, spot: 0.25 }),
+  // Alley Roll (Sports, 1 Nov 2026): the alley's warm dark room, a glow behind the board.
+  alleyroll: bg((c) => {
+    vgrad(c, [[0, "#22130A"], [1, "#2C180B"]]);
+    cloud(c, T / 2, T / 2, 56, "#FFAA50", 0.18);
+  }, { fade: 0.25, spot: 0.35 }),
   // Hover: its deep space lifting to a synthwave violet at the horizon, a faint magenta grid floor below.
   hover: bg((c) => {
     vgrad(c, [[0, "#02030A"], [0.35, "#080B20"], [0.62, "#2A0E4A"], [0.7, "#5A1A6E"], [0.7, "#0A0614"], [1, "#05030A"]]);
@@ -719,6 +730,8 @@ const PUZZLE_BACKGROUNDS: Partial<Record<PuzzleType, TileBackground>> = {
     cloud(c, T / 2, 10, 50, "#D6AA54", 0.25);
     vgrad(c, [[0, "#7A5030"], [1, "#2A180B"]], 86, T);
   }),
+  // Kakuro (1 Nov 2026): its board's dark clue cells and glass squares.
+  kakuro: pz("number", (c) => board(c, "#1C1F26", "#101116", "rgba(61,220,132,0.3)", { cells: 6, line: "rgba(255,255,255,0.05)" })),
   checkout: pz("number", (c) => {
     vgrad(c, [[0, "#0D1838"], [0.8, "#3B2C63"], [1, "#F08A3C"]]);
     stars(c, 41, 14, ["#FFD27A"], 0.7, 0.6, [0, 0, T, 50]);
@@ -884,6 +897,13 @@ const PUZZLE_BACKGROUNDS: Partial<Record<PuzzleType, TileBackground>> = {
     }
   }, { fade: 0.35 }),
   shikaku: pz("logic", (c) => board(c, "#2A2C33", "#15161B", "rgba(10,10,14,0.85)", { cells: 5, line: "rgba(10,10,14,0.8)" })),
+  // The new grid puzzles (1 Nov 2026): their dark glass boards.
+  fences: pz("logic", (c) => board(c, "#1E2027", "#111217", "rgba(46,211,183,0.3)", { cells: 6, line: "rgba(255,255,255,0.05)" })),
+  fillomino: pz("logic", (c) => board(c, "#20222A", "#121318", "rgba(10,10,14,0.85)", { cells: 7, line: "rgba(10,10,14,0.7)" })),
+  bridges: pz("logic", (c) => {
+    board(c, "#10222A", "#0A1216", "rgba(46,211,183,0.3)");
+    cloud(c, T / 2, T / 2, 46, "#2ED3B7", 0.1);
+  }),
   tubes: pz("logic", (c) => cloud(c, T / 2, 60, 50, "#2ED3B7", 0.15)),
   tents: pz("logic", (c) => {
     board(c, "#17221A", "#0D140F", "rgba(61,138,74,0.35)", { cells: 5, line: "rgba(0,0,0,0.3)" });
