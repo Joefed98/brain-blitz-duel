@@ -1,10 +1,10 @@
 /**
  * snake-rev12-check (1 Nov 2026, docs/arcade-standard/snake.md "snakeRev 12"): Meteor snakeRev 12. snakeRev 11's world,
  * play and parts exactly, with the core counting each gold comet star (the bigger star that appears now and then) as 2
- * stars and full at 20 core stars (snakeRev 11: 27 stars eaten).
+ * stars and full at 28 core stars (snakeRev 11: 27 stars eaten; 20 until 2 Nov 2026, before it shipped).
  *
- *  1. Wiring: rooms deal snakeRev 12; the "?" help reads its core line (SNAKE_V12_BAND_CURVE: 0 → 0, 20 → 120) and says
- *     a gold star counts 2, the core is full at 20 and the parts make 200; the intro says so in under 90 characters;
+ *  1. Wiring: rooms deal snakeRev 12; the "?" help reads its core line (SNAKE_V12_BAND_CURVE: 0 → 0, 28 → 120) and says
+ *     a gold star counts 2, the core is full at 28 and the parts make 200; the intro says so in under 90 characters;
  *     the standard module names snakeRev 12 and its perfect run scores 200 with every part at its maximum; ROUND_MAX 200;
  *     snakeRev 11's world size; snakeRev 12 keeps snakeRev 10's play for the band-era checks (playRevOf); the intro
  *     demo plays only when recorded on snakeRev 12; the HUD counts the core's stars.
@@ -14,7 +14,7 @@
  *  3. The same world and the same play: on 60 room seeds snakeRev 12's start is snakeRev 11's plus `gold2: 1`; bot logs
  *     at every level played on both stamps give the same state tick for tick (but `gold2`), every part but the core the
  *     same, and the core never lower on snakeRev 12.
- *  4. The rules, scripted: the core's straight line (6 a core star, 120 at 20, nothing more after); a gold star eaten in
+ *  4. The rules, scripted: the core's straight line (120 × core stars ÷ 28 rounded down, 120 at 28, nothing more after); a gold star eaten in
  *     the sim adds 2 core stars and its gold-part worth as on snakeRev 11 (eating one never costs core); 14 stars and 3
  *     gold stars fill the core; caps, at least 1 for a played run, 0 with no input; the reveal's lines; grading's parts.
  *  5. Bots: snakeRev 12 runs (scripts/fixtures/snake-rev12-runs.json.gz, `--record` to re-record) replay through the
@@ -84,19 +84,19 @@ const without = (s: SnakeState) => {
 /* 1. Wiring. */
 ok((generatePuzzle("snake") as any).snakeRev === SNAKE_REV_12 && SNAKE_REV_12 === SNAKE_REV_STD + 1, "rooms deal snakeRev 12 (snakeRev 11 before 1 Nov 2026)");
 ok(LIVE_BANDS.snake.rev === SNAKE_REV_12 && LIVE_BANDS.snake.curve === SNAKE_V12_BAND_CURVE, "the help reads snakeRev 12's core line");
-ok(JSON.stringify(SNAKE_V12_BAND_CURVE.units) === JSON.stringify([0, 20]) && JSON.stringify(SNAKE_V12_BAND_CURVE.points) === JSON.stringify([0, 120]), "the help's curve is the straight line 0 → 0, 20 → 120");
-ok(SNAKE_V12_CORE_STARS === 20 && SNAKE_V12_GOLD_CORE === 2, "the core is full at 20 core stars; a gold star counts 2");
+ok(JSON.stringify(SNAKE_V12_BAND_CURVE.units) === JSON.stringify([0, 28]) && JSON.stringify(SNAKE_V12_BAND_CURVE.points) === JSON.stringify([0, 120]), "the help's curve is the straight line 0 → 0, 20 → 120");
+ok(SNAKE_V12_CORE_STARS === 28 && SNAKE_V12_GOLD_CORE === 2, "the core is full at 28 core stars; a gold star counts 2");
 ok(ROUND_MAX.snake === 200, "ROUND_MAX: Meteor is 200");
 ok(snakeWorldWForRev(SNAKE_REV_12) === snakeWorldWForRev(SNAKE_REV_STD) && snakeWorldHForRev(SNAKE_REV_12) === snakeWorldHForRev(SNAKE_REV_STD), "snakeRev 12 plays in snakeRev 11's world");
 ok(playRevOf("snake", SNAKE_REV_12) === 10 && playRevOf("snake", SNAKE_REV_STD) === 10, "snakeRev 12 keeps snakeRev 10's play for the band-era checks (as snakeRev 11 does)");
 {
   const help = PUZZLE_INSTRUCTIONS.snake.score;
-  ok(help.includes("each big gold star 2") && help.includes("up to 120") && help.includes("A good run (100 points) counts 17 stars") && help.includes("Stars are full at 20"), `the help says a gold star counts 2 and the core is full at 20: ${help}`);
+  ok(help.includes("each big gold star 2") && help.includes("up to 120") && help.includes("A good run (100 points) counts 24 stars") && help.includes("Stars are full at 28"), `the help says a gold star counts 2 and the core is full at 20: ${help}`);
   ok(help.includes("Gold stars also add up to 40, combos up to 20, lane rides up to 10 and warp stars up to 10: 120 + 80 = 200") && help.endsWith("Up to 200."), "the help lists every part and their 200");
   const gold = PUZZLE_INSTRUCTIONS.snake.how.find((l) => l.action.startsWith("Gold comet stars"));
   ok(Boolean(gold?.detail.includes("counts as 2 stars")), "the help's gold-star line says it counts as 2 stars");
   const intro = INTRO_SCORE.snake;
-  ok(intro.length <= 90 && intro.includes("120 at 20") && intro.includes("gold stars count 2") && intro.includes("200"), `the intro states the core, the gold stars' 2 and the top: ${intro}`);
+  ok(intro.length <= 90 && intro.includes("120 at 28") && intro.includes("gold stars count 2") && intro.includes("200"), `the intro states the core, the gold stars' 2 and the top: ${intro}`);
   const demo = readFileSync("src/lib/duel/introDemo.functions.ts", "utf8");
   ok(demo.includes('demo.puzzle.snakeRev !== SNAKE_REV_12) return null;'), "the intro demo plays only when recorded on snakeRev 12");
   const renderer = readFileSync("src/lib/arcade/snake.renderer.ts", "utf8");
@@ -163,16 +163,16 @@ ok(goldRuns >= 10, `bot runs eat gold stars (${goldRuns} of 21)`);
 {
   let line = true;
   for (let n = 0; n <= 60; n++) {
-    const want = Math.trunc((120 * Math.min(n, 20)) / 20);
+    const want = Math.trunc((120 * Math.min(n, 28)) / 28);
     if (snakeV12Core(n) !== want || bandPoints(SNAKE_V12_BAND_CURVE, n) !== want) line = false;
   }
-  ok(line, "core = trunc(120 × min(core stars, 20) ÷ 20), the help curve's own line");
-  ok(snakeV12Core(1) === 6 && snakeV12Core(19) === 114 && snakeV12Core(20) === 120 && snakeV12Core(40) === 120, "6 a core star: 114 at 19, 120 at 20, still 120 at 40");
+  ok(line, "core = trunc(120 × min(core stars, 28) ÷ 28), the help curve's own line");
+  ok(snakeV12Core(1) === 4 && snakeV12Core(27) === 115 && snakeV12Core(28) === 120 && snakeV12Core(40) === 120, "4 for one core star: 115 at 27, 120 at 28, still 120 at 40");
   // snakeRev 11's line is unchanged.
   ok(snakeStdCore(27) === 120 && snakeStdCore(26) < 120 && snakeStdCore(20) === 88, "snakeRev 11 keeps its line (120 at 27)");
   const base = { ...(v12.init(5) as SnakeState), acted: 1 };
   ok(snakeCoreStars({ ...base, eaten: 9, goldsEaten: 3 }) === 15 && snakeCoreStars({ ...without(base), eaten: 9, goldsEaten: 3 }) === 9, "core stars: 9 stars and 3 gold stars count 15 (snakeRev 11: 9)");
-  ok(snakeStdParts({ ...base, eaten: 14, goldsEaten: 3 }).core === 120 && snakeStdParts({ ...base, eaten: 13, goldsEaten: 3 }).core === 114, "14 stars and 3 gold stars fill the core; 13 and 3 do not");
+  ok(snakeStdParts({ ...base, eaten: 22, goldsEaten: 3 }).core === 120 && snakeStdParts({ ...base, eaten: 21, goldsEaten: 3 }).core === 115, "22 stars and 3 gold stars fill the core; 21 and 3 do not");
   ok(snakeStdParts({ ...without(base), eaten: 14, goldsEaten: 3 }).core === snakeStdCore(14), "snakeRev 11 never counts a gold star towards the core");
 }
 {
@@ -185,7 +185,7 @@ ok(goldRuns >= 10, `bot runs eat gold stars (${goldRuns} of 21)`);
   const a = eat(v12, s0);
   const b = eat(v11, without(s0));
   ok(a.goldsEaten === 1 && a.eaten === 5 && snakeCoreStars(a) === 7, `a gold star eaten: 5 stars + 2 = 7 core stars (got ${snakeCoreStars(a)}), the meteor no longer`);
-  ok(snakeStdParts(a).core === snakeV12Core(7) && snakeStdParts(a).core - snakeV12Core(5) === 12, "a gold star adds 12 to the core");
+  ok(snakeStdParts(a).core === snakeV12Core(7) && snakeStdParts(a).core - snakeV12Core(5) === 9, "a gold star adds 9 to the core (21 → 30 at 5 → 7 core stars)");
   ok(snakeStdParts(a).gold === snakeStdParts(b).gold && a.goldLeft === b.goldLeft && snakeStdParts(a).gold === Math.trunc(40 / 7), `and pays its gold part as on snakeRev 11 (${snakeStdParts(a).gold})`);
   ok(a.body.length === b.body.length && JSON.stringify(without(a)) === JSON.stringify(b), "eating it plays exactly as on snakeRev 11");
 }
@@ -205,12 +205,12 @@ ok(goldRuns >= 10, `bot runs eat gold stars (${goldRuns} of 21)`);
   const st = { ...crashed, eaten: 13, goldsEaten: 2, goldLeft: 2 * life, comboPts: 6, laneRides: 3, warpPts: 4 };
   const parts = snakeStdParts(st);
   const score = v12.score(st);
-  ok(parts.core === 102 && parts.gold === 11 && parts.combo === 6 && parts.lane === 3 && parts.warp === 4 && score === 126, `13 stars, 2 gold, 6 combo, 3 rides, 2 warp stars: 102 + 11 + 6 + 3 + 4 = 126 (${score}; snakeRev 11: ${v11.score(without(st))})`);
+  ok(parts.core === 72 && parts.gold === 11 && parts.combo === 6 && parts.lane === 3 && parts.warp === 4 && score === 96, `13 stars, 2 gold, 6 combo, 3 rides, 2 warp stars: 72 + 11 + 6 + 3 + 4 = 96 (${score}; snakeRev 11: ${v11.score(without(st))})`);
   const reveal = buildArcadeReveal("snake", { state: st, pellets: 13 }, score);
-  ok(Boolean(reveal && reveal.lines[0] === "13 stars + 2 gold ×2 (120 at 20) → 102" && reveal.lines[1] === "Gold 11/40 · combos 6/20 · lanes 3/10 · warps 4/10 +24" && reveal.lines[2] === "Total → 126"), `the reveal lists each part: ${JSON.stringify(reveal?.lines)}`);
+  ok(Boolean(reveal && reveal.lines[0] === "13 stars + 2 gold ×2 (120 at 28) → 72" && reveal.lines[1] === "Gold 11/40 · combos 6/20 · lanes 3/10 · warps 4/10 +24" && reveal.lines[2] === "Total → 96"), `the reveal lists each part: ${JSON.stringify(reveal?.lines)}`);
   const plain = { ...st, goldsEaten: 0, goldLeft: 0 };
   const reveal0 = buildArcadeReveal("snake", { state: plain, pellets: 13 }, v12.score(plain));
-  ok(Boolean(reveal0 && reveal0.lines[0] === "13 stars (120 at 20) → 78"), `with no gold star: ${JSON.stringify(reveal0?.lines)}`);
+  ok(Boolean(reveal0 && reveal0.lines[0] === "13 stars (120 at 28) → 55"), `with no gold star: ${JSON.stringify(reveal0?.lines)}`);
   const reveal1 = buildArcadeReveal("snake", { state: crashed, pellets: 0 }, 1);
   ok(Boolean(reveal1 && reveal1.lines.join(" | ") === "0 stars → 0 | Run played +1 | Total → 1"), `a played run with nothing: ${JSON.stringify(reveal1?.lines)}`);
   // snakeRev 11's reveal is unchanged.
@@ -235,7 +235,7 @@ if (RECORD) {
       const result = spec.replay(seed, raw, SNAKE_REV_12);
       runs.push({ level, seed, raw, score: result.score, digest: digest(result.state) });
     }
-  writeFileSync(FIXTURE, gzipSync(JSON.stringify({ recorded: "snakeRev 12 (gold stars count 2 towards the core), 1 Nov 2026", runs })));
+  writeFileSync(FIXTURE, gzipSync(JSON.stringify({ recorded: "snakeRev 12 (gold stars count 2 towards the core, full at 28), 2 Nov 2026", runs })));
   console.log(`wrote ${FIXTURE} (${runs.length} runs)`);
 }
 const recorded = JSON.parse(gunzipSync(readFileSync(FIXTURE)).toString()) as { runs: any[] };

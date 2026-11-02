@@ -916,7 +916,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Taller and wider field:", detail: `${SNAKE_V9_COLS} squares across and ${SNAKE_V9_ROWS} down, so stars can be further away.`, helpOnly: true },
         { action: "Everyone gets", detail: "the same stars, and every rock lands on the same square at the same moment.", helpOnly: true },
       ],
-      // snakeRev 12 (1 Nov 2026): stars on a straight line to 120, full at 20, a big gold star counting 2; then four fixed
+      // snakeRev 12 (1 Nov 2026): stars on a straight line to 120, full at 28, a big gold star counting 2; then four fixed
       // feature parts, 200 in all.
       score: liveBandHelp("snake", `Each star eaten counts 1, each big gold star ${SNAKE_V12_GOLD_CORE}.`, {
         more: "More stars",

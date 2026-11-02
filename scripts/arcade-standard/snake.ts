@@ -1,6 +1,6 @@
 /**
  * The arcade scoring standard (29 Oct 2026, docs/arcade-standard/snake.md): Meteor (`snake`), snakeRev 12 since 1 Nov 2026
- * (snakeRev 11's parts, the core counting a gold star as 2 stars and full at 20).
+ * (snakeRev 11's parts, the core counting a gold star as 2 stars and full at 28).
  *
  * perfect(): a true perfect run would eat each of the 7 gold stars on the first tick it can be eaten, which the board
  * cannot be planned (each appears on its own square, wherever the meteor is), so the run's final state is built the way the sim

@@ -117,7 +117,7 @@ identical seeded run. Per-game detail, rules and assumptions are in this folder 
 | Fission | `burstRev` 10 | 140, share of all 87 atoms (splits count) | wave clears 35 (7 × 5), golden atoms 25; a lost life −5 | 200 |
 | Gemstone | `matchupRev` 11 | 110, gems cleared, full at 375 | treasure 40 (10 × 4), goals 30, ice 10, big lines 10 | 200 |
 | Gemstone (Nov 2026) | `matchupRev` 12 | 108, gems cleared, full at 360 | treasure 36 (6 × 6), goals 36 (6 × 6), ice 10, big lines 10 | 200 |
-| Meteor | `snakeRev` 12 | 120, stars eaten (a gold star counts 2), full at 20 (snakeRev 11: 27 stars) | gold stars 40, combos 20, lane rides 10, warp stars 10 | 200 |
+| Meteor | `snakeRev` 12 | 120, stars eaten (a gold star counts 2), full at 28 (snakeRev 11: 27 stars) | gold stars 40, combos 20, lane rides 10, warp stars 10 | 200 |
 | Hover | `hoverRev` 10 | 120, barriers passed (42) | star chains 30, gold stars 20, tight gates 20, centre line 10 | 200 |
 
 Core targets measured with the skill-band tool: Gemstone 375 gems (near-flawless median 376); Meteor 27 stars (great's

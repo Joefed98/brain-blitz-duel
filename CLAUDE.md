@@ -1087,7 +1087,7 @@ outside the repo.
   off-screen deaths; any planet the rocket reaches catches it (`orbitCaptureAny`, above the screen too; jumped planets
   count for core); the camera leads the flight (display); dealt from a new proved zigzag bank of 96 courses
   (`orbitFuelBank.server.ts`, `scripts/orbit-fuel-bank.ts [--check]`); parts unchanged; `pinOrbitPreFuel(true)` deals
-  rev 13; orbit-fuel-check. **Meteor** `snakeRev 12` (`gold2`): a gold star counts 2 core stars, core full at 20 (was
+  rev 13; orbit-fuel-check. **Meteor** `snakeRev 12` (`gold2`): a gold star counts 2 core stars, core full at 28 (was
   27); snake-rev12-check. **Grappler** `swingRev 16` (`SWING_REV_DARK`, the state's `dark`): 90 s (5,400 ticks; the
   definition's clock 93 s, older rounds end at 60 s), a 42-block course (six ledge runs, three squeezes), the dragon over
   the last quarter; ledge runs go dark past the next ledge (`swingDarkFrom` / `swingHookLit`: dark hooks can't be

@@ -1300,7 +1300,7 @@ export interface SnakeStdParts {
   warp: number;
 }
 
-/** snakeRev 11's parts, each within its maximum (snakeRev 12: the core counts gold stars twice, full at 20). */
+/** snakeRev 11's parts, each within its maximum (snakeRev 12: the core counts gold stars twice, full at 28). */
 export function snakeStdParts(state: SnakeState): SnakeStdParts {
   return {
     core: state.gold2 ? snakeV12Core(snakeCoreStars(state)) : snakeStdCore(state.eaten),
@@ -1352,13 +1352,13 @@ export const snakeStdGame: ArcadeGame<SnakeState, ArcadeInputEvent | null> = { .
  *
  *  - The bigger gold comet stars that appear now and then count SNAKE_V12_GOLD_CORE (2) stars towards the core, as
  *    well as paying their own gold-star part (eating one never costs core; it adds to it).
- *  - The core is full at SNAKE_V12_CORE_STARS (20) core stars (snakeRev 11: 27 stars).
+ *  - The core is full at SNAKE_V12_CORE_STARS (28) core stars (snakeRev 11: 27 stars).
  *
  * Nothing new is drawn and the move is unchanged (a gold star still doesn't make the meteor longer, and rocks, speed and
  * the shower still follow the stars actually eaten). States add `gold2: 1`, folded into the checkpoint checksum last.
  */
 export const SNAKE_REV_12 = 12;
-export const SNAKE_V12_CORE_STARS = 20;
+export const SNAKE_V12_CORE_STARS = 28;
 export const SNAKE_V12_GOLD_CORE = 2;
 /** The core as a band curve (a straight line, two knots) on core stars, for the "?" help (liveBands.ts); snakeV12Core is the same line. */
 export const SNAKE_V12_BAND_CURVE = bandCurve([0, SNAKE_V12_CORE_STARS], [0, SNAKE_STD_CORE_MAX]);
