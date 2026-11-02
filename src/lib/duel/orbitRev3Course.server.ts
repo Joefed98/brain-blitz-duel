@@ -50,7 +50,7 @@ const ORBIT_REV3_BY_SEED = new Map(ORBIT_REV3_BANK.map((entry) => [entry.seed, e
 
 /**
  * orbitRev 14 (the fuel meter): the course for a room seed from the fuel bank (index = seed mod length): its
- * harder-zigzag planets, black holes and features, proved on rev 14's rules (scripts/orbit-fuel-bank.ts), or null
+ * zigzag planets, black holes and features, proved on rev 14's rules (scripts/orbit-fuel-bank.ts), or null
  * if the bank is empty.
  */
 export function orbitFuelCourseForSeed(seed: number): { planets: OrbitRev3CompactPlanet[]; holes: OrbitHoleRow[]; extras: OrbitExtrasRow } | null {

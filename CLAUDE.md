@@ -1084,9 +1084,11 @@ outside the repo.
   `swing.md`, `matchup.md`, each with a new section; screenshots `screenshots/arcade-tuning-nov-2026/`). **Orbit**
   `orbitRev 14` (`ORBIT_REV_FUEL`, gated on the state's `fuel`): a fuel tank of 160 ticks of free flight (bottom-right
   meter, `drawFuelMeter`), refilled on any catch; empty ends the run (or the checkpoint respawns) in place of the
-  off-screen deaths; any planet the rocket reaches catches it (`orbitCaptureAny`, above the screen too; jumped planets
-  count for core); the camera leads the flight (display); dealt from a new proved zigzag bank of 96 courses
-  (`orbitFuelBank.server.ts`, `scripts/orbit-fuel-bank.ts [--check]`); parts unchanged; `pinOrbitPreFuel(true)` deals
+  off-screen deaths, after a 0.6 s sputter (display only: smoke, the rocket dropping away, the meter flashing red; the
+  stage holds the submit that long, `ArcadeCanvasStage` `endHoldMs`); any planet the rocket reaches catches it
+  (`orbitCaptureAny`, above the screen too; jumped planets count for core); the camera leads the flight (display); dealt
+  from a new proved zigzag bank of 96 courses (every step 60–220 px sideways, softened on 2 Nov 2026 to bring the middle
+  skill levels back; `orbitFuelBank.server.ts`, `scripts/orbit-fuel-bank.ts [--check]`); parts unchanged; `pinOrbitPreFuel(true)` deals
   rev 13; orbit-fuel-check. **Meteor** `snakeRev 12` (`gold2`): a gold star counts 2 core stars, core full at 20 (was
   27); snake-rev12-check. **Grappler** `swingRev 16` (`SWING_REV_DARK`, the state's `dark`): 90 s (5,400 ticks; the
   definition's clock 93 s, older rounds end at 60 s), a 42-block course (six ledge runs, three squeezes), the dragon over

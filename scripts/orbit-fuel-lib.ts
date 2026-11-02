@@ -3,9 +3,10 @@
  * scripts/orbit-fuel-bank.ts and orbit-fuel-check). Every test runs the real sim (orbitRev3Game.step) on forked states.
  *
  * One course from a seed:
- *  1. planets laid out with a harder zigzag than orbitRev 3's (buildCourse3Raw): the sideways direction turns after
- *     every one or two planets (rev 3: two or three) and every step goes at least ZIG.latMin px sideways (rev 3:
- *     0–260), so the planets two and more ahead stand off to the side of a straight miss rather than in its line;
+ *  1. planets laid out on a zigzag (buildCourse3Raw is orbitRev 3's): the sideways direction turns after every one
+ *     or two planets (rev 3: two or three) and every step goes 60–220 px sideways (ZIG; rev 3: 0–260, so never straight
+ *     up), so the planets two and more ahead stand off to the side of a straight miss rather than in its line (softened
+ *     on 2 Nov 2026 from 120–300 px, which left the middle skill levels well under orbitRev 13's);
  *     each hop is placed only when a window of four release ticks, on two laps running, lands on the new planet on
  *     orbitRev 14's rules (any planet catches) within ORBIT_FUEL_HOP_MAX ticks of flight;
  *  2. the black holes (scripts/orbit-hole-lib.ts, orbitRev 4's proof, as the hole bank did) on the old-rule bot's run;
@@ -55,9 +56,11 @@ import { buildXp, xpFailure } from "./orbit-xp-lib";
 /**
  * The layout's knobs: the sideways step between planets (px, at least `latMin`, at most `latMax`), the sideways
  * direction turning after `turnMin + draw(turnSpan)` planets, and the far-catch rule (noFarCatch) tried first on
- * `retries` placements before `retries` more without it.
+ * `retries` placements before `retries` more without it. Chosen on 2 Nov 2026 from trial banks measured with
+ * scripts/arcade-skill-bands.ts (docs/arcade-standard/orbit.md, "orbitRev 14"): 120–300 px (the first bank) left
+ * Average / Good / Great at 39 / 71 / 118; 60–220 brings them to about 57 / 90 / 151 with the top levels unchanged.
  */
-export const ZIG = { latMin: 120, latMax: 300, turnMin: 1, turnSpan: 2, retries: 10, farBack: 6 };
+export const ZIG = { latMin: 60, latMax: 220, turnMin: 1, turnSpan: 2, retries: 10, farBack: 6 };
 const MAX_RETRIES = 20;
 /** Fallback sideways steps, px, tried in turn (a hop that proves none of them rejects the build). */
 const ZIG_FALLBACK_LATERAL = [180, 140, 110, 80];
@@ -138,7 +141,7 @@ export function noFarCatch(planets: readonly Planet[], i: number): boolean {
   return true;
 }
 
-/** The harder-zigzag planets for one (salted) seed, every hop placed with a fuel window; throws when a hop has none. */
+/** The zigzag planets for one (salted) seed, every hop placed with a fuel window; throws when a hop has none. */
 export function buildFuelCourseRaw(seed: number, worldW = ORBIT_REV3_WORLD_W): Planet[] {
   let rng = seed | 0;
   const draw = (bound: number) => {

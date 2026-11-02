@@ -1690,7 +1690,7 @@ export function initStdFrom(planets: Planet[], worldW: number, holes: OrbitHole[
 /* ================= The fuel meter (orbitRev 14, 1 Nov 2026) ================= */
 /*
  * orbitRev 14 (Joe's notes, docs/arcade-standard/orbit.md "orbitRev 14"): orbitRev 13's rules, features, view and
- * parts, on a new proved bank of harder-zigzag courses (orbitFuelBank.server.ts, scripts/orbit-fuel-bank.ts), with:
+ * parts, on a new proved bank of zigzag courses (orbitFuelBank.server.ts, scripts/orbit-fuel-bank.ts), with:
  *  - fuel: ORBIT_FUEL_MAX units, one burned each tick of free flight, full again the moment the rocket catches a planet
  *    (or a black hole, or respawns at the checkpoint). An empty tank ends the flight like a crash (the checkpoint's one
  *    respawn, else the run's end); there is no other end to a flight (no world edge, flight cap or past-reach end).

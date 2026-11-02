@@ -13,13 +13,15 @@
  *     empty space ends exactly ORBIT_FUEL_MAX ticks later (run over, "out of fuel", at least 1 point), or respawns at
  *     the checkpoint with a full tank; a flight leaving the world's sides flies on; any planet catches (far ahead,
  *     the planets jumped past counting for core; behind, the furthest reached kept); older starts carry no fuel.
- *  4. The zigzag: the bank's courses step further sideways and turn more often than orbitRev 13's, and fewer misses
- *     (any release on a full tank) are caught three or more planets on.
+ *  4. The zigzag: the bank's courses never step straight up (every step 40+ px sideways; orbitRev 13's do), turn more
+ *     often than orbitRev 13's, and fewer misses (any release on a full tank) are caught three or more planets on.
  *  5. The flight camera: on witness runs the planet each flight lands on is in view before it arrives; the camera
  *     never jumps in flight.
  *  6. Dealing and text: generateOrbit deals orbitRev 14 on a fuel-bank course (pinOrbitPreFuel deals orbitRev 13 as
  *     before), LIVE_BANDS and ORBIT_STD carry 14, the help describes the fuel, and the intro demo waits for one recorded
  *     on orbitRev 14.
+ *  7. The sputter (display only): a run that ends dry animates for 0.6 s on the same ended state and the stage holds
+ *     its submit that long; nothing else holds.
  *
  *   bun scripts/orbit-fuel-check.ts
  */
@@ -47,7 +49,8 @@ import {
   type OrbitRev3State,
 } from "../src/lib/arcade/orbitRev3";
 import { orbitCamera, orbitCameraResetCache, orbitViewH, orbitViewW } from "../src/lib/arcade/orbitCamera";
-import { orbitRev3ArtGame } from "../src/lib/arcade/orbit.renderer";
+import { createCanvas } from "@napi-rs/canvas";
+import { orbitEndHoldMs, orbitRev3ArtGame, ORBIT_SPUTTER_MS, setOrbitSputterClock } from "../src/lib/arcade/orbit.renderer";
 import { LIVE_BANDS } from "../src/lib/arcade/liveBands";
 import { encodeOrbitRun, replayOrbitRun } from "../src/lib/duel/orbit";
 import { ORBIT_FUEL_BANK, type OrbitFuelBankEntry } from "../src/lib/duel/orbitFuelBank.server";
@@ -222,10 +225,12 @@ const step = (s: OrbitRev3State, input: ArcadeInputEvent | null = null) => orbit
 {
   const n = 8;
   const stats = (rows: OrbitRev3State["planets"][]) => {
-    let lat = 0, steps = 0, turns = 0, releases = 0, far = 0;
+    let lat = 0, steps = 0, turns = 0, releases = 0, far = 0, straight = 0;
     for (const p of rows) {
       for (let i = 1; i <= ORBIT_TOTAL; i++) {
-        lat += Math.abs(p[i]!.x - p[i - 1]!.x) / FP;
+        const side = Math.abs(p[i]!.x - p[i - 1]!.x) / FP;
+        lat += side;
+        if (side < 40) straight++;
         steps++;
         if (i >= 2 && Math.sign(p[i]!.x - p[i - 1]!.x) !== Math.sign(p[i - 1]!.x - p[i - 2]!.x)) turns++;
       }
@@ -233,12 +238,20 @@ const step = (s: OrbitRev3State, input: ArcadeInputEvent | null = null) => orbit
       releases += f.releases;
       far += f.far;
     }
-    return { lat: lat / steps, turns: turns / steps, far: far / releases };
+    return { lat: lat / steps, turns: turns / steps, far: far / releases, straight: straight / steps };
   };
   const planetsOf = new Map(ORBIT_REV3_BANK.map((x) => [x.seed, x.planets]));
   const old = stats(ORBIT_XP_BANK.slice(0, n).map((x) => decodeRev3Planets(planetsOf.get(x.seed)!)));
   const now = stats(ORBIT_FUEL_BANK.slice(0, n).map((x) => decodeRev3Planets(x.planets)));
-  ok(now.lat >= old.lat * 1.3, `the fuel bank steps further sideways (${now.lat.toFixed(0)} px a planet, orbitRev 13's courses ${old.lat.toFixed(0)})`);
+  // Softened on 2 Nov 2026 (the middle levels back): the steps are about as long sideways as orbitRev 13's on average,
+  // but never straight up, and they turn far more often.
+  const straightAll = ORBIT_FUEL_BANK.reduce((sum, x) => {
+    const p = decodeRev3Planets(x.planets);
+    let k = 0;
+    for (let i = 1; i <= ORBIT_TOTAL; i++) if (Math.abs(p[i]!.x - p[i - 1]!.x) / FP < 40) k++;
+    return sum + k;
+  }, 0);
+  ok(straightAll === 0 && old.straight > 0, `no step on any fuel-bank course goes straight up (every step 40+ px sideways, ${now.lat.toFixed(0)} px a planet on average; orbitRev 13's courses ${(old.straight * 100).toFixed(1)} % under 40 px, ${old.lat.toFixed(0)} px a planet)`);
   ok(now.turns > old.turns, `and turns more often (${(now.turns * 100).toFixed(0)} % of steps, orbitRev 13's ${(old.turns * 100).toFixed(0)} %)`);
   ok(now.far < old.far, `fewer misses are caught three or more planets on (${(now.far * 100).toFixed(2)} % of releases, orbitRev 13's courses ${(old.far * 100).toFixed(2)} %)`);
 }
@@ -302,6 +315,47 @@ const step = (s: OrbitRev3State, input: ArcadeInputEvent | null = null) => orbit
   ok(help.how.some((h) => /Fuel/.test(h.action) && /drains only while you fly/.test(h.detail)) && /jump past counts/.test(help.score), "the help explains the fuel and that a planet jumped past counts");
   const demo = readFileSync("src/lib/duel/introDemo.functions.ts", "utf8");
   ok(/data\.type === "orbit" && demo\?\.puzzle\.type === "orbit" && demo\.puzzle\.orbitRev !== ORBIT_REV_FUEL\) return null/.test(demo), "Orbit's intro demo stays stopped until one is recorded on orbitRev 14");
+}
+
+/* 7. The sputter (display only): a run that ends dry animates for ORBIT_SPUTTER_MS on the presentation clock (the sim
+ * is not stepped: the state drawn is the same ended state), the stage holds its submit for that long, and nothing
+ * else holds. */
+{
+  const e = ORBIT_FUEL_BANK[0]!;
+  const s0 = startOf(e);
+  let dry: OrbitRev3State | null = null;
+  for (let d = 0; d < 400 && !dry; d++) {
+    let f = s0;
+    for (let k = 0; k < d; k++) f = step(f);
+    f = step(f, ev(f.tick + 1, ORBIT_INPUT_TAP));
+    while (!f.ended && f.flying > 0) f = step(f);
+    if (f.ended === 2 && f.dry === f.endedTick) dry = f;
+  }
+  ok(dry !== null && orbitEndHoldMs(dry) === ORBIT_SPUTTER_MS && ORBIT_SPUTTER_MS >= 500 && ORBIT_SPUTTER_MS <= 700, `a run that ended dry holds its submit ${ORBIT_SPUTTER_MS} ms for the sputter`);
+  let witnessEnd = startOf(e);
+  const taps = new Set(e.taps);
+  while (!witnessEnd.ended) witnessEnd = step(witnessEnd, taps.has(witnessEnd.tick + 1) ? ev(witnessEnd.tick + 1, ORBIT_INPUT_TAP) : null);
+  const stdEnd = { ...witnessEnd, fuel: undefined, dry: undefined } as OrbitRev3State;
+  ok(orbitEndHoldMs(witnessEnd) === 0 && orbitEndHoldMs(stdEnd) === 0 && orbitEndHoldMs(s0) === 0, "a finished run, an older revision's run and a live run hold nothing");
+  if (dry) {
+    const frozen = JSON.stringify(dry);
+    const canvas = createCanvas(450, 862);
+    const ctx = canvas.getContext("2d") as unknown as CanvasRenderingContext2D;
+    const frameAt = (ms: number) => {
+      setOrbitSputterClock(() => ms);
+      orbitRev3ArtGame.draw(ctx, dry!, { width: 450, height: 862 });
+      return Buffer.from(canvas.toBuffer("image/png")).toString("base64");
+    };
+    // The other presentation-clock effects (catch glow, success layer) held still too, so only the sputter can move.
+    const realNow = performance.now.bind(performance);
+    Object.defineProperty(performance, "now", { value: () => 50_000, configurable: true, writable: true });
+    const frames = [0, 150, 300, 450, ORBIT_SPUTTER_MS + 100, ORBIT_SPUTTER_MS + 900].map(frameAt);
+    Object.defineProperty(performance, "now", { value: realNow, configurable: true, writable: true });
+    setOrbitSputterClock(null);
+    ok(new Set(frames.slice(0, 5)).size === 5, "the sputter moves through its 0.6 s on the same ended state (smoke, the rocket dropping away, the meter flashing)");
+    ok(frames[4] === frames[5], "after the sputter the frame holds still (the run's last frame)");
+    ok(JSON.stringify(dry) === frozen, "drawing the sputter never writes to the state");
+  }
 }
 
 console.log(failed ? `\nFAIL orbit-fuel-check: ${failed} failed, ${passed} passed` : `\nPASS orbit-fuel-check: ${passed} checks`);

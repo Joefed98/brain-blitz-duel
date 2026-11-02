@@ -2,7 +2,7 @@
  * Orbit's fuel meter (orbitRev 14, 1 Nov 2026) review frames: the game's own renderer (orbit.renderer.ts, through the
  * art sim so the camera observes every tick) drawing states from the first fuel-bank course (src/lib/duel/orbitFuelBank.server.ts):
  * mid-flight on the witness run (the meter draining), and a release into empty space just after the tank runs dry
- * ("OUT OF FUEL"), in the play screen's geometry: a 60 px header stand-in and the arena box under it, the 450 × 862
+ * ("OUT OF FUEL", after the 0.6 s sputter; and, at 414 × 896, `sputter`: 0.3 s into it), in the play screen's geometry: a 60 px header stand-in and the arena box under it, the 450 × 862
  * drawn world at the largest uniform scale (414 × 896, the iPhone 11 home-screen box: 772 px tall), at 2× device
  * pixels; and the computer layout at 1366 × 768 (`tall` mode: a 56 px header, the world in the ≤ 640 px column, full
  * height to 16 px above the bottom). A design tool, not a check.
@@ -15,7 +15,7 @@ import type { ArcadeInputEvent } from "../../src/lib/arcade/engine";
 import { ORBIT_INPUT_TAP } from "../../src/lib/arcade/orbit";
 import { decodeOrbitExtras, decodeOrbitHoles, decodeRev3Planets, initFuelFrom, ORBIT_FUEL_MAX, ORBIT_REV3_WORLD_W, type OrbitRev3State } from "../../src/lib/arcade/orbitRev3";
 import { orbitCameraResetCache } from "../../src/lib/arcade/orbitCamera";
-import { orbitRev3ArtGame, ORBIT_XP_DRAW_H } from "../../src/lib/arcade/orbit.renderer";
+import { orbitRev3ArtGame, ORBIT_XP_DRAW_H, setOrbitSputterClock } from "../../src/lib/arcade/orbit.renderer";
 import { ORBIT_FUEL_BANK } from "../../src/lib/duel/orbitFuelBank.server";
 
 GlobalFonts.registerFromPath("public/fonts/jetbrains-mono-600-700-latin.woff2", "JetBrains Mono");
@@ -38,7 +38,8 @@ function playTo(taps: readonly number[], until: (s: OrbitRev3State) => boolean):
   return s;
 }
 
-function shoot(state: OrbitRev3State, name: string, view: { w: number; h: number; header: number; col: number; label: string }): void {
+/** `sputter`: the ms into an out-of-fuel sputter the frame shows (the renderer's sputter clock, pinned). */
+function shoot(state: OrbitRev3State, name: string, view: { w: number; h: number; header: number; col: number; label: string }, sputter = 1000): void {
   const canvas = createCanvas(view.w * DPR, view.h * DPR);
   const ctx = canvas.getContext("2d") as unknown as CanvasRenderingContext2D;
   ctx.scale(DPR, DPR);
@@ -58,7 +59,12 @@ function shoot(state: OrbitRev3State, name: string, view: { w: number; h: number
   ctx.save();
   ctx.translate((view.w - aw) / 2, view.header);
   ctx.scale(scale, scale);
+  // Twice on a pinned clock: the first draw is where the canvas first sees the run's end, the second `sputter` ms on.
+  setOrbitSputterClock(() => 0);
   orbitRev3ArtGame.draw(ctx, state, { width: W, height: H });
+  setOrbitSputterClock(() => sputter);
+  orbitRev3ArtGame.draw(ctx, state, { width: W, height: H });
+  setOrbitSputterClock(null);
   ctx.restore();
   const file = `${OUT}/orbit-fuel-${name}-${view.label}.png`;
   writeFileSync(file, canvas.toBuffer("image/png"));
@@ -69,7 +75,15 @@ const PHONE = { w: 414, h: 896, header: 108, col: 414, label: "414x896" };
 const DESKTOP = { w: 1366, h: 768, header: 56, col: 640, label: "1366x768" };
 // Mid-flight: the witness's tenth hop, some way through its flight (the meter part drained).
 const tenth = e.taps[9]!;
-const flight = playTo(e.taps, (s) => s.tick >= tenth + 34);
+// The first witness hop from the tenth on whose flight lasts 40+ ticks, two thirds of the way through it.
+let flight = playTo(e.taps, (s) => s.tick >= tenth + 34);
+for (const tap of e.taps.slice(9)) {
+  const landed = playTo(e.taps, (s) => s.tick > tap && s.flying === 0);
+  const ticks = landed.tick - tap;
+  if (landed.ended || ticks < 40) continue;
+  flight = playTo(e.taps, (s) => s.tick >= tap + Math.trunc((ticks * 2) / 3));
+  break;
+}
 // Empty: from the same orbit, a release that flies into empty space, a few ticks after the tank runs dry.
 let dryTap = -1;
 for (let d = 0; d < 300 && dryTap < 0; d++) {
@@ -84,3 +98,5 @@ for (const view of [PHONE, DESKTOP]) {
   shoot(low, "low", view);
   shoot(empty, "empty", view);
 }
+// Mid-sputter: 300 ms after the tank ran dry (smoke, the rocket tumbling away, the meter flashing red).
+shoot(empty, "sputter", PHONE, 300);
