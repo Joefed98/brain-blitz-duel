@@ -79,6 +79,9 @@ const STANDARD_ROSTER: readonly { type: string; field: string; rev: number; batc
   { type: "pool", field: "poolRev", rev: 2, batch: "Sports" },
   // Curling deals curlRev 2 since 31 Oct 2026 (the start along the hog line, side brushing; the same parts).
   { type: "curling", field: "curlRev", rev: 2, batch: "Sports" },
+  // Blockfall (Retro) and Alley Roll (Sports), 1 Nov 2026: born on the standard (rev 1).
+  { type: "blockfall", field: "blockfallRev", rev: 1, batch: "Retro" },
+  { type: "alleyroll", field: "alleyRollRev", rev: 1, batch: "Sports" },
 ];
 
 const only = process.argv.slice(2).filter((a) => !a.startsWith("--"));

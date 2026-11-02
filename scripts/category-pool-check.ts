@@ -65,7 +65,7 @@ expect("pokersquares", "arcade", true);
 for (const type of ["fences", "fillomino", "bridges"] as const) expect(type, "logic", false);
 expect("kakuro", "number", false);
 const POOL: Record<string, number> = { word: 9, number: 9, speed: 6, attention: 6, pattern: 10, logic: 15, arcade: ACTIVE_ARCADE_GAMES.length };
-for (const type of ["minesweeper", "mahjong", "homerun", "freekick", "racing", "freecell", "tripeaks", "fivehands", "minigolf", "pool", "curling"] as const) expect(type, "arcade", false);
+for (const type of ["minesweeper", "mahjong", "homerun", "freekick", "racing", "freecell", "tripeaks", "fivehands", "minigolf", "pool", "curling", "blockfall", "alleyroll"] as const) expect(type, "arcade", false);
 for (const [category, want] of Object.entries(POOL)) {
   const got = typesInCategory(category as never).length;
   if (got !== want) fail(`${category}: ${got} active games, want ${want}`);
@@ -73,9 +73,10 @@ for (const [category, want] of Object.entries(POOL)) {
 if (ACTIVE_ARCADE_GAMES.length < 21) fail(`${ACTIVE_ARCADE_GAMES.length} active arcade worlds, at least the 21 dealt before the new groups`);
 const WANT_ACTIVE = Object.values(POOL).reduce((a, n) => a + n, 0);
 if (ACTIVE_PUZZLE_TYPES.length !== WANT_ACTIVE) fail(`${ACTIVE_PUZZLE_TYPES.length} active games, want ${WANT_ACTIVE}`);
-// After Full House's retirement and the four new grid puzzles (1 Nov 2026): 87 active games, 32 of them arcade.
-if (ACTIVE_ARCADE_GAMES.length !== 32) fail(`${ACTIVE_ARCADE_GAMES.length} active arcade games, want 32 (Full House practice only since 1 Nov 2026)`);
-if (ACTIVE_PUZZLE_TYPES.length !== 87) fail(`${ACTIVE_PUZZLE_TYPES.length} active games, want 87`);
+// After Full House's retirement and the four new grid puzzles (1 Nov 2026): 87 active games, 32 of them arcade;
+// with Blockfall and Alley Roll (1 Nov 2026) 89, 34 of them arcade.
+if (ACTIVE_ARCADE_GAMES.length !== 34) fail(`${ACTIVE_ARCADE_GAMES.length} active arcade games, want 34 (Full House practice only since 1 Nov 2026; Blockfall and Alley Roll added)`);
+if (ACTIVE_PUZZLE_TYPES.length !== 89) fail(`${ACTIVE_PUZZLE_TYPES.length} active games, want 89`);
 
 // The deleted games and Memory are gone: no registry entry, no category, no draw.
 for (const type of REMOVED_PUZZLE_TYPES)

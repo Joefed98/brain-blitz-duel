@@ -112,6 +112,9 @@ const WORLD_MUSIC: Partial<Record<PuzzleType, SoundId>> = {
   tripeaks: "music_matchup",
   pokersquares: "music_matchup",
   fivehands: "music_matchup",
+  // Blockfall and Alley Roll (1 Nov 2026): their own slots, on borrowed tracks (manifest.ts).
+  blockfall: "music_blockfall",
+  alleyroll: "music_alleyroll",
   // The Sports group (30 Oct 2026) has no tracks of its own yet: it borrows existing real-world beds.
   homerun: "music_skyline",
   freekick: "music_cross",

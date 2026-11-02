@@ -104,6 +104,8 @@ const RAISED: PuzzleType[] = [
   "freecell", "tripeaks", "pokersquares",
   // Five Hands (31 Oct 2026, docs/arcade-standard/fivehands.md): born on the standard.
   "fivehands",
+  // Blockfall and Alley Roll (1 Nov 2026, docs/arcade-standard/blockfall.md, alleyroll.md): born on the standard.
+  "blockfall", "alleyroll",
   // The new grid puzzles (1 Nov 2026, docs/scoring-standard.md "New grid puzzles"): born on the puzzle scoring standard.
   "fences", "fillomino", "bridges", "kakuro",
 ];

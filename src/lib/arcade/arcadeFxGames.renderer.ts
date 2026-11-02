@@ -19,6 +19,8 @@ import { FREECELL_FX } from "./cards/freecell.renderer";
 import { TRIPEAKS_FX } from "./cards/tripeaks.renderer";
 import { POKERSQUARES_FX } from "./cards/pokerSquares.renderer";
 import { FIVEHANDS_FX } from "./cards/fiveHands.renderer";
+import { BLOCKFALL_FX } from "./blockfall.renderer";
+import { ALLEYROLL_FX } from "./alleyroll.renderer";
 import { px } from "./engine";
 
 import { HOVER_DISC_X, HOVER_EXPAND_H, HOVER_TALL_H, HOVER_WORLD_H, HOVER_WORLD_W, hoverWorldH, type HoverState } from "./hover";
@@ -289,6 +291,9 @@ export const ARCADE_GAME_WORLDS = {
   minigolf: "realworld",
   pool: "realworld",
   curling: "realworld",
+  // Blockfall (Retro) and Alley Roll (Sports: a warm arcade alley), 1 Nov 2026.
+  blockfall: "retro",
+  alleyroll: "fairground",
 } as const satisfies Record<string, ArcadeWorld>;
 
 export type ArcadeFxGame = keyof typeof ARCADE_GAME_WORLDS;
@@ -1790,6 +1795,8 @@ export const ARCADE_FX_SPECS = {
   minigolf: MINIGOLF_FX,
   pool: POOL_FX,
   curling: CURLING_FX,
+  blockfall: BLOCKFALL_FX,
+  alleyroll: ALLEYROLL_FX,
 } satisfies Record<ArcadeFxGame, ArcadeFxSpec<never>>;
 
 /* ============================ Engine word games ============================ */

@@ -85,6 +85,11 @@ import { tpCheckpoint, tripeaksGameFor, TP_REV } from "../../src/lib/arcade/card
 import { TP_DEALS } from "../../src/lib/arcade/cards/tripeaksDeals.data";
 import { psCheckpoint, pokerSquaresGameFor, PS_REV } from "../../src/lib/arcade/cards/pokerSquares";
 import { fhCheckpoint, fiveHandsGameFor, FH_REV } from "../../src/lib/arcade/cards/fiveHands";
+import { bfCheckpoint, blockfallGameFor, BLOCKFALL_REV } from "../../src/lib/arcade/blockfall";
+import { encodeBlockfallRun, replayBlockfallRun } from "../../src/lib/duel/blockfall";
+import { blockfallDealSeed } from "../../src/lib/duel/blockfallDeal.server";
+import { alleyRollGameFor, arCheckpoint, ALLEYROLL_REV } from "../../src/lib/arcade/alleyroll";
+import { encodeAlleyRollRun, replayAlleyRollRun } from "../../src/lib/duel/alleyroll";
 import { encodeFiveHandsRun, encodeFreecellRun, encodePokerSquaresRun, encodeTripeaksRun, replayFiveHandsRun, replayFreecellRun, replayPokerSquaresRun, replayTripeaksRun } from "../../src/lib/duel/cards";
 import { minigolfCheckpoint, minigolfGameFor, MINIGOLF_REV, MINIGOLF_REV_CLASSIC } from "../../src/lib/arcade/minigolf";
 import { encodeMinigolfRun, replayMinigolfRun } from "../../src/lib/duel/minigolf";
@@ -293,6 +298,10 @@ export const GAMES: GameSpec[] = [
   simple("pokersquares", PS_REV, PS_REV, pokerSquaresGameFor, psCheckpoint, encodePokerSquaresRun, replayPokerSquaresRun),
   // Five Hands (31 Oct 2026): born on the arcade standard; any seed (the sim deals the deck and proves its witness).
   simple("fivehands", FH_REV, FH_REV, fiveHandsGameFor, fhCheckpoint, encodeFiveHandsRun, replayFiveHandsRun),
+  // Blockfall (Retro, 1 Nov 2026): born on the arcade standard; rooms deal a seed from its proved deal.
+  { ...simple("blockfall", BLOCKFALL_REV, BLOCKFALL_REV, blockfallGameFor, bfCheckpoint, encodeBlockfallRun, replayBlockfallRun), seedFor: (n) => blockfallDealSeed(roomSeed(n)) },
+  // Alley Roll (Sports, 1 Nov 2026): born on the arcade standard; one lane for every seed (rooms deal any seed).
+  simple("alleyroll", ALLEYROLL_REV, ALLEYROLL_REV, alleyRollGameFor, arCheckpoint, encodeAlleyRollRun, replayAlleyRollRun),
   // The Sports group (30 Oct 2026): Minigolf deals a bank course (seed and pars); golfRev 2 (crazy golf, 31 Oct 2026)
   // from its own bank, golfRev 1 (`seedForRev`) from the first.
   {

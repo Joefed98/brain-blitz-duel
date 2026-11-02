@@ -1,4 +1,4 @@
 {
-  "note": "pickRoundOrder deals for older rooms (6 stored category lists x 200 seeds), recorded on main before room settings; re-recorded 1 Nov 2026 when Fences, Fillomino, Bridges (Logic) and Kakuro (Number) joined the pools: every round's category is unchanged (categoryOrderFor digest 79e1fac55076 on main and after), only the game drawn within a pool. No stored room or round changes (rounds are stored when dealt).",
-  "digest": "dddb228289c8b05ddd26a4400f95872ae2b4caba7d5e0efab2ce84261afb4b90"
+  "note": "pickRoundOrder deals for older rooms (6 stored category lists x 200 seeds), recorded on main before room settings; re-recorded 1 Nov 2026 when Fences, Fillomino, Bridges (Logic) and Kakuro (Number) joined the pools, and again when Blockfall and Alley Roll joined the arcade pool: only the game drawn within a pool changes. No stored room or round changes (rounds are stored when dealt).",
+  "digest": "cf7b554c16eeebb335d017834fdae6b56bb35f2d5a99ce7ec2a9a901fa5f28a9"
 }

@@ -53,6 +53,8 @@ import { fiveHandsPuzzle } from "@/puzzles/fiveHands";
 import { minigolfPuzzle } from "@/puzzles/minigolf";
 import { poolPuzzle } from "@/puzzles/pool";
 import { curlingPuzzle } from "@/puzzles/curling";
+import { blockfallPuzzle } from "@/puzzles/blockfall";
+import { alleyRollPuzzle } from "@/puzzles/alleyroll";
 import { removedGameDefinition } from "@/puzzles/removedGame";
 import { PINBALL_IN_ROOMS } from "@/lib/arcade/pinball";
 import { rallyPuzzle } from "@/puzzles/rally";
@@ -225,6 +227,9 @@ const BASE_REGISTRY: Record<PuzzleType, Omit<PuzzleDefinition, "instructions">> 
   minigolf: minigolfPuzzle,
   pool: poolPuzzle,
   curling: curlingPuzzle,
+  // Blockfall (Retro) and Alley Roll (Sports), 1 Nov 2026: born on the arcade standard (docs/arcade-standard/blockfall.md, alleyroll.md).
+  blockfall: blockfallPuzzle,
+  alleyroll: alleyRollPuzzle,
   rally: rallyPuzzle,
   steady: steadyPuzzle,
   slice: slicePuzzle,

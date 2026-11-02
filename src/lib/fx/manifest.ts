@@ -280,6 +280,12 @@ const ENTRIES = {
   "orbit.all-planets": { channel: "effects", frequency: 0, ms: 486, url: "/sounds/replay.moment.mp3", volume: 0.84 },
   "orbit.black-hole": { channel: "effects", frequency: 0, ms: 486, url: "/sounds/replay.moment.mp3", volume: 0.84 },
   "homerun.home-run": { channel: "effects", frequency: 0, ms: 486, url: "/sounds/replay.moment.mp3", volume: 0.84 },
+  "blockfall.line-clear": { channel: "effects", frequency: 0, ms: 486, url: "/sounds/replay.moment.mp3", volume: 0.84 },
+  "blockfall.three-or-four": { channel: "effects", frequency: 0, ms: 486, url: "/sounds/replay.moment.mp3", volume: 0.84 },
+  "blockfall.full-lines": { channel: "effects", frequency: 0, ms: 486, url: "/sounds/replay.moment.mp3", volume: 0.84 },
+  "alleyroll.ring-points": { channel: "effects", frequency: 0, ms: 486, url: "/sounds/replay.moment.mp3", volume: 0.84 },
+  "alleyroll.pocket-hit": { channel: "effects", frequency: 0, ms: 486, url: "/sounds/replay.moment.mp3", volume: 0.84 },
+  "alleyroll.full-points": { channel: "effects", frequency: 0, ms: 486, url: "/sounds/replay.moment.mp3", volume: 0.84 },
   "homerun.sign-hit": { channel: "effects", frequency: 0, ms: 486, url: "/sounds/replay.moment.mp3", volume: 0.84 },
   "freekick.goal-scored": { channel: "effects", frequency: 0, ms: 486, url: "/sounds/replay.moment.mp3", volume: 0.84 },
   "freekick.target-hit": { channel: "effects", frequency: 0, ms: 486, url: "/sounds/replay.moment.mp3", volume: 0.84 },
@@ -1051,6 +1057,25 @@ const ENTRIES = {
   "music_pokersquares": { channel: "music", frequency: 0, ms: 0, url: "/sounds/music_pokersquares.mp3" },
   // Five Hands shares Full House's bed (sound batch 6).
   "music_fivehands": { channel: "music", frequency: 0, ms: 0, url: "/sounds/music_pokersquares.mp3" },
+  // Blockfall and Alley Roll (1 Nov 2026): library sounds only until their own recordings (docs/sound-cues/arcade.md).
+  "blockfall.turn": { channel: "effects", frequency: 0, ms: 50, url: null, gapMs: 40 },
+  "blockfall.hold": { channel: "effects", frequency: 0, ms: 90, url: null },
+  "blockfall.lock": { channel: "effects", frequency: 0, ms: 120, url: null, gapMs: 60 },
+  "blockfall.clear": { channel: "effects", frequency: 0, ms: 120, url: null },
+  "blockfall.bigClear": { channel: "effects", frequency: 0, ms: 100, url: null },
+  "blockfall.speedUp": { channel: "effects", frequency: 0, ms: 90, url: null },
+  "blockfall.topOut": { channel: "effects", frequency: 0, ms: 260, url: null },
+  "alleyroll.roll": { channel: "effects", frequency: 0, ms: 90, url: null },
+  "alleyroll.rolling": { channel: "effects", frequency: 0, ms: 1375, url: "/sounds/minigolf_roll_loop.mp3", loop: true },
+  "alleyroll.rail": { channel: "effects", frequency: 0, ms: 80, url: null, gapMs: 80 },
+  "alleyroll.ramp": { channel: "effects", frequency: 0, ms: 90, url: null },
+  "alleyroll.ring": { channel: "effects", frequency: 0, ms: 200, url: null },
+  "alleyroll.fifty": { channel: "effects", frequency: 0, ms: 400, url: null },
+  "alleyroll.pocket": { channel: "effects", frequency: 0, ms: 300, url: null },
+  "alleyroll.gutter": { channel: "effects", frequency: 0, ms: 160, url: null },
+  // Their beds borrow existing tracks: Fission's Retro bed and Swish's fairground.
+  "music_blockfall": { channel: "music", frequency: 0, ms: 0, url: "/__l5e/assets-v1/f635d436-cf68-4844-bbd6-583e3c1bb54f/music_burst.mp3" },
+  "music_alleyroll": { channel: "music", frequency: 0, ms: 0, url: "/__l5e/assets-v1/61e51614-582c-4e22-89c1-926f0a553a35/music_bintoss.mp3" },
 } satisfies Record<string, SoundEntry>;
 export type SoundId = keyof typeof ENTRIES;
 export const SOUND_MANIFEST: Record<SoundId, SoundEntry> = ENTRIES;

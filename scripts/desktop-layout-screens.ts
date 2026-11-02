@@ -31,4 +31,7 @@ export const DESKTOP_LAYOUT_SCREENS: ThemeScreen[] = [
   roomRound("cross", true),
   roomRound("orbit", true),
   roomRound("tilt", true),
+  // Blockfall and Alley Roll (1 Nov 2026): tall, upright at full height with their scenery to the sides.
+  roomRound("blockfall", true),
+  roomRound("alleyroll", true),
 ];

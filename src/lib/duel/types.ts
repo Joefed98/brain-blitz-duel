@@ -97,6 +97,8 @@ export type PuzzleType =
   | "minigolf"
   | "pool"
   | "curling"
+  | "blockfall"
+  | "alleyroll"
   | "fences"
   | "fillomino"
   | "bridges"
@@ -427,7 +429,9 @@ export type PuzzleData =
   | FiveHandsPuzzleData
   | MinigolfPuzzleData
   | PoolPuzzleData
-  | CurlingPuzzleData;
+  | CurlingPuzzleData
+  | BlockfallPuzzleData
+  | AlleyRollPuzzleData;
 
 /** Every timed screen of a round, driven by a shared timestamp. */
 export type DuelPhase = "starting" | "round_title" | "intro" | "puzzle" | "reveal" | "result" | "standings" | "winner_reveal";
@@ -2025,6 +2029,26 @@ export const TRIPEAKS_TIME_MS = 63_000;
 export const POKERSQUARES_TIME_MS = 63_000;
 /** Five Hands: a 60-second run. */
 export const FIVEHANDS_TIME_MS = 63_000;
+/** Blockfall: a 60-second run (it ends early on a top-out), plus three of slack. */
+export const BLOCKFALL_TIME_MS = 63_000;
+/** Alley Roll: nine balls or 60 seconds, plus three of slack. */
+export const ALLEYROLL_TIME_MS = 63_000;
+
+export interface BlockfallPuzzleData {
+  type: "blockfall";
+  /** A proved seed (blockfallDeal.server.ts): the piece order (shuffled bags of seven) comes from it, identical for everyone. */
+  seed: number;
+  /** Rules revision (1 = the first rules, on the arcade scoring standard). */
+  blockfallRev?: number;
+}
+
+export interface AlleyRollPuzzleData {
+  type: "alleyroll";
+  /** The run's seed (the lane is the same for every seed; stored like every arcade seed). */
+  seed: number;
+  /** Rules revision (1 = the first rules, on the arcade scoring standard). */
+  alleyRollRev?: number;
+}
 
 export interface FreecellPuzzleData {
   type: "freecell";

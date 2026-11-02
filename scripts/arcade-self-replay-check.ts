@@ -158,6 +158,11 @@ import { fcCheckpoint, freecellGame, freecellGameFor } from "@/lib/arcade/cards/
 import { tpCheckpoint, tripeaksGame } from "@/lib/arcade/cards/tripeaks";
 import { psCheckpoint, pokerSquaresGame, pokerSquaresGameFor } from "@/lib/arcade/cards/pokerSquares";
 import { fhCheckpoint, fiveHandsGame } from "@/lib/arcade/cards/fiveHands";
+import { bfCheckpoint, blockfallGame } from "@/lib/arcade/blockfall";
+import { arCheckpoint, alleyRollGame } from "@/lib/arcade/alleyroll";
+import { encodeBlockfallRun, replayBlockfallRun } from "@/lib/duel/blockfall";
+import { encodeAlleyRollRun, replayAlleyRollRun } from "@/lib/duel/alleyroll";
+import { BLOCKFALL_DEAL } from "@/lib/duel/blockfallDeal.server";
 import { encodeFiveHandsRun, encodeFreecellRun, encodePokerSquaresRun, encodeTripeaksRun, replayFiveHandsRun, replayFreecellRun, replayPokerSquaresRun, replayTripeaksRun } from "@/lib/duel/cards";
 import { minigolfCheckpoint, minigolfGameFor } from "@/lib/arcade/minigolf";
 import { encodeMinigolfRun, replayMinigolfRun } from "@/lib/duel/minigolf";
@@ -868,6 +873,10 @@ const GAMES: Game[] = [
     encode: encodeMinigolfRun,
     replay: (seed: number, raw: string) => replayMinigolfRun(seed, raw, MINIGOLF_BANK_V2.find((e) => e.seed === seed)!.pars, 2),
   },
+  // Blockfall blockfallRev 1 (its proved deal's seeds) and Alley Roll alleyRollRev 1 (any seed), 1 Nov 2026, appended
+  // so every earlier entry keeps its index.
+  { key: "blockfall", game: blockfallGame, checkpoint: bfCheckpoint, mode: "events", rate: 120, encode: encodeBlockfallRun, replay: (seed: number, raw: string) => replayBlockfallRun(seed, raw, 1), seedFor: (n: number) => BLOCKFALL_DEAL[n % BLOCKFALL_DEAL.length]! },
+  { key: "alleyroll", game: alleyRollGame, checkpoint: arCheckpoint, mode: "events", rate: 40, encode: encodeAlleyRollRun, replay: (seed: number, raw: string) => replayAlleyRollRun(seed, raw, 1) },
 ];
 
 /** A random candidate event, often outside the declared range (a finger off the edge). */

@@ -135,6 +135,8 @@ import {
   TRIPEAKS_TIME_MS,
   POKERSQUARES_TIME_MS,
   FIVEHANDS_TIME_MS,
+  BLOCKFALL_TIME_MS,
+  ALLEYROLL_TIME_MS,
 } from "./types";
 
 import { TG_TIME_MS, tileGridResultLine } from "./tileGrid";
@@ -166,6 +168,8 @@ const DIRECT_LIMITS: Partial<Record<PuzzleType, number>> = {
   tripeaks: TRIPEAKS_TIME_MS,
   pokersquares: POKERSQUARES_TIME_MS,
   fivehands: FIVEHANDS_TIME_MS,
+  blockfall: BLOCKFALL_TIME_MS,
+  alleyroll: ALLEYROLL_TIME_MS,
   minigolf: MINIGOLF_TIME_MS,
   pool: POOL_TIME_MS,
   curling: CURLING_TIME_MS,
@@ -1148,6 +1152,23 @@ const fiveHandsSummary: SummaryBuilder = (result) => {
   };
 };
 
+const blockfallSummary: SummaryBuilder = (result) => {
+  const n = (key: string) => Number(result.extra?.[key] ?? 0);
+  const multi = n("doubles") + n("triples") + n("quads");
+  return {
+    summary: `${n("lines")} lines · ${multi} multi-line clear${multi === 1 ? "" : "s"}`,
+    detail: [result.extra?.["toppedOut"] ? "Topped out" : `Stack ${n("height")} high at the buzzer`],
+  };
+};
+
+const alleyRollSummary: SummaryBuilder = (result) => {
+  const n = (key: string) => Number(result.extra?.[key] ?? 0);
+  return {
+    summary: `${n("rings")} ring points · ${n("pockets")} pocket${n("pockets") === 1 ? "" : "s"}`,
+    detail: [`${n("balls")} of 9 balls · ${n("streak")} in a row`],
+  };
+};
+
 /** Sports (30 Oct 2026): what each part of the arcade standard paid, as the grader stored it. */
 const partsLine = (result: RoundResultRow, keys: [string, string][]): string =>
   keys.map(([key, label]) => `${label} ${Number(result.extra?.[key] ?? 0)}`).join(" · ");
@@ -1782,6 +1803,8 @@ export const ROUND_SUMMARIES: Record<PuzzleType, SummaryBuilder> = {
   tripeaks: tripeaksSummary,
   pokersquares: pokerSquaresSummary,
   fivehands: fiveHandsSummary,
+  blockfall: blockfallSummary,
+  alleyroll: alleyRollSummary,
   minigolf: minigolfSummary,
   pool: poolSummary,
   curling: curlingSummary,
@@ -1887,6 +1910,8 @@ export const CORRECT_ANSWERS: Record<PuzzleType, AnswerBuilder> = {
   tripeaks: () => null,
   pokersquares: () => null,
   fivehands: () => null,
+  blockfall: () => null,
+  alleyroll: () => null,
   minigolf: () => null,
   pool: () => null,
   curling: () => null,

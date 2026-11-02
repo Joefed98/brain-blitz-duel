@@ -1166,6 +1166,32 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
       ],
       score: liveStdHelp("fivehands", "Two parts, which total 200:"),
     },
+    blockfall: {
+      goal: "Clear as many lines as you can in 60 seconds.",
+      how: [
+        { action: "Drag sideways", detail: "to move the falling piece, tap to turn it, flick down to drop it." },
+        { action: "Fill a row", detail: "across the well to clear it. Two, three or four rows at once score extra." },
+        { action: "Or use the pads", detail: "under the well: HOLD keeps a piece for later (once a piece), TURN, DROP. The next three pieces show on the right." },
+        { action: "A ghost", detail: "shows where the piece will land.", helpOnly: true },
+        { action: "Speed rises", detail: "every 15 seconds.", helpOnly: true },
+        { action: "Stack to the top", detail: "and the run ends early, keeping its score.", helpOnly: true },
+        { action: "Keep it low:", detail: "a stack within the bottom four rows at the buzzer scores extra.", helpOnly: true },
+        { action: "Same pieces, same order,", detail: "for everyone.", helpOnly: true },
+      ],
+      score: liveStdHelp("blockfall", "Three parts, which total 200:"),
+    },
+    alleyroll: {
+      goal: "Roll nine balls up the lane into the rings.",
+      how: [
+        { action: "Slide the ball", detail: "along the bottom to choose where it starts." },
+        { action: "Swipe up", detail: "to roll: a faster swipe rolls further, the swipe's angle aims it." },
+        { action: "Rings", detail: "score 10 to 50 from the outside in; the two pockets in the top corners score 100." },
+        { action: "Hot streak:", detail: "a ball scoring 40 or more straight after another that did.", helpOnly: true },
+        { action: "Nine balls", detail: "or 60 seconds, whichever comes first.", helpOnly: true },
+        { action: "No wind, the same lane,", detail: "for everyone.", helpOnly: true },
+      ],
+      score: liveStdHelp("alleyroll", "Three parts, which total 200:"),
+    },
     rally: {
       goal: "Keep the rally going.",
       how: [

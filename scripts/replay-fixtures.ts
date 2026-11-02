@@ -68,6 +68,8 @@ const REV_KEY: Record<string, string> = {
   minigolf: "golfRev",
   pool: "poolRev",
   curling: "curlRev",
+  blockfall: "blockfallRev",
+  alleyroll: "alleyRollRev",
 };
 
 /** A fixed seed per game, so a rebuild deals the same rooms (the generator's own seed is overwritten where it is free). */

@@ -82,6 +82,8 @@ const SECRET_KEYS: Record<PuzzleType, string[]> = {
   minigolf: [],
   pool: [],
   curling: [],
+  blockfall: [],
+  alleyroll: [],
   rally: [],
   steady: [],
   slice: [],

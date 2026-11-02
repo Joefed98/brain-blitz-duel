@@ -29,6 +29,8 @@ export const DESKTOP_KEYS: Partial<Record<PuzzleType, readonly (readonly [string
   tripeaks: [["Click", "play a card"], ["Space / S", "turn the stock"]],
   pokersquares: [["Click", "place the card"]],
   fivehands: [["Click", "place your card in a row"]],
+  blockfall: [["← →", "move"], ["↑", "turn"], ["Space", "drop"], ["C", "hold"]],
+  alleyroll: [["← →", "line up"], ["↑ ↓", "aim"], ["Hold Space", "power, let go to roll"]],
   rally: [["← →", "paddle"]],
   racing: [["← → / A D", "steer"], ["↑ / W", "accelerate"], ["↓ / S", "brake"]],
   skyline: [["Space", "drop"]],
