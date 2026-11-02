@@ -22,7 +22,7 @@
 import { artHash, reducedMotion } from "./art.renderer";
 import { deviceLayer } from "./cache.renderer";
 import { arcadeFx, ARCADE_FX_DISPLAY_FONT } from "./arcadeFx.renderer";
-import { HOMERUN_FX } from "./sportsFx.renderer";
+import { HOMERUN_FX, HOMERUN_FX_V2 } from "./sportsFx.renderer";
 import type { ArenaSceneView } from "./arenaScene.renderer";
 import type { CanvasSize } from "./engine";
 import {
@@ -1282,7 +1282,8 @@ export function drawHomerunArt(ctx: CanvasRenderingContext2D, state: HomerunStat
 /** The success layer's spec for a view height (the world's own above; the same events, the edges round the view). */
 const FX_BY_VIEW = new Map<number, typeof HOMERUN_FX>();
 function homerunFxFor(viewH: number): typeof HOMERUN_FX {
-  if (viewH <= H) return HOMERUN_FX;
+  if (viewH <= H) return HOMERUN_FX_V2;
+  if (viewH === HOMERUN_FX.height) return HOMERUN_FX;
   let spec = FX_BY_VIEW.get(viewH);
   if (!spec) FX_BY_VIEW.set(viewH, (spec = { ...HOMERUN_FX, height: viewH }));
   return spec;
