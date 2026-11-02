@@ -43,6 +43,12 @@ when the run starts. Rooms deal Pinball since 14 Oct 2026; Junction is practice 
 | `cross.hop` | Jaywalk | The walker hops a lane or moves sideways (at most one per 90 ms) | `arc_honk` (0.6); own footstep file `cross.hop.mp3` | 50–150 | 380 ms |
 | `flip.crash` | Roofbound | The run ends in a crash | `arc_crash` | 0–1 | 200 ms |
 | `flip.flip` | Roofbound | Gravity flips | `arc_gravity_flip` (0.7) | 20–60 | 330 ms |
+| `ricochet.leap` | Ricochet | The ninja leaps off a wall (ricoRev 2) | `arc_gravity_flip` (0.5) | 80–140 | 330 ms |
+| `ricochet.doubleJump` | Ricochet | The double jump in the air (ricoRev 2) | `arc_gravity_flip` (0.6, ×1.25) | 10–60 | 330 ms |
+| `ricochet.hit` | Ricochet | A katana or shuriken knocks the ninja down (ricoRev 2) | `arc_crash` | 0–20 | 200 ms |
+| `ricochet.coin` | Ricochet | A coin taken (ricoRev 2) | `arc_pickup` (0.8) | 5–60 | 100 ms |
+| `ricochet.lantern` | Ricochet | A gold lantern taken (ricoRev 2) | `combo` (0.85) | 0–10 | 120 ms |
+| `ricochet.scroll` | Ricochet | A scroll taken (ricoRev 2) | `correct` (0.9) | 0–4 | 120 ms |
 | `hover.start` | Hover | The run starts | `arc_retro_coin` | 1 | 120 ms |
 | `hover.crash` | Hover | The craft crashes | `arc_retro_explode` | 0–1 | 260 ms |
 | `hover.gate` | Hover | A barrier is passed | `arc_retro_note` | 20–60 | 90 ms |
@@ -131,6 +137,18 @@ when the run starts. Rooms deal Pinball since 14 Oct 2026; Junction is practice 
 | `freekick.goal` | Top Bins | A goal (its file is the net; with it, `freekick.net` is not played) | `arc_fair_sting` | 0–10 | 480 ms |
 | `freekick.target` | Top Bins | A target hit | `arc_fair_bell` | 0–4 | 480 ms |
 | `freekick.net` | Top Bins | The ball hits the net | `arc_bounce` | 0–10 | 200 ms |
+| `bastion.cannon` | Bastion | The cannon fires a shell | `arc_blaster` (0.85, rate 0.8) | 20–60 | 420 ms |
+| `bastion.dry` | Bastion | Fire with no shell ready (reloading or cooling): a dry click | `tick` (0.5) | 0–10 | 120 ms |
+| `bastion.reload` | Bastion | A reload starts (the magazine empty, or a swipe down) | `arc_latch` (0.7) | 7–15 | 500 ms |
+| `bastion.fastReload` | Bastion | A tap in the green: a fast reload | `arc_retro_coin` (0.8) | 0–15 | 350 ms |
+| `bastion.jam` | Bastion | A tap outside the green: the gun jams | `arc_clank` (0.9) | 0–10 | 450 ms |
+| `bastion.loaded` | Bastion | The reload finishes (five shells) | `arc_latch` (0.5, rate 1.3) | 7–15 | 200 ms |
+| `bastion.hit` | Bastion | A shell hits a tank's hull or turret | `arc_retro_hit` (0.8) | 10–40 | 250 ms |
+| `bastion.weak` | Bastion | A shell hits a tank's weak spot | `arc_pickup` (0.8) | 0–36 | 300 ms |
+| `bastion.kill` | Bastion | A tank is destroyed | `arc_big_explode` (0.9) | 0–29 | 900 ms |
+| `bastion.miss` | Bastion | A shell lands on open ground | `arc_fair_thud` (0.5) | 0–40 | 300 ms |
+| `bastion.baseHit` | Bastion | A tank reaches the wall and hits the base (with the base-hit haptic) | `arc_crash` | 0–3 | 800 ms |
+| `bastion.wave` | Bastion | A wave rolls in | `arc_horn` (0.6) | 5 | 900 ms |
 | `racing.light` | Apex | A red start light comes on (racingRev 2; five a race) | `countdown_step` (0.55) | 5 | 155 ms |
 | `racing.go` | Apex | The race starts (racingRev 2: lights out; racingRev 1: the first throttle) | `arc_horn` | 1 | 300 ms |
 | `racing.lap` | Apex | A lap is completed | `arc_fair_bell` | 1–2 | 480 ms |

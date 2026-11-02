@@ -1,11 +1,13 @@
+import { NINJA_REV } from "@/lib/arcade/ricochetNinja";
+import { BASTION_REV_DEALT } from "@/lib/arcade/bastionTank";
 import { TEN_DROP_DEPTH_REV } from "@/lib/arcade/tenDrop";
 import { SLICE_REV_TARGET, SLICE_REV_STRICT, SLICE_REV_STANDARD } from "@/lib/arcade/slice";
 import { FLIP_REV_TARGET, FLIP_REV_STRICT, FLIP_REV_STD } from "@/lib/arcade/flip";
 import { CROSS_REV_STD } from "@/lib/arcade/cross";
 import { INK_REV_STD } from "@/lib/arcade/inkBridge";
-import { SNAKE_REV_TARGET, SNAKE_REV_STD } from "@/lib/arcade/snake";
+import { SNAKE_REV_TARGET, SNAKE_REV_12 } from "@/lib/arcade/snake";
 import { BUB_REV_STD } from "@/lib/arcade/bubble";
-import { MATCHUP_REV_STD } from "@/lib/arcade/matchup";
+import { MATCHUP_REV_SIX } from "@/lib/arcade/matchup";
 import { minesBoard, minesSolve, MINES_REV_STD } from "@/lib/arcade/minesweeper";
 import { mahjongBuildClears, MAHJONG_REV_DEALT } from "@/lib/arcade/mahjong";
 import { SNIP_REV_TARGET, SNIP_REV_EXPAND } from "@/lib/arcade/snip";
@@ -14,17 +16,17 @@ import { TILT_REV_STD } from "@/lib/arcade/tilt";
 import { TILT_BANK } from "./tiltBank.server";
 import { JUNC_REV_BAND } from "@/lib/arcade/junction";
 import { BINTOSS_REV_TARGET, BINTOSS_REV_STRICT, BINTOSS_REV_STD } from "@/lib/arcade/binToss";
-import { SWING_REV_TALL, SWING_REV_TARGET, SWING_REV_STRICT, SWING_REV_EXPAND, SWING_REV_ASSAULT, SWING_REV_REWORK } from "@/lib/arcade/swing";
+import { SWING_REV_TALL, SWING_REV_TARGET, SWING_REV_STRICT, SWING_REV_EXPAND, SWING_REV_ASSAULT, SWING_REV_REWORK, SWING_REV_DARK } from "@/lib/arcade/swing";
 import { BURST_REV_TARGET, BURST_REV_STRICT, BURST_REV_STD } from "@/lib/arcade/burst";
 import { BRK_REV_TARGET, BRK_REV_STRICT, BRK_REV_DEEP, BRK_REV_PHONE, BRK_REV_STD } from "@/lib/arcade/breaker";
 import { PIN_REV_TARGET, PIN_REV_STRICT, PIN_REV_EXPAND, PIN_REV_LONG, PIN_REV_STD } from "@/lib/arcade/pinball";
 import { WHACK_REV_DEPTH, WHACK_REV_NOTES } from "@/lib/arcade/whack";
 import { dealtNotesRev } from "./phoneNotes";
 import { WAV_REV_TARGET, WAV_REV_STRICT, WAV_REV_STD } from "@/lib/arcade/wavefront";
-import { ORBIT_REV_TARGET, ORBIT_REV_STRICT, ORBIT_REV_STD } from "@/lib/arcade/orbit";
+import { ORBIT_REV_TARGET, ORBIT_REV_STRICT, ORBIT_REV_STD, ORBIT_REV_FUEL } from "@/lib/arcade/orbit";
 import { RALLY_REV_TARGET, RALLY_REV_STRICT, RALLY_REV_STD } from "@/lib/arcade/rally";
 import { BEAT_REV_TARGET, BEAT_REV_STD } from "@/lib/arcade/beat";
-import { orbitXpCourseForSeed, orbitHolesForBankSeed, orbitRev3BankEntryForSeed, orbitRev3PlanetsForSeed, encodeRev3Planets } from "./orbitRev3Course.server";
+import { orbitFuelCourseForSeed, orbitXpCourseForSeed, orbitHolesForBankSeed, orbitRev3BankEntryForSeed, orbitRev3PlanetsForSeed, encodeRev3Planets } from "./orbitRev3Course.server";
 import { proveSwingSeed } from "./swingProof.server";
 import { SWING_V9_BANK } from "./swingBankV9.server";
 import { SWING_V13_BANK } from "./swingBankV13.server";
@@ -161,14 +163,16 @@ export function generateMatchup(): MatchupPuzzleData {
   // matchupRev 10 (27 Oct 2026, phone-test notes): matchupRev 9's taller board with goals, ice and treasure, over 90 s,
   // with swaps into and out of ice that make a line, and the ice laid once. matchupRev 11 (the arcade scoring standard,
   // docs/arcade-standard/matchup.md): four treasures that may swap with a gem that then makes a line, four goal
-  // levels, and the score as fixed parts to 200.
-  return { type: "matchup", seed: arcadeSeed(), matchupRev: MATCHUP_REV_STD };
+  // levels, and the score as fixed parts to 200. matchupRev 12 (Nov 2026): six goals shown at once and six treasures,
+  // the parts re-weighted (core 108, treasure 36, goals 36, ice 10, big lines 10).
+  return { type: "matchup", seed: arcadeSeed(), matchupRev: MATCHUP_REV_SIX };
 }
 
 export function generateSnake(): SnakePuzzleData {
   // snakeRev 10 (Joe's phone notes, 27 Oct 2026): longer gold stars, a third wormhole pair, a second vertical lane, 2 × 2 rocks.
   // snakeRev 11 (the arcade scoring standard, 29 Oct 2026): snakeRev 10's play, scored in straight-line parts to 200.
-  return { type: "snake", seed: arcadeSeed(), snakeRev: SNAKE_REV_STD };
+  // snakeRev 12 (1 Nov 2026): snakeRev 11 with gold stars counting 2 towards the core, full at 20.
+  return { type: "snake", seed: arcadeSeed(), snakeRev: SNAKE_REV_12 };
 }
 
 export function generateCross(): CrossPuzzleData {
@@ -179,8 +183,9 @@ export function generateDual(): DualPuzzleData {
   return { type: "dual", seed: arcadeSeed() };
 }
 
+/** Ricochet deals the ninja wall-climb (ricoRev 2, 1 Nov 2026); unstamped rounds keep the old shaft. */
 export function generateRicochet(): RicoPuzzleData {
-  return { type: "ricochet", seed: arcadeSeed() };
+  return { type: "ricochet", seed: arcadeSeed(), ricoRev: NINJA_REV };
 }
 
 export function generateBreaker(): BreakerPuzzleData {
@@ -271,7 +276,8 @@ export function generateWavefront(): WavefrontPuzzleData {
 }
 
 export function generateBastion(): BastionPuzzleData {
-  return { type: "bastion", seed: arcadeSeed() };
+  // bastionRev 2 (1 Nov 2026): the tank-defence shooter; any seed deals its five waves (the oracle proves 200 on each).
+  return { type: "bastion", seed: arcadeSeed(), bastionRev: BASTION_REV_DEALT };
 }
 
 export function generateRooftop(): RooftopPuzzleData {
@@ -305,8 +311,23 @@ export function generateBurst(): BurstPuzzleData {
   return { type: "burst", seed: arcadeSeed(), burstRev: BURST_REV_STD };
 }
 
+let orbitPreFuel = false;
+/**
+ * Checks written for orbitRev 13 (the arcade scoring standard) and earlier: deal the feature-bank course on orbitRev 13
+ * as rooms did before the fuel meter (returns the previous setting), so they keep proving what they were written for.
+ */
+export function pinOrbitPreFuel(on: boolean): boolean {
+  const prev = orbitPreFuel;
+  orbitPreFuel = on;
+  return prev;
+}
+
 export function generateOrbit(): OrbitPuzzleData {
   const seed = arcadeSeed();
+  // Rev 14 (the fuel meter, 1 Nov 2026, docs/arcade-standard/orbit.md): a course from the fuel bank (zigzag,
+  // proved on rev 14's rules: scripts/orbit-fuel-bank.ts), picked by the seed, with its holes and features.
+  const fuel = orbitPreFuel ? null : orbitFuelCourseForSeed(seed);
+  if (fuel) return { type: "orbit", seed, orbitRev: ORBIT_REV_FUEL, planets: fuel.planets, holes: fuel.holes, extras: fuel.extras };
   // Rev 12 (the expansion to 200, 26 Oct 2026): one of the bank courses with proved holes and features
   // (scripts/orbit-xp-bank.ts), picked by the seed, in the bigger view. Every room deals it while the bank has courses.
   const xp = orbitXpCourseForSeed(seed);
@@ -356,9 +377,21 @@ export function pinSwingPreRework(on: boolean): boolean {
   return prev;
 }
 
+let swingPreDark = false;
+/**
+ * Checks written for swingRev 15 (the swinging course): deal it as rooms did before the dark ledge runs (swingRev 16,
+ * 1 Nov 2026; returns the previous setting), so they keep proving what they were written for.
+ */
+export function pinSwingPreDark(on: boolean): boolean {
+  const prev = swingPreDark;
+  swingPreDark = on;
+  return prev;
+}
+
 export function generateSwing(): SwingPuzzleData {
   const roomSeed = arcadeSeed();
-  // swingRev 15 (the swinging course) and 14 (the assault course): any seed; the course is built and proved from it in the sim.
+  // swingRev 16 (the dark ledge runs, 90 s), 15 (the swinging course) and 14 (the assault course): any seed; the course is built and proved from it in the sim.
+  if (!swingPreAssault && !swingPreRework && !swingPreDark) return { type: "swing", seed: roomSeed, swingRev: SWING_REV_DARK };
   if (!swingPreAssault && !swingPreRework) return { type: "swing", seed: roomSeed, swingRev: SWING_REV_REWORK };
   if (!swingPreAssault) return { type: "swing", seed: roomSeed, swingRev: SWING_REV_ASSAULT };
   // swingRev 13 (the 200 expansion): from the bank courses re-proved with every feature (scripts/swing-bank.ts --expand).

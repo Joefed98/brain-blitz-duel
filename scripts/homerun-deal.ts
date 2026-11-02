@@ -1,12 +1,13 @@
 /**
  * Builds the Home Run deals: src/lib/duel/homerunDeal.server.ts (homerunRev 1, kept byte for byte) and, with --rev=2,
- * src/lib/duel/homerunDealV2.server.ts (homerunRev 2, what rooms deal since 31 Oct 2026): 300 seeds each, every one
+ * src/lib/duel/homerunDealV2.server.ts (homerunRev 2, dealt 31 Oct 2026, kept byte for byte) and, with --rev=3,
+ * src/lib/duel/homerunDealV3.server.ts (homerunRev 3, what rooms deal since 1 Nov 2026): 300 seeds each, every one
  * proved by the oracle (scripts/homerun-oracle.ts) to score exactly 200 on that revision through the server's own
  * encode + replay path. Seeds come from a fixed hash of 0, 1, 2, … (the skill-band tool's roomSeed); any seed the
  * oracle cannot take to 200 is dropped.
  *
- *   bun scripts/homerun-deal.ts [--rev=2]          # rebuild the file
- *   bun scripts/homerun-deal.ts [--rev=2] --check  # prove the file is what this script builds, without writing
+ *   bun scripts/homerun-deal.ts [--rev=2|3]          # rebuild the file
+ *   bun scripts/homerun-deal.ts [--rev=2|3] --check  # prove the file is what this script builds, without writing
  */
 import { readFileSync, writeFileSync } from "node:fs";
 import { homerunCheckpoint, homerunGameFor } from "../src/lib/arcade/homerun";
@@ -79,8 +80,24 @@ export function homerunDealSeedV2(roomSeed: number): number {
   return HOMERUN_DEAL_V2[(roomSeed >>> 0) % HOMERUN_DEAL_V2.length]!;
 }
 `;
-  const body = rev >= 2 ? v2 : v1;
-  const path = new URL(rev >= 2 ? "../src/lib/duel/homerunDealV2.server.ts" : "../src/lib/duel/homerunDeal.server.ts", import.meta.url);
+  const v3 = `/**
+ * Home Run's deal (homerunRev 3, 1 Nov 2026): ${HOMERUN_DEAL_SIZE} seeds, each proved by the oracle (scripts/homerun-oracle.ts:
+ * Power on every pitch, met on each kind's perfect tick) to score exactly 200 on homerunRev 3 through the server replay.
+ * Built by \`bun scripts/homerun-deal.ts --rev=3\` (${dropped} seeds dropped); homerun-check re-proves them. Rooms deal
+ * HOMERUN_DEAL_V3[room seed % length].
+ */
+export const HOMERUN_DEAL_V3: readonly number[] = [
+${seeds.map((s) => `  ${s},`).join("\n")}
+];
+
+/** The rev-3 proved seed a room deals for its own random seed. */
+export function homerunDealSeedV3(roomSeed: number): number {
+  return HOMERUN_DEAL_V3[(roomSeed >>> 0) % HOMERUN_DEAL_V3.length]!;
+}
+`;
+  const body = rev >= 3 ? v3 : rev >= 2 ? v2 : v1;
+  const file = rev >= 3 ? "homerunDealV3.server.ts" : rev >= 2 ? "homerunDealV2.server.ts" : "homerunDeal.server.ts";
+  const path = new URL(`../src/lib/duel/${file}`, import.meta.url);
   if (process.argv.includes("--check")) {
     const same = readFileSync(path, "utf8") === body;
     console.log(same ? `homerun deal (rev ${rev}): the file is what this script builds` : `homerun deal (rev ${rev}): the file differs`);

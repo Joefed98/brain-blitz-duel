@@ -5,6 +5,7 @@
  * Each moment plays its own slot (`<gameId>.<event>`, docs/sound-cues/arcade.md)
  * once that slot has a file, else the shared sound it always played, unchanged.
  */
+import { bastionWave, BT2_WAVE_START, type BastionTankState } from "@/lib/arcade/bastionTank";
 import { cueHasFile, ensureCueLoop, ensureSlotLoop, playCueSlot, playSlotOr, setCueLoopRate, stopCueLoop, stopSlotLoop } from "@/lib/sound";
 import { liveCue, momentFrame } from "@/lib/fx/momentCues";
 import { haptic, type HapticPattern } from "@/lib/haptics";
@@ -48,6 +49,7 @@ import { fcHomeCount, type FcState } from "@/lib/arcade/cards/freecell";
 import type { TpState } from "@/lib/arcade/cards/tripeaks";
 import { PS_LINES, psHand, psLineHand, psTotals, type PsState } from "@/lib/arcade/cards/pokerSquares";
 import { fhTotals, type FhState } from "@/lib/arcade/cards/fiveHands";
+import { MODE_CLING, MODE_FLIGHT, ninjaSurface, SURF_STONE, type NinjaState } from "@/lib/arcade/ricochetNinja";
 import type { PyState } from "@/lib/arcade/cards/pyramid";
 import type { GsState } from "@/lib/arcade/cards/golfSol";
 import { MG_BIG_AT, type MgState } from "@/lib/arcade/cards/muggins";
@@ -1144,6 +1146,46 @@ export function curlingSounds(): GameSounds<CurlingState> {
 /* ============================ The Sports group (30 Oct 2026) ============================ */
 
 /** Home Run Derby: the crowd, each pitch, the swing, the crack of the bat, home runs (the organ and a roar), signs, fouls, whiffs and the mitt. */
+/**
+ * Bastion (bastionRev 2): the cannon, a shell landing (a hull hit, a weak-spot hit, a tank destroyed, a miss), the
+ * reload (its start, a fast reload, a jam), a dry click, each wave rolling in and a base hit. Each slot falls back to
+ * the shared sound until its own recording is set (docs/sound-cues/arcade.md "Bastion"). Haptics: a base hit only
+ * (the buzzer's is the shared arcade one).
+ */
+export function bastionTankSounds(): GameSounds<BastionTankState> {
+  let prev: BastionTankState | null = null;
+  return {
+    frame(state, running) {
+      beginFrame("bastion", state);
+      void running;
+      if (prev && state.tick > prev.tick && state.rev === prev.rev) {
+        if (state.shots > prev.shots) sfx("bastion.cannon", "arc_blaster", 0.85, 0.8);
+        if (state.dry > prev.dry) sfx("bastion.dry", "tick", 0.5);
+        if (state.reloads > prev.reloads) sfx("bastion.reload", "arc_latch", 0.7);
+        if (state.fast > prev.fast) sfx("bastion.fastReload", "arc_retro_coin", 0.8);
+        if (state.jams > prev.jams) sfx("bastion.jam", "arc_clank", 0.9);
+        if (prev.reloadAt >= 0 && state.reloadAt < 0) sfx("bastion.loaded", "arc_latch", 0.5, 1.3);
+        const fresh = state.impacts.filter((m) => m.t > prev!.tick);
+        for (const m of fresh) {
+          if (m.r >= 3) sfx("bastion.kill", "arc_big_explode", 0.9);
+          else if (m.r === 2) sfx("bastion.weak", "arc_pickup", 0.8);
+          else if (m.r === 1) sfx("bastion.hit", "arc_retro_hit", 0.8);
+          else sfx("bastion.miss", "arc_fair_thud", 0.5);
+        }
+        if (state.breached > prev.breached) {
+          sfx("bastion.baseHit", "arc_crash", 1);
+          feel("impact");
+        }
+        if (bastionWave(state) !== bastionWave(prev) || (prev.tick < BT2_WAVE_START[0] && state.tick >= BT2_WAVE_START[0])) sfx("bastion.wave", "arc_horn", 0.6);
+      }
+      prev = state;
+    },
+    stop() {
+      prev = null;
+    },
+  };
+}
+
 export function homerunSounds(): GameSounds<HomerunState> {
   let prev: HomerunState | null = null;
   return {
@@ -1450,6 +1492,36 @@ export function fiveHandsSounds(): GameSounds<FhState> {
     stop() {
       prev = null;
     },
+  };
+}
+
+/**
+ * Ricochet (ricoRev 2, the ninja wall-climb): a leap, the double jump, a landing (on moss or ice, a slip), a coin,
+ * a lantern, a scroll and a hit (with the impact haptic). New moments without a file of their own stay silent.
+ */
+export function ninjaSounds(): GameSounds<NinjaState> {
+  let prev: NinjaState | null = null;
+  return {
+    frame(state, running) {
+      beginFrame("ricochet", state);
+      void running;
+      if (prev && state.tick > prev.tick) {
+        if (state.hits > prev.hits) { sfx("ricochet.hit", "arc_crash"); feel("impact"); }
+        else {
+          if (state.leaps > prev.leaps) sfx("ricochet.leap", "arc_gravity_flip", 0.5);
+          if (state.djs > prev.djs) sfx("ricochet.doubleJump", "arc_gravity_flip", 0.6, 1.25);
+          if (prev.mode === MODE_FLIGHT && state.mode === MODE_CLING) {
+            if (ninjaSurface(state.tower.patches, state.wall, state.y >> 8) !== SURF_STONE) effectCue("ricochet.slip");
+            else effectCue("ricochet.land");
+          }
+        }
+        if (state.scrolls > prev.scrolls) sfx("ricochet.scroll", "correct", 0.9);
+        else if (state.lanterns > prev.lanterns) sfx("ricochet.lantern", "combo", 0.85);
+        else if (state.coins > prev.coins) sfx("ricochet.coin", "arc_pickup", 0.8);
+      }
+      prev = state;
+    },
+    stop: () => {},
   };
 }
 

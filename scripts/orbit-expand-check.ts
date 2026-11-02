@@ -26,7 +26,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { gunzipSync } from "node:zlib";
 import { bandPoints, bandStrict } from "../src/lib/arcade/scoreBands";
-import { lapPhases, orbitCheckpoint, ORBIT_INPUT_CHECKPOINT, ORBIT_INPUT_TAP, ORBIT_REV_STRICT, ORBIT_REV_XP, ORBIT_REV_STD, ORBIT_TOTAL } from "../src/lib/arcade/orbit";
+import { lapPhases, orbitCheckpoint, ORBIT_INPUT_CHECKPOINT, ORBIT_INPUT_TAP, ORBIT_REV_STRICT, ORBIT_REV_XP, ORBIT_REV_STD, ORBIT_REV_FUEL, ORBIT_TOTAL } from "../src/lib/arcade/orbit";
 import {
   decodeOrbitExtras,
   decodeOrbitHoles,
@@ -67,7 +67,7 @@ import { ORBIT_HOLE_BANK } from "../src/lib/duel/orbitHoleBank.server";
 import { ORBIT_REV3_BANK } from "../src/lib/duel/orbitRev3Bank.server";
 import { ORBIT_XP_BANK } from "../src/lib/duel/orbitXpBank.server";
 import { orbitXpCourseForSeed } from "../src/lib/duel/orbitRev3Course.server";
-import { generateOrbit } from "../src/lib/duel/arcade.server";
+import { generateOrbit, pinOrbitPreFuel } from "../src/lib/duel/arcade.server";
 import { LIVE_BANDS } from "../src/lib/arcade/liveBands";
 import { roundMaxFor } from "../src/lib/duel/roundMax";
 import { roomSeed } from "./arcade-skill-bands/games";
@@ -322,6 +322,8 @@ const fly = (s: OrbitRev3State, ticks: number, until: (s: OrbitRev3State) => boo
 /* 6. Dealing and display. */
 {
   let dealt = 0, xp = 0;
+  // The fuel meter (orbitRev 14, 1 Nov 2026) moved rooms to its own bank (orbit-fuel-check); pinned, the deal before it.
+  const wasFuel = pinOrbitPreFuel(true);
   for (let k = 0; k < 200; k++) {
     const p = generateOrbit() as any;
     dealt++;
@@ -331,18 +333,21 @@ const fly = (s: OrbitRev3State, ticks: number, until: (s: OrbitRev3State) => boo
       if (start && start().xp === 1 && start().std === 1) xp++;
     }
   }
+  pinOrbitPreFuel(wasFuel);
   ok(xp === dealt, `generateOrbit deals orbitRev 13 (orbitRev 12's play) on a feature-bank course with its planets, holes and extras (${xp} / ${dealt})`);
 }
 ok(ORBIT_REV_XP === 12, "the expansion's stamp is orbitRev 12 (above every stamp used before, the parked 11 included)");
 ok(ORBIT_REV_STD === 13, "the arcade standard's stamp is orbitRev 13, the next after the expansion");
-ok((LIVE_BANDS as any).orbit.rev === ORBIT_REV_STD && (LIVE_BANDS as any).orbit.strictRev === ORBIT_REV_STRICT && (LIVE_BANDS as any).orbit.curve === ORBIT_V13_BAND_CURVE, "LIVE_BANDS lists orbitRev 13 (orbitRev 12's play on the arcade standard) with its curve and orbitRev 10 as its score-band revision");
+// The fuel meter (orbitRev 14, 1 Nov 2026): LIVE_BANDS lists it, on orbitRev 13's straight line (orbit-fuel-check covers its play).
+ok((LIVE_BANDS as any).orbit.rev === ORBIT_REV_FUEL && (LIVE_BANDS as any).orbit.strictRev === ORBIT_REV_STRICT && JSON.stringify((LIVE_BANDS as any).orbit.curve) === JSON.stringify(ORBIT_V13_BAND_CURVE), "LIVE_BANDS lists orbitRev 14 (the fuel meter, after orbitRev 13's play on the arcade standard) with orbitRev 13's straight line and orbitRev 10 as its score-band revision");
 ok(orbitWorldWFor(ORBIT_REV_XP) === 450 && orbitWorldHFor(ORBIT_REV_XP) === 782 && orbitWorldWFor(ORBIT_REV_STRICT) === 390 && orbitWorldHFor(ORBIT_REV_STRICT) === 650 && orbitWorldWFor(11) === 390 && orbitWorldWFor(ORBIT_REV_STD) === 450 && orbitWorldHFor(ORBIT_REV_STD) === 782, "the view is 450 × 782 on orbitRev 12 and 13 and unchanged before (11 was never dealt)");
 ok(roundMaxFor("orbit") === ORBIT_XP_MAX, "ROUND_MAX for orbit is 200");
 ok(ORBIT_TOTAL === 40, "the course keeps 40 planets and the sun");
 {
   const src = readFileSync("src/lib/duel/introDemo.functions.ts", "utf8");
-  // orbitRev 13 (the arcade standard, as flipRev 9): the demo waits for one recorded on orbitRev 13.
-  ok(/data\.type === "orbit" && demo\?\.puzzle\.type === "orbit" && demo\.puzzle\.orbitRev !== ORBIT_REV_STD\) return null/.test(src), "Orbit's intro demo stays stopped (the still shows) until one is recorded on orbitRev 13");
+  // orbitRev 13 (the arcade standard, as flipRev 9): the demo waited for one recorded on orbitRev 13; orbitRev 14 (the fuel
+  // meter) waits for one recorded on orbitRev 14.
+  ok(/data\.type === "orbit" && demo\?\.puzzle\.type === "orbit" && demo\.puzzle\.orbitRev !== ORBIT_REV_FUEL\) return null/.test(src), "Orbit's intro demo stays stopped (the still shows) until one is recorded on orbitRev 14");
 }
 void ORBIT_INPUT_CHECKPOINT;
 

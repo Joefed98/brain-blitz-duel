@@ -256,6 +256,8 @@ export const ARCADE_FX_TEXT_COLOURS: Record<string, { fill: string; outline: str
   tripeaks: { fill: "#F2C75C", outline: "#0A1736" },
   pokersquares: { fill: "#F2C75C", outline: "#0A1736" },
   fivehands: { fill: "#F2C75C", outline: "#0A1736" },
+  // Bastion (1 Nov 2026): warm dusk white over a dark battlefield.
+  bastion: { fill: "#FFE7B8", outline: "#140A12" },
   pyramid: { fill: "#F2C75C", outline: "#0A1736" },
   golfsol: { fill: "#F2C75C", outline: "#0A1736" },
   // Muggins: the baize's gold on deep green.
@@ -267,6 +269,8 @@ export const ARCADE_FX_TEXT_COLOURS: Record<string, { fill: string; outline: str
   // Blockfall: Retro cyan on the cabinet's navy. Alley Roll: the scoreboard's warm gold on dark wood.
   blockfall: { fill: "#7CF7FF", outline: "#04101C" },
   alleyroll: { fill: "#FFD27A", outline: "#1A0F08" },
+  // Ricochet (the ninja wall-climb): lantern gold on the night sky.
+  ricochet: { fill: "#FFD86B", outline: "#070A18" },
 };
 
 /**

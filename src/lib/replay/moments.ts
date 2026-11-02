@@ -135,6 +135,12 @@ export const MOMENT_TABLE: readonly MomentRow[] = [
   fx("alleyroll", 0, "pop", "ring-points", 10, "A ball in a ring"),
   fx("alleyroll", 1, "streak", "pocket-hit", 50, "A 100 pocket"),
   fx("alleyroll", 2, "final", "full-points", 80, "The core's ring points reached"),
+  // Ricochet (ricoRev 2, the ninja wall-climb, 1 Nov 2026)
+  fx("ricochet", 0, "pop", "coin-taken", 5, "Coin taken"),
+  fx("ricochet", 1, "combo", "lantern-taken", 30, "Gold lantern taken"),
+  fx("ricochet", 2, "perfect", "scroll-taken", 50, "Scroll taken"),
+  fx("ricochet", 3, "streak", "height", 25, "Another 50 m climbed"),
+  fx("ricochet", 4, "final", "full-height", 80, "The core's full height reached"),
   // Rally
   fx("rally", 0, "streak", "long-rally", 35, "Long rally (every 10 returns)"),
   fx("rally", 1, "pop", "gold", 25, "Gold ball returned"),
@@ -182,6 +188,10 @@ export const MOMENT_TABLE: readonly MomentRow[] = [
   fx("orbit", 1, "final", "all-planets", 95, "All 40 planets", "finish", "orbit3"),
   fx("orbit", 2, "clear", "black-hole", 60, "Through a black hole", "success", "orbit3"),
   // The Sports group (30 Oct 2026)
+  // Bastion bastionRev 2 (1 Nov 2026)
+  fx("bastion", 0, "pop", "tank-destroyed", 10, "Tank destroyed"),
+  fx("bastion", 1, "streak", "weak-spots", 35, "Weak-spot hits (every 5)"),
+  fx("bastion", 2, "combo", "fast-reload", 20, "Fast reload"),
   fx("homerun", 0, "perfect", "home-run", 40, "Home run"),
   fx("homerun", 1, "streak", "sign-hit", 60, "A sign beyond the fence struck"),
   fx("freekick", 0, "perfect", "goal-scored", 35, "Goal"),

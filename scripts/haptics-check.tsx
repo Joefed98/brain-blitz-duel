@@ -516,9 +516,10 @@ const CALL_SITES: Record<string, Record<string, number>> = {
 };
 /**
  * gameSounds' feel() calls: the arcade moments (success: goal, home run, pot x2, Blockfall's three or four rows at
- * once and Alley Roll's 100 pocket (1 Nov 2026); error: foul; impact: lives and crashes).
+ * once and Alley Roll's 100 pocket (1 Nov 2026); error: foul; impact: lives and crashes, Ricochet's hit and Bastion's
+ * base hit since 1 Nov 2026).
  */
-const FEEL = { success: 6, error: 1, impact: 17 };
+const FEEL = { success: 6, error: 1, impact: 19 };
 const found: Record<string, Record<string, number>> = {};
 for (const file of files) {
   const rel = file.slice(SRC.length + 1);

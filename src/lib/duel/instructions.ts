@@ -76,17 +76,17 @@ import { BUB_SPECIAL_BLOCK, BUB_TORPEDO_HITS, BUB_V3_JOKER_BLOCK, BUB_V8_CHESTS,
 import {
   MATCHUP_V3_PAR_RAW,
   MATCHUP_V9_FEATURE_MAX,
-  MATCHUP_V11_BIG_MAX,
-  MATCHUP_V11_BIG_PTS,
-  MATCHUP_V11_CORE_MAX,
-  MATCHUP_V11_GOAL_PTS,
-  MATCHUP_V11_GOALS,
-  MATCHUP_V11_GOALS_MAX,
-  MATCHUP_V11_ICE_MAX,
-  MATCHUP_V11_ICE_PTS,
-  MATCHUP_V11_TREASURE_MAX,
-  MATCHUP_V11_TREASURE_PTS,
-  MATCHUP_V11_TREASURES,
+  MATCHUP_V12_BIG_MAX,
+  MATCHUP_V12_BIG_PTS,
+  MATCHUP_V12_CORE_MAX,
+  MATCHUP_V12_GOAL_PTS,
+  MATCHUP_V12_GOALS,
+  MATCHUP_V12_GOALS_MAX,
+  MATCHUP_V12_ICE_MAX,
+  MATCHUP_V12_ICE_PTS,
+  MATCHUP_V12_TREASURE_MAX,
+  MATCHUP_V12_TREASURE_PTS,
+  MATCHUP_V12_TREASURES,
 } from "@/lib/arcade/matchup";
 import { BT_STD, BT_V7_BALLS, BT_V7_BOOST_STEPS, BT_V7_FEATURE_MAX, BT_V7_LAST_LAND_MIN } from "@/lib/arcade/ballTrack";
 import { stdCore, stdFeatures, stdFeaturesHelp } from "@/lib/arcade/arcadeStandard";
@@ -156,6 +156,8 @@ import {
   SNAKE_STD_LANE_RIDE,
   SNAKE_STD_WARP_TICKS,
   SNAKE_STD_WARP_POINTS,
+  SNAKE_V12_CORE_STARS,
+  SNAKE_V12_GOLD_CORE,
 } from "@/lib/arcade/snake";
 import { BEAT_V9_CAPS, BEAT_V9_SKILL_PAY } from "@/lib/arcade/beat";
 import {
@@ -237,6 +239,7 @@ import {
   ORBIT_XP_TRAILS,
   ORBIT_STD,
   ORBIT_STD_PERFECT_OF,
+  ORBIT_FUEL_MAX,
 } from "@/lib/arcade/orbitRev3";
 import {
   CROSS_V9_SKILL_PAY,
@@ -257,8 +260,10 @@ import {
   SWING_V15_MAX,
   SWING_V15_PAR_POINTS,
   SWING_V15_PICKUP_POINTS,
-  SWING_V15_RUNS,
   SWING_V15_STARS,
+  SWING_V16_RUNS,
+  SWING_V16_SQUEEZES,
+  SWING_V16_RUN_TICKS,
   SWING_V14_GATES,
   SWING_V14_GEMS,
   SWING_V14_PAR_POINTS,
@@ -875,20 +880,21 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Match on frozen gems", detail: "to break the ice." },
         { action: "Clear below treasure", detail: "or swap it down." },
         { action: "4, 5 or an L / T", detail: "makes a bomb or a star; 5 plus an L / T in one swap makes a jackpot.", helpOnly: true },
-        { action: "Four levels", detail: "each ask for a count of two or three colours (shown under the board); meet one and the next starts.", helpOnly: true },
+        { action: "Six goals,", detail: `one for each colour, are shown under the board from the start: clear that many gems of the colour to meet it. Every gem of the colour counts, in a line, a cascade or a blast.`, helpOnly: true },
         { action: "A frozen gem", detail: "can be swapped into or out of the ice only when the swap makes a line of three. Clear the gem in the ice (in a line, a cascade or a blast) and the ice breaks; it never comes back.", helpOnly: true },
-        { action: "A treasure gem", detail: `can't be matched or blasted. It falls as the gems under it clear, and it swaps with a gem that then makes a line of three. It is collected on the bottom row; ${MATCHUP_V11_TREASURES} come a round.`, helpOnly: true },
+        { action: "A treasure gem", detail: `can't be matched or blasted. It falls as the gems under it clear, and it swaps with a gem that then makes a line of three. It is collected on the bottom row; ${MATCHUP_V12_TREASURES} come a round, one at a time.`, helpOnly: true },
         { action: "Drag one gem onto its neighbour", detail: "to swap them. Matched gems clear and new ones fall in; your next swap waits until the board has settled.", helpOnly: true },
         { action: "Line of 4: a bomb", detail: "(clears around it). Line of 5: a white four-point star (its row and column). An L or T: a six-point star (both diagonals).", helpOnly: true },
         { action: "A line of 5 and an L / T in one swap", detail: "makes a jackpot gem: it clears every gem of its colour plus its row and column.", helpOnly: true },
         { action: "Specials", detail: "go off when you swap them or match next to them, and set each other off.", helpOnly: true },
         { action: "Ninety seconds", detail: "on the same board for everyone; new gems drop from the same fixed queues.", helpOnly: true },
       ],
-      // matchupRev 11 (the arcade scoring standard): the core on its straight line, then fixed amounts, to 200.
+      // matchupRev 12 (the arcade scoring standard, six goals and six treasures): the core on its straight line, then fixed
+      // amounts, to 200.
       score: liveBandHelp("matchup", "Every gem cleared counts, in a line, a cascade or a blast.", {
         more: "More gems cleared",
         good: (u) => `clears ${u.toLocaleString("en-GB")} gems`,
-        finish: `Then treasure: ${MATCHUP_V11_TREASURE_PTS} for each brought down (up to ${MATCHUP_V11_TREASURE_MAX}); goals: ${MATCHUP_V11_GOAL_PTS} for each of the ${MATCHUP_V11_GOALS} colour goals met (up to ${MATCHUP_V11_GOALS_MAX}); ice: ${MATCHUP_V11_ICE_PTS} for each frozen cell broken (up to ${MATCHUP_V11_ICE_MAX}); big lines: ${MATCHUP_V11_BIG_PTS} for each line of 4 or 5 you match (up to ${MATCHUP_V11_BIG_MAX}). Gems ${MATCHUP_V11_CORE_MAX} + ${MATCHUP_V11_TREASURE_MAX} + ${MATCHUP_V11_GOALS_MAX} + ${MATCHUP_V11_ICE_MAX} + ${MATCHUP_V11_BIG_MAX} make 200.`,
+        finish: `Then treasure: ${MATCHUP_V12_TREASURE_PTS} for each brought down (up to ${MATCHUP_V12_TREASURE_MAX}); goals: ${MATCHUP_V12_GOAL_PTS} for each of the ${MATCHUP_V12_GOALS} colour goals met (up to ${MATCHUP_V12_GOALS_MAX}); ice: ${MATCHUP_V12_ICE_PTS} for each frozen cell broken (up to ${MATCHUP_V12_ICE_MAX}); big lines: ${MATCHUP_V12_BIG_PTS} for each line of 4 or 5 you match (up to ${MATCHUP_V12_BIG_MAX}). Gems ${MATCHUP_V12_CORE_MAX} + ${MATCHUP_V12_TREASURE_MAX} + ${MATCHUP_V12_GOALS_MAX} + ${MATCHUP_V12_ICE_MAX} + ${MATCHUP_V12_BIG_MAX} make 200.`,
       }),
     },
     snake: {
@@ -900,7 +906,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Quick stars build a combo;", detail: "wormholes and violet lanes are quick, risky shortcuts.", helpOnly: true },
         { action: "At 20 stars,", detail: "a meteor shower drops 3 rocks!", helpOnly: true },
         { action: "Wormholes:", detail: `three pairs of swirling mouths. Go into one and you come straight out of its twin, still heading the same way, so look before you leap. A star eaten within ${SNAKE_STD_WARP_TICKS / 60} s of a trip is a warp star (+${SNAKE_STD_WARP_POINTS}).`, helpOnly: true },
-        { action: "Gold comet stars:", detail: `about every 7 s a gold star appears for 5 s and fades. The ${SNAKE_STD_GOLDS} gold stars share ${SNAKE_STD_CAPS.gold} points: each is worth about ${(SNAKE_STD_CAPS.gold / SNAKE_STD_GOLDS).toFixed(1)} the moment it appears, falling evenly to 0 as it fades. It doesn't make you longer.`, helpOnly: true },
+        { action: "Gold comet stars:", detail: `about every 7 s a gold star appears for 5 s and fades. The ${SNAKE_STD_GOLDS} gold stars share ${SNAKE_STD_CAPS.gold} points: each is worth about ${(SNAKE_STD_CAPS.gold / SNAKE_STD_GOLDS).toFixed(1)} the moment it appears, falling evenly to 0 as it fades. Each also counts as ${SNAKE_V12_GOLD_CORE} stars towards your stars. It doesn't make you longer.`, helpOnly: true },
         { action: "Violet speed lanes:", detail: `one row and two columns. Travelling along one you move faster; every ride of ${SNAKE_STD_LANE_RIDE} squares in a row along a lane scores ${SNAKE_STD_LANE_POINTS}.`, helpOnly: true },
         { action: "Combo:", detail: `eat stars within ${SNAKE_STD_COMBO_TICKS / 60} s of each other; from the third in a row each star adds 1 bonus point.`, helpOnly: true },
         { action: "Rocks hit only your head.", detail: "A rock on your tail does nothing, and your tail passes through rocks. A big rock fills a 2 × 2 block: keep your head off all four squares.", helpOnly: true },
@@ -910,11 +916,12 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Taller and wider field:", detail: `${SNAKE_V9_COLS} squares across and ${SNAKE_V9_ROWS} down, so stars can be further away.`, helpOnly: true },
         { action: "Everyone gets", detail: "the same stars, and every rock lands on the same square at the same moment.", helpOnly: true },
       ],
-      // snakeRev 11 (the arcade scoring standard): stars on a straight line to 120, then four fixed feature parts, 200 in all.
-      score: liveBandHelp("snake", "Each star eaten counts the same.", {
+      // snakeRev 12 (1 Nov 2026): stars on a straight line to 120, full at 28, a big gold star counting 2; then four fixed
+      // feature parts, 200 in all.
+      score: liveBandHelp("snake", `Each star eaten counts 1, each big gold star ${SNAKE_V12_GOLD_CORE}.`, {
         more: "More stars",
-        good: (u) => `eats ${u} stars`,
-        finish: `Gold stars add up to ${SNAKE_STD_CAPS.gold}, combos up to ${SNAKE_STD_CAPS.combo}, lane rides up to ${SNAKE_STD_CAPS.lane} and warp stars up to ${SNAKE_STD_CAPS.warp}: ${SNAKE_STD_CORE_MAX} + ${SNAKE_STD_CAPS.gold + SNAKE_STD_CAPS.combo + SNAKE_STD_CAPS.lane + SNAKE_STD_CAPS.warp} = ${SNAKE_STD_CORE_MAX + SNAKE_STD_CAPS.gold + SNAKE_STD_CAPS.combo + SNAKE_STD_CAPS.lane + SNAKE_STD_CAPS.warp}. A crash ends the run.`,
+        good: (u) => `counts ${u} stars`,
+        finish: `Stars are full at ${SNAKE_V12_CORE_STARS}. Gold stars also add up to ${SNAKE_STD_CAPS.gold}, combos up to ${SNAKE_STD_CAPS.combo}, lane rides up to ${SNAKE_STD_CAPS.lane} and warp stars up to ${SNAKE_STD_CAPS.warp}: ${SNAKE_STD_CORE_MAX} + ${SNAKE_STD_CAPS.gold + SNAKE_STD_CAPS.combo + SNAKE_STD_CAPS.lane + SNAKE_STD_CAPS.warp} = ${SNAKE_STD_CORE_MAX + SNAKE_STD_CAPS.gold + SNAKE_STD_CAPS.combo + SNAKE_STD_CAPS.lane + SNAKE_STD_CAPS.warp}. A crash ends the run.`,
       }),
     },
     cross: {
@@ -999,13 +1006,16 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
     homerun: {
       goal: "Hit ten pitches as far as you can.",
       how: [
-        { action: "Swipe through the ball", detail: "as it reaches the plate." },
+        { action: "Before each pitch, pick Contact or Power:", detail: "Contact is easier to time but carries less; Power goes further." },
+        { action: "Watch the pitcher's tell,", detail: "then swipe through the ball as it reaches the plate." },
         { action: "Swipe height", detail: "meets the pitch; the angle aims it." },
-        { action: "Signs beyond the fence:", detail: "hit each one once." },
-        { action: "The swing starts", detail: "the moment your finger starts moving, not when it lifts. Start just before the ball reaches the plate.", helpOnly: true },
+        { action: "Signs beyond the fence:", detail: "hit each one once (Power only)." },
+        { action: "Contact or Power:", detail: "tap a button under the field before the pitch is thrown; your choice stays until you change it (Contact to start). Contact has a wide timing window and a big sweet spot but carries at most about 410 ft, so it never reaches a sign. Power has a narrow window and a small sweet spot, carries up to 480 ft and makes home runs and sign hits.", helpOnly: true },
+        { action: "The tell:", detail: "just before the release the pitcher shows his grip and arm, with a flash of colour on the glove. Red, high arm and two fingers: a fastball, swing early. Blue, a hooked wrist: a curve, wait on it. Purple, split fingers: a drop, wait on it and swing a little lower. Green, a low arm and a circle grip: a changeup, wait longest.", helpOnly: true },
+        { action: "The swing starts", detail: "the moment your finger starts moving, not when it lifts.", helpOnly: true },
         { action: "Height:", detail: "start your swipe level with where the ball will cross the faint box. Too high or too low hits it weakly.", helpOnly: true },
-        { action: "Angle:", detail: "a level swipe hits it to centre field, a rising swipe pulls it to left field, a falling swipe sends it to right; the steeper, the further round. Past about 80° goes foul.", helpOnly: true },
-        { action: "Ten pitches, one about every 6 seconds:", detail: "fastballs, curves, drops and changeups at different speeds and heights. Read each one from the pitcher's hand: the radar board shows what it was and how fast only after it is thrown.", helpOnly: true },
+        { action: "Angle:", detail: "a level swipe hits it to centre field, a rising swipe pulls it to left field, a falling swipe sends it to right; the steeper, the further round. The fence is shortest down the lines. Past about 80° goes foul.", helpOnly: true },
+        { action: "Ten pitches, one about every 6 seconds,", detail: "at different speeds, heights and spots: the radar board shows what each was and how fast after it is thrown.", helpOnly: true },
         { action: "After each swing", detail: "you see Early, Perfect or Late and where your bat met the ball against where it crossed.", helpOnly: true },
         { action: "The four signs", detail: "stand beyond the fence, so a ball that hits one is always a home run.", helpOnly: true },
         { action: "Everyone", detail: "faces the same pitches in the same order.", helpOnly: true },
@@ -1015,10 +1025,11 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
     freekick: {
       goal: "Score ten free kicks past the wall and the keeper.",
       how: [
-        { action: "Draw a stroke through the ball:", detail: "its direction aims, its speed is power." },
-        { action: "Bend the stroke", detail: "to curl the shot round the wall." },
-        { action: "Gold targets:", detail: "top corners or the bar." },
-        { action: "No aim line:", detail: "a short trail shows each shot's flight afterwards.", helpOnly: true },
+        { action: "Tap the goal", detail: "to aim: the marker is where a clean strike goes." },
+        { action: "Drag sideways", detail: "to curl it round the wall; dots show the bend." },
+        { action: "Hold the bar, release in the gold:", detail: "too late flies high, too early comes in low and slow." },
+        { action: "Gold targets:", detail: "top corners or the bar.", helpOnly: true },
+        { action: "Redo the aim and the curl", detail: "as often as you like until you press the bar. The bar's needle sweeps up and back, the same speed every time.", helpOnly: true },
         { action: "Each kick", detail: "has its own spot, 18 to 32 yards out and up to 35° either side (the chip at the top gives the distance), with a wall of 3 to 5 and the keeper set for it. No wind.", helpOnly: true },
         { action: "Placement:", detail: "a goal further from the keeper is worth a little more.", helpOnly: true },
         { action: "A bar target", detail: "counts only if the ball goes in off the bar.", helpOnly: true },
@@ -1080,11 +1091,13 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
       goal: "Draw your eight stones onto the button.",
       how: [
         { action: "Slide the stone", detail: "along the start line, then drag the gold target to aim." },
-        { action: "Tap In or Out,", detail: "then swipe up to release: the faster, the heavier." },
+        { action: "Tap In or Out;", detail: "the faint line shows the stone's first third for that aim and turn." },
+        { action: "Swipe up to release:", detail: "the faster, the heavier. Inside the meter's gold HOUSE zone it stops in the house." },
         { action: "Brush its left or right side", detail: "as it travels to bend it that way." },
-        { action: "The dashed line", detail: "runs from the stone to the target: where you release it towards, not the curl.", helpOnly: true },
+        { action: "The weight meter", detail: "fills as you swipe and keeps a tick where you let go. Its gold zone changes with your start, target and turn; the mark in it stops on the tee line.", helpOnly: true },
+        { action: "Above the zone", detail: "is takeout weight: heavy enough to knock a stone out of the house.", helpOnly: true },
         { action: "Brushing", detail: "also carries the stone a little further. Brush anywhere on the screen: left of the stone bends it left, right of it bends it right.", helpOnly: true },
-        { action: "The stone curls", detail: "towards the side its turn takes it, more as it slows. No line shows the curl.", helpOnly: true },
+        { action: "The stone curls", detail: "towards the side its turn takes it, more as it slows: the aim line shows only the start of it.", helpOnly: true },
         { action: "Red-handled stones", detail: "are the opponent's: knock them out of the house. Every one can be hit with your stone staying in the 4-foot.", helpOnly: true },
         { action: "The inset, top right,", detail: "shows exactly where every stone sits.", helpOnly: true },
         { action: "A stone short of the far hog line,", detail: "or through the back or the sides, is out of play.", helpOnly: true },
@@ -1326,13 +1339,16 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
     },
 
     ricochet: {
-      goal: "Climb the shaft by leaping wall to wall.",
+      goal: "Climb the temple as high as you can in a minute.",
       how: [
-        { action: "Tap to jump across", detail: "to the opposite wall." },
-        { action: "Don't land on the spikes", detail: "or the run ends." },
-        { action: "Don't slide", detail: "all the way back to the bottom." },
+        { action: "Tap", detail: "to leap to the other wall." },
+        { action: "Tap again in the air", detail: "for one double jump: extra lift and a short hang, to clear a blade or reach a lantern." },
+        { action: "Clinging slides you down;", detail: "moss slides fast, ice gives no grip: leap off at once." },
+        { action: "Katanas and shurikens", detail: "knock you down a few metres and stun you for a second. No game over.", helpOnly: true },
+        { action: "Coins", detail: "sit along good arcs; gold lanterns on the walls (some slide); scrolls at the top of double-jump lines.", helpOnly: true },
+        { action: "Everyone in a room", detail: "climbs the same tower.", helpOnly: true },
       ],
-      score: "2 points per metre climbed, up to {max}.",
+      score: liveStdHelp("ricochet", "Four parts, which total 200:"),
     },
     wordfall: {
       goal: "Make words to clear the falling letters.",
@@ -1414,14 +1430,24 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         weak: "each cannon destroyed and each boss's open core hit, six in all",
       })} Power-ups score nothing; each life lost costs ${WAV_STD_LIFE_COST} (anyone who plays scores at least 1).`,
     },
+    // bastionRev 2 (1 Nov 2026; docs/arcade-standard/bastion.md): the tank-defence shooter.
     bastion: {
-      goal: "Defend the base.",
+      goal: "Hold the wall against five waves of tanks.",
       how: [
-        { action: "Touch where you want to aim", detail: "– the turret follows and fires all the time." },
-        { action: "Prefer buttons?", detail: "Turn on Arrows and hold ◀ ▶ to turn the barrel." },
-        { action: "Squares take two hits;", detail: "triangles split." },
+        { action: "Drag anywhere to aim;", detail: "the crosshair floats above your thumb. Lift to fire." },
+        { action: "Shells take a moment to land:", detail: "lead a moving tank." },
+        { action: "Hit the glowing weak spot", detail: "for double damage, while it is open." },
+        { action: "Five shells.", detail: "Swipe down to reload early; tap while the needle is in the green for a fast reload." },
+        { action: "Scouts take 1 hit, Mediums 2 and Heavies 4;", detail: "the pips above each tank show what is left.", helpOnly: true },
+        { action: "Weak spots open and close:", detail: "each glows orange for about a second, then shuts for half a second. A shell on a shut one is a plain hull hit.", helpOnly: true },
+        { action: "The last two waves", detail: "are bigger and faster, and every tank speeds up or slows down once on its way in.", helpOnly: true },
+        { action: "Small, slow drags", detail: "move the crosshair less than your thumb, for fine aim.", helpOnly: true },
+        { action: "Empty, the gun reloads by itself in 2 seconds.", detail: "A tap in the green finishes it in half the time; a tap outside jams it for half a second more.", helpOnly: true },
+        { action: "A tank that reaches the wall hits the base.", detail: "Three hits and the run ends early (you keep your score).", helpOnly: true },
+        { action: "On a computer:", detail: "the mouse aims, click fires, R reloads and Space is the fast-reload tap.", helpOnly: true },
+        { action: "Everyone", detail: "faces the same tanks in the same waves.", helpOnly: true },
       ],
-      score: "1 per shape; keep the base alive for the bonus.",
+      score: liveStdHelp("bastion", "Four parts, which total 200:"),
     },
     rooftop: {
       goal: "Survive the rooftops as long as you can.",
@@ -1505,12 +1531,13 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
     orbit: {
       goal: "Fly planet to planet to the sun.",
       how: [
-        { action: "Tap to let go;", detail: "the next orbit catches you." },
+        { action: "Tap to let go;", detail: "any orbit catches you." },
         { action: "Grab stardust;", detail: "sling through moon halos." },
         { action: "Thread rock gaps;", detail: "let go on the first lap." },
         { action: "Checkpoint:", detail: "a crash returns you there.", helpOnly: true },
         { action: "Black hole:", detail: "fly in, skip 5-6 planets.", helpOnly: true },
-        { action: "You orbit automatically.", detail: "Tap to let go – you fly straight until the next orbit catches you. Miss both of the next two orbits and the run ends (or you go back to your checkpoint) as soon as nothing ahead can catch you.", helpOnly: true },
+        { action: "You orbit automatically.", detail: "Tap to let go – you fly straight until an orbit catches you: any planet's orbit you reach, even one you skip ahead to (the planets you pass count as reached).", helpOnly: true },
+        { action: "Fuel (bottom right):", detail: `it drains only while you fly between orbits and fills up again the moment an orbit catches you. A jump at any planet in reach lands with fuel to spare; fly off into empty space and it runs out after about ${Math.round(ORBIT_FUEL_MAX / 6) / 10} s, and the run ends (or you go back to your checkpoint).`, helpOnly: true },
         { action: "Set Checkpoint once while orbiting.", detail: "Your next crash returns you there. Without it, or after using it, a crash ends the run. Orbits are belt-safe. On later planets, time arrival and departure through the opening in the outside asteroid ring – it turns once every 12 seconds.", helpOnly: true },
         { action: "Orbits change shape.", detail: "Ovals speed up near the planet. On a figure-eight, let go only on the outer loops – never at the crossing.", helpOnly: true },
         { action: "Black holes:", detail: "about every ten planets a small black hole sits beside one planet. Let go at just the right moment to fly into it and you come out beside a planet 5 or 6 further on and fly into its orbit over about a second; the planets you skip count as reached. A checkpoint you set before the jump still works.", helpOnly: true },
@@ -1520,8 +1547,8 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Asteroid fields:", detail: `${ORBIT_XP_FIELDS} lines of rocks across some hops. Thread the gap in the middle of the line for a bonus; hitting a rock is a crash.`, helpOnly: true },
         { action: "Perfect orbits:", detail: "let go while the gold arc still shows – during your first lap round the planet – and land in the next orbit.", helpOnly: true },
       ],
-      // orbitRev 13 (the arcade scoring standard): planets on a straight line to 130, then speed and the features, 200 in all.
-      score: liveBandHelp("orbit", "Each planet reached counts 1, and a crash still counts the part of the way to the next planet you flew.", { more: "More planets", good: (u) => `reaches ${u} planets`, finish: `Planets pay on a straight line, all ${stdCore(ORBIT_STD).max} at the sun. ${stdFeaturesHelp(ORBIT_STD, { speed: "only for reaching the sun: all 20 with half the time left, falling evenly to 0 at the buzzer", perfect: `an equal share for each perfect orbit, all ${stdFeatures(ORBIT_STD).find((f) => f.key === "perfect")!.max} at ${ORBIT_STD_PERFECT_OF}` })}` }),
+      // orbitRev 13 (the arcade scoring standard) and 14 (the fuel meter): planets on a straight line to 130, then speed and the features, 200 in all.
+      score: liveBandHelp("orbit", "Each planet reached counts 1 (a planet you jump past counts too), and a crash still counts the part of the way to the next planet you flew.", { more: "More planets", good: (u) => `reaches ${u} planets`, finish: `Planets pay on a straight line, all ${stdCore(ORBIT_STD).max} at the sun. ${stdFeaturesHelp(ORBIT_STD, { speed: "only for reaching the sun: all 20 with half the time left, falling evenly to 0 at the buzzer", perfect: `an equal share for each perfect orbit, all ${stdFeatures(ORBIT_STD).find((f) => f.key === "perfect")!.max} at ${ORBIT_STD_PERFECT_OF}` })}` }),
     },
 
     snip: {
@@ -1551,16 +1578,18 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Ledge runs:", detail: "kick off, land the next." },
         { action: "Squeezes:", detail: "fly the gap, catch the far hook." },
         { action: "Most of the course is swinging, with fewer hooks than before:", detail: "each grab is a choice. Hold grabs the nearest hook in reach; swing back and forth for more height, swipe up to shorten the rope.", helpOnly: true },
-        { action: `${SWING_V15_RUNS.length} short ledge runs`, detail: "are a start ledge, one or two hooks and a landing ledge at a time, two of them with a squeeze (roof and floor close to a gap).", helpOnly: true },
+        { action: `${SWING_V16_RUNS.length} short ledge runs`, detail: `are a start ledge, one or two hooks and a landing ledge at a time, ${SWING_V16_SQUEEZES} of them with a squeeze (roof and floor close to a gap).`, helpOnly: true },
+        { action: "Ledge runs are dark:", detail: "as one comes up, everything past its next ledge goes dark, hooks and all. Land on a ledge to light the next part, up to the next ledge (or the first hook after the run). Hooks in the dark can't be grabbed.", helpOnly: true },
         { action: "Miss (the lava, or a squeeze's rock)", detail: "and you are back hanging from the last hook you held (on a ledge run, back on its start ledge). The clock keeps running; what you picked up since then is put back.", helpOnly: true },
         { action: "Par times:", detail: "each stretch has one, shown under the stretch count. Finish it under par for points: the further under, the more.", helpOnly: true },
         { action: "Speed gates", detail: `(${SWING_V15_GATES}) sit on the natural line between hooks: a well-timed release flies through and lights them.`, helpOnly: true },
         { action: "Gems", detail: `(${SWING_V15_GEMS}) sit on harder lines: an earlier or later release that still reaches the next hook.`, helpOnly: true },
         { action: "Touch stars on a tighter swing:", detail: `the ${SWING_V15_STARS} stars, spread evenly along the course, sit where a shortened rope runs. Swipe up as you swing to shorten it.`, helpOnly: true },
         { action: "Over the last quarter a dragon chases you.", detail: "If it catches you, it is a miss. A marker at the left edge shows how far back it is.", helpOnly: true },
+        { action: `The run lasts ${SWING_V16_RUN_TICKS / 60} seconds.`, detail: "Only the fastest reach the end of the course.", helpOnly: true },
         { action: "Everyone", detail: "gets the same course, hooks, gates, gems, stars and par times.", helpOnly: true },
       ],
-      score: liveBandHelp("swing", "The course counts 1,000 in all, shared by its stretches by length: every one cleared, and most of the one you are on.", { more: "Further along", good: (u) => `counts ${u} – about ${Math.round(u / 10)} % of the course`, finish: `Up to ${SWING_V15_PAR_POINTS} more for stretches under par (the further under, the more) and ${SWING_V15_PICKUP_POINTS} for each gate, gem and star kept (${SWING_V15_PICKUP_POINTS * (SWING_V15_GATES + SWING_V15_GEMS + SWING_V15_STARS)} in all). Clearing the course adds nothing more. The parts: course ${SWING_V15_CORE} + par ${SWING_V15_PAR_POINTS} + gates, gems and stars ${SWING_V15_PICKUP_POINTS * (SWING_V15_GATES + SWING_V15_GEMS + SWING_V15_STARS)} = ${SWING_V15_MAX}.` }),
+      score: liveBandHelp("swing", `${SWING_V16_RUN_TICKS / 60} seconds. The course counts 1,000 in all, shared by its stretches by length: every one cleared, and most of the one you are on.`, { more: "Further along", good: (u) => `counts ${u} – about ${Math.round(u / 10)} % of the course`, finish: `Up to ${SWING_V15_PAR_POINTS} more for stretches under par (the further under, the more) and ${SWING_V15_PICKUP_POINTS} for each gate, gem and star kept (${SWING_V15_PICKUP_POINTS * (SWING_V15_GATES + SWING_V15_GEMS + SWING_V15_STARS)} in all). Clearing the course adds nothing more. The parts: course ${SWING_V15_CORE} + par ${SWING_V15_PAR_POINTS} + gates, gems and stars ${SWING_V15_PICKUP_POINTS * (SWING_V15_GATES + SWING_V15_GEMS + SWING_V15_STARS)} = ${SWING_V15_MAX}.` }),
     },
     tilt: {
       goal: "Roll each marble into its own cup.",

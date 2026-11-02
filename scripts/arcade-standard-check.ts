@@ -42,8 +42,10 @@ const STANDARD_ROSTER: readonly { type: string; field: string; rev: number; batc
   { type: "breaker", field: "brkRev", rev: 11, batch: "A" },
   { type: "tilt", field: "tiltRev", rev: 10, batch: "A" },
   { type: "burst", field: "burstRev", rev: 10, batch: "A" },
-  { type: "matchup", field: "matchupRev", rev: 11, batch: "A" },
-  { type: "snake", field: "snakeRev", rev: 11, batch: "A" },
+  // Gemstone deals matchupRev 12 since Nov 2026 (six goals shown at once, six treasures; the same five parts re-weighted).
+  { type: "matchup", field: "matchupRev", rev: 12, batch: "A" },
+  // snakeRev 12 (1 Nov 2026): snakeRev 11's parts, the core counting a gold star as 2 and full at 28 (snake-rev12-check).
+  { type: "snake", field: "snakeRev", rev: 12, batch: "A" },
   { type: "hover", field: "hoverRev", rev: 10, batch: "A" },
   { type: "skyline", field: "skylineRev", rev: 9, batch: "B" },
   { type: "bintoss", field: "binRev", rev: 9, batch: "B" },
@@ -56,15 +58,16 @@ const STANDARD_ROSTER: readonly { type: string; field: string; rev: number; batc
   { type: "wavefront", field: "wavRev", rev: 12, batch: "C" },
   { type: "flip", field: "flipRev", rev: 10, batch: "C" },
   { type: "inkbridge", field: "inkRev", rev: 12, batch: "C" },
-  { type: "orbit", field: "orbitRev", rev: 13, batch: "C" },
+  { type: "orbit", field: "orbitRev", rev: 14, batch: "C" },
   { type: "balltrack", field: "btRev", rev: 8, batch: "C" },
-  { type: "swing", field: "swingRev", rev: 15, batch: "D" },
+  { type: "swing", field: "swingRev", rev: 16, batch: "D" }, // swingRev 16 (1 Nov 2026): the dark ledge runs over 90 s, rev 15's parts
   // Cards & Board (30 Oct 2026): born on the standard (their first revision).
   { type: "minesweeper", field: "minesRev", rev: 1, batch: "Cards & Board" },
   { type: "mahjong", field: "mahjongRev", rev: 2, batch: "Cards & Board" },
   // The Sports group (30 Oct 2026): new games born on the standard (rev 1).
-  { type: "homerun", field: "homerunRev", rev: 2, batch: "Sports" },
-  { type: "freekick", field: "freekickRev", rev: 2, batch: "Sports" },
+  // Home Run deals homerunRev 3 since 1 Nov 2026 (the swing choice and the pitcher's tell; the same three parts).
+  { type: "homerun", field: "homerunRev", rev: 3, batch: "Sports" },
+  { type: "freekick", field: "freekickRev", rev: 3, batch: "Sports" },
   // Apex (racing) deals racingRev 2 since 31 Oct 2026 (the lights start, the softer joystick; the same four parts).
   { type: "racing", field: "racingRev", rev: 2, batch: "Sports" },
   // Cards & Board (30 Oct 2026): born on the standard at revision 1.
@@ -74,6 +77,8 @@ const STANDARD_ROSTER: readonly { type: string; field: string; rev: number; batc
   { type: "pokersquares", field: "pokerSquaresRev", rev: 2, batch: "Cards" },
   // Five Hands (31 Oct 2026): born on the standard.
   { type: "fivehands", field: "fiveHandsRev", rev: 2, batch: "Cards" },
+  // Bastion (1 Nov 2026): the tank-defence shooter, born on the standard at bastionRev 2 (the original was unstamped).
+  { type: "bastion", field: "bastionRev", rev: 2, batch: "Action" },
   // Pyramid, Golf Solitaire and Muggins (1 Nov 2026): born on the standard.
   { type: "pyramid", field: "pyramidRev", rev: 1, batch: "Cards" },
   { type: "golfsol", field: "golfSolRev", rev: 1, batch: "Cards" },
@@ -81,11 +86,14 @@ const STANDARD_ROSTER: readonly { type: string; field: string; rev: number; batc
   // The Sports group (30 Oct 2026): on the standard from their first stamp.
   { type: "minigolf", field: "golfRev", rev: 2, batch: "Sports" }, // golfRev 2 (crazy golf, 31 Oct 2026); golfRev 1 was on the standard too
   { type: "pool", field: "poolRev", rev: 3, batch: "Sports" },
-  // Curling deals curlRev 2 since 31 Oct 2026 (the start along the hog line, side brushing; the same parts).
-  { type: "curling", field: "curlRev", rev: 2, batch: "Sports" },
+  // Curling deals curlRev 2 since 31 Oct 2026 (the start along the hog line, side brushing; the same parts) and
+  // curlRev 3 since 1 Nov 2026 (the weight meter's draw zone, the aim line, a gentler weight line, the core re-fitted).
+  { type: "curling", field: "curlRev", rev: 3, batch: "Sports" },
   // Blockfall (Retro) and Alley Roll (Sports), 1 Nov 2026: born on the standard (rev 1).
   { type: "blockfall", field: "blockfallRev", rev: 1, batch: "Retro" },
   { type: "alleyroll", field: "alleyRollRev", rev: 1, batch: "Sports" },
+  // Ricochet (1 Nov 2026): the ninja wall-climb, back from retirement and born on the standard at ricoRev 2.
+  { type: "ricochet", field: "ricoRev", rev: 2, batch: "Action" },
 ];
 
 const only = process.argv.slice(2).filter((a) => !a.startsWith("--"));

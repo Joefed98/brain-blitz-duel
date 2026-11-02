@@ -1933,8 +1933,10 @@ export interface DualPuzzleData {
 
 export interface RicoPuzzleData {
   type: "ricochet";
-  /** Lays out the whole shaft of spikes — identical for everyone. */
+  /** Lays out the whole shaft of spikes (or, on ricoRev 2, the whole tower) — identical for everyone. */
   seed: number;
+  /** Rules revision (2 = the ninja wall-climb on the arcade standard, 1 Nov 2026; ricochetNinja.ts); absent = the original ball-and-spikes shaft. */
+  ricoRev?: number;
 }
 
 /* =================== Breaker / Rally / Steady ============================ */
@@ -1993,8 +1995,8 @@ export interface MahjongPuzzleData {
 
 /** Home Run Derby's 60-second, ten-pitch run; the round clock adds three of slack (63 s). */
 export const HOMERUN_TIME_MS = 63_000;
-/** Free Kick's 75-second, ten-kick run, plus three of slack. */
-export const FREEKICK_TIME_MS = 78_000;
+/** Top Bins' 90-second, ten-kick run (freekickRev 3; rev 1 and 2 runs end at 75 s), plus three of slack. */
+export const FREEKICK_TIME_MS = 93_000;
 /**
  * Apex's 90-second, two-lap race, plus three of slack; since 31 Oct 2026 (racingRev 2) also its 5.5-second start
  * lights before the race clock starts (99 s; racingRev 1 runs still end at their own 90 s, as Tempo's and Gemstone's).
@@ -2298,6 +2300,11 @@ export interface BastionPuzzleData {
   type: "bastion";
   /** Draws the whole spawn schedule — identical for everyone. */
   seed: number;
+  /**
+   * Rules revision: absent = the original shapes turret (60 s, practice only since Oct 2026); 2 = the first-person
+   * tank-defence shooter on the arcade scoring standard (1 Nov 2026, src/lib/arcade/bastionTank.ts), dealt in rooms.
+   */
+  bastionRev?: number;
 }
 
 /** Rooftop Run: a fixed 60-second run; the round clock adds three of slack. */
@@ -2353,7 +2360,11 @@ export interface BurstPuzzleData {
 
 /** Orbit and Swing: fixed 60-second runs; the round clock adds three of slack. */
 export const ORBIT_TIME_MS = 93_000;
-export const SWING_TIME_MS = 63_000;
+/**
+ * Grappler: since 1 Nov 2026 (swingRev 16, the dark ledge runs) a 90-second run plus three of slack; older swingRev
+ * rounds still end at their own 60 s (the sim ends them; their clock shows the extra 30 s unused, as Gemstone's and Tempo's).
+ */
+export const SWING_TIME_MS = 93_000;
 
 /** Snip: a fixed 60-second run on the arcade engine. */
 export const SNIP_TIME_MS = 63_000;
@@ -2370,19 +2381,19 @@ export interface OrbitPuzzleData {
   type: "orbit";
   /** Draws the planet course — identical for everyone. */
   seed: number;
-  /** 3 = wider zig-zag world with a scrolling camera; 4 = black holes; 5 = score bands; 6 = fly-in (Tuning A); 7 = swept black holes (Tuning F); 8 = rev 7 in a taller 390 × 650 view; 12 = the expansion to 200 (450 × 782 view, extras); 13 = rev 12 scored on the arcade standard; absent = legacy fixed-camera course. */
+  /** 3 = wider zig-zag world with a scrolling camera; 4 = black holes; 5 = score bands; 6 = fly-in (Tuning A); 7 = swept black holes (Tuning F); 8 = rev 7 in a taller 390 × 650 view; 12 = the expansion to 200 (450 × 782 view, extras); 13 = rev 12 scored on the arcade standard; 14 = the fuel meter on the fuel bank's zigzag courses; absent = legacy fixed-camera course. */
   orbitRev?: number;
   /** Rev3 only: the proved 0..ORBIT_TOTAL planet layout, shipped so client play, reveal and grading never re-prove the course. */
   planets?: OrbitRev3CompactPlanet[];
   /** Rev 4 and 5: proved black holes (rev 5 may carry none), [from, to, x, y] each (orbitHoleBank.server.ts). */
   holes?: OrbitHoleRow[];
-  /** orbitRev 12 and 13 (the expansion to 200): the course's proved stardust, slingshot moons and asteroid fields (orbitXpBank.server.ts). */
+  /** orbitRev 12, 13 and 14 (the expansion to 200): the course's proved stardust, slingshot moons and asteroid fields (orbitXpBank.server.ts; orbitRev 14: orbitFuelBank.server.ts). */
   extras?: OrbitExtrasRow;
 }
 
 export interface SwingPuzzleData {
   type: "swing";
-  /** 4 = dragon chase; 5 = score bands; 6 = touch stars (Tuning A); 7 = about 10% lower (Tuning C); 8 = stars spread evenly (Tuning F); 9 = the taller 390 × 730 cavern; 13 = the 200 expansion; 14 = the assault course (sections of ledges, hooks and squeezes); 15 = the swinging course (mostly hook-to-hook swinging, short ledge runs). */
+  /** 4 = dragon chase; 5 = score bands; 6 = touch stars (Tuning A); 7 = about 10% lower (Tuning C); 8 = stars spread evenly (Tuning F); 9 = the taller 390 × 730 cavern; 13 = the 200 expansion; 14 = the assault course (sections of ledges, hooks and squeezes); 15 = the swinging course (mostly hook-to-hook swinging, short ledge runs); 16 = its dark ledge runs over 90 s (a longer course). */
   swingRev?: number;
   /** Draws the cavern — identical for everyone. */
   seed: number;
@@ -2751,7 +2762,9 @@ export interface CurlingPuzzleData {
   seed: number;
   /**
    * curlRev 1: the arcade scoring standard (docs/arcade-standard/curling.md). curlRev 2 (31 Oct 2026, dealt from
-   * curlingBankV2.server.ts): the start along the hog line and side brushing, the same parts.
+   * curlingBankV2.server.ts): the start along the hog line and side brushing, the same parts. curlRev 3 (1 Nov 2026,
+   * dealt from curlingBankV3.server.ts): the weight meter's draw zone, the aim line, a gentler weight line and the
+   * re-fitted closeness core, the same parts.
    */
   curlRev?: number;
 }

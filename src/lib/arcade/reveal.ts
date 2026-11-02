@@ -9,7 +9,7 @@ import { CROSS_LANE_POINTS, CROSS_CROSSING_POINTS } from "./cross";
 import { BT_BALLS, BT_V7_BALLS } from "./ballTrack";
 import { whackDepthScore, type WhackState } from "./whack";
 import { CLAY_DOUBLES, clayDepthScore, clayDoublesHit, type ClayState } from "./clayShoot";
-import { MATCHUP_PAR_RAW, MATCHUP_V11_CORE_GEMS, MATCHUP_V11_GOALS, matchupGoalsMet, matchupTreasuresOf, type MatchupState } from "./matchup";
+import { MATCHUP_PAR_RAW, matchupCoreGemsOf, matchupGoalsMet, matchupGoalsOf, matchupTreasuresOf, type MatchupState } from "./matchup";
 import { WF_PAR } from "./wordfall";
 import { HOVER_CHAINS, HOVER_TIGHT_GATES, HOVER_V2_GATES_SCORE, HOVER_V2_STARS_SCORE } from "./hover";
 import { WAV_BOSS_HP, WAV_V2_WAVES } from "./wavefront";
@@ -21,6 +21,7 @@ import { stdLines } from "./arcadeStandard";
 import { psCoreFullFor } from "./cards/pokerSquares";
 import { fhCoreFullFor } from "./cards/fiveHands";
 import { fcCoreUnitsFor } from "./cards/freecell";
+import { NINJA_COINS, NINJA_CORE_FULL_M, NINJA_LANTERNS, NINJA_SCROLLS } from "./ricochetNinja";
 import { MG_CORE_FULL } from "./cards/muggins";
 import { arcadeStdParts } from "./standard";
 
@@ -130,6 +131,12 @@ function sportsBuilder(axisLabel: string, finished: (r: Run) => boolean): Builde
 
 const BUILDERS: Record<string, Builder> = {
   homerun: sportsBuilder("Distance points", (r) => n(r, "pitches") >= 10),
+  // Bastion bastionRev 2 (1 Nov 2026): the armour core on the axis, a tile for each feature; the base falling is a crash.
+  // (The original Bastion's unstamped rounds have no builder: buildArcadeReveal gives null for them, as before.)
+  bastion: (r, s) => {
+    const data = sportsBuilder("Armour points", (q) => !b(q, "fell"))(r, s);
+    return { ...data, outcome: b(r, "fell") ? "crash" : "time" };
+  },
   freekick: sportsBuilder("Goal points", (r) => b(r, "finished")),
   racing: sportsBuilder("Distance points", (r) => b(r, "finished")),
   // Blockfall and Alley Roll (1 Nov 2026): the same shape (the lines come from the standard parts).
@@ -173,6 +180,18 @@ const BUILDERS: Record<string, Builder> = {
       outcome: n(r, "placed") === 25 ? "finish" : "time",
     };
   },
+  ricochet: (r, s) => ({
+    axis: { value: n(r, "metres"), max: NINJA_CORE_FULL_M, label: "Metres climbed" },
+    lines: [`${n(r, "metres")} m climbed (full at ${NINJA_CORE_FULL_M}) · ${n(r, "coins")} coins · ${n(r, "lanterns")} lanterns · ${n(r, "scrolls")} scrolls → ${s}`],
+    tiles: [
+      { label: "Height", value: `${n(r, "metres")} m` },
+      { label: "Coins", value: `${n(r, "coins")} / ${NINJA_COINS}` },
+      { label: "Lanterns", value: `${n(r, "lanterns")} / ${NINJA_LANTERNS}` },
+      { label: "Scrolls", value: `${n(r, "scrolls")} / ${NINJA_SCROLLS}` },
+      { label: "Hits", value: String(n(r, "hits")) },
+    ],
+    outcome: "time",
+  }),
   fivehands: (r, s) => {
     // fiveHandsRev 2: hand points alone on the steep table, full at FH_CORE_FULL_V2.
     const full = fhCoreFullFor(n(r, "fiveHandsRev") || 1);
@@ -323,15 +342,15 @@ const BUILDERS: Record<string, Builder> = {
   },
   matchup: (r, s) => {
     // matchupRev 11 (the arcade scoring standard): gems cleared on the axis, the parts as tiles (the lines come from
-    // the band breakdown, matchupStdBandParts).
+    // the band breakdown, matchupStdBandParts). matchupRev 12: its own core count, six goals and six treasures.
     const st = r["state"] as MatchupState | undefined;
     if (st?.std)
       return {
-        axis: { value: st.gemsCleared ?? 0, max: MATCHUP_V11_CORE_GEMS, label: "Gems cleared" },
+        axis: { value: st.gemsCleared ?? 0, max: matchupCoreGemsOf(st), label: "Gems cleared" },
         lines: [`${(st.gemsCleared ?? 0).toLocaleString("en-GB")} gems cleared → ${s}`],
         tiles: [
           { label: "Treasure", value: `${st.treasures ?? 0} / ${matchupTreasuresOf(st)}` },
-          { label: "Goals", value: `${matchupGoalsMet(st)} / ${MATCHUP_V11_GOALS}` },
+          { label: "Goals", value: `${matchupGoalsMet(st)} / ${matchupGoalsOf(st)}` },
           { label: "Ice", value: String(st.iceBroken ?? 0) },
           { label: "Big lines", value: String(st.bigLines ?? 0) },
         ],
@@ -696,12 +715,14 @@ const BUILDERS: Record<string, Builder> = {
               { label: "Perfect orbits", value: String(n(xp, "perfect")) },
             ]
           : []),
+        // orbitRev 14 (the fuel meter): a run that ended with an empty tank says so.
+        ...(b(r, "outOfFuel") ? [{ label: "Ended", value: "Out of fuel" }] : []),
       ],
       outcome: done ? "finish" : ended(r, false),
     };
   },
   swing: (r, s) => {
-    // swingRev 15 (the swinging course): the share of the course on the axis; the three parts add up to the stored score.
+    // swingRev 15 (the swinging course) and 16 (its dark ledge runs, 90 s): the share of the course on the axis; the three parts add up to the stored score.
     if (n(r, "swingRev") >= 15) {
       const done = n(r, "sections") >= n(r, "sectionTotal") && n(r, "sectionTotal") > 0;
       return {
@@ -1006,6 +1027,7 @@ function rawTotalMapped(r: Run): boolean {
 export function buildArcadeReveal(type: string, run: unknown, score: number): ArcadeRevealData | null {
   const builder = BUILDERS[type];
   if (!builder || !run || typeof run !== "object") return null;
+  if (type === "bastion" && (run as Run)["std"] !== true) return null;
   const data = builder(run as Run, score);
   // The arcade scoring standard (arcadeStandard.ts): one line per part (core, then each feature) and the total.
   const std = arcadeStdParts(type, (run as Run)["state"]);

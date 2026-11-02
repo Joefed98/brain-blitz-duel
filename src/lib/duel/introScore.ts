@@ -3,6 +3,7 @@ import { FH_CORE_FULL_V2 } from "@/lib/arcade/cards/fiveHands";
 import { FC_CORE_UNITS_V3 } from "@/lib/arcade/cards/freecell";
 import { BF_CORE_FULL } from "@/lib/arcade/blockfall";
 import { AR_CORE_FULL } from "@/lib/arcade/alleyroll";
+import { NINJA_CORE_FULL_M } from "@/lib/arcade/ricochetNinja";
 import { MG_CORE_FULL } from "@/lib/arcade/cards/muggins";
 import { BULLSEYE_INNER_BULL_POINTS, BULLSEYE_RING_VALUES } from "@/lib/arcade/bullseye";
 import { BINTOSS_THROWS, BINTOSS_V9_BUCKET, BINTOSS_V9_FAR, BINTOSS_V9_FINISH, BINTOSS_V9_HOOP } from "@/lib/arcade/binToss";
@@ -113,9 +114,10 @@ function introScoreTemplates(): Record<PuzzleType, string> {
     skyline: "Floors, perfect drops, a perfect streak and gold blocks. Up to {max}.",
     bintoss: `Buckets ${BINTOSS_V9_BUCKET}, far buckets +${BINTOSS_V9_FAR}, hoops +${BINTOSS_V9_HOOP}. All ${BINTOSS_THROWS} in for ${BINTOSS_V9_FINISH} more: up to {max}.`,
     bullseye: `Rings ${BULLSEYE_RING_VALUES.join(" / ")}, inner bull ${BULLSEYE_INNER_BULL_POINTS}; streaks, dead-centre add more. Up to {max}.`,
-    // matchupRev 11 (the arcade scoring standard): gems cleared, then treasure, goals, ice and big lines.
-    matchup: "Every gem cleared scores; treasure, goals, ice and lines of 4 or 5 add more. Up to {max}.",
-    snake: "Stars score up to 120; gold stars, combos, lanes and warps add 80 more. Up to {max}.",
+    // matchupRev 12 (the arcade scoring standard, six goals and six treasures): gems cleared, then treasure, goals, ice
+    // and big lines, each part's maximum.
+    matchup: "Gems 108; treasure, goals, ice and lines of 4 or 5 add 92. Up to {max}.",
+    snake: "Stars to 120 at 28 (gold stars count 2); gold, combos, lanes, warps add 80. Up to {max}.",
     cross: "150 for rows and crossings, coins 30, a clean streak 10, close calls 10. Up to {max}.",
     breaker: "Every brick scores; gold bricks add 30. Clear all 105 quickly for up to {max}.",
     rally: "Gold-ball hits, pink targets and gold targets. Up to {max}.",
@@ -126,7 +128,7 @@ function introScoreTemplates(): Record<PuzzleType, string> {
     pool: "Spots 140, the black 10, pots in a row 30, speed 20; each foul costs 10. Up to {max}.",
     curling: "Stones near the button 120, takeouts 30, the 4-foot 30, holding shot 20: {max}.",
     pinball: "Table points, plus J-O-U-L-Z sets, multiball, jackpots and ramp combos. Up to {max}.",
-    homerun: "Distance on every pitch, home runs and the signs beyond the fence. Up to {max}.",
+    homerun: "Distance on every pitch, home runs and signs beyond the fence (Power only). Up to {max}.",
     freekick: "Goals away from the keeper, targets, curls round the wall and five in a row. Up to {max}.",
     racing: "Distance, clean sectors, the finish and your time from lights out. Up to {max}.",
     // Cards & Board (the arcade scoring standard from their first revision).
@@ -147,17 +149,17 @@ function introScoreTemplates(): Record<PuzzleType, string> {
     junction: "Points for each car and bus through, ± for ambulances. Last the minute for 10 more.",
     inkbridge: `Levels ${INK_V12_CORE_MAX}; stars, tricks, shamrock, silver, speed ${200 - INK_V12_CORE_MAX}. All ${INK_LEVELS} levels quickly: up to {max}.`,
     burst: "Atoms up to 140, fast waves 35, golden atoms 25; a lost life costs 5. Up to {max}.",
-    orbit: "Planets 130 + sun speed, stardust, slingshots, fields, perfect orbits: total up to {max}.",
+    orbit: "Planets 130 + sun speed, stardust, slings, fields, perfect orbits. Mind fuel: up to {max}.",
     snip: "Points for fruit fed and leaves; golden apples, few cuts and speed add more. Up to {max}.",
-    swing: `Distance along the course (140), pars (30), gates, gems and stars (30): up to {max}.`,
+    swing: `90 s. Distance along the course (140), pars (30), gates, gems and stars (30): up to {max}.`,
     tilt: `35 a maze (up to 5 for nearing its exit), gold stars 30. All ${TILT_S_MAZES} quickly: up to {max}.`,
     balltrack: `Marbles home 140; gold, boosted and in-a-row marbles add 60: they total up to {max}.`,
     swerve: arcadeOpen("each coin you collect"),
     dual: "The longer both runners survive, the more you score. The full minute is {max}.",
     steady: "Start on {max}. Touching the edge: lose 5.",
-    ricochet: arcadeOpen("each metre you climb"),
+    ricochet: `Height 130 (full at ${NINJA_CORE_FULL_M} m); coins 30, lanterns 20, scrolls 20. Together {max}.`,
     rooftop: "The longer you last, the more you score. The full minute is {max}.",
-    bastion: arcadeOpen("each shape you destroy, with a bonus for keeping the base alive"),
+    bastion: "Armour 140, weak spots 30, fast reloads 20, base intact 10: up to {max}.",
     hotfloor: arcadeOpen("each stage you survive"),
   };
 }

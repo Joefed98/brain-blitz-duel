@@ -152,11 +152,10 @@ const RETIRED_TYPES = new Set<PuzzleType>([
   "rooftop",
   "swerve",
   "dual",
-  "ricochet",
   "steady",
   "hotfloor",
   "dig",
-  "bastion",
+  // Bastion came back to rooms on 1 Nov 2026 as the tank-defence shooter (bastionRev 2); its unstamped rounds replay as before.
   // Tuning C (Oct 2026): practice only.
   "junction",
   // Scoring report batch 2 (20 Oct 2026): practice only, on its current stamps (wordfallRev 3).
@@ -165,6 +164,9 @@ const RETIRED_TYPES = new Set<PuzzleType>([
   "snip",
   // Joe's decision (1 Nov 2026): Full House is practice only; stored rounds replay and grade as before.
   "pokersquares",
+  // Joe's decision (2 Nov 2026): Muggins is practice only at launch (its medians don't rise with skill); stored rounds
+  // replay and grade as before.
+  "muggins",
   // New (13 Oct 2026): practice only until PINBALL_IN_ROOMS (src/lib/arcade/pinball.ts) is switched on.
   ...(PINBALL_IN_ROOMS ? [] : (["pinball"] as const)),
 ]);

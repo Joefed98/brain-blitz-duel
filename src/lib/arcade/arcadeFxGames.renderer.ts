@@ -24,6 +24,8 @@ import { GOLFSOL_FX } from "./cards/golfSol.renderer";
 import { MUGGINS_FX } from "./cards/muggins.renderer";
 import { BLOCKFALL_FX } from "./blockfall.renderer";
 import { ALLEYROLL_FX } from "./alleyroll.renderer";
+import { NINJA_FX } from "./ricochetNinja.renderer";
+import { BASTION_FX } from "./bastionTank.renderer";
 import { px } from "./engine";
 
 import { HOVER_DISC_X, HOVER_EXPAND_H, HOVER_TALL_H, HOVER_WORLD_H, HOVER_WORLD_W, hoverWorldH, type HoverState } from "./hover";
@@ -295,11 +297,15 @@ export const ARCADE_GAME_WORLDS = {
   muggins: "cards",
   // The Sports group (30 Oct 2026): realistic venues.
   minigolf: "realworld",
+  // Action (1 Nov 2026): Bastion bastionRev 2, a dusk battlefield.
+  bastion: "realworld",
   pool: "realworld",
   curling: "realworld",
   // Blockfall (Retro) and Alley Roll (Sports: a warm arcade alley), 1 Nov 2026.
   blockfall: "retro",
   alleyroll: "fairground",
+  // Ricochet (ricoRev 2, 1 Nov 2026): the ninja wall-climb on a night temple.
+  ricochet: "realworld",
 } as const satisfies Record<string, ArcadeWorld>;
 
 export type ArcadeFxGame = keyof typeof ARCADE_GAME_WORLDS;
@@ -309,7 +315,7 @@ export type ArcadeFxGame = keyof typeof ARCADE_GAME_WORLDS;
  * Junction (retired in Tuning C), Scrumper (retired 27 Oct 2026), Full House (retired 1 Nov 2026) and Pinball until PINBALL_IN_ROOMS
  * (pinball.ts) is switched on.
  */
-export const RETIRED_ARCADE_GAMES: readonly ArcadeFxGame[] = PINBALL_IN_ROOMS ? ["junction", "snip", "pokersquares"] : ["junction", "snip", "pokersquares", "pinball"];
+export const RETIRED_ARCADE_GAMES: readonly ArcadeFxGame[] = PINBALL_IN_ROOMS ? ["junction", "snip", "pokersquares", "muggins"] : ["junction", "snip", "pokersquares", "muggins", "pinball"];
 /** The active arcade games (rooms deal these; Pinball joined on 14 Oct 2026 with PINBALL_IN_ROOMS on, Scrumper left on 27 Oct 2026, the three Cards & Board games joined on 30 Oct 2026). */
 export const ACTIVE_ARCADE_GAMES = (Object.keys(ARCADE_GAME_WORLDS) as ArcadeFxGame[]).filter((g) => !RETIRED_ARCADE_GAMES.includes(g));
 
@@ -1798,6 +1804,8 @@ export const ARCADE_FX_SPECS = {
   tripeaks: TRIPEAKS_FX,
   pokersquares: POKERSQUARES_FX,
   fivehands: FIVEHANDS_FX,
+  ricochet: NINJA_FX,
+  bastion: BASTION_FX,
   pyramid: PYRAMID_FX,
   golfsol: GOLFSOL_FX,
   muggins: MUGGINS_FX,

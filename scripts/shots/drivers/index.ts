@@ -31,6 +31,10 @@ import { driver as tendrop } from "./tendrop";
 import { driver as maze } from "./maze";
 // Cards & Board (30 Oct 2026)
 import { mahjongDriver, minesweeperDriver } from "./cardsBoard";
+import { ricochetDriver } from "./ricochet";
+import { bastionDriver } from "./bastion";
+// Gemstone (Nov 2026): real swaps for the mid-play frame (the six goals part-way).
+import { matchupDriver } from "./matchup";
 
 export const DRIVERS: Record<string, Driver> = {
   ...LOGIC_DRIVERS,
@@ -59,5 +63,8 @@ export const DRIVERS: Record<string, Driver> = {
   tendrop,
   maze,
   minesweeper: minesweeperDriver,
+  bastion: bastionDriver,
   mahjong: mahjongDriver,
+  ricochet: ricochetDriver,
+  matchup: matchupDriver,
 };

@@ -79,7 +79,7 @@ import { ensureWordfallDict } from "./wordfallDict.server";
 import { clayDepthDetail, decodeClayRun, replayClayRun } from "./clayShoot";
 import { clayChargesEmptyShots, clayEmptyShotCost, clayEmptyShots } from "@/lib/arcade/clayShoot";
 import { decodeWavefrontRun, replayWavefrontRun } from "./wavefront";
-import { decodeBastionRun, replayBastionRun } from "./bastion";
+import { decodeBastionRun, decodeBastionTankRun, isBastionTank, replayBastionRun, replayBastionTankRun } from "./bastion";
 import { decodeRooftopRun, replayRooftopRun } from "./rooftop";
 import { decodeFlipRun, replayFlipRun } from "./flip";
 import {
@@ -117,7 +117,8 @@ import { scoreWordSearch, wsDecode, wsGrade, wsSplitBonus } from "./wordSearch";
 import { LW_FREE_MISSES, lwDecode, lwDecodeLog, lwGrade, lwTallyLog, lwUsesLog, scoreLetterWheel, scoreLetterWheelLog } from "./letterWheel";
 import { decodeCrossRun, replayCrossRun } from "./cross";
 import { decodeDualRun, replayDualRun } from "./dual";
-import { decodeRicoRun, replayRicoRun } from "./ricochet";
+import { decodeNinjaRun, decodeRicoRun, isNinjaRev, replayNinjaRun, replayRicoRun } from "./ricochet";
+import { NINJA_CORE_FULL_M } from "@/lib/arcade/ricochetNinja";
 import { decodeBinTossRun, replayBinTossRun } from "./binToss";
 import { decodeBullseyeRun, replayBullseyeRun } from "./bullseye";
 import { bullseyeDeadPoints, bullseyeStreakPoints } from "@/lib/arcade/bullseye";
@@ -1329,6 +1330,35 @@ function gradeUnderRev(
       break;
     }
     case "ricochet": {
+      if (isNinjaRev(puzzle.ricoRev)) {
+        // ricoRev 2, the ninja wall-climb: the tower dealt from the stored seed, the move log replayed; only that scores.
+        const replayStart = performance.now();
+        const run = replayNinjaRun(puzzle.seed, answer);
+        revealRun = run;
+        arcadeDiag = buildArcadeDiag(puzzle.type, run, answer, performance.now() - replayStart);
+        isCorrect = run.metres >= NINJA_CORE_FULL_M;
+        correctCount = run.metres;
+        score = run.score;
+        extraDetail = {
+          ricoRev: puzzle.ricoRev,
+          metres: run.metres,
+          coins: run.coins,
+          lanterns: run.lanterns,
+          scrolls: run.scrolls,
+          hits: run.hits,
+          leaps: run.leaps,
+          djs: run.djs,
+          endedSeconds: run.endedSeconds,
+          flagged: run.flagged,
+          clientLag: run.clientLag,
+          clientTick: run.clientTick,
+          desyncTick: run.desyncTick,
+          inputs: decodeNinjaRun(answer).events.length,
+          claimedScore: decodeNinjaRun(answer).claimedScore,
+          ...(run.reason ? { reason: run.reason } : {}),
+        };
+        break;
+      }
       const replayStart = performance.now();
       const run = replayRicoRun(puzzle.seed, answer);
       revealRun = run;
@@ -2198,6 +2228,43 @@ function gradeUnderRev(
       break;
     }
     case "bastion": {
+      if (isBastionTank(puzzle.bastionRev)) {
+        // bastionRev 2 (1 Nov 2026): the tank-defence shooter on the arcade scoring standard; the server's replay alone
+        // scores, and the stored extra carries each part's points (numbers only) for the reveal.
+        const replayStart = performance.now();
+        const run = replayBastionTankRun(puzzle.seed, answer);
+        const decoded = decodeBastionTankRun(answer);
+        revealRun = run as unknown as typeof revealRun;
+        arcadeDiag = buildArcadeDiag(puzzle.type, run as unknown as Parameters<typeof buildArcadeDiag>[1], answer, performance.now() - replayStart);
+        if (arcadeDiag.replayMs > 500) console.warn(`[arcade] slow replay ${puzzle.type}: ${arcadeDiag.replayMs}ms`);
+        isCorrect = run.score > 0;
+        correctCount = run.kills;
+        score = run.score;
+        extraDetail = {
+          bastionRev: puzzle.bastionRev,
+          std: true,
+          ...Object.fromEntries(run.parts.map((part) => [`part_${part.key}`, part.points])),
+          destroyedHp: run.destroyedHp,
+          kills: run.kills,
+          weak: run.weak,
+          fast: run.fast,
+          jams: run.jams,
+          shots: run.shots,
+          hits: run.hits,
+          base: run.base,
+          wave: run.wave,
+          fell: run.fell,
+          endedSeconds: run.endedSeconds,
+          flagged: run.flagged,
+          clientLag: run.clientLag,
+          clientTick: run.clientTick,
+          desyncTick: run.desyncTick,
+          inputs: decoded.events.length,
+          claimedScore: decoded.claimedScore,
+          ...(run.reason ? { reason: run.reason } : {}),
+        };
+        break;
+      }
       const replayStart = performance.now();
       const run = replayBastionRun(puzzle.seed, answer);
       revealRun = run;

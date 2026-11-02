@@ -16,14 +16,18 @@
  *   bun scripts/arcade-self-replay-check.ts [runsPerGame] [keys,…] [--part=k/n]
  */
 
-import { homerunCheckpoint, homerunGameFor, HOMERUN_CHECKPOINT_INTERVAL, HOMERUN_REV_2, HOMERUN_REV_STD } from "../src/lib/arcade/homerun";
+import { bastionTankCheckpoint, bastionTankGame, BT2_CHECKPOINT_INTERVAL } from "../src/lib/arcade/bastionTank";
+import { encodeBastionTankRun, replayBastionTankRun } from "../src/lib/duel/bastion";
+import { homerunCheckpoint, homerunGameFor, HOMERUN_CHECKPOINT_INTERVAL, HOMERUN_REV_2, HOMERUN_REV_3, HOMERUN_REV_STD } from "../src/lib/arcade/homerun";
 import { encodeHomerunRun, replayHomerunRun } from "../src/lib/duel/homerun";
 import { HOMERUN_DEAL } from "../src/lib/duel/homerunDeal.server";
 import { HOMERUN_DEAL_V2 } from "../src/lib/duel/homerunDealV2.server";
-import { freekickCheckpoint, freekickGameFor, FREEKICK_CHECKPOINT_INTERVAL, FREEKICK_REV_2, FREEKICK_REV_STD } from "../src/lib/arcade/freekick";
+import { HOMERUN_DEAL_V3 } from "../src/lib/duel/homerunDealV3.server";
+import { freekickCheckpoint, freekickGameFor, FREEKICK_CHECKPOINT_INTERVAL, FREEKICK_REV_2, FREEKICK_REV_3, FREEKICK_REV_STD } from "../src/lib/arcade/freekick";
 import { encodeFreekickRun, replayFreekickRun } from "../src/lib/duel/freekick";
 import { FREEKICK_DEAL } from "../src/lib/duel/freekickDeal.server";
 import { FREEKICK_DEAL_V2 } from "../src/lib/duel/freekickDealV2.server";
+import { FREEKICK_DEAL_V3 } from "../src/lib/duel/freekickDealV3.server";
 import { racingCheckpoint, racingGameFor, RACING_CHECKPOINT_INTERVAL, RACING_REV_2, RACING_REV_STD } from "../src/lib/arcade/racing";
 import { encodeRacingRun, replayRacingRun } from "../src/lib/duel/racing";
 import { RACING_DEAL } from "../src/lib/duel/racingDeal.server";
@@ -71,7 +75,8 @@ import { encodeDualRun, replayDualRun } from "@/lib/duel/dual";
 import { encodeHoverRun, replayHoverRun } from "@/lib/duel/hover";
 import { encodeMatchupRun, replayMatchupRun } from "@/lib/duel/matchup";
 import { encodeRallyRun, replayRallyRun } from "@/lib/duel/rally";
-import { encodeRicoRun, replayRicoRun } from "@/lib/duel/ricochet";
+import { encodeNinjaRun, encodeRicoRun, replayNinjaRun, replayRicoRun } from "@/lib/duel/ricochet";
+import { ninjaCheckpoint, ninjaGame, NINJA_CHECKPOINT_INTERVAL } from "@/lib/arcade/ricochetNinja";
 import { encodeSkylineRun, replaySkylineRun } from "@/lib/duel/skyline";
 import { encodeSliceRun, replaySliceRun } from "@/lib/duel/slice";
 import { encodeSnakeRun, replaySnakeRun } from "@/lib/duel/snake";
@@ -128,11 +133,11 @@ import { FLIP_REV_BAND, FLIP_REV_EXPAND, FLIP_REV_LIFT, FLIP_REV_STD, FLIP_REV_T
 import { WAV_REV_BAND, WAV_REV_PHONE, WAV_REV_SHAPES, WAV_REV_STD, WAV_REV_TALL, WAV_REV_TUNEC } from "@/lib/arcade/wavefront";
 import { FLIP_REV_BAND, FLIP_REV_EXPAND, FLIP_REV_LIFT, FLIP_REV_TUNEC } from "@/lib/arcade/flip";
 import { INK_REV_BAND, INK_REV_TUNEC } from "@/lib/arcade/inkBridge";
-import { MATCHUP_REV_BAND, MATCHUP_REV_PAR, MATCHUP_REV_STD, MATCHUP_REV_WAIT } from "@/lib/arcade/matchup";
+import { MATCHUP_REV_BAND, MATCHUP_REV_PAR, MATCHUP_REV_SIX, MATCHUP_REV_STD, MATCHUP_REV_WAIT } from "@/lib/arcade/matchup";
 import { BUB_REV_BAND, BUB_REV_TALL, BUB_REV_TORPEDO } from "@/lib/arcade/bubble";
 import { CROSS_REV_BAND, CROSS_REV_EXPAND, CROSS_REV_SMALL, CROSS_REV_STD } from "@/lib/arcade/cross";
 import { RALLY_REV_BAND, RALLY_REV_TALL, RALLY_REV_TUNED, RALLY_REV_TUNEF } from "@/lib/arcade/rally";
-import { SNAKE_REV_BAND, SNAKE_REV_ROCKS, SNAKE_REV_TALL, SNAKE_REV_10, SNAKE_REV_STD } from "@/lib/arcade/snake";
+import { SNAKE_REV_BAND, SNAKE_REV_ROCKS, SNAKE_REV_TALL, SNAKE_REV_10, SNAKE_REV_STD, SNAKE_REV_12 } from "@/lib/arcade/snake";
 import { BINTOSS_REV_BAND } from "@/lib/arcade/binToss";
 import { SNIP_REV_BAND, SNIP_REV_BANK6, SNIP_REV_EXPAND, SNIP_REV_PROVEN, SNIP_REV_TALL } from "@/lib/arcade/snip";
 import { SKYLINE_REV_BAND, SKYLINE_REV_TALL } from "@/lib/arcade/skyline";
@@ -180,15 +185,17 @@ import { curlingCheckpoint, curlingGameFor, CURLING_REV } from "@/lib/arcade/cur
 import { encodeCurlingRun, replayCurlingRun } from "@/lib/duel/curling";
 import { CURLING_BANK } from "@/lib/duel/curlingBank.server";
 import { CURLING_BANK_V2 } from "@/lib/duel/curlingBankV2.server";
+import { CURLING_BANK_V3 } from "@/lib/duel/curlingBankV3.server";
 import { MINIGOLF_BANK_V2 } from "@/lib/duel/minigolfBankV2.server";
 import { TILT_REV_BAND, TILT_REV_EXPAND, TILT_REV_LIFT, TILT_REV_STD, TILT_REV_TUNEC } from "@/lib/arcade/tilt";
-import { ORBIT_REV_BAND, ORBIT_REV_SWEPT, ORBIT_REV_TALL, ORBIT_REV_TUNED, ORBIT_REV_XP, ORBIT_REV_STD } from "@/lib/arcade/orbit";
-import { decodeOrbitExtras, initBandFrom, initSweptFrom, initTallFrom, initTunedFrom, initXpFrom, initStdFrom } from "@/lib/arcade/orbitRev3";
+import { ORBIT_REV_BAND, ORBIT_REV_SWEPT, ORBIT_REV_TALL, ORBIT_REV_TUNED, ORBIT_REV_XP, ORBIT_REV_STD, ORBIT_REV_FUEL } from "@/lib/arcade/orbit";
+import { decodeOrbitExtras, initBandFrom, initSweptFrom, initTallFrom, initTunedFrom, initXpFrom, initStdFrom, initFuelFrom } from "@/lib/arcade/orbitRev3";
 import { ORBIT_XP_BANK } from "@/lib/duel/orbitXpBank.server";
+import { ORBIT_FUEL_BANK } from "@/lib/duel/orbitFuelBank.server";
 import { BEAT_REV_BAND, BEAT_REV_TALL, BEAT_REV_TUNEC, BEAT_REV_TUNEF } from "@/lib/arcade/beat";
 import { SLICE_REV_BAND, SLICE_REV_LONG, SLICE_REV_TALL, SLICE_REV_TUNEC } from "@/lib/arcade/slice";
 import { BURST_REV_BAND, BURST_REV_TALL } from "@/lib/arcade/burst";
-import { SWING_REV_BAND, SWING_REV_TUNED, SWING_REV_TUNEC, SWING_REV_SPREAD, SWING_REV_TALL, SWING_REV_EXPAND, SWING_REV_ASSAULT, SWING_REV_REWORK } from "@/lib/arcade/swing";
+import { SWING_REV_BAND, SWING_REV_TUNED, SWING_REV_TUNEC, SWING_REV_SPREAD, SWING_REV_TALL, SWING_REV_EXPAND, SWING_REV_ASSAULT, SWING_REV_REWORK, SWING_REV_DARK } from "@/lib/arcade/swing";
 import { SWING_V13_BANK } from "@/lib/duel/swingBankV13.server";
 import { BULLSEYE_REV_BAND, BULLSEYE_REV_TUNED, bullseyeInitFor } from "@/lib/arcade/bullseye";
 
@@ -864,8 +871,9 @@ const GAMES: Game[] = [
   { key: "racing/v2", interval: RACING_CHECKPOINT_INTERVAL, game: racingGameFor(RACING_REV_2), checkpoint: racingCheckpoint, mode: "events", rate: 120, encode: encodeRacingRun, replay: (seed: number, raw: string) => replayRacingRun(seed, raw, RACING_REV_2), seedFor: (n: number) => RACING_DEAL_V2[n % RACING_DEAL_V2.length]! },
   // Cue Ball poolRev 2 (the V2 bank, power and spin dot as separate fields), appended 31 Oct 2026.
   { key: "pool", game: poolGameFor(2), seedFor: (n: number) => POOL_BANK_V2[n % POOL_BANK_V2.length]!, checkpoint: poolCheckpoint, mode: "events", rate: 40, encode: encodePoolRun, replay: (seed: number, raw: string) => replayPoolRun(seed, raw, 2) },
-  // Curl Champ curlRev 2 (the V2 bank, the start along the hog line, side brushing), appended 31 Oct 2026.
-  { key: "curling", game: curlingGameFor(CURLING_REV), seedFor: (n: number) => CURLING_BANK_V2[n % CURLING_BANK_V2.length]!, checkpoint: curlingCheckpoint, mode: "events", rate: 40, encode: encodeCurlingRun, replay: (seed: number, raw: string) => replayCurlingRun(seed, raw, CURLING_REV) },
+  // Curl Champ curlRev 2 (the V2 bank, the start along the hog line, side brushing), appended 31 Oct 2026; pinned to
+  // curlRev 2 since curlRev 3 became the dealt stamp (1 Nov 2026), so it plays exactly what it always did.
+  { key: "curling", game: curlingGameFor(2), seedFor: (n: number) => CURLING_BANK_V2[n % CURLING_BANK_V2.length]!, checkpoint: curlingCheckpoint, mode: "events", rate: 40, encode: encodeCurlingRun, replay: (seed: number, raw: string) => replayCurlingRun(seed, raw, 2) },
   // Crazy Golf golfRev 2 (windmills, tunnels, sand, hills, banked curves, castle gates; 31 Oct 2026): its own bank courses and stored pars.
   {
     key: "minigolf",
@@ -888,6 +896,41 @@ const GAMES: Game[] = [
   { key: "pool/v3", game: poolGameFor(3), seedFor: (n: number) => POOL_BANK_V3[n % POOL_BANK_V3.length]!, checkpoint: poolCheckpoint, mode: "events", rate: 40, encode: encodePoolRun, replay: (seed: number, raw: string) => replayPoolRun(seed, raw, 3) },
   { key: "freecell/v3", game: freecellGameFor(3), checkpoint: fcCheckpoint, mode: "events", rate: 120, encode: encodeFreecellRun, replay: (seed: number, raw: string) => replayFreecellRun(seed, raw, 3), seedFor: (n: number) => n % 300 },
   { key: "fivehands/v2", game: fiveHandsGameFor(2), checkpoint: fhCheckpoint, mode: "events", rate: 60, encode: encodeFiveHandsRun, replay: (seed: number, raw: string) => replayFiveHandsRun(seed, raw, 2) },
+  // Ricochet ricoRev 2 (the ninja wall-climb, 1 Nov 2026), appended so every earlier entry keeps its index.
+  { key: "ricochet/ninja", interval: NINJA_CHECKPOINT_INTERVAL, game: ninjaGame, checkpoint: ninjaCheckpoint, mode: "events", rate: 30, encode: encodeNinjaRun, replay: (seed: number, raw: string) => replayNinjaRun(seed, raw) },
+  // The prepared shot (1 Nov 2026; Home Run homerunRev 3, Top Bins freekickRev 3, Curl Champ curlRev 3), appended so
+  // every earlier entry keeps its index: each on its rev-3 proved deal's seeds.
+  { key: "homerun/v3", interval: HOMERUN_CHECKPOINT_INTERVAL, game: homerunGameFor(HOMERUN_REV_3), checkpoint: homerunCheckpoint, mode: "events", rate: 20, encode: encodeHomerunRun, replay: (seed: number, raw: string) => replayHomerunRun(seed, raw, HOMERUN_REV_3), seedFor: (n: number) => HOMERUN_DEAL_V3[n % HOMERUN_DEAL_V3.length]! },
+  { key: "freekick/v3", interval: FREEKICK_CHECKPOINT_INTERVAL, game: freekickGameFor(FREEKICK_REV_3), checkpoint: freekickCheckpoint, mode: "events", rate: 20, encode: encodeFreekickRun, replay: (seed: number, raw: string) => replayFreekickRun(seed, raw, FREEKICK_REV_3), seedFor: (n: number) => FREEKICK_DEAL_V3[n % FREEKICK_DEAL_V3.length]! },
+  { key: "curling/v3", game: curlingGameFor(3), seedFor: (n: number) => CURLING_BANK_V3[n % CURLING_BANK_V3.length]!, checkpoint: curlingCheckpoint, mode: "events", rate: 40, encode: encodeCurlingRun, replay: (seed: number, raw: string) => replayCurlingRun(seed, raw, 3) },
+  // Bastion bastionRev 2 (the tank-defence shooter, 1 Nov 2026), appended so every earlier entry keeps its stream.
+  { key: "bastion/v2", interval: BT2_CHECKPOINT_INTERVAL, game: bastionTankGame, checkpoint: bastionTankCheckpoint, mode: "events", rate: 30, encode: encodeBastionTankRun, replay: (seed: number, raw: string) => replayBastionTankRun(seed, raw) },
+  // Meteor snakeRev 12 (1 Nov 2026, docs/arcade-standard/snake.md), appended so every earlier entry keeps its index:
+  // snakeRev 11's play, the core counting a gold star as 2 stars and full at 28.
+  { key: "snake/v12", game: snakeGameFor(SNAKE_REV_12), checkpoint: snakeCheckpoint, mode: "events", rate: 40, encode: encodeSnakeRun, replay: (seed: number, raw: string) => replaySnakeRun(seed, raw, SNAKE_REV_12) },
+  // Gemstone matchupRev 12 (six goals shown at once, six treasures; Nov 2026), appended at the end.
+  { key: "matchup/six", game: matchupGameFor(MATCHUP_REV_SIX), checkpoint: matchupCheckpoint, mode: "events", rate: 40, encode: encodeMatchupRun, replay: (seed: number, raw: string) => replayMatchupRun(seed, raw, MATCHUP_REV_SIX) },
+  // The fuel meter (1 Nov 2026, docs/arcade-standard/orbit.md), appended so every earlier entry keeps its index: Orbit
+  // orbitRev 14 on its fuel-bank courses (fuel, any planet catches).
+  {
+    key: "orbit/fuel",
+    game: orbitRev3Game,
+    gameFor: (seed: number) => {
+      const e = ORBIT_FUEL_BANK.find((x) => x.seed === seed)!;
+      return { ...orbitRev3Game, init: () => initFuelFrom(decodeRev3Planets(e.planets), ORBIT_REV3_WORLD_W, decodeOrbitHoles(e.holes), decodeOrbitExtras(e.extras)) };
+    },
+    seedFor: (n: number) => ORBIT_FUEL_BANK[n % ORBIT_FUEL_BANK.length]!.seed,
+    checkpoint: orbitCheckpoint,
+    mode: "events",
+    rate: 25,
+    encode: encodeOrbitRun,
+    replay: (seed: number, raw: string) => {
+      const e = ORBIT_FUEL_BANK.find((x) => x.seed === seed)!;
+      return replayOrbitRun(seed, raw, ORBIT_REV_FUEL, e.planets, e.holes, e.extras);
+    },
+  },
+  // Grappler swingRev 16 (1 Nov 2026: the dark ledge runs, 90 s, a longer course), appended so every earlier entry keeps its index.
+  { key: "swing/dark", game: swingGameFor(SWING_REV_DARK), checkpoint: swingCheckpoint, mode: "events", rate: 30, encode: encodeSwingRun, replay: (seed: number, raw: string) => replaySwingRun(seed, raw, SWING_REV_DARK) },
   // Pyramid pyramidRev 1, Golf Solitaire golfSolRev 1 and Muggins mugginsRev 1 (1 Nov 2026), appended so every earlier
   // entry keeps its index: random taps, plays, draws, Undos and Resets.
   { key: "pyramid", game: pyramidGame, checkpoint: pyCheckpoint, mode: "events", rate: 80, encode: encodePyramidRun, replay: (seed: number, raw: string) => replayPyramidRun(seed, raw, 1) },

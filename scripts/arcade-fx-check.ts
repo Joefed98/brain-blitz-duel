@@ -16,6 +16,8 @@
  *
  *   bun scripts/arcade-fx-check.ts
  */
+import { ninjaArtGame } from "../src/lib/arcade/ricochetNinja.renderer";
+import { NINJA_CORE_FULL_M, NINJA_START } from "../src/lib/arcade/ricochetNinja";
 import { minesweeperArtGameFor } from "../src/lib/arcade/minesweeper.renderer";
 import { mahjongArtGameFor } from "../src/lib/arcade/mahjong.renderer";
 import { MINES_REV_STD, MINES_SAFE } from "../src/lib/arcade/minesweeper";
@@ -112,6 +114,7 @@ const { matchupRev2Game } = await import("../src/lib/arcade/matchup");
 const { freecellArt } = await import("../src/lib/arcade/cards/freecell.renderer");
 const { tripeaksArt } = await import("../src/lib/arcade/cards/tripeaks.renderer");
 const { pokerSquaresArt } = await import("../src/lib/arcade/cards/pokerSquares.renderer");
+const { bastionTankArtGame } = await import("../src/lib/arcade/bastionTank.renderer");
 const { fiveHandsArt } = await import("../src/lib/arcade/cards/fiveHands.renderer");
 const { pyramidArt } = await import("../src/lib/arcade/cards/pyramid.renderer");
 const { golfSolArt } = await import("../src/lib/arcade/cards/golfSol.renderer");
@@ -192,6 +195,10 @@ const GAMES: Record<string, AnyGame> = {
   // Blockfall (Retro) and Alley Roll (Sports), 1 Nov 2026.
   blockfall: blockfallArt as AnyGame,
   alleyroll: alleyRollArt as AnyGame,
+  // Ricochet (ricoRev 2, the ninja wall-climb, 1 Nov 2026).
+  ricochet: ninjaArtGame as AnyGame,
+  // Bastion bastionRev 2 (1 Nov 2026): the tank game's own art through its success layer.
+  bastion: bastionTankArtGame as AnyGame,
   // The Sports group (30 Oct 2026): each sim with its own art drawn through its success layer, on a bank deal.
   minigolf: { ...minigolfGameFor(MINIGOLF_BANK[0]!.pars), init: () => minigolfGameFor(MINIGOLF_BANK[0]!.pars).init(MINIGOLF_BANK[0]!.seed), draw: withArcadeFx(MINIGOLF_FX, (c, st) => drawMinigolf(c, st, null)) } as AnyGame,
   pool: { ...poolGameFor(1), init: () => poolGameFor(1).init(POOL_BANK[0]!), draw: withArcadeFx(POOL_FX, (c, st) => drawPool(c, st, null)) } as AnyGame,
@@ -562,6 +569,14 @@ const BUMPS: Record<string, ((s: any) => any)[]> = {
     // Five rows of four of a kind (75 hand points): the core's full figure reached.
     (s) => ({ ...s, grid: Array.from({ length: 25 }, (_, i) => (i % 5 < 4 ? (i % 5) * 13 + Math.floor(i / 5) : 5 + Math.floor(i / 5))) }),
   ],
+  bastion: [
+    // A tank destroyed (a weak-spot kill landing in the centre lane).
+    (s) => ({ ...s, kills: s.kills + 1, impacts: [...s.impacts, { x: 195, y: 420, t: s.tick + 1, r: 4, kind: 0, s256: 128 }] }),
+    // The fifth weak-spot hit.
+    (s) => ({ ...s, weak: 5, impacts: [...s.impacts, { x: 200, y: 400, t: s.tick + 1, r: 2, kind: 2, s256: 140 }] }),
+    // A fast reload.
+    (s) => ({ ...s, fast: s.fast + 1 }),
+  ],
   fivehands: [
     // Row 0 makes a pair (the 2♠ beside the 2♥).
     (s) => ({ ...s, rows: [[1, 14], ...s.rows.slice(1)], lastRow: 0 }),
@@ -593,6 +608,15 @@ const BUMPS: Record<string, ((s: any) => any)[]> = {
     (s) => ({ ...s, phase: AR_SHOW, phaseTick: s.tick, balls: [...s.balls, { release: 0, points: 50, x: 0, y: 190 }] }),
     (s) => ({ ...s, phase: AR_SHOW, phaseTick: s.tick, balls: [...s.balls, { release: 0, points: 100, x: 112, y: 280 }] }),
     (s) => ({ ...s, phase: AR_SHOW, phaseTick: s.tick, balls: Array.from({ length: Math.ceil(AR_CORE_FULL / 100) }, () => ({ release: 0, points: 100, x: 112, y: 280 })) }),
+  ],
+  ricochet: [
+    (s) => ({ ...s, coins: s.coins + 1, pickTick: s.tick + 1 }),
+    (s) => ({ ...s, lanterns: s.lanterns + 1, pickTick: s.tick + 1 }),
+    (s) => ({ ...s, scrolls: s.scrolls + 1, pickTick: s.tick + 1 }),
+    // 50 m climbed.
+    (s) => ({ ...s, best: NINJA_START + 50 * 40 * 256 }),
+    // The core's full height.
+    (s) => ({ ...s, best: NINJA_START + NINJA_CORE_FULL_M * 40 * 256 }),
   ],
 };
 for (const [name, game] of Object.entries(GAMES)) {

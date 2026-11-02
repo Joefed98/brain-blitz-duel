@@ -4,6 +4,10 @@
  * with the game's own renderer, and (where known) where the run ended. This is
  * visual only — the score, lines, tiles and axis come from round_results.
  */
+import { bastionGame, BAS_WORLD_H, BAS_WORLD_W } from "./bastion";
+import { BT2_WORLD_H, BT2_WORLD_W } from "./bastionTank";
+import { bastionTankArtGame } from "./bastionTank.renderer";
+import { isBastionTank, replayBastionRun, replayBastionTankRun } from "@/lib/duel/bastion";
 import type { PuzzleData } from "@/lib/duel/types";
 
 import { hoverArtGame as hoverGame, hoverRevealGame } from "./hover.renderer";
@@ -92,6 +96,10 @@ import { freecellArt, FC_WORLD_H, FC_WORLD_W } from "./cards/freecell.renderer";
 import { tripeaksArt, TP_WORLD_H, TP_WORLD_W } from "./cards/tripeaks.renderer";
 import { pokerSquaresArt, PS_WORLD_H, PS_WORLD_W } from "./cards/pokerSquares.renderer";
 import { fiveHandsArt, FH_WORLD_H, FH_WORLD_W } from "./cards/fiveHands.renderer";
+import { isNinjaRev, replayNinjaRun, replayRicoRun } from "@/lib/duel/ricochet";
+import { NINJA_WORLD_H, NINJA_WORLD_W } from "./ricochetNinja";
+import { ninjaArtGame, ninjaDrawPoint, NINJA_RED } from "./ricochetNinja.renderer";
+import { ricoGame, RICO_WORLD_H, RICO_WORLD_W } from "./ricochet";
 import { pyramidArt, PY_WORLD_H, PY_WORLD_W } from "./cards/pyramid.renderer";
 import { golfSolArt, GS_WORLD_H, GS_WORLD_W } from "./cards/golfSol.renderer";
 import { mugginsArt, MG_WORLD_H, MG_WORLD_W } from "./cards/muggins.renderer";
@@ -192,7 +200,25 @@ function drawTenDropArt(ctx: CanvasRenderingContext2D, state: TenDropState, size
 
 const seedOf = (puzzle: PuzzleData): number => ("seed" in puzzle ? Number(puzzle.seed) : 1);
 
+/**
+ * Bastion: bastionRev 2's final field (the tank game's own art, 390 × 720); an original (unstamped) round draws the old
+ * turret's final frame (390 × 620) through its own sim, as it would have.
+ */
+const bastionTankRound = (p: PuzzleData) => p.type === "bastion" && isBastionTank(p.bastionRev);
+const BASTION_REVEAL: ArcadeRevealRenderer = {
+  accent: "#FF4D4D",
+  worldW: BT2_WORLD_W,
+  worldH: BT2_WORLD_H,
+  heightFor: (p) => (bastionTankRound(p) ? BT2_WORLD_H : BAS_WORLD_H),
+  drawFinal: (ctx, puzzle, answer) => {
+    if (bastionTankRound(puzzle)) bastionTankArtGame.draw(ctx, replayBastionTankRun(seedOf(puzzle), answer).state, { width: BT2_WORLD_W, height: BT2_WORLD_H });
+    else bastionGame.draw(ctx, replayBastionRun(seedOf(puzzle), answer).state, { width: BAS_WORLD_W, height: BAS_WORLD_H });
+    return null;
+  },
+};
+
 export const ARCADE_REVEAL_RENDERERS: Record<string, ArcadeRevealRenderer> = {
+  bastion: BASTION_REVEAL,
   // The Sports group (30 Oct 2026): each game's final frame at world size.
   homerun: simple(GOLD, HOMERUN_WORLD_W, HOMERUN_WORLD_H, homerunArtGame, (p, a) => replayHomerunRun(seedOf(p), a, p.type === "homerun" ? p.homerunRev : undefined)),
   freekick: simple(GOLD, FREEKICK_WORLD_W, FREEKICK_WORLD_H, freekickArtGame, (p, a) => replayFreekickRun(seedOf(p), a, p.type === "freekick" ? p.freekickRev : undefined)),
@@ -201,6 +227,23 @@ export const ARCADE_REVEAL_RENDERERS: Record<string, ArcadeRevealRenderer> = {
   freecell: simple(GOLD, FC_WORLD_W, FC_WORLD_H, freecellArt, (p, a) => replayFreecellRun(seedOf(p), a, p.type === "freecell" ? p.freecellRev : undefined)),
   tripeaks: simple(GOLD, TP_WORLD_W, TP_WORLD_H, tripeaksArt, (p, a) => replayTripeaksRun(seedOf(p), a)),
   pokersquares: simple(GOLD, PS_WORLD_W, PS_WORLD_H, pokerSquaresArt, (p, a) => replayPokerSquaresRun(seedOf(p), a, p.type === "pokersquares" ? p.pokerSquaresRev : undefined)),
+  // Ricochet: the ninja wall-climb's final frame (ricoRev 2); an unstamped round draws the original shaft.
+  ricochet: {
+    accent: NINJA_RED,
+    worldW: NINJA_WORLD_W,
+    worldH: NINJA_WORLD_H,
+    heightFor: (p) => (p.type === "ricochet" && isNinjaRev(p.ricoRev) ? NINJA_WORLD_H : RICO_WORLD_H),
+    drawFinal: (ctx, puzzle, answer) => {
+      if (puzzle.type === "ricochet" && isNinjaRev(puzzle.ricoRev)) {
+        const { state } = replayNinjaRun(seedOf(puzzle), answer);
+        ninjaArtGame.draw(ctx, state, { width: NINJA_WORLD_W, height: NINJA_WORLD_H });
+        return ninjaDrawPoint(state);
+      }
+      const { state } = replayRicoRun(seedOf(puzzle), answer);
+      ricoGame.draw(ctx, state, { width: RICO_WORLD_W, height: RICO_WORLD_H });
+      return null;
+    },
+  },
   fivehands: simple(GOLD, FH_WORLD_W, FH_WORLD_H, fiveHandsArt, (p, a) => replayFiveHandsRun(seedOf(p), a, p.type === "fivehands" ? p.fiveHandsRev : undefined)),
   pyramid: simple(GOLD, PY_WORLD_W, PY_WORLD_H, pyramidArt, (p, a) => replayPyramidRun(seedOf(p), a, p.type === "pyramid" ? p.pyramidRev : undefined)),
   golfsol: simple(GOLD, GS_WORLD_W, GS_WORLD_H, golfSolArt, (p, a) => replayGolfSolRun(seedOf(p), a, p.type === "golfsol" ? p.golfSolRev : undefined)),

@@ -188,6 +188,8 @@ export interface SnakeState extends BandFields {
   goldLeft?: number;
   /** Lane rides: rides that reached SNAKE_STD_LANE_RIDE squares along a lane. */
   laneRides?: number;
+  /** snakeRev 12 only (1 Nov 2026): 1 = a gold star counts SNAKE_V12_GOLD_CORE stars towards the core, full at SNAKE_V12_CORE_STARS. */
+  gold2?: number;
 }
 
 /** Grid rows a state plays on: Tuning E's taller grid, or the original 20. */
@@ -595,6 +597,8 @@ export function snakeCheckpoint(state: SnakeState): SnakeCheckpoint {
   if (state.bigRocks) extra.push(state.laneCol2 ?? -1, state.goldLife ?? 0, ...state.bigRocks);
   // snakeRev 11 (the arcade scoring standard): its marker and its own counters after that, so every snakeRev 10 checksum is unchanged.
   if (state.std) extra.push(state.std, state.goldLeft ?? 0, state.laneRides ?? 0);
+  // snakeRev 12: its marker after that, so every snakeRev 11 checksum is unchanged.
+  if (state.gold2) extra.push(state.gold2);
   for (const value of [...Object.values(snapshot), ...extra]) {
     checksum ^= value | 0;
     checksum = Math.imul(checksum, 0x01000193) >>> 0;
@@ -713,6 +717,7 @@ export const snakeRev3Game: ArcadeGame<SnakeState, ArcadeInputEvent | null> = { 
 
 /** The game for a stored round: its snakeRev picks the rules (absent = original). */
 export function snakeGameFor(rev?: number | null): ArcadeGame<SnakeState, ArcadeInputEvent | null> {
+  if (rev === SNAKE_REV_12) return snakeV12Game;
   if (rev === SNAKE_REV_STD) return snakeStdGame;
   if (rev === SNAKE_REV_10) return snakeV10Game;
   if (rev === SNAKE_REV_200) return snakeV9Game;
@@ -764,7 +769,7 @@ export const snakeTallGame: ArcadeGame<SnakeState, ArcadeInputEvent | null> = { 
 
 /** The world height (px) a stored round's snakeRev plays in. */
 export function snakeWorldHForRev(rev?: number | null): number {
-  if (rev === SNAKE_REV_200 || rev === SNAKE_REV_10 || rev === SNAKE_REV_STD) return SNAKE_V9_H;
+  if (rev === SNAKE_REV_200 || rev === SNAKE_REV_10 || rev === SNAKE_REV_STD || rev === SNAKE_REV_12) return SNAKE_V9_H;
   return rev === SNAKE_REV_TALL || rev === SNAKE_REV_ROCKS || rev === SNAKE_REV_TARGET || rev === SNAKE_REV_STRICT ? SNAKE_TALL_H : SNAKE_WORLD_H;
 }
 
@@ -871,7 +876,7 @@ export function snakeWorldWOf(state: { cols?: number }): number {
 }
 /** The world width (px) a stored round's snakeRev plays in. */
 export function snakeWorldWForRev(rev?: number | null): number {
-  return rev === SNAKE_REV_200 || rev === SNAKE_REV_10 || rev === SNAKE_REV_STD ? SNAKE_V9_WORLD_W : SNAKE_WORLD_W;
+  return rev === SNAKE_REV_200 || rev === SNAKE_REV_10 || rev === SNAKE_REV_STD || rev === SNAKE_REV_12 ? SNAKE_V9_WORLD_W : SNAKE_WORLD_W;
 }
 
 /** The other mouth of a wormhole, or the square itself when it is not a mouth. */
@@ -1295,10 +1300,10 @@ export interface SnakeStdParts {
   warp: number;
 }
 
-/** snakeRev 11's parts, each within its maximum. */
+/** snakeRev 11's parts, each within its maximum (snakeRev 12: the core counts gold stars twice, full at 28). */
 export function snakeStdParts(state: SnakeState): SnakeStdParts {
   return {
-    core: snakeStdCore(state.eaten),
+    core: state.gold2 ? snakeV12Core(snakeCoreStars(state)) : snakeStdCore(state.eaten),
     gold: snakeStdGoldPoints(state.goldLeft ?? 0, (state.golds ?? []).length, state.goldLife ?? SNAKE_GOLD_LIFE),
     combo: Math.min(SNAKE_STD_CAPS.combo, state.comboPts ?? 0),
     lane: Math.min(SNAKE_STD_CAPS.lane, SNAKE_STD_LANE_POINTS * (state.laneRides ?? 0)),
@@ -1315,7 +1320,10 @@ export function snakeStdScore(state: SnakeState): number {
 function snakeStdBandParts(state: SnakeState): BandParts {
   const p = snakeStdParts(state);
   const bonus = p.gold + p.combo + p.lane + p.warp;
-  const units = Math.max(0, state.eaten);
+  // snakeRev 12: the core's units are its stars, a gold star counting 2.
+  const units = state.gold2 ? snakeCoreStars(state) : Math.max(0, state.eaten);
+  const golds = state.gold2 ? state.goldsEaten ?? 0 : 0;
+  const counted = golds > 0 ? `${Math.max(0, state.eaten)} stars + ${golds} gold ×${SNAKE_V12_GOLD_CORE}` : `${units} stars`;
   if (p.core + bonus === 0) return { units, points: 0, bonus: SNAKE_STD_PLAYED_MIN, penalty: 0, finished: false, text: `${units} stars`, bonusText: "Run played" };
   const C = SNAKE_STD_CAPS;
   return {
@@ -1324,7 +1332,7 @@ function snakeStdBandParts(state: SnakeState): BandParts {
     bonus,
     penalty: 0,
     finished: false,
-    text: `${units} stars (${SNAKE_STD_CORE_MAX} at ${SNAKE_STD_CORE_STARS})`,
+    text: `${counted} (${SNAKE_STD_CORE_MAX} at ${state.gold2 ? SNAKE_V12_CORE_STARS : SNAKE_STD_CORE_STARS})`,
     bonusText: `Gold ${p.gold}/${C.gold} · combos ${p.combo}/${C.combo} · lanes ${p.lane}/${C.lane} · warps ${p.warp}/${C.warp}`,
   };
 }
@@ -1334,3 +1342,39 @@ function initStd(seed: number): SnakeState {
 }
 
 export const snakeStdGame: ArcadeGame<SnakeState, ArcadeInputEvent | null> = { ...snakeV10Game, init: initStd, score: snakeStdScore };
+
+/* ================= Big stars count twice (snakeRev 12, 1 Nov 2026) ================= */
+
+/**
+ * snakeRev 12 (docs/arcade-standard/snake.md "snakeRev 12"; Joe: scores felt low): snakeRev 11's world, play and parts
+ * exactly (the same stars, rocks, shower, lanes, wormholes and gold schedule from the room seed; gold 40, combos 20,
+ * lane rides 10, warp stars 10), with two changes to the core (still up to 120 on a straight line):
+ *
+ *  - The bigger gold comet stars that appear now and then count SNAKE_V12_GOLD_CORE (2) stars towards the core, as
+ *    well as paying their own gold-star part (eating one never costs core; it adds to it).
+ *  - The core is full at SNAKE_V12_CORE_STARS (28) core stars (snakeRev 11: 27 stars).
+ *
+ * Nothing new is drawn and the move is unchanged (a gold star still doesn't make the meteor longer, and rocks, speed and
+ * the shower still follow the stars actually eaten). States add `gold2: 1`, folded into the checkpoint checksum last.
+ */
+export const SNAKE_REV_12 = 12;
+export const SNAKE_V12_CORE_STARS = 28;
+export const SNAKE_V12_GOLD_CORE = 2;
+/** The core as a band curve (a straight line, two knots) on core stars, for the "?" help (liveBands.ts); snakeV12Core is the same line. */
+export const SNAKE_V12_BAND_CURVE = bandCurve([0, SNAKE_V12_CORE_STARS], [0, SNAKE_STD_CORE_MAX]);
+
+/** Stars the core counts: every star eaten, plus (snakeRev 12) SNAKE_V12_GOLD_CORE for each gold star eaten. */
+export function snakeCoreStars(state: Pick<SnakeState, "eaten" | "goldsEaten" | "gold2">): number {
+  return Math.max(0, state.eaten) + (state.gold2 ? SNAKE_V12_GOLD_CORE * (state.goldsEaten ?? 0) : 0);
+}
+
+/** snakeRev 12's core points for this many core stars: the straight line to SNAKE_STD_CORE_MAX at SNAKE_V12_CORE_STARS. */
+export function snakeV12Core(stars: number): number {
+  return Math.trunc((SNAKE_STD_CORE_MAX * clampInt(stars, 0, SNAKE_V12_CORE_STARS)) / SNAKE_V12_CORE_STARS);
+}
+
+function initV12(seed: number): SnakeState {
+  return { ...initStd(seed), gold2: 1 };
+}
+
+export const snakeV12Game: ArcadeGame<SnakeState, ArcadeInputEvent | null> = { ...snakeStdGame, init: initV12 };

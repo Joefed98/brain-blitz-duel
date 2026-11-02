@@ -112,6 +112,11 @@ interface Props<S, C> {
   footer?: ((send: (payload: PointerPayload) => void) => ReactNode) | undefined;
   pointer: (kind: "down" | "move" | "up", x: number, y: number) => PointerPayload | null;
   /**
+   * A mouse moving over the canvas with no button held (computer layout; Bastion's aim follows the mouse). Never
+   * called for touch or pen, and never while a pointer is down (that is `pointer`'s "move").
+   */
+  hover?: (x: number, y: number) => PointerPayload | null;
+  /**
    * Desktop keys (src/lib/desktop.ts useGameKeys): each key down/up with `send`, the very
    * queue pointer gestures feed, and the current state; return true when the key was used.
    * Never called while the stage is locked, submitted or over.
@@ -119,6 +124,11 @@ interface Props<S, C> {
   keys?: (kind: "down" | "up", key: string, send: (payload: PointerPayload) => void, state: S, event: KeyboardEvent) => boolean;
   onSubmit: (answer: string) => void;
   onDraftAnswer?: ((answer: string) => void) | undefined;
+  /**
+   * Display only: how long (ms) to keep drawing an ended run before submitting it, so an end animation
+   * plays out (Orbit's out-of-fuel sputter). The answer is the run as it ended; 0 or absent submits at once.
+   */
+  endHoldMs?: (state: S) => number;
 }
 
 /**
@@ -189,10 +199,28 @@ export function ArcadeCanvasStage<S, C>(props: Props<S, C>) {
     const sounds = propsRef.current.sounds?.();
     const tickOf = () => (state.current as { tick: number }).tick;
 
+    // An end hold (endHoldMs): the run's answer is fixed when it ends and sent once the hold is over (or at once
+    // if the stage goes away first).
+    let held: { answer: string; timer: ReturnType<typeof setTimeout> } | null = null;
+    const send = () => {
+      if (!held) return;
+      clearTimeout(held.timer);
+      const { answer } = held;
+      held = null;
+      propsRef.current.onSubmit(answer);
+    };
     const finish = () => {
       if (submitted.current) return;
       submitted.current = true;
-      propsRef.current.onSubmit(encode());
+      const answer = encode();
+      const hold = propsRef.current.endHoldMs?.(state.current) ?? 0;
+      if (hold <= 0) {
+        propsRef.current.onSubmit(answer);
+        return;
+      }
+      // The finished run is the draft meanwhile (a reload or time-out in the hold keeps all of it).
+      propsRef.current.onDraftAnswer?.(answer);
+      held = { answer, timer: setTimeout(send, hold) };
     };
 
     const loop = (time: number) => {
@@ -294,6 +322,7 @@ export function ArcadeCanvasStage<S, C>(props: Props<S, C>) {
     frame = arenaFrame(loop);
     return () => {
       cancelArenaFrame(loop, frame);
+      send();
       sounds?.stop();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -382,6 +411,12 @@ export function ArcadeCanvasStage<S, C>(props: Props<S, C>) {
           if (payload) push(payload);
         }}
         onPointerMove={(event) => {
+          if (pointerId.current === null && props.hover && event.pointerType === "mouse" && !blocked()) {
+            const at = worldPoint(event.clientX, event.clientY, false);
+            const payload = at ? props.hover(at.x, at.y) : null;
+            if (payload) push(payload);
+            return;
+          }
           if (blocked() || pointerId.current !== event.pointerId) return;
           const point = worldPoint(event.clientX, event.clientY, true);
           if (!point) return;

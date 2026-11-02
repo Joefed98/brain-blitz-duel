@@ -30,11 +30,31 @@ import { playWrong } from "@/lib/sound";
 import { NO_SCROLL_STYLE, useNoTouchScroll } from "@/components/puzzles/noScroll";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
+import { gameDisplayName } from "@/lib/duel/gameNames";
+import { ArcadeCanvasStage } from "@/components/puzzles/ArcadeCanvasStage";
+import { CardStill } from "@/components/puzzles/CardStill";
+import { encodeNinjaRun, isNinjaRev, replayNinjaRun } from "@/lib/duel/ricochet";
+import {
+  ninjaCheckpoint,
+  ninjaDeal,
+  ninjaGame,
+  NINJA_CHECKPOINT_INTERVAL,
+  NINJA_CORE_FULL_M,
+  NINJA_INPUT_TAP,
+  NINJA_REV,
+  NINJA_RUN_TICKS,
+  NINJA_WORLD_H,
+  NINJA_WORLD_W,
+  type NinjaState,
+} from "@/lib/arcade/ricochetNinja";
+import { drawNinjaFrame, ninjaArtGame, NINJA_BG } from "@/lib/arcade/ricochetNinja.renderer";
+import { ninjaScene } from "@/lib/arcade/ricochetNinjaScene.renderer";
+import { ninjaSounds } from "@/lib/fx/gameSounds";
 import { arcadeCanvasRatio } from "@/lib/fx/lowEnd";
 import { arenaFrame, cancelArenaFrame } from "@/lib/battery";
 
-/** Fixed intro still: the ball leaping from one wall to the other. */
-function IntroExample() {
+/** Fixed intro still (unstamped Ricochet): the ball leaping from one wall to the other. */
+export function RicoV1IntroExample() {
   return (
     <div className="flex w-full flex-col items-center gap-2">
       <svg
@@ -65,7 +85,8 @@ function IntroExample() {
   );
 }
 
-function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
+/** The original ball-and-spikes stage (unstamped Ricochet puzzles only; rooms and practice deal ricoRev 2). */
+function RicoV1Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const data: RicoPuzzleData | null = puzzle.type === "ricochet" ? puzzle : null;
   const seed = data?.seed ?? 1;
 
@@ -240,7 +261,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   );
 }
 
-function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
+function RicoV1Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   if (puzzle.type !== "ricochet") return null;
   const result = replayRicoRun(puzzle.seed, myAnswer ?? "");
 
@@ -267,14 +288,98 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   );
 }
 
-/** The seed is generated on the server; every run is replayed there for scoring. */
+/* ===================== ricoRev 2: the ninja wall-climb ===================== */
+
+/** The intro still: seed 0's tower a few seconds into its witness's climb, a leap under way. */
+function ninjaIntroState(): NinjaState {
+  const taps = new Set(ninjaDeal(0).witnessTaps);
+  let s = ninjaGame.init(0);
+  while (s.tick < 260 || s.mode !== 1) s = ninjaGame.step(s, taps.has(s.tick + 1) ? { t: s.tick + 1, k: NINJA_INPUT_TAP, a: 0, b: 0, c: 0, d: 0 } : null);
+  return { ...s, hitTick: -999, pickTick: -999 };
+}
+
+function NinjaIntroExample() {
+  return (
+    <CardStill
+      width={NINJA_WORLD_W}
+      height={NINJA_WORLD_H}
+      draw={(ctx, size) => drawNinjaFrame(ctx, ninjaIntroState(), size)}
+      caption="Tap to leap to the other wall; tap again in the air to double jump. Mind the blades and stars."
+    />
+  );
+}
+
+function IntroExample() {
+  return <NinjaIntroExample />;
+}
+
+function NinjaStage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
+  const data: RicoPuzzleData | null = puzzle.type === "ricochet" ? puzzle : null;
+  return (
+    <ArcadeCanvasStage
+      diagKey="ricochet"
+      label={`${gameDisplayName("ricochet")}: tap to leap, tap again in the air to double jump`}
+      background={NINJA_BG}
+      fitWorld
+      scene={ninjaScene}
+      seed={data?.seed ?? 1}
+      enabled={data !== null}
+      locked={locked}
+      worldW={NINJA_WORLD_W}
+      worldH={NINJA_WORLD_H}
+      game={ninjaArtGame}
+      sounds={ninjaSounds}
+      checkpoint={ninjaCheckpoint}
+      interval={NINJA_CHECKPOINT_INTERVAL}
+      encodeRun={encodeNinjaRun}
+      discrete
+      inputKind={NINJA_INPUT_TAP}
+      pointer={(kind) => (kind === "down" ? { a: 0, b: 0, c: 0 } : null)}
+      keys={(kind, key, send, _state, event) => {
+        if (key !== " " && key !== "ArrowUp" && key !== "w") return false;
+        if (kind === "down" && !event.repeat) send({ a: 0, b: 0, c: 0 });
+        return true;
+      }}
+      onSubmit={(answer) => onSubmit(answer)}
+      onDraftAnswer={onDraftAnswer}
+    />
+  );
+}
+
+export function ninjaLine(r: { metres: number; coins: number; lanterns: number; scrolls: number }): string {
+  return `${r.metres} m climbed (full at ${NINJA_CORE_FULL_M}) · ${r.coins} coins · ${r.lanterns} lanterns · ${r.scrolls} scrolls`;
+}
+
+function NinjaReveal({ puzzle, myAnswer }: PuzzleRevealProps) {
+  if (puzzle.type !== "ricochet") return null;
+  const r = replayNinjaRun(puzzle.seed, myAnswer ?? "");
+  return (
+    <div className="flex min-h-0 w-full flex-1 flex-col items-center justify-start gap-3 overflow-y-auto">
+      <p className="whitespace-normal break-words text-center font-mono text-base font-bold text-foreground">{ninjaLine(r)}</p>
+      <p className="shrink-0 text-center font-mono text-base text-muted-foreground">{r.hits === 1 ? "1 hit" : `${r.hits} hits`} · {r.djs} double jumps</p>
+      <p className="shrink-0 text-center font-mono text-base text-muted-foreground">Same tower for everyone</p>
+    </div>
+  );
+}
+
+function Stage(props: PuzzleStageProps) {
+  const rev = props.puzzle.type === "ricochet" ? props.puzzle.ricoRev : undefined;
+  return isNinjaRev(rev) ? <NinjaStage {...props} /> : <RicoV1Stage {...props} />;
+}
+
+function Reveal(props: PuzzleRevealProps) {
+  const rev = props.puzzle.type === "ricochet" ? props.puzzle.ricoRev : undefined;
+  return isNinjaRev(rev) ? <NinjaReveal {...props} /> : <RicoV1Reveal {...props} />;
+}
+
+/** The seed is generated on the server; every run is replayed there for scoring. Rooms and practice deal ricoRev 2. */
 export const ricochetPuzzle: PuzzleDefinition = {
   key: "ricochet",
-  name: "Ricochet",
+  name: gameDisplayName("ricochet"),
   category: "arcade",
-  timeLimitMs: (RICO_RUN_TICKS / TICKS_PER_SECOND) * 1000 + 3000,
+  timeLimitMs: (NINJA_RUN_TICKS / TICKS_PER_SECOND) * 1000 + 3000,
   revealMs: 6_000,
-  generate: () => ({ type: "ricochet", seed: 1 }) satisfies RicoPuzzleData,
+  generate: () => ({ type: "ricochet", seed: 1, ricoRev: NINJA_REV }) satisfies RicoPuzzleData,
   check: () => false,
   revealHeading: "Your climb",
   IntroExample,

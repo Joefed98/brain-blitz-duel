@@ -171,7 +171,7 @@ export function RoundIntro({
     if (type === "beat") prepareBeatTrack();
   }, [type, practice]);
 
-  // Grappler (swingRev 14 and 15) builds and proves its course from the seed: built while the intro is up (after its
+  // Grappler (swingRev 14, 15 and 16) builds and proves its course from the seed: built while the intro is up (after its
   // first paint), so the round itself starts at once (rooms and practice; an async round's seed arrives at its start).
   useEffect(() => {
     if (puzzle?.type !== "swing") return;

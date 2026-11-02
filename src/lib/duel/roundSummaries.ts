@@ -1088,6 +1088,18 @@ const dualSummary: SummaryBuilder = (result) => {
 };
 
 const ricoSummary: SummaryBuilder = (result) => {
+  // ricoRev 2, the ninja wall-climb: the height and the items, no survival (no game over).
+  if (result.extra?.["metres"] !== undefined) {
+    const m = Number(result.extra["metres"] ?? 0);
+    const hits = Number(result.extra["hits"] ?? 0);
+    return {
+      summary: `${m.toLocaleString("en-GB")} m climbed · ${result.score} points`,
+      detail: [
+        `${Number(result.extra["coins"] ?? 0)} coins · ${Number(result.extra["lanterns"] ?? 0)} lanterns · ${Number(result.extra["scrolls"] ?? 0)} scrolls`,
+        `${hits === 1 ? "1 hit" : `${hits} hits`} · ${Number(result.extra["djs"] ?? 0)} double jumps`,
+      ],
+    };
+  }
   const metres = Math.trunc(Number(result.extra?.["heightPx"] ?? 0) / 40);
   const survived = result.extra?.["survived"] === true;
   const spiked = result.extra?.["spiked"] === true;
@@ -1452,7 +1464,20 @@ const wavefrontSummary: SummaryBuilder = (result) => {
   };
 };
 
-const bastionSummary: SummaryBuilder = (result) => {
+const bastionSummary: SummaryBuilder = (result, puzzle) => {
+  // bastionRev 2: the tank game on the arcade scoring standard, its stored parts and counts.
+  if (puzzle.type === "bastion" && (puzzle.bastionRev ?? 1) >= 2) {
+    const kills = Number(result.extra?.["kills"] ?? 0);
+    const base = Number(result.extra?.["base"] ?? 0);
+    const fell = result.extra?.["fell"] === true;
+    const ended = Number(result.extra?.["endedSeconds"] ?? 0);
+    const spec = ARCADE_STANDARD["bastion"]?.spec;
+    const parts = (spec?.parts ?? []).map((p) => `${p.label} ${Number(result.extra?.[`part_${p.key}`] ?? 0)}/${p.max}`);
+    return {
+      summary: fell ? `${kills} tanks · base fell at ${ended.toFixed(1)}s` : `${kills} tanks · base ${base} / 3`,
+      detail: parts,
+    };
+  }
   const destroyed = Number(result.extra?.["destroyed"] ?? 0);
   const health = Number(result.extra?.["health"] ?? 0);
   const survived = result.extra?.["survived"] !== false;
@@ -1546,7 +1571,7 @@ const snipSummary: SummaryBuilder = (result) => {
 };
 
 const swingSummary: SummaryBuilder = (result) => {
-  // swingRev 15 (the swinging course): the share of the course, restarts, pars and pickups.
+  // swingRev 15 (the swinging course) and 16 (its dark ledge runs): the share of the course, restarts, pars and pickups.
   if (Number(result.extra?.["swingRev"] ?? 0) >= 15) {
     const x = (k: string) => Number(result.extra?.[k] ?? 0);
     return {
