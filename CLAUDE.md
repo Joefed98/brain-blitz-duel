@@ -1093,7 +1093,8 @@ outside the repo.
   27); snake-rev12-check. **Grappler** `swingRev 16` (`SWING_REV_DARK`, the state's `dark`): 90 s (5,400 ticks; the
   definition's clock 93 s, older rounds end at 60 s), a 42-block course (six ledge runs, three squeezes), the dragon over
   the last quarter; ledge runs go dark past the next ledge (`swingDarkFrom` / `swingHookLit`: dark hooks can't be
-  grabbed, the renderer veils them, landing lights the next part); `pinSwingPreDark(true)` deals rev 15;
+  grabbed, the renderer veils them, landing lights the next part; display only, the whole world dims ~30 % under a soft
+  vignette while on a ledge section, `swingLedgeDim`, fading over 20 ticks, the HUD and edge warnings over it); `pinSwingPreDark(true)` deals rev 15;
   swing-dark-check. **Gemstone** `matchupRev 12` (`MATCHUP_REV_SIX`, the state's `six`): six colour goals shown at
   once under the board (seeded sizes 20–60, `matchupV12GoalNeed`), six treasures; core 108 full at 360 gems, treasure
   36, goals 36, ice 10, big lines 10; gemstone-rev12-check. Older stamps replay and score as before (each check's
