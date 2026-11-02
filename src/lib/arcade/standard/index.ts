@@ -25,6 +25,8 @@ import * as ricochet from "./ricochet";
 import * as minigolf from "./minigolf";
 import * as pool from "./pool";
 import * as curling from "./curling";
+import * as blockfall from "./blockfall";
+import * as alleyroll from "./alleyroll";
 
 export interface ArcadeStdEntry {
   spec: StdSpec | null;
@@ -52,6 +54,8 @@ export const ARCADE_STANDARD: Readonly<Record<string, ArcadeStdEntry>> = {
   minigolf,
   pool,
   curling,
+  blockfall,
+  alleyroll,
 };
 
 /** The standard parts of a final state, or null when the game or the state's revision is not on the standard. */

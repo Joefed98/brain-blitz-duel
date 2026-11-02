@@ -1,7 +1,7 @@
 import { useMemo, useRef } from "react";
 
 import { gameDisplayName } from "@/lib/duel/gameNames";
-import { FH_CHECKPOINT_INTERVAL, FH_CORE_FULL, FH_INPUT_PLACE, FH_REV, FH_ROWS, FH_TURNS, fhApply, fhCheckpoint, fhDeal, type FhState } from "@/lib/arcade/cards/fiveHands";
+import { FH_CHECKPOINT_INTERVAL, FH_CORE_FULL, FH_INPUT_PLACE, FH_REV, FH_REV_STEEP, fhCoreFullFor, FH_ROWS, FH_TURNS, fhApply, fhCheckpoint, fhDeal, type FhState } from "@/lib/arcade/cards/fiveHands";
 import { drawFiveHands, fhHitRow, fhNewView, fhOnNext, fiveHandsArtGame, FH_BG, FH_WORLD_H, FH_WORLD_W } from "@/lib/arcade/cards/fiveHands.renderer";
 import { cardsFill } from "@/lib/arcade/cards/cardsFill.renderer";
 import { encodeFiveHandsRun, replayFiveHandsRun } from "@/lib/duel/cards";
@@ -14,8 +14,8 @@ import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./ty
 
 /** The intro still: seed 0's deal seven turns in, placed as its witness places them. */
 function introState(): FhState {
-  let s = fiveHandsArtGame().init(0);
-  const taps = fhDeal(0).witnessTaps;
+  let s = fiveHandsArtGame(undefined, FH_REV).init(0);
+  const taps = fhDeal(0, FH_REV).witnessTaps;
   for (let t = 0; t < 7; t++) s = fhApply({ ...s, tick: s.tick + 20 }, taps[t]!) ?? s;
   return { ...s, lastTick: 0 };
 }
@@ -29,10 +29,11 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const view = useMemo(() => fhNewView(), []);
   const latest = useRef<FhState | null>(null);
   const start = useRef<{ fromNext: boolean; row: number } | null>(null);
+  const rev = data?.fiveHandsRev ?? 1;
   const game = useMemo(() => {
-    const art = fiveHandsArtGame(view);
+    const art = fiveHandsArtGame(view, rev);
     return { ...art, draw: (ctx: CanvasRenderingContext2D, state: FhState, size: { width: number; height: number }) => { latest.current = state; art.draw(ctx, state, size); } };
-  }, [view]);
+  }, [view, rev]);
 
   // A tap on a row places your card there; dragging the card onto a row does too.
   const pointer = (kind: "down" | "move" | "up", x: number, y: number): PointerPayload | null => {
@@ -85,7 +86,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   );
 }
 
-export function fiveHandsLine(r: { total: number; made: number }): string {
+export function fiveHandsLine(r: { total: number; made: number }, rev?: number | null): string {
+  if ((rev ?? 1) >= FH_REV_STEEP) return `${r.total} hand points (full at ${fhCoreFullFor(rev)}) · ${r.made} of ${FH_ROWS} rows with a hand`;
   return `${r.total} hand points (full at ${FH_CORE_FULL}) · ${r.made} of ${FH_ROWS} hands made`;
 }
 
@@ -94,7 +96,7 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   const result = replayFiveHandsRun(puzzle.seed, myAnswer ?? "", puzzle.fiveHandsRev);
   return (
     <div className="flex min-h-0 w-full flex-1 flex-col items-center justify-start gap-3 overflow-y-auto">
-      <p className="whitespace-normal break-words text-center font-mono text-base font-bold text-foreground">{fiveHandsLine(result)}</p>
+      <p className="whitespace-normal break-words text-center font-mono text-base font-bold text-foreground">{fiveHandsLine(result, puzzle.fiveHandsRev)}</p>
       <p className="shrink-0 text-center font-mono text-base text-muted-foreground">{result.placed} of {FH_TURNS} cards placed</p>
       <p className="shrink-0 text-center font-mono text-base text-muted-foreground">Same deck for everyone</p>
     </div>

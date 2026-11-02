@@ -5,7 +5,12 @@
  * cards cleared, Poker Squares' hand points: an open-ended core is full at the near-perfect median), the share of runs
  * finished, and the median finish time (each speed part is full by the near-perfect median's).
  *
- *   bun scripts/cards-bands.ts [freecell tripeaks pokersquares] [--seeds=60] [--from=0]
+ *   bun scripts/cards-bands.ts [freecell tripeaks pokersquares fivehands] [--seeds=60] [--from=0]
+ *
+ * `--at=<s>` adds each level's median core units <s> seconds into the run (Free Cell freecellRev 3's full figure is the
+ * near-perfect median at 60 s, before its final run of cards home).
+ *
+ * The mean column (1 Nov 2026) separates levels whose medians land on the same step (Five Hands' 5-point hands).
  */
 import { ALL_LEVELS, Human, LEVEL_LABEL } from "./arcade-skill-bands/human";
 import { GAME_BY_TYPE } from "./arcade-skill-bands/games";
@@ -18,6 +23,7 @@ const args = process.argv.slice(2);
 const opt = (name: string) => args.find((a) => a.startsWith(`--${name}=`))?.slice(name.length + 3);
 const SEEDS = Number(opt("seeds") ?? 60);
 const FROM = Number(opt("from") ?? 0);
+const AT = opt("at") ? Number(opt("at")) : null;
 const TYPES = args.filter((a) => !a.startsWith("--"));
 const pct = (xs: number[], p: number) => (xs.length ? [...xs].sort((a, b) => a - b)[Math.min(xs.length - 1, Math.floor(p * xs.length))]! : NaN);
 
@@ -25,16 +31,24 @@ for (const type of TYPES.length ? TYPES : ["freecell", "tripeaks", "pokersquares
   const spec = GAME_BY_TYPE.get(type as never)!;
   const { bot } = (await import(`./arcade-skill-bands/bots/${type}.ts`)) as { bot: SkillBot };
   console.log(`\n${type}: ${SEEDS} seeds from ${FROM}`);
-  console.log("level          median  p10–p90    units  finished  finish median (p10–p90)");
+  console.log("level          median  p10–p90    mean   units  finished  finish median (p10–p90)");
   for (const level of ALL_LEVELS) {
     const scores: number[] = [];
     const finish: number[] = [];
     const units: number[] = [];
+    const unitsAt: number[] = [];
     for (let n = FROM; n < FROM + SEEDS; n++) {
       const seed = spec.seedFor(n);
       const game = spec.gameFor(spec.live, seed);
       const out = bot({ game, seed, rev: spec.live, human: new Human(type, seed, level), fixes: true });
       const events = out.events ?? [];
+      if (AT !== null) {
+        // Step the dealt game through the log to AT seconds (the log's own ticks; the replay's state at the end is the same game).
+        const byTick = new Map(events.map((e) => [e.t, e]));
+        let st = game.init(seed);
+        for (let t = 1; t <= AT * 60 && !game.isOver(st); t++) st = game.step(st, byTick.get(t) ?? null);
+        unitsAt.push(UNITS[type]!(st).u);
+      }
       const raw = spec.encode({ seed, claimedScore: 0, events, endTick: 0, checkpoints: [] }, spec.live, seed);
       const r = spec.replay(seed, raw, spec.live);
       scores.push(r.score);
@@ -42,6 +56,8 @@ for (const type of TYPES.length ? TYPES : ["freecell", "tripeaks", "pokersquares
       if (r.state.ended === 1) finish.push(r.state.finishTick / 60);
     }
     const f = finish.length ? `${pct(finish, 0.5).toFixed(1)} s (${pct(finish, 0.1).toFixed(1)}–${pct(finish, 0.9).toFixed(1)})` : "—";
-    console.log(`${LEVEL_LABEL[level].padEnd(14)} ${String(pct(scores, 0.5)).padStart(6)}  ${`${pct(scores, 0.1)}–${pct(scores, 0.9)}`.padEnd(9)}  ${String(pct(units, 0.5)).padStart(5)}  ${`${finish.length}/${SEEDS}`.padEnd(8)}  ${f}`);
+    const mean = scores.reduce((a, b) => a + b, 0) / Math.max(1, scores.length);
+    const atText = AT !== null ? `  units at ${AT} s ${pct(unitsAt, 0.5)}` : "";
+    console.log(`${LEVEL_LABEL[level].padEnd(14)} ${String(pct(scores, 0.5)).padStart(6)}  ${`${pct(scores, 0.1)}–${pct(scores, 0.9)}`.padEnd(9)}  ${mean.toFixed(1).padStart(5)}  ${String(pct(units, 0.5)).padStart(5)}  ${`${finish.length}/${SEEDS}`.padEnd(8)}  ${f}${atText}`);
   }
 }

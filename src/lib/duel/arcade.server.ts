@@ -46,7 +46,9 @@ import { TP_REV } from "@/lib/arcade/cards/tripeaks";
 import { TP_DEALS } from "@/lib/arcade/cards/tripeaksDeals.data";
 import { PS_REV } from "@/lib/arcade/cards/pokerSquares";
 import { FH_REV } from "@/lib/arcade/cards/fiveHands";
-import type { FiveHandsPuzzleData, FreecellPuzzleData, PokerSquaresPuzzleData, TripeaksPuzzleData } from "./types";
+import { BLOCKFALL_REV } from "@/lib/arcade/blockfall";
+import { blockfallDealSeed } from "./blockfallDeal.server";
+import type { BlockfallPuzzleData, FiveHandsPuzzleData, FreecellPuzzleData, PokerSquaresPuzzleData, TripeaksPuzzleData } from "./types";
 import { bullseyeWinds, BULLSEYE_REV_TARGET, BULLSEYE_REV_STRICT, BULLSEYE_REV_STD } from "@/lib/arcade/bullseye";
 import type {
   BinTossPuzzleData,
@@ -111,6 +113,11 @@ export function generatePokerSquares(): PokerSquaresPuzzleData {
 /** Five Hands: any seed; the sim shuffles the deck and proves its witness (perfect play reaches 200). */
 export function generateFiveHands(): FiveHandsPuzzleData {
   return { type: "fivehands", seed: arcadeSeed(), fiveHandsRev: FH_REV };
+}
+
+/** Blockfall (Retro, 1 Nov 2026): a seed from the proved deal (the oracle took it to 200 through the server replay). */
+export function generateBlockfall(): BlockfallPuzzleData {
+  return { type: "blockfall", seed: blockfallDealSeed(arcadeSeed()), blockfallRev: BLOCKFALL_REV };
 }
 
 export function generateSwerve(): SwervePuzzleData {

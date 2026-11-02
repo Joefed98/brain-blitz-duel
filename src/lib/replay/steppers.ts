@@ -42,6 +42,8 @@ import { isNinjaRev } from "@/lib/duel/ricochet";
 import { minigolfGameFor } from "@/lib/arcade/minigolf";
 import { poolGameFor } from "@/lib/arcade/pool";
 import { curlingGameFor } from "@/lib/arcade/curling";
+import { blockfallGameFor } from "@/lib/arcade/blockfall";
+import { alleyRollGameFor } from "@/lib/arcade/alleyroll";
 import { rallyGameFor } from "@/lib/arcade/rally";
 import { sliceGameFor } from "@/lib/arcade/slice";
 import { bubbleGameFor } from "@/lib/arcade/bubble";
@@ -209,6 +211,8 @@ const SOURCES: Record<string, (p: PuzzleData) => GameSource> = {
   // Ricochet: the ninja wall-climb (ricoRev 2, events) or the original shaft (a tap list).
   ricochet: (p) => (isNinjaRev(rev(p, "ricoRev")) ? { game: ninjaGame as AnyGame } : { game: ricoGame as AnyGame, taps: true }),
   curling: (p) => ({ game: curlingGameFor(rev(p, "curlRev") ?? 1) as AnyGame }),
+  blockfall: (p) => ({ game: blockfallGameFor(rev(p, "blockfallRev")) as AnyGame }),
+  alleyroll: (p) => ({ game: alleyRollGameFor(rev(p, "alleyRollRev")) as AnyGame }),
   pool: (p) => ({ game: poolGameFor(rev(p, "poolRev")) as AnyGame }),
   minigolf: (p) => ({ game: minigolfGameFor(p.type === "minigolf" ? p.pars : undefined, p.type === "minigolf" ? p.golfRev : undefined) as AnyGame }),
   rally: (p) => ({ game: rallyGameFor(rev(p, "rallyRev")) as AnyGame }),

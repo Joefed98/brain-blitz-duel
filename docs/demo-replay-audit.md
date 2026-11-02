@@ -152,6 +152,8 @@ Replay columns describe the room's results-screen highlight and the podium's pla
 | Tempo (`beat`) | Arcade | No (stopped) | n/a: still | Arcade highlight | Yes: the stored run | Demo stopped until recorded on `beatRev 6`+ (tall). |
 | Tilt (`tilt`) | Arcade | Not confirmed | Yes | Arcade highlight | Yes: the stored run | |
 | Wavefront (`wavefront`) | Arcade | No (stopped) | n/a: still | Arcade highlight | Yes: the stored run | Demo stopped until recorded on `wavRev 6`+ (tall). |
+| Blockfall (`blockfall`) | Arcade | No (none yet) | n/a: still | Arcade highlight | Yes: the stored run | New 1 Nov 2026: on the later list for a demo recorded on `blockfallRev 1`; the intro shows its still. |
+| Alley Roll (`alleyroll`) | Arcade | No (none yet) | n/a: still | Arcade highlight | Yes: the stored run | New 1 Nov 2026: on the later list for a demo recorded on `alleyRollRev 1`; the intro shows its still. |
 
 "Yes" under *Demo at 414×896* means the player, box and layout pass `demo-intro-check` with a stand-in
 demo; a stopped demo's intro shows its still (also proved there, as the no-demo case).
@@ -185,7 +187,10 @@ first; within them, "stopped" ones are certain, the rest depend on the query abo
 6. Mixed Signals (stopped: tall `clashRev`)
 7. Ball Tracker, Breaker, Coral Pop, Fission, Grappler, Orbit, Rally, Slice, Tempo, Wavefront
    (stopped: their tall revisions)
-8. Ricochet (1 Nov 2026: the ninja wall-climb, `ricoRev` 2; no demo recorded yet, the intro shows its still, a frame
+8. Fences, Fillomino, Bridges and Kakuro (new 1 Nov 2026; no demo recorded yet: their intros show the fixed still
+   until one is recorded on `fencesRev` / `fillominoRev` / `bridgesRev` / `kakuroRev` 1). Their replays show the
+   winner's final board ("Final state only, needs an action log" above).
+9. Ricochet (1 Nov 2026: the ninja wall-climb, `ricoRev` 2; no demo recorded yet, the intro shows its still, a frame
    of seed 0's witness climb drawn by the game's own renderer). Record one on `ricoRev` 2 later.
 
 ## Arcade reveal line

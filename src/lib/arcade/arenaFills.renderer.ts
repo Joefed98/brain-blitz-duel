@@ -28,7 +28,7 @@ import { paintMahjongWood } from "./mahjong.renderer";
 /** Games whose fill moves (slowly); everything else is painted once per size. */
 export const ARENA_FILL_MOVING = ["pinball", "rally", "beat", "snake", "cross", "flip", "burst"] as const;
 /** Games whose fill also runs down their sides when the world is narrower than the screen. */
-export const ARENA_FILL_SIDES = ["wavefront", "snake", "balltrack", "beat", "matchup", "clayshoot", "minesweeper", "mahjong", "freecell", "tripeaks", "pokersquares", "fivehands", "ricochet"] as const;
+export const ARENA_FILL_SIDES = ["wavefront", "snake", "balltrack", "beat", "matchup", "clayshoot", "minesweeper", "mahjong", "freecell", "tripeaks", "pokersquares", "fivehands", "blockfall", "alleyroll", "ricochet"] as const;
 /** Games centred on the play screen (item 23), their world's size unchanged. */
 export const ARENA_FILL_CENTRED = ["pinball", "snake", "snip", "matchup", "whack"] as const;
 

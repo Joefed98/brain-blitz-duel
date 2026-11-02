@@ -31,6 +31,8 @@ import { isNinjaRev } from "@/lib/duel/ricochet";
 import { drawMinigolf } from "@/lib/arcade/minigolf.renderer";
 import { drawPool } from "@/lib/arcade/pool.renderer";
 import { drawCurling } from "@/lib/arcade/curling.renderer";
+import { blockfallArt } from "@/lib/arcade/blockfall.renderer";
+import { alleyRollArt } from "@/lib/arcade/alleyroll.renderer";
 import { rallyArtGame } from "@/lib/arcade/rally.renderer";
 import { sliceArtGame } from "@/lib/arcade/slice.renderer";
 import { bubbleArtGame } from "@/lib/arcade/bubble.renderer";
@@ -95,6 +97,8 @@ const SIMPLE: Record<string, (p: PuzzleData) => Draw> = {
   fivehands: () => fiveHandsArt.draw as Draw,
   ricochet: (p) => (isNinjaRev(rev(p, "ricoRev")) ? ninjaArtGame.draw : ricoGame.draw) as Draw,
   curling: () => ((ctx, s) => drawCurling(ctx, s, null)) as Draw,
+  blockfall: () => blockfallArt.draw as Draw,
+  alleyroll: () => alleyRollArt.draw as Draw,
   pool: () => ((ctx, s) => drawPool(ctx, s, null)) as Draw,
   minigolf: () => ((ctx, s) => drawMinigolf(ctx, s, null)) as Draw,
   rally: () => rallyArtGame.draw as Draw,

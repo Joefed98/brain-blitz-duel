@@ -99,6 +99,10 @@ import { ricoGame, RICO_WORLD_H, RICO_WORLD_W } from "./ricochet";
 import { replayMinigolfRun } from "@/lib/duel/minigolf";
 import { replayPoolRun } from "@/lib/duel/pool";
 import { replayCurlingRun } from "@/lib/duel/curling";
+import { replayBlockfallRun } from "@/lib/duel/blockfall";
+import { replayAlleyRollRun } from "@/lib/duel/alleyroll";
+import { blockfallArt, BF_WORLD_H, BF_WORLD_W } from "./blockfall.renderer";
+import { alleyRollArt, AR_WORLD_H, AR_WORLD_W } from "./alleyroll.renderer";
 import { drawCurling } from "./curling.renderer";
 import { CURLING_H, CURLING_W, curlingWorldHFor, type CurlingState } from "./curling";
 import { drawPool } from "./pool.renderer";
@@ -216,6 +220,8 @@ export const ARCADE_REVEAL_RENDERERS: Record<string, ArcadeRevealRenderer> = {
     },
   },
   fivehands: simple(GOLD, FH_WORLD_W, FH_WORLD_H, fiveHandsArt, (p, a) => replayFiveHandsRun(seedOf(p), a, p.type === "fivehands" ? p.fiveHandsRev : undefined)),
+  blockfall: simple(GOLD, BF_WORLD_W, BF_WORLD_H, blockfallArt, (p, a) => replayBlockfallRun(seedOf(p), a, p.type === "blockfall" ? p.blockfallRev : undefined)),
+  alleyroll: simple(GOLD, AR_WORLD_W, AR_WORLD_H, alleyRollArt, (p, a) => replayAlleyRollRun(seedOf(p), a, p.type === "alleyroll" ? p.alleyRollRev : undefined)),
   hover: simple("#2ED3B7", 390, 560, hoverGame, (p, a) => replayHoverRun(seedOf(p), a, p.type === "hover" ? p.hoverRev : undefined), undefined, hoverRevealGame, (p) => hoverWorldHFor(p.type === "hover" ? p.hoverRev : undefined)),
   skyline: simple(GOLD, 390, 560, skylineGame, (p, a) => replaySkylineRun(seedOf(p), a, p.type === "skyline" ? p.skylineRev : undefined), undefined, skylineRevealGame, (p) => skylineWorldHFor(p.type === "skyline" ? p.skylineRev : undefined)),
   // binRev 7: the wider fairground (430 × 728) drawn at 390 wide, so 660 tall.

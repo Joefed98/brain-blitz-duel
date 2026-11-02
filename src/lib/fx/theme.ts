@@ -82,6 +82,10 @@ const PUZZLE_MUSIC: Partial<Record<PuzzleType, SoundId>> = {
   sudoku: "music_logic_1",
   nonogram: "music_logic_1",
   shikaku: "music_logic_1",
+  fences: "music_logic_2",
+  fillomino: "music_logic_1",
+  bridges: "music_logic_3",
+  kakuro: "music_number_2",
   lightup: "music_logic_1",
   tents: "music_logic_1",
   pipes: "music_logic_2",
@@ -108,6 +112,9 @@ const WORLD_MUSIC: Partial<Record<PuzzleType, SoundId>> = {
   tripeaks: "music_matchup",
   pokersquares: "music_matchup",
   fivehands: "music_matchup",
+  // Blockfall and Alley Roll (1 Nov 2026): their own slots, on borrowed tracks (manifest.ts).
+  blockfall: "music_blockfall",
+  alleyroll: "music_alleyroll",
   // The Sports group (30 Oct 2026) has no tracks of its own yet: it borrows existing real-world beds.
   homerun: "music_skyline",
   freekick: "music_cross",

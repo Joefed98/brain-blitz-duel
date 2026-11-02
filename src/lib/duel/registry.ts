@@ -53,6 +53,8 @@ import { fiveHandsPuzzle } from "@/puzzles/fiveHands";
 import { minigolfPuzzle } from "@/puzzles/minigolf";
 import { poolPuzzle } from "@/puzzles/pool";
 import { curlingPuzzle } from "@/puzzles/curling";
+import { blockfallPuzzle } from "@/puzzles/blockfall";
+import { alleyRollPuzzle } from "@/puzzles/alleyroll";
 import { removedGameDefinition } from "@/puzzles/removedGame";
 import { PINBALL_IN_ROOMS } from "@/lib/arcade/pinball";
 import { rallyPuzzle } from "@/puzzles/rally";
@@ -95,6 +97,10 @@ import { digPuzzle } from "@/puzzles/dig";
 import { measurePuzzle } from "@/puzzles/measure";
 import { checkoutPuzzle } from "@/puzzles/checkout";
 import { numlinePuzzle } from "@/puzzles/numline";
+import { fencesPuzzle } from "@/puzzles/fences";
+import { fillominoPuzzle } from "@/puzzles/fillomino";
+import { bridgesPuzzle } from "@/puzzles/bridges";
+import { kakuroPuzzle } from "@/puzzles/kakuro";
 
 import type { PuzzleDefinition } from "@/puzzles/types";
 
@@ -220,6 +226,9 @@ const BASE_REGISTRY: Record<PuzzleType, Omit<PuzzleDefinition, "instructions">> 
   minigolf: minigolfPuzzle,
   pool: poolPuzzle,
   curling: curlingPuzzle,
+  // Blockfall (Retro) and Alley Roll (Sports), 1 Nov 2026: born on the arcade standard (docs/arcade-standard/blockfall.md, alleyroll.md).
+  blockfall: blockfallPuzzle,
+  alleyroll: alleyRollPuzzle,
   rally: rallyPuzzle,
   steady: steadyPuzzle,
   slice: slicePuzzle,
@@ -260,6 +269,11 @@ const BASE_REGISTRY: Record<PuzzleType, Omit<PuzzleDefinition, "instructions">> 
   measure: measurePuzzle,
   checkout: checkoutPuzzle,
   numline: numlinePuzzle,
+  // New grid puzzles (1 Nov 2026), born on the scoring standard.
+  fences: fencesPuzzle,
+  fillomino: fillominoPuzzle,
+  bridges: bridgesPuzzle,
+  kakuro: kakuroPuzzle,
 };
 
 export const PUZZLE_REGISTRY = Object.fromEntries<RegisteredPuzzleDefinition>(

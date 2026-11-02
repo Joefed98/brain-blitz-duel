@@ -19,6 +19,8 @@ import { FREECELL_FX } from "./cards/freecell.renderer";
 import { TRIPEAKS_FX } from "./cards/tripeaks.renderer";
 import { POKERSQUARES_FX } from "./cards/pokerSquares.renderer";
 import { FIVEHANDS_FX } from "./cards/fiveHands.renderer";
+import { BLOCKFALL_FX } from "./blockfall.renderer";
+import { ALLEYROLL_FX } from "./alleyroll.renderer";
 import { NINJA_FX } from "./ricochetNinja.renderer";
 import { px } from "./engine";
 
@@ -290,6 +292,9 @@ export const ARCADE_GAME_WORLDS = {
   minigolf: "realworld",
   pool: "realworld",
   curling: "realworld",
+  // Blockfall (Retro) and Alley Roll (Sports: a warm arcade alley), 1 Nov 2026.
+  blockfall: "retro",
+  alleyroll: "fairground",
   // Ricochet (ricoRev 2, 1 Nov 2026): the ninja wall-climb on a night temple.
   ricochet: "realworld",
 } as const satisfies Record<string, ArcadeWorld>;
@@ -1794,6 +1799,8 @@ export const ARCADE_FX_SPECS = {
   minigolf: MINIGOLF_FX,
   pool: POOL_FX,
   curling: CURLING_FX,
+  blockfall: BLOCKFALL_FX,
+  alleyroll: ALLEYROLL_FX,
 } satisfies Record<ArcadeFxGame, ArcadeFxSpec<never>>;
 
 /* ============================ Engine word games ============================ */

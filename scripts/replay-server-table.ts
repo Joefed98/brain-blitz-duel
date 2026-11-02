@@ -44,6 +44,8 @@ import { replayColourClashRun } from "../src/lib/duel/colourClash";
 import { replayMinigolfRun } from "../src/lib/duel/minigolf";
 import { replayPoolRun } from "../src/lib/duel/pool";
 import { replayCurlingRun } from "../src/lib/duel/curling";
+import { replayBlockfallRun } from "../src/lib/duel/blockfall";
+import { replayAlleyRollRun } from "../src/lib/duel/alleyroll";
 
 export interface ServerReplay {
   score: number;
@@ -95,6 +97,8 @@ const TABLE: Record<string, (p: any, a: string) => ServerReplay> = {
   minigolf: (p, a) => replayMinigolfRun(p.seed, a, p.pars, p.golfRev),
   pool: (p, a) => replayPoolRun(p.seed, a, p.poolRev),
   curling: (p, a) => replayCurlingRun(p.seed, a, p.curlRev),
+  blockfall: (p, a) => replayBlockfallRun(p.seed, a, p.blockfallRev),
+  alleyroll: (p, a) => replayAlleyRollRun(p.seed, a, p.alleyRollRev),
 };
 
 export function serverReplay(puzzle: PuzzleData, answer: string): ServerReplay {

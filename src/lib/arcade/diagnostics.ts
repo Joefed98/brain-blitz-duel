@@ -53,6 +53,8 @@ import { racingCheckpoint } from "./racing";
 import { minigolfCheckpoint } from "./minigolf";
 import { poolCheckpoint } from "./pool";
 import { curlingCheckpoint } from "./curling";
+import { bfCheckpoint } from "./blockfall";
+import { arCheckpoint } from "./alleyroll";
 import type { InputDiag } from "./engine";
 import { devDisplayAllowed } from "../devDisplay";
 
@@ -76,6 +78,8 @@ const SNAPSHOTS: Record<string, (state: any) => object> = {
   tripeaks: tpCheckpoint,
   pokersquares: psCheckpoint,
   fivehands: fhCheckpoint,
+  blockfall: bfCheckpoint,
+  alleyroll: arCheckpoint,
   bubble: bubCheckpoint,
   bullseye: bullseyeCheckpoint,
   cross: crossCheckpoint,
