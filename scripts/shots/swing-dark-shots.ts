@@ -2,7 +2,8 @@
  * Grappler's dark ledge runs (swingRev 16) review frames: the game's own renderer (swing.renderer.ts) drawing states
  * from an elite skill-band run on room seed 3: a ledge run coming up (dark past its first ledge), a ledge section in
  * the air before its landing (dark past the landing ledge), the moment after the landing (the next part lighting up)
- * and the stretch after the run (only its first hook lit). Phone frames in the play screen's geometry (a 60 px header
+ * and the stretch after the run (only its first hook lit), all under the ledge-run dim (a soft vignette over the scene),
+ * then the dim lifted once that stretch's first hook is grabbed. Phone frames in the play screen's geometry (a 60 px header
  * stand-in, the 450 × 844 world at the largest uniform scale in the iPhone 11 home-screen box, 414 × 772), and one
  * computer frame (1366 × 768, the `tall` desktop mode: the world full height in the centred column), at 2× device
  * pixels. A design tool, not a check.
@@ -12,7 +13,7 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { createCanvas, GlobalFonts } from "@napi-rs/canvas";
 import { swingGameFor, swingDarkFrom, SWING_KIND_SWING, SWING_NO_DARK, SWING_REV_DARK, type SwingState } from "../../src/lib/arcade/swing";
-import { swingArtGameFor } from "../../src/lib/arcade/swing.renderer";
+import { swingArtGameFor, swingLedgeDim } from "../../src/lib/arcade/swing.renderer";
 import { bot } from "../arcade-skill-bands/bots/swing";
 import { Human } from "../arcade-skill-bands/human";
 import { roomSeed } from "../arcade-skill-bands/games";
@@ -47,7 +48,7 @@ function draw(state: SwingState, label: string, file: string, w: number, h: numb
   ctx.font = "500 12px Archivo";
   ctx.fillText(label, 14, 48);
   writeFileSync(`${OUT}/${file}`, canvas.toBuffer("image/png"));
-  console.log(`${OUT}/${file}: tick ${state.tick} · stretch ${(state.sec ?? 0) + 1} · ${label}`);
+  console.log(`${OUT}/${file}: tick ${state.tick} · stretch ${(state.sec ?? 0) + 1} · dim ${swingLedgeDim(state).toFixed(2)} · ${label}`);
 }
 const phone = (state: SwingState, label: string, name: string) => draw(state, label, `grappler-dark-${name}-414x896.png`, 414, 896, 60, 772);
 
@@ -85,6 +86,9 @@ phone(states[landIdx + 30]!, "After the landing: lit up to the next ledge", "aft
 // The stretch after a run: standing on the run's last ledge, only the next stretch's first hook lit.
 const afterRun = states.find((st) => secOf(st).kind === SWING_KIND_SWING && (secOf(st).from ?? -1) >= 0 && (st.ledgeOn ?? -1) >= 0 && st.tick - (st.secStart ?? 0) >= 22) ?? states.find((st) => secOf(st).kind === SWING_KIND_SWING && (secOf(st).from ?? -1) >= 0 && (st.ledgeOn ?? -1) >= 0);
 if (afterRun) phone(afterRun, "Landed on the run's last ledge: the light comes up to the next hook", "after-run");
+// The dim lifted: that stretch's first hook grabbed, the fade over.
+const lifted = afterRun && states.find((st) => st.tick > afterRun.tick && (st.sec ?? 0) === (afterRun.sec ?? 0) && swingDarkFrom(st) === SWING_NO_DARK && st.tick - st.grabTick >= 30);
+if (lifted) phone(lifted, "First hook after the run grabbed: the dim lifts", "lifted");
 // The computer layout (tall mode): the world full height in a centred column under a 56 px header.
 draw(air, "Computer (1366 × 768, tall): dark past the landing ledge", "grappler-dark-before-landing-1366x768.png", 1366, 768, 56, 768 - 56 - 16);
 draw(states[landIdx + 30]!, "Computer (1366 × 768, tall): lit to the next ledge", "grappler-dark-after-landing-1366x768.png", 1366, 768, 56, 768 - 56 - 16);

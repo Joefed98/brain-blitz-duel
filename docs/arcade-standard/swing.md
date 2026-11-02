@@ -130,6 +130,13 @@ before (swing-dark-check replays 24 runs recorded on unmodified main ae1efbe, `s
   renderer draws no hook there and a near-black veil over everything past it, from the same function, so a hook is
   drawn exactly when it can be grabbed. The bots' look-ahead (`swingBotKit.target`) reads the same dark: they never aim
   at a hook they cannot see.
+- **The ledge-run dim** (display only, `swingLedgeDim` / `drawLedgeDim` in `swing.renderer.ts`, rev 16 states only):
+  from the stretch that ends on a run's first ledge until the dark lifts at the first hook after the run (exactly while
+  `swingDarkFrom` is set), the whole scene is dimmed under a soft vignette (25 % in the middle to 55 % at the corners,
+  about 30 % over the view), on top of the dark past the next ledge, so a platform section reads even when the camera
+  puts the dark at the screen's edge. It fades in over 20 ticks from that stretch's start and out over 20 ticks from the
+  grab that lifts it (on or off with reduced motion); the HUD and the edge warnings are drawn over it. The vignette is
+  built once per canvas and world size, one fill a frame.
 
 ## Scoring (unchanged parts)
 
@@ -189,6 +196,6 @@ appended) follow rev 16.
 - Screenshots: `screenshots/arcade-tuning-nov-2026/grappler-dark-*.png` (`bun scripts/shots/swing-dark-shots.ts`): a
   ledge run coming up, a ledge section before and after its landing, the run's last ledge, at 414×896, and the computer
   layout (1366×768, `tall`). On a ledge section the camera frames the section with its landing ledge near the right
-  edge, so the dark shows there as a strip at the edge; it reads most clearly on the stretch before a run and on the
-  run's last ledge.
+  edge, so the dark shows there as a strip at the edge; the ledge-run dim over the whole scene marks the section anyway.
+  `grappler-dark-lifted-414x896.png` shows the scene once the first hook after the run is grabbed (the dim lifted).
 - Build time: about 1.5× rev 15's (about 130–230 ms a course here unthrottled, so roughly 0.4–0.8 s at a 4× CPU throttle), still built while the intro is up (`prepareSwingCourse`); async rounds (the daily, challenges) build at the round's start, as on rev 15.
