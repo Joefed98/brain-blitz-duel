@@ -89,6 +89,11 @@ import { pyCheckpoint, pyramidGameFor, PY_REV } from "../../src/lib/arcade/cards
 import { gsCheckpoint, golfSolGameFor, GS_REV } from "../../src/lib/arcade/cards/golfSol";
 import { GS_DEALS } from "../../src/lib/arcade/cards/golfSolDeals.data";
 import { mgCheckpoint, mugginsGameFor, MG_REV } from "../../src/lib/arcade/cards/muggins";
+import { bfCheckpoint, blockfallGameFor, BLOCKFALL_REV } from "../../src/lib/arcade/blockfall";
+import { encodeBlockfallRun, replayBlockfallRun } from "../../src/lib/duel/blockfall";
+import { blockfallDealSeed } from "../../src/lib/duel/blockfallDeal.server";
+import { alleyRollGameFor, arCheckpoint, ALLEYROLL_REV } from "../../src/lib/arcade/alleyroll";
+import { encodeAlleyRollRun, replayAlleyRollRun } from "../../src/lib/duel/alleyroll";
 import { encodeFiveHandsRun, encodeFreecellRun, encodePokerSquaresRun, encodeTripeaksRun, replayFiveHandsRun, replayFreecellRun, replayPokerSquaresRun, replayTripeaksRun } from "../../src/lib/duel/cards";
 import { encodeGolfSolRun, encodeMugginsRun, encodePyramidRun, replayGolfSolRun, replayMugginsRun, replayPyramidRun } from "../../src/lib/duel/cards";
 import { minigolfCheckpoint, minigolfGameFor, MINIGOLF_REV, MINIGOLF_REV_CLASSIC } from "../../src/lib/arcade/minigolf";
@@ -98,6 +103,7 @@ import { MINIGOLF_BANK_V2, minigolfBankV2EntryFor } from "../../src/lib/duel/min
 import { poolCheckpoint, poolGameFor, POOL_REV } from "../../src/lib/arcade/pool";
 import { encodePoolRun, replayPoolRun } from "../../src/lib/duel/pool";
 import { poolBankV2SeedFor } from "../../src/lib/duel/poolBankV2.server";
+import { poolBankV3SeedFor } from "../../src/lib/duel/poolBankV3.server";
 import { curlingCheckpoint, curlingGameFor, CURLING_REV } from "../../src/lib/arcade/curling";
 import { encodeCurlingRun, replayCurlingRun } from "../../src/lib/duel/curling";
 import { curlingBankSeedFor } from "../../src/lib/duel/curlingBank.server";
@@ -302,6 +308,10 @@ export const GAMES: GameSpec[] = [
   simple("pyramid", PY_REV, PY_REV, pyramidGameFor, pyCheckpoint, encodePyramidRun, replayPyramidRun),
   { ...simple("golfsol", GS_REV, GS_REV, golfSolGameFor, gsCheckpoint, encodeGolfSolRun, replayGolfSolRun), seedFor: (n) => roomSeed(n) % GS_DEALS.length },
   simple("muggins", MG_REV, MG_REV, mugginsGameFor, mgCheckpoint, encodeMugginsRun, replayMugginsRun),
+  // Blockfall (Retro, 1 Nov 2026): born on the arcade standard; rooms deal a seed from its proved deal.
+  { ...simple("blockfall", BLOCKFALL_REV, BLOCKFALL_REV, blockfallGameFor, bfCheckpoint, encodeBlockfallRun, replayBlockfallRun), seedFor: (n) => blockfallDealSeed(roomSeed(n)) },
+  // Alley Roll (Sports, 1 Nov 2026): born on the arcade standard; one lane for every seed (rooms deal any seed).
+  simple("alleyroll", ALLEYROLL_REV, ALLEYROLL_REV, alleyRollGameFor, arCheckpoint, encodeAlleyRollRun, replayAlleyRollRun),
   // The Sports group (30 Oct 2026): Minigolf deals a bank course (seed and pars); golfRev 2 (crazy golf, 31 Oct 2026)
   // from its own bank, golfRev 1 (`seedForRev`) from the first.
   {
@@ -314,11 +324,13 @@ export const GAMES: GameSpec[] = [
     encode: (run) => encodeMinigolfRun(run),
     replay: (seed, raw, rev) => replayMinigolfRun(seed, raw, minigolfParsOf(seed), minigolfRevOf(rev ?? null, seed)),
   },
-  // Cue Ball deals a bank layout (proved clearable without a miss), poolRev 2 from its own bank (31 Oct 2026).
+  // Cue Ball deals a bank layout (proved clearable without a miss), poolRev 3 from its own bank (1 Nov 2026).
   {
     type: "pool",
     live: POOL_REV,
-    seedFor: poolBankV2SeedFor,
+    seedFor: poolBankV3SeedFor,
+    // poolRev 2 measures on its own bank's layouts.
+    seedForRev: (n, rev) => (rev === 2 ? poolBankV2SeedFor(n) : undefined),
     gameFor: (rev) => poolGameFor(rev),
     checkpoint: poolCheckpoint,
     encode: (run) => encodePoolRun(run),

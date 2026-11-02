@@ -11,7 +11,7 @@ import { arcadeFx, type ArcadeFxSpec } from "../arcadeFx.renderer";
 import { CARD_FONT, drawChip, roundRect } from "./cards.renderer";
 import { drawCardButton, inButton, type CardButtonBox } from "./cardButtons.renderer";
 import {
-  MG_BIG_FULL, MG_INPUT_DRAW, MG_INPUT_PLAY, MG_INPUT_RESET, MG_INPUT_UNDO, MG_TILE_PIPS, mgApply, mgEnds, mgEndSum, mgFits, mgPlays, mgScoreOf, mugginsGame, type MgState,
+  MG_BIG_FULL, MG_INPUT_DRAW, MG_INPUT_PLAY, MG_INPUT_RESET, MG_INPUT_UNDO, MG_TILE_PIPS, mgApply, mgEnds, mgNextTile, mgEndSum, mgFits, mgPlays, mgScoreOf, mugginsGame, type MgState,
 } from "./muggins";
 
 export const MG_WORLD_W = 414;
@@ -411,7 +411,26 @@ function drawMugginsWorld(ctx: CanvasRenderingContext2D, state: MgState, size: C
     else if (b.kind === MG_INPUT_RESET) liveBtn = live && (state.hist.length > 0 || state.resets > 0);
     else if (b.kind === MG_INPUT_DRAW) liveBtn = canDraw;
     else liveBtn = live && sel >= 0 && (fitL || fitR);
-    drawCardButton(ctx, b.box, b.icon, b.label, { live: liveBtn, held: view?.button === b.kind, primary: (b.kind === MG_INPUT_PLAY && liveBtn) || (b.kind === MG_INPUT_DRAW && canDraw) });
+    const next = b.kind === MG_INPUT_DRAW ? mgNextTile(state) : -1;
+    // Draw shows the pile's next tile face up on its right (the same tile for everyone; the label moves over for it).
+    const box = next >= 0 ? { ...b.box, w: b.box.w - 44 } : b.box;
+    if (next >= 0) {
+      roundRect(ctx, b.box.x, b.box.y, b.box.w, b.box.h, Math.min(16, b.box.h / 2));
+      ctx.fillStyle = canDraw ? "rgba(233,196,106,0.95)" : "rgba(5,12,30,0.66)";
+      ctx.fill();
+    }
+    drawCardButton(ctx, box, b.icon, b.label, { live: liveBtn, held: view?.button === b.kind, primary: (b.kind === MG_INPUT_PLAY && liveBtn) || (b.kind === MG_INPUT_DRAW && canDraw) });
+    if (next >= 0) {
+      const [a, c] = MG_TILE_PIPS[next]!;
+      const tw = 20;
+      const th = 38;
+      drawDomino(ctx, b.box.x + b.box.w - tw - 14, b.box.y + b.box.h - th - 5, tw, th, a, c);
+      ctx.fillStyle = canDraw ? "rgba(40,26,4,0.75)" : "rgba(233,220,190,0.6)";
+      ctx.font = `800 9px ${CARD_FONT}`;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText("NEXT", b.box.x + b.box.w - tw / 2 - 14, b.box.y + 8);
+    }
   }
   ctx.restore();
 }

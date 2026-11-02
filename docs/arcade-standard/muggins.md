@@ -11,14 +11,15 @@ screen fill `mugginsFill.renderer.ts`), stage `src/puzzles/muggins.tsx`, replay 
 - Lay a tile on either open end of the line where one half matches (no spinner). Whenever the two open ends add to 5,
   10, 15 or 20, that total scores. A double at an end counts both halves (it stands crosswise). A lone starting tile
   counts its pips (display only: the start never scores).
-- With no legal play, **Draw** takes one tile (Draw is refused while a tile fits).
+- **The pile's next tile lies face up** (in the Draw button, marked NEXT; the same tile for everyone in the room). With no
+  legal play, **Draw** takes it and turns over the one after (Draw is refused while a tile fits).
 - The round ends when the hand is empty, at the buzzer, or when the pile is empty and nothing can be played.
 - **A draw is final** (the follow-up, closing the peek): it can't be undone, **Undo** (kind 3) takes back plays only
   back to the latest draw, and **Reset** (kind 4) goes back to the deal before any draw and only to just after the latest
   draw once one is made (itself undoable). So no one can draw, look and take it back: the pile stays hidden.
-- **The player chooses the end.** Tap a tile, then tap (or drag it to) either end; every end it fits lights up gold with
-  what laying it there would score ("LAY HERE · +10"). Play lays it on the higher-scoring end; the other end is always
-  one tap away. Input: kind 1 a play (`a` the tile id 0–27, `b` the end: 0 left, 1 right), kind 2 Draw.
+- **The player chooses the end.** Tap a tile, then tap either lit end (its badge or its end tile) or drag the tile there;
+  every end it fits lights up gold with what laying it there would score ("LAY HERE · +10"), and a tap on a lit end
+  lays it on that end. Play lays it on the higher-scoring end; either end is always one tap away. Input: kind 1 a play (`a` the tile id 0–27, `b` the end: 0 left, 1 right), kind 2 Draw.
 
 ## The deal and the proof of 200
 
@@ -31,27 +32,28 @@ is up. cards-solitaire-check replays the witness through the server's replay to 
 
 | Part | Max | How |
 | --- | --- | --- |
-| Muggins points | 150 | a straight line, full at 55 points: just above the best levels' median (50) with the pile hidden (65 before the follow-up, set when the bots could peek) |
+| Muggins points | 150 | a straight line, full at 55 points |
 | Hand cleared | 20 | every tile played before the buzzer |
 | Speed | 20 | hand cleared only: full by 19 s (the near-perfect median clear), 0 at the buzzer |
 | Big plays | 10 | 5 for a single play scoring 15 or 20, up to 2 |
 
-## Skill bands, before → after (`bun scripts/cards-bands.ts muggins --seeds=60 --from=10000`, fresh seeds)
+The core target, re-measured with the next tile face up: the near-perfect median is 45 points. Full at 45 put average,
+good, great, near-perfect and elite all at a median of 155, so the core stays full at 55 (65 in the first commit, set
+when the bots could peek).
 
-| Level | Before (peeking) | After | Points after (median) | Cleared after |
+## Skill bands (`bun scripts/cards-bands.ts muggins --seeds=60 --from=10000`, fresh seeds)
+
+| Level | First commit (peeking) | Pile hidden | Next tile face up (full at 55) | Full at 45 (not kept) |
 | --- | --- | --- | --- | --- |
-| Weak | 103 | 100 | 35 | 27/60 |
-| Average | 128 | 132 | 40 | 42/60 |
-| Good | 142 | 155 | 50 | 33/60 |
-| Great | 148 | 155 | 50 | 38/60 |
-| Near-perfect | 194 | 158 | 45 | 46/60 |
-| Elite | 200 | 155 | 45 | 49/60 |
-| Flawless | 200 | 200 | 65 | 60/60 |
+| Weak | 103 | 100 | 100 | 116 |
+| Average | 128 | 132 | 132 | 155 |
+| Good | 142 | 155 | 146 | 155 |
+| Great | 148 | 155 | 141 | 155 |
+| Near-perfect | 194 | 158 | 141 | 155 |
+| Elite | 200 | 155 | 150 | 156 |
+| Flawless | 200 | 200 | 200 | 200 |
 
-Closing the peek removed what separated the top: no player can see the pile now, and the points a hand earns depend on
-the tiles the pile happens to give. Better players clear more often and faster, but score no more points, because an
-emptied hand ends the round and its scoring. So point medians run only from 35 to 50, the core can't spread the levels
-to Joe's targets, and good to elite sit together at 155–158. The bots (`scripts/arcade-skill-bands/bots/muggins.ts`)
-look 1 (weak, average) to 4 (near-perfect, elite) plays ahead through their own hand, valuing an emptied hand at what it
-pays and a forced draw while time is left; deeper searches measured no better. Options for Joe (rule changes, not made
-here) are in the PR.
+**Good through elite still sit within about 10 points of each other (141–150)**, as Joe asked to be told: Muggins is
+for the catalogue review rather than further tuning. With one tile known, the stronger bots (`scripts/arcade-skill-bands/
+bots/muggins.ts`: their hand and the face-up tile, 1–4 plays ahead) clear more often and faster, but the points a hand
+earns still depend mostly on the tiles the pile happens to give, and an emptied hand ends the round's scoring.

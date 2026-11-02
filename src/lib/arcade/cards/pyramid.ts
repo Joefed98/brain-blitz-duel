@@ -13,9 +13,10 @@
  * every dealt seed lets perfect play reach 200 and needs the right order (scripts/cards/pyramidSolver.ts re-proves
  * samples in cards-solitaire-check). Same deal for everyone.
  *
- * Scoring (pyramidRev 1, the arcade standard; 200 in all): the core 140 on a straight line over the 28 pyramid cards
- * removed; cleared 20; speed 20 (cleared only: full by 20 s, the flawless pace, 0 at the buzzer); pyramid pairs 20 (2
- * for each pair of two pyramid cards, up to 10).
+ * Scoring (pyramidRev 1, the arcade standard; 200 in all; Joe's split, 2 Nov 2026): the core 120 on a straight line
+ * over the 28 pyramid cards removed; cleared 10; speed 50 (cleared only: full by 20 s, the flawless pace, 0 at the
+ * buzzer), so the players who clear are told apart by how fast; pyramid pairs 20 (2 for each pair of two pyramid cards,
+ * up to 10).
  */
 import { inputRange, rngBelow, type ArcadeGame, type ArcadeInputEvent } from "../engine";
 import { stdEach, stdLine, stdPart, stdScore, stdSpeed, stdSum, type StdPart, type StdSpec } from "../arcadeStandard";
@@ -36,9 +37,9 @@ export const PY_WASTE_PILE = 29;
 export const PY_RUN_TICKS = 90 * 60;
 
 /* ---- Scoring (pyramidRev 1) ---- */
-export const PY_CORE_MAX = 140;
-export const PY_CLEAR_MAX = 20;
-export const PY_SPEED_MAX = 20;
+export const PY_CORE_MAX = 120;
+export const PY_CLEAR_MAX = 10;
+export const PY_SPEED_MAX = 50;
 export const PY_SPEED_FULL_S = 20;
 export const PY_PAIR_EACH = 2;
 export const PY_PAIR_MAX = 20;

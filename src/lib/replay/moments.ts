@@ -128,6 +128,13 @@ export const MOMENT_TABLE: readonly MomentRow[] = [
   fx("muggins", 0, "pop", "score", 15, "Ends add to 5 or 10"),
   fx("muggins", 1, "combo", "big-play", 45, "A big play: 15 or 20"),
   fx("muggins", 2, "final", "domino", 95, "Hand cleared", "finish"),
+  // Blockfall (Retro) and Alley Roll (Sports), 1 Nov 2026
+  fx("blockfall", 0, "pop", "line-clear", 10, "Rows cleared"),
+  fx("blockfall", 1, "combo", "three-or-four", 50, "Three or four rows at once"),
+  fx("blockfall", 2, "final", "full-lines", 80, "The core's lines reached"),
+  fx("alleyroll", 0, "pop", "ring-points", 10, "A ball in a ring"),
+  fx("alleyroll", 1, "streak", "pocket-hit", 50, "A 100 pocket"),
+  fx("alleyroll", 2, "final", "full-points", 80, "The core's ring points reached"),
   // Rally
   fx("rally", 0, "streak", "long-rally", 35, "Long rally (every 10 returns)"),
   fx("rally", 1, "pop", "gold", 25, "Gold ball returned"),

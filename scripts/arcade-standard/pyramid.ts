@@ -3,7 +3,7 @@
  * born on the standard. Perfect runs are each deal's witness (a clear with ten pyramid pairs) through the server's replay.
  */
 import { ARCADE_STANDARD } from "../../src/lib/arcade/standard";
-import { PY_CARDS, PY_RUN_TICKS, PY_SPEED_FULL_S, PY_SPEED_MAX, pyramidGame, pyramidStdParts, type PyState } from "../../src/lib/arcade/cards/pyramid";
+import { PY_CARDS, PY_CLEAR_MAX, PY_CORE_MAX, PY_RUN_TICKS, PY_SPEED_FULL_S, PY_SPEED_MAX, pyramidGame, pyramidStdParts, type PyState } from "../../src/lib/arcade/cards/pyramid";
 import { replayPyramidRun } from "../../src/lib/duel/cards";
 import { pyramidFlawless } from "../cards/flawless";
 import type { StdEntry } from "./entry";
@@ -35,7 +35,10 @@ export const entry: StdEntry = {
     const part = (s: PyState, key: string) => pyramidStdParts(s)!.find((p) => p.key === key)!.points;
     for (const [n, want] of [[0, 0], [1, 2], [5, 10], [10, 20], [12, 20]] as const) ok(part(at({ ppPairs: n }), "pairs") === want, `pyramid: ${n} pyramid pairs pay ${want}`);
     const done = (tick: number) => at({ ended: 1, finishTick: tick, removed: PY_CARDS });
-    ok(part(done(600), "clear") === 20 && part(removed(27), "clear") === 0, "pyramid: cleared 20 only with all 28 removed");
+    ok(part(done(600), "clear") === PY_CLEAR_MAX && PY_CLEAR_MAX === 10 && part(removed(27), "clear") === 0, "pyramid: cleared 10 only with all 28 removed");
+    ok(PY_CORE_MAX === 120 && PY_SPEED_MAX === 50, "pyramid: core 120 and speed 50 (Joe's split, 2 Nov 2026)");
+    const mid = part(done(((PY_SPEED_FULL_S * 60 + PY_RUN_TICKS) / 2) | 0), "speed");
+    ok(mid >= 24 && mid <= 25, `pyramid: speed falls on a straight line, half way between full and the buzzer pays half (${mid})`);
     ok(part(done(PY_SPEED_FULL_S * 60), "speed") === PY_SPEED_MAX && part(done(PY_RUN_TICKS), "speed") === 0 && part(removed(27), "speed") === 0, `pyramid: speed full by ${PY_SPEED_FULL_S} s, 0 at the buzzer, none uncleared`);
   },
 };

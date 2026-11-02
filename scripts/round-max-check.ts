@@ -106,6 +106,10 @@ const RAISED: PuzzleType[] = [
   "fivehands",
   // Pyramid, Golf Solitaire and Muggins (1 Nov 2026, docs/arcade-standard/pyramid.md, golfsol.md, muggins.md).
   "pyramid", "golfsol", "muggins",
+  // Blockfall and Alley Roll (1 Nov 2026, docs/arcade-standard/blockfall.md, alleyroll.md): born on the standard.
+  "blockfall", "alleyroll",
+  // The new grid puzzles (1 Nov 2026, docs/scoring-standard.md "New grid puzzles"): born on the puzzle scoring standard.
+  "fences", "fillomino", "bridges", "kakuro",
 ];
 /** The games still at 150: section 2 raises each of them in turn. */
 const TYPES = ALL_TYPES.filter((t) => ROUND_MAX[t] === DEFAULT_ROUND_MAX);

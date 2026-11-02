@@ -41,10 +41,12 @@ import { PIN_REV_STRICT } from "./pinball";
 import { HOMERUN_REV_DEALT, HOMERUN_STD_SPEC_DEALT, HOMERUN_V2_BAND_CURVE } from "./homerun";
 import { FREEKICK_REV_DEALT, FREEKICK_V2_STD_SPEC, FREEKICK_V2_BAND_CURVE } from "./freekick";
 import { RACING_REV_DEALT, RACING_V2_BAND_CURVE, RACING_V2_STD_SPEC } from "./racing";
-import { FC_REV, FC_STD_SPEC, FC_V1_BAND_CURVE } from "./cards/freecell";
+import { FC_REV, FC_STD_SPEC, FC_V3_BAND_CURVE } from "./cards/freecell";
 import { TP_REV, TP_STD_SPEC, TP_V1_BAND_CURVE } from "./cards/tripeaks";
 import { PS_REV, PS_STD_SPEC, PS_V2_BAND_CURVE } from "./cards/pokerSquares";
-import { FH_REV, FH_STD_SPEC, FH_V1_BAND_CURVE } from "./cards/fiveHands";
+import { FH_REV, FH_STD_SPEC, FH_V2_BAND_CURVE } from "./cards/fiveHands";
+import { BLOCKFALL_REV, BF_STD_SPEC, BF_V1_BAND_CURVE } from "./blockfall";
+import { ALLEYROLL_REV, AR_STD_SPEC, AR_V1_BAND_CURVE } from "./alleyroll";
 import { PY_REV, PY_STD_SPEC, PY_V1_BAND_CURVE } from "./cards/pyramid";
 import { GS_REV, GS_STD_SPEC, GS_V1_BAND_CURVE } from "./cards/golfSol";
 import { MG_REV, MG_STD_SPEC, MG_V1_BAND_CURVE } from "./cards/muggins";
@@ -134,12 +136,14 @@ export const LIVE_BANDS = {
   freekick: { field: "freekickRev", rev: FREEKICK_REV_DEALT, curve: FREEKICK_V2_BAND_CURVE, std: FREEKICK_V2_STD_SPEC, born: true },
   racing: { field: "racingRev", rev: RACING_REV_DEALT, curve: RACING_V2_BAND_CURVE, std: RACING_V2_STD_SPEC, born: true },
   // Cards & Board (30 Oct 2026): born on the arcade scoring standard at revision 1.
-  freecell: { field: "freecellRev", rev: FC_REV, curve: FC_V1_BAND_CURVE, std: FC_STD_SPEC, born: true },
+  // freecellRev 3 (1 Nov 2026): the core full at FC_CORE_UNITS_V3 units instead of all 52 home.
+  freecell: { field: "freecellRev", rev: FC_REV, curve: FC_V3_BAND_CURVE, std: FC_STD_SPEC, born: true },
   tripeaks: { field: "tripeaksRev", rev: TP_REV, curve: TP_V1_BAND_CURVE, std: TP_STD_SPEC, born: true },
   // pokerSquaresRev 2 (Full House, 31 Oct 2026): the core full at the elite median.
   pokersquares: { field: "pokerSquaresRev", rev: PS_REV, curve: PS_V2_BAND_CURVE, std: PS_STD_SPEC, born: true },
   // Five Hands (31 Oct 2026): born on the arcade scoring standard at revision 1.
-  fivehands: { field: "fiveHandsRev", rev: FH_REV, curve: FH_V1_BAND_CURVE, std: FH_STD_SPEC, born: true },
+  // fiveHandsRev 2 (1 Nov 2026): the steep hand table, hand points alone to 200.
+  fivehands: { field: "fiveHandsRev", rev: FH_REV, curve: FH_V2_BAND_CURVE, std: FH_STD_SPEC, born: true },
   // Pyramid, Golf Solitaire and Muggins (1 Nov 2026): born on the arcade scoring standard.
   pyramid: { field: "pyramidRev", rev: PY_REV, curve: PY_V1_BAND_CURVE, std: PY_STD_SPEC, born: true },
   golfsol: { field: "golfSolRev", rev: GS_REV, curve: GS_V1_BAND_CURVE, std: GS_STD_SPEC, born: true },
@@ -148,6 +152,9 @@ export const LIVE_BANDS = {
   minigolf: { field: "golfRev", rev: MINIGOLF_REV, curve: stdCoreCurve(MINIGOLF_STD_SPEC), std: MINIGOLF_STD_SPEC, born: true },
   pool: { field: "poolRev", rev: POOL_REV, curve: stdCoreCurve(POOL_STD_SPEC), std: POOL_STD_SPEC, born: true },
   curling: { field: "curlRev", rev: CURLING_REV, curve: stdCoreCurve(CURLING_STD_SPEC), std: CURLING_STD_SPEC, born: true },
+  // Blockfall (Retro) and Alley Roll (Sports), 1 Nov 2026: born on the arcade scoring standard at revision 1.
+  blockfall: { field: "blockfallRev", rev: BLOCKFALL_REV, curve: BF_V1_BAND_CURVE, std: BF_STD_SPEC, born: true },
+  alleyroll: { field: "alleyRollRev", rev: ALLEYROLL_REV, curve: AR_V1_BAND_CURVE, std: AR_STD_SPEC, born: true },
 } as const satisfies Record<string, LiveBand>;
 
 export type LiveBandGame = keyof typeof LIVE_BANDS;

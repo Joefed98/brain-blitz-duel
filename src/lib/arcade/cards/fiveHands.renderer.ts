@@ -9,7 +9,7 @@ import type { ArcadeGame, ArcadeInputEvent, CanvasSize } from "../engine";
 import { arcadeFx, type ArcadeFxSpec } from "../arcadeFx.renderer";
 import { CARD_FONT, drawCard, drawChip, drawFelt, drawSlot, roundRect } from "./cards.renderer";
 import {
-  FH_CORE_FULL, FH_ROWS, FH_SEEN, FH_SLOTS, FH_TURNS, fhDiscard, fhDiscardsShown, fhOpenRows, fhRowHand, fhTotals, fhYours, fiveHandsGame, type FhState,
+  fhCoreFullFor, FH_ROWS, FH_SEEN, FH_SLOTS, FH_TURNS, fhDiscard, fhDiscardsShown, fhOpenRows, fhRowHand, fhTotals, fhYours, fiveHandsGameFor, type FhState,
 } from "./fiveHands";
 
 export const FH_WORLD_W = 414;
@@ -123,11 +123,11 @@ export const FIVEHANDS_FX: ArcadeFxSpec<FhState> = {
   events: [
     {
       kind: "pop",
-      count: (s) => fhTotals(s.rows).made,
+      count: (s) => fhTotals(s.rows, s.rev).made,
       at: (s) => (s.lastRow >= 0 ? { x: BADGE_X + BADGE_W / 2, y: fhSlotBox(s.lastRow, 0).y + FH_CELL_H / 2 } : null),
-      label: (s) => (s.lastRow >= 0 ? fhRowHand(s.rows[s.lastRow]!).name.toUpperCase() || null : null),
+      label: (s) => (s.lastRow >= 0 ? fhRowHand(s.rows[s.lastRow]!, s.rev).name.toUpperCase() || null : null),
     },
-    { kind: "final", count: (s) => (fhTotals(s.rows).total >= FH_CORE_FULL ? 1 : 0), label: () => "FULL POINTS!" },
+    { kind: "final", count: (s) => (fhTotals(s.rows, s.rev).total >= fhCoreFullFor(s.rev) ? 1 : 0), label: () => "FULL POINTS!" },
   ],
   misses: [{ count: (s) => s.rejects }],
 };
@@ -143,8 +143,8 @@ function drawFiveHandsWorld(ctx: CanvasRenderingContext2D, state: FhState, size:
   ctx.scale(size.width / W, size.height / H);
   drawFelt(ctx, W, H);
 
-  const { total, made } = fhTotals(state.rows);
-  drawChip(ctx, 10, 9, "POINTS", `${total}`, { gold: total >= FH_CORE_FULL });
+  const { total, made } = fhTotals(state.rows, state.rev);
+  drawChip(ctx, 10, 9, "POINTS", `${total}`, { gold: total >= fhCoreFullFor(state.rev) });
   drawChip(ctx, W / 2, 9, "TURN", `${Math.min(FH_TURNS, state.turn + (state.turn < FH_TURNS ? 1 : 0))}/${FH_TURNS}`, { align: "center" });
   drawChip(ctx, W - 10, 9, "HANDS", `${made}/${FH_ROWS}`, { align: "right", gold: made === FH_ROWS });
 
@@ -170,7 +170,7 @@ function drawFiveHandsWorld(ctx: CanvasRenderingContext2D, state: FhState, size:
         }
       } else drawCard(ctx, card, b.x, b.y, FH_CELL_W, FH_CELL_H, { glow: state.lastRow === r && k === row.length - 1 ? fresh : 0 });
     }
-    const hand = fhRowHand(row);
+    const hand = fhRowHand(row, state.rev);
     badge(ctx, BADGE_X, fhSlotBox(r, 0).y, BADGE_W, FH_CELL_H, hand.name, hand.points);
     // Rows already filled for this round: greyed out.
     if (running && !isOpen) {
@@ -207,8 +207,9 @@ function drawFiveHandsWorld(ctx: CanvasRenderingContext2D, state: FhState, size:
   ctx.restore();
 }
 
-export function fiveHandsArtGame(view?: FhView): ArcadeGame<FhState, ArcadeInputEvent | null> {
-  return { ...fiveHandsGame, draw: (ctx, state, size) => drawFiveHands(ctx, state, size, view) };
+/** The art game for a stage: the revision's sim with this draw (no stamp: fiveHandsRev 1). */
+export function fiveHandsArtGame(view?: FhView, rev?: number | null): ArcadeGame<FhState, ArcadeInputEvent | null> {
+  return { ...fiveHandsGameFor(rev), draw: (ctx, state, size) => drawFiveHands(ctx, state, size, view) };
 }
 
 export const fiveHandsArt = fiveHandsArtGame();

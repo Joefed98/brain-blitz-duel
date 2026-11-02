@@ -49,6 +49,8 @@ import { drawCard, paintFelt } from "@/lib/arcade/cards/cards.renderer";
 import { drawDomino, paintBaize } from "@/lib/arcade/cards/muggins.renderer";
 
 
+import { BF_COLOURS, drawBfSquare } from "@/lib/arcade/blockfall.renderer";
+
 /** Cards & Board tiles: the table's own felt, faded under the cards (the in-game background). */
 function cardsTable(c: CanvasRenderingContext2D): void {
   paintFelt(c, 104, 104);
@@ -540,6 +542,25 @@ export const ARCADE_SCENES: SceneSet = {
     drawDomino(c, 53, 28, 30, 15, 5, 3);
     drawDomino(c, 30, 62, 18, 36, 6, 4);
     drawDomino(c, 54, 62, 18, 36, 1, 3);
+  }),
+
+  // Blockfall: a few of its glass squares stacked low with one gap, a piece turned over it and its dashed ghost below.
+  blockfall: canvasScene((c) => {
+    const q = 16;
+    const x0 = 4;
+    const y0 = 104 - q * 3 - 4;
+    // The stack: two rows full but one gap (column 4), a third partly.
+    const rows: number[][] = [[1, 1, 3, 3, 0, 2], [5, 5, 4, 4, 0, 6], [0, 3, 0, 0, 0, 6]];
+    rows.forEach((row, r) => row.forEach((v, k) => { if (v) drawBfSquare(c, v - 1, x0 + k * q, y0 + (2 - r) * q, q); }));
+    // The bar standing upright above the gap, and its ghost in the gap.
+    c.save();
+    c.globalAlpha = 0.6;
+    c.strokeStyle = BF_COLOURS[0]!.rim;
+    c.setLineDash([3, 2]);
+    c.lineWidth = 1.5;
+    for (let k = 0; k < 2; k++) c.strokeRect(x0 + 4 * q + 2, y0 + (2 - k) * q + 2, q - 4, q - 4);
+    c.restore();
+    for (let k = 0; k < 4; k++) drawBfSquare(c, 0, x0 + 4 * q, 6 + k * q, q);
   }),
 };
 

@@ -3,7 +3,8 @@
  * engine.
  *
  * A double-six set (28 tiles). A seeded starting tile is laid; the player holds seven and the other twenty form the draw
- * pile, in a seeded order (the same hand and pile for everyone). Lay a matching tile on either open end of the line (no
+ * pile, in a seeded order (the same hand and pile for everyone). The pile's next tile lies face up (mgNextTile): Draw
+ * takes it and turns over the one after. Lay a matching tile on either open end of the line (no
  * spinner). Whenever the two open ends add up to 5, 10, 15 or 20, that total scores; a double at an end counts both
  * halves. With no legal play, Draw takes one tile from the pile (Draw is refused while a play is open). The round ends
  * when the hand is empty, at the buzzer, or when the pile is empty and nothing can be played. Undo (back to the position
@@ -16,7 +17,7 @@
  * same PRNG stream is tried. So every dealt seed lets perfect play reach 200.
  *
  * Scoring (mugginsRev 1, the arcade standard; 200 in all): the core 150 on a straight line over Muggins points, full at
- * MG_CORE_FULL (55, just above the best levels' median, measured); hand cleared 20; speed 20 (cleared only: full by
+ * MG_CORE_FULL (55; the near-perfect median is 45, measured); hand cleared 20; speed 20 (cleared only: full by
  * MG_SPEED_FULL_S, 0 at the buzzer); big plays 10 (5 for a single play scoring 15 or 20, up to 2).
  */
 import { inputRange, rngBelow, type ArcadeGame, type ArcadeInputEvent } from "../engine";
@@ -37,7 +38,7 @@ export const MG_RUN_TICKS = 90 * 60;
 
 /* ---- Scoring (mugginsRev 1) ---- */
 export const MG_CORE_MAX = 150;
-/** Muggins points for the full core: 55, a little above the best levels' median (50) with the pile hidden (docs/arcade-standard/muggins.md). */
+/** Muggins points for the full core: 55. The near-perfect median is 45, but full there puts average to elite level at 155 (docs/arcade-standard/muggins.md). */
 export const MG_CORE_FULL = 55;
 export const MG_CLEAR_MAX = 20;
 export const MG_SPEED_MAX = 20;
@@ -122,6 +123,11 @@ export function mgEndSum(state: Pick<MgState, "line">): number {
   }
   const e = mgEnds(state);
   return (e.ld ? 2 * e.l : e.l) + (e.rd ? 2 * e.r : e.r);
+}
+
+/** The pile's next tile, face up for everyone (what Draw takes), or -1 when the pile is empty. */
+export function mgNextTile(state: Pick<MgState, "pile" | "pilePos">): number {
+  return state.pilePos < state.pile.length ? state.pile[state.pilePos]! : -1;
 }
 
 /** Whether `tile` can be laid on end `end` (0 left, 1 right). */

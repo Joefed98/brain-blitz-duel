@@ -264,6 +264,9 @@ export const ARCADE_FX_TEXT_COLOURS: Record<string, { fill: string; outline: str
   minigolf: { fill: "#F4F1E4", outline: "#0E1A10" },
   pool: { fill: "#FFE7A8", outline: "#0B1A12" },
   curling: { fill: "#FFD45C", outline: "#0A1220" },
+  // Blockfall: Retro cyan on the cabinet's navy. Alley Roll: the scoreboard's warm gold on dark wood.
+  blockfall: { fill: "#7CF7FF", outline: "#04101C" },
+  alleyroll: { fill: "#FFD27A", outline: "#1A0F08" },
 };
 
 /**

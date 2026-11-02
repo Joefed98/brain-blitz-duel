@@ -1,4 +1,4 @@
 {
-  "note": "pickRoundOrder deals for older rooms (6 stored category lists x 200 seeds), recorded on main 567ff36 before room settings; re-recorded 1 Nov 2026 when Full House retired (#230), its only change (the old digest ad4d914faa96 reproduces with Full House active); re-recorded 1 Nov 2026 when Pyramid, Golf Solitaire and Muggins joined the arcade pool, their only change (fea41723f50e reproduces with the three held out)",
-  "digest": "1ecf97f4fde71a6f6faefb8e0081ef09465c229b413bbec7febd896e534425db"
+  "note": "pickRoundOrder deals for older rooms (6 stored category lists x 200 seeds), recorded on main before room settings; re-recorded 1 Nov 2026 when Fences, Fillomino, Bridges (Logic) and Kakuro (Number) joined the pools, again when Blockfall and Alley Roll joined the arcade pool, and again when Pyramid, Golf Solitaire and Muggins did (main's digest cf7b554c16ee reproduces with the three held out): only the game drawn within a pool changes. No stored room or round changes (rounds are stored when dealt).",
+  "digest": "0bdd6009559aac312ff73c7094bc3f99fe79092c6d3381828ea9efdfc877c159"
 }

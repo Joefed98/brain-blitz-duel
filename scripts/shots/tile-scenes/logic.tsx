@@ -14,6 +14,11 @@ import { Board as ShikakuBoard } from "@/puzzles/shikaku";
 import { Tubes } from "@/puzzles/sortTubes";
 import { Board as CampBoard } from "@/puzzles/tents";
 import { Pegs } from "@/puzzles/tower";
+import { FencesBoard } from "@/puzzles/fences";
+import { FillominoBoard } from "@/puzzles/fillomino";
+import { BridgesBoard } from "@/puzzles/bridges";
+import { bridgePairs } from "@/lib/duel/bridges";
+import { cellEdges, fencesEdgeCount, FENCES_CROSS, FENCES_LINE } from "@/lib/duel/fences";
 
 import { Scaled, domScene, type SceneSet } from "./scene";
 
@@ -34,6 +39,27 @@ const noop = () => undefined;
 const TENTS_X = -16;
 const TENTS_Y = -26;
 const TUBES_Y = 16;
+
+
+/** Fences' tile: a 4 × 4 board whose loop runs round `region`, every clue its cell's count, one edge crossed. */
+function fencesTile(size: number, region: readonly number[], shown: readonly number[]) {
+  const count = new Map<number, number>();
+  for (const cell of region) for (const e of cellEdges(size, cell)) count.set(e, (count.get(e) ?? 0) + 1);
+  const states = Array.from({ length: fencesEdgeCount(size) }, (_, e) => (count.get(e) === 1 ? FENCES_LINE : 0));
+  const crossed = states.findIndex((s, e) => s === 0 && e > 4);
+  if (crossed >= 0) states[crossed] = FENCES_CROSS;
+  const lines = new Set(states.flatMap((s, e) => (s === FENCES_LINE ? [e] : [])));
+  const clues = Array.from({ length: size * size }, (_, cell) => (shown.includes(cell) ? cellEdges(size, cell).filter((e) => lines.has(e)).length : -1));
+  return { states, clues };
+}
+const FENCES_TILE = fencesTile(4, [0, 1, 4, 5, 6, 10], [0, 5, 6, 11, 15]);
+const BRIDGE_ISLANDS = [
+  { cell: 0, n: 3 },
+  { cell: 3, n: 3 },
+  { cell: 12, n: 2 },
+  { cell: 15, n: 2 },
+];
+const BRIDGE_COUNTS = bridgePairs(BRIDGE_ISLANDS, 4).map((p) => (p.a === 0 && p.b === 1 ? 2 : 1));
 
 export const LOGIC_SCENES: SceneSet = {
   // Shikaku: three gold glass panes laid over the grid, two areas still open with their clues.
@@ -191,4 +217,33 @@ export const LOGIC_SCENES: SceneSet = {
       </Piece>
     );
   }),
+  // Fences: a loop drawn round part of a 4 × 4 board, its numbers met, one edge crossed out.
+  fences: domScene(() => (
+    <Piece x={6} y={6} scale={1} w={92}>
+      <div className="logic-glass-frame fences-frame" style={{ width: 92, height: 92 }}>
+        <FencesBoard size={4} clues={FENCES_TILE.clues} states={FENCES_TILE.states} small />
+      </div>
+    </Piece>
+  )),
+  // Fillomino: a 4 × 4 grid split into numbered regions, one square still blank.
+  fillomino: domScene(() => (
+    <Piece x={6} y={6} scale={1} w={92}>
+      <div className="logic-glass-frame" style={{ width: 92 }}>
+        <FillominoBoard
+          size={4}
+          values={[3, 3, 2, 2, 3, 1, 4, 4, 2, 4, 4, 1, 2, 1, 0, 3]}
+          tones={["given", "entry", "given", "entry", "entry", "given", "given", "entry", "given", "entry", "entry", "entry", "given", "entry", "given", "entry"]}
+          small
+        />
+      </div>
+    </Piece>
+  )),
+  // Bridges: four islands, a double bridge across the top and single bridges down the sides.
+  bridges: domScene(() => (
+    <Piece x={6} y={6} scale={1} w={92}>
+      <div className="logic-glass-frame bridges-frame" style={{ width: 92, height: 92 }}>
+        <BridgesBoard size={4} islands={BRIDGE_ISLANDS} counts={BRIDGE_COUNTS} small />
+      </div>
+    </Piece>
+  )),
 };

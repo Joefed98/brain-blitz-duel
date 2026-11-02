@@ -98,6 +98,10 @@ import { mugginsArt, MG_WORLD_H, MG_WORLD_W } from "./cards/muggins.renderer";
 import { replayMinigolfRun } from "@/lib/duel/minigolf";
 import { replayPoolRun } from "@/lib/duel/pool";
 import { replayCurlingRun } from "@/lib/duel/curling";
+import { replayBlockfallRun } from "@/lib/duel/blockfall";
+import { replayAlleyRollRun } from "@/lib/duel/alleyroll";
+import { blockfallArt, BF_WORLD_H, BF_WORLD_W } from "./blockfall.renderer";
+import { alleyRollArt, AR_WORLD_H, AR_WORLD_W } from "./alleyroll.renderer";
 import { drawCurling } from "./curling.renderer";
 import { CURLING_H, CURLING_W, curlingWorldHFor, type CurlingState } from "./curling";
 import { drawPool } from "./pool.renderer";
@@ -201,6 +205,8 @@ export const ARCADE_REVEAL_RENDERERS: Record<string, ArcadeRevealRenderer> = {
   pyramid: simple(GOLD, PY_WORLD_W, PY_WORLD_H, pyramidArt, (p, a) => replayPyramidRun(seedOf(p), a, p.type === "pyramid" ? p.pyramidRev : undefined)),
   golfsol: simple(GOLD, GS_WORLD_W, GS_WORLD_H, golfSolArt, (p, a) => replayGolfSolRun(seedOf(p), a, p.type === "golfsol" ? p.golfSolRev : undefined)),
   muggins: simple(GOLD, MG_WORLD_W, MG_WORLD_H, mugginsArt, (p, a) => replayMugginsRun(seedOf(p), a, p.type === "muggins" ? p.mugginsRev : undefined)),
+  blockfall: simple(GOLD, BF_WORLD_W, BF_WORLD_H, blockfallArt, (p, a) => replayBlockfallRun(seedOf(p), a, p.type === "blockfall" ? p.blockfallRev : undefined)),
+  alleyroll: simple(GOLD, AR_WORLD_W, AR_WORLD_H, alleyRollArt, (p, a) => replayAlleyRollRun(seedOf(p), a, p.type === "alleyroll" ? p.alleyRollRev : undefined)),
   hover: simple("#2ED3B7", 390, 560, hoverGame, (p, a) => replayHoverRun(seedOf(p), a, p.type === "hover" ? p.hoverRev : undefined), undefined, hoverRevealGame, (p) => hoverWorldHFor(p.type === "hover" ? p.hoverRev : undefined)),
   skyline: simple(GOLD, 390, 560, skylineGame, (p, a) => replaySkylineRun(seedOf(p), a, p.type === "skyline" ? p.skylineRev : undefined), undefined, skylineRevealGame, (p) => skylineWorldHFor(p.type === "skyline" ? p.skylineRev : undefined)),
   // binRev 7: the wider fairground (430 × 728) drawn at 390 wide, so 660 tall.

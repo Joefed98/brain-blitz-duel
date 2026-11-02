@@ -1,6 +1,35 @@
-# Free Cell (`freecell`) on the arcade scoring standard (freecellRev 2, 31 Oct 2026; rev 1 30 Oct 2026)
+# Free Cell (`freecell`) on the arcade scoring standard (freecellRev 3, 1 Nov 2026; rev 2 31 Oct 2026; rev 1 30 Oct 2026)
 
 Shown as **Free Cell** since 31 Oct 2026 (was FreeCell; the id stays `freecell`).
+
+## freecellRev 3 (1 Nov 2026, Joe's tuning: what rooms deal)
+
+- **The same play and round length** as rev 2 (120 s run, Undo and Reset, the same bank deals and pars).
+- **More scoring room:** the core (cards home two units each, cards in sorted runs one unit each) is full at
+  **54 units** (`FC_CORE_UNITS_V3`, about 20 cards home and a dozen sorted) instead of all 52 home (104 units). 54 is the
+  near-perfect bots' median core units **60 s into the run** (`bun scripts/cards-bands.ts freecell --seeds=100 --at=60`),
+  before the final run of cards home.
+  *Assumption (noted in the PR):* the brief asked for the core to be full "at the near-flawless median within the time".
+  Read literally that is unchanged (the near-perfect median finishes, so its median at the buzzer is the full 104), so the
+  figure is that level's median at the half-way mark, where its run is still building. Joe will measure on the phone.
+- Par (30) and speed (30, full by 66 s) unchanged, finished runs only. Parts total 200; every bank deal's par line
+  reaches 200 on rev 3 (cards-check).
+- **Auto-move home:** the standard safe auto-move was already there on every revision (aces and twos, and a card whose
+  lower cards of the other colour are home, after every move and at the deal; not counted as moves). On rev 3 the sim
+  keeps each auto move's card and where it came from (`fly`, `flyTick`; display only, outside the checksum) and the art
+  flies the cards home: each leaves 2 ticks after the one before and lands in 8 (`fcFlights`), the home pile showing the
+  card under the first still in the air. Nothing flies once the run is over (the clock stops).
+- Rev 2 runs replay unchanged: 16 rev-2 bot runs recorded on main (`scripts/fixtures/tuning-nov1-legacy.json`,
+  `scripts/tuning-nov1-legacy-record.ts`) replay to the same score and final state (cards-check).
+
+Measured (`bun scripts/cards-bands.ts freecell --seeds=100 --at=60`; the bots never undo):
+
+| Level | Weak | Average | Good | Great | Near-perfect | Elite | Flawless |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| rev 2 median (p10–p90) | 21 (8–41) | 37 (17–63) | 63 (13–170) | 170 (75–191) | 188 (173–197) | 194 (189–198) | 200 |
+| **rev 3 median (p10–p90)** | **41** (15–80) | **72** (33–121) | **121** (25–170) | **170** (140–191) | **188** (173–197) | **194** (189–198) | **200** |
+| core units at 60 s | 10 | 14 | 21 | 32 | **54** | 104 | 104 |
+| finished | 0/100 | 0/100 | 18/100 | 83/100 | 95/100 | 97/100 | 100/100 |
 
 ## freecellRev 2 (31 Oct 2026): Undo, Reset and the refused move's note
 

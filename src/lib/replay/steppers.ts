@@ -42,6 +42,8 @@ import { mugginsGameFor } from "@/lib/arcade/cards/muggins";
 import { minigolfGameFor } from "@/lib/arcade/minigolf";
 import { poolGameFor } from "@/lib/arcade/pool";
 import { curlingGameFor } from "@/lib/arcade/curling";
+import { blockfallGameFor } from "@/lib/arcade/blockfall";
+import { alleyRollGameFor } from "@/lib/arcade/alleyroll";
 import { rallyGameFor } from "@/lib/arcade/rally";
 import { sliceGameFor } from "@/lib/arcade/slice";
 import { bubbleGameFor } from "@/lib/arcade/bubble";
@@ -210,6 +212,8 @@ const SOURCES: Record<string, (p: PuzzleData) => GameSource> = {
   golfsol: (p) => ({ game: golfSolGameFor(rev(p, "golfSolRev")) as AnyGame }),
   muggins: (p) => ({ game: mugginsGameFor(rev(p, "mugginsRev")) as AnyGame }),
   curling: (p) => ({ game: curlingGameFor(rev(p, "curlRev") ?? 1) as AnyGame }),
+  blockfall: (p) => ({ game: blockfallGameFor(rev(p, "blockfallRev")) as AnyGame }),
+  alleyroll: (p) => ({ game: alleyRollGameFor(rev(p, "alleyRollRev")) as AnyGame }),
   pool: (p) => ({ game: poolGameFor(rev(p, "poolRev")) as AnyGame }),
   minigolf: (p) => ({ game: minigolfGameFor(p.type === "minigolf" ? p.pars : undefined, p.type === "minigolf" ? p.golfRev : undefined) as AnyGame }),
   rally: (p) => ({ game: rallyGameFor(rev(p, "rallyRev")) as AnyGame }),

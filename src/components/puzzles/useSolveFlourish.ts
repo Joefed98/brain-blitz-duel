@@ -46,6 +46,10 @@ export const SOLVE_FLOURISH: Partial<Record<PuzzleType, string>> = {
   flood: "Flooded cells ripple",
   tents: "Tent rows shimmer",
   shikaku: "Rectangle borders shine",
+  fences: "The loop lights up around the board",
+  fillomino: "Regions flash in turn",
+  bridges: "Bridges light island to island",
+  kakuro: "Runs light up one by one",
   dig: "Drained channel cells shimmer",
 };
 

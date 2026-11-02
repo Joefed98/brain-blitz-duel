@@ -28,12 +28,16 @@ import {
 const fcRun = makeArcadeRun<FcState, FcCheckpoint>({ tag: "freecell", game: freecellGameFor(1), checkpoint: fcCheckpoint, keys: FC_CHECKPOINT_KEYS, interval: FC_CHECKPOINT_INTERVAL });
 /** freecellRev 2 (undo and reset): its own game and input ranges; the run's wire format is the same. */
 const fcRun2 = makeArcadeRun<FcState, FcCheckpoint>({ tag: "freecell", game: freecellGameFor(2), checkpoint: fcCheckpoint, keys: FC_CHECKPOINT_KEYS, interval: FC_CHECKPOINT_INTERVAL });
+/** freecellRev 3 (the core full sooner, the auto moves animated): rev 2's play and wire format. */
+const fcRun3 = makeArcadeRun<FcState, FcCheckpoint>({ tag: "freecell", game: freecellGameFor(3), checkpoint: fcCheckpoint, keys: FC_CHECKPOINT_KEYS, interval: FC_CHECKPOINT_INTERVAL });
 const tpRun = makeArcadeRun<TpState, TpCheckpoint>({ tag: "tripeaks", game: tripeaksGameFor(1), checkpoint: tpCheckpoint, keys: TP_CHECKPOINT_KEYS, interval: TP_CHECKPOINT_INTERVAL });
 const psRun = makeArcadeRun<PsState, PsCheckpoint>({ tag: "pokersquares", game: pokerSquaresGameFor(1), checkpoint: psCheckpoint, keys: PS_CHECKPOINT_KEYS, interval: PS_CHECKPOINT_INTERVAL });
 /** pokerSquaresRev 2 (Full House: the core full at the elite median); the same play and wire format. */
 const psRun2 = makeArcadeRun<PsState, PsCheckpoint>({ tag: "pokersquares", game: pokerSquaresGameFor(2), checkpoint: psCheckpoint, keys: PS_CHECKPOINT_KEYS, interval: PS_CHECKPOINT_INTERVAL });
 
 const fhRun = makeArcadeRun<FhState, FhCheckpoint>({ tag: "fivehands", game: fiveHandsGameFor(1), checkpoint: fhCheckpoint, keys: FH_CHECKPOINT_KEYS, interval: FH_CHECKPOINT_INTERVAL });
+/** fiveHandsRev 2 (the steep hand table, hand points alone to 200): its own deal's witness; the same play and wire format. */
+const fhRun2 = makeArcadeRun<FhState, FhCheckpoint>({ tag: "fivehands", game: fiveHandsGameFor(2), checkpoint: fhCheckpoint, keys: FH_CHECKPOINT_KEYS, interval: FH_CHECKPOINT_INTERVAL });
 
 const pyRun = makeArcadeRun<PyState, PyCheckpoint>({ tag: "pyramid", game: pyramidGameFor(1), checkpoint: pyCheckpoint, keys: PY_CHECKPOINT_KEYS, interval: PY_CHECKPOINT_INTERVAL });
 const gsRun = makeArcadeRun<GsState, GsCheckpoint>({ tag: "golfsol", game: golfSolGameFor(1), checkpoint: gsCheckpoint, keys: GS_CHECKPOINT_KEYS, interval: GS_CHECKPOINT_INTERVAL });
@@ -68,7 +72,7 @@ export interface FreecellResult extends FlatReplay<FcState, FcCheckpoint> {
 
 /** The single place a FreeCell score is worked out (no stamp: freecellRev 1). */
 export function replayFreecellRun(seed: number, raw: string, rev?: number | null): FreecellResult {
-  const r = ((rev ?? 1) >= 2 ? fcRun2 : fcRun).replay(seed, raw);
+  const r = ((rev ?? 1) >= 3 ? fcRun3 : (rev ?? 1) >= 2 ? fcRun2 : fcRun).replay(seed, raw);
   const s = r.state;
   return {
     ...r, home: fcHomeCount(s), sorted: fcSortedCards(s.cols), moves: s.moves, par: s.par, finished: s.ended === 1, finishSeconds: s.finishTick / 60,
@@ -114,11 +118,11 @@ export interface FiveHandsResult extends FlatReplay<FhState, FhCheckpoint> {
   finished: boolean;
 }
 
-/** The single place a Five Hands score is worked out. */
-export function replayFiveHandsRun(seed: number, raw: string, _rev?: number | null): FiveHandsResult {
-  const r = fhRun.replay(seed, raw);
+/** The single place a Five Hands score is worked out (no stamp: fiveHandsRev 1). */
+export function replayFiveHandsRun(seed: number, raw: string, rev?: number | null): FiveHandsResult {
+  const r = ((rev ?? 1) >= 2 ? fhRun2 : fhRun).replay(seed, raw);
   const s = r.state;
-  const t = fhTotals(s.rows);
+  const t = fhTotals(s.rows, s.rev);
   return { ...r, total: t.total, made: t.made, placed: s.turn, finished: s.ended === 1 };
 }
 

@@ -51,6 +51,8 @@ import { fhTotals, type FhState } from "@/lib/arcade/cards/fiveHands";
 import type { PyState } from "@/lib/arcade/cards/pyramid";
 import type { GsState } from "@/lib/arcade/cards/golfSol";
 import { MG_BIG_AT, type MgState } from "@/lib/arcade/cards/muggins";
+import { bfLevel, type BfState } from "@/lib/arcade/blockfall";
+import { AR_FLY, AR_POCKET_POINTS, AR_ROLL, AR_SHOW, type ArState } from "@/lib/arcade/alleyroll";
 
 /** Sounds a success-effect cue with a file stands in for on this frame (momentCues.ts). */
 let quiet: ReadonlySet<string> = new Set();
@@ -1448,6 +1450,67 @@ export function fiveHandsSounds(): GameSounds<FhState> {
     stop() {
       prev = null;
     },
+  };
+}
+
+/**
+ * Blockfall (1 Nov 2026; library sounds only, docs/sound-cues/arcade.md): a turn, a hold, a piece landing, a clear
+ * (three or four rows at once the big one, with a haptic), the speed-up every 15 s and a top-out.
+ */
+export function blockfallSounds(): GameSounds<BfState> {
+  let prev: BfState | null = null;
+  return {
+    frame(state) {
+      beginFrame("blockfall", state);
+      if (prev && state.tick > prev.tick) {
+        const p = state.piece;
+        const q = prev.piece;
+        if (state.pieces === prev.pieces && state.held === prev.held && p.turn !== q.turn) sfx("blockfall.turn", "arc_retro_blip", 0.45);
+        if (state.held > prev.held) sfx("blockfall.hold", "arc_retro_note", 0.5);
+        const cleared = state.lines - prev.lines;
+        if (cleared >= 3) {
+          sfx("blockfall.bigClear", "arc_retro_pickup", 0.9);
+          feel("success");
+        } else if (cleared > 0) sfx("blockfall.clear", "arc_retro_coin", 0.8);
+        else if (state.pieces > prev.pieces) sfx("blockfall.lock", "arc_retro_hit", 0.45);
+        if (bfLevel(state.tick) > bfLevel(prev.tick)) sfx("blockfall.speedUp", "arc_retro_note", 0.6, 1.25);
+        if (state.ended === 2 && prev.ended === 0) sfx("blockfall.topOut", "arc_retro_explode", 0.8);
+      }
+      prev = state;
+    },
+    stop() {
+      prev = null;
+    },
+  };
+}
+
+/**
+ * Alley Roll (1 Nov 2026; library sounds only): the roll, the rumble up the lane (a loop), off the ramp, a rail, the
+ * ball dropping into a ring (the 50 rings a bell), a 100 pocket (with a haptic) and the gutter.
+ */
+export function alleyRollSounds(): GameSounds<ArState> {
+  let prev: ArState | null = null;
+  return {
+    frame(state, running) {
+      beginFrame("alleyroll", state);
+      loopCue("alleyroll.rolling", running && state.phase === AR_ROLL, SURFACE_VOLUME);
+      if (prev && state.tick > prev.tick) {
+        if (state.phase === AR_ROLL && prev.phase !== AR_ROLL) sfx("alleyroll.roll", "arc_wood_knock", 0.8);
+        if (state.phase === AR_ROLL && prev.phase === AR_ROLL && Math.sign(state.vx) !== Math.sign(prev.vx) && prev.vx !== 0) sfx("alleyroll.rail", "arc_bounce", 0.5);
+        if (state.phase === AR_FLY && prev.phase === AR_ROLL) sfx("alleyroll.ramp", "arc_wood_knock", 0.6, 1.3);
+        if (state.phase === AR_SHOW && prev.phase === AR_FLY) {
+          const pts = state.balls[state.balls.length - 1]?.points ?? 0;
+          if (pts === AR_POCKET_POINTS) {
+            sfx("alleyroll.pocket", "arc_fair_sting", 0.9);
+            feel("success");
+          } else if (pts >= 50) sfx("alleyroll.fifty", "arc_fair_bell", 0.8);
+          else if (pts > 0) sfx("alleyroll.ring", "arc_fair_bucket", 0.8);
+          else sfx("alleyroll.gutter", "arc_fair_thud", 0.7);
+        }
+      }
+      prev = state;
+    },
+    stop: () => loopCue("alleyroll.rolling", false),
   };
 }
 

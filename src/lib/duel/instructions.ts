@@ -1,5 +1,6 @@
 import { openBandsLine } from "./puzzleBandsText";
 import { logicStandardHelp } from "./standard/logicText";
+import { gridStandardHelp } from "./standard/gridText";
 import { FLOOD_STANDARD_SPARE_MOVES } from "./standard/logicRules";
 import { wordSearchBonusHelp } from "./wordSearchText";
 import { letterWheelJarHelp } from "./letterWheelText";
@@ -1064,11 +1065,11 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
       how: [
         { action: "Drag anywhere on the table", detail: "to turn the cue round the cue ball; drag further from the ball for finer aim." },
         { action: "Pull the cue back", detail: "in the power meter at the bottom and let go to shoot." },
-        { action: "Spot balls first:", detail: "hitting or potting a stripe is a foul (−10)." },
+        { action: "Spot balls first:", detail: "hitting a stripe first, potting a stripe or touching no ball at all is a foul (−10)." },
         { action: "Tap the table", detail: "to point the cue straight at that spot.", helpOnly: true },
         { action: "The dotted line", detail: "runs to a ghost ball; the short line shows where the object ball goes, the faint one the cue ball's path.", helpOnly: true },
         { action: "Power:", detail: "the further you pull the cue, the harder the shot; green is soft, red full power.", helpOnly: true },
-        { action: "Spin:", detail: "tap the cue ball, bottom right, and place the red dot anywhere on it: high for top spin (follow), low for back spin (draw), left or right for side, which bends the bounce off a cushion.", helpOnly: true },
+        { action: "Spin:", detail: "tap the cue ball, bottom right, and place the red dot anywhere on it: high for top spin (follow), low for back spin (draw, which pulls the cue ball back), left or right for side, which bends the bounce off a cushion.", helpOnly: true },
         { action: "Cue ball potted:", detail: "it comes back to its spot and costs you time.", helpOnly: true },
         { action: "The black too early", detail: "ends your run with no black or speed points.", helpOnly: true },
         { action: "Every layout is proved clearable", detail: "without a miss. The same table for everyone.", helpOnly: true },
@@ -1113,14 +1114,14 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
     },
     // Cards & Board (30 Oct 2026): born on the arcade scoring standard; the SCORE text comes from each game's spec.
     freecell: {
-      goal: "Get all 52 cards home in two minutes.",
+      goal: "Get as many cards home as you can in two minutes.",
       how: [
         { action: "Tap a card", detail: "to move it (and the run on it) to its best spot." },
         { action: "Drag a card", detail: "to put it on a particular pile." },
         { action: "Build down", detail: "in alternating colours; home piles build up by suit from the Ace." },
         { action: "Undo and Reset", detail: "are the small buttons at the top: Undo takes back the last move (as often as you like), Reset deals the cards back out. Each counts as a move; the clock runs on." },
         { action: "Four free cells", detail: "each hold one card. Empty cells and columns let you move longer runs at once.", helpOnly: true },
-        { action: "Safe cards go home by themselves:", detail: "aces and twos, and a card whose lower cards of the other colour are home. They are not counted as moves.", helpOnly: true },
+        { action: "Safe cards fly home by themselves:", detail: "aces and twos, and a card whose lower cards of the other colour are home. They are not counted as moves.", helpOnly: true },
         { action: "Par", detail: "is the fewest moves our solver found for this deal.", helpOnly: true },
         { action: "One deal for everyone,", detail: "always solvable.", helpOnly: true },
       ],
@@ -1144,7 +1145,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Tap an empty square", detail: "to place the next card. Placed cards stay." },
         { action: "Rows and columns", detail: "each score as a poker hand." },
         { action: "25 cards,", detail: "one at a time; the next card is at the bottom." },
-        { action: "Hands:", detail: "pair 3, two pair 6, three of a kind 8, straight 10, flush 11, full house 13, four of a kind 15, straight flush 16.", helpOnly: true },
+        { action: "Hands:", detail: "pair 5, two pair 10, three of a kind 20, straight 25, flush 35, full house 50, four of a kind 60, straight flush 75. The big points are straights and better.", helpOnly: true },
         { action: "Every deal", detail: "has a grid of these same 25 cards that makes a hand in all ten lines and fills the points.", helpOnly: true },
         { action: "Empty squares at the buzzer", detail: "score whatever their lines already hold.", helpOnly: true },
         { action: "Same cards, same order,", detail: "for everyone.", helpOnly: true },
@@ -1160,10 +1161,36 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Hands:", detail: "pair 3, two pair 6, three of a kind 8, straight 10, flush 11, full house 13, four of a kind 15, straight flush 16.", helpOnly: true },
         { action: "20 turns", detail: "after five cards dealt one to each row: 45 of the 52 cards are seen by the end.", helpOnly: true },
         { action: "Rows at the buzzer", detail: "score as they stand.", helpOnly: true },
-        { action: "Every deck", detail: "can be placed to make a hand in all five rows and fill the points.", helpOnly: true },
+        { action: "Every deck", detail: "can be placed to fill the points.", helpOnly: true },
         { action: "Same deck, same order,", detail: "for everyone.", helpOnly: true },
       ],
-      score: liveStdHelp("fivehands", "Two parts, which total 200:"),
+      score: liveStdHelp("fivehands", "One part, hand points alone, which total 200:"),
+    },
+    blockfall: {
+      goal: "Clear as many lines as you can in 60 seconds.",
+      how: [
+        { action: "Drag sideways", detail: "to move the falling piece, tap to turn it, flick down to drop it." },
+        { action: "Fill a row", detail: "across the well to clear it. Two, three or four rows at once score extra." },
+        { action: "Or use the pads", detail: "under the well: HOLD keeps a piece for later (once a piece), TURN, DROP. The next three pieces show on the right." },
+        { action: "A ghost", detail: "shows where the piece will land.", helpOnly: true },
+        { action: "Speed rises", detail: "every 15 seconds.", helpOnly: true },
+        { action: "Stack to the top", detail: "and the run ends early, keeping its score.", helpOnly: true },
+        { action: "Keep it low:", detail: "a stack within the bottom four rows at the buzzer scores extra.", helpOnly: true },
+        { action: "Same pieces, same order,", detail: "for everyone.", helpOnly: true },
+      ],
+      score: liveStdHelp("blockfall", "Three parts, which total 200:"),
+    },
+    alleyroll: {
+      goal: "Roll nine balls up the lane into the rings.",
+      how: [
+        { action: "Slide the ball", detail: "along the bottom to choose where it starts." },
+        { action: "Swipe up", detail: "to roll: a faster swipe rolls further, the swipe's angle aims it." },
+        { action: "Rings", detail: "score 10 to 50 from the outside in; the two pockets in the top corners score 100." },
+        { action: "Hot streak:", detail: "a ball scoring 40 or more straight after another that did.", helpOnly: true },
+        { action: "Nine balls", detail: "or 60 seconds, whichever comes first.", helpOnly: true },
+        { action: "No wind, the same lane,", detail: "for everyone.", helpOnly: true },
+      ],
+      score: liveStdHelp("alleyroll", "Three parts, which total 200:"),
     },
     pyramid: {
       goal: "Clear the pyramid in pairs that add to 13.",
@@ -1195,9 +1222,9 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
     muggins: {
       goal: "Play out your dominoes and score with the ends.",
       how: [
-        { action: "Pick a tile,", detail: "then tap the end where you want it: each end it fits lights up with what it would score. Play takes the higher." },
+        { action: "Pick a tile,", detail: "then tap either lit end to lay it there; each end shows what it would score. Play takes the higher." },
         { action: "Score:", detail: "whenever the two open ends add to 5, 10, 15 or 20, that total scores. A double at an end counts both halves." },
-        { action: "Draw", detail: "one tile from the pile when nothing in your hand fits." },
+        { action: "Draw", detail: "takes the pile's face-up next tile when nothing in your hand fits; the one after turns over." },
         { action: "The round ends", detail: "when your hand is empty, at the buzzer, or when the pile is empty and nothing fits.", helpOnly: true },
         { action: "Big plays:", detail: "a single play scoring 15 or 20 scores extra, up to two.", helpOnly: true },
         { action: "Undo and Reset", detail: "take back plays back to your latest draw (a draw is final), or go back to it; the clock runs on.", helpOnly: true },
@@ -1567,6 +1594,33 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
       ],
       score: logicStandardHelp("shikaku"),
     },
+    fences: {
+      goal: "Draw one closed loop along the grid lines.",
+      how: [
+        { action: "Tap an edge", detail: "to draw a line; again for ✕, again to clear." },
+        { action: "Drag along edges", detail: "to draw several at once." },
+        { action: "Each number", detail: "is how many of its four sides the loop uses." },
+      ],
+      score: gridStandardHelp("fences"),
+    },
+    fillomino: {
+      goal: "Split the grid into regions: a region of N squares holds N.",
+      how: [
+        { action: "Tap a square", detail: "then a number, or drag from a number to paint it." },
+        { action: "Each region of N", detail: "is N squares, all numbered N." },
+        { action: "Same-size regions", detail: "never touch side by side." },
+      ],
+      score: gridStandardHelp("fillomino"),
+    },
+    bridges: {
+      goal: "Join every island so each has its number of bridges.",
+      how: [
+        { action: "Drag island to island", detail: "to build a bridge; again for two, again to remove." },
+        { action: "Bridges run straight", detail: "never cross, at most two per pair." },
+        { action: "Every island", detail: "must end up connected." },
+      ],
+      score: gridStandardHelp("bridges"),
+    },
     dig: {
       goal: "Dig a path so the water reaches the drain.",
       how: [
@@ -1614,6 +1668,15 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Every board is different.", detail: "Solve the five in any order; a wrong throw only costs time. Undo takes a dart back.", helpOnly: true },
       ],
       score: standardNumberHelp("checkout"),
+    },
+    kakuro: {
+      goal: "Fill the white squares so every run adds to its clue.",
+      how: [
+        { action: "Tap a square", detail: "then a number from 1 to 9." },
+        { action: "Each run", detail: "adds to the clue before it; no digit twice in a run." },
+        { action: "Pencil", detail: "keeps notes; they never count." },
+      ],
+      score: gridStandardHelp("kakuro"),
     },
     numline: {
       goal: "Place each number on the line.",

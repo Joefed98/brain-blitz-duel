@@ -33,7 +33,8 @@ export const ARCADE_GROUPS: readonly ArcadeGroupInfo[] = [
     colour: "#36E2F5",
     glow: true,
     // Hover, Breaker, Rally, Wavefront, Fission, Tempo, Meteor, Orbit, Jaywalk, Pinball.
-    games: ["hover", "breaker", "rally", "wavefront", "burst", "beat", "snake", "orbit", "cross", "pinball"],
+    // Blockfall (1 Nov 2026).
+    games: ["hover", "breaker", "rally", "wavefront", "burst", "beat", "snake", "orbit", "cross", "pinball", "blockfall"],
   },
   {
     id: "sports",
@@ -41,7 +42,8 @@ export const ARCADE_GROUPS: readonly ArcadeGroupInfo[] = [
     colour: "#4CC24A",
     glow: false,
     // Flightpath, Swish, then the new games (not registered yet).
-    games: ["bullseye", "bintoss", "minigolf", "pool", "curling", "homerun", "freekick", "racing"],
+    // Alley Roll (1 Nov 2026).
+    games: ["bullseye", "bintoss", "minigolf", "pool", "curling", "homerun", "freekick", "racing", "alleyroll"],
   },
   {
     id: "cards",

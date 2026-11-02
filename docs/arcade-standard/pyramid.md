@@ -35,33 +35,35 @@ RoundIntro is up). The solver (`scripts/cards/pyramidSolver.ts`) independently r
 cards-solitaire-check replays the witness through the server's replay to exactly 200 on 460 seeds and checks that no
 quick player clears 60 of them.
 
-## Scoring (200)
+## Scoring (200; Joe's split, 2 Nov 2026)
 
 | Part | Max | How |
 | --- | --- | --- |
-| Pyramid cards | 140 | a straight line over the 28 pyramid cards removed |
-| Cleared | 20 | all 28 removed |
-| Speed | 20 | cleared only: full by 20 s (the flawless pace), 0 at the buzzer |
+| Pyramid cards | 120 | a straight line over the 28 pyramid cards removed |
+| Cleared | 10 | all 28 removed |
+| Speed | 50 | cleared only: full by 20 s (the flawless pace), 0 at the buzzer |
 | Pyramid pairs | 20 | 2 for each pair of two pyramid cards, up to 10 |
 
-Any played run scores at least 1; no input 0.
+Any played run scores at least 1; no input 0. The large speed part tells the players who clear apart by how fast they
+clear. Before the split it was core 140, cleared 20, speed 20, pairs 20.
 
-## Skill bands, before → after (`bun scripts/cards-bands.ts pyramid --seeds=60 --from=10000`, fresh seeds)
+## Skill bands (`bun scripts/cards-bands.ts pyramid --seeds=60 --from=10000`, fresh seeds)
 
-| Level | Before | After | Cleared after | Clear time after |
-| --- | --- | --- | --- | --- |
-| Weak | 109 | 104 | 0/60 | — |
-| Average | 134 | 131 | 14/60 | 73.4 s |
-| Good | 178 | 135 | 23/60 | 51.3 s |
-| Great | 190 | 190 | 30/60 | 37.1 s |
-| Near-perfect | 197 | 197 | 37/60 | 25.7 s |
-| Elite | 198 | 199 | 40/60 | 20.8 s |
-| Flawless | 200 | 200 | 60/60 | 20.0 s |
+| Level | First commit | One pass, planned deals (140/20/20/20) | Joe's split (120/10/50/20) | Cleared | Clear time |
+| --- | --- | --- | --- | --- | --- |
+| Weak | 109 | 104 | 91 | 0/60 | — |
+| Average | 134 | 131 | 114 | 14/60 | 73.4 s |
+| Good | 178 | 135 | 118 | 23/60 | 51.3 s |
+| Great | 190 | 190 | 175 | 30/60 | 37.1 s |
+| Near-perfect | 197 | 197 | 193 | 37/60 | 25.7 s |
+| Elite | 198 | 199 | 198 | 40/60 | 20.8 s |
+| Flawless | 200 | 200 | 200 | 60/60 | 20.0 s |
+
+Speed's full point was chosen on these runs (full by 15, 18, 20, 22, 25 and 30 s compared): 20 s is the earliest that
+keeps flawless at 200 (the flawless bot clears in about 20 s). Earlier points only take from flawless; later ones close
+the top up (at 30 s near-perfect and elite reach 200). Joe's targets (great 160–170, near-perfect ~180, elite 190+) are
+nearly met at the top (great 175, near-perfect 193, elite 198): speed falls to 0 only at the buzzer (the standard), so a
+near-perfect clear in 26 s still earns 45 of the 50.
 
 The bots (`scripts/arcade-skill-bands/bots/pyramid.ts`) cannot see the stock; they pick among the removals open now by a
 look-ahead over the cards in view (0 for weak, the pair spotted first, up to 5 removals for elite), blurred by judgement.
-The clear rate now rises with skill as it should (0 → 14 → 23 → 30 → 37 → 40 of 60). What the score can't do with these
-parts is spread the top: any clear earns 140 + 20 + 20 for pairs, so a level that clears more than half its deals has a
-median at or near 200, and a level that doesn't sits at its partial score (about 104–135). Joe's targets (great ~160,
-near-perfect ~175, elite 185–195) need either cleared runs that score less than 180 or a lower clear rate for great;
-options for Joe are in the PR (e.g. a smaller clear part and a larger speed part).

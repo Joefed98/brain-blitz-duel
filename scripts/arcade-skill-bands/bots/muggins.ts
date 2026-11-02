@@ -1,8 +1,8 @@
 /**
  * Muggins (1 Nov 2026): a player looking at the hand against the two open ends. Flawless plays the deal's witness (a
  * cleared hand with at least the core's points and two big plays, knowing the pile) at the fastest human pace: the
- * ceiling, not a player. Nobody else can see the pile (a draw is final and Undo stops at it), so every other level looks
- * ahead through its own hand only: weak players lay the first tile that fits half the time and otherwise the play that
+ * ceiling, not a player. Everyone else sees only the pile's face-up next tile (a draw is final and Undo stops at it), so
+ * every other level looks ahead through its own hand and that one tile: weak players lay the first tile that fits half the time and otherwise the play that
  * scores most at once; average one play, good and great two, near-perfect and elite four plays ahead, for
  * points, big plays and an emptied hand, blurred by judgement. Draw when nothing fits.
  */
@@ -19,17 +19,28 @@ const STUCK_VALUE = 8;
 /** After this tick (60 s in) a player stops angling for draws and plays the hand out for the clear. */
 const LATE_TICK = 60 * 60;
 
-/** The best value reachable from `s` in `depth` plays from the hand (no draws): points, big plays, an emptied hand. */
-function look(s: MgState, depth: number): number {
+/**
+ * The best value reachable from `s` in `depth` plays (points, big plays, an emptied hand), seeing the pile's face-up next
+ * tile: when nothing fits it is drawn and the line goes on (the tile after it is still face down, so a second forced draw
+ * is only valued, never seen).
+ */
+function look(s: MgState, depth: number, known = 1): number {
   if (s.hand.length === 0) return CLEAR_VALUE;
   if (depth === 0) return 0;
   const plays = mgPlays(s);
-  // Stuck with tiles left in the pile: a draw keeps the round (and the scoring) going, worth it while time is left.
-  if (plays.length === 0) return s.pilePos < s.pile.length && s.tick < LATE_TICK ? STUCK_VALUE : 0;
+  if (plays.length === 0) {
+    if (s.pilePos >= s.pile.length) return 0;
+    if (known > 0) {
+      const drawn = mgApply(s, -1, 0);
+      return drawn ? look(drawn, depth - 1, known - 1) : 0;
+    }
+    // A draw keeps the round (and the scoring) going, worth it while time is left.
+    return s.tick < LATE_TICK ? STUCK_VALUE : 0;
+  }
   let best = 0;
   for (const [t, e] of plays) {
     const n = mgApply(s, t, e)!;
-    best = Math.max(best, n.lastScore + (n.lastScore >= MG_BIG_AT ? 4 : 0) + look(n, depth - 1));
+    best = Math.max(best, n.lastScore + (n.lastScore >= MG_BIG_AT ? 4 : 0) + look(n, depth - 1, known));
   }
   return best;
 }

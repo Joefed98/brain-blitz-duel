@@ -10,7 +10,7 @@ cards_invalid,cards_invalid.mp3,freecell|tripeaks|pokersquares|fivehands|pyramid
 cards_shuffle,cards_shuffle.mp3,freecell|tripeaks|pokersquares|fivehands|pyramid|golfsol,round start shuffle,1.5,no,freecell.shuffle;tripeaks.shuffle;pokersquares.shuffle;fivehands.shuffle;pyramid.turn;pyramid.shuffle;golfsol.shuffle
 music_minigolf,music_minigolf.mp3,minigolf,music bed,90,yes,music_minigolf
 minigolf_putt,minigolf_putt.mp3,minigolf,putt,0.4,no,minigolf.putt
-minigolf_roll_loop,minigolf_roll_loop.mp3,minigolf,ball rolling,2,yes,minigolf.roll
+minigolf_roll_loop,minigolf_roll_loop.mp3,minigolf|alleyroll,ball rolling,2,yes,minigolf.roll;alleyroll.rolling
 minigolf_rail,minigolf_rail.mp3,minigolf,hits rail or log,0.3,no,minigolf.bounce
 minigolf_stone,minigolf_stone.mp3,minigolf,hits boulder or planter,0.3,no,minigolf.stone
 minigolf_bush,minigolf_bush.mp3,minigolf,brushes bush,0.5,no,minigolf.bush

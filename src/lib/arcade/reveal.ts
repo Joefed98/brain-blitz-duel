@@ -19,7 +19,8 @@ import { burstGoldenCount, burstStdParts, BURST_V10_GOLDENS, BURST_V10_WAVES, ty
 import { bandLines } from "./scoreBands";
 import { stdLines } from "./arcadeStandard";
 import { psCoreFullFor } from "./cards/pokerSquares";
-import { FH_CORE_FULL } from "./cards/fiveHands";
+import { fhCoreFullFor } from "./cards/fiveHands";
+import { fcCoreUnitsFor } from "./cards/freecell";
 import { MG_CORE_FULL } from "./cards/muggins";
 import { arcadeStdParts } from "./standard";
 
@@ -131,10 +132,16 @@ const BUILDERS: Record<string, Builder> = {
   homerun: sportsBuilder("Distance points", (r) => n(r, "pitches") >= 10),
   freekick: sportsBuilder("Goal points", (r) => b(r, "finished")),
   racing: sportsBuilder("Distance points", (r) => b(r, "finished")),
+  // Blockfall and Alley Roll (1 Nov 2026): the same shape (the lines come from the standard parts).
+  blockfall: sportsBuilder("Lines points", (r) => !b(r, "toppedOut")),
+  alleyroll: sportsBuilder("Ring points", (r) => b(r, "finished")),
   // Cards & Board (30 Oct 2026; the lines come from each game's standard parts).
   freecell: (r, s) => ({
     axis: { value: n(r, "home"), max: 52, label: "Cards home" },
-    lines: [`${n(r, "home")} / 52 home → ${s}`],
+    // freecellRev 3: the core is full at FC_CORE_UNITS_V3 units (home 2 each, sorted 1 each), well before all 52.
+    lines: (n(r, "freecellRev") || 1) >= 3
+      ? [`${n(r, "home")} home · ${n(r, "sorted")} sorted = ${2 * n(r, "home") + n(r, "sorted")} units (full at ${fcCoreUnitsFor(3)}) → ${s}`]
+      : [`${n(r, "home")} / 52 home → ${s}`],
     tiles: [
       { label: "Moves", value: `${n(r, "moves")} · par ${n(r, "par")}` },
       { label: "Sorted runs", value: String(n(r, "sorted")) },
@@ -166,16 +173,20 @@ const BUILDERS: Record<string, Builder> = {
       outcome: n(r, "placed") === 25 ? "finish" : "time",
     };
   },
-  fivehands: (r, s) => ({
-    axis: { value: n(r, "total"), max: FH_CORE_FULL, label: "Hand points" },
-    lines: [`${n(r, "total")} hand points (full at ${FH_CORE_FULL}) → ${s}`],
+  fivehands: (r, s) => {
+    // fiveHandsRev 2: hand points alone on the steep table, full at FH_CORE_FULL_V2.
+    const full = fhCoreFullFor(n(r, "fiveHandsRev") || 1);
+    return {
+    axis: { value: n(r, "total"), max: full, label: "Hand points" },
+    lines: [`${n(r, "total")} hand points (full at ${full}) → ${s}`],
     tiles: [
-      { label: "Made hands", value: `${n(r, "made")} / 5` },
-      { label: "Full at", value: String(FH_CORE_FULL) },
+      { label: (n(r, "fiveHandsRev") || 1) >= 2 ? "Rows with a hand" : "Made hands", value: `${n(r, "made")} / 5` },
+      { label: "Full at", value: String(full) },
       { label: "Placed", value: `${n(r, "placed")} / 20` },
     ],
     outcome: n(r, "placed") === 20 ? "finish" : "time",
-  }),
+    };
+  },
   pyramid: (r, s) => ({
     axis: { value: n(r, "removed"), max: 28, label: "Pyramid cards" },
     lines: [`${n(r, "removed")} / 28 removed → ${s}`],

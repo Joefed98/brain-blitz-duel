@@ -95,6 +95,12 @@ export const STANDARD_STAMPS: Partial<Record<PuzzleType, StandardStamp>> = {
   shikaku: s("depthRev", 2),
   lightup: s("depthRev", 1),
 
+  // New grid puzzles born on the standard (1 Nov 2026, grid.server.ts; numbers and texts in gridRules.ts / gridText.ts):
+  // each deals its own stamp 1 from the start, so there is no live stamp before it (0 = never dealt).
+  fences: s("fencesRev", 0),
+  fillomino: s("fillominoRev", 0),
+  bridges: s("bridgesRev", 0),
+  kakuro: s("kakuroRev", 0),
 };
 
 let pinned = false;

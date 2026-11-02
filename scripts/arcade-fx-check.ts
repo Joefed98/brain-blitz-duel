@@ -116,6 +116,10 @@ const { fiveHandsArt } = await import("../src/lib/arcade/cards/fiveHands.rendere
 const { pyramidArt } = await import("../src/lib/arcade/cards/pyramid.renderer");
 const { golfSolArt } = await import("../src/lib/arcade/cards/golfSol.renderer");
 const { mugginsArt } = await import("../src/lib/arcade/cards/muggins.renderer");
+const { blockfallArt } = await import("../src/lib/arcade/blockfall.renderer");
+const { alleyRollArt } = await import("../src/lib/arcade/alleyroll.renderer");
+const { BF_CORE_FULL } = await import("../src/lib/arcade/blockfall");
+const { AR_CORE_FULL, AR_SHOW } = await import("../src/lib/arcade/alleyroll");
 
 type AnyGame = {
   init: (seed: number) => any;
@@ -185,6 +189,9 @@ const GAMES: Record<string, AnyGame> = {
   pyramid: pyramidArt as AnyGame,
   golfsol: golfSolArt as AnyGame,
   muggins: mugginsArt as AnyGame,
+  // Blockfall (Retro) and Alley Roll (Sports), 1 Nov 2026.
+  blockfall: blockfallArt as AnyGame,
+  alleyroll: alleyRollArt as AnyGame,
   // The Sports group (30 Oct 2026): each sim with its own art drawn through its success layer, on a bank deal.
   minigolf: { ...minigolfGameFor(MINIGOLF_BANK[0]!.pars), init: () => minigolfGameFor(MINIGOLF_BANK[0]!.pars).init(MINIGOLF_BANK[0]!.seed), draw: withArcadeFx(MINIGOLF_FX, (c, st) => drawMinigolf(c, st, null)) } as AnyGame,
   pool: { ...poolGameFor(1), init: () => poolGameFor(1).init(POOL_BANK[0]!), draw: withArcadeFx(POOL_FX, (c, st) => drawPool(c, st, null)) } as AnyGame,
@@ -574,6 +581,18 @@ const BUMPS: Record<string, ((s: any) => any)[]> = {
     (s) => ({ ...s, points: s.points + 10, lastScore: 10 }),
     (s) => ({ ...s, bigs: s.bigs + 1, points: s.points + 15, lastScore: 15 }),
     (s) => ({ ...s, ended: 1 }),
+  ],
+  // Blockfall: two rows at once, then four, then the core's full lines.
+  blockfall: [
+    (s) => ({ ...s, lines: s.lines + 2, doubles: s.doubles + 1, cleared: [20, 21], clearTick: s.tick }),
+    (s) => ({ ...s, lines: s.lines + 4, quads: s.quads + 1, cleared: [18, 19, 20, 21], clearTick: s.tick }),
+    (s) => ({ ...s, lines: BF_CORE_FULL }),
+  ],
+  // Alley Roll: a ball in the 50, a pocket, then nine pockets (the core's full ring points).
+  alleyroll: [
+    (s) => ({ ...s, phase: AR_SHOW, phaseTick: s.tick, balls: [...s.balls, { release: 0, points: 50, x: 0, y: 190 }] }),
+    (s) => ({ ...s, phase: AR_SHOW, phaseTick: s.tick, balls: [...s.balls, { release: 0, points: 100, x: 112, y: 280 }] }),
+    (s) => ({ ...s, phase: AR_SHOW, phaseTick: s.tick, balls: Array.from({ length: Math.ceil(AR_CORE_FULL / 100) }, () => ({ release: 0, points: 100, x: 112, y: 280 })) }),
   ],
 };
 for (const [name, game] of Object.entries(GAMES)) {
