@@ -81,7 +81,7 @@ import {
 } from "../src/lib/arcade/orbitRev3";
 import { ORBIT_HOLE_BANK } from "../src/lib/duel/orbitHoleBank.server";
 import { ORBIT_REV3_BANK } from "../src/lib/duel/orbitRev3Bank.server";
-import { generateBeat, generateBreaker, generateOrbit, generateRally, generateSnake } from "../src/lib/duel/arcade.server";
+import { generateBeat, generateBreaker, generateOrbit, pinOrbitPreFuel, generateRally, generateSnake } from "../src/lib/duel/arcade.server";
 import { PUZZLE_INSTRUCTIONS } from "../src/lib/duel/instructions";
 import { playRevOf } from "./scoring-targets-revs";
 
@@ -165,7 +165,8 @@ section("New rounds carry the Tuning F stamps and score on the bands");
     ["beat", "beatRev", playRevOf("beat", generateBeat().beatRev), BEAT_REV_TUNEF + 4, 9],
     ["snake", "snakeRev", playRevOf("snake", generateSnake().snakeRev), SNAKE_REV_ROCKS + 3, 9],
     // Taller worlds batch 3 (16 Oct 2026) moved Orbit on to its taller view (orbitRev 8); arcade-tuning-g3-check covers it.
-    ["orbit", "orbitRev", playRevOf("orbit", generateOrbit().orbitRev), ORBIT_REV_SWEPT + 1, 8],
+    // The fuel meter (orbitRev 14, 1 Nov 2026) moved Orbit on to its fuel bank (orbit-fuel-check covers it); pinned here, the deal before it.
+    ["orbit", "orbitRev", playRevOf("orbit", (() => { const was = pinOrbitPreFuel(true); try { return generateOrbit().orbitRev; } finally { pinOrbitPreFuel(was); } })()), ORBIT_REV_SWEPT + 1, 8],
   ];
   // Expansion E3 (docs/expansions/e3.md) then moved Breaker on to brkRev 9; expansion-e3-check covers it. The expansion
   // to 200 (docs/expansions/x200-orbit.md) moved Orbit on to orbitRev 12; orbit-expand-check covers it.
@@ -528,7 +529,7 @@ section("Intro and \"?\" help");
   // rallyRev 12: its help states the standard's parts (rally-standard-check) and one value for a pink pad (3).
   if (want("rally")) ok(/second bumper/.test(help("rally")) && /45 s/.test(help("rally")) && PUZZLE_INSTRUCTIONS.rally.score.includes(stdHelp(RALLY_STD_SPEC)) && help("rally").includes(`scores ${RALLY_V12_PAD_PTS}, and the pad`) && !/counts 6|5 a hit/.test(help("rally")), "Rally: the second bumper from 45 s, the standard's parts new rooms score on (rallyRev 12 since the arcade scoring standard) and one value for a pink pad (3)");
   // The arcade scoring standard (29 Oct 2026): Tempo's beatRev 11 help states its standard parts (beat-standard-check).
-  if (want("snake")) ok(/length 9/.test(help("snake")) && /every 4 stars, up to 11/.test(help("snake")) && /at most 14 rocks/.test(help("snake")) && PUZZLE_INSTRUCTIONS.snake.score.includes("up to 120"), "Meteor: rocks from length 9, every 4 stars, up to 11 (14 with the shower), and the top rooms deal (snakeRev 11's core since the arcade scoring standard)");
+  if (want("snake")) ok(/length 9/.test(help("snake")) && /every 4 stars, up to 11/.test(help("snake")) && /at most 14 rocks/.test(help("snake")) && PUZZLE_INSTRUCTIONS.snake.score.includes("up to 120"), "Meteor: rocks from length 9, every 4 stars, up to 11 (14 with the shower), and the top rooms deal (snakeRev 11's core since the arcade scoring standard, snakeRev 12's since 1 Nov 2026)");
   if (want("orbit")) ok(/Any black hole ahead/.test(help("orbit")) && /any part of the rocket/.test(help("orbit")), "Orbit: any black hole ahead swallows any part of the rocket");
 }
 

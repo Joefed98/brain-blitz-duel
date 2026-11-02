@@ -2324,7 +2324,11 @@ export interface BurstPuzzleData {
 
 /** Orbit and Swing: fixed 60-second runs; the round clock adds three of slack. */
 export const ORBIT_TIME_MS = 93_000;
-export const SWING_TIME_MS = 63_000;
+/**
+ * Grappler: since 1 Nov 2026 (swingRev 16, the dark ledge runs) a 90-second run plus three of slack; older swingRev
+ * rounds still end at their own 60 s (the sim ends them; their clock shows the extra 30 s unused, as Gemstone's and Tempo's).
+ */
+export const SWING_TIME_MS = 93_000;
 
 /** Snip: a fixed 60-second run on the arcade engine. */
 export const SNIP_TIME_MS = 63_000;
@@ -2341,19 +2345,19 @@ export interface OrbitPuzzleData {
   type: "orbit";
   /** Draws the planet course — identical for everyone. */
   seed: number;
-  /** 3 = wider zig-zag world with a scrolling camera; 4 = black holes; 5 = score bands; 6 = fly-in (Tuning A); 7 = swept black holes (Tuning F); 8 = rev 7 in a taller 390 × 650 view; 12 = the expansion to 200 (450 × 782 view, extras); 13 = rev 12 scored on the arcade standard; absent = legacy fixed-camera course. */
+  /** 3 = wider zig-zag world with a scrolling camera; 4 = black holes; 5 = score bands; 6 = fly-in (Tuning A); 7 = swept black holes (Tuning F); 8 = rev 7 in a taller 390 × 650 view; 12 = the expansion to 200 (450 × 782 view, extras); 13 = rev 12 scored on the arcade standard; 14 = the fuel meter on the fuel bank's zigzag courses; absent = legacy fixed-camera course. */
   orbitRev?: number;
   /** Rev3 only: the proved 0..ORBIT_TOTAL planet layout, shipped so client play, reveal and grading never re-prove the course. */
   planets?: OrbitRev3CompactPlanet[];
   /** Rev 4 and 5: proved black holes (rev 5 may carry none), [from, to, x, y] each (orbitHoleBank.server.ts). */
   holes?: OrbitHoleRow[];
-  /** orbitRev 12 and 13 (the expansion to 200): the course's proved stardust, slingshot moons and asteroid fields (orbitXpBank.server.ts). */
+  /** orbitRev 12, 13 and 14 (the expansion to 200): the course's proved stardust, slingshot moons and asteroid fields (orbitXpBank.server.ts; orbitRev 14: orbitFuelBank.server.ts). */
   extras?: OrbitExtrasRow;
 }
 
 export interface SwingPuzzleData {
   type: "swing";
-  /** 4 = dragon chase; 5 = score bands; 6 = touch stars (Tuning A); 7 = about 10% lower (Tuning C); 8 = stars spread evenly (Tuning F); 9 = the taller 390 × 730 cavern; 13 = the 200 expansion; 14 = the assault course (sections of ledges, hooks and squeezes); 15 = the swinging course (mostly hook-to-hook swinging, short ledge runs). */
+  /** 4 = dragon chase; 5 = score bands; 6 = touch stars (Tuning A); 7 = about 10% lower (Tuning C); 8 = stars spread evenly (Tuning F); 9 = the taller 390 × 730 cavern; 13 = the 200 expansion; 14 = the assault course (sections of ledges, hooks and squeezes); 15 = the swinging course (mostly hook-to-hook swinging, short ledge runs); 16 = its dark ledge runs over 90 s (a longer course). */
   swingRev?: number;
   /** Draws the cavern — identical for everyone. */
   seed: number;

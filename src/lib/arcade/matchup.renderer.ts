@@ -14,7 +14,7 @@ import {
   MATCHUP_CLEAR_MS, MATCHUP_COLOURS, MATCHUP_CROSS, MATCHUP_DETONATE_MS, MATCHUP_DROP_MS, MATCHUP_GOLD,
   MATCHUP_NEXT_H, MATCHUP_NEXT_Y, MATCHUP_QUEUE_LEN, MATCHUP_ROWS, MATCHUP_SHAPES, MATCHUP_SIZE, MATCHUP_STAR,
   MATCHUP_SYMBOL_PCT, MATCHUP_TEXT, MATCHUP_JACKPOT, MATCHUP_WORLD_H, MATCHUP_WORLD_W, matchupIsJackpot, matchupPending, matchupStepTiming,
-  matchupHintSwap, matchupRowsOf, matchupWorldH, MATCHUP_TREASURE, MATCHUP_V9_PANEL_Y, matchupTreasuresOf, MATCHUP_V11_GOAL_LEVELS,
+  matchupHintSwap, matchupRowsOf, matchupWorldH, MATCHUP_TREASURE, MATCHUP_V9_PANEL_Y, matchupTreasuresOf, MATCHUP_V11_GOAL_LEVELS, matchupGoalsMet, MATCHUP_V12_GOALS,
   type MatchupAnimStep, type MatchupState,
 } from "./matchup";
 import { artHash, reducedMotion } from "./art.renderer";
@@ -865,6 +865,11 @@ function drawIce(ctx: CanvasRenderingContext2D, ice: readonly number[] | undefin
 
 /** The goals panel under the board: the level, each goal colour's gems still to collect, ice left and treasure found. */
 function drawGoalsPanel(ctx: CanvasRenderingContext2D, state: MatchupState, time: number): void {
+  // matchupRev 12: six goals at once, one a colour, in a row of six (its own layout).
+  if (state.six) {
+    drawSixGoalsPanel(ctx, state, time);
+    return;
+  }
   const x = MATCHUP_BOARD_X - 5, y = MATCHUP_V9_PANEL_Y, w = MATCHUP_BOARD_W + 10, h = 84;
   ctx.save();
   ctx.beginPath();
@@ -914,6 +919,66 @@ function drawGoalsPanel(ctx: CanvasRenderingContext2D, state: MatchupState, time
   ctx.textAlign = "right";
   // matchupRev 11 pays lines of 4 or 5 (the cascade multiplier no longer scores); older revisions keep the cascade count.
   ctx.fillText(state.std ? `big lines ${state.bigLines ?? 0}` : `cascades +${state.cascadeExtra ?? 0}`, x + w - 12, y + 64);
+  ctx.restore();
+}
+
+/**
+ * matchupRev 12's goals panel (the same 360 × 84 tray under the board): a top line with the goals met, the ice left, the
+ * treasure brought down and the big lines, then the six goals side by side, each a gem, the gems of that colour still
+ * to clear (a tick once met) and a progress bar in the gem's colour.
+ */
+function drawSixGoalsPanel(ctx: CanvasRenderingContext2D, state: MatchupState, time: number): void {
+  const x = MATCHUP_BOARD_X - 5, y = MATCHUP_V9_PANEL_Y, w = MATCHUP_BOARD_W + 10, h = 84;
+  ctx.save();
+  ctx.beginPath();
+  ctx.roundRect(x, y, w, h, 12);
+  const tray = ctx.createLinearGradient(0, y, 0, y + h);
+  tray.addColorStop(0, "rgba(10,8,16,0.78)");
+  tray.addColorStop(1, "rgba(60,48,84,0.5)");
+  ctx.fillStyle = tray;
+  ctx.fill();
+  ctx.strokeStyle = "rgba(245,184,46,0.35)";
+  ctx.lineWidth = 1;
+  ctx.stroke();
+  ctx.textBaseline = "middle";
+  ctx.textAlign = "left";
+  // Top line: goals met (gold), then ice left, treasure and big lines.
+  const met = matchupGoalsMet(state);
+  ctx.font = "700 12px 'JetBrains Mono', ui-monospace, monospace";
+  ctx.fillStyle = MATCHUP_GOLD;
+  ctx.fillText(met >= MATCHUP_V12_GOALS ? "ALL GOALS MET" : `GOALS ${met}/${MATCHUP_V12_GOALS}`, x + 12, y + 15);
+  const iceLeft = (state.ice ?? []).reduce((n, v) => n + (v ? 1 : 0), 0);
+  ctx.font = "600 12px 'JetBrains Mono', ui-monospace, monospace";
+  ctx.fillStyle = "rgba(247,247,248,0.8)";
+  if (iceSprite) ctx.drawImage(iceSprite as CanvasImageSource, x + 134, y + 7, 16, 16);
+  ctx.fillText(`${iceLeft}`, x + 153, y + 15);
+  drawMatchupGem(ctx, MATCHUP_TREASURE, x + 190, y + 15, 8, time);
+  ctx.fillText(`${state.treasures ?? 0}/${matchupTreasuresOf(state)}`, x + 202, y + 15);
+  ctx.fillStyle = MATCHUP_GOLD;
+  ctx.textAlign = "right";
+  ctx.fillText(`big ${state.bigLines ?? 0}`, x + w - 12, y + 15);
+  // The six goals, one a colour, in colour order.
+  const need = state.goalNeed ?? [];
+  const left = state.goalLeft ?? [];
+  const cellW = (w - 16) / MATCHUP_V12_GOALS;
+  for (let kind = 0; kind < MATCHUP_V12_GOALS; kind++) {
+    const cx = x + 8 + cellW * kind + cellW / 2;
+    const n = need[kind] ?? 0;
+    const l = left[kind] ?? 0;
+    const done = n > 0 && l === 0;
+    ctx.globalAlpha = done ? 0.55 : 1;
+    drawMatchupGem(ctx, kind, cx - 12, y + 44, 10, time);
+    ctx.globalAlpha = 1;
+    ctx.textAlign = "left";
+    ctx.font = "700 14px 'JetBrains Mono', ui-monospace, monospace";
+    ctx.fillStyle = done ? "#7CF5A4" : MATCHUP_TEXT;
+    ctx.fillText(done ? "✓" : `${l}`, cx + 1, y + 45);
+    const bw = cellW - 12;
+    ctx.fillStyle = "rgba(0,0,0,0.45)";
+    ctx.fillRect(cx - bw / 2, y + 63, bw, 3);
+    ctx.fillStyle = done ? "#7CF5A4" : (MATCHUP_COLOURS[kind] ?? MATCHUP_GOLD);
+    ctx.fillRect(cx - bw / 2, y + 63, n > 0 ? (bw * (n - l)) / n : 0, 3);
+  }
   ctx.restore();
 }
 

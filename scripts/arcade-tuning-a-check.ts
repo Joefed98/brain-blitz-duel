@@ -76,7 +76,7 @@ import { encodeSwingRun, replaySwingRun } from "../src/lib/duel/swing";
 import { SWING_V4_BANK } from "../src/lib/duel/swingBankV4.server";
 import { proveSwingSeedV4 } from "../src/lib/duel/swingProof.server";
 import { tiltCupReachable, tiltDealableX, tiltGameFor, tiltSeedCupsReachable, TILT_REV_BAND, TILT_REV_STD } from "../src/lib/arcade/tilt";
-import { generateOrbit, generateSkyline, generateSwing, generateTilt, generateWavefront } from "../src/lib/duel/arcade.server";
+import { generateOrbit, generateSkyline, generateSwing, generateTilt, generateWavefront, pinOrbitPreFuel } from "../src/lib/duel/arcade.server";
 import { skylineGameFor, SKYLINE_REV_EXPAND, SKYLINE_REV_STD, SKYLINE_REV_TALL } from "../src/lib/arcade/skyline";
 import { APP_FLAG_LOGO_URL } from "../src/lib/brand";
 import { PUZZLE_INSTRUCTIONS as INSTRUCTIONS } from "../src/lib/duel/instructions";
@@ -227,7 +227,10 @@ if (want("wavefront")) {
 if (want("orbit")) {
   section("Orbit orbitRev 6: black-hole fly-in, earlier end to a miss");
   {
+    // The fuel meter (orbitRev 14, 1 Nov 2026) moved rooms to its own bank (orbit-fuel-check); pinned, the deal before it.
+    const wasFuel = pinOrbitPreFuel(true);
     const p = generateOrbit();
+    pinOrbitPreFuel(wasFuel);
     // Tuning F (Oct 2026) moved rooms on to orbitRev 7 (rev-6 play with swept black holes), and taller worlds batch 3
     // (16 Oct 2026) to orbitRev 8 (rev 7 in a taller view); arcade-tuning-f-check and arcade-tuning-g3-check cover them.
     // The expansion to 200 (docs/expansions/x200-orbit.md) then moved rooms on to orbitRev 12; orbit-expand-check covers it.
@@ -346,7 +349,7 @@ if (want("swing")) {
   // Tuning F (Oct 2026) moved new Grappler rounds on to swingRev 8 (evenly spread stars); swing-rev8-check covers it.
   // Taller worlds batch 3 (16 Oct 2026) moved rooms on to swingRev 9 (the taller cavern); arcade-tuning-g3-check covers it.
   // Grappler's 200 expansion (26 Oct 2026) moved rooms on to swingRev 13 (swing-x200-check).
-  ok(playRevOf("swing", generateSwing().swingRev) === SWING_REV_TUNED + 9, "new Grappler rounds are stamped swingRev 15 (the swinging course, after swingRev 6, 7, 8, 9, 13 and 14)");
+  ok(playRevOf("swing", generateSwing().swingRev) === SWING_REV_TUNED + 10, "new Grappler rounds are stamped swingRev 16 (the dark ledge runs, after swingRev 6, 7, 8, 9, 13, 14 and 15)");
   ok(puzzleUsesBands({ type: "swing", swingRev: SWING_REV_TUNED }) && puzzleUsesBands({ type: "swing", swingRev: SWING_REV_BAND }), "swingRev 5 and 6 both score on the band curve");
   ok(SWING_CHASE_PACE === 4 * FP, "the chasing dragon keeps its pace (4 px a tick)");
   ok(SWING_ROCK_WARN === 60 && SWING_ROCK_WARN_V6 === 120, "stalactites crumble for 2 s on rev 6 (1 s before)");

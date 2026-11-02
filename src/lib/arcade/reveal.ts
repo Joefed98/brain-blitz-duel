@@ -9,7 +9,7 @@ import { CROSS_LANE_POINTS, CROSS_CROSSING_POINTS } from "./cross";
 import { BT_BALLS, BT_V7_BALLS } from "./ballTrack";
 import { whackDepthScore, type WhackState } from "./whack";
 import { CLAY_DOUBLES, clayDepthScore, clayDoublesHit, type ClayState } from "./clayShoot";
-import { MATCHUP_PAR_RAW, MATCHUP_V11_CORE_GEMS, MATCHUP_V11_GOALS, matchupGoalsMet, matchupTreasuresOf, type MatchupState } from "./matchup";
+import { MATCHUP_PAR_RAW, matchupCoreGemsOf, matchupGoalsMet, matchupGoalsOf, matchupTreasuresOf, type MatchupState } from "./matchup";
 import { WF_PAR } from "./wordfall";
 import { HOVER_CHAINS, HOVER_TIGHT_GATES, HOVER_V2_GATES_SCORE, HOVER_V2_STARS_SCORE } from "./hover";
 import { WAV_BOSS_HP, WAV_V2_WAVES } from "./wavefront";
@@ -311,15 +311,15 @@ const BUILDERS: Record<string, Builder> = {
   },
   matchup: (r, s) => {
     // matchupRev 11 (the arcade scoring standard): gems cleared on the axis, the parts as tiles (the lines come from
-    // the band breakdown, matchupStdBandParts).
+    // the band breakdown, matchupStdBandParts). matchupRev 12: its own core count, six goals and six treasures.
     const st = r["state"] as MatchupState | undefined;
     if (st?.std)
       return {
-        axis: { value: st.gemsCleared ?? 0, max: MATCHUP_V11_CORE_GEMS, label: "Gems cleared" },
+        axis: { value: st.gemsCleared ?? 0, max: matchupCoreGemsOf(st), label: "Gems cleared" },
         lines: [`${(st.gemsCleared ?? 0).toLocaleString("en-GB")} gems cleared → ${s}`],
         tiles: [
           { label: "Treasure", value: `${st.treasures ?? 0} / ${matchupTreasuresOf(st)}` },
-          { label: "Goals", value: `${matchupGoalsMet(st)} / ${MATCHUP_V11_GOALS}` },
+          { label: "Goals", value: `${matchupGoalsMet(st)} / ${matchupGoalsOf(st)}` },
           { label: "Ice", value: String(st.iceBroken ?? 0) },
           { label: "Big lines", value: String(st.bigLines ?? 0) },
         ],
@@ -684,12 +684,14 @@ const BUILDERS: Record<string, Builder> = {
               { label: "Perfect orbits", value: String(n(xp, "perfect")) },
             ]
           : []),
+        // orbitRev 14 (the fuel meter): a run that ended with an empty tank says so.
+        ...(b(r, "outOfFuel") ? [{ label: "Ended", value: "Out of fuel" }] : []),
       ],
       outcome: done ? "finish" : ended(r, false),
     };
   },
   swing: (r, s) => {
-    // swingRev 15 (the swinging course): the share of the course on the axis; the three parts add up to the stored score.
+    // swingRev 15 (the swinging course) and 16 (its dark ledge runs, 90 s): the share of the course on the axis; the three parts add up to the stored score.
     if (n(r, "swingRev") >= 15) {
       const done = n(r, "sections") >= n(r, "sectionTotal") && n(r, "sectionTotal") > 0;
       return {

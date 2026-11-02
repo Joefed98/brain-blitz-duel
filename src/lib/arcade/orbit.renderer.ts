@@ -820,7 +820,7 @@ import {
   orbitViewW,
   type OrbitCamOffset,
 } from "./orbitCamera";
-import { orbitHoleLive, orbitRev3Game, orbitWorldHFor, orbitXpCounts, ORBIT_DUST_R, ORBIT_HOLE_R, ORBIT_MOON_ASSIST, ORBIT_MOON_R, ORBIT_REV3_BG, ORBIT_REV3_RED, type OrbitRev3State } from "./orbitRev3";
+import { orbitHoleLive, orbitRev3Game, orbitWorldHFor, orbitXpCounts, ORBIT_FUEL_MAX, ORBIT_DUST_R, ORBIT_HOLE_R, ORBIT_MOON_ASSIST, ORBIT_MOON_R, ORBIT_REV3_BG, ORBIT_REV3_RED, type OrbitRev3State } from "./orbitRev3";
 import { devDisplayAllowed } from "@/lib/devDisplay";
 import { orbitRewardObserve, drawOrbitShootingStar } from './orbitRewards.renderer';
 
@@ -1115,8 +1115,12 @@ function drawOrbitRev3ArtWorld(ctx: CanvasRenderingContext2D, state: OrbitRev3St
   const ship = observeShip(ctx, state);
   drawCaptureGlow(ctx, ship, here.x / FP - cam.x, here.y / FP - cam.y, here.r / FP, state.cur === ORBIT_TOTAL ? ORBIT_GOLD : planetLook(here, state.cur, 0).colour, still);
   drawShipTrail(ctx, ship, cam.x, cam.y, state.ended === 2);
+  // orbitRev 14: a run that ran dry draws its rocket in the sputter instead (dropping away, no exhaust streak),
+  // unless motion is reduced.
+  const sputter = observeSputter(ctx, state);
+  const sputtering = Boolean(sputter?.ended && !still);
 
-  if (state.flying > 0) {
+  if (state.flying > 0 && !sputtering) {
     const back = Math.min(state.flying, 20) * (Math.hypot(state.vx, state.vy) / FP);
     const trail = ctx.createLinearGradient(sx, sy, sx - ux * back, sy - uy * back);
     trail.addColorStop(0, "rgba(255,209,102,0.8)");
@@ -1131,11 +1135,64 @@ function drawOrbitRev3ArtWorld(ctx: CanvasRenderingContext2D, state: OrbitRev3St
     ctx.lineCap = "butt";
   }
 
-  ctx.save();
-  ctx.translate(sx, sy);
-  ctx.rotate(Math.atan2(uy, ux));
   const dead = state.ended === 2;
-  if (!dead) drawRocketFlame(ctx, state.flying, since, state.tick, still, Boolean(state.boost && state.flying > 0));
+  if (!sputtering) {
+    ctx.save();
+    ctx.translate(sx, sy);
+    ctx.rotate(Math.atan2(uy, ux));
+    if (!dead) drawRocketFlame(ctx, state.flying, since, state.tick, still, Boolean(state.boost && state.flying > 0));
+    drawRev3RocketBody(ctx, dead);
+    ctx.restore();
+  }
+  if (sputter && !still) drawSputter(ctx, sputter, cam);
+
+  // The end of the play layers: the HUD and the success layer's HUD burst are top left.
+  ctx.restore();
+  if(capturePlanet)successFrame(ctx,{id:'orbit3',tick:state.tick,count:state.captured,enabled:state.captured%5===0,misses:1-state.respawns,colour:ORBIT_GOLD,width:ORBIT_CAM_VIEW_W,height:ORBIT_CAM_VIEW_H,point:{x:110,y:26,shape:'spark'},hud:{x:14,y:12,text:`Planets ${state.best} / ${ORBIT_TOTAL}`}});
+  ctx.fillStyle = "#FFFFFF";
+  ctx.font = "600 16px 'JetBrains Mono', ui-monospace, monospace";
+  ctx.textAlign = "left";
+  successHud(ctx,'orbit3',state.tick,14,26,()=>ctx.fillText(`Planets ${state.best} / ${ORBIT_TOTAL}`,14,26));
+  // orbitRev 12: what the run has taken of the features, under the planets.
+  if (state.xp) {
+    const c = orbitXpCounts(state);
+    ctx.font = "600 12px 'JetBrains Mono', ui-monospace, monospace";
+    ctx.fillStyle = "#FFE9A8";
+    // Two short lines (since 27 Oct 2026), left of SET CHECKPOINT's reserved corner (ORBIT_XP_ZONE).
+    ctx.fillText(`Dust ${c.dust}/${c.dustTotal} · Sling ${c.slings}/${c.slingsTotal}`, 14, 44);
+    ctx.fillText(`Thread ${c.threads}/${c.threadsTotal} · Perfect ${c.perfect}`, 14, 60);
+  }
+  if (state.checkpoint >= 0) {
+    ctx.fillStyle = state.respawns > 0 ? ORBIT_GOLD : "rgba(255,255,255,0.4)";
+    ctx.font = "600 14px 'JetBrains Mono', ui-monospace, monospace";
+    ctx.fillText(state.respawns > 0 ? `Checkpoint ${state.checkpoint} · 1 respawn` : `Checkpoint used`, 14, state.xp ? 78 : 44);
+  }
+  if (xpMemory) {
+    drawXpPops(ctx, xpMemory, cam, still);
+  }
+  // orbitRev 14: the fuel meter, bottom right, and the sputter when the tank runs dry.
+  if (state.fuel !== undefined) drawFuelMeter(ctx, state, sputter, ORBIT_CAM_VIEW_W, ORBIT_CAM_VIEW_H, still);
+  if (state.tick - state.respawnTick < 45) {
+    ctx.globalAlpha = 1 - (state.tick - state.respawnTick) / 45;
+    ctx.fillStyle = ORBIT_GOLD;
+    ctx.font = "700 22px 'JetBrains Mono', ui-monospace, monospace";
+    ctx.textAlign = "center";
+    ctx.fillText("RESPAWN", ORBIT_CAM_VIEW_W / 2, ORBIT_CAM_VIEW_H / 2);
+    ctx.globalAlpha = 1;
+  }
+
+  // Dev-only frame readout (?dev=1 + accepted key): camera position and visible-planet count.
+  if (devDisplayAllowed()) {
+    ctx.fillStyle = "rgba(255,255,255,0.7)";
+    ctx.font = "500 10px ui-monospace, monospace";
+    ctx.textAlign = "left";
+    ctx.fillText(`cam ${cam.x.toFixed(1)}, ${cam.y.toFixed(1)} · visible ${visible.length}`, 14, ORBIT_CAM_VIEW_H - 10);
+  }
+  ctx.restore();
+}
+
+/** The rev3 rocket's fins, body, nose and window, pointing along +x at the origin. */
+function drawRev3RocketBody(ctx: CanvasRenderingContext2D, dead: boolean): void {
   ctx.fillStyle = dead ? "#8A2B33" : "#C8862A";
   ctx.beginPath();
   ctx.moveTo(-6, -2);
@@ -1166,49 +1223,6 @@ function drawOrbitRev3ArtWorld(ctx: CanvasRenderingContext2D, state: OrbitRev3St
   ctx.beginPath();
   ctx.arc(1, 0, 1.6, 0, Math.PI * 2);
   ctx.fill();
-  ctx.restore();
-
-  // The end of the play layers: the HUD and the success layer's HUD burst are top left.
-  ctx.restore();
-  if(capturePlanet)successFrame(ctx,{id:'orbit3',tick:state.tick,count:state.captured,enabled:state.captured%5===0,misses:1-state.respawns,colour:ORBIT_GOLD,width:ORBIT_CAM_VIEW_W,height:ORBIT_CAM_VIEW_H,point:{x:110,y:26,shape:'spark'},hud:{x:14,y:12,text:`Planets ${state.best} / ${ORBIT_TOTAL}`}});
-  ctx.fillStyle = "#FFFFFF";
-  ctx.font = "600 16px 'JetBrains Mono', ui-monospace, monospace";
-  ctx.textAlign = "left";
-  successHud(ctx,'orbit3',state.tick,14,26,()=>ctx.fillText(`Planets ${state.best} / ${ORBIT_TOTAL}`,14,26));
-  // orbitRev 12: what the run has taken of the features, under the planets.
-  if (state.xp) {
-    const c = orbitXpCounts(state);
-    ctx.font = "600 12px 'JetBrains Mono', ui-monospace, monospace";
-    ctx.fillStyle = "#FFE9A8";
-    // Two short lines (since 27 Oct 2026), left of SET CHECKPOINT's reserved corner (ORBIT_XP_ZONE).
-    ctx.fillText(`Dust ${c.dust}/${c.dustTotal} · Sling ${c.slings}/${c.slingsTotal}`, 14, 44);
-    ctx.fillText(`Thread ${c.threads}/${c.threadsTotal} · Perfect ${c.perfect}`, 14, 60);
-  }
-  if (state.checkpoint >= 0) {
-    ctx.fillStyle = state.respawns > 0 ? ORBIT_GOLD : "rgba(255,255,255,0.4)";
-    ctx.font = "600 14px 'JetBrains Mono', ui-monospace, monospace";
-    ctx.fillText(state.respawns > 0 ? `Checkpoint ${state.checkpoint} · 1 respawn` : `Checkpoint used`, 14, state.xp ? 78 : 44);
-  }
-  if (xpMemory) {
-    drawXpPops(ctx, xpMemory, cam, still);
-  }
-  if (state.tick - state.respawnTick < 45) {
-    ctx.globalAlpha = 1 - (state.tick - state.respawnTick) / 45;
-    ctx.fillStyle = ORBIT_GOLD;
-    ctx.font = "700 22px 'JetBrains Mono', ui-monospace, monospace";
-    ctx.textAlign = "center";
-    ctx.fillText("RESPAWN", ORBIT_CAM_VIEW_W / 2, ORBIT_CAM_VIEW_H / 2);
-    ctx.globalAlpha = 1;
-  }
-
-  // Dev-only frame readout (?dev=1 + accepted key): camera position and visible-planet count.
-  if (devDisplayAllowed()) {
-    ctx.fillStyle = "rgba(255,255,255,0.7)";
-    ctx.font = "500 10px ui-monospace, monospace";
-    ctx.textAlign = "left";
-    ctx.fillText(`cam ${cam.x.toFixed(1)}, ${cam.y.toFixed(1)} · visible ${visible.length}`, 14, ORBIT_CAM_VIEW_H - 10);
-  }
-  ctx.restore();
 }
 
 /** The rev3 sim with its camera-scrolled renderer swapped in. */
@@ -1466,5 +1480,224 @@ function drawXpPops(ctx: CanvasRenderingContext2D, m: XpMemory, cam: OrbitCamOff
     ctx.fillStyle = pop.colour;
     ctx.fillText(pop.text, pop.x - cam.x, y);
   }
+  ctx.restore();
+}
+
+/* ===================== The fuel meter (orbitRev 14, display only) ===================== */
+/*
+ * Bottom right of the drawn view, clear of SET CHECKPOINT's corner (top right) and the HUD (top left): a "FUEL" label
+ * over a 16 × 112 px gauge in ten segments, filled from the bottom by the sim's own `fuel` (full in orbit, draining one
+ * unit a tick of free flight), green above half, amber above a quarter, red below. While it drains the gauge's frame
+ * brightens, so a miss's loss is plain; when the tank runs dry (`dry`) the gauge flashes red through the sputter
+ * (below) and "OUT OF FUEL" shows. Reduced motion: no flashing, smoke or drop (the words and a red gauge still show).
+ */
+export const ORBIT_FUEL_METER = { w: 16, h: 112, right: 14, bottom: 18, label: 14 } as const;
+const FUEL_SEGMENTS = 10;
+/** The meter's box in the drawn view (backing and label included), for the layout checks. */
+export function orbitFuelMeterBox(viewW: number, viewH: number): { x: number; y: number; w: number; h: number } {
+  const m = ORBIT_FUEL_METER;
+  return { x: viewW - m.right - m.w - 6, y: viewH - m.bottom - m.h - m.label - 4, w: m.w + 12, h: m.h + m.label + 10 };
+}
+function fuelColour(share: number): string {
+  return share > 0.5 ? "#4ADE80" : share > 0.25 ? "#FBBF24" : "#F87171";
+}
+function fuelRoundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number): void {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
+}
+/*
+ * The sputter (orbitRev 14, display only): when the tank runs dry the rocket coughs smoke, tumbles and drops away
+ * over ORBIT_SPUTTER_MS while the meter flashes red, instead of the frame freezing on the dry tick. The sim ends the
+ * run (or respawns at the checkpoint) on the dry tick itself, exactly as before; this only observes it. A run that
+ * ended dry has no more ticks, so its sputter runs on the presentation clock from the first frame that shows the end
+ * (the stage holds its submit for the same time, `orbitEndHoldMs`); a checkpoint respawn's runs on the sim's ticks,
+ * at the point the tank ran dry (the rocket itself is already back at the checkpoint). Reduced motion: no smoke or
+ * drop, the dead rocket where it stopped and the words.
+ */
+export const ORBIT_SPUTTER_MS = 600;
+/** How long the dry words and red meter show after a checkpoint respawn's sputter. */
+const SPUTTER_WORDS_MS = 1000;
+interface SputterMemory {
+  tick: number;
+  dry: number;
+  at: number;
+  x: number;
+  y: number;
+  ux: number;
+  uy: number;
+  /** The last free-flight position seen (world px), its velocity (px a tick) and tick. */
+  fx: number;
+  fy: number;
+  fvx: number;
+  fvy: number;
+  ft: number;
+}
+export interface OrbitSputter {
+  /** ms since the tank ran dry. */
+  age: number;
+  /** The dry point, world px, and the flight's direction there. */
+  x: number;
+  y: number;
+  ux: number;
+  uy: number;
+  /** The run ended dry (no checkpoint respawn). */
+  ended: boolean;
+}
+const sputterMemories = new WeakMap<object, SputterMemory>();
+let sputterClock: () => number = presentationNow;
+/** Screenshot and check hook: the clock an ended run's sputter is timed on (null restores the presentation clock). */
+export function setOrbitSputterClock(clock: (() => number) | null): void {
+  sputterClock = clock ?? presentationNow;
+}
+const endedDry = (state: OrbitRev3State) => state.fuel !== undefined && state.ended === 2 && state.dry === state.endedTick;
+/** The stage's submit hold for a run that ended dry, so the sputter plays before the reveal (display only). */
+export function orbitEndHoldMs(state: OrbitRev3State): number {
+  return endedDry(state) ? ORBIT_SPUTTER_MS : 0;
+}
+
+function observeSputter(ctx: object, state: OrbitRev3State): OrbitSputter | null {
+  if (state.fuel === undefined) return null;
+  const dry = state.dry ?? -100;
+  let m = sputterMemories.get(ctx);
+  if (!m || state.tick < m.tick) {
+    m = { tick: state.tick, dry: -100, at: 0, x: 0, y: 0, ux: 1, uy: 0, fx: state.x / FP, fy: state.y / FP, fvx: state.vx / FP, fvy: state.vy / FP, ft: state.tick };
+    sputterMemories.set(ctx, m);
+  }
+  const ended = endedDry(state);
+  if (dry >= 0 && dry !== m.dry) {
+    m.dry = dry;
+    m.at = sputterClock();
+    if (ended) {
+      m.x = state.x / FP;
+      m.y = state.y / FP;
+      const len = Math.hypot(state.vx, state.vy) || 1;
+      m.ux = state.vx / len;
+      m.uy = state.vy / len;
+    } else {
+      // Respawned on the dry tick: the last flight position seen, carried on to the dry tick.
+      const k = Math.max(0, dry - m.ft);
+      m.x = m.fx + m.fvx * k;
+      m.y = m.fy + m.fvy * k;
+      const len = Math.hypot(m.fvx, m.fvy) || 1;
+      m.ux = m.fvx / len;
+      m.uy = m.fvy / len;
+    }
+  }
+  if (state.flying > 0) {
+    m.fx = state.x / FP;
+    m.fy = state.y / FP;
+    m.fvx = state.vx / FP;
+    m.fvy = state.vy / FP;
+    m.ft = state.tick;
+  }
+  m.tick = state.tick;
+  if (dry < 0 || m.dry !== dry) return null;
+  const age = ended ? Math.max(0, sputterClock() - m.at) : ((state.tick - dry) * 1000) / 60;
+  if (!ended && age >= SPUTTER_WORDS_MS) return null;
+  return { age, x: m.x, y: m.y, ux: m.ux, uy: m.uy, ended };
+}
+
+/** Where the falling rocket is at share p (0–1) of the sputter, world px, and its turn. */
+function sputterPose(sp: OrbitSputter, p: number): { x: number; y: number; turn: number } {
+  return { x: sp.x + sp.ux * 16 * p, y: sp.y + sp.uy * 16 * p + 78 * p * p, turn: 2.8 * p * p };
+}
+
+/** The smoke and the rocket dropping away (not under reduced motion). */
+function drawSputter(ctx: CanvasRenderingContext2D, sp: OrbitSputter, cam: { x: number; y: number }): void {
+  if (sp.age >= ORBIT_SPUTTER_MS) return;
+  const p = Math.min(1, sp.age / ORBIT_SPUTTER_MS);
+  ctx.save();
+  // Smoke: a puff every 36 ms from where the rocket was, drifting up and out, each fading over 240 ms (all gone by the end).
+  for (let k = 0; k < 10; k++) {
+    const born = k * 36;
+    const age = sp.age - born;
+    if (age < 0 || age >= 240) continue;
+    const at = sputterPose(sp, born / ORBIT_SPUTTER_MS);
+    const life = age / 240;
+    const side = k % 2 ? 1 : -1;
+    const px = at.x - cam.x - sp.ux * 8 - sp.uy * side * 6 * life;
+    const py = at.y - cam.y - sp.uy * 8 + sp.ux * side * 6 * life - 14 * life;
+    ctx.globalAlpha = 0.6 * (1 - life);
+    ctx.fillStyle = k % 3 === 0 ? "#6B7280" : "#A1A7B3";
+    ctx.beginPath();
+    ctx.arc(px, py, 3.5 + 8 * life, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  // The rocket: coughing (a flicker of flame for the first third), tumbling and falling away, fading out.
+  if (p < 1) {
+    const pose = sputterPose(sp, p);
+    ctx.globalAlpha = 1 - p;
+    ctx.translate(pose.x - cam.x, pose.y - cam.y);
+    ctx.rotate(Math.atan2(sp.uy, sp.ux) + pose.turn);
+    const scale = 1 - 0.3 * p;
+    ctx.scale(scale, scale);
+    if (p < 0.35 && Math.floor(sp.age / 50) % 2 === 0) {
+      ctx.fillStyle = "rgba(255,170,80,0.85)";
+      ctx.beginPath();
+      ctx.moveTo(-6, -2);
+      ctx.lineTo(-12, 0);
+      ctx.lineTo(-6, 2);
+      ctx.closePath();
+      ctx.fill();
+    }
+    drawRev3RocketBody(ctx, true);
+  }
+  ctx.restore();
+}
+
+function drawFuelMeter(ctx: CanvasRenderingContext2D, state: OrbitRev3State, sputter: OrbitSputter | null, W: number, H: number, still: boolean): void {
+  const m = ORBIT_FUEL_METER;
+  const fuel = Math.max(0, Math.min(ORBIT_FUEL_MAX, state.fuel ?? 0));
+  const share = fuel / ORBIT_FUEL_MAX;
+  const draining = state.flying > 0;
+  const x = W - m.right - m.w;
+  const y = H - m.bottom - m.h;
+  const box = orbitFuelMeterBox(W, H);
+  ctx.save();
+  // Backing, so the gauge reads over planets and stars.
+  ctx.fillStyle = "rgba(6,6,15,0.62)";
+  fuelRoundRect(ctx, box.x, box.y, box.w, box.h, 6);
+  ctx.fill();
+  ctx.font = "700 10px 'JetBrains Mono', ui-monospace, monospace";
+  ctx.textAlign = "center";
+  ctx.fillStyle = sputter ? ORBIT_REV3_RED : "rgba(255,255,255,0.78)";
+  ctx.fillText("FUEL", x + m.w / 2, y - 5);
+  // Flashing red through the sputter (on and off every 100 ms), then steady red on a run that ended dry.
+  const flashing = sputter !== null && !still && sputter.age < ORBIT_SPUTTER_MS;
+  const red = sputter !== null && (flashing ? Math.floor(sputter.age / 100) % 2 === 0 : sputter.ended || still);
+  ctx.strokeStyle = red || sputter?.ended ? ORBIT_REV3_RED : draining ? "rgba(255,255,255,0.85)" : "rgba(255,255,255,0.45)";
+  ctx.lineWidth = 1.5;
+  fuelRoundRect(ctx, x - 0.75, y - 0.75, m.w + 1.5, m.h + 1.5, 4);
+  ctx.stroke();
+  const seg = m.h / FUEL_SEGMENTS;
+  const lit = share * FUEL_SEGMENTS;
+  for (let k = 0; k < FUEL_SEGMENTS; k++) {
+    const top = y + m.h - (k + 1) * seg;
+    const part = Math.max(0, Math.min(1, lit - k));
+    ctx.fillStyle = "rgba(255,255,255,0.08)";
+    ctx.fillRect(x + 2, top + 1, m.w - 4, seg - 2);
+    if (part <= 0) continue;
+    ctx.fillStyle = fuelColour(share);
+    const h = (seg - 2) * part;
+    ctx.fillRect(x + 2, top + 1 + (seg - 2 - h), m.w - 4, h);
+  }
+  if (red) {
+    ctx.fillStyle = flashing ? "rgba(248,113,113,0.5)" : "rgba(248,113,113,0.3)";
+    ctx.fillRect(x, y, m.w, m.h);
+  }
+  ctx.restore();
+  if (!sputter) return;
+  // The words: held on a run that ended dry; after a respawn they fade over the second half of a second.
+  ctx.save();
+  ctx.globalAlpha = still || sputter.ended ? 1 : Math.max(0, 1 - Math.max(0, sputter.age - SPUTTER_WORDS_MS / 2) / (SPUTTER_WORDS_MS / 2));
+  ctx.fillStyle = ORBIT_REV3_RED;
+  ctx.font = "700 22px 'JetBrains Mono', ui-monospace, monospace";
+  ctx.textAlign = "center";
+  ctx.fillText("OUT OF FUEL", W / 2, H / 2 - 34);
   ctx.restore();
 }

@@ -46,9 +46,10 @@ import { encodeBreakerRun, replayBreakerRun } from "../../src/lib/duel/breaker";
 import { tiltCheckpoint, tiltGameFor, TILT_REV, TILT_REV_BAND, TILT_REV_TUNEC } from "../../src/lib/arcade/tilt";
 import { encodeTiltRun, replayTiltRun } from "../../src/lib/duel/tilt";
 import { tiltBankSeedFor } from "../../src/lib/duel/tiltBank.server";
-import { orbitCheckpoint, ORBIT_REV4, ORBIT_REV_BAND, ORBIT_REV_SWEPT, ORBIT_REV_TALL, ORBIT_REV_TUNED, ORBIT_REV_STD, orbitXpRev } from "../../src/lib/arcade/orbit";
+import { orbitCheckpoint, ORBIT_REV4, ORBIT_REV_BAND, ORBIT_REV_SWEPT, ORBIT_REV_TALL, ORBIT_REV_TUNED, ORBIT_REV_STD, ORBIT_REV_FUEL, orbitXpRev } from "../../src/lib/arcade/orbit";
 import { decodeOrbitExtras, decodeOrbitHoles, decodeRev3Planets, encodeRev3Planets, initRev4From, orbitRev3Game, orbitRev3StartFor, ORBIT_REV3_WORLD_W } from "../../src/lib/arcade/orbitRev3";
 import { ORBIT_XP_BANK } from "../../src/lib/duel/orbitXpBank.server";
+import { ORBIT_FUEL_BANK } from "../../src/lib/duel/orbitFuelBank.server";
 import { encodeOrbitRun, replayOrbitRun } from "../../src/lib/duel/orbit";
 import { ORBIT_HOLE_BANK } from "../../src/lib/duel/orbitHoleBank.server";
 import { ORBIT_REV3_BANK } from "../../src/lib/duel/orbitRev3Bank.server";
@@ -58,7 +59,7 @@ import { sliceCheckpoint, sliceGameFor, SLICE_REV, SLICE_REV_BAND, SLICE_REV_LON
 import { encodeSliceRun, replaySliceRun } from "../../src/lib/duel/slice";
 import { burstCheckpoint, burstGameFor, BURST_REV, BURST_REV_BAND, BURST_REV_TALL } from "../../src/lib/arcade/burst";
 import { encodeBurstRun, replayBurstRun } from "../../src/lib/duel/burst";
-import { swingCheckpoint, swingGameFor, SWING_REV, SWING_REV_BAND, SWING_REV_TUNED, SWING_REV_TUNEC, SWING_REV_SPREAD, SWING_REV_TALL, SWING_REV_STRICT, SWING_REV_EXPAND, SWING_REV_ASSAULT, SWING_REV_REWORK } from "../../src/lib/arcade/swing";
+import { swingCheckpoint, swingGameFor, SWING_REV, SWING_REV_BAND, SWING_REV_TUNED, SWING_REV_TUNEC, SWING_REV_SPREAD, SWING_REV_TALL, SWING_REV_STRICT, SWING_REV_EXPAND, SWING_REV_ASSAULT, SWING_REV_REWORK, SWING_REV_DARK } from "../../src/lib/arcade/swing";
 import { encodeSwingRun, replaySwingRun } from "../../src/lib/duel/swing";
 import { SWING_V4_BANK } from "../../src/lib/duel/swingBankV4.server";
 import { SWING_V9_BANK } from "../../src/lib/duel/swingBankV9.server";
@@ -185,6 +186,8 @@ const orbitEntry = (seed: number) => ORBIT_HOLE_BANK.find((e) => e.seed === seed
 const orbitPlanets = (seed: number) => decodeRev3Planets(ORBIT_REV3_BANK.find((e) => e.seed === seed)!.planets);
 /** orbitRev 12 (the expansion to 200): the course's features, from the feature bank rooms deal. */
 const orbitXpExtras = (seed: number) => ORBIT_XP_BANK.find((e) => e.seed === seed)?.extras;
+/** orbitRev 14 (the fuel meter): the fuel bank's course for its bank seed (planets, holes and features ride in the entry). */
+const orbitFuelEntry = (seed: number) => ORBIT_FUEL_BANK.find((e) => e.seed === seed)!;
 
 const simple = (
   type: PuzzleType,
@@ -241,14 +244,23 @@ export const GAMES: GameSpec[] = [
     seedForX: (n) => ORBIT_XP_BANK[roomSeed(n) % ORBIT_XP_BANK.length]!.seed,
     // orbitRev 13 (the arcade scoring standard): measured on the feature-bank course rooms deal for the n-th room seed,
     // whatever the mode (--rev=now included); every earlier revision keeps its seeds.
-    seedForRev: (n, rev) => (rev === ORBIT_REV_STD ? ORBIT_XP_BANK[roomSeed(n) % ORBIT_XP_BANK.length]!.seed : undefined),
+    // orbitRev 14 (the fuel meter): the fuel-bank course rooms deal for the n-th room seed.
+    seedForRev: (n, rev) => (rev === ORBIT_REV_FUEL ? ORBIT_FUEL_BANK[roomSeed(n) % ORBIT_FUEL_BANK.length]!.seed : rev === ORBIT_REV_STD ? ORBIT_XP_BANK[roomSeed(n) % ORBIT_XP_BANK.length]!.seed : undefined),
     gameFor: (rev, seed) => {
+      if (rev === ORBIT_REV_FUEL) {
+        const e = orbitFuelEntry(seed);
+        const start = orbitRev3StartFor(rev, decodeOrbitExtras(e.extras))!;
+        return { ...orbitRev3Game, init: () => start(decodeRev3Planets(e.planets), ORBIT_REV3_WORLD_W, decodeOrbitHoles(e.holes)) };
+      }
       const start = orbitRev3StartFor(rev, orbitXpRev(rev) ? decodeOrbitExtras(orbitXpExtras(seed)) : null) ?? initRev4From;
       return { ...orbitRev3Game, init: () => start(orbitPlanets(seed), ORBIT_REV3_WORLD_W, decodeOrbitHoles(orbitEntry(seed).holes)) };
     },
     checkpoint: orbitCheckpoint,
     encode: (run) => encodeOrbitRun(run),
-    replay: (seed, raw, rev) => replayOrbitRun(seed, raw, rev ?? undefined, encodeRev3Planets(orbitPlanets(seed)), orbitEntry(seed).holes, orbitXpRev(rev) ? orbitXpExtras(seed) : undefined),
+    replay: (seed, raw, rev) =>
+      rev === ORBIT_REV_FUEL
+        ? replayOrbitRun(seed, raw, rev, orbitFuelEntry(seed).planets, orbitFuelEntry(seed).holes, orbitFuelEntry(seed).extras)
+        : replayOrbitRun(seed, raw, rev ?? undefined, encodeRev3Planets(orbitPlanets(seed)), orbitEntry(seed).holes, orbitXpRev(rev) ? orbitXpExtras(seed) : undefined),
   },
   { ...simple("beat", BEAT_REV, BEAT_REV_BAND, beatGameFor, beatCheckpoint, encodeBeatRun, replayBeatRun), tunec: BEAT_REV_TUNEC, tunef: BEAT_REV_TUNEF, tuneg2: BEAT_REV_TALL },
   { ...simple("slice", SLICE_REV, SLICE_REV_BAND, sliceGameFor, sliceCheckpoint, encodeSliceRun, replaySliceRun), tunec: SLICE_REV_TUNEC, tunef: SLICE_REV_LONG, tuneg2: SLICE_REV_TALL },
@@ -266,8 +278,8 @@ export const GAMES: GameSpec[] = [
     seedFor: (n) => SWING_V4_BANK[roomSeed(n) % SWING_V4_BANK.length]!.seed,
     // swingRev 13 (the 200 expansion) rooms deal from SWING_V13_BANK; --rev=x plays swingRev 11 on the same courses
     // (all of them in SWING_V9_BANK, which swingRev 11 rooms dealt), so the two revisions are paired.
-    // swingRev 14 (the assault course) and 15 (the swinging course) rooms deal any seed (generateSwing): the room seed itself.
-    seedForRev: (n, rev) => (rev === SWING_REV_ASSAULT || rev === SWING_REV_REWORK ? roomSeed(n) : rev === SWING_REV_EXPAND || rev === SWING_REV_STRICT ? SWING_V13_BANK[roomSeed(n) % SWING_V13_BANK.length]!.seed : undefined),
+    // swingRev 14 (the assault course), 15 (the swinging course) and 16 (its dark ledge runs) rooms deal any seed (generateSwing): the room seed itself.
+    seedForRev: (n, rev) => (rev === SWING_REV_ASSAULT || rev === SWING_REV_REWORK || rev === SWING_REV_DARK ? roomSeed(n) : rev === SWING_REV_EXPAND || rev === SWING_REV_STRICT ? SWING_V13_BANK[roomSeed(n) % SWING_V13_BANK.length]!.seed : undefined),
     gameFor: (rev) => swingGameFor(rev ?? undefined),
     checkpoint: swingCheckpoint,
     encode: (run) => encodeSwingRun(run),

@@ -42,8 +42,10 @@ const STANDARD_ROSTER: readonly { type: string; field: string; rev: number; batc
   { type: "breaker", field: "brkRev", rev: 11, batch: "A" },
   { type: "tilt", field: "tiltRev", rev: 10, batch: "A" },
   { type: "burst", field: "burstRev", rev: 10, batch: "A" },
-  { type: "matchup", field: "matchupRev", rev: 11, batch: "A" },
-  { type: "snake", field: "snakeRev", rev: 11, batch: "A" },
+  // Gemstone deals matchupRev 12 since Nov 2026 (six goals shown at once, six treasures; the same five parts re-weighted).
+  { type: "matchup", field: "matchupRev", rev: 12, batch: "A" },
+  // snakeRev 12 (1 Nov 2026): snakeRev 11's parts, the core counting a gold star as 2 and full at 28 (snake-rev12-check).
+  { type: "snake", field: "snakeRev", rev: 12, batch: "A" },
   { type: "hover", field: "hoverRev", rev: 10, batch: "A" },
   { type: "skyline", field: "skylineRev", rev: 9, batch: "B" },
   { type: "bintoss", field: "binRev", rev: 9, batch: "B" },
@@ -56,9 +58,9 @@ const STANDARD_ROSTER: readonly { type: string; field: string; rev: number; batc
   { type: "wavefront", field: "wavRev", rev: 12, batch: "C" },
   { type: "flip", field: "flipRev", rev: 10, batch: "C" },
   { type: "inkbridge", field: "inkRev", rev: 12, batch: "C" },
-  { type: "orbit", field: "orbitRev", rev: 13, batch: "C" },
+  { type: "orbit", field: "orbitRev", rev: 14, batch: "C" },
   { type: "balltrack", field: "btRev", rev: 8, batch: "C" },
-  { type: "swing", field: "swingRev", rev: 15, batch: "D" },
+  { type: "swing", field: "swingRev", rev: 16, batch: "D" }, // swingRev 16 (1 Nov 2026): the dark ledge runs over 90 s, rev 15's parts
   // Cards & Board (30 Oct 2026): born on the standard (their first revision).
   { type: "minesweeper", field: "minesRev", rev: 1, batch: "Cards & Board" },
   { type: "mahjong", field: "mahjongRev", rev: 2, batch: "Cards & Board" },

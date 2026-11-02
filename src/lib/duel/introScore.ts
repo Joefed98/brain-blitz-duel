@@ -113,9 +113,10 @@ function introScoreTemplates(): Record<PuzzleType, string> {
     skyline: "Floors, perfect drops, a perfect streak and gold blocks. Up to {max}.",
     bintoss: `Buckets ${BINTOSS_V9_BUCKET}, far buckets +${BINTOSS_V9_FAR}, hoops +${BINTOSS_V9_HOOP}. All ${BINTOSS_THROWS} in for ${BINTOSS_V9_FINISH} more: up to {max}.`,
     bullseye: `Rings ${BULLSEYE_RING_VALUES.join(" / ")}, inner bull ${BULLSEYE_INNER_BULL_POINTS}; streaks, dead-centre add more. Up to {max}.`,
-    // matchupRev 11 (the arcade scoring standard): gems cleared, then treasure, goals, ice and big lines.
-    matchup: "Every gem cleared scores; treasure, goals, ice and lines of 4 or 5 add more. Up to {max}.",
-    snake: "Stars score up to 120; gold stars, combos, lanes and warps add 80 more. Up to {max}.",
+    // matchupRev 12 (the arcade scoring standard, six goals and six treasures): gems cleared, then treasure, goals, ice
+    // and big lines, each part's maximum.
+    matchup: "Gems 108; treasure, goals, ice and lines of 4 or 5 add 92. Up to {max}.",
+    snake: "Stars to 120 at 28 (gold stars count 2); gold, combos, lanes, warps add 80. Up to {max}.",
     cross: "150 for rows and crossings, coins 30, a clean streak 10, close calls 10. Up to {max}.",
     breaker: "Every brick scores; gold bricks add 30. Clear all 105 quickly for up to {max}.",
     rally: "Gold-ball hits, pink targets and gold targets. Up to {max}.",
@@ -144,9 +145,9 @@ function introScoreTemplates(): Record<PuzzleType, string> {
     junction: "Points for each car and bus through, ± for ambulances. Last the minute for 10 more.",
     inkbridge: `Levels ${INK_V12_CORE_MAX}; stars, tricks, shamrock, silver, speed ${200 - INK_V12_CORE_MAX}. All ${INK_LEVELS} levels quickly: up to {max}.`,
     burst: "Atoms up to 140, fast waves 35, golden atoms 25; a lost life costs 5. Up to {max}.",
-    orbit: "Planets 130 + sun speed, stardust, slingshots, fields, perfect orbits: total up to {max}.",
+    orbit: "Planets 130 + sun speed, stardust, slings, fields, perfect orbits. Mind fuel: up to {max}.",
     snip: "Points for fruit fed and leaves; golden apples, few cuts and speed add more. Up to {max}.",
-    swing: `Distance along the course (140), pars (30), gates, gems and stars (30): up to {max}.`,
+    swing: `90 s. Distance along the course (140), pars (30), gates, gems and stars (30): up to {max}.`,
     tilt: `35 a maze (up to 5 for nearing its exit), gold stars 30. All ${TILT_S_MAZES} quickly: up to {max}.`,
     balltrack: `Marbles home 140; gold, boosted and in-a-row marbles add 60: they total up to {max}.`,
     swerve: arcadeOpen("each coin you collect"),

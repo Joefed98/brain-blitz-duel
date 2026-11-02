@@ -63,8 +63,8 @@ replay exactly as before; standard-live-check grades every stored arcade run thr
 | Breaker | `breaker` | `brkRev` 11 | A | [breaker.md](breaker.md) |
 | Tilt | `tilt` | `tiltRev` 10 | A | [tilt.md](tilt.md) |
 | Fission | `burst` | `burstRev` 10 | A | [burst.md](burst.md) |
-| Gemstone | `matchup` | `matchupRev` 11 | A | [matchup.md](matchup.md) |
-| Meteor | `snake` | `snakeRev` 11 | A | [snake.md](snake.md) |
+| Gemstone | `matchup` | `matchupRev` 12 (11 before, Nov 2026) | A | [matchup.md](matchup.md) |
+| Meteor | `snake` | `snakeRev` 12 | A | [snake.md](snake.md) |
 | Hover | `hover` | `hoverRev` 10 | A | [hover.md](hover.md) |
 | High Rise | `skyline` | `skylineRev` 9 | B | [skyline.md](skyline.md) |
 | Swish | `bintoss` | `binRev` 9 | B | [bintoss.md](bintoss.md) |
@@ -79,7 +79,7 @@ replay exactly as before; standard-live-check grades every stored arcade run thr
 | Rainbow Bridge | `inkbridge` | `inkRev` 12 | C | [inkbridge.md](inkbridge.md) |
 | Orbit | `orbit` | `orbitRev` 13 | C | [orbit.md](orbit.md) |
 | Ball Tracker | `balltrack` | `btRev` 8 | C | [balltrack.md](balltrack.md) |
-| Grappler | `swing` | `swingRev` 15 | D | [swing.md](swing.md) |
+| Grappler | `swing` | `swingRev` 16 (15 before 1 Nov 2026) | D | [swing.md](swing.md) |
 | Minesweeper | `minesweeper` | `minesRev` 1 | Cards & Board | [minesweeper.md](minesweeper.md) |
 | Mahjong Solitaire | `mahjong` | `mahjongRev` 1 | Cards & Board | [mahjong.md](mahjong.md) |
 | Home Run Derby | `homerun` | `homerunRev` 1 | Sports | [homerun.md](homerun.md) |
@@ -118,7 +118,8 @@ identical seeded run. Per-game detail, rules and assumptions are in this folder 
 | Tilt | `tiltRev` 10 | 140, 35 a maze (30 finish + 5 progress), 4 mazes | all four 10, speed 20 (full by 75 s), gold stars 30 | 200 |
 | Fission | `burstRev` 10 | 140, share of all 87 atoms (splits count) | wave clears 35 (7 × 5), golden atoms 25; a lost life −5 | 200 |
 | Gemstone | `matchupRev` 11 | 110, gems cleared, full at 375 | treasure 40 (10 × 4), goals 30, ice 10, big lines 10 | 200 |
-| Meteor | `snakeRev` 11 | 120, stars eaten, full at 27 | gold stars 40, combos 20, lane rides 10, warp stars 10 | 200 |
+| Gemstone (Nov 2026) | `matchupRev` 12 | 108, gems cleared, full at 360 | treasure 36 (6 × 6), goals 36 (6 × 6), ice 10, big lines 10 | 200 |
+| Meteor | `snakeRev` 12 | 120, stars eaten (a gold star counts 2), full at 28 (snakeRev 11: 27 stars) | gold stars 40, combos 20, lane rides 10, warp stars 10 | 200 |
 | Hover | `hoverRev` 10 | 120, barriers passed (42) | star chains 30, gold stars 20, tight gates 20, centre line 10 | 200 |
 
 Core targets measured with the skill-band tool: Gemstone 375 gems (near-flawless median 376); Meteor 27 stars (great's
@@ -304,6 +305,10 @@ par) and gates, gems and stars 30 (2 each for the 5 of each kind); clearing the 
 any input at least 1 (`swingScoreV15`, the shared `stdFinal`). The course, its rules, the bots and the skill-band
 medians are on its page, [swing.md](swing.md); swing-rework-check proves every older revision replays as before and
 every course's own route clears it under par.
+
+**swingRev 16 (1 Nov 2026):** the same parts over a 90 s run on a longer course (42 blocks, six ledge runs) whose ledge
+runs go dark (hooks in the dark cannot be grabbed); swing-dark-check proves it, and that swingRev 14 and 15 replay as
+before. See [swing.md](swing.md), "swingRev 16".
 
 
 ## Cards & Board: Minesweeper and Mahjong Solitaire (30 Oct 2026)
