@@ -18,8 +18,9 @@ import { POOL_REV } from "@/lib/arcade/pool";
 import { CURLING_REV } from "@/lib/arcade/curling";
 import { CURLING_BANK_V2 } from "./curlingBankV2.server";
 import { MINIGOLF_BANK_V2 } from "./minigolfBankV2.server";
-import { POOL_BANK_V2 } from "./poolBankV2.server";
-import type { CurlingPuzzleData, FreekickPuzzleData, HomerunPuzzleData, MinigolfPuzzleData, PoolPuzzleData, RacingPuzzleData } from "./types";
+import { POOL_BANK_V3 } from "./poolBankV3.server";
+import { ALLEYROLL_REV } from "@/lib/arcade/alleyroll";
+import type { AlleyRollPuzzleData, CurlingPuzzleData, FreekickPuzzleData, HomerunPuzzleData, MinigolfPuzzleData, PoolPuzzleData, RacingPuzzleData } from "./types";
 
 export function generateHomerun(): HomerunPuzzleData {
   // homerunRev 2 (31 Oct 2026): rev 2's own proved deal (homerunDealV2.server.ts).
@@ -43,11 +44,16 @@ export function generateMinigolf(): MinigolfPuzzleData {
 }
 
 export function generatePool(): PoolPuzzleData {
-  // poolRev 2 (31 Oct 2026) deals from its own proved bank; poolRev 1 rounds replay on theirs (poolBank.server.ts).
-  return { type: "pool", seed: POOL_BANK_V2[arcadeSeed() % POOL_BANK_V2.length]!, poolRev: POOL_REV };
+  // poolRev 3 (1 Nov 2026) deals from its own proved bank; poolRev 2 and 1 rounds replay on theirs (poolBankV2 / poolBank).
+  return { type: "pool", seed: POOL_BANK_V3[arcadeSeed() % POOL_BANK_V3.length]!, poolRev: POOL_REV };
 }
 
 export function generateCurling(): CurlingPuzzleData {
   // curlRev 2 (31 Oct 2026): its own bank, proved with the start along the hog line (curlingBankV2.server.ts).
   return { type: "curling", seed: CURLING_BANK_V2[arcadeSeed() % CURLING_BANK_V2.length]!, curlRev: CURLING_REV };
+}
+
+export function generateAlleyRoll(): AlleyRollPuzzleData {
+  // Alley Roll (1 Nov 2026): the lane is the same for every seed (the oracle's line scores 200 on any), so any seed.
+  return { type: "alleyroll", seed: arcadeSeed(), alleyRollRev: ALLEYROLL_REV };
 }

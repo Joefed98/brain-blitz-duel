@@ -1,4 +1,4 @@
-# Cue Ball (`pool`, was Speed Pool; `poolRev` 2, `poolRev` 1 for stored rounds)
+# Cue Ball (`pool`, was Speed Pool; `poolRev` 3, `poolRev` 2 and 1 for stored rounds)
 
 The Sports group (30 Oct 2026; shown as Cue Ball since 31 Oct). A full-width table, top down, 120 s: pot all seven
 spots, then the black. Sim `src/lib/arcade/pool.ts`, art `pool.renderer.ts`, stage `src/puzzles/pool.tsx`, plumbing
@@ -15,7 +15,46 @@ spots, then the black. Sim `src/lib/arcade/pool.ts`, art `pool.renderer.ts`, sta
 - Fouls −10: a stripe (or the black before the spots are down) hit first, or a stripe potted. Cue ball potted: 5 s off
   the clock and it comes back to a seeded spot. The black early ends the run with no black or speed points.
 
-## poolRev 2 (31 Oct 2026, Joe's notes; what rooms deal)
+## poolRev 3 (1 Nov 2026, Joe's tuning; what rooms deal)
+
+poolRev 2's input encoding, table, rules and parts, with:
+
+- **Power:** the hardest pull leaves at 20 px a tick (`POOL_MAX_V_V3`, +25 % on poolRev 2's 16; the softest is
+  unchanged), so a full-power shot rolls about a quarter further (a lone cue ball: 1,251 px against 1,006 px).
+- **Spin, 1.75×:** follow / draw at the safe edge 91/256 of the cue ball's pre-impact speed (`POOL_V3_FOLLOW_MAX`; 52
+  on poolRev 2) and side 77 (`POOL_V3_SIDE_MAX`; 44). Measured in pool-check: a straight hit with full draw pulls the cue
+  ball back 61 px (21 on poolRev 2), full follow runs on 80 px (35), full side turns the angle off a cushion 16.7°
+  (9.7°). The aim preview's cue-ball line bends 1.75× as far on poolRev 3 (display).
+- **Fouls:** checked; a ball that isn't the player's hit first (a stripe, or the black while spots remain) and a stripe
+  potted were already fouls. A shot whose cue ball touches **no ball at all** was not: on poolRev 3 it is a foul too,
+  −10 like the others and breaking the run of pots. Nothing else about fouls changed. poolRev 2 and 1 keep a miss
+  foul-free (stored rounds score as before).
+- **Aiming** (the stage, every revision): the cue's angle was already a continuous float turned by the finger's own
+  turn round the cue ball, one-for-one within 110 world px and finer further out (110 ÷ distance, never under 0.3),
+  drawn every animation frame by ArcadeCanvasStage's loop. Two fixes: a drag now turns the cue from its first pixel (it
+  used to wait for 6 px of movement, so the start of a slow drag was lost and the cue jumped into motion), and the shot
+  is sent at the input's full ±4096 reach (was ±4000; about 0.014° a step, finer than any line drawn). The mouse takes
+  the same pointer path, through the desktop rotate mode's turn. Frame strip: `bun scripts/shots/pool-aim-strip.ts`
+  (`screenshots/cue-ball-aim-nov-2026/aim-full-circle.png`, 24 frames 15° apart, and `aim-fine-steps.png`, 0.25° steps).
+- **Speed** full by **73 s** (`POOL_FULL_BY_S_V3`, the near-perfect median finish on the poolRev 3 bank, 72.9 s; the
+  harder shots and the miss foul make clean clears slower for the bots).
+- **The bank:** `src/lib/duel/poolBankV3.server.ts`, 60 layouts of 60 candidates re-proved by the shot search on
+  poolRev 3's physics (`bun scripts/pool-bank.ts --rev=3`, witnesses `scripts/fixtures/pool-witness-v3.json`, each
+  exactly 200 through the server replay with no foul, scratch or miss).
+- poolRev 2 runs replay unchanged: 16 bot runs recorded on main (`scripts/fixtures/tuning-nov1-legacy.json`) replay to
+  the same score and final state, and every poolRev 2 witness still scores 200 (pool-check).
+
+Measured (`bun scripts/arcade-skill-bands.ts pool --rev=now --levels=all --seeds=30`, the poolRev 3 bank):
+
+| Level | Weak | Average | Good | Great | Near-perfect | Elite | Flawless |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| poolRev 2 median (p10–p90) | 65 (20–92) | 88 (50–136) | 113 (74–142) | 148 (115–172) | 174 (140–190) | 170 (150–195) | 200 (190–200) |
+| **poolRev 3 median (p10–p90)** | **30** (1–70) | **73** (29–116) | **113** (75–158) | **138** (100–166) | **163** (147–180) | **170** (150–190) | **200** (199–200) |
+
+Weak and average lose most: their wild shots now often touch nothing (a foul) and the harder top speed scatters the
+table more. Near-perfect and elite now rise in order (poolRev 2 had elite under near-perfect).
+
+## poolRev 2 (31 Oct 2026, Joe's notes)
 
 **Controls** (all presentation but the spin):
 
