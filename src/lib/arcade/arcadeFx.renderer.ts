@@ -263,6 +263,8 @@ export const ARCADE_FX_TEXT_COLOURS: Record<string, { fill: string; outline: str
   // Blockfall: Retro cyan on the cabinet's navy. Alley Roll: the scoreboard's warm gold on dark wood.
   blockfall: { fill: "#7CF7FF", outline: "#04101C" },
   alleyroll: { fill: "#FFD27A", outline: "#1A0F08" },
+  // Ricochet (the ninja wall-climb): lantern gold on the night sky.
+  ricochet: { fill: "#FFD86B", outline: "#070A18" },
 };
 
 /**

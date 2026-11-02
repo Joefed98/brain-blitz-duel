@@ -56,6 +56,7 @@ revisions keep their own world in reveals and replays.
 | Summit | 414x772 | 375x591 → 317x591 | 390x624 → 335x624 | 390x768 → 390x727 | 414x772 → 414x772 | 430x856 → 430x802 | 1280x724 → 388x724 | 0.942x | 60px | 0px | 41px | 0px | - |
 | Full House | 414x772 | 375x591 → 317x591 | 390x624 → 335x624 | 390x768 → 390x727 | 414x772 → 414x772 | 430x856 → 430x802 | 1280x724 → 388x724 | 0.942x | 60px | 0px | 41px | 0px | - |
 | Five Hands | 414x772 | 375x591 → 317x591 | 390x624 → 335x624 | 390x768 → 390x727 | 414x772 → 414x772 | 430x856 → 430x802 | 1280x724 → 388x724 | 0.942x | 60px | 0px | 41px | 0px | - |
+| Ricochet | 390x730 | 375x591 → 316x591 | 390x624 → 333x624 | 390x768 → 390x730 | 414x772 → 412x772 | 430x856 → 430x805 | 1280x724 → 387x724 | 1.000x | 60px | 0px | 38px | 0px | - |
 | Crazy Golf | 390x690 | 375x591 → 334x591 | 390x624 → 353x624 | 390x768 → 390x690 | 414x772 → 414x732 | 430x856 → 430x761 | 1280x724 → 409x724 | 1.000x | 60px | 0px | 78px | 0px | - |
 | Cue Ball | 390x740 | 375x591 → 311x591 | 390x624 → 329x624 | 390x768 → 390x740 | 414x772 → 407x772 | 430x856 → 430x816 | 1280x724 → 382x724 | 1.000x | 60px | 0px | 28px | 0px | - |
 | Curl Champ | 390x540 | 375x591 → 375x519 | 390x624 → 390x540 | 390x768 → 390x540 | 414x772 → 414x573 | 430x856 → 430x595 | 1280x724 → 523x724 | 1.000x | 60px | 0px | 228px | 0px | - |
@@ -119,6 +120,7 @@ stars, walkers, lava, reactions) that holds still under reduced motion or reduce
 | Five Hands | 375x591 → 317x591 | 390x624 → 335x624 | 390x768 → 390x727 | 414x772 → 414x772 | 430x856 → 430x802 | 1280x724 → 388x724 | the felt's darker edge runs on beside and below the world, settling darker towards the screen's bottom |
 | Blockfall | 375x591 → 329x591 | 390x624 → 347x624 | 390x768 → 390x701 | 414x772 → 414x744 | 430x856 → 430x773 | 1280x724 → 403x724 | the cabinet's dark navy glow runs on above, beside and below the well, settling to black |
 | Alley Roll | 375x591 → 306x591 | 390x624 → 323x624 | 390x768 → 390x754 | 414x772 → 400x772 | 430x856 → 430x831 | 1280x724 → 375x724 | the alley's warm dark room runs on beside the lane and the scoreboard's wood above, settling darker below |
+| Ricochet | 375x591 → 316x591 | 390x624 → 333x624 | 390x768 → 390x730 | 414x772 → 412x772 | 430x856 → 430x805 | 1280x724 → 387x724 | the temple wall's stone runs on beside the world and a dusk band below it, settling darker towards the screen's bottom |
 
 ## iPhone 11 home-screen app, before and after the 15 Oct 2026 fix
 
@@ -164,6 +166,7 @@ than half hidden; Hover's world is cut the same way, its disc at the top).
 | Summit | 414x724 → 388x724, 64px | 414x772 → 414x772, 16px | world 32px |
 | Full House | 414x724 → 388x724, 64px | 414x772 → 414x772, 16px | world 32px |
 | Five Hands | 414x724 → 388x724, 64px | 414x772 → 414x772, 16px | world 32px |
+| Ricochet | 414x724 → 387x724, 64px | 414x772 → 412x772, 16px | world 32px |
 | Crazy Golf | 414x724 → 409x724, 64px | 414x772 → 414x732, 16px | world none |
 | Cue Ball | 414x724 → 382x724, 64px | 414x772 → 407x772, 16px | world 32px |
 | Curl Champ | 414x724 → 414x573, 64px | 414x772 → 414x573, 16px | world none |
@@ -214,6 +217,7 @@ bottom; the spare space was the game's arena fill or the page colour. Same arith
 | Summit | 367x543 → 291x543 | 382x576 → 309x576 | 382x720 → 382x712 | 422x808 → 422x787 | 1272x676 → 363x676 |
 | Full House | 367x543 → 291x543 | 382x576 → 309x576 | 382x720 → 382x712 | 422x808 → 422x787 | 1272x676 → 363x676 |
 | Five Hands | 367x543 → 291x543 | 382x576 → 309x576 | 382x720 → 382x712 | 422x808 → 422x787 | 1272x676 → 363x676 |
+| Ricochet | 367x543 → 290x543 | 382x576 → 308x576 | 382x720 → 382x715 | 422x808 → 422x790 | 1272x676 → 361x676 |
 | Crazy Golf | 367x543 → 307x543 | 382x576 → 326x576 | 382x720 → 382x676 | 422x808 → 422x747 | 1272x676 → 382x676 |
 | Cue Ball | 367x543 → 286x543 | 382x576 → 304x576 | 382x720 → 379x720 | 422x808 → 422x801 | 1272x676 → 356x676 |
 | Curl Champ | 367x543 → 367x508 | 382x576 → 382x529 | 382x720 → 382x529 | 422x808 → 422x584 | 1272x676 → 488x676 |

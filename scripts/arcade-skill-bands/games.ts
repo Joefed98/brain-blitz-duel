@@ -17,6 +17,8 @@ import { wavCheckpoint, wavefrontGameFor, WAV_REV, WAV_REV_BAND, WAV_REV_SHAPES,
 import { encodeWavefrontRun, replayWavefrontRun } from "../../src/lib/duel/wavefront";
 import { flipCheckpoint, flipGameFor, FLIP_REV, FLIP_REV_BAND, FLIP_REV_TUNEC } from "../../src/lib/arcade/flip";
 import { encodeFlipRun, replayFlipRun } from "../../src/lib/duel/flip";
+import { ninjaCheckpoint, ninjaGame, NINJA_REV } from "../../src/lib/arcade/ricochetNinja";
+import { encodeNinjaRun, replayNinjaRun } from "../../src/lib/duel/ricochet";
 import { inkBridgeGameFor, inkCheckpoint, INK_REV4, INK_REV_BAND, INK_REV_TUNEC } from "../../src/lib/arcade/inkBridge";
 import { encodeInkBridgeRun, replayInkBridgeRun } from "../../src/lib/duel/inkBridge";
 import { matchupCheckpoint, matchupGameFor, MATCHUP_REV, MATCHUP_REV_BAND, MATCHUP_REV_PAR, MATCHUP_REV_WAIT } from "../../src/lib/arcade/matchup";
@@ -303,6 +305,8 @@ export const GAMES: GameSpec[] = [
   { ...simple("blockfall", BLOCKFALL_REV, BLOCKFALL_REV, blockfallGameFor, bfCheckpoint, encodeBlockfallRun, replayBlockfallRun), seedFor: (n) => blockfallDealSeed(roomSeed(n)) },
   // Alley Roll (Sports, 1 Nov 2026): born on the arcade standard; one lane for every seed (rooms deal any seed).
   simple("alleyroll", ALLEYROLL_REV, ALLEYROLL_REV, alleyRollGameFor, arCheckpoint, encodeAlleyRollRun, replayAlleyRollRun),
+  // Ricochet (1 Nov 2026): the ninja wall-climb, born on the arcade standard at ricoRev 2; any seed (the sim deals the tower and proves its witness).
+  simple("ricochet", NINJA_REV, NINJA_REV, () => ninjaGame, ninjaCheckpoint, encodeNinjaRun, (seed, raw) => replayNinjaRun(seed, raw)),
   // The Sports group (30 Oct 2026): Minigolf deals a bank course (seed and pars); golfRev 2 (crazy golf, 31 Oct 2026)
   // from its own bank, golfRev 1 (`seedForRev`) from the first.
   {

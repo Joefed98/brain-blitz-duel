@@ -214,6 +214,10 @@ Already sounded: crossing and its banner (`cross.crossed`), hops (`cross.hop`), 
 
 | Cue | Trigger | Looks like | Plays today | Per round | Length |
 |---|---|---|---|---|---|
+| `ricochet.heightStreak` | Every 50 m climbed (ricoRev 2) | "50 m" streak banner | `banner.streak.mp3` (volume 0.8) | 1–7 | 480 ms |
+| `ricochet.fullHeight` | The core's full height (241 m) reached (ricoRev 2) | FULL HEIGHT! banner | `banner.fullClear.mp3` | 0–1 | 840 ms |
+| `ricochet.land` | The ninja lands on stone (ricoRev 2; at most one per 80 ms) | The ninja clings to the wall | silent (no file yet) | 80–140 | 120 ms |
+| `ricochet.slip` | The ninja lands on moss or ice (ricoRev 2) | The ninja clings and slides fast | silent (no file yet) | 5–30 | 300 ms |
 | `flip.surviveStreak` | Every 10 s survived | STREAK banner with confetti | `banner.streak.mp3` · own file `flip.tenSeconds.mp3` (sound batch 4, volume 0.8) | 1–6 | 480 ms |
 | `flip.survivedFinish` | Survived to the end | SURVIVED! banner, confetti, shake | `banner.fullClear.mp3` | 0–1 | 1200 ms |
 | `flip.starTaken` | A star taken (flipRev 2+) | +STAR pop; the star stops being drawn | `arc_pickup` (shared recording) | 3–10 | 200 ms |

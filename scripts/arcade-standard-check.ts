@@ -82,6 +82,8 @@ const STANDARD_ROSTER: readonly { type: string; field: string; rev: number; batc
   // Blockfall (Retro) and Alley Roll (Sports), 1 Nov 2026: born on the standard (rev 1).
   { type: "blockfall", field: "blockfallRev", rev: 1, batch: "Retro" },
   { type: "alleyroll", field: "alleyRollRev", rev: 1, batch: "Sports" },
+  // Ricochet (1 Nov 2026): the ninja wall-climb, back from retirement and born on the standard at ricoRev 2.
+  { type: "ricochet", field: "ricoRev", rev: 2, batch: "Action" },
 ];
 
 const only = process.argv.slice(2).filter((a) => !a.startsWith("--"));

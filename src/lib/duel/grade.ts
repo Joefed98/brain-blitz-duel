@@ -116,7 +116,8 @@ import { scoreWordSearch, wsDecode, wsGrade, wsSplitBonus } from "./wordSearch";
 import { LW_FREE_MISSES, lwDecode, lwDecodeLog, lwGrade, lwTallyLog, lwUsesLog, scoreLetterWheel, scoreLetterWheelLog } from "./letterWheel";
 import { decodeCrossRun, replayCrossRun } from "./cross";
 import { decodeDualRun, replayDualRun } from "./dual";
-import { decodeRicoRun, replayRicoRun } from "./ricochet";
+import { decodeNinjaRun, decodeRicoRun, isNinjaRev, replayNinjaRun, replayRicoRun } from "./ricochet";
+import { NINJA_CORE_FULL_M } from "@/lib/arcade/ricochetNinja";
 import { decodeBinTossRun, replayBinTossRun } from "./binToss";
 import { decodeBullseyeRun, replayBullseyeRun } from "./bullseye";
 import { bullseyeDeadPoints, bullseyeStreakPoints } from "@/lib/arcade/bullseye";
@@ -1328,6 +1329,35 @@ function gradeUnderRev(
       break;
     }
     case "ricochet": {
+      if (isNinjaRev(puzzle.ricoRev)) {
+        // ricoRev 2, the ninja wall-climb: the tower dealt from the stored seed, the move log replayed; only that scores.
+        const replayStart = performance.now();
+        const run = replayNinjaRun(puzzle.seed, answer);
+        revealRun = run;
+        arcadeDiag = buildArcadeDiag(puzzle.type, run, answer, performance.now() - replayStart);
+        isCorrect = run.metres >= NINJA_CORE_FULL_M;
+        correctCount = run.metres;
+        score = run.score;
+        extraDetail = {
+          ricoRev: puzzle.ricoRev,
+          metres: run.metres,
+          coins: run.coins,
+          lanterns: run.lanterns,
+          scrolls: run.scrolls,
+          hits: run.hits,
+          leaps: run.leaps,
+          djs: run.djs,
+          endedSeconds: run.endedSeconds,
+          flagged: run.flagged,
+          clientLag: run.clientLag,
+          clientTick: run.clientTick,
+          desyncTick: run.desyncTick,
+          inputs: decodeNinjaRun(answer).events.length,
+          claimedScore: decodeNinjaRun(answer).claimedScore,
+          ...(run.reason ? { reason: run.reason } : {}),
+        };
+        break;
+      }
       const replayStart = performance.now();
       const run = replayRicoRun(puzzle.seed, answer);
       revealRun = run;
