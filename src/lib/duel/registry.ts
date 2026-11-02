@@ -97,6 +97,10 @@ import { digPuzzle } from "@/puzzles/dig";
 import { measurePuzzle } from "@/puzzles/measure";
 import { checkoutPuzzle } from "@/puzzles/checkout";
 import { numlinePuzzle } from "@/puzzles/numline";
+import { fencesPuzzle } from "@/puzzles/fences";
+import { fillominoPuzzle } from "@/puzzles/fillomino";
+import { bridgesPuzzle } from "@/puzzles/bridges";
+import { kakuroPuzzle } from "@/puzzles/kakuro";
 
 import type { PuzzleDefinition } from "@/puzzles/types";
 
@@ -266,6 +270,11 @@ const BASE_REGISTRY: Record<PuzzleType, Omit<PuzzleDefinition, "instructions">> 
   measure: measurePuzzle,
   checkout: checkoutPuzzle,
   numline: numlinePuzzle,
+  // New grid puzzles (1 Nov 2026), born on the scoring standard.
+  fences: fencesPuzzle,
+  fillomino: fillominoPuzzle,
+  bridges: bridgesPuzzle,
+  kakuro: kakuroPuzzle,
 };
 
 export const PUZZLE_REGISTRY = Object.fromEntries<RegisteredPuzzleDefinition>(

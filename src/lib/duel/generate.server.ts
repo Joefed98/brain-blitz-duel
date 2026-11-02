@@ -119,6 +119,10 @@ import { wordGameSeed } from "./wordSeed.server";
 import { generateMeasure } from "./measure.server";
 import { generateCheckout } from "./checkout.server";
 import { generateNumline } from "./numline.server";
+import { generateFences } from "./fences.server";
+import { generateFillomino } from "./fillomino.server";
+import { generateBridges } from "./bridges.server";
+import { generateKakuro } from "./kakuro.server";
 import { randomBelow } from "./random";
 import { saltSeed } from "./seededRng";
 
@@ -260,12 +264,17 @@ function generateUnstamped(type: PuzzleType, context: GenerateContext): PuzzleDa
   if (type === "measure") return generateMeasure(gameSeed(type, context));
   if (type === "checkout") return generateCheckout(gameSeed(type, context));
   if (type === "numline") return generateNumline(gameSeed(type, context));
+  // New grid puzzles (1 Nov 2026): built from the room seed (salted by type), each proved unique by its solver.
+  if (type === "fences") return generateFences(gameSeed(type, context));
+  if (type === "fillomino") return generateFillomino(gameSeed(type, context));
+  if (type === "bridges") return generateBridges(gameSeed(type, context));
+  if (type === "kakuro") return generateKakuro(gameSeed(type, context));
 
   return puzzleDef(type).generate();
 }
 
 /**
- * Brimful, Checkout and Ballpark build from one seed: the room seed (salted by
+ * Brimful, Checkout, Ballpark, Fences, Fillomino, Bridges and Kakuro build from one seed: the room seed (salted by
  * type) in rooms and practice, so a room's puzzle follows from its seed; a
  * fresh draw otherwise (fixed under withSeededRandom for intro examples).
  */
