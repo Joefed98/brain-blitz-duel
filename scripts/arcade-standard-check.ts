@@ -63,8 +63,9 @@ const STANDARD_ROSTER: readonly { type: string; field: string; rev: number; batc
   { type: "minesweeper", field: "minesRev", rev: 1, batch: "Cards & Board" },
   { type: "mahjong", field: "mahjongRev", rev: 2, batch: "Cards & Board" },
   // The Sports group (30 Oct 2026): new games born on the standard (rev 1).
-  { type: "homerun", field: "homerunRev", rev: 2, batch: "Sports" },
-  { type: "freekick", field: "freekickRev", rev: 2, batch: "Sports" },
+  // Home Run deals homerunRev 3 since 1 Nov 2026 (the swing choice and the pitcher's tell; the same three parts).
+  { type: "homerun", field: "homerunRev", rev: 3, batch: "Sports" },
+  { type: "freekick", field: "freekickRev", rev: 3, batch: "Sports" },
   // Apex (racing) deals racingRev 2 since 31 Oct 2026 (the lights start, the softer joystick; the same four parts).
   { type: "racing", field: "racingRev", rev: 2, batch: "Sports" },
   // Cards & Board (30 Oct 2026): born on the standard at revision 1.
@@ -77,8 +78,9 @@ const STANDARD_ROSTER: readonly { type: string; field: string; rev: number; batc
   // The Sports group (30 Oct 2026): on the standard from their first stamp.
   { type: "minigolf", field: "golfRev", rev: 2, batch: "Sports" }, // golfRev 2 (crazy golf, 31 Oct 2026); golfRev 1 was on the standard too
   { type: "pool", field: "poolRev", rev: 3, batch: "Sports" },
-  // Curling deals curlRev 2 since 31 Oct 2026 (the start along the hog line, side brushing; the same parts).
-  { type: "curling", field: "curlRev", rev: 2, batch: "Sports" },
+  // Curling deals curlRev 2 since 31 Oct 2026 (the start along the hog line, side brushing; the same parts) and
+  // curlRev 3 since 1 Nov 2026 (the weight meter's draw zone, the aim line, a gentler weight line, the core re-fitted).
+  { type: "curling", field: "curlRev", rev: 3, batch: "Sports" },
   // Blockfall (Retro) and Alley Roll (Sports), 1 Nov 2026: born on the standard (rev 1).
   { type: "blockfall", field: "blockfallRev", rev: 1, batch: "Retro" },
   { type: "alleyroll", field: "alleyRollRev", rev: 1, batch: "Sports" },

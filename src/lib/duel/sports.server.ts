@@ -10,26 +10,27 @@ import { HOMERUN_REV_DEALT } from "@/lib/arcade/homerun";
 import { FREEKICK_REV_DEALT } from "@/lib/arcade/freekick";
 import { RACING_REV_DEALT } from "@/lib/arcade/racing";
 import { arcadeSeed } from "./arcade.server";
-import { homerunDealSeedV2 } from "./homerunDealV2.server";
-import { freekickDealSeedV2 } from "./freekickDealV2.server";
+import { homerunDealSeedV3 } from "./homerunDealV3.server";
+import { freekickDealSeedV3 } from "./freekickDealV3.server";
 import { racingDealSeedV2 } from "./racingDealV2.server";
 import { MINIGOLF_REV } from "@/lib/arcade/minigolf";
 import { POOL_REV } from "@/lib/arcade/pool";
 import { CURLING_REV } from "@/lib/arcade/curling";
-import { CURLING_BANK_V2 } from "./curlingBankV2.server";
+import { CURLING_BANK_V3 } from "./curlingBankV3.server";
 import { MINIGOLF_BANK_V2 } from "./minigolfBankV2.server";
 import { POOL_BANK_V3 } from "./poolBankV3.server";
 import { ALLEYROLL_REV } from "@/lib/arcade/alleyroll";
 import type { AlleyRollPuzzleData, CurlingPuzzleData, FreekickPuzzleData, HomerunPuzzleData, MinigolfPuzzleData, PoolPuzzleData, RacingPuzzleData } from "./types";
 
 export function generateHomerun(): HomerunPuzzleData {
-  // homerunRev 2 (31 Oct 2026): rev 2's own proved deal (homerunDealV2.server.ts).
-  return { type: "homerun", seed: homerunDealSeedV2(arcadeSeed()), homerunRev: HOMERUN_REV_DEALT };
+  // homerunRev 3 (1 Nov 2026, the swing choice and the pitcher's tell): rev 3's own proved deal (homerunDealV3.server.ts);
+  // rev-2 rounds replay on rev 2 (homerunDealV2.server.ts stays as it was).
+  return { type: "homerun", seed: homerunDealSeedV3(arcadeSeed()), homerunRev: HOMERUN_REV_DEALT };
 }
 
 export function generateFreekick(): FreekickPuzzleData {
-  // Top Bins deals freekickRev 2 (31 Oct 2026) from its own proved deal; rev-1 rounds replay on rev 1.
-  return { type: "freekick", seed: freekickDealSeedV2(arcadeSeed()), freekickRev: FREEKICK_REV_DEALT };
+  // Top Bins deals freekickRev 3 (1 Nov 2026, the prepared shot) from its own proved deal; rev-1 and rev-2 rounds replay on their own.
+  return { type: "freekick", seed: freekickDealSeedV3(arcadeSeed()), freekickRev: FREEKICK_REV_DEALT };
 }
 
 export function generateRacing(): RacingPuzzleData {
@@ -49,8 +50,9 @@ export function generatePool(): PoolPuzzleData {
 }
 
 export function generateCurling(): CurlingPuzzleData {
-  // curlRev 2 (31 Oct 2026): its own bank, proved with the start along the hog line (curlingBankV2.server.ts).
-  return { type: "curling", seed: CURLING_BANK_V2[arcadeSeed() % CURLING_BANK_V2.length]!, curlRev: CURLING_REV };
+  // curlRev 3 (1 Nov 2026): its own bank, proved on the gentler weight line (curlingBankV3.server.ts); curlRev 2 rounds
+  // replay on curlingBankV2.server.ts's sheets, curlRev 1 on curlingBank.server.ts's.
+  return { type: "curling", seed: CURLING_BANK_V3[arcadeSeed() % CURLING_BANK_V3.length]!, curlRev: CURLING_REV };
 }
 
 export function generateAlleyRoll(): AlleyRollPuzzleData {

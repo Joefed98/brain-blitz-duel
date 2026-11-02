@@ -74,7 +74,7 @@ import { mahjongCheckpoint, mahjongGameFor, MAHJONG_REV_STD } from "../../src/li
 import { encodeMahjongRun, replayMahjongRun } from "../../src/lib/duel/mahjong";
 import { homerunCheckpoint, homerunGameFor, HOMERUN_REV_DEALT } from "../../src/lib/arcade/homerun";
 import { encodeHomerunRun, replayHomerunRun } from "../../src/lib/duel/homerun";
-import { homerunDealSeedV2 } from "../../src/lib/duel/homerunDealV2.server";
+import { homerunDealSeedV3 } from "../../src/lib/duel/homerunDealV3.server";
 import { freekickCheckpoint, freekickGameFor, FREEKICK_REV_DEALT } from "../../src/lib/arcade/freekick";
 import { encodeFreekickRun, replayFreekickRun } from "../../src/lib/duel/freekick";
 import { freekickDealSeedV2 } from "../../src/lib/duel/freekickDealV2.server";
@@ -105,6 +105,7 @@ import { curlingCheckpoint, curlingGameFor, CURLING_REV } from "../../src/lib/ar
 import { encodeCurlingRun, replayCurlingRun } from "../../src/lib/duel/curling";
 import { curlingBankSeedFor } from "../../src/lib/duel/curlingBank.server";
 import { curlingBankV2SeedFor } from "../../src/lib/duel/curlingBankV2.server";
+import { curlingBankV3SeedFor } from "../../src/lib/duel/curlingBankV3.server";
 
 export interface GameSpec {
   type: PuzzleType;
@@ -289,8 +290,8 @@ export const GAMES: GameSpec[] = [
   simple("mahjong", MAHJONG_REV_STD, MAHJONG_REV_STD, mahjongGameFor, mahjongCheckpoint, encodeMahjongRun, replayMahjongRun),
   // The Sports group (30 Oct 2026): born on the arcade scoring standard (rev 1 is live and next); rooms deal a seed from
   // each game's proved deal (the oracle took it to 200 through the server replay), picked by the room seed.
-  // homerunRev 2 (31 Oct 2026): the finer aim, on rev 2's own proved deal.
-  { ...simple("homerun", HOMERUN_REV_DEALT, HOMERUN_REV_DEALT, homerunGameFor, homerunCheckpoint, encodeHomerunRun, replayHomerunRun), seedFor: (n) => homerunDealSeedV2(roomSeed(n)) },
+  // homerunRev 3 (1 Nov 2026): the swing choice and the pitcher's tell, on rev 3's own proved deal.
+  { ...simple("homerun", HOMERUN_REV_DEALT, HOMERUN_REV_DEALT, homerunGameFor, homerunCheckpoint, encodeHomerunRun, replayHomerunRun), seedFor: (n) => homerunDealSeedV3(roomSeed(n)) },
   { ...simple("freekick", FREEKICK_REV_DEALT, FREEKICK_REV_DEALT, freekickGameFor, freekickCheckpoint, encodeFreekickRun, replayFreekickRun), seedFor: (n) => freekickDealSeedV2(roomSeed(n)) },
   // Apex (racing) deals racingRev 2 from its own proved deal since 31 Oct 2026.
   { ...simple("racing", RACING_REV_DEALT, RACING_REV_DEALT, racingGameFor, racingCheckpoint, encodeRacingRun, replayRacingRun), seedFor: (n) => racingDealSeedV2(roomSeed(n)) },
@@ -331,13 +332,14 @@ export const GAMES: GameSpec[] = [
     encode: (run) => encodePoolRun(run),
     replay: (seed, raw, rev) => replayPoolRun(seed, raw, rev),
   },
-  // Curling deals a bank sheet (opponent stones the oracle took out with every stone on the button), curlRev 2 since 31 Oct 2026.
+  // Curling deals a bank sheet (opponent stones the oracle took out with every stone on the button), curlRev 2 since 31
+  // Oct 2026, curlRev 3 since 1 Nov 2026.
   {
     type: "curling",
     live: CURLING_REV,
-    seedFor: curlingBankV2SeedFor,
-    // curlRev 1 measures on its own bank's sheets.
-    seedForRev: (n, rev) => (rev === 1 ? curlingBankSeedFor(n) : undefined),
+    seedFor: curlingBankV3SeedFor,
+    // curlRev 1 and 2 measure on their own banks' sheets.
+    seedForRev: (n, rev) => (rev === 1 ? curlingBankSeedFor(n) : rev === 2 ? curlingBankV2SeedFor(n) : undefined),
     gameFor: (rev) => curlingGameFor(rev ?? 1),
     checkpoint: curlingCheckpoint,
     encode: (run) => encodeCurlingRun(run),
