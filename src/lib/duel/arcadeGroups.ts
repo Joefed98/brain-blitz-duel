@@ -58,8 +58,8 @@ export const ARCADE_GROUPS: readonly ArcadeGroupInfo[] = [
     label: "Action",
     colour: "#FF4D4D",
     glow: false,
-    // Slice, Roofbound, Grappler.
-    games: ["slice", "flip", "swing"],
+    // Slice, Roofbound, Grappler, Ricochet (the ninja wall-climb, back from retirement on ricoRev 2, 1 Nov 2026).
+    games: ["slice", "flip", "swing", "ricochet"],
   },
   {
     id: "strategy",

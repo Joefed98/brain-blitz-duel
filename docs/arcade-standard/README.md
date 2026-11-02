@@ -94,6 +94,7 @@ replay exactly as before; standard-live-check grades every stored arcade run thr
 | Curl Champ (was Curling) | `curling` | `curlRev` 3 (1 and 2 for stored rounds) | Sports | [curling.md](curling.md) |
 | Blockfall | `blockfall` | `blockfallRev` 1 | Retro | [blockfall.md](blockfall.md) |
 | Alley Roll | `alleyroll` | `alleyRollRev` 1 | Sports | [alleyroll.md](alleyroll.md) |
+| Ricochet (the ninja wall-climb) | `ricochet` | `ricoRev` 2 (unstamped: the old shaft, never on the standard) | Action | [ricochet.md](ricochet.md) |
 
 The batches land one at a time on top of this; each adds its games' entries, pages and its summary section below.
 
@@ -384,3 +385,11 @@ recorded on main by `scripts/tuning-nov1-legacy-record.ts`).
 Cue Ball poolRev 3: 25 % harder top speed, 1.75× follow, draw and side, a shot touching no ball a foul, its own proved
 bank (`poolBankV3.server.ts`). See each game's page.
 
+## Ricochet, the ninja wall-climb (1 Nov 2026)
+
+Ricochet (`ricochet`) is back from retirement under its own id on **`ricoRev` 2**, born on the standard: height climbed
+130 on a straight line (full at 241 m, the near-perfect median), coins 30 (shared across 60), gold lanterns 20 (2 each
+of 10), scrolls 20 (5 each of 4) = 200. Unstamped Ricochet rounds keep the old ball-and-spikes shaft and its 150-point
+score exactly. Every tower is dealt in the sim with a witness route proved through the real step (all 74 items, no
+hit, at least 241 m), so a perfect run reaches 200 on every tower. [ricochet.md](ricochet.md) has the rules, the
+bands and the decisions.

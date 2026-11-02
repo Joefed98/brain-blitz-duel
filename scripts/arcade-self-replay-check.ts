@@ -73,7 +73,8 @@ import { encodeDualRun, replayDualRun } from "@/lib/duel/dual";
 import { encodeHoverRun, replayHoverRun } from "@/lib/duel/hover";
 import { encodeMatchupRun, replayMatchupRun } from "@/lib/duel/matchup";
 import { encodeRallyRun, replayRallyRun } from "@/lib/duel/rally";
-import { encodeRicoRun, replayRicoRun } from "@/lib/duel/ricochet";
+import { encodeNinjaRun, encodeRicoRun, replayNinjaRun, replayRicoRun } from "@/lib/duel/ricochet";
+import { ninjaCheckpoint, ninjaGame, NINJA_CHECKPOINT_INTERVAL } from "@/lib/arcade/ricochetNinja";
 import { encodeSkylineRun, replaySkylineRun } from "@/lib/duel/skyline";
 import { encodeSliceRun, replaySliceRun } from "@/lib/duel/slice";
 import { encodeSnakeRun, replaySnakeRun } from "@/lib/duel/snake";
@@ -888,6 +889,8 @@ const GAMES: Game[] = [
   { key: "pool/v3", game: poolGameFor(3), seedFor: (n: number) => POOL_BANK_V3[n % POOL_BANK_V3.length]!, checkpoint: poolCheckpoint, mode: "events", rate: 40, encode: encodePoolRun, replay: (seed: number, raw: string) => replayPoolRun(seed, raw, 3) },
   { key: "freecell/v3", game: freecellGameFor(3), checkpoint: fcCheckpoint, mode: "events", rate: 120, encode: encodeFreecellRun, replay: (seed: number, raw: string) => replayFreecellRun(seed, raw, 3), seedFor: (n: number) => n % 300 },
   { key: "fivehands/v2", game: fiveHandsGameFor(2), checkpoint: fhCheckpoint, mode: "events", rate: 60, encode: encodeFiveHandsRun, replay: (seed: number, raw: string) => replayFiveHandsRun(seed, raw, 2) },
+  // Ricochet ricoRev 2 (the ninja wall-climb, 1 Nov 2026), appended so every earlier entry keeps its index.
+  { key: "ricochet/ninja", interval: NINJA_CHECKPOINT_INTERVAL, game: ninjaGame, checkpoint: ninjaCheckpoint, mode: "events", rate: 30, encode: encodeNinjaRun, replay: (seed: number, raw: string) => replayNinjaRun(seed, raw) },
   // The prepared shot (1 Nov 2026; Home Run homerunRev 3, Top Bins freekickRev 3, Curl Champ curlRev 3), appended so
   // every earlier entry keeps its index: each on its rev-3 proved deal's seeds.
   { key: "homerun/v3", interval: HOMERUN_CHECKPOINT_INTERVAL, game: homerunGameFor(HOMERUN_REV_3), checkpoint: homerunCheckpoint, mode: "events", rate: 20, encode: encodeHomerunRun, replay: (seed: number, raw: string) => replayHomerunRun(seed, raw, HOMERUN_REV_3), seedFor: (n: number) => HOMERUN_DEAL_V3[n % HOMERUN_DEAL_V3.length]! },

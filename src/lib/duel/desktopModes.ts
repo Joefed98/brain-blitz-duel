@@ -180,7 +180,7 @@ export const DESKTOP_MODES: Record<PuzzleType, DesktopModeInfo> = {
   swerve: { mode: "tall", why: "practice only, a lane runner: kept upright" },
   steady: { mode: "tall", why: "practice only: kept upright" },
   dual: { mode: "tall", why: "practice only: kept upright" },
-  ricochet: { mode: "tall", why: "practice only, a launcher at the bottom: kept upright" },
+  ricochet: { mode: "tall", why: "a two-wall climb up a tall tower: upright at full height, the temple wall and night sky carried on beside it" },
   bastion: { mode: "tall", why: "practice only, defended from the bottom: kept upright" },
   rooftop: SIDE,
   junction: { mode: "tall", why: "practice only: kept upright" },

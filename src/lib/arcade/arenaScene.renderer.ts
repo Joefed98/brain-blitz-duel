@@ -93,6 +93,8 @@ export const ARENA_SCENE_GAMES = [
   // Blockfall's cabinet glow and Alley Roll's alley run on round the world (1 Nov 2026).
   "blockfall",
   "alleyroll",
+  // Ricochet (ricoRev 2, 1 Nov 2026): the temple wall's stone runs on below and beside the world.
+  "ricochet",
 ] as const;
 
 /**

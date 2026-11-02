@@ -35,6 +35,7 @@ export const DESKTOP_KEYS: Partial<Record<PuzzleType, readonly (readonly [string
   // Sports
   freekick: [["Click / ← → ↑ ↓", "aim"], ["Drag / A D", "curl"], ["Space (hold)", "power, release to strike"]],
   rally: [["← →", "paddle"]],
+  ricochet: [["Click / Space", "leap · again in the air to double jump"]],
   racing: [["← → / A D", "steer"], ["↑ / W", "accelerate"], ["↓ / S", "brake"]],
   curling: [["Arrows", "target"], ["A D", "slide the stone"], ["I / O", "turn"], ["− / + then Enter", "weight, throw"], ["← → (moving)", "brush"]],
   skyline: [["Space", "drop"]],
@@ -47,7 +48,6 @@ export const DESKTOP_KEYS: Partial<Record<PuzzleType, readonly (readonly [string
   dual: [["← / F", "left jump"], ["→ / J", "right jump"]],
   hotfloor: [["Mouse", "tiles"], ["Enter", "go"], ["Z", "undo"], ["C", "clear"]],
   junction: [["← → ↑ ↓ / 1–8", "lights"]],
-  ricochet: [["Space", "leap"]],
   rooftop: [["← → ↑ ↓", "swipe"]],
   steady: [["← → (hold)", "steer"]],
   swerve: [["← →", "change lane"]],

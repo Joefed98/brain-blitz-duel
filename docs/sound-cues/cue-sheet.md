@@ -19,7 +19,7 @@ effects ([arcade-effects.md](arcade-effects.md)) so a sound can be written for e
 
 | Category | Silent | Placeholder | Recorded | Total |
 |---|---|---|---|---|
-| game event | 35 | 0 | 427 | 462 |
+| game event | 37 | 0 | 435 | 472 |
 | room moment | 1 | 0 | 34 | 35 |
 | music | 12 | 0 | 100 | 112 |
 | UI tap | 10 | 0 | 28 | 38 |
@@ -27,7 +27,7 @@ effects ([arcade-effects.md](arcade-effects.md)) so a sound can be written for e
 | success sting | 3 | 0 | 73 | 76 |
 | ambience | 0 | 1 | 17 | 18 |
 | replay | 0 | 0 | 183 | 183 |
-| **all** | 65 | 1 | 898 | 964 |
+| **all** | 67 | 1 | 906 | 974 |
 
 ## Silent and placeholder cues
 
@@ -282,6 +282,8 @@ Grouped by game or screen. These are the cues still missing a sound.
 
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
 |---|---|---|---|---|---|---|---|---|
+| `ricochet.land` | The ninja lands on stone (ricoRev 2; at most one per 80 ms) [arcade-effects.md] | The ninja clings to the wall | 80–140 | silent | none | 120 | game event | `ricochet.land` |
+| `ricochet.slip` | The ninja lands on moss or ice (ricoRev 2) [arcade-effects.md] | The ninja clings and slides fast | 5–30 | silent | none | 300 | game event | `ricochet.slip` |
 | `music.ricochet` | Ricochet (retired, practice): none |  | loop | silent | none | 60000 | music | `music_ricochet` |
 
 ### Rooftop Run
@@ -417,7 +419,7 @@ Grouped by game or screen. These are the cues still missing a sound.
 | Pinball | arcade | yes | music_pinball | `music_pinball` |
 | Rainbow Bridge | arcade | yes | music_inkbridge | `music_inkbridge` |
 | Rally | arcade | yes | music_rally | `music_rally` |
-| Ricochet | arcade | practice only | **none** | `music_ricochet` |
+| Ricochet | arcade | yes | **none** | `music_ricochet` |
 | Roofbound | arcade | yes | music_flip | `music_flip` |
 | Rooftop Run | arcade | practice only | **none** | `music_rooftop` |
 | Scrumper | arcade | practice only | music_snip | `music_snip` |
@@ -1670,6 +1672,19 @@ Grouped by game or screen.
 | `rally.hit` | Rally: The ball is returned [arcade.md] |  | 30–80 | recorded sound | `arc_retro_blip` (shared) | 50 | game event | `rally.hit` |
 | `music.rally` | Rally: music_rally |  | loop | recorded sound | `music_rally` | loop | music | `music_rally` |
 
+### Ricochet
+
+| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
+|---|---|---|---|---|---|---|---|---|
+| `ricochet.heightStreak` | Every 50 m climbed (ricoRev 2) [arcade-effects.md] | "50 m" streak banner | 1–7 | recorded sound | `ricochet.heightStreak` | 480 | game event | `ricochet.heightStreak` |
+| `ricochet.fullHeight` | The core's full height (241 m) reached (ricoRev 2) [arcade-effects.md] | FULL HEIGHT! banner | 0–1 | recorded sound | `ricochet.fullHeight` | 840 | game event | `ricochet.fullHeight` |
+| `ricochet.leap` | Ricochet: The ninja leaps off a wall (ricoRev 2) [arcade.md] |  | 80–140 | recorded sound | `arc_gravity_flip` (shared) | 330 | game event | `ricochet.leap` |
+| `ricochet.doubleJump` | Ricochet: The double jump in the air (ricoRev 2) [arcade.md] |  | 10–60 | recorded sound | `arc_gravity_flip` (shared) | 330 | game event | `ricochet.doubleJump` |
+| `ricochet.hit` | Ricochet: A katana or shuriken knocks the ninja down (ricoRev 2) [arcade.md] |  | 0–20 | recorded sound | `arc_crash` (shared) | 200 | game event | `ricochet.hit` |
+| `ricochet.coin` | Ricochet: A coin taken (ricoRev 2) [arcade.md] |  | 5–60 | recorded sound | `arc_pickup` (shared) | 100 | game event | `ricochet.coin` |
+| `ricochet.lantern` | Ricochet: A gold lantern taken (ricoRev 2) [arcade.md] |  | 0–10 | recorded sound | `combo` (shared) | 120 | game event | `ricochet.lantern` |
+| `ricochet.scroll` | Ricochet: A scroll taken (ricoRev 2) [arcade.md] |  | 0–4 | recorded sound | `correct` (shared) | 120 | game event | `ricochet.scroll` |
+
 ### Roofbound
 
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
@@ -1841,14 +1856,14 @@ loops are not measured there). Files in `public/sounds/` are listed once per slo
 | `countdown_step` | effects | `countdown_step`, `balltrack.countdown` | 251 |
 | `place` | effects | `place`, `tendrop.apply` | 50 |
 | `move` | effects | `move`, `shared.timelapse.move` | 40 |
-| `correct` | effects | `correct` | 120 |
+| `correct` | effects | `correct`, `ricochet.scroll` | 120 |
 | `wrong` | effects | `wrong` | 140 |
 | `lock` | effects | `lock` | 90 |
 | `round_won` | effects | `round_won` | 680 |
 | `podium_fanfare` | effects | `podium_fanfare` | 350 |
 | `stage_complete` | effects | `stage_complete`, `cross.crossed`, `junction.complete` | 160 |
 | `complete` | effects | `complete` | 200 |
-| `combo` | effects | `combo` | 90 |
+| `combo` | effects | `combo`, `ricochet.lantern` | 90 |
 | `warning_10` | effects | `warning_10` | 10000 |
 | `warning_tick` | effects | `warning_tick` | 120 |
 | `warning_tick_final` | effects | `warning_tick_final` | 250 |
@@ -1856,8 +1871,8 @@ loops are not measured there). Files in `public/sounds/` are listed once per slo
 | `time_up` | effects | `time_up` | 250 |
 | `reveal_score` | effects | `reveal_score` | 140 |
 | `reaction` | effects | `reaction` | 100 |
-| `arc_crash` | effects | `swing.crash`, `skyline.miss`, `junction.crash`, `orbit.crash`, `flip.crash`, `slice.bomb`, `tilt.pitFall`, `tilt.caught` | 200 |
-| `arc_pickup` | effects | `swing.starTaken`, `orbit.checkpoint`, `flip.starTaken`, `flip.trailStar` | 100 |
+| `arc_crash` | effects | `swing.crash`, `skyline.miss`, `junction.crash`, `orbit.crash`, `ricochet.hit`, `flip.crash`, `slice.bomb`, `tilt.pitFall`, `tilt.caught` | 200 |
+| `arc_pickup` | effects | `swing.starTaken`, `orbit.checkpoint`, `ricochet.coin`, `flip.starTaken`, `flip.trailStar` | 100 |
 | `arc_space_ambience` | effects | `orbit.ambience` | loop |
 | `arc_thruster` | effects | `orbit.launch` | 160 |
 | `arc_lose_life` | effects | `bubble.reefLost`, `burst.lifeLost`, `cross.lifeLost`, `wavefront.lifeLost` | 220 |
@@ -1886,7 +1901,7 @@ loops are not measured there). Files in `public/sounds/` are listed once per slo
 | `arc_rainbow` | effects | `inkbridge.draw` | 910 |
 | `arc_rope_cut` | effects | `snip.cut` | 230 |
 | `arc_grapple` | effects | `swing.grapple` | 450 |
-| `arc_gravity_flip` | effects | `flip.flip` | 330 |
+| `arc_gravity_flip` | effects | `ricochet.leap`, `ricochet.doubleJump`, `flip.flip` | 330 |
 | `arc_hover_tap` | effects | `homerun.swing`, `arc_hover_tap` | 110 |
 | `arc_gem_match` | effects | `arc_gem_match` | 400 |
 | `arc_ketchup` | effects | `arc_ketchup` | 230 |
@@ -2332,6 +2347,8 @@ loops are not measured there). Files in `public/sounds/` are listed once per slo
 | `pinball.spinner` | effects | `pinball.spinner` | 486 |
 | `pinball.flipper` | effects | `pinball.flipper` | 482 |
 | `music_pinball` | music | `music.pinball` | loop |
+| `ricochet.heightStreak` | effects | `ricochet.heightStreak` | 480 |
+| `ricochet.fullHeight` | effects | `ricochet.fullHeight` | 840 |
 | `snip.star` | effects | `snip.star` | 386 |
 | `slice.frenzyStart` | effects | `slice.frenzyStart` | 350 |
 | `slice.slow` | effects | `slice.slow` | 479 |

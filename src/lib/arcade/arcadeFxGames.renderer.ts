@@ -21,6 +21,7 @@ import { POKERSQUARES_FX } from "./cards/pokerSquares.renderer";
 import { FIVEHANDS_FX } from "./cards/fiveHands.renderer";
 import { BLOCKFALL_FX } from "./blockfall.renderer";
 import { ALLEYROLL_FX } from "./alleyroll.renderer";
+import { NINJA_FX } from "./ricochetNinja.renderer";
 import { px } from "./engine";
 
 import { HOVER_DISC_X, HOVER_EXPAND_H, HOVER_TALL_H, HOVER_WORLD_H, HOVER_WORLD_W, hoverWorldH, type HoverState } from "./hover";
@@ -294,6 +295,8 @@ export const ARCADE_GAME_WORLDS = {
   // Blockfall (Retro) and Alley Roll (Sports: a warm arcade alley), 1 Nov 2026.
   blockfall: "retro",
   alleyroll: "fairground",
+  // Ricochet (ricoRev 2, 1 Nov 2026): the ninja wall-climb on a night temple.
+  ricochet: "realworld",
 } as const satisfies Record<string, ArcadeWorld>;
 
 export type ArcadeFxGame = keyof typeof ARCADE_GAME_WORLDS;
@@ -1792,6 +1795,7 @@ export const ARCADE_FX_SPECS = {
   tripeaks: TRIPEAKS_FX,
   pokersquares: POKERSQUARES_FX,
   fivehands: FIVEHANDS_FX,
+  ricochet: NINJA_FX,
   minigolf: MINIGOLF_FX,
   pool: POOL_FX,
   curling: CURLING_FX,

@@ -149,7 +149,6 @@ const RETIRED_TYPES = new Set<PuzzleType>([
   "rooftop",
   "swerve",
   "dual",
-  "ricochet",
   "steady",
   "hotfloor",
   "dig",
