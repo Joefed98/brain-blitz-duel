@@ -1273,12 +1273,27 @@ function paintRadarReading(ctx: CanvasRenderingContext2D, pitch: HomerunPitch, k
 
 /** The play screen's frame: the park and the run, under the shared success and miss effects (sportsFx.renderer.ts). */
 export function drawHomerunArt(ctx: CanvasRenderingContext2D, state: HomerunState, size: CanvasSize): void {
-  arcadeFx(ctx, HOMERUN_FX, state, () => drawHomerunWorld(ctx, state), size);
+  // homerunRev 3's stage view is taller than the world (homerunViewHFor, display only): the park carries on below
+  // it and the success layer covers the whole view with the world's own coordinates (no centring offset).
+  const viewH = Math.max(H, Math.round(size.height));
+  arcadeFx(ctx, homerunFxFor(viewH), state, () => drawHomerunWorld(ctx, state, viewH), size);
 }
 
-function drawHomerunWorld(ctx: CanvasRenderingContext2D, state: HomerunState): void {
+/** The success layer's spec for a view height (the world's own above; the same events, the edges round the view). */
+const FX_BY_VIEW = new Map<number, typeof HOMERUN_FX>();
+function homerunFxFor(viewH: number): typeof HOMERUN_FX {
+  if (viewH <= H) return HOMERUN_FX;
+  let spec = FX_BY_VIEW.get(viewH);
+  if (!spec) FX_BY_VIEW.set(viewH, (spec = { ...HOMERUN_FX, height: viewH }));
+  return spec;
+}
+
+function drawHomerunWorld(ctx: CanvasRenderingContext2D, state: HomerunState, viewH: number = H): void {
   const plan = homerunPlan(state.seed);
-  deviceLayer(ctx, `homerun-park2:${state.seed}`, (c) => paintHomerunPark(c, plan));
+  if (viewH > H) {
+    const e: Extent = { ...WORLD_EXTENT, y1: viewH + 8 };
+    deviceLayer(ctx, `homerun-park2:${state.seed}:${viewH}`, (c) => paintHomerunPark(c, plan, e));
+  } else deviceLayer(ctx, `homerun-park2:${state.seed}`, (c) => paintHomerunPark(c, plan));
   const still = reducedMotion();
 
   plan.signs.forEach((s, i) => {

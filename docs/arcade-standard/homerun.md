@@ -201,7 +201,15 @@ score, final checksum and end tick. The rev-1 and rev-2 deal files are unchanged
   `HOMERUN_INPUT_RANGES_V3`, so rev 1 and 2 never declare it). Two 48 px buttons over the bottom of the field, below the plate
   (`data-game-controls="swing"`, the stage's arena overlay; 1 Nov 2026 follow-up: lifted by the home bar, so the row ends
   at least 12 px above `env(safe-area-inset-bottom)`, and the world reaches the bottom of the play screen), C / 1 and P / 2
-  on a computer. A choice is recorded on the sim tick it is made and stands until changed (Contact to
+  on a computer. Follow-up (2 Nov 2026, display only): the stage's view runs `HOMERUN_V3_VIEW_ROWS` (60) field rows
+  below the 720-row world (`homerunViewHFor`; the park and the success layer cover them in the world's own coordinates),
+  so the batter and the plate sit clear above the row: its top is 24 px below the plate's lowest drawn row at 375×667,
+  54 px at 414×896 and 18 px on the iPhone 11 home-screen app (the world is drawn about 7 % smaller at 375×667 and on the
+  home-screen app, 1 % at 414×896). The sim's world, the timing windows, the scoring and the inputs are unchanged: the
+  view's top 720 rows are the world's own, a touch that starts in the rows below starts no swing, and a drag below them
+  reads as the world's bottom row, as it did at the canvas's edge. The row fades out (150 ms) from the pitch's release
+  until it is decided and comes back for the next pitch (the choice is locked on the release tick); it stays up and
+  tappable through the wind-up and the tell. A choice is recorded on the sim tick it is made and stands until changed (Contact to
   start); each pitch is played with the choice standing at its release (`pmode`, locked on the release tick), so a press
   after the release waits for the next pitch. The HUD chip shows NEXT CONTACT / NEXT POWER until the release, then
   CONTACT / POWER; the lit button is the sim's own choice. A choice counts as playing (at least 1).

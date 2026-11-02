@@ -1057,7 +1057,8 @@ outside the repo.
   320 cm (`CORE_EDGE_V3`); bank `curlingBankV3.server.ts` (66 proved); desktop − / + and Enter. **Home Run**
   `homerunRev 3`: Contact or Power before each pitch (input kind 2, `HOMERUN_INPUT_MODE`, locked on the release tick;
   buttons over the field's bottom, in the arena overlay and lifted
-  12 px clear of the home bar, C/1 and P/2 on desktop): Contact a wider window and shorter hits, Power a narrower window,
+  12 px clear of the home bar, hidden from the release until the pitch is decided, under a view 60 rows taller than the world
+  so the batter and plate sit clear above them (`homerunViewHFor`, display only), C/1 and P/2 on desktop): Contact a wider window and shorter hits, Power a narrower window,
   longer hits and the signs; the pitcher's tell in the last 0.4 s (arm slot, coloured hand, a grip bubble; display only);
   each pitch type its own perfect tick (fastball earlier and tightest); core full at 460 ft a pitch; deal
   `homerunDealV3.server.ts`. **Top Bins** `freekickRev 3`: tap to aim (kind 2), drag to curl with a preview (kind 3),

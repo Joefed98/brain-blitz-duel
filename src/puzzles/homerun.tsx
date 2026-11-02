@@ -12,6 +12,8 @@ import {
   HOMERUN_REV_3,
   HOMERUN_REV_DEALT,
   homerunSwingStartPx,
+  homerunCurrent,
+  homerunViewHFor,
   type HomerunState,
   HOMERUN_WORLD_H,
   HOMERUN_WORLD_W,
@@ -76,12 +78,15 @@ function IntroExample() {
 }
 
 /** The sound observer, also handing each drawn frame's swing choice to the Contact / Power buttons (homerunRev 3). */
-function homerunObserver(onMode: (mode: number) => void) {
+function homerunObserver(onMode: (mode: number) => void, onLive?: (live: boolean) => void) {
   return () => {
     const inner = homerunSounds();
     return {
       frame: (state: HomerunState, running: boolean) => {
         onMode(state.mode);
+        // The pitch is live from its release until it is decided (the sim moves on to the next pitch then).
+        const cur = homerunCurrent(state);
+        onLive?.(cur !== null && state.tick >= cur.release);
         inner.frame(state, running);
       },
       stop: () => inner.stop(),
@@ -90,7 +95,7 @@ function homerunObserver(onMode: (mode: number) => void) {
 }
 
 const MODE_BUTTON =
-  "pointer-events-auto h-[48px] flex-1 rounded-xl border-2 px-3 text-[15px] font-extrabold tracking-wide hover:bg-background/40";
+  "h-[48px] flex-1 rounded-xl border-2 px-3 text-[15px] font-extrabold tracking-wide hover:bg-background/40";
 
 function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const data: HomerunPuzzleData | null = puzzle.type === "homerun" ? puzzle : null;
@@ -98,12 +103,23 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const choose = (data?.homerunRev ?? 1) >= HOMERUN_REV_3;
   const [mode, setMode] = useState(HOMERUN_MODE_CONTACT);
   const shown = useRef(HOMERUN_MODE_CONTACT);
+  // The row hides (a quick fade) from the pitch's release until the hit or miss is decided: the choice is locked on
+  // the release tick, so nothing is lost, and the plate and the batter are clear while the ball comes in.
+  const [live, setLive] = useState(false);
+  const liveShown = useRef(false);
   const sounds = useRef(
-    homerunObserver((m) => {
-      if (m === shown.current) return;
-      shown.current = m;
-      setMode(m);
-    }),
+    homerunObserver(
+      (m) => {
+        if (m === shown.current) return;
+        shown.current = m;
+        setMode(m);
+      },
+      (l) => {
+        if (l === liveShown.current) return;
+        liveShown.current = l;
+        setLive(l);
+      },
+    ),
   );
   const pick = (m: number): PointerPayload => ({ k: HOMERUN_INPUT_MODE, a: m, b: 0, c: 0 });
   // devWarp: development review shots only (scripts/shots/homerun-tuning-shots.ts); production returns the game as is.
@@ -123,7 +139,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       enabled={data !== null}
       locked={locked}
       worldW={HOMERUN_WORLD_W}
-      worldH={HOMERUN_WORLD_H}
+      worldH={homerunViewHFor(data?.homerunRev)}
       game={game}
       sounds={choose ? sounds.current : homerunSounds}
       checkpoint={homerunCheckpoint}
@@ -133,9 +149,11 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       inputKind={HOMERUN_INPUT_SWING}
       pointer={(kind, x, y) => {
         if (kind === "down") {
-          start.current = { x, y, sent: false };
+          // homerunRev 3's view runs below the world (display only): a touch there starts no swing.
+          start.current = y <= HOMERUN_WORLD_H ? { x, y, sent: false } : null;
           return null;
         }
+        y = Math.min(HOMERUN_WORLD_H, y);
         const s = start.current;
         if (kind === "up") {
           start.current = null;
@@ -169,7 +187,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
               // less 4 px). Only the buttons take a touch; a swipe beside them reaches the canvas.
               <div
                 data-game-controls="swing"
-                className="pointer-events-none absolute inset-x-1 flex h-[52px] items-center gap-2"
+                aria-hidden={live || undefined}
+                className={`pointer-events-none absolute inset-x-1 flex h-[52px] items-center gap-2 transition-opacity duration-150 ${live ? "opacity-0" : "opacity-100"}`}
                 style={{ bottom: "max(0px, calc(env(safe-area-inset-bottom, 0px) - 4px))" }}
               >
                 {[
@@ -181,9 +200,9 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
                     type="button"
                     aria-label={`${label} swing`}
                     aria-pressed={mode === m}
-                    disabled={locked}
+                    disabled={locked || live}
                     data-swing-mode={m === HOMERUN_MODE_POWER ? "power" : "contact"}
-                    className={`${MODE_BUTTON} ${
+                    className={`${MODE_BUTTON} ${live ? "pointer-events-none" : "pointer-events-auto"} ${
                       mode === m
                         ? "border-primary bg-primary/20 text-primary shadow-[0_0_12px_rgba(245,184,46,0.3)] hover:bg-primary/20 active:bg-primary/30"
                         : "border-foreground/25 bg-background/40 text-foreground/80 active:bg-foreground/15"

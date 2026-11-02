@@ -45,6 +45,18 @@ export const HOMERUN_REV_3 = 3;
 export const HOMERUN_REV_DEALT = HOMERUN_REV_3;
 export const HOMERUN_WORLD_W = 390;
 export const HOMERUN_WORLD_H = 720;
+/**
+ * homerunRev 3's play-screen frame (display only, 2 Nov 2026): the stage's view runs HOMERUN_V3_VIEW_ROWS field rows
+ * below the 720-row world, so the batter and the plate sit clear above the Contact / Power row laid over the field's
+ * bottom. The sim's world, the plan, the timing windows, the scoring and every input are unchanged: the view's top
+ * 720 rows are the world's own (the same world px under the same finger), and a touch that starts in the rows below
+ * starts no swing.
+ */
+export const HOMERUN_V3_VIEW_ROWS = 60;
+/** The stage's view height (world px) for a revision: the world, plus homerunRev 3's rows below it. */
+export function homerunViewHFor(rev?: number | null): number {
+  return (rev ?? 1) >= HOMERUN_REV_3 ? HOMERUN_WORLD_H + HOMERUN_V3_VIEW_ROWS : HOMERUN_WORLD_H;
+}
 export const HOMERUN_BG = "#05070E";
 export const HOMERUN_RUN_SECONDS = 60;
 export const HOMERUN_RUN_TICKS = HOMERUN_RUN_SECONDS * TICKS_PER_SECOND;

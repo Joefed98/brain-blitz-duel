@@ -12,7 +12,7 @@
 import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { chromium } from "playwright";
-import { homerunCheckpoint, homerunGameFor, homerunPlan, HOMERUN_INPUT_SWING, HOMERUN_REV_3 } from "../../src/lib/arcade/homerun";
+import { homerunCheckpoint, homerunGameFor, homerunPlan, HOMERUN_INPUT_SWING, HOMERUN_REV_3, HOMERUN_WORLD_W } from "../../src/lib/arcade/homerun";
 import { encodeHomerunRun } from "../../src/lib/duel/homerun";
 import { Human, type SkillLevel } from "../arcade-skill-bands/human";
 import { bot } from "../arcade-skill-bands/bots/homerun";
@@ -44,7 +44,10 @@ function planFor(seed: number) {
     if (s.tick % 60 === 0) checkpoints.push(homerunCheckpoint(s));
   }
   const answer = encodeHomerunRun({ seed, claimedScore: game.score(s), events, endTick: s.tick, checkpoints });
-  const frames = { choose: p.release - 50, tell: p.release - 40, swing: swing.t + 2, call: swing.t + 40 };
+  // "swing": warped to just after the release (the pitch on its way, the Contact / Power row faded out until the pitch
+  // is decided); the shot swipes through the strike zone for real and is taken mid-swing (the warp replays only the
+  // events up to its tick). "call": the result, the row back.
+  const frames = { choose: p.release - 50, tell: p.release - 40, swing: p.release + 2, call: swing.t + 40 };
   const warp = (tick: number) => ({ game: "homerun", seed, tick, events: events.filter((e) => e.t <= tick) });
   return { frames, warp, answer, score: game.score(s), seed };
 }
@@ -91,7 +94,22 @@ async function shoot(w: number, h: number) {
   };
   for (const name of ["choose", "tell", "swing", "call"] as const) {
     await open(name);
-    await page.waitForTimeout(30);
+    if (name === "swing") {
+      // A real swipe from the strike zone's middle (world px 258, 506) up and to the left, then the frame mid-swing.
+      await page.waitForTimeout(150);
+      const box = (await page.locator("[data-game-arena] canvas").first().boundingBox())!;
+      const k = box.width / HOMERUN_WORLD_W;
+      const at = (x: number, y: number) => ({ x: box.x + x * k, y: box.y + y * k });
+      const a = at(258, 506);
+      await page.mouse.move(a.x, a.y);
+      await page.mouse.down();
+      for (let i = 1; i <= 4; i++) {
+        const b = at(258 - i * 9, 506 - i * 3);
+        await page.mouse.move(b.x, b.y);
+      }
+      await page.mouse.up();
+      await page.waitForTimeout(45);
+    } else await page.waitForTimeout(30);
     await page.screenshot({ path: join(OUT, `homerun-${w}x${h}-${name}.png`) });
     // The tell lasts 0.4 s and a page's start lags by a varying few frames: a burst into .shots/ to pick from.
     if (name === "tell" && BURST)
