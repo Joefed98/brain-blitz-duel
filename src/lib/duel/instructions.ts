@@ -1353,9 +1353,11 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
       how: [
         { action: "Drag anywhere to aim;", detail: "the crosshair floats above your thumb. Lift to fire." },
         { action: "Shells take a moment to land:", detail: "lead a moving tank." },
-        { action: "Hit the glowing weak spot", detail: "for double damage." },
+        { action: "Hit the glowing weak spot", detail: "for double damage, while it is open." },
         { action: "Five shells.", detail: "Swipe down to reload early; tap while the needle is in the green for a fast reload." },
         { action: "Scouts take 1 hit, Mediums 2 and Heavies 4;", detail: "the pips above each tank show what is left.", helpOnly: true },
+        { action: "Weak spots open and close:", detail: "each glows orange for about a second, then shuts for half a second. A shell on a shut one is a plain hull hit.", helpOnly: true },
+        { action: "The last two waves", detail: "are bigger and faster, and every tank speeds up or slows down once on its way in.", helpOnly: true },
         { action: "Small, slow drags", detail: "move the crosshair less than your thumb, for fine aim.", helpOnly: true },
         { action: "Empty, the gun reloads by itself in 2 seconds.", detail: "A tap in the green finishes it in half the time; a tap outside jams it for half a second more.", helpOnly: true },
         { action: "A tank that reaches the wall hits the base.", detail: "Three hits and the run ends early (you keep your score).", helpOnly: true },

@@ -14,6 +14,8 @@
 import { inputAt, recordInput, type ArcadeInputEvent } from "../src/lib/arcade/engine";
 import {
   bastionFlight,
+  bastionPlan,
+  bastionWeakOpen,
   bastionNeedle,
   bastionStdParts,
   bastionTankGame,
@@ -136,6 +138,7 @@ function pickShot(s: BastionTankState, pending: Shot[], seen: Map<number, number
     c = game.step(c, null);
     frames.push(c);
   }
+  const plan = bastionPlan(s.seed);
   const order = [...s.tanks].sort((a, b) => Math.floor(a.z / a.v) - Math.floor(b.z / b.v));
   for (const tank of order) {
     if ((seen.get(tank.i) ?? 0) > s.tick) continue;
@@ -152,6 +155,9 @@ function pickShot(s: BastionTankState, pending: Shot[], seen: Map<number, number
       const [wx, wy] = centre(r.weak);
       const [x, y] = weakAim ? [wx, wy] : [hx, hy];
       if (bastionFlight(y) !== f) continue;
+      // The weak spot must be exposed when the shell lands: the oracle knows the cycle; a human judges it from the glow
+      // with their timing error, and waits for the next opening.
+      if (weakAim && !bastionWeakOpen(plan[tank.i]!, fr.tick + (human ? human.timingTicks(1.5) : 0))) break;
       // A human waits until the target is big enough for their aim, unless the tank is close to the wall.
       if (human) {
         const sigma = human.p.aimSdPx;

@@ -64,6 +64,6 @@ export const entry: StdEntry = {
     for (let w = 0; w <= 32; w += 4) ok(p(base({ weak: w }), "weak") === Math.min(30, w), `bastion: ${w} weak-spot hits → ${Math.min(30, w)}`);
     for (let f = 0; f <= 12; f += 2) ok(p(base({ fast: f }), "fast") === Math.min(20, 2 * f), `bastion: ${f} fast reloads → ${Math.min(20, 2 * f)}`);
     ok(p(base({ base: 3 }), "base") === 10 && p(base({ base: 2 }), "base") === 5 && p(base({ base: 1 }), "base") === 0 && p(base({ base: 3, ended: 2 }), "base") === 0, "bastion: base intact 10 / 5 / 0, 0 once it fell");
-    ok(game.score(base({ destroyedHp: 60, weak: 30, fast: 10, base: 3 })) === 200, "bastion: 60 HP, 30 weak-spot hits, 10 fast reloads and the base whole → 200");
+    ok(game.score(base({ destroyedHp: BT2_TOTAL_HP, weak: 30, fast: 10, base: 3 })) === 200, `bastion: ${BT2_TOTAL_HP} HP, 30 weak-spot hits, 10 fast reloads and the base whole → 200`);
   },
 };

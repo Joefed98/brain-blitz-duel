@@ -1035,15 +1035,17 @@ outside the repo.
 - **Bastion, the tank-defence shooter** (1 Nov 2026, `bastionRev 2`; `docs/arcade-standard/bastion.md`): back in rooms
   under its old id in the Action group, a new game on a new stamp (unstamped rounds are the original shapes turret,
   `src/lib/arcade/bastion.ts`, untouched, and replay exactly as before: bastion-check replays 40 runs recorded on main
-  9486004, `scripts/fixtures/bastion-legacy.json`). Sim `src/lib/arcade/bastionTank.ts` (60 s, five seeded waves of 29
-  tanks, 60 hit points; Scout 1 / Medium 2 / Heavy 4, weak spots double; shells land 18–30 ticks after the shot; 5 shells,
-  2 s reload, a swipe reloads early, a tap in the needle's 80 ms green zone halves it, outside jams 0.5 s; three base
-  hits end the run), art `bastionTank.renderer.ts` (dusk, drawn on the sim's own rectangles), stage `TankStage` in
+  9486004, `scripts/fixtures/bastion-legacy.json`). Sim `src/lib/arcade/bastionTank.ts` (60 s, five seeded waves of 30
+  tanks, 63 hit points, the last two bigger and faster; every tank changes speed once; Scout 1 / Medium 2 / Heavy 4,
+  weak spots double while exposed, 60 of every 90 ticks; shells land 18–30 ticks after the shot; 5 shells, 2 s reload,
+  a swipe reloads early, a tap in the needle's 60 ms green zone halves it, outside jams 0.5 s; three base hits end the
+  run), art `bastionTank.renderer.ts` (Joe's mockups: Wave and Base pills, the bottom panel with SHELLS, RELOAD and the
+  hint; drawn on the sim's own rectangles), stage `TankStage` in
   `src/puzzles/bastion.tsx` (the crosshair 60 px above the thumb, lift fires; on a computer the mouse aims through
-  ArcadeCanvasStage's new `hover`, click fires, R reloads, Space taps). Score: Armour 140 (straight line of 60 HP), Weak
+  ArcadeCanvasStage's new `hover`, click fires, R reloads, Space taps). Score: Armour 140 (straight line of 63 HP), Weak
   spots 30, Fast reloads 20, Base intact 10. Oracle `scripts/bastion-oracle.ts` (200 on every seed tried), bots
   `scripts/arcade-skill-bands/bots/bastion.ts`; bastion-check (~10 s). No intro demo yet (the still shows; an original
-  demo stays stopped). IP notes in `docs/ip-review-list.md`.
+  demo stays stopped). IP notes in `docs/ip-names.md`.
 - **Strategy group** (1 Nov 2026; presentation and room setup only, no stamps): the arcade's Action group split in
   two: Action keeps Slice, Roofbound and Grappler; Strategy (`strategy`, `--group-strategy` #8E80FF, a blue-leaning
   violet) takes Tilt, Gemstone, High Rise, Coral Pop, Rainbow Bridge and Ball Tracker (`arcadeGroups.ts`). Practice's

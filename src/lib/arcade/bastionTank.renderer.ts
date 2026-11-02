@@ -1,10 +1,12 @@
 /**
- * Bastion's art, bastionRev 2 (display only; never imported by the sim or the server). First person from a gun turret
- * behind a stone wall at dusk: the sky, the low sun, the far hills, the three lanes running to the vanishing point, the
- * haze on the horizon and the wall's parapet are painted once per canvas size (deviceLayer); per frame the tanks (each
- * hull and turret drawn exactly on the sim's collision rectangles, bastionTankRects, the weak spot's amber glow on its
- * own rectangle, the health pips above), the shells in flight, the landings, the crosshair, the gun's barrel and the HUD
- * (wave, base, shells and the reload bar with its needle and green zone).
+ * Bastion's art, bastionRev 2 (display only; never imported by the sim or the server), after Joe's mockups
+ * (bastion-mockup.png, bastion-controls.png; 1 Nov 2026). First person from a gun turret behind a wall at dusk: the
+ * slate sky, the jagged peaks, the earth field with the road's three lanes and their dashed dividers running to the
+ * vanishing point, and the wall are painted once per canvas size (deviceLayer); per frame the tanks (each hull and turret
+ * drawn exactly on the sim's collision rectangles, bastionTankRects; the weak spot a round orange vent on its own square,
+ * dark while closed; orange health pips above), the shells in flight, the landings, the crosshair (white ring, orange
+ * dot), the gun and the HUD: the Wave and Base pills under the game header, and the bottom panel with SHELLS, the RELOAD
+ * bar (its needle and green zone while reloading) and the hint line.
  *
  * `bastionScene` carries the same dusk out past the world's sides and below it on the play screen, so the edges have
  * no seam (and on the computer layout the scenery extends to the sides).
@@ -16,10 +18,11 @@ import type { ArenaSceneView } from "./arenaScene.renderer";
 import type { CanvasSize } from "./engine";
 import {
   bastionNeedle,
+  bastionPlan,
+  bastionWeakOpen,
   bastionScale256,
   bastionTankGame,
   bastionTankRects,
-  bastionTankScore,
   bastionWave,
   BT2_BASE,
   BT2_FAR,
@@ -40,23 +43,31 @@ import {
   type Bt2Tank,
 } from "./bastionTank";
 
-export const BT2_ART_BG = "#120E1C";
+export const BT2_ART_BG = "#14171D";
 const W = BT2_WORLD_W;
 const H = BT2_WORLD_H;
-const MONO = "'Duelz Mono', 'JetBrains Mono', ui-monospace, monospace";
 const DISPLAY = "'Archivo', 'Saira', system-ui, sans-serif";
-/** Where the barrel's breech sits (below the world's bottom edge) and its muzzle length. */
+/** The gun: its breech below the parapet, its muzzle this far along the aim line. */
 const GUN_X = BT2_VP_X;
-const GUN_Y = H + 40;
-const GUN_LEN = 150;
-const AMBER = "#FFB43A";
-const ACTION_RED = "#FF4D4D";
+const GUN_Y = 660;
+const GUN_LEN = 112;
+/** The bottom panel's top edge (world px). */
+export const BT2_PANEL_Y = 628;
+const ORANGE = "#FFB547";
+const VENT = "#F29A2E";
+const VENT_CORE = "#FFD36A";
+const GREEN = "#8FD6A0";
+const RED = "#FF6B5B";
+/** Health pip colours (bastion-check skips them when it judges a tank's bounds: they are its HUD, above the turret). */
+export const BT2_PIP_FILL = "#FF7A3C";
+export const BT2_PIP_EMPTY = "#33373F";
+export const BT2_PIP_BACK = "rgba(0,0,0,0.55)";
 
-/** Each type's paint: hull, hull shade, turret, track. */
+/** Each type's paint: hull, its shaded side, turret, track and the road wheels (scouts and mediums olive, heavies rust). */
 const LIVERY = [
-  { hull: "#9C8A5E", shade: "#5E5236", turret: "#B09C6A", track: "#2A251C" },
-  { hull: "#5E6B3E", shade: "#363E22", turret: "#6E7C48", track: "#1E2214" },
-  { hull: "#4A5058", shade: "#262A30", turret: "#5A6170", track: "#15171B" },
+  { hull: "#5A6340", shade: "#3E4530", turret: "#66704A", track: "#1C1E22", wheel: "#3A3D44" },
+  { hull: "#47533A", shade: "#323B29", turret: "#556244", track: "#1C1E22", wheel: "#3A3D44" },
+  { hull: "#7A4434", shade: "#5A3126", turret: "#8A5141", track: "#1C1E22", wheel: "#41383A" },
 ] as const;
 
 interface Extent {
@@ -68,142 +79,103 @@ interface Extent {
 
 /* -------------------------------------------------------------- backdrop */
 
-/** The dusk sky, hills, field, lanes and the wall, over any extent (world units). */
+/** The slate dusk sky, the peaks, the field, the road's lanes and the wall, over any extent (world units). */
 function paintBackdrop(ctx: CanvasRenderingContext2D, e: Extent): void {
   const wx = e.x1 - e.x0;
-  // Sky: deep violet overhead to a burning orange at the horizon.
   const sky = ctx.createLinearGradient(0, 0, 0, BT2_HORIZON_Y);
-  sky.addColorStop(0, "#140F2A");
-  sky.addColorStop(0.45, "#3B1F4A");
-  sky.addColorStop(0.8, "#B4485A");
-  sky.addColorStop(1, "#F49A4C");
+  sky.addColorStop(0, "#2A3240");
+  sky.addColorStop(1, "#46515F");
   ctx.fillStyle = sky;
   ctx.fillRect(e.x0, e.y0, wx, BT2_HORIZON_Y - e.y0 + 1);
-  // The low sun, half behind the hills, with its bloom.
-  const sun = ctx.createRadialGradient(258, BT2_HORIZON_Y - 6, 4, 258, BT2_HORIZON_Y - 6, 120);
-  sun.addColorStop(0, "rgba(255,236,190,0.95)");
-  sun.addColorStop(0.18, "rgba(255,190,110,0.6)");
-  sun.addColorStop(1, "rgba(255,140,80,0)");
-  ctx.fillStyle = sun;
-  ctx.fillRect(e.x0, BT2_HORIZON_Y - 140, wx, 150);
-  ctx.fillStyle = "#FFE7B8";
-  ctx.beginPath();
-  ctx.arc(258, BT2_HORIZON_Y - 4, 15, Math.PI, 0);
-  ctx.fill();
-  // A few streaks of cloud.
-  ctx.fillStyle = "rgba(255,170,140,0.18)";
-  for (const [x, y, w] of [
-    [40, 120, 120],
-    [210, 96, 150],
-    [-90, 160, 110],
-    [330, 150, 140],
-  ] as const) {
-    ctx.fillRect(x, y, w, 3);
-    ctx.fillRect(x + 20, y + 6, w * 0.6, 2);
-  }
-  // Far hills: two ridges in cooling silhouettes.
-  ctx.fillStyle = "#4A2440";
-  ctx.beginPath();
-  ctx.moveTo(e.x0, BT2_HORIZON_Y);
-  for (let x = Math.floor(e.x0 / 10) * 10; x <= e.x1 + 10; x += 10) ctx.lineTo(x, BT2_HORIZON_Y - 14 - 9 * Math.sin(x / 47) - 6 * Math.sin(x / 19 + 1));
-  ctx.lineTo(e.x1, BT2_HORIZON_Y);
-  ctx.fill();
-  ctx.fillStyle = "#2E1830";
+  // Jagged peaks on the horizon (a fixed pattern repeating every 240 px, so the scene carries it on with no seam).
+  ctx.fillStyle = "#262B33";
   ctx.beginPath();
   ctx.moveTo(e.x0, BT2_HORIZON_Y + 1);
-  for (let x = Math.floor(e.x0 / 10) * 10; x <= e.x1 + 10; x += 10) ctx.lineTo(x, BT2_HORIZON_Y - 5 - 5 * Math.sin(x / 31 + 2));
+  const peaks = [0, 18, 46, 30, 64, 22, 52, 12, 40, 26, 58, 16] as const;
+  const step = 20;
+  for (let x = Math.floor(e.x0 / step) * step; x <= e.x1 + step; x += step) {
+    const k = (((x / step) % peaks.length) + peaks.length) % peaks.length;
+    ctx.lineTo(x, BT2_HORIZON_Y - peaks[k]!);
+  }
   ctx.lineTo(e.x1, BT2_HORIZON_Y + 1);
+  ctx.closePath();
   ctx.fill();
-  // The field: dusk-lit earth, darkening toward the wall.
+  // The field: earth, a little darker toward the wall.
   const field = ctx.createLinearGradient(0, BT2_HORIZON_Y, 0, BT2_WALL_Y);
-  field.addColorStop(0, "#5A3A3A");
-  field.addColorStop(0.25, "#3C2E2A");
-  field.addColorStop(1, "#1E1A16");
+  field.addColorStop(0, "#6F5E46");
+  field.addColorStop(1, "#5A4B37");
   ctx.fillStyle = field;
   ctx.fillRect(e.x0, BT2_HORIZON_Y, wx, BT2_WALL_Y - BT2_HORIZON_Y + 1);
-  // The lanes: worn tracks converging on the vanishing point, with their edges.
-  for (let lane = 0; lane < 3; lane++) {
-    const lx = BT2_LANE_X[lane]!;
-    const half = 58;
-    ctx.fillStyle = "rgba(120,88,64,0.32)";
-    ctx.beginPath();
-    ctx.moveTo(BT2_VP_X + ((lx - half) * 0.06), BT2_HORIZON_Y + 2);
-    ctx.lineTo(BT2_VP_X + ((lx + half) * 0.06), BT2_HORIZON_Y + 2);
-    ctx.lineTo(BT2_VP_X + lx + half, BT2_WALL_Y);
-    ctx.lineTo(BT2_VP_X + lx - half, BT2_WALL_Y);
-    ctx.closePath();
-    ctx.fill();
-  }
-  ctx.strokeStyle = "rgba(255,190,120,0.16)";
-  ctx.lineWidth = 1.2;
-  for (const bx of [-192, -64, 64, 192]) {
-    ctx.beginPath();
-    ctx.moveTo(BT2_VP_X + bx * 0.06, BT2_HORIZON_Y + 2);
-    ctx.lineTo(BT2_VP_X + bx, BT2_WALL_Y);
-    ctx.stroke();
-  }
-  // Depth marks across the field (every 160 depth units), fading with distance.
-  for (let z = 160; z < BT2_FAR + 600; z += 160) {
-    const y = BT2_HORIZON_Y + Math.floor(((BT2_WALL_Y - BT2_HORIZON_Y) * bastionScale256(z * 256)) / 256);
-    ctx.fillStyle = `rgba(255,200,150,${0.05 + 0.05 * (1 - z / (BT2_FAR + 600))})`;
-    ctx.fillRect(e.x0, y, wx, 1);
-  }
-  // Scrub and rocks scattered on the field (fixed, symmetric-free).
-  for (let i = 0; i < 40; i++) {
-    const z = 80 + ((i * 397) % 1400);
+  // Dark hollows on the ground (fixed places), smaller toward the horizon.
+  ctx.fillStyle = "rgba(40,32,24,0.45)";
+  for (let i = 0; i < 26; i++) {
+    const z = 60 + ((i * 397) % 1300);
     const s = bastionScale256(z * 256) / 256;
     const y = BT2_HORIZON_Y + (BT2_WALL_Y - BT2_HORIZON_Y) * s;
     const side = i % 2 ? 1 : -1;
-    const off = 200 + ((i * 131) % 220);
-    const x = BT2_VP_X + side * off * s;
-    ctx.fillStyle = i % 3 ? "rgba(20,14,12,0.55)" : "rgba(60,40,30,0.6)";
+    const x = BT2_VP_X + side * (210 + ((i * 131) % 260)) * s;
     ctx.beginPath();
-    ctx.ellipse(x, y, 7 * s + 1, 3 * s + 0.6, 0, 0, Math.PI * 2);
+    ctx.ellipse(x, y, 30 * s + 2, 6 * s + 1, 0, 0, Math.PI * 2);
     ctx.fill();
   }
-  // Horizon haze where the tanks roll out.
-  const haze = ctx.createLinearGradient(0, BT2_HORIZON_Y - 10, 0, BT2_HORIZON_Y + 90);
-  haze.addColorStop(0, "rgba(244,154,76,0.0)");
-  haze.addColorStop(0.25, "rgba(232,140,96,0.38)");
-  haze.addColorStop(1, "rgba(120,70,70,0)");
+  // The road: one paler wedge over the three lanes, its edges and the dashed dividers between lanes.
+  const half = 192;
+  ctx.fillStyle = "rgba(150,128,96,0.32)";
+  ctx.beginPath();
+  ctx.moveTo(BT2_VP_X - half * 0.04, BT2_HORIZON_Y + 1);
+  ctx.lineTo(BT2_VP_X + half * 0.04, BT2_HORIZON_Y + 1);
+  ctx.lineTo(BT2_VP_X + half, BT2_WALL_Y);
+  ctx.lineTo(BT2_VP_X - half, BT2_WALL_Y);
+  ctx.closePath();
+  ctx.fill();
+  ctx.strokeStyle = "rgba(30,24,18,0.35)";
+  ctx.lineWidth = 1.5;
+  for (const side of [-1, 1]) {
+    ctx.beginPath();
+    ctx.moveTo(BT2_VP_X + side * half * 0.04, BT2_HORIZON_Y + 1);
+    ctx.lineTo(BT2_VP_X + side * half, BT2_WALL_Y);
+    ctx.stroke();
+  }
+  ctx.fillStyle = "rgba(225,210,180,0.55)";
+  for (const lx of [(BT2_LANE_X[0] + BT2_LANE_X[1]) / 2, (BT2_LANE_X[1] + BT2_LANE_X[2]) / 2]) {
+    for (let z = 40; z < BT2_FAR + 400; z += 90) {
+      const a = bastionScale256(z * 256) / 256;
+      const b = bastionScale256((z + 40) * 256) / 256;
+      const ya = BT2_HORIZON_Y + (BT2_WALL_Y - BT2_HORIZON_Y) * a;
+      const yb = BT2_HORIZON_Y + (BT2_WALL_Y - BT2_HORIZON_Y) * b;
+      const w = Math.max(0.6, 2.2 * a);
+      ctx.beginPath();
+      ctx.moveTo(BT2_VP_X + lx * a - w, ya);
+      ctx.lineTo(BT2_VP_X + lx * a + w, ya);
+      ctx.lineTo(BT2_VP_X + lx * b + w * 0.8, yb);
+      ctx.lineTo(BT2_VP_X + lx * b - w * 0.8, yb);
+      ctx.closePath();
+      ctx.fill();
+    }
+  }
+  // A faint haze where the tanks roll out.
+  const haze = ctx.createLinearGradient(0, BT2_HORIZON_Y - 4, 0, BT2_HORIZON_Y + 70);
+  haze.addColorStop(0, "rgba(70,81,95,0.55)");
+  haze.addColorStop(1, "rgba(70,81,95,0)");
   ctx.fillStyle = haze;
-  ctx.fillRect(e.x0, BT2_HORIZON_Y - 10, wx, 100);
+  ctx.fillRect(e.x0, BT2_HORIZON_Y - 4, wx, 74);
   paintWall(ctx, e);
 }
 
-/** The parapet: the wall's lit top edge at depth 0, then its stone face to the bottom of the extent. */
+/** The parapet: dark stone from the wall's line down, with a lit lip, and below the world the panel's colour. */
 function paintWall(ctx: CanvasRenderingContext2D, e: Extent): void {
   const wx = e.x1 - e.x0;
-  const top = BT2_WALL_Y;
-  const bottom = Math.max(H, e.y1);
-  const face = ctx.createLinearGradient(0, top, 0, H);
-  face.addColorStop(0, "#5C4C44");
-  face.addColorStop(0.12, "#3A302C");
-  face.addColorStop(1, "#1C1715");
+  const face = ctx.createLinearGradient(0, BT2_WALL_Y, 0, BT2_PANEL_Y);
+  face.addColorStop(0, "#2A2F38");
+  face.addColorStop(1, "#1C1F26");
   ctx.fillStyle = face;
-  ctx.fillRect(e.x0, top, wx, bottom - top);
-  // Stone courses.
-  ctx.strokeStyle = "rgba(0,0,0,0.35)";
-  ctx.lineWidth = 1;
-  let row = 0;
-  for (let y = top + 18; y < bottom; y += 26, row++) {
-    ctx.beginPath();
-    ctx.moveTo(e.x0, y);
-    ctx.lineTo(e.x1, y);
-    ctx.stroke();
-    const off = row % 2 ? 0 : 33;
-    for (let x = Math.floor((e.x0 - off) / 66) * 66 + off; x < e.x1; x += 66) {
-      ctx.beginPath();
-      ctx.moveTo(x, y);
-      ctx.lineTo(x, y + 26);
-      ctx.stroke();
-    }
-  }
-  // The sunset catching the parapet's lip.
-  ctx.fillStyle = "#C9875A";
-  ctx.fillRect(e.x0, top, wx, 3);
-  ctx.fillStyle = "rgba(255,200,140,0.25)";
-  ctx.fillRect(e.x0, top + 3, wx, 4);
+  ctx.fillRect(e.x0, BT2_WALL_Y, wx, BT2_PANEL_Y - BT2_WALL_Y);
+  ctx.fillStyle = "#4A505C";
+  ctx.fillRect(e.x0, BT2_WALL_Y, wx, 2);
+  ctx.fillStyle = BT2_ART_BG;
+  ctx.fillRect(e.x0, BT2_PANEL_Y, wx, Math.max(H, e.y1) - BT2_PANEL_Y);
+  ctx.fillStyle = "#232730";
+  ctx.fillRect(e.x0, BT2_PANEL_Y, wx, 1);
 }
 
 /* ----------------------------------------------------------------- tanks */
@@ -212,103 +184,112 @@ function rect(ctx: CanvasRenderingContext2D, r: Bt2Rect): void {
   ctx.fillRect(r[0], r[1], r[2] - r[0], r[3] - r[1]);
 }
 
-/** One tank on its rectangles: shadow, tracks, hull, turret, muzzle, the weak spot's glow, a hit's flash. */
-export function paintTank(ctx: CanvasRenderingContext2D, kind: number, lane: number, z: number, hp: number, flash: number, tick: number, still: boolean): void {
+/**
+ * One tank on its rectangles: tracks with road wheels, the hull, the turret with its muzzle toward the wall, the weak
+ * spot (a round orange vent on its square while exposed, a dark plate while closed), a hit's flash, haze on far ones and
+ * the orange health pips above.
+ */
+export function paintTank(ctx: CanvasRenderingContext2D, kind: number, lane: number, z: number, hp: number, flash: number, tick: number, still: boolean, open = true): void {
   const r = bastionTankRects(kind, lane, z);
   const s = r.s256 / 256;
   const live = LIVERY[kind]!;
   const [hx0, hy0, hx1, hy1] = r.hull;
   const hw = hx1 - hx0;
   const hh = hy1 - hy0;
-  // Shadow on the ground (a soft ellipse along the tracks' foot, inside the hull's rectangle).
-  const sr = Math.max(1, hh * 0.12);
-  ctx.fillStyle = "rgba(0,0,0,0.35)";
-  ctx.beginPath();
-  ctx.ellipse(r.cx, hy1 - sr, hw / 2 + 1, sr, 0, 0, Math.PI * 2);
-  ctx.fill();
   // Tracks: the lower third, the full width, with road wheels.
-  const ty = hy1 - Math.max(1, Math.round(hh * 0.38));
+  const ty = hy1 - Math.max(1, Math.round(hh * 0.36));
   ctx.fillStyle = live.track;
   ctx.fillRect(hx0, ty, hw, hy1 - ty);
-  if (hw > 18) {
-    ctx.fillStyle = "rgba(255,255,255,0.08)";
+  if (hw > 14) {
+    ctx.fillStyle = live.wheel;
     const n = kind === 2 ? 6 : 5;
+    const wr = Math.max(0.8, (hy1 - ty) * 0.3);
     for (let i = 0; i < n; i++) {
-      const wx = hx0 + ((i + 0.5) * hw) / n;
       ctx.beginPath();
-      ctx.arc(wx, (ty + hy1) / 2, Math.max(1, (hy1 - ty) * 0.32), 0, Math.PI * 2);
+      ctx.arc(hx0 + ((i + 0.5) * hw) / n, (ty + hy1) / 2, wr, 0, Math.PI * 2);
       ctx.fill();
     }
   }
-  // Hull: the glacis plate, lit from the low sun on the right.
+  // Hull, its left side in shade.
   const g = ctx.createLinearGradient(hx0, 0, hx1, 0);
   g.addColorStop(0, live.shade);
-  g.addColorStop(0.65, live.hull);
-  g.addColorStop(1, "#D9A070");
+  g.addColorStop(0.45, live.hull);
+  g.addColorStop(1, live.hull);
   ctx.fillStyle = g;
   ctx.beginPath();
-  const inset = Math.max(1, Math.round(hw * 0.08));
+  const inset = Math.max(1, Math.round(hw * 0.06));
   ctx.moveTo(hx0 + inset, hy0);
   ctx.lineTo(hx1 - inset, hy0);
   ctx.lineTo(hx1, ty);
   ctx.lineTo(hx0, ty);
   ctx.closePath();
   ctx.fill();
-  // Turret, a little narrower on top, with its gun's muzzle facing the wall.
+  // Turret and its muzzle.
   const [tx0, ty0, tx1, ty1] = r.turret;
   ctx.fillStyle = live.turret;
   ctx.beginPath();
-  const ti = Math.max(1, Math.round((tx1 - tx0) * 0.14));
+  const ti = Math.max(1, Math.round((tx1 - tx0) * 0.12));
   ctx.moveTo(tx0 + ti, ty0);
   ctx.lineTo(tx1 - ti, ty0);
   ctx.lineTo(tx1, ty1);
   ctx.lineTo(tx0, ty1);
   ctx.closePath();
   ctx.fill();
-  ctx.fillStyle = "rgba(255,200,150,0.35)";
-  ctx.fillRect(tx0 + ti, ty0, tx1 - tx0 - 2 * ti, Math.max(1, (ty1 - ty0) * 0.18));
-  const mr = Math.max(1, Math.min(tx1 - tx0, ty1 - ty0) * 0.3);
-  ctx.fillStyle = "#0B0A0C";
+  const mr = Math.max(0.8, Math.min(tx1 - tx0, ty1 - ty0) * 0.28);
+  ctx.fillStyle = "#121317";
   ctx.beginPath();
-  ctx.arc((tx0 + tx1) / 2, (ty0 + ty1) / 2 + mr * 0.2, mr, 0, Math.PI * 2);
+  ctx.arc((tx0 + tx1) / 2, (ty0 + ty1) / 2, mr, 0, Math.PI * 2);
   ctx.fill();
-  ctx.strokeStyle = live.shade;
-  ctx.lineWidth = Math.max(0.6, mr * 0.45);
-  ctx.stroke();
-  // The weak spot: a glowing amber vent, gently pulsing.
+  // The weak spot: a round vent filling its square.
   const [wx0, wy0, wx1, wy1] = r.weak;
-  const pulse = still ? 0.8 : 0.65 + 0.35 * Math.sin(tick * 0.18 + lane);
-  ctx.save();
-  ctx.shadowColor = AMBER;
-  ctx.shadowBlur = 8 * s * pulse + 2;
-  ctx.fillStyle = `rgba(255,180,58,${0.75 + 0.25 * pulse})`;
-  rect(ctx, r.weak);
-  ctx.restore();
-  ctx.fillStyle = "rgba(255,245,200,0.9)";
-  ctx.fillRect(wx0 + (wx1 - wx0) * 0.25, wy0 + (wy1 - wy0) * 0.3, (wx1 - wx0) * 0.5, Math.max(0.6, (wy1 - wy0) * 0.25));
-  // A hit's flash over the whole tank.
+  const cx = (wx0 + wx1) / 2;
+  const cy = (wy0 + wy1) / 2;
+  const rad = Math.max(1, Math.min(wx1 - wx0, wy1 - wy0) / 2);
+  if (open) {
+    const pulse = still ? 0.85 : 0.7 + 0.3 * Math.sin(tick * 0.2 + lane);
+    ctx.save();
+    ctx.shadowColor = VENT;
+    ctx.shadowBlur = 10 * s * pulse + 2;
+    ctx.fillStyle = VENT;
+    ctx.beginPath();
+    ctx.arc(cx, cy, rad, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+    ctx.fillStyle = VENT_CORE;
+    ctx.beginPath();
+    ctx.arc(cx, cy, rad * 0.55, 0, Math.PI * 2);
+    ctx.fill();
+  } else {
+    ctx.fillStyle = "#2B2E33";
+    ctx.beginPath();
+    ctx.arc(cx, cy, rad, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = "rgba(255,181,71,0.35)";
+    ctx.lineWidth = Math.max(0.5, rad * 0.18);
+    ctx.stroke();
+  }
   if (flash > 0) {
     ctx.fillStyle = `rgba(255,255,255,${0.12 * flash})`;
     rect(ctx, [hx0, ty0, hx1, hy1]);
   }
-  // Atmospheric haze on the far ones.
-  const fog = Math.max(0, Math.min(0.55, (z / 256 - 500) / 1400));
+  // Haze on the far ones.
+  const fog = Math.max(0, Math.min(0.5, (z / 256 - 520) / 1500));
   if (fog > 0) {
-    ctx.fillStyle = `rgba(214,128,96,${fog})`;
+    ctx.fillStyle = `rgba(70,81,95,${fog})`;
     rect(ctx, [hx0, ty0, hx1, hy1]);
   }
-  // Health pips above the turret (one per hit point; empty ones dark).
+  // Health pips above the turret: one per hit point, orange while left.
   const max = BT2_HP[kind]!;
-  const pw = Math.max(3, Math.round(10 * s + 2));
-  const ph = Math.max(2, Math.round(3.5 * s + 1.5));
-  const gap = Math.max(1, Math.round(2 * s));
+  const pw = Math.max(3, Math.round(11 * s + 2));
+  const ph = Math.max(2, Math.round(4 * s + 1.5));
+  const gap = Math.max(1, Math.round(2.5 * s));
   const total = max * pw + (max - 1) * gap;
   const px0 = Math.round(r.cx - total / 2);
-  const py = ty0 - ph - Math.max(2, Math.round(5 * s));
+  const py = ty0 - ph - Math.max(2, Math.round(7 * s));
   for (let i = 0; i < max; i++) {
-    ctx.fillStyle = "rgba(0,0,0,0.6)";
+    ctx.fillStyle = BT2_PIP_BACK;
     ctx.fillRect(px0 + i * (pw + gap) - 1, py - 1, pw + 2, ph + 2);
-    ctx.fillStyle = i < hp ? (hp === 1 && max > 1 ? ACTION_RED : "#7CF29A") : "rgba(255,255,255,0.12)";
+    ctx.fillStyle = i < hp ? BT2_PIP_FILL : BT2_PIP_EMPTY;
     ctx.fillRect(px0 + i * (pw + gap), py, pw, ph);
   }
 }
@@ -362,97 +343,91 @@ function paintImpact(ctx: CanvasRenderingContext2D, m: Bt2Impact, tick: number, 
 
 /* ------------------------------------------------------------------- HUD */
 
-function chip(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number): void {
-  ctx.fillStyle = "rgba(10,8,16,0.9)";
+function pill(ctx: CanvasRenderingContext2D, x: number, y: number, text: string, colour: string, alignRight = false): void {
+  ctx.font = `600 14px ${DISPLAY}`;
+  const w = Math.ceil(ctx.measureText(text).width) + 28;
+  const x0 = alignRight ? x - w : x;
+  ctx.fillStyle = "rgba(14,16,21,0.88)";
   ctx.beginPath();
-  ctx.roundRect(x, y, w, h, 8);
+  ctx.roundRect(x0, y, w, 30, 15);
   ctx.fill();
-  ctx.strokeStyle = "rgba(255,255,255,0.12)";
-  ctx.lineWidth = 1;
-  ctx.stroke();
+  ctx.fillStyle = colour;
+  ctx.textAlign = "left";
+  ctx.textBaseline = "middle";
+  ctx.fillText(text, x0 + 14, y + 15.5);
 }
+
+/** The bar's left edge and width (world px), shared by the shells' slots. */
+const BAR_X = 96;
+const BAR_W = 278;
 
 function paintHud(ctx: CanvasRenderingContext2D, state: BastionTankState): void {
   const wave = bastionWave(state);
+  pill(ctx, 14, 12, `Wave ${wave + 1} of ${BT2_WAVE_COUNT}`, "#F3F1EC");
+  pill(ctx, W - 14, 12, `Base ${state.base} / ${BT2_BASE}`, state.base >= 2 ? GREEN : RED, true);
+
+  // The bottom panel: SHELLS, RELOAD and the hint line.
   ctx.textBaseline = "middle";
-  // Wave, top left.
-  chip(ctx, 10, 8, 104, 30);
-  ctx.fillStyle = "#F3F1EC";
-  ctx.font = `800 15px ${DISPLAY}`;
   ctx.textAlign = "left";
-  ctx.fillText(`WAVE ${wave + 1}/${BT2_WAVE_COUNT}`, 20, 24);
-  // Score, top centre.
-  chip(ctx, 150, 8, 90, 30);
-  ctx.textAlign = "center";
-  ctx.font = `700 16px ${MONO}`;
-  ctx.fillStyle = "#F2C75C";
-  ctx.fillText(String(bastionTankScore(state)), 195, 24);
-  // Base, top right: three shields.
-  chip(ctx, 268, 8, 112, 30);
-  ctx.textAlign = "left";
-  ctx.font = `800 12px ${DISPLAY}`;
+  ctx.font = `700 11px ${DISPLAY}`;
   ctx.fillStyle = "#BDBDCC";
-  ctx.fillText("BASE", 278, 24);
-  for (let i = 0; i < BT2_BASE; i++) {
-    const x = 320 + i * 18;
-    ctx.fillStyle = i < state.base ? "#7CF29A" : "rgba(255,77,77,0.45)";
-    ctx.beginPath();
-    ctx.moveTo(x, 16);
-    ctx.lineTo(x + 12, 16);
-    ctx.lineTo(x + 12, 24);
-    ctx.quadraticCurveTo(x + 12, 31, x + 6, 33);
-    ctx.quadraticCurveTo(x, 31, x, 24);
-    ctx.closePath();
-    ctx.fill();
-  }
-  // Shells, bottom left.
-  const by = 672;
-  chip(ctx, 10, by - 18, 128, 40);
+  const shellsY = 652;
+  const reloadY = 680;
+  ctx.fillText("SHELLS", 16, shellsY);
+  ctx.fillText("RELOAD", 16, reloadY);
+  const gap = 6;
+  const sw = (BAR_W - gap * (BT2_MAG - 1)) / BT2_MAG;
+  const reloading = state.reloadAt >= 0;
   for (let i = 0; i < BT2_MAG; i++) {
-    const x = 22 + i * 22;
-    const full = i < state.mag && state.reloadAt < 0;
-    ctx.fillStyle = full ? "#E8B84A" : "rgba(255,255,255,0.13)";
+    ctx.fillStyle = !reloading && i < state.mag ? ORANGE : "#2A2E36";
     ctx.beginPath();
-    ctx.roundRect(x, by - 10, 12, 22, [6, 6, 2, 2]);
+    ctx.roundRect(BAR_X + i * (sw + gap), shellsY - 10, sw, 20, 4);
     ctx.fill();
-    if (full) {
-      ctx.fillStyle = "#9A6B22";
-      ctx.fillRect(x, by + 6, 12, 3);
-    }
   }
-  // Reload bar, bottom right: needle and green zone while reloading.
-  const rx = 156;
-  const rw = 224;
-  chip(ctx, rx - 6, by - 18, rw + 12, 40);
-  ctx.fillStyle = "rgba(255,255,255,0.08)";
-  ctx.fillRect(rx, by - 4, rw, 12);
+  ctx.fillStyle = "#2A2E36";
+  ctx.beginPath();
+  ctx.roundRect(BAR_X, reloadY - 5, BAR_W, 10, 5);
+  ctx.fill();
+  let hint = "Drag to aim · lift to fire · swipe down to reload early";
+  let hintColour = "#9AA0AA";
   const needle = bastionNeedle(state);
-  ctx.textAlign = "left";
-  ctx.font = `800 10px ${DISPLAY}`;
   if (needle >= 0) {
-    ctx.fillStyle = state.reloadTap === 2 ? "rgba(255,77,77,0.35)" : "rgba(124,242,154,0.55)";
-    ctx.fillRect(rx + (rw * state.zone) / 1000, by - 4, (rw * BT2_ZONE_W) / 1000, 12);
-    const done = Math.min(1, (state.tick - state.reloadAt) / Math.max(1, state.reloadEnd - state.reloadAt));
-    ctx.fillStyle = "rgba(242,199,92,0.35)";
-    ctx.fillRect(rx, by + 9, rw * done, 3);
-    const nx = rx + (rw * needle) / 1000;
+    const span = Math.max(1, state.reloadEnd - state.reloadAt);
+    const done = Math.min(1, (state.tick - state.reloadAt) / span);
+    ctx.fillStyle = "rgba(143,214,160,0.45)";
+    ctx.beginPath();
+    ctx.roundRect(BAR_X, reloadY - 5, BAR_W * done, 10, 5);
+    ctx.fill();
+    if (state.reloadTap !== 1) {
+      ctx.fillStyle = state.reloadTap === 2 ? "rgba(255,107,91,0.55)" : "#9BE3AE";
+      ctx.fillRect(BAR_X + (BAR_W * state.zone) / 1000, reloadY - 7, (BAR_W * BT2_ZONE_W) / 1000, 14);
+    }
     ctx.fillStyle = "#FFFFFF";
-    ctx.fillRect(nx - 1.5, by - 9, 3, 22);
-    ctx.fillStyle = state.reloadTap === 2 ? ACTION_RED : state.reloadTap === 1 ? "#7CF29A" : "#F3F1EC";
-    ctx.fillText(state.reloadTap === 2 ? "JAMMED" : state.reloadTap === 1 ? "FAST RELOAD" : "RELOADING · TAP IN THE GREEN", rx, by - 11);
+    ctx.fillRect(BAR_X + (BAR_W * needle) / 1000 - 1.5, reloadY - 9, 3, 18);
+    const left = Math.max(0, state.reloadEnd - state.tick) / 60;
+    ctx.font = `700 11px ${DISPLAY}`;
+    ctx.textAlign = "right";
+    ctx.fillStyle = "#F3F1EC";
+    ctx.fillText(`${left.toFixed(1)} s`, W - 16, shellsY);
+    hint = state.reloadTap === 2 ? "Jammed!" : state.reloadTap === 1 ? "Fast reload!" : "Tap while the needle is in the green";
+    hintColour = state.reloadTap === 2 ? RED : state.reloadTap === 1 ? GREEN : "#F3F1EC";
   } else {
-    ctx.fillStyle = "#BDBDCC";
-    ctx.fillText(state.mag < BT2_MAG ? "SWIPE DOWN (R) TO RELOAD" : "LOADED", rx, by - 11);
-    ctx.fillStyle = "rgba(242,199,92,0.5)";
-    ctx.fillRect(rx, by - 4, (rw * state.mag) / BT2_MAG, 12);
+    ctx.fillStyle = GREEN;
+    ctx.beginPath();
+    ctx.roundRect(BAR_X, reloadY - 5, BAR_W, 10, 5);
+    ctx.fill();
   }
+  ctx.font = `500 12px ${DISPLAY}`;
+  ctx.textAlign = "center";
+  ctx.fillStyle = hintColour;
+  ctx.fillText(hint, W / 2, 706);
 }
 
 /* ------------------------------------------------------------- the world */
 
 function paintGun(ctx: CanvasRenderingContext2D, state: BastionTankState, still: boolean): void {
   const dx = state.aimX - GUN_X;
-  const dy = state.aimY - GUN_Y;
+  const dy = Math.min(-20, state.aimY - GUN_Y);
   const len = Math.hypot(dx, dy) || 1;
   const ux = dx / len;
   const uy = dy / len;
@@ -462,35 +437,45 @@ function paintGun(ctx: CanvasRenderingContext2D, state: BastionTankState, still:
   const nx = -uy;
   const ny = ux;
   ctx.save();
-  // Barrel: a tapered tube, lit on one side.
-  const g = ctx.createLinearGradient(GUN_X + nx * 16, GUN_Y + ny * 16, GUN_X - nx * 16, GUN_Y - ny * 16);
-  g.addColorStop(0, "#1A1A1E");
-  g.addColorStop(0.55, "#4A4A52");
-  g.addColorStop(1, "#8A7A6A");
-  ctx.fillStyle = g;
+  // The barrel rises from behind the parapet: nothing of it below the panel's top edge.
   ctx.beginPath();
-  ctx.moveTo(GUN_X + nx * 22, GUN_Y + ny * 22);
-  ctx.lineTo(mx + nx * 9, my + ny * 9);
-  ctx.lineTo(mx - nx * 9, my - ny * 9);
-  ctx.lineTo(GUN_X - nx * 22, GUN_Y - ny * 22);
+  ctx.rect(0, 0, W, BT2_PANEL_Y);
+  ctx.clip();
+  ctx.fillStyle = "#3B4250";
+  ctx.beginPath();
+  ctx.moveTo(GUN_X + nx * 15, GUN_Y + ny * 15);
+  ctx.lineTo(mx + nx * 11, my + ny * 11);
+  ctx.lineTo(mx - nx * 11, my - ny * 11);
+  ctx.lineTo(GUN_X - nx * 15, GUN_Y - ny * 15);
   ctx.closePath();
   ctx.fill();
-  // Muzzle brake and a flash just after a shot.
-  ctx.fillStyle = "#26262C";
+  ctx.fillStyle = "#4E5767";
   ctx.beginPath();
-  ctx.ellipse(mx, my, 11, 6, Math.atan2(uy, ux) + Math.PI / 2, 0, Math.PI * 2);
+  ctx.moveTo(mx + nx * 13, my + ny * 13);
+  ctx.lineTo(mx + nx * 13 + ux * 10, my + ny * 13 + uy * 10);
+  ctx.lineTo(mx - nx * 13 + ux * 10, my - ny * 13 + uy * 10);
+  ctx.lineTo(mx - nx * 13, my - ny * 13);
+  ctx.closePath();
   ctx.fill();
   if (!still && state.cool > 10) {
+    const fx = mx + ux * 14;
+    const fy = my + uy * 14;
     ctx.globalCompositeOperation = "lighter";
-    const fl = ctx.createRadialGradient(mx, my, 0, mx, my, 34);
+    const fl = ctx.createRadialGradient(fx, fy, 0, fx, fy, 30);
     fl.addColorStop(0, "rgba(255,240,200,0.95)");
     fl.addColorStop(0.4, "rgba(255,170,70,0.6)");
     fl.addColorStop(1, "rgba(255,120,40,0)");
     ctx.fillStyle = fl;
     ctx.beginPath();
-    ctx.arc(mx, my, 34, 0, Math.PI * 2);
+    ctx.arc(fx, fy, 30, 0, Math.PI * 2);
     ctx.fill();
+    ctx.globalCompositeOperation = "source-over";
   }
+  // The gun's base on the parapet.
+  ctx.fillStyle = "#2A2F38";
+  ctx.beginPath();
+  ctx.roundRect(GUN_X - 46, BT2_PANEL_Y - 22, 92, 22, [8, 8, 0, 0]);
+  ctx.fill();
   ctx.restore();
 }
 
@@ -498,17 +483,17 @@ function paintCrosshair(ctx: CanvasRenderingContext2D, state: BastionTankState):
   const x = state.aimX;
   const y = state.aimY;
   const ready = state.reloadAt < 0 && state.mag > 0;
-  const c = ready ? (state.aiming ? "#FFFFFF" : "rgba(255,255,255,0.75)") : "rgba(255,120,120,0.7)";
   ctx.save();
-  ctx.strokeStyle = "rgba(0,0,0,0.55)";
+  ctx.globalAlpha = ready ? 1 : 0.55;
+  ctx.strokeStyle = "rgba(0,0,0,0.5)";
   ctx.lineWidth = 4;
   ctx.beginPath();
-  ctx.arc(x, y, 13, 0, Math.PI * 2);
+  ctx.arc(x, y, 16, 0, Math.PI * 2);
   ctx.stroke();
-  ctx.strokeStyle = c;
-  ctx.lineWidth = 2;
+  ctx.strokeStyle = "#FFFFFF";
+  ctx.lineWidth = 2.2;
   ctx.beginPath();
-  ctx.arc(x, y, 13, 0, Math.PI * 2);
+  ctx.arc(x, y, 16, 0, Math.PI * 2);
   ctx.stroke();
   for (const [ax, ay] of [
     [1, 0],
@@ -517,44 +502,46 @@ function paintCrosshair(ctx: CanvasRenderingContext2D, state: BastionTankState):
     [0, -1],
   ] as const) {
     ctx.beginPath();
-    ctx.moveTo(x + ax * 7, y + ay * 7);
-    ctx.lineTo(x + ax * 19, y + ay * 19);
+    ctx.moveTo(x + ax * 10, y + ay * 10);
+    ctx.lineTo(x + ax * 24, y + ay * 24);
     ctx.stroke();
   }
-  ctx.fillStyle = c;
-  ctx.fillRect(x - 1, y - 1, 2, 2);
+  ctx.fillStyle = ORANGE;
+  ctx.beginPath();
+  ctx.arc(x, y, 4, 0, Math.PI * 2);
+  ctx.fill();
   ctx.restore();
 }
 
 function drawBastionWorld(ctx: CanvasRenderingContext2D, state: BastionTankState): void {
   const still = reducedMotion();
-  deviceLayer(ctx, "bastion-dusk:1", (c) => paintBackdrop(c, { x0: 0, x1: W, y0: 0, y1: H }));
+  deviceLayer(ctx, "bastion-slate:2", (c) => paintBackdrop(c, { x0: 0, x1: W, y0: 0, y1: H }));
+  const plan = bastionPlan(state.seed);
   // Tanks, far ones first (the sim keeps them nearest first).
   const tanks: Bt2Tank[] = state.tanks;
   for (let i = tanks.length - 1; i >= 0; i--) {
     const t = tanks[i]!;
     if (t.z > BT2_FAR * 256) continue;
-    paintTank(ctx, t.kind, t.lane, t.z, t.hp, t.flash, state.tick, still);
+    const p = plan[t.i];
+    paintTank(ctx, t.kind, t.lane, t.z, t.hp, t.flash, state.tick, still, p ? bastionWeakOpen(p, state.tick) : true);
   }
   for (const m of state.impacts) paintImpact(ctx, m, state.tick, still);
   // Shells in flight: from the muzzle, shrinking toward the point they land on.
   for (const sh of state.shells) {
     const u = Math.min(1, (state.tick - sh.from) / Math.max(1, sh.at - sh.from));
     const ease = 1 - (1 - u) * (1 - u);
-    const x = GUN_X + (sh.x - GUN_X) * ease;
-    const y = GUN_Y - GUN_LEN + (sh.y - (GUN_Y - GUN_LEN)) * ease;
-    const r = 5 - 3.2 * u;
+    const x0 = GUN_X;
+    const y0 = GUN_Y - GUN_LEN;
+    const x = x0 + (sh.x - x0) * ease;
+    const y = y0 + (sh.y - y0) * ease;
     ctx.save();
     ctx.globalCompositeOperation = "lighter";
     ctx.fillStyle = "rgba(255,200,110,0.9)";
     ctx.beginPath();
-    ctx.arc(x, y, r, 0, Math.PI * 2);
+    ctx.arc(x, y, 5 - 3.2 * u, 0, Math.PI * 2);
     ctx.fill();
     ctx.restore();
   }
-  // The wall's lip again over any tank right at it (it stands in front of the field).
-  ctx.fillStyle = "#C9875A";
-  ctx.fillRect(0, BT2_WALL_Y, W, 3);
   paintGun(ctx, state, still);
   paintCrosshair(ctx, state);
   // A base hit: a red flash round the edges.
@@ -577,11 +564,11 @@ function drawBastionWorld(ctx: CanvasRenderingContext2D, state: BastionTankState
     ctx.textBaseline = "middle";
     ctx.font = `800 30px ${DISPLAY}`;
     ctx.lineWidth = 5;
-    ctx.strokeStyle = "rgba(10,6,12,0.85)";
+    ctx.strokeStyle = "rgba(10,12,16,0.85)";
     const text = wave === BT2_WAVE_COUNT - 1 ? "FINAL WAVE" : `WAVE ${wave + 1}`;
-    ctx.strokeText(text, W / 2, 190);
+    ctx.strokeText(text, W / 2, 170);
     ctx.fillStyle = "#F3F1EC";
-    ctx.fillText(text, W / 2, 190);
+    ctx.fillText(text, W / 2, 170);
     ctx.restore();
   }
   paintHud(ctx, state);
@@ -611,7 +598,7 @@ export const BASTION_FX: ArcadeFxSpec<BastionTankState> = {
   events: [
     { kind: "pop", count: (s) => s.kills, at: (s) => lastImpact(s, true), label: () => null },
     { kind: "streak", count: (s) => s.weak, at: (s) => lastImpact(s, false), label: () => "WEAK SPOT", every: 5 },
-    { kind: "combo", count: (s) => s.fast, at: () => ({ x: 268, y: 640 }), label: () => "FAST RELOAD" },
+    { kind: "combo", count: (s) => s.fast, at: () => ({ x: W / 2, y: 600 }), label: () => "FAST RELOAD" },
   ],
   misses: [{ count: bastionMisses }],
 };

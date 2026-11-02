@@ -186,56 +186,54 @@ function LegacyReveal({ puzzle, myAnswer }: PuzzleRevealProps) {
 
 /* ============================== bastionRev 2 ============================== */
 
-/** Fixed intro still: three lanes at dusk, a medium and a heavy rolling in, the weak spot glowing, the crosshair on it. */
+/** Fixed intro still (the mockup's look): the road at dusk, a scout far off, a heavy close with its orange weak spot under the crosshair, the bottom panel. */
 function IntroExample() {
   return (
     <div className="flex w-full flex-col items-center gap-2">
       <svg viewBox="0 0 200 150" width={200} height={150} aria-hidden="true" style={{ background: BT2_ART_BG, borderRadius: 10 }}>
         <defs>
           <linearGradient id="bt2-sky" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0" stopColor="#140F2A" />
-            <stop offset="0.5" stopColor="#3B1F4A" />
-            <stop offset="0.85" stopColor="#B4485A" />
-            <stop offset="1" stopColor="#F49A4C" />
-          </linearGradient>
-          <linearGradient id="bt2-field" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0" stopColor="#5A3A3A" />
-            <stop offset="1" stopColor="#1E1A16" />
+            <stop offset="0" stopColor="#2A3240" />
+            <stop offset="1" stopColor="#46515F" />
           </linearGradient>
         </defs>
-        <rect width="200" height="52" fill="url(#bt2-sky)" />
-        <path d="M128 52 A9 9 0 0 1 146 52 Z" fill="#FFE7B8" />
-        <path d="M0 52 L0 44 Q30 38 60 45 Q100 36 140 44 Q170 38 200 45 L200 52 Z" fill="#2E1830" />
-        <rect y="52" width="200" height="72" fill="url(#bt2-field)" />
-        <path d="M97 52 L103 52 L170 124 L110 124 Z M97 52 L103 52 L90 124 L30 124 Z" fill="#78584022" />
-        <path d="M100 52 L36 124 M100 52 L164 124 M100 52 L94 124 M100 52 L106 124" stroke="#FFBE7833" strokeWidth="0.8" />
-        {/* A medium, far, in the left lane. */}
-        <rect x="58" y="70" width="22" height="9" fill="#5E6B3E" />
-        <rect x="64" y="65" width="10" height="5" fill="#6E7C48" />
-        <rect x="61" y="73" width="5" height="3" fill="#FFB43A" />
-        {/* A heavy, near, in the centre lane: its weak spot under the crosshair. */}
-        <rect x="76" y="98" width="48" height="22" fill="#4A5058" />
-        <rect x="76" y="112" width="48" height="8" fill="#15171B" />
-        <rect x="88" y="87" width="24" height="11" fill="#5A6170" />
-        <circle cx="100" cy="93" r="2.6" fill="#0B0A0C" />
-        <rect x="102" y="96" width="9" height="5" fill="#FFB43A" />
-        <circle cx="106.5" cy="98.5" r="7" fill="none" stroke="#fff" strokeWidth="1.2" />
-        <path d="M106.5 88 v4 M106.5 105 v4 M96 98.5 h4 M113 98.5 h4" stroke="#fff" strokeWidth="1.2" />
+        <rect width="200" height="50" fill="url(#bt2-sky)" />
+        <path d="M0 50 L0 42 L14 34 L28 44 L44 28 L60 42 L76 32 L92 44 L110 26 L126 40 L144 30 L162 44 L178 34 L200 42 L200 50 Z" fill="#262B33" />
+        <rect y="50" width="200" height="66" fill="#665640" />
+        <path d="M97 50 L103 50 L164 116 L36 116 Z" fill="#96806052" />
+        <path d="M99 52 L78 116 M101 52 L122 116" stroke="#E1D2B48C" strokeWidth="1.2" strokeDasharray="5 6" />
+        {/* A scout far off, left lane. */}
+        <rect x="62" y="66" width="18" height="8" fill="#5A6340" />
+        <rect x="62" y="71" width="18" height="3" fill="#1C1E22" />
+        <rect x="67" y="62" width="8" height="4" fill="#66704A" />
+        <circle cx="71" cy="71" r="2" fill="#F29A2E" />
+        <rect x="68" y="58" width="6" height="2" fill="#FF7A3C" />
+        {/* A heavy close in the centre lane, its weak spot under the crosshair. */}
+        <rect x="74" y="92" width="52" height="22" fill="#7A4434" />
+        <rect x="74" y="106" width="52" height="8" fill="#1C1E22" />
+        <rect x="87" y="80" width="26" height="12" fill="#8A5141" />
+        <circle cx="100" cy="86" r="2.6" fill="#121317" />
+        <circle cx="108" cy="89" r="4" fill="#F29A2E" />
+        <circle cx="108" cy="89" r="2.2" fill="#FFD36A" />
         {[0, 1, 2, 3].map((i) => (
-          <rect key={i} x={89 + i * 6} y={81} width={5} height={2.4} fill={i < 3 ? "#7CF29A" : "#ffffff22"} />
+          <rect key={i} x={87 + i * 7} y={74} width={6} height={2.6} fill={i < 3 ? "#FF7A3C" : "#33373F"} />
         ))}
-        <rect y="124" width="200" height="26" fill="#3A302C" />
-        <rect y="124" width="200" height="2" fill="#C9875A" />
-        <path d="M100 160 L104 132 L110 132 L114 160 Z" fill="#4A4A52" />
+        <circle cx="108" cy="89" r="8" fill="none" stroke="#fff" strokeWidth="1.2" />
+        <path d="M108 77 v5 M108 96 v5 M96 89 h5 M115 89 h5" stroke="#fff" strokeWidth="1.2" />
+        <circle cx="108" cy="89" r="1.6" fill="#FFB547" />
+        <rect y="116" width="200" height="8" fill="#22262E" />
+        <path d="M96 124 L98 104 L104 104 L106 124 Z" fill="#3B4250" />
+        <rect y="124" width="200" height="26" fill="#14171D" />
         {[0, 1, 2, 3, 4].map((i) => (
-          <rect key={i} x={10 + i * 8} y={136} width={5} height={9} rx={2} fill={i < 4 ? "#E8B84A" : "#ffffff22"} />
+          <rect key={i} x={52 + i * 28} y={128} width={24} height={7} rx={2} fill={i < 3 ? "#FFB547" : "#2A2E36"} />
         ))}
-        <rect x="140" y="138" width="50" height="5" fill="#ffffff14" />
-        <rect x="157" y="138" width="9" height="5" fill="#7CF29A88" />
-        <rect x="160" y="135" width="1.6" height="11" fill="#fff" />
+        <rect x="52" y="140" width="136" height="4" rx="2" fill="#2A2E36" />
+        <rect x="52" y="140" width="56" height="4" rx="2" fill="#8FD6A0" />
+        <text x="8" y="134" fontSize="6" fill="#BDBDCC" fontWeight="700">SHELLS</text>
+        <text x="8" y="144" fontSize="6" fill="#BDBDCC" fontWeight="700">RELOAD</text>
       </svg>
       <p className="text-center text-xs text-muted-foreground">
-        Drag to aim (the crosshair floats above your thumb) and lift to fire. Lead moving tanks and hit the glowing weak spot for double damage.
+        Drag to aim (the crosshair floats above your thumb) and lift to fire. Lead moving tanks and hit the glowing weak spot while it is open for double damage.
       </p>
     </div>
   );

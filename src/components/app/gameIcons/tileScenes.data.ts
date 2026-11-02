@@ -7,7 +7,7 @@ import type { PuzzleType } from "@/lib/duel/types";
 export const TILE_SCENES: Partial<Record<PuzzleType, string>> = {
   balance: "64783618d3",
   balltrack: "43957a303d",
-  bastion: "78ee03e17f",
+  bastion: "9353b5d99c",
   beat: "1231bc6a90",
   bintoss: "dec32b48e1",
   blockparty: "e2098a0226",

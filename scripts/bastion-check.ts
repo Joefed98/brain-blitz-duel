@@ -6,9 +6,10 @@
  *     (scripts/fixtures/bastion-legacy.json, scripts/bastion-legacy-record.ts) give the same score, destroyed count,
  *     health, end tick and final checksum, through replayBastionRun and through gradeAnswer on an unstamped puzzle;
  *  2. the deal: rooms and practice deal bastionRev 2; Bastion is active (not retired), in the Action group, 200 a round;
- *  3. the plan comes from the seed alone and every seed deals the same 29 tanks (60 hit points, 36 weak-spot chances)
+ *  3. the plan comes from the seed alone and every seed deals the same 30 tanks (63 hit points, 38 weak-spot chances)
  *     in the same five wave shapes, inside each wave's window, never two in a row on one lane;
- *  4. the rules on built runs: a weak-spot hit does double damage, a hull hit one, the front-most tank takes the shell,
+ *  4. the rules on built runs: a weak-spot hit does double damage while the spot is exposed (60 of every 90 ticks,
+ *     a seeded phase per tank; closed, it is a hull hit), a hull hit one, the front-most tank takes the shell,
  *     shells land 18–30 ticks after the shot (higher = longer), five shells, the gun reloads itself when empty
  *     (120 ticks), a swipe reloads early (never when full), a tap in the green finishes at half time, outside it jams
  *     for 30 ticks more, one tap a reload; three base hits end the run;
@@ -28,6 +29,8 @@ import { bastionGame, basCheckpoint } from "../src/lib/arcade/bastion";
 import {
   bastionFlight,
   bastionPlan,
+  bastionWeakOpen,
+  BT2_WEAK_CYCLE,
   bastionStdParts,
   bastionTankCheckpoint,
   bastionTankGame,
@@ -61,7 +64,7 @@ import {
   type BastionTankState,
   type Bt2Tank,
 } from "../src/lib/arcade/bastionTank";
-import { paintTank } from "../src/lib/arcade/bastionTank.renderer";
+import { paintTank, BT2_PIP_BACK, BT2_PIP_EMPTY, BT2_PIP_FILL } from "../src/lib/arcade/bastionTank.renderer";
 import { encodeBastionTankRun, replayBastionRun, replayBastionTankRun } from "../src/lib/duel/bastion";
 import { generateBastion } from "../src/lib/duel/arcade.server";
 import { gradeAnswer } from "../src/lib/duel/generate.server";
@@ -112,17 +115,18 @@ const game = bastionTankGame;
 /* 3. The plan. */
 {
   const shapes = JSON.stringify(BT2_WAVES);
-  ok(BT2_TANKS === 29 && BT2_TOTAL_HP === 60 && BT2_WEAK_POSSIBLE === 36, `29 tanks, 60 HP, 36 weak-spot chances (${BT2_TANKS}, ${BT2_TOTAL_HP}, ${BT2_WEAK_POSSIBLE})`);
+  ok(BT2_TANKS === 30 && BT2_TOTAL_HP === 63 && BT2_WEAK_POSSIBLE === 38, `30 tanks, 63 HP, 38 weak-spot chances (${BT2_TANKS}, ${BT2_TOTAL_HP}, ${BT2_WEAK_POSSIBLE})`);
   for (const seed of [1, 7, 42, 99999, 123456789, 2147483646, -5]) {
     const plan = bastionPlan(seed);
     ok(JSON.stringify(plan) === JSON.stringify(bastionPlan(seed)), `seed ${seed}: the plan is the seed's alone`);
-    ok(plan.length === BT2_TANKS, `seed ${seed}: 29 tanks`);
+    ok(plan.length === BT2_TANKS, `seed ${seed}: 30 tanks`);
     const counts = BT2_WAVES.map((_, w) => [0, 1, 2].map((k) => plan.filter((t) => t.wave === w && t.kind === k).length));
     ok(JSON.stringify(counts) === shapes, `seed ${seed}: the five wave shapes`);
     ok(plan.every((t) => t.spawn >= BT2_WAVE_START[t.wave]! && t.spawn < BT2_WAVE_START[t.wave]! + BT2_WAVE_WINDOW), `seed ${seed}: every tank in its wave's window`);
     ok(plan.every((t, i) => i === 0 || t.spawn > plan[i - 1]!.spawn), `seed ${seed}: spawns in order`);
     ok(plan.every((t, i) => i === 0 || t.lane !== plan[i - 1]!.lane), `seed ${seed}: never two in a row on one lane`);
-    ok(plan.every((t) => t.chg >= 0 && t.chg <= 2 && t.chgZ >= 400 && t.chgZ < 900), `seed ${seed}: speed changes in range`);
+    ok(plan.every((t) => (t.chg === 1 || t.chg === 2) && t.chgZ >= 400 && t.chgZ < 900), `seed ${seed}: every tank changes speed once, at a depth in range`);
+    ok(plan.every((t) => t.wphase >= 0 && t.wphase < BT2_WEAK_CYCLE), `seed ${seed}: weak-spot phases in range`);
   }
 }
 
@@ -137,10 +141,18 @@ const ev = (t: number, k: number, a = 0, b = 0): ArcadeInputEvent => ({ t, k, a,
 {
   ok(bastionFlight(BT2_WALL_Y) === BT2_FLIGHT_MIN && bastionFlight(BT2_HORIZON_Y) === BT2_FLIGHT_MAX && bastionFlight(400) > bastionFlight(550), "flight: 18 ticks at the wall's line, 30 at the horizon, longer the higher");
   // A state with one tank of each kind placed by hand, nothing else spawning (the plan's spawns pushed out of reach).
-  const placed = (kind: number, z: number): BastionTankState => {
+  // The weak spot of seed 5's first tank: a start tick whose shell (aimed at z 300's weak spot) lands while it is
+  // exposed, and one that lands while it is closed.
+  const p0 = bastionPlan(5)[0]!;
+  const startFor = (open: boolean, kind: number) => {
+    const r = bastionTankRects(kind, 1, 300 * 256);
+    const fl = bastionFlight(Math.floor((r.weak[1] + r.weak[3]) / 2));
+    for (let t = 400; ; t++) if (bastionWeakOpen(p0, t + 1 + fl) === open) return t;
+  };
+  const placed = (kind: number, z: number, tick = 400): BastionTankState => {
     const s = game.init(5);
     const t: Bt2Tank = { i: 0, kind, lane: 1, z: z * 256, v: 0, hp: BT2_HP[kind]!, changed: 1, flash: 0 };
-    return { ...s, tick: 4000 - 3600, nextSpawn: BT2_TANKS, tanks: [t] };
+    return { ...s, tick, nextSpawn: BT2_TANKS, tanks: [t] };
   };
   const shoot = (s0: BastionTankState, x: number, y: number) => {
     let s = game.step(s0, ev(s0.tick + 1, BT2_INPUT_FIRE, x, y));
@@ -149,12 +161,14 @@ const ev = (t: number, k: number, a = 0, b = 0): ArcadeInputEvent => ({ t, k, a,
     return s;
   };
   for (const kind of [0, 1, 2]) {
-    const s0 = placed(kind, 300);
+    const s0 = placed(kind, 300, startFor(true, kind));
     const r = bastionTankRects(kind, 1, 300 * 256);
     const wx = Math.floor((r.weak[0] + r.weak[2]) / 2);
     const wy = Math.floor((r.weak[1] + r.weak[3]) / 2);
     const weak = shoot(s0, wx, wy);
     ok(weak.weak === 1 && weak.destroyedHp === Math.min(2, BT2_HP[kind]!), `kind ${kind}: a weak-spot hit does 2 (${weak.destroyedHp})`);
+    const shut = shoot(placed(kind, 300, startFor(false, kind)), wx, wy);
+    ok(shut.weak === 0 && shut.hits === 1 && shut.destroyedHp === 1, `kind ${kind}: the weak spot closed, the same shot is a hull hit (1)`);
     const hx = r.hull[0] + 2;
     const hy = r.hull[3] - 2;
     const hull = shoot(s0, hx, hy);
@@ -239,11 +253,11 @@ const ev = (t: number, k: number, a = 0, b = 0): ArcadeInputEvent => ({ t, k, a,
 {
   const base = (over: Partial<BastionTankState>): BastionTankState => ({ ...game.init(3), acted: 1, ended: 1, ...over });
   const pts = (s: BastionTankState, k: string) => bastionStdParts(s)!.find((p) => p.key === k)!.points;
-  for (let hp = 0; hp <= 60; hp += 5) ok(pts(base({ destroyedHp: hp, base: 0 }), "core") === Math.floor((140 * hp) / 60), `Armour: ${hp} HP → ${Math.floor((140 * hp) / 60)}`);
+  for (let hp = 0; hp <= BT2_TOTAL_HP; hp += 7) ok(pts(base({ destroyedHp: hp, base: 0 }), "core") === Math.floor((140 * hp) / BT2_TOTAL_HP), `Armour: ${hp} HP → ${Math.floor((140 * hp) / BT2_TOTAL_HP)}`);
   for (const w of [0, 1, 15, 30, 36]) ok(pts(base({ weak: w }), "weak") === Math.min(30, w), `Weak spots: ${w} → ${Math.min(30, w)}`);
   for (const f of [0, 1, 5, 10, 14]) ok(pts(base({ fast: f }), "fast") === Math.min(20, 2 * f), `Fast reloads: ${f} → ${Math.min(20, 2 * f)}`);
   ok(pts(base({ base: 3 }), "base") === 10 && pts(base({ base: 2 }), "base") === 5 && pts(base({ base: 1 }), "base") === 0, "Base intact: 10 / 5 / 0");
-  ok(bastionTankScore(base({ destroyedHp: 60, weak: 30, fast: 10, base: 3 })) === 200, "everything in full → 200");
+  ok(bastionTankScore(base({ destroyedHp: BT2_TOTAL_HP, weak: 30, fast: 10, base: 3 })) === 200 && bastionTankScore(base({ destroyedHp: BT2_TOTAL_HP - 1, weak: 30, fast: 10, base: 3 })) < 200, "everything in full → 200, one hit point short less");
   ok(bastionStdParts({ ...game.init(3), rev: 1 } as BastionTankState) === null, "a state of another revision has no standard parts");
   const help = PUZZLE_INSTRUCTIONS.bastion?.score ?? "";
   for (const want of ["Armour up to 140", "Weak spots up to 30", "Fast reloads up to 20", "Base intact up to 10", "Together 200 points."]) ok(help.includes(want), `help states "${want}"`);
@@ -311,7 +325,7 @@ const serverReplay = (seed: number, events: ArcadeInputEvent[], claim?: number) 
       const pts: [number, number][] = [];
       let fill = "";
       const note = (x: number, y: number) => {
-        if (!fill.startsWith("rgba(0,0,0,0.6)") && !fill.startsWith("#7CF29A") && !fill.startsWith("#FF4D4D") && !fill.startsWith("rgba(255,255,255,0.12)")) pts.push([x, y]);
+        if (fill !== BT2_PIP_BACK && fill !== BT2_PIP_FILL && fill !== BT2_PIP_EMPTY) pts.push([x, y]);
       };
       const ctx = new Proxy(
         {},
@@ -330,7 +344,7 @@ const serverReplay = (seed: number, events: ArcadeInputEvent[], claim?: number) 
           },
         },
       ) as unknown as CanvasRenderingContext2D;
-      paintTank(ctx, kind, kind, z * 256, BT2_HP[kind]!, 0, 0, true);
+      paintTank(ctx, kind, kind, z * 256, BT2_HP[kind]!, 0, 0, true, z % 3 === 0);
       const x0 = Math.min(r.hull[0], r.turret[0]) - 2;
       const x1 = Math.max(r.hull[2], r.turret[2]) + 2;
       const y0 = r.turret[1] - 2;

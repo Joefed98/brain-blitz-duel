@@ -5,8 +5,9 @@
  *
  * The view is from a gun turret behind a wall at dusk, looking down three lanes that meet on the horizon. Tanks only
  * (Scout 1 hit, Medium 2, Heavy 4) roll down their lanes in five waves on a fixed seeded schedule, the same for every
- * player: every run deals the same 29 tanks (60 hit points) in the same wave shapes; the seed picks only each tank's
- * lane, spawn moment, order and whether (and where) it speeds up or slows down. A tank that reaches the wall hits the
+ * player: every run deals the same 30 tanks (63 hit points) in the same wave shapes, the last two bigger and faster; the
+ * seed picks only each tank's lane, spawn moment, order, where it speeds up or slows down (every tank does once) and
+ * its weak spot's phase (exposed 60 of every 90 ticks; a shell on it while closed is a hull hit). A tank that reaches the wall hits the
  * base; three hits end the run early (the score is kept).
  *
  * Aim is a point on the screen (the phone floats the crosshair 60 px above the finger); lifting fires a shell at that
@@ -19,7 +20,7 @@
  * Everything is integer maths on the 60-tick clock: depth z in 1/256 units, the perspective scale from one integer
  * division (bastionScale256), and every collision rectangle (bastionTankRects) is what the renderer draws.
  *
- * Score (the arcade standard, exactly 200): Armour 140 on a straight line (hit points destroyed of 60), Weak spots 30
+ * Score (the arcade standard, exactly 200): Armour 140 on a straight line (hit points destroyed of 63), Weak spots 30
  * (1 each, up to 30), Fast reloads 20 (2 each, up to 10), Base intact 10 (10 with 3 of 3 left at the end, 5 with 2).
  */
 import { bandCurve, type BandParts } from "./scoreBands";
@@ -61,22 +62,22 @@ export const BT2_TUR_H = [15, 18, 22] as const;
 /** The weak spot by type: its centre's x from the tank's centre, its bottom above the ground, at scale 1. */
 export const BT2_WEAK_X = [0, -24, 14] as const;
 export const BT2_WEAK_UP = [6, 13, 36] as const;
-export const BT2_WEAK_W = 16;
-export const BT2_WEAK_H = 10;
+export const BT2_WEAK_W = 14;
+export const BT2_WEAK_H = 14;
 /** Speeds, depth units ×256 a tick: a scout crosses the whole field in 7.8 s, a medium in 10, a heavy in 12.3. */
 export const BT2_SPEED = [700, 545, 445] as const;
-/** Each wave's speed, per cent of the type's: the first waves roll on gently, the last two press. */
-export const BT2_WAVE_PACE = [68, 76, 86, 100, 116] as const;
+/** Each wave's speed, per cent of the type's: the first three roll on gently, the last two press hard. */
+export const BT2_WAVE_PACE = [44, 50, 56, 100, 134] as const;
 /** Two tanks in one lane keep at least this much depth apart (the one behind waits). */
 export const BT2_GAP = 150;
 
 /** The five waves: scouts, mediums, heavies. */
 export const BT2_WAVES: readonly (readonly [number, number, number])[] = [
   [4, 1, 0],
-  [3, 2, 1],
-  [2, 3, 1],
-  [2, 2, 2],
-  [1, 2, 3],
+  [3, 2, 0],
+  [3, 1, 1],
+  [2, 2, 3],
+  [1, 3, 4],
 ];
 export const BT2_WAVE_COUNT = BT2_WAVES.length;
 /** Each wave's first tick and the window its tanks roll on in. */
@@ -98,8 +99,8 @@ export const BT2_FLIGHT_MAX = 30;
 export const BT2_RELOAD_TICKS = 120;
 export const BT2_FAST_TICKS = 60;
 export const BT2_JAM_TICKS = 30;
-/** The green zone (per mille of the needle's sweep): starts 250…450, 40 wide (80 ms), so it always ends before half time. */
-export const BT2_ZONE_W = 40;
+/** The green zone (per mille of the needle's sweep): starts 250…450, 30 wide (60 ms), so it always ends before half time. */
+export const BT2_ZONE_W = 30;
 /** The run ends this long after the last tank is gone (destroyed or at the wall). */
 export const BT2_END_HOLD = 45;
 
@@ -128,6 +129,17 @@ export interface Bt2PlanTank {
   /** Speed change: 0 none, 1 speeds up (×3/2), 2 slows (×2/3), at depth `chgZ` (units). */
   chg: number;
   chgZ: number;
+  /** Where in its exposure cycle the weak spot starts (ticks; the vent is open BT2_WEAK_OPEN of every BT2_WEAK_CYCLE). */
+  wphase: number;
+}
+
+/** The weak spot glows (is exposed) for BT2_WEAK_OPEN ticks of every BT2_WEAK_CYCLE; closed, a hit there is a hull hit. */
+export const BT2_WEAK_CYCLE = 90;
+export const BT2_WEAK_OPEN = 60;
+
+/** Is plan tank `p`'s weak spot exposed on `tick`? */
+export function bastionWeakOpen(p: Pick<Bt2PlanTank, "wphase">, tick: number): boolean {
+  return (tick + p.wphase) % BT2_WEAK_CYCLE < BT2_WEAK_OPEN;
 }
 
 /** The run's tanks in spawn order, from the seed alone (cached; never mutated). */
@@ -157,8 +169,9 @@ export function bastionPlan(seed: number): readonly Bt2PlanTank[] {
       const lane = lastLane < 0 ? draw(3) : (lastLane + 1 + draw(2)) % 3;
       lastLane = lane;
       const spawn = BT2_WAVE_START[wave]! + i * step + draw(Math.max(1, step - 30));
-      const c = draw(3);
-      out.push({ wave, kind, lane, spawn, chg: c, chgZ: 400 + draw(500) });
+      // Every tank changes speed once, up or down, at a seeded depth.
+      const c = 1 + draw(2);
+      out.push({ wave, kind, lane, spawn, chg: c, chgZ: 400 + draw(500), wphase: draw(BT2_WEAK_CYCLE) });
     });
   });
   if (planCache.size > 32) planCache.clear();
@@ -371,7 +384,7 @@ function land(s: BastionTankState, shell: Bt2Shell): void {
   // Front-most first: the tanks are kept nearest the wall first.
   for (const t of s.tanks) {
     const r = bastionTankRects(t.kind, t.lane, t.z);
-    const weak = inside(r.weak, shell.x, shell.y, 1);
+    const weak = bastionWeakOpen(bastionPlan(s.seed)[t.i]!, s.tick) && inside(r.weak, shell.x, shell.y, 1);
     if (!weak && !inside(r.hull, shell.x, shell.y) && !inside(r.turret, shell.x, shell.y)) continue;
     const dmg = weak ? 2 : 1;
     const took = Math.min(dmg, t.hp);
