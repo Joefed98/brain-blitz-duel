@@ -1,7 +1,7 @@
 import { useMemo, useRef } from "react";
 
 import { gameDisplayName } from "@/lib/duel/gameNames";
-import { FH_CHECKPOINT_INTERVAL, FH_CORE_FULL, FH_INPUT_PLACE, FH_REV, FH_REV_STEEP, FH_ROWS, FH_TURNS, fhApply, fhCheckpoint, fhDeal, type FhState } from "@/lib/arcade/cards/fiveHands";
+import { FH_CHECKPOINT_INTERVAL, FH_CORE_FULL, FH_INPUT_PLACE, FH_REV, FH_REV_STEEP, fhCoreFullFor, FH_ROWS, FH_TURNS, fhApply, fhCheckpoint, fhDeal, type FhState } from "@/lib/arcade/cards/fiveHands";
 import { drawFiveHands, fhHitRow, fhNewView, fhOnNext, fiveHandsArtGame, FH_BG, FH_WORLD_H, FH_WORLD_W } from "@/lib/arcade/cards/fiveHands.renderer";
 import { cardsFill } from "@/lib/arcade/cards/cardsFill.renderer";
 import { encodeFiveHandsRun, replayFiveHandsRun } from "@/lib/duel/cards";
@@ -30,11 +30,10 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const latest = useRef<FhState | null>(null);
   const start = useRef<{ fromNext: boolean; row: number } | null>(null);
   const rev = data?.fiveHandsRev ?? 1;
-  const best = data?.fiveHandsBest ?? null;
   const game = useMemo(() => {
-    const art = fiveHandsArtGame(view, rev, best);
+    const art = fiveHandsArtGame(view, rev);
     return { ...art, draw: (ctx: CanvasRenderingContext2D, state: FhState, size: { width: number; height: number }) => { latest.current = state; art.draw(ctx, state, size); } };
-  }, [view, rev, best]);
+  }, [view, rev]);
 
   // A tap on a row places your card there; dragging the card onto a row does too.
   const pointer = (kind: "down" | "move" | "up", x: number, y: number): PointerPayload | null => {
@@ -87,14 +86,14 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   );
 }
 
-export function fiveHandsLine(r: { total: number; made: number; best?: number }, rev?: number | null): string {
-  if ((rev ?? 1) >= FH_REV_STEEP) return `${r.total} of this deck's best ${r.best ?? 0} hand points · ${r.made} of ${FH_ROWS} rows with a hand`;
+export function fiveHandsLine(r: { total: number; made: number }, rev?: number | null): string {
+  if ((rev ?? 1) >= FH_REV_STEEP) return `${r.total} hand points (full at ${fhCoreFullFor(rev)}) · ${r.made} of ${FH_ROWS} rows with a hand`;
   return `${r.total} hand points (full at ${FH_CORE_FULL}) · ${r.made} of ${FH_ROWS} hands made`;
 }
 
 function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   if (puzzle.type !== "fivehands") return null;
-  const result = replayFiveHandsRun(puzzle.seed, myAnswer ?? "", puzzle.fiveHandsRev, puzzle.fiveHandsBest);
+  const result = replayFiveHandsRun(puzzle.seed, myAnswer ?? "", puzzle.fiveHandsRev);
   return (
     <div className="flex min-h-0 w-full flex-1 flex-col items-center justify-start gap-3 overflow-y-auto">
       <p className="whitespace-normal break-words text-center font-mono text-base font-bold text-foreground">{fiveHandsLine(result, puzzle.fiveHandsRev)}</p>

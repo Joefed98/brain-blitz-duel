@@ -68,7 +68,7 @@ const TABLE: Record<string, (p: any, a: string) => ServerReplay> = {
   freecell: (p, a) => replayFreecellRun(p.seed, a, p.freecellRev),
   tripeaks: (p, a) => replayTripeaksRun(p.seed, a, p.tripeaksRev),
   pokersquares: (p, a) => replayPokerSquaresRun(p.seed, a, p.pokerSquaresRev),
-  fivehands: (p, a) => replayFiveHandsRun(p.seed, a, p.fiveHandsRev, p.fiveHandsBest),
+  fivehands: (p, a) => replayFiveHandsRun(p.seed, a, p.fiveHandsRev),
   rally: (p, a) => replayRallyRun(p.seed, a, p.rallyRev),
   slice: (p, a) => replaySliceRun(p.seed, a, p.sliceRev),
   bubble: (p, a) => replayBubbleRun(p.seed, a, p.bubbleRev),

@@ -21,14 +21,10 @@
  *
  * fiveHandsRev 2 (1 Nov 2026, Joe's tuning; docs/arcade-standard/fivehands.md): the same play, a steeper hand table
  * (FH_HANDS_V2: pair 5, two pair 10, three of a kind 20, straight 25, flush 35, full house 50, four of a kind 60,
- * straight flush 75; high card 0) and ONE part scored against the deck's own best: 200 × your hand points ÷ that deck's
- * best total, capped at 200, on a straight line (anyone who plays scores at least 1). The deck's best is the exact
- * maximum over every arrangement the rules allow (fhDeckBest: a branch and bound over the four rounds' orders, ~17 ms,
- * at most ~65 ms, a deck), so no run can beat it; the cap stays as a safety. The server stores it with the deal
- * (`fiveHandsBest` on the puzzle) and the replay and the phone read it from there (fiveHandsGameFor(rev, best)); a
- * puzzle without it (tools, checks) computes the same figure from the seed. The deck is rev 1's first shuffle (the next
- * attempt's only for a deck whose best is under a pair, never seen in practice). No made-hands part, no speed part, no
- * row-order rule. Rev-1 runs score as before (fiveHandsGameFor(1)).
+ * straight flush 75; high card 0) and ONE part: the hand points on a straight line to 200, full at FH_CORE_FULL_V2. No
+ * made-hands part, no speed part, no row-order rule. The deck is shuffled exactly as rev 1's; the witness is climbed on
+ * the rev-2 table and must reach FH_CORE_FULL_V2 (the same per-seed proof of 200). Rev-1 runs score as before
+ * (fiveHandsGameFor(1)).
  */
 import { inputRange, rngBelow, type ArcadeGame, type ArcadeInputEvent } from "../engine";
 import { stdEach, stdLine, stdPart, stdScore, stdSum, type StdPart, type StdSpec } from "../arcadeStandard";
@@ -69,16 +65,18 @@ export const FH_HANDS_V2 = [
   ["Two pair", 10],
   ["Pair", 5],
 ] as const;
-/** fiveHandsRev 2's single part: hand points to 200 on a straight line, full at the deck's own best. */
+/** fiveHandsRev 2's single part: hand points to 200 on a straight line. */
 export const FH_CORE_MAX_V2 = 200;
-/** A rev-2 deck's best must reach a pair or this many points (else the next shuffle; never needed on seeds 0–9,999). */
-export const FH_BEST_MIN = 5;
-/** The core's straight line in per mille of the deck's best (LIVE_BANDS; fiveHandsBandParts' units). */
-export const FH_V2_BAND_CURVE = bandCurve([0, 1000], [0, FH_CORE_MAX_V2]);
+/**
+ * fiveHandsRev 2's full figure in rev-2 hand points: set so the near-perfect skill-band median scores 160–165 (163; its median
+ * hand points are 40; `bun scripts/cards-bands.ts fivehands --seeds=200`, docs/arcade-standard/fivehands.md). Every rev-2 deck's witness reaches it.
+ */
+export const FH_CORE_FULL_V2 = 49;
+export const FH_V2_BAND_CURVE = bandCurve([0, FH_CORE_FULL_V2], [0, FH_CORE_MAX_V2]);
 
-/** The core's full figure for a state: rev 1's fixed FH_CORE_FULL, rev 2 the deck's own best (`best`). */
-export function fhFullOf(state: Pick<FhState, "rev" | "best">): number {
-  return (state.rev ?? 1) >= FH_REV_STEEP ? Math.max(1, state.best ?? 1) : FH_CORE_FULL;
+/** A revision's full figure (the witness must reach it). */
+export function fhCoreFullFor(rev: number | null | undefined): number {
+  return (rev ?? 1) >= FH_REV_STEEP ? FH_CORE_FULL_V2 : FH_CORE_FULL;
 }
 
 /** fiveHandsRev 2's spec (the dealt one: the help, LIVE_BANDS, the reveal). */
@@ -87,8 +85,8 @@ export const FH_STD_SPEC: StdSpec = {
   rev: FH_REV_STEEP,
   parts: [
     {
-      key: "core", label: "Hand points", max: FH_CORE_MAX_V2, item: "hand point",
-      how: "200 × your hand points ÷ this deck's best possible total, capped at 200; pair 5, two pair 10, three of a kind 20, straight 25, flush 35, full house 50, four of a kind 60, straight flush 75",
+      key: "core", label: "Hand points", max: FH_CORE_MAX_V2, of: FH_CORE_FULL_V2, item: "hand point",
+      how: `a straight line, full at ${FH_CORE_FULL_V2} hand points; pair 5, two pair 10, three of a kind 20, straight 25, flush 35, full house 50, four of a kind 60, straight flush 75`,
     },
   ],
 };
@@ -158,6 +156,8 @@ const BARE_ROW_COST = 24;
 
 function rowValue(row: readonly number[], rev: number): number {
   const p = fhRowHand(row, rev).points;
+  // Rev 2: the climb is on the steep table alone (no made-hands part, so a bare row costs nothing extra).
+  if (rev >= FH_REV_STEEP) return p;
   return p > 0 ? p : -BARE_ROW_COST;
 }
 
@@ -172,99 +172,12 @@ export interface FhDeal {
   target: number;
 }
 
-/** The 120 orders of five (a round's cards to the five rows), in a fixed order. */
-const PERMS5: readonly (readonly number[])[] = (() => {
-  const out: number[][] = [];
-  const gen = (a: number[], rest: number[]) => {
-    if (!rest.length) out.push(a);
-    else rest.forEach((x, i) => gen([...a, x], rest.filter((_, j) => j !== i)));
-  };
-  gen([], [0, 1, 2, 3, 4]);
-  return out;
-})();
-const PLACE = [1, 5, 25, 125];
-
 /**
- * fiveHandsRev 2: the deck's best total, exactly, and an arrangement that reaches it. Each row holds its dealt card and
- * one card from each round of five, so a row is one of 625 choices (a digit 0–4 a round) and its hand is looked up
- * from a table built once (5 × 625 hands). A depth-first search picks each round's order (120 each) and prunes a
- * branch when the rows' best completions, each row on its own, can't beat the best found; the first maximum in the
- * fixed search order is kept, so the arrangement is the same on every machine.
- */
-export function fhDeckBest(deck: readonly number[]): { best: number; perm: number[][] } {
-  const V = new Int32Array(FH_ROWS * 625);
-  for (let k = 0; k < FH_ROWS; k++) {
-    for (let c = 0; c < 625; c++) {
-      const row = [fhStartCard(deck, k)];
-      for (let g = 0; g < 4; g++) row.push(fhYours(deck, g * 5 + (Math.floor(c / PLACE[g]!) % 5)));
-      V[k * 625 + c] = fhRowHand(row, FH_REV_STEEP).points;
-    }
-  }
-  // ub[d][k * 625 + c]: the best row k can still reach with its first d digits fixed as in c.
-  const ub: Int32Array[] = [];
-  for (let d = 0; d <= 4; d++) {
-    const u = new Int32Array(FH_ROWS * 625);
-    const step = d === 4 ? 625 : PLACE[d]!;
-    for (let k = 0; k < FH_ROWS; k++) {
-      for (let pre = 0; pre < step; pre++) {
-        let m = 0;
-        for (let x = pre; x < 625; x += step) m = Math.max(m, V[k * 625 + x]!);
-        for (let x = pre; x < 625; x += step) u[k * 625 + x] = m;
-      }
-    }
-    ub.push(u);
-  }
-  let best = -1;
-  let bestPerm: number[][] = [];
-  const code = [0, 0, 0, 0, 0];
-  const chosen: (readonly number[])[] = [];
-  const rec = (d: number) => {
-    if (d === 4) {
-      let t = 0;
-      for (let k = 0; k < FH_ROWS; k++) t += V[k * 625 + code[k]!]!;
-      if (t > best) {
-        best = t;
-        bestPerm = chosen.map((p) => p.slice());
-      }
-      return;
-    }
-    for (const p of PERMS5) {
-      let bound = 0;
-      for (let k = 0; k < FH_ROWS; k++) bound += ub[d + 1]![k * 625 + code[k]! + p[k]! * PLACE[d]!]!;
-      if (bound <= best) continue;
-      for (let k = 0; k < FH_ROWS; k++) code[k] = code[k]! + p[k]! * PLACE[d]!;
-      chosen.push(p);
-      rec(d + 1);
-      chosen.pop();
-      for (let k = 0; k < FH_ROWS; k++) code[k] = code[k]! - p[k]! * PLACE[d]!;
-    }
-  };
-  rec(0);
-  return { best, perm: bestPerm };
-}
-
-/** fiveHandsRev 2's deal: rev 1's first shuffle and its exact best (the next shuffle only for a best under a pair). */
-function buildDealV2(seed: number): FhDeal {
-  for (let attempt = 0; ; attempt++) {
-    const deck = shuffledDeck((seed ^ Math.imul(attempt + 1, 0x9e3779b1)) | 0).deck.slice(0, FH_SEEN);
-    const { best, perm } = fhDeckBest(deck);
-    if (best < FH_BEST_MIN) continue;
-    // perm[g][r]: the turn (within round g) whose card goes to row r.
-    const witness = Array.from({ length: FH_ROWS }, (_, r) => [fhStartCard(deck, r), ...perm.map((p, g) => fhYours(deck, g * 5 + p[r]!))]);
-    const witnessTaps: number[] = [];
-    for (let g = 0; g < 4; g++) for (let k = 0; k < 5; k++) witnessTaps.push(perm[g]!.indexOf(k));
-    return { deck, witness, witnessTaps, target: best };
-  }
-}
-
-/**
- * The deal from a seed: a seeded deck and its witness (see the header). Rev 1: the climb swaps two rows' cards within
- * one round of five, kept when no worse on the two rows; integer maths and the engine's PRNG only. Rev 2: buildDealV2
- * (the exact best; `target` is the deck's best).
+ * The deal from a seed: a seeded deck and its witness (see the header). The climb swaps two rows' cards within one
+ * round of five, kept when no worse on the two rows; integer maths and the engine's PRNG only.
  */
 export function fhBuildDeal(seed: number, rev = 1): FhDeal {
-  if (rev >= FH_REV_STEEP) return buildDealV2(seed);
-  const full = FH_CORE_FULL;
+  const full = fhCoreFullFor(rev);
   for (let attempt = 0; ; attempt++) {
     const shuffled = shuffledDeck((seed ^ Math.imul(attempt + 1, 0x9e3779b1)) | 0);
     let rng = shuffled.rng;
@@ -296,7 +209,8 @@ export function fhBuildDeal(seed: number, rev = 1): FhDeal {
     }
     const witness = Array.from({ length: FH_ROWS }, (_, r) => rowCards(r));
     const totals = fhTotals(witness, rev);
-    if (totals.made === FH_ROWS && totals.total >= full) {
+    // Rev 1 also needs all five hands made (its made-hands part); rev 2 only the full figure.
+    if ((rev >= FH_REV_STEEP || totals.made === FH_ROWS) && totals.total >= full) {
       const witnessTaps: number[] = [];
       for (let g = 0; g < 4; g++) for (let k = 0; k < 5; k++) witnessTaps.push(perm[g]!.indexOf(k));
       return { deck, witness, witnessTaps, target: totals.total };
@@ -336,20 +250,14 @@ export interface FhState {
   lastRow: number;
   lastTick: number;
   std: number;
-  /** fiveHandsRev 2: the deck's best total, the score's full figure (stored on the puzzle; else fhDeal's). */
-  best?: number;
 }
 
-/** A state dealt from a seed (rev 2: `best` from the stored puzzle, else the deck's own, worked out from the seed). */
-export function fhInit(seed: number, rev = 1, best?: number | null): FhState {
-  const deal = fhDeal(seed, rev);
-  const deck = deal.deck;
-  const state: FhState = {
+export function fhInit(seed: number, rev = 1): FhState {
+  const { deck } = fhDeal(seed, rev);
+  return {
     tick: 0, rev, deck, turn: 0, rows: Array.from({ length: FH_ROWS }, (_, r) => [fhStartCard(deck, r)]),
     rejects: 0, acted: 0, ended: 0, finishTick: 0, lastRow: -1, lastTick: 0, std: 1,
   };
-  if (rev >= FH_REV_STEEP) state.best = best && best > 0 ? Math.trunc(best) : deal.target;
-  return state;
 }
 
 /** How many discards are face up: this turn's and every earlier one (all 20 once the cards are placed). */
@@ -386,8 +294,7 @@ export function fiveHandsStdParts(state: FhState): StdPart[] | null {
   if (!state || !state.std) return null;
   if ((state.rev ?? 1) >= FH_REV_STEEP) {
     const { total } = fhTotals(state.rows, state.rev);
-    const best = fhFullOf(state);
-    return [stdPart(FH_STD_SPEC, "core", stdLine(FH_CORE_MAX_V2, total, best), `${total} of this deck's best ${best} hand points`)];
+    return [stdPart(FH_STD_SPEC, "core", stdLine(FH_CORE_MAX_V2, total, FH_CORE_FULL_V2), `${total} hand points`)];
   }
   const { total, made } = fhTotals(state.rows);
   return [
@@ -404,9 +311,7 @@ export function fiveHandsBandParts(state: FhState): BandParts {
   const parts = fiveHandsStdParts(state) ?? [];
   const core = parts[0]?.points ?? 0;
   const { total } = fhTotals(state.rows, state.rev);
-  // Rev 2: units are per mille of the deck's best (FH_V2_BAND_CURVE); rev 1 the hand points.
-  const units = (state.rev ?? 1) >= FH_REV_STEEP ? Math.min(1000, Math.floor((1000 * total) / fhFullOf(state))) : total;
-  return { units, points: core, bonus: stdSum(parts) - core, penalty: 0, finished: state.ended === 1, text: `${total} hand points` };
+  return { units: total, points: core, bonus: stdSum(parts) - core, penalty: 0, finished: state.ended === 1, text: `${total} hand points` };
 }
 
 /* ============================== Checkpoints ============================== */
@@ -440,12 +345,9 @@ export const fiveHandsGame: ArcadeGame<FhState, ArcadeInputEvent | null> = {
 
 export const fiveHandsGameV1 = fiveHandsGame;
 
-/** fiveHandsRev 2's game: the same play, the steep hand table, scored against the deck's best (worked out from the seed). */
+/** fiveHandsRev 2's game: the same play, the steep hand table, hand points alone to 200. */
 export const fiveHandsGameV2: ArcadeGame<FhState, ArcadeInputEvent | null> = { ...fiveHandsGame, init: (seed) => fhInit(seed, 2) };
 
-/** The game for a stored puzzle: rev 2 with the deal's stored best (`fiveHandsBest`) when it carries one. */
-export function fiveHandsGameFor(rev?: number | null, best?: number | null): ArcadeGame<FhState, ArcadeInputEvent | null> {
-  if ((rev ?? 1) < FH_REV_STEEP) return fiveHandsGame;
-  if (!best) return fiveHandsGameV2;
-  return { ...fiveHandsGame, init: (seed) => fhInit(seed, 2, best) };
+export function fiveHandsGameFor(rev?: number | null): ArcadeGame<FhState, ArcadeInputEvent | null> {
+  return (rev ?? 1) >= FH_REV_STEEP ? fiveHandsGameV2 : fiveHandsGame;
 }

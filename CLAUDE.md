@@ -1045,10 +1045,8 @@ outside the repo.
   60 s; `bun scripts/cards-bands.ts freecell --at=60`) instead of all 52 home; the safe auto-move home (every revision)
   flies home on rev 3 (`fly` / `flyTick`, display only, outside the checksum; `fcFlights`). **Five Hands**
   `fiveHandsRev 2` (`fivehands.md`): the steep hand table (`FH_HANDS_V2`: pair 5, two pair 10, trips 20, straight 25,
-  flush 35, full house 50, quads 60, straight flush 75), one part: 200 × hand points ÷ the deck's own best, capped at
-  200; the best is exact (`fhDeckBest`, a branch and bound over the four rounds' orders, ~17 ms a deck), stored with the
-  deal as `fiveHandsBest` and read by the replay, reveal and stage (`fiveHandsGameFor(rev, best)`); the deck is rev 1's
-  first shuffle. cards-check, pool-check,
+  flush 35, full house 50, quads 60, straight flush 75), one part, hand points to 200 full at 49 (`FH_CORE_FULL_V2`, near-perfect median 163; per-deck scoring tried and dropped),
+  the deck rev 1's shuffle with its witness climbed on the new table (`fhDeal(seed, 2)`). cards-check, pool-check,
   arcade-standard-check and the self-replay entries `pool/v3`, `freecell/v3`, `fivehands/v2` prove it.
 - **Strategy group** (1 Nov 2026; presentation and room setup only, no stamps): the arcade's Action group split in
   two: Action keeps Slice, Roofbound and Grappler; Strategy (`strategy`, `--group-strategy` #8E80FF, a blue-leaning

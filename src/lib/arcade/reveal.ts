@@ -19,7 +19,7 @@ import { burstGoldenCount, burstStdParts, BURST_V10_GOLDENS, BURST_V10_WAVES, ty
 import { bandLines } from "./scoreBands";
 import { stdLines } from "./arcadeStandard";
 import { psCoreFullFor } from "./cards/pokerSquares";
-import { FH_CORE_FULL } from "./cards/fiveHands";
+import { fhCoreFullFor } from "./cards/fiveHands";
 import { fcCoreUnitsFor } from "./cards/freecell";
 import { arcadeStdParts } from "./standard";
 
@@ -173,15 +173,14 @@ const BUILDERS: Record<string, Builder> = {
     };
   },
   fivehands: (r, s) => {
-    // fiveHandsRev 2: hand points alone on the steep table, against this deck's best (stored as `best`).
-    const v2 = (n(r, "fiveHandsRev") || 1) >= 2;
-    const full = v2 ? Math.max(1, n(r, "best")) : FH_CORE_FULL;
+    // fiveHandsRev 2: hand points alone on the steep table, full at FH_CORE_FULL_V2.
+    const full = fhCoreFullFor(n(r, "fiveHandsRev") || 1);
     return {
     axis: { value: n(r, "total"), max: full, label: "Hand points" },
-    lines: [v2 ? `${n(r, "total")} of this deck's best ${full} hand points → ${s}` : `${n(r, "total")} hand points (full at ${full}) → ${s}`],
+    lines: [`${n(r, "total")} hand points (full at ${full}) → ${s}`],
     tiles: [
       { label: (n(r, "fiveHandsRev") || 1) >= 2 ? "Rows with a hand" : "Made hands", value: `${n(r, "made")} / 5` },
-      { label: v2 ? "Deck's best" : "Full at", value: String(full) },
+      { label: "Full at", value: String(full) },
       { label: "Placed", value: `${n(r, "placed")} / 20` },
     ],
     outcome: n(r, "placed") === 20 ? "finish" : "time",

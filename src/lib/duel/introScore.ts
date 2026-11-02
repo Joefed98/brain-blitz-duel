@@ -1,4 +1,5 @@
 import { PS_CORE_FULL_V2 } from "@/lib/arcade/cards/pokerSquares";
+import { FH_CORE_FULL_V2 } from "@/lib/arcade/cards/fiveHands";
 import { FC_CORE_UNITS_V3 } from "@/lib/arcade/cards/freecell";
 import { BF_CORE_FULL } from "@/lib/arcade/blockfall";
 import { AR_CORE_FULL } from "@/lib/arcade/alleyroll";
@@ -131,7 +132,7 @@ function introScoreTemplates(): Record<PuzzleType, string> {
     freecell: `Cards 140 (full at ${FC_CORE_UNITS_V3} units); finished: few moves 30, speed 30. Together {max}.`,
     tripeaks: "Cards 120, peak tops 30, longest run 20; all cleared: 10 and speed 20. Together {max}.",
     pokersquares: `Hand points 160 (full at ${PS_CORE_FULL_V2}); made hands 40 (4 a line). Together {max}.`,
-    fivehands: "Hand points against the deck's best possible total, up to {max}. Pair 5 … straight flush 75.",
+    fivehands: `Hand points to {max}, full at ${FH_CORE_FULL_V2}. Pair 5, two pair 10 … straight flush 75.`,
     blockfall: `Lines 140 (full at ${BF_CORE_FULL}); multi-line clears 40; a low stack at the buzzer 20. Together {max}.`,
     alleyroll: `Ring points 150 (full at ${AR_CORE_FULL}); 100 pockets 30; hot streak 20. Together {max}.`,
     bubble: "Bubbles cleared, a fast clear, falling chests, bank shots and combos. Up to {max}.",

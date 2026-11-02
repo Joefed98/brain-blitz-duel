@@ -44,7 +44,7 @@ import { FC_DEALS } from "@/lib/arcade/cards/freecellDeals.data";
 import { TP_REV } from "@/lib/arcade/cards/tripeaks";
 import { TP_DEALS } from "@/lib/arcade/cards/tripeaksDeals.data";
 import { PS_REV } from "@/lib/arcade/cards/pokerSquares";
-import { FH_REV, fhDeal } from "@/lib/arcade/cards/fiveHands";
+import { FH_REV } from "@/lib/arcade/cards/fiveHands";
 import { BLOCKFALL_REV } from "@/lib/arcade/blockfall";
 import { blockfallDealSeed } from "./blockfallDeal.server";
 import type { BlockfallPuzzleData, FiveHandsPuzzleData, FreecellPuzzleData, PokerSquaresPuzzleData, TripeaksPuzzleData } from "./types";
@@ -109,13 +109,9 @@ export function generatePokerSquares(): PokerSquaresPuzzleData {
   return { type: "pokersquares", seed: arcadeSeed(), pokerSquaresRev: PS_REV };
 }
 
-/**
- * Five Hands: any seed; the sim shuffles the deck. fiveHandsRev 2 stores the deck's exact best total with the deal
- * (`fiveHandsBest`, fhDeckBest through fhDeal), the score's full figure, so every replay uses the same number.
- */
+/** Five Hands: any seed; the sim shuffles the deck and proves its witness (perfect play reaches 200). */
 export function generateFiveHands(): FiveHandsPuzzleData {
-  const seed = arcadeSeed();
-  return { type: "fivehands", seed, fiveHandsRev: FH_REV, fiveHandsBest: fhDeal(seed, FH_REV).target };
+  return { type: "fivehands", seed: arcadeSeed(), fiveHandsRev: FH_REV };
 }
 
 /** Blockfall (Retro, 1 Nov 2026): a seed from the proved deal (the oracle took it to 200 through the server replay). */

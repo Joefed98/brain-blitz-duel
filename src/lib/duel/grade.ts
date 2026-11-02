@@ -1691,7 +1691,7 @@ function gradeUnderRev(
     // Five Hands (31 Oct 2026): the deck is shuffled from the stored seed and the run replayed; only that scores.
     case "fivehands": {
       const replayStart = performance.now();
-      const run = replayFiveHandsRun(puzzle.seed, answer, puzzle.fiveHandsRev, puzzle.fiveHandsBest);
+      const run = replayFiveHandsRun(puzzle.seed, answer, puzzle.fiveHandsRev);
       revealRun = run;
       arcadeDiag = buildArcadeDiag(puzzle.type, run, answer, performance.now() - replayStart);
       isCorrect = run.finished;
@@ -1699,7 +1699,6 @@ function gradeUnderRev(
       score = run.score;
       extraDetail = {
         fiveHandsRev: puzzle.fiveHandsRev ?? 1,
-        ...((puzzle.fiveHandsRev ?? 1) >= 2 ? { best: run.best } : {}),
         total: run.total,
         made: run.made,
         placed: run.placed,

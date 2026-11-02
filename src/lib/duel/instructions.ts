@@ -1161,7 +1161,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Hands:", detail: "pair 3, two pair 6, three of a kind 8, straight 10, flush 11, full house 13, four of a kind 15, straight flush 16.", helpOnly: true },
         { action: "20 turns", detail: "after five cards dealt one to each row: 45 of the 52 cards are seen by the end.", helpOnly: true },
         { action: "Rows at the buzzer", detail: "score as they stand.", helpOnly: true },
-        { action: "Every deck", detail: "is scored against its own best possible total: match it for 200.", helpOnly: true },
+        { action: "Every deck", detail: "can be placed to fill the points.", helpOnly: true },
         { action: "Same deck, same order,", detail: "for everyone.", helpOnly: true },
       ],
       score: liveStdHelp("fivehands", "One part, hand points alone, which total 200:"),

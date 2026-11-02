@@ -198,7 +198,7 @@ export const ARCADE_REVEAL_RENDERERS: Record<string, ArcadeRevealRenderer> = {
   freecell: simple(GOLD, FC_WORLD_W, FC_WORLD_H, freecellArt, (p, a) => replayFreecellRun(seedOf(p), a, p.type === "freecell" ? p.freecellRev : undefined)),
   tripeaks: simple(GOLD, TP_WORLD_W, TP_WORLD_H, tripeaksArt, (p, a) => replayTripeaksRun(seedOf(p), a)),
   pokersquares: simple(GOLD, PS_WORLD_W, PS_WORLD_H, pokerSquaresArt, (p, a) => replayPokerSquaresRun(seedOf(p), a, p.type === "pokersquares" ? p.pokerSquaresRev : undefined)),
-  fivehands: simple(GOLD, FH_WORLD_W, FH_WORLD_H, fiveHandsArt, (p, a) => replayFiveHandsRun(seedOf(p), a, p.type === "fivehands" ? p.fiveHandsRev : undefined, p.type === "fivehands" ? p.fiveHandsBest : undefined)),
+  fivehands: simple(GOLD, FH_WORLD_W, FH_WORLD_H, fiveHandsArt, (p, a) => replayFiveHandsRun(seedOf(p), a, p.type === "fivehands" ? p.fiveHandsRev : undefined)),
   blockfall: simple(GOLD, BF_WORLD_W, BF_WORLD_H, blockfallArt, (p, a) => replayBlockfallRun(seedOf(p), a, p.type === "blockfall" ? p.blockfallRev : undefined)),
   alleyroll: simple(GOLD, AR_WORLD_W, AR_WORLD_H, alleyRollArt, (p, a) => replayAlleyRollRun(seedOf(p), a, p.type === "alleyroll" ? p.alleyRollRev : undefined)),
   hover: simple("#2ED3B7", 390, 560, hoverGame, (p, a) => replayHoverRun(seedOf(p), a, p.type === "hover" ? p.hoverRev : undefined), undefined, hoverRevealGame, (p) => hoverWorldHFor(p.type === "hover" ? p.hoverRev : undefined)),

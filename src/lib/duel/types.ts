@@ -2078,13 +2078,8 @@ export interface FiveHandsPuzzleData {
   type: "fivehands";
   /** Shuffles the deck and proves its witness in the sim: the same 45 cards in the same order for everyone. */
   seed: number;
-  /** Rules revision (1 = the first rules, on the arcade scoring standard; 2 = the steep table, scored against the deck's best). */
+  /** Rules revision (1 = the first rules, on the arcade scoring standard). */
   fiveHandsRev?: number;
-  /**
-   * fiveHandsRev 2: the deck's best total (fhDeckBest's exact maximum), stored with the deal so the server's replay
-   * and the phone score against the same figure. Absent: worked out from the seed (the same number).
-   */
-  fiveHandsBest?: number;
 }
 
 export interface RallyPuzzleData {

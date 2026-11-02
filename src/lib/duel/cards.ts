@@ -29,18 +29,6 @@ const psRun2 = makeArcadeRun<PsState, PsCheckpoint>({ tag: "pokersquares", game:
 const fhRun = makeArcadeRun<FhState, FhCheckpoint>({ tag: "fivehands", game: fiveHandsGameFor(1), checkpoint: fhCheckpoint, keys: FH_CHECKPOINT_KEYS, interval: FH_CHECKPOINT_INTERVAL });
 /** fiveHandsRev 2 (the steep hand table, hand points alone to 200): its own deal's witness; the same play and wire format. */
 const fhRun2 = makeArcadeRun<FhState, FhCheckpoint>({ tag: "fivehands", game: fiveHandsGameFor(2), checkpoint: fhCheckpoint, keys: FH_CHECKPOINT_KEYS, interval: FH_CHECKPOINT_INTERVAL });
-/** fiveHandsRev 2 with a stored best (the puzzle's `fiveHandsBest`): one run per figure, kept (a handful at most). */
-const fhRunsByBest = new Map<number, typeof fhRun2>();
-function fhRun2For(best: number | null | undefined): typeof fhRun2 {
-  if (!best) return fhRun2;
-  let run = fhRunsByBest.get(best);
-  if (!run) {
-    run = makeArcadeRun<FhState, FhCheckpoint>({ tag: "fivehands", game: fiveHandsGameFor(2, best), checkpoint: fhCheckpoint, keys: FH_CHECKPOINT_KEYS, interval: FH_CHECKPOINT_INTERVAL });
-    if (fhRunsByBest.size >= 64) fhRunsByBest.delete(fhRunsByBest.keys().next().value!);
-    fhRunsByBest.set(best, run);
-  }
-  return run;
-}
 
 export const encodeFreecellRun = fcRun.encode;
 export const decodeFreecellRun = fcRun.decode;
@@ -109,14 +97,12 @@ export interface FiveHandsResult extends FlatReplay<FhState, FhCheckpoint> {
   /** Cards placed (0–20) and whether all 20 were. */
   placed: number;
   finished: boolean;
-  /** fiveHandsRev 2: the deck's best total the score was measured against (0 on rev 1). */
-  best: number;
 }
 
 /** The single place a Five Hands score is worked out (no stamp: fiveHandsRev 1). */
-export function replayFiveHandsRun(seed: number, raw: string, rev?: number | null, best?: number | null): FiveHandsResult {
-  const r = ((rev ?? 1) >= 2 ? fhRun2For(best) : fhRun).replay(seed, raw);
+export function replayFiveHandsRun(seed: number, raw: string, rev?: number | null): FiveHandsResult {
+  const r = ((rev ?? 1) >= 2 ? fhRun2 : fhRun).replay(seed, raw);
   const s = r.state;
   const t = fhTotals(s.rows, s.rev);
-  return { ...r, total: t.total, made: t.made, placed: s.turn, finished: s.ended === 1, best: s.best ?? 0 };
+  return { ...r, total: t.total, made: t.made, placed: s.turn, finished: s.ended === 1 };
 }

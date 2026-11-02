@@ -8,44 +8,50 @@ Medians weak → flawless (100 room seeds): **86, 136, 150, 157, 178, 192, 200**
 
 - **New hand values** (`FH_HANDS_V2`, `fhRowHand(row, 2)`): high card 0, pair 5, two pair 10, three of a kind 20,
   straight 25, flush 35, full house 50, four of a kind 60, straight flush 75.
-- **One part, against the deck's own best** (1 Nov 2026 follow-up, Joe; replaces the fixed full figure of 46 tried
-  first): score = 200 × your hand points ÷ that deck's best total, capped at 200, on a straight line; anyone who plays
-  scores at least 1. No made-hands part, no speed part, no row-order rule.
-- **The deck's best** is exact (`fhDeckBest`): each row holds its dealt card and one card from each round of five, so a
-  row is one of 625 choices and its hand is read from a 5 × 625 table built once; a depth-first search over the four
-  rounds' orders (120 each) prunes any branch whose rows' best completions can't beat the best found. About 17 ms a deck
-  on average, 64 ms at worst over 100 decks; the first maximum in a fixed order is kept, so the arrangement (the
-  flawless line) is the same everywhere. Because it is the true maximum, no run can beat it; the cap stays as a safety.
-- **Stored with the deal:** rooms store it on the puzzle (`fiveHandsBest`, from `generateFiveHands`); the server's
-  replay, the reveal, the time-lapse and the phone's stage read it from there (`fiveHandsGameFor(rev, best)`,
-  `replayFiveHandsRun(seed, raw, rev, best)`). A puzzle without it (tools, checks) works the same figure out from the
-  seed. The grader stores it as `extra.best`; the reveal shows "N of this deck's best M hand points".
-- **The deck** is rev 1's first shuffle (the next shuffle only for a deck whose best is under a pair, never seen).
-- Rev 1 runs replay unchanged: 25 rev-1 runs recorded on main (`scripts/fixtures/tuning-nov1-legacy.json`) replay to the
-  same score and final state (cards-check).
+- **One part:** the score is the five rows' hand points alone, on a straight line to 200 (`stdLine(200, total,
+  FH_CORE_FULL_V2)`), full at **49** rev-2 hand points, capped at 200; anyone who plays scores at least 1. No made-hands part, no speed part, no row-order rule.
+- **The same per-seed approach as rev 1:** the deck is rev 1's seeded shuffle and its witness (an arrangement of your 20
+  cards, the only freedom being the order within each round of five) is climbed on the rev-2 table; a deck whose witness
+  does not reach the full figure is reshuffled (the next attempt's seed), so every dealt deck lets perfect play reach
+  exactly 200. Rev 1 also needed all five hands made; rev 2 needs only the full figure. 293 of seeds 0–299 deal
+  rev 1's very deck (cards-check). Witness totals over seeds 0–299 before the reshuffle: min 30, p10 55, median 100,
+  p90 135, max 185.
+- **The full figure, 49** (Joe's decision, 2 Nov 2026): set from the skill bands so the near-perfect median lands at
+  160–165 (163). The near-perfect bots' median is 40 hand points, the elite 45. History: the first push used 46
+  (near-perfect 173); a follow-up scored each deck against its own exact best, which was dropped because placement is
+  blind and the steep table makes points depend on card order, not deck richness (players' points correlated 0.1–0.35
+  with the deck's best; every level fell under 80).
+- Same play, deck order and 60 s run. Rev 1 runs replay unchanged: 25 rev-1 runs recorded on main
+  (`scripts/fixtures/tuning-nov1-legacy.json`) replay to the same score and final state (cards-check).
 
-Measured (`bun scripts/cards-bands.ts fivehands --seeds=200`, room seeds 0–199; fresh seeds 10000–10199 in brackets):
+Measured (`bun scripts/cards-bands.ts fivehands --seeds=200`, room seeds 0–199; the bots weigh the steep table's draws:
+flush × 3.2, straight × 2.5, ranks × 2):
 
 | Level | Weak | Average | Good | Great | Near-perfect | Elite | Flawless |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | rev 1 median (100 seeds) | 86 | 136 | 150 | 157 | 178 | 192 | 200 |
-| fixed 46 (first try) median | 65 | 130 | 152 | 152 | 173 | 195 | 200 |
-| **per-deck best, median** | **23** (22) | **45** (46) | **56** (58) | **58** (58) | **59** (66) | **73** (73) | **200** |
-| per-deck best, p10–p90 | 7–72 | 18–94 | 21–109 | 24–116 | 26–120 | 36–129 | 200 |
-| per-deck best, mean | 30.6 | 50.2 | 60.3 | 62.6 | 67.3 | 79.3 | 200 |
+| rev 1 p10–p90 | 57–171 | 78–200 | 86–200 | 99–193 | 107–200 | 136–200 | 200 |
+| fixed 46 median | 65 | 130 | 152 | 152 | 173 | 195 | 200 |
+| fixed 46 p10–p90 | 21–173 | 43–200 | 65–200 | 65–200 | 65–200 | 86–200 | 200 |
+| **fixed 49 median (dealt)** | **61** | **122** | **142** | **142** | **163** | **183** | **200** |
+| fixed 49 p10–p90 | 20–163 | 40–200 | 61–200 | 61–200 | 61–200 | 81–200 | 200 |
+| fixed 49 mean | 74.7 | 119.2 | 137.5 | 140.7 | 146.1 | 162.7 | 200 |
+| hand points, median | 15 | 30 | 35 | 35 | 40 | 45 | 95 |
 
-The deck's best: median 125 hand points (p10 85, p90 160). The best was beaten in **0** bot runs (it is the exact
-maximum; cards-check also plays 120 bot runs and 1,280 hill-climb restarts against it).
+Fresh seeds (10000–10199) on 49 give the same medians (61, 122, 142, 142, 163, 183, 200); near-perfect p10–p90 81–200,
+elite 102–200.
 
-**Why the aims are not met.** A player's hand points barely follow the deck's best: the correlation over 200 decks is
-0.20 (weak), 0.31 (average), 0.24 (good), 0.12 (great), 0.23 (near-perfect), 0.35 (elite). The best is reached only by
-knowing the whole deck in advance; a real player places each card before seeing the rest, and what the steep table
-pays for (straights, flushes, full houses) depends on which cards turn up when, not on how rich the deck is overall.
-Near-perfect players reach about 31 % of their deck's best (p10 13 %, p90 62 %). So dividing by the best keeps the
-spread (near-perfect p10–p90 26–120) and drops every level to under 80. Dividing by a realistic player's own result on
-the same deck (a no-error sight player, or the rollout planner) was tried as well: the correlations stay at 0.2–0.5 and
-the spread is no smaller. The deal-dependence Joe saw comes from the steep table and in-run luck, not from deck richness.
+**The deal matters a lot at the top (reported as asked).** With the steep table a run's score is decided mostly by
+whether the deck brings the cards for a straight, a flush or a full house: the near-perfect level's p10–p90 is 61–200
+and the elite's 81–200, so on a thin deck even very good placement scores 60–80, and on a rich one an average player can
+reach 200. Better play still scores clearly higher on average (means rise 75 → 119 → 138 → 141 → 146 → 163 → 200).
+Good and great share a median (35 hand points, the 5-point steps); their means differ. In a room everyone has the same
+deck, so the ranking between players is still fair; only scores between different rounds swing with the deal.
 
+
+A new Arcade game in the Cards & Board group (`src/lib/duel/arcadeGroups.ts`), born on the standard: `fivehands`,
+60 s run (63 s round clock). Sim `src/lib/arcade/cards/fiveHands.ts`, art `fiveHands.renderer.ts` (the shared card
+renderer and felt), stage `src/puzzles/fiveHands.tsx`, replay `replayFiveHandsRun` (`src/lib/duel/cards.ts`).
 
 ## Rules
 
