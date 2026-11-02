@@ -79,6 +79,10 @@ const STANDARD_ROSTER: readonly { type: string; field: string; rev: number; batc
   { type: "fivehands", field: "fiveHandsRev", rev: 2, batch: "Cards" },
   // Bastion (1 Nov 2026): the tank-defence shooter, born on the standard at bastionRev 2 (the original was unstamped).
   { type: "bastion", field: "bastionRev", rev: 2, batch: "Action" },
+  // Pyramid, Golf Solitaire and Muggins (1 Nov 2026): born on the standard.
+  { type: "pyramid", field: "pyramidRev", rev: 1, batch: "Cards" },
+  { type: "golfsol", field: "golfSolRev", rev: 1, batch: "Cards" },
+  { type: "muggins", field: "mugginsRev", rev: 1, batch: "Cards" },
   // The Sports group (30 Oct 2026): on the standard from their first stamp.
   { type: "minigolf", field: "golfRev", rev: 2, batch: "Sports" }, // golfRev 2 (crazy golf, 31 Oct 2026); golfRev 1 was on the standard too
   { type: "pool", field: "poolRev", rev: 3, batch: "Sports" },

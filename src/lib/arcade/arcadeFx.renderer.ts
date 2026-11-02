@@ -258,6 +258,10 @@ export const ARCADE_FX_TEXT_COLOURS: Record<string, { fill: string; outline: str
   fivehands: { fill: "#F2C75C", outline: "#0A1736" },
   // Bastion (1 Nov 2026): warm dusk white over a dark battlefield.
   bastion: { fill: "#FFE7B8", outline: "#140A12" },
+  pyramid: { fill: "#F2C75C", outline: "#0A1736" },
+  golfsol: { fill: "#F2C75C", outline: "#0A1736" },
+  // Muggins: the baize's gold on deep green.
+  muggins: { fill: "#F2C75C", outline: "#062012" },
   // Sports (30 Oct 2026): flag-pin white on the night terrace, pocket chrome on the cloth, the gold of your handles.
   minigolf: { fill: "#F4F1E4", outline: "#0E1A10" },
   pool: { fill: "#FFE7A8", outline: "#0B1A12" },

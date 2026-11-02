@@ -30,6 +30,9 @@ export const DESKTOP_KEYS: Partial<Record<PuzzleType, readonly (readonly [string
   tripeaks: [["Click", "play a card"], ["Space / S", "turn the stock"]],
   pokersquares: [["Click", "place the card"]],
   fivehands: [["Click", "place your card in a row"]],
+  pyramid: [["Click", "pick a card or pile"], ["↶ / ⟲", "undo / reset"]],
+  golfsol: [["Click", "play a column"], ["1–7", "play a column"], ["Space / S", "draw"]],
+  muggins: [["Click", "pick a tile, then an end"], ["D", "draw"]],
   blockfall: [["← →", "move"], ["↑", "turn"], ["Space", "drop"], ["C", "hold"]],
   alleyroll: [["← →", "line up"], ["↑ ↓", "aim"], ["Hold Space", "power, let go to roll"]],
   // Sports

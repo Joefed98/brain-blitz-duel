@@ -38,3 +38,14 @@ Both are working names; Joe may rename either (`src/lib/duel/gameNames.ts`; ids 
 The art (the battlefield, tanks and HUD drawn in code, `src/lib/arcade/bastionTank.renderer.ts`), the wave schedule,
 rules and scoring (`docs/arcade-standard/bastion.md`) are original; no third-party art, fonts beyond the self-hosted OFL
 set, or sounds beyond the existing library.
+
+## Added 1 Nov 2026: Pyramid, Golf Solitaire and Muggins (Cards & Board)
+
+| Shown as | Id | Genre (generic description) | Name chosen to avoid | To check |
+| --- | --- | --- | --- | --- |
+| Pyramid | `pyramid` | patience: pairs adding to 13 from a 28-card pyramid | — | "Pyramid" is the traditional patience's common name; check for marks covering it as a game name in classes 9 / 28 / 41 |
+| Golf Solitaire | `golfsol` | patience: one up or down onto a single foundation from seven columns | — | "Golf" / "Golf Solitaire" is the traditional patience's common name; check for marks covering it in classes 9 / 28 / 41 |
+| Muggins | `muggins` | solo dominoes: open ends adding to multiples of five score (also called "All Fives") | — | "Muggins" is the traditional dominoes game's common name; check for marks covering it in classes 9 / 28 / 41 |
+
+The cards and tiles are drawn in code (no deck, font or artwork copied); the rules are the traditional games', with the
+app's own timing and scoring.

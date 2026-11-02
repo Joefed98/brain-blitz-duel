@@ -116,6 +116,9 @@ const { tripeaksArt } = await import("../src/lib/arcade/cards/tripeaks.renderer"
 const { pokerSquaresArt } = await import("../src/lib/arcade/cards/pokerSquares.renderer");
 const { bastionTankArtGame } = await import("../src/lib/arcade/bastionTank.renderer");
 const { fiveHandsArt } = await import("../src/lib/arcade/cards/fiveHands.renderer");
+const { pyramidArt } = await import("../src/lib/arcade/cards/pyramid.renderer");
+const { golfSolArt } = await import("../src/lib/arcade/cards/golfSol.renderer");
+const { mugginsArt } = await import("../src/lib/arcade/cards/muggins.renderer");
 const { blockfallArt } = await import("../src/lib/arcade/blockfall.renderer");
 const { alleyRollArt } = await import("../src/lib/arcade/alleyroll.renderer");
 const { BF_CORE_FULL } = await import("../src/lib/arcade/blockfall");
@@ -186,6 +189,9 @@ const GAMES: Record<string, AnyGame> = {
   tripeaks: tripeaksArt as AnyGame,
   pokersquares: pokerSquaresArt as AnyGame,
   fivehands: fiveHandsArt as AnyGame,
+  pyramid: pyramidArt as AnyGame,
+  golfsol: golfSolArt as AnyGame,
+  muggins: mugginsArt as AnyGame,
   // Blockfall (Retro) and Alley Roll (Sports), 1 Nov 2026.
   blockfall: blockfallArt as AnyGame,
   alleyroll: alleyRollArt as AnyGame,
@@ -576,6 +582,20 @@ const BUMPS: Record<string, ((s: any) => any)[]> = {
     (s) => ({ ...s, rows: [[1, 14], ...s.rows.slice(1)], lastRow: 0 }),
     // Five rows of four of a kind (75 hand points): the core's full figure reached.
     (s) => ({ ...s, rows: Array.from({ length: 5 }, (_, r) => [r, 13 + r, 26 + r, 39 + r, 5 + r]) }),
+  ],
+  pyramid: [
+    (s) => ({ ...s, ppPairs: s.ppPairs + 1, lastA: 21, lastB: 22 }),
+    (s) => ({ ...s, kings: s.kings + 1, lastA: 23, lastB: -1 }),
+    (s) => ({ ...s, ended: 1 }),
+  ],
+  golfsol: [
+    (s) => ({ ...s, runs: s.runs + 1, run: 5 }),
+    (s) => ({ ...s, ended: 1 }),
+  ],
+  muggins: [
+    (s) => ({ ...s, points: s.points + 10, lastScore: 10 }),
+    (s) => ({ ...s, bigs: s.bigs + 1, points: s.points + 15, lastScore: 15 }),
+    (s) => ({ ...s, ended: 1 }),
   ],
   // Blockfall: two rows at once, then four, then the core's full lines.
   blockfall: [

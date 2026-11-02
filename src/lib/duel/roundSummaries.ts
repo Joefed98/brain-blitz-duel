@@ -135,6 +135,9 @@ import {
   TRIPEAKS_TIME_MS,
   POKERSQUARES_TIME_MS,
   FIVEHANDS_TIME_MS,
+  PYRAMID_TIME_MS,
+  GOLFSOL_TIME_MS,
+  MUGGINS_TIME_MS,
   BLOCKFALL_TIME_MS,
   ALLEYROLL_TIME_MS,
 } from "./types";
@@ -168,6 +171,9 @@ const DIRECT_LIMITS: Partial<Record<PuzzleType, number>> = {
   tripeaks: TRIPEAKS_TIME_MS,
   pokersquares: POKERSQUARES_TIME_MS,
   fivehands: FIVEHANDS_TIME_MS,
+  pyramid: PYRAMID_TIME_MS,
+  golfsol: GOLFSOL_TIME_MS,
+  muggins: MUGGINS_TIME_MS,
   blockfall: BLOCKFALL_TIME_MS,
   alleyroll: ALLEYROLL_TIME_MS,
   minigolf: MINIGOLF_TIME_MS,
@@ -1164,6 +1170,30 @@ const fiveHandsSummary: SummaryBuilder = (result) => {
   };
 };
 
+const pyramidSummary: SummaryBuilder = (result) => {
+  const n = (key: string) => Number(result.extra?.[key] ?? 0);
+  return {
+    summary: `${n("removed")} of 28 removed · ${Math.min(10, n("ppPairs"))} of 10 pyramid pairs`,
+    detail: [result.extra?.["finished"] ? `Cleared in ${n("finishSeconds").toFixed(1)} s` : "Not cleared"],
+  };
+};
+
+const golfSolSummary: SummaryBuilder = (result) => {
+  const n = (key: string) => Number(result.extra?.[key] ?? 0);
+  return {
+    summary: `${n("cleared")} of 35 cleared · ${Math.min(5, n("runs"))} of 5 runs`,
+    detail: [result.extra?.["finished"] ? `Cleared in ${n("finishSeconds").toFixed(1)} s` : `${n("stockLeft")} left in the stock`],
+  };
+};
+
+const mugginsSummary: SummaryBuilder = (result) => {
+  const n = (key: string) => Number(result.extra?.[key] ?? 0);
+  return {
+    summary: `${n("points")} points · ${Math.min(2, n("bigs"))} of 2 big plays`,
+    detail: [result.extra?.["finished"] ? `Hand cleared in ${n("finishSeconds").toFixed(1)} s` : `${n("handLeft")} tiles left in hand`],
+  };
+};
+
 const blockfallSummary: SummaryBuilder = (result) => {
   const n = (key: string) => Number(result.extra?.[key] ?? 0);
   const multi = n("doubles") + n("triples") + n("quads");
@@ -1828,6 +1858,9 @@ export const ROUND_SUMMARIES: Record<PuzzleType, SummaryBuilder> = {
   tripeaks: tripeaksSummary,
   pokersquares: pokerSquaresSummary,
   fivehands: fiveHandsSummary,
+  pyramid: pyramidSummary,
+  golfsol: golfSolSummary,
+  muggins: mugginsSummary,
   blockfall: blockfallSummary,
   alleyroll: alleyRollSummary,
   minigolf: minigolfSummary,
@@ -1935,6 +1968,9 @@ export const CORRECT_ANSWERS: Record<PuzzleType, AnswerBuilder> = {
   tripeaks: () => null,
   pokersquares: () => null,
   fivehands: () => null,
+  pyramid: () => null,
+  golfsol: () => null,
+  muggins: () => null,
   blockfall: () => null,
   alleyroll: () => null,
   minigolf: () => null,

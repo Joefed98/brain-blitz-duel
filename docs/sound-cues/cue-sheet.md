@@ -19,15 +19,15 @@ effects ([arcade-effects.md](arcade-effects.md)) so a sound can be written for e
 
 | Category | Silent | Placeholder | Recorded | Total |
 |---|---|---|---|---|
-| game event | 37 | 0 | 446 | 483 |
+| game event | 37 | 0 | 465 | 502 |
 | room moment | 1 | 0 | 34 | 35 |
-| music | 12 | 0 | 100 | 112 |
-| UI tap | 10 | 0 | 28 | 38 |
+| music | 12 | 0 | 103 | 115 |
+| UI tap | 10 | 0 | 30 | 40 |
 | fail sting | 4 | 0 | 37 | 41 |
 | success sting | 3 | 0 | 73 | 76 |
 | ambience | 0 | 1 | 17 | 18 |
 | replay | 0 | 0 | 186 | 186 |
-| **all** | 67 | 1 | 921 | 989 |
+| **all** | 67 | 1 | 945 | 1013 |
 
 ## Silent and placeholder cues
 
@@ -405,6 +405,7 @@ Grouped by game or screen. These are the cues still missing a sound.
 | Free Cell | arcade | yes | music_freecell | `music_freecell` |
 | Full House | arcade | practice only | music_pokersquares | `music_pokersquares` |
 | Gemstone | arcade | yes | music_matchup | `music_matchup` |
+| Golf Solitaire | arcade | yes | music_golfsol | `music_golfsol` |
 | Grappler | arcade | yes | music_swing | `music_swing` |
 | High Rise | arcade | yes | music_skyline | `music_skyline` |
 | Home Run | arcade | yes | music_homerun | `music_homerun` |
@@ -415,8 +416,10 @@ Grouped by game or screen. These are the cues still missing a sound.
 | Mahjong Solitaire | arcade | yes | music_mahjong | `music_mahjong` |
 | Meteor | arcade | yes | music_eatgrow | `music_eatgrow` |
 | Minefield | arcade | yes | music_minesweeper | `music_minesweeper` |
+| Muggins | arcade | practice only | music_muggins | `music_muggins` |
 | Orbit | arcade | yes | music_orbit | `music_orbit` |
 | Pinball | arcade | yes | music_pinball | `music_pinball` |
+| Pyramid | arcade | yes | music_pyramid | `music_pyramid` |
 | Rainbow Bridge | arcade | yes | music_inkbridge | `music_inkbridge` |
 | Rally | arcade | yes | music_rally | `music_rally` |
 | Ricochet | arcade | yes | **none** | `music_ricochet` |
@@ -1470,6 +1473,18 @@ Grouped by game or screen.
 | `arc_gem_star` | Gemstone: A star gem goes off (gem.starBurst.mp3, sound batch 4, volume 0.8) [core.md] |  | 0–5 | recorded sound | `arc_gem_star` | 800 | game event | `arc_gem_star` |
 | `music.matchup` | Gemstone: music_matchup (music_matchup2.mp3, an energetic 150 BPM chiptune loop since 28 Oct 2026) |  | loop | recorded sound | `music_matchup` | 51200 | music | `music_matchup` |
 
+### Golf Solitaire
+
+| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
+|---|---|---|---|---|---|---|---|---|
+| `golfsol.play` | Golf Solitaire: A column's card played to the foundation (a semitone higher each card in the run) [arcade.md] |  | 20–35 | recorded sound | `golfsol.play` | 329 | game event | `golfsol.play` |
+| `golfsol.deal` | Golf Solitaire: A stock card drawn onto the foundation [arcade.md] |  | 5–15 | recorded sound | `golfsol.deal` | 220 | game event | `golfsol.deal` |
+| `golfsol.run` | Golf Solitaire: A run reaches five cards without drawing [arcade.md] |  | 0–5 | recorded sound | `golfsol.run` | 998 | game event | `golfsol.run` |
+| `golfsol.invalid` | Golf Solitaire: A tap refused (a card not one away, an empty stock) [arcade.md] |  | 0–10 | recorded sound | `golfsol.invalid` | 434 | game event | `golfsol.invalid` |
+| `golfsol.clear` | Golf Solitaire: All 35 cards cleared [arcade.md] |  | 0–1 | recorded sound | `golfsol.clear` | 1362 | game event | `golfsol.clear` |
+| `golfsol.shuffle` | Golf Solitaire [cards-solitaire.md] |  | 5–40 (per move) | recorded sound | `golfsol.shuffle` | 1093 | game event | `golfsol.shuffle` |
+| `music.golfsol` | Golf Solitaire: music_golfsol (Summit's bed, music_tripeaks.mp3) |  | loop | recorded sound | `music_golfsol` | 55700 | music | `music_golfsol` |
+
 ### Grappler
 
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
@@ -1616,6 +1631,19 @@ Grouped by game or screen.
 | `minesweeper.unflag` | Minefield: A flag is lifted [batch6-sports-cards.md] |  | 0–10 | recorded sound | `minesweeper.unflag` | 350 | game event | `minesweeper.unflag` |
 | `music.minesweeper` | Minefield: music_minesweeper |  | loop | recorded sound | `music_minesweeper` | 55900 | music | `music_minesweeper` |
 
+### Muggins
+
+| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
+|---|---|---|---|---|---|---|---|---|
+| `muggins.place` | Muggins: A tile laid that scores nothing [arcade.md] |  | 4–12 | recorded sound | `muggins.place` | 359 | UI tap | `muggins.place` |
+| `muggins.score` | Muggins: A tile laid making the ends 5 or 10 [arcade.md] |  | 1–6 | recorded sound | `muggins.score` | 484 | game event | `muggins.score` |
+| `muggins.big` | Muggins: A tile laid making the ends 15 or 20 [arcade.md] |  | 0–3 | recorded sound | `muggins.big` | 1122 | game event | `muggins.big` |
+| `muggins.draw` | Muggins: A tile drawn from the pile [arcade.md] |  | 0–12 | recorded sound | `muggins.draw` | 200 | game event | `muggins.draw` |
+| `muggins.invalid` | Muggins: A play or draw refused [arcade.md] |  | 0–10 | recorded sound | `muggins.invalid` | 300 | game event | `muggins.invalid` |
+| `muggins.clear` | Muggins: The hand emptied [arcade.md] |  | 0–1 | recorded sound | `muggins.clear` | 1806 | game event | `muggins.clear` |
+| `muggins.shuffle` | Muggins [cards-solitaire.md] |  | 5–40 (per move) | recorded sound | `muggins.shuffle` | 1043 | game event | `muggins.shuffle` |
+| `music.muggins` | Muggins: music_muggins (Mahjong's bed, music_mahjong.mp3) |  | loop | recorded sound | `music_muggins` | 48000 | music | `music_muggins` |
+
 ### Orbit
 
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
@@ -1652,6 +1680,20 @@ Grouped by game or screen.
 | `pinball.spinner` | Pinball: The spinner turns [arcade.md] |  | 5–30 | recorded sound | `pinball.spinner` | 50 | game event | `pinball.spinner` |
 | `pinball.flipper` | Pinball: A flipper is raised (each side once per press) [arcade.md] |  | 50–150 | recorded sound | `pinball.flipper` | 50 | UI tap | `pinball.flipper` |
 | `music.pinball` | Pinball (arcade): music_rally (borrowed from Rally) |  | loop | recorded sound | `music_pinball` | 60000 | music | `music_pinball` |
+
+### Pyramid
+
+| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
+|---|---|---|---|---|---|---|---|---|
+| `pyramid.pair` | Pyramid: Two cards adding to 13 removed (pyramid or waste) [arcade.md] |  | 8–14 | recorded sound | `pyramid.pair` | 406 | game event | `pyramid.pair` |
+| `pyramid.king` | Pyramid: A King removed alone [arcade.md] |  | 0–4 | recorded sound | `pyramid.king` | 329 | game event | `pyramid.king` |
+| `pyramid.deal` | Pyramid: A stock card turned onto the waste [arcade.md] |  | 10–60 | recorded sound | `pyramid.deal` | 220 | game event | `pyramid.deal` |
+| `pyramid.invalid` | Pyramid: A tap refused (a covered card, a pair not adding to 13, an empty stock) [arcade.md] |  | 0–10 | recorded sound | `pyramid.invalid` | 434 | game event | `pyramid.invalid` |
+| `pyramid.clear` | Pyramid: All 28 pyramid cards removed [arcade.md] |  | 0–1 | recorded sound | `pyramid.clear` | 1666 | game event | `pyramid.clear` |
+| `pyramid.shuffle` | Pyramid [cards-solitaire.md] |  | 5–40 (per move) | recorded sound | `pyramid.shuffle` | 1093 | game event | `pyramid.shuffle` |
+| `pyramid.select` | Pyramid [cards-solitaire.md] |  | 5–40 (per move) | recorded sound | `pyramid.select` | 334 | UI tap | `pyramid.select` |
+| `pyramid.turn` | Pyramid [cards-solitaire.md] |  | 5–40 (per move) | recorded sound | `pyramid.turn` | 1093 | game event | `pyramid.turn` |
+| `music.pyramid` | Pyramid: music_pyramid (Free Cell's bed, music_freecell.mp3) |  | loop | recorded sound | `music_pyramid` | 47400 | music | `music_pyramid` |
 
 ### Rainbow Bridge
 
@@ -2664,6 +2706,30 @@ loops are not measured there). Files in `public/sounds/` are listed once per slo
 | `music_tripeaks` | music | `music.tripeaks` | loop |
 | `music_pokersquares` | music | `music.pokersquares` | loop |
 | `music_fivehands` | music | `music.fivehands` | loop |
+| `pyramid.select` | effects | `pyramid.select` | 334 |
+| `pyramid.pair` | effects | `pyramid.pair` | 406 |
+| `pyramid.king` | effects | `pyramid.king` | 329 |
+| `pyramid.deal` | effects | `pyramid.deal` | 220 |
+| `pyramid.turn` | effects | `pyramid.turn` | 1093 |
+| `pyramid.invalid` | effects | `pyramid.invalid` | 434 |
+| `pyramid.clear` | effects | `pyramid.clear` | 1666 |
+| `pyramid.shuffle` | effects | `pyramid.shuffle` | 1093 |
+| `golfsol.play` | effects | `golfsol.play` | 329 |
+| `golfsol.deal` | effects | `golfsol.deal` | 220 |
+| `golfsol.run` | effects | `golfsol.run` | 998 |
+| `golfsol.invalid` | effects | `golfsol.invalid` | 434 |
+| `golfsol.clear` | effects | `golfsol.clear` | 1362 |
+| `golfsol.shuffle` | effects | `golfsol.shuffle` | 1093 |
+| `muggins.place` | effects | `muggins.place` | 359 |
+| `muggins.score` | effects | `muggins.score` | 484 |
+| `muggins.big` | effects | `muggins.big` | 1122 |
+| `muggins.draw` | effects | `muggins.draw` | 200 |
+| `muggins.invalid` | effects | `muggins.invalid` | 300 |
+| `muggins.clear` | effects | `muggins.clear` | 1806 |
+| `muggins.shuffle` | effects | `muggins.shuffle` | 1043 |
+| `music_pyramid` | music | `music.pyramid` | loop |
+| `music_golfsol` | music | `music.golfsol` | loop |
+| `music_muggins` | music | `music.muggins` | loop |
 | `alleyroll.rolling` | effects | `alleyroll.rolling` | 1375 |
 | `music_blockfall` | music | `music.blockfall` | loop |
 | `music_alleyroll` | music | `music.alleyroll` | loop |

@@ -46,6 +46,7 @@ import { FLIP_REV, type FlipState } from "@/lib/arcade/flip";
 import { at, canvasScene, noText, TILE, type SceneSet } from "./scene";
 import { cardOf } from "@/lib/arcade/cards/cards";
 import { drawCard, paintFelt } from "@/lib/arcade/cards/cards.renderer";
+import { drawDomino, paintBaize } from "@/lib/arcade/cards/muggins.renderer";
 
 
 import { BF_COLOURS, drawBfSquare } from "@/lib/arcade/blockfall.renderer";
@@ -510,6 +511,39 @@ export const ARCADE_SCENES: SceneSet = {
     c.restore();
     [cardOf(2, 4), cardOf(3, 9), cardOf(1, 1), cardOf(0, 6)].forEach((card, k) => drawCard(c, card, 6 + k * 20, 58, 30, 40, { glow: k === 3 ? 0.5 : 0 }));
   }),
+
+  // Pyramid: the pyramid's lower rows with a Queen and an Ace lit as a pair adding to 13.
+  pyramid: canvasScene((c) => {
+    cardsTable(c);
+    drawCard(c, cardOf(2, 9), 38, 6, 28, 40);
+    drawCard(c, cardOf(3, 4), 22, 24, 28, 40);
+    drawCard(c, cardOf(0, 10), 54, 24, 28, 40);
+    drawCard(c, cardOf(1, 12), 6, 44, 28, 40, { glow: 1 });
+    drawCard(c, cardOf(3, 7), 38, 44, 28, 40);
+    drawCard(c, cardOf(0, 1), 70, 44, 28, 40, { glow: 1 });
+  }),
+
+  // Golf Solitaire: three fanned columns and a run climbing onto the foundation.
+  golfsol: canvasScene((c) => {
+    cardsTable(c);
+    [[cardOf(0, 3), cardOf(2, 11), cardOf(1, 6)], [cardOf(3, 9), cardOf(1, 2)], [cardOf(2, 13), cardOf(0, 5), cardOf(3, 8)]].forEach((col, x) =>
+      col.forEach((card, d) => drawCard(c, card, 6 + x * 32, 6 + d * 16, 28, 40, { glow: d === col.length - 1 && x === 1 ? 0.9 : 0 })),
+    );
+    drawCard(c, cardOf(1, 3), 60, 58, 36, 40, { glow: 0.5 });
+  }),
+
+  // Muggins: cream dominoes on the baize, a double standing crosswise, the line's ends adding to 15.
+  muggins: canvasScene((c) => {
+    paintBaize(c, 104, 104);
+    c.fillStyle = "rgba(0,0,0,0.3)";
+    c.fillRect(0, 0, 104, 104);
+    drawDomino(c, 6, 28, 30, 15, 2, 5);
+    drawDomino(c, 37, 20, 15, 30, 5, 5, { glow: 0.9 });
+    drawDomino(c, 53, 28, 30, 15, 5, 3);
+    drawDomino(c, 30, 62, 18, 36, 6, 4);
+    drawDomino(c, 54, 62, 18, 36, 1, 3);
+  }),
+
   // Blockfall: a few of its glass squares stacked low with one gap, a piece turned over it and its dashed ghost below.
   blockfall: canvasScene((c) => {
     const q = 16;

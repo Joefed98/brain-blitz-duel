@@ -20,7 +20,7 @@ import { replayMahjongRun } from "../src/lib/duel/mahjong";
 import { replayHomerunRun } from "../src/lib/duel/homerun";
 import { replayFreekickRun } from "../src/lib/duel/freekick";
 import { replayRacingRun } from "../src/lib/duel/racing";
-import { replayFiveHandsRun, replayFreecellRun, replayPokerSquaresRun, replayTripeaksRun } from "../src/lib/duel/cards";
+import { replayFiveHandsRun, replayFreecellRun, replayGolfSolRun, replayMugginsRun, replayPokerSquaresRun, replayPyramidRun, replayTripeaksRun } from "../src/lib/duel/cards";
 import { replayRallyRun } from "../src/lib/duel/rally";
 import { replaySliceRun } from "../src/lib/duel/slice";
 import { replayBubbleRun } from "../src/lib/duel/bubble";
@@ -75,6 +75,9 @@ const TABLE: Record<string, (p: any, a: string) => ServerReplay> = {
   ricochet: (p, a) => (isNinjaRev(p.ricoRev) ? replayNinjaRun(p.seed, a) : replayRicoRun(p.seed, a)),
   // Bastion: bastionRev 2's tank game; the original turret for unstamped rounds.
   bastion: (p, a) => (isBastionTank(p.bastionRev) ? replayBastionTankRun(p.seed, a) : replayBastionRun(p.seed, a)),
+  pyramid: (p, a) => replayPyramidRun(p.seed, a, p.pyramidRev),
+  golfsol: (p, a) => replayGolfSolRun(p.seed, a, p.golfSolRev),
+  muggins: (p, a) => replayMugginsRun(p.seed, a, p.mugginsRev),
   rally: (p, a) => replayRallyRun(p.seed, a, p.rallyRev),
   slice: (p, a) => replaySliceRun(p.seed, a, p.sliceRev),
   bubble: (p, a) => replayBubbleRun(p.seed, a, p.bubbleRev),

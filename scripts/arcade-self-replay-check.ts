@@ -163,6 +163,10 @@ import { fcCheckpoint, freecellGame, freecellGameFor } from "@/lib/arcade/cards/
 import { tpCheckpoint, tripeaksGame } from "@/lib/arcade/cards/tripeaks";
 import { psCheckpoint, pokerSquaresGame, pokerSquaresGameFor } from "@/lib/arcade/cards/pokerSquares";
 import { fhCheckpoint, fiveHandsGame, fiveHandsGameFor } from "@/lib/arcade/cards/fiveHands";
+import { pyCheckpoint, pyramidGame } from "@/lib/arcade/cards/pyramid";
+import { gsCheckpoint, golfSolGame } from "@/lib/arcade/cards/golfSol";
+import { mgCheckpoint, mugginsGame } from "@/lib/arcade/cards/muggins";
+import { encodeGolfSolRun, encodeMugginsRun, encodePyramidRun, replayGolfSolRun, replayMugginsRun, replayPyramidRun } from "@/lib/duel/cards";
 import { bfCheckpoint, blockfallGame } from "@/lib/arcade/blockfall";
 import { arCheckpoint, alleyRollGame } from "@/lib/arcade/alleyroll";
 import { encodeBlockfallRun, replayBlockfallRun } from "@/lib/duel/blockfall";
@@ -927,6 +931,11 @@ const GAMES: Game[] = [
   },
   // Grappler swingRev 16 (1 Nov 2026: the dark ledge runs, 90 s, a longer course), appended so every earlier entry keeps its index.
   { key: "swing/dark", game: swingGameFor(SWING_REV_DARK), checkpoint: swingCheckpoint, mode: "events", rate: 30, encode: encodeSwingRun, replay: (seed: number, raw: string) => replaySwingRun(seed, raw, SWING_REV_DARK) },
+  // Pyramid pyramidRev 1, Golf Solitaire golfSolRev 1 and Muggins mugginsRev 1 (1 Nov 2026), appended so every earlier
+  // entry keeps its index: random taps, plays, draws, Undos and Resets.
+  { key: "pyramid", game: pyramidGame, checkpoint: pyCheckpoint, mode: "events", rate: 80, encode: encodePyramidRun, replay: (seed: number, raw: string) => replayPyramidRun(seed, raw, 1) },
+  { key: "golfsol", game: golfSolGame, checkpoint: gsCheckpoint, mode: "events", rate: 80, encode: encodeGolfSolRun, replay: (seed: number, raw: string) => replayGolfSolRun(seed, raw, 1), seedFor: (n: number) => n % 300 },
+  { key: "muggins", game: mugginsGame, checkpoint: mgCheckpoint, mode: "events", rate: 60, encode: encodeMugginsRun, replay: (seed: number, raw: string) => replayMugginsRun(seed, raw, 1) },
 ];
 
 /** A random candidate event, often outside the declared range (a finger off the edge). */

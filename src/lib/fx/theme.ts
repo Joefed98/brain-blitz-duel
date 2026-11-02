@@ -112,6 +112,9 @@ const WORLD_MUSIC: Partial<Record<PuzzleType, SoundId>> = {
   tripeaks: "music_matchup",
   pokersquares: "music_matchup",
   fivehands: "music_matchup",
+  pyramid: "music_matchup",
+  golfsol: "music_matchup",
+  muggins: "music_matchup",
   // Blockfall and Alley Roll (1 Nov 2026): their own slots, on borrowed tracks (manifest.ts).
   blockfall: "music_blockfall",
   alleyroll: "music_alleyroll",

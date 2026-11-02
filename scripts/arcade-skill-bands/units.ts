@@ -32,6 +32,9 @@ import { freecellBandParts } from "../../src/lib/arcade/cards/freecell";
 import { tripeaksBandParts } from "../../src/lib/arcade/cards/tripeaks";
 import { pokerSquaresBandParts } from "../../src/lib/arcade/cards/pokerSquares";
 import { fiveHandsBandParts } from "../../src/lib/arcade/cards/fiveHands";
+import { pyramidBandParts } from "../../src/lib/arcade/cards/pyramid";
+import { golfSolBandParts } from "../../src/lib/arcade/cards/golfSol";
+import { mugginsBandParts } from "../../src/lib/arcade/cards/muggins";
 import { blockfallBandParts } from "../../src/lib/arcade/blockfall";
 import { alleyRollBandParts } from "../../src/lib/arcade/alleyroll";
 import { stdBandParts } from "../../src/lib/arcade/arcadeStandard";
@@ -77,6 +80,9 @@ export const BAND_PARTS: Record<string, (s: any) => BandParts> = {
   tripeaks: tripeaksBandParts,
   pokersquares: pokerSquaresBandParts,
   fivehands: fiveHandsBandParts,
+  pyramid: pyramidBandParts,
+  golfsol: golfSolBandParts,
+  muggins: mugginsBandParts,
   blockfall: blockfallBandParts,
   alleyroll: alleyRollBandParts,
   ricochet: ninjaBandParts,

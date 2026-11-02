@@ -90,6 +90,9 @@ replay exactly as before; standard-live-check grades every stored arcade run thr
 | Full House | `pokersquares` | `pokerSquaresRev` 2 | Cards & Board | [pokersquares.md](pokersquares.md) |
 | Five Hands | `fivehands` | `fiveHandsRev` 2 (1 for stored rounds) | Cards & Board | [fivehands.md](fivehands.md) |
 | Bastion | `bastion` | `bastionRev` 2 | Action | [bastion.md](bastion.md) |
+| Pyramid | `pyramid` | `pyramidRev` 1 | Cards & Board | [pyramid.md](pyramid.md) |
+| Golf Solitaire | `golfsol` | `golfSolRev` 1 | Cards & Board | [golfsol.md](golfsol.md) |
+| Muggins | `muggins` | `mugginsRev` 1 | Cards & Board | [muggins.md](muggins.md) |
 | Crazy Golf (was Minigolf) | `minigolf` | `golfRev` 2 (1 for stored rounds) | Sports | [minigolf.md](minigolf.md) |
 | Cue Ball (was Speed Pool) | `pool` | `poolRev` 3 (2 and 1 for stored rounds) | Sports | [pool.md](pool.md) |
 | Curl Champ (was Curling) | `curling` | `curlRev` 3 (1 and 2 for stored rounds) | Sports | [curling.md](curling.md) |
@@ -399,3 +402,13 @@ of 10), scrolls 20 (5 each of 4) = 200. Unstamped Ricochet rounds keep the old b
 score exactly. Every tower is dealt in the sim with a witness route proved through the real step (all 74 items, no
 hit, at least 241 m), so a perfect run reaches 200 on every tower. [ricochet.md](ricochet.md) has the rules, the
 bands and the decisions.
+
+1 Nov 2026: three more, born on the standard at revision 1, with Undo and Reset like Free Cell and Mahjong:
+**Pyramid** (`pyramidRev` 1, 90 s, one pass: pyramid cards 120, cleared 10, speed 50 full by 20 s, pyramid pairs 20;
+deals built so no quick player with no plan clears them), **Golf Solitaire** (`golfsol`, `golfSolRev` 1, 75 s: cards
+140, all cleared 20, speed 20 full by 15 s, runs of four 20; a bank a strong human line clears) and **Muggins**
+(`mugginsRev` 1, 90 s solo dominoes: points 150 full at 55, hand cleared 20, speed 20 full by 19 s, big plays 10; a draw
+is final and only the pile's next tile is face up). cards-solitaire-check proves every dealt deal reaches 200 through the server's
+replay. Muggins is practice only since 2 Nov 2026 (Joe's decision: its good, great and near-perfect medians, 146, 141
+and 141, don't rise with skill); stored rounds replay and grade as before.
+

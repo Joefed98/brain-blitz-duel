@@ -84,6 +84,7 @@ import { decodeRooftopRun, replayRooftopRun } from "./rooftop";
 import { decodeFlipRun, replayFlipRun } from "./flip";
 import {
   decodeFiveHandsRun, decodeFreecellRun, decodePokerSquaresRun, decodeTripeaksRun, replayFiveHandsRun, replayFreecellRun, replayPokerSquaresRun, replayTripeaksRun,
+  decodeGolfSolRun, decodeMugginsRun, decodePyramidRun, replayGolfSolRun, replayMugginsRun, replayPyramidRun,
 } from "./cards";
 import { decodeBlockfallRun, replayBlockfallRun } from "./blockfall";
 import { decodeAlleyRollRun, replayAlleyRollRun } from "./alleyroll";
@@ -1740,6 +1741,95 @@ function gradeUnderRev(
         desyncTick: run.desyncTick,
         inputs: decodeFiveHandsRun(answer).events.length,
         claimedScore: decodeFiveHandsRun(answer).claimedScore,
+        ...(run.reason ? { reason: run.reason } : {}),
+      };
+      break;
+    }
+    // Pyramid (1 Nov 2026): the deal is built from the stored seed and the run replayed; only that scores.
+    case "pyramid": {
+      const replayStart = performance.now();
+      const run = replayPyramidRun(puzzle.seed, answer, puzzle.pyramidRev);
+      revealRun = run;
+      arcadeDiag = buildArcadeDiag(puzzle.type, run, answer, performance.now() - replayStart);
+      isCorrect = run.finished;
+      correctCount = run.removed;
+      score = run.score;
+      extraDetail = {
+        pyramidRev: puzzle.pyramidRev ?? 1,
+        removed: run.removed,
+        ppPairs: run.ppPairs,
+        kings: run.kings,
+        finished: run.finished,
+        finishSeconds: run.finishSeconds,
+        undos: run.undos,
+        resets: run.resets,
+        endedSeconds: run.endedSeconds,
+        flagged: run.flagged,
+        clientLag: run.clientLag,
+        clientTick: run.clientTick,
+        desyncTick: run.desyncTick,
+        inputs: decodePyramidRun(answer).events.length,
+        claimedScore: decodePyramidRun(answer).claimedScore,
+        ...(run.reason ? { reason: run.reason } : {}),
+      };
+      break;
+    }
+    // Golf Solitaire (1 Nov 2026): the bank deal is the stored seed; the run is replayed and only that scores.
+    case "golfsol": {
+      const replayStart = performance.now();
+      const run = replayGolfSolRun(puzzle.seed, answer, puzzle.golfSolRev);
+      revealRun = run;
+      arcadeDiag = buildArcadeDiag(puzzle.type, run, answer, performance.now() - replayStart);
+      isCorrect = run.finished;
+      correctCount = run.cleared;
+      score = run.score;
+      extraDetail = {
+        golfSolRev: puzzle.golfSolRev ?? 1,
+        cleared: run.cleared,
+        runs: run.runs,
+        bestRun: run.bestRun,
+        stockLeft: run.stockLeft,
+        finished: run.finished,
+        finishSeconds: run.finishSeconds,
+        undos: run.undos,
+        resets: run.resets,
+        endedSeconds: run.endedSeconds,
+        flagged: run.flagged,
+        clientLag: run.clientLag,
+        clientTick: run.clientTick,
+        desyncTick: run.desyncTick,
+        inputs: decodeGolfSolRun(answer).events.length,
+        claimedScore: decodeGolfSolRun(answer).claimedScore,
+        ...(run.reason ? { reason: run.reason } : {}),
+      };
+      break;
+    }
+    // Muggins (1 Nov 2026): the tiles are dealt from the stored seed and the run replayed; only that scores.
+    case "muggins": {
+      const replayStart = performance.now();
+      const run = replayMugginsRun(puzzle.seed, answer, puzzle.mugginsRev);
+      revealRun = run;
+      arcadeDiag = buildArcadeDiag(puzzle.type, run, answer, performance.now() - replayStart);
+      isCorrect = run.finished;
+      correctCount = run.plays;
+      score = run.score;
+      extraDetail = {
+        mugginsRev: puzzle.mugginsRev ?? 1,
+        points: run.points,
+        bigs: run.bigs,
+        plays: run.plays,
+        handLeft: run.handLeft,
+        finished: run.finished,
+        finishSeconds: run.finishSeconds,
+        undos: run.undos,
+        resets: run.resets,
+        endedSeconds: run.endedSeconds,
+        flagged: run.flagged,
+        clientLag: run.clientLag,
+        clientTick: run.clientTick,
+        desyncTick: run.desyncTick,
+        inputs: decodeMugginsRun(answer).events.length,
+        claimedScore: decodeMugginsRun(answer).claimedScore,
         ...(run.reason ? { reason: run.reason } : {}),
       };
       break;

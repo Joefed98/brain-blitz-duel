@@ -4,6 +4,7 @@ import { FC_CORE_UNITS_V3 } from "@/lib/arcade/cards/freecell";
 import { BF_CORE_FULL } from "@/lib/arcade/blockfall";
 import { AR_CORE_FULL } from "@/lib/arcade/alleyroll";
 import { NINJA_CORE_FULL_M } from "@/lib/arcade/ricochetNinja";
+import { MG_CORE_FULL } from "@/lib/arcade/cards/muggins";
 import { BULLSEYE_INNER_BULL_POINTS, BULLSEYE_RING_VALUES } from "@/lib/arcade/bullseye";
 import { BINTOSS_THROWS, BINTOSS_V9_BUCKET, BINTOSS_V9_FAR, BINTOSS_V9_FINISH, BINTOSS_V9_HOOP } from "@/lib/arcade/binToss";
 import { INK_LEVELS, INK_V12_CORE_MAX } from "@/lib/arcade/inkBridge";
@@ -137,6 +138,9 @@ function introScoreTemplates(): Record<PuzzleType, string> {
     fivehands: `Hand points to {max}, full at ${FH_CORE_FULL_V2}. Pair 5, two pair 10 … straight flush 75.`,
     blockfall: `Lines 140 (full at ${BF_CORE_FULL}); multi-line clears 40; a low stack at the buzzer 20. Together {max}.`,
     alleyroll: `Ring points 150 (full at ${AR_CORE_FULL}); 100 pockets 30; hot streak 20. Together {max}.`,
+    pyramid: "Cards 120; cleared 10 and speed 50; pyramid pairs 20 (2 each). Together {max}.",
+    golfsol: "Cards 140; all cleared 20 and speed 20; runs of four 20 (4 each). Together {max}.",
+    muggins: `Points 150 (full at ${MG_CORE_FULL}); hand cleared 20 and speed 20; big plays 10. Together {max}.`,
     bubble: "Bubbles cleared, a fast clear, falling chests, bank shots and combos. Up to {max}.",
     slice: "Food 120, combos 40, gold fruit 20, tickets 10, dodges 10. Chilli: lose 10. Up to {max}.",
     beat: "Notes hit in time, fevers, golden notes, double taps and a Perfect streak. Up to {max}.",

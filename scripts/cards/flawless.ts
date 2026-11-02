@@ -65,3 +65,29 @@ export function fiveHandsFlawless(seed: number, gap = 20, rev = 1): { raw: strin
   const taps = fhDeal(seed, rev).witnessTaps.map((row) => ({ k: FH_INPUT_PLACE, a: row, b: 0, c: 0, d: 0 }));
   return play(fiveHandsGameFor(rev), seed, taps, gap, fhCheckpoint, FH_CHECKPOINT_INTERVAL, encodeFiveHandsRun);
 }
+
+/* Pyramid, Golf Solitaire and Muggins (1 Nov 2026). */
+import { PY_CHECKPOINT_INTERVAL, PY_INPUT_TAP, pyCheckpoint, pyDeal, pyramidGame, type PyState } from "../../src/lib/arcade/cards/pyramid";
+import { GS_CHECKPOINT_INTERVAL, GS_INPUT_TAP, gsCheckpoint, golfSolGame, type GsState } from "../../src/lib/arcade/cards/golfSol";
+import { MG_CHECKPOINT_INTERVAL, MG_INPUT_DRAW, MG_INPUT_PLAY, mgCheckpoint, mgDeal, mugginsGame, type MgState } from "../../src/lib/arcade/cards/muggins";
+import { encodeGolfSolRun, encodeMugginsRun, encodePyramidRun } from "../../src/lib/duel/cards";
+import { golfSolSolution } from "./solutions";
+
+/** Pyramid seed: the deal's witness (a clear with ten pyramid pairs), a tap every `gap` ticks. */
+export function pyramidFlawless(seed: number, gap = 15): { raw: string; state: PyState } {
+  const taps = pyDeal(seed).witness.map((a) => ({ k: PY_INPUT_TAP, a, b: 0, c: 0, d: 0 }));
+  return play(pyramidGame, seed, taps, gap, pyCheckpoint, PY_CHECKPOINT_INTERVAL, encodePyramidRun);
+}
+
+/** Golf Solitaire bank deal `seed`: its clearing line (five runs of five), a tap every `gap` ticks. */
+export function golfSolFlawless(seed: number, gap = 15): { raw: string; state: GsState } {
+  const deal = golfSolGame.init(seed).deal;
+  const taps = golfSolSolution(deal).map((a) => ({ k: GS_INPUT_TAP, a, b: 0, c: 0, d: 0 }));
+  return play(golfSolGame, seed, taps, gap, gsCheckpoint, GS_CHECKPOINT_INTERVAL, encodeGolfSolRun);
+}
+
+/** Muggins seed: the deal's witness (plays and the draws they force), one every `gap` ticks. */
+export function mugginsFlawless(seed: number, gap = 20): { raw: string; state: MgState } {
+  const inputs = mgDeal(seed).witness.map(([tile, end]) => (tile < 0 ? { k: MG_INPUT_DRAW, a: 0, b: 0, c: 0, d: 0 } : { k: MG_INPUT_PLAY, a: tile, b: end, c: 0, d: 0 }));
+  return play(mugginsGame, seed, inputs, gap, mgCheckpoint, MG_CHECKPOINT_INTERVAL, encodeMugginsRun);
+}

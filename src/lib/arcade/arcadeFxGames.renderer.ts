@@ -19,6 +19,9 @@ import { FREECELL_FX } from "./cards/freecell.renderer";
 import { TRIPEAKS_FX } from "./cards/tripeaks.renderer";
 import { POKERSQUARES_FX } from "./cards/pokerSquares.renderer";
 import { FIVEHANDS_FX } from "./cards/fiveHands.renderer";
+import { PYRAMID_FX } from "./cards/pyramid.renderer";
+import { GOLFSOL_FX } from "./cards/golfSol.renderer";
+import { MUGGINS_FX } from "./cards/muggins.renderer";
 import { BLOCKFALL_FX } from "./blockfall.renderer";
 import { ALLEYROLL_FX } from "./alleyroll.renderer";
 import { NINJA_FX } from "./ricochetNinja.renderer";
@@ -289,6 +292,9 @@ export const ARCADE_GAME_WORLDS = {
   tripeaks: "cards",
   pokersquares: "cards",
   fivehands: "cards",
+  pyramid: "cards",
+  golfsol: "cards",
+  muggins: "cards",
   // The Sports group (30 Oct 2026): realistic venues.
   minigolf: "realworld",
   // Action (1 Nov 2026): Bastion bastionRev 2, a dusk battlefield.
@@ -309,7 +315,7 @@ export type ArcadeFxGame = keyof typeof ARCADE_GAME_WORLDS;
  * Junction (retired in Tuning C), Scrumper (retired 27 Oct 2026), Full House (retired 1 Nov 2026) and Pinball until PINBALL_IN_ROOMS
  * (pinball.ts) is switched on.
  */
-export const RETIRED_ARCADE_GAMES: readonly ArcadeFxGame[] = PINBALL_IN_ROOMS ? ["junction", "snip", "pokersquares"] : ["junction", "snip", "pokersquares", "pinball"];
+export const RETIRED_ARCADE_GAMES: readonly ArcadeFxGame[] = PINBALL_IN_ROOMS ? ["junction", "snip", "pokersquares", "muggins"] : ["junction", "snip", "pokersquares", "muggins", "pinball"];
 /** The active arcade games (rooms deal these; Pinball joined on 14 Oct 2026 with PINBALL_IN_ROOMS on, Scrumper left on 27 Oct 2026, the three Cards & Board games joined on 30 Oct 2026). */
 export const ACTIVE_ARCADE_GAMES = (Object.keys(ARCADE_GAME_WORLDS) as ArcadeFxGame[]).filter((g) => !RETIRED_ARCADE_GAMES.includes(g));
 
@@ -1800,6 +1806,9 @@ export const ARCADE_FX_SPECS = {
   fivehands: FIVEHANDS_FX,
   ricochet: NINJA_FX,
   bastion: BASTION_FX,
+  pyramid: PYRAMID_FX,
+  golfsol: GOLFSOL_FX,
+  muggins: MUGGINS_FX,
   minigolf: MINIGOLF_FX,
   pool: POOL_FX,
   curling: CURLING_FX,

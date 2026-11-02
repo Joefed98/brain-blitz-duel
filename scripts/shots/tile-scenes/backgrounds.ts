@@ -275,6 +275,10 @@ const ARCADE_BACKGROUNDS: Partial<Record<PuzzleType, TileBackground>> = {
   pokersquares: bg((c) => { vgrad(c, [[0, "#0E2A57"], [1, "#081A38"]]); cloud(c, T / 2, T / 2, 56, "#1A3F7A", 0.3); }, { fade: 0.3, spot: 0.35 }),
   // Five Hands (Cards & Board, 31 Oct 2026): the same blue felt.
   fivehands: bg((c) => { vgrad(c, [[0, "#0E2A57"], [1, "#081A38"]]); cloud(c, T / 2, T / 2, 56, "#1A3F7A", 0.3); }, { fade: 0.3, spot: 0.35 }),
+  // Pyramid and Golf Solitaire (1 Nov 2026): the same blue felt; Muggins its green baize.
+  pyramid: bg((c) => { vgrad(c, [[0, "#0E2A57"], [1, "#081A38"]]); cloud(c, T / 2, T / 2, 56, "#1A3F7A", 0.3); }, { fade: 0.3, spot: 0.35 }),
+  golfsol: bg((c) => { vgrad(c, [[0, "#0E2A57"], [1, "#081A38"]]); cloud(c, T / 2, T / 2, 56, "#1A3F7A", 0.3); }, { fade: 0.3, spot: 0.35 }),
+  muggins: bg((c) => { vgrad(c, [[0, "#0F4A2C"], [1, "#072414"]]); cloud(c, T / 2, T / 2, 56, "#1E7A48", 0.3); }, { fade: 0.3, spot: 0.35 }),
   // Minigolf, Speed Pool and Curling (Sports): their scenes fill the tile with the game's own course, table or sheet;
   // these paint each game's base under them (night turf, the cloth, the ice settling to its far blue).
   minigolf: bg((c) => vgrad(c, [[0, "#0C2216"], [1, "#071510"]]), { fade: 0.2 }),

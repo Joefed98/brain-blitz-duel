@@ -22,6 +22,7 @@ import { psCoreFullFor } from "./cards/pokerSquares";
 import { fhCoreFullFor } from "./cards/fiveHands";
 import { fcCoreUnitsFor } from "./cards/freecell";
 import { NINJA_COINS, NINJA_CORE_FULL_M, NINJA_LANTERNS, NINJA_SCROLLS } from "./ricochetNinja";
+import { MG_CORE_FULL } from "./cards/muggins";
 import { arcadeStdParts } from "./standard";
 
 export interface ArcadeRevealTile {
@@ -205,6 +206,36 @@ const BUILDERS: Record<string, Builder> = {
     outcome: n(r, "placed") === 20 ? "finish" : "time",
     };
   },
+  pyramid: (r, s) => ({
+    axis: { value: n(r, "removed"), max: 28, label: "Pyramid cards" },
+    lines: [`${n(r, "removed")} / 28 removed → ${s}`],
+    tiles: [
+      { label: "Removed", value: `${n(r, "removed")} / 28` },
+      { label: "Pyramid pairs", value: `${Math.min(10, n(r, "ppPairs"))} / 10` },
+      { label: "Time", value: b(r, "finished") ? sec(n(r, "finishSeconds")) : "—" },
+    ],
+    outcome: b(r, "finished") ? "finish" : n(r, "endedSeconds") < 90 ? "crash" : "time",
+  }),
+  golfsol: (r, s) => ({
+    axis: { value: n(r, "cleared"), max: 35, label: "Cards cleared" },
+    lines: [`${n(r, "cleared")} / 35 cleared → ${s}`],
+    tiles: [
+      { label: "Cleared", value: `${n(r, "cleared")} / 35` },
+      { label: "Runs of 5", value: `${Math.min(5, n(r, "runs"))} / 5` },
+      { label: "Time", value: b(r, "finished") ? sec(n(r, "finishSeconds")) : "—" },
+    ],
+    outcome: b(r, "finished") ? "finish" : n(r, "endedSeconds") < 75 ? "crash" : "time",
+  }),
+  muggins: (r, s) => ({
+    axis: { value: n(r, "points"), max: MG_CORE_FULL, label: "Muggins points" },
+    lines: [`${n(r, "points")} points (full at ${MG_CORE_FULL}) → ${s}`],
+    tiles: [
+      { label: "Points", value: String(n(r, "points")) },
+      { label: "Big plays", value: `${Math.min(2, n(r, "bigs"))} / 2` },
+      { label: "Hand", value: b(r, "finished") ? "cleared" : `${n(r, "handLeft")} left` },
+    ],
+    outcome: b(r, "finished") ? "finish" : n(r, "endedSeconds") < 90 ? "crash" : "time",
+  }),
   hover: (r, s) => {
     const done = n(r, "gates") >= n(r, "totalGates") && n(r, "totalGates") > 0;
     // hoverRev 9 (the 200 expansion): the base, then the skill points (tight gates, chains, centre lines).

@@ -50,6 +50,9 @@ import { freecellPuzzle } from "@/puzzles/freecell";
 import { tripeaksPuzzle } from "@/puzzles/tripeaks";
 import { pokerSquaresPuzzle } from "@/puzzles/pokerSquares";
 import { fiveHandsPuzzle } from "@/puzzles/fiveHands";
+import { pyramidPuzzle } from "@/puzzles/pyramid";
+import { golfSolPuzzle } from "@/puzzles/golfSol";
+import { mugginsPuzzle } from "@/puzzles/muggins";
 import { minigolfPuzzle } from "@/puzzles/minigolf";
 import { poolPuzzle } from "@/puzzles/pool";
 import { curlingPuzzle } from "@/puzzles/curling";
@@ -161,6 +164,9 @@ const RETIRED_TYPES = new Set<PuzzleType>([
   "snip",
   // Joe's decision (1 Nov 2026): Full House is practice only; stored rounds replay and grade as before.
   "pokersquares",
+  // Joe's decision (2 Nov 2026): Muggins is practice only at launch (its medians don't rise with skill); stored rounds
+  // replay and grade as before.
+  "muggins",
   // New (13 Oct 2026): practice only until PINBALL_IN_ROOMS (src/lib/arcade/pinball.ts) is switched on.
   ...(PINBALL_IN_ROOMS ? [] : (["pinball"] as const)),
 ]);
@@ -223,6 +229,9 @@ const BASE_REGISTRY: Record<PuzzleType, Omit<PuzzleDefinition, "instructions">> 
   tripeaks: tripeaksPuzzle,
   pokersquares: pokerSquaresPuzzle,
   fivehands: fiveHandsPuzzle,
+  pyramid: pyramidPuzzle,
+  golfsol: golfSolPuzzle,
+  muggins: mugginsPuzzle,
   minigolf: minigolfPuzzle,
   pool: poolPuzzle,
   curling: curlingPuzzle,

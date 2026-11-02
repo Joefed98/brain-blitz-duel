@@ -47,9 +47,13 @@ import { TP_REV } from "@/lib/arcade/cards/tripeaks";
 import { TP_DEALS } from "@/lib/arcade/cards/tripeaksDeals.data";
 import { PS_REV } from "@/lib/arcade/cards/pokerSquares";
 import { FH_REV } from "@/lib/arcade/cards/fiveHands";
+import { PY_REV } from "@/lib/arcade/cards/pyramid";
+import { GS_REV } from "@/lib/arcade/cards/golfSol";
+import { GS_DEALS } from "@/lib/arcade/cards/golfSolDeals.data";
+import { MG_REV } from "@/lib/arcade/cards/muggins";
 import { BLOCKFALL_REV } from "@/lib/arcade/blockfall";
 import { blockfallDealSeed } from "./blockfallDeal.server";
-import type { BlockfallPuzzleData, FiveHandsPuzzleData, FreecellPuzzleData, PokerSquaresPuzzleData, TripeaksPuzzleData } from "./types";
+import type { BlockfallPuzzleData, FiveHandsPuzzleData, GolfSolPuzzleData, MugginsPuzzleData, PyramidPuzzleData, FreecellPuzzleData, PokerSquaresPuzzleData, TripeaksPuzzleData } from "./types";
 import { bullseyeWinds, BULLSEYE_REV_TARGET, BULLSEYE_REV_STRICT, BULLSEYE_REV_STD } from "@/lib/arcade/bullseye";
 import type {
   BinTossPuzzleData,
@@ -114,6 +118,21 @@ export function generatePokerSquares(): PokerSquaresPuzzleData {
 /** Five Hands: any seed; the sim shuffles the deck and proves its witness (perfect play reaches 200). */
 export function generateFiveHands(): FiveHandsPuzzleData {
   return { type: "fivehands", seed: arcadeSeed(), fiveHandsRev: FH_REV };
+}
+
+/** Pyramid: any seed; the sim builds the deal with a witness line (ten pyramid pairs) and proves it. */
+export function generatePyramid(): PyramidPuzzleData {
+  return { type: "pyramid", seed: arcadeSeed(), pyramidRev: PY_REV };
+}
+
+/** Golf Solitaire: a bank deal (its index), cleared by a strong human line and proved with five runs of four. */
+export function generateGolfSol(): GolfSolPuzzleData {
+  return { type: "golfsol", seed: randomBelow(GS_DEALS.length), golfSolRev: GS_REV };
+}
+
+/** Muggins: any seed; the sim shuffles the tiles and proves a witness line (perfect play reaches 200). */
+export function generateMuggins(): MugginsPuzzleData {
+  return { type: "muggins", seed: arcadeSeed(), mugginsRev: MG_REV };
 }
 
 /** Blockfall (Retro, 1 Nov 2026): a seed from the proved deal (the oracle took it to 200 through the server replay). */

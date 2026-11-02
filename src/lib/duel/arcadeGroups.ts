@@ -51,7 +51,7 @@ export const ARCADE_GROUPS: readonly ArcadeGroupInfo[] = [
     colour: "#FF5C93",
     glow: false,
     // All new (not registered yet).
-    games: ["minesweeper", "freecell", "mahjong", "tripeaks", "pokersquares", "fivehands"],
+    games: ["minesweeper", "freecell", "mahjong", "tripeaks", "pokersquares", "fivehands", "pyramid", "golfsol", "muggins"],
   },
   {
     id: "action",

@@ -90,6 +90,10 @@ export const ARENA_SCENE_GAMES = [
   "tripeaks",
   "pokersquares",
   "fivehands",
+  "pyramid",
+  "golfsol",
+  // Muggins: the baize runs on past the world (cards/mugginsFill.renderer.ts).
+  "muggins",
   // Blockfall's cabinet glow and Alley Roll's alley run on round the world (1 Nov 2026).
   "blockfall",
   "alleyroll",

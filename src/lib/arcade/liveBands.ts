@@ -49,6 +49,9 @@ import { FH_REV, FH_STD_SPEC, FH_V2_BAND_CURVE } from "./cards/fiveHands";
 import { BLOCKFALL_REV, BF_STD_SPEC, BF_V1_BAND_CURVE } from "./blockfall";
 import { ALLEYROLL_REV, AR_STD_SPEC, AR_V1_BAND_CURVE } from "./alleyroll";
 import { NINJA_REV, NINJA_STD_SPEC, NINJA_V2_BAND_CURVE } from "./ricochetNinja";
+import { PY_REV, PY_STD_SPEC, PY_V1_BAND_CURVE } from "./cards/pyramid";
+import { GS_REV, GS_STD_SPEC, GS_V1_BAND_CURVE } from "./cards/golfSol";
+import { MG_REV, MG_STD_SPEC, MG_V1_BAND_CURVE } from "./cards/muggins";
 import { MINIGOLF_REV, MINIGOLF_STD_SPEC } from "./minigolf";
 import { POOL_REV, POOL_STD_SPEC } from "./pool";
 import { CURLING_REV, CURLING_STD_SPEC } from "./curling";
@@ -148,6 +151,10 @@ export const LIVE_BANDS = {
   fivehands: { field: "fiveHandsRev", rev: FH_REV, curve: FH_V2_BAND_CURVE, std: FH_STD_SPEC, born: true },
   // Ricochet (1 Nov 2026): the ninja wall-climb, born on the arcade scoring standard at ricoRev 2 (the old shaft never had a band revision).
   ricochet: { field: "ricoRev", rev: NINJA_REV, curve: NINJA_V2_BAND_CURVE, std: NINJA_STD_SPEC, born: true },
+  // Pyramid, Golf Solitaire and Muggins (1 Nov 2026): born on the arcade scoring standard.
+  pyramid: { field: "pyramidRev", rev: PY_REV, curve: PY_V1_BAND_CURVE, std: PY_STD_SPEC, born: true },
+  golfsol: { field: "golfSolRev", rev: GS_REV, curve: GS_V1_BAND_CURVE, std: GS_STD_SPEC, born: true },
+  muggins: { field: "mugginsRev", rev: MG_REV, curve: MG_V1_BAND_CURVE, std: MG_STD_SPEC, born: true },
   // The Sports group (30 Oct 2026): on the arcade scoring standard from their first stamp (the core's straight line, the spec's parts).
   minigolf: { field: "golfRev", rev: MINIGOLF_REV, curve: stdCoreCurve(MINIGOLF_STD_SPEC), std: MINIGOLF_STD_SPEC, born: true },
   pool: { field: "poolRev", rev: POOL_REV, curve: stdCoreCurve(POOL_STD_SPEC), std: POOL_STD_SPEC, born: true },
