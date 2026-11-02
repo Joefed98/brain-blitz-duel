@@ -473,7 +473,8 @@ function drawAim(ctx: CanvasRenderingContext2D, s: PoolState, aim: PoolAim): voi
     const dot = ux * nx + uy * ny;
     let tx = ux - dot * nx;
     let ty = uy - dot * ny;
-    const tb = aim.spinY / 50;
+    // poolRev 3's follow and draw are 1.75× poolRev 2's, so its preview bends 1.75× as far.
+    const tb = (aim.spinY / 50) * (s.rev >= 3 ? 1.75 : 1);
     tx += (tb * 0.2) * ux;
     ty += (tb * 0.2) * uy;
     const tl = Math.hypot(tx, ty);

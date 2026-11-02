@@ -70,17 +70,20 @@ const STANDARD_ROSTER: readonly { type: string; field: string; rev: number; batc
   { type: "racing", field: "racingRev", rev: 2, batch: "Sports" },
   // Cards & Board (30 Oct 2026): born on the standard at revision 1.
   // Free Cell's rev 2 (Undo and Reset) and Full House's rev 2 (full at the elite median), 31 Oct 2026: still on the standard.
-  { type: "freecell", field: "freecellRev", rev: 2, batch: "Cards" },
+  { type: "freecell", field: "freecellRev", rev: 3, batch: "Cards" },
   { type: "tripeaks", field: "tripeaksRev", rev: 1, batch: "Cards" },
   { type: "pokersquares", field: "pokerSquaresRev", rev: 2, batch: "Cards" },
   // Five Hands (31 Oct 2026): born on the standard.
-  { type: "fivehands", field: "fiveHandsRev", rev: 1, batch: "Cards" },
+  { type: "fivehands", field: "fiveHandsRev", rev: 2, batch: "Cards" },
   // The Sports group (30 Oct 2026): on the standard from their first stamp.
   { type: "minigolf", field: "golfRev", rev: 2, batch: "Sports" }, // golfRev 2 (crazy golf, 31 Oct 2026); golfRev 1 was on the standard too
-  { type: "pool", field: "poolRev", rev: 2, batch: "Sports" },
+  { type: "pool", field: "poolRev", rev: 3, batch: "Sports" },
   // Curling deals curlRev 2 since 31 Oct 2026 (the start along the hog line, side brushing; the same parts) and
   // curlRev 3 since 1 Nov 2026 (the weight meter's draw zone, the aim line, a gentler weight line, the core re-fitted).
   { type: "curling", field: "curlRev", rev: 3, batch: "Sports" },
+  // Blockfall (Retro) and Alley Roll (Sports), 1 Nov 2026: born on the standard (rev 1).
+  { type: "blockfall", field: "blockfallRev", rev: 1, batch: "Retro" },
+  { type: "alleyroll", field: "alleyRollRev", rev: 1, batch: "Sports" },
 ];
 
 const only = process.argv.slice(2).filter((a) => !a.startsWith("--"));

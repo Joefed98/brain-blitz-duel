@@ -1,4 +1,53 @@
-# Five Hands on the arcade scoring standard (fiveHandsRev 1, 31 Oct 2026)
+# Five Hands on the arcade scoring standard (fiveHandsRev 2, 1 Nov 2026; rev 1 31 Oct 2026)
+
+## fiveHandsRev 2 (1 Nov 2026, Joe's tuning: what rooms deal)
+
+**Today's values and medians (rev 1, before):** pair 3, two pair 6, three of a kind 8, straight 10, flush 11, full house
+13, four of a kind 15, straight flush 16; hand points 160 (full at 23, the elite median) + made hands 40 (8 a row).
+Medians weak → flawless (100 room seeds): **86, 136, 150, 157, 178, 192, 200**.
+
+- **New hand values** (`FH_HANDS_V2`, `fhRowHand(row, 2)`): high card 0, pair 5, two pair 10, three of a kind 20,
+  straight 25, flush 35, full house 50, four of a kind 60, straight flush 75.
+- **One part:** the score is the five rows' hand points alone, on a straight line to 200 (`stdLine(200, total,
+  FH_CORE_FULL_V2)`), full at **49** rev-2 hand points, capped at 200; anyone who plays scores at least 1. No made-hands part, no speed part, no row-order rule.
+- **The same per-seed approach as rev 1:** the deck is rev 1's seeded shuffle and its witness (an arrangement of your 20
+  cards, the only freedom being the order within each round of five) is climbed on the rev-2 table; a deck whose witness
+  does not reach the full figure is reshuffled (the next attempt's seed), so every dealt deck lets perfect play reach
+  exactly 200. Rev 1 also needed all five hands made; rev 2 needs only the full figure. 293 of seeds 0–299 deal
+  rev 1's very deck (cards-check). Witness totals over seeds 0–299 before the reshuffle: min 30, p10 55, median 100,
+  p90 135, max 185.
+- **The full figure, 49** (Joe's decision, 2 Nov 2026): set from the skill bands so the near-perfect median lands at
+  160–165 (163). The near-perfect bots' median is 40 hand points, the elite 45. History: the first push used 46
+  (near-perfect 173); a follow-up scored each deck against its own exact best, which was dropped because placement is
+  blind and the steep table makes points depend on card order, not deck richness (players' points correlated 0.1–0.35
+  with the deck's best; every level fell under 80).
+- Same play, deck order and 60 s run. Rev 1 runs replay unchanged: 25 rev-1 runs recorded on main
+  (`scripts/fixtures/tuning-nov1-legacy.json`) replay to the same score and final state (cards-check).
+
+Measured (`bun scripts/cards-bands.ts fivehands --seeds=200`, room seeds 0–199; the bots weigh the steep table's draws:
+flush × 3.2, straight × 2.5, ranks × 2):
+
+| Level | Weak | Average | Good | Great | Near-perfect | Elite | Flawless |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| rev 1 median (100 seeds) | 86 | 136 | 150 | 157 | 178 | 192 | 200 |
+| rev 1 p10–p90 | 57–171 | 78–200 | 86–200 | 99–193 | 107–200 | 136–200 | 200 |
+| fixed 46 median | 65 | 130 | 152 | 152 | 173 | 195 | 200 |
+| fixed 46 p10–p90 | 21–173 | 43–200 | 65–200 | 65–200 | 65–200 | 86–200 | 200 |
+| **fixed 49 median (dealt)** | **61** | **122** | **142** | **142** | **163** | **183** | **200** |
+| fixed 49 p10–p90 | 20–163 | 40–200 | 61–200 | 61–200 | 61–200 | 81–200 | 200 |
+| fixed 49 mean | 74.7 | 119.2 | 137.5 | 140.7 | 146.1 | 162.7 | 200 |
+| hand points, median | 15 | 30 | 35 | 35 | 40 | 45 | 95 |
+
+Fresh seeds (10000–10199) on 49 give the same medians (61, 122, 142, 142, 163, 183, 200); near-perfect p10–p90 81–200,
+elite 102–200.
+
+**The deal matters a lot at the top (reported as asked).** With the steep table a run's score is decided mostly by
+whether the deck brings the cards for a straight, a flush or a full house: the near-perfect level's p10–p90 is 61–200
+and the elite's 81–200, so on a thin deck even very good placement scores 60–80, and on a rich one an average player can
+reach 200. Better play still scores clearly higher on average (means rise 75 → 119 → 138 → 141 → 146 → 163 → 200).
+Good and great share a median (35 hand points, the 5-point steps); their means differ. In a room everyone has the same
+deck, so the ranking between players is still fair; only scores between different rounds swing with the deal.
+
 
 A new Arcade game in the Cards & Board group (`src/lib/duel/arcadeGroups.ts`), born on the standard: `fivehands`,
 60 s run (63 s round clock). Sim `src/lib/arcade/cards/fiveHands.ts`, art `fiveHands.renderer.ts` (the shared card

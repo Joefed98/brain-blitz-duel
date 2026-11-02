@@ -12,7 +12,7 @@ import { CARD_FONT, drawCard, drawChip, drawFelt, drawSlot, roundRect } from "./
 import {
   FC_CELLS, FC_COLS, FC_INPUT_RESET, FC_INPUT_UNDO, FC_PILE_CELL, FC_PILE_HOME, fcHomeCount, fcNoteText, freecellGameFor, type FcState,
 } from "./freecell";
-import { cardOf } from "./cards";
+import { cardOf, rankOf, suitOf } from "./cards";
 
 export const FC_WORLD_W = 414;
 export const FC_WORLD_H = 772;
@@ -198,6 +198,47 @@ export function fcCardBox(state: FcState, pile: number, index: number): { x: num
   return { x: fcColX(pile), y: FC_COL_Y + index * fcColStep(col.length), w: FC_COL_W, h: FC_COL_H };
 }
 
+/* ---- freecellRev 3: the auto moves fly home (display only; FcState.fly) ---- */
+
+/** Each auto-moved card leaves this many ticks after the one before it and takes FC_FLY_TICKS to land. */
+export const FC_FLY_GAP = 2;
+export const FC_FLY_TICKS = 8;
+
+/** A card in flight: where it is now (eased from its pile to its suit's home pile). */
+export interface FcFlight {
+  card: number;
+  x: number;
+  y: number;
+}
+
+/**
+ * The auto moves still in the air at this tick, and each suit's home top as drawn (the card under the first one still
+ * to land). Nothing flies once the run is over (the clock stops, so a flight would hang).
+ */
+export function fcFlights(state: FcState): { flights: FcFlight[]; homeShown: number[] } {
+  const homeShown = state.home.slice();
+  const flights: FcFlight[] = [];
+  const fly = state.fly;
+  if (!fly || fly.length === 0 || state.ended) return { flights, homeShown };
+  const age = state.tick - (state.flyTick ?? 0);
+  const n = fly.length / 3;
+  if (age >= (n - 1) * FC_FLY_GAP + FC_FLY_TICKS) return { flights, homeShown };
+  for (let k = 0; k < n; k++) {
+    const card = fly[k * 3]!;
+    const pile = fly[k * 3 + 1]!;
+    const index = fly[k * 3 + 2]!;
+    const t = (age - k * FC_FLY_GAP) / FC_FLY_TICKS;
+    if (t >= 1) continue;
+    const s = suitOf(card);
+    homeShown[s] = Math.min(homeShown[s]!, rankOf(card) - 1);
+    const from = pile >= FC_PILE_CELL ? { x: fcBigX(pile - FC_PILE_CELL), y: FC_CELL_Y } : { x: fcColX(pile), y: FC_COL_Y + index * fcColStep(index + 1) };
+    const to = { x: fcBigX(s), y: FC_HOME_Y };
+    const e = t <= 0 ? 0 : 1 - (1 - t) * (1 - t);
+    flights.push({ card, x: from.x + (to.x - from.x) * e, y: from.y + (to.y - from.y) * e });
+  }
+  return { flights, homeShown };
+}
+
 /** The shared success layer: a burst at home for every card home, a banner each full suit and when all are home. */
 export const FREECELL_FX: ArcadeFxSpec<FcState> = {
   game: "freecell",
@@ -267,12 +308,19 @@ function drawFreecellWorld(ctx: CanvasRenderingContext2D, state: FcState, size: 
     }
   }
 
-  // Home piles with faint suit symbols.
+  // Home piles with faint suit symbols (rev 3: the top as drawn waits for the cards still flying there).
+  const { flights, homeShown } = fcFlights(state);
   for (let s = 0; s < 4; s++) {
     const x = fcBigX(s);
-    const top = state.home[s]!;
+    const top = homeShown[s]!;
     if (top === 0) drawSlot(ctx, x, FC_HOME_Y, FC_BIG_W, FC_BIG_H, s);
     else drawCard(ctx, cardOf(s, top), x, FC_HOME_Y, FC_BIG_W, FC_BIG_H, { glow: state.lastTo === FC_PILE_HOME && fresh > 0 ? fresh * 0.6 : 0 });
+  }
+
+  // Auto moves on their way home (the first to land drawn last, on top).
+  for (let k = flights.length - 1; k >= 0; k--) {
+    const f = flights[k]!;
+    drawCard(ctx, f.card, f.x, f.y, FC_BIG_W, FC_BIG_H, { glow: 0.5 });
   }
 
   // The dragged run follows the finger.

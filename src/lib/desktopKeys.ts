@@ -30,6 +30,8 @@ export const DESKTOP_KEYS: Partial<Record<PuzzleType, readonly (readonly [string
   tripeaks: [["Click", "play a card"], ["Space / S", "turn the stock"]],
   pokersquares: [["Click", "place the card"]],
   fivehands: [["Click", "place your card in a row"]],
+  blockfall: [["← →", "move"], ["↑", "turn"], ["Space", "drop"], ["C", "hold"]],
+  alleyroll: [["← →", "line up"], ["↑ ↓", "aim"], ["Hold Space", "power, let go to roll"]],
   // Sports
   freekick: [["Click / ← → ↑ ↓", "aim"], ["Drag / A D", "curl"], ["Space (hold)", "power, release to strike"]],
   rally: [["← →", "paddle"]],
@@ -79,6 +81,11 @@ export const DESKTOP_KEYS: Partial<Record<PuzzleType, readonly (readonly [string
   lightsout: [["Z", "undo"], ["R", "reset"]],
   safe: [["← →", "drum"], ["↑ ↓", "turn"], ["Enter", "try"]],
   sudoku: [["← → ↑ ↓", "cell"], ["1–6", "digit"], ["Backspace", "clear"], ["P", "pencil"]],
+  // New grid puzzles (1 Nov 2026).
+  fences: [["Click an edge", "line, ✕, clear"], ["Drag", "draw along edges"]],
+  fillomino: [["← → ↑ ↓", "cell"], ["1–9", "number"], ["Backspace", "clear"]],
+  bridges: [["Drag", "island to island"]],
+  kakuro: [["← → ↑ ↓", "cell"], ["1–9", "digit"], ["Backspace", "clear"], ["P", "pencil"]],
   tower: [["1–3", "peg"], ["Z", "undo"], ["R", "reset"]],
   tubes: [["1–9, 0", "flask"], ["Z", "undo"], ["R", "reset"]],
   // Pattern
