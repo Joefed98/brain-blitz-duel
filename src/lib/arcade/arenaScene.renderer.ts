@@ -95,6 +95,8 @@ export const ARENA_SCENE_GAMES = [
   "alleyroll",
   // Ricochet (ricoRev 2, 1 Nov 2026): the temple wall's stone runs on below and beside the world.
   "ricochet",
+  // Action (1 Nov 2026): Bastion's dusk, field and wall run on past the world (bastionTank.renderer.ts).
+  "bastion",
 ] as const;
 
 /**

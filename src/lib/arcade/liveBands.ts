@@ -38,6 +38,7 @@ import { SWING_REV_DARK, SWING_REV_STRICT, SWING_V16_BAND_CURVE } from "./swing"
 import { BULLSEYE_REV_STD, BULLSEYE_REV_STRICT, BULLSEYE_STD_SPEC, BULLSEYE_V9_BAND_CURVE } from "./bullseye";
 import { PIN_REV_STD, PIN_STD_SPEC, PIN_V6_BAND_CURVE } from "./pinball4";
 import { PIN_REV_STRICT } from "./pinball";
+import { BASTION_REV_DEALT, BASTION_STD_SPEC, BASTION_V2_BAND_CURVE } from "./bastionTank";
 import { HOMERUN_REV_DEALT, HOMERUN_STD_SPEC_DEALT, HOMERUN_V3_BAND_CURVE } from "./homerun";
 import { FREEKICK_REV_DEALT, FREEKICK_V3_STD_SPEC, FREEKICK_V3_BAND_CURVE } from "./freekick";
 import { RACING_REV_DEALT, RACING_V2_BAND_CURVE, RACING_V2_STD_SPEC } from "./racing";
@@ -154,6 +155,9 @@ export const LIVE_BANDS = {
   // Blockfall (Retro) and Alley Roll (Sports), 1 Nov 2026: born on the arcade scoring standard at revision 1.
   blockfall: { field: "blockfallRev", rev: BLOCKFALL_REV, curve: BF_V1_BAND_CURVE, std: BF_STD_SPEC, born: true },
   alleyroll: { field: "alleyRollRev", rev: ALLEYROLL_REV, curve: AR_V1_BAND_CURVE, std: AR_STD_SPEC, born: true },
+  // Bastion bastionRev 2 (1 Nov 2026): the tank-defence shooter, born on the arcade scoring standard (the original
+  // Bastion, unstamped, never had a score band).
+  bastion: { field: "bastionRev", rev: BASTION_REV_DEALT, curve: BASTION_V2_BAND_CURVE, std: BASTION_STD_SPEC, born: true },
 } as const satisfies Record<string, LiveBand>;
 
 export type LiveBandGame = keyof typeof LIVE_BANDS;

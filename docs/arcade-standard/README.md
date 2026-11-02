@@ -89,6 +89,7 @@ replay exactly as before; standard-live-check grades every stored arcade run thr
 | Summit | `tripeaks` | `tripeaksRev` 1 | Cards & Board | [tripeaks.md](tripeaks.md) |
 | Full House | `pokersquares` | `pokerSquaresRev` 2 | Cards & Board | [pokersquares.md](pokersquares.md) |
 | Five Hands | `fivehands` | `fiveHandsRev` 2 (1 for stored rounds) | Cards & Board | [fivehands.md](fivehands.md) |
+| Bastion | `bastion` | `bastionRev` 2 | Action | [bastion.md](bastion.md) |
 | Crazy Golf (was Minigolf) | `minigolf` | `golfRev` 2 (1 for stored rounds) | Sports | [minigolf.md](minigolf.md) |
 | Cue Ball (was Speed Pool) | `pool` | `poolRev` 3 (2 and 1 for stored rounds) | Sports | [pool.md](pool.md) |
 | Curl Champ (was Curling) | `curling` | `curlRev` 3 (1 and 2 for stored rounds) | Sports | [curling.md](curling.md) |

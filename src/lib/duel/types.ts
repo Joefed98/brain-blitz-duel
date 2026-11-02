@@ -2264,6 +2264,11 @@ export interface BastionPuzzleData {
   type: "bastion";
   /** Draws the whole spawn schedule — identical for everyone. */
   seed: number;
+  /**
+   * Rules revision: absent = the original shapes turret (60 s, practice only since Oct 2026); 2 = the first-person
+   * tank-defence shooter on the arcade scoring standard (1 Nov 2026, src/lib/arcade/bastionTank.ts), dealt in rooms.
+   */
+  bastionRev?: number;
 }
 
 /** Rooftop Run: a fixed 60-second run; the round clock adds three of slack. */

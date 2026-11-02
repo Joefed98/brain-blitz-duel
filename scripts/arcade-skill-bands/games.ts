@@ -93,6 +93,8 @@ import { encodeBlockfallRun, replayBlockfallRun } from "../../src/lib/duel/block
 import { blockfallDealSeed } from "../../src/lib/duel/blockfallDeal.server";
 import { alleyRollGameFor, arCheckpoint, ALLEYROLL_REV } from "../../src/lib/arcade/alleyroll";
 import { encodeAlleyRollRun, replayAlleyRollRun } from "../../src/lib/duel/alleyroll";
+import { bastionTankCheckpoint, bastionTankGame, BASTION_REV_TANK } from "../../src/lib/arcade/bastionTank";
+import { encodeBastionTankRun, replayBastionTankRun } from "../../src/lib/duel/bastion";
 import { encodeFiveHandsRun, encodeFreecellRun, encodePokerSquaresRun, encodeTripeaksRun, replayFiveHandsRun, replayFreecellRun, replayPokerSquaresRun, replayTripeaksRun } from "../../src/lib/duel/cards";
 import { minigolfCheckpoint, minigolfGameFor, MINIGOLF_REV, MINIGOLF_REV_CLASSIC } from "../../src/lib/arcade/minigolf";
 import { encodeMinigolfRun, replayMinigolfRun } from "../../src/lib/duel/minigolf";
@@ -320,6 +322,8 @@ export const GAMES: GameSpec[] = [
   simple("alleyroll", ALLEYROLL_REV, ALLEYROLL_REV, alleyRollGameFor, arCheckpoint, encodeAlleyRollRun, replayAlleyRollRun),
   // Ricochet (1 Nov 2026): the ninja wall-climb, born on the arcade standard at ricoRev 2; any seed (the sim deals the tower and proves its witness).
   simple("ricochet", NINJA_REV, NINJA_REV, () => ninjaGame, ninjaCheckpoint, encodeNinjaRun, (seed, raw) => replayNinjaRun(seed, raw)),
+  // Bastion bastionRev 2 (1 Nov 2026): the tank-defence shooter, born on the arcade scoring standard; any seed.
+  simple("bastion", BASTION_REV_TANK, BASTION_REV_TANK, () => bastionTankGame, bastionTankCheckpoint, encodeBastionTankRun, (seed, raw) => replayBastionTankRun(seed, raw)),
   // The Sports group (30 Oct 2026): Minigolf deals a bank course (seed and pars); golfRev 2 (crazy golf, 31 Oct 2026)
   // from its own bank, golfRev 1 (`seedForRev`) from the first.
   {

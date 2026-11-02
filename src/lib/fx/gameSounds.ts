@@ -5,6 +5,7 @@
  * Each moment plays its own slot (`<gameId>.<event>`, docs/sound-cues/arcade.md)
  * once that slot has a file, else the shared sound it always played, unchanged.
  */
+import { bastionWave, BT2_WAVE_START, type BastionTankState } from "@/lib/arcade/bastionTank";
 import { cueHasFile, ensureCueLoop, ensureSlotLoop, playCueSlot, playSlotOr, setCueLoopRate, stopCueLoop, stopSlotLoop } from "@/lib/sound";
 import { liveCue, momentFrame } from "@/lib/fx/momentCues";
 import { haptic, type HapticPattern } from "@/lib/haptics";
@@ -1142,6 +1143,46 @@ export function curlingSounds(): GameSounds<CurlingState> {
 /* ============================ The Sports group (30 Oct 2026) ============================ */
 
 /** Home Run Derby: the crowd, each pitch, the swing, the crack of the bat, home runs (the organ and a roar), signs, fouls, whiffs and the mitt. */
+/**
+ * Bastion (bastionRev 2): the cannon, a shell landing (a hull hit, a weak-spot hit, a tank destroyed, a miss), the
+ * reload (its start, a fast reload, a jam), a dry click, each wave rolling in and a base hit. Each slot falls back to
+ * the shared sound until its own recording is set (docs/sound-cues/arcade.md "Bastion"). Haptics: a base hit only
+ * (the buzzer's is the shared arcade one).
+ */
+export function bastionTankSounds(): GameSounds<BastionTankState> {
+  let prev: BastionTankState | null = null;
+  return {
+    frame(state, running) {
+      beginFrame("bastion", state);
+      void running;
+      if (prev && state.tick > prev.tick && state.rev === prev.rev) {
+        if (state.shots > prev.shots) sfx("bastion.cannon", "arc_blaster", 0.85, 0.8);
+        if (state.dry > prev.dry) sfx("bastion.dry", "tick", 0.5);
+        if (state.reloads > prev.reloads) sfx("bastion.reload", "arc_latch", 0.7);
+        if (state.fast > prev.fast) sfx("bastion.fastReload", "arc_retro_coin", 0.8);
+        if (state.jams > prev.jams) sfx("bastion.jam", "arc_clank", 0.9);
+        if (prev.reloadAt >= 0 && state.reloadAt < 0) sfx("bastion.loaded", "arc_latch", 0.5, 1.3);
+        const fresh = state.impacts.filter((m) => m.t > prev!.tick);
+        for (const m of fresh) {
+          if (m.r >= 3) sfx("bastion.kill", "arc_big_explode", 0.9);
+          else if (m.r === 2) sfx("bastion.weak", "arc_pickup", 0.8);
+          else if (m.r === 1) sfx("bastion.hit", "arc_retro_hit", 0.8);
+          else sfx("bastion.miss", "arc_fair_thud", 0.5);
+        }
+        if (state.breached > prev.breached) {
+          sfx("bastion.baseHit", "arc_crash", 1);
+          feel("impact");
+        }
+        if (bastionWave(state) !== bastionWave(prev) || (prev.tick < BT2_WAVE_START[0] && state.tick >= BT2_WAVE_START[0])) sfx("bastion.wave", "arc_horn", 0.6);
+      }
+      prev = state;
+    },
+    stop() {
+      prev = null;
+    },
+  };
+}
+
 export function homerunSounds(): GameSounds<HomerunState> {
   let prev: HomerunState | null = null;
   return {

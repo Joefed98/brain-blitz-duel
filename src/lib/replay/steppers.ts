@@ -30,6 +30,8 @@ import { pinballGameForAny } from "@/lib/arcade/pinball4";
 import { minesweeperGameFor } from "@/lib/arcade/minesweeper";
 import { mahjongGameFor } from "@/lib/arcade/mahjong";
 import { homerunGameFor } from "@/lib/arcade/homerun";
+import { bastionGame } from "@/lib/arcade/bastion";
+import { bastionTankGame } from "@/lib/arcade/bastionTank";
 import { freekickGameFor } from "@/lib/arcade/freekick";
 import { racingGameFor } from "@/lib/arcade/racing";
 import { freecellGameFor } from "@/lib/arcade/cards/freecell";
@@ -202,6 +204,8 @@ const SOURCES: Record<string, (p: PuzzleData) => GameSource> = {
   minesweeper: (p) => ({ game: minesweeperGameFor(rev(p, "minesRev")) as AnyGame }),
   mahjong: (p) => ({ game: mahjongGameFor(rev(p, "mahjongRev")) as AnyGame }),
   homerun: (p) => ({ game: homerunGameFor(rev(p, "homerunRev")) as AnyGame }),
+  // Bastion: bastionRev 2's tank game; the original turret for unstamped rounds.
+  bastion: (p) => ({ game: ((rev(p, "bastionRev") ?? 1) >= 2 ? bastionTankGame : bastionGame) as AnyGame }),
   freekick: (p) => ({ game: freekickGameFor(rev(p, "freekickRev")) as AnyGame }),
   racing: (p) => ({ game: racingGameFor(rev(p, "racingRev")) as AnyGame }),
   freecell: (p) => ({ game: freecellGameFor(rev(p, "freecellRev")) as AnyGame }),

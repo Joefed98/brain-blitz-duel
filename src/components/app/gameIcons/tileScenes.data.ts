@@ -8,7 +8,7 @@ export const TILE_SCENES: Partial<Record<PuzzleType, string>> = {
   alleyroll: "9113607e2a",
   balance: "64783618d3",
   balltrack: "43957a303d",
-  bastion: "0c293a1555",
+  bastion: "9353b5d99c",
   beat: "1231bc6a90",
   bintoss: "dec32b48e1",
   blockfall: "87def6bba3",

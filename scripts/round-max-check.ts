@@ -110,6 +110,8 @@ const RAISED: PuzzleType[] = [
   "fences", "fillomino", "bridges", "kakuro",
   // Ricochet (1 Nov 2026, docs/arcade-standard/ricochet.md): the ninja wall-climb, born on the standard at ricoRev 2.
   "ricochet",
+  // Bastion bastionRev 2 (1 Nov 2026, docs/arcade-standard/bastion.md): the tank-defence shooter, born on the standard.
+  "bastion",
 ];
 /** The games still at 150: section 2 raises each of them in turn. */
 const TYPES = ALL_TYPES.filter((t) => ROUND_MAX[t] === DEFAULT_ROUND_MAX);

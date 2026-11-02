@@ -1,4 +1,5 @@
 import { NINJA_REV } from "@/lib/arcade/ricochetNinja";
+import { BASTION_REV_DEALT } from "@/lib/arcade/bastionTank";
 import { TEN_DROP_DEPTH_REV } from "@/lib/arcade/tenDrop";
 import { SLICE_REV_TARGET, SLICE_REV_STRICT, SLICE_REV_STANDARD } from "@/lib/arcade/slice";
 import { FLIP_REV_TARGET, FLIP_REV_STRICT, FLIP_REV_STD } from "@/lib/arcade/flip";
@@ -256,7 +257,8 @@ export function generateWavefront(): WavefrontPuzzleData {
 }
 
 export function generateBastion(): BastionPuzzleData {
-  return { type: "bastion", seed: arcadeSeed() };
+  // bastionRev 2 (1 Nov 2026): the tank-defence shooter; any seed deals its five waves (the oracle proves 200 on each).
+  return { type: "bastion", seed: arcadeSeed(), bastionRev: BASTION_REV_DEALT };
 }
 
 export function generateRooftop(): RooftopPuzzleData {

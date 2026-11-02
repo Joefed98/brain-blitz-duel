@@ -16,6 +16,8 @@
  *   bun scripts/arcade-self-replay-check.ts [runsPerGame] [keys,…] [--part=k/n]
  */
 
+import { bastionTankCheckpoint, bastionTankGame, BT2_CHECKPOINT_INTERVAL } from "../src/lib/arcade/bastionTank";
+import { encodeBastionTankRun, replayBastionTankRun } from "../src/lib/duel/bastion";
 import { homerunCheckpoint, homerunGameFor, HOMERUN_CHECKPOINT_INTERVAL, HOMERUN_REV_2, HOMERUN_REV_3, HOMERUN_REV_STD } from "../src/lib/arcade/homerun";
 import { encodeHomerunRun, replayHomerunRun } from "../src/lib/duel/homerun";
 import { HOMERUN_DEAL } from "../src/lib/duel/homerunDeal.server";
@@ -897,6 +899,8 @@ const GAMES: Game[] = [
   { key: "homerun/v3", interval: HOMERUN_CHECKPOINT_INTERVAL, game: homerunGameFor(HOMERUN_REV_3), checkpoint: homerunCheckpoint, mode: "events", rate: 20, encode: encodeHomerunRun, replay: (seed: number, raw: string) => replayHomerunRun(seed, raw, HOMERUN_REV_3), seedFor: (n: number) => HOMERUN_DEAL_V3[n % HOMERUN_DEAL_V3.length]! },
   { key: "freekick/v3", interval: FREEKICK_CHECKPOINT_INTERVAL, game: freekickGameFor(FREEKICK_REV_3), checkpoint: freekickCheckpoint, mode: "events", rate: 20, encode: encodeFreekickRun, replay: (seed: number, raw: string) => replayFreekickRun(seed, raw, FREEKICK_REV_3), seedFor: (n: number) => FREEKICK_DEAL_V3[n % FREEKICK_DEAL_V3.length]! },
   { key: "curling/v3", game: curlingGameFor(3), seedFor: (n: number) => CURLING_BANK_V3[n % CURLING_BANK_V3.length]!, checkpoint: curlingCheckpoint, mode: "events", rate: 40, encode: encodeCurlingRun, replay: (seed: number, raw: string) => replayCurlingRun(seed, raw, 3) },
+  // Bastion bastionRev 2 (the tank-defence shooter, 1 Nov 2026), appended so every earlier entry keeps its stream.
+  { key: "bastion/v2", interval: BT2_CHECKPOINT_INTERVAL, game: bastionTankGame, checkpoint: bastionTankCheckpoint, mode: "events", rate: 30, encode: encodeBastionTankRun, replay: (seed: number, raw: string) => replayBastionTankRun(seed, raw) },
   // Meteor snakeRev 12 (1 Nov 2026, docs/arcade-standard/snake.md), appended so every earlier entry keeps its index:
   // snakeRev 11's play, the core counting a gold star as 2 stars and full at 28.
   { key: "snake/v12", game: snakeGameFor(SNAKE_REV_12), checkpoint: snakeCheckpoint, mode: "events", rate: 40, encode: encodeSnakeRun, replay: (seed: number, raw: string) => replaySnakeRun(seed, raw, SNAKE_REV_12) },

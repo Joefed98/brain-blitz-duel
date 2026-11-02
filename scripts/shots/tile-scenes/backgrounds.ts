@@ -580,10 +580,10 @@ const ARCADE_BACKGROUNDS: Partial<Record<PuzzleType, TileBackground>> = {
     c.fillRect(0, 86, T, T - 86);
     drawPagoda(c as CanvasRenderingContext2D, 52, 92, 0.42);
   }),
+  // Bastion (bastionRev 2): the slate dusk sky over the earth field (the mockups' palette).
   bastion: bg((c) => {
-    fill(c, "#08080D");
-    cloud(c, T / 2, T, 50, "#F5B82E", 0.12);
-  }),
+    vgrad(c, [[0, "#2A3240"], [0.42, "#46515F"], [0.45, "#6F5E46"], [1, "#5A4B37"]]);
+  }, { fade: 0.2 }),
   rooftop: bg((c) => {
     vgrad(c, [[0, "#05050A"], [1, "#1B1530"]]);
     c.strokeStyle = "rgba(245,184,46,0.25)";

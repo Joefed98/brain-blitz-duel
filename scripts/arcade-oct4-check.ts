@@ -75,6 +75,7 @@ assert(lane >= 0);
 c = crossGame.step({ ...c, lane: lane+1, reached:lane+1, crossings:0 }, null);
 assert.equal(c.lane,0); assert.equal(c.lives,2); assert.equal(c.crossings,0); assert.equal(c.reached,lane+1);
 assert.equal(BURST_LIVES,3); assert.equal(burstGame.init(1).lives,3);
-assert(!typesInCategory('arcade').includes('bastion'));
+// Bastion is back in rooms (bastionRev 2, the tank-defence shooter, 1 Nov 2026; Joe's approval): active again.
+assert(typesInCategory('arcade').includes('bastion'));
 assert(allTypesInCategory('arcade').includes('bastion'));
 console.log('Arcade tuning mechanics passed: 1,000 Hover/Bubble seeds, 200 rectangular Matchup boards, hold endpoints, crash respawn, lives and retirement. No browser tests.');
