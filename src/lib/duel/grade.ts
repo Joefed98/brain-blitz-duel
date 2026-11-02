@@ -85,6 +85,8 @@ import { decodeFlipRun, replayFlipRun } from "./flip";
 import {
   decodeFiveHandsRun, decodeFreecellRun, decodePokerSquaresRun, decodeTripeaksRun, replayFiveHandsRun, replayFreecellRun, replayPokerSquaresRun, replayTripeaksRun,
 } from "./cards";
+import { decodeBlockfallRun, replayBlockfallRun } from "./blockfall";
+import { decodeAlleyRollRun, replayAlleyRollRun } from "./alleyroll";
 import { decodeJunctionRun, replayJunctionRun } from "./junction";
 import { decodeInkBridgeRun, replayInkBridgeRun } from "./inkBridge";
 import { decodeBurstRun, replayBurstRun } from "./burst";
@@ -114,7 +116,8 @@ import { scoreWordSearch, wsDecode, wsGrade, wsSplitBonus } from "./wordSearch";
 import { LW_FREE_MISSES, lwDecode, lwDecodeLog, lwGrade, lwTallyLog, lwUsesLog, scoreLetterWheel, scoreLetterWheelLog } from "./letterWheel";
 import { decodeCrossRun, replayCrossRun } from "./cross";
 import { decodeDualRun, replayDualRun } from "./dual";
-import { decodeRicoRun, replayRicoRun } from "./ricochet";
+import { decodeNinjaRun, decodeRicoRun, isNinjaRev, replayNinjaRun, replayRicoRun } from "./ricochet";
+import { NINJA_CORE_FULL_M } from "@/lib/arcade/ricochetNinja";
 import { decodeBinTossRun, replayBinTossRun } from "./binToss";
 import { decodeBullseyeRun, replayBullseyeRun } from "./bullseye";
 import { bullseyeDeadPoints, bullseyeStreakPoints } from "@/lib/arcade/bullseye";
@@ -1326,6 +1329,35 @@ function gradeUnderRev(
       break;
     }
     case "ricochet": {
+      if (isNinjaRev(puzzle.ricoRev)) {
+        // ricoRev 2, the ninja wall-climb: the tower dealt from the stored seed, the move log replayed; only that scores.
+        const replayStart = performance.now();
+        const run = replayNinjaRun(puzzle.seed, answer);
+        revealRun = run;
+        arcadeDiag = buildArcadeDiag(puzzle.type, run, answer, performance.now() - replayStart);
+        isCorrect = run.metres >= NINJA_CORE_FULL_M;
+        correctCount = run.metres;
+        score = run.score;
+        extraDetail = {
+          ricoRev: puzzle.ricoRev,
+          metres: run.metres,
+          coins: run.coins,
+          lanterns: run.lanterns,
+          scrolls: run.scrolls,
+          hits: run.hits,
+          leaps: run.leaps,
+          djs: run.djs,
+          endedSeconds: run.endedSeconds,
+          flagged: run.flagged,
+          clientLag: run.clientLag,
+          clientTick: run.clientTick,
+          desyncTick: run.desyncTick,
+          inputs: decodeNinjaRun(answer).events.length,
+          claimedScore: decodeNinjaRun(answer).claimedScore,
+          ...(run.reason ? { reason: run.reason } : {}),
+        };
+        break;
+      }
       const replayStart = performance.now();
       const run = replayRicoRun(puzzle.seed, answer);
       revealRun = run;
@@ -1624,6 +1656,64 @@ function gradeUnderRev(
         desyncTick: run.desyncTick,
         inputs: decodePokerSquaresRun(answer).events.length,
         claimedScore: decodePokerSquaresRun(answer).claimedScore,
+        ...(run.reason ? { reason: run.reason } : {}),
+      };
+      break;
+    }
+    // Blockfall (1 Nov 2026): the piece order comes from the stored seed and the run is replayed; only that scores.
+    case "blockfall": {
+      const replayStart = performance.now();
+      const run = replayBlockfallRun(puzzle.seed, answer, puzzle.blockfallRev);
+      revealRun = run;
+      arcadeDiag = buildArcadeDiag(puzzle.type, run, answer, performance.now() - replayStart);
+      isCorrect = !run.toppedOut && run.state.ended === 1;
+      correctCount = run.lines;
+      score = run.score;
+      extraDetail = {
+        blockfallRev: puzzle.blockfallRev ?? 1,
+        lines: run.lines,
+        doubles: run.doubles,
+        triples: run.triples,
+        quads: run.quads,
+        height: run.height,
+        toppedOut: run.toppedOut,
+        pieces: run.pieces,
+        ...Object.fromEntries(run.parts.map((p) => [`part_${p.key}`, p.points])),
+        endedSeconds: run.endedSeconds,
+        flagged: run.flagged,
+        clientLag: run.clientLag,
+        clientTick: run.clientTick,
+        desyncTick: run.desyncTick,
+        inputs: decodeBlockfallRun(answer).events.length,
+        claimedScore: decodeBlockfallRun(answer).claimedScore,
+        ...(run.reason ? { reason: run.reason } : {}),
+      };
+      break;
+    }
+    // Alley Roll (1 Nov 2026): the rolls are replayed on the one lane; only that scores.
+    case "alleyroll": {
+      const replayStart = performance.now();
+      const run = replayAlleyRollRun(puzzle.seed, answer, puzzle.alleyRollRev);
+      revealRun = run;
+      arcadeDiag = buildArcadeDiag(puzzle.type, run, answer, performance.now() - replayStart);
+      isCorrect = run.finished;
+      correctCount = run.balls;
+      score = run.score;
+      extraDetail = {
+        alleyRollRev: puzzle.alleyRollRev ?? 1,
+        rings: run.rings,
+        pockets: run.pockets,
+        streak: run.streak,
+        balls: run.balls,
+        finished: run.finished,
+        ...Object.fromEntries(run.parts.map((p) => [`part_${p.key}`, p.points])),
+        endedSeconds: run.endedSeconds,
+        flagged: run.flagged,
+        clientLag: run.clientLag,
+        clientTick: run.clientTick,
+        desyncTick: run.desyncTick,
+        inputs: decodeAlleyRollRun(answer).events.length,
+        claimedScore: decodeAlleyRollRun(answer).claimedScore,
         ...(run.reason ? { reason: run.reason } : {}),
       };
       break;

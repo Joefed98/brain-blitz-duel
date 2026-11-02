@@ -9,19 +9,25 @@
  * random orders (the bot's own stream, never the deal) as the remaining turns' cards and discards, each placed by the
  * same sight rule under the even-filling rule, scoring the finished rows; the mean (the sight value as a tie-break) is
  * blurred by the elite judgement.
+ *
+ * fiveHandsRev 2 (the steep table): the hand values come from the revision's table (fhRowHand) and the open draws are
+ * weighed by how much more the steep table pays for what they draw to (flush × 3.2, straight × 2.5, ranks × 2).
  */
 import { rankOf, suitOf } from "../../../src/lib/arcade/cards/cards";
-import { FH_INPUT_PLACE, FH_ROWS, FH_SLOTS, FH_TURNS, fhDeal, fhDiscard, fhDiscardsShown, fhOpenRows, fhYours, type FhState } from "../../../src/lib/arcade/cards/fiveHands";
-import { psHand } from "../../../src/lib/arcade/cards/pokerSquares";
+import { FH_INPUT_PLACE, FH_REV_STEEP, FH_ROWS, FH_SLOTS, FH_TURNS, fhDeal, fhDiscard, fhDiscardsShown, fhOpenRows, fhRowHand, fhYours, type FhState } from "../../../src/lib/arcade/cards/fiveHands";
 import { driveEvents, type SkillBot } from "../bot";
 import type { Human } from "../human";
 
 const THINK_MS = 2300;
 
 /** A row's worth: its hand now, plus what it still promises given the cards gone (`dead` per suit and per rank). */
-function promise(row: readonly number[], deadSuit: readonly number[], deadRank: readonly number[]): number {
+function promise(row: readonly number[], deadSuit: readonly number[], deadRank: readonly number[], rev: number): number {
   if (row.length === 0) return 0;
-  const hand = psHand(row).points;
+  const hand = fhRowHand(row, rev).points;
+  const steep = rev >= FH_REV_STEEP;
+  const wF = steep ? 3.2 : 1;
+  const wS = steep ? 2.5 : 1;
+  const wR = steep ? 2 : 1;
   if (row.length >= FH_SLOTS) return hand;
   const suits = new Set(row.map(suitOf));
   const ranks = row.map(rankOf);
@@ -31,18 +37,18 @@ function promise(row: readonly number[], deadSuit: readonly number[], deadRank: 
   if (suits.size === 1 && row.length >= 2) {
     const s = suitOf(row[0]!);
     const left = 13 - deadSuit[s]! - row.length;
-    if (left >= FH_SLOTS - row.length) open += 2.2 * row.length * Math.min(1, left / 6);
+    if (left >= FH_SLOTS - row.length) open += wF * 2.2 * row.length * Math.min(1, left / 6);
   }
-  if (distinct.size === row.length && row.length >= 2 && span <= 4) open += 1.6 * row.length;
+  if (distinct.size === row.length && row.length >= 2 && span <= 4) open += wS * 1.6 * row.length;
   for (const r of distinct) {
     const k = ranks.filter((x) => x === r).length;
-    if (k >= 2) open += 2 * (k - 1) * Math.max(0.25, (4 - deadRank[r]! - k) / 2);
+    if (k >= 2) open += wR * 2 * (k - 1) * Math.max(0.25, (4 - deadRank[r]! - k) / 2);
   }
   return hand + open;
 }
 
-function sightValues(rows: readonly (readonly number[])[], card: number, open: readonly number[], deadSuit: readonly number[], deadRank: readonly number[]): number[] {
-  return open.map((r) => promise([...rows[r]!, card], deadSuit, deadRank) - promise(rows[r]!, deadSuit, deadRank));
+function sightValues(rows: readonly (readonly number[])[], card: number, open: readonly number[], deadSuit: readonly number[], deadRank: readonly number[], rev: number): number[] {
+  return open.map((r) => promise([...rows[r]!, card], deadSuit, deadRank, rev) - promise(rows[r]!, deadSuit, deadRank, rev));
 }
 
 function deadCounts(seen: Iterable<number>): { deadSuit: number[]; deadRank: number[] } {
@@ -72,7 +78,7 @@ function rolloutValues(s: FhState, card: number, open: readonly number[], human:
   const unseen: number[] = [];
   for (let c = 0; c < 52; c++) if (!seenSet.has(c)) unseen.push(c);
   const { deadSuit, deadRank } = deadCounts(seen);
-  const sight = sightValues(s.rows, card, open, deadSuit, deadRank);
+  const sight = sightValues(s.rows, card, open, deadSuit, deadRank, s.rev);
   const turnsLeft = FH_TURNS - s.turn - 1;
   return open.map((r, k) => {
     let sum = 0;
@@ -91,12 +97,12 @@ function rolloutValues(s: FhState, card: number, open: readonly number[], human:
         const next = draw();
         draw();
         const openNow = fhOpenRows(rows);
-        const v = sightValues(rows, next, openNow, deadSuit, deadRank);
+        const v = sightValues(rows, next, openNow, deadSuit, deadRank, s.rev);
         let best = 0;
         for (let o = 1; o < openNow.length; o++) if (v[o]! > v[best]!) best = o;
         rows[openNow[best]!]!.push(next);
       }
-      for (const row of rows) sum += psHand(row).points;
+      for (const row of rows) sum += fhRowHand(row, s.rev).points;
     }
     return sum / ROLLOUTS + sight[k]! * 0.05;
   });
@@ -104,7 +110,7 @@ function rolloutValues(s: FhState, card: number, open: readonly number[], human:
 
 export const bot: SkillBot = ({ game, seed, human }) => {
   const level = human.level;
-  const taps = level === "perfect" ? fhDeal(seed).witnessTaps : null;
+  const taps = level === "perfect" ? fhDeal(seed, (game.init(seed) as FhState).rev).witnessTaps : null;
   let nextAt = human.thinkTicks(THINK_MS * 1.3);
   const { events } = driveEvents<FhState>(game, (s, t) => {
     if (t < nextAt || s.turn >= FH_TURNS) return null;
@@ -116,7 +122,7 @@ export const bot: SkillBot = ({ game, seed, human }) => {
     if (level === "elite" && open.length > 1) values = rolloutValues(s, card, open, human);
     else {
       const { deadSuit, deadRank } = deadCounts(seenAt(s));
-      values = sightValues(s.rows, card, open, deadSuit, deadRank);
+      values = sightValues(s.rows, card, open, deadSuit, deadRank, s.rev);
     }
     // A hasty tap now and then lands on a greyed row (refused; the next tap a moment later).
     if (human.slip(0.5)) return { k: FH_INPUT_PLACE, a: human.int(0, FH_ROWS - 1), b: 0, c: 0, d: 0 };

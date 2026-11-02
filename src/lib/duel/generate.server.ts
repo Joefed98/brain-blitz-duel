@@ -4,7 +4,8 @@
  * handled here, so nothing answer-shaped is ever reachable from a client bundle.
  */
 
-import { generateCurling, generateMinigolf, generatePool } from "./sports.server";
+import { generateAlleyRoll, generateCurling, generateMinigolf, generatePool } from "./sports.server";
+import { generateBlockfall } from "./arcade.server";
 import { SPEED_PAR_VERSION, puzzleUsesSpeedPar, withSpeedCurve } from "./speedPar";
 import { PUZZLE_SCORE_REV_DEALT, dealtPuzzleScoreRev, puzzleScoreRevOf, storedScoreParts } from "./puzzleScoreRev";
 import { PUZZLE_SCORE_REV_BANDS, rev2Applies, rev2Grade, rev2ResultOf } from "./puzzleScoreRev2";
@@ -222,6 +223,8 @@ function generateUnstamped(type: PuzzleType, context: GenerateContext): PuzzleDa
   if (type === "minigolf") return generateMinigolf();
   if (type === "pool") return generatePool();
   if (type === "curling") return generateCurling();
+  if (type === "blockfall") return generateBlockfall();
+  if (type === "alleyroll") return generateAlleyRoll();
   if (type === "rally") return generateRally();
   if (type === "steady") return generateSteady();
   if (type === "slice") return generateSlice();

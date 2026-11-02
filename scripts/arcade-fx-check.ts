@@ -16,6 +16,8 @@
  *
  *   bun scripts/arcade-fx-check.ts
  */
+import { ninjaArtGame } from "../src/lib/arcade/ricochetNinja.renderer";
+import { NINJA_CORE_FULL_M, NINJA_START } from "../src/lib/arcade/ricochetNinja";
 import { minesweeperArtGameFor } from "../src/lib/arcade/minesweeper.renderer";
 import { mahjongArtGameFor } from "../src/lib/arcade/mahjong.renderer";
 import { MINES_REV_STD, MINES_SAFE } from "../src/lib/arcade/minesweeper";
@@ -114,6 +116,10 @@ const { tripeaksArt } = await import("../src/lib/arcade/cards/tripeaks.renderer"
 const { pokerSquaresArt } = await import("../src/lib/arcade/cards/pokerSquares.renderer");
 const { bastionTankArtGame } = await import("../src/lib/arcade/bastionTank.renderer");
 const { fiveHandsArt } = await import("../src/lib/arcade/cards/fiveHands.renderer");
+const { blockfallArt } = await import("../src/lib/arcade/blockfall.renderer");
+const { alleyRollArt } = await import("../src/lib/arcade/alleyroll.renderer");
+const { BF_CORE_FULL } = await import("../src/lib/arcade/blockfall");
+const { AR_CORE_FULL, AR_SHOW } = await import("../src/lib/arcade/alleyroll");
 
 type AnyGame = {
   init: (seed: number) => any;
@@ -180,6 +186,11 @@ const GAMES: Record<string, AnyGame> = {
   tripeaks: tripeaksArt as AnyGame,
   pokersquares: pokerSquaresArt as AnyGame,
   fivehands: fiveHandsArt as AnyGame,
+  // Blockfall (Retro) and Alley Roll (Sports), 1 Nov 2026.
+  blockfall: blockfallArt as AnyGame,
+  alleyroll: alleyRollArt as AnyGame,
+  // Ricochet (ricoRev 2, the ninja wall-climb, 1 Nov 2026).
+  ricochet: ninjaArtGame as AnyGame,
   // Bastion bastionRev 2 (1 Nov 2026): the tank game's own art through its success layer.
   bastion: bastionTankArtGame as AnyGame,
   // The Sports group (30 Oct 2026): each sim with its own art drawn through its success layer, on a bank deal.
@@ -565,6 +576,27 @@ const BUMPS: Record<string, ((s: any) => any)[]> = {
     (s) => ({ ...s, rows: [[1, 14], ...s.rows.slice(1)], lastRow: 0 }),
     // Five rows of four of a kind (75 hand points): the core's full figure reached.
     (s) => ({ ...s, rows: Array.from({ length: 5 }, (_, r) => [r, 13 + r, 26 + r, 39 + r, 5 + r]) }),
+  ],
+  // Blockfall: two rows at once, then four, then the core's full lines.
+  blockfall: [
+    (s) => ({ ...s, lines: s.lines + 2, doubles: s.doubles + 1, cleared: [20, 21], clearTick: s.tick }),
+    (s) => ({ ...s, lines: s.lines + 4, quads: s.quads + 1, cleared: [18, 19, 20, 21], clearTick: s.tick }),
+    (s) => ({ ...s, lines: BF_CORE_FULL }),
+  ],
+  // Alley Roll: a ball in the 50, a pocket, then nine pockets (the core's full ring points).
+  alleyroll: [
+    (s) => ({ ...s, phase: AR_SHOW, phaseTick: s.tick, balls: [...s.balls, { release: 0, points: 50, x: 0, y: 190 }] }),
+    (s) => ({ ...s, phase: AR_SHOW, phaseTick: s.tick, balls: [...s.balls, { release: 0, points: 100, x: 112, y: 280 }] }),
+    (s) => ({ ...s, phase: AR_SHOW, phaseTick: s.tick, balls: Array.from({ length: Math.ceil(AR_CORE_FULL / 100) }, () => ({ release: 0, points: 100, x: 112, y: 280 })) }),
+  ],
+  ricochet: [
+    (s) => ({ ...s, coins: s.coins + 1, pickTick: s.tick + 1 }),
+    (s) => ({ ...s, lanterns: s.lanterns + 1, pickTick: s.tick + 1 }),
+    (s) => ({ ...s, scrolls: s.scrolls + 1, pickTick: s.tick + 1 }),
+    // 50 m climbed.
+    (s) => ({ ...s, best: NINJA_START + 50 * 40 * 256 }),
+    // The core's full height.
+    (s) => ({ ...s, best: NINJA_START + NINJA_CORE_FULL_M * 40 * 256 }),
   ],
 };
 for (const [name, game] of Object.entries(GAMES)) {

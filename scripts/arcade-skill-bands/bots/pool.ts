@@ -33,7 +33,7 @@ export const bot: SkillBot = ({ game, seed, human }) => {
   let planned = -1;
   const rev = game.init(seed).rev;
   const dot = (spin: Spin): Spin =>
-    rev === 2 && (spin.tb !== 0 || spin.side !== 0) ? { tb: Math.round(spin.tb + human.normal() * DOT_SD), side: Math.round(spin.side + human.normal() * DOT_SD) } : spin;
+    rev >= 2 && (spin.tb !== 0 || spin.side !== 0) ? { tb: Math.round(spin.tb + human.normal() * DOT_SD), side: Math.round(spin.side + human.normal() * DOT_SD) } : spin;
   const decide = (s: PoolState): Shot | null => {
     const perfect = human.level === "perfect";
     const goods = goodShots(s.balls, { limit: perfect ? 6 : 5, rev });
@@ -55,7 +55,7 @@ export const bot: SkillBot = ({ game, seed, human }) => {
     }
     // Nothing pots cleanly: the easiest-looking pot anyway (or a soft roll at the nearest target ball).
     const c = candidates(s.balls, 85)[0];
-    if (c) return shotFor(c.angle + human.aim(1) / AIM_REACH_PX, Math.round(powerFor(c.cueDist, c.objDist, c.cut) * human.power()), NO_SPIN, rev);
+    if (c) return shotFor(c.angle + human.aim(1) / AIM_REACH_PX, Math.round(powerFor(c.cueDist, c.objDist, c.cut) * (rev >= 3 ? 0.8 : 1) * human.power()), NO_SPIN, rev);
     const cue = s.balls.find((b) => b.id === POOL_CUE)!;
     const t = s.balls.find((b) => !b.down && b.id !== POOL_CUE)!;
     return shotFor(Math.atan2(t.y - cue.y, t.x - cue.x), 300, NO_SPIN, rev);
@@ -84,8 +84,8 @@ export const randomBot: SkillBot = ({ game, seed, human }) => {
     (s: PoolState) => {
       if (s.phase !== POOL_AIM || !human.chance(1 / 90)) return null;
       const angle = human.u() * Math.PI * 2;
-      const code = rev === 2 ? 0 : human.int(0, 24);
-      const spin: Spin = rev === 2 ? { tb: human.int(-100, 100), side: human.int(-100, 100) } : { tb: Math.floor(code / 5) - 2, side: (code % 5) - 2 };
+      const code = rev >= 2 ? 0 : human.int(0, 24);
+      const spin: Spin = rev >= 2 ? { tb: human.int(-100, 100), side: human.int(-100, 100) } : { tb: Math.floor(code / 5) - 2, side: (code % 5) - 2 };
       return { k: 1, ...shotFor(angle, human.int(60, 1000), spin, rev) };
     },
     game.init(seed),

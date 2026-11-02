@@ -1,4 +1,4 @@
-# Curling (`curling`, `curlRev` 1 and 2; shown as Curl Champ)
+# Curling (`curling`, `curlRev` 1, 2 and 3; shown as Curl Champ)
 
 The Sports group (30 Oct 2026). Eight stones in 120 s, a broadcast view from behind the thrower down the whole sheet
 (real proportions, perspective) to the far house; a top-down inset of the house (top right) shows exactly where every
@@ -127,3 +127,100 @@ or alternate sides to carry a stone that looks short.
 Every run replayed unflagged. Side brushing lifts great to elite (curlRev 1: 131.5, 140.5, 173) while weak to good,
 who do not brush, stay where they were.
 
+
+## curlRev 3 (1 Nov 2026, "prepare the shot"; dealt since then)
+
+Joe scored 20–50 on curlRev 2: the weight was a swipe's speed with nothing to aim it at, and the house's depth was a
+window of about ± 14 % of a draw's swipe speed. curlRev 3 makes each throw something you prepare, then take. curlRev 1
+and 2 rounds replay and score exactly as before (curling-check replays 24 curlRev 2 runs recorded on main ae1efbe before
+the change, `scripts/fixtures/curling-v2-legacy.json` from `scripts/curling-v2-legacy-record.ts`, both brush sides and
+off-centre starts included, plus every curlRev 1 and 2 witness).
+
+**The shot, in order** (`src/puzzles/curling.tsx`, art `curling.renderer.ts`):
+
+1. *Slide the stone* along the near hog line (as curlRev 2).
+2. *Drag the gold target* (the house or the inset).
+3. *Tap In or Out.* A **faint aim line** shows the first third (by distance) of the path the stone would slide for that
+   start, target and turn at the draw zone's mark weight (below), unswept. It is the sim's own motion
+   (`curlAimPath` in `src/lib/arcade/curling.ts`: a copy of the sheet's stones plus the new stone, stepped through
+   `curlMotionTick`, so it bends round a stone it would touch); display only, it never writes to a state. It replaces
+   curlRev 2's straight dashed line. The curl grows as the stone slows, so the line shows the start of it, not where it ends.
+4. *Swipe up to release* into the **weight meter** (right edge, `weightMeter`, 14 × 252 world px): a bar from light
+   (bottom) to heavy (top) with a gold **HOUSE** zone and a bright mark in it. The zone is `curlDrawZone`: the weights
+   for which an unswept stone from this start, target and turn comes to rest inside the house's depth (front edge to
+   back edge, touching counting) on an empty sheet, found by bisection through the same motion; the mark is the weight
+   that stops it nearest the tee line. It changes as the start, target and turn change (recomputed only when they or
+   the sheet change). The swipe fills the meter live (gold while inside the zone) and a white tick stays where the last
+   throw was released. A release inside the zone with the line right lands in the house. Above the zone is takeout weight.
+5. *Brush* while it travels, left or right (as curlRev 2).
+
+**The gentler weight line** (the only physics change; integer, in the sim): curlRev 3 releases weight 0…1000 at
+`CURL_VMIN_V3` 14 … `CURL_VMAX_V3` 19.5 cm a tick (curlRev 1 and 2: 13 … 22). The heaviest takeout any curlRev 2 witness
+needed was 18.9 cm a tick, so every shot is still there; the house's depth is now about 200 weights wide (curlRev 2:
+about 120), ± 23 % of a draw's swipe speed instead of ± 14 %. The swipe → weight line on the phone is unchanged
+(`curlWeightFromSwipeV3`: 0.25 … 2.5 world px a ms; a draw to the tee is about 0.96). A curlRev 3 weight that releases at
+exactly a curlRev 2 weight's velocity slides exactly as it did (curling-check). Everything else (start, brushing, curl,
+collisions, the hog rule) is curlRev 2's.
+
+**Desktop:** ← → ↑ ↓ move the target, A / D slide the stone, I / O the turn, − / + set the weight on the meter (from the
+zone's mark, 10 a press, Shift 50), Enter throws it; while a stone travels ← → brush its left / right, S carries it. The
+mouse plays it as a finger (drag the target, drag the stone sideways, drag up to throw, rub to brush).
+
+**Input encoding:** unchanged from curlRev 2 (`CURLING_INPUT_RANGES_V2`; kind 1 throw a, b, c = weight × 2 + turn,
+d = start; kind 2 stroke a = strength, b = side). The meter and the aim line are presentation; nothing new is sent.
+
+**Parts** (the same parts and maximums; `CURLING_STD_SPEC.rev` 3, curlRev 1 and 2 keep `CURLING_STD_SPEC_V2`):
+
+| Part | Max | How |
+| --- | --- | --- |
+| Stones (core) | 120 | up to 15 a stone by closeness where it comes to rest when thrown: 15 touching the button (centre within 29.5 cm), a straight line to 0 at **320 cm** from the button (`CORE_EDGE_V3`; curlRev 1 and 2: 0 at the house's edge, 197.5 cm) |
+| Takeouts | 30 | the opponent's stones out of the house at the end, shared evenly |
+| Red ring | 30 | 3.75 a stone in the 4-foot when it comes to rest |
+| Holding shot | 20 | your stone nearest the button at the end |
+
+The core's "full at" is unchanged (eight stones on the button); only its outer edge moved, so a near miss past the house
+scores a little. 200 stays provable on every banked sheet (each witness puts all eight on the button).
+
+**Bank and proof:** `src/lib/duel/curlingBankV3.server.ts`, built by `bun scripts/curling-bank.ts --rev=3 --jobs=3
+[--cache=<file>]` with the same oracle on curlRev 3's weight line (`weightsFor(3)`: the band and steps scaled 9 ÷ 5.5 so
+the speeds searched match curlRev 2's); each witness (`scripts/fixtures/curling-witness-v3.json`) scores exactly 200
+through `replayCurlingRun(seed, raw, 3)`. The build proved 66 of 85 candidates (19 dropped: no eight-on-the-button
+plan within the search's budget) and keeps all 66 (`--candidates=85 --want=80`; a smaller bank than curlRev 2's 80,
+still above the 60 the checks ask for: the search costs ~15 s a seed here). `--check` replays all three banks.
+
+### The bot's error model (curlRev 3)
+
+The curlRev 1 and 2 bots aimed the weight with the level's power error × 1.5 on the weight itself (good: 6.75 % of the
+weight, about 5 % of the swipe's speed), which a swipe does not give a person: that is why they claimed good 136 / great
+155 while Joe scored 20–50. The curlRev 3 bot (`scripts/arcade-skill-bands/bots/curling.ts`, gated on the revision so
+the older measurements stand) aims at the meter's mark (the ideal weight; for a draw it is the zone's tee mark) and
+errs on the **swipe's speed**: `SWIPE_SD_SCALE` 2.5 × the level's power sd (weak 25 %, average 17.5 %, good 11 %, great
+7.5 %, near-perfect 3.75 %, elite 2.75 %), turned into a weight by the phone's own line. Reading the line costs the
+level's judgement × 25 cm of target error on top of the drag's pixel error (weak 12.5 cm … elite 0.6 cm); the aim line
+halves the wrong-turn slips. Good players carry a stone that looks short (both sides in turn), never bend it; great and
+better brush as on curlRev 2.
+
+### Measured (curlRev 3; `bun scripts/arcade-skill-bands.ts curling --rev=now --levels=all`)
+
+The first 30 sheets of the curlRev 3 bank, paired seeds. *Before* is curlRev 2 as dealt today with its own bot (the table
+above; the same command reproduces weak to great exactly on main).
+
+| Level | curlRev 2 (before) | curlRev 3 median (p10–p90) | Mean | Run (median) |
+| --- | --- | --- | --- | --- |
+| Weak | 84 | 97 (69–131) | 98.8 | 71.6 s |
+| Average | 100 | 110.5 (80–129) | 108.3 | 64.3 s |
+| Good | 136 | 136 (106–161) | 134.6 | 59.5 s |
+| Great | 155 | 160 (139–180) | 159.1 | 55.9 s |
+| Near-perfect | 164 | 177 (151–191) | 172.0 | 52.0 s |
+| Elite | 182 | 182.5 (163–197) | 182.1 | 50.3 s |
+| Flawless | 200 | 200 | 200 | 36.2 s |
+| Random | 28 | 58.5 (13–99) | 58.7 | 61.9 s |
+
+Every run replayed unflagged. The medians look like curlRev 2's at good and elite, but they are not the same players:
+curlRev 2's bot erred on the weight itself (about 5 % of a good player's swipe), curlRev 3's errs on the swipe as a
+person does (11 % for good), so the same figures now stand for a person using the meter and the line. The fit, on the
+same runs re-scored (`CORE_EDGE_V3`): with the house's edge as the outer edge good was 122 and great 153; 320 cm puts good
+at 136 and great at 160 and lifts near-perfect most (a near miss past the house is the near-perfect player's usual
+mistake). Elite sits at 182.5, just under the 185 aimed for: what an elite run loses is mostly a takeout or holding shot
+on the last stones, which the core's line does not reach. Random play rises to 58.5 (its stones now score past the
+house), still well under weak.

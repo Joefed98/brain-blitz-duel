@@ -7,9 +7,11 @@
  *  - poolRev 1 (the default): src/lib/duel/poolBank.server.ts and scripts/fixtures/pool-witness.json (kept exactly
  *    for stored rounds; rooms no longer deal it);
  *  - poolRev 2 (`--rev=2`, what rooms deal): src/lib/duel/poolBankV2.server.ts and
- *    scripts/fixtures/pool-witness-v2.json, its witnesses on poolRev 2's input (power in c, the spin dot in d).
+ *    scripts/fixtures/pool-witness-v2.json, its witnesses on poolRev 2's input (power in c, the spin dot in d);
+ *  - poolRev 3 (`--rev=3`, what rooms deal since 1 Nov 2026: more power and spin, a miss a foul):
+ *    src/lib/duel/poolBankV3.server.ts and scripts/fixtures/pool-witness-v3.json, on poolRev 2's input.
  *
- *   bun scripts/pool-bank.ts [--rev=2] [--count=60] [--jobs=4] [--check]
+ *   bun scripts/pool-bank.ts [--rev=2|3] [--count=60] [--jobs=4] [--check]
  *
  * --jobs searches candidates in parallel child processes (the result is the same whatever the job count: candidates are
  * tried in fixed batches and taken in their own order).
@@ -25,8 +27,9 @@ import { clearRack, type Shot } from "./pool-oracle";
 const args = process.argv.slice(2);
 const opt = (name: string) => args.find((a) => a.startsWith(`--${name}=`))?.slice(name.length + 3);
 const COUNT = Number(opt("count") ?? 60);
-const REV = Number(opt("rev") ?? 1) === 2 ? 2 : 1;
-const JOBS = Math.max(1, Number(opt("jobs") ?? (REV === 2 ? Math.min(4, cpus().length) : 1)));
+const REV_ARG = Number(opt("rev") ?? 1);
+const REV = REV_ARG === 3 ? 3 : REV_ARG === 2 ? 2 : 1;
+const JOBS = Math.max(1, Number(opt("jobs") ?? (REV >= 2 ? Math.min(4, cpus().length) : 1)));
 const CHECK = args.includes("--check");
 /** A child's work: candidate indices from..to (exclusive), printed as one JSON line. */
 const WORKER = opt("worker");
@@ -42,7 +45,7 @@ function candidate(n: number): number {
 
 /** The witness: each shot fired on the first tick the table is still, through the game; its encoded run. */
 export function witnessRun(seed: number, shots: readonly Shot[], rev = 1): string {
-  const game = poolGameFor(rev === 2 ? 2 : undefined);
+  const game = poolGameFor(rev >= 2 ? rev : undefined);
   let s = game.init(seed);
   const events: ArcadeInputEvent[] = [];
   const checkpoints = [];
@@ -51,7 +54,7 @@ export function witnessRun(seed: number, shots: readonly Shot[], rev = 1): strin
     const t = s.tick + 1;
     if (s.phase === POOL_AIM && next < shots.length) {
       const sh = shots[next++]!;
-      recordInput(events, { t, k: 1, a: sh.a, b: sh.b, c: sh.c, d: rev === 2 ? sh.d : 0 }, game.inputRanges);
+      recordInput(events, { t, k: 1, a: sh.a, b: sh.b, c: sh.c, d: rev >= 2 ? sh.d : 0 }, game.inputRanges);
     }
     s = game.step(s, inputAt(events, t));
     if (s.tick % SPORTS_CHECKPOINT_INTERVAL === 0) checkpoints.push(poolCheckpoint(s));
@@ -73,7 +76,7 @@ function tryCandidate(n: number): Tried {
   const shots = clearRack(poolLayout(seed).balls, { sims: 0, max: 400 }, 0, REV);
   if (!shots) return { n, seed, note: `seed ${seed}: no clearance found, dropped` };
   const raw = witnessRun(seed, shots, REV);
-  const r = REV === 2 ? replayPoolRun(seed, raw, 2) : replayPoolRun(seed, raw);
+  const r = REV >= 2 ? replayPoolRun(seed, raw, REV) : replayPoolRun(seed, raw);
   if (r.score !== 200 || r.flagged) return { n, seed, note: `seed ${seed}: witness scores ${r.score}${r.flagged ? " (flagged)" : ""}, dropped` };
   return { n, seed, raw, note: `seed ${seed}: cleared in ${shots.length} shots, ${r.endedSeconds} s → 200` };
 }
@@ -123,7 +126,23 @@ if (import.meta.main && WORKER) {
     }
   }
   const body =
-    REV === 2
+    REV === 3
+      ? `/**
+ * Cue Ball poolRev 3's bank (what rooms deal since 1 Nov 2026): ${bank.length} layouts (of ${tried} candidates) the shot
+ * search (scripts/pool-oracle.ts, on poolRev 3's harder top speed and stronger spin) cleared without a miss or a foul
+ * (seven spots, then the black). Every layout's witness run (scripts/fixtures/pool-witness-v3.json, poolRev 2's input:
+ * power in c, the spin dot in d) scores exactly 200 through the server's replay on poolRev 3 (pool-check). Built by
+ * \`bun scripts/pool-bank.ts --rev=3\`. Server-only.
+ */
+export const POOL_BANK_V3: readonly number[] = [${bank.join(",")}];
+
+/** The skill-band tool's seed index n → a poolRev 3 bank seed (fresh seeds from 10000 start past the first 30). */
+export function poolBankV3SeedFor(n: number): number {
+  const len = POOL_BANK_V3.length;
+  return n < 10000 ? POOL_BANK_V3[n % len]! : POOL_BANK_V3[30 + ((n - 10000) % (len - 30))]!;
+}
+`
+      : REV === 2
       ? `/**
  * Cue Ball poolRev 2's bank (what rooms deal): ${bank.length} layouts (of ${tried} candidates) the shot search
  * (scripts/pool-oracle.ts, on poolRev 2's continuous spin) cleared without a miss or a foul (seven spots, then the
@@ -153,8 +172,8 @@ export function poolBankSeedFor(n: number): number {
   return n < 10000 ? POOL_BANK[n % len]! : POOL_BANK[30 + ((n - 10000) % (len - 30))]!;
 }
 `;
-  const out = new URL(REV === 2 ? "../src/lib/duel/poolBankV2.server.ts" : "../src/lib/duel/poolBank.server.ts", import.meta.url);
-  const wOut = new URL(REV === 2 ? "./fixtures/pool-witness-v2.json" : "./fixtures/pool-witness.json", import.meta.url);
+  const out = new URL(REV === 3 ? "../src/lib/duel/poolBankV3.server.ts" : REV === 2 ? "../src/lib/duel/poolBankV2.server.ts" : "../src/lib/duel/poolBank.server.ts", import.meta.url);
+  const wOut = new URL(REV === 3 ? "./fixtures/pool-witness-v3.json" : REV === 2 ? "./fixtures/pool-witness-v2.json" : "./fixtures/pool-witness.json", import.meta.url);
   const wBody = JSON.stringify(witness) + "\n";
   if (CHECK) {
     let same = false;

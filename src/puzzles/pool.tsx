@@ -280,13 +280,16 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     return !locked && s !== null && !s.over && s.phase === POOL_AIM;
   };
 
-  /** The shot's payload on the round's revision: poolRev 2 sends the dot as it is; poolRev 1 its nearest of 5 × 5. */
+  /**
+   * The shot's payload on the round's revision: poolRev 2 and 3 send the dot as it is; poolRev 1 its nearest of 5 × 5.
+   * The aim goes at the input's full reach (±4096, about a hundredth of a degree), so the shot leaves on the line drawn.
+   */
   const shotPayload = (angle: number, power: number): PointerPayload => {
-    const a = Math.round(Math.cos(angle) * 4000);
-    const b = Math.round(Math.sin(angle) * 4000);
+    const a = Math.round(Math.cos(angle) * 4096);
+    const b = Math.round(Math.sin(angle) * 4096);
     const p = Math.max(1, Math.round(power * 1000));
     const sp = spinRef.current;
-    if (rev === 2) return { k: POOL_INPUT_SHOT, a, b, ...poolShot2(p, sp.x, sp.y) };
+    if (rev >= 2) return { k: POOL_INPUT_SHOT, a, b, ...poolShot2(p, sp.x, sp.y) };
     return { k: POOL_INPUT_SHOT, a, b, c: poolShotC(p, poolSpinCode(Math.round(sp.y / 50), Math.round(sp.x / 50))) };
   };
 
@@ -376,7 +379,9 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         inputKind={POOL_INPUT_SHOT}
         pointer={(kind, x, y) => {
           // Dragging anywhere on the table turns the cue round the cue ball by the finger's own turn round it, scaled
-          // down further out (finer); a quick tap points it straight at the tapped spot. Nothing is sent.
+          // down further out (finer); a quick tap points it straight at the tapped spot. Nothing is sent. The angle is
+          // a continuous float (no step, no rounding) and turns from the first pixel of a drag (1 Nov 2026: it used to
+          // wait for 6 px, so a slow drag's start was lost and the cue jumped into motion); the mouse takes the same path.
           const s = last.current;
           if (!s || s.phase !== POOL_AIM || s.over) {
             drag.current = null;
@@ -401,7 +406,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
           d.y = y;
           if (kind === "move") {
             const base = currentAngle(s);
-            if (base !== null && dist > DEAD_R && d.moved >= TAP_MOVE) {
+            if (base !== null && dist > DEAD_R) {
               const gain = Math.max(FINE_MIN, Math.min(1, FINE_FROM / dist));
               aim.current = { shots: s.shots, angle: wrapAngle(base + wrapAngle(at - d.angle) * gain) };
             }

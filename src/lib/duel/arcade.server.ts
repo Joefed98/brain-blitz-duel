@@ -1,3 +1,4 @@
+import { NINJA_REV } from "@/lib/arcade/ricochetNinja";
 import { BASTION_REV_DEALT } from "@/lib/arcade/bastionTank";
 import { TEN_DROP_DEPTH_REV } from "@/lib/arcade/tenDrop";
 import { SLICE_REV_TARGET, SLICE_REV_STRICT, SLICE_REV_STANDARD } from "@/lib/arcade/slice";
@@ -46,7 +47,9 @@ import { TP_REV } from "@/lib/arcade/cards/tripeaks";
 import { TP_DEALS } from "@/lib/arcade/cards/tripeaksDeals.data";
 import { PS_REV } from "@/lib/arcade/cards/pokerSquares";
 import { FH_REV } from "@/lib/arcade/cards/fiveHands";
-import type { FiveHandsPuzzleData, FreecellPuzzleData, PokerSquaresPuzzleData, TripeaksPuzzleData } from "./types";
+import { BLOCKFALL_REV } from "@/lib/arcade/blockfall";
+import { blockfallDealSeed } from "./blockfallDeal.server";
+import type { BlockfallPuzzleData, FiveHandsPuzzleData, FreecellPuzzleData, PokerSquaresPuzzleData, TripeaksPuzzleData } from "./types";
 import { bullseyeWinds, BULLSEYE_REV_TARGET, BULLSEYE_REV_STRICT, BULLSEYE_REV_STD } from "@/lib/arcade/bullseye";
 import type {
   BinTossPuzzleData,
@@ -113,6 +116,11 @@ export function generateFiveHands(): FiveHandsPuzzleData {
   return { type: "fivehands", seed: arcadeSeed(), fiveHandsRev: FH_REV };
 }
 
+/** Blockfall (Retro, 1 Nov 2026): a seed from the proved deal (the oracle took it to 200 through the server replay). */
+export function generateBlockfall(): BlockfallPuzzleData {
+  return { type: "blockfall", seed: blockfallDealSeed(arcadeSeed()), blockfallRev: BLOCKFALL_REV };
+}
+
 export function generateSwerve(): SwervePuzzleData {
   return { type: "swerve", seed: arcadeSeed() };
 }
@@ -154,8 +162,9 @@ export function generateDual(): DualPuzzleData {
   return { type: "dual", seed: arcadeSeed() };
 }
 
+/** Ricochet deals the ninja wall-climb (ricoRev 2, 1 Nov 2026); unstamped rounds keep the old shaft. */
 export function generateRicochet(): RicoPuzzleData {
-  return { type: "ricochet", seed: arcadeSeed() };
+  return { type: "ricochet", seed: arcadeSeed(), ricoRev: NINJA_REV };
 }
 
 export function generateBreaker(): BreakerPuzzleData {

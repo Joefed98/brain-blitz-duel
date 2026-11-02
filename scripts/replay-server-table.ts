@@ -8,6 +8,7 @@ import { isBastionTank, replayBastionRun, replayBastionTankRun } from "../src/li
 import type { PuzzleData } from "../src/lib/duel/types";
 import { clashVariantOf } from "../src/lib/arcade/colourClash";
 import { replayHoverRun } from "../src/lib/duel/hover";
+import { isNinjaRev, replayNinjaRun, replayRicoRun } from "../src/lib/duel/ricochet";
 import { replaySkylineRun } from "../src/lib/duel/skyline";
 import { replayBinTossRun } from "../src/lib/duel/binToss";
 import { replayBullseyeRun } from "../src/lib/duel/bullseye";
@@ -44,6 +45,8 @@ import { replayColourClashRun } from "../src/lib/duel/colourClash";
 import { replayMinigolfRun } from "../src/lib/duel/minigolf";
 import { replayPoolRun } from "../src/lib/duel/pool";
 import { replayCurlingRun } from "../src/lib/duel/curling";
+import { replayBlockfallRun } from "../src/lib/duel/blockfall";
+import { replayAlleyRollRun } from "../src/lib/duel/alleyroll";
 
 export interface ServerReplay {
   score: number;
@@ -68,6 +71,8 @@ const TABLE: Record<string, (p: any, a: string) => ServerReplay> = {
   tripeaks: (p, a) => replayTripeaksRun(p.seed, a, p.tripeaksRev),
   pokersquares: (p, a) => replayPokerSquaresRun(p.seed, a, p.pokerSquaresRev),
   fivehands: (p, a) => replayFiveHandsRun(p.seed, a, p.fiveHandsRev),
+  // Ricochet: the ninja wall-climb on ricoRev 2, else the original shaft.
+  ricochet: (p, a) => (isNinjaRev(p.ricoRev) ? replayNinjaRun(p.seed, a) : replayRicoRun(p.seed, a)),
   // Bastion: bastionRev 2's tank game; the original turret for unstamped rounds.
   bastion: (p, a) => (isBastionTank(p.bastionRev) ? replayBastionTankRun(p.seed, a) : replayBastionRun(p.seed, a)),
   rally: (p, a) => replayRallyRun(p.seed, a, p.rallyRev),
@@ -95,6 +100,8 @@ const TABLE: Record<string, (p: any, a: string) => ServerReplay> = {
   minigolf: (p, a) => replayMinigolfRun(p.seed, a, p.pars, p.golfRev),
   pool: (p, a) => replayPoolRun(p.seed, a, p.poolRev),
   curling: (p, a) => replayCurlingRun(p.seed, a, p.curlRev),
+  blockfall: (p, a) => replayBlockfallRun(p.seed, a, p.blockfallRev),
+  alleyroll: (p, a) => replayAlleyRollRun(p.seed, a, p.alleyRollRev),
 };
 
 export function serverReplay(puzzle: PuzzleData, answer: string): ServerReplay {

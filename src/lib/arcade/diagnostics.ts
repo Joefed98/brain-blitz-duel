@@ -24,6 +24,7 @@ import { hoverCheckpoint } from "./hover";
 import { matchupCheckpoint } from "./matchup";
 import { rallyCheckpoint } from "./rally";
 import { ricoCheckpoint } from "./ricochet";
+import { ninjaCheckpoint, NINJA_REV } from "./ricochetNinja";
 import { skylineCheckpoint } from "./skyline";
 import { sliceCheckpoint } from "./slice";
 import { snakeCheckpoint } from "./snake";
@@ -53,6 +54,8 @@ import { racingCheckpoint } from "./racing";
 import { minigolfCheckpoint } from "./minigolf";
 import { poolCheckpoint } from "./pool";
 import { curlingCheckpoint } from "./curling";
+import { bfCheckpoint } from "./blockfall";
+import { arCheckpoint } from "./alleyroll";
 import type { InputDiag } from "./engine";
 import { devDisplayAllowed } from "../devDisplay";
 
@@ -76,6 +79,8 @@ const SNAPSHOTS: Record<string, (state: any) => object> = {
   tripeaks: tpCheckpoint,
   pokersquares: psCheckpoint,
   fivehands: fhCheckpoint,
+  blockfall: bfCheckpoint,
+  alleyroll: arCheckpoint,
   bubble: bubCheckpoint,
   bullseye: bullseyeCheckpoint,
   cross: crossCheckpoint,
@@ -83,7 +88,8 @@ const SNAPSHOTS: Record<string, (state: any) => object> = {
   hover: hoverCheckpoint,
   matchup: matchupCheckpoint,
   rally: rallyCheckpoint,
-  ricochet: ricoCheckpoint,
+  // Ricochet: the ninja wall-climb (ricoRev 2) or the original shaft.
+  ricochet: (s: any) => (s && s.rev === NINJA_REV ? ninjaCheckpoint(s) : ricoCheckpoint(s)),
   skyline: skylineCheckpoint,
   slice: sliceCheckpoint,
   snake: snakeCheckpoint,

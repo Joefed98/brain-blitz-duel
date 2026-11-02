@@ -1,5 +1,6 @@
 /**
- * Records freekickRev 1 runs (run on main before freekickRev 2, 31 Oct 2026) for freekick-check's legacy identity:
+ * Records freekickRev 1 runs (and, with --rev=2, freekickRev 2 runs: run on main before freekickRev 3, 1 Nov 2026, into
+ * scripts/fixtures/freekick-rev2-legacy.json, the oracle, two random-stroke runs and the skill-band bot at good and great on 16 rev-2 deal seeds) (run on main before freekickRev 2, 31 Oct 2026) for freekick-check's legacy identity:
  * the oracle's run and two random-stroke runs on 16 deal seeds, each with its input log, final score, final-state
  * digest and checkpoint checksums. freekick-check replays every log on today's code and fails on any difference.
  *
@@ -10,7 +11,10 @@ import { createHash } from "node:crypto";
 import { recordInput, type ArcadeInputEvent } from "../src/lib/arcade/engine";
 import { freekickCheckpoint, freekickGameFor, FREEKICK_INPUT_KICK, FREEKICK_INPUT_RANGES } from "../src/lib/arcade/freekick";
 import { FREEKICK_DEAL } from "../src/lib/duel/freekickDeal.server";
+import { FREEKICK_DEAL_V2 } from "../src/lib/duel/freekickDealV2.server";
 import { oracleRun } from "./freekick-oracle";
+import { Human } from "./arcade-skill-bands/human";
+import { bot } from "./arcade-skill-bands/bots/freekick";
 
 export interface FkLegacyRun {
   seed: number;
@@ -21,8 +25,8 @@ export interface FkLegacyRun {
   checksums: number[];
 }
 
-export function playRev1(seed: number, events: ArcadeInputEvent[]): { score: number; digest: string; checksums: number[] } {
-  const game = freekickGameFor(1);
+export function playRev1(seed: number, events: ArcadeInputEvent[], rev = 1): { score: number; digest: string; checksums: number[] } {
+  const game = freekickGameFor(rev);
   const at = new Map(events.map((e) => [e.t, e]));
   let s = game.init(seed);
   const checksums: number[] = [];
@@ -44,7 +48,18 @@ function randomRun(seed: number, salt: number): ArcadeInputEvent[] {
   return events;
 }
 
-if (import.meta.main) {
+if (import.meta.main && process.argv.includes("--rev=2")) {
+  const runs: FkLegacyRun[] = [];
+  const seeds = Array.from({ length: 16 }, (_, i) => FREEKICK_DEAL_V2[i * 18 + 1]!);
+  for (const seed of seeds) {
+    const botRun = (level: "good" | "great") => bot({ game: freekickGameFor(2), seed, rev: 2, human: new Human("freekick", seed, level) }).events ?? [];
+    for (const [label, events] of [["oracle", oracleRun(seed, 2)], ["random a", randomRun(seed, 0x2234)], ["random b", randomRun(seed, 0xbeee)], ["good bot", botRun("good")], ["great bot", botRun("great")]] as const) {
+      runs.push({ seed, label, events: [...events], ...playRev1(seed, [...events], 2) });
+    }
+  }
+  writeFileSync("scripts/fixtures/freekick-rev2-legacy.json", JSON.stringify(runs));
+  console.log(`freekick legacy (rev 2): ${runs.length} runs recorded`);
+} else if (import.meta.main) {
   const runs: FkLegacyRun[] = [];
   const seeds = Array.from({ length: 16 }, (_, i) => FREEKICK_DEAL[i * 18]!);
   for (const seed of seeds) {

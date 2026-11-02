@@ -135,6 +135,8 @@ import {
   TRIPEAKS_TIME_MS,
   POKERSQUARES_TIME_MS,
   FIVEHANDS_TIME_MS,
+  BLOCKFALL_TIME_MS,
+  ALLEYROLL_TIME_MS,
 } from "./types";
 
 import { TG_TIME_MS, tileGridResultLine } from "./tileGrid";
@@ -166,6 +168,8 @@ const DIRECT_LIMITS: Partial<Record<PuzzleType, number>> = {
   tripeaks: TRIPEAKS_TIME_MS,
   pokersquares: POKERSQUARES_TIME_MS,
   fivehands: FIVEHANDS_TIME_MS,
+  blockfall: BLOCKFALL_TIME_MS,
+  alleyroll: ALLEYROLL_TIME_MS,
   minigolf: MINIGOLF_TIME_MS,
   pool: POOL_TIME_MS,
   curling: CURLING_TIME_MS,
@@ -1078,6 +1082,18 @@ const dualSummary: SummaryBuilder = (result) => {
 };
 
 const ricoSummary: SummaryBuilder = (result) => {
+  // ricoRev 2, the ninja wall-climb: the height and the items, no survival (no game over).
+  if (result.extra?.["metres"] !== undefined) {
+    const m = Number(result.extra["metres"] ?? 0);
+    const hits = Number(result.extra["hits"] ?? 0);
+    return {
+      summary: `${m.toLocaleString("en-GB")} m climbed · ${result.score} points`,
+      detail: [
+        `${Number(result.extra["coins"] ?? 0)} coins · ${Number(result.extra["lanterns"] ?? 0)} lanterns · ${Number(result.extra["scrolls"] ?? 0)} scrolls`,
+        `${hits === 1 ? "1 hit" : `${hits} hits`} · ${Number(result.extra["djs"] ?? 0)} double jumps`,
+      ],
+    };
+  }
   const metres = Math.trunc(Number(result.extra?.["heightPx"] ?? 0) / 40);
   const survived = result.extra?.["survived"] === true;
   const spiked = result.extra?.["spiked"] === true;
@@ -1145,6 +1161,23 @@ const fiveHandsSummary: SummaryBuilder = (result) => {
   return {
     summary: `${n("total")} hand points · ${n("made")} of 5 hands`,
     detail: [`${n("placed")} of 20 cards placed`],
+  };
+};
+
+const blockfallSummary: SummaryBuilder = (result) => {
+  const n = (key: string) => Number(result.extra?.[key] ?? 0);
+  const multi = n("doubles") + n("triples") + n("quads");
+  return {
+    summary: `${n("lines")} lines · ${multi} multi-line clear${multi === 1 ? "" : "s"}`,
+    detail: [result.extra?.["toppedOut"] ? "Topped out" : `Stack ${n("height")} high at the buzzer`],
+  };
+};
+
+const alleyRollSummary: SummaryBuilder = (result) => {
+  const n = (key: string) => Number(result.extra?.[key] ?? 0);
+  return {
+    summary: `${n("rings")} ring points · ${n("pockets")} pocket${n("pockets") === 1 ? "" : "s"}`,
+    detail: [`${n("balls")} of 9 balls · ${n("streak")} in a row`],
   };
 };
 
@@ -1795,6 +1828,8 @@ export const ROUND_SUMMARIES: Record<PuzzleType, SummaryBuilder> = {
   tripeaks: tripeaksSummary,
   pokersquares: pokerSquaresSummary,
   fivehands: fiveHandsSummary,
+  blockfall: blockfallSummary,
+  alleyroll: alleyRollSummary,
   minigolf: minigolfSummary,
   pool: poolSummary,
   curling: curlingSummary,
@@ -1900,6 +1935,8 @@ export const CORRECT_ANSWERS: Record<PuzzleType, AnswerBuilder> = {
   tripeaks: () => null,
   pokersquares: () => null,
   fivehands: () => null,
+  blockfall: () => null,
+  alleyroll: () => null,
   minigolf: () => null,
   pool: () => null,
   curling: () => null,

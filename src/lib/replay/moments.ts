@@ -120,6 +120,19 @@ export const MOMENT_TABLE: readonly MomentRow[] = [
   fx("pokersquares", 1, "final", "target", 70, "The deal's target reached"),
   fx("fivehands", 0, "pop", "hand", 20, "A row makes a hand"),
   fx("fivehands", 1, "final", "target", 70, "The full hand points reached"),
+  // Blockfall (Retro) and Alley Roll (Sports), 1 Nov 2026
+  fx("blockfall", 0, "pop", "line-clear", 10, "Rows cleared"),
+  fx("blockfall", 1, "combo", "three-or-four", 50, "Three or four rows at once"),
+  fx("blockfall", 2, "final", "full-lines", 80, "The core's lines reached"),
+  fx("alleyroll", 0, "pop", "ring-points", 10, "A ball in a ring"),
+  fx("alleyroll", 1, "streak", "pocket-hit", 50, "A 100 pocket"),
+  fx("alleyroll", 2, "final", "full-points", 80, "The core's ring points reached"),
+  // Ricochet (ricoRev 2, the ninja wall-climb, 1 Nov 2026)
+  fx("ricochet", 0, "pop", "coin-taken", 5, "Coin taken"),
+  fx("ricochet", 1, "combo", "lantern-taken", 30, "Gold lantern taken"),
+  fx("ricochet", 2, "perfect", "scroll-taken", 50, "Scroll taken"),
+  fx("ricochet", 3, "streak", "height", 25, "Another 50 m climbed"),
+  fx("ricochet", 4, "final", "full-height", 80, "The core's full height reached"),
   // Rally
   fx("rally", 0, "streak", "long-rally", 35, "Long rally (every 10 returns)"),
   fx("rally", 1, "pop", "gold", 25, "Gold ball returned"),

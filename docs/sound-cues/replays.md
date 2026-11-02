@@ -91,6 +91,12 @@ game the round was.
 | `bastion.fast-reload` | Fast reload: the clip reaches the moment's key tick | instant (the moment lands; about 0.5 s of half-speed play follows) |
 | `homerun.home-run` | Home run: the clip reaches the moment's key tick | instant (the moment lands; about 0.5 s of half-speed play follows) |
 | `homerun.sign-hit` | A sign beyond the fence struck: the clip reaches the moment's key tick | instant (the moment lands; about 0.5 s of half-speed play follows) |
+| `blockfall.line-clear` | Rows cleared: the clip reaches the moment's key tick | instant (the moment lands; about 0.5 s of half-speed play follows) |
+| `blockfall.three-or-four` | Three or four rows at once: the clip reaches the moment's key tick | instant (the moment lands; about 0.5 s of half-speed play follows) |
+| `blockfall.full-lines` | The core's lines reached: the clip reaches the moment's key tick | instant (the moment lands; about 0.5 s of half-speed play follows) |
+| `alleyroll.ring-points` | A ball in a ring: the clip reaches the moment's key tick | instant (the moment lands; about 0.5 s of half-speed play follows) |
+| `alleyroll.pocket-hit` | A 100 pocket: the clip reaches the moment's key tick | instant (the moment lands; about 0.5 s of half-speed play follows) |
+| `alleyroll.full-points` | The core's ring points reached: the clip reaches the moment's key tick | instant (the moment lands; about 0.5 s of half-speed play follows) |
 | `freekick.goal-scored` | Goal: the clip reaches the moment's key tick | instant (the moment lands; about 0.5 s of half-speed play follows) |
 | `freekick.target-hit` | A target hit: the clip reaches the moment's key tick | instant (the moment lands; about 0.5 s of half-speed play follows) |
 | `racing.clean-sector` | Clean sector: the clip reaches the moment's key tick | instant (the moment lands; about 0.5 s of half-speed play follows) |

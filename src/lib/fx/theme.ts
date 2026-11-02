@@ -112,6 +112,9 @@ const WORLD_MUSIC: Partial<Record<PuzzleType, SoundId>> = {
   tripeaks: "music_matchup",
   pokersquares: "music_matchup",
   fivehands: "music_matchup",
+  // Blockfall and Alley Roll (1 Nov 2026): their own slots, on borrowed tracks (manifest.ts).
+  blockfall: "music_blockfall",
+  alleyroll: "music_alleyroll",
   // The Sports group (30 Oct 2026) has no tracks of its own yet: it borrows existing real-world beds.
   homerun: "music_skyline",
   // Bastion (bastionRev 2, Action): no track of its own yet; it borrows Wavefront's driving bed.
@@ -133,6 +136,8 @@ const WORLD_MUSIC: Partial<Record<PuzzleType, SoundId>> = {
   snip: "music_snip",
   flip: "music_flip",
   swing: "music_swing",
+  // Ricochet (ricoRev 2, the ninja wall-climb) has no track of its own yet: it borrows Grappler's.
+  ricochet: "music_swing",
   slice: "music_slice",
   skyline: "music_skyline",
   junction: "music_junction",

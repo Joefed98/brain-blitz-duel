@@ -19,15 +19,15 @@ effects ([arcade-effects.md](arcade-effects.md)) so a sound can be written for e
 
 | Category | Silent | Placeholder | Recorded | Total |
 |---|---|---|---|---|
-| game event | 35 | 0 | 423 | 458 |
+| game event | 37 | 0 | 446 | 483 |
 | room moment | 1 | 0 | 34 | 35 |
-| music | 12 | 0 | 98 | 110 |
+| music | 12 | 0 | 100 | 112 |
 | UI tap | 10 | 0 | 28 | 38 |
 | fail sting | 4 | 0 | 37 | 41 |
 | success sting | 3 | 0 | 73 | 76 |
 | ambience | 0 | 1 | 17 | 18 |
-| replay | 0 | 0 | 180 | 180 |
-| **all** | 65 | 1 | 890 | 956 |
+| replay | 0 | 0 | 186 | 186 |
+| **all** | 67 | 1 | 921 | 989 |
 
 ## Silent and placeholder cues
 
@@ -282,6 +282,8 @@ Grouped by game or screen. These are the cues still missing a sound.
 
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
 |---|---|---|---|---|---|---|---|---|
+| `ricochet.land` | The ninja lands on stone (ricoRev 2; at most one per 80 ms) [arcade-effects.md] | The ninja clings to the wall | 80–140 | silent | none | 120 | game event | `ricochet.land` |
+| `ricochet.slip` | The ninja lands on moss or ice (ricoRev 2) [arcade-effects.md] | The ninja clings and slides fast | 5–30 | silent | none | 300 | game event | `ricochet.slip` |
 | `music.ricochet` | Ricochet (retired, practice): none |  | loop | silent | none | 60000 | music | `music_ricochet` |
 
 ### Rooftop Run
@@ -386,9 +388,11 @@ Grouped by game or screen. These are the cues still missing a sound.
 | Shikaku | logic | yes | music_logic_1 (shared) | `music_logic_shikaku` |
 | Tents and Trees | logic | yes | music_logic_1 (shared) | `music_logic_tents` |
 | Trail | logic | yes | music_logic_3 (shared) | `music_logic_trail` |
+| Alley Roll | arcade | yes | music_alleyroll | `music_alleyroll` |
 | Apex | arcade | yes | music_racing | `music_racing` |
 | Ball Tracker | arcade | yes | music_balltrack | `music_balltrack` |
 | Bastion | arcade | yes | **none** | `music_bastion` |
+| Blockfall | arcade | yes | music_blockfall | `music_blockfall` |
 | Breaker | arcade | yes | music_breaker | `music_breaker` |
 | Coral Pop | arcade | yes | music_bubble | `music_bubble` |
 | Crazy Golf | arcade | yes | music_minigolf | `music_minigolf` |
@@ -415,7 +419,7 @@ Grouped by game or screen. These are the cues still missing a sound.
 | Pinball | arcade | yes | music_pinball | `music_pinball` |
 | Rainbow Bridge | arcade | yes | music_inkbridge | `music_inkbridge` |
 | Rally | arcade | yes | music_rally | `music_rally` |
-| Ricochet | arcade | practice only | **none** | `music_ricochet` |
+| Ricochet | arcade | yes | **none** | `music_ricochet` |
 | Roofbound | arcade | yes | music_flip | `music_flip` |
 | Rooftop Run | arcade | practice only | **none** | `music_rooftop` |
 | Scrumper | arcade | practice only | music_snip | `music_snip` |
@@ -611,6 +615,12 @@ Grouped by game or screen.
 | `bastion.fast-reload` | Fast reload: the clip reaches the moment's key tick [replays.md] |  | 0–2 per highlight | recorded sound | `bastion.fast-reload` | 250 | replay | `bastion.fast-reload` |
 | `homerun.home-run` | Home run: the clip reaches the moment's key tick [replays.md] |  | 0–2 per highlight | recorded sound | `homerun.home-run` | 250 | replay | `homerun.home-run` |
 | `homerun.sign-hit` | A sign beyond the fence struck: the clip reaches the moment's key tick [replays.md] |  | 0–2 per highlight | recorded sound | `homerun.sign-hit` | 250 | replay | `homerun.sign-hit` |
+| `blockfall.line-clear` | Rows cleared: the clip reaches the moment's key tick [replays.md] |  | 0–2 per highlight | recorded sound | `blockfall.line-clear` | 250 | replay | `blockfall.line-clear` |
+| `blockfall.three-or-four` | Three or four rows at once: the clip reaches the moment's key tick [replays.md] |  | 0–2 per highlight | recorded sound | `blockfall.three-or-four` | 250 | replay | `blockfall.three-or-four` |
+| `blockfall.full-lines` | The core's lines reached: the clip reaches the moment's key tick [replays.md] |  | 0–2 per highlight | recorded sound | `blockfall.full-lines` | 250 | replay | `blockfall.full-lines` |
+| `alleyroll.ring-points` | A ball in a ring: the clip reaches the moment's key tick [replays.md] |  | 0–2 per highlight | recorded sound | `alleyroll.ring-points` | 250 | replay | `alleyroll.ring-points` |
+| `alleyroll.pocket-hit` | A 100 pocket: the clip reaches the moment's key tick [replays.md] |  | 0–2 per highlight | recorded sound | `alleyroll.pocket-hit` | 250 | replay | `alleyroll.pocket-hit` |
+| `alleyroll.full-points` | The core's ring points reached: the clip reaches the moment's key tick [replays.md] |  | 0–2 per highlight | recorded sound | `alleyroll.full-points` | 250 | replay | `alleyroll.full-points` |
 | `freekick.goal-scored` | Goal: the clip reaches the moment's key tick [replays.md] |  | 0–2 per highlight | recorded sound | `freekick.goal-scored` | 250 | replay | `freekick.goal-scored` |
 | `freekick.target-hit` | A target hit: the clip reaches the moment's key tick [replays.md] |  | 0–2 per highlight | recorded sound | `freekick.target-hit` | 250 | replay | `freekick.target-hit` |
 | `racing.clean-sector` | Clean sector: the clip reaches the moment's key tick [replays.md] |  | 0–2 per highlight | recorded sound | `racing.clean-sector` | 250 | replay | `racing.clean-sector` |
@@ -1204,6 +1214,20 @@ Grouped by game or screen.
 | `trail.solve` | the trail is complete [number.md] |  | 0–1 | recorded sound | `trail.solve` | 1150 | success sting | `trail.solve` |
 | `music.trail` | Trail round bed: music_logic_3 (logic bed shared with other games) |  | loop | recorded sound | `music_logic_3` (shared) | 60000 | music | `music_logic_trail` |
 
+### Alley Roll
+
+| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
+|---|---|---|---|---|---|---|---|---|
+| `alleyroll.roll` | Alley Roll: A ball is rolled [arcade.md] |  | 9 | recorded sound | `arc_wood_knock` (shared) | 90 | game event | `alleyroll.roll` |
+| `alleyroll.rail` | Alley Roll: A rolling ball bounces off a rail [arcade.md] |  | 0–9 | recorded sound | `arc_bounce` (shared) | 80 | game event | `alleyroll.rail` |
+| `alleyroll.ramp` | Alley Roll: The ball leaves the ramp [arcade.md] |  | 9 | recorded sound | `arc_wood_knock` (shared) | 90 | game event | `alleyroll.ramp` |
+| `alleyroll.ring` | Alley Roll: The ball drops into a 10–40 ring [arcade.md] |  | 0–9 | recorded sound | `arc_fair_bucket` (shared) | 200 | game event | `alleyroll.ring` |
+| `alleyroll.fifty` | Alley Roll: The ball drops into the 50 [arcade.md] |  | 0–9 | recorded sound | `arc_fair_bell` (shared) | 400 | game event | `alleyroll.fifty` |
+| `alleyroll.pocket` | Alley Roll: The ball drops into a 100 pocket (with a success haptic) [arcade.md] |  | 0–9 | recorded sound | `arc_fair_sting` (shared) | 300 | game event | `alleyroll.pocket` |
+| `alleyroll.gutter` | Alley Roll: The ball misses every ring [arcade.md] |  | 0–9 | recorded sound | `arc_fair_thud` (shared) | 160 | game event | `alleyroll.gutter` |
+| `alleyroll.rolling` | Alley Roll [blockfall-alleyroll.md] |  | 5–40 (per move) | recorded sound | `alleyroll.rolling` | loop | game event | `alleyroll.rolling` |
+| `music.alleyroll` | Alley Roll: music_alleyroll (Swish's fairground bed, music_bintoss.mp3) |  | loop | recorded sound | `music_alleyroll` | loop | music | `music_alleyroll` |
+
 ### Apex
 
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
@@ -1257,6 +1281,19 @@ Grouped by game or screen.
 | `bastion.miss` | Bastion: A shell lands on open ground [arcade.md] |  | 0–40 | recorded sound | `arc_fair_thud` (shared) | 300 | fail sting | `bastion.miss` |
 | `bastion.baseHit` | Bastion: A tank reaches the wall and hits the base (with the base-hit haptic) [arcade.md] |  | 0–3 | recorded sound | `arc_crash` (shared) | 800 | game event | `bastion.baseHit` |
 | `bastion.wave` | Bastion: A wave rolls in [arcade.md] |  | 5 | recorded sound | `arc_horn` (shared) | 900 | game event | `bastion.wave` |
+
+### Blockfall
+
+| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
+|---|---|---|---|---|---|---|---|---|
+| `blockfall.turn` | Blockfall: The falling piece turns [arcade.md] |  | 20–80 | recorded sound | `arc_retro_blip` (shared) | 50 | game event | `blockfall.turn` |
+| `blockfall.hold` | Blockfall: A piece goes to the hold box [arcade.md] |  | 0–15 | recorded sound | `arc_retro_note` (shared) | 90 | game event | `blockfall.hold` |
+| `blockfall.lock` | Blockfall: A piece lands and locks without clearing a row [arcade.md] |  | 20–80 | recorded sound | `arc_retro_hit` (shared) | 120 | game event | `blockfall.lock` |
+| `blockfall.clear` | Blockfall: One or two rows clear [arcade.md] |  | 5–25 | recorded sound | `arc_retro_coin` (shared) | 120 | game event | `blockfall.clear` |
+| `blockfall.bigClear` | Blockfall: Three or four rows clear at once (with a success haptic) [arcade.md] |  | 0–6 | recorded sound | `arc_retro_pickup` (shared) | 100 | game event | `blockfall.bigClear` |
+| `blockfall.speedUp` | Blockfall: The speed rises (every 15 s) [arcade.md] |  | 3 | recorded sound | `arc_retro_note` (shared) | 90 | game event | `blockfall.speedUp` |
+| `blockfall.topOut` | Blockfall: The stack reaches the top and the run ends early [arcade.md] |  | 0–1 | recorded sound | `arc_retro_explode` (shared) | 260 | game event | `blockfall.topOut` |
+| `music.blockfall` | Blockfall: music_blockfall (Fission's Retro bed, music_burst.mp3) |  | loop | recorded sound | `music_blockfall` | loop | music | `music_blockfall` |
 
 ### Breaker
 
@@ -1655,6 +1692,19 @@ Grouped by game or screen.
 | `rally.hit` | Rally: The ball is returned [arcade.md] |  | 30–80 | recorded sound | `arc_retro_blip` (shared) | 50 | game event | `rally.hit` |
 | `music.rally` | Rally: music_rally |  | loop | recorded sound | `music_rally` | loop | music | `music_rally` |
 
+### Ricochet
+
+| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
+|---|---|---|---|---|---|---|---|---|
+| `ricochet.heightStreak` | Every 50 m climbed (ricoRev 2) [arcade-effects.md] | "50 m" streak banner | 1–7 | recorded sound | `ricochet.heightStreak` | 480 | game event | `ricochet.heightStreak` |
+| `ricochet.fullHeight` | The core's full height (241 m) reached (ricoRev 2) [arcade-effects.md] | FULL HEIGHT! banner | 0–1 | recorded sound | `ricochet.fullHeight` | 840 | game event | `ricochet.fullHeight` |
+| `ricochet.leap` | Ricochet: The ninja leaps off a wall (ricoRev 2) [arcade.md] |  | 80–140 | recorded sound | `arc_gravity_flip` (shared) | 330 | game event | `ricochet.leap` |
+| `ricochet.doubleJump` | Ricochet: The double jump in the air (ricoRev 2) [arcade.md] |  | 10–60 | recorded sound | `arc_gravity_flip` (shared) | 330 | game event | `ricochet.doubleJump` |
+| `ricochet.hit` | Ricochet: A katana or shuriken knocks the ninja down (ricoRev 2) [arcade.md] |  | 0–20 | recorded sound | `arc_crash` (shared) | 200 | game event | `ricochet.hit` |
+| `ricochet.coin` | Ricochet: A coin taken (ricoRev 2) [arcade.md] |  | 5–60 | recorded sound | `arc_pickup` (shared) | 100 | game event | `ricochet.coin` |
+| `ricochet.lantern` | Ricochet: A gold lantern taken (ricoRev 2) [arcade.md] |  | 0–10 | recorded sound | `combo` (shared) | 120 | game event | `ricochet.lantern` |
+| `ricochet.scroll` | Ricochet: A scroll taken (ricoRev 2) [arcade.md] |  | 0–4 | recorded sound | `correct` (shared) | 120 | game event | `ricochet.scroll` |
+
 ### Roofbound
 
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
@@ -1826,14 +1876,14 @@ loops are not measured there). Files in `public/sounds/` are listed once per slo
 | `countdown_step` | effects | `countdown_step`, `balltrack.countdown` | 251 |
 | `place` | effects | `place`, `tendrop.apply` | 50 |
 | `move` | effects | `move`, `shared.timelapse.move` | 40 |
-| `correct` | effects | `correct` | 120 |
+| `correct` | effects | `correct`, `ricochet.scroll` | 120 |
 | `wrong` | effects | `wrong` | 140 |
 | `lock` | effects | `lock` | 90 |
 | `round_won` | effects | `round_won` | 680 |
 | `podium_fanfare` | effects | `podium_fanfare` | 350 |
 | `stage_complete` | effects | `stage_complete`, `cross.crossed`, `junction.complete` | 160 |
 | `complete` | effects | `complete` | 200 |
-| `combo` | effects | `combo` | 90 |
+| `combo` | effects | `combo`, `ricochet.lantern` | 90 |
 | `warning_10` | effects | `warning_10` | 10000 |
 | `warning_tick` | effects | `warning_tick` | 120 |
 | `warning_tick_final` | effects | `warning_tick_final` | 250 |
@@ -1841,25 +1891,25 @@ loops are not measured there). Files in `public/sounds/` are listed once per slo
 | `time_up` | effects | `time_up` | 250 |
 | `reveal_score` | effects | `reveal_score` | 140 |
 | `reaction` | effects | `reaction` | 100 |
-| `arc_crash` | effects | `bastion.baseHit`, `swing.crash`, `skyline.miss`, `junction.crash`, `orbit.crash`, `flip.crash`, `slice.bomb`, `tilt.pitFall`, `tilt.caught` | 200 |
-| `arc_pickup` | effects | `bastion.weak`, `swing.starTaken`, `orbit.checkpoint`, `flip.starTaken`, `flip.trailStar` | 100 |
+| `arc_crash` | effects | `bastion.baseHit`, `swing.crash`, `skyline.miss`, `junction.crash`, `orbit.crash`, `ricochet.hit`, `flip.crash`, `slice.bomb`, `tilt.pitFall`, `tilt.caught` | 200 |
+| `arc_pickup` | effects | `bastion.weak`, `swing.starTaken`, `orbit.checkpoint`, `ricochet.coin`, `flip.starTaken`, `flip.trailStar` | 100 |
 | `arc_space_ambience` | effects | `orbit.ambience` | loop |
 | `arc_thruster` | effects | `orbit.launch` | 160 |
 | `arc_lose_life` | effects | `bubble.reefLost`, `burst.lifeLost`, `cross.lifeLost`, `wavefront.lifeLost` | 220 |
-| `arc_bounce` | effects | `racing.grass`, `rally.bumperBounce`, `snip.springBounce`, `snip.hook`, `bintoss.missBounce`, `bintoss.wobble`, `freekick.net` | 80 |
-| `arc_retro_note` | effects | `hover.gate`, `snake.rockWarn`, `snake.showerAlarm`, `rally.goldHit` | 90 |
-| `arc_retro_pickup` | effects | `breaker.powerUp`, `burst.powerUp`, `wavefront.pierce` | 100 |
-| `arc_retro_blip` | effects | `breaker.relaunch`, `breaker.paddle`, `burst.shot`, `snake.eat`, `rally.hit`, `wavefront.dive` | 50 |
-| `arc_retro_coin` | effects | `racing.sector`, `bastion.fastReload`, `breaker.start`, `breaker.fireballLit`, `burst.start`, `burst.freezeCaught`, `skyline.streakDrop`, `hover.start`, `hover.star`, `snake.start`, `rally.start`, `beat.start` | 120 |
-| `arc_retro_explode` | effects | `whack.bomb`, `breaker.ballLost`, `burst.gameOver`, `hover.crash`, `snake.dead`, `rally.dead` | 260 |
-| `arc_retro_hit` | effects | `bastion.hit`, `breaker.brickHit`, `burst.hit`, `snake.rockLand`, `wavefront.armourHit`, `wavefront.bossHit` | 120 |
-| `arc_fair_thud` | effects | `bastion.miss`, `bullseye.thud` | 160 |
-| `arc_fair_bell` | effects | `bullseye.bull`, `bintoss.allBaskets` | 400 |
-| `arc_fair_bucket` | effects | `bintoss.basket` | 200 |
-| `arc_fair_sting` | effects | `bullseye.perfect`, `bintoss.perfect` | 300 |
+| `arc_bounce` | effects | `alleyroll.rail`, `racing.grass`, `rally.bumperBounce`, `snip.springBounce`, `snip.hook`, `bintoss.missBounce`, `bintoss.wobble`, `freekick.net` | 80 |
+| `arc_retro_note` | effects | `blockfall.hold`, `blockfall.speedUp`, `hover.gate`, `snake.rockWarn`, `snake.showerAlarm`, `rally.goldHit` | 90 |
+| `arc_retro_pickup` | effects | `blockfall.bigClear`, `breaker.powerUp`, `burst.powerUp`, `wavefront.pierce` | 100 |
+| `arc_retro_blip` | effects | `blockfall.turn`, `breaker.relaunch`, `breaker.paddle`, `burst.shot`, `snake.eat`, `rally.hit`, `wavefront.dive` | 50 |
+| `arc_retro_coin` | effects | `racing.sector`, `bastion.fastReload`, `blockfall.clear`, `breaker.start`, `breaker.fireballLit`, `burst.start`, `burst.freezeCaught`, `skyline.streakDrop`, `hover.start`, `hover.star`, `snake.start`, `rally.start`, `beat.start` | 120 |
+| `arc_retro_explode` | effects | `whack.bomb`, `blockfall.topOut`, `breaker.ballLost`, `burst.gameOver`, `hover.crash`, `snake.dead`, `rally.dead` | 260 |
+| `arc_retro_hit` | effects | `bastion.hit`, `blockfall.lock`, `breaker.brickHit`, `burst.hit`, `snake.rockLand`, `wavefront.armourHit`, `wavefront.bossHit` | 120 |
+| `arc_fair_thud` | effects | `alleyroll.gutter`, `bastion.miss`, `bullseye.thud` | 160 |
+| `arc_fair_bell` | effects | `alleyroll.fifty`, `bullseye.bull`, `bintoss.allBaskets` | 400 |
+| `arc_fair_bucket` | effects | `alleyroll.ring`, `bintoss.basket` | 200 |
+| `arc_fair_sting` | effects | `alleyroll.pocket`, `bullseye.perfect`, `bintoss.perfect` | 300 |
 | `arc_marble_roll` | effects | `balltrack.roll`, `inkbridge.coinRoll`, `tilt.roll` | 400 |
 | `arc_siren` | effects | `swing.dragon`, `junction.siren` | 600 |
-| `arc_wood_knock` | effects | `balltrack.wrong`, `swing.rockLand`, `bintoss.spinnerKnock`, `tilt.knock` | 90 |
+| `arc_wood_knock` | effects | `alleyroll.roll`, `alleyroll.ramp`, `balltrack.wrong`, `swing.rockLand`, `bintoss.spinnerKnock`, `tilt.knock` | 90 |
 | `arc_clank` | effects | `bastion.jam`, `swing.rockShake`, `skyline.drop`, `junction.newRoad` | 150 |
 | `arc_horn` | effects | `bastion.wave`, `junction.horn` | 400 |
 | `arc_latch` | effects | `balltrack.switch`, `bastion.reload`, `bastion.loaded`, `pinball.bankReset`, `tilt.gate` | 100 |
@@ -1871,7 +1921,7 @@ loops are not measured there). Files in `public/sounds/` are listed once per slo
 | `arc_rainbow` | effects | `inkbridge.draw` | 910 |
 | `arc_rope_cut` | effects | `snip.cut` | 230 |
 | `arc_grapple` | effects | `swing.grapple` | 450 |
-| `arc_gravity_flip` | effects | `flip.flip` | 330 |
+| `arc_gravity_flip` | effects | `ricochet.leap`, `ricochet.doubleJump`, `flip.flip` | 330 |
 | `arc_hover_tap` | effects | `homerun.swing`, `arc_hover_tap` | 110 |
 | `arc_gem_match` | effects | `arc_gem_match` | 400 |
 | `arc_ketchup` | effects | `arc_ketchup` | 230 |
@@ -2060,6 +2110,12 @@ loops are not measured there). Files in `public/sounds/` are listed once per slo
 | `bastion.weak-spots` | effects | `bastion.weak-spots` | 486 |
 | `bastion.fast-reload` | effects | `bastion.fast-reload` | 486 |
 | `homerun.home-run` | effects | `homerun.home-run` | 486 |
+| `blockfall.line-clear` | effects | `blockfall.line-clear` | 486 |
+| `blockfall.three-or-four` | effects | `blockfall.three-or-four` | 486 |
+| `blockfall.full-lines` | effects | `blockfall.full-lines` | 486 |
+| `alleyroll.ring-points` | effects | `alleyroll.ring-points` | 486 |
+| `alleyroll.pocket-hit` | effects | `alleyroll.pocket-hit` | 486 |
+| `alleyroll.full-points` | effects | `alleyroll.full-points` | 486 |
 | `homerun.sign-hit` | effects | `homerun.sign-hit` | 486 |
 | `freekick.goal-scored` | effects | `freekick.goal-scored` | 486 |
 | `freekick.target-hit` | effects | `freekick.target-hit` | 486 |
@@ -2314,6 +2370,8 @@ loops are not measured there). Files in `public/sounds/` are listed once per slo
 | `pinball.spinner` | effects | `pinball.spinner` | 486 |
 | `pinball.flipper` | effects | `pinball.flipper` | 482 |
 | `music_pinball` | music | `music.pinball` | loop |
+| `ricochet.heightStreak` | effects | `ricochet.heightStreak` | 480 |
+| `ricochet.fullHeight` | effects | `ricochet.fullHeight` | 840 |
 | `snip.star` | effects | `snip.star` | 386 |
 | `slice.frenzyStart` | effects | `slice.frenzyStart` | 350 |
 | `slice.slow` | effects | `slice.slow` | 479 |
@@ -2606,3 +2664,6 @@ loops are not measured there). Files in `public/sounds/` are listed once per slo
 | `music_tripeaks` | music | `music.tripeaks` | loop |
 | `music_pokersquares` | music | `music.pokersquares` | loop |
 | `music_fivehands` | music | `music.fivehands` | loop |
+| `alleyroll.rolling` | effects | `alleyroll.rolling` | 1375 |
+| `music_blockfall` | music | `music.blockfall` | loop |
+| `music_alleyroll` | music | `music.alleyroll` | loop |

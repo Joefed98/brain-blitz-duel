@@ -1,4 +1,4 @@
 {
-  "note": "pickRoundOrder deals for older rooms (6 stored category lists x 200 seeds), recorded on main before room settings; re-recorded 1 Nov 2026 when Fences, Fillomino, Bridges (Logic) and Kakuro (Number) joined the pools: every round's category is unchanged (categoryOrderFor digest 79e1fac55076 on main and after), only the game drawn within a pool. No stored room or round changes (rounds are stored when dealt).; re-recorded 1 Nov 2026 when Bastion came back to rooms (bastionRev 2), its only change (dddb228289c8 reproduces with Bastion retired)",
-  "digest": "2d397077b68fe1d44bc91328667248aed1f0cdad0f438e0a23554c1916ca9e59"
+  "note": "pickRoundOrder deals for older rooms (6 stored category lists x 200 seeds), recorded on main before room settings; re-recorded 1 Nov 2026 when Fences, Fillomino, Bridges (Logic) and Kakuro (Number) joined the pools, and again when Blockfall and Alley Roll, then Ricochet, then Bastion joined the arcade pool: only the game drawn within a pool changes. No stored room or round changes (rounds are stored when dealt).",
+  "digest": "361c7639054e1f6f0d2c8af6d53be183259ff683c07f5ba1784e739301c382fb"
 }

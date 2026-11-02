@@ -39,13 +39,16 @@ import { BULLSEYE_REV_STD, BULLSEYE_REV_STRICT, BULLSEYE_STD_SPEC, BULLSEYE_V9_B
 import { PIN_REV_STD, PIN_STD_SPEC, PIN_V6_BAND_CURVE } from "./pinball4";
 import { PIN_REV_STRICT } from "./pinball";
 import { BASTION_REV_DEALT, BASTION_STD_SPEC, BASTION_V2_BAND_CURVE } from "./bastionTank";
-import { HOMERUN_REV_DEALT, HOMERUN_STD_SPEC_DEALT, HOMERUN_V2_BAND_CURVE } from "./homerun";
-import { FREEKICK_REV_DEALT, FREEKICK_V2_STD_SPEC, FREEKICK_V2_BAND_CURVE } from "./freekick";
+import { HOMERUN_REV_DEALT, HOMERUN_STD_SPEC_DEALT, HOMERUN_V3_BAND_CURVE } from "./homerun";
+import { FREEKICK_REV_DEALT, FREEKICK_V3_STD_SPEC, FREEKICK_V3_BAND_CURVE } from "./freekick";
 import { RACING_REV_DEALT, RACING_V2_BAND_CURVE, RACING_V2_STD_SPEC } from "./racing";
-import { FC_REV, FC_STD_SPEC, FC_V1_BAND_CURVE } from "./cards/freecell";
+import { FC_REV, FC_STD_SPEC, FC_V3_BAND_CURVE } from "./cards/freecell";
 import { TP_REV, TP_STD_SPEC, TP_V1_BAND_CURVE } from "./cards/tripeaks";
 import { PS_REV, PS_STD_SPEC, PS_V2_BAND_CURVE } from "./cards/pokerSquares";
-import { FH_REV, FH_STD_SPEC, FH_V1_BAND_CURVE } from "./cards/fiveHands";
+import { FH_REV, FH_STD_SPEC, FH_V2_BAND_CURVE } from "./cards/fiveHands";
+import { BLOCKFALL_REV, BF_STD_SPEC, BF_V1_BAND_CURVE } from "./blockfall";
+import { ALLEYROLL_REV, AR_STD_SPEC, AR_V1_BAND_CURVE } from "./alleyroll";
+import { NINJA_REV, NINJA_STD_SPEC, NINJA_V2_BAND_CURVE } from "./ricochetNinja";
 import { MINIGOLF_REV, MINIGOLF_STD_SPEC } from "./minigolf";
 import { POOL_REV, POOL_STD_SPEC } from "./pool";
 import { CURLING_REV, CURLING_STD_SPEC } from "./curling";
@@ -128,20 +131,28 @@ export const LIVE_BANDS = {
   minesweeper: { field: "minesRev", rev: MINES_REV_STD, curve: MINES_V1_BAND_CURVE, std: MINES_STD_SPEC, born: true },
   mahjong: { field: "mahjongRev", rev: MAHJONG_REV_DEALT, curve: MAHJONG_V1_BAND_CURVE, std: MAHJONG_STD_SPEC, born: true },
   // The Sports group (30 Oct 2026), born on the arcade scoring standard (rev 1; no earlier band revision).
-  homerun: { field: "homerunRev", rev: HOMERUN_REV_DEALT, curve: HOMERUN_V2_BAND_CURVE, std: HOMERUN_STD_SPEC_DEALT, born: true },
-  freekick: { field: "freekickRev", rev: FREEKICK_REV_DEALT, curve: FREEKICK_V2_BAND_CURVE, std: FREEKICK_V2_STD_SPEC, born: true },
+  // Home Run deals homerunRev 3 since 1 Nov 2026 (the swing choice and the pitcher's tell; core full at 460 ft a pitch).
+  homerun: { field: "homerunRev", rev: HOMERUN_REV_DEALT, curve: HOMERUN_V3_BAND_CURVE, std: HOMERUN_STD_SPEC_DEALT, born: true },
+  freekick: { field: "freekickRev", rev: FREEKICK_REV_DEALT, curve: FREEKICK_V3_BAND_CURVE, std: FREEKICK_V3_STD_SPEC, born: true },
   racing: { field: "racingRev", rev: RACING_REV_DEALT, curve: RACING_V2_BAND_CURVE, std: RACING_V2_STD_SPEC, born: true },
   // Cards & Board (30 Oct 2026): born on the arcade scoring standard at revision 1.
-  freecell: { field: "freecellRev", rev: FC_REV, curve: FC_V1_BAND_CURVE, std: FC_STD_SPEC, born: true },
+  // freecellRev 3 (1 Nov 2026): the core full at FC_CORE_UNITS_V3 units instead of all 52 home.
+  freecell: { field: "freecellRev", rev: FC_REV, curve: FC_V3_BAND_CURVE, std: FC_STD_SPEC, born: true },
   tripeaks: { field: "tripeaksRev", rev: TP_REV, curve: TP_V1_BAND_CURVE, std: TP_STD_SPEC, born: true },
   // pokerSquaresRev 2 (Full House, 31 Oct 2026): the core full at the elite median.
   pokersquares: { field: "pokerSquaresRev", rev: PS_REV, curve: PS_V2_BAND_CURVE, std: PS_STD_SPEC, born: true },
   // Five Hands (31 Oct 2026): born on the arcade scoring standard at revision 1.
-  fivehands: { field: "fiveHandsRev", rev: FH_REV, curve: FH_V1_BAND_CURVE, std: FH_STD_SPEC, born: true },
+  // fiveHandsRev 2 (1 Nov 2026): the steep hand table, hand points alone to 200.
+  fivehands: { field: "fiveHandsRev", rev: FH_REV, curve: FH_V2_BAND_CURVE, std: FH_STD_SPEC, born: true },
+  // Ricochet (1 Nov 2026): the ninja wall-climb, born on the arcade scoring standard at ricoRev 2 (the old shaft never had a band revision).
+  ricochet: { field: "ricoRev", rev: NINJA_REV, curve: NINJA_V2_BAND_CURVE, std: NINJA_STD_SPEC, born: true },
   // The Sports group (30 Oct 2026): on the arcade scoring standard from their first stamp (the core's straight line, the spec's parts).
   minigolf: { field: "golfRev", rev: MINIGOLF_REV, curve: stdCoreCurve(MINIGOLF_STD_SPEC), std: MINIGOLF_STD_SPEC, born: true },
   pool: { field: "poolRev", rev: POOL_REV, curve: stdCoreCurve(POOL_STD_SPEC), std: POOL_STD_SPEC, born: true },
   curling: { field: "curlRev", rev: CURLING_REV, curve: stdCoreCurve(CURLING_STD_SPEC), std: CURLING_STD_SPEC, born: true },
+  // Blockfall (Retro) and Alley Roll (Sports), 1 Nov 2026: born on the arcade scoring standard at revision 1.
+  blockfall: { field: "blockfallRev", rev: BLOCKFALL_REV, curve: BF_V1_BAND_CURVE, std: BF_STD_SPEC, born: true },
+  alleyroll: { field: "alleyRollRev", rev: ALLEYROLL_REV, curve: AR_V1_BAND_CURVE, std: AR_STD_SPEC, born: true },
   // Bastion bastionRev 2 (1 Nov 2026): the tank-defence shooter, born on the arcade scoring standard (the original
   // Bastion, unstamped, never had a score band).
   bastion: { field: "bastionRev", rev: BASTION_REV_DEALT, curve: BASTION_V2_BAND_CURVE, std: BASTION_STD_SPEC, born: true },
