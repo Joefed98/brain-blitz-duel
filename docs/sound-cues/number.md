@@ -45,6 +45,9 @@ belongs to Rotation and shared screens.
 | numline.line | a new line starts (lines 2 and 3) | 220 ms slide |
 | numline.solve | the 15th Place | ~1100 ms |
 | numline.sweepTick | ×5, as the glint passes each marker on line 3 | 260 ms tick, 380 ms ring |
+| kakuro.place | a digit is entered in a square (not pencil marks, not clearing) | the digit pops in |
+| kakuro.run | a run is full and adds to its clue with no repeat | the run glows |
+| kakuro.solve | every run is right | ≤1.2 s: runs light up one by one |
 | balance.select | a weight is selected | 140 ms |
 | balance.drop | a weight is hung on a notch | 230 ms |
 | balance.lift | double-tap returns a weight to the tray | 260 ms |

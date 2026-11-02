@@ -374,6 +374,10 @@ target.solve,Exact,"exact hit: flight, pulse, rings [number.md]",,0–1,recorded
 music.target,Exact,Exact round bed: music_number_1 (number bed shared with other games),,loop,recorded sound,music_number_1 (shared),60000,music,music_number_target,
 numpyramid.solve,Integer Pyramid,the final board is solved [number.md],,0–1,recorded sound,numpyramid.solve,1100,success sting,numpyramid.solve,public/sounds/numpyramid.solve.mp3 (from done.glowSweep.mp3)
 music.numpyramid,Integer Pyramid,Integer Pyramid round bed: music_number_2 (number bed shared with other games),,loop,recorded sound,music_number_2 (shared),60000,music,music_number_numpyramid,
+kakuro.place,Kakuro,"a digit is entered in a square (not pencil marks, not clearing) [number.md]",,5–40 (per move),recorded sound,kakuro.place,80,UI tap,kakuro.place,
+kakuro.run,Kakuro,a run is full and adds to its clue with no repeat [number.md],,5–40 (per move),recorded sound,kakuro.run,200,game event,kakuro.run,
+kakuro.solve,Kakuro,every run is right [number.md],,0–1,recorded sound,kakuro.solve,1200,success sting,kakuro.solve,
+music.kakuro,Kakuro,Kakuro round bed: music_number_2 (number bed shared with other games),,loop,recorded sound,music_number_2 (shared),60000,music,music_number_kakuro,
 equation.correct,Operator,a stage is held as correct (green glow) [number.md],,1–5,recorded sound,equation.correct,1000,game event,equation.correct,public/sounds/equation.correct.mp3 (from ui.counterLock.mp3)
 equation.solve,Operator,all four right: equations tick green in turn [number.md],,0–1,recorded sound,equation.solve,1200,success sting,equation.solve,public/sounds/equation.solve.mp3 (from done.glowSweep.mp3)
 music.equation,Operator,Operator round bed: music_number_1 (number bed shared with other games),,loop,recorded sound,music_number_1 (shared),60000,music,music_number_equation,
@@ -481,9 +485,21 @@ bomb.solve,Bomb Defusal,The reveal shows a verified defuse [logic.md],,0–1,rec
 music.bomb,Bomb Defusal,Bomb Defusal round bed: music_logic_3 (logic bed shared with other games),,loop,recorded sound,music_logic_3 (shared),60000,music,music_logic_bomb,
 sudoku.solve,Box Six,The grid is complete and valid [logic.md],,0–1,recorded sound,sudoku.solve,1200,success sting,sudoku.solve,public/sounds/sudoku.solve.mp3 (from done.glowSweep.mp3)
 music.sudoku,Box Six,Box Six round bed: music_logic_1 (logic bed shared with other games),,loop,recorded sound,music_logic_1 (shared),60000,music,music_logic_sudoku,
+bridges.build,Bridges, [grid.md],,5–40 (per move),recorded sound,bridges.build,200,game event,bridges.build,
+bridges.remove,Bridges, [grid.md],,5–40 (per move),recorded sound,bridges.remove,200,game event,bridges.remove,
+bridges.solve,Bridges, [grid.md],,0–1,recorded sound,bridges.solve,1000,success sting,bridges.solve,
+music.bridges,Bridges,Bridges round bed: music_logic_3 (logic bed shared with other games),,loop,recorded sound,music_logic_3 (shared),60000,music,music_logic_bridges,
 flood.solve,Colour Flood,The board is one colour [logic.md],,0–1,recorded sound,flood.solve,1150,success sting,flood.solve,public/sounds/flood.solve.mp3 (from done.glowSweep.mp3)
 music.flood,Colour Flood,Colour Flood round bed: music_logic_2 (logic bed shared with other games),,loop,recorded sound,music_logic_2 (shared),60000,music,music_logic_flood,
 music.dig,Dig,"Dig round bed (retired, practice): music_logic_1 (logic bed shared with other games)",,loop,recorded sound,music_logic_1 (shared),60000,music,music_logic_dig,
+fences.draw,Fences, [grid.md],,5–40 (per move),recorded sound,fences.draw,200,game event,fences.draw,
+fences.cross,Fences, [grid.md],,5–40 (per move),recorded sound,fences.cross,200,game event,fences.cross,
+fences.solve,Fences, [grid.md],,0–1,recorded sound,fences.solve,1000,success sting,fences.solve,
+music.fences,Fences,Fences round bed: music_logic_2 (logic bed shared with other games),,loop,recorded sound,music_logic_2 (shared),60000,music,music_logic_fences,
+fillomino.place,Fillomino, [grid.md],,5–40 (per move),recorded sound,fillomino.place,80,UI tap,fillomino.place,
+fillomino.region,Fillomino, [grid.md],,5–40 (per move),recorded sound,fillomino.region,200,game event,fillomino.region,
+fillomino.solve,Fillomino, [grid.md],,0–1,recorded sound,fillomino.solve,1000,success sting,fillomino.solve,
+music.fillomino,Fillomino,Fillomino round bed: music_logic_1 (logic bed shared with other games),,loop,recorded sound,music_logic_1 (shared),60000,music,music_logic_fillomino,
 tower.lift,Hanoi,A ring is lifted off a post [logic.md],,5–40 (per move),recorded sound,tower.lift,80,UI tap,tower.lift,
 tower.solve,Hanoi,Every ring is on the gold post [logic.md],,0–1,recorded sound,tower.solve,1170,success sting,tower.solve,public/sounds/tower.solve.mp3 (from done.rising.mp3)
 music.tower,Hanoi,Hanoi round bed: music_logic_3 (logic bed shared with other games),,loop,recorded sound,music_logic_3 (shared),60000,music,music_logic_tower,

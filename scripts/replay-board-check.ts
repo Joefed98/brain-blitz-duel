@@ -35,6 +35,7 @@ import { splitPuzzle } from "../src/lib/duel/secrets";
 import { encodeActionLog } from "../src/lib/duel/actionLog";
 import { laserAction } from "../src/lib/duel/laserLog";
 import { gameDisplayName } from "../src/lib/duel/gameNames";
+import { GRID_GAMES, gridRoomPuzzle, gridSolvedAnswer } from "./grid-puzzles-lib";
 import { canTimelapse, planTimelapse, TIMELAPSE_CAP_MS } from "../src/lib/replay/timelapse";
 import { canReplay } from "../src/lib/replay/steppers";
 import type { LaserPuzzleData, PuzzleData } from "../src/lib/duel/types";
@@ -79,6 +80,14 @@ if (!named.length || named.includes("laser")) {
   const actions = (laser.solution ?? []).map((m, i) => ({ a: laserAction.place(m.cell, m.kind), t: (t += 900 + (i % 3) * 1700) }));
   actions.push({ a: laserAction.fire(), t: t + 2500 });
   cases.push({ key: "laser (action log)", puzzle: laser, answer: encodeActionLog(actions), isCorrect: true, score: 141 });
+}
+
+// The four grid puzzles born on the standard (1 Nov 2026): a finished room round of each (seeded deal, the solved board
+// as the phone sends it); no stored rounds of them exist yet, so they are built here.
+for (const type of GRID_GAMES) {
+  if (named.length && !named.includes(type)) continue;
+  const puzzle = gridRoomPuzzle(type, 6100);
+  cases.push({ key: type, puzzle, answer: gridSolvedAnswer(puzzle), isCorrect: true, score: 180 });
 }
 
 const iso = (ms: number) => new Date(ms).toISOString();

@@ -19,15 +19,15 @@ effects ([arcade-effects.md](arcade-effects.md)) so a sound can be written for e
 
 | Category | Silent | Placeholder | Recorded | Total |
 |---|---|---|---|---|
-| game event | 35 | 0 | 406 | 441 |
+| game event | 35 | 0 | 412 | 447 |
 | room moment | 1 | 0 | 34 | 35 |
-| music | 12 | 0 | 94 | 106 |
-| UI tap | 10 | 0 | 26 | 36 |
+| music | 12 | 0 | 98 | 110 |
+| UI tap | 10 | 0 | 28 | 38 |
 | fail sting | 4 | 0 | 36 | 40 |
-| success sting | 3 | 0 | 69 | 72 |
+| success sting | 3 | 0 | 73 | 76 |
 | ambience | 0 | 1 | 17 | 18 |
 | replay | 0 | 0 | 177 | 177 |
-| **all** | 65 | 1 | 859 | 925 |
+| **all** | 65 | 1 | 875 | 941 |
 
 ## Silent and placeholder cues
 
@@ -345,6 +345,7 @@ Grouped by game or screen. These are the cues still missing a sound.
 | Counterweight | number | yes | music_number_2 (shared) | `music_number_balance` |
 | Exact | number | yes | music_number_1 (shared) | `music_number_target` |
 | Integer Pyramid | number | yes | music_number_2 (shared) | `music_number_numpyramid` |
+| Kakuro | number | yes | music_number_2 (shared) | `music_number_kakuro` |
 | Operator | number | yes | music_number_1 (shared) | `music_number_equation` |
 | Tenfall | number | yes | music_number_3 (shared) | `music_number_tendrop` |
 | Ascend | speed | yes | music_speed_2 (shared) | `music_speed_numhunt` |
@@ -372,8 +373,11 @@ Grouped by game or screen. These are the cues still missing a sound.
 | Blackout | logic | yes | music_logic_2 (shared) | `music_logic_lightsout` |
 | Bomb Defusal | logic | yes | music_logic_3 (shared) | `music_logic_bomb` |
 | Box Six | logic | yes | music_logic_1 (shared) | `music_logic_sudoku` |
+| Bridges | logic | yes | music_logic_3 (shared) | `music_logic_bridges` |
 | Colour Flood | logic | yes | music_logic_2 (shared) | `music_logic_flood` |
 | Dig | logic | practice only | music_logic_1 (shared) | `music_logic_dig` |
+| Fences | logic | yes | music_logic_2 (shared) | `music_logic_fences` |
+| Fillomino | logic | yes | music_logic_1 (shared) | `music_logic_fillomino` |
 | Hanoi | logic | yes | music_logic_3 (shared) | `music_logic_tower` |
 | Lamplighter | logic | yes | music_logic_1 (shared) | `music_logic_lightup` |
 | Mosaic | logic | yes | music_logic_1 (shared) | `music_logic_nonogram` |
@@ -843,6 +847,15 @@ Grouped by game or screen.
 | `numpyramid.solve` | the final board is solved [number.md] |  | 0–1 | recorded sound | `numpyramid.solve` | 1100 | success sting | `numpyramid.solve` |
 | `music.numpyramid` | Integer Pyramid round bed: music_number_2 (number bed shared with other games) |  | loop | recorded sound | `music_number_2` (shared) | 60000 | music | `music_number_numpyramid` |
 
+### Kakuro
+
+| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
+|---|---|---|---|---|---|---|---|---|
+| `kakuro.place` | a digit is entered in a square (not pencil marks, not clearing) [number.md] |  | 5–40 (per move) | recorded sound | `kakuro.place` | 80 | UI tap | `kakuro.place` |
+| `kakuro.run` | a run is full and adds to its clue with no repeat [number.md] |  | 5–40 (per move) | recorded sound | `kakuro.run` | 200 | game event | `kakuro.run` |
+| `kakuro.solve` | every run is right [number.md] |  | 0–1 | recorded sound | `kakuro.solve` | 1200 | success sting | `kakuro.solve` |
+| `music.kakuro` | Kakuro round bed: music_number_2 (number bed shared with other games) |  | loop | recorded sound | `music_number_2` (shared) | 60000 | music | `music_number_kakuro` |
+
 ### Operator
 
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
@@ -1085,6 +1098,15 @@ Grouped by game or screen.
 | `sudoku.solve` | The grid is complete and valid [logic.md] |  | 0–1 | recorded sound | `sudoku.solve` | 1200 | success sting | `sudoku.solve` |
 | `music.sudoku` | Box Six round bed: music_logic_1 (logic bed shared with other games) |  | loop | recorded sound | `music_logic_1` (shared) | 60000 | music | `music_logic_sudoku` |
 
+### Bridges
+
+| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
+|---|---|---|---|---|---|---|---|---|
+| `bridges.build` |  [grid.md] |  | 5–40 (per move) | recorded sound | `bridges.build` | 200 | game event | `bridges.build` |
+| `bridges.remove` |  [grid.md] |  | 5–40 (per move) | recorded sound | `bridges.remove` | 200 | game event | `bridges.remove` |
+| `bridges.solve` |  [grid.md] |  | 0–1 | recorded sound | `bridges.solve` | 1000 | success sting | `bridges.solve` |
+| `music.bridges` | Bridges round bed: music_logic_3 (logic bed shared with other games) |  | loop | recorded sound | `music_logic_3` (shared) | 60000 | music | `music_logic_bridges` |
+
 ### Colour Flood
 
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
@@ -1097,6 +1119,24 @@ Grouped by game or screen.
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
 |---|---|---|---|---|---|---|---|---|
 | `music.dig` | Dig round bed (retired, practice): music_logic_1 (logic bed shared with other games) |  | loop | recorded sound | `music_logic_1` (shared) | 60000 | music | `music_logic_dig` |
+
+### Fences
+
+| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
+|---|---|---|---|---|---|---|---|---|
+| `fences.draw` |  [grid.md] |  | 5–40 (per move) | recorded sound | `fences.draw` | 200 | game event | `fences.draw` |
+| `fences.cross` |  [grid.md] |  | 5–40 (per move) | recorded sound | `fences.cross` | 200 | game event | `fences.cross` |
+| `fences.solve` |  [grid.md] |  | 0–1 | recorded sound | `fences.solve` | 1000 | success sting | `fences.solve` |
+| `music.fences` | Fences round bed: music_logic_2 (logic bed shared with other games) |  | loop | recorded sound | `music_logic_2` (shared) | 60000 | music | `music_logic_fences` |
+
+### Fillomino
+
+| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
+|---|---|---|---|---|---|---|---|---|
+| `fillomino.place` |  [grid.md] |  | 5–40 (per move) | recorded sound | `fillomino.place` | 80 | UI tap | `fillomino.place` |
+| `fillomino.region` |  [grid.md] |  | 5–40 (per move) | recorded sound | `fillomino.region` | 200 | game event | `fillomino.region` |
+| `fillomino.solve` |  [grid.md] |  | 0–1 | recorded sound | `fillomino.solve` | 1000 | success sting | `fillomino.solve` |
+| `music.fillomino` | Fillomino round bed: music_logic_1 (logic bed shared with other games) |  | loop | recorded sound | `music_logic_1` (shared) | 60000 | music | `music_logic_fillomino` |
 
 ### Hanoi
 
@@ -1865,7 +1905,7 @@ loops are not measured there). Files in `public/sounds/` are listed once per slo
 | `music_word_2` | music | `music.codeword`, `music.wordhunt`, `music.wordfall`, `music.wordsearch` | loop |
 | `music_word_3` | music | `music.tilegrid`, `music.wordslide`, `music.swapword` | loop |
 | `music_number_1` | music | `music.measure`, `music.target`, `music.equation` | loop |
-| `music_number_2` | music | `music.checkout`, `music.balance`, `music.numpyramid` | loop |
+| `music_number_2` | music | `music.checkout`, `music.balance`, `music.numpyramid`, `music.kakuro` | loop |
 | `music_number_3` | music | `music.numline`, `music.tendrop` | loop |
 | `music_speed_1` | music | `music.stopwatch`, `music.reaction` | loop |
 | `music_speed_2` | music | `music.numhunt`, `music.chain` | loop |
@@ -1876,9 +1916,9 @@ loops are not measured there). Files in `public/sounds/` are listed once per slo
 | `music_pattern_1` | music | `music.tiles`, `music.blockparty`, `music.rings` | loop |
 | `music_pattern_2` | music | `music.unblock`, `music.iceslide` | loop |
 | `music_pattern_3` | music | `music.laser`, `music.gravity` | loop |
-| `music_logic_1` | music | `music.sudoku`, `music.dig`, `music.lightup`, `music.nonogram`, `music.shikaku`, `music.tents` | loop |
-| `music_logic_2` | music | `music.flow`, `music.pipes`, `music.lightsout`, `music.flood`, `music.safe` | loop |
-| `music_logic_3` | music | `music.push`, `music.bomb`, `music.tower`, `music.tubes`, `music.trail` | loop |
+| `music_logic_1` | music | `music.sudoku`, `music.dig`, `music.fillomino`, `music.lightup`, `music.nonogram`, `music.shikaku`, `music.tents` | loop |
+| `music_logic_2` | music | `music.flow`, `music.pipes`, `music.lightsout`, `music.flood`, `music.fences`, `music.safe` | loop |
+| `music_logic_3` | music | `music.push`, `music.bomb`, `music.bridges`, `music.tower`, `music.tubes`, `music.trail` | loop |
 | `standings_loop` | music | `music.standings` | loop |
 | `podium_loop` | music | `music.podium` | loop |
 | `music_burst` | music | `music.burst` | loop |
@@ -2204,6 +2244,18 @@ loops are not measured there). Files in `public/sounds/` are listed once per slo
 | `tubes.solve` | effects | `tubes.solve` | 1080 |
 | `safe.click` | effects | `safe.click` | 528 |
 | `shikaku.solve` | effects | `shikaku.solve` | 1000 |
+| `fences.draw` | effects | `fences.draw` | 486 |
+| `fences.cross` | effects | `fences.cross` | 528 |
+| `fences.solve` | effects | `fences.solve` | 1000 |
+| `fillomino.place` | effects | `fillomino.place` | 528 |
+| `fillomino.region` | effects | `fillomino.region` | 528 |
+| `fillomino.solve` | effects | `fillomino.solve` | 1000 |
+| `bridges.build` | effects | `bridges.build` | 528 |
+| `bridges.remove` | effects | `bridges.remove` | 528 |
+| `bridges.solve` | effects | `bridges.solve` | 1080 |
+| `kakuro.place` | effects | `kakuro.place` | 528 |
+| `kakuro.run` | effects | `kakuro.run` | 1000 |
+| `kakuro.solve` | effects | `kakuro.solve` | 1000 |
 | `tents.clear` | effects | `tents.clear` | 528 |
 | `tents.solve` | effects | `tents.solve` | 1000 |
 | `music_beat` | music | `music.beat` | 60087 |

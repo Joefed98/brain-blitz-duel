@@ -597,3 +597,38 @@ run through the built room grader (a finish of 150+). The daily and challenges g
 room rounds' function. no-side-effect-imports-check (~1 s) fails on any bare `import "./x"` under `src/` (stylesheets
 aside; Lovable's `src/server.ts` → `./lib/error-capture` is the one listed exception).
 
+
+## New grid puzzles born on the standard (1 Nov 2026)
+
+Fences, Fillomino and Bridges (Logic) and Kakuro (Number) were built on the standard from their first deal, so each has
+its own stamp at 1 (`fencesRev`, `fillominoRev`, `bridgesRev`, `kakuroRev`; `STANDARD_STAMPS` lists them with `live` 0,
+a stamp never dealt) and no older path. The numbers live in `src/lib/duel/standard/gridRules.ts`, the grader in
+`standard/grid.server.ts` (imported by name in `games.server.ts`, so the production build keeps it; standard-live-check
+plays each one in practice and grades a room round of each on the built bundle), the help and intro texts in
+`standard/gridText.ts`. All four are `timed` (the draft timeline gives each item's time and the history behind the
+clean bonus).
+
+| Game | Stamp | Clock | Unfinished | Speed | Bonus |
+| --- | --- | --- | --- | --- | --- |
+| Fences (`fences`) | `fencesRev` 1 | 90 s | up to 120 by (loop edges drawn − lines off the loop) ÷ the loop's edges, + up to 10 early | 40, full by 45 s | clean loop 10, −2.5 per line ever drawn off the loop |
+| Fillomino (`fillomino`) | `fillominoRev` 1 | 90 s | up to 120 by (blanks numbered right − numbered wrong) ÷ blanks, + up to 10 early | 40, full by 45 s | clean fill 10, −2.5 per wrong number ever entered |
+| Bridges (`bridges`) | `bridgesRev` 1 | 90 s | up to 120 by (bridges on pairs built exactly as the solution − bridges on pairs built any other way) ÷ the solution's bridges, + up to 10 early | 40, full by 45 s | clean build 10, −2.5 per wrong bridge ever built |
+| Kakuro (`kakuro`) | `kakuroRev` 1 | 120 s | up to 120 by (white squares right − filled wrong) ÷ white squares, + up to 10 early | 40, full by 60 s | clean grid 10, −2.5 per wrong digit ever entered |
+
+Decisions:
+
+- They follow the Logic rows that score a board against its unique solution (Box Six, Tents and Trees, Shikaku): the
+  same 40 speed + 10 clean split and the same "up to 120 by share + up to 10 early" unfinished credit, capped at 130.
+- **Guessing never pays.** The share is the items on the solution *less the items off it*, never below 0: drawing every
+  edge, building every bridge twice or filling every square with one number places more wrong items than right ones and
+  scores 0. The "how early" parts are the same net count, so taking a wrong item back restores the credit.
+- A finish is the game's own rules (one loop meeting every number; regions of their size with no equal regions
+  touching; every island's bridges, no crossings, all joined; every run's sum with no repeat). Each board's solution is
+  unique (its solver proves it before the board is dealt), so a board that keeps the rules is the solution.
+- Bridges judges pair by pair: a pair counts only when built exactly as the solution has it, so blanket building
+  (every pair single or double) never pays; the generator also re-deals a board where blanket or random building would
+  net anything. A double counts as wrong while only one of its bridges is built; the clean bonus counts only bridges
+  beyond the solution's.
+- Crosses (Fences), pencil marks (Kakuro) and the painting gesture (Fillomino) are the player's notes or input only:
+  they never reach the grade.
+- Kakuro's "full by" is 60 s of its 120 s clock, the share Box Six uses of its 90 s.

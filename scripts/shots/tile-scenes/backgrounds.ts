@@ -719,6 +719,8 @@ const PUZZLE_BACKGROUNDS: Partial<Record<PuzzleType, TileBackground>> = {
     cloud(c, T / 2, 10, 50, "#D6AA54", 0.25);
     vgrad(c, [[0, "#7A5030"], [1, "#2A180B"]], 86, T);
   }),
+  // Kakuro (1 Nov 2026): its board's dark clue cells and glass squares.
+  kakuro: pz("number", (c) => board(c, "#1C1F26", "#101116", "rgba(61,220,132,0.3)", { cells: 6, line: "rgba(255,255,255,0.05)" })),
   checkout: pz("number", (c) => {
     vgrad(c, [[0, "#0D1838"], [0.8, "#3B2C63"], [1, "#F08A3C"]]);
     stars(c, 41, 14, ["#FFD27A"], 0.7, 0.6, [0, 0, T, 50]);
@@ -884,6 +886,13 @@ const PUZZLE_BACKGROUNDS: Partial<Record<PuzzleType, TileBackground>> = {
     }
   }, { fade: 0.35 }),
   shikaku: pz("logic", (c) => board(c, "#2A2C33", "#15161B", "rgba(10,10,14,0.85)", { cells: 5, line: "rgba(10,10,14,0.8)" })),
+  // The new grid puzzles (1 Nov 2026): their dark glass boards.
+  fences: pz("logic", (c) => board(c, "#1E2027", "#111217", "rgba(46,211,183,0.3)", { cells: 6, line: "rgba(255,255,255,0.05)" })),
+  fillomino: pz("logic", (c) => board(c, "#20222A", "#121318", "rgba(10,10,14,0.85)", { cells: 7, line: "rgba(10,10,14,0.7)" })),
+  bridges: pz("logic", (c) => {
+    board(c, "#10222A", "#0A1216", "rgba(46,211,183,0.3)");
+    cloud(c, T / 2, T / 2, 46, "#2ED3B7", 0.1);
+  }),
   tubes: pz("logic", (c) => cloud(c, T / 2, 60, 50, "#2ED3B7", 0.15)),
   tents: pz("logic", (c) => {
     board(c, "#17221A", "#0D140F", "rgba(61,138,74,0.35)", { cells: 5, line: "rgba(0,0,0,0.3)" });
