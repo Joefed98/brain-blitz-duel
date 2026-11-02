@@ -96,6 +96,10 @@ import {
   CLAYSHOOT_TIME_MS,
   TENTS_TIME_MS,
   SHIKAKU_TIME_MS,
+  FENCES_TIME_MS,
+  FILLOMINO_TIME_MS,
+  BRIDGES_TIME_MS,
+  KAKURO_TIME_MS,
   LIGHTUP_TIME_MS,
   BALLTRACK_TIME_MS,
   NUMPYRAMID_TIME_MS,
@@ -165,6 +169,10 @@ const DIRECT_LIMITS: Partial<Record<PuzzleType, number>> = {
   minigolf: MINIGOLF_TIME_MS,
   pool: POOL_TIME_MS,
   curling: CURLING_TIME_MS,
+  fences: FENCES_TIME_MS,
+  fillomino: FILLOMINO_TIME_MS,
+  bridges: BRIDGES_TIME_MS,
+  kakuro: KAKURO_TIME_MS,
   nonogram: NONO_TIME_MS,
   pairmatch: PAIR_TIME_MS,
   flood: FLOOD_TIME_MS,
@@ -1580,6 +1588,14 @@ const shikakuSummary: SummaryBuilder = (result, puzzle) => {
   return { summary: `${Number(result.extra?.["covered"] ?? 0)} / ${puzzle.type === "shikaku" ? puzzle.size * puzzle.size : 81} covered`, detail: [] };
 };
 
+/** The four grid puzzles born on the standard (1 Nov 2026): solved with the time, else the share placed. */
+const gridSummary: SummaryBuilder = (result, puzzle) => {
+  if (result.is_correct) return { summary: `Solved · ${seconds(elapsedMs(result, puzzle))}`, detail: [] };
+  const progress = progressOf(result, puzzle);
+  if (progress) return progress;
+  return { summary: `${Number(result.extra?.["right"] ?? 0)} / ${Number(result.extra?.["total"] ?? 0)} right`, detail: [] };
+};
+
 const lightUpSummary: SummaryBuilder = (result, puzzle) => {
   if (result.is_correct) return { summary: `Solved · ${seconds(elapsedMs(result, puzzle))}`, detail: [] };
   const progress = progressOf(result, puzzle);
@@ -1805,6 +1821,10 @@ export const ROUND_SUMMARIES: Record<PuzzleType, SummaryBuilder> = {
   hotfloor: hotFloorSummary,
   tents: tentsSummary,
   shikaku: shikakuSummary,
+  fences: gridSummary,
+  fillomino: gridSummary,
+  bridges: gridSummary,
+  kakuro: gridSummary,
   lightup: lightUpSummary,
   balltrack: ballTrackSummary,
   numpyramid: numberPyramidSummary,
@@ -1906,6 +1926,10 @@ export const CORRECT_ANSWERS: Record<PuzzleType, AnswerBuilder> = {
   hotfloor: () => null,
   tents: () => null,
   shikaku: () => null,
+  fences: () => null,
+  fillomino: () => null,
+  bridges: () => null,
+  kakuro: () => null,
   lightup: () => null,
   balltrack: () => null,
   numpyramid: () => null,

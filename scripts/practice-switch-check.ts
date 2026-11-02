@@ -72,7 +72,8 @@ const BRIEF: Record<string, string[]> = {
   // group's active games are the rest (it keeps its group border, under All games' Retired).
   cards: ["Minefield", "Free Cell", "Mahjong Solitaire", "Summit", "Five Hands"],
   // Strategy split from Action on 1 Nov 2026 (Coral Pop, Gemstone, Ball Tracker, Tilt, Rainbow Bridge, High Rise moved).
-  action: ["Slice", "Roofbound", "Grappler"],
+  // Bastion back in rooms on 1 Nov 2026 (bastionRev 2, the tank-defence shooter).
+  action: ["Slice", "Roofbound", "Grappler", "Bastion"],
   strategy: ["Tilt", "Gemstone", "High Rise", "Coral Pop", "Rainbow Bridge", "Ball Tracker"],
 };
 check(ARCADE_GROUPS.map((g) => g.id).join() === "retro,sports,cards,action,strategy", "five groups: Retro, Sports, Cards & Board, Action, Strategy");

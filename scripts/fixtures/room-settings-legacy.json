@@ -1,4 +1,4 @@
 {
-  "note": "pickRoundOrder deals for older rooms (6 stored category lists x 200 seeds), recorded on main 567ff36 before room settings; re-recorded 1 Nov 2026 when Full House retired (#230), its only change (the old digest ad4d914faa96 reproduces with Full House active); re-recorded 1 Nov 2026 when Bastion came back to rooms (bastionRev 2), its only change (fea41723f50e reproduces with Bastion retired)",
-  "digest": "572f50abc3a26b805ba6095b06c5e54a4b2f3678824d80bab4ff953d0082f585"
+  "note": "pickRoundOrder deals for older rooms (6 stored category lists x 200 seeds), recorded on main before room settings; re-recorded 1 Nov 2026 when Fences, Fillomino, Bridges (Logic) and Kakuro (Number) joined the pools: every round's category is unchanged (categoryOrderFor digest 79e1fac55076 on main and after), only the game drawn within a pool. No stored room or round changes (rounds are stored when dealt).; re-recorded 1 Nov 2026 when Bastion came back to rooms (bastionRev 2), its only change (dddb228289c8 reproduces with Bastion retired)",
+  "digest": "2d397077b68fe1d44bc91328667248aed1f0cdad0f438e0a23554c1916ca9e59"
 }

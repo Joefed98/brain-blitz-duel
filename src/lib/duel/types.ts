@@ -96,7 +96,11 @@ export type PuzzleType =
   | "fivehands"
   | "minigolf"
   | "pool"
-  | "curling";
+  | "curling"
+  | "fences"
+  | "fillomino"
+  | "bridges"
+  | "kakuro";
 
 /** A type id as stored rooms hold it: a live type, or a game deleted since (removedGames.ts). */
 export type StoredPuzzleType = PuzzleType | RemovedPuzzleType;
@@ -389,6 +393,10 @@ export type PuzzleData =
   | MeasurePuzzleData
   | CheckoutPuzzleData
   | NumlinePuzzleData
+  | FencesPuzzleData
+  | FillominoPuzzleData
+  | BridgesPuzzleData
+  | KakuroPuzzleData
   | DigPuzzleData
   | WordSearchPuzzleData
   | LetterWheelPuzzleData
@@ -2691,4 +2699,92 @@ export interface CurlingPuzzleData {
    * curlingBankV2.server.ts): the start along the hog line and side brushing, the same parts.
    */
   curlRev?: number;
+}
+
+/* ============================ New grid puzzles (1 Nov 2026) ============================ */
+/*
+ * Fences, Fillomino and Bridges (Logic) and Kakuro (Number): born on the puzzle scoring standard (each game's own
+ * stamp at 1, standard/stamps.ts). Every board comes from a seeded generator whose solver proves exactly one
+ * solution (the `*.server.ts` modules); the solution stays server-side until the reveal (secrets.ts).
+ */
+
+/** Fences: a 6 × 6 grid, 90 s. */
+export const FENCES_TIME_MS = 90_000;
+export const FENCES_SIZE = 6;
+
+export interface FencesPuzzleData {
+  type: "fences";
+  /** 1: the first rules, on the scoring standard. */
+  fencesRev?: number;
+  size: number;
+  /** One per cell, row by row: how many of its four sides the loop uses, or -1 for no number. */
+  clues: number[];
+  /** The solver's difficulty grade (search nodes beyond pure deduction), public. */
+  grade?: number;
+  /** The loop's edges (fences.ts edge ids), sorted — private until the reveal. */
+  solution?: number[];
+}
+
+/** Fillomino: a 7 × 7 grid, 90 s. */
+export const FILLOMINO_TIME_MS = 90_000;
+export const FILLOMINO_SIZE = 7;
+
+export interface FillominoPuzzleData {
+  type: "fillomino";
+  /** 1: the first rules, on the scoring standard. */
+  fillominoRev?: number;
+  size: number;
+  /** One per cell, row by row: the given number, or 0 for a blank. */
+  givens: number[];
+  grade?: number;
+  /** Every cell's number — private until the reveal. */
+  solution?: number[];
+}
+
+/** Bridges: a 7 × 7 grid with 10–14 islands, 90 s. */
+export const BRIDGES_TIME_MS = 90_000;
+export const BRIDGES_SIZE = 7;
+
+export interface BridgesIsland {
+  cell: number;
+  n: number;
+}
+
+export interface BridgesPuzzleData {
+  type: "bridges";
+  /** 1: the first rules, on the scoring standard. */
+  bridgesRev?: number;
+  size: number;
+  /** In cell order. */
+  islands: BridgesIsland[];
+  grade?: number;
+  /** Bridges on each candidate pair (bridges.ts `bridgePairs` order), 0–2 — private until the reveal. */
+  solution?: number[];
+}
+
+/** Kakuro: a 6 × 6 board (the top row and left column are clue cells), about 20 white cells, 120 s. */
+export const KAKURO_TIME_MS = 120_000;
+export const KAKURO_SIZE = 6;
+
+export interface KakuroClue {
+  /** A black cell, row by row. */
+  cell: number;
+  /** The run below it adds to this (0: no run). */
+  down: number;
+  /** The run to its right adds to this (0: no run). */
+  right: number;
+}
+
+export interface KakuroPuzzleData {
+  type: "kakuro";
+  /** 1: the first rules, on the scoring standard. */
+  kakuroRev?: number;
+  size: number;
+  /** The white cells, ascending. */
+  white: number[];
+  /** Every black cell that starts a run. */
+  clues: KakuroClue[];
+  grade?: number;
+  /** One per cell, row by row: the digit, 0 on black cells — private until the reveal. */
+  solution?: number[];
 }

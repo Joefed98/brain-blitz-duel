@@ -100,6 +100,7 @@ import { decodeHotFloorRun, replayHotFloorRun } from "./hotFloor";
 import { replayColourClashRun } from "./colourClash";
 import { clashRev4Finished, clashVariantOf, CLASH_REV, CLASH_REV_TALL, CLASH_REV_BANDS, CLASH_REV_GREAT } from "@/lib/arcade/colourClash";
 import { decodeTents, scoreTents, tentsHeightOf, tentsLayoutValid } from "./tents";
+import { gradeGridPuzzle } from "./gridPuzzles";
 import { acceptedRects, decodeShikaku, scoreShikaku, shikakuCovered, shikakuHeightOf } from "./shikaku";
 import { decodeBulbs, lightUpStatus, scoreLightUp } from "./lightUp";
 import { decodeBallTrackRun, replayBallTrackRun } from "./ballTrack";
@@ -2502,6 +2503,21 @@ function gradeUnderRev(
         numlineRev: puzzle.numlineRev,
         errors: results.map((r) => (r.error === null ? null : Math.round(r.error * 10_000) / 10_000)),
       };
+      break;
+    }
+    case "fences":
+    case "fillomino":
+    case "bridges":
+    case "kakuro": {
+      // New grid puzzles (1 Nov 2026), born on the scoring standard: the verdict is the rules (the solution is unique,
+      // so a board that keeps them is the solution) and the progress counts items against the stored solution. The
+      // standard's grader (standard/grid.server.ts) turns these facts into the score; this one is its fallback only.
+      const grid = gradeGridPuzzle(puzzle, answer);
+      isCorrect = grid.solved;
+      correctCount = grid.right;
+      errors = grid.wrong;
+      score = grid.solved ? 150 : Math.round((120 * Math.max(0, grid.right - grid.wrong)) / Math.max(1, grid.total));
+      extraDetail = { solved: grid.solved, right: grid.right, wrong: grid.wrong, total: grid.total };
       break;
     }
     case "numpyramid": {

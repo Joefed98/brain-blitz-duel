@@ -6,6 +6,7 @@ import { INK_LEVELS, INK_V12_CORE_MAX } from "@/lib/arcade/inkBridge";
 import { TILT_S_MAZES } from "@/lib/arcade/tilt";
 import { bandsIntro } from "./puzzleBandsText";
 import { logicStandardIntro } from "./standard/logicText";
+import { gridStandardIntro } from "./standard/gridText";
 import { wordSearchBonusIntro } from "./wordSearchText";
 import { letterWheelJarIntro } from "./letterWheelText";
 import { CODEWORD_STRETCH, TILEGRID_STRETCH_TOPUP, stretchIntro, strikeoutDepthIntro } from "./depth/stretchShapes";
@@ -56,6 +57,7 @@ function introScoreTemplates(): Record<PuzzleType, string> {
     checkout: standardNumberIntro("checkout"),
     // "speed points" for the brief's "speed bonus": the intro wording check rejects "speed bonus".
     numline: standardNumberIntro("numline"),
+    kakuro: gridStandardIntro("kakuro"),
     tendrop: "Points per target. Clear all ten fast, hitting targets with gold tiles, for up to {max}.",
 
     // Attention
@@ -94,6 +96,9 @@ function introScoreTemplates(): Record<PuzzleType, string> {
     rings: PATTERN_STD_INTRO.rings,
     blockparty: PATTERN_STD_INTRO.blockparty,
     shikaku: logicStandardIntro("shikaku"),
+    fences: gridStandardIntro("fences"),
+    fillomino: gridStandardIntro("fillomino"),
+    bridges: gridStandardIntro("bridges"),
     lightup: logicStandardIntro("lightup"),
     tents: logicStandardIntro("tents"),
     dig: "Fill the drain with clean water for 100, more if you're quick and use few digs.",

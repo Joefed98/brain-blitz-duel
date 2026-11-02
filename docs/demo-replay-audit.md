@@ -185,7 +185,10 @@ first; within them, "stopped" ones are certain, the rest depend on the query abo
 6. Mixed Signals (stopped: tall `clashRev`)
 7. Ball Tracker, Breaker, Coral Pop, Fission, Grappler, Orbit, Rally, Slice, Tempo, Wavefront
    (stopped: their tall revisions)
-8. Bastion (1 Nov 2026: the tank-defence shooter, `bastionRev 2`; no demo yet, the intro shows its still; record one on
+8. Fences, Fillomino, Bridges and Kakuro (new 1 Nov 2026; no demo recorded yet: their intros show the fixed still
+   until one is recorded on `fencesRev` / `fillominoRev` / `bridgesRev` / `kakuroRev` 1). Their replays show the
+   winner's final board ("Final state only, needs an action log" above).
+9. Bastion (1 Nov 2026: the tank-defence shooter, `bastionRev 2`; no demo yet, the intro shows its still; record one on
    `bastionRev 2`, an original-turret demo stays stopped, `introDemo.functions.ts`)
 
 ## Arcade reveal line

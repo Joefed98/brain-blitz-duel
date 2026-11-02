@@ -1,5 +1,6 @@
 import { openBandsLine } from "./puzzleBandsText";
 import { logicStandardHelp } from "./standard/logicText";
+import { gridStandardHelp } from "./standard/gridText";
 import { FLOOD_STANDARD_SPARE_MOVES } from "./standard/logicRules";
 import { wordSearchBonusHelp } from "./wordSearchText";
 import { letterWheelJarHelp } from "./letterWheelText";
@@ -1537,6 +1538,33 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
       ],
       score: logicStandardHelp("shikaku"),
     },
+    fences: {
+      goal: "Draw one closed loop along the grid lines.",
+      how: [
+        { action: "Tap an edge", detail: "to draw a line; again for ✕, again to clear." },
+        { action: "Drag along edges", detail: "to draw several at once." },
+        { action: "Each number", detail: "is how many of its four sides the loop uses." },
+      ],
+      score: gridStandardHelp("fences"),
+    },
+    fillomino: {
+      goal: "Split the grid into regions: a region of N squares holds N.",
+      how: [
+        { action: "Tap a square", detail: "then a number, or drag from a number to paint it." },
+        { action: "Each region of N", detail: "is N squares, all numbered N." },
+        { action: "Same-size regions", detail: "never touch side by side." },
+      ],
+      score: gridStandardHelp("fillomino"),
+    },
+    bridges: {
+      goal: "Join every island so each has its number of bridges.",
+      how: [
+        { action: "Drag island to island", detail: "to build a bridge; again for two, again to remove." },
+        { action: "Bridges run straight", detail: "never cross, at most two per pair." },
+        { action: "Every island", detail: "must end up connected." },
+      ],
+      score: gridStandardHelp("bridges"),
+    },
     dig: {
       goal: "Dig a path so the water reaches the drain.",
       how: [
@@ -1584,6 +1612,15 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Every board is different.", detail: "Solve the five in any order; a wrong throw only costs time. Undo takes a dart back.", helpOnly: true },
       ],
       score: standardNumberHelp("checkout"),
+    },
+    kakuro: {
+      goal: "Fill the white squares so every run adds to its clue.",
+      how: [
+        { action: "Tap a square", detail: "then a number from 1 to 9." },
+        { action: "Each run", detail: "adds to the clue before it; no digit twice in a run." },
+        { action: "Pencil", detail: "keeps notes; they never count." },
+      ],
+      score: gridStandardHelp("kakuro"),
     },
     numline: {
       goal: "Place each number on the line.",
