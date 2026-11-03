@@ -1,6 +1,7 @@
 /* fillomino (1 Nov 2026): the board look, display only. Imported from styles.css.
    Smoky glass squares in dark leading (Shikaku's glass), region edges drawn as thick lead lines between different
-   numbers, finished regions as gold panes, groups past their number in red. No hit box changes: every rule paints the
+   numbers, finished regions (3 Nov 2026) in five calm shades, touching ones never alike (`data-shade`, chosen by
+   fillominoShades: "the right size", never a gold "correct"), groups past their number in red. No hit box changes: every rule paints the
    cell the pointer grid already maps. */
 .fillomino-frame {
   border-radius: 8px;
@@ -25,9 +26,15 @@
   border-bottom-color: #e9e6dc;
 }
 .fillomino-board > .fillomino-cell.fillomino-done {
-  background-color: color-mix(in oklab, var(--primary) 26%, #1b1c22);
-  background-image: linear-gradient(135deg, rgba(255, 255, 255, 0.2) 0%, rgba(255, 255, 255, 0.03) 40%, rgba(0, 0, 0, 0) 60%, rgba(0, 0, 0, 0.14) 100%);
+  background-color: color-mix(in oklab, var(--fm-shade, #4f8f8b) 34%, #1b1c22);
+  background-image: linear-gradient(135deg, rgba(255, 255, 255, 0.12) 0%, rgba(255, 255, 255, 0.02) 40%, rgba(0, 0, 0, 0) 60%, rgba(0, 0, 0, 0.14) 100%);
 }
+/* The five shades: teal, blue, violet, rose, moss. Calm, mid-dark, far from the gold of "tap to play" and the red flag. */
+.fillomino-board > .fillomino-cell[data-shade="0"] { --fm-shade: #4fa39d; }
+.fillomino-board > .fillomino-cell[data-shade="1"] { --fm-shade: #5b82c9; }
+.fillomino-board > .fillomino-cell[data-shade="2"] { --fm-shade: #9373cf; }
+.fillomino-board > .fillomino-cell[data-shade="3"] { --fm-shade: #c9708f; }
+.fillomino-board > .fillomino-cell[data-shade="4"] { --fm-shade: #86a85a; }
 .fillomino-board > .fillomino-cell.fillomino-over {
   background-color: color-mix(in oklab, var(--destructive) 28%, #1b1c22);
 }
@@ -52,13 +59,15 @@
 [data-logic-stage="fillomino"] [data-game-controls="numbers"] .fillomino-key {
   min-height: 44px;
 }
+/* The picked tool (it stays picked until another key) takes the shared puzzle surface's active key: the category
+   accent fill (usePuzzleSurfaces reads bg-primary/15 as "active"); no gold, which means "tap to play". */
 
 /* Live round: the finished panes glow faintly, the empty squares sink as wells (as Shikaku's batch P look). */
 [data-puzzle-play][data-puzzle-play] .fillomino-board > .fillomino-cell:not(.fillomino-done):not(.fillomino-over) {
   box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.5);
 }
 [data-puzzle-play][data-puzzle-play] .fillomino-board > .fillomino-cell.fillomino-done {
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1), inset 0 0 8px rgba(245, 184, 46, 0.22);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08), inset 0 0 8px color-mix(in oklab, var(--fm-shade, #4fa39d) 30%, transparent);
 }
 
 /* Completion (≤ 1.2 s, keyed off [data-logic-solved]): the regions flash gold in a diagonal wave, once. */

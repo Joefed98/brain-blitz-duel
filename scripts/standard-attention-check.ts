@@ -29,6 +29,7 @@ import { joinPairGoldTime } from "../src/lib/duel/depth/matchmaker";
 import { wasteFactor } from "../src/lib/duel/puzzleScoreRev";
 import { MAZE_REV1_DEAD_ZONE } from "../src/lib/duel/scoring";
 import { pinPrePuzzleNotes } from "../src/lib/duel/puzzleNotes";
+import { pinPreParMoves } from "../src/lib/duel/parMoves";
 import { CLASH_QUEUE, CLASH_REV_STANDARD, CLASH_REV_TOPUP, clashCheckpoint, clashStandardScoreOf, colourClashGameFor, type ClashState } from "../src/lib/arcade/colourClash";
 import { replayColourClashRun } from "../src/lib/duel/colourClash";
 import { KITS } from "./puzzle-fairness/kits";
@@ -40,6 +41,9 @@ import type { ChainPuzzleData, CountUpPuzzleData, MazePuzzleData, NumberHuntPuzz
 // Written for the standard's stamps: Joe's puzzle notes (28 Oct 2026, puzzleNotes.ts) deal Slider and Tally one above,
 // so new deals here keep the standard's (puzzle-notes-check proves the new stamps).
 pinPrePuzzleNotes(true);
+// The puzzle batch of 3 Nov 2026 (parMoves.ts) deals Labyrinth one stamp above the standard's: pinned here too
+// (puzzle-batch-nov-check proves the new stamps).
+pinPreParMoves(true);
 
 const args = process.argv.slice(2);
 const SEEDS = Number(args.find((a) => a.startsWith("--seeds="))?.slice(8) ?? 8);

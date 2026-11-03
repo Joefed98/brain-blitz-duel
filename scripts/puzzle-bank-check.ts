@@ -71,6 +71,11 @@ import { FULL_DEPTH } from "./check-depth";
 import { BANK_COUNT, entriesHash, liveIntroExample } from "./puzzle-bank-lib";
 import { dealStandard } from "../src/lib/duel/standard/stamps";
 import type { PuzzleData } from "../src/lib/duel/types";
+import { pinPreParMoves } from "../src/lib/duel/parMoves";
+
+// Written for the standard's stamps: the puzzle batch of 3 Nov 2026 (parMoves.ts) deals Skid one stamp above (no ice
+// gems), so banked deals here keep the standard's (puzzle-batch-nov-check proves Skid's banked deals on the new stamp).
+pinPreParMoves(true);
 
 const self = fileURLToPath(import.meta.url);
 

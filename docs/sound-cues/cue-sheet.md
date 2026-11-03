@@ -375,15 +375,15 @@ Grouped by game or screen. These are the cues still missing a sound.
 | Blackout | logic | yes | music_logic_2 (shared) | `music_logic_lightsout` |
 | Bomb Defusal | logic | yes | music_logic_3 (shared) | `music_logic_bomb` |
 | Box Six | logic | yes | music_logic_1 (shared) | `music_logic_sudoku` |
-| Bridges | logic | yes | music_logic_3 (shared) | `music_logic_bridges` |
 | Colour Flood | logic | yes | music_logic_2 (shared) | `music_logic_flood` |
 | Dig | logic | practice only | music_logic_1 (shared) | `music_logic_dig` |
-| Fences | logic | yes | music_logic_2 (shared) | `music_logic_fences` |
-| Fillomino | logic | yes | music_logic_1 (shared) | `music_logic_fillomino` |
 | Hanoi | logic | yes | music_logic_3 (shared) | `music_logic_tower` |
+| Island Link | logic | yes | music_logic_3 (shared) | `music_logic_bridges` |
 | Lamplighter | logic | yes | music_logic_1 (shared) | `music_logic_lightup` |
+| Loopline | logic | yes | music_logic_2 (shared) | `music_logic_fences` |
 | Mosaic | logic | yes | music_logic_1 (shared) | `music_logic_nonogram` |
 | Polypotions | logic | yes | music_logic_3 (shared) | `music_logic_tubes` |
+| Regions | logic | yes | music_logic_1 (shared) | `music_logic_fillomino` |
 | Safe Cracker | logic | yes | music_logic_2 (shared) | `music_logic_safe` |
 | Shikaku | logic | yes | music_logic_1 (shared) | `music_logic_shikaku` |
 | Tents and Trees | logic | yes | music_logic_1 (shared) | `music_logic_tents` |
@@ -1114,15 +1114,6 @@ Grouped by game or screen.
 | `sudoku.solve` | The grid is complete and valid [logic.md] |  | 0–1 | recorded sound | `sudoku.solve` | 1200 | success sting | `sudoku.solve` |
 | `music.sudoku` | Box Six round bed: music_logic_1 (logic bed shared with other games) |  | loop | recorded sound | `music_logic_1` (shared) | 60000 | music | `music_logic_sudoku` |
 
-### Bridges
-
-| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
-|---|---|---|---|---|---|---|---|---|
-| `bridges.build` |  [grid.md] |  | 5–40 (per move) | recorded sound | `bridges.build` | 200 | game event | `bridges.build` |
-| `bridges.remove` |  [grid.md] |  | 5–40 (per move) | recorded sound | `bridges.remove` | 200 | game event | `bridges.remove` |
-| `bridges.solve` |  [grid.md] |  | 0–1 | recorded sound | `bridges.solve` | 1000 | success sting | `bridges.solve` |
-| `music.bridges` | Bridges round bed: music_logic_3 (logic bed shared with other games) |  | loop | recorded sound | `music_logic_3` (shared) | 60000 | music | `music_logic_bridges` |
-
 ### Colour Flood
 
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
@@ -1136,24 +1127,6 @@ Grouped by game or screen.
 |---|---|---|---|---|---|---|---|---|
 | `music.dig` | Dig round bed (retired, practice): music_logic_1 (logic bed shared with other games) |  | loop | recorded sound | `music_logic_1` (shared) | 60000 | music | `music_logic_dig` |
 
-### Fences
-
-| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
-|---|---|---|---|---|---|---|---|---|
-| `fences.draw` |  [grid.md] |  | 5–40 (per move) | recorded sound | `fences.draw` | 200 | game event | `fences.draw` |
-| `fences.cross` |  [grid.md] |  | 5–40 (per move) | recorded sound | `fences.cross` | 200 | game event | `fences.cross` |
-| `fences.solve` |  [grid.md] |  | 0–1 | recorded sound | `fences.solve` | 1000 | success sting | `fences.solve` |
-| `music.fences` | Fences round bed: music_logic_2 (logic bed shared with other games) |  | loop | recorded sound | `music_logic_2` (shared) | 60000 | music | `music_logic_fences` |
-
-### Fillomino
-
-| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
-|---|---|---|---|---|---|---|---|---|
-| `fillomino.place` |  [grid.md] |  | 5–40 (per move) | recorded sound | `fillomino.place` | 80 | UI tap | `fillomino.place` |
-| `fillomino.region` |  [grid.md] |  | 5–40 (per move) | recorded sound | `fillomino.region` | 200 | game event | `fillomino.region` |
-| `fillomino.solve` |  [grid.md] |  | 0–1 | recorded sound | `fillomino.solve` | 1000 | success sting | `fillomino.solve` |
-| `music.fillomino` | Fillomino round bed: music_logic_1 (logic bed shared with other games) |  | loop | recorded sound | `music_logic_1` (shared) | 60000 | music | `music_logic_fillomino` |
-
 ### Hanoi
 
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
@@ -1162,6 +1135,15 @@ Grouped by game or screen.
 | `tower.solve` | Every ring is on the gold post [logic.md] |  | 0–1 | recorded sound | `tower.solve` | 1170 | success sting | `tower.solve` |
 | `music.tower` | Hanoi round bed: music_logic_3 (logic bed shared with other games) |  | loop | recorded sound | `music_logic_3` (shared) | 60000 | music | `music_logic_tower` |
 
+### Island Link
+
+| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
+|---|---|---|---|---|---|---|---|---|
+| `bridges.build` |  [grid.md] |  | 5–40 (per move) | recorded sound | `bridges.build` | 200 | game event | `bridges.build` |
+| `bridges.remove` |  [grid.md] |  | 5–40 (per move) | recorded sound | `bridges.remove` | 200 | game event | `bridges.remove` |
+| `bridges.solve` |  [grid.md] |  | 0–1 | recorded sound | `bridges.solve` | 1000 | success sting | `bridges.solve` |
+| `music.bridges` | Island Link round bed: music_logic_3 (logic bed shared with other games) |  | loop | recorded sound | `music_logic_3` (shared) | 60000 | music | `music_logic_bridges` |
+
 ### Lamplighter
 
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
@@ -1169,6 +1151,15 @@ Grouped by game or screen.
 | `lightup.clear` | A square is cleared [logic.md] |  | 5–40 (per move) | recorded sound | `lightup.clear` | 200 | game event | `lightup.clear` |
 | `lightup.solve` | Every square is lit with no clash and every number met [logic.md] |  | 0–1 | recorded sound | `lightup.solve` | 1170 | success sting | `lightup.solve` |
 | `music.lightup` | Lamplighter round bed: music_logic_1 (logic bed shared with other games) |  | loop | recorded sound | `music_logic_1` (shared) | 60000 | music | `music_logic_lightup` |
+
+### Loopline
+
+| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
+|---|---|---|---|---|---|---|---|---|
+| `fences.draw` |  [grid.md] |  | 5–40 (per move) | recorded sound | `fences.draw` | 200 | game event | `fences.draw` |
+| `fences.cross` |  [grid.md] |  | 5–40 (per move) | recorded sound | `fences.cross` | 200 | game event | `fences.cross` |
+| `fences.solve` |  [grid.md] |  | 0–1 | recorded sound | `fences.solve` | 1000 | success sting | `fences.solve` |
+| `music.fences` | Loopline round bed: music_logic_2 (logic bed shared with other games) |  | loop | recorded sound | `music_logic_2` (shared) | 60000 | music | `music_logic_fences` |
 
 ### Mosaic
 
@@ -1186,6 +1177,15 @@ Grouped by game or screen.
 | `tubes.cork` | A pour fills a flask with one colour (it gets a cork) [logic.md] |  | 5–40 (per move) | recorded sound | `tubes.cork` | 380 | game event | `tubes.cork` |
 | `tubes.solve` | Every flask is sorted [logic.md] |  | 0–1 | recorded sound | `tubes.solve` | 1140 | success sting | `tubes.solve` |
 | `music.tubes` | Polypotions round bed: music_logic_3 (logic bed shared with other games) |  | loop | recorded sound | `music_logic_3` (shared) | 60000 | music | `music_logic_tubes` |
+
+### Regions
+
+| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
+|---|---|---|---|---|---|---|---|---|
+| `fillomino.place` |  [grid.md] |  | 5–40 (per move) | recorded sound | `fillomino.place` | 80 | UI tap | `fillomino.place` |
+| `fillomino.region` |  [grid.md] |  | 5–40 (per move) | recorded sound | `fillomino.region` | 200 | game event | `fillomino.region` |
+| `fillomino.solve` |  [grid.md] |  | 0–1 | recorded sound | `fillomino.solve` | 1000 | success sting | `fillomino.solve` |
+| `music.fillomino` | Regions round bed: music_logic_1 (logic bed shared with other games) |  | loop | recorded sound | `music_logic_1` (shared) | 60000 | music | `music_logic_fillomino` |
 
 ### Safe Cracker
 
@@ -2028,9 +2028,9 @@ loops are not measured there). Files in `public/sounds/` are listed once per slo
 | `music_pattern_1` | music | `music.tiles`, `music.blockparty`, `music.rings` | loop |
 | `music_pattern_2` | music | `music.unblock`, `music.iceslide` | loop |
 | `music_pattern_3` | music | `music.laser`, `music.gravity` | loop |
-| `music_logic_1` | music | `music.sudoku`, `music.dig`, `music.fillomino`, `music.lightup`, `music.nonogram`, `music.shikaku`, `music.tents` | loop |
+| `music_logic_1` | music | `music.sudoku`, `music.dig`, `music.lightup`, `music.nonogram`, `music.fillomino`, `music.shikaku`, `music.tents` | loop |
 | `music_logic_2` | music | `music.flow`, `music.pipes`, `music.lightsout`, `music.flood`, `music.fences`, `music.safe` | loop |
-| `music_logic_3` | music | `music.push`, `music.bomb`, `music.bridges`, `music.tower`, `music.tubes`, `music.trail` | loop |
+| `music_logic_3` | music | `music.push`, `music.bomb`, `music.tower`, `music.bridges`, `music.tubes`, `music.trail` | loop |
 | `standings_loop` | music | `music.standings` | loop |
 | `podium_loop` | music | `music.podium` | loop |
 | `music_burst` | music | `music.burst` | loop |
