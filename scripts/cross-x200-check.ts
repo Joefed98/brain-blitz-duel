@@ -56,7 +56,7 @@ import {
   CROSS_KIND_MOTO,
   CROSS_KIND_ROADWORKS,
   CROSS_REV_EXPAND,
-  CROSS_REV_STD,
+  CROSS_REV_FLOW,
   CROSS_REV_STRICT,
   CROSS_X_BONUS_MAX,
   CROSS_X_BUS_FROM,
@@ -193,7 +193,8 @@ for (let n = 0; n < 6; n++) {
   ok(worst === CROSS_X_COINS_PER_RUN && most === CROSS_X_COINS_PER_RUN && CROSS_X_COINS_PER_RUN === 20, `every run holds exactly ${CROSS_X_COINS_PER_RUN} coins (${worst}-${most} on 60 seeds)`);
   // The arcade scoring standard (29 Oct 2026) moved rooms on to crossRev 10 (crossRev 9's courses, busier crossing by
   // crossing, scored on the standard); arcade-standard-check covers it, and crossRev 9 replays as before here.
-  ok(generateCross().crossRev === CROSS_REV_STD, "rooms deal crossRev 10, the standard's revision on crossRev 9's world");
+  // The no-stop streak (3 Nov 2026) moved them on to crossRev 11 (crossRev 10's courses without coins); cross-rev11-check covers it.
+  ok(generateCross().crossRev === CROSS_REV_FLOW, "rooms deal crossRev 11, the no-stop streak on crossRev 9's world");
 }
 
 /* 4. Features through every recorded and fresh run, tick by tick. */

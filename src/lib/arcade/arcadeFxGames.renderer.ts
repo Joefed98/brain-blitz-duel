@@ -935,7 +935,8 @@ export const CROSS_FX: ArcadeFxSpec<CrossState> = {
       kind: "streak",
       count: (s) => s.streakPts ?? 0,
       at: () => ({ x: CROSS_WORLD_W / 2, y: CROSS_HUD_H + 60 }),
-      label: (s) => `STREAK ×${crossMultiplierFor(s.streak ?? 0)}`,
+      // crossRev 11: the no-stop streak paying (its crossings in a row).
+      label: (s) => (s.flow ? `NO-STOP ×${s.streak ?? 0}` : `STREAK ×${crossMultiplierFor(s.streak ?? 0)}`),
     },
     // crossRev 9 (x200 addendum): a close call, a hop landed just behind a passing vehicle.
     {

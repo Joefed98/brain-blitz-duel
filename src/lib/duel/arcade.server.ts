@@ -3,7 +3,7 @@ import { BASTION_REV_DEALT } from "@/lib/arcade/bastionTank";
 import { TEN_DROP_DEPTH_REV } from "@/lib/arcade/tenDrop";
 import { SLICE_REV_TARGET, SLICE_REV_STRICT, SLICE_REV_STANDARD } from "@/lib/arcade/slice";
 import { FLIP_REV_TARGET, FLIP_REV_STRICT, FLIP_REV_STD } from "@/lib/arcade/flip";
-import { CROSS_REV_STD } from "@/lib/arcade/cross";
+import { CROSS_REV_FLOW } from "@/lib/arcade/cross";
 import { INK_REV_STD } from "@/lib/arcade/inkBridge";
 import { SNAKE_REV_TARGET, SNAKE_REV_12 } from "@/lib/arcade/snake";
 import { BUB_REV_STD } from "@/lib/arcade/bubble";
@@ -176,7 +176,8 @@ export function generateSnake(): SnakePuzzleData {
 }
 
 export function generateCross(): CrossPuzzleData {
-  return { type: "cross", seed: arcadeSeed(), crossRev: CROSS_REV_STD };
+  // crossRev 11 (3 Nov 2026): crossRev 10's courses without coins, scored with the no-stop streak and a cost a hit.
+  return { type: "cross", seed: arcadeSeed(), crossRev: CROSS_REV_FLOW };
 }
 
 export function generateDual(): DualPuzzleData {

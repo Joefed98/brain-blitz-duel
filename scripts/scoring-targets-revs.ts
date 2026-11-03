@@ -63,7 +63,9 @@ export const LIFT_REVS: Partial<Record<LiveBandGame, readonly [lift: number, pla
  * snakeRev 12 (1 Nov 2026, gold stars count 2 towards the core, full at 20) keeps snakeRev 11's play, which is snakeRev 10's
  * (snake-rev12-check proves it).
  */
-export const STD_REVS: Partial<Record<LiveBandGame, readonly [std: number, play: number]>> = { flip: [10, 8], snake: [12, 10] };
+// Jaywalk crossRev 11 (3 Nov 2026, docs/arcade-standard/cross.md "crossRev 11") keeps crossRev 10's courses and walker exactly
+// (its coins taken out, which never moved the walker), scored on the no-stop streak (cross-rev11-check proves it).
+export const STD_REVS: Partial<Record<LiveBandGame, readonly [std: number, play: number]>> = { flip: [10, 8], snake: [12, 10], cross: [11, 10] };
 
 /**
  * The revision whose play a dealt revision keeps: the target and score-bands revisions map to the target's

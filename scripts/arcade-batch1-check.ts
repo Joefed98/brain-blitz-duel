@@ -254,8 +254,9 @@ for (const seed of CROSS_SEEDS.slice(0, 12)) {
 }
 console.log(`  150 reached through the server replay on ${best150} of 12 seeds (planner never loses a life)`);
 const crossIntro = INTRO_SCORE.cross;
-// The intro follows the revision rooms deal: crossRev 9 (x200) states rows, crossings, coins and streaks, up to its maximum.
-ok(crossIntro.includes(`Up to ${roundMaxFor("cross")}`) && /rows/.test(crossIntro) && /crossings/.test(crossIntro) && /coins/.test(crossIntro), "Jaywalk intro states rows, crossings, coins, up to its maximum (crossRev 9)");
+// The intro follows the revision rooms deal: crossRev 9 (x200) stated rows, crossings, coins and streaks, up to its maximum;
+// crossRev 11 (3 Nov 2026, no coins) states rows, crossings and the no-stop streak.
+ok(crossIntro.includes(`Up to ${roundMaxFor("cross")}`) && /rows/.test(crossIntro) && /crossings/.test(crossIntro) && /no-stop streak/.test(crossIntro), "Jaywalk intro states rows, crossings, the no-stop streak, up to its maximum (crossRev 11)");
 }
 
 /* =============================== 2b. Roofbound =============================== */

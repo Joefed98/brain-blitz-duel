@@ -135,7 +135,7 @@ import { FLIP_REV_BAND, FLIP_REV_EXPAND, FLIP_REV_LIFT, FLIP_REV_TUNEC } from "@
 import { INK_REV_BAND, INK_REV_TUNEC } from "@/lib/arcade/inkBridge";
 import { MATCHUP_REV_BAND, MATCHUP_REV_PAR, MATCHUP_REV_SIX, MATCHUP_REV_STD, MATCHUP_REV_WAIT } from "@/lib/arcade/matchup";
 import { BUB_REV_BAND, BUB_REV_TALL, BUB_REV_TORPEDO } from "@/lib/arcade/bubble";
-import { CROSS_REV_BAND, CROSS_REV_EXPAND, CROSS_REV_SMALL, CROSS_REV_STD } from "@/lib/arcade/cross";
+import { CROSS_REV_BAND, CROSS_REV_EXPAND, CROSS_REV_FLOW, CROSS_REV_SMALL, CROSS_REV_STD } from "@/lib/arcade/cross";
 import { RALLY_REV_BAND, RALLY_REV_TALL, RALLY_REV_TUNED, RALLY_REV_TUNEF } from "@/lib/arcade/rally";
 import { SNAKE_REV_BAND, SNAKE_REV_ROCKS, SNAKE_REV_TALL, SNAKE_REV_10, SNAKE_REV_STD, SNAKE_REV_12 } from "@/lib/arcade/snake";
 import { BINTOSS_REV_BAND } from "@/lib/arcade/binToss";
@@ -936,6 +936,9 @@ const GAMES: Game[] = [
   { key: "pyramid", game: pyramidGame, checkpoint: pyCheckpoint, mode: "events", rate: 80, encode: encodePyramidRun, replay: (seed: number, raw: string) => replayPyramidRun(seed, raw, 1) },
   { key: "golfsol", game: golfSolGame, checkpoint: gsCheckpoint, mode: "events", rate: 80, encode: encodeGolfSolRun, replay: (seed: number, raw: string) => replayGolfSolRun(seed, raw, 1), seedFor: (n: number) => n % 300 },
   { key: "muggins", game: mugginsGame, checkpoint: mgCheckpoint, mode: "events", rate: 60, encode: encodeMugginsRun, replay: (seed: number, raw: string) => replayMugginsRun(seed, raw, 1) },
+  // Jaywalk crossRev 11 (3 Nov 2026, docs/arcade-standard/cross.md "crossRev 11"), appended so every earlier entry keeps
+  // its index: crossRev 10's courses without coins, the no-stop streak and a cost a hit.
+  { key: "cross/rev11", game: crossGameFor(CROSS_REV_FLOW), checkpoint: crossCheckpoint, mode: "events", rate: 60, encode: encodeCrossRun, replay: (seed: number, raw: string) => replayCrossRun(seed, raw, CROSS_REV_FLOW) },
 ];
 
 /** A random candidate event, often outside the declared range (a finger off the edge). */
